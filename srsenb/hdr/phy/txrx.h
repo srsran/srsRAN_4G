@@ -26,7 +26,6 @@
 #include "prach_worker.h"
 #include "srsenb/hdr/phy/lte/worker_pool.h"
 #include "srsenb/hdr/phy/nr/worker_pool.h"
-#include "srslte/common/log.h"
 #include "srslte/config.h"
 #include "srslte/phy/channel/channel.h"
 #include "srslte/radio/radio.h"

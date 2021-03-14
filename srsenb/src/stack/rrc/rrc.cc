@@ -26,6 +26,7 @@
 #include "srslte/asn1/rrc_utils.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/int_helpers.h"
+#include "srslte/common/standard_streams.h"
 #include "srslte/interfaces/enb_mac_interfaces.h"
 #include "srslte/interfaces/enb_pdcp_interfaces.h"
 #include "srslte/interfaces/enb_rlc_interfaces.h"
@@ -39,10 +40,11 @@ using namespace asn1::rrc;
 
 namespace srsenb {
 
-rrc::rrc(srslte::task_sched_handle task_sched_) : logger(srslog::fetch_basic_logger("RRC")), task_sched(task_sched_)
+rrc::rrc(srslte::task_sched_handle task_sched_) :
+  logger(srslog::fetch_basic_logger("RRC")), task_sched(task_sched_), rx_pdu_queue(64)
 {
   pending_paging.clear();
-  ue_pool.reserve(16);
+  rrc::ue::get_ue_pool()->allocate_batch_in_background();
 }
 
 rrc::~rrc() {}
@@ -98,7 +100,7 @@ void rrc::stop()
   if (running) {
     running   = false;
     rrc_pdu p = {0, LCID_EXIT, nullptr};
-    rx_pdu_queue.push(std::move(p));
+    rx_pdu_queue.push_blocking(std::move(p));
   }
   users.clear();
 }
@@ -136,13 +138,17 @@ uint8_t* rrc::read_pdu_bcch_dlsch(const uint8_t cc_idx, const uint32_t sib_index
 void rrc::set_activity_user(uint16_t rnti)
 {
   rrc_pdu p = {rnti, LCID_ACT_USER, nullptr};
-  rx_pdu_queue.push(std::move(p));
+  if (not rx_pdu_queue.try_push(std::move(p))) {
+    logger.error("Failed to push UE activity command to RRC queue");
+  }
 }
 
 void rrc::rem_user_thread(uint16_t rnti)
 {
   rrc_pdu p = {rnti, LCID_REM_USER, nullptr};
-  rx_pdu_queue.push(std::move(p));
+  if (not rx_pdu_queue.try_push(std::move(p))) {
+    logger.error("Failed to push UE remove command to RRC queue");
+  }
 }
 
 uint32_t rrc::get_nof_users()
@@ -153,7 +159,9 @@ uint32_t rrc::get_nof_users()
 void rrc::max_retx_attempted(uint16_t rnti)
 {
   rrc_pdu p = {rnti, LCID_RTX_USER, nullptr};
-  rx_pdu_queue.push(std::move(p));
+  if (not rx_pdu_queue.try_push(std::move(p))) {
+    logger.error("Failed to push max Retx event to RRC queue");
+  }
 }
 
 // This function is called from PRACH worker (can wait)
@@ -250,7 +258,9 @@ void rrc::send_rrc_connection_reject(uint16_t rnti)
 void rrc::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 {
   rrc_pdu p = {rnti, lcid, std::move(pdu)};
-  rx_pdu_queue.push(std::move(p));
+  if (not rx_pdu_queue.try_push(std::move(p))) {
+    logger.error("Failed to push Release command to RRC queue");
+  }
 }
 
 /*******************************************************************************
@@ -285,7 +295,9 @@ void rrc::write_dl_info(uint16_t rnti, srslte::unique_byte_buffer_t sdu)
 void rrc::release_complete(uint16_t rnti)
 {
   rrc_pdu p = {rnti, LCID_REL_USER, nullptr};
-  rx_pdu_queue.push(std::move(p));
+  if (not rx_pdu_queue.try_push(std::move(p))) {
+    logger.error("Failed to push Release command to RRC queue");
+  }
 }
 
 bool rrc::setup_ue_ctxt(uint16_t rnti, const asn1::s1ap::init_context_setup_request_s& msg)
@@ -972,7 +984,7 @@ void rrc::tti_clock()
 {
   // pop cmds from queue
   rrc_pdu p;
-  while (rx_pdu_queue.try_pop(&p)) {
+  while (rx_pdu_queue.try_pop(p)) {
     // print Rx PDU
     if (p.pdu != nullptr) {
       logger.info(p.pdu->msg, p.pdu->N_bytes, "Rx %s PDU", to_string((rb_id_t)p.lcid));
@@ -1015,8 +1027,5 @@ void rrc::tti_clock()
     }
   }
 }
-
-// definition of rrc static member
-srslte::big_obj_pool<rrc::ue, false> rrc::ue_pool;
 
 } // namespace srsenb

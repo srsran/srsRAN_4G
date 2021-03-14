@@ -29,8 +29,7 @@
 #define SRSEPC_HSS_H
 
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/log.h"
-#include "srslte/common/log_filter.h"
+#include "srslte/common/standard_streams.h"
 #include "srslte/interfaces/epc_interfaces.h"
 #include "srslte/srslog/srslog.h"
 #include <cstddef>

@@ -20,6 +20,7 @@
  */
 
 #include "srsue/hdr/stack/mac/proc_ra.h"
+#include "srslte/common/standard_streams.h"
 #include "srslte/interfaces/ue_phy_interfaces.h"
 #include "srslte/interfaces/ue_rrc_interfaces.h"
 #include "srsue/hdr/stack/mac/mux.h"

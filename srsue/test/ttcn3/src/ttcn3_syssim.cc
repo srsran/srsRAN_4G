@@ -21,7 +21,6 @@
 
 #include "srsue/test/ttcn3/hdr/ttcn3_syssim.h"
 #include "dut_utils.h"
-#include "srslte/common/logger_srslog_wrapper.h"
 #include "srslte/mac/pdu_queue.h"
 #include "srslte/srslog/srslog.h"
 #include "srslte/test/ue_test_interfaces.h"
@@ -57,7 +56,7 @@ ttcn3_syssim::ttcn3_syssim(ttcn3_ue* ue_) :
   drb(drb_logger),
   mac_msg_ul(20, ss_mac_logger),
   mac_msg_dl(20, ss_mac_logger),
-  pdus(logger, 128),
+  pdus(logger),
   ue(ue_),
   signal_handler(&running),
   timer_handler(create_tti_timer(), [&](uint64_t res) { new_tti_indication(res); })

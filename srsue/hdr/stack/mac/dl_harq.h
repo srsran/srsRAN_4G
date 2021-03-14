@@ -24,7 +24,6 @@
 
 #include "demux.h"
 #include "dl_sps.h"
-#include "srslte/common/log.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/common/timers.h"
 

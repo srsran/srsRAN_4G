@@ -74,10 +74,10 @@ uint32_t sch_nr_n_prb_lbrm(uint32_t nof_prb)
   return 273;
 }
 
-int srslte_sch_nr_fill_cfg(srslte_sch_nr_t*            q,
-                           const srslte_sch_cfg_t*     sch_cfg,
-                           const srslte_sch_tb_t*      tb,
-                           srslte_sch_nr_common_cfg_t* cfg)
+int srslte_sch_nr_fill_tb_info(const srslte_carrier_nr_t* carrier,
+                               const srslte_sch_cfg_t*    sch_cfg,
+                               const srslte_sch_tb_t*     tb,
+                               srslte_sch_nr_tb_info_t*   cfg)
 {
   if (!sch_cfg || !tb || !cfg) {
     return SRSLTE_ERROR_INVALID_INPUTS;
@@ -120,10 +120,10 @@ int srslte_sch_nr_fill_cfg(srslte_sch_nr_t*            q,
   cfg->Nl   = tb->N_L;
 
   // Calculate Nref
-  uint32_t N_re_lbrm = 156 * sch_nr_n_prb_lbrm(q->carrier.nof_prb);
+  uint32_t N_re_lbrm = 156 * sch_nr_n_prb_lbrm(carrier->nof_prb);
   double   TCR_lbrm  = 948.0 / 1024.0;
   uint32_t Qm_lbrm   = (sch_cfg->mcs_table == srslte_mcs_table_256qam) ? 8 : 6;
-  uint32_t TBS_LRBM  = srslte_ra_nr_tbs(N_re_lbrm, 1.0, TCR_lbrm, Qm_lbrm, q->carrier.max_mimo_layers);
+  uint32_t TBS_LRBM  = srslte_ra_nr_tbs(N_re_lbrm, 1.0, TCR_lbrm, Qm_lbrm, carrier->max_mimo_layers);
   double   R         = 2.0 / 3.0;
   cfg->Nref          = ceil(TBS_LRBM / (cbsegm.C * R));
 
@@ -137,22 +137,12 @@ int srslte_sch_nr_fill_cfg(srslte_sch_nr_t*            q,
   cfg->C  = cbsegm.C;
   cfg->Cp = cbsegm.C;
 
-  // Select encoder
-  cfg->encoder = (bg == BG1) ? q->encoder_bg1[cfg->Z] : q->encoder_bg2[cfg->Z];
-
-  // Select decoder
-  cfg->decoder = (bg == BG1) ? q->decoder_bg1[cfg->Z] : q->decoder_bg2[cfg->Z];
-
-  // Select CRC for TB
-  cfg->crc_tb = (cbsegm.L_tb == 24) ? &q->crc_tb_24 : &q->crc_tb_16;
-
   return SRSLTE_SUCCESS;
 }
 
-#define CEIL(NUM, DEN) (((NUM) + ((DEN)-1)) / (DEN))
 #define MOD(NUM, DEN) ((NUM) % (DEN))
 
-static inline uint32_t sch_nr_get_E(const srslte_sch_nr_common_cfg_t* cfg, uint32_t j)
+static inline uint32_t sch_nr_get_E(const srslte_sch_nr_tb_info_t* cfg, uint32_t j)
 {
   if (cfg->Nl == 0 || cfg->Qm == 0 || cfg->Cp == 0) {
     ERROR("Invalid Nl (%d), Qm (%d) or Cp (%d)", cfg->Nl, cfg->Qm, cfg->Cp);
@@ -162,7 +152,7 @@ static inline uint32_t sch_nr_get_E(const srslte_sch_nr_common_cfg_t* cfg, uint3
   if (j <= (cfg->Cp - MOD(cfg->G / (cfg->Nl * cfg->Qm), cfg->Cp) - 1)) {
     return cfg->Nl * cfg->Qm * (cfg->G / (cfg->Nl * cfg->Qm * cfg->Cp));
   }
-  return cfg->Nl * cfg->Qm * CEIL(cfg->G, cfg->Nl * cfg->Qm * cfg->Cp);
+  return cfg->Nl * cfg->Qm * SRSLTE_CEIL(cfg->G, cfg->Nl * cfg->Qm * cfg->Cp);
 }
 
 static inline int sch_nr_init_common(srslte_sch_nr_t* q)
@@ -225,21 +215,23 @@ int srslte_sch_nr_init_tx(srslte_sch_nr_t* q, const srslte_sch_nr_args_t* args)
       continue;
     }
 
-    q->encoder_bg1[ls] = calloc(1, sizeof(srslte_ldpc_encoder_t));
+    q->encoder_bg1[ls] = SRSLTE_MEM_ALLOC(srslte_ldpc_encoder_t, 1);
     if (!q->encoder_bg1[ls]) {
       ERROR("Error: calloc");
       return SRSLTE_ERROR;
     }
+    SRSLTE_MEM_ZERO(q->encoder_bg1[ls], srslte_ldpc_encoder_t, 1);
 
     if (srslte_ldpc_encoder_init(q->encoder_bg1[ls], encoder_type, BG1, ls) < SRSLTE_SUCCESS) {
       ERROR("Error: initialising BG1 LDPC encoder for ls=%d", ls);
       return SRSLTE_ERROR;
     }
 
-    q->encoder_bg2[ls] = calloc(1, sizeof(srslte_ldpc_encoder_t));
+    q->encoder_bg2[ls] = SRSLTE_MEM_ALLOC(srslte_ldpc_encoder_t, 1);
     if (!q->encoder_bg2[ls]) {
       return SRSLTE_ERROR;
     }
+    SRSLTE_MEM_ZERO(q->encoder_bg2[ls], srslte_ldpc_encoder_t, 1);
 
     if (srslte_ldpc_encoder_init(q->encoder_bg2[ls], encoder_type, BG2, ls) < SRSLTE_SUCCESS) {
       ERROR("Error: initialising BG2 LDPC encoder for ls=%d", ls);
@@ -387,19 +379,23 @@ static inline int sch_nr_encode(srslte_sch_nr_t*        q,
   const uint8_t* input_ptr  = data;
   uint8_t*       output_ptr = e_bits;
 
-  srslte_sch_nr_common_cfg_t cfg = {};
-  if (srslte_sch_nr_fill_cfg(q, sch_cfg, tb, &cfg) < SRSLTE_SUCCESS) {
+  srslte_sch_nr_tb_info_t cfg = {};
+  if (srslte_sch_nr_fill_tb_info(&q->carrier, sch_cfg, tb, &cfg) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
 
+  // Select encoder and CRC
+  srslte_ldpc_encoder_t* encoder = (cfg.bg == BG1) ? q->encoder_bg1[cfg.Z] : q->encoder_bg2[cfg.Z];
+  srslte_crc_t*          crc_tb  = (cfg.L_tb == 24) ? &q->crc_tb_24 : &q->crc_tb_16;
+
   // Check encoder
-  if (cfg.encoder == NULL) {
+  if (encoder == NULL) {
     ERROR("Error: encoder for lifting size Z=%d not found (tbs=%d)", cfg.Z, tb->tbs);
     return SRSLTE_ERROR;
   }
 
   // Check CRC for TB
-  if (cfg.crc_tb == NULL) {
+  if (crc_tb == NULL) {
     ERROR("Error: CRC for TB not found");
     return SRSLTE_ERROR;
   }
@@ -413,16 +409,16 @@ static inline int sch_nr_encode(srslte_sch_nr_t*        q,
     return SRSLTE_ERROR;
   }
 
-  if (tb->softbuffer.tx->max_cb_size < (cfg.encoder->liftN - 2 * cfg.Z)) {
+  if (tb->softbuffer.tx->max_cb_size < (encoder->liftN - 2 * cfg.Z)) {
     ERROR("Soft-buffer code-block maximum size insufficient (max_cb_size=%d) for a TBS=%d, requires %d.",
           tb->softbuffer.tx->max_cb_size,
           tb->tbs,
-          (cfg.encoder->liftN - 2 * cfg.Z));
+          (encoder->liftN - 2 * cfg.Z));
     return SRSLTE_ERROR;
   }
 
   // Calculate TB CRC
-  uint32_t checksum_tb = srslte_crc_checksum_byte(cfg.crc_tb, data, tb->tbs);
+  uint32_t checksum_tb = srslte_crc_checksum_byte(crc_tb, data, tb->tbs);
   if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_DEBUG && !handler_registered) {
     DEBUG("tb=");
     srslte_vec_fprint_byte(stdout, data, tb->tbs / 8);
@@ -477,11 +473,11 @@ static inline int sch_nr_encode(srslte_sch_nr_t*        q,
       }
 
       // Encode code block
-      srslte_ldpc_encoder_encode(cfg.encoder, q->temp_cb, rm_buffer, cfg.Kr);
+      srslte_ldpc_encoder_encode(encoder, q->temp_cb, rm_buffer, cfg.Kr);
 
       if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_DEBUG && !handler_registered) {
         DEBUG("encoded=");
-        srslte_vec_fprint_b(stdout, rm_buffer, cfg.encoder->liftN - 2 * cfg.encoder->ls);
+        srslte_vec_fprint_b(stdout, rm_buffer, encoder->liftN - 2 * encoder->ls);
       }
     }
 
@@ -525,25 +521,29 @@ int sch_nr_decode(srslte_sch_nr_t*        q,
 
   int8_t* input_ptr = e_bits;
 
-  srslte_sch_nr_common_cfg_t cfg = {};
-  if (srslte_sch_nr_fill_cfg(q, sch_cfg, tb, &cfg) < SRSLTE_SUCCESS) {
+  srslte_sch_nr_tb_info_t cfg = {};
+  if (srslte_sch_nr_fill_tb_info(&q->carrier, sch_cfg, tb, &cfg) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
 
+  // Select encoder and CRC
+  srslte_ldpc_decoder_t* decoder = (cfg.bg == BG1) ? q->decoder_bg1[cfg.Z] : q->decoder_bg2[cfg.Z];
+  srslte_crc_t*          crc_tb  = (cfg.L_tb == 24) ? &q->crc_tb_24 : &q->crc_tb_16;
+
   // Check decoder
-  if (cfg.decoder == NULL) {
+  if (decoder == NULL) {
     ERROR("Error: decoder for lifting size Z=%d not found", cfg.Z);
     return SRSLTE_ERROR;
   }
 
   // Check CRC for TB
-  if (cfg.crc_tb == NULL) {
+  if (crc_tb == NULL) {
     ERROR("Error: CRC for TB not found");
     return SRSLTE_ERROR;
   }
 
   // Soft-buffer number of code-block protection
-  if (tb->softbuffer.rx->max_cb < cfg.Cp || tb->softbuffer.rx->max_cb_size < (cfg.decoder->liftN - 2 * cfg.Z)) {
+  if (tb->softbuffer.rx->max_cb < cfg.Cp || tb->softbuffer.rx->max_cb_size < (decoder->liftN - 2 * cfg.Z)) {
     return SRSLTE_ERROR;
   }
 
@@ -593,7 +593,7 @@ int sch_nr_decode(srslte_sch_nr_t*        q,
     srslte_ldpc_rm_rx_c(&q->rx_rm, input_ptr, rm_buffer, E, cfg.F, cfg.bg, cfg.Z, tb->rv, tb->mod, cfg.Nref);
 
     // Decode
-    srslte_ldpc_decoder_decode_c(cfg.decoder, rm_buffer, q->temp_cb);
+    srslte_ldpc_decoder_decode_c(decoder, rm_buffer, q->temp_cb);
 
     // Compute CB CRC
     uint32_t cb_len = cfg.Kp - cfg.L_cb;
@@ -657,7 +657,7 @@ int sch_nr_decode(srslte_sch_nr_t*        q,
     }
 
     // Calculate TB CRC from packed data
-    uint32_t checksum1 = srslte_crc_checksum_byte(cfg.crc_tb, data, tb->tbs);
+    uint32_t checksum1 = srslte_crc_checksum_byte(crc_tb, data, tb->tbs);
     *crc_ok            = (checksum1 == checksum2 && !all_zeros);
 
     SCH_INFO_RX("TB: TBS=%d; CRC={%06x, %06x}", tb->tbs, checksum1, checksum2);

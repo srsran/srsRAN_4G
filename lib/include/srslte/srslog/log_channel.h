@@ -98,7 +98,7 @@ public:
   /// Builds the provided log entry and passes it to the backend. When the
   /// channel is disabled the log entry will be discarded.
   template <typename... Args>
-  void operator()(const std::string& fmtstr, Args&&... args)
+  void operator()(const char* fmtstr, Args&&... args)
   {
     if (!enabled()) {
       return;
@@ -106,7 +106,8 @@ public:
 
     // Populate the store with all incoming arguments.
     fmt::dynamic_format_arg_store<fmt::printf_context> store;
-    (void)std::initializer_list<int>{(store.push_back(args), 0)...};
+    (void)std::initializer_list<int>{
+        (store.push_back(std::forward<Args>(args)), 0)...};
 
     // Send the log entry to the backend.
     log_formatter& formatter = log_sink.get_formatter();
@@ -130,7 +131,7 @@ public:
   template <typename... Args>
   void operator()(const uint8_t* buffer,
                   size_t len,
-                  const std::string& fmtstr,
+                  const char* fmtstr,
                   Args&&... args)
   {
     if (!enabled()) {
@@ -139,7 +140,8 @@ public:
 
     // Populate the store with all incoming arguments.
     fmt::dynamic_format_arg_store<fmt::printf_context> store;
-    (void)std::initializer_list<int>{(store.push_back(args), 0)...};
+    (void)std::initializer_list<int>{
+        (store.push_back(std::forward<Args>(args)), 0)...};
 
     // Calculate the length to capture in the buffer.
     if (hex_max_size >= 0)
@@ -182,7 +184,7 @@ public:
         },
         {std::chrono::high_resolution_clock::now(),
          {ctx_value, should_print_context},
-         "",
+         nullptr,
          {},
          log_name,
          log_tag}};
@@ -192,9 +194,7 @@ public:
   /// Builds the provided log entry and passes it to the backend. When the
   /// channel is disabled the log entry will be discarded.
   template <typename... Ts, typename... Args>
-  void operator()(const context<Ts...>& ctx,
-                  const std::string& fmtstr,
-                  Args&&... args)
+  void operator()(const context<Ts...>& ctx, const char* fmtstr, Args&&... args)
   {
     if (!enabled()) {
       return;
@@ -202,7 +202,8 @@ public:
 
     // Populate the store with all incoming arguments.
     fmt::dynamic_format_arg_store<fmt::printf_context> store;
-    (void)std::initializer_list<int>{(store.push_back(args), 0)...};
+    (void)std::initializer_list<int>{
+        (store.push_back(std::forward<Args>(args)), 0)...};
 
     // Send the log entry to the backend.
     log_formatter& formatter = log_sink.get_formatter();

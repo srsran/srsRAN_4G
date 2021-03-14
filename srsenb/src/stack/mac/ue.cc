@@ -25,13 +25,109 @@
 #include <string.h>
 
 #include "srsenb/hdr/stack/mac/ue.h"
+#include "srslte/common/string_helpers.h"
 #include "srslte/interfaces/enb_phy_interfaces.h"
 #include "srslte/interfaces/enb_rlc_interfaces.h"
 #include "srslte/interfaces/enb_rrc_interfaces.h"
 
 namespace srsenb {
 
-cc_buffer_handler::cc_buffer_handler()
+cc_used_buffers_map::cc_used_buffers_map(srslte::pdu_queue& shared_pdu_queue_) :
+  pdu_map(), shared_pdu_queue(&shared_pdu_queue_), logger(&srslog::fetch_basic_logger("MAC"))
+{}
+
+bool cc_used_buffers_map::push_pdu(tti_point tti, uint32_t len)
+{
+  if (not has_tti(tti)) {
+    return false;
+  }
+  auto& pdu_pair = pdu_map[tti.to_uint()];
+  if (len > 0) {
+    shared_pdu_queue->push(pdu_pair.second, len);
+  } else {
+    shared_pdu_queue->deallocate(pdu_pair.second);
+    logger->error("Error pushing PDU: null length");
+  }
+  // clear entry in map
+  pdu_pair.first  = tti_point();
+  pdu_pair.second = nullptr;
+  return len > 0;
+}
+
+uint8_t* cc_used_buffers_map::request_pdu(tti_point tti, uint32_t len)
+{
+  if (pdu_map[tti.to_uint()].second != nullptr) {
+    logger->error("UE buffers: buffer for tti=%d already allocated", tti.to_uint());
+    return nullptr;
+  }
+
+  uint8_t* pdu = shared_pdu_queue->request(len);
+  if (pdu == nullptr) {
+    logger->error("UE buffers: Requesting buffer from pool");
+    return nullptr;
+  }
+
+  pdu_map[tti.to_uint()].first  = tti;
+  pdu_map[tti.to_uint()].second = pdu;
+  return pdu;
+}
+
+void cc_used_buffers_map::clear_old_pdus(tti_point current_tti)
+{
+  static const uint32_t old_tti_threshold = SRSLTE_FDD_NOF_HARQ + 4;
+
+  tti_point max_tti{current_tti - old_tti_threshold};
+  for (auto& pdu_pair : pdu_map) {
+    if (pdu_pair.second != nullptr and pdu_pair.first < max_tti) {
+      logger->warning("UE buffers: Removing old buffer tti=%d, interval=%d",
+                      pdu_pair.first.to_uint(),
+                      current_tti - pdu_pair.first);
+      remove_pdu(pdu_pair.first);
+    }
+  }
+}
+
+void cc_used_buffers_map::remove_pdu(tti_point tti)
+{
+  auto& pdu_pair = pdu_map[tti.to_uint()];
+  assert(pdu_pair.second != nullptr && "cannot remove inexistent PDU");
+  // return pdus back to the queue
+  shared_pdu_queue->deallocate(pdu_pair.second);
+  // clear entry in map
+  pdu_pair.first  = tti_point();
+  pdu_pair.second = nullptr;
+}
+
+bool cc_used_buffers_map::try_deallocate_pdu(tti_point tti)
+{
+  if (pdu_map[tti.to_uint()].second != nullptr) {
+    remove_pdu(tti);
+    return true;
+  }
+  return false;
+}
+
+void cc_used_buffers_map::clear()
+{
+  for (auto& pdu : pdu_map) {
+    try_deallocate_pdu(pdu.first);
+  }
+}
+
+uint8_t*& cc_used_buffers_map::operator[](tti_point tti)
+{
+  assert(has_tti(tti) && "Trying to access buffer that does not exist");
+  return pdu_map[tti.to_uint()].second;
+}
+
+bool cc_used_buffers_map::has_tti(tti_point tti) const
+{
+  return pdu_map[tti.to_uint()].first == tti and pdu_map[tti.to_uint()].second != nullptr;
+}
+
+////////////////
+
+cc_buffer_handler::cc_buffer_handler(srslte::pdu_queue& shared_pdu_queue_) : rx_used_buffers(shared_pdu_queue_)
 {
   for (auto& harq_buffers : tx_payload_buffer) {
     for (srslte::unique_byte_buffer_t& tb_buffer : harq_buffers) {
@@ -105,8 +201,7 @@ ue::ue(uint16_t                 rnti_,
        rrc_interface_mac*       rrc_,
        rlc_interface_mac*       rlc_,
        phy_interface_stack_lte* phy_,
-       srslte::log_ref          log_,
-       srslog::basic_logger&    logger,
+       srslog::basic_logger&    logger_,
        uint32_t                 nof_cells_,
        uint32_t                 nof_rx_harq_proc_,
        uint32_t                 nof_tx_harq_proc_) :
@@ -116,17 +211,18 @@ ue::ue(uint16_t                 rnti_,
   rrc(rrc_),
   rlc(rlc_),
   phy(phy_),
-  log_h(log_),
-  logger(logger),
-  mac_msg_dl(20, logger),
-  mch_mac_msg_dl(10, logger),
-  mac_msg_ul(20, logger),
-  pdus(logger, 128),
+  logger(logger_),
+  mac_msg_dl(20, logger_),
+  mch_mac_msg_dl(10, logger_),
+  mac_msg_ul(20, logger_),
+  pdus(logger_),
   nof_rx_harq_proc(nof_rx_harq_proc_),
   nof_tx_harq_proc(nof_tx_harq_proc_),
-  ta_fsm(this),
-  cc_buffers(nof_cells_)
+  ta_fsm(this)
 {
+  for (size_t i = 0; i < nof_cells_; ++i) {
+    cc_buffers.emplace_back(pdus);
+  }
   pdus.init(this);
 
   // Allocate buffer for PCell
@@ -135,14 +231,9 @@ ue::ue(uint16_t                 rnti_,
 
 ue::~ue()
 {
-  {
-    std::unique_lock<std::mutex> lock(rx_buffers_mutex);
-    for (auto& cc : cc_buffers) {
-      for (auto& q : cc.get_rx_used_buffers()) {
-        pdus.deallocate(q.second);
-      }
-      cc.get_rx_used_buffers().clear();
-    }
+  std::unique_lock<std::mutex> lock(rx_buffers_mutex);
+  for (auto& cc : cc_buffers) {
+    cc.get_rx_used_buffers().clear();
   }
 }
 
@@ -173,7 +264,7 @@ srslte_softbuffer_rx_t* ue::get_rx_softbuffer(const uint32_t ue_cc_idx, const ui
     return nullptr;
   }
 
-  return &cc_buffers.at(ue_cc_idx).get_rx_softbuffer(tti % nof_rx_harq_proc);
+  return &cc_buffers[ue_cc_idx].get_rx_softbuffer(tti % nof_rx_harq_proc);
 }
 
 srslte_softbuffer_tx_t*
@@ -192,17 +283,7 @@ uint8_t* ue::request_buffer(uint32_t tti, uint32_t ue_cc_idx, const uint32_t len
   std::unique_lock<std::mutex> lock(rx_buffers_mutex);
   uint8_t*                     pdu = nullptr;
   if (len > 0) {
-    // Deallocate oldest buffer if we didn't deallocate it
-    if (!cc_buffers.at(ue_cc_idx).get_rx_used_buffers().count(tti)) {
-      pdu = pdus.request(len);
-      if (pdu) {
-        cc_buffers.at(ue_cc_idx).get_rx_used_buffers().emplace(tti, pdu);
-      } else {
-        logger.error("UE buffers: Requesting buffer from pool");
-      }
-    } else {
-      logger.error("UE buffers: buffer for tti=%d already allocated", tti);
-    }
+    pdu = cc_buffers[ue_cc_idx].get_rx_used_buffers().request_pdu(tti_point(tti), len);
   } else {
     logger.error("UE buffers: Requesting buffer for zero bytes");
   }
@@ -215,20 +296,7 @@ void ue::clear_old_buffers(uint32_t tti)
 
   // remove old buffers
   for (auto& cc : cc_buffers) {
-    auto& rx_buffer_cc = cc.get_rx_used_buffers();
-    for (auto it = rx_buffer_cc.begin(); it != rx_buffer_cc.end();) {
-      if (srslte_tti_interval(tti, it->first) > 20 && srslte_tti_interval(tti, it->first) < 500) {
-        logger.warning("UE buffers: Removing old buffer tti=%d, rnti=%d, now is %d, interval=%d",
-                       it->first,
-                       rnti,
-                       tti,
-                       srslte_tti_interval(tti, it->first));
-        pdus.deallocate(it->second);
-        it = rx_buffer_cc.erase(it);
-      } else {
-        ++it;
-      }
-    }
+    cc.get_rx_used_buffers().clear_old_pdus(tti_point{tti});
   }
 }
 
@@ -264,7 +332,11 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channe
   mac_msg_ul.init_rx(nof_bytes, true);
   mac_msg_ul.parse_packet(pdu);
 
-  logger.info("0x%x %s", rnti, mac_msg_ul.to_string().c_str());
+  if (logger.info.enabled()) {
+    fmt::memory_buffer str_buffer;
+    mac_msg_ul.to_string(str_buffer);
+    logger.info("0x%x %s", rnti, srslte::to_c_str(str_buffer));
+  }
 
   if (pcap) {
     pcap->write_ul_crnti(pdu, nof_bytes, rnti, true, last_tti, UL_CC_IDX);
@@ -359,11 +431,7 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channe
 void ue::deallocate_pdu(uint32_t tti, uint32_t ue_cc_idx)
 {
   std::unique_lock<std::mutex> lock(rx_buffers_mutex);
-
-  if (cc_buffers.at(ue_cc_idx).get_rx_used_buffers().count(tti)) {
-    pdus.deallocate(cc_buffers.at(ue_cc_idx).get_rx_used_buffers().at(tti));
-    cc_buffers.at(ue_cc_idx).get_rx_used_buffers().erase(tti);
-  } else {
+  if (not cc_buffers[ue_cc_idx].get_rx_used_buffers().try_deallocate_pdu(tti_point(tti))) {
     logger.warning("UE buffers: Null RX PDU pointer in deallocate_pdu for rnti=0x%x pid=%d cc_idx=%d",
                    rnti,
                    tti % nof_rx_harq_proc,
@@ -374,18 +442,9 @@ void ue::deallocate_pdu(uint32_t tti, uint32_t ue_cc_idx)
 void ue::push_pdu(uint32_t tti, uint32_t ue_cc_idx, uint32_t len)
 {
   std::unique_lock<std::mutex> lock(rx_buffers_mutex);
-  if (cc_buffers.at(ue_cc_idx).get_rx_used_buffers().count(tti)) {
-    if (len > 0) {
-      pdus.push(cc_buffers.at(ue_cc_idx).get_rx_used_buffers().at(tti), len);
-    } else {
-      logger.error("Error pushing PDU: null length");
-    }
-    cc_buffers.at(ue_cc_idx).get_rx_used_buffers().erase(tti);
-  } else {
-    logger.warning("UE buffers: Null RX PDU pointer in push_pdu for rnti=0x%x pid=%d cc_idx=%d",
-                   rnti,
-                   tti % nof_rx_harq_proc,
-                   ue_cc_idx);
+  if (not cc_buffers[ue_cc_idx].get_rx_used_buffers().push_pdu(tti_point(tti), len)) {
+    logger.warning(
+        "UE buffers: Failed to push RX PDU for rnti=0x%x pid=%d cc_idx=%d", rnti, tti % nof_rx_harq_proc, ue_cc_idx);
   }
 }
 
@@ -538,7 +597,11 @@ uint8_t* ue::generate_pdu(uint32_t                              ue_cc_idx,
         }
       }
       ret = mac_msg_dl.write_packet(logger);
-      logger.info("0x%x %s", rnti, mac_msg_dl.to_string().c_str());
+      if (logger.info.enabled()) {
+        fmt::memory_buffer str_buffer;
+        mac_msg_dl.to_string(str_buffer);
+        logger.info("0x%x %s", rnti, srslte::to_c_str(str_buffer));
+      }
     } else {
       logger.error(
           "Invalid parameters calling generate_pdu: cc_idx=%d, harq_pid=%d, tb_idx=%d", ue_cc_idx, harq_pid, tb_idx);

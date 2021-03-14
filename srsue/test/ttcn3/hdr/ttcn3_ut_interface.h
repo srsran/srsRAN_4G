@@ -24,7 +24,6 @@
 
 #include "rapidjson/document.h"
 #include "rapidjson/prettywriter.h"
-#include "srslte/common/log.h"
 #include "srslte/common/netsource_handler.h"
 #include "ttcn3_interfaces.h"
 

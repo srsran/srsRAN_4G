@@ -20,7 +20,7 @@
  */
 
 #include "srsue/hdr/phy/prach.h"
-#include "srslte/common/log.h"
+#include "srslte/common/standard_streams.h"
 #include "srslte/interfaces/phy_interface_types.h"
 #include "srslte/srslte.h"
 

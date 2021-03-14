@@ -27,6 +27,7 @@
 #ifndef SRSLTE_PDCP_INTERFACE_TYPES_H
 #define SRSLTE_PDCP_INTERFACE_TYPES_H
 
+#include "srslte/adt/bounded_vector.h"
 #include "srslte/common/security.h"
 #include <math.h>
 #include <stdint.h>
@@ -176,6 +177,11 @@ struct pdcp_lte_state_t {
   uint32_t last_submitted_pdcp_rx_sn;
   uint32_t reordering_pdcp_rx_count;
 };
+
+// Custom type for interface between PDCP and RLC to convey SDU delivery status
+#define MAX_SDUS_PER_RLC_PDU (256) // default to RLC SDU queue length
+#define MAX_SDUS_TO_NOTIFY (MAX_SDUS_PER_RLC_PDU) // Arbitrarily chosen limit
+typedef srslte::bounded_vector<uint32_t, MAX_SDUS_TO_NOTIFY> pdcp_sn_vector_t;
 
 } // namespace srslte
 

@@ -168,8 +168,8 @@ std::string sf_cch_allocator::result_to_string(bool verbose) const
 
 sf_cch_allocator::alloc_tree_t::alloc_tree_t(uint32_t                   this_cfi,
                                              const sched_cell_params_t& cc_params,
-                                             srslte_pucch_cfg_t&        pucch_cfg) :
-  cfi(this_cfi), cc_cfg(&cc_params), pucch_cfg(&pucch_cfg), nof_cces(cc_params.nof_cce_table[this_cfi - 1])
+                                             srslte_pucch_cfg_t&        pucch_cfg_common) :
+  cfi(this_cfi), cc_cfg(&cc_params), pucch_cfg_temp(&pucch_cfg_common), nof_cces(cc_params.nof_cce_table[this_cfi - 1])
 {
   dci_alloc_tree.reserve(8);
 }
@@ -181,10 +181,10 @@ void sf_cch_allocator::alloc_tree_t::reset()
   dci_alloc_tree.clear();
 }
 
-bool is_pucch_sr_collision(const srslte_pucch_cfg_t& pucch_cfg, tti_point tti_tx_dl, uint32_t n1_pucch)
+bool is_pucch_sr_collision(const srslte_pucch_cfg_t& ue_pucch_cfg, tti_point tti_tx_dl_ack, uint32_t n1_pucch)
 {
-  if (pucch_cfg.sr_configured && srslte_ue_ul_sr_send_tti(&pucch_cfg, tti_tx_dl.to_uint())) {
-    return n1_pucch == pucch_cfg.n_pucch_sr;
+  if (ue_pucch_cfg.sr_configured && srslte_ue_ul_sr_send_tti(&ue_pucch_cfg, tti_tx_dl_ack.to_uint())) {
+    return n1_pucch == ue_pucch_cfg.n_pucch_sr;
   }
   return false;
 }
@@ -218,14 +218,15 @@ bool sf_cch_allocator::alloc_tree_t::add_tree_node_leaves(int                   
 
     if (dci_record.alloc_type == alloc_type_t::DL_DATA and not dci_record.pusch_uci) {
       // The UE needs to allocate space in PUCCH for HARQ-ACK
-      pucch_cfg->n_pucch = ncce_pos + pucch_cfg->N_pucch_1;
+      pucch_cfg_temp->n_pucch = ncce_pos + pucch_cfg_temp->N_pucch_1;
 
-      if (is_pucch_sr_collision(*pucch_cfg, to_tx_dl_ack(tti_rx_), pucch_cfg->n_pucch)) {
+      if (is_pucch_sr_collision(
+              dci_record.user->get_ue_cfg().pucch_cfg, to_tx_dl_ack(tti_rx_), pucch_cfg_temp->n_pucch)) {
         // avoid collision of HARQ-ACK with own SR n(1)_pucch
         continue;
       }
 
-      pucch_prbidx = srslte_pucch_n_prb(&cc_cfg->cfg.cell, pucch_cfg, 0);
+      pucch_prbidx = srslte_pucch_n_prb(&cc_cfg->cfg.cell, pucch_cfg_temp, 0);
       if (not cc_cfg->sched_cfg->pucch_mux_enabled and parent_pucch_mask.test(pucch_prbidx)) {
         // PUCCH allocation would collide with other PUCCH/PUSCH grants. Try another CCE position
         continue;
@@ -316,15 +317,15 @@ std::string sf_cch_allocator::alloc_tree_t::result_to_string(bool verbose) const
     pdcch_mask_t   tot_mask;
     get_allocs(&vec, &tot_mask, i - prev_start);
 
-    fmt::format_to(strbuf, "[{}]: total mask=0x{}", count, tot_mask.to_hex().c_str());
+    fmt::format_to(strbuf, "[{}]: total mask=0x{:x}", count, tot_mask);
     if (verbose) {
       fmt::format_to(strbuf, ", allocations:\n");
       for (const auto& dci_alloc : vec) {
         fmt::format_to(strbuf,
-                       "  > rnti=0x{:0x}: 0x{} / 0x{}\n",
+                       "  > rnti=0x{:0x}: 0x{:x} / 0x{:x}\n",
                        dci_alloc->rnti,
-                       dci_alloc->current_mask.to_hex().c_str(),
-                       dci_alloc->total_mask.to_hex().c_str());
+                       dci_alloc->current_mask,
+                       dci_alloc->total_mask);
       }
     } else {
       fmt::format_to(strbuf, "\n");

@@ -37,7 +37,7 @@ class logger_impl : public T
 {
   static_assert(std::is_enum<Enum>::value, "Expected enum type");
 
-  using enum_base_type = typename std::underlying_type<Enum>::type;
+  using enum_base_type           = typename std::underlying_type<Enum>::type;
   static constexpr unsigned size = static_cast<enum_base_type>(Enum::LAST) - 1;
 
 public:
@@ -45,9 +45,7 @@ public:
   explicit logger_impl(std::string id, Args&&... args) :
     T{std::forward<Args>(args)...}, logger_id(std::move(id)), channels{&args...}
   {
-    static_assert(
-        sizeof...(args) == size,
-        "Number of levels in enum does not match number of log channels");
+    static_assert(sizeof...(args) == size, "Number of levels in enum does not match number of log channels");
   }
 
   logger_impl(const logger_impl& other) = delete;
@@ -102,16 +100,16 @@ private:
   }
 
 private:
-  const std::string logger_id;
+  const std::string                    logger_id;
   const std::array<log_channel*, size> channels;
-  mutable detail::mutex m;
+  mutable detail::mutex                m;
 };
 
 /// Type trait to detect if T is a logger.
 template <typename T>
 struct is_logger : std::false_type {};
 template <typename T, typename Enum>
-struct is_logger<logger_impl<T, Enum>> : std::true_type {};
+struct is_logger<logger_impl<T, Enum> > : std::true_type {};
 
 } // namespace detail
 
@@ -180,6 +178,24 @@ inline basic_levels str_to_basic_level(std::string s)
     return basic_levels::debug;
   }
   return basic_levels::none;
+}
+
+/// Translates a logger basic level to the corresponding string.
+inline const char* basic_level_to_string(basic_levels level)
+{
+  switch (level) {
+    case basic_levels::debug:
+      return "DEBUG";
+    case basic_levels::info:
+      return "INFO";
+    case basic_levels::warning:
+      return "WARNING";
+    case basic_levels::error:
+      return "ERROR";
+    default:
+      break;
+  }
+  return "NONE";
 }
 
 } // namespace srslog

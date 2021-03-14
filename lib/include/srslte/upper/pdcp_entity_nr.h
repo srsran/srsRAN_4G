@@ -26,7 +26,6 @@
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
 #include "srslte/common/interfaces_common.h"
-#include "srslte/common/log.h"
 #include "srslte/common/security.h"
 #include "srslte/common/task_scheduler.h"
 #include "srslte/common/threads.h"
@@ -60,8 +59,8 @@ public:
 
   // RLC interface
   void write_pdu(unique_byte_buffer_t pdu) final;
-  void notify_delivery(const std::vector<uint32_t>& tx_count) final;
-  void notify_failure(const std::vector<uint32_t>& tx_count) final;
+  void notify_delivery(const pdcp_sn_vector_t& pdcp_sns) final;
+  void notify_failure(const pdcp_sn_vector_t& pdcp_sns) final;
 
   // State variable setters (should be used only for testing)
   void set_tx_next(uint32_t tx_next_) { tx_next = tx_next_; }
@@ -70,7 +69,7 @@ public:
   void set_rx_reord(uint32_t rx_reord_) { rx_reord = rx_reord_; }
 
   void get_bearer_state(pdcp_lte_state_t* state) override;
-  void set_bearer_state(const pdcp_lte_state_t& state) override;
+  void set_bearer_state(const pdcp_lte_state_t& state, bool set_fmc) override;
 
   void                  send_status_report() override {}
   pdcp_bearer_metrics_t get_metrics() override;

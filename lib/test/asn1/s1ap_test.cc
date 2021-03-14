@@ -364,10 +364,6 @@ int test_paging()
 
 int main()
 {
-  srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_DEBUG);
-  srslte::logmap::set_default_hex_limit(4096);
-  TESTASSERT(srslte::logmap::get("ASN1")->get_level() == srslte::LOG_LEVEL_DEBUG);
-
   // Setup the log spy to intercept error and warning log entries.
   if (!srslog::install_custom_sink(
           srslte::log_sink_spy::name(),

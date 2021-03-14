@@ -91,7 +91,7 @@ static bool
 when_log_entry_with_only_basic_context_is_passed_then_context_is_formatted()
 {
   auto entry = build_log_entry_metadata();
-  entry.fmtstring = "";
+  entry.fmtstring = nullptr;
   basic_ctx_t ctx("UL Context");
 
   ctx.get<myset1>().write<snr_t>(-55.1);
@@ -182,7 +182,7 @@ when_log_entry_with_only_complex_context_is_passed_then_context_is_formatted()
 {
   complex_ctx_t ctx("UL Context");
   auto entry = build_log_entry_metadata();
-  entry.fmtstring = "";
+  entry.fmtstring = nullptr;
 
   ctx.get<sector_list_t>().emplace_back();
   ctx.at<sector_list_t>(0).get<ue_list_t>().emplace_back();
@@ -269,7 +269,7 @@ static bool when_context_with_empty_list_is_passed_then_list_object_is_empty()
 {
   list_ctx_t ctx("UL Context");
   auto entry = build_log_entry_metadata();
-  entry.fmtstring = "";
+  entry.fmtstring = nullptr;
 
   fmt::memory_buffer buffer;
   json_formatter{}.format_ctx(ctx, std::move(entry), buffer);

@@ -25,7 +25,6 @@
 #include "phy_metrics.h"
 #include "srslte/adt/circular_array.h"
 #include "srslte/common/gen_mch_tables.h"
-#include "srslte/common/log.h"
 #include "srslte/common/tti_sempahore.h"
 #include "srslte/interfaces/phy_interface_types.h"
 #include "srslte/interfaces/radio_interfaces.h"

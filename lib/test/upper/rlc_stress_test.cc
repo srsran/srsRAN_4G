@@ -19,8 +19,8 @@
  *
  */
 
+#include "srslte/common/block_queue.h"
 #include "srslte/common/crash_handler.h"
-#include "srslte/common/log_filter.h"
 #include "srslte/common/rlc_pcap.h"
 #include "srslte/common/test_common.h"
 #include "srslte/common/threads.h"
@@ -112,7 +112,7 @@ void parse_args(stress_test_args_t* args, int argc, char* argv[])
       ("pdu_drop_rate", bpo::value<float>(&args->pdu_drop_rate)->default_value(0.1), "Rate at which RLC PDUs are dropped")
       ("pdu_cut_rate",  bpo::value<float>(&args->pdu_cut_rate)->default_value(0.0), "Rate at which RLC PDUs are chopped in length")
       ("pdu_duplicate_rate",  bpo::value<float>(&args->pdu_duplicate_rate)->default_value(0.0), "Rate at which RLC PDUs are duplicated")
-      ("loglevel",      bpo::value<uint32_t>(&args->log_level)->default_value(srslte::LOG_LEVEL_DEBUG), "Log level (1=Error,2=Warning,3=Info,4=Debug)")
+      ("loglevel",      bpo::value<uint32_t>(&args->log_level)->default_value((int)srslog::basic_levels::debug), "Log level (1=Error,2=Warning,3=Info,4=Debug)")
       ("singletx",      bpo::value<bool>(&args->single_tx)->default_value(false), "If set to true, only one node is generating data")
       ("pcap",          bpo::value<bool>(&args->write_pcap)->default_value(false), "Whether to write all RLC PDU to PCAP file")
       ("zeroseed",      bpo::value<bool>(&args->zero_seed)->default_value(false), "Whether to initialize random seed to zero")
@@ -138,7 +138,9 @@ void parse_args(stress_test_args_t* args, int argc, char* argv[])
 
   if (args->log_level > 4) {
     args->log_level = 4;
-    printf("Set log level to %d (%s)\n", args->log_level, srslte::log_level_text[args->log_level]);
+    printf("Set log level to %d (%s)\n",
+           args->log_level,
+           srslog::basic_level_to_string(static_cast<srslog::basic_levels>(args->log_level)));
   }
 
   // convert mode to upper case
@@ -375,9 +377,9 @@ public:
   void write_pdu_bcch_bch(unique_byte_buffer_t sdu) {}
   void write_pdu_bcch_dlsch(unique_byte_buffer_t sdu) {}
   void write_pdu_pcch(unique_byte_buffer_t sdu) {}
-  void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu) {}
-  void notify_delivery(uint32_t lcid, const std::vector<uint32_t>& pdcp_sns) {}
-  void notify_failure(uint32_t lcid, const std::vector<uint32_t>& pdcp_sns) {}
+  void write_pdu_mch(uint32_t lcid_, srslte::unique_byte_buffer_t sdu) {}
+  void notify_delivery(uint32_t lcid_, const srslte::pdcp_sn_vector_t& pdcp_sns) {}
+  void notify_failure(uint32_t lcid_, const srslte::pdcp_sn_vector_t& pdcp_sns) {}
 
   // RRC interface
   void max_retx_attempted()
@@ -439,7 +441,6 @@ private:
   uint8_t               next_expected_sdu = 0;
   uint64_t              rx_pdus           = 0;
   uint32_t              lcid              = 0;
-  srslte::log_filter    log;
   srslog::basic_logger& logger;
 
   std::string name;
@@ -468,7 +469,7 @@ void stress_test(stress_test_args_t args)
   if (args.rat == "LTE") {
     if (args.mode == "AM") {
       // config RLC AM bearer
-      cnfg_ = rlc_config_t::default_rlc_am_config();
+      cnfg_                    = rlc_config_t::default_rlc_am_config();
       cnfg_.am.max_retx_thresh = args.max_retx;
     } else if (args.mode == "UM") {
       // config UM bearer

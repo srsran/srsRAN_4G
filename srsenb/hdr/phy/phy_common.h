@@ -26,13 +26,14 @@
 #include "srsenb/hdr/phy/phy_ue_db.h"
 #include "srslte/common/gen_mch_tables.h"
 #include "srslte/common/interfaces_common.h"
-#include "srslte/common/log.h"
+#include "srslte/common/standard_streams.h"
 #include "srslte/common/thread_pool.h"
 #include "srslte/common/threads.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
 #include "srslte/interfaces/radio_interfaces.h"
 #include "srslte/phy/channel/channel.h"
 #include "srslte/radio/radio.h"
+
 #include <map>
 #include <srslte/common/tti_sempahore.h>
 #include <string.h>

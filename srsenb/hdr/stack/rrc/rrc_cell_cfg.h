@@ -23,7 +23,7 @@
 #define SRSLTE_RRC_CELL_CFG_H
 
 #include "rrc_config.h"
-#include "srslte/common/logmap.h"
+#include "srslte/common/byte_buffer.h"
 #include "srslte/srslog/srslog.h"
 
 namespace srsenb {

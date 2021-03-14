@@ -23,7 +23,6 @@
 #define SRSENB_MAC_NR_H
 
 #include "srslte/common/block_queue.h"
-#include "srslte/common/logmap.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/mac/mac_sch_pdu_nr.h"
 
@@ -91,8 +90,8 @@ private:
   rrc_interface_mac_nr*   rrc_h   = nullptr;
 
   std::unique_ptr<srslte::mac_pcap> pcap = nullptr;
-  srslte::log_ref                   log_h;
   mac_nr_args_t                     args = {};
+  srslog::basic_logger&             logger;
 
   bool started = false;
 

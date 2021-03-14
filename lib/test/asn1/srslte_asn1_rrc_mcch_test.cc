@@ -22,7 +22,6 @@
 #include "srslte/asn1/rrc.h"
 #include "srslte/asn1/rrc_utils.h"
 #include "srslte/common/bcd_helpers.h"
-#include "srslte/common/log_filter.h"
 #include "srslte/interfaces/rrc_interface_types.h"
 #include <iostream>
 

@@ -118,4 +118,13 @@ enum class alloc_type_t { DL_BC, DL_PCCH, DL_RAR, DL_DATA, UL_DATA };
 
 } // namespace srsenb
 
+namespace fmt {
+
+template <>
+struct formatter<srsenb::rbg_interval> : public formatter<srslte::interval<uint32_t> > {};
+template <>
+struct formatter<srsenb::prb_interval> : public formatter<srslte::interval<uint32_t> > {};
+
+} // namespace fmt
+
 #endif // SRSLTE_SCHED_COMMON_H

@@ -29,7 +29,6 @@
 #include <iostream>
 #include <mutex>
 #include <srsenb/hdr/phy/phy.h>
-#include <srslte/common/logger_srslog_wrapper.h>
 #include <srslte/common/string_helpers.h>
 #include <srslte/common/test_common.h>
 #include <srslte/phy/phch/pusch_cfg.h>

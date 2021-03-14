@@ -20,7 +20,6 @@
  */
 
 #include "rlc_test_common.h"
-#include "srslte/common/log_filter.h"
 #include "srslte/config.h"
 #include "srslte/interfaces/ue_pdcp_interfaces.h"
 #include "srslte/upper/rlc.h"

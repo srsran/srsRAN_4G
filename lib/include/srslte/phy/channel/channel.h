@@ -27,8 +27,8 @@
 #include "fading.h"
 #include "hst.h"
 #include "rlf.h"
-#include "srslte/common/log_filter.h"
 #include "srslte/phy/common/phy_common.h"
+#include "srslte/srslog/srslog.h"
 #include <memory>
 #include <string>
 

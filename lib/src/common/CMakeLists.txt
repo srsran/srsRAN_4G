@@ -28,9 +28,6 @@ set(SOURCES arch_select.cc
             crash_handler.cc
             gen_mch_tables.c
             liblte_security.cc
-            log_filter.cc
-            logmap.cc
-            logger_srslog_wrapper.cc
             mac_pcap.cc
             mac_pcap_base.cc
             nas_pcap.cc

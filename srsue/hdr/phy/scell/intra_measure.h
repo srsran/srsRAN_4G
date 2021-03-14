@@ -21,7 +21,6 @@
 #ifndef SRSUE_INTRA_MEASURE_H
 #define SRSUE_INTRA_MEASURE_H
 
-#include <srslte/common/log.h>
 #include <srslte/common/threads.h>
 #include <srslte/common/tti_sync_cv.h>
 #include <srslte/srslte.h>

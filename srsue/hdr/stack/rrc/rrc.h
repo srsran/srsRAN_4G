@@ -30,7 +30,6 @@
 #include "srslte/common/block_queue.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
-#include "srslte/common/logmap.h"
 #include "srslte/common/security.h"
 #include "srslte/common/stack_procedure.h"
 #include "srslte/interfaces/ue_interfaces.h"

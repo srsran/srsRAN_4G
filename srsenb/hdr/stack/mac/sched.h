@@ -24,7 +24,6 @@
 
 #include "sched_grid.h"
 #include "sched_ue.h"
-#include "srslte/common/log.h"
 #include "srslte/interfaces/sched_interface.h"
 #include <atomic>
 #include <map>

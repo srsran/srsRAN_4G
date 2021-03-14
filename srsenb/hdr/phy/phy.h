@@ -25,8 +25,6 @@
 #include "lte/sf_worker.h"
 #include "phy_common.h"
 #include "srsenb/hdr/phy/enb_phy_base.h"
-#include "srslte/common/log.h"
-#include "srslte/common/log_filter.h"
 #include "srslte/common/trace.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
 #include "srslte/interfaces/radio_interfaces.h"

@@ -203,7 +203,7 @@ static void srslte_pdsch_re_cp(cf_t* sf_symbols, cf_t* symbols, uint32_t count, 
  * As a RB is 12 RE wide, positions marked as 1 will be used for the 1st CDM group, and the same with group 2:
  *
  *  +---+---+---+---+---+---+---+---+---+---+---+---+
- *  | 1 | 1 | 2 | 2 | 1 | 1 | 2 | 2 | 1 | 1 | 2 | 2 |
+ *  | 1 | 2 | 1 | 2 | 1 | 2 | 1 | 2 | 1 | 2 | 1 | 2 |
  *  +---+---+---+---+---+---+---+---+---+---+---+---+
  *  -- k -->
  *

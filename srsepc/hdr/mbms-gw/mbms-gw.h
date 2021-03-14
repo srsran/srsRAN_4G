@@ -30,8 +30,6 @@
 
 #include "srslte/asn1/gtpc.h"
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/log_filter.h"
-#include "srslte/common/logmap.h"
 #include "srslte/common/threads.h"
 #include "srslte/srslog/srslog.h"
 #include "srslte/srslte.h"

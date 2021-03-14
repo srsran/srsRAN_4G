@@ -439,8 +439,7 @@ int srslte_dmrs_sch_get_N_prb(const srslte_dmrs_sch_cfg_t* dmrs_cfg, const srslt
   }
 
   // Get number of frequency domain resource elements used for DMRS
-  int nof_sc = SRSLTE_MIN(SRSLTE_NRE,
-                          grant->nof_dmrs_cdm_groups_without_data * (dmrs_cfg->type == srslte_dmrs_sch_type_1 ? 6 : 4));
+  int nof_sc = SRSLTE_DMRS_SCH_SC(grant->nof_dmrs_cdm_groups_without_data, dmrs_cfg->type);
 
   // Get number of symbols used for DMRS
   uint32_t symbols[SRSLTE_DMRS_SCH_MAX_SYMBOLS] = {};

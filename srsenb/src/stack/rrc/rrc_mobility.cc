@@ -29,11 +29,13 @@
 #include "srslte/common/common.h"
 #include "srslte/common/enb_events.h"
 #include "srslte/common/int_helpers.h"
+#include "srslte/common/standard_streams.h"
 #include "srslte/interfaces/enb_mac_interfaces.h"
 #include "srslte/interfaces/enb_pdcp_interfaces.h"
 #include "srslte/interfaces/enb_rlc_interfaces.h"
 #include "srslte/interfaces/enb_s1ap_interfaces.h"
 #include "srslte/rrc/rrc_cfg_utils.h"
+
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
@@ -73,6 +75,7 @@ uint16_t compute_mac_i(uint16_t                            crnti,
                        srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo,
                        const uint8_t*                      k_rrc_int)
 {
+  static srslog::basic_logger& logger = srslog::fetch_basic_logger("RRC");
   // Compute shortMAC-I
   uint8_t varShortMAC_packed[16] = {};
   uint8_t mac_key[4]             = {};
@@ -89,8 +92,7 @@ uint16_t compute_mac_i(uint16_t                            crnti,
   }
   uint32_t N_bytes = bref.distance_bytes();
 
-  srslte::logmap::get("RRC")->info(
-      "Encoded varShortMAC: cellId=0x%x, PCI=%d, rnti=0x%x (%d bytes)", cellid, pci, crnti, N_bytes);
+  logger.info("Encoded varShortMAC: cellId=0x%x, PCI=%d, rnti=0x%x (%d bytes)", cellid, pci, crnti, N_bytes);
 
   // Compute MAC-I
   switch (integ_algo) {

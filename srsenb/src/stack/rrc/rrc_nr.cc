@@ -28,7 +28,7 @@ using namespace asn1::rrc_nr;
 
 namespace srsenb {
 
-rrc_nr::rrc_nr(srslte::timer_handler* timers_) : m_log("RRC"), timers(timers_) {}
+rrc_nr::rrc_nr(srslte::timer_handler* timers_) : logger(srslog::fetch_basic_logger("RRC")), timers(timers_) {}
 
 void rrc_nr::init(const rrc_nr_cfg_t&     cfg_,
                   phy_interface_stack_nr* phy_,
@@ -49,8 +49,8 @@ void rrc_nr::init(const rrc_nr_cfg_t&     cfg_,
   cfg = update_default_cfg(cfg_);
 
   // config logging
-  m_log->set_level(cfg.log_level);
-  m_log->set_hex_limit(cfg.log_hex_limit);
+  logger.set_level(srslog::str_to_basic_level(cfg.log_level));
+  logger.set_hex_dump_max_size(cfg.log_hex_limit);
 
   // derived
   slot_dur_ms = 1;
@@ -59,7 +59,7 @@ void rrc_nr::init(const rrc_nr_cfg_t&     cfg_,
   config_mac();
 
   // add dummy user
-  m_log->info("Creating dummy DRB for RNTI=%d on LCID=%d\n", cfg.coreless.rnti, cfg.coreless.drb_lcid);
+  logger.info("Creating dummy DRB for RNTI=%d on LCID=%d", cfg.coreless.rnti, cfg.coreless.drb_lcid);
   add_user(cfg.coreless.rnti);
   srslte::rlc_config_t rlc_cnfg = srslte::rlc_config_t::default_rlc_um_nr_config(6);
   rlc->add_bearer(cfg.coreless.rnti, cfg.coreless.drb_lcid, rlc_cnfg);
@@ -73,7 +73,7 @@ void rrc_nr::init(const rrc_nr_cfg_t&     cfg_,
                                   false};
   pdcp->add_bearer(cfg.coreless.rnti, cfg.coreless.drb_lcid, pdcp_cnfg);
 
-  m_log->info("Started\n");
+  logger.info("Started");
 
   running = true;
 }
@@ -92,23 +92,23 @@ void rrc_nr::log_rrc_message(const std::string&           source,
                              const srslte::byte_buffer_t* pdu,
                              const T&                     msg)
 {
-  if (m_log->get_level() == srslte::LOG_LEVEL_INFO) {
-    m_log->info("%s - %s %s (%d B)\n",
+  if (logger.debug.enabled()) {
+    asn1::json_writer json_writer;
+    msg.to_json(json_writer);
+    logger.debug(pdu->msg,
+                 pdu->N_bytes,
+                 "%s - %s %s (%d B)",
+                 source.c_str(),
+                 dir == Tx ? "Tx" : "Rx",
+                 msg.msg.c1().type().to_string().c_str(),
+                 pdu->N_bytes);
+    logger.debug("Content:\n%s", json_writer.to_string().c_str());
+  } else if (logger.info.enabled()) {
+    logger.info("%s - %s %s (%d B)",
                 source.c_str(),
                 dir == Tx ? "Tx" : "Rx",
                 msg.msg.c1().type().to_string().c_str(),
                 pdu->N_bytes);
-  } else if (m_log->get_level() >= srslte::LOG_LEVEL_DEBUG) {
-    asn1::json_writer json_writer;
-    msg.to_json(json_writer);
-    m_log->debug_hex(pdu->msg,
-                     pdu->N_bytes,
-                     "%s - %s %s (%d B)\n",
-                     source.c_str(),
-                     dir == Tx ? "Tx" : "Rx",
-                     msg.msg.c1().type().to_string().c_str(),
-                     pdu->N_bytes);
-    m_log->debug("Content:\n%s\n", json_writer.to_string().c_str());
   }
 }
 
@@ -179,9 +179,9 @@ void rrc_nr::add_user(uint16_t rnti)
     users.insert(std::make_pair(rnti, std::unique_ptr<ue>(new ue(this, rnti))));
     rlc->add_user(rnti);
     pdcp->add_user(rnti);
-    m_log->info("Added new user rnti=0x%x\n", rnti);
+    logger.info("Added new user rnti=0x%x", rnti);
   } else {
-    m_log->error("Adding user rnti=0x%x (already exists)\n", rnti);
+    logger.error("Adding user rnti=0x%x (already exists)", rnti);
   }
 }
 
@@ -198,7 +198,7 @@ void rrc_nr::config_mac()
 
   // PUCCH width
   sched_cfg.nrb_pucch = SRSLTE_MAX(cfg.sr_cfg.nof_prb, cfg.cqi_cfg.nof_prb);
-  m_log->info("Allocating %d PRBs for PUCCH\n", sched_cfg.nrb_pucch);
+  logger.info("Allocating %d PRBs for PUCCH", sched_cfg.nrb_pucch);
 
   // Copy Cell configuration
   sched_cfg.cell = cfg.cell;
@@ -218,7 +218,7 @@ uint32_t rrc_nr::generate_sibs()
     asn1::bit_ref                bref(mib_buf->msg, mib_buf->get_tailroom());
     mib_msg.pack(bref);
     mib_buf->N_bytes = bref.distance_bytes();
-    m_log->debug_hex(mib_buf->msg, mib_buf->N_bytes, "MIB payload (%d B)\n", mib_buf->N_bytes);
+    logger.debug(mib_buf->msg, mib_buf->N_bytes, "MIB payload (%d B)", mib_buf->N_bytes);
     mib_buffer = std::move(mib_buf);
   }
 
@@ -278,12 +278,12 @@ int rrc_nr::read_pdu_bcch_bch(const uint32_t tti, srslte::unique_byte_buffer_t& 
 int rrc_nr::read_pdu_bcch_dlsch(uint32_t sib_index, srslte::unique_byte_buffer_t& buffer)
 {
   if (sib_index >= sib_buffer.size()) {
-    m_log->error("SIB %d is not a configured SIB.\n", sib_index);
+    logger.error("SIB %d is not a configured SIB.", sib_index);
     return SRSLTE_ERROR;
   }
 
   if (buffer->get_tailroom() < sib_buffer[sib_index]->N_bytes) {
-    m_log->error("Not enough space to fit SIB %d into buffer (%d < %d)\n",
+    logger.error("Not enough space to fit SIB %d into buffer (%d < %d)",
                  sib_index,
                  buffer->get_tailroom(),
                  sib_buffer[sib_index]->N_bytes);
@@ -304,7 +304,7 @@ void rrc_nr::get_metrics(srsenb::rrc_metrics_t& m)
 void rrc_nr::handle_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 {
   if (pdu) {
-    m_log->info_hex(pdu->msg, pdu->N_bytes, "Rx %s PDU", srslte::to_string(static_cast<srslte::rb_id_nr_t>(lcid)));
+    logger.info(pdu->msg, pdu->N_bytes, "Rx %s PDU", srslte::to_string(static_cast<srslte::rb_id_nr_t>(lcid)));
   }
 
   if (users.count(rnti) == 1) {
@@ -317,11 +317,11 @@ void rrc_nr::handle_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer
         //        parse_ul_dcch(p.rnti, p.lcid, std::move(p.pdu));
         break;
       default:
-        m_log->error("Rx PDU with invalid bearer id: %d", lcid);
+        logger.error("Rx PDU with invalid bearer id: %d", lcid);
         break;
     }
   } else {
-    m_log->warning("Discarding PDU for removed rnti=0x%x\n", rnti);
+    logger.warning("Discarding PDU for removed rnti=0x%x", rnti);
   }
 }
 
@@ -378,11 +378,11 @@ void rrc_nr::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
   // Allocate a new PDU buffer, pack the message and send to PDCP
   srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer();
   if (pdu == nullptr) {
-    parent->m_log->error("Allocating pdu\n");
+    parent->logger.error("Allocating pdu");
   }
   asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
   if (dl_ccch_msg->pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
-    parent->m_log->error("Failed to pack DL-CCCH message. Discarding msg.\n");
+    parent->logger.error("Failed to pack DL-CCCH message. Discarding msg.");
   }
   pdu->N_bytes = bref.distance_bytes();
 

@@ -22,7 +22,6 @@
 #ifndef SRSUE_DEMUX_H
 #define SRSUE_DEMUX_H
 
-#include "srslte/common/log.h"
 #include "srslte/common/timers.h"
 #include "srslte/interfaces/ue_mac_interfaces.h"
 #include "srslte/interfaces/ue_rlc_interfaces.h"

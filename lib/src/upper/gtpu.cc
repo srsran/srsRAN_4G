@@ -187,7 +187,7 @@ bool gtpu_read_header(srslte::byte_buffer_t* pdu, gtpu_header_t* header, srslog:
 }
 
 // Helper function to return a string from IPv4 address for easy printing
-std::string gtpu_ntoa(uint32_t addr)
+void gtpu_ntoa(fmt::memory_buffer& buffer, uint32_t addr)
 {
   char           tmp_str[INET_ADDRSTRLEN + 1] = {};
   struct in_addr tmp_addr                     = {};
@@ -195,9 +195,10 @@ std::string gtpu_ntoa(uint32_t addr)
   tmp_addr.s_addr     = addr;
   const char* tmp_ptr = inet_ntop(AF_INET, &tmp_addr, tmp_str, INET_ADDRSTRLEN);
   if (tmp_ptr == NULL) {
-    return std::string("Invalid IPv4 address");
+    fmt::format_to(buffer, "Invalid IPv4 address");
+  } else {
+    fmt::format_to(buffer, "{}", tmp_str);
   }
-  return std::string(tmp_str);
 }
 
 } // namespace srslte

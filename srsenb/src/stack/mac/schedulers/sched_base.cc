@@ -234,11 +234,18 @@ const ul_harq_proc* get_ul_newtx_harq(sched_ue& user, sf_sched* tti_sched)
 
 alloc_outcome_t try_ul_retx_alloc(sf_sched& tti_sched, sched_ue& ue, const ul_harq_proc& h)
 {
-  // If can schedule the same mask, do it
-  prb_interval    alloc = h.get_alloc();
-  alloc_outcome_t ret   = tti_sched.alloc_ul_user(&ue, alloc);
-  if (ret == alloc_outcome_t::SUCCESS or ret == alloc_outcome_t::DCI_COLLISION) {
-    return ret;
+  prb_interval alloc = h.get_alloc();
+  if (tti_sched.get_cc_cfg()->nof_prb() == 6 and h.is_msg3()) {
+    // We allow collisions with PUCCH for special case of Msg3 and 6 PRBs
+    return tti_sched.alloc_ul_user(&ue, alloc);
+  }
+
+  // If can schedule the same mask as in earlier tx, do it
+  if (not tti_sched.get_ul_mask().any(alloc.start(), alloc.stop())) {
+    alloc_outcome_t ret = tti_sched.alloc_ul_user(&ue, alloc);
+    if (ret == alloc_outcome_t::SUCCESS or ret == alloc_outcome_t::DCI_COLLISION) {
+      return ret;
+    }
   }
 
   // Avoid measGaps accounting for PDCCH

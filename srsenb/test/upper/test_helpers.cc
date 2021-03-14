@@ -25,8 +25,8 @@
 
 namespace argparse {
 
-std::string            repository_dir;
-srslte::LOG_LEVEL_ENUM log_level;
+std::string          repository_dir;
+srslog::basic_levels log_level;
 
 } // namespace argparse
 

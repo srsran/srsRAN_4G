@@ -21,6 +21,11 @@
 
 #include "srsue/hdr/stack/upper/tft_packet_filter.h"
 #include "srslte/upper/ipv6.h"
+
+extern "C" {
+#include "srslte/config.h"
+}
+
 #include <linux/ip.h>
 #include <linux/tcp.h>
 #include <linux/udp.h>

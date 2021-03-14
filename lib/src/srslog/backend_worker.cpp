@@ -97,14 +97,11 @@ void backend_worker::process_log_entry(detail::log_entry&& entry)
     return;
   }
 
-  fmt::memory_buffer fmt_buffer;
-
   assert(entry.format_func && "Invalid format function");
+  fmt_buffer.clear();
   entry.format_func(std::move(entry.metadata), fmt_buffer);
 
-  const auto str = fmt::to_string(fmt_buffer);
-  detail::memory_buffer buffer(str);
-  if (auto err_str = entry.s->write(buffer)) {
+  if (auto err_str = entry.s->write({fmt_buffer.data(), fmt_buffer.size()})) {
     err_handler(err_str.get_error());
   }
 }

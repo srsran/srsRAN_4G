@@ -25,7 +25,6 @@
 #include "srsenb/hdr/stack/mac/sched.h"
 #include "srsenb/hdr/stack/mac/sched_carrier.h"
 #include "srsenb/hdr/stack/mac/sched_helpers.h"
-#include "srslte/common/logmap.h"
 #include "srslte/srslog/srslog.h"
 
 #define Console(fmt, ...) srslte::console(fmt, ##__VA_ARGS__)

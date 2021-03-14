@@ -183,6 +183,17 @@ int srslte_pucch_nr_init(srslte_pucch_nr_t* q, const srslte_pucch_nr_args_t* arg
   return SRSLTE_SUCCESS;
 }
 
+int srslte_pucch_nr_set_carrier(srslte_pucch_nr_t* q, const srslte_carrier_nr_t* carrier)
+{
+  if (q == NULL || carrier == NULL) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  q->carrier = *carrier;
+
+  return SRSLTE_SUCCESS;
+}
+
 void srslte_pucch_nr_free(srslte_pucch_nr_t* q)
 {
   if (q == NULL) {
@@ -210,14 +221,13 @@ void srslte_pucch_nr_free(srslte_pucch_nr_t* q)
 }
 
 int srslte_pucch_nr_format0_encode(const srslte_pucch_nr_t*            q,
-                                   const srslte_carrier_nr_t*          carrier,
                                    const srslte_pucch_nr_common_cfg_t* cfg,
                                    const srslte_slot_cfg_t*            slot,
                                    srslte_pucch_nr_resource_t*         resource,
                                    uint32_t                            m_cs,
                                    cf_t*                               slot_symbols)
 {
-  if (carrier == NULL || cfg == NULL || slot == NULL || resource == NULL || slot_symbols == NULL) {
+  if (cfg == NULL || slot == NULL || resource == NULL || slot_symbols == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
@@ -228,7 +238,7 @@ int srslte_pucch_nr_format0_encode(const srslte_pucch_nr_t*            q,
 
   uint32_t u = 0;
   uint32_t v = 0;
-  if (srslte_pucch_nr_group_sequence(carrier, cfg, &u, &v) < SRSLTE_SUCCESS) {
+  if (srslte_pucch_nr_group_sequence(&q->carrier, cfg, &u, &v) < SRSLTE_SUCCESS) {
     ERROR("Error getting group sequence");
     return SRSLTE_ERROR;
   }
@@ -237,8 +247,8 @@ int srslte_pucch_nr_format0_encode(const srslte_pucch_nr_t*            q,
   for (uint32_t l = 0; l < resource->nof_symbols; l++) {
     // Get Alpha index
     uint32_t alpha_idx = 0;
-    if (srslte_pucch_nr_alpha_idx(carrier, cfg, slot, l, l_prime, resource->initial_cyclic_shift, m_cs, &alpha_idx) <
-        SRSLTE_SUCCESS) {
+    if (srslte_pucch_nr_alpha_idx(
+            &q->carrier, cfg, slot, l, l_prime, resource->initial_cyclic_shift, m_cs, &alpha_idx) < SRSLTE_SUCCESS) {
       return SRSLTE_ERROR;
     }
 
@@ -250,7 +260,7 @@ int srslte_pucch_nr_format0_encode(const srslte_pucch_nr_t*            q,
     }
 
     // Get start of the sequence in resource grid
-    cf_t* slot_symbols_ptr = &slot_symbols[(carrier->nof_prb * (l + l_prime) + resource->starting_prb) * SRSLTE_NRE];
+    cf_t* slot_symbols_ptr = &slot_symbols[(q->carrier.nof_prb * (l + l_prime) + resource->starting_prb) * SRSLTE_NRE];
 
     // Copy sequence in grid
     srslte_vec_cf_copy(slot_symbols_ptr, r_uv, SRSLTE_NRE);
@@ -260,7 +270,6 @@ int srslte_pucch_nr_format0_encode(const srslte_pucch_nr_t*            q,
 }
 
 int srslte_pucch_nr_format0_measure(const srslte_pucch_nr_t*            q,
-                                    const srslte_carrier_nr_t*          carrier,
                                     const srslte_pucch_nr_common_cfg_t* cfg,
                                     const srslte_slot_cfg_t*            slot,
                                     srslte_pucch_nr_resource_t*         resource,
@@ -268,7 +277,7 @@ int srslte_pucch_nr_format0_measure(const srslte_pucch_nr_t*            q,
                                     const cf_t*                         slot_symbols,
                                     srslte_pucch_nr_measure_t*          measure)
 {
-  if (carrier == NULL || cfg == NULL || slot == NULL || resource == NULL || slot_symbols == NULL || measure == NULL) {
+  if (cfg == NULL || slot == NULL || resource == NULL || slot_symbols == NULL || measure == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
@@ -279,7 +288,7 @@ int srslte_pucch_nr_format0_measure(const srslte_pucch_nr_t*            q,
 
   uint32_t u = 0;
   uint32_t v = 0;
-  if (srslte_pucch_nr_group_sequence(carrier, cfg, &u, &v) < SRSLTE_SUCCESS) {
+  if (srslte_pucch_nr_group_sequence(&q->carrier, cfg, &u, &v) < SRSLTE_SUCCESS) {
     ERROR("Error getting group sequence");
     return SRSLTE_ERROR;
   }
@@ -290,8 +299,8 @@ int srslte_pucch_nr_format0_measure(const srslte_pucch_nr_t*            q,
   for (uint32_t l = 0; l < resource->nof_symbols; l++) {
     // Get Alpha index
     uint32_t alpha_idx = 0;
-    if (srslte_pucch_nr_alpha_idx(carrier, cfg, slot, l, l_prime, resource->initial_cyclic_shift, m_cs, &alpha_idx) <
-        SRSLTE_SUCCESS) {
+    if (srslte_pucch_nr_alpha_idx(
+            &q->carrier, cfg, slot, l, l_prime, resource->initial_cyclic_shift, m_cs, &alpha_idx) < SRSLTE_SUCCESS) {
       return SRSLTE_ERROR;
     }
 
@@ -304,7 +313,7 @@ int srslte_pucch_nr_format0_measure(const srslte_pucch_nr_t*            q,
 
     // Get start of the sequence in resource grid
     const cf_t* slot_symbols_ptr =
-        &slot_symbols[(carrier->nof_prb * (l + l_prime) + resource->starting_prb) * SRSLTE_NRE];
+        &slot_symbols[(q->carrier.nof_prb * (l + l_prime) + resource->starting_prb) * SRSLTE_NRE];
 
     // Measure EPRE and average
     epre += srslte_vec_avg_power_cf(slot_symbols_ptr, SRSLTE_NRE) / resource->nof_symbols;
@@ -369,7 +378,6 @@ cf_t srslte_pucch_nr_format1_w(const srslte_pucch_nr_t* q, uint32_t n_pucch, uin
 }
 
 int srslte_pucch_nr_format1_encode(const srslte_pucch_nr_t*            q,
-                                   const srslte_carrier_nr_t*          carrier,
                                    const srslte_pucch_nr_common_cfg_t* cfg,
                                    const srslte_slot_cfg_t*            slot,
                                    const srslte_pucch_nr_resource_t*   resource,
@@ -377,7 +385,7 @@ int srslte_pucch_nr_format1_encode(const srslte_pucch_nr_t*            q,
                                    uint32_t                            nof_bits,
                                    cf_t*                               slot_symbols)
 {
-  if (carrier == NULL || cfg == NULL || slot == NULL || resource == NULL || b == NULL || slot_symbols == NULL) {
+  if (q == NULL || cfg == NULL || slot == NULL || resource == NULL || b == NULL || slot_symbols == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
@@ -402,7 +410,7 @@ int srslte_pucch_nr_format1_encode(const srslte_pucch_nr_t*            q,
   // Get group sequence
   uint32_t u = 0;
   uint32_t v = 0;
-  if (srslte_pucch_nr_group_sequence(carrier, cfg, &u, &v) < SRSLTE_SUCCESS) {
+  if (srslte_pucch_nr_group_sequence(&q->carrier, cfg, &u, &v) < SRSLTE_SUCCESS) {
     ERROR("Error getting group sequence");
     return SRSLTE_ERROR;
   }
@@ -413,11 +421,11 @@ int srslte_pucch_nr_format1_encode(const srslte_pucch_nr_t*            q,
   uint32_t l_prime = resource->start_symbol_idx;
   for (uint32_t l = 1, m = 0; l < resource->nof_symbols; l += 2, m++) {
     // Get start of the sequence in resource grid
-    cf_t* slot_symbols_ptr = &slot_symbols[(carrier->nof_prb * (l + l_prime) + resource->starting_prb) * SRSLTE_NRE];
+    cf_t* slot_symbols_ptr = &slot_symbols[(q->carrier.nof_prb * (l + l_prime) + resource->starting_prb) * SRSLTE_NRE];
 
     // Get Alpha index
     uint32_t alpha_idx = 0;
-    if (srslte_pucch_nr_alpha_idx(carrier, cfg, slot, l, l_prime, resource->initial_cyclic_shift, 0, &alpha_idx) <
+    if (srslte_pucch_nr_alpha_idx(&q->carrier, cfg, slot, l, l_prime, resource->initial_cyclic_shift, 0, &alpha_idx) <
         SRSLTE_SUCCESS) {
       return SRSLTE_ERROR;
     }
@@ -448,7 +456,6 @@ int srslte_pucch_nr_format1_encode(const srslte_pucch_nr_t*            q,
 }
 
 int srslte_pucch_nr_format1_decode(srslte_pucch_nr_t*                  q,
-                                   const srslte_carrier_nr_t*          carrier,
                                    const srslte_pucch_nr_common_cfg_t* cfg,
                                    const srslte_slot_cfg_t*            slot,
                                    const srslte_pucch_nr_resource_t*   resource,
@@ -458,6 +465,11 @@ int srslte_pucch_nr_format1_decode(srslte_pucch_nr_t*                  q,
                                    uint32_t                            nof_bits)
 {
   uint32_t m_cs = 0;
+
+  if (q == NULL || cfg == NULL || slot == NULL || resource == NULL || chest_res == NULL || b == NULL ||
+      slot_symbols == NULL) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
 
   if (srslte_pucch_nr_cfg_resource_valid(resource) < SRSLTE_SUCCESS) {
     ERROR("Invalid PUCCH format 1 resource");
@@ -475,7 +487,7 @@ int srslte_pucch_nr_format1_decode(srslte_pucch_nr_t*                  q,
   // Get group sequence
   uint32_t u = 0;
   uint32_t v = 0;
-  if (srslte_pucch_nr_group_sequence(carrier, cfg, &u, &v) < SRSLTE_SUCCESS) {
+  if (srslte_pucch_nr_group_sequence(&q->carrier, cfg, &u, &v) < SRSLTE_SUCCESS) {
     ERROR("Error getting group sequence");
     return SRSLTE_ERROR;
   }
@@ -486,8 +498,8 @@ int srslte_pucch_nr_format1_decode(srslte_pucch_nr_t*                  q,
   uint32_t l_prime = resource->start_symbol_idx;
   for (uint32_t l = 1, m = 0; l < resource->nof_symbols; l += 2, m++) {
     // Get start of the sequence in resource grid
-    cf_t* slot_symbols_ptr = &slot_symbols[(carrier->nof_prb * (l + l_prime) + resource->starting_prb) * SRSLTE_NRE];
-    cf_t* ce_ptr           = &chest_res->ce[(carrier->nof_prb * (l + l_prime) + resource->starting_prb) * SRSLTE_NRE];
+    cf_t* slot_symbols_ptr = &slot_symbols[(q->carrier.nof_prb * (l + l_prime) + resource->starting_prb) * SRSLTE_NRE];
+    cf_t* ce_ptr           = &chest_res->ce[(q->carrier.nof_prb * (l + l_prime) + resource->starting_prb) * SRSLTE_NRE];
 
     // Equalise x = w(i) * d' * r_uv(n)
     cf_t x[SRSLTE_NRE];
@@ -495,8 +507,8 @@ int srslte_pucch_nr_format1_decode(srslte_pucch_nr_t*                  q,
 
     // Get Alpha index
     uint32_t alpha_idx = 0;
-    if (srslte_pucch_nr_alpha_idx(carrier, cfg, slot, l, l_prime, resource->initial_cyclic_shift, m_cs, &alpha_idx) <
-        SRSLTE_SUCCESS) {
+    if (srslte_pucch_nr_alpha_idx(
+            &q->carrier, cfg, slot, l, l_prime, resource->initial_cyclic_shift, m_cs, &alpha_idx) < SRSLTE_SUCCESS) {
       return SRSLTE_ERROR;
     }
 
@@ -535,7 +547,7 @@ static uint32_t pucch_nr_format2_cinit(const srslte_carrier_nr_t*          carri
 {
   uint32_t n_id = (pucch_cfg->scrambling_id_present) ? pucch_cfg->scrambling_id_present : carrier->id;
 
-  return ((uint32_t)uci_cfg->rnti << 15U) + n_id;
+  return ((uint32_t)uci_cfg->pucch.rnti << 15U) + n_id;
 }
 
 // Implements TS 38.211 section 6.3.2.5 PUCCH format 2
@@ -639,7 +651,6 @@ static int pucch_nr_format2_decode(srslte_pucch_nr_t*                  q,
 }
 
 int srslte_pucch_nr_format_2_3_4_encode(srslte_pucch_nr_t*                  q,
-                                        const srslte_carrier_nr_t*          carrier,
                                         const srslte_pucch_nr_common_cfg_t* cfg,
                                         const srslte_slot_cfg_t*            slot,
                                         const srslte_pucch_nr_resource_t*   resource,
@@ -648,8 +659,8 @@ int srslte_pucch_nr_format_2_3_4_encode(srslte_pucch_nr_t*                  q,
                                         cf_t*                               slot_symbols)
 {
   // Validate input pointers
-  if (q == NULL || carrier == NULL || cfg == NULL || slot == NULL || resource == NULL || uci_cfg == NULL ||
-      uci_value == NULL || slot_symbols == NULL) {
+  if (q == NULL || cfg == NULL || slot == NULL || resource == NULL || uci_cfg == NULL || uci_value == NULL ||
+      slot_symbols == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
@@ -662,7 +673,7 @@ int srslte_pucch_nr_format_2_3_4_encode(srslte_pucch_nr_t*                  q,
   // Modulate PUCCH
   switch (resource->format) {
     case SRSLTE_PUCCH_NR_FORMAT_2:
-      return pucch_nr_format2_encode(q, carrier, cfg, resource, uci_cfg, slot_symbols);
+      return pucch_nr_format2_encode(q, &q->carrier, cfg, resource, uci_cfg, slot_symbols);
     case SRSLTE_PUCCH_NR_FORMAT_3:
     case SRSLTE_PUCCH_NR_FORMAT_4:
       ERROR("Not implemented");
@@ -676,7 +687,6 @@ int srslte_pucch_nr_format_2_3_4_encode(srslte_pucch_nr_t*                  q,
 }
 
 int srslte_pucch_nr_format_2_3_4_decode(srslte_pucch_nr_t*                  q,
-                                        const srslte_carrier_nr_t*          carrier,
                                         const srslte_pucch_nr_common_cfg_t* cfg,
                                         const srslte_slot_cfg_t*            slot,
                                         const srslte_pucch_nr_resource_t*   resource,
@@ -686,8 +696,8 @@ int srslte_pucch_nr_format_2_3_4_decode(srslte_pucch_nr_t*                  q,
                                         srslte_uci_value_nr_t*              uci_value)
 {
   // Validate input pointers
-  if (q == NULL || carrier == NULL || cfg == NULL || slot == NULL || resource == NULL || uci_cfg == NULL ||
-      chest_res == NULL || uci_value == NULL || slot_symbols == NULL) {
+  if (q == NULL || cfg == NULL || slot == NULL || resource == NULL || uci_cfg == NULL || chest_res == NULL ||
+      uci_value == NULL || slot_symbols == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
@@ -695,7 +705,8 @@ int srslte_pucch_nr_format_2_3_4_decode(srslte_pucch_nr_t*                  q,
   int8_t* llr = (int8_t*)q->b;
   switch (resource->format) {
     case SRSLTE_PUCCH_NR_FORMAT_2:
-      if (pucch_nr_format2_decode(q, carrier, cfg, resource, uci_cfg, chest_res, slot_symbols, llr) < SRSLTE_SUCCESS) {
+      if (pucch_nr_format2_decode(q, &q->carrier, cfg, resource, uci_cfg, chest_res, slot_symbols, llr) <
+          SRSLTE_SUCCESS) {
         ERROR("Demodulating PUCCH format 2");
         return SRSLTE_ERROR;
       }

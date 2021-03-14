@@ -22,8 +22,9 @@
 #ifndef SRSLTE_GTPU_H
 #define SRSLTE_GTPU_H
 
+#include "srslte/common/byte_buffer.h"
 #include "srslte/common/common.h"
-#include "srslte/common/logmap.h"
+#include "srslte/srslog/srslog.h"
 #include <stdint.h>
 
 namespace srslte {
@@ -79,9 +80,9 @@ struct gtpu_header_t {
   std::vector<uint8_t> ext_buffer;
 };
 
-bool        gtpu_read_header(srslte::byte_buffer_t* pdu, gtpu_header_t* header, srslog::basic_logger& logger);
-bool        gtpu_write_header(gtpu_header_t* header, srslte::byte_buffer_t* pdu, srslog::basic_logger& logger);
-std::string gtpu_ntoa(uint32_t addr);
+bool gtpu_read_header(srslte::byte_buffer_t* pdu, gtpu_header_t* header, srslog::basic_logger& logger);
+bool gtpu_write_header(gtpu_header_t* header, srslte::byte_buffer_t* pdu, srslog::basic_logger& logger);
+void gtpu_ntoa(fmt::memory_buffer& buffer, uint32_t addr);
 
 inline bool gtpu_supported_flags_check(gtpu_header_t* header, srslog::basic_logger& logger)
 {

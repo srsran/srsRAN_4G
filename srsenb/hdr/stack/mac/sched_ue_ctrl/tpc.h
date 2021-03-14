@@ -24,7 +24,6 @@
 
 #include "srslte/adt/accumulators.h"
 #include "srslte/common/common.h"
-#include "srslte/common/logmap.h"
 #include "srslte/srslog/srslog.h"
 
 namespace srsenb {

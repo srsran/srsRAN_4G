@@ -22,6 +22,7 @@
 #ifndef SRSLTE_MEM_POOL_H
 #define SRSLTE_MEM_POOL_H
 
+#include "srslte/common/thread_pool.h"
 #include <cassert>
 #include <cstdint>
 #include <memory>
@@ -203,6 +204,97 @@ public:
       block = stack.try_pop();
     }
   }
+};
+
+/**
+ * Pool specialized for in allocating batches of objects in a preemptive way in a background thread to minimize latency.
+ * Note: Current implementation assumes that the pool object will outlive the background callbacks to allocate new
+ *       batches
+ * @tparam T individual object type that is being allocated
+ * @tparam BatchSize number of T objects in a batch
+ * @tparam ThresholdSize number of T objects below which a new batch needs to be allocated
+ */
+template <typename T, size_t BatchSize, size_t ThresholdSize>
+class background_allocator_obj_pool
+{
+  static_assert(ThresholdSize > 0, "ThresholdSize needs to be positive");
+  static_assert(BatchSize > 1, "BatchSize needs to be higher than 1");
+
+public:
+  background_allocator_obj_pool(bool lazy_start = false)
+  {
+    if (not lazy_start) {
+      allocate_batch_in_background();
+    }
+  }
+  background_allocator_obj_pool(background_allocator_obj_pool&&)      = delete;
+  background_allocator_obj_pool(const background_allocator_obj_pool&) = delete;
+  background_allocator_obj_pool& operator=(background_allocator_obj_pool&&) = delete;
+  background_allocator_obj_pool& operator=(const background_allocator_obj_pool&) = delete;
+  ~background_allocator_obj_pool()
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    batches.clear();
+  }
+
+  /// alloc new object space. If no memory is pre-reserved in the pool, malloc is called to allocate new batch.
+  void* allocate_node(size_t sz)
+  {
+    assert(sz == sizeof(T));
+    std::lock_guard<std::mutex> lock(mutex);
+    uint8_t*                    block = obj_cache.try_pop();
+
+    if (block != nullptr) {
+      // allocation successful
+      if (obj_cache.size() < ThresholdSize) {
+        get_background_workers().push_task([this]() {
+          std::lock_guard<std::mutex> lock(mutex);
+          allocate_batch_();
+        });
+      }
+      return block;
+    }
+
+    // try allocation of new batch in same thread as caller.
+    allocate_batch_();
+    return obj_cache.try_pop();
+  }
+
+  void deallocate_node(void* p)
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    assert(p != nullptr);
+    if (p != nullptr) {
+      obj_cache.push(static_cast<uint8_t*>(p));
+    }
+  }
+
+  void allocate_batch_in_background()
+  {
+    get_background_workers().push_task([this]() {
+      std::lock_guard<std::mutex> lock(mutex);
+      allocate_batch_();
+    });
+  }
+
+private:
+  using obj_storage_t = typename std::aligned_storage<sizeof(T), alignof(T)>::type;
+  using batch_obj_t   = std::array<obj_storage_t, BatchSize>;
+
+  /// Unprotected allocation of new Batch of Objects
+  void allocate_batch_()
+  {
+    batches.emplace_back(new batch_obj_t());
+    batch_obj_t& batch = *batches.back();
+    for (obj_storage_t& obj_store : batch) {
+      obj_cache.push(reinterpret_cast<uint8_t*>(&obj_store));
+    }
+  }
+
+  // memory stack to cache allocate memory chunks
+  std::mutex                                 mutex;
+  memblock_stack                             obj_cache;
+  std::vector<std::unique_ptr<batch_obj_t> > batches;
 };
 
 } // namespace srslte

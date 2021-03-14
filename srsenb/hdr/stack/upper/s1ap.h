@@ -27,7 +27,6 @@
 #include "common_enb.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
-#include "srslte/common/logmap.h"
 #include "srslte/common/s1ap_pcap.h"
 #include "srslte/common/threads.h"
 #include "srslte/interfaces/enb_interfaces.h"

@@ -22,6 +22,7 @@
 #include <sstream>
 
 #include "srslte/common/bcd_helpers.h"
+#include "srslte/common/standard_streams.h"
 #include "srsue/hdr/stack/upper/pcsc_usim.h"
 #include "string.h"
 

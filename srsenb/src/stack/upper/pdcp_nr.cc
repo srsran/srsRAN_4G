@@ -24,7 +24,8 @@
 
 namespace srsenb {
 
-pdcp_nr::pdcp_nr(srslte::task_sched_handle task_sched_, const char* logname) : task_sched(task_sched_), m_log(logname)
+pdcp_nr::pdcp_nr(srslte::task_sched_handle task_sched_, const char* logname) :
+  task_sched(task_sched_), logger(srslog::fetch_basic_logger(logname))
 {}
 
 void pdcp_nr::init(const pdcp_nr_args_t&   args_,
@@ -37,8 +38,8 @@ void pdcp_nr::init(const pdcp_nr_args_t&   args_,
   m_rrc  = rrc_;
   m_sdap = sdap_;
 
-  m_log->set_level(m_args.log_level);
-  m_log->set_hex_limit(m_args.log_hex_limit);
+  logger.set_level(srslog::str_to_basic_level(m_args.log_level));
+  logger.set_hex_dump_max_size(m_args.log_hex_limit);
 }
 
 void pdcp_nr::stop()
@@ -104,25 +105,25 @@ void pdcp_nr::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer
   if (users.count(rnti)) {
     users[rnti].pdcp->write_pdu(lcid, std::move(sdu));
   } else {
-    m_log->error("Can't write PDU. RNTI=0x%X doesn't exist.\n", rnti);
+    logger.error("Can't write PDU. RNTI=0x%X doesn't exist.", rnti);
   }
 }
 
-void pdcp_nr::notify_delivery(uint16_t rnti, uint32_t lcid, const std::vector<uint32_t>& pdcp_sns)
+void pdcp_nr::notify_delivery(uint16_t rnti, uint32_t lcid, const srslte::pdcp_sn_vector_t& pdcp_sns)
 {
   if (users.count(rnti)) {
     users[rnti].pdcp->notify_delivery(lcid, pdcp_sns);
   } else {
-    m_log->error("Can't notify Ack of PDU. RNTI=0x%X doesn't exist.\n", rnti);
+    logger.error("Can't notify Ack of PDU. RNTI=0x%X doesn't exist.", rnti);
   }
 }
 
-void pdcp_nr::notify_failure(uint16_t rnti, uint32_t lcid, const std::vector<uint32_t>& pdcp_sns)
+void pdcp_nr::notify_failure(uint16_t rnti, uint32_t lcid, const srslte::pdcp_sn_vector_t& pdcp_sns)
 {
   if (users.count(rnti)) {
     users[rnti].pdcp->notify_failure(lcid, pdcp_sns);
   } else {
-    m_log->error("Can't notify Ack of PDU. RNTI=0x%X doesn't exist.\n", rnti);
+    logger.error("Can't notify Ack of PDU. RNTI=0x%X doesn't exist.", rnti);
   }
 }
 
@@ -131,7 +132,7 @@ void pdcp_nr::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer
   if (users.count(rnti)) {
     users[rnti].pdcp->write_sdu(lcid, std::move(sdu));
   } else {
-    m_log->error("Can't write SDU. RNTI=0x%X doesn't exist.\n", rnti);
+    logger.error("Can't write SDU. RNTI=0x%X doesn't exist.", rnti);
   }
 }
 

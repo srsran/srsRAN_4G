@@ -32,6 +32,7 @@
 
 #include "srslte/phy/common/phy_common_nr.h"
 #include "srslte/phy/phch/sch_cfg_nr.h"
+#include "srslte/phy/phch/uci_cfg_nr.h"
 
 /**
  * @brief PDSCH DMRS type
@@ -210,8 +211,13 @@ typedef struct SRSLTE_API {
 
   srslte_sch_cfg_t sch_cfg; ///< Common shared channel parameters
 
-  /// Uplink params
-  bool enable_transform_precoder;
+  /// PUSCH only parameters
+  srslte_uci_cfg_nr_t uci; ///< Uplink Control Information configuration
+  bool                enable_transform_precoder;
+  float               beta_harq_ack_offset;
+  float               beta_csi_part1_offset;
+  float               scaling;
+  bool                freq_hopping_enabled;
 } srslte_sch_cfg_nr_t;
 
 #endif // SRSLTE_PHCH_CFG_NR_H

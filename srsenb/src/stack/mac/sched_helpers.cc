@@ -20,20 +20,28 @@
  */
 
 #include "srsenb/hdr/stack/mac/sched_helpers.h"
+#include "srslte/common/standard_streams.h"
 #include "srslte/mac/pdu.h"
 #include "srslte/srslog/bundled/fmt/format.h"
+
 #include <array>
 
-#define Debug(fmt, ...) srslog::fetch_basic_logger("MAC").debug(fmt, ##__VA_ARGS__)
-#define Info(fmt, ...) srslog::fetch_basic_logger("MAC").info(fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) srslog::fetch_basic_logger("MAC").warning(fmt, ##__VA_ARGS__)
-#define Error(fmt, ...) srslog::fetch_basic_logger("MAC").error(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...) get_mac_logger().debug(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...) get_mac_logger().info(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) get_mac_logger().warning(fmt, ##__VA_ARGS__)
+#define Error(fmt, ...) get_mac_logger().error(fmt, ##__VA_ARGS__)
 
 namespace srsenb {
 
 using dl_sched_res_t    = sched_interface::dl_sched_res_t;
 using dl_sched_data_t   = sched_interface::dl_sched_data_t;
 using custom_mem_buffer = fmt::basic_memory_buffer<char, 1024>;
+
+srslog::basic_logger& get_mac_logger()
+{
+  static srslog::basic_logger& mac_logger = srslog::fetch_basic_logger("MAC");
+  return mac_logger;
+}
 
 const char* to_string_short(srslte_dci_format_t dcifmt)
 {

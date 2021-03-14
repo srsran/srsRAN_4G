@@ -22,7 +22,6 @@
 #ifndef SRSUE_PROC_SR_H
 #define SRSUE_PROC_SR_H
 
-#include "srslte/common/logmap.h"
 #include "srslte/interfaces/ue_mac_interfaces.h"
 #include "srslte/srslog/srslog.h"
 #include <stdint.h>

@@ -35,8 +35,6 @@
 #include "upper/s1ap.h"
 #include "upper/sdap.h"
 
-#include "srslte/common/log_filter.h"
-
 #include "enb_stack_base.h"
 #include "srsenb/hdr/enb.h"
 #include "srslte/interfaces/gnb_interfaces.h"
@@ -89,6 +87,8 @@ private:
   // args
   srsenb::stack_args_t    args = {};
   phy_interface_stack_nr* phy  = nullptr;
+
+  srslog::basic_logger& rlc_logger;
 
   // task scheduling
   static const int                      STACK_MAIN_THREAD_PRIO = 4;

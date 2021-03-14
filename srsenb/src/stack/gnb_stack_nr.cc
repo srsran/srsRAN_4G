@@ -25,7 +25,7 @@
 
 namespace srsenb {
 
-gnb_stack_nr::gnb_stack_nr() : task_sched{512, 128}, thread("gNB")
+gnb_stack_nr::gnb_stack_nr() : task_sched{512, 128}, thread("gNB"), rlc_logger(srslog::fetch_basic_logger("RLC"))
 {
   m_mac.reset(new mac_nr());
   m_rlc.reset(new rlc_nr("RLC"));
@@ -79,8 +79,8 @@ int gnb_stack_nr::init(const srsenb::stack_args_t& args_, const rrc_nr_cfg_t& rr
   mac_args.rnti          = args.coreless.rnti;
   m_mac->init(mac_args, phy, this, m_rlc.get(), m_rrc.get());
 
-  srslte::logmap::get("RLC")->set_level(args.log.rlc_level);
-  srslte::logmap::get("RLC")->set_hex_limit(args.log.rlc_hex_limit);
+  rlc_logger.set_level(srslog::str_to_basic_level(args.log.rlc_level));
+  rlc_logger.set_hex_dump_max_size(args.log.rlc_hex_limit);
   m_rlc->init(m_pdcp.get(), m_rrc.get(), m_mac.get(), task_sched.get_timer_handler());
 
   pdcp_nr_args_t pdcp_args = {};

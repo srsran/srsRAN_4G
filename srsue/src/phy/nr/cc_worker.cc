@@ -20,6 +20,7 @@
  */
 
 #include "srsue/hdr/phy/nr/cc_worker.h"
+#include "srslte/common/buffer_pool.h"
 #include "srslte/srslte.h"
 
 namespace srsue {
@@ -297,8 +298,11 @@ bool cc_worker::work_ul()
     // Assignning MAC provided values to PUSCH config structs
     pusch_cfg.grant.tb[0].softbuffer.tx = ul_action.tb.softbuffer;
 
+    srslte_pusch_data_nr_t data = {};
+    data.payload                = ul_action.tb.payload->msg;
+
     // Encode PUSCH transmission
-    if (srslte_ue_ul_nr_encode_pusch(&ue_ul, &ul_slot_cfg, &pusch_cfg, ul_action.tb.payload->msg) < SRSLTE_SUCCESS) {
+    if (srslte_ue_ul_nr_encode_pusch(&ue_ul, &ul_slot_cfg, &pusch_cfg, &data) < SRSLTE_SUCCESS) {
       ERROR("Encoding PUSCH");
       return false;
     }

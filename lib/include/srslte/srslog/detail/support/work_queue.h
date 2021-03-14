@@ -60,8 +60,8 @@ public:
       return false;
     }
     queue.push(value);
-    cond_var.signal();
     cond_var.unlock();
+    cond_var.signal();
 
     return true;
   }
@@ -77,8 +77,8 @@ public:
       return false;
     }
     queue.push(std::move(value));
-    cond_var.signal();
     cond_var.unlock();
+    cond_var.signal();
 
     return true;
   }

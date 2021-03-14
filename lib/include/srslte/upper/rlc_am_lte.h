@@ -26,9 +26,9 @@
 #include "srslte/adt/circular_array.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
-#include "srslte/common/log.h"
 #include "srslte/common/task_scheduler.h"
 #include "srslte/common/timeout.h"
+#include "srslte/interfaces/pdcp_interface_types.h"
 #include "srslte/upper/byte_buffer_queue.h"
 #include "srslte/upper/rlc_am_base.h"
 #include "srslte/upper/rlc_common.h"
@@ -51,12 +51,12 @@ struct rlc_amd_rx_pdu_segments_t {
 };
 
 struct rlc_amd_tx_pdu_t {
-  rlc_amd_pdu_header_t  header;
-  unique_byte_buffer_t  buf;
-  std::vector<uint32_t> pdcp_sns;
-  uint32_t              retx_count;
-  uint32_t              rlc_sn;
-  bool                  is_acked;
+  rlc_amd_pdu_header_t header;
+  unique_byte_buffer_t buf;
+  pdcp_sn_vector_t     pdcp_sns;
+  uint32_t             retx_count;
+  uint32_t             rlc_sn;
+  bool                 is_acked;
 };
 
 struct rlc_amd_retx_t {
@@ -354,11 +354,11 @@ private:
 
     // Tx windows
     rlc_ringbuffer_t<rlc_amd_tx_pdu_t> tx_window;
-    pdu_retx_queue        retx_queue;
-    std::vector<uint32_t> notify_info_vec;
+    pdu_retx_queue                     retx_queue;
+    pdcp_sn_vector_t                   notify_info_vec;
 
     // Mutexes
-    pthread_mutex_t mutex;
+    std::mutex mutex;
   };
 
   // Receiver sub-class
@@ -420,8 +420,8 @@ private:
     uint32_t vr_ms = 0;                  // Max status tx state. Highest possible value of SN for ACK_SN in status PDU.
     uint32_t vr_h  = 0;                  // Highest rx state. SN following PDU with highest SN among rxed PDUs.
 
-    // Mutexes
-    pthread_mutex_t mutex;
+    // Mutex to protect members
+    std::mutex mutex;
 
     // Rx windows
     rlc_ringbuffer_t<rlc_amd_rx_pdu_t>            rx_window;
@@ -477,8 +477,7 @@ uint32_t    rlc_am_packed_length(rlc_amd_retx_t retx);
 bool        rlc_am_is_valid_status_pdu(const rlc_status_pdu_t& status);
 bool        rlc_am_is_pdu_segment(uint8_t* payload);
 std::string rlc_am_undelivered_sdu_info_to_string(const std::map<uint32_t, pdcp_sdu_info_t>& info_queue);
-std::string rlc_am_status_pdu_to_string(rlc_status_pdu_t* status);
-std::string rlc_amd_pdu_header_to_string(const rlc_amd_pdu_header_t& header);
+void        log_rlc_amd_pdu_header_to_string(srslog::log_channel& log_ch, const rlc_amd_pdu_header_t& header);
 bool        rlc_am_start_aligned(const uint8_t fi);
 bool        rlc_am_end_aligned(const uint8_t fi);
 bool        rlc_am_is_unaligned(const uint8_t fi);

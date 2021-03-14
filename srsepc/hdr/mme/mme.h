@@ -30,8 +30,7 @@
 
 #include "s1ap.h"
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/log.h"
-#include "srslte/common/log_filter.h"
+#include "srslte/common/standard_streams.h"
 #include "srslte/common/threads.h"
 #include <cstddef>
 

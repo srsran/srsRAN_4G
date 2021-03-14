@@ -30,37 +30,11 @@
 
 namespace srslte {
 
-#define Error(fmt, ...)                                                                                                \
-  do {                                                                                                                 \
-    if (log_h.get() != nullptr) {                                                                                      \
-      log_h->error(fmt, ##__VA_ARGS__);                                                                                \
-    }                                                                                                                  \
-  } while (0)
-#define Warning(fmt, ...)                                                                                              \
-  do {                                                                                                                 \
-    if (log_h.get() != nullptr) {                                                                                      \
-      log_h->warning(fmt, ##__VA_ARGS__);                                                                              \
-    }                                                                                                                  \
-  } while (0)
-#define Info(fmt, ...)                                                                                                 \
-  do {                                                                                                                 \
-    if (log_h.get() != nullptr) {                                                                                      \
-      log_h->info(fmt, ##__VA_ARGS__);                                                                                 \
-    }                                                                                                                  \
-  } while (0)
-#define Debug(fmt, ...)                                                                                                \
-  do {                                                                                                                 \
-    if (log_h.get() != nullptr) {                                                                                      \
-      log_h->debug(fmt, ##__VA_ARGS__);                                                                                \
-    }                                                                                                                  \
-  } while (0)
-
-#define Console(fmt, ...)                                                                                              \
-  do {                                                                                                                 \
-    if (log_h.get() != nullptr) {                                                                                      \
-      srslte::console(fmt, ##__VA_ARGS__);                                                                          \
-    }                                                                                                                  \
-  } while (0)
+#define Error(fmt, ...) logger.error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) logger.warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...) logger.info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...) logger.debug(fmt, ##__VA_ARGS__)
+#define Console(fmt, ...) srslte::console(fmt, ##__VA_ARGS__)
 
 } // namespace srslte
 

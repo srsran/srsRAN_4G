@@ -91,6 +91,11 @@ int srslte_ue_ul_nr_set_carrier(srslte_ue_ul_nr_t* q, const srslte_carrier_nr_t*
     return SRSLTE_ERROR;
   }
 
+  if (srslte_pucch_nr_set_carrier(&q->pucch, carrier) < SRSLTE_SUCCESS) {
+    ERROR("Setting PUSCH carrier");
+    return SRSLTE_ERROR;
+  }
+
   if (srslte_dmrs_sch_set_carrier(&q->dmrs, carrier)) {
     ERROR("Setting DMRS carrier");
     return SRSLTE_ERROR;
@@ -99,16 +104,13 @@ int srslte_ue_ul_nr_set_carrier(srslte_ue_ul_nr_t* q, const srslte_carrier_nr_t*
   return SRSLTE_SUCCESS;
 }
 
-int srslte_ue_ul_nr_encode_pusch(srslte_ue_ul_nr_t*         q,
-                                 const srslte_slot_cfg_t*   slot_cfg,
-                                 const srslte_sch_cfg_nr_t* pusch_cfg,
-                                 uint8_t*                   data_)
+int srslte_ue_ul_nr_encode_pusch(srslte_ue_ul_nr_t*            q,
+                                 const srslte_slot_cfg_t*      slot_cfg,
+                                 const srslte_sch_cfg_nr_t*    pusch_cfg,
+                                 const srslte_pusch_data_nr_t* data)
 {
-  uint8_t* data[SRSLTE_MAX_TB] = {};
-  data[0]                      = data_;
-
   // Check inputs
-  if (q == NULL || pusch_cfg == NULL || data_ == NULL) {
+  if (q == NULL || pusch_cfg == NULL || data == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
@@ -167,7 +169,7 @@ static int ue_ul_nr_encode_pucch_format1(srslte_ue_ul_nr_t*                  q,
     return SRSLTE_ERROR;
   }
 
-  return srslte_pucch_nr_format1_encode(&q->pucch, &q->carrier, cfg, slot, resource, b, nof_bits, q->sf_symbols[0]);
+  return srslte_pucch_nr_format1_encode(&q->pucch, cfg, slot, resource, b, nof_bits, q->sf_symbols[0]);
 }
 
 int srslte_ue_ul_nr_encode_pucch(srslte_ue_ul_nr_t*                  q,
@@ -201,7 +203,7 @@ int srslte_ue_ul_nr_encode_pucch(srslte_ue_ul_nr_t*                  q,
         return SRSLTE_ERROR;
       }
       if (srslte_pucch_nr_format_2_3_4_encode(
-              &q->pucch, &q->carrier, cfg, slot_cfg, resource, &uci_data->cfg, &uci_data->value, q->sf_symbols[0]) <
+              &q->pucch, cfg, slot_cfg, resource, &uci_data->cfg, &uci_data->value, q->sf_symbols[0]) <
           SRSLTE_SUCCESS) {
         return SRSLTE_ERROR;
       }

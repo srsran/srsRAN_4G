@@ -19,13 +19,15 @@
  *
  */
 
+#include "srsue/hdr/stack/mac/demux.h"
+#include "srslte/common/standard_streams.h"
+#include "srslte/common/string_helpers.h"
+#include "srslte/interfaces/ue_phy_interfaces.h"
+
 #define Error(fmt, ...) logger.error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) logger.warning(fmt, ##__VA_ARGS__)
 #define Info(fmt, ...) logger.info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...) logger.debug(fmt, ##__VA_ARGS__)
-
-#include "srsue/hdr/stack/mac/demux.h"
-#include "srslte/interfaces/ue_phy_interfaces.h"
 
 namespace srsue {
 
@@ -162,7 +164,11 @@ void demux::process_pdu(uint8_t* mac_pdu, uint32_t nof_bytes, srslte::pdu_queue:
       // Unpack DLSCH MAC PDU
       mac_msg.init_rx(nof_bytes);
       mac_msg.parse_packet(mac_pdu);
-      Info("%s", mac_msg.to_string().c_str());
+      {
+        fmt::memory_buffer buffer;
+        mac_msg.to_string(buffer);
+        Info("%s", srslte::to_c_str(buffer));
+      }
       process_sch_pdu(&mac_msg);
       pdus.deallocate(mac_pdu);
       break;

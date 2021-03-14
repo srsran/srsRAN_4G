@@ -23,6 +23,7 @@
 #include "srslte/phy/fec/ldpc/base_graph.h"
 #include "srslte/phy/fec/turbo/turbodecoder_gen.h"
 #include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/vector.h"
 #include <strings.h>
 
 /**
@@ -40,8 +41,6 @@ const uint32_t tc_cb_sizes[SRSLTE_NOF_TC_CB_SIZES] = {
     3904, 3968, 4032, 4096, 4160, 4224, 4288, 4352, 4416, 4480, 4544, 4608, 4672, 4736, 4800, 4864, 4928, 4992, 5056,
     5120, 5184, 5248, 5312, 5376, 5440, 5504, 5568, 5632, 5696, 5760, 5824, 5888, 5952, 6016, 6080, 6144};
 
-#define CEIL(NUM, DEN) (((NUM) + ((DEN)-1)) / (DEN))
-
 /**
  * @brief Calculates the number of code blocks and the total size
  * @param[in] B Transport block size including TB CRC
@@ -55,7 +54,7 @@ static void cbsegm_cb_size(uint32_t B, uint32_t Z, uint32_t* C, uint32_t* B_prim
     *C       = 1;
     *B_prime = B;
   } else {
-    *C       = CEIL(B, (Z - 24U));
+    *C       = SRSLTE_CEIL(B, (Z - 24U));
     *B_prime = B + 24U * (*C);
   }
 }
@@ -160,12 +159,12 @@ bool srslte_cbsegm_cbsize_isvalid(uint32_t size)
 static int cbsegm_ldpc_select_ls(uint32_t Kp, uint32_t K_b, uint32_t* Z_c, uint8_t* i_ls)
 {
   // Early return if the minimum required lift size is too high
-  if (CEIL(Kp, K_b) > MAX_LIFTSIZE) {
+  if (SRSLTE_CEIL(Kp, K_b) > MAX_LIFTSIZE) {
     return SRSLTE_ERROR;
   }
 
   // Iterate from the minimum required lift size to the maximum value
-  for (uint16_t Z = CEIL(Kp, K_b); Z <= MAX_LIFTSIZE; Z++) {
+  for (uint16_t Z = SRSLTE_CEIL(Kp, K_b); Z <= MAX_LIFTSIZE; Z++) {
     // Get index for a selected lifting size
     uint8_t i = get_ls_index(Z);
 

@@ -22,7 +22,6 @@
 #ifndef SRSUE_PRACH_H
 #define SRSUE_PRACH_H
 
-#include "srslte/common/log.h"
 #include "srslte/interfaces/ue_phy_interfaces.h"
 #include "srslte/radio/radio.h"
 #include "srslte/srslog/srslog.h"

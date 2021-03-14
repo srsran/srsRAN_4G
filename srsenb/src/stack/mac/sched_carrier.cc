@@ -23,7 +23,8 @@
 #include "srsenb/hdr/stack/mac/sched_helpers.h"
 #include "srsenb/hdr/stack/mac/schedulers/sched_time_pf.h"
 #include "srsenb/hdr/stack/mac/schedulers/sched_time_rr.h"
-#include "srslte/common/logmap.h"
+#include "srslte/common/standard_streams.h"
+#include "srslte/common/string_helpers.h"
 #include "srslte/interfaces/enb_rrc_interfaces.h"
 
 namespace srsenb {
@@ -159,16 +160,14 @@ void ra_sched::dl_sched(sf_sched* tti_sched)
                                     rar.prach_tti + PRACH_RAR_OFFSET + cc_cfg->cfg.prach_rar_window};
     if (not rar_window.contains(tti_tx_dl)) {
       if (tti_tx_dl >= rar_window.stop()) {
-        char error_msg[128];
-        int  len       = snprintf(error_msg,
-                           sizeof(error_msg),
-                           "SCHED: Could not transmit RAR within the window (RA=%d, Window=%s, RAR=%d)",
-                           rar.prach_tti.to_uint(),
-                           rar_window.to_string().c_str(),
-                           tti_tx_dl.to_uint());
-        error_msg[len] = '\0';
-        srslte::console("%s\n", error_msg);
-        logger.error("%s", error_msg);
+        fmt::memory_buffer str_buffer;
+        fmt::format_to(str_buffer,
+                       "SCHED: Could not transmit RAR within the window (RA={}, Window={}, RAR={}",
+                       rar.prach_tti,
+                       rar_window,
+                       tti_tx_dl);
+        srslte::console("%s\n", srslte::to_c_str(str_buffer));
+        logger.error("%s", srslte::to_c_str(str_buffer));
         // Remove from pending queue and get next one if window has passed already
         pending_rars.pop_front();
         continue;

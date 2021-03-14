@@ -37,7 +37,6 @@ int test_zero_bitset()
 
   TESTASSERT(mask2.max_size() == 25);
   TESTASSERT(mask2.size() == 23);
-  TESTASSERT(mask2.size() == 23);
   TESTASSERT(mask2.count() == 0);
   TESTASSERT(mask2.none());
   TESTASSERT(not mask2.any());
@@ -104,11 +103,84 @@ int test_bitset_bitwise_oper()
   try {
     mask2 |= mask;
   } catch (srslte::bad_type_access& c) {
-    printf("Received exception \"%s\"\n", c.what());
+    printf("Received exception \"%s\" (as expected)\n", c.what());
     caught = true;
   }
   TESTASSERT(caught);
 #endif
+
+  return SRSLTE_SUCCESS;
+}
+
+int test_bitset_print()
+{
+  {
+    srslte::bounded_bitset<100> bitset(100);
+    bitset.set(0);
+    bitset.set(5);
+
+    TESTASSERT(fmt::format("{:x}", bitset) == "0000000000000000000000021");
+    TESTASSERT(fmt::format("{:b}", bitset) ==
+               "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100001");
+
+    bitset.set(99);
+    TESTASSERT(fmt::format("{:x}", bitset) == "8000000000000000000000021");
+    TESTASSERT(fmt::format("{:b}", bitset) ==
+               "1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100001");
+  }
+
+  {
+    srslte::bounded_bitset<100> bitset(25);
+    bitset.set(0);
+    bitset.set(4);
+
+    TESTASSERT(fmt::format("{:x}", bitset) == "0000011");
+    TESTASSERT(fmt::format("{:b}", bitset) == "0000000000000000000010001");
+
+    bitset.set(24);
+    TESTASSERT(fmt::format("{:x}", bitset) == "1000011");
+    TESTASSERT(fmt::format("{:b}", bitset) == "1000000000000000000010001");
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
+int test_bitset_resize()
+{
+  {
+    srslte::bounded_bitset<100> bitset;
+    TESTASSERT(bitset.none() and bitset.size() == 0);
+
+    bitset.resize(100);
+    TESTASSERT(bitset.none() and bitset.size() == 100);
+    bitset.fill(0, 100);
+    TESTASSERT(bitset.all() and bitset.size() == 100);
+
+    bitset.resize(25);
+    TESTASSERT(bitset.to_uint64() == 0x1ffffff);
+    TESTASSERT(bitset.all() and bitset.size() == 25); // keeps the data it had for the non-erased bits
+
+    bitset.resize(100);
+    TESTASSERT(bitset.count() == 25 and bitset.size() == 100);
+  }
+
+  {
+    // TEST: Reverse case
+    srslte::bounded_bitset<100, true> bitset;
+    TESTASSERT(bitset.none() and bitset.size() == 0);
+
+    bitset.resize(100);
+    TESTASSERT(bitset.none() and bitset.size() == 100);
+    bitset.fill(0, 100);
+    TESTASSERT(bitset.all() and bitset.size() == 100);
+
+    bitset.resize(25);
+    TESTASSERT(bitset.to_uint64() == 0x1ffffff);
+    TESTASSERT(bitset.all() and bitset.size() == 25); // keeps the data it had for the non-erased bits
+
+    bitset.resize(100);
+    TESTASSERT(bitset.count() == 25 and bitset.size() == 100);
+  }
 
   return SRSLTE_SUCCESS;
 }
@@ -119,5 +191,8 @@ int main()
   TESTASSERT(test_ones_bitset() == SRSLTE_SUCCESS);
   TESTASSERT(test_bitset_set() == SRSLTE_SUCCESS);
   TESTASSERT(test_bitset_bitwise_oper() == SRSLTE_SUCCESS);
+  TESTASSERT(test_bitset_print() == SRSLTE_SUCCESS);
+  TESTASSERT(test_bitset_resize() == SRSLTE_SUCCESS);
+  printf("Success\n");
   return 0;
 }

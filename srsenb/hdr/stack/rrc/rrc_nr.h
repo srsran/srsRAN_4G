@@ -29,7 +29,6 @@
 #include "srslte/common/block_queue.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
-#include "srslte/common/logmap.h"
 #include "srslte/common/task_scheduler.h"
 #include "srslte/common/threads.h"
 #include "srslte/common/timeout.h"
@@ -137,11 +136,11 @@ private:
   ngap_interface_rrc_nr*  ngap = nullptr;
 
   // args
-  srslte::log_ref        m_log;
   srslte::timer_handler* timers = nullptr;
 
   // derived
-  uint32_t slot_dur_ms = 0;
+  uint32_t              slot_dur_ms = 0;
+  srslog::basic_logger& logger;
 
   // vars
   std::map<uint16_t, std::unique_ptr<ue> >  users;

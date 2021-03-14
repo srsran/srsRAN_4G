@@ -23,6 +23,7 @@
 #define SRSLTE_DYN_BITSET_H
 
 #include "adt_utils.h"
+#include "srslte/srslog/bundled/fmt/format.h"
 #include <cstdint>
 #include <inttypes.h>
 #include <string>
@@ -41,9 +42,9 @@ class bounded_bitset
   static const size_t bits_per_word = 8 * sizeof(word_t);
 
 public:
-  constexpr bounded_bitset() : buffer(), cur_size(0) {}
+  constexpr bounded_bitset() = default;
 
-  constexpr explicit bounded_bitset(size_t cur_size_) : buffer(), cur_size(cur_size_) {}
+  constexpr explicit bounded_bitset(size_t cur_size_) : cur_size(cur_size_) {}
 
   constexpr size_t max_size() const noexcept { return N; }
 
@@ -62,7 +63,7 @@ public:
     cur_size = new_size;
     sanitize_();
     for (size_t i = nof_words_(); i < max_nof_words_(); ++i) {
-      get_word_(i) = static_cast<word_t>(0);
+      buffer[i] = static_cast<word_t>(0);
     }
   }
 
@@ -172,10 +173,12 @@ public:
     size_t result = 0;
     for (size_t i = 0; i < nof_words_(); i++) {
       //      result += __builtin_popcountl(buffer[i]);
-      word_t w = buffer[i];
-      for (; w; w >>= 1u) {
-        result += (w & 1u);
+      // Note: use an "int" for count triggers popcount optimization if SSE instructions are enabled.
+      int c = 0;
+      for (word_t w = buffer[i]; w > 0; c++) {
+        w &= w - 1;
       }
+      result += c;
     }
     return result;
   }
@@ -228,24 +231,25 @@ public:
     return ret;
   }
 
-  std::string to_string() const
+  template <typename OutputIt>
+  OutputIt to_string(OutputIt&& mem_buffer) const
   {
+    if (size() == 0) {
+      return mem_buffer;
+    }
+
     std::string s;
     s.assign(size(), '0');
     if (not reversed) {
       for (size_t i = size(); i > 0; --i) {
-        if (test(i - 1)) {
-          s[size() - i] = '1';
-        }
+        fmt::format_to(mem_buffer, "{}", test(i - 1) ? '1' : '0');
       }
     } else {
       for (size_t i = 0; i < size(); ++i) {
-        if (test(i)) {
-          s[i] = '1';
-        }
+        fmt::format_to(mem_buffer, "{}", test(i) ? '1' : '0');
       }
     }
-    return s;
+    return mem_buffer;
   }
 
   uint64_t to_uint64() const
@@ -257,24 +261,26 @@ public:
     return get_word_(0);
   }
 
-  std::string to_hex() const noexcept
+  template <typename OutputIt>
+  OutputIt to_hex(OutputIt&& mem_buffer) const noexcept
   {
-    size_t nof_digits = (size() - 1) / 4 + 1;
-    char   cstr[ceil_div(ceil_div(N, bits_per_word) * bits_per_word, 4) + 1];
-    size_t count = 0;
-
-    for (int i = nof_words_() - 1; i >= 0; --i) {
-      count += sprintf(&cstr[count], "%016" PRIx64, buffer[i]);
+    if (size() == 0) {
+      return mem_buffer;
     }
-
-    size_t skip = nof_words_() * bits_per_word / 4 - nof_digits;
-    //    printf("bitstring: %s\n", to_string().c_str());
-    return std::string(&cstr[skip], &cstr[nof_digits + skip + 1]);
+    // first word may not print 16 hex digits
+    int    i           = nof_words_() - 1;
+    size_t rem_symbols = ceil_div((size() - (size() / bits_per_word) * bits_per_word), 4U);
+    fmt::format_to(mem_buffer, "{:0>{}x}", buffer[i], rem_symbols);
+    // remaining words will occupy 16 hex digits
+    for (--i; i >= 0; --i) {
+      fmt::format_to(mem_buffer, "{:0>16x}", buffer[i]);
+    }
+    return mem_buffer;
   }
 
 private:
-  word_t buffer[(N - 1) / bits_per_word + 1];
-  size_t cur_size;
+  word_t buffer[(N - 1) / bits_per_word + 1] = {0};
+  size_t cur_size                            = 0;
 
   void sanitize_()
   {
@@ -327,7 +333,7 @@ private:
 
 template <size_t N, bool reversed>
 inline bounded_bitset<N, reversed> operator&(const bounded_bitset<N, reversed>& lhs,
-                                             const bounded_bitset<N, reversed>& rhs)noexcept
+                                             const bounded_bitset<N, reversed>& rhs) noexcept
 {
   bounded_bitset<N, reversed> res(lhs);
   res &= rhs;
@@ -356,5 +362,37 @@ inline bounded_bitset<N, reversed> fliplr(const bounded_bitset<N, reversed>& oth
 }
 
 } // namespace srslte
+
+namespace fmt {
+/// Custom formatter for bounded_bitset<N, reversed>
+template <size_t N, bool reversed>
+struct formatter<srslte::bounded_bitset<N, reversed> > {
+  enum { hexadecimal, binary } mode = binary;
+
+  template <typename ParseContext>
+  auto parse(ParseContext& ctx) -> decltype(ctx.begin())
+  {
+    auto it = ctx.begin();
+    while (it != ctx.end() and *it != '}') {
+      if (*it == 'x') {
+        mode = hexadecimal;
+      }
+      ++it;
+    }
+
+    return it;
+  }
+
+  template <typename FormatContext>
+  auto format(const srslte::bounded_bitset<N, reversed>& s, FormatContext& ctx)
+      -> decltype(std::declval<FormatContext>().out())
+  {
+    if (mode == hexadecimal) {
+      return s.template to_hex(ctx.out());
+    }
+    return s.template to_string(ctx.out());
+  }
+};
+} // namespace fmt
 
 #endif // SRSLTE_DYN_BITSET_H

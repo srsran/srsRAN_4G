@@ -22,9 +22,9 @@
 #ifndef SRSLTE_PDU_QUEUE_H
 #define SRSLTE_PDU_QUEUE_H
 
+#include "srslte/adt/circular_buffer.h"
 #include "srslte/common/block_queue.h"
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/log.h"
 #include "srslte/common/timers.h"
 #include "srslte/mac/pdu.h"
 
@@ -42,9 +42,7 @@ public:
     virtual void process_pdu(uint8_t* buff, uint32_t len, channel_t channel) = 0;
   };
 
-  pdu_queue(srslog::basic_logger& logger, uint32_t pool_size = DEFAULT_POOL_SIZE) :
-    pool(pool_size), callback(NULL), logger(logger)
-  {}
+  pdu_queue(srslog::basic_logger& logger) : pool(DEFAULT_POOL_SIZE), callback(NULL), logger(logger) {}
   void init(process_callback* callback);
 
   uint8_t* request(uint32_t len);
@@ -56,7 +54,7 @@ public:
   void reset();
 
 private:
-  const static int DEFAULT_POOL_SIZE = 64;             // Number of PDU buffers in total
+  const static int DEFAULT_POOL_SIZE = 128;            // Number of PDU buffers in total
   const static int MAX_PDU_LEN       = 150 * 1024 / 8; // ~ 150 Mbps
 
   typedef struct {
@@ -69,8 +67,8 @@ private:
 
   } pdu_t;
 
-  block_queue<pdu_t*> pdu_q;
-  buffer_pool<pdu_t>  pool;
+  static_blocking_queue<pdu_t*, DEFAULT_POOL_SIZE> pdu_q;
+  buffer_pool<pdu_t>                               pool;
 
   process_callback*     callback;
   srslog::basic_logger& logger;

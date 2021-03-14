@@ -19,7 +19,6 @@
  *
  */
 
-#include <srslte/common/logger_srslog_wrapper.h>
 #include <srslte/common/test_common.h>
 #include <srslte/common/threads.h>
 #include <srslte/interfaces/ue_interfaces.h>

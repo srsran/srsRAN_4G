@@ -22,7 +22,7 @@
 #ifndef SRSLTE_MAC_PCAP_BASE_H
 #define SRSLTE_MAC_PCAP_BASE_H
 
-#include "srslte/common/block_queue.h"
+#include "srslte/adt/circular_buffer.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
 #include "srslte/common/pcap.h"
@@ -102,11 +102,11 @@ protected:
   virtual void write_pdu(pcap_pdu_t& pdu) = 0;
   void         run_thread() final;
 
-  std::mutex              mutex;
-  srslog::basic_logger&   logger;
-  bool                    running = false;
-  block_queue<pcap_pdu_t> queue;
-  uint16_t                ue_id = 0;
+  std::mutex                             mutex;
+  srslog::basic_logger&                  logger;
+  bool                                   running = false;
+  static_blocking_queue<pcap_pdu_t, 256> queue;
+  uint16_t                               ue_id = 0;
 
 private:
   void pack_and_queue(uint8_t* payload,

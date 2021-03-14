@@ -21,7 +21,6 @@
 
 #include "srslte/asn1/rrc/dl_dcch_msg.h"
 #include "srslte/common/bcd_helpers.h"
-#include "srslte/common/log_filter.h"
 #include <iostream>
 
 using namespace asn1;

@@ -22,7 +22,6 @@
 #ifndef SRSENB_NR_CC_WORKER_H
 #define SRSENB_NR_CC_WORKER_H
 
-#include "srslte/common/log.h"
 #include "srslte/interfaces/gnb_interfaces.h"
 #include "srslte/phy/enb/enb_dl_nr.h"
 #include "srslte/srslog/srslog.h"

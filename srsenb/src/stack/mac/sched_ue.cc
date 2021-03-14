@@ -24,8 +24,8 @@
 #include "srsenb/hdr/stack/mac/sched.h"
 #include "srsenb/hdr/stack/mac/sched_helpers.h"
 #include "srsenb/hdr/stack/mac/sched_ue.h"
-#include "srslte/common/log_helper.h"
-#include "srslte/common/logmap.h"
+#include "srslte/common/string_helpers.h"
+#include "srslte/srslog/bundled/fmt/ranges.h"
 
 using srslte::tti_interval;
 
@@ -951,10 +951,14 @@ uint32_t sched_ue::get_pending_ul_new_data(tti_point tti_tx_ul, int this_enb_cc_
   pending_data             = (pending_data > pending_ul_data) ? pending_data - pending_ul_data : 0;
 
   if (pending_data > 0) {
-    logger.debug("SCHED: pending_data=%d, in_harq_data=%d, bsr=%s",
-                 pending_data,
-                 pending_ul_data,
-                 lch_handler.get_bsr_text().c_str());
+    if (logger.debug.enabled()) {
+      fmt::memory_buffer str_buffer;
+      fmt::format_to(str_buffer, "{}", lch_handler.get_bsr_state());
+      logger.debug("SCHED: pending_data=%d, in_harq_data=%d, bsr=%s",
+                   pending_data,
+                   pending_ul_data,
+                   srslte::to_c_str(str_buffer));
+    }
   }
   return pending_data;
 }

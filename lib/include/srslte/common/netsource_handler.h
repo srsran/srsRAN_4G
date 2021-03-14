@@ -27,7 +27,6 @@
 #ifndef SRSLTE_NETSOURE_HANDLER_H
 #define SRSLTE_NETSOURE_HANDLER_H
 
-#include "srslte/common/log.h"
 #include "srslte/common/threads.h"
 #include "srslte/phy/io/netsource.h"
 #include <array>
@@ -70,8 +69,6 @@ public:
   unique_byte_array_t                      rx_buf;
 
   srslte_netsource_t net_source;
-
-  srslte::log* log = nullptr;
 };
 
 #endif // SRSLTE_NETSOURE_HANDLER_H

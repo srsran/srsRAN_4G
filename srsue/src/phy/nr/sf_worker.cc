@@ -20,6 +20,7 @@
  */
 
 #include "srsue/hdr/phy/nr/sf_worker.h"
+#include "srslte/common/standard_streams.h"
 
 #ifdef ENABLE_GUI
 #include "srsgui/srsgui.h"

@@ -27,7 +27,6 @@
 #include <string.h>
 #include <strings.h>
 
-#include "srslte/common/log.h"
 #include "srslte/common/pcap.h"
 #include "srslte/interfaces/ue_phy_interfaces.h"
 #include "srsue/hdr/stack/mac/mac.h"

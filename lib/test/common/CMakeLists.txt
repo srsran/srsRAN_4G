@@ -51,9 +51,6 @@ add_executable(test_f12345 test_f12345.cc)
 target_link_libraries(test_f12345 srslte_common ${CMAKE_THREAD_LIBS_INIT})
 add_test(test_f12345 test_f12345)
 
-add_executable(log_filter_test log_filter_test.cc)
-target_link_libraries(log_filter_test srslte_phy srslte_common srslte_phy ${SEC_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
-
 add_executable(timeout_test timeout_test.cc)
 target_link_libraries(timeout_test srslte_phy ${CMAKE_THREAD_LIBS_INIT})
 
@@ -63,7 +60,7 @@ target_link_libraries(bcd_helpers_test srslte_common)
 add_executable(stack_procedure_test stack_procedure_test.cc)
 add_test(stack_procedure_test stack_procedure_test)
 
-add_executable(queue_test queue_test.cc)
+add_executable(queue_test multiqueue_test.cc)
 target_link_libraries(queue_test srslte_common ${CMAKE_THREAD_LIBS_INIT})
 add_test(queue_test queue_test)
 
@@ -74,10 +71,6 @@ add_test(timer_test timer_test)
 add_executable(network_utils_test network_utils_test.cc)
 target_link_libraries(network_utils_test srslte_common ${SCTP_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 add_test(network_utils_test network_utils_test)
-
-add_executable(test_common_test test_common_test.cc)
-target_link_libraries(test_common_test srslte_common)
-add_test(test_common_test test_common_test)
 
 add_executable(tti_point_test tti_point_test.cc)
 target_link_libraries(tti_point_test srslte_common)

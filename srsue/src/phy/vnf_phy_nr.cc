@@ -28,7 +28,6 @@
 #include <unistd.h>
 
 #include "srslte/common/basic_vnf_api.h"
-#include "srslte/common/log.h"
 #include "srslte/common/test_common.h"
 #include "srslte/common/threads.h"
 #include "srsue/hdr/phy/vnf_phy_nr.h"

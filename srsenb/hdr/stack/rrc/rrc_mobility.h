@@ -25,7 +25,6 @@
 #include "rrc.h"
 #include "rrc_ue.h"
 #include "srslte/common/fsm.h"
-#include "srslte/common/logmap.h"
 #include <map>
 
 namespace srsenb {

@@ -22,10 +22,9 @@
 #include "srslte/common/common_helper.h"
 #include "srslte/common/config_file.h"
 #include "srslte/common/crash_handler.h"
-#include "srslte/common/logger_srslog_wrapper.h"
-#include "srslte/common/logmap.h"
 #include "srslte/common/metrics_hub.h"
 #include "srslte/common/signal_handler.h"
+#include "srslte/srslog/event_trace.h"
 #include "srslte/srslog/srslog.h"
 #include "srslte/srslte.h"
 #include "srslte/version.h"
@@ -428,6 +427,18 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
            bpo::value<int>(&args->general.metrics_csv_flush_period_sec)->default_value(-1),
            "Periodicity in s to flush CSV file to disk (-1 for auto)")
 
+    ("general.tracing_enable",
+           bpo::value<bool>(&args->general.tracing_enable)->default_value(false),
+           "Events tracing")
+
+    ("general.tracing_filename",
+           bpo::value<string>(&args->general.tracing_filename)->default_value("/tmp/ue_tracing.log"),
+           "Tracing events filename")
+
+    ("general.tracing_buffcapacity",
+           bpo::value<std::size_t>(&args->general.tracing_buffcapacity)->default_value(1000000),
+           "Tracing buffer capcity")
+
     ("stack.have_tti_time_stats",
         bpo::value<bool>(&args->stack.have_tti_time_stats)->default_value(true),
         "Calculate TTI execution statistics")
@@ -648,20 +659,26 @@ int main(int argc, char* argv[])
   if (!chan) {
     return SRSLTE_ERROR;
   }
-  srslte::srslog_wrapper log_wrapper(*chan);
   srslog::set_default_sink(*log_sink);
+
+#ifdef ENABLE_SRSLOG_EVENT_TRACE
+  if (args.general.tracing_enable) {
+    if (!srslog::event_trace_init(args.general.tracing_filename, args.general.tracing_buffcapacity)) {
+      return SRSLTE_ERROR;
+    }
+  }
+#endif
 
   // Start the log backend.
   srslog::init();
 
-  srslte::logmap::set_default_logger(&log_wrapper);
   srslte::log_args(argc, argv, "UE");
 
   srslte::check_scaling_governor(args.rf.device_name);
 
-  // Create UE instance
+  // Create UE instance.
   srsue::ue ue;
-  if (ue.init(args, &log_wrapper)) {
+  if (ue.init(args)) {
     ue.stop();
     return SRSLTE_SUCCESS;
   }

@@ -28,7 +28,6 @@
 #define SRSLTE_RADIO_BASE_H
 
 #include "srslte/common/interfaces_common.h"
-#include "srslte/common/logger.h"
 #include "srslte/radio/radio_metrics.h"
 
 namespace srslte {

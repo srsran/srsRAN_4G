@@ -25,8 +25,6 @@
 #include "srslte/asn1/rrc_nr.h"
 #include "srslte/asn1/rrc_nr_utils.h"
 #include "srslte/common/common.h"
-#include "srslte/common/log.h"
-#include "srslte/common/logmap.h"
 #include "srslte/common/test_common.h"
 
 using namespace srslte;
@@ -79,7 +77,6 @@ int test_mac_rach_common_config()
 
 int main()
 {
-  srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_DEBUG);
   auto& asn1_logger = srslog::fetch_basic_logger("ASN1", false);
   asn1_logger.set_level(srslog::basic_levels::debug);
   asn1_logger.set_hex_dump_max_size(-1);

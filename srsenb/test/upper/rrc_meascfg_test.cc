@@ -335,7 +335,6 @@ int test_minimize_meascfg_reordering()
 
 int main(int argc, char** argv)
 {
-  srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_INFO);
   auto& logger = srslog::fetch_basic_logger("RRC", false);
   logger.set_level(srslog::basic_levels::info);
   srslog::init();

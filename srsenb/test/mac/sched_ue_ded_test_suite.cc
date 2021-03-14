@@ -22,6 +22,7 @@
 #include "sched_ue_ded_test_suite.h"
 #include "lib/include/srslte/mac/pdu.h"
 #include "srsenb/hdr/stack/mac/sched_helpers.h"
+#include "srsenb/hdr/stack/mac/sched_phy_ch/sf_cch_allocator.h"
 #include "srslte/common/test_common.h"
 
 namespace srsenb {
@@ -74,6 +75,7 @@ int test_pdsch_grant(const sim_enb_ctxt_t&                   enb_ctxt,
   const sim_ue_ctxt_t&                       ue_ctxt     = *enb_ctxt.ue_db.at(pdsch.dci.rnti);
   const sched_interface::ue_cfg_t::cc_cfg_t* cc_cfg      = ue_ctxt.get_cc_cfg(enb_cc_idx);
   const sched_interface::cell_cfg_t&         cell_params = (*enb_ctxt.cell_params)[enb_cc_idx];
+  bool has_pusch_grant = find_pusch_grant(pdsch.dci.rnti, sf_out.ul_cc_result[enb_cc_idx]) != nullptr;
 
   // TEST: Check if CC is configured and active
   CONDERROR(cc_cfg == nullptr or not cc_cfg->active, "PDSCH allocation for disabled or unavailable cc");
@@ -115,6 +117,12 @@ int test_pdsch_grant(const sim_enb_ctxt_t&                   enb_ctxt,
     uint32_t     Qm       = std::min(max_Qm, srslte_mod_bits_x_symbol(mod));
     CONDERROR(coderate > 0.930f * Qm, "Max coderate was exceeded");
   }
+
+  // TEST: PUCCH-ACK will not collide with SR
+  CONDERROR(not has_pusch_grant and is_pucch_sr_collision(ue_ctxt.ue_cfg.pucch_cfg,
+                                                          to_tx_dl_ack(sf_out.tti_rx),
+                                                          pdsch.dci.location.ncce + cell_params.n1pucch_an),
+            "Collision detected between UE PUCCH-ACK and SR");
 
   return SRSLTE_SUCCESS;
 }
@@ -200,11 +208,14 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
           CONDERROR(nof_retx != 0, "Invalid rv index for new tx");
           CONDERROR(pusch_ptr->current_tx_nb != 0, "UL HARQ retxs need to have been previously transmitted");
           CONDERROR(not h_inactive, "New tx for already active UL HARQ");
+          CONDERROR(not pusch_ptr->needs_pdcch and ue.msg3_tti_rx.is_valid() and sf_out.tti_rx > ue.msg3_tti_rx,
+                    "In case of newtx, PDCCH allocation is required, unless it is Msg3");
         } else {
           CONDERROR(pusch_ptr->current_tx_nb == 0, "UL retx has to have nof tx > 0");
           if (not h.active) {
-            // the HARQ is being resumed
-            CONDERROR(not pusch_ptr->needs_pdcch, "Resumed UL HARQs need to be signalled in PDCCH");
+            // the HARQ is being resumed. PDCCH must be active with the exception of Msg3
+            CONDERROR(ue.msg4_tti_rx.is_valid() and not pusch_ptr->needs_pdcch,
+                      "Resumed UL HARQs need to be signalled in PDCCH");
           } else {
             if (pusch_ptr->needs_pdcch) {
               CONDERROR(pusch_ptr->dci.type2_alloc.riv == h.riv, "Adaptive retx must change riv");

@@ -78,27 +78,24 @@ typedef struct SRSLTE_API {
  * @brief Common SCH configuration
  */
 typedef struct {
-  srslte_basegraph_t     bg;   ///< @brief Base graph
-  uint32_t               Qm;   ///< @brief Modulation order
-  uint32_t               G;    ///< Number of available bits
-  uint32_t               A;    ///< @brief Payload size, TBS
-  uint32_t               L_tb; ///< @brief the number of the transport block parity bits (16 or 24 bits)
-  uint32_t               L_cb; ///< @brief the number of the code block parity bits (0 or 24 bits)
-  uint32_t               B;    ///< @brief the number of bits in the transport block including TB CRC
-  uint32_t               Bp;   ///< @brief the number of bits in the transport block including CB and TB CRCs
-  uint32_t               Kp;   ///< @brief Number of payload bits of the code block including CB CRC
-  uint32_t               Kr;   ///< @brief Number of payload bits of the code block including CB CRC and filler bits
-  uint32_t               F;    ///< @brief Number of filler bits
-  uint32_t               Nref; ///< @brief N_ref parameter described in TS 38.212 V15.9.0 5.4.2.1
-  uint32_t               Z;    ///< @brief LDPC lifting size
-  uint32_t               Nl;   ///< @brief Number of transmission layers that the transport block is mapped onto
-  bool                   mask[SRSLTE_SCH_NR_MAX_NOF_CB_LDPC]; ///< Indicates what codeblocks shall be encoded/decoded
-  uint32_t               C;                                   ///< Number of codeblocks
-  uint32_t               Cp;                                  ///< Number of codeblocks that are actually transmitted
-  srslte_crc_t*          crc_tb;                              ///< Selected CRC for transport block
-  srslte_ldpc_encoder_t* encoder;                             ///< @brief Points to the selected encoder (if valid)
-  srslte_ldpc_decoder_t* decoder;                             ///< @brief Points to the selected decoder (if valid)
-} srslte_sch_nr_common_cfg_t;
+  srslte_basegraph_t bg;   ///< @brief Base graph
+  uint32_t           Qm;   ///< @brief Modulation order
+  uint32_t           G;    ///< Number of available bits
+  uint32_t           A;    ///< @brief Payload size, TBS
+  uint32_t           L_tb; ///< @brief the number of the transport block parity bits (16 or 24 bits)
+  uint32_t           L_cb; ///< @brief the number of the code block parity bits (0 or 24 bits)
+  uint32_t           B;    ///< @brief the number of bits in the transport block including TB CRC
+  uint32_t           Bp;   ///< @brief the number of bits in the transport block including CB and TB CRCs
+  uint32_t           Kp;   ///< @brief Number of payload bits of the code block including CB CRC
+  uint32_t           Kr;   ///< @brief Number of payload bits of the code block including CB CRC and filler bits
+  uint32_t           F;    ///< @brief Number of filler bits
+  uint32_t           Nref; ///< @brief N_ref parameter described in TS 38.212 V15.9.0 5.4.2.1
+  uint32_t           Z;    ///< @brief LDPC lifting size
+  uint32_t           Nl;   ///< @brief Number of transmission layers that the transport block is mapped onto
+  bool               mask[SRSLTE_SCH_NR_MAX_NOF_CB_LDPC]; ///< Indicates what codeblocks shall be encoded/decoded
+  uint32_t           C;                                   ///< Number of codeblocks
+  uint32_t           Cp;                                  ///< Number of codeblocks that are actually transmitted
+} srslte_sch_nr_tb_info_t;
 
 /**
  * @brief Base graph selection from a provided transport block size and target rate
@@ -119,10 +116,10 @@ SRSLTE_API srslte_basegraph_t srslte_sch_nr_select_basegraph(uint32_t tbs, doubl
  * @param cfg SCH object
  * @return
  */
-SRSLTE_API int srslte_sch_nr_fill_cfg(srslte_sch_nr_t*            q,
-                                      const srslte_sch_cfg_t*     sch_cfg,
-                                      const srslte_sch_tb_t*      tb,
-                                      srslte_sch_nr_common_cfg_t* cfg);
+SRSLTE_API int srslte_sch_nr_fill_tb_info(const srslte_carrier_nr_t* carrier,
+                                          const srslte_sch_cfg_t*    sch_cfg,
+                                          const srslte_sch_tb_t*     tb,
+                                          srslte_sch_nr_tb_info_t*   cfg);
 
 /**
  * @brief Initialises an SCH object as transmitter

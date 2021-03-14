@@ -28,8 +28,6 @@
 #define SRSLTE_RADIO_NULL_H
 
 #include "radio_base.h"
-#include "srslte/common/logger.h"
-#include "srslte/common/logmap.h"
 #include "srslte/interfaces/radio_interfaces.h"
 #include "srslte/phy/rf/rf.h"
 #include "srslte/radio/radio.h"

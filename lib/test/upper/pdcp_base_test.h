@@ -23,7 +23,6 @@
 #define SRSLTE_PDCP_BASE_TEST_H
 
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/log_filter.h"
 #include "srslte/common/security.h"
 #include "srslte/common/test_common.h"
 #include "srslte/interfaces/pdcp_interface_types.h"

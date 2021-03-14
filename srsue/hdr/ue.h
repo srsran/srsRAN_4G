@@ -34,7 +34,6 @@
 
 #include "phy/ue_phy_base.h"
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/log_filter.h"
 #include "srslte/radio/radio.h"
 #include "srslte/srslog/srslog.h"
 #include "srslte/system/sys_metrics_processor.h"
@@ -71,6 +70,9 @@ typedef struct {
   bool        metrics_csv_append;
   int         metrics_csv_flush_period_sec;
   std::string metrics_csv_filename;
+  bool        tracing_enable;
+  std::string tracing_filename;
+  std::size_t tracing_buffcapacity;
 } general_args_t;
 
 typedef struct {
@@ -96,7 +98,7 @@ public:
   ue();
   ~ue();
 
-  int  init(const all_args_t& args_, srslte::logger* logger_);
+  int  init(const all_args_t& args_);
   void stop();
   bool switch_on();
   bool switch_off();
@@ -115,7 +117,6 @@ private:
   std::unique_ptr<gw>                 gw_inst;
 
   // Generic logger members
-  srslte::logger*       old_logger = nullptr;
   srslog::basic_logger& logger;
 
   // System metrics processor.

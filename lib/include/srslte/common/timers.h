@@ -29,6 +29,7 @@
 #ifndef SRSLTE_TIMERS_H
 #define SRSLTE_TIMERS_H
 
+#include "srslte/adt/move_callback.h"
 #include "srslte/phy/utils/debug.h"
 #include <algorithm>
 #include <functional>
@@ -54,11 +55,11 @@ class timer_handler
   constexpr static uint32_t MAX_TIMER_VALUE    = std::numeric_limits<uint32_t>::max() / 2;
 
   struct timer_impl {
-    timer_handler*                parent;
-    uint32_t                      duration = 0, timeout = 0;
-    bool                          running = false;
-    bool                          active  = false;
-    std::function<void(uint32_t)> callback;
+    timer_handler*                        parent;
+    uint32_t                              duration = 0, timeout = 0;
+    bool                                  running = false;
+    bool                                  active  = false;
+    srslte::move_callback<void(uint32_t)> callback;
 
     explicit timer_impl(timer_handler* parent_) : parent(parent_) {}
 
@@ -88,7 +89,7 @@ class timer_handler
       return true;
     }
 
-    bool set(uint32_t duration_, std::function<void(int)> callback_)
+    bool set(uint32_t duration_, srslte::move_callback<void(uint32_t)> callback_)
     {
       if (set(duration_)) {
         callback = std::move(callback_);
@@ -122,7 +123,7 @@ class timer_handler
       stop();
       duration = 0;
       active   = false;
-      callback = std::function<void(uint32_t)>();
+      callback = srslte::move_callback<void(uint32_t)>();
       // leave run_id unchanged. Since the timeout was changed, we shall not get spurious triggering
     }
 
@@ -130,7 +131,7 @@ class timer_handler
     {
       if (is_running()) {
         running = false;
-        if (callback) {
+        if (not callback.is_empty()) {
           callback(id());
         }
       }
@@ -173,7 +174,10 @@ public:
 
     bool is_valid() const { return parent != nullptr; }
 
-    void set(uint32_t duration_, const std::function<void(int)>& callback_) { impl()->set(duration_, callback_); }
+    void set(uint32_t duration_, move_callback<void(uint32_t)> callback_)
+    {
+      impl()->set(duration_, std::move(callback_));
+    }
 
     void set(uint32_t duration_) { impl()->set(duration_); }
 
@@ -279,8 +283,8 @@ public:
   template <typename F>
   void defer_callback(uint32_t duration, const F& func)
   {
-    uint32_t                      id = alloc_timer();
-    std::function<void(uint32_t)> c  = [func, this, id](uint32_t tid) {
+    uint32_t                              id = alloc_timer();
+    srslte::move_callback<void(uint32_t)> c  = [func, this, id](uint32_t tid) {
       func();
       // auto-deletes timer
       timer_list[id].clear();

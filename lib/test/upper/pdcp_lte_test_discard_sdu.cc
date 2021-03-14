@@ -54,7 +54,8 @@ int test_tx_sdu_notify(const srslte::pdcp_lte_state_t& init_state,
   TESTASSERT(out_pdu->N_bytes == 4);
 
   TESTASSERT(pdcp->nof_discard_timers() == 1); // One timer should be running
-  std::vector<uint32_t> sns_notified = {0};
+  srslte::pdcp_sn_vector_t sns_notified;
+  sns_notified.push_back(0);
   pdcp->notify_delivery(sns_notified);
   TESTASSERT(pdcp->nof_discard_timers() == 0); // Timer should have been difused after
 
@@ -112,7 +113,8 @@ int test_tx_sdu_discard(const srslte::pdcp_lte_state_t& init_state,
   TESTASSERT(pdcp->nof_discard_timers() == 0); // Timer should have been difused after expiry
   TESTASSERT(rlc->discard_count == 1);         // RLC should be notified of discard
 
-  std::vector<uint32_t> sns_notified = {0};
+  srslte::pdcp_sn_vector_t sns_notified;
+  sns_notified.push_back(0);
   pdcp->notify_delivery(sns_notified); // PDCP should not find PDU to notify.
   return 0;
 }

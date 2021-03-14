@@ -86,7 +86,7 @@ struct test_scell_activation_params {
   uint32_t pcell_idx = 0;
 };
 
-int test_scell_activation(test_scell_activation_params params)
+int test_scell_activation(uint32_t sim_number, test_scell_activation_params params)
 {
   std::array<uint32_t, 6> prb_list{6, 15, 25, 50, 75, 100};
 
@@ -237,7 +237,8 @@ int test_scell_activation(test_scell_activation_params params)
   TESTASSERT(tot_dl_sched_data > 0);
   TESTASSERT(tot_ul_sched_data > 0);
 
-  srslog::fetch_basic_logger("TEST").info("[TESTER] Sim1 finished successfully");
+  srslog::flush();
+  printf("[TESTER] Sim%d finished successfully\n\n", sim_number);
   return SRSLTE_SUCCESS;
 }
 
@@ -259,28 +260,27 @@ int main()
   }
 
   auto& mac_log = srslog::fetch_basic_logger("MAC");
-  mac_log.set_level(srslog::basic_levels::info);
+  mac_log.set_level(srslog::basic_levels::debug);
   auto& test_log = srslog::fetch_basic_logger("TEST", *spy, false);
-  test_log.set_level(srslog::basic_levels::info);
+  test_log.set_level(srslog::basic_levels::debug);
 
   // Start the log backend.
   srslog::init();
 
   sched_diagnostic_printer printer(*spy);
 
-  srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_INFO);
   printf("[TESTER] This is the chosen seed: %u\n", seed);
   uint32_t N_runs = 20;
   for (uint32_t n = 0; n < N_runs; ++n) {
-    printf("Sim run number: %u\n", n + 1);
+    printf("[TESTER] Sim run number: %u\n", n);
 
     test_scell_activation_params p = {};
     p.pcell_idx                    = 0;
-    TESTASSERT(test_scell_activation(p) == SRSLTE_SUCCESS);
+    TESTASSERT(test_scell_activation(n * 2, p) == SRSLTE_SUCCESS);
 
     p           = {};
     p.pcell_idx = 1;
-    TESTASSERT(test_scell_activation(p) == SRSLTE_SUCCESS);
+    TESTASSERT(test_scell_activation(n * 2 + 1, p) == SRSLTE_SUCCESS);
   }
 
   srslog::flush();

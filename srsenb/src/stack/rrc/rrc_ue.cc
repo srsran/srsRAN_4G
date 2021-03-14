@@ -27,6 +27,7 @@
 #include "srslte/asn1/rrc_utils.h"
 #include "srslte/common/enb_events.h"
 #include "srslte/common/int_helpers.h"
+#include "srslte/common/standard_streams.h"
 #include "srslte/interfaces/enb_pdcp_interfaces.h"
 #include "srslte/interfaces/enb_rlc_interfaces.h"
 #include "srslte/interfaces/enb_s1ap_interfaces.h"
@@ -71,18 +72,21 @@ int rrc::ue::init()
   return SRSLTE_SUCCESS;
 }
 
+srslte::background_allocator_obj_pool<rrc::ue, 16, 4>* rrc::ue::get_ue_pool()
+{
+  // Note: batch allocation is going to be explicitly called in enb class construction. The pool object, therefore,
+  //       will only be initialized if we instantiate an eNB
+  static rrc::ue::ue_pool_t ue_pool(true);
+  return &ue_pool;
+}
+
 void* rrc::ue::operator new(size_t sz)
 {
-  assert(sz == sizeof(ue));
-  void* memchunk = rrc::ue_pool.allocate_node(sz);
-  if (ue_pool.capacity() <= 4) {
-    srslte::get_background_workers().push_task([]() { rrc::ue_pool.reserve(4); });
-  }
-  return memchunk;
+  return rrc::ue::get_ue_pool()->allocate_node(sz);
 }
 void rrc::ue::operator delete(void* ptr)noexcept
 {
-  rrc::ue_pool.deallocate_node(ptr);
+  rrc::ue::get_ue_pool()->deallocate_node(ptr);
 }
 
 rrc_state_t rrc::ue::get_state()
@@ -1094,9 +1098,11 @@ bool rrc::ue::send_dl_dcch(const dl_dcch_msg_s* dl_dcch_msg, srslte::unique_byte
     }
     pdu->N_bytes = (uint32_t)bref.distance_bytes();
 
-    // send on SRB2 if user is fully registered (after RRC reconfig complete)
-    uint32_t lcid =
-        parent->rlc->has_bearer(rnti, RB_ID_SRB2) && state == RRC_STATE_REGISTERED ? RB_ID_SRB2 : RB_ID_SRB1;
+    uint32_t lcid = RB_ID_SRB1;
+    if (dl_dcch_msg->msg.c1().type() == dl_dcch_msg_type_c::c1_c_::types_opts::dl_info_transfer) {
+      // send messages with NAS on SRB2 if user is fully registered (after RRC reconfig complete)
+      lcid = parent->rlc->has_bearer(rnti, RB_ID_SRB2) && state == RRC_STATE_REGISTERED ? RB_ID_SRB2 : RB_ID_SRB1;
+    }
 
     char buf[32] = {};
     sprintf(buf, "SRB%d - rnti=0x%x", lcid, rnti);

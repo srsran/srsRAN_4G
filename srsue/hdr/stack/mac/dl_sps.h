@@ -22,7 +22,6 @@
 #ifndef SRSUE_DL_SPS_H
 #define SRSUE_DL_SPS_H
 
-#include "srslte/common/log.h"
 #include "srslte/common/timers.h"
 
 /* Downlink Semi-Persistent schedulign (Section 5.10.1) */

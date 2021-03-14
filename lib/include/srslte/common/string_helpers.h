@@ -22,6 +22,7 @@
 #ifndef SRSLTE_STRING_HELPERS_H
 #define SRSLTE_STRING_HELPERS_H
 
+#include "srslte/srslog/bundled/fmt/format.h"
 #include <algorithm>
 #include <sstream>
 #include <string>
@@ -118,6 +119,13 @@ static inline void string_parse_list(const std::string& input, char delimiter, I
       list.insert(list.end(), string_cast<typename Insertable::value_type>(substr));
     }
   }
+}
+
+template <size_t N>
+const char* to_c_str(fmt::basic_memory_buffer<char, N>& mem_buffer)
+{
+  mem_buffer.push_back('\0');
+  return mem_buffer.data();
 }
 
 } // namespace srslte

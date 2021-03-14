@@ -22,10 +22,10 @@
 #ifndef SRSLTE_SCHED_LCH_H
 #define SRSLTE_SCHED_LCH_H
 
-#include "srslte/common/logmap.h"
 #include "srslte/interfaces/sched_interface.h"
 #include "srslte/mac/pdu.h"
 #include "srslte/srslog/srslog.h"
+#include <deque>
 
 namespace srsenb {
 
@@ -64,7 +64,7 @@ public:
   int  get_bsr_with_overhead(uint32_t lcid) const;
   int  get_max_prio_lcid() const;
 
-  std::string get_bsr_text() const;
+  const std::array<int, 4>& get_bsr_state() const;
 
   // Control Element Command queue
   using ce_cmd = srslte::dl_sch_lcid;

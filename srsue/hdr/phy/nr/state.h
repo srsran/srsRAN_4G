@@ -82,9 +82,9 @@ public:
     carrier.max_mimo_layers = 1;
 
     // Hard-coded values, this should be set when the measurements take place
-    csi_measurements[0].K_csi_rs = 1;
+    csi_measurements[0].K_csi_rs  = 1;
     csi_measurements[0].nof_ports = 1;
-    csi_measurements[1].K_csi_rs = 4;
+    csi_measurements[1].K_csi_rs  = 4;
     csi_measurements[0].nof_ports = 1;
   }
 
@@ -303,10 +303,10 @@ public:
     }
 
     // Configure SR fields in UCI data
-    uci_data.cfg.sr_resource_id      = sr_resource_id[0];
-    uci_data.cfg.o_sr                = srslte_ra_ul_nr_nof_sr_bits(sr_count_all);
-    uci_data.cfg.sr_positive_present = sr_count_positive > 0;
-    uci_data.value.sr                = sr_count_positive;
+    uci_data.cfg.pucch.sr_resource_id      = sr_resource_id[0];
+    uci_data.cfg.o_sr                      = srslte_ra_ul_nr_nof_sr_bits(sr_count_all);
+    uci_data.cfg.pucch.sr_positive_present = sr_count_positive > 0;
+    uci_data.value.sr                      = sr_count_positive;
   }
 
   void get_periodic_csi(const uint32_t& tti, srslte_uci_data_nr_t& uci_data)
@@ -316,7 +316,7 @@ public:
       uci_data.cfg.nof_csi = n;
     }
 
-    uci_data.cfg.rnti = stack->get_ul_sched_rnti_nr(tti).id;
+    uci_data.cfg.pucch.rnti = stack->get_ul_sched_rnti_nr(tti).id;
   }
 };
 } // namespace nr

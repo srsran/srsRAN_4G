@@ -24,8 +24,6 @@
 
 #include "srslte/asn1/liblte_mme.h"
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/log.h"
-#include "srslte/common/log_filter.h"
 #include "srslte/srslog/srslog.h"
 #include <mutex>
 

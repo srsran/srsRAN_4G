@@ -29,7 +29,6 @@
 #include "proc_bsr.h"
 #include "proc_phr.h"
 #include "srslte/common/common.h"
-#include "srslte/common/log.h"
 #include "srslte/interfaces/mac_interface_types.h"
 #include "srslte/mac/pdu.h"
 #include "srslte/srslog/srslog.h"

@@ -99,13 +99,16 @@ void text_formatter::format_context_begin(const detail::log_entry_metadata& md,
                                           unsigned size,
                                           fmt::memory_buffer& buffer)
 {
-  do_one_line_ctx_format = !md.fmtstring.empty();
+  // Entries without a log message are printed using a richer format.
+  do_one_line_ctx_format = md.fmtstring;
 
   format_metadata(md, buffer);
   if (do_one_line_ctx_format) {
+    assert(scope_stack.empty() && "Stack should be empty");
     fmt::format_to(buffer, "[");
     return;
   }
+
   fmt::format_to(buffer, "Context dump for \"{}\"\n", ctx_name);
 }
 
@@ -113,10 +116,12 @@ void text_formatter::format_context_end(const detail::log_entry_metadata& md,
                                         const std::string& ctx_name,
                                         fmt::memory_buffer& buffer)
 {
-  if (do_one_line_ctx_format) {
-    fmt::format_to(buffer, "]: {}\n", fmt::vsprintf(md.fmtstring, md.store));
+  if (!do_one_line_ctx_format) {
     return;
   }
+
+  fmt::format_to(buffer, "]: {}\n", fmt::vsprintf(md.fmtstring, md.store));
+  assert(scope_stack.empty() && "Stack should be empty");
 }
 
 void text_formatter::format_metric_set_begin(const std::string& set_name,
@@ -124,21 +129,26 @@ void text_formatter::format_metric_set_begin(const std::string& set_name,
                                              unsigned level,
                                              fmt::memory_buffer& buffer)
 {
-  /*if (do_one_line_ctx_format) {
-    fmt::format_to(buffer, "{}", is_first ? "[" : " [");
+  if (do_one_line_ctx_format) {
+    scope_stack.emplace_back(size, set_name);
+    fmt::format_to(buffer, "[");
     return;
   }
-  fmt::format_to(buffer, "  {}\n", set_name);*/
+
+  fmt::format_to(
+      buffer, "{: <{}}> Set: {}\n", ' ', get_indents(level), set_name);
 }
 
 void text_formatter::format_metric_set_end(const std::string& set_name,
                                            unsigned level,
                                            fmt::memory_buffer& buffer)
 {
-  if (do_one_line_ctx_format) {
-    fmt::format_to(buffer, "]");
+  if (!do_one_line_ctx_format) {
     return;
   }
+
+  scope_stack.pop_back();
+  fmt::format_to(buffer, "]");
 }
 
 void text_formatter::format_metric(const std::string& metric_name,
@@ -148,22 +158,37 @@ void text_formatter::format_metric(const std::string& metric_name,
                                    unsigned level,
                                    fmt::memory_buffer& buffer)
 {
-  //:TODO: re-enable
-  /*if (do_one_line_ctx_format) {
+  if (do_one_line_ctx_format) {
+    consume_element();
     fmt::format_to(buffer,
-                   "{}{}_{}: {}{}{}",
-                   ctx.is_first_metric ? "" : ", ",
-                   ctx.set_name,
-                   ctx.metric_name,
-                   ctx.metric_value,
-                   ctx.metric_units.empty() ? "" : " ",
-                   ctx.metric_units);
+                   "{}_{}: {}{}{}{}",
+                   get_current_set_name(),
+                   metric_name,
+                   metric_value,
+                   metric_units.empty() ? "" : " ",
+                   metric_units,
+                   needs_comma() ? ", " : "");
     return;
   }
+
   fmt::format_to(buffer,
-                 "    {}: {}{}{}\n",
-                 ctx.metric_name,
-                 ctx.metric_value,
-                 ctx.metric_units.empty() ? "" : " ",
-                 ctx.metric_units);*/
+                 "{: <{}}{}: {}{}{}\n",
+                 ' ',
+                 get_indents(level),
+                 metric_name,
+                 metric_value,
+                 metric_units.empty() ? "" : " ",
+                 metric_units);
+}
+
+void text_formatter::format_list_begin(const std::string& list_name,
+                                       unsigned size,
+                                       unsigned level,
+                                       fmt::memory_buffer& buffer)
+{
+  if (do_one_line_ctx_format) {
+    return;
+  }
+  fmt::format_to(
+      buffer, "{: <{}}> List: {}\n", ' ', get_indents(level), list_name);
 }

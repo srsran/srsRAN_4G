@@ -36,7 +36,6 @@
 #include "upper/usim.h"
 
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/log_filter.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/common/multiqueue.h"
 #include "srslte/common/thread_pool.h"
@@ -59,7 +58,7 @@ class ue_stack_nr final : public ue_stack_base,
                           public srslte::thread
 {
 public:
-  ue_stack_nr(srslte::logger* logger_);
+  ue_stack_nr();
   ~ue_stack_nr();
 
   std::string get_type() final;
@@ -120,9 +119,9 @@ private:
   srslte::task_multiqueue::queue_handle sync_task_queue, ue_task_queue, gw_task_queue;
 
   // UE stack logging
-  srslte::logger* logger = nullptr;
-  srslte::log_ref rlc_log;
-  srslte::log_ref pdcp_log;
+  srslog::basic_logger& mac_logger;
+  srslog::basic_logger& rlc_logger;
+  srslog::basic_logger& pdcp_logger;
 
   // stack components
   std::unique_ptr<mac_nr>       mac;

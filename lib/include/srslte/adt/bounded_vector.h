@@ -36,21 +36,15 @@ public:
   using iterator       = T*;
   using const_iterator = const T*;
   using size_type      = std::size_t;
+  using value_type     = T;
 
   bounded_vector() = default;
-  template <typename std::enable_if<std::is_default_constructible<T>::value, int>::type = 0>
-  bounded_vector(size_type N)
-  {
-    append(N);
-  }
-  template <typename U, typename std::enable_if<std::is_constructible<T, U>::value, int>::type = 0>
-  bounded_vector(size_type N, const U& init_val)
-  {
-    append(N, T(init_val));
-  }
+  explicit bounded_vector(size_type N) { append(N); }
+  bounded_vector(size_type N, const T& val) { append(N, val); }
   bounded_vector(const bounded_vector& other) { append(other.begin(), other.end()); }
   bounded_vector(bounded_vector&& other) noexcept
   {
+    static_assert(std::is_move_constructible<T>::value, "T must be move-constructible");
     std::uninitialized_copy(std::make_move_iterator(other.begin()), std::make_move_iterator(other.end()), end());
     size_ = other.size();
     other.clear();
@@ -122,19 +116,20 @@ public:
   }
   T&       front() { return (*this)[0]; }
   const T& front() const { return (*this)[0]; }
-  T*       data() { return reinterpret_cast<T*>(&buffer[0]); }
-  const T* data() const { return reinterpret_cast<T*>(&buffer[0]); }
+  T*       data() { return &front(); }
+  const T* data() const { return &front(); }
 
   // Iterators
-  iterator       begin() { return reinterpret_cast<iterator>(&buffer[0]); }
+  iterator       begin() { return data(); }
   iterator       end() { return begin() + size_; }
-  const_iterator begin() const { return reinterpret_cast<const_iterator>(&buffer[0]); }
+  const_iterator begin() const { return data(); }
   const_iterator end() const { return begin() + size_; }
 
   // Capacity
   bool        empty() const { return size_ == 0; }
   std::size_t size() const { return size_; }
   std::size_t capacity() const { return MAX_N; }
+  bool        full() const { return size_ == MAX_N; }
 
   // modifiers
   void clear()
@@ -166,19 +161,22 @@ public:
   }
   void push_back(const T& value)
   {
+    static_assert(std::is_copy_constructible<T>::value, "T must be copy-constructible");
     size_++;
     assert(size_ <= MAX_N);
     new (&back()) T(value);
   }
   void push_back(T&& value)
   {
+    static_assert(std::is_move_constructible<T>::value, "T must be move-constructible");
     size_++;
     assert(size_ <= MAX_N);
     new (&back()) T(std::move(value));
   }
   template <typename... Args>
-  typename std::enable_if<std::is_constructible<T, Args...>::value>::type emplace_back(Args&&... args)
+  void emplace_back(Args&&... args)
   {
+    static_assert(std::is_constructible<T, Args&&...>::value, "Passed arguments to emplace_back are invalid");
     size_++;
     assert(size_ <= MAX_N);
     new (&back()) T(std::forward<Args>(args)...);
@@ -189,9 +187,14 @@ public:
     back().~T();
     size_--;
   }
-  typename std::enable_if<std::is_default_constructible<T>::value>::type resize(size_type count) { resize(count, T()); }
-  void                                                                   resize(size_type count, const T& value)
+  void resize(size_type count)
   {
+    static_assert(std::is_default_constructible<T>::value, "T must be default constructible");
+    resize(count, T());
+  }
+  void resize(size_type count, const T& value)
+  {
+    static_assert(std::is_copy_constructible<T>::value, "T must be copy constructible");
     if (size_ > count) {
       destroy(begin() + count, end());
       size_ = count;
@@ -222,12 +225,14 @@ private:
   }
   void append(size_type N, const T& element)
   {
+    static_assert(std::is_copy_constructible<T>::value, "T must be copy-constructible");
     assert(N + size_ <= MAX_N);
     std::uninitialized_fill_n(end(), N, element);
     size_ += N;
   }
   void append(size_type N)
   {
+    static_assert(std::is_default_constructible<T>::value, "T must be default-constructible");
     assert(N + size_ <= MAX_N);
     for (size_type i = size_; i < size_ + N; ++i) {
       new (&buffer[i]) T();

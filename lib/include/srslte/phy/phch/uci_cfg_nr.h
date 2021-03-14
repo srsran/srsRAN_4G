@@ -23,7 +23,7 @@
 #define SRSLTE_UCI_CFG_NR_H
 
 #include "csi_cfg.h"
-#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/common/phy_common_nr.h"
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -39,21 +39,41 @@
 #define SRSLTE_UCI_NR_MAX_ACK_BITS 360
 
 /**
- * @brief Maximum number of Scheduling Request (SR) bits that can be carried in Uplink Control Information (UCI) message
- */
-#define SRSLTE_UCI_NR_MAX_SR_BITS 10
-
-/**
  * @brief Maximum number of Channel State Information part 1 (CSI1) bits that can be carried in Uplink Control
  * Information (UCI) message
  */
-#define SRSLTE_UCI_NR_MAX_CSI1_BITS 10
+#define SRSLTE_UCI_NR_MAX_CSI1_BITS 360
 
 /**
- * @brief Maximum number of Channel State Information part 2 (CSI2) bits that can be carried in Uplink Control
- * Information (UCI) message
+ * @brief Uplink Control Information bits configuration for PUCCH transmission
  */
-#define SRSLTE_UCI_NR_MAX_CSI2_BITS 10
+typedef struct {
+  uint16_t rnti;                ///< RNTI
+  uint32_t resource_id;         ///< PUCCH resource indicator field in the DCI format 1_0 or DCI format 1_1
+  uint32_t n_cce_0;             ///< index of a first CCE for the PDCCH reception
+  uint32_t N_cce;               ///< number of CCEs in a CORESET of a PDCCH reception with DCI format 1_0 or 1_1
+  uint32_t sr_resource_id;      ///< Scheduling request resource identifier, only valid if positive SR
+  bool     sr_positive_present; ///< Set to true if there is at least one positive SR
+} srslte_uci_nr_pucch_cfg_t;
+
+/**
+ * @brief Uplink Control Information bits configuration for PUSCH transmission
+ */
+typedef struct {
+  uint32_t     l0; ///< First OFDM symbol that does not carry DMRS of the PUSCH, after the first DMRS symbol(s)
+  uint32_t     l1; ///< OFDM symbol index of the first OFDM symbol that does not carry DMRS
+  uint32_t     M_pusch_sc[SRSLTE_NSYMB_PER_SLOT_NR]; ///< Number of potential RE for PUSCH transmission
+  uint32_t     M_uci_sc[SRSLTE_NSYMB_PER_SLOT_NR];   ///< Number of potential RE for UCI transmission
+  uint32_t     K_sum;                                ///< Sum of UL-SCH code block sizes, set to zero if no UL-SCH
+  srslte_mod_t modulation;                           ///< Modulation for the PUSCH
+  uint32_t     nof_layers;                           ///< Number of layers for PUSCH
+  float        R;                                    ///< Code rate of the PUSCH
+  float        alpha;                                ///< Higher layer parameter scaling
+  float        beta_harq_ack_offset;
+  float        beta_csi1_offset;
+  uint32_t     nof_re;
+  bool         csi_part2_present;
+} srslte_uci_nr_pusch_cfg_t;
 
 /**
  * @brief Uplink Control Information (UCI) message configuration
@@ -64,17 +84,10 @@ typedef struct SRSLTE_API {
   uint32_t                o_sr;                           ///< Number of SR bits
   srslte_csi_report_cfg_t csi[SRSLTE_CSI_MAX_NOF_REPORT]; ///< CSI report configuration
   uint32_t                nof_csi;                        ///< Number of CSI reports
-
-  /// PUSCH only parameters
-  srslte_mod_t modulation; ///< Modulation
-
-  /// PUCCH only parameters
-  uint16_t rnti;                ///< RNTI
-  uint32_t pucch_resource_id;   ///< PUCCH resource indicator field in the DCI format 1_0 or DCI format 1_1
-  uint32_t n_cce_0;             ///< index of a first CCE for the PDCCH reception
-  uint32_t N_cce;               ///< number of CCEs in a CORESET of a PDCCH reception with DCI format 1_0 or 1_1
-  uint32_t sr_resource_id;      ///< Scheduling request resource identifier, only valid if positive SR
-  bool     sr_positive_present; ///< Set to true if there is at least one positive SR
+  union {
+    srslte_uci_nr_pucch_cfg_t pucch; ///< Configuration for transmission in PUCCH
+    srslte_uci_nr_pusch_cfg_t pusch; ///< Configuration for transmission in PUSCH
+  };
 } srslte_uci_cfg_nr_t;
 
 /**

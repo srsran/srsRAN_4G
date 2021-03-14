@@ -23,8 +23,10 @@
 
 #include "srsepc/hdr/spgw/spgw.h"
 #include "srslte/asn1/gtpc.h"
+#include "srslte/common/standard_streams.h"
 #include "srslte/interfaces/epc_interfaces.h"
 #include "srslte/srslog/srslog.h"
+
 #include <set>
 #include <sys/socket.h>
 #include <sys/un.h>

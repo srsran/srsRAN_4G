@@ -19,7 +19,7 @@
  *
  */
 
-#include "srslte/common/log_filter.h"
+#include "srslte/common/buffer_pool.h"
 #include "srslte/common/rlc_pcap.h"
 #include "srslte/common/test_common.h"
 #include "srslte/common/threads.h"
@@ -61,7 +61,7 @@ public:
   void write_pdu_bcch_dlsch(unique_byte_buffer_t sdu) {}
   void write_pdu_pcch(unique_byte_buffer_t sdu) {}
   void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
-  void notify_delivery(uint32_t lcid, const std::vector<uint32_t>& pdcp_sn_vec)
+  void notify_delivery(uint32_t lcid, const srslte::pdcp_sn_vector_t& pdcp_sn_vec)
   {
     assert(lcid == 1);
     for (uint32_t pdcp_sn : pdcp_sn_vec) {
@@ -71,7 +71,7 @@ public:
       notified_counts[pdcp_sn] += 1;
     }
   }
-  void notify_failure(uint32_t lcid, const std::vector<uint32_t>& pdcp_sn_vec)
+  void notify_failure(uint32_t lcid, const srslte::pdcp_sn_vector_t& pdcp_sn_vec)
   {
     assert(lcid == 1);
     // TODO
@@ -2464,7 +2464,7 @@ int header_reconstruction_test(srslte::log_sink_message_spy& spy)
   /// 13:35:16.337011 [RLC_1] [I] DRB1 Tx PDU SN=277 (20 B)
   ///   0000: 9d 15 80 20 0a 23 23 24 24 24 24 24 24 24 24 24
   ///   0010: 24 25 25 25
-  /// 13:35:16.337016 [RLC_1] [D] [Data PDU, RF=0, P=0, FI=1, SN=277, LSF=0, SO=0, N_li=2 (2, 10, )]
+  /// 13:35:16.337016 [RLC_1] [D] [Data PDU, RF=0, P=0, FI=1, SN=277, LSF=0, SO=0, N_li=2 (2, 10)]
 
   // 2nd retransmission with SO=9
   std::array<uint8_t, 12> tv2 = {0xdd, 0x15, 0x80, 0x09, 0x00, 0x30, 0x24, 0x24, 0x24, 0x25, 0x25, 0x25};
@@ -2505,7 +2505,7 @@ int header_reconstruction_test(srslte::log_sink_message_spy& spy)
   rlc1.write_pdu(pdu_tv3.msg, pdu_tv3.N_bytes);
 
   // Check RLC re-assembled message header
-  TESTASSERT(spy.has_message("[Data PDU, RF=0, P=0, FI=1, SN=277, LSF=0, SO=0, N_li=2 (2, 10, )]"));
+  TESTASSERT(spy.has_message("[Data PDU, RF=0, P=0, FI=1, SN=277, LSF=0, SO=0, N_li=2 (2, 10)]"));
 
 #if HAVE_PCAP
   pcap.close();
@@ -2569,7 +2569,7 @@ int header_reconstruction_test2(srslte::log_sink_message_spy& spy)
   rlc1.write_pdu(pdu_tv3.msg, pdu_tv3.N_bytes);
 
   // Check RLC re-assembled message header
-  TESTASSERT(spy.has_message("[Data PDU, RF=0, P=0, FI=1, SN=199, LSF=0, SO=0, N_li=2 (3, 10, )]"));
+  TESTASSERT(spy.has_message("[Data PDU, RF=0, P=0, FI=1, SN=199, LSF=0, SO=0, N_li=2 (3, 10)]"));
 
 #if HAVE_PCAP
   pcap.close();
@@ -2585,7 +2585,7 @@ int header_reconstruction_test3(srslte::log_sink_message_spy& spy)
   // 11:13:25.994566 [RLC_1] [I] DRB1 Tx PDU SN=206 (18 B)
   //  0000: 8c ce 00 a0 db db db db db db db db db db dc dc
   //  0010: dc dc
-  // 11:13:25.994571 [RLC_1] [D] [Data PDU, RF=0, P=0, FI=1, SN=206, LSF=0, SO=0, N_li=1 (10, )]
+  // 11:13:25.994571 [RLC_1] [D] [Data PDU, RF=0, P=0, FI=1, SN=206, LSF=0, SO=0, N_li=1 (10)]
 
   // 11:13:25.995744 [RLC_1] [I] DRB1 Retx PDU segment SN=206 [so=8] (12 B) (attempt 2/16)
   //   0000: dc ce 80 08 00 20 db db dc dc dc dc
@@ -2631,7 +2631,7 @@ int header_reconstruction_test3(srslte::log_sink_message_spy& spy)
   rlc1.write_pdu(pdu_tv1.msg, pdu_tv1.N_bytes);
 
   // Check RLC re-assembled message header
-  TESTASSERT(spy.has_message("[Data PDU, RF=0, P=0, FI=1, SN=206, LSF=0, SO=0, N_li=1 (10, )]"));
+  TESTASSERT(spy.has_message("[Data PDU, RF=0, P=0, FI=1, SN=206, LSF=0, SO=0, N_li=1 (10)]"));
 
 #if HAVE_PCAP
   pcap.close();
@@ -2646,20 +2646,20 @@ int header_reconstruction_test4(srslte::log_sink_message_spy& spy)
   // 15:32:20.667043 [RLC_1] [I] DRB1 Tx PDU SN=172 (22 B)
   //   0000: 9c ac 80 10 0a af b0 b0 b0 b0 b0 b0 b0 b0 b0 b0
   //   0010: b1 b1 b1 b1 b1 b1
-  // 15:32:20.667048 [RLC_1] [D] [Data PDU, RF=0, P=0, FI=1, SN=172, LSF=0, SO=0, N_li=2 (1, 10, )]
+  // 15:32:20.667048 [RLC_1] [D] [Data PDU, RF=0, P=0, FI=1, SN=172, LSF=0, SO=0, N_li=2 (1, 10)]
 
   // 15:32:20.668094 [RLC_1] [I] DRB1 Retx PDU segment SN=172 [so=0] (14 B) (attempt 2/16)
   //  0000: dc ac 00 00 00 10 af b0 b0 b0 b0 b0 b0 b0
   // 15:32:20.668100 [RLC_2] [I] DRB1 Rx data PDU segment of SN=172 (8 B), SO=0, N_li=1
   //  0000: af b0 b0 b0 b0 b0 b0 b0
-  // 15:32:20.668105 [RLC_2] [D] [Data PDU, RF=1, P=0, FI=1, SN=172, LSF=0, SO=0, N_li=1 (1, )]
+  // 15:32:20.668105 [RLC_2] [D] [Data PDU, RF=1, P=0, FI=1, SN=172, LSF=0, SO=0, N_li=1 (1)]
   std::array<uint8_t, 14> tv1 = {0xdc, 0xac, 0x00, 0x00, 0x00, 0x10, 0xaf, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0};
 
   // 15:32:20.668497 [RLC_1] [I] DRB1 Retx PDU segment SN=172 [so=0] (12 B) (attempt 3/16)
   //  0000: fc ac 00 00 00 10 af b0 b0 b0 b0 b0
   // 15:32:20.668502 [RLC_2] [I] DRB1 Rx data PDU segment of SN=172 (6 B), SO=0, N_li=1
   //  0000: af b0 b0 b0 b0 b0
-  // 15:32:20.668507 [RLC_2] [D] [Data PDU, RF=1, P=1, FI=1, SN=172, LSF=0, SO=0, N_li=1 (1, )]
+  // 15:32:20.668507 [RLC_2] [D] [Data PDU, RF=1, P=1, FI=1, SN=172, LSF=0, SO=0, N_li=1 (1)]
   std::array<uint8_t, 12> tv2 = {0xfc, 0xac, 0x00, 0x00, 0x00, 0x10, 0xaf, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0};
 
   // 15:32:20.668575 [RLC_1] [I] DRB1 Retx PDU segment SN=172 [so=6] (7 B) (attempt 3/16)
@@ -2674,7 +2674,7 @@ int header_reconstruction_test4(srslte::log_sink_message_spy& spy)
   //  0000: dc ac 80 09 00 20 b0 b0 b1 b1 b1 b1 b1 b1
   // 15:32:20.668671 [RLC_2] [I] DRB1 Rx data PDU segment of SN=172 (8 B), SO=9, N_li=1
   //  0000: b0 b0 b1 b1 b1 b1 b1 b1
-  // 15:32:20.668675 [RLC_2] [D] [Data PDU, RF=1, P=0, FI=1, SN=172, LSF=1, SO=9, N_li=1 (2, )]
+  // 15:32:20.668675 [RLC_2] [D] [Data PDU, RF=1, P=0, FI=1, SN=172, LSF=1, SO=9, N_li=1 (2)]
   std::array<uint8_t, 14> tv4 = {0xdc, 0xac, 0x80, 0x09, 0x00, 0x20, 0xb0, 0xb0, 0xb1, 0xb1, 0xb1, 0xb1, 0xb1, 0xb1};
 
   byte_buffer_t pdu_tv1;
@@ -2721,7 +2721,7 @@ int header_reconstruction_test4(srslte::log_sink_message_spy& spy)
   rlc1.write_pdu(pdu_tv4.msg, pdu_tv4.N_bytes);
 
   // Check RLC re-assembled message header
-  TESTASSERT(spy.has_message("[Data PDU, RF=0, P=0, FI=1, SN=172, LSF=0, SO=0, N_li=2 (1, 10, )]"));
+  TESTASSERT(spy.has_message("[Data PDU, RF=0, P=0, FI=1, SN=172, LSF=0, SO=0, N_li=2 (1, 10)]"));
 
 #if HAVE_PCAP
   pcap.close();
@@ -2736,7 +2736,7 @@ int header_reconstruction_test5(srslte::log_sink_message_spy& spy)
   // 18:46:22.372858 [RLC_1] [I] DRB1 Tx PDU SN=222 (22 B)
   //   0000: bc de 80 30 0a ee ee ee ef ef ef ef ef ef ef ef
   //   0010: ef ef f0 f0 f0 f0
-  // 18:46:22.372863 [RLC_1] [D] [Data PDU, RF=0, P=1, FI=1, SN=222, LSF=0, SO=0, N_li=2 (3, 10, )]
+  // 18:46:22.372863 [RLC_1] [D] [Data PDU, RF=0, P=1, FI=1, SN=222, LSF=0, SO=0, N_li=2 (3, 10)]
 
   // 18:46:22.373623 [RLC_1] [I] DRB1 Retx PDU segment SN=222 [so=0] (7 B) (attempt 2/16)
   //  0000: d0 de 00 00 ee ee ee
@@ -2797,7 +2797,7 @@ int header_reconstruction_test5(srslte::log_sink_message_spy& spy)
   rlc1.write_pdu(pdu_tv2.msg, pdu_tv2.N_bytes);
 
   // Check RLC re-assembled message header
-  TESTASSERT(spy.has_message("[Data PDU, RF=0, P=0, FI=1, SN=222, LSF=0, SO=0, N_li=2 (3, 10, )]"));
+  TESTASSERT(spy.has_message("[Data PDU, RF=0, P=0, FI=1, SN=222, LSF=0, SO=0, N_li=2 (3, 10)]"));
 
 #if HAVE_PCAP
   pcap.close();
@@ -2812,7 +2812,7 @@ int header_reconstruction_test6(srslte::log_sink_message_spy& spy)
   // 21:50:12.709646 [RLC_1] [I] DRB1 Tx PDU SN=509 (20 B)
   //  0000: 9d fd 80 40 0a b1 b1 b1 b1 b2 b2 b2 b2 b2 b2 b2
   //  0010: b2 b2 b2 b3
-  // 21:50:12.709653 [RLC_1] [D] [Data PDU, RF=0, P=0, FI=1, SN=509, LSF=0, SO=0, N_li=2 (4, 10, )]]
+  // 21:50:12.709653 [RLC_1] [D] [Data PDU, RF=0, P=0, FI=1, SN=509, LSF=0, SO=0, N_li=2 (4, 10)]]
 
   // 21:50:12.711022 [RLC_1] [I] DRB1 Retx PDU segment SN=509 [so=0] (5 B) (attempt 3/16)
   //   0000: d9 fd 00 00 b1
@@ -2833,7 +2833,7 @@ int header_reconstruction_test6(srslte::log_sink_message_spy& spy)
   //  0010: b3
   // 21:50:12.711210 [RLC_2] [I] DRB1 Rx data PDU segment of SN=509 (11 B), SO=4, N_li=1
   //  0000: b2 b2 b2 b2 b2 b2 b2 b2 b2 b2 b3
-  // 21:50:12.711216 [RLC_2] [D] [Data PDU, RF=1, P=1, FI=1, SN=509, LSF=1, SO=4, N_li=1 (10, )]
+  // 21:50:12.711216 [RLC_2] [D] [Data PDU, RF=1, P=1, FI=1, SN=509, LSF=1, SO=4, N_li=1 (10)]
   std::array<uint8_t, 17> tv2 = {
       0xed, 0xfd, 0x80, 0x04, 0x00, 0xa0, 0xb2, 0xb2, 0xb2, 0xb2, 0xb2, 0xb2, 0xb2, 0xb2, 0xb2, 0xb2, 0xb3};
 
@@ -2876,7 +2876,7 @@ int header_reconstruction_test6(srslte::log_sink_message_spy& spy)
   rlc1.write_pdu(pdu_tv2.msg, pdu_tv2.N_bytes);
 
   // Check RLC re-assembled message header
-  TESTASSERT(spy.has_message("[Data PDU, RF=0, P=1, FI=1, SN=509, LSF=0, SO=0, N_li=2 (4, 10, )]"));
+  TESTASSERT(spy.has_message("[Data PDU, RF=0, P=1, FI=1, SN=509, LSF=0, SO=0, N_li=2 (4, 10)]"));
 
 #if HAVE_PCAP
   pcap.close();
@@ -2891,7 +2891,7 @@ int header_reconstruction_test7(srslte::log_sink_message_spy& spy)
   // 22:14:54.646530 [RLC_1] [I] DRB1 Tx PDU SN=282 (19 B)
   //  0000: 9d 1a 80 10 0a 28 29 29 29 29 29 29 29 29 29 29
   //  0010: 2a 2a 2a
-  // 22:14:54.646535 [RLC_1] [D] [Data PDU, RF=0, P=0, FI=1, SN=282, LSF=0, SO=0, N_li=2 (1, 10, )]
+  // 22:14:54.646535 [RLC_1] [D] [Data PDU, RF=0, P=0, FI=1, SN=282, LSF=0, SO=0, N_li=2 (1, 10)]
 
   // 22:14:54.648484 [RLC_1] [I] DRB1 Retx PDU segment SN=282 [so=2] (6 B) (attempt 2/16)
   //  0000: f9 1a 00 02 29 29
@@ -2979,7 +2979,7 @@ int header_reconstruction_test7(srslte::log_sink_message_spy& spy)
   rlc1.write_pdu(pdu_tv4.msg, pdu_tv4.N_bytes);
 
   // Check RLC re-assembled message header
-  TESTASSERT(spy.has_message("[Data PDU, RF=0, P=0, FI=1, SN=282, LSF=0, SO=0, N_li=2 (1, 10, )]"));
+  TESTASSERT(spy.has_message("[Data PDU, RF=0, P=0, FI=1, SN=282, LSF=0, SO=0, N_li=2 (1, 10)]"));
 
 #if HAVE_PCAP
   pcap.close();
@@ -2995,14 +2995,14 @@ int header_reconstruction_test8(srslte::log_sink_message_spy& spy)
   //  0000: b5 a7 80 38 0a 00 a0 77 77 77 78 78 78 78 78 78
   //  0010: 78 78 78 78 79 79 79 79 79 79 79 79 79 79 7a 7a
   //  0020: 7a 7a 7a 7a 7a 7a 7a 7a
-  // 21:23:34.407724 [RLC_1] [D] [Data PDU, RF=0, P=1, FI=1, SN=423, LSF=0, SO=0, N_li=3 (3, 10, 10, )]
+  // 21:23:34.407724 [RLC_1] [D] [Data PDU, RF=0, P=1, FI=1, SN=423, LSF=0, SO=0, N_li=3 (3, 10, 10)]
 
   // 21:23:34.408815 [RLC_1] [I] DRB1 Retx PDU segment SN=423 [so=0] (18 B) (attempt 2/8)
   //  0000: fd a7 00 00 00 30 77 77 77 78 78 78 78 78 78 78
   //  0010: 78 78
   // 21:23:34.408822 [RLC_2] [I] DRB1 Rx data PDU segment of SN=423 (12 B), SO=0, N_li=1
   //  0000: 77 77 77 78 78 78 78 78 78 78 78 78
-  // 21:23:34.408828 [RLC_2] [D] [Data PDU, RF=1, P=1, FI=1, SN=423, LSF=0, SO=0, N_li=1 (3, )]
+  // 21:23:34.408828 [RLC_2] [D] [Data PDU, RF=1, P=1, FI=1, SN=423, LSF=0, SO=0, N_li=1 (3)]
   std::array<uint8_t, 18> tv0 = {
       0xfd, 0xa7, 0x00, 0x00, 0x00, 0x30, 0x77, 0x77, 0x77, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78};
 
@@ -3011,7 +3011,7 @@ int header_reconstruction_test8(srslte::log_sink_message_spy& spy)
   //  0010: 79
   // 21:23:34.408919 [RLC_2] [I] DRB1 Rx data PDU segment of SN=423 (11 B), SO=12, N_li=1
   //  0000: 78 79 79 79 79 79 79 79 79 79 79
-  // 21:23:34.408925 [RLC_2] [D] [Data PDU, RF=1, P=1, FI=1, SN=423, LSF=0, SO=12, N_li=1 (1, )]
+  // 21:23:34.408925 [RLC_2] [D] [Data PDU, RF=1, P=1, FI=1, SN=423, LSF=0, SO=12, N_li=1 (1)]
   std::array<uint8_t, 17> tv1 = {
       0xf5, 0xa7, 0x00, 0x0c, 0x00, 0x10, 0x78, 0x79, 0x79, 0x79, 0x79, 0x79, 0x79, 0x79, 0x79, 0x79, 0x79};
 
@@ -3020,7 +3020,7 @@ int header_reconstruction_test8(srslte::log_sink_message_spy& spy)
   //  0010: 78 78 78
   // 21:23:34.409433 [RLC_2] [I] DRB1 Rx data PDU segment of SN=423 (13 B), SO=0, N_li=1
   //  0000: 77 77 77 78 78 78 78 78 78 78 78 78 78
-  // 21:23:34.409440 [RLC_2] [D] [Data PDU, RF=1, P=1, FI=1, SN=423, LSF=0, SO=0, N_li=1 (3, )]
+  // 21:23:34.409440 [RLC_2] [D] [Data PDU, RF=1, P=1, FI=1, SN=423, LSF=0, SO=0, N_li=1 (3)]
   std::array<uint8_t, 19> tv2 = {
       0xf5, 0xa7, 0x00, 0x00, 0x00, 0x30, 0x77, 0x77, 0x77, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78};
 
@@ -3030,7 +3030,7 @@ int header_reconstruction_test8(srslte::log_sink_message_spy& spy)
   // 21:23:34.409531 [RLC_2] [I] DRB1 Rx data PDU segment of SN=423 (20 B), SO=13, N_li=1
   //  0000: 79 79 79 79 79 79 79 79 79 79 7a 7a 7a 7a 7a 7a
   //  0010: 7a 7a 7a 7a
-  // 21:23:34.409537 [RLC_2] [D] [Data PDU, RF=1, P=1, FI=0, SN=423, LSF=1, SO=13, N_li=1 (10, )]
+  // 21:23:34.409537 [RLC_2] [D] [Data PDU, RF=1, P=1, FI=0, SN=423, LSF=1, SO=13, N_li=1 (10)]
   std::array<uint8_t, 26> tv3 = {0xe5, 0xa7, 0x80, 0x0d, 0x00, 0xa0, 0x79, 0x79, 0x79, 0x79, 0x79, 0x79, 0x79,
                                  0x79, 0x79, 0x79, 0x7a, 0x7a, 0x7a, 0x7a, 0x7a, 0x7a, 0x7a, 0x7a, 0x7a, 0x7a};
 
@@ -3080,7 +3080,7 @@ int header_reconstruction_test8(srslte::log_sink_message_spy& spy)
   rlc1.write_pdu(pdu_tv3.msg, pdu_tv3.N_bytes);
 
   // Check RLC re-assembled message header
-  TESTASSERT(spy.has_message("[Data PDU, RF=0, P=1, FI=1, SN=423, LSF=0, SO=0, N_li=3 (3, 10, 10, )]"));
+  TESTASSERT(spy.has_message("[Data PDU, RF=0, P=1, FI=1, SN=423, LSF=0, SO=0, N_li=3 (3, 10, 10)]"));
 
   return SRSLTE_SUCCESS;
 }
@@ -3424,10 +3424,6 @@ bool reestablish_test()
 
 int main(int argc, char** argv)
 {
-  srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_DEBUG);
-  srslte::logmap::set_default_hex_limit(4096);
-  TESTASSERT(srslte::logmap::get("RLC_AM_1")->get_level() == srslte::LOG_LEVEL_DEBUG);
-
   // Setup the log message spy to intercept error and warning log entries from RLC
   if (!srslog::install_custom_sink(srslte::log_sink_message_spy::name(),
                                    std::unique_ptr<srslte::log_sink_message_spy>(
@@ -3445,6 +3441,8 @@ int main(int argc, char** argv)
   auto& logger_rrc2 = srslog::fetch_basic_logger("RLC_AM_2", *spy, false);
   logger_rrc1.set_hex_dump_max_size(100);
   logger_rrc2.set_hex_dump_max_size(100);
+  logger_rrc1.set_level(srslog::basic_levels::debug);
+  logger_rrc2.set_level(srslog::basic_levels::debug);
 
   // start log backend
   srslog::init();

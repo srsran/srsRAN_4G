@@ -25,7 +25,6 @@
 #include "srslte/adt/circular_array.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
-#include "srslte/common/log.h"
 #include "srslte/common/security.h"
 #include "srslte/common/threads.h"
 #include "srslte/interfaces/ue_rrc_interfaces.h"
@@ -57,10 +56,10 @@ public:
   // Getter for the number of discard timers. Used for debugging.
   size_t nof_discard_timers() const;
 
-  bool add_sdu(uint32_t                             sn,
-               const srslte::unique_byte_buffer_t&  sdu,
-               uint32_t                             discard_timeout,
-               const std::function<void(uint32_t)>& callback);
+  bool add_sdu(uint32_t                              sn,
+               const srslte::unique_byte_buffer_t&   sdu,
+               uint32_t                              discard_timeout,
+               srslte::move_callback<void(uint32_t)> callback);
 
   unique_byte_buffer_t& operator[](uint32_t sn)
   {
@@ -129,8 +128,8 @@ public:
 
   // RLC interface
   void write_pdu(unique_byte_buffer_t pdu) override;
-  void notify_failure(const std::vector<uint32_t>& pdcp_sns) override;
-  void notify_delivery(const std::vector<uint32_t>& pdcp_sns) override;
+  void notify_failure(const pdcp_sn_vector_t& pdcp_sns) override;
+  void notify_delivery(const pdcp_sn_vector_t& pdcp_sns) override;
 
   // Config helpers
   bool check_valid_config();
@@ -147,7 +146,7 @@ public:
 
   // Internal state getters/setters
   void get_bearer_state(pdcp_lte_state_t* state) override;
-  void set_bearer_state(const pdcp_lte_state_t& state) override;
+  void set_bearer_state(const pdcp_lte_state_t& state, bool set_fmc) override;
 
   // Metrics helpers
   pdcp_bearer_metrics_t get_metrics() override;
@@ -175,9 +174,31 @@ private:
   // Discard callback (discardTimer)
   class discard_callback;
 
-  // TX Queue
+  // Tx info queue
   uint32_t                                maximum_allocated_sns_window = 2048;
   std::unique_ptr<undelivered_sdus_queue> undelivered_sdus;
+
+  // Rx info queue
+  uint32_t              fmc              = 0;
+  uint32_t              largest_rx_count = 0;
+  std::vector<uint32_t> rx_counts_info; // Keeps the RX_COUNT for generation of the stauts report
+  void                  update_rx_counts_queue(uint32_t rx_count);
+
+  /*
+   * Helper function to see if an SN is larger
+   */
+  bool is_sn_larger(uint32_t sn1, uint32_t sn2)
+  {
+    int32_t  diff    = sn2 - sn1;
+    uint32_t nof_sns = 1u << cfg.sn_len;
+    if (diff > (int32_t)(nof_sns / 2)) {
+      return false;
+    }
+    if (diff <= 0 && diff > -((int32_t)(nof_sns / 2))) {
+      return false;
+    }
+    return true;
+  }
 };
 
 // Discard callback (discardTimer)

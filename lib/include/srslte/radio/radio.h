@@ -24,12 +24,13 @@
 #include "rf_buffer.h"
 #include "rf_timestamp.h"
 #include "srslte/common/interfaces_common.h"
-#include "srslte/common/log_filter.h"
 #include "srslte/interfaces/radio_interfaces.h"
 #include "srslte/phy/resampling/resampler.h"
 #include "srslte/phy/rf/rf.h"
 #include "srslte/radio/radio_base.h"
+#include "srslte/srslog/srslog.h"
 #include "srslte/srslte.h"
+
 #include <list>
 #include <string>
 

@@ -24,7 +24,6 @@
 
 #include "srslte/asn1/rrc_utils.h"
 #include "srslte/common/common.h"
-#include "srslte/common/logmap.h"
 #include <algorithm>
 #include <cassert>
 

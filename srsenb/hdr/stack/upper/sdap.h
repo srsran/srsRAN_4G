@@ -24,7 +24,6 @@
 
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
-#include "srslte/common/logmap.h"
 #include "srslte/interfaces/gnb_interfaces.h"
 #include "srslte/interfaces/ue_gw_interfaces.h"
 

@@ -28,7 +28,7 @@
 #define SRSUE_TTCN3_PORT_HANDLER_H
 
 #include "srslte/common/epoll_helper.h"
-#include "srslte/common/log.h"
+#include "srslte/common/standard_streams.h"
 #include "srslte/srslog/srslog.h"
 #include "ttcn3_common.h"
 #include <arpa/inet.h>

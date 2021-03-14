@@ -23,7 +23,6 @@
 #define SRSLTE_PDCP_H
 
 #include "srslte/common/common.h"
-#include "srslte/common/log.h"
 #include "srslte/common/task_scheduler.h"
 #include "srslte/interfaces/ue_pdcp_interfaces.h"
 #include "srslte/upper/pdcp_entity_lte.h"
@@ -68,8 +67,8 @@ public:
   void write_pdu_bcch_bch(unique_byte_buffer_t sdu) override;
   void write_pdu_bcch_dlsch(unique_byte_buffer_t sdu) override;
   void write_pdu_pcch(unique_byte_buffer_t sdu) override;
-  void notify_delivery(uint32_t lcid, const std::vector<uint32_t>& pdcp_sn) override;
-  void notify_failure(uint32_t lcid, const std::vector<uint32_t>& pdcp_sn) override;
+  void notify_delivery(uint32_t lcid, const pdcp_sn_vector_t& pdcp_sns) override;
+  void notify_failure(uint32_t lcid, const pdcp_sn_vector_t& pdcp_sns) override;
 
   // eNB-only methods
   std::map<uint32_t, srslte::unique_byte_buffer_t> get_buffered_pdus(uint32_t lcid);

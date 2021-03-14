@@ -20,6 +20,7 @@
  */
 
 #include "srslte/common/mac_pcap.h"
+#include "srslte/common/standard_streams.h"
 #include "srslte/common/threads.h"
 
 namespace srslte {
@@ -67,7 +68,7 @@ uint32_t mac_pcap::close()
     // tell writer thread to stop
     running        = false;
     pcap_pdu_t pdu = {};
-    queue.push(std::move(pdu));
+    queue.push_blocking(std::move(pdu));
   }
 
   wait_thread_finish();

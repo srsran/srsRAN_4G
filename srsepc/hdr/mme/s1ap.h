@@ -33,8 +33,8 @@
 #include "srslte/asn1/liblte_mme.h"
 #include "srslte/asn1/s1ap.h"
 #include "srslte/common/common.h"
-#include "srslte/common/log.h"
 #include "srslte/common/s1ap_pcap.h"
+#include "srslte/common/standard_streams.h"
 #include "srslte/interfaces/epc_interfaces.h"
 #include "srslte/srslog/srslog.h"
 #include <arpa/inet.h>

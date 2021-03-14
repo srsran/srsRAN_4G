@@ -41,7 +41,6 @@
 #include "upper/usim.h"
 
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/log_filter.h"
 #include "srslte/common/multiqueue.h"
 #include "srslte/common/string_helpers.h"
 #include "srslte/common/task_scheduler.h"

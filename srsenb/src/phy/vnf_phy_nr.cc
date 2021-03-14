@@ -19,19 +19,11 @@
  *
  */
 
-#include <pthread.h>
-#include <sstream>
-#include <string.h>
 #include <string>
-#include <strings.h>
 #include <sys/mman.h>
-#include <unistd.h>
 
 #include "srsenb/hdr/phy/vnf_phy_nr.h"
 #include "srslte/common/basic_vnf_api.h"
-#include "srslte/common/log.h"
-#include "srslte/common/test_common.h"
-#include "srslte/common/threads.h"
 
 using namespace std;
 

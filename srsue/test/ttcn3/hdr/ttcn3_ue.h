@@ -23,6 +23,7 @@
 #define SRSUE_TTCN3_UE_H
 
 #include "lte_ttcn3_phy.h"
+#include "srslte/common/standard_streams.h"
 #include "srsue/hdr/stack/ue_stack_lte.h"
 #include <sstream>
 

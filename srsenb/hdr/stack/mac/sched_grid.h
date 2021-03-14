@@ -26,7 +26,6 @@
 #include "sched_phy_ch/sf_cch_allocator.h"
 #include "sched_ue.h"
 #include "srslte/adt/bounded_bitset.h"
-#include "srslte/common/log.h"
 #include "srslte/srslog/srslog.h"
 #include <deque>
 #include <vector>
@@ -113,7 +112,7 @@ public:
   dl_ctrl_alloc_t alloc_dl_ctrl(uint32_t aggr_lvl, alloc_type_t alloc_type);
   alloc_outcome_t alloc_dl_data(sched_ue* user, const rbgmask_t& user_mask, bool has_pusch_grant);
   bool            reserve_dl_rbgs(uint32_t start_rbg, uint32_t end_rbg);
-  alloc_outcome_t alloc_ul_data(sched_ue* user, prb_interval alloc, bool needs_pdcch);
+  alloc_outcome_t alloc_ul_data(sched_ue* user, prb_interval alloc, bool needs_pdcch, bool strict = true);
   alloc_outcome_t reserve_ul_prbs(const prbmask_t& prbmask, bool strict);
   alloc_outcome_t reserve_ul_prbs(prb_interval alloc, bool strict);
   bool            find_ul_alloc(uint32_t L, prb_interval* alloc) const;
@@ -183,15 +182,15 @@ public:
     uint32_t  pid;
   };
   struct ul_alloc_t {
-    enum type_t { NEWTX, NOADAPT_RETX, ADAPT_RETX, MSG3, MSG3_RETX };
+    enum type_t { NEWTX, NOADAPT_RETX, ADAPT_RETX };
+    bool         is_msg3 = false;
     size_t       dci_idx;
     type_t       type;
     uint16_t     rnti;
     prb_interval alloc;
     int          msg3_mcs = -1;
     bool         is_retx() const { return type == NOADAPT_RETX or type == ADAPT_RETX; }
-    bool         is_msg3() const { return type == MSG3; }
-    bool         needs_pdcch() const { return type == NEWTX or type == ADAPT_RETX; }
+    bool         needs_pdcch() const { return (type == NEWTX and not is_msg3) or type == ADAPT_RETX; }
   };
   struct pending_msg3_t {
     uint16_t rnti  = 0;
@@ -221,7 +220,8 @@ public:
 
   // UL alloc methods
   alloc_outcome_t alloc_msg3(sched_ue* user, const sched_interface::dl_sched_rar_grant_t& rargrant);
-  alloc_outcome_t alloc_ul(sched_ue* user, prb_interval alloc, ul_alloc_t::type_t alloc_type, int msg3_mcs = -1);
+  alloc_outcome_t
+       alloc_ul(sched_ue* user, prb_interval alloc, ul_alloc_t::type_t alloc_type, bool is_msg3 = false, int msg3_mcs = -1);
   bool reserve_ul_prbs(const prbmask_t& ulmask, bool strict) { return tti_alloc.reserve_ul_prbs(ulmask, strict); }
   bool alloc_phich(sched_ue* user, sched_interface::ul_sched_res_t* ul_sf_result);
 
@@ -237,10 +237,11 @@ public:
   tti_point        get_tti_tx_ul() const { return to_tx_ul(tti_rx); }
 
   // getters
-  tti_point get_tti_rx() const { return tti_rx; }
-  bool      is_dl_alloc(uint16_t rnti) const;
-  bool      is_ul_alloc(uint16_t rnti) const;
-  uint32_t  get_enb_cc_idx() const { return cc_cfg->enb_cc_idx; }
+  tti_point                  get_tti_rx() const { return tti_rx; }
+  bool                       is_dl_alloc(uint16_t rnti) const;
+  bool                       is_ul_alloc(uint16_t rnti) const;
+  uint32_t                   get_enb_cc_idx() const { return cc_cfg->enb_cc_idx; }
+  const sched_cell_params_t* get_cc_cfg() const { return cc_cfg; }
 
 private:
   ctrl_code_t alloc_dl_ctrl(uint32_t aggr_lvl, uint32_t tbs_bytes, uint16_t rnti);

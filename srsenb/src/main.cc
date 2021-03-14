@@ -28,9 +28,8 @@
 #include "srslte/common/common_helper.h"
 #include "srslte/common/config_file.h"
 #include "srslte/common/crash_handler.h"
-#include "srslte/common/logger_srslog_wrapper.h"
-#include "srslte/common/logmap.h"
 #include "srslte/common/signal_handler.h"
+#include "srslte/srslog/event_trace.h"
 #include "srslte/srslog/srslog.h"
 
 #include <boost/program_options.hpp>
@@ -216,6 +215,9 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("expert.report_json_filename", bpo::value<string>(&args->general.report_json_filename)->default_value("/tmp/enb_report.json"), "Report JSON filename")
     ("expert.alarms_log_enable",  bpo::value<bool>(&args->general.alarms_log_enable)->default_value(false), "Log alarms")
     ("expert.alarms_filename", bpo::value<string>(&args->general.alarms_filename)->default_value("/tmp/enb_alarms.log"), "Alarms filename")
+    ("expert.tracing_enable",  bpo::value<bool>(&args->general.tracing_enable)->default_value(false), "Events tracing")
+    ("expert.tracing_filename", bpo::value<string>(&args->general.tracing_filename)->default_value("/tmp/enb_tracing.log"), "Tracing events filename")
+    ("expert.tracing_buffcapacity", bpo::value<std::size_t>(&args->general.tracing_buffcapacity)->default_value(1000000), "Tracing buffer capcity")
     ("expert.rrc_inactivity_timer", bpo::value<uint32_t>(&args->general.rrc_inactivity_timer)->default_value(30000), "Inactivity timer in ms.")
     ("expert.print_buffer_state", bpo::value<bool>(&args->general.print_buffer_state)->default_value(false), "Prints on the console the buffer state every 10 seconds")
     ("expert.eea_pref_list", bpo::value<string>(&args->general.eea_pref_list)->default_value("EEA0, EEA2, EEA1"), "Ordered preference list for the selection of encryption algorithm (EEA) (default: EEA0, EEA2, EEA1).")
@@ -503,18 +505,23 @@ int main(int argc, char* argv[])
           ? srslog::fetch_stdout_sink()
           : srslog::fetch_file_sink(args.log.filename, fixup_log_file_maxsize(args.log.file_max_size)));
 
-  srslte::srslog_wrapper log_wrapper(srslog::fetch_log_channel("main_channel"));
-
   // Alarms log channel creation.
   srslog::sink&        alarm_sink     = srslog::fetch_file_sink(args.general.alarms_filename);
   srslog::log_channel& alarms_channel = srslog::fetch_log_channel("alarms", alarm_sink, {"ALRM", '\0', false});
   alarms_channel.set_enabled(args.general.alarms_log_enable);
 
+#ifdef ENABLE_SRSLOG_EVENT_TRACE
+  if (args.general.tracing_enable) {
+    if (!srslog::event_trace_init(args.general.tracing_filename, args.general.tracing_buffcapacity)) {
+      return SRSLTE_ERROR;
+    }
+  }
+#endif
+
   // Start the log backend.
   srslog::init();
 
-  srslte::logmap::set_default_logger(&log_wrapper);
-  srslte::logmap::get("COMMON")->set_level(srslte::LOG_LEVEL_INFO);
+  srslog::fetch_basic_logger("COMMON").set_level(srslog::basic_levels::info);
   srslte::log_args(argc, argv, "ENB");
 
   srslte::check_scaling_governor(args.rf.device_name);
@@ -532,7 +539,7 @@ int main(int argc, char* argv[])
 
   // Create eNB
   unique_ptr<srsenb::enb> enb{new srsenb::enb(srslog::get_default_sink())};
-  if (enb->init(args, &log_wrapper) != SRSLTE_SUCCESS) {
+  if (enb->init(args) != SRSLTE_SUCCESS) {
     enb->stop();
     return SRSLTE_ERROR;
   }

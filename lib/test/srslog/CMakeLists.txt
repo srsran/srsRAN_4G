@@ -54,11 +54,10 @@ add_definitions(-DENABLE_SRSLOG_EVENT_TRACE)
 target_link_libraries(tracer_test srslog)
 add_test(tracer_test tracer_test)
 
-#:TODO: re-enable test.
-#add_executable(text_formatter_test text_formatter_test.cpp)
-#target_include_directories(text_formatter_test PUBLIC ../../)
-#target_link_libraries(text_formatter_test srslog)
-#add_test(text_formatter_test text_formatter_test)
+add_executable(text_formatter_test text_formatter_test.cpp)
+target_include_directories(text_formatter_test PUBLIC ../../)
+target_link_libraries(text_formatter_test srslog)
+add_test(text_formatter_test text_formatter_test)
 
 add_executable(json_formatter_test json_formatter_test.cpp)
 target_include_directories(json_formatter_test PUBLIC ../../)

@@ -26,8 +26,12 @@ using namespace srslte;
 
 namespace srsue {
 
-ue_stack_nr::ue_stack_nr(srslte::logger* logger_) :
-  logger(logger_), thread("STACK"), task_sched(64, 64), rlc_log("RLC"), pdcp_log("PDCP")
+ue_stack_nr::ue_stack_nr() :
+  thread("STACK"),
+  task_sched(64, 64),
+  mac_logger(srslog::fetch_basic_logger("MAC")),
+  rlc_logger(srslog::fetch_basic_logger("RLC", false)),
+  pdcp_logger(srslog::fetch_basic_logger("PDCP", false))
 {
   get_background_workers().set_nof_workers(2);
   mac.reset(new mac_nr(&task_sched));
@@ -64,15 +68,12 @@ int ue_stack_nr::init(const stack_args_t& args_)
 {
   args = args_;
 
-  srslte::logmap::register_log(std::unique_ptr<srslte::log>{new srslte::log_filter{"MAC", logger, true}});
-
-  srslte::log_ref mac_log{"MAC"};
-  mac_log->set_level(args.log.mac_level);
-  mac_log->set_hex_limit(args.log.mac_hex_limit);
-  rlc_log->set_level(args.log.rlc_level);
-  rlc_log->set_hex_limit(args.log.rlc_hex_limit);
-  pdcp_log->set_level(args.log.pdcp_level);
-  pdcp_log->set_hex_limit(args.log.pdcp_hex_limit);
+  mac_logger.set_level(srslog::str_to_basic_level(args.log.mac_level));
+  mac_logger.set_hex_dump_max_size(args.log.mac_hex_limit);
+  rlc_logger.set_level(srslog::str_to_basic_level(args.log.rlc_level));
+  rlc_logger.set_hex_dump_max_size(args.log.rlc_hex_limit);
+  pdcp_logger.set_level(srslog::str_to_basic_level(args.log.pdcp_level));
+  pdcp_logger.set_hex_dump_max_size(args.log.pdcp_hex_limit);
 
   mac_nr_args_t mac_args = {};
   mac->init(mac_args, phy, rlc.get());
@@ -165,7 +166,7 @@ void ue_stack_nr::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)
     std::pair<bool, move_task_t> ret = gw_task_queue.try_push(std::bind(
         [this, lcid](srslte::unique_byte_buffer_t& sdu) { pdcp->write_sdu(lcid, std::move(sdu)); }, std::move(sdu)));
     if (not ret.first) {
-      pdcp_log->warning("GW SDU with lcid=%d was discarded.", lcid);
+      pdcp_logger.warning("GW SDU with lcid=%d was discarded.", lcid);
     }
   }
 }

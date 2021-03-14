@@ -49,6 +49,9 @@ extern "C" {
 
 #define SRSLTE_MAX(a, b) ((a) > (b) ? (a) : (b))
 #define SRSLTE_MIN(a, b) ((a) < (b) ? (a) : (b))
+#define SRSLTE_CEIL(NUM, DEN) (((NUM) + ((DEN)-1)) / (DEN))
+#define SRSLTE_FLOOR(NUM, DEN) ((NUM) / (DEN))
+#define SRSLTE_ROUND(NUM, DEN) ((uint32_t)round((double)(NUM) / (double)(DEN)))
 
 // Cumulative moving average
 #define SRSLTE_VEC_CMA(data, average, n) ((average) + ((data) - (average)) / ((n) + 1))

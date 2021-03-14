@@ -169,7 +169,8 @@ enable = false
 #
 #####################################################################
 [scheduler]
-#sched_policy     = time_pf
+#policy     = time_pf
+#policy_args = 2
 #max_aggr_level   = -1
 #pdsch_mcs        = -1
 #pdsch_max_mcs    = -1
@@ -177,6 +178,7 @@ enable = false
 #pusch_max_mcs    = 16
 #min_nof_ctrl_symbols = 1
 #max_nof_ctrl_symbols = 3
+#pucch_multiplex_enable = false
 
 #####################################################################
 # eMBMS configuration options
@@ -294,6 +296,9 @@ enable = false
 # metrics_period_secs:  Sets the period at which metrics are requested from the eNB. 
 # metrics_csv_enable:   Write eNB metrics to CSV file.
 # metrics_csv_filename: File path to use for CSV metrics.
+# tracing_enable:       Write source code tracing information to a file.
+# tracing_filename:     File path to use for tracing information.
+# tracing_buffcapacity: Maximum capacity in bytes the tracing framework can store.
 # pregenerate_signals:  Pregenerate uplink signals after attach. Improves CPU performance.
 # tx_amplitude:         Transmit amplitude factor (set 0-1 to reduce PAPR)
 # rrc_inactivity_timer  Inactivity timeout used to remove UE context from RRC (in milliseconds).
@@ -313,6 +318,9 @@ enable = false
 #report_json_filename = /tmp/enb_report.json
 #alarms_log_enable    = true
 #alarms_filename      = /tmp/enb_alarms.log
+#tracing_enable       = true
+#tracing_filename     = /tmp/enb_tracing.log
+#tracing_buffcapacity = 1000000
 #pregenerate_signals  = false
 #tx_amplitude         = 0.6
 #rrc_inactivity_timer = 30000

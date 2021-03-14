@@ -25,7 +25,6 @@
 #include "phy_common.h"
 #include "phy_metrics.h"
 #include "srslte/common/block_queue.h"
-#include "srslte/common/log_filter.h"
 #include "srslte/common/threads.h"
 #include "srslte/common/trace.h"
 #include "srslte/interfaces/phy_interface_types.h"

@@ -119,41 +119,120 @@ static bool when_log_entry_with_hex_dump_is_passed_then_hex_dump_is_formatted()
 namespace {
 DECLARE_METRIC("SNR", snr_t, float, "dB");
 DECLARE_METRIC("PWR", pwr_t, int, "dBm");
-DECLARE_METRIC("CenterFreq", cfreq_t, unsigned, "MHz");
-DECLARE_METRIC_SET("RF", myset1, snr_t, pwr_t, cfreq_t);
+DECLARE_METRIC_SET("RF", rf_set, snr_t, pwr_t);
 
 DECLARE_METRIC("Throughput", thr_t, float, "MB/s");
 DECLARE_METRIC("Address", ip_addr_t, std::string, "");
-DECLARE_METRIC_SET("Network", myset2, thr_t, ip_addr_t);
+DECLARE_METRIC_LIST("Antennas", antenna_list_t, std::vector<rf_set>);
+DECLARE_METRIC_SET("ue_container", ue_set, thr_t, ip_addr_t, antenna_list_t);
 
-using ctx_t = srslog::build_context_type<myset1, myset2>;
+DECLARE_METRIC("type", entry_type_t, std::string, "");
+DECLARE_METRIC("sector_id", sector_id_t, unsigned, "");
+DECLARE_METRIC_LIST("ue_list", ue_list_t, std::vector<ue_set>);
+DECLARE_METRIC_SET("sector_metrics",
+                   sector_set,
+                   entry_type_t,
+                   sector_id_t,
+                   ue_list_t);
+
+DECLARE_METRIC_LIST("sector_list", sector_list_t, std::vector<sector_set>);
+
+using complex_ctx_t = srslog::build_context_type<sector_list_t>;
 } // namespace
+
+/// Builds an instance of a complex context object filled in with some random
+/// data.
+static complex_ctx_t build_complex_context()
+{
+  complex_ctx_t ctx("Complex Context");
+
+  ctx.get<sector_list_t>().emplace_back();
+  ctx.at<sector_list_t>(0).write<entry_type_t>("event");
+  ctx.at<sector_list_t>(0).write<sector_id_t>(1);
+
+  ctx.at<sector_list_t>(0).get<ue_list_t>().emplace_back();
+  ctx.at<sector_list_t>(0).at<ue_list_t>(0).write<thr_t>(1.2);
+  ctx.at<sector_list_t>(0).at<ue_list_t>(0).write<ip_addr_t>("10.20.30.40");
+
+  ctx.at<sector_list_t>(0).get<ue_list_t>().emplace_back();
+  ctx.at<sector_list_t>(0).at<ue_list_t>(1).write<thr_t>(10.2);
+  ctx.at<sector_list_t>(0).at<ue_list_t>(1).write<ip_addr_t>("10.20.30.41");
+
+  ctx.at<sector_list_t>(0)
+      .at<ue_list_t>(0)
+      .get<antenna_list_t>()
+      .emplace_back();
+  ctx.at<sector_list_t>(0).at<ue_list_t>(0).at<antenna_list_t>(0).write<snr_t>(
+      5.1);
+  ctx.at<sector_list_t>(0).at<ue_list_t>(0).at<antenna_list_t>(0).write<pwr_t>(
+      -11.5);
+
+  ctx.at<sector_list_t>(0)
+      .at<ue_list_t>(0)
+      .get<antenna_list_t>()
+      .emplace_back();
+  ctx.at<sector_list_t>(0).at<ue_list_t>(0).at<antenna_list_t>(1).write<snr_t>(
+      10.1);
+  ctx.at<sector_list_t>(0).at<ue_list_t>(0).at<antenna_list_t>(1).write<pwr_t>(
+      -20.5);
+
+  ctx.at<sector_list_t>(0)
+      .at<ue_list_t>(1)
+      .get<antenna_list_t>()
+      .emplace_back();
+  ctx.at<sector_list_t>(0).at<ue_list_t>(1).at<antenna_list_t>(0).write<snr_t>(
+      20.1);
+  ctx.at<sector_list_t>(0).at<ue_list_t>(1).at<antenna_list_t>(0).write<pwr_t>(
+      -30.5);
+  ctx.at<sector_list_t>(0)
+      .at<ue_list_t>(1)
+      .get<antenna_list_t>()
+      .emplace_back();
+  ctx.at<sector_list_t>(0).at<ue_list_t>(1).at<antenna_list_t>(1).write<snr_t>(
+      30.1);
+  ctx.at<sector_list_t>(0).at<ue_list_t>(1).at<antenna_list_t>(1).write<pwr_t>(
+      -40.5);
+
+  return ctx;
+}
 
 static bool
 when_log_entry_with_only_context_is_passed_then_context_is_formatted()
 {
+  auto ctx = build_complex_context();
   auto entry = build_log_entry_metadata();
-  entry.fmtstring = "";
-  ctx_t ctx("UL Context");
-
-  ctx.get<myset1>().write<snr_t>(-55.1);
-  ctx.get<myset1>().write<pwr_t>(-10);
-  ctx.get<myset1>().write<cfreq_t>(1500);
-  ctx.get<myset2>().write<thr_t>(150.01);
-  ctx.get<myset2>().write<ip_addr_t>("192.168.1.0");
+  entry.fmtstring = nullptr;
 
   fmt::memory_buffer buffer;
   text_formatter{}.format_ctx(ctx, std::move(entry), buffer);
   std::string result = fmt::to_string(buffer);
-  std::string expected =
-      "00:00:00.050000 [ABC ] [Z] [   10] Context dump for \"UL Context\"\n"
-      "  RF\n"
-      "    SNR: -55.1 dB\n"
-      "    PWR: -10 dBm\n"
-      "    CenterFreq: 1500 MHz\n"
-      "  Network\n"
-      "    Throughput: 150.01 MB/s\n"
-      "    Address: 192.168.1.0\n";
+  std::string expected = "00:00:00.050000 [ABC ] [Z] [   10] Context dump for "
+                         "\"Complex Context\"\n"
+                         "  > List: sector_list\n"
+                         "    > Set: sector_metrics\n"
+                         "      type: event\n"
+                         "      sector_id: 1\n"
+                         "      > List: ue_list\n"
+                         "        > Set: ue_container\n"
+                         "          Throughput: 1.2 MB/s\n"
+                         "          Address: 10.20.30.40\n"
+                         "          > List: Antennas\n"
+                         "            > Set: RF\n"
+                         "              SNR: 5.1 dB\n"
+                         "              PWR: -11 dBm\n"
+                         "            > Set: RF\n"
+                         "              SNR: 10.1 dB\n"
+                         "              PWR: -20 dBm\n"
+                         "        > Set: ue_container\n"
+                         "          Throughput: 10.2 MB/s\n"
+                         "          Address: 10.20.30.41\n"
+                         "          > List: Antennas\n"
+                         "            > Set: RF\n"
+                         "              SNR: 20.1 dB\n"
+                         "              PWR: -30 dBm\n"
+                         "            > Set: RF\n"
+                         "              SNR: 30.1 dB\n"
+                         "              PWR: -40 dBm\n";
 
   ASSERT_EQ(result, expected);
 
@@ -164,21 +243,18 @@ static bool
 when_log_entry_with_context_and_message_is_passed_then_context_is_formatted()
 {
   auto entry = build_log_entry_metadata();
-  ctx_t ctx("UL Context");
-
-  ctx.get<myset1>().write<snr_t>(-55.1);
-  ctx.get<myset1>().write<pwr_t>(-10);
-  ctx.get<myset1>().write<cfreq_t>(1500);
-  ctx.get<myset2>().write<thr_t>(150.01);
-  ctx.get<myset2>().write<ip_addr_t>("192.168.1.0");
+  auto ctx = build_complex_context();
 
   fmt::memory_buffer buffer;
   text_formatter{}.format_ctx(ctx, std::move(entry), buffer);
   std::string result = fmt::to_string(buffer);
   std::string expected =
-      "00:00:00.050000 [ABC ] [Z] [   10] [[RF_SNR: -55.1 dB, RF_PWR: -10 dBm, "
-      "RF_CenterFreq: 1500 MHz] [Network_Throughput: 150.01 MB/s, "
-      "Network_Address: 192.168.1.0]]: Text 88\n";
+      "00:00:00.050000 [ABC ] [Z] [   10] [[sector_metrics_type: event, "
+      "sector_metrics_sector_id: 1, [ue_container_Throughput: 1.2 MB/s, "
+      "ue_container_Address: 10.20.30.40, [RF_SNR: 5.1 dB, RF_PWR: -11 "
+      "dBm][RF_SNR: 10.1 dB, RF_PWR: -20 dBm]][ue_container_Throughput: 10.2 "
+      "MB/s, ue_container_Address: 10.20.30.41, [RF_SNR: 20.1 dB, RF_PWR: -30 "
+      "dBm][RF_SNR: 30.1 dB, RF_PWR: -40 dBm]]]]: Text 88\n";
 
   ASSERT_EQ(result, expected);
 

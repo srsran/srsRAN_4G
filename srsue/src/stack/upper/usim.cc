@@ -21,6 +21,7 @@
 
 #include "srsue/hdr/stack/upper/usim.h"
 #include "srslte/common/bcd_helpers.h"
+#include "srslte/common/standard_streams.h"
 #include <sstream>
 
 using namespace srslte;

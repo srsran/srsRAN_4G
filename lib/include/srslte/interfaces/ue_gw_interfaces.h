@@ -23,6 +23,7 @@
 #define SRSLTE_UE_GW_INTERFACES_H
 
 #include "srslte/asn1/liblte_mme.h"
+#include "srslte/common/byte_buffer.h"
 
 namespace srsue {
 

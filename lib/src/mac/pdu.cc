@@ -24,6 +24,7 @@
 #include <string.h>
 #include <strings.h>
 
+#include "srslte/common/standard_streams.h"
 #include "srslte/mac/pdu.h"
 
 extern "C" {
@@ -208,11 +209,10 @@ bool lcid_t::is_sdu() const
  *       SCH PDU
  *************************/
 
-std::string sch_pdu::to_string()
+void sch_pdu::to_string(fmt::memory_buffer& buffer)
 {
-  std::stringstream ss;
-  ss << (is_ul() ? "UL " : "DL ") << pdu::to_string();
-  return ss.str();
+  fmt::format_to(buffer, "{}", is_ul() ? "UL" : "DL");
+  pdu::to_string(buffer);
 }
 
 void sch_pdu::parse_packet(uint8_t* ptr)
@@ -906,19 +906,18 @@ void sch_subh::read_payload(uint8_t** ptr)
   *ptr += nof_bytes;
 }
 
-std::string sch_subh::to_string()
+void sch_subh::to_string(fmt::memory_buffer& buffer)
 {
-  std::stringstream ss;
   if (is_sdu()) {
-    ss << "LCID=" << lcid << " len=" << nof_bytes;
+    fmt::format_to(buffer, "LCID={} len={}", lcid, nof_bytes);
   } else if (type == SCH_SUBH_TYPE) {
     if (parent->is_ul()) {
       switch ((ul_sch_lcid)lcid) {
         case ul_sch_lcid::CRNTI:
-          ss << "CRNTI: rnti=0x" << std::hex << get_c_rnti() << std::dec;
+          fmt::format_to(buffer, "CRNTI: rnti=0x{:x}", get_c_rnti());
           break;
         case ul_sch_lcid::PHR_REPORT:
-          ss << "PHR: ph=" << get_phr();
+          fmt::format_to(buffer, "PHR: ph={}", get_phr());
           break;
         case ul_sch_lcid::TRUNC_BSR:
         case ul_sch_lcid::SHORT_BSR:
@@ -927,18 +926,18 @@ std::string sch_subh::to_string()
           uint32_t buff_size_bytes[4] = {};
           uint32_t lcg                = get_bsr(buff_size_idx, buff_size_bytes);
           if (ul_sch_ce_type() == ul_sch_lcid::LONG_BSR) {
-            ss << "LBSR: b=";
+            fmt::format_to(buffer, "LBSR: b=");
             for (uint32_t i = 0; i < 4; i++) {
-              ss << buff_size_idx[i] << " ";
+              fmt::format_to(buffer, "{} ", buff_size_idx[i]);
             }
           } else if (ul_sch_ce_type() == ul_sch_lcid::SHORT_BSR) {
-            ss << "SBSR: lcg=" << lcg << " b=" << buff_size_idx[lcg];
+            fmt::format_to(buffer, "SBSR: lcg={} b={}", lcg, buff_size_idx[lcg]);
           } else {
-            ss << "TBSR: lcg=" << lcg << " b=" << buff_size_idx[lcg];
+            fmt::format_to(buffer, "TBSR: lcg={} b={}", lcg, buff_size_idx[lcg]);
           }
         } break;
         case ul_sch_lcid::PADDING:
-          ss << "PAD: len=" << get_payload_size();
+          fmt::format_to(buffer, "PAD: len={}", get_payload_size());
           break;
         default:
           // do nothing
@@ -947,20 +946,20 @@ std::string sch_subh::to_string()
     } else {
       switch ((dl_sch_lcid)lcid) {
         case dl_sch_lcid::CON_RES_ID:
-          ss << "CON_RES: id=0x" << std::hex << get_con_res_id() << std::dec;
+          fmt::format_to(buffer, "CON_RES: id=0x{:x}", get_con_res_id());
           break;
         case dl_sch_lcid::TA_CMD:
-          ss << "TA: ta=" << std::to_string(get_ta_cmd());
+          fmt::format_to(buffer, "TA: ta={}", get_ta_cmd());
           break;
         case dl_sch_lcid::SCELL_ACTIVATION_4_OCTET:
         case dl_sch_lcid::SCELL_ACTIVATION:
-          ss << "SCELL_ACT";
+          fmt::format_to(buffer, "SCELL_ACT");
           break;
         case dl_sch_lcid::DRX_CMD:
-          ss << "DRX";
+          fmt::format_to(buffer, "DRX");
           break;
         case dl_sch_lcid::PADDING:
-          ss << "PAD: len=" << get_payload_size();
+          fmt::format_to(buffer, "PAD: len={}", get_payload_size());
           break;
         default:
           break;
@@ -969,16 +968,15 @@ std::string sch_subh::to_string()
   } else if (type == MCH_SUBH_TYPE) {
     switch ((mch_lcid)lcid) {
       case mch_lcid::MCH_SCHED_INFO:
-        ss << "MCH_SCHED_INFO";
+        fmt::format_to(buffer, "MCH_SCHED_INFO");
         break;
       case mch_lcid::PADDING:
-        ss << "PAD: len=" << get_payload_size();
+        fmt::format_to(buffer, "PAD: len={}", get_payload_size());
         break;
       default:
         break;
     }
   }
-  return ss.str();
 }
 
 uint8_t sch_subh::buff_size_table(uint32_t buffer_size)
@@ -1009,11 +1007,11 @@ uint8_t sch_subh::phr_report_table(float phr_value)
   return (uint8_t)floor(phr_value + 23);
 }
 
-std::string rar_pdu::to_string()
+void rar_pdu::to_string(fmt::memory_buffer& buffer)
 {
   std::string msg("MAC PDU for RAR: ");
-  msg += pdu::to_string();
-  return msg;
+  fmt::format_to(buffer, "MAC PDU for RAR: ");
+  pdu::to_string(buffer);
 }
 
 rar_pdu::rar_pdu(uint32_t max_rars_, srslog::basic_logger& logger) : pdu(max_rars_, logger)
@@ -1074,20 +1072,17 @@ bool rar_pdu::write_packet(uint8_t* ptr)
   return true;
 }
 
-std::string rar_subh::to_string()
+void rar_subh::to_string(fmt::memory_buffer& buffer)
 {
-  std::stringstream ss;
   if (type == RAPID) {
-    ss << "RAPID: " << preamble << ", Temp C-RNTI: " << temp_rnti << ", TA: " << ta << ", UL Grant: ";
+    fmt::format_to(buffer, "RAPID: {}, Temp C-RNTI: {}, TA: {}, UL Grant: ", preamble, temp_rnti, ta);
   } else {
-    ss << "Backoff Indicator: " << int32_t(((rar_pdu*)parent)->get_backoff()) << " ";
+    fmt::format_to(buffer, "Backoff Indicator: {} ", int32_t(((rar_pdu*)parent)->get_backoff()));
   }
 
   char tmp[16];
   srslte_vec_sprint_hex(tmp, sizeof(tmp), grant, RAR_GRANT_LEN);
-  ss << tmp;
-
-  return ss.str();
+  fmt::format_to(buffer, "{}", tmp);
 }
 
 void rar_subh::init()

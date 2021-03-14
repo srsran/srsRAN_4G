@@ -82,6 +82,10 @@ inline srsenb::sched_interface::ue_cfg_t generate_default_ue_cfg()
   ue_cfg.ue_bearers[srsenb::RB_ID_DRB1].direction  = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
   ue_cfg.ue_bearers[srsenb::RB_ID_DRB1].group      = 1;
 
+  ue_cfg.pucch_cfg.sr_configured = true;
+  ue_cfg.pucch_cfg.I_sr          = 15; // periodicity of 20 msec
+  ue_cfg.pucch_cfg.n_pucch_sr    = 0;
+
   return ue_cfg;
 }
 
@@ -126,11 +130,7 @@ inline srsenb::sched_interface::ue_cfg_t generate_setup_ue_cfg(const srsenb::sch
 inline srsenb::sched_interface::ue_cfg_t generate_reconf_ue_cfg(const srsenb::sched_interface::ue_cfg_t& final_cfg)
 {
   srsenb::sched_interface::ue_cfg_t cfg = generate_setup_ue_cfg(final_cfg);
-
-  cfg.supported_cc_list.resize(1);
-  cfg.ue_bearers                     = {};
-  cfg.ue_bearers[srsenb::RB_ID_SRB0] = final_cfg.ue_bearers[srsenb::RB_ID_SRB0];
-  cfg.ue_bearers[srsenb::RB_ID_SRB1] = final_cfg.ue_bearers[srsenb::RB_ID_SRB1];
+  cfg.ue_bearers[srsenb::RB_ID_SRB2]    = final_cfg.ue_bearers[srsenb::RB_ID_SRB1];
 
   return cfg;
 }

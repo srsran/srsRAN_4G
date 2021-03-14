@@ -26,9 +26,9 @@ using namespace srsue;
 
 int rrc_nr_cap_request_test()
 {
-  srslte::log_ref rrc_log("RRC");
-  rrc_log->set_level(srslte::LOG_LEVEL_DEBUG);
-  rrc_log->set_hex_limit(-1);
+  srslog::basic_logger& logger = srslog::fetch_basic_logger("RRC");
+  logger.set_level(srslog::basic_levels::debug);
+  logger.set_hex_dump_max_size(-1);
   srslte::task_scheduler    task_sched{512, 100};
   srslte::task_sched_handle task_sched_handle(&task_sched);
   rrc_nr                    rrc_nr(task_sched_handle);
