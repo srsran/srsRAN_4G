@@ -16,6 +16,7 @@
 #include "sched_sim_ue.h"
 #include "sched_test_utils.h"
 #include "srsenb/hdr/stack/mac/sched.h"
+#include "srslte/interfaces/enb_rrc_interfaces.h"
 #include "srslte/srslog/srslog.h"
 #include <random>
 
@@ -28,6 +29,15 @@ namespace srsenb {
 void                        set_randseed(uint64_t seed);
 float                       randf();
 std::default_random_engine& get_rand_gen();
+
+struct rrc_dummy : public rrc_interface_mac {
+public:
+  int      add_user(uint16_t rnti, const sched_interface::ue_cfg_t& init_ue_cfg) { return SRSLTE_SUCCESS; }
+  void     upd_user(uint16_t new_rnti, uint16_t old_rnti) {}
+  void     set_activity_user(uint16_t rnti) {}
+  bool     is_paging_opportunity(uint32_t tti, uint32_t* payload_len) { return false; }
+  uint8_t* read_pdu_bcch_dlsch(const uint8_t enb_cc_idx, const uint32_t sib_index) { return nullptr; }
+};
 
 /**************************
  *       Testers
@@ -115,7 +125,7 @@ protected:
   virtual void new_test_tti();
   virtual void before_sched() {}
 
-  std::unique_ptr<rrc_interface_mac> rrc_ptr;
+  std::unique_ptr<rrc_dummy> rrc_ptr;
 };
 
 } // namespace srsenb

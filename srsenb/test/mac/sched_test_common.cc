@@ -17,7 +17,6 @@
 #include "sched_common_test_suite.h"
 #include "sched_ue_ded_test_suite.h"
 #include "srslte/common/test_common.h"
-#include "srslte/interfaces/enb_rrc_interfaces.h"
 
 using namespace srsenb;
 
@@ -42,15 +41,6 @@ std::default_random_engine& ::srsenb::get_rand_gen()
 {
   return rand_gen;
 }
-
-struct rrc_dummy : public rrc_interface_mac {
-public:
-  int      add_user(uint16_t rnti, const sched_interface::ue_cfg_t& init_ue_cfg) { return SRSLTE_SUCCESS; }
-  void     upd_user(uint16_t new_rnti, uint16_t old_rnti) {}
-  void     set_activity_user(uint16_t rnti) {}
-  bool     is_paging_opportunity(uint32_t tti, uint32_t* payload_len) { return false; }
-  uint8_t* read_pdu_bcch_dlsch(const uint8_t enb_cc_idx, const uint32_t sib_index) { return nullptr; }
-};
 
 /***********************
  *  User State Tester
