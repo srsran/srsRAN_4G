@@ -131,6 +131,46 @@ int test_pdcch_one_ue()
   return SRSLTE_SUCCESS;
 }
 
+int test_pdcch_ue_and_sibs()
+{
+  const uint32_t ENB_CC_IDX = 0;
+  // Params
+  uint32_t nof_prb = 100;
+
+  std::vector<sched_cell_params_t> cell_params(1);
+  sched_interface::ue_cfg_t        ue_cfg   = generate_default_ue_cfg();
+  sched_interface::cell_cfg_t      cell_cfg = generate_default_cell_cfg(nof_prb);
+  sched_interface::sched_args_t    sched_args{};
+  TESTASSERT(cell_params[0].set_cfg(0, cell_cfg, sched_args));
+
+  sf_cch_allocator pdcch;
+  sched_ue         sched_ue{0x46, cell_params, ue_cfg};
+
+  pdcch.init(cell_params[PCell_IDX]);
+  TESTASSERT(pdcch.nof_alloc_combinations() == 0);
+  TESTASSERT(pdcch.nof_allocs() == 0);
+
+  tti_point tti_rx{0};
+
+  pdcch.new_tti(tti_rx);
+  TESTASSERT(pdcch.nof_cces() == cell_params[0].nof_cce_table[0]);
+  TESTASSERT(pdcch.get_cfi() == 1); // Start at CFI=1
+  TESTASSERT(pdcch.nof_alloc_combinations() == 0);
+
+  TESTASSERT(pdcch.alloc_dci(alloc_type_t::DL_BC, 2));
+  TESTASSERT(pdcch.nof_alloc_combinations() == 4);
+  TESTASSERT(pdcch.alloc_dci(alloc_type_t::DL_RAR, 2));
+  TESTASSERT(pdcch.nof_allocs() == 2 and pdcch.nof_alloc_combinations() == 6);
+  TESTASSERT(pdcch.alloc_dci(alloc_type_t::DL_DATA, 2, &sched_ue, false));
+  TESTASSERT(pdcch.nof_allocs() == 3 and pdcch.nof_alloc_combinations() == 4);
+
+  // TEST: Ability to revert last allocation
+  pdcch.rem_last_dci();
+  TESTASSERT(pdcch.nof_allocs() == 2 and pdcch.nof_alloc_combinations() == 6);
+
+  return SRSLTE_SUCCESS;
+}
+
 int main()
 {
   srsenb::set_randseed(seed);
@@ -143,6 +183,7 @@ int main()
   srslog::init();
 
   TESTASSERT(test_pdcch_one_ue() == SRSLTE_SUCCESS);
+  TESTASSERT(test_pdcch_ue_and_sibs() == SRSLTE_SUCCESS);
 
   srslog::flush();
 

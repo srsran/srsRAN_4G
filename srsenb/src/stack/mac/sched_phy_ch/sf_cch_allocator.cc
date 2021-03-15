@@ -108,9 +108,11 @@ void sf_cch_allocator::rem_last_dci()
     tree.prev_start = tree.dci_alloc_tree[tree.prev_start].parent_idx;
     // Discover other tree nodes with same level
     while (tree.prev_start > 0) {
-      uint32_t count = 0;
-      while (tree.dci_alloc_tree[tree.prev_start - 1].parent_idx >= 0) {
+      uint32_t count      = 1;
+      int      parent_idx = tree.dci_alloc_tree[tree.prev_start - 1].parent_idx;
+      while (parent_idx >= 0) {
         count++;
+        parent_idx = tree.dci_alloc_tree[parent_idx].parent_idx;
       }
       if (count == dci_record_list.size()) {
         tree.prev_start--;
