@@ -86,7 +86,8 @@ extern "C" {
 #define SRSLTE_PDCCH_MAX_RE ((SRSLTE_NRE - 3U) * (1U << (SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR - 1U)) * 6U)
 
 /**
- * @brief defines the maximum number of candidates for a given Aggregation level
+ * @brief defines the maximum number of candidates for a given search-space and aggregation level according to TS 38.331
+ * SearchSpace sequence
  */
 #define SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR 8
 
@@ -94,7 +95,7 @@ extern "C" {
  * @brief defines the maximum number of monitored PDCCH candidates per slot and per serving cell according to TS 38.213
  * Table 10.1-2
  */
-#define SRSLTE_MAX_NOF_CANDIDATES_NR 44
+#define SRSLTE_MAX_NOF_CANDIDATES_SLOT_NR 44
 
 /**
  * @brief defines the maximum number of resource elements per PRB

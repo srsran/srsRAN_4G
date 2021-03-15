@@ -281,11 +281,13 @@ bool radio::rx_now(rf_buffer_interface& buffer, rf_timestamp_interface& rxd_time
   bool                         ret = true;
   rf_buffer_t                  buffer_rx;
 
-  // Extract decimation ratio. As the decimator may take some time to set a new ratio, deactivate the decimation and
+  // Extract decimation ratio. As the decimation may take some time to set a new ratio, deactivate the decimation and
   // keep receiving samples to avoid stalling the RX stream
-  uint32_t ratio = (decimator_busy) ? 0 : SRSLTE_MAX(1, decimators[0].ratio);
+  uint32_t ratio = 1; // No decimation by default
   if (decimator_busy) {
-    rx_mutex.unlock();
+    lock.unlock();
+  } else if (decimators[0].ratio > 1) {
+    ratio = decimators[0].ratio;
   }
 
   // Calculate number of samples, considering the decimation ratio

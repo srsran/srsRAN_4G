@@ -212,11 +212,11 @@ static int ue_dl_nr_find_dci_ncce(srslte_ue_dl_nr_t*     q,
 {
   // Select debug information
   srslte_ue_dl_nr_pdcch_info_t* pdcch_info = NULL;
-  if (q->pdcch_info_count < SRSLTE_MAX_NOF_CANDIDATES_NR) {
+  if (q->pdcch_info_count < SRSLTE_MAX_NOF_CANDIDATES_SLOT_NR) {
     pdcch_info = &q->pdcch_info[q->pdcch_info_count];
     q->pdcch_info_count++;
   } else {
-    ERROR("The UE does not expect more than %d candidates in this serving cell", SRSLTE_MAX_NOF_CANDIDATES_NR);
+    ERROR("The UE does not expect more than %d candidates in this serving cell", SRSLTE_MAX_NOF_CANDIDATES_SLOT_NR);
     return SRSLTE_ERROR;
   }
   SRSLTE_MEM_ZERO(pdcch_info, srslte_ue_dl_nr_pdcch_info_t, 1);

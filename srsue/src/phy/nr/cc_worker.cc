@@ -269,7 +269,7 @@ bool cc_worker::work_dl()
 
 bool cc_worker::work_ul()
 {
-  // Check if it is a DL slot, if not skip
+  // Check if it is a UL slot, if not skip
   if (!srslte_tdd_nr_is_ul(&phy->cfg.tdd, 0, ul_slot_cfg.idx)) {
     // No NR signal shall be transmitted
     srslte_vec_cf_zero(tx_buffer[0], ue_ul.ifft.sf_sz);
