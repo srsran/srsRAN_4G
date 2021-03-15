@@ -111,7 +111,7 @@ public:
     // Did we wake up on timeout?
     if (timedout && queue.empty()) {
       cond_var.unlock();
-      return {false, T{}};
+      return {false, T()};
     }
 
     // Here we have been woken up normally.

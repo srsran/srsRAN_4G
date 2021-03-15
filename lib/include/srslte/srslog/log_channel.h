@@ -113,7 +113,34 @@ public:
          fmtstr,
          std::move(store),
          log_name,
-         log_tag}};
+         log_tag,
+         small_str_buffer()}};
+    backend.push(std::move(entry));
+  }
+
+  /// Builds the provided log entry and passes it to the backend. When the
+  /// channel is disabled the log entry will be discarded.
+  void operator()(small_str_buffer &&str)
+  {
+    if (!enabled()) {
+      return;
+    }
+
+    // Send the log entry to the backend.
+    log_formatter& formatter = log_sink.get_formatter();
+    detail::log_entry entry = {
+        &log_sink,
+        [&formatter](detail::log_entry_metadata&& metadata,
+                     fmt::memory_buffer& buffer) {
+          formatter.format(std::move(metadata), buffer);
+        },
+        {std::chrono::high_resolution_clock::now(),
+         {ctx_value, should_print_context},
+         nullptr,
+         {},
+         log_name,
+         log_tag,
+         std::move(str)}};
     backend.push(std::move(entry));
   }
 
@@ -152,6 +179,7 @@ public:
          std::move(store),
          log_name,
          log_tag,
+         small_str_buffer(),
          std::vector<uint8_t>(buffer, buffer + len)}};
     backend.push(std::move(entry));
   }
@@ -178,7 +206,8 @@ public:
          nullptr,
          {},
          log_name,
-         log_tag}};
+         log_tag,
+         small_str_buffer()}};
     backend.push(std::move(entry));
   }
 
@@ -209,7 +238,8 @@ public:
          fmtstr,
          std::move(store),
          log_name,
-         log_tag}};
+         log_tag,
+         small_str_buffer()}};
     backend.push(std::move(entry));
   }
 

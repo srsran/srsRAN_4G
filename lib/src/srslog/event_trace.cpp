@@ -124,17 +124,18 @@ void trace_duration_end(const std::string& category, const std::string& name)
 /// Private implementation of the complete event destructor.
 srslog::detail::scoped_complete_event::~scoped_complete_event()
 {
-  if (!tracer)
+  if (!tracer) {
     return;
+  }
 
   auto end = std::chrono::steady_clock::now();
   unsigned long long diff =
       std::chrono::duration_cast<std::chrono::microseconds>(end - start)
           .count();
 
-  (*tracer)("[TID:%0u] Complete event \"%s\" (duration %lld us): %s",
-            (unsigned)::pthread_self(),
-            category,
-            diff,
-            name);
+  small_str_buffer str;
+  // Limit to the category and name strings to a predefined length so everything fits in a small string.
+  fmt::format_to(str, "{:.32} {:.16}, {}", category, name, diff);
+  str.push_back('\0');
+  (*tracer)(std::move(str));
 }
