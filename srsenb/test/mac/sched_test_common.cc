@@ -17,6 +17,7 @@
 #include "sched_common_test_suite.h"
 #include "sched_ue_ded_test_suite.h"
 #include "srslte/common/test_common.h"
+#include "srslte/interfaces/enb_rrc_interfaces.h"
 
 using namespace srsenb;
 
@@ -41,6 +42,15 @@ std::default_random_engine& ::srsenb::get_rand_gen()
 {
   return rand_gen;
 }
+
+struct rrc_dummy : public rrc_interface_mac {
+public:
+  int      add_user(uint16_t rnti, const sched_interface::ue_cfg_t& init_ue_cfg) { return SRSLTE_SUCCESS; }
+  void     upd_user(uint16_t new_rnti, uint16_t old_rnti) {}
+  void     set_activity_user(uint16_t rnti) {}
+  bool     is_paging_opportunity(uint32_t tti, uint32_t* payload_len) { return false; }
+  uint8_t* read_pdu_bcch_dlsch(const uint8_t enb_cc_idx, const uint32_t sib_index) { return nullptr; }
+};
 
 /***********************
  *  User State Tester
@@ -116,6 +126,10 @@ sched_result_stats::user_stats* sched_result_stats::get_user(uint16_t rnti)
  * Common Sched Tester
  **********************/
 
+common_sched_tester::common_sched_tester() : logger(srslog::fetch_basic_logger("TEST")) {}
+
+common_sched_tester::~common_sched_tester() {}
+
 const sched::ue_cfg_t* common_sched_tester::get_current_ue_cfg(uint16_t rnti) const
 {
   return sched_sim->get_user_cfg(rnti);
@@ -124,8 +138,9 @@ const sched::ue_cfg_t* common_sched_tester::get_current_ue_cfg(uint16_t rnti) co
 int common_sched_tester::sim_cfg(sim_sched_args args)
 {
   sim_args0 = std::move(args);
+  rrc_ptr.reset(new rrc_dummy());
 
-  sched::init(nullptr, sim_args0.sched_args);
+  sched::init(rrc_ptr.get(), sim_args0.sched_args);
 
   sched_sim.reset(new sched_sim_random{this, sim_args0.cell_cfg});
   sched_stats.reset(new sched_result_stats{sim_args0.cell_cfg});

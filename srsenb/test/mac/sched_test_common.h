@@ -79,8 +79,8 @@ public:
     std::vector<sched_interface::ul_sched_res_t> ul_sched_result;
   };
 
-  common_sched_tester() : logger(srslog::fetch_basic_logger("TEST")) {}
-  ~common_sched_tester() override = default;
+  common_sched_tester();
+  ~common_sched_tester() override;
 
   const ue_cfg_t* get_current_ue_cfg(uint16_t rnti) const;
 
@@ -114,6 +114,8 @@ public:
 protected:
   virtual void new_test_tti();
   virtual void before_sched() {}
+
+  std::unique_ptr<rrc_interface_mac> rrc_ptr;
 };
 
 } // namespace srsenb

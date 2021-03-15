@@ -34,14 +34,16 @@ protected:
 
 /**************** Helper methods ****************/
 
+rbg_interval find_empty_rbg_interval(uint32_t max_nof_rbgs, const rbgmask_t& current_mask);
+
 /**
  * Finds a bitmask of available RBG resources for a given UE in a greedy fashion
  * @param ue UE being allocated
- * @param enb_cc_idx carrier index
+ * @param is_contiguous whether to find a contiguous range of RBGs
  * @param current_mask bitmask of occupied RBGs, where to search for available RBGs
  * @return bitmask of found RBGs. If a valid mask wasn't found, bitmask::size() == 0
  */
-rbgmask_t compute_user_rbgmask_greedy(sched_ue& ue, uint32_t enb_cc_idx, const rbgmask_t& current_mask);
+rbgmask_t compute_rbgmask_greedy(uint32_t max_nof_rbgs, bool is_contiguous, const rbgmask_t& current_mask);
 
 /**
  * Finds a range of L contiguous PRBs that are empty

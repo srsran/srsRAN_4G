@@ -26,7 +26,9 @@ using srslte::tti_point;
  *        Broadcast (SIB+Paging) scheduling
  *******************************************************/
 
-bc_sched::bc_sched(const sched_cell_params_t& cfg_, srsenb::rrc_interface_mac* rrc_) : cc_cfg(&cfg_), rrc(rrc_) {}
+bc_sched::bc_sched(const sched_cell_params_t& cfg_, srsenb::rrc_interface_mac* rrc_) :
+  cc_cfg(&cfg_), rrc(rrc_), logger(srslog::fetch_basic_logger("MAC"))
+{}
 
 void bc_sched::dl_sched(sf_sched* tti_sched)
 {
@@ -86,36 +88,66 @@ void bc_sched::update_si_windows(sf_sched* tti_sched)
 
 void bc_sched::alloc_sibs(sf_sched* tti_sched)
 {
-  uint32_t current_sf_idx = tti_sched->get_tti_tx_dl().sf_idx();
-  uint32_t current_sfn    = tti_sched->get_tti_tx_dl().sfn();
+  const uint32_t max_nof_prbs_sib = 4;
+  uint32_t       current_sf_idx   = tti_sched->get_tti_tx_dl().sf_idx();
+  uint32_t       current_sfn      = tti_sched->get_tti_tx_dl().sfn();
 
-  for (uint32_t i = 0; i < pending_sibs.size(); i++) {
-    if (cc_cfg->cfg.sibs[i].len > 0 and pending_sibs[i].is_in_window and pending_sibs[i].n_tx < 4) {
-      uint32_t nof_tx = (i > 0) ? SRSLTE_MIN(srslte::ceil_div(cc_cfg->cfg.si_window_ms, 10), 4) : 4;
-      uint32_t n_sf   = (tti_sched->get_tti_tx_dl() - pending_sibs[i].window_start);
+  for (uint32_t sib_idx = 0; sib_idx < pending_sibs.size(); sib_idx++) {
+    sched_sib_t& pending_sib = pending_sibs[sib_idx];
+    if (cc_cfg->cfg.sibs[sib_idx].len > 0 and pending_sib.is_in_window and pending_sib.n_tx < 4) {
+      uint32_t nof_tx = (sib_idx > 0) ? SRSLTE_MIN(srslte::ceil_div(cc_cfg->cfg.si_window_ms, 10), 4) : 4;
+      uint32_t n_sf   = (tti_sched->get_tti_tx_dl() - pending_sibs[sib_idx].window_start);
 
       // Check if there is any SIB to tx
-      bool sib1_flag = (i == 0) and (current_sfn % 2) == 0 and current_sf_idx == 5;
-      bool other_sibs_flag =
-          (i > 0) and (n_sf >= (cc_cfg->cfg.si_window_ms / nof_tx) * pending_sibs[i].n_tx) and current_sf_idx == 9;
+      bool sib1_flag       = (sib_idx == 0) and (current_sfn % 2) == 0 and current_sf_idx == 5;
+      bool other_sibs_flag = (sib_idx > 0) and
+                             (n_sf >= (cc_cfg->cfg.si_window_ms / nof_tx) * pending_sibs[sib_idx].n_tx) and
+                             current_sf_idx == 9;
       if (not sib1_flag and not other_sibs_flag) {
         continue;
       }
 
-      // Schedule SIB
-      tti_sched->alloc_bc(bc_aggr_level, i, pending_sibs[i].n_tx);
-      pending_sibs[i].n_tx++;
+      // Attempt different number of RBGs
+      bool success = false;
+      for (uint32_t nrbgs = 2; nrbgs < 5; ++nrbgs) {
+        rbg_interval rbg_interv = find_empty_rbg_interval(nrbgs, tti_sched->get_dl_mask());
+        if (rbg_interv.empty()) {
+          break;
+        }
+        alloc_outcome_t ret = tti_sched->alloc_sib(bc_aggr_level, sib_idx, pending_sibs[sib_idx].n_tx, rbg_interv);
+        if (ret != alloc_outcome_t::INVALID_CODERATE) {
+          if (ret == alloc_outcome_t::SUCCESS) {
+            // SIB scheduled successfully
+            success = true;
+            pending_sibs[sib_idx].n_tx++;
+          }
+          break;
+        }
+        // Attempt again, but with more RBGs
+      }
+      if (not success) {
+        logger.warning("SCHED: Could not allocate SIB=%d, len=%d", sib_idx + 1, cc_cfg->cfg.sibs[sib_idx].len);
+      }
     }
   }
 }
 
 void bc_sched::alloc_paging(sf_sched* tti_sched)
 {
-  /* Allocate DCIs and RBGs for paging */
-  if (rrc != nullptr) {
-    uint32_t paging_payload = 0;
-    if (rrc->is_paging_opportunity(current_tti.to_uint(), &paging_payload) and paging_payload > 0) {
-      tti_sched->alloc_paging(bc_aggr_level, paging_payload);
+  uint32_t paging_payload = 0;
+  if (rrc->is_paging_opportunity(current_tti.to_uint(), &paging_payload) and paging_payload > 0) {
+    alloc_outcome_t ret = alloc_outcome_t::ERROR;
+    for (uint32_t nrbgs = 2; nrbgs < 5; ++nrbgs) {
+      rbg_interval rbg_interv = find_empty_rbg_interval(nrbgs, tti_sched->get_dl_mask());
+
+      ret = tti_sched->alloc_paging(bc_aggr_level, paging_payload, rbg_interv);
+      if (ret == alloc_outcome_t::SUCCESS or ret == alloc_outcome_t::RB_COLLISION) {
+        break;
+      }
+    }
+    if (ret != alloc_outcome_t::SUCCESS) {
+      logger.warning(
+          "SCHED: Could not allocate Paging with payload length=%d, cause=%s", paging_payload, ret.to_string());
     }
   }
 }
@@ -143,10 +175,12 @@ void ra_sched::dl_sched(sf_sched* tti_sched)
   tti_point tti_tx_dl = tti_sched->get_tti_tx_dl();
   rar_aggr_level      = 2;
 
-  while (not pending_rars.empty()) {
-    pending_rar_t& rar = pending_rars.front();
+  for (auto it = pending_rars.begin(); it != pending_rars.end();) {
+    auto& rar = *it;
 
-    // Discard all RARs out of the window. The first one inside the window is scheduled, if we can't we exit
+    // In case of RAR outside RAR window:
+    // - if window has passed, discard RAR
+    // - if window hasn't started, stop loop, as RARs are ordered by TTI
     srslte::tti_interval rar_window{rar.prach_tti + PRACH_RAR_OFFSET,
                                     rar.prach_tti + PRACH_RAR_OFFSET + cc_cfg->cfg.prach_rar_window};
     if (not rar_window.contains(tti_tx_dl)) {
@@ -159,34 +193,40 @@ void ra_sched::dl_sched(sf_sched* tti_sched)
                        tti_tx_dl);
         srslte::console("%s\n", srslte::to_c_str(str_buffer));
         logger.error("%s", srslte::to_c_str(str_buffer));
-        // Remove from pending queue and get next one if window has passed already
-        pending_rars.pop_front();
+        it = pending_rars.erase(it);
         continue;
       }
-      // If window not yet started do not look for more pending RARs
       return;
     }
 
     // Try to schedule DCI + RBGs for RAR Grant
     std::pair<alloc_outcome_t, uint32_t> ret = tti_sched->alloc_rar(rar_aggr_level, rar);
+
+    // If RAR allocation was successful:
+    // - in case all Msg3 grants were allocated, remove pending RAR
+    // - otherwise, erase only Msg3 grants that were allocated.
+    if (ret.first == alloc_outcome_t::SUCCESS) {
+      uint32_t nof_rar_allocs = ret.second;
+      if (nof_rar_allocs == rar.msg3_grant.size()) {
+        pending_rars.erase(it);
+      } else {
+        std::copy(rar.msg3_grant.begin() + nof_rar_allocs, rar.msg3_grant.end(), rar.msg3_grant.begin());
+        rar.msg3_grant.resize(rar.msg3_grant.size() - nof_rar_allocs);
+      }
+      break;
+    }
+
+    // If RAR allocation was not successful:
+    // - in case of unavailable RBGs, stop loop
+    // - otherwise, attempt to schedule next pending RAR
+    logger.info("SCHED: Could not allocate RAR for L=%d, cause=%s", rar_aggr_level, ret.first.to_string());
     if (ret.first == alloc_outcome_t::RB_COLLISION) {
       // there are not enough RBs for RAR or Msg3 allocation. We can skip this TTI
       return;
     }
-    if (ret.first != alloc_outcome_t::SUCCESS) {
-      // try to scheduler next RAR with different RA-RNTI
-      continue;
-    }
 
-    uint32_t nof_rar_allocs = ret.second;
-    if (nof_rar_allocs == rar.msg3_grant.size()) {
-      // all RAR grants were allocated. Remove pending RAR
-      pending_rars.pop_front();
-    } else {
-      // keep the RAR grants that were not scheduled, so we can schedule in next TTI
-      std::copy(rar.msg3_grant.begin() + nof_rar_allocs, rar.msg3_grant.end(), rar.msg3_grant.begin());
-      rar.msg3_grant.resize(rar.msg3_grant.size() - nof_rar_allocs);
-    }
+    // For any other type of error, continue with next pending RAR
+    ++it;
   }
 }
 

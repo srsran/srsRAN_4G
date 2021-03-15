@@ -36,7 +36,8 @@ struct alloc_outcome_t {
     ALREADY_ALLOC,
     NO_DATA,
     INVALID_PRBMASK,
-    INVALID_CARRIER
+    INVALID_CARRIER,
+    INVALID_CODERATE
   };
   result_enum result = ERROR;
   alloc_outcome_t()  = default;
@@ -101,6 +102,7 @@ public:
   void            init(const sched_cell_params_t& cell_params_);
   void            new_tti(tti_point tti_rx);
   dl_ctrl_alloc_t alloc_dl_ctrl(uint32_t aggr_lvl, alloc_type_t alloc_type);
+  alloc_outcome_t alloc_dl_ctrl(uint32_t aggr_lvl, rbg_interval rbg_range, alloc_type_t alloc_type);
   alloc_outcome_t alloc_dl_data(sched_ue* user, const rbgmask_t& user_mask, bool has_pusch_grant);
   bool            reserve_dl_rbgs(uint32_t start_rbg, uint32_t end_rbg);
   alloc_outcome_t alloc_ul_data(sched_ue* user, prb_interval alloc, bool needs_pdcch, bool strict = true);
@@ -194,8 +196,8 @@ public:
   void new_tti(srslte::tti_point tti_rx_, sf_sched_result* cc_results);
 
   // DL alloc methods
-  alloc_outcome_t                      alloc_bc(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t sib_ntx);
-  alloc_outcome_t                      alloc_paging(uint32_t aggr_lvl, uint32_t paging_payload);
+  alloc_outcome_t alloc_sib(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t sib_ntx, rbg_interval rbgs);
+  alloc_outcome_t alloc_paging(uint32_t aggr_lvl, uint32_t paging_payload, rbg_interval rbgs);
   std::pair<alloc_outcome_t, uint32_t> alloc_rar(uint32_t aggr_lvl, const pending_rar_t& rar_grant);
   bool reserve_dl_rbgs(uint32_t rbg_start, uint32_t rbg_end) { return tti_alloc.reserve_dl_rbgs(rbg_start, rbg_end); }
   const std::vector<rar_alloc_t>& get_allocated_rars() const { return rar_allocs; }
@@ -244,12 +246,13 @@ private:
   sf_sched_result*           cc_results; ///< Results of other CCs for the same Subframe
 
   // internal state
-  sf_grid_t                tti_alloc;
-  std::vector<bc_alloc_t>  bc_allocs;
-  std::vector<rar_alloc_t> rar_allocs;
-  std::vector<dl_alloc_t>  data_allocs;
-  std::vector<ul_alloc_t>  ul_data_allocs;
-  uint32_t                 last_msg3_prb = 0, max_msg3_prb = 0;
+  sf_grid_t tti_alloc;
+
+  srslte::bounded_vector<bc_alloc_t, sched_interface::MAX_BC_LIST> bc_allocs;
+  std::vector<rar_alloc_t>                                         rar_allocs;
+  std::vector<dl_alloc_t>                                          data_allocs;
+  std::vector<ul_alloc_t>                                          ul_data_allocs;
+  uint32_t                                                         last_msg3_prb = 0, max_msg3_prb = 0;
 
   // Next TTI state
   tti_point tti_rx;

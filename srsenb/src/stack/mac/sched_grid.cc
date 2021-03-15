@@ -202,20 +202,25 @@ sf_grid_t::dl_ctrl_alloc_t sf_grid_t::alloc_dl_ctrl(uint32_t aggr_idx, alloc_typ
   rbg_interval range{nof_rbgs - avail_rbg,
                      nof_rbgs - avail_rbg + ((alloc_type == alloc_type_t::DL_RAR) ? rar_n_rbg : si_n_rbg)};
 
+  return {alloc_dl_ctrl(aggr_idx, range, alloc_type), range};
+}
+
+alloc_outcome_t sf_grid_t::alloc_dl_ctrl(uint32_t aggr_idx, rbg_interval rbg_range, alloc_type_t alloc_type)
+{
   if (alloc_type != alloc_type_t::DL_RAR and alloc_type != alloc_type_t::DL_BC and
       alloc_type != alloc_type_t::DL_PCCH) {
     logger.error("SCHED: DL control allocations must be RAR/BC/PDCCH");
-    return {alloc_outcome_t::ERROR, range};
+    return alloc_outcome_t::ERROR;
   }
-  // Setup range starting from left
-  if (range.stop() > nof_rbgs) {
-    return {alloc_outcome_t::RB_COLLISION, range};
+  // Setup rbg_range starting from left
+  if (rbg_range.stop() > nof_rbgs) {
+    return alloc_outcome_t::RB_COLLISION;
   }
 
   // allocate DCI and RBGs
   rbgmask_t new_mask(dl_mask.size());
-  new_mask.fill(range.start(), range.stop());
-  return {alloc_dl(aggr_idx, alloc_type, new_mask), range};
+  new_mask.fill(rbg_range.start(), rbg_range.stop());
+  return alloc_dl(aggr_idx, alloc_type, new_mask);
 }
 
 //! Allocates CCEs and RBs for a user DL data alloc.
@@ -404,59 +409,60 @@ sf_sched::ctrl_code_t sf_sched::alloc_dl_ctrl(uint32_t aggr_lvl, uint32_t tbs_by
   return {ret.outcome, ctrl_alloc};
 }
 
-alloc_outcome_t sf_sched::alloc_bc(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t sib_ntx)
-{
-  uint32_t    sib_len = cc_cfg->cfg.sibs[sib_idx].len;
-  uint32_t    rv      = get_rvidx(sib_ntx);
-  ctrl_code_t ret     = alloc_dl_ctrl(aggr_lvl, sib_len, SRSLTE_SIRNTI);
-  if (not ret.first) {
-    logger.warning("SCHED: Could not allocate SIB=%d, L=%d, len=%d, cause=%s",
-                   sib_idx + 1,
-                   aggr_lvl,
-                   sib_len,
-                   ret.first.to_string());
-    return ret.first;
-  }
-
-  // BC allocation successful
-  bc_alloc_t bc_alloc(ret.second);
-
-  if (not generate_sib_dci(
-          bc_alloc.bc_grant, get_tti_tx_dl(), sib_idx, sib_ntx, ret.second.rbg_range, *cc_cfg, tti_alloc.get_cfi())) {
-    logger.warning("SCHED: FAIL");
-    return alloc_outcome_t::ERROR;
-  }
-
-  bc_allocs.push_back(bc_alloc);
-
-  return ret.first;
-}
-
-alloc_outcome_t sf_sched::alloc_paging(uint32_t aggr_lvl, uint32_t paging_payload)
+alloc_outcome_t sf_sched::alloc_sib(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t sib_ntx, rbg_interval rbgs)
 {
   if (bc_allocs.size() >= sched_interface::MAX_BC_LIST) {
     logger.warning("SCHED: Maximum number of Broadcast allocations reached");
     return alloc_outcome_t::ERROR;
   }
-  ctrl_code_t ret = alloc_dl_ctrl(aggr_lvl, paging_payload, SRSLTE_PRNTI);
-  if (not ret.first) {
-    logger.warning(
-        "SCHED: Could not allocate Paging with payload length=%d, cause=%s", paging_payload, ret.first.to_string());
-    return ret.first;
+  bc_alloc_t bc_alloc;
+
+  // Generate DCI for SIB
+  if (not generate_sib_dci(bc_alloc.bc_grant, get_tti_tx_dl(), sib_idx, sib_ntx, rbgs, *cc_cfg, tti_alloc.get_cfi())) {
+    return alloc_outcome_t::INVALID_CODERATE;
   }
 
-  // Paging allocation successful
-  bc_alloc_t bc_alloc(ret.second);
-
-  if (not generate_paging_dci(
-          bc_alloc.bc_grant, get_tti_tx_dl(), paging_payload, ret.second.rbg_range, *cc_cfg, tti_alloc.get_cfi())) {
-    logger.warning("SCHED: FAIL");
-    return alloc_outcome_t::ERROR;
+  // Allocate SIB RBGs and PDCCH
+  alloc_outcome_t ret = tti_alloc.alloc_dl_ctrl(aggr_lvl, rbgs, alloc_type_t::DL_BC);
+  if (ret != alloc_outcome_t::SUCCESS) {
+    return ret;
   }
 
+  // Allocation Successful
+  bc_alloc.dci_idx   = tti_alloc.get_pdcch_grid().nof_allocs() - 1;
+  bc_alloc.rbg_range = rbgs;
+  bc_alloc.req_bytes = cc_cfg->cfg.sibs[sib_idx].len;
   bc_allocs.push_back(bc_alloc);
 
-  return ret.first;
+  return alloc_outcome_t::SUCCESS;
+}
+
+alloc_outcome_t sf_sched::alloc_paging(uint32_t aggr_lvl, uint32_t paging_payload, rbg_interval rbgs)
+{
+  if (bc_allocs.size() >= sched_interface::MAX_BC_LIST) {
+    logger.warning("SCHED: Maximum number of Broadcast allocations reached");
+    return alloc_outcome_t::ERROR;
+  }
+  bc_alloc_t bc_alloc;
+
+  // Generate DCI for Paging message
+  if (not generate_paging_dci(bc_alloc.bc_grant, get_tti_tx_dl(), paging_payload, rbgs, *cc_cfg, tti_alloc.get_cfi())) {
+    return alloc_outcome_t::INVALID_CODERATE;
+  }
+
+  // Allocate Paging RBGs and PDCCH
+  alloc_outcome_t ret = tti_alloc.alloc_dl_ctrl(aggr_lvl, rbgs, alloc_type_t::DL_PCCH);
+  if (ret != alloc_outcome_t::SUCCESS) {
+    return ret;
+  }
+
+  // Allocation Successful
+  bc_alloc.dci_idx   = tti_alloc.get_pdcch_grid().nof_allocs() - 1;
+  bc_alloc.rbg_range = rbgs;
+  bc_alloc.req_bytes = paging_payload;
+  bc_allocs.push_back(bc_alloc);
+
+  return alloc_outcome_t::SUCCESS;
 }
 
 std::pair<alloc_outcome_t, uint32_t> sf_sched::alloc_rar(uint32_t aggr_lvl, const pending_rar_t& rar)
@@ -499,7 +505,6 @@ std::pair<alloc_outcome_t, uint32_t> sf_sched::alloc_rar(uint32_t aggr_lvl, cons
         return ret;
       }
     } else if (ret.first != alloc_outcome_t::RB_COLLISION) {
-      logger.warning("SCHED: Could not allocate RAR for L=%d, cause=%s", aggr_lvl, ret.first.to_string());
       return ret;
     }
 

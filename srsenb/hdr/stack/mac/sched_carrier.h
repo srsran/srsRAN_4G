@@ -91,6 +91,7 @@ private:
   // args
   const sched_cell_params_t* cc_cfg = nullptr;
   rrc_interface_mac*         rrc    = nullptr;
+  srslog::basic_logger&      logger;
 
   std::array<sched_sib_t, sched_interface::MAX_SIBS> pending_sibs;
 
