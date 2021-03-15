@@ -145,7 +145,7 @@ uint32_t sched_time_pf::try_ul_alloc(ue_ctxt& ue_ctxt, sched_ue& ue, sf_sched* t
                           : 0;
   }
   if (code == alloc_outcome_t::DCI_COLLISION) {
-    logger.info("SCHED: Couldn't find space in PDCCH for UL retx of rnti=0x%x", ue.get_rnti());
+    logger.info("SCHED: rnti=0x%x, cc=%d, Couldn't find space in PDCCH for UL tx", ue.get_rnti(), cc_cfg->enb_cc_idx);
   }
   return estim_tbs_bytes;
 }

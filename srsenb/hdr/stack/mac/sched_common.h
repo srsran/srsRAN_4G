@@ -106,6 +106,10 @@ struct prb_interval : public srslte::interval<uint32_t> {
 
 /// Type of Allocation stored in PDSCH/PUSCH
 enum class alloc_type_t { DL_BC, DL_PCCH, DL_RAR, DL_DATA, UL_DATA };
+inline bool is_dl_ctrl_alloc(alloc_type_t a)
+{
+  return a == alloc_type_t::DL_BC or a == alloc_type_t::DL_PCCH or a == alloc_type_t::DL_RAR;
+}
 
 } // namespace srsenb
 

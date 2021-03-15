@@ -48,6 +48,8 @@ public:
    */
   bool alloc_dci(alloc_type_t alloc_type, uint32_t aggr_idx, sched_ue* user = nullptr, bool has_pusch_grant = false);
 
+  void rem_last_dci();
+
   // getters
   uint32_t    get_cfi() const { return current_cfix + 1; }
   void        get_allocs(alloc_result_t* vec = nullptr, pdcch_mask_t* tot_mask = nullptr, size_t idx = 0) const;
@@ -106,7 +108,8 @@ private:
 
   // tti vars
   tti_point                   tti_rx;
-  uint32_t                    current_cfix = 0;
+  uint32_t                    current_cfix     = 0;
+  uint32_t                    current_max_cfix = 0;
   std::vector<alloc_tree_t>   alloc_trees;     ///< List of PDCCH alloc trees, where index is the cfi index
   std::vector<alloc_record_t> dci_record_list; ///< Keeps a record of all the PDCCH allocations done so far
 };

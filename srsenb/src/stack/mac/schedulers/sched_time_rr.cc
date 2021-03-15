@@ -142,7 +142,8 @@ void sched_time_rr::sched_ul_newtxs(sched_ue_list& ue_db, sf_sched* tti_sched, s
     }
     alloc_outcome_t ret = tti_sched->alloc_ul_user(&user, alloc);
     if (ret == alloc_outcome_t::DCI_COLLISION) {
-      logger.info("SCHED: Couldn't find space in PDCCH for UL tx of rnti=0x%x", user.get_rnti());
+      logger.info(
+          "SCHED: rnti=0x%x, cc=%d, Couldn't find space in PDCCH for UL tx", user.get_rnti(), cc_cfg->enb_cc_idx);
     }
   }
 }

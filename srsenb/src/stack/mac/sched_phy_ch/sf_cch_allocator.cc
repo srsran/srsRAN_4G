@@ -37,7 +37,8 @@ void sf_cch_allocator::new_tti(tti_point tti_rx_)
     t.reset();
   }
   dci_record_list.clear();
-  current_cfix = cc_cfg->sched_cfg->min_nof_ctrl_symbols - 1;
+  current_cfix     = cc_cfg->sched_cfg->min_nof_ctrl_symbols - 1;
+  current_max_cfix = cc_cfg->sched_cfg->max_nof_ctrl_symbols - 1;
 }
 
 const cce_cfi_position_table*
@@ -70,7 +71,7 @@ bool sf_cch_allocator::alloc_dci(alloc_type_t alloc_type, uint32_t aggr_idx, sch
   bool     success;
   do {
     success = alloc_dci_record(record, get_cfi() - 1);
-  } while (not success and get_cfi() < cc_cfg->sched_cfg->max_nof_ctrl_symbols and set_cfi(get_cfi() + 1));
+  } while (not success and current_cfix < current_max_cfix and set_cfi(get_cfi() + 1));
 
   if (not success) {
     // DCI allocation failed. go back to original CFI
@@ -82,7 +83,43 @@ bool sf_cch_allocator::alloc_dci(alloc_type_t alloc_type, uint32_t aggr_idx, sch
 
   // DCI record allocation successful
   dci_record_list.push_back(record);
+
+  if (is_dl_ctrl_alloc(alloc_type)) {
+    // Dynamic CFI not yet supported for DL control allocations, as coderate can be exceeded
+    current_max_cfix = current_cfix;
+  }
+
   return true;
+}
+
+void sf_cch_allocator::rem_last_dci()
+{
+  assert(not dci_record_list.empty());
+
+  // Remove DCI record
+  dci_record_list.pop_back();
+
+  // Remove leaves of PDCCH position decisions
+  auto& tree    = alloc_trees[current_cfix];
+  tree.prev_end = tree.prev_start;
+  if (dci_record_list.empty()) {
+    tree.prev_start = 0;
+  } else {
+    tree.prev_start = tree.dci_alloc_tree[tree.prev_start].parent_idx;
+    // Discover other tree nodes with same level
+    while (tree.prev_start > 0) {
+      uint32_t count = 0;
+      while (tree.dci_alloc_tree[tree.prev_start - 1].parent_idx >= 0) {
+        count++;
+      }
+      if (count == dci_record_list.size()) {
+        tree.prev_start--;
+      } else {
+        break;
+      }
+    }
+  }
+  tree.dci_alloc_tree.erase(tree.dci_alloc_tree.begin() + tree.prev_end, tree.dci_alloc_tree.end());
 }
 
 bool sf_cch_allocator::alloc_dci_record(const alloc_record_t& record, uint32_t cfix)

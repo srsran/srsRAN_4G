@@ -78,7 +78,7 @@ int test_pdsch_grant(const sim_enb_ctxt_t&                   enb_ctxt,
   uint32_t nof_retx = get_nof_retx(pdsch.dci.tb[0].rv); // 0..3
   if (h.nof_txs == 0 or h.ndi != pdsch.dci.tb[0].ndi) {
     // It is newtx
-    CONDERROR(nof_retx != 0, "Invalid rv index for new tx");
+    CONDERROR(nof_retx != 0, "Invalid rv index for new DL tx");
     CONDERROR(h.active, "DL newtx for already active DL harq pid=%d", h.pid);
   } else {
     // it is retx
@@ -196,7 +196,7 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
 
         if (h.nof_txs == 0 or h.ndi != pusch_ptr->dci.tb.ndi) {
           // newtx
-          CONDERROR(nof_retx != 0, "Invalid rv index for new tx");
+          CONDERROR(nof_retx != 0, "Invalid rv index for new UL tx");
           CONDERROR(pusch_ptr->current_tx_nb != 0, "UL HARQ retxs need to have been previously transmitted");
           CONDERROR(not h_inactive, "New tx for already active UL HARQ");
           CONDERROR(not pusch_ptr->needs_pdcch and ue.msg3_tti_rx.is_valid() and sf_out.tti_rx > ue.msg3_tti_rx,

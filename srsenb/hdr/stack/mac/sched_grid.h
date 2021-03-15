@@ -37,7 +37,8 @@ struct alloc_outcome_t {
     NO_DATA,
     INVALID_PRBMASK,
     INVALID_CARRIER,
-    INVALID_CODERATE
+    CODERATE_TOO_HIGH,
+    NOF_ALLOCS_LIMIT
   };
   result_enum result = ERROR;
   alloc_outcome_t()  = default;
@@ -101,10 +102,11 @@ public:
 
   void            init(const sched_cell_params_t& cell_params_);
   void            new_tti(tti_point tti_rx);
-  dl_ctrl_alloc_t alloc_dl_ctrl(uint32_t aggr_lvl, alloc_type_t alloc_type);
   alloc_outcome_t alloc_dl_ctrl(uint32_t aggr_lvl, rbg_interval rbg_range, alloc_type_t alloc_type);
   alloc_outcome_t alloc_dl_data(sched_ue* user, const rbgmask_t& user_mask, bool has_pusch_grant);
   bool            reserve_dl_rbgs(uint32_t start_rbg, uint32_t end_rbg);
+  void            rem_last_alloc_dl(rbg_interval rbgs);
+
   alloc_outcome_t alloc_ul_data(sched_ue* user, prb_interval alloc, bool needs_pdcch, bool strict = true);
   alloc_outcome_t reserve_ul_prbs(const prbmask_t& prbmask, bool strict);
   alloc_outcome_t reserve_ul_prbs(prb_interval alloc, bool strict);
@@ -127,8 +129,7 @@ private:
   // consts
   const sched_cell_params_t* cc_cfg = nullptr;
   srslog::basic_logger&      logger;
-  uint32_t                   nof_rbgs = 0;
-  uint32_t                   si_n_rbg = 0, rar_n_rbg = 0;
+  uint32_t                   nof_rbgs  = 0;
   uint32_t                   pucch_nrb = 0;
   prbmask_t                  pucch_mask;
 
@@ -137,9 +138,8 @@ private:
 
   // internal state
   tti_point tti_rx;
-  uint32_t  avail_rbg = 0;
-  rbgmask_t dl_mask   = {};
-  prbmask_t ul_mask   = {};
+  rbgmask_t dl_mask = {};
+  prbmask_t ul_mask = {};
 };
 
 /** Description: Stores the RAR, broadcast, paging, DL data, UL data allocations for the given subframe
@@ -157,8 +157,6 @@ public:
   struct rar_alloc_t {
     sf_sched::ctrl_alloc_t          alloc_data;
     sched_interface::dl_sched_rar_t rar_grant;
-    rar_alloc_t(const sf_sched::ctrl_alloc_t& c, const sched_interface::dl_sched_rar_t& r) : alloc_data(c), rar_grant(r)
-    {}
   };
   struct bc_alloc_t : public ctrl_alloc_t {
     sched_interface::dl_sched_bc_t bc_grant;
@@ -198,7 +196,7 @@ public:
   // DL alloc methods
   alloc_outcome_t alloc_sib(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t sib_ntx, rbg_interval rbgs);
   alloc_outcome_t alloc_paging(uint32_t aggr_lvl, uint32_t paging_payload, rbg_interval rbgs);
-  std::pair<alloc_outcome_t, uint32_t> alloc_rar(uint32_t aggr_lvl, const pending_rar_t& rar_grant);
+  alloc_outcome_t alloc_rar(uint32_t aggr_lvl, const pending_rar_t& rar_grant, rbg_interval rbgs, uint32_t nof_grants);
   bool reserve_dl_rbgs(uint32_t rbg_start, uint32_t rbg_end) { return tti_alloc.reserve_dl_rbgs(rbg_start, rbg_end); }
   const std::vector<rar_alloc_t>& get_allocated_rars() const { return rar_allocs; }
 
@@ -228,17 +226,16 @@ public:
   const sched_cell_params_t* get_cc_cfg() const { return cc_cfg; }
 
 private:
-  ctrl_code_t alloc_dl_ctrl(uint32_t aggr_lvl, uint32_t tbs_bytes, uint16_t rnti);
-  void        set_bc_sched_result(const sf_cch_allocator::alloc_result_t& dci_result,
-                                  sched_interface::dl_sched_res_t*        dl_result);
-  void        set_rar_sched_result(const sf_cch_allocator::alloc_result_t& dci_result,
-                                   sched_interface::dl_sched_res_t*        dl_result);
-  void        set_dl_data_sched_result(const sf_cch_allocator::alloc_result_t& dci_result,
-                                       sched_interface::dl_sched_res_t*        dl_result,
-                                       sched_ue_list&                          ue_list);
-  void        set_ul_sched_result(const sf_cch_allocator::alloc_result_t& dci_result,
-                                  sched_interface::ul_sched_res_t*        ul_result,
-                                  sched_ue_list&                          ue_list);
+  void set_bc_sched_result(const sf_cch_allocator::alloc_result_t& dci_result,
+                           sched_interface::dl_sched_res_t*        dl_result);
+  void set_rar_sched_result(const sf_cch_allocator::alloc_result_t& dci_result,
+                            sched_interface::dl_sched_res_t*        dl_result);
+  void set_dl_data_sched_result(const sf_cch_allocator::alloc_result_t& dci_result,
+                                sched_interface::dl_sched_res_t*        dl_result,
+                                sched_ue_list&                          ue_list);
+  void set_ul_sched_result(const sf_cch_allocator::alloc_result_t& dci_result,
+                           sched_interface::ul_sched_res_t*        ul_result,
+                           sched_ue_list&                          ue_list);
 
   // consts
   const sched_cell_params_t* cc_cfg = nullptr;
