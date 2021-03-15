@@ -20,7 +20,11 @@
 
 namespace srsenb {
 
-static srslog::basic_logger& logger = srslog::fetch_basic_logger("MAC");
+static srslog::basic_logger& get_mac_logger()
+{
+  static srslog::basic_logger& logger = srslog::fetch_basic_logger("MAC");
+  return logger;
+}
 
 /// Compute max TBS based on max coderate
 int coderate_to_tbs(float max_coderate, uint32_t nof_re)
@@ -217,12 +221,12 @@ int generate_ra_bc_dci_format1a_common(srslte_dci_dl_t&           dci,
     return -1;
   }
 
-  logger.debug("ra_tbs=%d/%d, tbs_bytes=%d, tbs=%d, mcs=%d",
-               srslte_ra_tbs_from_idx(mcs, 2),
-               srslte_ra_tbs_from_idx(mcs, 3),
-               req_bytes,
-               tbs,
-               mcs);
+  get_mac_logger().debug("ra_tbs=%d/%d, tbs_bytes=%d, tbs=%d, mcs=%d",
+                         srslte_ra_tbs_from_idx(mcs, 2),
+                         srslte_ra_tbs_from_idx(mcs, 3),
+                         req_bytes,
+                         tbs,
+                         mcs);
 
   return tbs;
 }
@@ -311,7 +315,7 @@ void log_broadcast_allocation(const sched_interface::dl_sched_bc_t& bc,
                               rbg_interval                          rbg_range,
                               const sched_cell_params_t&            cell_params)
 {
-  if (not logger.info.enabled()) {
+  if (not get_mac_logger().info.enabled()) {
     return;
   }
 
@@ -319,31 +323,31 @@ void log_broadcast_allocation(const sched_interface::dl_sched_bc_t& bc,
   fmt::format_to(str_buffer, "{}", rbg_range);
 
   if (bc.type == sched_interface::dl_sched_bc_t::bc_type::BCCH) {
-    logger.debug("SCHED: SIB%d, cc=%d, rbgs=(%d,%d), dci=(%d,%d), rv=%d, len=%d, period=%d, mcs=%d",
-                 bc.index + 1,
-                 cell_params.enb_cc_idx,
-                 rbg_range.start(),
-                 rbg_range.stop(),
-                 bc.dci.location.L,
-                 bc.dci.location.ncce,
-                 bc.dci.tb[0].rv,
-                 cell_params.cfg.sibs[bc.index].len,
-                 cell_params.cfg.sibs[bc.index].period_rf,
-                 bc.dci.tb[0].mcs_idx);
+    get_mac_logger().debug("SCHED: SIB%d, cc=%d, rbgs=(%d,%d), dci=(%d,%d), rv=%d, len=%d, period=%d, mcs=%d",
+                           bc.index + 1,
+                           cell_params.enb_cc_idx,
+                           rbg_range.start(),
+                           rbg_range.stop(),
+                           bc.dci.location.L,
+                           bc.dci.location.ncce,
+                           bc.dci.tb[0].rv,
+                           cell_params.cfg.sibs[bc.index].len,
+                           cell_params.cfg.sibs[bc.index].period_rf,
+                           bc.dci.tb[0].mcs_idx);
   } else {
-    logger.info("SCHED: PCH, cc=%d, rbgs=%s, dci=(%d,%d), tbs=%d, mcs=%d",
-                srslte::to_c_str(str_buffer),
-                cell_params.enb_cc_idx,
-                bc.dci.location.L,
-                bc.dci.location.ncce,
-                bc.tbs,
-                bc.dci.tb[0].mcs_idx);
+    get_mac_logger().info("SCHED: PCH, cc=%d, rbgs=%s, dci=(%d,%d), tbs=%d, mcs=%d",
+                          srslte::to_c_str(str_buffer),
+                          cell_params.enb_cc_idx,
+                          bc.dci.location.L,
+                          bc.dci.location.ncce,
+                          bc.tbs,
+                          bc.dci.tb[0].mcs_idx);
   }
 }
 
 void log_rar_allocation(const sched_interface::dl_sched_rar_t& rar, rbg_interval rbg_range)
 {
-  if (not logger.info.enabled()) {
+  if (not get_mac_logger().info.enabled()) {
     return;
   }
 
@@ -360,12 +364,12 @@ void log_rar_allocation(const sched_interface::dl_sched_rar_t& rar, rbg_interval
                    rar.msg3_grant[i].grant.trunc_mcs);
   }
 
-  logger.info("SCHED: RAR, ra-rnti=%d, rbgs=%s, dci=(%d,%d), msg3 grants=[%s]",
-              rar.dci.rnti,
-              srslte::to_c_str(str_buffer),
-              rar.dci.location.L,
-              rar.dci.location.ncce,
-              srslte::to_c_str(str_buffer2));
+  get_mac_logger().info("SCHED: RAR, ra-rnti=%d, rbgs=%s, dci=(%d,%d), msg3 grants=[%s]",
+                        rar.dci.rnti,
+                        srslte::to_c_str(str_buffer),
+                        rar.dci.location.L,
+                        rar.dci.location.ncce,
+                        srslte::to_c_str(str_buffer2));
 }
 
 } // namespace srsenb

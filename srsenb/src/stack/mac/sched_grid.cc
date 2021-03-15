@@ -732,7 +732,7 @@ void sf_sched::set_dl_data_sched_result(const sf_cch_allocator::alloc_result_t& 
     // Print Resulting DL Allocation
     fmt::memory_buffer str_buffer;
     fmt::format_to(str_buffer,
-                   "SCHED: DL {} rnti=0x{:x}, cc={}, pid={}, mask={:x}, dci=({}, {}), n_rtx={}, tbs={}, buffer={}/{}",
+                   "SCHED: DL {} rnti=0x{:x}, cc={}, pid={}, mask=0x{:x}, dci=({}, {}), n_rtx={}, tbs={}, buffer={}/{}",
                    is_newtx ? "tx" : "retx",
                    user->get_rnti(),
                    cc_cfg->enb_cc_idx,

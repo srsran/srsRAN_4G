@@ -28,7 +28,7 @@ using dl_sched_res_t    = sched_interface::dl_sched_res_t;
 using dl_sched_data_t   = sched_interface::dl_sched_data_t;
 using custom_mem_buffer = fmt::basic_memory_buffer<char, 1024>;
 
-srslog::basic_logger& get_mac_logger()
+static srslog::basic_logger& get_mac_logger()
 {
   static srslog::basic_logger& mac_logger = srslog::fetch_basic_logger("MAC");
   return mac_logger;
