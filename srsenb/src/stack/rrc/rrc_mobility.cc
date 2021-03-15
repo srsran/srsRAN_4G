@@ -479,7 +479,6 @@ void rrc::ue::rrc_mobility::fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s
   intralte.next_hop_chaining_count        = rrc_ue->ue_security_cfg.get_ncc();
 
   // Add MeasConfig of target cell
-  rrc_ue->current_ue_cfg    = {};
   recfg_r8.meas_cfg_present = apply_meascfg_updates(
       recfg_r8.meas_cfg, rrc_ue->current_ue_cfg.meas_cfg, rrc_ue->ue_cell_list, src_dl_earfcn, src_pci);
 
