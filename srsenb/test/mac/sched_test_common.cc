@@ -128,9 +128,8 @@ const sched::ue_cfg_t* common_sched_tester::get_current_ue_cfg(uint16_t rnti) co
 int common_sched_tester::sim_cfg(sim_sched_args args)
 {
   sim_args0 = std::move(args);
-  rrc_ptr.reset(new rrc_dummy());
 
-  sched::init(rrc_ptr.get(), sim_args0.sched_args);
+  sched::init(&rrc_ptr, sim_args0.sched_args);
 
   sched_sim.reset(new sched_sim_random{this, sim_args0.cell_cfg});
   sched_stats.reset(new sched_result_stats{sim_args0.cell_cfg});

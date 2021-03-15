@@ -162,7 +162,7 @@ int test_pdcch_ue_and_sibs()
   TESTASSERT(pdcch.alloc_dci(alloc_type_t::DL_RAR, 2));
   TESTASSERT(pdcch.nof_allocs() == 2 and pdcch.nof_alloc_combinations() == 6);
   TESTASSERT(pdcch.alloc_dci(alloc_type_t::DL_DATA, 2, &sched_ue, false));
-  TESTASSERT(pdcch.nof_allocs() == 3 and pdcch.nof_alloc_combinations() == 4);
+  TESTASSERT(pdcch.nof_allocs() == 3 and pdcch.nof_alloc_combinations() == 9);
 
   // TEST: Ability to revert last allocation
   pdcch.rem_last_dci();

@@ -66,11 +66,11 @@ bool sf_cch_allocator::alloc_dci(alloc_type_t alloc_type, uint32_t aggr_idx, sch
   // TODO: Make the alloc tree update lazy
   alloc_record_t record{.user = user, .aggr_idx = aggr_idx, .alloc_type = alloc_type, .pusch_uci = has_pusch_grant};
 
-  if (is_dl_ctrl_alloc(alloc_type) and current_max_cfix > current_cfix) {
+  if (is_dl_ctrl_alloc(alloc_type) and nof_allocs() == 0 and current_max_cfix > current_cfix) {
     // Given that CFI is not currently dynamic for ctrl allocs, in case of SIB/RAR alloc, start with optimal CFI
     // in terms of nof CCE locs
     uint32_t nof_locs = 0;
-    for (uint32_t cfix_tmp = current_max_cfix; cfix_tmp > current_cfix; ++cfix_tmp) {
+    for (uint32_t cfix_tmp = current_max_cfix; cfix_tmp > current_cfix; --cfix_tmp) {
       const cce_cfi_position_table* dci_locs = get_cce_loc_table(record.alloc_type, record.user, cfix_tmp);
       if ((*dci_locs)[record.aggr_idx].size() >= nof_locs) {
         nof_locs     = (*dci_locs)[record.aggr_idx].size();

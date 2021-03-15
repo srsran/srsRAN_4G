@@ -125,7 +125,7 @@ protected:
   virtual void new_test_tti();
   virtual void before_sched() {}
 
-  std::unique_ptr<rrc_dummy> rrc_ptr;
+  rrc_dummy rrc_ptr;
 };
 
 } // namespace srsenb
