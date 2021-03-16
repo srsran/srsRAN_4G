@@ -234,7 +234,7 @@ tbs_info cqi_to_tbs_dl(const sched_ue_cell& cell,
     ret = compute_min_mcs_and_tbs_from_required_bytes(
         nof_prb, nof_re, cell.dl_cqi, cell.max_mcs_dl, req_bytes, false, false, use_tbs_index_alt);
 
-    // If coderate > SRSLTE_MIN(max_coderate, 0.930 * Qm) we should set TBS=0. We don't because it's not correctly
+    // If coderate > SRSLTE_MIN(max_coderate, 0.932 * Qm) we should set TBS=0. We don't because it's not correctly
     // handled by the scheduler, but we might be scheduling undecodable codewords at very low SNR
     if (ret.tbs_bytes < 0) {
       ret.mcs       = 0;
@@ -260,7 +260,7 @@ tbs_info cqi_to_tbs_ul(const sched_ue_cell& cell, uint32_t nof_prb, uint32_t nof
     ret = compute_min_mcs_and_tbs_from_required_bytes(
         nof_prb, nof_re, cell.ul_cqi, cell.max_mcs_ul, req_bytes, true, ulqam64_enabled, false);
 
-    // If coderate > SRSLTE_MIN(max_coderate, 0.930 * Qm) we should set TBS=0. We don't because it's not correctly
+    // If coderate > SRSLTE_MIN(max_coderate, 0.932 * Qm) we should set TBS=0. We don't because it's not correctly
     // handled by the scheduler, but we might be scheduling undecodable codewords at very low SNR
     if (ret.tbs_bytes < 0) {
       ret.mcs       = 0;

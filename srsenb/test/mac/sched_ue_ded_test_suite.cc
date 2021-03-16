@@ -106,7 +106,7 @@ int test_pdsch_grant(const sim_enb_ctxt_t&                   enb_ctxt,
     srslte_mod_t mod      = srslte_ra_dl_mod_from_mcs(pdsch.dci.tb[0].mcs_idx, ue_ctxt.ue_cfg.use_tbs_index_alt);
     uint32_t     max_Qm   = ue_ctxt.ue_cfg.use_tbs_index_alt ? 8 : 6;
     uint32_t     Qm       = std::min(max_Qm, srslte_mod_bits_x_symbol(mod));
-    CONDERROR(coderate > 0.930f * Qm, "Max coderate was exceeded");
+    CONDERROR(coderate > 0.932f * Qm, "Max coderate was exceeded");
   }
 
   // TEST: PUCCH-ACK will not collide with SR

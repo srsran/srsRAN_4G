@@ -15,8 +15,6 @@
 #include "srslte/adt/accumulators.h"
 #include <chrono>
 
-const uint32_t seed = std::chrono::system_clock::now().time_since_epoch().count();
-
 namespace srsenb {
 
 struct run_params {
@@ -197,8 +195,9 @@ int run_benchmark_scenario(run_params params, std::vector<run_data>& run_results
   sched_interface::sched_args_t            sched_args     = {};
   sched_args.sched_policy                                 = params.sched_policy;
 
-  sched sched_obj;
-  sched_obj.init(nullptr, sched_args);
+  sched     sched_obj;
+  rrc_dummy rrc{};
+  sched_obj.init(&rrc, sched_args);
   sched_tester tester(&sched_obj, sched_args, cell_list);
 
   tester.total_stats        = {};
@@ -248,31 +247,72 @@ run_data expected_run_result(run_params params)
 {
   assert(params.cqi == 15 && "only cqi=15 supported for now");
   run_data ret{};
-  float    dl_overhead = 0.9, ul_overhead = 0.75;
+  int      tbs_idx      = srslte_ra_tbs_idx_from_mcs(28, false, false);
+  int      tbs          = srslte_ra_tbs_from_idx(tbs_idx, params.nof_prbs);
+  ret.avg_dl_throughput = tbs * 1e3; // bps
+
+  tbs_idx                 = srslte_ra_tbs_idx_from_mcs(28, false, true);
+  uint32_t nof_pusch_prbs = params.nof_prbs - (params.nof_prbs == 6 ? 2 : 4);
+  tbs                     = srslte_ra_tbs_from_idx(tbs_idx, nof_pusch_prbs);
+  ret.avg_ul_throughput   = tbs * 1e3; // bps
+
+  ret.avg_dl_mcs = 27;
+  ret.avg_ul_mcs = 22;
   switch (params.nof_prbs) {
     case 6:
       ret.avg_dl_mcs = 25;
-      ret.avg_ul_mcs = 22;
-      dl_overhead    = 0.8;
-      ul_overhead    = 0.4;
+      ret.avg_dl_throughput *= 0.7;
+      ret.avg_ul_throughput *= 0.25;
+      break;
+    case 15:
+      ret.avg_dl_throughput *= 0.95;
+      ret.avg_ul_throughput *= 0.5;
       break;
     default:
-      ret.avg_dl_mcs = 26;
-      ret.avg_ul_mcs = 22;
+      ret.avg_dl_throughput *= 0.97;
+      ret.avg_ul_throughput *= 0.5;
+      break;
   }
-
-  int tbs_idx           = srslte_ra_tbs_idx_from_mcs(ret.avg_dl_mcs, false, false);
-  int tbs               = srslte_ra_tbs_from_idx(tbs_idx, params.nof_prbs);
-  ret.avg_dl_throughput = tbs * 1e3 * dl_overhead; // bps
-
-  tbs_idx               = srslte_ra_tbs_idx_from_mcs(ret.avg_ul_mcs, false, true);
-  tbs                   = srslte_ra_tbs_from_idx(tbs_idx, params.nof_prbs - 2);
-  ret.avg_ul_throughput = tbs * 1e3 * ul_overhead; // bps
   return ret;
+}
+
+void print_benchmark_results(const std::vector<run_data>& run_results)
+{
+  srslog::flush();
+  fmt::print("run | Nprb | cqi | sched pol | Nue | DL/UL [Mbps] | DL/UL mcs | DL/UL OH [%] | latency "
+             "[usec]\n");
+  fmt::print("---------------------------------------------------------------------------------------"
+             "------\n");
+  for (uint32_t i = 0; i < run_results.size(); ++i) {
+    const run_data& r = run_results[i];
+
+    int   tbs_idx           = srslte_ra_tbs_idx_from_mcs(28, false, false);
+    int   tbs               = srslte_ra_tbs_from_idx(tbs_idx, r.params.nof_prbs);
+    float dl_rate_overhead  = 1.0F - r.avg_dl_throughput / (tbs * 1e3);
+    tbs_idx                 = srslte_ra_tbs_idx_from_mcs(28, false, true);
+    uint32_t nof_pusch_prbs = r.params.nof_prbs - (r.params.nof_prbs == 6 ? 2 : 4);
+    tbs                     = srslte_ra_tbs_from_idx(tbs_idx, nof_pusch_prbs);
+    float ul_rate_overhead  = 1.0F - r.avg_ul_throughput / (tbs * 1e3);
+
+    fmt::print("{:>3d}{:>6d}{:>6d}{:>12}{:>6d}{:>9.2}/{:>4.2}{:>9.1f}/{:>4.1f}{:9.1f}/{:>4.1f}{:12d}\n",
+               i,
+               r.params.nof_prbs,
+               r.params.cqi,
+               r.params.sched_policy,
+               r.params.nof_ues,
+               r.avg_dl_throughput / 1e6,
+               r.avg_ul_throughput / 1e6,
+               r.avg_dl_mcs,
+               r.avg_ul_mcs,
+               dl_rate_overhead * 100,
+               ul_rate_overhead * 100,
+               r.avg_latency.count());
+  }
 }
 
 int run_rate_test()
 {
+  fmt::print("\n====== Scheduler Rate Test ======\n\n");
   run_params_range      run_param_list{};
   srslog::basic_logger& mac_logger = srslog::fetch_basic_logger("MAC");
 
@@ -285,13 +325,13 @@ int run_rate_test()
   for (size_t r = 0; r < nof_runs; ++r) {
     run_params runparams = run_param_list.get_params(r);
 
-    mac_logger.info("\n### New run {} ###\n", r);
+    mac_logger.info("\n=== New run {} ===\n", r);
     TESTASSERT(run_benchmark_scenario(runparams, run_results) == SRSLTE_SUCCESS);
   }
 
-  const std::array<float, 6> expected_dl_rate_Mbps{2.5, 8.8, 15, 31, 47, 64};
-  const std::array<float, 6> expected_ul_rate_Mbps{0.1, 1.8, 4, 8.3, 13, 19};
-  bool                       success = true;
+  print_benchmark_results(run_results);
+
+  bool success = true;
   for (auto& run : run_results) {
     run_data expected = expected_run_result(run.params);
     if (run.avg_dl_mcs < expected.avg_dl_mcs) {
@@ -322,27 +362,6 @@ int run_rate_test()
   return success ? SRSLTE_SUCCESS : SRSLTE_ERROR;
 }
 
-void print_benchmark_results(const std::vector<run_data>& run_results)
-{
-  srslog::flush();
-  fmt::print("run | Nprb | cqi | sched pol | Nue | DL [Mbps] | UL [Mbps] | DL mcs | UL mcs | latency [usec]\n");
-  fmt::print("---------------------------------------------------------------------------------------------\n");
-  for (uint32_t i = 0; i < run_results.size(); ++i) {
-    const run_data& r = run_results[i];
-    fmt::print("{:>3d}{:>6d}{:>6d}{:>12}{:>6d}{:12.2}{:12.2}{:9.1f}{:9.1f}{:12d}\n",
-               i,
-               r.params.nof_prbs,
-               r.params.cqi,
-               r.params.sched_policy,
-               r.params.nof_ues,
-               r.avg_dl_throughput / 1e6,
-               r.avg_ul_throughput / 1e6,
-               r.avg_dl_mcs,
-               r.avg_ul_mcs,
-               r.avg_latency.count());
-  }
-}
-
 int run_benchmark()
 {
   run_params_range      run_param_list{};
@@ -366,10 +385,6 @@ int run_benchmark()
 
 int main()
 {
-  // Setup seed
-  srsenb::set_randseed(seed);
-  printf("This is the chosen seed: %u\n", seed);
-
   // Setup the log spy to intercept error and warning log entries.
   if (!srslog::install_custom_sink(
           srslte::log_sink_spy::name(),

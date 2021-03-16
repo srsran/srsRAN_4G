@@ -83,7 +83,7 @@ tbs_info compute_mcs_and_tbs(uint32_t nof_prb,
 
   float    max_coderate = srslte_cqi_to_coderate(std::min(cqi + 1U, 15U), use_tbs_index_alt);
   uint32_t max_Qm       = (is_ul) ? (ulqam64_enabled ? 6 : 4) : (use_tbs_index_alt ? 8 : 6);
-  max_coderate          = std::min(max_coderate, 0.93F * max_Qm);
+  max_coderate          = std::min(max_coderate, 0.932F * max_Qm);
 
   int   mcs               = 0;
   float prev_max_coderate = 0;
@@ -113,7 +113,7 @@ tbs_info compute_mcs_and_tbs(uint32_t nof_prb,
     // update max coderate based on mcs
     srslte_mod_t mod = (is_ul) ? srslte_ra_ul_mod_from_mcs(mcs) : srslte_ra_dl_mod_from_mcs(mcs, use_tbs_index_alt);
     uint32_t     Qm  = srslte_mod_bits_x_symbol(mod);
-    max_coderate     = std::min(0.93F * Qm, max_coderate);
+    max_coderate     = std::min(0.932F * Qm, max_coderate);
 
     if (coderate <= max_coderate) {
       // solution was found
@@ -217,7 +217,7 @@ int generate_ra_bc_dci_format1a_common(srslte_dci_dl_t&           dci,
 
   // Compute effective code rate and verify it doesn't exceed max code rate
   uint32_t nof_re = cell_params.get_dl_nof_res(tti_tx_dl, dci, current_cfi);
-  if (srslte_coderate(tbs, nof_re) >= 0.93F * Qm) {
+  if (srslte_coderate(tbs, nof_re) >= 0.932F * Qm) {
     return -1;
   }
 

@@ -895,7 +895,7 @@ void sf_sched::set_ul_sched_result(const sf_cch_allocator::alloc_result_t& dci_r
       fmt::format_to(str_buffer,
                      "SCHED: {} {} rnti=0x{:x}, cc={}, pid={}, dci=({},{}), prb={}, n_rtx={}, tbs={}, bsr={} ({}-{})",
                      ul_alloc.is_msg3 ? "Msg3" : "UL",
-                     ul_alloc.is_retx() ? "retx" : "newtx",
+                     ul_alloc.is_retx() ? "retx" : "tx",
                      user->get_rnti(),
                      cc_cfg->enb_cc_idx,
                      h->get_id(),

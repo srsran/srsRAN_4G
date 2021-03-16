@@ -54,7 +54,7 @@ bool lower_coderate(tbs_info tb, uint32_t nof_re, const tbs_test_args& args)
   srslte_mod_t mod =
       (args.is_ul) ? srslte_ra_ul_mod_from_mcs(tb.mcs) : srslte_ra_dl_mod_from_mcs(tb.mcs, args.use_tbs_index_alt);
   float Qm = std::min(args.get_max_Qm(), srslte_mod_bits_x_symbol(mod));
-  return coderate <= 0.930f * Qm;
+  return coderate <= 0.932f * Qm;
 }
 
 int test_mcs_tbs_dl_helper(const sched_cell_params_t& cell_params, const tbs_test_args& args, tbs_info* result)

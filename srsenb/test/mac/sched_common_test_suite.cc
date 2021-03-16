@@ -317,7 +317,7 @@ int test_dci_content_common(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
     float          coderate = srslte_coderate(tbs * 8, nof_re);
     const uint32_t Qm       = 2;
     CONDERROR(
-        coderate > 0.930f * Qm, "Max coderate was exceeded from %s DCI", dci.rnti == SRSLTE_SIRNTI ? "SIB" : "RAR");
+        coderate > 0.932f * Qm, "Max coderate was exceeded from %s DCI", dci.rnti == SRSLTE_SIRNTI ? "SIB" : "RAR");
     return SRSLTE_SUCCESS;
   };
 
