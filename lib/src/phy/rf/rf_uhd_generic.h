@@ -270,7 +270,7 @@ public:
   }
   uhd_error set_sync_source(const std::string& source) override
   {
-    Debug("Setting PPS source to '" << source << "'")
+    Debug("Setting PPS source to '" << source << "'");
 #if UHD_VERSION < 3140099
         UHD_SAFE_C_SAVE_ERROR(this, usrp->set_clock_source(source); usrp->set_time_source(source);)
 #else
