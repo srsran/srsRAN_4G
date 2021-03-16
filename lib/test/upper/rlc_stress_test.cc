@@ -107,7 +107,7 @@ void parse_args(stress_test_args_t* args, int argc, char* argv[])
       ("singletx",      bpo::value<bool>(&args->single_tx)->default_value(false), "If set to true, only one node is generating data")
       ("pcap",          bpo::value<bool>(&args->write_pcap)->default_value(false), "Whether to write all RLC PDU to PCAP file")
       ("zeroseed",      bpo::value<bool>(&args->zero_seed)->default_value(false), "Whether to initialize random seed to zero")
-      ("max_retx",      bpo::value<uint32_t>(&args->max_retx)->default_value(8), "Maximum number of RLC retransmission attempts")
+      ("max_retx",      bpo::value<uint32_t>(&args->max_retx)->default_value(32), "Maximum number of RLC retransmission attempts")
       ("nof_pdu_tti",   bpo::value<uint32_t>(&args->nof_pdu_tti)->default_value(1), "Number of PDUs processed in a TTI");
   // clang-format on
 
