@@ -74,8 +74,8 @@ void sched_sim_random::set_external_tti_events(const sim_ue_ctxt_t& ue_ctxt, ue_
     }
 
     // UL CQI
-    if (cc_feedback.ul_cqi >= 0) {
-      cc_feedback.ul_cqi = std::uniform_int_distribution<uint32_t>{5, 40}(get_rand_gen());
+    if (cc_feedback.ul_snr >= 0) {
+      cc_feedback.ul_snr = std::uniform_int_distribution<uint32_t>{5, 40}(get_rand_gen());
     }
   }
 }
@@ -131,7 +131,7 @@ int common_sched_tester::sim_cfg(sim_sched_args args)
 
   sched::init(&rrc_ptr, sim_args0.sched_args);
 
-  sched_sim.reset(new sched_sim_random{this, sim_args0.cell_cfg});
+  sched_sim.reset(new sched_sim_random{this, sim_args0.sched_args, sim_args0.cell_cfg});
   sched_stats.reset(new sched_result_stats{sim_args0.cell_cfg});
 
   return SRSLTE_SUCCESS;

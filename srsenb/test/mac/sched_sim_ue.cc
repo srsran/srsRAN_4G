@@ -211,10 +211,21 @@ void ue_sim::update_conn_state(const sf_output_res_t& sf_out)
   }
 }
 
+sched_sim_base::sched_sim_base(sched_interface*                                sched_ptr_,
+                               const sched_interface::sched_args_t&            sched_args,
+                               const std::vector<sched_interface::cell_cfg_t>& cell_cfg_list) :
+  logger(srslog::fetch_basic_logger("TEST")), sched_ptr(sched_ptr_), cell_params(cell_cfg_list.size())
+{
+  for (uint32_t cc = 0; cc < cell_params.size(); ++cc) {
+    cell_params[cc].set_cfg(cc, cell_cfg_list[cc], sched_args);
+  }
+  sched_ptr->cell_cfg(cell_cfg_list); // call parent cfg
+}
+
 int sched_sim_base::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& ue_cfg_, uint32_t preamble_idx)
 {
   CONDERROR(!srslte_prach_tti_opportunity_config_fdd(
-                (*cell_params)[ue_cfg_.supported_cc_list[0].enb_cc_idx].prach_config, current_tti_rx.to_uint(), -1),
+                cell_params[ue_cfg_.supported_cc_list[0].enb_cc_idx].cfg.prach_config, current_tti_rx.to_uint(), -1),
             "New user added in a non-PRACH TTI");
   TESTASSERT(ue_db.count(rnti) == 0);
 
@@ -278,7 +289,7 @@ sim_enb_ctxt_t sched_sim_base::get_enb_ctxt() const
 int sched_sim_base::set_default_tti_events(const sim_ue_ctxt_t& ue_ctxt, ue_tti_events& pending_events)
 {
   pending_events.cc_list.clear();
-  pending_events.cc_list.resize(cell_params->size());
+  pending_events.cc_list.resize(cell_params.size());
   pending_events.tti_rx = current_tti_rx;
 
   for (uint32_t enb_cc_idx = 0; enb_cc_idx < pending_events.cc_list.size(); ++enb_cc_idx) {
@@ -371,8 +382,8 @@ int sched_sim_base::apply_tti_events(sim_ue_ctxt_t& ue_ctxt, const ue_tti_events
       sched_ptr->dl_cqi_info(events.tti_rx.to_uint(), ue_ctxt.rnti, enb_cc_idx, cc_feedback.dl_cqi);
     }
 
-    if (cc_feedback.ul_cqi >= 0) {
-      sched_ptr->ul_snr_info(events.tti_rx.to_uint(), ue_ctxt.rnti, enb_cc_idx, cc_feedback.ul_cqi, 0);
+    if (cc_feedback.ul_snr >= 0) {
+      sched_ptr->ul_snr_info(events.tti_rx.to_uint(), ue_ctxt.rnti, enb_cc_idx, cc_feedback.ul_snr, 0);
     }
   }
 

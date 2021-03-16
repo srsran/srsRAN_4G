@@ -65,7 +65,7 @@ int test_pdsch_grant(const sim_enb_ctxt_t&                   enb_ctxt,
   tti_point                                  tti_rx      = sf_out.tti_rx;
   const sim_ue_ctxt_t&                       ue_ctxt     = *enb_ctxt.ue_db.at(pdsch.dci.rnti);
   const sched_interface::ue_cfg_t::cc_cfg_t* cc_cfg      = ue_ctxt.get_cc_cfg(enb_cc_idx);
-  const sched_interface::cell_cfg_t&         cell_params = (*enb_ctxt.cell_params)[enb_cc_idx];
+  const sched_cell_params_t&                 cell_params = enb_ctxt.cell_params[enb_cc_idx];
   bool has_pusch_grant = find_pusch_grant(pdsch.dci.rnti, sf_out.ul_cc_result[enb_cc_idx]) != nullptr;
 
   // TEST: Check if CC is configured and active
@@ -100,8 +100,8 @@ int test_pdsch_grant(const sim_enb_ctxt_t&                   enb_ctxt,
     srslte_dl_sf_cfg_t   dl_sf = {};
     dl_sf.cfi                  = sf_out.dl_cc_result[enb_cc_idx].cfi;
     dl_sf.tti                  = to_tx_dl(tti_rx).to_uint();
-    srslte_ra_dl_grant_to_grant_prb_allocation(&pdsch.dci, &grant, cell_params.cell.nof_prb);
-    uint32_t     nof_re   = srslte_ra_dl_grant_nof_re(&cell_params.cell, &dl_sf, &grant);
+    srslte_ra_dl_grant_to_grant_prb_allocation(&pdsch.dci, &grant, cell_params.nof_prb());
+    uint32_t     nof_re   = srslte_ra_dl_grant_nof_re(&cell_params.cfg.cell, &dl_sf, &grant);
     float        coderate = srslte_coderate(pdsch.tbs[0] * 8, nof_re);
     srslte_mod_t mod      = srslte_ra_dl_mod_from_mcs(pdsch.dci.tb[0].mcs_idx, ue_ctxt.ue_cfg.use_tbs_index_alt);
     uint32_t     max_Qm   = ue_ctxt.ue_cfg.use_tbs_index_alt ? 8 : 6;
@@ -112,7 +112,7 @@ int test_pdsch_grant(const sim_enb_ctxt_t&                   enb_ctxt,
   // TEST: PUCCH-ACK will not collide with SR
   CONDERROR(not has_pusch_grant and is_pucch_sr_collision(ue_ctxt.ue_cfg.pucch_cfg,
                                                           to_tx_dl_ack(sf_out.tti_rx),
-                                                          pdsch.dci.location.ncce + cell_params.n1pucch_an),
+                                                          pdsch.dci.location.ncce + cell_params.cfg.n1pucch_an),
             "Collision detected between UE PUCCH-ACK and SR");
 
   return SRSLTE_SUCCESS;
@@ -120,7 +120,7 @@ int test_pdsch_grant(const sim_enb_ctxt_t&                   enb_ctxt,
 
 int test_dl_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
 {
-  for (uint32_t cc = 0; cc < enb_ctxt.cell_params->size(); ++cc) {
+  for (uint32_t cc = 0; cc < enb_ctxt.cell_params.size(); ++cc) {
     for (uint32_t i = 0; i < sf_out.dl_cc_result[cc].nof_data_elems; ++i) {
       const sched_interface::dl_sched_data_t& data = sf_out.dl_cc_result[cc].data[i];
       CONDERROR(
@@ -135,7 +135,7 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
 {
   uint32_t pid = to_tx_ul(sf_out.tti_rx).to_uint() % (FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS);
 
-  for (size_t cc = 0; cc < enb_ctxt.cell_params->size(); ++cc) {
+  for (size_t cc = 0; cc < enb_ctxt.cell_params.size(); ++cc) {
     const auto* phich_begin = &sf_out.ul_cc_result[cc].phich[0];
     const auto* phich_end   = &sf_out.ul_cc_result[cc].phich[sf_out.ul_cc_result[cc].nof_phich_elems];
     const auto* pusch_begin = &sf_out.ul_cc_result[cc].pusch[0];
@@ -228,7 +228,7 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
 
 int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
 {
-  for (uint32_t cc = 0; cc < enb_ctxt.cell_params->size(); ++cc) {
+  for (uint32_t cc = 0; cc < enb_ctxt.cell_params.size(); ++cc) {
     const auto& dl_cc_res = sf_out.dl_cc_result[cc];
     const auto& ul_cc_res = sf_out.ul_cc_result[cc];
     for (const auto& ue_pair : enb_ctxt.ue_db) {
@@ -242,7 +242,7 @@ int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
       }
 
       // TEST: RAR allocation
-      uint32_t             rar_win_size = (*enb_ctxt.cell_params)[cc].prach_rar_window;
+      uint32_t             rar_win_size = enb_ctxt.cell_params[cc].cfg.prach_rar_window;
       srslte::tti_interval rar_window{ue.prach_tti_rx + 3, ue.prach_tti_rx + 3 + rar_win_size};
       srslte::tti_point    tti_tx_dl = to_tx_dl(sf_out.tti_rx);
 
@@ -365,7 +365,7 @@ bool is_in_measgap(srslte::tti_point tti, uint32_t period, uint32_t offset)
 
 int test_meas_gaps(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
 {
-  for (uint32_t cc = 0; cc < enb_ctxt.cell_params->size(); ++cc) {
+  for (uint32_t cc = 0; cc < enb_ctxt.cell_params.size(); ++cc) {
     const auto& dl_cc_res = sf_out.dl_cc_result[cc];
     const auto& ul_cc_res = sf_out.ul_cc_result[cc];
     for (const auto& ue_pair : enb_ctxt.ue_db) {
