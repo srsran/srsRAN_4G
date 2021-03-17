@@ -17,6 +17,7 @@
 #include "sched_phy_ch/sf_cch_allocator.h"
 #include "sched_ue.h"
 #include "srslte/adt/bounded_bitset.h"
+#include "srslte/adt/circular_array.h"
 #include "srslte/srslog/srslog.h"
 #include <deque>
 #include <vector>
@@ -50,43 +51,61 @@ struct alloc_outcome_t {
 
 //! Result of a Subframe sched computation
 struct cc_sched_result {
-  tti_point                       tti_rx;
-  sched_interface::dl_sched_res_t dl_sched_result = {};
-  sched_interface::ul_sched_res_t ul_sched_result = {};
+  bool                            generated       = false;
   rbgmask_t                       dl_mask         = {}; ///< Accumulation of all DL RBG allocations
   prbmask_t                       ul_mask         = {}; ///< Accumulation of all UL PRB allocations
   pdcch_mask_t                    pdcch_mask      = {}; ///< Accumulation of all CCE allocations
-
-  bool is_generated(tti_point tti_rx_) const { return tti_rx == tti_rx_; }
+  sched_interface::dl_sched_res_t dl_sched_result = {};
+  sched_interface::ul_sched_res_t ul_sched_result = {};
 };
 
 struct sf_sched_result {
-  srslte::tti_point            tti_rx;
+  tti_point                    tti_rx;
   std::vector<cc_sched_result> enb_cc_list;
 
-  cc_sched_result*       new_cc(uint32_t enb_cc_idx);
+  void new_tti(tti_point tti_rx);
+  bool is_generated(uint32_t enb_cc_idx) const
+  {
+    return enb_cc_list.size() > enb_cc_idx and enb_cc_list[enb_cc_idx].generated;
+  }
   const cc_sched_result* get_cc(uint32_t enb_cc_idx) const
   {
-    return enb_cc_idx < enb_cc_list.size() ? &enb_cc_list[enb_cc_idx] : nullptr;
+    assert(enb_cc_idx < enb_cc_list.size());
+    return &enb_cc_list[enb_cc_idx];
   }
   cc_sched_result* get_cc(uint32_t enb_cc_idx)
   {
-    return enb_cc_idx < enb_cc_list.size() ? &enb_cc_list[enb_cc_idx] : nullptr;
+    assert(enb_cc_idx < enb_cc_list.size());
+    return &enb_cc_list[enb_cc_idx];
   }
   bool is_ul_alloc(uint16_t rnti) const;
   bool is_dl_alloc(uint16_t rnti) const;
 };
 
-struct sched_result_list {
+struct sched_result_ringbuffer {
 public:
-  sf_sched_result*       new_tti(srslte::tti_point tti_rx);
-  sf_sched_result*       get_sf(srslte::tti_point tti_rx);
-  const sf_sched_result* get_sf(srslte::tti_point tti_rx) const;
-  const cc_sched_result* get_cc(srslte::tti_point tti_rx, uint32_t enb_cc_idx) const;
-  cc_sched_result*       get_cc(srslte::tti_point tti_rx, uint32_t enb_cc_idx);
+  void             set_nof_carriers(uint32_t nof_carriers);
+  void             new_tti(srslte::tti_point tti_rx);
+  bool             has_sf(srslte::tti_point tti_rx) const { return results[tti_rx.to_uint()].tti_rx == tti_rx; }
+  sf_sched_result* get_sf(srslte::tti_point tti_rx)
+  {
+    assert(has_sf(tti_rx));
+    return &results[tti_rx.to_uint()];
+  }
+  const sf_sched_result* get_sf(srslte::tti_point tti_rx) const
+  {
+    assert(has_sf(tti_rx));
+    return &results[tti_rx.to_uint()];
+  }
+  const cc_sched_result* get_cc(srslte::tti_point tti_rx, uint32_t enb_cc_idx) const
+  {
+    return get_sf(tti_rx)->get_cc(enb_cc_idx);
+  }
+  cc_sched_result* get_cc(srslte::tti_point tti_rx, uint32_t enb_cc_idx) { return get_sf(tti_rx)->get_cc(enb_cc_idx); }
 
 private:
-  std::array<sf_sched_result, TTIMOD_SZ> results;
+  uint32_t                                           nof_carriers = 1;
+  srslte::circular_array<sf_sched_result, TTIMOD_SZ> results;
 };
 
 /// manages a subframe grid resources, namely CCE and DL/UL RB allocations
@@ -205,7 +224,7 @@ public:
   alloc_outcome_t
        alloc_ul(sched_ue* user, prb_interval alloc, ul_alloc_t::type_t alloc_type, bool is_msg3 = false, int msg3_mcs = -1);
   bool reserve_ul_prbs(const prbmask_t& ulmask, bool strict) { return tti_alloc.reserve_ul_prbs(ulmask, strict); }
-  bool alloc_phich(sched_ue* user, sched_interface::ul_sched_res_t* ul_sf_result);
+  bool alloc_phich(sched_ue* user);
 
   // compute DCIs and generate dl_sched_result/ul_sched_result for a given TTI
   void generate_sched_results(sched_ue_list& ue_db);

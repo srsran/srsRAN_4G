@@ -139,7 +139,6 @@ int sched_tester::process_results()
 {
   const srsenb::cc_sched_result* cc_result = sched_results.get_cc(tti_rx, CARRIER_IDX);
   srsenb::sf_output_res_t        sf_out{sched_cell_params, tti_rx, tti_info.ul_sched_result, tti_info.dl_sched_result};
-  TESTASSERT(tti_rx == cc_result->tti_rx);
 
   // Common tests
   TESTASSERT(test_pdcch_collisions(sf_out, CARRIER_IDX, &cc_result->pdcch_mask) == SRSLTE_SUCCESS);

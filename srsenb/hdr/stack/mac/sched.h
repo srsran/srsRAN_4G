@@ -97,11 +97,11 @@ protected:
   std::vector<std::unique_ptr<carrier_sched> > carrier_schedulers;
 
   // Storage of past scheduling results
-  sched_result_list sched_results;
+  sched_result_ringbuffer sched_results;
 
   srslte::tti_point last_tti;
   std::mutex        sched_mutex;
-  std::atomic<bool> configured;
+  bool              configured;
 };
 
 } // namespace srsenb

@@ -28,7 +28,7 @@ public:
   explicit carrier_sched(rrc_interface_mac*                              rrc_,
                          std::map<uint16_t, std::unique_ptr<sched_ue> >* ue_db_,
                          uint32_t                                        enb_cc_idx_,
-                         sched_result_list*                              sched_results_);
+                         sched_result_ringbuffer*                        sched_results_);
   ~carrier_sched();
   void                   reset();
   void                   carrier_cfg(const sched_cell_params_t& sched_params_);
@@ -57,10 +57,10 @@ private:
   const uint32_t                                  enb_cc_idx;
 
   // Subframe scheduling logic
-  std::array<sf_sched, TTIMOD_SZ> sf_scheds;
+  srslte::circular_array<sf_sched, TTIMOD_SZ> sf_scheds;
 
   // scheduling results
-  sched_result_list* prev_sched_results;
+  sched_result_ringbuffer* prev_sched_results;
 
   std::vector<uint8_t> sf_dl_mask; ///< Some TTIs may be forbidden for DL sched due to MBMS
 

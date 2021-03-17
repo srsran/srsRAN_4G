@@ -68,6 +68,8 @@ int sched::cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg)
     }
   }
 
+  sched_results.set_nof_carriers(cell_cfg.size());
+
   // Create remaining cells, if not created yet
   uint32_t prev_size = carrier_schedulers.size();
   carrier_schedulers.resize(sched_cell_params.size());
@@ -80,7 +82,7 @@ int sched::cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg)
     carrier_schedulers[i]->carrier_cfg(sched_cell_params[i]);
   }
 
-  configured.store(true, std::memory_order_release);
+  configured = true;
   return 0;
 }
 
@@ -287,11 +289,10 @@ std::array<bool, SRSLTE_MAX_CARRIERS> sched::get_scell_activation_mask(uint16_t 
 // Downlink Scheduler API
 int sched::dl_sched(uint32_t tti_tx_dl, uint32_t enb_cc_idx, sched_interface::dl_sched_res_t& sched_result)
 {
-  if (not configured.load(std::memory_order_acquire)) {
+  std::lock_guard<std::mutex> lock(sched_mutex);
+  if (not configured) {
     return 0;
   }
-
-  std::lock_guard<std::mutex> lock(sched_mutex);
   if (enb_cc_idx >= carrier_schedulers.size()) {
     return 0;
   }
@@ -308,11 +309,10 @@ int sched::dl_sched(uint32_t tti_tx_dl, uint32_t enb_cc_idx, sched_interface::dl
 // Uplink Scheduler API
 int sched::ul_sched(uint32_t tti, uint32_t enb_cc_idx, srsenb::sched_interface::ul_sched_res_t& sched_result)
 {
-  if (not configured.load(std::memory_order_acquire)) {
+  std::lock_guard<std::mutex> lock(sched_mutex);
+  if (not configured) {
     return 0;
   }
-
-  std::lock_guard<std::mutex> lock(sched_mutex);
   if (enb_cc_idx >= carrier_schedulers.size()) {
     return 0;
   }
@@ -346,9 +346,7 @@ void sched::new_tti(tti_point tti_rx)
 /// Check if TTI result is generated
 bool sched::is_generated(srslte::tti_point tti_rx, uint32_t enb_cc_idx) const
 {
-  const sf_sched_result* sf_result = sched_results.get_sf(tti_rx);
-  return sf_result != nullptr and sf_result->get_cc(enb_cc_idx) != nullptr and
-         sf_result->get_cc(enb_cc_idx)->is_generated(tti_rx);
+  return sched_results.has_sf(tti_rx) and sched_results.get_sf(tti_rx)->is_generated(enb_cc_idx);
 }
 
 // Common way to access ue_db elements in a read locking way

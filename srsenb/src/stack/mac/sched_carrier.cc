@@ -322,10 +322,10 @@ void ra_sched::reset()
  *                 Carrier scheduling
  *******************************************************/
 
-sched::carrier_sched::carrier_sched(rrc_interface_mac* rrc_,
-                                    sched_ue_list*     ue_db_,
-                                    uint32_t           enb_cc_idx_,
-                                    sched_result_list* sched_results_) :
+sched::carrier_sched::carrier_sched(rrc_interface_mac*       rrc_,
+                                    sched_ue_list*           ue_db_,
+                                    uint32_t                 enb_cc_idx_,
+                                    sched_result_ringbuffer* sched_results_) :
   rrc(rrc_),
   ue_db(ue_db_),
   logger(srslog::fetch_basic_logger("MAC")),
@@ -376,7 +376,7 @@ const cc_sched_result& sched::carrier_sched::generate_tti_result(tti_point tti_r
 {
   sf_sched*        tti_sched = get_sf_sched(tti_rx);
   sf_sched_result* sf_result = prev_sched_results->get_sf(tti_rx);
-  cc_sched_result* cc_result = sf_result->new_cc(enb_cc_idx);
+  cc_sched_result* cc_result = sf_result->get_cc(enb_cc_idx);
 
   bool dl_active = sf_dl_mask[tti_sched->get_tti_tx_dl().to_uint() % sf_dl_mask.size()] == 0;
 
@@ -390,7 +390,7 @@ const cc_sched_result& sched::carrier_sched::generate_tti_result(tti_point tti_r
     if (cc_result->ul_sched_result.nof_phich_elems >= MAX_PHICH_LIST) {
       break;
     }
-    tti_sched->alloc_phich(ue_pair.second.get(), &cc_result->ul_sched_result);
+    tti_sched->alloc_phich(ue_pair.second.get());
   }
 
   /* Schedule DL control data */
@@ -460,13 +460,13 @@ int sched::carrier_sched::alloc_ul_users(sf_sched* tti_sched)
 
 sf_sched* sched::carrier_sched::get_sf_sched(tti_point tti_rx)
 {
-  sf_sched* ret = &sf_scheds[tti_rx.to_uint() % sf_scheds.size()];
+  sf_sched* ret = &sf_scheds[tti_rx.to_uint()];
   if (ret->get_tti_rx() != tti_rx) {
-    sf_sched_result* sf_res = prev_sched_results->get_sf(tti_rx);
-    if (sf_res == nullptr) {
+    if (not prev_sched_results->has_sf(tti_rx)) {
       // Reset if tti_rx has not been yet set in the sched results
-      sf_res = prev_sched_results->new_tti(tti_rx);
+      prev_sched_results->new_tti(tti_rx);
     }
+    sf_sched_result* sf_res = prev_sched_results->get_sf(tti_rx);
     // start new TTI for the given CC.
     ret->new_tti(tti_rx, sf_res);
   }

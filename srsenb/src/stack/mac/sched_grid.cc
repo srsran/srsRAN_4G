@@ -51,12 +51,13 @@ const char* alloc_outcome_t::to_string() const
   return "unknown error";
 }
 
-cc_sched_result* sf_sched_result::new_cc(uint32_t enb_cc_idx)
+void sf_sched_result::new_tti(tti_point tti_rx_)
 {
-  if (enb_cc_idx >= enb_cc_list.size()) {
-    enb_cc_list.resize(enb_cc_idx + 1);
+  assert(tti_rx != tti_rx_);
+  tti_rx = tti_rx_;
+  for (auto& cc : enb_cc_list) {
+    cc = {};
   }
-  return &enb_cc_list[enb_cc_idx];
 }
 
 bool sf_sched_result::is_ul_alloc(uint16_t rnti) const
@@ -82,36 +83,18 @@ bool sf_sched_result::is_dl_alloc(uint16_t rnti) const
   return false;
 }
 
-sf_sched_result* sched_result_list::new_tti(srslte::tti_point tti_rx)
+void sched_result_ringbuffer::set_nof_carriers(uint32_t nof_carriers_)
 {
-  sf_sched_result* res = &results[tti_rx.to_uint() % results.size()];
-  res->tti_rx          = tti_rx;
-  res->enb_cc_list.clear();
-  return res;
+  nof_carriers = nof_carriers_;
+  for (auto& sf_res : results) {
+    sf_res.enb_cc_list.resize(nof_carriers_);
+  }
 }
 
-sf_sched_result* sched_result_list::get_sf(srslte::tti_point tti_rx)
+void sched_result_ringbuffer::new_tti(srslte::tti_point tti_rx)
 {
-  sf_sched_result* res = &results[tti_rx.to_uint() % results.size()];
-  return (res->tti_rx != tti_rx) ? nullptr : res;
-}
-
-const sf_sched_result* sched_result_list::get_sf(srslte::tti_point tti_rx) const
-{
-  const sf_sched_result* res = &results[tti_rx.to_uint() % results.size()];
-  return (res->tti_rx != tti_rx) ? nullptr : res;
-}
-
-const cc_sched_result* sched_result_list::get_cc(srslte::tti_point tti_rx, uint32_t enb_cc_idx) const
-{
-  const sf_sched_result* res = get_sf(tti_rx);
-  return res != nullptr ? res->get_cc(enb_cc_idx) : nullptr;
-}
-
-cc_sched_result* sched_result_list::get_cc(srslte::tti_point tti_rx, uint32_t enb_cc_idx)
-{
-  sf_sched_result* res = get_sf(tti_rx);
-  return res != nullptr ? res->get_cc(enb_cc_idx) : nullptr;
+  sf_sched_result* res = &results[tti_rx.to_uint()];
+  res->new_tti(tti_rx);
 }
 
 /*******************************************************
@@ -634,14 +617,16 @@ alloc_outcome_t sf_sched::alloc_ul_user(sched_ue* user, prb_interval alloc)
   return alloc_ul(user, alloc, alloc_type, h->is_msg3());
 }
 
-bool sf_sched::alloc_phich(sched_ue* user, sched_interface::ul_sched_res_t* ul_sf_result)
+bool sf_sched::alloc_phich(sched_ue* user)
 {
+  using phich_t = sched_interface::ul_sched_phich_t;
+
+  auto* ul_sf_result = &cc_results->get_cc(cc_cfg->enb_cc_idx)->ul_sched_result;
   if (ul_sf_result->nof_phich_elems >= sched_interface::MAX_PHICH_LIST) {
     logger.warning("SCHED: Maximum number of PHICH allocations has been reached");
     return false;
   }
-  using phich_t    = sched_interface::ul_sched_phich_t;
-  auto& phich_list = ul_sf_result->phich[ul_sf_result->nof_phich_elems];
+  phich_t& phich_item = ul_sf_result->phich[ul_sf_result->nof_phich_elems];
 
   auto p = user->get_active_cell_index(cc_cfg->enb_cc_idx);
   if (not p.first) {
@@ -653,8 +638,8 @@ bool sf_sched::alloc_phich(sched_ue* user, sched_interface::ul_sched_res_t* ul_s
 
   /* Indicate PHICH acknowledgment if needed */
   if (h->has_pending_phich()) {
-    phich_list.phich = h->pop_pending_phich() ? phich_t::ACK : phich_t::NACK;
-    phich_list.rnti  = user->get_rnti();
+    phich_item.phich = h->pop_pending_phich() ? phich_t::ACK : phich_t::NACK;
+    phich_item.rnti  = user->get_rnti();
     ul_sf_result->nof_phich_elems++;
     return true;
   }
@@ -968,9 +953,9 @@ void sf_sched::generate_sched_results(sched_ue_list& ue_db)
   set_ul_sched_result(dci_result, &cc_result->ul_sched_result, ue_db);
 
   /* Store remaining sf_sched results for this TTI */
-  cc_result->dl_mask = tti_alloc.get_dl_mask();
-  cc_result->ul_mask = tti_alloc.get_ul_mask();
-  cc_result->tti_rx  = get_tti_rx();
+  cc_result->dl_mask   = tti_alloc.get_dl_mask();
+  cc_result->ul_mask   = tti_alloc.get_ul_mask();
+  cc_result->generated = true;
 }
 
 uint32_t sf_sched::get_nof_ctrl_symbols() const
