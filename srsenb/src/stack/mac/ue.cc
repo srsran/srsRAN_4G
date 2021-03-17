@@ -275,7 +275,6 @@ uint8_t* ue::request_buffer(uint32_t tti, uint32_t ue_cc_idx, const uint32_t len
   uint8_t*                     pdu = nullptr;
   if (len > 0) {
     pdu = cc_buffers[ue_cc_idx].get_rx_used_buffers().request_pdu(tti_point(tti), len);
-    logger.info("request_buffer: allocated for rnti=0x%x, tti=%d", rnti, tti);
   } else {
     logger.error("UE buffers: Requesting buffer for zero bytes");
   }
