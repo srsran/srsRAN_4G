@@ -336,8 +336,8 @@ void log_broadcast_allocation(const sched_interface::dl_sched_bc_t& bc,
                            bc.dci.tb[0].mcs_idx);
   } else {
     get_mac_logger().info("SCHED: PCH, cc=%d, rbgs=%s, dci=(%d,%d), tbs=%d, mcs=%d",
-                          srslte::to_c_str(str_buffer),
                           cell_params.enb_cc_idx,
+                          srslte::to_c_str(str_buffer),
                           bc.dci.location.L,
                           bc.dci.location.ncce,
                           bc.tbs,
