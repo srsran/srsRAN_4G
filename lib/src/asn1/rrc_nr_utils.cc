@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -194,6 +194,521 @@ srsran::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue
   return cfg;
 }
 
+bool make_phy_tdd_cfg(const tdd_ul_dl_cfg_common_s& tdd_ul_dl_cfg_common,
+                      srsran_tdd_config_nr_t*       in_srsran_tdd_config_nr)
+{
+  srsran_tdd_config_nr_t srsran_tdd_config_nr = {};
+  switch (tdd_ul_dl_cfg_common.pattern1.dl_ul_tx_periodicity) {
+    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms1:
+      srsran_tdd_config_nr.pattern1.period_ms = 1;
+      break;
+    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms2:
+      srsran_tdd_config_nr.pattern1.period_ms = 2;
+      break;
+    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms5:
+      srsran_tdd_config_nr.pattern1.period_ms = 5;
+      break;
+    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms10:
+      srsran_tdd_config_nr.pattern1.period_ms = 10;
+      break;
+
+    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms1p25:
+    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms0p5:
+    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms0p625:
+    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms2p5:
+    default:
+      asn1::log_warning("Invalid option for dl_ul_tx_periodicity_opts %s",
+                        tdd_ul_dl_cfg_common.pattern1.dl_ul_tx_periodicity.to_string());
+      return false;
+  }
+  srsran_tdd_config_nr.pattern1.nof_dl_slots   = tdd_ul_dl_cfg_common.pattern1.nrof_dl_slots;
+  srsran_tdd_config_nr.pattern1.nof_dl_symbols = tdd_ul_dl_cfg_common.pattern1.nrof_dl_symbols;
+  srsran_tdd_config_nr.pattern1.nof_ul_slots   = tdd_ul_dl_cfg_common.pattern1.nrof_ul_slots;
+  srsran_tdd_config_nr.pattern1.nof_ul_symbols = tdd_ul_dl_cfg_common.pattern1.nrof_ul_symbols;
+  // Copy and return struct
+  *in_srsran_tdd_config_nr = srsran_tdd_config_nr;
+  return true;
+}
+
+bool make_phy_harq_ack_cfg(const phys_cell_group_cfg_s&    phys_cell_group_cfg,
+                           srsran_ue_dl_nr_harq_ack_cfg_t* in_srsran_ue_dl_nr_harq_ack_cfg)
+{
+  srsran_ue_dl_nr_harq_ack_cfg_t srsran_ue_dl_nr_harq_ack_cfg;
+  switch (phys_cell_group_cfg.pdsch_harq_ack_codebook) {
+    case phys_cell_group_cfg_s::pdsch_harq_ack_codebook_opts::dynamic_value:
+      srsran_ue_dl_nr_harq_ack_cfg.pdsch_harq_ack_codebook = srsran_pdsch_harq_ack_codebook_dynamic;
+      break;
+    case phys_cell_group_cfg_s::pdsch_harq_ack_codebook_opts::semi_static:
+      srsran_ue_dl_nr_harq_ack_cfg.pdsch_harq_ack_codebook = srsran_pdsch_harq_ack_codebook_semi_static;
+      break;
+    case phys_cell_group_cfg_s::pdsch_harq_ack_codebook_opts::nulltype:
+      srsran_ue_dl_nr_harq_ack_cfg.pdsch_harq_ack_codebook = srsran_pdsch_harq_ack_codebook_none;
+      break;
+    default:
+      asn1::log_warning("Invalid option for pdsch_harq_ack_codebook %s",
+                        phys_cell_group_cfg.pdsch_harq_ack_codebook.to_string());
+      return false;
+  }
+  *in_srsran_ue_dl_nr_harq_ack_cfg = srsran_ue_dl_nr_harq_ack_cfg;
+  return true;
+}
+
+bool make_phy_search_space_cfg(const search_space_s& search_space, srsran_search_space_t* in_srsran_search_space)
+{
+  srsran_search_space_t srsran_search_space = {};
+  srsran_search_space.id                    = search_space.search_space_id;
+  if (not search_space.ctrl_res_set_id_present) {
+    asn1::log_warning("ctrl_res_set_id option not present");
+    return false;
+  }
+  srsran_search_space.coreset_id = search_space.ctrl_res_set_id;
+
+  if (not search_space.nrof_candidates_present) {
+    asn1::log_warning("nrof_candidates_present option not present");
+    return false;
+  }
+  srsran_search_space.nof_candidates[0] = search_space.nrof_candidates.aggregation_level1.value;
+  srsran_search_space.nof_candidates[1] = search_space.nrof_candidates.aggregation_level2.value;
+  srsran_search_space.nof_candidates[2] = search_space.nrof_candidates.aggregation_level4.value;
+  srsran_search_space.nof_candidates[3] = search_space.nrof_candidates.aggregation_level8.value;
+  srsran_search_space.nof_candidates[4] = search_space.nrof_candidates.aggregation_level16.value;
+
+  if (not search_space.search_space_type_present) {
+    asn1::log_warning("nrof_candidates option not present");
+    return false;
+  }
+  switch (search_space.search_space_type.type()) {
+    case search_space_s::search_space_type_c_::types_opts::options::common:
+      srsran_search_space.type = srsran_search_space_type_common_3;
+      break;
+    case search_space_s::search_space_type_c_::types_opts::options::ue_specific:
+      srsran_search_space.type = srsran_search_space_type_ue;
+      break;
+    default:
+      asn1::log_warning("Invalid option for search_space_type %s", search_space.search_space_type.type().to_string());
+      return false;
+  }
+  // Copy struct and return value
+  *in_srsran_search_space = srsran_search_space;
+  return true;
+}
+
+bool make_phy_csi_report(const csi_report_cfg_s&     csi_report_cfg,
+                         srsran_csi_hl_report_cfg_t* in_srsran_csi_hl_report_cfg)
+{
+  srsran_csi_hl_report_cfg_t srsran_csi_hl_report_cfg = {};
+  switch (csi_report_cfg.report_cfg_type.type()) {
+    case csi_report_cfg_s::report_cfg_type_c_::types_opts::options::nulltype:
+      srsran_csi_hl_report_cfg.type = SRSRAN_CSI_REPORT_TYPE_NONE;
+      break;
+    case csi_report_cfg_s::report_cfg_type_c_::types_opts::options::periodic:
+      srsran_csi_hl_report_cfg.type = SRSRAN_CSI_REPORT_TYPE_PERIODIC;
+      break;
+    case csi_report_cfg_s::report_cfg_type_c_::types_opts::options::aperiodic:
+      srsran_csi_hl_report_cfg.type = SRSRAN_CSI_REPORT_TYPE_APERIODIC;
+      break;
+    case csi_report_cfg_s::report_cfg_type_c_::types_opts::options::semi_persistent_on_pucch:
+      srsran_csi_hl_report_cfg.type = SRSRAN_CSI_REPORT_TYPE_SEMI_PERSISTENT_ON_PUCCH;
+      break;
+    case csi_report_cfg_s::report_cfg_type_c_::types_opts::options::semi_persistent_on_pusch:
+      srsran_csi_hl_report_cfg.type = SRSRAN_CSI_REPORT_TYPE_SEMI_PERSISTENT_ON_PUSCH;
+      break;
+    default:
+      asn1::log_warning("Invalid option for report_cfg_type %s", csi_report_cfg.report_cfg_type.type().to_string());
+      return false;
+  }
+
+  if (srsran_csi_hl_report_cfg.type = SRSRAN_CSI_REPORT_TYPE_PERIODIC) {
+    srsran_csi_hl_report_cfg.periodic.period =
+        csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.type().to_number();
+    switch (csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.type()) {
+      case csi_report_periodicity_and_offset_c::types_opts::slots4:
+        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots4();
+        break;
+      case csi_report_periodicity_and_offset_c::types_opts::slots5:
+        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots5();
+        break;
+      case csi_report_periodicity_and_offset_c::types_opts::slots8:
+        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots8();
+        break;
+      case csi_report_periodicity_and_offset_c::types_opts::slots10:
+        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots10();
+        break;
+      case csi_report_periodicity_and_offset_c::types_opts::slots16:
+        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots16();
+        break;
+      case csi_report_periodicity_and_offset_c::types_opts::slots20:
+        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots20();
+        break;
+      case csi_report_periodicity_and_offset_c::types_opts::slots40:
+        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots40();
+        break;
+      case csi_report_periodicity_and_offset_c::types_opts::slots80:
+        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots80();
+        break;
+      case csi_report_periodicity_and_offset_c::types_opts::slots160:
+        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots160();
+        break;
+      case csi_report_periodicity_and_offset_c::types_opts::slots320:
+        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots320();
+        break;
+      default:
+        asn1::log_warning("Invalid option for report_slot_cfg %s",
+                          csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.type().to_string());
+        return false;
+    }
+  }
+
+  srsran_csi_hl_report_cfg.channel_meas_id = csi_report_cfg.res_for_ch_meas;
+
+  srsran_csi_hl_report_cfg.interf_meas_present = csi_report_cfg.csi_im_res_for_interference_present;
+  srsran_csi_hl_report_cfg.interf_meas_id      = csi_report_cfg.csi_im_res_for_interference;
+
+  switch (csi_report_cfg.report_quant.type()) {
+    case csi_report_cfg_s::report_quant_c_::types_opts::none:
+      srsran_csi_hl_report_cfg.quantity = SRSRAN_CSI_REPORT_QUANTITY_NONE;
+      break;
+    case csi_report_cfg_s::report_quant_c_::types_opts::cri_ri_pmi_cqi:
+      srsran_csi_hl_report_cfg.quantity = SRSRAN_CSI_REPORT_QUANTITY_CRI_RI_PMI_CQI;
+      break;
+    case csi_report_cfg_s::report_quant_c_::types_opts::cri_ri_i1:
+      srsran_csi_hl_report_cfg.quantity = SRSRAN_CSI_REPORT_QUANTITY_CRI_RI_I1;
+      break;
+    case csi_report_cfg_s::report_quant_c_::types_opts::cri_ri_i1_cqi:
+      srsran_csi_hl_report_cfg.quantity = SRSRAN_CSI_REPORT_QUANTITY_CRI_RI_I1_CQI;
+      break;
+    case csi_report_cfg_s::report_quant_c_::types_opts::cri_ri_cqi:
+      srsran_csi_hl_report_cfg.quantity = SRSRAN_CSI_REPORT_QUANTITY_CRI_RI_CQI;
+      break;
+    case csi_report_cfg_s::report_quant_c_::types_opts::cri_rsrp:
+      srsran_csi_hl_report_cfg.quantity = SRSRAN_CSI_REPORT_QUANTITY_CRI_RSRP;
+      break;
+    case csi_report_cfg_s::report_quant_c_::types_opts::ssb_idx_rsrp:
+      srsran_csi_hl_report_cfg.quantity = SRSRAN_CSI_REPORT_QUANTITY_SSB_INDEX_RSRP;
+      break;
+    case csi_report_cfg_s::report_quant_c_::types_opts::cri_ri_li_pmi_cqi:
+      srsran_csi_hl_report_cfg.quantity = SRSRAN_CSI_REPORT_QUANTITY_CRI_RI_LI_PMI_CQI;
+      break;
+    default:
+      asn1::log_warning("Invalid option for report_quant %s", csi_report_cfg.report_quant.type().to_string());
+      return false;
+  }
+
+  if (not csi_report_cfg.report_freq_cfg_present) {
+    asn1::log_warning("report_freq_cfg_present option not present");
+    return false;
+  }
+
+  if (not csi_report_cfg.report_freq_cfg.cqi_format_ind_present) {
+    asn1::log_warning("cqi_format_ind option not present");
+    return false;
+  }
+
+  switch (csi_report_cfg.report_freq_cfg.cqi_format_ind) {
+    case csi_report_cfg_s::report_freq_cfg_s_::cqi_format_ind_opts::wideband_cqi:
+      srsran_csi_hl_report_cfg.freq_cfg = SRSRAN_CSI_REPORT_FREQ_WIDEBAND;
+      break;
+    case csi_report_cfg_s::report_freq_cfg_s_::cqi_format_ind_opts::subband_cqi:
+      srsran_csi_hl_report_cfg.freq_cfg = SRSRAN_CSI_REPORT_FREQ_SUBBAND;
+      break;
+    default:
+      asn1::log_warning("Invalid option for cqi_format_ind %s",
+                        csi_report_cfg.report_freq_cfg.cqi_format_ind.to_string());
+      return false;
+
+      break;
+  }
+
+  if (not csi_report_cfg.cqi_table_present) {
+    asn1::log_warning("cqi_table_present not present");
+    return false;
+  }
+
+  switch (csi_report_cfg.cqi_table) {
+    case csi_report_cfg_s::cqi_table_opts::table1:
+      srsran_csi_hl_report_cfg.cqi_table = SRSRAN_CSI_CQI_TABLE_1;
+      break;
+    case csi_report_cfg_s::cqi_table_opts::table2:
+      srsran_csi_hl_report_cfg.cqi_table = SRSRAN_CSI_CQI_TABLE_2;
+      break;
+    case csi_report_cfg_s::cqi_table_opts::table3:
+      srsran_csi_hl_report_cfg.cqi_table = SRSRAN_CSI_CQI_TABLE_3;
+      break;
+    default:
+      asn1::log_warning("Invalid option for cqi_table %s", csi_report_cfg.cqi_table.to_string());
+      return false;
+  }
+  *in_srsran_csi_hl_report_cfg = srsran_csi_hl_report_cfg;
+  return true;
+}
+
+bool make_phy_coreset_cfg(const ctrl_res_set_s& ctrl_res_set, srsran_coreset_t* in_srsran_coreset)
+{
+  srsran_coreset_t srsran_coreset = {};
+  srsran_coreset.coreset_id       = ctrl_res_set.ctrl_res_set_id;
+
+  switch (ctrl_res_set.precoder_granularity) {
+    case ctrl_res_set_s::precoder_granularity_opts::same_as_reg_bundle:
+      srsran_coreset.precoder_granularity = srsran_coreset_precoder_granularity_reg_bundle;
+      break;
+    case ctrl_res_set_s::precoder_granularity_opts::all_contiguous_rbs:
+      srsran_coreset.precoder_granularity = srsran_coreset_precoder_granularity_contiguous;
+    default:
+      asn1::log_warning("Invalid option for precoder_granularity %s", ctrl_res_set.precoder_granularity.to_string());
+      return false;
+  };
+  srsran_coreset.duration = ctrl_res_set.dur;
+  for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
+    srsran_coreset.freq_resources[i] = ctrl_res_set.freq_domain_res.get(SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE - 1 - i);
+  }
+  *in_srsran_coreset = srsran_coreset;
+  return true;
+}
+
+bool make_phy_common_time_ra(const pdsch_time_domain_res_alloc_s& pdsch_time_domain_res_alloc,
+                             srsran_sch_time_ra_t*                in_srsran_sch_time_ra)
+{
+  srsran_sch_time_ra_t srsran_sch_time_ra = {};
+  srsran_sch_time_ra.sliv                 = pdsch_time_domain_res_alloc.start_symbol_and_len;
+  switch (pdsch_time_domain_res_alloc.map_type) {
+    case pdsch_time_domain_res_alloc_s::map_type_opts::type_a:
+      srsran_sch_time_ra.mapping_type = srsran_sch_mapping_type_A;
+      break;
+    case pdsch_time_domain_res_alloc_s::map_type_opts::type_b:
+      srsran_sch_time_ra.mapping_type = srsran_sch_mapping_type_B;
+      break;
+    default:
+      asn1::log_warning("Invalid option for map_type: %s", pdsch_time_domain_res_alloc.map_type.to_string());
+      return false;
+  }
+
+  if (pdsch_time_domain_res_alloc.k0_present) {
+    srsran_sch_time_ra.k = pdsch_time_domain_res_alloc.k0;
+  } else {
+    srsran_sch_time_ra.k = 0;
+  }
+  *in_srsran_sch_time_ra = srsran_sch_time_ra;
+  return true;
+}
+
+bool make_phy_common_time_ra(const pusch_time_domain_res_alloc_s& pusch_time_domain_res_alloc,
+                             srsran_sch_time_ra_t*                in_srsran_sch_time_ra)
+{
+  srsran_sch_time_ra_t srsran_sch_time_ra = {};
+  srsran_sch_time_ra.sliv                 = pusch_time_domain_res_alloc.start_symbol_and_len;
+  switch (pusch_time_domain_res_alloc.map_type) {
+    case pusch_time_domain_res_alloc_s::map_type_opts::type_a:
+      srsran_sch_time_ra.mapping_type = srsran_sch_mapping_type_A;
+      break;
+    case pusch_time_domain_res_alloc_s::map_type_opts::type_b:
+      srsran_sch_time_ra.mapping_type = srsran_sch_mapping_type_B;
+      break;
+    default:
+      asn1::log_warning("Invalid option for map_type: %s", pusch_time_domain_res_alloc.map_type.to_string());
+      return false;
+  }
+
+  if (pusch_time_domain_res_alloc.k2_present) {
+    srsran_sch_time_ra.k = pusch_time_domain_res_alloc.k2;
+  } else {
+    srsran_sch_time_ra.k = 0;
+  }
+  *in_srsran_sch_time_ra = srsran_sch_time_ra;
+  return true;
+}
+
+bool make_phy_max_code_rate(const pucch_format_cfg_s& pucch_format_cfg, uint32_t* in_max_code_rate)
+{
+  if (not pucch_format_cfg.max_code_rate_present) {
+    asn1::log_warning("max_code_rate option not present");
+    return false;
+  }
+  *in_max_code_rate = pucch_format_cfg.max_code_rate.value;
+  return true;
+}
+
+bool make_phy_res_config(const pucch_res_s&          pucch_res,
+                         uint32_t                    format_2_max_code_rate,
+                         srsran_pucch_nr_resource_t* in_srsran_pucch_nr_resource)
+{
+  srsran_pucch_nr_resource_t srsran_pucch_nr_resource = {};
+  srsran_pucch_nr_resource.starting_prb               = pucch_res.start_prb;
+  switch (pucch_res.format.type()) {
+    case pucch_res_s::format_c_::types_opts::format0:
+      srsran_pucch_nr_resource.format = SRSRAN_PUCCH_NR_FORMAT_0;
+      break;
+    case pucch_res_s::format_c_::types_opts::format1:
+      srsran_pucch_nr_resource.format               = SRSRAN_PUCCH_NR_FORMAT_1;
+      srsran_pucch_nr_resource.initial_cyclic_shift = pucch_res.format.format1().init_cyclic_shift;
+      srsran_pucch_nr_resource.nof_symbols          = pucch_res.format.format1().nrof_symbols;
+      srsran_pucch_nr_resource.start_symbol_idx     = pucch_res.format.format1().start_symbol_idx;
+      srsran_pucch_nr_resource.time_domain_occ      = pucch_res.format.format1().time_domain_occ;
+      break;
+    case pucch_res_s::format_c_::types_opts::format2:
+      srsran_pucch_nr_resource.format           = SRSRAN_PUCCH_NR_FORMAT_2;
+      srsran_pucch_nr_resource.nof_symbols      = pucch_res.format.format2().nrof_symbols;
+      srsran_pucch_nr_resource.start_symbol_idx = pucch_res.format.format2().start_symbol_idx;
+      srsran_pucch_nr_resource.nof_prb          = pucch_res.format.format2().nrof_prbs;
+      break;
+    case pucch_res_s::format_c_::types_opts::format3:
+      srsran_pucch_nr_resource.format = SRSRAN_PUCCH_NR_FORMAT_3;
+      asn1::log_warning("SRSRAN_PUCCH_NR_FORMAT_3 conversion not supported");
+      return false;
+    case pucch_res_s::format_c_::types_opts::format4:
+      srsran_pucch_nr_resource.format = SRSRAN_PUCCH_NR_FORMAT_4;
+      asn1::log_warning("SRSRAN_PUCCH_NR_FORMAT_4 conversion not supported");
+      return false;
+    default:
+      srsran_pucch_nr_resource.format = SRSRAN_PUCCH_NR_FORMAT_ERROR;
+      return false;
+  }
+  srsran_pucch_nr_resource.max_code_rate = format_2_max_code_rate;
+  *in_srsran_pucch_nr_resource           = srsran_pucch_nr_resource;
+  return true;
+}
+
+bool make_phy_sr_resource(const sched_request_res_cfg_s& sched_request_res_cfg,
+                          srsran_pucch_nr_sr_resource_t* in_srsran_pucch_nr_sr_resource)
+{
+  srsran_pucch_nr_sr_resource_t srsran_pucch_nr_sr_resource = {};
+  srsran_pucch_nr_sr_resource.sr_id                         = sched_request_res_cfg.sched_request_id;
+  if (sched_request_res_cfg.periodicity_and_offset_present && sched_request_res_cfg.res_present) {
+    srsran_pucch_nr_sr_resource.configured = true;
+    switch (sched_request_res_cfg.periodicity_and_offset.type()) {
+      case sched_request_res_cfg_s::periodicity_and_offset_c_::types_opts::sl2:
+        srsran_pucch_nr_sr_resource.period = 2;
+        srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg.periodicity_and_offset.sl2();
+        break;
+      case sched_request_res_cfg_s::periodicity_and_offset_c_::types_opts::sl4:
+        srsran_pucch_nr_sr_resource.period = 4;
+        srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg.periodicity_and_offset.sl4();
+        break;
+      case sched_request_res_cfg_s::periodicity_and_offset_c_::types_opts::sl5:
+        srsran_pucch_nr_sr_resource.period = 5;
+        srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg.periodicity_and_offset.sl5();
+        break;
+      case sched_request_res_cfg_s::periodicity_and_offset_c_::types_opts::sl8:
+        srsran_pucch_nr_sr_resource.period = 8;
+        srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg.periodicity_and_offset.sl8();
+        break;
+      case sched_request_res_cfg_s::periodicity_and_offset_c_::types_opts::sl10:
+        srsran_pucch_nr_sr_resource.period = 10;
+        srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg.periodicity_and_offset.sl10();
+        break;
+      case sched_request_res_cfg_s::periodicity_and_offset_c_::types_opts::sl16:
+        srsran_pucch_nr_sr_resource.period = 16;
+        srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg.periodicity_and_offset.sl16();
+        break;
+      case sched_request_res_cfg_s::periodicity_and_offset_c_::types_opts::sl20:
+        srsran_pucch_nr_sr_resource.period = 20;
+        srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg.periodicity_and_offset.sl20();
+        break;
+      case sched_request_res_cfg_s::periodicity_and_offset_c_::types_opts::sl40:
+        srsran_pucch_nr_sr_resource.period = 40;
+        srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg.periodicity_and_offset.sl40();
+        break;
+      case sched_request_res_cfg_s::periodicity_and_offset_c_::types_opts::sl80:
+        srsran_pucch_nr_sr_resource.period = 80;
+        srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg.periodicity_and_offset.sl80();
+        break;
+      case sched_request_res_cfg_s::periodicity_and_offset_c_::types_opts::sl160:
+        srsran_pucch_nr_sr_resource.period = 160;
+        srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg.periodicity_and_offset.sl160();
+        break;
+      case sched_request_res_cfg_s::periodicity_and_offset_c_::types_opts::sl320:
+        srsran_pucch_nr_sr_resource.period = 320;
+        srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg.periodicity_and_offset.sl320();
+        break;
+      case sched_request_res_cfg_s::periodicity_and_offset_c_::types_opts::sl640:
+        srsran_pucch_nr_sr_resource.period = 640;
+        srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg.periodicity_and_offset.sl640();
+        break;
+      case sched_request_res_cfg_s::periodicity_and_offset_c_::types_opts::sym2:
+      case sched_request_res_cfg_s::periodicity_and_offset_c_::types_opts::sym6or7:
+      case sched_request_res_cfg_s::periodicity_and_offset_c_::types_opts::sl1:
+      default:
+        srsran_pucch_nr_sr_resource.configured = false;
+        asn1::log_warning("Invalid option for periodicity_and_offset %s",
+                          sched_request_res_cfg.periodicity_and_offset.type().to_string());
+        return false;
+    }
+
+  } else {
+    srsran_pucch_nr_sr_resource.configured = false;
+  }
+  *in_srsran_pucch_nr_sr_resource = srsran_pucch_nr_sr_resource;
+  return true;
+}
+
+bool make_phy_dmrs_additional_pos(const dmrs_ul_cfg_s&       dmrs_ul_cfg,
+                                  srsran_dmrs_sch_add_pos_t* in_srsran_dmrs_sch_add_pos)
+{
+  srsran_dmrs_sch_add_pos_t srsran_dmrs_sch_add_pos = {};
+  if (not dmrs_ul_cfg.dmrs_add_position_present) {
+    asn1::log_warning("dmrs_add_position option not present");
+  }
+
+  switch (dmrs_ul_cfg.dmrs_add_position) {
+    case dmrs_ul_cfg_s::dmrs_add_position_opts::pos0:
+      srsran_dmrs_sch_add_pos = srsran_dmrs_sch_add_pos_0;
+      break;
+    case dmrs_ul_cfg_s::dmrs_add_position_opts::pos1:
+      srsran_dmrs_sch_add_pos = srsran_dmrs_sch_add_pos_1;
+      break;
+    case dmrs_ul_cfg_s::dmrs_add_position_opts::pos3:
+      srsran_dmrs_sch_add_pos = srsran_dmrs_sch_add_pos_3;
+      break;
+    default:
+      asn1::log_warning("Invalid option for dmrs_add_position %s", dmrs_ul_cfg.dmrs_add_position.to_string());
+      return false;
+  }
+  *in_srsran_dmrs_sch_add_pos = srsran_dmrs_sch_add_pos;
+  return true;
+}
+
+bool make_phy_beta_offsets(const beta_offsets_s& beta_offsets, srsran_beta_offsets_t* in_srsran_beta_offsets)
+{
+  srsran_beta_offsets_t srsran_beta_offsets = {};
+
+  srsran_beta_offsets.ack_index1 = beta_offsets.beta_offset_ack_idx1_present ? beta_offsets.beta_offset_ack_idx1 : 11;
+  srsran_beta_offsets.ack_index2 = beta_offsets.beta_offset_ack_idx2_present ? beta_offsets.beta_offset_ack_idx2 : 11;
+  srsran_beta_offsets.ack_index3 = beta_offsets.beta_offset_ack_idx3_present ? beta_offsets.beta_offset_ack_idx3 : 11;
+  srsran_beta_offsets.csi1_index1 =
+      beta_offsets.beta_offset_csi_part1_idx1_present ? beta_offsets.beta_offset_csi_part1_idx1 : 13;
+  srsran_beta_offsets.csi1_index2 =
+      beta_offsets.beta_offset_csi_part1_idx2_present ? beta_offsets.beta_offset_csi_part1_idx2 : 13;
+  srsran_beta_offsets.csi2_index1 =
+      beta_offsets.beta_offset_csi_part2_idx1_present ? beta_offsets.beta_offset_csi_part2_idx1 : 13;
+  srsran_beta_offsets.csi2_index2 =
+      beta_offsets.beta_offset_csi_part2_idx2_present ? beta_offsets.beta_offset_csi_part2_idx2 : 13;
+  *in_srsran_beta_offsets = srsran_beta_offsets;
+  return true;
+}
+
+bool make_phy_pusch_scaling(const uci_on_pusch_s& uci_on_pusch, float* in_scaling)
+{
+  float pusch_scaling = 0;
+  switch (uci_on_pusch.scaling) {
+    case uci_on_pusch_s::scaling_opts::f0p5:
+      pusch_scaling = 0.5;
+      break;
+    case uci_on_pusch_s::scaling_opts::f0p65:
+      pusch_scaling = 0.65;
+      break;
+    case uci_on_pusch_s::scaling_opts::f0p8:
+      pusch_scaling = 0.8;
+      break;
+    case uci_on_pusch_s::scaling_opts::f1:
+      pusch_scaling = 1.0;
+      break;
+    default:
+      asn1::log_warning("Invalid option for scaling %s", uci_on_pusch.scaling.to_string());
+      return false;
+  }
+  *in_scaling = pusch_scaling;
+  return true;
+}
+
 } // namespace srsran
 
 namespace srsenb {
@@ -213,7 +728,7 @@ int set_sched_cell_cfg_sib1(srsenb::sched_interface::cell_cfg_t* sched_cfg, cons
 
   // setup PRACH
   if (not sib1.si_sched_info.si_request_cfg.rach_occasions_si_present) {
-    asn1::log_error("Expected RA Resp Win present\n");
+    asn1::log_warning("rach_occasions_si option not present");
     return SRSRAN_ERROR;
   }
   sched_cfg->prach_rar_window = sib1.si_sched_info.si_request_cfg.rach_occasions_si.rach_cfg_si.ra_resp_win.to_number();

@@ -32,6 +32,22 @@ struct pdcp_cfg_s;
 struct lc_ch_cfg_s;
 struct rach_cfg_common_s;
 
+// Phy
+struct tdd_ul_dl_cfg_common_s;
+struct phys_cell_group_cfg_s;
+struct search_space_s;
+struct search_space_s;
+struct csi_report_cfg_s;
+struct ctrl_res_set_s;
+struct pdsch_time_domain_res_alloc_s;
+struct pusch_time_domain_res_alloc_s;
+struct pucch_format_cfg_s;
+struct pucch_res_s;
+struct sched_request_res_cfg_s;
+struct dmrs_ul_cfg_s;
+struct beta_offsets_s;
+struct uci_on_pusch_s;
+
 } // namespace rrc_nr
 } // namespace asn1
 
@@ -42,7 +58,33 @@ namespace srsran {
 
 plmn_id_t make_plmn_id_t(const asn1::rrc_nr::plmn_id_s& asn1_type);
 void      to_asn1(asn1::rrc_nr::plmn_id_s* asn1_type, const plmn_id_t& cfg);
-
+/***************************
+ *      PHY Config
+ **************************/
+bool make_phy_tdd_cfg(const asn1::rrc_nr::tdd_ul_dl_cfg_common_s& tdd_ul_dl_cfg_common,
+                      srsran_tdd_config_nr_t*                     srsran_tdd_config_nr);
+bool make_phy_harq_ack_cfg(const asn1::rrc_nr::phys_cell_group_cfg_s& phys_cell_group_cfg,
+                           srsran_ue_dl_nr_harq_ack_cfg_t*            srsran_ue_dl_nr_harq_ack_cfg);
+bool make_phy_coreset_cfg(const asn1::rrc_nr::ctrl_res_set_s& ctrl_res_set, srsran_coreset_t* srsran_coreset);
+bool make_phy_search_space_cfg(const asn1::rrc_nr::search_space_s& search_space,
+                               srsran_search_space_t*              srsran_search_space);
+bool make_phy_csi_report(const asn1::rrc_nr::csi_report_cfg_s& csi_report_cfg,
+                         srsran_csi_hl_report_cfg_t*           srsran_csi_hl_report_cfg);
+bool make_phy_common_time_ra(const asn1::rrc_nr::pdsch_time_domain_res_alloc_s& pdsch_time_domain_res_alloc,
+                             srsran_sch_time_ra_t*                              srsran_sch_time_ra);
+bool make_phy_common_time_ra(const asn1::rrc_nr::pusch_time_domain_res_alloc_s& pusch_time_domain_res_allo,
+                             srsran_sch_time_ra_t*                              srsran_sch_time_ra);
+bool make_phy_max_code_rate(const asn1::rrc_nr::pucch_format_cfg_s& pucch_format_cfg, uint32_t* max_code_rate);
+bool make_phy_res_config(const asn1::rrc_nr::pucch_res_s& pucch_res,
+                         uint32_t                         format_2_max_code_rate,
+                         srsran_pucch_nr_resource_t*      srsran_pucch_nr_resource);
+bool make_phy_sr_resource(const asn1::rrc_nr::sched_request_res_cfg_s& sched_request_res_cfg,
+                          srsran_pucch_nr_sr_resource_t*               srsran_pucch_nr_sr_resource);
+bool make_phy_dmrs_additional_pos(const asn1::rrc_nr::dmrs_ul_cfg_s& dmrs_ul_cfg,
+                                  srsran_dmrs_sch_add_pos_t*         srsran_dmrs_sch_add_pos);
+bool make_phy_beta_offsets(const asn1::rrc_nr::beta_offsets_s& beta_offsets,
+                           srsran_beta_offsets_t*              srsran_beta_offsets);
+bool make_phy_pusch_scaling(const asn1::rrc_nr::uci_on_pusch_s& uci_on_pusch, float* scaling);
 /***************************
  *      MAC Config
  **************************/

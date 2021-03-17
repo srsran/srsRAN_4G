@@ -269,24 +269,27 @@ void usim_base::restore_keys_from_failed_ho(srsran::as_security_config_t* as_ctx
  *  NR RRC Interface
  */
 
-void usim_base::generate_nr_context(uint16_t sk_counter, srsran::as_security_config_t* sec_cfg)
+bool usim_base::generate_nr_context(uint16_t sk_counter, srsran::as_security_config_t* sec_cfg)
 {
   if (!initiated) {
     logger.error("USIM not initiated!");
-    return;
+    return false;
   }
   logger.info("Generating Keys. SCG Counter %d", sk_counter);
 
   srsran::security_generate_sk_gnb(k_enb_ctx.k_enb.data(), k_gnb_ctx.sk_gnb.data(), sk_counter);
   logger.info(k_gnb_ctx.sk_gnb.data(), 32, "k_sk_gnb");
-  update_nr_context(sec_cfg);
+  if (update_nr_context(sec_cfg) == false) {
+    return false;
+  }
+  return true;
 }
 
-void usim_base::update_nr_context(srsran::as_security_config_t* sec_cfg)
+bool usim_base::update_nr_context(srsran::as_security_config_t* sec_cfg)
 {
   if (!initiated) {
     logger.error("USIM not initiated!");
-    return;
+    return false;
   }
   logger.info(k_gnb_ctx.sk_gnb.data(), 32, "k_sk_gnb");
   // Generate K_rrc_enc and K_rrc_int
@@ -307,6 +310,7 @@ void usim_base::update_nr_context(srsran::as_security_config_t* sec_cfg)
   logger.debug(sec_cfg->k_rrc_enc.data(), sec_cfg->k_rrc_enc.size(), "NR K_RRC_enc");
   logger.debug(sec_cfg->k_up_int.data(), sec_cfg->k_up_int.size(), "NR K_UP_int");
   logger.debug(sec_cfg->k_up_enc.data(), sec_cfg->k_up_enc.size(), "NR K_UP_enc");
+  return true;
 }
 
 } // namespace srsue

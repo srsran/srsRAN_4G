@@ -128,7 +128,7 @@ void rrc_nr::log_rrc_message(const std::string&           source,
                  (dir == Rx) ? "Rx" : "Tx",
                  msg_type.c_str(),
                  pdu->N_bytes);
-    logger.debug("Content:\n%s", json_writer.to_string().c_str());
+    logger.debug("Content:%s", json_writer.to_string().c_str());
   } else if (logger.info.enabled()) {
     logger.info("%s - %s %s (%d B)", source.c_str(), (dir == Rx) ? "Rx" : "Tx", msg_type.c_str(), pdu->N_bytes);
   }
@@ -151,7 +151,7 @@ void rrc_nr::log_rrc_message(const std::string& source,
                  (dir == Rx) ? "Rx" : "Tx",
                  msg_type.c_str(),
                  oct.size());
-    logger.debug("Content:\n%s", json_writer.to_string().c_str());
+    logger.debug("Content:%s", json_writer.to_string().c_str());
   } else if (logger.info.enabled()) {
     logger.info("%s - %s %s (%d B)", source.c_str(), (dir == Rx) ? "Rx" : "Tx", msg_type.c_str(), oct.size());
   }
@@ -457,11 +457,15 @@ void rrc_nr::phy_set_cells_to_meas(uint32_t carrier_freq_r15)
   fake_measurement_timer.run();
 }
 
-void rrc_nr::configure_sk_counter(uint16_t sk_counter)
+bool rrc_nr::configure_sk_counter(uint16_t sk_counter)
 {
   logger.info("[NR] Configure new SK counter %d. Update Key for secondary gnb", sk_counter);
-  usim->generate_nr_context(sk_counter, &sec_cfg);
+  if (usim->generate_nr_context(sk_counter, &sec_cfg) == false) {
+    return false;
+  }
+  return true;
 }
+
 bool rrc_nr::is_config_pending()
 {
   if (conn_recfg_proc.is_busy()) {
@@ -499,9 +503,11 @@ bool rrc_nr::apply_rlc_add_mod(const rlc_bearer_cfg_s& rlc_bearer_cfg)
           rlc_bearer_cfg.rlc_cfg.um_bi_dir().dl_um_rlc.sn_field_len !=
               rlc_bearer_cfg.rlc_cfg.um_bi_dir().ul_um_rlc.sn_field_len) {
         logger.warning("NR RLC sequence number length is not the same in uplink and downlink");
+        return false;
       }
     } else {
       logger.warning("NR RLC type is not unacknowledged mode bidirectional");
+      return false;
     }
   } else {
     logger.warning("In RLC bearer cfg does not contain rlc cfg");
@@ -525,6 +531,8 @@ bool rrc_nr::apply_mac_cell_group(const mac_cell_group_cfg_s& mac_cell_group_cfg
     if (mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list_present) {
       if (mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list.size() > 1) {
         logger.warning("Only handling 1 scheduling request index to add");
+        return false;
+      } else {
         sr_cfg.dsr_transmax = mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list[1].sr_trans_max;
         mac->set_config(sr_cfg);
       }
@@ -532,6 +540,7 @@ bool rrc_nr::apply_mac_cell_group(const mac_cell_group_cfg_s& mac_cell_group_cfg
 
     if (mac_cell_group_cfg.sched_request_cfg.sched_request_to_release_list_present) {
       logger.warning("Not handling sched request to release list");
+      return false;
     }
   }
   if (mac_cell_group_cfg.sched_request_cfg_present)
@@ -558,24 +567,507 @@ bool rrc_nr::apply_mac_cell_group(const mac_cell_group_cfg_s& mac_cell_group_cfg
   return true;
 }
 
+bool rrc_nr::apply_sp_cell_init_dl_pdcch(const asn1::rrc_nr::pdcch_cfg_s& pdcch_cfg)
+{
+  if (pdcch_cfg.search_spaces_to_add_mod_list_present) {
+    for (uint32_t i = 0; i < pdcch_cfg.search_spaces_to_add_mod_list.size(); i++) {
+      srsran_search_space_t search_space;
+      if (make_phy_search_space_cfg(pdcch_cfg.search_spaces_to_add_mod_list[i], &search_space) == true) {
+        phy_cfg.pdcch.search_space[search_space.id]         = search_space;
+        phy_cfg.pdcch.search_space_present[search_space.id] = true;
+      } else {
+        logger.warning("Warning while building search_space structure");
+        return false;
+      }
+    }
+  } else {
+    logger.warning("Option search_spaces_to_add_mod_list not present");
+    return false;
+  }
+  return true;
+}
+
+bool rrc_nr::apply_sp_cell_init_dl_pdsch(const asn1::rrc_nr::pdsch_cfg_s& pdsch_cfg)
+{
+  return true;
+}
+
+bool rrc_nr::apply_res_csi_report_cfg(const asn1::rrc_nr::csi_report_cfg_s& csi_report_cfg)
+{
+  uint32_t report_cfg_id             = csi_report_cfg.report_cfg_id;
+  srsran_csi_hl_report_cfg_t srsran_csi_hl_report_cfg;
+  if (make_phy_csi_report(csi_report_cfg, &srsran_csi_hl_report_cfg) == true) {
+    phy_cfg.csi.reports[report_cfg_id] = srsran_csi_hl_report_cfg;
+  } else {
+    logger.warning("Warning while building report structure");
+    return false;
+  }
+  if (csi_report_cfg.report_cfg_type.type() == csi_report_cfg_s::report_cfg_type_c_::types_opts::options::periodic) {
+    if (csi_report_cfg.report_cfg_type.periodic().pucch_csi_res_list.size() > 0) {
+      uint32_t res_id = csi_report_cfg.report_cfg_type.periodic()
+                            .pucch_csi_res_list[0]
+                            .pucch_res; // TODO: support and check more items
+      if (res_list_present[res_id] == true) {
+        phy_cfg.csi.reports[report_cfg_id].periodic.resource = res_list[res_id];
+      } else {
+        logger.error("Resources set not present for assigning pucch sets (res_id %d)", res_id);
+        return false;
+      }
+    } else {
+      logger.warning("List size to small: pucch_csi_res_list.size() < 0");
+      return false;
+    }
+  }
+  return true;
+}
+
+bool rrc_nr::apply_csi_meas_cfg(const asn1::rrc_nr::csi_meas_cfg_s& csi_meas_cfg)
+{
+  if (csi_meas_cfg.csi_report_cfg_to_add_mod_list_present) {
+    for (uint32_t i = 0; i < csi_meas_cfg.csi_report_cfg_to_add_mod_list.size(); i++) {
+      if (apply_res_csi_report_cfg(csi_meas_cfg.csi_report_cfg_to_add_mod_list[i]) == false) {
+        return false;
+      }
+    }
+  } else {
+    logger.warning("Option csi_report_cfg_to_add_mod_list not present");
+    return false;
+  }
+  return true;
+}
+
+bool rrc_nr::apply_dl_common_cfg(const asn1::rrc_nr::dl_cfg_common_s& dl_cfg_common)
+{
+  if (dl_cfg_common.init_dl_bwp_present) {
+    if (dl_cfg_common.init_dl_bwp.pdsch_cfg_common_present) {
+      if (dl_cfg_common.init_dl_bwp.pdsch_cfg_common.type() ==
+          asn1::rrc_nr::setup_release_c<asn1::rrc_nr::pdsch_cfg_common_s>::types_opts::setup) {
+        const pdcch_cfg_common_s& pdcch_cfg_common = dl_cfg_common.init_dl_bwp.pdcch_cfg_common.setup();
+        if (pdcch_cfg_common.common_ctrl_res_set_present) {
+          srsran_coreset_t coreset;
+          if (make_phy_coreset_cfg(pdcch_cfg_common.common_ctrl_res_set, &coreset) == true) {
+            phy_cfg.pdcch.coreset[coreset.coreset_id]         = coreset;
+            phy_cfg.pdcch.coreset_present[coreset.coreset_id] = true;
+          } else {
+            logger.warning("Warning while building coreset structure");
+            return false;
+          }
+        } else {
+          logger.warning("Option common_ctrl_res_set not present");
+          return false;
+        }
+        if (pdcch_cfg_common.common_search_space_list_present) {
+          for (uint32_t i = 0; i < pdcch_cfg_common.common_search_space_list.size(); i++) {
+            srsran_search_space_t search_space;
+            if (make_phy_search_space_cfg(pdcch_cfg_common.common_search_space_list[i], &search_space) == true) {
+              phy_cfg.pdcch.search_space[search_space.id]         = search_space;
+              phy_cfg.pdcch.search_space_present[search_space.id] = true;
+            } else {
+              logger.warning("Warning while building search_space structure");
+              return false;
+            }
+          }
+        } else {
+          logger.warning("Option common_search_space_list not present");
+          return false;
+        }
+        if (pdcch_cfg_common.ra_search_space_present) {
+          if (phy_cfg.pdcch.search_space_present[pdcch_cfg_common.ra_search_space] == true) {
+            // phy_cfg.pdcch.ra_rnti                 = 0x16; //< Supposed to be deduced from PRACH configuration
+            phy_cfg.pdcch.ra_search_space         = phy_cfg.pdcch.search_space[pdcch_cfg_common.ra_search_space];
+            phy_cfg.pdcch.ra_search_space_present = true;
+            phy_cfg.pdcch.ra_search_space.type    = srsran_search_space_type_common_3;
+          } else {
+            logger.warning("Search space %d not presenet for random access search space",
+                           pdcch_cfg_common.ra_search_space);
+          }
+        } else {
+          logger.warning("Option ra_search_space not present");
+          return false;
+        }
+      } else {
+        logger.warning("Option pdsch_cfg_common not of type setup");
+        return false;
+      }
+    } else {
+      logger.warning("Option pdsch_cfg_common not present");
+      return false;
+    }
+    if (dl_cfg_common.init_dl_bwp.pdsch_cfg_common_present) {
+      if (dl_cfg_common.init_dl_bwp.pdsch_cfg_common.type() == setup_release_c<pdsch_cfg_common_s>::types::setup) {
+        pdsch_cfg_common_s pdsch_cfg_common = dl_cfg_common.init_dl_bwp.pdsch_cfg_common.setup();
+        if (pdsch_cfg_common.pdsch_time_domain_alloc_list_present) {
+          for (uint32_t i = 0; i < pdsch_cfg_common.pdsch_time_domain_alloc_list.size(); i++) {
+            srsran_sch_time_ra_t common_time_ra;
+            if (make_phy_common_time_ra(pdsch_cfg_common.pdsch_time_domain_alloc_list[i], &common_time_ra) == true) {
+              phy_cfg.pdsch.common_time_ra[i]  = common_time_ra;
+              phy_cfg.pdsch.nof_common_time_ra = i;
+            } else {
+              logger.warning("Warning while building common_time_ra structure");
+              return false;
+            }
+          }
+        } else {
+          logger.warning("Option pdsch_time_domain_alloc_list not present");
+          return false;
+        }
+      } else {
+        logger.warning("Option pdsch_cfg_common not of type setup");
+        return false;
+      }
+    } else {
+      logger.warning("Option pdsch_cfg_common not present");
+      return false;
+    }
+  } else {
+    logger.warning("Option init_dl_bwp not present");
+    return false;
+  }
+  return true;
+}
+
+bool rrc_nr::apply_ul_common_cfg(const asn1::rrc_nr::ul_cfg_common_s& ul_cfg_common)
+{
+  if (ul_cfg_common.init_ul_bwp_present) {
+    if (ul_cfg_common.init_ul_bwp.rach_cfg_common_present) {
+      if (ul_cfg_common.init_ul_bwp.rach_cfg_common.type() == setup_release_c<rach_cfg_common_s>::types_opts::setup) {
+        rach_nr_cfg_t rach_nr_cfg = make_mac_rach_cfg(ul_cfg_common.init_ul_bwp.rach_cfg_common.setup());
+        phy_cfg.pdcch.ra_rnti     = ul_cfg_common.init_ul_bwp.rach_cfg_common.setup().rach_cfg_generic.prach_cfg_idx;
+        mac->set_config(rach_nr_cfg);
+      } else {
+        logger.warning("Option rach_cfg_common not of type setup");
+        return false;
+      }
+    } else {
+      logger.warning("Option rach_cfg_common not present");
+      return false;
+    }
+    if (ul_cfg_common.init_ul_bwp.pusch_cfg_common_present) {
+      if (ul_cfg_common.init_ul_bwp.pusch_cfg_common.type() == setup_release_c<pusch_cfg_common_s>::types_opts::setup) {
+        if (ul_cfg_common.init_ul_bwp.pusch_cfg_common.setup().pusch_time_domain_alloc_list_present) {
+          for (uint32_t i = 0;
+               i < ul_cfg_common.init_ul_bwp.pusch_cfg_common.setup().pusch_time_domain_alloc_list.size();
+               i++) {
+            srsran_sch_time_ra_t common_time_ra;
+            if (make_phy_common_time_ra(
+                    ul_cfg_common.init_ul_bwp.pusch_cfg_common.setup().pusch_time_domain_alloc_list[i],
+                    &common_time_ra) == true) {
+              phy_cfg.pusch.common_time_ra[i]  = common_time_ra;
+              phy_cfg.pusch.nof_common_time_ra = i + 1;
+            } else {
+              logger.warning("Warning while building common_time_ra structure");
+            }
+          }
+        } else {
+          logger.warning("Option pusch_time_domain_alloc_list not present");
+          return false;
+        }
+      } else {
+        logger.warning("Option pusch_cfg_common not of type setup");
+        return false;
+      }
+    } else {
+      logger.warning("Option pusch_cfg_common not present");
+      return false;
+    }
+    if (ul_cfg_common.init_ul_bwp.pucch_cfg_common_present) {
+      if (ul_cfg_common.init_ul_bwp.pucch_cfg_common.type() == setup_release_c<pucch_cfg_common_s>::types_opts::setup) {
+      } else {
+        logger.warning("Option pucch_cfg_common not of type setup");
+        return false;
+      }
+    } else {
+      logger.warning("Option pucch_cfg_common not present");
+      return false;
+    }
+  } else {
+    logger.warning("Option init_ul_bwp not present");
+    return false;
+  }
+  return true;
+}
+
+bool rrc_nr::apply_sp_cell_ded_ul_pucch(const asn1::rrc_nr::pucch_cfg_s& pucch_cfg)
+{
+  // determine format 2 max code rate
+  uint32_t format_2_max_code_rate = 0;
+  if (pucch_cfg.format2_present && pucch_cfg.format2.type() == setup_release_c<pucch_format_cfg_s>::types::setup) {
+    if (pucch_cfg.format2.setup().max_code_rate_present) {
+      if (make_phy_max_code_rate(pucch_cfg.format2.setup(), &format_2_max_code_rate) == false) {
+        logger.warning("Warning while building format_2_max_code_rate");
+      }
+    }
+  } else {
+    logger.warning("Option format2 not present or not of type setup");
+    return false;
+  }
+
+  // now look up resource and assign into internal struct
+  if (pucch_cfg.res_to_add_mod_list_present) {
+    for (uint32_t i = 0; i < pucch_cfg.res_to_add_mod_list.size(); i++) {
+      uint32_t res_id = pucch_cfg.res_to_add_mod_list[i].pucch_res_id;
+      if (make_phy_res_config(pucch_cfg.res_to_add_mod_list[i], format_2_max_code_rate, &res_list[res_id]) == true) {
+        res_list_present[res_id] = true;
+      } else {
+        logger.warning("Warning while building pucch_nr_resource structure");
+        return false;
+      }
+    }
+  } else {
+    logger.warning("Option res_to_add_mod_list not present");
+    return false;
+  }
+
+  // Check first all resource lists and
+  phy_cfg.pucch.enabled = true;
+  if (pucch_cfg.res_set_to_add_mod_list_present) {
+    for (uint32_t i = 0; i < pucch_cfg.res_set_to_add_mod_list.size(); i++) {
+      uint32_t set_id                          = pucch_cfg.res_set_to_add_mod_list[i].pucch_res_set_id;
+      phy_cfg.pucch.sets[set_id].nof_resources = pucch_cfg.res_set_to_add_mod_list[i].res_list.size();
+      for (uint32_t j = 0; j < pucch_cfg.res_set_to_add_mod_list[i].res_list.size(); j++) {
+        uint32_t res_id = pucch_cfg.res_set_to_add_mod_list[i].res_list[j];
+        if (res_list_present[res_id] == true) {
+          phy_cfg.pucch.sets[set_id].resources[j] = res_list[res_id];
+        } else {
+          logger.error(
+              "Resources set not present for assign pucch sets (res_id %d, setid %d, j %d)", res_id, set_id, j);
+        }
+      }
+    }
+  }
+
+  if (pucch_cfg.sched_request_res_to_add_mod_list_present) {
+    for (uint32_t i = 0; i < pucch_cfg.sched_request_res_to_add_mod_list.size(); i++) {
+      uint32_t                      res_id = pucch_cfg.sched_request_res_to_add_mod_list[i].sched_request_res_id;
+      srsran_pucch_nr_sr_resource_t srsran_pucch_nr_sr_resource;
+      if (make_phy_sr_resource(pucch_cfg.sched_request_res_to_add_mod_list[i], &srsran_pucch_nr_sr_resource) ==
+          true) { // TODO: fix that if indexing is solved
+        phy_cfg.pucch.sr_resources[res_id] = srsran_pucch_nr_sr_resource;
+      } else {
+        logger.warning("Warning while building srsran_pucch_nr_sr_resource structure");
+        return false;
+      }
+    }
+  } else {
+    logger.warning("Option sched_request_res_to_add_mod_list not present");
+    return false;
+  }
+
+  if (pucch_cfg.dl_data_to_ul_ack_present) {
+    for (uint32_t i = 0; i < pucch_cfg.dl_data_to_ul_ack.size(); i++) {
+      phy_cfg.harq_ack.dl_data_to_ul_ack[i] = pucch_cfg.dl_data_to_ul_ack[i];
+    }
+    phy_cfg.harq_ack.nof_dl_data_to_ul_ack = pucch_cfg.dl_data_to_ul_ack.size();
+  } else {
+    logger.warning("Option dl_data_to_ul_ack not present");
+    return false;
+  }
+
+  return true;
+};
+
+bool rrc_nr::apply_sp_cell_ded_ul_pusch(const asn1::rrc_nr::pusch_cfg_s& pusch_cfg)
+{
+  if (pusch_cfg.dmrs_ul_for_pusch_map_type_a_present) {
+    if (pusch_cfg.dmrs_ul_for_pusch_map_type_a.type() == setup_release_c<dmrs_ul_cfg_s>::types_opts::setup) {
+      srsran_dmrs_sch_add_pos_t srsran_dmrs_sch_add_pos;
+      if (make_phy_dmrs_additional_pos(pusch_cfg.dmrs_ul_for_pusch_map_type_a.setup(), &srsran_dmrs_sch_add_pos) ==
+          true) {
+        phy_cfg.pusch.dmrs_typeA.additional_pos = srsran_dmrs_sch_add_pos;
+        phy_cfg.pusch.dmrs_typeA.present        = true;
+      } else {
+        logger.warning("Warning while build srsran_dmrs_sch_add_pos structure");
+        return false;
+      }
+    } else {
+      logger.warning("Option dmrs_ul_for_pusch_map_type_a not of type setup");
+      return false;
+      return false;
+    }
+  } else {
+    logger.warning("Option dmrs_ul_for_pusch_map_type_a not present");
+    return false;
+  }
+  if (pusch_cfg.uci_on_pusch_present) {
+    if (pusch_cfg.uci_on_pusch.type() == setup_release_c<uci_on_pusch_s>::types_opts::setup) {
+      if (pusch_cfg.uci_on_pusch.setup().beta_offsets_present) {
+        if (pusch_cfg.uci_on_pusch.setup().beta_offsets.type() ==
+            uci_on_pusch_s::beta_offsets_c_::types_opts::semi_static) {
+          srsran_beta_offsets_t beta_offsets;
+          if (make_phy_beta_offsets(pusch_cfg.uci_on_pusch.setup().beta_offsets.semi_static(), &beta_offsets) == true) {
+            phy_cfg.pusch.beta_offsets = beta_offsets;
+          } else {
+            logger.warning("Warning while building beta_offsets structure");
+            return false;
+          }
+        } else {
+          logger.warning("Option beta_offsets not of type semi_static");
+          return false;
+        }
+        if (make_phy_pusch_scaling(pusch_cfg.uci_on_pusch.setup(), &phy_cfg.pusch.scaling) == false) {
+          logger.warning("Warning while building scaling structure");
+          return false;
+        }
+      } else {
+        logger.warning("Option beta_offsets not present");
+        return false;
+      }
+    } else {
+      logger.warning("Option uci_on_pusch of type setup");
+      return false;
+    }
+  } else {
+    logger.warning("Option uci_on_pusch not present");
+    return false;
+  }
+  return true;
+};
+
 bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
 {
   if (sp_cell_cfg.recfg_with_sync_present) {
     const recfg_with_sync_s& recfg_with_sync = sp_cell_cfg.recfg_with_sync;
     mac->set_crnti(recfg_with_sync.new_ue_id);
+    // Common config
     if (recfg_with_sync.sp_cell_cfg_common_present) {
       if (recfg_with_sync.sp_cell_cfg_common.ul_cfg_common_present) {
-        const bwp_ul_common_s* bwp_ul_common = &recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp;
-        if (bwp_ul_common->rach_cfg_common_present) {
-          if (bwp_ul_common->rach_cfg_common.type() == setup_release_c<rach_cfg_common_s>::types_opts::setup) {
-            const rach_cfg_common_s& rach_cfg_common = bwp_ul_common->rach_cfg_common.setup();
-            rach_nr_cfg_t            rach_nr_cfg     = make_mac_rach_cfg(rach_cfg_common);
-            mac->set_config(rach_nr_cfg);
-          }
+        if (apply_ul_common_cfg(recfg_with_sync.sp_cell_cfg_common.ul_cfg_common) == false) {
+          return false;
         }
+      } else {
+        logger.warning("Secondary primary cell ul cfg common not present");
+        return false;
+      }
+      if (recfg_with_sync.sp_cell_cfg_common.dl_cfg_common_present) {
+        if (apply_dl_common_cfg(recfg_with_sync.sp_cell_cfg_common.dl_cfg_common) == false) {
+          return false;
+        }
+      } else {
+        logger.warning("DL cfg common not present");
+        return false;
+      }
+      if (recfg_with_sync.sp_cell_cfg_common.tdd_ul_dl_cfg_common_present) {
+        srsran_tdd_config_nr_t tdd;
+        if (make_phy_tdd_cfg(recfg_with_sync.sp_cell_cfg_common.tdd_ul_dl_cfg_common, &tdd) == true) {
+          phy_cfg.tdd = tdd;
+        } else {
+          logger.warning("Warning while building tdd structure");
+          return false;
+        }
+      } else {
+        logger.warning("TDD UL DL config not present");
+        return false;
       }
     }
-    mac->start_ra_procedure();
+  } else {
+    logger.warning("Reconfig with with sync not present");
+    return false;
+  }
+
+  // Dedicated config
+  if (sp_cell_cfg.sp_cell_cfg_ded_present) {
+    // Dedicated Downlink
+    if (sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp_present) {
+      if (sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg_present) {
+        if (sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.type() ==
+            setup_release_c<pdcch_cfg_s>::types_opts::setup) {
+          if (apply_sp_cell_init_dl_pdcch(sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.setup()) == false) {
+            return false;
+          }
+        } else {
+          logger.warning("Option pdcch_cfg not of type setup");
+          return false;
+        }
+      } else {
+        logger.warning("Option pdcch_cfg not present");
+        return false;
+      }
+      if (sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdsch_cfg_present) {
+        if (sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdsch_cfg.type() ==
+            setup_release_c<pdsch_cfg_s>::types_opts::setup) {
+          apply_sp_cell_init_dl_pdsch(sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdsch_cfg.setup());
+        } else {
+          logger.warning("Option pdsch_cfg_cfg not of type setup");
+          return false;
+        }
+      } else {
+        logger.warning("Option pdsch_cfg not present");
+        return false;
+      }
+    } else {
+      logger.warning("Option init_dl_bwp not present");
+      return false;
+    }
+    // Dedicated Uplink
+    if (sp_cell_cfg.sp_cell_cfg_ded.ul_cfg_present) {
+      if (sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp_present) {
+        if (sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pucch_cfg_present) {
+          if (sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pucch_cfg.type() ==
+              setup_release_c<pucch_cfg_s>::types_opts::setup) {
+            if (apply_sp_cell_ded_ul_pucch(sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pucch_cfg.setup()) == false) {
+              return false;
+            }
+          } else {
+            logger.warning("Option pucch_cfg not of type setup");
+            return false;
+          }
+        } else {
+          logger.warning("Option pucch_cfg not present");
+          return false;
+        }
+        if (sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pusch_cfg_present) {
+          if (sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pusch_cfg.type() ==
+              setup_release_c<pusch_cfg_s>::types_opts::setup) {
+            if (apply_sp_cell_ded_ul_pusch(sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pusch_cfg.setup()) == false) {
+              return false;
+            }
+          } else {
+            logger.warning("Option pusch_cfg not of type setup");
+            return false;
+          }
+        } else {
+          logger.warning("Option pusch_cfg not present");
+          return false;
+        }
+      } else {
+        logger.warning("Option init_ul_bwp not present");
+        return false;
+      }
+    } else {
+      logger.warning("Option ul_cfg not present");
+      return false;
+    }
+    if (sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg_present) {
+      if (sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.type() == setup_release_c<csi_meas_cfg_s>::types_opts::setup) {
+        if (apply_csi_meas_cfg(sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup()) == false) {
+          return false;
+        }
+      } else {
+        logger.warning("Option csi_meas_cfg not of type setup");
+        return false;
+      }
+    } else {
+      logger.warning("Option csi_meas_cfg not present");
+      return false;
+    }
+
+  } else {
+    logger.warning("Option sp_cell_cfg_ded not present");
+    return false;
+  }
+  phy->set_config(phy_cfg);
+  mac->start_ra_procedure();
+  return true;
+}
+
+bool rrc_nr::apply_phy_cell_group_cfg(const phys_cell_group_cfg_s& phys_cell_group_cfg)
+{
+  srsran_ue_dl_nr_harq_ack_cfg_t harq_ack;
+  if (make_phy_harq_ack_cfg(phys_cell_group_cfg, &harq_ack) == true) {
+    phy_cfg.harq_ack = harq_ack;
+  } else {
+    logger.warning("Warning while building harq_ack structure");
+    return false;
   }
   return true;
 }
@@ -584,17 +1076,25 @@ bool rrc_nr::apply_cell_group_cfg(const cell_group_cfg_s& cell_group_cfg)
 {
   if (cell_group_cfg.rlc_bearer_to_add_mod_list_present) {
     for (uint32_t i = 0; i < cell_group_cfg.rlc_bearer_to_add_mod_list.size(); i++) {
-      apply_rlc_add_mod(cell_group_cfg.rlc_bearer_to_add_mod_list[i]);
+      if (apply_rlc_add_mod(cell_group_cfg.rlc_bearer_to_add_mod_list[i]) == false) {
+        return false;
+      }
     }
   }
   if (cell_group_cfg.mac_cell_group_cfg_present) {
-    apply_mac_cell_group(cell_group_cfg.mac_cell_group_cfg);
+    if (apply_mac_cell_group(cell_group_cfg.mac_cell_group_cfg) == false) {
+      return false;
+    }
   }
   if (cell_group_cfg.phys_cell_group_cfg_present) {
-    logger.warning("Not handling physical cell group config");
+    if (apply_phy_cell_group_cfg(cell_group_cfg.phys_cell_group_cfg) == false) {
+      return false;
+    }
   }
   if (cell_group_cfg.sp_cell_cfg_present) {
-    apply_sp_cell_cfg(cell_group_cfg.sp_cell_cfg);
+    if (apply_sp_cell_cfg(cell_group_cfg.sp_cell_cfg) == false) {
+      return false;
+    }
   }
   return true;
 }
@@ -644,6 +1144,7 @@ bool rrc_nr::apply_security_cfg(const security_cfg_s& security_cfg)
   if (security_cfg.key_to_use_present) {
     if (security_cfg.key_to_use.value != security_cfg_s::key_to_use_opts::options::secondary) {
       logger.warning("Only secondary key supported yet");
+      return false;
     }
   }
 
@@ -662,8 +1163,8 @@ bool rrc_nr::apply_security_cfg(const security_cfg_s& security_cfg)
         sec_cfg.cipher_algo = CIPHERING_ALGORITHM_ID_128_EEA3;
         break;
       default:
-        logger.warning("Unsupported algorithm");
-        break;
+        logger.warning("Unsupported algorithm %s", security_cfg.security_algorithm_cfg.ciphering_algorithm.to_string());
+        return false;
     }
 
     if (security_cfg.security_algorithm_cfg.integrity_prot_algorithm_present) {
@@ -681,11 +1182,14 @@ bool rrc_nr::apply_security_cfg(const security_cfg_s& security_cfg)
           sec_cfg.integ_algo = INTEGRITY_ALGORITHM_ID_128_EIA3;
           break;
         default:
-          logger.warning("Unsupported algorithm");
-          break;
+          logger.warning("Unsupported algorithm %s",
+                         security_cfg.security_algorithm_cfg.integrity_prot_algorithm.to_string());
+          return false;
       }
     }
-    usim->update_nr_context(&sec_cfg);
+    if (usim->update_nr_context(&sec_cfg) == false) {
+      return false;
+    }
   }
 
   // Apply security config for all known NR lcids
@@ -700,11 +1204,15 @@ bool rrc_nr::apply_radio_bearer_cfg(const radio_bearer_cfg_s& radio_bearer_cfg)
 {
   if (radio_bearer_cfg.drb_to_add_mod_list_present) {
     for (uint32_t i = 0; i < radio_bearer_cfg.drb_to_add_mod_list.size(); i++) {
-      apply_drb_add_mod(radio_bearer_cfg.drb_to_add_mod_list[i]);
+      if (apply_drb_add_mod(radio_bearer_cfg.drb_to_add_mod_list[i]) == false) {
+        return false;
+      }
     }
   }
   if (radio_bearer_cfg.security_cfg_present) {
-    apply_security_cfg(radio_bearer_cfg.security_cfg);
+    if (apply_security_cfg(radio_bearer_cfg.security_cfg) == false) {
+      return false;
+    }
   }
   return true;
 }
@@ -734,7 +1242,9 @@ proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const bool            
 
   if (sk_counter_r15_present) {
     Info("Applying Cell Group Cfg");
-    rrc_ptr->configure_sk_counter((uint16_t)sk_counter_r15);
+    if (!rrc_ptr->configure_sk_counter((uint16_t)sk_counter_r15)) {
+      return proc_outcome_t::error;
+    }
   }
 
   Info("Applying Radio Bearer Cfg");

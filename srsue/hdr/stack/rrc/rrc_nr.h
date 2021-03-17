@@ -119,7 +119,7 @@ public:
                            uint32_t            sk_counter_r15,
                            bool                nr_radio_bearer_cfg1_r15_present,
                            asn1::dyn_octstring nr_radio_bearer_cfg1_r15);
-  void configure_sk_counter(uint16_t sk_counter);
+  bool configure_sk_counter(uint16_t sk_counter);
   bool is_config_pending();
   // STACK interface
   void cell_search_completed(const rrc_interface_phy_lte::cell_search_ret_t& cs_ret, const phy_cell_t& found_cell);
@@ -135,6 +135,9 @@ private:
   srslog::basic_logger&          logger;
   bool                           running = false;
   srsran::block_queue<cmd_msg_t> cmd_q;
+
+  // PHY config
+  srsran::phy_cfg_nr_t phy_cfg = {};
 
   phy_interface_rrc_nr*       phy       = nullptr;
   mac_interface_rrc_nr*       mac       = nullptr;
@@ -179,11 +182,24 @@ private:
 
   std::map<uint32_t, uint32_t> drb_eps_bearer_id; // Map of drb id to eps_bearer_id
 
+  // temporary maps for building the pucch nr resources
+  std::map<uint32_t, srsran_pucch_nr_resource_t> res_list;
+  std::map<uint32_t, bool>                       res_list_present;
+
   bool apply_cell_group_cfg(const asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg);
   bool apply_radio_bearer_cfg(const asn1::rrc_nr::radio_bearer_cfg_s& radio_bearer_cfg);
   bool apply_rlc_add_mod(const asn1::rrc_nr::rlc_bearer_cfg_s& rlc_bearer_cfg);
   bool apply_mac_cell_group(const asn1::rrc_nr::mac_cell_group_cfg_s& mac_cell_group_cfg);
   bool apply_sp_cell_cfg(const asn1::rrc_nr::sp_cell_cfg_s& sp_cell_cfg);
+  bool apply_phy_cell_group_cfg(const asn1::rrc_nr::phys_cell_group_cfg_s& phys_cell_group_cfg);
+  bool apply_dl_common_cfg(const asn1::rrc_nr::dl_cfg_common_s& dl_cfg_common);
+  bool apply_ul_common_cfg(const asn1::rrc_nr::ul_cfg_common_s& ul_cfg_common);
+  bool apply_sp_cell_init_dl_pdcch(const asn1::rrc_nr::pdcch_cfg_s& pdcch_cfg);
+  bool apply_sp_cell_init_dl_pdsch(const asn1::rrc_nr::pdsch_cfg_s& pdsch_cfg);
+  bool apply_sp_cell_ded_ul_pucch(const asn1::rrc_nr::pucch_cfg_s& pucch_cfg);
+  bool apply_sp_cell_ded_ul_pusch(const asn1::rrc_nr::pusch_cfg_s& pusch_cfg);
+  bool apply_csi_meas_cfg(const asn1::rrc_nr::csi_meas_cfg_s& csi_meas_cfg);
+  bool apply_res_csi_report_cfg(const asn1::rrc_nr::csi_report_cfg_s& csi_report_cfg);
   bool apply_drb_add_mod(const asn1::rrc_nr::drb_to_add_mod_s& drb_cfg);
   bool apply_security_cfg(const asn1::rrc_nr::security_cfg_s& security_cfg);
 

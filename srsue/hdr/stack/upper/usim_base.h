@@ -93,8 +93,8 @@ public:
   void restore_keys_from_failed_ho(srsran::as_security_config_t* as_ctx) final;
 
   // NR RRC interface
-  void generate_nr_context(uint16_t sk_counter, srsran::as_security_config_t* sec_cfg) final;
-  void update_nr_context(srsran::as_security_config_t* sec_cfg) final;
+  bool generate_nr_context(uint16_t sk_counter, srsran::as_security_config_t* sec_cfg) final;
+  bool update_nr_context(srsran::as_security_config_t* sec_cfg) final;
 
   // Helpers
   std::string         get_mcc_str(const uint8_t* imsi_vec);
