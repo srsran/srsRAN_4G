@@ -115,7 +115,7 @@ public:
   void reset();
 
 private:
-  alloc_outcome_t allocate_pending_rar(sf_sched* tti_sched, const pending_rar_t& rar, uint32_t& nof_grants_alloc);
+  alloc_result allocate_pending_rar(sf_sched* tti_sched, const pending_rar_t& rar, uint32_t& nof_grants_alloc);
 
   // args
   srslog::basic_logger&      logger;

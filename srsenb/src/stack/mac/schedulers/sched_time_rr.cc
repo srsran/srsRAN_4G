@@ -11,7 +11,6 @@
  */
 
 #include "srsenb/hdr/stack/mac/schedulers/sched_time_rr.h"
-#include <string.h>
 
 namespace srsenb {
 
@@ -50,10 +49,7 @@ void sched_time_rr::sched_dl_retxs(sched_ue_list& ue_db, sf_sched* tti_sched, si
     if (h == nullptr) {
       continue;
     }
-    alloc_outcome_t code = try_dl_retx_alloc(*tti_sched, user, *h);
-    if (code == alloc_outcome_t::DCI_COLLISION) {
-      logger.info("SCHED: Couldn't find space in PDCCH/PUCCH for DL retx for rnti=0x%x", user.get_rnti());
-    }
+    try_dl_retx_alloc(*tti_sched, user, *h);
   }
 }
 
@@ -74,7 +70,7 @@ void sched_time_rr::sched_dl_newtxs(sched_ue_list& ue_db, sf_sched* tti_sched, s
     if (h == nullptr) {
       continue;
     }
-    if (try_dl_newtx_alloc_greedy(*tti_sched, user, *h) == alloc_outcome_t::DCI_COLLISION) {
+    if (try_dl_newtx_alloc_greedy(*tti_sched, user, *h) == alloc_result::no_cch_space) {
       logger.info("SCHED: Couldn't find space in PDCCH/PUCCH for DL tx for rnti=0x%x", user.get_rnti());
     }
   }
@@ -109,9 +105,9 @@ void sched_time_rr::sched_ul_retxs(sched_ue_list& ue_db, sf_sched* tti_sched, si
     if (h == nullptr) {
       continue;
     }
-    alloc_outcome_t code = try_ul_retx_alloc(*tti_sched, user, *h);
-    if (code == alloc_outcome_t::DCI_COLLISION) {
-      logger.info("SCHED: Couldn't find space in PDCCH for UL retx of rnti=0x%x", user.get_rnti());
+    alloc_result code = try_ul_retx_alloc(*tti_sched, user, *h);
+    if (code == alloc_result::no_cch_space) {
+      logger.debug("SCHED: Couldn't find space in PDCCH for UL retx of rnti=0x%x", user.get_rnti());
     }
   }
 }
@@ -140,8 +136,8 @@ void sched_time_rr::sched_ul_newtxs(sched_ue_list& ue_db, sf_sched* tti_sched, s
     if (alloc.empty()) {
       continue;
     }
-    alloc_outcome_t ret = tti_sched->alloc_ul_user(&user, alloc);
-    if (ret == alloc_outcome_t::DCI_COLLISION) {
+    alloc_result ret = tti_sched->alloc_ul_user(&user, alloc);
+    if (ret == alloc_result::no_cch_space) {
       logger.info(
           "SCHED: rnti=0x%x, cc=%d, Couldn't find space in PDCCH for UL tx", user.get_rnti(), cc_cfg->enb_cc_idx);
     }

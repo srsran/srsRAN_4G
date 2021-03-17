@@ -25,29 +25,18 @@
 namespace srsenb {
 
 /// Error code of alloc attempt
-struct alloc_outcome_t {
-  enum result_enum {
-    SUCCESS,
-    DCI_COLLISION,
-    RB_COLLISION,
-    ERROR,
-    NOF_RB_INVALID,
-    PUCCH_COLLISION,
-    MEASGAP_COLLISION,
-    ALREADY_ALLOC,
-    NO_DATA,
-    INVALID_PRBMASK,
-    INVALID_CARRIER,
-    CODERATE_TOO_HIGH,
-    NOF_ALLOCS_LIMIT
-  };
-  result_enum result = ERROR;
-  alloc_outcome_t()  = default;
-  alloc_outcome_t(result_enum e) : result(e) {}
-              operator result_enum() { return result; }
-              operator bool() { return result == SUCCESS; }
-  const char* to_string() const;
+enum class alloc_result {
+  success,
+  sch_collision,
+  no_cch_space,
+  no_sch_space,
+  rnti_inactive,
+  invalid_grant_params,
+  invalid_coderate,
+  no_grant_space,
+  other_cause
 };
+const char* to_string(alloc_result res);
 
 //! Result of a Subframe sched computation
 struct cc_sched_result {
@@ -113,23 +102,23 @@ class sf_grid_t
 {
 public:
   struct dl_ctrl_alloc_t {
-    alloc_outcome_t outcome;
-    rbg_interval    rbg_range;
+    alloc_result outcome;
+    rbg_interval rbg_range;
   };
 
   sf_grid_t() : logger(srslog::fetch_basic_logger("MAC")) {}
 
-  void            init(const sched_cell_params_t& cell_params_);
-  void            new_tti(tti_point tti_rx);
-  alloc_outcome_t alloc_dl_ctrl(uint32_t aggr_lvl, rbg_interval rbg_range, alloc_type_t alloc_type);
-  alloc_outcome_t alloc_dl_data(sched_ue* user, const rbgmask_t& user_mask, bool has_pusch_grant);
-  bool            reserve_dl_rbgs(uint32_t start_rbg, uint32_t end_rbg);
-  void            rem_last_alloc_dl(rbg_interval rbgs);
+  void         init(const sched_cell_params_t& cell_params_);
+  void         new_tti(tti_point tti_rx);
+  alloc_result alloc_dl_ctrl(uint32_t aggr_lvl, rbg_interval rbg_range, alloc_type_t alloc_type);
+  alloc_result alloc_dl_data(sched_ue* user, const rbgmask_t& user_mask, bool has_pusch_grant);
+  bool         reserve_dl_rbgs(uint32_t start_rbg, uint32_t end_rbg);
+  void         rem_last_alloc_dl(rbg_interval rbgs);
 
-  alloc_outcome_t alloc_ul_data(sched_ue* user, prb_interval alloc, bool needs_pdcch, bool strict = true);
-  alloc_outcome_t reserve_ul_prbs(const prbmask_t& prbmask, bool strict);
-  alloc_outcome_t reserve_ul_prbs(prb_interval alloc, bool strict);
-  bool            find_ul_alloc(uint32_t L, prb_interval* alloc) const;
+  alloc_result alloc_ul_data(sched_ue* user, prb_interval alloc, bool needs_pdcch, bool strict = true);
+  alloc_result reserve_ul_prbs(const prbmask_t& prbmask, bool strict);
+  alloc_result reserve_ul_prbs(prb_interval alloc, bool strict);
+  bool         find_ul_alloc(uint32_t L, prb_interval* alloc) const;
 
   // getters
   const rbgmask_t&        get_dl_mask() const { return dl_mask; }
@@ -139,11 +128,11 @@ public:
   uint32_t                get_pucch_width() const { return pucch_nrb; }
 
 private:
-  alloc_outcome_t alloc_dl(uint32_t     aggr_lvl,
-                           alloc_type_t alloc_type,
-                           rbgmask_t    alloc_mask,
-                           sched_ue*    user            = nullptr,
-                           bool         has_pusch_grant = false);
+  alloc_result alloc_dl(uint32_t     aggr_lvl,
+                        alloc_type_t alloc_type,
+                        rbgmask_t    alloc_mask,
+                        sched_ue*    user            = nullptr,
+                        bool         has_pusch_grant = false);
 
   // consts
   const sched_cell_params_t* cc_cfg = nullptr;
@@ -205,7 +194,7 @@ public:
     uint32_t n_prb = 0;
     uint32_t mcs   = 0;
   };
-  typedef std::pair<alloc_outcome_t, const ctrl_alloc_t> ctrl_code_t;
+  typedef std::pair<alloc_result, const ctrl_alloc_t> ctrl_code_t;
 
   // Control/Configuration Methods
   sf_sched();
@@ -213,27 +202,30 @@ public:
   void new_tti(srslte::tti_point tti_rx_, sf_sched_result* cc_results);
 
   // DL alloc methods
-  alloc_outcome_t alloc_sib(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t sib_ntx, rbg_interval rbgs);
-  alloc_outcome_t alloc_paging(uint32_t aggr_lvl, uint32_t paging_payload, rbg_interval rbgs);
-  alloc_outcome_t alloc_rar(uint32_t aggr_lvl, const pending_rar_t& rar_grant, rbg_interval rbgs, uint32_t nof_grants);
+  alloc_result alloc_sib(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t sib_ntx, rbg_interval rbgs);
+  alloc_result alloc_paging(uint32_t aggr_lvl, uint32_t paging_payload, rbg_interval rbgs);
+  alloc_result alloc_rar(uint32_t aggr_lvl, const pending_rar_t& rar_grant, rbg_interval rbgs, uint32_t nof_grants);
   bool reserve_dl_rbgs(uint32_t rbg_start, uint32_t rbg_end) { return tti_alloc.reserve_dl_rbgs(rbg_start, rbg_end); }
   const std::vector<rar_alloc_t>& get_allocated_rars() const { return rar_allocs; }
 
   // UL alloc methods
-  alloc_outcome_t alloc_msg3(sched_ue* user, const sched_interface::dl_sched_rar_grant_t& rargrant);
-  alloc_outcome_t
+  alloc_result alloc_msg3(sched_ue* user, const sched_interface::dl_sched_rar_grant_t& rargrant);
+  alloc_result
        alloc_ul(sched_ue* user, prb_interval alloc, ul_alloc_t::type_t alloc_type, bool is_msg3 = false, int msg3_mcs = -1);
-  bool reserve_ul_prbs(const prbmask_t& ulmask, bool strict) { return tti_alloc.reserve_ul_prbs(ulmask, strict); }
+  bool reserve_ul_prbs(const prbmask_t& ulmask, bool strict)
+  {
+    return tti_alloc.reserve_ul_prbs(ulmask, strict) == alloc_result::success;
+  }
   bool alloc_phich(sched_ue* user);
 
   // compute DCIs and generate dl_sched_result/ul_sched_result for a given TTI
   void generate_sched_results(sched_ue_list& ue_db);
 
-  alloc_outcome_t  alloc_dl_user(sched_ue* user, const rbgmask_t& user_mask, uint32_t pid);
+  alloc_result     alloc_dl_user(sched_ue* user, const rbgmask_t& user_mask, uint32_t pid);
   tti_point        get_tti_tx_dl() const { return to_tx_dl(tti_rx); }
   uint32_t         get_nof_ctrl_symbols() const;
   const rbgmask_t& get_dl_mask() const { return tti_alloc.get_dl_mask(); }
-  alloc_outcome_t  alloc_ul_user(sched_ue* user, prb_interval alloc);
+  alloc_result     alloc_ul_user(sched_ue* user, prb_interval alloc);
   const prbmask_t& get_ul_mask() const { return tti_alloc.get_ul_mask(); }
   tti_point        get_tti_tx_ul() const { return to_tx_ul(tti_rx); }
 
@@ -264,11 +256,11 @@ private:
   // internal state
   sf_grid_t tti_alloc;
 
-  srslte::bounded_vector<bc_alloc_t, sched_interface::MAX_BC_LIST> bc_allocs;
-  std::vector<rar_alloc_t>                                         rar_allocs;
-  std::vector<dl_alloc_t>                                          data_allocs;
-  std::vector<ul_alloc_t>                                          ul_data_allocs;
-  uint32_t                                                         last_msg3_prb = 0, max_msg3_prb = 0;
+  srslte::bounded_vector<bc_alloc_t, sched_interface::MAX_BC_LIST>   bc_allocs;
+  std::vector<rar_alloc_t>                                           rar_allocs;
+  std::vector<dl_alloc_t>                                            data_allocs;
+  srslte::bounded_vector<ul_alloc_t, sched_interface::MAX_DATA_LIST> ul_data_allocs;
+  uint32_t                                                           last_msg3_prb = 0, max_msg3_prb = 0;
 
   // Next TTI state
   tti_point tti_rx;

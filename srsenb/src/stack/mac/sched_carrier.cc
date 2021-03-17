@@ -110,24 +110,24 @@ void bc_sched::alloc_sibs(sf_sched* tti_sched)
     }
 
     // Attempt PDSCH grants with increasing number of RBGs
-    alloc_outcome_t ret = alloc_outcome_t::CODERATE_TOO_HIGH;
-    for (uint32_t nrbgs = 1; nrbgs < cc_cfg->nof_rbgs and ret == alloc_outcome_t::CODERATE_TOO_HIGH; ++nrbgs) {
+    alloc_result ret = alloc_result::invalid_coderate;
+    for (uint32_t nrbgs = 1; nrbgs < cc_cfg->nof_rbgs and ret == alloc_result::invalid_coderate; ++nrbgs) {
       rbg_interval rbg_interv = find_empty_rbg_interval(nrbgs, tti_sched->get_dl_mask());
       if (rbg_interv.length() != nrbgs) {
-        ret = alloc_outcome_t::RB_COLLISION;
+        ret = alloc_result::no_sch_space;
         break;
       }
       ret = tti_sched->alloc_sib(bc_aggr_level, sib_idx, pending_sibs[sib_idx].n_tx, rbg_interv);
-      if (ret == alloc_outcome_t::SUCCESS) {
+      if (ret == alloc_result::success) {
         // SIB scheduled successfully
         pending_sibs[sib_idx].n_tx++;
       }
     }
-    if (ret != alloc_outcome_t::SUCCESS) {
+    if (ret != alloc_result::success) {
       logger.warning("SCHED: Could not allocate SIB=%d, len=%d. Cause: %s",
                      sib_idx + 1,
                      cc_cfg->cfg.sibs[sib_idx].len,
-                     ret.to_string());
+                     to_string(ret));
     }
   }
 }
@@ -141,20 +141,19 @@ void bc_sched::alloc_paging(sf_sched* tti_sched)
     return;
   }
 
-  alloc_outcome_t ret = alloc_outcome_t::CODERATE_TOO_HIGH;
-  for (uint32_t nrbgs = 1; nrbgs < cc_cfg->nof_rbgs and ret == alloc_outcome_t::CODERATE_TOO_HIGH; ++nrbgs) {
+  alloc_result ret = alloc_result::invalid_coderate;
+  for (uint32_t nrbgs = 1; nrbgs < cc_cfg->nof_rbgs and ret == alloc_result::invalid_coderate; ++nrbgs) {
     rbg_interval rbg_interv = find_empty_rbg_interval(nrbgs, tti_sched->get_dl_mask());
     if (rbg_interv.length() != nrbgs) {
-      ret = alloc_outcome_t::RB_COLLISION;
+      ret = alloc_result::no_sch_space;
       break;
     }
 
     ret = tti_sched->alloc_paging(bc_aggr_level, paging_payload, rbg_interv);
   }
 
-  if (ret != alloc_outcome_t::SUCCESS) {
-    logger.warning(
-        "SCHED: Could not allocate Paging with payload length=%d, cause=%s", paging_payload, ret.to_string());
+  if (ret != alloc_result::success) {
+    logger.warning("SCHED: Could not allocate Paging with payload length=%d, cause=%s", paging_payload, to_string(ret));
   }
 }
 
@@ -173,28 +172,27 @@ ra_sched::ra_sched(const sched_cell_params_t& cfg_, sched_ue_list& ue_db_) :
   cc_cfg(&cfg_), logger(srslog::fetch_basic_logger("MAC")), ue_db(&ue_db_)
 {}
 
-alloc_outcome_t
-ra_sched::allocate_pending_rar(sf_sched* tti_sched, const pending_rar_t& rar, uint32_t& nof_grants_alloc)
+alloc_result ra_sched::allocate_pending_rar(sf_sched* tti_sched, const pending_rar_t& rar, uint32_t& nof_grants_alloc)
 {
-  alloc_outcome_t ret = alloc_outcome_t::ERROR;
+  alloc_result ret = alloc_result::other_cause;
   for (nof_grants_alloc = rar.msg3_grant.size(); nof_grants_alloc > 0; nof_grants_alloc--) {
-    ret = alloc_outcome_t::CODERATE_TOO_HIGH;
-    for (uint32_t nrbg = 1; nrbg < cc_cfg->nof_rbgs and ret == alloc_outcome_t::CODERATE_TOO_HIGH; ++nrbg) {
+    ret = alloc_result::invalid_coderate;
+    for (uint32_t nrbg = 1; nrbg < cc_cfg->nof_rbgs and ret == alloc_result::invalid_coderate; ++nrbg) {
       rbg_interval rbg_interv = find_empty_rbg_interval(nrbg, tti_sched->get_dl_mask());
       if (rbg_interv.length() == nrbg) {
         ret = tti_sched->alloc_rar(rar_aggr_level, rar, rbg_interv, nof_grants_alloc);
       } else {
-        ret = alloc_outcome_t::RB_COLLISION;
+        ret = alloc_result::no_sch_space;
       }
     }
 
     // If allocation was not successful because there were not enough RBGs, try allocating fewer Msg3 grants
-    if (ret != alloc_outcome_t::CODERATE_TOO_HIGH and ret != alloc_outcome_t::RB_COLLISION) {
+    if (ret != alloc_result::invalid_coderate and ret != alloc_result::no_sch_space) {
       break;
     }
   }
-  if (ret != alloc_outcome_t::SUCCESS) {
-    logger.info("SCHED: RAR allocation for L=%d was postponed. Cause=%s", rar_aggr_level, ret.to_string());
+  if (ret != alloc_result::success) {
+    logger.info("SCHED: RAR allocation for L=%d was postponed. Cause=%s", rar_aggr_level, to_string(ret));
   }
   return ret;
 }
@@ -232,10 +230,10 @@ void ra_sched::dl_sched(sf_sched* tti_sched)
     }
 
     // Try to schedule DCI + RBGs for RAR Grant
-    uint32_t        nof_rar_allocs = 0;
-    alloc_outcome_t ret            = allocate_pending_rar(tti_sched, rar, nof_rar_allocs);
+    uint32_t     nof_rar_allocs = 0;
+    alloc_result ret            = allocate_pending_rar(tti_sched, rar, nof_rar_allocs);
 
-    if (ret == alloc_outcome_t::SUCCESS) {
+    if (ret == alloc_result::success) {
       // If RAR allocation was successful:
       // - in case all Msg3 grants were allocated, remove pending RAR, and continue with following RAR
       // - otherwise, erase only Msg3 grants that were allocated, and stop iteration
@@ -251,7 +249,7 @@ void ra_sched::dl_sched(sf_sched* tti_sched)
       // If RAR allocation was not successful:
       // - in case of unavailable PDCCH space, try next pending RAR allocation
       // - otherwise, stop iteration
-      if (ret != alloc_outcome_t::DCI_COLLISION) {
+      if (ret != alloc_result::no_cch_space) {
         break;
       }
       ++it;
@@ -303,7 +301,8 @@ void ra_sched::ul_sched(sf_sched* sf_dl_sched, sf_sched* sf_msg3_sched)
     for (const auto& msg3grant : rar.rar_grant.msg3_grant) {
       uint16_t crnti   = msg3grant.data.temp_crnti;
       auto     user_it = ue_db->find(crnti);
-      if (user_it != ue_db->end() and sf_msg3_sched->alloc_msg3(user_it->second.get(), msg3grant)) {
+      if (user_it != ue_db->end() and
+          sf_msg3_sched->alloc_msg3(user_it->second.get(), msg3grant) == alloc_result::success) {
         logger.debug("SCHED: Queueing Msg3 for rnti=0x%x at tti=%d", crnti, sf_msg3_sched->get_tti_tx_ul().to_uint());
       } else {
         logger.error(

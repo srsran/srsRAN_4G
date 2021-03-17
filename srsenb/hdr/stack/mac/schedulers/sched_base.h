@@ -59,10 +59,10 @@ const ul_harq_proc* get_ul_retx_harq(sched_ue& user, sf_sched* tti_sched);
 const ul_harq_proc* get_ul_newtx_harq(sched_ue& user, sf_sched* tti_sched);
 
 /// Helper methods to allocate resources in subframe
-alloc_outcome_t try_dl_retx_alloc(sf_sched& tti_sched, sched_ue& ue, const dl_harq_proc& h);
-alloc_outcome_t
-                try_dl_newtx_alloc_greedy(sf_sched& tti_sched, sched_ue& ue, const dl_harq_proc& h, rbgmask_t* result_mask = nullptr);
-alloc_outcome_t try_ul_retx_alloc(sf_sched& tti_sched, sched_ue& ue, const ul_harq_proc& h);
+alloc_result try_dl_retx_alloc(sf_sched& tti_sched, sched_ue& ue, const dl_harq_proc& h);
+alloc_result
+             try_dl_newtx_alloc_greedy(sf_sched& tti_sched, sched_ue& ue, const dl_harq_proc& h, rbgmask_t* result_mask = nullptr);
+alloc_result try_ul_retx_alloc(sf_sched& tti_sched, sched_ue& ue, const ul_harq_proc& h);
 
 } // namespace srsenb
 
