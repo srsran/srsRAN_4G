@@ -288,6 +288,7 @@ when_logging_with_small_string_then_filled_in_log_entry_is_pushed_into_the_backe
 
   small_str_buffer buf;
   fmt::format_to(buf, "A {} {} {}", 1, 2, 3);
+  buf.push_back('\0');
   log(std::move(buf));
 
   ASSERT_EQ(backend.push_invocation_count(), 1);
