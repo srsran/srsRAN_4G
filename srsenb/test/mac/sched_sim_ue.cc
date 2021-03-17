@@ -78,7 +78,7 @@ int ue_sim::update(const sf_output_res_t& sf_out)
 void ue_sim::update_dl_harqs(const sf_output_res_t& sf_out)
 {
   for (uint32_t cc = 0; cc < sf_out.cc_params.size(); ++cc) {
-    for (uint32_t i = 0; i < sf_out.dl_cc_result[cc].nof_data_elems; ++i) {
+    for (uint32_t i = 0; i < sf_out.dl_cc_result[cc].data.size(); ++i) {
       const auto& data = sf_out.dl_cc_result[cc].data[i];
       if (data.dci.rnti != ctxt.rnti) {
         continue;
@@ -107,7 +107,7 @@ void ue_sim::update_ul_harqs(const sf_output_res_t& sf_out)
   uint32_t pid = to_tx_ul(sf_out.tti_rx).to_uint() % (FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS);
   for (uint32_t cc = 0; cc < sf_out.cc_params.size(); ++cc) {
     // Update UL harqs with PHICH info
-    for (uint32_t i = 0; i < sf_out.ul_cc_result[cc].nof_phich_elems; ++i) {
+    for (uint32_t i = 0; i < sf_out.ul_cc_result[cc].phich.size(); ++i) {
       const auto& phich = sf_out.ul_cc_result[cc].phich[i];
       if (phich.rnti != ctxt.rnti) {
         continue;
@@ -128,7 +128,7 @@ void ue_sim::update_ul_harqs(const sf_output_res_t& sf_out)
     }
 
     // Update UL harqs with PUSCH grants
-    for (uint32_t i = 0; i < sf_out.ul_cc_result[cc].nof_dci_elems; ++i) {
+    for (uint32_t i = 0; i < sf_out.ul_cc_result[cc].pusch.size(); ++i) {
       const auto& data = sf_out.ul_cc_result[cc].pusch[i];
       if (data.dci.rnti != ctxt.rnti) {
         continue;
@@ -171,7 +171,7 @@ void ue_sim::update_conn_state(const sf_output_res_t& sf_out)
     srslte::tti_interval rar_window{ctxt.prach_tti_rx + 3, ctxt.prach_tti_rx + 3 + rar_win_size};
 
     if (rar_window.contains(tti_tx_dl)) {
-      for (uint32_t i = 0; i < dl_cc_result.nof_rar_elems; ++i) {
+      for (uint32_t i = 0; i < dl_cc_result.rar.size(); ++i) {
         for (uint32_t j = 0; j < dl_cc_result.rar[i].msg3_grant.size(); ++j) {
           const auto& data = dl_cc_result.rar[i].msg3_grant[j].data;
           if (data.prach_tti == (uint32_t)ctxt.prach_tti_rx.to_uint() and data.preamble_idx == ctxt.preamble_idx) {
@@ -188,7 +188,7 @@ void ue_sim::update_conn_state(const sf_output_res_t& sf_out)
     srslte::tti_point expected_msg3_tti_rx = ctxt.rar_tti_rx + MSG3_DELAY_MS;
     if (expected_msg3_tti_rx == sf_out.tti_rx) {
       // Msg3 should exist
-      for (uint32_t i = 0; i < ul_cc_result.nof_dci_elems; ++i) {
+      for (uint32_t i = 0; i < ul_cc_result.pusch.size(); ++i) {
         if (ul_cc_result.pusch[i].dci.rnti == ctxt.rnti) {
           ctxt.msg3_tti_rx = sf_out.tti_rx;
         }
@@ -198,7 +198,7 @@ void ue_sim::update_conn_state(const sf_output_res_t& sf_out)
 
   if (ctxt.msg3_tti_rx.is_valid() and not ctxt.msg4_tti_rx.is_valid()) {
     // Msg3 scheduled, but Msg4 not yet scheduled
-    for (uint32_t i = 0; i < dl_cc_result.nof_data_elems; ++i) {
+    for (uint32_t i = 0; i < dl_cc_result.data.size(); ++i) {
       if (dl_cc_result.data[i].dci.rnti == ctxt.rnti) {
         for (uint32_t j = 0; j < dl_cc_result.data[i].nof_pdu_elems[0]; ++j) {
           if (dl_cc_result.data[i].pdu[0][j].lcid == (uint32_t)srslte::dl_sch_lcid::CON_RES_ID) {

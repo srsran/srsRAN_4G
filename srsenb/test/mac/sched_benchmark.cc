@@ -126,21 +126,21 @@ public:
   {
     for (uint32_t cc = 0; cc < get_cell_params().size(); ++cc) {
       uint32_t dl_tbs = 0, ul_tbs = 0, dl_mcs = 0, ul_mcs = 0;
-      for (uint32_t i = 0; i < sf_out.dl_cc_result[cc].nof_data_elems; ++i) {
+      for (uint32_t i = 0; i < sf_out.dl_cc_result[cc].data.size(); ++i) {
         dl_tbs += sf_out.dl_cc_result[cc].data[i].tbs[0];
         dl_tbs += sf_out.dl_cc_result[cc].data[i].tbs[1];
         dl_mcs = std::max(dl_mcs, sf_out.dl_cc_result[cc].data[i].dci.tb[0].mcs_idx);
       }
       total_stats.mean_dl_tbs.push(dl_tbs);
-      if (sf_out.dl_cc_result[cc].nof_data_elems > 0) {
+      if (sf_out.dl_cc_result[cc].data.size() > 0) {
         total_stats.avg_dl_mcs.push(dl_mcs);
       }
-      for (uint32_t i = 0; i < sf_out.ul_cc_result[cc].nof_dci_elems; ++i) {
+      for (uint32_t i = 0; i < sf_out.ul_cc_result[cc].pusch.size(); ++i) {
         ul_tbs += sf_out.ul_cc_result[cc].pusch[i].tbs;
         ul_mcs = std::max(ul_mcs, sf_out.ul_cc_result[cc].pusch[i].dci.tb.mcs_idx);
       }
       total_stats.mean_ul_tbs.push(ul_tbs);
-      if (sf_out.ul_cc_result[cc].nof_dci_elems) {
+      if (not sf_out.ul_cc_result[cc].pusch.empty()) {
         total_stats.avg_ul_mcs.push(ul_mcs);
       }
     }

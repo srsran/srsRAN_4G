@@ -177,7 +177,7 @@ int test_scell_activation(uint32_t sim_number, test_scell_activation_params para
 
   // TEST: When a DL newtx takes place, it should also encode the CE
   for (uint32_t i = 0; i < 100; ++i) {
-    if (tester.tti_info.dl_sched_result[params.pcell_idx].nof_data_elems > 0) {
+    if (not tester.tti_info.dl_sched_result[params.pcell_idx].data.empty()) {
       // DL data was allocated
       if (tester.tti_info.dl_sched_result[params.pcell_idx].data[0].nof_pdu_elems[0] > 0) {
         // it is a new DL tx

@@ -387,7 +387,7 @@ const cc_sched_result& sched::carrier_sched::generate_tti_result(tti_point tti_r
 
   /* Schedule PHICH */
   for (auto& ue_pair : *ue_db) {
-    if (cc_result->ul_sched_result.nof_phich_elems >= MAX_PHICH_LIST) {
+    if (cc_result->ul_sched_result.phich.size() >= MAX_PHICH_LIST) {
       break;
     }
     tti_sched->alloc_phich(ue_pair.second.get());

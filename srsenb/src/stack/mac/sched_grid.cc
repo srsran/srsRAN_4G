@@ -63,7 +63,7 @@ void sf_sched_result::new_tti(tti_point tti_rx_)
 bool sf_sched_result::is_ul_alloc(uint16_t rnti) const
 {
   for (const auto& cc : enb_cc_list) {
-    for (uint32_t j = 0; j < cc.ul_sched_result.nof_dci_elems; ++j) {
+    for (uint32_t j = 0; j < cc.ul_sched_result.pusch.size(); ++j) {
       if (cc.ul_sched_result.pusch[j].dci.rnti == rnti) {
         return true;
       }
@@ -74,7 +74,7 @@ bool sf_sched_result::is_ul_alloc(uint16_t rnti) const
 bool sf_sched_result::is_dl_alloc(uint16_t rnti) const
 {
   for (const auto& cc : enb_cc_list) {
-    for (uint32_t j = 0; j < cc.dl_sched_result.nof_data_elems; ++j) {
+    for (uint32_t j = 0; j < cc.dl_sched_result.data.size(); ++j) {
       if (cc.dl_sched_result.data[j].dci.rnti == rnti) {
         return true;
       }
@@ -622,11 +622,10 @@ bool sf_sched::alloc_phich(sched_ue* user)
   using phich_t = sched_interface::ul_sched_phich_t;
 
   auto* ul_sf_result = &cc_results->get_cc(cc_cfg->enb_cc_idx)->ul_sched_result;
-  if (ul_sf_result->nof_phich_elems >= sched_interface::MAX_PHICH_LIST) {
+  if (ul_sf_result->phich.full()) {
     logger.warning("SCHED: Maximum number of PHICH allocations has been reached");
     return false;
   }
-  phich_t& phich_item = ul_sf_result->phich[ul_sf_result->nof_phich_elems];
 
   auto p = user->get_active_cell_index(cc_cfg->enb_cc_idx);
   if (not p.first) {
@@ -638,9 +637,9 @@ bool sf_sched::alloc_phich(sched_ue* user)
 
   /* Indicate PHICH acknowledgment if needed */
   if (h->has_pending_phich()) {
-    phich_item.phich = h->pop_pending_phich() ? phich_t::ACK : phich_t::NACK;
-    phich_item.rnti  = user->get_rnti();
-    ul_sf_result->nof_phich_elems++;
+    ul_sf_result->phich.emplace_back();
+    ul_sf_result->phich.back().rnti  = user->get_rnti();
+    ul_sf_result->phich.back().phich = h->pop_pending_phich() ? phich_t::ACK : phich_t::NACK;
     return true;
   }
   return false;
@@ -650,14 +649,9 @@ void sf_sched::set_bc_sched_result(const sf_cch_allocator::alloc_result_t& dci_r
                                    sched_interface::dl_sched_res_t*        dl_result)
 {
   for (const auto& bc_alloc : bc_allocs) {
-    sched_interface::dl_sched_bc_t* bc = &dl_result->bc[dl_result->nof_bc_elems];
-
-    *bc = bc_alloc.bc_grant;
-    // assign NCCE/L
-    bc->dci.location = dci_result[bc_alloc.dci_idx]->dci_pos;
-    dl_result->nof_bc_elems++;
-
-    log_broadcast_allocation(*bc, bc_alloc.rbg_range, *cc_cfg);
+    dl_result->bc.emplace_back(bc_alloc.bc_grant);
+    dl_result->bc.back().dci.location = dci_result[bc_alloc.dci_idx]->dci_pos;
+    log_broadcast_allocation(dl_result->bc.back(), bc_alloc.rbg_range, *cc_cfg);
   }
 }
 
@@ -665,15 +659,9 @@ void sf_sched::set_rar_sched_result(const sf_cch_allocator::alloc_result_t& dci_
                                     sched_interface::dl_sched_res_t*        dl_result)
 {
   for (const auto& rar_alloc : rar_allocs) {
-    sched_interface::dl_sched_rar_t* rar = &dl_result->rar[dl_result->nof_rar_elems];
-
-    // Setup RAR process
-    *rar = rar_alloc.rar_grant;
-    // Assign NCCE/L
-    rar->dci.location = dci_result[rar_alloc.alloc_data.dci_idx]->dci_pos;
-    dl_result->nof_rar_elems++;
-
-    log_rar_allocation(*rar, rar_alloc.alloc_data.rbg_range);
+    dl_result->rar.emplace_back(rar_alloc.rar_grant);
+    dl_result->rar.back().dci.location = dci_result[rar_alloc.alloc_data.dci_idx]->dci_pos;
+    log_rar_allocation(dl_result->rar.back(), rar_alloc.alloc_data.rbg_range);
   }
 }
 
@@ -682,7 +670,8 @@ void sf_sched::set_dl_data_sched_result(const sf_cch_allocator::alloc_result_t& 
                                         sched_ue_list&                          ue_list)
 {
   for (const auto& data_alloc : data_allocs) {
-    sched_interface::dl_sched_data_t* data = &dl_result->data[dl_result->nof_data_elems];
+    dl_result->data.emplace_back();
+    sched_interface::dl_sched_data_t* data = &dl_result->data.back();
 
     // Assign NCCE/L
     data->dci.location = dci_result[data_alloc.dci_idx]->dci_pos;
@@ -730,8 +719,6 @@ void sf_sched::set_dl_data_sched_result(const sf_cch_allocator::alloc_result_t& 
                    data_before,
                    user->get_requested_dl_bytes(cc_cfg->enb_cc_idx).stop());
     logger.info("%s", srslte::to_c_str(str_buffer));
-
-    dl_result->nof_data_elems++;
   }
 }
 
@@ -773,7 +760,7 @@ uci_pusch_t is_uci_included(const sf_sched*        sf_sched,
       needs_ack_uci = sf_sched->is_dl_alloc(user->get_rnti());
     } else {
       auto& dl_result = other_cc_results.enb_cc_list[enbccidx].dl_sched_result;
-      for (uint32_t j = 0; j < dl_result.nof_data_elems; ++j) {
+      for (uint32_t j = 0; j < dl_result.data.size(); ++j) {
         if (dl_result.data[j].dci.rnti == user->get_rnti()) {
           needs_ack_uci = true;
           break;
@@ -802,7 +789,7 @@ uci_pusch_t is_uci_included(const sf_sched*        sf_sched,
   }
 
   for (uint32_t enbccidx = 0; enbccidx < other_cc_results.enb_cc_list.size(); ++enbccidx) {
-    for (uint32_t j = 0; j < other_cc_results.enb_cc_list[enbccidx].ul_sched_result.nof_dci_elems; ++j) {
+    for (uint32_t j = 0; j < other_cc_results.enb_cc_list[enbccidx].ul_sched_result.pusch.size(); ++j) {
       // Checks all the UL grants already allocated for the given rnti
       if (other_cc_results.enb_cc_list[enbccidx].ul_sched_result.pusch[j].dci.rnti == user->get_rnti()) {
         auto p = user->get_active_cell_index(enbccidx);
@@ -827,8 +814,6 @@ void sf_sched::set_ul_sched_result(const sf_cch_allocator::alloc_result_t& dci_r
 {
   /* Set UL data DCI locs and format */
   for (const auto& ul_alloc : ul_data_allocs) {
-    sched_interface::ul_sched_data_t* pusch = &ul_result->pusch[ul_result->nof_dci_elems];
-
     auto ue_it = ue_list.find(ul_alloc.rnti);
     if (ue_it == ue_list.end()) {
       continue;
@@ -844,8 +829,10 @@ void sf_sched::set_ul_sched_result(const sf_cch_allocator::alloc_result_t& dci_r
     uci_pusch_t uci_type = is_uci_included(this, *cc_results, user, cc_cfg->enb_cc_idx);
 
     /* Generate DCI Format1A */
-    uint32_t total_data_before = user->get_pending_ul_data_total(get_tti_tx_ul(), cc_cfg->enb_cc_idx);
-    int      tbs               = user->generate_format0(pusch,
+    ul_result->pusch.emplace_back();
+    sched_interface::ul_sched_data_t& pusch = ul_result->pusch.back();
+    uint32_t total_data_before              = user->get_pending_ul_data_total(get_tti_tx_ul(), cc_cfg->enb_cc_idx);
+    int      tbs                            = user->generate_format0(&pusch,
                                      get_tti_tx_ul(),
                                      cc_cfg->enb_cc_idx,
                                      ul_alloc.alloc,
@@ -857,7 +844,7 @@ void sf_sched::set_ul_sched_result(const sf_cch_allocator::alloc_result_t& dci_r
     ul_harq_proc* h                 = user->get_ul_harq(get_tti_tx_ul(), cc_cfg->enb_cc_idx);
     uint32_t      new_pending_bytes = user->get_pending_ul_new_data(get_tti_tx_ul(), cc_cfg->enb_cc_idx);
     // Allow TBS=0 in case of UCI-only PUSCH
-    if (tbs < 0 || (tbs == 0 && pusch->dci.tb.mcs_idx != 29)) {
+    if (tbs < 0 || (tbs == 0 && pusch.dci.tb.mcs_idx != 29)) {
       fmt::memory_buffer str_buffer;
       fmt::format_to(str_buffer,
                      "SCHED: Error {} {} rnti=0x{:x}, pid={}, dci=({},{}), prb={}, bsr={}",
@@ -865,11 +852,12 @@ void sf_sched::set_ul_sched_result(const sf_cch_allocator::alloc_result_t& dci_r
                      ul_alloc.is_retx() ? "retx" : "tx",
                      user->get_rnti(),
                      h->get_id(),
-                     pusch->dci.location.L,
-                     pusch->dci.location.ncce,
+                     pusch.dci.location.L,
+                     pusch.dci.location.ncce,
                      ul_alloc.alloc,
                      new_pending_bytes);
       logger.warning("%s", srslte::to_c_str(str_buffer));
+      ul_result->pusch.pop_back();
       continue;
     }
 
@@ -884,8 +872,8 @@ void sf_sched::set_ul_sched_result(const sf_cch_allocator::alloc_result_t& dci_r
                      user->get_rnti(),
                      cc_cfg->enb_cc_idx,
                      h->get_id(),
-                     pusch->dci.location.L,
-                     pusch->dci.location.ncce,
+                     pusch.dci.location.L,
+                     pusch.dci.location.ncce,
                      ul_alloc.alloc,
                      h->nof_retx(0),
                      tbs,
@@ -895,9 +883,7 @@ void sf_sched::set_ul_sched_result(const sf_cch_allocator::alloc_result_t& dci_r
       logger.info("%s", srslte::to_c_str(str_buffer));
     }
 
-    pusch->current_tx_nb = h->nof_retx(0);
-
-    ul_result->nof_dci_elems++;
+    pusch.current_tx_nb = h->nof_retx(0);
   }
 }
 
@@ -922,7 +908,7 @@ void sf_sched::generate_sched_results(sched_ue_list& ue_db)
   /* Resume UL HARQs with pending retxs that did not get allocated */
   using phich_t    = sched_interface::ul_sched_phich_t;
   auto& phich_list = cc_result->ul_sched_result.phich;
-  for (uint32_t i = 0; i < cc_result->ul_sched_result.nof_phich_elems; ++i) {
+  for (uint32_t i = 0; i < cc_result->ul_sched_result.phich.size(); ++i) {
     auto& phich = phich_list[i];
     if (phich.phich == phich_t::NACK) {
       auto&         ue = *ue_db[phich.rnti];

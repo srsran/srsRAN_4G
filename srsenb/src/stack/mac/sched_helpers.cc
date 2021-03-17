@@ -116,8 +116,7 @@ void log_dl_cc_results(srslog::basic_logger& logger, uint32_t enb_cc_idx, const 
   }
 
   custom_mem_buffer strbuf;
-  for (uint32_t i = 0; i < result.nof_data_elems; ++i) {
-    const dl_sched_data_t& data = result.data[i];
+  for (const auto& data : result.data) {
     if (logger.debug.enabled()) {
       fill_dl_cc_result_debug(strbuf, data);
     } else {
@@ -142,7 +141,7 @@ void log_phich_cc_results(srslog::basic_logger&                  logger,
     return;
   }
   custom_mem_buffer strbuf;
-  for (uint32_t i = 0; i < result.nof_phich_elems; ++i) {
+  for (uint32_t i = 0; i < result.phich.size(); ++i) {
     const phich_t& phich  = result.phich[i];
     const char*    prefix = strbuf.size() > 0 ? " | " : "";
     const char*    val    = phich.phich == phich_t::ACK ? "ACK" : "NACK";

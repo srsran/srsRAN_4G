@@ -158,7 +158,7 @@ int sched_tester::process_results()
 int sched_tester::test_harqs()
 {
   /* check consistency of DL harq procedures and allocations */
-  for (uint32_t i = 0; i < tti_info.dl_sched_result[CARRIER_IDX].nof_data_elems; ++i) {
+  for (uint32_t i = 0; i < tti_info.dl_sched_result[CARRIER_IDX].data.size(); ++i) {
     const auto&                 data = tti_info.dl_sched_result[CARRIER_IDX].data[i];
     uint32_t                    h_id = data.dci.pid;
     uint16_t                    rnti = data.dci.rnti;
@@ -171,7 +171,7 @@ int sched_tester::test_harqs()
   }
 
   /* Check PHICH allocations */
-  for (uint32_t i = 0; i < tti_info.ul_sched_result[CARRIER_IDX].nof_phich_elems; ++i) {
+  for (uint32_t i = 0; i < tti_info.ul_sched_result[CARRIER_IDX].phich.size(); ++i) {
     const auto& phich = tti_info.ul_sched_result[CARRIER_IDX].phich[i];
     const auto& hprev = tti_data.ue_data[phich.rnti].ul_harq;
     const auto* h     = ue_db[phich.rnti]->get_ul_harq(srsenb::to_tx_ul(tti_rx), CARRIER_IDX);
@@ -182,7 +182,7 @@ int sched_tester::test_harqs()
       if (not hprev.is_empty()) {
         // In case it was resumed
         CONDERROR(h == nullptr or h->is_empty(), "Cannot resume empty UL harq");
-        for (uint32_t j = 0; j < tti_info.ul_sched_result[CARRIER_IDX].nof_dci_elems; ++j) {
+        for (uint32_t j = 0; j < tti_info.ul_sched_result[CARRIER_IDX].pusch.size(); ++j) {
           auto& pusch = tti_info.ul_sched_result[CARRIER_IDX].pusch[j];
           CONDERROR(pusch.dci.rnti == phich.rnti, "Cannot send PHICH::ACK for same harq that got UL grant.");
         }
@@ -198,7 +198,7 @@ int sched_tester::test_harqs()
 int sched_tester::update_ue_stats()
 {
   // update ue stats with number of allocated UL PRBs
-  for (uint32_t i = 0; i < tti_info.ul_sched_result[CARRIER_IDX].nof_dci_elems; ++i) {
+  for (uint32_t i = 0; i < tti_info.ul_sched_result[CARRIER_IDX].pusch.size(); ++i) {
     const auto& pusch = tti_info.ul_sched_result[CARRIER_IDX].pusch[i];
     uint32_t    L, RBstart;
     srslte_ra_type2_from_riv(pusch.dci.type2_alloc.riv,
@@ -214,7 +214,7 @@ int sched_tester::update_ue_stats()
 
   // update ue stats with number of DL RB allocations
   srslte::bounded_bitset<100, true> alloc_mask(sched_cell_params[CARRIER_IDX].cfg.cell.nof_prb);
-  for (uint32_t i = 0; i < tti_info.dl_sched_result[CARRIER_IDX].nof_data_elems; ++i) {
+  for (uint32_t i = 0; i < tti_info.dl_sched_result[CARRIER_IDX].data.size(); ++i) {
     auto& data = tti_info.dl_sched_result[CARRIER_IDX].data[i];
     TESTASSERT(srsenb::extract_dl_prbmask(sched_cell_params[CARRIER_IDX].cfg.cell,
                                           tti_info.dl_sched_result[CARRIER_IDX].data[i].dci,

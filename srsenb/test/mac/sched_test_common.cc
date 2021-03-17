@@ -89,12 +89,12 @@ void sched_result_stats::process_results(tti_point                              
                                          const std::vector<sched_interface::ul_sched_res_t>& ul_result)
 {
   for (uint32_t ccidx = 0; ccidx < dl_result.size(); ++ccidx) {
-    for (uint32_t i = 0; i < dl_result[ccidx].nof_data_elems; ++i) {
+    for (uint32_t i = 0; i < dl_result[ccidx].data.size(); ++i) {
       user_stats* user = get_user(dl_result[ccidx].data[i].dci.rnti);
       user->tot_dl_sched_data[ccidx] += dl_result[ccidx].data[i].tbs[0];
       user->tot_dl_sched_data[ccidx] += dl_result[ccidx].data[i].tbs[1];
     }
-    for (uint32_t i = 0; i < ul_result[ccidx].nof_dci_elems; ++i) {
+    for (uint32_t i = 0; i < ul_result[ccidx].pusch.size(); ++i) {
       user_stats* user = get_user(ul_result[ccidx].pusch[i].dci.rnti);
       user->tot_ul_sched_data[ccidx] += ul_result[ccidx].pusch[i].tbs;
     }

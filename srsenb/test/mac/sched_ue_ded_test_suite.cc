@@ -43,18 +43,16 @@ int sim_ue_ctxt_t::enb_to_ue_cc_idx(uint32_t enb_cc_idx) const
 
 const pusch_t* find_pusch_grant(uint16_t rnti, const sched_interface::ul_sched_res_t& ul_cc_res)
 {
-  const pusch_t* ptr = std::find_if(&ul_cc_res.pusch[0],
-                                    &ul_cc_res.pusch[ul_cc_res.nof_dci_elems],
-                                    [rnti](const pusch_t& pusch) { return pusch.dci.rnti == rnti; });
-  return ptr == &ul_cc_res.pusch[ul_cc_res.nof_dci_elems] ? nullptr : ptr;
+  const pusch_t* ptr = std::find_if(
+      ul_cc_res.pusch.begin(), ul_cc_res.pusch.end(), [rnti](const pusch_t& pusch) { return pusch.dci.rnti == rnti; });
+  return ptr == ul_cc_res.pusch.end() ? nullptr : ptr;
 }
 
 const pdsch_t* find_pdsch_grant(uint16_t rnti, const sched_interface::dl_sched_res_t& dl_cc_res)
 {
-  const pdsch_t* ptr = std::find_if(&dl_cc_res.data[0],
-                                    &dl_cc_res.data[dl_cc_res.nof_data_elems],
-                                    [rnti](const pdsch_t& pdsch) { return pdsch.dci.rnti == rnti; });
-  return ptr == &dl_cc_res.data[dl_cc_res.nof_data_elems] ? nullptr : ptr;
+  const pdsch_t* ptr = std::find_if(
+      dl_cc_res.data.begin(), dl_cc_res.data.end(), [rnti](const pdsch_t& pdsch) { return pdsch.dci.rnti == rnti; });
+  return ptr == dl_cc_res.data.end() ? nullptr : ptr;
 }
 
 int test_pdsch_grant(const sim_enb_ctxt_t&                   enb_ctxt,
@@ -121,7 +119,7 @@ int test_pdsch_grant(const sim_enb_ctxt_t&                   enb_ctxt,
 int test_dl_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
 {
   for (uint32_t cc = 0; cc < enb_ctxt.cell_params.size(); ++cc) {
-    for (uint32_t i = 0; i < sf_out.dl_cc_result[cc].nof_data_elems; ++i) {
+    for (uint32_t i = 0; i < sf_out.dl_cc_result[cc].data.size(); ++i) {
       const sched_interface::dl_sched_data_t& data = sf_out.dl_cc_result[cc].data[i];
       CONDERROR(
           enb_ctxt.ue_db.count(data.dci.rnti) == 0, "Allocated DL grant for non-existent rnti=0x%x", data.dci.rnti);
@@ -136,10 +134,10 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
   uint32_t pid = to_tx_ul(sf_out.tti_rx).to_uint() % (FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS);
 
   for (size_t cc = 0; cc < enb_ctxt.cell_params.size(); ++cc) {
-    const auto* phich_begin = &sf_out.ul_cc_result[cc].phich[0];
-    const auto* phich_end   = &sf_out.ul_cc_result[cc].phich[sf_out.ul_cc_result[cc].nof_phich_elems];
-    const auto* pusch_begin = &sf_out.ul_cc_result[cc].pusch[0];
-    const auto* pusch_end   = &sf_out.ul_cc_result[cc].pusch[sf_out.ul_cc_result[cc].nof_dci_elems];
+    const auto* phich_begin = sf_out.ul_cc_result[cc].phich.begin();
+    const auto* phich_end   = sf_out.ul_cc_result[cc].phich.end();
+    const auto* pusch_begin = sf_out.ul_cc_result[cc].pusch.begin();
+    const auto* pusch_end   = sf_out.ul_cc_result[cc].pusch.end();
 
     // TEST: rnti must exist for all PHICH
     CONDERROR(std::any_of(phich_begin,
@@ -250,14 +248,14 @@ int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
         CONDERROR(not ue.rar_tti_rx.is_valid() and tti_tx_dl > rar_window.stop(),
                   "rnti=0x%x RAR not scheduled within the RAR Window",
                   rnti);
-        for (uint32_t i = 0; i < sf_out.dl_cc_result[cc].nof_rar_elems; ++i) {
+        for (uint32_t i = 0; i < sf_out.dl_cc_result[cc].rar.size(); ++i) {
           CONDERROR(sf_out.dl_cc_result[cc].rar[i].dci.rnti == rnti,
                     "No RAR allocations allowed outside of user RAR window");
         }
       } else {
         // Inside RAR window
         uint32_t nof_rars = ue.rar_tti_rx.is_valid() ? 1 : 0;
-        for (uint32_t i = 0; i < dl_cc_res.nof_rar_elems; ++i) {
+        for (uint32_t i = 0; i < dl_cc_res.rar.size(); ++i) {
           for (const auto& grant : dl_cc_res.rar[i].msg3_grant) {
             const auto& data = grant.data;
             if (data.prach_tti == (uint32_t)ue.prach_tti_rx.to_uint() and data.preamble_idx == ue.preamble_idx) {
@@ -278,7 +276,7 @@ int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
         if (expected_msg3_tti_rx == sf_out.tti_rx) {
           // Msg3 should exist
           uint32_t msg3_count = 0;
-          for (uint32_t i = 0; i < ul_cc_res.nof_dci_elems; ++i) {
+          for (uint32_t i = 0; i < ul_cc_res.pusch.size(); ++i) {
             if (ul_cc_res.pusch[i].dci.rnti == rnti) {
               msg3_count++;
               CONDERROR(ul_cc_res.pusch[i].needs_pdcch, "Msg3 allocations do not require PDCCH");
@@ -295,7 +293,7 @@ int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
       if (ue.msg3_tti_rx.is_valid() and not ue.msg4_tti_rx.is_valid()) {
         // Msg3 scheduled, but Msg4 not yet scheduled
         uint32_t msg4_count = 0;
-        for (uint32_t i = 0; i < dl_cc_res.nof_data_elems; ++i) {
+        for (uint32_t i = 0; i < dl_cc_res.data.size(); ++i) {
           if (dl_cc_res.data[i].dci.rnti == rnti) {
             CONDERROR(to_tx_dl(sf_out.tti_rx) < to_tx_ul(ue.msg3_tti_rx),
                       "Msg4 cannot be scheduled without Msg3 being tx");
@@ -316,7 +314,7 @@ int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
 
       if (not ue.msg4_tti_rx.is_valid()) {
         // TEST: No UL allocs except for Msg3 before Msg4
-        for (uint32_t i = 0; i < ul_cc_res.nof_dci_elems; ++i) {
+        for (uint32_t i = 0; i < ul_cc_res.pusch.size(); ++i) {
           if (ul_cc_res.pusch[i].dci.rnti == rnti) {
             CONDERROR(not ue.rar_tti_rx.is_valid(), "No UL allocs before RAR allowed");
             srslte::tti_point expected_msg3_tti = ue.rar_tti_rx + MSG3_DELAY_MS;
@@ -331,7 +329,7 @@ int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
 
         // TEST: No DL allocs before Msg3
         if (not ue.msg3_tti_rx.is_valid()) {
-          for (uint32_t i = 0; i < dl_cc_res.nof_data_elems; ++i) {
+          for (uint32_t i = 0; i < dl_cc_res.data.size(); ++i) {
             CONDERROR(dl_cc_res.data[i].dci.rnti == rnti, "No DL data allocs allowed before Msg3 is scheduled");
           }
         }
@@ -339,7 +337,7 @@ int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
     }
 
     // TEST: Ensure there are no spurious RARs that do not belong to any user
-    for (uint32_t i = 0; i < dl_cc_res.nof_rar_elems; ++i) {
+    for (uint32_t i = 0; i < dl_cc_res.rar.size(); ++i) {
       for (uint32_t j = 0; j < dl_cc_res.rar[i].msg3_grant.size(); ++j) {
         uint32_t prach_tti    = dl_cc_res.rar[i].msg3_grant[j].data.prach_tti;
         uint32_t preamble_idx = dl_cc_res.rar[i].msg3_grant[j].data.preamble_idx;
