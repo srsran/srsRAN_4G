@@ -59,7 +59,7 @@ private:
   srslog::basic_logger* logger;
   srslte::pdu_queue*    shared_pdu_queue;
 
-  srslte::circular_array<std::pair<tti_point, uint8_t*>, SRSLTE_FDD_NOF_HARQ * 2> pdu_map;
+  srslte::circular_array<std::pair<tti_point, uint8_t*>, SRSLTE_FDD_NOF_HARQ * 8> pdu_map;
 };
 
 class cc_buffer_handler

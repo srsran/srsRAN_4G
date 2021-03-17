@@ -275,6 +275,7 @@ uint8_t* ue::request_buffer(uint32_t tti, uint32_t ue_cc_idx, const uint32_t len
   uint8_t*                     pdu = nullptr;
   if (len > 0) {
     pdu = cc_buffers[ue_cc_idx].get_rx_used_buffers().request_pdu(tti_point(tti), len);
+    logger.info("request_buffer: allocated for rnti=0x%x, tti=%d", rnti, tti);
   } else {
     logger.error("UE buffers: Requesting buffer for zero bytes");
   }
@@ -423,9 +424,9 @@ void ue::deallocate_pdu(uint32_t tti, uint32_t ue_cc_idx)
 {
   std::unique_lock<std::mutex> lock(rx_buffers_mutex);
   if (not cc_buffers[ue_cc_idx].get_rx_used_buffers().try_deallocate_pdu(tti_point(tti))) {
-    logger.warning("UE buffers: Null RX PDU pointer in deallocate_pdu for rnti=0x%x pid=%d cc_idx=%d",
+    logger.warning("UE buffers: Null RX PDU pointer in deallocate_pdu for rnti=0x%x tti=%d cc_idx=%d",
                    rnti,
-                   tti % nof_rx_harq_proc,
+                   tti,
                    ue_cc_idx);
   }
 }
@@ -435,7 +436,7 @@ void ue::push_pdu(uint32_t tti, uint32_t ue_cc_idx, uint32_t len)
   std::unique_lock<std::mutex> lock(rx_buffers_mutex);
   if (not cc_buffers[ue_cc_idx].get_rx_used_buffers().push_pdu(tti_point(tti), len)) {
     logger.warning(
-        "UE buffers: Failed to push RX PDU for rnti=0x%x pid=%d cc_idx=%d", rnti, tti % nof_rx_harq_proc, ue_cc_idx);
+        "UE buffers: Failed to push RX PDU for rnti=0x%x tti=%d cc_idx=%d", rnti, tti, ue_cc_idx);
   }
 }
 
