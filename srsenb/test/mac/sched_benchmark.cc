@@ -362,11 +362,12 @@ int run_rate_test()
   return success ? SRSLTE_SUCCESS : SRSLTE_ERROR;
 }
 
-int run_benchmark()
+int run_all()
 {
   run_params_range      run_param_list{};
   srslog::basic_logger& mac_logger = srslog::fetch_basic_logger("MAC");
 
+  fmt::print("Running all param combinations\n");
   std::vector<run_data> run_results;
   size_t                nof_runs = run_param_list.nof_runs();
   for (size_t r = 0; r < nof_runs; ++r) {
@@ -381,9 +382,35 @@ int run_benchmark()
   return SRSLTE_SUCCESS;
 }
 
+int run_benchmark()
+{
+  run_params_range      run_param_list{};
+  srslog::basic_logger& mac_logger = srslog::fetch_basic_logger("MAC");
+
+  run_param_list.nof_ttis     = 1000000;
+  run_param_list.nof_prbs     = {100};
+  run_param_list.cqi          = {15};
+  run_param_list.nof_ues      = {5};
+  run_param_list.sched_policy = {"time_pf"};
+
+  std::vector<run_data> run_results;
+  size_t                nof_runs = run_param_list.nof_runs();
+  fmt::print("Running Benchmark\n");
+  for (size_t r = 0; r < nof_runs; ++r) {
+    run_params runparams = run_param_list.get_params(r);
+
+    mac_logger.info("\n### New run {} ###\n", r);
+    TESTASSERT(run_benchmark_scenario(runparams, run_results) == SRSLTE_SUCCESS);
+  }
+
+  print_benchmark_results(run_results);
+
+  return SRSLTE_SUCCESS;
+}
+
 } // namespace srsenb
 
-int main()
+int main(int argc, char* argv[])
 {
   // Setup the log spy to intercept error and warning log entries.
   if (!srslog::install_custom_sink(
@@ -407,9 +434,12 @@ int main()
 
   bool run_benchmark = false;
 
-  TESTASSERT(srsenb::run_rate_test() == SRSLTE_SUCCESS);
-  if (run_benchmark) {
+  if (argc == 1 or strcmp(argv[1], "test") == 0) {
+    TESTASSERT(srsenb::run_rate_test() == SRSLTE_SUCCESS);
+  } else if (strcmp(argv[1], "benchmark") == 0) {
     TESTASSERT(srsenb::run_benchmark() == SRSLTE_SUCCESS);
+  } else {
+    TESTASSERT(srsenb::run_all() == SRSLTE_SUCCESS);
   }
 
   return 0;
