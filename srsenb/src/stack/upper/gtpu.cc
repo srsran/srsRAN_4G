@@ -458,6 +458,10 @@ void gtpu::error_indication(in_addr_t addr, in_port_t port, uint32_t err_teid)
 
   gtpu_header_t        header = {};
   unique_byte_buffer_t pdu    = make_byte_buffer();
+  if (pdu == nullptr) {
+    logger.error("Could not allocate byte buffer for error indication");
+    return;
+  }
 
   // header
   header.flags             = GTPU_FLAGS_VERSION_V1 | GTPU_FLAGS_GTP_PROTOCOL | GTPU_FLAGS_SEQUENCE;
@@ -488,6 +492,10 @@ void gtpu::echo_response(in_addr_t addr, in_port_t port, uint16_t seq)
 
   gtpu_header_t        header = {};
   unique_byte_buffer_t pdu    = make_byte_buffer();
+  if (pdu == nullptr) {
+    logger.error("Could not allocate byte buffer for echo response");
+    return;
+  }
 
   // header
   header.flags             = GTPU_FLAGS_VERSION_V1 | GTPU_FLAGS_GTP_PROTOCOL | GTPU_FLAGS_SEQUENCE;
