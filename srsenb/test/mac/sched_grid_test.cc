@@ -149,7 +149,7 @@ int test_pdcch_ue_and_sibs()
   TESTASSERT(pdcch.nof_alloc_combinations() == 0);
   TESTASSERT(pdcch.nof_allocs() == 0);
 
-  tti_point tti_rx{0};
+  tti_point tti_rx{std::uniform_int_distribution<uint32_t>(0, 9)(get_rand_gen())};
 
   pdcch.new_tti(tti_rx);
   TESTASSERT(pdcch.nof_cces() == cell_params[0].nof_cce_table[0]);
@@ -159,13 +159,88 @@ int test_pdcch_ue_and_sibs()
   TESTASSERT(pdcch.alloc_dci(alloc_type_t::DL_BC, 2));
   TESTASSERT(pdcch.nof_alloc_combinations() == 4);
   TESTASSERT(pdcch.alloc_dci(alloc_type_t::DL_RAR, 2));
-  TESTASSERT(pdcch.nof_allocs() == 2 and pdcch.nof_alloc_combinations() == 6);
+  TESTASSERT(pdcch.nof_allocs() == 2);
   TESTASSERT(pdcch.alloc_dci(alloc_type_t::DL_DATA, 2, &sched_ue, false));
-  TESTASSERT(pdcch.nof_allocs() == 3 and pdcch.nof_alloc_combinations() == 9);
+  TESTASSERT(pdcch.nof_allocs() == 3);
 
   // TEST: Ability to revert last allocation
   pdcch.rem_last_dci();
-  TESTASSERT(pdcch.nof_allocs() == 2 and pdcch.nof_alloc_combinations() == 6);
+  TESTASSERT(pdcch.nof_allocs() == 2);
+
+  // TEST: DCI positions
+  uint32_t                         cfi = pdcch.get_cfi();
+  sf_cch_allocator::alloc_result_t dci_result;
+  pdcch_mask_t                     result_pdcch_mask;
+  pdcch.get_allocs(&dci_result, &result_pdcch_mask);
+  TESTASSERT(dci_result.size() == 2);
+  const cce_position_list& bc_dci_locs = cell_params[0].common_locations[cfi - 1][2];
+  TESTASSERT(bc_dci_locs[0] == dci_result[0]->dci_pos.ncce);
+  const cce_position_list& rar_dci_locs = cell_params[0].rar_locations[to_tx_dl(tti_rx).sf_idx()][cfi - 1][2];
+  TESTASSERT(std::any_of(rar_dci_locs.begin(), rar_dci_locs.end(), [&dci_result](uint32_t val) {
+    return dci_result[1]->dci_pos.ncce == val;
+  }));
+
+  return SRSLTE_SUCCESS;
+}
+
+int test_6prbs()
+{
+  std::vector<sched_cell_params_t> cell_params(1);
+  sched_interface::ue_cfg_t        ue_cfg   = generate_default_ue_cfg();
+  sched_interface::cell_cfg_t      cell_cfg = generate_default_cell_cfg(6);
+  sched_interface::sched_args_t    sched_args{};
+  TESTASSERT(cell_params[0].set_cfg(0, cell_cfg, sched_args));
+
+  sf_cch_allocator                 pdcch;
+  sched_ue                         sched_ue{0x46, cell_params, ue_cfg}, sched_ue2{0x47, cell_params, ue_cfg};
+  sf_cch_allocator::alloc_result_t dci_result;
+  pdcch_mask_t                     result_pdcch_mask;
+
+  pdcch.init(cell_params[PCell_IDX]);
+  TESTASSERT(pdcch.nof_alloc_combinations() == 0);
+  TESTASSERT(pdcch.nof_allocs() == 0);
+
+  uint32_t opt_cfi     = 3;
+  uint32_t bc_aggr_idx = 2, ue_aggr_idx = 1;
+
+  // TEST: The first rnti will pick a DCI position of its 3 possible ones that avoids clash with SIB. The second rnti
+  // wont find space
+  tti_point tti_rx{0};
+  pdcch.new_tti(tti_rx);
+  const cce_position_list& bc_dci_locs = cell_params[0].common_locations[opt_cfi - 1][bc_aggr_idx];
+  const cce_position_list& rnti_dci_locs =
+      (*sched_ue.get_locations(0, opt_cfi, to_tx_dl(tti_rx).sf_idx()))[ue_aggr_idx];
+  const cce_position_list& rnti2_dci_locs =
+      (*sched_ue2.get_locations(0, opt_cfi, to_tx_dl(tti_rx).sf_idx()))[ue_aggr_idx];
+
+  TESTASSERT(pdcch.alloc_dci(alloc_type_t::DL_BC, bc_aggr_idx));
+  TESTASSERT(pdcch.alloc_dci(alloc_type_t::DL_DATA, ue_aggr_idx, &sched_ue, false));
+  TESTASSERT(not pdcch.alloc_dci(alloc_type_t::DL_DATA, ue_aggr_idx, &sched_ue2, false));
+  TESTASSERT(pdcch.nof_allocs() == 2);
+
+  pdcch.get_allocs(&dci_result, &result_pdcch_mask);
+  TESTASSERT(dci_result.size() == 2);
+  TESTASSERT(dci_result[0]->dci_pos.ncce == bc_dci_locs[0]);
+  TESTASSERT(dci_result[1]->dci_pos.ncce == rnti_dci_locs[2]);
+
+  // TEST: Two RNTIs can be allocated if one doesnt use the PUCCH
+  opt_cfi = 2;
+  tti_rx  = tti_point{1};
+  pdcch.new_tti(tti_rx);
+  const cce_position_list& rnti_dci_locs3 =
+      (*sched_ue.get_locations(0, opt_cfi, to_tx_dl(tti_rx).sf_idx()))[ue_aggr_idx];
+  const cce_position_list& rnti_dci_locs4 =
+      (*sched_ue2.get_locations(0, opt_cfi, to_tx_dl(tti_rx).sf_idx()))[ue_aggr_idx];
+
+  TESTASSERT(pdcch.alloc_dci(alloc_type_t::DL_DATA, ue_aggr_idx, &sched_ue, false));
+  TESTASSERT(not pdcch.alloc_dci(alloc_type_t::DL_DATA, ue_aggr_idx, &sched_ue2, false));
+  TESTASSERT(pdcch.alloc_dci(alloc_type_t::DL_DATA, ue_aggr_idx, &sched_ue2, true));
+  TESTASSERT(pdcch.nof_allocs() == 2 and pdcch.get_cfi() == opt_cfi);
+
+  pdcch.get_allocs(&dci_result, &result_pdcch_mask);
+  TESTASSERT(dci_result.size() == 2);
+  TESTASSERT(dci_result[0]->dci_pos.ncce == rnti_dci_locs3[0]);
+  TESTASSERT(dci_result[1]->dci_pos.ncce == rnti_dci_locs4[0]);
 
   return SRSLTE_SUCCESS;
 }
@@ -183,6 +258,7 @@ int main()
 
   TESTASSERT(test_pdcch_one_ue() == SRSLTE_SUCCESS);
   TESTASSERT(test_pdcch_ue_and_sibs() == SRSLTE_SUCCESS);
+  TESTASSERT(test_6prbs() == SRSLTE_SUCCESS);
 
   srslog::flush();
 
