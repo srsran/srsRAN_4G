@@ -78,6 +78,11 @@ bool sf_cch_allocator2::alloc_dci(alloc_type_t alloc_type, uint32_t aggr_idx, sc
     if (success) {
       // DCI record allocation successful
       dci_record_list.push_back(record);
+
+      if (is_dl_ctrl_alloc(alloc_type)) {
+        // Dynamic CFI not yet supported for DL control allocations, as coderate can be exceeded
+        current_max_cfix = current_cfix;
+      }
       return true;
     }
     if (temp_dci_dfs.empty()) {
@@ -91,30 +96,6 @@ bool sf_cch_allocator2::alloc_dci(alloc_type_t alloc_type, uint32_t aggr_idx, sc
   return false;
 }
 
-// bool sf_cch_allocator2::get_next_dfs()
-//{
-//  if (last_dci_dfs.empty()) {
-//    // If we reach root, increase CFI
-//    if (current_cfix < cc_cfg->sched_cfg->max_nof_ctrl_symbols - 1) {
-//      current_cfix++;
-//      return true;
-//    }
-//    return false;
-//  }
-//
-//  uint32_t dfs_level       = last_dci_dfs.size() - 1;
-//  uint32_t start_child_idx = last_dci_dfs.back().dci_pos_idx + 1;
-//  last_dci_dfs.pop_back();
-//  while (not alloc_dfs_node(dci_record_list[dfs_level], start_child_idx)) {
-//    start_child_idx = 0;
-//    // If failed to allocate record, go one level lower in DFS
-//    if (not get_next_dfs()) {
-//      // If no more options in DFS, return false
-//      return false;
-//    }
-//  }
-//}
-
 bool sf_cch_allocator2::get_next_dfs()
 {
   do {
@@ -122,7 +103,7 @@ bool sf_cch_allocator2::get_next_dfs()
     if (last_dci_dfs.empty()) {
       // If we reach root, increase CFI
       current_cfix++;
-      if (current_cfix > cc_cfg->sched_cfg->max_nof_ctrl_symbols - 1) {
+      if (current_cfix > current_max_cfix) {
         return false;
       }
     } else {
@@ -236,7 +217,32 @@ void sf_cch_allocator2::get_allocs(alloc_result_t* vec, pdcch_mask_t* tot_mask, 
 
 std::string sf_cch_allocator2::result_to_string(bool verbose) const
 {
-  return "";
+  fmt::basic_memory_buffer<char, 1024> strbuf;
+  if (dci_record_list.empty()) {
+    fmt::format_to(strbuf, "SCHED: PDCCH allocations cfi={}, nof_cce={}, No allocations.\n", get_cfi(), nof_cces());
+  } else {
+    fmt::format_to(strbuf,
+                   "SCHED: PDCCH allocations cfi={}, nof_cce={}, nof_allocs={}, total PDCCH mask=0x{:x}",
+                   get_cfi(),
+                   nof_cces(),
+                   nof_allocs(),
+                   last_dci_dfs.back().total_mask);
+    alloc_result_t vec;
+    get_allocs(&vec);
+    if (verbose) {
+      fmt::format_to(strbuf, ", allocations:\n");
+      for (const auto& dci_alloc : vec) {
+        fmt::format_to(strbuf,
+                       "  > rnti=0x{:0x}: 0x{:x} / 0x{:x}\n",
+                       dci_alloc->rnti,
+                       dci_alloc->current_mask,
+                       dci_alloc->total_mask);
+      }
+    } else {
+      fmt::format_to(strbuf, ".\n");
+    }
+  }
+  return fmt::to_string(strbuf);
 }
 
 /////////////////////////

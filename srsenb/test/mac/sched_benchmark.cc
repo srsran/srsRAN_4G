@@ -219,7 +219,7 @@ run_data expected_run_result(run_params params)
   int      tbs          = srslte_ra_tbs_from_idx(tbs_idx, params.nof_prbs);
   ret.avg_dl_throughput = static_cast<float>(tbs) * 1e3F; // bps
 
-  tbs_idx                 = srslte_ra_tbs_idx_from_mcs(28, false, true);
+  tbs_idx                 = srslte_ra_tbs_idx_from_mcs(24, false, true);
   uint32_t nof_pusch_prbs = params.nof_prbs - (params.nof_prbs == 6 ? 2 : 4);
   tbs                     = srslte_ra_tbs_from_idx(tbs_idx, nof_pusch_prbs);
   ret.avg_ul_throughput   = static_cast<float>(tbs) * 1e3F; // bps
@@ -229,16 +229,16 @@ run_data expected_run_result(run_params params)
   switch (params.nof_prbs) {
     case 6:
       ret.avg_dl_mcs = 25;
-      ret.avg_dl_throughput *= 0.7;
-      ret.avg_ul_throughput *= 0.25;
+      ret.avg_dl_throughput *= 0.68;
+      ret.avg_ul_throughput *= 0.75;
       break;
     case 15:
       ret.avg_dl_throughput *= 0.95;
-      ret.avg_ul_throughput *= 0.5;
+      ret.avg_ul_throughput *= 0.7;
       break;
     default:
       ret.avg_dl_throughput *= 0.97;
-      ret.avg_ul_throughput *= 0.5;
+      ret.avg_ul_throughput *= 0.85;
       break;
   }
   return ret;
@@ -257,7 +257,7 @@ void print_benchmark_results(const std::vector<run_data>& run_results)
     int   tbs_idx           = srslte_ra_tbs_idx_from_mcs(28, false, false);
     int   tbs               = srslte_ra_tbs_from_idx(tbs_idx, r.params.nof_prbs);
     float dl_rate_overhead  = 1.0F - r.avg_dl_throughput / (static_cast<float>(tbs) * 1e3F);
-    tbs_idx                 = srslte_ra_tbs_idx_from_mcs(28, false, true);
+    tbs_idx                 = srslte_ra_tbs_idx_from_mcs(24, false, true);
     uint32_t nof_pusch_prbs = r.params.nof_prbs - (r.params.nof_prbs == 6 ? 2 : 4);
     tbs                     = srslte_ra_tbs_from_idx(tbs_idx, nof_pusch_prbs);
     float ul_rate_overhead  = 1.0F - r.avg_ul_throughput / (static_cast<float>(tbs) * 1e3F);
