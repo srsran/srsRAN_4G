@@ -107,13 +107,13 @@ public:
   }
   T&       front() { return (*this)[0]; }
   const T& front() const { return (*this)[0]; }
-  T*       data() { return &front(); }
-  const T* data() const { return &front(); }
+  T*       data() { return reinterpret_cast<T*>(buffer); }
+  const T* data() const { return reinterpret_cast<const T*>(buffer); }
 
   // Iterators
-  iterator       begin() { return reinterpret_cast<T*>(buffer); }
+  iterator       begin() { return data(); }
   iterator       end() { return begin() + size_; }
-  const_iterator begin() const { return reinterpret_cast<const T*>(buffer); }
+  const_iterator begin() const { return data(); }
   const_iterator end() const { return begin() + size_; }
 
   // Capacity

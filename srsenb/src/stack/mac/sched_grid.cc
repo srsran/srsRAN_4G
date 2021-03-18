@@ -29,7 +29,7 @@ const char* to_string(alloc_result result)
       return "No space available in PUCCH or PDCCH";
     case alloc_result::no_sch_space:
       return "Requested number of PRBs not available";
-    case alloc_result::rnti_inactive:
+    case alloc_result::no_rnti_opportunity:
       return "rnti cannot be allocated (e.g. already allocated, no data, meas gap collision, carrier inactive, etc.)";
     case alloc_result::invalid_grant_params:
       return "invalid grant arguments (e.g. invalid prb mask)";
@@ -55,8 +55,8 @@ void sf_sched_result::new_tti(tti_point tti_rx_)
 bool sf_sched_result::is_ul_alloc(uint16_t rnti) const
 {
   for (const auto& cc : enb_cc_list) {
-    for (uint32_t j = 0; j < cc.ul_sched_result.pusch.size(); ++j) {
-      if (cc.ul_sched_result.pusch[j].dci.rnti == rnti) {
+    for (const auto& pusch : cc.ul_sched_result.pusch) {
+      if (pusch.dci.rnti == rnti) {
         return true;
       }
     }
@@ -66,8 +66,8 @@ bool sf_sched_result::is_ul_alloc(uint16_t rnti) const
 bool sf_sched_result::is_dl_alloc(uint16_t rnti) const
 {
   for (const auto& cc : enb_cc_list) {
-    for (uint32_t j = 0; j < cc.dl_sched_result.data.size(); ++j) {
-      if (cc.dl_sched_result.data[j].dci.rnti == rnti) {
+    for (const auto& data : cc.dl_sched_result.data) {
+      if (data.dci.rnti == rnti) {
         return true;
       }
     }
@@ -259,7 +259,7 @@ void sf_grid_t::rem_last_alloc_dl(rbg_interval rbgs)
 alloc_result sf_grid_t::reserve_ul_prbs(prb_interval alloc, bool strict)
 {
   if (alloc.stop() > ul_mask.size()) {
-    return alloc_result::no_sch_space;
+    return alloc_result::invalid_grant_params;
   }
 
   prbmask_t newmask(ul_mask.size());
@@ -271,10 +271,13 @@ alloc_result sf_grid_t::reserve_ul_prbs(const prbmask_t& prbmask, bool strict)
 {
   alloc_result ret = alloc_result::success;
   if (strict and (ul_mask & prbmask).any()) {
-    fmt::memory_buffer tmp_buffer;
-    fmt::format_to(tmp_buffer, "There was a collision in the UL. Current mask={:x}, new mask={:x}", ul_mask, prbmask);
-    logger.error("%s", srslte::to_c_str(tmp_buffer));
-    ret = alloc_result::sch_collision;
+    if (logger.info.enabled()) {
+      fmt::memory_buffer tmp_buffer;
+      fmt::format_to(
+          tmp_buffer, "There was a collision in the UL. Current mask=0x{:x}, new mask=0x{:x}", ul_mask, prbmask);
+      logger.info("%s", srslte::to_c_str(tmp_buffer));
+      ret = alloc_result::sch_collision;
+    }
   }
   ul_mask |= prbmask;
   return ret;
@@ -325,7 +328,7 @@ void sf_sched::init(const sched_cell_params_t& cell_params_)
 {
   cc_cfg = &cell_params_;
   tti_alloc.init(*cc_cfg);
-  max_msg3_prb = std::max(6u, cc_cfg->cfg.cell.nof_prb - tti_alloc.get_pucch_width());
+  max_msg3_prb = std::max(6U, cc_cfg->cfg.cell.nof_prb - tti_alloc.get_pucch_width());
 }
 
 void sf_sched::new_tti(tti_point tti_rx_, sf_sched_result* cc_results_)
@@ -361,7 +364,7 @@ bool sf_sched::is_ul_alloc(uint16_t rnti) const
 
 alloc_result sf_sched::alloc_sib(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t sib_ntx, rbg_interval rbgs)
 {
-  if (bc_allocs.size() >= sched_interface::MAX_BC_LIST) {
+  if (bc_allocs.full()) {
     logger.warning("SCHED: Maximum number of Broadcast allocations reached");
     return alloc_result::no_grant_space;
   }
@@ -391,7 +394,7 @@ alloc_result sf_sched::alloc_sib(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t s
 
 alloc_result sf_sched::alloc_paging(uint32_t aggr_lvl, uint32_t paging_payload, rbg_interval rbgs)
 {
-  if (bc_allocs.size() >= sched_interface::MAX_BC_LIST) {
+  if (bc_allocs.full()) {
     logger.warning("SCHED: Maximum number of Broadcast allocations reached");
     return alloc_result::no_grant_space;
   }
@@ -422,7 +425,7 @@ alloc_result sf_sched::alloc_paging(uint32_t aggr_lvl, uint32_t paging_payload, 
 alloc_result sf_sched::alloc_rar(uint32_t aggr_lvl, const pending_rar_t& rar, rbg_interval rbgs, uint32_t nof_grants)
 {
   static const uint32_t msg3_nof_prbs = 3;
-  if (rar_allocs.size() >= sched_interface::MAX_RAR_LIST) {
+  if (rar_allocs.full()) {
     logger.info("SCHED: Maximum number of RAR allocations per TTI reached.");
     return alloc_result::no_grant_space;
   }
@@ -474,22 +477,22 @@ bool is_periodic_cqi_expected(const sched_interface::ue_cfg_t& ue_cfg, tti_point
 
 alloc_result sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_mask, uint32_t pid)
 {
-  if (data_allocs.size() >= sched_interface::MAX_DATA_LIST) {
+  if (data_allocs.full()) {
     logger.warning("SCHED: Maximum number of DL allocations reached");
     return alloc_result::no_grant_space;
   }
 
   if (is_dl_alloc(user->get_rnti())) {
     logger.warning("SCHED: Attempt to assign multiple harq pids to the same user rnti=0x%x", user->get_rnti());
-    return alloc_result::rnti_inactive;
+    return alloc_result::no_rnti_opportunity;
   }
 
   auto* cc = user->find_ue_carrier(cc_cfg->enb_cc_idx);
   if (cc == nullptr or cc->cc_state() != cc_st::active) {
-    return alloc_result::rnti_inactive;
+    return alloc_result::no_rnti_opportunity;
   }
   if (not user->pdsch_enabled(srslte::tti_point{get_tti_rx()}, cc_cfg->enb_cc_idx)) {
-    return alloc_result::rnti_inactive;
+    return alloc_result::no_rnti_opportunity;
   }
 
   // Check if allocation would cause segmentation
@@ -498,7 +501,7 @@ alloc_result sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_mask,
     // It is newTx
     rbg_interval r = user->get_required_dl_rbgs(cc_cfg->enb_cc_idx);
     if (r.start() > user_mask.count()) {
-      logger.warning("SCHED: The number of RBGs allocated to rnti=0x%x will force segmentation", user->get_rnti());
+      logger.debug("SCHED: The number of RBGs allocated to rnti=0x%x will force segmentation", user->get_rnti());
       return alloc_result::invalid_grant_params;
     }
   }
@@ -568,14 +571,14 @@ sf_sched::alloc_ul(sched_ue* user, prb_interval alloc, ul_alloc_t::type_t alloc_
 
   if (is_ul_alloc(user->get_rnti())) {
     logger.warning("SCHED: Attempt to assign multiple UL grants to the same user rnti=0x%x", user->get_rnti());
-    return alloc_result::rnti_inactive;
+    return alloc_result::no_rnti_opportunity;
   }
 
   // Check if there is no collision with measGap
   bool needs_pdcch = alloc_type == ul_alloc_t::ADAPT_RETX or (alloc_type == ul_alloc_t::NEWTX and not is_msg3);
   if (not user->pusch_enabled(get_tti_rx(), cc_cfg->enb_cc_idx, needs_pdcch)) {
     logger.debug("SCHED: PDCCH would collide with rnti=0x%x Measurement Gap", user->get_rnti());
-    return alloc_result::rnti_inactive;
+    return alloc_result::no_rnti_opportunity;
   }
 
   // Allocate RBGs and DCI space
@@ -614,20 +617,20 @@ alloc_result sf_sched::alloc_ul_user(sched_ue* user, prb_interval alloc)
   return alloc_ul(user, alloc, alloc_type, h->is_msg3());
 }
 
-bool sf_sched::alloc_phich(sched_ue* user)
+alloc_result sf_sched::alloc_phich(sched_ue* user)
 {
   using phich_t = sched_interface::ul_sched_phich_t;
 
   auto* ul_sf_result = &cc_results->get_cc(cc_cfg->enb_cc_idx)->ul_sched_result;
   if (ul_sf_result->phich.full()) {
     logger.warning("SCHED: Maximum number of PHICH allocations has been reached");
-    return false;
+    return alloc_result::no_grant_space;
   }
 
   auto p = user->get_active_cell_index(cc_cfg->enb_cc_idx);
   if (not p.first) {
     // user does not support this carrier
-    return false;
+    return alloc_result::no_rnti_opportunity;
   }
 
   ul_harq_proc* h = user->get_ul_harq(get_tti_tx_ul(), cc_cfg->enb_cc_idx);
@@ -637,29 +640,9 @@ bool sf_sched::alloc_phich(sched_ue* user)
     ul_sf_result->phich.emplace_back();
     ul_sf_result->phich.back().rnti  = user->get_rnti();
     ul_sf_result->phich.back().phich = h->pop_pending_phich() ? phich_t::ACK : phich_t::NACK;
-    return true;
+    return alloc_result::success;
   }
-  return false;
-}
-
-void sf_sched::set_bc_sched_result(const sf_cch_allocator::alloc_result_t& dci_result,
-                                   sched_interface::dl_sched_res_t*        dl_result)
-{
-  for (const auto& bc_alloc : bc_allocs) {
-    dl_result->bc.emplace_back(bc_alloc.bc_grant);
-    dl_result->bc.back().dci.location = dci_result[bc_alloc.dci_idx]->dci_pos;
-    log_broadcast_allocation(dl_result->bc.back(), bc_alloc.rbg_range, *cc_cfg);
-  }
-}
-
-void sf_sched::set_rar_sched_result(const sf_cch_allocator::alloc_result_t& dci_result,
-                                    sched_interface::dl_sched_res_t*        dl_result)
-{
-  for (const auto& rar_alloc : rar_allocs) {
-    dl_result->rar.emplace_back(rar_alloc.rar_grant);
-    dl_result->rar.back().dci.location = dci_result[rar_alloc.alloc_data.dci_idx]->dci_pos;
-    log_rar_allocation(dl_result->rar.back(), rar_alloc.alloc_data.rbg_range);
-  }
+  return alloc_result::no_rnti_opportunity;
 }
 
 void sf_sched::set_dl_data_sched_result(const sf_cch_allocator::alloc_result_t& dci_result,
@@ -927,9 +910,17 @@ void sf_sched::generate_sched_results(sched_ue_list& ue_db)
   cc_result->dl_sched_result.cfi = tti_alloc.get_pdcch_grid().get_cfi();
 
   /* Generate DCI formats and fill sched_result structs */
-  set_bc_sched_result(dci_result, &cc_result->dl_sched_result);
+  for (const auto& bc_alloc : bc_allocs) {
+    cc_result->dl_sched_result.bc.emplace_back(bc_alloc.bc_grant);
+    cc_result->dl_sched_result.bc.back().dci.location = dci_result[bc_alloc.dci_idx]->dci_pos;
+    log_broadcast_allocation(cc_result->dl_sched_result.bc.back(), bc_alloc.rbg_range, *cc_cfg);
+  }
 
-  set_rar_sched_result(dci_result, &cc_result->dl_sched_result);
+  for (const auto& rar_alloc : rar_allocs) {
+    cc_result->dl_sched_result.rar.emplace_back(rar_alloc.rar_grant);
+    cc_result->dl_sched_result.rar.back().dci.location = dci_result[rar_alloc.alloc_data.dci_idx]->dci_pos;
+    log_rar_allocation(cc_result->dl_sched_result.rar.back(), rar_alloc.alloc_data.rbg_range);
+  }
 
   set_dl_data_sched_result(dci_result, &cc_result->dl_sched_result, ue_db);
 

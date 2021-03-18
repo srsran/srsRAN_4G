@@ -295,7 +295,7 @@ int ra_sched::dl_rach_info(dl_sched_rar_info_t rar_info)
 //! Schedule Msg3 grants in UL based on allocated RARs
 void ra_sched::ul_sched(sf_sched* sf_dl_sched, sf_sched* sf_msg3_sched)
 {
-  const std::vector<sf_sched::rar_alloc_t>& alloc_rars = sf_dl_sched->get_allocated_rars();
+  srslte::const_span<sf_sched::rar_alloc_t> alloc_rars = sf_dl_sched->get_allocated_rars();
 
   for (const auto& rar : alloc_rars) {
     for (const auto& msg3grant : rar.rar_grant.msg3_grant) {
@@ -334,7 +334,7 @@ sched::carrier_sched::carrier_sched(rrc_interface_mac*       rrc_,
   sf_dl_mask.resize(1, 0);
 }
 
-sched::carrier_sched::~carrier_sched() {}
+sched::carrier_sched::~carrier_sched() = default;
 
 void sched::carrier_sched::reset()
 {
@@ -386,10 +386,9 @@ const cc_sched_result& sched::carrier_sched::generate_tti_result(tti_point tti_r
 
   /* Schedule PHICH */
   for (auto& ue_pair : *ue_db) {
-    if (cc_result->ul_sched_result.phich.size() >= MAX_PHICH_LIST) {
+    if (tti_sched->alloc_phich(ue_pair.second.get()) == alloc_result::no_grant_space) {
       break;
     }
-    tti_sched->alloc_phich(ue_pair.second.get());
   }
 
   /* Schedule DL control data */

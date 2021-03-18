@@ -146,7 +146,7 @@ alloc_result try_dl_newtx_alloc_greedy(sf_sched& tti_sched, sched_ue& ue, const 
   // If there is no data to transmit, no need to allocate
   rbg_interval req_rbgs = ue.get_required_dl_rbgs(tti_sched.get_enb_cc_idx());
   if (req_rbgs.stop() == 0) {
-    return alloc_result::rnti_inactive;
+    return alloc_result::no_rnti_opportunity;
   }
 
   // Find RBG mask that accommodates pending data
@@ -245,7 +245,7 @@ alloc_result try_ul_retx_alloc(sf_sched& tti_sched, sched_ue& ue, const ul_harq_
 
   // Avoid measGaps accounting for PDCCH
   if (not ue.pusch_enabled(tti_sched.get_tti_rx(), tti_sched.get_enb_cc_idx(), true)) {
-    return alloc_result::rnti_inactive;
+    return alloc_result::no_rnti_opportunity;
   }
   uint32_t nof_prbs = alloc.length();
   alloc             = find_contiguous_ul_prbs(nof_prbs, tti_sched.get_ul_mask());
