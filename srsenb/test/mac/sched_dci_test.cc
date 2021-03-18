@@ -103,7 +103,7 @@ int test_mcs_tbs_dl_helper(const sched_cell_params_t& cell_params, const tbs_tes
   tbs_info tb2;
   for (tb2.mcs = ret.mcs + 1; tb2.mcs <= (int)args.max_mcs; ++tb2.mcs) {
     int tbs_idx2  = srslte_ra_tbs_idx_from_mcs(tb2.mcs, args.use_tbs_index_alt, args.is_ul);
-    tb2.tbs_bytes = srslte_ra_tbs_from_idx(tbs_idx2, args.prb_grant_size) / 8u;
+    tb2.tbs_bytes = srslte_ra_tbs_from_idx(tbs_idx2, args.prb_grant_size) / 8U;
     TESTASSERT(not lower_coderate(tb2, nof_re, args) or (args.prb_grant_size == 1 and tb2.mcs == 6));
   }
 
@@ -139,7 +139,7 @@ int assert_mcs_tbs_result(uint32_t cell_nof_prb,
   args.prb_grant_size    = prb_grant_size;
   args.use_tbs_index_alt = alt_cqi_table;
   if (alt_cqi_table) {
-    args.max_mcs = std::min(args.max_mcs, 27u); // limited to 27 for 256-QAM
+    args.max_mcs = std::min(args.max_mcs, 27U); // limited to 27 for 256-QAM
   }
 
   tbs_info expected_result;
@@ -156,23 +156,20 @@ int assert_mcs_tbs_result(uint32_t cell_nof_prb,
 
 int test_mcs_lookup_specific()
 {
-  sched_cell_params_t           cell_params = {};
-  sched_interface::cell_cfg_t   cell_cfg    = generate_default_cell_cfg(6);
-  sched_interface::sched_args_t sched_args  = {};
-  cell_params.set_cfg(0, cell_cfg, sched_args);
-  tbs_test_args args;
-  args.verbose = true;
-  tbs_info expected_result;
-
   /* TEST CASE: DL, no 256-QAM */
   // cqi=5,Nprb=1 -> {mcs=3, tbs_idx=3, tbs=40}
   TESTASSERT(assert_mcs_tbs_result(6, 5, 1, 40, 3) == SRSLTE_SUCCESS);
-
-  TESTASSERT(assert_mcs_tbs_result(6, 15, 1, 336, 19) == SRSLTE_SUCCESS);
   TESTASSERT(assert_mcs_tbs_result(6, 5, 4, 256, 4) == SRSLTE_SUCCESS);
 
   TESTASSERT(assert_mcs_tbs_result(100, 9, 1, 712, 28) == SRSLTE_SUCCESS);
   TESTASSERT(assert_mcs_tbs_result(100, 10, 10, 5736, 25) == SRSLTE_SUCCESS);
+
+  // cqi=15
+  TESTASSERT(assert_mcs_tbs_result(6, 15, 1, 336, 19) == SRSLTE_SUCCESS);     // I_tbs=17
+  TESTASSERT(assert_mcs_tbs_result(6, 15, 6, 2152, 19) == SRSLTE_SUCCESS);    // I_tbs=17
+  TESTASSERT(assert_mcs_tbs_result(100, 15, 1, 712, 28) == SRSLTE_SUCCESS);   // I_tbs=26
+  TESTASSERT(assert_mcs_tbs_result(100, 15, 2, 1480, 28) == SRSLTE_SUCCESS);  // I_tbs=26
+  TESTASSERT(assert_mcs_tbs_result(100, 15, 10, 7480, 28) == SRSLTE_SUCCESS); // I_tbs=26
   TESTASSERT(assert_mcs_tbs_result(100, 15, 1, 968, 27, true) == SRSLTE_SUCCESS);
 
   return SRSLTE_SUCCESS;
@@ -204,6 +201,9 @@ int test_mcs_tbs_consistency_all()
   return SRSLTE_SUCCESS;
 }
 
+/**
+ * Note: assumes lowest bound for nof of REs
+ */
 int test_min_mcs_tbs_dl_helper(const sched_cell_params_t& cell_params, const tbs_test_args& args, tbs_info* result)
 {
   uint32_t nof_re = cell_params.get_dl_lb_nof_re(args.tti_tx_dl, args.prb_grant_size);
