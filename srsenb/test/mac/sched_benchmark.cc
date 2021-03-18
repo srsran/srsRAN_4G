@@ -53,7 +53,7 @@ class sched_tester : public sched_sim_base
   static std::vector<sched_interface::cell_cfg_t> get_cell_cfg(srslte::span<const sched_cell_params_t> cell_params)
   {
     std::vector<sched_interface::cell_cfg_t> cell_cfg_list;
-    for (auto& c : cell_params) {
+    for (const auto& c : cell_params) {
       cell_cfg_list.push_back(c.cfg);
     }
     return cell_cfg_list;
@@ -114,9 +114,9 @@ public:
       sched_ptr->dl_rlc_buffer_state(ue_ctxt.rnti, 3, ul_bytes_per_tti, 0);
 
       if (get_tti_rx().to_uint() % 5 == 0) {
-        for (uint32_t cc = 0; cc < pending_events.cc_list.size(); ++cc) {
-          pending_events.cc_list[cc].dl_cqi = current_run_params.cqi;
-          pending_events.cc_list[cc].ul_snr = 40;
+        for (auto& cc : pending_events.cc_list) {
+          cc.dl_cqi = current_run_params.cqi;
+          cc.ul_snr = 40;
         }
       }
     }
@@ -126,18 +126,18 @@ public:
   {
     for (uint32_t cc = 0; cc < get_cell_params().size(); ++cc) {
       uint32_t dl_tbs = 0, ul_tbs = 0, dl_mcs = 0, ul_mcs = 0;
-      for (uint32_t i = 0; i < sf_out.dl_cc_result[cc].data.size(); ++i) {
-        dl_tbs += sf_out.dl_cc_result[cc].data[i].tbs[0];
-        dl_tbs += sf_out.dl_cc_result[cc].data[i].tbs[1];
-        dl_mcs = std::max(dl_mcs, sf_out.dl_cc_result[cc].data[i].dci.tb[0].mcs_idx);
+      for (const auto& data : sf_out.dl_cc_result[cc].data) {
+        dl_tbs += data.tbs[0];
+        dl_tbs += data.tbs[1];
+        dl_mcs = std::max(dl_mcs, data.dci.tb[0].mcs_idx);
       }
       total_stats.mean_dl_tbs.push(dl_tbs);
-      if (sf_out.dl_cc_result[cc].data.size() > 0) {
+      if (not sf_out.dl_cc_result[cc].data.empty()) {
         total_stats.avg_dl_mcs.push(dl_mcs);
       }
-      for (uint32_t i = 0; i < sf_out.ul_cc_result[cc].pusch.size(); ++i) {
-        ul_tbs += sf_out.ul_cc_result[cc].pusch[i].tbs;
-        ul_mcs = std::max(ul_mcs, sf_out.ul_cc_result[cc].pusch[i].dci.tb.mcs_idx);
+      for (const auto& pusch : sf_out.ul_cc_result[cc].pusch) {
+        ul_tbs += pusch.tbs;
+        ul_mcs = std::max(ul_mcs, pusch.dci.tb.mcs_idx);
       }
       total_stats.mean_ul_tbs.push(ul_tbs);
       if (not sf_out.ul_cc_result[cc].pusch.empty()) {
@@ -146,38 +146,6 @@ public:
     }
   }
 };
-
-int run_sched_new_ue(sched_tester&                    sched_tester,
-                     const run_params&                params,
-                     uint16_t                         rnti,
-                     const sched_interface::ue_cfg_t& ue_cfg)
-{
-  const uint32_t ENB_CC_IDX = 0;
-
-  sched_tester.total_stats        = {};
-  sched_tester.current_run_params = params;
-
-  // Add user (first need to advance to a PRACH TTI)
-  while (not srslte_prach_tti_opportunity_config_fdd(
-      sched_tester.get_cell_params()[ue_cfg.supported_cc_list[0].enb_cc_idx].cfg.prach_config,
-      sched_tester.get_tti_rx().to_uint(),
-      -1)) {
-    TESTASSERT(sched_tester.advance_tti() == SRSLTE_SUCCESS);
-  }
-  TESTASSERT(sched_tester.add_user(rnti, ue_cfg, 16) == SRSLTE_SUCCESS);
-
-  // Ignore stats of the first TTIs until UE DRB1 is added
-  while (not sched_tester.get_enb_ctxt().ue_db.at(rnti)->conres_rx) {
-    sched_tester.advance_tti();
-  }
-  sched_tester.total_stats = {};
-
-  for (uint32_t count = 0; count < params.nof_ttis; ++count) {
-    sched_tester.advance_tti();
-  }
-
-  return SRSLTE_SUCCESS;
-}
 
 struct run_data {
   run_params                params;
@@ -233,8 +201,8 @@ int run_benchmark_scenario(run_params params, std::vector<run_data>& run_results
 
   run_data run_result          = {};
   run_result.params            = params;
-  run_result.avg_dl_throughput = tester.total_stats.mean_dl_tbs.value() * 8.0 / 1e-3;
-  run_result.avg_ul_throughput = tester.total_stats.mean_ul_tbs.value() * 8.0 / 1e-3;
+  run_result.avg_dl_throughput = tester.total_stats.mean_dl_tbs.value() * 8.0F / 1e-3F;
+  run_result.avg_ul_throughput = tester.total_stats.mean_ul_tbs.value() * 8.0F / 1e-3F;
   run_result.avg_dl_mcs        = tester.total_stats.avg_dl_mcs.value();
   run_result.avg_ul_mcs        = tester.total_stats.avg_ul_mcs.value();
   run_result.avg_latency = std::chrono::microseconds(static_cast<int>(tester.total_stats.avg_latency.value() / 1000));
@@ -249,12 +217,12 @@ run_data expected_run_result(run_params params)
   run_data ret{};
   int      tbs_idx      = srslte_ra_tbs_idx_from_mcs(28, false, false);
   int      tbs          = srslte_ra_tbs_from_idx(tbs_idx, params.nof_prbs);
-  ret.avg_dl_throughput = tbs * 1e3; // bps
+  ret.avg_dl_throughput = static_cast<float>(tbs) * 1e3F; // bps
 
   tbs_idx                 = srslte_ra_tbs_idx_from_mcs(28, false, true);
   uint32_t nof_pusch_prbs = params.nof_prbs - (params.nof_prbs == 6 ? 2 : 4);
   tbs                     = srslte_ra_tbs_from_idx(tbs_idx, nof_pusch_prbs);
-  ret.avg_ul_throughput   = tbs * 1e3; // bps
+  ret.avg_ul_throughput   = static_cast<float>(tbs) * 1e3F; // bps
 
   ret.avg_dl_mcs = 27;
   ret.avg_ul_mcs = 22;
@@ -288,11 +256,11 @@ void print_benchmark_results(const std::vector<run_data>& run_results)
 
     int   tbs_idx           = srslte_ra_tbs_idx_from_mcs(28, false, false);
     int   tbs               = srslte_ra_tbs_from_idx(tbs_idx, r.params.nof_prbs);
-    float dl_rate_overhead  = 1.0F - r.avg_dl_throughput / (tbs * 1e3);
+    float dl_rate_overhead  = 1.0F - r.avg_dl_throughput / (static_cast<float>(tbs) * 1e3F);
     tbs_idx                 = srslte_ra_tbs_idx_from_mcs(28, false, true);
     uint32_t nof_pusch_prbs = r.params.nof_prbs - (r.params.nof_prbs == 6 ? 2 : 4);
     tbs                     = srslte_ra_tbs_from_idx(tbs_idx, nof_pusch_prbs);
-    float ul_rate_overhead  = 1.0F - r.avg_ul_throughput / (tbs * 1e3);
+    float ul_rate_overhead  = 1.0F - r.avg_ul_throughput / (static_cast<float>(tbs) * 1e3F);
 
     fmt::print("{:>3d}{:>6d}{:>6d}{:>12}{:>6d}{:>9.2}/{:>4.2}{:>9.1f}/{:>4.1f}{:9.1f}/{:>4.1f}{:12d}\n",
                i,
@@ -420,7 +388,7 @@ int main(int argc, char* argv[])
   }
 
   auto* spy = static_cast<srslte::log_sink_spy*>(srslog::find_sink(srslte::log_sink_spy::name()));
-  if (!spy) {
+  if (spy == nullptr) {
     return SRSLTE_ERROR;
   }
 

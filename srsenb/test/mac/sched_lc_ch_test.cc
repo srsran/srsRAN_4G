@@ -45,7 +45,7 @@ int test_pdu_alloc_successful(srsenb::lch_ue_manager&          lch_handler,
 int test_retx_until_empty(srsenb::lch_ue_manager& lch_handler, int lcid, uint32_t rlc_payload_size)
 {
   int start_rlc_bytes = lch_handler.get_dl_retx(lcid);
-  int nof_pdus        = ceil(start_rlc_bytes / (float)rlc_payload_size);
+  int nof_pdus        = ceil(static_cast<float>(start_rlc_bytes) / static_cast<float>(rlc_payload_size));
   int rem_rlc_bytes   = start_rlc_bytes;
 
   sched_interface::dl_sched_pdu_t pdu;
@@ -61,7 +61,7 @@ int test_retx_until_empty(srsenb::lch_ue_manager& lch_handler, int lcid, uint32_
 int test_newtx_until_empty(srsenb::lch_ue_manager& lch_handler, int lcid, uint32_t rlc_payload_size)
 {
   int start_rlc_bytes = lch_handler.get_dl_tx(lcid);
-  int nof_pdus        = ceil(start_rlc_bytes / (float)rlc_payload_size);
+  int nof_pdus        = ceil(static_cast<float>(start_rlc_bytes) / (float)rlc_payload_size);
   int rem_rlc_bytes   = start_rlc_bytes;
 
   sched_interface::dl_sched_pdu_t pdu;

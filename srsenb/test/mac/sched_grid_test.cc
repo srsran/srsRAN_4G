@@ -92,7 +92,7 @@ int test_pdcch_one_ue()
     TESTASSERT(pdcch_result[0]->rnti == sched_ue.get_rnti());
     TESTASSERT(pdcch_result[0]->total_mask.size() == cell_params[ENB_CC_IDX].nof_cce_table[pdcch.get_cfi() - 1]);
     TESTASSERT(pdcch_result[0]->current_mask == pdcch_result[0]->total_mask);
-    TESTASSERT(pdcch_result[0]->current_mask.count() == 1u << aggr_idx);
+    TESTASSERT(pdcch_result[0]->current_mask.count() == 1U << aggr_idx);
     TESTASSERT(std::count(dci_locs.begin(), dci_locs.end(), pdcch_result[0]->dci_pos.ncce) > 0);
 
     // allocate UL user
@@ -120,7 +120,7 @@ int test_pdcch_one_ue()
     TESTASSERT(pdcch_result[1]->rnti == sched_ue.get_rnti());
     TESTASSERT(pdcch_result[1]->total_mask.size() == cell_params[ENB_CC_IDX].nof_cce_table[pdcch.get_cfi() - 1]);
     TESTASSERT((pdcch_result[1]->current_mask & pdcch_result[0]->current_mask).none());
-    TESTASSERT(pdcch_result[1]->current_mask.count() == 1u << aggr_idx);
+    TESTASSERT(pdcch_result[1]->current_mask.count() == 1U << aggr_idx);
     TESTASSERT(pdcch_result[1]->total_mask == (pdcch_result[0]->current_mask | pdcch_result[1]->current_mask));
     TESTASSERT(std::count(dci_locs2.begin(), dci_locs2.end(), pdcch_result[0]->dci_pos.ncce) > 0);
 
@@ -133,7 +133,6 @@ int test_pdcch_one_ue()
 
 int test_pdcch_ue_and_sibs()
 {
-  const uint32_t ENB_CC_IDX = 0;
   // Params
   uint32_t nof_prb = 100;
 
