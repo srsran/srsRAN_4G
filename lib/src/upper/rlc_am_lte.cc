@@ -439,14 +439,13 @@ int rlc_am_lte::rlc_am_lte_tx::write_sdu(unique_byte_buffer_t sdu)
     return SRSLTE_ERROR;
   }
 
-  // Store SDU info
-  logger.debug(
-      "Storing PDCP SDU info in queue. PDCP_SN=%d, Queue Size=%ld", sdu_pdcp_sn, undelivered_sdu_info_queue.nof_sdus());
-
   if (undelivered_sdu_info_queue.has_pdcp_sn(sdu_pdcp_sn)) {
-    logger.error("PDCP SDU info already exists. SN=%d", sdu_pdcp_sn);
+    logger.warning("PDCP_SN=%d already marked as undelivered", sdu_pdcp_sn);
     return SRSLTE_ERROR;
   }
+
+  // Store SDU info
+  logger.debug("Marking PDCP_SN=%d as undelivered (queue_len=%ld)", sdu_pdcp_sn, undelivered_sdu_info_queue.nof_sdus());
 
   undelivered_sdu_info_queue.add_pdcp_sdu(sdu_pdcp_sn);
   return SRSLTE_SUCCESS;
