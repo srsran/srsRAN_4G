@@ -9,6 +9,7 @@
  * the distribution.
  *
  */
+
 #include "srslte/upper/gtpu.h"
 #include "srsenb/hdr/stack/upper/gtpu.h"
 #include "srslte/common/network_utils.h"
@@ -26,7 +27,9 @@
 using namespace srslte;
 namespace srsenb {
 
-gtpu::gtpu(srslog::basic_logger& logger) : m1u(this), logger(logger) {}
+gtpu::gtpu(srslte::task_sched_handle task_sched_, srslog::basic_logger& logger) :
+  m1u(this), task_sched(task_sched_), logger(logger)
+{}
 
 int gtpu::init(std::string                  gtp_bind_addr_,
                std::string                  mme_addr_,
@@ -174,6 +177,26 @@ uint32_t gtpu::add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t 
       after_tun.dl_enabled            = false;
       after_tun.prior_teid_in_present = true;
       after_tun.prior_teid_in         = teid_in;
+      // Schedule autoremoval of this indirect tunnel
+      uint32_t after_teidin  = after_tun.teid_in;
+      uint32_t before_teidin = new_tun.teid_in;
+      new_tun.rx_timer       = task_sched.get_unique_timer();
+      new_tun.rx_timer.set(500, [this, before_teidin, after_teidin](uint32_t tid) {
+        auto it = tunnels.find(after_teidin);
+        if (it != tunnels.end()) {
+          tunnel& after_tun = it->second;
+          if (after_tun.prior_teid_in_present) {
+            after_tun.prior_teid_in_present = false;
+            set_tunnel_status(after_tun.teid_in, true);
+          }
+          // else: indirect tunnel already removed
+        } else {
+          logger.info("Callback to automatic indirect tunnel deletion called for non-existent TEID=%d", after_teidin);
+        }
+        // This will self-destruct the callback object
+        rem_tunnel(before_teidin);
+      });
+      new_tun.rx_timer.run();
     }
 
     // Connect tunnels if forwarding is activated
@@ -301,11 +324,20 @@ void gtpu::handle_gtpu_s1u_rx_packet(srslte::unique_byte_buffer_t pdu, const soc
     return;
   }
 
-  if (header.teid != 0 && tunnels.count(header.teid) == 0) {
-    // Received G-PDU for non-existing and non-zero TEID.
-    // Sending GTP-U error indication
-    error_indication(addr.sin_addr.s_addr, addr.sin_port, header.teid);
-    return;
+  tunnel* rx_tunnel = nullptr;
+  if (header.teid != 0) {
+    auto it = tunnels.find(header.teid);
+    if (it == tunnels.end()) {
+      // Received G-PDU for non-existing and non-zero TEID.
+      // Sending GTP-U error indication
+      error_indication(addr.sin_addr.s_addr, addr.sin_port, header.teid);
+    }
+    rx_tunnel = &it->second;
+
+    if (rx_tunnel->rx_timer.is_valid()) {
+      // Restart Rx timer
+      rx_tunnel->rx_timer.run();
+    }
   }
 
   switch (header.message_type) {
@@ -345,22 +377,27 @@ void gtpu::handle_gtpu_s1u_rx_packet(srslte::unique_byte_buffer_t pdu, const soc
       }
     } break;
     case GTPU_MSG_END_MARKER: {
-      tunnel&  old_tun = tunnels.find(header.teid)->second;
-      uint16_t rnti    = old_tun.rnti;
+      uint16_t rnti = rx_tunnel->rnti;
       logger.info("Received GTPU End Marker for rnti=0x%x.", rnti);
 
       // TS 36.300, Sec 10.1.2.2.1 - Path Switch upon handover
-      if (old_tun.fwd_teid_in_present) {
+      if (rx_tunnel->fwd_teid_in_present) {
         // END MARKER should be forwarded to TeNB if forwarding is activated
-        end_marker(old_tun.fwd_teid_in);
-        old_tun.fwd_teid_in_present = false;
+        end_marker(rx_tunnel->fwd_teid_in);
+        rx_tunnel->fwd_teid_in_present = false;
       } else {
         // TeNB switches paths, and flush PDUs that have been buffered
-        std::vector<uint32_t>& bearer_tunnels = ue_teidin_db.find(old_tun.rnti)->second[old_tun.lcid];
+        auto rnti_it = ue_teidin_db.find(rnti);
+        if (rnti_it == ue_teidin_db.end()) {
+          logger.error("No rnti=0x%x entry for associated TEID=%d", rnti, header.teid);
+          return;
+        }
+        std::vector<uint32_t>& bearer_tunnels = rnti_it->second[rx_tunnel->lcid];
         for (uint32_t new_teidin : bearer_tunnels) {
           tunnel& new_tun = tunnels.at(new_teidin);
-          if (new_teidin != old_tun.teid_in and new_tun.prior_teid_in_present and
-              new_tun.prior_teid_in == old_tun.teid_in) {
+          if (new_teidin != rx_tunnel->teid_in and new_tun.prior_teid_in_present and
+              new_tun.prior_teid_in == rx_tunnel->teid_in) {
+            rem_tunnel(new_tun.prior_teid_in);
             new_tun.prior_teid_in_present = false;
             set_tunnel_status(new_tun.teid_in, true);
           }
@@ -369,6 +406,7 @@ void gtpu::handle_gtpu_s1u_rx_packet(srslte::unique_byte_buffer_t pdu, const soc
       break;
     }
     default:
+      logger.warning("Unhandled GTPU message type=%d", header.message_type);
       break;
   }
 }
@@ -471,13 +509,22 @@ void gtpu::echo_response(in_addr_t addr, in_port_t port, uint16_t seq)
 /****************************************************************************
  * GTP-U END MARKER
  ***************************************************************************/
-void gtpu::end_marker(uint32_t teidin)
+bool gtpu::end_marker(uint32_t teidin)
 {
   logger.info("TX GTPU End Marker.");
-  tunnel& tunnel = tunnels.find(teidin)->second;
+  auto it = tunnels.find(teidin);
+  if (it == tunnels.end()) {
+    logger.error("TEID=%d not found to send the end marker to", teidin);
+    return false;
+  }
+  tunnel& tunnel = it->second;
 
   gtpu_header_t        header = {};
   unique_byte_buffer_t pdu    = make_byte_buffer();
+  if (pdu == nullptr) {
+    logger.warning("Failed to allocate buffer to send End Marker to TEID=%d", teidin);
+    return false;
+  }
 
   // header
   header.flags        = GTPU_FLAGS_VERSION_V1 | GTPU_FLAGS_GTP_PROTOCOL;
@@ -493,6 +540,7 @@ void gtpu::end_marker(uint32_t teidin)
   servaddr.sin_port           = htons(GTPU_PORT);
 
   sendto(fd, pdu->msg, pdu->N_bytes, MSG_EOR, (struct sockaddr*)&servaddr, sizeof(struct sockaddr_in));
+  return true;
 }
 
 /****************************************************************************

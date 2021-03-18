@@ -16,6 +16,7 @@
 
 #include "common_enb.h"
 #include "srslte/common/buffer_pool.h"
+#include "srslte/common/task_scheduler.h"
 #include "srslte/common/threads.h"
 #include "srslte/interfaces/enb_gtpu_interfaces.h"
 #include "srslte/phy/common/phy_common.h"
@@ -34,7 +35,7 @@ class stack_interface_gtpu_lte;
 class gtpu final : public gtpu_interface_rrc, public gtpu_interface_pdcp
 {
 public:
-  explicit gtpu(srslog::basic_logger& logger);
+  explicit gtpu(srslte::task_sched_handle task_sched_, srslog::basic_logger& logger);
 
   int  init(std::string               gtp_bind_addr_,
             std::string               mme_addr_,
@@ -75,6 +76,7 @@ private:
   std::string                  mme_addr;
   srsenb::pdcp_interface_gtpu* pdcp = nullptr;
   srslog::basic_logger&        logger;
+  srslte::task_sched_handle    task_sched;
 
   // Class to create
   class m1u_handler
@@ -104,16 +106,17 @@ private:
 
   const uint32_t undefined_pdcp_sn = std::numeric_limits<uint32_t>::max();
   struct tunnel {
-    bool     dl_enabled            = true;
-    bool     fwd_teid_in_present   = false;
-    bool     prior_teid_in_present = false;
-    uint16_t rnti                  = SRSLTE_INVALID_RNTI;
-    uint32_t lcid                  = SRSENB_N_RADIO_BEARERS;
-    uint32_t teid_in               = 0;
-    uint32_t teid_out              = 0;
-    uint32_t spgw_addr             = 0;
-    uint32_t fwd_teid_in           = 0; ///< forward Rx SDUs to this TEID
-    uint32_t prior_teid_in         = 0; ///< buffer bearer SDUs until this TEID receives an End Marker
+    bool                 dl_enabled            = true;
+    bool                 fwd_teid_in_present   = false;
+    bool                 prior_teid_in_present = false;
+    uint16_t             rnti                  = SRSLTE_INVALID_RNTI;
+    uint32_t             lcid                  = SRSENB_N_RADIO_BEARERS;
+    uint32_t             teid_in               = 0;
+    uint32_t             teid_out              = 0;
+    uint32_t             spgw_addr             = 0;
+    uint32_t             fwd_teid_in           = 0; ///< forward Rx SDUs to this TEID
+    uint32_t             prior_teid_in         = 0; ///< buffer bearer SDUs until this TEID receives an End Marker
+    srslte::unique_timer rx_timer;
     std::multimap<uint32_t, srslte::unique_byte_buffer_t> buffer;
   };
   std::unordered_map<uint32_t, tunnel>                                           tunnels;
@@ -129,7 +132,7 @@ private:
 
   void echo_response(in_addr_t addr, in_port_t port, uint16_t seq);
   void error_indication(in_addr_t addr, in_port_t port, uint32_t err_teid);
-  void end_marker(uint32_t teidin);
+  bool end_marker(uint32_t teidin);
 
   int create_dl_fwd_tunnel(uint32_t rx_teid_in, uint32_t tx_teid_in);
 

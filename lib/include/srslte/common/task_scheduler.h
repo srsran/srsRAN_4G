@@ -42,7 +42,11 @@ public:
   srslte::task_queue_handle make_task_queue(uint32_t qsize) { return external_tasks.get_queue_handler(qsize); }
 
   //! Delays a task processing by duration_ms
-  void defer_callback(uint32_t duration_ms, std::function<void()> func) { timers.defer_callback(duration_ms, func); }
+  template <typename F>
+  void defer_callback(uint32_t duration_ms, F&& func)
+  {
+    timers.defer_callback(duration_ms, std::forward<F>(func));
+  }
 
   //! Enqueues internal task to be run in next tic
   void defer_task(srslte::move_task_t func) { internal_tasks.push_back(std::move(func)); }
@@ -114,9 +118,10 @@ public:
   {
     sched->notify_background_task_result(std::move(task));
   }
-  void defer_callback(uint32_t duration_ms, std::function<void()> func)
+  template <typename F>
+  void defer_callback(uint32_t duration_ms, F&& func)
   {
-    sched->defer_callback(duration_ms, std::move(func));
+    sched->defer_callback(duration_ms, std::forward<F>(func));
   }
   void defer_task(srslte::move_task_t func) { sched->defer_task(std::move(func)); }
 
@@ -136,9 +141,10 @@ public:
     sched->notify_background_task_result(std::move(task));
   }
   srslte::task_queue_handle make_task_queue() { return sched->make_task_queue(); }
-  void                      defer_callback(uint32_t duration_ms, std::function<void()> func)
+  template <typename F>
+  void defer_callback(uint32_t duration_ms, F&& func)
   {
-    sched->defer_callback(duration_ms, std::move(func));
+    sched->defer_callback(duration_ms, std::forward<F>(func));
   }
 
 private:
