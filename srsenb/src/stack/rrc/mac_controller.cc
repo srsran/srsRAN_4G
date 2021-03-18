@@ -301,10 +301,7 @@ void mac_controller::handle_ho_prep(const asn1::rrc::ho_prep_info_r8_ies_s& ho_p
 
 void mac_controller::handle_max_retx()
 {
-  for (auto& ue_bearer : current_sched_ue_cfg.ue_bearers) {
-    ue_bearer.direction = sched_interface::ue_bearer_cfg_t::IDLE;
-  }
-  update_mac(config_tx);
+  set_drb_activation(false);
 }
 
 void mac_controller::set_scell_activation(const std::bitset<SRSLTE_MAX_CARRIERS>& scell_mask)
