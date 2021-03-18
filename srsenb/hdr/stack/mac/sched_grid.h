@@ -106,11 +106,11 @@ public:
   bool         find_ul_alloc(uint32_t L, prb_interval* alloc) const;
 
   // getters
-  const rbgmask_t&         get_dl_mask() const { return dl_mask; }
-  const prbmask_t&         get_ul_mask() const { return ul_mask; }
-  uint32_t                 get_cfi() const { return pdcch_alloc.get_cfi(); }
-  const sf_cch_allocator2& get_pdcch_grid() const { return pdcch_alloc; }
-  uint32_t                 get_pucch_width() const { return pucch_nrb; }
+  const rbgmask_t&        get_dl_mask() const { return dl_mask; }
+  const prbmask_t&        get_ul_mask() const { return ul_mask; }
+  uint32_t                get_cfi() const { return pdcch_alloc.get_cfi(); }
+  const sf_cch_allocator& get_pdcch_grid() const { return pdcch_alloc; }
+  uint32_t                get_pucch_width() const { return pucch_nrb; }
 
 private:
   alloc_result alloc_dl(uint32_t     aggr_lvl,
@@ -127,7 +127,7 @@ private:
   prbmask_t                  pucch_mask;
 
   // derived
-  sf_cch_allocator2 pdcch_alloc = {};
+  sf_cch_allocator pdcch_alloc = {};
 
   // internal state
   tti_point tti_rx;
@@ -219,12 +219,12 @@ public:
   const sched_cell_params_t* get_cc_cfg() const { return cc_cfg; }
 
 private:
-  void set_dl_data_sched_result(const sf_cch_allocator2::alloc_result_t& dci_result,
-                                sched_interface::dl_sched_res_t*         dl_result,
-                                sched_ue_list&                           ue_list);
-  void set_ul_sched_result(const sf_cch_allocator2::alloc_result_t& dci_result,
-                           sched_interface::ul_sched_res_t*         ul_result,
-                           sched_ue_list&                           ue_list);
+  void set_dl_data_sched_result(const sf_cch_allocator::alloc_result_t& dci_result,
+                                sched_interface::dl_sched_res_t*        dl_result,
+                                sched_ue_list&                          ue_list);
+  void set_ul_sched_result(const sf_cch_allocator::alloc_result_t& dci_result,
+                           sched_interface::ul_sched_res_t*        ul_result,
+                           sched_ue_list&                          ue_list);
 
   // consts
   const sched_cell_params_t* cc_cfg = nullptr;
