@@ -439,7 +439,7 @@ void pdcp_entity_lte::update_rx_counts_queue(uint32_t rx_count)
   // If the size of the rx_vector_info is getting very large
   // Consider the FMC as lost and update the vector.
   if (rx_counts_info.size() > reordering_window) {
-    logger.debug("Queue too large. Updating. Old FMC=%d, Old back=%d, old queue_size=%d",
+    logger.debug("Queue too large. Updating. Old FMC=%d, Old back=%d, old queue_size=%zu",
                  fmc,
                  rx_counts_info.back(),
                  rx_counts_info.size());
@@ -448,16 +448,16 @@ void pdcp_entity_lte::update_rx_counts_queue(uint32_t rx_count)
       rx_counts_info.pop_back();
       fmc++;
     }
-    logger.debug("Queue too large. Updating. New FMC=%d, new back=%d, new queue_size=%d",
+    logger.debug("Queue too large. Updating. New FMC=%d, new back=%d, new queue_size=%zu",
                  fmc,
                  rx_counts_info.back(),
                  rx_counts_info.size());
   }
 
   if (rx_counts_info.empty()) {
-    logger.info("Updated RX_COUNT info with SDU COUNT=%d, queue_size=%d, FMC=%d", rx_count, rx_counts_info.size(), fmc);
+    logger.info("Updated RX_COUNT info with SDU COUNT=%d, queue_size%zu, FMC=%d", rx_count, rx_counts_info.size(), fmc);
   } else {
-    logger.info("Updated RX_COUNT info with SDU COUNT=%d, queue_size=%d, FMC=%d, back=%d",
+    logger.info("Updated RX_COUNT info with SDU COUNT=%d, queue_size=%zu, FMC=%d, back=%d",
                 rx_count,
                 rx_counts_info.size(),
                 fmc,
@@ -707,7 +707,7 @@ void pdcp_entity_lte::notify_delivery(const pdcp_sn_vector_t& pdcp_sns)
     return;
   }
 
-  logger.info("Received delivery notification from RLC. Number of PDU notified=%ld", pdcp_sns.size());
+  logger.info("Received delivery notification from RLC. Number of PDU notified=%zu", pdcp_sns.size());
   for (uint32_t sn : pdcp_sns) {
     logger.debug("Delivery notification received for PDU with SN=%d", sn);
     if (sn == UINT32_MAX) {
@@ -737,7 +737,7 @@ void pdcp_entity_lte::notify_failure(const pdcp_sn_vector_t& pdcp_sns)
     return;
   }
 
-  logger.info("Received failure notification from RLC. Number of PDU notified=%ld", pdcp_sns.size());
+  logger.info("Received failure notification from RLC. Number of PDU notified=%zu", pdcp_sns.size());
 
   for (uint32_t sn : pdcp_sns) {
     logger.info("Failure notification received for PDU with SN=%d", sn);
@@ -800,7 +800,7 @@ std::map<uint32_t, srslte::unique_byte_buffer_t> pdcp_entity_lte::get_buffered_p
     logger.error("Buffered PDUs being requested for non-AM DRB");
     return std::map<uint32_t, srslte::unique_byte_buffer_t>{};
   }
-  logger.info("Buffered PDUs requested, buffer_size=%d", undelivered_sdus->size());
+  logger.info("Buffered PDUs requested, buffer_size=%zu", undelivered_sdus->size());
   return undelivered_sdus->get_buffered_sdus();
 }
 
