@@ -45,11 +45,10 @@ int test_pdcch_one_ue()
   sched_interface::sched_args_t    sched_args{};
   TESTASSERT(cell_params[ENB_CC_IDX].set_cfg(ENB_CC_IDX, cell_cfg, sched_args));
 
-  sf_cch_allocator pdcch;
-  sched_ue         sched_ue{rnti, cell_params, ue_cfg};
+  sf_cch_allocator2 pdcch;
+  sched_ue          sched_ue{rnti, cell_params, ue_cfg};
 
   pdcch.init(cell_params[PCell_IDX]);
-  TESTASSERT(pdcch.nof_alloc_combinations() == 0);
   TESTASSERT(pdcch.nof_allocs() == 0);
 
   uint32_t tti_counter = 0;
@@ -85,8 +84,8 @@ int test_pdcch_one_ue()
     const cce_position_list& dci_locs = (*dci_cce)[aggr_idx];
 
     // TEST: Check the first alloc of the pdcch result (e.g. rnti, valid cce mask, etc.)
-    sf_cch_allocator::alloc_result_t pdcch_result;
-    pdcch_mask_t                     pdcch_mask;
+    sf_cch_allocator2::alloc_result_t pdcch_result;
+    pdcch_mask_t                      pdcch_mask;
     pdcch.get_allocs(&pdcch_result, &pdcch_mask, 0);
     TESTASSERT(pdcch_result.size() == 1);
     TESTASSERT(pdcch_result[0]->rnti == sched_ue.get_rnti());
@@ -142,11 +141,10 @@ int test_pdcch_ue_and_sibs()
   sched_interface::sched_args_t    sched_args{};
   TESTASSERT(cell_params[0].set_cfg(0, cell_cfg, sched_args));
 
-  sf_cch_allocator pdcch;
-  sched_ue         sched_ue{0x46, cell_params, ue_cfg};
+  sf_cch_allocator2 pdcch;
+  sched_ue          sched_ue{0x46, cell_params, ue_cfg};
 
   pdcch.init(cell_params[PCell_IDX]);
-  TESTASSERT(pdcch.nof_alloc_combinations() == 0);
   TESTASSERT(pdcch.nof_allocs() == 0);
 
   tti_point tti_rx{std::uniform_int_distribution<uint32_t>(0, 9)(get_rand_gen())};
@@ -154,10 +152,10 @@ int test_pdcch_ue_and_sibs()
   pdcch.new_tti(tti_rx);
   TESTASSERT(pdcch.nof_cces() == cell_params[0].nof_cce_table[0]);
   TESTASSERT(pdcch.get_cfi() == 1); // Start at CFI=1
-  TESTASSERT(pdcch.nof_alloc_combinations() == 0);
+  TESTASSERT(pdcch.nof_allocs() == 0);
 
   TESTASSERT(pdcch.alloc_dci(alloc_type_t::DL_BC, 2));
-  TESTASSERT(pdcch.nof_alloc_combinations() == 4);
+  TESTASSERT(pdcch.nof_allocs() == 1);
   TESTASSERT(pdcch.alloc_dci(alloc_type_t::DL_RAR, 2));
   TESTASSERT(pdcch.nof_allocs() == 2);
   TESTASSERT(pdcch.alloc_dci(alloc_type_t::DL_DATA, 2, &sched_ue, false));
@@ -168,9 +166,9 @@ int test_pdcch_ue_and_sibs()
   TESTASSERT(pdcch.nof_allocs() == 2);
 
   // TEST: DCI positions
-  uint32_t                         cfi = pdcch.get_cfi();
-  sf_cch_allocator::alloc_result_t dci_result;
-  pdcch_mask_t                     result_pdcch_mask;
+  uint32_t                          cfi = pdcch.get_cfi();
+  sf_cch_allocator2::alloc_result_t dci_result;
+  pdcch_mask_t                      result_pdcch_mask;
   pdcch.get_allocs(&dci_result, &result_pdcch_mask);
   TESTASSERT(dci_result.size() == 2);
   const cce_position_list& bc_dci_locs = cell_params[0].common_locations[cfi - 1][2];
@@ -191,13 +189,12 @@ int test_6prbs()
   sched_interface::sched_args_t    sched_args{};
   TESTASSERT(cell_params[0].set_cfg(0, cell_cfg, sched_args));
 
-  sf_cch_allocator                 pdcch;
-  sched_ue                         sched_ue{0x46, cell_params, ue_cfg}, sched_ue2{0x47, cell_params, ue_cfg};
-  sf_cch_allocator::alloc_result_t dci_result;
-  pdcch_mask_t                     result_pdcch_mask;
+  sf_cch_allocator2                 pdcch;
+  sched_ue                          sched_ue{0x46, cell_params, ue_cfg}, sched_ue2{0x47, cell_params, ue_cfg};
+  sf_cch_allocator2::alloc_result_t dci_result;
+  pdcch_mask_t                      result_pdcch_mask;
 
   pdcch.init(cell_params[PCell_IDX]);
-  TESTASSERT(pdcch.nof_alloc_combinations() == 0);
   TESTASSERT(pdcch.nof_allocs() == 0);
 
   uint32_t opt_cfi     = 3;

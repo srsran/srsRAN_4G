@@ -14,6 +14,7 @@
 #define SRSLTE_SCHED_GRID_H
 
 #include "lib/include/srslte/interfaces/sched_interface.h"
+#include "sched_phy_ch/sched_result.h"
 #include "sched_phy_ch/sf_cch_allocator.h"
 #include "sched_ue.h"
 #include "srslte/adt/bounded_bitset.h"
@@ -36,16 +37,6 @@ enum class alloc_result {
   other_cause
 };
 const char* to_string(alloc_result res);
-
-//! Result of a Subframe sched computation
-struct cc_sched_result {
-  bool                            generated       = false;
-  rbgmask_t                       dl_mask         = {}; ///< Accumulation of all DL RBG allocations
-  prbmask_t                       ul_mask         = {}; ///< Accumulation of all UL PRB allocations
-  pdcch_mask_t                    pdcch_mask      = {}; ///< Accumulation of all CCE allocations
-  sched_interface::dl_sched_res_t dl_sched_result = {};
-  sched_interface::ul_sched_res_t ul_sched_result = {};
-};
 
 struct sf_sched_result {
   tti_point                    tti_rx;
