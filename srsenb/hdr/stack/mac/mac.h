@@ -15,6 +15,7 @@
 
 #include "sched.h"
 #include "srsenb/hdr/stack/mac/schedulers/sched_time_rr.h"
+#include "srsran/adt/circular_map.h"
 #include "srsran/common/mac_pcap.h"
 #include "srsran/common/mac_pcap_net.h"
 #include "srsran/common/task_scheduler.h"
@@ -134,8 +135,9 @@ private:
   sched_interface::dl_pdu_mch_t mch = {};
 
   /* Map of active UEs */
-  std::map<uint16_t, std::unique_ptr<ue> > ue_db, ues_to_rem;
-  uint16_t                                 last_rnti = 70;
+  srsran::static_circular_map<uint16_t, std::unique_ptr<ue>, 64> ue_db;
+  std::map<uint16_t, std::unique_ptr<ue> >                       ues_to_rem;
+  uint16_t                                                       last_rnti = 70;
 
   srsran::static_blocking_queue<std::unique_ptr<ue>, 32> ue_pool; ///< Pool of pre-allocated UE objects
   void                                                   prealloc_ue(uint32_t nof_ue);

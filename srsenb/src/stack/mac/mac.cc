@@ -139,7 +139,7 @@ int mac::rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint
 {
   srsran::rwlock_read_guard lock(rwlock);
   int                       ret = -1;
-  if (ue_db.count(rnti)) {
+  if (ue_db.contains(rnti)) {
     if (rnti != SRSRAN_MRNTI) {
       ret = scheduler.dl_rlc_buffer_state(rnti, lc_id, tx_queue, retx_queue);
     } else {
@@ -160,7 +160,7 @@ int mac::bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer
 {
   int                       ret = -1;
   srsran::rwlock_read_guard lock(rwlock);
-  if (ue_db.count(rnti)) {
+  if (ue_db.contains(rnti)) {
     ret = scheduler.bearer_ue_cfg(rnti, lc_id, *cfg);
   } else {
     logger.error("User rnti=0x%x not found", rnti);
@@ -172,7 +172,7 @@ int mac::bearer_ue_rem(uint16_t rnti, uint32_t lc_id)
 {
   srsran::rwlock_read_guard lock(rwlock);
   int                       ret = -1;
-  if (ue_db.count(rnti)) {
+  if (ue_db.contains(rnti)) {
     ret = scheduler.bearer_ue_rem(rnti, lc_id);
   } else {
     logger.error("User rnti=0x%x not found", rnti);
@@ -215,7 +215,7 @@ int mac::ue_rem(uint16_t rnti)
   // Remove UE from the perspective of L2/L3
   {
     srsran::rwlock_write_guard lock(rwlock);
-    if (ue_db.count(rnti)) {
+    if (ue_db.contains(rnti)) {
       ues_to_rem[rnti] = std::move(ue_db[rnti]);
       ue_db.erase(rnti);
     } else {
@@ -440,38 +440,45 @@ uint16_t mac::allocate_rnti()
 
 uint16_t mac::allocate_ue()
 {
-  {
-    srsran::rwlock_read_guard lock(rwlock);
-    if (ue_db.size() >= args.max_nof_ues) {
-      logger.warning("Maximum number of connected UEs %d reached. Ignoring PRACH", args.max_nof_ues);
+  ue* inserted_ue = nullptr;
+  do {
+    // Get pre-allocated UE object
+    if (ue_pool.empty()) {
+      logger.error("Ignoring RACH attempt. UE pool empty.");
       return SRSRAN_INVALID_RNTI;
     }
-  }
+    std::unique_ptr<ue> ue_ptr = ue_pool.pop_blocking();
 
-  // Get pre-allocated UE object
-  if (ue_pool.empty()) {
-    logger.error("Ignoring RACH attempt. UE pool empty.");
-    return SRSRAN_INVALID_RNTI;
-  }
-  std::unique_ptr<ue> ue_ptr = ue_pool.pop_blocking();
-  uint16_t            rnti   = ue_ptr->get_rnti();
+    // Add UE to map
+    {
+      srsran::rwlock_write_guard lock(rwlock);
+      if (ue_db.size() >= args.max_nof_ues) {
+        logger.warning("Maximum number of connected UEs %d reached. Ignoring PRACH", args.max_nof_ues);
+        return SRSRAN_INVALID_RNTI;
+      }
+      auto ret = ue_db.insert(ue_ptr->get_rnti(), std::move(ue_ptr));
+      if (ret) {
+        inserted_ue = ret.value()->second.get();
+      }
+    }
+
+    // Allocate one new UE object in advance
+    srsran::get_background_workers().push_task([this]() { prealloc_ue(1); });
+
+  } while (inserted_ue == nullptr);
+
+  // RNTI allocation was successful
+  uint16_t rnti = inserted_ue->get_rnti();
 
   // Set PCAP if available
   if (pcap != nullptr) {
-    ue_ptr->start_pcap(pcap);
+    inserted_ue->start_pcap(pcap);
   }
 
   if (pcap_net != nullptr) {
-    ue_ptr->start_pcap_net(pcap_net);
+    inserted_ue->start_pcap_net(pcap_net);
   }
 
-  {
-    srsran::rwlock_write_guard lock(rwlock);
-    ue_db[rnti] = std::move(ue_ptr);
-  }
-
-  // Allocate one new UE object in advance
-  srsran::get_background_workers().push_task([this]() { prealloc_ue(1); });
   return rnti;
 }
 
@@ -590,7 +597,7 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
         // Get UE
         uint16_t rnti = sched_result.data[i].dci.rnti;
 
-        if (ue_db.count(rnti)) {
+        if (ue_db.contains(rnti)) {
           // Copy dci info
           dl_sched_res->pdsch[n].dci = sched_result.data[i].dci;
 
@@ -905,7 +912,7 @@ int mac::get_ul_sched(uint32_t tti_tx_ul, ul_sched_list_t& ul_sched_res_list)
           // Get UE
           uint16_t rnti = sched_result.pusch[i].dci.rnti;
 
-          if (ue_db.count(rnti)) {
+          if (ue_db.contains(rnti)) {
             // Copy grant info
             phy_ul_sched_res->pusch[n].current_tx_nb = sched_result.pusch[i].current_tx_nb;
             phy_ul_sched_res->pusch[n].pid           = TTI_RX(tti_tx_ul) % SRSRAN_FDD_NOF_HARQ;
@@ -989,7 +996,7 @@ void mac::write_mcch(const srsran::sib2_mbms_t* sib2_,
 
 bool mac::check_ue_exists(uint16_t rnti)
 {
-  if (not ue_db.count(rnti)) {
+  if (not ue_db.contains(rnti)) {
     if (not ues_to_rem.count(rnti)) {
       logger.error("User rnti=0x%x not found", rnti);
     }

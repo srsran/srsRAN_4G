@@ -10,10 +10,10 @@
  *
  */
 
-#include "srslte/adt/circular_map.h"
-#include "srslte/common/test_common.h"
+#include "srsran/common/test_common.h"
+#include "srsran/adt/circular_map.h"
 
-namespace srslte {
+namespace srsran {
 
 int test_id_map()
 {
@@ -21,15 +21,15 @@ int test_id_map()
   TESTASSERT(myobj.size() == 0 and myobj.empty() and not myobj.full());
   TESTASSERT(myobj.begin() == myobj.end());
 
-  TESTASSERT(not myobj.has_key(0));
+  TESTASSERT(not myobj.contains(0));
   TESTASSERT(myobj.insert(0, "obj0"));
-  TESTASSERT(myobj.has_key(0) and myobj[0] == "obj0");
+  TESTASSERT(myobj.contains(0) and myobj[0] == "obj0");
   TESTASSERT(myobj.size() == 1 and not myobj.empty() and not myobj.full());
   TESTASSERT(myobj.begin() != myobj.end());
 
   TESTASSERT(not myobj.insert(0, "obj0"));
   TESTASSERT(myobj.insert(1, "obj1"));
-  TESTASSERT(myobj.has_key(0) and myobj.has_key(1) and myobj[1] == "obj1");
+  TESTASSERT(myobj.contains(0) and myobj.contains(1) and myobj[1] == "obj1");
   TESTASSERT(myobj.size() == 2 and not myobj.empty() and not myobj.full());
 
   TESTASSERT(myobj.find(1) != myobj.end());
@@ -52,10 +52,16 @@ int test_id_map()
   TESTASSERT(myobj.erase(1));
   TESTASSERT(myobj.size() == 0 and myobj.empty());
 
-  return SRSLTE_SUCCESS;
+  TESTASSERT(myobj.insert(0, "obj0"));
+  TESTASSERT(myobj.insert(1, "obj1"));
+  TESTASSERT(myobj.size() == 2 and not myobj.empty() and not myobj.full());
+  myobj.clear();
+  TESTASSERT(myobj.size() == 0 and myobj.empty());
+
+  return SRSRAN_SUCCESS;
 }
 
-} // namespace srslte
+} // namespace srsran
 
 int main()
 {
@@ -65,6 +71,6 @@ int main()
   // Start the log backend.
   srslog::init();
 
-  TESTASSERT(srslte::test_id_map() == SRSLTE_SUCCESS);
-  return SRSLTE_SUCCESS;
+  TESTASSERT(srsran::test_id_map() == SRSRAN_SUCCESS);
+  return SRSRAN_SUCCESS;
 }

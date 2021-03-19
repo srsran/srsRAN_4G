@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,12 +10,14 @@
  *
  */
 
-#ifndef SRSLTE_ID_MAP_H
-#define SRSLTE_ID_MAP_H
+#ifndef SRSRAN_ID_MAP_H
+#define SRSRAN_ID_MAP_H
 
 #include "expected.h"
 #include <array>
 #include <cassert>
+
+namespace srsran {
 
 template <typename K, typename T, size_t N>
 class static_circular_map
@@ -26,63 +28,6 @@ class static_circular_map
   using obj_storage_t = typename std::aligned_storage<sizeof(obj_t), alignof(obj_t)>::type;
 
 public:
-  bool has_key(K id)
-  {
-    size_t idx = id % N;
-    return present[idx] and get_obj_(idx).first == id;
-  }
-
-  bool insert(K id, const T& obj)
-  {
-    size_t idx = id % N;
-    if (present[idx]) {
-      return false;
-    }
-    new (&buffer[idx]) obj_t(id, obj);
-    present[idx] = true;
-    count++;
-    return true;
-  }
-  srslte::error_type<T> insert(K id, T&& obj)
-  {
-    size_t idx = id % N;
-    if (present[idx]) {
-      return srslte::error_type<T>(std::move(obj));
-    }
-    new (&buffer[idx]) obj_t(id, std::move(obj));
-    present[idx] = true;
-    count++;
-    return {};
-  }
-
-  bool erase(K id)
-  {
-    if (not has_key(id)) {
-      return false;
-    }
-    size_t idx = id % N;
-    get_obj_(idx).~obj_t();
-    present[idx] = false;
-    --count;
-    return true;
-  }
-
-  T& operator[](K id)
-  {
-    assert(has_key(id));
-    return get_obj_(id % N).second;
-  }
-  const T& operator[](K id) const
-  {
-    assert(has_key(id));
-    return get_obj_(id % N).second;
-  }
-
-  size_t size() const { return count; }
-  bool   empty() const { return count == 0; }
-  bool   full() const { return count == N; }
-  size_t capacity() const { return N; }
-
   class iterator
   {
   public:
@@ -137,6 +82,81 @@ public:
     size_t                              idx = 0;
   };
 
+  bool contains(K id)
+  {
+    size_t idx = id % N;
+    return present[idx] and get_obj_(idx).first == id;
+  }
+
+  bool insert(K id, const T& obj)
+  {
+    size_t idx = id % N;
+    if (present[idx]) {
+      return false;
+    }
+    new (&buffer[idx]) obj_t(id, obj);
+    present[idx] = true;
+    count++;
+    return true;
+  }
+  srsran::expected<iterator, T> insert(K id, T&& obj)
+  {
+    size_t idx = id % N;
+    if (present[idx]) {
+      return srsran::expected<iterator, T>(std::move(obj));
+    }
+    new (&buffer[idx]) obj_t(id, std::move(obj));
+    present[idx] = true;
+    count++;
+    return iterator(this, idx);
+  }
+
+  bool erase(K id)
+  {
+    if (not contains(id)) {
+      return false;
+    }
+    size_t idx = id % N;
+    get_obj_(idx).~obj_t();
+    present[idx] = false;
+    --count;
+    return true;
+  }
+
+  iterator erase(iterator it)
+  {
+    assert(it->first < N);
+    iterator next = it;
+    ++next;
+    it->~obj_t();
+    present[it->first] = false;
+    --count;
+    return next;
+  }
+
+  void clear()
+  {
+    for (auto it = begin(); it != end();) {
+      it = erase(it);
+    }
+  }
+
+  T& operator[](K id)
+  {
+    assert(contains(id));
+    return get_obj_(id % N).second;
+  }
+  const T& operator[](K id) const
+  {
+    assert(contains(id));
+    return get_obj_(id % N).second;
+  }
+
+  size_t size() const { return count; }
+  bool   empty() const { return count == 0; }
+  bool   full() const { return count == N; }
+  size_t capacity() const { return N; }
+
   iterator       begin() { return iterator(this, 0); }
   iterator       end() { return iterator(this, N); }
   const_iterator begin() const { return iterator(this, 0); }
@@ -144,14 +164,14 @@ public:
 
   iterator find(K id)
   {
-    if (has_key(id)) {
+    if (contains(id)) {
       return iterator(this, id % N);
     }
     return end();
   }
   const_iterator find(K id) const
   {
-    if (has_key(id)) {
+    if (contains(id)) {
       return iterator(this, id % N);
     }
     return end();
@@ -166,4 +186,6 @@ private:
   size_t                       count   = 0;
 };
 
-#endif // SRSLTE_ID_MAP_H
+} // namespace srsran
+
+#endif // SRSRAN_ID_MAP_H
