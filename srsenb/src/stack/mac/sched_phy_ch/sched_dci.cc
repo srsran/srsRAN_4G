@@ -179,7 +179,8 @@ int generate_ra_bc_dci_format1a_common(srslte_dci_dl_t&           dci,
                                        const sched_cell_params_t& cell_params,
                                        uint32_t                   current_cfi)
 {
-  static const uint32_t Qm = 2;
+  static const uint32_t Qm = 2, bc_rar_cqi = 5;
+  static const float    max_ctrl_coderate = std::min(srslte_cqi_to_coderate(bc_rar_cqi + 1, false), 0.932F * Qm);
 
   // Calculate I_tbs for this TBS
   int tbs = static_cast<int>(req_bytes) * 8;
@@ -217,7 +218,7 @@ int generate_ra_bc_dci_format1a_common(srslte_dci_dl_t&           dci,
 
   // Compute effective code rate and verify it doesn't exceed max code rate
   uint32_t nof_re = cell_params.get_dl_nof_res(tti_tx_dl, dci, current_cfi);
-  if (srslte_coderate(tbs, nof_re) >= 0.932F * Qm) {
+  if (srslte_coderate(tbs, nof_re) >= max_ctrl_coderate) {
     return -1;
   }
 
