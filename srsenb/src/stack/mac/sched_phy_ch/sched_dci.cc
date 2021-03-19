@@ -179,7 +179,7 @@ int generate_ra_bc_dci_format1a_common(srslte_dci_dl_t&           dci,
                                        const sched_cell_params_t& cell_params,
                                        uint32_t                   current_cfi)
 {
-  static const uint32_t Qm = 2, bc_rar_cqi = 5;
+  static const uint32_t Qm = 2, bc_rar_cqi = 4;
   static const float    max_ctrl_coderate = std::min(srslte_cqi_to_coderate(bc_rar_cqi + 1, false), 0.932F * Qm);
 
   // Calculate I_tbs for this TBS
