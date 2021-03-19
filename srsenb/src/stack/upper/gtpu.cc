@@ -289,16 +289,11 @@ void gtpu::rem_tunnel(uint32_t teidin)
     logger.warning("Removing GTPU tunnel TEID In=0x%x", teidin);
     return;
   }
-  if (it->second.fwd_teid_in_present) {
-    // Forward End Marker to forwarding tunnel, before deleting tunnel
-    end_marker(it->second.fwd_teid_in);
-    it->second.fwd_teid_in_present = false;
-  }
   auto                   ue_it        = ue_teidin_db.find(it->second.rnti);
   std::vector<uint32_t>& lcid_tunnels = ue_it->second[it->second.lcid];
   lcid_tunnels.erase(std::remove(lcid_tunnels.begin(), lcid_tunnels.end(), teidin), lcid_tunnels.end());
+  logger.debug("TEID In=%d for rnti=0x%x erased", teidin, it->second.rnti);
   tunnels.erase(it);
-  logger.debug("TEID In=%d erased", teidin);
 }
 
 void gtpu::rem_user(uint16_t rnti)
@@ -309,6 +304,39 @@ void gtpu::rem_user(uint16_t rnti)
     for (auto& bearer : ue_it->second) {
       while (not bearer.empty()) {
         rem_tunnel(bearer.back());
+      }
+    }
+  }
+}
+
+void gtpu::handle_end_marker(tunnel& rx_tunnel)
+{
+  uint16_t rnti = rx_tunnel.rnti;
+  logger.info("Received GTPU End Marker for rnti=0x%x.", rnti);
+
+  // TS 36.300, Sec 10.1.2.2.1 - Path Switch upon handover
+  if (rx_tunnel.fwd_teid_in_present) {
+    // END MARKER should be forwarded to TeNB if forwarding is activated
+    end_marker(rx_tunnel.fwd_teid_in);
+    rx_tunnel.fwd_teid_in_present = false;
+
+    rem_tunnel(rx_tunnel.teid_in);
+  } else {
+    // TeNB switches paths, and flush PDUs that have been buffered
+    auto rnti_it = ue_teidin_db.find(rnti);
+    if (rnti_it == ue_teidin_db.end()) {
+      logger.error("No rnti=0x%x entry for associated TEID=%d", rnti, rx_tunnel.teid_in);
+      return;
+    }
+    std::vector<uint32_t>& bearer_tunnels = rnti_it->second[rx_tunnel.lcid];
+    for (uint32_t new_teidin : bearer_tunnels) {
+      tunnel& new_tun = tunnels.at(new_teidin);
+      if (new_teidin != rx_tunnel.teid_in and new_tun.prior_teid_in_present and
+          new_tun.prior_teid_in == rx_tunnel.teid_in) {
+        rem_tunnel(new_tun.prior_teid_in);
+        new_tun.prior_teid_in_present = false;
+        set_tunnel_status(new_tun.teid_in, true);
+        break;
       }
     }
   }
@@ -376,35 +404,9 @@ void gtpu::handle_gtpu_s1u_rx_packet(srslte::unique_byte_buffer_t pdu, const soc
         }
       }
     } break;
-    case GTPU_MSG_END_MARKER: {
-      uint16_t rnti = rx_tunnel->rnti;
-      logger.info("Received GTPU End Marker for rnti=0x%x.", rnti);
-
-      // TS 36.300, Sec 10.1.2.2.1 - Path Switch upon handover
-      if (rx_tunnel->fwd_teid_in_present) {
-        // END MARKER should be forwarded to TeNB if forwarding is activated
-        end_marker(rx_tunnel->fwd_teid_in);
-        rx_tunnel->fwd_teid_in_present = false;
-      } else {
-        // TeNB switches paths, and flush PDUs that have been buffered
-        auto rnti_it = ue_teidin_db.find(rnti);
-        if (rnti_it == ue_teidin_db.end()) {
-          logger.error("No rnti=0x%x entry for associated TEID=%d", rnti, header.teid);
-          return;
-        }
-        std::vector<uint32_t>& bearer_tunnels = rnti_it->second[rx_tunnel->lcid];
-        for (uint32_t new_teidin : bearer_tunnels) {
-          tunnel& new_tun = tunnels.at(new_teidin);
-          if (new_teidin != rx_tunnel->teid_in and new_tun.prior_teid_in_present and
-              new_tun.prior_teid_in == rx_tunnel->teid_in) {
-            rem_tunnel(new_tun.prior_teid_in);
-            new_tun.prior_teid_in_present = false;
-            set_tunnel_status(new_tun.teid_in, true);
-          }
-        }
-      }
+    case GTPU_MSG_END_MARKER:
+      handle_end_marker(*rx_tunnel);
       break;
-    }
     default:
       logger.warning("Unhandled GTPU message type=%d", header.message_type);
       break;

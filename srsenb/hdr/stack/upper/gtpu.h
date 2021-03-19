@@ -134,6 +134,8 @@ private:
   void error_indication(in_addr_t addr, in_port_t port, uint32_t err_teid);
   bool end_marker(uint32_t teidin);
 
+  void handle_end_marker(tunnel& rx_tunnel);
+
   int create_dl_fwd_tunnel(uint32_t rx_teid_in, uint32_t tx_teid_in);
 
   /****************************************************************************
