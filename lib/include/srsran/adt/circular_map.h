@@ -82,6 +82,52 @@ public:
     size_t                              idx = 0;
   };
 
+  static_circular_map() { std::fill(present.begin(), present.end(), false); }
+  static_circular_map(const static_circular_map<K, T, N>& other) : present(other.present), count(other.count)
+  {
+    for (size_t idx = 0; idx < other.size(); ++idx) {
+      if (present[idx]) {
+        new (&buffer[idx]) obj_t(other.get_obj_(idx));
+      }
+    }
+  }
+  static_circular_map(static_circular_map<K, T, N>&& other) noexcept : present(other.present), count(other.count)
+  {
+    for (size_t idx = 0; idx < other.size(); ++idx) {
+      if (present[idx]) {
+        new (&buffer[idx]) obj_t(std::move(other.get_obj_(idx)));
+      }
+    }
+    other.clear();
+  }
+  ~static_circular_map() { clear(); }
+  static_circular_map& operator=(const static_circular_map<K, T, N>& other)
+  {
+    if (this == &other) {
+      return *this;
+    }
+    clear();
+    count   = other.count;
+    present = other.present;
+    for (size_t idx = 0; idx < other.size(); ++idx) {
+      if (present[idx]) {
+        new (&buffer[idx]) obj_t(other.get_obj_(idx));
+      }
+    }
+  }
+  static_circular_map& operator=(static_circular_map<K, T, N>&& other) noexcept
+  {
+    clear();
+    count   = other.count;
+    present = other.present;
+    for (size_t idx = 0; idx < other.size(); ++idx) {
+      if (present[idx]) {
+        new (&buffer[idx]) obj_t(std::move(other.get_obj_(idx)));
+      }
+    }
+    clear();
+  }
+
   bool contains(K id)
   {
     size_t idx = id % N;
@@ -182,8 +228,8 @@ private:
   const obj_t& get_obj_(size_t idx) const { return reinterpret_cast<obj_t&>(buffer[idx]); }
 
   std::array<obj_storage_t, N> buffer;
-  std::array<bool, N>          present = {false};
-  size_t                       count   = 0;
+  std::array<bool, N>          present;
+  size_t                       count = 0;
 };
 
 } // namespace srsran
