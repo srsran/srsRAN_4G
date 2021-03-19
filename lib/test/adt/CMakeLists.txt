@@ -45,3 +45,7 @@ add_test(mem_pool_test mem_pool_test)
 add_executable(circular_buffer_test circular_buffer_test.cc)
 target_link_libraries(circular_buffer_test srsran_common)
 add_test(circular_buffer_test circular_buffer_test)
+
+add_executable(circular_map_test circular_map_test.cc)
+target_link_libraries(circular_map_test srslte_common)
+add_test(circular_map_test circular_map_test)
