@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,11 +10,11 @@
  *
  */
 
-#include "srslte/adt/observer.h"
-#include "srslte/common/test_common.h"
+#include "srsran/adt/observer.h"
+#include "srsran/common/test_common.h"
 
-static_assert(srslte::is_observer<srslte::observer<int> >::value, "is_observer<> meta-function failed");
-static_assert(not srslte::is_observer<std::function<void(int)> >::value, "is_observer<> meta-function failed");
+static_assert(srsran::is_observer<srsran::observer<int> >::value, "is_observer<> meta-function failed");
+static_assert(not srsran::is_observer<std::function<void(int)> >::value, "is_observer<> meta-function failed");
 
 struct M {
   M() = default;
@@ -67,14 +67,14 @@ int observable_test()
   // TEST l-value arguments passed by value
   {
     M                     val;
-    srslte::observable<M> subject;
+    srsran::observable<M> subject;
     TESTASSERT(subject.nof_observers() == 0);
 
-    srslte::observer_id id1 = subject.subscribe([&val](M v) { val = std::move(v); });
+    srsran::observer_id id1 = subject.subscribe([&val](M v) { val = std::move(v); });
 
     lval_observer_tester observer{}, observer2{};
-    srslte::observer_id  id2 = subject.subscribe(observer);
-    srslte::observer_id  id3 = subject.subscribe(observer2, &lval_observer_tester::foo);
+    srsran::observer_id  id2 = subject.subscribe(observer);
+    srsran::observer_id  id3 = subject.subscribe(observer2, &lval_observer_tester::foo);
 
     TESTASSERT(subject.nof_observers() == 3);
     TESTASSERT(val.val == 0);
@@ -94,7 +94,7 @@ int observable_test()
   // Test l-value arguments passed by const ref
   {
     M                            val;
-    srslte::observable<const M&> subject;
+    srsran::observable<const M&> subject;
     TESTASSERT(subject.nof_observers() == 0);
 
     subject.subscribe([&val](const M& v) { val.val = v.val; });
@@ -113,7 +113,7 @@ int observable_test()
   // Test l-value arguments passed by ref
   {
     M                      val;
-    srslte::observable<M&> subject;
+    srsran::observable<M&> subject;
     TESTASSERT(subject.nof_observers() == 0);
 
     subject.subscribe([&val](M& v) { val = std::move(v); });
@@ -132,14 +132,14 @@ int observable_test()
   // Test r-value arguments
   {
     M                       val;
-    srslte::observable<M&&> subject;
+    srsran::observable<M&&> subject;
     TESTASSERT(subject.nof_observers() == 0);
 
-    srslte::observer_id id1 = subject.subscribe([&val](M&& v) { val = std::move(v); });
+    srsran::observer_id id1 = subject.subscribe([&val](M&& v) { val = std::move(v); });
 
     rref_observer_tester observer{}, observer2{};
-    srslte::observer_id  id2 = subject.subscribe(observer);
-    srslte::observer_id  id3 = subject.subscribe(observer2, &rref_observer_tester::foo);
+    srsran::observer_id  id2 = subject.subscribe(observer);
+    srsran::observer_id  id3 = subject.subscribe(observer2, &rref_observer_tester::foo);
 
     subject.dispatch(M{3});
     TESTASSERT(val.val == 3);
@@ -152,12 +152,12 @@ int observable_test()
     TESTASSERT(subject.nof_observers() == 0);
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int event_dispatcher_test()
 {
-  srslte::event_dispatcher<M> signaller;
+  srsran::event_dispatcher<M> signaller;
 
   M val;
   signaller.subscribe([&val](const M& ev) { val.val = ev.val; });
@@ -182,12 +182,12 @@ int event_dispatcher_test()
   TESTASSERT(observer.v.val == 2);
   TESTASSERT(observer2.v.val == 3);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int event_queue_test()
 {
-  srslte::event_queue<M> signaller;
+  srsran::event_queue<M> signaller;
 
   M val;
   signaller.subscribe([&val](const M& ev) { val.val = ev.val; });
@@ -207,42 +207,42 @@ int event_queue_test()
   TESTASSERT(observer.v.val == 2);
   TESTASSERT(observer2.v.val == 3);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int unique_subscribe_test()
 {
   {
-    srslte::event_dispatcher<M> signaller;
+    srsran::event_dispatcher<M> signaller;
     cref_observer_tester        observer;
     TESTASSERT(signaller.nof_observers() == 0);
     {
-      srslte::unique_observer_id<M> obs{signaller, observer};
+      srsran::unique_observer_id<M> obs{signaller, observer};
       TESTASSERT(signaller.nof_observers() == 1);
     }
     TESTASSERT(signaller.nof_observers() == 0);
   }
 
   {
-    srslte::event_queue<M> signaller;
+    srsran::event_queue<M> signaller;
     cref_observer_tester   observer;
     TESTASSERT(signaller.nof_observers() == 0);
     {
-      srslte::unique_observer_id<M> obs{signaller, observer};
+      srsran::unique_observer_id<M> obs{signaller, observer};
       TESTASSERT(signaller.nof_observers() == 1);
     }
     TESTASSERT(signaller.nof_observers() == 0);
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int main()
 {
-  TESTASSERT(observable_test() == SRSLTE_SUCCESS);
-  TESTASSERT(event_dispatcher_test() == SRSLTE_SUCCESS);
-  TESTASSERT(event_queue_test() == SRSLTE_SUCCESS);
-  TESTASSERT(unique_subscribe_test() == SRSLTE_SUCCESS);
+  TESTASSERT(observable_test() == SRSRAN_SUCCESS);
+  TESTASSERT(event_dispatcher_test() == SRSRAN_SUCCESS);
+  TESTASSERT(event_queue_test() == SRSRAN_SUCCESS);
+  TESTASSERT(unique_subscribe_test() == SRSRAN_SUCCESS);
 
   printf("Success\n");
 

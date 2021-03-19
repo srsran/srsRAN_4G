@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,11 +10,11 @@
  *
  */
 
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/utils/vector.h"
 #include <complex.h>
-#include <srslte/phy/channel/ch_awgn.h>
-#include <srslte/phy/dft/dft.h>
-#include <srslte/phy/utils/debug.h>
+#include <srsran/phy/channel/ch_awgn.h>
+#include <srsran/phy/dft/dft.h>
+#include <srsran/phy/utils/debug.h>
 #include <unistd.h>
 
 #undef ENABLE_GUI
@@ -22,7 +22,7 @@
 #include "srsgui/srsgui.h"
 #endif /* ENABLE_GUI */
 
-static srslte_channel_awgn_t awgn = {};
+static srsran_channel_awgn_t awgn = {};
 
 static uint32_t nof_samples = 1920 * 8;
 static float    n0_min      = 0.0f;
@@ -69,7 +69,7 @@ static void parse_args(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-  int      ret           = SRSLTE_SUCCESS;
+  int      ret           = SRSRAN_SUCCESS;
   cf_t*    input_buffer  = NULL;
   cf_t*    output_buffer = NULL;
   uint64_t count_samples = 0;
@@ -79,16 +79,16 @@ int main(int argc, char** argv)
   parse_args(argc, argv);
 
   // Initialise buffers
-  input_buffer  = srslte_vec_cf_malloc(nof_samples);
-  output_buffer = srslte_vec_cf_malloc(nof_samples);
+  input_buffer  = srsran_vec_cf_malloc(nof_samples);
+  output_buffer = srsran_vec_cf_malloc(nof_samples);
 
   if (!input_buffer || !output_buffer) {
     ERROR("Error: Allocating memory");
-    ret = SRSLTE_ERROR;
+    ret = SRSRAN_ERROR;
   }
 
   // Initialise input
-  srslte_vec_cf_zero(input_buffer, nof_samples);
+  srsran_vec_cf_zero(input_buffer, nof_samples);
 
 #ifdef ENABLE_GUI
   sdrgui_init();
@@ -104,52 +104,52 @@ int main(int argc, char** argv)
   plot_scatter_setTitle(&plot_fft, "IQ");
   plot_scatter_addToWindowGrid(&plot_fft, (char*)"IQ", 1, 0);
 
-  cf_t*             fft_out = srslte_vec_cf_malloc(nof_samples);
-  srslte_dft_plan_t fft     = {};
-  if (srslte_dft_plan_c(&fft, nof_samples, SRSLTE_DFT_FORWARD)) {
+  cf_t*             fft_out = srsran_vec_cf_malloc(nof_samples);
+  srsran_dft_plan_t fft     = {};
+  if (srsran_dft_plan_c(&fft, nof_samples, SRSRAN_DFT_FORWARD)) {
     ERROR("Error: init DFT");
-    ret = SRSLTE_ERROR;
+    ret = SRSRAN_ERROR;
   }
 #endif /* ENABLE_GUI */
 
   // Initialise AWGN channel
-  if (ret == SRSLTE_SUCCESS) {
-    ret = srslte_channel_awgn_init(&awgn, 0);
+  if (ret == SRSRAN_SUCCESS) {
+    ret = srsran_channel_awgn_init(&awgn, 0);
   }
 
   float n0 = n0_min;
   while (!isnan(n0) && !isinf(n0) && n0 < n0_max) {
     struct timeval t[3] = {};
 
-    srslte_channel_awgn_set_n0(&awgn, n0);
+    srsran_channel_awgn_set_n0(&awgn, n0);
 
     // Run actual test
     gettimeofday(&t[1], NULL);
-    srslte_channel_awgn_run_c(&awgn, input_buffer, output_buffer, nof_samples);
+    srsran_channel_awgn_run_c(&awgn, input_buffer, output_buffer, nof_samples);
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
 
-    float power    = srslte_vec_avg_power_cf(output_buffer, nof_samples);
-    float power_dB = srslte_convert_power_to_dB(power);
+    float power    = srsran_vec_avg_power_cf(output_buffer, nof_samples);
+    float power_dB = srsran_convert_power_to_dB(power);
 
     if ((n0 + tolerance) < power_dB || (n0 - tolerance) > power_dB) {
       printf("-- failed: %.3f<%.3f<%.3f\n", n0 - tolerance, power_dB, n0 + tolerance);
-      ret = SRSLTE_ERROR;
+      ret = SRSRAN_ERROR;
     }
 
 #ifdef ENABLE_GUI
     plot_scatter_setNewData(&plot_scatter, output_buffer, nof_samples);
 
-    srslte_dft_run_c(&fft, output_buffer, fft_out);
+    srsran_dft_run_c(&fft, output_buffer, fft_out);
 
     float  min     = +INFINITY;
     float  max     = -INFINITY;
     float* fft_mag = (float*)fft_out;
     for (uint32_t i = 0; i < nof_samples; i++) {
-      float mag = srslte_convert_amplitude_to_dB(cabsf(fft_out[i]));
+      float mag = srsran_convert_amplitude_to_dB(cabsf(fft_out[i]));
 
-      min = SRSLTE_MIN(min, mag);
-      max = SRSLTE_MAX(max, mag);
+      min = SRSRAN_MIN(min, mag);
+      max = SRSRAN_MAX(max, mag);
 
       fft_mag[i] = mag;
     }
@@ -167,7 +167,7 @@ int main(int argc, char** argv)
   }
 
   // Free
-  srslte_channel_awgn_free(&awgn);
+  srsran_channel_awgn_free(&awgn);
 
   if (input_buffer) {
     free(input_buffer);
@@ -181,7 +181,7 @@ int main(int argc, char** argv)
   if (fft_out) {
     free(fft_out);
   }
-  srslte_dft_plan_free(&fft);
+  srsran_dft_plan_free(&fft);
 #endif /* ENABLE_GUI */
 
   // Print result and exit
@@ -190,7 +190,7 @@ int main(int argc, char** argv)
          n0_max,
          n0_step,
          nof_samples,
-         (ret == SRSLTE_SUCCESS) ? "Passed" : "Failed",
+         (ret == SRSRAN_SUCCESS) ? "Passed" : "Failed",
          (double)nof_samples / (double)count_us);
   return ret;
 }

@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -15,21 +15,21 @@
  * Description: L2/L3 LTE eNB stack class.
  *****************************************************************************/
 
-#ifndef SRSLTE_ENB_STACK_LTE_H
-#define SRSLTE_ENB_STACK_LTE_H
+#ifndef SRSRAN_ENB_STACK_LTE_H
+#define SRSRAN_ENB_STACK_LTE_H
 
 #include "mac/mac.h"
 #include "rrc/rrc.h"
-#include "srslte/common/task_scheduler.h"
+#include "srsran/common/task_scheduler.h"
 #include "upper/gtpu.h"
 #include "upper/pdcp.h"
 #include "upper/rlc.h"
 #include "upper/s1ap.h"
 
 #include "enb_stack_base.h"
-#include "srslte/common/mac_pcap_net.h"
-#include "srslte/interfaces/enb_interfaces.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/common/mac_pcap_net.h"
+#include "srsran/interfaces/enb_interfaces.h"
+#include "srsran/srslog/srslog.h"
 
 namespace srsenb {
 
@@ -37,7 +37,7 @@ class enb_stack_lte final : public enb_stack_base,
                             public stack_interface_phy_lte,
                             public stack_interface_s1ap_lte,
                             public stack_interface_gtpu_lte,
-                            public srslte::thread
+                            public srsran::thread
 {
 public:
   enb_stack_lte(srslog::sink& log_sink);
@@ -109,7 +109,7 @@ private:
   void run_thread() override;
   void stop_impl();
   void tti_clock_impl();
-  void handle_mme_rx_packet(srslte::unique_byte_buffer_t pdu,
+  void handle_mme_rx_packet(srsran::unique_byte_buffer_t pdu,
                             const sockaddr_in&           from,
                             const sctp_sndrcvinfo&       sri,
                             int                          flags);
@@ -127,16 +127,16 @@ private:
   srslog::basic_logger& stack_logger;
 
   // PCAP and trace option
-  srslte::mac_pcap     mac_pcap;
-  srslte::mac_pcap_net mac_pcap_net;
-  srslte::s1ap_pcap    s1ap_pcap;
+  srsran::mac_pcap     mac_pcap;
+  srsran::mac_pcap_net mac_pcap_net;
+  srsran::s1ap_pcap    s1ap_pcap;
 
   // task handling
-  srslte::task_scheduler    task_sched;
-  srslte::task_queue_handle enb_task_queue, gtpu_task_queue, mme_task_queue, sync_task_queue;
+  srsran::task_scheduler    task_sched;
+  srsran::task_queue_handle enb_task_queue, gtpu_task_queue, mme_task_queue, sync_task_queue;
 
   // components that layers depend on (need to be destroyed after layers)
-  std::unique_ptr<srslte::rx_multisocket_handler> rx_sockets;
+  std::unique_ptr<srsran::rx_multisocket_handler> rx_sockets;
 
   srsenb::mac  mac;
   srsenb::rlc  rlc;
@@ -151,9 +151,9 @@ private:
   // state
   bool started = false;
 
-  srslte::dyn_blocking_queue<stack_metrics_t> pending_stack_metrics;
+  srsran::dyn_blocking_queue<stack_metrics_t> pending_stack_metrics;
 };
 
 } // namespace srsenb
 
-#endif // SRSLTE_ENB_STACK_LTE_H
+#endif // SRSRAN_ENB_STACK_LTE_H

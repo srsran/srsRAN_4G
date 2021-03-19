@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -15,30 +15,30 @@
 #include <string.h>
 #include <strings.h>
 
-#include "srslte/phy/modem/mod.h"
-#include "srslte/phy/utils/bit.h"
-#include "srslte/phy/utils/debug.h"
+#include "srsran/phy/modem/mod.h"
+#include "srsran/phy/utils/bit.h"
+#include "srsran/phy/utils/debug.h"
 
 /** Low-level API */
 
-int srslte_mod_modulate(const srslte_modem_table_t* q, uint8_t* bits, cf_t* symbols, uint32_t nbits)
+int srsran_mod_modulate(const srsran_modem_table_t* q, uint8_t* bits, cf_t* symbols, uint32_t nbits)
 {
   uint32_t i, j, idx;
   uint8_t* b_ptr = (uint8_t*)bits;
   j              = 0;
   for (i = 0; i < nbits; i += q->nbits_x_symbol) {
-    idx = srslte_bit_pack(&b_ptr, q->nbits_x_symbol);
+    idx = srsran_bit_pack(&b_ptr, q->nbits_x_symbol);
     if (idx < q->nsymbols) {
       symbols[j] = q->symbol_table[idx];
     } else {
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
     j++;
   }
   return j;
 }
 
-static void mod_bpsk_bytes(const srslte_modem_table_t* q, const uint8_t* bits, cf_t* symbols, uint32_t nbits)
+static void mod_bpsk_bytes(const srsran_modem_table_t* q, const uint8_t* bits, cf_t* symbols, uint32_t nbits)
 {
   uint8_t mask_bpsk[8]  = {0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01};
   uint8_t shift_bpsk[8] = {7, 6, 5, 4, 3, 2, 1, 0};
@@ -51,7 +51,7 @@ static void mod_bpsk_bytes(const srslte_modem_table_t* q, const uint8_t* bits, c
   }
 }
 
-static void mod_qpsk_bytes(const srslte_modem_table_t* q, const uint8_t* bits, cf_t* symbols, uint32_t nbits)
+static void mod_qpsk_bytes(const srsran_modem_table_t* q, const uint8_t* bits, cf_t* symbols, uint32_t nbits)
 {
   uint8_t mask_qpsk[4]  = {0xc0, 0x30, 0x0c, 0x03};
   uint8_t shift_qpsk[4] = {6, 4, 2, 0};
@@ -64,7 +64,7 @@ static void mod_qpsk_bytes(const srslte_modem_table_t* q, const uint8_t* bits, c
   }
 }
 
-static void mod_16qam_bytes(const srslte_modem_table_t* q, const uint8_t* bits, cf_t* symbols, uint32_t nbits)
+static void mod_16qam_bytes(const srsran_modem_table_t* q, const uint8_t* bits, cf_t* symbols, uint32_t nbits)
 {
   for (int i = 0; i < nbits / 8; i++) {
     memcpy(&symbols[2 * i], &q->symbol_table_16qam[bits[i]], sizeof(qam16_packed_t));
@@ -75,7 +75,7 @@ static void mod_16qam_bytes(const srslte_modem_table_t* q, const uint8_t* bits, 
   }
 }
 
-static void mod_64qam_bytes(const srslte_modem_table_t* q, const uint8_t* bits, cf_t* symbols, uint32_t nbits)
+static void mod_64qam_bytes(const srsran_modem_table_t* q, const uint8_t* bits, cf_t* symbols, uint32_t nbits)
 {
   uint8_t  in0, in1, in2, in3;
   uint32_t in80, in81, in82;
@@ -115,7 +115,7 @@ static void mod_64qam_bytes(const srslte_modem_table_t* q, const uint8_t* bits, 
   }
 }
 
-static void mod_256qam_bytes(const srslte_modem_table_t* q, const uint8_t* bits, cf_t* symbols, uint32_t nbits)
+static void mod_256qam_bytes(const srsran_modem_table_t* q, const uint8_t* bits, cf_t* symbols, uint32_t nbits)
 {
   for (int i = 0; i < nbits / 8; i++) {
     symbols[i] = q->symbol_table[bits[i]];
@@ -123,11 +123,11 @@ static void mod_256qam_bytes(const srslte_modem_table_t* q, const uint8_t* bits,
 }
 
 /* Assumes packet bits as input */
-int srslte_mod_modulate_bytes(const srslte_modem_table_t* q, const uint8_t* bits, cf_t* symbols, uint32_t nbits)
+int srsran_mod_modulate_bytes(const srsran_modem_table_t* q, const uint8_t* bits, cf_t* symbols, uint32_t nbits)
 {
   if (!q->byte_tables_init) {
-    ERROR("Error need to initiated modem tables for packeted bits before calling srslte_mod_modulate_bytes()");
-    return SRSLTE_ERROR;
+    ERROR("Error need to initiated modem tables for packeted bits before calling srsran_mod_modulate_bytes()");
+    return SRSRAN_ERROR;
   }
   if (nbits % q->nbits_x_symbol) {
     ERROR("Error modulator expects number of bits (%d) to be multiple of %d", nbits, q->nbits_x_symbol);
@@ -150,8 +150,8 @@ int srslte_mod_modulate_bytes(const srslte_modem_table_t* q, const uint8_t* bits
       mod_256qam_bytes(q, bits, symbols, nbits);
       break;
     default:
-      ERROR("srslte_mod_modulate_bytes() accepts QPSK/16QAM/64QAM modulations only");
-      return SRSLTE_ERROR;
+      ERROR("srsran_mod_modulate_bytes() accepts QPSK/16QAM/64QAM modulations only");
+      return SRSRAN_ERROR;
   }
   return nbits / q->nbits_x_symbol;
 }

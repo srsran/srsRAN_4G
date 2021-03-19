@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -16,14 +16,14 @@
 #define Debug(fmt, ...) logger.debug(fmt, ##__VA_ARGS__)
 
 #include "srsue/hdr/stack/mac/ul_harq.h"
-#include "srslte/common/interfaces_common.h"
-#include "srslte/common/mac_pcap.h"
-#include "srslte/common/timers.h"
+#include "srsran/common/interfaces_common.h"
+#include "srsran/common/mac_pcap.h"
+#include "srsran/common/timers.h"
 
 namespace srsue {
 
 ul_harq_entity::ul_harq_entity(const uint8_t cc_idx_) :
-  proc(SRSLTE_MAX_HARQ_PROC), logger(srslog::fetch_basic_logger("MAC")), cc_idx(cc_idx_)
+  proc(SRSRAN_MAX_HARQ_PROC), logger(srslog::fetch_basic_logger("MAC")), cc_idx(cc_idx_)
 {}
 
 bool ul_harq_entity::init(mac_interface_rrc_common::ue_rnti_t* rntis_, ra_proc* ra_procedure_, mux* mux_unit_)
@@ -32,7 +32,7 @@ bool ul_harq_entity::init(mac_interface_rrc_common::ue_rnti_t* rntis_, ra_proc* 
   ra_procedure = ra_procedure_;
   rntis        = rntis_;
 
-  for (uint32_t i = 0; i < SRSLTE_MAX_HARQ_PROC; i++) {
+  for (uint32_t i = 0; i < SRSRAN_MAX_HARQ_PROC; i++) {
     if (!proc[i].init(i, this)) {
       return false;
     }
@@ -42,7 +42,7 @@ bool ul_harq_entity::init(mac_interface_rrc_common::ue_rnti_t* rntis_, ra_proc* 
 
 void ul_harq_entity::reset()
 {
-  for (uint32_t i = 0; i < SRSLTE_MAX_HARQ_PROC; i++) {
+  for (uint32_t i = 0; i < SRSRAN_MAX_HARQ_PROC; i++) {
     proc[i].reset();
   }
   ul_sps_assig.clear();
@@ -50,17 +50,17 @@ void ul_harq_entity::reset()
 
 void ul_harq_entity::reset_ndi()
 {
-  for (uint32_t i = 0; i < SRSLTE_MAX_HARQ_PROC; i++) {
+  for (uint32_t i = 0; i < SRSRAN_MAX_HARQ_PROC; i++) {
     proc[i].reset_ndi();
   }
 }
 
-void ul_harq_entity::set_config(srslte::ul_harq_cfg_t& harq_cfg_)
+void ul_harq_entity::set_config(srsran::ul_harq_cfg_t& harq_cfg_)
 {
   harq_cfg = harq_cfg_;
 }
 
-void ul_harq_entity::start_pcap(srslte::mac_pcap* pcap_)
+void ul_harq_entity::start_pcap(srsran::mac_pcap* pcap_)
 {
   pcap = pcap_;
 }
@@ -71,11 +71,11 @@ void ul_harq_entity::new_grant_ul(mac_interface_phy_lte::mac_grant_ul_t  grant,
 {
   bzero(action, sizeof(mac_interface_phy_lte::tb_action_ul_t));
 
-  if (grant.pid >= SRSLTE_MAX_HARQ_PROC) {
+  if (grant.pid >= SRSRAN_MAX_HARQ_PROC) {
     Error("Invalid PID: %d", grant.pid);
     return;
   }
-  if (grant.rnti == rntis->crnti || grant.rnti == rntis->temp_rnti || SRSLTE_RNTI_ISRAR(grant.rnti)) {
+  if (grant.rnti == rntis->crnti || grant.rnti == rntis->temp_rnti || SRSRAN_RNTI_ISRAR(grant.rnti)) {
     if (grant.rnti == rntis->crnti && proc[grant.pid].is_sps()) {
       grant.tb.ndi = true;
     }
@@ -94,7 +94,7 @@ void ul_harq_entity::new_grant_ul(mac_interface_phy_lte::mac_grant_ul_t  grant,
 
 int ul_harq_entity::get_current_tbs(uint32_t pid)
 {
-  if (pid >= SRSLTE_MAX_HARQ_PROC) {
+  if (pid >= SRSRAN_MAX_HARQ_PROC) {
     Error("Invalid PID: %d", pid);
     return 0;
   }
@@ -125,13 +125,13 @@ ul_harq_entity::ul_harq_process::ul_harq_process() : logger(srslog::fetch_basic_
 ul_harq_entity::ul_harq_process::~ul_harq_process()
 {
   if (is_initiated) {
-    srslte_softbuffer_tx_free(&softbuffer);
+    srsran_softbuffer_tx_free(&softbuffer);
   }
 }
 
 bool ul_harq_entity::ul_harq_process::init(uint32_t pid_, ul_harq_entity* parent)
 {
-  if (srslte_softbuffer_tx_init(&softbuffer, 110)) {
+  if (srsran_softbuffer_tx_init(&softbuffer, 110)) {
     ERROR("Error initiating soft buffer");
     return false;
   }
@@ -348,7 +348,7 @@ void ul_harq_entity::ul_harq_process::generate_new_tx(mac_interface_phy_lte::mac
                                                       mac_interface_phy_lte::tb_action_ul_t* action)
 {
   // Compute average number of retransmissions per packet considering previous packet
-  harq_entity->average_retx = SRSLTE_VEC_CMA((float)current_tx_nb, harq_entity->average_retx, harq_entity->nof_pkts++);
+  harq_entity->average_retx = SRSRAN_VEC_CMA((float)current_tx_nb, harq_entity->average_retx, harq_entity->nof_pkts++);
   cur_grant                 = grant;
   harq_feedback             = false;
   is_grant_configured       = true;

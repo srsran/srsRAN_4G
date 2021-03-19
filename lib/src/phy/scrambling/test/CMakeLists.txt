@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2020 Software Radio Systems Limited
+# Copyright 2013-2021 Software Radio Systems Limited
 #
 # By using this file, you agree to the terms and conditions set
 # forth in the LICENSE file which can be found at the top level of
@@ -11,7 +11,7 @@
 ########################################################################
 
 add_executable(scrambling_test scrambling_test.c)
-target_link_libraries(scrambling_test srslte_phy)
+target_link_libraries(scrambling_test srsran_phy)
 
 add_test(scrambling_pbch_bit scrambling_test -s PBCH -c 50) 
 add_test(scrambling_pbch_float scrambling_test -s PBCH -c 50 -f) 

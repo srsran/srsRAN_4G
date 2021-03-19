@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -16,21 +16,21 @@
 #include "rrc_cell.h"
 #include "rrc_common.h"
 #include "rrc_metrics.h"
-#include "srslte/asn1/rrc_utils.h"
-#include "srslte/common/bcd_helpers.h"
-#include "srslte/common/block_queue.h"
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/common.h"
-#include "srslte/common/security.h"
-#include "srslte/common/stack_procedure.h"
-#include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/asn1/rrc_utils.h"
+#include "srsran/common/bcd_helpers.h"
+#include "srsran/common/block_queue.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/common/common.h"
+#include "srsran/common/security.h"
+#include "srsran/common/stack_procedure.h"
+#include "srsran/interfaces/ue_interfaces.h"
+#include "srsran/srslog/srslog.h"
 
 #include <map>
 #include <math.h>
 #include <queue>
 
-#define SRSLTE_RRC_N_BANDS 43
+#define SRSRAN_RRC_N_BANDS 43
 typedef struct {
   std::string                             ue_category_str;
   uint32_t                                ue_category;
@@ -38,21 +38,21 @@ typedef struct {
   int                                     ue_category_dl;
   uint32_t                                release;
   uint32_t                                feature_group;
-  std::array<uint8_t, SRSLTE_RRC_N_BANDS> supported_bands;
+  std::array<uint8_t, SRSRAN_RRC_N_BANDS> supported_bands;
   uint32_t                                nof_supported_bands;
   bool                                    support_ca;
   int                                     mbms_service_id;
   uint32_t                                mbms_service_port;
 } rrc_args_t;
 
-#define SRSLTE_UE_CATEGORY_DEFAULT "4"
-#define SRSLTE_UE_CATEGORY_MIN 1
-#define SRSLTE_UE_CATEGORY_MAX 21
-#define SRSLTE_RELEASE_DEFAULT 8
-#define SRSLTE_RELEASE_MIN 8
-#define SRSLTE_RELEASE_MAX 15
+#define SRSRAN_UE_CATEGORY_DEFAULT "4"
+#define SRSRAN_UE_CATEGORY_MIN 1
+#define SRSRAN_UE_CATEGORY_MAX 21
+#define SRSRAN_RELEASE_DEFAULT 8
+#define SRSRAN_RELEASE_MIN 8
+#define SRSRAN_RELEASE_MAX 15
 
-using srslte::byte_buffer_t;
+using srsran::byte_buffer_t;
 
 namespace srsue {
 
@@ -70,10 +70,10 @@ class rrc : public rrc_interface_nas,
             public rrc_interface_pdcp,
             public rrc_eutra_interface_rrc_nr,
             public rrc_interface_rlc,
-            public srslte::timer_callback
+            public srsran::timer_callback
 {
 public:
-  rrc(stack_interface_rrc* stack_, srslte::task_sched_handle task_sched_);
+  rrc(stack_interface_rrc* stack_, srsran::task_sched_handle task_sched_);
   ~rrc();
 
   void init(phy_interface_rrc_lte* phy_,
@@ -92,13 +92,13 @@ public:
 
   // Timeout callback interface
   void timer_expired(uint32_t timeout_id) final;
-  void srslte_rrc_log(const char* str);
+  void srsran_rrc_log(const char* str);
 
   typedef enum { Rx = 0, Tx } direction_t;
   template <class T>
   void log_rrc_message(const std::string            source,
                        const direction_t            dir,
-                       const srslte::byte_buffer_t* pdu,
+                       const srsran::byte_buffer_t* pdu,
                        const T&                     msg,
                        const std::string&           msg_type);
 
@@ -106,14 +106,14 @@ public:
   bool        mbms_service_start(uint32_t serv, uint32_t port);
 
   // NAS interface
-  void     write_sdu(srslte::unique_byte_buffer_t sdu);
+  void     write_sdu(srsran::unique_byte_buffer_t sdu);
   void     enable_capabilities();
   uint16_t get_mcc();
   uint16_t get_mnc();
   bool     plmn_search() final;
-  void     plmn_select(srslte::plmn_id_t plmn_id);
-  bool     connection_request(srslte::establishment_cause_t cause, srslte::unique_byte_buffer_t dedicated_info_nas);
-  void     set_ue_identity(srslte::s_tmsi_t s_tmsi);
+  void     plmn_select(srsran::plmn_id_t plmn_id);
+  bool     connection_request(srsran::establishment_cause_t cause, srsran::unique_byte_buffer_t dedicated_info_nas);
+  void     set_ue_identity(srsran::s_tmsi_t s_tmsi);
   void     paging_completed(bool outcome) final;
   bool     has_nr_dc();
 
@@ -141,11 +141,11 @@ public:
   bool have_drb();
 
   // PDCP interface
-  void write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
-  void write_pdu_bcch_bch(srslte::unique_byte_buffer_t pdu);
-  void write_pdu_bcch_dlsch(srslte::unique_byte_buffer_t pdu);
-  void write_pdu_pcch(srslte::unique_byte_buffer_t pdu);
-  void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
+  void write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
+  void write_pdu_bcch_bch(srsran::unique_byte_buffer_t pdu);
+  void write_pdu_bcch_dlsch(srsran::unique_byte_buffer_t pdu);
+  void write_pdu_pcch(srsran::unique_byte_buffer_t pdu);
+  void write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
 
   bool srbs_flushed(); //< Check if data on SRBs still needs to be sent
 
@@ -161,17 +161,17 @@ protected:
 private:
   typedef struct {
     enum { PCCH, RLF, RA_COMPLETE, STOP } command;
-    srslte::unique_byte_buffer_t pdu;
+    srsran::unique_byte_buffer_t pdu;
     uint16_t                     lcid;
   } cmd_msg_t;
 
   bool                           running = false;
-  srslte::block_queue<cmd_msg_t> cmd_q;
+  srsran::block_queue<cmd_msg_t> cmd_q;
 
-  void process_pcch(srslte::unique_byte_buffer_t pdu);
+  void process_pcch(srsran::unique_byte_buffer_t pdu);
 
   stack_interface_rrc*         stack = nullptr;
-  srslte::task_sched_handle    task_sched;
+  srsran::task_sched_handle    task_sched;
   srslog::basic_logger&        logger;
   phy_interface_rrc_lte*       phy    = nullptr;
   mac_interface_rrc*           mac    = nullptr;
@@ -181,14 +181,14 @@ private:
   usim_interface_rrc*          usim   = nullptr;
   gw_interface_rrc*            gw     = nullptr;
   rrc_nr_interface_rrc*        rrc_nr = nullptr;
-  srslte::unique_byte_buffer_t dedicated_info_nas;
+  srsran::unique_byte_buffer_t dedicated_info_nas;
 
   void send_ul_ccch_msg(const asn1::rrc::ul_ccch_msg_s& msg);
   void send_ul_dcch_msg(uint32_t lcid, const asn1::rrc::ul_dcch_msg_s& msg);
 
   rrc_state_t      state = RRC_STATE_IDLE, last_state = RRC_STATE_IDLE;
   uint8_t          transaction_id = 0;
-  srslte::s_tmsi_t ue_identity;
+  srsran::s_tmsi_t ue_identity;
   bool             ue_identity_configured = false;
 
   bool drb_up = false;
@@ -200,11 +200,11 @@ private:
 
   uint32_t cell_clean_cnt = 0;
 
-  srslte::phy_cfg_t previous_phy_cfg = {};
-  srslte::mac_cfg_t current_mac_cfg, previous_mac_cfg = {};
+  srsran::phy_cfg_t previous_phy_cfg = {};
+  srsran::mac_cfg_t current_mac_cfg, previous_mac_cfg = {};
 
   void                         generate_as_keys();
-  srslte::as_security_config_t sec_cfg = {};
+  srsran::as_security_config_t sec_cfg = {};
 
   std::map<uint32_t, asn1::rrc::srb_to_add_mod_s> srbs;
   std::map<uint32_t, asn1::rrc::drb_to_add_mod_s> drbs;
@@ -212,7 +212,7 @@ private:
   // RRC constants and timers
   uint32_t                            n310_cnt = 0, N310 = 0;
   uint32_t                            n311_cnt = 0, N311 = 0;
-  srslte::timer_handler::unique_timer t300, t301, t302, t310, t311, t304;
+  srsran::timer_handler::unique_timer t300, t301, t302, t310, t311, t304;
 
   // Radio bearers
   typedef enum {
@@ -271,11 +271,11 @@ private:
 
   void                                          process_cell_meas();
   void                                          process_new_cell_meas(const std::vector<phy_meas_t>& meas);
-  srslte::block_queue<std::vector<phy_meas_t> > cell_meas_q;
+  srsran::block_queue<std::vector<phy_meas_t> > cell_meas_q;
 
   void                                             process_cell_meas_nr();
   void                                             process_new_cell_meas_nr(const std::vector<phy_meas_nr_t>& meas);
-  srslte::block_queue<std::vector<phy_meas_nr_t> > cell_meas_nr_q;
+  srsran::block_queue<std::vector<phy_meas_nr_t> > cell_meas_nr_q;
 
   // Cell selection/reselection functions/variables
   typedef struct {
@@ -312,26 +312,26 @@ private:
   class cell_reselection_proc;
   class connection_reest_proc;
   class ho_proc;
-  srslte::proc_t<cell_search_proc, rrc_interface_phy_lte::cell_search_ret_t> cell_searcher;
-  srslte::proc_t<si_acquire_proc>                                            si_acquirer;
-  srslte::proc_t<serving_cell_config_proc>                                   serv_cell_cfg;
-  srslte::proc_t<cell_selection_proc, cs_result_t>                           cell_selector;
-  srslte::proc_t<go_idle_proc>                                               idle_setter;
-  srslte::proc_t<process_pcch_proc>                                          pcch_processor;
-  srslte::proc_t<connection_request_proc>                                    conn_req_proc;
-  srslte::proc_t<plmn_search_proc>                                           plmn_searcher;
-  srslte::proc_t<cell_reselection_proc>                                      cell_reselector;
-  srslte::proc_t<connection_reest_proc>                                      connection_reest;
-  srslte::proc_t<ho_proc>                                                    ho_handler;
-  srslte::proc_t<connection_reconf_no_ho_proc>                               conn_recfg_proc;
+  srsran::proc_t<cell_search_proc, rrc_interface_phy_lte::cell_search_ret_t> cell_searcher;
+  srsran::proc_t<si_acquire_proc>                                            si_acquirer;
+  srsran::proc_t<serving_cell_config_proc>                                   serv_cell_cfg;
+  srsran::proc_t<cell_selection_proc, cs_result_t>                           cell_selector;
+  srsran::proc_t<go_idle_proc>                                               idle_setter;
+  srsran::proc_t<process_pcch_proc>                                          pcch_processor;
+  srsran::proc_t<connection_request_proc>                                    conn_req_proc;
+  srsran::proc_t<plmn_search_proc>                                           plmn_searcher;
+  srsran::proc_t<cell_reselection_proc>                                      cell_reselector;
+  srsran::proc_t<connection_reest_proc>                                      connection_reest;
+  srsran::proc_t<ho_proc>                                                    ho_handler;
+  srsran::proc_t<connection_reconf_no_ho_proc>                               conn_recfg_proc;
 
-  srslte::proc_manager_list_t callback_list;
+  srsran::proc_manager_list_t callback_list;
 
   bool cell_selection_criteria(float rsrp, float rsrq = 0);
   void cell_reselection(float rsrp, float rsrq);
 
   std::vector<uint32_t> ue_required_sibs;
-  srslte::plmn_id_t     selected_plmn_id = {};
+  srsran::plmn_id_t     selected_plmn_id = {};
   bool                  plmn_is_selected = false;
 
   bool security_is_activated = false;
@@ -340,21 +340,21 @@ private:
   void max_retx_attempted();
 
   // Senders
-  void send_con_request(srslte::establishment_cause_t cause);
+  void send_con_request(srsran::establishment_cause_t cause);
   void send_con_restablish_request(asn1::rrc::reest_cause_e cause, uint16_t rnti, uint16_t pci, uint32_t cellid);
   void send_con_restablish_complete();
-  void send_con_setup_complete(srslte::unique_byte_buffer_t nas_msg);
-  void send_ul_info_transfer(srslte::unique_byte_buffer_t nas_msg);
+  void send_con_setup_complete(srsran::unique_byte_buffer_t nas_msg);
+  void send_ul_info_transfer(srsran::unique_byte_buffer_t nas_msg);
   void send_security_mode_complete();
   void send_rrc_con_reconfig_complete(bool contains_nr_complete = false);
 
   // Parsers
-  void process_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
-  void parse_dl_ccch(srslte::unique_byte_buffer_t pdu);
-  void parse_dl_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
-  void parse_dl_info_transfer(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
-  void parse_pdu_bcch_dlsch(srslte::unique_byte_buffer_t pdu);
-  void parse_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
+  void process_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
+  void parse_dl_ccch(srsran::unique_byte_buffer_t pdu);
+  void parse_dl_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
+  void parse_dl_info_transfer(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
+  void parse_pdu_bcch_dlsch(srsran::unique_byte_buffer_t pdu);
+  void parse_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
 
   // Helpers
   void con_reconfig_failed();

@@ -2,20 +2,20 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
  * the distribution.
  *
  */
-#ifndef SRSLTE_RRC_MEAS_H_
-#define SRSLTE_RRC_MEAS_H_
+#ifndef SRSRAN_RRC_MEAS_H_
+#define SRSRAN_RRC_MEAS_H_
 
-#include "srslte/asn1/rrc.h"
-#include "srslte/asn1/rrc_utils.h"
-#include "srslte/common/common.h"
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srsran/asn1/rrc.h"
+#include "srsran/asn1/rrc_utils.h"
+#include "srsran/common/common.h"
+#include "srsran/interfaces/ue_interfaces.h"
 #include "srsue/hdr/stack/rrc/rrc.h"
 
 #include <map>
@@ -88,7 +88,7 @@ private:
       cell_triggered_t                    cell_triggered_list = {};
       report_cfg_eutra_s                  report_cfg_eutra    = {};
       report_cfg_inter_rat_s              report_cfg_inter    = {};
-      srslte::timer_handler::unique_timer periodic_timer      = {};
+      srsran::timer_handler::unique_timer periodic_timer      = {};
     };
     var_meas_cfg*                       meas_cfg = nullptr;
     srslog::basic_logger&               logger;
@@ -202,4 +202,4 @@ private:
 
 } // namespace srsue
 
-#endif // SRSLTE_SRSUE_HDR_STACK_RRC_RRC_MEAS_H_
+#endif // SRSRAN_SRSUE_HDR_STACK_RRC_RRC_MEAS_H_

@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -17,8 +17,8 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "srslte/phy/resampling/resample_arb.h"
-#include "srslte/srslte.h"
+#include "srsran/phy/resampling/resample_arb.h"
+#include "srsran/srsran.h"
 
 int main(int argc, char** argv)
 {
@@ -30,12 +30,12 @@ int main(int argc, char** argv)
     float rate = up / down;
     printf("Testing rate %f\n", rate);
 
-    cf_t* in = srslte_vec_cf_malloc(N);
+    cf_t* in = srsran_vec_cf_malloc(N);
     if (!in) {
       perror("malloc");
       exit(-1);
     }
-    cf_t* out = srslte_vec_cf_malloc(N);
+    cf_t* out = srsran_vec_cf_malloc(N);
     if (!out) {
       perror("malloc");
       exit(-1);
@@ -45,9 +45,9 @@ int main(int argc, char** argv)
       in[i] = sin(i * 2 * M_PI / N);
 
     // Resample
-    srslte_resample_arb_t r;
-    srslte_resample_arb_init(&r, rate, 0);
-    int n_out = srslte_resample_arb_compute(&r, in, out, N);
+    srsran_resample_arb_t r;
+    srsran_resample_arb_init(&r, rate, 0);
+    int n_out = srsran_resample_arb_compute(&r, in, out, N);
 
     // Check interp values
     for (int i = delay + 1; i < n_out; i++) {

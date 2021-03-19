@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -29,7 +29,7 @@ bool worker_pool::init(const phy_args_t& args, phy_common* common, srslog::sink&
     pool.init_worker(i, w, prio);
     workers.push_back(std::unique_ptr<sf_worker>(w));
 
-    srslte_carrier_nr_t c = common->get_cell_nr(0);
+    srsran_carrier_nr_t c = common->get_cell_nr(0);
     w->set_carrier_unlocked(0, &c);
   }
 

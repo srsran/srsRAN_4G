@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -18,9 +18,9 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "srslte/phy/phch/prach.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/srslte.h"
+#include "srsran/phy/phch/prach.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/srsran.h"
 #include <strings.h>
 #include <time.h>
 char* input_file_name = NULL;
@@ -40,7 +40,7 @@ bool test_successive_cancellation  = false;
 bool test_offset_calculation       = false;
 bool stagger_prach_power_and_phase = false;
 // this will work best with one or two simultaenous prach
-srslte_filesource_t fsrc;
+srsran_filesource_t fsrc;
 
 void usage(char* prog)
 {
@@ -101,7 +101,7 @@ void parse_args(int argc, char** argv)
   }
 }
 // this function staggers power and phase of the different PRACH signals for more realisitc testing
-void stagger_prach_powers(srslte_prach_t* prach,
+void stagger_prach_powers(srsran_prach_t* prach,
                           cf_t*           preamble,
                           cf_t*           preamble_sum,
                           int             freq_offset,
@@ -109,29 +109,29 @@ void stagger_prach_powers(srslte_prach_t* prach,
                           int*            offsets)
 {
   for (int seq_index = 0; seq_index < n_seqs; seq_index++) {
-    srslte_prach_gen(prach, seq_index, freq_offset, preamble);
+    srsran_prach_gen(prach, seq_index, freq_offset, preamble);
     if (seq_index == 0) {
-      srslte_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 0.5), preamble, prach->N_cp + prach->N_seq);
-      srslte_vec_sc_prod_cfc(preamble, 1, preamble, prach->N_cp + prach->N_seq);
+      srsran_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 0.5), preamble, prach->N_cp + prach->N_seq);
+      srsran_vec_sc_prod_cfc(preamble, 1, preamble, prach->N_cp + prach->N_seq);
     }
     if (seq_index == 1) {
-      srslte_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 1), preamble, prach->N_cp + prach->N_seq);
-      srslte_vec_sc_prod_cfc(preamble, 0.8, preamble, prach->N_cp + prach->N_seq);
+      srsran_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 1), preamble, prach->N_cp + prach->N_seq);
+      srsran_vec_sc_prod_cfc(preamble, 0.8, preamble, prach->N_cp + prach->N_seq);
     }
     if (seq_index == 2) {
-      srslte_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 0.1), preamble, prach->N_cp + prach->N_seq);
-      srslte_vec_sc_prod_cfc(preamble, 0.05, preamble, prach->N_cp + prach->N_seq);
+      srsran_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 0.1), preamble, prach->N_cp + prach->N_seq);
+      srsran_vec_sc_prod_cfc(preamble, 0.05, preamble, prach->N_cp + prach->N_seq);
     }
     if (seq_index == 3) {
-      srslte_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 0.9), preamble, prach->N_cp + prach->N_seq);
-      srslte_vec_sc_prod_cfc(preamble, 0.7, preamble, prach->N_cp + prach->N_seq);
+      srsran_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 0.9), preamble, prach->N_cp + prach->N_seq);
+      srsran_vec_sc_prod_cfc(preamble, 0.7, preamble, prach->N_cp + prach->N_seq);
     }
     if (seq_index == 4) {
-      srslte_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 0.3), preamble, prach->N_cp + prach->N_seq);
-      srslte_vec_sc_prod_cfc(preamble, 0.15, preamble, prach->N_cp + prach->N_seq);
+      srsran_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 0.3), preamble, prach->N_cp + prach->N_seq);
+      srsran_vec_sc_prod_cfc(preamble, 0.15, preamble, prach->N_cp + prach->N_seq);
     }
     if (seq_index == 5) {
-      srslte_vec_sc_prod_cfc(preamble, 0.15, preamble, prach->N_cp + prach->N_seq);
+      srsran_vec_sc_prod_cfc(preamble, 0.15, preamble, prach->N_cp + prach->N_seq);
     }
     int off = (offset == -1) ? offsets[seq_index] : offset;
     for (int i = 0; i < prach->N_cp + prach->N_seq; i++) {
@@ -143,7 +143,7 @@ void stagger_prach_powers(srslte_prach_t* prach,
 int main(int argc, char** argv)
 {
   parse_args(argc, argv);
-  srslte_prach_t prach;
+  srsran_prach_t prach;
 
   bool high_speed_flag = false;
   srand(0);
@@ -154,10 +154,10 @@ int main(int argc, char** argv)
   int offsets[64];
   memset(offsets, 0, sizeof(int) * 64);
   float              t_offsets[64];
-  srslte_prach_cfg_t prach_cfg;
+  srsran_prach_cfg_t prach_cfg;
   ZERO_OBJECT(prach_cfg);
   if (input_file_name) {
-    if (srslte_filesource_init(&fsrc, input_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
+    if (srsran_filesource_init(&fsrc, input_file_name, SRSRAN_COMPLEX_FLOAT_BIN)) {
       ERROR("Error opening file %s", input_file_name);
       exit(-1);
     }
@@ -171,7 +171,7 @@ int main(int argc, char** argv)
   prach_cfg.enable_successive_cancellation = test_successive_cancellation;
   prach_cfg.enable_freq_domain_offset_calc = freq_domain_offset_calc;
 
-  int srate   = srslte_sampling_freq_hz(nof_prb);
+  int srate   = srsran_sampling_freq_hz(nof_prb);
   int divisor = srate / PRACH_SRATE;
   if (test_offset_calculation || test_successive_cancellation || stagger_prach_power_and_phase) {
     if (n_seqs > 6) {
@@ -187,11 +187,11 @@ int main(int argc, char** argv)
     }
   }
 
-  if (srslte_prach_init(&prach, srslte_symbol_sz(nof_prb))) {
+  if (srsran_prach_init(&prach, srsran_symbol_sz(nof_prb))) {
     return -1;
   }
 
-  if (srslte_prach_set_cfg(&prach, &prach_cfg, nof_prb)) {
+  if (srsran_prach_set_cfg(&prach, &prach_cfg, nof_prb)) {
     ERROR("Error initiating PRACH object");
     return -1;
   }
@@ -203,12 +203,12 @@ int main(int argc, char** argv)
   for (int i = 0; i < 64; i++)
     indices[i] = 0;
 
-  srslte_prach_set_detect_factor(&prach, 10);
+  srsran_prach_set_detect_factor(&prach, 10);
   if (stagger_prach_power_and_phase) {
     stagger_prach_powers(&prach, preamble, preamble_sum, prach_cfg.freq_offset, n_seqs, offsets);
   } else {
     for (seq_index = 0; seq_index < n_seqs; seq_index++) {
-      srslte_prach_gen(&prach, seq_index, prach_cfg.freq_offset, preamble);
+      srsran_prach_gen(&prach, seq_index, prach_cfg.freq_offset, preamble);
       int off = (offset == -1) ? offsets[seq_index] : offset;
       for (int i = prach.N_cp; i < prach.N_cp + prach.N_seq; i++) {
         preamble_sum[i + off] += preamble[i];
@@ -217,7 +217,7 @@ int main(int argc, char** argv)
   }
 
   if (input_file_name) {
-    srslte_filesource_read(&fsrc, &preamble_sum[prach.N_cp], prach.N_seq);
+    srsran_filesource_read(&fsrc, &preamble_sum[prach.N_cp], prach.N_seq);
   }
 
   uint32_t prach_len = prach.N_seq;
@@ -226,7 +226,7 @@ int main(int argc, char** argv)
   }
   struct timeval t[3];
   gettimeofday(&t[1], NULL);
-  srslte_prach_detect_offset(&prach, 0, &preamble_sum[prach.N_cp], prach_len, indices, t_offsets, NULL, &n_indices);
+  srsran_prach_detect_offset(&prach, 0, &preamble_sum[prach.N_cp], prach_len, indices, t_offsets, NULL, &n_indices);
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
   printf("texec=%ld us\n", t[0].tv_usec);
@@ -251,7 +251,7 @@ int main(int argc, char** argv)
     return -1;
   }
 
-  srslte_prach_free(&prach);
+  srsran_prach_free(&prach);
   printf("Done\n");
   exit(0);
 }

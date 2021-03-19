@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -17,8 +17,8 @@
 #include <string.h>
 #include <strings.h>
 
-#include "srslte/phy/fec/turbo/turbodecoder_gen.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/fec/turbo/turbodecoder_gen.h"
+#include "srsran/phy/utils/vector.h"
 
 #define NUMSTATES 8
 #define NINPUTS 2
@@ -32,9 +32,9 @@
 #if debug_enabled
 #define debug_state                                                                                                    \
   printf("k=%5d, in=%5d, pa=%3d, out=%5d, alpha=", k, x, parity[k - 1], out);                                          \
-  srslte_vec_fprint_s(stdout, alpha, 8);                                                                               \
+  srsran_vec_fprint_s(stdout, alpha, 8);                                                                               \
   printf(", beta=");                                                                                                   \
-  srslte_vec_fprint_s(stdout, &beta[8 * (k)], 8);                                                                      \
+  srsran_vec_fprint_s(stdout, &beta[8 * (k)], 8);                                                                      \
   printf("\n");
 #else
 #define debug_state
@@ -51,7 +51,7 @@ static void map_gen_beta(tdec_gen_t* s, int16_t* input, int16_t* app, int16_t* p
   int16_t  m_b[8], new[8], old[8];
   int16_t  x, y, xy;
   int      k;
-  uint32_t end  = long_cb + SRSLTE_TCOD_RATE;
+  uint32_t end  = long_cb + SRSRAN_TCOD_RATE;
   int16_t* beta = s->beta;
   uint32_t i;
 
@@ -194,9 +194,9 @@ int tdec_gen_init(void** hh, uint32_t max_long_cb)
 
   tdec_gen_t* h = (tdec_gen_t*)*hh;
 
-  h->beta = srslte_vec_i16_malloc((max_long_cb + SRSLTE_TCOD_TOTALTAIL + 1) * NUMSTATES);
+  h->beta = srsran_vec_i16_malloc((max_long_cb + SRSRAN_TCOD_TOTALTAIL + 1) * NUMSTATES);
   if (!h->beta) {
-    perror("srslte_vec_malloc");
+    perror("srsran_vec_malloc");
     return -1;
   }
   h->max_long_cb = max_long_cb;
@@ -235,16 +235,16 @@ void tdec_gen_extract_input(int16_t* input,
 {
   // Prepare systematic and parity bits for MAP DEC #1
   for (uint32_t i = 0; i < long_cb; i++) {
-    syst[i]    = input[SRSLTE_TCOD_RATE * i];
-    parity0[i] = input[SRSLTE_TCOD_RATE * i + 1];
-    parity1[i] = input[SRSLTE_TCOD_RATE * i + 2];
+    syst[i]    = input[SRSRAN_TCOD_RATE * i];
+    parity0[i] = input[SRSRAN_TCOD_RATE * i + 1];
+    parity1[i] = input[SRSRAN_TCOD_RATE * i + 2];
   }
-  for (uint32_t i = long_cb; i < long_cb + SRSLTE_TCOD_RATE; i++) {
-    syst[i]    = input[SRSLTE_TCOD_RATE * long_cb + NINPUTS * (i - long_cb)];
-    parity0[i] = input[SRSLTE_TCOD_RATE * long_cb + NINPUTS * (i - long_cb) + 1];
+  for (uint32_t i = long_cb; i < long_cb + SRSRAN_TCOD_RATE; i++) {
+    syst[i]    = input[SRSRAN_TCOD_RATE * long_cb + NINPUTS * (i - long_cb)];
+    parity0[i] = input[SRSRAN_TCOD_RATE * long_cb + NINPUTS * (i - long_cb) + 1];
 
-    app2[i]    = input[SRSLTE_TCOD_RATE * long_cb + NINPUTS * SRSLTE_TCOD_RATE + NINPUTS * (i - long_cb)];
-    parity1[i] = input[SRSLTE_TCOD_RATE * long_cb + NINPUTS * SRSLTE_TCOD_RATE + NINPUTS * (i - long_cb) + 1];
+    app2[i]    = input[SRSRAN_TCOD_RATE * long_cb + NINPUTS * SRSRAN_TCOD_RATE + NINPUTS * (i - long_cb)];
+    parity1[i] = input[SRSRAN_TCOD_RATE * long_cb + NINPUTS * SRSRAN_TCOD_RATE + NINPUTS * (i - long_cb) + 1];
   }
 }
 

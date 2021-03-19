@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,17 +10,17 @@
  *
  */
 
-#include "srslte/upper/rlc_um_base.h"
-#include "srslte/interfaces/ue_rrc_interfaces.h"
+#include "srsran/upper/rlc_um_base.h"
+#include "srsran/interfaces/ue_rrc_interfaces.h"
 #include <sstream>
 
-namespace srslte {
+namespace srsran {
 
 rlc_um_base::rlc_um_base(srslog::basic_logger&      logger,
                          uint32_t                   lcid_,
                          srsue::pdcp_interface_rlc* pdcp_,
                          srsue::rrc_interface_rlc*  rrc_,
-                         srslte::timer_handler*     timers_) :
+                         srsran::timer_handler*     timers_) :
   logger(logger), lcid(lcid_), pdcp(pdcp_), rrc(rrc_), timers(timers_), pool(byte_buffer_pool::get_instance())
 {}
 
@@ -87,7 +87,7 @@ void rlc_um_base::write_sdu(unique_byte_buffer_t sdu)
   }
 
   int sdu_bytes = sdu->N_bytes; //< Store SDU length for book-keeping
-  if (tx->try_write_sdu(std::move(sdu)) == SRSLTE_SUCCESS) {
+  if (tx->try_write_sdu(std::move(sdu)) == SRSRAN_SUCCESS) {
     metrics.num_tx_sdus++;
     metrics.num_tx_sdu_bytes += sdu_bytes;
   } else {
@@ -254,11 +254,11 @@ int rlc_um_base::rlc_um_base_tx::try_write_sdu(unique_byte_buffer_t sdu)
   if (sdu) {
     uint8_t*                                 msg_ptr   = sdu->msg;
     uint32_t                                 nof_bytes = sdu->N_bytes;
-    srslte::error_type<unique_byte_buffer_t> ret       = tx_sdu_queue.try_write(std::move(sdu));
+    srsran::error_type<unique_byte_buffer_t> ret       = tx_sdu_queue.try_write(std::move(sdu));
     if (ret) {
       logger.info(
           msg_ptr, nof_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", rb_name.c_str(), nof_bytes, tx_sdu_queue.size());
-      return SRSLTE_SUCCESS;
+      return SRSRAN_SUCCESS;
     } else {
       logger.warning(ret.error()->msg,
                      ret.error()->N_bytes,
@@ -270,7 +270,7 @@ int rlc_um_base::rlc_um_base_tx::try_write_sdu(unique_byte_buffer_t sdu)
   } else {
     logger.warning("NULL SDU pointer in write_sdu()");
   }
-  return SRSLTE_ERROR;
+  return SRSRAN_ERROR;
 }
 
 void rlc_um_base::rlc_um_base_tx::discard_sdu(uint32_t discard_sn)
@@ -304,4 +304,4 @@ int rlc_um_base::rlc_um_base_tx::build_data_pdu(uint8_t* payload, uint32_t nof_b
   return build_data_pdu(std::move(pdu), payload, nof_bytes);
 }
 
-} // namespace srslte
+} // namespace srsran

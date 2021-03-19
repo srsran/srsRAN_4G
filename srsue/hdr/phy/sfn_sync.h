@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -13,9 +13,9 @@
 #ifndef SRSUE_SFN_SYNC_H
 #define SRSUE_SFN_SYNC_H
 
-#include "srslte/radio/radio.h"
-#include "srslte/srslog/srslog.h"
-#include "srslte/srslte.h"
+#include "srsran/radio/radio.h"
+#include "srsran/srslog/srslog.h"
+#include "srsran/srsran.h"
 
 namespace srsue {
 
@@ -28,21 +28,21 @@ public:
   typedef enum { IDLE, SFN_FOUND, SFX0_FOUND, SFN_NOFOUND, ERROR } ret_code;
   explicit sfn_sync(srslog::basic_logger& logger) : logger(logger) {}
   ~sfn_sync();
-  void     init(srslte_ue_sync_t*    ue_sync,
+  void     init(srsran_ue_sync_t*    ue_sync,
                 const phy_args_t*    phy_args_,
-                srslte::rf_buffer_t& buffer,
+                srsran::rf_buffer_t& buffer,
                 uint32_t             buffer_max_samples_,
                 uint32_t             nof_subframes = SFN_SYNC_NOF_SUBFRAMES);
   void     reset();
-  bool     set_cell(srslte_cell_t cell);
-  ret_code run_subframe(srslte_cell_t*                               cell,
+  bool     set_cell(srsran_cell_t cell);
+  ret_code run_subframe(srsran_cell_t*                               cell,
                         uint32_t*                                    tti_cnt,
-                        std::array<uint8_t, SRSLTE_BCH_PAYLOAD_LEN>& bch_payload,
+                        std::array<uint8_t, SRSRAN_BCH_PAYLOAD_LEN>& bch_payload,
                         bool                                         sfidx_only = false);
-  ret_code decode_mib(srslte_cell_t*                               cell,
+  ret_code decode_mib(srsran_cell_t*                               cell,
                       uint32_t*                                    tti_cnt,
-                      srslte::rf_buffer_t*                         ext_buffer,
-                      std::array<uint8_t, SRSLTE_BCH_PAYLOAD_LEN>& bch_payload,
+                      srsran::rf_buffer_t*                         ext_buffer,
+                      std::array<uint8_t, SRSRAN_BCH_PAYLOAD_LEN>& bch_payload,
                       bool                                         sfidx_only = false);
 
 private:
@@ -52,10 +52,10 @@ private:
   uint32_t              cnt      = 0;
   uint32_t              timeout  = 0;
   srslog::basic_logger& logger;
-  srslte_ue_sync_t*     ue_sync            = nullptr;
-  srslte::rf_buffer_t   mib_buffer         = {};
+  srsran_ue_sync_t*     ue_sync            = nullptr;
+  srsran::rf_buffer_t   mib_buffer         = {};
   uint32_t              buffer_max_samples = 0;
-  srslte_ue_mib_t       ue_mib             = {};
+  srsran_ue_mib_t       ue_mib             = {};
 };
 
 }; // namespace srsue

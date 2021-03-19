@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,12 +10,12 @@
  *
  */
 
-#include "srslte/common/rlc_pcap.h"
-#include "srslte/common/pcap.h"
-#include "srslte/srslte.h"
+#include "srsran/common/rlc_pcap.h"
+#include "srsran/common/pcap.h"
+#include "srsran/srsran.h"
 #include <stdint.h>
 
-namespace srslte {
+namespace srsran {
 
 void rlc_pcap::enable(bool en)
 {
@@ -94,4 +94,4 @@ void rlc_pcap::write_ul_ccch(uint8_t* pdu, uint32_t pdu_len_bytes)
   pack_and_write(pdu, pdu_len_bytes, mode, DIRECTION_UPLINK, priority, sn_length, ue_id, CHANNEL_TYPE_CCCH, channel_id);
 }
 
-} // namespace srslte
+} // namespace srsran

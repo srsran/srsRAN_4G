@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -20,8 +20,8 @@
 
 #include "rapidjson/document.h"     // rapidjson's DOM-style API
 #include "rapidjson/prettywriter.h" // for stringify JSON
-#include "srslte/asn1/asn1_utils.h"
-#include "srslte/common/byte_buffer.h"
+#include "srsran/asn1/asn1_utils.h"
+#include "srsran/common/byte_buffer.h"
 #include <algorithm>
 #include <assert.h>
 #include <bitset>
@@ -31,7 +31,7 @@
 
 using namespace std;
 using namespace rapidjson;
-using namespace srslte;
+using namespace srsran;
 
 class ttcn3_helpers
 {
@@ -408,7 +408,7 @@ public:
   }
 
   static std::string
-  get_rrc_pdu_ind_for_pdu(uint32_t tti, uint32_t lcid, const std::string cell_, srslte::unique_byte_buffer_t pdubuf)
+  get_rrc_pdu_ind_for_pdu(uint32_t tti, uint32_t lcid, const std::string cell_, srsran::unique_byte_buffer_t pdubuf)
   {
     Document resp;
     resp.SetObject();
@@ -479,7 +479,7 @@ public:
   }
 
   static std::string
-  get_drb_common_ind_for_pdu(uint32_t tti, uint32_t lcid, const std::string cell_, srslte::unique_byte_buffer_t drbpdu)
+  get_drb_common_ind_for_pdu(uint32_t tti, uint32_t lcid, const std::string cell_, srsran::unique_byte_buffer_t drbpdu)
   {
     Document resp;
     resp.SetObject();

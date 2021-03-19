@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,8 +10,8 @@
  *
  */
 
-#include "srslte/asn1/s1ap.h"
-#include "srslte/common/test_common.h"
+#include "srsran/asn1/s1ap.h"
+#include "srsran/common/test_common.h"
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
@@ -84,7 +84,7 @@ int test_init_ctxt_setup_req()
 
   TESTASSERT(test_pack_unpack_consistency(pdu) == SRSASN_SUCCESS);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_ue_ctxt_release_req()
@@ -107,7 +107,7 @@ int test_ue_ctxt_release_req()
 
   TESTASSERT(test_pack_unpack_consistency(pdu) == SRSASN_SUCCESS);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 template <typename T, typename U>
@@ -116,7 +116,7 @@ bool is_same_type(U& u)
   return std::is_same<T, U>::value;
 }
 
-int test_proc_id_consistency(srslte::log_sink_spy& spy)
+int test_proc_id_consistency(srsran::log_sink_spy& spy)
 {
   s1ap_pdu_c pdu;
 
@@ -150,7 +150,7 @@ int test_proc_id_consistency(srslte::log_sink_spy& spy)
   TESTASSERT(unsuc.crit.value == crit_opts::reject);
   TESTASSERT(is_same_type<init_context_setup_fail_s>(unsuc.value.init_context_setup_fail()));
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_ho_request()
@@ -186,7 +186,7 @@ int test_ho_request()
 
   TESTASSERT(test_pack_unpack_consistency(pdu) == SRSASN_SUCCESS);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_enb_status_transfer()
@@ -231,7 +231,7 @@ int test_enb_status_transfer()
 
   TESTASSERT(test_pack_unpack_consistency(pdu) == SRSASN_SUCCESS);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int unpack_test_served_gummeis_with_multiple_plmns()
@@ -246,7 +246,7 @@ int unpack_test_served_gummeis_with_multiple_plmns()
   TESTASSERT(input_pdu.unpack(bref) == SRSASN_SUCCESS);
   TESTASSERT(asn1::test_pack_unpack_consistency(input_pdu) == SRSASN_SUCCESS);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_load_info_obj()
@@ -257,7 +257,7 @@ int test_load_info_obj()
 
   TESTASSERT(container.erab_failed_to_setup_list_ctxt_su_res.value[0].id == ASN1_S1AP_ID_ERAB_ITEM);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_initial_ctxt_setup_response()
@@ -287,12 +287,12 @@ int test_initial_ctxt_setup_response()
 
   uint8_t       buffer[1024];
   asn1::bit_ref bref(buffer, sizeof(buffer));
-  TESTASSERT(tx_pdu.pack(bref) == SRSLTE_SUCCESS);
+  TESTASSERT(tx_pdu.pack(bref) == SRSRAN_SUCCESS);
 
   srslog::fetch_basic_logger("TEST").info(
       buffer, bref.distance_bytes(), "message (nof bytes = %d):", bref.distance_bytes());
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_eci_pack()
@@ -334,7 +334,7 @@ int test_eci_pack()
 
   srslog::fetch_basic_logger("TEST").info(buffer, bref.distance_bytes(), "Packed cell id:");
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_paging()
@@ -350,21 +350,21 @@ int test_paging()
   TESTASSERT(input_pdu.unpack(bref) == SRSASN_SUCCESS);
   TESTASSERT(asn1::test_pack_unpack_consistency(input_pdu) == SRSASN_SUCCESS);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int main()
 {
   // Setup the log spy to intercept error and warning log entries.
   if (!srslog::install_custom_sink(
-          srslte::log_sink_spy::name(),
-          std::unique_ptr<srslte::log_sink_spy>(new srslte::log_sink_spy(srslog::get_default_log_formatter())))) {
-    return SRSLTE_ERROR;
+          srsran::log_sink_spy::name(),
+          std::unique_ptr<srsran::log_sink_spy>(new srsran::log_sink_spy(srslog::get_default_log_formatter())))) {
+    return SRSRAN_ERROR;
   }
 
-  auto* spy = static_cast<srslte::log_sink_spy*>(srslog::find_sink(srslte::log_sink_spy::name()));
+  auto* spy = static_cast<srsran::log_sink_spy*>(srslog::find_sink(srsran::log_sink_spy::name()));
   if (!spy) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   auto& asn1_logger = srslog::fetch_basic_logger("ASN1", *spy, false);

@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -13,14 +13,14 @@
 #include "srsepc/hdr/hss/hss.h"
 #include "srsepc/hdr/mme/mme.h"
 #include "srsepc/hdr/spgw/spgw.h"
-#include "srslte/build_info.h"
-#include "srslte/common/bcd_helpers.h"
-#include "srslte/common/common_helper.h"
-#include "srslte/common/config_file.h"
-#include "srslte/common/crash_handler.h"
-#include "srslte/common/signal_handler.h"
-#include "srslte/srslog/srslog.h"
-#include "srslte/srslte.h"
+#include "srsran/build_info.h"
+#include "srsran/common/bcd_helpers.h"
+#include "srsran/common/common_helper.h"
+#include "srsran/common/config_file.h"
+#include "srsran/common/crash_handler.h"
+#include "srsran/common/signal_handler.h"
+#include "srsran/srslog/srslog.h"
+#include "srsran/srsran.h"
 #include <boost/program_options.hpp>
 #include <iostream>
 
@@ -210,49 +210,49 @@ void parse_args(all_args_t* args, int argc, char* argv[])
   }
 
   // Convert MCC/MNC strings
-  if (!srslte::string_to_mcc(mcc, &args->mme_args.s1ap_args.mcc)) {
+  if (!srsran::string_to_mcc(mcc, &args->mme_args.s1ap_args.mcc)) {
     cout << "Error parsing mme.mcc:" << mcc << " - must be a 3-digit string." << endl;
   }
-  if (!srslte::string_to_mnc(mnc, &args->mme_args.s1ap_args.mnc)) {
+  if (!srsran::string_to_mnc(mnc, &args->mme_args.s1ap_args.mnc)) {
     cout << "Error parsing mme.mnc:" << mnc << " - must be a 2 or 3-digit string." << endl;
   }
 
   // Convert MCC/MNC strings
-  if (!srslte::string_to_mcc(mcc, &args->hss_args.mcc)) {
+  if (!srsran::string_to_mcc(mcc, &args->hss_args.mcc)) {
     cout << "Error parsing mme.mcc:" << mcc << " - must be a 3-digit string." << endl;
   }
-  if (!srslte::string_to_mnc(mnc, &args->hss_args.mnc)) {
+  if (!srsran::string_to_mnc(mnc, &args->hss_args.mnc)) {
     cout << "Error parsing mme.mnc:" << mnc << " - must be a 2 or 3-digit string." << endl;
   }
 
   std::transform(encryption_algo.begin(), encryption_algo.end(), encryption_algo.begin(), ::tolower);
   if (encryption_algo == "eea0") {
-    args->mme_args.s1ap_args.encryption_algo = srslte::CIPHERING_ALGORITHM_ID_EEA0;
+    args->mme_args.s1ap_args.encryption_algo = srsran::CIPHERING_ALGORITHM_ID_EEA0;
   } else if (encryption_algo == "eea1") {
-    args->mme_args.s1ap_args.encryption_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA1;
+    args->mme_args.s1ap_args.encryption_algo = srsran::CIPHERING_ALGORITHM_ID_128_EEA1;
   } else if (encryption_algo == "eea2") {
-    args->mme_args.s1ap_args.encryption_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA2;
+    args->mme_args.s1ap_args.encryption_algo = srsran::CIPHERING_ALGORITHM_ID_128_EEA2;
   } else if (encryption_algo == "eea3") {
-    args->mme_args.s1ap_args.encryption_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA3;
+    args->mme_args.s1ap_args.encryption_algo = srsran::CIPHERING_ALGORITHM_ID_128_EEA3;
   } else {
-    args->mme_args.s1ap_args.encryption_algo = srslte::CIPHERING_ALGORITHM_ID_EEA0;
+    args->mme_args.s1ap_args.encryption_algo = srsran::CIPHERING_ALGORITHM_ID_EEA0;
     cout << "Error parsing mme.encryption_algo:" << encryption_algo << " - must be EEA0, EEA1, EEA2 or EEA3." << endl;
     cout << "Using default mme.encryption_algo: EEA0" << endl;
   }
 
   std::transform(integrity_algo.begin(), integrity_algo.end(), integrity_algo.begin(), ::tolower);
   if (integrity_algo == "eia0") {
-    args->mme_args.s1ap_args.integrity_algo = srslte::INTEGRITY_ALGORITHM_ID_EIA0;
+    args->mme_args.s1ap_args.integrity_algo = srsran::INTEGRITY_ALGORITHM_ID_EIA0;
     cout << "Warning parsing mme.integrity_algo:" << encryption_algo
          << " - EIA0 will not supported by UEs use EIA1 or EIA2" << endl;
   } else if (integrity_algo == "eia1") {
-    args->mme_args.s1ap_args.integrity_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA1;
+    args->mme_args.s1ap_args.integrity_algo = srsran::INTEGRITY_ALGORITHM_ID_128_EIA1;
   } else if (integrity_algo == "eia2") {
-    args->mme_args.s1ap_args.integrity_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA2;
+    args->mme_args.s1ap_args.integrity_algo = srsran::INTEGRITY_ALGORITHM_ID_128_EIA2;
   } else if (integrity_algo == "eia3") {
-    args->mme_args.s1ap_args.integrity_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA3;
+    args->mme_args.s1ap_args.integrity_algo = srsran::INTEGRITY_ALGORITHM_ID_128_EIA3;
   } else {
-    args->mme_args.s1ap_args.integrity_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA1;
+    args->mme_args.s1ap_args.integrity_algo = srsran::INTEGRITY_ALGORITHM_ID_128_EIA1;
     cout << "Error parsing mme.integrity_algo:" << encryption_algo << " - must be EIA0, EIA1, EIA2 or EIA3." << endl;
     cout << "Using default mme.integrity_algo: EIA1" << endl;
   }
@@ -329,15 +329,15 @@ void parse_args(all_args_t* args, int argc, char* argv[])
 
 std::string get_build_mode()
 {
-  return std::string(srslte_get_build_mode());
+  return std::string(srsran_get_build_mode());
 }
 
 std::string get_build_info()
 {
-  if (std::string(srslte_get_build_info()).find("  ") != std::string::npos) {
-    return std::string(srslte_get_version());
+  if (std::string(srsran_get_build_info()).find("  ") != std::string::npos) {
+    return std::string(srsran_get_version());
   }
-  return std::string(srslte_get_build_info());
+  return std::string(srsran_get_build_info());
 }
 
 std::string get_build_string()
@@ -349,13 +349,13 @@ std::string get_build_string()
 
 int main(int argc, char* argv[])
 {
-  srslte_register_signal_handler();
+  srsran_register_signal_handler();
 
   // print build info
   cout << endl << get_build_string() << endl;
 
   cout << endl << "---  Software Radio Systems EPC  ---" << endl << endl;
-  srslte_debug_handle_crash(argc, argv);
+  srsran_debug_handle_crash(argc, argv);
 
   all_args_t args;
   parse_args(&args, argc, argv);
@@ -364,11 +364,11 @@ int main(int argc, char* argv[])
   log_sink = (args.log_args.filename == "stdout") ? srslog::create_stdout_sink()
                                                   : srslog::create_file_sink(args.log_args.filename);
   if (!log_sink) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   srslog::log_channel* chan = srslog::create_log_channel("main_channel", *log_sink);
   if (!chan) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   srslog::set_default_sink(*log_sink);
 
@@ -380,7 +380,7 @@ int main(int argc, char* argv[])
     epc_logger.info("\n\n%s\n---  Software Radio Systems EPC log ---\n\n", get_build_string().c_str());
   }
 
-  srslte::log_args(argc, argv, "EPC");
+  srsran::log_args(argc, argv, "EPC");
 
   srslog::basic_logger& nas_logger = srslog::fetch_basic_logger("NAS", false);
   nas_logger.set_level(srslog::str_to_basic_level(args.log_args.nas_level));

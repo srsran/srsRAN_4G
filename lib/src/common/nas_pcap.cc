@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,12 +10,12 @@
  *
  */
 
-#include "srslte/common/nas_pcap.h"
-#include "srslte/common/pcap.h"
-#include "srslte/srslte.h"
+#include "srsran/common/nas_pcap.h"
+#include "srsran/common/pcap.h"
+#include "srsran/srsran.h"
 #include <stdint.h>
 
-namespace srslte {
+namespace srsran {
 
 void nas_pcap::enable()
 {
@@ -27,11 +27,11 @@ uint32_t nas_pcap::open(std::string filename_, uint32_t ue_id_)
   filename  = filename_;
   pcap_file = LTE_PCAP_Open(NAS_LTE_DLT, filename.c_str());
   if (pcap_file == nullptr) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   ue_id        = ue_id_;
   enable_write = true;
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 void nas_pcap::close()
@@ -50,4 +50,4 @@ void nas_pcap::write_nas(uint8_t* pdu, uint32_t pdu_len_bytes)
   }
 }
 
-} // namespace srslte
+} // namespace srsran

@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,12 +10,12 @@
  *
  */
 
-#ifndef SRSLTE_ENB_STACK_BASE_H
-#define SRSLTE_ENB_STACK_BASE_H
+#ifndef SRSRAN_ENB_STACK_BASE_H
+#define SRSRAN_ENB_STACK_BASE_H
 
-#include "srslte/interfaces/enb_interfaces.h"
-#include "srslte/interfaces/enb_mac_interfaces.h"
-#include "srslte/interfaces/enb_s1ap_interfaces.h"
+#include "srsran/interfaces/enb_interfaces.h"
+#include "srsran/interfaces/enb_mac_interfaces.h"
+#include "srsran/interfaces/enb_s1ap_interfaces.h"
 #include "srsue/hdr/stack/upper/gw.h"
 #include <string>
 
@@ -97,4 +97,4 @@ public:
 
 } // namespace srsenb
 
-#endif // SRSLTE_ENB_STACK_BASE_H
+#endif // SRSRAN_ENB_STACK_BASE_H

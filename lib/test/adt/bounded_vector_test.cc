@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,10 +10,10 @@
  *
  */
 
-#include "srslte/adt/bounded_vector.h"
-#include "srslte/common/test_common.h"
+#include "srsran/adt/bounded_vector.h"
+#include "srsran/common/test_common.h"
 
-namespace srslte {
+namespace srsran {
 
 struct C {
   static int nof_copy_ctor;
@@ -89,7 +89,7 @@ int test_ctor()
   TESTASSERT(a6.size() == 7);
   TESTASSERT(a5.size() == 0);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_obj_add_rem()
@@ -135,7 +135,7 @@ int test_obj_add_rem()
 
   // TEST: erase
   a.erase(a.begin() + 1);
-  srslte::bounded_vector<C, 10> test = {1, 3, 3};
+  srsran::bounded_vector<C, 10> test = {1, 3, 3};
   TESTASSERT(a == test);
 
   // TEST: clear
@@ -155,7 +155,7 @@ int test_obj_add_rem()
   a = std::move(a2);
   TESTASSERT(a.empty() and a2.empty());
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_move_only_type()
@@ -176,23 +176,23 @@ int test_move_only_type()
   a2.push_back(moveonly());
   TESTASSERT(a2.size() == 7);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int assert_dtor_consistency()
 {
   TESTASSERT(C::nof_dtor == C::nof_copy_ctor + C::nof_value_ctor + C::nof_move_ctor);
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-} // namespace srslte
+} // namespace srsran
 
 int main()
 {
-  TESTASSERT(srslte::test_ctor() == SRSLTE_SUCCESS);
-  TESTASSERT(srslte::test_obj_add_rem() == SRSLTE_SUCCESS);
-  TESTASSERT(srslte::test_move_only_type() == SRSLTE_SUCCESS);
-  TESTASSERT(srslte::assert_dtor_consistency() == SRSLTE_SUCCESS);
+  TESTASSERT(srsran::test_ctor() == SRSRAN_SUCCESS);
+  TESTASSERT(srsran::test_obj_add_rem() == SRSRAN_SUCCESS);
+  TESTASSERT(srsran::test_move_only_type() == SRSRAN_SUCCESS);
+  TESTASSERT(srsran::assert_dtor_consistency() == SRSRAN_SUCCESS);
   printf("Success\n");
   return 0;
 }

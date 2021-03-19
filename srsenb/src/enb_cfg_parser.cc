@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -12,9 +12,9 @@
 
 #include "enb_cfg_parser.h"
 #include "srsenb/hdr/enb.h"
-#include "srslte/asn1/rrc_utils.h"
-#include "srslte/common/multiqueue.h"
-#include "srslte/phy/common/phy_common.h"
+#include "srsran/asn1/rrc_utils.h"
+#include "srsran/common/multiqueue.h"
+#include "srsran/phy/common/phy_common.h"
 #include <boost/algorithm/string.hpp>
 
 #define HANDLEPARSERCODE(cond)                                                                                         \
@@ -549,19 +549,19 @@ int parse_rr(all_args_t* args_, rrc_cfg_t* rrc_cfg_)
   /* Transmission mode config section */
   if (args_->enb.transmission_mode < 1 || args_->enb.transmission_mode > 4) {
     ERROR("Invalid transmission mode (%d). Only indexes 1-4 are implemented.", args_->enb.transmission_mode);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   if (args_->enb.transmission_mode == 1 && args_->enb.nof_ports > 1) {
     ERROR("Invalid number of ports (%d) for transmission mode (%d). Only one antenna port is allowed.",
           args_->enb.nof_ports,
           args_->enb.transmission_mode);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   if (args_->enb.transmission_mode > 1 && args_->enb.nof_ports != 2) {
     ERROR("The selected number of ports (%d) are insufficient for the selected transmission mode (%d).",
           args_->enb.nof_ports,
           args_->enb.transmission_mode);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   rrc_cfg_->antenna_info.tx_mode = (ant_info_ded_s::tx_mode_e_::options)(args_->enb.transmission_mode - 1);
@@ -589,13 +589,13 @@ int parse_rr(all_args_t* args_, rrc_cfg_t* rrc_cfg_)
       break;
     default:
       ERROR("Unsupported transmission mode %d", rrc_cfg_->antenna_info.tx_mode.to_number());
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
   }
 
   /* Parse power allocation */
   if (not asn1::number_to_enum(rrc_cfg_->pdsch_cfg, args_->enb.p_a)) {
     ERROR("Invalid p_a value (%f) only -6, -4.77, -3, -1.77, 0, 1, 2, 3 values allowed.", args_->enb.p_a);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   /* MAC config section */
@@ -668,7 +668,7 @@ static int parse_meas_cell_list(rrc_meas_cfg_t* meas_cfg, Setting& root)
   meas_cfg->meas_cells.resize(root.getLength());
   for (uint32_t i = 0; i < meas_cfg->meas_cells.size(); ++i) {
     meas_cfg->meas_cells[i].earfcn   = root[i]["dl_earfcn"];
-    meas_cfg->meas_cells[i].pci      = (unsigned int)root[i]["pci"] % SRSLTE_NUM_PCI;
+    meas_cfg->meas_cells[i].pci      = (unsigned int)root[i]["pci"] % SRSRAN_NUM_PCI;
     meas_cfg->meas_cells[i].eci      = (unsigned int)root[i]["eci"];
     meas_cfg->meas_cells[i].q_offset = 0; // LIBLTE_RRC_Q_OFFSET_RANGE_DB_0; // TODO
                                           //    // TODO: TEMP
@@ -705,7 +705,7 @@ static int parse_meas_report_desc(rrc_meas_cfg_t* meas_cfg, Setting& root)
   HANDLEPARSERCODE(
       asn1_parsers::opt_number_to_enum(quant.filt_coef_rsrq, quant.filt_coef_rsrq_present, root, "rsrq_config"));
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 static int parse_scell_list(cell_cfg_t& cell_cfg, Setting& cellroot)
@@ -722,7 +722,7 @@ static int parse_scell_list(cell_cfg_t& cell_cfg, Setting& cellroot)
     scell.ul_allowed = (bool)scellroot["ul_allowed"];
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
@@ -735,7 +735,7 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
     HANDLEPARSERCODE(parse_required_field(cell_cfg.cell_id, cellroot, "cell_id"));
     HANDLEPARSERCODE(parse_required_field(cell_cfg.tac, cellroot, "tac"));
     HANDLEPARSERCODE(parse_required_field(cell_cfg.pci, cellroot, "pci"));
-    cell_cfg.pci = cell_cfg.pci % SRSLTE_NUM_PCI;
+    cell_cfg.pci = cell_cfg.pci % SRSRAN_NUM_PCI;
     HANDLEPARSERCODE(parse_required_field(cell_cfg.dl_earfcn, cellroot, "dl_earfcn"));
     parse_default_field(cell_cfg.ul_earfcn, cellroot, "ul_earfcn", 0u); // will be derived from DL EARFCN If not set
     parse_default_field(
@@ -782,7 +782,7 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
     }
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int cell_list_section::parse(libconfig::Setting& root)
@@ -795,10 +795,10 @@ int cell_list_section::parse(libconfig::Setting& root)
 
 namespace enb_conf_sections {
 
-int parse_cell_cfg(all_args_t* args_, srslte_cell_t* cell)
+int parse_cell_cfg(all_args_t* args_, srsran_cell_t* cell)
 {
-  cell->frame_type = SRSLTE_FDD;
-  cell->cp         = SRSLTE_CP_NORM;
+  cell->frame_type = SRSRAN_FDD;
+  cell->cp         = SRSRAN_CP_NORM;
   cell->nof_ports  = args_->enb.nof_ports;
   cell->nof_prb    = args_->enb.n_prb;
   // PCI not configured yet
@@ -811,88 +811,88 @@ int parse_cell_cfg(all_args_t* args_, srslte_cell_t* cell)
   phich_cnfg.add_field(make_asn1_enum_number_str_parser("resources", &phichcfg.phich_res));
   parser::parse_section(args_->enb_files.rr_config, &phy_cnfg);
 
-  cell->phich_length    = (srslte_phich_length_t)(int)phichcfg.phich_dur;
-  cell->phich_resources = (srslte_phich_r_t)(int)phichcfg.phich_res;
+  cell->phich_length    = (srsran_phich_length_t)(int)phichcfg.phich_dur;
+  cell->phich_resources = (srsran_phich_r_t)(int)phichcfg.phich_res;
 
-  if (!srslte_cell_isvalid(cell)) {
+  if (!srsran_cell_isvalid(cell)) {
     fprintf(stderr,
             "Invalid cell parameters: nof_prb=%d, nof_ports=%d, cell_id=%d\n",
             cell->nof_prb,
             cell->nof_ports,
             cell->id);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_)
 {
   // Parse config files
-  srslte_cell_t cell_common_cfg = {};
+  srsran_cell_t cell_common_cfg = {};
 
   try {
-    if (enb_conf_sections::parse_cell_cfg(args_, &cell_common_cfg) != SRSLTE_SUCCESS) {
+    if (enb_conf_sections::parse_cell_cfg(args_, &cell_common_cfg) != SRSRAN_SUCCESS) {
       fprintf(stderr, "Error parsing Cell configuration\n");
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
   } catch (const SettingTypeException& stex) {
     fprintf(stderr, "Error parsing Cell configuration: %s\n", stex.getPath());
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   } catch (const ConfigException& cex) {
     fprintf(stderr, "Error parsing Cell configuration\n");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   try {
-    if (sib_sections::parse_sibs(args_, rrc_cfg_, phy_cfg_) != SRSLTE_SUCCESS) {
+    if (sib_sections::parse_sibs(args_, rrc_cfg_, phy_cfg_) != SRSRAN_SUCCESS) {
       fprintf(stderr, "Error parsing SIB configuration\n");
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
   } catch (const SettingTypeException& stex) {
     fprintf(stderr, "Error parsing SIB configuration: %s\n", stex.getPath());
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   } catch (const ConfigException& cex) {
     fprintf(stderr, "Error parsing SIB configurationn\n");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   try {
-    if (rr_sections::parse_rr(args_, rrc_cfg_) != SRSLTE_SUCCESS) {
+    if (rr_sections::parse_rr(args_, rrc_cfg_) != SRSRAN_SUCCESS) {
       fprintf(stderr, "Error parsing Radio Resources configuration\n");
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
   } catch (const SettingTypeException& stex) {
     fprintf(stderr, "Error parsing Radio Resources configuration: %s\n", stex.getPath());
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   } catch (const ConfigException& cex) {
     fprintf(stderr, "Error parsing Radio Resources configuration\n");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   try {
-    if (drb_sections::parse_drb(args_, rrc_cfg_) != SRSLTE_SUCCESS) {
+    if (drb_sections::parse_drb(args_, rrc_cfg_) != SRSRAN_SUCCESS) {
       fprintf(stderr, "Error parsing DRB configuration\n");
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
   } catch (const SettingTypeException& stex) {
     fprintf(stderr, "Error parsing DRB configuration: %s\n", stex.getPath());
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   } catch (const ConfigException& cex) {
     fprintf(stderr, "Error parsing DRB configuration\n");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // Set fields derived from others, and check for correctness of the parsed configuration
   return enb_conf_sections::set_derived_args(args_, rrc_cfg_, phy_cfg_, cell_common_cfg);
 }
 
-int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_, const srslte_cell_t& cell_cfg_)
+int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_, const srsran_cell_t& cell_cfg_)
 {
   // Sanity check
   if (rrc_cfg_->cell_list.empty()) {
     ERROR("No cell specified in RR config.");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // Check for a forced  DL EARFCN or frequency (only valid for a single cell config (Xico's favorite feature))
@@ -940,16 +940,16 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
     if (cfg.dl_freq_hz > 0) {
       phy_cell_cfg.dl_freq_hz = cfg.dl_freq_hz;
     } else {
-      phy_cell_cfg.dl_freq_hz = 1e6 * srslte_band_fd(cfg.dl_earfcn);
+      phy_cell_cfg.dl_freq_hz = 1e6 * srsran_band_fd(cfg.dl_earfcn);
     }
 
     if (cfg.ul_freq_hz > 0) {
       phy_cell_cfg.ul_freq_hz = cfg.ul_freq_hz;
     } else {
       if (cfg.ul_earfcn == 0) {
-        cfg.ul_earfcn = srslte_band_ul_earfcn(cfg.dl_earfcn);
+        cfg.ul_earfcn = srsran_band_ul_earfcn(cfg.dl_earfcn);
       }
-      phy_cell_cfg.ul_freq_hz = 1e6 * srslte_band_fu(cfg.ul_earfcn);
+      phy_cell_cfg.ul_freq_hz = 1e6 * srsran_band_fu(cfg.ul_earfcn);
     }
 
     for (auto scell_it = cfg.scell_list.begin(); scell_it != cfg.scell_list.end();) {
@@ -961,7 +961,7 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
         scell_it = cfg.scell_list.erase(scell_it);
       } else if (cell_it->cell_id == cfg.cell_id) {
         ERROR("A cell cannot have an scell with the same cell_id=0x%x", cfg.cell_id);
-        return SRSLTE_ERROR;
+        return SRSRAN_ERROR;
       } else {
         scell_it++;
       }
@@ -998,16 +998,16 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
     if (cfg.dl_freq_hz > 0) {
       phy_cell_cfg.dl_freq_hz = cfg.dl_freq_hz;
     } else {
-      phy_cell_cfg.dl_freq_hz = 1e6 * srslte_band_fd(cfg.dl_earfcn);
+      phy_cell_cfg.dl_freq_hz = 1e6 * srsran_band_fd(cfg.dl_earfcn);
     }
 
     if (cfg.ul_freq_hz > 0) {
       phy_cell_cfg.ul_freq_hz = cfg.ul_freq_hz;
     } else {
       if (cfg.ul_earfcn == 0) {
-        cfg.ul_earfcn = srslte_band_ul_earfcn(cfg.dl_earfcn);
+        cfg.ul_earfcn = srsran_band_ul_earfcn(cfg.dl_earfcn);
       }
-      phy_cell_cfg.ul_freq_hz = 1e6 * srslte_band_fu(cfg.ul_earfcn);
+      phy_cell_cfg.ul_freq_hz = 1e6 * srsran_band_fu(cfg.ul_earfcn);
     }
 
     phy_cfg_->phy_cell_cfg_nr.push_back(phy_cell_cfg);
@@ -1045,23 +1045,23 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
   std::vector<std::string> eea_pref_list;
   boost::split(eea_pref_list, args_->general.eea_pref_list, boost::is_any_of(","));
   int i = 0;
-  for (auto it = eea_pref_list.begin(); it != eea_pref_list.end() && i < srslte::CIPHERING_ALGORITHM_ID_N_ITEMS; it++) {
+  for (auto it = eea_pref_list.begin(); it != eea_pref_list.end() && i < srsran::CIPHERING_ALGORITHM_ID_N_ITEMS; it++) {
     boost::trim_left(*it);
     if ((*it) == "EEA0") {
-      rrc_cfg_->eea_preference_list[i] = srslte::CIPHERING_ALGORITHM_ID_EEA0;
+      rrc_cfg_->eea_preference_list[i] = srsran::CIPHERING_ALGORITHM_ID_EEA0;
       i++;
     } else if ((*it) == "EEA1") {
-      rrc_cfg_->eea_preference_list[i] = srslte::CIPHERING_ALGORITHM_ID_128_EEA1;
+      rrc_cfg_->eea_preference_list[i] = srsran::CIPHERING_ALGORITHM_ID_128_EEA1;
       i++;
     } else if ((*it) == "EEA2") {
-      rrc_cfg_->eea_preference_list[i] = srslte::CIPHERING_ALGORITHM_ID_128_EEA2;
+      rrc_cfg_->eea_preference_list[i] = srsran::CIPHERING_ALGORITHM_ID_128_EEA2;
       i++;
     } else if ((*it) == "EEA3") {
-      rrc_cfg_->eea_preference_list[i] = srslte::CIPHERING_ALGORITHM_ID_128_EEA3;
+      rrc_cfg_->eea_preference_list[i] = srsran::CIPHERING_ALGORITHM_ID_128_EEA3;
       i++;
     } else {
       fprintf(stderr, "Failed to parse EEA prefence list %s \n", args_->general.eea_pref_list.c_str());
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
   }
 
@@ -1069,23 +1069,23 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
   std::vector<std::string> eia_pref_list;
   boost::split(eia_pref_list, args_->general.eia_pref_list, boost::is_any_of(","));
   i = 0;
-  for (auto it = eia_pref_list.begin(); it != eia_pref_list.end() && i < srslte::INTEGRITY_ALGORITHM_ID_N_ITEMS; it++) {
+  for (auto it = eia_pref_list.begin(); it != eia_pref_list.end() && i < srsran::INTEGRITY_ALGORITHM_ID_N_ITEMS; it++) {
     boost::trim_left(*it);
     if ((*it) == "EIA0") {
-      rrc_cfg_->eia_preference_list[i] = srslte::INTEGRITY_ALGORITHM_ID_EIA0;
+      rrc_cfg_->eia_preference_list[i] = srsran::INTEGRITY_ALGORITHM_ID_EIA0;
       i++;
     } else if ((*it) == "EIA1") {
-      rrc_cfg_->eia_preference_list[i] = srslte::INTEGRITY_ALGORITHM_ID_128_EIA1;
+      rrc_cfg_->eia_preference_list[i] = srsran::INTEGRITY_ALGORITHM_ID_128_EIA1;
       i++;
     } else if ((*it) == "EIA2") {
-      rrc_cfg_->eia_preference_list[i] = srslte::INTEGRITY_ALGORITHM_ID_128_EIA2;
+      rrc_cfg_->eia_preference_list[i] = srsran::INTEGRITY_ALGORITHM_ID_128_EIA2;
       i++;
     } else if ((*it) == "EIA3") {
-      rrc_cfg_->eia_preference_list[i] = srslte::INTEGRITY_ALGORITHM_ID_128_EIA3;
+      rrc_cfg_->eia_preference_list[i] = srsran::INTEGRITY_ALGORITHM_ID_128_EIA3;
       i++;
     } else {
       fprintf(stderr, "Failed to parse EIA prefence list %s \n", args_->general.eia_pref_list.c_str());
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
   }
 
@@ -1103,7 +1103,7 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
               "       Consider changing \"prach_freq_offset\" in sib.conf to a value between %d and %d.\n",
               lower_bound,
               upper_bound);
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
   } else { // 6 PRB case
     if (prach_freq_offset + 6 > args_->enb.n_prb) {
@@ -1140,7 +1140,7 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
     args_->stack.sync_queue_size = MULTIQUEUE_DEFAULT_CAPACITY;
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 } // namespace enb_conf_sections
@@ -1473,7 +1473,7 @@ int parse_sib9(std::string filename, sib_type9_s* data)
   if (!parser::parse_section(std::move(filename), &sib9)) {
     data->hnb_name_present = true;
     if (name_enabled) {
-      data->hnb_name.resize(SRSLTE_MIN((uint32_t)hnb_name.size(), 48));
+      data->hnb_name.resize(SRSRAN_MIN((uint32_t)hnb_name.size(), 48));
       memcpy(data->hnb_name.data(), hnb_name.c_str(), data->hnb_name.size());
     } else if (hex_enabled) {
       if (hex_value.size() > 48) {
@@ -1523,35 +1523,35 @@ int parse_sibs(all_args_t* args_, rrc_cfg_t* rrc_cfg_, srsenb::phy_cfg_t* phy_co
   sib_type13_r9_s* sib13 = &rrc_cfg_->sibs[12].set_sib13_v920();
 
   sib_type1_s* sib1 = &rrc_cfg_->sib1;
-  if (sib_sections::parse_sib1(args_->enb_files.sib_config, sib1) != SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+  if (sib_sections::parse_sib1(args_->enb_files.sib_config, sib1) != SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
   }
 
   // Fill rest of data from enb config
   std::string mnc_str;
-  if (not srslte::mnc_to_string(args_->stack.s1ap.mnc, &mnc_str)) {
+  if (not srsran::mnc_to_string(args_->stack.s1ap.mnc, &mnc_str)) {
     ERROR("The provided mnc=%d is not valid", args_->stack.s1ap.mnc);
     return -1;
   }
   std::string mcc_str;
-  if (not srslte::mcc_to_string(args_->stack.s1ap.mcc, &mcc_str)) {
+  if (not srsran::mcc_to_string(args_->stack.s1ap.mcc, &mcc_str)) {
     ERROR("The provided mnc=%d is not valid", args_->stack.s1ap.mcc);
     return -1;
   }
   sib_type1_s::cell_access_related_info_s_* cell_access = &sib1->cell_access_related_info;
   cell_access->plmn_id_list.resize(1);
-  srslte::plmn_id_t plmn;
-  if (plmn.from_string(mcc_str + mnc_str) == SRSLTE_ERROR) {
+  srsran::plmn_id_t plmn;
+  if (plmn.from_string(mcc_str + mnc_str) == SRSRAN_ERROR) {
     ERROR("Could not convert %s to a plmn_id", (mcc_str + mnc_str).c_str());
     return -1;
   }
-  srslte::to_asn1(&cell_access->plmn_id_list[0].plmn_id, plmn);
+  srsran::to_asn1(&cell_access->plmn_id_list[0].plmn_id, plmn);
   cell_access->plmn_id_list[0].cell_reserved_for_oper = plmn_id_info_s::cell_reserved_for_oper_e_::not_reserved;
   sib1->cell_sel_info.q_rx_lev_min_offset             = 0;
 
   // Generate SIB2
-  if (sib_sections::parse_sib2(args_->enb_files.sib_config, sib2) != SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+  if (sib_sections::parse_sib2(args_->enb_files.sib_config, sib2) != SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
   }
 
   // SRS not yet supported
@@ -1575,35 +1575,35 @@ int parse_sibs(all_args_t* args_, rrc_cfg_t* rrc_cfg_, srsenb::phy_cfg_t* phy_co
 
   // Generate SIB3 if defined in mapping info
   if (sib_is_present(sib1->sched_info_list, sib_type_e::sib_type3)) {
-    if (sib_sections::parse_sib3(args_->enb_files.sib_config, sib3) != SRSLTE_SUCCESS) {
-      return SRSLTE_ERROR;
+    if (sib_sections::parse_sib3(args_->enb_files.sib_config, sib3) != SRSRAN_SUCCESS) {
+      return SRSRAN_ERROR;
     }
   }
 
   // Generate SIB4 if defined in mapping info
   if (sib_is_present(sib1->sched_info_list, sib_type_e::sib_type4)) {
-    if (sib_sections::parse_sib4(args_->enb_files.sib_config, sib4) != SRSLTE_SUCCESS) {
-      return SRSLTE_ERROR;
+    if (sib_sections::parse_sib4(args_->enb_files.sib_config, sib4) != SRSRAN_SUCCESS) {
+      return SRSRAN_ERROR;
     }
   }
 
   // Generate SIB7 if defined in mapping info
   if (sib_is_present(sib1->sched_info_list, sib_type_e::sib_type7)) {
-    if (sib_sections::parse_sib7(args_->enb_files.sib_config, sib7) != SRSLTE_SUCCESS) {
-      return SRSLTE_ERROR;
+    if (sib_sections::parse_sib7(args_->enb_files.sib_config, sib7) != SRSRAN_SUCCESS) {
+      return SRSRAN_ERROR;
     }
   }
 
   // Generate SIB9 if defined in mapping info
   if (sib_is_present(sib1->sched_info_list, sib_type_e::sib_type9)) {
-    if (sib_sections::parse_sib9(args_->enb_files.sib_config, sib9) != SRSLTE_SUCCESS) {
-      return SRSLTE_ERROR;
+    if (sib_sections::parse_sib9(args_->enb_files.sib_config, sib9) != SRSRAN_SUCCESS) {
+      return SRSRAN_ERROR;
     }
   }
 
   if (sib_is_present(sib1->sched_info_list, sib_type_e::sib_type13_v920)) {
-    if (sib_sections::parse_sib13(args_->enb_files.sib_config, sib13) != SRSLTE_SUCCESS) {
-      return SRSLTE_ERROR;
+    if (sib_sections::parse_sib13(args_->enb_files.sib_config, sib13) != SRSRAN_SUCCESS) {
+      return SRSRAN_ERROR;
     }
   }
 

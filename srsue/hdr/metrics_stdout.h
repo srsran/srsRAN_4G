@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -22,12 +22,12 @@
 #include <stdint.h>
 #include <string>
 
-#include "srslte/common/metrics_hub.h"
+#include "srsran/common/metrics_hub.h"
 #include "ue_metrics_interface.h"
 
 namespace srsue {
 
-class metrics_stdout : public srslte::metrics_listener<ue_metrics_t>
+class metrics_stdout : public srsran::metrics_listener<ue_metrics_t>
 {
 public:
   metrics_stdout(){};

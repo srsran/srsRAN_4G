@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,7 +10,7 @@
  *
  */
 
-#include "srslte/common/stack_procedure.h"
+#include "srsran/common/stack_procedure.h"
 #include <iostream>
 
 #define TESTASSERT(cond)                                                                                               \
@@ -21,7 +21,7 @@
     }                                                                                                                  \
   }
 
-using srslte::proc_outcome_t;
+using srsran::proc_outcome_t;
 
 enum class obj_state_t { default_ctor, move_ctor, copy_ctor, from_move_ctor, from_move_assign };
 
@@ -142,7 +142,7 @@ public:
     }
     return proc_outcome_t::yield;
   }
-  void then(const srslte::proc_result_t<int>& result) const
+  void then(const srsran::proc_result_t<int>& result) const
   {
     printf("TestObj %d then() was called\n", obj.id);
     obj.counters.then_counter++;
@@ -199,9 +199,9 @@ public:
   int         counter   = 0;
 };
 
-static_assert(std::is_same<typename srslte::proc_t<custom_proc, int>::result_type, int>::value,
+static_assert(std::is_same<typename srsran::proc_t<custom_proc, int>::result_type, int>::value,
               "Failed derivation of result type");
-static_assert(std::is_same<typename srslte::proc_t<custom_proc, std::string>::result_type, std::string>::value,
+static_assert(std::is_same<typename srsran::proc_t<custom_proc, std::string>::result_type, std::string>::value,
               "Failed derivation of result type");
 
 int test_local_1()
@@ -211,7 +211,7 @@ int test_local_1()
    */
   new_test();
   printf("\n--- Test %s ---\n", __func__);
-  srslte::proc_t<custom_proc, int> proc;
+  srsran::proc_t<custom_proc, int> proc;
   TESTASSERT(proc.is_idle() and not proc.is_busy())
 
   proc.launch(1);
@@ -246,14 +246,14 @@ int test_callback_1()
    */
   new_test();
   printf("\n--- Test %s ---\n", __func__);
-  srslte::proc_manager_list_t      callbacks;
-  srslte::proc_t<custom_proc, int> proc;
+  srsran::proc_manager_list_t      callbacks;
+  srsran::proc_t<custom_proc, int> proc;
   TESTASSERT(not proc.is_busy() and proc.is_idle())
 
   TESTASSERT(proc.launch(2))
   callbacks.add_proc(proc); // We have to call pop() explicitly to take the result
   TESTASSERT(callbacks.size() == 1)
-  srslte::proc_future_t<int> proc_fut = proc.get_future();
+  srsran::proc_future_t<int> proc_fut = proc.get_future();
 
   while (callbacks.size() > 0) {
     TESTASSERT(not proc_fut.is_complete())
@@ -266,7 +266,7 @@ int test_callback_1()
   TESTASSERT(proc.get()->obj.counters.then_counter == 1)
   TESTASSERT(proc.get()->reset_called) // Proc is ready to be reused
 
-  srslte::proc_future_t<int> proc_fut2 = proc.get_future();
+  srsran::proc_future_t<int> proc_fut2 = proc.get_future();
   TESTASSERT(not proc_fut2.is_complete() and proc_fut.is_complete())
 
   printf("EXIT\n");
@@ -284,10 +284,10 @@ int test_callback_2()
    */
   new_test();
   printf("\n--- Test %s ---\n", __func__);
-  srslte::proc_manager_list_t      callbacks;
-  srslte::proc_t<custom_proc, int> proc;
+  srsran::proc_manager_list_t      callbacks;
+  srsran::proc_t<custom_proc, int> proc;
   TESTASSERT(not proc.is_busy());
-  srslte::proc_future_t<int> fut = proc.get_future();
+  srsran::proc_future_t<int> fut = proc.get_future();
   TESTASSERT(fut.is_empty());
 
   TESTASSERT(proc.launch(&fut, 3));
@@ -316,7 +316,7 @@ int test_callback_3()
    */
   new_test();
   printf("\n--- Test %s ---\n", __func__);
-  srslte::proc_manager_list_t callbacks;
+  srsran::proc_manager_list_t callbacks;
   int*                        counter = new int(5);
 
   {
@@ -346,8 +346,8 @@ int test_callback_4()
    */
   new_test();
   printf("\n--- Test %s ---\n", __func__);
-  srslte::proc_manager_list_t      callbacks;
-  srslte::proc_t<custom_proc, int> proc;
+  srsran::proc_manager_list_t      callbacks;
+  srsran::proc_t<custom_proc, int> proc;
   TESTASSERT(proc.launch(5));
   while (proc.run()) {
     TESTASSERT(proc.is_busy());
@@ -367,11 +367,11 @@ int test_complete_callback_1()
    * Description: Test if then() callbacks are correctly called
    */
   printf("\n--- Test %s ---\n", __func__);
-  srslte::proc_manager_list_t                 callbacks;
-  srslte::proc_t<custom_proc2_t, std::string> proc;
+  srsran::proc_manager_list_t                 callbacks;
+  srsran::proc_t<custom_proc2_t, std::string> proc;
 
   std::string run_result;
-  auto        continuation_task = [&run_result](const srslte::proc_result_t<std::string>& e) {
+  auto        continuation_task = [&run_result](const srsran::proc_result_t<std::string>& e) {
     run_result = e.is_success() ? "SUCCESS" : "FAILURE";
   };
   const std::string results[] = {"", "SUCCESS", "", "SUCCESS", "SUCCESS", "SUCCESS"};
@@ -383,7 +383,7 @@ int test_complete_callback_1()
       TESTASSERT(proc.then_always(continuation_task) == 0)
     }
 
-    srslte::proc_future_t<std::string> fut;
+    srsran::proc_future_t<std::string> fut;
     TESTASSERT(proc.launch(&fut));
     TESTASSERT(proc.get()->exit_val == "init")
     while (proc.run()) {
@@ -404,8 +404,8 @@ int test_event_handler_1()
    * Description: Test if event handler calls trigger for multiple procedures
    */
   printf("\n--- Test %s ---\n", __func__);
-  srslte::proc_t<custom_proc2_t, std::string>      proc, proc2;
-  srslte::event_handler_t<custom_proc2_t::event_t> ev_handler;
+  srsran::proc_t<custom_proc2_t, std::string>      proc, proc2;
+  srsran::event_handler_t<custom_proc2_t::event_t> ev_handler;
 
   TESTASSERT(proc.launch())
   TESTASSERT(proc2.launch())

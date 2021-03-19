@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -14,13 +14,13 @@
 #include "srsenb/hdr/stack/mac/sched_helpers.h"
 #include "srsenb/hdr/stack/mac/schedulers/sched_time_pf.h"
 #include "srsenb/hdr/stack/mac/schedulers/sched_time_rr.h"
-#include "srslte/common/standard_streams.h"
-#include "srslte/common/string_helpers.h"
-#include "srslte/interfaces/enb_rrc_interfaces.h"
+#include "srsran/common/standard_streams.h"
+#include "srsran/common/string_helpers.h"
+#include "srsran/interfaces/enb_rrc_interfaces.h"
 
 namespace srsenb {
 
-using srslte::tti_point;
+using srsran::tti_point;
 
 /*******************************************************
  *        Broadcast (SIB+Paging) scheduling
@@ -99,7 +99,7 @@ void bc_sched::alloc_sibs(sf_sched* tti_sched)
     }
 
     // Check if subframe index is the correct one for SIB transmission
-    uint32_t nof_tx          = (sib_idx > 0) ? SRSLTE_MIN(srslte::ceil_div(cc_cfg->cfg.si_window_ms, 10), 4) : 4;
+    uint32_t nof_tx          = (sib_idx > 0) ? SRSRAN_MIN(srsran::ceil_div(cc_cfg->cfg.si_window_ms, 10), 4) : 4;
     uint32_t n_sf            = (tti_sched->get_tti_tx_dl() - pending_sibs[sib_idx].window_start);
     bool     sib1_flag       = (sib_idx == 0) and (current_sfn % 2) == 0 and current_sf_idx == 5;
     bool     other_sibs_flag = (sib_idx > 0) and
@@ -211,7 +211,7 @@ void ra_sched::dl_sched(sf_sched* tti_sched)
     // In case of RAR outside RAR window:
     // - if window has passed, discard RAR
     // - if window hasn't started, stop loop, as RARs are ordered by TTI
-    srslte::tti_interval rar_window{rar.prach_tti + PRACH_RAR_OFFSET,
+    srsran::tti_interval rar_window{rar.prach_tti + PRACH_RAR_OFFSET,
                                     rar.prach_tti + PRACH_RAR_OFFSET + cc_cfg->cfg.prach_rar_window};
     if (not rar_window.contains(tti_tx_dl)) {
       if (tti_tx_dl >= rar_window.stop()) {
@@ -221,8 +221,8 @@ void ra_sched::dl_sched(sf_sched* tti_sched)
                        rar.prach_tti,
                        rar_window,
                        tti_tx_dl);
-        srslte::console("%s\n", srslte::to_c_str(str_buffer));
-        logger.warning("%s", srslte::to_c_str(str_buffer));
+        srsran::console("%s\n", srsran::to_c_str(str_buffer));
+        logger.warning("%s", srsran::to_c_str(str_buffer));
         it = pending_rars.erase(it);
         continue;
       }
@@ -275,10 +275,10 @@ int ra_sched::dl_rach_info(dl_sched_rar_info_t rar_info)
     if (r.prach_tti.to_uint() == rar_info.prach_tti and ra_rnti == r.ra_rnti) {
       if (r.msg3_grant.size() >= sched_interface::MAX_RAR_LIST) {
         logger.warning("PRACH ignored, as the the maximum number of RAR grants per tti has been reached");
-        return SRSLTE_ERROR;
+        return SRSRAN_ERROR;
       }
       r.msg3_grant.push_back(rar_info);
-      return SRSLTE_SUCCESS;
+      return SRSRAN_SUCCESS;
     }
   }
 
@@ -289,13 +289,13 @@ int ra_sched::dl_rach_info(dl_sched_rar_info_t rar_info)
   p.msg3_grant.push_back(rar_info);
   pending_rars.push_back(p);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 //! Schedule Msg3 grants in UL based on allocated RARs
 void ra_sched::ul_sched(sf_sched* sf_dl_sched, sf_sched* sf_msg3_sched)
 {
-  srslte::const_span<sf_sched::rar_alloc_t> alloc_rars = sf_dl_sched->get_allocated_rars();
+  srsran::const_span<sf_sched::rar_alloc_t> alloc_rars = sf_dl_sched->get_allocated_rars();
 
   for (const auto& rar : alloc_rars) {
     for (const auto& msg3grant : rar.rar_grant.msg3_grant) {
@@ -439,7 +439,7 @@ void sched::carrier_sched::alloc_dl_users(sf_sched* tti_result)
   // NOTE: In case of 6 PRBs, do not transmit if there is going to be a PRACH in the UL to avoid collisions
   if (cc_cfg->nof_prb() == 6) {
     tti_point tti_rx_ack = to_tx_dl_ack(tti_result->get_tti_rx());
-    if (srslte_prach_tti_opportunity_config_fdd(cc_cfg->cfg.prach_config, tti_rx_ack.to_uint(), -1)) {
+    if (srsran_prach_tti_opportunity_config_fdd(cc_cfg->cfg.prach_config, tti_rx_ack.to_uint(), -1)) {
       tti_result->reserve_dl_rbgs(0, cc_cfg->nof_rbgs);
     }
   }
@@ -453,7 +453,7 @@ int sched::carrier_sched::alloc_ul_users(sf_sched* tti_sched)
   /* Call scheduler for UL data */
   sched_algo->sched_ul_users(*ue_db, tti_sched);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 sf_sched* sched::carrier_sched::get_sf_sched(tti_point tti_rx)

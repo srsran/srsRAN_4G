@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -13,10 +13,10 @@
 #ifndef SRSUE_PRACH_H
 #define SRSUE_PRACH_H
 
-#include "srslte/interfaces/ue_phy_interfaces.h"
-#include "srslte/radio/radio.h"
-#include "srslte/srslog/srslog.h"
-#include "srslte/srslte.h"
+#include "srsran/interfaces/ue_phy_interfaces.h"
+#include "srsran/radio/radio.h"
+#include "srsran/srslog/srslog.h"
+#include "srsran/srsran.h"
 #include <bitset>
 
 namespace srsue {
@@ -29,7 +29,7 @@ public:
 
   void  init(uint32_t max_prb);
   void  stop();
-  bool  set_cell(srslte_cell_t cell, srslte_prach_cfg_t prach_cfg);
+  bool  set_cell(srsran_cell_t cell, srsran_prach_cfg_t prach_cfg);
   bool  prepare_to_send(uint32_t preamble_idx, int allowed_subframe = -1, float target_power_dbm = -1);
   bool  is_ready_to_send(uint32_t current_tti, uint32_t current_pci);
   bool  is_pending() const;
@@ -56,10 +56,10 @@ private:
   static constexpr unsigned max_preambles = 64;
 
   srslog::basic_logger&                                logger;
-  srslte_prach_t                                       prach_obj        = {};
-  srslte_cell_t                                        cell             = {};
-  srslte_cfo_t                                         cfo_h            = {};
-  srslte_prach_cfg_t                                   cfg              = {};
+  srsran_prach_t                                       prach_obj        = {};
+  srsran_cell_t                                        cell             = {};
+  srsran_cfo_t                                         cfo_h            = {};
+  srsran_prach_cfg_t                                   cfg              = {};
   std::array<std::array<cf_t*, max_preambles>, max_fs> buffer           = {};
   cf_t*                                                signal_buffer    = nullptr;
   int                                                  preamble_idx     = -1;

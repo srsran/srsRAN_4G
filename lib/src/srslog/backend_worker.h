@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -13,9 +13,9 @@
 #ifndef SRSLOG_BACKEND_WORKER_H
 #define SRSLOG_BACKEND_WORKER_H
 
-#include "srslte/srslog/detail/log_entry.h"
-#include "srslte/srslog/detail/support/work_queue.h"
-#include "srslte/srslog/shared_types.h"
+#include "srsran/srslog/detail/log_entry.h"
+#include "srsran/srslog/detail/support/work_queue.h"
+#include "srsran/srslog/shared_types.h"
 #include <mutex>
 #include <thread>
 

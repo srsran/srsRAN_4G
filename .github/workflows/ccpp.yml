@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v1
-      - name: Build srsLTE on x86 Ubuntu 18.04
+      - name: Build srsRAN on x86 Ubuntu 18.04
         run: |
           sudo apt update
           sudo apt install -y build-essential cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libconfig++-dev libsctp-dev colordiff ninja-build valgrind
@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-16.04
     steps:
       - uses: actions/checkout@v1
-      - name: Build srsLTE on x86 Ubuntu 16.04
+      - name: Build srsRAN on x86 Ubuntu 16.04
         run: |
           sudo apt update
           sudo apt install -y build-essential cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libconfig++-dev libsctp-dev colordiff ninja-build valgrind
@@ -36,7 +36,7 @@ jobs:
         compiler: [gcc, clang]
     steps:
     - uses: actions/checkout@v1
-    - name: Build srsLTE on aarch64
+    - name: Build srsRAN on aarch64
       uses: uraimo/run-on-arch-action@master
       with:
         architecture: aarch64

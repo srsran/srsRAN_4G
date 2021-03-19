@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -20,13 +20,13 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "srslte/phy/io/filesink.h"
-#include "srslte/phy/io/filesource.h"
-#include "srslte/phy/rf/rf.h"
-#include "srslte/phy/sync/cfo.h"
-#include "srslte/phy/sync/nsss.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/io/filesink.h"
+#include "srsran/phy/io/filesource.h"
+#include "srsran/phy/rf/rf.h"
+#include "srsran/phy/sync/cfo.h"
+#include "srsran/phy/sync/nsss.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/vector.h"
 
 char*    rf_args = "";
 float    rf_gain = 40.0, rf_freq = -1.0;
@@ -36,8 +36,8 @@ float    threshold    = 0.4;
 bool     has_cfo_corr = true;
 float    cfo_fixed    = 0.0;
 
-srslte_nbiot_cell_t cell = {
-    .base       = {.nof_prb = 1, .cp = SRSLTE_CP_NORM, .nof_ports = 1, .id = 0},
+srsran_nbiot_cell_t cell = {
+    .base       = {.nof_prb = 1, .cp = SRSRAN_CP_NORM, .nof_ports = 1, .id = 0},
     .nbiot_prb  = 0,
     .n_id_ncell = 0,
 };
@@ -51,7 +51,7 @@ void usage(char* prog)
   printf("\t-c Manual CFO offset [Default %.0f Hz]\n", cfo_fixed);
   printf("\t-n nof_frames [Default %d]\n", nof_frames);
   printf("\t-t threshold [Default %.2f]\n", threshold);
-  printf("\t-v srslte_verbose\n");
+  printf("\t-v srsran_verbose\n");
 }
 
 void parse_args(int argc, char** argv)
@@ -84,7 +84,7 @@ void parse_args(int argc, char** argv)
         nof_frames = (int)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
-        srslte_verbose++;
+        srsran_verbose++;
         break;
       default:
         usage(argv[0]);
@@ -110,8 +110,8 @@ int main(int argc, char** argv)
 {
   cf_t*               buffer;
   int                 n;
-  srslte_rf_t         rf;
-  srslte_nsss_synch_t nsss;
+  srsran_rf_t         rf;
+  srsran_nsss_synch_t nsss;
   float               nsss_peak_value;
   parse_args(argc, argv);
 
@@ -123,56 +123,56 @@ int main(int argc, char** argv)
   printf("Input length %d samples\n", input_len);
 
   printf("Opening RF device...\n");
-  if (srslte_rf_open(&rf, rf_args)) {
+  if (srsran_rf_open(&rf, rf_args)) {
     fprintf(stderr, "Error opening rf\n");
     exit(-1);
   }
-  srslte_rf_set_rx_gain(&rf, rf_gain);
-  printf("Set RX rate: %.2f MHz\n", srslte_rf_set_rx_srate(&rf, srate) / 1000000);
-  printf("Set RX gain: %.1f dB\n", srslte_rf_get_rx_gain(&rf));
-  printf("Set RX freq: %.2f MHz\n", srslte_rf_set_rx_freq(&rf, 0, rf_freq) / 1000000);
+  srsran_rf_set_rx_gain(&rf, rf_gain);
+  printf("Set RX rate: %.2f MHz\n", srsran_rf_set_rx_srate(&rf, srate) / 1000000);
+  printf("Set RX gain: %.1f dB\n", srsran_rf_get_rx_gain(&rf));
+  printf("Set RX freq: %.2f MHz\n", srsran_rf_set_rx_freq(&rf, 0, rf_freq) / 1000000);
 
-  buffer = srslte_vec_cf_malloc(input_len * 2);
+  buffer = srsran_vec_cf_malloc(input_len * 2);
   if (!buffer) {
     perror("malloc");
     exit(-1);
   }
 
-  if (srslte_nsss_synch_init(&nsss, input_len, fft_size)) {
+  if (srsran_nsss_synch_init(&nsss, input_len, fft_size)) {
     fprintf(stderr, "Error initializing NSSS object\n");
     exit(-1);
   }
 
-  srslte_rf_start_rx_stream(&rf, false);
+  srsran_rf_start_rx_stream(&rf, false);
 
   printf("Receiving two full frames ..\n");
-  n = srslte_rf_recv(&rf, buffer, input_len, 1);
+  n = srsran_rf_recv(&rf, buffer, input_len, 1);
   if (n != input_len) {
     fprintf(stderr, "Error receiving samples\n");
     exit(-1);
   }
-  srslte_rf_close(&rf);
+  srsran_rf_close(&rf);
 
   // perform CFO correction
   if (has_cfo_corr) {
-    srslte_cfo_t cfocorr;
-    if (srslte_cfo_init(&cfocorr, input_len)) {
+    srsran_cfo_t cfocorr;
+    if (srsran_cfo_init(&cfocorr, input_len)) {
       fprintf(stderr, "Error initiating CFO\n");
       exit(-1);
     }
-    srslte_cfo_set_tol(&cfocorr, 50.0 / (15000.0 * fft_size));
-    srslte_cfo_correct(&cfocorr, buffer, buffer, -cfo_fixed / (15000 * fft_size));
-    srslte_cfo_free(&cfocorr);
+    srsran_cfo_set_tol(&cfocorr, 50.0 / (15000.0 * fft_size));
+    srsran_cfo_correct(&cfocorr, buffer, buffer, -cfo_fixed / (15000 * fft_size));
+    srsran_cfo_free(&cfocorr);
   }
 
   // try to find NSSS
   printf("Detecting cell id ..\n");
-  uint32_t cell_id = SRSLTE_CELL_ID_UNKNOWN;
+  uint32_t cell_id = SRSRAN_CELL_ID_UNKNOWN;
   uint32_t sfn_partial;
-  srslte_nsss_sync_find(&nsss, buffer, &nsss_peak_value, &cell_id, &sfn_partial);
+  srsran_nsss_sync_find(&nsss, buffer, &nsss_peak_value, &cell_id, &sfn_partial);
   printf("Cell id: %d, peak_value=%f\n", cell_id, nsss_peak_value);
 
-  srslte_nsss_synch_free(&nsss);
+  srsran_nsss_synch_free(&nsss);
   free(buffer);
 
   printf("Ok\n");

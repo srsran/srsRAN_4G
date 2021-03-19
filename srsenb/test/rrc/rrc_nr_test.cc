@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -12,7 +12,7 @@
 
 #include "srsenb/hdr/stack/rrc/rrc_nr.h"
 #include "srsenb/test/common/dummy_nr_classes.h"
-#include "srslte/common/test_common.h"
+#include "srsran/common/test_common.h"
 #include <iostream>
 
 using namespace asn1::rrc_nr;
@@ -26,7 +26,7 @@ int test_cell_cfg(const srsenb::sched_interface::cell_cfg_t& cellcfg)
   TESTASSERT(cellcfg.sibs[0].period_rf == 16);
 
   TESTASSERT(cellcfg.si_window_ms > 0);
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 /*
@@ -35,7 +35,7 @@ int test_cell_cfg(const srsenb::sched_interface::cell_cfg_t& cellcfg)
  */
 int test_sib_generation()
 {
-  srslte::timer_handler timers_db(128);
+  srsran::timer_handler timers_db(128);
 
   mac_dummy  mac_obj;
   rlc_dummy  rlc_obj;
@@ -49,7 +49,7 @@ int test_sib_generation()
 
   rrc_obj.init(rrc_cfg, nullptr, &mac_obj, &rlc_obj, &pdcp_obj, nullptr, nullptr);
 
-  TESTASSERT(test_cell_cfg(mac_obj.cellcfgobj) == SRSLTE_SUCCESS);
+  TESTASSERT(test_cell_cfg(mac_obj.cellcfgobj) == SRSRAN_SUCCESS);
   // TEMP tests
   TESTASSERT(mac_obj.cellcfgobj.sibs[1].len > 0);
   TESTASSERT(mac_obj.cellcfgobj.sibs[1].period_rf == sched_elem.si_periodicity.to_number());
@@ -58,12 +58,12 @@ int test_sib_generation()
   }
   TESTASSERT(mac_obj.cellcfgobj.cell.nof_prb == 25);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_rrc_setup()
 {
-  srslte::timer_handler timers_db(128);
+  srsran::timer_handler timers_db(128);
 
   mac_dummy  mac_obj;
   rlc_dummy  rlc_obj;
@@ -82,15 +82,15 @@ int test_rrc_setup()
     }
     TESTASSERT(rlc_obj.last_sdu != nullptr);
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 } // namespace srsenb
 
 int main()
 {
-  TESTASSERT(srsenb::test_sib_generation() == SRSLTE_SUCCESS);
-  TESTASSERT(srsenb::test_rrc_setup() == SRSLTE_SUCCESS);
+  TESTASSERT(srsenb::test_sib_generation() == SRSRAN_SUCCESS);
+  TESTASSERT(srsenb::test_rrc_setup() == SRSRAN_SUCCESS);
 
   return 0;
 }

@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -15,13 +15,13 @@
 
 #include "mac_nr_interfaces.h"
 #include "proc_ra_nr.h"
-#include "srslte/common/block_queue.h"
-#include "srslte/common/mac_pcap.h"
-#include "srslte/interfaces/mac_interface_types.h"
-#include "srslte/interfaces/ue_nr_interfaces.h"
-#include "srslte/interfaces/ue_rlc_interfaces.h"
-#include "srslte/mac/mac_sch_pdu_nr.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/common/block_queue.h"
+#include "srsran/common/mac_pcap.h"
+#include "srsran/interfaces/mac_interface_types.h"
+#include "srsran/interfaces/ue_nr_interfaces.h"
+#include "srsran/interfaces/ue_rlc_interfaces.h"
+#include "srsran/mac/mac_sch_pdu_nr.h"
+#include "srsran/srslog/srslog.h"
 #include "srsue/hdr/stack/mac_nr/mux_nr.h"
 #include "srsue/hdr/stack/ue_stack_base.h"
 
@@ -35,7 +35,7 @@ struct mac_nr_args_t {
 class mac_nr final : public mac_interface_phy_nr, public mac_interface_rrc_nr, public mac_interface_proc_ra_nr
 {
 public:
-  mac_nr(srslte::ext_task_sched_handle task_sched_);
+  mac_nr(srsran::ext_task_sched_handle task_sched_);
   ~mac_nr();
 
   int  init(const mac_nr_args_t& args_, phy_interface_mac_nr* phy, rlc_interface_mac* rlc);
@@ -44,9 +44,9 @@ public:
   void reset();
   void run_tti(const uint32_t tti);
 
-  void start_pcap(srslte::mac_pcap* pcap_);
+  void start_pcap(srsran::mac_pcap* pcap_);
 
-  void bch_decoded_ok(uint32_t tti, srslte::unique_byte_buffer_t payload);
+  void bch_decoded_ok(uint32_t tti, srsran::unique_byte_buffer_t payload);
 
   /// Interface for PHY
   sched_rnti_t get_dl_sched_rnti_nr(const uint32_t tti);
@@ -66,10 +66,10 @@ public:
   void get_metrics(mac_metrics_t* metrics);
 
   /// Interface for RRC (RRC -> MAC)
-  void setup_lcid(const srslte::logical_channel_config_t& config);
-  void set_config(const srslte::bsr_cfg_t& bsr_cfg);
-  void set_config(const srslte::sr_cfg_t& sr_cfg);
-  void set_config(const srslte::rach_nr_cfg_t& rach_cfg);
+  void setup_lcid(const srsran::logical_channel_config_t& config);
+  void set_config(const srsran::bsr_cfg_t& bsr_cfg);
+  void set_config(const srsran::sr_cfg_t& sr_cfg);
+  void set_config(const srsran::rach_nr_cfg_t& rach_cfg);
   void set_contention_id(const uint64_t ue_identity);
   bool set_crnti(const uint16_t crnti);
   void start_ra_procedure();
@@ -96,8 +96,8 @@ public:
 
 private:
   void write_pcap(const uint32_t cc_idx, mac_nr_grant_dl_t& grant); // If PCAPs are enabled for this MAC
-  void handle_pdu(srslte::unique_byte_buffer_t pdu);
-  void get_ul_data(const mac_nr_grant_ul_t& grant, srslte::byte_buffer_t* tx_pdu);
+  void handle_pdu(srsran::unique_byte_buffer_t pdu);
+  void get_ul_data(const mac_nr_grant_ul_t& grant, srsran::byte_buffer_t* tx_pdu);
 
   // temporary helper
   void handle_rar_pdu(mac_nr_grant_dl_t& grant);
@@ -112,35 +112,35 @@ private:
   /// Interaction with rest of the stack
   phy_interface_mac_nr*         phy = nullptr;
   rlc_interface_mac*            rlc = nullptr;
-  srslte::ext_task_sched_handle task_sched;
+  srsran::ext_task_sched_handle task_sched;
 
-  srslte::mac_pcap*     pcap = nullptr;
+  srsran::mac_pcap*     pcap = nullptr;
   srslog::basic_logger& logger;
   mac_nr_args_t         args = {};
 
   bool started = false;
 
-  uint16_t c_rnti        = SRSLTE_INVALID_RNTI;
+  uint16_t c_rnti        = SRSRAN_INVALID_RNTI;
   uint64_t contention_id = 0;
 
   static constexpr uint32_t MIN_RLC_PDU_LEN =
       5; ///< minimum bytes that need to be available in a MAC PDU for attempting to add another RLC SDU
 
-  srslte::block_queue<srslte::unique_byte_buffer_t>
+  srsran::block_queue<srsran::unique_byte_buffer_t>
       pdu_queue; ///< currently only DCH PDUs supported (add BCH, PCH, etc)
 
-  mac_metrics_t metrics[SRSLTE_MAX_CARRIERS] = {};
+  mac_metrics_t metrics[SRSRAN_MAX_CARRIERS] = {};
 
   /// Rx buffer
-  srslte::mac_sch_pdu_nr rx_pdu;
+  srsran::mac_sch_pdu_nr rx_pdu;
 
   /// Tx buffer
-  srslte::mac_sch_pdu_nr       tx_pdu;
-  srslte::unique_byte_buffer_t tx_buffer     = nullptr;
-  srslte::unique_byte_buffer_t rlc_buffer    = nullptr;
-  srslte_softbuffer_tx_t       softbuffer_tx = {}; /// UL HARQ (temporal)
+  srsran::mac_sch_pdu_nr       tx_pdu;
+  srsran::unique_byte_buffer_t tx_buffer     = nullptr;
+  srsran::unique_byte_buffer_t rlc_buffer    = nullptr;
+  srsran_softbuffer_tx_t       softbuffer_tx = {}; /// UL HARQ (temporal)
 
-  srslte::task_multiqueue::queue_handle stack_task_dispatch_queue;
+  srsran::task_multiqueue::queue_handle stack_task_dispatch_queue;
 
   // MAC Uplink-related procedures
   proc_ra_nr proc_ra;

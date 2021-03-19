@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -15,10 +15,10 @@
 #include "srsenb/hdr/stack/mac/sched.h"
 #include "srsenb/hdr/stack/mac/sched_helpers.h"
 #include "srsenb/hdr/stack/mac/sched_ue.h"
-#include "srslte/common/string_helpers.h"
-#include "srslte/srslog/bundled/fmt/ranges.h"
+#include "srsran/common/string_helpers.h"
+#include "srsran/srslog/bundled/fmt/ranges.h"
 
-using srslte::tti_interval;
+using srsran::tti_interval;
 
 namespace srsenb {
 
@@ -81,7 +81,7 @@ void sched_ue::set_cfg(const ue_cfg_t& cfg_)
     logger.info("SCHED: rnti=0x%x PCell is now enb_cc_idx=%d", rnti, cfg.supported_cc_list[0].enb_cc_idx);
   }
   if (scell_activation_state_changed) {
-    lch_handler.pending_ces.emplace_back(srslte::dl_sch_lcid::SCELL_ACTIVATION);
+    lch_handler.pending_ces.emplace_back(srsran::dl_sch_lcid::SCELL_ACTIVATION);
     logger.info("SCHED: Enqueueing SCell Activation CMD for rnti=0x%x", rnti);
   }
 
@@ -193,7 +193,7 @@ tti_point nearest_meas_gap(tti_point tti, uint32_t period, uint32_t offset)
                    offset};
 }
 
-bool sched_ue::pdsch_enabled(srslte::tti_point tti_rx, uint32_t enb_cc_idx) const
+bool sched_ue::pdsch_enabled(srsran::tti_point tti_rx, uint32_t enb_cc_idx) const
 {
   if (cfg.supported_cc_list[0].enb_cc_idx != enb_cc_idx) {
     return true;
@@ -300,7 +300,7 @@ void sched_ue::set_ul_snr(tti_point tti_rx, uint32_t enb_cc_idx, float snr, uint
 {
   if (cells[enb_cc_idx].cc_state() != cc_st::idle) {
     cells[enb_cc_idx].tpc_fsm.set_snr(snr, ul_ch_code);
-    cells[enb_cc_idx].ul_cqi        = srslte_cqi_from_snr(snr);
+    cells[enb_cc_idx].ul_cqi        = srsran_cqi_from_snr(snr);
     cells[enb_cc_idx].ul_cqi_tti_rx = tti_rx;
   } else {
     logger.warning("Received SNR info for invalid cell index %d", enb_cc_idx);
@@ -325,7 +325,7 @@ tbs_info sched_ue::allocate_new_dl_mac_pdu(sched::dl_sched_data_t* data,
                                            uint32_t                cfi,
                                            uint32_t                tb)
 {
-  srslte_dci_dl_t* dci     = &data->dci;
+  srsran_dci_dl_t* dci     = &data->dci;
   uint32_t         nof_prb = count_prb_per_tb(user_mask);
   tbs_info         tb_info = compute_mcs_and_tbs(enb_cc_idx, tti_tx_dl, nof_prb, cfi, *dci);
 
@@ -367,27 +367,27 @@ int sched_ue::generate_dl_dci_format(uint32_t                          pid,
                                      uint32_t                          cfi,
                                      const rbgmask_t&                  user_mask)
 {
-  srslte_dci_format_t dci_format = get_dci_format();
+  srsran_dci_format_t dci_format = get_dci_format();
   int                 tbs_bytes  = 0;
 
   // Set common DCI fields
-  srslte_dci_dl_t* dci = &data->dci;
+  srsran_dci_dl_t* dci = &data->dci;
   dci->rnti            = rnti;
   dci->pid             = pid;
   dci->ue_cc_idx       = cells[enb_cc_idx].get_ue_cc_idx();
   dci->format          = dci_format;
 
   switch (dci_format) {
-    case SRSLTE_DCI_FORMAT1A:
+    case SRSRAN_DCI_FORMAT1A:
       tbs_bytes = generate_format1a(pid, data, tti_tx_dl, enb_cc_idx, cfi, user_mask);
       break;
-    case SRSLTE_DCI_FORMAT1:
+    case SRSRAN_DCI_FORMAT1:
       tbs_bytes = generate_format1(pid, data, tti_tx_dl, enb_cc_idx, cfi, user_mask);
       break;
-    case SRSLTE_DCI_FORMAT2:
+    case SRSRAN_DCI_FORMAT2:
       tbs_bytes = generate_format2(pid, data, tti_tx_dl, enb_cc_idx, cfi, user_mask);
       break;
-    case SRSLTE_DCI_FORMAT2A:
+    case SRSRAN_DCI_FORMAT2A:
       tbs_bytes = generate_format2a(pid, data, tti_tx_dl, enb_cc_idx, cfi, user_mask);
       break;
     default:
@@ -409,15 +409,15 @@ int sched_ue::generate_format1a(uint32_t                          pid,
                                 uint32_t                          cfi,
                                 const rbgmask_t&                  user_mask)
 {
-  srslte_dci_dl_t* dci = &data->dci;
+  srsran_dci_dl_t* dci = &data->dci;
 
-  dci->alloc_type       = SRSLTE_RA_ALLOC_TYPE2;
-  dci->type2_alloc.mode = srslte_ra_type2_t::SRSLTE_RA_TYPE2_LOC;
+  dci->alloc_type       = SRSRAN_RA_ALLOC_TYPE2;
+  dci->type2_alloc.mode = srsran_ra_type2_t::SRSRAN_RA_TYPE2_LOC;
   rbg_interval rbg_int  = rbg_interval::rbgmask_to_rbgs(user_mask);
   prb_interval prb_int  = prb_interval::rbgs_to_prbs(rbg_int, cell.nof_prb);
   uint32_t     L_crb    = prb_int.length();
   uint32_t     RB_start = prb_int.start();
-  dci->type2_alloc.riv  = srslte_ra_type2_to_riv(L_crb, RB_start, cell.nof_prb);
+  dci->type2_alloc.riv  = srsran_ra_type2_to_riv(L_crb, RB_start, cell.nof_prb);
   if (L_crb != count_prb_per_tb(user_mask)) {
     // This happens if Type0 was using distributed allocation
     logger.warning("SCHED: Can't use distributed RA due to DCI size ambiguity");
@@ -434,7 +434,7 @@ int sched_ue::generate_format1_common(uint32_t                          pid,
                                       const rbgmask_t&                  user_mask)
 {
   dl_harq_proc*    h   = &cells[enb_cc_idx].harq_ent.dl_harq_procs()[pid];
-  srslte_dci_dl_t* dci = &data->dci;
+  srsran_dci_dl_t* dci = &data->dci;
 
   tbs_info tbinfo;
   if (h->is_empty(0)) {
@@ -462,9 +462,9 @@ int sched_ue::generate_format1(uint32_t                          pid,
                                uint32_t                          cfi,
                                const rbgmask_t&                  user_mask)
 {
-  srslte_dci_dl_t* dci = &data->dci;
+  srsran_dci_dl_t* dci = &data->dci;
 
-  dci->alloc_type              = SRSLTE_RA_ALLOC_TYPE0;
+  dci->alloc_type              = SRSRAN_RA_ALLOC_TYPE0;
   dci->type0_alloc.rbg_bitmask = (uint32_t)user_mask.to_uint64();
 
   return generate_format1_common(pid, data, tti_tx_dl, enb_cc_idx, cfi, user_mask);
@@ -483,10 +483,10 @@ tbs_info sched_ue::compute_mcs_and_tbs(uint32_t               enb_cc_idx,
                                        tti_point              tti_tx_dl,
                                        uint32_t               nof_alloc_prbs,
                                        uint32_t               cfi,
-                                       const srslte_dci_dl_t& dci)
+                                       const srsran_dci_dl_t& dci)
 {
   assert(cells[enb_cc_idx].configured());
-  srslte::interval<uint32_t> req_bytes = get_requested_dl_bytes(enb_cc_idx);
+  srsran::interval<uint32_t> req_bytes = get_requested_dl_bytes(enb_cc_idx);
 
   // Calculate exact number of RE for this PRB allocation
   uint32_t nof_re = cells[enb_cc_idx].cell_cfg->get_dl_nof_res(tti_tx_dl, dci, cfi);
@@ -511,10 +511,10 @@ int sched_ue::generate_format2a(uint32_t                          pid,
                                 const rbgmask_t&                  user_mask)
 {
   dl_harq_proc* h                    = &cells[enb_cc_idx].harq_ent.dl_harq_procs()[pid];
-  bool          tb_en[SRSLTE_MAX_TB] = {false};
+  bool          tb_en[SRSRAN_MAX_TB] = {false};
 
-  srslte_dci_dl_t* dci         = &data->dci;
-  dci->alloc_type              = SRSLTE_RA_ALLOC_TYPE0;
+  srsran_dci_dl_t* dci         = &data->dci;
+  dci->alloc_type              = SRSRAN_RA_ALLOC_TYPE0;
   dci->type0_alloc.rbg_bitmask = (uint32_t)user_mask.to_uint64();
 
   bool no_retx = true;
@@ -529,7 +529,7 @@ int sched_ue::generate_format2a(uint32_t                          pid,
     }
   } else {
     /* Two layers, retransmit what TBs that have not been Acknowledged */
-    for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+    for (uint32_t tb = 0; tb < SRSRAN_MAX_TB; tb++) {
       if (!h->is_empty(tb)) {
         tb_en[tb] = true;
         no_retx   = false;
@@ -542,7 +542,7 @@ int sched_ue::generate_format2a(uint32_t                          pid,
     }
   }
 
-  for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+  for (uint32_t tb = 0; tb < SRSRAN_MAX_TB; tb++) {
     tbs_info tbinfo;
 
     if (!h->is_empty(tb)) {
@@ -555,14 +555,14 @@ int sched_ue::generate_format2a(uint32_t                          pid,
     if (tbinfo.tbs_bytes > 0 && tb_en[tb]) {
       dci->tb[tb].mcs_idx = (uint32_t)tbinfo.mcs;
       dci->tb[tb].rv      = get_rvidx(h->nof_retx(tb));
-      if (!SRSLTE_DCI_IS_TB_EN(dci->tb[tb])) {
+      if (!SRSRAN_DCI_IS_TB_EN(dci->tb[tb])) {
         dci->tb[tb].rv = 2;
       }
       dci->tb[tb].ndi    = h->get_ndi(tb);
       dci->tb[tb].cw_idx = tb;
       data->tbs[tb]      = (uint32_t)tbinfo.tbs_bytes;
     } else {
-      SRSLTE_DCI_TB_DISABLE(dci->tb[tb]);
+      SRSRAN_DCI_TB_DISABLE(dci->tb[tb]);
       data->tbs[tb] = 0;
     }
   }
@@ -583,7 +583,7 @@ int sched_ue::generate_format2(uint32_t                          pid,
   int ret = generate_format2a(pid, data, tti_tx_dl, enb_cc_idx, cfi, user_mask);
 
   /* Compute precoding information */
-  if ((SRSLTE_DCI_IS_TB_EN(data->dci.tb[0]) + SRSLTE_DCI_IS_TB_EN(data->dci.tb[1])) == 1) {
+  if ((SRSRAN_DCI_IS_TB_EN(data->dci.tb[0]) + SRSRAN_DCI_IS_TB_EN(data->dci.tb[1])) == 1) {
     data->dci.pinfo = (uint8_t)(cells[enb_cc_idx].dl_pmi + 1) % (uint8_t)5;
   } else {
     data->dci.pinfo = (uint8_t)(cells[enb_cc_idx].dl_pmi & 1u);
@@ -597,12 +597,12 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
                                uint32_t                          enb_cc_idx,
                                prb_interval                      alloc,
                                bool                              needs_pdcch,
-                               srslte_dci_location_t             dci_pos,
+                               srsran_dci_location_t             dci_pos,
                                int                               explicit_mcs,
                                uci_pusch_t                       uci_type)
 {
   ul_harq_proc*    h   = get_ul_harq(tti_tx_ul, enb_cc_idx);
-  srslte_dci_ul_t* dci = &data->dci;
+  srsran_dci_ul_t* dci = &data->dci;
 
   bool cqi_request = needs_cqi(tti_tx_ul.to_uint(), enb_cc_idx, true);
 
@@ -622,8 +622,8 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
       // dynamic mcs
       uint32_t req_bytes = get_pending_ul_new_data(tti_tx_ul, enb_cc_idx);
       uint32_t N_srs     = 0;
-      uint32_t nof_symb  = 2 * (SRSLTE_CP_NSYMB(cell.cp) - 1) - N_srs;
-      uint32_t nof_re    = nof_symb * alloc.length() * SRSLTE_NRE;
+      uint32_t nof_symb  = 2 * (SRSRAN_CP_NSYMB(cell.cp) - 1) - N_srs;
+      uint32_t nof_re    = nof_symb * alloc.length() * SRSRAN_NRE;
       tbinfo             = cqi_to_tbs_ul(cells[enb_cc_idx], alloc.length(), nof_re, req_bytes);
 
       // Reduce MCS to fit UCI if transmitted in this grant
@@ -632,14 +632,14 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
         uint32_t nof_uci_re = 0;
         // Add the RE for ACK
         if (uci_type == UCI_PUSCH_ACK || uci_type == UCI_PUSCH_ACK_CQI) {
-          float beta = srslte_sch_beta_ack(cfg.uci_offset.I_offset_ack);
+          float beta = srsran_sch_beta_ack(cfg.uci_offset.I_offset_ack);
           nof_uci_re +=
-              srslte_qprime_ack_ext(alloc.length(), nof_symb, 8 * tbinfo.tbs_bytes, cfg.supported_cc_list.size(), beta);
+              srsran_qprime_ack_ext(alloc.length(), nof_symb, 8 * tbinfo.tbs_bytes, cfg.supported_cc_list.size(), beta);
         }
         // Add the RE for CQI report (RI reports are transmitted on CQI slots. We do a conservative estimate here)
         if (uci_type == UCI_PUSCH_CQI || uci_type == UCI_PUSCH_ACK_CQI || cqi_request) {
-          float beta = srslte_sch_beta_cqi(cfg.uci_offset.I_offset_cqi);
-          nof_uci_re += srslte_qprime_cqi_ext(alloc.length(), nof_symb, 8 * tbinfo.tbs_bytes, beta);
+          float beta = srsran_sch_beta_cqi(cfg.uci_offset.I_offset_cqi);
+          nof_uci_re += srsran_qprime_cqi_ext(alloc.length(), nof_symb, 8 * tbinfo.tbs_bytes, beta);
         }
         // Recompute again the MCS and TBS with the new spectral efficiency (based on the available RE for data)
         if (nof_re >= nof_uci_re) {
@@ -665,14 +665,14 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
     data->tbs           = tbinfo.tbs_bytes;
     data->current_tx_nb = h->nof_retx(0);
     dci->rnti           = rnti;
-    dci->format         = SRSLTE_DCI_FORMAT0;
+    dci->format         = SRSRAN_DCI_FORMAT0;
     dci->ue_cc_idx      = cells[enb_cc_idx].get_ue_cc_idx();
     dci->tb.ndi         = h->get_ndi(0);
     dci->cqi_request    = cqi_request;
-    dci->freq_hop_fl    = srslte_dci_ul_t::SRSLTE_RA_PUSCH_HOP_DISABLED;
+    dci->freq_hop_fl    = srsran_dci_ul_t::SRSRAN_RA_PUSCH_HOP_DISABLED;
     dci->tpc_pusch      = cells[enb_cc_idx].tpc_fsm.encode_pusch_tpc();
 
-    dci->type2_alloc.riv = srslte_ra_type2_to_riv(alloc.length(), alloc.start(), cell.nof_prb);
+    dci->type2_alloc.riv = srsran_ra_type2_to_riv(alloc.length(), alloc.start(), cell.nof_prb);
 
     // If there are no RE available for ULSCH but there is UCI to transmit, allocate PUSCH becuase
     // resources have been reserved already and in CA it will be used to ACK other carriers
@@ -720,10 +720,10 @@ bool sched_ue::needs_cqi(uint32_t tti, uint32_t enb_cc_idx, bool will_send)
   bool ret = false;
   if (phy_config_dedicated_enabled && cfg.supported_cc_list[0].aperiodic_cqi_period &&
       lch_handler.has_pending_dl_txs()) {
-    uint32_t interval = srslte_tti_interval(tti, cells[enb_cc_idx].dl_cqi_tti_rx.to_uint());
+    uint32_t interval = srsran_tti_interval(tti, cells[enb_cc_idx].dl_cqi_tti_rx.to_uint());
     bool     needscqi = interval >= cfg.supported_cc_list[0].aperiodic_cqi_period;
     if (needscqi) {
-      uint32_t interval_sent = srslte_tti_interval(tti, cqi_request_tti);
+      uint32_t interval_sent = srsran_tti_interval(tti, cqi_request_tti);
       if (interval_sent >= 16) {
         if (will_send) {
           cqi_request_tti = tti;
@@ -745,8 +745,8 @@ rbg_interval sched_ue::get_required_dl_rbgs(uint32_t enb_cc_idx)
 {
   assert(cells[enb_cc_idx].configured());
   const auto*                cellparams = cells[enb_cc_idx].cell_cfg;
-  srslte::interval<uint32_t> req_bytes  = get_requested_dl_bytes(enb_cc_idx);
-  if (req_bytes == srslte::interval<uint32_t>{0, 0}) {
+  srsran::interval<uint32_t> req_bytes  = get_requested_dl_bytes(enb_cc_idx);
+  if (req_bytes == srsran::interval<uint32_t>{0, 0}) {
     return {0, 0};
   }
   int pending_prbs = get_required_prb_dl(cells[enb_cc_idx], to_tx_dl(current_tti), get_dci_format(), req_bytes.start());
@@ -780,7 +780,7 @@ rbg_interval sched_ue::get_required_dl_rbgs(uint32_t enb_cc_idx)
  * @enb_cc_idx carrier where allocation is being made
  * @return
  */
-srslte::interval<uint32_t> sched_ue::get_requested_dl_bytes(uint32_t enb_cc_idx)
+srsran::interval<uint32_t> sched_ue::get_requested_dl_bytes(uint32_t enb_cc_idx)
 {
   assert(cells.at(enb_cc_idx).configured());
 
@@ -796,12 +796,12 @@ srslte::interval<uint32_t> sched_ue::get_requested_dl_bytes(uint32_t enb_cc_idx)
   // Add pending CEs
   if (cells[enb_cc_idx].is_pcell()) {
     if (srb0_data == 0 and not lch_handler.pending_ces.empty() and
-        lch_handler.pending_ces.front() == srslte::dl_sch_lcid::CON_RES_ID) {
+        lch_handler.pending_ces.front() == srsran::dl_sch_lcid::CON_RES_ID) {
       // Wait for SRB0 data to be available for Msg4 before scheduling the ConRes CE
       return {};
     }
     for (const lch_ue_manager::ce_cmd& ce : lch_handler.pending_ces) {
-      sum_ce_data += srslte::ce_total_size(ce);
+      sum_ce_data += srsran::ce_total_size(ce);
     }
   }
   // Add pending data in remaining RLC buffers
@@ -813,11 +813,11 @@ srslte::interval<uint32_t> sched_ue::get_requested_dl_bytes(uint32_t enb_cc_idx)
   /* Set Minimum boundary */
   min_data = srb0_data;
   if (not lch_handler.pending_ces.empty() and lch_handler.pending_ces.front() == lch_ue_manager::ce_cmd::CON_RES_ID) {
-    min_data += srslte::ce_total_size(lch_handler.pending_ces.front());
+    min_data += srsran::ce_total_size(lch_handler.pending_ces.front());
   }
   if (min_data == 0) {
     if (sum_ce_data > 0) {
-      min_data = srslte::ce_total_size(lch_handler.pending_ces.front());
+      min_data = srsran::ce_total_size(lch_handler.pending_ces.front());
     } else if (rb_data > 0) {
       min_data = MAC_MIN_ALLOC_SIZE;
     }
@@ -837,9 +837,9 @@ uint32_t sched_ue::get_expected_dl_bitrate(uint32_t enb_cc_idx, int nof_rbgs) co
   auto&    cc = cells[enb_cc_idx];
   uint32_t nof_re =
       cc.cell_cfg->get_dl_lb_nof_re(to_tx_dl(current_tti), count_prb_per_tb_approx(nof_rbgs, cc.cell_cfg->nof_prb()));
-  float max_coderate = srslte_cqi_to_coderate(std::min(cc.dl_cqi + 1u, 15u), cfg.use_tbs_index_alt);
+  float max_coderate = srsran_cqi_to_coderate(std::min(cc.dl_cqi + 1u, 15u), cfg.use_tbs_index_alt);
 
-  // Inverse of srslte_coderate(tbs, nof_re)
+  // Inverse of srsran_coderate(tbs, nof_re)
   uint32_t tbs = max_coderate * nof_re - 24;
   return tbs / tti_duration_ms;
 }
@@ -849,11 +849,11 @@ uint32_t sched_ue::get_expected_ul_bitrate(uint32_t enb_cc_idx, int nof_prbs) co
   uint32_t nof_prbs_alloc = nof_prbs < 0 ? cell.nof_prb : nof_prbs;
 
   uint32_t N_srs        = 0;
-  uint32_t nof_symb     = 2 * (SRSLTE_CP_NSYMB(cell.cp) - 1) - N_srs;
-  uint32_t nof_re       = nof_symb * nof_prbs_alloc * SRSLTE_NRE;
-  float    max_coderate = srslte_cqi_to_coderate(std::min(cells[enb_cc_idx].ul_cqi + 1u, 15u), false);
+  uint32_t nof_symb     = 2 * (SRSRAN_CP_NSYMB(cell.cp) - 1) - N_srs;
+  uint32_t nof_re       = nof_symb * nof_prbs_alloc * SRSRAN_NRE;
+  float    max_coderate = srsran_cqi_to_coderate(std::min(cells[enb_cc_idx].ul_cqi + 1u, 15u), false);
 
-  // Inverse of srslte_coderate(tbs, nof_re)
+  // Inverse of srsran_coderate(tbs, nof_re)
   uint32_t tbs = max_coderate * nof_re - 24;
   return tbs / tti_duration_ms;
 }
@@ -942,7 +942,7 @@ uint32_t sched_ue::get_pending_ul_new_data(tti_point tti_tx_ul, int this_enb_cc_
       logger.debug("SCHED: pending_data=%d, in_harq_data=%d, bsr=%s",
                    pending_data,
                    pending_ul_data,
-                   srslte::to_c_str(str_buffer));
+                   srsran::to_c_str(str_buffer));
     }
   }
   return pending_data;
@@ -1008,9 +1008,9 @@ void sched_ue::finish_tti(tti_point tti_rx, uint32_t enb_cc_idx)
   cells[enb_cc_idx].finish_tti(tti_rx);
 }
 
-srslte_dci_format_t sched_ue::get_dci_format()
+srsran_dci_format_t sched_ue::get_dci_format()
 {
-  srslte_dci_format_t ret = SRSLTE_DCI_FORMAT1A;
+  srsran_dci_format_t ret = SRSRAN_DCI_FORMAT1A;
 
   if (phy_config_dedicated_enabled) {
     /* TODO: Assumes UE-Specific Search Space (Not common) */
@@ -1020,14 +1020,14 @@ srslte_dci_format_t sched_ue::get_dci_format()
         // If the size of Format1 and Format1A is ambiguous in the common SS, use Format1A since the UE assumes
         // Common SS when spaces collide
         if (not(cell.nof_prb == 15 && cells.size() > 1)) {
-          ret = SRSLTE_DCI_FORMAT1;
+          ret = SRSRAN_DCI_FORMAT1;
         }
         break;
       case sched_interface::ant_info_ded_t::tx_mode_t::tm3:
-        ret = SRSLTE_DCI_FORMAT2A;
+        ret = SRSRAN_DCI_FORMAT2A;
         break;
       case sched_interface::ant_info_ded_t::tx_mode_t::tm4:
-        ret = SRSLTE_DCI_FORMAT2;
+        ret = SRSRAN_DCI_FORMAT2;
         break;
       case sched_interface::ant_info_ded_t::tx_mode_t::tm5:
       case sched_interface::ant_info_ded_t::tx_mode_t::tm6:
@@ -1057,9 +1057,9 @@ sched_ue_cell* sched_ue::find_ue_carrier(uint32_t enb_cc_idx)
   return cells[enb_cc_idx].configured() ? &cells[enb_cc_idx] : nullptr;
 }
 
-std::bitset<SRSLTE_MAX_CARRIERS> sched_ue::scell_activation_mask() const
+std::bitset<SRSRAN_MAX_CARRIERS> sched_ue::scell_activation_mask() const
 {
-  std::bitset<SRSLTE_MAX_CARRIERS> ret{0};
+  std::bitset<SRSRAN_MAX_CARRIERS> ret{0};
   for (size_t i = 0; i < cells.size(); ++i) {
     if (cells[i].cc_state() == cc_st::active and cells[i].is_scell()) {
       ret[cells[i].get_ue_cc_idx()] = true;

@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,39 +10,39 @@
  *
  */
 
-#include "srslte/phy/common/phy_common_nr.h"
+#include "srsran/phy/common/phy_common_nr.h"
 #include <string.h>
 
-const char* srslte_rnti_type_str(srslte_rnti_type_t rnti_type)
+const char* srsran_rnti_type_str(srsran_rnti_type_t rnti_type)
 {
   switch (rnti_type) {
-    case srslte_rnti_type_c:
+    case srsran_rnti_type_c:
       return "C-RNTI";
-    case srslte_rnti_type_p:
+    case srsran_rnti_type_p:
       return "P-RNTI";
-    case srslte_rnti_type_si:
+    case srsran_rnti_type_si:
       return "SI-RNTI";
-    case srslte_rnti_type_ra:
+    case srsran_rnti_type_ra:
       return "RA-RNTI";
-    case srslte_rnti_type_tc:
+    case srsran_rnti_type_tc:
       return "TC-RNTI";
-    case srslte_rnti_type_cs:
+    case srsran_rnti_type_cs:
       return "CS-RNTI";
-    case srslte_rnti_type_sp_csi:
+    case srsran_rnti_type_sp_csi:
       return "SP-CSI-RNTI";
-    case srslte_rnti_type_mcs_c:
+    case srsran_rnti_type_mcs_c:
       return "MCS-C-RNTI";
     default:; // Do nothing
   }
   return "unknown";
 }
 
-uint32_t srslte_coreset_get_bw(const srslte_coreset_t* coreset)
+uint32_t srsran_coreset_get_bw(const srsran_coreset_t* coreset)
 {
   uint32_t prb_count = 0;
 
   // Iterate all the frequency domain resources bit-map...
-  for (uint32_t i = 0; i < SRSLTE_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
+  for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
     // ... and count 6 PRB for every frequency domain resource that it is enabled
     if (coreset->freq_resources[i]) {
       prb_count += 6;
@@ -53,50 +53,50 @@ uint32_t srslte_coreset_get_bw(const srslte_coreset_t* coreset)
   return prb_count;
 }
 
-uint32_t srslte_coreset_get_sz(const srslte_coreset_t* coreset)
+uint32_t srsran_coreset_get_sz(const srsran_coreset_t* coreset)
 {
   // Returns the number of resource elements in time and frequency domains
-  return srslte_coreset_get_bw(coreset) * SRSLTE_NRE * coreset->duration;
+  return srsran_coreset_get_bw(coreset) * SRSRAN_NRE * coreset->duration;
 }
 
-const char* srslte_sch_mapping_type_to_str(srslte_sch_mapping_type_t mapping_type)
+const char* srsran_sch_mapping_type_to_str(srsran_sch_mapping_type_t mapping_type)
 {
   switch (mapping_type) {
-    case srslte_sch_mapping_type_A:
+    case srsran_sch_mapping_type_A:
       return "A";
-    case srslte_sch_mapping_type_B:
+    case srsran_sch_mapping_type_B:
       return "B";
     default:
       return "undefined";
   }
 }
 
-const char* srslte_mcs_table_to_str(srslte_mcs_table_t mcs_table)
+const char* srsran_mcs_table_to_str(srsran_mcs_table_t mcs_table)
 {
   switch (mcs_table) {
-    case srslte_mcs_table_64qam:
+    case srsran_mcs_table_64qam:
       return "64qam";
-    case srslte_mcs_table_256qam:
+    case srsran_mcs_table_256qam:
       return "256qam";
-    case srslte_mcs_table_qam64LowSE:
+    case srsran_mcs_table_qam64LowSE:
       return "qam64LowSE";
     default:
       return "undefined";
   }
 }
 
-srslte_mcs_table_t srslte_mcs_table_from_str(const char* str)
+srsran_mcs_table_t srsran_mcs_table_from_str(const char* str)
 {
   if (strcmp(str, "64qam") == 0) {
-    return srslte_mcs_table_64qam;
+    return srsran_mcs_table_64qam;
   }
   if (strcmp(str, "256qam") == 0) {
-    return srslte_mcs_table_256qam;
+    return srsran_mcs_table_256qam;
   }
   if (strcmp(str, "qam64LowSE") == 0) {
-    return srslte_mcs_table_qam64LowSE;
+    return srsran_mcs_table_qam64LowSE;
   }
-  return srslte_mcs_table_N;
+  return srsran_mcs_table_N;
 }
 
 #define PHY_COMMON_NR_NOF_VALID_SYMB_SZ 10U
@@ -104,9 +104,9 @@ srslte_mcs_table_t srslte_mcs_table_from_str(const char* str)
 static const uint32_t phy_common_nr_valid_symbol_sz[PHY_COMMON_NR_NOF_VALID_SYMB_SZ] =
     {128, 256, 384, 512, 768, 1024, 1536, 2048, 3072, 4096};
 
-uint32_t srslte_min_symbol_sz_rb(uint32_t nof_prb)
+uint32_t srsran_min_symbol_sz_rb(uint32_t nof_prb)
 {
-  uint32_t nof_re = nof_prb * SRSLTE_NRE;
+  uint32_t nof_re = nof_prb * SRSRAN_NRE;
 
   if (nof_re == 0) {
     return 0;
@@ -121,7 +121,7 @@ uint32_t srslte_min_symbol_sz_rb(uint32_t nof_prb)
   return 0;
 }
 
-float srslte_symbol_distance_s(uint32_t l0, uint32_t l1, uint32_t numerology)
+float srsran_symbol_distance_s(uint32_t l0, uint32_t l1, uint32_t numerology)
 {
   // l0 must be smaller than l1
   if (l0 >= l1) {
@@ -144,10 +144,10 @@ float srslte_symbol_distance_s(uint32_t l0, uint32_t l1, uint32_t numerology)
   uint32_t N = (2048 + 144) * count + extra_cp;
 
   // Return symbol distance in microseconds
-  return (N << numerology) * SRSLTE_LTE_TS;
+  return (N << numerology) * SRSRAN_LTE_TS;
 }
 
-bool srslte_tdd_nr_is_dl(const srslte_tdd_config_nr_t* cfg, uint32_t numerology, uint32_t slot_idx)
+bool srsran_tdd_nr_is_dl(const srsran_tdd_config_nr_t* cfg, uint32_t numerology, uint32_t slot_idx)
 {
   if (cfg == NULL) {
     return false;
@@ -159,7 +159,7 @@ bool srslte_tdd_nr_is_dl(const srslte_tdd_config_nr_t* cfg, uint32_t numerology,
   uint32_t slot_idx_period = slot_idx % period_sum; // Slot index within the period
 
   // Select pattern
-  const srslte_tdd_pattern_t* pattern = &cfg->pattern1;
+  const srsran_tdd_pattern_t* pattern = &cfg->pattern1;
   if ((slot_idx_period >= cfg->pattern1.period_ms * slot_x_ms)) {
     pattern = &cfg->pattern2;
     slot_idx_period -= cfg->pattern1.period_ms * slot_x_ms; // Remove pattern 1 offset
@@ -169,7 +169,7 @@ bool srslte_tdd_nr_is_dl(const srslte_tdd_config_nr_t* cfg, uint32_t numerology,
           (slot_idx_period == pattern->nof_dl_slots && pattern->nof_dl_symbols != 0));
 }
 
-bool srslte_tdd_nr_is_ul(const srslte_tdd_config_nr_t* cfg, uint32_t numerology, uint32_t slot_idx)
+bool srsran_tdd_nr_is_ul(const srsran_tdd_config_nr_t* cfg, uint32_t numerology, uint32_t slot_idx)
 {
   if (cfg == NULL) {
     return false;
@@ -181,7 +181,7 @@ bool srslte_tdd_nr_is_ul(const srslte_tdd_config_nr_t* cfg, uint32_t numerology,
   uint32_t slot_idx_period = slot_idx % period_sum; // Slot index within the period
 
   // Select pattern
-  const srslte_tdd_pattern_t* pattern = &cfg->pattern1;
+  const srsran_tdd_pattern_t* pattern = &cfg->pattern1;
   if ((slot_idx_period >= cfg->pattern1.period_ms * slot_x_ms)) {
     pattern = &cfg->pattern2;
     slot_idx_period -= cfg->pattern1.period_ms * slot_x_ms; // Remove pattern 1 offset

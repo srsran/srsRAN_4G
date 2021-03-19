@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -18,7 +18,7 @@
 #include <signal.h>
 #include <thread>
 
-#include "srslte/common/basic_pnf.h"
+#include "srsran/common/basic_pnf.h"
 
 using namespace std;
 namespace bpo = boost::program_options;
@@ -87,8 +87,8 @@ int main(int argc, char** argv)
   pnf_args_t args;
   parse_args(&args, argc, argv);
 
-  srslte::srslte_basic_pnf ue_pnf("ue", args.ue_vnf_addr, args.ue_vnf_port, args.sf_interval, args.num_sf, args.tb_len);
-  srslte::srslte_basic_pnf gnb_pnf(
+  srsran::srsran_basic_pnf ue_pnf("ue", args.ue_vnf_addr, args.ue_vnf_port, args.sf_interval, args.num_sf, args.tb_len);
+  srsran::srsran_basic_pnf gnb_pnf(
       "gnb", args.gnb_vnf_addr, args.gnb_vnf_port, args.sf_interval, args.num_sf, args.tb_len);
 
   gnb_pnf.connect_out_rf_queue(ue_pnf.get_in_rf_queue());
@@ -98,7 +98,7 @@ int main(int argc, char** argv)
 
   while (running) {
     for (uint32_t i = 0; i < 2; ++i) {
-      srslte::pnf_metrics_t metrics = (i == 0) ? ue_pnf.get_metrics() : gnb_pnf.get_metrics();
+      srsran::pnf_metrics_t metrics = (i == 0) ? ue_pnf.get_metrics() : gnb_pnf.get_metrics();
       printf("%s: RTT=%d, #Error=%d, #PDUs=%d, Total TB size=%d, Rate=%.2f Mbit/s\n",
              i == 0 ? "UE" : "gNB",
              metrics.avg_rtt_us,

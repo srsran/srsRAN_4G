@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -16,21 +16,21 @@
 #include <strings.h>
 #include <unistd.h>
 
-#include "srslte/srslte.h"
+#include "srsran/srsran.h"
 
-srslte_cell_t cell = {
+srsran_cell_t cell = {
     6,                 // nof_prb
     1,                 // nof_ports
     1000,              // cell_id
-    SRSLTE_CP_NORM,    // cyclic prefix
-    SRSLTE_PHICH_NORM, // PHICH length
-    SRSLTE_PHICH_R_1_6,
-    SRSLTE_FDD,
+    SRSRAN_CP_NORM,    // cyclic prefix
+    SRSRAN_PHICH_NORM, // PHICH length
+    SRSRAN_PHICH_R_1_6,
+    SRSRAN_FDD,
 
 };
 
-srslte_phich_r_t      phich_res    = SRSLTE_PHICH_R_1;
-srslte_phich_length_t phich_length = SRSLTE_PHICH_NORM;
+srsran_phich_r_t      phich_res    = SRSRAN_PHICH_R_1;
+srsran_phich_length_t phich_length = SRSRAN_PHICH_NORM;
 
 void usage(char* prog)
 {
@@ -41,7 +41,7 @@ void usage(char* prog)
   printf("\t-g phich ng factor: 1/6, 1/2, 1, 2 [Default 1]\n");
   printf("\t-e phich extended length [Default normal]\n");
   printf("\t-l extended cyclic prefix [Default normal]\n");
-  printf("\t-v [set srslte_verbose to debug, default none]\n");
+  printf("\t-v [set srsran_verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char** argv)
@@ -60,25 +60,25 @@ void parse_args(int argc, char** argv)
         break;
       case 'g':
         if (!strcmp(argv[optind], "1/6")) {
-          phich_res = SRSLTE_PHICH_R_1_6;
+          phich_res = SRSRAN_PHICH_R_1_6;
         } else if (!strcmp(argv[optind], "1/2")) {
-          phich_res = SRSLTE_PHICH_R_1_2;
+          phich_res = SRSRAN_PHICH_R_1_2;
         } else if (!strcmp(argv[optind], "1")) {
-          phich_res = SRSLTE_PHICH_R_1;
+          phich_res = SRSRAN_PHICH_R_1;
         } else if (!strcmp(argv[optind], "2")) {
-          phich_res = SRSLTE_PHICH_R_2;
+          phich_res = SRSRAN_PHICH_R_2;
         } else {
           ERROR("Invalid phich ng factor %s. Setting to default.", argv[optind]);
         }
         break;
       case 'e':
-        phich_length = SRSLTE_PHICH_EXT;
+        phich_length = SRSRAN_PHICH_EXT;
         break;
       case 'l':
-        cell.cp = SRSLTE_CP_EXT;
+        cell.cp = SRSRAN_CP_EXT;
         break;
       case 'v':
-        srslte_verbose++;
+        srsran_verbose++;
         break;
       default:
         usage(argv[0]);
@@ -89,30 +89,30 @@ void parse_args(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-  srslte_phich_t phich;
-  srslte_regs_t  regs;
+  srsran_phich_t phich;
+  srsran_regs_t  regs;
   int            i, j;
   int            nof_re;
-  cf_t*          slot_symbols[SRSLTE_MAX_PORTS];
-  uint8_t        ack[50][SRSLTE_PHICH_NORM_NSEQUENCES];
+  cf_t*          slot_symbols[SRSRAN_MAX_PORTS];
+  uint8_t        ack[50][SRSRAN_PHICH_NORM_NSEQUENCES];
   uint32_t       nsf;
   int            cid, max_cid;
   uint32_t       ngroup, nseq, max_nseq;
 
   parse_args(argc, argv);
 
-  max_nseq = SRSLTE_CP_ISNORM(cell.cp) ? SRSLTE_PHICH_NORM_NSEQUENCES : SRSLTE_PHICH_EXT_NSEQUENCES;
+  max_nseq = SRSRAN_CP_ISNORM(cell.cp) ? SRSRAN_PHICH_NORM_NSEQUENCES : SRSRAN_PHICH_EXT_NSEQUENCES;
 
-  nof_re = SRSLTE_CP_NORM_NSYMB * cell.nof_prb * SRSLTE_NRE;
+  nof_re = SRSRAN_CP_NORM_NSYMB * cell.nof_prb * SRSRAN_NRE;
 
   /* init memory */
 
-  srslte_chest_dl_res_t chest_res;
-  srslte_chest_dl_res_init(&chest_res, cell.nof_prb);
-  srslte_chest_dl_res_set_ones(&chest_res);
+  srsran_chest_dl_res_t chest_res;
+  srsran_chest_dl_res_init(&chest_res, cell.nof_prb);
+  srsran_chest_dl_res_set_ones(&chest_res);
 
-  for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
-    slot_symbols[i] = srslte_vec_cf_malloc(nof_re);
+  for (i = 0; i < SRSRAN_MAX_PORTS; i++) {
+    slot_symbols[i] = srsran_vec_cf_malloc(nof_re);
     if (!slot_symbols[i]) {
       perror("malloc");
       exit(-1);
@@ -126,7 +126,7 @@ int main(int argc, char** argv)
     cid     = cell.id;
     max_cid = cell.id;
   }
-  if (srslte_phich_init(&phich, 1)) {
+  if (srsran_phich_init(&phich, 1)) {
     ERROR("Error creating PBCH object");
     exit(-1);
   }
@@ -135,35 +135,35 @@ int main(int argc, char** argv)
 
     printf("Testing CellID=%d...\n", cid);
 
-    if (srslte_regs_init(&regs, cell)) {
+    if (srsran_regs_init(&regs, cell)) {
       ERROR("Error initiating regs");
       exit(-1);
     }
 
-    if (srslte_phich_set_cell(&phich, &regs, cell)) {
+    if (srsran_phich_set_cell(&phich, &regs, cell)) {
       ERROR("Error creating PBCH object");
       exit(-1);
     }
 
-    srslte_dl_sf_cfg_t dl_sf;
+    srsran_dl_sf_cfg_t dl_sf;
     ZERO_OBJECT(dl_sf);
 
     for (nsf = 0; nsf < 10; nsf++) {
       dl_sf.tti = nsf;
 
-      srslte_phich_reset(&phich, slot_symbols);
+      srsran_phich_reset(&phich, slot_symbols);
 
-      srslte_phich_resource_t resource;
+      srsran_phich_resource_t resource;
 
       /* Transmit all PHICH groups and sequence numbers */
-      for (ngroup = 0; ngroup < srslte_phich_ngroups(&phich); ngroup++) {
+      for (ngroup = 0; ngroup < srsran_phich_ngroups(&phich); ngroup++) {
         for (nseq = 0; nseq < max_nseq; nseq++) {
           resource.ngroup = ngroup;
           resource.nseq   = nseq;
 
           ack[ngroup][nseq] = rand() % 2;
 
-          srslte_phich_encode(&phich, &dl_sf, resource, ack[ngroup][nseq], slot_symbols);
+          srsran_phich_encode(&phich, &dl_sf, resource, ack[ngroup][nseq], slot_symbols);
         }
       }
       /* combine outputs */
@@ -174,14 +174,14 @@ int main(int argc, char** argv)
       }
 
       /* Receive all PHICH groups and sequence numbers */
-      for (ngroup = 0; ngroup < srslte_phich_ngroups(&phich); ngroup++) {
+      for (ngroup = 0; ngroup < srsran_phich_ngroups(&phich); ngroup++) {
         for (nseq = 0; nseq < max_nseq; nseq++) {
           resource.ngroup = ngroup;
           resource.nseq   = nseq;
 
-          srslte_phich_res_t result;
+          srsran_phich_res_t result;
 
-          if (srslte_phich_decode(&phich, &dl_sf, &chest_res, resource, slot_symbols, &result) < 0) {
+          if (srsran_phich_decode(&phich, &dl_sf, &chest_res, resource, slot_symbols, &result) < 0) {
             printf("Error decoding ACK\n");
             exit(-1);
           }
@@ -203,14 +203,14 @@ int main(int argc, char** argv)
         }
       }
     }
-    srslte_regs_free(&regs);
+    srsran_regs_free(&regs);
     cid++;
   }
-  srslte_phich_free(&phich);
+  srsran_phich_free(&phich);
 
-  srslte_chest_dl_res_free(&chest_res);
+  srsran_chest_dl_res_free(&chest_res);
 
-  for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
+  for (i = 0; i < SRSRAN_MAX_PORTS; i++) {
     free(slot_symbols[i]);
   }
   printf("OK\n");

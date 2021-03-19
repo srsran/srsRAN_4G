@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,8 +10,8 @@
  *
  */
 
-#ifndef SRSLTE_SCHED_BASE_H
-#define SRSLTE_SCHED_BASE_H
+#ifndef SRSRAN_SCHED_BASE_H
+#define SRSRAN_SCHED_BASE_H
 
 #include "srsenb/hdr/stack/mac/sched_grid.h"
 
@@ -66,4 +66,4 @@ alloc_result try_ul_retx_alloc(sf_sched& tti_sched, sched_ue& ue, const ul_harq_
 
 } // namespace srsenb
 
-#endif // SRSLTE_SCHED_BASE_H
+#endif // SRSRAN_SCHED_BASE_H

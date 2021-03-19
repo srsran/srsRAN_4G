@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,14 +10,14 @@
  *
  */
 
-#include "srslte/asn1/rrc_nr_utils.h"
-#include "srslte/asn1/rrc_nr.h"
-#include "srslte/config.h"
-#include "srslte/interfaces/pdcp_interface_types.h"
-#include "srslte/interfaces/rlc_interface_types.h"
+#include "srsran/asn1/rrc_nr_utils.h"
+#include "srsran/asn1/rrc_nr.h"
+#include "srsran/config.h"
+#include "srsran/interfaces/pdcp_interface_types.h"
+#include "srsran/interfaces/rlc_interface_types.h"
 #include <algorithm>
 
-namespace srslte {
+namespace srsran {
 
 using namespace asn1::rrc_nr;
 /***************************
@@ -81,7 +81,7 @@ rach_nr_cfg_t make_mac_rach_cfg(const rach_cfg_common_s& asn1_type)
 rlc_config_t make_rlc_config_t(const rlc_cfg_c& asn1_type)
 {
   rlc_config_t rlc_cfg = rlc_config_t::default_rlc_um_nr_config();
-  rlc_cfg.rat          = srslte_rat_t::nr;
+  rlc_cfg.rat          = srsran_rat_t::nr;
   switch (asn1_type.type().value) {
     case rlc_cfg_c::types_opts::am:
       break;
@@ -100,7 +100,7 @@ rlc_config_t make_rlc_config_t(const rlc_cfg_c& asn1_type)
   return rlc_cfg;
 }
 
-srslte::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue, const pdcp_cfg_s& pdcp_cfg)
+srsran::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue, const pdcp_cfg_s& pdcp_cfg)
 {
   // TODO: complete config processing
   // TODO: check if is drb_cfg.pdcp_cfg.drb_present if not return Error
@@ -170,14 +170,14 @@ srslte::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue
     }
   }
 
-  uint8_t sn_len = srslte::PDCP_SN_LEN_12;
+  uint8_t sn_len = srsran::PDCP_SN_LEN_12;
   if (pdcp_cfg.drb.pdcp_sn_size_dl_present) {
     switch (pdcp_cfg.drb.pdcp_sn_size_dl.value) {
       case pdcp_cfg_s::drb_s_::pdcp_sn_size_dl_opts::options::len12bits:
-        sn_len = srslte::PDCP_SN_LEN_12;
+        sn_len = srsran::PDCP_SN_LEN_12;
         break;
       case pdcp_cfg_s::drb_s_::pdcp_sn_size_dl_opts::options::len18bits:
-        sn_len = srslte::PDCP_SN_LEN_18;
+        sn_len = srsran::PDCP_SN_LEN_18;
       default:
         break;
     }
@@ -194,7 +194,7 @@ srslte::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue
   return cfg;
 }
 
-} // namespace srslte
+} // namespace srsran
 
 namespace srsenb {
 
@@ -214,13 +214,13 @@ int set_sched_cell_cfg_sib1(srsenb::sched_interface::cell_cfg_t* sched_cfg, cons
   // setup PRACH
   if (not sib1.si_sched_info.si_request_cfg.rach_occasions_si_present) {
     asn1::log_error("Expected RA Resp Win present\n");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   sched_cfg->prach_rar_window = sib1.si_sched_info.si_request_cfg.rach_occasions_si.rach_cfg_si.ra_resp_win.to_number();
   sched_cfg->prach_freq_offset = sib1.si_sched_info.si_request_cfg.rach_occasions_si.rach_cfg_si.msg1_freq_start;
   sched_cfg->maxharq_msg3tx    = sib1.si_sched_info.si_request_cfg.rach_occasions_si.rach_cfg_si.preamb_trans_max;
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 } // namespace srsenb

@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -15,9 +15,9 @@
 #include <stdlib.h>
 #include <sys/time.h>
 
-#include "srslte/common/security.h"
-#include "srslte/common/test_common.h"
-#include "srslte/srslte.h"
+#include "srsran/common/security.h"
+#include "srsran/common/test_common.h"
+#include "srsran/srsran.h"
 
 /*
  * Tests
@@ -39,12 +39,12 @@ int test_set_1()
   uint8_t mac[4];
 
   // gen mac
-  srslte::security_128_eia1(key, count, bearer, direction, msg, len_bytes, mac);
+  srsran::security_128_eia1(key, count, bearer, direction, msg, len_bytes, mac);
 
   for (int i = 0; i < 4; i++) {
     TESTASSERT(mac[i] == mt[i]);
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_set_4()
@@ -65,12 +65,12 @@ int test_set_4()
   uint8_t mac[4];
 
   // gen mac
-  srslte::security_128_eia1(key, count, bearer, direction, msg, len_bytes, mac);
+  srsran::security_128_eia1(key, count, bearer, direction, msg, len_bytes, mac);
 
   for (int i = 0; i < 4; i++) {
     TESTASSERT(mac[i] == mt[i]);
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_set_7()
@@ -197,12 +197,12 @@ int test_set_7()
   uint8_t mac[4];
 
   // gen mac
-  srslte::security_128_eia1(key, count, bearer, direction, msg, len_bytes, mac);
+  srsran::security_128_eia1(key, count, bearer, direction, msg, len_bytes, mac);
 
   for (int i = 0; i < 4; i++) {
     TESTASSERT(mac[i] == mt[i]);
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 /*
  * Functions
@@ -210,8 +210,8 @@ int test_set_7()
 
 int main(int argc, char* argv[])
 {
-  TESTASSERT(test_set_1() == SRSLTE_SUCCESS);
-  TESTASSERT(test_set_4() == SRSLTE_SUCCESS);
-  TESTASSERT(test_set_7() == SRSLTE_SUCCESS);
-  return SRSLTE_SUCCESS;
+  TESTASSERT(test_set_1() == SRSRAN_SUCCESS);
+  TESTASSERT(test_set_4() == SRSRAN_SUCCESS);
+  TESTASSERT(test_set_7() == SRSRAN_SUCCESS);
+  return SRSRAN_SUCCESS;
 }

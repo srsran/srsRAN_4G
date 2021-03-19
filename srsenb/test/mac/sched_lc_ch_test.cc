@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -13,7 +13,7 @@
 #include "sched_test_common.h"
 #include "sched_test_utils.h"
 #include "srsenb/hdr/stack/mac/sched_ue.h"
-#include "srslte/common/test_common.h"
+#include "srsran/common/test_common.h"
 
 using namespace srsenb;
 const uint32_t seed = std::chrono::system_clock::now().time_since_epoch().count();
@@ -39,7 +39,7 @@ int test_pdu_alloc_successful(srsenb::lch_ue_manager&          lch_handler,
   TESTASSERT(lch_handler.alloc_rlc_pdu(&pdu, mac_sdu_size) == (int)mac_sdu_size);
   TESTASSERT(pdu.lcid == (uint32_t)lcid);
   TESTASSERT(pdu.nbytes == mac_sdu_size);
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_retx_until_empty(srsenb::lch_ue_manager& lch_handler, int lcid, uint32_t rlc_payload_size)
@@ -51,7 +51,7 @@ int test_retx_until_empty(srsenb::lch_ue_manager& lch_handler, int lcid, uint32_
   sched_interface::dl_sched_pdu_t pdu;
   for (int i = 0; i < nof_pdus; ++i) {
     uint32_t expected_payload_size = std::min(rlc_payload_size, (uint32_t)rem_rlc_bytes);
-    TESTASSERT(test_pdu_alloc_successful(lch_handler, pdu, lcid, expected_payload_size) == SRSLTE_SUCCESS);
+    TESTASSERT(test_pdu_alloc_successful(lch_handler, pdu, lcid, expected_payload_size) == SRSRAN_SUCCESS);
     rem_rlc_bytes -= expected_payload_size;
     TESTASSERT(lch_handler.get_dl_retx(lcid) == rem_rlc_bytes);
   }
@@ -67,7 +67,7 @@ int test_newtx_until_empty(srsenb::lch_ue_manager& lch_handler, int lcid, uint32
   sched_interface::dl_sched_pdu_t pdu;
   for (int i = 0; i < nof_pdus; ++i) {
     uint32_t expected_payload_size = std::min(rlc_payload_size, (uint32_t)rem_rlc_bytes);
-    TESTASSERT(test_pdu_alloc_successful(lch_handler, pdu, lcid, expected_payload_size) == SRSLTE_SUCCESS);
+    TESTASSERT(test_pdu_alloc_successful(lch_handler, pdu, lcid, expected_payload_size) == SRSRAN_SUCCESS);
     rem_rlc_bytes -= expected_payload_size;
     TESTASSERT(lch_handler.get_dl_tx(lcid) == (int)rem_rlc_bytes);
   }
@@ -120,7 +120,7 @@ int test_lc_ch_pbr_infinity()
   nof_pending_bytes = lch_handler.get_dl_tx(srsenb::RB_ID_DRB1);
   TESTASSERT(test_newtx_until_empty(lch_handler, srsenb::RB_ID_DRB1, 500) == nof_pending_bytes);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_lc_ch_pbr_finite()
@@ -166,32 +166,32 @@ int test_lc_ch_pbr_finite()
   TESTASSERT(test_newtx_until_empty(lch_handler, srsenb::RB_ID_SRB1, 500) == nof_pending_bytes);
 
   // TEST4 - DRB2 has higher priority so it gets allocated until Bj <= 0
-  TESTASSERT(test_pdu_alloc_successful(lch_handler, pdu, srsenb::RB_ID_DRB2, 200) == SRSLTE_SUCCESS);
+  TESTASSERT(test_pdu_alloc_successful(lch_handler, pdu, srsenb::RB_ID_DRB2, 200) == SRSRAN_SUCCESS);
   // Bj={0, infinity, 0, 12800, 200}
-  TESTASSERT(test_pdu_alloc_successful(lch_handler, pdu, srsenb::RB_ID_DRB2, 600) == SRSLTE_SUCCESS);
+  TESTASSERT(test_pdu_alloc_successful(lch_handler, pdu, srsenb::RB_ID_DRB2, 600) == SRSRAN_SUCCESS);
   // Bj={0, infinity, 0, 256000, -400}
 
   // TEST5 - DRB1 has lower prio, but DRB2 Bj <= 0.
   for (uint32_t i = 0; i < 50; ++i) {
     lch_handler.new_tti();
-    TESTASSERT(test_pdu_alloc_successful(lch_handler, pdu, srsenb::RB_ID_DRB1, 50) == SRSLTE_SUCCESS);
+    TESTASSERT(test_pdu_alloc_successful(lch_handler, pdu, srsenb::RB_ID_DRB1, 50) == SRSRAN_SUCCESS);
   }
 
   // TEST6 - new tti restores DRB2 Bj>=0, and DRB2 gets allocated
   lch_handler.new_tti();
   // Bj={0, infinity, 0, 256000, 8}
-  TESTASSERT(test_pdu_alloc_successful(lch_handler, pdu, srsenb::RB_ID_DRB2, 50) == SRSLTE_SUCCESS);
+  TESTASSERT(test_pdu_alloc_successful(lch_handler, pdu, srsenb::RB_ID_DRB2, 50) == SRSRAN_SUCCESS);
   // Bj={0, infinity, 0, 256000, -42}
   lch_handler.new_tti();
-  TESTASSERT(test_pdu_alloc_successful(lch_handler, pdu, srsenb::RB_ID_DRB1, 50) == SRSLTE_SUCCESS);
+  TESTASSERT(test_pdu_alloc_successful(lch_handler, pdu, srsenb::RB_ID_DRB1, 50) == SRSRAN_SUCCESS);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int main()
 {
   srsenb::set_randseed(seed);
-  srslte::console("This is the chosen seed: %u\n", seed);
+  srsran::console("This is the chosen seed: %u\n", seed);
 
   auto& test_log = srslog::fetch_basic_logger("TEST", false);
   test_log.set_level(srslog::basic_levels::info);
@@ -199,10 +199,10 @@ int main()
   // Start the log backend.
   srslog::init();
 
-  TESTASSERT(test_lc_ch_pbr_infinity() == SRSLTE_SUCCESS);
-  TESTASSERT(test_lc_ch_pbr_finite() == SRSLTE_SUCCESS);
+  TESTASSERT(test_lc_ch_pbr_infinity() == SRSRAN_SUCCESS);
+  TESTASSERT(test_lc_ch_pbr_finite() == SRSRAN_SUCCESS);
 
   srslog::flush();
 
-  srslte::console("Success\n");
+  srsran::console("Success\n");
 }

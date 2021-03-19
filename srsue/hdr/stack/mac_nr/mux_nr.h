@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -13,10 +13,10 @@
 #ifndef SRSUE_MUX_NR_H
 #define SRSUE_MUX_NR_H
 
-#include "srslte/common/byte_buffer.h"
-#include "srslte/common/common.h"
-#include "srslte/srslog/srslog.h"
-#include "srslte/srslte.h"
+#include "srsran/common/byte_buffer.h"
+#include "srsran/common/common.h"
+#include "srsran/srslog/srslog.h"
+#include "srsran/srsran.h"
 
 namespace srsue {
 class mux_nr
@@ -38,7 +38,7 @@ public:
 
 private:
   srslog::basic_logger&        logger;
-  srslte::unique_byte_buffer_t msg3_buff = nullptr;
+  srsran::unique_byte_buffer_t msg3_buff = nullptr;
   typedef enum { none, pending, transmitted } msg3_state_t;
   msg3_state_t msg3_state = none;
 };

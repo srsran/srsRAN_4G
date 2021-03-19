@@ -13,7 +13,7 @@ DESCRIPTION
     - S/P-GW with standard SGi exposed as virtual network interface (TUN device)
     - HSS (Home Subscriber Server) with configurable user database in CSV format
 
-  An example configuration file is available in /usr/share/srslte/epc.conf.example
+  An example configuration file is available in /usr/share/srsran/epc.conf.example
 
 OPTIONS
 

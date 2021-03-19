@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,10 +10,10 @@
  *
  */
 
-#include "srslte/common/test_common.h"
-#include "srslte/common/tti_point.h"
+#include "srsran/common/test_common.h"
+#include "srsran/common/tti_point.h"
 
-using srslte::tti_point;
+using srsran::tti_point;
 
 int test_tti_type()
 {
@@ -63,12 +63,12 @@ int test_tti_type()
   TESTASSERT(tti_point{1u - 100u} == tti_point{10141});
   TESTASSERT(tti_point{10239u + 3u} == tti_point{2});
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int main()
 {
   srslog::init();
-  TESTASSERT(test_tti_type() == SRSLTE_SUCCESS);
+  TESTASSERT(test_tti_type() == SRSRAN_SUCCESS);
   return 0;
 }

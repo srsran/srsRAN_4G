@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -11,7 +11,7 @@
  */
 
 #include "srsenb/hdr/stack/mac/sched_ue_ctrl/tpc.h"
-#include "srslte/common/test_common.h"
+#include "srsran/common/test_common.h"
 
 namespace srsenb {
 
@@ -66,7 +66,7 @@ int test_finite_target_snr()
     TESTASSERT(sum_pucch > 0 and sum_pucch <= -snr_diff);
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_undefined_target_snr()
@@ -138,7 +138,7 @@ int test_undefined_target_snr()
   TESTASSERT(sum_pusch <= 0 and sum_pusch >= -1);
   TESTASSERT(sum_pucch <= 0 and sum_pucch >= -1);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 } // namespace srsenb

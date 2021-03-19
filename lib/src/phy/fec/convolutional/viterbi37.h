@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,8 +10,8 @@
  *
  */
 
-#ifndef SRSLTE_VITERBI37_H_
-#define SRSLTE_VITERBI37_H_
+#ifndef SRSRAN_VITERBI37_H_
+#define SRSRAN_VITERBI37_H_
 
 #include <stdbool.h>
 
@@ -73,4 +73,4 @@ void delete_viterbi37_avx2_16bit(void* p);
 
 int update_viterbi37_blk_avx2_16bit(void* p, uint16_t* syms, uint32_t nbits, uint32_t* best_state);
 
-#endif /* SRSLTE_VITERBI37_H_ */
+#endif /* SRSRAN_VITERBI37_H_ */

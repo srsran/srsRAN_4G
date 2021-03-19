@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -13,10 +13,10 @@
 #include <string.h>
 
 #include "srsenb/hdr/stack/mac/sched.h"
-#include "srslte/common/log_helper.h"
-#include "srslte/mac/pdu.h"
+#include "srsran/common/log_helper.h"
+#include "srsran/mac/pdu.h"
 
-using srslte::tti_point;
+using srsran::tti_point;
 
 namespace srsenb {
 
@@ -52,7 +52,7 @@ uint32_t harq_proc::get_id() const
 
 bool harq_proc::is_empty() const
 {
-  for (uint32_t i = 0; i < SRSLTE_MAX_TB; ++i) {
+  for (uint32_t i = 0; i < SRSRAN_MAX_TB; ++i) {
     if (not is_empty(i)) {
       return false;
     }
@@ -79,7 +79,7 @@ int harq_proc::set_ack_common(uint32_t tb_idx, bool ack_)
 {
   if (is_empty(tb_idx)) {
     logger->warning("Received ACK for inactive harq");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   ack_state[tb_idx] = ack_;
   logger->debug("ACK=%d received pid=%d, tb_idx=%d, n_rtx=%d, max_retx=%d", ack_, id, tb_idx, n_rtx[tb_idx], max_retx);
@@ -93,7 +93,7 @@ int harq_proc::set_ack_common(uint32_t tb_idx, bool ack_)
   } else if (ack_) {
     active[tb_idx] = false;
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 void harq_proc::new_tx_common(uint32_t tb_idx, tti_point tti_, int mcs, int tbs, uint32_t max_retx_)
@@ -252,7 +252,7 @@ void ul_harq_proc::new_retx(tti_point tti_, int* mcs, int* tbs, prb_interval all
   pending_phich = true;
 }
 
-bool ul_harq_proc::retx_requires_pdcch(srslte::tti_point tti_, prb_interval alloc) const
+bool ul_harq_proc::retx_requires_pdcch(srsran::tti_point tti_, prb_interval alloc) const
 {
   return alloc != allocation or tti_ != to_tx_ul(tti);
 }
@@ -315,12 +315,12 @@ harq_entity::harq_entity(size_t nof_dl_harqs, size_t nof_ul_harqs) : dl_harqs(no
 void harq_entity::reset()
 {
   for (auto& h : dl_harqs) {
-    for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+    for (uint32_t tb = 0; tb < SRSRAN_MAX_TB; tb++) {
       h.reset(tb);
     }
   }
   for (auto& h : ul_harqs) {
-    for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+    for (uint32_t tb = 0; tb < SRSRAN_MAX_TB; tb++) {
       h.reset(tb);
     }
   }
@@ -355,7 +355,7 @@ std::pair<uint32_t, int> harq_entity::set_ack_info(tti_point tti_rx, uint32_t tb
 {
   for (auto& h : dl_harqs) {
     if (h.get_tti() + FDD_HARQ_DELAY_DL_MS == tti_rx) {
-      if (h.set_ack(tb_idx, ack) == SRSLTE_SUCCESS) {
+      if (h.set_ack(tb_idx, ack) == SRSRAN_SUCCESS) {
         return {h.get_id(), h.get_tbs(tb_idx)};
       }
       return {h.get_id(), -1};

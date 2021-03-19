@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -14,9 +14,9 @@
 #include "rf_helper.h"
 #include "rf_zmq_imp_trx.h"
 #include <math.h>
-#include <srslte/phy/common/phy_common.h>
-#include <srslte/phy/common/timestamp.h>
-#include <srslte/phy/utils/vector.h>
+#include <srsran/phy/common/phy_common.h>
+#include <srsran/phy/common/timestamp.h>
+#include <srsran/phy/utils/vector.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -25,7 +25,7 @@
 typedef struct {
   // Common attributes
   char*            devname;
-  srslte_rf_info_t info;
+  srsran_rf_info_t info;
   uint32_t         nof_channels;
 
   // RF State
@@ -33,18 +33,18 @@ typedef struct {
   uint32_t base_srate;
   uint32_t decim_factor; // decimation factor between base_srate used on transport on radio's rate
   double   rx_gain;
-  uint32_t tx_freq_mhz[SRSLTE_MAX_CHANNELS];
-  uint32_t rx_freq_mhz[SRSLTE_MAX_CHANNELS];
+  uint32_t tx_freq_mhz[SRSRAN_MAX_CHANNELS];
+  uint32_t rx_freq_mhz[SRSRAN_MAX_CHANNELS];
   bool     tx_off;
   char     id[RF_PARAM_LEN];
 
   // Server
   void*       context;
-  rf_zmq_tx_t transmitter[SRSLTE_MAX_CHANNELS];
-  rf_zmq_rx_t receiver[SRSLTE_MAX_CHANNELS];
+  rf_zmq_tx_t transmitter[SRSRAN_MAX_CHANNELS];
+  rf_zmq_rx_t receiver[SRSRAN_MAX_CHANNELS];
 
   // Various sample buffers
-  cf_t* buffer_decimation[SRSLTE_MAX_CHANNELS];
+  cf_t* buffer_decimation[SRSRAN_MAX_CHANNELS];
   cf_t* buffer_tx;
 
   // Rx timestamp
@@ -93,19 +93,19 @@ void rf_zmq_error(char* id, const char* format, ...)
 
 static inline int update_ts(void* h, uint64_t* ts, int nsamples, const char* dir)
 {
-  int ret = SRSLTE_ERROR;
+  int ret = SRSRAN_ERROR;
 
   if (h && nsamples > 0) {
     rf_zmq_handler_t* handler = (rf_zmq_handler_t*)h;
 
     (*ts) += nsamples;
 
-    srslte_timestamp_t _ts = {};
-    srslte_timestamp_init_uint64(&_ts, *ts, handler->base_srate);
+    srsran_timestamp_t _ts = {};
+    srsran_timestamp_init_uint64(&_ts, *ts, handler->base_srate);
     rf_zmq_info(
         handler->id, "    -> next %s time after %d samples: %d + %.3f\n", dir, nsamples, _ts.full_secs, _ts.frac_secs);
 
-    ret = SRSLTE_SUCCESS;
+    ret = SRSRAN_SUCCESS;
   }
 
   return ret;
@@ -113,7 +113,7 @@ static inline int update_ts(void* h, uint64_t* ts, int nsamples, const char* dir
 
 int rf_zmq_handle_error(char* id, const char* text)
 {
-  int ret = SRSLTE_SUCCESS;
+  int ret = SRSRAN_SUCCESS;
 
   int err = zmq_errno();
 
@@ -126,7 +126,7 @@ int rf_zmq_handle_error(char* id, const char* text)
 
     // critical non-handled errors
     default:
-      ret = SRSLTE_ERROR;
+      ret = SRSRAN_ERROR;
       rf_zmq_error(id, "Error %s: %s\n", text, zmq_strerror(err));
   }
 
@@ -142,7 +142,7 @@ void rf_zmq_suppress_stdout(void* h)
   // do nothing
 }
 
-void rf_zmq_register_error_handler(void* h, srslte_rf_error_handler_t new_handler, void* arg)
+void rf_zmq_register_error_handler(void* h, srsran_rf_error_handler_t new_handler, void* arg)
 {
   // do nothing
 }
@@ -154,7 +154,7 @@ const char* rf_zmq_devname(void* h)
 
 int rf_zmq_start_rx_stream(void* h, bool now)
 {
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int rf_zmq_stop_rx_stream(void* h)
@@ -184,14 +184,14 @@ int rf_zmq_open(char* args, void** h)
 
 int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
 {
-  int ret = SRSLTE_ERROR;
-  if (h && nof_channels < SRSLTE_MAX_CHANNELS) {
+  int ret = SRSRAN_ERROR;
+  if (h && nof_channels < SRSRAN_MAX_CHANNELS) {
     *h = NULL;
 
     rf_zmq_handler_t* handler = (rf_zmq_handler_t*)malloc(sizeof(rf_zmq_handler_t));
     if (!handler) {
       perror("malloc");
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
     bzero(handler, sizeof(rf_zmq_handler_t));
     *h                        = handler;
@@ -231,7 +231,7 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
 
       // rx_type
       char tmp[RF_PARAM_LEN] = {0};
-      if (parse_string(args, "rx_type", -1, tmp) == SRSLTE_SUCCESS) {
+      if (parse_string(args, "rx_type", -1, tmp) == SRSRAN_SUCCESS) {
         if (!strcmp(tmp, "sub")) {
           rx_opts.socket_type = ZMQ_SUB;
         } else {
@@ -242,7 +242,7 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
 
       // rx_format
       rx_opts.sample_format = ZMQ_TYPE_FC32;
-      if (parse_string(args, "rx_format", -1, tmp) == SRSLTE_SUCCESS) {
+      if (parse_string(args, "rx_format", -1, tmp) == SRSRAN_SUCCESS) {
         if (!strcmp(tmp, "sc16")) {
           rx_opts.sample_format = ZMQ_TYPE_SC16;
         } else {
@@ -252,7 +252,7 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
       }
 
       // tx_type
-      if (parse_string(args, "tx_type", -1, tmp) == SRSLTE_SUCCESS) {
+      if (parse_string(args, "tx_type", -1, tmp) == SRSRAN_SUCCESS) {
         if (!strcmp(tmp, "pub")) {
           tx_opts.socket_type = ZMQ_PUB;
         } else {
@@ -263,7 +263,7 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
 
       // tx_format
       tx_opts.sample_format = ZMQ_TYPE_FC32;
-      if (parse_string(args, "tx_format", -1, tmp) == SRSLTE_SUCCESS) {
+      if (parse_string(args, "tx_format", -1, tmp) == SRSRAN_SUCCESS) {
         if (!strcmp(tmp, "sc16")) {
           tx_opts.sample_format = ZMQ_TYPE_SC16;
         } else {
@@ -330,7 +330,7 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
 
       // initialize transmitter
       if (strlen(tx_port) != 0) {
-        if (rf_zmq_tx_open(&handler->transmitter[i], tx_opts, handler->context, tx_port) != SRSLTE_SUCCESS) {
+        if (rf_zmq_tx_open(&handler->transmitter[i], tx_opts, handler->context, tx_port) != SRSRAN_SUCCESS) {
           fprintf(stderr, "[zmq] Error: opening transmitter\n");
           goto clean_exit;
         }
@@ -341,7 +341,7 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
 
       // initialize receiver
       if (strlen(rx_port) != 0) {
-        if (rf_zmq_rx_open(&handler->receiver[i], rx_opts, handler->context, rx_port) != SRSLTE_SUCCESS) {
+        if (rf_zmq_rx_open(&handler->receiver[i], rx_opts, handler->context, rx_port) != SRSRAN_SUCCESS) {
           fprintf(stderr, "[zmq] Error: opening receiver\n");
           goto clean_exit;
         }
@@ -357,20 +357,20 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
 
     // Create decimation and overflow buffer
     for (uint32_t i = 0; i < handler->nof_channels; i++) {
-      handler->buffer_decimation[i] = srslte_vec_malloc(ZMQ_MAX_BUFFER_SIZE);
+      handler->buffer_decimation[i] = srsran_vec_malloc(ZMQ_MAX_BUFFER_SIZE);
       if (!handler->buffer_decimation[i]) {
         fprintf(stderr, "Error: allocating decimation buffer\n");
         goto clean_exit;
       }
     }
 
-    handler->buffer_tx = srslte_vec_malloc(ZMQ_MAX_BUFFER_SIZE);
+    handler->buffer_tx = srsran_vec_malloc(ZMQ_MAX_BUFFER_SIZE);
     if (!handler->buffer_tx) {
       fprintf(stderr, "Error: allocating tx buffer\n");
       goto clean_exit;
     }
 
-    ret = SRSLTE_SUCCESS;
+    ret = SRSRAN_SUCCESS;
 
   clean_exit:
     if (ret) {
@@ -412,7 +412,7 @@ int rf_zmq_close(void* h)
   // Free all
   free(handler);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 void update_rates(rf_zmq_handler_t* handler, double srate)
@@ -465,7 +465,7 @@ int rf_zmq_set_rx_gain(void* h, double gain)
     rf_zmq_handler_t* handler = (rf_zmq_handler_t*)h;
     handler->rx_gain          = gain;
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int rf_zmq_set_rx_gain_ch(void* h, uint32_t ch, double gain)
@@ -475,7 +475,7 @@ int rf_zmq_set_rx_gain_ch(void* h, uint32_t ch, double gain)
 
 int rf_zmq_set_tx_gain(void* h, double gain)
 {
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int rf_zmq_set_tx_gain_ch(void* h, uint32_t ch, double gain)
@@ -498,9 +498,9 @@ double rf_zmq_get_tx_gain(void* h)
   return 0.0;
 }
 
-srslte_rf_info_t* rf_zmq_get_info(void* h)
+srsran_rf_info_t* rf_zmq_get_info(void* h)
 {
-  srslte_rf_info_t* info = NULL;
+  srsran_rf_info_t* info = NULL;
   if (h) {
     rf_zmq_handler_t* handler = (rf_zmq_handler_t*)h;
     info                      = &handler->info;
@@ -604,14 +604,14 @@ int rf_zmq_recv_with_time_multi(void*    h,
                                 time_t*  secs,
                                 double*  frac_secs)
 {
-  int ret = SRSLTE_ERROR;
+  int ret = SRSRAN_ERROR;
 
   if (h) {
     rf_zmq_handler_t* handler = (rf_zmq_handler_t*)h;
 
     // Map ports to data buffers according to the selected frequencies
     pthread_mutex_lock(&handler->rx_config_mutex);
-    cf_t* buffers[SRSLTE_MAX_CHANNELS] = {}; // Buffer pointers, NULL if unmatched
+    cf_t* buffers[SRSRAN_MAX_CHANNELS] = {}; // Buffer pointers, NULL if unmatched
     for (uint32_t i = 0; i < handler->nof_channels; i++) {
       bool mapped = false;
 
@@ -644,8 +644,8 @@ int rf_zmq_recv_with_time_multi(void*    h,
 
     // set timestamp for this reception
     if (secs != NULL && frac_secs != NULL) {
-      srslte_timestamp_t ts = {};
-      srslte_timestamp_init_uint64(&ts, handler->next_rx_ts, handler->base_srate);
+      srsran_timestamp_t ts = {};
+      srsran_timestamp_init_uint64(&ts, handler->next_rx_ts, handler->base_srate);
       *secs      = ts.full_secs;
       *frac_secs = ts.frac_secs;
     }
@@ -667,9 +667,9 @@ int rf_zmq_recv_with_time_multi(void*    h,
     }
 
     // receive samples
-    srslte_timestamp_t ts_tx = {}, ts_rx = {};
-    srslte_timestamp_init_uint64(&ts_tx, handler->transmitter[0].nsamples, handler->base_srate);
-    srslte_timestamp_init_uint64(&ts_rx, handler->next_rx_ts, handler->base_srate);
+    srsran_timestamp_t ts_tx = {}, ts_rx = {};
+    srsran_timestamp_init_uint64(&ts_tx, handler->transmitter[0].nsamples, handler->base_srate);
+    srsran_timestamp_init_uint64(&ts_rx, handler->next_rx_ts, handler->base_srate);
     rf_zmq_info(handler->id, " - next rx time: %d + %.3f\n", ts_rx.full_secs, ts_rx.frac_secs);
     rf_zmq_info(handler->id, " - next tx time: %d + %.3f\n", ts_tx.full_secs, ts_tx.frac_secs);
 
@@ -685,7 +685,7 @@ int rf_zmq_recv_with_time_multi(void*    h,
 
     // copy from rx buffer as many samples as requested into provided buffer
     bool    completed                  = false;
-    int32_t count[SRSLTE_MAX_CHANNELS] = {};
+    int32_t count[SRSRAN_MAX_CHANNELS] = {};
     while (!completed) {
       uint32_t completed_count = 0;
 
@@ -714,10 +714,10 @@ int rf_zmq_recv_with_time_multi(void*    h,
             }
           }
 #endif // ZMQ_MONITOR
-          if (n > SRSLTE_SUCCESS) {
+          if (n > SRSRAN_SUCCESS) {
             // No error
             count[i] += n;
-          } else if (n == SRSLTE_ERROR_TIMEOUT) {
+          } else if (n == SRSRAN_ERROR_TIMEOUT) {
             if (handler->receiver[i].log_trx_timeout) {
               fprintf(stderr, "Error: timeout receiving samples after %dms\n", handler->receiver[i].trx_timeout_ms);
             }
@@ -725,7 +725,7 @@ int rf_zmq_recv_with_time_multi(void*    h,
             if (handler->receiver[i].fail_on_disconnect) {
               goto clean_exit;
             }
-          } else if (n < SRSLTE_SUCCESS) {
+          } else if (n < SRSRAN_SUCCESS) {
             // Other error, exit
             fprintf(stderr, "Error: receiving data.\n");
             goto clean_exit;
@@ -742,7 +742,7 @@ int rf_zmq_recv_with_time_multi(void*    h,
     rf_zmq_info(handler->id,
                 " - read %d samples. %d samples available\n",
                 NBYTES2NSAMPLES(nbytes),
-                NBYTES2NSAMPLES(srslte_ringbuffer_status(&handler->receiver[0].ringbuffer)));
+                NBYTES2NSAMPLES(srsran_ringbuffer_status(&handler->receiver[0].ringbuffer)));
 
     // decimate if needed
     if (decim_factor != 1) {
@@ -771,10 +771,10 @@ int rf_zmq_recv_with_time_multi(void*    h,
     }
 
     // Set gain
-    float scale = srslte_convert_dB_to_amplitude(handler->rx_gain);
+    float scale = srsran_convert_dB_to_amplitude(handler->rx_gain);
     for (uint32_t c = 0; c < handler->nof_channels; c++) {
       if (buffers[c]) {
-        srslte_vec_sc_prod_cfc(buffers[c], scale, buffers[c], nsamples);
+        srsran_vec_sc_prod_cfc(buffers[c], scale, buffers[c], nsamples);
       }
     }
 
@@ -816,14 +816,14 @@ int rf_zmq_send_timed_multi(void*  h,
                             bool   is_start_of_burst,
                             bool   is_end_of_burst)
 {
-  int ret = SRSLTE_ERROR;
+  int ret = SRSRAN_ERROR;
 
   if (h && data && nsamples > 0) {
     rf_zmq_handler_t* handler = (rf_zmq_handler_t*)h;
 
     // Map ports to data buffers according to the selected frequencies
     pthread_mutex_lock(&handler->tx_config_mutex);
-    cf_t* buffers[SRSLTE_MAX_CHANNELS] = {}; // Buffer pointers, NULL if unmatched
+    cf_t* buffers[SRSRAN_MAX_CHANNELS] = {}; // Buffer pointers, NULL if unmatched
     for (uint32_t i = 0; i < handler->nof_channels; i++) {
       bool mapped = false;
 
@@ -856,16 +856,16 @@ int rf_zmq_send_timed_multi(void*  h,
 
     // return if transmitter is switched off
     if (handler->tx_off) {
-      return SRSLTE_SUCCESS;
+      return SRSRAN_SUCCESS;
     }
 
     // check if this is a tx in the future
     if (has_time_spec) {
       rf_zmq_info(handler->id, "    - tx time: %d + %.3f\n", secs, frac_secs);
 
-      srslte_timestamp_t ts = {};
-      srslte_timestamp_init(&ts, secs, frac_secs);
-      uint64_t tx_ts              = srslte_timestamp_uint64(&ts, handler->base_srate);
+      srsran_timestamp_t ts = {};
+      srsran_timestamp_init(&ts, secs, frac_secs);
+      uint64_t tx_ts              = srsran_timestamp_uint64(&ts, handler->base_srate);
       int      num_tx_gap_samples = 0;
 
       for (int i = 0; i < handler->nof_channels; i++) {
@@ -917,19 +917,19 @@ int rf_zmq_send_timed_multi(void*  h,
         }
 
         int n = rf_zmq_tx_baseband(&handler->transmitter[i], buf, nsamples_baseband);
-        if (n == SRSLTE_ERROR) {
+        if (n == SRSRAN_ERROR) {
           goto clean_exit;
         }
       } else {
         int n = rf_zmq_tx_zeros(&handler->transmitter[i], nsamples_baseband);
-        if (n == SRSLTE_ERROR) {
+        if (n == SRSRAN_ERROR) {
           goto clean_exit;
         }
       }
     }
   }
 
-  ret = SRSLTE_SUCCESS;
+  ret = SRSRAN_SUCCESS;
 
 clean_exit:
 

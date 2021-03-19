@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -16,7 +16,7 @@
 #include <stdlib.h>
 
 #include "parity.h"
-#include "srslte/phy/fec/convolutional/convcoder.h"
+#include "srsran/phy/fec/convolutional/convcoder.h"
 
 /**
  * Convolution encodes according to given parameters.
@@ -31,7 +31,7 @@
  * @param[in] frame_length Number of bits in input_array
  * @return Number of bits in output
  */
-int srslte_convcoder_encode(srslte_convcoder_t* q, uint8_t* input, uint8_t* output, uint32_t frame_length)
+int srsran_convcoder_encode(srsran_convcoder_t* q, uint8_t* input, uint8_t* output, uint32_t frame_length)
 {
   uint32_t sr;
   uint32_t i, j;
@@ -55,6 +55,6 @@ int srslte_convcoder_encode(srslte_convcoder_t* q, uint8_t* input, uint8_t* outp
     }
     return q->R * len;
   } else {
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 }

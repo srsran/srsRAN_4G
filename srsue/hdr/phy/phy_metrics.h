@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -13,7 +13,7 @@
 #ifndef SRSUE_PHY_METRICS_H
 #define SRSUE_PHY_METRICS_H
 
-#include "srslte/srslte.h"
+#include "srsran/srsran.h"
 
 namespace srsue {
 
@@ -52,11 +52,11 @@ struct ul_metrics_t {
 };
 
 struct phy_metrics_t {
-  info_metrics_t info[SRSLTE_MAX_CARRIERS];
-  sync_metrics_t sync[SRSLTE_MAX_CARRIERS];
-  ch_metrics_t   ch[SRSLTE_MAX_CARRIERS];
-  dl_metrics_t   dl[SRSLTE_MAX_CARRIERS];
-  ul_metrics_t   ul[SRSLTE_MAX_CARRIERS];
+  info_metrics_t info[SRSRAN_MAX_CARRIERS];
+  sync_metrics_t sync[SRSRAN_MAX_CARRIERS];
+  ch_metrics_t   ch[SRSRAN_MAX_CARRIERS];
+  dl_metrics_t   dl[SRSRAN_MAX_CARRIERS];
+  ul_metrics_t   ul[SRSRAN_MAX_CARRIERS];
   uint32_t       nof_active_cc;
 };
 

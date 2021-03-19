@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -15,8 +15,8 @@
 
 #include "demux.h"
 #include "dl_sps.h"
-#include "srslte/common/mac_pcap.h"
-#include "srslte/common/timers.h"
+#include "srsran/common/mac_pcap.h"
+#include "srsran/common/timers.h"
 
 /* Downlink HARQ entity as defined in 5.3.2 of 36.321 */
 
@@ -29,11 +29,11 @@ public:
 
   bool init(mac_interface_rrc::ue_rnti_t* rntis, demux* demux_unit);
   void reset();
-  void start_pcap(srslte::mac_pcap* pcap_);
+  void start_pcap(srsran::mac_pcap* pcap_);
 
   /***************** PHY->MAC interface for DL processes **************************/
   void new_grant_dl(mac_interface_phy_lte::mac_grant_dl_t grant, mac_interface_phy_lte::tb_action_dl_t* action);
-  void tb_decoded(mac_interface_phy_lte::mac_grant_dl_t grant, bool ack[SRSLTE_MAX_CODEWORDS]);
+  void tb_decoded(mac_interface_phy_lte::mac_grant_dl_t grant, bool ack[SRSRAN_MAX_CODEWORDS]);
 
   void set_si_window_start(int si_window_start);
 
@@ -49,7 +49,7 @@ private:
     void reset_ndi();
 
     void new_grant_dl(mac_interface_phy_lte::mac_grant_dl_t grant, mac_interface_phy_lte::tb_action_dl_t* action);
-    void tb_decoded(mac_interface_phy_lte::mac_grant_dl_t grant, bool ack[SRSLTE_MAX_CODEWORDS]);
+    void tb_decoded(mac_interface_phy_lte::mac_grant_dl_t grant, bool ack[SRSRAN_MAX_CODEWORDS]);
 
     bool is_sps();
 
@@ -91,7 +91,7 @@ private:
       uint32_t n_retx;
 
       mac_interface_phy_lte::mac_grant_dl_t cur_grant;
-      srslte_softbuffer_rx_t                softbuffer;
+      srsran_softbuffer_rx_t                softbuffer;
     };
 
     /* Transport blocks */
@@ -108,7 +108,7 @@ private:
   dl_harq_process               bcch_proc;
   demux*                        demux_unit = nullptr;
   srslog::basic_logger&         logger;
-  srslte::mac_pcap*             pcap                = nullptr;
+  srsran::mac_pcap*             pcap                = nullptr;
   mac_interface_rrc::ue_rnti_t* rntis               = nullptr;
   uint16_t                      last_temporal_crnti = 0;
   int                           si_window_start     = 0;
@@ -119,7 +119,7 @@ private:
 };
 
 typedef std::unique_ptr<dl_harq_entity>                     dl_harq_entity_ptr;
-typedef std::array<dl_harq_entity_ptr, SRSLTE_MAX_CARRIERS> dl_harq_entity_vector;
+typedef std::array<dl_harq_entity_ptr, SRSRAN_MAX_CARRIERS> dl_harq_entity_vector;
 
 } // namespace srsue
 

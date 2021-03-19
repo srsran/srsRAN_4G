@@ -1,7 +1,7 @@
-Source: srslte
+Source: srsran
 Section: universe/misc
 Priority: optional
-Maintainer: srsLTE Packagers <packagers@softwareradiosystems.com>
+Maintainer: srsRAN Packagers <packagers@softwareradiosystems.com>
 Build-Depends:
     debhelper (>= 9),
     dh-exec,
@@ -17,25 +17,25 @@ Build-Depends:
     txt2man
 Standards-Version: 4.2.1
 Homepage: http://www.softwareradiosystems.com
-Vcs-Git: https://github.com/srsLTE/srsLTE.git
-Vcs-Browser: https://github.com/srsLTE/srsLTE/
+Vcs-Git: https://github.com/srsRAN/srsRAN.git
+Vcs-Browser: https://github.com/srsRAN/srsRAN/
 
-Package: srslte-dev
+Package: srsran-dev
 Architecture: any
 Multi-Arch: same
 Section: libdevel
 Depends: ${shlibs:Depends},
          ${misc:Depends},
-         srslte-core:any (= ${binary:Version})
+         srsran-core:any (= ${binary:Version})
 Breaks: srslte (<= 19.03-0ubuntu1)
 Replaces: srslte (<= 19.03-0ubuntu1)
-Description: Static libraries and headers for srslte
- This software allows you to run a full end-to-end, open-source LTE system.
+Description: Static libraries and headers for srsran
+ This software allows you to run a full end-to-end, open-source 4G/5G system.
  It contains a UE, eNB and EPC implementation.
  .
  This package contains the development files - static libraries and headers
 
-Package: srslte
+Package: srsran
 Architecture: all
 Depends: ${shlibs:Depends},
          ${misc:Depends},
@@ -46,13 +46,13 @@ Description: LTE software suite for software defined radios (metapackage)
  This software allows you to run a full end-to-end, open-source LTE system.
  It contains a UE, eNB and EPC implementation.
  .
- This package installs all srsLTE components.
+ This package installs all srsRAN components.
 
 Package: srsenb
 Architecture: any
 Depends: ${shlibs:Depends},
          ${misc:Depends},
-         srslte-core (= ${binary:Version})
+         srsran-core (= ${binary:Version})
 Breaks: srslte (<= 19.03-0ubuntu1)
 Replaces: srslte (<= 19.03-0ubuntu1)
 Description: Complete SDR LTE eNodeB application
@@ -66,25 +66,25 @@ Package: srsepc
 Architecture: any
 Depends: ${shlibs:Depends},
          ${misc:Depends},
-         srslte-core (= ${binary:Version})
+         srsran-core (= ${binary:Version})
 Recommends: srsenb
-Breaks: srslte (<= 19.03-0ubuntu1)
-Replaces: srslte (<= 19.03-0ubuntu1)
+Breaks: srsepc (<= 19.03-0ubuntu1)
+Replaces: srsepc (<= 19.03-0ubuntu1)
 Description: Light-weight LTE core network implementation
  This software allows you to run a full end-to-end, open-source LTE system.
  It contains a UE, eNB and EPC implementation.
  .
  This package contains a light-weight LTE core network implementation with MME, HSS and S/P-GW.
 
-Package: srslte-core
+Package: srsran-core
 Architecture: any
 Multi-Arch: allowed
 Depends: ${shlibs:Depends},
          ${misc:Depends}
-Breaks: srslte (<= 19.03-0ubuntu1)
-Replaces: srslte (<= 19.03-0ubuntu1)
-Description: Common files for srsLTE
- This software allows you to run a full end-to-end, open-source LTE system.
+Breaks: srslte-core (<= 19.03-0ubuntu1)
+Replaces: srslte-core (<= 19.03-0ubuntu1)
+Description: Common files for srsRAN
+ This software allows you to run a full end-to-end, open-source 4G/5G system.
  It contains a UE, eNB and EPC implementation.
  .
  This package contains the common files for srsenb, srsue and srsepc.
@@ -93,9 +93,9 @@ Package: srsue
 Architecture: any
 Depends: ${shlibs:Depends},
          ${misc:Depends},
-         srslte-core (= ${binary:Version})
-Breaks: srslte (<= 19.03-0ubuntu1)
-Replaces: srslte (<= 19.03-0ubuntu1)
+         srsran-core (= ${binary:Version})
+Breaks: srsue (<= 19.03-0ubuntu1)
+Replaces: srsue (<= 19.03-0ubuntu1)
 Description: User Equipment implementation for LTE
  This software enables using a software defined radio as the user equipment
  connecting to an LTE network.

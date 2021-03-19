@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,13 +10,13 @@
  *
  */
 
-#include "srslte/asn1/rrc_utils.h"
-#include "srslte/asn1/rrc.h"
-#include "srslte/config.h"
+#include "srsran/asn1/rrc_utils.h"
+#include "srsran/asn1/rrc.h"
+#include "srsran/config.h"
 #include <algorithm>
-#include <srslte/common/interfaces_common.h>
+#include <srsran/common/interfaces_common.h>
 
-namespace srslte {
+namespace srsran {
 
 using namespace asn1::rrc;
 
@@ -91,25 +91,25 @@ void to_asn1(asn1::rrc::s_tmsi_s* asn1_type, const s_tmsi_t& cfg)
  *        CQI Report Aperiodic
  **************************/
 
-srslte_cqi_report_mode_t make_aperiodic_mode(const asn1::rrc::cqi_report_mode_aperiodic_e asn_mode)
+srsran_cqi_report_mode_t make_aperiodic_mode(const asn1::rrc::cqi_report_mode_aperiodic_e asn_mode)
 {
   switch (asn_mode) {
     case asn1::rrc::cqi_report_mode_aperiodic_e::rm12:
-      return SRSLTE_CQI_MODE_12;
+      return SRSRAN_CQI_MODE_12;
     case asn1::rrc::cqi_report_mode_aperiodic_e::rm20:
-      return SRSLTE_CQI_MODE_20;
+      return SRSRAN_CQI_MODE_20;
     case asn1::rrc::cqi_report_mode_aperiodic_e::rm22:
-      return SRSLTE_CQI_MODE_22;
+      return SRSRAN_CQI_MODE_22;
     case asn1::rrc::cqi_report_mode_aperiodic_e::rm30:
-      return SRSLTE_CQI_MODE_30;
+      return SRSRAN_CQI_MODE_30;
     case asn1::rrc::cqi_report_mode_aperiodic_e::rm31:
-      return SRSLTE_CQI_MODE_31;
+      return SRSRAN_CQI_MODE_31;
     case asn1::rrc::cqi_report_mode_aperiodic_e::rm10_v1310:
     case asn1::rrc::cqi_report_mode_aperiodic_e::rm11_v1310:
     case asn1::rrc::cqi_report_mode_aperiodic_e::rm32_v1250:
       fprintf(stderr, "Aperiodic mode %s not handled\n", asn_mode.to_string().c_str());
     default:
-      return SRSLTE_CQI_MODE_NA;
+      return SRSRAN_CQI_MODE_NA;
   }
 }
 
@@ -124,9 +124,9 @@ static_assert((int)establishment_cause_t::nulltype == (int)asn1::rrc::establishm
  *      RLC Config
  **************************/
 
-srslte::rlc_config_t make_rlc_config_t(const asn1::rrc::rlc_cfg_c& asn1_type)
+srsran::rlc_config_t make_rlc_config_t(const asn1::rrc::rlc_cfg_c& asn1_type)
 {
-  srslte::rlc_config_t rlc_cfg;
+  srsran::rlc_config_t rlc_cfg;
   switch (asn1_type.type().value) {
     case asn1::rrc::rlc_cfg_c::types_opts::am:
       rlc_cfg.rlc_mode             = rlc_mode_t::am;
@@ -154,7 +154,7 @@ srslte::rlc_config_t make_rlc_config_t(const asn1::rrc::rlc_cfg_c& asn1_type)
   return rlc_cfg;
 }
 
-srslte::rlc_config_t make_rlc_config_t(const asn1::rrc::srb_to_add_mod_s& asn1_type)
+srsran::rlc_config_t make_rlc_config_t(const asn1::rrc::srb_to_add_mod_s& asn1_type)
 {
   if (asn1_type.rlc_cfg.type().value == asn1::rrc::srb_to_add_mod_s::rlc_cfg_c_::types_opts::explicit_value) {
     return make_rlc_config_t(asn1_type.rlc_cfg.explicit_value());
@@ -167,7 +167,7 @@ srslte::rlc_config_t make_rlc_config_t(const asn1::rrc::srb_to_add_mod_s& asn1_t
   }
 }
 
-void to_asn1(asn1::rrc::rlc_cfg_c* asn1_type, const srslte::rlc_config_t& cfg)
+void to_asn1(asn1::rrc::rlc_cfg_c* asn1_type, const srsran::rlc_config_t& cfg)
 {
   *asn1_type = asn1::rrc::rlc_cfg_c();
   switch (cfg.rlc_mode) {
@@ -198,7 +198,7 @@ void to_asn1(asn1::rrc::rlc_cfg_c* asn1_type, const srslte::rlc_config_t& cfg)
  * PDCP Config
  */
 
-srslte::pdcp_config_t make_srb_pdcp_config_t(const uint8_t bearer_id, bool is_ue)
+srsran::pdcp_config_t make_srb_pdcp_config_t(const uint8_t bearer_id, bool is_ue)
 {
   pdcp_config_t cfg(bearer_id,
                     PDCP_RB_IS_SRB,
@@ -211,7 +211,7 @@ srslte::pdcp_config_t make_srb_pdcp_config_t(const uint8_t bearer_id, bool is_ue
   return cfg;
 }
 
-srslte::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue)
+srsran::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue)
 {
   pdcp_config_t cfg(bearer_id,
                     PDCP_RB_IS_DRB,
@@ -226,24 +226,24 @@ srslte::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue
 
 uint8_t get_pdcp_drb_sn_len(const pdcp_cfg_s& pdcp_cfg)
 {
-  uint8_t sn_len = srslte::PDCP_SN_LEN_12;
+  uint8_t sn_len = srsran::PDCP_SN_LEN_12;
   if (pdcp_cfg.rlc_um_present) {
     if (pdcp_cfg.rlc_um.pdcp_sn_size.value == pdcp_cfg_s::rlc_um_s_::pdcp_sn_size_e_::len7bits) {
-      sn_len = srslte::PDCP_SN_LEN_7;
+      sn_len = srsran::PDCP_SN_LEN_7;
     }
   }
   if (pdcp_cfg.ext) {
     if (pdcp_cfg.pdcp_sn_size_v1130_present) {
-      sn_len = srslte::PDCP_SN_LEN_15;
+      sn_len = srsran::PDCP_SN_LEN_15;
     }
     if (pdcp_cfg.pdcp_sn_size_v1310_present) {
-      sn_len = srslte::PDCP_SN_LEN_18;
+      sn_len = srsran::PDCP_SN_LEN_18;
     }
   }
   return sn_len;
 }
 
-srslte::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue, const asn1::rrc::pdcp_cfg_s& pdcp_cfg)
+srsran::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue, const asn1::rrc::pdcp_cfg_s& pdcp_cfg)
 {
   // TODO: complete config processing
   pdcp_discard_timer_t discard_timer = pdcp_discard_timer_t::infinity;
@@ -468,10 +468,10 @@ void set_phy_cfg_t_dedicated_cfg(phy_cfg_t* cfg, const asn1::rrc::phys_cfg_ded_s
 
       if (pucch_format_r10->type() == pucch_format_r10_t::types::format3_r10) {
         // Select feedback mode
-        cfg->ul_cfg.pucch.ack_nack_feedback_mode = SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3;
+        cfg->ul_cfg.pucch.ack_nack_feedback_mode = SRSRAN_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3;
 
         auto* format3_r13 = &pucch_format_r10->format3_r10();
-        for (uint32_t n = 0; n < SRSLTE_MIN(format3_r13->n3_pucch_an_list_r13.size(), SRSLTE_PUCCH_SIZE_AN_CS); n++) {
+        for (uint32_t n = 0; n < SRSRAN_MIN(format3_r13->n3_pucch_an_list_r13.size(), SRSRAN_PUCCH_SIZE_AN_CS); n++) {
           cfg->ul_cfg.pucch.n3_pucch_an_list[n] = format3_r13->n3_pucch_an_list_r13[n];
         }
         if (format3_r13->two_ant_port_activ_pucch_format3_r13_present) {
@@ -491,19 +491,19 @@ void set_phy_cfg_t_dedicated_cfg(phy_cfg_t* cfg, const asn1::rrc::phys_cfg_ded_s
 
           if (n1_pucch_an_cs_r10->type() == asn1::rrc::setup_e::setup) {
             // Select feedback mode
-            cfg->ul_cfg.pucch.ack_nack_feedback_mode = SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS;
+            cfg->ul_cfg.pucch.ack_nack_feedback_mode = SRSRAN_PUCCH_ACK_NACK_FEEDBACK_MODE_CS;
 
             typedef n1_pucch_an_cs_r10_t::setup_s_::n1_pucch_an_cs_list_r10_l_ n1_pucch_an_cs_list_r10_t;
             n1_pucch_an_cs_list_r10_t                                          n1_pucch_an_cs_list =
                 ch_sel_r10->n1_pucch_an_cs_r10.setup().n1_pucch_an_cs_list_r10;
-            for (uint32_t i = 0; i < SRSLTE_MIN(n1_pucch_an_cs_list.size(), SRSLTE_PUCCH_NOF_AN_CS); i++) {
+            for (uint32_t i = 0; i < SRSRAN_MIN(n1_pucch_an_cs_list.size(), SRSRAN_PUCCH_NOF_AN_CS); i++) {
               asn1::rrc::n1_pucch_an_cs_r10_l n1_pucch_an_cs = n1_pucch_an_cs_list[i];
-              for (uint32_t j = 0; j < SRSLTE_PUCCH_SIZE_AN_CS; j++) {
+              for (uint32_t j = 0; j < SRSRAN_PUCCH_SIZE_AN_CS; j++) {
                 cfg->ul_cfg.pucch.n1_pucch_an_cs[j][i] = n1_pucch_an_cs[j];
               }
             }
           } else {
-            cfg->ul_cfg.pucch.ack_nack_feedback_mode = SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_NORMAL;
+            cfg->ul_cfg.pucch.ack_nack_feedback_mode = SRSRAN_PUCCH_ACK_NACK_FEEDBACK_MODE_NORMAL;
           }
         }
       } else {
@@ -600,8 +600,8 @@ void set_phy_cfg_t_dedicated_cfg(phy_cfg_t* cfg, const asn1::rrc::phys_cfg_ded_s
     // Parse Release 10
     asn1::rrc::ant_info_ded_r10_s::tx_mode_r10_e_::options tx_mode =
         asn1_type.ant_info_r10->explicit_value_r10().tx_mode_r10.value;
-    if ((srslte_tm_t)tx_mode < SRSLTE_TMINV) {
-      cfg->dl_cfg.tm = (srslte_tm_t)tx_mode;
+    if ((srsran_tm_t)tx_mode < SRSRAN_TMINV) {
+      cfg->dl_cfg.tm = (srsran_tm_t)tx_mode;
     } else {
       fprintf(stderr,
               "Transmission mode (R10) %s is not supported\n",
@@ -611,8 +611,8 @@ void set_phy_cfg_t_dedicated_cfg(phy_cfg_t* cfg, const asn1::rrc::phys_cfg_ded_s
              asn1_type.ant_info.type() == asn1::rrc::phys_cfg_ded_s::ant_info_c_::types::explicit_value) {
     // Parse Release 8
     asn1::rrc::ant_info_ded_s::tx_mode_e_::options tx_mode = asn1_type.ant_info.explicit_value().tx_mode.value;
-    if ((srslte_tm_t)tx_mode < SRSLTE_TMINV) {
-      cfg->dl_cfg.tm = (srslte_tm_t)tx_mode;
+    if ((srsran_tm_t)tx_mode < SRSRAN_TMINV) {
+      cfg->dl_cfg.tm = (srsran_tm_t)tx_mode;
     } else {
       fprintf(stderr,
               "Transmission mode (R8) %s is not supported\n",
@@ -668,21 +668,21 @@ void set_phy_cfg_t_enable_64qam(phy_cfg_t* cfg, const bool enabled)
 void set_phy_cfg_t_common_pusch(phy_cfg_t* cfg, const asn1::rrc::pusch_cfg_common_s& asn1_type)
 {
   /* PUSCH DMRS signal configuration */
-  bzero(&cfg->ul_cfg.dmrs, sizeof(srslte_refsignal_dmrs_pusch_cfg_t));
+  bzero(&cfg->ul_cfg.dmrs, sizeof(srsran_refsignal_dmrs_pusch_cfg_t));
   cfg->ul_cfg.dmrs.group_hopping_en    = asn1_type.ul_ref_sigs_pusch.group_hop_enabled;
   cfg->ul_cfg.dmrs.sequence_hopping_en = asn1_type.ul_ref_sigs_pusch.seq_hop_enabled;
   cfg->ul_cfg.dmrs.cyclic_shift        = asn1_type.ul_ref_sigs_pusch.cyclic_shift;
   cfg->ul_cfg.dmrs.delta_ss            = asn1_type.ul_ref_sigs_pusch.group_assign_pusch;
 
   /* PUSCH Hopping configuration */
-  bzero(&cfg->ul_cfg.hopping, sizeof(srslte_pusch_hopping_cfg_t));
+  bzero(&cfg->ul_cfg.hopping, sizeof(srsran_pusch_hopping_cfg_t));
   cfg->ul_cfg.hopping.n_sb           = asn1_type.pusch_cfg_basic.n_sb;
   cfg->ul_cfg.hopping.hopping_offset = asn1_type.pusch_cfg_basic.pusch_hop_offset;
   cfg->ul_cfg.hopping.hop_mode =
       asn1_type.pusch_cfg_basic.hop_mode.value ==
               asn1::rrc::pusch_cfg_common_s::pusch_cfg_basic_s_::hop_mode_e_::intra_and_inter_sub_frame
-          ? cfg->ul_cfg.hopping.SRSLTE_PUSCH_HOP_MODE_INTRA_SF
-          : cfg->ul_cfg.hopping.SRSLTE_PUSCH_HOP_MODE_INTER_SF;
+          ? cfg->ul_cfg.hopping.SRSRAN_PUSCH_HOP_MODE_INTRA_SF
+          : cfg->ul_cfg.hopping.SRSRAN_PUSCH_HOP_MODE_INTER_SF;
 }
 
 void set_phy_cfg_t_common_pucch(phy_cfg_t* cfg, const asn1::rrc::pucch_cfg_common_s& asn1_type)
@@ -731,7 +731,7 @@ void set_phy_cfg_t_scell_config(phy_cfg_t* cfg, const asn1::rrc::scell_to_add_mo
 
       // Parse Power control
       auto* ul_pwr_ctrl_common_scell_r10 = &ul_cfg_r10->ul_pwr_ctrl_common_scell_r10;
-      bzero(&cfg->ul_cfg.power_ctrl, sizeof(srslte_ue_ul_powerctrl_t));
+      bzero(&cfg->ul_cfg.power_ctrl, sizeof(srsran_ue_ul_powerctrl_t));
       cfg->ul_cfg.power_ctrl.p0_nominal_pusch = ul_pwr_ctrl_common_scell_r10->p0_nominal_pusch_r10;
       cfg->ul_cfg.power_ctrl.alpha            = ul_pwr_ctrl_common_scell_r10->alpha_r10.to_number();
 
@@ -746,13 +746,13 @@ void set_phy_cfg_t_scell_config(phy_cfg_t* cfg, const asn1::rrc::scell_to_add_mo
 
       // Parse PUSCH
       auto* pusch_cfg_common = &ul_cfg_r10->pusch_cfg_common_r10;
-      bzero(&cfg->ul_cfg.hopping, sizeof(srslte_pusch_hopping_cfg_t));
+      bzero(&cfg->ul_cfg.hopping, sizeof(srsran_pusch_hopping_cfg_t));
       cfg->ul_cfg.hopping.n_sb = pusch_cfg_common->pusch_cfg_basic.n_sb;
       cfg->ul_cfg.hopping.hop_mode =
           pusch_cfg_common->pusch_cfg_basic.hop_mode.value ==
                   asn1::rrc::pusch_cfg_common_s::pusch_cfg_basic_s_::hop_mode_e_::intra_and_inter_sub_frame
-              ? cfg->ul_cfg.hopping.SRSLTE_PUSCH_HOP_MODE_INTRA_SF
-              : cfg->ul_cfg.hopping.SRSLTE_PUSCH_HOP_MODE_INTER_SF;
+              ? cfg->ul_cfg.hopping.SRSRAN_PUSCH_HOP_MODE_INTRA_SF
+              : cfg->ul_cfg.hopping.SRSRAN_PUSCH_HOP_MODE_INTER_SF;
       cfg->ul_cfg.hopping.hopping_offset = pusch_cfg_common->pusch_cfg_basic.pusch_hop_offset;
       cfg->ul_cfg.pusch.enable_64qam     = pusch_cfg_common->pusch_cfg_basic.enable64_qam;
     }
@@ -769,8 +769,8 @@ void set_phy_cfg_t_scell_config(phy_cfg_t* cfg, const asn1::rrc::scell_to_add_mo
 
         // Parse Transmission mode
         if (non_ul_cfg->ant_info_r10_present) {
-          if (non_ul_cfg->ant_info_r10.tx_mode_r10.to_number() < (uint8_t)SRSLTE_TMINV) {
-            cfg->dl_cfg.tm = (srslte_tm_t)non_ul_cfg->ant_info_r10.tx_mode_r10.to_number();
+          if (non_ul_cfg->ant_info_r10.tx_mode_r10.to_number() < (uint8_t)SRSRAN_TMINV) {
+            cfg->dl_cfg.tm = (srsran_tm_t)non_ul_cfg->ant_info_r10.tx_mode_r10.to_number();
           } else {
             fprintf(stderr,
                     "Transmission mode (R10) %s is not supported\n",
@@ -1039,7 +1039,7 @@ mcch_msg_t make_mcch_msg(const asn1::rrc::mcch_msg_s& asn1_type)
   }
   return msg;
 }
-static_assert(ASN1_RRC_MAX_SESSION_PER_PMCH == pmch_info_t::max_session_per_pmch, "ASN1 to srsLTE interface mismatch");
+static_assert(ASN1_RRC_MAX_SESSION_PER_PMCH == pmch_info_t::max_session_per_pmch, "ASN1 to srsRAN interface mismatch");
 
 sib13_t make_sib13(const asn1::rrc::sib_type13_r9_s& asn1_type)
 {
@@ -1052,7 +1052,7 @@ sib13_t make_sib13(const asn1::rrc::sib_type13_r9_s& asn1_type)
   return sib13;
 }
 
-} // namespace srslte
+} // namespace srsran
 
 namespace asn1 {
 namespace rrc {

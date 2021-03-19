@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -16,7 +16,7 @@
 #define Debug(fmt, ...) logger.debug(fmt, ##__VA_ARGS__)
 
 #include "srsue/hdr/stack/mac/proc_phr.h"
-#include "srslte/interfaces/ue_phy_interfaces.h"
+#include "srsran/interfaces/ue_phy_interfaces.h"
 
 namespace srsue {
 
@@ -27,7 +27,7 @@ phr_proc::phr_proc(srslog::basic_logger& logger) : logger(logger)
   phr_cfg          = {};
 }
 
-void phr_proc::init(phy_interface_mac_lte* phy_h_, srslte::ext_task_sched_handle* task_sched_)
+void phr_proc::init(phy_interface_mac_lte* phy_h_, srsran::ext_task_sched_handle* task_sched_)
 {
   phy_h      = phy_h_;
   task_sched = task_sched_;
@@ -46,7 +46,7 @@ void phr_proc::reset()
   phr_is_triggered = false;
 }
 
-void phr_proc::set_config(srslte::phr_cfg_t& cfg)
+void phr_proc::set_config(srsran::phr_cfg_t& cfg)
 {
   phr_cfg = cfg;
 

@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -32,8 +32,8 @@
 
 #include "../utils_avx2.h"
 #include "ldpc_dec_all.h"
-#include "srslte/phy/fec/ldpc/base_graph.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/fec/ldpc/base_graph.h"
+#include "srsran/phy/utils/vector.h"
 
 #ifdef LV_HAVE_AVX2
 
@@ -47,7 +47,7 @@
  * \brief Represents a node of the base factor graph.
  */
 typedef union bg_node_t {
-  int8_t  c[SRSLTE_AVX2_B_SIZE]; /*!< Each base node may contain up to \ref SRSLTE_AVX2_B_SIZE lifted nodes. */
+  int8_t  c[SRSRAN_AVX2_B_SIZE]; /*!< Each base node may contain up to \ref SRSRAN_AVX2_B_SIZE lifted nodes. */
   __m256i v;                     /*!< All the lifted nodes of the current base node as a 256-bit line. */
 } bg_node_t;
 
@@ -128,26 +128,26 @@ void* create_ldpc_dec_c_avx2long(uint8_t bgN, uint8_t bgM, uint16_t ls, float sc
   uint8_t  bgK = bgN - bgM;
   uint16_t hrr = bgK + 4;
 
-  if ((vp = srslte_vec_malloc(sizeof(struct ldpc_regs_c_avx2long))) == NULL) {
+  if ((vp = srsran_vec_malloc(sizeof(struct ldpc_regs_c_avx2long))) == NULL) {
     return NULL;
   }
 
   // compute number of subnodes
-  int left_out   = ls % SRSLTE_AVX2_B_SIZE;
-  int n_subnodes = ls / SRSLTE_AVX2_B_SIZE + (left_out > 0);
+  int left_out   = ls % SRSRAN_AVX2_B_SIZE;
+  int n_subnodes = ls / SRSRAN_AVX2_B_SIZE + (left_out > 0);
 
-  if ((vp->soft_bits = srslte_vec_malloc(bgN * n_subnodes * sizeof(bg_node_t))) == NULL) {
+  if ((vp->soft_bits = srsran_vec_malloc(bgN * n_subnodes * sizeof(bg_node_t))) == NULL) {
     free(vp);
     return NULL;
   }
 
-  if ((vp->check_to_var = srslte_vec_malloc((hrr + 1) * bgM * n_subnodes * sizeof(__m256i))) == NULL) {
+  if ((vp->check_to_var = srsran_vec_malloc((hrr + 1) * bgM * n_subnodes * sizeof(__m256i))) == NULL) {
     free(vp->soft_bits);
     free(vp);
     return NULL;
   }
 
-  if ((vp->var_to_check_to_free = srslte_vec_malloc(((hrr + 1) * n_subnodes + 2) * sizeof(__m256i))) == NULL) {
+  if ((vp->var_to_check_to_free = srsran_vec_malloc(((hrr + 1) * n_subnodes + 2) * sizeof(__m256i))) == NULL) {
     free(vp->check_to_var);
     free(vp->soft_bits);
     free(vp);
@@ -155,7 +155,7 @@ void* create_ldpc_dec_c_avx2long(uint8_t bgN, uint8_t bgM, uint16_t ls, float sc
   }
   vp->var_to_check = &vp->var_to_check_to_free[1];
 
-  if ((vp->minp_v2c_epi8 = srslte_vec_malloc(n_subnodes * sizeof(__m256i))) == NULL) {
+  if ((vp->minp_v2c_epi8 = srsran_vec_malloc(n_subnodes * sizeof(__m256i))) == NULL) {
     free(vp->var_to_check_to_free);
     free(vp->check_to_var);
     free(vp->soft_bits);
@@ -163,7 +163,7 @@ void* create_ldpc_dec_c_avx2long(uint8_t bgN, uint8_t bgM, uint16_t ls, float sc
     return NULL;
   }
 
-  if ((vp->mins_v2c_epi8 = srslte_vec_malloc(n_subnodes * sizeof(__m256i))) == NULL) {
+  if ((vp->mins_v2c_epi8 = srsran_vec_malloc(n_subnodes * sizeof(__m256i))) == NULL) {
     free(vp->minp_v2c_epi8);
     free(vp->var_to_check_to_free);
     free(vp->check_to_var);
@@ -172,7 +172,7 @@ void* create_ldpc_dec_c_avx2long(uint8_t bgN, uint8_t bgM, uint16_t ls, float sc
     return NULL;
   }
 
-  if ((vp->prod_v2c_epi8 = srslte_vec_malloc(n_subnodes * sizeof(__m256i))) == NULL) {
+  if ((vp->prod_v2c_epi8 = srsran_vec_malloc(n_subnodes * sizeof(__m256i))) == NULL) {
     free(vp->mins_v2c_epi8);
     free(vp->minp_v2c_epi8);
     free(vp->var_to_check_to_free);
@@ -182,7 +182,7 @@ void* create_ldpc_dec_c_avx2long(uint8_t bgN, uint8_t bgM, uint16_t ls, float sc
     return NULL;
   }
 
-  if ((vp->min_ix_epi8 = srslte_vec_malloc(n_subnodes * sizeof(__m256i))) == NULL) {
+  if ((vp->min_ix_epi8 = srsran_vec_malloc(n_subnodes * sizeof(__m256i))) == NULL) {
     free(vp->prod_v2c_epi8);
     free(vp->mins_v2c_epi8);
     free(vp->minp_v2c_epi8);
@@ -193,7 +193,7 @@ void* create_ldpc_dec_c_avx2long(uint8_t bgN, uint8_t bgM, uint16_t ls, float sc
     return NULL;
   }
 
-  if ((vp->rotated_v2c = srslte_vec_malloc((hrr + 1) * n_subnodes * sizeof(__m256i))) == NULL) {
+  if ((vp->rotated_v2c = srsran_vec_malloc((hrr + 1) * n_subnodes * sizeof(__m256i))) == NULL) {
     free(vp->min_ix_epi8);
     free(vp->prod_v2c_epi8);
     free(vp->mins_v2c_epi8);
@@ -205,7 +205,7 @@ void* create_ldpc_dec_c_avx2long(uint8_t bgN, uint8_t bgM, uint16_t ls, float sc
     return NULL;
   }
 
-  if ((vp->this_c2v_epi8_to_free = srslte_vec_malloc((n_subnodes + 2) * sizeof(__m256i))) == NULL) {
+  if ((vp->this_c2v_epi8_to_free = srsran_vec_malloc((n_subnodes + 2) * sizeof(__m256i))) == NULL) {
     free(vp->rotated_v2c);
     free(vp->min_ix_epi8);
     free(vp->prod_v2c_epi8);
@@ -268,11 +268,11 @@ int init_ldpc_dec_c_avx2long(void* p, const int8_t* llrs, uint16_t ls)
   }
   for (i = 2; i < vp->bgN; i++) {
     for (j = 0; j < vp->n_subnodes; j++) {
-      for (k = 0; (k < SRSLTE_AVX2_B_SIZE) && (j * SRSLTE_AVX2_B_SIZE + k < ls); k++) {
-        vp->soft_bits[i * vp->n_subnodes + j].c[k] = llrs[(i - 2) * ls + j * SRSLTE_AVX2_B_SIZE + k];
+      for (k = 0; (k < SRSRAN_AVX2_B_SIZE) && (j * SRSRAN_AVX2_B_SIZE + k < ls); k++) {
+        vp->soft_bits[i * vp->n_subnodes + j].c[k] = llrs[(i - 2) * ls + j * SRSRAN_AVX2_B_SIZE + k];
       }
     }
-    bzero(&(vp->soft_bits[i * vp->n_subnodes + j - 1].c[k]), (SRSLTE_AVX2_B_SIZE - k) * sizeof(int8_t));
+    bzero(&(vp->soft_bits[i * vp->n_subnodes + j - 1].c[k]), (SRSRAN_AVX2_B_SIZE - k) * sizeof(int8_t));
   }
 
   bzero(vp->check_to_var, (vp->hrr + 1) * vp->bgM * vp->n_subnodes * sizeof(__m256i));
@@ -468,8 +468,8 @@ int extract_ldpc_message_c_avx2long(void* p, uint8_t* message, uint16_t liftK)
 
   for (int i = 0; i < liftK / vp->ls; i++) {
     for (j = 0; j < vp->n_subnodes; j++) {
-      for (k = 0; (k < SRSLTE_AVX2_B_SIZE) && (j * SRSLTE_AVX2_B_SIZE + k < vp->ls); k++) {
-        message[i * vp->ls + j * SRSLTE_AVX2_B_SIZE + k] = (vp->soft_bits[i * vp->n_subnodes + j].c[k] < 0);
+      for (k = 0; (k < SRSRAN_AVX2_B_SIZE) && (j * SRSRAN_AVX2_B_SIZE + k < vp->ls); k++) {
+        message[i * vp->ls + j * SRSRAN_AVX2_B_SIZE + k] = (vp->soft_bits[i * vp->n_subnodes + j].c[k] < 0);
       }
     }
   }
@@ -513,22 +513,22 @@ static void rotate_node_right(const __m256i* in_256i, __m256i* out, uint16_t shi
 {
   const int8_t* in = (const int8_t*)in_256i;
 
-  int16_t n_type1 = (ls - shift) / SRSLTE_AVX2_B_SIZE - (ls == SRSLTE_AVX2_B_SIZE);
-  int16_t n_type2 = n_subnodes - n_type1 - 1 - (ls == SRSLTE_AVX2_B_SIZE);
-  int16_t gap     = (ls - shift) % SRSLTE_AVX2_B_SIZE;
+  int16_t n_type1 = (ls - shift) / SRSRAN_AVX2_B_SIZE - (ls == SRSRAN_AVX2_B_SIZE);
+  int16_t n_type2 = n_subnodes - n_type1 - 1 - (ls == SRSRAN_AVX2_B_SIZE);
+  int16_t gap     = (ls - shift) % SRSRAN_AVX2_B_SIZE;
 
   int16_t i = 0;
   for (; i < n_type1; i++) {
-    out[i] = _mm256_loadu_si256((const __m256i*)(in + shift + i * SRSLTE_AVX2_B_SIZE));
+    out[i] = _mm256_loadu_si256((const __m256i*)(in + shift + i * SRSRAN_AVX2_B_SIZE));
   }
 
-  __m256i tmp1 = _mm256_loadu_si256((const __m256i*)(in + shift + i * SRSLTE_AVX2_B_SIZE));
+  __m256i tmp1 = _mm256_loadu_si256((const __m256i*)(in + shift + i * SRSRAN_AVX2_B_SIZE));
   __m256i tmp2 = _mm256_loadu_si256((const __m256i*)(in - gap));
 
   out[i] = _mm256_blendv_epi8(tmp1, tmp2, mask_most_epi8[gap]);
 
   for (i = 1; i <= n_type2; i++) {
-    out[n_type1 + i] = _mm256_loadu_si256((const __m256i*)(in - gap + i * SRSLTE_AVX2_B_SIZE));
+    out[n_type1 + i] = _mm256_loadu_si256((const __m256i*)(in - gap + i * SRSRAN_AVX2_B_SIZE));
   }
 }
 

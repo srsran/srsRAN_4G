@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -14,20 +14,20 @@
 
 namespace srsue {
 
-meas_cell::meas_cell(srslte::unique_timer timer_) : timer(std::move(timer_))
+meas_cell::meas_cell(srsran::unique_timer timer_) : timer(std::move(timer_))
 {
   timer.set(neighbour_timeout_ms);
   timer.run();
 }
-meas_cell::meas_cell(const phy_cell_t& phy_cell_, srslte::unique_timer timer) : meas_cell(std::move(timer))
+meas_cell::meas_cell(const phy_cell_t& phy_cell_, srsran::unique_timer timer) : meas_cell(std::move(timer))
 {
   phy_cell = phy_cell_;
 }
 
-srslte::plmn_id_t meas_cell_eutra::get_plmn(uint32_t idx) const
+srsran::plmn_id_t meas_cell_eutra::get_plmn(uint32_t idx) const
 {
   if (idx < sib1.cell_access_related_info.plmn_id_list.size() && has_valid_sib1) {
-    return srslte::make_plmn_id_t(sib1.cell_access_related_info.plmn_id_list[idx].plmn_id);
+    return srsran::make_plmn_id_t(sib1.cell_access_related_info.plmn_id_list[idx].plmn_id);
   } else {
     return {};
   }
@@ -67,7 +67,7 @@ bool meas_cell::is_sib_scheduled(uint32_t sib_index) const
   return sib_info_map.find(sib_index) != sib_info_map.end();
 }
 
-bool meas_cell::has_sibs(srslte::span<const uint32_t> indexes) const
+bool meas_cell::has_sibs(srsran::span<const uint32_t> indexes) const
 {
   for (uint32_t idx : indexes) {
     if (not has_sib(idx)) {
@@ -139,7 +139,7 @@ uint16_t meas_cell_eutra::get_mcc() const
   uint16_t mcc;
   if (has_valid_sib1) {
     if (sib1.cell_access_related_info.plmn_id_list.size() > 0) {
-      if (srslte::bytes_to_mcc(&sib1.cell_access_related_info.plmn_id_list[0].plmn_id.mcc[0], &mcc)) {
+      if (srsran::bytes_to_mcc(&sib1.cell_access_related_info.plmn_id_list[0].plmn_id.mcc[0], &mcc)) {
         return mcc;
       }
     }
@@ -152,7 +152,7 @@ uint16_t meas_cell_eutra::get_mnc() const
   uint16_t mnc;
   if (has_valid_sib1) {
     if (sib1.cell_access_related_info.plmn_id_list.size() > 0) {
-      if (srslte::bytes_to_mnc(&sib1.cell_access_related_info.plmn_id_list[0].plmn_id.mnc[0],
+      if (srsran::bytes_to_mnc(&sib1.cell_access_related_info.plmn_id_list[0].plmn_id.mnc[0],
                                &mnc,
                                sib1.cell_access_related_info.plmn_id_list[0].plmn_id.mnc.size())) {
         return mnc;
@@ -166,7 +166,7 @@ uint16_t meas_cell_eutra::get_mnc() const
  *           Neighbour Cell List
  ********************************************/
 template <class T>
-meas_cell_list<T>::meas_cell_list(srslte::task_sched_handle task_sched_) :
+meas_cell_list<T>::meas_cell_list(srsran::task_sched_handle task_sched_) :
   serv_cell(new T(task_sched_.get_unique_timer())), task_sched(task_sched_)
 {}
 
@@ -360,14 +360,14 @@ int meas_cell_list<T>::set_serving_cell(phy_cell_t phy_cell, bool discard_servin
 {
   // don't update neighbor cell list unless serving cell changes
   if (phy_cell.pci == serving_cell().get_pci() && phy_cell.earfcn == serving_cell().get_earfcn()) {
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   // Remove future serving cell from neighbours to make space for current serving cell
   unique_meas_cell new_serving_cell = remove_neighbour_cell(phy_cell.earfcn, phy_cell.pci);
   if (new_serving_cell == nullptr) {
     logger.error("Setting serving cell: Unknown cell with earfcn=%d, PCI=%d", phy_cell.earfcn, phy_cell.pci);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // Set new serving cell
@@ -381,7 +381,7 @@ int meas_cell_list<T>::set_serving_cell(phy_cell_t phy_cell, bool discard_servin
       logger.info("Serving cell not added to list of neighbours. Worse than current neighbours");
     }
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 template <class T>

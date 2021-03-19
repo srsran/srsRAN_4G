@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -20,9 +20,9 @@
 #define SRSEPC_MME_H
 
 #include "s1ap.h"
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/standard_streams.h"
-#include "srslte/common/threads.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/common/standard_streams.h"
+#include "srsran/common/threads.h"
 #include <cstddef>
 
 namespace srsepc {
@@ -39,7 +39,7 @@ typedef struct {
   enum nas_timer_type type;
 } mme_timer_t;
 
-class mme : public srslte::thread, public mme_interface_nas
+class mme : public srsran::thread, public mme_interface_nas
 {
 public:
   static mme* get_instance(void);

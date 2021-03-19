@@ -2,16 +2,16 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
  * the distribution.
  *
  */
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/common.h"
-#include "srslte/common/test_common.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/common/common.h"
+#include "srsran/common/test_common.h"
 #include "srsue/hdr/stack/mac_nr/proc_ra_nr.h"
 
 using namespace srsue;
@@ -30,7 +30,7 @@ public:
     preamble_received_target_power = preamble_received_target_power_;
   }
   int tx_request(const tx_request_t& request) override { return 0; }
-  int set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS>, uint16_t rnti, srslte_rnti_type_t rnti_type) override
+  int set_ul_grant(std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS>, uint16_t rnti, srsran_rnti_type_t rnti_type) override
   {
     return 0;
   }
@@ -64,7 +64,7 @@ public:
   void msga_flush(){};
 
 private:
-  uint16_t crnti = SRSLTE_INVALID_RNTI;
+  uint16_t crnti = SRSRAN_INVALID_RNTI;
 };
 
 int main()
@@ -76,14 +76,14 @@ int main()
 
   dummy_phy                     dummy_phy;
   dummy_mac                     dummy_mac;
-  srslte::task_scheduler        task_sched{5, 2};
-  srslte::ext_task_sched_handle ext_task_sched_h(&task_sched);
+  srsran::task_scheduler        task_sched{5, 2};
+  srsran::ext_task_sched_handle ext_task_sched_h(&task_sched);
 
   proc_ra_nr proc_ra_nr(mac_logger);
 
   proc_ra_nr.init(&dummy_phy, &dummy_mac, &ext_task_sched_h);
   TESTASSERT(proc_ra_nr.is_rar_opportunity(1) == false);
-  srslte::rach_nr_cfg_t rach_cfg;
+  srsran::rach_nr_cfg_t rach_cfg;
   rach_cfg.powerRampingStep             = 4;
   rach_cfg.prach_ConfigurationIndex     = 16;
   rach_cfg.PreambleReceivedTargetPower  = -110;
@@ -122,7 +122,7 @@ int main()
   grant.tti                = rach_cfg.ra_responseWindow + tti_start + 3;
   grant.pid                = 0x0123;
   uint8_t mac_dl_rar_pdu[] = {0x40, 0x06, 0x68, 0x03, 0x21, 0x46, 0x46, 0x02, 0x00, 0x00, 0x00};
-  grant.tb[0]              = srslte::make_byte_buffer();
+  grant.tb[0]              = srsran::make_byte_buffer();
   grant.tb[0].get()->append_bytes(mac_dl_rar_pdu, sizeof(mac_dl_rar_pdu));
   proc_ra_nr.handle_rar_pdu(grant);
 
@@ -133,5 +133,5 @@ int main()
 
   task_sched.tic();
   task_sched.run_pending_tasks();
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }

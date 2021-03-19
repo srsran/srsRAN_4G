@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,14 +10,14 @@
  *
  */
 
-#ifndef SRSLTE_RRC_CONFIG_H
-#define SRSLTE_RRC_CONFIG_H
+#ifndef SRSRAN_RRC_CONFIG_H
+#define SRSRAN_RRC_CONFIG_H
 
 #include "rrc_config_common.h"
-#include "srslte/asn1/rrc.h"
-#include "srslte/common/security.h"
-#include "srslte/interfaces/enb_rrc_interface_types.h"
-#include "srslte/phy/common/phy_common.h"
+#include "srsran/asn1/rrc.h"
+#include "srsran/common/security.h"
+#include "srsran/interfaces/enb_rrc_interface_types.h"
+#include "srsran/phy/common/phy_common.h"
 #include <array>
 
 namespace srsenb {
@@ -53,10 +53,10 @@ struct rrc_cfg_t {
   bool                                                                                    enable_mbsfn;
   uint16_t                                                                                mbms_mcs;
   uint32_t                                                                                inactivity_timeout_ms;
-  std::array<srslte::CIPHERING_ALGORITHM_ID_ENUM, srslte::CIPHERING_ALGORITHM_ID_N_ITEMS> eea_preference_list;
-  std::array<srslte::INTEGRITY_ALGORITHM_ID_ENUM, srslte::INTEGRITY_ALGORITHM_ID_N_ITEMS> eia_preference_list;
+  std::array<srsran::CIPHERING_ALGORITHM_ID_ENUM, srsran::CIPHERING_ALGORITHM_ID_N_ITEMS> eea_preference_list;
+  std::array<srsran::INTEGRITY_ALGORITHM_ID_ENUM, srsran::INTEGRITY_ALGORITHM_ID_N_ITEMS> eia_preference_list;
   bool                                                                                    meas_cfg_present = false;
-  srslte_cell_t                                                                           cell;
+  srsran_cell_t                                                                           cell;
   cell_list_t                                                                             cell_list;
   cell_list_t                                                                             cell_list_nr;
 };
@@ -71,4 +71,4 @@ struct ue_var_cfg_t {
 
 } // namespace srsenb
 
-#endif // SRSLTE_RRC_CONFIG_H
+#endif // SRSRAN_RRC_CONFIG_H

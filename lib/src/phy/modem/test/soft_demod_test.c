@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -19,18 +19,18 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "srslte/srslte.h"
+#include "srsran/srsran.h"
 
 static uint32_t     nof_frames = 10;
 static uint32_t     num_bits   = 1000;
-static srslte_mod_t modulation = SRSLTE_MOD_NITEMS;
+static srsran_mod_t modulation = SRSRAN_MOD_NITEMS;
 
 void usage(char* prog)
 {
   printf("Usage: %s [nfv] -m modulation (1: BPSK, 2: QPSK, 4: QAM16, 6: QAM64)\n", prog);
   printf("\t-n num_bits [Default %d]\n", num_bits);
   printf("\t-f nof_frames [Default %d]\n", nof_frames);
-  printf("\t-v srslte_verbose [Default None]\n");
+  printf("\t-v srsran_verbose [Default None]\n");
 }
 
 void parse_args(int argc, char** argv)
@@ -45,24 +45,24 @@ void parse_args(int argc, char** argv)
         nof_frames = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
-        srslte_verbose++;
+        srsran_verbose++;
         break;
       case 'm':
         switch (strtol(argv[optind], NULL, 10)) {
           case 1:
-            modulation = SRSLTE_MOD_BPSK;
+            modulation = SRSRAN_MOD_BPSK;
             break;
           case 2:
-            modulation = SRSLTE_MOD_QPSK;
+            modulation = SRSRAN_MOD_QPSK;
             break;
           case 4:
-            modulation = SRSLTE_MOD_16QAM;
+            modulation = SRSRAN_MOD_16QAM;
             break;
           case 6:
-            modulation = SRSLTE_MOD_64QAM;
+            modulation = SRSRAN_MOD_64QAM;
             break;
           case 8:
-            modulation = SRSLTE_MOD_256QAM;
+            modulation = SRSRAN_MOD_256QAM;
             break;
           default:
             ERROR("Invalid modulation %d. Possible values: "
@@ -76,7 +76,7 @@ void parse_args(int argc, char** argv)
         exit(-1);
     }
   }
-  if (modulation == SRSLTE_MOD_NITEMS) {
+  if (modulation == SRSRAN_MOD_NITEMS) {
     usage(argv[0]);
     exit(-1);
   }
@@ -85,15 +85,15 @@ void parse_args(int argc, char** argv)
 float mse_threshold()
 {
   switch (modulation) {
-    case SRSLTE_MOD_BPSK:
+    case SRSRAN_MOD_BPSK:
       return 1.0e-6;
-    case SRSLTE_MOD_QPSK:
+    case SRSRAN_MOD_QPSK:
       return 1.0e-6;
-    case SRSLTE_MOD_16QAM:
+    case SRSRAN_MOD_16QAM:
       return 0.11;
-    case SRSLTE_MOD_64QAM:
+    case SRSRAN_MOD_64QAM:
       return 0.19;
-    case SRSLTE_MOD_256QAM:
+    case SRSRAN_MOD_256QAM:
       return 0.3;
     default:
       return -1.0f;
@@ -103,7 +103,7 @@ float mse_threshold()
 int main(int argc, char** argv)
 {
   int                  i;
-  srslte_modem_table_t mod;
+  srsran_modem_table_t mod;
   uint8_t *            input, *output;
   cf_t*                symbols;
   float*               llr;
@@ -113,7 +113,7 @@ int main(int argc, char** argv)
   parse_args(argc, argv);
 
   /* initialize objects */
-  if (srslte_modem_table_lte(&mod, modulation)) {
+  if (srsran_modem_table_lte(&mod, modulation)) {
     ERROR("Error initializing modem table");
     exit(-1);
   }
@@ -122,35 +122,35 @@ int main(int argc, char** argv)
   num_bits = mod.nbits_x_symbol * (num_bits / mod.nbits_x_symbol);
 
   /* allocate buffers */
-  input = srslte_vec_u8_malloc(num_bits);
+  input = srsran_vec_u8_malloc(num_bits);
   if (!input) {
     perror("malloc");
     exit(-1);
   }
-  output = srslte_vec_u8_malloc(num_bits);
+  output = srsran_vec_u8_malloc(num_bits);
   if (!output) {
     perror("malloc");
     exit(-1);
   }
-  symbols = srslte_vec_cf_malloc(num_bits / mod.nbits_x_symbol);
+  symbols = srsran_vec_cf_malloc(num_bits / mod.nbits_x_symbol);
   if (!symbols) {
     perror("malloc");
     exit(-1);
   }
 
-  llr = srslte_vec_f_malloc(num_bits);
+  llr = srsran_vec_f_malloc(num_bits);
   if (!llr) {
     perror("malloc");
     exit(-1);
   }
 
-  llr_s = srslte_vec_i16_malloc(num_bits);
+  llr_s = srsran_vec_i16_malloc(num_bits);
   if (!llr_s) {
     perror("malloc");
     exit(-1);
   }
 
-  llr_b = srslte_vec_i8_malloc(num_bits);
+  llr_b = srsran_vec_i8_malloc(num_bits);
   if (!llr_b) {
     perror("malloc");
     exit(-1);
@@ -170,51 +170,51 @@ int main(int argc, char** argv)
     }
 
     /* modulate */
-    srslte_mod_modulate(&mod, input, symbols, num_bits);
+    srsran_mod_modulate(&mod, input, symbols, num_bits);
 
     gettimeofday(&t[1], NULL);
-    srslte_demod_soft_demodulate(modulation, symbols, llr, num_bits / mod.nbits_x_symbol);
+    srsran_demod_soft_demodulate(modulation, symbols, llr, num_bits / mod.nbits_x_symbol);
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
 
     /* compute exponentially averaged execution time */
     if (n > 0) {
-      mean_texec = SRSLTE_VEC_CMA((float)t[0].tv_usec, mean_texec, n - 1);
+      mean_texec = SRSRAN_VEC_CMA((float)t[0].tv_usec, mean_texec, n - 1);
     }
 
     gettimeofday(&t[1], NULL);
-    srslte_demod_soft_demodulate_s(modulation, symbols, llr_s, num_bits / mod.nbits_x_symbol);
+    srsran_demod_soft_demodulate_s(modulation, symbols, llr_s, num_bits / mod.nbits_x_symbol);
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
 
     if (n > 0) {
-      mean_texec_s = SRSLTE_VEC_CMA((float)t[0].tv_usec, mean_texec_s, n - 1);
+      mean_texec_s = SRSRAN_VEC_CMA((float)t[0].tv_usec, mean_texec_s, n - 1);
     }
 
     gettimeofday(&t[1], NULL);
-    srslte_demod_soft_demodulate_b(modulation, symbols, llr_b, num_bits / mod.nbits_x_symbol);
+    srsran_demod_soft_demodulate_b(modulation, symbols, llr_b, num_bits / mod.nbits_x_symbol);
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
 
     if (n > 0) {
-      mean_texec_b = SRSLTE_VEC_CMA((float)t[0].tv_usec, mean_texec_b, n - 1);
+      mean_texec_b = SRSRAN_VEC_CMA((float)t[0].tv_usec, mean_texec_b, n - 1);
     }
 
-    if (SRSLTE_VERBOSE_ISDEBUG()) {
+    if (SRSRAN_VERBOSE_ISDEBUG()) {
       printf("bits=");
-      srslte_vec_fprint_b(stdout, input, num_bits);
+      srsran_vec_fprint_b(stdout, input, num_bits);
 
       printf("symbols=");
-      srslte_vec_fprint_c(stdout, symbols, num_bits / mod.nbits_x_symbol);
+      srsran_vec_fprint_c(stdout, symbols, num_bits / mod.nbits_x_symbol);
 
       printf("llr=");
-      srslte_vec_fprint_f(stdout, llr, num_bits);
+      srsran_vec_fprint_f(stdout, llr, num_bits);
 
       printf("llr_s=");
-      srslte_vec_fprint_s(stdout, llr_s, num_bits);
+      srsran_vec_fprint_s(stdout, llr_s, num_bits);
 
       printf("llr_b=");
-      srslte_vec_fprint_bs(stdout, llr_b, num_bits);
+      srsran_vec_fprint_bs(stdout, llr_b, num_bits);
     }
 
     // Check demodulation errors
@@ -235,7 +235,7 @@ clean_exit:
   free(output);
   free(input);
 
-  srslte_modem_table_free(&mod);
+  srsran_modem_table_free(&mod);
 
   printf("Mean Throughput: %.2f/%.2f/%.2f. Mbps ExTime: %.2f/%.2f/%.2f us\n",
          num_bits / mean_texec,

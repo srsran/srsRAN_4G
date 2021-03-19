@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -13,9 +13,9 @@
 #ifndef SRSUE_PACKET_FILTER_H
 #define SRSUE_PACKET_FILTER_H
 
-#include "srslte/asn1/liblte_mme.h"
-#include "srslte/common/buffer_pool.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/asn1/liblte_mme.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/srslog/srslog.h"
 #include <mutex>
 
 namespace srsue {
@@ -62,7 +62,7 @@ public:
                       uint8_t                                lcid_,
                       const LIBLTE_MME_PACKET_FILTER_STRUCT& tft_,
                       srslog::basic_logger&                  logger);
-  bool match(const srslte::unique_byte_buffer_t& pdu);
+  bool match(const srsran::unique_byte_buffer_t& pdu);
   bool filter_contains(uint16_t filtertype);
 
   uint8_t  eps_bearer_id{};
@@ -92,11 +92,11 @@ public:
 
   srslog::basic_logger& logger;
 
-  bool match_ip(const srslte::unique_byte_buffer_t& pdu);
-  bool match_protocol(const srslte::unique_byte_buffer_t& pdu);
-  bool match_type_of_service(const srslte::unique_byte_buffer_t& pdu);
-  bool match_flow_label(const srslte::unique_byte_buffer_t& pdu);
-  bool match_port(const srslte::unique_byte_buffer_t& pdu);
+  bool match_ip(const srsran::unique_byte_buffer_t& pdu);
+  bool match_protocol(const srsran::unique_byte_buffer_t& pdu);
+  bool match_type_of_service(const srsran::unique_byte_buffer_t& pdu);
+  bool match_flow_label(const srsran::unique_byte_buffer_t& pdu);
+  bool match_port(const srsran::unique_byte_buffer_t& pdu);
 };
 
 /**
@@ -109,7 +109,7 @@ public:
   ~tft_pdu_matcher(){};
 
   void    set_default_lcid(const uint8_t lcid);
-  uint8_t check_tft_filter_match(const srslte::unique_byte_buffer_t& pdu);
+  uint8_t check_tft_filter_match(const srsran::unique_byte_buffer_t& pdu);
   int     apply_traffic_flow_template(const uint8_t&                                 erab_id,
                                       const uint8_t&                                 lcid,
                                       const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft);

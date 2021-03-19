@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -11,10 +11,10 @@
  */
 
 #include "sched_common_test_suite.h"
-#include "srslte/common/test_common.h"
+#include "srsran/common/test_common.h"
 #include <set>
 
-using srslte::tti_point;
+using srsran::tti_point;
 
 namespace srsenb {
 
@@ -35,12 +35,12 @@ int test_pusch_collisions(const sf_output_res_t& sf_out, uint32_t enb_cc_idx, co
                 fmt::format("{:x}", ul_allocs).c_str());
     }
     ul_allocs.fill(alloc.start(), alloc.stop(), true);
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   };
 
   /* TEST: Check if there is space for PRACH */
   bool is_prach_tti_tx_ul =
-      srslte_prach_tti_opportunity_config_fdd(cell_params.cfg.prach_config, to_tx_ul(sf_out.tti_rx).to_uint(), -1);
+      srsran_prach_tti_opportunity_config_fdd(cell_params.cfg.prach_config, to_tx_ul(sf_out.tti_rx).to_uint(), -1);
   if (is_prach_tti_tx_ul) {
     try_ul_fill({cell_params.cfg.prach_freq_offset, cell_params.cfg.prach_freq_offset + 6}, "PRACH");
   }
@@ -48,16 +48,16 @@ int test_pusch_collisions(const sf_output_res_t& sf_out, uint32_t enb_cc_idx, co
   /* TEST: check collisions in PUCCH */
   bool               strict    = nof_prb != 6 or (not is_prach_tti_tx_ul); // and not tti_data.ul_pending_msg3_present);
   uint32_t           pucch_nrb = (cell_params.cfg.nrb_pucch > 0) ? (uint32_t)cell_params.cfg.nrb_pucch : 0;
-  srslte_pucch_cfg_t pucch_cfg = cell_params.pucch_cfg_common;
-  pucch_cfg.n_pucch            = cell_params.nof_cce_table[SRSLTE_NOF_CFI - 1] - 1 + cell_params.cfg.n1pucch_an;
-  pucch_nrb                    = std::max(pucch_nrb, srslte_pucch_m(&pucch_cfg, cell_params.cfg.cell.cp) / 2 + 1);
+  srsran_pucch_cfg_t pucch_cfg = cell_params.pucch_cfg_common;
+  pucch_cfg.n_pucch            = cell_params.nof_cce_table[SRSRAN_NOF_CFI - 1] - 1 + cell_params.cfg.n1pucch_an;
+  pucch_nrb                    = std::max(pucch_nrb, srsran_pucch_m(&pucch_cfg, cell_params.cfg.cell.cp) / 2 + 1);
   try_ul_fill({0, pucch_nrb}, "PUCCH", strict);
   try_ul_fill({cell_params.cfg.cell.nof_prb - pucch_nrb, (uint32_t)cell_params.cfg.cell.nof_prb}, "PUCCH", strict);
 
   /* TEST: check collisions in the UL PUSCH */
   for (uint32_t i = 0; i < ul_result.pusch.size(); ++i) {
     uint32_t L, RBstart;
-    srslte_ra_type2_from_riv(ul_result.pusch[i].dci.type2_alloc.riv, &L, &RBstart, nof_prb, nof_prb);
+    srsran_ra_type2_from_riv(ul_result.pusch[i].dci.type2_alloc.riv, &L, &RBstart, nof_prb, nof_prb);
     strict = ul_result.pusch[i].needs_pdcch or nof_prb != 6; // Msg3 may collide with PUCCH at PRB==6
     try_ul_fill({RBstart, RBstart + L}, "PUSCH", strict);
   }
@@ -67,39 +67,39 @@ int test_pusch_collisions(const sf_output_res_t& sf_out, uint32_t enb_cc_idx, co
             fmt::format("{}", ul_allocs).c_str(),
             fmt::format("{}", *expected_ul_mask).c_str());
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-int extract_dl_prbmask(const srslte_cell_t&               cell,
-                       const srslte_dci_dl_t&             dci,
-                       srslte::bounded_bitset<100, true>& alloc_mask)
+int extract_dl_prbmask(const srsran_cell_t&               cell,
+                       const srsran_dci_dl_t&             dci,
+                       srsran::bounded_bitset<100, true>& alloc_mask)
 {
-  srslte_pdsch_grant_t grant;
-  srslte_dl_sf_cfg_t   dl_sf = {};
+  srsran_pdsch_grant_t grant;
+  srsran_dl_sf_cfg_t   dl_sf = {};
 
   alloc_mask.resize(cell.nof_prb);
   alloc_mask.reset();
 
-  CONDERROR(srslte_ra_dl_dci_to_grant(&cell, &dl_sf, SRSLTE_TM1, false, &dci, &grant) == SRSLTE_ERROR,
+  CONDERROR(srsran_ra_dl_dci_to_grant(&cell, &dl_sf, SRSRAN_TM1, false, &dci, &grant) == SRSRAN_ERROR,
             "Failed to decode PDSCH grant");
   for (uint32_t j = 0; j < alloc_mask.size(); ++j) {
     if (grant.prb_idx[0][j]) {
       alloc_mask.set(j);
     }
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_pdsch_collisions(const sf_output_res_t& sf_out, uint32_t enb_cc_idx, const rbgmask_t* expected_rbgmask)
 {
   auto&                             cell_params = sf_out.cc_params[enb_cc_idx];
   auto&                             dl_result   = sf_out.dl_cc_result[enb_cc_idx];
-  srslte::bounded_bitset<100, true> dl_allocs(cell_params.nof_prb()), alloc_mask(cell_params.nof_prb());
+  srsran::bounded_bitset<100, true> dl_allocs(cell_params.nof_prb()), alloc_mask(cell_params.nof_prb());
   rbgmask_t                         rbgmask{cell_params.nof_rbgs};
 
-  auto try_dl_mask_fill = [&](const srslte_dci_dl_t& dci, const char* channel) {
-    if (extract_dl_prbmask(cell_params.cfg.cell, dci, alloc_mask) != SRSLTE_SUCCESS) {
-      return SRSLTE_ERROR;
+  auto try_dl_mask_fill = [&](const srsran_dci_dl_t& dci, const char* channel) {
+    if (extract_dl_prbmask(cell_params.cfg.cell, dci, alloc_mask) != SRSRAN_SUCCESS) {
+      return SRSRAN_ERROR;
     }
     CONDERROR(alloc_mask.none(), "DL allocation must occupy at least one RBG.");
     if ((dl_allocs & alloc_mask).any()) {
@@ -109,22 +109,22 @@ int test_pdsch_collisions(const sf_output_res_t& sf_out, uint32_t enb_cc_idx, co
                 fmt::format("{}", alloc_mask).c_str());
     }
     dl_allocs |= alloc_mask;
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   };
 
   // Decode BC allocations, check collisions, and fill cumulative mask
   for (uint32_t i = 0; i < dl_result.bc.size(); ++i) {
-    TESTASSERT(try_dl_mask_fill(dl_result.bc[i].dci, "BC") == SRSLTE_SUCCESS);
+    TESTASSERT(try_dl_mask_fill(dl_result.bc[i].dci, "BC") == SRSRAN_SUCCESS);
   }
 
   // Decode RAR allocations, check collisions, and fill cumulative mask
   for (uint32_t i = 0; i < dl_result.rar.size(); ++i) {
-    TESTASSERT(try_dl_mask_fill(dl_result.rar[i].dci, "RAR") == SRSLTE_SUCCESS);
+    TESTASSERT(try_dl_mask_fill(dl_result.rar[i].dci, "RAR") == SRSRAN_SUCCESS);
   }
 
   // forbid Data in DL if its ACKs conflict with PRACH for PRB==6
   if (cell_params.nof_prb() == 6) {
-    if (srslte_prach_tti_opportunity_config_fdd(
+    if (srsran_prach_tti_opportunity_config_fdd(
             cell_params.cfg.prach_config, to_tx_dl_ack(sf_out.tti_rx).to_uint(), -1)) {
       dl_allocs.fill(0, dl_allocs.size());
     }
@@ -132,15 +132,15 @@ int test_pdsch_collisions(const sf_output_res_t& sf_out, uint32_t enb_cc_idx, co
 
   // Decode Data allocations, check collisions and fill cumulative mask
   for (uint32_t i = 0; i < dl_result.data.size(); ++i) {
-    TESTASSERT(try_dl_mask_fill(dl_result.data[i].dci, "data") == SRSLTE_SUCCESS);
+    TESTASSERT(try_dl_mask_fill(dl_result.data[i].dci, "data") == SRSRAN_SUCCESS);
   }
 
   // TEST: check for holes in the PRB mask (RBGs not fully filled)
   rbgmask.resize(cell_params.nof_rbgs);
   rbgmask.reset();
-  srslte::bounded_bitset<100, true> rev_alloc = ~dl_allocs;
+  srsran::bounded_bitset<100, true> rev_alloc = ~dl_allocs;
   for (uint32_t i = 0; i < cell_params.nof_rbgs; ++i) {
-    uint32_t lim = SRSLTE_MIN((i + 1) * cell_params.P, dl_allocs.size());
+    uint32_t lim = SRSRAN_MIN((i + 1) * cell_params.P, dl_allocs.size());
     bool     val = dl_allocs.any(i * cell_params.P, lim);
     CONDERROR(rev_alloc.any(i * cell_params.P, lim) and val, "No holes can be left in an RBG");
     if (val) {
@@ -153,7 +153,7 @@ int test_pdsch_collisions(const sf_output_res_t& sf_out, uint32_t enb_cc_idx, co
             fmt::format("{}", rbgmask).c_str(),
             fmt::format("{}", *expected_rbgmask).c_str());
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 /**
@@ -189,7 +189,7 @@ int test_sib_scheduling(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
               bc->tbs,
               cell_params.cfg.sibs[bc->index].len);
     CONDERROR(bc->dci.rnti != 0xffff, "Invalid rnti=0x%x for SIB%d", bc->dci.rnti, bc->index);
-    CONDERROR(bc->dci.format != SRSLTE_DCI_FORMAT1A, "Invalid DCI format for SIB%d", bc->index);
+    CONDERROR(bc->dci.format != SRSRAN_DCI_FORMAT1A, "Invalid DCI format for SIB%d", bc->index);
 
     uint32_t x         = (bc->index - 1) * cell_params.cfg.si_window_ms;
     uint32_t sf        = x % 10;
@@ -197,27 +197,27 @@ int test_sib_scheduling(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
     while ((sfn_start % cell_params.cfg.sibs[bc->index].period_rf) != x / 10) {
       sfn_start--;
     }
-    srslte::tti_point    win_start{sfn_start * 10 + sf};
-    srslte::tti_interval window{win_start, win_start + cell_params.cfg.si_window_ms};
+    srsran::tti_point    win_start{sfn_start * 10 + sf};
+    srsran::tti_interval window{win_start, win_start + cell_params.cfg.si_window_ms};
     CONDERROR(not window.contains(to_tx_dl(sf_out.tti_rx)), "Scheduled SIB is outside of its SIB window");
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_pdcch_collisions(const sf_output_res_t&                   sf_out,
                           uint32_t                                 enb_cc_idx,
-                          const srslte::bounded_bitset<128, true>* expected_cce_mask)
+                          const srsran::bounded_bitset<128, true>* expected_cce_mask)
 {
   const auto& cell_params = sf_out.cc_params[enb_cc_idx];
   const auto& dl_result   = sf_out.dl_cc_result[enb_cc_idx];
   const auto& ul_result   = sf_out.ul_cc_result[enb_cc_idx];
-  int         ret         = srslte_regs_pdcch_ncce(cell_params.regs.get(), dl_result.cfi);
+  int         ret         = srsran_regs_pdcch_ncce(cell_params.regs.get(), dl_result.cfi);
   TESTASSERT(ret > 0);
   uint32_t                          ncce = ret;
-  srslte::bounded_bitset<128, true> used_cce{ncce};
+  srsran::bounded_bitset<128, true> used_cce{ncce};
 
   // Helper Function: checks if there is any collision. If not, fills the PDCCH mask
-  auto try_cce_fill = [&](const srslte_dci_location_t& dci_loc, const char* ch) {
+  auto try_cce_fill = [&](const srsran_dci_location_t& dci_loc, const char* ch) {
     uint32_t cce_start = dci_loc.ncce, cce_stop = dci_loc.ncce + (1u << dci_loc.L);
     CONDERROR(dci_loc.L == 0, "The aggregation level %d is not valid", dci_loc.L);
     CONDERROR(
@@ -225,7 +225,7 @@ int test_pdcch_collisions(const sf_output_res_t&                   sf_out,
     CONDERROR(
         used_cce.any(cce_start, cce_stop), "%s DCI collision between CCE positions (%u, %u)", ch, cce_start, cce_stop);
     used_cce.fill(cce_start, cce_stop);
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   };
 
   /* TEST: verify there are no dci collisions for UL, DL data, BC, RAR */
@@ -252,7 +252,7 @@ int test_pdcch_collisions(const sf_output_res_t&                   sf_out,
             fmt::format("{}", used_cce).c_str(),
             fmt::format("{}", *expected_cce_mask).c_str());
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_dci_content_common(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
@@ -275,7 +275,7 @@ int test_dci_content_common(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
     }
     if (pusch.dci.tb.rv == 0) {
       // newTx
-      CONDERROR(pusch.dci.format != SRSLTE_DCI_FORMAT0, "Incorrect UL DCI format");
+      CONDERROR(pusch.dci.format != SRSRAN_DCI_FORMAT0, "Incorrect UL DCI format");
       CONDERROR(pusch.dci.tb.mcs_idx > 28, "Incorrect UL MCS index");
     }
   }
@@ -307,18 +307,18 @@ int test_dci_content_common(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
   }
 
   // TEST: max coderate is not exceeded for RA and Broadcast
-  srslte_dl_sf_cfg_t dl_sf = {};
+  srsran_dl_sf_cfg_t dl_sf = {};
   dl_sf.cfi                = sf_out.dl_cc_result[enb_cc_idx].cfi;
   dl_sf.tti                = to_tx_dl(sf_out.tti_rx).to_uint();
-  auto test_ra_bc_coderate = [&dl_sf, &cell_params](uint32_t tbs, const srslte_dci_dl_t& dci) {
-    srslte_pdsch_grant_t grant = {};
-    srslte_ra_dl_grant_to_grant_prb_allocation(&dci, &grant, cell_params.cfg.cell.nof_prb);
-    uint32_t       nof_re   = srslte_ra_dl_grant_nof_re(&cell_params.cfg.cell, &dl_sf, &grant);
-    float          coderate = srslte_coderate(tbs * 8, nof_re);
+  auto test_ra_bc_coderate = [&dl_sf, &cell_params](uint32_t tbs, const srsran_dci_dl_t& dci) {
+    srsran_pdsch_grant_t grant = {};
+    srsran_ra_dl_grant_to_grant_prb_allocation(&dci, &grant, cell_params.cfg.cell.nof_prb);
+    uint32_t       nof_re   = srsran_ra_dl_grant_nof_re(&cell_params.cfg.cell, &dl_sf, &grant);
+    float          coderate = srsran_coderate(tbs * 8, nof_re);
     const uint32_t Qm       = 2;
     CONDERROR(
-        coderate > 0.932f * Qm, "Max coderate was exceeded from %s DCI", dci.rnti == SRSLTE_SIRNTI ? "SIB" : "RAR");
-    return SRSLTE_SUCCESS;
+        coderate > 0.932f * Qm, "Max coderate was exceeded from %s DCI", dci.rnti == SRSRAN_SIRNTI ? "SIB" : "RAR");
+    return SRSRAN_SUCCESS;
   };
 
   for (uint32_t i = 0; i < dl_result.bc.size(); ++i) {
@@ -334,7 +334,7 @@ int test_dci_content_common(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
       TESTERROR("Invalid broadcast process id=%d", (int)bc.type);
     }
 
-    TESTASSERT(test_ra_bc_coderate(bc.tbs, bc.dci) == SRSLTE_SUCCESS);
+    TESTASSERT(test_ra_bc_coderate(bc.tbs, bc.dci) == SRSRAN_SUCCESS);
   }
 
   for (uint32_t i = 0; i < dl_result.rar.size(); ++i) {
@@ -342,22 +342,22 @@ int test_dci_content_common(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
     CONDERROR(rar.tbs == 0, "Allocated RAR process with invalid TBS=%d", rar.tbs);
 
     // TEST: max coderate is not exceeded
-    TESTASSERT(test_ra_bc_coderate(rar.tbs, rar.dci) == SRSLTE_SUCCESS);
+    TESTASSERT(test_ra_bc_coderate(rar.tbs, rar.dci) == SRSRAN_SUCCESS);
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_all_common(const sf_output_res_t& sf_out)
 {
   for (uint32_t i = 0; i < sf_out.cc_params.size(); ++i) {
-    TESTASSERT(test_pusch_collisions(sf_out, i, nullptr) == SRSLTE_SUCCESS);
-    TESTASSERT(test_pdsch_collisions(sf_out, i, nullptr) == SRSLTE_SUCCESS);
-    TESTASSERT(test_sib_scheduling(sf_out, i) == SRSLTE_SUCCESS);
-    TESTASSERT(test_pdcch_collisions(sf_out, i, nullptr) == SRSLTE_SUCCESS);
-    TESTASSERT(test_dci_content_common(sf_out, i) == SRSLTE_SUCCESS);
+    TESTASSERT(test_pusch_collisions(sf_out, i, nullptr) == SRSRAN_SUCCESS);
+    TESTASSERT(test_pdsch_collisions(sf_out, i, nullptr) == SRSRAN_SUCCESS);
+    TESTASSERT(test_sib_scheduling(sf_out, i) == SRSRAN_SUCCESS);
+    TESTASSERT(test_pdcch_collisions(sf_out, i, nullptr) == SRSRAN_SUCCESS);
+    TESTASSERT(test_dci_content_common(sf_out, i) == SRSRAN_SUCCESS);
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 } // namespace srsenb

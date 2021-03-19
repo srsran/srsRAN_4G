@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -11,16 +11,16 @@
  */
 
 #include "srsue/hdr/stack/ue_stack_lte.h"
-#include "srslte/common/standard_streams.h"
-#include "srslte/interfaces/ue_phy_interfaces.h"
-#include "srslte/srslog/event_trace.h"
+#include "srsran/common/standard_streams.h"
+#include "srsran/interfaces/ue_phy_interfaces.h"
+#include "srsran/srslog/event_trace.h"
 
 #include <algorithm>
 #include <chrono>
 #include <numeric>
 #include <thread>
 
-using namespace srslte;
+using namespace srsran;
 
 namespace srsue {
 
@@ -73,9 +73,9 @@ int ue_stack_lte::init(const stack_args_t&      args_,
 {
   phy_nr = phy_nr_;
   if (init(args_, phy_, gw_)) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int ue_stack_lte::init(const stack_args_t& args_, phy_interface_stack_lte* phy_, gw_interface_stack* gw_)
@@ -84,10 +84,10 @@ int ue_stack_lte::init(const stack_args_t& args_, phy_interface_stack_lte* phy_,
   gw  = gw_;
 
   if (init(args_)) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int ue_stack_lte::init(const stack_args_t& args_)
@@ -116,7 +116,7 @@ int ue_stack_lte::init(const stack_args_t& args_)
   // Set up pcap
   // parse pcap trace list
   std::vector<std::string> pcap_list;
-  srslte::string_parse_list(args.pkt_trace.enable, ',', pcap_list);
+  srsran::string_parse_list(args.pkt_trace.enable, ',', pcap_list);
   if (pcap_list.empty()) {
     stack_logger.error("PCAP enable list empty defaulting to disable all PCAPs");
     args.pkt_trace.mac_pcap.enable    = false;
@@ -147,7 +147,7 @@ int ue_stack_lte::init(const stack_args_t& args_)
   if (args.pkt_trace.mac_pcap.enable && args.pkt_trace.mac_nr_pcap.enable &&
       args.pkt_trace.mac_pcap.filename == args.pkt_trace.mac_nr_pcap.filename) {
     stack_logger.info("Using same MAC PCAP file %s for LTE and NR", args.pkt_trace.mac_pcap.filename.c_str());
-    if (mac_pcap.open(args.pkt_trace.mac_pcap.filename.c_str()) == SRSLTE_SUCCESS) {
+    if (mac_pcap.open(args.pkt_trace.mac_pcap.filename.c_str()) == SRSRAN_SUCCESS) {
       mac.start_pcap(&mac_pcap);
       mac_nr.start_pcap(&mac_pcap);
       stack_logger.info("Open mac pcap file %s", args.pkt_trace.mac_pcap.filename.c_str());
@@ -156,7 +156,7 @@ int ue_stack_lte::init(const stack_args_t& args_)
     }
   } else {
     if (args.pkt_trace.mac_pcap.enable) {
-      if (mac_pcap.open(args.pkt_trace.mac_pcap.filename.c_str()) == SRSLTE_SUCCESS) {
+      if (mac_pcap.open(args.pkt_trace.mac_pcap.filename.c_str()) == SRSRAN_SUCCESS) {
         mac.start_pcap(&mac_pcap);
         stack_logger.info("Open mac pcap file %s", args.pkt_trace.mac_pcap.filename.c_str());
       } else {
@@ -165,7 +165,7 @@ int ue_stack_lte::init(const stack_args_t& args_)
     }
 
     if (args.pkt_trace.mac_nr_pcap.enable) {
-      if (mac_nr_pcap.open(args.pkt_trace.mac_nr_pcap.filename.c_str()) == SRSLTE_SUCCESS) {
+      if (mac_nr_pcap.open(args.pkt_trace.mac_nr_pcap.filename.c_str()) == SRSRAN_SUCCESS) {
         mac_nr.start_pcap(&mac_nr_pcap);
         stack_logger.info("Open mac nr pcap file %s", args.pkt_trace.mac_nr_pcap.filename.c_str());
       } else {
@@ -175,7 +175,7 @@ int ue_stack_lte::init(const stack_args_t& args_)
   }
 
   if (args.pkt_trace.nas_pcap.enable) {
-    if (nas_pcap.open(args.pkt_trace.nas_pcap.filename.c_str()) == SRSLTE_SUCCESS) {
+    if (nas_pcap.open(args.pkt_trace.nas_pcap.filename.c_str()) == SRSRAN_SUCCESS) {
       nas.start_pcap(&nas_pcap);
       stack_logger.info("Open nas pcap file %s", args.pkt_trace.nas_pcap.filename.c_str());
     } else {
@@ -186,8 +186,8 @@ int ue_stack_lte::init(const stack_args_t& args_)
   // Init USIM first to allow early exit in case reader couldn't be found
   usim = usim_base::get_instance(&args.usim, usim_logger);
   if (usim->init(&args.usim)) {
-    srslte::console("Failed to initialize USIM.\n");
-    return SRSLTE_ERROR;
+    srsran::console("Failed to initialize USIM.\n");
+    return SRSRAN_ERROR;
   }
 
   // add sync queue
@@ -206,7 +206,7 @@ int ue_stack_lte::init(const stack_args_t& args_)
   running = true;
   start(STACK_MAIN_THREAD_PRIO);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 void ue_stack_lte::stop()
@@ -273,21 +273,21 @@ bool ue_stack_lte::switch_off()
 bool ue_stack_lte::enable_data()
 {
   // perform attach request
-  srslte::console("Turning off airplane mode.\n");
+  srsran::console("Turning off airplane mode.\n");
   return nas.enable_data();
 }
 
 bool ue_stack_lte::disable_data()
 {
   // generate detach request
-  srslte::console("Turning on airplane mode.\n");
+  srsran::console("Turning on airplane mode.\n");
   return nas.disable_data();
 }
 
 bool ue_stack_lte::start_service_request()
 {
   if (running) {
-    ue_task_queue.try_push([this]() { nas.start_service_request(srslte::establishment_cause_t::mo_data); });
+    ue_task_queue.try_push([this]() { nas.start_service_request(srsran::establishment_cause_t::mo_data); });
   }
   return true;
 }
@@ -330,9 +330,9 @@ void ue_stack_lte::run_thread()
  * @param sdu
  * @param blocking
  */
-void ue_stack_lte::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)
+void ue_stack_lte::write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu)
 {
-  auto task = [this, lcid](srslte::unique_byte_buffer_t& sdu) { pdcp.write_sdu(lcid, std::move(sdu)); };
+  auto task = [this, lcid](srsran::unique_byte_buffer_t& sdu) { pdcp.write_sdu(lcid, std::move(sdu)); };
   bool ret  = gw_queue_id.try_push(std::bind(task, std::move(sdu))).first;
   if (not ret) {
     pdcp_logger.info("GW SDU with lcid=%d was discarded.", lcid);

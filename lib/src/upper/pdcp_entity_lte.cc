@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,15 +10,15 @@
  *
  */
 
-#include "srslte/upper/pdcp_entity_lte.h"
-#include "srslte/common/int_helpers.h"
-#include "srslte/common/security.h"
-#include "srslte/common/standard_streams.h"
-#include "srslte/interfaces/ue_gw_interfaces.h"
-#include "srslte/interfaces/ue_rlc_interfaces.h"
+#include "srsran/upper/pdcp_entity_lte.h"
+#include "srsran/common/int_helpers.h"
+#include "srsran/common/security.h"
+#include "srsran/common/standard_streams.h"
+#include "srsran/interfaces/ue_gw_interfaces.h"
+#include "srsran/interfaces/ue_rlc_interfaces.h"
 #include <bitset>
 
-namespace srslte {
+namespace srsran {
 
 /****************************************************************************
  * PDCP Entity LTE class
@@ -27,7 +27,7 @@ namespace srslte {
 pdcp_entity_lte::pdcp_entity_lte(srsue::rlc_interface_pdcp* rlc_,
                                  srsue::rrc_interface_pdcp* rrc_,
                                  srsue::gw_interface_pdcp*  gw_,
-                                 srslte::task_sched_handle  task_sched_,
+                                 srsran::task_sched_handle  task_sched_,
                                  srslog::basic_logger&      logger,
                                  uint32_t                   lcid_,
                                  pdcp_config_t              cfg_) :
@@ -79,7 +79,7 @@ pdcp_entity_lte::pdcp_entity_lte(srsue::rlc_interface_pdcp* rlc_,
 
   // Check supported config
   if (!check_valid_config()) {
-    srslte::console("Warning: Invalid PDCP config.\n");
+    srsran::console("Warning: Invalid PDCP config.\n");
   }
 }
 
@@ -179,8 +179,8 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, int upper_sn)
               "TX %s PDU, SN=%d, integrity=%s, encryption=%s",
               rrc->get_rb_name(lcid).c_str(),
               used_sn,
-              srslte_direction_text[integrity_direction],
-              srslte_direction_text[encryption_direction]);
+              srsran_direction_text[integrity_direction],
+              srsran_direction_text[encryption_direction]);
 
   // Set SDU metadata for RLC AM
   sdu->md.pdcp_sn = used_sn;
@@ -232,8 +232,8 @@ void pdcp_entity_lte::write_pdu(unique_byte_buffer_t pdu)
               rrc->get_rb_name(lcid).c_str(),
               sn,
               pdu->N_bytes,
-              srslte_direction_text[integrity_direction],
-              srslte_direction_text[encryption_direction]);
+              srsran_direction_text[integrity_direction],
+              srsran_direction_text[encryption_direction]);
 
   // Update metrics
   metrics.num_rx_pdus++;
@@ -269,7 +269,7 @@ void pdcp_entity_lte::handle_control_pdu(unique_byte_buffer_t pdu)
  * Ref: 3GPP TS 36.323 v10.1.0 Section 5.1.2
  ***************************************************************************/
 // SRBs (5.1.2.2)
-void pdcp_entity_lte::handle_srb_pdu(srslte::unique_byte_buffer_t pdu)
+void pdcp_entity_lte::handle_srb_pdu(srsran::unique_byte_buffer_t pdu)
 {
   // Read SN from header
   uint32_t sn = read_data_header(pdu);
@@ -322,7 +322,7 @@ void pdcp_entity_lte::handle_srb_pdu(srslte::unique_byte_buffer_t pdu)
 }
 
 // DRBs mapped on RLC UM (5.1.2.1.3)
-void pdcp_entity_lte::handle_um_drb_pdu(srslte::unique_byte_buffer_t pdu)
+void pdcp_entity_lte::handle_um_drb_pdu(srsran::unique_byte_buffer_t pdu)
 {
   uint32_t sn = read_data_header(pdu);
   discard_data_header(pdu);
@@ -349,7 +349,7 @@ void pdcp_entity_lte::handle_um_drb_pdu(srslte::unique_byte_buffer_t pdu)
 }
 
 // DRBs mapped on RLC AM, without re-ordering (5.1.2.1.2)
-void pdcp_entity_lte::handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu)
+void pdcp_entity_lte::handle_am_drb_pdu(srsran::unique_byte_buffer_t pdu)
 {
   uint32_t sn = read_data_header(pdu);
   discard_data_header(pdu);
@@ -794,11 +794,11 @@ void pdcp_entity_lte::set_bearer_state(const pdcp_lte_state_t& state, bool set_f
   }
 }
 
-std::map<uint32_t, srslte::unique_byte_buffer_t> pdcp_entity_lte::get_buffered_pdus()
+std::map<uint32_t, srsran::unique_byte_buffer_t> pdcp_entity_lte::get_buffered_pdus()
 {
   if (undelivered_sdus == nullptr) {
     logger.error("Buffered PDUs being requested for non-AM DRB");
-    return std::map<uint32_t, srslte::unique_byte_buffer_t>{};
+    return std::map<uint32_t, srsran::unique_byte_buffer_t>{};
   }
   logger.info("Buffered PDUs requested, buffer_size=%zu", undelivered_sdus->size());
   return undelivered_sdus->get_buffered_sdus();
@@ -827,7 +827,7 @@ void pdcp_entity_lte::reset_metrics()
 /****************************************************************************
  * Undelivered SDUs queue helpers
  ***************************************************************************/
-undelivered_sdus_queue::undelivered_sdus_queue(srslte::task_sched_handle task_sched)
+undelivered_sdus_queue::undelivered_sdus_queue(srsran::task_sched_handle task_sched)
 {
   for (auto& e : sdus) {
     e.discard_timer = task_sched.get_unique_timer();
@@ -835,9 +835,9 @@ undelivered_sdus_queue::undelivered_sdus_queue(srslte::task_sched_handle task_sc
 }
 
 bool undelivered_sdus_queue::add_sdu(uint32_t                              sn,
-                                     const srslte::unique_byte_buffer_t&   sdu,
+                                     const srsran::unique_byte_buffer_t&   sdu,
                                      uint32_t                              discard_timeout,
-                                     srslte::move_callback<void(uint32_t)> callback)
+                                     srsran::move_callback<void(uint32_t)> callback)
 {
   assert(not has_sdu(sn) && "Cannot add repeated SNs");
 
@@ -857,7 +857,7 @@ bool undelivered_sdus_queue::add_sdu(uint32_t                              sn,
   }
 
   // Allocate buffer and exit on error
-  srslte::unique_byte_buffer_t tmp = make_byte_buffer();
+  srsran::unique_byte_buffer_t tmp = make_byte_buffer();
   if (tmp == nullptr) {
     return false;
   }
@@ -951,13 +951,13 @@ void undelivered_sdus_queue::update_lms(uint32_t sn)
   }
 }
 
-std::map<uint32_t, srslte::unique_byte_buffer_t> undelivered_sdus_queue::get_buffered_sdus()
+std::map<uint32_t, srsran::unique_byte_buffer_t> undelivered_sdus_queue::get_buffered_sdus()
 {
-  std::map<uint32_t, srslte::unique_byte_buffer_t> fwd_sdus;
+  std::map<uint32_t, srsran::unique_byte_buffer_t> fwd_sdus;
   for (auto& sdu : sdus) {
     if (sdu.sdu != nullptr) {
       // TODO: Find ways to avoid deep copy
-      srslte::unique_byte_buffer_t fwd_sdu = make_byte_buffer();
+      srsran::unique_byte_buffer_t fwd_sdu = make_byte_buffer();
       *fwd_sdu                             = *sdu.sdu;
       fwd_sdus.emplace(sdu.sdu->md.pdcp_sn, std::move(fwd_sdu));
     }
@@ -965,4 +965,4 @@ std::map<uint32_t, srslte::unique_byte_buffer_t> undelivered_sdus_queue::get_buf
   return fwd_sdus;
 }
 
-} // namespace srslte
+} // namespace srsran

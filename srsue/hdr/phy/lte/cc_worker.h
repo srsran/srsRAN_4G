@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -13,8 +13,8 @@
 #ifndef SRSUE_LTE_CC_WORKER_H
 #define SRSUE_LTE_CC_WORKER_H
 
-#include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/srslte.h"
+#include "srsran/interfaces/ue_interfaces.h"
+#include "srsran/srsran.h"
 #include "srsue/hdr/phy/phy_common.h"
 
 namespace srsue {
@@ -38,17 +38,17 @@ public:
   // Functions to set configuration.
   // Warning: all these functions are unlocked and must be called while the worker is not processing data
   void reset_cell_unlocked();
-  bool set_cell_unlocked(srslte_cell_t cell_);
-  void set_tdd_config_unlocked(srslte_tdd_config_t config);
-  void set_config_unlocked(srslte::phy_cfg_t& phy_cfg);
-  void upd_config_dci_unlocked(srslte_dci_cfg_t& dci_cfg);
+  bool set_cell_unlocked(srsran_cell_t cell_);
+  void set_tdd_config_unlocked(srsran_tdd_config_t config);
+  void set_config_unlocked(srsran::phy_cfg_t& phy_cfg);
+  void upd_config_dci_unlocked(srsran_dci_cfg_t& dci_cfg);
   void enable_pregen_signals_unlocked(bool enabled);
 
-  void set_uci_periodic_cqi(srslte_uci_data_t* uci_data);
+  void set_uci_periodic_cqi(srsran_uci_data_t* uci_data);
 
   bool work_dl_regular();
-  bool work_dl_mbsfn(srslte_mbsfn_cfg_t mbsfn_cfg);
-  bool work_ul(srslte_uci_data_t* uci_data);
+  bool work_dl_mbsfn(srsran_mbsfn_cfg_t mbsfn_cfg);
+  bool work_ul(srsran_uci_data_t* uci_data);
 
   int read_ce_abs(float* ce_abs, uint32_t tx_antenna, uint32_t rx_antenna);
   int read_pdsch_d(cf_t* pdsch_d);
@@ -58,11 +58,11 @@ public:
 private:
   void reset();
 
-  void dl_phy_to_mac_grant(srslte_pdsch_grant_t*                  phy_grant,
-                           srslte_dci_dl_t*                       dl_dci,
+  void dl_phy_to_mac_grant(srsran_pdsch_grant_t*                  phy_grant,
+                           srsran_dci_dl_t*                       dl_dci,
                            mac_interface_phy_lte::mac_grant_dl_t* mac_grant);
-  void ul_phy_to_mac_grant(srslte_pusch_grant_t*                  phy_grant,
-                           srslte_dci_ul_t*                       ul_dci,
+  void ul_phy_to_mac_grant(srsran_pusch_grant_t*                  phy_grant,
+                           srsran_dci_ul_t*                       ul_dci,
                            uint32_t                               pid,
                            bool                                   ul_grant_available,
                            mac_interface_phy_lte::mac_grant_ul_t* mac_grant);
@@ -72,44 +72,44 @@ private:
   int decode_pdcch_dl();
 
   void decode_phich();
-  int  decode_pdsch(srslte_pdsch_ack_resource_t            ack_resource,
+  int  decode_pdsch(srsran_pdsch_ack_resource_t            ack_resource,
                     mac_interface_phy_lte::tb_action_dl_t* action,
-                    bool                                   acks[SRSLTE_MAX_CODEWORDS]);
-  int  decode_pmch(mac_interface_phy_lte::tb_action_dl_t* action, srslte_mbsfn_cfg_t* mbsfn_cfg);
+                    bool                                   acks[SRSRAN_MAX_CODEWORDS]);
+  int  decode_pmch(mac_interface_phy_lte::tb_action_dl_t* action, srsran_mbsfn_cfg_t* mbsfn_cfg);
 
   /* Methods for UL */
-  bool     encode_uplink(mac_interface_phy_lte::tb_action_ul_t* action, srslte_uci_data_t* uci_data);
-  void     set_uci_sr(srslte_uci_data_t* uci_data);
-  void     set_uci_aperiodic_cqi(srslte_uci_data_t* uci_data);
-  void     set_uci_ack(srslte_uci_data_t* uci_data, bool is_grant_available, uint32_t dai_ul, bool is_pusch_available);
+  bool     encode_uplink(mac_interface_phy_lte::tb_action_ul_t* action, srsran_uci_data_t* uci_data);
+  void     set_uci_sr(srsran_uci_data_t* uci_data);
+  void     set_uci_aperiodic_cqi(srsran_uci_data_t* uci_data);
+  void     set_uci_ack(srsran_uci_data_t* uci_data, bool is_grant_available, uint32_t dai_ul, bool is_pusch_available);
   uint32_t get_wideband_cqi();
 
   /* Common objects */
   phy_common*           phy = nullptr;
   srslog::basic_logger& logger;
 
-  srslte_cell_t      cell      = {};
-  srslte_dl_sf_cfg_t sf_cfg_dl = {};
-  srslte_ul_sf_cfg_t sf_cfg_ul = {};
+  srsran_cell_t      cell      = {};
+  srsran_dl_sf_cfg_t sf_cfg_dl = {};
+  srsran_ul_sf_cfg_t sf_cfg_ul = {};
 
   uint32_t cc_idx                             = 0;
   bool     pregen_enabled                     = false;
   bool     cell_initiated                     = false;
-  cf_t*    signal_buffer_rx[SRSLTE_MAX_PORTS] = {};
-  cf_t*    signal_buffer_tx[SRSLTE_MAX_PORTS] = {};
+  cf_t*    signal_buffer_rx[SRSRAN_MAX_PORTS] = {};
+  cf_t*    signal_buffer_tx[SRSRAN_MAX_PORTS] = {};
   uint32_t signal_buffer_max_samples          = 0;
 
   /* Objects for DL */
-  srslte_ue_dl_t     ue_dl     = {};
-  srslte_ue_dl_cfg_t ue_dl_cfg = {};
-  srslte_pmch_cfg_t  pmch_cfg  = {};
+  srsran_ue_dl_t     ue_dl     = {};
+  srsran_ue_dl_cfg_t ue_dl_cfg = {};
+  srsran_pmch_cfg_t  pmch_cfg  = {};
 
-  srslte_chest_dl_cfg_t chest_mbsfn_cfg   = {};
-  srslte_chest_dl_cfg_t chest_default_cfg = {};
+  srsran_chest_dl_cfg_t chest_mbsfn_cfg   = {};
+  srsran_chest_dl_cfg_t chest_default_cfg = {};
 
   /* Objects for UL */
-  srslte_ue_ul_t     ue_ul     = {};
-  srslte_ue_ul_cfg_t ue_ul_cfg = {};
+  srsran_ue_ul_t     ue_ul     = {};
+  srsran_ue_ul_cfg_t ue_ul_cfg = {};
 };
 
 } // namespace lte

@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -18,8 +18,8 @@
 #ifndef SRSUE_UE_NR_PHY_BASE_H
 #define SRSUE_UE_NR_PHY_BASE_H
 
-#include "srslte/interfaces/radio_interfaces.h"
-#include "srslte/interfaces/ue_nr_interfaces.h"
+#include "srsran/interfaces/radio_interfaces.h"
+#include "srsran/interfaces/ue_nr_interfaces.h"
 #include "srsue/hdr/phy/ue_phy_base.h"
 
 namespace srsue {
@@ -33,7 +33,7 @@ public:
   virtual std::string get_type() = 0;
 
   virtual int init(const phy_args_t& args_)                                                                         = 0;
-  virtual int init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srslte::radio_interface_phy* radio_) = 0;
+  virtual int init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_) = 0;
   virtual void stop()                                                                                               = 0;
 
   virtual void set_earfcn(std::vector<uint32_t> earfcns) = 0;

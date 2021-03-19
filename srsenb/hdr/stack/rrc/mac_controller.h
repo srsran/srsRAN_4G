@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,13 +10,13 @@
  *
  */
 
-#ifndef SRSLTE_MAC_CONTROLLER_H
-#define SRSLTE_MAC_CONTROLLER_H
+#ifndef SRSRAN_MAC_CONTROLLER_H
+#define SRSRAN_MAC_CONTROLLER_H
 
 #include "rrc_bearer_cfg.h"
 #include "rrc_cell_cfg.h"
-#include "srslte/interfaces/rrc_interface_types.h"
-#include "srslte/interfaces/sched_interface.h"
+#include "srsran/interfaces/rrc_interface_types.h"
+#include "srsran/interfaces/sched_interface.h"
 #include <bitset>
 
 namespace srsenb {
@@ -46,13 +46,13 @@ public:
   void handle_con_reest_complete();
 
   void handle_con_reconf(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg,
-                         const srslte::rrc_ue_capabilities_t&      uecaps);
+                         const srsran::rrc_ue_capabilities_t&      uecaps);
   void handle_con_reconf_complete();
 
   void handle_target_enb_ho_cmd(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg,
-                                const srslte::rrc_ue_capabilities_t&      uecaps);
+                                const srsran::rrc_ue_capabilities_t&      uecaps);
   void handle_intraenb_ho_cmd(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg,
-                              const srslte::rrc_ue_capabilities_t&      uecaps);
+                              const srsran::rrc_ue_capabilities_t&      uecaps);
   void handle_ho_prep(const asn1::rrc::ho_prep_info_r8_ies_s& ho_prep);
 
   void handle_max_retx();
@@ -60,7 +60,7 @@ public:
   const ue_cfg_t& get_ue_sched_cfg() const { return current_sched_ue_cfg; }
   bool            is_crnti_set() const { return crnti_set; }
 
-  void set_scell_activation(const std::bitset<SRSLTE_MAX_CARRIERS>& scell_mask);
+  void set_scell_activation(const std::bitset<SRSRAN_MAX_CARRIERS>& scell_mask);
   void set_drb_activation(bool active);
 
   enum proc_stage_t : int8_t { config_tx, config_complete, other };
@@ -87,4 +87,4 @@ private:
 
 } // namespace srsenb
 
-#endif // SRSLTE_MAC_CONTROLLER_H
+#endif // SRSRAN_MAC_CONTROLLER_H

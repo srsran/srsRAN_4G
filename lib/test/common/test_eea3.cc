@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -13,9 +13,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "srslte/common/liblte_security.h"
-#include "srslte/common/test_common.h"
-#include "srslte/srslte.h"
+#include "srsran/common/liblte_security.h"
+#include "srsran/common/test_common.h"
+#include "srsran/srsran.h"
 
 int32 arrcmp(uint8_t const* const a, uint8_t const* const b, uint32 len)
 {
@@ -87,7 +87,7 @@ int test_set_1()
   }
 
   free(out);
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_set_2()
@@ -147,7 +147,7 @@ int test_set_2()
   }
 
   free(out);
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_set_3()
@@ -220,7 +220,7 @@ int test_set_3()
   }
 
   free(out);
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_set_4()
@@ -309,7 +309,7 @@ int test_set_4()
   }
 
   free(out);
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_set_5()
@@ -414,14 +414,14 @@ int test_set_5()
   }
 
   free(out);
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int main(int argc, char* argv[])
 {
-  TESTASSERT(test_set_1() == SRSLTE_SUCCESS);
-  TESTASSERT(test_set_2() == SRSLTE_SUCCESS);
-  TESTASSERT(test_set_3() == SRSLTE_SUCCESS);
-  TESTASSERT(test_set_4() == SRSLTE_SUCCESS);
-  TESTASSERT(test_set_5() == SRSLTE_SUCCESS);
+  TESTASSERT(test_set_1() == SRSRAN_SUCCESS);
+  TESTASSERT(test_set_2() == SRSRAN_SUCCESS);
+  TESTASSERT(test_set_3() == SRSRAN_SUCCESS);
+  TESTASSERT(test_set_4() == SRSRAN_SUCCESS);
+  TESTASSERT(test_set_5() == SRSRAN_SUCCESS);
 }

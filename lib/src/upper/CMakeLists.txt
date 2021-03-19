@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2020 Software Radio Systems Limited
+# Copyright 2013-2021 Software Radio Systems Limited
 #
 # By using this file, you agree to the terms and conditions set
 # forth in the LICENSE file which can be found at the top level of
@@ -20,6 +20,6 @@ set(SOURCES gtpu.cc
             rlc_um_nr.cc
             rlc_am_nr.cc)
 
-add_library(srslte_upper STATIC ${SOURCES})
-target_link_libraries(srslte_upper srslte_common srslte_asn1)
-INSTALL(TARGETS srslte_upper DESTINATION ${LIBRARY_DIR})
+add_library(srsran_upper STATIC ${SOURCES})
+target_link_libraries(srsran_upper srsran_common srsran_asn1)
+INSTALL(TARGETS srsran_upper DESTINATION ${LIBRARY_DIR})

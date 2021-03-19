@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -15,7 +15,7 @@
 
 #include "../phy_common.h"
 #include "cc_worker.h"
-#include "srslte/common/thread_pool.h"
+#include "srsran/common/thread_pool.h"
 
 namespace srsue {
 namespace nr {
@@ -28,13 +28,13 @@ namespace nr {
  * A sf_worker object is executed by a thread within the thread_pool.
  */
 
-class sf_worker final : public srslte::thread_pool::worker
+class sf_worker final : public srsran::thread_pool::worker
 {
 public:
   sf_worker(phy_common* phy, state* phy_state_, srslog::basic_logger& logger);
   ~sf_worker() = default;
 
-  bool set_carrier_unlocked(uint32_t cc_idx, const srslte_carrier_nr_t* carrier_);
+  bool set_carrier_unlocked(uint32_t cc_idx, const srsran_carrier_nr_t* carrier_);
 
   /* Functions used by main PHY thread */
   cf_t*    get_buffer(uint32_t cc_idx, uint32_t antenna_idx);

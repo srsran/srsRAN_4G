@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,10 +10,10 @@
  *
  */
 
-#include "srslte/phy/utils/debug.h"
+#include "srsran/phy/utils/debug.h"
 #include <stdlib.h>
 
-int srslte_verbose     = 0;
+int srsran_verbose     = 0;
 int handler_registered = 0;
 
 void get_time_interval(struct timeval* tdata)

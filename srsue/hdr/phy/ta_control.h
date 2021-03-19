@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -15,7 +15,7 @@
 
 #include <inttypes.h>
 #include <mutex>
-#include <srslte/phy/common/phy_common.h>
+#include <srsran/phy/common/phy_common.h>
 
 namespace srsue {
 
@@ -66,7 +66,7 @@ public:
     next_base_sec = ta_base_sec;
 
     // Update base in nta
-    next_base_nta = static_cast<uint32_t>(roundf(next_base_sec / SRSLTE_LTE_TS));
+    next_base_nta = static_cast<uint32_t>(roundf(next_base_sec / SRSRAN_LTE_TS));
 
     // Reset speed data
     reset_speed_data();
@@ -87,7 +87,7 @@ public:
     next_base_sec += ta_delta_sec;
 
     // Update base in nta
-    next_base_nta = static_cast<uint32_t>(roundf(next_base_sec / SRSLTE_LTE_TS));
+    next_base_nta = static_cast<uint32_t>(roundf(next_base_sec / SRSRAN_LTE_TS));
 
     logger.info("PHY:   Set TA: ta_delta_usec: %.1f, n_ta: %d, ta_usec: %.1f",
                 ta_delta_sec * 1e6f,
@@ -105,10 +105,10 @@ public:
     std::lock_guard<std::mutex> lock(mutex);
 
     // Update base nta
-    next_base_nta += srslte_N_ta_new_rar(ta_cmd);
+    next_base_nta += srsran_N_ta_new_rar(ta_cmd);
 
     // Update base in seconds
-    next_base_sec = static_cast<float>(next_base_nta) * SRSLTE_LTE_TS;
+    next_base_sec = static_cast<float>(next_base_nta) * SRSRAN_LTE_TS;
 
     // Reset speed data
     reset_speed_data();
@@ -128,10 +128,10 @@ public:
     float                       prev_base_sec = next_base_sec;
 
     // Update base nta
-    next_base_nta = srslte_N_ta_new(next_base_nta, ta_cmd);
+    next_base_nta = srsran_N_ta_new(next_base_nta, ta_cmd);
 
     // Update base in seconds
-    next_base_sec = static_cast<float>(next_base_nta) * SRSLTE_LTE_TS;
+    next_base_sec = static_cast<float>(next_base_nta) * SRSRAN_LTE_TS;
 
     logger.info("PHY:   Set TA: ta_cmd: %d, n_ta: %d, ta_usec: %.1f", ta_cmd, next_base_nta, next_base_sec * 1e6f);
 

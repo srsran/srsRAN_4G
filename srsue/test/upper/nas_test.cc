@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,11 +10,11 @@
  *
  */
 
-#include "srslte/common/bcd_helpers.h"
-#include "srslte/common/test_common.h"
-#include "srslte/interfaces/ue_pdcp_interfaces.h"
-#include "srslte/srslog/srslog.h"
-#include "srslte/test/ue_test_interfaces.h"
+#include "srsran/common/bcd_helpers.h"
+#include "srsran/common/test_common.h"
+#include "srsran/interfaces/ue_pdcp_interfaces.h"
+#include "srsran/srslog/srslog.h"
+#include "srsran/test/ue_test_interfaces.h"
 #include "srsue/hdr/stack/upper/gw.h"
 #include "srsue/hdr/stack/upper/nas.h"
 #include "srsue/hdr/stack/upper/usim.h"
@@ -57,9 +57,9 @@ uint8_t deactivate_eps_bearer_pdu[] = {0x27, 0x00, 0x00, 0x00, 0x00, 0x00, 0x62,
 uint16 mcc = 61441;
 uint16 mnc = 65281;
 
-using namespace srslte;
+using namespace srsran;
 
-namespace srslte {
+namespace srsran {
 
 // fake classes
 class pdcp_dummy : public rrc_interface_pdcp, public pdcp_interface_gw
@@ -69,9 +69,9 @@ public:
   void        write_pdu_bcch_bch(unique_byte_buffer_t pdu) {}
   void        write_pdu_bcch_dlsch(unique_byte_buffer_t pdu) {}
   void        write_pdu_pcch(unique_byte_buffer_t pdu) {}
-  void        write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu) {}
+  void        write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t sdu) {}
   std::string get_rb_name(uint32_t lcid) { return std::string("lcid"); }
-  void        write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu) {}
+  void        write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu) {}
   bool        is_lcid_enabled(uint32_t lcid) { return false; }
 };
 
@@ -88,7 +88,7 @@ public:
   {
     last_sdu_len = sdu->N_bytes;
     // printf("NAS generated SDU (len=%d):\n", sdu->N_bytes);
-    // srslte_vec_fprint_byte(stdout, sdu->msg, sdu->N_bytes);
+    // srsran_vec_fprint_byte(stdout, sdu->msg, sdu->N_bytes);
   }
   std::string get_rb_name(uint32_t lcid) { return std::string("lcid"); }
   uint32_t    get_last_sdu_len() { return last_sdu_len; }
@@ -99,13 +99,13 @@ public:
     nas_ptr->plmn_search_completed(plmns, 1);
     return true;
   }
-  void plmn_select(srslte::plmn_id_t plmn_id){};
-  void set_ue_identity(srslte::s_tmsi_t s_tmsi) {}
-  bool connection_request(srslte::establishment_cause_t cause, srslte::unique_byte_buffer_t sdu)
+  void plmn_select(srsran::plmn_id_t plmn_id){};
+  void set_ue_identity(srsran::s_tmsi_t s_tmsi) {}
+  bool connection_request(srsran::establishment_cause_t cause, srsran::unique_byte_buffer_t sdu)
   {
     printf("NAS generated SDU (len=%d):\n", sdu->N_bytes);
     last_sdu_len = sdu->N_bytes;
-    srslte_vec_fprint_byte(stdout, sdu->msg, sdu->N_bytes);
+    srsran_vec_fprint_byte(stdout, sdu->msg, sdu->N_bytes);
     is_connected_flag = true;
     nas_ptr->connection_request_completed(true);
     return true;
@@ -136,7 +136,7 @@ public:
     start(-1);
   }
   bool switch_on() { return true; }
-  void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu) { pdcp->write_sdu(lcid, std::move(sdu)); }
+  void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu) { pdcp->write_sdu(lcid, std::move(sdu)); }
   bool is_lcid_enabled(uint32_t lcid) { return pdcp->is_lcid_enabled(lcid); }
 
   bool is_registered() { return true; }
@@ -180,24 +180,24 @@ class gw_dummy : public gw_interface_nas, public gw_interface_pdcp
                     uint8_t* ipv6_if_id,
                     char*    err_str)
   {
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
   int apply_traffic_flow_template(const uint8_t&                                 eps_bearer_id,
                                   const uint8_t&                                 lcid,
                                   const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft)
   {
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
   void write_pdu(uint32_t lcid, unique_byte_buffer_t pdu) {}
-  void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu) {}
+  void write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t sdu) {}
   void set_test_loop_mode(const test_loop_mode_state_t mode, const uint32_t ip_pdu_delay_ms = 0) {}
 };
 
-} // namespace srslte
+} // namespace srsran
 
 int security_command_test()
 {
-  int              ret = SRSLTE_ERROR;
+  int              ret = SRSRAN_ERROR;
   stack_test_dummy stack;
 
   rrc_dummy rrc_dummy;
@@ -225,7 +225,7 @@ int security_command_test()
 
     // push auth request PDU to NAS to generate security context
     byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
-    unique_byte_buffer_t tmp  = srslte::make_byte_buffer();
+    unique_byte_buffer_t tmp  = srsran::make_byte_buffer();
     memcpy(tmp->msg, auth_request_pdu, sizeof(auth_request_pdu));
     tmp->N_bytes = sizeof(auth_request_pdu);
     nas.write_pdu(LCID, std::move(tmp));
@@ -234,14 +234,14 @@ int security_command_test()
     rrc_dummy.reset();
 
     // reuse buffer for security mode command
-    tmp = srslte::make_byte_buffer();
+    tmp = srsran::make_byte_buffer();
     memcpy(tmp->msg, sec_mode_command_pdu, sizeof(sec_mode_command_pdu));
     tmp->N_bytes = sizeof(sec_mode_command_pdu);
     nas.write_pdu(LCID, std::move(tmp));
 
     // check length of generated NAS SDU
     if (rrc_dummy.get_last_sdu_len() > 3) {
-      ret = SRSLTE_SUCCESS;
+      ret = SRSRAN_SUCCESS;
     }
   }
 
@@ -250,7 +250,7 @@ int security_command_test()
 
 int mme_attach_request_test()
 {
-  int ret = SRSLTE_ERROR;
+  int ret = SRSRAN_ERROR;
 
   rrc_dummy  rrc_dummy;
   pdcp_dummy pdcp_dummy;
@@ -295,7 +295,7 @@ int mme_attach_request_test()
 
     // finally push attach accept
     byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
-    unique_byte_buffer_t tmp  = srslte::make_byte_buffer();
+    unique_byte_buffer_t tmp  = srsran::make_byte_buffer();
     memcpy(tmp->msg, attach_accept_pdu, sizeof(attach_accept_pdu));
     tmp->N_bytes = sizeof(attach_accept_pdu);
     nas.write_pdu(LCID, std::move(tmp));
@@ -305,7 +305,7 @@ int mme_attach_request_test()
 
     // check length of generated NAS SDU (attach complete)
     if (rrc_dummy.get_last_sdu_len() > 3) {
-      ret = SRSLTE_SUCCESS;
+      ret = SRSRAN_SUCCESS;
     }
     // ensure buffers are deleted before pool cleanup
     gw.stop();
@@ -316,7 +316,7 @@ int mme_attach_request_test()
 
 int esm_info_request_test()
 {
-  int ret = SRSLTE_ERROR;
+  int ret = SRSRAN_ERROR;
 
   srsue::stack_test_dummy stack{};
 
@@ -337,21 +337,21 @@ int esm_info_request_test()
   {
     srsue::nas nas(&stack.task_sched);
     nas_args_t cfg;
-    cfg.apn_name          = "srslte";
+    cfg.apn_name          = "srsran";
     cfg.apn_user          = "srsuser";
     cfg.apn_pass          = "srspass";
     cfg.force_imsi_attach = true;
     nas.init(&usim, &rrc_dummy, &gw, cfg);
 
     // push ESM info request PDU to NAS to generate response
-    unique_byte_buffer_t tmp = srslte::make_byte_buffer();
+    unique_byte_buffer_t tmp = srsran::make_byte_buffer();
     memcpy(tmp->msg, esm_info_req_pdu, sizeof(esm_info_req_pdu));
     tmp->N_bytes = sizeof(esm_info_req_pdu);
     nas.write_pdu(LCID, std::move(tmp));
 
     // check length of generated NAS SDU
     if (rrc_dummy.get_last_sdu_len() > 3) {
-      ret = SRSLTE_SUCCESS;
+      ret = SRSRAN_SUCCESS;
     }
   }
 
@@ -382,7 +382,7 @@ int dedicated_eps_bearer_test()
   nas.init(&usim, &rrc_dummy, &gw, cfg);
 
   // push dedicated EPS bearer PDU to NAS
-  unique_byte_buffer_t tmp = srslte::make_byte_buffer();
+  unique_byte_buffer_t tmp = srsran::make_byte_buffer();
   memcpy(tmp->msg, activate_dedicated_eps_bearer_pdu, sizeof(activate_dedicated_eps_bearer_pdu));
   tmp->N_bytes = sizeof(activate_dedicated_eps_bearer_pdu);
   nas.write_pdu(LCID, std::move(tmp));
@@ -393,7 +393,7 @@ int dedicated_eps_bearer_test()
   TESTASSERT(metrics.nof_active_eps_bearer == 0);
 
   // add default EPS beaerer
-  unique_byte_buffer_t attach_with_default_bearer = srslte::make_byte_buffer();
+  unique_byte_buffer_t attach_with_default_bearer = srsran::make_byte_buffer();
   memcpy(attach_with_default_bearer->msg, attach_accept_pdu, sizeof(attach_accept_pdu));
   attach_with_default_bearer->N_bytes = sizeof(attach_accept_pdu);
   nas.write_pdu(LCID, std::move(attach_with_default_bearer));
@@ -403,7 +403,7 @@ int dedicated_eps_bearer_test()
   TESTASSERT(metrics.nof_active_eps_bearer == 1);
 
   // push dedicated bearer activation and check that it was added
-  tmp = srslte::make_byte_buffer();
+  tmp = srsran::make_byte_buffer();
   memcpy(tmp->msg, activate_dedicated_eps_bearer_pdu, sizeof(activate_dedicated_eps_bearer_pdu));
   tmp->N_bytes = sizeof(activate_dedicated_eps_bearer_pdu);
   nas.write_pdu(LCID, std::move(tmp));
@@ -411,7 +411,7 @@ int dedicated_eps_bearer_test()
   TESTASSERT(metrics.nof_active_eps_bearer == 2);
 
   // tear-down dedicated bearer
-  tmp = srslte::make_byte_buffer();
+  tmp = srsran::make_byte_buffer();
   memcpy(tmp->msg, deactivate_eps_bearer_pdu, sizeof(deactivate_eps_bearer_pdu));
   tmp->N_bytes = sizeof(deactivate_eps_bearer_pdu);
   nas.write_pdu(LCID, std::move(tmp));
@@ -419,14 +419,14 @@ int dedicated_eps_bearer_test()
   TESTASSERT(metrics.nof_active_eps_bearer == 1);
 
   // try to tear-down dedicated bearer again
-  tmp = srslte::make_byte_buffer();
+  tmp = srsran::make_byte_buffer();
   memcpy(tmp->msg, deactivate_eps_bearer_pdu, sizeof(deactivate_eps_bearer_pdu));
   tmp->N_bytes = sizeof(deactivate_eps_bearer_pdu);
   nas.write_pdu(LCID, std::move(tmp));
   nas.get_metrics(&metrics);
   TESTASSERT(metrics.nof_active_eps_bearer == 1);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int main(int argc, char** argv)

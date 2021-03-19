@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2020 Software Radio Systems Limited
+# Copyright 2013-2021 Software Radio Systems Limited
 #
 # By using this file, you agree to the terms and conditions set
 # forth in the LICENSE file which can be found at the top level of
@@ -27,8 +27,8 @@ target_link_libraries( srsepc  srsepc_mme
                                srsepc_hss
                                srsepc_sgw
                                s1ap_asn1
-                               srslte_upper
-                               srslte_common
+                               srsran_upper
+                               srsran_common
                                srslog
                                ${CMAKE_THREAD_LIBS_INIT}
                                ${Boost_LIBRARIES}
@@ -38,8 +38,8 @@ target_link_libraries( srsepc  srsepc_mme
 
 add_executable(srsmbms mbms-gw/main.cc )
 target_link_libraries(srsmbms   srsepc_mbms_gw
-                                srslte_upper
-                                srslte_common
+                                srsran_upper
+                                srsran_common
                                 srslog
                                 ${CMAKE_THREAD_LIBS_INIT}
                                 ${Boost_LIBRARIES}

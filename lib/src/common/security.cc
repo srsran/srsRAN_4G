@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,10 +10,10 @@
  *
  */
 
-#include "srslte/common/security.h"
-#include "srslte/common/liblte_security.h"
-#include "srslte/common/s3g.h"
-#include "srslte/config.h"
+#include "srsran/common/security.h"
+#include "srsran/common/liblte_security.h"
+#include "srsran/common/s3g.h"
+#include "srsran/config.h"
 
 #ifdef HAVE_MBEDTLS
 #include "mbedtls/md5.h"
@@ -22,7 +22,7 @@
 #include "polarssl/md5.h"
 #endif
 
-namespace srslte {
+namespace srsran {
 
 /******************************************************************************
  * Key Generation
@@ -170,7 +170,7 @@ uint8_t security_md5(const uint8_t* input, size_t len, uint8_t* output)
 #ifdef HAVE_POLARSSL
   md5(input, len, output);
 #endif
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 /******************************************************************************
@@ -242,4 +242,4 @@ uint8_t security_milenage_f5_star(uint8_t* k, uint8_t* op, uint8_t* rand, uint8_
   return liblte_security_milenage_f5_star(k, op, rand, ak);
 }
 
-} // namespace srslte
+} // namespace srsran

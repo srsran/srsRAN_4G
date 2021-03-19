@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,9 +10,9 @@
  *
  */
 
-#include "srslte/common/enb_events.h"
-#include "srslte/srslog/context.h"
-#include "srslte/srslog/log_channel.h"
+#include "srsran/common/enb_events.h"
+#include "srsran/srslog/context.h"
+#include "srsran/srslog/log_channel.h"
 
 using namespace srsenb;
 

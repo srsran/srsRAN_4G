@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -13,20 +13,20 @@
 #ifndef SRSUE_NAS_H
 #define SRSUE_NAS_H
 
-#include "srslte/asn1/liblte_mme.h"
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/common.h"
-#include "srslte/common/nas_pcap.h"
-#include "srslte/common/security.h"
-#include "srslte/common/stack_procedure.h"
-#include "srslte/common/task_scheduler.h"
-#include "srslte/interfaces/ue_nas_interfaces.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/asn1/liblte_mme.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/common/common.h"
+#include "srsran/common/nas_pcap.h"
+#include "srsran/common/security.h"
+#include "srsran/common/stack_procedure.h"
+#include "srsran/common/task_scheduler.h"
+#include "srsran/interfaces/ue_nas_interfaces.h"
+#include "srsran/srslog/srslog.h"
 #include "srsue/hdr/stack/upper/nas_config.h"
 #include "srsue/hdr/stack/upper/nas_emm_state.h"
 #include "srsue/hdr/stack/upper/nas_metrics.h"
 
-using srslte::byte_buffer_t;
+using srsran::byte_buffer_t;
 
 namespace srsue {
 
@@ -34,10 +34,10 @@ class usim_interface_nas;
 class gw_interface_nas;
 class rrc_interface_nas;
 
-class nas : public nas_interface_rrc, public srslte::timer_callback
+class nas : public nas_interface_rrc, public srsran::timer_callback
 {
 public:
-  explicit nas(srslte::task_sched_handle task_sched_);
+  explicit nas(srsran::task_sched_handle task_sched_);
   virtual ~nas();
   void init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_nas* gw_, const nas_args_t& args_);
   void stop();
@@ -49,9 +49,9 @@ public:
   // RRC interface
   void     left_rrc_connected() override;
   bool     connection_request_completed(bool outcome) override;
-  bool     paging(srslte::s_tmsi_t* ue_identity) override;
-  void     set_barring(srslte::barring_t barring) override;
-  void     write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu) override;
+  bool     paging(srsran::s_tmsi_t* ue_identity) override;
+  void     set_barring(srsran::barring_t barring) override;
+  void     write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu) override;
   uint32_t get_k_enb_count() override;
   bool     get_k_asme(uint8_t* k_asme_, uint32_t n) override;
   uint32_t get_ipv4_addr() override;
@@ -63,7 +63,7 @@ public:
   bool switch_off();
   bool enable_data();
   bool disable_data();
-  void start_service_request(srslte::establishment_cause_t cause_);
+  void start_service_request(srsran::establishment_cause_t cause_);
 
   // Stack+RRC interface
   bool is_registered() override;
@@ -72,7 +72,7 @@ public:
   void timer_expired(uint32_t timeout_id) override;
 
   // PCAP
-  void start_pcap(srslte::nas_pcap* pcap_) { pcap = pcap_; }
+  void start_pcap(srsran::nas_pcap* pcap_) { pcap = pcap_; }
 
 private:
   srslog::basic_logger& logger;
@@ -85,12 +85,12 @@ private:
   nas_args_t  cfg   = {};
   emm_state_t state = {};
 
-  srslte::barring_t current_barring = srslte::barring_t::none;
+  srsran::barring_t current_barring = srsran::barring_t::none;
 
-  srslte::plmn_id_t current_plmn;
-  srslte::plmn_id_t home_plmn;
+  srsran::plmn_id_t current_plmn;
+  srsran::plmn_id_t home_plmn;
 
-  std::vector<srslte::plmn_id_t> known_plmns;
+  std::vector<srsran::plmn_id_t> known_plmns;
 
   // Security context
   struct nas_sec_ctxt {
@@ -99,8 +99,8 @@ private:
     uint32_t                             tx_count;
     uint32_t                             rx_count;
     uint32_t                             k_enb_count;
-    srslte::CIPHERING_ALGORITHM_ID_ENUM  cipher_algo;
-    srslte::INTEGRITY_ALGORITHM_ID_ENUM  integ_algo;
+    srsran::CIPHERING_ALGORITHM_ID_ENUM  cipher_algo;
+    srsran::INTEGRITY_ALGORITHM_ID_ENUM  integ_algo;
     LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT guti;
   };
 
@@ -133,12 +133,12 @@ private:
   uint8_t transaction_id = 0;
 
   // timers
-  srslte::task_sched_handle           task_sched;
-  srslte::timer_handler::unique_timer t3402;          // started when attach attempt counter reached 5
-  srslte::timer_handler::unique_timer t3410;          // started when attach request is sent, on expiry, start t3411
-  srslte::timer_handler::unique_timer t3411;          // started when attach failed
-  srslte::timer_handler::unique_timer t3421;          // started when detach request is sent
-  srslte::timer_handler::unique_timer reattach_timer; // started to trigger delayed re-attach
+  srsran::task_sched_handle           task_sched;
+  srsran::timer_handler::unique_timer t3402;          // started when attach attempt counter reached 5
+  srsran::timer_handler::unique_timer t3410;          // started when attach request is sent, on expiry, start t3411
+  srsran::timer_handler::unique_timer t3411;          // started when attach failed
+  srsran::timer_handler::unique_timer t3421;          // started when detach request is sent
+  srsran::timer_handler::unique_timer reattach_timer; // started to trigger delayed re-attach
 
   // Values according to TS 24.301 Sec 10.2
   const uint32_t t3402_duration_ms          = 12 * 60 * 1000; // 12m
@@ -161,24 +161,24 @@ private:
   // Airplane mode simulation
   typedef enum { DISABLED = 0, ENABLED } airplane_mode_state_t;
   airplane_mode_state_t               airplane_mode_state = {};
-  srslte::timer_handler::unique_timer airplane_mode_sim_timer;
+  srsran::timer_handler::unique_timer airplane_mode_sim_timer;
 
   // PCAP
-  srslte::nas_pcap* pcap = nullptr;
+  srsran::nas_pcap* pcap = nullptr;
 
   // Security
   void
        integrity_generate(uint8_t* key_128, uint32_t count, uint8_t direction, uint8_t* msg, uint32_t msg_len, uint8_t* mac);
-  bool integrity_check(srslte::byte_buffer_t* pdu);
-  void cipher_encrypt(srslte::byte_buffer_t* pdu);
-  void cipher_decrypt(srslte::byte_buffer_t* pdu);
-  int  apply_security_config(srslte::unique_byte_buffer_t& pdu, uint8_t sec_hdr_type);
+  bool integrity_check(srsran::byte_buffer_t* pdu);
+  void cipher_encrypt(srsran::byte_buffer_t* pdu);
+  void cipher_decrypt(srsran::byte_buffer_t* pdu);
+  int  apply_security_config(srsran::unique_byte_buffer_t& pdu, uint8_t sec_hdr_type);
   void reset_security_context();
   void set_k_enb_count(uint32_t count);
   bool check_cap_replay(LIBLTE_MME_UE_SECURITY_CAPABILITIES_STRUCT* caps);
 
   // NAS Connection Initiation/Termination
-  void start_attach_request(srslte::establishment_cause_t cause_);
+  void start_attach_request(srsran::establishment_cause_t cause_);
   bool detach_request(const bool switch_off);
 
   // PLMN Selection Helpers
@@ -186,26 +186,26 @@ private:
   void select_plmn();
 
   // Parsers
-  void parse_attach_accept(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
-  void parse_attach_reject(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
-  void parse_authentication_request(uint32_t lcid, srslte::unique_byte_buffer_t pdu, const uint8_t sec_hdr_type);
-  void parse_authentication_reject(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
-  void parse_identity_request(srslte::unique_byte_buffer_t pdu, const uint8_t sec_hdr_type);
-  void parse_security_mode_command(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
-  void parse_service_reject(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
-  void parse_esm_information_request(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
-  void parse_emm_information(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
-  void parse_detach_request(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
-  void parse_emm_status(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
-  void parse_activate_dedicated_eps_bearer_context_request(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
-  void parse_deactivate_eps_bearer_context_request(srslte::unique_byte_buffer_t pdu);
-  void parse_activate_test_mode(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
-  void parse_close_ue_test_loop(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
-  void parse_modify_eps_bearer_context_request(srslte::unique_byte_buffer_t pdu);
+  void parse_attach_accept(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
+  void parse_attach_reject(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
+  void parse_authentication_request(uint32_t lcid, srsran::unique_byte_buffer_t pdu, const uint8_t sec_hdr_type);
+  void parse_authentication_reject(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
+  void parse_identity_request(srsran::unique_byte_buffer_t pdu, const uint8_t sec_hdr_type);
+  void parse_security_mode_command(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
+  void parse_service_reject(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
+  void parse_esm_information_request(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
+  void parse_emm_information(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
+  void parse_detach_request(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
+  void parse_emm_status(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
+  void parse_activate_dedicated_eps_bearer_context_request(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
+  void parse_deactivate_eps_bearer_context_request(srsran::unique_byte_buffer_t pdu);
+  void parse_activate_test_mode(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
+  void parse_close_ue_test_loop(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
+  void parse_modify_eps_bearer_context_request(srsran::unique_byte_buffer_t pdu);
 
   // Packet generators
-  void gen_attach_request(srslte::unique_byte_buffer_t& msg);
-  void gen_service_request(srslte::unique_byte_buffer_t& msg);
+  void gen_attach_request(srsran::unique_byte_buffer_t& msg);
+  void gen_service_request(srsran::unique_byte_buffer_t& msg);
 
   // Senders
   void send_attach_complete(const uint8_t& transaction_id, const uint8_t& eps_bearer_id);
@@ -291,8 +291,8 @@ private:
   // NAS Idle procedures
   class plmn_search_proc; // PLMN selection proc (fwd declared)
 
-  srslte::proc_manager_list_t      callbacks;
-  srslte::proc_t<plmn_search_proc> plmn_searcher;
+  srsran::proc_manager_list_t      callbacks;
+  srsran::proc_t<plmn_search_proc> plmn_searcher;
 
   const std::string gw_setup_failure_str = "Failed to setup/configure GW interface";
 };

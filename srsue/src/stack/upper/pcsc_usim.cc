@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -12,14 +12,14 @@
 
 #include <sstream>
 
-#include "srslte/common/bcd_helpers.h"
-#include "srslte/common/standard_streams.h"
+#include "srsran/common/bcd_helpers.h"
+#include "srsran/common/standard_streams.h"
 #include "srsue/hdr/stack/upper/pcsc_usim.h"
 #include "string.h"
 
 #define CHECK_SIM_PIN 0
 
-using namespace srslte;
+using namespace srsran;
 
 namespace srsue {
 
@@ -40,9 +40,9 @@ pcsc_usim::~pcsc_usim()
 
 int pcsc_usim::init(usim_args_t* args)
 {
-  int ret = SRSLTE_ERROR;
+  int ret = SRSRAN_ERROR;
 
-  if (sc.init(args) != SRSLTE_SUCCESS) {
+  if (sc.init(args) != SRSRAN_SUCCESS) {
     return ret;
   }
 
@@ -65,7 +65,7 @@ int pcsc_usim::init(usim_args_t* args)
     }
   } else {
     logger.error("Invalid length for IMSI: %zu should be %d", imsi_str.length(), 15);
-    srslte::console("Invalid length for IMSI: %zu should be %d\n", imsi_str.length(), 15);
+    srsran::console("Invalid length for IMSI: %zu should be %d\n", imsi_str.length(), 15);
     return ret;
   }
 
@@ -79,12 +79,12 @@ int pcsc_usim::init(usim_args_t* args)
     }
   } else {
     logger.error("Invalid length for IMEI: %zu should be %d", args->imei.length(), 15);
-    srslte::console("Invalid length for IMEI: %zu should be %d\n", args->imei.length(), 15);
+    srsran::console("Invalid length for IMEI: %zu should be %d\n", args->imei.length(), 15);
     return ret;
   }
 
   initiated = true;
-  ret       = SRSLTE_SUCCESS;
+  ret       = SRSRAN_SUCCESS;
 
   return ret;
 }
@@ -171,7 +171,7 @@ std::string pcsc_usim::get_mnc_str(const uint8_t* imsi_vec, std::string mcc_str)
 // return 0 if initialization was successfull, -1 otherwies
 int pcsc_usim::scard::init(usim_args_t* args)
 {
-  int  ret_value    = SRSLTE_ERROR;
+  int  ret_value    = SRSRAN_ERROR;
   uint pos          = 0; // SC reader
   bool reader_found = false;
   // int transaction = 1;
@@ -384,7 +384,7 @@ int pcsc_usim::scard::init(usim_args_t* args)
     goto clean_exit;
   }
 
-  ret_value = SRSLTE_SUCCESS;
+  ret_value = SRSRAN_SUCCESS;
 
 clean_exit:
   if (readers) {

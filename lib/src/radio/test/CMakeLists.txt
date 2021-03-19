@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2020 Software Radio Systems Limited
+# Copyright 2013-2021 Software Radio Systems Limited
 #
 # By using this file, you agree to the terms and conditions set
 # forth in the LICENSE file which can be found at the top level of
@@ -8,7 +8,7 @@
 
 if(RF_FOUND)
   add_executable(benchmark_radio benchmark_radio.cc)
-  target_link_libraries(benchmark_radio srslte_common srslte_phy srslte_radio)
+  target_link_libraries(benchmark_radio srsran_common srsran_phy srsran_radio)
   if(SRSGUI_FOUND)
     include_directories(${SRSGUI_INCLUDE_DIRS})
     target_link_libraries(benchmark_radio ${SRSGUI_LIBRARIES})

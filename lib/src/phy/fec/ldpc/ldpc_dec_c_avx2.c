@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -32,8 +32,8 @@
 
 #include "../utils_avx2.h"
 #include "ldpc_dec_all.h"
-#include "srslte/phy/fec/ldpc/base_graph.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/fec/ldpc/base_graph.h"
+#include "srsran/phy/utils/vector.h"
 
 #ifdef LV_HAVE_AVX2
 
@@ -47,7 +47,7 @@
  * \brief Represents a node of the base factor graph.
  */
 typedef union bg_node_t {
-  int8_t  c[SRSLTE_AVX2_B_SIZE]; /*!< Each base node may contain up to \ref SRSLTE_AVX2_B_SIZE lifted nodes. */
+  int8_t  c[SRSRAN_AVX2_B_SIZE]; /*!< Each base node may contain up to \ref SRSRAN_AVX2_B_SIZE lifted nodes. */
   __m256i v;                     /*!< All the lifted nodes of the current base node as a 256-bit line. */
 } bg_node_t;
 
@@ -145,29 +145,29 @@ void* create_ldpc_dec_c_avx2(uint8_t bgN, uint8_t bgM, uint16_t ls, float scalin
   uint8_t  bgK = bgN - bgM;
   uint16_t hrr = bgK + 4;
 
-  if ((vp = srslte_vec_malloc(sizeof(struct ldpc_regs_c_avx2))) == NULL) {
+  if ((vp = srsran_vec_malloc(sizeof(struct ldpc_regs_c_avx2))) == NULL) {
     return NULL;
   }
 
-  if ((vp->soft_bits = srslte_vec_malloc(bgN * sizeof(bg_node_t))) == NULL) {
+  if ((vp->soft_bits = srsran_vec_malloc(bgN * sizeof(bg_node_t))) == NULL) {
     free(vp);
     return NULL;
   }
 
-  if ((vp->check_to_var = srslte_vec_malloc((hrr + 1) * bgM * sizeof(__m256i))) == NULL) {
+  if ((vp->check_to_var = srsran_vec_malloc((hrr + 1) * bgM * sizeof(__m256i))) == NULL) {
     free(vp->soft_bits);
     free(vp);
     return NULL;
   }
 
-  if ((vp->var_to_check = srslte_vec_malloc((hrr + 1) * sizeof(__m256i))) == NULL) {
+  if ((vp->var_to_check = srsran_vec_malloc((hrr + 1) * sizeof(__m256i))) == NULL) {
     free(vp->check_to_var);
     free(vp->soft_bits);
     free(vp);
     return NULL;
   }
 
-  if ((vp->rotated_v2c = srslte_vec_malloc((hrr + 1) * sizeof(__m256i))) == NULL) {
+  if ((vp->rotated_v2c = srsran_vec_malloc((hrr + 1) * sizeof(__m256i))) == NULL) {
     free(vp->var_to_check);
     free(vp->check_to_var);
     free(vp->soft_bits);
@@ -216,7 +216,7 @@ int init_ldpc_dec_c_avx2(void* p, const int8_t* llrs, uint16_t ls)
     for (j = 0; j < ls; j++) {
       vp->soft_bits[i].c[j] = llrs[(i - 2) * ls + j];
     }
-    bzero(&(vp->soft_bits[i].c[ls]), (SRSLTE_AVX2_B_SIZE - ls) * sizeof(int8_t));
+    bzero(&(vp->soft_bits[i].c[ls]), (SRSRAN_AVX2_B_SIZE - ls) * sizeof(int8_t));
   }
 
   bzero(vp->check_to_var, (vp->hrr + 1) * vp->bgM * sizeof(__m256i));
@@ -488,7 +488,7 @@ static __m256i rotate_node_left(__m256i a, int imm, uint16_t ls)
     return a;
   }
   __m256i step1 = _mm256_rotatelli_si256(a, imm);
-  if (ls == SRSLTE_AVX2_B_SIZE) {
+  if (ls == SRSRAN_AVX2_B_SIZE) {
     return step1;
   }
 
@@ -509,7 +509,7 @@ static __m256i rotate_node_right(__m256i a, int imm, uint16_t ls)
     return a;
   }
   __m256i step1 = _mm256_rotaterli_si256(a, imm);
-  if (ls == SRSLTE_AVX2_B_SIZE) {
+  if (ls == SRSRAN_AVX2_B_SIZE) {
     return step1;
   }
 

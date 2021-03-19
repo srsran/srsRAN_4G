@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,13 +10,13 @@
  *
  */
 
-#include "srslte/adt/bounded_bitset.h"
-#include "srslte/common/test_common.h"
+#include "srsran/adt/bounded_bitset.h"
+#include "srsran/common/test_common.h"
 
 int test_zero_bitset()
 {
-  srslte::bounded_bitset<25> mask;
-  srslte::bounded_bitset<25> mask2{23};
+  srsran::bounded_bitset<25> mask;
+  srsran::bounded_bitset<25> mask2{23};
 
   TESTASSERT(mask.max_size() == 25);
   TESTASSERT(mask.size() == 0);
@@ -36,12 +36,12 @@ int test_zero_bitset()
   mask = mask2;
   TESTASSERT(mask == mask2);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_ones_bitset()
 {
-  srslte::bounded_bitset<25> mask;
+  srsran::bounded_bitset<25> mask;
 
   // Flipping empty bitset is noop
   TESTASSERT(mask.none() and mask.all() and not mask.any());
@@ -54,12 +54,12 @@ int test_ones_bitset()
   mask.flip();
   TESTASSERT(not mask.none() and mask.all() and mask.any());
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_bitset_set()
 {
-  srslte::bounded_bitset<25> mask{23};
+  srsran::bounded_bitset<25> mask{23};
   mask.set(10);
 
   TESTASSERT(mask.any());
@@ -70,13 +70,13 @@ int test_bitset_set()
   TESTASSERT(not mask.test(10));
   TESTASSERT(mask.test(0));
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_bitset_bitwise_oper()
 {
-  srslte::bounded_bitset<25> mask{23};
-  srslte::bounded_bitset<25> mask2{23};
+  srsran::bounded_bitset<25> mask{23};
+  srsran::bounded_bitset<25> mask2{23};
 
   mask.set(10);
   TESTASSERT(mask != mask2);
@@ -93,20 +93,20 @@ int test_bitset_bitwise_oper()
   mask2.resize(24);
   try {
     mask2 |= mask;
-  } catch (srslte::bad_type_access& c) {
+  } catch (srsran::bad_type_access& c) {
     printf("Received exception \"%s\" (as expected)\n", c.what());
     caught = true;
   }
   TESTASSERT(caught);
 #endif
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_bitset_print()
 {
   {
-    srslte::bounded_bitset<100> bitset(100);
+    srsran::bounded_bitset<100> bitset(100);
     bitset.set(0);
     bitset.set(5);
 
@@ -121,7 +121,7 @@ int test_bitset_print()
   }
 
   {
-    srslte::bounded_bitset<100> bitset(25);
+    srsran::bounded_bitset<100> bitset(25);
     bitset.set(0);
     bitset.set(4);
 
@@ -133,13 +133,13 @@ int test_bitset_print()
     TESTASSERT(fmt::format("{:b}", bitset) == "1000000000000000000010001");
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_bitset_resize()
 {
   {
-    srslte::bounded_bitset<100> bitset;
+    srsran::bounded_bitset<100> bitset;
     TESTASSERT(bitset.none() and bitset.size() == 0);
 
     bitset.resize(100);
@@ -157,7 +157,7 @@ int test_bitset_resize()
 
   {
     // TEST: Reverse case
-    srslte::bounded_bitset<100, true> bitset;
+    srsran::bounded_bitset<100, true> bitset;
     TESTASSERT(bitset.none() and bitset.size() == 0);
 
     bitset.resize(100);
@@ -173,17 +173,17 @@ int test_bitset_resize()
     TESTASSERT(bitset.count() == 25 and bitset.size() == 100);
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int main()
 {
-  TESTASSERT(test_zero_bitset() == SRSLTE_SUCCESS);
-  TESTASSERT(test_ones_bitset() == SRSLTE_SUCCESS);
-  TESTASSERT(test_bitset_set() == SRSLTE_SUCCESS);
-  TESTASSERT(test_bitset_bitwise_oper() == SRSLTE_SUCCESS);
-  TESTASSERT(test_bitset_print() == SRSLTE_SUCCESS);
-  TESTASSERT(test_bitset_resize() == SRSLTE_SUCCESS);
+  TESTASSERT(test_zero_bitset() == SRSRAN_SUCCESS);
+  TESTASSERT(test_ones_bitset() == SRSRAN_SUCCESS);
+  TESTASSERT(test_bitset_set() == SRSRAN_SUCCESS);
+  TESTASSERT(test_bitset_bitwise_oper() == SRSRAN_SUCCESS);
+  TESTASSERT(test_bitset_print() == SRSRAN_SUCCESS);
+  TESTASSERT(test_bitset_resize() == SRSRAN_SUCCESS);
   printf("Success\n");
   return 0;
 }

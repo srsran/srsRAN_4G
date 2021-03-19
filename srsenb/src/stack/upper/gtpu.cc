@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,13 +10,13 @@
  *
  */
 
-#include "srslte/upper/gtpu.h"
+#include "srsran/upper/gtpu.h"
 #include "srsenb/hdr/stack/upper/gtpu.h"
-#include "srslte/common/network_utils.h"
-#include "srslte/common/standard_streams.h"
-#include "srslte/common/string_helpers.h"
-#include "srslte/interfaces/enb_interfaces.h"
-#include "srslte/interfaces/enb_pdcp_interfaces.h"
+#include "srsran/common/network_utils.h"
+#include "srsran/common/standard_streams.h"
+#include "srsran/common/string_helpers.h"
+#include "srsran/interfaces/enb_interfaces.h"
+#include "srsran/interfaces/enb_pdcp_interfaces.h"
 
 #include <errno.h>
 #include <linux/ip.h>
@@ -24,10 +24,10 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-using namespace srslte;
+using namespace srsran;
 namespace srsenb {
 
-gtpu::gtpu(srslte::task_sched_handle task_sched_, srslog::basic_logger& logger) :
+gtpu::gtpu(srsran::task_sched_handle task_sched_, srslog::basic_logger& logger) :
   m1u(this), task_sched(task_sched_), logger(logger)
 {}
 
@@ -50,7 +50,7 @@ int gtpu::init(std::string                  gtp_bind_addr_,
   fd = socket(AF_INET, SOCK_DGRAM, 0);
   if (fd < 0) {
     logger.error("Failed to create socket");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   int enable = 1;
 #if defined(SO_REUSEADDR)
@@ -71,8 +71,8 @@ int gtpu::init(std::string                  gtp_bind_addr_,
   if (bind(fd, (struct sockaddr*)&bindaddr, sizeof(struct sockaddr_in))) {
     snprintf(errbuf, sizeof(errbuf), "%s", strerror(errno));
     logger.error("Failed to bind on address %s, port %d: %s", gtp_bind_addr.c_str(), int(GTPU_PORT), errbuf);
-    srslte::console("Failed to bind on address %s, port %d: %s\n", gtp_bind_addr.c_str(), int(GTPU_PORT), errbuf);
-    return SRSLTE_ERROR;
+    srsran::console("Failed to bind on address %s, port %d: %s\n", gtp_bind_addr.c_str(), int(GTPU_PORT), errbuf);
+    return SRSRAN_ERROR;
   }
 
   stack->add_gtpu_s1u_socket_handler(fd);
@@ -81,10 +81,10 @@ int gtpu::init(std::string                  gtp_bind_addr_,
   enable_mbsfn = enable_mbsfn_;
   if (enable_mbsfn) {
     if (not m1u.init(m1u_multiaddr_, m1u_if_addr_)) {
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 void gtpu::stop()
@@ -95,18 +95,18 @@ void gtpu::stop()
 }
 
 // gtpu_interface_pdcp
-void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu)
+void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
-  srslte::span<uint32_t> teids = get_lcid_teids(rnti, lcid);
+  srsran::span<uint32_t> teids = get_lcid_teids(rnti, lcid);
   if (teids.empty()) {
     return;
   }
   tunnel& tx_tun = tunnels[teids[0]];
-  log_message(tx_tun, false, srslte::make_span(pdu));
+  log_message(tx_tun, false, srsran::make_span(pdu));
   send_pdu_to_tunnel(tx_tun, std::move(pdu));
 }
 
-void gtpu::send_pdu_to_tunnel(tunnel& tx_tun, srslte::unique_byte_buffer_t pdu, int pdcp_sn)
+void gtpu::send_pdu_to_tunnel(tunnel& tx_tun, srsran::unique_byte_buffer_t pdu, int pdcp_sn)
 {
   // Check valid IP version
   struct iphdr* ip_pkt = (struct iphdr*)pdu->msg;
@@ -160,13 +160,13 @@ uint32_t gtpu::add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t 
   ue_teidin_db[rnti][lcid].push_back(teid_in);
 
   fmt::memory_buffer str_buffer;
-  srslte::gtpu_ntoa(str_buffer, htonl(addr));
+  srsran::gtpu_ntoa(str_buffer, htonl(addr));
   logger.info("New tunnel teid_in=0x%x, teid_out=0x%x, rnti=0x%x, lcid=%d, addr=%s",
               teid_in,
               teid_out,
               rnti,
               lcid,
-              srslte::to_c_str(str_buffer));
+              srsran::to_c_str(str_buffer));
 
   if (props != nullptr) {
     if (props->flush_before_teidin_present) {
@@ -201,7 +201,7 @@ uint32_t gtpu::add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t 
 
     // Connect tunnels if forwarding is activated
     if (props->forward_from_teidin_present) {
-      if (create_dl_fwd_tunnel(props->forward_from_teidin, teid_in) != SRSLTE_SUCCESS) {
+      if (create_dl_fwd_tunnel(props->forward_from_teidin, teid_in) != SRSRAN_SUCCESS) {
         rem_tunnel(teid_in);
         return 0;
       }
@@ -342,7 +342,7 @@ void gtpu::handle_end_marker(tunnel& rx_tunnel)
   }
 }
 
-void gtpu::handle_gtpu_s1u_rx_packet(srslte::unique_byte_buffer_t pdu, const sockaddr_in& addr)
+void gtpu::handle_gtpu_s1u_rx_packet(srsran::unique_byte_buffer_t pdu, const sockaddr_in& addr)
 {
   logger.debug("Received %d bytes from S1-U interface", pdu->N_bytes);
   pdu->set_timestamp();
@@ -378,7 +378,7 @@ void gtpu::handle_gtpu_s1u_rx_packet(srslte::unique_byte_buffer_t pdu, const soc
       uint16_t rnti   = rx_tun.rnti;
       uint16_t lcid   = rx_tun.lcid;
 
-      log_message(rx_tun, true, srslte::make_span(pdu));
+      log_message(rx_tun, true, srsran::make_span(pdu));
 
       if (lcid < SRSENB_N_SRB || lcid >= SRSENB_N_RADIO_BEARERS) {
         logger.error("Invalid LCID for DL PDU: %d - dropping packet", lcid);
@@ -413,7 +413,7 @@ void gtpu::handle_gtpu_s1u_rx_packet(srslte::unique_byte_buffer_t pdu, const soc
   }
 }
 
-void gtpu::handle_gtpu_m1u_rx_packet(srslte::unique_byte_buffer_t pdu, const sockaddr_in& addr)
+void gtpu::handle_gtpu_m1u_rx_packet(srsran::unique_byte_buffer_t pdu, const sockaddr_in& addr)
 {
   m1u.handle_rx_packet(std::move(pdu), addr);
 }
@@ -425,7 +425,7 @@ int gtpu::create_dl_fwd_tunnel(uint32_t rx_teid_in, uint32_t tx_teid_in)
   auto tx_tun_pair = tunnels.find(tx_teid_in);
   if (rx_tun_pair == tunnels.end() or tx_tun_pair == tunnels.end()) {
     logger.error("Failed to create forwarding tunnel between teids 0x%x and 0x%x", rx_teid_in, tx_teid_in);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   tunnel &rx_tun = rx_tun_pair->second, &tx_tun = tx_tun_pair->second;
@@ -440,13 +440,13 @@ int gtpu::create_dl_fwd_tunnel(uint32_t rx_teid_in, uint32_t tx_teid_in)
               tx_tun.spgw_addr);
 
   // Get all buffered PDCP PDUs, and forward them through tx tunnel
-  std::map<uint32_t, srslte::unique_byte_buffer_t> pdus = pdcp->get_buffered_pdus(rx_tun.rnti, rx_tun.lcid);
+  std::map<uint32_t, srsran::unique_byte_buffer_t> pdus = pdcp->get_buffered_pdus(rx_tun.rnti, rx_tun.lcid);
   for (auto& pdu_pair : pdus) {
-    log_message(tx_tun, false, srslte::make_span(pdu_pair.second), pdu_pair.first);
+    log_message(tx_tun, false, srsran::make_span(pdu_pair.second), pdu_pair.first);
     send_pdu_to_tunnel(tx_tun, std::move(pdu_pair.second), pdu_pair.first);
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 /****************************************************************************
@@ -559,7 +559,7 @@ gtpu::tunnel* gtpu::get_tunnel(uint32_t teidin)
   return &it->second;
 }
 
-srslte::span<uint32_t> gtpu::get_lcid_teids(uint16_t rnti, uint32_t lcid)
+srsran::span<uint32_t> gtpu::get_lcid_teids(uint16_t rnti, uint32_t lcid)
 {
   auto ue_it = ue_teidin_db.find(rnti);
   if (ue_it == ue_teidin_db.end() or lcid < SRSENB_N_SRB or lcid >= SRSENB_N_RADIO_BEARERS or
@@ -570,7 +570,7 @@ srslte::span<uint32_t> gtpu::get_lcid_teids(uint16_t rnti, uint32_t lcid)
   return ue_it->second[lcid];
 }
 
-void gtpu::log_message(tunnel& tun, bool is_rx, srslte::span<uint8_t> pdu, int pdcp_sn)
+void gtpu::log_message(tunnel& tun, bool is_rx, srsran::span<uint8_t> pdu, int pdcp_sn)
 {
   struct iphdr* ip_pkt = (struct iphdr*)pdu.data();
   if (ip_pkt->version != 4 && ip_pkt->version != 6) {
@@ -584,17 +584,17 @@ void gtpu::log_message(tunnel& tun, bool is_rx, srslte::span<uint8_t> pdu, int p
   fmt::basic_memory_buffer<char, 1024> strbuf;
   const char*                          dir = "Tx";
   fmt::memory_buffer                   strbuf2, addrbuf;
-  srslte::gtpu_ntoa(addrbuf, htonl(tun.spgw_addr));
+  srsran::gtpu_ntoa(addrbuf, htonl(tun.spgw_addr));
   if (is_rx) {
     dir = "Rx";
-    fmt::format_to(strbuf2, "{}:0x{:0x} > ", srslte::to_c_str(addrbuf), tun.teid_in);
+    fmt::format_to(strbuf2, "{}:0x{:0x} > ", srsran::to_c_str(addrbuf), tun.teid_in);
     if (not tun.dl_enabled) {
       fmt::format_to(strbuf2, "DL (buffered), ");
     } else if (tun.fwd_teid_in_present) {
       tunnel& tx_tun = tunnels.at(tun.fwd_teid_in);
       addrbuf.clear();
-      srslte::gtpu_ntoa(addrbuf, htonl(tx_tun.spgw_addr));
-      fmt::format_to(strbuf2, "{}:0x{:0x} (forwarded), ", srslte::to_c_str(addrbuf), tx_tun.teid_in);
+      srsran::gtpu_ntoa(addrbuf, htonl(tx_tun.spgw_addr));
+      fmt::format_to(strbuf2, "{}:0x{:0x} (forwarded), ", srsran::to_c_str(addrbuf), tx_tun.teid_in);
     } else {
       fmt::format_to(strbuf2, "DL, ");
     }
@@ -604,7 +604,7 @@ void gtpu::log_message(tunnel& tun, bool is_rx, srslte::span<uint8_t> pdu, int p
     } else {
       fmt::format_to(strbuf2, "UL ");
     }
-    fmt::format_to(strbuf2, "> {}:0x{:0x}, ", srslte::to_c_str(addrbuf), tun.teid_in);
+    fmt::format_to(strbuf2, "> {}:0x{:0x}, ", srsran::to_c_str(addrbuf), tun.teid_in);
   }
   fmt::format_to(strbuf,
                  "{} S1-U SDU, {}rnti=0x{:0x}, lcid={}, n_bytes={}, IPv{}",
@@ -617,14 +617,14 @@ void gtpu::log_message(tunnel& tun, bool is_rx, srslte::span<uint8_t> pdu, int p
   if (ip_pkt->version == 4) {
     addrbuf.clear();
     strbuf2.clear();
-    srslte::gtpu_ntoa(addrbuf, ip_pkt->saddr);
-    srslte::gtpu_ntoa(strbuf2, ip_pkt->daddr);
-    fmt::format_to(strbuf, " {} > {}", srslte::to_c_str(addrbuf), srslte::to_c_str(strbuf2));
+    srsran::gtpu_ntoa(addrbuf, ip_pkt->saddr);
+    srsran::gtpu_ntoa(strbuf2, ip_pkt->daddr);
+    fmt::format_to(strbuf, " {} > {}", srsran::to_c_str(addrbuf), srsran::to_c_str(strbuf2));
     if (ntohs(ip_pkt->tot_len) != pdu.size()) {
       logger.error("IP Len and PDU N_bytes mismatch");
     }
   }
-  logger.info(pdu.data(), pdu.size(), "%s", srslte::to_c_str(strbuf));
+  logger.info(pdu.data(), pdu.size(), "%s", srsran::to_c_str(strbuf));
 }
 
 /****************************************************************************
@@ -682,13 +682,13 @@ bool gtpu::m1u_handler::init(std::string m1u_multiaddr_, std::string m1u_if_addr
   return true;
 }
 
-void gtpu::m1u_handler::handle_rx_packet(srslte::unique_byte_buffer_t pdu, const sockaddr_in& addr)
+void gtpu::m1u_handler::handle_rx_packet(srsran::unique_byte_buffer_t pdu, const sockaddr_in& addr)
 {
   logger.debug("Received %d bytes from M1-U interface", pdu->N_bytes);
 
   gtpu_header_t header;
   gtpu_read_header(pdu.get(), &header, logger);
-  pdcp->write_sdu(SRSLTE_MRNTI, lcid_counter, std::move(pdu));
+  pdcp->write_sdu(SRSRAN_MRNTI, lcid_counter, std::move(pdu));
 }
 
 } // namespace srsenb

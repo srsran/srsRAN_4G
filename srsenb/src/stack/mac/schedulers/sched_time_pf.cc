@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -14,7 +14,7 @@
 
 namespace srsenb {
 
-using srslte::tti_point;
+using srsran::tti_point;
 
 sched_time_pf::sched_time_pf(const sched_cell_params_t& cell_params_, const sched_interface::sched_args_t& sched_args)
 {
@@ -57,7 +57,7 @@ void sched_time_pf::new_tti(sched_ue_list& ue_db, sf_sched* tti_sched)
 
 void sched_time_pf::sched_dl_users(sched_ue_list& ue_db, sf_sched* tti_sched)
 {
-  srslte::tti_point tti_rx{tti_sched->get_tti_rx()};
+  srsran::tti_point tti_rx{tti_sched->get_tti_rx()};
   if (current_tti_rx != tti_rx) {
     new_tti(ue_db, tti_sched);
   }
@@ -96,7 +96,7 @@ uint32_t sched_time_pf::try_dl_alloc(ue_ctxt& ue_ctxt, sched_ue& ue, sf_sched* t
 
 void sched_time_pf::sched_ul_users(sched_ue_list& ue_db, sf_sched* tti_sched)
 {
-  srslte::tti_point tti_rx{tti_sched->get_tti_rx()};
+  srsran::tti_point tti_rx{tti_sched->get_tti_rx()};
   if (current_tti_rx != tti_rx) {
     new_tti(ue_db, tti_sched);
   }

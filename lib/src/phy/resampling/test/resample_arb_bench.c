@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -17,26 +17,26 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "srslte/phy/resampling/resample_arb.h"
-#include "srslte/srslte.h"
+#include "srsran/phy/resampling/resample_arb.h"
+#include "srsran/srsran.h"
 
 #define ITERATIONS 10000
 int main(int argc, char** argv)
 {
   int   N    = 9000;
   float rate = 24.0 / 25.0;
-  cf_t* in   = srslte_vec_cf_malloc(N);
-  cf_t* out  = srslte_vec_cf_malloc(N);
+  cf_t* in   = srsran_vec_cf_malloc(N);
+  cf_t* out  = srsran_vec_cf_malloc(N);
 
   for (int i = 0; i < N; i++)
     in[i] = sin(i * 2 * M_PI / 100);
 
-  srslte_resample_arb_t r;
-  srslte_resample_arb_init(&r, rate, 0);
+  srsran_resample_arb_t r;
+  srsran_resample_arb_init(&r, rate, 0);
 
   clock_t start = clock(), diff;
   for (int xx = 0; xx < ITERATIONS; xx++) {
-    srslte_resample_arb_compute(&r, in, out, N);
+    srsran_resample_arb_compute(&r, in, out, N);
   }
   diff = clock() - start;
 

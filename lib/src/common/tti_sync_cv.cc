@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -12,9 +12,9 @@
 
 #include <pthread.h>
 
-#include "srslte/common/tti_sync_cv.h"
+#include "srsran/common/tti_sync_cv.h"
 
-namespace srslte {
+namespace srsran {
 
 tti_sync_cv::tti_sync_cv(uint32_t modulus) : tti_sync(modulus)
 {
@@ -71,4 +71,4 @@ void tti_sync_cv::increase(uint32_t tti)
   pthread_cond_signal(&cond);
   pthread_mutex_unlock(&mutex);
 }
-} // namespace srslte
+} // namespace srsran

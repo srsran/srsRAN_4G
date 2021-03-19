@@ -1,0 +1,194 @@
+/**
+ *
+ * \section COPYRIGHT
+ *
+ * Copyright 2013-2021 Software Radio Systems Limited
+ *
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
+ *
+ */
+
+#ifndef SRSLOG_LOGGER_H
+#define SRSLOG_LOGGER_H
+
+#include "srsran/srslog/log_channel.h"
+
+namespace srslog {
+
+namespace detail {
+
+/// The logger_impl template class contains the common functionality to loggers.
+/// Its main responsibility is to control the logging level by individually
+/// enabling or disabling the logging channels that form the logger.
+/// NOTE: Thread safe class.
+template <typename T, typename Enum>
+class logger_impl : public T
+{
+  static_assert(std::is_enum<Enum>::value, "Expected enum type");
+
+  using enum_base_type           = typename std::underlying_type<Enum>::type;
+  static constexpr unsigned size = static_cast<enum_base_type>(Enum::LAST) - 1;
+
+public:
+  template <typename... Args>
+  explicit logger_impl(std::string id, Args&&... args) :
+    T{std::forward<Args>(args)...}, logger_id(std::move(id)), channels{&args...}
+  {
+    static_assert(sizeof...(args) == size, "Number of levels in enum does not match number of log channels");
+  }
+
+  logger_impl(const logger_impl& other) = delete;
+  logger_impl& operator=(const logger_impl& other) = delete;
+
+  /// Returns the id string of the logger.
+  const std::string& id() const { return logger_id; }
+
+  /// Change the logging level.
+  void set_level(Enum lvl)
+  {
+    detail::scoped_lock lock(m);
+
+    // Disable all channels ...
+    if (lvl == Enum::none) {
+      for (unsigned i = 0, e = channels.size(); i != e; ++i) {
+        channels[i]->set_enabled(false);
+      }
+      return;
+    }
+
+    // ... otherwise do it selectively.
+    for (unsigned i = 0, e = channels.size(); i != e; ++i) {
+      channels[i]->set_enabled(static_cast<Enum>(i + 1) <= lvl);
+    }
+  }
+
+  /// Set the specified context value to all the channels of the logger.
+  void set_context(uint32_t x)
+  {
+    detail::scoped_lock lock(m);
+    for (auto channel : channels) {
+      channel->set_context(x);
+    }
+  }
+
+  /// Set the maximum number of bytes to can be printed in a hex dump to all the
+  /// channels of the logger.
+  void set_hex_dump_max_size(int x)
+  {
+    detail::scoped_lock lock(m);
+    for (auto channel : channels) {
+      channel->set_hex_dump_max_size(x);
+    }
+  }
+
+private:
+  /// Comparison operator for enum types, used by the set_level method.
+  friend bool operator<=(Enum lhs, Enum rhs)
+  {
+    return static_cast<enum_base_type>(lhs) <= static_cast<enum_base_type>(rhs);
+  }
+
+private:
+  const std::string                    logger_id;
+  const std::array<log_channel*, size> channels;
+  mutable detail::mutex                m;
+};
+
+/// Type trait to detect if T is a logger.
+template <typename T>
+struct is_logger : std::false_type {};
+template <typename T, typename Enum>
+struct is_logger<logger_impl<T, Enum> > : std::true_type {};
+
+} // namespace detail
+
+/// The build_logger_type type alias allows developers to define new logger
+/// types in an application.
+///
+/// To create a new logger type simply follow these steps:
+///   1) Define an enum class where each element will represent a logging level.
+///     Order the elements from highest to lowest logging level. First element
+///     should be "none", which represents a disabled logger.
+///     The last element should be called LAST as it is a sentinel value.
+///   2) Define a struct composed by only log_channel references. Declare the
+///     members in the same order as done in the enum.
+///   3) Define the new logger type by using the build_logger_type alias. Pass
+///     the previous defined types as template parameters.
+///
+/// Example to declare a logger with three logging levels: error, warning and
+/// info, being error the highest logging level and info the lowest:
+///   1) Define the logging level enum:
+///     enum class three_level_logger_levels { none, error, warning, info, LAST
+///     };
+///   2) Define the struct of three channels (same order as in the enum):
+///     struct three_level_logger {
+///       log_channel &error;
+///       log_channel &warning;
+///       log_channel &info;
+///     };
+///   3) Define the new logger type:
+///     using my_new_logger =
+///         build_logger_type<three_level_logger, three_level_logger_levels>;
+template <typename T, typename Enum>
+using build_logger_type = detail::logger_impl<T, Enum>;
+
+///
+/// Common logger types.
+///
+
+/// Basic logger with four levels.
+enum class basic_levels { none, error, warning, info, debug, LAST };
+struct basic_logger_channels {
+  log_channel& error;
+  log_channel& warning;
+  log_channel& info;
+  log_channel& debug;
+};
+using basic_logger = build_logger_type<basic_logger_channels, basic_levels>;
+
+/// Translates a string to the corresponding logger basic level.
+inline basic_levels str_to_basic_level(std::string s)
+{
+  std::transform(s.begin(), s.end(), s.begin(), ::toupper);
+
+  if ("NONE" == s) {
+    return basic_levels::none;
+  }
+  if ("ERROR" == s) {
+    return basic_levels::error;
+  }
+  if ("WARNING" == s) {
+    return basic_levels::warning;
+  }
+  if ("INFO" == s) {
+    return basic_levels::info;
+  }
+  if ("DEBUG" == s) {
+    return basic_levels::debug;
+  }
+  return basic_levels::none;
+}
+
+/// Translates a logger basic level to the corresponding string.
+inline const char* basic_level_to_string(basic_levels level)
+{
+  switch (level) {
+    case basic_levels::debug:
+      return "DEBUG";
+    case basic_levels::info:
+      return "INFO";
+    case basic_levels::warning:
+      return "WARNING";
+    case basic_levels::error:
+      return "ERROR";
+    default:
+      break;
+  }
+  return "NONE";
+}
+
+} // namespace srslog
+
+#endif // SRSLOG_LOGGER_H

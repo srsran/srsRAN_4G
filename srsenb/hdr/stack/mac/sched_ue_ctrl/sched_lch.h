@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,12 +10,12 @@
  *
  */
 
-#ifndef SRSLTE_SCHED_LCH_H
-#define SRSLTE_SCHED_LCH_H
+#ifndef SRSRAN_SCHED_LCH_H
+#define SRSRAN_SCHED_LCH_H
 
-#include "srslte/interfaces/sched_interface.h"
-#include "srslte/mac/pdu.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/interfaces/sched_interface.h"
+#include "srsran/mac/pdu.h"
+#include "srsran/srslog/srslog.h"
 #include <deque>
 
 namespace srsenb {
@@ -58,7 +58,7 @@ public:
   const std::array<int, 4>& get_bsr_state() const;
 
   // Control Element Command queue
-  using ce_cmd = srslte::dl_sch_lcid;
+  using ce_cmd = srsran::dl_sch_lcid;
   std::deque<ce_cmd> pending_ces;
 
 private:
@@ -101,4 +101,4 @@ uint32_t allocate_mac_ces(sched_interface::dl_sched_data_t* data, lch_ue_manager
 
 } // namespace srsenb
 
-#endif // SRSLTE_SCHED_LCH_H
+#endif // SRSRAN_SCHED_LCH_H

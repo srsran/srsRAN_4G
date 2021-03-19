@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -12,7 +12,7 @@
 
 #include "test_helpers.h"
 #include "srsenb/hdr/enb.h"
-#include "srslte/common/test_common.h"
+#include "srsran/common/test_common.h"
 
 namespace argparse {
 
@@ -32,8 +32,8 @@ int parse_default_cfg_phy(rrc_cfg_t* rrc_cfg, phy_cfg_t* phy_cfg, srsenb::all_ar
   srslog::fetch_basic_logger("TEST").debug("sib file path=%s", args.enb_files.sib_config.c_str());
 
   args.enb.enb_id = 0x19B;
-  TESTASSERT(srslte::string_to_mcc("001", &args.stack.s1ap.mcc));
-  TESTASSERT(srslte::string_to_mnc("01", &args.stack.s1ap.mnc));
+  TESTASSERT(srsran::string_to_mcc("001", &args.stack.s1ap.mcc));
+  TESTASSERT(srsran::string_to_mnc("01", &args.stack.s1ap.mnc));
   args.general.eia_pref_list = "EIA2, EIA1, EIA0";
   args.general.eea_pref_list = "EEA0, EEA2, EEA1";
 
@@ -54,8 +54,8 @@ int parse_default_cfg(rrc_cfg_t* rrc_cfg, srsenb::all_args_t& args)
   args.enb.enb_id    = 0x19B;
   args.enb.dl_earfcn = 3400;
   args.enb.n_prb     = 50;
-  TESTASSERT(srslte::string_to_mcc("001", &args.stack.s1ap.mcc));
-  TESTASSERT(srslte::string_to_mnc("01", &args.stack.s1ap.mnc));
+  TESTASSERT(srsran::string_to_mcc("001", &args.stack.s1ap.mcc));
+  TESTASSERT(srsran::string_to_mnc("01", &args.stack.s1ap.mnc));
   args.enb.transmission_mode = 1;
   args.enb.nof_ports         = 1;
   args.general.eia_pref_list = "EIA2, EIA1, EIA0";
@@ -68,9 +68,9 @@ int parse_default_cfg(rrc_cfg_t* rrc_cfg, srsenb::all_args_t& args)
   return enb_conf_sections::parse_cfg_files(&args, rrc_cfg, &phy_cfg);
 }
 
-int bring_rrc_to_reconf_state(srsenb::rrc& rrc, srslte::timer_handler& timers, uint16_t rnti)
+int bring_rrc_to_reconf_state(srsenb::rrc& rrc, srsran::timer_handler& timers, uint16_t rnti)
 {
-  srslte::unique_byte_buffer_t pdu;
+  srsran::unique_byte_buffer_t pdu;
 
   // Send RRCConnectionRequest
   uint8_t rrc_conn_request[] = {0x40, 0x12, 0xf6, 0xfb, 0xe2, 0xc6};
@@ -102,7 +102,7 @@ int bring_rrc_to_reconf_state(srsenb::rrc& rrc, srslte::timer_handler& timers, u
       0x45, 0x25, 0xe4, 0x9a, 0x77, 0xc8, 0xd5, 0xcf, 0x26, 0x33, 0x63, 0xeb, 0x5b, 0xb9, 0xc3, 0x43, 0x9b, 0x9e, 0xb3,
       0x86, 0x1f, 0xa8, 0xa7, 0xcf, 0x43, 0x54, 0x07, 0xae, 0x42, 0x2b, 0x63, 0xb9};
   asn1::s1ap::s1ap_pdu_c s1ap_pdu;
-  srslte::byte_buffer_t  byte_buf;
+  srsran::byte_buffer_t  byte_buf;
   byte_buf.N_bytes = sizeof(s1ap_init_ctxt_setup_req);
   memcpy(byte_buf.msg, s1ap_init_ctxt_setup_req, byte_buf.N_bytes);
   asn1::cbit_ref bref(byte_buf.msg, byte_buf.N_bytes);
@@ -133,7 +133,7 @@ int bring_rrc_to_reconf_state(srsenb::rrc& rrc, srslte::timer_handler& timers, u
   timers.step_all();
   rrc.tti_clock();
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 } // namespace test_helpers

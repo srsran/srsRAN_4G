@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,10 +10,10 @@
  *
  */
 
-#include "srslte/adt/circular_buffer.h"
-#include "srslte/common/test_common.h"
+#include "srsran/adt/circular_buffer.h"
+#include "srsran/common/test_common.h"
 
-namespace srslte {
+namespace srsran {
 
 int test_static_circular_buffer()
 {
@@ -61,7 +61,7 @@ int test_static_circular_buffer()
     count++;
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_queue_block_api()
@@ -86,7 +86,7 @@ int test_queue_block_api()
 
   queue.stop();
   t.join();
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_queue_block_api_2()
@@ -110,16 +110,16 @@ int test_queue_block_api_2()
   }
 
   t.join();
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-} // namespace srslte
+} // namespace srsran
 
 int main()
 {
-  TESTASSERT(srslte::test_static_circular_buffer() == SRSLTE_SUCCESS);
-  TESTASSERT(srslte::test_queue_block_api() == SRSLTE_SUCCESS);
-  TESTASSERT(srslte::test_queue_block_api_2() == SRSLTE_SUCCESS);
-  srslte::console("Success\n");
-  return SRSLTE_SUCCESS;
+  TESTASSERT(srsran::test_static_circular_buffer() == SRSRAN_SUCCESS);
+  TESTASSERT(srsran::test_queue_block_api() == SRSRAN_SUCCESS);
+  TESTASSERT(srsran::test_queue_block_api_2() == SRSRAN_SUCCESS);
+  srsran::console("Success\n");
+  return SRSRAN_SUCCESS;
 }

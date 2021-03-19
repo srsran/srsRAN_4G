@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -25,15 +25,15 @@
 #include "../utils_avx2.h"
 #include "../utils_avx512.h"
 #include "ldpc_enc_all.h"
-#include "srslte/phy/fec/ldpc/base_graph.h"
-#include "srslte/phy/fec/ldpc/ldpc_encoder.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/fec/ldpc/base_graph.h"
+#include "srsran/phy/fec/ldpc/ldpc_encoder.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/vector.h"
 
 /*! Carries out the actual destruction of the memory allocated to the encoder. */
 static void free_enc_c(void* o)
 {
-  srslte_ldpc_encoder_t* q = o;
+  srsran_ldpc_encoder_t* q = o;
   if (q->pcm) {
     free(q->pcm);
   }
@@ -45,7 +45,7 @@ static void free_enc_c(void* o)
 /*! Carries out the actual encoding with a non-optimized encoder. */
 static int encode_c(void* o, const uint8_t* input, uint8_t* output, uint32_t input_length, uint32_t cdwd_rm_length)
 {
-  srslte_ldpc_encoder_t* q = o;
+  srsran_ldpc_encoder_t* q = o;
 
   if (input_length / q->bgK != q->ls) {
     ERROR("Dimension mismatch.");
@@ -88,7 +88,7 @@ static int encode_c(void* o, const uint8_t* input, uint8_t* output, uint32_t inp
 }
 
 /*! Initializes a non-optimized encoder. */
-static int init_c(srslte_ldpc_encoder_t* q)
+static int init_c(srsran_ldpc_encoder_t* q)
 {
   int ls_index = get_ls_index(q->ls);
 
@@ -112,7 +112,7 @@ static int init_c(srslte_ldpc_encoder_t* q)
 
   q->free = free_enc_c;
 
-  q->ptr = srslte_vec_u8_malloc(q->bgM * q->ls);
+  q->ptr = srsran_vec_u8_malloc(q->bgM * q->ls);
   if (!q->ptr) {
     perror("malloc");
     free_enc_c(q);
@@ -128,7 +128,7 @@ static int init_c(srslte_ldpc_encoder_t* q)
 /*! Carries out the actual destruction of the memory allocated to the encoder. */
 static void free_enc_avx2(void* o)
 {
-  srslte_ldpc_encoder_t* q = o;
+  srsran_ldpc_encoder_t* q = o;
   if (q->pcm) {
     free(q->pcm);
   }
@@ -140,7 +140,7 @@ static void free_enc_avx2(void* o)
 /*! Carries out the actual encoding with an optimized encoder. */
 static int encode_avx2(void* o, const uint8_t* input, uint8_t* output, uint32_t input_length, uint32_t cdwd_rm_length)
 {
-  srslte_ldpc_encoder_t* q = o;
+  srsran_ldpc_encoder_t* q = o;
 
   if (input_length / q->bgK != q->ls) {
     ERROR("Dimension mismatch.");
@@ -182,7 +182,7 @@ static int encode_avx2(void* o, const uint8_t* input, uint8_t* output, uint32_t 
 }
 
 /*! Initializes an optimized encoder. */
-static int init_avx2(srslte_ldpc_encoder_t* q)
+static int init_avx2(srsran_ldpc_encoder_t* q)
 {
   int ls_index = get_ls_index(q->ls);
 
@@ -220,7 +220,7 @@ static int init_avx2(srslte_ldpc_encoder_t* q)
 /*! Carries out the actual destruction of the memory allocated to the encoder. */
 static void free_enc_avx2long(void* o)
 {
-  srslte_ldpc_encoder_t* q = o;
+  srsran_ldpc_encoder_t* q = o;
   if (q->pcm) {
     free(q->pcm);
   }
@@ -233,7 +233,7 @@ static void free_enc_avx2long(void* o)
 static int
 encode_avx2long(void* o, const uint8_t* input, uint8_t* output, uint32_t input_length, uint32_t cdwd_rm_length)
 {
-  srslte_ldpc_encoder_t* q = o;
+  srsran_ldpc_encoder_t* q = o;
 
   if (input_length / q->bgK != q->ls) {
     ERROR("Dimension mismatch.");
@@ -274,7 +274,7 @@ encode_avx2long(void* o, const uint8_t* input, uint8_t* output, uint32_t input_l
 }
 
 /*! Initializes an optimized encoder. */
-static int init_avx2long(srslte_ldpc_encoder_t* q)
+static int init_avx2long(srsran_ldpc_encoder_t* q)
 {
   int ls_index = get_ls_index(q->ls);
 
@@ -316,7 +316,7 @@ static int init_avx2long(srslte_ldpc_encoder_t* q)
 /*! Carries out the actual destruction of the memory allocated to the encoder. */
 static void free_enc_avx512(void* o)
 {
-  srslte_ldpc_encoder_t* q = o;
+  srsran_ldpc_encoder_t* q = o;
   if (q->pcm) {
     free(q->pcm);
   }
@@ -328,7 +328,7 @@ static void free_enc_avx512(void* o)
 /*! Carries out the actual encoding with an optimized encoder. */
 static int encode_avx512(void* o, const uint8_t* input, uint8_t* output, uint32_t input_length, uint32_t cdwd_rm_length)
 {
-  srslte_ldpc_encoder_t* q = o;
+  srsran_ldpc_encoder_t* q = o;
 
   if (input_length / q->bgK != q->ls) {
     ERROR("Dimension mismatch.");
@@ -370,7 +370,7 @@ static int encode_avx512(void* o, const uint8_t* input, uint8_t* output, uint32_
 }
 
 /*! Initializes an optimized encoder. */
-static int init_avx512(srslte_ldpc_encoder_t* q)
+static int init_avx512(srsran_ldpc_encoder_t* q)
 {
   int ls_index = get_ls_index(q->ls);
 
@@ -408,7 +408,7 @@ static int init_avx512(srslte_ldpc_encoder_t* q)
 /*! Carries out the actual destruction of the memory allocated to the encoder. */
 static void free_enc_avx512long(void* o)
 {
-  srslte_ldpc_encoder_t* q = o;
+  srsran_ldpc_encoder_t* q = o;
   if (q->pcm) {
     free(q->pcm);
   }
@@ -421,7 +421,7 @@ static void free_enc_avx512long(void* o)
 static int
 encode_avx512long(void* o, const uint8_t* input, uint8_t* output, uint32_t input_length, uint32_t cdwd_rm_length)
 {
-  srslte_ldpc_encoder_t* q = o;
+  srsran_ldpc_encoder_t* q = o;
 
   if (input_length / q->bgK != q->ls) {
     ERROR("Dimension mismatch.");
@@ -462,7 +462,7 @@ encode_avx512long(void* o, const uint8_t* input, uint8_t* output, uint32_t input
 }
 
 /*! Initializes an optimized encoder. */
-static int init_avx512long(srslte_ldpc_encoder_t* q)
+static int init_avx512long(srsran_ldpc_encoder_t* q)
 {
   int ls_index = get_ls_index(q->ls);
 
@@ -499,9 +499,9 @@ static int init_avx512long(srslte_ldpc_encoder_t* q)
 
 #endif
 
-int srslte_ldpc_encoder_init(srslte_ldpc_encoder_t*     q,
-                             srslte_ldpc_encoder_type_t type,
-                             srslte_basegraph_t         bg,
+int srsran_ldpc_encoder_init(srsran_ldpc_encoder_t*     q,
+                             srsran_ldpc_encoder_type_t type,
+                             srsran_basegraph_t         bg,
                              uint16_t                   ls)
 {
   switch (bg) {
@@ -525,7 +525,7 @@ int srslte_ldpc_encoder_init(srslte_ldpc_encoder_t*     q,
   q->liftM = ls * q->bgM;
   q->liftN = ls * q->bgN;
 
-  q->pcm = srslte_vec_u16_malloc(q->bgM * q->bgN);
+  q->pcm = srsran_vec_u16_malloc(q->bgM * q->bgN);
   if (!q->pcm) {
     perror("malloc");
     return -1;
@@ -536,19 +536,19 @@ int srslte_ldpc_encoder_init(srslte_ldpc_encoder_t*     q,
   }
 
   switch (type) {
-    case SRSLTE_LDPC_ENCODER_C:
+    case SRSRAN_LDPC_ENCODER_C:
       return init_c(q);
 #ifdef LV_HAVE_AVX2
-    case SRSLTE_LDPC_ENCODER_AVX2:
-      if (ls <= SRSLTE_AVX2_B_SIZE) {
+    case SRSRAN_LDPC_ENCODER_AVX2:
+      if (ls <= SRSRAN_AVX2_B_SIZE) {
         return init_avx2(q);
       } else {
         return init_avx2long(q);
       }
 #endif // LV_HAVE_AVX2
 #ifdef LV_HAVE_AVX512
-    case SRSLTE_LDPC_ENCODER_AVX512:
-      if (ls <= SRSLTE_AVX512_B_SIZE) {
+    case SRSRAN_LDPC_ENCODER_AVX512:
+      if (ls <= SRSRAN_AVX512_B_SIZE) {
         return init_avx512(q);
       } else {
         return init_avx512long(q);
@@ -559,20 +559,20 @@ int srslte_ldpc_encoder_init(srslte_ldpc_encoder_t*     q,
   }
 }
 
-void srslte_ldpc_encoder_free(srslte_ldpc_encoder_t* q)
+void srsran_ldpc_encoder_free(srsran_ldpc_encoder_t* q)
 {
   if (q->free) {
     q->free(q);
   }
-  bzero(q, sizeof(srslte_ldpc_encoder_t));
+  bzero(q, sizeof(srsran_ldpc_encoder_t));
 }
 
-int srslte_ldpc_encoder_encode(srslte_ldpc_encoder_t* q, const uint8_t* input, uint8_t* output, uint32_t input_length)
+int srsran_ldpc_encoder_encode(srsran_ldpc_encoder_t* q, const uint8_t* input, uint8_t* output, uint32_t input_length)
 {
   return q->encode(q, input, output, input_length, q->liftN - 2 * q->ls);
 }
 
-int srslte_ldpc_encoder_encode_rm(srslte_ldpc_encoder_t* q,
+int srsran_ldpc_encoder_encode_rm(srsran_ldpc_encoder_t* q,
                                   const uint8_t*         input,
                                   uint8_t*               output,
                                   uint32_t               input_length,

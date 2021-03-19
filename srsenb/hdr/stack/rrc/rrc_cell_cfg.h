@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,12 +10,12 @@
  *
  */
 
-#ifndef SRSLTE_RRC_CELL_CFG_H
-#define SRSLTE_RRC_CELL_CFG_H
+#ifndef SRSRAN_RRC_CELL_CFG_H
+#define SRSRAN_RRC_CELL_CFG_H
 
 #include "rrc_config.h"
-#include "srslte/common/byte_buffer.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/common/byte_buffer.h"
+#include "srsran/srslog/srslog.h"
 
 namespace srsenb {
 
@@ -26,7 +26,7 @@ struct enb_cell_common {
   asn1::rrc::sib_type1_s                    sib1;
   asn1::rrc::sib_type2_s                    sib2;
   const cell_cfg_t&                         cell_cfg;
-  std::vector<srslte::unique_byte_buffer_t> sib_buffer; ///< Packed SIBs for given CC
+  std::vector<srsran::unique_byte_buffer_t> sib_buffer; ///< Packed SIBs for given CC
   std::vector<const enb_cell_common*>       scells;
 
   enb_cell_common(uint32_t idx_, const cell_cfg_t& cfg) : enb_cc_idx(idx_), cell_cfg(cfg) {}
@@ -71,7 +71,7 @@ public:
   };
 
   const static uint32_t N_PUCCH_MAX_PRB = 4; // Maximum number of PRB to use for PUCCH ACK/NACK in CS mode
-  const static uint32_t N_PUCCH_MAX_RES = 3 * SRSLTE_NRE * N_PUCCH_MAX_PRB;
+  const static uint32_t N_PUCCH_MAX_RES = 3 * SRSRAN_NRE * N_PUCCH_MAX_PRB;
 
   uint32_t                          next_measgap_offset = 0;
   pucch_idx_sched_t                 sr_sched            = {};
@@ -185,4 +185,4 @@ private:
 
 } // namespace srsenb
 
-#endif // SRSLTE_RRC_CELL_CFG_H
+#endif // SRSRAN_RRC_CELL_CFG_H

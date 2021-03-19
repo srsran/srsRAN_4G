@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -13,14 +13,14 @@
 #ifndef SRSUE_TTCN3_SRB_INTERFACE_H
 #define SRSUE_TTCN3_SRB_INTERFACE_H
 
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/common.h"
-#include "srslte/mac/pdu.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/common/common.h"
+#include "srsran/mac/pdu.h"
 #include "ttcn3_interfaces.h"
 #include "ttcn3_port_handler.h"
-#include <srslte/interfaces/ue_interfaces.h>
+#include <srsran/interfaces/ue_interfaces.h>
 
-using namespace srslte;
+using namespace srsran;
 
 // The SRB interface
 class ttcn3_srb_interface : public ttcn3_port_handler
@@ -68,7 +68,7 @@ private:
     Document document;
     if (document.Parse((char*)&rx_buf->at(2)).HasParseError() || document.IsObject() == false) {
       logger.error((uint8_t*)&rx_buf->at(2), json_len, "Error parsing incoming data.");
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
 
     // Pretty-print
@@ -99,7 +99,7 @@ private:
       logger.error("Received unknown request.");
     }
 
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   // Todo: move to SYSSIM
@@ -108,7 +108,7 @@ private:
     logger.info(payload, len, "Received CCCH RRC PDU");
 
     // pack into byte buffer
-    unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+    unique_byte_buffer_t pdu = srsran::make_byte_buffer();
     pdu->N_bytes             = len;
     memcpy(pdu->msg, payload, pdu->N_bytes);
 
@@ -128,7 +128,7 @@ private:
     logger.info(payload, len, "Received DCCH RRC PDU (lcid=%d)", lcid);
 
     // pack into byte buffer
-    unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+    unique_byte_buffer_t pdu = srsran::make_byte_buffer();
     pdu->N_bytes             = len;
     memcpy(pdu->msg, payload, pdu->N_bytes);
 

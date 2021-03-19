@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -12,10 +12,10 @@
 
 #include "srsepc/hdr/mme/s1ap_ctx_mngmt_proc.h"
 #include "srsepc/hdr/mme/s1ap.h"
-#include "srslte/common/bcd_helpers.h"
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/int_helpers.h"
-#include "srslte/common/liblte_security.h"
+#include "srsran/common/bcd_helpers.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/common/int_helpers.h"
+#include "srsran/common/liblte_security.h"
 #include <endian.h>
 
 namespace srsepc {
@@ -130,10 +130,10 @@ bool s1ap_ctx_mngmt_proc::send_initial_context_setup_request(nas* nas_ctx, uint1
   }
   m_logger.info(sec_ctx->k_enb, 32, "Initial Context Setup Request -- Key eNB (k_enb)");
 
-  srslte::unique_byte_buffer_t nas_buffer = srslte::make_byte_buffer();
+  srsran::unique_byte_buffer_t nas_buffer = srsran::make_byte_buffer();
   if (emm_ctx->state == EMM_STATE_DEREGISTERED) {
     // Attach procedure initiated from an attach request
-    srslte::console("Adding attach accept to Initial Context Setup Request\n");
+    srsran::console("Adding attach accept to Initial Context Setup Request\n");
     m_logger.info("Adding attach accept to Initial Context Setup Request");
     nas_ctx->pack_attach_accept(nas_buffer.get());
 
@@ -153,7 +153,7 @@ bool s1ap_ctx_mngmt_proc::send_initial_context_setup_request(nas* nas_ctx, uint1
 
   struct in_addr addr;
   addr.s_addr = htonl(erab_ctx_req.transport_layer_address.to_number());
-  srslte::console("Sent Initial Context Setup Request. E-RAB id %d \n", erab_ctx_req.erab_id);
+  srsran::console("Sent Initial Context Setup Request. E-RAB id %d \n", erab_ctx_req.erab_id);
   m_logger.info(
       "Initial Context -- S1-U TEID 0x%" PRIx64 ". IP %s ", erab_ctx_req.gtp_teid.to_number(), inet_ntoa(addr));
   m_logger.info("Initial Context Setup Request -- eNB UE S1AP Id %d, MME UE S1AP Id %" PRIu64 "",
@@ -183,7 +183,7 @@ bool s1ap_ctx_mngmt_proc::handle_initial_context_setup_response(
   emm_ctx_t* emm_ctx = &nas_ctx->m_emm_ctx;
   ecm_ctx_t* ecm_ctx = &nas_ctx->m_ecm_ctx;
 
-  srslte::console("Received Initial Context Setup Response\n");
+  srsran::console("Received Initial Context Setup Response\n");
 
   // Setup E-RABs
   for (const asn1::s1ap::protocol_ie_single_container_s<asn1::s1ap::erab_setup_item_ctxt_su_res_ies_o>& ie_container :
@@ -217,13 +217,13 @@ bool s1ap_ctx_mngmt_proc::handle_initial_context_setup_response(
 
     m_logger.info("E-RAB Context Setup. E-RAB id %d", esm_ctx->erab_id);
     m_logger.info("E-RAB Context -- eNB TEID 0x%x, eNB Address %s", esm_ctx->enb_fteid.teid, enb_addr_str);
-    srslte::console("E-RAB Context Setup. E-RAB id %d\n", esm_ctx->erab_id);
-    srslte::console("E-RAB Context -- eNB TEID 0x%x; eNB GTP-U Address %s\n", esm_ctx->enb_fteid.teid, enb_addr_str);
+    srsran::console("E-RAB Context Setup. E-RAB id %d\n", esm_ctx->erab_id);
+    srsran::console("E-RAB Context -- eNB TEID 0x%x; eNB GTP-U Address %s\n", esm_ctx->enb_fteid.teid, enb_addr_str);
   }
 
   if (emm_ctx->state == EMM_STATE_REGISTERED) {
-    srslte::console("Initial Context Setup Response triggered from Service Request.\n");
-    srslte::console("Sending Modify Bearer Request.\n");
+    srsran::console("Initial Context Setup Response triggered from Service Request.\n");
+    srsran::console("Sending Modify Bearer Request.\n");
     m_mme_gtpc->send_modify_bearer_request(emm_ctx->imsi, 5, &nas_ctx->m_esm_ctx[5].enb_fteid);
   }
   return true;
@@ -234,12 +234,12 @@ bool s1ap_ctx_mngmt_proc::handle_ue_context_release_request(const asn1::s1ap::ue
 {
   uint32_t mme_ue_s1ap_id = ue_rel.protocol_ies.mme_ue_s1ap_id.value.value;
   m_logger.info("Received UE Context Release Request. MME-UE S1AP Id: %d", mme_ue_s1ap_id);
-  srslte::console("Received UE Context Release Request. MME-UE S1AP Id %d\n", mme_ue_s1ap_id);
+  srsran::console("Received UE Context Release Request. MME-UE S1AP Id %d\n", mme_ue_s1ap_id);
 
   nas* nas_ctx = m_s1ap->find_nas_ctx_from_mme_ue_s1ap_id(mme_ue_s1ap_id);
   if (nas_ctx == nullptr) {
     m_logger.info("No UE context to release found. MME-UE S1AP Id: %d", mme_ue_s1ap_id);
-    srslte::console("No UE context to release found. MME-UE S1AP Id: %d\n", mme_ue_s1ap_id);
+    srsran::console("No UE context to release found. MME-UE S1AP Id: %d\n", mme_ue_s1ap_id);
     return false;
   }
 
@@ -286,7 +286,7 @@ bool s1ap_ctx_mngmt_proc::send_ue_context_release_command(nas* nas_ctx)
   // the SPGW. In such cases, there is no need to send the GTP-C Release Access Bearers Request.
   if (active_erabs) {
     // There are active E-RABs, send release access mearers request
-    srslte::console("There are active E-RABs, send release access bearers request\n");
+    srsran::console("There are active E-RABs, send release access bearers request\n");
     m_logger.info("There are active E-RABs, send release access bearers request");
 
     // The handle_release_access_bearers_response function will make sure to mark E-RABS DEACTIVATED
@@ -326,19 +326,19 @@ bool s1ap_ctx_mngmt_proc::handle_ue_context_release_complete(const asn1::s1ap::u
 {
   uint32_t mme_ue_s1ap_id = rel_comp.protocol_ies.mme_ue_s1ap_id.value.value;
   m_logger.info("Received UE Context Release Complete. MME-UE S1AP Id: %d", mme_ue_s1ap_id);
-  srslte::console("Received UE Context Release Complete. MME-UE S1AP Id %d\n", mme_ue_s1ap_id);
+  srsran::console("Received UE Context Release Complete. MME-UE S1AP Id %d\n", mme_ue_s1ap_id);
 
   nas* nas_ctx = m_s1ap->find_nas_ctx_from_mme_ue_s1ap_id(mme_ue_s1ap_id);
   if (nas_ctx == nullptr) {
     m_logger.info("No UE context to release found. MME-UE S1AP Id: %d", mme_ue_s1ap_id);
-    srslte::console("No UE context to release found. MME-UE S1AP Id: %d\n", mme_ue_s1ap_id);
+    srsran::console("No UE context to release found. MME-UE S1AP Id: %d\n", mme_ue_s1ap_id);
     return false;
   }
 
   // Delete UE context
   m_s1ap->release_ue_ecm_ctx(nas_ctx->m_ecm_ctx.mme_ue_s1ap_id);
   m_logger.info("UE Context Release Completed.");
-  srslte::console("UE Context Release Completed.\n");
+  srsran::console("UE Context Release Completed.\n");
   return true;
 }
 } // namespace srsepc

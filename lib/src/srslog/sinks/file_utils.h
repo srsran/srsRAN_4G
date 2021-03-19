@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -13,9 +13,9 @@
 #ifndef SRSLOG_FILE_UTILS_H
 #define SRSLOG_FILE_UTILS_H
 
-#include "srslte/srslog/bundled/fmt/format.h"
-#include "srslte/srslog/detail/support/error_string.h"
-#include "srslte/srslog/detail/support/memory_buffer.h"
+#include "srsran/srslog/bundled/fmt/format.h"
+#include "srsran/srslog/detail/support/error_string.h"
+#include "srsran/srslog/detail/support/memory_buffer.h"
 
 namespace srslog {
 

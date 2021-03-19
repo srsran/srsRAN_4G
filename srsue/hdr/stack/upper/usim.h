@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -13,8 +13,8 @@
 #ifndef SRSUE_USIM_H
 #define SRSUE_USIM_H
 
-#include "srslte/common/common.h"
-#include "srslte/common/security.h"
+#include "srsran/common/common.h"
+#include "srsran/common/security.h"
 #include "usim_base.h"
 #include <string>
 

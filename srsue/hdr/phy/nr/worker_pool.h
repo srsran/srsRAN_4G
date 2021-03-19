@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -14,7 +14,7 @@
 #define SRSUE_NR_WORKER_POOL_H
 
 #include "sf_worker.h"
-#include "srslte/common/thread_pool.h"
+#include "srsran/common/thread_pool.h"
 #include "srsue/hdr/phy/prach.h"
 
 namespace srsue {
@@ -24,7 +24,7 @@ class worker_pool
 {
 private:
   srslog::basic_logger&                    logger;
-  srslte::thread_pool                      pool;
+  srsran::thread_pool                      pool;
   std::vector<std::unique_ptr<sf_worker> > workers;
   state                                    phy_state;
   std::unique_ptr<prach>                   prach_buffer = nullptr;
@@ -38,8 +38,8 @@ public:
   void       start_worker(sf_worker* w);
   void       stop();
   void       send_prach(uint32_t prach_occasion, uint32_t preamble_index, int preamble_received_target_power);
-  int  set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS> array, uint16_t rnti, srslte_rnti_type_t rnti_type);
-  bool set_config(const srslte::phy_cfg_nr_t& cfg);
+  int  set_ul_grant(std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> array, uint16_t rnti, srsran_rnti_type_t rnti_type);
+  bool set_config(const srsran::phy_cfg_nr_t& cfg);
   void       sr_send(uint32_t sr_id);
 };
 

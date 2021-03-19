@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -29,8 +29,8 @@
 
 #include <stdint.h>
 
-#include "srslte/phy/fec/ldpc/base_graph.h"
-#include "srslte/phy/utils/debug.h"
+#include "srsran/phy/fec/ldpc/base_graph.h"
+#include "srsran/phy/utils/debug.h"
 
 /*!
  * \brief Lifting size look-up table.
@@ -4450,12 +4450,12 @@ static const int8_t BG2_positions[BG2M][MAX_CNCT] = {
 /*!
  * Returns a pointer to the desired variation of the selected base graph.
  */
-static inline const uint16_t* get_cnct_matrix(srslte_basegraph_t bg, uint8_t ls)
+static inline const uint16_t* get_cnct_matrix(srsran_basegraph_t bg, uint8_t ls)
 {
   return (bg == BG1 ? (const uint16_t*)BG1_matrices[ls] : (const uint16_t*)BG2_matrices[ls]);
 }
 
-int create_compact_pcm(uint16_t* pcm, int8_t (*positions)[MAX_CNCT], srslte_basegraph_t bg, uint16_t ls)
+int create_compact_pcm(uint16_t* pcm, int8_t (*positions)[MAX_CNCT], srsran_basegraph_t bg, uint16_t ls)
 {
   uint8_t  ls_index = 0;
   uint16_t value    = 0;

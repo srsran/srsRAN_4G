@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,19 +10,19 @@
  *
  */
 
-#include "srslte/upper/rlc_um_nr.h"
-#include "srslte/interfaces/ue_pdcp_interfaces.h"
+#include "srsran/upper/rlc_um_nr.h"
+#include "srsran/interfaces/ue_pdcp_interfaces.h"
 #include <sstream>
 
 #define RX_MOD_NR_BASE(x) (((x)-RX_Next_Highest - cfg.um_nr.UM_Window_Size) % cfg.um_nr.mod)
 
-namespace srslte {
+namespace srsran {
 
 rlc_um_nr::rlc_um_nr(srslog::basic_logger&      logger,
                      uint32_t                   lcid_,
                      srsue::pdcp_interface_rlc* pdcp_,
                      srsue::rrc_interface_rlc*  rrc_,
-                     srslte::timer_handler*     timers_) :
+                     srsran::timer_handler*     timers_) :
   rlc_um_base(logger, lcid_, pdcp_, rrc_, timers_)
 {}
 
@@ -51,8 +51,8 @@ bool rlc_um_nr::configure(const rlc_config_t& cnfg_)
 
   logger.info("%s configured in %s: sn_field_length=%u bits",
               rb_name.c_str(),
-              srslte::to_string(cnfg_.rlc_mode).c_str(),
-              srslte::to_number(cfg.um_nr.sn_field_length));
+              srsran::to_string(cnfg_.rlc_mode).c_str(),
+              srsran::to_number(cfg.um_nr.sn_field_length));
 
   rx_enabled = true;
   tx_enabled = true;
@@ -118,7 +118,7 @@ int rlc_um_nr::rlc_um_nr_tx::build_data_pdu(unique_byte_buffer_t pdu, uint8_t* p
   uint8_t* pdu_ptr = pdu->msg;
 
   int head_len  = rlc_um_nr_packed_length(header);
-  int pdu_space = SRSLTE_MIN(nof_bytes, pdu->get_tailroom());
+  int pdu_space = SRSRAN_MIN(nof_bytes, pdu->get_tailroom());
 
   if (pdu_space <= head_len + 1) {
     logger.warning("%s Cannot build a PDU - %d bytes available, %d bytes required for header",
@@ -147,7 +147,7 @@ int rlc_um_nr::rlc_um_nr_tx::build_data_pdu(unique_byte_buffer_t pdu, uint8_t* p
     } else {
       header.si = rlc_nr_si_field_t::neither_first_nor_last_segment;
     }
-    pdu_space -= SRSLTE_MIN(to_move, pdu->get_tailroom());
+    pdu_space -= SRSRAN_MIN(to_move, pdu->get_tailroom());
     header.so = next_so;
   } else {
     // Pull SDU from queue
@@ -687,4 +687,4 @@ uint32_t rlc_um_nr_write_data_pdu_header(const rlc_um_nr_pdu_header_t& header, b
   return len;
 }
 
-} // namespace srslte
+} // namespace srsran

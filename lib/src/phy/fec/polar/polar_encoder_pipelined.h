@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -37,7 +37,7 @@ void delete_polar_encoder_pipelined(void* p);
  * \param[in] input The encoder input vector.
  * \param[out] output The encoder output vector.
  * \param[in] code_size_log The \f$\log_2\f$ of the number of bits of the encoder input/output vector.
- * It can less or equal to the maximum code_size_log specified in q.code_size_log of the srslte_polar_encoder_t
+ * It can less or equal to the maximum code_size_log specified in q.code_size_log of the srsran_polar_encoder_t
  * structure \return An integer: 0 if the function executes correctly, -1 otherwise.
  */
 int polar_encoder_encode_pipelined(void* p, const uint8_t* input, uint8_t* output, uint8_t code_size_log);

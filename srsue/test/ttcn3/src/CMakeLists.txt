@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2020 Software Radio Systems Limited
+# Copyright 2013-2021 Software Radio Systems Limited
 #
 # By using this file, you agree to the terms and conditions set
 # forth in the LICENSE file which can be found at the top level of
@@ -12,13 +12,13 @@ add_executable(ttcn3_dut ttcn3_dut.cc lte_ttcn3_phy.cc ${SOURCES})
 set(LINK_LIBRARIES srsue_stack
                     srsue_upper
                     srsue_rrc
-                    srslte_upper
-                    srslte_common
-                    srslte_mac
-                    srslte_mac
-                    srslte_phy
-                    srslte_radio
-                    srslte_upper
+                    srsran_upper
+                    srsran_common
+                    srsran_mac
+                    srsran_mac
+                    srsran_phy
+                    srsran_radio
+                    srsran_upper
                     srsue_phy
                     srsue_mac
                     srsue_mac_nr

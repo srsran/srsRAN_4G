@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -24,10 +24,10 @@
 #include <string>
 
 #include "phy/ue_phy_base.h"
-#include "srslte/common/buffer_pool.h"
-#include "srslte/radio/radio.h"
-#include "srslte/srslog/srslog.h"
-#include "srslte/system/sys_metrics_processor.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/radio/radio.h"
+#include "srsran/srslog/srslog.h"
+#include "srsran/system/sys_metrics_processor.h"
 #include "stack/ue_stack_base.h"
 
 #include "ue_metrics_interface.h"
@@ -67,7 +67,7 @@ typedef struct {
 } general_args_t;
 
 typedef struct {
-  srslte::rf_args_t rf;
+  srsran::rf_args_t rf;
   trace_args_t      trace;
   log_args_t        log;
   gui_args_t        gui;
@@ -103,7 +103,7 @@ public:
 private:
   // UE consists of a radio, a PHY and a stack element
   std::unique_ptr<ue_phy_base>        phy;
-  std::unique_ptr<srslte::radio_base> radio;
+  std::unique_ptr<srsran::radio_base> radio;
   std::unique_ptr<ue_stack_base>      stack;
   std::unique_ptr<gw>                 gw_inst;
 
@@ -111,7 +111,7 @@ private:
   srslog::basic_logger& logger;
 
   // System metrics processor.
-  srslte::sys_metrics_processor sys_proc;
+  srsran::sys_metrics_processor sys_proc;
 
   all_args_t args;
 

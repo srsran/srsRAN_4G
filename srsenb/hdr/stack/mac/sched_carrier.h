@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,12 +10,12 @@
  *
  */
 
-#ifndef SRSLTE_SCHED_CARRIER_H
-#define SRSLTE_SCHED_CARRIER_H
+#ifndef SRSRAN_SCHED_CARRIER_H
+#define SRSRAN_SCHED_CARRIER_H
 
 #include "sched.h"
 #include "schedulers/sched_base.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/srslog/srslog.h"
 
 namespace srsenb {
 
@@ -33,7 +33,7 @@ public:
   void                   reset();
   void                   carrier_cfg(const sched_cell_params_t& sched_params_);
   void                   set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs);
-  const cc_sched_result& generate_tti_result(srslte::tti_point tti_rx);
+  const cc_sched_result& generate_tti_result(srsran::tti_point tti_rx);
   int                    dl_rach_info(dl_sched_rar_info_t rar_info);
 
   // getters
@@ -47,7 +47,7 @@ private:
   //! Compute UL scheduler result for given TTI
   int alloc_ul_users(sf_sched* tti_sched);
   //! Get sf_sched for a given TTI
-  sf_sched* get_sf_sched(srslte::tti_point tti_rx);
+  sf_sched* get_sf_sched(srsran::tti_point tti_rx);
 
   // args
   const sched_cell_params_t*                      cc_cfg = nullptr;
@@ -57,7 +57,7 @@ private:
   const uint32_t                                  enb_cc_idx;
 
   // Subframe scheduling logic
-  srslte::circular_array<sf_sched, TTIMOD_SZ> sf_scheds;
+  srsran::circular_array<sf_sched, TTIMOD_SZ> sf_scheds;
 
   // scheduling results
   sched_result_ringbuffer* prev_sched_results;
@@ -129,4 +129,4 @@ private:
 
 } // namespace srsenb
 
-#endif // SRSLTE_SCHED_CARRIER_H
+#endif // SRSRAN_SCHED_CARRIER_H

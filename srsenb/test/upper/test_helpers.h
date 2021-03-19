@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -15,7 +15,7 @@
 
 #include "srsenb/src/enb_cfg_parser.h"
 #include "srsenb/test/common/dummy_classes.h"
-#include "srslte/adt/span.h"
+#include "srsran/adt/span.h"
 
 using namespace srsenb;
 using namespace asn1::rrc;
@@ -28,7 +28,7 @@ extern srslog::basic_levels log_level;
 inline void usage(char* prog)
 {
   printf("Usage: %s [v] -i repository_dir\n", prog);
-  printf("\t-v [set srslte_verbose to debug, default none]\n");
+  printf("\t-v [set srsran_verbose to debug, default none]\n");
 }
 
 inline void parse_args(int argc, char** argv)
@@ -64,8 +64,8 @@ public:
   struct ho_req_data {
     uint16_t                     rnti;
     uint32_t                     target_eci;
-    srslte::plmn_id_t            target_plmn;
-    srslte::unique_byte_buffer_t rrc_container;
+    srsran::plmn_id_t            target_plmn;
+    srsran::unique_byte_buffer_t rrc_container;
   } last_ho_required = {};
   struct enb_status_transfer_info {
     bool                            status_present;
@@ -75,15 +75,15 @@ public:
   std::vector<uint8_t> added_erab_ids;
   struct ho_req_ack {
     uint16_t                                      rnti;
-    srslte::unique_byte_buffer_t                  ho_cmd_pdu;
+    srsran::unique_byte_buffer_t                  ho_cmd_pdu;
     std::vector<asn1::s1ap::erab_admitted_item_s> admitted_bearers;
   } last_ho_req_ack;
 
   bool send_ho_required(uint16_t                     rnti,
                         uint32_t                     target_eci,
-                        srslte::plmn_id_t            target_plmn,
-                        srslte::span<uint32_t>       fwd_erabs,
-                        srslte::unique_byte_buffer_t rrc_container) final
+                        srsran::plmn_id_t            target_plmn,
+                        srsran::span<uint32_t>       fwd_erabs,
+                        srsran::unique_byte_buffer_t rrc_container) final
   {
     last_ho_required = ho_req_data{rnti, target_eci, target_plmn, std::move(rrc_container)};
     return true;
@@ -96,8 +96,8 @@ public:
   bool send_ho_req_ack(const asn1::s1ap::ho_request_s&                msg,
                        uint16_t                                       rnti,
                        uint32_t                                       enb_cc_idx,
-                       srslte::unique_byte_buffer_t                   ho_cmd,
-                       srslte::span<asn1::s1ap::erab_admitted_item_s> admitted_bearers) override
+                       srsran::unique_byte_buffer_t                   ho_cmd,
+                       srsran::span<asn1::s1ap::erab_admitted_item_s> admitted_bearers) override
   {
     last_ho_req_ack.rnti       = rnti;
     last_ho_req_ack.ho_cmd_pdu = std::move(ho_cmd);
@@ -121,30 +121,30 @@ public:
   struct last_sdu_t {
     uint16_t                     rnti;
     uint32_t                     lcid;
-    srslte::unique_byte_buffer_t sdu;
+    srsran::unique_byte_buffer_t sdu;
   } last_sdu;
   struct lcid_cfg_t {
     bool                         enable_integrity  = false;
     bool                         enable_encryption = false;
-    srslte::pdcp_lte_state_t     state{};
-    srslte::as_security_config_t sec_cfg{};
+    srsran::pdcp_lte_state_t     state{};
+    srsran::as_security_config_t sec_cfg{};
   };
   std::map<uint16_t, std::map<uint32_t, lcid_cfg_t> > bearers;
 
-  void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu, int pdcp_sn) override
+  void write_sdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t sdu, int pdcp_sn) override
   {
     last_sdu.rnti = rnti;
     last_sdu.lcid = lcid;
     last_sdu.sdu  = std::move(sdu);
   }
-  bool set_bearer_state(uint16_t rnti, uint32_t lcid, const srslte::pdcp_lte_state_t& state) override
+  bool set_bearer_state(uint16_t rnti, uint32_t lcid, const srsran::pdcp_lte_state_t& state) override
   {
     bearers[rnti][lcid].state = state;
     return true;
   }
   void enable_integrity(uint16_t rnti, uint32_t lcid) override { bearers[rnti][lcid].enable_integrity = true; }
   void enable_encryption(uint16_t rnti, uint32_t lcid) override { bearers[rnti][lcid].enable_encryption = true; }
-  void config_security(uint16_t rnti, uint32_t lcid, srslte::as_security_config_t sec_cfg_) override
+  void config_security(uint16_t rnti, uint32_t lcid, srsran::as_security_config_t sec_cfg_) override
   {
     bearers[rnti][lcid].sec_cfg = sec_cfg_;
   }
@@ -156,7 +156,7 @@ public:
   struct ue_ctxt {
     int                          nof_pdcp_sdus = 0, reest_sdu_counter = 0;
     uint32_t                     last_lcid = 0;
-    srslte::unique_byte_buffer_t last_sdu;
+    srsran::unique_byte_buffer_t last_sdu;
   };
   std::map<uint16_t, ue_ctxt> ue_db;
 
@@ -167,7 +167,7 @@ public:
     }
   }
 
-  void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu) override
+  void write_sdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t sdu) override
   {
     ue_db[rnti].nof_pdcp_sdus++;
     ue_db[rnti].reest_sdu_counter++;
@@ -213,7 +213,7 @@ int parse_default_cfg(rrc_cfg_t* rrc_cfg, srsenb::all_args_t& args);
 int parse_default_cfg_phy(rrc_cfg_t* rrc_cfg, phy_cfg_t* phy_cfg, srsenb::all_args_t& args);
 
 template <typename ASN1Type>
-bool unpack_asn1(ASN1Type& asn1obj, srslte::const_byte_span pdu)
+bool unpack_asn1(ASN1Type& asn1obj, srsran::const_byte_span pdu)
 {
   asn1::cbit_ref bref{pdu.data(), (uint32_t)pdu.size()};
   if (asn1obj.unpack(bref) != asn1::SRSASN_SUCCESS) {
@@ -223,14 +223,14 @@ bool unpack_asn1(ASN1Type& asn1obj, srslte::const_byte_span pdu)
   return true;
 }
 
-inline void copy_msg_to_buffer(srslte::unique_byte_buffer_t& pdu, srslte::const_byte_span msg)
+inline void copy_msg_to_buffer(srsran::unique_byte_buffer_t& pdu, srsran::const_byte_span msg)
 {
-  pdu = srslte::make_byte_buffer();
+  pdu = srsran::make_byte_buffer();
   memcpy(pdu->msg, msg.data(), msg.size());
   pdu->N_bytes = msg.size();
 }
 
-int bring_rrc_to_reconf_state(srsenb::rrc& rrc, srslte::timer_handler& timers, uint16_t rnti);
+int bring_rrc_to_reconf_state(srsenb::rrc& rrc, srsran::timer_handler& timers, uint16_t rnti);
 
 } // namespace test_helpers
 

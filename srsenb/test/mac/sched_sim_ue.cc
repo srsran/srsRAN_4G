@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -11,7 +11,7 @@
  */
 
 #include "sched_sim_ue.h"
-#include "lib/include/srslte/mac/pdu.h"
+#include "lib/include/srsran/mac/pdu.h"
 #include "sched_test_utils.h"
 
 namespace srsenb {
@@ -39,7 +39,7 @@ bool sim_ue_ctxt_t::is_last_dl_retx(uint32_t ue_cc_idx, uint32_t pid) const
 
 ue_sim::ue_sim(uint16_t                         rnti_,
                const sched_interface::ue_cfg_t& ue_cfg_,
-               srslte::tti_point                prach_tti_rx_,
+               srsran::tti_point                prach_tti_rx_,
                uint32_t                         preamble_idx) :
   logger(srslog::fetch_basic_logger("MAC"))
 {
@@ -72,7 +72,7 @@ int ue_sim::update(const sf_output_res_t& sf_out)
   update_dl_harqs(sf_out);
   update_ul_harqs(sf_out);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 void ue_sim::update_dl_harqs(const sf_output_res_t& sf_out)
@@ -163,12 +163,12 @@ void ue_sim::update_conn_state(const sf_output_res_t& sf_out)
   uint32_t          cc           = ctxt.ue_cfg.supported_cc_list[0].enb_cc_idx;
   const auto&       dl_cc_result = sf_out.dl_cc_result[cc];
   const auto&       ul_cc_result = sf_out.ul_cc_result[cc];
-  srslte::tti_point tti_tx_dl    = to_tx_dl(sf_out.tti_rx);
+  srsran::tti_point tti_tx_dl    = to_tx_dl(sf_out.tti_rx);
 
   if (not ctxt.rar_tti_rx.is_valid()) {
     // RAR not yet found
     uint32_t             rar_win_size = sf_out.cc_params[cc].cfg.prach_rar_window;
-    srslte::tti_interval rar_window{ctxt.prach_tti_rx + 3, ctxt.prach_tti_rx + 3 + rar_win_size};
+    srsran::tti_interval rar_window{ctxt.prach_tti_rx + 3, ctxt.prach_tti_rx + 3 + rar_win_size};
 
     if (rar_window.contains(tti_tx_dl)) {
       for (uint32_t i = 0; i < dl_cc_result.rar.size(); ++i) {
@@ -185,7 +185,7 @@ void ue_sim::update_conn_state(const sf_output_res_t& sf_out)
 
   if (ctxt.rar_tti_rx.is_valid() and not ctxt.msg3_tti_rx.is_valid()) {
     // RAR scheduled, Msg3 not yet scheduled
-    srslte::tti_point expected_msg3_tti_rx = ctxt.rar_tti_rx + MSG3_DELAY_MS;
+    srsran::tti_point expected_msg3_tti_rx = ctxt.rar_tti_rx + MSG3_DELAY_MS;
     if (expected_msg3_tti_rx == sf_out.tti_rx) {
       // Msg3 should exist
       for (uint32_t i = 0; i < ul_cc_result.pusch.size(); ++i) {
@@ -201,7 +201,7 @@ void ue_sim::update_conn_state(const sf_output_res_t& sf_out)
     for (uint32_t i = 0; i < dl_cc_result.data.size(); ++i) {
       if (dl_cc_result.data[i].dci.rnti == ctxt.rnti) {
         for (uint32_t j = 0; j < dl_cc_result.data[i].nof_pdu_elems[0]; ++j) {
-          if (dl_cc_result.data[i].pdu[0][j].lcid == (uint32_t)srslte::dl_sch_lcid::CON_RES_ID) {
+          if (dl_cc_result.data[i].pdu[0][j].lcid == (uint32_t)srsran::dl_sch_lcid::CON_RES_ID) {
             // ConRes found
             ctxt.msg4_tti_rx = sf_out.tti_rx;
           }
@@ -224,7 +224,7 @@ sched_sim_base::sched_sim_base(sched_interface*                                s
 
 int sched_sim_base::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& ue_cfg_, uint32_t preamble_idx)
 {
-  CONDERROR(!srslte_prach_tti_opportunity_config_fdd(
+  CONDERROR(!srsran_prach_tti_opportunity_config_fdd(
                 cell_params[ue_cfg_.supported_cc_list[0].enb_cc_idx].cfg.prach_config, current_tti_rx.to_uint(), -1),
             "New user added in a non-PRACH TTI");
   TESTASSERT(ue_db.count(rnti) == 0);
@@ -233,7 +233,7 @@ int sched_sim_base::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& ue_
   auto rach_cfg      = generate_rach_ue_cfg(ue_cfg_);
   ue_db.insert(std::make_pair(rnti, ue_sim(rnti, rach_cfg, current_tti_rx, preamble_idx)));
 
-  CONDERROR(sched_ptr->ue_cfg(rnti, rach_cfg) != SRSLTE_SUCCESS, "Configuring new user rnti=0x%x to sched", rnti);
+  CONDERROR(sched_ptr->ue_cfg(rnti, rach_cfg) != SRSRAN_SUCCESS, "Configuring new user rnti=0x%x to sched", rnti);
 
   sched_interface::dl_sched_rar_info_t rar_info = {};
   rar_info.prach_tti                            = current_tti_rx.to_uint();
@@ -241,18 +241,18 @@ int sched_sim_base::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& ue_
   rar_info.msg3_size                            = 7;
   rar_info.preamble_idx                         = preamble_idx;
   uint32_t pcell_idx                            = ue_cfg_.supported_cc_list[0].enb_cc_idx;
-  TESTASSERT(sched_ptr->dl_rach_info(pcell_idx, rar_info) == SRSLTE_SUCCESS);
+  TESTASSERT(sched_ptr->dl_rach_info(pcell_idx, rar_info) == SRSRAN_SUCCESS);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int sched_sim_base::ue_recfg(uint16_t rnti, const sched_interface::ue_cfg_t& ue_cfg_)
 {
   CONDERROR(ue_db.count(rnti) == 0, "User must already exist to be configured");
   ue_db.at(rnti).set_cfg(ue_cfg_);
-  CONDERROR(sched_ptr->ue_cfg(rnti, ue_cfg_) != SRSLTE_SUCCESS, "Configuring new user rnti=0x%x to sched", rnti);
+  CONDERROR(sched_ptr->ue_cfg(rnti, ue_cfg_) != SRSRAN_SUCCESS, "Configuring new user rnti=0x%x to sched", rnti);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int sched_sim_base::bearer_cfg(uint16_t rnti, uint32_t lc_id, const sched_interface::ue_bearer_cfg_t& cfg)
@@ -300,7 +300,7 @@ int sched_sim_base::set_default_tti_events(const sim_ue_ctxt_t& ue_ctxt, ue_tti_
 
     cc_feedback.configured = true;
     cc_feedback.ue_cc_idx  = ue_ctxt.enb_to_ue_cc_idx(enb_cc_idx);
-    for (uint32_t pid = 0; pid < SRSLTE_FDD_NOF_HARQ; ++pid) {
+    for (uint32_t pid = 0; pid < SRSRAN_FDD_NOF_HARQ; ++pid) {
       auto& dl_h = ue_ctxt.cc_list[cc_feedback.ue_cc_idx].dl_harqs[pid];
       auto& ul_h = ue_ctxt.cc_list[cc_feedback.ue_cc_idx].ul_harqs[pid];
 
@@ -317,9 +317,9 @@ int sched_sim_base::set_default_tti_events(const sim_ue_ctxt_t& ue_ctxt, ue_tti_
       }
 
       // Set default DL CQI
-      if (srslte_cqi_periodic_send(&ue_ctxt.ue_cfg.supported_cc_list[cc_feedback.ue_cc_idx].dl_cfg.cqi_report,
+      if (srsran_cqi_periodic_send(&ue_ctxt.ue_cfg.supported_cc_list[cc_feedback.ue_cc_idx].dl_cfg.cqi_report,
                                    current_tti_rx.to_uint(),
-                                   SRSLTE_FDD)) {
+                                   SRSRAN_FDD)) {
         cc_feedback.dl_cqi = 28;
       }
 
@@ -327,7 +327,7 @@ int sched_sim_base::set_default_tti_events(const sim_ue_ctxt_t& ue_ctxt, ue_tti_
     }
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int sched_sim_base::apply_tti_events(sim_ue_ctxt_t& ue_ctxt, const ue_tti_events& events)
@@ -394,26 +394,26 @@ int sched_sim_base::apply_tti_events(sim_ue_ctxt_t& ue_ctxt, const ue_tti_events
     // Schedule Msg4 when Msg3 is received
     if (cc_feedback.ul_pid >= 0 and cc_feedback.ul_ack) {
       sched_interface::ue_cfg_t ue_cfg = generate_setup_ue_cfg(final_ue_cfg[ue_ctxt.rnti]);
-      TESTASSERT(ue_recfg(ue_ctxt.rnti, ue_cfg) == SRSLTE_SUCCESS);
+      TESTASSERT(ue_recfg(ue_ctxt.rnti, ue_cfg) == SRSRAN_SUCCESS);
 
       uint32_t lcid = RB_ID_SRB0; // Use SRB0 to schedule Msg4
-      TESTASSERT(sched_ptr->dl_rlc_buffer_state(ue_ctxt.rnti, lcid, 50, 0) == SRSLTE_SUCCESS);
-      TESTASSERT(sched_ptr->dl_mac_buffer_state(ue_ctxt.rnti, (uint32_t)srslte::dl_sch_lcid::CON_RES_ID, 1) ==
-                 SRSLTE_SUCCESS);
+      TESTASSERT(sched_ptr->dl_rlc_buffer_state(ue_ctxt.rnti, lcid, 50, 0) == SRSRAN_SUCCESS);
+      TESTASSERT(sched_ptr->dl_mac_buffer_state(ue_ctxt.rnti, (uint32_t)srsran::dl_sch_lcid::CON_RES_ID, 1) ==
+                 SRSRAN_SUCCESS);
     }
 
     // Perform DRB config when Msg4 is received
     if (cc_feedback.dl_pid >= 0 and cc_feedback.dl_ack) {
       ue_ctxt.conres_rx = true;
 
-      TESTASSERT(ue_recfg(ue_ctxt.rnti, final_ue_cfg[ue_ctxt.rnti]) == SRSLTE_SUCCESS);
+      TESTASSERT(ue_recfg(ue_ctxt.rnti, final_ue_cfg[ue_ctxt.rnti]) == SRSRAN_SUCCESS);
     }
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-void sched_sim_base::new_tti(srslte::tti_point tti_rx)
+void sched_sim_base::new_tti(srsran::tti_point tti_rx)
 {
   current_tti_rx = tti_rx;
   for (auto& ue : ue_db) {

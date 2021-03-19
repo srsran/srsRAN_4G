@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -11,7 +11,7 @@
  */
 
 #include "srsue/hdr/phy/nr/sf_worker.h"
-#include "srslte/common/standard_streams.h"
+#include "srsran/common/standard_streams.h"
 
 #ifdef ENABLE_GUI
 #include "srsgui/srsgui.h"
@@ -36,7 +36,7 @@ sf_worker::sf_worker(phy_common* phy_, state* phy_state_, srslog::basic_logger& 
   }
 }
 
-bool sf_worker::set_carrier_unlocked(uint32_t cc_idx, const srslte_carrier_nr_t* carrier_)
+bool sf_worker::set_carrier_unlocked(uint32_t cc_idx, const srsran_carrier_nr_t* carrier_)
 {
   if (cc_idx >= cc_workers.size()) {
     return false;
@@ -70,8 +70,8 @@ void sf_worker::set_tti(uint32_t tti)
 
 void sf_worker::work_imp()
 {
-  srslte::rf_buffer_t    tx_buffer = {};
-  srslte::rf_timestamp_t dummy_ts  = {};
+  srsran::rf_buffer_t    tx_buffer = {};
+  srsran::rf_timestamp_t dummy_ts  = {};
 
   // Perform DL processing
   for (auto& w : cc_workers) {
@@ -126,13 +126,13 @@ void sf_worker::start_plot()
 #ifdef ENABLE_GUI
   if (plot_worker_id == -1) {
     plot_worker_id = get_id();
-    srslte::console("Starting NR plot for worker_id=%d\n", plot_worker_id);
+    srsran::console("Starting NR plot for worker_id=%d\n", plot_worker_id);
     init_plots(this);
   } else {
-    srslte::console("Trying to start a plot but already started by worker_id=%d\n", plot_worker_id);
+    srsran::console("Trying to start a plot but already started by worker_id=%d\n", plot_worker_id);
   }
 #else
-  srslte::console("Trying to start a plot but plots are disabled (ENABLE_GUI constant in sf_worker.cc)\n");
+  srsran::console("Trying to start a plot but plots are disabled (ENABLE_GUI constant in sf_worker.cc)\n");
 #endif
 }
 
@@ -149,7 +149,7 @@ void sf_worker::set_prach(cf_t* prach_ptr_, float prach_power_)
 extern plot_scatter_t pconst_nr;
 extern bool           pconst_nr_ready;
 #define SCATTER_PDSCH_PLOT_LEN 4000
-static cf_t tmp_pconst_nr[SRSLTE_NSYMB_PER_SLOT_NR * SRSLTE_NRE * SRSLTE_MAX_PRB_NR] = {};
+static cf_t tmp_pconst_nr[SRSRAN_NSYMB_PER_SLOT_NR * SRSRAN_NRE * SRSRAN_MAX_PRB_NR] = {};
 extern bool plot_quit;
 
 static void* plot_thread_run(void* arg)

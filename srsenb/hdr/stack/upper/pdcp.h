@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,13 +10,13 @@
  *
  */
 
-#include "srslte/common/timers.h"
-#include "srslte/interfaces/enb_metrics_interface.h"
-#include "srslte/interfaces/enb_pdcp_interfaces.h"
-#include "srslte/interfaces/ue_gw_interfaces.h"
-#include "srslte/interfaces/ue_rlc_interfaces.h"
-#include "srslte/srslog/srslog.h"
-#include "srslte/upper/pdcp.h"
+#include "srsran/common/timers.h"
+#include "srsran/interfaces/enb_metrics_interface.h"
+#include "srsran/interfaces/enb_pdcp_interfaces.h"
+#include "srsran/interfaces/ue_gw_interfaces.h"
+#include "srsran/interfaces/ue_rlc_interfaces.h"
+#include "srsran/srslog/srslog.h"
+#include "srsran/upper/pdcp.h"
 #include <map>
 
 #ifndef SRSENB_PDCP_H
@@ -31,35 +31,35 @@ class gtpu_interface_pdcp;
 class pdcp : public pdcp_interface_rlc, public pdcp_interface_gtpu, public pdcp_interface_rrc
 {
 public:
-  pdcp(srslte::task_sched_handle task_sched_, srslog::basic_logger& logger);
+  pdcp(srsran::task_sched_handle task_sched_, srslog::basic_logger& logger);
   virtual ~pdcp() {}
   void init(rlc_interface_pdcp* rlc_, rrc_interface_pdcp* rrc_, gtpu_interface_pdcp* gtpu_);
   void stop();
 
   // pdcp_interface_rlc
-  void write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu) override;
-  void notify_delivery(uint16_t rnti, uint32_t lcid, const srslte::pdcp_sn_vector_t& pdcp_sn) override;
-  void notify_failure(uint16_t rnti, uint32_t lcid, const srslte::pdcp_sn_vector_t& pdcp_sn) override;
-  void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu) {}
+  void write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t sdu) override;
+  void notify_delivery(uint16_t rnti, uint32_t lcid, const srsran::pdcp_sn_vector_t& pdcp_sn) override;
+  void notify_failure(uint16_t rnti, uint32_t lcid, const srsran::pdcp_sn_vector_t& pdcp_sn) override;
+  void write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t sdu) {}
 
   // pdcp_interface_rrc
   void reset(uint16_t rnti) override;
   void add_user(uint16_t rnti) override;
   void rem_user(uint16_t rnti) override;
-  void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu, int pdcp_sn = -1) override;
-  void add_bearer(uint16_t rnti, uint32_t lcid, srslte::pdcp_config_t cnfg) override;
+  void write_sdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t sdu, int pdcp_sn = -1) override;
+  void add_bearer(uint16_t rnti, uint32_t lcid, srsran::pdcp_config_t cnfg) override;
   void del_bearer(uint16_t rnti, uint32_t lcid) override;
-  void config_security(uint16_t rnti, uint32_t lcid, srslte::as_security_config_t cfg_sec) override;
+  void config_security(uint16_t rnti, uint32_t lcid, srsran::as_security_config_t cfg_sec) override;
   void enable_integrity(uint16_t rnti, uint32_t lcid) override;
   void enable_encryption(uint16_t rnti, uint32_t lcid) override;
-  bool get_bearer_state(uint16_t rnti, uint32_t lcid, srslte::pdcp_lte_state_t* state) override;
-  bool set_bearer_state(uint16_t rnti, uint32_t lcid, const srslte::pdcp_lte_state_t& state) override;
+  bool get_bearer_state(uint16_t rnti, uint32_t lcid, srsran::pdcp_lte_state_t* state) override;
+  bool set_bearer_state(uint16_t rnti, uint32_t lcid, const srsran::pdcp_lte_state_t& state) override;
   void send_status_report(uint16_t rnti) override;
   void send_status_report(uint16_t rnti, uint32_t lcid) override;
   void reestablish(uint16_t rnti) override;
 
   // pdcp_interface_gtpu
-  std::map<uint32_t, srslte::unique_byte_buffer_t> get_buffered_pdus(uint16_t rnti, uint32_t lcid) override;
+  std::map<uint32_t, srsran::unique_byte_buffer_t> get_buffered_pdus(uint16_t rnti, uint32_t lcid) override;
 
   // Metrics
   void get_metrics(pdcp_metrics_t& m, const uint32_t nof_tti);
@@ -71,7 +71,7 @@ private:
     uint16_t                    rnti;
     srsenb::rlc_interface_pdcp* rlc;
     // rlc_interface_pdcp
-    void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu);
+    void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu);
     void discard_sdu(uint32_t lcid, uint32_t discard_sn);
     bool rb_is_um(uint32_t lcid);
     bool sdu_queue_is_full(uint32_t lcid);
@@ -83,8 +83,8 @@ private:
     uint16_t                     rnti;
     srsenb::gtpu_interface_pdcp* gtpu;
     // gw_interface_pdcp
-    void write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
-    void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu) {}
+    void write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
+    void write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t sdu) {}
   };
 
   class user_interface_rrc : public srsue::rrc_interface_pdcp
@@ -93,11 +93,11 @@ private:
     uint16_t                    rnti;
     srsenb::rrc_interface_pdcp* rrc;
     // rrc_interface_pdcp
-    void        write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
-    void        write_pdu_bcch_bch(srslte::unique_byte_buffer_t pdu);
-    void        write_pdu_bcch_dlsch(srslte::unique_byte_buffer_t pdu);
-    void        write_pdu_pcch(srslte::unique_byte_buffer_t pdu);
-    void        write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
+    void        write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
+    void        write_pdu_bcch_bch(srsran::unique_byte_buffer_t pdu);
+    void        write_pdu_bcch_dlsch(srsran::unique_byte_buffer_t pdu);
+    void        write_pdu_pcch(srsran::unique_byte_buffer_t pdu);
+    void        write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t pdu) {}
     std::string get_rb_name(uint32_t lcid);
   };
 
@@ -107,7 +107,7 @@ private:
     user_interface_rlc  rlc_itf;
     user_interface_gtpu gtpu_itf;
     user_interface_rrc  rrc_itf;
-    srslte::pdcp*       pdcp;
+    srsran::pdcp*       pdcp;
   };
 
   void clear_user(user_interface* ue);
@@ -117,7 +117,7 @@ private:
   rlc_interface_pdcp*       rlc;
   rrc_interface_pdcp*       rrc;
   gtpu_interface_pdcp*      gtpu;
-  srslte::task_sched_handle task_sched;
+  srsran::task_sched_handle task_sched;
   srslog::basic_logger&     logger;
 };
 

@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -39,21 +39,21 @@ int main(int argc, char** argv)
   srsue::pcsc_usim usim(logger);
   if (usim.init(&args)) {
     printf("Error initializing PC/SC USIM.\n");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   };
 
   std::string imsi = usim.get_imsi_str();
   cout << "IMSI: " << imsi << endl;
 
-  srslte::plmn_id_t home_plmn_id = {};
+  srsran::plmn_id_t home_plmn_id = {};
   if (usim.get_home_plmn_id(&home_plmn_id) == false) {
     printf("Error reading home PLMN\n");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   cout << "Home PLMN: " << home_plmn_id.to_string() << endl;
 
   auth_result_t result = usim.generate_authentication_response(rand_enb, autn_enb, mcc, mnc, res, &res_len, k_asme);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }

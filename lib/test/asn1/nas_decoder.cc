@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,9 +10,9 @@
  *
  */
 
-#include "srslte/asn1/liblte_mme.h"
-#include "srslte/common/common.h"
-#include "srslte/phy/common/phy_common.h"
+#include "srsran/asn1/liblte_mme.h"
+#include "srsran/common/common.h"
+#include "srsran/phy/common/phy_common.h"
 
 #include <fstream>
 #include <iostream>

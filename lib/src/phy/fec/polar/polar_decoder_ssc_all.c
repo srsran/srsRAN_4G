@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -22,7 +22,7 @@
  */
 #include "polar_decoder_ssc_all.h"
 #include "../utils_avx2.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/utils/vector.h"
 
 /*!
  * \brief Structure with pointers needed to obtain the node_type
@@ -41,13 +41,13 @@ void* create_tmp_node_type(const uint8_t nMax)
   if ((tmp = malloc(sizeof(struct Tmp_node_type))) == NULL) {
     return NULL;
   }
-  SRSLTE_MEM_ZERO(tmp, struct Tmp_node_type, 1);
+  SRSRAN_MEM_ZERO(tmp, struct Tmp_node_type, 1);
 
   uint16_t max_code_size      = (1U << nMax);
   uint8_t  nMax_1             = nMax - 1;
   uint16_t max_code_half_size = (1U << nMax_1);
 
-  tmp->is_not_rate_0 = srslte_vec_u8_malloc(2 * max_code_size);
+  tmp->is_not_rate_0 = srsran_vec_u8_malloc(2 * max_code_size);
   if (!tmp->is_not_rate_0) {
     free(tmp);
     perror("malloc");
@@ -56,7 +56,7 @@ void* create_tmp_node_type(const uint8_t nMax)
 
   tmp->is_rate_1 = tmp->is_not_rate_0 + max_code_size;
 
-  tmp->i_odd = srslte_vec_u16_malloc(max_code_half_size);
+  tmp->i_odd = srsran_vec_u16_malloc(max_code_half_size);
   if (!tmp->i_odd) {
     free(tmp->is_not_rate_0);
     free(tmp);
@@ -64,7 +64,7 @@ void* create_tmp_node_type(const uint8_t nMax)
     return NULL;
   }
 
-  tmp->i_even = srslte_vec_u16_malloc(max_code_half_size);
+  tmp->i_even = srsran_vec_u16_malloc(max_code_half_size);
   if (!tmp->i_even) {
     free(tmp->is_not_rate_0);
     free(tmp->i_odd);
@@ -167,21 +167,21 @@ int init_node_type(const uint16_t* frozen_set, struct Params* param)
   uint16_t code_size      = param->code_stage_size[param->code_size_log];
   uint16_t code_half_size = param->code_stage_size[param->code_size_log - 1];
 
-  is_not_rate_0 = srslte_vec_u8_malloc(2 * code_size);
+  is_not_rate_0 = srsran_vec_u8_malloc(2 * code_size);
   if (!is_not_rate_0) {
     perror("malloc");
     return -1;
   }
   is_rate_1 = is_not_rate_0 + code_size;
 
-  i_odd = srslte_vec_u16_malloc(code_half_size);
+  i_odd = srsran_vec_u16_malloc(code_half_size);
   if (!i_odd) {
     free(is_not_rate_0);
     perror("malloc");
     return -1;
   }
 
-  i_even = srslte_vec_u16_malloc(code_half_size);
+  i_even = srsran_vec_u16_malloc(code_half_size);
   if (!i_even) {
     free(is_not_rate_0);
     free(i_odd);

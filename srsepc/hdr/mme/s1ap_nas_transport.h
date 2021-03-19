@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -15,9 +15,9 @@
 #include "mme_gtpc.h"
 #include "s1ap_common.h"
 #include "srsepc/hdr/hss/hss.h"
-#include "srslte/asn1/gtpc.h"
-#include "srslte/asn1/s1ap.h"
-#include "srslte/common/buffer_pool.h"
+#include "srsran/asn1/gtpc.h"
+#include "srsran/asn1/s1ap.h"
+#include "srsran/common/buffer_pool.h"
 
 namespace srsepc {
 
@@ -33,7 +33,7 @@ public:
   bool handle_uplink_nas_transport(const asn1::s1ap::ul_nas_transport_s& ul_xport, struct sctp_sndrcvinfo* enb_sri);
   bool send_downlink_nas_transport(uint32_t               enb_ue_s1ap_id,
                                    uint32_t               mme_ue_s1ap_id,
-                                   srslte::byte_buffer_t* nas_msg,
+                                   srsran::byte_buffer_t* nas_msg,
                                    struct sctp_sndrcvinfo enb_sri);
 
 private:

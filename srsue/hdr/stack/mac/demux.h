@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -13,12 +13,12 @@
 #ifndef SRSUE_DEMUX_H
 #define SRSUE_DEMUX_H
 
-#include "srslte/common/timers.h"
-#include "srslte/interfaces/ue_mac_interfaces.h"
-#include "srslte/interfaces/ue_rlc_interfaces.h"
-#include "srslte/mac/pdu.h"
-#include "srslte/mac/pdu_queue.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/common/timers.h"
+#include "srsran/interfaces/ue_mac_interfaces.h"
+#include "srsran/interfaces/ue_rlc_interfaces.h"
+#include "srsran/mac/pdu.h"
+#include "srsran/mac/pdu_queue.h"
+#include "srsran/srslog/srslog.h"
 
 /* Logical Channel Demultiplexing and MAC CE dissassemble */
 
@@ -34,14 +34,14 @@ public:
   virtual bool contention_resolution_id_rcv(uint64_t id) = 0;
 };
 
-class demux : public srslte::pdu_queue::process_callback
+class demux : public srsran::pdu_queue::process_callback
 {
 public:
   explicit demux(srslog::basic_logger& logger);
   void init(phy_interface_mac_common*            phy_h_,
             rlc_interface_mac*                   rlc,
             mac_interface_demux*                 mac,
-            srslte::timer_handler::unique_timer* time_alignment_timer);
+            srsran::timer_handler::unique_timer* time_alignment_timer);
   void reset();
 
   bool     process_pdus();
@@ -56,7 +56,7 @@ public:
 
   bool get_uecrid_successful();
 
-  void process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channel_t channel);
+  void process_pdu(uint8_t* pdu, uint32_t nof_bytes, srsran::pdu_queue::channel_t channel);
   void mch_start_rx(uint32_t lcid);
 
 private:
@@ -70,22 +70,22 @@ private:
   rlc_interface_mac*        rlc   = nullptr;
   mac_interface_demux*      mac   = nullptr;
 
-  srslte::sch_pdu mac_msg;
-  srslte::mch_pdu mch_mac_msg;
-  srslte::sch_pdu pending_mac_msg;
-  uint8_t         mch_lcids[SRSLTE_N_MCH_LCIDS] = {};
+  srsran::sch_pdu mac_msg;
+  srsran::mch_pdu mch_mac_msg;
+  srsran::sch_pdu pending_mac_msg;
+  uint8_t         mch_lcids[SRSRAN_N_MCH_LCIDS] = {};
   void            process_sch_pdu_rt(uint8_t* buff, uint32_t nof_bytes, uint32_t tti);
-  void            process_sch_pdu(srslte::sch_pdu* pdu);
-  void            process_mch_pdu(srslte::mch_pdu* pdu);
-  bool            process_ce(srslte::sch_subh* subheader, uint32_t tti);
-  void            parse_ta_cmd(srslte::sch_subh* subh, uint32_t tti);
+  void            process_sch_pdu(srsran::sch_pdu* pdu);
+  void            process_mch_pdu(srsran::mch_pdu* pdu);
+  bool            process_ce(srsran::sch_subh* subheader, uint32_t tti);
+  void            parse_ta_cmd(srsran::sch_subh* subh, uint32_t tti);
 
   bool is_uecrid_successful = false;
 
-  srslte::timer_handler::unique_timer* time_alignment_timer = nullptr;
+  srsran::timer_handler::unique_timer* time_alignment_timer = nullptr;
 
   // Buffer of PDUs
-  srslte::pdu_queue pdus;
+  srsran::pdu_queue pdus;
 };
 
 } // namespace srsue

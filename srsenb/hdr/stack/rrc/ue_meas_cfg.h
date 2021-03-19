@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,10 +10,10 @@
  *
  */
 
-#ifndef SRSLTE_UE_MEAS_CFG_H
-#define SRSLTE_UE_MEAS_CFG_H
+#ifndef SRSRAN_UE_MEAS_CFG_H
+#define SRSRAN_UE_MEAS_CFG_H
 
-#include "srslte/asn1/rrc/meascfg.h"
+#include "srsran/asn1/rrc/meascfg.h"
 
 namespace srsenb {
 
@@ -75,4 +75,4 @@ bool apply_meascfg_updates(asn1::rrc::meas_cfg_s&          diff_meascfg,
 
 } // namespace srsenb
 
-#endif // SRSLTE_UE_MEAS_CFG_H
+#endif // SRSRAN_UE_MEAS_CFG_H

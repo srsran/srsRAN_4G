@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,8 +10,8 @@
  *
  */
 
-#include "srslte/common/metrics_hub.h"
-#include "srslte/srslte.h"
+#include "srsran/common/metrics_hub.h"
+#include "srsran/srsran.h"
 #include "srsue/hdr/metrics_csv.h"
 #include "srsue/hdr/metrics_stdout.h"
 #include "srsue/hdr/ue_metrics_interface.h"
@@ -114,7 +114,7 @@ int main(int argc, char** argv)
   metrics_file.set_ue_handle(&ue);
 
   // create metrics hub and register metrics for stdout
-  srslte::metrics_hub<ue_metrics_t> metricshub;
+  srsran::metrics_hub<ue_metrics_t> metricshub;
   metricshub.init(&ue, period);
   metricshub.add_listener(&metrics_screen);
   metricshub.add_listener(&metrics_file);

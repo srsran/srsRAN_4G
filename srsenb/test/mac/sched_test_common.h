@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,14 +10,14 @@
  *
  */
 
-#ifndef SRSLTE_SCHED_TEST_COMMON_H
-#define SRSLTE_SCHED_TEST_COMMON_H
+#ifndef SRSRAN_SCHED_TEST_COMMON_H
+#define SRSRAN_SCHED_TEST_COMMON_H
 
 #include "sched_sim_ue.h"
 #include "sched_test_utils.h"
 #include "srsenb/hdr/stack/mac/sched.h"
-#include "srslte/interfaces/enb_rrc_interfaces.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/interfaces/enb_rrc_interfaces.h"
+#include "srsran/srslog/srslog.h"
 #include <random>
 
 namespace srsenb {
@@ -32,7 +32,7 @@ std::default_random_engine& get_rand_gen();
 
 struct rrc_dummy : public rrc_interface_mac {
 public:
-  int      add_user(uint16_t rnti, const sched_interface::ue_cfg_t& init_ue_cfg) { return SRSLTE_SUCCESS; }
+  int      add_user(uint16_t rnti, const sched_interface::ue_cfg_t& init_ue_cfg) { return SRSRAN_SUCCESS; }
   void     upd_user(uint16_t new_rnti, uint16_t old_rnti) {}
   void     set_activity_user(uint16_t rnti) {}
   bool     is_paging_opportunity(uint32_t tti, uint32_t* payload_len) { return false; }
@@ -130,4 +130,4 @@ protected:
 
 } // namespace srsenb
 
-#endif // SRSLTE_SCHED_TEST_COMMON_H
+#endif // SRSRAN_SCHED_TEST_COMMON_H

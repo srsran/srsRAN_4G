@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -25,11 +25,11 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "srslte/phy/fec/ldpc/ldpc_common.h" //FILLER_BIT definition
-#include "srslte/phy/fec/ldpc/ldpc_rm.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/fec/ldpc/ldpc_common.h" //FILLER_BIT definition
+#include "srsran/phy/fec/ldpc/ldpc_rm.h"
+#include "srsran/phy/utils/vector.h"
 
-#include "srslte/phy/utils/debug.h"
+#include "srsran/phy/utils/debug.h"
 
 //#define debug
 /*!
@@ -101,13 +101,13 @@ struct pRM_rx_c {
 /*!
  * Initialize rate-matching parameters
  */
-static int init_rm(srslte_ldpc_rm_t*  p,
+static int init_rm(srsran_ldpc_rm_t*  p,
                    const uint32_t     E,
                    const uint32_t     F,
                    const uint32_t     bg,
                    const uint32_t     ls,
                    const uint8_t      rv,
-                   const srslte_mod_t mod_type,
+                   const srsran_mod_t mod_type,
                    const uint32_t     Nref)
 {
   if (p == NULL) {
@@ -115,7 +115,7 @@ static int init_rm(srslte_ldpc_rm_t*  p,
   }
 
   uint32_t basek0    = BASEK0[rv][bg];
-  uint32_t mod_order = srslte_mod_bits_x_symbol(mod_type);
+  uint32_t mod_order = srsran_mod_bits_x_symbol(mod_type);
   uint32_t N         = ls * BASEN[bg];
   uint32_t K         = ls * BASEK[bg];
 
@@ -395,7 +395,7 @@ bit_interleaver_rm_rx_c(const int8_t* input, int8_t* output, const uint32_t in_o
   }
 }
 
-int srslte_ldpc_rm_tx_init(srslte_ldpc_rm_t* p)
+int srsran_ldpc_rm_tx_init(srsran_ldpc_rm_t* p)
 {
   if (p == NULL) {
     return -1;
@@ -410,7 +410,7 @@ int srslte_ldpc_rm_tx_init(srslte_ldpc_rm_t* p)
   p->ptr = pp;
 
   // allocate memory to the rm_codeword after bit selection.
-  if ((pp->tmp_rm_codeword = srslte_vec_u8_malloc(MAXE)) == NULL) {
+  if ((pp->tmp_rm_codeword = srsran_vec_u8_malloc(MAXE)) == NULL) {
     free(pp);
     return -1;
   }
@@ -418,7 +418,7 @@ int srslte_ldpc_rm_tx_init(srslte_ldpc_rm_t* p)
   return 0;
 }
 
-int srslte_ldpc_rm_rx_init_f(srslte_ldpc_rm_t* p)
+int srsran_ldpc_rm_rx_init_f(srsran_ldpc_rm_t* p)
 {
   if (p == NULL) {
     return -1;
@@ -433,12 +433,12 @@ int srslte_ldpc_rm_rx_init_f(srslte_ldpc_rm_t* p)
   p->ptr = pp;
 
   // allocate memory to the temporal buffer
-  if ((pp->tmp_rm_symbol = srslte_vec_f_malloc(MAXE)) == NULL) {
+  if ((pp->tmp_rm_symbol = srsran_vec_f_malloc(MAXE)) == NULL) {
     free(pp);
     return -1;
   }
 
-  if ((pp->indices = srslte_vec_u32_malloc(MAXE)) == NULL) {
+  if ((pp->indices = srsran_vec_u32_malloc(MAXE)) == NULL) {
     free(pp->tmp_rm_symbol);
     free(pp);
     return -1;
@@ -446,7 +446,7 @@ int srslte_ldpc_rm_rx_init_f(srslte_ldpc_rm_t* p)
   return 0;
 }
 
-int srslte_ldpc_rm_rx_init_s(srslte_ldpc_rm_t* p)
+int srsran_ldpc_rm_rx_init_s(srsran_ldpc_rm_t* p)
 {
   if (p == NULL) {
     return -1;
@@ -461,12 +461,12 @@ int srslte_ldpc_rm_rx_init_s(srslte_ldpc_rm_t* p)
   p->ptr = pp;
 
   // allocate memory to the temporal buffer
-  if ((pp->tmp_rm_symbol = srslte_vec_i16_malloc(MAXE)) == NULL) {
+  if ((pp->tmp_rm_symbol = srsran_vec_i16_malloc(MAXE)) == NULL) {
     free(pp);
     return -1;
   }
 
-  if ((pp->indices = srslte_vec_u32_malloc(MAXE)) == NULL) {
+  if ((pp->indices = srsran_vec_u32_malloc(MAXE)) == NULL) {
     free(pp->tmp_rm_symbol);
     free(pp);
     return -1;
@@ -474,7 +474,7 @@ int srslte_ldpc_rm_rx_init_s(srslte_ldpc_rm_t* p)
 
   return 0;
 }
-int srslte_ldpc_rm_rx_init_c(srslte_ldpc_rm_t* p)
+int srsran_ldpc_rm_rx_init_c(srsran_ldpc_rm_t* p)
 {
   if (p == NULL) {
     return -1;
@@ -489,12 +489,12 @@ int srslte_ldpc_rm_rx_init_c(srslte_ldpc_rm_t* p)
   p->ptr = pp;
 
   // allocate memory to the temporal buffer
-  if ((pp->tmp_rm_symbol = srslte_vec_i8_malloc(MAXE)) == NULL) {
+  if ((pp->tmp_rm_symbol = srsran_vec_i8_malloc(MAXE)) == NULL) {
     free(pp);
     return -1;
   }
 
-  if ((pp->indices = srslte_vec_u32_malloc(MAXE)) == NULL) {
+  if ((pp->indices = srsran_vec_u32_malloc(MAXE)) == NULL) {
     free(pp->tmp_rm_symbol);
     free(pp);
     return -1;
@@ -503,7 +503,7 @@ int srslte_ldpc_rm_rx_init_c(srslte_ldpc_rm_t* p)
   return 0;
 }
 
-void srslte_ldpc_rm_tx_free(srslte_ldpc_rm_t* q)
+void srsran_ldpc_rm_tx_free(srsran_ldpc_rm_t* q)
 {
   if (q != NULL) {
     struct pRM_tx* qq = q->ptr;
@@ -516,7 +516,7 @@ void srslte_ldpc_rm_tx_free(srslte_ldpc_rm_t* q)
   }
 }
 
-void srslte_ldpc_rm_rx_free_f(srslte_ldpc_rm_t* q)
+void srsran_ldpc_rm_rx_free_f(srsran_ldpc_rm_t* q)
 {
   if (q != NULL) {
     struct pRM_rx_f* qq = q->ptr;
@@ -532,7 +532,7 @@ void srslte_ldpc_rm_rx_free_f(srslte_ldpc_rm_t* q)
   }
 }
 
-void srslte_ldpc_rm_rx_free_s(srslte_ldpc_rm_t* q)
+void srsran_ldpc_rm_rx_free_s(srsran_ldpc_rm_t* q)
 {
   if (q != NULL) {
     struct pRM_rx_s* qq = q->ptr;
@@ -548,7 +548,7 @@ void srslte_ldpc_rm_rx_free_s(srslte_ldpc_rm_t* q)
   }
 }
 
-void srslte_ldpc_rm_rx_free_c(srslte_ldpc_rm_t* q)
+void srsran_ldpc_rm_rx_free_c(srsran_ldpc_rm_t* q)
 {
   if (q != NULL) {
     struct pRM_rx_c* qq = q->ptr;
@@ -564,14 +564,14 @@ void srslte_ldpc_rm_rx_free_c(srslte_ldpc_rm_t* q)
   }
 }
 
-int srslte_ldpc_rm_tx(srslte_ldpc_rm_t*        q,
+int srsran_ldpc_rm_tx(srsran_ldpc_rm_t*        q,
                       const uint8_t*           input,
                       uint8_t*                 output,
                       const uint32_t           E,
-                      const srslte_basegraph_t bg,
+                      const srsran_basegraph_t bg,
                       const uint32_t           ls,
                       const uint8_t            rv,
-                      const srslte_mod_t       mod_type,
+                      const srsran_mod_t       mod_type,
                       const uint32_t           Nref)
 
 {
@@ -594,15 +594,15 @@ int srslte_ldpc_rm_tx(srslte_ldpc_rm_t*        q,
   return 0;
 }
 
-int srslte_ldpc_rm_rx_f(srslte_ldpc_rm_t*        q,
+int srsran_ldpc_rm_rx_f(srsran_ldpc_rm_t*        q,
                         const float*             input,
                         float*                   output,
                         const uint32_t           E,
                         const uint32_t           F,
-                        const srslte_basegraph_t bg,
+                        const srsran_basegraph_t bg,
                         const uint32_t           ls,
                         const uint8_t            rv,
-                        const srslte_mod_t       mod_type,
+                        const srsran_mod_t       mod_type,
                         const uint32_t           Nref)
 {
   if (init_rm(q, E, F, bg, ls, rv, mod_type, Nref) != 0) {
@@ -625,15 +625,15 @@ int srslte_ldpc_rm_rx_f(srslte_ldpc_rm_t*        q,
   return 0;
 }
 
-int srslte_ldpc_rm_rx_s(srslte_ldpc_rm_t*        q,
+int srsran_ldpc_rm_rx_s(srsran_ldpc_rm_t*        q,
                         const int16_t*           input,
                         int16_t*                 output,
                         const uint32_t           E,
                         const uint32_t           F,
-                        const srslte_basegraph_t bg,
+                        const srsran_basegraph_t bg,
                         const uint32_t           ls,
                         const uint8_t            rv,
-                        const srslte_mod_t       mod_type,
+                        const srsran_mod_t       mod_type,
                         const uint32_t           Nref)
 {
   if (init_rm(q, E, F, bg, ls, rv, mod_type, Nref) != 0) {
@@ -657,15 +657,15 @@ int srslte_ldpc_rm_rx_s(srslte_ldpc_rm_t*        q,
   return 0;
 }
 
-int srslte_ldpc_rm_rx_c(srslte_ldpc_rm_t*        q,
+int srsran_ldpc_rm_rx_c(srsran_ldpc_rm_t*        q,
                         const int8_t*            input,
                         int8_t*                  output,
                         const uint32_t           E,
                         const uint32_t           F,
-                        const srslte_basegraph_t bg,
+                        const srsran_basegraph_t bg,
                         const uint32_t           ls,
                         const uint8_t            rv,
-                        const srslte_mod_t       mod_type,
+                        const srsran_mod_t       mod_type,
                         const uint32_t           Nref)
 {
   if (init_rm(q, E, F, bg, ls, rv, mod_type, Nref) != 0) {

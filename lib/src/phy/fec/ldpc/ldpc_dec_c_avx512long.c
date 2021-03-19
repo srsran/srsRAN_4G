@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -33,8 +33,8 @@
 
 #include "../utils_avx512.h"
 #include "ldpc_dec_all.h"
-#include "srslte/phy/fec/ldpc/base_graph.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/fec/ldpc/base_graph.h"
+#include "srsran/phy/utils/vector.h"
 
 #ifdef LV_HAVE_AVX512
 
@@ -54,7 +54,7 @@ static const int8_t infinity7 = (1U << 6U) - 1;
  * \brief Represents a node of the base factor graph.
  */
 typedef union bg_node_avx512_t {
-  int8_t  c[SRSLTE_AVX512_B_SIZE]; /*!< Each base node may contain up to \ref SRSLTE_AVX512_B_SIZE lifted nodes. */
+  int8_t  c[SRSRAN_AVX512_B_SIZE]; /*!< Each base node may contain up to \ref SRSRAN_AVX512_B_SIZE lifted nodes. */
   __m512i v;                       /*!< All the lifted nodes of the current base node as a 512-bit line. */
 } bg_node_avx512_t;
 
@@ -129,26 +129,26 @@ void* create_ldpc_dec_c_avx512long(uint8_t bgN, uint8_t bgM, uint16_t ls, float 
   uint8_t  bgK = bgN - bgM;
   uint16_t hrr = bgK + 4;
 
-  if ((vp = srslte_vec_malloc(sizeof(struct ldpc_regs_c_avx512long))) == NULL) {
+  if ((vp = srsran_vec_malloc(sizeof(struct ldpc_regs_c_avx512long))) == NULL) {
     return NULL;
   }
 
   // compute number of subnodes
-  int left_out   = ls % SRSLTE_AVX512_B_SIZE;
-  int n_subnodes = ls / SRSLTE_AVX512_B_SIZE + (left_out > 0);
+  int left_out   = ls % SRSRAN_AVX512_B_SIZE;
+  int n_subnodes = ls / SRSRAN_AVX512_B_SIZE + (left_out > 0);
 
-  if ((vp->soft_bits = srslte_vec_malloc(bgN * n_subnodes * sizeof(bg_node_avx512_t))) == NULL) {
+  if ((vp->soft_bits = srsran_vec_malloc(bgN * n_subnodes * sizeof(bg_node_avx512_t))) == NULL) {
     free(vp);
     return NULL;
   }
 
-  if ((vp->check_to_var = srslte_vec_malloc((hrr + 1) * bgM * n_subnodes * sizeof(__m512i))) == NULL) {
+  if ((vp->check_to_var = srsran_vec_malloc((hrr + 1) * bgM * n_subnodes * sizeof(__m512i))) == NULL) {
     free(vp->soft_bits);
     free(vp);
     return NULL;
   }
 
-  if ((vp->var_to_check_to_free = srslte_vec_malloc(((hrr + 1) * n_subnodes + 2) * sizeof(__m512i))) == NULL) {
+  if ((vp->var_to_check_to_free = srsran_vec_malloc(((hrr + 1) * n_subnodes + 2) * sizeof(__m512i))) == NULL) {
     free(vp->check_to_var);
     free(vp->soft_bits);
     free(vp);
@@ -156,7 +156,7 @@ void* create_ldpc_dec_c_avx512long(uint8_t bgN, uint8_t bgM, uint16_t ls, float 
   }
   vp->var_to_check = &vp->var_to_check_to_free[1];
 
-  if ((vp->minp_v2c_epi8 = srslte_vec_malloc(n_subnodes * sizeof(__m512i))) == NULL) {
+  if ((vp->minp_v2c_epi8 = srsran_vec_malloc(n_subnodes * sizeof(__m512i))) == NULL) {
     free(vp->var_to_check_to_free);
     free(vp->check_to_var);
     free(vp->soft_bits);
@@ -164,7 +164,7 @@ void* create_ldpc_dec_c_avx512long(uint8_t bgN, uint8_t bgM, uint16_t ls, float 
     return NULL;
   }
 
-  if ((vp->mins_v2c_epi8 = srslte_vec_malloc(n_subnodes * sizeof(__m512i))) == NULL) {
+  if ((vp->mins_v2c_epi8 = srsran_vec_malloc(n_subnodes * sizeof(__m512i))) == NULL) {
     free(vp->minp_v2c_epi8);
     free(vp->var_to_check_to_free);
     free(vp->check_to_var);
@@ -173,7 +173,7 @@ void* create_ldpc_dec_c_avx512long(uint8_t bgN, uint8_t bgM, uint16_t ls, float 
     return NULL;
   }
 
-  if ((vp->prod_v2c_epi8 = srslte_vec_malloc(n_subnodes * sizeof(__m512i))) == NULL) {
+  if ((vp->prod_v2c_epi8 = srsran_vec_malloc(n_subnodes * sizeof(__m512i))) == NULL) {
     free(vp->mins_v2c_epi8);
     free(vp->minp_v2c_epi8);
     free(vp->var_to_check_to_free);
@@ -183,7 +183,7 @@ void* create_ldpc_dec_c_avx512long(uint8_t bgN, uint8_t bgM, uint16_t ls, float 
     return NULL;
   }
 
-  if ((vp->min_ix_epi8 = srslte_vec_malloc(n_subnodes * sizeof(__m512i))) == NULL) {
+  if ((vp->min_ix_epi8 = srsran_vec_malloc(n_subnodes * sizeof(__m512i))) == NULL) {
     free(vp->prod_v2c_epi8);
     free(vp->mins_v2c_epi8);
     free(vp->minp_v2c_epi8);
@@ -194,7 +194,7 @@ void* create_ldpc_dec_c_avx512long(uint8_t bgN, uint8_t bgM, uint16_t ls, float 
     return NULL;
   }
 
-  if ((vp->rotated_v2c = srslte_vec_malloc((hrr + 1) * n_subnodes * sizeof(__m512i))) == NULL) {
+  if ((vp->rotated_v2c = srsran_vec_malloc((hrr + 1) * n_subnodes * sizeof(__m512i))) == NULL) {
     free(vp->min_ix_epi8);
     free(vp->prod_v2c_epi8);
     free(vp->mins_v2c_epi8);
@@ -206,7 +206,7 @@ void* create_ldpc_dec_c_avx512long(uint8_t bgN, uint8_t bgM, uint16_t ls, float 
     return NULL;
   }
 
-  if ((vp->this_c2v_epi8_to_free = srslte_vec_malloc((n_subnodes + 2) * sizeof(__m512i))) == NULL) {
+  if ((vp->this_c2v_epi8_to_free = srsran_vec_malloc((n_subnodes + 2) * sizeof(__m512i))) == NULL) {
     free(vp->rotated_v2c);
     free(vp->min_ix_epi8);
     free(vp->prod_v2c_epi8);
@@ -227,7 +227,7 @@ void* create_ldpc_dec_c_avx512long(uint8_t bgN, uint8_t bgM, uint16_t ls, float 
   vp->ls  = ls;
 
   vp->n_subnodes = n_subnodes;
-  vp->node_size  = SRSLTE_AVX512_B_SIZE * vp->n_subnodes;
+  vp->node_size  = SRSRAN_AVX512_B_SIZE * vp->n_subnodes;
   vp->finalN     = (bgN - 2) * ls;
   // correction > 1/16 to compensate the scaling error (2^16-1)/2^16 incurred in _mm512_scalei_epi8
   vp->scaling_fctr = _mm512_set1_epi16((uint16_t)((scaling_fctr + 0.00001525879) * F2I));
@@ -514,7 +514,7 @@ static void rotate_node_right(const uint8_t* mem_addr, __m512i* out, uint16_t th
   int jj = 0;
 
   // copy full avx512 registers from this_shift_2
-  for (j = this_shift; j <= ls - SRSLTE_AVX512_B_SIZE; j = j + SRSLTE_AVX512_B_SIZE) {
+  for (j = this_shift; j <= ls - SRSRAN_AVX512_B_SIZE; j = j + SRSRAN_AVX512_B_SIZE) {
     out[jj] = _mm512_loadu_si512(mem_addr + j);
     jj      = jj + 1;
   }
@@ -522,7 +522,7 @@ static void rotate_node_right(const uint8_t* mem_addr, __m512i* out, uint16_t th
   // if the last is broken, take _shift bits from the end and "shift" bits from the begin.
   if (ls > j) {
     _shift = ls - j;
-    shift  = SRSLTE_AVX512_B_SIZE - _shift;
+    shift  = SRSRAN_AVX512_B_SIZE - _shift;
     mask1  = (1ULL << _shift) - 1; // i.e. 000001111 _shift =4
     mask2  = (1ULL << shift) - 1;
     mask2  = mask2 << _shift; //    i.e. 000110000  shift = 2, _shift = 4
@@ -534,7 +534,7 @@ static void rotate_node_right(const uint8_t* mem_addr, __m512i* out, uint16_t th
   }
 
   // copy full avx512 registers from the start of mem_addr
-  for (j = shift; j < this_shift; j = j + SRSLTE_AVX512_B_SIZE) {
+  for (j = shift; j < this_shift; j = j + SRSRAN_AVX512_B_SIZE) {
     out[jj] = _mm512_loadu_si512(mem_addr + j); // the excess is filled with something arbitrary
 
     jj = jj + 1;

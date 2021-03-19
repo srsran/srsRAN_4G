@@ -13,12 +13,12 @@
 #include <getopt.h>
 #include <iostream>
 
-#include "srslte/asn1/rrc_nr.h"
-#include "srslte/asn1/rrc_nr_utils.h"
-#include "srslte/common/common.h"
-#include "srslte/common/test_common.h"
+#include "srsran/asn1/rrc_nr.h"
+#include "srsran/asn1/rrc_nr_utils.h"
+#include "srsran/common/common.h"
+#include "srsran/common/test_common.h"
 
-using namespace srslte;
+using namespace srsran;
 
 int test_rlc_config()
 {
@@ -34,10 +34,10 @@ int test_rlc_config()
   srslog::fetch_basic_logger("RRC").info("RLC NR Config: \n %s", jw.to_string().c_str());
 
   rlc_config_t rlc_cfg = make_rlc_config_t(rlc_cfg_asn1);
-  TESTASSERT(rlc_cfg.rat == srslte_rat_t::nr);
+  TESTASSERT(rlc_cfg.rat == srsran_rat_t::nr);
   TESTASSERT(rlc_cfg.um_nr.sn_field_length == rlc_um_nr_sn_size_t::size12bits);
   TESTASSERT(rlc_cfg.um_nr.UM_Window_Size == 2048);
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_mac_rach_common_config()
@@ -63,7 +63,7 @@ int test_mac_rach_common_config()
   TESTASSERT(rach_nr_cfg.PreambleReceivedTargetPower == -110);
   TESTASSERT(rach_nr_cfg.preambleTransMax == 7);
   TESTASSERT(rach_nr_cfg.powerRampingStep == 4);
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int main()
@@ -78,8 +78,8 @@ int main()
   // Start the log backend.
   srslog::init();
 
-  TESTASSERT(test_rlc_config() == SRSLTE_SUCCESS);
-  TESTASSERT(test_mac_rach_common_config() == SRSLTE_SUCCESS);
+  TESTASSERT(test_rlc_config() == SRSRAN_SUCCESS);
+  TESTASSERT(test_mac_rach_common_config() == SRSRAN_SUCCESS);
 
   srslog::flush();
 

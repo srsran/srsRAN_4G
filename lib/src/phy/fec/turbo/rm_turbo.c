@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -17,21 +17,21 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "srslte/phy/fec/cbsegm.h"
-#include "srslte/phy/fec/turbo/rm_turbo.h"
-#include "srslte/phy/utils/bit.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/fec/cbsegm.h"
+#include "srsran/phy/fec/turbo/rm_turbo.h"
+#include "srsran/phy/utils/bit.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/vector.h"
 
 #ifdef LV_HAVE_SSE
 #include <x86intrin.h>
-int srslte_rm_turbo_rx_lut_sse(int16_t*  input,
+int srsran_rm_turbo_rx_lut_sse(int16_t*  input,
                                int16_t*  output,
                                uint16_t* deinter,
                                uint32_t  in_len,
                                uint32_t  cb_idx,
                                uint32_t  rv_idx);
-int srslte_rm_turbo_rx_lut_sse_8bit(int8_t*   input,
+int srsran_rm_turbo_rx_lut_sse_8bit(int8_t*   input,
                                     int8_t*   output,
                                     uint16_t* deinter,
                                     uint32_t  in_len,
@@ -41,13 +41,13 @@ int srslte_rm_turbo_rx_lut_sse_8bit(int8_t*   input,
 
 #ifdef LV_HAVE_AVX
 #include <x86intrin.h>
-int srslte_rm_turbo_rx_lut_avx(int16_t*  input,
+int srsran_rm_turbo_rx_lut_avx(int16_t*  input,
                                int16_t*  output,
                                uint16_t* deinter,
                                uint32_t  in_len,
                                uint32_t  cb_idx,
                                uint32_t  rv_idx);
-int srslte_rm_turbo_rx_lut_avx_8bit(int8_t*   input,
+int srsran_rm_turbo_rx_lut_avx_8bit(int8_t*   input,
                                     int8_t*   output,
                                     uint16_t* deinter,
                                     uint32_t  in_len,
@@ -64,15 +64,15 @@ static uint8_t RM_PERM_TC[NCOLS] = {0, 16, 8, 24, 4, 20, 12, 28, 2, 18, 10, 26, 
 /* Align tables to 16-byte boundary */
 
 static uint16_t                 interleaver_systematic_bits[192][6160]; // 4 tail bits
-static srslte_bit_interleaver_t bit_interleavers_systematic_bits[192];
+static srsran_bit_interleaver_t bit_interleavers_systematic_bits[192];
 static uint16_t                 interleaver_parity_bits[192][2 * 6160];
-static srslte_bit_interleaver_t bit_interleavers_parity_bits[192];
+static srsran_bit_interleaver_t bit_interleavers_parity_bits[192];
 static uint16_t                 deinterleaver[192][4][18448];
-static int                      k0_vec[SRSLTE_NOF_TC_CB_SIZES][4][2];
+static int                      k0_vec[SRSRAN_NOF_TC_CB_SIZES][4][2];
 static bool                     rm_turbo_tables_generated = false;
 
 // Store deinterleaver version for sub-block turbo decoder
-#if SRSLTE_TDEC_EXPECT_INPUT_SB == 1
+#if SRSRAN_TDEC_EXPECT_INPUT_SB == 1
 // Prepare bit for sub-block decoder processing. These are the nof subblock sizes
 #define NOF_DEINTER_TABLE_SB_IDX 3
 const static int deinter_table_sb_idx[NOF_DEINTER_TABLE_SB_IDX] = {8, 16, 32};
@@ -93,7 +93,7 @@ static uint16_t deinterleaver_sb[NOF_DEINTER_TABLE_SB_IDX][192][4][18448];
 
 static uint16_t temp_table1[3 * 6176], temp_table2[3 * 6176];
 
-static void srslte_rm_turbo_gentable_systematic(uint16_t* table_bits, int k0_vec_[4][2], uint32_t nrows, int ndummy)
+static void srsran_rm_turbo_gentable_systematic(uint16_t* table_bits, int k0_vec_[4][2], uint32_t nrows, int ndummy)
 {
   bool last_is_null = true;
   int  k_b = 0, buff_idx = 0;
@@ -119,7 +119,7 @@ static void srslte_rm_turbo_gentable_systematic(uint16_t* table_bits, int k0_vec
 }
 
 static void
-srslte_rm_turbo_gentable_parity(uint16_t* table_parity, int k0_vec_[4][2], int offset, uint16_t nrows, int ndummy)
+srsran_rm_turbo_gentable_parity(uint16_t* table_parity, int k0_vec_[4][2], int offset, uint16_t nrows, int ndummy)
 {
   bool last_is_null = true;
   int  k_b = 0, buff_idx0 = 0;
@@ -163,7 +163,7 @@ srslte_rm_turbo_gentable_parity(uint16_t* table_parity, int k0_vec_[4][2], int o
   }
 }
 
-static void srslte_rm_turbo_gentable_receive(uint16_t* table, uint32_t cb_len, uint32_t rv_idx)
+static void srsran_rm_turbo_gentable_receive(uint16_t* table, uint32_t cb_len, uint32_t rv_idx)
 {
   int nrows  = (uint32_t)(cb_len / 3 - 1) / NCOLS + 1;
   int ndummy = nrows * NCOLS - cb_len / 3;
@@ -237,7 +237,7 @@ static void srslte_rm_turbo_gentable_receive(uint16_t* table, uint32_t cb_len, u
     table[i] = temp_table2[temp_table1[i]];
   }
 }
-#if SRSLTE_TDEC_EXPECT_INPUT_SB == 1
+#if SRSRAN_TDEC_EXPECT_INPUT_SB == 1
 #define inter(x, win) ((x % (long_cb / win)) * (win) + x / (long_cb / win))
 
 /* Prepare output for sliding window decoder:
@@ -250,7 +250,7 @@ static void srslte_rm_turbo_gentable_receive(uint16_t* table, uint32_t cb_len, u
  */
 static void interleave_table_sb(uint16_t* in, uint16_t* out, uint32_t cb_idx, uint32_t nof_sb)
 {
-  int long_cb = srslte_cbsegm_cbsize(cb_idx);
+  int long_cb = srsran_cbsegm_cbsize(cb_idx);
   int out_len = 3 * long_cb + 12;
   for (int i = 0; i < out_len; i++) {
     // Do not change tail bit order
@@ -264,12 +264,12 @@ static void interleave_table_sb(uint16_t* in, uint16_t* out, uint32_t cb_idx, ui
 }
 #endif
 
-void srslte_rm_turbo_gentables()
+void srsran_rm_turbo_gentables()
 {
   if (!rm_turbo_tables_generated) {
     rm_turbo_tables_generated = true;
-    for (int cb_idx = 0; cb_idx < SRSLTE_NOF_TC_CB_SIZES; cb_idx++) {
-      int cb_len = srslte_cbsegm_cbsize(cb_idx);
+    for (int cb_idx = 0; cb_idx < SRSRAN_NOF_TC_CB_SIZES; cb_idx++) {
+      int cb_len = srsran_cbsegm_cbsize(cb_idx);
       int in_len = 3 * cb_len + 12;
 
       int nrows  = (in_len / 3 - 1) / NCOLS + 1;
@@ -283,20 +283,20 @@ void srslte_rm_turbo_gentables()
         k0_vec[cb_idx][i][0] = nrows * (2 * (uint16_t)ceilf((float)(3 * K_p) / (float)(8 * nrows)) * i + 2);
         k0_vec[cb_idx][i][1] = -1;
       }
-      srslte_rm_turbo_gentable_systematic(interleaver_systematic_bits[cb_idx], k0_vec[cb_idx], nrows, ndummy);
-      srslte_bit_interleaver_init(&bit_interleavers_systematic_bits[cb_idx],
+      srsran_rm_turbo_gentable_systematic(interleaver_systematic_bits[cb_idx], k0_vec[cb_idx], nrows, ndummy);
+      srsran_bit_interleaver_init(&bit_interleavers_systematic_bits[cb_idx],
                                   interleaver_systematic_bits[cb_idx],
-                                  (uint32_t)srslte_cbsegm_cbsize(cb_idx) + 4);
+                                  (uint32_t)srsran_cbsegm_cbsize(cb_idx) + 4);
 
-      srslte_rm_turbo_gentable_parity(interleaver_parity_bits[cb_idx], k0_vec[cb_idx], in_len / 3, nrows, ndummy);
-      srslte_bit_interleaver_init(&bit_interleavers_parity_bits[cb_idx],
+      srsran_rm_turbo_gentable_parity(interleaver_parity_bits[cb_idx], k0_vec[cb_idx], in_len / 3, nrows, ndummy);
+      srsran_bit_interleaver_init(&bit_interleavers_parity_bits[cb_idx],
                                   interleaver_parity_bits[cb_idx],
-                                  (uint32_t)(srslte_cbsegm_cbsize(cb_idx) + 4) * 2);
+                                  (uint32_t)(srsran_cbsegm_cbsize(cb_idx) + 4) * 2);
 
       for (int i = 0; i < 4; i++) {
-        srslte_rm_turbo_gentable_receive(deinterleaver[cb_idx][i], in_len, i);
+        srsran_rm_turbo_gentable_receive(deinterleaver[cb_idx][i], in_len, i);
 
-#if SRSLTE_TDEC_EXPECT_INPUT_SB == 1
+#if SRSRAN_TDEC_EXPECT_INPUT_SB == 1
         for (uint32_t s = 0; s < NOF_DEINTER_TABLE_SB_IDX; s++) {
           interleave_table_sb(
               deinterleaver[cb_idx][i], deinterleaver_sb[s][cb_idx][i], cb_idx, deinter_table_sb_idx[s]);
@@ -307,12 +307,12 @@ void srslte_rm_turbo_gentables()
   }
 }
 
-void srslte_rm_turbo_free_tables()
+void srsran_rm_turbo_free_tables()
 {
   if (rm_turbo_tables_generated) {
-    for (int i = 0; i < SRSLTE_NOF_TC_CB_SIZES; i++) {
-      srslte_bit_interleaver_free(&bit_interleavers_systematic_bits[i]);
-      srslte_bit_interleaver_free(&bit_interleavers_parity_bits[i]);
+    for (int i = 0; i < SRSRAN_NOF_TC_CB_SIZES; i++) {
+      srsran_bit_interleaver_free(&bit_interleavers_systematic_bits[i]);
+      srsran_bit_interleaver_free(&bit_interleavers_parity_bits[i]);
     }
     rm_turbo_tables_generated = false;
   }
@@ -333,7 +333,7 @@ void srslte_rm_turbo_free_tables()
  *
  * @return Error code
  */
-int srslte_rm_turbo_tx_lut(uint8_t* w_buff,
+int srsran_rm_turbo_tx_lut(uint8_t* w_buff,
                            uint8_t* systematic,
                            uint8_t* parity,
                            uint8_t* output,
@@ -342,18 +342,18 @@ int srslte_rm_turbo_tx_lut(uint8_t* w_buff,
                            uint32_t w_offset,
                            uint32_t rv_idx)
 {
-  if (rv_idx < 4 && cb_idx < SRSLTE_NOF_TC_CB_SIZES) {
-    int in_len = 3 * srslte_cbsegm_cbsize(cb_idx) + 12;
+  if (rv_idx < 4 && cb_idx < SRSRAN_NOF_TC_CB_SIZES) {
+    int in_len = 3 * srsran_cbsegm_cbsize(cb_idx) + 12;
 
     /* Sub-block interleaver (5.1.4.1.1) and bit collection */
     if (rv_idx == 0) {
       // Systematic bits
-      // srslte_bit_interleave(systematic, w_buff, interleaver_systematic_bits[cb_idx], in_len/3);
-      srslte_bit_interleaver_run(&bit_interleavers_systematic_bits[cb_idx], systematic, w_buff, 0);
+      // srsran_bit_interleave(systematic, w_buff, interleaver_systematic_bits[cb_idx], in_len/3);
+      srsran_bit_interleaver_run(&bit_interleavers_systematic_bits[cb_idx], systematic, w_buff, 0);
 
       // Parity bits
-      // srslte_bit_interleave_w_offset(parity, &w_buff[in_len/24], interleaver_parity_bits[cb_idx], 2*in_len/3, 4);
-      srslte_bit_interleaver_run(&bit_interleavers_parity_bits[cb_idx], parity, &w_buff[in_len / 24], 4);
+      // srsran_bit_interleave_w_offset(parity, &w_buff[in_len/24], interleaver_parity_bits[cb_idx], 2*in_len/3, 4);
+      srsran_bit_interleaver_run(&bit_interleavers_parity_bits[cb_idx], parity, &w_buff[in_len / 24], 4);
     }
 
     /* Bit selection and transmission 5.1.4.1.2 */
@@ -364,7 +364,7 @@ int srslte_rm_turbo_tx_lut(uint8_t* w_buff,
       if (cp_len + r_ptr >= in_len) {
         cp_len = in_len - r_ptr;
       }
-      srslte_bit_copy(output, w_len + w_offset, w_buff, r_ptr, cp_len);
+      srsran_bit_copy(output, w_len + w_offset, w_buff, r_ptr, cp_len);
       r_ptr += cp_len;
       if (r_ptr >= in_len) {
         r_ptr -= in_len;
@@ -374,41 +374,41 @@ int srslte_rm_turbo_tx_lut(uint8_t* w_buff,
 
     return 0;
   } else {
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 }
 
-int srslte_rm_turbo_rx_lut(int16_t* input, int16_t* output, uint32_t in_len, uint32_t cb_idx, uint32_t rv_idx)
+int srsran_rm_turbo_rx_lut(int16_t* input, int16_t* output, uint32_t in_len, uint32_t cb_idx, uint32_t rv_idx)
 {
-  return srslte_rm_turbo_rx_lut_(input, output, in_len, cb_idx, rv_idx, true);
+  return srsran_rm_turbo_rx_lut_(input, output, in_len, cb_idx, rv_idx, true);
 }
 /**
  * Undoes rate matching for LTE Turbo Coder. Expands rate matched buffer to full size buffer.
  *
  * @param[in] input Input buffer of size in_len
- * @param[out] output Output buffer of size 3*srslte_cbsegm_cbsize(cb_idx)+12
+ * @param[out] output Output buffer of size 3*srsran_cbsegm_cbsize(cb_idx)+12
  * @param[in] cb_idx Code block table index
  * @param[in] rv_idx Redundancy Version from DCI control message
  * @return Error code
  */
-int srslte_rm_turbo_rx_lut_(int16_t* input,
+int srsran_rm_turbo_rx_lut_(int16_t* input,
                             int16_t* output,
                             uint32_t in_len,
                             uint32_t cb_idx,
                             uint32_t rv_idx,
                             bool     enable_input_tdec)
 {
-  if (rv_idx < 4 && cb_idx < SRSLTE_NOF_TC_CB_SIZES) {
-#if SRSLTE_TDEC_EXPECT_INPUT_SB == 1
-    int       cb_len  = srslte_cbsegm_cbsize(cb_idx);
-    int       idx     = deinter_table_idx_from_sb_len(srslte_tdec_autoimp_get_subblocks(cb_len));
+  if (rv_idx < 4 && cb_idx < SRSRAN_NOF_TC_CB_SIZES) {
+#if SRSRAN_TDEC_EXPECT_INPUT_SB == 1
+    int       cb_len  = srsran_cbsegm_cbsize(cb_idx);
+    int       idx     = deinter_table_idx_from_sb_len(srsran_tdec_autoimp_get_subblocks(cb_len));
     uint16_t* deinter = NULL;
     if (idx < 0 || !enable_input_tdec) {
       deinter = deinterleaver[cb_idx][rv_idx];
     } else if (idx < NOF_DEINTER_TABLE_SB_IDX) {
       deinter = deinterleaver_sb[idx][cb_idx][rv_idx];
     } else {
-      ERROR("Sub-block size index %d not supported in srslte_rm_turbo_rx_lut()", idx);
+      ERROR("Sub-block size index %d not supported in srsran_rm_turbo_rx_lut()", idx);
       return -1;
     }
 #else
@@ -416,12 +416,12 @@ int srslte_rm_turbo_rx_lut_(int16_t* input,
 #endif
 
 #ifdef LV_HAVE_AVX
-    return srslte_rm_turbo_rx_lut_avx(input, output, deinter, in_len, cb_idx, rv_idx);
+    return srsran_rm_turbo_rx_lut_avx(input, output, deinter, in_len, cb_idx, rv_idx);
 #else
 #ifdef LV_HAVE_SSE
-    return srslte_rm_turbo_rx_lut_sse(input, output, deinter, in_len, cb_idx, rv_idx);
+    return srsran_rm_turbo_rx_lut_sse(input, output, deinter, in_len, cb_idx, rv_idx);
 #else
-    uint32_t out_len = 3 * srslte_cbsegm_cbsize(cb_idx) + 12;
+    uint32_t out_len = 3 * srsran_cbsegm_cbsize(cb_idx) + 12;
 
     for (int i = 0; i < in_len; i++) {
       output[deinter[i % out_len]] += input[i];
@@ -431,23 +431,23 @@ int srslte_rm_turbo_rx_lut_(int16_t* input,
 #endif
   } else {
     printf("Invalid inputs rv_idx=%d, cb_idx=%d\n", rv_idx, cb_idx);
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 }
 
-int srslte_rm_turbo_rx_lut_8bit(int8_t* input, int8_t* output, uint32_t in_len, uint32_t cb_idx, uint32_t rv_idx)
+int srsran_rm_turbo_rx_lut_8bit(int8_t* input, int8_t* output, uint32_t in_len, uint32_t cb_idx, uint32_t rv_idx)
 {
-  if (rv_idx < 4 && cb_idx < SRSLTE_NOF_TC_CB_SIZES) {
-#if SRSLTE_TDEC_EXPECT_INPUT_SB == 1
-    int       cb_len  = srslte_cbsegm_cbsize(cb_idx);
-    int       idx     = deinter_table_idx_from_sb_len(srslte_tdec_autoimp_get_subblocks_8bit(cb_len));
+  if (rv_idx < 4 && cb_idx < SRSRAN_NOF_TC_CB_SIZES) {
+#if SRSRAN_TDEC_EXPECT_INPUT_SB == 1
+    int       cb_len  = srsran_cbsegm_cbsize(cb_idx);
+    int       idx     = deinter_table_idx_from_sb_len(srsran_tdec_autoimp_get_subblocks_8bit(cb_len));
     uint16_t* deinter = NULL;
     if (idx < 0) {
       deinter = deinterleaver[cb_idx][rv_idx];
     } else if (idx < NOF_DEINTER_TABLE_SB_IDX) {
       deinter = deinterleaver_sb[idx][cb_idx][rv_idx];
     } else {
-      ERROR("Sub-block size index %d not supported in srslte_rm_turbo_rx_lut()", idx);
+      ERROR("Sub-block size index %d not supported in srsran_rm_turbo_rx_lut()", idx);
       return -1;
     }
 #else
@@ -458,9 +458,9 @@ int srslte_rm_turbo_rx_lut_8bit(int8_t* input, int8_t* output, uint32_t in_len, 
     // Warning: Need to check if 8-bit sse version is correct
 
 #ifdef LV_HAVE_SSE
-    return srslte_rm_turbo_rx_lut_sse_8bit(input, output, deinter, in_len, cb_idx, rv_idx);
+    return srsran_rm_turbo_rx_lut_sse_8bit(input, output, deinter, in_len, cb_idx, rv_idx);
 #else
-    uint32_t  out_len = 3 * srslte_cbsegm_cbsize(cb_idx) + 12;
+    uint32_t  out_len = 3 * srsran_cbsegm_cbsize(cb_idx) + 12;
 
     for (int i = 0; i < in_len; i++) {
       output[deinter[i % out_len]] += input[i];
@@ -469,7 +469,7 @@ int srslte_rm_turbo_rx_lut_8bit(int8_t* input, int8_t* output, uint32_t in_len, 
 #endif
   } else {
     printf("Invalid inputs rv_idx=%d, cb_idx=%d\n", rv_idx, cb_idx);
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 }
 
@@ -480,15 +480,15 @@ int srslte_rm_turbo_rx_lut_8bit(int8_t* input, int8_t* output, uint32_t in_len, 
   l = (uint16_t)_mm_extract_epi16(lutVal, j);                                                                          \
   output[l] += x;
 
-int srslte_rm_turbo_rx_lut_sse(int16_t*  input,
+int srsran_rm_turbo_rx_lut_sse(int16_t*  input,
                                int16_t*  output,
                                uint16_t* deinter,
                                uint32_t  in_len,
                                uint32_t  cb_idx,
                                uint32_t  rv_idx)
 {
-  if (rv_idx < 4 && cb_idx < SRSLTE_NOF_TC_CB_SIZES) {
-    uint32_t out_len = 3 * srslte_cbsegm_cbsize(cb_idx) + 12;
+  if (rv_idx < 4 && cb_idx < SRSRAN_NOF_TC_CB_SIZES) {
+    uint32_t out_len = 3 * srsran_cbsegm_cbsize(cb_idx) + 12;
 
     const __m128i* xPtr   = (const __m128i*)input;
     const __m128i* lutPtr = (const __m128i*)deinter;
@@ -560,7 +560,7 @@ int srslte_rm_turbo_rx_lut_sse(int16_t*  input,
     return 0;
   } else {
     printf("Invalid inputs rv_idx=%d, cb_idx=%d\n", rv_idx, cb_idx);
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 }
 
@@ -574,15 +574,15 @@ int srslte_rm_turbo_rx_lut_sse(int16_t*  input,
   l = (uint16_t)_mm_extract_epi16(lutVal2, j);                                                                         \
   output[l] += x;
 
-int srslte_rm_turbo_rx_lut_sse_8bit(int8_t*   input,
+int srsran_rm_turbo_rx_lut_sse_8bit(int8_t*   input,
                                     int8_t*   output,
                                     uint16_t* deinter,
                                     uint32_t  in_len,
                                     uint32_t  cb_idx,
                                     uint32_t  rv_idx)
 {
-  if (rv_idx < 4 && cb_idx < SRSLTE_NOF_TC_CB_SIZES) {
-    uint32_t out_len = 3 * srslte_cbsegm_cbsize(cb_idx) + 12;
+  if (rv_idx < 4 && cb_idx < SRSRAN_NOF_TC_CB_SIZES) {
+    uint32_t out_len = 3 * srsran_cbsegm_cbsize(cb_idx) + 12;
 
     const __m128i* xPtr   = (const __m128i*)input;
     const __m128i* lutPtr = (const __m128i*)deinter;
@@ -682,7 +682,7 @@ int srslte_rm_turbo_rx_lut_sse_8bit(int8_t*   input,
     return 0;
   } else {
     printf("Invalid inputs rv_idx=%d, cb_idx=%d\n", rv_idx, cb_idx);
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 }
 
@@ -695,15 +695,15 @@ int srslte_rm_turbo_rx_lut_sse_8bit(int8_t*   input,
   l = (uint16_t)_mm256_extract_epi16(lutVal, j);                                                                       \
   output[l] += x;
 
-int srslte_rm_turbo_rx_lut_avx(int16_t*  input,
+int srsran_rm_turbo_rx_lut_avx(int16_t*  input,
                                int16_t*  output,
                                uint16_t* deinter,
                                uint32_t  in_len,
                                uint32_t  cb_idx,
                                uint32_t  rv_idx)
 {
-  if (rv_idx < 4 && cb_idx < SRSLTE_NOF_TC_CB_SIZES) {
-    uint32_t out_len = 3 * srslte_cbsegm_cbsize(cb_idx) + 12;
+  if (rv_idx < 4 && cb_idx < SRSRAN_NOF_TC_CB_SIZES) {
+    uint32_t out_len = 3 * srsran_cbsegm_cbsize(cb_idx) + 12;
 
     const __m256i* xPtr   = (const __m256i*)input;
     const __m256i* lutPtr = (const __m256i*)deinter;
@@ -797,7 +797,7 @@ int srslte_rm_turbo_rx_lut_avx(int16_t*  input,
     return 0;
   } else {
     printf("Invalid inputs rv_idx=%d, cb_idx=%d\n", rv_idx, cb_idx);
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 }
 
@@ -811,15 +811,15 @@ int srslte_rm_turbo_rx_lut_avx(int16_t*  input,
   l = (uint16_t)_mm256_extract_epi16(lutVal2, j);                                                                      \
   output[l] += x;
 
-int srslte_rm_turbo_rx_lut_avx_8bit(int8_t*   input,
+int srsran_rm_turbo_rx_lut_avx_8bit(int8_t*   input,
                                     int8_t*   output,
                                     uint16_t* deinter,
                                     uint32_t  in_len,
                                     uint32_t  cb_idx,
                                     uint32_t  rv_idx)
 {
-  if (rv_idx < 4 && cb_idx < SRSLTE_NOF_TC_CB_SIZES) {
-    uint32_t out_len = 3 * srslte_cbsegm_cbsize(cb_idx) + 12;
+  if (rv_idx < 4 && cb_idx < SRSRAN_NOF_TC_CB_SIZES) {
+    uint32_t out_len = 3 * srsran_cbsegm_cbsize(cb_idx) + 12;
 
     const __m256i* xPtr   = (const __m256i*)input;
     const __m256i* lutPtr = (const __m256i*)deinter;
@@ -951,7 +951,7 @@ int srslte_rm_turbo_rx_lut_avx_8bit(int8_t*   input,
     return 0;
   } else {
     printf("Invalid inputs rv_idx=%d, cb_idx=%d\n", rv_idx, cb_idx);
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 }
 
@@ -969,7 +969,7 @@ int srslte_rm_turbo_rx_lut_avx_8bit(int8_t*   input,
  *
  * TODO: Soft buffer size limitation according to UE category
  */
-int srslte_rm_turbo_tx(uint8_t* w_buff,
+int srsran_rm_turbo_tx(uint8_t* w_buff,
                        uint32_t w_buff_len,
                        uint8_t* input,
                        uint32_t in_len,
@@ -1016,7 +1016,7 @@ int srslte_rm_turbo_tx(uint8_t* w_buff,
             kidx = K_p + 2 * (k % K_p);
           }
           if (i * NCOLS + RM_PERM_TC[j] < ndummy) {
-            w_buff[kidx] = SRSLTE_TX_NULL;
+            w_buff[kidx] = SRSRAN_TX_NULL;
           } else {
             w_buff[kidx] = input[(i * NCOLS + RM_PERM_TC[j] - ndummy) * 3 + s];
           }
@@ -1029,7 +1029,7 @@ int srslte_rm_turbo_tx(uint8_t* w_buff,
     for (k = 0; k < K_p; k++) {
       kidx = (RM_PERM_TC[k / nrows] + NCOLS * (k % nrows) + 1) % K_p;
       if ((kidx - ndummy) < 0) {
-        w_buff[K_p + 2 * k + 1] = SRSLTE_TX_NULL;
+        w_buff[K_p + 2 * k + 1] = SRSRAN_TX_NULL;
       } else {
         w_buff[K_p + 2 * k + 1] = input[3 * (kidx - ndummy) + 2];
       }
@@ -1044,7 +1044,7 @@ int srslte_rm_turbo_tx(uint8_t* w_buff,
   j  = 0;
 
   while (k < out_len) {
-    if (w_buff[(k0 + j) % N_cb] != SRSLTE_TX_NULL) {
+    if (w_buff[(k0 + j) % N_cb] != SRSRAN_TX_NULL) {
       output[k] = w_buff[(k0 + j) % N_cb];
       k++;
     }
@@ -1058,7 +1058,7 @@ int srslte_rm_turbo_tx(uint8_t* w_buff,
  *
  * Soft-combines the data available in w_buff
  */
-int srslte_rm_turbo_rx(float*   w_buff,
+int srsran_rm_turbo_rx(float*   w_buff,
                        uint32_t w_buff_len,
                        float*   input,
                        uint32_t in_len,
@@ -1129,9 +1129,9 @@ int srslte_rm_turbo_rx(float*   w_buff,
     }
 
     if (!isdummy) {
-      if (w_buff[jp] == SRSLTE_RX_NULL) {
+      if (w_buff[jp] == SRSRAN_RX_NULL) {
         w_buff[jp] = input[k];
-      } else if (input[k] != SRSLTE_RX_NULL) {
+      } else if (input[k] != SRSRAN_RX_NULL) {
         w_buff[jp] += input[k]; /* soft combine LLRs */
       }
       k++;
@@ -1140,7 +1140,7 @@ int srslte_rm_turbo_rx(float*   w_buff,
   }
 
   // printf("wbuff:\n");
-  // srslte_vec_fprint_f(stdout, w_buff, out_len);
+  // srsran_vec_fprint_f(stdout, w_buff, out_len);
 
   /* interleaving and bit selection */
   for (i = 0; i < out_len / 3; i++) {
@@ -1156,7 +1156,7 @@ int srslte_rm_turbo_rx(float*   w_buff,
         kidx = (k / NCOLS + nrows * RM_PERM_TC[k % NCOLS]) % K_p;
         kidx = 2 * kidx + K_p + 1;
       }
-      if (w_buff[kidx] != SRSLTE_RX_NULL) {
+      if (w_buff[kidx] != SRSRAN_RX_NULL) {
         output[i * 3 + j] = w_buff[kidx];
       } else {
         output[i * 3 + j] = 0;

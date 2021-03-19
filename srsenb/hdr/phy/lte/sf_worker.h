@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -18,13 +18,13 @@
 
 #include "../phy_common.h"
 #include "cc_worker.h"
-#include "srslte/srslog/srslog.h"
-#include "srslte/srslte.h"
+#include "srsran/srslog/srslog.h"
+#include "srsran/srsran.h"
 
 namespace srsenb {
 namespace lte {
 
-class sf_worker : public srslte::thread_pool::worker
+class sf_worker : public srsran::thread_pool::worker
 {
 public:
   sf_worker(srslog::basic_logger& logger) : logger(logger) {}
@@ -32,7 +32,7 @@ public:
   void init(phy_common* phy);
 
   cf_t* get_buffer_rx(uint32_t cc_idx, uint32_t antenna_idx);
-  void  set_time(uint32_t tti_, uint32_t tx_worker_cnt_, const srslte::rf_timestamp_t& tx_time_);
+  void  set_time(uint32_t tti_, uint32_t tx_worker_cnt_, const srsran::rf_timestamp_t& tx_time_);
 
   int      add_rnti(uint16_t rnti, uint32_t cc_idx);
   void     rem_rnti(uint16_t rnti);
@@ -62,11 +62,11 @@ private:
   uint32_t               tti_rx = 0, tti_tx_dl = 0, tti_tx_ul = 0;
   uint32_t               t_rx = 0, t_tx_dl = 0, t_tx_ul = 0;
   uint32_t               tx_worker_cnt = 0;
-  srslte::rf_timestamp_t tx_time       = {};
+  srsran::rf_timestamp_t tx_time       = {};
 
   std::vector<std::unique_ptr<cc_worker> > cc_workers;
 
-  srslte_softbuffer_tx_t temp_mbsfn_softbuffer = {};
+  srsran_softbuffer_tx_t temp_mbsfn_softbuffer = {};
 };
 
 } // namespace lte

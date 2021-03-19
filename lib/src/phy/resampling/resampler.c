@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -11,12 +11,12 @@
  */
 
 #include <complex.h>
-#include <srslte/phy/utils/debug.h>
+#include <srsran/phy/utils/debug.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "srslte/phy/resampling/resampler.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/resampling/resampler.h"
+#include "srsran/phy/utils/vector.h"
 
 /**
  * Raised cosine filter Roll-off
@@ -35,38 +35,38 @@
  */
 #define RESAMPLER_FILTER_SIZE_MIN 64
 
-int srslte_resampler_fft_init(srslte_resampler_fft_t* q, srslte_resampler_mode_t mode, uint32_t ratio)
+int srsran_resampler_fft_init(srsran_resampler_fft_t* q, srsran_resampler_mode_t mode, uint32_t ratio)
 {
   if (q == NULL || ratio == 0) {
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
   // Initialising the resampler is unnecessary
   if (ratio == 1) {
     q->ratio = 1;
-    return SRSLTE_ERROR_OUT_OF_BOUNDS;
+    return SRSRAN_ERROR_OUT_OF_BOUNDS;
   }
 
   if (q->mode == mode && q->ratio == ratio) {
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   // Make sure interpolator is freed
-  srslte_resampler_fft_free(q);
+  srsran_resampler_fft_free(q);
 
   // Initialise sizes
   uint32_t base_size =
-      SRSLTE_MAX(RESAMPLER_FILTER_SIZE_MIN, (uint32_t)pow(2, ceilf(log2f(ratio) + RESAMPLER_FILTER_SIZE_POW)));
+      SRSRAN_MAX(RESAMPLER_FILTER_SIZE_MIN, (uint32_t)pow(2, ceilf(log2f(ratio) + RESAMPLER_FILTER_SIZE_POW)));
   uint32_t input_fft_size  = 0;
   uint32_t output_fft_size = 0;
   uint32_t high_size       = base_size * ratio;
 
   switch (mode) {
-    case SRSLTE_RESAMPLER_MODE_INTERPOLATE:
+    case SRSRAN_RESAMPLER_MODE_INTERPOLATE:
       input_fft_size  = base_size;
       output_fft_size = high_size;
       break;
-    case SRSLTE_RESAMPLER_MODE_DECIMATE:
+    case SRSRAN_RESAMPLER_MODE_DECIMATE:
     default:
       input_fft_size  = high_size;
       output_fft_size = base_size;
@@ -77,38 +77,38 @@ int srslte_resampler_fft_init(srslte_resampler_fft_t* q, srslte_resampler_mode_t
   q->ratio     = ratio;
   q->window_sz = input_fft_size / 4;
 
-  q->in_buffer = srslte_vec_cf_malloc(high_size);
+  q->in_buffer = srsran_vec_cf_malloc(high_size);
   if (q->in_buffer == NULL) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
-  q->out_buffer = srslte_vec_cf_malloc(high_size);
+  q->out_buffer = srsran_vec_cf_malloc(high_size);
   if (q->out_buffer == NULL) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   int err =
-      srslte_dft_plan_guru_c(&q->fft, input_fft_size, SRSLTE_DFT_FORWARD, q->in_buffer, q->out_buffer, 1, 1, 1, 1, 1);
-  if (err != SRSLTE_SUCCESS) {
+      srsran_dft_plan_guru_c(&q->fft, input_fft_size, SRSRAN_DFT_FORWARD, q->in_buffer, q->out_buffer, 1, 1, 1, 1, 1);
+  if (err != SRSRAN_SUCCESS) {
     ERROR("Initialising DFT");
     return err;
   }
 
-  err = srslte_dft_plan_guru_c(
-      &q->ifft, output_fft_size, SRSLTE_DFT_BACKWARD, q->in_buffer, q->out_buffer, 1, 1, 1, 1, 1);
-  if (err != SRSLTE_SUCCESS) {
+  err = srsran_dft_plan_guru_c(
+      &q->ifft, output_fft_size, SRSRAN_DFT_BACKWARD, q->in_buffer, q->out_buffer, 1, 1, 1, 1, 1);
+  if (err != SRSRAN_SUCCESS) {
     ERROR("Initialising DFT");
     return err;
   }
 
-  q->state = srslte_vec_cf_malloc(output_fft_size);
+  q->state = srsran_vec_cf_malloc(output_fft_size);
   if (q->state == NULL) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
-  q->filter = srslte_vec_cf_malloc(high_size);
+  q->filter = srsran_vec_cf_malloc(high_size);
   if (q->filter == NULL) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // Compute time domain filter coefficients, see raised cosine formula in section "1.2 Impulse Response" of
@@ -127,29 +127,29 @@ int srslte_resampler_fft_init(srslte_resampler_fft_t* q, srslte_resampler_mode_t
   }
 
   // Compute frequency domain coefficients, since the filter is symmetrical, it does not matter whether FFT or iFFT
-  if (mode == SRSLTE_RESAMPLER_MODE_INTERPOLATE) {
-    srslte_dft_run_guru_c(&q->ifft);
+  if (mode == SRSRAN_RESAMPLER_MODE_INTERPOLATE) {
+    srsran_dft_run_guru_c(&q->ifft);
   } else {
-    srslte_dft_run_guru_c(&q->fft);
+    srsran_dft_run_guru_c(&q->fft);
   }
 
   // Normalise filter
   float norm = 1.0f / (cabsf(q->out_buffer[0]) * (float)input_fft_size);
-  srslte_vec_sc_prod_cfc(q->out_buffer, norm, q->filter, high_size);
+  srsran_vec_sc_prod_cfc(q->out_buffer, norm, q->filter, high_size);
 
   // reset state
-  srslte_resampler_fft_reset_state(q);
+  srsran_resampler_fft_reset_state(q);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-void srslte_resampler_fft_reset_state(srslte_resampler_fft_t* q)
+void srsran_resampler_fft_reset_state(srsran_resampler_fft_t* q)
 {
   q->state_len = 0;
-  srslte_vec_cf_zero(q->state, q->ifft.size);
+  srsran_vec_cf_zero(q->state, q->ifft.size);
 }
 
-static void resampler_fft_interpolate(srslte_resampler_fft_t* q, const cf_t* input, cf_t* output, uint32_t nsamples)
+static void resampler_fft_interpolate(srsran_resampler_fft_t* q, const cf_t* input, cf_t* output, uint32_t nsamples)
 {
   uint32_t count = 0;
 
@@ -158,51 +158,51 @@ static void resampler_fft_interpolate(srslte_resampler_fft_t* q, const cf_t* inp
   }
 
   while (count < nsamples) {
-    uint32_t n = SRSLTE_MIN(q->window_sz, nsamples - count);
+    uint32_t n = SRSRAN_MIN(q->window_sz, nsamples - count);
 
     if (input) {
       // Copy input samples
-      srslte_vec_cf_copy(q->in_buffer, &input[count], n);
+      srsran_vec_cf_copy(q->in_buffer, &input[count], n);
 
       // Pad zeroes
-      srslte_vec_cf_zero(&q->in_buffer[n], q->fft.size - n);
+      srsran_vec_cf_zero(&q->in_buffer[n], q->fft.size - n);
 
       // Execute FFT
-      srslte_dft_run_guru_c(&q->fft);
+      srsran_dft_run_guru_c(&q->fft);
 
       // Replicate input spectrum
       for (uint32_t i = 1; i < q->ratio; i++) {
-        srslte_vec_cf_copy(&q->out_buffer[q->fft.size * i], q->out_buffer, q->fft.size);
+        srsran_vec_cf_copy(&q->out_buffer[q->fft.size * i], q->out_buffer, q->fft.size);
       }
 
       // Apply filtering
-      srslte_vec_prod_ccc(q->out_buffer, q->filter, q->in_buffer, q->ifft.size);
+      srsran_vec_prod_ccc(q->out_buffer, q->filter, q->in_buffer, q->ifft.size);
 
       // Execute iFFT
-      srslte_dft_run_guru_c(&q->ifft);
+      srsran_dft_run_guru_c(&q->ifft);
     } else {
       // Equivalent IFFT output of feeding zeroes
-      srslte_vec_cf_zero(q->out_buffer, q->ifft.size);
+      srsran_vec_cf_zero(q->out_buffer, q->ifft.size);
     }
 
     // Add previous state
-    srslte_vec_sum_ccc(q->out_buffer, q->state, q->out_buffer, q->state_len);
+    srsran_vec_sum_ccc(q->out_buffer, q->state, q->out_buffer, q->state_len);
 
     // Copy output
     if (output) {
-      srslte_vec_cf_copy(&output[count * q->ratio], q->out_buffer, n * q->ratio);
+      srsran_vec_cf_copy(&output[count * q->ratio], q->out_buffer, n * q->ratio);
     }
 
     // Save current state
     q->state_len = q->ifft.size - n * q->ratio;
-    srslte_vec_cf_copy(q->state, &q->out_buffer[n * q->ratio], q->state_len);
+    srsran_vec_cf_copy(q->state, &q->out_buffer[n * q->ratio], q->state_len);
 
     // Increment count
     count += n;
   }
 }
 
-static void resampler_fft_decimate(srslte_resampler_fft_t* q, const cf_t* input, cf_t* output, uint32_t nsamples)
+static void resampler_fft_decimate(srsran_resampler_fft_t* q, const cf_t* input, cf_t* output, uint32_t nsamples)
 {
   uint32_t count = 0;
 
@@ -211,49 +211,49 @@ static void resampler_fft_decimate(srslte_resampler_fft_t* q, const cf_t* input,
   }
 
   while (count < nsamples) {
-    uint32_t n = SRSLTE_MIN(q->window_sz, nsamples - count);
+    uint32_t n = SRSRAN_MIN(q->window_sz, nsamples - count);
 
     if (input) {
       // Copy input samples
-      srslte_vec_cf_copy(q->in_buffer, &input[count], q->window_sz);
+      srsran_vec_cf_copy(q->in_buffer, &input[count], q->window_sz);
 
       // Pad zeroes
-      srslte_vec_cf_zero(&q->in_buffer[n], q->fft.size - n);
+      srsran_vec_cf_zero(&q->in_buffer[n], q->fft.size - n);
 
       // Execute FFT
-      srslte_dft_run_guru_c(&q->fft);
+      srsran_dft_run_guru_c(&q->fft);
 
       // Apply filtering and cut
-      srslte_vec_prod_ccc(q->out_buffer, q->filter, q->in_buffer, q->ifft.size / 2);
-      srslte_vec_prod_ccc(&q->out_buffer[q->fft.size - q->ifft.size / 2],
+      srsran_vec_prod_ccc(q->out_buffer, q->filter, q->in_buffer, q->ifft.size / 2);
+      srsran_vec_prod_ccc(&q->out_buffer[q->fft.size - q->ifft.size / 2],
                           &q->filter[q->fft.size - q->ifft.size / 2],
                           &q->in_buffer[q->ifft.size / 2],
                           q->ifft.size / 2);
 
       // Execute iFFT
-      srslte_dft_run_guru_c(&q->ifft);
+      srsran_dft_run_guru_c(&q->ifft);
     } else {
-      srslte_vec_cf_zero(q->out_buffer, q->ifft.size);
+      srsran_vec_cf_zero(q->out_buffer, q->ifft.size);
     }
 
     // Add previous state
-    srslte_vec_sum_ccc(q->out_buffer, q->state, q->out_buffer, q->state_len);
+    srsran_vec_sum_ccc(q->out_buffer, q->state, q->out_buffer, q->state_len);
 
     // Copy output
     if (output) {
-      srslte_vec_cf_copy(&output[count / q->ratio], q->out_buffer, n / q->ratio);
+      srsran_vec_cf_copy(&output[count / q->ratio], q->out_buffer, n / q->ratio);
     }
 
     // Save current state
     q->state_len = q->ifft.size - n / q->ratio;
-    srslte_vec_cf_copy(q->state, &q->out_buffer[n / q->ratio], q->state_len);
+    srsran_vec_cf_copy(q->state, &q->out_buffer[n / q->ratio], q->state_len);
 
     // Increment count
     count += n;
   }
 }
 
-void srslte_resampler_fft_run(srslte_resampler_fft_t* q, const cf_t* input, cf_t* output, uint32_t nsamples)
+void srsran_resampler_fft_run(srsran_resampler_fft_t* q, const cf_t* input, cf_t* output, uint32_t nsamples)
 {
   if (q == NULL) {
     return;
@@ -261,29 +261,29 @@ void srslte_resampler_fft_run(srslte_resampler_fft_t* q, const cf_t* input, cf_t
 
   // If the ratio is unset (0) or 1, copy samples and return
   if (q->ratio < 2) {
-    srslte_vec_cf_copy(output, input, nsamples);
+    srsran_vec_cf_copy(output, input, nsamples);
     return;
   }
 
   switch (q->mode) {
-    case SRSLTE_RESAMPLER_MODE_INTERPOLATE:
+    case SRSRAN_RESAMPLER_MODE_INTERPOLATE:
       resampler_fft_interpolate(q, input, output, nsamples);
       break;
-    case SRSLTE_RESAMPLER_MODE_DECIMATE:
+    case SRSRAN_RESAMPLER_MODE_DECIMATE:
     default:
       resampler_fft_decimate(q, input, output, nsamples);
       break;
   }
 }
 
-void srslte_resampler_fft_free(srslte_resampler_fft_t* q)
+void srsran_resampler_fft_free(srsran_resampler_fft_t* q)
 {
   if (q == NULL) {
     return;
   }
 
-  srslte_dft_plan_free(&q->fft);
-  srslte_dft_plan_free(&q->ifft);
+  srsran_dft_plan_free(&q->fft);
+  srsran_dft_plan_free(&q->ifft);
 
   if (q->state) {
     free(q->state);
@@ -298,10 +298,10 @@ void srslte_resampler_fft_free(srslte_resampler_fft_t* q)
     free(q->filter);
   }
 
-  memset(q, 0, sizeof(srslte_resampler_fft_t));
+  memset(q, 0, sizeof(srsran_resampler_fft_t));
 }
 
-uint32_t srslte_resampler_fft_get_delay(srslte_resampler_fft_t* q)
+uint32_t srsran_resampler_fft_get_delay(srsran_resampler_fft_t* q)
 {
   if (q == NULL) {
     return UINT32_MAX;

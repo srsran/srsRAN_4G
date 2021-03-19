@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,15 +10,15 @@
  *
  */
 
-#include "srslte/common/common_helper.h"
-#include "srslte/common/config_file.h"
-#include "srslte/common/crash_handler.h"
-#include "srslte/common/metrics_hub.h"
-#include "srslte/common/signal_handler.h"
-#include "srslte/srslog/event_trace.h"
-#include "srslte/srslog/srslog.h"
-#include "srslte/srslte.h"
-#include "srslte/version.h"
+#include "srsran/common/common_helper.h"
+#include "srsran/common/config_file.h"
+#include "srsran/common/crash_handler.h"
+#include "srsran/common/metrics_hub.h"
+#include "srsran/common/signal_handler.h"
+#include "srsran/srslog/event_trace.h"
+#include "srsran/srslog/srslog.h"
+#include "srsran/srsran.h"
+#include "srsran/version.h"
 #include "srsue/hdr/metrics_csv.h"
 #include "srsue/hdr/metrics_stdout.h"
 #include "srsue/hdr/ue.h"
@@ -117,10 +117,10 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
 
     ("rrc.feature_group", bpo::value<uint32_t>(&args->stack.rrc.feature_group)->default_value(0xe6041000), "Hex value of the featureGroupIndicators field in the"
                                                                                            "UECapabilityInformation message. Default 0xe6041000")
-    ("rrc.ue_category",       bpo::value<string>(&args->stack.rrc.ue_category_str)->default_value(SRSLTE_UE_CATEGORY_DEFAULT),  "UE Category (1 to 10)")
+    ("rrc.ue_category",       bpo::value<string>(&args->stack.rrc.ue_category_str)->default_value(SRSRAN_UE_CATEGORY_DEFAULT),  "UE Category (1 to 10)")
     ("rrc.ue_category_dl",       bpo::value<int>(&args->stack.rrc.ue_category_dl)->default_value(-1),  "UE Category DL v12 (valid values: 0, 4, 6, 7, 9 to 16)")
     ("rrc.ue_category_ul",       bpo::value<int>(&args->stack.rrc.ue_category_ul)->default_value(-1),  "UE Category UL v12 (valid values: 0, 3, 5, 7, 8 and 13)")
-    ("rrc.release",           bpo::value<uint32_t>(&args->stack.rrc.release)->default_value(SRSLTE_RELEASE_DEFAULT),  "UE Release (8 to 12)")
+    ("rrc.release",           bpo::value<uint32_t>(&args->stack.rrc.release)->default_value(SRSRAN_RELEASE_DEFAULT),  "UE Release (8 to 12)")
     ("rrc.mbms_service_id",   bpo::value<int32_t>(&args->stack.rrc.mbms_service_id)->default_value(-1),  "MBMS service id for autostart (-1 means disabled)")
     ("rrc.mbms_service_port", bpo::value<uint32_t>(&args->stack.rrc.mbms_service_port)->default_value(4321),  "Port of the MBMS service")
 
@@ -463,27 +463,27 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     bpo::notify(vm);
   } catch (bpo::error& e) {
     cerr << e.what() << endl;
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   // help option was given - print usage and exit
   if (vm.count("help")) {
     cout << "Usage: " << argv[0] << " [OPTIONS] config_file" << endl << endl;
     cout << common << endl << general << endl;
-    exit(SRSLTE_SUCCESS);
+    exit(SRSRAN_SUCCESS);
   }
 
   // print version number and exit
   if (vm.count("version")) {
-    cout << "Version " << srslte_get_version_major() << "." << srslte_get_version_minor() << "."
-         << srslte_get_version_patch() << endl;
-    exit(SRSLTE_SUCCESS);
+    cout << "Version " << srsran_get_version_major() << "." << srsran_get_version_minor() << "."
+         << srsran_get_version_patch() << endl;
+    exit(SRSRAN_SUCCESS);
   }
 
   // if no config file given, check users home path
   if (!vm.count("config_file")) {
     if (!config_exists(config_file, "ue.conf")) {
       cout << "Failed to read UE configuration file " << config_file << " - exiting" << endl;
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
   }
 
@@ -491,7 +491,7 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
   ifstream conf(config_file.c_str(), ios::in);
   if (conf.fail()) {
     cout << "Failed to read configuration file " << config_file << " - exiting" << endl;
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // parse config file and handle errors gracefully
@@ -500,13 +500,13 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     bpo::notify(vm);
   } catch (const boost::program_options::error& e) {
     cerr << e.what() << endl;
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // Check conflicting OP/OPc options and which is being used
   if (vm.count("usim.op") && !vm["usim.op"].defaulted() && vm.count("usim.opc") && !vm["usim.opc"].defaulted()) {
     cout << "Conflicting options OP and OPc. Please configure either one or the other." << endl;
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   } else {
     args->stack.usim.using_op = vm.count("usim.op");
   }
@@ -587,9 +587,9 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     args->stack.sync_queue_size = MULTIQUEUE_DEFAULT_CAPACITY;
   }
 
-  srslte_use_standard_symbol_size(use_standard_lte_rates);
+  srsran_use_standard_symbol_size(use_standard_lte_rates);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 static void* input_loop(void*)
@@ -631,8 +631,8 @@ static size_t fixup_log_file_maxsize(int x)
 
 int main(int argc, char* argv[])
 {
-  srslte_register_signal_handler();
-  srslte_debug_handle_crash(argc, argv);
+  srsran_register_signal_handler();
+  srsran_debug_handle_crash(argc, argv);
 
   all_args_t args = {};
   if (int err = parse_args(&args, argc, argv)) {
@@ -644,18 +644,18 @@ int main(int argc, char* argv[])
                  ? srslog::create_stdout_sink()
                  : srslog::create_file_sink(args.log.filename, fixup_log_file_maxsize(args.log.file_max_size));
   if (!log_sink) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   srslog::log_channel* chan = srslog::create_log_channel("main_channel", *log_sink);
   if (!chan) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   srslog::set_default_sink(*log_sink);
 
 #ifdef ENABLE_SRSLOG_EVENT_TRACE
   if (args.general.tracing_enable) {
     if (!srslog::event_trace_init(args.general.tracing_filename, args.general.tracing_buffcapacity)) {
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
   }
 #endif
@@ -663,18 +663,18 @@ int main(int argc, char* argv[])
   // Start the log backend.
   srslog::init();
 
-  srslte::log_args(argc, argv, "UE");
+  srsran::log_args(argc, argv, "UE");
 
-  srslte::check_scaling_governor(args.rf.device_name);
+  srsran::check_scaling_governor(args.rf.device_name);
 
   // Create UE instance.
   srsue::ue ue;
   if (ue.init(args)) {
     ue.stop();
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
-  srslte::metrics_hub<ue_metrics_t> metricshub;
+  srsran::metrics_hub<ue_metrics_t> metricshub;
   metrics_stdout                    _metrics_screen;
 
   metrics_screen = &_metrics_screen;
@@ -713,5 +713,5 @@ int main(int argc, char* argv[])
   ue.stop();
   cout << "---  exiting  ---" << endl;
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }

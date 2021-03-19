@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -16,7 +16,7 @@
 
 #include "sched_common_test_suite.h"
 #include "sched_ue_ded_test_suite.h"
-#include "srslte/common/test_common.h"
+#include "srsran/common/test_common.h"
 
 using namespace srsenb;
 
@@ -134,7 +134,7 @@ int common_sched_tester::sim_cfg(sim_sched_args args)
   sched_sim.reset(new sched_sim_random{this, sim_args0.sched_args, sim_args0.cell_cfg});
   sched_stats.reset(new sched_result_stats{sim_args0.cell_cfg});
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int common_sched_tester::add_user(uint16_t rnti, const ue_ctxt_test_cfg& ue_cfg_)
@@ -159,7 +159,7 @@ int common_sched_tester::rem_user(uint16_t rnti)
 void common_sched_tester::new_test_tti()
 {
   if (not tti_rx.is_valid()) {
-    tti_rx = srslte::tti_point{sim_args0.start_tti};
+    tti_rx = srsran::tti_point{sim_args0.start_tti};
   } else {
     tti_rx++;
   }
@@ -177,23 +177,23 @@ int common_sched_tester::run_ue_ded_tests_and_update_ctxt(const sf_output_res_t&
 {
   // Perform UE-dedicated sched result tests
   sim_enb_ctxt_t enb_ctxt = sched_sim->get_enb_ctxt();
-  TESTASSERT(test_all_ues(enb_ctxt, sf_out) == SRSLTE_SUCCESS);
+  TESTASSERT(test_all_ues(enb_ctxt, sf_out) == SRSRAN_SUCCESS);
 
   // Update Simulated UEs state
   sched_sim->update(sf_out);
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int common_sched_tester::process_results()
 {
   // Perform common eNB result tests
   sf_output_res_t sf_out{sched_cell_params, tti_rx, tti_info.ul_sched_result, tti_info.dl_sched_result};
-  TESTASSERT(test_all_common(sf_out) == SRSLTE_SUCCESS);
-  TESTASSERT(run_ue_ded_tests_and_update_ctxt(sf_out) == SRSLTE_SUCCESS);
+  TESTASSERT(test_all_common(sf_out) == SRSRAN_SUCCESS);
+  TESTASSERT(run_ue_ded_tests_and_update_ctxt(sf_out) == SRSRAN_SUCCESS);
 
   sched_stats->process_results(tti_rx, tti_info.dl_sched_result, tti_info.ul_sched_result);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int common_sched_tester::process_tti_events(const tti_ev& tti_ev)
@@ -203,23 +203,23 @@ int common_sched_tester::process_tti_events(const tti_ev& tti_ev)
     if (ue_ev.ue_sim_cfg != nullptr) {
       if (not sched_sim->user_exists(ue_ev.rnti)) {
         // new user
-        TESTASSERT(add_user(ue_ev.rnti, *ue_ev.ue_sim_cfg) == SRSLTE_SUCCESS);
+        TESTASSERT(add_user(ue_ev.rnti, *ue_ev.ue_sim_cfg) == SRSRAN_SUCCESS);
       } else {
         // reconfiguration
-        TESTASSERT(reconf_user(ue_ev.rnti, ue_ev.ue_sim_cfg->ue_cfg) == SRSLTE_SUCCESS);
+        TESTASSERT(reconf_user(ue_ev.rnti, ue_ev.ue_sim_cfg->ue_cfg) == SRSRAN_SUCCESS);
       }
     }
 
     // There is a user to remove
     if (ue_ev.rem_user) {
-      TESTASSERT(rem_user(ue_ev.rnti) == SRSLTE_SUCCESS);
+      TESTASSERT(rem_user(ue_ev.rnti) == SRSRAN_SUCCESS);
     }
 
     // configure bearers
     if (ue_ev.bearer_cfg != nullptr) {
       CONDERROR(not sched_sim->user_exists(ue_ev.rnti), "User rnti=0x%x does not exist", ue_ev.rnti);
       // TODO: Instantiate more bearers
-      TESTASSERT(sched_sim->bearer_cfg(ue_ev.rnti, 0, *ue_ev.bearer_cfg) == SRSLTE_SUCCESS);
+      TESTASSERT(sched_sim->bearer_cfg(ue_ev.rnti, 0, *ue_ev.bearer_cfg) == SRSRAN_SUCCESS);
     }
 
     const ue_sim* user = sched_sim->find_rnti(ue_ev.rnti);
@@ -245,7 +245,7 @@ int common_sched_tester::process_tti_events(const tti_ev& tti_ev)
       }
     }
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int common_sched_tester::run_tti(const tti_ev& tti_events)
@@ -267,15 +267,15 @@ int common_sched_tester::run_tti(const tti_ev& tti_events)
     ul_sched(to_tx_ul(tti_rx).to_uint(), i, tti_info.ul_sched_result[i]);
   }
 
-  TESTASSERT(process_results() == SRSLTE_SUCCESS);
+  TESTASSERT(process_results() == SRSRAN_SUCCESS);
   tti_count++;
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int common_sched_tester::test_next_ttis(const std::vector<tti_ev>& tti_events)
 {
   while (tti_count < tti_events.size()) {
-    TESTASSERT(run_tti(tti_events[tti_count]) == SRSLTE_SUCCESS);
+    TESTASSERT(run_tti(tti_events[tti_count]) == SRSRAN_SUCCESS);
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }

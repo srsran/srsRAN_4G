@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,8 +10,8 @@
  *
  */
 
-#include "srslte/common/fsm.h"
-#include "srslte/common/test_common.h"
+#include "srsran/common/fsm.h"
+#include "srsran/common/test_common.h"
 
 /////////////////////////////
 
@@ -24,12 +24,12 @@ std::vector<std::string> calls;
 template <typename State>
 void call_log_helper(State* state, srslog::basic_logger& logger, const char* type)
 {
-  std::string callname = srslte::get_type_name<State>() + "::" + type;
+  std::string callname = srsran::get_type_name<State>() + "::" + type;
   logger.info("%s custom called", callname.c_str());
   calls.push_back(callname);
 }
 
-class fsm1 : public srslte::fsm_t<fsm1>
+class fsm1 : public srsran::fsm_t<fsm1>
 {
 public:
   uint32_t idle_enter_counter = 0, state1_enter_counter = 0, inner_enter_counter = 0;
@@ -46,7 +46,7 @@ public:
     void exit(fsm1* f);
   };
 
-  explicit fsm1(srslog::basic_logger& logger) : srslte::fsm_t<fsm1>(logger) {}
+  explicit fsm1(srslog::basic_logger& logger) : srsran::fsm_t<fsm1>(logger) {}
 
   // this state is another FSM
   class fsm2 : public subfsm_t<fsm2>
@@ -170,7 +170,7 @@ void fsm1::action3(state1& s, const ev2& ev)
 
 // Static Checks
 
-namespace srslte {
+namespace srsran {
 namespace fsm_details {
 
 static_assert(is_fsm<fsm1>::value, "invalid metafunction");
@@ -185,7 +185,7 @@ static_assert(std::is_same<enable_if_fsm_state<fsm1, fsm1::idle_st>, void>::valu
 static_assert(std::is_same<disable_if_fsm_state<fsm1, fsm1::fsm2::state_inner>, void>::value, "get state list failed");
 
 } // namespace fsm_details
-} // namespace srslte
+} // namespace srsran
 
 // Runtime checks
 
@@ -251,21 +251,21 @@ int test_hsm()
   TESTASSERT(f.get_if_current_state<fsm1::fsm2>()->current_state_name() == "state_inner");
 
   // Ensure correct call order
-  TESTASSERT(calls[0] == srslte::get_type_name<fsm1::idle_st>() + "::enter"); // enter for init state called
-  TESTASSERT(calls[1] == srslte::get_type_name<fsm1>() + "::action1");
-  TESTASSERT(calls[2] == srslte::get_type_name<fsm1::state1>() + "::enter");
-  TESTASSERT(calls[3] == srslte::get_type_name<fsm1>() + "::action2");
-  TESTASSERT(calls[4] == srslte::get_type_name<fsm1::state1>() + "::exit");
-  TESTASSERT(calls[5] == srslte::get_type_name<fsm1::fsm2>() + "::enter"); // entry is recursive
-  TESTASSERT(calls[6] == srslte::get_type_name<fsm1::fsm2::state_inner>() + "::enter");
-  TESTASSERT(calls[7] == srslte::get_type_name<fsm1::fsm2>() + "::inner_action1");
-  TESTASSERT(calls[8] == srslte::get_type_name<fsm1::fsm2>() + "::inner_action2");
-  TESTASSERT(calls[9] == srslte::get_type_name<fsm1::fsm2::state_inner2>() + "::enter");
-  TESTASSERT(calls[10] == srslte::get_type_name<fsm1::fsm2::state_inner2>() + "::exit");
-  TESTASSERT(calls[11] == srslte::get_type_name<fsm1::fsm2>() + "::exit");     // exit is recursive
-  TESTASSERT(calls[12] == srslte::get_type_name<fsm1::state1>() + "::enter2"); // differentiates different entry funcs
+  TESTASSERT(calls[0] == srsran::get_type_name<fsm1::idle_st>() + "::enter"); // enter for init state called
+  TESTASSERT(calls[1] == srsran::get_type_name<fsm1>() + "::action1");
+  TESTASSERT(calls[2] == srsran::get_type_name<fsm1::state1>() + "::enter");
+  TESTASSERT(calls[3] == srsran::get_type_name<fsm1>() + "::action2");
+  TESTASSERT(calls[4] == srsran::get_type_name<fsm1::state1>() + "::exit");
+  TESTASSERT(calls[5] == srsran::get_type_name<fsm1::fsm2>() + "::enter"); // entry is recursive
+  TESTASSERT(calls[6] == srsran::get_type_name<fsm1::fsm2::state_inner>() + "::enter");
+  TESTASSERT(calls[7] == srsran::get_type_name<fsm1::fsm2>() + "::inner_action1");
+  TESTASSERT(calls[8] == srsran::get_type_name<fsm1::fsm2>() + "::inner_action2");
+  TESTASSERT(calls[9] == srsran::get_type_name<fsm1::fsm2::state_inner2>() + "::enter");
+  TESTASSERT(calls[10] == srsran::get_type_name<fsm1::fsm2::state_inner2>() + "::exit");
+  TESTASSERT(calls[11] == srsran::get_type_name<fsm1::fsm2>() + "::exit");     // exit is recursive
+  TESTASSERT(calls[12] == srsran::get_type_name<fsm1::state1>() + "::enter2"); // differentiates different entry funcs
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 /////////////////////////////
@@ -274,10 +274,10 @@ struct procevent1 {
   bool is_success;
 };
 
-struct proc1 : public srslte::proc_fsm_t<proc1, int> {
+struct proc1 : public srsran::proc_fsm_t<proc1, int> {
 public:
   struct procstate1 {
-    void enter(proc1* f, const srslte::proc_launch_ev<int>& ev);
+    void enter(proc1* f, const srsran::proc_launch_ev<int>& ev);
   };
 
   explicit proc1(srslog::basic_logger& logger) : base_t(logger) {}
@@ -322,11 +322,11 @@ void proc1::handle_failure(procstate1& s, const procevent1& ev)
   trigger(complete_ev{3});
 }
 
-struct proc_listener_fsm : public srslte::fsm_t<proc_listener_fsm> {
+struct proc_listener_fsm : public srsran::fsm_t<proc_listener_fsm> {
 public:
   struct st1 {};
   struct st2 {};
-  using proc1_st = srslte::proc_wait_st<proc1>;
+  using proc1_st = srsran::proc_wait_st<proc1>;
 
   proc_listener_fsm(srslog::basic_logger& logger, proc1* proc_ptr_) :
     base_t(logger), states(this, st1{}, st2{}, proc1_st{proc_ptr_})
@@ -357,16 +357,16 @@ int test_fsm_proc()
 
   int v = 2;
   TESTASSERT(proc.current_state_name() == "idle_st");
-  proc.trigger(srslte::proc_launch_ev<int>{v});
+  proc.trigger(srsran::proc_launch_ev<int>{v});
   TESTASSERT(proc.current_state_name() == "procstate1");
-  proc.trigger(srslte::proc_launch_ev<int>{v});
+  proc.trigger(srsran::proc_launch_ev<int>{v});
   TESTASSERT(proc.current_state_name() == "procstate1");
-  proc.trigger(srslte::proc_launch_ev<int>{5});
+  proc.trigger(srsran::proc_launch_ev<int>{5});
   TESTASSERT(proc.current_state_name() == "procstate1");
   proc.trigger(procevent1{true});
   TESTASSERT(proc.current_state_name() == "idle_st");
   TESTASSERT(proc.get_result() == 5);
-  proc.trigger(srslte::proc_launch_ev<int>{v});
+  proc.trigger(srsran::proc_launch_ev<int>{v});
   TESTASSERT(proc.current_state_name() == "procstate1");
   proc.trigger(procevent1{false});
   TESTASSERT(proc.current_state_name() == "idle_st");
@@ -386,19 +386,19 @@ int test_fsm_proc()
   {
     proc_listener_fsm outer_fsm{srslog::fetch_basic_logger("TEST"), &proc};
     TESTASSERT(outer_fsm.is_in_state<proc_listener_fsm::st1>());
-    proc.trigger(srslte::proc_launch_ev<int>{v});
+    proc.trigger(srsran::proc_launch_ev<int>{v});
     TESTASSERT(proc.is_running());
     outer_fsm.trigger(7);
     TESTASSERT(outer_fsm.is_in_state<proc_listener_fsm::st1>());
     TESTASSERT(proc.is_running());
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 ///////////////////////////
 
-class nas_fsm : public srslte::fsm_t<nas_fsm>
+class nas_fsm : public srsran::fsm_t<nas_fsm>
 {
 public:
   // states
@@ -526,10 +526,10 @@ int test_nas_fsm()
   fsm.trigger(nas_fsm::power_off_ev{});
   TESTASSERT(fsm.is_in_state<nas_fsm::emm_deregistered>());
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-struct fsm3 : public srslte::fsm_t<fsm3> {
+struct fsm3 : public srsran::fsm_t<fsm3> {
   struct st1 {};
   struct st2 {
     int  counter = 0;
@@ -587,7 +587,7 @@ int test_fsm_self_trigger()
   TESTASSERT(fsm.events[4] == "st2");
   TESTASSERT(fsm.events[5] == "st2::action");
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int main()
@@ -596,14 +596,14 @@ int main()
   logger.set_level(srslog::basic_levels::info);
   srslog::init();
 
-  TESTASSERT(test_hsm() == SRSLTE_SUCCESS);
+  TESTASSERT(test_hsm() == SRSRAN_SUCCESS);
   logger.info("TEST \"hsm\" finished successfully\n");
-  TESTASSERT(test_fsm_proc() == SRSLTE_SUCCESS);
+  TESTASSERT(test_fsm_proc() == SRSRAN_SUCCESS);
   logger.info("TEST \"proc\" finished successfully\n");
-  TESTASSERT(test_nas_fsm() == SRSLTE_SUCCESS);
+  TESTASSERT(test_nas_fsm() == SRSRAN_SUCCESS);
   logger.info("TEST \"nas fsm\" finished successfully\n");
-  TESTASSERT(test_fsm_self_trigger() == SRSLTE_SUCCESS);
+  TESTASSERT(test_fsm_self_trigger() == SRSRAN_SUCCESS);
   logger.info("TEST \"fsm self trigger\" finished successfully\n");
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }

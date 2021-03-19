@@ -2,17 +2,17 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
  * the distribution.
  *
  */
-#ifndef SRSLTE_LTE_TABLES_H_
-#define SRSLTE_LTE_TABLES_H_
+#ifndef SRSRAN_LTE_TABLES_H_
+#define SRSRAN_LTE_TABLES_H_
 
-#include <srslte/config.h>
+#include <srsran/config.h>
 
 #define BPSK_LEVEL M_SQRT1_2
 
@@ -48,4 +48,4 @@ void set_64QAMtable(cf_t* table);
 
 void set_256QAMtable(cf_t* table);
 
-#endif /* SRSLTE_LTE_TABLES_H_ */
+#endif /* SRSRAN_LTE_TABLES_H_ */

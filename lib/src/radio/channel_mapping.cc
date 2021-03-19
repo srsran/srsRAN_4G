@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,11 +10,11 @@
  *
  */
 
-#include "srslte/radio/channel_mapping.h"
-#include "srslte/phy/utils/debug.h"
+#include "srsran/radio/channel_mapping.h"
+#include "srsran/phy/utils/debug.h"
 #include <sstream>
 
-namespace srslte {
+namespace srsran {
 
 void channel_mapping::set_config(const uint32_t& nof_channels_x_dev_, const uint32_t& nof_antennas_)
 {
@@ -90,4 +90,4 @@ std::string channel_mapping::to_string() const
   return ss.str();
 }
 
-} // namespace srslte
+} // namespace srsran

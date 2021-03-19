@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -16,12 +16,12 @@
 #include "srsenb/hdr/stack/mac/sched.h"
 #include "srsenb/hdr/stack/mac/sched_carrier.h"
 #include "srsenb/hdr/stack/mac/sched_helpers.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/srslog/srslog.h"
 
-#define Console(fmt, ...) srslte::console(fmt, ##__VA_ARGS__)
+#define Console(fmt, ...) srsran::console(fmt, ##__VA_ARGS__)
 #define Error(fmt, ...) srslog::fetch_basic_logger("MAC").error(fmt, ##__VA_ARGS__)
 
-using srslte::tti_point;
+using srsran::tti_point;
 
 namespace srsenb {
 
@@ -64,7 +64,7 @@ int sched::cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg)
   sched_cell_params.resize(cell_cfg.size());
   for (uint32_t cc_idx = 0; cc_idx < cell_cfg.size(); ++cc_idx) {
     if (not sched_cell_params[cc_idx].set_cfg(cc_idx, cell_cfg[cc_idx], sched_cfg)) {
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
   }
 
@@ -100,7 +100,7 @@ int sched::ue_cfg(uint16_t rnti, const sched_interface::ue_cfg_t& ue_cfg)
     auto                        it = ue_db.find(rnti);
     if (it != ue_db.end()) {
       it->second->set_cfg(ue_cfg);
-      return SRSLTE_SUCCESS;
+      return SRSRAN_SUCCESS;
     }
   }
 
@@ -108,7 +108,7 @@ int sched::ue_cfg(uint16_t rnti, const sched_interface::ue_cfg_t& ue_cfg)
   std::unique_ptr<sched_ue>   ue{new sched_ue(rnti, sched_cell_params, ue_cfg)};
   std::lock_guard<std::mutex> lock(sched_mutex);
   ue_db.insert(std::make_pair(rnti, std::move(ue)));
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int sched::ue_rem(uint16_t rnti)
@@ -118,9 +118,9 @@ int sched::ue_rem(uint16_t rnti)
     ue_db.erase(rnti);
   } else {
     Error("User rnti=0x%x not found", rnti);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 bool sched::ue_exists(uint16_t rnti)
@@ -147,7 +147,7 @@ int sched::bearer_ue_rem(uint16_t rnti, uint32_t lc_id)
 
 uint32_t sched::get_dl_buffer(uint16_t rnti)
 {
-  uint32_t ret = SRSLTE_ERROR;
+  uint32_t ret = SRSRAN_ERROR;
   ue_db_access_locked(
       rnti, [&ret](sched_ue& ue) { ret = ue.get_pending_dl_rlc_data(); }, __PRETTY_FUNCTION__);
   return ret;
@@ -156,7 +156,7 @@ uint32_t sched::get_dl_buffer(uint16_t rnti)
 uint32_t sched::get_ul_buffer(uint16_t rnti)
 {
   // TODO: Check if correct use of last_tti
-  uint32_t ret = SRSLTE_ERROR;
+  uint32_t ret = SRSRAN_ERROR;
   ue_db_access_locked(
       rnti,
       [this, &ret](sched_ue& ue) { ret = ue.get_pending_ul_new_data(to_tx_ul(last_tti), -1); },
@@ -248,9 +248,9 @@ void sched::set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs)
   carrier_schedulers[0]->set_dl_tti_mask(tti_mask, nof_sfs);
 }
 
-std::array<int, SRSLTE_MAX_CARRIERS> sched::get_enb_ue_cc_map(uint16_t rnti)
+std::array<int, SRSRAN_MAX_CARRIERS> sched::get_enb_ue_cc_map(uint16_t rnti)
 {
-  std::array<int, SRSLTE_MAX_CARRIERS> ret{};
+  std::array<int, SRSRAN_MAX_CARRIERS> ret{};
   ret.fill(-1); // -1 for inactive & non-existent carriers
   ue_db_access_locked(
       rnti,
@@ -266,10 +266,10 @@ std::array<int, SRSLTE_MAX_CARRIERS> sched::get_enb_ue_cc_map(uint16_t rnti)
   return ret;
 }
 
-std::array<bool, SRSLTE_MAX_CARRIERS> sched::get_scell_activation_mask(uint16_t rnti)
+std::array<bool, SRSRAN_MAX_CARRIERS> sched::get_scell_activation_mask(uint16_t rnti)
 {
-  std::array<int, SRSLTE_MAX_CARRIERS>  enb_ue_cc_map = get_enb_ue_cc_map(rnti);
-  std::array<bool, SRSLTE_MAX_CARRIERS> scell_mask    = {};
+  std::array<int, SRSRAN_MAX_CARRIERS>  enb_ue_cc_map = get_enb_ue_cc_map(rnti);
+  std::array<bool, SRSRAN_MAX_CARRIERS> scell_mask    = {};
   for (int ue_cc : enb_ue_cc_map) {
     if (ue_cc <= 0) {
       // inactive or PCell
@@ -324,7 +324,7 @@ int sched::ul_sched(uint32_t tti, uint32_t enb_cc_idx, srsenb::sched_interface::
   // copy result
   sched_result = sched_results.get_sf(tti_rx)->get_cc(enb_cc_idx)->ul_sched_result;
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 /// Generate scheduling decision for tti_rx, if it wasn't already generated
@@ -344,7 +344,7 @@ void sched::new_tti(tti_point tti_rx)
 }
 
 /// Check if TTI result is generated
-bool sched::is_generated(srslte::tti_point tti_rx, uint32_t enb_cc_idx) const
+bool sched::is_generated(srsran::tti_point tti_rx, uint32_t enb_cc_idx) const
 {
   return sched_results.has_sf(tti_rx) and sched_results.get_sf(tti_rx)->is_generated(enb_cc_idx);
 }
@@ -363,9 +363,9 @@ int sched::ue_db_access_locked(uint16_t rnti, Func&& f, const char* func_name)
     } else {
       Error("User rnti=0x%x not found.", rnti);
     }
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 } // namespace srsenb

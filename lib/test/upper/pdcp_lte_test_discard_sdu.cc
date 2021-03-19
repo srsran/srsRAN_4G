@@ -15,37 +15,37 @@
 /*
  * Test of imediate notification from RLC
  */
-int test_tx_sdu_notify(const srslte::pdcp_lte_state_t& init_state,
-                       srslte::pdcp_discard_timer_t    discard_timeout,
+int test_tx_sdu_notify(const srsran::pdcp_lte_state_t& init_state,
+                       srsran::pdcp_discard_timer_t    discard_timeout,
                        srslog::basic_logger&           logger)
 {
-  srslte::pdcp_config_t cfg = {1,
-                               srslte::PDCP_RB_IS_DRB,
-                               srslte::SECURITY_DIRECTION_UPLINK,
-                               srslte::SECURITY_DIRECTION_DOWNLINK,
-                               srslte::PDCP_SN_LEN_12,
-                               srslte::pdcp_t_reordering_t::ms500,
+  srsran::pdcp_config_t cfg = {1,
+                               srsran::PDCP_RB_IS_DRB,
+                               srsran::SECURITY_DIRECTION_UPLINK,
+                               srsran::SECURITY_DIRECTION_DOWNLINK,
+                               srsran::PDCP_SN_LEN_12,
+                               srsran::pdcp_t_reordering_t::ms500,
                                discard_timeout,
                                false};
 
   pdcp_lte_test_helper     pdcp_hlp(cfg, sec_cfg, logger);
-  srslte::pdcp_entity_lte* pdcp  = &pdcp_hlp.pdcp;
+  srsran::pdcp_entity_lte* pdcp  = &pdcp_hlp.pdcp;
   rlc_dummy*               rlc   = &pdcp_hlp.rlc;
   srsue::stack_test_dummy* stack = &pdcp_hlp.stack;
 
   pdcp_hlp.set_pdcp_initial_state(init_state);
 
   // Write test SDU
-  srslte::unique_byte_buffer_t sdu = srslte::make_byte_buffer();
+  srsran::unique_byte_buffer_t sdu = srsran::make_byte_buffer();
   sdu->append_bytes(sdu1, sizeof(sdu1));
   pdcp->write_sdu(std::move(sdu));
 
-  srslte::unique_byte_buffer_t out_pdu = srslte::make_byte_buffer();
+  srsran::unique_byte_buffer_t out_pdu = srsran::make_byte_buffer();
   rlc->get_last_sdu(out_pdu);
   TESTASSERT(out_pdu->N_bytes == 4);
 
   TESTASSERT(pdcp->nof_discard_timers() == 1); // One timer should be running
-  srslte::pdcp_sn_vector_t sns_notified;
+  srsran::pdcp_sn_vector_t sns_notified;
   sns_notified.push_back(0);
   pdcp->notify_delivery(sns_notified);
   TESTASSERT(pdcp->nof_discard_timers() == 0); // Timer should have been difused after
@@ -62,32 +62,32 @@ int test_tx_sdu_notify(const srslte::pdcp_lte_state_t& init_state,
 /*
  * Test discard timer expiry
  */
-int test_tx_sdu_discard(const srslte::pdcp_lte_state_t& init_state,
-                        srslte::pdcp_discard_timer_t    discard_timeout,
+int test_tx_sdu_discard(const srsran::pdcp_lte_state_t& init_state,
+                        srsran::pdcp_discard_timer_t    discard_timeout,
                         srslog::basic_logger&           logger)
 {
-  srslte::pdcp_config_t cfg = {1,
-                               srslte::PDCP_RB_IS_DRB,
-                               srslte::SECURITY_DIRECTION_UPLINK,
-                               srslte::SECURITY_DIRECTION_DOWNLINK,
-                               srslte::PDCP_SN_LEN_12,
-                               srslte::pdcp_t_reordering_t::ms500,
+  srsran::pdcp_config_t cfg = {1,
+                               srsran::PDCP_RB_IS_DRB,
+                               srsran::SECURITY_DIRECTION_UPLINK,
+                               srsran::SECURITY_DIRECTION_DOWNLINK,
+                               srsran::PDCP_SN_LEN_12,
+                               srsran::pdcp_t_reordering_t::ms500,
                                discard_timeout,
                                false};
 
   pdcp_lte_test_helper     pdcp_hlp(cfg, sec_cfg, logger);
-  srslte::pdcp_entity_lte* pdcp  = &pdcp_hlp.pdcp;
+  srsran::pdcp_entity_lte* pdcp  = &pdcp_hlp.pdcp;
   rlc_dummy*               rlc   = &pdcp_hlp.rlc;
   srsue::stack_test_dummy* stack = &pdcp_hlp.stack;
 
   pdcp_hlp.set_pdcp_initial_state(init_state);
 
   // Write test SDU
-  srslte::unique_byte_buffer_t sdu = srslte::make_byte_buffer();
+  srsran::unique_byte_buffer_t sdu = srsran::make_byte_buffer();
   sdu->append_bytes(sdu1, sizeof(sdu1));
   pdcp->write_sdu(std::move(sdu));
 
-  srslte::unique_byte_buffer_t out_pdu = srslte::make_byte_buffer();
+  srsran::unique_byte_buffer_t out_pdu = srsran::make_byte_buffer();
   rlc->get_last_sdu(out_pdu);
   TESTASSERT(out_pdu->N_bytes == 4);
 
@@ -104,7 +104,7 @@ int test_tx_sdu_discard(const srslte::pdcp_lte_state_t& init_state,
   TESTASSERT(pdcp->nof_discard_timers() == 0); // Timer should have been difused after expiry
   TESTASSERT(rlc->discard_count == 1);         // RLC should be notified of discard
 
-  srslte::pdcp_sn_vector_t sns_notified;
+  srsran::pdcp_sn_vector_t sns_notified;
   sns_notified.push_back(0);
   pdcp->notify_delivery(sns_notified); // PDCP should not find PDU to notify.
   return 0;
@@ -119,13 +119,13 @@ int test_tx_discard_all(srslog::basic_logger& logger)
    * TX Test 1: PDCP Entity with SN LEN = 12
    * Test TX PDU discard.
    */
-  TESTASSERT(test_tx_sdu_notify(normal_init_state, srslte::pdcp_discard_timer_t::ms50, logger) == 0);
+  TESTASSERT(test_tx_sdu_notify(normal_init_state, srsran::pdcp_discard_timer_t::ms50, logger) == 0);
 
   /*
    * TX Test 2: PDCP Entity with SN LEN = 12
    * Test TX PDU discard.
    */
-  TESTASSERT(test_tx_sdu_discard(normal_init_state, srslte::pdcp_discard_timer_t::ms50, logger) == 0);
+  TESTASSERT(test_tx_sdu_discard(normal_init_state, srsran::pdcp_discard_timer_t::ms50, logger) == 0);
   return 0;
 }
 
@@ -145,10 +145,10 @@ int main()
 {
   srslog::init();
 
-  if (run_all_tests() != SRSLTE_SUCCESS) {
+  if (run_all_tests() != SRSRAN_SUCCESS) {
     fprintf(stderr, "pdcp_lte_tests() failed\n");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }

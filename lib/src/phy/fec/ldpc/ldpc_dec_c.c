@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -31,8 +31,8 @@
 #include <strings.h>
 
 #include "ldpc_dec_all.h"
-#include "srslte/phy/fec/ldpc/base_graph.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/fec/ldpc/base_graph.h"
+#include "srsran/phy/utils/vector.h"
 
 #define F2I 100 /*!< \brief Used for float to int conversion---float f is stored as (int)(f*F2I). */
 
@@ -88,18 +88,18 @@ void* create_ldpc_dec_c(uint8_t bgN, uint8_t bgM, uint16_t ls, float scaling_fct
     return NULL;
   }
 
-  if ((vp->soft_bits = srslte_vec_i8_malloc(liftN)) == NULL) {
+  if ((vp->soft_bits = srsran_vec_i8_malloc(liftN)) == NULL) {
     free(vp);
     return NULL;
   }
 
-  if ((vp->check_to_var = srslte_vec_i8_malloc((hrrN + ls) * bgM)) == NULL) {
+  if ((vp->check_to_var = srsran_vec_i8_malloc((hrrN + ls) * bgM)) == NULL) {
     free(vp->soft_bits);
     free(vp);
     return NULL;
   }
 
-  if ((vp->var_to_check = srslte_vec_i8_malloc((hrrN + ls))) == NULL) {
+  if ((vp->var_to_check = srsran_vec_i8_malloc((hrrN + ls))) == NULL) {
     free(vp->check_to_var);
     free(vp->soft_bits);
     free(vp);
@@ -114,7 +114,7 @@ void* create_ldpc_dec_c(uint8_t bgN, uint8_t bgM, uint16_t ls, float scaling_fct
     return NULL;
   }
 
-  if ((vp->min_v_index = srslte_vec_i32_malloc(ls)) == NULL) {
+  if ((vp->min_v_index = srsran_vec_i32_malloc(ls)) == NULL) {
     free(vp->min_v2c);
     free(vp->var_to_check);
     free(vp->check_to_var);
@@ -123,7 +123,7 @@ void* create_ldpc_dec_c(uint8_t bgN, uint8_t bgM, uint16_t ls, float scaling_fct
     return NULL;
   }
 
-  if ((vp->prod_v2c = srslte_vec_i32_malloc(ls)) == NULL) {
+  if ((vp->prod_v2c = srsran_vec_i32_malloc(ls)) == NULL) {
     free(vp->min_v_index);
     free(vp->min_v2c);
     free(vp->var_to_check);

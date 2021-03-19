@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -11,7 +11,7 @@
  */
 
 #include "srsenb/hdr/metrics_csv.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/utils/vector.h"
 
 #include <float.h>
 #include <iomanip>
@@ -74,20 +74,20 @@ void metrics_csv::set_metrics(const enb_metrics_t& metrics, const uint32_t perio
 
     // DL rate
     if (dl_rate_sum > 0) {
-      file << float_to_string(SRSLTE_MAX(0.1, (float)dl_rate_sum), 2);
+      file << float_to_string(SRSRAN_MAX(0.1, (float)dl_rate_sum), 2);
     } else {
       file << float_to_string(0, 2);
     }
 
     // UL rate
     if (ul_rate_sum > 0) {
-      file << float_to_string(SRSLTE_MAX(0.1, (float)ul_rate_sum), 2);
+      file << float_to_string(SRSRAN_MAX(0.1, (float)ul_rate_sum), 2);
     } else {
       file << float_to_string(0, 2);
     }
 
     // Write system metrics.
-    const srslte::sys_metrics_t& m = metrics.sys;
+    const srsran::sys_metrics_t& m = metrics.sys;
     file << float_to_string(m.process_realmem, 2);
     file << std::to_string(m.process_realmem_kB) << ";";
     file << float_to_string(m.process_virtualmem, 2);

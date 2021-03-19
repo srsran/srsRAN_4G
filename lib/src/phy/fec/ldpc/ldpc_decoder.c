@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -25,17 +25,17 @@
 #include "../utils_avx2.h"
 #include "../utils_avx512.h"
 #include "ldpc_dec_all.h"
-#include "srslte/phy/fec/ldpc/base_graph.h"
-#include "srslte/phy/fec/ldpc/ldpc_decoder.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/fec/ldpc/base_graph.h"
+#include "srsran/phy/fec/ldpc/ldpc_decoder.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/vector.h"
 
 #define MAX_ITERATIONS 10 /*!< \brief Iterations of the BP algorithm. */
 
 /*! Carries out the actual destruction of the memory allocated to the decoder, float-LLR case. */
 static void free_dec_f(void* o)
 {
-  srslte_ldpc_decoder_t* q = o;
+  srsran_ldpc_decoder_t* q = o;
   if (q->var_indices) {
     free(q->var_indices);
   }
@@ -48,7 +48,7 @@ static void free_dec_f(void* o)
 /*! Carries out the decoding with real-valued LLRs. */
 static int decode_f(void* o, const float* llrs, uint8_t* message, uint32_t cdwd_rm_length)
 {
-  srslte_ldpc_decoder_t* q = o;
+  srsran_ldpc_decoder_t* q = o;
 
   if (cdwd_rm_length > q->liftN - 2 * q->ls) {
     cdwd_rm_length = q->liftN - 2 * q->ls;
@@ -94,7 +94,7 @@ static int decode_f(void* o, const float* llrs, uint8_t* message, uint32_t cdwd_
 }
 
 /*! Initializes the decoder to work with real valued LLRs. */
-static int init_f(srslte_ldpc_decoder_t* q)
+static int init_f(srsran_ldpc_decoder_t* q)
 {
   q->free = free_dec_f;
 
@@ -112,7 +112,7 @@ static int init_f(srslte_ldpc_decoder_t* q)
 /*! Carries out the actual destruction of the memory allocated to the decoder, 16-bit-LLR case. */
 static void free_dec_s(void* o)
 {
-  srslte_ldpc_decoder_t* q = o;
+  srsran_ldpc_decoder_t* q = o;
   if (q->var_indices) {
     free(q->var_indices);
   }
@@ -125,7 +125,7 @@ static void free_dec_s(void* o)
 /*! Carries out the decoding with 16-bit integer-valued LLRs. */
 static int decode_s(void* o, const int16_t* llrs, uint8_t* message, uint32_t cdwd_rm_length)
 {
-  srslte_ldpc_decoder_t* q = o;
+  srsran_ldpc_decoder_t* q = o;
 
   // it must be smaller than the codeword size
   if (cdwd_rm_length > q->liftN - 2 * q->ls) {
@@ -172,7 +172,7 @@ static int decode_s(void* o, const int16_t* llrs, uint8_t* message, uint32_t cdw
 }
 
 /*! Initializes the decoder to work with 16-bit integer-valued LLRs. */
-static int init_s(srslte_ldpc_decoder_t* q)
+static int init_s(srsran_ldpc_decoder_t* q)
 {
   q->free = free_dec_s;
 
@@ -190,7 +190,7 @@ static int init_s(srslte_ldpc_decoder_t* q)
 /*! Carries out the actual destruction of the memory allocated to the decoder, 8-bit-LLR case. */
 static void free_dec_c(void* o)
 {
-  srslte_ldpc_decoder_t* q = o;
+  srsran_ldpc_decoder_t* q = o;
   if (q->var_indices) {
     free(q->var_indices);
   }
@@ -203,7 +203,7 @@ static void free_dec_c(void* o)
 /*! Carries out the decoding with 8-bit integer-valued LLRs. */
 static int decode_c(void* o, const int8_t* llrs, uint8_t* message, uint32_t cdwd_rm_length)
 {
-  srslte_ldpc_decoder_t* q = o;
+  srsran_ldpc_decoder_t* q = o;
 
   // it must be smaller than the codeword size
   if (cdwd_rm_length > q->liftN - 2 * q->ls) {
@@ -250,7 +250,7 @@ static int decode_c(void* o, const int8_t* llrs, uint8_t* message, uint32_t cdwd
 }
 
 /*! Initializes the decoder to work with 8-bit integer-valued LLRs. */
-static int init_c(srslte_ldpc_decoder_t* q)
+static int init_c(srsran_ldpc_decoder_t* q)
 {
   q->free = free_dec_c;
 
@@ -268,7 +268,7 @@ static int init_c(srslte_ldpc_decoder_t* q)
 /*! Carries out the actual destruction of the memory allocated to the decoder, 8-bit-LLR flooded case. */
 static void free_dec_c_flood(void* o)
 {
-  srslte_ldpc_decoder_t* q = o;
+  srsran_ldpc_decoder_t* q = o;
   if (q->var_indices) {
     free(q->var_indices);
   }
@@ -281,7 +281,7 @@ static void free_dec_c_flood(void* o)
 /*! Carries out the decoding with 8-bit integer-valued LLRs, flooded scheduling. */
 static int decode_c_flood(void* o, const int8_t* llrs, uint8_t* message, uint32_t cdwd_rm_length)
 {
-  srslte_ldpc_decoder_t* q = o;
+  srsran_ldpc_decoder_t* q = o;
 
   // it must be smaller than the codeword size
   if (cdwd_rm_length > q->liftN - 2 * q->ls) {
@@ -328,7 +328,7 @@ static int decode_c_flood(void* o, const int8_t* llrs, uint8_t* message, uint32_
 }
 
 /*! Initializes the decoder to work with 8-bit integer-valued LLRs. */
-static int init_c_flood(srslte_ldpc_decoder_t* q)
+static int init_c_flood(srsran_ldpc_decoder_t* q)
 {
   q->free = free_dec_c_flood;
 
@@ -347,7 +347,7 @@ static int init_c_flood(srslte_ldpc_decoder_t* q)
 /*! Carries out the actual destruction of the memory allocated to the decoder, 8-bit-LLR case (AVX2 implementation). */
 static void free_dec_c_avx2(void* o)
 {
-  srslte_ldpc_decoder_t* q = o;
+  srsran_ldpc_decoder_t* q = o;
   if (q->var_indices) {
     free(q->var_indices);
   }
@@ -360,7 +360,7 @@ static void free_dec_c_avx2(void* o)
 /*! Carries out the decoding with 8-bit integer-valued LLRs (AVX2 implementation). */
 static int decode_c_avx2(void* o, const int8_t* llrs, uint8_t* message, uint32_t cdwd_rm_length)
 {
-  srslte_ldpc_decoder_t* q = o;
+  srsran_ldpc_decoder_t* q = o;
 
   // it must be smaller than the codeword size
   if (cdwd_rm_length > q->liftN - 2 * q->ls) {
@@ -406,7 +406,7 @@ static int decode_c_avx2(void* o, const int8_t* llrs, uint8_t* message, uint32_t
 }
 
 /*! Initializes the decoder to work with 8-bit integer-valued LLRs (AVX2 implementation). */
-static int init_c_avx2(srslte_ldpc_decoder_t* q)
+static int init_c_avx2(srsran_ldpc_decoder_t* q)
 {
   q->free = free_dec_c_avx2;
 
@@ -425,7 +425,7 @@ static int init_c_avx2(srslte_ldpc_decoder_t* q)
  * large lifting size). */
 static void free_dec_c_avx2long(void* o)
 {
-  srslte_ldpc_decoder_t* q = o;
+  srsran_ldpc_decoder_t* q = o;
   if (q->var_indices) {
     free(q->var_indices);
   }
@@ -438,7 +438,7 @@ static void free_dec_c_avx2long(void* o)
 /*! Carries out the decoding with 8-bit integer-valued LLRs (AVX2 implementation, large lifting size). */
 static int decode_c_avx2long(void* o, const int8_t* llrs, uint8_t* message, uint32_t cdwd_rm_length)
 {
-  srslte_ldpc_decoder_t* q = o;
+  srsran_ldpc_decoder_t* q = o;
 
   // it must be smaller than the codeword size
   if (cdwd_rm_length > q->liftN - 2 * q->ls) {
@@ -484,7 +484,7 @@ static int decode_c_avx2long(void* o, const int8_t* llrs, uint8_t* message, uint
 }
 
 /*! Initializes the decoder to work with 8-bit integer-valued LLRs (AVX2 implementation, large lifting size). */
-static int init_c_avx2long(srslte_ldpc_decoder_t* q)
+static int init_c_avx2long(srsran_ldpc_decoder_t* q)
 {
   q->free = free_dec_c_avx2long;
 
@@ -503,7 +503,7 @@ static int init_c_avx2long(srslte_ldpc_decoder_t* q)
  * flooded scheduling). */
 static void free_dec_c_avx2_flood(void* o)
 {
-  srslte_ldpc_decoder_t* q = o;
+  srsran_ldpc_decoder_t* q = o;
   if (q->var_indices) {
     free(q->var_indices);
   }
@@ -516,7 +516,7 @@ static void free_dec_c_avx2_flood(void* o)
 /*! Carries out the decoding with 8-bit integer-valued LLRs (AVX2 implementation, flooded scheduling). */
 static int decode_c_avx2_flood(void* o, const int8_t* llrs, uint8_t* message, uint32_t cdwd_rm_length)
 {
-  srslte_ldpc_decoder_t* q = o;
+  srsran_ldpc_decoder_t* q = o;
 
   // it must be smaller than the codeword size
   if (cdwd_rm_length > q->liftN - 2 * q->ls) {
@@ -563,7 +563,7 @@ static int decode_c_avx2_flood(void* o, const int8_t* llrs, uint8_t* message, ui
 }
 
 /*! Initializes the decoder to work with 8-bit integer-valued LLRs (AVX2 implementation, flooded scheduling). */
-static int init_c_avx2_flood(srslte_ldpc_decoder_t* q)
+static int init_c_avx2_flood(srsran_ldpc_decoder_t* q)
 {
   q->free = free_dec_c_avx2_flood;
 
@@ -582,7 +582,7 @@ static int init_c_avx2_flood(srslte_ldpc_decoder_t* q)
  * (flooded scheduling, AVX2 implementation, large lifting size). */
 static void free_dec_c_avx2long_flood(void* o)
 {
-  srslte_ldpc_decoder_t* q = o;
+  srsran_ldpc_decoder_t* q = o;
   if (q->var_indices) {
     free(q->var_indices);
   }
@@ -596,7 +596,7 @@ static void free_dec_c_avx2long_flood(void* o)
  * size). */
 static int decode_c_avx2long_flood(void* o, const int8_t* llrs, uint8_t* message, uint32_t cdwd_rm_length)
 {
-  srslte_ldpc_decoder_t* q = o;
+  srsran_ldpc_decoder_t* q = o;
 
   // it must be smaller than the codeword size
   if (cdwd_rm_length > q->liftN - 2 * q->ls) {
@@ -645,7 +645,7 @@ static int decode_c_avx2long_flood(void* o, const int8_t* llrs, uint8_t* message
 
 /*! Initializes the decoder to work with 8-bit integer-valued LLRs
  * (flooded scheduling, AVX2 implementation, large lifting size). */
-static int init_c_avx2long_flood(srslte_ldpc_decoder_t* q)
+static int init_c_avx2long_flood(srsran_ldpc_decoder_t* q)
 {
   q->free = free_dec_c_avx2long_flood;
 
@@ -669,7 +669,7 @@ static int init_c_avx2long_flood(srslte_ldpc_decoder_t* q)
  */
 static void free_dec_c_avx512(void* o)
 {
-  srslte_ldpc_decoder_t* q = o;
+  srsran_ldpc_decoder_t* q = o;
   if (q->var_indices) {
     free(q->var_indices);
   }
@@ -682,7 +682,7 @@ static void free_dec_c_avx512(void* o)
 /*! Carries out the decoding with 8-bit integer-valued LLRs (AVX512 implementation). */
 static int decode_c_avx512(void* o, const int8_t* llrs, uint8_t* message, uint32_t cdwd_rm_length)
 {
-  srslte_ldpc_decoder_t* q = o;
+  srsran_ldpc_decoder_t* q = o;
 
   // it must be smaller than the codeword size
   if (cdwd_rm_length > q->liftN - 2 * q->ls) {
@@ -728,7 +728,7 @@ static int decode_c_avx512(void* o, const int8_t* llrs, uint8_t* message, uint32
 }
 
 /*! Initializes the decoder to work with 8-bit integer-valued LLRs (AVX512 implementation). */
-static int init_c_avx512(srslte_ldpc_decoder_t* q)
+static int init_c_avx512(srsran_ldpc_decoder_t* q)
 {
   q->free = free_dec_c_avx512;
 
@@ -747,7 +747,7 @@ static int init_c_avx512(srslte_ldpc_decoder_t* q)
  * large lifting size). */
 static void free_dec_c_avx512long(void* o)
 {
-  srslte_ldpc_decoder_t* q = o;
+  srsran_ldpc_decoder_t* q = o;
   if (q->var_indices) {
     free(q->var_indices);
   }
@@ -760,7 +760,7 @@ static void free_dec_c_avx512long(void* o)
 /*! Carries out the decoding with 8-bit integer-valued LLRs (AVX512 implementation, large lifting size). */
 static int decode_c_avx512long(void* o, const int8_t* llrs, uint8_t* message, uint32_t cdwd_rm_length)
 {
-  srslte_ldpc_decoder_t* q = o;
+  srsran_ldpc_decoder_t* q = o;
 
   // it must be smaller than the codeword size
   if (cdwd_rm_length > q->liftN - 2 * q->ls) {
@@ -806,7 +806,7 @@ static int decode_c_avx512long(void* o, const int8_t* llrs, uint8_t* message, ui
 }
 
 /*! Initializes the decoder to work with 8-bit integer-valued LLRs (AVX512 implementation, large lifting size). */
-static int init_c_avx512long(srslte_ldpc_decoder_t* q)
+static int init_c_avx512long(srsran_ldpc_decoder_t* q)
 {
   q->free = free_dec_c_avx512long;
 
@@ -825,7 +825,7 @@ static int init_c_avx512long(srslte_ldpc_decoder_t* q)
  * (flooded scheduling, AVX512 implementation, large lifting size). */
 static void free_dec_c_avx512long_flood(void* o)
 {
-  srslte_ldpc_decoder_t* q = o;
+  srsran_ldpc_decoder_t* q = o;
   if (q->var_indices) {
     free(q->var_indices);
   }
@@ -839,7 +839,7 @@ static void free_dec_c_avx512long_flood(void* o)
  * size). */
 static int decode_c_avx512long_flood(void* o, const int8_t* llrs, uint8_t* message, uint32_t cdwd_rm_length)
 {
-  srslte_ldpc_decoder_t* q = o;
+  srsran_ldpc_decoder_t* q = o;
 
   // it must be smaller than the codeword size
   if (cdwd_rm_length > q->liftN - 2 * q->ls) {
@@ -888,7 +888,7 @@ static int decode_c_avx512long_flood(void* o, const int8_t* llrs, uint8_t* messa
 
 /*! Initializes the decoder to work with 8-bit integer-valued LLRs
  * (flooded scheduling, AVX512 implementation, large lifting size). */
-static int init_c_avx512long_flood(srslte_ldpc_decoder_t* q)
+static int init_c_avx512long_flood(srsran_ldpc_decoder_t* q)
 {
   q->free = free_dec_c_avx512long_flood;
 
@@ -905,9 +905,9 @@ static int init_c_avx512long_flood(srslte_ldpc_decoder_t* q)
 
 #endif // LV_HAVE_AVX512
 
-int srslte_ldpc_decoder_init(srslte_ldpc_decoder_t*     q,
-                             srslte_ldpc_decoder_type_t type,
-                             srslte_basegraph_t         bg,
+int srsran_ldpc_decoder_init(srsran_ldpc_decoder_t*     q,
+                             srsran_ldpc_decoder_type_t type,
+                             srsran_basegraph_t         bg,
                              uint16_t                   ls,
                              float                      scaling_fctr)
 {
@@ -939,13 +939,13 @@ int srslte_ldpc_decoder_init(srslte_ldpc_decoder_t*     q,
   q->liftM = ls * q->bgM;
   q->liftN = ls * q->bgN;
 
-  q->pcm = srslte_vec_u16_malloc(q->bgM * q->bgN);
+  q->pcm = srsran_vec_u16_malloc(q->bgM * q->bgN);
   if (!q->pcm) {
     perror("malloc");
     return -1;
   }
 
-  q->var_indices = srslte_vec_malloc(q->bgM * sizeof(int8_t[MAX_CNCT]));
+  q->var_indices = srsran_vec_malloc(q->bgM * sizeof(int8_t[MAX_CNCT]));
   if (!q->var_indices) {
     free(q->pcm);
     perror("malloc");
@@ -968,36 +968,36 @@ int srslte_ldpc_decoder_init(srslte_ldpc_decoder_t*     q,
   q->scaling_fctr = scaling_fctr;
 
   switch (type) {
-    case SRSLTE_LDPC_DECODER_F:
+    case SRSRAN_LDPC_DECODER_F:
       return init_f(q);
-    case SRSLTE_LDPC_DECODER_S:
+    case SRSRAN_LDPC_DECODER_S:
       return init_s(q);
-    case SRSLTE_LDPC_DECODER_C:
+    case SRSRAN_LDPC_DECODER_C:
       return init_c(q);
-    case SRSLTE_LDPC_DECODER_C_FLOOD:
+    case SRSRAN_LDPC_DECODER_C_FLOOD:
       return init_c_flood(q);
 #ifdef LV_HAVE_AVX2
-    case SRSLTE_LDPC_DECODER_C_AVX2:
-      if (ls <= SRSLTE_AVX2_B_SIZE) {
+    case SRSRAN_LDPC_DECODER_C_AVX2:
+      if (ls <= SRSRAN_AVX2_B_SIZE) {
         return init_c_avx2(q);
       } else {
         return init_c_avx2long(q);
       }
-    case SRSLTE_LDPC_DECODER_C_AVX2_FLOOD:
-      if (ls <= SRSLTE_AVX2_B_SIZE) {
+    case SRSRAN_LDPC_DECODER_C_AVX2_FLOOD:
+      if (ls <= SRSRAN_AVX2_B_SIZE) {
         return init_c_avx2_flood(q);
       } else {
         return init_c_avx2long_flood(q);
       }
 #endif // LV_HAVE_AVX2
 #ifdef LV_HAVE_AVX512
-    case SRSLTE_LDPC_DECODER_C_AVX512:
-      if (ls <= SRSLTE_AVX512_B_SIZE) {
+    case SRSRAN_LDPC_DECODER_C_AVX512:
+      if (ls <= SRSRAN_AVX512_B_SIZE) {
         return init_c_avx512(q);
       } else {
         return init_c_avx512long(q);
       }
-    case SRSLTE_LDPC_DECODER_C_AVX512_FLOOD:
+    case SRSRAN_LDPC_DECODER_C_AVX512_FLOOD:
       return init_c_avx512long_flood(q);
 #endif // LV_HAVE_AVX2
 
@@ -1007,20 +1007,20 @@ int srslte_ldpc_decoder_init(srslte_ldpc_decoder_t*     q,
   }
 }
 
-void srslte_ldpc_decoder_free(srslte_ldpc_decoder_t* q)
+void srsran_ldpc_decoder_free(srsran_ldpc_decoder_t* q)
 {
   if (q->free) {
     q->free(q);
   }
-  bzero(q, sizeof(srslte_ldpc_decoder_t));
+  bzero(q, sizeof(srsran_ldpc_decoder_t));
 }
 
-int srslte_ldpc_decoder_decode_f(srslte_ldpc_decoder_t* q, const float* llrs, uint8_t* message, uint32_t cdwd_rm_length)
+int srsran_ldpc_decoder_decode_f(srsran_ldpc_decoder_t* q, const float* llrs, uint8_t* message, uint32_t cdwd_rm_length)
 {
   return q->decode_f(q, llrs, message, cdwd_rm_length);
 }
 
-int srslte_ldpc_decoder_decode_s(srslte_ldpc_decoder_t* q,
+int srsran_ldpc_decoder_decode_s(srsran_ldpc_decoder_t* q,
                                  const int16_t*         llrs,
                                  uint8_t*               message,
                                  uint32_t               cdwd_rm_length)
@@ -1028,12 +1028,12 @@ int srslte_ldpc_decoder_decode_s(srslte_ldpc_decoder_t* q,
   return q->decode_s(q, llrs, message, cdwd_rm_length);
 }
 
-int srslte_ldpc_decoder_decode_c(srslte_ldpc_decoder_t* q, const int8_t* llrs, uint8_t* message)
+int srsran_ldpc_decoder_decode_c(srsran_ldpc_decoder_t* q, const int8_t* llrs, uint8_t* message)
 {
   return q->decode_c(q, llrs, message, q->liftN - 2 * q->ls);
 }
 
-int srslte_ldpc_decoder_decode_rm_c(srslte_ldpc_decoder_t* q,
+int srsran_ldpc_decoder_decode_rm_c(srsran_ldpc_decoder_t* q,
                                     const int8_t*          llrs,
                                     uint8_t*               message,
                                     uint32_t               cdwd_rm_length)

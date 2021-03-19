@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -12,13 +12,13 @@
 
 #include "srsenb/hdr/stack/mac/sched_phy_ch/sf_cch_allocator.h"
 #include "srsenb/hdr/stack/mac/sched_grid.h"
-#include "srslte/srslog/bundled/fmt/format.h"
+#include "srsran/srslog/bundled/fmt/format.h"
 
 namespace srsenb {
 
-bool is_pucch_sr_collision(const srslte_pucch_cfg_t& ue_pucch_cfg, tti_point tti_tx_dl_ack, uint32_t n1_pucch)
+bool is_pucch_sr_collision(const srsran_pucch_cfg_t& ue_pucch_cfg, tti_point tti_tx_dl_ack, uint32_t n1_pucch)
 {
-  if (ue_pucch_cfg.sr_configured && srslte_ue_ul_sr_send_tti(&ue_pucch_cfg, tti_tx_dl_ack.to_uint())) {
+  if (ue_pucch_cfg.sr_configured && srsran_ue_ul_sr_send_tti(&ue_pucch_cfg, tti_tx_dl_ack.to_uint())) {
     return n1_pucch == ue_pucch_cfg.n_pucch_sr;
   }
   return false;
@@ -150,7 +150,7 @@ bool sf_cch_allocator::alloc_dfs_node(const alloc_record& record, uint32_t start
   tree_node node;
   node.dci_pos_idx = start_dci_idx;
   node.dci_pos.L   = record.aggr_idx;
-  node.rnti        = record.user != nullptr ? record.user->get_rnti() : SRSLTE_INVALID_RNTI;
+  node.rnti        = record.user != nullptr ? record.user->get_rnti() : SRSRAN_INVALID_RNTI;
   node.current_mask.resize(nof_cces());
   // get cumulative pdcch & pucch masks
   if (not last_dci_dfs.empty()) {
@@ -173,7 +173,7 @@ bool sf_cch_allocator::alloc_dfs_node(const alloc_record& record, uint32_t start
         continue;
       }
 
-      node.pucch_n_prb = srslte_pucch_n_prb(&cc_cfg->cfg.cell, &pucch_cfg_common, 0);
+      node.pucch_n_prb = srsran_pucch_n_prb(&cc_cfg->cfg.cell, &pucch_cfg_common, 0);
       if (not cc_cfg->sched_cfg->pucch_mux_enabled and node.total_pucch_mask.test(node.pucch_n_prb)) {
         // PUCCH allocation would collide with other PUCCH/PUSCH grants. Try another CCE position
         continue;

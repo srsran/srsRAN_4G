@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -11,13 +11,13 @@
  */
 
 #include "srsue/hdr/stack/mac_nr/mux_nr.h"
-#include "srslte/common/buffer_pool.h"
+#include "srsran/common/buffer_pool.h"
 
 namespace srsue {
 
 mux_nr::mux_nr(srslog::basic_logger& logger_) : logger(logger_)
 {
-  msg3_buff = srslte::make_byte_buffer();
+  msg3_buff = srsran::make_byte_buffer();
 };
 
 void mux_nr::init() {}

@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,17 +10,17 @@
  *
  */
 
-#include "srslte/common/test_common.h"
-#include "srslte/phy/ch_estimation/dmrs_pdcch.h"
-#include "srslte/phy/phch/pdcch_nr.h"
+#include "srsran/common/test_common.h"
+#include "srsran/phy/ch_estimation/dmrs_pdcch.h"
+#include "srsran/phy/phch/pdcch_nr.h"
 #include <complex.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
 #include <unistd.h>
 
-static srslte_carrier_nr_t    carrier  = {};
-static srslte_dmrs_pdcch_ce_t pdcch_ce = {};
+static srsran_carrier_nr_t    carrier  = {};
+static srsran_dmrs_pdcch_ce_t pdcch_ce = {};
 static uint16_t               rnti     = 0x1234;
 
 void usage(char* prog)
@@ -47,7 +47,7 @@ static void parse_args(int argc, char** argv)
         carrier.id = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
-        srslte_verbose++;
+        srsran_verbose++;
         break;
       default:
         usage(argv[0]);
@@ -56,38 +56,38 @@ static void parse_args(int argc, char** argv)
   }
 }
 
-static int run_test(srslte_dmrs_pdcch_estimator_t* estimator,
-                    const srslte_coreset_t*        coreset,
-                    const srslte_search_space_t*   search_space,
+static int run_test(srsran_dmrs_pdcch_estimator_t* estimator,
+                    const srsran_coreset_t*        coreset,
+                    const srsran_search_space_t*   search_space,
                     uint32_t                       aggregation_level,
                     cf_t*                          sf_symbols,
-                    srslte_dmrs_pdcch_ce_t*        ce)
+                    srsran_dmrs_pdcch_ce_t*        ce)
 {
-  srslte_slot_cfg_t slot_cfg = {};
+  srsran_slot_cfg_t slot_cfg = {};
 
-  srslte_dci_location_t dci_location = {};
+  srsran_dci_location_t dci_location = {};
   dci_location.L                     = aggregation_level;
 
-  for (slot_cfg.idx = 0; slot_cfg.idx < SRSLTE_NSLOTS_PER_FRAME_NR(carrier.numerology); slot_cfg.idx++) {
-    uint32_t locations[SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR] = {};
+  for (slot_cfg.idx = 0; slot_cfg.idx < SRSRAN_NSLOTS_PER_FRAME_NR(carrier.numerology); slot_cfg.idx++) {
+    uint32_t locations[SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR] = {};
 
     int nof_locations =
-        srslte_pdcch_nr_locations_coreset(coreset, search_space, rnti, aggregation_level, slot_cfg.idx, locations);
+        srsran_pdcch_nr_locations_coreset(coreset, search_space, rnti, aggregation_level, slot_cfg.idx, locations);
 
     TESTASSERT(nof_locations == search_space->nof_candidates[aggregation_level]);
 
     for (uint32_t candidate = 0; candidate < nof_locations; candidate++) {
       dci_location.ncce = locations[candidate];
 
-      uint32_t nof_re = carrier.nof_prb * SRSLTE_NRE * SRSLTE_NSYMB_PER_SLOT_NR;
-      srslte_vec_cf_zero(sf_symbols, nof_re);
+      uint32_t nof_re = carrier.nof_prb * SRSRAN_NRE * SRSRAN_NSYMB_PER_SLOT_NR;
+      srsran_vec_cf_zero(sf_symbols, nof_re);
 
-      TESTASSERT(srslte_dmrs_pdcch_put(&carrier, coreset, &slot_cfg, &dci_location, sf_symbols) == SRSLTE_SUCCESS);
+      TESTASSERT(srsran_dmrs_pdcch_put(&carrier, coreset, &slot_cfg, &dci_location, sf_symbols) == SRSRAN_SUCCESS);
 
-      TESTASSERT(srslte_dmrs_pdcch_estimate(estimator, &slot_cfg, sf_symbols) == SRSLTE_SUCCESS);
+      TESTASSERT(srsran_dmrs_pdcch_estimate(estimator, &slot_cfg, sf_symbols) == SRSRAN_SUCCESS);
 
-      srslte_dmrs_pdcch_measure_t measure = {};
-      TESTASSERT(srslte_dmrs_pdcch_get_measure(estimator, &dci_location, &measure) == SRSLTE_SUCCESS);
+      srsran_dmrs_pdcch_measure_t measure = {};
+      TESTASSERT(srsran_dmrs_pdcch_get_measure(estimator, &dci_location, &measure) == SRSRAN_SUCCESS);
 
       if (fabsf(measure.rsrp - 1.0f) > 1e-2) {
         printf("EPRE=%f; RSRP=%f; CFO=%f; SYNC_ERR=%f;\n",
@@ -101,38 +101,38 @@ static int run_test(srslte_dmrs_pdcch_estimator_t* estimator,
       TESTASSERT(fabsf(measure.cfo_hz) < 1e-3f);
       TESTASSERT(fabsf(measure.sync_error_us) < 1e-3f);
 
-      TESTASSERT(srslte_dmrs_pdcch_get_ce(estimator, &dci_location, ce) == SRSLTE_SUCCESS);
-      float avg_pow     = srslte_vec_avg_power_cf(ce->ce, ce->nof_re);
+      TESTASSERT(srsran_dmrs_pdcch_get_ce(estimator, &dci_location, ce) == SRSRAN_SUCCESS);
+      float avg_pow     = srsran_vec_avg_power_cf(ce->ce, ce->nof_re);
       float avg_pow_err = fabsf(avg_pow - 1.0f);
-      TESTASSERT(ce->nof_re == ((SRSLTE_NRE - 3) * (1U << aggregation_level) * 6U));
+      TESTASSERT(ce->nof_re == ((SRSRAN_NRE - 3) * (1U << aggregation_level) * 6U));
       TESTASSERT(avg_pow_err < 0.1f);
     }
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int main(int argc, char** argv)
 {
-  int ret = SRSLTE_ERROR;
+  int ret = SRSRAN_ERROR;
 
   carrier.nof_prb = 50;
 
   parse_args(argc, argv);
 
-  srslte_coreset_t              coreset      = {};
-  srslte_search_space_t         search_space = {};
-  srslte_dmrs_pdcch_estimator_t estimator    = {};
+  srsran_coreset_t              coreset      = {};
+  srsran_search_space_t         search_space = {};
+  srsran_dmrs_pdcch_estimator_t estimator    = {};
 
-  uint32_t nof_re     = carrier.nof_prb * SRSLTE_NRE * SRSLTE_NSYMB_PER_SLOT_NR;
-  cf_t*    sf_symbols = srslte_vec_cf_malloc(nof_re);
+  uint32_t nof_re     = carrier.nof_prb * SRSRAN_NRE * SRSRAN_NSYMB_PER_SLOT_NR;
+  cf_t*    sf_symbols = srsran_vec_cf_malloc(nof_re);
 
   uint32_t test_counter = 0;
   uint32_t test_passed  = 0;
 
-  coreset.mapping_type = srslte_coreset_mapping_type_non_interleaved;
+  coreset.mapping_type = srsran_coreset_mapping_type_non_interleaved;
 
-  uint32_t nof_frequency_resource = SRSLTE_MIN(SRSLTE_CORESET_FREQ_DOMAIN_RES_SIZE, carrier.nof_prb / 6);
+  uint32_t nof_frequency_resource = SRSRAN_MIN(SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE, carrier.nof_prb / 6);
   for (uint32_t frequency_resources = 1; frequency_resources < (1U << nof_frequency_resource); frequency_resources++) {
     uint32_t nof_freq_resources = 0;
     for (uint32_t i = 0; i < nof_frequency_resource; i++) {
@@ -142,18 +142,18 @@ int main(int argc, char** argv)
     }
 
     for (coreset.duration = 1; coreset.duration <= 3; coreset.duration++) {
-      for (search_space.type = srslte_search_space_type_common_0; search_space.type <= srslte_search_space_type_ue;
+      for (search_space.type = srsran_search_space_type_common_0; search_space.type <= srsran_search_space_type_ue;
            search_space.type++) {
-        for (uint32_t i = 0; i < SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR; i++) {
+        for (uint32_t i = 0; i < SRSRAN_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR; i++) {
           uint32_t L                     = 1U << i;
           uint32_t nof_reg               = coreset.duration * nof_freq_resources * 6;
           uint32_t nof_cce               = nof_reg / 6;
-          search_space.nof_candidates[i] = SRSLTE_MIN(nof_cce / L, SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR);
+          search_space.nof_candidates[i] = SRSRAN_MIN(nof_cce / L, SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR);
         }
 
-        for (uint32_t aggregation_level = 0; aggregation_level < SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR;
+        for (uint32_t aggregation_level = 0; aggregation_level < SRSRAN_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR;
              aggregation_level++) {
-          srslte_dmrs_pdcch_estimator_init(&estimator, &carrier, &coreset);
+          srsran_dmrs_pdcch_estimator_init(&estimator, &carrier, &coreset);
 
           if (run_test(&estimator, &coreset, &search_space, aggregation_level, sf_symbols, &pdcch_ce)) {
             ERROR("Test %d failed", test_counter);
@@ -166,13 +166,13 @@ int main(int argc, char** argv)
     }
   }
 
-  srslte_dmrs_pdcch_estimator_free(&estimator);
+  srsran_dmrs_pdcch_estimator_free(&estimator);
 
   if (sf_symbols) {
     free(sf_symbols);
   }
 
-  ret = test_passed == test_counter ? SRSLTE_SUCCESS : SRSLTE_ERROR;
+  ret = test_passed == test_counter ? SRSRAN_SUCCESS : SRSRAN_ERROR;
   printf("%s, %d of %d test passed successfully.\n", ret ? "Failed" : "Passed", test_passed, test_counter);
 
   return ret;

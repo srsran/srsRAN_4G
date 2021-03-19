@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -25,7 +25,7 @@ int if_handler_test()
   ttcn3_ip_ctrl_interface ip_ctrl(logger);
   ttcn3_srb_interface     srb(logger);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int main(int argc, char** argv)
@@ -34,5 +34,5 @@ int main(int argc, char** argv)
 
   if_handler_test();
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }

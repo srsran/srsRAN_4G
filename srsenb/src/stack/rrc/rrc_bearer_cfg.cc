@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -12,8 +12,8 @@
 
 #include "srsenb/hdr/stack/rrc/rrc_bearer_cfg.h"
 #include "srsenb/hdr/stack/upper/common_enb.h"
-#include "srslte/asn1/rrc_utils.h"
-#include "srslte/rrc/rrc_cfg_utils.h"
+#include "srsran/asn1/rrc_utils.h"
+#include "srsran/rrc/rrc_cfg_utils.h"
 
 namespace srsenb {
 
@@ -49,18 +49,18 @@ bool security_cfg_handler::set_security_capabilities(const asn1::s1ap::ue_securi
   for (auto& cipher_item : cfg->eea_preference_list) {
     auto& v = security_capabilities.encryption_algorithms;
     switch (cipher_item) {
-      case srslte::CIPHERING_ALGORITHM_ID_EEA0:
+      case srsran::CIPHERING_ALGORITHM_ID_EEA0:
         // “all bits equal to 0” – UE supports no other algorithm than EEA0,
         // specification does not cover the case in which EEA0 is supported with other algorithms
         // just assume that EEA0 is always supported even this can not be explicity signaled by S1AP
-        sec_cfg.cipher_algo = srslte::CIPHERING_ALGORITHM_ID_EEA0;
+        sec_cfg.cipher_algo = srsran::CIPHERING_ALGORITHM_ID_EEA0;
         enc_algo_found      = true;
         logger.info("Selected EEA0 as RRC encryption algorithm");
         break;
-      case srslte::CIPHERING_ALGORITHM_ID_128_EEA1:
+      case srsran::CIPHERING_ALGORITHM_ID_128_EEA1:
         // “first bit” – 128-EEA1,
-        if (v.get(v.length() - srslte::CIPHERING_ALGORITHM_ID_128_EEA1)) {
-          sec_cfg.cipher_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA1;
+        if (v.get(v.length() - srsran::CIPHERING_ALGORITHM_ID_128_EEA1)) {
+          sec_cfg.cipher_algo = srsran::CIPHERING_ALGORITHM_ID_128_EEA1;
           enc_algo_found      = true;
           logger.info("Selected EEA1 as RRC encryption algorithm");
           break;
@@ -68,10 +68,10 @@ bool security_cfg_handler::set_security_capabilities(const asn1::s1ap::ue_securi
           logger.info("Failed to selected EEA1 as RRC encryption algorithm, due to unsupported algorithm");
         }
         break;
-      case srslte::CIPHERING_ALGORITHM_ID_128_EEA2:
+      case srsran::CIPHERING_ALGORITHM_ID_128_EEA2:
         // “second bit” – 128-EEA2,
-        if (v.get(v.length() - srslte::CIPHERING_ALGORITHM_ID_128_EEA2)) {
-          sec_cfg.cipher_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA2;
+        if (v.get(v.length() - srsran::CIPHERING_ALGORITHM_ID_128_EEA2)) {
+          sec_cfg.cipher_algo = srsran::CIPHERING_ALGORITHM_ID_128_EEA2;
           enc_algo_found      = true;
           logger.info("Selected EEA2 as RRC encryption algorithm");
           break;
@@ -79,10 +79,10 @@ bool security_cfg_handler::set_security_capabilities(const asn1::s1ap::ue_securi
           logger.info("Failed to selected EEA2 as RRC encryption algorithm, due to unsupported algorithm");
         }
         break;
-      case srslte::CIPHERING_ALGORITHM_ID_128_EEA3:
+      case srsran::CIPHERING_ALGORITHM_ID_128_EEA3:
         // “third bit” – 128-EEA3,
-        if (v.get(v.length() - srslte::CIPHERING_ALGORITHM_ID_128_EEA3)) {
-          sec_cfg.cipher_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA3;
+        if (v.get(v.length() - srsran::CIPHERING_ALGORITHM_ID_128_EEA3)) {
+          sec_cfg.cipher_algo = srsran::CIPHERING_ALGORITHM_ID_128_EEA3;
           enc_algo_found      = true;
           logger.info("Selected EEA3 as RRC encryption algorithm");
           break;
@@ -102,34 +102,34 @@ bool security_cfg_handler::set_security_capabilities(const asn1::s1ap::ue_securi
   for (auto& eia_enum : cfg->eia_preference_list) {
     auto& v = security_capabilities.integrity_protection_algorithms;
     switch (eia_enum) {
-      case srslte::INTEGRITY_ALGORITHM_ID_EIA0:
+      case srsran::INTEGRITY_ALGORITHM_ID_EIA0:
         // Null integrity is not supported
         logger.info("Skipping EIA0 as RRC integrity algorithm. Null integrity is not supported.");
         break;
-      case srslte::INTEGRITY_ALGORITHM_ID_128_EIA1:
+      case srsran::INTEGRITY_ALGORITHM_ID_128_EIA1:
         // “first bit” – 128-EIA1,
-        if (v.get(v.length() - srslte::INTEGRITY_ALGORITHM_ID_128_EIA1)) {
-          sec_cfg.integ_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA1;
+        if (v.get(v.length() - srsran::INTEGRITY_ALGORITHM_ID_128_EIA1)) {
+          sec_cfg.integ_algo = srsran::INTEGRITY_ALGORITHM_ID_128_EIA1;
           integ_algo_found   = true;
           logger.info("Selected EIA1 as RRC integrity algorithm.");
         } else {
           logger.info("Failed to selected EIA1 as RRC encryption algorithm, due to unsupported algorithm");
         }
         break;
-      case srslte::INTEGRITY_ALGORITHM_ID_128_EIA2:
+      case srsran::INTEGRITY_ALGORITHM_ID_128_EIA2:
         // “second bit” – 128-EIA2,
-        if (v.get(v.length() - srslte::INTEGRITY_ALGORITHM_ID_128_EIA2)) {
-          sec_cfg.integ_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA2;
+        if (v.get(v.length() - srsran::INTEGRITY_ALGORITHM_ID_128_EIA2)) {
+          sec_cfg.integ_algo = srsran::INTEGRITY_ALGORITHM_ID_128_EIA2;
           integ_algo_found   = true;
           logger.info("Selected EIA2 as RRC integrity algorithm.");
         } else {
           logger.info("Failed to selected EIA2 as RRC encryption algorithm, due to unsupported algorithm");
         }
         break;
-      case srslte::INTEGRITY_ALGORITHM_ID_128_EIA3:
+      case srsran::INTEGRITY_ALGORITHM_ID_128_EIA3:
         // “third bit” – 128-EIA3,
-        if (v.get(v.length() - srslte::INTEGRITY_ALGORITHM_ID_128_EIA3)) {
-          sec_cfg.integ_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA3;
+        if (v.get(v.length() - srsran::INTEGRITY_ALGORITHM_ID_128_EIA3)) {
+          sec_cfg.integ_algo = srsran::INTEGRITY_ALGORITHM_ID_128_EIA3;
           integ_algo_found   = true;
           logger.info("Selected EIA3 as RRC integrity algorithm.");
         } else {
@@ -169,7 +169,7 @@ void security_cfg_handler::set_security_key(const asn1::fixed_bitstring<256, fal
 void security_cfg_handler::generate_as_keys()
 {
   // Generate K_rrc_enc and K_rrc_int
-  srslte::security_generate_k_rrc(
+  srsran::security_generate_k_rrc(
       k_enb, sec_cfg.cipher_algo, sec_cfg.integ_algo, sec_cfg.k_rrc_enc.data(), sec_cfg.k_rrc_int.data());
 
   // Generate K_up_enc and K_up_int
@@ -188,7 +188,7 @@ void security_cfg_handler::regenerate_keys_handover(uint32_t new_pci, uint32_t n
   logger.info(k_enb, 32, "Old K_eNB (k_enb)");
   // Generate K_enb*
   uint8_t k_enb_star[32];
-  srslte::security_generate_k_enb_star(k_enb, new_pci, new_dl_earfcn, k_enb_star);
+  srsran::security_generate_k_enb_star(k_enb, new_pci, new_dl_earfcn, k_enb_star);
 
   // K_enb becomes K_enb*
   memcpy(k_enb, k_enb_star, 32);
@@ -212,7 +212,7 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
 {
   if (erab_id < 5) {
     logger->error("ERAB id=%d is invalid", erab_id);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   uint8_t lcid  = erab_id - 2; // Map e.g. E-RAB 5 to LCID 3 (==DRB1)
   uint8_t drbid = erab_id - 4;
@@ -220,11 +220,11 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
   auto qci_it = cfg->qci_cfg.find(qos.qci);
   if (qci_it == cfg->qci_cfg.end() or not qci_it->second.configured) {
     logger->error("QCI=%d not configured", qos.qci);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   if (lcid < 3 or lcid > 10) {
     logger->error("DRB logical channel ids must be within 3 and 10");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   const rrc_cfg_qci_t& qci_cfg = qci_it->second;
 
@@ -235,7 +235,7 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
 
   if (addr.length() > 32) {
     logger->error("Only addresses with length <= 32 are supported");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   if (nas_pdu != nullptr and nas_pdu->size() > 0) {
@@ -245,7 +245,7 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
   }
 
   // Set DRBtoAddMod
-  auto drb_it                                              = srslte::add_rrc_obj_id(current_drbs, drbid);
+  auto drb_it                                              = srsran::add_rrc_obj_id(current_drbs, drbid);
   drb_it->lc_ch_id_present                                 = true;
   drb_it->lc_ch_id                                         = (uint8_t)lcid;
   drb_it->eps_bearer_id_present                            = true;
@@ -259,7 +259,7 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
   drb_it->rlc_cfg_present                                  = true;
   drb_it->rlc_cfg                                          = qci_cfg.rlc_cfg;
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 bool bearer_cfg_handler::release_erab(uint8_t erab_id)
@@ -272,7 +272,7 @@ bool bearer_cfg_handler::release_erab(uint8_t erab_id)
 
   uint8_t drb_id = erab_id - 4;
 
-  srslte::rem_rrc_obj_id(current_drbs, drb_id);
+  srsran::rem_rrc_obj_id(current_drbs, drb_id);
 
   erabs.erase(it);
   erab_info_list.erase(erab_id);

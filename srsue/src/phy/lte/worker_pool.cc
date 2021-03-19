@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -24,7 +24,7 @@ bool worker_pool::init(phy_common* common, int prio)
     log.set_level(srslog::str_to_basic_level(common->args->log.phy_level));
     log.set_hex_dump_max_size(common->args->log.phy_hex_limit);
 
-    auto w = std::unique_ptr<lte::sf_worker>(new lte::sf_worker(SRSLTE_MAX_PRB, common, log));
+    auto w = std::unique_ptr<lte::sf_worker>(new lte::sf_worker(SRSRAN_MAX_PRB, common, log));
     pool.init_worker(i, w.get(), prio, common->args->worker_cpu_mask);
     workers.push_back(std::move(w));
   }

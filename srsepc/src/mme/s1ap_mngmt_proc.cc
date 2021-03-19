@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -12,7 +12,7 @@
 
 #include "srsepc/hdr/mme/s1ap_mngmt_proc.h"
 #include "srsepc/hdr/mme/s1ap.h"
-#include "srslte/common/bcd_helpers.h"
+#include "srsran/common/bcd_helpers.h"
 
 namespace srsepc {
 
@@ -59,7 +59,7 @@ void s1ap_mngmt_proc::init(void)
 bool s1ap_mngmt_proc::handle_s1_setup_request(const asn1::s1ap::s1_setup_request_s& msg,
                                               struct sctp_sndrcvinfo*               enb_sri)
 {
-  srslte::console("Received S1 Setup Request.\n");
+  srsran::console("Received S1 Setup Request.\n");
   m_logger.info("Received S1 Setup Request.");
 
   enb_ctx_t enb_ctx = {};
@@ -87,11 +87,11 @@ bool s1ap_mngmt_proc::handle_s1_setup_request(const asn1::s1ap::s1_setup_request
 
   // Check matching PLMNs
   if (enb_ctx.plmn != m_s1ap->get_plmn()) {
-    srslte::console("Sending S1 Setup Failure - Unknown PLMN\n");
+    srsran::console("Sending S1 Setup Failure - Unknown PLMN\n");
     m_logger.warning("Sending S1 Setup Failure - Unknown PLMN");
     send_s1_setup_failure(asn1::s1ap::cause_misc_opts::unknown_plmn, enb_sri);
   } else if (!tac_match) {
-    srslte::console("Sending S1 Setup Failure - No matching TAC\n");
+    srsran::console("Sending S1 Setup Failure - No matching TAC\n");
     m_logger.warning("Sending S1 Setup Failure - No matching TAC");
     send_s1_setup_failure(asn1::s1ap::cause_misc_opts::unspecified, enb_sri);
   } else {
@@ -106,7 +106,7 @@ bool s1ap_mngmt_proc::handle_s1_setup_request(const asn1::s1ap::s1_setup_request
     }
 
     send_s1_setup_response(m_s1ap_args, enb_sri);
-    srslte::console("Sending S1 Setup Response\n");
+    srsran::console("Sending S1 Setup Response\n");
     m_logger.info("Sending S1 Setup Response");
   }
   return true;
@@ -141,7 +141,7 @@ bool s1ap_mngmt_proc::unpack_s1_setup_request(const asn1::s1ap::s1_setup_request
   ((uint8_t*)&plmn)[3] = s1_req.global_enb_id.value.plm_nid[2];
 
   enb_ctx->plmn = ntohl(plmn);
-  srslte::s1ap_plmn_to_mccmnc(enb_ctx->plmn, &enb_ctx->mcc, &enb_ctx->mnc);
+  srsran::s1ap_plmn_to_mccmnc(enb_ctx->plmn, &enb_ctx->mcc, &enb_ctx->mnc);
 
   // SupportedTAs
   enb_ctx->nof_supported_ta = s1_req.supported_tas.value.size();
@@ -199,7 +199,7 @@ bool s1ap_mngmt_proc::send_s1_setup_response(s1ap_args_t s1ap_args, struct sctp_
   s1_resp.served_gummeis.value.resize(1); // TODO Only one served GUMMEI supported
 
   uint32_t plmn = 0;
-  srslte::s1ap_mccmnc_to_plmn(s1ap_args.mcc, s1ap_args.mnc, &plmn);
+  srsran::s1ap_mccmnc_to_plmn(s1ap_args.mcc, s1ap_args.mnc, &plmn);
   plmn = htonl(plmn);
 
   asn1::s1ap::served_gummeis_item_s& serv_gummei = s1_resp.served_gummeis.value[0];

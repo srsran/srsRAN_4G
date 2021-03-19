@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -34,8 +34,8 @@
 #ifndef SRSENB_UE_RR_CFG_H
 #define SRSENB_UE_RR_CFG_H
 
-#include "srslte/asn1/rrc.h"
-#include "srslte/interfaces/rrc_interface_types.h"
+#include "srsran/asn1/rrc.h"
+#include "srsran/interfaces/rrc_interface_types.h"
 
 namespace srsenb {
 
@@ -55,7 +55,7 @@ void apply_reconf_updates(asn1::rrc::rrc_conn_recfg_r8_ies_s&  recfg_r8,
                           const rrc_cfg_t&                     enb_cfg,
                           const ue_cell_ded_list&              ue_cell_list,
                           bearer_cfg_handler&                  bearers,
-                          const srslte::rrc_ue_capabilities_t& ue_caps,
+                          const srsran::rrc_ue_capabilities_t& ue_caps,
                           bool                                 phy_cfg_updated);
 
 /// Apply radioResourceConfigDedicated updates to the current UE RRC configuration

@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -32,8 +32,8 @@
 #include "polar_decoder_ssc_c_avx2.h"
 #include "polar_decoder_ssc_f.h"
 #include "polar_decoder_ssc_s.h"
-#include "srslte/phy/fec/polar/polar_decoder.h"
-#include "srslte/phy/utils/debug.h"
+#include "srsran/phy/fec/polar/polar_decoder.h"
+#include "srsran/phy/utils/debug.h"
 
 /*! SSC Polar decoder with float LLR inputs. */
 static int decode_ssc_f(void*           o,
@@ -43,7 +43,7 @@ static int decode_ssc_f(void*           o,
                         const uint16_t* frozen_set,
                         const uint16_t  frozen_set_size)
 {
-  srslte_polar_decoder_t* q = o;
+  srsran_polar_decoder_t* q = o;
 
   init_polar_decoder_ssc_f(q->ptr, symbols, data, n, frozen_set, frozen_set_size);
 
@@ -60,7 +60,7 @@ static int decode_ssc_s(void*           o,
                         const uint16_t* frozen_set,
                         const uint16_t  frozen_set_size)
 {
-  srslte_polar_decoder_t* q = o;
+  srsran_polar_decoder_t* q = o;
 
   init_polar_decoder_ssc_s(q->ptr, symbols, data, n, frozen_set, frozen_set_size);
 
@@ -77,7 +77,7 @@ static int decode_ssc_c(void*           o,
                         const uint16_t* frozen_set,
                         const uint16_t  frozen_set_size)
 {
-  srslte_polar_decoder_t* q = o;
+  srsran_polar_decoder_t* q = o;
 
   init_polar_decoder_ssc_c(q->ptr, symbols, data, n, frozen_set, frozen_set_size);
 
@@ -95,7 +95,7 @@ static int decode_ssc_c_avx2(void*           o,
                              const uint16_t* frozen_set,
                              const uint16_t  frozen_set_size)
 {
-  srslte_polar_decoder_t* q = o;
+  srsran_polar_decoder_t* q = o;
 
   init_polar_decoder_ssc_c_avx2(q->ptr, symbols, data, n, frozen_set, frozen_set_size);
 
@@ -108,21 +108,21 @@ static int decode_ssc_c_avx2(void*           o,
 /*! Destructor of a (float) SSC polar decoder. */
 static void free_ssc_f(void* o)
 {
-  srslte_polar_decoder_t* q = o;
+  srsran_polar_decoder_t* q = o;
   delete_polar_decoder_ssc_f(q->ptr);
 }
 
 /*! Destructor of a (int16_t) SSC polar decoder. */
 static void free_ssc_s(void* o)
 {
-  srslte_polar_decoder_t* q = o;
+  srsran_polar_decoder_t* q = o;
   delete_polar_decoder_ssc_s(q->ptr);
 }
 
 /*! Destructor of a (int8_t) SSC polar decoder. */
 static void free_ssc_c(void* o)
 {
-  srslte_polar_decoder_t* q = o;
+  srsran_polar_decoder_t* q = o;
   delete_polar_decoder_ssc_c(q->ptr);
 }
 
@@ -130,13 +130,13 @@ static void free_ssc_c(void* o)
 /*! Destructor of a (int8_t, avx2) SSC polar decoder. */
 static void free_ssc_c_avx2(void* o)
 {
-  srslte_polar_decoder_t* q = o;
+  srsran_polar_decoder_t* q = o;
   delete_polar_decoder_ssc_c_avx2(q->ptr);
 }
 #endif
 
 /*! Initializes a polar decoder structure to use the SSC polar decoder algorithm with float LLR inputs. */
-static int init_ssc_f(srslte_polar_decoder_t* q)
+static int init_ssc_f(srsran_polar_decoder_t* q)
 {
   q->decode_f = decode_ssc_f;
   q->free     = free_ssc_f;
@@ -150,7 +150,7 @@ static int init_ssc_f(srslte_polar_decoder_t* q)
 }
 
 /*! Initializes a polar decoder structure to use the SSC polar decoder algorithm with uint16_t LLR inputs. */
-static int init_ssc_s(srslte_polar_decoder_t* q)
+static int init_ssc_s(srsran_polar_decoder_t* q)
 {
   q->decode_s = decode_ssc_s;
   q->free     = free_ssc_s;
@@ -164,7 +164,7 @@ static int init_ssc_s(srslte_polar_decoder_t* q)
 }
 
 /*! Initializes a polar decoder structure to use the SSC polar decoder algorithm with uint8_t LLR inputs. */
-static int init_ssc_c(srslte_polar_decoder_t* q)
+static int init_ssc_c(srsran_polar_decoder_t* q)
 {
   q->decode_c = decode_ssc_c;
   q->free     = free_ssc_c;
@@ -180,7 +180,7 @@ static int init_ssc_c(srslte_polar_decoder_t* q)
 #ifdef LV_HAVE_AVX2
 /*! Initializes a polar decoder structure to use the SSC polar decoder algorithm with uint8_t LLR inputs and AVX2
  * instructions. */
-static int init_ssc_c_avx2(srslte_polar_decoder_t* q)
+static int init_ssc_c_avx2(srsran_polar_decoder_t* q)
 {
   q->decode_c = decode_ssc_c_avx2;
   q->free     = free_ssc_c_avx2;
@@ -194,18 +194,18 @@ static int init_ssc_c_avx2(srslte_polar_decoder_t* q)
 }
 #endif
 
-int srslte_polar_decoder_init(srslte_polar_decoder_t* q, srslte_polar_decoder_type_t type, const uint8_t nMax)
+int srsran_polar_decoder_init(srsran_polar_decoder_t* q, srsran_polar_decoder_type_t type, const uint8_t nMax)
 {
   q->nMax = nMax;
   switch (type) {
-    case SRSLTE_POLAR_DECODER_SSC_F:
+    case SRSRAN_POLAR_DECODER_SSC_F:
       return init_ssc_f(q);
-    case SRSLTE_POLAR_DECODER_SSC_S:
+    case SRSRAN_POLAR_DECODER_SSC_S:
       return init_ssc_s(q);
-    case SRSLTE_POLAR_DECODER_SSC_C:
+    case SRSRAN_POLAR_DECODER_SSC_C:
       return init_ssc_c(q);
 #ifdef LV_HAVE_AVX2
-    case SRSLTE_POLAR_DECODER_SSC_C_AVX2:
+    case SRSRAN_POLAR_DECODER_SSC_C_AVX2:
       return init_ssc_c_avx2(q);
 #endif
     default:
@@ -215,15 +215,15 @@ int srslte_polar_decoder_init(srslte_polar_decoder_t* q, srslte_polar_decoder_ty
   return 0;
 }
 
-void srslte_polar_decoder_free(srslte_polar_decoder_t* q)
+void srsran_polar_decoder_free(srsran_polar_decoder_t* q)
 {
   if (q->free) {
     q->free(q);
   }
-  memset(q, 0, sizeof(srslte_polar_decoder_t));
+  memset(q, 0, sizeof(srsran_polar_decoder_t));
 }
 
-int srslte_polar_decoder_decode_f(srslte_polar_decoder_t* q,
+int srsran_polar_decoder_decode_f(srsran_polar_decoder_t* q,
                                   const float*            llr,
                                   uint8_t*                data_decoded,
                                   const uint8_t           n,
@@ -237,7 +237,7 @@ int srslte_polar_decoder_decode_f(srslte_polar_decoder_t* q,
   return -1;
 }
 
-int srslte_polar_decoder_decode_s(srslte_polar_decoder_t* q,
+int srsran_polar_decoder_decode_s(srsran_polar_decoder_t* q,
                                   const int16_t*          llr,
                                   uint8_t*                data_decoded,
                                   const uint8_t           n,
@@ -251,7 +251,7 @@ int srslte_polar_decoder_decode_s(srslte_polar_decoder_t* q,
   return -1;
 }
 
-int srslte_polar_decoder_decode_c(srslte_polar_decoder_t* q,
+int srsran_polar_decoder_decode_c(srsran_polar_decoder_t* q,
                                   const int8_t*           llr,
                                   uint8_t*                data_decoded,
                                   const uint8_t           n,

@@ -1,8 +1,8 @@
 /**
  *
- * section COPYRIGHT
+ * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -20,14 +20,14 @@
  *
  */
 
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/utils/vector.h"
 #include <stddef.h>
 #include <stdint.h>
 
-#include "srslte/phy/fec/polar/polar_code.h"
-#include "srslte/phy/fec/polar/polar_rm.h"
+#include "srsran/phy/fec/polar/polar_code.h"
+#include "srsran/phy/fec/polar/polar_rm.h"
 
-#include "srslte/phy/utils/debug.h"
+#include "srsran/phy/utils/debug.h"
 
 /*!
  * \brief Describes an rate matcher.
@@ -356,7 +356,7 @@ static void ch_interleaver_rm_rx_c(const int8_t* f, int8_t* e, const uint32_t E)
   }
 }
 
-int srslte_polar_rm_tx_init(srslte_polar_rm_t* p)
+int srsran_polar_rm_tx_init(srsran_polar_rm_t* p)
 {
   if (p == NULL) {
     return -1;
@@ -371,14 +371,14 @@ int srslte_polar_rm_tx_init(srslte_polar_rm_t* p)
   p->ptr = pp;
 
   // allocate memory to the blk interleaved codeword
-  if ((pp->y_e = srslte_vec_u8_malloc(EMAX)) == NULL) {
+  if ((pp->y_e = srsran_vec_u8_malloc(EMAX)) == NULL) {
     free(pp);
     return -1;
   }
   return 0;
 }
 
-int srslte_polar_rm_rx_init_f(srslte_polar_rm_t* p)
+int srsran_polar_rm_rx_init_f(srsran_polar_rm_t* p)
 {
 
   if (p == NULL) {
@@ -394,7 +394,7 @@ int srslte_polar_rm_rx_init_f(srslte_polar_rm_t* p)
   p->ptr = pp;
 
   // allocate memory to the temporal buffer of chDeInterleaved llrs
-  if ((pp->y_e = srslte_vec_f_malloc(EMAX + NMAX)) == NULL) {
+  if ((pp->y_e = srsran_vec_f_malloc(EMAX + NMAX)) == NULL) {
     free(pp);
     return -1;
   }
@@ -403,7 +403,7 @@ int srslte_polar_rm_rx_init_f(srslte_polar_rm_t* p)
   return 0;
 }
 
-int srslte_polar_rm_rx_init_s(srslte_polar_rm_t* p)
+int srsran_polar_rm_rx_init_s(srsran_polar_rm_t* p)
 {
 
   if (p == NULL) {
@@ -419,7 +419,7 @@ int srslte_polar_rm_rx_init_s(srslte_polar_rm_t* p)
   p->ptr = pp;
 
   // allocate memory to the temporal buffer of chDeInterleaved llrs
-  if ((pp->y_e = srslte_vec_i16_malloc(EMAX + NMAX)) == NULL) {
+  if ((pp->y_e = srsran_vec_i16_malloc(EMAX + NMAX)) == NULL) {
     free(pp);
     return -1;
   }
@@ -428,7 +428,7 @@ int srslte_polar_rm_rx_init_s(srslte_polar_rm_t* p)
   return 0;
 }
 
-int srslte_polar_rm_rx_init_c(srslte_polar_rm_t* p)
+int srsran_polar_rm_rx_init_c(srsran_polar_rm_t* p)
 {
 
   if (p == NULL) {
@@ -444,7 +444,7 @@ int srslte_polar_rm_rx_init_c(srslte_polar_rm_t* p)
   p->ptr = pp;
 
   // allocate memory to the temporal buffer of chDeInterleaved llrs
-  if ((pp->y_e = srslte_vec_i8_malloc(EMAX + NMAX)) == NULL) {
+  if ((pp->y_e = srsran_vec_i8_malloc(EMAX + NMAX)) == NULL) {
     free(pp);
     return -1;
   }
@@ -453,7 +453,7 @@ int srslte_polar_rm_rx_init_c(srslte_polar_rm_t* p)
   return 0;
 }
 
-void srslte_polar_rm_tx_free(srslte_polar_rm_t* q)
+void srsran_polar_rm_tx_free(srsran_polar_rm_t* q)
 {
   if (q != NULL) {
     struct pRM_tx* qq = q->ptr;
@@ -462,7 +462,7 @@ void srslte_polar_rm_tx_free(srslte_polar_rm_t* q)
   }
 }
 
-void srslte_polar_rm_rx_free_f(srslte_polar_rm_t* q)
+void srsran_polar_rm_rx_free_f(srsran_polar_rm_t* q)
 {
   if (q != NULL) {
     struct pRM_rx_f* qq = q->ptr;
@@ -472,7 +472,7 @@ void srslte_polar_rm_rx_free_f(srslte_polar_rm_t* q)
   }
 }
 
-void srslte_polar_rm_rx_free_s(srslte_polar_rm_t* q)
+void srsran_polar_rm_rx_free_s(srsran_polar_rm_t* q)
 {
   if (q != NULL) {
     struct pRM_rx_s* qq = q->ptr;
@@ -482,7 +482,7 @@ void srslte_polar_rm_rx_free_s(srslte_polar_rm_t* q)
   }
 }
 
-void srslte_polar_rm_rx_free_c(srslte_polar_rm_t* q)
+void srsran_polar_rm_rx_free_c(srsran_polar_rm_t* q)
 {
   if (q != NULL) {
     struct pRM_rx_c* qq = q->ptr;
@@ -492,7 +492,7 @@ void srslte_polar_rm_rx_free_c(srslte_polar_rm_t* q)
   }
 }
 
-int srslte_polar_rm_tx(srslte_polar_rm_t* q,
+int srsran_polar_rm_tx(srsran_polar_rm_t* q,
                        const uint8_t*     input,
                        uint8_t*           output,
                        const uint8_t      n,
@@ -521,7 +521,7 @@ int srslte_polar_rm_tx(srslte_polar_rm_t* q,
   return 0;
 }
 
-int srslte_polar_rm_rx_f(srslte_polar_rm_t* q,
+int srsran_polar_rm_rx_f(srsran_polar_rm_t* q,
                          const float*       input,
                          float*             output,
                          const uint32_t     E,
@@ -549,7 +549,7 @@ int srslte_polar_rm_rx_f(srslte_polar_rm_t* q,
   return 0;
 }
 
-int srslte_polar_rm_rx_s(srslte_polar_rm_t* q,
+int srsran_polar_rm_rx_s(srsran_polar_rm_t* q,
                          const int16_t*     input,
                          int16_t*           output,
                          const uint32_t     E,
@@ -577,7 +577,7 @@ int srslte_polar_rm_rx_s(srslte_polar_rm_t* q,
   return 0;
 }
 
-int srslte_polar_rm_rx_c(srslte_polar_rm_t* q,
+int srsran_polar_rm_rx_c(srsran_polar_rm_t* q,
                          const int8_t*      input,
                          int8_t*            output,
                          const uint32_t     E,

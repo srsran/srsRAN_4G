@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,8 +10,8 @@
  *
  */
 
-#ifndef SRSLTE_RF_UHD_RFNOC_H
-#define SRSLTE_RF_UHD_RFNOC_H
+#ifndef SRSRAN_RF_UHD_RFNOC_H
+#define SRSRAN_RF_UHD_RFNOC_H
 
 #include <chrono>
 #include <complex>
@@ -761,4 +761,4 @@ public:
   }
 };
 
-#endif // SRSLTE_RF_UHD_RFNOC_H
+#endif // SRSRAN_RF_UHD_RFNOC_H

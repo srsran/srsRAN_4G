@@ -1,8 +1,8 @@
 /**
  *
- * section COPYRIGHT
+ * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -20,10 +20,10 @@
  *
  */
 
-#include "srslte/phy/fec/polar/polar_chanalloc.h"
+#include "srsran/phy/fec/polar/polar_chanalloc.h"
 #include <string.h>
 
-void srslte_polar_chanalloc_tx(const uint8_t*  message,
+void srsran_polar_chanalloc_tx(const uint8_t*  message,
                                uint8_t*        input_encoder,
                                const uint16_t  N,
                                const uint16_t  K,
@@ -72,7 +72,7 @@ void srslte_polar_chanalloc_tx(const uint8_t*  message,
   }
 }
 
-void srslte_polar_chanalloc_rx(const uint8_t*  output_decoder,
+void srsran_polar_chanalloc_rx(const uint8_t*  output_decoder,
                                uint8_t*        message,
                                const uint16_t  K,
                                const uint8_t   nPC,

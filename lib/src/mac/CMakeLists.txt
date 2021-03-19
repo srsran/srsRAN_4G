@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2020 Software Radio Systems Limited
+# Copyright 2013-2021 Software Radio Systems Limited
 #
 # By using this file, you agree to the terms and conditions set
 # forth in the LICENSE file which can be found at the top level of
@@ -8,6 +8,6 @@
 
 SET(SOURCES pdu.cc pdu_queue.cc mac_sch_pdu_nr.cc mac_rar_pdu_nr.cc)
 
-add_library(srslte_mac STATIC ${SOURCES})
-target_link_libraries(srslte_mac srslte_common)
-INSTALL(TARGETS srslte_mac DESTINATION ${LIBRARY_DIR})
+add_library(srsran_mac STATIC ${SOURCES})
+target_link_libraries(srsran_mac srsran_common)
+INSTALL(TARGETS srsran_mac DESTINATION ${LIBRARY_DIR})

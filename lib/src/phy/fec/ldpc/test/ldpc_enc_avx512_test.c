@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -31,11 +31,11 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "srslte/phy/fec/ldpc/ldpc_common.h"
-#include "srslte/phy/fec/ldpc/ldpc_encoder.h"
-#include "srslte/phy/utils/debug.h"
+#include "srsran/phy/fec/ldpc/ldpc_common.h"
+#include "srsran/phy/fec/ldpc/ldpc_encoder.h"
+#include "srsran/phy/utils/debug.h"
 
-srslte_basegraph_t base_graph = BG1; /*!< \brief Base Graph (BG1 or BG2). */
+srsran_basegraph_t base_graph = BG1; /*!< \brief Base Graph (BG1 or BG2). */
 int                lift_size  = 2;   /*!< \brief Lifting Size. */
 int                finalK;           /*!< \brief Number of uncoded bits (message length). */
 int                finalN;           /*!< \brief Number of coded bits (codeword length). */
@@ -146,8 +146,8 @@ int main(int argc, char** argv)
   parse_args(argc, argv);
 
   // create an LDPC encoder
-  srslte_ldpc_encoder_t encoder;
-  if (srslte_ldpc_encoder_init(&encoder, SRSLTE_LDPC_ENCODER_AVX512, base_graph, lift_size) != 0) {
+  srsran_ldpc_encoder_t encoder;
+  if (srsran_ldpc_encoder_init(&encoder, SRSRAN_LDPC_ENCODER_AVX512, base_graph, lift_size) != 0) {
     perror("encoder init");
     exit(-1);
   }
@@ -192,7 +192,7 @@ int main(int argc, char** argv)
     printf("  codeword %d\n", j);
     gettimeofday(&t[1], NULL);
     for (l = 0; l < nof_reps; l++) {
-      srslte_ldpc_encoder_encode_rm(&encoder, messages + j * finalK, codewords_sim + j * finalN, finalK, finalN);
+      srsran_ldpc_encoder_encode_rm(&encoder, messages + j * finalK, codewords_sim + j * finalN, finalK, finalN);
     }
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
@@ -217,5 +217,5 @@ int main(int argc, char** argv)
   free(codewords_sim);
   free(codewords_true);
   free(messages);
-  srslte_ldpc_encoder_free(&encoder);
+  srsran_ldpc_encoder_free(&encoder);
 }

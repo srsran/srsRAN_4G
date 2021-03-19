@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -56,7 +56,7 @@ bool worker_pool::init(const phy_args_nr_t& args, phy_common* common, stack_inte
   prach_buffer->init(phy_state.args.dl.nof_max_prb);
 
   // Set PRACH hard-coded cell
-  srslte_cell_t cell = {};
+  srsran_cell_t cell = {};
   cell.nof_prb       = 50;
   cell.id            = phy_state.carrier.id;
   if (not prach_buffer->set_cell(cell, phy_state.cfg.prach)) {
@@ -97,37 +97,37 @@ void worker_pool::send_prach(uint32_t prach_occasion, uint32_t preamble_index, i
   prach_buffer->prepare_to_send(preamble_index);
 }
 
-int worker_pool::set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS> packed_ul_grant,
+int worker_pool::set_ul_grant(std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,
                               uint16_t                                       rnti,
-                              srslte_rnti_type_t                             rnti_type)
+                              srsran_rnti_type_t                             rnti_type)
 {
   // Copy DCI bits and setup DCI context
-  srslte_dci_msg_nr_t dci_msg = {};
-  dci_msg.format              = srslte_dci_format_nr_0_0; // MAC RAR grant shall be unpacked as DCI 0_0 format
+  srsran_dci_msg_nr_t dci_msg = {};
+  dci_msg.format              = srsran_dci_format_nr_0_0; // MAC RAR grant shall be unpacked as DCI 0_0 format
   dci_msg.rnti_type           = rnti_type;
-  dci_msg.search_space        = srslte_search_space_type_rar; // This indicates it is a MAC RAR
+  dci_msg.search_space        = srsran_search_space_type_rar; // This indicates it is a MAC RAR
   dci_msg.rnti                = rnti;
-  dci_msg.nof_bits            = SRSLTE_RAR_UL_GRANT_NBITS;
-  srslte_vec_u8_copy(dci_msg.payload, packed_ul_grant.data(), SRSLTE_RAR_UL_GRANT_NBITS);
+  dci_msg.nof_bits            = SRSRAN_RAR_UL_GRANT_NBITS;
+  srsran_vec_u8_copy(dci_msg.payload, packed_ul_grant.data(), SRSRAN_RAR_UL_GRANT_NBITS);
 
-  srslte_dci_ul_nr_t dci_ul = {};
+  srsran_dci_ul_nr_t dci_ul = {};
 
-  if (srslte_dci_nr_rar_unpack(&dci_msg, &dci_ul) < SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+  if (srsran_dci_nr_rar_unpack(&dci_msg, &dci_ul) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
   }
 
   if (logger.info.enabled()) {
     std::array<char, 512> str;
-    srslte_dci_ul_nr_to_str(&dci_ul, str.data(), str.size());
+    srsran_dci_ul_nr_to_str(&dci_ul, str.data(), str.size());
     logger.set_context(phy_state.rar_grant_tti);
     logger.info("Setting RAR Grant %s", str.data());
   }
 
   phy_state.set_ul_pending_grant(phy_state.rar_grant_tti, dci_ul);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
-bool worker_pool::set_config(const srslte::phy_cfg_nr_t& cfg)
+bool worker_pool::set_config(const srsran::phy_cfg_nr_t& cfg)
 {
   phy_state.cfg = cfg;
   return true;

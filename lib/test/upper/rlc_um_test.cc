@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -11,7 +11,7 @@
  */
 
 #include "rlc_test_common.h"
-#include "srslte/upper/rlc_um_lte.h"
+#include "srsran/upper/rlc_um_lte.h"
 #include <iostream>
 
 #define TESTASSERT(cond)                                                                                               \
@@ -25,7 +25,7 @@
 #define MAX_NBUFS 100
 #define NBUFS 5
 
-using namespace srslte;
+using namespace srsran;
 using namespace srsue;
 
 // Helper class to create two pre-configured RLC instances
@@ -59,7 +59,7 @@ public:
 
   srslog::basic_logger& logger1;
   srslog::basic_logger& logger2;
-  srslte::timer_handler timers;
+  srsran::timer_handler timers;
   rlc_um_tester         tester;
   rlc_um_lte            rlc1, rlc2;
 };
@@ -71,7 +71,7 @@ int meas_obj_test()
   // Push 5 SDUs into RLC1
   unique_byte_buffer_t sdu_bufs[NBUFS];
   for (int i = 0; i < NBUFS; i++) {
-    sdu_bufs[i]          = srslte::make_byte_buffer();
+    sdu_bufs[i]          = srsran::make_byte_buffer();
     *sdu_bufs[i]->msg    = i; // Write the index into the buffer
     sdu_bufs[i]->N_bytes = 1; // Give each buffer a size of 1 byte
     ctxt.rlc1.write_sdu(std::move(sdu_bufs[i]));
@@ -111,7 +111,7 @@ int loss_test()
   // Push 5 SDUs into RLC1
   unique_byte_buffer_t sdu_bufs[NBUFS];
   for (int i = 0; i < NBUFS; i++) {
-    sdu_bufs[i]          = srslte::make_byte_buffer();
+    sdu_bufs[i]          = srsran::make_byte_buffer();
     sdu_bufs[i]->msg[0]  = i; // Write the index into the buffer
     sdu_bufs[i]->N_bytes = 1; // Give each buffer a size of 1 byte
     ctxt.rlc1.write_sdu(std::move(sdu_bufs[i]));
@@ -156,7 +156,7 @@ int basic_mbsfn_test()
   // Push 5 SDUs into RLC1
   unique_byte_buffer_t sdu_bufs[NBUFS * 2];
   for (int i = 0; i < NBUFS; i++) {
-    sdu_bufs[i]          = srslte::make_byte_buffer();
+    sdu_bufs[i]          = srsran::make_byte_buffer();
     sdu_bufs[i]->msg[0]  = i; // Write the index into the buffer
     sdu_bufs[i]->N_bytes = 1; // Give each buffer a size of 1 byte
     ctxt.rlc1.write_sdu(std::move(sdu_bufs[i]));
@@ -218,7 +218,7 @@ int reassmble_test()
 
   unique_byte_buffer_t sdu_bufs[n_sdus];
   for (int i = 0; i < n_sdu_first_batch; i++) {
-    sdu_bufs[i] = srslte::make_byte_buffer();
+    sdu_bufs[i] = srsran::make_byte_buffer();
     for (int k = 0; k < sdu_len; ++k) {
       sdu_bufs[i]->msg[k] = i;
     }
@@ -231,7 +231,7 @@ int reassmble_test()
   int                            n_pdus     = 0;
   std::unique_ptr<byte_buffer_t> pdu_bufs[max_n_pdus];
   for (int i = 0; i < max_n_pdus; i++) {
-    pdu_bufs[i]          = srslte::make_byte_buffer();
+    pdu_bufs[i]          = srsran::make_byte_buffer();
     int len              = ctxt.rlc1.read_pdu(pdu_bufs[i]->msg, (i == 0) ? sdu_len * 3 / 4 : sdu_len * 1.25);
     pdu_bufs[i]->N_bytes = len;
     if (len) {
@@ -246,7 +246,7 @@ int reassmble_test()
 
   // push second batch of SDUs
   for (int i = n_sdu_first_batch; i < n_sdus; ++i) {
-    sdu_bufs[i] = srslte::make_byte_buffer();
+    sdu_bufs[i] = srsran::make_byte_buffer();
     for (int k = 0; k < sdu_len; ++k) {
       sdu_bufs[i]->msg[k] = i;
     }
@@ -256,7 +256,7 @@ int reassmble_test()
 
   // Read second batch of PDUs (use large grants)
   for (int i = n_pdus; i < max_n_pdus; i++) {
-    pdu_bufs[i]          = srslte::make_byte_buffer();
+    pdu_bufs[i]          = srsran::make_byte_buffer();
     int len              = ctxt.rlc1.read_pdu(pdu_bufs[i]->msg, sdu_len * 1.25);
     pdu_bufs[i]->N_bytes = len;
     if (len) {
@@ -310,7 +310,7 @@ int reassmble_test2()
   const int            n_sdu_first_batch = 17;
   unique_byte_buffer_t sdu_bufs[n_sdus];
   for (int i = 0; i < n_sdu_first_batch; i++) {
-    sdu_bufs[i] = srslte::make_byte_buffer();
+    sdu_bufs[i] = srsran::make_byte_buffer();
     for (int k = 0; k < sdu_len; ++k) {
       sdu_bufs[i]->msg[k] = i;
     }
@@ -320,9 +320,9 @@ int reassmble_test2()
 
   const int                    max_n_pdus = 100;
   int                          n_pdus     = 0;
-  srslte::unique_byte_buffer_t pdu_bufs[max_n_pdus];
+  srsran::unique_byte_buffer_t pdu_bufs[max_n_pdus];
   for (int i = 0; i < max_n_pdus; i++) {
-    pdu_bufs[i]          = srslte::make_byte_buffer();
+    pdu_bufs[i]          = srsran::make_byte_buffer();
     int len              = ctxt.rlc1.read_pdu(pdu_bufs[i]->msg, (i == 0) ? sdu_len * .75 : sdu_len * .25);
     pdu_bufs[i]->N_bytes = len;
     if (len) {
@@ -337,7 +337,7 @@ int reassmble_test2()
 
   // push second batch of SDUs
   for (int i = n_sdu_first_batch; i < n_sdus; ++i) {
-    sdu_bufs[i] = srslte::make_byte_buffer();
+    sdu_bufs[i] = srsran::make_byte_buffer();
     for (int k = 0; k < sdu_len; ++k) {
       sdu_bufs[i]->msg[k] = i;
     }
@@ -347,7 +347,7 @@ int reassmble_test2()
 
   // Read second batch of PDUs
   for (int i = n_pdus; i < max_n_pdus; i++) {
-    pdu_bufs[i]          = srslte::make_byte_buffer();
+    pdu_bufs[i]          = srsran::make_byte_buffer();
     int len              = ctxt.rlc1.read_pdu(pdu_bufs[i]->msg, sdu_len * 1.25);
     pdu_bufs[i]->N_bytes = len;
     if (len) {
@@ -389,7 +389,7 @@ int pdu_pack_no_space_test()
   // Push 2 SDUs into RLC1
   unique_byte_buffer_t sdu_bufs[num_sdus];
   for (int i = 0; i < num_sdus; i++) {
-    sdu_bufs[i]          = srslte::make_byte_buffer();
+    sdu_bufs[i]          = srsran::make_byte_buffer();
     *sdu_bufs[i]->msg    = i;  // Write the index into the buffer
     sdu_bufs[i]->N_bytes = 10; // Give each buffer a size of 1 byte
     ctxt.rlc1.write_sdu(std::move(sdu_bufs[i]));
@@ -406,8 +406,8 @@ int pdu_pack_no_space_test()
 
   // this PDU contains a full SDU
   {
-    srslte::rlc_umd_pdu_header_t h;
-    rlc_um_read_data_pdu_header(&pdu_bufs[0], srslte::rlc_umd_sn_size_t::size10bits, &h);
+    srsran::rlc_umd_pdu_header_t h;
+    rlc_um_read_data_pdu_header(&pdu_bufs[0], srsran::rlc_umd_sn_size_t::size10bits, &h);
     TESTASSERT(h.fi == RLC_FI_FIELD_START_AND_END_ALIGNED);
   }
 
@@ -416,12 +416,12 @@ int pdu_pack_no_space_test()
   pdu_bufs[1].N_bytes = len;
 
   {
-    srslte::rlc_umd_pdu_header_t h;
-    rlc_um_read_data_pdu_header(&pdu_bufs[1], srslte::rlc_umd_sn_size_t::size10bits, &h);
+    srsran::rlc_umd_pdu_header_t h;
+    rlc_um_read_data_pdu_header(&pdu_bufs[1], srsran::rlc_umd_sn_size_t::size10bits, &h);
     TESTASSERT(h.fi == RLC_FI_FIELD_START_AND_END_ALIGNED);
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int main(int argc, char** argv)

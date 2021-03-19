@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -15,8 +15,8 @@
 #include <strings.h>
 #include <unistd.h>
 
-#include "srslte/phy/utils/random.h"
-#include "srslte/srslte.h"
+#include "srsran/phy/utils/random.h"
+#include "srsran/srsran.h"
 
 uint32_t long_cb = 0;
 
@@ -35,7 +35,7 @@ void parse_args(int argc, char** argv)
         long_cb = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
-        srslte_verbose++;
+        srsran_verbose++;
         break;
       default:
         usage(argv[0]);
@@ -53,46 +53,46 @@ uint8_t output_bits2[3 * 6144 + 12];
 
 int main(int argc, char** argv)
 {
-  srslte_random_t random_gen = srslte_random_init(0);
+  srsran_random_t random_gen = srsran_random_init(0);
   parse_args(argc, argv);
 
-  srslte_tcod_t tcod;
-  srslte_tcod_init(&tcod, 6144);
+  srsran_tcod_t tcod;
+  srsran_tcod_init(&tcod, 6144);
 
   uint32_t st = 0, end = 187;
   if (long_cb) {
-    st  = srslte_cbsegm_cbindex(long_cb);
+    st  = srsran_cbsegm_cbindex(long_cb);
     end = st;
   }
 
   for (uint32_t len = st; len <= end; len++) {
-    long_cb = srslte_cbsegm_cbsize(len);
+    long_cb = srsran_cbsegm_cbsize(len);
     printf("Checking long_cb=%d\n", long_cb);
     for (int i = 0; i < long_cb / 8; i++) {
-      input_bytes[i] = srslte_random_uniform_int_dist(random_gen, 0, 256);
+      input_bytes[i] = srsran_random_uniform_int_dist(random_gen, 0, 256);
     }
 
-    srslte_bit_unpack_vector(input_bytes, input_bits, long_cb);
+    srsran_bit_unpack_vector(input_bytes, input_bits, long_cb);
 
-    if (SRSLTE_VERBOSE_ISINFO()) {
+    if (SRSRAN_VERBOSE_ISINFO()) {
       printf("Input bits:\n");
       for (int i = 0; i < long_cb / 8; i++) {
-        srslte_vec_fprint_b(stdout, &input_bits[i * 8], 8);
+        srsran_vec_fprint_b(stdout, &input_bits[i * 8], 8);
       }
     }
 
     /* Create CRC for Transport Block, it is not currently used but it is required */
-    srslte_crc_t crc_tb;
+    srsran_crc_t crc_tb;
     bzero(&crc_tb, sizeof(crc_tb));
-    if (srslte_crc_init(&crc_tb, SRSLTE_LTE_CRC24A, 24)) {
+    if (srsran_crc_init(&crc_tb, SRSRAN_LTE_CRC24A, 24)) {
       printf("error initialising CRC\n");
       exit(-1);
     }
 
-    srslte_tcod_encode(&tcod, input_bits, output_bits, long_cb);
-    srslte_tcod_encode_lut(&tcod, &crc_tb, NULL, input_bytes, parity, len, false);
+    srsran_tcod_encode(&tcod, input_bits, output_bits, long_cb);
+    srsran_tcod_encode_lut(&tcod, &crc_tb, NULL, input_bytes, parity, len, false);
 
-    srslte_bit_unpack_vector(parity, parity_bits, 2 * (long_cb + 4));
+    srsran_bit_unpack_vector(parity, parity_bits, 2 * (long_cb + 4));
 
     for (int i = 0; i < long_cb; i++) {
       output_bits2[3 * i]     = input_bits[i];
@@ -100,9 +100,9 @@ int main(int argc, char** argv)
       output_bits2[3 * i + 2] = parity_bits[i + long_cb + 4];
     }
 
-    if (SRSLTE_VERBOSE_ISINFO()) {
-      srslte_vec_fprint_b(stdout, output_bits2, 3 * long_cb);
-      srslte_vec_fprint_b(stdout, output_bits, 3 * long_cb);
+    if (SRSRAN_VERBOSE_ISINFO()) {
+      srsran_vec_fprint_b(stdout, output_bits2, 3 * long_cb);
+      srsran_vec_fprint_b(stdout, output_bits, 3 * long_cb);
       printf("\n");
     }
     for (int i = 0; i < 2 * long_cb; i++) {
@@ -113,8 +113,8 @@ int main(int argc, char** argv)
     }
   }
 
-  srslte_tcod_free(&tcod);
-  srslte_random_free(random_gen);
+  srsran_tcod_free(&tcod);
+  srsran_random_free(random_gen);
   printf("Done\n");
   exit(0);
 }

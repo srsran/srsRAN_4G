@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -15,12 +15,12 @@
 #include <unordered_map>
 
 #include "common_enb.h"
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/task_scheduler.h"
-#include "srslte/common/threads.h"
-#include "srslte/interfaces/enb_gtpu_interfaces.h"
-#include "srslte/phy/common/phy_common.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/common/task_scheduler.h"
+#include "srsran/common/threads.h"
+#include "srsran/interfaces/enb_gtpu_interfaces.h"
+#include "srsran/phy/common/phy_common.h"
+#include "srsran/srslog/srslog.h"
 
 #include <netinet/in.h>
 
@@ -35,7 +35,7 @@ class stack_interface_gtpu_lte;
 class gtpu final : public gtpu_interface_rrc, public gtpu_interface_pdcp
 {
 public:
-  explicit gtpu(srslte::task_sched_handle task_sched_, srslog::basic_logger& logger);
+  explicit gtpu(srsran::task_sched_handle task_sched_, srslog::basic_logger& logger);
 
   int  init(std::string               gtp_bind_addr_,
             std::string               mme_addr_,
@@ -58,11 +58,11 @@ public:
   void     rem_user(uint16_t rnti) override;
 
   // gtpu_interface_pdcp
-  void write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu) override;
+  void write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu) override;
 
   // stack interface
-  void handle_gtpu_s1u_rx_packet(srslte::unique_byte_buffer_t pdu, const sockaddr_in& addr);
-  void handle_gtpu_m1u_rx_packet(srslte::unique_byte_buffer_t pdu, const sockaddr_in& addr);
+  void handle_gtpu_s1u_rx_packet(srsran::unique_byte_buffer_t pdu, const sockaddr_in& addr);
+  void handle_gtpu_m1u_rx_packet(srsran::unique_byte_buffer_t pdu, const sockaddr_in& addr);
 
 private:
   static const int GTPU_PORT = 2152;
@@ -76,7 +76,7 @@ private:
   std::string                  mme_addr;
   srsenb::pdcp_interface_gtpu* pdcp = nullptr;
   srslog::basic_logger&        logger;
-  srslte::task_sched_handle    task_sched;
+  srsran::task_sched_handle    task_sched;
 
   // Class to create
   class m1u_handler
@@ -89,7 +89,7 @@ private:
     m1u_handler& operator=(const m1u_handler&) = delete;
     m1u_handler& operator=(m1u_handler&&) = delete;
     bool         init(std::string m1u_multiaddr_, std::string m1u_if_addr_);
-    void         handle_rx_packet(srslte::unique_byte_buffer_t pdu, const sockaddr_in& addr);
+    void         handle_rx_packet(srsran::unique_byte_buffer_t pdu, const sockaddr_in& addr);
 
   private:
     gtpu*                 parent = nullptr;
@@ -109,15 +109,15 @@ private:
     bool                 dl_enabled            = true;
     bool                 fwd_teid_in_present   = false;
     bool                 prior_teid_in_present = false;
-    uint16_t             rnti                  = SRSLTE_INVALID_RNTI;
+    uint16_t             rnti                  = SRSRAN_INVALID_RNTI;
     uint32_t             lcid                  = SRSENB_N_RADIO_BEARERS;
     uint32_t             teid_in               = 0;
     uint32_t             teid_out              = 0;
     uint32_t             spgw_addr             = 0;
     uint32_t             fwd_teid_in           = 0; ///< forward Rx SDUs to this TEID
     uint32_t             prior_teid_in         = 0; ///< buffer bearer SDUs until this TEID receives an End Marker
-    srslte::unique_timer rx_timer;
-    std::multimap<uint32_t, srslte::unique_byte_buffer_t> buffer;
+    srsran::unique_timer rx_timer;
+    std::multimap<uint32_t, srsran::unique_byte_buffer_t> buffer;
   };
   std::unordered_map<uint32_t, tunnel>                                           tunnels;
   std::map<uint16_t, std::array<std::vector<uint32_t>, SRSENB_N_RADIO_BEARERS> > ue_teidin_db;
@@ -128,7 +128,7 @@ private:
   // Socket file descriptor
   int fd = -1;
 
-  void send_pdu_to_tunnel(tunnel& tx_tun, srslte::unique_byte_buffer_t pdu, int pdcp_sn = -1);
+  void send_pdu_to_tunnel(tunnel& tx_tun, srsran::unique_byte_buffer_t pdu, int pdcp_sn = -1);
 
   void echo_response(in_addr_t addr, in_port_t port, uint16_t seq);
   void error_indication(in_addr_t addr, in_port_t port, uint32_t err_teid);
@@ -144,9 +144,9 @@ private:
   uint32_t next_teid_in = 0;
 
   tunnel*                get_tunnel(uint32_t teidin);
-  srslte::span<uint32_t> get_lcid_teids(uint16_t rnti, uint32_t lcid);
+  srsran::span<uint32_t> get_lcid_teids(uint16_t rnti, uint32_t lcid);
 
-  void log_message(tunnel& tun, bool is_rx, srslte::span<uint8_t> pdu, int pdcp_sn = -1);
+  void log_message(tunnel& tun, bool is_rx, srsran::span<uint8_t> pdu, int pdcp_sn = -1);
 };
 
 } // namespace srsenb

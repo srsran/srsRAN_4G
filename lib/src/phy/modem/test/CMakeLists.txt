@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2020 Software Radio Systems Limited
+# Copyright 2013-2021 Software Radio Systems Limited
 #
 # By using this file, you agree to the terms and conditions set
 # forth in the LICENSE file which can be found at the top level of
@@ -11,7 +11,7 @@
 ########################################################################
 
 add_executable(modem_test modem_test.c)
-target_link_libraries(modem_test srslte_phy)
+target_link_libraries(modem_test srsran_phy)
 
 add_test(modem_bpsk modem_test -n 1024 -m 1) 
 add_test(modem_qpsk modem_test -n 1024 -m 2)
@@ -26,7 +26,7 @@ add_test(modem_qam64_soft modem_test -n 1008 -m 6)
 add_test(modem_qam256_soft modem_test -n 1024 -m 8)
  
 add_executable(soft_demod_test soft_demod_test.c)
-target_link_libraries(soft_demod_test srslte_phy)
+target_link_libraries(soft_demod_test srsran_phy)
 
  
 

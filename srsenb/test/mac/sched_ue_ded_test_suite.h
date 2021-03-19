@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,8 +10,8 @@
  *
  */
 
-#ifndef SRSLTE_SCHED_UE_DED_TEST_SUITE_H
-#define SRSLTE_SCHED_UE_DED_TEST_SUITE_H
+#ifndef SRSRAN_SCHED_UE_DED_TEST_SUITE_H
+#define SRSRAN_SCHED_UE_DED_TEST_SUITE_H
 
 #include "sched_common_test_suite.h"
 #include "sched_sim_ue.h"
@@ -67,4 +67,4 @@ int test_all_ues(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out);
 
 } // namespace srsenb
 
-#endif // SRSLTE_SCHED_UE_DED_TEST_SUITE_H
+#endif // SRSRAN_SCHED_UE_DED_TEST_SUITE_H

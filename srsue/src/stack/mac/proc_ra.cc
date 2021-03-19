@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -11,9 +11,9 @@
  */
 
 #include "srsue/hdr/stack/mac/proc_ra.h"
-#include "srslte/common/standard_streams.h"
-#include "srslte/interfaces/ue_phy_interfaces.h"
-#include "srslte/interfaces/ue_rrc_interfaces.h"
+#include "srsran/common/standard_streams.h"
+#include "srsran/interfaces/ue_phy_interfaces.h"
+#include "srsran/interfaces/ue_rrc_interfaces.h"
 #include "srsue/hdr/stack/mac/mux.h"
 #include <inttypes.h> // for printing uint64_t
 #include <stdint.h>
@@ -46,9 +46,9 @@ int delta_preamble_db_table[5] = {0, 0, -3, -3, 8};
 void ra_proc::init(phy_interface_mac_lte*               phy_h_,
                    rrc_interface_mac*                   rrc_,
                    mac_interface_rrc::ue_rnti_t*        rntis_,
-                   srslte::timer_handler::unique_timer* time_alignment_timer_,
+                   srsran::timer_handler::unique_timer* time_alignment_timer_,
                    mux*                                 mux_unit_,
-                   srslte::ext_task_sched_handle*       task_sched_)
+                   srsran::ext_task_sched_handle*       task_sched_)
 {
   phy_h      = phy_h_;
   rntis      = rntis_;
@@ -61,14 +61,14 @@ void ra_proc::init(phy_interface_mac_lte*               phy_h_,
   time_alignment_timer        = time_alignment_timer_;
   contention_resolution_timer = task_sched->get_unique_timer();
 
-  srslte_softbuffer_rx_init(&softbuffer_rar, 10);
+  srsran_softbuffer_rx_init(&softbuffer_rar, 10);
 
   reset();
 }
 
 ra_proc::~ra_proc()
 {
-  srslte_softbuffer_rx_free(&softbuffer_rar);
+  srsran_softbuffer_rx_free(&softbuffer_rar);
 }
 
 void ra_proc::reset()
@@ -78,14 +78,14 @@ void ra_proc::reset()
   contention_resolution_timer.stop();
 }
 
-void ra_proc::start_pcap(srslte::mac_pcap* pcap_)
+void ra_proc::start_pcap(srsran::mac_pcap* pcap_)
 {
   pcap = pcap_;
 }
 
 // RRC calls to set a new PRACH configuration.
 // The configuration is applied by initialization() function.
-void ra_proc::set_config(srslte::rach_cfg_t& rach_cfg_)
+void ra_proc::set_config(srsran::rach_cfg_t& rach_cfg_)
 {
   rach_cfg = rach_cfg_;
 }
@@ -154,7 +154,7 @@ void ra_proc::state_pdcch_setup()
     ra_tti  = info.tti_ra;
     ra_rnti = 1 + (ra_tti % 10) + (10 * info.f_id);
     rInfo("seq=%d, ra-rnti=0x%x, ra-tti=%d, f_id=%d", sel_preamble.load(), ra_rnti, info.tti_ra, info.f_id);
-    srslte::console(
+    srsran::console(
         "Random Access Transmission: seq=%d, tti=%d, ra-rnti=0x%x\n", sel_preamble.load(), info.tti_ra, ra_rnti);
     rar_window_st   = ra_tti + 3;
     rntis->rar_rnti = ra_rnti;
@@ -171,7 +171,7 @@ void ra_proc::state_response_reception(uint32_t tti)
 {
   // do nothing. Processing done in tb_decoded_ok()
   if (!rar_received) {
-    uint32_t interval = srslte_tti_interval(tti, ra_tti + 3 + rach_cfg.responseWindowSize - 1);
+    uint32_t interval = srsran_tti_interval(tti, ra_tti + 3 + rach_cfg.responseWindowSize - 1);
     if (interval > 0 && interval < 100) {
       logger.error("RA response not received within the response window");
       response_error();
@@ -194,7 +194,7 @@ void ra_proc::state_backoff_wait(uint32_t tti)
         backoff_interval_start = tti;
         backoff_interval--;
       }
-      if (srslte_tti_interval(tti, backoff_interval_start) >= backoff_interval) {
+      if (srsran_tti_interval(tti, backoff_interval_start) >= backoff_interval) {
         backoff_interval = 0;
         resource_selection();
       }
@@ -293,7 +293,7 @@ void ra_proc::preamble_transmission()
                               (preambleTransmissionCounter - 1) * rach_cfg.powerRampingStep;
 
   phy_h->prach_send(sel_preamble, sel_maskIndex - 1, received_target_power_dbm);
-  rntis->rar_rnti        = SRSLTE_INVALID_RNTI;
+  rntis->rar_rnti        = SRSRAN_INVALID_RNTI;
   ra_tti                 = 0;
   rar_received           = false;
   backoff_interval_start = -1;
@@ -340,7 +340,7 @@ void ra_proc::new_grant_dl(mac_interface_phy_lte::mac_grant_dl_t grant, mac_inte
     action->tb[0].softbuffer.rx = &softbuffer_rar;
     rar_grant_nbytes            = grant.tb[0].tbs;
     if (action->tb[0].rv == 0) {
-      srslte_softbuffer_rx_reset(&softbuffer_rar);
+      srsran_softbuffer_rx_reset(&softbuffer_rar);
     }
   } else {
     rError("Received RAR dci exceeds buffer length (%d>%d)", grant.tb[0].tbs, int(MAX_RAR_PDU_LEN));
@@ -359,7 +359,7 @@ void ra_proc::tb_decoded_ok(const uint8_t cc_idx, const uint32_t tti)
   }
 
   rar_pdu_msg.init_rx(rar_grant_nbytes);
-  if (rar_pdu_msg.parse_packet(rar_pdu_buffer) != SRSLTE_SUCCESS) {
+  if (rar_pdu_msg.parse_packet(rar_pdu_buffer) != SRSRAN_SUCCESS) {
     rError("Error decoding RAR PDU");
   }
 
@@ -382,10 +382,10 @@ void ra_proc::tb_decoded_ok(const uint8_t cc_idx, const uint32_t tti)
       // TODO: Indicate received target power
       // phy_h->set_target_power_rar(iniReceivedTargetPower, (preambleTransmissionCounter-1)*powerRampingStep);
 
-      uint8_t grant[srslte::rar_subh::RAR_GRANT_LEN] = {};
+      uint8_t grant[srsran::rar_subh::RAR_GRANT_LEN] = {};
       rar_pdu_msg.get()->get_sched_grant(grant);
 
-      rntis->rar_rnti = SRSLTE_INVALID_RNTI;
+      rntis->rar_rnti = SRSRAN_INVALID_RNTI;
       phy_h->set_rar_grant(grant, rar_pdu_msg.get()->get_temp_crnti());
 
       current_ta = rar_pdu_msg.get()->get_ta_cmd();
@@ -478,7 +478,7 @@ void ra_proc::complete()
 
   rrc->ra_completed();
 
-  srslte::console("Random Access Complete.     c-rnti=0x%x, ta=%d\n", rntis->crnti, current_ta);
+  srsran::console("Random Access Complete.     c-rnti=0x%x, ta=%d\n", rntis->crnti, current_ta);
   rInfo("Random Access Complete.     c-rnti=0x%x, ta=%d", rntis->crnti, current_ta);
 
   state = IDLE;

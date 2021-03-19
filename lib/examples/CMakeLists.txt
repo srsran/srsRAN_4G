@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2020 Software Radio Systems Limited
+# Copyright 2013-2021 Software Radio Systems Limited
 #
 # By using this file, you agree to the terms and conditions set
 # forth in the LICENSE file which can be found at the top level of
@@ -11,7 +11,7 @@
 #################################################################
 
 add_executable(synch_file synch_file.c)
-target_link_libraries(synch_file srslte_phy)
+target_link_libraries(synch_file srsran_phy)
 
 #################################################################
 # These can be compiled without UHD or graphics support
@@ -19,30 +19,30 @@ target_link_libraries(synch_file srslte_phy)
 
 if(RF_FOUND)
   add_executable(pdsch_ue pdsch_ue.c)
-  target_link_libraries(pdsch_ue srslte_phy srslte_common srslte_rf pthread)
+  target_link_libraries(pdsch_ue srsran_phy srsran_common srsran_rf pthread)
 
   add_executable(pdsch_enodeb pdsch_enodeb.c)
-  target_link_libraries(pdsch_enodeb srslte_phy srslte_common srslte_rf pthread)
+  target_link_libraries(pdsch_enodeb srsran_phy srsran_common srsran_rf pthread)
 
   add_executable(npdsch_enodeb npdsch_enodeb.c)
-  target_link_libraries(npdsch_enodeb srslte_phy srslte_rf pthread)
+  target_link_libraries(npdsch_enodeb srsran_phy srsran_rf pthread)
 
   add_executable(npdsch_ue npdsch_ue.c npdsch_ue_helper.cc)
-  target_link_libraries(npdsch_ue srslte_common srslte_phy srslte_rf pthread rrc_asn1)
+  target_link_libraries(npdsch_ue srsran_common srsran_phy srsran_rf pthread rrc_asn1)
 else(RF_FOUND)
   add_definitions(-DDISABLE_RF)
 
   add_executable(pdsch_ue pdsch_ue.c)
-  target_link_libraries(pdsch_ue srslte_common srslte_phy pthread)
+  target_link_libraries(pdsch_ue srsran_common srsran_phy pthread)
 
   add_executable(pdsch_enodeb pdsch_enodeb.c)
-  target_link_libraries(pdsch_enodeb srslte_common srslte_phy pthread)
+  target_link_libraries(pdsch_enodeb srsran_common srsran_phy pthread)
 
   add_executable(npdsch_enodeb npdsch_enodeb.c)
-  target_link_libraries(npdsch_enodeb srslte_phy pthread)
+  target_link_libraries(npdsch_enodeb srsran_phy pthread)
 
   add_executable(npdsch_ue npdsch_ue.c npdsch_ue_helper.cc)
-  target_link_libraries(npdsch_ue srslte_common srslte_phy pthread rrc_asn1)
+  target_link_libraries(npdsch_ue srsran_common srsran_phy pthread rrc_asn1)
 endif(RF_FOUND)
 
 if(SRSGUI_FOUND)
@@ -54,7 +54,7 @@ endif(SRSGUI_FOUND)
 
 if (ZEROMQ_FOUND)
   add_executable(zmq_remote_rx zmq_remote_rx.c)
-  target_link_libraries(zmq_remote_rx srslte_phy srslte_rf)
+  target_link_libraries(zmq_remote_rx srsran_phy srsran_rf)
 endif (ZEROMQ_FOUND)
 
 #################################################################
@@ -64,25 +64,25 @@ endif (ZEROMQ_FOUND)
 if(RF_FOUND)
 
   add_executable(cell_search cell_search.c)
-  target_link_libraries(cell_search srslte_phy srslte_common srslte_rf)
+  target_link_libraries(cell_search srsran_phy srsran_common srsran_rf)
 
   add_executable(usrp_capture usrp_capture.c)
-  target_link_libraries(usrp_capture srslte_phy srslte_rf)
+  target_link_libraries(usrp_capture srsran_phy srsran_rf)
 
   add_executable(usrp_capture_sync usrp_capture_sync.c)
-  target_link_libraries(usrp_capture_sync srslte_phy srslte_rf)
+  target_link_libraries(usrp_capture_sync srsran_phy srsran_rf)
 
   add_executable(usrp_capture_sync_nbiot usrp_capture_sync_nbiot.c)
-  target_link_libraries(usrp_capture_sync_nbiot srslte_rf srslte_phy)
+  target_link_libraries(usrp_capture_sync_nbiot srsran_rf srsran_phy)
 
   add_executable(cell_search_nbiot cell_search_nbiot.c)
-  target_link_libraries(cell_search_nbiot srslte_rf srslte_phy)
+  target_link_libraries(cell_search_nbiot srsran_rf srsran_phy)
 
   add_executable(usrp_txrx usrp_txrx.c)
-  target_link_libraries(usrp_txrx srslte_phy srslte_rf)
+  target_link_libraries(usrp_txrx srsran_phy srsran_rf)
 
   add_executable(pssch_ue pssch_ue.c)
-  target_link_libraries(pssch_ue srslte_phy srslte_common srslte_rf pthread)
+  target_link_libraries(pssch_ue srsran_phy srsran_common srsran_rf pthread)
 
   if(SRSGUI_FOUND)
     target_link_libraries(pssch_ue ${SRSGUI_LIBRARIES})

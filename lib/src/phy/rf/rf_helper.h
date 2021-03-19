@@ -2,20 +2,20 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
  * the distribution.
  *
  */
-#ifndef SRSLTE_RF_HELPER_H_
-#define SRSLTE_RF_HELPER_H_
+#ifndef SRSRAN_RF_HELPER_H_
+#define SRSRAN_RF_HELPER_H_
 
 // A bunch of helper functions to process device arguments
 
-#include "srslte/config.h"
-#include "srslte/phy/rf/rf.h"
+#include "srsran/config.h"
+#include "srsran/phy/rf/rf.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -48,7 +48,7 @@ static inline void copy_subdev_string(char* dst, char* src)
 
 static inline int parse_string(char* args, const char* config_arg_base, int channel_index, char param_dst[RF_PARAM_LEN])
 {
-  int ret = SRSLTE_ERROR;
+  int ret = SRSRAN_ERROR;
 
   if (args == NULL) {
     return ret;
@@ -78,7 +78,7 @@ static inline int parse_string(char* args, const char* config_arg_base, int chan
     }
 
     if (snprintf(param_dst, RF_PARAM_LEN, "%s", config_str) < 0) {
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
 
     // concatenate key=value and remove both (avoid removing the same value twice if it occurs twice in rf_args)
@@ -86,7 +86,7 @@ static inline int parse_string(char* args, const char* config_arg_base, int chan
     snprintf(config_pair, RF_PARAM_LEN * 2, "%s%s", config_key, config_str);
     remove_substring(args, config_pair);
 
-    ret = SRSLTE_SUCCESS;
+    ret = SRSRAN_SUCCESS;
   }
 
   return ret;
@@ -98,7 +98,7 @@ static inline int parse_double(char* args, const char* config_arg_base, int chan
   int  ret                     = parse_string(args, config_arg_base, channel_index, tmp_value);
 
   // Copy parsed value only if was found, otherwise it keeps the default
-  if (ret == SRSLTE_SUCCESS) {
+  if (ret == SRSRAN_SUCCESS) {
     *value = strtod(tmp_value, NULL);
   }
 
@@ -111,7 +111,7 @@ static inline int parse_uint32(char* args, const char* config_arg_base, int chan
   int  ret                     = parse_string(args, config_arg_base, channel_index, tmp_value);
 
   // Copy parsed value only if was found, otherwise it keeps the default
-  if (ret == SRSLTE_SUCCESS) {
+  if (ret == SRSRAN_SUCCESS) {
     *value = (uint32_t)strtof(tmp_value, NULL);
   }
 
@@ -124,11 +124,11 @@ static inline int parse_int32(char* args, const char* config_arg_base, int chann
   int  ret                     = parse_string(args, config_arg_base, channel_index, tmp_value);
 
   // Copy parsed value only if was found, otherwise it keeps the default
-  if (ret == SRSLTE_SUCCESS) {
+  if (ret == SRSRAN_SUCCESS) {
     *value = (int32_t)strtof(tmp_value, NULL);
   }
 
   return ret;
 }
 
-#endif /* SRSLTE_RF_HELPER_H_ */
+#endif /* SRSRAN_RF_HELPER_H_ */

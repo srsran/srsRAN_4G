@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,15 +10,15 @@
  *
  */
 
-#include "srslte/phy/phch/pdcch_nr.h"
-#include "srslte/phy/common/sequence.h"
-#include "srslte/phy/fec/polar/polar_chanalloc.h"
-#include "srslte/phy/fec/polar/polar_interleaver.h"
-#include "srslte/phy/mimo/precoding.h"
-#include "srslte/phy/modem/demod_soft.h"
-#include "srslte/phy/utils/bit.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/phch/pdcch_nr.h"
+#include "srsran/phy/common/sequence.h"
+#include "srsran/phy/fec/polar/polar_chanalloc.h"
+#include "srsran/phy/fec/polar/polar_interleaver.h"
+#include "srsran/phy/mimo/precoding.h"
+#include "srsran/phy/modem/demod_soft.h"
+#include "srsran/phy/utils/bit.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/vector.h"
 
 #define PDCCH_NR_POLAR_RM_IBIL 0
 
@@ -28,7 +28,7 @@
 /**
  * @brief Recursive Y_p_n function
  */
-static uint32_t srslte_pdcch_calculate_Y_p_n(uint32_t coreset_id, uint16_t rnti, uint32_t n)
+static uint32_t srsran_pdcch_calculate_Y_p_n(uint32_t coreset_id, uint16_t rnti, uint32_t n)
 {
   static const uint32_t A_p[3] = {39827, 39829, 39839};
   const uint32_t        D      = 65537;
@@ -46,16 +46,16 @@ static uint32_t srslte_pdcch_calculate_Y_p_n(uint32_t coreset_id, uint16_t rnti,
  * downlink control channel assignment
  *
  */
-static int srslte_pdcch_nr_get_ncce(const srslte_coreset_t*      coreset,
-                                    const srslte_search_space_t* search_space,
+static int srsran_pdcch_nr_get_ncce(const srsran_coreset_t*      coreset,
+                                    const srsran_search_space_t* search_space,
                                     uint16_t                     rnti,
                                     uint32_t                     aggregation_level,
                                     uint32_t                     slot_idx,
                                     uint32_t                     candidate)
 {
-  if (aggregation_level >= SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR) {
+  if (aggregation_level >= SRSRAN_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR) {
     ERROR("Invalid aggregation level %d;", aggregation_level);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   uint32_t L    = 1U << aggregation_level;                         // Aggregation level
@@ -65,45 +65,45 @@ static int srslte_pdcch_nr_get_ncce(const srslte_coreset_t*      coreset,
 
   if (M == 0) {
     ERROR("Invalid number of candidates %d for aggregation level %d", M, aggregation_level);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // Every REG is 1PRB wide and a CCE is 6 REG. So, the number of N_CCE is a sixth of the bandwidth times the number of
   // symbols
-  uint32_t N_cce = srslte_coreset_get_bw(coreset) * coreset->duration / 6;
+  uint32_t N_cce = srsran_coreset_get_bw(coreset) * coreset->duration / 6;
 
   if (N_cce < L) {
     ERROR("Error number of CCE %d is lower than the aggregation level %d", N_cce, L);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // Calculate Y_p_n for UE search space only
   uint32_t Y_p_n = 0;
-  if (search_space->type == srslte_search_space_type_ue) {
-    Y_p_n = srslte_pdcch_calculate_Y_p_n(coreset->id, rnti, slot_idx);
+  if (search_space->type == srsran_search_space_type_ue) {
+    Y_p_n = srsran_pdcch_calculate_Y_p_n(coreset->id, rnti, slot_idx);
   }
 
   return (int)(L * ((Y_p_n + (m * N_cce) / (L * M) + n_ci) % (N_cce / L)));
 }
 
-int srslte_pdcch_nr_locations_coreset(const srslte_coreset_t*      coreset,
-                                      const srslte_search_space_t* search_space,
+int srsran_pdcch_nr_locations_coreset(const srsran_coreset_t*      coreset,
+                                      const srsran_search_space_t* search_space,
                                       uint16_t                     rnti,
                                       uint32_t                     aggregation_level,
                                       uint32_t                     slot_idx,
-                                      uint32_t                     locations[SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR])
+                                      uint32_t                     locations[SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR])
 {
   if (coreset == NULL || search_space == NULL) {
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
   uint32_t nof_candidates = search_space->nof_candidates[aggregation_level];
 
-  nof_candidates = SRSLTE_MIN(nof_candidates, SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR);
+  nof_candidates = SRSRAN_MIN(nof_candidates, SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR);
 
   for (uint32_t candidate = 0; candidate < nof_candidates; candidate++) {
-    int ret = srslte_pdcch_nr_get_ncce(coreset, search_space, rnti, aggregation_level, slot_idx, candidate);
-    if (ret < SRSLTE_SUCCESS) {
+    int ret = srsran_pdcch_nr_get_ncce(coreset, search_space, rnti, aggregation_level, slot_idx, candidate);
+    if (ret < SRSRAN_SUCCESS) {
       return ret;
     }
 
@@ -113,129 +113,129 @@ int srslte_pdcch_nr_locations_coreset(const srslte_coreset_t*      coreset,
   return nof_candidates;
 }
 
-int srslte_pdcch_nr_max_candidates_coreset(const srslte_coreset_t* coreset, uint32_t aggregation_level)
+int srsran_pdcch_nr_max_candidates_coreset(const srsran_coreset_t* coreset, uint32_t aggregation_level)
 {
   if (coreset == NULL) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
-  uint32_t coreset_bw = srslte_coreset_get_bw(coreset);
+  uint32_t coreset_bw = srsran_coreset_get_bw(coreset);
   uint32_t nof_cce    = (coreset_bw * coreset->duration) / 6;
 
   uint32_t L              = 1U << aggregation_level;
   uint32_t nof_candidates = nof_cce / L;
 
-  return SRSLTE_MIN(nof_candidates, SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR);
+  return SRSRAN_MIN(nof_candidates, SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR);
 }
 
-static int pdcch_nr_init_common(srslte_pdcch_nr_t* q, const srslte_pdcch_nr_args_t* args)
+static int pdcch_nr_init_common(srsran_pdcch_nr_t* q, const srsran_pdcch_nr_args_t* args)
 {
   if (q == NULL || args == NULL) {
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
   q->meas_time_en = args->measure_time;
 
-  q->c = srslte_vec_u8_malloc(SRSLTE_PDCCH_MAX_RE * 2);
+  q->c = srsran_vec_u8_malloc(SRSRAN_PDCCH_MAX_RE * 2);
   if (q->c == NULL) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
-  q->d = srslte_vec_u8_malloc(SRSLTE_PDCCH_MAX_RE * 2);
+  q->d = srsran_vec_u8_malloc(SRSRAN_PDCCH_MAX_RE * 2);
   if (q->d == NULL) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
-  q->f = srslte_vec_u8_malloc(SRSLTE_PDCCH_MAX_RE * 2);
+  q->f = srsran_vec_u8_malloc(SRSRAN_PDCCH_MAX_RE * 2);
   if (q->f == NULL) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
-  q->symbols = srslte_vec_cf_malloc(SRSLTE_PDCCH_MAX_RE);
+  q->symbols = srsran_vec_cf_malloc(SRSRAN_PDCCH_MAX_RE);
   if (q->symbols == NULL) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
-  q->allocated = srslte_vec_u8_malloc(NMAX);
+  q->allocated = srsran_vec_u8_malloc(NMAX);
   if (q->allocated == NULL) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
-  if (srslte_crc_init(&q->crc24c, SRSLTE_LTE_CRC24C, 24) < SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+  if (srsran_crc_init(&q->crc24c, SRSRAN_LTE_CRC24C, 24) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
   }
 
-  if (srslte_polar_code_init(&q->code) < SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+  if (srsran_polar_code_init(&q->code) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
   }
 
-  srslte_modem_table_lte(&q->modem_table, SRSLTE_MOD_QPSK);
+  srsran_modem_table_lte(&q->modem_table, SRSRAN_MOD_QPSK);
   if (args->measure_evm) {
-    srslte_modem_table_bytes(&q->modem_table);
+    srsran_modem_table_bytes(&q->modem_table);
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-int srslte_pdcch_nr_init_tx(srslte_pdcch_nr_t* q, const srslte_pdcch_nr_args_t* args)
+int srsran_pdcch_nr_init_tx(srsran_pdcch_nr_t* q, const srsran_pdcch_nr_args_t* args)
 {
-  if (pdcch_nr_init_common(q, args) < SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+  if (pdcch_nr_init_common(q, args) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
   }
   q->is_tx = true;
 
-  srslte_polar_encoder_type_t encoder_type =
-      (args->disable_simd) ? SRSLTE_POLAR_ENCODER_PIPELINED : SRSLTE_POLAR_ENCODER_AVX2;
+  srsran_polar_encoder_type_t encoder_type =
+      (args->disable_simd) ? SRSRAN_POLAR_ENCODER_PIPELINED : SRSRAN_POLAR_ENCODER_AVX2;
 
-  if (srslte_polar_encoder_init(&q->encoder, encoder_type, NMAX_LOG) < SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+  if (srsran_polar_encoder_init(&q->encoder, encoder_type, NMAX_LOG) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
   }
 
-  if (srslte_polar_rm_tx_init(&q->rm) < SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+  if (srsran_polar_rm_tx_init(&q->rm) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-int srslte_pdcch_nr_init_rx(srslte_pdcch_nr_t* q, const srslte_pdcch_nr_args_t* args)
+int srsran_pdcch_nr_init_rx(srsran_pdcch_nr_t* q, const srsran_pdcch_nr_args_t* args)
 {
-  if (pdcch_nr_init_common(q, args) < SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+  if (pdcch_nr_init_common(q, args) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
   }
 
-  srslte_polar_decoder_type_t decoder_type =
-      (args->disable_simd) ? SRSLTE_POLAR_DECODER_SSC_C : SRSLTE_POLAR_DECODER_SSC_C_AVX2;
+  srsran_polar_decoder_type_t decoder_type =
+      (args->disable_simd) ? SRSRAN_POLAR_DECODER_SSC_C : SRSRAN_POLAR_DECODER_SSC_C_AVX2;
 
-  if (srslte_polar_decoder_init(&q->decoder, decoder_type, NMAX_LOG) < SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+  if (srsran_polar_decoder_init(&q->decoder, decoder_type, NMAX_LOG) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
   }
 
-  if (srslte_polar_rm_rx_init_c(&q->rm) < SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+  if (srsran_polar_rm_rx_init_c(&q->rm) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
   }
 
   if (args->measure_evm) {
-    q->evm_buffer = srslte_evm_buffer_alloc(SRSLTE_PDCCH_MAX_RE * 2);
+    q->evm_buffer = srsran_evm_buffer_alloc(SRSRAN_PDCCH_MAX_RE * 2);
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-void srslte_pdcch_nr_free(srslte_pdcch_nr_t* q)
+void srsran_pdcch_nr_free(srsran_pdcch_nr_t* q)
 {
   if (q == NULL) {
     return;
   }
 
-  srslte_polar_code_free(&q->code);
+  srsran_polar_code_free(&q->code);
 
   if (q->is_tx) {
-    srslte_polar_encoder_free(&q->encoder);
-    srslte_polar_rm_tx_free(&q->rm);
+    srsran_polar_encoder_free(&q->encoder);
+    srsran_polar_rm_tx_free(&q->rm);
   } else {
-    srslte_polar_decoder_free(&q->decoder);
-    srslte_polar_rm_rx_free_c(&q->rm);
+    srsran_polar_decoder_free(&q->decoder);
+    srsran_polar_rm_rx_free_c(&q->rm);
   }
 
   if (q->c) {
@@ -258,21 +258,21 @@ void srslte_pdcch_nr_free(srslte_pdcch_nr_t* q)
     free(q->symbols);
   }
 
-  srslte_modem_table_free(&q->modem_table);
+  srsran_modem_table_free(&q->modem_table);
 
   if (q->evm_buffer) {
-    srslte_evm_free(q->evm_buffer);
+    srsran_evm_free(q->evm_buffer);
   }
 
-  SRSLTE_MEM_ZERO(q, srslte_pdcch_nr_t, 1);
+  SRSRAN_MEM_ZERO(q, srsran_pdcch_nr_t, 1);
 }
 
-int srslte_pdcch_nr_set_carrier(srslte_pdcch_nr_t*         q,
-                                const srslte_carrier_nr_t* carrier,
-                                const srslte_coreset_t*    coreset)
+int srsran_pdcch_nr_set_carrier(srsran_pdcch_nr_t*         q,
+                                const srsran_carrier_nr_t* carrier,
+                                const srsran_coreset_t*    coreset)
 {
   if (q == NULL) {
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
   if (carrier != NULL) {
@@ -283,11 +283,11 @@ int srslte_pdcch_nr_set_carrier(srslte_pdcch_nr_t*         q,
     q->coreset = *coreset;
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-static uint32_t pdcch_nr_cp(const srslte_pdcch_nr_t*     q,
-                            const srslte_dci_location_t* dci_location,
+static uint32_t pdcch_nr_cp(const srsran_pdcch_nr_t*     q,
+                            const srsran_dci_location_t* dci_location,
                             cf_t*                        slot_grid,
                             cf_t*                        symbols,
                             bool                         put)
@@ -295,8 +295,8 @@ static uint32_t pdcch_nr_cp(const srslte_pdcch_nr_t*     q,
   uint32_t L = 1U << dci_location->L;
 
   // Calculate begin and end sub-carrier index for the selected candidate
-  uint32_t k_begin = (dci_location->ncce * SRSLTE_NRE * 6) / q->coreset.duration;
-  uint32_t k_end   = k_begin + (L * 6 * SRSLTE_NRE) / q->coreset.duration;
+  uint32_t k_begin = (dci_location->ncce * SRSRAN_NRE * 6) / q->coreset.duration;
+  uint32_t k_end   = k_begin + (L * 6 * SRSRAN_NRE) / q->coreset.duration;
 
   uint32_t count = 0;
 
@@ -304,14 +304,14 @@ static uint32_t pdcch_nr_cp(const srslte_pdcch_nr_t*     q,
   for (uint32_t l = 0; l < q->coreset.duration; l++) {
     // Iterate over frequency resource groups
     uint32_t k = 0;
-    for (uint32_t r = 0; r < SRSLTE_CORESET_FREQ_DOMAIN_RES_SIZE; r++) {
+    for (uint32_t r = 0; r < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; r++) {
       if (q->coreset.freq_resources[r]) {
-        for (uint32_t i = r * 6 * SRSLTE_NRE; i < (r + 1) * 6 * SRSLTE_NRE; i++, k++) {
+        for (uint32_t i = r * 6 * SRSRAN_NRE; i < (r + 1) * 6 * SRSRAN_NRE; i++, k++) {
           if (k >= k_begin && k < k_end && k % 4 != 1) {
             if (put) {
-              slot_grid[q->carrier.nof_prb * SRSLTE_NRE * l + i] = symbols[count++];
+              slot_grid[q->carrier.nof_prb * SRSRAN_NRE * l + i] = symbols[count++];
             } else {
-              symbols[count++] = slot_grid[q->carrier.nof_prb * SRSLTE_NRE * l + i];
+              symbols[count++] = slot_grid[q->carrier.nof_prb * SRSRAN_NRE * l + i];
             }
           }
         }
@@ -322,21 +322,21 @@ static uint32_t pdcch_nr_cp(const srslte_pdcch_nr_t*     q,
   return count;
 }
 
-static uint32_t pdcch_nr_c_init(const srslte_pdcch_nr_t* q, const srslte_dci_msg_nr_t* dci_msg)
+static uint32_t pdcch_nr_c_init(const srsran_pdcch_nr_t* q, const srsran_dci_msg_nr_t* dci_msg)
 {
-  uint32_t n_id = (dci_msg->search_space == srslte_search_space_type_ue && q->coreset.dmrs_scrambling_id_present)
+  uint32_t n_id = (dci_msg->search_space == srsran_search_space_type_ue && q->coreset.dmrs_scrambling_id_present)
                       ? q->coreset.dmrs_scrambling_id
                       : q->carrier.id;
-  uint32_t n_rnti = (dci_msg->search_space == srslte_search_space_type_ue && q->coreset.dmrs_scrambling_id_present)
+  uint32_t n_rnti = (dci_msg->search_space == srsran_search_space_type_ue && q->coreset.dmrs_scrambling_id_present)
                         ? dci_msg->rnti
                         : 0U;
   return ((n_rnti << 16U) + n_id) & 0x7fffffffU;
 }
 
-int srslte_pdcch_nr_encode(srslte_pdcch_nr_t* q, const srslte_dci_msg_nr_t* dci_msg, cf_t* slot_symbols)
+int srsran_pdcch_nr_encode(srsran_pdcch_nr_t* q, const srsran_dci_msg_nr_t* dci_msg, cf_t* slot_symbols)
 {
   if (q == NULL || dci_msg == NULL || slot_symbols == NULL) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   struct timeval t[3];
@@ -346,76 +346,76 @@ int srslte_pdcch_nr_encode(srslte_pdcch_nr_t* q, const srslte_dci_msg_nr_t* dci_
 
   // Calculate...
   q->K           = dci_msg->nof_bits + 24U;                              // Payload size including CRC
-  q->M           = (1U << dci_msg->location.L) * (SRSLTE_NRE - 3U) * 6U; // Number of RE
+  q->M           = (1U << dci_msg->location.L) * (SRSRAN_NRE - 3U) * 6U; // Number of RE
   q->E           = q->M * 2;                                             // Number of Rate-Matched bits
   uint32_t cinit = pdcch_nr_c_init(q, dci_msg);                          // Pseudo-random sequence initiation
 
   // Get polar code
-  if (srslte_polar_code_get(&q->code, q->K, q->E, 9U) < SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+  if (srsran_polar_code_get(&q->code, q->K, q->E, 9U) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
   }
   PDCCH_INFO_TX("K=%d; E=%d; M=%d; n=%d; cinit=%08x;", q->K, q->E, q->M, q->code.n, cinit);
 
   // Set first L bits to ones, c will have an offset of 24 bits
   uint8_t* c = q->c;
-  srslte_bit_unpack(UINT32_MAX, &c, 24U);
+  srsran_bit_unpack(UINT32_MAX, &c, 24U);
 
   // Copy DCI message
-  srslte_vec_u8_copy(c, dci_msg->payload, dci_msg->nof_bits);
+  srsran_vec_u8_copy(c, dci_msg->payload, dci_msg->nof_bits);
 
   // Append CRC
-  srslte_crc_attach(&q->crc24c, q->c, q->K);
+  srsran_crc_attach(&q->crc24c, q->c, q->K);
 
-  PDCCH_INFO_TX("Append CRC %06x", (uint32_t)srslte_crc_checksum_get(&q->crc24c));
+  PDCCH_INFO_TX("Append CRC %06x", (uint32_t)srsran_crc_checksum_get(&q->crc24c));
 
   // Unpack RNTI
   uint8_t  unpacked_rnti[16] = {};
   uint8_t* ptr               = unpacked_rnti;
-  srslte_bit_unpack(dci_msg->rnti, &ptr, 16);
+  srsran_bit_unpack(dci_msg->rnti, &ptr, 16);
 
   // Scramble CRC with RNTI
-  srslte_vec_xor_bbb(unpacked_rnti, &c[q->K - 16], &c[q->K - 16], 16);
+  srsran_vec_xor_bbb(unpacked_rnti, &c[q->K - 16], &c[q->K - 16], 16);
 
   // Interleave
-  uint8_t c_prime[SRSLTE_POLAR_INTERLEAVER_K_MAX_IL];
-  srslte_polar_interleaver_run_u8(c, c_prime, q->K, true);
+  uint8_t c_prime[SRSRAN_POLAR_INTERLEAVER_K_MAX_IL];
+  srsran_polar_interleaver_run_u8(c, c_prime, q->K, true);
 
   // Print c and c_prime (after interleaving)
-  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !handler_registered) {
     PDCCH_INFO_TX("c=");
-    srslte_vec_fprint_hex(stdout, c, q->K);
+    srsran_vec_fprint_hex(stdout, c, q->K);
     PDCCH_INFO_TX("c_prime=");
-    srslte_vec_fprint_hex(stdout, c_prime, q->K);
+    srsran_vec_fprint_hex(stdout, c_prime, q->K);
   }
 
   // Allocate channel
-  srslte_polar_chanalloc_tx(c_prime, q->allocated, q->code.N, q->code.K, q->code.nPC, q->code.K_set, q->code.PC_set);
+  srsran_polar_chanalloc_tx(c_prime, q->allocated, q->code.N, q->code.K, q->code.nPC, q->code.K_set, q->code.PC_set);
 
   // Encode bits
-  if (srslte_polar_encoder_encode(&q->encoder, q->allocated, q->d, q->code.n) < SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+  if (srsran_polar_encoder_encode(&q->encoder, q->allocated, q->d, q->code.n) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
   }
 
   // Print d
-  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !handler_registered) {
     PDCCH_INFO_TX("d=");
-    srslte_vec_fprint_byte(stdout, q->d, q->code.N);
+    srsran_vec_fprint_byte(stdout, q->d, q->code.N);
   }
 
   // Rate matching
-  srslte_polar_rm_tx(&q->rm, q->d, q->f, q->code.n, q->E, q->K, PDCCH_NR_POLAR_RM_IBIL);
+  srsran_polar_rm_tx(&q->rm, q->d, q->f, q->code.n, q->E, q->K, PDCCH_NR_POLAR_RM_IBIL);
 
   // Scrambling
-  srslte_sequence_apply_bit(q->f, q->f, q->E, cinit);
+  srsran_sequence_apply_bit(q->f, q->f, q->E, cinit);
 
   // Modulation
-  srslte_mod_modulate(&q->modem_table, q->f, q->symbols, q->E);
+  srsran_mod_modulate(&q->modem_table, q->f, q->symbols, q->E);
 
   // Put symbols in grid
   uint32_t m = pdcch_nr_cp(q, &dci_msg->location, slot_symbols, q->symbols, true);
   if (q->M != m) {
     ERROR("Unmatch number of RE (%d != %d)", m, q->M);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   if (q->meas_time_en) {
@@ -424,23 +424,23 @@ int srslte_pdcch_nr_encode(srslte_pdcch_nr_t* q, const srslte_dci_msg_nr_t* dci_
     q->meas_time_us = (uint32_t)t[0].tv_usec;
   }
 
-  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !handler_registered) {
     char str[128] = {};
-    srslte_pdcch_nr_info(q, NULL, str, sizeof(str));
+    srsran_pdcch_nr_info(q, NULL, str, sizeof(str));
     PDCCH_INFO_TX("%s", str);
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-int srslte_pdcch_nr_decode(srslte_pdcch_nr_t*      q,
+int srsran_pdcch_nr_decode(srsran_pdcch_nr_t*      q,
                            cf_t*                   slot_symbols,
-                           srslte_dmrs_pdcch_ce_t* ce,
-                           srslte_dci_msg_nr_t*    dci_msg,
-                           srslte_pdcch_nr_res_t*  res)
+                           srsran_dmrs_pdcch_ce_t* ce,
+                           srsran_dci_msg_nr_t*    dci_msg,
+                           srsran_pdcch_nr_res_t*  res)
 {
   if (q == NULL || dci_msg == NULL || ce == NULL || slot_symbols == NULL || res == NULL) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   struct timeval t[3];
@@ -450,18 +450,18 @@ int srslte_pdcch_nr_decode(srslte_pdcch_nr_t*      q,
 
   // Calculate...
   q->K = dci_msg->nof_bits + 24U;                              // Payload size including CRC
-  q->M = (1U << dci_msg->location.L) * (SRSLTE_NRE - 3U) * 6U; // Number of RE
+  q->M = (1U << dci_msg->location.L) * (SRSRAN_NRE - 3U) * 6U; // Number of RE
   q->E = q->M * 2;                                             // Number of Rate-Matched bits
 
   // Check number of estimates is correct
   if (ce->nof_re != q->M) {
     ERROR("Invalid number of channel estimates (%d != %d)", q->M, ce->nof_re);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // Get polar code
-  if (srslte_polar_code_get(&q->code, q->K, q->E, 9U) < SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+  if (srsran_polar_code_get(&q->code, q->K, q->E, 9U) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
   }
   PDCCH_INFO_RX("K=%d; E=%d; M=%d; n=%d;", q->K, q->E, q->M, q->code.n);
 
@@ -469,31 +469,31 @@ int srslte_pdcch_nr_decode(srslte_pdcch_nr_t*      q,
   uint32_t m = pdcch_nr_cp(q, &dci_msg->location, slot_symbols, q->symbols, false);
   if (q->M != m) {
     ERROR("Unmatch number of RE (%d != %d)", m, q->M);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // Print channel estimates if enabled
-  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !handler_registered) {
     PDCCH_INFO_RX("ce=");
-    srslte_vec_fprint_c(stdout, ce->ce, q->M);
+    srsran_vec_fprint_c(stdout, ce->ce, q->M);
   }
 
   // Equalise
-  srslte_predecoding_single(q->symbols, ce->ce, q->symbols, NULL, q->M, 1.0f, ce->noise_var);
+  srsran_predecoding_single(q->symbols, ce->ce, q->symbols, NULL, q->M, 1.0f, ce->noise_var);
 
   // Print symbols if enabled
-  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !handler_registered) {
     PDCCH_INFO_RX("symbols=");
-    srslte_vec_fprint_c(stdout, q->symbols, q->M);
+    srsran_vec_fprint_c(stdout, q->symbols, q->M);
   }
 
   // Demodulation
   int8_t* llr = (int8_t*)q->f;
-  srslte_demod_soft_demodulate_b(SRSLTE_MOD_QPSK, q->symbols, llr, q->M);
+  srsran_demod_soft_demodulate_b(SRSRAN_MOD_QPSK, q->symbols, llr, q->M);
 
   // Measure EVM if configured
   if (q->evm_buffer != NULL) {
-    res->evm = srslte_evm_run_b(q->evm_buffer, &q->modem_table, q->symbols, llr, q->E);
+    res->evm = srsran_evm_run_b(q->evm_buffer, &q->modem_table, q->symbols, llr, q->E);
   } else {
     res->evm = NAN;
   }
@@ -504,66 +504,66 @@ int srslte_pdcch_nr_decode(srslte_pdcch_nr_t*      q,
   }
 
   // Descrambling
-  srslte_sequence_apply_c(llr, llr, q->E, pdcch_nr_c_init(q, dci_msg));
+  srsran_sequence_apply_c(llr, llr, q->E, pdcch_nr_c_init(q, dci_msg));
 
   // Un-rate matching
   int8_t* d = (int8_t*)q->d;
-  if (srslte_polar_rm_rx_c(&q->rm, llr, d, q->E, q->code.n, q->K, PDCCH_NR_POLAR_RM_IBIL) < SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+  if (srsran_polar_rm_rx_c(&q->rm, llr, d, q->E, q->code.n, q->K, PDCCH_NR_POLAR_RM_IBIL) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
   }
 
   // Print d
-  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !handler_registered) {
     PDCCH_INFO_RX("d=");
-    srslte_vec_fprint_bs(stdout, d, q->K);
+    srsran_vec_fprint_bs(stdout, d, q->K);
   }
 
   // Decode
-  if (srslte_polar_decoder_decode_c(&q->decoder, d, q->allocated, q->code.n, q->code.F_set, q->code.F_set_size) <
-      SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+  if (srsran_polar_decoder_decode_c(&q->decoder, d, q->allocated, q->code.n, q->code.F_set, q->code.F_set_size) <
+      SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
   }
 
   // De-allocate channel
-  uint8_t c_prime[SRSLTE_POLAR_INTERLEAVER_K_MAX_IL];
-  srslte_polar_chanalloc_rx(q->allocated, c_prime, q->code.K, q->code.nPC, q->code.K_set, q->code.PC_set);
+  uint8_t c_prime[SRSRAN_POLAR_INTERLEAVER_K_MAX_IL];
+  srsran_polar_chanalloc_rx(q->allocated, c_prime, q->code.K, q->code.nPC, q->code.K_set, q->code.PC_set);
 
   // Set first L bits to ones, c will have an offset of 24 bits
   uint8_t* c = q->c;
-  srslte_bit_unpack(UINT32_MAX, &c, 24U);
+  srsran_bit_unpack(UINT32_MAX, &c, 24U);
 
   // De-interleave
-  srslte_polar_interleaver_run_u8(c_prime, c, q->K, false);
+  srsran_polar_interleaver_run_u8(c_prime, c, q->K, false);
 
   // Print c
-  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !handler_registered) {
     PDCCH_INFO_RX("c_prime=");
-    srslte_vec_fprint_hex(stdout, c_prime, q->K);
+    srsran_vec_fprint_hex(stdout, c_prime, q->K);
     PDCCH_INFO_RX("c=");
-    srslte_vec_fprint_hex(stdout, c, q->K);
+    srsran_vec_fprint_hex(stdout, c, q->K);
   }
 
   // Unpack RNTI
   uint8_t  unpacked_rnti[16] = {};
   uint8_t* ptr               = unpacked_rnti;
-  srslte_bit_unpack(dci_msg->rnti, &ptr, 16);
+  srsran_bit_unpack(dci_msg->rnti, &ptr, 16);
 
   // De-Scramble CRC with RNTI
-  srslte_vec_xor_bbb(unpacked_rnti, &c[q->K - 16], &c[q->K - 16], 16);
+  srsran_vec_xor_bbb(unpacked_rnti, &c[q->K - 16], &c[q->K - 16], 16);
 
   // Check CRC
   ptr                = &c[q->K - 24];
-  uint32_t checksum1 = srslte_crc_checksum(&q->crc24c, q->c, q->K);
-  uint32_t checksum2 = srslte_bit_pack(&ptr, 24);
+  uint32_t checksum1 = srsran_crc_checksum(&q->crc24c, q->c, q->K);
+  uint32_t checksum2 = srsran_bit_pack(&ptr, 24);
   res->crc           = checksum1 == checksum2;
 
-  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !handler_registered) {
     PDCCH_INFO_RX("CRC={%06x, %06x}; msg=", checksum1, checksum2);
-    srslte_vec_fprint_hex(stdout, c, dci_msg->nof_bits);
+    srsran_vec_fprint_hex(stdout, c, dci_msg->nof_bits);
   }
 
   // Copy DCI message
-  srslte_vec_u8_copy(dci_msg->payload, c, dci_msg->nof_bits);
+  srsran_vec_u8_copy(dci_msg->payload, c, dci_msg->nof_bits);
 
   if (q->meas_time_en) {
     gettimeofday(&t[2], NULL);
@@ -571,16 +571,16 @@ int srslte_pdcch_nr_decode(srslte_pdcch_nr_t*      q,
     q->meas_time_us = (uint32_t)t[0].tv_usec;
   }
 
-  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !handler_registered) {
     char str[128] = {};
-    srslte_pdcch_nr_info(q, res, str, sizeof(str));
+    srsran_pdcch_nr_info(q, res, str, sizeof(str));
     PDCCH_INFO_RX("%s", str);
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-uint32_t srslte_pdcch_nr_info(const srslte_pdcch_nr_t* q, const srslte_pdcch_nr_res_t* res, char* str, uint32_t str_len)
+uint32_t srsran_pdcch_nr_info(const srsran_pdcch_nr_t* q, const srsran_pdcch_nr_res_t* res, char* str, uint32_t str_len)
 {
   int len = 0;
 
@@ -588,18 +588,18 @@ uint32_t srslte_pdcch_nr_info(const srslte_pdcch_nr_t* q, const srslte_pdcch_nr_
     return len;
   }
 
-  len = srslte_print_check(str, str_len, len, "K=%d,E=%d", q->K, q->E);
+  len = srsran_print_check(str, str_len, len, "K=%d,E=%d", q->K, q->E);
 
   if (res != NULL) {
-    len = srslte_print_check(str, str_len, len, ",crc=%s", res->crc ? "OK" : "KO");
+    len = srsran_print_check(str, str_len, len, ",crc=%s", res->crc ? "OK" : "KO");
 
     if (q->evm_buffer && res) {
-      len = srslte_print_check(str, str_len, len, ",evm=%.2f", res->evm);
+      len = srsran_print_check(str, str_len, len, ",evm=%.2f", res->evm);
     }
   }
 
   if (q->meas_time_en) {
-    len = srslte_print_check(str, str_len, len, ",t=%d us", q->meas_time_us);
+    len = srsran_print_check(str, str_len, len, ",t=%d us", q->meas_time_us);
   }
 
   return len;

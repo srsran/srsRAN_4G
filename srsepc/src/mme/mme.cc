@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -64,13 +64,13 @@ int mme::init(mme_args_t* args)
   /*Init GTP-C*/
   m_mme_gtpc = mme_gtpc::get_instance();
   if (!m_mme_gtpc->init()) {
-    srslte::console("Error initializing GTP-C\n");
+    srsran::console("Error initializing GTP-C\n");
     exit(-1);
   }
 
   /*Log successful initialization*/
   m_s1ap_logger.info("MME Initialized. MCC: 0x%x, MNC: 0x%x", args->s1ap_args.mcc, args->s1ap_args.mnc);
-  srslte::console("MME Initialized. MCC: 0x%x, MNC: 0x%x\n", args->s1ap_args.mcc, args->s1ap_args.mnc);
+  srsran::console("MME Initialized. MCC: 0x%x, MNC: 0x%x\n", args->s1ap_args.mcc, args->s1ap_args.mnc);
   return 0;
 }
 
@@ -88,8 +88,8 @@ void mme::stop()
 
 void mme::run_thread()
 {
-  srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer("mme::run_thread");
-  uint32_t                     sz  = SRSLTE_MAX_BUFFER_SIZE_BYTES - SRSLTE_BUFFER_HEADER_OFFSET;
+  srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer("mme::run_thread");
+  uint32_t                     sz  = SRSRAN_MAX_BUFFER_SIZE_BYTES - SRSRAN_BUFFER_HEADER_OFFSET;
 
   struct sockaddr_in     enb_addr;
   struct sctp_sndrcvinfo sri;
@@ -139,7 +139,7 @@ void mme::run_thread()
             m_s1ap_logger.debug("SCTP Notification %d", notification->sn_header.sn_type);
             if (notification->sn_header.sn_type == SCTP_SHUTDOWN_EVENT) {
               m_s1ap_logger.info("SCTP Association Shutdown. Association: %d", sri.sinfo_assoc_id);
-              srslte::console("SCTP Association Shutdown. Association: %d\n", sri.sinfo_assoc_id);
+              srsran::console("SCTP Association Shutdown. Association: %d\n", sri.sinfo_assoc_id);
               m_s1ap->delete_enb_ctx(sri.sinfo_assoc_id);
             }
           } else {

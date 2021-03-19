@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -26,7 +26,7 @@
 #include "subchannel_allocation.h"
 #include <string.h> //memset
 
-void srslte_subchannel_allocation_init(srslte_subchn_alloc_t* c,
+void srsran_subchannel_allocation_init(srsran_subchn_alloc_t* c,
                                        const uint8_t          code_size_log,
                                        const uint16_t         message_set_size,
                                        uint16_t*              message_set)
@@ -36,7 +36,7 @@ void srslte_subchannel_allocation_init(srslte_subchn_alloc_t* c,
   c->message_set  = message_set;
 }
 
-void srslte_subchannel_allocation(const srslte_subchn_alloc_t* c, const uint8_t* message, uint8_t* input_encoder)
+void srsran_subchannel_allocation(const srsran_subchn_alloc_t* c, const uint8_t* message, uint8_t* input_encoder)
 {
   memset(input_encoder, 0, c->code_size * sizeof(uint8_t));
 
@@ -47,7 +47,7 @@ void srslte_subchannel_allocation(const srslte_subchn_alloc_t* c, const uint8_t*
   }
 }
 
-void srslte_subchannel_deallocation(const srslte_subchn_alloc_t* c, const uint8_t* output_decoder, uint8_t* message)
+void srsran_subchannel_deallocation(const srsran_subchn_alloc_t* c, const uint8_t* output_decoder, uint8_t* message)
 {
   uint16_t i_o = 0;
   for (uint16_t i = 0; i < c->message_size; i++) {

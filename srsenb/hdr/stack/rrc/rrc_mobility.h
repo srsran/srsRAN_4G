@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -15,14 +15,14 @@
 
 #include "rrc.h"
 #include "rrc_ue.h"
-#include "srslte/common/fsm.h"
+#include "srsran/common/fsm.h"
 #include <map>
 
 namespace srsenb {
 
 enum class ho_interface_t { S1, X2, intra_enb };
 
-class rrc::ue::rrc_mobility : public srslte::fsm_t<rrc::ue::rrc_mobility>
+class rrc::ue::rrc_mobility : public srsran::fsm_t<rrc::ue::rrc_mobility>
 {
 public:
   // public events
@@ -35,10 +35,10 @@ public:
   rrc_mobility(srsenb::rrc::ue* outer_ue);
 
   bool fill_conn_recfg_no_ho_cmd(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_recfg);
-  void handle_ue_meas_report(const asn1::rrc::meas_report_s& msg, srslte::unique_byte_buffer_t pdu);
+  void handle_ue_meas_report(const asn1::rrc::meas_report_s& msg, srsran::unique_byte_buffer_t pdu);
   void handle_ho_preparation_complete(bool                         is_success,
                                       const asn1::s1ap::ho_cmd_s&  msg,
-                                      srslte::unique_byte_buffer_t container);
+                                      srsran::unique_byte_buffer_t container);
   bool is_ho_running() const { return not is_in_state<idle_st>(); }
 
   // S1-Handover
@@ -91,7 +91,7 @@ private:
   struct intraenb_ho_st {
     const enb_cell_common* target_cell     = nullptr;
     const enb_cell_common* source_cell     = nullptr;
-    uint16_t               last_temp_crnti = SRSLTE_INVALID_RNTI;
+    uint16_t               last_temp_crnti = SRSRAN_INVALID_RNTI;
 
     void enter(rrc_mobility* f, const ho_meas_report_ev& meas_report);
   };
@@ -129,7 +129,7 @@ private:
     using transitions = transition_table<
     //           Start                 Target                   Event       Action                 Guard
     //      +-------------------+------------------+---------------------+-----------------------+---------------------+
-    to_state<                     idle_st,            srslte::failure_ev                                               >,
+    to_state<                     idle_st,            srsran::failure_ev                                               >,
     to_state<                     idle_st,            ho_cancel_ev,        &fsm::handle_ho_cancel                      >,
          row< wait_ho_cmd,        status_transfer_st, ho_cmd_msg,          &fsm::handle_ho_cmd                         >
     //      +-------------------+------------------+---------------------+-----------------------+---------------------+

@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,9 +10,9 @@
  *
  */
 
-#include "srslte/mac/mac_sch_pdu_nr.h"
+#include "srsran/mac/mac_sch_pdu_nr.h"
 
-namespace srslte {
+namespace srsran {
 
 mac_sch_subpdu_nr::mac_sch_subpdu_nr(mac_sch_pdu_nr* parent_) : parent(parent_) {}
 
@@ -42,7 +42,7 @@ bool mac_sch_subpdu_nr::is_var_len_ce()
   return false;
 }
 
-// return length of PDU (or SRSLTE_ERROR otherwise)
+// return length of PDU (or SRSRAN_ERROR otherwise)
 int32_t mac_sch_subpdu_nr::read_subheader(const uint8_t* ptr)
 {
   // Skip R, read F bit and LCID
@@ -70,7 +70,7 @@ int32_t mac_sch_subpdu_nr::read_subheader(const uint8_t* ptr)
     sdu = (uint8_t*)ptr;
   } else {
     srslog::fetch_basic_logger("MAC").warning("Invalid LCID (%d) in MAC PDU", lcid);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   return header_length;
 }
@@ -287,7 +287,7 @@ void mac_sch_pdu_nr::unpack(const uint8_t* payload, const uint32_t& len)
   uint32_t offset = 0;
   while (offset < len) {
     mac_sch_subpdu_nr sch_pdu(this);
-    if (sch_pdu.read_subheader(payload + offset) == SRSLTE_ERROR) {
+    if (sch_pdu.read_subheader(payload + offset) == SRSRAN_ERROR) {
       fprintf(stderr, "Error parsing NR MAC PDU (len=%d, offset=%d)\n", len, offset);
       return;
     }
@@ -361,7 +361,7 @@ uint32_t mac_sch_pdu_nr::add_sdu(const uint32_t lcid_, const uint8_t* payload_, 
   int header_size = size_header_sdu(lcid_, len_);
   if (header_size + len_ > remaining_len) {
     printf("Header and SDU exceed space in PDU (%d > %d).\n", header_size + len_, remaining_len);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   mac_sch_subpdu_nr sch_pdu(this);
@@ -395,7 +395,7 @@ uint32_t mac_sch_pdu_nr::add_sudpdu(mac_sch_subpdu_nr& subpdu)
   uint32_t subpdu_len = subpdu.get_total_length();
   if (subpdu_len > remaining_len) {
     logger.warning("Not enough space to add subPDU to PDU (%d > %d)", subpdu_len, remaining_len);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // Write subPDU straigt into provided buffer
@@ -406,7 +406,7 @@ uint32_t mac_sch_pdu_nr::add_sudpdu(mac_sch_subpdu_nr& subpdu)
   remaining_len -= subpdu_len;
   subpdus.push_back(subpdu);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-} // namespace srslte
+} // namespace srsran

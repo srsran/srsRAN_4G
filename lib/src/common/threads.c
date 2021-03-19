@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -17,7 +17,7 @@
 #include <string.h>
 #include <sys/types.h>
 
-#include "srslte/common/threads.h"
+#include "srsran/common/threads.h"
 
 bool threads_new_rt(pthread_t* thread, void* (*start_routine)(void*), void* arg)
 {

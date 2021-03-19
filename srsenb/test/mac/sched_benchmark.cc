@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -12,7 +12,7 @@
 
 #include "sched_test_common.h"
 #include "srsenb/hdr/stack/mac/sched.h"
-#include "srslte/adt/accumulators.h"
+#include "srsran/adt/accumulators.h"
 #include <chrono>
 
 namespace srsenb {
@@ -50,7 +50,7 @@ struct run_params_range {
 
 class sched_tester : public sched_sim_base
 {
-  static std::vector<sched_interface::cell_cfg_t> get_cell_cfg(srslte::span<const sched_cell_params_t> cell_params)
+  static std::vector<sched_interface::cell_cfg_t> get_cell_cfg(srsran::span<const sched_cell_params_t> cell_params)
   {
     std::vector<sched_interface::cell_cfg_t> cell_cfg_list;
     for (const auto& c : cell_params) {
@@ -79,8 +79,8 @@ public:
   std::vector<sched_interface::ul_sched_res_t> ul_result;
 
   struct throughput_stats {
-    srslte::rolling_average<float> mean_dl_tbs, mean_ul_tbs, avg_dl_mcs, avg_ul_mcs;
-    srslte::rolling_average<float> avg_latency;
+    srsran::rolling_average<float> mean_dl_tbs, mean_ul_tbs, avg_dl_mcs, avg_ul_mcs;
+    srsran::rolling_average<float> avg_latency;
   };
   throughput_stats total_stats;
 
@@ -92,8 +92,8 @@ public:
 
     for (uint32_t cc = 0; cc < get_cell_params().size(); ++cc) {
       std::chrono::time_point<std::chrono::steady_clock> tp = std::chrono::steady_clock::now();
-      TESTASSERT(sched_ptr->dl_sched(to_tx_dl(tti_rx).to_uint(), cc, dl_result[cc]) == SRSLTE_SUCCESS);
-      TESTASSERT(sched_ptr->ul_sched(to_tx_ul(tti_rx).to_uint(), cc, ul_result[cc]) == SRSLTE_SUCCESS);
+      TESTASSERT(sched_ptr->dl_sched(to_tx_dl(tti_rx).to_uint(), cc, dl_result[cc]) == SRSRAN_SUCCESS);
+      TESTASSERT(sched_ptr->ul_sched(to_tx_ul(tti_rx).to_uint(), cc, ul_result[cc]) == SRSRAN_SUCCESS);
       std::chrono::time_point<std::chrono::steady_clock> tp2 = std::chrono::steady_clock::now();
       std::chrono::nanoseconds tdur = std::chrono::duration_cast<std::chrono::nanoseconds>(tp2 - tp);
       total_stats.avg_latency.push(tdur.count());
@@ -103,7 +103,7 @@ public:
     update(sf_out);
     process_stats(sf_out);
 
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   void set_external_tti_events(const sim_ue_ctxt_t& ue_ctxt, ue_tti_events& pending_events) override
@@ -174,14 +174,14 @@ int run_benchmark_scenario(run_params params, std::vector<run_data>& run_results
   for (uint32_t ue_idx = 0; ue_idx < params.nof_ues; ++ue_idx) {
     uint16_t rnti = 0x46 + ue_idx;
     // Add user (first need to advance to a PRACH TTI)
-    while (not srslte_prach_tti_opportunity_config_fdd(
+    while (not srsran_prach_tti_opportunity_config_fdd(
         tester.get_cell_params()[ue_cfg_default.supported_cc_list[0].enb_cc_idx].cfg.prach_config,
         tester.get_tti_rx().to_uint(),
         -1)) {
-      TESTASSERT(tester.advance_tti() == SRSLTE_SUCCESS);
+      TESTASSERT(tester.advance_tti() == SRSRAN_SUCCESS);
     }
-    TESTASSERT(tester.add_user(rnti, ue_cfg_default, 16) == SRSLTE_SUCCESS);
-    TESTASSERT(tester.advance_tti() == SRSLTE_SUCCESS);
+    TESTASSERT(tester.add_user(rnti, ue_cfg_default, 16) == SRSRAN_SUCCESS);
+    TESTASSERT(tester.advance_tti() == SRSRAN_SUCCESS);
   }
 
   // Ignore stats of the first TTIs until all UEs DRB1 are created
@@ -208,20 +208,20 @@ int run_benchmark_scenario(run_params params, std::vector<run_data>& run_results
   run_result.avg_latency = std::chrono::microseconds(static_cast<int>(tester.total_stats.avg_latency.value() / 1000));
   run_results.push_back(run_result);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 run_data expected_run_result(run_params params)
 {
   assert(params.cqi == 15 && "only cqi=15 supported for now");
   run_data ret{};
-  int      tbs_idx      = srslte_ra_tbs_idx_from_mcs(28, false, false);
-  int      tbs          = srslte_ra_tbs_from_idx(tbs_idx, params.nof_prbs);
+  int      tbs_idx      = srsran_ra_tbs_idx_from_mcs(28, false, false);
+  int      tbs          = srsran_ra_tbs_from_idx(tbs_idx, params.nof_prbs);
   ret.avg_dl_throughput = static_cast<float>(tbs) * 1e3F; // bps
 
-  tbs_idx                 = srslte_ra_tbs_idx_from_mcs(24, false, true);
+  tbs_idx                 = srsran_ra_tbs_idx_from_mcs(24, false, true);
   uint32_t nof_pusch_prbs = params.nof_prbs - (params.nof_prbs == 6 ? 2 : 4);
-  tbs                     = srslte_ra_tbs_from_idx(tbs_idx, nof_pusch_prbs);
+  tbs                     = srsran_ra_tbs_from_idx(tbs_idx, nof_pusch_prbs);
   ret.avg_ul_throughput   = static_cast<float>(tbs) * 1e3F; // bps
 
   ret.avg_dl_mcs = 27;
@@ -254,12 +254,12 @@ void print_benchmark_results(const std::vector<run_data>& run_results)
   for (uint32_t i = 0; i < run_results.size(); ++i) {
     const run_data& r = run_results[i];
 
-    int   tbs_idx           = srslte_ra_tbs_idx_from_mcs(28, false, false);
-    int   tbs               = srslte_ra_tbs_from_idx(tbs_idx, r.params.nof_prbs);
+    int   tbs_idx           = srsran_ra_tbs_idx_from_mcs(28, false, false);
+    int   tbs               = srsran_ra_tbs_from_idx(tbs_idx, r.params.nof_prbs);
     float dl_rate_overhead  = 1.0F - r.avg_dl_throughput / (static_cast<float>(tbs) * 1e3F);
-    tbs_idx                 = srslte_ra_tbs_idx_from_mcs(24, false, true);
+    tbs_idx                 = srsran_ra_tbs_idx_from_mcs(24, false, true);
     uint32_t nof_pusch_prbs = r.params.nof_prbs - (r.params.nof_prbs == 6 ? 2 : 4);
-    tbs                     = srslte_ra_tbs_from_idx(tbs_idx, nof_pusch_prbs);
+    tbs                     = srsran_ra_tbs_from_idx(tbs_idx, nof_pusch_prbs);
     float ul_rate_overhead  = 1.0F - r.avg_ul_throughput / (static_cast<float>(tbs) * 1e3F);
 
     fmt::print("{:>3d}{:>6d}{:>6d}{:>12}{:>6d}{:>9.2}/{:>4.2}{:>9.1f}/{:>4.1f}{:9.1f}/{:>4.1f}{:12d}\n",
@@ -294,7 +294,7 @@ int run_rate_test()
     run_params runparams = run_param_list.get_params(r);
 
     mac_logger.info("\n=== New run {} ===\n", r);
-    TESTASSERT(run_benchmark_scenario(runparams, run_results) == SRSLTE_SUCCESS);
+    TESTASSERT(run_benchmark_scenario(runparams, run_results) == SRSRAN_SUCCESS);
   }
 
   print_benchmark_results(run_results);
@@ -327,7 +327,7 @@ int run_rate_test()
       success = false;
     }
   }
-  return success ? SRSLTE_SUCCESS : SRSLTE_ERROR;
+  return success ? SRSRAN_SUCCESS : SRSRAN_ERROR;
 }
 
 int run_all()
@@ -342,12 +342,12 @@ int run_all()
     run_params runparams = run_param_list.get_params(r);
 
     mac_logger.info("\n### New run {} ###\n", r);
-    TESTASSERT(run_benchmark_scenario(runparams, run_results) == SRSLTE_SUCCESS);
+    TESTASSERT(run_benchmark_scenario(runparams, run_results) == SRSRAN_SUCCESS);
   }
 
   print_benchmark_results(run_results);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int run_benchmark()
@@ -368,12 +368,12 @@ int run_benchmark()
     run_params runparams = run_param_list.get_params(r);
 
     mac_logger.info("\n### New run {} ###\n", r);
-    TESTASSERT(run_benchmark_scenario(runparams, run_results) == SRSLTE_SUCCESS);
+    TESTASSERT(run_benchmark_scenario(runparams, run_results) == SRSRAN_SUCCESS);
   }
 
   print_benchmark_results(run_results);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 } // namespace srsenb
@@ -382,14 +382,14 @@ int main(int argc, char* argv[])
 {
   // Setup the log spy to intercept error and warning log entries.
   if (!srslog::install_custom_sink(
-          srslte::log_sink_spy::name(),
-          std::unique_ptr<srslte::log_sink_spy>(new srslte::log_sink_spy(srslog::get_default_log_formatter())))) {
-    return SRSLTE_ERROR;
+          srsran::log_sink_spy::name(),
+          std::unique_ptr<srsran::log_sink_spy>(new srsran::log_sink_spy(srslog::get_default_log_formatter())))) {
+    return SRSRAN_ERROR;
   }
 
-  auto* spy = static_cast<srslte::log_sink_spy*>(srslog::find_sink(srslte::log_sink_spy::name()));
+  auto* spy = static_cast<srsran::log_sink_spy*>(srslog::find_sink(srsran::log_sink_spy::name()));
   if (spy == nullptr) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   auto& mac_log = srslog::fetch_basic_logger("MAC");
@@ -403,11 +403,11 @@ int main(int argc, char* argv[])
   bool run_benchmark = false;
 
   if (argc == 1 or strcmp(argv[1], "test") == 0) {
-    TESTASSERT(srsenb::run_rate_test() == SRSLTE_SUCCESS);
+    TESTASSERT(srsenb::run_rate_test() == SRSRAN_SUCCESS);
   } else if (strcmp(argv[1], "benchmark") == 0) {
-    TESTASSERT(srsenb::run_benchmark() == SRSLTE_SUCCESS);
+    TESTASSERT(srsenb::run_benchmark() == SRSRAN_SUCCESS);
   } else {
-    TESTASSERT(srsenb::run_all() == SRSLTE_SUCCESS);
+    TESTASSERT(srsenb::run_all() == SRSRAN_SUCCESS);
   }
 
   return 0;

@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2020 Software Radio Systems Limited
+# Copyright 2013-2021 Software Radio Systems Limited
 #
 # By using this file, you agree to the terms and conditions set
 # forth in the LICENSE file which can be found at the top level of
@@ -12,75 +12,75 @@ find_package(SCTP REQUIRED)
 # COMMON TESTS
 #######################################################################
 add_executable(byte_buffer_queue_test byte_buffer_queue_test.cc)
-target_link_libraries(byte_buffer_queue_test srslte_phy srslte_common ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
+target_link_libraries(byte_buffer_queue_test srsran_phy srsran_common ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
 add_test(byte_buffer_queue_test byte_buffer_queue_test)
 
 add_executable(test_eia1 test_eia1.cc)
-target_link_libraries(test_eia1 srslte_common srslte_phy ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(test_eia1 srsran_common srsran_phy ${CMAKE_THREAD_LIBS_INIT})
 add_test(test_eia1 test_eia1)
 
 add_executable(test_eia3 test_eia3.cc)
-target_link_libraries(test_eia3 srslte_common)
+target_link_libraries(test_eia3 srsran_common)
 add_test(test_eia3 test_eia3)
 
 add_executable(test_eea1 test_eea1.cc)
-target_link_libraries(test_eea1 srslte_common srslte_phy ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(test_eea1 srsran_common srsran_phy ${CMAKE_THREAD_LIBS_INIT})
 add_test(test_eea1 test_eea1)
 
 add_executable(test_eea2 test_eea2.cc)
-target_link_libraries(test_eea2 srslte_common srslte_phy ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(test_eea2 srsran_common srsran_phy ${CMAKE_THREAD_LIBS_INIT})
 add_test(test_eea2 test_eea2)
 
 add_executable(test_eea3 test_eea3.cc)
-target_link_libraries(test_eea3 srslte_common srslte_phy ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(test_eea3 srsran_common srsran_phy ${CMAKE_THREAD_LIBS_INIT})
 add_test(test_eea3 test_eea3)
 
 add_executable(test_f12345 test_f12345.cc)
-target_link_libraries(test_f12345 srslte_common ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(test_f12345 srsran_common ${CMAKE_THREAD_LIBS_INIT})
 add_test(test_f12345 test_f12345)
 
 add_executable(timeout_test timeout_test.cc)
-target_link_libraries(timeout_test srslte_phy ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(timeout_test srsran_phy ${CMAKE_THREAD_LIBS_INIT})
 
 add_executable(bcd_helpers_test bcd_helpers_test.cc)
-target_link_libraries(bcd_helpers_test srslte_common)
+target_link_libraries(bcd_helpers_test srsran_common)
 
 add_executable(stack_procedure_test stack_procedure_test.cc)
 add_test(stack_procedure_test stack_procedure_test)
 
 add_executable(queue_test multiqueue_test.cc)
-target_link_libraries(queue_test srslte_common ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(queue_test srsran_common ${CMAKE_THREAD_LIBS_INIT})
 add_test(queue_test queue_test)
 
 add_executable(timer_test timer_test.cc)
-target_link_libraries(timer_test srslte_common)
+target_link_libraries(timer_test srsran_common)
 add_test(timer_test timer_test)
 
 add_executable(network_utils_test network_utils_test.cc)
-target_link_libraries(network_utils_test srslte_common ${SCTP_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(network_utils_test srsran_common ${SCTP_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 add_test(network_utils_test network_utils_test)
 
 add_executable(tti_point_test tti_point_test.cc)
-target_link_libraries(tti_point_test srslte_common)
+target_link_libraries(tti_point_test srsran_common)
 add_test(tti_point_test tti_point_test)
 
 add_executable(fsm_test fsm_test.cc)
-target_link_libraries(fsm_test srslte_common)
+target_link_libraries(fsm_test srsran_common)
 add_test(fsm_test fsm_test)
 
 add_executable(choice_type_test choice_type_test.cc)
-target_link_libraries(choice_type_test srslte_common)
+target_link_libraries(choice_type_test srsran_common)
 add_test(choice_type_test choice_type_test)
 
 add_executable(task_scheduler_test task_scheduler_test.cc)
-target_link_libraries(task_scheduler_test srslte_common)
+target_link_libraries(task_scheduler_test srsran_common)
 add_test(task_scheduler_test task_scheduler_test)
 
 add_executable(pnf_dummy pnf_dummy.cc)
-target_link_libraries(pnf_dummy srslte_common ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
+target_link_libraries(pnf_dummy srsran_common ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
 
 add_executable(pnf_bridge pnf_bridge.cc)
-target_link_libraries(pnf_bridge srslte_common ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
+target_link_libraries(pnf_bridge srsran_common ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
 
 add_executable(mac_pcap_net_test mac_pcap_net_test.cc)
-target_link_libraries(mac_pcap_net_test srslte_common ${SCTP_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(mac_pcap_net_test srsran_common ${SCTP_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})

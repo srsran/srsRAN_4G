@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -13,9 +13,9 @@
 #ifndef SRSUE_TTCN3_INTERFACES_H
 #define SRSUE_TTCN3_INTERFACES_H
 
-#include "srslte/common/common.h"
-#include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/interfaces/ue_pdcp_interfaces.h"
+#include "srsran/common/common.h"
+#include "srsran/interfaces/ue_interfaces.h"
+#include "srsran/interfaces/ue_pdcp_interfaces.h"
 #include "ttcn3_helpers.h"
 
 // Interfaces used by system interface to communicate with main component
@@ -34,8 +34,8 @@ public:
 class ss_sys_interface
 {
 public:
-  virtual void add_bcch_dlsch_pdu(const std::string cell_name, srslte::unique_byte_buffer_t pdu) = 0;
-  virtual void add_pch_pdu(srslte::unique_byte_buffer_t pdu)                                     = 0;
+  virtual void add_bcch_dlsch_pdu(const std::string cell_name, srsran::unique_byte_buffer_t pdu) = 0;
+  virtual void add_pch_pdu(srsran::unique_byte_buffer_t pdu)                                     = 0;
 
   virtual void set_cell_attenuation(const ttcn3_helpers::timing_info_t timing,
                                     const std::string                  cell_name,
@@ -47,7 +47,7 @@ public:
   public:
     std::string   name;
     uint32_t      earfcn        = 0;
-    srslte_cell_t phy_cell      = {};
+    srsran_cell_t phy_cell      = {};
     float         initial_power = -90.0;
     float         attenuation   = 0.0;
     uint16_t      temp_crnti    = 0;
@@ -58,12 +58,12 @@ public:
   virtual void add_srb(const ttcn3_helpers::timing_info_t timing,
                        const std::string                  cell_name,
                        const uint32_t                     lcid,
-                       const srslte::pdcp_config_t        pdcp_config)                                                     = 0;
+                       const srsran::pdcp_config_t        pdcp_config)                                                     = 0;
   virtual void del_srb(const ttcn3_helpers::timing_info_t timing, const std::string cell_name, const uint32_t lcid) = 0;
   virtual void add_drb(const ttcn3_helpers::timing_info_t timing,
                        const std::string                  cell_name,
                        const uint32_t                     lcid,
-                       const srslte::pdcp_config_t        pdcp_config)                                                     = 0;
+                       const srsran::pdcp_config_t        pdcp_config)                                                     = 0;
   virtual void del_drb(const ttcn3_helpers::timing_info_t timing, const std::string cell_name, const uint32_t lcid) = 0;
 
   virtual void set_as_security(const ttcn3_helpers::timing_info_t        timing,
@@ -71,8 +71,8 @@ public:
                                const std::array<uint8_t, 32>             k_rrc_enc,
                                const std::array<uint8_t, 32>             k_rrc_int,
                                const std::array<uint8_t, 32>             k_up_enc,
-                               const srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
-                               const srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo,
+                               const srsran::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
+                               const srsran::INTEGRITY_ALGORITHM_ID_ENUM integ_algo,
                                const ttcn3_helpers::pdcp_count_map_t     bearers)                              = 0;
   virtual void release_as_security(const ttcn3_helpers::timing_info_t timing, const std::string cell_name) = 0;
 
@@ -86,12 +86,12 @@ class ss_srb_interface
 public:
   virtual void add_ccch_pdu(const ttcn3_helpers::timing_info_t timing,
                             const std::string                  cell_name,
-                            srslte::unique_byte_buffer_t       pdu) = 0;
+                            srsran::unique_byte_buffer_t       pdu) = 0;
 
   virtual void add_dcch_pdu(const ttcn3_helpers::timing_info_t timing,
                             const std::string                  cell_name,
                             const uint32_t                     lcid,
-                            srslte::unique_byte_buffer_t       pdu,
+                            srsran::unique_byte_buffer_t       pdu,
                             bool                               follow_on_flag) = 0;
 
   virtual void reestablish_bearer(const std::string cell_name, const uint32_t lcid) = 0;
@@ -103,7 +103,7 @@ public:
   virtual void prach_indication(uint32_t preamble_index, const uint32_t& cell_id)   = 0;
   virtual void sr_req(uint32_t tti_tx)                                              = 0;
   virtual void tx_pdu(const uint8_t* payload, const int len, const uint32_t tx_tti) = 0;
-  virtual void select_cell(srslte_cell_t cell)                                      = 0;
+  virtual void select_cell(srsran_cell_t cell)                                      = 0;
 };
 
 class phy_interface_syssim

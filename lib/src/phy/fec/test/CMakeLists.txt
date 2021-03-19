@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2020 Software Radio Systems Limited
+# Copyright 2013-2021 Software Radio Systems Limited
 #
 # By using this file, you agree to the terms and conditions set
 # forth in the LICENSE file which can be found at the top level of
@@ -11,7 +11,7 @@
 ########################################################################
 
 add_executable(crc_test crc_test.c)
-target_link_libraries(crc_test srslte_phy)
+target_link_libraries(crc_test srsran_phy)
 
 add_test(crc_24A crc_test -n 5001 -l 24 -p 0x1864CFB -s 1)
 add_test(crc_24B crc_test -n 5001 -l 24 -p 0x1800063 -s 1)

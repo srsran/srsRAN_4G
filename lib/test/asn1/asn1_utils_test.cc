@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,8 +10,8 @@
  *
  */
 
-#include "srslte/asn1/asn1_utils.h"
-#include "srslte/common/test_common.h"
+#include "srsran/asn1/asn1_utils.h"
+#include "srsran/common/test_common.h"
 #include <cmath>
 #include <numeric>
 #include <random>
@@ -22,7 +22,7 @@ using namespace asn1;
 std::random_device rd;
 std::mt19937       g(rd());
 
-srslte::log_sink_spy* test_spy = nullptr;
+srsran::log_sink_spy* test_spy = nullptr;
 
 int test_arrays()
 {
@@ -369,7 +369,7 @@ int test_bitstring()
   //  printf("%s==%s\n", dyn_bstr1.to_string().c_str(), dyn_bstr2.to_string().c_str());
 
   // disable temporarily the prints to check failures
-  //  srslte::nullsink_log null_log("NULL");
+  //  srsran::nullsink_log null_log("NULL");
   //  bit_ref bref3(&buffer[0], sizeof(buffer));
   //  TESTASSERT(dyn_bstr1.pack(bref3, false, 5, 10)==SRSASN_ERROR_ENCODE_FAIL);
 
@@ -648,13 +648,13 @@ int main()
 {
   // Setup the log spy to intercept error and warning log entries.
   if (!srslog::install_custom_sink(
-          srslte::log_sink_spy::name(),
-          std::unique_ptr<srslte::log_sink_spy>(new srslte::log_sink_spy(srslog::get_default_log_formatter())))) {
-    return SRSLTE_ERROR;
+          srsran::log_sink_spy::name(),
+          std::unique_ptr<srsran::log_sink_spy>(new srsran::log_sink_spy(srslog::get_default_log_formatter())))) {
+    return SRSRAN_ERROR;
   }
-  test_spy = static_cast<srslte::log_sink_spy*>(srslog::find_sink(srslte::log_sink_spy::name()));
+  test_spy = static_cast<srsran::log_sink_spy*>(srslog::find_sink(srsran::log_sink_spy::name()));
   if (!test_spy) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   auto& asn1_logger = srslog::fetch_basic_logger("ASN1", *test_spy, false);

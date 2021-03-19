@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -40,7 +40,7 @@ private:
     Document document;
     if (document.Parse((char*)rx_buf->begin()).HasParseError() || document.IsObject() == false) {
       logger.error(rx_buf->begin(), n, "Error parsing incoming data.");
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
 
     // Pretty-print
@@ -57,7 +57,7 @@ private:
       logger.error("Received unknown request.");
     }
 
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   void handle_ctrl(Document& document)

@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,11 +10,11 @@
  *
  */
 
-#include "srslte/phy/fec/crc.h"
-#include "srslte/phy/utils/bit.h"
-#include "srslte/phy/utils/debug.h"
+#include "srsran/phy/fec/crc.h"
+#include "srsran/phy/utils/bit.h"
+#include "srsran/phy/utils/debug.h"
 
-static void gen_crc_table(srslte_crc_t* h)
+static void gen_crc_table(srsran_crc_t* h)
 {
   uint32_t pad        = (h->order < 8) ? (8 - h->order) : 0;
   uint32_t ord        = h->order + pad - 8;
@@ -34,7 +34,7 @@ static void gen_crc_table(srslte_crc_t* h)
   }
 }
 
-uint64_t reversecrcbit(uint32_t crc, int nbits, srslte_crc_t* h)
+uint64_t reversecrcbit(uint32_t crc, int nbits, srsran_crc_t* h)
 {
   uint64_t m, rmask = 0x1;
 
@@ -47,7 +47,7 @@ uint64_t reversecrcbit(uint32_t crc, int nbits, srslte_crc_t* h)
   return (crc & h->crcmask);
 }
 
-int srslte_crc_set_init(srslte_crc_t* crc_par, uint64_t crc_init_value)
+int srsran_crc_set_init(srsran_crc_t* crc_par, uint64_t crc_init_value)
 {
   crc_par->crcinit = crc_init_value;
   if (crc_par->crcinit != (crc_par->crcinit & crc_par->crcmask)) {
@@ -57,7 +57,7 @@ int srslte_crc_set_init(srslte_crc_t* crc_par, uint64_t crc_init_value)
   return 0;
 }
 
-int srslte_crc_init(srslte_crc_t* h, uint32_t crc_poly, int crc_order)
+int srsran_crc_init(srsran_crc_t* h, uint32_t crc_poly, int crc_order)
 {
   // Set crc working default parameters
   h->polynom = crc_poly;
@@ -68,7 +68,7 @@ int srslte_crc_init(srslte_crc_t* h, uint32_t crc_poly, int crc_order)
   h->crcmask    = ((((uint64_t)1 << (h->order - 1)) - 1) << 1) | 1;
   h->crchighbit = (uint64_t)1 << (h->order - 1);
 
-  if (srslte_crc_set_init(h, h->crcinit)) {
+  if (srsran_crc_set_init(h, h->crcinit)) {
     ERROR("Error setting CRC init word");
     return -1;
   }
@@ -79,13 +79,13 @@ int srslte_crc_init(srslte_crc_t* h, uint32_t crc_poly, int crc_order)
   return 0;
 }
 
-uint32_t srslte_crc_checksum(srslte_crc_t* h, uint8_t* data, int len)
+uint32_t srsran_crc_checksum(srsran_crc_t* h, uint8_t* data, int len)
 {
   int      i, k, len8, res8, a = 0;
   uint32_t crc = 0;
   uint8_t* pter;
 
-  srslte_crc_set_init(h, 0);
+  srsran_crc_set_init(h, 0);
 
   // Pack bits into bytes
   len8 = (len >> 3);
@@ -104,11 +104,11 @@ uint32_t srslte_crc_checksum(srslte_crc_t* h, uint8_t* data, int len)
         byte |= ((uint8_t) * (pter + k)) << (7 - k);
       }
     } else {
-      byte = (uint8_t)(srslte_bit_pack(&pter, 8) & 0xFF);
+      byte = (uint8_t)(srsran_bit_pack(&pter, 8) & 0xFF);
     }
-    srslte_crc_checksum_put_byte(h, byte);
+    srsran_crc_checksum_put_byte(h, byte);
   }
-  crc = (uint32_t)srslte_crc_checksum_get(h);
+  crc = (uint32_t)srsran_crc_checksum_get(h);
 
   // Reverse CRC res8 positions
   if (a == 1) {
@@ -120,25 +120,25 @@ uint32_t srslte_crc_checksum(srslte_crc_t* h, uint8_t* data, int len)
 }
 
 // len is multiple of 8
-uint32_t srslte_crc_checksum_byte(srslte_crc_t* h, const uint8_t* data, int len)
+uint32_t srsran_crc_checksum_byte(srsran_crc_t* h, const uint8_t* data, int len)
 {
   int      i;
   uint32_t crc = 0;
 
-  srslte_crc_set_init(h, 0);
+  srsran_crc_set_init(h, 0);
 
   // Calculate CRC
   for (i = 0; i < len / 8; i++) {
-    srslte_crc_checksum_put_byte(h, data[i]);
+    srsran_crc_checksum_put_byte(h, data[i]);
   }
-  crc = (uint32_t)srslte_crc_checksum_get(h);
+  crc = (uint32_t)srsran_crc_checksum_get(h);
 
   return crc;
 }
 
-uint32_t srslte_crc_attach_byte(srslte_crc_t* h, uint8_t* data, int len)
+uint32_t srsran_crc_attach_byte(srsran_crc_t* h, uint8_t* data, int len)
 {
-  uint32_t checksum = srslte_crc_checksum_byte(h, data, len);
+  uint32_t checksum = srsran_crc_checksum_byte(h, data, len);
 
   // Add CRC
   for (int i = 0; i < h->order / 8; i++) {
@@ -150,12 +150,12 @@ uint32_t srslte_crc_attach_byte(srslte_crc_t* h, uint8_t* data, int len)
 /** Appends crc_order checksum bits to the buffer data.
  * The buffer data must be len + crc_order bytes
  */
-uint32_t srslte_crc_attach(srslte_crc_t* h, uint8_t* data, int len)
+uint32_t srsran_crc_attach(srsran_crc_t* h, uint8_t* data, int len)
 {
-  uint32_t checksum = srslte_crc_checksum(h, data, len);
+  uint32_t checksum = srsran_crc_checksum(h, data, len);
 
   // Add CRC
   uint8_t* ptr = &data[len];
-  srslte_bit_unpack(checksum, &ptr, h->order);
+  srsran_bit_unpack(checksum, &ptr, h->order);
   return checksum;
 }

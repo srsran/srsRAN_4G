@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -12,9 +12,9 @@
 #ifndef SRSUE_INTRA_MEASURE_H
 #define SRSUE_INTRA_MEASURE_H
 
-#include <srslte/common/threads.h>
-#include <srslte/common/tti_sync_cv.h>
-#include <srslte/srslte.h>
+#include <srsran/common/threads.h>
+#include <srsran/common/tti_sync_cv.h>
+#include <srsran/srsran.h>
 
 #include "scell_recv.h"
 
@@ -22,7 +22,7 @@ namespace srsue {
 namespace scell {
 
 // Class to perform intra-frequency measurements
-class intra_measure : public srslte::thread
+class intra_measure : public srsran::thread
 {
   /*
    * The intra-cell measurment has 5 different states:
@@ -81,7 +81,7 @@ public:
    * @param earfcn Frequency the component is receiving base-band from. Used only for reporting the EARFCN to the RRC
    * @param cell Actual cell configuration
    */
-  void set_primary_cell(uint32_t earfcn, srslte_cell_t cell);
+  void set_primary_cell(uint32_t earfcn, srsran_cell_t cell);
 
   /**
    * Sets receiver gain offset to convert estimated dBFs to dBm in RSRP
@@ -197,7 +197,7 @@ private:
   uint32_t              cc_idx                    = 0;
   uint32_t              current_earfcn            = 0;
   uint32_t              current_sflen             = 0;
-  srslte_cell_t         serving_cell              = {};
+  srsran_cell_t         serving_cell              = {};
   std::set<uint32_t>    active_pci                = {};
   std::mutex            active_pci_mutex          = {};
   uint32_t              last_measure_tti          = 0;
@@ -207,9 +207,9 @@ private:
 
   cf_t* search_buffer = nullptr;
 
-  srslte_ringbuffer_t ring_buffer = {};
+  srsran_ringbuffer_t ring_buffer = {};
 
-  srslte_refsignal_dl_sync_t refsignal_dl_sync = {};
+  srsran_refsignal_dl_sync_t refsignal_dl_sync = {};
 };
 
 } // namespace scell

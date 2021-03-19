@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,16 +10,16 @@
  *
  */
 
-#ifndef SRSLTE_SCHED_GRID_H
-#define SRSLTE_SCHED_GRID_H
+#ifndef SRSRAN_SCHED_GRID_H
+#define SRSRAN_SCHED_GRID_H
 
-#include "lib/include/srslte/interfaces/sched_interface.h"
+#include "lib/include/srsran/interfaces/sched_interface.h"
 #include "sched_phy_ch/sched_result.h"
 #include "sched_phy_ch/sf_cch_allocator.h"
 #include "sched_ue.h"
-#include "srslte/adt/bounded_bitset.h"
-#include "srslte/adt/circular_array.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/adt/bounded_bitset.h"
+#include "srsran/adt/circular_array.h"
+#include "srsran/srslog/srslog.h"
 #include <vector>
 
 namespace srsenb {
@@ -64,27 +64,27 @@ struct sf_sched_result {
 struct sched_result_ringbuffer {
 public:
   void             set_nof_carriers(uint32_t nof_carriers);
-  void             new_tti(srslte::tti_point tti_rx);
-  bool             has_sf(srslte::tti_point tti_rx) const { return results[tti_rx.to_uint()].tti_rx == tti_rx; }
-  sf_sched_result* get_sf(srslte::tti_point tti_rx)
+  void             new_tti(srsran::tti_point tti_rx);
+  bool             has_sf(srsran::tti_point tti_rx) const { return results[tti_rx.to_uint()].tti_rx == tti_rx; }
+  sf_sched_result* get_sf(srsran::tti_point tti_rx)
   {
     assert(has_sf(tti_rx));
     return &results[tti_rx.to_uint()];
   }
-  const sf_sched_result* get_sf(srslte::tti_point tti_rx) const
+  const sf_sched_result* get_sf(srsran::tti_point tti_rx) const
   {
     assert(has_sf(tti_rx));
     return &results[tti_rx.to_uint()];
   }
-  const cc_sched_result* get_cc(srslte::tti_point tti_rx, uint32_t enb_cc_idx) const
+  const cc_sched_result* get_cc(srsran::tti_point tti_rx, uint32_t enb_cc_idx) const
   {
     return get_sf(tti_rx)->get_cc(enb_cc_idx);
   }
-  cc_sched_result* get_cc(srslte::tti_point tti_rx, uint32_t enb_cc_idx) { return get_sf(tti_rx)->get_cc(enb_cc_idx); }
+  cc_sched_result* get_cc(srsran::tti_point tti_rx, uint32_t enb_cc_idx) { return get_sf(tti_rx)->get_cc(enb_cc_idx); }
 
 private:
   uint32_t                                           nof_carriers = 1;
-  srslte::circular_array<sf_sched_result, TTIMOD_SZ> results;
+  srsran::circular_array<sf_sched_result, TTIMOD_SZ> results;
 };
 
 /// manages a subframe grid resources, namely CCE and DL/UL RB allocations
@@ -181,7 +181,7 @@ public:
   // Control/Configuration Methods
   sf_sched();
   void init(const sched_cell_params_t& cell_params_);
-  void new_tti(srslte::tti_point tti_rx_, sf_sched_result* cc_results);
+  void new_tti(srsran::tti_point tti_rx_, sf_sched_result* cc_results);
 
   // DL alloc methods
   alloc_result alloc_sib(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t sib_ntx, rbg_interval rbgs);
@@ -209,7 +209,7 @@ public:
   alloc_result                    alloc_ul_user(sched_ue* user, prb_interval alloc);
   const prbmask_t&                get_ul_mask() const { return tti_alloc.get_ul_mask(); }
   tti_point                       get_tti_tx_ul() const { return to_tx_ul(tti_rx); }
-  srslte::const_span<rar_alloc_t> get_allocated_rars() const { return rar_allocs; }
+  srsran::const_span<rar_alloc_t> get_allocated_rars() const { return rar_allocs; }
 
   // getters
   tti_point                  get_tti_rx() const { return tti_rx; }
@@ -234,10 +234,10 @@ private:
   // internal state
   sf_grid_t tti_alloc;
 
-  srslte::bounded_vector<bc_alloc_t, sched_interface::MAX_BC_LIST>   bc_allocs;
-  srslte::bounded_vector<rar_alloc_t, sched_interface::MAX_RAR_LIST> rar_allocs;
-  srslte::bounded_vector<dl_alloc_t, sched_interface::MAX_DATA_LIST> data_allocs;
-  srslte::bounded_vector<ul_alloc_t, sched_interface::MAX_DATA_LIST> ul_data_allocs;
+  srsran::bounded_vector<bc_alloc_t, sched_interface::MAX_BC_LIST>   bc_allocs;
+  srsran::bounded_vector<rar_alloc_t, sched_interface::MAX_RAR_LIST> rar_allocs;
+  srsran::bounded_vector<dl_alloc_t, sched_interface::MAX_DATA_LIST> data_allocs;
+  srsran::bounded_vector<ul_alloc_t, sched_interface::MAX_DATA_LIST> ul_data_allocs;
   uint32_t                                                           last_msg3_prb = 0, max_msg3_prb = 0;
 
   // Next TTI state
@@ -246,4 +246,4 @@ private:
 
 } // namespace srsenb
 
-#endif // SRSLTE_SCHED_GRID_H
+#endif // SRSRAN_SCHED_GRID_H

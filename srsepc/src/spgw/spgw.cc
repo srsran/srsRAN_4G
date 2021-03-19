@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -14,7 +14,7 @@
 #include "srsepc/hdr/mme/mme_gtpc.h"
 #include "srsepc/hdr/spgw/gtpc.h"
 #include "srsepc/hdr/spgw/gtpu.h"
-#include "srslte/upper/gtpu.h"
+#include "srsran/upper/gtpu.h"
 #include <inttypes.h> // for printing uint64_t
 
 namespace srsepc {
@@ -61,20 +61,20 @@ int spgw::init(spgw_args_t* args, const std::map<std::string, uint64_t>& ip_to_i
   int err;
 
   // Init GTP-U
-  if (m_gtpu->init(args, this, m_gtpc) != SRSLTE_SUCCESS) {
-    srslte::console("Could not initialize the SPGW's GTP-U.\n");
-    return SRSLTE_ERROR_CANT_START;
+  if (m_gtpu->init(args, this, m_gtpc) != SRSRAN_SUCCESS) {
+    srsran::console("Could not initialize the SPGW's GTP-U.\n");
+    return SRSRAN_ERROR_CANT_START;
   }
 
   // Init GTP-C
-  if (m_gtpc->init(args, this, m_gtpu, ip_to_imsi) != SRSLTE_SUCCESS) {
-    srslte::console("Could not initialize the S1-U interface.\n");
-    return SRSLTE_ERROR_CANT_START;
+  if (m_gtpc->init(args, this, m_gtpu, ip_to_imsi) != SRSRAN_SUCCESS) {
+    srsran::console("Could not initialize the S1-U interface.\n");
+    return SRSRAN_ERROR_CANT_START;
   }
 
   m_logger.info("SP-GW Initialized.");
-  srslte::console("SP-GW Initialized.\n");
-  return SRSLTE_SUCCESS;
+  srsran::console("SP-GW Initialized.\n");
+  return SRSRAN_SUCCESS;
 }
 
 void spgw::stop()
@@ -94,9 +94,9 @@ void spgw::run_thread()
 {
   // Mark the thread as running
   m_running = true;
-  srslte::unique_byte_buffer_t sgi_msg, s1u_msg, s11_msg;
-  s1u_msg = srslte::make_byte_buffer("spgw::run_thread::s1u");
-  s11_msg = srslte::make_byte_buffer("spgw::run_thread::s11");
+  srsran::unique_byte_buffer_t sgi_msg, s1u_msg, s11_msg;
+  s1u_msg = srsran::make_byte_buffer("spgw::run_thread::s1u");
+  s11_msg = srsran::make_byte_buffer("spgw::run_thread::s11");
 
   struct sockaddr_in src_addr_in;
   struct sockaddr_un src_addr_un;
@@ -106,7 +106,7 @@ void spgw::run_thread()
   int s1u = m_gtpu->get_s1u();
   int s11 = m_gtpc->get_s11();
 
-  size_t buf_len = SRSLTE_MAX_BUFFER_SIZE_BYTES - SRSLTE_BUFFER_HEADER_OFFSET;
+  size_t buf_len = SRSRAN_MAX_BUFFER_SIZE_BYTES - SRSRAN_BUFFER_HEADER_OFFSET;
 
   fd_set set;
   int    max_fd = std::max(s1u, sgi);
@@ -134,7 +134,7 @@ void spgw::run_thread()
          * handle_downlink_data_notification_failure)
          */
         m_logger.debug("Message received at SPGW: SGi Message");
-        sgi_msg          = srslte::make_byte_buffer("spgw::run_thread::sgi_msg");
+        sgi_msg          = srsran::make_byte_buffer("spgw::run_thread::sgi_msg");
         sgi_msg->N_bytes = read(sgi, sgi_msg->msg, buf_len);
         m_gtpu->handle_sgi_pdu(std::move(sgi_msg));
       }

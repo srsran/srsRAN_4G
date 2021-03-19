@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,21 +10,21 @@
  *
  */
 
-#ifndef SRSLTE_SCHED_COMMON_TEST_SUITE_H
-#define SRSLTE_SCHED_COMMON_TEST_SUITE_H
+#ifndef SRSRAN_SCHED_COMMON_TEST_SUITE_H
+#define SRSRAN_SCHED_COMMON_TEST_SUITE_H
 
 #include "srsenb/hdr/stack/mac/sched_common.h"
-#include "srslte/adt/bounded_bitset.h"
-#include "srslte/common/tti_point.h"
-#include "srslte/interfaces/sched_interface.h"
+#include "srsran/adt/bounded_bitset.h"
+#include "srsran/common/tti_point.h"
+#include "srsran/interfaces/sched_interface.h"
 
 namespace srsenb {
 
 struct sf_output_res_t {
-  srslte::span<const sched_cell_params_t>             cc_params;
-  srslte::tti_point                                   tti_rx;
-  srslte::span<const sched_interface::ul_sched_res_t> ul_cc_result;
-  srslte::span<const sched_interface::dl_sched_res_t> dl_cc_result;
+  srsran::span<const sched_cell_params_t>             cc_params;
+  srsran::tti_point                                   tti_rx;
+  srsran::span<const sched_interface::ul_sched_res_t> ul_cc_result;
+  srsran::span<const sched_interface::dl_sched_res_t> dl_cc_result;
 };
 
 /**
@@ -73,7 +73,7 @@ int test_sib_scheduling(const sf_output_res_t& sf_out, uint32_t enb_cc_idx);
  */
 int test_pdcch_collisions(const sf_output_res_t&                   sf_out,
                           uint32_t                                 enb_cc_idx,
-                          const srslte::bounded_bitset<128, true>* expected_cce_mask);
+                          const srsran::bounded_bitset<128, true>* expected_cce_mask);
 
 /**
  * verifies correctness of DCI content for params that are independent of the UE configuration.
@@ -91,10 +91,10 @@ int test_dci_content_common(const sf_output_res_t& sf_out, uint32_t enb_cc_idx);
 int test_all_common(const sf_output_res_t& sf_out);
 
 /// Helper function to get DL PRBs from DCI
-int extract_dl_prbmask(const srslte_cell_t&               cell,
-                       const srslte_dci_dl_t&             dci,
-                       srslte::bounded_bitset<100, true>& alloc_mask);
+int extract_dl_prbmask(const srsran_cell_t&               cell,
+                       const srsran_dci_dl_t&             dci,
+                       srsran::bounded_bitset<100, true>& alloc_mask);
 
 } // namespace srsenb
 
-#endif // SRSLTE_SCHED_COMMON_TEST_SUITE_H
+#endif // SRSRAN_SCHED_COMMON_TEST_SUITE_H

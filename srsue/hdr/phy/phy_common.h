@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -14,16 +14,16 @@
 #define SRSUE_PHCH_COMMON_H
 
 #include "phy_metrics.h"
-#include "srslte/adt/circular_array.h"
-#include "srslte/common/gen_mch_tables.h"
-#include "srslte/common/tti_sempahore.h"
-#include "srslte/interfaces/phy_interface_types.h"
-#include "srslte/interfaces/radio_interfaces.h"
-#include "srslte/interfaces/rrc_interface_types.h"
-#include "srslte/interfaces/ue_phy_interfaces.h"
-#include "srslte/radio/radio.h"
-#include "srslte/srslog/srslog.h"
-#include "srslte/srslte.h"
+#include "srsran/adt/circular_array.h"
+#include "srsran/common/gen_mch_tables.h"
+#include "srsran/common/tti_sempahore.h"
+#include "srsran/interfaces/phy_interface_types.h"
+#include "srsran/interfaces/radio_interfaces.h"
+#include "srsran/interfaces/rrc_interface_types.h"
+#include "srsran/interfaces/ue_phy_interfaces.h"
+#include "srsran/radio/radio.h"
+#include "srsran/srslog/srslog.h"
+#include "srsran/srsran.h"
 #include "srsue/hdr/phy/scell/scell_state.h"
 #include "ta_control.h"
 #include <condition_variable>
@@ -53,18 +53,18 @@ public:
   phy_args_t*              args  = nullptr;
   stack_interface_phy_lte* stack = nullptr;
 
-  srslte::phy_cfg_mbsfn_t mbsfn_config = {};
+  srsran::phy_cfg_mbsfn_t mbsfn_config = {};
 
   // Secondary serving cell states
   scell::state cell_state;
 
   // Save last TBS for uplink (mcs >= 28)
-  srslte_ra_tb_t last_ul_tb[SRSLTE_MAX_HARQ_PROC][SRSLTE_MAX_CARRIERS] = {};
+  srsran_ra_tb_t last_ul_tb[SRSRAN_MAX_HARQ_PROC][SRSRAN_MAX_CARRIERS] = {};
 
   // Save last TBS for DL (Format1C)
-  int last_dl_tbs[SRSLTE_MAX_HARQ_PROC][SRSLTE_MAX_CARRIERS][SRSLTE_MAX_CODEWORDS] = {};
+  int last_dl_tbs[SRSRAN_MAX_HARQ_PROC][SRSRAN_MAX_CARRIERS][SRSRAN_MAX_CODEWORDS] = {};
 
-  srslte::tti_semaphore<void*> semaphore;
+  srsran::tti_semaphore<void*> semaphore;
 
   // Time Aligment Controller, internal thread safe
   ta_control ta;
@@ -74,41 +74,41 @@ public:
   ~phy_common();
 
   void init(phy_args_t*                  args,
-            srslte::radio_interface_phy* _radio,
+            srsran::radio_interface_phy* _radio,
             stack_interface_phy_lte*     _stack,
             rsrp_insync_itf*             rsrp_insync);
 
-  uint32_t ul_pidof(uint32_t tti, srslte_tdd_config_t* tdd_config);
+  uint32_t ul_pidof(uint32_t tti, srsran_tdd_config_t* tdd_config);
 
   // Set configurations for lib objects
-  void set_ue_dl_cfg(srslte_ue_dl_cfg_t* ue_dl_cfg);
-  void set_ue_ul_cfg(srslte_ue_ul_cfg_t* ue_ul_cfg);
-  void set_pdsch_cfg(srslte_pdsch_cfg_t* pdsch_cfg);
+  void set_ue_dl_cfg(srsran_ue_dl_cfg_t* ue_dl_cfg);
+  void set_ue_ul_cfg(srsran_ue_ul_cfg_t* ue_ul_cfg);
+  void set_pdsch_cfg(srsran_pdsch_cfg_t* pdsch_cfg);
 
-  void set_rar_grant(uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN], uint16_t rnti, srslte_tdd_config_t tdd_config);
+  void set_rar_grant(uint8_t grant_payload[SRSRAN_RAR_GRANT_LEN], uint16_t rnti, srsran_tdd_config_t tdd_config);
 
-  void set_dl_pending_grant(uint32_t tti, uint32_t cc_idx, uint32_t grant_cc_idx, const srslte_dci_dl_t* dl_dci);
-  bool get_dl_pending_grant(uint32_t tti, uint32_t cc_idx, uint32_t* grant_cc_idx, srslte_dci_dl_t* dl_dci);
+  void set_dl_pending_grant(uint32_t tti, uint32_t cc_idx, uint32_t grant_cc_idx, const srsran_dci_dl_t* dl_dci);
+  bool get_dl_pending_grant(uint32_t tti, uint32_t cc_idx, uint32_t* grant_cc_idx, srsran_dci_dl_t* dl_dci);
 
-  void set_ul_pending_ack(srslte_ul_sf_cfg_t*  sf,
+  void set_ul_pending_ack(srsran_ul_sf_cfg_t*  sf,
                           uint32_t             cc_idx,
-                          srslte_phich_grant_t phich_grant,
-                          srslte_dci_ul_t*     dci_ul);
-  bool get_ul_pending_ack(srslte_dl_sf_cfg_t*   sf,
+                          srsran_phich_grant_t phich_grant,
+                          srsran_dci_ul_t*     dci_ul);
+  bool get_ul_pending_ack(srsran_dl_sf_cfg_t*   sf,
                           uint32_t              cc_idx,
-                          srslte_phich_grant_t* phich_grant,
-                          srslte_dci_ul_t*      dci_ul);
+                          srsran_phich_grant_t* phich_grant,
+                          srsran_dci_ul_t*      dci_ul);
   bool is_any_ul_pending_ack();
 
-  bool get_ul_received_ack(srslte_ul_sf_cfg_t* sf, uint32_t cc_idx, bool* ack_value, srslte_dci_ul_t* dci_ul);
-  void set_ul_received_ack(srslte_dl_sf_cfg_t* sf,
+  bool get_ul_received_ack(srsran_ul_sf_cfg_t* sf, uint32_t cc_idx, bool* ack_value, srsran_dci_ul_t* dci_ul);
+  void set_ul_received_ack(srsran_dl_sf_cfg_t* sf,
                            uint32_t            cc_idx,
                            bool                ack_value,
                            uint32_t            I_phich,
-                           srslte_dci_ul_t*    dci_ul);
+                           srsran_dci_ul_t*    dci_ul);
 
-  void set_ul_pending_grant(srslte_dl_sf_cfg_t* sf, uint32_t cc_idx, srslte_dci_ul_t* dci);
-  bool get_ul_pending_grant(srslte_ul_sf_cfg_t* sf, uint32_t cc_idx, uint32_t* pid, srslte_dci_ul_t* dci);
+  void set_ul_pending_grant(srsran_dl_sf_cfg_t* sf, uint32_t cc_idx, srsran_dci_ul_t* dci);
+  bool get_ul_pending_grant(srsran_ul_sf_cfg_t* sf, uint32_t cc_idx, uint32_t* pid, srsran_dci_ul_t* dci);
 
   /**
    * If there is a UL Grant it returns the lowest index component carrier that has a grant, otherwise it returns 0.
@@ -120,32 +120,32 @@ public:
 
   void set_rar_grant_tti(uint32_t tti);
 
-  void set_dl_pending_ack(srslte_dl_sf_cfg_t*         sf,
+  void set_dl_pending_ack(srsran_dl_sf_cfg_t*         sf,
                           uint32_t                    cc_idx,
-                          uint8_t                     value[SRSLTE_MAX_CODEWORDS],
-                          srslte_pdsch_ack_resource_t resource);
-  bool get_dl_pending_ack(srslte_ul_sf_cfg_t* sf, uint32_t cc_idx, srslte_pdsch_ack_cc_t* ack);
+                          uint8_t                     value[SRSRAN_MAX_CODEWORDS],
+                          srsran_pdsch_ack_resource_t resource);
+  bool get_dl_pending_ack(srsran_ul_sf_cfg_t* sf, uint32_t cc_idx, srsran_pdsch_ack_cc_t* ack);
 
-  void worker_end(void* h, bool tx_enable, srslte::rf_buffer_t& buffer, srslte::rf_timestamp_t& tx_time, bool is_nr);
+  void worker_end(void* h, bool tx_enable, srsran::rf_buffer_t& buffer, srsran::rf_timestamp_t& tx_time, bool is_nr);
 
-  void set_cell(const srslte_cell_t& c);
+  void set_cell(const srsran_cell_t& c);
 
   bool sr_enabled     = false;
   int  sr_last_tx_tti = -1;
 
-  srslte::radio_interface_phy* get_radio();
+  srsran::radio_interface_phy* get_radio();
 
   void set_dl_metrics(uint32_t cc_idx, const dl_metrics_t& m);
-  void get_dl_metrics(dl_metrics_t m[SRSLTE_MAX_CARRIERS]);
+  void get_dl_metrics(dl_metrics_t m[SRSRAN_MAX_CARRIERS]);
 
   void set_ch_metrics(uint32_t cc_idx, const ch_metrics_t& m);
-  void get_ch_metrics(ch_metrics_t m[SRSLTE_MAX_CARRIERS]);
+  void get_ch_metrics(ch_metrics_t m[SRSRAN_MAX_CARRIERS]);
 
   void set_ul_metrics(uint32_t cc_idx, const ul_metrics_t& m);
-  void get_ul_metrics(ul_metrics_t m[SRSLTE_MAX_CARRIERS]);
+  void get_ul_metrics(ul_metrics_t m[SRSRAN_MAX_CARRIERS]);
 
   void set_sync_metrics(const uint32_t& cc_idx, const sync_metrics_t& m);
-  void get_sync_metrics(sync_metrics_t m[SRSLTE_MAX_CARRIERS]);
+  void get_sync_metrics(sync_metrics_t m[SRSRAN_MAX_CARRIERS]);
 
   void reset();
   void reset_radio();
@@ -153,7 +153,7 @@ public:
   void build_mch_table();
   void build_mcch_table();
   void set_mcch();
-  bool is_mbsfn_sf(srslte_mbsfn_cfg_t* cfg, uint32_t tti);
+  bool is_mbsfn_sf(srsran_mbsfn_cfg_t* cfg, uint32_t tti);
   void set_mch_period_stop(uint32_t stop);
 
   /**
@@ -166,8 +166,8 @@ public:
   uint32_t get_ul_earfcn(uint32_t dl_earfcn);
 
   void update_measurements(uint32_t                 cc_idx,
-                           srslte_chest_dl_res_t    chest_res,
-                           srslte_dl_sf_cfg_t       sf_cfg_dl,
+                           srsran_chest_dl_res_t    chest_res,
+                           srsran_dl_sf_cfg_t       sf_cfg_dl,
                            float                    tx_crs_power,
                            std::vector<phy_meas_t>& serving_cells,
                            cf_t*                    rssi_power_buffer = nullptr);
@@ -205,11 +205,11 @@ public:
     // Add RSRP in the linear domain and average
     float total_rsrp = 0;
     for (auto& m : meas) {
-      total_rsrp += srslte_convert_dB_to_power(m.rsrp);
+      total_rsrp += srsran_convert_dB_to_power(m.rsrp);
     }
     if (std::isnormal(total_rsrp)) {
       if (std::isnormal(avg_rsrp_neigh[cc_idx])) {
-        avg_rsrp_neigh[cc_idx] = SRSLTE_VEC_EMA(total_rsrp, avg_rsrp_neigh[cc_idx], 0.9);
+        avg_rsrp_neigh[cc_idx] = SRSRAN_VEC_EMA(total_rsrp, avg_rsrp_neigh[cc_idx], 0.9);
       } else {
         avg_rsrp_neigh[cc_idx] = total_rsrp;
       }
@@ -217,7 +217,7 @@ public:
   }
   void reset_neighbour_cells()
   {
-    for (uint32_t i = 0; i < SRSLTE_MAX_CARRIERS; i++) {
+    for (uint32_t i = 0; i < SRSRAN_MAX_CARRIERS; i++) {
       avg_rsrp_neigh[i] = NAN;
     }
   }
@@ -225,19 +225,19 @@ public:
 private:
   std::mutex meas_mutex;
 
-  float pathloss[SRSLTE_MAX_CARRIERS]       = {};
+  float pathloss[SRSRAN_MAX_CARRIERS]       = {};
   float cur_pathloss                        = 0.0f;
   float cur_pusch_power                     = 0.0f;
-  float avg_rsrp[SRSLTE_MAX_CARRIERS]       = {};
-  float avg_rsrp_dbm[SRSLTE_MAX_CARRIERS]   = {};
-  float avg_rsrq_db[SRSLTE_MAX_CARRIERS]    = {};
-  float avg_rssi_dbm[SRSLTE_MAX_CARRIERS]   = {};
-  float avg_cfo_hz[SRSLTE_MAX_CARRIERS]     = {};
+  float avg_rsrp[SRSRAN_MAX_CARRIERS]       = {};
+  float avg_rsrp_dbm[SRSRAN_MAX_CARRIERS]   = {};
+  float avg_rsrq_db[SRSRAN_MAX_CARRIERS]    = {};
+  float avg_rssi_dbm[SRSRAN_MAX_CARRIERS]   = {};
+  float avg_cfo_hz[SRSRAN_MAX_CARRIERS]     = {};
   float rx_gain_offset                      = 0.0f;
-  float avg_sinr_db[SRSLTE_MAX_CARRIERS]    = {};
-  float avg_snr_db[SRSLTE_MAX_CARRIERS]     = {};
-  float avg_noise[SRSLTE_MAX_CARRIERS]      = {};
-  float avg_rsrp_neigh[SRSLTE_MAX_CARRIERS] = {};
+  float avg_sinr_db[SRSRAN_MAX_CARRIERS]    = {};
+  float avg_snr_db[SRSRAN_MAX_CARRIERS]     = {};
+  float avg_noise[SRSRAN_MAX_CARRIERS]      = {};
+  float avg_rsrp_neigh[SRSRAN_MAX_CARRIERS] = {};
 
   uint32_t pcell_report_period = 0;
   uint32_t rssi_read_cnt       = 0;
@@ -250,43 +250,43 @@ private:
 
   bool is_pending_tx_end = false;
 
-  srslte::radio_interface_phy* radio_h = nullptr;
+  srsran::radio_interface_phy* radio_h = nullptr;
   srslog::basic_logger&        logger;
-  srslte::channel_ptr          ul_channel = nullptr;
+  srsran::channel_ptr          ul_channel = nullptr;
 
   int rar_grant_tti = -1;
 
   typedef struct {
     bool                 enable;
-    srslte_phich_grant_t phich_grant;
-    srslte_dci_ul_t      dci_ul;
+    srsran_phich_grant_t phich_grant;
+    srsran_dci_ul_t      dci_ul;
   } pending_ul_ack_t;
-  srslte::circular_array<pending_ul_ack_t, TTIMOD_SZ> pending_ul_ack[SRSLTE_MAX_CARRIERS][2] = {};
+  srsran::circular_array<pending_ul_ack_t, TTIMOD_SZ> pending_ul_ack[SRSRAN_MAX_CARRIERS][2] = {};
   std::mutex                                          pending_ul_ack_mutex;
 
   typedef struct {
     bool            hi_value;
     bool            hi_present;
-    srslte_dci_ul_t dci_ul;
+    srsran_dci_ul_t dci_ul;
   } received_ul_ack_t;
-  srslte::circular_array<received_ul_ack_t, TTIMOD_SZ> received_ul_ack[SRSLTE_MAX_CARRIERS] = {};
+  srsran::circular_array<received_ul_ack_t, TTIMOD_SZ> received_ul_ack[SRSRAN_MAX_CARRIERS] = {};
   std::mutex                                           received_ul_ack_mutex;
 
   typedef struct {
     bool            enable;
     uint32_t        pid;
-    srslte_dci_ul_t dci;
+    srsran_dci_ul_t dci;
   } pending_ul_grant_t;
-  srslte::circular_array<pending_ul_grant_t, TTIMOD_SZ> pending_ul_grant[SRSLTE_MAX_CARRIERS] = {};
+  srsran::circular_array<pending_ul_grant_t, TTIMOD_SZ> pending_ul_grant[SRSRAN_MAX_CARRIERS] = {};
   mutable std::mutex                                    pending_ul_grant_mutex;
 
   typedef struct {
     bool                        enable;
-    uint8_t                     value[SRSLTE_MAX_CODEWORDS]; // 0/1 or 2 for DTX
-    srslte_pdsch_ack_resource_t resource;
+    uint8_t                     value[SRSRAN_MAX_CODEWORDS]; // 0/1 or 2 for DTX
+    srsran_pdsch_ack_resource_t resource;
   } received_ack_t;
-  srslte::circular_array<received_ack_t, TTIMOD_SZ> pending_dl_ack[SRSLTE_MAX_CARRIERS] = {};
-  srslte::circular_array<uint32_t, TTIMOD_SZ>       pending_dl_dai[SRSLTE_MAX_CARRIERS] = {};
+  srsran::circular_array<received_ack_t, TTIMOD_SZ> pending_dl_ack[SRSRAN_MAX_CARRIERS] = {};
+  srsran::circular_array<uint32_t, TTIMOD_SZ>       pending_dl_dai[SRSRAN_MAX_CARRIERS] = {};
   std::mutex                                        pending_dl_ack_mutex;
   std::mutex                                        pending_dl_grant_mutex;
 
@@ -294,22 +294,22 @@ private:
   typedef struct {
     bool            enable;
     uint32_t        grant_cc_idx;
-    srslte_dci_dl_t dl_dci;
+    srsran_dci_dl_t dl_dci;
   } pending_dl_grant_t;
-  pending_dl_grant_t pending_dl_grant[FDD_HARQ_DELAY_UL_MS][SRSLTE_MAX_CARRIERS] = {};
+  pending_dl_grant_t pending_dl_grant[FDD_HARQ_DELAY_UL_MS][SRSRAN_MAX_CARRIERS] = {};
 
-  srslte_cell_t cell = {};
+  srsran_cell_t cell = {};
 
   std::mutex metrics_mutex;
 
-  ch_metrics_t   ch_metrics[SRSLTE_MAX_CARRIERS]         = {};
-  uint32_t       ch_metrics_count[SRSLTE_MAX_CARRIERS]   = {};
-  dl_metrics_t   dl_metrics[SRSLTE_MAX_CARRIERS]         = {};
-  uint32_t       dl_metrics_count[SRSLTE_MAX_CARRIERS]   = {};
-  ul_metrics_t   ul_metrics[SRSLTE_MAX_CARRIERS]         = {};
-  uint32_t       ul_metrics_count[SRSLTE_MAX_CARRIERS]   = {};
-  sync_metrics_t sync_metrics[SRSLTE_MAX_CARRIERS]       = {};
-  uint32_t       sync_metrics_count[SRSLTE_MAX_CARRIERS] = {};
+  ch_metrics_t   ch_metrics[SRSRAN_MAX_CARRIERS]         = {};
+  uint32_t       ch_metrics_count[SRSRAN_MAX_CARRIERS]   = {};
+  dl_metrics_t   dl_metrics[SRSRAN_MAX_CARRIERS]         = {};
+  uint32_t       dl_metrics_count[SRSRAN_MAX_CARRIERS]   = {};
+  ul_metrics_t   ul_metrics[SRSRAN_MAX_CARRIERS]         = {};
+  uint32_t       ul_metrics_count[SRSRAN_MAX_CARRIERS]   = {};
+  sync_metrics_t sync_metrics[SRSRAN_MAX_CARRIERS]       = {};
+  uint32_t       sync_metrics_count[SRSRAN_MAX_CARRIERS] = {};
 
   // MBSFN
   bool     sib13_configured = false;
@@ -318,12 +318,12 @@ private:
   uint8_t  mch_table[40]    = {};
   uint8_t  mcch_table[10]   = {};
 
-  bool is_mch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti);
+  bool is_mch_subframe(srsran_mbsfn_cfg_t* cfg, uint32_t phy_tti);
 
-  bool is_mcch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti);
+  bool is_mcch_subframe(srsran_mbsfn_cfg_t* cfg, uint32_t phy_tti);
 
   // NR carriers buffering synchronization, LTE workers are in charge of transmitting
-  srslte::rf_buffer_t nr_tx_buffer;
+  srsran::rf_buffer_t nr_tx_buffer;
   bool                nr_tx_buffer_ready = false;
 };
 } // namespace srsue

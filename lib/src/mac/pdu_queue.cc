@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,10 +10,10 @@
  *
  */
 
-#include "srslte/mac/pdu_queue.h"
-#include "srslte/common/log_helper.h"
+#include "srsran/mac/pdu_queue.h"
+#include "srsran/common/log_helper.h"
 
-namespace srslte {
+namespace srsran {
 
 void pdu_queue::init(process_callback* callback_)
 {
@@ -93,4 +93,4 @@ void pdu_queue::reset()
   }
 }
 
-} // namespace srslte
+} // namespace srsran

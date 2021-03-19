@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,15 +10,15 @@
  *
  */
 
-#ifndef SRSLTE_HARD_DEMOD_LTE_H_
-#define SRSLTE_HARD_DEMOD_LTE_H_
+#ifndef SRSRAN_HARD_DEMOD_LTE_H_
+#define SRSRAN_HARD_DEMOD_LTE_H_
 
 #include <complex.h>
 #include <math.h>
 #include <stdint.h>
 
 #include "hard_demod_lte.h"
-#include "srslte/phy/modem/demod_hard.h"
+#include "srsran/phy/modem/demod_hard.h"
 
 /**
  * @ingroup Hard BPSK demodulator
@@ -276,4 +276,4 @@ inline void hard_qam256_demod(const cf_t* in, uint8_t* out, uint32_t N)
   }
 }
 
-#endif /* SRSLTE_HARD_DEMOD_LTE_H_ */
+#endif /* SRSRAN_HARD_DEMOD_LTE_H_ */

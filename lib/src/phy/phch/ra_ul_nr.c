@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,54 +10,54 @@
  *
  */
 
-#include "srslte/phy/phch/ra_ul_nr.h"
+#include "srsran/phy/phch/ra_ul_nr.h"
 #include "ra_helper.h"
-#include "srslte/phy/ch_estimation/dmrs_pucch.h"
-#include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/phch/csi.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/ch_estimation/dmrs_pucch.h"
+#include "srsran/phy/common/phy_common.h"
+#include "srsran/phy/phch/csi.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/vector.h"
 
 typedef struct {
-  srslte_sch_mapping_type_t mapping;
+  srsran_sch_mapping_type_t mapping;
   uint32_t                  K2;
   uint32_t                  S;
   uint32_t                  L;
 } ue_ra_time_resource_t;
 
-static const ue_ra_time_resource_t ue_ul_default_A_lut[16] = {{srslte_sch_mapping_type_A, 0, 0, 14},
-                                                              {srslte_sch_mapping_type_A, 0, 0, 12},
-                                                              {srslte_sch_mapping_type_A, 0, 0, 10},
-                                                              {srslte_sch_mapping_type_B, 0, 2, 10},
-                                                              {srslte_sch_mapping_type_B, 0, 4, 10},
-                                                              {srslte_sch_mapping_type_B, 0, 4, 8},
-                                                              {srslte_sch_mapping_type_B, 0, 4, 6},
-                                                              {srslte_sch_mapping_type_A, 1, 0, 14},
-                                                              {srslte_sch_mapping_type_A, 1, 0, 12},
-                                                              {srslte_sch_mapping_type_A, 1, 0, 10},
-                                                              {srslte_sch_mapping_type_A, 2, 0, 14},
-                                                              {srslte_sch_mapping_type_A, 2, 0, 12},
-                                                              {srslte_sch_mapping_type_A, 2, 0, 10},
-                                                              {srslte_sch_mapping_type_B, 0, 8, 6},
-                                                              {srslte_sch_mapping_type_A, 3, 0, 14},
-                                                              {srslte_sch_mapping_type_A, 3, 0, 10}};
+static const ue_ra_time_resource_t ue_ul_default_A_lut[16] = {{srsran_sch_mapping_type_A, 0, 0, 14},
+                                                              {srsran_sch_mapping_type_A, 0, 0, 12},
+                                                              {srsran_sch_mapping_type_A, 0, 0, 10},
+                                                              {srsran_sch_mapping_type_B, 0, 2, 10},
+                                                              {srsran_sch_mapping_type_B, 0, 4, 10},
+                                                              {srsran_sch_mapping_type_B, 0, 4, 8},
+                                                              {srsran_sch_mapping_type_B, 0, 4, 6},
+                                                              {srsran_sch_mapping_type_A, 1, 0, 14},
+                                                              {srsran_sch_mapping_type_A, 1, 0, 12},
+                                                              {srsran_sch_mapping_type_A, 1, 0, 10},
+                                                              {srsran_sch_mapping_type_A, 2, 0, 14},
+                                                              {srsran_sch_mapping_type_A, 2, 0, 12},
+                                                              {srsran_sch_mapping_type_A, 2, 0, 10},
+                                                              {srsran_sch_mapping_type_B, 0, 8, 6},
+                                                              {srsran_sch_mapping_type_A, 3, 0, 14},
+                                                              {srsran_sch_mapping_type_A, 3, 0, 10}};
 
-int srslte_ra_ul_nr_pusch_time_resource_default_A(uint32_t scs_cfg, uint32_t m, srslte_sch_grant_nr_t* grant)
+int srsran_ra_ul_nr_pusch_time_resource_default_A(uint32_t scs_cfg, uint32_t m, srsran_sch_grant_nr_t* grant)
 {
   uint32_t j[4] = {1, 1, 2, 3};
 
   if (grant == NULL) {
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
   if (scs_cfg > 4) {
     ERROR("Invalid numerology (%d)", scs_cfg);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   if (m >= 16) {
     ERROR("m (%d) is out-of-range", m);
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
   // Select mapping
@@ -66,13 +66,13 @@ int srslte_ra_ul_nr_pusch_time_resource_default_A(uint32_t scs_cfg, uint32_t m, 
   grant->S       = ue_ul_default_A_lut[m].S;
   grant->L       = ue_ul_default_A_lut[m].L;
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-static void ra_ul_nr_time_hl(const srslte_sch_time_ra_t* hl_ra_cfg, srslte_sch_grant_nr_t* grant)
+static void ra_ul_nr_time_hl(const srsran_sch_time_ra_t* hl_ra_cfg, srsran_sch_grant_nr_t* grant)
 {
   // Compute S and L from SLIV from higher layers
-  ra_helper_compute_s_and_l(SRSLTE_NSYMB_PER_SLOT_NR, hl_ra_cfg->sliv, &grant->S, &grant->L);
+  ra_helper_compute_s_and_l(SRSRAN_NSYMB_PER_SLOT_NR, hl_ra_cfg->sliv, &grant->S, &grant->L);
 
   grant->k       = hl_ra_cfg->k;
   grant->mapping = hl_ra_cfg->mapping_type;
@@ -112,63 +112,63 @@ static bool check_time_ra_typeB(uint32_t* S, uint32_t* L)
   return false;
 }
 
-bool srslte_ra_ul_nr_time_validate(srslte_sch_grant_nr_t* grant)
+bool srsran_ra_ul_nr_time_validate(srsran_sch_grant_nr_t* grant)
 {
-  if (grant->mapping == srslte_sch_mapping_type_A) {
+  if (grant->mapping == srsran_sch_mapping_type_A) {
     return check_time_ra_typeA(&grant->S, &grant->L);
   }
 
   return check_time_ra_typeB(&grant->S, &grant->L);
 }
 
-int srslte_ra_ul_nr_time(const srslte_sch_hl_cfg_nr_t*    cfg,
-                         const srslte_rnti_type_t         rnti_type,
-                         const srslte_search_space_type_t ss_type,
+int srsran_ra_ul_nr_time(const srsran_sch_hl_cfg_nr_t*    cfg,
+                         const srsran_rnti_type_t         rnti_type,
+                         const srsran_search_space_type_t ss_type,
                          const uint32_t                   coreset_id,
                          const uint8_t                    m,
-                         srslte_sch_grant_nr_t*           grant)
+                         srsran_sch_grant_nr_t*           grant)
 {
   if (cfg == NULL || grant == NULL) {
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
-  if (m >= SRSLTE_MAX_NOF_DL_ALLOCATION) {
+  if (m >= SRSRAN_MAX_NOF_DL_ALLOCATION) {
     ERROR("m (%d) is out-of-range", m);
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
   // Determine which PUSCH Time domain RA configuration to apply (TS 38.214 Table 6.1.2.1.1-1:)
-  if (ss_type == srslte_search_space_type_rar) {
+  if (ss_type == srsran_search_space_type_rar) {
     // Row 1
     if (cfg->nof_common_time_ra == 0) {
-      srslte_ra_ul_nr_pusch_time_resource_default_A(cfg->scs_cfg, m, grant);
-    } else if (m < SRSLTE_MAX_NOF_DL_ALLOCATION && m < cfg->nof_common_time_ra) {
+      srsran_ra_ul_nr_pusch_time_resource_default_A(cfg->scs_cfg, m, grant);
+    } else if (m < SRSRAN_MAX_NOF_DL_ALLOCATION && m < cfg->nof_common_time_ra) {
       ra_ul_nr_time_hl(&cfg->common_time_ra[m], grant);
     } else {
       ERROR("Time domain resource selection (m=%d) exceeds the maximum value (%d)",
             m,
-            SRSLTE_MIN(cfg->nof_common_time_ra, SRSLTE_MAX_NOF_DL_ALLOCATION));
+            SRSRAN_MIN(cfg->nof_common_time_ra, SRSRAN_MAX_NOF_DL_ALLOCATION));
     }
-  } else if ((rnti_type == srslte_rnti_type_c || rnti_type == srslte_rnti_type_mcs_c ||
-              rnti_type == srslte_rnti_type_tc || rnti_type == srslte_rnti_type_cs) &&
-             SRSLTE_SEARCH_SPACE_IS_COMMON(ss_type) && coreset_id == 0) {
+  } else if ((rnti_type == srsran_rnti_type_c || rnti_type == srsran_rnti_type_mcs_c ||
+              rnti_type == srsran_rnti_type_tc || rnti_type == srsran_rnti_type_cs) &&
+             SRSRAN_SEARCH_SPACE_IS_COMMON(ss_type) && coreset_id == 0) {
     // Row 2
     if (cfg->nof_common_time_ra == 0) {
-      srslte_ra_ul_nr_pusch_time_resource_default_A(cfg->scs_cfg, m, grant);
-    } else if (m < SRSLTE_MAX_NOF_DL_ALLOCATION) {
+      srsran_ra_ul_nr_pusch_time_resource_default_A(cfg->scs_cfg, m, grant);
+    } else if (m < SRSRAN_MAX_NOF_DL_ALLOCATION) {
       ra_ul_nr_time_hl(&cfg->common_time_ra[m], grant);
     }
-  } else if ((rnti_type == srslte_rnti_type_c || rnti_type == srslte_rnti_type_mcs_c ||
-              rnti_type == srslte_rnti_type_tc || rnti_type == srslte_rnti_type_cs ||
-              rnti_type == srslte_rnti_type_sp_csi) &&
-             ((SRSLTE_SEARCH_SPACE_IS_COMMON(ss_type) && coreset_id != 0) || ss_type == srslte_search_space_type_ue)) {
+  } else if ((rnti_type == srsran_rnti_type_c || rnti_type == srsran_rnti_type_mcs_c ||
+              rnti_type == srsran_rnti_type_tc || rnti_type == srsran_rnti_type_cs ||
+              rnti_type == srsran_rnti_type_sp_csi) &&
+             ((SRSRAN_SEARCH_SPACE_IS_COMMON(ss_type) && coreset_id != 0) || ss_type == srsran_search_space_type_ue)) {
     // Row 3
     if (cfg->nof_dedicated_time_ra > 0) {
       ra_ul_nr_time_hl(&cfg->dedicated_time_ra[m], grant);
     } else if (cfg->nof_common_time_ra > 0) {
       ra_ul_nr_time_hl(&cfg->common_time_ra[m], grant);
     } else {
-      srslte_ra_ul_nr_pusch_time_resource_default_A(cfg->scs_cfg, m, grant);
+      srsran_ra_ul_nr_pusch_time_resource_default_A(cfg->scs_cfg, m, grant);
     }
   } else {
     ERROR("Unhandled case");
@@ -177,29 +177,29 @@ int srslte_ra_ul_nr_time(const srslte_sch_hl_cfg_nr_t*    cfg,
   // Table 6.1.2.1.1-5 defines the additional subcarrier spacing specific slot delay value for the first transmission of
   // PUSCH scheduled by the RAR. When the UE transmits a PUSCH scheduled by RAR, the Δ value specific to the PUSCH
   // subcarrier spacing μ PUSCH is applied in addition to the K 2 value.
-  if (ss_type == srslte_search_space_type_rar) {
+  if (ss_type == srsran_search_space_type_rar) {
     uint32_t delta[4] = {2, 3, 4, 6};
     if (cfg->scs_cfg >= 4) {
       ERROR("Invalid numerology");
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
     grant->k += delta[cfg->scs_cfg];
   }
 
   // Validate S and L parameters
-  if (!srslte_ra_ul_nr_time_validate(grant)) {
+  if (!srsran_ra_ul_nr_time_validate(grant)) {
     ERROR("Invalid Time RA S=%d; L=%d; m=%d", grant->S, grant->L, m);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-int srslte_ra_ul_nr_nof_dmrs_cdm_groups_without_data_format_0_0(const srslte_sch_cfg_nr_t* cfg,
-                                                                srslte_sch_grant_nr_t*     grant)
+int srsran_ra_ul_nr_nof_dmrs_cdm_groups_without_data_format_0_0(const srsran_sch_cfg_nr_t* cfg,
+                                                                srsran_sch_grant_nr_t*     grant)
 {
   if (cfg == NULL || grant == NULL) {
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
   /* According to TS 38.214 V15.10.0 6.2.2 UE DM-RS transmission procedure:
@@ -213,31 +213,31 @@ int srslte_ra_ul_nr_nof_dmrs_cdm_groups_without_data_format_0_0(const srslte_sch
    */
   if (grant->L <= 2 && !cfg->enable_transform_precoder) {
     grant->nof_dmrs_cdm_groups_without_data = 1;
-    //  } else if (grant->L > 2 && cfg->dmrs_cg.type == srslte_dmrs_sch_type_2){
+    //  } else if (grant->L > 2 && cfg->dmrs_cg.type == srsran_dmrs_sch_type_2){
     //    grant->nof_dmrs_cdm_groups_without_data = 3;
   } else {
     grant->nof_dmrs_cdm_groups_without_data = 2;
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-int srslte_ra_ul_nr_dmrs_power_offset(srslte_sch_grant_nr_t* grant)
+int srsran_ra_ul_nr_dmrs_power_offset(srsran_sch_grant_nr_t* grant)
 {
   if (grant == NULL) {
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
   float ratio_dB[3] = {0, -3, -4.77};
 
   if (grant->nof_dmrs_cdm_groups_without_data < 1 || grant->nof_dmrs_cdm_groups_without_data > 3) {
     ERROR("Invalid number of DMRS CDM groups without data (%d)", grant->nof_dmrs_cdm_groups_without_data);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
-  grant->beta_dmrs = srslte_convert_dB_to_amplitude(-ratio_dB[grant->nof_dmrs_cdm_groups_without_data - 1]);
+  grant->beta_dmrs = srsran_convert_dB_to_amplitude(-ratio_dB[grant->nof_dmrs_cdm_groups_without_data - 1]);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 #define RA_UL_PUCCH_CODE_RATE_N 8
@@ -247,7 +247,7 @@ static const double ra_ul_pucch_code_rate_table[RA_UL_PUCCH_CODE_RATE_N] =
     {0.08, 0.15, 0.25, 0.35, 0.45, 0.60, 0.80, RA_UL_PUCCH_CODE_RATE_RESERVED};
 
 // Implements TS 38.213 Table 9.2.5.2-1: Code rate r corresponding to value of maxCodeRate
-static double ra_ul_nr_pucch_code_rate_r(const srslte_pucch_nr_resource_t* resource)
+static double ra_ul_nr_pucch_code_rate_r(const srsran_pucch_nr_resource_t* resource)
 {
   if (resource->max_code_rate >= RA_UL_PUCCH_CODE_RATE_RESERVED) {
     ERROR("Invalid code rate");
@@ -258,52 +258,52 @@ static double ra_ul_nr_pucch_code_rate_r(const srslte_pucch_nr_resource_t* resou
 }
 
 // Calculate number of PRBs for PUCCH format 2, or PUCCH format 3, or PUCCH format 4, respectively
-// static int ra_ul_nr_pucch_Mrb(const srslte_pucch_nr_resource_t* resource)
+// static int ra_ul_nr_pucch_Mrb(const srsran_pucch_nr_resource_t* resource)
 //{
 //  switch (resource->format) {
-//    case SRSLTE_PUCCH_NR_FORMAT_2:
-//    case SRSLTE_PUCCH_NR_FORMAT_3:
+//    case SRSRAN_PUCCH_NR_FORMAT_2:
+//    case SRSRAN_PUCCH_NR_FORMAT_3:
 //      return resource->nof_prb;
-//    case SRSLTE_PUCCH_NR_FORMAT_4:
-//      return SRSLTE_PUCCH_NR_FORMAT4_NPRB;
+//    case SRSRAN_PUCCH_NR_FORMAT_4:
+//      return SRSRAN_PUCCH_NR_FORMAT4_NPRB;
 //    default:
 //      ERROR("Invalid case");
 //      break;
 //  }
-//  return SRSLTE_ERROR;
+//  return SRSRAN_ERROR;
 //}
 
 // Calculate number of subcarriers per resource block for payload (No DMRS)
-static int ra_ul_nr_pucch_nre(const srslte_pucch_nr_resource_t* resource)
+static int ra_ul_nr_pucch_nre(const srsran_pucch_nr_resource_t* resource)
 {
   switch (resource->format) {
-    case SRSLTE_PUCCH_NR_FORMAT_2:
-      return SRSLTE_NRE - 4;
-    case SRSLTE_PUCCH_NR_FORMAT_3:
-      return SRSLTE_NRE;
-    case SRSLTE_PUCCH_NR_FORMAT_4:
-      return SRSLTE_NRE / resource->occ_lenth;
+    case SRSRAN_PUCCH_NR_FORMAT_2:
+      return SRSRAN_NRE - 4;
+    case SRSRAN_PUCCH_NR_FORMAT_3:
+      return SRSRAN_NRE;
+    case SRSRAN_PUCCH_NR_FORMAT_4:
+      return SRSRAN_NRE / resource->occ_lenth;
     default:
       ERROR("Invalid case");
       break;
   }
-  return SRSLTE_ERROR;
+  return SRSRAN_ERROR;
 }
 
 // Calculate number of PUCCH symbols excluding the ones used exclusively for DMRS for formats 3 and 4
-static int ra_ul_nr_pucch_nsymb(const srslte_pucch_nr_resource_t* resource)
+static int ra_ul_nr_pucch_nsymb(const srsran_pucch_nr_resource_t* resource)
 {
   switch (resource->format) {
-    case SRSLTE_PUCCH_NR_FORMAT_2:
+    case SRSRAN_PUCCH_NR_FORMAT_2:
       return resource->nof_symbols;
-    case SRSLTE_PUCCH_NR_FORMAT_3:
-    case SRSLTE_PUCCH_NR_FORMAT_4: {
-      uint32_t idx[SRSLTE_DMRS_PUCCH_FORMAT_3_4_MAX_NSYMB] = {};
+    case SRSRAN_PUCCH_NR_FORMAT_3:
+    case SRSRAN_PUCCH_NR_FORMAT_4: {
+      uint32_t idx[SRSRAN_DMRS_PUCCH_FORMAT_3_4_MAX_NSYMB] = {};
 
       // Get number of DMRS symbols for format 3 or 4
-      int nsymb_dmrs = srslte_dmrs_pucch_format_3_4_get_symbol_idx(resource, idx);
-      if (nsymb_dmrs < SRSLTE_SUCCESS) {
-        return SRSLTE_ERROR;
+      int nsymb_dmrs = srsran_dmrs_pucch_format_3_4_get_symbol_idx(resource, idx);
+      if (nsymb_dmrs < SRSRAN_SUCCESS) {
+        return SRSRAN_ERROR;
       }
 
       return (int)resource->nof_symbols - nsymb_dmrs;
@@ -312,109 +312,109 @@ static int ra_ul_nr_pucch_nsymb(const srslte_pucch_nr_resource_t* resource)
       ERROR("Invalid case");
       break;
   }
-  return SRSLTE_ERROR;
+  return SRSRAN_ERROR;
 }
 
 // Calculate number of PUCCH symbols excluding the ones used exclusively for DMRS for formats 3 and 4
-static int ra_ul_nr_pucch_qm(const srslte_pucch_nr_resource_t* resource)
+static int ra_ul_nr_pucch_qm(const srsran_pucch_nr_resource_t* resource)
 {
   switch (resource->format) {
-    case SRSLTE_PUCCH_NR_FORMAT_2:
+    case SRSRAN_PUCCH_NR_FORMAT_2:
       return 2;
-    case SRSLTE_PUCCH_NR_FORMAT_3:
-    case SRSLTE_PUCCH_NR_FORMAT_4:
+    case SRSRAN_PUCCH_NR_FORMAT_3:
+    case SRSRAN_PUCCH_NR_FORMAT_4:
       return resource->enable_pi_bpsk ? 1 : 2;
     default:
       ERROR("Invalid case");
       break;
   }
-  return SRSLTE_ERROR;
+  return SRSRAN_ERROR;
 }
 
-int srslte_ra_ul_nr_pucch_format_2_3_min_prb(const srslte_pucch_nr_resource_t* resource,
-                                             const srslte_uci_cfg_nr_t*        uci_cfg)
+int srsran_ra_ul_nr_pucch_format_2_3_min_prb(const srsran_pucch_nr_resource_t* resource,
+                                             const srsran_uci_cfg_nr_t*        uci_cfg)
 {
   if (resource == NULL || uci_cfg == NULL) {
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
   // Get maximum allowed code rate
   double r = ra_ul_nr_pucch_code_rate_r(resource);
   if (!isnormal(r)) {
     ERROR("Invalid coderate %f", r);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // Get number of RE/PRB
   int nre = ra_ul_nr_pucch_nre(resource);
-  if (nre < SRSLTE_SUCCESS) {
+  if (nre < SRSRAN_SUCCESS) {
     ERROR("Getting nre");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // Get number of symbols
   int nsymb = ra_ul_nr_pucch_nsymb(resource);
-  if (nsymb < SRSLTE_SUCCESS) {
+  if (nsymb < SRSRAN_SUCCESS) {
     ERROR("Getting nsymb");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // Get modulation order
   int qm = ra_ul_nr_pucch_qm(resource);
-  if (qm < SRSLTE_SUCCESS) {
+  if (qm < SRSRAN_SUCCESS) {
     ERROR("Getting qm");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // Calculate denominator
   double nof_bits_rb = r * nre * nsymb * qm;
   if (!isnormal(nof_bits_rb)) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // Compute total number of UCI bits
-  uint32_t O_total = uci_cfg->o_ack + uci_cfg->o_sr + srslte_csi_part1_nof_bits(uci_cfg->csi, uci_cfg->nof_csi);
+  uint32_t O_total = uci_cfg->o_ack + uci_cfg->o_sr + srsran_csi_part1_nof_bits(uci_cfg->csi, uci_cfg->nof_csi);
 
   // Add CRC bits if any
-  O_total += srslte_uci_nr_crc_len(O_total);
+  O_total += srsran_uci_nr_crc_len(O_total);
 
   // Return the minimum
   return (int)ceil(O_total / nof_bits_rb);
 }
 
-int srslte_ra_ul_nr_freq(const srslte_carrier_nr_t*    carrier,
-                         const srslte_sch_hl_cfg_nr_t* cfg,
-                         const srslte_dci_ul_nr_t*     dci_ul,
-                         srslte_sch_grant_nr_t*        grant)
+int srsran_ra_ul_nr_freq(const srsran_carrier_nr_t*    carrier,
+                         const srsran_sch_hl_cfg_nr_t* cfg,
+                         const srsran_dci_ul_nr_t*     dci_ul,
+                         srsran_sch_grant_nr_t*        grant)
 {
   if (cfg == NULL || grant == NULL || dci_ul == NULL) {
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
   // RA scheme
-  if (dci_ul->format == srslte_dci_format_nr_0_0) {
+  if (dci_ul->format == srsran_dci_format_nr_0_0) {
     // when the scheduling grant is received with DCI format 1_0 , then downlink resource allocation type 1 is used.
     return ra_helper_freq_type1(carrier->nof_prb, dci_ul->freq_domain_assigment, grant);
   }
 
   ERROR("Only DCI Format 0_0 is supported");
-  return SRSLTE_ERROR;
+  return SRSRAN_ERROR;
 }
 
 // Implements TS 38.213 Table 9.2.1-1: PUCCH resource sets before dedicated PUCCH resource configuration
-static int ra_ul_nr_pucch_resource_default(uint32_t r_pucch, srslte_pucch_nr_resource_t* resource)
+static int ra_ul_nr_pucch_resource_default(uint32_t r_pucch, srsran_pucch_nr_resource_t* resource)
 {
   ERROR("Not implemented");
-  return SRSLTE_ERROR;
+  return SRSRAN_ERROR;
 }
 
-static int ra_ul_nr_pucch_resource_hl(const srslte_pucch_nr_hl_cfg_t* cfg,
+static int ra_ul_nr_pucch_resource_hl(const srsran_pucch_nr_hl_cfg_t* cfg,
                                       uint32_t                        O_uci,
                                       uint32_t                        pucch_resource_id,
-                                      srslte_pucch_nr_resource_t*     resource)
+                                      srsran_pucch_nr_resource_t*     resource)
 {
-  uint32_t N2 = cfg->sets[1].max_payload_size > 0 ? cfg->sets[1].max_payload_size : SRSLTE_UCI_NR_MAX_NOF_BITS;
-  uint32_t N3 = cfg->sets[2].max_payload_size > 0 ? cfg->sets[2].max_payload_size : SRSLTE_UCI_NR_MAX_NOF_BITS;
+  uint32_t N2 = cfg->sets[1].max_payload_size > 0 ? cfg->sets[1].max_payload_size : SRSRAN_UCI_NR_MAX_NOF_BITS;
+  uint32_t N3 = cfg->sets[2].max_payload_size > 0 ? cfg->sets[2].max_payload_size : SRSRAN_UCI_NR_MAX_NOF_BITS;
 
   // If the UE transmits O UCI UCI information bits, that include HARQ-ACK information bits, the UE determines a PUCCH
   // resource set to be...
@@ -427,65 +427,65 @@ static int ra_ul_nr_pucch_resource_hl(const srslte_pucch_nr_hl_cfg_t* cfg,
     resource_set_id = 2;
   } else if (cfg->sets[3].nof_resources == 0) {
     ERROR("Invalid PUCCH resource configuration, N3=%d, O_uci=%d", N3, O_uci);
-    return SRSLTE_ERROR;
-  } else if (O_uci > SRSLTE_UCI_NR_MAX_NOF_BITS) {
-    ERROR("The number of UCI bits (%d), exceeds the maximum (%d)", O_uci, SRSLTE_UCI_NR_MAX_NOF_BITS);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
+  } else if (O_uci > SRSRAN_UCI_NR_MAX_NOF_BITS) {
+    ERROR("The number of UCI bits (%d), exceeds the maximum (%d)", O_uci, SRSRAN_UCI_NR_MAX_NOF_BITS);
+    return SRSRAN_ERROR;
   }
 
   // Select resource from the set
-  if (pucch_resource_id >= SRSLTE_PUCCH_NR_MAX_NOF_RESOURCES_PER_SET ||
+  if (pucch_resource_id >= SRSRAN_PUCCH_NR_MAX_NOF_RESOURCES_PER_SET ||
       pucch_resource_id >= cfg->sets[resource_set_id].nof_resources) {
     ERROR("The PUCCH resource identifier (%d) exceeds the number of configured resources (%d) for set identifier %d",
           pucch_resource_id,
           cfg->sets[resource_set_id].nof_resources,
           resource_set_id);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   *resource = cfg->sets[resource_set_id].resources[pucch_resource_id];
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-int srslte_ra_ul_nr_pucch_resource(const srslte_pucch_nr_hl_cfg_t* pucch_cfg,
-                                   const srslte_uci_cfg_nr_t*      uci_cfg,
-                                   srslte_pucch_nr_resource_t*     resource)
+int srsran_ra_ul_nr_pucch_resource(const srsran_pucch_nr_hl_cfg_t* pucch_cfg,
+                                   const srsran_uci_cfg_nr_t*      uci_cfg,
+                                   srsran_pucch_nr_resource_t*     resource)
 {
   if (pucch_cfg == NULL || uci_cfg == NULL || resource == NULL) {
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
-  uint32_t O_uci = srslte_uci_nr_total_bits(uci_cfg);
+  uint32_t O_uci = srsran_uci_nr_total_bits(uci_cfg);
 
   // Use SR PUCCH resource
   // - At least one positive SR
   // - up to 2 HARQ-ACK
   // - No CSI report
-  if (uci_cfg->pucch.sr_positive_present > 0 && uci_cfg->o_ack <= SRSLTE_PUCCH_NR_FORMAT1_MAX_NOF_BITS &&
+  if (uci_cfg->pucch.sr_positive_present > 0 && uci_cfg->o_ack <= SRSRAN_PUCCH_NR_FORMAT1_MAX_NOF_BITS &&
       uci_cfg->nof_csi == 0) {
     uint32_t sr_resource_id = uci_cfg->pucch.sr_resource_id;
-    if (sr_resource_id >= SRSLTE_PUCCH_MAX_NOF_SR_RESOURCES) {
-      ERROR("SR resource ID (%d) exceeds the maximum ID (%d)", sr_resource_id, SRSLTE_PUCCH_MAX_NOF_SR_RESOURCES);
-      return SRSLTE_ERROR;
+    if (sr_resource_id >= SRSRAN_PUCCH_MAX_NOF_SR_RESOURCES) {
+      ERROR("SR resource ID (%d) exceeds the maximum ID (%d)", sr_resource_id, SRSRAN_PUCCH_MAX_NOF_SR_RESOURCES);
+      return SRSRAN_ERROR;
     }
 
     if (!pucch_cfg->sr_resources[sr_resource_id].configured) {
       ERROR("SR resource ID (%d) is not configured", sr_resource_id);
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
 
     // Set PUCCH resource
     *resource = pucch_cfg->sr_resources[sr_resource_id].resource;
 
     // No more logic is required in this case
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   // Use format 2, 3 or 4 resource from higher layers
   // - Irrelevant SR opportunities
   // - More than 2 HARQ-ACK
   // - No CSI report
-  if (uci_cfg->o_sr > 0 && uci_cfg->o_ack > SRSLTE_PUCCH_NR_FORMAT1_MAX_NOF_BITS && uci_cfg->nof_csi == 0) {
+  if (uci_cfg->o_sr > 0 && uci_cfg->o_ack > SRSRAN_PUCCH_NR_FORMAT1_MAX_NOF_BITS && uci_cfg->nof_csi == 0) {
     return ra_ul_nr_pucch_resource_hl(pucch_cfg, O_uci, uci_cfg->pucch.resource_id, resource);
   }
 
@@ -493,9 +493,9 @@ int srslte_ra_ul_nr_pucch_resource(const srslte_pucch_nr_hl_cfg_t* pucch_cfg,
   // - Irrelevant SR opportunities
   // - No HARQ-ACK
   // - Single periodic CSI report
-  if (uci_cfg->o_ack == 0 && uci_cfg->nof_csi == 1 && uci_cfg->csi[0].type == SRSLTE_CSI_REPORT_TYPE_PERIODIC) {
+  if (uci_cfg->o_ack == 0 && uci_cfg->nof_csi == 1 && uci_cfg->csi[0].type == SRSRAN_CSI_REPORT_TYPE_PERIODIC) {
     *resource = uci_cfg->csi[0].pucch_resource;
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   // If a UE does not have dedicated PUCCH resource configuration, provided by PUCCH-ResourceSet in PUCCH-Config,
@@ -508,7 +508,7 @@ int srslte_ra_ul_nr_pucch_resource(const srslte_pucch_nr_hl_cfg_t* pucch_cfg,
   return ra_ul_nr_pucch_resource_hl(pucch_cfg, O_uci, uci_cfg->pucch.resource_id, resource);
 }
 
-uint32_t srslte_ra_ul_nr_nof_sr_bits(uint32_t K)
+uint32_t srsran_ra_ul_nr_nof_sr_bits(uint32_t K)
 {
   if (K > 0) {
     return (uint32_t)ceilf(log2f((float)K + 1.0f));

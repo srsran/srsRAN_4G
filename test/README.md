@@ -21,12 +21,12 @@ are analyzed.
 Single Execution
 ----------------
 
-The script can be executed manually. It expects the srsLTE build directory as
+The script can be executed manually. It expects the srsRAN build directory as
 the first argument, the cell bandwidth as the second, and, optionally the number
 of component carrier as the third.
 
 ```
-$ sudo ./run_lte.sh ~/src/srsLTE/build 50 1
+$ sudo ./run_lte.sh ~/src/srsRAN/build 50 1
 ```
 
 Testing all Bandwidths

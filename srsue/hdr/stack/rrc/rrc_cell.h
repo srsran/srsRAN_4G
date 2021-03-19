@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,16 +10,16 @@
  *
  */
 
-#ifndef SRSLTE_RRC_CELL_H
-#define SRSLTE_RRC_CELL_H
+#ifndef SRSRAN_RRC_CELL_H
+#define SRSRAN_RRC_CELL_H
 
-#include "srslte/asn1/rrc.h"
-#include "srslte/asn1/rrc_nr.h"
-#include "srslte/asn1/rrc_nr_utils.h"
-#include "srslte/asn1/rrc_utils.h"
-#include "srslte/common/task_scheduler.h"
-#include "srslte/interfaces/ue_rrc_interfaces.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/asn1/rrc.h"
+#include "srsran/asn1/rrc_nr.h"
+#include "srsran/asn1/rrc_nr_utils.h"
+#include "srsran/asn1/rrc_utils.h"
+#include "srsran/common/task_scheduler.h"
+#include "srsran/interfaces/ue_rrc_interfaces.h"
+#include "srsran/srslog/srslog.h"
 #include <set>
 
 namespace srsue {
@@ -36,11 +36,11 @@ class meas_cell
 public:
   const static int neighbour_timeout_ms = 5000;
 
-  explicit meas_cell(srslte::unique_timer timer);
-  meas_cell(const phy_cell_t& phy_cell_, srslte::unique_timer timer);
+  explicit meas_cell(srsran::unique_timer timer);
+  meas_cell(const phy_cell_t& phy_cell_, srsran::unique_timer timer);
 
   // comparison based on pci and earfcn
-  bool is_valid() const { return phy_cell.earfcn != 0 && srslte_cellid_isvalid(phy_cell.pci); }
+  bool is_valid() const { return phy_cell.earfcn != 0 && srsran_cellid_isvalid(phy_cell.pci); }
   bool equals(const meas_cell& x) { return equals(x.phy_cell.earfcn, x.phy_cell.pci); }
   bool equals(uint32_t earfcn, uint32_t pci) { return earfcn == phy_cell.earfcn && pci == phy_cell.pci; }
 
@@ -73,7 +73,7 @@ public:
   bool has_sib3() const { return has_valid_sib3; }
   bool has_sib13() const { return has_valid_sib13; }
   bool has_sib(uint32_t index) const;
-  bool has_sibs(srslte::span<const uint32_t> indexes) const;
+  bool has_sibs(srsran::span<const uint32_t> indexes) const;
 
   bool is_sib_scheduled(uint32_t sib_index) const;
 
@@ -93,7 +93,7 @@ public:
   float get_cfo_hz() const { return phy_cell.cfo_hz; }
 
   phy_cell_t           phy_cell = {0, 0, 0};
-  srslte::unique_timer timer;
+  srsran::unique_timer timer;
 
 protected:
   float rsrp = NAN;
@@ -109,12 +109,12 @@ protected:
 class meas_cell_nr : public meas_cell
 {
 public:
-  explicit meas_cell_nr(srslte::unique_timer timer) : meas_cell(std::move(timer)){};
-  meas_cell_nr(const phy_cell_t& phy_cell_, srslte::unique_timer timer) : meas_cell(phy_cell_, std::move(timer)){};
+  explicit meas_cell_nr(srsran::unique_timer timer) : meas_cell(std::move(timer)){};
+  meas_cell_nr(const phy_cell_t& phy_cell_, srsran::unique_timer timer) : meas_cell(phy_cell_, std::move(timer)){};
 
   bool              has_plmn_id(asn1::rrc_nr::plmn_id_s plmn_id) const;
   uint32_t          nof_plmns() const { return has_sib1() ? sib1.cell_access_related_info.plmn_id_list.size() : 0; }
-  srslte::plmn_id_t get_plmn(uint32_t idx) const;
+  srsran::plmn_id_t get_plmn(uint32_t idx) const;
 
   void set_sib1(const asn1::rrc_nr::sib1_s& sib1_);
   void set_sib2(const asn1::rrc_nr::sib2_s& sib2_);
@@ -141,12 +141,12 @@ public:
 class meas_cell_eutra : public meas_cell
 {
 public:
-  explicit meas_cell_eutra(srslte::unique_timer timer) : meas_cell(std::move(timer)){};
-  meas_cell_eutra(const phy_cell_t& phy_cell_, srslte::unique_timer timer) : meas_cell(phy_cell_, std::move(timer)){};
+  explicit meas_cell_eutra(srsran::unique_timer timer) : meas_cell(std::move(timer)){};
+  meas_cell_eutra(const phy_cell_t& phy_cell_, srsran::unique_timer timer) : meas_cell(phy_cell_, std::move(timer)){};
 
   bool              has_plmn_id(asn1::rrc::plmn_id_s plmn_id) const;
   uint32_t          nof_plmns() const { return has_sib1() ? sib1.cell_access_related_info.plmn_id_list.size() : 0; }
-  srslte::plmn_id_t get_plmn(uint32_t idx) const;
+  srsran::plmn_id_t get_plmn(uint32_t idx) const;
 
   uint16_t get_tac() const { return has_sib1() ? (uint16_t)sib1.cell_access_related_info.tac.to_number() : 0; }
 
@@ -224,7 +224,7 @@ public:
   const static int           MAX_NEIGHBOUR_CELLS = 8;
   typedef std::unique_ptr<T> unique_meas_cell;
 
-  explicit meas_cell_list(srslte::task_sched_handle task_sched_);
+  explicit meas_cell_list(srsran::task_sched_handle task_sched_);
 
   bool             add_meas_cell(const phy_meas_t& meas);
   bool             add_meas_cell(unique_meas_cell cell);
@@ -263,7 +263,7 @@ private:
 
   // args
   srslog::basic_logger&     logger = srslog::fetch_basic_logger("RRC");
-  srslte::task_sched_handle task_sched;
+  srsran::task_sched_handle task_sched;
 
   unique_meas_cell              serv_cell;
   std::vector<unique_meas_cell> neighbour_cells;
@@ -271,4 +271,4 @@ private:
 
 } // namespace srsue
 
-#endif // SRSLTE_RRC_CELL_H
+#endif // SRSRAN_RRC_CELL_H

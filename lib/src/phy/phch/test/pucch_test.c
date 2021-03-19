@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -17,16 +17,16 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#include "srslte/srslte.h"
+#include "srsran/srsran.h"
 
-static srslte_cell_t cell = {
+static srsran_cell_t cell = {
     25,                 // nof_prb
     1,                  // nof_ports
     1,                  // cell_id
-    SRSLTE_CP_NORM,     // cyclic prefix
-    SRSLTE_PHICH_NORM,  // PHICH length
-    SRSLTE_PHICH_R_1_6, // PHICH resources
-    SRSLTE_FDD,
+    SRSRAN_CP_NORM,     // cyclic prefix
+    SRSRAN_PHICH_NORM,  // PHICH length
+    SRSRAN_PHICH_R_1_6, // PHICH resources
+    SRSRAN_FDD,
 
 };
 
@@ -66,7 +66,7 @@ void parse_args(int argc, char** argv)
         snr_db = strtof(argv[optind], NULL);
         break;
       case 'v':
-        srslte_verbose++;
+        srsran_verbose++;
         break;
       default:
         usage(argv[0]);
@@ -77,48 +77,48 @@ void parse_args(int argc, char** argv)
 
 int test_uci_cqi_pucch(void)
 {
-  int                                   ret                                  = SRSLTE_SUCCESS;
-  __attribute__((aligned(256))) uint8_t o_bits[SRSLTE_UCI_MAX_CQI_LEN_PUCCH] = {0};
-  __attribute__((aligned(256))) uint8_t e_bits[SRSLTE_UCI_CQI_CODED_PUCCH_B] = {0};
-  __attribute__((aligned(256))) int16_t e_symb[SRSLTE_UCI_CQI_CODED_PUCCH_B] = {0};
-  __attribute__((aligned(256))) uint8_t d_bits[SRSLTE_UCI_MAX_CQI_LEN_PUCCH] = {0};
+  int                                   ret                                  = SRSRAN_SUCCESS;
+  __attribute__((aligned(256))) uint8_t o_bits[SRSRAN_UCI_MAX_CQI_LEN_PUCCH] = {0};
+  __attribute__((aligned(256))) uint8_t e_bits[SRSRAN_UCI_CQI_CODED_PUCCH_B] = {0};
+  __attribute__((aligned(256))) int16_t e_symb[SRSRAN_UCI_CQI_CODED_PUCCH_B] = {0};
+  __attribute__((aligned(256))) uint8_t d_bits[SRSRAN_UCI_MAX_CQI_LEN_PUCCH] = {0};
 
-  srslte_uci_cqi_pucch_t uci_cqi_pucch = {0};
+  srsran_uci_cqi_pucch_t uci_cqi_pucch = {0};
 
-  srslte_uci_cqi_pucch_init(&uci_cqi_pucch);
+  srsran_uci_cqi_pucch_init(&uci_cqi_pucch);
 
-  for (uint32_t nof_bits = 1; nof_bits <= SRSLTE_UCI_MAX_CQI_LEN_PUCCH - 1; nof_bits++) {
+  for (uint32_t nof_bits = 1; nof_bits <= SRSRAN_UCI_MAX_CQI_LEN_PUCCH - 1; nof_bits++) {
     for (uint32_t cqi = 0; cqi < (1 << nof_bits); cqi++) {
       uint32_t recv;
 
       uint8_t* ptr = o_bits;
-      srslte_bit_unpack(cqi, &ptr, nof_bits);
+      srsran_bit_unpack(cqi, &ptr, nof_bits);
 
-      srslte_uci_encode_cqi_pucch(o_bits, nof_bits, e_bits);
-      // srslte_uci_encode_cqi_pucch_from_table(&uci_cqi_pucch, o_bits, nof_bits, e_bits);
-      for (int i = 0; i < SRSLTE_UCI_CQI_CODED_PUCCH_B; i++) {
+      srsran_uci_encode_cqi_pucch(o_bits, nof_bits, e_bits);
+      // srsran_uci_encode_cqi_pucch_from_table(&uci_cqi_pucch, o_bits, nof_bits, e_bits);
+      for (int i = 0; i < SRSRAN_UCI_CQI_CODED_PUCCH_B; i++) {
         e_symb[i] = 2 * e_bits[i] - 1;
       }
 
-      srslte_uci_decode_cqi_pucch(&uci_cqi_pucch, e_symb, d_bits, nof_bits);
+      srsran_uci_decode_cqi_pucch(&uci_cqi_pucch, e_symb, d_bits, nof_bits);
 
       ptr  = d_bits;
-      recv = srslte_bit_pack(&ptr, nof_bits);
+      recv = srsran_bit_pack(&ptr, nof_bits);
 
       if (recv != cqi) {
         printf("Error! cqi = %d (len: %d), %X!=%X \n", cqi, nof_bits, cqi, recv);
-        if (srslte_verbose) {
+        if (srsran_verbose) {
           printf("original: ");
-          srslte_vec_fprint_b(stdout, o_bits, nof_bits);
+          srsran_vec_fprint_b(stdout, o_bits, nof_bits);
           printf(" decoded: ");
-          srslte_vec_fprint_b(stdout, d_bits, nof_bits);
+          srsran_vec_fprint_b(stdout, d_bits, nof_bits);
         }
-        ret = SRSLTE_ERROR;
+        ret = SRSRAN_ERROR;
       }
     }
   }
 
-  srslte_uci_cqi_pucch_free(&uci_cqi_pucch);
+  srsran_uci_cqi_pucch_free(&uci_cqi_pucch);
 
   if (ret) {
     printf("Error\n");
@@ -131,16 +131,16 @@ int test_uci_cqi_pucch(void)
 
 int main(int argc, char** argv)
 {
-  srslte_pucch_t        pucch_ue   = {};
-  srslte_pucch_t        pucch_enb  = {};
-  srslte_pucch_cfg_t    pucch_cfg  = {};
-  srslte_refsignal_ul_t dmrs       = {};
+  srsran_pucch_t        pucch_ue   = {};
+  srsran_pucch_t        pucch_enb  = {};
+  srsran_pucch_cfg_t    pucch_cfg  = {};
+  srsran_refsignal_ul_t dmrs       = {};
   cf_t*                 sf_symbols = NULL;
-  cf_t                  pucch_dmrs[2 * SRSLTE_NRE * 3];
+  cf_t                  pucch_dmrs[2 * SRSRAN_NRE * 3];
   int                   ret       = -1;
-  srslte_chest_ul_t     chest     = {};
-  srslte_chest_ul_res_t chest_res = {};
-  srslte_channel_awgn_t awgn      = {};
+  srsran_chest_ul_t     chest     = {};
+  srsran_chest_ul_res_t chest_res = {};
+  srsran_channel_awgn_t awgn      = {};
 
   parse_args(argc, argv);
 
@@ -148,61 +148,61 @@ int main(int argc, char** argv)
     return test_uci_cqi_pucch();
   }
 
-  if (srslte_pucch_init_ue(&pucch_ue)) {
+  if (srsran_pucch_init_ue(&pucch_ue)) {
     ERROR("Error creating PDSCH object");
     exit(-1);
   }
-  if (srslte_pucch_set_cell(&pucch_ue, cell)) {
+  if (srsran_pucch_set_cell(&pucch_ue, cell)) {
     ERROR("Error creating PDSCH object");
     exit(-1);
   }
-  if (srslte_pucch_init_enb(&pucch_enb)) {
+  if (srsran_pucch_init_enb(&pucch_enb)) {
     ERROR("Error creating PDSCH object");
     exit(-1);
   }
-  if (srslte_pucch_set_cell(&pucch_enb, cell)) {
+  if (srsran_pucch_set_cell(&pucch_enb, cell)) {
     ERROR("Error creating PDSCH object");
     exit(-1);
   }
-  if (srslte_refsignal_ul_set_cell(&dmrs, cell)) {
+  if (srsran_refsignal_ul_set_cell(&dmrs, cell)) {
     ERROR("Error creating PDSCH object");
     exit(-1);
   }
 
-  if (srslte_chest_ul_init(&chest, cell.nof_prb) < SRSLTE_SUCCESS) {
+  if (srsran_chest_ul_init(&chest, cell.nof_prb) < SRSRAN_SUCCESS) {
     ERROR("Error initiating channel estimator");
     goto quit;
   }
 
-  if (srslte_chest_ul_res_init(&chest_res, cell.nof_prb) < SRSLTE_SUCCESS) {
+  if (srsran_chest_ul_res_init(&chest_res, cell.nof_prb) < SRSRAN_SUCCESS) {
     ERROR("Error initiating channel estimator result");
     goto quit;
   }
 
-  if (srslte_chest_ul_set_cell(&chest, cell) < SRSLTE_SUCCESS) {
+  if (srsran_chest_ul_set_cell(&chest, cell) < SRSRAN_SUCCESS) {
     ERROR("Error setting channel estimator cell");
     goto quit;
   }
 
-  if (srslte_channel_awgn_init(&awgn, 0x1234) < SRSLTE_SUCCESS) {
+  if (srsran_channel_awgn_init(&awgn, 0x1234) < SRSRAN_SUCCESS) {
     ERROR("Error initiating AWGN");
     goto quit;
   }
-  if (srslte_channel_awgn_set_n0(&awgn, -snr_db) < SRSLTE_SUCCESS) {
+  if (srsran_channel_awgn_set_n0(&awgn, -snr_db) < SRSRAN_SUCCESS) {
     ERROR("Error setting AWGN");
     goto quit;
   }
 
-  sf_symbols = srslte_vec_cf_malloc(SRSLTE_NOF_RE(cell));
+  sf_symbols = srsran_vec_cf_malloc(SRSRAN_NOF_RE(cell));
   if (!sf_symbols) {
     goto quit;
   }
 
-  srslte_ul_sf_cfg_t ul_sf;
+  srsran_ul_sf_cfg_t ul_sf;
   ZERO_OBJECT(ul_sf);
 
-  srslte_pucch_format_t format;
-  for (format = 0; format < SRSLTE_PUCCH_FORMAT_ERROR; format++) {
+  srsran_pucch_format_t format;
+  for (format = 0; format < SRSRAN_PUCCH_FORMAT_ERROR; format++) {
     for (uint32_t d = 1; d <= 3; d++) {
       for (uint32_t ncs = 0; ncs < 8; ncs += d) {
         for (uint32_t n_pucch = 1; n_pucch < 130; n_pucch += 50) {
@@ -218,21 +218,21 @@ int main(int argc, char** argv)
 
           ul_sf.tti = subframe;
 
-          srslte_uci_data_t uci_data;
+          srsran_uci_data_t uci_data;
           ZERO_OBJECT(uci_data);
 
           switch (format) {
-            case SRSLTE_PUCCH_FORMAT_1:
+            case SRSRAN_PUCCH_FORMAT_1:
               uci_data.value.scheduling_request = true;
               break;
-            case SRSLTE_PUCCH_FORMAT_1A:
-            case SRSLTE_PUCCH_FORMAT_2A:
+            case SRSRAN_PUCCH_FORMAT_1A:
+            case SRSRAN_PUCCH_FORMAT_2A:
               uci_data.value.ack.ack_value[0] = 1;
               uci_data.cfg.ack[0].nof_acks    = 1;
               break;
-            case SRSLTE_PUCCH_FORMAT_1B:
-            case SRSLTE_PUCCH_FORMAT_2B:
-            case SRSLTE_PUCCH_FORMAT_3:
+            case SRSRAN_PUCCH_FORMAT_1B:
+            case SRSRAN_PUCCH_FORMAT_2B:
+            case SRSRAN_PUCCH_FORMAT_3:
               uci_data.value.ack.ack_value[0] = 1;
               uci_data.value.ack.ack_value[1] = 1;
               uci_data.cfg.ack[0].nof_acks    = 2;
@@ -240,22 +240,22 @@ int main(int argc, char** argv)
             default:
               break;
           }
-          if (format >= SRSLTE_PUCCH_FORMAT_2) {
+          if (format >= SRSRAN_PUCCH_FORMAT_2) {
             uci_data.cfg.cqi.data_enable = true;
           }
 
           // Encode PUCCH signals
           gettimeofday(&t[1], NULL);
-          if (srslte_pucch_encode(&pucch_ue, &ul_sf, &pucch_cfg, &uci_data.value, sf_symbols)) {
+          if (srsran_pucch_encode(&pucch_ue, &ul_sf, &pucch_cfg, &uci_data.value, sf_symbols)) {
             ERROR("Error encoding PUCCH");
             goto quit;
           }
 
-          if (srslte_refsignal_dmrs_pucch_gen(&dmrs, &ul_sf, &pucch_cfg, pucch_dmrs)) {
+          if (srsran_refsignal_dmrs_pucch_gen(&dmrs, &ul_sf, &pucch_cfg, pucch_dmrs)) {
             ERROR("Error encoding PUCCH");
             goto quit;
           }
-          if (srslte_refsignal_dmrs_pucch_put(&dmrs, &pucch_cfg, pucch_dmrs, sf_symbols)) {
+          if (srsran_refsignal_dmrs_pucch_put(&dmrs, &pucch_cfg, pucch_dmrs, sf_symbols)) {
             ERROR("Error encoding PUCCH");
             goto quit;
           }
@@ -264,17 +264,17 @@ int main(int argc, char** argv)
           uint64_t t_enc = t[0].tv_usec + t[0].tv_sec * 1000000UL;
 
           // Run AWGN channel
-          srslte_channel_awgn_run_c(&awgn, sf_symbols, sf_symbols, SRSLTE_NOF_RE(cell));
+          srsran_channel_awgn_run_c(&awgn, sf_symbols, sf_symbols, SRSRAN_NOF_RE(cell));
 
           // Decode PUCCH signals
           gettimeofday(&t[1], NULL);
-          if (srslte_chest_ul_estimate_pucch(&chest, &ul_sf, &pucch_cfg, sf_symbols, &chest_res) < SRSLTE_SUCCESS) {
+          if (srsran_chest_ul_estimate_pucch(&chest, &ul_sf, &pucch_cfg, sf_symbols, &chest_res) < SRSRAN_SUCCESS) {
             ERROR("Error estimating PUCCH channel");
             goto quit;
           }
 
-          srslte_pucch_res_t res = {};
-          if (srslte_pucch_decode(&pucch_enb, &ul_sf, &pucch_cfg, &chest_res, sf_symbols, &res) < SRSLTE_SUCCESS) {
+          srsran_pucch_res_t res = {};
+          if (srsran_pucch_decode(&pucch_enb, &ul_sf, &pucch_cfg, &chest_res, sf_symbols, &res) < SRSRAN_SUCCESS) {
             ERROR("Error decoding PUCCH");
             goto quit;
           }
@@ -310,11 +310,11 @@ int main(int argc, char** argv)
 
   ret = 0;
 quit:
-  srslte_pucch_free(&pucch_ue);
-  srslte_pucch_free(&pucch_enb);
-  srslte_chest_ul_free(&chest);
-  srslte_chest_ul_res_free(&chest_res);
-  srslte_channel_awgn_free(&awgn);
+  srsran_pucch_free(&pucch_ue);
+  srsran_pucch_free(&pucch_enb);
+  srsran_chest_ul_free(&chest);
+  srsran_chest_ul_res_free(&chest_res);
+  srsran_channel_awgn_free(&awgn);
   if (sf_symbols) {
     free(sf_symbols);
   }

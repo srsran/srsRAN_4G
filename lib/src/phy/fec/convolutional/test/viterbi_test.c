@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -11,7 +11,7 @@
  */
 
 #include <math.h>
-#include <srslte/phy/utils/random.h>
+#include <srsran/phy/utils/random.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -19,7 +19,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "srslte/srslte.h"
+#include "srsran/srsran.h"
 
 #include "viterbi_test.h"
 
@@ -76,7 +76,7 @@ void parse_args(int argc, char** argv)
     gettimeofday(&t[1], NULL);                                                                                         \
     for (uint32_t m = 0; m < M && NOF_ERRORS >= 0; m++) {                                                              \
       int ret = FUNC(&DEC, LLR, data_rx, frame_length);                                                                \
-      if (ret < SRSLTE_SUCCESS) {                                                                                      \
+      if (ret < SRSRAN_SUCCESS) {                                                                                      \
         NOF_ERRORS = ret;                                                                                              \
       }                                                                                                                \
     }                                                                                                                  \
@@ -84,7 +84,7 @@ void parse_args(int argc, char** argv)
     get_time_interval(t);                                                                                              \
     /*printf("-- "#FUNC" took\t\t%.1f us\n", (float) t[0].tv_sec * 1e6f + (float) t[0].tv_usec/M);*/                   \
     if (NOF_ERRORS >= 0) {                                                                                             \
-      NOF_ERRORS += srslte_bit_diff(data_tx, data_rx, frame_length);                                                   \
+      NOF_ERRORS += srsran_bit_diff(data_tx, data_rx, frame_length);                                                   \
     }                                                                                                                  \
   } while (0)
 
@@ -106,10 +106,10 @@ int main(int argc, char** argv)
   int       errors_f   = 0;
   int       errors_sse = 0;
 #ifdef TEST_SSE
-  srslte_viterbi_t dec_sse;
+  srsran_viterbi_t dec_sse;
 #endif
-  srslte_viterbi_t   dec;
-  srslte_convcoder_t cod;
+  srsran_viterbi_t   dec;
+  srsran_convcoder_t cod;
   int                coded_length;
 
   parse_args(argc, argv);
@@ -127,11 +127,11 @@ int main(int argc, char** argv)
 
   cod.R        = 3;
   coded_length = cod.R * (frame_length + ((cod.tail_biting) ? 0 : cod.K - 1));
-  srslte_viterbi_init(&dec, SRSLTE_VITERBI_37, cod.poly, frame_length, cod.tail_biting);
+  srsran_viterbi_init(&dec, SRSRAN_VITERBI_37, cod.poly, frame_length, cod.tail_biting);
   printf("Convolutional Code 1/3 K=%d Tail bitting: %s\n", cod.K, cod.tail_biting ? "yes" : "no");
 
 #ifdef TEST_SSE
-  srslte_viterbi_init_sse(&dec_sse, SRSLTE_VITERBI_37, cod.poly, frame_length, cod.tail_biting);
+  srsran_viterbi_init_sse(&dec_sse, SRSRAN_VITERBI_37, cod.poly, frame_length, cod.tail_biting);
 #endif
 
   printf("  Frame length: %d\n", frame_length);
@@ -139,39 +139,39 @@ int main(int argc, char** argv)
     printf("  EbNo: %.2f\n", ebno_db);
   }
 
-  data_tx = srslte_vec_u8_malloc(frame_length);
+  data_tx = srsran_vec_u8_malloc(frame_length);
   if (!data_tx) {
     perror("malloc");
     exit(-1);
   }
 
-  data_rx = srslte_vec_u8_malloc(frame_length);
+  data_rx = srsran_vec_u8_malloc(frame_length);
   if (!data_rx) {
     perror("malloc");
     exit(-1);
   }
 
-  symbols = srslte_vec_u8_malloc(coded_length);
+  symbols = srsran_vec_u8_malloc(coded_length);
   if (!symbols) {
     perror("malloc");
     exit(-1);
   }
-  llr = srslte_vec_f_malloc(coded_length);
+  llr = srsran_vec_f_malloc(coded_length);
   if (!llr) {
     perror("malloc");
     exit(-1);
   }
-  llr_s = srslte_vec_i16_malloc(2 * coded_length);
+  llr_s = srsran_vec_i16_malloc(2 * coded_length);
   if (!llr_s) {
     perror("malloc");
     exit(-1);
   }
-  llr_us = srslte_vec_u16_malloc(2 * coded_length);
+  llr_us = srsran_vec_u16_malloc(2 * coded_length);
   if (!llr_us) {
     perror("malloc");
     exit(-1);
   }
-  llr_c = srslte_vec_u8_malloc(2 * coded_length);
+  llr_c = srsran_vec_u8_malloc(2 * coded_length);
   if (!llr_c) {
     perror("malloc");
     exit(-1);
@@ -183,14 +183,14 @@ int main(int argc, char** argv)
     snr_points = SNR_POINTS;
     for (uint32_t i = 0; i < snr_points; i++) {
       ebno_db   = SNR_MIN + i * ebno_inc;
-      esno_db   = ebno_db + srslte_convert_power_to_dB(1.0f / 3.0f);
-      var[i]    = srslte_convert_dB_to_amplitude(esno_db);
-      varunc[i] = srslte_convert_dB_to_amplitude(ebno_db);
+      esno_db   = ebno_db + srsran_convert_power_to_dB(1.0f / 3.0f);
+      var[i]    = srsran_convert_dB_to_amplitude(esno_db);
+      varunc[i] = srsran_convert_dB_to_amplitude(ebno_db);
     }
   } else {
-    esno_db    = ebno_db + srslte_convert_power_to_dB(1.0f / 3.0f);
-    var[0]     = srslte_convert_dB_to_amplitude(esno_db);
-    varunc[0]  = srslte_convert_dB_to_amplitude(ebno_db);
+    esno_db    = ebno_db + srsran_convert_power_to_dB(1.0f / 3.0f);
+    var[0]     = srsran_convert_dB_to_amplitude(esno_db);
+    varunc[0]  = srsran_convert_dB_to_amplitude(ebno_db);
     snr_points = 1;
   }
 
@@ -202,38 +202,38 @@ int main(int argc, char** argv)
     errors_sse = 0;
     while (frame_cnt < nof_frames) {
       /* generate data_tx */
-      srslte_random_t random_gen = srslte_random_init(0);
+      srsran_random_t random_gen = srsran_random_init(0);
       for (int j = 0; j < frame_length; j++) {
-        data_tx[j] = srslte_random_uniform_int_dist(random_gen, 0, 1);
+        data_tx[j] = srsran_random_uniform_int_dist(random_gen, 0, 1);
       }
-      srslte_random_free(random_gen);
+      srsran_random_free(random_gen);
 
       /* uncoded BER */
       for (int j = 0; j < frame_length; j++) {
         llr[j] = data_tx[j] ? M_SQRT2 : -M_SQRT2;
       }
-      srslte_ch_awgn_f(llr, llr, varunc[i], frame_length);
+      srsran_ch_awgn_f(llr, llr, varunc[i], frame_length);
 
       /* coded BER */
-      srslte_convcoder_encode(&cod, data_tx, symbols, frame_length);
+      srsran_convcoder_encode(&cod, data_tx, symbols, frame_length);
 
       for (int j = 0; j < coded_length; j++) {
         llr[j] = symbols[j] ? M_SQRT2 : -M_SQRT2;
       }
 
-      srslte_ch_awgn_f(llr, llr, var[i], coded_length);
-      // srslte_vec_fprint_f(stdout, llr, 100);
+      srsran_ch_awgn_f(llr, llr, var[i], coded_length);
+      // srsran_vec_fprint_f(stdout, llr, 100);
 
-      srslte_vec_convert_fi(llr, 1000, llr_s, coded_length);
-      srslte_vec_quant_fuc(llr, llr_c, 32, INT8_MAX, UINT8_MAX, coded_length);
-      srslte_vec_quant_fus(llr, llr_us, 8192, INT16_MAX, UINT16_MAX, coded_length);
+      srsran_vec_convert_fi(llr, 1000, llr_s, coded_length);
+      srsran_vec_quant_fuc(llr, llr_c, 32, INT8_MAX, UINT8_MAX, coded_length);
+      srsran_vec_quant_fus(llr, llr_us, 8192, INT16_MAX, UINT16_MAX, coded_length);
 
-      VITERBI_TEST(srslte_viterbi_decode_s, dec, llr_s, errors_s);
-      VITERBI_TEST(srslte_viterbi_decode_us, dec, llr_us, errors_us);
-      VITERBI_TEST(srslte_viterbi_decode_uc, dec, llr_c, errors_c);
-      VITERBI_TEST(srslte_viterbi_decode_f, dec, llr, errors_f);
+      VITERBI_TEST(srsran_viterbi_decode_s, dec, llr_s, errors_s);
+      VITERBI_TEST(srsran_viterbi_decode_us, dec, llr_us, errors_us);
+      VITERBI_TEST(srsran_viterbi_decode_uc, dec, llr_c, errors_c);
+      VITERBI_TEST(srsran_viterbi_decode_f, dec, llr, errors_f);
 #ifdef TEST_SSE
-      VITERBI_TEST(srslte_viterbi_decode_uc, dec_sse, llr_c, errors_sse);
+      VITERBI_TEST(srsran_viterbi_decode_uc, dec_sse, llr_c, errors_sse);
 #endif
       frame_cnt++;
       printf("     Eb/No: %3.2f %10d/%d   ", SNR_MIN + i * ebno_inc, frame_cnt, nof_frames);
@@ -266,9 +266,9 @@ int main(int argc, char** argv)
 #endif
     }
   }
-  srslte_viterbi_free(&dec);
+  srsran_viterbi_free(&dec);
 #ifdef TEST_SSE
-  srslte_viterbi_free(&dec_sse);
+  srsran_viterbi_free(&dec_sse);
 #endif
 
   free(data_tx);

@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,16 +10,16 @@
  *
  */
 
-#include "srslte/mac/mac_rar_pdu_nr.h"
+#include "srsran/mac/mac_rar_pdu_nr.h"
 #include <sstream>
 #ifdef __cplusplus
 extern "C" {
-#include "srslte/phy/utils/bit.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/utils/bit.h"
+#include "srsran/phy/utils/vector.h"
 }
 #endif
 
-namespace srslte {
+namespace srsran {
 
 mac_rar_subpdu_nr::mac_rar_subpdu_nr(mac_rar_pdu_nr* parent_) :
   parent(parent_), logger(srslog::fetch_basic_logger("MAC"))
@@ -50,9 +50,9 @@ bool mac_rar_subpdu_nr::read_subpdu(const uint8_t* ptr)
         ul_grant.at(2) = *(rar + 1) & 0x1 ? 1 : 0;
         // And now the remaining 3 full octets
         uint8_t* x = &ul_grant.at(3);
-        srslte_bit_unpack(*(rar + 2), &x, 8);
-        srslte_bit_unpack(*(rar + 3), &x, 8);
-        srslte_bit_unpack(*(rar + 4), &x, 8);
+        srsran_bit_unpack(*(rar + 2), &x, 8);
+        srsran_bit_unpack(*(rar + 3), &x, 8);
+        srsran_bit_unpack(*(rar + 4), &x, 8);
         // Temp CRNTI is octet 6 + 7
         temp_crnti     = ((uint16_t) * (rar + 5)) << 8 | *(rar + 6);
         payload_length = MAC_RAR_NBYTES;
@@ -136,7 +136,7 @@ std::string mac_rar_subpdu_nr::to_string()
   }
 
   char tmp[16] = {};
-  srslte_vec_sprint_hex(tmp, sizeof(tmp), ul_grant.data(), UL_GRANT_NBITS);
+  srsran_vec_sprint_hex(tmp, sizeof(tmp), ul_grant.data(), UL_GRANT_NBITS);
   ss << tmp;
 
   return ss.str();
@@ -216,4 +216,4 @@ std::string mac_rar_pdu_nr::to_string()
   return ss.str();
 }
 
-} // namespace srslte
+} // namespace srsran

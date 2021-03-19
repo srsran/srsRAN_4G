@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -13,10 +13,10 @@
 #ifndef SRSEPC_S1AP_COMMON_H
 #define SRSEPC_S1AP_COMMON_H
 
-#include "srslte/asn1/gtpc_ies.h"
-#include "srslte/asn1/liblte_mme.h"
-#include "srslte/asn1/s1ap.h"
-#include "srslte/common/security.h"
+#include "srsran/asn1/gtpc_ies.h"
+#include "srsran/asn1/liblte_mme.h"
+#include "srsran/asn1/s1ap.h"
+#include "srsran/common/security.h"
 #include <netinet/sctp.h>
 #include <string.h>
 
@@ -38,8 +38,8 @@ typedef struct {
   std::string                         mme_apn;
   bool                                pcap_enable;
   std::string                         pcap_filename;
-  srslte::CIPHERING_ALGORITHM_ID_ENUM encryption_algo;
-  srslte::INTEGRITY_ALGORITHM_ID_ENUM integrity_algo;
+  srsran::CIPHERING_ALGORITHM_ID_ENUM encryption_algo;
+  srsran::INTEGRITY_ALGORITHM_ID_ENUM integrity_algo;
 } s1ap_args_t;
 
 typedef struct {

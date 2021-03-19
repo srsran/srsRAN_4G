@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -21,29 +21,29 @@
 #include <unistd.h>
 
 #include "pmi_select_test.h"
-#include "srslte/phy/mimo/precoding.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/mimo/precoding.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/vector.h"
 
 int main(int argc, char** argv)
 {
-  cf_t*    h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
+  cf_t*    h[SRSRAN_MAX_PORTS][SRSRAN_MAX_PORTS];
   float    noise_estimate;
-  float    sinr_1l[SRSLTE_MAX_CODEBOOKS];
-  float    sinr_2l[SRSLTE_MAX_CODEBOOKS];
+  float    sinr_1l[SRSRAN_MAX_CODEBOOKS];
+  float    sinr_2l[SRSRAN_MAX_CODEBOOKS];
   float    cn;
   uint32_t pmi[2];
-  uint32_t nof_symbols = (uint32_t)SRSLTE_SF_LEN_RE(6, SRSLTE_CP_NORM);
-  int      ret         = SRSLTE_ERROR;
+  uint32_t nof_symbols = (uint32_t)SRSRAN_SF_LEN_RE(6, SRSRAN_CP_NORM);
+  int      ret         = SRSRAN_ERROR;
 
   /* Allocate channels */
-  for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
-    for (int j = 0; j < SRSLTE_MAX_PORTS; j++) {
-      h[i][j] = srslte_vec_cf_malloc(nof_symbols);
+  for (int i = 0; i < SRSRAN_MAX_PORTS; i++) {
+    for (int j = 0; j < SRSRAN_MAX_PORTS; j++) {
+      h[i][j] = srsran_vec_cf_malloc(nof_symbols);
       if (!h[i][j]) {
         goto clean;
       }
-      srslte_vec_cf_zero(h[i][j], nof_symbols);
+      srsran_vec_cf_zero(h[i][j], nof_symbols);
     }
   }
 
@@ -65,7 +65,7 @@ int main(int argc, char** argv)
     noise_estimate = gold->n;
 
     /* PMI select for 1 layer */
-    ret = srslte_precoding_pmi_select(h, nof_symbols, noise_estimate, 1, &pmi[0], sinr_1l);
+    ret = srsran_precoding_pmi_select(h, nof_symbols, noise_estimate, 1, &pmi[0], sinr_1l);
     if (ret < 0) {
       ERROR("During PMI selection for 1 layer");
       goto clean;
@@ -97,7 +97,7 @@ int main(int argc, char** argv)
     }
 
     /* PMI select for 2 layer */
-    ret = srslte_precoding_pmi_select(h, nof_symbols, noise_estimate, 2, &pmi[1], sinr_2l);
+    ret = srsran_precoding_pmi_select(h, nof_symbols, noise_estimate, 2, &pmi[1], sinr_2l);
     if (ret < 0) {
       ERROR("During PMI selection for 2 layer");
       goto clean;
@@ -129,7 +129,7 @@ int main(int argc, char** argv)
     }
 
     /* Condition number */
-    if (srslte_precoding_cn(h, 2, 2, nof_symbols, &cn)) {
+    if (srsran_precoding_cn(h, 2, 2, nof_symbols, &cn)) {
       ERROR("Test case %d condition number returned error", c + 1);
       goto clean;
     }
@@ -142,11 +142,11 @@ int main(int argc, char** argv)
   }
 
   /* Test passed */
-  ret = SRSLTE_SUCCESS;
+  ret = SRSRAN_SUCCESS;
 
 clean:
-  for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
-    for (int j = 0; j < SRSLTE_MAX_PORTS; j++) {
+  for (int i = 0; i < SRSRAN_MAX_PORTS; i++) {
+    for (int j = 0; j < SRSRAN_MAX_PORTS; j++) {
       if (h[i][j]) {
         free(h[i][j]);
       }

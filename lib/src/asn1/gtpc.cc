@@ -2,18 +2,18 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
  * the distribution.
  *
  */
-#include "srslte/asn1/gtpc.h"
-#include "srslte/common/byte_buffer.h"
+#include "srsran/asn1/gtpc.h"
+#include "srsran/common/byte_buffer.h"
 #include <stdint.h>
 
-namespace srslte {
+namespace srsran {
 
 const char* gtpc_msg_type_to_str(uint8_t type)
 {
@@ -178,9 +178,9 @@ const char* gtpc_msg_type_to_str(uint8_t type)
   return "GTPC_MSG_TYPE_INVALID";
 }
 
-int gtpc_pack_create_session_request(struct gtpc_create_session_request* cs_req, srslte::byte_buffer_t)
+int gtpc_pack_create_session_request(struct gtpc_create_session_request* cs_req, srsran::byte_buffer_t)
 {
   // TODO
   return 0;
 }
-} // namespace srslte
+} // namespace srsran

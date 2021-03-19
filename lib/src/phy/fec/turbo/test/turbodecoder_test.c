@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -18,8 +18,8 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "srslte/srslte.h"
-#include <srslte/phy/utils/random.h>
+#include "srsran/srsran.h"
+#include <srsran/phy/utils/random.h>
 #include <sys/time.h>
 #include <time.h>
 
@@ -37,7 +37,7 @@ int test_known_data = 0;
 int test_errors     = 0;
 int nof_repetitions = 1;
 
-srslte_tdec_impl_type_t tdec_type;
+srsran_tdec_impl_type_t tdec_type;
 
 #define SNR_POINTS 4
 #define SNR_MIN 1.0
@@ -85,7 +85,7 @@ void parse_args(int argc, char** argv)
         frame_length = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'd':
-        tdec_type = (srslte_tdec_impl_type_t)strtol(argv[optind], NULL, 10);
+        tdec_type = (srsran_tdec_impl_type_t)strtol(argv[optind], NULL, 10);
         break;
       case 'e':
         ebno_db = strtof(argv[optind], NULL);
@@ -94,7 +94,7 @@ void parse_args(int argc, char** argv)
         seed = (uint32_t)strtoul(argv[optind], NULL, 0);
         break;
       case 'v':
-        srslte_verbose++;
+        srsran_verbose++;
         break;
       default:
         usage(argv[0]);
@@ -105,7 +105,7 @@ void parse_args(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-  srslte_random_t random_gen = srslte_random_init(0);
+  srsran_random_t random_gen = srsran_random_init(0);
   uint32_t        frame_cnt;
   float*          llr;
   short*          llr_s;
@@ -118,8 +118,8 @@ int main(int argc, char** argv)
   uint32_t        coded_length;
   struct timeval  tdata[3];
   float           mean_usec;
-  srslte_tdec_t   tdec;
-  srslte_tcod_t   tcod;
+  srsran_tdec_t   tdec;
+  srsran_tcod_t   tcod;
 
   parse_args(argc, argv);
 
@@ -131,70 +131,70 @@ int main(int argc, char** argv)
   if (test_known_data) {
     frame_length = KNOWN_DATA_LEN;
   } else {
-    frame_length = srslte_cbsegm_cbsize(srslte_cbsegm_cbindex(frame_length));
+    frame_length = srsran_cbsegm_cbsize(srsran_cbsegm_cbindex(frame_length));
   }
 
-  coded_length = 3 * (frame_length) + SRSLTE_TCOD_TOTALTAIL;
+  coded_length = 3 * (frame_length) + SRSRAN_TCOD_TOTALTAIL;
 
   printf("  Frame length: %d\n", frame_length);
   if (ebno_db < 100.0) {
     printf("  EbNo: %.2f\n", ebno_db);
   }
 
-  data_tx = srslte_vec_u8_malloc(frame_length);
+  data_tx = srsran_vec_u8_malloc(frame_length);
   if (!data_tx) {
     perror("malloc");
     exit(-1);
   }
 
-  data_rx = srslte_vec_u8_malloc(frame_length);
+  data_rx = srsran_vec_u8_malloc(frame_length);
   if (!data_rx) {
     perror("malloc");
     exit(-1);
   }
-  data_rx_bytes = srslte_vec_u8_malloc(frame_length);
+  data_rx_bytes = srsran_vec_u8_malloc(frame_length);
   if (!data_rx_bytes) {
     perror("malloc");
     exit(-1);
   }
 
-  symbols = srslte_vec_u8_malloc(coded_length);
+  symbols = srsran_vec_u8_malloc(coded_length);
   if (!symbols) {
     perror("malloc");
     exit(-1);
   }
-  llr = srslte_vec_f_malloc(coded_length);
+  llr = srsran_vec_f_malloc(coded_length);
   if (!llr) {
     perror("malloc");
     exit(-1);
   }
-  llr_s = srslte_vec_i16_malloc(coded_length);
+  llr_s = srsran_vec_i16_malloc(coded_length);
   if (!llr_s) {
     perror("malloc");
     exit(-1);
   }
-  llr_c = srslte_vec_u8_malloc(coded_length);
+  llr_c = srsran_vec_u8_malloc(coded_length);
   if (!llr_c) {
     perror("malloc");
     exit(-1);
   }
 
-  if (srslte_tcod_init(&tcod, frame_length)) {
+  if (srsran_tcod_init(&tcod, frame_length)) {
     ERROR("Error initiating Turbo coder");
     exit(-1);
   }
 
 #ifdef HAVE_NEON
-  tdec_type = SRSLTE_TDEC_NEON_WINDOW;
+  tdec_type = SRSRAN_TDEC_NEON_WINDOW;
 #else
-  // tdec_type = SRSLTE_TDEC_SSE_WINDOW;
+  // tdec_type = SRSRAN_TDEC_SSE_WINDOW;
 #endif
-  if (srslte_tdec_init_manual(&tdec, frame_length, tdec_type)) {
+  if (srsran_tdec_init_manual(&tdec, frame_length, tdec_type)) {
     ERROR("Error initiating Turbo decoder");
     exit(-1);
   }
 
-  srslte_tdec_force_not_sb(&tdec);
+  srsran_tdec_force_not_sb(&tdec);
 
   float ebno_inc, esno_db;
   ebno_inc = (SNR_MAX - SNR_MIN) / SNR_POINTS;
@@ -202,12 +202,12 @@ int main(int argc, char** argv)
     snr_points = SNR_POINTS;
     for (i = 0; i < snr_points; i++) {
       ebno_db = SNR_MIN + i * ebno_inc;
-      esno_db = ebno_db + srslte_convert_power_to_dB(1.0f / 3.0f);
-      var[i]  = srslte_convert_dB_to_amplitude(-esno_db);
+      esno_db = ebno_db + srsran_convert_power_to_dB(1.0f / 3.0f);
+      var[i]  = srsran_convert_dB_to_amplitude(-esno_db);
     }
   } else {
-    esno_db    = ebno_db + srslte_convert_power_to_dB(1.0f / 3.0f);
-    var[0]     = srslte_convert_dB_to_amplitude(-esno_db);
+    esno_db    = ebno_db + srsran_convert_power_to_dB(1.0f / 3.0f);
+    var[0]     = srsran_convert_dB_to_amplitude(-esno_db);
     snr_points = 1;
   }
   for (i = 0; i < snr_points; i++) {
@@ -220,7 +220,7 @@ int main(int argc, char** argv)
         if (test_known_data) {
           data_tx[j] = known_data[j];
         } else {
-          data_tx[j] = srslte_random_uniform_int_dist(random_gen, 0, 1);
+          data_tx[j] = srsran_random_uniform_int_dist(random_gen, 0, 1);
         }
       }
 
@@ -230,20 +230,20 @@ int main(int argc, char** argv)
           symbols[j] = known_data_encoded[j];
         }
       } else {
-        srslte_tcod_encode(&tcod, data_tx, symbols, frame_length);
+        srsran_tcod_encode(&tcod, data_tx, symbols, frame_length);
       }
 
       for (j = 0; j < coded_length; j++) {
         llr[j] = symbols[j] ? 1 : -1;
       }
-      srslte_ch_awgn_f(llr, llr, var[i], coded_length);
+      srsran_ch_awgn_f(llr, llr, var[i], coded_length);
 
       for (j = 0; j < coded_length; j++) {
         llr_s[j] = (int16_t)(100 * llr[j]);
       }
 
       /* decoder */
-      srslte_tdec_new_cb(&tdec, frame_length);
+      srsran_tdec_new_cb(&tdec, frame_length);
 
       uint32_t t;
       if (nof_iterations == -1) {
@@ -254,7 +254,7 @@ int main(int argc, char** argv)
 
       gettimeofday(&tdata[1], NULL);
       for (int k = 0; k < nof_repetitions; k++) {
-        srslte_tdec_run_all(&tdec, llr_s, data_rx_bytes, t, frame_length);
+        srsran_tdec_run_all(&tdec, llr_s, data_rx_bytes, t, frame_length);
       }
       gettimeofday(&tdata[2], NULL);
       get_time_interval(tdata);
@@ -262,9 +262,9 @@ int main(int argc, char** argv)
 
       frame_cnt++;
       uint32_t errors_this = 0;
-      srslte_bit_unpack_vector(data_rx_bytes, data_rx, frame_length);
+      srsran_bit_unpack_vector(data_rx_bytes, data_rx, frame_length);
 
-      errors_this = srslte_bit_diff(data_tx, data_rx, frame_length);
+      errors_this = srsran_bit_diff(data_tx, data_rx, frame_length);
       // printf("error[%d]=%d\n", cb, errors_this);
       errors += errors_this;
       printf("Eb/No: %2.2f %10d/%d   ", SNR_MIN + i * ebno_inc, frame_cnt, nof_frames);
@@ -290,9 +290,9 @@ int main(int argc, char** argv)
   free(llr_s);
   free(data_rx);
 
-  srslte_tdec_free(&tdec);
-  srslte_tcod_free(&tcod);
-  srslte_random_free(random_gen);
+  srsran_tdec_free(&tdec);
+  srsran_tcod_free(&tcod);
+  srsran_random_free(random_gen);
 
   printf("\n");
   printf("Done\n");

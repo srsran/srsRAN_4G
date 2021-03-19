@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,11 +10,11 @@
  *
  */
 
-#include "srslte/upper/rlc_tm.h"
-#include "srslte/interfaces/ue_pdcp_interfaces.h"
-#include "srslte/interfaces/ue_rrc_interfaces.h"
+#include "srsran/upper/rlc_tm.h"
+#include "srsran/interfaces/ue_pdcp_interfaces.h"
+#include "srsran/interfaces/ue_rrc_interfaces.h"
 
-namespace srslte {
+namespace srsran {
 
 rlc_tm::rlc_tm(srslog::basic_logger&      logger,
                uint32_t                   lcid_,
@@ -77,7 +77,7 @@ void rlc_tm::write_sdu(unique_byte_buffer_t sdu)
   if (sdu != nullptr) {
     uint8_t*                                 msg_ptr   = sdu->msg;
     uint32_t                                 nof_bytes = sdu->N_bytes;
-    srslte::error_type<unique_byte_buffer_t> ret       = ul_queue.try_write(std::move(sdu));
+    srsran::error_type<unique_byte_buffer_t> ret       = ul_queue.try_write(std::move(sdu));
     if (ret) {
       logger.info(msg_ptr,
                   nof_bytes,
@@ -152,7 +152,7 @@ int rlc_tm::read_pdu(uint8_t* payload, uint32_t nof_bytes)
                 pdu_size,
                 "%s Tx %s PDU, queue size=%d, bytes=%d",
                 rrc->get_rb_name(lcid).c_str(),
-                srslte::to_string(rlc_mode_t::tm).c_str(),
+                srsran::to_string(rlc_mode_t::tm).c_str(),
                 ul_queue.size(),
                 ul_queue.size_bytes());
 
@@ -187,4 +187,4 @@ void rlc_tm::write_pdu(uint8_t* payload, uint32_t nof_bytes)
   }
 }
 
-} // namespace srslte
+} // namespace srsran

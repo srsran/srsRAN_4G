@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -11,10 +11,10 @@
  */
 
 #include "sched_ue_ded_test_suite.h"
-#include "lib/include/srslte/mac/pdu.h"
+#include "lib/include/srsran/mac/pdu.h"
 #include "srsenb/hdr/stack/mac/sched_helpers.h"
 #include "srsenb/hdr/stack/mac/sched_phy_ch/sf_cch_allocator.h"
-#include "srslte/common/test_common.h"
+#include "srsran/common/test_common.h"
 
 namespace srsenb {
 
@@ -94,16 +94,16 @@ int test_pdsch_grant(const sim_enb_ctxt_t&                   enb_ctxt,
   // TEST: max coderate is not exceeded
   if (h.nof_txs == 0 or h.ndi != pdsch.dci.tb[0].ndi) {
     // it is newtx
-    srslte_pdsch_grant_t grant = {};
-    srslte_dl_sf_cfg_t   dl_sf = {};
+    srsran_pdsch_grant_t grant = {};
+    srsran_dl_sf_cfg_t   dl_sf = {};
     dl_sf.cfi                  = sf_out.dl_cc_result[enb_cc_idx].cfi;
     dl_sf.tti                  = to_tx_dl(tti_rx).to_uint();
-    srslte_ra_dl_grant_to_grant_prb_allocation(&pdsch.dci, &grant, cell_params.nof_prb());
-    uint32_t     nof_re   = srslte_ra_dl_grant_nof_re(&cell_params.cfg.cell, &dl_sf, &grant);
-    float        coderate = srslte_coderate(pdsch.tbs[0] * 8, nof_re);
-    srslte_mod_t mod      = srslte_ra_dl_mod_from_mcs(pdsch.dci.tb[0].mcs_idx, ue_ctxt.ue_cfg.use_tbs_index_alt);
+    srsran_ra_dl_grant_to_grant_prb_allocation(&pdsch.dci, &grant, cell_params.nof_prb());
+    uint32_t     nof_re   = srsran_ra_dl_grant_nof_re(&cell_params.cfg.cell, &dl_sf, &grant);
+    float        coderate = srsran_coderate(pdsch.tbs[0] * 8, nof_re);
+    srsran_mod_t mod      = srsran_ra_dl_mod_from_mcs(pdsch.dci.tb[0].mcs_idx, ue_ctxt.ue_cfg.use_tbs_index_alt);
     uint32_t     max_Qm   = ue_ctxt.ue_cfg.use_tbs_index_alt ? 8 : 6;
-    uint32_t     Qm       = std::min(max_Qm, srslte_mod_bits_x_symbol(mod));
+    uint32_t     Qm       = std::min(max_Qm, srsran_mod_bits_x_symbol(mod));
     CONDERROR(coderate > 0.932f * Qm, "Max coderate was exceeded");
   }
 
@@ -113,7 +113,7 @@ int test_pdsch_grant(const sim_enb_ctxt_t&                   enb_ctxt,
                                                           pdsch.dci.location.ncce + cell_params.cfg.n1pucch_an),
             "Collision detected between UE PUCCH-ACK and SR");
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_dl_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
@@ -123,10 +123,10 @@ int test_dl_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
       const sched_interface::dl_sched_data_t& data = sf_out.dl_cc_result[cc].data[i];
       CONDERROR(
           enb_ctxt.ue_db.count(data.dci.rnti) == 0, "Allocated DL grant for non-existent rnti=0x%x", data.dci.rnti);
-      TESTASSERT(test_pdsch_grant(enb_ctxt, sf_out, cc, data) == SRSLTE_SUCCESS);
+      TESTASSERT(test_pdsch_grant(enb_ctxt, sf_out, cc, data) == SRSRAN_SUCCESS);
     }
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
@@ -221,7 +221,7 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
     }
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
@@ -241,8 +241,8 @@ int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
 
       // TEST: RAR allocation
       uint32_t             rar_win_size = enb_ctxt.cell_params[cc].cfg.prach_rar_window;
-      srslte::tti_interval rar_window{ue.prach_tti_rx + 3, ue.prach_tti_rx + 3 + rar_win_size};
-      srslte::tti_point    tti_tx_dl = to_tx_dl(sf_out.tti_rx);
+      srsran::tti_interval rar_window{ue.prach_tti_rx + 3, ue.prach_tti_rx + 3 + rar_win_size};
+      srsran::tti_point    tti_tx_dl = to_tx_dl(sf_out.tti_rx);
 
       if (not rar_window.contains(tti_tx_dl)) {
         CONDERROR(not ue.rar_tti_rx.is_valid() and tti_tx_dl > rar_window.stop(),
@@ -270,7 +270,7 @@ int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
       // TEST: Msg3 was allocated
       if (ue.rar_tti_rx.is_valid() and not ue.msg3_tti_rx.is_valid()) {
         // RAR scheduled, Msg3 not yet scheduled
-        srslte::tti_point expected_msg3_tti_rx = ue.rar_tti_rx + MSG3_DELAY_MS;
+        srsran::tti_point expected_msg3_tti_rx = ue.rar_tti_rx + MSG3_DELAY_MS;
         CONDERROR(expected_msg3_tti_rx < sf_out.tti_rx, "No UL msg3 alloc was made");
 
         if (expected_msg3_tti_rx == sf_out.tti_rx) {
@@ -298,10 +298,10 @@ int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
             CONDERROR(to_tx_dl(sf_out.tti_rx) < to_tx_ul(ue.msg3_tti_rx),
                       "Msg4 cannot be scheduled without Msg3 being tx");
             for (uint32_t j = 0; j < dl_cc_res.data[i].nof_pdu_elems[0]; ++j) {
-              if (dl_cc_res.data[i].pdu[0][j].lcid == (uint32_t)srslte::dl_sch_lcid::CON_RES_ID) {
+              if (dl_cc_res.data[i].pdu[0][j].lcid == (uint32_t)srsran::dl_sch_lcid::CON_RES_ID) {
                 // ConRes found
-                CONDERROR(dl_cc_res.data[i].dci.format != SRSLTE_DCI_FORMAT1 and
-                              dl_cc_res.data[i].dci.format != SRSLTE_DCI_FORMAT1A,
+                CONDERROR(dl_cc_res.data[i].dci.format != SRSRAN_DCI_FORMAT1 and
+                              dl_cc_res.data[i].dci.format != SRSRAN_DCI_FORMAT1A,
                           "ConRes must be format1/1a");
                 msg4_count++;
               }
@@ -317,7 +317,7 @@ int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
         for (uint32_t i = 0; i < ul_cc_res.pusch.size(); ++i) {
           if (ul_cc_res.pusch[i].dci.rnti == rnti) {
             CONDERROR(not ue.rar_tti_rx.is_valid(), "No UL allocs before RAR allowed");
-            srslte::tti_point expected_msg3_tti = ue.rar_tti_rx + MSG3_DELAY_MS;
+            srsran::tti_point expected_msg3_tti = ue.rar_tti_rx + MSG3_DELAY_MS;
             CONDERROR(expected_msg3_tti > sf_out.tti_rx, "No UL allocs before Msg3 is scheduled");
             if (expected_msg3_tti < sf_out.tti_rx) {
               bool msg3_retx =
@@ -352,10 +352,10 @@ int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
     }
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-bool is_in_measgap(srslte::tti_point tti, uint32_t period, uint32_t offset)
+bool is_in_measgap(srsran::tti_point tti, uint32_t period, uint32_t offset)
 {
   uint32_t T = period / 10;
   return (tti.sfn() % T == offset / 10) and (tti.sf_idx() == offset % 10);
@@ -370,7 +370,7 @@ int test_meas_gaps(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out
       const auto&       ue        = *ue_pair.second;
       uint16_t          rnti      = ue.rnti;
       uint32_t          ue_cc_idx = ue.enb_to_ue_cc_idx(cc);
-      srslte::tti_point tti_tx_ul = to_tx_ul(sf_out.tti_rx), tti_tx_dl = to_tx_dl(sf_out.tti_rx),
+      srsran::tti_point tti_tx_ul = to_tx_ul(sf_out.tti_rx), tti_tx_dl = to_tx_dl(sf_out.tti_rx),
                         tti_tx_dl_ack = to_tx_dl_ack(sf_out.tti_rx), tti_tx_phich = to_tx_ul_ack(sf_out.tti_rx);
 
       if (ue_cc_idx != 0 or ue.ue_cfg.measgap_period == 0) {
@@ -389,20 +389,20 @@ int test_meas_gaps(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out
       }
     }
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_all_ues(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
 {
-  TESTASSERT(test_dl_sched_result(enb_ctxt, sf_out) == SRSLTE_SUCCESS);
+  TESTASSERT(test_dl_sched_result(enb_ctxt, sf_out) == SRSRAN_SUCCESS);
 
-  TESTASSERT(test_ul_sched_result(enb_ctxt, sf_out) == SRSLTE_SUCCESS);
+  TESTASSERT(test_ul_sched_result(enb_ctxt, sf_out) == SRSRAN_SUCCESS);
 
-  TESTASSERT(test_ra(enb_ctxt, sf_out) == SRSLTE_SUCCESS);
+  TESTASSERT(test_ra(enb_ctxt, sf_out) == SRSRAN_SUCCESS);
 
-  TESTASSERT(test_meas_gaps(enb_ctxt, sf_out) == SRSLTE_SUCCESS);
+  TESTASSERT(test_meas_gaps(enb_ctxt, sf_out) == SRSRAN_SUCCESS);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 } // namespace srsenb

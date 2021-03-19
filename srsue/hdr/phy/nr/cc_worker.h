@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,8 +10,8 @@
  *
  */
 
-#ifndef SRSLTE_NR_CC_WORKER_H
-#define SRSLTE_NR_CC_WORKER_H
+#ifndef SRSRAN_NR_CC_WORKER_H
+#define SRSRAN_NR_CC_WORKER_H
 
 #include "srsue/hdr/phy/phy_common.h"
 #include "state.h"
@@ -25,7 +25,7 @@ public:
   cc_worker(uint32_t cc_idx, srslog::basic_logger& log, state* phy_state_);
   ~cc_worker();
 
-  bool set_carrier(const srslte_carrier_nr_t* carrier);
+  bool set_carrier(const srsran_carrier_nr_t* carrier);
   void set_tti(uint32_t tti);
 
   cf_t*    get_rx_buffer(uint32_t antenna_idx);
@@ -38,19 +38,19 @@ public:
   int read_pdsch_d(cf_t* pdsch_d);
 
 private:
-  srslte_slot_cfg_t                   dl_slot_cfg = {};
-  srslte_slot_cfg_t                   ul_slot_cfg = {};
+  srsran_slot_cfg_t                   dl_slot_cfg = {};
+  srsran_slot_cfg_t                   ul_slot_cfg = {};
   uint32_t                            cc_idx      = 0;
-  std::array<cf_t*, SRSLTE_MAX_PORTS> rx_buffer   = {};
-  std::array<cf_t*, SRSLTE_MAX_PORTS> tx_buffer   = {};
+  std::array<cf_t*, SRSRAN_MAX_PORTS> rx_buffer   = {};
+  std::array<cf_t*, SRSRAN_MAX_PORTS> tx_buffer   = {};
   uint32_t                            buffer_sz   = 0;
   state*                              phy         = nullptr;
-  srslte_ue_dl_nr_t                   ue_dl       = {};
-  srslte_ue_ul_nr_t                   ue_ul       = {};
+  srsran_ue_dl_nr_t                   ue_dl       = {};
+  srsran_ue_ul_nr_t                   ue_ul       = {};
   srslog::basic_logger&               logger;
 
   // Temporal attributes
-  srslte_softbuffer_rx_t softbuffer_rx = {};
+  srsran_softbuffer_rx_t softbuffer_rx = {};
 
   // Methods for DL...
   void decode_pdcch_ul();
@@ -60,4 +60,4 @@ private:
 } // namespace nr
 } // namespace srsue
 
-#endif // SRSLTE_NR_CC_WORKER_H
+#endif // SRSRAN_NR_CC_WORKER_H

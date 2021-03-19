@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,8 +10,8 @@
  *
  */
 
-#include "srslte/common/thread_pool.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/common/thread_pool.h"
+#include "srsran/srslog/srslog.h"
 #include <assert.h>
 #include <chrono>
 #include <stdio.h>
@@ -23,7 +23,7 @@
       printf(fmt, __VA_ARGS__);                                                                                        \
   } while (0)
 
-namespace srslte {
+namespace srsran {
 
 thread_pool::worker::worker() : thread("THREAD_POOL_WORKER") {}
 
@@ -326,7 +326,7 @@ uint32_t task_thread_pool::nof_pending_tasks() const
   return pending_tasks.size();
 }
 
-task_thread_pool::worker_t::worker_t(srslte::task_thread_pool* parent_, uint32_t my_id) :
+task_thread_pool::worker_t::worker_t(srsran::task_thread_pool* parent_, uint32_t my_id) :
   parent(parent_), thread(std::string("TASKWORKER") + std::to_string(my_id)), id_(my_id), running(true)
 {
   if (parent->mask == 255) {
@@ -377,4 +377,4 @@ task_thread_pool& get_background_workers()
   return background_workers;
 }
 
-} // namespace srslte
+} // namespace srsran

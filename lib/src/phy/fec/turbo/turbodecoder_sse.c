@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -17,8 +17,8 @@
 #include <string.h>
 #include <strings.h>
 
-#include "srslte/phy/fec/turbo/turbodecoder_sse.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/fec/turbo/turbodecoder_sse.h"
+#include "srsran/phy/utils/vector.h"
 
 #include <inttypes.h>
 
@@ -380,14 +380,14 @@ int tdec_sse_init(void** hh, uint32_t max_long_cb)
 
   h->max_long_cb = max_long_cb;
 
-  h->alpha = srslte_vec_i16_malloc((max_long_cb + TOTALTAIL + 1) * NUMSTATES);
+  h->alpha = srsran_vec_i16_malloc((max_long_cb + TOTALTAIL + 1) * NUMSTATES);
   if (!h->alpha) {
-    perror("srslte_vec_malloc");
+    perror("srsran_vec_malloc");
     return -1;
   }
-  h->branch = srslte_vec_i16_malloc((max_long_cb + TOTALTAIL + 1) * NUMSTATES);
+  h->branch = srsran_vec_i16_malloc((max_long_cb + TOTALTAIL + 1) * NUMSTATES);
   if (!h->branch) {
-    perror("srslte_vec_malloc");
+    perror("srsran_vec_malloc");
     return -1;
   }
   return 1;

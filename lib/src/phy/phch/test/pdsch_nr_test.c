@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,28 +10,28 @@
  *
  */
 
-#include "srslte/phy/phch/pdsch_nr.h"
-#include "srslte/phy/phch/ra_dl_nr.h"
-#include "srslte/phy/phch/ra_nr.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/random.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/phch/pdsch_nr.h"
+#include "srsran/phy/phch/ra_dl_nr.h"
+#include "srsran/phy/phch/ra_nr.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/random.h"
+#include "srsran/phy/utils/vector.h"
 #include <complex.h>
 #include <getopt.h>
 #include <math.h>
 
-static srslte_carrier_nr_t carrier = {
+static srsran_carrier_nr_t carrier = {
     1,                 // cell_id
     0,                 // numerology
-    SRSLTE_MAX_PRB_NR, // nof_prb
+    SRSRAN_MAX_PRB_NR, // nof_prb
     0,                 // start
     1                  // max_mimo_layers
 };
 
 static uint32_t              n_prb       = 0;  // Set to 0 for steering
 static uint32_t              mcs         = 30; // Set to 30 for steering
-static srslte_sch_cfg_nr_t   pdsch_cfg   = {};
-static srslte_sch_grant_nr_t pdsch_grant = {};
+static srsran_sch_cfg_nr_t   pdsch_cfg   = {};
+static srsran_sch_grant_nr_t pdsch_grant = {};
 static uint16_t              rnti        = 0x1234;
 
 void usage(char* prog)
@@ -40,9 +40,9 @@ void usage(char* prog)
   printf("\t-p Number of grant PRB, set to 0 for steering [Default %d]\n", n_prb);
   printf("\t-m MCS PRB, set to >28 for steering [Default %d]\n", mcs);
   printf("\t-T Provide MCS table (64qam, 256qam, 64qamLowSE) [Default %s]\n",
-         srslte_mcs_table_to_str(pdsch_cfg.sch_cfg.mcs_table));
+         srsran_mcs_table_to_str(pdsch_cfg.sch_cfg.mcs_table));
   printf("\t-L Provide number of layers [Default %d]\n", carrier.max_mimo_layers);
-  printf("\t-v [set srslte_verbose to debug, default none]\n");
+  printf("\t-v [set srsran_verbose to debug, default none]\n");
 }
 
 int parse_args(int argc, char** argv)
@@ -57,69 +57,69 @@ int parse_args(int argc, char** argv)
         mcs = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'T':
-        pdsch_cfg.sch_cfg.mcs_table = srslte_mcs_table_from_str(argv[optind]);
+        pdsch_cfg.sch_cfg.mcs_table = srsran_mcs_table_from_str(argv[optind]);
         break;
       case 'L':
         carrier.max_mimo_layers = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
-        srslte_verbose++;
+        srsran_verbose++;
         break;
       default:
         usage(argv[0]);
-        return SRSLTE_ERROR;
+        return SRSRAN_ERROR;
     }
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int main(int argc, char** argv)
 {
-  int                   ret                      = SRSLTE_ERROR;
-  srslte_pdsch_nr_t     pdsch_tx                 = {};
-  srslte_pdsch_nr_t     pdsch_rx                 = {};
-  srslte_chest_dl_res_t chest                    = {};
-  srslte_pdsch_res_nr_t pdsch_res[SRSLTE_MAX_TB] = {};
-  srslte_random_t       rand_gen                 = srslte_random_init(1234);
+  int                   ret                      = SRSRAN_ERROR;
+  srsran_pdsch_nr_t     pdsch_tx                 = {};
+  srsran_pdsch_nr_t     pdsch_rx                 = {};
+  srsran_chest_dl_res_t chest                    = {};
+  srsran_pdsch_res_nr_t pdsch_res[SRSRAN_MAX_TB] = {};
+  srsran_random_t       rand_gen                 = srsran_random_init(1234);
 
-  uint8_t* data_tx[SRSLTE_MAX_TB]           = {};
-  uint8_t* data_rx[SRSLTE_MAX_CODEWORDS]    = {};
-  cf_t*    sf_symbols[SRSLTE_MAX_LAYERS_NR] = {};
+  uint8_t* data_tx[SRSRAN_MAX_TB]           = {};
+  uint8_t* data_rx[SRSRAN_MAX_CODEWORDS]    = {};
+  cf_t*    sf_symbols[SRSRAN_MAX_LAYERS_NR] = {};
 
   // Set default PDSCH configuration
-  pdsch_cfg.sch_cfg.mcs_table = srslte_mcs_table_64qam;
+  pdsch_cfg.sch_cfg.mcs_table = srsran_mcs_table_64qam;
 
-  if (parse_args(argc, argv) < SRSLTE_SUCCESS) {
+  if (parse_args(argc, argv) < SRSRAN_SUCCESS) {
     goto clean_exit;
   }
 
-  srslte_pdsch_nr_args_t pdsch_args = {};
+  srsran_pdsch_nr_args_t pdsch_args = {};
   pdsch_args.sch.disable_simd       = false;
   pdsch_args.measure_evm            = true;
 
-  if (srslte_pdsch_nr_init_enb(&pdsch_tx, &pdsch_args) < SRSLTE_SUCCESS) {
+  if (srsran_pdsch_nr_init_enb(&pdsch_tx, &pdsch_args) < SRSRAN_SUCCESS) {
     ERROR("Error initiating PDSCH for Tx");
     goto clean_exit;
   }
 
-  if (srslte_pdsch_nr_init_ue(&pdsch_rx, &pdsch_args) < SRSLTE_SUCCESS) {
+  if (srsran_pdsch_nr_init_ue(&pdsch_rx, &pdsch_args) < SRSRAN_SUCCESS) {
     ERROR("Error initiating SCH NR for Rx");
     goto clean_exit;
   }
 
-  if (srslte_pdsch_nr_set_carrier(&pdsch_tx, &carrier)) {
+  if (srsran_pdsch_nr_set_carrier(&pdsch_tx, &carrier)) {
     ERROR("Error setting SCH NR carrier");
     goto clean_exit;
   }
 
-  if (srslte_pdsch_nr_set_carrier(&pdsch_rx, &carrier)) {
+  if (srsran_pdsch_nr_set_carrier(&pdsch_rx, &carrier)) {
     ERROR("Error setting SCH NR carrier");
     goto clean_exit;
   }
 
   for (uint32_t i = 0; i < carrier.max_mimo_layers; i++) {
-    sf_symbols[i] = srslte_vec_cf_malloc(SRSLTE_SLOT_LEN_RE_NR(carrier.nof_prb));
+    sf_symbols[i] = srsran_vec_cf_malloc(SRSRAN_SLOT_LEN_RE_NR(carrier.nof_prb));
     if (sf_symbols[i] == NULL) {
       ERROR("Error malloc");
       goto clean_exit;
@@ -127,8 +127,8 @@ int main(int argc, char** argv)
   }
 
   for (uint32_t i = 0; i < pdsch_tx.max_cw; i++) {
-    data_tx[i] = srslte_vec_u8_malloc(SRSLTE_SLOT_MAX_NOF_BITS_NR);
-    data_rx[i] = srslte_vec_u8_malloc(SRSLTE_SLOT_MAX_NOF_BITS_NR);
+    data_tx[i] = srsran_vec_u8_malloc(SRSRAN_SLOT_MAX_NOF_BITS_NR);
+    data_rx[i] = srsran_vec_u8_malloc(SRSRAN_SLOT_MAX_NOF_BITS_NR);
     if (data_tx[i] == NULL || data_rx[i] == NULL) {
       ERROR("Error malloc");
       goto clean_exit;
@@ -137,87 +137,87 @@ int main(int argc, char** argv)
     pdsch_res[i].payload = data_rx[i];
   }
 
-  srslte_softbuffer_tx_t softbuffer_tx = {};
-  srslte_softbuffer_rx_t softbuffer_rx = {};
+  srsran_softbuffer_tx_t softbuffer_tx = {};
+  srsran_softbuffer_rx_t softbuffer_rx = {};
 
-  if (srslte_softbuffer_tx_init_guru(&softbuffer_tx, SRSLTE_SCH_NR_MAX_NOF_CB_LDPC, SRSLTE_LDPC_MAX_LEN_ENCODED_CB) <
-      SRSLTE_SUCCESS) {
+  if (srsran_softbuffer_tx_init_guru(&softbuffer_tx, SRSRAN_SCH_NR_MAX_NOF_CB_LDPC, SRSRAN_LDPC_MAX_LEN_ENCODED_CB) <
+      SRSRAN_SUCCESS) {
     ERROR("Error init soft-buffer");
     goto clean_exit;
   }
 
-  if (srslte_softbuffer_rx_init_guru(&softbuffer_rx, SRSLTE_SCH_NR_MAX_NOF_CB_LDPC, SRSLTE_LDPC_MAX_LEN_ENCODED_CB) <
-      SRSLTE_SUCCESS) {
+  if (srsran_softbuffer_rx_init_guru(&softbuffer_rx, SRSRAN_SCH_NR_MAX_NOF_CB_LDPC, SRSRAN_LDPC_MAX_LEN_ENCODED_CB) <
+      SRSRAN_SUCCESS) {
     ERROR("Error init soft-buffer");
     goto clean_exit;
   }
 
   // Use grant default A time resources with m=0
-  if (srslte_ra_dl_nr_time_default_A(0, pdsch_cfg.dmrs.typeA_pos, &pdsch_grant) < SRSLTE_SUCCESS) {
+  if (srsran_ra_dl_nr_time_default_A(0, pdsch_cfg.dmrs.typeA_pos, &pdsch_grant) < SRSRAN_SUCCESS) {
     ERROR("Error loading default grant");
     goto clean_exit;
   }
 
   // Load number of DMRS CDM groups without data
-  if (srslte_ra_dl_nr_nof_dmrs_cdm_groups_without_data_format_1_0(&pdsch_cfg.dmrs, &pdsch_grant) < SRSLTE_SUCCESS) {
+  if (srsran_ra_dl_nr_nof_dmrs_cdm_groups_without_data_format_1_0(&pdsch_cfg.dmrs, &pdsch_grant) < SRSRAN_SUCCESS) {
     ERROR("Error loading number of DMRS CDM groups without data");
     goto clean_exit;
   }
 
   pdsch_grant.nof_layers = carrier.max_mimo_layers;
-  pdsch_grant.dci_format = srslte_dci_format_nr_1_0;
+  pdsch_grant.dci_format = srsran_dci_format_nr_1_0;
   pdsch_grant.rnti       = rnti;
 
   uint32_t n_prb_start = 1;
   uint32_t n_prb_end   = carrier.nof_prb + 1;
   if (n_prb > 0) {
-    n_prb_start = SRSLTE_MIN(n_prb, n_prb_end - 1);
-    n_prb_end   = SRSLTE_MIN(n_prb + 1, n_prb_end);
+    n_prb_start = SRSRAN_MIN(n_prb, n_prb_end - 1);
+    n_prb_end   = SRSRAN_MIN(n_prb + 1, n_prb_end);
   }
 
   uint32_t mcs_start = 0;
-  uint32_t mcs_end   = pdsch_cfg.sch_cfg.mcs_table == srslte_mcs_table_256qam ? 28 : 29;
+  uint32_t mcs_end   = pdsch_cfg.sch_cfg.mcs_table == srsran_mcs_table_256qam ? 28 : 29;
   if (mcs < mcs_end) {
-    mcs_start = SRSLTE_MIN(mcs, mcs_end - 1);
-    mcs_end   = SRSLTE_MIN(mcs + 1, mcs_end);
+    mcs_start = SRSRAN_MIN(mcs, mcs_end - 1);
+    mcs_end   = SRSRAN_MIN(mcs + 1, mcs_end);
   }
 
-  if (srslte_chest_dl_res_init(&chest, carrier.nof_prb) < SRSLTE_SUCCESS) {
+  if (srsran_chest_dl_res_init(&chest, carrier.nof_prb) < SRSRAN_SUCCESS) {
     ERROR("Initiating chest");
     goto clean_exit;
   }
 
   for (n_prb = n_prb_start; n_prb < n_prb_end; n_prb++) {
     for (mcs = mcs_start; mcs < mcs_end; mcs++) {
-      for (uint32_t n = 0; n < SRSLTE_MAX_PRB_NR; n++) {
+      for (uint32_t n = 0; n < SRSRAN_MAX_PRB_NR; n++) {
         pdsch_grant.prb_idx[n] = (n < n_prb);
       }
 
-      if (srslte_ra_nr_fill_tb(&pdsch_cfg, &pdsch_grant, mcs, &pdsch_grant.tb[0]) < SRSLTE_SUCCESS) {
+      if (srsran_ra_nr_fill_tb(&pdsch_cfg, &pdsch_grant, mcs, &pdsch_grant.tb[0]) < SRSRAN_SUCCESS) {
         ERROR("Error filing tb");
         goto clean_exit;
       }
 
-      for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+      for (uint32_t tb = 0; tb < SRSRAN_MAX_TB; tb++) {
         // Skip TB if no allocated
         if (data_tx[tb] == NULL) {
           continue;
         }
 
         for (uint32_t i = 0; i < pdsch_grant.tb[tb].tbs; i++) {
-          data_tx[tb][i] = (uint8_t)srslte_random_uniform_int_dist(rand_gen, 0, UINT8_MAX);
+          data_tx[tb][i] = (uint8_t)srsran_random_uniform_int_dist(rand_gen, 0, UINT8_MAX);
         }
         pdsch_grant.tb[tb].softbuffer.tx = &softbuffer_tx;
       }
 
-      if (srslte_pdsch_nr_encode(&pdsch_tx, &pdsch_cfg, &pdsch_grant, data_tx, sf_symbols) < SRSLTE_SUCCESS) {
+      if (srsran_pdsch_nr_encode(&pdsch_tx, &pdsch_cfg, &pdsch_grant, data_tx, sf_symbols) < SRSRAN_SUCCESS) {
         ERROR("Error encoding");
         goto clean_exit;
       }
 
-      for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+      for (uint32_t tb = 0; tb < SRSRAN_MAX_TB; tb++) {
         pdsch_grant.tb[tb].softbuffer.rx = &softbuffer_rx;
-        srslte_softbuffer_rx_reset(pdsch_grant.tb[tb].softbuffer.rx);
+        srsran_softbuffer_rx_reset(pdsch_grant.tb[tb].softbuffer.rx);
       }
 
       for (uint32_t i = 0; i < pdsch_grant.tb->nof_re; i++) {
@@ -225,7 +225,7 @@ int main(int argc, char** argv)
       }
       chest.nof_re = pdsch_grant.tb->nof_re;
 
-      if (srslte_pdsch_nr_decode(&pdsch_rx, &pdsch_cfg, &pdsch_grant, &chest, sf_symbols, pdsch_res) < SRSLTE_SUCCESS) {
+      if (srsran_pdsch_nr_decode(&pdsch_rx, &pdsch_cfg, &pdsch_grant, &chest, sf_symbols, pdsch_res) < SRSRAN_SUCCESS) {
         ERROR("Error encoding");
         goto clean_exit;
       }
@@ -236,7 +236,7 @@ int main(int argc, char** argv)
       }
 
       float    mse    = 0.0f;
-      uint32_t nof_re = srslte_ra_dl_nr_slot_nof_re(&pdsch_cfg, &pdsch_grant);
+      uint32_t nof_re = srsran_ra_dl_nr_slot_nof_re(&pdsch_cfg, &pdsch_grant);
       for (uint32_t i = 0; i < pdsch_grant.nof_layers; i++) {
         for (uint32_t j = 0; j < nof_re; j++) {
           mse += cabsf(pdsch_tx.d[i][j] - pdsch_rx.d[i][j]);
@@ -249,9 +249,9 @@ int main(int argc, char** argv)
         ERROR("MSE error (%f) is too high", mse);
         for (uint32_t i = 0; i < pdsch_grant.nof_layers; i++) {
           printf("d_tx[%d]=", i);
-          srslte_vec_fprint_c(stdout, pdsch_tx.d[i], nof_re);
+          srsran_vec_fprint_c(stdout, pdsch_tx.d[i], nof_re);
           printf("d_rx[%d]=", i);
-          srslte_vec_fprint_c(stdout, pdsch_rx.d[i], nof_re);
+          srsran_vec_fprint_c(stdout, pdsch_rx.d[i], nof_re);
         }
         goto clean_exit;
       }
@@ -264,9 +264,9 @@ int main(int argc, char** argv)
       if (memcmp(data_tx[0], data_rx[0], pdsch_grant.tb[0].tbs / 8) != 0) {
         ERROR("Failed to match Tx/Rx data; n_prb=%d; mcs=%d; TBS=%d;", n_prb, mcs, pdsch_grant.tb[0].tbs);
         printf("Tx data: ");
-        srslte_vec_fprint_byte(stdout, data_tx[0], pdsch_grant.tb[0].tbs / 8);
+        srsran_vec_fprint_byte(stdout, data_tx[0], pdsch_grant.tb[0].tbs / 8);
         printf("Rx data: ");
-        srslte_vec_fprint_byte(stdout, data_rx[0], pdsch_grant.tb[0].tbs / 8);
+        srsran_vec_fprint_byte(stdout, data_rx[0], pdsch_grant.tb[0].tbs / 8);
         goto clean_exit;
       }
 
@@ -274,14 +274,14 @@ int main(int argc, char** argv)
     }
   }
 
-  ret = SRSLTE_SUCCESS;
+  ret = SRSRAN_SUCCESS;
 
 clean_exit:
-  srslte_chest_dl_res_free(&chest);
-  srslte_random_free(rand_gen);
-  srslte_pdsch_nr_free(&pdsch_tx);
-  srslte_pdsch_nr_free(&pdsch_rx);
-  for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+  srsran_chest_dl_res_free(&chest);
+  srsran_random_free(rand_gen);
+  srsran_pdsch_nr_free(&pdsch_tx);
+  srsran_pdsch_nr_free(&pdsch_rx);
+  for (uint32_t i = 0; i < SRSRAN_MAX_CODEWORDS; i++) {
     if (data_tx[i]) {
       free(data_tx[i]);
     }
@@ -289,13 +289,13 @@ clean_exit:
       free(data_rx[i]);
     }
   }
-  for (uint32_t i = 0; i < SRSLTE_MAX_LAYERS_NR; i++) {
+  for (uint32_t i = 0; i < SRSRAN_MAX_LAYERS_NR; i++) {
     if (sf_symbols[i]) {
       free(sf_symbols[i]);
     }
   }
-  srslte_softbuffer_tx_free(&softbuffer_tx);
-  srslte_softbuffer_rx_free(&softbuffer_rx);
+  srsran_softbuffer_tx_free(&softbuffer_tx);
+  srsran_softbuffer_rx_free(&softbuffer_rx);
 
   return ret;
 }

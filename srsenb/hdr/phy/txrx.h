@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -17,18 +17,18 @@
 #include "prach_worker.h"
 #include "srsenb/hdr/phy/lte/worker_pool.h"
 #include "srsenb/hdr/phy/nr/worker_pool.h"
-#include "srslte/config.h"
-#include "srslte/phy/channel/channel.h"
-#include "srslte/radio/radio.h"
+#include "srsran/config.h"
+#include "srsran/phy/channel/channel.h"
+#include "srsran/radio/radio.h"
 
 namespace srsenb {
 
-class txrx final : public srslte::thread
+class txrx final : public srsran::thread
 {
 public:
   txrx(srslog::basic_logger& logger);
   bool init(stack_interface_phy_lte*     stack_,
-            srslte::radio_interface_phy* radio_handler,
+            srsran::radio_interface_phy* radio_handler,
             lte::worker_pool*            lte_workers_,
             nr::worker_pool*             nr_workers_,
             phy_common*                  worker_com,
@@ -40,13 +40,13 @@ private:
   void run_thread() override;
 
   stack_interface_phy_lte*     stack   = nullptr;
-  srslte::radio_interface_phy* radio_h = nullptr;
+  srsran::radio_interface_phy* radio_h = nullptr;
   srslog::basic_logger&        logger;
   lte::worker_pool*            lte_workers = nullptr;
   nr::worker_pool*             nr_workers  = nullptr;
   prach_worker_pool*           prach       = nullptr;
   phy_common*                  worker_com  = nullptr;
-  srslte::channel_ptr          ul_channel  = nullptr;
+  srsran::channel_ptr          ul_channel  = nullptr;
 
   // Main system TTI counter
   uint32_t tti = 0;

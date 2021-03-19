@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -16,16 +16,16 @@
 #include "lte/sf_worker.h"
 #include "phy_common.h"
 #include "srsenb/hdr/phy/enb_phy_base.h"
-#include "srslte/common/trace.h"
-#include "srslte/interfaces/enb_metrics_interface.h"
-#include "srslte/interfaces/radio_interfaces.h"
-#include "srslte/radio/radio.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/common/trace.h"
+#include "srsran/interfaces/enb_metrics_interface.h"
+#include "srsran/interfaces/radio_interfaces.h"
+#include "srsran/radio/radio.h"
+#include "srsran/srslog/srslog.h"
 #include "txrx.h"
 
 namespace srsenb {
 
-class phy final : public enb_phy_base, public phy_interface_stack_lte, public srslte::phy_interface_radio
+class phy final : public enb_phy_base, public phy_interface_stack_lte, public srsran::phy_interface_radio
 {
 public:
   phy(srslog::sink& log_sink);
@@ -33,7 +33,7 @@ public:
 
   int  init(const phy_args_t&            args,
             const phy_cfg_t&             cfg,
-            srslte::radio_interface_phy* radio_,
+            srsran::radio_interface_phy* radio_,
             stack_interface_phy_lte*     stack_);
   void stop() override;
 
@@ -43,10 +43,10 @@ public:
   void rem_rnti(uint16_t rnti) final;
   void set_mch_period_stop(uint32_t stop) final;
   void set_activation_deactivation_scell(uint16_t                                     rnti,
-                                         const std::array<bool, SRSLTE_MAX_CARRIERS>& activation) override;
+                                         const std::array<bool, SRSRAN_MAX_CARRIERS>& activation) override;
 
   /*RRC-PHY interface*/
-  void configure_mbsfn(srslte::sib2_mbms_t* sib2, srslte::sib13_t* sib13, const srslte::mcch_msg_t& mcch) override;
+  void configure_mbsfn(srsran::sib2_mbms_t* sib2, srsran::sib13_t* sib13, const srsran::mcch_msg_t& mcch) override;
 
   void start_plot() override;
   void set_config(uint16_t rnti, const phy_rrc_cfg_list_t& phy_cfg_list) override;
@@ -59,10 +59,10 @@ public:
   void radio_overflow() override{};
   void radio_failure() override{};
 
-  void srslte_phy_logger(phy_logger_level_t log_level, char* str);
+  void srsran_phy_logger(phy_logger_level_t log_level, char* str);
 
 private:
-  srslte::phy_cfg_mbsfn_t mbsfn_config = {};
+  srsran::phy_cfg_mbsfn_t mbsfn_config = {};
   uint32_t                nof_workers  = 0;
 
   const static int MAX_WORKERS = 4;
@@ -71,7 +71,7 @@ private:
   const static int SF_RECV_THREAD_PRIO      = 1;
   const static int WORKERS_THREAD_PRIO      = 2;
 
-  srslte::radio_interface_phy* radio = nullptr;
+  srsran::radio_interface_phy* radio = nullptr;
 
   srslog::sink&         log_sink;
   srslog::basic_logger& phy_log;
@@ -85,7 +85,7 @@ private:
 
   bool initialized = false;
 
-  srslte_prach_cfg_t prach_cfg = {};
+  srsran_prach_cfg_t prach_cfg = {};
 
   void parse_common_config(const phy_cfg_t& cfg);
 };

@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -24,12 +24,12 @@
 #include "scell/scell_sync.h"
 #include "search.h"
 #include "sfn_sync.h"
-#include "srslte/common/thread_pool.h"
-#include "srslte/common/threads.h"
-#include "srslte/common/tti_sync_cv.h"
-#include "srslte/interfaces/radio_interfaces.h"
-#include "srslte/phy/channel/channel.h"
-#include "srslte/srslte.h"
+#include "srsran/common/thread_pool.h"
+#include "srsran/common/threads.h"
+#include "srsran/common/tti_sync_cv.h"
+#include "srsran/interfaces/radio_interfaces.h"
+#include "srsran/phy/channel/channel.h"
+#include "srsran/srsran.h"
 #include "srsue/hdr/phy/lte/worker_pool.h"
 #include "srsue/hdr/phy/nr/worker_pool.h"
 #include "sync_state.h"
@@ -38,7 +38,7 @@ namespace srsue {
 
 typedef _Complex float cf_t;
 
-class sync : public srslte::thread,
+class sync : public srsran::thread,
              public rsrp_insync_itf,
              public search_callback,
              public scell::sync_callback,
@@ -55,7 +55,7 @@ public:
     dummy_buffer(sync_nof_rx_subframes){};
   ~sync();
 
-  void init(srslte::radio_interface_phy* radio_,
+  void init(srsran::radio_interface_phy* radio_,
             stack_interface_phy_lte*     _stack,
             prach*                       prach_buffer,
             lte::worker_pool*            _lte_workers_pool,
@@ -75,7 +75,7 @@ public:
 
   // RRC interface for controlling the neighbour cell measurement
   void set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci);
-  void set_inter_frequency_measurement(uint32_t cc_idx, uint32_t earfcn_, srslte_cell_t cell_);
+  void set_inter_frequency_measurement(uint32_t cc_idx, uint32_t earfcn_, srsran_cell_t cell_);
   void meas_stop();
 
   // from chest_feedback_itf
@@ -83,7 +83,7 @@ public:
   void out_of_sync() final;
   void set_cfo(float cfo) final;
 
-  void     get_current_cell(srslte_cell_t* cell, uint32_t* earfcn = nullptr);
+  void     get_current_cell(srsran_cell_t* cell, uint32_t* earfcn = nullptr);
   uint32_t get_current_tti();
 
   // From UE configuration
@@ -92,16 +92,16 @@ public:
 
   // Other functions
   void set_rx_gain(float gain) override;
-  int  radio_recv_fnc(srslte::rf_buffer_t&, srslte_timestamp_t* rx_time) override;
+  int  radio_recv_fnc(srsran::rf_buffer_t&, srsran_timestamp_t* rx_time) override;
 
-  srslte::radio_interface_phy* get_radio() override { return radio_h; }
+  srsran::radio_interface_phy* get_radio() override { return radio_h; }
 
   /**
    * Sets secondary serving cell for synchronization purposes
    * @param cc_idx component carrier index
    * @param _cell Cell information
    */
-  void scell_sync_set(uint32_t cc_idx, const srslte_cell_t& _cell);
+  void scell_sync_set(uint32_t cc_idx, const srsran_cell_t& _cell);
 
   /**
    * Stops all secondary serving cell synchronization
@@ -122,7 +122,7 @@ public:
 private:
   void reset();
   void radio_error();
-  void set_ue_sync_opts(srslte_ue_sync_t* q, float cfo) override;
+  void set_ue_sync_opts(srsran_ue_sync_t* q, float cfo) override;
 
   /**
    * Search for a cell in the current frequency and go to IDLE.
@@ -171,7 +171,7 @@ private:
    * @param sync_buffer Sub-frame buffer for the current TTI
    */
   void
-  run_camping_in_sync_state(lte::sf_worker* lte_worker, nr::sf_worker* nr_worker, srslte::rf_buffer_t& sync_buffer);
+  run_camping_in_sync_state(lte::sf_worker* lte_worker, nr::sf_worker* nr_worker, srsran::rf_buffer_t& sync_buffer);
 
   /**
    * Helper method, executed in a TTI basis for signaling to the stack a new TTI execution
@@ -192,7 +192,7 @@ private:
   bool running     = false;
   bool is_overflow = false;
 
-  srslte::rf_timestamp_t last_rx_time;
+  srsran::rf_timestamp_t last_rx_time;
   bool                   forced_rx_time_init = true; // Rx time sync after first receive from radio
 
   // Objects for internal use
@@ -206,10 +206,10 @@ private:
   srslog::basic_logger&        phy_lib_logger;
   lte::worker_pool*            lte_worker_pool  = nullptr;
   nr::worker_pool*             nr_worker_pool   = nullptr;
-  srslte::radio_interface_phy* radio_h          = nullptr;
+  srsran::radio_interface_phy* radio_h          = nullptr;
   phy_common*                  worker_com       = nullptr;
   prach*                       prach_buffer     = nullptr;
-  srslte::channel_ptr          channel_emulator = nullptr;
+  srsran::channel_ptr          channel_emulator = nullptr;
 
   // PRACH state
   uint32_t prach_nof_sf = 0;
@@ -218,15 +218,15 @@ private:
   float    prach_power  = 0;
 
   // Object for synchronization of the primary cell
-  srslte_ue_sync_t ue_sync = {};
+  srsran_ue_sync_t ue_sync = {};
 
   // Object for synchronization secondary serving cells
   std::map<uint32_t, std::unique_ptr<scell::sync> > scell_sync;
 
   // Buffer for primary and secondary cell samples
   const static uint32_t sync_nof_rx_subframes = 5;
-  srslte::rf_buffer_t   sf_buffer             = {};
-  srslte::rf_buffer_t   dummy_buffer;
+  srsran::rf_buffer_t   sf_buffer             = {};
+  srsran::rf_buffer_t   dummy_buffer;
 
   // Sync metrics
   sync_metrics_t metrics = {};
@@ -253,12 +253,12 @@ private:
   float current_srate                                        = 0;
 
   // This is the primary cell
-  srslte_cell_t                               cell                   = {};
+  srsran_cell_t                               cell                   = {};
   bool                                        force_camping_sfn_sync = false;
   uint32_t                                    tti                    = 0;
-  srslte_timestamp_t                          stack_tti_ts_new       = {};
-  srslte_timestamp_t                          stack_tti_ts           = {};
-  std::array<uint8_t, SRSLTE_BCH_PAYLOAD_LEN> mib                    = {};
+  srsran_timestamp_t                          stack_tti_ts_new       = {};
+  srsran_timestamp_t                          stack_tti_ts           = {};
+  std::array<uint8_t, SRSRAN_BCH_PAYLOAD_LEN> mib                    = {};
 
   uint32_t nof_rf_channels         = 0;
   float    ul_dl_factor            = NAN;

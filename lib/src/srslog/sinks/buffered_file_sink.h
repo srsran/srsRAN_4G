@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -14,7 +14,7 @@
 #define SRSLOG_BUFFERED_FILE_SINK_H
 
 #include "file_utils.h"
-#include "srslte/srslog/sink.h"
+#include "srsran/srslog/sink.h"
 
 namespace srslog {
 

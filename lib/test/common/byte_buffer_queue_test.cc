@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -12,11 +12,11 @@
 
 #define NMSGS 1000000
 
-#include "srslte/common/buffer_pool.h"
-#include "srslte/upper/byte_buffer_queue.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/upper/byte_buffer_queue.h"
 #include <stdio.h>
 
-using namespace srslte;
+using namespace srsran;
 
 typedef struct {
   byte_buffer_queue* q;
@@ -26,7 +26,7 @@ void* write_thread(void* a)
 {
   args_t* args = (args_t*)a;
   for (uint32_t i = 0; i < NMSGS; i++) {
-    unique_byte_buffer_t b = srslte::make_byte_buffer();
+    unique_byte_buffer_t b = srsran::make_byte_buffer();
     memcpy(b->msg, &i, 4);
     b->N_bytes = 4;
     args->q->write(std::move(b));

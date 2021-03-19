@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -15,9 +15,9 @@
 #include "srsenb/hdr/stack/enb_stack_lte.h"
 #include "srsenb/hdr/stack/gnb_stack_nr.h"
 #include "srsenb/src/enb_cfg_parser.h"
-#include "srslte/build_info.h"
-#include "srslte/common/enb_events.h"
-#include "srslte/radio/radio_null.h"
+#include "srsran/build_info.h"
+#include "srsran/common/enb_events.h"
+#include "srsran/radio/radio_null.h"
 #include <iostream>
 
 namespace srsenb {
@@ -36,7 +36,7 @@ enb::~enb()
 
 int enb::init(const all_args_t& args_)
 {
-  int ret = SRSLTE_SUCCESS;
+  int ret = SRSRAN_SUCCESS;
 
   // Init eNB log
   enb_log.set_level(srslog::basic_levels::info);
@@ -44,51 +44,51 @@ int enb::init(const all_args_t& args_)
 
   // Validate arguments
   if (parse_args(args_, rrc_cfg)) {
-    srslte::console("Error processing arguments.\n");
-    return SRSLTE_ERROR;
+    srsran::console("Error processing arguments.\n");
+    return SRSRAN_ERROR;
   }
 
-  srslte::byte_buffer_pool::get_instance()->enable_logger(true);
+  srsran::byte_buffer_pool::get_instance()->enable_logger(true);
 
   // Create layers
   if (args.stack.type == "lte") {
     std::unique_ptr<enb_stack_lte> lte_stack(new enb_stack_lte(log_sink));
     if (!lte_stack) {
-      srslte::console("Error creating eNB stack.\n");
-      return SRSLTE_ERROR;
+      srsran::console("Error creating eNB stack.\n");
+      return SRSRAN_ERROR;
     }
 
-    std::unique_ptr<srslte::radio> lte_radio = std::unique_ptr<srslte::radio>(new srslte::radio);
+    std::unique_ptr<srsran::radio> lte_radio = std::unique_ptr<srsran::radio>(new srsran::radio);
     if (!lte_radio) {
-      srslte::console("Error creating radio multi instance.\n");
-      return SRSLTE_ERROR;
+      srsran::console("Error creating radio multi instance.\n");
+      return SRSRAN_ERROR;
     }
 
     std::unique_ptr<srsenb::phy> lte_phy = std::unique_ptr<srsenb::phy>(new srsenb::phy(log_sink));
     if (!lte_phy) {
-      srslte::console("Error creating LTE PHY instance.\n");
-      return SRSLTE_ERROR;
+      srsran::console("Error creating LTE PHY instance.\n");
+      return SRSRAN_ERROR;
     }
 
     // Init Radio
     if (lte_radio->init(args.rf, lte_phy.get())) {
-      srslte::console("Error initializing radio.\n");
-      return SRSLTE_ERROR;
+      srsran::console("Error initializing radio.\n");
+      return SRSRAN_ERROR;
     }
 
     // Only Init PHY if radio couldn't be initialized
-    if (ret == SRSLTE_SUCCESS) {
+    if (ret == SRSRAN_SUCCESS) {
       if (lte_phy->init(args.phy, phy_cfg, lte_radio.get(), lte_stack.get())) {
-        srslte::console("Error initializing PHY.\n");
-        ret = SRSLTE_ERROR;
+        srsran::console("Error initializing PHY.\n");
+        ret = SRSRAN_ERROR;
       }
     }
 
     // Only init Stack if both radio and PHY could be initialized
-    if (ret == SRSLTE_SUCCESS) {
-      if (lte_stack->init(args.stack, rrc_cfg, lte_phy.get()) != SRSLTE_SUCCESS) {
-        srslte::console("Error initializing stack.\n");
-        ret = SRSLTE_ERROR;
+    if (ret == SRSRAN_SUCCESS) {
+      if (lte_stack->init(args.stack, rrc_cfg, lte_phy.get()) != SRSRAN_SUCCESS) {
+        srsran::console("Error initializing stack.\n");
+        ret = SRSRAN_ERROR;
       }
     }
 
@@ -98,13 +98,13 @@ int enb::init(const all_args_t& args_)
 
   } else if (args.stack.type == "nr") {
     std::unique_ptr<srsenb::gnb_stack_nr> nr_stack(new srsenb::gnb_stack_nr);
-    std::unique_ptr<srslte::radio_null>   nr_radio(new srslte::radio_null);
+    std::unique_ptr<srsran::radio_null>   nr_radio(new srsran::radio_null);
     std::unique_ptr<srsenb::vnf_phy_nr>   nr_phy(new srsenb::vnf_phy_nr);
 
     // Init layers
     if (nr_radio->init(args.rf, nullptr)) {
-      srslte::console("Error initializing radio.\n");
-      return SRSLTE_ERROR;
+      srsran::console("Error initializing radio.\n");
+      return SRSRAN_ERROR;
     }
 
     // TODO: where do we put this?
@@ -114,8 +114,8 @@ int enb::init(const all_args_t& args_)
     args.phy.vnf_args.log_level     = args.phy.log.phy_level;
     args.phy.vnf_args.log_hex_limit = args.phy.log.phy_hex_limit;
     if (nr_phy->init(args.phy, nr_phy_cfg, nr_stack.get())) {
-      srslte::console("Error initializing PHY.\n");
-      return SRSLTE_ERROR;
+      srsran::console("Error initializing PHY.\n");
+      return SRSRAN_ERROR;
     }
 
     // Same here, where do we put this?
@@ -123,8 +123,8 @@ int enb::init(const all_args_t& args_)
     rrc_nr_cfg.coreless             = args.stack.coreless;
 
     if (nr_stack->init(args.stack, rrc_nr_cfg, nr_phy.get())) {
-      srslte::console("Error initializing stack.\n");
-      return SRSLTE_ERROR;
+      srsran::console("Error initializing stack.\n");
+      return SRSRAN_ERROR;
     }
 
     stack = std::move(nr_stack);
@@ -139,9 +139,9 @@ int enb::init(const all_args_t& args_)
     event_logger::get().log_sector_start(i, rrc_cfg.cell_list[i].pci, rrc_cfg.cell_list[i].cell_id);
   }
 
-  if (ret == SRSLTE_SUCCESS) {
-    srslte::console("\n==== eNodeB started ===\n");
-    srslte::console("Type <t> to view trace\n");
+  if (ret == SRSRAN_SUCCESS) {
+    srsran::console("\n==== eNodeB started ===\n");
+    srsran::console("Type <t> to view trace\n");
   } else {
     // if any of the layers failed to start, make sure the rest is stopped in a controlled manner
     stop();
@@ -189,7 +189,7 @@ void enb::start_plot()
 
 void enb::print_pool()
 {
-  srslte::byte_buffer_pool::get_instance()->print_all_buffers();
+  srsran::byte_buffer_pool::get_instance()->print_all_buffers();
 }
 
 bool enb::get_metrics(enb_metrics_t* m)
@@ -209,15 +209,15 @@ void enb::cmd_cell_gain(uint32_t cell_id, float gain)
 
 std::string enb::get_build_mode()
 {
-  return std::string(srslte_get_build_mode());
+  return std::string(srsran_get_build_mode());
 }
 
 std::string enb::get_build_info()
 {
-  if (std::string(srslte_get_build_info()).find("  ") != std::string::npos) {
-    return std::string(srslte_get_version());
+  if (std::string(srsran_get_build_info()).find("  ") != std::string::npos) {
+    return std::string(srsran_get_version());
   }
-  return std::string(srslte_get_build_info());
+  return std::string(srsran_get_build_info());
 }
 
 std::string enb::get_build_string()

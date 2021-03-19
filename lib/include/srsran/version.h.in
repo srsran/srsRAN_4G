@@ -1,0 +1,43 @@
+/**
+ *
+ * \section COPYRIGHT
+ *
+ * Copyright 2013-2021 Software Radio Systems Limited
+ *
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
+ *
+ */
+
+#ifndef SRSRAN_VERSION_H_IN
+#define SRSRAN_VERSION_H_IN
+
+// the configured options and settings for SRSRAN
+#define SRSRAN_VERSION_MAJOR @SRSRAN_VERSION_MAJOR@
+#define SRSRAN_VERSION_MINOR @SRSRAN_VERSION_MINOR@
+#define SRSRAN_VERSION_PATCH @SRSRAN_VERSION_PATCH@
+#define SRSRAN_VERSION_STRING "@SRSRAN_VERSION_STRING@"
+
+#define SRSRAN_VERSION_ENCODE(major, minor, patch) ( \
+    ((major) * 10000)                                \
+  + ((minor) *   100)                                \
+  + ((patch) *     1))
+
+#define SRSRAN_VERSION SRSRAN_VERSION_ENCODE( \
+  SRSRAN_VERSION_MAJOR,                       \
+  SRSRAN_VERSION_MINOR,                       \
+  SRSRAN_VERSION_PATCH)
+
+#define SRSRAN_VERSION_CHECK(major,minor,patch)    \
+  (SRSRAN_VERSION >= SRSRAN_VERSION_ENCODE(major,minor,patch))
+
+#include "srsran/config.h"
+
+SRSRAN_API char* srsran_get_version();
+SRSRAN_API int   srsran_get_version_major();
+SRSRAN_API int   srsran_get_version_minor();
+SRSRAN_API int   srsran_get_version_patch();
+SRSRAN_API int   srsran_check_version(int major, int minor, int patch);
+
+#endif // VERSION_

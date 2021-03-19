@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -14,10 +14,10 @@
 #include <stdlib.h>
 #include <strings.h>
 
-#include "srslte/phy/modem/demod_soft.h"
-#include "srslte/phy/utils/bit.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/modem/demod_soft.h"
+#include "srsran/phy/utils/bit.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/vector.h"
 
 #ifdef HAVE_NEONv8
 #include <arm_neon.h>
@@ -122,17 +122,17 @@ void demod_bpsk_lte(const cf_t* symbols, float* llr, int nsymbols)
 
 void demod_qpsk_lte_b(const cf_t* symbols, int8_t* llr, int nsymbols)
 {
-  srslte_vec_convert_fb((const float*)symbols, -SCALE_BYTE_CONV_QPSK * M_SQRT2, llr, nsymbols * 2);
+  srsran_vec_convert_fb((const float*)symbols, -SCALE_BYTE_CONV_QPSK * M_SQRT2, llr, nsymbols * 2);
 }
 
 void demod_qpsk_lte_s(const cf_t* symbols, short* llr, int nsymbols)
 {
-  srslte_vec_convert_fi((const float*)symbols, -SCALE_SHORT_CONV_QPSK * M_SQRT2, llr, nsymbols * 2);
+  srsran_vec_convert_fi((const float*)symbols, -SCALE_SHORT_CONV_QPSK * M_SQRT2, llr, nsymbols * 2);
 }
 
 void demod_qpsk_lte(const cf_t* symbols, float* llr, int nsymbols)
 {
-  srslte_vec_sc_prod_fff((const float*)symbols, -M_SQRT2, llr, nsymbols * 2);
+  srsran_vec_sc_prod_fff((const float*)symbols, -M_SQRT2, llr, nsymbols * 2);
 }
 
 void demod_16qam_lte(const cf_t* symbols, float* llr, int nsymbols)
@@ -856,22 +856,22 @@ void demod_256qam_lte_s(const cf_t* symbols, short* llr, int nsymbols)
   }
 }
 
-int srslte_demod_soft_demodulate(srslte_mod_t modulation, const cf_t* symbols, float* llr, int nsymbols)
+int srsran_demod_soft_demodulate(srsran_mod_t modulation, const cf_t* symbols, float* llr, int nsymbols)
 {
   switch (modulation) {
-    case SRSLTE_MOD_BPSK:
+    case SRSRAN_MOD_BPSK:
       demod_bpsk_lte(symbols, llr, nsymbols);
       break;
-    case SRSLTE_MOD_QPSK:
+    case SRSRAN_MOD_QPSK:
       demod_qpsk_lte(symbols, llr, nsymbols);
       break;
-    case SRSLTE_MOD_16QAM:
+    case SRSRAN_MOD_16QAM:
       demod_16qam_lte(symbols, llr, nsymbols);
       break;
-    case SRSLTE_MOD_64QAM:
+    case SRSRAN_MOD_64QAM:
       demod_64qam_lte(symbols, llr, nsymbols);
       break;
-    case SRSLTE_MOD_256QAM:
+    case SRSRAN_MOD_256QAM:
       demod_256qam_lte(symbols, llr, nsymbols);
       break;
     default:
@@ -881,22 +881,22 @@ int srslte_demod_soft_demodulate(srslte_mod_t modulation, const cf_t* symbols, f
   return 0;
 }
 
-int srslte_demod_soft_demodulate_s(srslte_mod_t modulation, const cf_t* symbols, short* llr, int nsymbols)
+int srsran_demod_soft_demodulate_s(srsran_mod_t modulation, const cf_t* symbols, short* llr, int nsymbols)
 {
   switch (modulation) {
-    case SRSLTE_MOD_BPSK:
+    case SRSRAN_MOD_BPSK:
       demod_bpsk_lte_s(symbols, llr, nsymbols);
       break;
-    case SRSLTE_MOD_QPSK:
+    case SRSRAN_MOD_QPSK:
       demod_qpsk_lte_s(symbols, llr, nsymbols);
       break;
-    case SRSLTE_MOD_16QAM:
+    case SRSRAN_MOD_16QAM:
       demod_16qam_lte_s(symbols, llr, nsymbols);
       break;
-    case SRSLTE_MOD_64QAM:
+    case SRSRAN_MOD_64QAM:
       demod_64qam_lte_s(symbols, llr, nsymbols);
       break;
-    case SRSLTE_MOD_256QAM:
+    case SRSRAN_MOD_256QAM:
       demod_256qam_lte_s(symbols, llr, nsymbols);
       break;
     default:
@@ -906,22 +906,22 @@ int srslte_demod_soft_demodulate_s(srslte_mod_t modulation, const cf_t* symbols,
   return 0;
 }
 
-int srslte_demod_soft_demodulate_b(srslte_mod_t modulation, const cf_t* symbols, int8_t* llr, int nsymbols)
+int srsran_demod_soft_demodulate_b(srsran_mod_t modulation, const cf_t* symbols, int8_t* llr, int nsymbols)
 {
   switch (modulation) {
-    case SRSLTE_MOD_BPSK:
+    case SRSRAN_MOD_BPSK:
       demod_bpsk_lte_b(symbols, llr, nsymbols);
       break;
-    case SRSLTE_MOD_QPSK:
+    case SRSRAN_MOD_QPSK:
       demod_qpsk_lte_b(symbols, llr, nsymbols);
       break;
-    case SRSLTE_MOD_16QAM:
+    case SRSRAN_MOD_16QAM:
       demod_16qam_lte_b(symbols, llr, nsymbols);
       break;
-    case SRSLTE_MOD_64QAM:
+    case SRSRAN_MOD_64QAM:
       demod_64qam_lte_b(symbols, llr, nsymbols);
       break;
-    case SRSLTE_MOD_256QAM:
+    case SRSRAN_MOD_256QAM:
       demod_256qam_lte_b(symbols, llr, nsymbols);
       break;
     default:

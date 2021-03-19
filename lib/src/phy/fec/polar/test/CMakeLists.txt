@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2020 Software Radio Systems Limited
+# Copyright 2013-2021 Software Radio Systems Limited
 #
 # By using this file, you agree to the terms and conditions set
 # forth in the LICENSE file which can be found at the top level of
@@ -12,7 +12,7 @@ add_library(polar_test_utils polar_sets.c subchannel_allocation.c)
 
 add_executable(polar_chain_test polar_chain_test.c)
 
-target_link_libraries(polar_chain_test srslte_phy polar_test_utils)
+target_link_libraries(polar_chain_test srsran_phy polar_test_utils)
 
 ### Test polar libs
 function(polar_tests_lite)
@@ -91,5 +91,5 @@ polar_tests(101)
 
 # Polar inter-leaver test
 add_executable(polar_interleaver_test polar_interleaver_test.c)
-target_link_libraries(polar_interleaver_test srslte_phy)
+target_link_libraries(polar_interleaver_test srsran_phy)
 add_nr_test(polar_interleaver_test polar_interleaver_test)

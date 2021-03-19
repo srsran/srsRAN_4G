@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,7 +10,7 @@
  *
  */
 
-#include "srslte/phy/utils/primes.h"
+#include "srsran/phy/utils/primes.h"
 
 #define NOF_PRIME_NUMBERS 463
 
@@ -41,7 +41,7 @@ static const uint32_t prime_numbers[NOF_PRIME_NUMBERS] = {
     3061, 3067, 3079, 3083, 3089, 3109, 3119, 3121, 3137, 3163, 3167, 3169, 3181, 3187, 3191, 3203, 3209, 3217, 3221,
     3229, 3251, 3253, 3257, 3259, 3271, 3299};
 
-int srslte_prime_greater_than(uint32_t n)
+int srsran_prime_greater_than(uint32_t n)
 {
   for (uint32_t i = 0; i < NOF_PRIME_NUMBERS; i++) {
     if (prime_numbers[i] > n) {
@@ -49,14 +49,14 @@ int srslte_prime_greater_than(uint32_t n)
     }
   }
 
-  return SRSLTE_ERROR_OUT_OF_BOUNDS;
+  return SRSRAN_ERROR_OUT_OF_BOUNDS;
 }
 
-int srslte_prime_lower_than(uint32_t n)
+int srsran_prime_lower_than(uint32_t n)
 {
 
   if (n > prime_numbers[NOF_PRIME_NUMBERS - 1]) {
-    return SRSLTE_ERROR_OUT_OF_BOUNDS;
+    return SRSRAN_ERROR_OUT_OF_BOUNDS;
   }
 
   for (uint32_t i = NOF_PRIME_NUMBERS - 1; i > 0; i--) {

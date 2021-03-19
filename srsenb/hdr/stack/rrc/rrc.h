@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -17,14 +17,14 @@
 #include "rrc_cell_cfg.h"
 #include "rrc_metrics.h"
 #include "srsenb/hdr/stack/upper/common_enb.h"
-#include "srslte/adt/circular_buffer.h"
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/common.h"
-#include "srslte/common/stack_procedure.h"
-#include "srslte/common/task_scheduler.h"
-#include "srslte/common/timeout.h"
-#include "srslte/interfaces/enb_rrc_interfaces.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/adt/circular_buffer.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/common/common.h"
+#include "srsran/common/stack_procedure.h"
+#include "srsran/common/task_scheduler.h"
+#include "srsran/common/timeout.h"
+#include "srsran/interfaces/enb_rrc_interfaces.h"
+#include "srsran/srslog/srslog.h"
 #include <map>
 
 namespace srsenb {
@@ -49,7 +49,7 @@ class rrc final : public rrc_interface_pdcp,
                   public rrc_interface_s1ap
 {
 public:
-  explicit rrc(srslte::task_sched_handle task_sched_);
+  explicit rrc(srsran::task_sched_handle task_sched_);
   ~rrc();
 
   void init(const rrc_cfg_t&       cfg_,
@@ -76,7 +76,7 @@ public:
   void max_retx_attempted(uint16_t rnti) override;
 
   // rrc_interface_s1ap
-  void write_dl_info(uint16_t rnti, srslte::unique_byte_buffer_t sdu) override;
+  void write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu) override;
   void release_complete(uint16_t rnti) override;
   bool setup_ue_ctxt(uint16_t rnti, const asn1::s1ap::init_context_setup_request_s& msg) override;
   bool modify_ue_ctxt(uint16_t rnti, const asn1::s1ap::ue_context_mod_request_s& msg) override;
@@ -98,14 +98,14 @@ public:
   void ho_preparation_complete(uint16_t                     rnti,
                                bool                         is_success,
                                const asn1::s1ap::ho_cmd_s&  msg,
-                               srslte::unique_byte_buffer_t rrc_container) override;
+                               srsran::unique_byte_buffer_t rrc_container) override;
   uint16_t
        start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&                                   msg,
                                   const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container) override;
   void set_erab_status(uint16_t rnti, const asn1::s1ap::bearers_subject_to_status_transfer_list_l& erabs) override;
 
   // rrc_interface_pdcp
-  void write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu) override;
+  void write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu) override;
 
   uint32_t get_nof_users();
 
@@ -114,16 +114,16 @@ public:
   template <class T>
   void log_rrc_message(const std::string&           source,
                        const direction_t            dir,
-                       const srslte::byte_buffer_t* pdu,
+                       const srsran::byte_buffer_t* pdu,
                        const T&                     msg,
                        const std::string&           msg_type)
   {
-    log_rrc_message(source, dir, srslte::make_span(*pdu), msg, msg_type);
+    log_rrc_message(source, dir, srsran::make_span(*pdu), msg, msg_type);
   }
   template <class T>
   void log_rrc_message(const std::string&      source,
                        const direction_t       dir,
-                       srslte::const_byte_span pdu,
+                       srsran::const_byte_span pdu,
                        const T&                msg,
                        const std::string&      msg_type)
   {
@@ -142,7 +142,7 @@ public:
 private:
   class ue;
   // args
-  srslte::task_sched_handle task_sched;
+  srsran::task_sched_handle task_sched;
   phy_interface_rrc_lte*    phy  = nullptr;
   mac_interface_rrc*        mac  = nullptr;
   rlc_interface_rrc*        rlc  = nullptr;
@@ -166,19 +166,19 @@ private:
   int      pack_mcch();
 
   void config_mac();
-  void parse_ul_dcch(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu);
-  void parse_ul_ccch(uint16_t rnti, srslte::unique_byte_buffer_t pdu);
+  void parse_ul_dcch(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu);
+  void parse_ul_ccch(uint16_t rnti, srsran::unique_byte_buffer_t pdu);
   void send_rrc_connection_reject(uint16_t rnti);
 
   uint32_t              paging_tti = INVALID_TTI;
-  srslte::byte_buffer_t byte_buf_paging;
+  srsran::byte_buffer_t byte_buf_paging;
   const static int      mcch_payload_len                      = 3000;
   int                   current_mcch_length                   = 0;
   uint8_t               mcch_payload_buffer[mcch_payload_len] = {};
   typedef struct {
     uint16_t                     rnti;
     uint32_t                     lcid;
-    srslte::unique_byte_buffer_t pdu;
+    srsran::unique_byte_buffer_t pdu;
   } rrc_pdu;
 
   const static uint32_t LCID_EXIT     = 0xffff0000;
@@ -188,7 +188,7 @@ private:
   const static uint32_t LCID_RTX_USER = 0xffff0005;
 
   bool                                running = false;
-  srslte::dyn_blocking_queue<rrc_pdu> rx_pdu_queue;
+  srsran::dyn_blocking_queue<rrc_pdu> rx_pdu_queue;
 
   asn1::rrc::mcch_msg_s  mcch;
   bool                   enable_mbms     = false;

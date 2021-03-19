@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -19,7 +19,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "srslte/srslte.h"
+#include "srsran/srsran.h"
 
 static uint32_t nof_tx_bits = 0;
 static uint32_t nof_rx_bits = 0;
@@ -64,22 +64,22 @@ int main(int argc, char** argv)
 
   parse_args(argc, argv);
 
-  bits = srslte_vec_u8_malloc(nof_tx_bits);
+  bits = srsran_vec_u8_malloc(nof_tx_bits);
   if (!bits) {
     perror("malloc");
     exit(-1);
   }
-  rm_bits = srslte_vec_u8_malloc(nof_rx_bits);
+  rm_bits = srsran_vec_u8_malloc(nof_rx_bits);
   if (!rm_bits) {
     perror("malloc");
     exit(-1);
   }
-  rm_symbols = srslte_vec_f_malloc(nof_rx_bits);
+  rm_symbols = srsran_vec_f_malloc(nof_rx_bits);
   if (!rm_symbols) {
     perror("malloc");
     exit(-1);
   }
-  unrm_symbols = srslte_vec_f_malloc(nof_tx_bits);
+  unrm_symbols = srsran_vec_f_malloc(nof_tx_bits);
   if (!unrm_symbols) {
     perror("malloc");
     exit(-1);
@@ -89,7 +89,7 @@ int main(int argc, char** argv)
     bits[i] = rand() % 2;
   }
 
-  if (srslte_rm_conv_tx(bits, nof_tx_bits, rm_bits, nof_rx_bits)) {
+  if (srsran_rm_conv_tx(bits, nof_tx_bits, rm_bits, nof_rx_bits)) {
     exit(-1);
   }
 
@@ -97,7 +97,7 @@ int main(int argc, char** argv)
     rm_symbols[i] = rm_bits[i] ? 1 : -1;
   }
 
-  if (srslte_rm_conv_rx(rm_symbols, nof_rx_bits, unrm_symbols, nof_tx_bits)) {
+  if (srsran_rm_conv_rx(rm_symbols, nof_rx_bits, unrm_symbols, nof_tx_bits)) {
     exit(-1);
   }
 

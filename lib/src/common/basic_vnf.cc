@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,9 +10,9 @@
  *
  */
 
-#include "srslte/common/basic_vnf.h"
-#include "srslte/common/buffer_pool.h"
-#include "srslte/interfaces/ue_nr_interfaces.h"
+#include "srsran/common/basic_vnf.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/interfaces/ue_nr_interfaces.h"
 #include <algorithm>
 #include <chrono>
 #include <poll.h>
@@ -20,15 +20,15 @@
 #define RAND_SEED (12314)
 #define RX_TIMEOUT_MS (1000)
 
-namespace srslte {
+namespace srsran {
 
-struct srslte_pnf_info_t {
+struct srsran_pnf_info_t {
   // TODO: fill when needed
 };
 
-struct srslte_vnf_info_t {};
+struct srsran_vnf_info_t {};
 
-srslte_basic_vnf::srslte_basic_vnf(const vnf_args_t& args_, stack_interface_phy_nr* stack_) :
+srsran_basic_vnf::srsran_basic_vnf(const vnf_args_t& args_, stack_interface_phy_nr* stack_) :
   m_args(args_), thread("BASIC_VNF_P7"), m_tx_req_msg(new basic_vnf_api::tx_request_msg_t)
 {
   logger.set_level(srslog::str_to_basic_level(m_args.log_level));
@@ -48,12 +48,12 @@ srslte_basic_vnf::srslte_basic_vnf(const vnf_args_t& args_, stack_interface_phy_
   }
 }
 
-srslte_basic_vnf::~srslte_basic_vnf()
+srsran_basic_vnf::~srsran_basic_vnf()
 {
   stop();
 }
 
-void srslte_basic_vnf::run_thread()
+void srsran_basic_vnf::run_thread()
 {
   // Bind to UDP socket
   sockfd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -117,7 +117,7 @@ void srslte_basic_vnf::run_thread()
   logger.info("VNF thread stopped");
 }
 
-int srslte_basic_vnf::handle_msg(const uint8_t* buffer, const uint32_t len)
+int srsran_basic_vnf::handle_msg(const uint8_t* buffer, const uint32_t len)
 {
   basic_vnf_api::msg_header_t* header = (basic_vnf_api::msg_header_t*)buffer;
 
@@ -146,9 +146,9 @@ int srslte_basic_vnf::handle_msg(const uint8_t* buffer, const uint32_t len)
   return 0;
 }
 
-int srslte_basic_vnf::handle_sf_ind(basic_vnf_api::sf_ind_msg_t* msg)
+int srsran_basic_vnf::handle_sf_ind(basic_vnf_api::sf_ind_msg_t* msg)
 {
-  int ret = SRSLTE_SUCCESS;
+  int ret = SRSRAN_SUCCESS;
   logger.info("Received %s for TTI=%d", basic_vnf_api::msg_type_text[msg->header.type], msg->tti);
 
   // store Rx timestamp
@@ -159,15 +159,15 @@ int srslte_basic_vnf::handle_sf_ind(basic_vnf_api::sf_ind_msg_t* msg)
   } else if (m_ue_stack != nullptr) {
     m_ue_stack->sf_indication(msg->tti);
   } else {
-    ret = SRSLTE_ERROR;
+    ret = SRSRAN_ERROR;
   }
 
   return ret;
 }
 
-int srslte_basic_vnf::handle_dl_ind(basic_vnf_api::dl_ind_msg_t* msg)
+int srsran_basic_vnf::handle_dl_ind(basic_vnf_api::dl_ind_msg_t* msg)
 {
-  int ret = SRSLTE_ERROR;
+  int ret = SRSRAN_ERROR;
   logger.info("Received %s for TTI=%d", basic_vnf_api::msg_type_text[msg->header.type], msg->tti);
 
   uint32_t cc_idx = 0;
@@ -176,13 +176,13 @@ int srslte_basic_vnf::handle_dl_ind(basic_vnf_api::dl_ind_msg_t* msg)
   srsue::stack_interface_phy_nr::mac_nr_grant_dl_t dl_grant = {};
   dl_grant.tti                                              = msg->tti;
 
-  if (msg->nof_pdus > SRSLTE_MAX_TB) {
-    logger.error("Too many TBs (%d > %d)", msg->nof_pdus, SRSLTE_MAX_TB);
+  if (msg->nof_pdus > SRSRAN_MAX_TB) {
+    logger.error("Too many TBs (%d > %d)", msg->nof_pdus, SRSRAN_MAX_TB);
     goto exit;
   }
 
   for (uint32_t i = 0; i < msg->nof_pdus; ++i) {
-    dl_grant.tb[i] = srslte::make_byte_buffer();
+    dl_grant.tb[i] = srsran::make_byte_buffer();
     if (dl_grant.tb[i]->get_tailroom() >= msg->pdus[i].length) {
       memcpy(dl_grant.tb[i]->msg, msg->pdus[i].data, msg->pdus[i].length);
       dl_grant.tb[i]->N_bytes = msg->pdus[i].length;
@@ -194,20 +194,20 @@ int srslte_basic_vnf::handle_dl_ind(basic_vnf_api::dl_ind_msg_t* msg)
     }
   }
 
-  ret = SRSLTE_SUCCESS;
+  ret = SRSRAN_SUCCESS;
 
 exit:
 
   return ret;
 }
 
-int srslte_basic_vnf::handle_ul_ind(basic_vnf_api::ul_ind_msg_t* msg)
+int srsran_basic_vnf::handle_ul_ind(basic_vnf_api::ul_ind_msg_t* msg)
 {
   logger.info("Received %s for TTI=%d", basic_vnf_api::msg_type_text[msg->header.type], msg->tti);
 
   if (msg->pdus.type != basic_vnf_api::PUSCH) {
     logger.error("Received UL indication for wrong PDU type");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   uint32_t cc_idx = 0;
@@ -221,22 +221,22 @@ int srslte_basic_vnf::handle_ul_ind(basic_vnf_api::ul_ind_msg_t* msg)
   srsue::stack_interface_phy_nr::tb_action_ul_t ul_action = {};
   m_ue_stack->new_grant_ul(cc_idx, ul_grant, &ul_action);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-int srslte_basic_vnf::handle_rx_data_ind(basic_vnf_api::rx_data_ind_msg_t* msg)
+int srsran_basic_vnf::handle_rx_data_ind(basic_vnf_api::rx_data_ind_msg_t* msg)
 {
   logger.info("Received %s for TTI=%d", basic_vnf_api::msg_type_text[msg->header.type], msg->sfn);
 
   if (msg->nof_pdus != 1 || msg->pdus[0].type != basic_vnf_api::PUSCH) {
     logger.error("Received UL indication for wrong PDU type");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // fill struct
   srsenb::stack_interface_phy_nr::rx_data_ind_t rx_data = {};
   rx_data.tti                                           = msg->sfn;
-  rx_data.tb                                            = srslte::make_byte_buffer();
+  rx_data.tb                                            = srsran::make_byte_buffer();
   if (rx_data.tb->get_tailroom() >= msg->pdus[0].length) {
     // copy actual data
     memcpy(rx_data.tb->msg, msg->pdus[0].data, msg->pdus[0].length);
@@ -246,10 +246,10 @@ int srslte_basic_vnf::handle_rx_data_ind(basic_vnf_api::rx_data_ind_msg_t* msg)
     }
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-int srslte_basic_vnf::dl_config_request(const srsenb::phy_interface_stack_nr::dl_config_request_t& request)
+int srsran_basic_vnf::dl_config_request(const srsenb::phy_interface_stack_nr::dl_config_request_t& request)
 {
   // Generate DL Config
   basic_vnf_api::dl_conf_msg_t dl_conf = {};
@@ -275,7 +275,7 @@ int srslte_basic_vnf::dl_config_request(const srsenb::phy_interface_stack_nr::dl
 }
 
 /// Tx request from UE, i.e. UL transmission
-int srslte_basic_vnf::tx_request(const srsue::phy_interface_stack_nr::tx_request_t& request)
+int srsran_basic_vnf::tx_request(const srsue::phy_interface_stack_nr::tx_request_t& request)
 {
   // Generate Tx request
   m_tx_req_msg->header.type    = basic_vnf_api::TX_REQUEST;
@@ -312,14 +312,14 @@ int srslte_basic_vnf::tx_request(const srsue::phy_interface_stack_nr::tx_request
   return 0;
 }
 
-int srslte_basic_vnf::tx_request(const srsenb::phy_interface_stack_nr::tx_request_t& request)
+int srsran_basic_vnf::tx_request(const srsenb::phy_interface_stack_nr::tx_request_t& request)
 {
   if (request.nof_pdus > MAX_NUM_PDUS) {
     logger.error("Trying to send %d PDUs but only %d supported", request.nof_pdus, MAX_NUM_PDUS);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   if (request.nof_pdus == 0) {
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   // Generate Tx request
@@ -368,7 +368,7 @@ int srslte_basic_vnf::tx_request(const srsenb::phy_interface_stack_nr::tx_reques
   return 0;
 }
 
-uint32_t srslte_basic_vnf::calc_full_msg_len(const basic_vnf_api::tx_request_msg_t& msg)
+uint32_t srsran_basic_vnf::calc_full_msg_len(const basic_vnf_api::tx_request_msg_t& msg)
 {
   // start with mandatory part
   uint32_t len = sizeof(basic_vnf_api::msg_header_t) + 3 * sizeof(uint32_t);
@@ -381,7 +381,7 @@ uint32_t srslte_basic_vnf::calc_full_msg_len(const basic_vnf_api::tx_request_msg
   return len;
 }
 
-bool srslte_basic_vnf::stop()
+bool srsran_basic_vnf::stop()
 {
   if (running) {
     running = false;
@@ -391,4 +391,4 @@ bool srslte_basic_vnf::stop()
   return true;
 }
 
-} // namespace srslte
+} // namespace srsran

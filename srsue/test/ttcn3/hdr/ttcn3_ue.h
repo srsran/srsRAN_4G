@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -14,7 +14,7 @@
 #define SRSUE_TTCN3_UE_H
 
 #include "lte_ttcn3_phy.h"
-#include "srslte/common/standard_streams.h"
+#include "srsran/common/standard_streams.h"
 #include "srsue/hdr/stack/ue_stack_lte.h"
 #include <sstream>
 
@@ -50,8 +50,8 @@ public:
 
   // GW interface
   void add_mch_port(uint32_t lcid, uint32_t port);
-  void write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
-  void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
+  void write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
+  void write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
   int  setup_if_addr(uint32_t eps_bearer_id,
                      uint32_t lcid,
                      uint8_t  pdn_type,
@@ -70,7 +70,7 @@ public:
 
   void send_queued_data();
 
-  void loop_back_pdu_with_tft(uint32_t input_lcid, srslte::unique_byte_buffer_t pdu);
+  void loop_back_pdu_with_tft(uint32_t input_lcid, srsran::unique_byte_buffer_t pdu);
 
 private:
   std::unique_ptr<lte_ttcn3_phy> phy;
@@ -80,8 +80,8 @@ private:
   srslog::basic_logger& logger;
 
   test_loop_mode_state_t                                         test_loop_mode = TEST_LOOP_INACTIVE;
-  srslte::timer_handler::unique_timer                            pdu_delay_timer;
-  std::map<uint32_t, block_queue<srslte::unique_byte_buffer_t> > pdu_queue; // A PDU queue for each DRB
+  srsran::timer_handler::unique_timer                            pdu_delay_timer;
+  std::map<uint32_t, block_queue<srsran::unique_byte_buffer_t> > pdu_queue; // A PDU queue for each DRB
   tft_pdu_matcher                                                tft_matcher;
 
   all_args_t args = {};

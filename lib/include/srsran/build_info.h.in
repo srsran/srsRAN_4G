@@ -1,0 +1,51 @@
+/**
+ *
+ * \section COPYRIGHT
+ *
+ * Copyright 2013-2021 Software Radio Systems Limited
+ *
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
+ *
+ */
+
+#ifndef SRSRAN_BUILD_INFO_H_IN
+#define SRSRAN_BUILD_INFO_H_IN
+
+#include "srsran/config.h"
+
+# ifdef __cplusplus
+extern "C" {
+# endif
+
+#ifdef BUILD_TYPE_RELEASE
+  static char build_mode[] = "Release";
+#else
+  #ifdef BUILD_TYPE_DEBUG
+    static char build_mode[] = "Debug";
+  #else
+    #ifdef BUILD_TYPE_RELWITHDEBINFO
+      static char build_mode[] = "RelWithDebInfo";
+    #else
+      static char build_mode[] = "unknown";
+    #endif
+  #endif
+#endif
+
+// the configured build options for srsRAN
+static char build_info[] = "commit @GIT_COMMIT_HASH@ on branch @GIT_BRANCH@";
+
+SRSRAN_API char* srsran_get_build_info() {
+  return build_info;
+};
+
+SRSRAN_API char* srsran_get_build_mode() {
+  return build_mode;
+}
+
+# ifdef __cplusplus
+}
+# endif
+
+#endif // BUILD_INFO_

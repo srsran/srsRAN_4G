@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -11,8 +11,8 @@
  */
 
 #include "srsepc/hdr/mbms-gw/mbms-gw.h"
-#include "srslte/common/config_file.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/common/config_file.h"
+#include "srsran/srslog/srslog.h"
 #include <boost/program_options.hpp>
 #include <iostream>
 #include <signal.h>
@@ -169,11 +169,11 @@ int main(int argc, char* argv[])
   srslog::sink* log_sink = (args.log_args.filename == "stdout") ? srslog::create_stdout_sink()
                                                                 : srslog::create_file_sink(args.log_args.filename);
   if (!log_sink) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   srslog::log_channel* chan = srslog::create_log_channel("main_channel", *log_sink);
   if (!chan) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   srslog::set_default_sink(*log_sink);
 

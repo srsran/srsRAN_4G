@@ -4,7 +4,7 @@ Description=Software Radio Systems's LTE UE implementation
 [Service]
 Type=simple
 Restart=always
-ExecStart=/usr/bin/srsue /etc/srslte/ue.conf
+ExecStart=/usr/bin/srsue /etc/srsran/ue.conf
 RestartSec=2
 
 [Install]

@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -18,9 +18,9 @@
 #include <string.h>
 
 #include "parity.h"
-#include "srslte/phy/fec/convolutional/viterbi.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/fec/convolutional/viterbi.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/vector.h"
 #include "viterbi37.h"
 
 #define DEB 0
@@ -40,7 +40,7 @@
 
 int decode37(void* o, uint8_t* symbols, uint8_t* data, uint32_t frame_length)
 {
-  srslte_viterbi_t* q = o;
+  srsran_viterbi_t* q = o;
 
   uint32_t best_state;
 
@@ -71,7 +71,7 @@ int decode37(void* o, uint8_t* symbols, uint8_t* data, uint32_t frame_length)
 #ifdef LV_HAVE_SSE
 int decode37_sse(void* o, uint8_t* symbols, uint8_t* data, uint32_t frame_length)
 {
-  srslte_viterbi_t* q = o;
+  srsran_viterbi_t* q = o;
 
   uint32_t best_state;
 
@@ -101,7 +101,7 @@ int decode37_sse(void* o, uint8_t* symbols, uint8_t* data, uint32_t frame_length
 
 void free37_sse(void* o)
 {
-  srslte_viterbi_t* q = o;
+  srsran_viterbi_t* q = o;
   if (q->symbols_uc) {
     free(q->symbols_uc);
   }
@@ -119,7 +119,7 @@ void free37_sse(void* o)
 #ifdef LV_HAVE_AVX2
 int decode37_avx2_16bit(void* o, uint16_t* symbols, uint8_t* data, uint32_t frame_length)
 {
-  srslte_viterbi_t* q = o;
+  srsran_viterbi_t* q = o;
 
   uint32_t best_state;
 
@@ -149,7 +149,7 @@ int decode37_avx2_16bit(void* o, uint16_t* symbols, uint8_t* data, uint32_t fram
 
 void free37_avx2_16bit(void* o)
 {
-  srslte_viterbi_t* q = o;
+  srsran_viterbi_t* q = o;
 
   if (q->symbols_uc) {
     free(q->symbols_uc);
@@ -168,7 +168,7 @@ void free37_avx2_16bit(void* o)
 
 int decode37_avx2(void* o, uint8_t* symbols, uint8_t* data, uint32_t frame_length)
 {
-  srslte_viterbi_t* q = o;
+  srsran_viterbi_t* q = o;
 
   uint32_t best_state;
 
@@ -196,7 +196,7 @@ int decode37_avx2(void* o, uint8_t* symbols, uint8_t* data, uint32_t frame_lengt
 
 void free37_avx2(void* o)
 {
-  srslte_viterbi_t* q = o;
+  srsran_viterbi_t* q = o;
   if (q->symbols_uc) {
     free(q->symbols_uc);
   }
@@ -211,7 +211,7 @@ void free37_avx2(void* o)
 #ifdef HAVE_NEON
 int decode37_neon(void* o, uint8_t* symbols, uint8_t* data, uint32_t frame_length)
 {
-  srslte_viterbi_t* q = o;
+  srsran_viterbi_t* q = o;
 
   uint32_t best_state;
 
@@ -241,7 +241,7 @@ int decode37_neon(void* o, uint8_t* symbols, uint8_t* data, uint32_t frame_lengt
 
 void free37_neon(void* o)
 {
-  srslte_viterbi_t* q = o;
+  srsran_viterbi_t* q = o;
   if (q->symbols_uc) {
     free(q->symbols_uc);
   }
@@ -255,7 +255,7 @@ void free37_neon(void* o)
 
 void free37(void* o)
 {
-  srslte_viterbi_t* q = o;
+  srsran_viterbi_t* q = o;
   if (q->symbols_uc) {
     free(q->symbols_uc);
   }
@@ -265,7 +265,7 @@ void free37(void* o)
   delete_viterbi37_port(q->ptr);
 }
 
-int init37(srslte_viterbi_t* q, int poly[3], uint32_t framebits, bool tail_biting)
+int init37(srsran_viterbi_t* q, int poly[3], uint32_t framebits, bool tail_biting)
 {
   q->K            = 7;
   q->R            = 3;
@@ -276,13 +276,13 @@ int init37(srslte_viterbi_t* q, int poly[3], uint32_t framebits, bool tail_bitin
   q->decode       = decode37;
   q->free         = free37;
   q->decode_f     = NULL;
-  q->symbols_uc   = srslte_vec_u8_malloc(3 * (q->framebits + q->K - 1));
+  q->symbols_uc   = srsran_vec_u8_malloc(3 * (q->framebits + q->K - 1));
   if (!q->symbols_uc) {
     perror("malloc");
     return -1;
   }
   if (q->tail_biting) {
-    q->tmp = srslte_vec_u8_malloc(TB_ITER * 3 * (q->framebits + q->K - 1));
+    q->tmp = srsran_vec_u8_malloc(TB_ITER * 3 * (q->framebits + q->K - 1));
     bzero(q->tmp, 3 * (q->framebits + q->K - 1) * sizeof(uint8_t));
     if (!q->tmp) {
       perror("malloc");
@@ -303,7 +303,7 @@ int init37(srslte_viterbi_t* q, int poly[3], uint32_t framebits, bool tail_bitin
 }
 
 #ifdef LV_HAVE_SSE
-int init37_sse(srslte_viterbi_t* q, int poly[3], uint32_t framebits, bool tail_biting)
+int init37_sse(srsran_viterbi_t* q, int poly[3], uint32_t framebits, bool tail_biting)
 {
   q->K            = 7;
   q->R            = 3;
@@ -314,20 +314,20 @@ int init37_sse(srslte_viterbi_t* q, int poly[3], uint32_t framebits, bool tail_b
   q->decode       = decode37_sse;
   q->free         = free37_sse;
   q->decode_f     = NULL;
-  q->symbols_uc   = srslte_vec_u8_malloc(3 * (q->framebits + q->K - 1));
+  q->symbols_uc   = srsran_vec_u8_malloc(3 * (q->framebits + q->K - 1));
   if (!q->symbols_uc) {
     perror("malloc");
     return -1;
   }
 #ifdef VITERBI_16
-  q->symbols_us = srslte_vec_u16_malloc(3 * (q->framebits + q->K - 1));
+  q->symbols_us = srsran_vec_u16_malloc(3 * (q->framebits + q->K - 1));
   if (!q->symbols_us) {
     perror("malloc");
     return -1;
   }
 #endif
   if (q->tail_biting) {
-    q->tmp = srslte_vec_u8_malloc(TB_ITER * 3 * (q->framebits + q->K - 1));
+    q->tmp = srsran_vec_u8_malloc(TB_ITER * 3 * (q->framebits + q->K - 1));
     if (!q->tmp) {
       perror("malloc");
       free37(q);
@@ -348,7 +348,7 @@ int init37_sse(srslte_viterbi_t* q, int poly[3], uint32_t framebits, bool tail_b
 #endif
 
 #ifdef HAVE_NEON
-int init37_neon(srslte_viterbi_t* q, int poly[3], uint32_t framebits, bool tail_biting)
+int init37_neon(srsran_viterbi_t* q, int poly[3], uint32_t framebits, bool tail_biting)
 {
   q->K            = 7;
   q->R            = 3;
@@ -359,13 +359,13 @@ int init37_neon(srslte_viterbi_t* q, int poly[3], uint32_t framebits, bool tail_
   q->decode       = decode37_neon;
   q->free         = free37_neon;
   q->decode_f     = NULL;
-  q->symbols_uc   = srslte_vec_u8_malloc(3 * (q->framebits + q->K - 1));
+  q->symbols_uc   = srsran_vec_u8_malloc(3 * (q->framebits + q->K - 1));
   if (!q->symbols_uc) {
     perror("malloc");
     return -1;
   }
   if (q->tail_biting) {
-    q->tmp = srslte_vec_u8_malloc(TB_ITER * 3 * (q->framebits + q->K - 1));
+    q->tmp = srsran_vec_u8_malloc(TB_ITER * 3 * (q->framebits + q->K - 1));
     if (!q->tmp) {
       perror("malloc");
       free37(q);
@@ -386,7 +386,7 @@ int init37_neon(srslte_viterbi_t* q, int poly[3], uint32_t framebits, bool tail_
 #endif
 
 #ifdef LV_HAVE_AVX2
-int init37_avx2(srslte_viterbi_t* q, int poly[3], uint32_t framebits, bool tail_biting)
+int init37_avx2(srsran_viterbi_t* q, int poly[3], uint32_t framebits, bool tail_biting)
 {
   q->K            = 7;
   q->R            = 3;
@@ -397,13 +397,13 @@ int init37_avx2(srslte_viterbi_t* q, int poly[3], uint32_t framebits, bool tail_
   q->decode       = decode37_avx2;
   q->free         = free37_avx2;
   q->decode_f     = NULL;
-  q->symbols_uc   = srslte_vec_u8_malloc(3 * (q->framebits + q->K - 1));
+  q->symbols_uc   = srsran_vec_u8_malloc(3 * (q->framebits + q->K - 1));
   if (!q->symbols_uc) {
     perror("malloc");
     return -1;
   }
   if (q->tail_biting) {
-    q->tmp = srslte_vec_u8_malloc(TB_ITER * 3 * (q->framebits + q->K - 1));
+    q->tmp = srsran_vec_u8_malloc(TB_ITER * 3 * (q->framebits + q->K - 1));
     if (!q->tmp) {
       perror("malloc");
       free37(q);
@@ -422,7 +422,7 @@ int init37_avx2(srslte_viterbi_t* q, int poly[3], uint32_t framebits, bool tail_
   }
 }
 
-int init37_avx2_16bit(srslte_viterbi_t* q, int poly[3], uint32_t framebits, bool tail_biting)
+int init37_avx2_16bit(srsran_viterbi_t* q, int poly[3], uint32_t framebits, bool tail_biting)
 {
   q->K            = 7;
   q->R            = 3;
@@ -433,15 +433,15 @@ int init37_avx2_16bit(srslte_viterbi_t* q, int poly[3], uint32_t framebits, bool
   q->decode_s     = decode37_avx2_16bit;
   q->free         = free37_avx2_16bit;
   q->decode_f     = NULL;
-  q->symbols_uc   = srslte_vec_u8_malloc(3 * (q->framebits + q->K - 1));
-  q->symbols_us   = srslte_vec_u16_malloc(3 * (q->framebits + q->K - 1));
+  q->symbols_uc   = srsran_vec_u8_malloc(3 * (q->framebits + q->K - 1));
+  q->symbols_us   = srsran_vec_u16_malloc(3 * (q->framebits + q->K - 1));
   if (!q->symbols_uc || !q->symbols_us) {
     perror("malloc");
     return -1;
   }
   if (q->tail_biting) {
-    q->tmp   = srslte_vec_u8_malloc(TB_ITER * 3 * (q->framebits + q->K - 1));
-    q->tmp_s = srslte_vec_u16_malloc(TB_ITER * 3 * (q->framebits + q->K - 1));
+    q->tmp   = srsran_vec_u8_malloc(TB_ITER * 3 * (q->framebits + q->K - 1));
+    q->tmp_s = srsran_vec_u16_malloc(TB_ITER * 3 * (q->framebits + q->K - 1));
     if (!q->tmp) {
       perror("malloc");
       free37(q);
@@ -462,25 +462,25 @@ int init37_avx2_16bit(srslte_viterbi_t* q, int poly[3], uint32_t framebits, bool
 
 #endif
 
-void srslte_viterbi_set_gain_quant(srslte_viterbi_t* q, float gain_quant)
+void srsran_viterbi_set_gain_quant(srsran_viterbi_t* q, float gain_quant)
 {
   q->gain_quant = gain_quant;
 }
 
-void srslte_viterbi_set_gain_quant_s(srslte_viterbi_t* q, int16_t gain_quant)
+void srsran_viterbi_set_gain_quant_s(srsran_viterbi_t* q, int16_t gain_quant)
 {
   q->gain_quant_s = gain_quant;
 }
 
-int srslte_viterbi_init(srslte_viterbi_t*     q,
-                        srslte_viterbi_type_t type,
+int srsran_viterbi_init(srsran_viterbi_t*     q,
+                        srsran_viterbi_type_t type,
                         int                   poly[3],
                         uint32_t              max_frame_length,
                         bool                  tail_bitting)
 {
-  bzero(q, sizeof(srslte_viterbi_t));
+  bzero(q, sizeof(srsran_viterbi_t));
   switch (type) {
-    case SRSLTE_VITERBI_37:
+    case SRSRAN_VITERBI_37:
 #ifdef LV_HAVE_SSE
 
 #ifdef LV_HAVE_AVX2
@@ -506,8 +506,8 @@ int srslte_viterbi_init(srslte_viterbi_t*     q,
 }
 
 #ifdef LV_HAVE_SSE
-int srslte_viterbi_init_sse(srslte_viterbi_t*     q,
-                            srslte_viterbi_type_t type,
+int srsran_viterbi_init_sse(srsran_viterbi_t*     q,
+                            srsran_viterbi_type_t type,
                             int                   poly[3],
                             uint32_t              max_frame_length,
                             bool                  tail_bitting)
@@ -517,8 +517,8 @@ int srslte_viterbi_init_sse(srslte_viterbi_t*     q,
 #endif
 
 #ifdef LV_HAVE_AVX2
-int srslte_viterbi_init_avx2(srslte_viterbi_t*     q,
-                             srslte_viterbi_type_t type,
+int srsran_viterbi_init_avx2(srsran_viterbi_t*     q,
+                             srsran_viterbi_type_t type,
                              int                   poly[3],
                              uint32_t              max_frame_length,
                              bool                  tail_bitting)
@@ -527,16 +527,16 @@ int srslte_viterbi_init_avx2(srslte_viterbi_t*     q,
 }
 #endif
 
-void srslte_viterbi_free(srslte_viterbi_t* q)
+void srsran_viterbi_free(srsran_viterbi_t* q)
 {
   if (q->free) {
     q->free(q);
   }
-  bzero(q, sizeof(srslte_viterbi_t));
+  bzero(q, sizeof(srsran_viterbi_t));
 }
 
 /* symbols are real-valued */
-int srslte_viterbi_decode_f(srslte_viterbi_t* q, float* symbols, uint8_t* data, uint32_t frame_length)
+int srsran_viterbi_decode_f(srsran_viterbi_t* q, float* symbols, uint8_t* data, uint32_t frame_length)
 {
   uint32_t len;
   if (frame_length > q->framebits) {
@@ -556,11 +556,11 @@ int srslte_viterbi_decode_f(srslte_viterbi_t* q, float* symbols, uint8_t* data, 
       }
     }
 #ifdef VITERBI_16
-    srslte_vec_quant_fus(symbols, q->symbols_us, q->gain_quant / max, 32767.5, 65535, len);
-    return srslte_viterbi_decode_us(q, q->symbols_us, data, frame_length);
+    srsran_vec_quant_fus(symbols, q->symbols_us, q->gain_quant / max, 32767.5, 65535, len);
+    return srsran_viterbi_decode_us(q, q->symbols_us, data, frame_length);
 #else
-    srslte_vec_quant_fuc(symbols, q->symbols_uc, q->gain_quant / max, 127.5, 255, len);
-    return srslte_viterbi_decode_uc(q, q->symbols_uc, data, frame_length);
+    srsran_vec_quant_fuc(symbols, q->symbols_uc, q->gain_quant / max, 127.5, 255, len);
+    return srsran_viterbi_decode_uc(q, q->symbols_uc, data, frame_length);
 #endif
   } else {
     return q->decode_f(q, symbols, data, frame_length);
@@ -568,7 +568,7 @@ int srslte_viterbi_decode_f(srslte_viterbi_t* q, float* symbols, uint8_t* data, 
 }
 
 /* symbols are int16 */
-int srslte_viterbi_decode_s(srslte_viterbi_t* q, int16_t* symbols, uint8_t* data, uint32_t frame_length)
+int srsran_viterbi_decode_s(srsran_viterbi_t* q, int16_t* symbols, uint8_t* data, uint32_t frame_length)
 {
   uint32_t len;
   if (frame_length > q->framebits) {
@@ -588,17 +588,17 @@ int srslte_viterbi_decode_s(srslte_viterbi_t* q, int16_t* symbols, uint8_t* data
     }
   }
 #ifdef VITERBI_16
-  srslte_vec_quant_sus(symbols, q->symbols_us, 1, (float)INT16_MAX, UINT16_MAX, len);
-  return srslte_viterbi_decode_us(q, q->symbols_us, data, frame_length);
+  srsran_vec_quant_sus(symbols, q->symbols_us, 1, (float)INT16_MAX, UINT16_MAX, len);
+  return srsran_viterbi_decode_us(q, q->symbols_us, data, frame_length);
 #else
-  srslte_vec_quant_suc(symbols, q->symbols_uc, (float)q->gain_quant / max, 127, 255, len);
-  return srslte_viterbi_decode_uc(q, q->symbols_uc, data, frame_length);
+  srsran_vec_quant_suc(symbols, q->symbols_uc, (float)q->gain_quant / max, 127, 255, len);
+  return srsran_viterbi_decode_uc(q, q->symbols_uc, data, frame_length);
 #endif
 }
 
-int srslte_viterbi_decode_us(srslte_viterbi_t* q, uint16_t* symbols, uint8_t* data, uint32_t frame_length)
+int srsran_viterbi_decode_us(srsran_viterbi_t* q, uint16_t* symbols, uint8_t* data, uint32_t frame_length)
 {
-  int ret = SRSLTE_ERROR;
+  int ret = SRSRAN_ERROR;
 
   if (q && q->decode_s) {
     ret = q->decode_s(q, symbols, data, frame_length);
@@ -607,9 +607,9 @@ int srslte_viterbi_decode_us(srslte_viterbi_t* q, uint16_t* symbols, uint8_t* da
   return ret;
 }
 
-int srslte_viterbi_decode_uc(srslte_viterbi_t* q, uint8_t* symbols, uint8_t* data, uint32_t frame_length)
+int srsran_viterbi_decode_uc(srsran_viterbi_t* q, uint8_t* symbols, uint8_t* data, uint32_t frame_length)
 {
-  int ret = SRSLTE_ERROR;
+  int ret = SRSRAN_ERROR;
 
   if (q && q->decode) {
     ret = q->decode(q, symbols, data, frame_length);

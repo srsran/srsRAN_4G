@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -14,14 +14,14 @@
 #define SRSUE_LTE_WORKER_POOL_H
 
 #include "sf_worker.h"
-#include "srslte/common/thread_pool.h"
+#include "srsran/common/thread_pool.h"
 
 namespace srsue {
 namespace lte {
 
 class worker_pool
 {
-  srslte::thread_pool                      pool;
+  srsran::thread_pool                      pool;
   std::vector<std::unique_ptr<sf_worker> > workers;
 
 public:

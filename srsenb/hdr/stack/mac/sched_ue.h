@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -14,7 +14,7 @@
 #define SRSENB_SCHEDULER_UE_H
 
 #include "sched_common.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/srslog/srslog.h"
 #include <map>
 #include <vector>
 
@@ -82,7 +82,7 @@ public:
   uint32_t get_required_prb_ul(uint32_t enb_cc_idx, uint32_t req_bytes);
 
   rbg_interval               get_required_dl_rbgs(uint32_t enb_cc_idx);
-  srslte::interval<uint32_t> get_requested_dl_bytes(uint32_t enb_cc_idx);
+  srsran::interval<uint32_t> get_requested_dl_bytes(uint32_t enb_cc_idx);
   uint32_t                   get_pending_dl_rlc_data() const;
   uint32_t                   get_expected_dl_bitrate(uint32_t enb_cc_idx, int nof_rbgs = -1) const;
 
@@ -120,16 +120,16 @@ public:
                        uint32_t                          enb_cc_idx,
                        prb_interval                      alloc,
                        bool                              needs_pdcch,
-                       srslte_dci_location_t             cce_range,
+                       srsran_dci_location_t             cce_range,
                        int                               explicit_mcs = -1,
                        uci_pusch_t                       uci_type     = UCI_PUSCH_NONE);
 
-  srslte_dci_format_t           get_dci_format();
+  srsran_dci_format_t           get_dci_format();
   const cce_cfi_position_table* get_locations(uint32_t enb_cc_idx, uint32_t current_cfi, uint32_t sf_idx) const;
 
   sched_ue_cell*                   find_ue_carrier(uint32_t enb_cc_idx);
   size_t                           nof_carriers_configured() const { return cfg.supported_cc_list.size(); }
-  std::bitset<SRSLTE_MAX_CARRIERS> scell_activation_mask() const;
+  std::bitset<SRSRAN_MAX_CARRIERS> scell_activation_mask() const;
   int                              enb_to_ue_cc_idx(uint32_t enb_cc_idx) const;
 
   uint32_t get_max_retx();
@@ -152,7 +152,7 @@ private:
                                tti_point              tti_tx_dl,
                                uint32_t               nof_alloc_prbs,
                                uint32_t               cfi,
-                               const srslte_dci_dl_t& dci);
+                               const srsran_dci_dl_t& dci);
 
   bool needs_cqi(uint32_t tti, uint32_t enb_cc_idx, bool will_send = false);
 
@@ -189,7 +189,7 @@ private:
 
   /* Args */
   ue_cfg_t                   cfg  = {};
-  srslte_cell_t              cell = {};
+  srsran_cell_t              cell = {};
   srslog::basic_logger&      logger;
   const sched_cell_params_t* main_cc_params = nullptr;
 

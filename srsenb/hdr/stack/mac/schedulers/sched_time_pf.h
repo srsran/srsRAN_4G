@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,8 +10,8 @@
  *
  */
 
-#ifndef SRSLTE_SCHED_TIME_PF_H
-#define SRSLTE_SCHED_TIME_PF_H
+#ifndef SRSRAN_SCHED_TIME_PF_H
+#define SRSRAN_SCHED_TIME_PF_H
 
 #include "sched_base.h"
 #include <queue>
@@ -33,7 +33,7 @@ private:
   const sched_cell_params_t* cc_cfg         = nullptr;
   float                      fairness_coeff = 1;
 
-  srslte::tti_point current_tti_rx;
+  srsran::tti_point current_tti_rx;
 
   struct ue_ctxt {
     ue_ctxt(uint16_t rnti_, float fairness_coeff_) : rnti(rnti_), fairness_coeff(fairness_coeff_) {}
@@ -77,4 +77,4 @@ private:
 
 } // namespace srsenb
 
-#endif // SRSLTE_SCHED_TIME_PF_H
+#endif // SRSRAN_SCHED_TIME_PF_H

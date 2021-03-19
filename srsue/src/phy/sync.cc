@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -11,42 +11,42 @@
  */
 
 #include "srsue/hdr/phy/sync.h"
-#include "srslte/common/standard_streams.h"
-#include "srslte/phy/channel/channel.h"
-#include "srslte/srslte.h"
+#include "srsran/common/standard_streams.h"
+#include "srsran/phy/channel/channel.h"
+#include "srsran/srsran.h"
 #include "srsue/hdr/phy/lte/sf_worker.h"
 
 #include <algorithm>
 #include <unistd.h>
 
 #define Error(fmt, ...)                                                                                                \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
   phy_logger.error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...)                                                                                              \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
   phy_logger.warning(fmt, ##__VA_ARGS__)
 #define Info(fmt, ...)                                                                                                 \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
   phy_logger.info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)                                                                                                \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
   phy_logger.debug(fmt, ##__VA_ARGS__)
 
 namespace srsue {
 
 static int
-radio_recv_callback(void* obj, cf_t* data[SRSLTE_MAX_CHANNELS], uint32_t nsamples, srslte_timestamp_t* rx_time)
+radio_recv_callback(void* obj, cf_t* data[SRSRAN_MAX_CHANNELS], uint32_t nsamples, srsran_timestamp_t* rx_time)
 {
-  srslte::rf_buffer_t x(data, nsamples);
+  srsran::rf_buffer_t x(data, nsamples);
   return ((sync*)obj)->radio_recv_fnc(x, rx_time);
 }
 
-static SRSLTE_AGC_CALLBACK(callback_set_rx_gain)
+static SRSRAN_AGC_CALLBACK(callback_set_rx_gain)
 {
   ((sync*)h)->set_rx_gain(gain_db);
 }
 
-void sync::init(srslte::radio_interface_phy* _radio,
+void sync::init(srsran::radio_interface_phy* _radio,
                 stack_interface_phy_lte*     _stack,
                 prach*                       _prach_buffer,
                 lte::worker_pool*            _lte_workers_pool,
@@ -64,20 +64,20 @@ void sync::init(srslte::radio_interface_phy* _radio,
 
   nof_rf_channels =
       (worker_com->args->nof_lte_carriers + worker_com->args->nof_nr_carriers) * worker_com->args->nof_rx_ant;
-  if (nof_rf_channels == 0 || nof_rf_channels > SRSLTE_MAX_CHANNELS) {
+  if (nof_rf_channels == 0 || nof_rf_channels > SRSRAN_MAX_CHANNELS) {
     Error("SYNC:  Invalid number of RF channels (%d)", nof_rf_channels);
     return;
   }
 
-  if (srslte_ue_sync_init_multi(&ue_sync, SRSLTE_MAX_PRB, false, radio_recv_callback, nof_rf_channels, this) !=
-      SRSLTE_SUCCESS) {
+  if (srsran_ue_sync_init_multi(&ue_sync, SRSRAN_MAX_PRB, false, radio_recv_callback, nof_rf_channels, this) !=
+      SRSRAN_SUCCESS) {
     Error("SYNC:  Initiating ue_sync");
     return;
   }
 
   if (worker_com->args->dl_channel_args.enable) {
     channel_emulator =
-        srslte::channel_ptr(new srslte::channel(worker_com->args->dl_channel_args, nof_rf_channels, phy_logger));
+        srsran::channel_ptr(new srsran::channel(worker_com->args->dl_channel_args, nof_rf_channels, phy_logger));
   }
 
   // Initialize cell searcher
@@ -115,7 +115,7 @@ void sync::init(srslte::radio_interface_phy* _radio,
 
 sync::~sync()
 {
-  srslte_ue_sync_free(&ue_sync);
+  srsran_ue_sync_free(&ue_sync);
 }
 
 void sync::stop()
@@ -289,7 +289,7 @@ bool sync::cell_select_init(phy_cell_t new_cell)
   }
 
   // Move state to IDLE
-  if (!srslte_cellid_isvalid(new_cell.pci)) {
+  if (!srsran_cellid_isvalid(new_cell.pci)) {
     Error("Cell Select: Invalid cell_id=%d", new_cell.pci);
     return false;
   }
@@ -322,7 +322,7 @@ bool sync::cell_select_start(phy_cell_t new_cell)
 
   sfn_p.reset();
   search_p.reset();
-  srslte_ue_sync_reset(&ue_sync);
+  srsran_ue_sync_reset(&ue_sync);
 
   /* Reconfigure cell if necessary */
   cell.id = new_cell.pci;
@@ -388,15 +388,15 @@ void sync::run_cell_search_state()
 
 void sync::run_sfn_sync_state()
 {
-  srslte_cell_t temp_cell = cell;
+  srsran_cell_t temp_cell = cell;
   switch (sfn_p.run_subframe(&temp_cell, &tti, mib)) {
     case sfn_sync::SFN_FOUND:
-      if (memcmp(&cell, &temp_cell, sizeof(srslte_cell_t)) != 0) {
-        srslte_cell_fprint(stdout, &cell, 0);
-        srslte_cell_fprint(stdout, &temp_cell, 0);
+      if (memcmp(&cell, &temp_cell, sizeof(srsran_cell_t)) != 0) {
+        srsran_cell_fprint(stdout, &cell, 0);
+        srsran_cell_fprint(stdout, &temp_cell, 0);
         phy_logger.error("Detected cell during SFN synchronization differs from configured cell. Cell reselection to "
                          "cells with different MIB is not supported");
-        srslte::console("Detected cell during SFN synchronization differs from configured cell. Cell reselection "
+        srsran::console("Detected cell during SFN synchronization differs from configured cell. Cell reselection "
                         "to cells with different MIB is not supported\n");
         phy_state.state_exit(false);
       }
@@ -413,16 +413,16 @@ void sync::run_sfn_sync_state()
 
 void sync::run_camping_in_sync_state(lte::sf_worker*      lte_worker,
                                      nr::sf_worker*       nr_worker,
-                                     srslte::rf_buffer_t& sync_buffer)
+                                     srsran::rf_buffer_t& sync_buffer)
 {
   // Update logging TTI
   phy_lib_logger.set_context(tti);
   phy_logger.set_context(tti);
 
   // Check tti is synched with ue_sync
-  if (srslte_ue_sync_get_sfidx(&ue_sync) != tti % 10) {
+  if (srsran_ue_sync_get_sfidx(&ue_sync) != tti % 10) {
     uint32_t sfn = tti / 10;
-    tti          = (sfn * 10 + srslte_ue_sync_get_sfidx(&ue_sync)) % 10240;
+    tti          = (sfn * 10 + srsran_ue_sync_get_sfidx(&ue_sync)) % 10240;
 
     // Force SFN decode, just in case it is in the wrong frame
     force_camping_sfn_sync = true;
@@ -442,7 +442,7 @@ void sync::run_camping_in_sync_state(lte::sf_worker*      lte_worker,
   // Force decode MIB if required
   if (force_camping_sfn_sync) {
     uint32_t           _tti      = 0;
-    srslte_cell_t      temp_cell = cell;
+    srsran_cell_t      temp_cell = cell;
     sfn_sync::ret_code ret       = sfn_p.decode_mib(&temp_cell, &_tti, &sync_buffer, mib);
 
     if (ret == sfn_sync::SFN_FOUND) {
@@ -452,10 +452,10 @@ void sync::run_camping_in_sync_state(lte::sf_worker*      lte_worker,
       // Disable
       force_camping_sfn_sync = false;
 
-      if (memcmp(&cell, &temp_cell, sizeof(srslte_cell_t)) != 0) {
+      if (memcmp(&cell, &temp_cell, sizeof(srsran_cell_t)) != 0) {
         phy_logger.error("Detected cell during SFN synchronization differs from configured cell. Cell "
                          "reselection to cells with different MIB is not supported");
-        srslte::console("Detected cell during SFN synchronization differs from configured cell. Cell "
+        srsran::console("Detected cell during SFN synchronization differs from configured cell. Cell "
                         "reselection to cells with different MIB is not supported\n");
       } else {
         phy_logger.info("SFN resynchronized successfully");
@@ -467,11 +467,9 @@ void sync::run_camping_in_sync_state(lte::sf_worker*      lte_worker,
 
   Debug("SYNC:  Worker %d synchronized", lte_worker->get_id());
 
-  metrics.sfo         = srslte_ue_sync_get_sfo(&ue_sync);
-  metrics.cfo         = srslte_ue_sync_get_cfo(&ue_sync);
-  metrics.ta_us       = worker_com->ta.get_usec();
-  metrics.distance_km = worker_com->ta.get_km();
-  metrics.speed_kmph  = worker_com->ta.get_speed_kmph(tti);
+  metrics.sfo   = srsran_ue_sync_get_sfo(&ue_sync);
+  metrics.cfo   = srsran_ue_sync_get_cfo(&ue_sync);
+  metrics.ta_us = worker_com->ta.get_usec();
   for (uint32_t i = 0; i < worker_com->args->nof_lte_carriers; i++) {
     worker_com->set_sync_metrics(i, metrics);
   }
@@ -484,7 +482,7 @@ void sync::run_camping_in_sync_state(lte::sf_worker*      lte_worker,
     }
   }
 
-  lte_worker->set_prach(prach_ptr ? &prach_ptr[prach_sf_cnt * SRSLTE_SF_LEN_PRB(cell.nof_prb)] : nullptr, prach_power);
+  lte_worker->set_prach(prach_ptr ? &prach_ptr[prach_sf_cnt * SRSRAN_SF_LEN_PRB(cell.nof_prb)] : nullptr, prach_power);
 
   // Execute Serving Cell state FSM
   worker_com->cell_state.run_tti(tti);
@@ -492,7 +490,7 @@ void sync::run_camping_in_sync_state(lte::sf_worker*      lte_worker,
   // Set CFO for all Carriers
   for (uint32_t cc = 0; cc < worker_com->args->nof_lte_carriers; cc++) {
     lte_worker->set_cfo_unlocked(cc, get_tx_cfo());
-    worker_com->update_cfo_measurement(cc, srslte_ue_sync_get_cfo(&ue_sync));
+    worker_com->update_cfo_measurement(cc, srsran_ue_sync_get_cfo(&ue_sync));
   }
 
   lte_worker->set_tti(tti);
@@ -525,7 +523,7 @@ void sync::run_camping_in_sync_state(lte::sf_worker*      lte_worker,
 void sync::run_camping_state()
 {
   lte::sf_worker*     lte_worker  = lte_worker_pool->wait_worker(tti);
-  srslte::rf_buffer_t sync_buffer = {};
+  srsran::rf_buffer_t sync_buffer = {};
 
   if (lte_worker == nullptr) {
     // wait_worker() only returns NULL if it's being closed. Quit now to avoid unnecessary loops here
@@ -556,7 +554,7 @@ void sync::run_camping_state()
   }
 
   // Primary Cell (PCell) Synchronization
-  switch (srslte_ue_sync_zerocopy(&ue_sync, sync_buffer.to_cf_t(), lte_worker->get_buffer_len())) {
+  switch (srsran_ue_sync_zerocopy(&ue_sync, sync_buffer.to_cf_t(), lte_worker->get_buffer_len())) {
     case 1:
       run_camping_in_sync_state(lte_worker, nr_worker, sync_buffer);
       break;
@@ -590,10 +588,10 @@ void sync::run_idle_state()
       nsamples = current_srate / 1000;
     }
     Debug("Discarding %d samples", nsamples);
-    srslte_timestamp_t rx_time = {};
+    srsran_timestamp_t rx_time = {};
     dummy_buffer.set_nof_samples(nsamples);
-    if (radio_recv_fnc(dummy_buffer, &rx_time) == SRSLTE_SUCCESS) {
-      srslte::console("SYNC:  Receiving from radio while in IDLE_RX\n");
+    if (radio_recv_fnc(dummy_buffer, &rx_time) == SRSRAN_SUCCESS) {
+      srsran::console("SYNC:  Receiving from radio while in IDLE_RX\n");
     }
     // If radio is in locked state returns immediately. In that case, do a 1 ms sleep
     if (rx_time.frac_secs == 0 && rx_time.full_secs == 0) {
@@ -682,7 +680,7 @@ void sync::out_of_sync()
 
 void sync::set_cfo(float cfo)
 {
-  srslte_ue_sync_set_cfo_ref(&ue_sync, cfo);
+  srsran_ue_sync_set_cfo_ref(&ue_sync, cfo);
 }
 
 void sync::set_agc_enable(bool enable)
@@ -705,21 +703,21 @@ void sync::set_agc_enable(bool enable)
   }
 
   // Get radio info and check it is valid
-  srslte_rf_info_t* rf_info = radio_h->get_info();
+  srsran_rf_info_t* rf_info = radio_h->get_info();
   if (rf_info == nullptr) {
     Error("Error: Radio does not provide RF information");
     return;
   }
 
   // Enable AGC
-  srslte_ue_sync_start_agc(
+  srsran_ue_sync_start_agc(
       &ue_sync, callback_set_rx_gain, rf_info->min_rx_gain, rf_info->max_rx_gain, radio_h->get_rx_gain());
   search_p.set_agc_enable(true);
 }
 
 float sync::get_tx_cfo()
 {
-  float cfo = srslte_ue_sync_get_cfo(&ue_sync);
+  float cfo = srsran_ue_sync_get_cfo(&ue_sync);
 
   float ret = cfo * ul_dl_factor;
 
@@ -736,15 +734,15 @@ float sync::get_tx_cfo()
   return ret / 15000;
 }
 
-void sync::set_ue_sync_opts(srslte_ue_sync_t* q, float cfo)
+void sync::set_ue_sync_opts(srsran_ue_sync_t* q, float cfo)
 {
   if (worker_com->args->cfo_integer_enabled) {
-    srslte_ue_sync_set_cfo_i_enable(q, true);
+    srsran_ue_sync_set_cfo_i_enable(q, true);
   }
 
-  srslte_ue_sync_set_cfo_ema(q, worker_com->args->cfo_pss_ema);
-  srslte_ue_sync_set_cfo_tol(q, worker_com->args->cfo_correct_tol_hz);
-  srslte_ue_sync_set_cfo_loop_bw(q,
+  srsran_ue_sync_set_cfo_ema(q, worker_com->args->cfo_pss_ema);
+  srsran_ue_sync_set_cfo_tol(q, worker_com->args->cfo_correct_tol_hz);
+  srsran_ue_sync_set_cfo_loop_bw(q,
                                  worker_com->args->cfo_loop_bw_pss,
                                  worker_com->args->cfo_loop_bw_ref,
                                  worker_com->args->cfo_loop_pss_tol,
@@ -754,16 +752,16 @@ void sync::set_ue_sync_opts(srslte_ue_sync_t* q, float cfo)
 
   // Disable CP based CFO estimation during find
   if (std::isnormal(cfo)) {
-    srslte_ue_sync_cfo_reset(q, cfo);
+    srsran_ue_sync_cfo_reset(q, cfo);
     q->cfo_current_value       = cfo / 15000;
     q->cfo_is_copied           = true;
     q->cfo_correct_enable_find = true;
-    srslte_sync_set_cfo_cp_enable(&q->sfind, false, 0);
+    srsran_sync_set_cfo_cp_enable(&q->sfind, false, 0);
   }
 
   // Set SFO ema and correct period
-  srslte_ue_sync_set_sfo_correct_period(q, worker_com->args->sfo_correct_period);
-  srslte_ue_sync_set_sfo_ema(q, worker_com->args->sfo_ema);
+  srsran_ue_sync_set_sfo_correct_period(q, worker_com->args->sfo_correct_period);
+  srsran_ue_sync_set_sfo_ema(q, worker_com->args->sfo_ema);
 
   sss_alg_t sss_alg = SSS_FULL;
   if (!worker_com->args->sss_algorithm.compare("diff")) {
@@ -775,8 +773,8 @@ void sync::set_ue_sync_opts(srslte_ue_sync_t* q, float cfo)
   } else {
     Warning("SYNC:  Invalid SSS algorithm %s. Using 'full'", worker_com->args->sss_algorithm.c_str());
   }
-  srslte_sync_set_sss_algorithm(&q->strack, (sss_alg_t)sss_alg);
-  srslte_sync_set_sss_algorithm(&q->sfind, (sss_alg_t)sss_alg);
+  srsran_sync_set_sss_algorithm(&q->strack, (sss_alg_t)sss_alg);
+  srsran_sync_set_sss_algorithm(&q->sfind, (sss_alg_t)sss_alg);
 }
 
 bool sync::set_cell(float cfo)
@@ -793,13 +791,13 @@ bool sync::set_cell(float cfo)
     return false;
   }
 
-  if (!srslte_cell_isvalid(&cell)) {
+  if (!srsran_cell_isvalid(&cell)) {
     Error("SYNC:  Setting cell: invalid cell (nof_prb=%d, pci=%d, ports=%d)", cell.nof_prb, cell.id, cell.nof_ports);
     return false;
   }
 
   // Set cell in all objects
-  if (srslte_ue_sync_set_cell(&ue_sync, cell)) {
+  if (srsran_ue_sync_set_cell(&ue_sync, cell)) {
     Error("SYNC:  Setting cell: initiating ue_sync");
     return false;
   }
@@ -828,7 +826,7 @@ bool sync::set_cell(float cfo)
   set_ue_sync_opts(&ue_sync, cfo);
 
   // Reset ue_sync and set CFO/gain from search procedure
-  srslte_ue_sync_reset(&ue_sync);
+  srsran_ue_sync_reset(&ue_sync);
 
   return true;
 }
@@ -848,11 +846,11 @@ bool sync::set_frequency()
     set_dl_freq = dl_freq;
     set_ul_freq = ul_freq;
   } else {
-    set_dl_freq = 1e6 * srslte_band_fd(current_earfcn);
-    if (srslte_band_is_tdd(srslte_band_get_band(current_earfcn))) {
+    set_dl_freq = 1e6 * srsran_band_fd(current_earfcn);
+    if (srsran_band_is_tdd(srsran_band_get_band(current_earfcn))) {
       set_ul_freq = set_dl_freq;
     } else {
-      set_ul_freq = 1e6 * srslte_band_fu(worker_com->get_ul_earfcn(current_earfcn));
+      set_ul_freq = 1e6 * srsran_band_fu(worker_com->get_ul_earfcn(current_earfcn));
     }
   }
   if (set_dl_freq > 0 && set_ul_freq > 0) {
@@ -870,7 +868,7 @@ bool sync::set_frequency()
 
     ul_dl_factor = (float)(set_ul_freq / set_dl_freq);
 
-    srslte_ue_sync_reset(&ue_sync);
+    srsran_ue_sync_reset(&ue_sync);
 
     return true;
   } else {
@@ -881,7 +879,7 @@ bool sync::set_frequency()
 
 void sync::set_sampling_rate()
 {
-  float new_srate = (float)srslte_sampling_freq_hz(cell.nof_prb);
+  float new_srate = (float)srsran_sampling_freq_hz(cell.nof_prb);
   if (new_srate < 0.0) {
     Error("Invalid sampling rate for %d PRBs. keeping same.", cell.nof_prb);
     return;
@@ -904,7 +902,7 @@ uint32_t sync::get_current_tti()
   return tti;
 }
 
-void sync::get_current_cell(srslte_cell_t* cell_, uint32_t* earfcn_)
+void sync::get_current_cell(srsran_cell_t* cell_, uint32_t* earfcn_)
 {
   if (cell_) {
     *cell_ = cell;
@@ -914,19 +912,19 @@ void sync::get_current_cell(srslte_cell_t* cell_, uint32_t* earfcn_)
   }
 }
 
-int sync::radio_recv_fnc(srslte::rf_buffer_t& data, srslte_timestamp_t* rx_time)
+int sync::radio_recv_fnc(srsran::rf_buffer_t& data, srsran_timestamp_t* rx_time)
 {
   // This function is designed for being called from the UE sync object which will pass a null rx_time in case
   // receive dummy samples. So, rf_timestamp points at dummy timestamp in case rx_time is not provided
-  srslte::rf_timestamp_t  dummy_ts     = {};
-  srslte::rf_timestamp_t& rf_timestamp = (rx_time == nullptr) ? dummy_ts : last_rx_time;
+  srsran::rf_timestamp_t  dummy_ts     = {};
+  srsran::rf_timestamp_t& rf_timestamp = (rx_time == nullptr) ? dummy_ts : last_rx_time;
 
   // Receive
   if (not radio_h->rx_now(data, rf_timestamp)) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
-  srslte_timestamp_t dummy_flat_ts = {};
+  srsran_timestamp_t dummy_flat_ts = {};
 
   // Load flat timestamp
   if (rx_time == nullptr) {
@@ -950,7 +948,7 @@ int sync::radio_recv_fnc(srslte::rf_buffer_t& data, srslte_timestamp_t* rx_time)
   }
 
   // Save signal for Intra-frequency measurement
-  if (srslte_cell_isvalid(&cell)) {
+  if (srsran_cell_isvalid(&cell)) {
     for (uint32_t i = 0; (uint32_t)i < intra_freq_meas.size(); i++) {
       // Feed the exact number of base-band samples for avoiding an invalid buffer read
       intra_freq_meas[i]->write(tti, data.get(i, 0, worker_com->args->nof_rx_ant), data.get_nof_samples());
@@ -968,31 +966,31 @@ int sync::radio_recv_fnc(srslte::rf_buffer_t& data, srslte_timestamp_t* rx_time)
 void sync::run_stack_tti()
 {
   // check timestamp reset
-  if (forced_rx_time_init || srslte_timestamp_iszero(&stack_tti_ts) ||
-      srslte_timestamp_compare(&stack_tti_ts_new, &stack_tti_ts) < 0) {
-    if (srslte_timestamp_compare(&stack_tti_ts_new, &stack_tti_ts) < 0) {
+  if (forced_rx_time_init || srsran_timestamp_iszero(&stack_tti_ts) ||
+      srsran_timestamp_compare(&stack_tti_ts_new, &stack_tti_ts) < 0) {
+    if (srsran_timestamp_compare(&stack_tti_ts_new, &stack_tti_ts) < 0) {
       phy_logger.warning("SYNC:  radio time seems to be going backwards (rx_time=%f, tti_ts=%f)",
-                         srslte_timestamp_real(&stack_tti_ts_new),
-                         srslte_timestamp_real(&stack_tti_ts));
+                         srsran_timestamp_real(&stack_tti_ts_new),
+                         srsran_timestamp_real(&stack_tti_ts));
       // time-stamp will be set to rx time below and run_tti() will be called with MIN_TTI_JUMP
     }
 
     // init tti_ts with last rx time
-    phy_logger.debug("SYNC:  Setting initial TTI time to %f", srslte_timestamp_real(&stack_tti_ts_new));
-    srslte_timestamp_copy(&stack_tti_ts, &stack_tti_ts_new);
+    phy_logger.debug("SYNC:  Setting initial TTI time to %f", srsran_timestamp_real(&stack_tti_ts_new));
+    srsran_timestamp_copy(&stack_tti_ts, &stack_tti_ts_new);
     forced_rx_time_init = false;
   }
 
   // Advance stack in time
-  if (srslte_timestamp_compare(&stack_tti_ts_new, &stack_tti_ts) >= 0) {
-    srslte_timestamp_t temp = {};
-    srslte_timestamp_copy(&temp, &stack_tti_ts_new);
-    srslte_timestamp_sub(&temp, stack_tti_ts.full_secs, stack_tti_ts.frac_secs);
-    int32_t tti_jump = static_cast<int32_t>(srslte_timestamp_uint64(&temp, 1e3));
-    tti_jump         = SRSLTE_MAX(tti_jump, MIN_TTI_JUMP);
+  if (srsran_timestamp_compare(&stack_tti_ts_new, &stack_tti_ts) >= 0) {
+    srsran_timestamp_t temp = {};
+    srsran_timestamp_copy(&temp, &stack_tti_ts_new);
+    srsran_timestamp_sub(&temp, stack_tti_ts.full_secs, stack_tti_ts.frac_secs);
+    int32_t tti_jump = static_cast<int32_t>(srsran_timestamp_uint64(&temp, 1e3));
+    tti_jump         = SRSRAN_MAX(tti_jump, MIN_TTI_JUMP);
     if (tti_jump > MAX_TTI_JUMP) {
       phy_logger.warning("SYNC:  TTI jump of %d limited to %d", tti_jump, int(MAX_TTI_JUMP));
-      tti_jump = SRSLTE_MIN(tti_jump, MAX_TTI_JUMP);
+      tti_jump = SRSRAN_MIN(tti_jump, MAX_TTI_JUMP);
     }
 
     // Run stack
@@ -1002,7 +1000,7 @@ void sync::run_stack_tti()
   }
 
   // update timestamp
-  srslte_timestamp_copy(&stack_tti_ts, &stack_tti_ts_new);
+  srsran_timestamp_copy(&stack_tti_ts, &stack_tti_ts_new);
 }
 
 void sync::set_rx_gain(float gain)
@@ -1015,7 +1013,7 @@ void sync::set_rx_gain(float gain)
  *
  */
 
-void sync::set_inter_frequency_measurement(uint32_t cc_idx, uint32_t earfcn_, srslte_cell_t cell_)
+void sync::set_inter_frequency_measurement(uint32_t cc_idx, uint32_t earfcn_, srsran_cell_t cell_)
 {
   if (cc_idx < intra_freq_meas.size()) {
     intra_freq_meas[cc_idx]->set_primary_cell(earfcn_, cell_);
@@ -1042,7 +1040,7 @@ void sync::meas_stop()
   }
 }
 
-void sync::scell_sync_set(uint32_t cc_idx, const srslte_cell_t& _cell)
+void sync::scell_sync_set(uint32_t cc_idx, const srsran_cell_t& _cell)
 {
   // Ignore if out of range
   if (scell_sync.count(cc_idx) == 0) {

@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,23 +10,23 @@
  *
  */
 
-#include "srslte/srslte.h"
+#include "srsran/srsran.h"
 
-#include "srslte/common/standard_streams.h"
+#include "srsran/common/standard_streams.h"
 #include "srsue/hdr/phy/lte/sf_worker.h"
 #include <string.h>
 
 #define Error(fmt, ...)                                                                                                \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
   logger.error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...)                                                                                              \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
   logger.warning(fmt, ##__VA_ARGS__)
 #define Info(fmt, ...)                                                                                                 \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
   logger.info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)                                                                                                \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
   logger.debug(fmt, ##__VA_ARGS__)
 
 /* This is to visualize the channel response */
@@ -69,7 +69,7 @@ void sf_worker::reset_cell_unlocked(uint32_t cc_idx)
   cc_workers[cc_idx]->reset_cell_unlocked();
 }
 
-bool sf_worker::set_cell_unlocked(uint32_t cc_idx, srslte_cell_t cell_)
+bool sf_worker::set_cell_unlocked(uint32_t cc_idx, srsran_cell_t cell_)
 {
   if (cc_idx < cc_workers.size()) {
     if (!cc_workers[cc_idx]->set_cell_unlocked(cell_)) {
@@ -114,7 +114,7 @@ void sf_worker::set_tti(uint32_t tti_)
   logger.set_context(tti);
 }
 
-void sf_worker::set_tx_time(const srslte::rf_timestamp_t& tx_time_)
+void sf_worker::set_tx_time(const srsran::rf_timestamp_t& tx_time_)
 {
   tx_time.copy(tx_time_);
 }
@@ -130,7 +130,7 @@ void sf_worker::set_cfo_unlocked(const uint32_t& cc_idx, float cfo)
   cc_workers[cc_idx]->set_cfo_unlocked(cfo);
 }
 
-void sf_worker::set_tdd_config_unlocked(srslte_tdd_config_t config)
+void sf_worker::set_tdd_config_unlocked(srsran_tdd_config_t config)
 {
   for (auto& cc_worker : cc_workers) {
     cc_worker->set_tdd_config_unlocked(config);
@@ -145,7 +145,7 @@ void sf_worker::enable_pregen_signals_unlocked(bool enabled)
   }
 }
 
-void sf_worker::set_config_unlocked(uint32_t cc_idx, srslte::phy_cfg_t phy_cfg)
+void sf_worker::set_config_unlocked(uint32_t cc_idx, srsran::phy_cfg_t phy_cfg)
 {
   if (cc_idx < cc_workers.size()) {
     cc_workers[cc_idx]->set_config_unlocked(phy_cfg);
@@ -160,7 +160,7 @@ void sf_worker::set_config_unlocked(uint32_t cc_idx, srslte::phy_cfg_t phy_cfg)
 
 void sf_worker::work_imp()
 {
-  srslte::rf_buffer_t tx_signal_ptr = {};
+  srsran::rf_buffer_t tx_signal_ptr = {};
   if (!cell_initiated) {
     phy->worker_end(this, false, tx_signal_ptr, tx_time, false);
     return;
@@ -168,15 +168,15 @@ void sf_worker::work_imp()
 
   bool     rx_signal_ok    = false;
   bool     tx_signal_ready = false;
-  uint32_t nof_samples     = SRSLTE_SF_LEN_PRB(cell.nof_prb);
+  uint32_t nof_samples     = SRSRAN_SF_LEN_PRB(cell.nof_prb);
 
   /***** Downlink Processing *******/
 
   // Loop through all carriers. carrier_idx=0 is PCell
   for (uint32_t carrier_idx = 0; carrier_idx < cc_workers.size(); carrier_idx++) {
     // Process all DL and special subframes
-    if (srslte_sfidx_tdd_type(tdd_config, tti % 10) != SRSLTE_TDD_SF_U || cell.frame_type == SRSLTE_FDD) {
-      srslte_mbsfn_cfg_t mbsfn_cfg;
+    if (srsran_sfidx_tdd_type(tdd_config, tti % 10) != SRSRAN_TDD_SF_U || cell.frame_type == SRSRAN_FDD) {
+      srsran_mbsfn_cfg_t mbsfn_cfg;
       ZERO_OBJECT(mbsfn_cfg);
 
       if (carrier_idx == 0 && phy->is_mbsfn_sf(&mbsfn_cfg, tti)) {
@@ -193,11 +193,11 @@ void sf_worker::work_imp()
   /***** Uplink Generation + Transmission *******/
 
   /* If TTI+4 is an uplink subframe (TODO: Support short PRACH and SRS in UpPts special subframes) */
-  if ((srslte_sfidx_tdd_type(tdd_config, TTI_TX(tti) % 10) == SRSLTE_TDD_SF_U) || cell.frame_type == SRSLTE_FDD) {
+  if ((srsran_sfidx_tdd_type(tdd_config, TTI_TX(tti) % 10) == SRSRAN_TDD_SF_U) || cell.frame_type == SRSRAN_FDD) {
     // Generate Uplink signal if no PRACH pending
     if (!prach_ptr) {
       // Common UCI data object for all carriers
-      srslte_uci_data_t uci_data;
+      srsran_uci_data_t uci_data;
       reset_uci(&uci_data);
 
       uint32_t uci_cc_idx = phy->get_ul_uci_cc(TTI_TX(tti));
@@ -249,9 +249,9 @@ void sf_worker::work_imp()
 
 /********************* Uplink common control functions ****************************/
 
-void sf_worker::reset_uci(srslte_uci_data_t* uci_data)
+void sf_worker::reset_uci(srsran_uci_data_t* uci_data)
 {
-  srslte_uci_data_reset(uci_data);
+  srsran_uci_data_reset(uci_data);
 }
 
 /**************************** Measurements **************************/
@@ -285,13 +285,13 @@ void sf_worker::start_plot()
   if (plot_worker_id == -1) {
     plot_worker_id = get_id();
     plot_nr_enable = phy->args->nof_nr_carriers > 0;
-    srslte::console("Starting plot for worker_id=%d\n", plot_worker_id);
+    srsran::console("Starting plot for worker_id=%d\n", plot_worker_id);
     init_plots(this);
   } else {
-    srslte::console("Trying to start a plot but already started by worker_id=%d\n", plot_worker_id);
+    srsran::console("Trying to start a plot but already started by worker_id=%d\n", plot_worker_id);
   }
 #else
-  srslte::console("Trying to start a plot but plots are disabled (ENABLE_GUI constant in sf_worker.cc)\n");
+  srsran::console("Trying to start a plot but plots are disabled (ENABLE_GUI constant in sf_worker.cc)\n");
 #endif
 }
 
@@ -307,7 +307,7 @@ int sf_worker::read_pdsch_d(cf_t* pdsch_d)
 
 float sf_worker::get_cfo()
 {
-  sync_metrics_t sync_metrics[SRSLTE_MAX_CARRIERS] = {};
+  sync_metrics_t sync_metrics[SRSRAN_MAX_CARRIERS] = {};
   phy->get_sync_metrics(sync_metrics);
   return sync_metrics[0].cfo;
 }
@@ -321,14 +321,14 @@ float sf_worker::get_cfo()
  ***********************************************************/
 
 #ifdef ENABLE_GUI
-plot_real_t    pce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
+plot_real_t    pce[SRSRAN_MAX_PORTS][SRSRAN_MAX_PORTS];
 plot_scatter_t pconst;
 plot_scatter_t pconst_nr;
 bool           pconst_nr_ready = false;
-#define SCATTER_PDSCH_BUFFER_LEN (20 * 6 * SRSLTE_SF_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_CP_NORM))
+#define SCATTER_PDSCH_BUFFER_LEN (20 * 6 * SRSRAN_SF_LEN_RE(SRSRAN_MAX_PRB, SRSRAN_CP_NORM))
 #define SCATTER_PDSCH_PLOT_LEN 4000
 float tmp_plot[SCATTER_PDSCH_BUFFER_LEN];
-cf_t  tmp_plot2[SRSLTE_SF_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_CP_NORM)];
+cf_t  tmp_plot2[SRSRAN_SF_LEN_RE(SRSRAN_MAX_PRB, SRSRAN_CP_NORM)];
 bool  plot_quit = false;
 
 #define CFO_PLOT_LEN 0 /* Set to non zero for enabling CFO plot */

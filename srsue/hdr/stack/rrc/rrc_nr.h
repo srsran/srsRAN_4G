@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -13,15 +13,15 @@
 #ifndef SRSUE_RRC_NR_H
 #define SRSUE_RRC_NR_H
 
-#include "srslte/asn1/rrc_nr.h"
-#include "srslte/asn1/rrc_nr_utils.h"
-#include "srslte/common/block_queue.h"
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/stack_procedure.h"
-#include "srslte/common/task_scheduler.h"
-#include "srslte/interfaces/nr_common_interface_types.h"
-#include "srslte/interfaces/ue_nr_interfaces.h"
-#include "srslte/interfaces/ue_rrc_interfaces.h"
+#include "srsran/asn1/rrc_nr.h"
+#include "srsran/asn1/rrc_nr_utils.h"
+#include "srsran/common/block_queue.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/common/stack_procedure.h"
+#include "srsran/common/task_scheduler.h"
+#include "srsran/interfaces/nr_common_interface_types.h"
+#include "srsran/interfaces/ue_nr_interfaces.h"
+#include "srsran/interfaces/ue_rrc_interfaces.h"
 #include "srsue/hdr/stack/upper/gw.h"
 
 namespace srsue {
@@ -51,10 +51,10 @@ class rrc_nr final : public rrc_interface_phy_nr,
                      public rrc_interface_pdcp,
                      public rrc_interface_rlc,
                      public rrc_nr_interface_rrc,
-                     public srslte::timer_callback
+                     public srsran::timer_callback
 {
 public:
-  rrc_nr(srslte::task_sched_handle task_sched_);
+  rrc_nr(srsran::task_sched_handle task_sched_);
   ~rrc_nr();
 
   void init(phy_interface_rrc_nr*       phy_,
@@ -64,7 +64,7 @@ public:
             gw_interface_rrc*           gw_,
             rrc_eutra_interface_rrc_nr* rrc_eutra_,
             usim_interface_rrc_nr*      usim_,
-            srslte::timer_handler*      timers_,
+            srsran::timer_handler*      timers_,
             stack_interface_rrc*        stack_,
             const rrc_nr_args_t&        args_);
 
@@ -75,13 +75,13 @@ public:
 
   // Timeout callback interface
   void timer_expired(uint32_t timeout_id) final;
-  void srslte_rrc_log(const char* str);
+  void srsran_rrc_log(const char* str);
 
   enum direction_t { Rx = 0, Tx };
   template <class T>
   void log_rrc_message(const std::string&           source,
                        direction_t                  dir,
-                       const srslte::byte_buffer_t* pdu,
+                       const srsran::byte_buffer_t* pdu,
                        const T&                     msg,
                        const std::string&           msg_type);
   template <class T>
@@ -101,15 +101,15 @@ public:
   void max_retx_attempted() final;
 
   // PDCP interface
-  void write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu) final;
-  void write_pdu_bcch_bch(srslte::unique_byte_buffer_t pdu) final;
-  void write_pdu_bcch_dlsch(srslte::unique_byte_buffer_t pdu) final;
-  void write_pdu_pcch(srslte::unique_byte_buffer_t pdu) final;
-  void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu) final;
+  void write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu) final;
+  void write_pdu_bcch_bch(srsran::unique_byte_buffer_t pdu) final;
+  void write_pdu_bcch_dlsch(srsran::unique_byte_buffer_t pdu) final;
+  void write_pdu_pcch(srsran::unique_byte_buffer_t pdu) final;
+  void write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t pdu) final;
 
   // RRC (LTE) interface
-  void get_eutra_nr_capabilities(srslte::byte_buffer_t* eutra_nr_caps);
-  void get_nr_capabilities(srslte::byte_buffer_t* eutra_nr_caps);
+  void get_eutra_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps);
+  void get_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps);
   void phy_meas_stop();
   void phy_set_cells_to_meas(uint32_t carrier_freq_r15);
   bool rrc_reconfiguration(bool                endc_release_and_add_r15,
@@ -125,16 +125,16 @@ public:
   void cell_search_completed(const rrc_interface_phy_lte::cell_search_ret_t& cs_ret, const phy_cell_t& found_cell);
 
 private:
-  srslte::task_sched_handle task_sched;
+  srsran::task_sched_handle task_sched;
   struct cmd_msg_t {
     enum { PDU, PCCH, PDU_MCH, RLF, PDU_BCCH_DLSCH, STOP } command;
-    srslte::unique_byte_buffer_t pdu;
+    srsran::unique_byte_buffer_t pdu;
     uint16_t                     lcid;
   };
 
   srslog::basic_logger&          logger;
   bool                           running = false;
-  srslte::block_queue<cmd_msg_t> cmd_q;
+  srsran::block_queue<cmd_msg_t> cmd_q;
 
   phy_interface_rrc_nr*       phy       = nullptr;
   mac_interface_rrc_nr*       mac       = nullptr;
@@ -146,7 +146,7 @@ private:
   stack_interface_rrc*        stack     = nullptr;
 
   uint32_t                            fake_measurement_carrier_freq_r15;
-  srslte::timer_handler::unique_timer fake_measurement_timer;
+  srsran::timer_handler::unique_timer fake_measurement_timer;
 
   /// RRC states (3GPP 38.331 v15.5.1 Sec 4.2.1)
   enum rrc_nr_state_t {
@@ -162,9 +162,9 @@ private:
   rrc_nr_args_t args = {};
 
   // RRC constants and timers
-  srslte::timer_handler* timers = nullptr;
+  srsran::timer_handler* timers = nullptr;
 
-  std::string get_rb_name(uint32_t lcid) final { return srslte::to_string((srslte::rb_id_nr_t)lcid); }
+  std::string get_rb_name(uint32_t lcid) final { return srsran::to_string((srsran::rb_id_nr_t)lcid); }
 
   typedef enum { Srb = 0, Drb } rb_type_t;
   typedef struct {
@@ -187,22 +187,22 @@ private:
   bool apply_drb_add_mod(const asn1::rrc_nr::drb_to_add_mod_s& drb_cfg);
   bool apply_security_cfg(const asn1::rrc_nr::security_cfg_s& security_cfg);
 
-  srslte::as_security_config_t sec_cfg;
+  srsran::as_security_config_t sec_cfg;
 
   class connection_reconf_no_ho_proc
   {
   public:
     explicit connection_reconf_no_ho_proc(rrc_nr* parent_);
-    srslte::proc_outcome_t init(const bool                              endc_release_and_add_r15,
+    srsran::proc_outcome_t init(const bool                              endc_release_and_add_r15,
                                 const asn1::rrc_nr::rrc_recfg_s&        rrc_recfg,
                                 const asn1::rrc_nr::cell_group_cfg_s&   cell_group_cfg,
                                 bool                                    sk_counter_r15_present,
                                 const uint32_t                          sk_counter_r15,
                                 const asn1::rrc_nr::radio_bearer_cfg_s& radio_bearer_cfg);
-    srslte::proc_outcome_t step() { return srslte::proc_outcome_t::yield; }
+    srsran::proc_outcome_t step() { return srsran::proc_outcome_t::yield; }
     static const char*     name() { return "NR Connection Reconfiguration"; }
-    srslte::proc_outcome_t react(const bool& config_complete);
-    void                   then(const srslte::proc_state_t& result);
+    srsran::proc_outcome_t react(const bool& config_complete);
+    void                   then(const srsran::proc_state_t& result);
 
   private:
     // const
@@ -212,9 +212,9 @@ private:
     asn1::rrc_nr::cell_group_cfg_s cell_group_cfg;
   };
 
-  srslte::proc_t<connection_reconf_no_ho_proc> conn_recfg_proc;
+  srsran::proc_t<connection_reconf_no_ho_proc> conn_recfg_proc;
 
-  srslte::proc_manager_list_t callback_list;
+  srsran::proc_manager_list_t callback_list;
 };
 
 } // namespace srsue

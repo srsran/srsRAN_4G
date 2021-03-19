@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -11,20 +11,16 @@
  */
 
 #include "srsue/hdr/stack/mac_nr/mac_nr.h"
-#include "srslte/mac/mac_rar_pdu_nr.h"
+#include "srsran/mac/mac_rar_pdu_nr.h"
 #include "srsue/hdr/stack/mac_nr/proc_ra_nr.h"
 
 namespace srsue {
 
-mac_nr::mac_nr(srslte::ext_task_sched_handle task_sched_) :
-  task_sched(task_sched_),
-  logger(srslog::fetch_basic_logger("MAC")),
-  proc_ra(logger),
-  mux(logger),
-  pcap(nullptr)
+mac_nr::mac_nr(srsran::ext_task_sched_handle task_sched_) :
+  task_sched(task_sched_), logger(srslog::fetch_basic_logger("MAC")), proc_ra(logger), mux(logger), pcap(nullptr)
 {
-  tx_buffer  = srslte::make_byte_buffer();
-  rlc_buffer = srslte::make_byte_buffer();
+  tx_buffer  = srsran::make_byte_buffer();
+  rlc_buffer = srsran::make_byte_buffer();
 }
 
 mac_nr::~mac_nr()
@@ -45,18 +41,18 @@ int mac_nr::init(const mac_nr_args_t& args_, phy_interface_mac_nr* phy_, rlc_int
 
   mux.init();
 
-  if (srslte_softbuffer_tx_init_guru(&softbuffer_tx, SRSLTE_SCH_NR_MAX_NOF_CB_LDPC, SRSLTE_LDPC_MAX_LEN_ENCODED_CB) <
-      SRSLTE_SUCCESS) {
+  if (srsran_softbuffer_tx_init_guru(&softbuffer_tx, SRSRAN_SCH_NR_MAX_NOF_CB_LDPC, SRSRAN_LDPC_MAX_LEN_ENCODED_CB) <
+      SRSRAN_SUCCESS) {
     ERROR("Error init soft-buffer");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   started = true;
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-void mac_nr::start_pcap(srslte::mac_pcap* pcap_)
+void mac_nr::start_pcap(srsran::mac_pcap* pcap_)
 {
   pcap = pcap_;
 }
@@ -67,7 +63,7 @@ void mac_nr::stop()
     started = false;
   }
 
-  srslte_softbuffer_tx_free(&softbuffer_tx);
+  srsran_softbuffer_tx_free(&softbuffer_tx);
 }
 
 // Implement Section 5.9
@@ -84,7 +80,7 @@ void mac_nr::run_tti(const uint32_t tti)
 
 mac_interface_phy_nr::sched_rnti_t mac_nr::get_ul_sched_rnti_nr(const uint32_t tti)
 {
-  return {c_rnti, srslte_rnti_type_c};
+  return {c_rnti, srsran_rnti_type_c};
 }
 
 bool mac_nr::is_si_opportunity()
@@ -102,34 +98,34 @@ mac_interface_phy_nr::sched_rnti_t mac_nr::get_dl_sched_rnti_nr(const uint32_t t
 {
   // Priority: SI-RNTI, P-RNTI, RA-RNTI, Temp-RNTI, CRNTI
   if (is_si_opportunity()) {
-    return {SRSLTE_SIRNTI, srslte_rnti_type_si};
+    return {SRSRAN_SIRNTI, srsran_rnti_type_si};
   }
 
   if (is_paging_opportunity()) {
-    return {SRSLTE_PRNTI, srslte_rnti_type_si};
+    return {SRSRAN_PRNTI, srsran_rnti_type_si};
   }
 
   if (proc_ra.is_rar_opportunity(tti)) {
-    return {proc_ra.get_rar_rnti(), srslte_rnti_type_ra};
+    return {proc_ra.get_rar_rnti(), srsran_rnti_type_ra};
   }
 
   if (proc_ra.has_temp_rnti() && has_crnti() == false) {
     logger.debug("SCHED: Searching temp C-RNTI=0x%x (proc_ra)", proc_ra.get_temp_rnti());
-    return {proc_ra.get_temp_rnti(), srslte_rnti_type_c};
+    return {proc_ra.get_temp_rnti(), srsran_rnti_type_c};
   }
 
   if (has_crnti()) {
     logger.debug("SCHED: Searching C-RNTI=0x%x", get_crnti());
-    return {get_crnti(), srslte_rnti_type_c};
+    return {get_crnti(), srsran_rnti_type_c};
   }
 
   // turn off DCI search for this TTI
-  return {SRSLTE_INVALID_RNTI, srslte_rnti_type_c};
+  return {SRSRAN_INVALID_RNTI, srsran_rnti_type_c};
 }
 
 bool mac_nr::has_crnti()
 {
-  return c_rnti != SRSLTE_INVALID_RNTI;
+  return c_rnti != SRSRAN_INVALID_RNTI;
 }
 
 uint16_t mac_nr::get_crnti()
@@ -137,7 +133,7 @@ uint16_t mac_nr::get_crnti()
   return c_rnti;
 }
 
-void mac_nr::bch_decoded_ok(uint32_t tti, srslte::unique_byte_buffer_t payload)
+void mac_nr::bch_decoded_ok(uint32_t tti, srsran::unique_byte_buffer_t payload)
 {
   // Send MIB to RLC
   rlc->write_pdu_bcch_bch(std::move(payload));
@@ -150,7 +146,7 @@ void mac_nr::bch_decoded_ok(uint32_t tti, srslte::unique_byte_buffer_t payload)
 int mac_nr::sf_indication(const uint32_t tti)
 {
   run_tti(tti);
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 void mac_nr::prach_sent(const uint32_t tti,
@@ -166,11 +162,11 @@ void mac_nr::prach_sent(const uint32_t tti,
 void mac_nr::write_pcap(const uint32_t cc_idx, mac_nr_grant_dl_t& grant)
 {
   if (pcap) {
-    for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; ++i) {
+    for (uint32_t i = 0; i < SRSRAN_MAX_CODEWORDS; ++i) {
       if (grant.tb[i] != nullptr) {
         if (proc_ra.has_rar_rnti() && grant.rnti == proc_ra.get_rar_rnti()) {
           pcap->write_dl_ra_rnti_nr(grant.tb[i]->msg, grant.tb[i]->N_bytes, grant.rnti, true, grant.tti);
-        } else if (grant.rnti == SRSLTE_PRNTI) {
+        } else if (grant.rnti == SRSRAN_PRNTI) {
           pcap->write_dl_pch_nr(grant.tb[i]->msg, grant.tb[i]->N_bytes, grant.rnti, true, grant.tti);
         } else {
           pcap->write_dl_crnti_nr(grant.tb[i]->msg, grant.tb[i]->N_bytes, grant.rnti, true, grant.tti);
@@ -196,7 +192,7 @@ void mac_nr::tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant)
     proc_ra.handle_rar_pdu(grant);
   } else {
     // Push DL PDUs to queue for back-ground processing
-    for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; ++i) {
+    for (uint32_t i = 0; i < SRSRAN_MAX_CODEWORDS; ++i) {
       if (grant.tb[i] != nullptr) {
         pdu_queue.push(std::move(grant.tb[i]));
       }
@@ -219,7 +215,7 @@ void mac_nr::new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant,
   action->tb.enabled    = true;
   action->tb.rv         = 0;
   action->tb.softbuffer = &softbuffer_tx;
-  srslte_softbuffer_tx_reset(&softbuffer_tx);
+  srsran_softbuffer_tx_reset(&softbuffer_tx);
 
   // Pack MAC PDU
   get_ul_data(grant, action->tb.payload);
@@ -227,7 +223,7 @@ void mac_nr::new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant,
   metrics[cc_idx].tx_pkts++;
 }
 
-void mac_nr::get_ul_data(const mac_nr_grant_ul_t& grant, srslte::byte_buffer_t* phy_tx_pdu)
+void mac_nr::get_ul_data(const mac_nr_grant_ul_t& grant, srsran::byte_buffer_t* phy_tx_pdu)
 {
   // initialize MAC PDU
   phy_tx_pdu->clear();
@@ -237,7 +233,7 @@ void mac_nr::get_ul_data(const mac_nr_grant_ul_t& grant, srslte::byte_buffer_t* 
     // If message 3 is pending pack message 3 for uplink transmission
     // Use the CRNTI which is provided in the RRC reconfiguration (only for DC mode maybe other)
     tx_pdu.add_crnti_ce(c_rnti);
-    srslte::mac_sch_subpdu_nr::lcg_bsr_t sbsr = {};
+    srsran::mac_sch_subpdu_nr::lcg_bsr_t sbsr = {};
     sbsr.lcg_id                               = 0;
     sbsr.buffer_size                          = 1;
     tx_pdu.add_sbsr_ce(sbsr);
@@ -258,7 +254,7 @@ void mac_nr::get_ul_data(const mac_nr_grant_ul_t& grant, srslte::byte_buffer_t* 
         logger.info(rlc_buffer->msg, rlc_buffer->N_bytes, "Read %d B from RLC", rlc_buffer->N_bytes);
 
         // add to MAC PDU and pack
-        if (tx_pdu.add_sdu(4, rlc_buffer->msg, rlc_buffer->N_bytes) != SRSLTE_SUCCESS) {
+        if (tx_pdu.add_sdu(4, rlc_buffer->msg, rlc_buffer->N_bytes) != SRSRAN_SUCCESS) {
           logger.error("Error packing MAC PDU");
         }
       } else {
@@ -282,7 +278,7 @@ void mac_nr::timer_expired(uint32_t timer_id)
   // not implemented
 }
 
-void mac_nr::setup_lcid(const srslte::logical_channel_config_t& config)
+void mac_nr::setup_lcid(const srsran::logical_channel_config_t& config)
 {
   logger.info("Logical Channel Setup: LCID=%d, LCG=%d, priority=%d, PBR=%d, BSD=%dms, bucket_size=%d",
               config.lcid,
@@ -295,19 +291,20 @@ void mac_nr::setup_lcid(const srslte::logical_channel_config_t& config)
   // bsr_procedure.setup_lcid(config.lcid, config.lcg, config.priority);
 }
 
-void mac_nr::set_config(const srslte::bsr_cfg_t& bsr_cfg)
+void mac_nr::set_config(const srsran::bsr_cfg_t& bsr_cfg)
 {
   logger.info("BSR config periodic timer %d retx timer %d", bsr_cfg.periodic_timer, bsr_cfg.retx_timer);
   logger.warning("Not handling BSR config yet");
 }
 
-void mac_nr::set_config(const srslte::sr_cfg_t& sr_cfg)
+void mac_nr::set_config(const srsran::sr_cfg_t& sr_cfg)
 {
   logger.info("Scheduling Request Config DSR tansmax %d", sr_cfg.dsr_transmax);
   logger.warning("Not Scheduling Request Config yet");
 }
 
-void mac_nr::set_config(const srslte::rach_nr_cfg_t& rach_cfg){
+void mac_nr::set_config(const srsran::rach_nr_cfg_t& rach_cfg)
+{
   proc_ra.set_config(rach_cfg);
 }
 
@@ -339,7 +336,7 @@ bool mac_nr::is_valid_crnti(const uint16_t crnti)
   return (crnti >= 0x0001 && crnti <= 0xFFEF);
 }
 
-void mac_nr::get_metrics(mac_metrics_t m[SRSLTE_MAX_CARRIERS]) {}
+void mac_nr::get_metrics(mac_metrics_t m[SRSRAN_MAX_CARRIERS]) {}
 
 /**
  * Called from the main stack thread to process received PDUs
@@ -347,13 +344,13 @@ void mac_nr::get_metrics(mac_metrics_t m[SRSLTE_MAX_CARRIERS]) {}
 void mac_nr::process_pdus()
 {
   while (started and not pdu_queue.empty()) {
-    srslte::unique_byte_buffer_t pdu = pdu_queue.wait_pop();
+    srsran::unique_byte_buffer_t pdu = pdu_queue.wait_pop();
     // TODO: delegate to demux class
     handle_pdu(std::move(pdu));
   }
 }
 
-void mac_nr::handle_pdu(srslte::unique_byte_buffer_t pdu)
+void mac_nr::handle_pdu(srsran::unique_byte_buffer_t pdu)
 {
   logger.info(pdu->msg, pdu->N_bytes, "Handling MAC PDU (%d B)", pdu->N_bytes);
 
@@ -361,7 +358,7 @@ void mac_nr::handle_pdu(srslte::unique_byte_buffer_t pdu)
   rx_pdu.unpack(pdu->msg, pdu->N_bytes);
 
   for (uint32_t i = 0; i < rx_pdu.get_num_subpdus(); ++i) {
-    srslte::mac_sch_subpdu_nr subpdu = rx_pdu.get_subpdu(i);
+    srsran::mac_sch_subpdu_nr subpdu = rx_pdu.get_subpdu(i);
     logger.info("Handling subPDU %d/%d: rnti=0x%x lcid=%d, sdu_len=%d",
                 i + 1,
                 rx_pdu.get_num_subpdus(),
@@ -395,7 +392,7 @@ bool mac_nr::is_in_window(uint32_t tti, int* start, int* len)
   uint32_t st = (uint32_t)*start;
   uint32_t l  = (uint32_t)*len;
 
-  if (srslte_tti_interval(tti, st) < l + 5) {
+  if (srsran_tti_interval(tti, st) < l + 5) {
     if (tti > st) {
       if (tti <= st + l) {
         return true;

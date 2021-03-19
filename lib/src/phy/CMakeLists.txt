@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2020 Software Radio Systems Limited
+# Copyright 2013-2021 Software Radio Systems Limited
 #
 # By using this file, you agree to the terms and conditions set
 # forth in the LICENSE file which can be found at the top level of
@@ -23,24 +23,24 @@ add_subdirectory(resampling)
 add_subdirectory(scrambling)
 add_subdirectory(ue)
 add_subdirectory(enb)
-set(srslte_srcs     $<TARGET_OBJECTS:srslte_agc>
-        $<TARGET_OBJECTS:srslte_ch_estimation>
-        $<TARGET_OBJECTS:srslte_phy_common>
-        $<TARGET_OBJECTS:srslte_fec>
-        $<TARGET_OBJECTS:srslte_mimo>
-        $<TARGET_OBJECTS:srslte_phch>
-        $<TARGET_OBJECTS:srslte_sync>
-        $<TARGET_OBJECTS:srslte_utils>
-        $<TARGET_OBJECTS:srslte_channel>
-        $<TARGET_OBJECTS:srslte_dft>
-        $<TARGET_OBJECTS:srslte_io>
-        $<TARGET_OBJECTS:srslte_modem>
-        $<TARGET_OBJECTS:srslte_resampling>
-        $<TARGET_OBJECTS:srslte_scrambling>
-        $<TARGET_OBJECTS:srslte_ue>
-        $<TARGET_OBJECTS:srslte_enb>
+set(srsran_srcs     $<TARGET_OBJECTS:srsran_agc>
+        $<TARGET_OBJECTS:srsran_ch_estimation>
+        $<TARGET_OBJECTS:srsran_phy_common>
+        $<TARGET_OBJECTS:srsran_fec>
+        $<TARGET_OBJECTS:srsran_mimo>
+        $<TARGET_OBJECTS:srsran_phch>
+        $<TARGET_OBJECTS:srsran_sync>
+        $<TARGET_OBJECTS:srsran_utils>
+        $<TARGET_OBJECTS:srsran_channel>
+        $<TARGET_OBJECTS:srsran_dft>
+        $<TARGET_OBJECTS:srsran_io>
+        $<TARGET_OBJECTS:srsran_modem>
+        $<TARGET_OBJECTS:srsran_resampling>
+        $<TARGET_OBJECTS:srsran_scrambling>
+        $<TARGET_OBJECTS:srsran_ue>
+        $<TARGET_OBJECTS:srsran_enb>
         )
 
-add_library(srslte_phy STATIC ${srslte_srcs} )
-target_link_libraries(srslte_phy pthread m ${FFT_LIBRARIES})
-INSTALL(TARGETS srslte_phy DESTINATION ${LIBRARY_DIR})
+add_library(srsran_phy STATIC ${srsran_srcs} )
+target_link_libraries(srsran_phy pthread m ${FFT_LIBRARIES})
+INSTALL(TARGETS srsran_phy DESTINATION ${LIBRARY_DIR})

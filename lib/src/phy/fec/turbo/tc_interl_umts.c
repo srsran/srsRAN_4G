@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -15,11 +15,11 @@
 #include <stdlib.h>
 #include <strings.h>
 
-#include "srslte/phy/fec/turbo/tc_interl.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/fec/turbo/tc_interl.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/vector.h"
 
-#define TURBO_SRSLTE_TCOD_RATE 3
+#define TURBO_SRSRAN_TCOD_RATE 3
 
 uint32_t mcd(uint32_t x, uint32_t y);
 
@@ -39,15 +39,15 @@ const unsigned short table_p[52] = {7,   11,  13,  17,  19,  23,  29,  31,  37, 
 const uint8_t        table_v[52] = {3, 2, 2, 3, 2, 5, 2, 3, 2, 6, 3, 5, 2, 2,  2, 2, 7, 5, 3, 2, 3, 5, 2, 5, 2, 6,
                              3, 3, 2, 3, 2, 2, 6, 5, 2, 5, 2, 2, 2, 19, 5, 2, 3, 2, 3, 2, 6, 3, 7, 7, 6, 3};
 
-int srslte_tc_interl_init(srslte_tc_interl_t* h, uint32_t max_long_cb)
+int srsran_tc_interl_init(srsran_tc_interl_t* h, uint32_t max_long_cb)
 {
   int ret    = -1;
-  h->forward = srslte_vec_u16_malloc(max_long_cb);
+  h->forward = srsran_vec_u16_malloc(max_long_cb);
   if (!h->forward) {
     perror("malloc");
     goto clean_exit;
   }
-  h->reverse = srslte_vec_u16_malloc(max_long_cb);
+  h->reverse = srsran_vec_u16_malloc(max_long_cb);
   if (!h->reverse) {
     perror("malloc");
     goto clean_exit;
@@ -56,12 +56,12 @@ int srslte_tc_interl_init(srslte_tc_interl_t* h, uint32_t max_long_cb)
   ret            = 0;
 clean_exit:
   if (ret == -1) {
-    srslte_tc_interl_free(h);
+    srsran_tc_interl_free(h);
   }
   return ret;
 }
 
-void srslte_tc_interl_free(srslte_tc_interl_t* h)
+void srsran_tc_interl_free(srsran_tc_interl_t* h)
 {
   if (h->forward) {
     free(h->forward);
@@ -69,10 +69,10 @@ void srslte_tc_interl_free(srslte_tc_interl_t* h)
   if (h->reverse) {
     free(h->reverse);
   }
-  bzero(h, sizeof(srslte_tc_interl_t));
+  bzero(h, sizeof(srsran_tc_interl_t));
 }
 
-int srslte_tc_interl_UMTS_gen(srslte_tc_interl_t* h, uint32_t long_cb)
+int srsran_tc_interl_UMTS_gen(srsran_tc_interl_t* h, uint32_t long_cb)
 {
 
   uint32_t  i, j;

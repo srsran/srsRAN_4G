@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -19,11 +19,11 @@
 #ifndef MBMS_GW_H
 #define MBMS_GW_H
 
-#include "srslte/asn1/gtpc.h"
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/threads.h"
-#include "srslte/srslog/srslog.h"
-#include "srslte/srslte.h"
+#include "srsran/asn1/gtpc.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/common/threads.h"
+#include "srsran/srslog/srslog.h"
+#include "srsran/srsran.h"
 #include <cstddef>
 
 namespace srsepc {
@@ -48,7 +48,7 @@ struct pseudo_hdr {
   uint16_t udp_len;
 };
 
-class mbms_gw : public srslte::thread
+class mbms_gw : public srsran::thread
 {
 public:
   static mbms_gw* get_instance(void);
@@ -65,7 +65,7 @@ private:
 
   int      init_sgi_mb_if(mbms_gw_args_t* args);
   int      init_m1_u(mbms_gw_args_t* args);
-  void     handle_sgi_md_pdu(srslte::byte_buffer_t* msg);
+  void     handle_sgi_md_pdu(srsran::byte_buffer_t* msg);
   uint16_t in_cksum(uint16_t* iphdr, int count);
 
   /* Members */

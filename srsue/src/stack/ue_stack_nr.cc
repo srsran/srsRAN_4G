@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -11,9 +11,9 @@
  */
 
 #include "srsue/hdr/stack/ue_stack_nr.h"
-#include "srslte/srslte.h"
+#include "srsran/srsran.h"
 
-using namespace srslte;
+using namespace srsran;
 
 namespace srsue {
 
@@ -26,8 +26,8 @@ ue_stack_nr::ue_stack_nr() :
 {
   get_background_workers().set_nof_workers(2);
   mac.reset(new mac_nr(&task_sched));
-  pdcp.reset(new srslte::pdcp(&task_sched, "PDCP"));
-  rlc.reset(new srslte::rlc("RLC"));
+  pdcp.reset(new srsran::pdcp(&task_sched, "PDCP"));
+  rlc.reset(new srsran::rlc("RLC"));
   rrc.reset(new rrc_nr(&task_sched));
 
   // setup logging for pool, RLC and PDCP
@@ -83,7 +83,7 @@ int ue_stack_nr::init(const stack_args_t& args_)
   running = true;
   start(STACK_MAIN_THREAD_PRIO);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 void ue_stack_nr::stop()
@@ -151,11 +151,11 @@ void ue_stack_nr::run_thread()
  * @param sdu
  * @param blocking
  */
-void ue_stack_nr::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)
+void ue_stack_nr::write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu)
 {
   if (pdcp != nullptr) {
     std::pair<bool, move_task_t> ret = gw_task_queue.try_push(std::bind(
-        [this, lcid](srslte::unique_byte_buffer_t& sdu) { pdcp->write_sdu(lcid, std::move(sdu)); }, std::move(sdu)));
+        [this, lcid](srsran::unique_byte_buffer_t& sdu) { pdcp->write_sdu(lcid, std::move(sdu)); }, std::move(sdu)));
     if (not ret.first) {
       pdcp_logger.warning("GW SDU with lcid=%d was discarded.", lcid);
     }

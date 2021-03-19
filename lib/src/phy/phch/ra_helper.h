@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,10 +10,10 @@
  *
  */
 
-#ifndef SRSLTE_RA_HELPER_H
-#define SRSLTE_RA_HELPER_H
+#ifndef SRSRAN_RA_HELPER_H
+#define SRSRAN_RA_HELPER_H
 
-#include "srslte/phy/utils/debug.h"
+#include "srsran/phy/utils/debug.h"
 #include <stdint.h>
 
 static inline void ra_helper_compute_s_and_l(uint32_t N, uint32_t v, uint32_t* S, uint32_t* L)
@@ -29,7 +29,7 @@ static inline void ra_helper_compute_s_and_l(uint32_t N, uint32_t v, uint32_t* S
   }
 }
 
-static int ra_helper_freq_type1(uint32_t N_bwp_size, uint32_t riv, srslte_sch_grant_nr_t* grant)
+static int ra_helper_freq_type1(uint32_t N_bwp_size, uint32_t riv, srsran_sch_grant_nr_t* grant)
 {
   uint32_t start = 0;
   uint32_t len   = 0;
@@ -37,7 +37,7 @@ static int ra_helper_freq_type1(uint32_t N_bwp_size, uint32_t riv, srslte_sch_gr
 
   if (start + len > N_bwp_size) {
     ERROR("RIV 0x%x for BWP size %d resulted in freq=%d:%d", riv, N_bwp_size, start, len);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   for (uint32_t i = 0; i < start; i++) {
@@ -48,12 +48,12 @@ static int ra_helper_freq_type1(uint32_t N_bwp_size, uint32_t riv, srslte_sch_gr
     grant->prb_idx[i] = true;
   }
 
-  for (uint32_t i = start + len; i < SRSLTE_MAX_PRB_NR; i++) {
+  for (uint32_t i = start + len; i < SRSRAN_MAX_PRB_NR; i++) {
     grant->prb_idx[i] = false;
   }
   grant->nof_prb = len;
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-#endif // SRSLTE_RA_HELPER_H
+#endif // SRSRAN_RA_HELPER_H

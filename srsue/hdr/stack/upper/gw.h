@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -14,12 +14,12 @@
 #define SRSUE_GW_H
 
 #include "gw_metrics.h"
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/common.h"
-#include "srslte/common/interfaces_common.h"
-#include "srslte/common/threads.h"
-#include "srslte/interfaces/ue_gw_interfaces.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/common/common.h"
+#include "srsran/common/interfaces_common.h"
+#include "srsran/common/threads.h"
+#include "srsran/interfaces/ue_gw_interfaces.h"
+#include "srsran/srslog/srslog.h"
 #include "tft_packet_filter.h"
 #include <net/if.h>
 #include <netinet/in.h>
@@ -38,7 +38,7 @@ struct gw_args_t {
   std::string tun_dev_netmask;
 };
 
-class gw : public gw_interface_stack, public srslte::thread
+class gw : public gw_interface_stack, public srsran::thread
 {
 public:
   gw();
@@ -48,8 +48,8 @@ public:
   void get_metrics(gw_metrics_t& m, const uint32_t nof_tti);
 
   // PDCP interface
-  void write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
-  void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
+  void write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
+  void write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
 
   // NAS interface
   int  setup_if_addr(uint32_t eps_bearer_id,
@@ -104,7 +104,7 @@ private:
   // MBSFN
   int                mbsfn_sock_fd                   = 0;  // Sink UDP socket file descriptor
   struct sockaddr_in mbsfn_sock_addr                 = {}; // Target address
-  uint32_t           mbsfn_ports[SRSLTE_N_MCH_LCIDS] = {}; // Target ports for MBSFN data
+  uint32_t           mbsfn_ports[SRSRAN_N_MCH_LCIDS] = {}; // Target ports for MBSFN data
 
   // TFT
   tft_pdu_matcher tft_matcher;

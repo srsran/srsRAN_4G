@@ -1,20 +1,20 @@
 /**
  *
- * \section copyright
+ * \section COPYRIGHT
  *
- * copyright 2013-2020 software radio systems limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * by using this file, you agree to the terms and conditions set
- * forth in the license file which can be found at the top level of
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
  * the distribution.
  *
  */
 
-#ifndef SRSLTE_SCHED_DCI_H
-#define SRSLTE_SCHED_DCI_H
+#ifndef SRSRAN_SCHED_DCI_H
+#define SRSRAN_SCHED_DCI_H
 
 #include "../sched_common.h"
-#include "srslte/adt/bounded_vector.h"
+#include "srsran/adt/bounded_vector.h"
 
 namespace srsenb {
 
@@ -63,7 +63,7 @@ tbs_info compute_min_mcs_and_tbs_from_required_bytes(uint32_t nof_prb,
 struct pending_rar_t {
   uint16_t                                                                                    ra_rnti = 0;
   tti_point                                                                                   prach_tti{};
-  srslte::bounded_vector<sched_interface::dl_sched_rar_info_t, sched_interface::MAX_RAR_LIST> msg3_grant = {};
+  srsran::bounded_vector<sched_interface::dl_sched_rar_info_t, sched_interface::MAX_RAR_LIST> msg3_grant = {};
 };
 
 bool generate_sib_dci(sched_interface::dl_sched_bc_t& bc,
@@ -102,4 +102,4 @@ void log_rar_allocation(const sched_interface::dl_sched_rar_t& rar, rbg_interval
 
 } // namespace srsenb
 
-#endif // SRSLTE_SCHED_DCI_H
+#endif // SRSRAN_SCHED_DCI_H

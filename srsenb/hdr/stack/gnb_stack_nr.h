@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -15,8 +15,8 @@
  * Description: L2/L3 gNB stack class.
  *****************************************************************************/
 
-#ifndef SRSLTE_GNB_STACK_NR_H
-#define SRSLTE_GNB_STACK_NR_H
+#ifndef SRSRAN_GNB_STACK_NR_H
+#define SRSRAN_GNB_STACK_NR_H
 
 #include "srsenb/hdr/stack/mac/mac_nr.h"
 #include "srsenb/hdr/stack/rrc/rrc_nr.h"
@@ -28,10 +28,10 @@
 
 #include "enb_stack_base.h"
 #include "srsenb/hdr/enb.h"
-#include "srslte/interfaces/gnb_interfaces.h"
+#include "srsran/interfaces/gnb_interfaces.h"
 
 // This is needed for GW
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srsran/interfaces/ue_interfaces.h"
 #include "srsue/hdr/stack/upper/gw.h"
 
 namespace srsenb {
@@ -40,7 +40,7 @@ class gnb_stack_nr final : public srsenb::enb_stack_base,
                            public stack_interface_phy_nr,
                            public stack_interface_mac,
                            public srsue::stack_interface_gw,
-                           public srslte::thread
+                           public srsran::thread
 {
 public:
   explicit gnb_stack_nr();
@@ -63,7 +63,7 @@ public:
   int rx_data_indication(rx_data_ind_t& grant);
 
   // Temporary GW interface
-  void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu);
+  void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu);
   bool is_lcid_enabled(uint32_t lcid);
   bool switch_on();
   void run_tti(uint32_t tti);
@@ -83,8 +83,8 @@ private:
 
   // task scheduling
   static const int                      STACK_MAIN_THREAD_PRIO = 4;
-  srslte::task_scheduler                task_sched;
-  srslte::task_multiqueue::queue_handle sync_task_queue, ue_task_queue, gw_task_queue, mac_task_queue;
+  srsran::task_scheduler                task_sched;
+  srsran::task_multiqueue::queue_handle sync_task_queue, ue_task_queue, gw_task_queue, mac_task_queue;
 
   // derived
   std::unique_ptr<mac_nr>    m_mac;
@@ -103,4 +103,4 @@ private:
 
 } // namespace srsenb
 
-#endif // SRSLTE_GNB_STACK_NR_H
+#endif // SRSRAN_GNB_STACK_NR_H

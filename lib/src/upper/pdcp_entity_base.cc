@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,12 +10,12 @@
  *
  */
 
-#include "srslte/upper/pdcp_entity_base.h"
-#include "srslte/common/int_helpers.h"
-#include "srslte/common/security.h"
+#include "srsran/upper/pdcp_entity_base.h"
+#include "srsran/common/int_helpers.h"
+#include "srsran/common/security.h"
 #include <inttypes.h>
 
-namespace srslte {
+namespace srsran {
 
 pdcp_entity_base::pdcp_entity_base(task_sched_handle task_sched_, srslog::basic_logger& logger) :
   logger(logger), task_sched(task_sched_)
@@ -243,11 +243,11 @@ uint32_t pdcp_entity_base::read_data_header(const unique_byte_buffer_t& pdu)
       rcvd_sn_32 = SN(pdu->msg[0]);
       break;
     case PDCP_SN_LEN_12:
-      srslte::uint8_to_uint16(pdu->msg, &rcvd_sn_16);
+      srsran::uint8_to_uint16(pdu->msg, &rcvd_sn_16);
       rcvd_sn_32 = SN(rcvd_sn_16);
       break;
     case PDCP_SN_LEN_18:
-      srslte::uint8_to_uint24(pdu->msg, &rcvd_sn_32);
+      srsran::uint8_to_uint24(pdu->msg, &rcvd_sn_32);
       rcvd_sn_32 = SN(rcvd_sn_32);
       break;
     default:
@@ -263,7 +263,7 @@ void pdcp_entity_base::discard_data_header(const unique_byte_buffer_t& pdu)
   pdu->N_bytes -= cfg.hdr_len_bytes;
 }
 
-void pdcp_entity_base::write_data_header(const srslte::unique_byte_buffer_t& sdu, uint32_t count)
+void pdcp_entity_base::write_data_header(const srsran::unique_byte_buffer_t& sdu, uint32_t count)
 {
   // Add room for header
   if (cfg.hdr_len_bytes > sdu->get_headroom()) {
@@ -285,13 +285,13 @@ void pdcp_entity_base::write_data_header(const srslte::unique_byte_buffer_t& sdu
       }
       break;
     case PDCP_SN_LEN_12:
-      srslte::uint16_to_uint8(SN(count), sdu->msg);
+      srsran::uint16_to_uint8(SN(count), sdu->msg);
       if (is_drb()) {
         sdu->msg[0] |= 0x80; // On Data PDUs for DRBs we must set the D flag.
       }
       break;
     case PDCP_SN_LEN_18:
-      srslte::uint24_to_uint8(SN(count), sdu->msg);
+      srsran::uint24_to_uint8(SN(count), sdu->msg);
       sdu->msg[0] |= 0x80; // Data PDU and SN LEN 18 implies DRB, D flag must be present
       break;
     default:
@@ -324,4 +324,4 @@ void pdcp_entity_base::append_mac(const unique_byte_buffer_t& sdu, uint8_t* mac)
   memcpy(&sdu->msg[sdu->N_bytes], mac, 4);
   sdu->N_bytes += 4;
 }
-} // namespace srslte
+} // namespace srsran

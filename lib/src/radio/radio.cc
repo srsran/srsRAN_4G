@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,23 +10,23 @@
  *
  */
 
-#include "srslte/radio/radio.h"
-#include "srslte/common/standard_streams.h"
-#include "srslte/common/string_helpers.h"
-#include "srslte/config.h"
+#include "srsran/radio/radio.h"
+#include "srsran/common/standard_streams.h"
+#include "srsran/common/string_helpers.h"
+#include "srsran/config.h"
 #include <list>
 #include <string>
 #include <unistd.h>
 
-namespace srslte {
+namespace srsran {
 
 radio::radio() : zeros(nullptr)
 {
-  zeros = srslte_vec_cf_malloc(SRSLTE_SF_LEN_MAX);
-  srslte_vec_cf_zero(zeros, SRSLTE_SF_LEN_MAX);
-  for (uint32_t i = 0; i < SRSLTE_MAX_CHANNELS; i++) {
-    dummy_buffers[i] = srslte_vec_cf_malloc(SRSLTE_SF_LEN_MAX * SRSLTE_NOF_SF_X_FRAME);
-    srslte_vec_cf_zero(dummy_buffers[i], SRSLTE_SF_LEN_MAX * SRSLTE_NOF_SF_X_FRAME);
+  zeros = srsran_vec_cf_malloc(SRSRAN_SF_LEN_MAX);
+  srsran_vec_cf_zero(zeros, SRSRAN_SF_LEN_MAX);
+  for (uint32_t i = 0; i < SRSRAN_MAX_CHANNELS; i++) {
+    dummy_buffers[i] = srsran_vec_cf_malloc(SRSRAN_SF_LEN_MAX * SRSRAN_NOF_SF_X_FRAME);
+    srsran_vec_cf_zero(dummy_buffers[i], SRSRAN_SF_LEN_MAX * SRSRAN_NOF_SF_X_FRAME);
   }
 }
 
@@ -37,18 +37,18 @@ radio::~radio()
     zeros = nullptr;
   }
 
-  for (uint32_t i = 0; i < SRSLTE_MAX_CHANNELS; i++) {
+  for (uint32_t i = 0; i < SRSRAN_MAX_CHANNELS; i++) {
     if (dummy_buffers[i]) {
       free(dummy_buffers[i]);
     }
   }
 
-  for (srslte_resampler_fft_t& q : interpolators) {
-    srslte_resampler_fft_free(&q);
+  for (srsran_resampler_fft_t& q : interpolators) {
+    srsran_resampler_fft_free(&q);
   }
 
-  for (srslte_resampler_fft_t& q : decimators) {
-    srslte_resampler_fft_free(&q);
+  for (srsran_resampler_fft_t& q : decimators) {
+    srsran_resampler_fft_free(&q);
   }
 }
 
@@ -59,19 +59,19 @@ int radio::init(const rf_args_t& args, phy_interface_radio* phy_)
   // Init log
   logger.set_level(srslog::str_to_basic_level(args.log_level));
 
-  if (args.nof_antennas > SRSLTE_MAX_PORTS) {
-    logger.error("Maximum number of antennas exceeded (%d > %d)", args.nof_antennas, SRSLTE_MAX_PORTS);
-    return SRSLTE_ERROR;
+  if (args.nof_antennas > SRSRAN_MAX_PORTS) {
+    logger.error("Maximum number of antennas exceeded (%d > %d)", args.nof_antennas, SRSRAN_MAX_PORTS);
+    return SRSRAN_ERROR;
   }
 
-  if (args.nof_carriers > SRSLTE_MAX_CARRIERS) {
-    logger.error("Maximum number of carriers exceeded (%d > %d)", args.nof_carriers, SRSLTE_MAX_CARRIERS);
-    return SRSLTE_ERROR;
+  if (args.nof_carriers > SRSRAN_MAX_CARRIERS) {
+    logger.error("Maximum number of carriers exceeded (%d > %d)", args.nof_carriers, SRSRAN_MAX_CARRIERS);
+    return SRSRAN_ERROR;
   }
 
   if (!config_rf_channels(args)) {
-    srslte::console("Error configuring RF channels\n");
-    return SRSLTE_ERROR;
+    srsran::console("Error configuring RF channels\n");
+    return SRSRAN_ERROR;
   }
 
   nof_channels = args.nof_antennas * args.nof_carriers;
@@ -98,11 +98,11 @@ int radio::init(const rf_args_t& args, phy_interface_radio* phy_)
 
   // Makes sure it is possible to have the same number of RF channels in each RF device
   if (nof_channels % device_args_list.size() != 0) {
-    srslte::console(
+    srsran::console(
         "Error: The number of required RF channels (%d) is not divisible between the number of RF devices (%zd).\n",
         nof_channels,
         device_args_list.size());
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   nof_channels_x_dev = nof_channels / device_args_list.size();
 
@@ -118,7 +118,7 @@ int radio::init(const rf_args_t& args, phy_interface_radio* phy_)
   for (uint32_t device_idx = 0; device_idx < (uint32_t)device_args_list.size(); device_idx++) {
     if (not open_dev(device_idx, args.device_name, device_args_list[device_idx])) {
       logger.error("Error opening RF device %d", device_idx);
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
   }
 
@@ -149,7 +149,7 @@ int radio::init(const rf_args_t& args, phy_interface_radio* phy_)
   } else {
     // Set same gain than for RX until power control sets a gain
     set_tx_gain(args.rx_gain);
-    srslte::console("\nWarning: TX gain was not set. Using open-loop power control (not working properly)\n\n");
+    srsran::console("\nWarning: TX gain was not set. Using open-loop power control (not working properly)\n\n");
   }
 
   // Set individual gains
@@ -164,7 +164,7 @@ int radio::init(const rf_args_t& args, phy_interface_radio* phy_)
 
         logger.info(
             "Setting individual tx_gain=%.1f on dev=%d ch=%d", args.tx_gain_ch[i], rf_device_idx, rf_channel_idx);
-        if (srslte_rf_set_tx_gain_ch(&rf_devices[rf_device_idx], rf_channel_idx, args.tx_gain_ch[i]) < 0) {
+        if (srsran_rf_set_tx_gain_ch(&rf_devices[rf_device_idx], rf_channel_idx, args.tx_gain_ch[i]) < 0) {
           logger.error(
               "Setting channel tx_gain=%.1f on dev=%d ch=%d", args.tx_gain_ch[i], rf_device_idx, rf_channel_idx);
         }
@@ -184,7 +184,7 @@ int radio::init(const rf_args_t& args, phy_interface_radio* phy_)
 
         logger.info(
             "Setting individual rx_gain=%.1f on dev=%d ch=%d", args.rx_gain_ch[i], rf_device_idx, rf_channel_idx);
-        if (srslte_rf_set_rx_gain_ch(&rf_devices[rf_device_idx], rf_channel_idx, args.rx_gain_ch[i]) < 0) {
+        if (srsran_rf_set_rx_gain_ch(&rf_devices[rf_device_idx], rf_channel_idx, args.rx_gain_ch[i]) < 0) {
           logger.error(
               "Setting channel rx_gain=%.1f on dev=%d ch=%d", args.rx_gain_ch[i], rf_device_idx, rf_channel_idx);
         }
@@ -206,7 +206,7 @@ int radio::init(const rf_args_t& args, phy_interface_radio* phy_)
   // Frequency offset
   freq_offset = args.freq_offset;
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 bool radio::is_init()
@@ -218,8 +218,8 @@ void radio::stop()
 {
   // Stop Rx streams as soon as possible to avoid Overflows
   if (radio_is_streaming) {
-    for (srslte_rf_t& rf_device : rf_devices) {
-      srslte_rf_stop_rx_stream(&rf_device);
+    for (srsran_rf_t& rf_device : rf_devices) {
+      srsran_rf_stop_rx_stream(&rf_device);
     }
   }
   if (zeros) {
@@ -227,16 +227,16 @@ void radio::stop()
     zeros = NULL;
   }
   if (is_initialized) {
-    for (srslte_rf_t& rf_device : rf_devices) {
-      srslte_rf_close(&rf_device);
+    for (srsran_rf_t& rf_device : rf_devices) {
+      srsran_rf_close(&rf_device);
     }
   }
 }
 
 void radio::reset()
 {
-  for (srslte_rf_t& rf_device : rf_devices) {
-    srslte_rf_stop_rx_stream(&rf_device);
+  for (srsran_rf_t& rf_device : rf_devices) {
+    srsran_rf_stop_rx_stream(&rf_device);
   }
   radio_is_streaming = false;
   usleep(100000);
@@ -266,8 +266,8 @@ bool radio::start_agc(bool tx_gain_same_rx)
   if (!is_initialized) {
     return false;
   }
-  for (srslte_rf_t& rf_device : rf_devices) {
-    if (srslte_rf_start_gain_thread(&rf_device, tx_gain_same_rx)) {
+  for (srsran_rf_t& rf_device : rf_devices) {
+    if (srsran_rf_start_gain_thread(&rf_device, tx_gain_same_rx)) {
       ERROR("Error starting AGC Thread RF device");
       return false;
     }
@@ -319,15 +319,15 @@ bool radio::rx_now(rf_buffer_interface& buffer, rf_timestamp_interface& rxd_time
   }
 
   if (not radio_is_streaming) {
-    for (srslte_rf_t& rf_device : rf_devices) {
-      srslte_rf_start_rx_stream(&rf_device, false);
+    for (srsran_rf_t& rf_device : rf_devices) {
+      srsran_rf_start_rx_stream(&rf_device, false);
     }
     radio_is_streaming = true;
 
     // Flush buffers to compensate settling time
     if (rf_devices.size() > 1) {
-      for (srslte_rf_t& rf_device : rf_devices) {
-        srslte_rf_flush_buffer(&rf_device);
+      for (srsran_rf_t& rf_device : rf_devices) {
+        srsran_rf_flush_buffer(&rf_device);
       }
     }
   }
@@ -340,7 +340,7 @@ bool radio::rx_now(rf_buffer_interface& buffer, rf_timestamp_interface& rxd_time
   if (ratio > 1) {
     for (uint32_t ch = 0; ch < nof_channels; ch++) {
       if (buffer.get(ch) and buffer_rx.get(ch)) {
-        srslte_resampler_fft_run(&decimators[ch], buffer_rx.get(ch), buffer.get(ch), buffer_rx.get_nof_samples());
+        srsran_resampler_fft_run(&decimators[ch], buffer_rx.get(ch), buffer.get(ch), buffer_rx.get_nof_samples());
       }
     }
   }
@@ -348,7 +348,7 @@ bool radio::rx_now(rf_buffer_interface& buffer, rf_timestamp_interface& rxd_time
   return ret;
 }
 
-bool radio::rx_dev(const uint32_t& device_idx, const rf_buffer_interface& buffer, srslte_timestamp_t* rxd_time)
+bool radio::rx_dev(const uint32_t& device_idx, const rf_buffer_interface& buffer, srsran_timestamp_t* rxd_time)
 {
   if (!is_initialized) {
     return false;
@@ -357,10 +357,10 @@ bool radio::rx_dev(const uint32_t& device_idx, const rf_buffer_interface& buffer
   time_t* full_secs = rxd_time ? &rxd_time->full_secs : nullptr;
   double* frac_secs = rxd_time ? &rxd_time->frac_secs : nullptr;
 
-  void* radio_buffers[SRSLTE_MAX_CHANNELS] = {};
+  void* radio_buffers[SRSRAN_MAX_CHANNELS] = {};
 
   // Discard channels not allocated, need to point to valid buffer
-  for (uint32_t i = 0; i < SRSLTE_MAX_CHANNELS; i++) {
+  for (uint32_t i = 0; i < SRSRAN_MAX_CHANNELS; i++) {
     radio_buffers[i] = dummy_buffers[i];
   }
 
@@ -379,14 +379,14 @@ bool radio::rx_dev(const uint32_t& device_idx, const rf_buffer_interface& buffer
     nof_samples = 0;
   } else {
     // Limit the number of samples to a maximum of 2 times the requested number of samples
-    nof_samples = SRSLTE_MIN(nof_samples + nof_samples_offset, 2 * nof_samples);
+    nof_samples = SRSRAN_MIN(nof_samples + nof_samples_offset, 2 * nof_samples);
   }
 
   // Subtract number of offset samples
   rx_offset_n.at(device_idx) = nof_samples_offset - ((int)nof_samples - (int)buffer.get_nof_samples());
 
   int ret =
-      srslte_rf_recv_with_time_multi(&rf_devices[device_idx], radio_buffers, nof_samples, true, full_secs, frac_secs);
+      srsran_rf_recv_with_time_multi(&rf_devices[device_idx], radio_buffers, nof_samples, true, full_secs, frac_secs);
 
   // If the number of received samples filled the buffer, there is nothing else to do
   if (buffer.get_nof_samples() <= nof_samples) {
@@ -398,7 +398,7 @@ bool radio::rx_dev(const uint32_t& device_idx, const rf_buffer_interface& buffer
   for (auto& b : radio_buffers) {
     if (b != nullptr) {
       cf_t* ptr = (cf_t*)b;
-      srslte_vec_cf_zero(&ptr[nof_samples], nof_zeros);
+      srsran_vec_cf_zero(&ptr[nof_samples], nof_zeros);
     }
   }
 
@@ -434,7 +434,7 @@ bool radio::tx(rf_buffer_interface& buffer, const rf_timestamp_interface& tx_tim
   if (interpolators[0].ratio > 1) {
     for (uint32_t ch = 0; ch < nof_channels; ch++) {
       // Perform actual interpolation
-      srslte_resampler_fft_run(&interpolators[ch], buffer.get(ch), tx_buffer[ch].data(), nof_samples);
+      srsran_resampler_fft_run(&interpolators[ch], buffer.get(ch), tx_buffer[ch].data(), nof_samples);
 
       // Set the buffer pointer
       buffer.set(ch, tx_buffer[ch].data());
@@ -455,7 +455,7 @@ bool radio::tx(rf_buffer_interface& buffer, const rf_timestamp_interface& tx_tim
 
 bool radio::open_dev(const uint32_t& device_idx, const std::string& device_name, const std::string& devive_args)
 {
-  srslte_rf_t* rf_device = &rf_devices[device_idx];
+  srsran_rf_t* rf_device = &rf_devices[device_idx];
 
   char* dev_args = nullptr;
   if (devive_args != "auto") {
@@ -467,33 +467,33 @@ bool radio::open_dev(const uint32_t& device_idx, const std::string& device_name,
     dev_name = (char*)device_name.c_str();
   }
 
-  srslte::console("Opening %d channels in RF device=%s with args=%s\n",
+  srsran::console("Opening %d channels in RF device=%s with args=%s\n",
                   nof_channels_x_dev,
                   dev_name ? dev_name : "default",
                   dev_args ? dev_args : "default");
 
-  if (srslte_rf_open_devname(rf_device, dev_name, dev_args, nof_channels_x_dev)) {
+  if (srsran_rf_open_devname(rf_device, dev_name, dev_args, nof_channels_x_dev)) {
     logger.error("Error opening RF device");
     return false;
   }
 
   // Suppress radio stdout
-  srslte_rf_suppress_stdout(rf_device);
+  srsran_rf_suppress_stdout(rf_device);
 
   // Register handler for processing O/U/L
-  srslte_rf_register_error_handler(rf_device, rf_msg_callback, this);
+  srsran_rf_register_error_handler(rf_device, rf_msg_callback, this);
 
   // Get device info
-  rf_info[device_idx] = *srslte_rf_get_info(rf_device);
+  rf_info[device_idx] = *srsran_rf_get_info(rf_device);
 
   return true;
 }
 
-bool radio::tx_dev(const uint32_t& device_idx, rf_buffer_interface& buffer, const srslte_timestamp_t& tx_time_)
+bool radio::tx_dev(const uint32_t& device_idx, rf_buffer_interface& buffer, const srsran_timestamp_t& tx_time_)
 {
   uint32_t     nof_samples   = buffer.get_nof_samples();
   uint32_t     sample_offset = 0;
-  srslte_rf_t* rf_device     = &rf_devices[device_idx];
+  srsran_rf_t* rf_device     = &rf_devices[device_idx];
 
   // Return instantly if the radio module is not initialised
   if (!is_initialized) {
@@ -501,19 +501,19 @@ bool radio::tx_dev(const uint32_t& device_idx, rf_buffer_interface& buffer, cons
   }
 
   // Copy timestamp and add Tx time offset calibration
-  srslte_timestamp_t tx_time = tx_time_;
+  srsran_timestamp_t tx_time = tx_time_;
   if (!tx_adv_negative) {
-    srslte_timestamp_sub(&tx_time, 0, tx_adv_sec);
+    srsran_timestamp_sub(&tx_time, 0, tx_adv_sec);
   } else {
-    srslte_timestamp_add(&tx_time, 0, tx_adv_sec);
+    srsran_timestamp_add(&tx_time, 0, tx_adv_sec);
   }
 
   // Calculates transmission time overlap with previous transmission
-  srslte_timestamp_t ts_overlap = end_of_burst_time[device_idx];
-  srslte_timestamp_sub(&ts_overlap, tx_time.full_secs, tx_time.frac_secs);
+  srsran_timestamp_t ts_overlap = end_of_burst_time[device_idx];
+  srsran_timestamp_sub(&ts_overlap, tx_time.full_secs, tx_time.frac_secs);
 
   // Calculates number of overlap samples with previous transmission
-  int32_t past_nsamples = (int32_t)round(cur_tx_srate * srslte_timestamp_real(&ts_overlap));
+  int32_t past_nsamples = (int32_t)round(cur_tx_srate * srsran_timestamp_real(&ts_overlap));
 
   // if past_nsamples is positive, the current transmission overlaps with the previous transmission. If it is negative
   // there is a gap between the previous transmission and the current transmission.
@@ -531,32 +531,32 @@ bool radio::tx_dev(const uint32_t& device_idx, rf_buffer_interface& buffer, cons
 
     // Prints discarded samples
     logger.debug("Detected RF overlap of %.1f us. Discarding %d samples. Power=%+.1f dBfs",
-                 srslte_timestamp_real(&ts_overlap) * 1.0e6,
+                 srsran_timestamp_real(&ts_overlap) * 1.0e6,
                  past_nsamples,
-                 srslte_convert_power_to_dB(srslte_vec_avg_power_cf(&buffer.get(0)[nof_samples], past_nsamples)));
+                 srsran_convert_power_to_dB(srsran_vec_avg_power_cf(&buffer.get(0)[nof_samples], past_nsamples)));
 
   } else if (past_nsamples < 0 and not is_start_of_burst) {
     // if the gap is bigger than TX_MAX_GAP_ZEROS, stop burst
-    if (fabs(srslte_timestamp_real(&ts_overlap)) > tx_max_gap_zeros) {
-      logger.info("Detected RF gap of %.1f us. Sending end-of-burst.", srslte_timestamp_real(&ts_overlap) * 1.0e6);
+    if (fabs(srsran_timestamp_real(&ts_overlap)) > tx_max_gap_zeros) {
+      logger.info("Detected RF gap of %.1f us. Sending end-of-burst.", srsran_timestamp_real(&ts_overlap) * 1.0e6);
       tx_end();
     } else {
-      logger.debug("Detected RF gap of %.1f us. Tx'ing zeroes.", srslte_timestamp_real(&ts_overlap) * 1.0e6);
+      logger.debug("Detected RF gap of %.1f us. Tx'ing zeroes.", srsran_timestamp_real(&ts_overlap) * 1.0e6);
       // Otherwise, transmit zeros
       uint32_t gap_nsamples = abs(past_nsamples);
       while (gap_nsamples > 0) {
-        // Transmission cannot exceed SRSLTE_SF_LEN_MAX (zeros buffer size limitation)
-        uint32_t nzeros = SRSLTE_MIN(gap_nsamples, SRSLTE_SF_LEN_MAX);
+        // Transmission cannot exceed SRSRAN_SF_LEN_MAX (zeros buffer size limitation)
+        uint32_t nzeros = SRSRAN_MIN(gap_nsamples, SRSRAN_SF_LEN_MAX);
 
         // Zeros transmission
-        int ret = srslte_rf_send_timed2(rf_device,
+        int ret = srsran_rf_send_timed2(rf_device,
                                         zeros,
                                         nzeros,
                                         end_of_burst_time[device_idx].full_secs,
                                         end_of_burst_time[device_idx].frac_secs,
                                         false,
                                         false);
-        if (ret < SRSLTE_SUCCESS) {
+        if (ret < SRSRAN_SUCCESS) {
           return false;
         }
 
@@ -564,19 +564,19 @@ bool radio::tx_dev(const uint32_t& device_idx, rf_buffer_interface& buffer, cons
         gap_nsamples -= nzeros;
 
         // Increase timestamp
-        srslte_timestamp_add(&end_of_burst_time[device_idx], 0, (double)nzeros / cur_tx_srate);
+        srsran_timestamp_add(&end_of_burst_time[device_idx], 0, (double)nzeros / cur_tx_srate);
       }
     }
   }
 
   // Save possible end of burst time
-  srslte_timestamp_copy(&end_of_burst_time[device_idx], &tx_time);
-  srslte_timestamp_add(&end_of_burst_time[device_idx], 0, (double)nof_samples / cur_tx_srate);
+  srsran_timestamp_copy(&end_of_burst_time[device_idx], &tx_time);
+  srsran_timestamp_add(&end_of_burst_time[device_idx], 0, (double)nof_samples / cur_tx_srate);
 
-  void* radio_buffers[SRSLTE_MAX_CHANNELS] = {};
+  void* radio_buffers[SRSRAN_MAX_CHANNELS] = {};
 
   // Discard channels not allocated, need to point to valid buffer
-  for (uint32_t i = 0; i < SRSLTE_MAX_CHANNELS; i++) {
+  for (uint32_t i = 0; i < SRSRAN_MAX_CHANNELS; i++) {
     radio_buffers[i] = zeros;
   }
 
@@ -585,10 +585,10 @@ bool radio::tx_dev(const uint32_t& device_idx, rf_buffer_interface& buffer, cons
     return false;
   }
 
-  int ret = srslte_rf_send_timed_multi(
+  int ret = srsran_rf_send_timed_multi(
       rf_device, radio_buffers, nof_samples, tx_time.full_secs, tx_time.frac_secs, true, is_start_of_burst, false);
 
-  return ret > SRSLTE_SUCCESS;
+  return ret > SRSRAN_SUCCESS;
 }
 
 void radio::tx_end()
@@ -598,7 +598,7 @@ void radio::tx_end()
   }
   if (!is_start_of_burst) {
     for (uint32_t i = 0; i < (uint32_t)rf_devices.size(); i++) {
-      srslte_rf_send_timed2(
+      srsran_rf_send_timed2(
           &rf_devices[i], zeros, 0, end_of_burst_time[i].full_secs, end_of_burst_time[i].frac_secs, false, true);
     }
     is_start_of_burst = true;
@@ -639,7 +639,7 @@ void radio::set_rx_freq(const uint32_t& carrier_idx, const double& freq)
         cur_rx_freqs[device_mapping.carrier_idx] = freq;
         for (uint32_t i = 0; i < nof_antennas; i++) {
           channel_mapping::device_mapping_t dm = rx_channel_mapping.get_device_mapping(carrier_idx, i);
-          srslte_rf_set_rx_freq(&rf_devices[dm.device_idx], dm.channel_idx, freq + freq_offset);
+          srsran_rf_set_rx_freq(&rf_devices[dm.device_idx], dm.channel_idx, freq + freq_offset);
         }
       } else {
         logger.error("set_rx_freq: physical_channel_idx=%d for %d antennas exceeds maximum channels (%d)",
@@ -660,8 +660,8 @@ void radio::set_rx_gain(const float& gain)
   if (!is_initialized) {
     return;
   }
-  for (srslte_rf_t& rf_device : rf_devices) {
-    srslte_rf_set_rx_gain(&rf_device, gain);
+  for (srsran_rf_t& rf_device : rf_devices) {
+    srsran_rf_set_rx_gain(&rf_device, gain);
   }
 }
 
@@ -670,8 +670,8 @@ void radio::set_rx_gain_th(const float& gain)
   if (!is_initialized) {
     return;
   }
-  for (srslte_rf_t& rf_device : rf_devices) {
-    srslte_rf_set_rx_gain_th(&rf_device, gain);
+  for (srsran_rf_t& rf_device : rf_devices) {
+    srsran_rf_set_rx_gain_th(&rf_device, gain);
   }
 }
 
@@ -687,21 +687,21 @@ void radio::set_rx_srate(const double& srate)
 
     // If the sampling rate was not set, set it
     if (not std::isnormal(cur_rx_srate)) {
-      for (srslte_rf_t& rf_device : rf_devices) {
-        cur_rx_srate = srslte_rf_set_rx_srate(&rf_device, fix_srate_hz);
+      for (srsran_rf_t& rf_device : rf_devices) {
+        cur_rx_srate = srsran_rf_set_rx_srate(&rf_device, fix_srate_hz);
       }
     }
 
     // Update decimators
     uint32_t ratio = (uint32_t)ceil(cur_rx_srate / srate);
     for (uint32_t ch = 0; ch < nof_channels; ch++) {
-      srslte_resampler_fft_init(&decimators[ch], SRSLTE_RESAMPLER_MODE_DECIMATE, ratio);
+      srsran_resampler_fft_init(&decimators[ch], SRSRAN_RESAMPLER_MODE_DECIMATE, ratio);
     }
 
     decimator_busy = false;
   } else {
-    for (srslte_rf_t& rf_device : rf_devices) {
-      cur_rx_srate = srslte_rf_set_rx_srate(&rf_device, srate);
+    for (srsran_rf_t& rf_device : rf_devices) {
+      cur_rx_srate = srsran_rf_set_rx_srate(&rf_device, srate);
     }
   }
 }
@@ -758,7 +758,7 @@ void radio::set_tx_freq(const uint32_t& carrier_idx, const double& freq)
         for (uint32_t i = 0; i < nof_antennas; i++) {
           device_mapping = tx_channel_mapping.get_device_mapping(carrier_idx, i);
 
-          srslte_rf_set_tx_freq(&rf_devices[device_mapping.device_idx], device_mapping.channel_idx, freq + freq_offset);
+          srsran_rf_set_tx_freq(&rf_devices[device_mapping.device_idx], device_mapping.channel_idx, freq + freq_offset);
         }
       } else {
         logger.error("set_tx_freq: physical_channel_idx=%d for %d antennas exceeds maximum channels (%d)",
@@ -779,8 +779,8 @@ void radio::set_tx_gain(const float& gain)
   if (!is_initialized) {
     return;
   }
-  for (srslte_rf_t& rf_device : rf_devices) {
-    srslte_rf_set_tx_gain(&rf_device, gain);
+  for (srsran_rf_t& rf_device : rf_devices) {
+    srsran_rf_set_tx_gain(&rf_device, gain);
   }
 }
 
@@ -794,7 +794,7 @@ float radio::get_rx_gain()
   if (!is_initialized) {
     return 0.0f;
   }
-  return (float)srslte_rf_get_rx_gain(&rf_devices[0]);
+  return (float)srsran_rf_get_rx_gain(&rf_devices[0]);
 }
 
 double radio::get_dev_cal_tx_adv_sec(const std::string& device_name)
@@ -802,7 +802,7 @@ double radio::get_dev_cal_tx_adv_sec(const std::string& device_name)
   int nsamples = 0;
   /* Set time advance for each known device if in auto mode */
   if (tx_adv_auto) {
-    /* This values have been calibrated using the prach_test_usrp tool in srsLTE */
+    /* This values have been calibrated using the prach_test_usrp tool in srsRAN */
 
     if (device_name == "uhd_b200") {
       double srate_khz = round(cur_tx_srate / 1e3);
@@ -826,7 +826,7 @@ double radio::get_dev_cal_tx_adv_sec(const std::string& device_name)
         nsamples = 160;
       } else {
         /* Interpolate from known values */
-        srslte::console(
+        srsran::console(
             "\nWarning TX/RX time offset for sampling rate %.0f KHz not calibrated. Using interpolated value\n\n",
             cur_tx_srate);
         nsamples = uhd_default_tx_adv_samples + (int)(cur_tx_srate * uhd_default_tx_adv_offset_sec);
@@ -848,7 +848,7 @@ double radio::get_dev_cal_tx_adv_sec(const std::string& device_name)
         nsamples = 80; // to calc
       } else {
         /* Interpolate from known values */
-        srslte::console(
+        srsran::console(
             "\nWarning TX/RX time offset for sampling rate %.0f KHz not calibrated. Using interpolated value\n\n",
             cur_tx_srate);
         nsamples = uhd_default_tx_adv_samples + (int)(cur_tx_srate * uhd_default_tx_adv_offset_sec);
@@ -870,7 +870,7 @@ double radio::get_dev_cal_tx_adv_sec(const std::string& device_name)
         nsamples = 102;
       } else {
         /* Interpolate from known values */
-        srslte::console(
+        srsran::console(
             "\nWarning TX/RX time offset for sampling rate %.0f KHz not calibrated. Using interpolated value\n\n",
             cur_tx_srate);
         nsamples = lime_default_tx_adv_samples + (int)(cur_tx_srate * lime_default_tx_adv_offset_sec);
@@ -895,7 +895,7 @@ double radio::get_dev_cal_tx_adv_sec(const std::string& device_name)
         nsamples = 21;
       } else {
         /* Interpolate from known values */
-        srslte::console(
+        srsran::console(
             "\nWarning TX/RX time offset for sampling rate %.0f KHz not calibrated. Using interpolated value\n\n",
             cur_tx_srate);
         nsamples = blade_default_tx_adv_samples + (int)(blade_default_tx_adv_offset_sec * cur_tx_srate);
@@ -905,7 +905,7 @@ double radio::get_dev_cal_tx_adv_sec(const std::string& device_name)
     }
   } else {
     nsamples = tx_adv_nsamples;
-    srslte::console("Setting manual TX/RX offset to %d samples\n", nsamples);
+    srsran::console("Setting manual TX/RX offset to %d samples\n", nsamples);
   }
 
   // Calculate TX advance in seconds from samples and sampling rate
@@ -923,24 +923,24 @@ void radio::set_tx_srate(const double& srate)
   if (std::isnormal(fix_srate_hz)) {
     // If the sampling rate was not set, set it
     if (not std::isnormal(cur_tx_srate)) {
-      for (srslte_rf_t& rf_device : rf_devices) {
-        cur_tx_srate = srslte_rf_set_tx_srate(&rf_device, fix_srate_hz);
+      for (srsran_rf_t& rf_device : rf_devices) {
+        cur_tx_srate = srsran_rf_set_tx_srate(&rf_device, fix_srate_hz);
       }
     }
 
     // Update interpolators
     uint32_t ratio = (uint32_t)ceil(cur_tx_srate / srate);
     for (uint32_t ch = 0; ch < nof_channels; ch++) {
-      srslte_resampler_fft_init(&interpolators[ch], SRSLTE_RESAMPLER_MODE_INTERPOLATE, ratio);
+      srsran_resampler_fft_init(&interpolators[ch], SRSRAN_RESAMPLER_MODE_INTERPOLATE, ratio);
     }
   } else {
-    for (srslte_rf_t& rf_device : rf_devices) {
-      cur_tx_srate = srslte_rf_set_tx_srate(&rf_device, srate);
+    for (srsran_rf_t& rf_device : rf_devices) {
+      cur_tx_srate = srsran_rf_set_tx_srate(&rf_device, srate);
     }
   }
 
   // Get calibrated advanced
-  tx_adv_sec = get_dev_cal_tx_adv_sec(std::string(srslte_rf_name(&rf_devices[0])));
+  tx_adv_sec = get_dev_cal_tx_adv_sec(std::string(srsran_rf_name(&rf_devices[0])));
 
   if (tx_adv_sec < 0) {
     tx_adv_sec *= -1;
@@ -948,12 +948,12 @@ void radio::set_tx_srate(const double& srate)
   }
 }
 
-srslte_rf_info_t* radio::get_info()
+srsran_rf_info_t* radio::get_info()
 {
   if (!is_initialized) {
     return nullptr;
   }
-  return srslte_rf_get_info(&rf_devices[0]);
+  return srsran_rf_get_info(&rf_devices[0]);
 }
 
 bool radio::get_metrics(rf_metrics_t* metrics)
@@ -963,30 +963,30 @@ bool radio::get_metrics(rf_metrics_t* metrics)
   return true;
 }
 
-void radio::handle_rf_msg(srslte_rf_error_t error)
+void radio::handle_rf_msg(srsran_rf_error_t error)
 {
   if (!is_initialized) {
     return;
   }
-  if (error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_OVERFLOW) {
+  if (error.type == srsran_rf_error_t::SRSRAN_RF_ERROR_OVERFLOW) {
     rf_metrics.rf_o++;
     rf_metrics.rf_error = true;
     logger.info("Overflow");
 
     // inform PHY about overflow
     phy->radio_overflow();
-  } else if (error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_UNDERFLOW) {
+  } else if (error.type == srsran_rf_error_t::SRSRAN_RF_ERROR_UNDERFLOW) {
     rf_metrics.rf_u++;
     rf_metrics.rf_error = true;
     logger.info("Underflow");
-  } else if (error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_LATE) {
+  } else if (error.type == srsran_rf_error_t::SRSRAN_RF_ERROR_LATE) {
     rf_metrics.rf_l++;
     rf_metrics.rf_error = true;
     logger.info("Late (detected in %s)", error.opt ? "rx call" : "asynchronous thread");
-  } else if (error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_RX) {
+  } else if (error.type == srsran_rf_error_t::SRSRAN_RF_ERROR_RX) {
     logger.error("Fatal radio error occured.");
     phy->radio_failure();
-  } else if (error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_OTHER) {
+  } else if (error.type == srsran_rf_error_t::SRSRAN_RF_ERROR_OTHER) {
     std::string str(error.msg);
     str.erase(std::remove(str.begin(), str.end(), '\n'), str.end());
     str.erase(std::remove(str.begin(), str.end(), '\r'), str.end());
@@ -994,7 +994,7 @@ void radio::handle_rf_msg(srslte_rf_error_t error)
   }
 }
 
-void radio::rf_msg_callback(void* arg, srslte_rf_error_t error)
+void radio::rf_msg_callback(void* arg, srsran_rf_error_t error)
 {
   radio* h = (radio*)arg;
   if (arg != nullptr) {
@@ -1006,10 +1006,10 @@ bool radio::map_channels(const channel_mapping&     map,
                          uint32_t                   device_idx,
                          uint32_t                   sample_offset,
                          const rf_buffer_interface& buffer,
-                         void*                      radio_buffers[SRSLTE_MAX_CHANNELS])
+                         void*                      radio_buffers[SRSRAN_MAX_CHANNELS])
 {
   // Conversion from safe C++ std::array to the unsafe C interface. We must ensure that the RF driver implementation
-  // accepts up to SRSLTE_MAX_CHANNELS buffers
+  // accepts up to SRSRAN_MAX_CHANNELS buffers
   for (uint32_t i = 0; i < nof_carriers; i++) {
     // Skip if not allocated
     if (not map.is_allocated(i)) {
@@ -1074,4 +1074,4 @@ bool radio::config_rf_channels(const rf_args_t& args)
   return true;
 }
 
-} // namespace srslte
+} // namespace srsran

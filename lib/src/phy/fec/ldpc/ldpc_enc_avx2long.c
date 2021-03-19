@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -24,10 +24,10 @@
 
 #include "../utils_avx2.h"
 #include "ldpc_enc_all.h"
-#include "srslte/phy/fec/ldpc/base_graph.h"
-#include "srslte/phy/fec/ldpc/ldpc_encoder.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/fec/ldpc/base_graph.h"
+#include "srsran/phy/fec/ldpc/ldpc_encoder.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/vector.h"
 
 #ifdef LV_HAVE_AVX2
 
@@ -39,7 +39,7 @@
  * \brief Represents a node of the base factor graph.
  */
 typedef union bg_node_t {
-  uint8_t c[SRSLTE_AVX2_B_SIZE]; /*!< Each base node may contain up to \ref SRSLTE_AVX2_B_SIZE lifted nodes. */
+  uint8_t c[SRSRAN_AVX2_B_SIZE]; /*!< Each base node may contain up to \ref SRSRAN_AVX2_B_SIZE lifted nodes. */
   __m256i v;                     /*!< All the lifted nodes of the current base node as a 256-bit line. */
 } bg_node_t;
 
@@ -48,12 +48,12 @@ typedef union bg_node_t {
  */
 struct ldpc_enc_avx2long {
   bg_node_t* codeword;           /*!< \brief Contains the entire codeword, before puncturing. */
-  bg_node_t* codeword_to_free;   /*!< \brief Auxiliary pointer with a free memory of size SRSLTE_AVX2_B_SIZE previous to
+  bg_node_t* codeword_to_free;   /*!< \brief Auxiliary pointer with a free memory of size SRSRAN_AVX2_B_SIZE previous to
                                     codeword */
   __m256i* aux;                  /*!< \brief Auxiliary register. */
   __m256i* rotated_node;         /*!< \brief To store rotated versions of the nodes. */
   __m256i* rotated_node_to_free; /*!< \brief Auxiliary pointer to store rotated versions of the nodes with extra free
-                                    memory of size SRSLTE_AVX2_B_SIZE previous to rotated_node */
+                                    memory of size SRSRAN_AVX2_B_SIZE previous to rotated_node */
   uint8_t    n_subnodes;           /*!< \brief Number of subnodes. */
   uint16_t   node_size;            /*!< \brief Size of a node in bytes. */
 };
@@ -70,7 +70,7 @@ struct ldpc_enc_avx2long {
  */
 static void rotate_node_right(const __m256i* in_256i, __m256i* out, uint16_t shift, uint16_t ls, int8_t n_subnodes);
 
-void* create_ldpc_enc_avx2long(srslte_ldpc_encoder_t* q)
+void* create_ldpc_enc_avx2long(srsran_ldpc_encoder_t* q)
 {
   struct ldpc_enc_avx2long* vp = NULL;
 
@@ -78,22 +78,22 @@ void* create_ldpc_enc_avx2long(srslte_ldpc_encoder_t* q)
     return NULL;
   }
 
-  int left_out   = q->ls % SRSLTE_AVX2_B_SIZE;
-  vp->n_subnodes = q->ls / SRSLTE_AVX2_B_SIZE + (left_out > 0);
+  int left_out   = q->ls % SRSRAN_AVX2_B_SIZE;
+  vp->n_subnodes = q->ls / SRSRAN_AVX2_B_SIZE + (left_out > 0);
 
-  if ((vp->codeword_to_free = srslte_vec_malloc((q->bgN * vp->n_subnodes + 1) * sizeof(bg_node_t))) == NULL) {
+  if ((vp->codeword_to_free = srsran_vec_malloc((q->bgN * vp->n_subnodes + 1) * sizeof(bg_node_t))) == NULL) {
     free(vp);
     return NULL;
   }
   vp->codeword = &vp->codeword_to_free[1];
 
-  if ((vp->aux = srslte_vec_malloc(q->bgM * vp->n_subnodes * sizeof(__m256i))) == NULL) {
+  if ((vp->aux = srsran_vec_malloc(q->bgM * vp->n_subnodes * sizeof(__m256i))) == NULL) {
     free(vp->codeword_to_free);
     free(vp);
     return NULL;
   }
 
-  if ((vp->rotated_node_to_free = srslte_vec_malloc((vp->n_subnodes + 2) * sizeof(__m256i))) == NULL) {
+  if ((vp->rotated_node_to_free = srsran_vec_malloc((vp->n_subnodes + 2) * sizeof(__m256i))) == NULL) {
     free(vp->aux);
     free(vp->codeword_to_free);
     free(vp);
@@ -101,7 +101,7 @@ void* create_ldpc_enc_avx2long(srslte_ldpc_encoder_t* q)
   }
   vp->rotated_node = &vp->rotated_node_to_free[1];
 
-  vp->node_size = SRSLTE_AVX2_B_SIZE * vp->n_subnodes;
+  vp->node_size = SRSRAN_AVX2_B_SIZE * vp->n_subnodes;
   return vp;
 }
 
@@ -159,7 +159,7 @@ int return_codeword_avx2long(void* p, uint8_t* output, const uint8_t cdwd_len, c
   return 0;
 }
 
-void encode_ext_region_avx2long(srslte_ldpc_encoder_t* q, uint8_t n_layers)
+void encode_ext_region_avx2long(srsran_ldpc_encoder_t* q, uint8_t n_layers)
 {
   struct ldpc_enc_avx2long* vp = q->ptr;
 
@@ -197,7 +197,7 @@ void encode_ext_region_avx2long(srslte_ldpc_encoder_t* q, uint8_t n_layers)
   }
 }
 
-void preprocess_systematic_bits_avx2long(srslte_ldpc_encoder_t* q)
+void preprocess_systematic_bits_avx2long(srsran_ldpc_encoder_t* q)
 {
   struct ldpc_enc_avx2long* vp = q->ptr;
 
@@ -241,7 +241,7 @@ void preprocess_systematic_bits_avx2long(srslte_ldpc_encoder_t* q)
 
 void encode_high_rate_case1_avx2long(void* o)
 {
-  srslte_ldpc_encoder_t*    q  = o;
+  srsran_ldpc_encoder_t*    q  = o;
   struct ldpc_enc_avx2long* vp = q->ptr;
 
   int ls = q->ls;
@@ -272,7 +272,7 @@ void encode_high_rate_case1_avx2long(void* o)
 
 void encode_high_rate_case2_avx2long(void* o)
 {
-  srslte_ldpc_encoder_t*    q  = o;
+  srsran_ldpc_encoder_t*    q  = o;
   struct ldpc_enc_avx2long* vp = q->ptr;
 
   int ls = q->ls;
@@ -303,7 +303,7 @@ void encode_high_rate_case2_avx2long(void* o)
 
 void encode_high_rate_case3_avx2long(void* o)
 {
-  srslte_ldpc_encoder_t*    q  = o;
+  srsran_ldpc_encoder_t*    q  = o;
   struct ldpc_enc_avx2long* vp = q->ptr;
 
   int ls = q->ls;
@@ -334,7 +334,7 @@ void encode_high_rate_case3_avx2long(void* o)
 
 void encode_high_rate_case4_avx2long(void* o)
 {
-  srslte_ldpc_encoder_t*    q  = o;
+  srsran_ldpc_encoder_t*    q  = o;
   struct ldpc_enc_avx2long* vp = q->ptr;
 
   int ls = q->ls;
@@ -367,22 +367,22 @@ static void rotate_node_right(const __m256i* in_256i, __m256i* out, uint16_t shi
 {
   const int8_t* in = (const int8_t*)in_256i;
 
-  int16_t n_type1 = (ls - shift) / SRSLTE_AVX2_B_SIZE - (ls == SRSLTE_AVX2_B_SIZE);
-  int16_t n_type2 = n_subnodes - n_type1 - 1 - (ls == SRSLTE_AVX2_B_SIZE);
-  int16_t gap     = (ls - shift) % SRSLTE_AVX2_B_SIZE;
+  int16_t n_type1 = (ls - shift) / SRSRAN_AVX2_B_SIZE - (ls == SRSRAN_AVX2_B_SIZE);
+  int16_t n_type2 = n_subnodes - n_type1 - 1 - (ls == SRSRAN_AVX2_B_SIZE);
+  int16_t gap     = (ls - shift) % SRSRAN_AVX2_B_SIZE;
 
   int16_t i = 0;
   for (; i < n_type1; i++) {
-    out[i] = _mm256_loadu_si256((const __m256i*)(in + shift + i * SRSLTE_AVX2_B_SIZE));
+    out[i] = _mm256_loadu_si256((const __m256i*)(in + shift + i * SRSRAN_AVX2_B_SIZE));
   }
 
-  __m256i tmp1 = _mm256_loadu_si256((const __m256i*)(in + shift + i * SRSLTE_AVX2_B_SIZE));
+  __m256i tmp1 = _mm256_loadu_si256((const __m256i*)(in + shift + i * SRSRAN_AVX2_B_SIZE));
   __m256i tmp2 = _mm256_loadu_si256((const __m256i*)(in - gap));
 
   out[i] = _mm256_blendv_epi8(tmp1, tmp2, mask_most_epi8[gap]);
 
   for (i = 1; i <= n_type2; i++) {
-    out[n_type1 + i] = _mm256_loadu_si256((const __m256i*)(in - gap + i * SRSLTE_AVX2_B_SIZE));
+    out[n_type1 + i] = _mm256_loadu_si256((const __m256i*)(in - gap + i * SRSRAN_AVX2_B_SIZE));
   }
 }
 

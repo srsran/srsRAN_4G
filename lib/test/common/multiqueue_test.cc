@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,9 +10,9 @@
  *
  */
 
-#include "srslte/adt/move_callback.h"
-#include "srslte/common/multiqueue.h"
-#include "srslte/common/thread_pool.h"
+#include "srsran/adt/move_callback.h"
+#include "srsran/common/multiqueue.h"
+#include "srsran/common/thread_pool.h"
 #include <iostream>
 #include <map>
 #include <thread>
@@ -26,7 +26,7 @@
     }                                                                                                                  \
   }
 
-using namespace srslte;
+using namespace srsran;
 
 int test_multiqueue()
 {
@@ -348,8 +348,8 @@ int test_inplace_task()
 
   auto l0 = [&v]() { v = 1; };
 
-  srslte::move_callback<void()> t{l0};
-  srslte::move_callback<void()> t2{[v]() mutable { v = 2; }};
+  srsran::move_callback<void()> t{l0};
+  srsran::move_callback<void()> t2{[v]() mutable { v = 2; }};
   // sanity static checks
   static_assert(task_details::is_move_callback<std::decay<decltype(t)>::type>::value, "failed check\n");
   static_assert(
@@ -365,7 +365,7 @@ int test_inplace_task()
   TESTASSERT(v == 1);
 
   C                             c;
-  srslte::move_callback<void()> t4{std::bind([&v](C& c) { v = *c.val; }, std::move(c))};
+  srsran::move_callback<void()> t4{std::bind([&v](C& c) { v = *c.val; }, std::move(c))};
   {
     decltype(t4) t5;
     t5 = std::move(t4);
@@ -374,9 +374,9 @@ int test_inplace_task()
   }
 
   D                             d;
-  srslte::move_callback<void()> t6 = [&v, d]() { v = d.big_val[0]; };
+  srsran::move_callback<void()> t6 = [&v, d]() { v = d.big_val[0]; };
   {
-    srslte::move_callback<void()> t7;
+    srsran::move_callback<void()> t7;
     t6();
     TESTASSERT(v == 6);
     v  = 0;
@@ -405,7 +405,7 @@ int test_inplace_task()
 
   // TEST: task works in const contexts
   t       = l2;
-  auto l3 = [](const srslte::move_callback<void()>& task) { task(); };
+  auto l3 = [](const srsran::move_callback<void()>& task) { task(); };
   v       = 0;
   l3(t);
   TESTASSERT(v == 6);

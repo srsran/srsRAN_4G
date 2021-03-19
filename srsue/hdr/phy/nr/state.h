@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,13 +10,13 @@
  *
  */
 
-#ifndef SRSLTE_STATE_H
-#define SRSLTE_STATE_H
+#ifndef SRSRAN_STATE_H
+#define SRSRAN_STATE_H
 
-#include "srslte/adt/circular_array.h"
-#include "srslte/common/common.h"
-#include "srslte/interfaces/ue_nr_interfaces.h"
-#include "srslte/srslte.h"
+#include "srsran/adt/circular_array.h"
+#include "srsran/common/common.h"
+#include "srsran/interfaces/ue_nr_interfaces.h"
+#include "srsran/srsran.h"
 #include <array>
 #include <mutex>
 #include <vector>
@@ -30,38 +30,38 @@ private:
   struct pending_ul_grant_t {
     bool                enable;
     uint32_t            pid;
-    srslte_sch_cfg_nr_t sch_cfg;
+    srsran_sch_cfg_nr_t sch_cfg;
   };
-  srslte::circular_array<pending_ul_grant_t, TTIMOD_SZ> pending_ul_grant = {};
+  srsran::circular_array<pending_ul_grant_t, TTIMOD_SZ> pending_ul_grant = {};
   mutable std::mutex                                    pending_ul_grant_mutex;
 
   struct pending_dl_grant_t {
     bool                           enable;
     uint32_t                       pid;
-    srslte_sch_cfg_nr_t            sch_cfg;
-    srslte_pdsch_ack_resource_nr_t ack_resource;
+    srsran_sch_cfg_nr_t            sch_cfg;
+    srsran_pdsch_ack_resource_nr_t ack_resource;
   };
-  srslte::circular_array<pending_dl_grant_t, TTIMOD_SZ> pending_dl_grant = {};
+  srsran::circular_array<pending_dl_grant_t, TTIMOD_SZ> pending_dl_grant = {};
   mutable std::mutex                                    pending_dl_grant_mutex;
 
-  srslte::circular_array<srslte_pdsch_ack_nr_t, TTIMOD_SZ> pending_ack = {};
+  srsran::circular_array<srsran_pdsch_ack_nr_t, TTIMOD_SZ> pending_ack = {};
   mutable std::mutex                                       pending_ack_mutex;
 
   /// Pending scheduling request identifiers
   std::set<uint32_t> pending_sr_id;
 
   /// CSI-RS measurements
-  std::array<srslte_csi_measurements_t, SRSLTE_CSI_MAX_NOF_RESOURCES> csi_measurements = {};
+  std::array<srsran_csi_measurements_t, SRSRAN_CSI_MAX_NOF_RESOURCES> csi_measurements = {};
 
 public:
   mac_interface_phy_nr* stack   = nullptr;
-  srslte_carrier_nr_t   carrier = {};
+  srsran_carrier_nr_t   carrier = {};
 
   /// Physical layer user configuration
   phy_args_nr_t args = {};
 
   /// Physical layer higher layer configuration, provided by higher layers through configuration messages
-  srslte::phy_cfg_nr_t cfg = {};
+  srsran::phy_cfg_nr_t cfg = {};
 
   uint16_t ra_rnti       = 0;
   uint32_t rar_grant_tti = 0;
@@ -84,13 +84,13 @@ public:
    * @param tti_rx The TTI in which the grant was received
    * @param dci_ul The UL DCI message to store
    */
-  void set_ul_pending_grant(uint32_t tti_rx, const srslte_dci_ul_nr_t& dci_ul)
+  void set_ul_pending_grant(uint32_t tti_rx, const srsran_dci_ul_nr_t& dci_ul)
   {
     // Convert UL DCI to grant
-    srslte_sch_cfg_nr_t pusch_cfg = {};
-    if (srslte_ra_ul_dci_to_grant_nr(&carrier, &cfg.pusch, &dci_ul, &pusch_cfg, &pusch_cfg.grant)) {
+    srsran_sch_cfg_nr_t pusch_cfg = {};
+    if (srsran_ra_ul_dci_to_grant_nr(&carrier, &cfg.pusch, &dci_ul, &pusch_cfg, &pusch_cfg.grant)) {
       std::array<char, 512> str;
-      srslte_dci_ul_nr_to_str(&dci_ul, str.data(), str.size());
+      srsran_dci_ul_nr_to_str(&dci_ul, str.data(), str.size());
       ERROR("Computing UL grant %s", str.data());
       return;
     }
@@ -115,7 +115,7 @@ public:
    * @param pid Provides the HARQ process identifier
    * @return true if there is a pending grant for the given TX tti, false otherwise
    */
-  bool get_ul_pending_grant(uint32_t tti_tx, srslte_sch_cfg_nr_t& pusch_cfg, uint32_t& pid)
+  bool get_ul_pending_grant(uint32_t tti_tx, srsran_sch_cfg_nr_t& pusch_cfg, uint32_t& pid)
   {
     // Scope mutex to protect read/write the list
     std::lock_guard<std::mutex> lock(pending_ul_grant_mutex);
@@ -142,18 +142,18 @@ public:
    * @param tti_rx The TTI in which the grant was received
    * @param dci_dl The DL DCI message to store
    */
-  void set_dl_pending_grant(uint32_t tti_rx, const srslte_dci_dl_nr_t& dci_dl)
+  void set_dl_pending_grant(uint32_t tti_rx, const srsran_dci_dl_nr_t& dci_dl)
   {
     // Convert DL DCI to grant
-    srslte_sch_cfg_nr_t pdsch_cfg = {};
-    if (srslte_ra_dl_dci_to_grant_nr(&carrier, &cfg.pdsch, &dci_dl, &pdsch_cfg, &pdsch_cfg.grant)) {
+    srsran_sch_cfg_nr_t pdsch_cfg = {};
+    if (srsran_ra_dl_dci_to_grant_nr(&carrier, &cfg.pdsch, &dci_dl, &pdsch_cfg, &pdsch_cfg.grant)) {
       ERROR("Computing UL grant");
       return;
     }
 
     // Calculate DL DCI to PDSCH ACK resource
-    srslte_pdsch_ack_resource_nr_t ack_resource = {};
-    if (srslte_ue_dl_nr_pdsch_ack_resource(&cfg.harq_ack, &dci_dl, &ack_resource) < SRSLTE_SUCCESS) {
+    srsran_pdsch_ack_resource_nr_t ack_resource = {};
+    if (srsran_ue_dl_nr_pdsch_ack_resource(&cfg.harq_ack, &dci_dl, &ack_resource) < SRSRAN_SUCCESS) {
       ERROR("Computing UL ACK resource");
       return;
     }
@@ -181,8 +181,8 @@ public:
    * @return true if there is a pending grant for the given TX tti, false otherwise
    */
   bool get_dl_pending_grant(uint32_t                        tti_rx,
-                            srslte_sch_cfg_nr_t&            pdsch_cfg,
-                            srslte_pdsch_ack_resource_nr_t& ack_resource,
+                            srsran_sch_cfg_nr_t&            pdsch_cfg,
+                            srsran_pdsch_ack_resource_nr_t& ack_resource,
                             uint32_t&                       pid)
   {
     // Scope mutex to protect read/write the list
@@ -212,7 +212,7 @@ public:
    * @param tti_rx The TTI in which the PDSCH transmission was received
    * @param dci_dl The DL DCI message to store
    */
-  void set_pending_ack(const uint32_t& tti_rx, const srslte_pdsch_ack_resource_nr_t& ack_resource, const bool& crc_ok)
+  void set_pending_ack(const uint32_t& tti_rx, const srsran_pdsch_ack_resource_nr_t& ack_resource, const bool& crc_ok)
   {
     // Calculate Receive TTI
     uint32_t tti_tx = TTI_ADD(tti_rx, ack_resource.k1);
@@ -221,12 +221,12 @@ public:
     std::lock_guard<std::mutex> lock(pending_ack_mutex);
 
     // Select UL transmission time resource
-    srslte_pdsch_ack_nr_t& ack = pending_ack[tti_tx];
+    srsran_pdsch_ack_nr_t& ack = pending_ack[tti_tx];
     ack.nof_cc                 = 1;
 
     // Select serving cell
-    srslte_pdsch_ack_cc_nr_t& ack_cc = ack.cc[ack_resource.scell_idx];
-    srslte_pdsch_ack_m_nr_t&  ack_m  = ack_cc.m[ack_cc.M];
+    srsran_pdsch_ack_cc_nr_t& ack_cc = ack.cc[ack_resource.scell_idx];
+    srsran_pdsch_ack_m_nr_t&  ack_m  = ack_cc.m[ack_cc.M];
     ack_cc.M++;
 
     // Set PDSCH transmission information
@@ -235,13 +235,13 @@ public:
     ack_m.present  = true;
   }
 
-  bool get_pending_ack(const uint32_t& tti_tx, srslte_pdsch_ack_nr_t& pdsch_ack)
+  bool get_pending_ack(const uint32_t& tti_tx, srsran_pdsch_ack_nr_t& pdsch_ack)
   {
     // Scope mutex to protect read/write the list
     std::lock_guard<std::mutex> lock(pending_ack_mutex);
 
     // Select UL transmission time resource
-    srslte_pdsch_ack_nr_t& ack = pending_ack[tti_tx];
+    srsran_pdsch_ack_nr_t& ack = pending_ack[tti_tx];
 
     // No pending grant was set
     if (ack.nof_cc == 0) {
@@ -261,15 +261,15 @@ public:
 
   void set_pending_sr(uint32_t value) { pending_sr_id.insert(value); }
 
-  void get_pending_sr(const uint32_t& tti, srslte_uci_data_nr_t& uci_data)
+  void get_pending_sr(const uint32_t& tti, srsran_uci_data_nr_t& uci_data)
   {
     // Append fixed SR
     pending_sr_id.insert(args.fixed_sr.begin(), args.fixed_sr.end());
 
     // Calculate all SR opportunities in the given TTI
-    uint32_t sr_resource_id[SRSLTE_PUCCH_MAX_NOF_SR_RESOURCES] = {};
-    int      n = srslte_ue_ul_nr_sr_send_slot(cfg.pucch.sr_resources, tti, sr_resource_id);
-    if (n < SRSLTE_SUCCESS) {
+    uint32_t sr_resource_id[SRSRAN_PUCCH_MAX_NOF_SR_RESOURCES] = {};
+    int      n = srsran_ue_ul_nr_sr_send_slot(cfg.pucch.sr_resources, tti, sr_resource_id);
+    if (n < SRSRAN_SUCCESS) {
       ERROR("Calculating SR opportunities");
       return;
     }
@@ -295,15 +295,15 @@ public:
 
     // Configure SR fields in UCI data
     uci_data.cfg.pucch.sr_resource_id      = sr_resource_id[0];
-    uci_data.cfg.o_sr                      = srslte_ra_ul_nr_nof_sr_bits(sr_count_all);
+    uci_data.cfg.o_sr                      = srsran_ra_ul_nr_nof_sr_bits(sr_count_all);
     uci_data.cfg.pucch.sr_positive_present = sr_count_positive > 0;
     uci_data.value.sr                      = sr_count_positive;
   }
 
-  void get_periodic_csi(const uint32_t& tti, srslte_uci_data_nr_t& uci_data)
+  void get_periodic_csi(const uint32_t& tti, srsran_uci_data_nr_t& uci_data)
   {
-    int n = srslte_csi_generate_reports(&cfg.csi, tti, csi_measurements.data(), uci_data.cfg.csi, uci_data.value.csi);
-    if (n > SRSLTE_SUCCESS) {
+    int n = srsran_csi_generate_reports(&cfg.csi, tti, csi_measurements.data(), uci_data.cfg.csi, uci_data.value.csi);
+    if (n > SRSRAN_SUCCESS) {
       uci_data.cfg.nof_csi = n;
     }
 
@@ -313,4 +313,4 @@ public:
 } // namespace nr
 } // namespace srsue
 
-#endif // SRSLTE_STATE_H
+#endif // SRSRAN_STATE_H

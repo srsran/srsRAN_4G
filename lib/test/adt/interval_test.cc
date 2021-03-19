@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,23 +10,23 @@
  *
  */
 
-#include "srslte/adt/interval.h"
-#include "srslte/common/test_common.h"
+#include "srsran/adt/interval.h"
+#include "srsran/common/test_common.h"
 
 int test_interval_init()
 {
-  srslte::interval<int> I{}, I2{12, 15}, I3{12, 12};
+  srsran::interval<int> I{}, I2{12, 15}, I3{12, 12};
 
   TESTASSERT(I.empty() and I.start() == 0 and I.stop() == 0);
   TESTASSERT(not I2.empty() and I2.start() == 12 and I2.stop() == 15);
   TESTASSERT(I3.empty() and I3.start() == 12 and I3.stop() == 12);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_interval_overlaps()
 {
-  srslte::interval<int> I{10, 15}, I2{9, 11}, I3{11, 14}, I4{9, 16}, I5{14, 16}, I6{4, 10}, I7{15, 17};
+  srsran::interval<int> I{10, 15}, I2{9, 11}, I3{11, 14}, I4{9, 16}, I5{14, 16}, I6{4, 10}, I7{15, 17};
 
   TESTASSERT(I.overlaps(I2));
   TESTASSERT(I.overlaps(I3));
@@ -35,12 +35,12 @@ int test_interval_overlaps()
   TESTASSERT(not I.overlaps(I6));
   TESTASSERT(not I.overlaps(I7));
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_interval_contains()
 {
-  srslte::interval<int> I{5, 10};
+  srsran::interval<int> I{5, 10};
 
   TESTASSERT(I.contains(5));
   TESTASSERT(I.contains(6));
@@ -49,26 +49,26 @@ int test_interval_contains()
   TESTASSERT(not I.contains(11));
   TESTASSERT(not I.contains(4));
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_interval_intersect()
 {
-  srslte::interval<int> I{5, 10}, I2{3, 6}, I3{9, 12}, I4{10, 13};
+  srsran::interval<int> I{5, 10}, I2{3, 6}, I3{9, 12}, I4{10, 13};
 
-  TESTASSERT(srslte::make_intersection(I, I2) == (I & I2));
-  TESTASSERT((I & I2) == srslte::interval<int>(5, 6));
-  TESTASSERT((I & I3) == srslte::interval<int>(9, 10));
+  TESTASSERT(srsran::make_intersection(I, I2) == (I & I2));
+  TESTASSERT((I & I2) == srsran::interval<int>(5, 6));
+  TESTASSERT((I & I3) == srsran::interval<int>(9, 10));
   TESTASSERT(not(I & I3).empty());
   TESTASSERT((I & I4).empty());
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_interval_expand()
 {
-  srslte::interval<uint32_t> I{};
-  srslte::interval<int>      I2{};
+  srsran::interval<uint32_t> I{};
+  srsran::interval<int>      I2{};
 
   I.resize_by(5);
   TESTASSERT(I.length() == 5);
@@ -79,15 +79,15 @@ int test_interval_expand()
   TESTASSERT(I2.length() == 3);
   //  I2.expand_by(-4);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int main()
 {
-  TESTASSERT(test_interval_init() == SRSLTE_SUCCESS);
-  TESTASSERT(test_interval_overlaps() == SRSLTE_SUCCESS);
-  TESTASSERT(test_interval_contains() == SRSLTE_SUCCESS);
-  TESTASSERT(test_interval_intersect() == SRSLTE_SUCCESS);
-  TESTASSERT(test_interval_expand() == SRSLTE_SUCCESS);
+  TESTASSERT(test_interval_init() == SRSRAN_SUCCESS);
+  TESTASSERT(test_interval_overlaps() == SRSRAN_SUCCESS);
+  TESTASSERT(test_interval_contains() == SRSRAN_SUCCESS);
+  TESTASSERT(test_interval_intersect() == SRSRAN_SUCCESS);
+  TESTASSERT(test_interval_expand() == SRSRAN_SUCCESS);
   return 0;
 }

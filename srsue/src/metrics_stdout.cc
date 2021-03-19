@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -174,7 +174,7 @@ std::string metrics_stdout::float_to_string(float f, int digits)
 {
   std::ostringstream os;
   const int          precision =
-      SRSLTE_MIN((int)((f == 0.0f || f == 100.0f) ? digits - 1 : digits - log10f(fabsf(f)) - 2 * FLT_EPSILON), 3);
+      SRSRAN_MIN((int)((f == 0.0f || f == 100.0f) ? digits - 1 : digits - log10f(fabsf(f)) - 2 * FLT_EPSILON), 3);
   os << std::setw(6) << std::fixed << std::setprecision(precision) << f;
   return os.str();
 }

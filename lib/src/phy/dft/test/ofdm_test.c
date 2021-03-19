@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -17,11 +17,11 @@
 #include <strings.h>
 #include <unistd.h>
 
-#include "srslte/phy/utils/random.h"
-#include "srslte/srslte.h"
+#include "srsran/phy/utils/random.h"
+#include "srsran/srsran.h"
 
 static int         nof_prb          = -1;
-static srslte_cp_t cp               = SRSLTE_CP_NORM;
+static srsran_cp_t cp               = SRSRAN_CP_NORM;
 static int         nof_repetitions  = 1;
 static float       rx_window_offset = 0.5f;
 static float       freq_shift_f     = 0.0f;
@@ -60,16 +60,16 @@ static void parse_args(int argc, char** argv)
         force_symbol_sz = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'e':
-        cp = SRSLTE_CP_EXT;
+        cp = SRSRAN_CP_EXT;
         break;
       case 'r':
         nof_repetitions = (int)strtol(argv[optind], NULL, 10);
         break;
       case 'o':
-        rx_window_offset = SRSLTE_MIN(1.0f, SRSLTE_MAX(0.0f, strtof(argv[optind], NULL)));
+        rx_window_offset = SRSRAN_MIN(1.0f, SRSRAN_MAX(0.0f, strtof(argv[optind], NULL)));
         break;
       case 's':
-        freq_shift_f = SRSLTE_MIN(1.0f, SRSLTE_MAX(0.0f, strtof(argv[optind], NULL)));
+        freq_shift_f = SRSRAN_MIN(1.0f, SRSRAN_MAX(0.0f, strtof(argv[optind], NULL)));
         break;
       default:
         usage(argv[0]);
@@ -80,9 +80,9 @@ static void parse_args(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-  srslte_random_t random_gen = srslte_random_init(0);
+  srsran_random_t random_gen = srsran_random_init(0);
   struct timeval  start, end;
-  srslte_ofdm_t   fft = {}, ifft = {};
+  srsran_ofdm_t   fft = {}, ifft = {};
   cf_t *          input, *outfft, *outifft;
   float           mse;
   uint32_t        n_prb, max_prb;
@@ -91,29 +91,29 @@ int main(int argc, char** argv)
 
   if (nof_prb == -1) {
     n_prb   = 6;
-    max_prb = SRSLTE_MAX_PRB;
+    max_prb = SRSRAN_MAX_PRB;
   } else {
     n_prb   = (uint32_t)nof_prb;
     max_prb = (uint32_t)nof_prb;
   }
   while (n_prb <= max_prb) {
-    uint32_t symbol_sz = (force_symbol_sz) ? force_symbol_sz : (uint32_t)srslte_symbol_sz(n_prb);
-    uint32_t n_re      = SRSLTE_CP_NSYMB(cp) * n_prb * SRSLTE_NRE * SRSLTE_NOF_SLOTS_PER_SF;
-    uint32_t sf_len    = SRSLTE_SF_LEN(symbol_sz);
+    uint32_t symbol_sz = (force_symbol_sz) ? force_symbol_sz : (uint32_t)srsran_symbol_sz(n_prb);
+    uint32_t n_re      = SRSRAN_CP_NSYMB(cp) * n_prb * SRSRAN_NRE * SRSRAN_NOF_SLOTS_PER_SF;
+    uint32_t sf_len    = SRSRAN_SF_LEN(symbol_sz);
 
     printf("Running test for %d PRB, %d RE... ", n_prb, n_re);
     fflush(stdout);
 
-    input   = srslte_vec_cf_malloc(n_re);
-    outfft  = srslte_vec_cf_malloc(n_re);
-    outifft = srslte_vec_cf_malloc(sf_len);
+    input   = srsran_vec_cf_malloc(n_re);
+    outfft  = srsran_vec_cf_malloc(n_re);
+    outifft = srsran_vec_cf_malloc(sf_len);
     if (!input || !outfft || !outifft) {
       perror("malloc");
       exit(-1);
     }
-    srslte_vec_cf_zero(outifft, sf_len);
+    srsran_vec_cf_zero(outifft, sf_len);
 
-    srslte_ofdm_cfg_t ofdm_cfg = {};
+    srsran_ofdm_cfg_t ofdm_cfg = {};
     ofdm_cfg.cp                = cp;
     ofdm_cfg.in_buffer         = input;
     ofdm_cfg.out_buffer        = outifft;
@@ -121,7 +121,7 @@ int main(int argc, char** argv)
     ofdm_cfg.symbol_sz         = symbol_sz;
     ofdm_cfg.freq_shift_f      = freq_shift_f;
     ofdm_cfg.normalize         = true;
-    if (srslte_ofdm_tx_init_cfg(&ifft, &ofdm_cfg)) {
+    if (srsran_ofdm_tx_init_cfg(&ifft, &ofdm_cfg)) {
       ERROR("Error initializing iFFT");
       exit(-1);
     }
@@ -130,7 +130,7 @@ int main(int argc, char** argv)
     ofdm_cfg.out_buffer       = outfft;
     ofdm_cfg.rx_window_offset = rx_window_offset;
     ofdm_cfg.freq_shift_f     = -freq_shift_f;
-    if (srslte_ofdm_rx_init_cfg(&fft, &ofdm_cfg)) {
+    if (srsran_ofdm_rx_init_cfg(&fft, &ofdm_cfg)) {
       ERROR("Error initializing FFT");
       exit(-1);
     }
@@ -140,12 +140,12 @@ int main(int argc, char** argv)
     }
 
     // Generate Random data
-    srslte_random_uniform_complex_dist_vector(random_gen, input, n_re, -1.0f, +1.0f);
+    srsran_random_uniform_complex_dist_vector(random_gen, input, n_re, -1.0f, +1.0f);
 
     // Execute Tx
     gettimeofday(&start, NULL);
     for (uint32_t i = 0; i < nof_repetitions; i++) {
-      srslte_ofdm_tx_sf(&ifft);
+      srsran_ofdm_tx_sf(&ifft);
     }
     gettimeofday(&end, NULL);
     printf(" Tx@%.1fMsps", (float)(sf_len * nof_repetitions) / elapsed_us(&start, &end));
@@ -153,14 +153,14 @@ int main(int argc, char** argv)
     // Execute Rx
     gettimeofday(&start, NULL);
     for (uint32_t i = 0; i < nof_repetitions; i++) {
-      srslte_ofdm_rx_sf(&fft);
+      srsran_ofdm_rx_sf(&fft);
     }
     gettimeofday(&end, NULL);
     printf(" Rx@%.1fMsps", (double)(sf_len * nof_repetitions) / elapsed_us(&start, &end));
 
     // compute Mean Square Error
-    srslte_vec_sub_ccc(input, outfft, outfft, n_re);
-    mse = sqrtf(srslte_vec_avg_power_cf(outfft, n_re));
+    srsran_vec_sub_ccc(input, outfft, outfft, n_re);
+    mse = sqrtf(srsran_vec_avg_power_cf(outfft, n_re));
 
     printf(" MSE=%.6f\n", mse);
 
@@ -169,8 +169,8 @@ int main(int argc, char** argv)
       exit(-1);
     }
 
-    srslte_ofdm_rx_free(&fft);
-    srslte_ofdm_tx_free(&ifft);
+    srsran_ofdm_rx_free(&fft);
+    srsran_ofdm_tx_free(&ifft);
 
     free(input);
     free(outfft);
@@ -179,7 +179,7 @@ int main(int argc, char** argv)
     n_prb++;
   }
 
-  srslte_random_free(random_gen);
+  srsran_random_free(random_gen);
 
   exit(0);
 }

@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,10 +10,10 @@
  *
  */
 
-#include "srslte/phy/common/sequence.h"
-#include "srslte/phy/utils/bit.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/common/sequence.h"
+#include "srsran/phy/utils/bit.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/vector.h"
 
 #ifdef LV_HAVE_SSE
 #include <immintrin.h>
@@ -140,7 +140,7 @@ static uint32_t sequence_x2_init[SEQUENCE_SEED_LEN] = {};
 /**
  * C constructor, pre-computes X1 and X2 initial states
  */
-__attribute__((constructor)) __attribute__((unused)) static void srslte_lte_pr_pregen()
+__attribute__((constructor)) __attribute__((unused)) static void srsran_lte_pr_pregen()
 {
   // Compute transition step
   sequence_x1_init = 1;
@@ -205,13 +205,13 @@ static void sequence_gen_LTE_pr(uint8_t* pr, uint32_t len, uint32_t seed)
   }
 }
 
-void srslte_sequence_state_init(srslte_sequence_state_t* s, uint32_t seed)
+void srsran_sequence_state_init(srsran_sequence_state_t* s, uint32_t seed)
 {
   s->x1 = sequence_x1_init;
   s->x2 = sequence_get_x2_init(seed);
 }
 
-void srslte_sequence_state_gen_f(srslte_sequence_state_t* s, float value, float* out, uint32_t length)
+void srsran_sequence_state_gen_f(srsran_sequence_state_t* s, float value, float* out, uint32_t length)
 {
   uint32_t i          = 0;
   const float xor [2] = {+0.0F, -0.0F};
@@ -264,7 +264,7 @@ void srslte_sequence_state_gen_f(srslte_sequence_state_t* s, float value, float*
   }
 }
 
-void srslte_sequence_state_advance(srslte_sequence_state_t* s, uint32_t length)
+void srsran_sequence_state_advance(srsran_sequence_state_t* s, uint32_t length)
 {
   uint32_t i = 0;
   if (length >= SEQUENCE_PAR_BITS) {
@@ -283,16 +283,16 @@ void srslte_sequence_state_advance(srslte_sequence_state_t* s, uint32_t length)
 }
 
 // static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-int srslte_sequence_set_LTE_pr(srslte_sequence_t* q, uint32_t len, uint32_t seed)
+int srsran_sequence_set_LTE_pr(srsran_sequence_t* q, uint32_t len, uint32_t seed)
 {
   if (len > q->max_len) {
     ERROR("Error generating pseudo-random sequence: len %d is greater than allocated len %d", len, q->max_len);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   sequence_gen_LTE_pr(q->c, len, seed);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 static inline void
@@ -358,57 +358,57 @@ sequence_generate_signed(const uint8_t* c_unpacked, int8_t* c_char, int16_t* c_s
   }
 }
 
-int srslte_sequence_LTE_pr(srslte_sequence_t* q, uint32_t len, uint32_t seed)
+int srsran_sequence_LTE_pr(srsran_sequence_t* q, uint32_t len, uint32_t seed)
 {
-  if (srslte_sequence_init(q, len)) {
-    return SRSLTE_ERROR;
+  if (srsran_sequence_init(q, len)) {
+    return SRSRAN_ERROR;
   }
   q->cur_len = len;
 
   // Generate sequence
-  srslte_sequence_set_LTE_pr(q, len, seed);
+  srsran_sequence_set_LTE_pr(q, len, seed);
 
   // Pack PR sequence
-  srslte_bit_pack_vector(q->c, q->c_bytes, len);
+  srsran_bit_pack_vector(q->c, q->c_bytes, len);
 
   // Generate signed type values
   sequence_generate_signed(q->c, q->c_char, q->c_short, q->c_float, len);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-int srslte_sequence_init(srslte_sequence_t* q, uint32_t len)
+int srsran_sequence_init(srsran_sequence_t* q, uint32_t len)
 {
   if (q->c && len > q->max_len) {
-    srslte_sequence_free(q);
+    srsran_sequence_free(q);
   }
   if (!q->c) {
-    q->c = srslte_vec_u8_malloc(len);
+    q->c = srsran_vec_u8_malloc(len);
     if (!q->c) {
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
-    q->c_bytes = srslte_vec_u8_malloc(len / 8 + 8);
+    q->c_bytes = srsran_vec_u8_malloc(len / 8 + 8);
     if (!q->c_bytes) {
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
-    q->c_float = srslte_vec_f_malloc(len);
+    q->c_float = srsran_vec_f_malloc(len);
     if (!q->c_float) {
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
-    q->c_short = srslte_vec_i16_malloc(len);
+    q->c_short = srsran_vec_i16_malloc(len);
     if (!q->c_short) {
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
-    q->c_char = srslte_vec_i8_malloc(len);
+    q->c_char = srsran_vec_i8_malloc(len);
     if (!q->c_char) {
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
     q->max_len = len;
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-void srslte_sequence_free(srslte_sequence_t* q)
+void srsran_sequence_free(srsran_sequence_t* q)
 {
   if (q->c) {
     free(q->c);
@@ -425,10 +425,10 @@ void srslte_sequence_free(srslte_sequence_t* q)
   if (q->c_char) {
     free(q->c_char);
   }
-  bzero(q, sizeof(srslte_sequence_t));
+  bzero(q, sizeof(srsran_sequence_t));
 }
 
-void srslte_sequence_apply_f(const float* in, float* out, uint32_t length, uint32_t seed)
+void srsran_sequence_apply_f(const float* in, float* out, uint32_t length, uint32_t seed)
 {
   uint32_t x1 = sequence_x1_init;           // X1 initial state is fix
   uint32_t x2 = sequence_get_x2_init(seed); // loads x2 initial state
@@ -482,7 +482,7 @@ void srslte_sequence_apply_f(const float* in, float* out, uint32_t length, uint3
   }
 }
 
-void srslte_sequence_apply_s(const int16_t* in, int16_t* out, uint32_t length, uint32_t seed)
+void srsran_sequence_apply_s(const int16_t* in, int16_t* out, uint32_t length, uint32_t seed)
 {
   const int16_t s[2] = {+1, -1};
   uint32_t      x1   = sequence_x1_init;           // X1 initial state is fix
@@ -538,7 +538,7 @@ void srslte_sequence_apply_s(const int16_t* in, int16_t* out, uint32_t length, u
   }
 }
 
-void srslte_sequence_apply_c(const int8_t* in, int8_t* out, uint32_t length, uint32_t seed)
+void srsran_sequence_apply_c(const int8_t* in, int8_t* out, uint32_t length, uint32_t seed)
 {
   uint32_t x1 = sequence_x1_init;           // X1 initial state is fix
   uint32_t x2 = sequence_get_x2_init(seed); // loads x2 initial state
@@ -598,7 +598,7 @@ void srslte_sequence_apply_c(const int8_t* in, int8_t* out, uint32_t length, uin
   }
 }
 
-void srslte_sequence_apply_bit(const uint8_t* in, uint8_t* out, uint32_t length, uint32_t seed)
+void srsran_sequence_apply_bit(const uint8_t* in, uint8_t* out, uint32_t length, uint32_t seed)
 {
   uint32_t x1 = sequence_x1_init;           // X1 initial state is fix
   uint32_t x2 = sequence_get_x2_init(seed); // loads x2 initial state
@@ -657,7 +657,7 @@ void srslte_sequence_apply_bit(const uint8_t* in, uint8_t* out, uint32_t length,
   }
 }
 
-void srslte_sequence_apply_packed(const uint8_t* in, uint8_t* out, uint32_t length, uint32_t seed)
+void srsran_sequence_apply_packed(const uint8_t* in, uint8_t* out, uint32_t length, uint32_t seed)
 {
   uint32_t x1 = sequence_x1_init;           // X1 initial state is fix
   uint32_t x2 = sequence_get_x2_init(seed); // loads x2 initial state

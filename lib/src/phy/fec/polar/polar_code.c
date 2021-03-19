@@ -1,8 +1,8 @@
 /**
  *
- * section COPYRIGHT
+ * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -24,12 +24,12 @@
  * The frozen bit set provided by this function is used by the polar decoder.
  */
 
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/utils/vector.h"
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "srslte/phy/fec/polar/polar_code.h"
-#include "srslte/phy/utils/debug.h"
+#include "srsran/phy/fec/polar/polar_code.h"
+#include "srsran/phy/utils/debug.h"
 
 /*!
  * Extracts the elements in x that are smaller than T or are in y.
@@ -84,7 +84,7 @@ int cmpfunc(const void* a, const void* b)
  * Gets the codeword length N, nPC and nWmPC depending on the code parameters.
  * Returns -1 if not supported configuration, otherwise returns 0.
  */
-int get_code_params(srslte_polar_code_t* c, const uint16_t K, const uint16_t E, const uint8_t nMax)
+int get_code_params(srsran_polar_code_t* c, const uint16_t K, const uint16_t E, const uint8_t nMax)
 {
   // include here also npc and nwmPC computatoins
   if (E > EMAX) {
@@ -182,7 +182,7 @@ int get_code_params(srslte_polar_code_t* c, const uint16_t K, const uint16_t E, 
   return 0;
 }
 
-void srslte_polar_code_free(srslte_polar_code_t* c)
+void srsran_polar_code_free(srsran_polar_code_t* c)
 {
   if (c != NULL) {
     free(c->F_set);
@@ -191,15 +191,15 @@ void srslte_polar_code_free(srslte_polar_code_t* c)
 }
 
 // allocate resources to the message set, frozen set and parity set, polar code
-int srslte_polar_code_init(srslte_polar_code_t* c)
+int srsran_polar_code_init(srsran_polar_code_t* c)
 {
-  c->tmp_K_set = srslte_vec_u16_malloc(NMAX + 1); // +1 to mark the end with 1024
+  c->tmp_K_set = srsran_vec_u16_malloc(NMAX + 1); // +1 to mark the end with 1024
   if (!c->tmp_K_set) {
     perror("malloc");
     exit(-1);
   }
 
-  c->F_set = srslte_vec_u16_malloc(NMAX);
+  c->F_set = srsran_vec_u16_malloc(NMAX);
   if (!c->F_set) {
     free(c->tmp_K_set);
     perror("malloc");
@@ -209,7 +209,7 @@ int srslte_polar_code_init(srslte_polar_code_t* c)
   return 0;
 }
 
-int srslte_polar_code_get(srslte_polar_code_t* c, uint16_t K, uint16_t E, uint8_t nMax)
+int srsran_polar_code_get(srsran_polar_code_t* c, uint16_t K, uint16_t E, uint8_t nMax)
 {
   if (c == NULL) {
     return -1;

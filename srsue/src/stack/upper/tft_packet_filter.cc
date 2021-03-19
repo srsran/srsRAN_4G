@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -11,10 +11,10 @@
  */
 
 #include "srsue/hdr/stack/upper/tft_packet_filter.h"
-#include "srslte/upper/ipv6.h"
+#include "srsran/upper/ipv6.h"
 
 extern "C" {
-#include "srslte/config.h"
+#include "srsran/config.h"
 }
 
 #include <linux/ip.h>
@@ -184,7 +184,7 @@ bool inline tft_packet_filter_t::filter_contains(uint16_t filtertype)
  *
  * Note: 'active_filters' is a bitmask; bits set to '1' represent active filter components.
  */
-bool tft_packet_filter_t::match(const srslte::unique_byte_buffer_t& pdu)
+bool tft_packet_filter_t::match(const srsran::unique_byte_buffer_t& pdu)
 {
   uint16_t ip_flags = IPV4_REMOTE_ADDR_FLAG | IPV4_LOCAL_ADDR_FLAG | IPV6_REMOTE_ADDR_FLAG |
                       IPV6_REMOTE_ADDR_LENGTH_FLAG | IPV6_LOCAL_ADDR_LENGTH_FLAG;
@@ -219,7 +219,7 @@ bool tft_packet_filter_t::match(const srslte::unique_byte_buffer_t& pdu)
   return true;
 }
 
-bool tft_packet_filter_t::match_ip(const srslte::unique_byte_buffer_t& pdu)
+bool tft_packet_filter_t::match_ip(const srsran::unique_byte_buffer_t& pdu)
 {
   struct iphdr*   ip_pkt  = (struct iphdr*)pdu->msg;
   struct ipv6hdr* ip6_pkt = (struct ipv6hdr*)pdu->msg;
@@ -256,7 +256,7 @@ bool tft_packet_filter_t::match_ip(const srslte::unique_byte_buffer_t& pdu)
   return true;
 }
 
-bool tft_packet_filter_t::match_protocol(const srslte::unique_byte_buffer_t& pdu)
+bool tft_packet_filter_t::match_protocol(const srsran::unique_byte_buffer_t& pdu)
 {
   struct iphdr*   ip_pkt  = (struct iphdr*)pdu->msg;
   struct ipv6hdr* ip6_pkt = (struct ipv6hdr*)pdu->msg;
@@ -278,7 +278,7 @@ bool tft_packet_filter_t::match_protocol(const srslte::unique_byte_buffer_t& pdu
   return true;
 }
 
-bool tft_packet_filter_t::match_type_of_service(const srslte::unique_byte_buffer_t& pdu)
+bool tft_packet_filter_t::match_type_of_service(const srsran::unique_byte_buffer_t& pdu)
 {
   struct iphdr* ip_pkt = (struct iphdr*)pdu->msg;
 
@@ -294,7 +294,7 @@ bool tft_packet_filter_t::match_type_of_service(const srslte::unique_byte_buffer
   return true;
 }
 
-bool tft_packet_filter_t::match_flow_label(const srslte::unique_byte_buffer_t& pdu)
+bool tft_packet_filter_t::match_flow_label(const srsran::unique_byte_buffer_t& pdu)
 {
   struct ipv6hdr* ip6_pkt = (struct ipv6hdr*)pdu->msg;
 
@@ -307,7 +307,7 @@ bool tft_packet_filter_t::match_flow_label(const srslte::unique_byte_buffer_t& p
   return true;
 }
 
-bool tft_packet_filter_t::match_port(const srslte::unique_byte_buffer_t& pdu)
+bool tft_packet_filter_t::match_port(const srsran::unique_byte_buffer_t& pdu)
 {
   struct iphdr*   ip_pkt  = (struct iphdr*)pdu->msg;
   struct ipv6hdr* ip6_pkt = (struct ipv6hdr*)pdu->msg;
@@ -380,7 +380,7 @@ bool tft_packet_filter_t::match_port(const srslte::unique_byte_buffer_t& pdu)
   return true;
 }
 
-uint8_t tft_pdu_matcher::check_tft_filter_match(const srslte::unique_byte_buffer_t& pdu)
+uint8_t tft_pdu_matcher::check_tft_filter_match(const srsran::unique_byte_buffer_t& pdu)
 {
   std::lock_guard<std::mutex> lock(tft_mutex);
   uint8_t                     lcid = default_lcid;
@@ -408,15 +408,15 @@ int tft_pdu_matcher::apply_traffic_flow_template(const uint8_t&                 
         auto                it = tft_filter_map.insert(std::make_pair(filter.eval_precedence, filter));
         if (it.second == false) {
           logger.error("Error inserting TFT Packet Filter");
-          return SRSLTE_ERROR_CANT_START;
+          return SRSRAN_ERROR_CANT_START;
         }
       }
       break;
     default:
       logger.error("Unhandled TFT OP code");
-      return SRSLTE_ERROR_CANT_START;
+      return SRSRAN_ERROR_CANT_START;
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 void tft_pdu_matcher::set_default_lcid(const uint8_t lcid)

@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,9 +10,9 @@
  *
  */
 
-#include "srslte/phy/fec/block/block.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/fec/block/block.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/vector.h"
 
 // The following MACRO enables/disables LUT for the decoder
 #define USE_LUT 1
@@ -21,7 +21,7 @@
 typedef int16_t block_llr_t;
 
 /// Table 5.2.2.6.4-1: Basis sequence for (32, O) code compressed in uint16_t types
-static const uint64_t M_basis_seq_b[SRSLTE_FEC_BLOCK_SIZE] = {
+static const uint64_t M_basis_seq_b[SRSRAN_FEC_BLOCK_SIZE] = {
     0b10000000011, 0b11000000111, 0b11101001001, 0b10100001101, 0b10010001111, 0b10111010011, 0b11101010101,
     0b10110011001, 0b11010011011, 0b11001011101, 0b11011100101, 0b10101100111, 0b11110101001, 0b11010101011,
     0b10010110001, 0b11011110011, 0b01001110111, 0b00100111001, 0b00011111011, 0b00001100001, 0b10001000101,
@@ -32,7 +32,7 @@ static const uint64_t M_basis_seq_b[SRSLTE_FEC_BLOCK_SIZE] = {
 static inline uint8_t encode_M_basis_seq_u16(uint16_t w, uint32_t bit_idx)
 {
   // Apply mask
-  uint64_t d = w & M_basis_seq_b[bit_idx % SRSLTE_FEC_BLOCK_SIZE];
+  uint64_t d = w & M_basis_seq_b[bit_idx % SRSRAN_FEC_BLOCK_SIZE];
 
   // Compute parity using Bit Twiddling
   d ^= d >> 8UL;
@@ -45,16 +45,16 @@ static inline uint8_t encode_M_basis_seq_u16(uint16_t w, uint32_t bit_idx)
 
 #if USE_LUT
 // Encoded unpacked table
-static uint8_t block_unpacked_lut[1U << SRSLTE_FEC_BLOCK_MAX_NOF_BITS][SRSLTE_FEC_BLOCK_SIZE];
+static uint8_t block_unpacked_lut[1U << SRSRAN_FEC_BLOCK_MAX_NOF_BITS][SRSRAN_FEC_BLOCK_SIZE];
 
 // LLR signed table
-static block_llr_t block_llr_lut[1U << SRSLTE_FEC_BLOCK_MAX_NOF_BITS][SRSLTE_FEC_BLOCK_SIZE];
+static block_llr_t block_llr_lut[1U << SRSRAN_FEC_BLOCK_MAX_NOF_BITS][SRSRAN_FEC_BLOCK_SIZE];
 
 // Initialization function, as the table is read-only after initialization, it can be initialised from constructor
-__attribute__((constructor)) static void srslte_block_init()
+__attribute__((constructor)) static void srsran_block_init()
 {
-  for (uint32_t word = 0; word < (1U << SRSLTE_FEC_BLOCK_MAX_NOF_BITS); word++) {
-    for (uint32_t i = 0; i < SRSLTE_FEC_BLOCK_SIZE; i++) {
+  for (uint32_t word = 0; word < (1U << SRSRAN_FEC_BLOCK_MAX_NOF_BITS); word++) {
+    for (uint32_t i = 0; i < SRSRAN_FEC_BLOCK_SIZE; i++) {
       uint8_t e = encode_M_basis_seq_u16(word, i);
       // Encoded unpacked byte
       block_unpacked_lut[word][i] = e;
@@ -66,7 +66,7 @@ __attribute__((constructor)) static void srslte_block_init()
 }
 #endif
 
-void srslte_block_encode(const uint8_t* input, uint32_t input_len, uint8_t* output, uint32_t output_len)
+void srsran_block_encode(const uint8_t* input, uint32_t input_len, uint8_t* output, uint32_t output_len)
 {
   if (!input || !output) {
     ERROR("Invalid inputs");
@@ -74,7 +74,7 @@ void srslte_block_encode(const uint8_t* input, uint32_t input_len, uint8_t* outp
   }
 
   // Limit number of input bits
-  input_len = SRSLTE_MIN(input_len, SRSLTE_FEC_BLOCK_MAX_NOF_BITS);
+  input_len = SRSRAN_MIN(input_len, SRSRAN_FEC_BLOCK_MAX_NOF_BITS);
 
   // Pack input bits (reversed)
   uint16_t w = 0;
@@ -85,18 +85,18 @@ void srslte_block_encode(const uint8_t* input, uint32_t input_len, uint8_t* outp
   // Encode bits
 #if USE_LUT
   uint32_t i = 0;
-  for (; i < output_len / SRSLTE_FEC_BLOCK_SIZE; i++) {
-    srslte_vec_u8_copy(&output[i * SRSLTE_FEC_BLOCK_SIZE], block_unpacked_lut[w], SRSLTE_FEC_BLOCK_SIZE);
+  for (; i < output_len / SRSRAN_FEC_BLOCK_SIZE; i++) {
+    srsran_vec_u8_copy(&output[i * SRSRAN_FEC_BLOCK_SIZE], block_unpacked_lut[w], SRSRAN_FEC_BLOCK_SIZE);
   }
-  srslte_vec_u8_copy(&output[i * SRSLTE_FEC_BLOCK_SIZE], block_unpacked_lut[w], output_len % SRSLTE_FEC_BLOCK_SIZE);
+  srsran_vec_u8_copy(&output[i * SRSRAN_FEC_BLOCK_SIZE], block_unpacked_lut[w], output_len % SRSRAN_FEC_BLOCK_SIZE);
 #else  // USE_LUT
-  for (uint32_t i = 0; i < SRSLTE_MIN(output_len, SRSLTE_FEC_BLOCK_SIZE); i++) {
+  for (uint32_t i = 0; i < SRSRAN_MIN(output_len, SRSRAN_FEC_BLOCK_SIZE); i++) {
     output[i] = encode_M_basis_seq_u16(w, i);
   }
 
   // Avoid repeating operation by copying repeated sequence
-  for (uint32_t i = SRSLTE_FEC_BLOCK_SIZE; i < output_len; i++) {
-    output[i] = output[i % SRSLTE_FEC_BLOCK_SIZE];
+  for (uint32_t i = SRSRAN_FEC_BLOCK_SIZE; i < output_len; i++) {
+    output[i] = output[i % SRSRAN_FEC_BLOCK_SIZE];
   }
 #endif // USE_LUT
 }
@@ -107,7 +107,7 @@ static int32_t block_decode(const block_llr_t* llr, uint8_t* data, uint32_t data
   uint32_t max_data = 0; //< Stores the word for maximum correlation
 
   // Limit data to maximum
-  data_len = SRSLTE_MIN(data_len, SRSLTE_FEC_BLOCK_MAX_NOF_BITS);
+  data_len = SRSRAN_MIN(data_len, SRSRAN_FEC_BLOCK_MAX_NOF_BITS);
 
   // Brute force all possible sequences
   uint16_t max_guess = (1U << data_len); //< Maximum guess bit combination (excluded)
@@ -116,11 +116,11 @@ static int32_t block_decode(const block_llr_t* llr, uint8_t* data, uint32_t data
 #if USE_LUT
     // Load sequence from LUT
     // Dot product
-    for (uint32_t i = 0; i < SRSLTE_FEC_BLOCK_SIZE; i++) {
+    for (uint32_t i = 0; i < SRSRAN_FEC_BLOCK_SIZE; i++) {
       corr += llr[i] * block_llr_lut[guess][i];
     }
 #else
-    for (uint32_t i = 0; i < SRSLTE_FEC_BLOCK_SIZE; i++) {
+    for (uint32_t i = 0; i < SRSRAN_FEC_BLOCK_SIZE; i++) {
       // On-the-fly sequence generation and product
       corr += llr[i] * (encode_M_basis_seq_u16(guess, i) * 2 - 1);
     }
@@ -142,40 +142,40 @@ static int32_t block_decode(const block_llr_t* llr, uint8_t* data, uint32_t data
   return max_corr;
 }
 
-int32_t srslte_block_decode_i8(const int8_t* llr, uint32_t nof_llr, uint8_t* data, uint32_t data_len)
+int32_t srsran_block_decode_i8(const int8_t* llr, uint32_t nof_llr, uint8_t* data, uint32_t data_len)
 {
-  block_llr_t llr_[SRSLTE_FEC_BLOCK_SIZE] = {};
+  block_llr_t llr_[SRSRAN_FEC_BLOCK_SIZE] = {};
 
   // Return invalid inputs if data is not provided
   if (!llr || !data) {
     ERROR("Invalid inputs");
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
   // Accumulate all copies of the 32-length sequence
   for (uint32_t i = 0; i < nof_llr; i++) {
-    llr_[i % SRSLTE_FEC_BLOCK_SIZE] += (block_llr_t)llr[i];
+    llr_[i % SRSRAN_FEC_BLOCK_SIZE] += (block_llr_t)llr[i];
   }
 
   return block_decode(llr_, data, data_len);
 }
 
-int32_t srslte_block_decode_i16(const int16_t* llr, uint32_t nof_llr, uint8_t* data, uint32_t data_len)
+int32_t srsran_block_decode_i16(const int16_t* llr, uint32_t nof_llr, uint8_t* data, uint32_t data_len)
 {
-  block_llr_t llr_[SRSLTE_FEC_BLOCK_SIZE] = {};
+  block_llr_t llr_[SRSRAN_FEC_BLOCK_SIZE] = {};
 
   // Return invalid inputs if data is not provided
   if (!llr || !data) {
     ERROR("Invalid inputs");
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
   // Accumulate all copies of the 32-length sequence
   uint32_t i = 0;
-  for (; i < nof_llr / SRSLTE_FEC_BLOCK_SIZE; i++) {
-    srslte_vec_sum_sss(&llr[i * SRSLTE_FEC_BLOCK_SIZE], llr_, llr_, SRSLTE_FEC_BLOCK_SIZE);
+  for (; i < nof_llr / SRSRAN_FEC_BLOCK_SIZE; i++) {
+    srsran_vec_sum_sss(&llr[i * SRSRAN_FEC_BLOCK_SIZE], llr_, llr_, SRSRAN_FEC_BLOCK_SIZE);
   }
-  srslte_vec_sum_sss(&llr[i * SRSLTE_FEC_BLOCK_SIZE], llr_, llr_, nof_llr % SRSLTE_FEC_BLOCK_SIZE);
+  srsran_vec_sum_sss(&llr[i * SRSRAN_FEC_BLOCK_SIZE], llr_, llr_, nof_llr % SRSRAN_FEC_BLOCK_SIZE);
 
   return block_decode(llr_, data, data_len);
 }

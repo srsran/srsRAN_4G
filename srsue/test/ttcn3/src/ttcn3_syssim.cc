@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -12,11 +12,11 @@
 
 #include "srsue/test/ttcn3/hdr/ttcn3_syssim.h"
 #include "dut_utils.h"
-#include "srslte/mac/pdu_queue.h"
-#include "srslte/srslog/srslog.h"
-#include "srslte/test/ue_test_interfaces.h"
-#include "srslte/upper/pdcp.h"
-#include "srslte/upper/rlc.h"
+#include "srsran/mac/pdu_queue.h"
+#include "srsran/srslog/srslog.h"
+#include "srsran/test/ue_test_interfaces.h"
+#include "srsran/upper/pdcp.h"
+#include "srsran/upper/rlc.h"
 #include "swappable_sink.h"
 #include "ttcn3_common.h"
 #include "ttcn3_drb_interface.h"
@@ -52,7 +52,7 @@ ttcn3_syssim::ttcn3_syssim(ttcn3_ue* ue_) :
   signal_handler(&running),
   timer_handler(create_tti_timer(), [&](uint64_t res) { new_tti_indication(res); })
 {
-  if (ue->init(all_args_t{}, this, "INIT_TEST") != SRSLTE_SUCCESS) {
+  if (ue->init(all_args_t{}, this, "INIT_TEST") != SRSRAN_SUCCESS) {
     ue->stop();
     fprintf(stderr, "Couldn't initialize UE.\n");
   }
@@ -69,8 +69,8 @@ int ttcn3_syssim::init(const all_args_t& args_)
     auto* swp_sink = srslog::find_sink(swappable_sink::name());
     if (!swp_sink) {
       logger.error("Unable to find the swappable sink");
-      srslte::console("Unable to find the swappable sink\n");
-      return SRSLTE_ERROR;
+      srsran::console("Unable to find the swappable sink\n");
+      return SRSRAN_ERROR;
     }
     static_cast<swappable_sink*>(swp_sink)->swap_to_stdout();
   }
@@ -103,27 +103,27 @@ int ttcn3_syssim::init(const all_args_t& args_)
   epoll_fd = epoll_create1(0);
   if (epoll_fd == -1) {
     logger.error("Error creating epoll");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // add signalfd
   signal_fd = add_signalfd();
-  if (add_epoll(signal_fd, epoll_fd) != SRSLTE_SUCCESS) {
+  if (add_epoll(signal_fd, epoll_fd) != SRSRAN_SUCCESS) {
     logger.error("Error while adding signalfd to epoll");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   event_handler.insert({signal_fd, &signal_handler});
 
   // init system interfaces to tester
-  if (add_port_handler() != SRSLTE_SUCCESS) {
+  if (add_port_handler() != SRSRAN_SUCCESS) {
     logger.error("Error creating port handlers");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // Init common SS layers
   pdus.init(this);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 void ttcn3_syssim::set_forced_lcid(int lcid)
@@ -135,59 +135,59 @@ int ttcn3_syssim::add_port_handler()
 {
   // UT port
   int ut_fd = ut.init(this, listen_address, UT_PORT);
-  if (add_epoll(ut_fd, epoll_fd) != SRSLTE_SUCCESS) {
+  if (add_epoll(ut_fd, epoll_fd) != SRSRAN_SUCCESS) {
     logger.error("Error while adding UT port to epoll");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   event_handler.insert({ut_fd, &ut});
-  srslte::console("UT handler listening on SCTP port %d\n", UT_PORT);
+  srsran::console("UT handler listening on SCTP port %d\n", UT_PORT);
 
   // SYS port
   int sys_fd = sys.init(this, listen_address, SYS_PORT);
-  if (add_epoll(sys_fd, epoll_fd) != SRSLTE_SUCCESS) {
+  if (add_epoll(sys_fd, epoll_fd) != SRSRAN_SUCCESS) {
     logger.error("Error while adding SYS port to epoll");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   event_handler.insert({sys_fd, &sys});
-  srslte::console("SYS handler listening on SCTP port %d\n", SYS_PORT);
+  srsran::console("SYS handler listening on SCTP port %d\n", SYS_PORT);
 
   // IPsock port
   int ip_sock_fd = ip_sock.init(listen_address, IPSOCK_PORT);
-  if (add_epoll(ip_sock_fd, epoll_fd) != SRSLTE_SUCCESS) {
+  if (add_epoll(ip_sock_fd, epoll_fd) != SRSRAN_SUCCESS) {
     logger.error("Error while adding IP sock port to epoll");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   event_handler.insert({ip_sock_fd, &ip_sock});
-  srslte::console("IPSOCK handler listening on SCTP port %d\n", IPSOCK_PORT);
+  srsran::console("IPSOCK handler listening on SCTP port %d\n", IPSOCK_PORT);
 
   // IPctrl port
   int ip_ctrl_fd = ip_ctrl.init(listen_address, IPCTRL_PORT);
-  if (add_epoll(ip_ctrl_fd, epoll_fd) != SRSLTE_SUCCESS) {
+  if (add_epoll(ip_ctrl_fd, epoll_fd) != SRSRAN_SUCCESS) {
     logger.error("Error while adding IP ctrl port to epoll");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   event_handler.insert({ip_ctrl_fd, &ip_ctrl});
-  srslte::console("IPCTRL handler listening on SCTP port %d\n", IPCTRL_PORT);
+  srsran::console("IPCTRL handler listening on SCTP port %d\n", IPCTRL_PORT);
 
   // add SRB fd
   int srb_fd = srb.init(this, listen_address, SRB_PORT);
-  if (add_epoll(srb_fd, epoll_fd) != SRSLTE_SUCCESS) {
+  if (add_epoll(srb_fd, epoll_fd) != SRSRAN_SUCCESS) {
     logger.error("Error while adding SRB port to epoll");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   event_handler.insert({srb_fd, &srb});
-  srslte::console("SRB handler listening on SCTP port %d\n", SRB_PORT);
+  srsran::console("SRB handler listening on SCTP port %d\n", SRB_PORT);
 
   // add DRB fd
   int drb_fd = drb.init(this, listen_address, DRB_PORT);
-  if (add_epoll(drb_fd, epoll_fd) != SRSLTE_SUCCESS) {
+  if (add_epoll(drb_fd, epoll_fd) != SRSRAN_SUCCESS) {
     logger.error("Error while adding DRB port to epoll");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   event_handler.insert({drb_fd, &drb});
-  srslte::console("DRB handler listening on SCTP port %d\n", DRB_PORT);
+  srsran::console("DRB handler listening on SCTP port %d\n", DRB_PORT);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 ///< Function called by epoll timer handler when TTI timer expires
@@ -219,19 +219,19 @@ void ttcn3_syssim::new_tti_indication(uint64_t res)
     ss_events_t ev = event_queue.wait_pop();
     switch (ev) {
       case UE_SWITCH_ON:
-        srslte::console("Switching on UE ID=%d\n", run_id);
+        srsran::console("Switching on UE ID=%d\n", run_id);
         ue->switch_on();
         break;
       case UE_SWITCH_OFF:
-        srslte::console("Switching off UE ID=%d\n", run_id);
+        srsran::console("Switching off UE ID=%d\n", run_id);
         ue->switch_off();
         break;
       case ENABLE_DATA:
-        srslte::console("Enabling data for UE ID=%d\n", run_id);
+        srsran::console("Enabling data for UE ID=%d\n", run_id);
         ue->enable_data();
         break;
       case DISABLE_DATA:
-        srslte::console("Disabling data for UE ID=%d\n", run_id);
+        srsran::console("Disabling data for UE ID=%d\n", run_id);
         ue->disable_data();
         break;
     }
@@ -244,7 +244,7 @@ void ttcn3_syssim::new_tti_indication(uint64_t res)
 
   // DL/UL processing if UE has selected cell
   dl_rnti = ue->get_dl_sched_rnti(tti);
-  if (SRSLTE_RNTI_ISSI(dl_rnti)) {
+  if (SRSRAN_RNTI_ISSI(dl_rnti)) {
     // deliver SIBs one after another
     mac_interface_phy_lte::mac_grant_dl_t dl_grant = {};
     dl_grant.tti                                   = tti;
@@ -255,17 +255,17 @@ void ttcn3_syssim::new_tti_indication(uint64_t res)
     ue->new_tb(dl_grant, cells[pcell_idx]->sibs[cells[pcell_idx]->sib_idx]->msg);
     logger.info("Delivered SIB%d for pcell_idx=%d", cells[pcell_idx]->sib_idx, pcell_idx);
     cells[pcell_idx]->sib_idx = (cells[pcell_idx]->sib_idx + 1) % cells[pcell_idx]->sibs.size();
-  } else if (SRSLTE_RNTI_ISRAR(dl_rnti)) {
+  } else if (SRSRAN_RNTI_ISRAR(dl_rnti)) {
     if (prach_tti != -1) {
       rar_tti = (prach_tti + 3) % 10240;
       if (tti == rar_tti) {
         send_rar(prach_preamble_index);
       }
     }
-  } else if (SRSLTE_RNTI_ISPA(dl_rnti)) {
+  } else if (SRSRAN_RNTI_ISPA(dl_rnti)) {
     logger.debug("Searching for paging RNTI");
     // PCH will be triggered from SYSSIM after receiving Paging
-  } else if (SRSLTE_RNTI_ISUSER(dl_rnti)) {
+  } else if (SRSRAN_RNTI_ISUSER(dl_rnti)) {
     // check if this is for contention resolution after PRACH/RAR
     if (dl_rnti == cells[pcell_idx]->config.crnti) {
       logger.debug("Searching for C-RNTI=0x%x", dl_rnti);
@@ -284,11 +284,11 @@ void ttcn3_syssim::new_tti_indication(uint64_t res)
       send_sr_ul_grant();
     }
 
-    if (dl_rnti != SRSLTE_INVALID_RNTI) {
+    if (dl_rnti != SRSRAN_INVALID_RNTI) {
       logger.debug("Searching for RNTI=0x%x", dl_rnti);
 
       // look for DL data to be send in each bearer and provide grant accordingly
-      for (int lcid = 0; lcid < SRSLTE_N_RADIO_BEARERS; lcid++) {
+      for (int lcid = 0; lcid < SRSRAN_N_RADIO_BEARERS; lcid++) {
         uint32_t buf_state = cells[pcell_idx]->rlc.get_buffer_state(lcid);
         // Schedule DL transmission if there is data in RLC buffer or we need to send Msg4
         if ((buf_state > 0 && cells[pcell_idx]->bearer_follow_on_map[lcid] == false) ||
@@ -401,7 +401,7 @@ void ttcn3_syssim::tc_start(const char* name)
   auto* swp_sink = srslog::find_sink(swappable_sink::name());
   if (!swp_sink) {
     logger.error("Unable to find the swappable sink");
-    srslte::console("Unable to find the swappable sink\n");
+    srsran::console("Unable to find the swappable sink\n");
     return;
   }
 
@@ -414,7 +414,7 @@ void ttcn3_syssim::tc_start(const char* name)
   }
 
   logger.info("Initializing UE ID=%d for TC=%s", run_id, tc_name.c_str());
-  srslte::console("Initializing UE ID=%d for TC=%s\n", run_id, tc_name.c_str());
+  srsran::console("Initializing UE ID=%d for TC=%s\n", run_id, tc_name.c_str());
 
   // Patch UE config
   local_args.stack.pkt_trace.mac_pcap.filename =
@@ -427,12 +427,12 @@ void ttcn3_syssim::tc_start(const char* name)
     ue->stop();
     std::string err("Couldn't initialize UE.");
     logger.error("%s", err.c_str());
-    srslte::console("%s\n", err.c_str());
+    srsran::console("%s\n", err.c_str());
     return;
   }
 
   // create and add TTI timer to epoll
-  if (add_epoll(timer_handler.get_timer_fd(), epoll_fd) != SRSLTE_SUCCESS) {
+  if (add_epoll(timer_handler.get_timer_fd(), epoll_fd) != SRSRAN_SUCCESS) {
     logger.error("Error while adding TTI timer to epoll");
   }
   event_handler.insert({timer_handler.get_timer_fd(), &timer_handler});
@@ -442,7 +442,7 @@ void ttcn3_syssim::tc_start(const char* name)
 void ttcn3_syssim::tc_end()
 {
   logger.info("Deinitializing UE ID=%d", run_id);
-  srslte::console("Deinitializing UE ID=%d\n", run_id);
+  srsran::console("Deinitializing UE ID=%d\n", run_id);
   ue->stop();
 
   // stop TTI timer
@@ -535,7 +535,7 @@ void ttcn3_syssim::tx_pdu(const uint8_t* payload, const int len, const uint32_t 
 
       // Save contention resolution if lcid == 0
       if (mac_msg_ul.get()->get_sdu_lcid() == 0) {
-        int nbytes = srslte::sch_subh::MAC_CE_CONTRES_LEN;
+        int nbytes = srsran::sch_subh::MAC_CE_CONTRES_LEN;
         if (mac_msg_ul.get()->get_payload_size() >= (uint32_t)nbytes) {
           uint8_t* ue_cri_ptr = (uint8_t*)&conres_id;
           uint8_t* pkt_ptr    = mac_msg_ul.get()->get_sdu_ptr(); // Warning here: we want to include the
@@ -570,12 +570,12 @@ void ttcn3_syssim::send_rar(uint32_t preamble_index)
 
   // Prepare RAR grant
   uint8_t                grant_buffer[64] = {};
-  srslte_dci_rar_grant_t rar_grant        = {};
+  srsran_dci_rar_grant_t rar_grant        = {};
   rar_grant.tpc_pusch                     = 3;
-  srslte_dci_rar_pack(&rar_grant, grant_buffer);
+  srsran_dci_rar_pack(&rar_grant, grant_buffer);
 
   // Create MAC PDU and add RAR subheader
-  srslte::rar_pdu rar_pdu;
+  srsran::rar_pdu rar_pdu;
   rar_buffer.clear();
 
   const int rar_pdu_len = 64;
@@ -640,7 +640,7 @@ void ttcn3_syssim::send_sr_ul_grant()
 }
 
 // internal function called from tx_pdu (called from main thread)
-bool ttcn3_syssim::process_ce(srslte::sch_subh* subh)
+bool ttcn3_syssim::process_ce(srsran::sch_subh* subh)
 {
   uint16_t rnti = dl_rnti;
 
@@ -651,29 +651,29 @@ bool ttcn3_syssim::process_ce(srslte::sch_subh* subh)
   uint16_t old_rnti           = 0;
   bool     is_bsr             = false;
   switch (subh->ul_sch_ce_type()) {
-    case srslte::ul_sch_lcid::PHR_REPORT:
+    case srsran::ul_sch_lcid::PHR_REPORT:
       phr = subh->get_phr();
       ss_mac_logger.info("CE:    Received PHR from rnti=0x%x, value=%.0f", rnti, phr);
       break;
-    case srslte::ul_sch_lcid::CRNTI:
+    case srsran::ul_sch_lcid::CRNTI:
       old_rnti = subh->get_c_rnti();
       ss_mac_logger.info("CE:    Received C-RNTI from temp_rnti=0x%x, rnti=0x%x", rnti, old_rnti);
       break;
-    case srslte::ul_sch_lcid::TRUNC_BSR:
-    case srslte::ul_sch_lcid::SHORT_BSR:
+    case srsran::ul_sch_lcid::TRUNC_BSR:
+    case srsran::ul_sch_lcid::SHORT_BSR:
       idx = subh->get_bsr(buff_size_idx, buff_size_bytes);
       if (idx == -1) {
         ss_mac_logger.error("Invalid Index Passed to lc groups");
         break;
       }
       ss_mac_logger.info("CE:    Received %s BSR rnti=0x%x, lcg=%d, value=%d",
-                         subh->ul_sch_ce_type() == srslte::ul_sch_lcid::SHORT_BSR ? "Short" : "Trunc",
+                         subh->ul_sch_ce_type() == srsran::ul_sch_lcid::SHORT_BSR ? "Short" : "Trunc",
                          rnti,
                          idx,
                          buff_size_idx[idx]);
       is_bsr = true;
       break;
-    case srslte::ul_sch_lcid::LONG_BSR:
+    case srsran::ul_sch_lcid::LONG_BSR:
       subh->get_bsr(buff_size_idx, buff_size_bytes);
       is_bsr = true;
       ss_mac_logger.info("CE:    Received Long BSR rnti=0x%x, value=%d,%d,%d,%d",
@@ -683,7 +683,7 @@ bool ttcn3_syssim::process_ce(srslte::sch_subh* subh)
                          buff_size_idx[2],
                          buff_size_idx[3]);
       break;
-    case srslte::ul_sch_lcid::PADDING:
+    case srsran::ul_sch_lcid::PADDING:
       ss_mac_logger.debug("CE:    Received padding for rnti=0x%x", rnti);
       break;
     default:
@@ -695,7 +695,7 @@ bool ttcn3_syssim::process_ce(srslte::sch_subh* subh)
 
 uint32_t ttcn3_syssim::get_pid(const uint32_t tti_)
 {
-  return tti_ % SRSLTE_FDD_NOF_HARQ;
+  return tti_ % SRSRAN_FDD_NOF_HARQ;
 }
 
 bool ttcn3_syssim::get_ndi_for_new_ul_tx(const uint32_t tti_)
@@ -751,7 +751,7 @@ int ttcn3_syssim::run()
       }
     }
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 uint32_t ttcn3_syssim::get_tti()
@@ -894,7 +894,7 @@ void ttcn3_syssim::add_ccch_pdu(const ttcn3_helpers::timing_info_t timing,
     add_ccch_pdu_impl(cell_name, std::move(pdu));
   } else {
     logger.debug("Scheduling CCCH PDU for TTI=%d", timing.tti);
-    auto task = [this, cell_name](srslte::unique_byte_buffer_t& pdu) { add_ccch_pdu_impl(cell_name, std::move(pdu)); };
+    auto task = [this, cell_name](srsran::unique_byte_buffer_t& pdu) { add_ccch_pdu_impl(cell_name, std::move(pdu)); };
     tti_actions[timing.tti].push(std::bind(task, std::move(pdu)));
   }
 }
@@ -921,7 +921,7 @@ void ttcn3_syssim::add_dcch_pdu(const ttcn3_helpers::timing_info_t timing,
     add_dcch_pdu_impl(cell_name, lcid, std::move(pdu), follow_on_flag);
   } else {
     logger.debug("Scheduling DCCH PDU for TTI=%d", timing.tti);
-    auto task = [this, cell_name](uint32_t lcid, srslte::unique_byte_buffer_t& pdu, bool follow_on_flag) {
+    auto task = [this, cell_name](uint32_t lcid, srsran::unique_byte_buffer_t& pdu, bool follow_on_flag) {
       add_dcch_pdu_impl(cell_name, lcid, std::move(pdu), follow_on_flag);
     };
     tti_actions[timing.tti].push(std::bind(task, lcid, std::move(pdu), follow_on_flag));
@@ -954,7 +954,7 @@ void ttcn3_syssim::add_pch_pdu(unique_byte_buffer_t pdu)
   mac_interface_phy_lte::mac_grant_dl_t dl_grant = {};
   dl_grant.tti                                   = tti;
   dl_grant.pid                                   = get_pid(tti);
-  dl_grant.rnti                                  = SRSLTE_PRNTI;
+  dl_grant.rnti                                  = SRSRAN_PRNTI;
   dl_grant.tb[0].tbs                             = pdu->N_bytes;
   dl_grant.tb[0].ndi_present                     = true;
   dl_grant.tb[0].ndi                             = get_ndi_for_new_dl_tx(tti);
@@ -991,7 +991,7 @@ void ttcn3_syssim::add_srb_impl(const std::string cell_name, const uint32_t lcid
 
   logger.info("Adding SRB%d", lcid);
   cell->pdcp.add_bearer(lcid, pdcp_config);
-  cell->rlc.add_bearer(lcid, srslte::rlc_config_t::srb_config(lcid));
+  cell->rlc.add_bearer(lcid, srsran::rlc_config_t::srb_config(lcid));
 }
 
 void ttcn3_syssim::reestablish_bearer(const std::string cell_name, const uint32_t lcid)
@@ -1038,7 +1038,7 @@ void ttcn3_syssim::del_srb_impl(const std::string cell_name, const uint32_t lcid
 void ttcn3_syssim::add_drb(const ttcn3_helpers::timing_info_t timing,
                            const std::string                  cell_name,
                            const uint32_t                     lcid,
-                           const srslte::pdcp_config_t        pdcp_config)
+                           const srsran::pdcp_config_t        pdcp_config)
 {
   if (timing.now) {
     add_drb_impl(cell_name, lcid, pdcp_config);
@@ -1061,7 +1061,7 @@ void ttcn3_syssim::add_drb_impl(const std::string cell_name, const uint32_t lcid
   if (lcid > 2) {
     logger.info("Adding DRB%d", lcid - 2);
     cell->pdcp.add_bearer(lcid, pdcp_config);
-    cell->rlc.add_bearer(lcid, srslte::rlc_config_t::default_rlc_am_config());
+    cell->rlc.add_bearer(lcid, srsran::rlc_config_t::default_rlc_am_config());
   }
 }
 
@@ -1180,8 +1180,8 @@ void ttcn3_syssim::set_as_security(const ttcn3_helpers::timing_info_t        tim
                                    std::array<uint8_t, 32>                   k_rrc_enc_,
                                    std::array<uint8_t, 32>                   k_rrc_int_,
                                    std::array<uint8_t, 32>                   k_up_enc_,
-                                   const srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
-                                   const srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_,
+                                   const srsran::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
+                                   const srsran::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_,
                                    const ttcn3_helpers::pdcp_count_map_t     bearers_)
 {
   if (timing.now) {
@@ -1199,8 +1199,8 @@ void ttcn3_syssim::set_as_security_impl(const std::string                       
                                         std::array<uint8_t, 32>                   k_rrc_enc_,
                                         std::array<uint8_t, 32>                   k_rrc_int_,
                                         std::array<uint8_t, 32>                   k_up_enc_,
-                                        const srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
-                                        const srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_,
+                                        const srsran::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
+                                        const srsran::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_,
                                         const ttcn3_helpers::pdcp_count_map_t     bearers)
 {
   if (not syssim_has_cell(cell_name)) {
@@ -1252,7 +1252,7 @@ void ttcn3_syssim::release_as_security_impl(const std::string cell_name)
   cell->pending_bearer_config.clear();
 }
 
-void ttcn3_syssim::select_cell(srslte_cell_t phy_cell)
+void ttcn3_syssim::select_cell(srsran_cell_t phy_cell)
 {
   // find matching cell in SS cell list
   for (uint32_t i = 0; i < cells.size(); ++i) {
@@ -1280,7 +1280,7 @@ ttcn3_helpers::pdcp_count_map_t ttcn3_syssim::get_pdcp_count(const std::string c
     if (cell->pdcp.is_lcid_enabled(i)) {
       ttcn3_helpers::pdcp_count_t bearer;
       uint16_t                    tmp; // not handling HFN
-      srslte::pdcp_lte_state_t    pdcp_state;
+      srsran::pdcp_lte_state_t    pdcp_state;
       cell->pdcp.get_bearer_state(i, &pdcp_state);
       bearer.rb_is_srb = i <= 2;
       bearer.rb_id     = i;

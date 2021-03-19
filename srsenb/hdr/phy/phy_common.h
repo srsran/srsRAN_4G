@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -15,18 +15,18 @@
 
 #include "phy_interfaces.h"
 #include "srsenb/hdr/phy/phy_ue_db.h"
-#include "srslte/common/gen_mch_tables.h"
-#include "srslte/common/interfaces_common.h"
-#include "srslte/common/standard_streams.h"
-#include "srslte/common/thread_pool.h"
-#include "srslte/common/threads.h"
-#include "srslte/interfaces/enb_metrics_interface.h"
-#include "srslte/interfaces/radio_interfaces.h"
-#include "srslte/phy/channel/channel.h"
-#include "srslte/radio/radio.h"
+#include "srsran/common/gen_mch_tables.h"
+#include "srsran/common/interfaces_common.h"
+#include "srsran/common/standard_streams.h"
+#include "srsran/common/thread_pool.h"
+#include "srsran/common/threads.h"
+#include "srsran/interfaces/enb_metrics_interface.h"
+#include "srsran/interfaces/radio_interfaces.h"
+#include "srsran/phy/channel/channel.h"
+#include "srsran/radio/radio.h"
 
 #include <map>
-#include <srslte/common/tti_sempahore.h>
+#include <srsran/common/tti_sempahore.h>
 #include <string.h>
 
 namespace srsenb {
@@ -38,7 +38,7 @@ public:
 
   bool init(const phy_cell_cfg_list_t&    cell_list_,
             const phy_cell_cfg_list_nr_t& cell_list_nr_,
-            srslte::radio_interface_phy*  radio_handler,
+            srsran::radio_interface_phy*  radio_handler,
             stack_interface_phy_lte*      mac);
   void reset();
   void stop();
@@ -46,7 +46,7 @@ public:
   /**
    * TTI transmission semaphore, used for ensuring that PHY workers transmit following start order
    */
-  srslte::tti_semaphore<void*> semaphore;
+  srsran::tti_semaphore<void*> semaphore;
 
   /**
    * Performs common end worker transmission tasks such as transmission and stack TTI execution
@@ -56,7 +56,7 @@ public:
    * @param tx_time timestamp to transmit samples
    * @param is_nr flag is true if it is called from NR
    */
-  void worker_end(void* tx_sem_id, srslte::rf_buffer_t& buffer, srslte::rf_timestamp_t& tx_time, bool is_nr = false);
+  void worker_end(void* tx_sem_id, srsran::rf_buffer_t& buffer, srsran::rf_timestamp_t& tx_time, bool is_nr = false);
 
   // Common objects
   phy_args_t params = {};
@@ -143,17 +143,17 @@ public:
 
     return ret;
   };
-  srslte_cell_t get_cell(uint32_t cc_idx)
+  srsran_cell_t get_cell(uint32_t cc_idx)
   {
-    srslte_cell_t c = {};
+    srsran_cell_t c = {};
     if (cc_idx < cell_list_lte.size()) {
       c = cell_list_lte[cc_idx].cell;
     }
     return c;
   };
-  srslte_carrier_nr_t get_cell_nr(uint32_t cc_idx)
+  srsran_carrier_nr_t get_cell_nr(uint32_t cc_idx)
   {
-    srslte_carrier_nr_t c = {};
+    srsran_carrier_nr_t c = {};
     if (cc_idx < cell_list_nr.size()) {
       c = cell_list_nr[cc_idx].carrier;
     }
@@ -183,7 +183,7 @@ public:
       return;
     }
 
-    srslte::console("cell ID %d not found\n", cell_id);
+    srsran::console("cell ID %d not found\n", cell_id);
   }
 
   float get_cell_gain(uint32_t cc_idx)
@@ -201,21 +201,21 @@ public:
   }
 
   // Common Physical Uplink DMRS configuration
-  srslte_refsignal_dmrs_pusch_cfg_t dmrs_pusch_cfg = {};
+  srsran_refsignal_dmrs_pusch_cfg_t dmrs_pusch_cfg = {};
 
-  srslte::radio_interface_phy* radio      = nullptr;
+  srsran::radio_interface_phy* radio      = nullptr;
   stack_interface_phy_lte*     stack      = nullptr;
-  srslte::channel_ptr          dl_channel = nullptr;
+  srsran::channel_ptr          dl_channel = nullptr;
 
   /**
    * UE Database object, direct public access, all PHY threads should be able to access this attribute directly
    */
   phy_ue_db ue_db;
 
-  void configure_mbsfn(srslte::phy_cfg_mbsfn_t* cfg);
+  void configure_mbsfn(srsran::phy_cfg_mbsfn_t* cfg);
   void build_mch_table();
   void build_mcch_table();
-  bool is_mbsfn_sf(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti);
+  bool is_mbsfn_sf(srsran_mbsfn_cfg_t* cfg, uint32_t phy_tti);
   void set_mch_period_stop(uint32_t stop);
 
   // Getters and setters for ul grants which need to be shared between workers
@@ -225,7 +225,7 @@ public:
 
 private:
   // Common objects for scheduling grants
-  srslte::circular_array<stack_interface_phy_lte::ul_sched_list_t, TTIMOD_SZ> ul_grants   = {};
+  srsran::circular_array<stack_interface_phy_lte::ul_sched_list_t, TTIMOD_SZ> ul_grants   = {};
   std::mutex                                                                  grant_mutex = {};
 
   phy_cell_cfg_list_t    cell_list_lte;
@@ -234,15 +234,15 @@ private:
   bool                    have_mtch_stop   = false;
   pthread_mutex_t         mtch_mutex       = {};
   pthread_cond_t          mtch_cvar        = {};
-  srslte::phy_cfg_mbsfn_t mbsfn            = {};
+  srsran::phy_cfg_mbsfn_t mbsfn            = {};
   bool                    sib13_configured = false;
   bool                    mcch_configured  = false;
   uint8_t                 mch_table[40]    = {};
   uint8_t                 mcch_table[10]   = {};
   uint32_t                mch_period_stop  = 0;
-  bool                    is_mch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti);
-  bool                    is_mcch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti);
-  srslte::rf_buffer_t     nr_tx_buffer;
+  bool                    is_mch_subframe(srsran_mbsfn_cfg_t* cfg, uint32_t phy_tti);
+  bool                    is_mcch_subframe(srsran_mbsfn_cfg_t* cfg, uint32_t phy_tti);
+  srsran::rf_buffer_t     nr_tx_buffer;
   bool                    nr_tx_buffer_ready = false;
 };
 

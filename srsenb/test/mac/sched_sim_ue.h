@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,12 +10,12 @@
  *
  */
 
-#ifndef SRSLTE_SCHED_SIM_UE_H
-#define SRSLTE_SCHED_SIM_UE_H
+#ifndef SRSRAN_SCHED_SIM_UE_H
+#define SRSRAN_SCHED_SIM_UE_H
 
 #include "sched_common_test_suite.h"
-#include "srslte/interfaces/sched_interface.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/interfaces/sched_interface.h"
+#include "srsran/srslog/srslog.h"
 #include <bitset>
 #include <map>
 
@@ -28,19 +28,19 @@ struct ue_harq_ctxt_t {
   uint32_t              nof_txs   = 0;
   uint32_t              nof_retxs = 0;
   uint32_t              riv       = 0;
-  srslte_dci_location_t dci_loc   = {};
+  srsran_dci_location_t dci_loc   = {};
   uint32_t              tbs       = 0;
-  srslte::tti_point     last_tti_rx, first_tti_rx;
+  srsran::tti_point     last_tti_rx, first_tti_rx;
 };
 struct ue_cc_ctxt_t {
-  std::array<ue_harq_ctxt_t, SRSLTE_FDD_NOF_HARQ> dl_harqs;
-  std::array<ue_harq_ctxt_t, SRSLTE_FDD_NOF_HARQ> ul_harqs;
+  std::array<ue_harq_ctxt_t, SRSRAN_FDD_NOF_HARQ> dl_harqs;
+  std::array<ue_harq_ctxt_t, SRSRAN_FDD_NOF_HARQ> ul_harqs;
 };
 struct sim_ue_ctxt_t {
   bool                      conres_rx = false;
   uint16_t                  rnti;
   uint32_t                  preamble_idx, msg3_riv;
-  srslte::tti_point         prach_tti_rx, rar_tti_rx, msg3_tti_rx, msg4_tti_rx;
+  srsran::tti_point         prach_tti_rx, rar_tti_rx, msg3_tti_rx, msg4_tti_rx;
   sched_interface::ue_cfg_t ue_cfg;
   std::vector<ue_cc_ctxt_t> cc_list;
 
@@ -52,7 +52,7 @@ struct sim_ue_ctxt_t {
 };
 
 struct sim_enb_ctxt_t {
-  srslte::span<const sched_cell_params_t>  cell_params;
+  srsran::span<const sched_cell_params_t>  cell_params;
   std::map<uint16_t, const sim_ue_ctxt_t*> ue_db;
 };
 struct ue_tti_events {
@@ -67,7 +67,7 @@ struct ue_tti_events {
     int      dl_cqi     = -1;
     int      ul_snr     = -1;
   };
-  srslte::tti_point    tti_rx;
+  srsran::tti_point    tti_rx;
   std::vector<cc_data> cc_list;
 };
 
@@ -76,7 +76,7 @@ class ue_sim
 public:
   ue_sim(uint16_t                         rnti_,
          const sched_interface::ue_cfg_t& ue_cfg_,
-         srslte::tti_point                prach_tti_rx,
+         srsran::tti_point                prach_tti_rx,
          uint32_t                         preamble_idx);
 
   void set_cfg(const sched_interface::ue_cfg_t& ue_cfg_);
@@ -109,7 +109,7 @@ public:
   int bearer_cfg(uint16_t rnti, uint32_t lc_id, const sched_interface::ue_bearer_cfg_t& cfg);
   int rem_user(uint16_t rnti);
 
-  void new_tti(srslte::tti_point tti_rx);
+  void new_tti(srsran::tti_point tti_rx);
   void update(const sf_output_res_t& sf_out);
 
   sim_enb_ctxt_t get_enb_ctxt() const;
@@ -132,7 +132,7 @@ public:
     return ret == nullptr ? nullptr : &ret->get_ctxt().ue_cfg;
   }
   sched_interface*                        get_sched() { return sched_ptr; }
-  srslte::const_span<sched_cell_params_t> get_cell_params() { return cell_params; }
+  srsran::const_span<sched_cell_params_t> get_cell_params() { return cell_params; }
   tti_point                               get_tti_rx() const { return current_tti_rx; }
 
   std::map<uint16_t, ue_sim>::iterator begin() { return ue_db.begin(); }
@@ -149,7 +149,7 @@ private:
   sched_interface*                 sched_ptr;
   std::vector<sched_cell_params_t> cell_params;
 
-  srslte::tti_point                             current_tti_rx;
+  srsran::tti_point                             current_tti_rx;
   std::map<uint16_t, ue_sim>                    ue_db;
   std::map<uint16_t, sched_interface::ue_cfg_t> final_ue_cfg;
   uint32_t                                      error_counter = 0;
@@ -157,4 +157,4 @@ private:
 
 } // namespace srsenb
 
-#endif // SRSLTE_SCHED_SIM_UE_H
+#endif // SRSRAN_SCHED_SIM_UE_H

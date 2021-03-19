@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -13,10 +13,10 @@
 #ifndef SRSENB_SDAP_H
 #define SRSENB_SDAP_H
 
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/common.h"
-#include "srslte/interfaces/gnb_interfaces.h"
-#include "srslte/interfaces/ue_gw_interfaces.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/common/common.h"
+#include "srsran/interfaces/gnb_interfaces.h"
+#include "srsran/interfaces/ue_gw_interfaces.h"
 
 namespace srsenb {
 
@@ -28,10 +28,10 @@ public:
   void stop();
 
   // Interface for PDCP
-  void write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu) final;
+  void write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu) final;
 
   // Interface for GTPU
-  void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu) final;
+  void write_sdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu) final;
 
 private:
   gtpu_interface_sdap_nr*   m_gtpu = nullptr;

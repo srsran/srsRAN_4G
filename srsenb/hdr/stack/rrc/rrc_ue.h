@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,14 +10,14 @@
  *
  */
 
-#ifndef SRSLTE_RRC_UE_H
-#define SRSLTE_RRC_UE_H
+#ifndef SRSRAN_RRC_UE_H
+#define SRSRAN_RRC_UE_H
 
 #include "mac_controller.h"
 #include "rrc.h"
-#include "srslte/adt/mem_pool.h"
-#include "srslte/interfaces/enb_phy_interfaces.h"
-#include "srslte/interfaces/pdcp_interface_types.h"
+#include "srsran/adt/mem_pool.h"
+#include "srsran/interfaces/enb_phy_interfaces.h"
+#include "srsran/interfaces/pdcp_interface_types.h"
 
 namespace srsenb {
 
@@ -55,14 +55,14 @@ public:
   void send_connection_reject();
   void send_connection_release();
   void send_connection_reest_rej();
-  void send_connection_reconf(srslte::unique_byte_buffer_t           sdu             = {},
+  void send_connection_reconf(srsran::unique_byte_buffer_t           sdu             = {},
                               bool                                   phy_cfg_updated = true,
                               const asn1::unbounded_octstring<true>* nas_pdu         = nullptr);
   void send_security_mode_command();
   void send_ue_cap_enquiry();
   void send_ue_info_req();
 
-  void parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
+  void parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
 
   /// List of results for a connection request.
   enum class conn_request_result_t { success, error_mme_not_connected, error_unknown_rnti };
@@ -71,16 +71,16 @@ public:
   enum class rrc_idle_transition_cause { release, timeout };
 
   void handle_rrc_con_req(asn1::rrc::rrc_conn_request_s* msg);
-  void handle_rrc_con_setup_complete(asn1::rrc::rrc_conn_setup_complete_s* msg, srslte::unique_byte_buffer_t pdu);
+  void handle_rrc_con_setup_complete(asn1::rrc::rrc_conn_setup_complete_s* msg, srsran::unique_byte_buffer_t pdu);
   void handle_rrc_con_reest_req(asn1::rrc::rrc_conn_reest_request_s* msg);
-  void handle_rrc_con_reest_complete(asn1::rrc::rrc_conn_reest_complete_s* msg, srslte::unique_byte_buffer_t pdu);
-  void handle_rrc_reconf_complete(asn1::rrc::rrc_conn_recfg_complete_s* msg, srslte::unique_byte_buffer_t pdu);
+  void handle_rrc_con_reest_complete(asn1::rrc::rrc_conn_reest_complete_s* msg, srsran::unique_byte_buffer_t pdu);
+  void handle_rrc_reconf_complete(asn1::rrc::rrc_conn_recfg_complete_s* msg, srsran::unique_byte_buffer_t pdu);
   void handle_security_mode_complete(asn1::rrc::security_mode_complete_s* msg);
   void handle_security_mode_failure(asn1::rrc::security_mode_fail_s* msg);
   bool handle_ue_cap_info(asn1::rrc::ue_cap_info_s* msg);
   void handle_ue_init_ctxt_setup_req(const asn1::s1ap::init_context_setup_request_s& msg);
   bool handle_ue_ctxt_mod_req(const asn1::s1ap::ue_context_mod_request_s& msg);
-  void handle_ue_info_resp(const asn1::rrc::ue_info_resp_r9_s& msg, srslte::unique_byte_buffer_t pdu);
+  void handle_ue_info_resp(const asn1::rrc::ue_info_resp_r9_s& msg, srsran::unique_byte_buffer_t pdu);
 
   void set_bitrates(const asn1::s1ap::ue_aggregate_maximum_bitrate_s& rates);
 
@@ -103,9 +103,9 @@ public:
 
   void send_dl_ccch(asn1::rrc::dl_ccch_msg_s* dl_ccch_msg);
   bool send_dl_dcch(const asn1::rrc::dl_dcch_msg_s* dl_dcch_msg,
-                    srslte::unique_byte_buffer_t    pdu = srslte::unique_byte_buffer_t());
+                    srsran::unique_byte_buffer_t    pdu = srsran::unique_byte_buffer_t());
 
-  void save_ul_message(srslte::unique_byte_buffer_t pdu) { last_ul_msg = std::move(pdu); }
+  void save_ul_message(srsran::unique_byte_buffer_t pdu) { last_ul_msg = std::move(pdu); }
 
   uint16_t rnti   = 0;
   rrc*     parent = nullptr;
@@ -120,12 +120,12 @@ public:
   void  operator delete(void* ptr)noexcept;
   void  operator delete[](void* ptr) = delete;
 
-  using ue_pool_t = srslte::background_allocator_obj_pool<ue, 16, 4>;
+  using ue_pool_t = srsran::background_allocator_obj_pool<ue, 16, 4>;
   static ue_pool_t* get_ue_pool();
 
 private:
   // args
-  srslte::timer_handler::unique_timer activity_timer;
+  srsran::timer_handler::unique_timer activity_timer;
 
   /// cached ASN1 fields for RRC config update checking, and ease of context transfer during HO
   ue_var_cfg_t current_ue_cfg;
@@ -141,14 +141,14 @@ private:
   uint32_t                                     rlf_cnt              = 0;
   uint8_t                                      transaction_id       = 0;
   rrc_state_t                                  state                = RRC_STATE_IDLE;
-  uint16_t                                     old_reest_rnti       = SRSLTE_INVALID_RNTI;
-  std::map<uint16_t, srslte::pdcp_lte_state_t> old_reest_pdcp_state = {};
+  uint16_t                                     old_reest_rnti       = SRSRAN_INVALID_RNTI;
+  std::map<uint16_t, srsran::pdcp_lte_state_t> old_reest_pdcp_state = {};
   bool                                         rlf_info_pending     = false;
 
   asn1::s1ap::ue_aggregate_maximum_bitrate_s bitrates;
   bool                                       eutra_capabilities_unpacked = false;
   asn1::rrc::ue_eutra_cap_s                  eutra_capabilities;
-  srslte::rrc_ue_capabilities_t              ue_capabilities;
+  srsran::rrc_ue_capabilities_t              ue_capabilities;
 
   const static uint32_t UE_PCELL_CC_IDX = 0;
 
@@ -157,7 +157,7 @@ private:
   security_cfg_handler ue_security_cfg;
 
   /// Cached message of the last uplinl message.
-  srslte::unique_byte_buffer_t last_ul_msg;
+  srsran::unique_byte_buffer_t last_ul_msg;
 
   // controllers
   mac_controller mac_ctrl;
@@ -204,4 +204,4 @@ private:
 
 } // namespace srsenb
 
-#endif // SRSLTE_RRC_UE_H
+#endif // SRSRAN_RRC_UE_H

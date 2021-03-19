@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -19,10 +19,10 @@
 #ifndef SRSEPC_SPGW_H
 #define SRSEPC_SPGW_H
 
-#include "srslte/asn1/gtpc.h"
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/threads.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/asn1/gtpc.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/common/threads.h"
+#include "srsran/srslog/srslog.h"
 #include <cstddef>
 #include <queue>
 
@@ -43,15 +43,15 @@ typedef struct spgw_tunnel_ctx {
   uint64_t                                 imsi;
   in_addr_t                                ue_ipv4;
   uint8_t                                  ebi;
-  srslte::gtp_fteid_t                      up_ctrl_fteid;
-  srslte::gtp_fteid_t                      up_user_fteid;
-  srslte::gtp_fteid_t                      dw_ctrl_fteid;
-  srslte::gtp_fteid_t                      dw_user_fteid;
+  srsran::gtp_fteid_t                      up_ctrl_fteid;
+  srsran::gtp_fteid_t                      up_user_fteid;
+  srsran::gtp_fteid_t                      dw_ctrl_fteid;
+  srsran::gtp_fteid_t                      dw_user_fteid;
   bool                                     paging_pending;
-  std::queue<srslte::unique_byte_buffer_t> paging_queue;
+  std::queue<srsran::unique_byte_buffer_t> paging_queue;
 } spgw_tunnel_ctx_t;
 
-class spgw : public srslte::thread
+class spgw : public srsran::thread
 {
   class gtpc;
   class gtpu;
@@ -68,7 +68,7 @@ private:
   virtual ~spgw();
   static spgw* m_instance;
 
-  spgw_tunnel_ctx_t* create_gtp_ctx(struct srslte::gtpc_create_session_request* cs_req);
+  spgw_tunnel_ctx_t* create_gtp_ctx(struct srsran::gtpc_create_session_request* cs_req);
   bool               delete_gtp_ctx(uint32_t ctrl_teid);
 
   bool      m_running;

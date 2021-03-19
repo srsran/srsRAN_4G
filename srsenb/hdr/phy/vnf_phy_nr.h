@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -15,10 +15,10 @@
 
 #include "srsenb/hdr/phy/enb_phy_base.h"
 #include "srsenb/hdr/phy/phy_common.h"
-#include "srslte/common/basic_vnf.h"
-#include "srslte/interfaces/enb_metrics_interface.h"
-#include "srslte/interfaces/gnb_interfaces.h"
-#include "srslte/interfaces/radio_interfaces.h"
+#include "srsran/common/basic_vnf.h"
+#include "srsran/interfaces/enb_metrics_interface.h"
+#include "srsran/interfaces/gnb_interfaces.h"
+#include "srsran/interfaces/radio_interfaces.h"
 
 namespace srsenb {
 
@@ -51,7 +51,7 @@ public:
   }
 
 private:
-  std::unique_ptr<srslte::srslte_basic_vnf> vnf = nullptr;
+  std::unique_ptr<srsran::srsran_basic_vnf> vnf = nullptr;
 
   bool initialized = false;
 

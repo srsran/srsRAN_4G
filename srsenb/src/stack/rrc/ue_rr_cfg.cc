@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -14,8 +14,8 @@
 #include "srsenb/hdr/stack/rrc/rrc_bearer_cfg.h"
 #include "srsenb/hdr/stack/rrc/rrc_cell_cfg.h"
 #include "srsenb/hdr/stack/rrc/rrc_config.h"
-#include "srslte/asn1/rrc_utils.h"
-#include "srslte/rrc/rrc_cfg_utils.h"
+#include "srsran/asn1/rrc_utils.h"
+#include "srsran/rrc/rrc_cfg_utils.h"
 
 #define SET_OPT_FIELD(fieldname, out, in)                                                                              \
   if (in.fieldname##_present) {                                                                                        \
@@ -41,7 +41,7 @@ srb_to_add_mod_s* add_srb(srb_to_add_mod_list_l& srbs, uint8_t srb_id)
   }
 
   // Set SRBtoAddMod
-  auto srb_it               = srslte::add_rrc_obj_id(srbs, srb_id);
+  auto srb_it               = srsran::add_rrc_obj_id(srbs, srb_id);
   srb_it->lc_ch_cfg_present = true;
   srb_it->lc_ch_cfg.set(srb_to_add_mod_s::lc_ch_cfg_c_::types_opts::default_value);
   srb_it->rlc_cfg_present = true;
@@ -53,11 +53,11 @@ srb_to_add_mod_s* add_srb(srb_to_add_mod_list_l& srbs, uint8_t srb_id)
 void fill_srbs_reconf(srb_to_add_mod_list_l& srbs, const srb_to_add_mod_list_l& current_srbs)
 {
   // NOTE: In case of Handover, the Reconf includes SRB1
-  if (srslte::find_rrc_obj_id(current_srbs, 1) == current_srbs.end()) {
+  if (srsran::find_rrc_obj_id(current_srbs, 1) == current_srbs.end()) {
     add_srb(srbs, 1);
   }
 
-  if (srslte::find_rrc_obj_id(current_srbs, 2) == current_srbs.end()) {
+  if (srsran::find_rrc_obj_id(current_srbs, 2) == current_srbs.end()) {
     add_srb(srbs, 2);
   }
 }
@@ -136,20 +136,20 @@ int fill_cqi_report_setup(cqi_report_cfg_s& cqi_rep, const rrc_cfg_t& enb_cfg, c
     const ue_cell_ded* pcell = ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
     if (pcell == nullptr or not pcell->cqi_res_present) {
       srslog::fetch_basic_logger("RRC").warning("PCell CQI resources haven\'t been allocated yet");
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
     auto& cqi_periodic             = cqi_rep.cqi_report_periodic.setup();
     cqi_periodic.cqi_pmi_cfg_idx   = pcell->cqi_res.pmi_idx;
     cqi_periodic.cqi_pucch_res_idx = pcell->cqi_res.pucch_res;
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 void fill_cqi_report_reconf(cqi_report_cfg_s& cqi_rep, const rrc_cfg_t& enb_cfg, const ue_cell_ded_list& ue_cell_list)
 {
   // Get RRC setup CQI config
-  if (fill_cqi_report_setup(cqi_rep, enb_cfg, ue_cell_list) == SRSLTE_ERROR) {
+  if (fill_cqi_report_setup(cqi_rep, enb_cfg, ue_cell_list) == SRSRAN_ERROR) {
     return;
   }
 
@@ -241,7 +241,7 @@ void fill_phy_cfg_ded_setup(phys_cfg_ded_s& phy_cfg, const rrc_cfg_t& enb_cfg, c
 void fill_phy_cfg_ded_reconf(phys_cfg_ded_s&                      phy_cfg,
                              const rrc_cfg_t&                     enb_cfg,
                              const ue_cell_ded_list&              ue_cell_list,
-                             const srslte::rrc_ue_capabilities_t& ue_caps)
+                             const srsran::rrc_ue_capabilities_t& ue_caps)
 {
   // Use RRCSetup as starting point
   fill_phy_cfg_ded_setup(phy_cfg, enb_cfg, ue_cell_list);
@@ -311,7 +311,7 @@ void fill_rr_cfg_ded_reconf(asn1::rrc::rr_cfg_ded_s&             rr_cfg,
                             const rrc_cfg_t&                     enb_cfg,
                             const ue_cell_ded_list&              ue_cell_list,
                             const bearer_cfg_handler&            bearers,
-                            const srslte::rrc_ue_capabilities_t& ue_caps,
+                            const srsran::rrc_ue_capabilities_t& ue_caps,
                             bool                                 phy_cfg_updated)
 {
   // (Re)establish SRBs
@@ -319,7 +319,7 @@ void fill_rr_cfg_ded_reconf(asn1::rrc::rr_cfg_ded_s&             rr_cfg,
   rr_cfg.srb_to_add_mod_list_present = rr_cfg.srb_to_add_mod_list.size() > 0;
 
   // Update DRBs if required
-  srslte::compute_cfg_diff(current_rr_cfg.drb_to_add_mod_list,
+  srsran::compute_cfg_diff(current_rr_cfg.drb_to_add_mod_list,
                            bearers.get_established_drbs(),
                            rr_cfg.drb_to_add_mod_list,
                            rr_cfg.drb_to_release_list);
@@ -344,14 +344,14 @@ void apply_rr_cfg_ded_diff(rr_cfg_ded_s& current_rr_cfg_ded, const rr_cfg_ded_s&
   // 5.3.10.1 - SRB addition/Modification
   if (pending_rr_cfg_ded.srb_to_add_mod_list_present) {
     current_rr_cfg_ded.srb_to_add_mod_list_present = true;
-    srslte::apply_addmodlist_diff(current_rr_cfg_ded.srb_to_add_mod_list,
+    srsran::apply_addmodlist_diff(current_rr_cfg_ded.srb_to_add_mod_list,
                                   pending_rr_cfg_ded.srb_to_add_mod_list,
                                   current_rr_cfg_ded.srb_to_add_mod_list);
   }
 
   // 5.3.10.(2/3) - DRB release/addition/Modification
   if (pending_rr_cfg_ded.drb_to_add_mod_list_present or pending_rr_cfg_ded.drb_to_release_list_present) {
-    srslte::apply_addmodremlist_diff(current_rr_cfg_ded.drb_to_add_mod_list,
+    srsran::apply_addmodremlist_diff(current_rr_cfg_ded.drb_to_add_mod_list,
                                      pending_rr_cfg_ded.drb_to_add_mod_list,
                                      pending_rr_cfg_ded.drb_to_release_list,
                                      current_rr_cfg_ded.drb_to_add_mod_list);
@@ -384,7 +384,7 @@ void fill_scells_reconf(asn1::rrc::rrc_conn_recfg_r8_ies_s&  recfg_r8,
                         const scell_to_add_mod_list_r10_l&   current_scells,
                         const rrc_cfg_t&                     enb_cfg,
                         const ue_cell_ded_list&              ue_cell_list,
-                        const srslte::rrc_ue_capabilities_t& ue_caps)
+                        const srsran::rrc_ue_capabilities_t& ue_caps)
 {
   // check whether there has been scell updates
   // TODO: check scell modifications and released as well
@@ -506,7 +506,7 @@ void fill_scells_reconf(asn1::rrc::rrc_conn_recfg_r8_ies_s&  recfg_r8,
   recfg_r8.non_crit_ext.non_crit_ext.non_crit_ext_present                           = true;
   recfg_r8.non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10_present = true;
   auto& recfg_v1020 = recfg_r8.non_crit_ext.non_crit_ext.non_crit_ext;
-  srslte::compute_cfg_diff(
+  srsran::compute_cfg_diff(
       current_scells, target_scells, recfg_v1020.scell_to_add_mod_list_r10, recfg_v1020.scell_to_release_list_r10);
 
   // Set DL HARQ Feedback mode
@@ -544,7 +544,7 @@ void apply_scells_to_add_diff(asn1::rrc::scell_to_add_mod_list_r10_l& current_sc
   if (recfg_r8.non_crit_ext_present or recfg_r8.non_crit_ext.non_crit_ext_present or
       recfg_r8.non_crit_ext.non_crit_ext.non_crit_ext_present) {
     const rrc_conn_recfg_v1020_ies_s& recfg_v1020 = recfg_r8.non_crit_ext.non_crit_ext.non_crit_ext;
-    srslte::apply_addmodremlist_diff(
+    srsran::apply_addmodremlist_diff(
         current_scells, recfg_v1020.scell_to_add_mod_list_r10, recfg_v1020.scell_to_release_list_r10, current_scells);
   }
 }
@@ -559,7 +559,7 @@ void apply_reconf_updates(asn1::rrc::rrc_conn_recfg_r8_ies_s&  recfg_r8,
                           const rrc_cfg_t&                     enb_cfg,
                           const ue_cell_ded_list&              ue_cell_list,
                           bearer_cfg_handler&                  bearers,
-                          const srslte::rrc_ue_capabilities_t& ue_caps,
+                          const srsran::rrc_ue_capabilities_t& ue_caps,
                           bool                                 phy_cfg_updated)
 {
   // Compute pending updates and fill reconf msg

@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -14,9 +14,9 @@
 
 #include "mme_gtpc.h"
 #include "s1ap_common.h"
-#include "srslte/asn1/s1ap.h"
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/common.h"
+#include "srsran/asn1/s1ap.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/common/common.h"
 #include <netinet/sctp.h>
 
 namespace srsepc {
@@ -39,7 +39,7 @@ public:
   bool send_erab_modify_request(uint32_t                     enb_ue_s1ap_id,
                                 uint32_t                     mme_ue_s1ap_id,
                                 std::map<uint16_t, uint16_t> erabs_to_modify,
-                                srslte::byte_buffer_t*       nas_msg,
+                                srsran::byte_buffer_t*       nas_msg,
                                 struct sctp_sndrcvinfo       enb_sri);
   bool handle_erab_release_response(const asn1::s1ap::init_context_setup_resp_s& in_ctxt_resp);
 

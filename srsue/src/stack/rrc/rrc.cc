@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -11,15 +11,15 @@
  */
 
 #include "srsue/hdr/stack/rrc/rrc.h"
-#include "srslte/asn1/rrc.h"
-#include "srslte/common/bcd_helpers.h"
-#include "srslte/common/security.h"
-#include "srslte/common/standard_streams.h"
-#include "srslte/interfaces/ue_gw_interfaces.h"
-#include "srslte/interfaces/ue_nas_interfaces.h"
-#include "srslte/interfaces/ue_pdcp_interfaces.h"
-#include "srslte/interfaces/ue_rlc_interfaces.h"
-#include "srslte/interfaces/ue_usim_interfaces.h"
+#include "srsran/asn1/rrc.h"
+#include "srsran/common/bcd_helpers.h"
+#include "srsran/common/security.h"
+#include "srsran/common/standard_streams.h"
+#include "srsran/interfaces/ue_gw_interfaces.h"
+#include "srsran/interfaces/ue_nas_interfaces.h"
+#include "srsran/interfaces/ue_pdcp_interfaces.h"
+#include "srsran/interfaces/ue_rlc_interfaces.h"
+#include "srsran/interfaces/ue_usim_interfaces.h"
 #include "srsue/hdr/stack/rrc/phy_controller.h"
 #include "srsue/hdr/stack/rrc/rrc_meas.h"
 #include "srsue/hdr/stack/rrc/rrc_procedures.h"
@@ -34,7 +34,7 @@
 
 bool simulate_rlf = false;
 
-using namespace srslte;
+using namespace srsran;
 using namespace asn1::rrc;
 
 namespace srsue {
@@ -46,7 +46,7 @@ const static uint32_t required_sibs[NOF_REQUIRED_SIBS] = {0, 1, 2, 12}; // SIB1,
   Base functions
 *******************************************************************************/
 
-rrc::rrc(stack_interface_rrc* stack_, srslte::task_sched_handle task_sched_) :
+rrc::rrc(stack_interface_rrc* stack_, srsran::task_sched_handle task_sched_) :
   stack(stack_),
   task_sched(task_sched_),
   state(RRC_STATE_IDLE),
@@ -306,7 +306,7 @@ bool rrc::plmn_search()
 /* This is the NAS interface. When NAS requests to select a PLMN we have to
  * connect to either register or because there is pending higher layer traffic.
  */
-void rrc::plmn_select(srslte::plmn_id_t plmn_id)
+void rrc::plmn_select(srsran::plmn_id_t plmn_id)
 {
   plmn_is_selected = true;
   selected_plmn_id = plmn_id;
@@ -322,7 +322,7 @@ void rrc::plmn_select(srslte::plmn_id_t plmn_id)
  * it. Sends connectionRequest message and returns if message transmitted successfully.
  * It does not wait until completition of Connection Establishment procedure
  */
-bool rrc::connection_request(srslte::establishment_cause_t cause, srslte::unique_byte_buffer_t dedicated_info_nas_)
+bool rrc::connection_request(srsran::establishment_cause_t cause, srsran::unique_byte_buffer_t dedicated_info_nas_)
 {
   if (not conn_req_proc.launch(cause, std::move(dedicated_info_nas_))) {
     logger.error("Failed to initiate connection request procedure");
@@ -332,7 +332,7 @@ bool rrc::connection_request(srslte::establishment_cause_t cause, srslte::unique
   return true;
 }
 
-void rrc::set_ue_identity(srslte::s_tmsi_t s_tmsi)
+void rrc::set_ue_identity(srsran::s_tmsi_t s_tmsi)
 {
   ue_identity_configured = true;
   ue_identity            = s_tmsi;
@@ -563,10 +563,10 @@ int rrc::start_cell_select()
 {
   if (not cell_selector.launch()) {
     logger.error("Failed to initiate a Cell Selection procedure...");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   callback_list.add_proc(cell_selector);
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 bool rrc::has_neighbour_cell(uint32_t earfcn, uint32_t pci) const
@@ -634,7 +634,7 @@ bool rrc::mbms_service_start(uint32_t serv, uint32_t port)
     for (uint32_t j = 0; j < pmch->mbms_session_info_list_r9.size(); j++) {
       mbms_session_info_r9_s* sess = &pmch->mbms_session_info_list_r9[j];
       if (serv == sess->tmgi_r9.service_id_r9.to_number()) {
-        srslte::console("MBMS service started. Service id=%d, port=%d, lcid=%d\n", serv, port, sess->lc_ch_id_r9);
+        srsran::console("MBMS service started. Service id=%d, port=%d, lcid=%d\n", serv, port, sess->lc_ch_id_r9);
         ret = true;
         add_mrb(sess->lc_ch_id_r9, port);
       }
@@ -674,7 +674,7 @@ void rrc::radio_link_failure_push_cmd()
 void rrc::radio_link_failure_process()
 {
   // TODO: Generate and store failure report
-  srslte::console("Warning: Detected Radio-Link Failure\n");
+  srsran::console("Warning: Detected Radio-Link Failure\n");
 
   if (state == RRC_STATE_CONNECTED) {
     if (security_is_activated) {
@@ -721,7 +721,7 @@ void rrc::timer_expired(uint32_t timeout_id)
     logger.info("Timer T310 expired: Radio Link Failure");
     radio_link_failure_push_cmd();
   } else if (timeout_id == t311.id()) {
-    srslte::console("Timer T311 expired: Going to RRC IDLE\n");
+    srsran::console("Timer T311 expired: Going to RRC IDLE\n");
     if (connection_reest.is_idle()) {
       logger.info("Timer T311 expired: Going to RRC IDLE");
       start_go_idle();
@@ -738,11 +738,11 @@ void rrc::timer_expired(uint32_t timeout_id)
     }
   } else if (timeout_id == t302.id()) {
     logger.info("Timer T302 expired. Informing NAS about barrier alleviation");
-    nas->set_barring(srslte::barring_t::none);
+    nas->set_barring(srsran::barring_t::none);
   } else if (timeout_id == t300.id()) {
     // Do nothing, handled in connection_request()
   } else if (timeout_id == t304.id()) {
-    srslte::console("Timer t304 expired: Handover failed\n");
+    srsran::console("Timer t304 expired: Handover failed\n");
     logger.info("Timer t304 expired: Handover failed");
     ho_failed();
   } else {
@@ -814,7 +814,7 @@ bool rrc::nr_reconfiguration_proc(const rrc_conn_recfg_r8_ies_s& rx_recfg)
  *
  *******************************************************************************/
 
-void rrc::send_con_request(srslte::establishment_cause_t cause)
+void rrc::send_con_request(srsran::establishment_cause_t cause)
 {
   logger.debug("Preparing RRC Connection Request");
 
@@ -825,7 +825,7 @@ void rrc::send_con_request(srslte::establishment_cause_t cause)
 
   if (ue_identity_configured) {
     rrc_conn_req->ue_id.set_s_tmsi();
-    srslte::to_asn1(&rrc_conn_req->ue_id.s_tmsi(), ue_identity);
+    srsran::to_asn1(&rrc_conn_req->ue_id.s_tmsi(), ue_identity);
   } else {
     rrc_conn_req->ue_id.set_random_value();
     // TODO use proper RNG
@@ -913,7 +913,7 @@ void rrc::send_con_restablish_request(reest_cause_e cause, uint16_t crnti, uint1
   rrc_conn_reest_req->ue_id.short_mac_i.from_number(mac_key[2] << 8 | mac_key[3]);
   rrc_conn_reest_req->reest_cause = cause;
 
-  srslte::console("RRC Connection Reestablishment to PCI=%d, EARFCN=%d (Cause: \"%s\")\n",
+  srsran::console("RRC Connection Reestablishment to PCI=%d, EARFCN=%d (Cause: \"%s\")\n",
                   meas_cells.serving_cell().phy_cell.pci,
                   meas_cells.serving_cell().phy_cell.earfcn,
                   cause.to_string().c_str());
@@ -927,7 +927,7 @@ void rrc::send_con_restablish_request(reest_cause_e cause, uint16_t crnti, uint1
 void rrc::send_con_restablish_complete()
 {
   logger.debug("Preparing RRC Connection Reestablishment Complete");
-  srslte::console("RRC Connected\n");
+  srsran::console("RRC Connected\n");
 
   // Prepare ConnectionSetupComplete packet
   ul_dcch_msg_s ul_dcch_msg;
@@ -939,7 +939,7 @@ void rrc::send_con_restablish_complete()
   reestablishment_successful = true;
 }
 
-void rrc::send_con_setup_complete(srslte::unique_byte_buffer_t nas_msg)
+void rrc::send_con_setup_complete(srsran::unique_byte_buffer_t nas_msg)
 {
   logger.debug("Preparing RRC Connection Setup Complete");
 
@@ -1086,14 +1086,14 @@ void rrc::handle_rrc_con_reconfig(uint32_t lcid, const rrc_conn_recfg_s& reconfi
 void rrc::rrc_connection_release(const std::string& cause)
 {
   // Save idleModeMobilityControlInfo, etc.
-  srslte::console("Received RRC Connection Release (releaseCause: %s)\n", cause.c_str());
+  srsran::console("Received RRC Connection Release (releaseCause: %s)\n", cause.c_str());
   start_go_idle();
 }
 
 /// TS 36.331, 5.3.12 - UE actions upon leaving RRC_CONNECTED
 void rrc::leave_connected()
 {
-  srslte::console("RRC IDLE\n");
+  srsran::console("RRC IDLE\n");
   logger.info("Leaving RRC_CONNECTED state");
   state                 = RRC_STATE_IDLE;
   drb_up                = false;
@@ -1327,7 +1327,7 @@ void rrc::handle_sib1()
 
   // Set TDD Config
   if (sib1->tdd_cfg_present) {
-    srslte_tdd_config_t tdd_config = {};
+    srsran_tdd_config_t tdd_config = {};
     tdd_config.sf_config           = sib1->tdd_cfg.sf_assign.to_number();
     tdd_config.ss_config           = sib1->tdd_cfg.special_sf_patterns.to_number();
     phy->set_config_tdd(tdd_config);
@@ -1347,15 +1347,15 @@ void rrc::handle_sib2()
 
   // Set MBSFN configs
   if (sib2->mbsfn_sf_cfg_list_present) {
-    srslte::mbsfn_sf_cfg_t list[ASN1_RRC_MAX_MBSFN_ALLOCS];
+    srsran::mbsfn_sf_cfg_t list[ASN1_RRC_MAX_MBSFN_ALLOCS];
     for (uint32_t i = 0; i < sib2->mbsfn_sf_cfg_list.size(); ++i) {
-      list[i] = srslte::make_mbsfn_sf_cfg(sib2->mbsfn_sf_cfg_list[i]);
+      list[i] = srsran::make_mbsfn_sf_cfg(sib2->mbsfn_sf_cfg_list[i]);
     }
     phy->set_config_mbsfn_sib2(&list[0], sib2->mbsfn_sf_cfg_list.size());
   }
 
   // Apply PHY RR Config Common
-  srslte::phy_cfg_t& current_pcell = phy_ctrl->current_cell_config()[0];
+  srsran::phy_cfg_t& current_pcell = phy_ctrl->current_cell_config()[0];
   set_phy_cfg_t_common_pdsch(&current_pcell, sib2->rr_cfg_common.pdsch_cfg_common);
   set_phy_cfg_t_common_pusch(&current_pcell, sib2->rr_cfg_common.pusch_cfg_common);
   set_phy_cfg_t_common_pucch(&current_pcell, sib2->rr_cfg_common.pucch_cfg_common);
@@ -1430,7 +1430,7 @@ void rrc::handle_sib13()
 
   const sib_type13_r9_s* sib13 = meas_cells.serving_cell().sib13ptr();
 
-  phy->set_config_mbsfn_sib13(srslte::make_sib13(*sib13));
+  phy->set_config_mbsfn_sib13(srsran::make_sib13(*sib13));
   add_mrb(0, 0); // Add MRB0
 }
 
@@ -1458,7 +1458,7 @@ void rrc::paging_completed(bool outcome)
 
 void rrc::process_pcch(unique_byte_buffer_t pdu)
 {
-  if (pdu->N_bytes <= 0 or pdu->N_bytes >= SRSLTE_MAX_BUFFER_SIZE_BITS) {
+  if (pdu->N_bytes <= 0 or pdu->N_bytes >= SRSRAN_MAX_BUFFER_SIZE_BITS) {
     logger.error(pdu->msg, pdu->N_bytes, "Dropping PCCH message with %d B", pdu->N_bytes);
     return;
   }
@@ -1491,9 +1491,9 @@ void rrc::process_pcch(unique_byte_buffer_t pdu)
   callback_list.add_proc(pcch_processor);
 }
 
-void rrc::write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
+void rrc::write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
-  if (pdu->N_bytes <= 0 or pdu->N_bytes >= SRSLTE_MAX_BUFFER_SIZE_BITS) {
+  if (pdu->N_bytes <= 0 or pdu->N_bytes >= SRSRAN_MAX_BUFFER_SIZE_BITS) {
     return;
   }
   // TODO: handle MCCH notifications and update MCCH
@@ -1503,7 +1503,7 @@ void rrc::write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
   parse_pdu_mch(lcid, std::move(pdu));
 }
 
-void rrc::parse_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
+void rrc::parse_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
   asn1::cbit_ref bref(pdu->msg, pdu->N_bytes);
   if (meas_cells.serving_cell().mcch.unpack(bref) != asn1::SRSASN_SUCCESS or
@@ -1512,7 +1512,7 @@ void rrc::parse_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
     return;
   }
   meas_cells.serving_cell().has_mcch = true;
-  phy->set_config_mbsfn_mcch(srslte::make_mcch_msg(meas_cells.serving_cell().mcch));
+  phy->set_config_mbsfn_mcch(srsran::make_mcch_msg(meas_cells.serving_cell().mcch));
   log_rrc_message(
       "MCH", Rx, pdu.get(), meas_cells.serving_cell().mcch, meas_cells.serving_cell().mcch.msg.c1().type().to_string());
   if (args.mbms_service_id >= 0) {
@@ -1532,7 +1532,7 @@ void rrc::parse_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 void rrc::send_ul_ccch_msg(const ul_ccch_msg_s& msg)
 {
   // Reset and reuse sdu buffer if provided
-  unique_byte_buffer_t pdcp_buf = srslte::make_byte_buffer();
+  unique_byte_buffer_t pdcp_buf = srsran::make_byte_buffer();
   if (not pdcp_buf.get()) {
     logger.error("Fatal Error: Couldn't allocate PDU in byte_align_and_pack().");
     return;
@@ -1564,7 +1564,7 @@ void rrc::send_ul_ccch_msg(const ul_ccch_msg_s& msg)
 void rrc::send_ul_dcch_msg(uint32_t lcid, const ul_dcch_msg_s& msg)
 {
   // Reset and reuse sdu buffer if provided
-  unique_byte_buffer_t pdcp_buf = srslte::make_byte_buffer();
+  unique_byte_buffer_t pdcp_buf = srsran::make_byte_buffer();
   if (not pdcp_buf.get()) {
     logger.error("Fatal Error: Couldn't allocate PDU in byte_align_and_pack().");
     return;
@@ -1581,7 +1581,7 @@ void rrc::send_ul_dcch_msg(uint32_t lcid, const ul_dcch_msg_s& msg)
   pdcp->write_sdu(lcid, std::move(pdcp_buf));
 }
 
-void rrc::write_sdu(srslte::unique_byte_buffer_t sdu)
+void rrc::write_sdu(srsran::unique_byte_buffer_t sdu)
 {
   if (state == RRC_STATE_IDLE) {
     logger.warning("Received ULInformationTransfer SDU when in IDLE");
@@ -1595,7 +1595,7 @@ void rrc::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
   process_pdu(lcid, std::move(pdu));
 }
 
-void rrc::process_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
+void rrc::process_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
   logger.debug("RX PDU, LCID: %d", lcid);
   switch (lcid) {
@@ -1629,17 +1629,17 @@ void rrc::parse_dl_ccch(unique_byte_buffer_t pdu)
       // 5.3.3.8
       rrc_conn_reject_r8_ies_s* reject_r8 = &c1->rrc_conn_reject().crit_exts.c1().rrc_conn_reject_r8();
       logger.info("Received ConnectionReject. Wait time: %d", reject_r8->wait_time);
-      srslte::console("Received ConnectionReject. Wait time: %d\n", reject_r8->wait_time);
+      srsran::console("Received ConnectionReject. Wait time: %d\n", reject_r8->wait_time);
 
       t300.stop();
 
       if (reject_r8->wait_time) {
-        nas->set_barring(srslte::barring_t::all);
+        nas->set_barring(srsran::barring_t::all);
         t302.set(reject_r8->wait_time * 1000, [this](uint32_t tid) { timer_expired(tid); });
         t302.run();
       } else {
         // Perform the actions upon expiry of T302 if wait time is zero
-        nas->set_barring(srslte::barring_t::none);
+        nas->set_barring(srsran::barring_t::none);
         start_go_idle();
       }
     } break;
@@ -1650,7 +1650,7 @@ void rrc::parse_dl_ccch(unique_byte_buffer_t pdu)
       break;
     }
     case dl_ccch_msg_type_c::c1_c_::types::rrc_conn_reest: {
-      srslte::console("Reestablishment OK\n");
+      srsran::console("Reestablishment OK\n");
       transaction_id                   = c1->rrc_conn_reest().rrc_transaction_id;
       rrc_conn_reest_s conn_reest_copy = c1->rrc_conn_reest();
       task_sched.defer_task([this, conn_reest_copy]() { handle_con_reest(conn_reest_copy); });
@@ -1680,7 +1680,7 @@ void rrc::parse_dl_dcch(uint32_t lcid, unique_byte_buffer_t pdu)
   dl_dcch_msg_type_c::c1_c_* c1 = &dl_dcch_msg.msg.c1();
   switch (dl_dcch_msg.msg.c1().type().value) {
     case dl_dcch_msg_type_c::c1_c_::types::dl_info_transfer:
-      pdu = srslte::make_byte_buffer();
+      pdu = srsran::make_byte_buffer();
       if (!pdu.get()) {
         logger.error("Fatal error: out of buffers in pool");
         return;
@@ -1783,30 +1783,30 @@ void rrc::handle_ue_capability_enquiry(const ue_cap_enquiry_s& enquiry)
       info->ue_cap_rat_container_list[0].rat_type = rat_type_e::eutra;
 
       // Check UE config arguments bounds
-      if (args.release < SRSLTE_RELEASE_MIN || args.release > SRSLTE_RELEASE_MAX) {
-        uint32_t new_release = SRSLTE_MIN(SRSLTE_RELEASE_MAX, SRSLTE_MAX(SRSLTE_RELEASE_MIN, args.release));
+      if (args.release < SRSRAN_RELEASE_MIN || args.release > SRSRAN_RELEASE_MAX) {
+        uint32_t new_release = SRSRAN_MIN(SRSRAN_RELEASE_MAX, SRSRAN_MAX(SRSRAN_RELEASE_MIN, args.release));
         logger.error("Release is %d. It is out of bounds (%d ... %d), setting it to %d",
                      args.release,
-                     SRSLTE_RELEASE_MIN,
-                     SRSLTE_RELEASE_MAX,
+                     SRSRAN_RELEASE_MIN,
+                     SRSRAN_RELEASE_MAX,
                      new_release);
         args.release = new_release;
       }
 
       args.ue_category = (uint32_t)strtol(args.ue_category_str.c_str(), nullptr, 10);
-      if (args.ue_category < SRSLTE_UE_CATEGORY_MIN || args.ue_category > SRSLTE_UE_CATEGORY_MAX) {
+      if (args.ue_category < SRSRAN_UE_CATEGORY_MIN || args.ue_category > SRSRAN_UE_CATEGORY_MAX) {
         uint32_t new_category =
-            SRSLTE_MIN(SRSLTE_UE_CATEGORY_MAX, SRSLTE_MAX(SRSLTE_UE_CATEGORY_MIN, args.ue_category));
+            SRSRAN_MIN(SRSRAN_UE_CATEGORY_MAX, SRSRAN_MAX(SRSRAN_UE_CATEGORY_MIN, args.ue_category));
         logger.error("UE Category is %d. It is out of bounds (%d ... %d), setting it to %d",
                      args.ue_category,
-                     SRSLTE_UE_CATEGORY_MIN,
-                     SRSLTE_UE_CATEGORY_MAX,
+                     SRSRAN_UE_CATEGORY_MIN,
+                     SRSRAN_UE_CATEGORY_MAX,
                      new_category);
         args.ue_category = new_category;
       }
 
       ue_eutra_cap_s cap;
-      cap.access_stratum_release = (access_stratum_release_e::options)(args.release - SRSLTE_RELEASE_MIN);
+      cap.access_stratum_release = (access_stratum_release_e::options)(args.release - SRSRAN_RELEASE_MIN);
       cap.ue_category            = (uint8_t)((args.ue_category < 1 || args.ue_category > 5) ? 4 : args.ue_category);
       cap.pdcp_params.max_num_rohc_context_sessions_present     = false;
       cap.pdcp_params.supported_rohc_profiles.profile0x0001_r15 = false;
@@ -2118,7 +2118,7 @@ void rrc::log_rr_config_common()
               current_mac_cfg.rach_cfg.responseWindowSize,
               current_mac_cfg.rach_cfg.contentionResolutionTimer);
 
-  const srslte::phy_cfg_t& current_pcell = phy_ctrl->current_cell_config()[0];
+  const srsran::phy_cfg_t& current_pcell = phy_ctrl->current_cell_config()[0];
   logger.info("Set PUSCH ConfigCommon: P0_pusch=%f, DMRS cs=%d, delta_ss=%d, N_sb=%d",
               current_pcell.ul_cfg.power_ctrl.p0_ue_pusch,
               current_pcell.ul_cfg.dmrs.cyclic_shift,
@@ -2154,7 +2154,7 @@ void rrc::apply_rr_config_common(rr_cfg_common_s* config, bool send_lower_layers
     set_mac_cfg_t_rach_cfg_common(&current_mac_cfg, config->rach_cfg_common);
   }
 
-  srslte::phy_cfg_t& current_pcell = phy_ctrl->current_cell_config()[0];
+  srsran::phy_cfg_t& current_pcell = phy_ctrl->current_cell_config()[0];
   if (config->prach_cfg.prach_cfg_info_present) {
     set_phy_cfg_t_common_prach(&current_pcell, &config->prach_cfg.prach_cfg_info, config->prach_cfg.root_seq_idx);
   } else {
@@ -2193,7 +2193,7 @@ void rrc::apply_rr_config_common(rr_cfg_common_s* config, bool send_lower_layers
 
 void rrc::log_phy_config_dedicated()
 {
-  srslte::phy_cfg_t& current_pcell = phy_ctrl->current_cell_config()[0];
+  srsran::phy_cfg_t& current_pcell = phy_ctrl->current_cell_config()[0];
   if (current_pcell.dl_cfg.cqi_report.periodic_configured) {
     logger.info("Set cqi-PUCCH-ResourceIndex=%d, cqi-pmi-ConfigIndex=%d, cqi-FormatIndicatorPeriodic=%d",
                 current_pcell.ul_cfg.pucch.n_pucch_2,
@@ -2235,7 +2235,7 @@ void rrc::apply_phy_config_dedicated(const phys_cfg_ded_s& phy_cnfg, bool is_han
 {
   logger.info("Applying PHY config dedicated");
 
-  srslte::phy_cfg_t& current_pcell = phy_ctrl->current_cell_config()[0];
+  srsran::phy_cfg_t& current_pcell = phy_ctrl->current_cell_config()[0];
   set_phy_cfg_t_dedicated_cfg(&current_pcell, phy_cnfg);
   if (is_handover) {
     current_pcell.ul_cfg.pucch.sr_configured             = false;
@@ -2250,7 +2250,7 @@ void rrc::apply_phy_config_dedicated(const phys_cfg_ded_s& phy_cnfg, bool is_han
 
 void rrc::apply_phy_scell_config(const scell_to_add_mod_r10_s& scell_config, bool enable_cqi)
 {
-  srslte_cell_t scell  = {};
+  srsran_cell_t scell  = {};
   uint32_t      earfcn = 0;
 
   if (phy == nullptr) {
@@ -2273,33 +2273,33 @@ void rrc::apply_phy_scell_config(const scell_to_add_mod_r10_s& scell_config, boo
   if (scell_config.rr_cfg_common_scell_r10_present) {
     const rr_cfg_common_scell_r10_s* rr_cfg     = &scell_config.rr_cfg_common_scell_r10;
     auto                             non_ul_cfg = &rr_cfg->non_ul_cfg_r10;
-    scell.frame_type                            = (rr_cfg->tdd_cfg_v1130.is_present()) ? SRSLTE_TDD : SRSLTE_FDD;
+    scell.frame_type                            = (rr_cfg->tdd_cfg_v1130.is_present()) ? SRSRAN_TDD : SRSRAN_FDD;
     scell.nof_prb                               = non_ul_cfg->dl_bw_r10.to_number();
     scell.nof_ports                             = non_ul_cfg->ant_info_common_r10.ant_ports_count.to_number();
     scell.phich_length = (non_ul_cfg->phich_cfg_r10.phich_dur.value == phich_cfg_s::phich_dur_opts::normal)
-                             ? SRSLTE_PHICH_NORM
-                             : SRSLTE_PHICH_EXT;
+                             ? SRSRAN_PHICH_NORM
+                             : SRSRAN_PHICH_EXT;
 
     // Avoid direct conversion between different phich resource enum
     switch (non_ul_cfg->phich_cfg_r10.phich_res.value) {
       case phich_cfg_s::phich_res_opts::one_sixth:
-        scell.phich_resources = SRSLTE_PHICH_R_1_6;
+        scell.phich_resources = SRSRAN_PHICH_R_1_6;
         break;
       case phich_cfg_s::phich_res_opts::half:
-        scell.phich_resources = SRSLTE_PHICH_R_1_2;
+        scell.phich_resources = SRSRAN_PHICH_R_1_2;
         break;
       case phich_cfg_s::phich_res_opts::one:
-        scell.phich_resources = SRSLTE_PHICH_R_1;
+        scell.phich_resources = SRSRAN_PHICH_R_1;
         break;
       case phich_cfg_s::phich_res_opts::two:
       case phich_cfg_s::phich_res_opts::nulltype:
-        scell.phich_resources = SRSLTE_PHICH_R_2;
+        scell.phich_resources = SRSRAN_PHICH_R_2;
         break;
     }
   }
 
   // Initialize scell config with pcell cfg
-  srslte::phy_cfg_t scell_cfg = phy_ctrl->current_cell_config()[0];
+  srsran::phy_cfg_t scell_cfg = phy_ctrl->current_cell_config()[0];
   set_phy_cfg_t_scell_config(&scell_cfg, scell_config);
 
   if (not enable_cqi) {
@@ -2511,12 +2511,12 @@ void rrc::handle_con_setup(const rrc_conn_setup_s& setup)
   state = RRC_STATE_CONNECTED;
   t300.stop();
   t302.stop();
-  srslte::console("RRC Connected\n");
+  srsran::console("RRC Connected\n");
 
   // Apply the Radio Resource configuration
   apply_rr_config_dedicated(&setup.crit_exts.c1().rrc_conn_setup_r8().rr_cfg_ded);
 
-  nas->set_barring(srslte::barring_t::none);
+  nas->set_barring(srsran::barring_t::none);
 
   if (dedicated_info_nas.get()) {
     send_con_setup_complete(std::move(dedicated_info_nas));
@@ -2724,7 +2724,7 @@ const std::string rrc::rb_id_str[] =
 
 asn1::rrc::ue_cap_rat_container_s rrc::get_eutra_nr_capabilities()
 {
-  srslte::byte_buffer_t             caps_buf;
+  srsran::byte_buffer_t             caps_buf;
   asn1::rrc::ue_cap_rat_container_s cap;
   rrc_nr->get_eutra_nr_capabilities(&caps_buf);
   cap.rat_type = asn1::rrc::rat_type_e::eutra_nr;
@@ -2735,7 +2735,7 @@ asn1::rrc::ue_cap_rat_container_s rrc::get_eutra_nr_capabilities()
 
 asn1::rrc::ue_cap_rat_container_s rrc::get_nr_capabilities()
 {
-  srslte::byte_buffer_t             caps_buf;
+  srsran::byte_buffer_t             caps_buf;
   asn1::rrc::ue_cap_rat_container_s cap;
   rrc_nr->get_nr_capabilities(&caps_buf);
   cap.rat_type = asn1::rrc::rat_type_e::nr;

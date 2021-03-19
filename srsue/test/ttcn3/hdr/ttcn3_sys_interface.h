@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -13,12 +13,12 @@
 #ifndef SRSUE_TTCN3_SYS_INTERFACE_H
 #define SRSUE_TTCN3_SYS_INTERFACE_H
 
-#include "srslte/asn1/rrc_utils.h"
-#include "srslte/common/buffer_pool.h"
+#include "srsran/asn1/rrc_utils.h"
+#include "srsran/common/buffer_pool.h"
 #include "ttcn3_helpers.h"
 #include "ttcn3_interfaces.h"
 
-using namespace srslte;
+using namespace srsran;
 
 // The EUTRA.SYS interface
 class ttcn3_sys_interface : public ttcn3_port_handler
@@ -60,7 +60,7 @@ private:
     Document document;
     if (document.Parse(json).HasParseError() || document.IsObject() == false) {
       logger.error((uint8_t*)json, json_len, "Error parsing incoming data.");
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
 
     // Pretty-print
@@ -110,7 +110,7 @@ private:
       logger.error("Received unknown request.");
     }
 
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   void handle_request_cell_basic(Document& document, const uint8_t* payload, const uint16_t len)
@@ -139,7 +139,7 @@ private:
 
       cell.phy_cell.id = common_config["PhysicalCellId"].GetInt();
       cell.phy_cell.cp =
-          (strcmp(dl_config["CyclicPrefix"].GetString(), "normal") == 0) ? SRSLTE_CP_NORM : SRSLTE_CP_EXT;
+          (strcmp(dl_config["CyclicPrefix"].GetString(), "normal") == 0) ? SRSRAN_CP_NORM : SRSRAN_CP_EXT;
       cell.phy_cell.nof_ports =
           (strcmp(phy_dl_config["AntennaGroup"]["AntennaInfoCommon"]["R8"]["antennaPortsCount"].GetString(), "an1") ==
            0)
@@ -148,12 +148,12 @@ private:
       cell.phy_cell.nof_prb = (strcmp(dl_config["Bandwidth"].GetString(), "n25") == 0) ? 25 : 0;
       cell.phy_cell.phich_length =
           (strcmp(phy_dl_config["Phich"]["PhichConfig"]["R8"]["phich_Duration"].GetString(), "normal") == 0)
-              ? SRSLTE_PHICH_NORM
-              : SRSLTE_PHICH_EXT;
+              ? SRSRAN_PHICH_NORM
+              : SRSRAN_PHICH_EXT;
       cell.phy_cell.phich_resources =
           (strcmp(phy_dl_config["Phich"]["PhichConfig"]["R8"]["phich_Resource"].GetString(), "one") == 0)
-              ? SRSLTE_PHICH_R_1
-              : SRSLTE_PHICH_R_1_6;
+              ? SRSRAN_PHICH_R_1
+              : SRSRAN_PHICH_R_1_6;
       logger.info("DL EARFCN is %d with n_prb=%d", cell.earfcn, cell.phy_cell.nof_prb);
 
       const Value& ref_power =
@@ -193,7 +193,7 @@ private:
       uint16_t tb_len = ((uint16_t)payload_ptr[0] << 8) | payload_ptr[1];
       payload_ptr += 2;
 
-      unique_byte_buffer_t sib = srslte::make_byte_buffer();
+      unique_byte_buffer_t sib = srsran::make_byte_buffer();
       memcpy(sib->msg, payload_ptr, tb_len);
       payload_ptr += tb_len;
       sib->N_bytes = tb_len;
@@ -536,14 +536,14 @@ private:
     const Value& as_sec = req["AS_Security"];
     if (as_sec.HasMember("StartRestart")) {
       // get integrity algo
-      srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo = {};
+      srsran::INTEGRITY_ALGORITHM_ID_ENUM integ_algo                         = {};
       std::string int_algo_string                    = as_sec["StartRestart"]["Integrity"]["Algorithm"].GetString();
       if (int_algo_string == "eia0") {
-        integ_algo = srslte::INTEGRITY_ALGORITHM_ID_EIA0;
+        integ_algo = srsran::INTEGRITY_ALGORITHM_ID_EIA0;
       } else if (int_algo_string == "eia1") {
-        integ_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA1;
+        integ_algo = srsran::INTEGRITY_ALGORITHM_ID_128_EIA1;
       } else if (int_algo_string == "eia2") {
-        integ_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA2;
+        integ_algo = srsran::INTEGRITY_ALGORITHM_ID_128_EIA2;
       } else {
         logger.error("Unsupported integrity algorithm %s", int_algo_string.c_str());
       }
@@ -554,14 +554,14 @@ private:
       logger.debug(k_rrc_int.data(), k_rrc_int.size(), "K_rrc_int");
 
       // get enc algo
-      srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo = {};
+      srsran::CIPHERING_ALGORITHM_ID_ENUM cipher_algo = {};
       std::string cipher_algo_string                  = as_sec["StartRestart"]["Ciphering"]["Algorithm"].GetString();
       if (cipher_algo_string == "eea0") {
-        cipher_algo = srslte::CIPHERING_ALGORITHM_ID_EEA0;
+        cipher_algo = srsran::CIPHERING_ALGORITHM_ID_EEA0;
       } else if (cipher_algo_string == "eea1") {
-        cipher_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA1;
+        cipher_algo = srsran::CIPHERING_ALGORITHM_ID_128_EEA1;
       } else if (cipher_algo_string == "eea2") {
-        cipher_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA2;
+        cipher_algo = srsran::CIPHERING_ALGORITHM_ID_128_EEA2;
       } else {
         logger.error("Unsupported ciphering algorithm %s", cipher_algo_string.c_str());
       }
@@ -694,7 +694,7 @@ private:
     uint16_t tb_len = ((uint16_t)payload_ptr[0] << 8) | payload_ptr[1];
     payload_ptr += 2;
 
-    unique_byte_buffer_t pch = srslte::make_byte_buffer();
+    unique_byte_buffer_t pch = srsran::make_byte_buffer();
     memcpy(pch->msg, payload_ptr, tb_len);
     payload_ptr += tb_len;
     pch->N_bytes = tb_len;

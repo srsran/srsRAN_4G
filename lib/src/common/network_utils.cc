@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,7 +10,7 @@
  *
  */
 
-#include "srslte/common/network_utils.h"
+#include "srsran/common/network_utils.h"
 
 #include <netinet/sctp.h>
 #include <sys/socket.h>
@@ -21,7 +21,7 @@
 #define rxSockInfo(fmt, ...) logger.info("%s: " fmt, name.c_str(), ##__VA_ARGS__)
 #define rxSockDebug(fmt, ...) logger.debug("%s: " fmt, name.c_str(), ##__VA_ARGS__)
 
-namespace srslte {
+namespace srsran {
 
 const char* LOGSERVICE = "COMN";
 
@@ -408,12 +408,12 @@ int tcp_send(int remotefd, const void* buf, size_t nbytes)
 class recvfrom_pdu_task final : public rx_multisocket_handler::recv_task
 {
 public:
-  using callback_t = std::function<void(srslte::unique_byte_buffer_t pdu, const sockaddr_in& from)>;
+  using callback_t = std::function<void(srsran::unique_byte_buffer_t pdu, const sockaddr_in& from)>;
   explicit recvfrom_pdu_task(srslog::basic_logger& logger, callback_t func_) : logger(logger), func(std::move(func_)) {}
 
   bool operator()(int fd) override
   {
-    srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+    srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
     if (pdu == nullptr) {
       logger.error("Unable to allocate byte buffer");
       return true;
@@ -445,7 +445,7 @@ class sctp_recvmsg_pdu_task final : public rx_multisocket_handler::recv_task
 {
 public:
   using callback_t = std::function<
-      void(srslte::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags)>;
+      void(srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags)>;
   explicit sctp_recvmsg_pdu_task(srslog::basic_logger& logger, callback_t func_) :
     logger(logger), func(std::move(func_))
   {}
@@ -453,7 +453,7 @@ public:
   bool operator()(int fd) override
   {
     // inside rx_sockets thread. Read socket
-    srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+    srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
     if (pdu == nullptr) {
       logger.error("Unable to allocate byte buffer");
       return true;
@@ -534,8 +534,8 @@ void rx_multisocket_handler::stop()
  */
 bool rx_multisocket_handler::add_socket_pdu_handler(int fd, recvfrom_callback_t pdu_task)
 {
-  std::unique_ptr<srslte::rx_multisocket_handler::recv_task> task;
-  task.reset(new srslte::recvfrom_pdu_task(logger, std::move(pdu_task)));
+  std::unique_ptr<srsran::rx_multisocket_handler::recv_task> task;
+  task.reset(new srsran::recvfrom_pdu_task(logger, std::move(pdu_task)));
   return add_socket_handler(fd, std::move(task));
 }
 
@@ -544,8 +544,8 @@ bool rx_multisocket_handler::add_socket_pdu_handler(int fd, recvfrom_callback_t 
  */
 bool rx_multisocket_handler::add_socket_sctp_pdu_handler(int fd, sctp_recv_callback_t pdu_task)
 {
-  srslte::rx_multisocket_handler::task_callback_t task;
-  task.reset(new srslte::sctp_recvmsg_pdu_task(logger, std::move(pdu_task)));
+  srsran::rx_multisocket_handler::task_callback_t task;
+  task.reset(new srsran::sctp_recvmsg_pdu_task(logger, std::move(pdu_task)));
   return add_socket_handler(fd, std::move(task));
 }
 
@@ -686,4 +686,4 @@ void rx_multisocket_handler::run_thread()
   }
 }
 
-} // namespace srslte
+} // namespace srsran

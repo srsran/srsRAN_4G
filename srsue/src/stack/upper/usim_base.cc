@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -97,7 +97,7 @@ std::string usim_base::get_mcc_str(const uint8_t* imsi_vec)
   return mcc_oss.str();
 }
 
-bool usim_base::get_home_plmn_id(srslte::plmn_id_t* home_plmn_id)
+bool usim_base::get_home_plmn_id(srsran::plmn_id_t* home_plmn_id)
 {
   if (!initiated) {
     logger.error("USIM not initiated!");
@@ -124,8 +124,8 @@ bool usim_base::get_home_plmn_id(srslte::plmn_id_t* home_plmn_id)
 void usim_base::generate_nas_keys(uint8_t*                            k_asme,
                                   uint8_t*                            k_nas_enc,
                                   uint8_t*                            k_nas_int,
-                                  srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
-                                  srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
+                                  srsran::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
+                                  srsran::INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
 {
   if (!initiated) {
     logger.error("USIM not initiated!");
@@ -139,7 +139,7 @@ void usim_base::generate_nas_keys(uint8_t*                            k_asme,
 /*
  *  RRC Interface
  */
-void usim_base::generate_as_keys(uint8_t* k_asme_, uint32_t count_ul, srslte::as_security_config_t* sec_cfg)
+void usim_base::generate_as_keys(uint8_t* k_asme_, uint32_t count_ul, srsran::as_security_config_t* sec_cfg)
 {
   if (!initiated) {
     logger.error("USIM not initiated!");
@@ -150,7 +150,7 @@ void usim_base::generate_as_keys(uint8_t* k_asme_, uint32_t count_ul, srslte::as
   logger.debug(k_asme_, 32, "K_asme");
 
   // Generate K_enb
-  srslte::security_generate_k_enb(k_asme_, count_ul, k_enb_ctx.k_enb.data());
+  srsran::security_generate_k_enb(k_asme_, count_ul, k_enb_ctx.k_enb.data());
 
   memcpy(k_asme, k_asme_, 32);
 
@@ -181,7 +181,7 @@ void usim_base::generate_as_keys(uint8_t* k_asme_, uint32_t count_ul, srslte::as
   logger.debug(sec_cfg->k_up_enc.data(), sec_cfg->k_up_enc.size(), "K_UP_enc");
 }
 
-void usim_base::generate_as_keys_ho(uint32_t pci, uint32_t earfcn, int ncc, srslte::as_security_config_t* sec_cfg)
+void usim_base::generate_as_keys_ho(uint32_t pci, uint32_t earfcn, int ncc, srsran::as_security_config_t* sec_cfg)
 {
   if (!initiated) {
     logger.error("USIM not initiated!");
@@ -210,7 +210,7 @@ void usim_base::generate_as_keys_ho(uint32_t pci, uint32_t earfcn, int ncc, srsl
     logger.debug(k_enb_ctx.nh.data(), 32, "NH:");
 
     // Generate NH
-    srslte::security_generate_nh(k_asme, sync, k_enb_ctx.nh.data());
+    srsran::security_generate_nh(k_asme, sync, k_enb_ctx.nh.data());
 
     k_enb_ctx.ncc++;
     if (k_enb_ctx.ncc == 8) {
@@ -220,7 +220,7 @@ void usim_base::generate_as_keys_ho(uint32_t pci, uint32_t earfcn, int ncc, srsl
   }
 
   // Generate K_enb
-  srslte::security_generate_k_enb_star(enb_star_key, pci, earfcn, k_enb_star);
+  srsran::security_generate_k_enb_star(enb_star_key, pci, earfcn, k_enb_star);
 
   // K_enb becomes K_enb*
   memcpy(k_enb_ctx.k_enb.data(), k_enb_star, 32);
@@ -244,7 +244,7 @@ void usim_base::generate_as_keys_ho(uint32_t pci, uint32_t earfcn, int ncc, srsl
   logger.info(sec_cfg->k_rrc_int.data(), sec_cfg->k_rrc_int.size(), "HO K_RRC_int");
 }
 
-void usim_base::store_keys_before_ho(const srslte::as_security_config_t& as_ctx)
+void usim_base::store_keys_before_ho(const srsran::as_security_config_t& as_ctx)
 {
   logger.info("Storing AS Keys pre-handover. NCC=%d", k_enb_ctx.ncc);
   logger.info(k_enb_ctx.k_enb.data(), 32, "Old K_eNB");
@@ -257,7 +257,7 @@ void usim_base::store_keys_before_ho(const srslte::as_security_config_t& as_ctx)
   return;
 }
 
-void usim_base::restore_keys_from_failed_ho(srslte::as_security_config_t* as_ctx)
+void usim_base::restore_keys_from_failed_ho(srsran::as_security_config_t* as_ctx)
 {
   logger.info("Restoring Keys from failed handover. NCC=%d", old_k_enb_ctx.ncc);
   *as_ctx   = old_as_ctx;
@@ -269,7 +269,7 @@ void usim_base::restore_keys_from_failed_ho(srslte::as_security_config_t* as_ctx
  *  NR RRC Interface
  */
 
-void usim_base::generate_nr_context(uint16_t sk_counter, srslte::as_security_config_t* sec_cfg)
+void usim_base::generate_nr_context(uint16_t sk_counter, srsran::as_security_config_t* sec_cfg)
 {
   if (!initiated) {
     logger.error("USIM not initiated!");
@@ -277,12 +277,12 @@ void usim_base::generate_nr_context(uint16_t sk_counter, srslte::as_security_con
   }
   logger.info("Generating Keys. SCG Counter %d", sk_counter);
 
-  srslte::security_generate_sk_gnb(k_enb_ctx.k_enb.data(), k_gnb_ctx.sk_gnb.data(), sk_counter);
+  srsran::security_generate_sk_gnb(k_enb_ctx.k_enb.data(), k_gnb_ctx.sk_gnb.data(), sk_counter);
   logger.info(k_gnb_ctx.sk_gnb.data(), 32, "k_sk_gnb");
   update_nr_context(sec_cfg);
 }
 
-void usim_base::update_nr_context(srslte::as_security_config_t* sec_cfg)
+void usim_base::update_nr_context(srsran::as_security_config_t* sec_cfg)
 {
   if (!initiated) {
     logger.error("USIM not initiated!");

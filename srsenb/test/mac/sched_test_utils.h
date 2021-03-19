@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,13 +10,13 @@
  *
  */
 
-#ifndef SRSLTE_SCHED_TEST_UTILS_H
-#define SRSLTE_SCHED_TEST_UTILS_H
+#ifndef SRSRAN_SCHED_TEST_UTILS_H
+#define SRSRAN_SCHED_TEST_UTILS_H
 
 #include "srsenb/hdr/stack/mac/sched.h"
 #include "srsenb/hdr/stack/upper/common_enb.h"
-#include "srslte/common/test_common.h"
-#include "srslte/interfaces/sched_interface.h"
+#include "srsran/common/test_common.h"
+#include "srsran/interfaces/sched_interface.h"
 #include <algorithm>
 #include <chrono>
 #include <unordered_map>
@@ -28,15 +28,15 @@
 inline srsenb::sched_interface::cell_cfg_t generate_default_cell_cfg(uint32_t nof_prb)
 {
   srsenb::sched_interface::cell_cfg_t cell_cfg     = {};
-  srslte_cell_t&                      cell_cfg_phy = cell_cfg.cell;
+  srsran_cell_t&                      cell_cfg_phy = cell_cfg.cell;
 
   /* Set PHY cell configuration */
   cell_cfg_phy.id              = 1;
-  cell_cfg_phy.cp              = SRSLTE_CP_NORM;
+  cell_cfg_phy.cp              = SRSRAN_CP_NORM;
   cell_cfg_phy.nof_ports       = 1;
   cell_cfg_phy.nof_prb         = nof_prb;
-  cell_cfg_phy.phich_length    = SRSLTE_PHICH_NORM;
-  cell_cfg_phy.phich_resources = SRSLTE_PHICH_R_1;
+  cell_cfg_phy.phich_length    = SRSRAN_PHICH_NORM;
+  cell_cfg_phy.phich_resources = SRSRAN_PHICH_R_1;
 
   cell_cfg.sibs[0].len       = 18;
   cell_cfg.sibs[0].period_rf = 8;
@@ -66,7 +66,7 @@ inline srsenb::sched_interface::ue_cfg_t generate_default_ue_cfg()
   ue_cfg.supported_cc_list[0].aperiodic_cqi_period = 40;
   ue_cfg.supported_cc_list[0].enb_cc_idx           = 0;
   ue_cfg.supported_cc_list[0].active               = true;
-  ue_cfg.supported_cc_list[0].dl_cfg.tm            = SRSLTE_TM1;
+  ue_cfg.supported_cc_list[0].dl_cfg.tm            = SRSRAN_TM1;
   ue_cfg.ue_bearers[srsenb::RB_ID_SRB0].direction  = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
   ue_cfg.ue_bearers[srsenb::RB_ID_SRB1].direction  = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
   ue_cfg.ue_bearers[srsenb::RB_ID_SRB2].direction  = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
@@ -108,7 +108,7 @@ inline srsenb::sched_interface::ue_cfg_t generate_setup_ue_cfg(const srsenb::sch
 
   cfg.maxharq_tx                               = final_cfg.maxharq_tx;
   cfg.ue_bearers[srsenb::RB_ID_SRB1].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-  cfg.supported_cc_list[0].dl_cfg.tm           = SRSLTE_TM1;
+  cfg.supported_cc_list[0].dl_cfg.tm           = SRSRAN_TM1;
   cfg.continuous_pusch                         = final_cfg.continuous_pusch;
 
   cfg.supported_cc_list[0].dl_cfg.cqi_report    = final_cfg.supported_cc_list[0].dl_cfg.cqi_report;
@@ -231,7 +231,7 @@ struct sched_sim_event_generator {
       user->buffer_ev.reset(new tti_ev::user_buffer_ev{});
     }
     user->buffer_ev->dl_data = new_data;
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   int add_ul_data(uint16_t rnti, uint32_t new_data)
@@ -242,7 +242,7 @@ struct sched_sim_event_generator {
       user->buffer_ev.reset(new tti_ev::user_buffer_ev{});
     }
     user->buffer_ev->sr_data = new_data;
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   tti_ev::user_cfg_ev* user_reconf(uint16_t rnti)
@@ -302,4 +302,4 @@ private:
   }
 };
 
-#endif // SRSLTE_SCHED_TEST_UTILS_H
+#endif // SRSRAN_SCHED_TEST_UTILS_H

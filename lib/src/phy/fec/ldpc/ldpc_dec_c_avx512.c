@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -33,8 +33,8 @@
 
 #include "../utils_avx512.h"
 #include "ldpc_dec_all.h"
-#include "srslte/phy/fec/ldpc/base_graph.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/fec/ldpc/base_graph.h"
+#include "srsran/phy/utils/vector.h"
 
 #ifdef LV_HAVE_AVX512
 
@@ -54,7 +54,7 @@ static const int8_t infinity7 = (1U << 6U) - 1;
  * \brief Represents a node of the base factor graph.
  */
 typedef union bg_node_avx512_t {
-  int8_t*  c; /*!< Each base node may contain up to \ref SRSLTE_AVX512_B_SIZE lifted nodes. */
+  int8_t*  c; /*!< Each base node may contain up to \ref SRSRAN_AVX512_B_SIZE lifted nodes. */
   __m512i* v; /*!< All the lifted nodes of the current base node as a 512-bit line. */
 } bg_node_avx512_t;
 
@@ -123,33 +123,33 @@ void* create_ldpc_dec_c_avx512(uint8_t bgN, uint8_t bgM, uint16_t ls, float scal
   uint8_t  bgK = bgN - bgM;
   uint16_t hrr = bgK + 4;
 
-  if ((vp = SRSLTE_MEM_ALLOC(struct ldpc_regs_c_avx512, 1)) == NULL) {
+  if ((vp = SRSRAN_MEM_ALLOC(struct ldpc_regs_c_avx512, 1)) == NULL) {
     return NULL;
   }
-  SRSLTE_MEM_ZERO(vp, struct ldpc_regs_c_avx512, 1);
+  SRSRAN_MEM_ZERO(vp, struct ldpc_regs_c_avx512, 1);
 
-  if ((vp->soft_bits.v = SRSLTE_MEM_ALLOC(__m512i, bgN)) == NULL) {
+  if ((vp->soft_bits.v = SRSRAN_MEM_ALLOC(__m512i, bgN)) == NULL) {
     delete_ldpc_dec_c_avx512(vp);
     return NULL;
   }
 
-  if ((vp->check_to_var = SRSLTE_MEM_ALLOC(__m512i, (hrr + 1) * bgM)) == NULL) {
+  if ((vp->check_to_var = SRSRAN_MEM_ALLOC(__m512i, (hrr + 1) * bgM)) == NULL) {
     delete_ldpc_dec_c_avx512(vp);
     return NULL;
   }
 
-  if ((vp->var_to_check_to_free = SRSLTE_MEM_ALLOC(__m512i, (hrr + 1) + 2)) == NULL) {
+  if ((vp->var_to_check_to_free = SRSRAN_MEM_ALLOC(__m512i, (hrr + 1) + 2)) == NULL) {
     delete_ldpc_dec_c_avx512(vp);
     return NULL;
   }
   vp->var_to_check = &vp->var_to_check_to_free[1];
 
-  if ((vp->rotated_v2c = SRSLTE_MEM_ALLOC(__m512i, hrr + 1)) == NULL) {
+  if ((vp->rotated_v2c = SRSRAN_MEM_ALLOC(__m512i, hrr + 1)) == NULL) {
     delete_ldpc_dec_c_avx512(vp);
     return NULL;
   }
 
-  if ((vp->this_c2v_epi8_to_free = SRSLTE_MEM_ALLOC(__m512i, 1 + 2)) == NULL) {
+  if ((vp->this_c2v_epi8_to_free = SRSRAN_MEM_ALLOC(__m512i, 1 + 2)) == NULL) {
     delete_ldpc_dec_c_avx512(vp);
     return NULL;
   }
@@ -205,20 +205,20 @@ int init_ldpc_dec_c_avx512(void* p, const int8_t* llrs, uint16_t ls)
   int k = 0;
 
   // First 2 punctured bits
-  int ini = SRSLTE_AVX512_B_SIZE + SRSLTE_AVX512_B_SIZE;
-  srslte_vec_i8_zero(vp->soft_bits.c, ini);
+  int ini = SRSRAN_AVX512_B_SIZE + SRSRAN_AVX512_B_SIZE;
+  srsran_vec_i8_zero(vp->soft_bits.c, ini);
 
   for (i = 0; i < vp->finalN; i = i + ls) {
     for (k = 0; k < ls; k++) {
       vp->soft_bits.c[ini + k] = llrs[i + k];
     }
     // this might be removed
-    srslte_vec_i8_zero(&vp->soft_bits.c[ini + ls], SRSLTE_AVX512_B_SIZE - ls);
-    ini = ini + SRSLTE_AVX512_B_SIZE;
+    srsran_vec_i8_zero(&vp->soft_bits.c[ini + ls], SRSRAN_AVX512_B_SIZE - ls);
+    ini = ini + SRSRAN_AVX512_B_SIZE;
   }
 
-  SRSLTE_MEM_ZERO(vp->check_to_var, __m512i, (vp->hrr + 1) * vp->bgM);
-  SRSLTE_MEM_ZERO(vp->var_to_check, __m512i, vp->hrr + 1);
+  SRSRAN_MEM_ZERO(vp->check_to_var, __m512i, (vp->hrr + 1) * vp->bgM);
+  SRSRAN_MEM_ZERO(vp->var_to_check, __m512i, vp->hrr + 1);
 
   return 0;
 }
@@ -235,7 +235,7 @@ int extract_ldpc_message_c_avx512(void* p, uint8_t* message, uint16_t liftK)
     for (int k = 0; k < vp->ls; k++) {
       message[i + k] = (vp->soft_bits.c[ini + k] < 0);
     }
-    ini = ini + SRSLTE_AVX512_B_SIZE;
+    ini = ini + SRSRAN_AVX512_B_SIZE;
   }
 
   return 0;
@@ -435,7 +435,7 @@ static void rotate_node_right(const uint8_t* mem_addr, __m512i* out, uint16_t th
   } else { // if the last is broken, take _shift bits from the end and "shift" bits from the begin.
 
     _shift = ls - this_shift;
-    shift  = SRSLTE_AVX512_B_SIZE - _shift;
+    shift  = SRSRAN_AVX512_B_SIZE - _shift;
 
     mask1 = (1ULL << _shift) - 1; // i.e. 000001111 _shift =4
     mask2 = (1ULL << shift) - 1;

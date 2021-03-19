@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -13,8 +13,8 @@
 #ifndef SRSENB_TA_H
 #define SRSENB_TA_H
 
-#include "srslte/config.h"
-#include "srslte/phy/common/phy_common.h"
+#include "srsran/config.h"
+#include "srsran/phy/common/phy_common.h"
 
 #include <cmath>
 #include <vector>
@@ -109,7 +109,7 @@ private:
     }
 
     // Return the n_ta value
-    return static_cast<int>(std::roundf(ta_us * 1e-6f / SRSLTE_LTE_TS / 16.0f));
+    return static_cast<int>(std::roundf(ta_us * 1e-6f / SRSRAN_LTE_TS / 16.0f));
   }
 
   /**

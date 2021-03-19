@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,8 +10,8 @@
  *
  */
 
-#include "srslte/common/test_common.h"
-#include "srslte/upper/rlc_am_lte.h"
+#include "srsran/common/test_common.h"
+#include "srsran/upper/rlc_am_lte.h"
 #include <iostream>
 
 // Fixed header only
@@ -40,12 +40,12 @@ uint32_t PDU3_LEN = 7;
 uint8_t  pdu4[]   = {0x9C, 0x02, 0xD3, 0xE5, 0xDC};
 uint32_t PDU4_LEN = 5;
 
-using namespace srslte;
+using namespace srsran;
 
 int test1()
 {
-  srslte::rlc_amd_pdu_header_t h;
-  srslte::byte_buffer_t        b1, b2;
+  srsran::rlc_amd_pdu_header_t h;
+  srsran::byte_buffer_t        b1, b2;
 
   memcpy(b1.msg, &pdu1[0], PDU1_LEN);
   b1.N_bytes = PDU1_LEN;
@@ -62,13 +62,13 @@ int test1()
   TESTASSERT(b2.N_bytes == PDU1_LEN);
   for (uint32_t i = 0; i < b2.N_bytes; i++)
     TESTASSERT(b2.msg[i] == b1.msg[i]);
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test2()
 {
-  srslte::rlc_amd_pdu_header_t h;
-  srslte::byte_buffer_t        b1, b2;
+  srsran::rlc_amd_pdu_header_t h;
+  srsran::byte_buffer_t        b1, b2;
 
   memcpy(b1.msg, &pdu2[0], PDU2_LEN);
   b1.N_bytes = PDU2_LEN;
@@ -87,13 +87,13 @@ int test2()
   TESTASSERT(b2.N_bytes == PDU2_LEN);
   for (uint32_t i = 0; i < b2.N_bytes; i++)
     TESTASSERT(b2.msg[i] == b1.msg[i]);
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test3()
 {
-  srslte::rlc_amd_pdu_header_t h;
-  srslte::byte_buffer_t        b1, b2;
+  srsran::rlc_amd_pdu_header_t h;
+  srsran::byte_buffer_t        b1, b2;
 
   memcpy(b1.msg, &pdu3[0], PDU3_LEN);
   b1.N_bytes = PDU3_LEN;
@@ -113,13 +113,13 @@ int test3()
   TESTASSERT(b2.N_bytes == PDU3_LEN);
   for (uint32_t i = 0; i < b2.N_bytes; i++)
     TESTASSERT(b2.msg[i] == b1.msg[i]);
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test4()
 {
-  srslte::rlc_amd_pdu_header_t h;
-  srslte::byte_buffer_t        b1, b2;
+  srsran::rlc_amd_pdu_header_t h;
+  srsran::byte_buffer_t        b1, b2;
 
   memcpy(b1.msg, &pdu4[0], PDU4_LEN);
   b1.N_bytes = PDU4_LEN;
@@ -138,17 +138,17 @@ int test4()
   TESTASSERT(b2.N_bytes == PDU4_LEN);
   for (uint32_t i = 0; i < b2.N_bytes; i++)
     TESTASSERT(b2.msg[i] == b1.msg[i]);
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int main(int argc, char** argv)
 {
   srslog::init();
 
-  TESTASSERT(test1() == SRSLTE_SUCCESS);
-  TESTASSERT(test2() == SRSLTE_SUCCESS);
-  TESTASSERT(test3() == SRSLTE_SUCCESS);
-  TESTASSERT(test4() == SRSLTE_SUCCESS);
+  TESTASSERT(test1() == SRSRAN_SUCCESS);
+  TESTASSERT(test2() == SRSRAN_SUCCESS);
+  TESTASSERT(test3() == SRSRAN_SUCCESS);
+  TESTASSERT(test4() == SRSRAN_SUCCESS);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }

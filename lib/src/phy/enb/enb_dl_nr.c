@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,10 +10,10 @@
  *
  */
 
-#include "srslte/phy/enb/enb_dl_nr.h"
+#include "srsran/phy/enb/enb_dl_nr.h"
 #include <complex.h>
 
-static int enb_dl_alloc_prb(srslte_enb_dl_nr_t* q, uint32_t new_nof_prb)
+static int enb_dl_alloc_prb(srsran_enb_dl_nr_t* q, uint32_t new_nof_prb)
 {
   if (q->max_prb < new_nof_prb) {
     q->max_prb = new_nof_prb;
@@ -23,214 +23,214 @@ static int enb_dl_alloc_prb(srslte_enb_dl_nr_t* q, uint32_t new_nof_prb)
         free(q->sf_symbols[i]);
       }
 
-      q->sf_symbols[i] = srslte_vec_cf_malloc(SRSLTE_SLOT_LEN_RE_NR(q->max_prb));
+      q->sf_symbols[i] = srsran_vec_cf_malloc(SRSRAN_SLOT_LEN_RE_NR(q->max_prb));
       if (q->sf_symbols[i] == NULL) {
         ERROR("Malloc");
-        return SRSLTE_ERROR;
+        return SRSRAN_ERROR;
       }
     }
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-int srslte_enb_dl_nr_init(srslte_enb_dl_nr_t* q, cf_t* output[SRSLTE_MAX_PORTS], const srslte_enb_dl_nr_args_t* args)
+int srsran_enb_dl_nr_init(srsran_enb_dl_nr_t* q, cf_t* output[SRSRAN_MAX_PORTS], const srsran_enb_dl_nr_args_t* args)
 {
   if (!q || !output || !args) {
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
   if (args->nof_tx_antennas == 0) {
     ERROR("Error invalid number of antennas (%d)", args->nof_tx_antennas);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   q->nof_tx_antennas = args->nof_tx_antennas;
 
-  if (srslte_pdsch_nr_init_enb(&q->pdsch, &args->pdsch) < SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+  if (srsran_pdsch_nr_init_enb(&q->pdsch, &args->pdsch) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
   }
 
-  if (enb_dl_alloc_prb(q, args->nof_max_prb) < SRSLTE_SUCCESS) {
+  if (enb_dl_alloc_prb(q, args->nof_max_prb) < SRSRAN_SUCCESS) {
     ERROR("Error allocating");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
-  srslte_ofdm_cfg_t fft_cfg = {};
+  srsran_ofdm_cfg_t fft_cfg = {};
   fft_cfg.nof_prb           = args->nof_max_prb;
-  fft_cfg.symbol_sz         = srslte_min_symbol_sz_rb(args->nof_max_prb);
+  fft_cfg.symbol_sz         = srsran_min_symbol_sz_rb(args->nof_max_prb);
   fft_cfg.keep_dc           = true;
 
   for (uint32_t i = 0; i < q->nof_tx_antennas; i++) {
     fft_cfg.in_buffer  = q->sf_symbols[i];
     fft_cfg.out_buffer = output[i];
-    srslte_ofdm_tx_init_cfg(&q->fft[i], &fft_cfg);
+    srsran_ofdm_tx_init_cfg(&q->fft[i], &fft_cfg);
   }
 
-  if (srslte_dmrs_sch_init(&q->dmrs, false) < SRSLTE_SUCCESS) {
+  if (srsran_dmrs_sch_init(&q->dmrs, false) < SRSRAN_SUCCESS) {
     ERROR("Error DMRS");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
-  if (srslte_pdcch_nr_init_tx(&q->pdcch, &args->pdcch) < SRSLTE_SUCCESS) {
+  if (srsran_pdcch_nr_init_tx(&q->pdcch, &args->pdcch) < SRSRAN_SUCCESS) {
     ERROR("Error PDCCH");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-void srslte_enb_dl_nr_free(srslte_enb_dl_nr_t* q)
+void srsran_enb_dl_nr_free(srsran_enb_dl_nr_t* q)
 {
   if (q == NULL) {
     return;
   }
 
-  for (uint32_t i = 0; i < SRSLTE_MAX_PORTS; i++) {
-    srslte_ofdm_rx_free(&q->fft[i]);
+  for (uint32_t i = 0; i < SRSRAN_MAX_PORTS; i++) {
+    srsran_ofdm_rx_free(&q->fft[i]);
 
     if (q->sf_symbols[i] != NULL) {
       free(q->sf_symbols[i]);
     }
   }
 
-  srslte_pdsch_nr_free(&q->pdsch);
-  srslte_dmrs_sch_free(&q->dmrs);
+  srsran_pdsch_nr_free(&q->pdsch);
+  srsran_dmrs_sch_free(&q->dmrs);
 
-  srslte_pdcch_nr_free(&q->pdcch);
+  srsran_pdcch_nr_free(&q->pdcch);
 
-  SRSLTE_MEM_ZERO(q, srslte_enb_dl_nr_t, 1);
+  SRSRAN_MEM_ZERO(q, srsran_enb_dl_nr_t, 1);
 }
 
-int srslte_enb_dl_nr_set_carrier(srslte_enb_dl_nr_t* q, const srslte_carrier_nr_t* carrier)
+int srsran_enb_dl_nr_set_carrier(srsran_enb_dl_nr_t* q, const srsran_carrier_nr_t* carrier)
 {
-  if (srslte_pdsch_nr_set_carrier(&q->pdsch, carrier) < SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+  if (srsran_pdsch_nr_set_carrier(&q->pdsch, carrier) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
   }
 
-  if (srslte_dmrs_sch_set_carrier(&q->dmrs, carrier) < SRSLTE_SUCCESS) {
+  if (srsran_dmrs_sch_set_carrier(&q->dmrs, carrier) < SRSRAN_SUCCESS) {
     ERROR("Error DMRS");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
-  if (enb_dl_alloc_prb(q, carrier->nof_prb) < SRSLTE_SUCCESS) {
+  if (enb_dl_alloc_prb(q, carrier->nof_prb) < SRSRAN_SUCCESS) {
     ERROR("Error allocating");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   if (carrier->nof_prb != q->carrier.nof_prb) {
-    srslte_ofdm_cfg_t fft_cfg = {};
+    srsran_ofdm_cfg_t fft_cfg = {};
     fft_cfg.nof_prb           = carrier->nof_prb;
-    fft_cfg.symbol_sz         = srslte_min_symbol_sz_rb(carrier->nof_prb);
+    fft_cfg.symbol_sz         = srsran_min_symbol_sz_rb(carrier->nof_prb);
     fft_cfg.keep_dc           = true;
 
     for (uint32_t i = 0; i < q->nof_tx_antennas; i++) {
       fft_cfg.in_buffer = q->sf_symbols[i];
-      srslte_ofdm_tx_init_cfg(&q->fft[i], &fft_cfg);
+      srsran_ofdm_tx_init_cfg(&q->fft[i], &fft_cfg);
     }
   }
 
   q->carrier = *carrier;
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-int srslte_enb_dl_nr_set_coreset(srslte_enb_dl_nr_t* q, const srslte_coreset_t* coreset)
+int srsran_enb_dl_nr_set_coreset(srsran_enb_dl_nr_t* q, const srsran_coreset_t* coreset)
 {
   if (q == NULL || coreset == NULL) {
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
   q->coreset = *coreset;
 
-  if (srslte_pdcch_nr_set_carrier(&q->pdcch, &q->carrier, &q->coreset) < SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+  if (srsran_pdcch_nr_set_carrier(&q->pdcch, &q->carrier, &q->coreset) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-void srslte_enb_dl_nr_gen_signal(srslte_enb_dl_nr_t* q)
+void srsran_enb_dl_nr_gen_signal(srsran_enb_dl_nr_t* q)
 {
   if (q == NULL) {
     return;
   }
 
   for (uint32_t i = 0; i < q->nof_tx_antennas; i++) {
-    srslte_ofdm_tx_sf(&q->fft[i]);
+    srsran_ofdm_tx_sf(&q->fft[i]);
   }
 }
 
-int srslte_enb_dl_nr_base_zero(srslte_enb_dl_nr_t* q)
+int srsran_enb_dl_nr_base_zero(srsran_enb_dl_nr_t* q)
 {
   if (q == NULL) {
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
   for (uint32_t i = 0; i < q->nof_tx_antennas; i++) {
-    srslte_vec_cf_zero(q->sf_symbols[i], SRSLTE_SLOT_LEN_RE_NR(q->carrier.nof_prb));
+    srsran_vec_cf_zero(q->sf_symbols[i], SRSRAN_SLOT_LEN_RE_NR(q->carrier.nof_prb));
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-int srslte_enb_dl_nr_pdcch_put(srslte_enb_dl_nr_t*       q,
-                               const srslte_slot_cfg_t*  slot_cfg,
-                               const srslte_dci_dl_nr_t* dci_dl)
+int srsran_enb_dl_nr_pdcch_put(srsran_enb_dl_nr_t*       q,
+                               const srsran_slot_cfg_t*  slot_cfg,
+                               const srsran_dci_dl_nr_t* dci_dl)
 {
   if (q == NULL || slot_cfg == NULL || dci_dl == NULL) {
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
   // Put DMRS
-  if (srslte_dmrs_pdcch_put(&q->carrier, &q->coreset, slot_cfg, &dci_dl->location, q->sf_symbols[0]) < SRSLTE_SUCCESS) {
+  if (srsran_dmrs_pdcch_put(&q->carrier, &q->coreset, slot_cfg, &dci_dl->location, q->sf_symbols[0]) < SRSRAN_SUCCESS) {
     ERROR("Error putting PDCCH DMRS");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // Pack DCI
-  srslte_dci_msg_nr_t dci_msg = {};
-  if (srslte_dci_nr_pack(&q->carrier, &q->coreset, dci_dl, &dci_msg) < SRSLTE_SUCCESS) {
+  srsran_dci_msg_nr_t dci_msg = {};
+  if (srsran_dci_nr_pack(&q->carrier, &q->coreset, dci_dl, &dci_msg) < SRSRAN_SUCCESS) {
     ERROR("Error packing DL DCI");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // PDCCH Encode
-  if (srslte_pdcch_nr_encode(&q->pdcch, &dci_msg, q->sf_symbols[0]) < SRSLTE_SUCCESS) {
+  if (srsran_pdcch_nr_encode(&q->pdcch, &dci_msg, q->sf_symbols[0]) < SRSRAN_SUCCESS) {
     ERROR("Error encoding PDCCH");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   INFO("DCI DL NR: L=%d; ncce=%d;", dci_dl->location.L, dci_dl->location.ncce);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-int srslte_enb_dl_nr_pdsch_put(srslte_enb_dl_nr_t*        q,
-                               const srslte_slot_cfg_t*   slot,
-                               const srslte_sch_cfg_nr_t* cfg,
-                               uint8_t*                   data[SRSLTE_MAX_TB])
+int srsran_enb_dl_nr_pdsch_put(srsran_enb_dl_nr_t*        q,
+                               const srsran_slot_cfg_t*   slot,
+                               const srsran_sch_cfg_nr_t* cfg,
+                               uint8_t*                   data[SRSRAN_MAX_TB])
 {
-  if (srslte_dmrs_sch_put_sf(&q->dmrs, slot, cfg, &cfg->grant, q->sf_symbols[0]) < SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+  if (srsran_dmrs_sch_put_sf(&q->dmrs, slot, cfg, &cfg->grant, q->sf_symbols[0]) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
   }
 
-  if (srslte_pdsch_nr_encode(&q->pdsch, cfg, &cfg->grant, data, q->sf_symbols) < SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+  if (srsran_pdsch_nr_encode(&q->pdsch, cfg, &cfg->grant, data, q->sf_symbols) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-int srslte_enb_dl_nr_pdsch_info(const srslte_enb_dl_nr_t*  q,
-                                const srslte_sch_cfg_nr_t* cfg,
+int srsran_enb_dl_nr_pdsch_info(const srsran_enb_dl_nr_t*  q,
+                                const srsran_sch_cfg_nr_t* cfg,
                                 char*                      str,
                                 uint32_t                   str_len)
 {
   int len = 0;
 
   // Append PDSCH info
-  len += srslte_pdsch_nr_tx_info(&q->pdsch, cfg, &cfg->grant, &str[len], str_len - len);
+  len += srsran_pdsch_nr_tx_info(&q->pdsch, cfg, &cfg->grant, &str[len], str_len - len);
 
   return len;
 }

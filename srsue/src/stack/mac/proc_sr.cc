@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -16,9 +16,9 @@
 #define Debug(fmt, ...) logger.debug(fmt, ##__VA_ARGS__)
 
 #include "srsue/hdr/stack/mac/proc_sr.h"
-#include "srslte/common/standard_streams.h"
-#include "srslte/interfaces/ue_phy_interfaces.h"
-#include "srslte/interfaces/ue_rrc_interfaces.h"
+#include "srsran/common/standard_streams.h"
+#include "srsran/interfaces/ue_phy_interfaces.h"
+#include "srsran/interfaces/ue_rrc_interfaces.h"
 #include "srsue/hdr/stack/mac/proc_ra.h"
 
 namespace srsue {
@@ -61,7 +61,7 @@ bool sr_proc::need_tx(uint32_t tti)
   return false;
 }
 
-void sr_proc::set_config(srslte::sr_cfg_t& cfg)
+void sr_proc::set_config(srsran::sr_cfg_t& cfg)
 {
   if (cfg.enabled && cfg.dsr_transmax == 0) {
     Error("Zero is an invalid value for dsr-TransMax (n4, n8, n16, n32, n64 are supported). Disabling SR.");
@@ -89,7 +89,7 @@ void sr_proc::step(uint32_t tti)
             Info("SR:    Releasing PUCCH/SRS resources, sr_counter=%d, dsr_transmax=%d",
                  sr_counter,
                  sr_cfg.dsr_transmax);
-            srslte::console("Scheduling request failed: releasing RRC connection...\n");
+            srsran::console("Scheduling request failed: releasing RRC connection...\n");
             rrc->release_pucch_srs();
             ra->start_mac_order();
             reset();

@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,7 +10,7 @@
  *
  */
 
-#include "srslte/srslog/srslog.h"
+#include "srsran/srslog/srslog.h"
 #include "test_dummies.h"
 #include "testing_helpers.h"
 

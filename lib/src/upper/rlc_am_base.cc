@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,10 +10,10 @@
  *
  */
 
-#include "srslte/upper/rlc_am_base.h"
+#include "srsran/upper/rlc_am_base.h"
 #include <sstream>
 
-namespace srslte {
+namespace srsran {
 
 bool rlc_am_is_control_pdu(uint8_t* payload)
 {
@@ -25,4 +25,4 @@ bool rlc_am_is_control_pdu(byte_buffer_t* pdu)
   return rlc_am_is_control_pdu(pdu->msg);
 }
 
-} // namespace srslte
+} // namespace srsran

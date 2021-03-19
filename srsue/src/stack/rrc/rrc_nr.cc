@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -11,10 +11,10 @@
  */
 
 #include "srsue/hdr/stack/rrc/rrc_nr.h"
-#include "srslte/common/security.h"
-#include "srslte/common/standard_streams.h"
-#include "srslte/interfaces/ue_pdcp_interfaces.h"
-#include "srslte/interfaces/ue_rlc_interfaces.h"
+#include "srsran/common/security.h"
+#include "srsran/common/standard_streams.h"
+#include "srsran/interfaces/ue_pdcp_interfaces.h"
+#include "srsran/interfaces/ue_rlc_interfaces.h"
 #include "srsue/hdr/stack/upper/usim.h"
 
 #define Error(fmt, ...) rrc_ptr->logger.error("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
@@ -24,12 +24,12 @@
 
 using namespace asn1::rrc_nr;
 using namespace asn1;
-using namespace srslte;
+using namespace srsran;
 namespace srsue {
 
 const char* rrc_nr::rrc_nr_state_text[] = {"IDLE", "CONNECTED", "CONNECTED-INACTIVE"};
 
-rrc_nr::rrc_nr(srslte::task_sched_handle task_sched_) :
+rrc_nr::rrc_nr(srsran::task_sched_handle task_sched_) :
   logger(srslog::fetch_basic_logger("RRC")), task_sched(task_sched_), conn_recfg_proc(this)
 {}
 
@@ -42,7 +42,7 @@ void rrc_nr::init(phy_interface_rrc_nr*       phy_,
                   gw_interface_rrc*           gw_,
                   rrc_eutra_interface_rrc_nr* rrc_eutra_,
                   usim_interface_rrc_nr*      usim_,
-                  srslte::timer_handler*      timers_,
+                  srsran::timer_handler*      timers_,
                   stack_interface_rrc*        stack_,
                   const rrc_nr_args_t&        args_)
 {
@@ -69,16 +69,16 @@ void rrc_nr::stop()
 void rrc_nr::init_core_less()
 {
   logger.info("Creating dummy DRB on LCID=%d", args.coreless.drb_lcid);
-  srslte::rlc_config_t rlc_cnfg = srslte::rlc_config_t::default_rlc_um_nr_config(6);
+  srsran::rlc_config_t rlc_cnfg = srsran::rlc_config_t::default_rlc_um_nr_config(6);
   rlc->add_bearer(args.coreless.drb_lcid, rlc_cnfg);
 
-  srslte::pdcp_config_t pdcp_cnfg{args.coreless.drb_lcid,
-                                  srslte::PDCP_RB_IS_DRB,
-                                  srslte::SECURITY_DIRECTION_DOWNLINK,
-                                  srslte::SECURITY_DIRECTION_UPLINK,
-                                  srslte::PDCP_SN_LEN_18,
-                                  srslte::pdcp_t_reordering_t::ms500,
-                                  srslte::pdcp_discard_timer_t::ms100,
+  srsran::pdcp_config_t pdcp_cnfg{args.coreless.drb_lcid,
+                                  srsran::PDCP_RB_IS_DRB,
+                                  srsran::SECURITY_DIRECTION_DOWNLINK,
+                                  srsran::SECURITY_DIRECTION_UPLINK,
+                                  srsran::PDCP_SN_LEN_18,
+                                  srsran::pdcp_t_reordering_t::ms500,
+                                  srsran::pdcp_discard_timer_t::ms100,
                                   false};
 
   pdcp->add_bearer(args.coreless.drb_lcid, pdcp_cnfg);
@@ -109,12 +109,12 @@ void rrc_nr::timer_expired(uint32_t timeout_id)
   }
 }
 
-void rrc_nr::srslte_rrc_log(const char* str) {}
+void rrc_nr::srsran_rrc_log(const char* str) {}
 
 template <class T>
 void rrc_nr::log_rrc_message(const std::string&           source,
                              direction_t                  dir,
-                             const srslte::byte_buffer_t* pdu,
+                             const srsran::byte_buffer_t* pdu,
                              const T&                     msg,
                              const std::string&           msg_type)
 {
@@ -189,13 +189,13 @@ void rrc_nr::out_of_sync() {}
 void rrc_nr::run_tti(uint32_t tti) {}
 
 // PDCP interface
-void rrc_nr::write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
-void rrc_nr::write_pdu_bcch_bch(srslte::unique_byte_buffer_t pdu) {}
-void rrc_nr::write_pdu_bcch_dlsch(srslte::unique_byte_buffer_t pdu) {}
-void rrc_nr::write_pdu_pcch(srslte::unique_byte_buffer_t pdu) {}
-void rrc_nr::write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
+void rrc_nr::write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu) {}
+void rrc_nr::write_pdu_bcch_bch(srsran::unique_byte_buffer_t pdu) {}
+void rrc_nr::write_pdu_bcch_dlsch(srsran::unique_byte_buffer_t pdu) {}
+void rrc_nr::write_pdu_pcch(srsran::unique_byte_buffer_t pdu) {}
+void rrc_nr::write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t pdu) {}
 
-void rrc_nr::get_eutra_nr_capabilities(srslte::byte_buffer_t* eutra_nr_caps_pdu)
+void rrc_nr::get_eutra_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps_pdu)
 {
   struct ue_mrdc_cap_s mrdc_cap;
 
@@ -396,7 +396,7 @@ bool rrc_nr::rrc_reconfiguration(bool                endc_release_and_add_r15,
   return true;
 }
 
-void rrc_nr::get_nr_capabilities(srslte::byte_buffer_t* nr_caps_pdu)
+void rrc_nr::get_nr_capabilities(srsran::byte_buffer_t* nr_caps_pdu)
 {
   struct ue_nr_cap_s nr_cap;
 
@@ -491,7 +491,7 @@ bool rrc_nr::apply_rlc_add_mod(const rlc_bearer_cfg_s& rlc_bearer_cfg)
   }
 
   if (rlc_bearer_cfg.rlc_cfg_present == true) {
-    rlc_cfg = srslte::make_rlc_config_t(rlc_bearer_cfg.rlc_cfg);
+    rlc_cfg = srsran::make_rlc_config_t(rlc_bearer_cfg.rlc_cfg);
     if (rlc_bearer_cfg.rlc_cfg.type() == asn1::rrc_nr::rlc_cfg_c::types::um_bi_dir) {
       if (rlc_bearer_cfg.rlc_cfg.um_bi_dir().dl_um_rlc.sn_field_len_present &&
           rlc_bearer_cfg.rlc_cfg.um_bi_dir().ul_um_rlc.sn_field_len_present &&
@@ -512,7 +512,7 @@ bool rrc_nr::apply_rlc_add_mod(const rlc_bearer_cfg_s& rlc_bearer_cfg)
 
   if (rlc_bearer_cfg.mac_lc_ch_cfg_present == true && rlc_bearer_cfg.mac_lc_ch_cfg.ul_specific_params_present) {
     logical_channel_config_t logical_channel_cfg;
-    logical_channel_cfg = srslte::make_mac_logical_channel_cfg_t(lc_ch_id, rlc_bearer_cfg.mac_lc_ch_cfg);
+    logical_channel_cfg = srsran::make_mac_logical_channel_cfg_t(lc_ch_id, rlc_bearer_cfg.mac_lc_ch_cfg);
     mac->setup_lcid(logical_channel_cfg);
   }
   return true;
@@ -537,7 +537,7 @@ bool rrc_nr::apply_mac_cell_group(const mac_cell_group_cfg_s& mac_cell_group_cfg
 
     if (mac_cell_group_cfg.bsr_cfg_present) {
       logger.debug("Handling MAC BSR config");
-      srslte::bsr_cfg_t bsr_cfg;
+      srsran::bsr_cfg_t bsr_cfg;
       bsr_cfg.periodic_timer = mac_cell_group_cfg.bsr_cfg.periodic_bsr_timer.to_number();
       bsr_cfg.retx_timer     = mac_cell_group_cfg.bsr_cfg.retx_bsr_timer.to_number();
       mac->set_config(bsr_cfg);
@@ -631,7 +631,7 @@ bool rrc_nr::apply_drb_add_mod(const drb_to_add_mod_s& drb_cfg)
                    drb_cfg.pdcp_cfg.drb.pdcp_sn_size_dl.to_number());
   }
 
-  srslte::pdcp_config_t pdcp_cfg = make_drb_pdcp_config_t(drb_cfg.drb_id, true, drb_cfg.pdcp_cfg);
+  srsran::pdcp_config_t pdcp_cfg = make_drb_pdcp_config_t(drb_cfg.drb_id, true, drb_cfg.pdcp_cfg);
   pdcp->add_bearer(lcid, pdcp_cfg);
   gw->update_lcid(eps_bearer_id, lcid);
   return true;
@@ -756,11 +756,11 @@ proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::react(const bool& config_co
   return proc_outcome_t::success;
 }
 
-void rrc_nr::connection_reconf_no_ho_proc::then(const srslte::proc_state_t& result)
+void rrc_nr::connection_reconf_no_ho_proc::then(const srsran::proc_state_t& result)
 {
   if (result.is_success()) {
     Info("Finished %s successfully", name());
-    srslte::console("RRC NR reconfiguration successful.\n");
+    srsran::console("RRC NR reconfiguration successful.\n");
     return;
   }
 

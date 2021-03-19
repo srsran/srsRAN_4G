@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,13 +10,13 @@
  *
  */
 
-#include "srslte/system/sys_metrics_processor.h"
+#include "srsran/system/sys_metrics_processor.h"
 #include <fstream>
 #include <sstream>
 #include <sys/sysinfo.h>
 #include <unistd.h>
 
-using namespace srslte;
+using namespace srsran;
 
 sys_metrics_processor::proc_stats_info::proc_stats_info()
 {

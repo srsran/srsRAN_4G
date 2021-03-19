@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -21,9 +21,9 @@
 
 #include <stdbool.h>
 
-#include "srslte/phy/io/filesink.h"
-#include "srslte/phy/rf/rf.h"
-#include "srslte/srslte.h"
+#include "srsran/phy/io/filesink.h"
+#include "srsran/phy/rf/rf.h"
+#include "srsran/srsran.h"
 
 static bool keep_running = true;
 char*       output_file_name;
@@ -45,7 +45,7 @@ void usage(char* prog)
   printf("\t-r RF Rate [Default %.6f Hz]\n", rf_rate);
   printf("\t-n nof_samples [Default %d]\n", nof_samples);
   printf("\t-A nof_rx_antennas [Default %d]\n", nof_rx_antennas);
-  printf("\t-v srslte_verbose\n");
+  printf("\t-v srsran_verbose\n");
 }
 
 void parse_args(int argc, char** argv)
@@ -75,7 +75,7 @@ void parse_args(int argc, char** argv)
         nof_rx_antennas = (int)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
-        srslte_verbose++;
+        srsran_verbose++;
         break;
       default:
         usage(argv[0]);
@@ -90,10 +90,10 @@ void parse_args(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-  cf_t*             buffer[SRSLTE_MAX_PORTS];
+  cf_t*             buffer[SRSRAN_MAX_PORTS];
   int               sample_count, n;
-  srslte_rf_t       rf;
-  srslte_filesink_t sink;
+  srsran_rf_t       rf;
+  srsran_filesink_t sink;
   uint32_t          buflen;
 
   signal(SIGINT, int_handler);
@@ -104,17 +104,17 @@ int main(int argc, char** argv)
   sample_count = 0;
 
   for (int i = 0; i < nof_rx_antennas; i++) {
-    buffer[i] = srslte_vec_cf_malloc(buflen);
+    buffer[i] = srsran_vec_cf_malloc(buflen);
     if (!buffer[i]) {
       perror("malloc");
       exit(-1);
     }
   }
 
-  srslte_filesink_init(&sink, output_file_name, SRSLTE_COMPLEX_FLOAT_BIN);
+  srsran_filesink_init(&sink, output_file_name, SRSRAN_COMPLEX_FLOAT_BIN);
 
   printf("Opening RF device...");
-  if (srslte_rf_open_multi(&rf, rf_args, nof_rx_antennas)) {
+  if (srsran_rf_open_multi(&rf, rf_args, nof_rx_antennas)) {
     ERROR("Error opening rf");
     exit(-1);
   }
@@ -124,13 +124,13 @@ int main(int argc, char** argv)
   sigaddset(&sigset, SIGINT);
   sigprocmask(SIG_UNBLOCK, &sigset, NULL);
 
-  srslte_rf_set_rx_gain(&rf, rf_gain);
-  srslte_rf_set_rx_freq(&rf, nof_rx_antennas, rf_freq);
+  srsran_rf_set_rx_gain(&rf, rf_gain);
+  srsran_rf_set_rx_freq(&rf, nof_rx_antennas, rf_freq);
   printf("Set RX freq: %.2f MHz\n", rf_freq / 1000000);
   printf("Set RX gain: %.2f dB\n", rf_gain);
-  float srate = srslte_rf_set_rx_srate(&rf, rf_rate);
+  float srate = srsran_rf_set_rx_srate(&rf, rf_rate);
   if (srate != rf_rate) {
-    srate = srslte_rf_set_rx_srate(&rf, rf_rate);
+    srate = srsran_rf_set_rx_srate(&rf, rf_rate);
     if (srate != rf_rate) {
       ERROR("Error setting samplign frequency %.2f MHz", rf_rate * 1e-6);
       exit(-1);
@@ -138,16 +138,16 @@ int main(int argc, char** argv)
   }
 
   printf("Correctly RX rate: %.2f MHz\n", srate * 1e-6);
-  srslte_rf_start_rx_stream(&rf, false);
+  srsran_rf_start_rx_stream(&rf, false);
 
   while ((sample_count < nof_samples || nof_samples == -1) && keep_running) {
-    n = srslte_rf_recv_with_time_multi(&rf, (void**)buffer, buflen, true, NULL, NULL);
+    n = srsran_rf_recv_with_time_multi(&rf, (void**)buffer, buflen, true, NULL, NULL);
     if (n < 0) {
       ERROR("Error receiving samples");
       exit(-1);
     }
 
-    srslte_filesink_write_multi(&sink, (void**)buffer, buflen, nof_rx_antennas);
+    srsran_filesink_write_multi(&sink, (void**)buffer, buflen, nof_rx_antennas);
     sample_count += buflen;
   }
 
@@ -157,8 +157,8 @@ int main(int argc, char** argv)
     }
   }
 
-  srslte_filesink_free(&sink);
-  srslte_rf_close(&rf);
+  srsran_filesink_free(&sink);
+  srsran_rf_close(&rf);
 
   printf("Ok - wrote %d samples\n", sample_count);
   exit(0);

@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -25,23 +25,23 @@
 
 #include "phy/phy.h"
 
-#include "srslte/radio/radio.h"
+#include "srsran/radio/radio.h"
 
 #include "srsenb/hdr/phy/enb_phy_base.h"
 #include "srsenb/hdr/stack/enb_stack_base.h"
 #include "srsenb/hdr/stack/rrc/rrc_config.h"
 
-#include "srslte/common/bcd_helpers.h"
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/interfaces_common.h"
-#include "srslte/common/mac_pcap.h"
-#include "srslte/common/security.h"
-#include "srslte/interfaces/enb_command_interface.h"
-#include "srslte/interfaces/enb_metrics_interface.h"
-#include "srslte/interfaces/sched_interface.h"
-#include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/srslog/srslog.h"
-#include "srslte/system/sys_metrics_processor.h"
+#include "srsran/common/bcd_helpers.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/common/interfaces_common.h"
+#include "srsran/common/mac_pcap.h"
+#include "srsran/common/security.h"
+#include "srsran/interfaces/enb_command_interface.h"
+#include "srsran/interfaces/enb_metrics_interface.h"
+#include "srsran/interfaces/sched_interface.h"
+#include "srsran/interfaces/ue_interfaces.h"
+#include "srsran/srslog/srslog.h"
+#include "srsran/system/sys_metrics_processor.h"
 
 namespace srsenb {
 
@@ -98,7 +98,7 @@ struct general_args_t {
 struct all_args_t {
   enb_args_t        enb;
   enb_files_t       enb_files;
-  srslte::rf_args_t rf;
+  srsran::rf_args_t rf;
   log_args_t        log;
   gui_args_t        gui;
   general_args_t    general;
@@ -149,11 +149,11 @@ private:
 
   // eNB components
   std::unique_ptr<enb_stack_base>     stack = nullptr;
-  std::unique_ptr<srslte::radio_base> radio = nullptr;
+  std::unique_ptr<srsran::radio_base> radio = nullptr;
   std::unique_ptr<enb_phy_base>       phy   = nullptr;
 
   // System metrics processor.
-  srslte::sys_metrics_processor sys_proc;
+  srsran::sys_metrics_processor sys_proc;
 
   std::string get_build_mode();
   std::string get_build_info();

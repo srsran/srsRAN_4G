@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -19,13 +19,13 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "srslte/srslte.h"
+#include "srsran/srsran.h"
 
 time_t         start, finish;
 struct timeval x, y;
 
 static uint32_t     num_bits   = 1000;
-static srslte_mod_t modulation = SRSLTE_MOD_BPSK;
+static srsran_mod_t modulation = SRSRAN_MOD_BPSK;
 
 void usage(char* prog)
 {
@@ -45,19 +45,19 @@ void parse_args(int argc, char** argv)
       case 'm':
         switch (strtol(argv[optind], NULL, 10)) {
           case 1:
-            modulation = SRSLTE_MOD_BPSK;
+            modulation = SRSRAN_MOD_BPSK;
             break;
           case 2:
-            modulation = SRSLTE_MOD_QPSK;
+            modulation = SRSRAN_MOD_QPSK;
             break;
           case 4:
-            modulation = SRSLTE_MOD_16QAM;
+            modulation = SRSRAN_MOD_16QAM;
             break;
           case 6:
-            modulation = SRSLTE_MOD_64QAM;
+            modulation = SRSRAN_MOD_64QAM;
             break;
           case 8:
-            modulation = SRSLTE_MOD_256QAM;
+            modulation = SRSRAN_MOD_256QAM;
             break;
           default:
             ERROR("Invalid modulation %ld. Possible values: "
@@ -75,9 +75,9 @@ void parse_args(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-  int                  ret = SRSLTE_SUCCESS;
+  int                  ret = SRSRAN_SUCCESS;
   int                  i;
-  srslte_modem_table_t mod;
+  srsran_modem_table_t mod;
   uint8_t *            input, *input_bytes, *output;
   cf_t *               symbols, *symbols_bytes;
   float*               llr;
@@ -85,12 +85,12 @@ int main(int argc, char** argv)
   parse_args(argc, argv);
 
   /* initialize objects */
-  if (srslte_modem_table_lte(&mod, modulation)) {
+  if (srsran_modem_table_lte(&mod, modulation)) {
     ERROR("Error initializing modem table");
     exit(-1);
   }
 
-  srslte_modem_table_bytes(&mod);
+  srsran_modem_table_bytes(&mod);
 
   /* check that num_bits is multiple of num_bits x symbol */
   if (num_bits % mod.nbits_x_symbol) {
@@ -99,33 +99,33 @@ int main(int argc, char** argv)
   }
 
   /* allocate buffers */
-  input = srslte_vec_u8_malloc(num_bits);
+  input = srsran_vec_u8_malloc(num_bits);
   if (!input) {
     perror("malloc");
     exit(-1);
   }
-  input_bytes = srslte_vec_u8_malloc(num_bits / 8);
+  input_bytes = srsran_vec_u8_malloc(num_bits / 8);
   if (!input_bytes) {
     perror("malloc");
     exit(-1);
   }
-  output = srslte_vec_u8_malloc(num_bits);
+  output = srsran_vec_u8_malloc(num_bits);
   if (!output) {
     perror("malloc");
     exit(-1);
   }
-  symbols = srslte_vec_cf_malloc(num_bits / mod.nbits_x_symbol);
+  symbols = srsran_vec_cf_malloc(num_bits / mod.nbits_x_symbol);
   if (!symbols) {
     perror("malloc");
     exit(-1);
   }
-  symbols_bytes = srslte_vec_cf_malloc(num_bits / mod.nbits_x_symbol);
+  symbols_bytes = srsran_vec_cf_malloc(num_bits / mod.nbits_x_symbol);
   if (!symbols_bytes) {
     perror("malloc");
     exit(-1);
   }
 
-  llr = srslte_vec_f_malloc(num_bits);
+  llr = srsran_vec_f_malloc(num_bits);
   if (!llr) {
     perror("malloc");
     exit(-1);
@@ -141,7 +141,7 @@ int main(int argc, char** argv)
   gettimeofday(&t[1], NULL);
   int ntrials = 100;
   for (int i = 0; i < ntrials; i++) {
-    srslte_mod_modulate(&mod, input, symbols, num_bits);
+    srsran_mod_modulate(&mod, input, symbols, num_bits);
   }
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
@@ -149,10 +149,10 @@ int main(int argc, char** argv)
   printf("Bit: %ld us\n", t[0].tv_usec);
 
   /* Test packed implementation */
-  srslte_bit_pack_vector(input, input_bytes, num_bits);
+  srsran_bit_pack_vector(input, input_bytes, num_bits);
   gettimeofday(&t[1], NULL);
   for (int i = 0; i < ntrials; i++) {
-    srslte_mod_modulate_bytes(&mod, input_bytes, symbols_bytes, num_bits);
+    srsran_mod_modulate_bytes(&mod, input_bytes, symbols_bytes, num_bits);
   }
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
@@ -165,12 +165,12 @@ int main(int argc, char** argv)
     }
   }
 
-  srslte_vec_f_zero(llr, num_bits / mod.nbits_x_symbol);
+  srsran_vec_f_zero(llr, num_bits / mod.nbits_x_symbol);
 
   printf("Symbols OK\n");
   /* demodulate */
   gettimeofday(&x, NULL);
-  srslte_demod_soft_demodulate(modulation, symbols, llr, num_bits / mod.nbits_x_symbol);
+  srsran_demod_soft_demodulate(modulation, symbols, llr, num_bits / mod.nbits_x_symbol);
   gettimeofday(&y, NULL);
   printf("\nElapsed time [us]: %ld\n", y.tv_usec - x.tv_usec);
   for (i = 0; i < num_bits; i++) {
@@ -178,10 +178,10 @@ int main(int argc, char** argv)
   }
 
   /* check errors */
-  for (i = 0; i < num_bits && ret == SRSLTE_SUCCESS; i++) {
+  for (i = 0; i < num_bits && ret == SRSRAN_SUCCESS; i++) {
     if (input[i] != output[i]) {
       ERROR("Error in bit %d", i);
-      ret = SRSLTE_ERROR;
+      ret = SRSRAN_ERROR;
     }
   }
 
@@ -192,7 +192,7 @@ int main(int argc, char** argv)
   free(input);
   free(input_bytes);
 
-  srslte_modem_table_free(&mod);
+  srsran_modem_table_free(&mod);
 
   exit(ret);
 }

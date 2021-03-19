@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -20,10 +20,10 @@
  *
  */
 
-#ifndef SRSLTE_LDPCDEC_ALL_H
-#define SRSLTE_LDPCDEC_ALL_H
+#ifndef SRSRAN_LDPCDEC_ALL_H
+#define SRSRAN_LDPCDEC_ALL_H
 
-#include <srslte/phy/fec/ldpc/base_graph.h>
+#include <srsran/phy/fec/ldpc/base_graph.h>
 #include <stdint.h>
 
 /*!
@@ -307,21 +307,21 @@ int extract_ldpc_message_c_flood(void* p, uint8_t* message, uint16_t liftK);
 
 /*!
  * Creates the registers used by the optimized 8-bit-based implementation of the LDPC decoder (LS <= \ref
- * SRSLTE_AVX2_B_SIZE). \param[in] bgN          Codeword length. \param[in] bgM          Number of check nodes.
+ * SRSRAN_AVX2_B_SIZE). \param[in] bgN          Codeword length. \param[in] bgM          Number of check nodes.
  * \param[in] ls           Lifting size. \param[in] scaling_fctr Scaling factor of the normalized min-sum algorithm.
  * \return A pointer to the created registers (an ldpc_regs_c_avx2 structure).
  */
 void* create_ldpc_dec_c_avx2(uint8_t bgN, uint8_t bgM, uint16_t ls, float scaling_fctr);
 
 /*!
- * Destroys the inner registers of the optimized 8-bit integer-based LDPC decoder (LS <= \ref SRSLTE_AVX2_B_SIZE).
+ * Destroys the inner registers of the optimized 8-bit integer-based LDPC decoder (LS <= \ref SRSRAN_AVX2_B_SIZE).
  * \param[in] p A pointer to the dismantled decoder registers (an ldpc_regs_c_avx2 structure).
  */
 void delete_ldpc_dec_c_avx2(void* p);
 
 /*!
  * Initializes the inner registers of the optimized 8-bit integer-based LDPC decoder before
- * carrying out the actual decoding (LS <= \ref SRSLTE_AVX2_B_SIZE).
+ * carrying out the actual decoding (LS <= \ref SRSRAN_AVX2_B_SIZE).
  * \param[in,out] p    A pointer to the decoder registers (an ldpc_regs_c_avx2 structure).
  * \param[in]     llrs A pointer to the array of LLR values from the channel.
  * \param[in]     ls   The lifting size.
@@ -330,7 +330,7 @@ void delete_ldpc_dec_c_avx2(void* p);
 int init_ldpc_dec_c_avx2(void* p, const int8_t* llrs, uint16_t ls);
 
 /*!
- * Updates the messages from variable nodes to check nodes (optimized 8-bit version, LS <= \ref SRSLTE_AVX2_B_SIZE).
+ * Updates the messages from variable nodes to check nodes (optimized 8-bit version, LS <= \ref SRSRAN_AVX2_B_SIZE).
  * \param[in,out] p       A pointer to the decoder registers (an ldpc_regs_c_avx2 structure).
  * \param[in]     i_layer The index of the variable-to-check layer to update.
  * \return An integer: 0 if the function executes correctly, -1 otherwise.
@@ -338,7 +338,7 @@ int init_ldpc_dec_c_avx2(void* p, const int8_t* llrs, uint16_t ls);
 int update_ldpc_var_to_check_c_avx2(void* p, int i_layer);
 
 /*!
- * Updates the messages from check nodes to variable nodes (optimized 8-bit version, LS <= \ref SRSLTE_AVX2_B_SIZE).
+ * Updates the messages from check nodes to variable nodes (optimized 8-bit version, LS <= \ref SRSRAN_AVX2_B_SIZE).
  * \param[in,out] p        A pointer to the decoder registers (an ldpc_regs_c_avx2 structure).
  * \param[in]     i_layer  The index of the variable-to-check layer to update.
  * \param[in]     this_pcm A pointer to the row of the parity check matrix (i.e. base
@@ -355,7 +355,7 @@ int update_ldpc_check_to_var_c_avx2(void*           p,
 
 /*!
  * Updates the current estimate of the (soft) bits of the codeword (optimized 8-bit version, LS <= \ref
- * SRSLTE_AVX2_B_SIZE). \param[in,out] p        A pointer to the decoder registers (an ldpc_regs_c_avx2 structure).
+ * SRSRAN_AVX2_B_SIZE). \param[in,out] p        A pointer to the decoder registers (an ldpc_regs_c_avx2 structure).
  * \param[in]     i_layer  The index of the variable-to-check layer to update.
  * \param[in]     these_var_indices
  *                         Contains the indices of the variable nodes connected
@@ -366,7 +366,7 @@ int update_ldpc_soft_bits_c_avx2(void* p, int i_layer, const int8_t (*these_var_
 
 /*!
  * Returns the decoded message (hard bits) from the current soft bits (optimized 8-bit version, LS <= \ref
- * SRSLTE_AVX2_B_SIZE).
+ * SRSRAN_AVX2_B_SIZE).
  * \param[in]  p       A pointer to the decoder registers (an ldpc_regs_c_avx2 structure).
  * \param[out] message A pointer to the decoded message.
  * \param[in]  liftK   The length of the decoded message.
@@ -376,7 +376,7 @@ int extract_ldpc_message_c_avx2(void* p, uint8_t* message, uint16_t liftK);
 
 /*!
  * Creates the registers used by the optimized 8-bit-based implementation of the LDPC decoder (LS > \ref
- * SRSLTE_AVX2_B_SIZE).
+ * SRSRAN_AVX2_B_SIZE).
  * \param[in] bgN          Codeword length. \param[in] bgM          Number of check nodes.
  * \param[in] ls           Lifting size. \param[in] scaling_fctr Scaling factor of the normalized min-sum algorithm.
  * \return A pointer to the created registers (an ldpc_regs_c_avx2long structure).
@@ -384,14 +384,14 @@ int extract_ldpc_message_c_avx2(void* p, uint8_t* message, uint16_t liftK);
 void* create_ldpc_dec_c_avx2long(uint8_t bgN, uint8_t bgM, uint16_t ls, float scaling_fctr);
 
 /*!
- * Destroys the inner registers of the optimized 8-bit integer-based LDPC decoder (LS > \ref SRSLTE_AVX2_B_SIZE).
+ * Destroys the inner registers of the optimized 8-bit integer-based LDPC decoder (LS > \ref SRSRAN_AVX2_B_SIZE).
  * \param[in] p A pointer to the dismantled decoder registers (an ldpc_regs_c_avx2long structure).
  */
 void delete_ldpc_dec_c_avx2long(void* p);
 
 /*!
  * Initializes the inner registers of the optimized 8-bit integer-based LDPC decoder before
- * carrying out the actual decoding (LS > \ref SRSLTE_AVX2_B_SIZE).
+ * carrying out the actual decoding (LS > \ref SRSRAN_AVX2_B_SIZE).
  * \param[in,out] p    A pointer to the decoder registers (an ldpc_regs_c_avx2long structure).
  * \param[in]     llrs A pointer to the array of LLR values from the channel.
  * \param[in]     ls   The lifting size.
@@ -400,7 +400,7 @@ void delete_ldpc_dec_c_avx2long(void* p);
 int init_ldpc_dec_c_avx2long(void* p, const int8_t* llrs, uint16_t ls);
 
 /*!
- * Updates the messages from variable nodes to check nodes (optimized 8-bit version, LS > \ref SRSLTE_AVX2_B_SIZE).
+ * Updates the messages from variable nodes to check nodes (optimized 8-bit version, LS > \ref SRSRAN_AVX2_B_SIZE).
  * \param[in,out] p       A pointer to the decoder registers (an ldpc_regs_c_avx2long structure).
  * \param[in]     i_layer The index of the variable-to-check layer to update.
  * \return An integer: 0 if the function executes correctly, -1 otherwise.
@@ -408,7 +408,7 @@ int init_ldpc_dec_c_avx2long(void* p, const int8_t* llrs, uint16_t ls);
 int update_ldpc_var_to_check_c_avx2long(void* p, int i_layer);
 
 /*!
- * Updates the messages from check nodes to variable nodes (optimized 8-bit version, LS > \ref SRSLTE_AVX2_B_SIZE).
+ * Updates the messages from check nodes to variable nodes (optimized 8-bit version, LS > \ref SRSRAN_AVX2_B_SIZE).
  * \param[in,out] p        A pointer to the decoder registers (an ldpc_regs_c_avx2long structure).
  * \param[in]     i_layer  The index of the variable-to-check layer to update.
  * \param[in]     this_pcm A pointer to the row of the parity check matrix (i.e. base
@@ -425,7 +425,7 @@ int update_ldpc_check_to_var_c_avx2long(void*           p,
 
 /*!
  * Updates the current estimate of the (soft) bits of the codeword (optimized 8-bit version, LS > \ref
- * SRSLTE_AVX2_B_SIZE). \param[in,out] p        A pointer to the decoder registers (an ldpc_regs_c_avx2long structure).
+ * SRSRAN_AVX2_B_SIZE). \param[in,out] p        A pointer to the decoder registers (an ldpc_regs_c_avx2long structure).
  * \param[in]     i_layer  The index of the variable-to-check layer to update.
  * \param[in]     these_var_indices
  *                         Contains the indices of the variable nodes connected
@@ -436,7 +436,7 @@ int update_ldpc_soft_bits_c_avx2long(void* p, int i_layer, const int8_t (*these_
 
 /*!
  * Returns the decoded message (hard bits) from the current soft bits (optimized 8-bit version, LS > \ref
- * SRSLTE_AVX2_B_SIZE). \param[in]  p       A pointer to the decoder registers (an ldpc_regs_c_avx2long structure).
+ * SRSRAN_AVX2_B_SIZE). \param[in]  p       A pointer to the decoder registers (an ldpc_regs_c_avx2long structure).
  * \param[out] message A pointer to the decoded message.
  * \param[in]  liftK   The length of the decoded message.
  * \return An integer: 0 if the function executes correctly, -1 otherwise.
@@ -445,7 +445,7 @@ int extract_ldpc_message_c_avx2long(void* p, uint8_t* message, uint16_t liftK);
 
 /*!
  * Creates the registers used by the optimized 8-bit-based implementation of the LDPC decoder
- * (flooded scheduling, LS <= \ref SRSLTE_AVX2_B_SIZE).
+ * (flooded scheduling, LS <= \ref SRSRAN_AVX2_B_SIZE).
  * \param[in] bgN          Codeword length.
  * \param[in] bgM          Number of check nodes.
  * \param[in] ls           Lifting size.
@@ -456,14 +456,14 @@ void* create_ldpc_dec_c_avx2_flood(uint8_t bgN, uint8_t bgM, uint16_t ls, float 
 
 /*!
  * Destroys the inner registers of the optimized 8-bit integer-based LDPC decoder
- * (flooded scheduling, LS <= \ref SRSLTE_AVX2_B_SIZE).
+ * (flooded scheduling, LS <= \ref SRSRAN_AVX2_B_SIZE).
  * \param[in] p A pointer to the dismantled decoder registers (an ldpc_regs_c_avx2_flood structure).
  */
 void delete_ldpc_dec_c_avx2_flood(void* p);
 
 /*!
  * Initializes the inner registers of the optimized 8-bit integer-based LDPC decoder before
- * carrying out the actual decoding (flooded scheduling, LS <= \ref SRSLTE_AVX2_B_SIZE).
+ * carrying out the actual decoding (flooded scheduling, LS <= \ref SRSRAN_AVX2_B_SIZE).
  * \param[in,out] p    A pointer to the decoder registers (an ldpc_regs_c_avx2_flood structure).
  * \param[in]     llrs A pointer to the array of LLR values from the channel.
  * \param[in]     ls   The lifting size.
@@ -472,7 +472,7 @@ void delete_ldpc_dec_c_avx2_flood(void* p);
 int init_ldpc_dec_c_avx2_flood(void* p, const int8_t* llrs, uint16_t ls);
 
 /*!
- * Updates the messages from variable nodes to check nodes (optimized 8-bit version, LS <= \ref SRSLTE_AVX2_B_SIZE).
+ * Updates the messages from variable nodes to check nodes (optimized 8-bit version, LS <= \ref SRSRAN_AVX2_B_SIZE).
  * \param[in,out] p       A pointer to the decoder registers (an ldpc_regs_c_avx2_flood structure).
  * \param[in]     i_layer The index of the variable-to-check layer to update.
  * \return An integer: 0 if the function executes correctly, -1 otherwise.
@@ -481,7 +481,7 @@ int update_ldpc_var_to_check_c_avx2_flood(void* p, int i_layer);
 
 /*!
  * Updates the messages from check nodes to variable nodes
- * (optimized 8-bit version, flooded scheduling, LS <= \ref SRSLTE_AVX2_B_SIZE).
+ * (optimized 8-bit version, flooded scheduling, LS <= \ref SRSRAN_AVX2_B_SIZE).
  * \param[in,out] p        A pointer to the decoder registers (an ldpc_regs_c_avx2_flood structure).
  * \param[in]     i_layer  The index of the variable-to-check layer to update.
  * \param[in]     this_pcm A pointer to the row of the parity check matrix (i.e. base
@@ -498,7 +498,7 @@ int update_ldpc_check_to_var_c_avx2_flood(void*           p,
 
 /*!
  * Updates the current estimate of the (soft) bits of the codeword
- * (optimized 8-bit version, flooded scheduling, LS <= \ref SRSLTE_AVX2_B_SIZE).
+ * (optimized 8-bit version, flooded scheduling, LS <= \ref SRSRAN_AVX2_B_SIZE).
  * \param[in,out] p        A pointer to the decoder registers (an ldpc_regs_c_avx2_flood structure).
  * \param[in]     these_var_indices
  *                         Contains the indices of the variable nodes connected
@@ -509,7 +509,7 @@ int update_ldpc_soft_bits_c_avx2_flood(void* p, const int8_t (*these_var_indices
 
 /*!
  * Returns the decoded message (hard bits) from the current soft bits
- * (flooded scheduling, optimized 8-bit version, LS <= \ref SRSLTE_AVX2_B_SIZE).
+ * (flooded scheduling, optimized 8-bit version, LS <= \ref SRSRAN_AVX2_B_SIZE).
  * \param[in]  p       A pointer to the decoder registers (an ldpc_regs_c_avx2_flood structure).
  * \param[out] message A pointer to the decoded message.
  * \param[in]  liftK   The length of the decoded message.
@@ -519,7 +519,7 @@ int extract_ldpc_message_c_avx2_flood(void* p, uint8_t* message, uint16_t liftK)
 
 /*!
  * Creates the registers used by the optimized 8-bit-based implementation of the LDPC decoder
- * (flooded scheduling, LS > \ref SRSLTE_AVX2_B_SIZE).
+ * (flooded scheduling, LS > \ref SRSRAN_AVX2_B_SIZE).
  * \param[in] bgN          Codeword length.
  * \param[in] bgM          Number of check nodes.
  * \param[in] ls           Lifting size.
@@ -530,14 +530,14 @@ void* create_ldpc_dec_c_avx2long_flood(uint8_t bgN, uint8_t bgM, uint16_t ls, fl
 
 /*!
  * Destroys the inner registers of the optimized 8-bit integer-based LDPC decoder (flooded scheduling, LS > \ref
- * SRSLTE_AVX2_B_SIZE). \param[in] p A pointer to the dismantled decoder registers (an ldpc_regs_c_avx2long_flood
+ * SRSRAN_AVX2_B_SIZE). \param[in] p A pointer to the dismantled decoder registers (an ldpc_regs_c_avx2long_flood
  * structure).
  */
 void delete_ldpc_dec_c_avx2long_flood(void* p);
 
 /*!
  * Initializes the inner registers of the optimized 8-bit integer-based LDPC decoder before
- * carrying out the actual decoding (flooded scheduling, LS > \ref SRSLTE_AVX2_B_SIZE).
+ * carrying out the actual decoding (flooded scheduling, LS > \ref SRSRAN_AVX2_B_SIZE).
  * \param[in,out] p    A pointer to the decoder registers (an ldpc_regs_c_avx2long_flood structure).
  * \param[in]     llrs A pointer to the array of LLR values from the channel.
  * \param[in]     ls   The lifting size.
@@ -547,7 +547,7 @@ int init_ldpc_dec_c_avx2long_flood(void* p, const int8_t* llrs, uint16_t ls);
 
 /*!
  * Updates the messages from variable nodes to check nodes (optimized 8-bit version,
- * flooded scheduling, LS > \ref SRSLTE_AVX2_B_SIZE).
+ * flooded scheduling, LS > \ref SRSRAN_AVX2_B_SIZE).
  * \param[in,out] p       A pointer to the decoder registers (an ldpc_regs_c_avx2long_flood structure).
  * \param[in]     i_layer The index of the variable-to-check layer to update.
  * \return An integer: 0 if the function executes correctly, -1 otherwise.
@@ -556,7 +556,7 @@ int update_ldpc_var_to_check_c_avx2long_flood(void* p, int i_layer);
 
 /*!
  * Updates the messages from check nodes to variable nodes (optimized 8-bit version,
- * flooded scheduling, LS > \ref SRSLTE_AVX2_B_SIZE).
+ * flooded scheduling, LS > \ref SRSRAN_AVX2_B_SIZE).
  * \param[in,out] p        A pointer to the decoder registers (an ldpc_regs_c_avx2long_flood structure).
  * \param[in]     i_layer  The index of the variable-to-check layer to update.
  * \param[in]     this_pcm A pointer to the row of the parity check matrix (i.e. base
@@ -573,7 +573,7 @@ int update_ldpc_check_to_var_c_avx2long_flood(void*           p,
 
 /*!
  * Updates the current estimate of the (soft) bits of the codeword (optimized 8-bit version,
- * flooded scheduling, LS > \ref SRSLTE_AVX2_B_SIZE).
+ * flooded scheduling, LS > \ref SRSRAN_AVX2_B_SIZE).
  * \param[in,out] p        A pointer to the decoder registers (an ldpc_regs_c_avx2long_flood structure).
  * \param[in]     these_var_indices
  *                         Contains the indices of the variable nodes connected
@@ -584,7 +584,7 @@ int update_ldpc_soft_bits_c_avx2long_flood(void* p, const int8_t (*these_var_ind
 
 /*!
  * Returns the decoded message (hard bits) from the current soft bits (optimized 8-bit version,
- * flooded scheduling, LS > \ref SRSLTE_AVX2_B_SIZE).
+ * flooded scheduling, LS > \ref SRSRAN_AVX2_B_SIZE).
  * \param[in]  p       A pointer to the decoder registers (an ldpc_regs_c_avx2long_flood structure).
  * \param[out] message A pointer to the decoded message.
  * \param[in]  liftK   The length of the decoded message.
@@ -594,21 +594,21 @@ int extract_ldpc_message_c_avx2long_flood(void* p, uint8_t* message, uint16_t li
 
 /*!
  * Creates the registers used by the optimized 8-bit-based implementation of the LDPC decoder (LS > \ref
- * SRSLTE_AVX512_B_SIZE). \param[in] bgN          Codeword length. \param[in] bgM          Number of check nodes.
+ * SRSRAN_AVX512_B_SIZE). \param[in] bgN          Codeword length. \param[in] bgM          Number of check nodes.
  * \param[in] ls           Lifting size. \param[in] scaling_fctr Scaling factor of the normalized min-sum algorithm.
  * \return A pointer to the created registers (an ldpc_regs_c_avx512long structure).
  */
 void* create_ldpc_dec_c_avx512long(uint8_t bgN, uint8_t bgM, uint16_t ls, float scaling_fctr);
 
 /*!
- * Destroys the inner registers of the optimized 8-bit integer-based LDPC decoder (LS > \ref SRSLTE_AVX512_B_SIZE).
+ * Destroys the inner registers of the optimized 8-bit integer-based LDPC decoder (LS > \ref SRSRAN_AVX512_B_SIZE).
  * \param[in] p A pointer to the dismantled decoder registers (an ldpc_regs_c_avx512long structure).
  */
 void delete_ldpc_dec_c_avx512long(void* p);
 
 /*!
  * Initializes the inner registers of the optimized 8-bit integer-based LDPC decoder before
- * carrying out the actual decoding (LS > \ref SRSLTE_AVX512_B_SIZE).
+ * carrying out the actual decoding (LS > \ref SRSRAN_AVX512_B_SIZE).
  * \param[in,out] p    A pointer to the decoder registers (an ldpc_regs_c_avx512long structure).
  * \param[in]     llrs A pointer to the array of LLR values from the channel.
  * \param[in]     ls   The lifting size.
@@ -617,7 +617,7 @@ void delete_ldpc_dec_c_avx512long(void* p);
 int init_ldpc_dec_c_avx512long(void* p, const int8_t* llrs, uint16_t ls);
 
 /*!
- * Updates the messages from variable nodes to check nodes (optimized 8-bit version, LS > \ref SRSLTE_AVX512_B_SIZE).
+ * Updates the messages from variable nodes to check nodes (optimized 8-bit version, LS > \ref SRSRAN_AVX512_B_SIZE).
  * \param[in,out] p       A pointer to the decoder registers (an ldpc_regs_c_avx512long structure).
  * \param[in]     i_layer The index of the variable-to-check layer to update.
  * \return An integer: 0 if the function executes correctly, -1 otherwise.
@@ -625,7 +625,7 @@ int init_ldpc_dec_c_avx512long(void* p, const int8_t* llrs, uint16_t ls);
 int update_ldpc_var_to_check_c_avx512long(void* p, int i_layer);
 
 /*!
- * Updates the messages from check nodes to variable nodes (optimized 8-bit version, LS > \ref SRSLTE_AVX512_B_SIZE).
+ * Updates the messages from check nodes to variable nodes (optimized 8-bit version, LS > \ref SRSRAN_AVX512_B_SIZE).
  * \param[in,out] p        A pointer to the decoder registers (an ldpc_regs_c_avx512long structure).
  * \param[in]     i_layer  The index of the variable-to-check layer to update.
  * \param[in]     this_pcm A pointer to the row of the parity check matrix (i.e. base
@@ -642,7 +642,7 @@ int update_ldpc_check_to_var_c_avx512long(void*           p,
 
 /*!
  * Updates the current estimate of the (soft) bits of the codeword (optimized 8-bit version, LS > \ref
- * SRSLTE_AVX512_B_SIZE).
+ * SRSRAN_AVX512_B_SIZE).
  * \param[in,out] p        A pointer to the decoder registers (an ldpc_regs_c_avx512long structure).
  * \param[in] i_layer     The index of the variable-to-check layer to update.
  * \param[in] these_var_indices Contains the indices of the variable nodes connected to the current layer.
@@ -652,7 +652,7 @@ int update_ldpc_soft_bits_c_avx512long(void* p, int i_layer, const int8_t (*thes
 
 /*!
  * Returns the decoded message (hard bits) from the current soft bits (optimized 8-bit version, LS > \ref
- * SRSLTE_AVX512_B_SIZE).
+ * SRSRAN_AVX512_B_SIZE).
  * \param[in]  p       A pointer to the decoder registers (an ldpc_regs_c_avx512long structure).
  * \param[out] message A pointer to the decoded message.
  * \param[in]  liftK   The length of the decoded message.
@@ -662,7 +662,7 @@ int extract_ldpc_message_c_avx512long(void* p, uint8_t* message, uint16_t liftK)
 
 /*!
  * Creates the registers used by the optimized 8-bit-based implementation of the LDPC decoder (LS <= \ref
- * SRSLTE_AVX512_B_SIZE).
+ * SRSRAN_AVX512_B_SIZE).
  * \param[in] bgN          Codeword length. \param[in] bgM          Number of check nodes.
  * \param[in] ls           Lifting size. \param[in] scaling_fctr Scaling factor of the normalized min-sum algorithm.
  * \return A pointer to the created registers (an ldpc_regs_c_avx512 structure).
@@ -670,14 +670,14 @@ int extract_ldpc_message_c_avx512long(void* p, uint8_t* message, uint16_t liftK)
 void* create_ldpc_dec_c_avx512(uint8_t bgN, uint8_t bgM, uint16_t ls, float scaling_fctr);
 
 /*!
- * Destroys the inner registers of the optimized 8-bit integer-based LDPC decoder (LS <= \ref SRSLTE_AVX512_B_SIZE).
+ * Destroys the inner registers of the optimized 8-bit integer-based LDPC decoder (LS <= \ref SRSRAN_AVX512_B_SIZE).
  * \param[in] p A pointer to the dismantled decoder registers (an ldpc_regs_c_avx512 structure).
  */
 void delete_ldpc_dec_c_avx512(void* p);
 
 /*!
  * Initializes the inner registers of the optimized 8-bit integer-based LDPC decoder before
- * carrying out the actual decoding (LS <= \ref SRSLTE_AVX512_B_SIZE).
+ * carrying out the actual decoding (LS <= \ref SRSRAN_AVX512_B_SIZE).
  * \param[in,out] p    A pointer to the decoder registers (an ldpc_regs_c_avx512 structure).
  * \param[in] llrs    A pointer to the array of LLR values from the channel.
  * \param[in] ls      The lifting size.
@@ -686,7 +686,7 @@ void delete_ldpc_dec_c_avx512(void* p);
 int init_ldpc_dec_c_avx512(void* p, const int8_t* llrs, uint16_t ls);
 
 /*!
- * Updates the messages from variable nodes to check nodes (optimized 8-bit version, LS <= \ref SRSLTE_AVX512_B_SIZE).
+ * Updates the messages from variable nodes to check nodes (optimized 8-bit version, LS <= \ref SRSRAN_AVX512_B_SIZE).
  * \param[in,out] p       A pointer to the decoder registers (an ldpc_regs_c_avx512 structure).
  * \param[in]     i_layer The index of the variable-to-check layer to update.
  * \return An integer: 0 if the function executes correctly, -1 otherwise.
@@ -694,7 +694,7 @@ int init_ldpc_dec_c_avx512(void* p, const int8_t* llrs, uint16_t ls);
 int update_ldpc_var_to_check_c_avx512(void* p, int i_layer);
 
 /*!
- * Updates the messages from check nodes to variable nodes (optimized 8-bit version, LS <= \ref SRSLTE_AVX512_B_SIZE).
+ * Updates the messages from check nodes to variable nodes (optimized 8-bit version, LS <= \ref SRSRAN_AVX512_B_SIZE).
  * \param[in,out] p        A pointer to the decoder registers (an ldpc_regs_c_avx512 structure).
  * \param[in]     i_layer  The index of the variable-to-check layer to update.
  * \param[in]     this_pcm A pointer to the row of the parity check matrix (i.e. base
@@ -711,7 +711,7 @@ int update_ldpc_check_to_var_c_avx512(void*           p,
 
 /*!
  * Updates the current estimate of the (soft) bits of the codeword (optimized 8-bit version, LS <= \ref
- * SRSLTE_AVX512_B_SIZE). \param[in,out] p        A pointer to the decoder registers (an ldpc_regs_c_avx512 structure).
+ * SRSRAN_AVX512_B_SIZE). \param[in,out] p        A pointer to the decoder registers (an ldpc_regs_c_avx512 structure).
  * \param[in]     i_layer  The index of the variable-to-check layer to update.
  * \param[in]     these_var_indices
  *                         Contains the indices of the variable nodes connected
@@ -722,7 +722,7 @@ int update_ldpc_soft_bits_c_avx512(void* p, int i_layer, const int8_t (*these_va
 
 /*!
  * Returns the decoded message (hard bits) from the current soft bits (optimized 8-bit version, LS <= \ref
- * SRSLTE_AVX512_B_SIZE). \param[in]  p       A pointer to the decoder registers (an ldpc_regs_c_avx512 structure).
+ * SRSRAN_AVX512_B_SIZE). \param[in]  p       A pointer to the decoder registers (an ldpc_regs_c_avx512 structure).
  * \param[out] message A pointer to the decoded message.
  * \param[in]  liftK   The length of the decoded message.
  * \return An integer: 0 if the function executes correctly, -1 otherwise.
@@ -731,7 +731,7 @@ int extract_ldpc_message_c_avx512(void* p, uint8_t* message, uint16_t liftK);
 
 /*!
  * Creates the registers used by the optimized 8-bit-based implementation of the LDPC decoder
- * (flooded scheduling, LS > \ref SRSLTE_AVX512_B_SIZE).
+ * (flooded scheduling, LS > \ref SRSRAN_AVX512_B_SIZE).
  * \param[in] bgN          Codeword length.
  * \param[in] bgM          Number of check nodes.
  * \param[in] ls           Lifting size.
@@ -742,14 +742,14 @@ void* create_ldpc_dec_c_avx512long_flood(uint8_t bgN, uint8_t bgM, uint16_t ls, 
 
 /*!
  * Destroys the inner registers of the optimized 8-bit integer-based LDPC decoder (flooded scheduling, LS > \ref
- * SRSLTE_AVX512_B_SIZE). \param[in] p A pointer to the dismantled decoder registers (an ldpc_regs_c_avx512long_flood
+ * SRSRAN_AVX512_B_SIZE). \param[in] p A pointer to the dismantled decoder registers (an ldpc_regs_c_avx512long_flood
  * structure).
  */
 void delete_ldpc_dec_c_avx512long_flood(void* p);
 
 /*!
  * Initializes the inner registers of the optimized 8-bit integer-based LDPC decoder before
- * carrying out the actual decoding (flooded scheduling, LS > \ref SRSLTE_AVX512_B_SIZE).
+ * carrying out the actual decoding (flooded scheduling, LS > \ref SRSRAN_AVX512_B_SIZE).
  * \param[in,out] p    A pointer to the decoder registers (an ldpc_regs_c_avx512long_flood structure).
  * \param[in]     llrs A pointer to the array of LLR values from the channel.
  * \param[in]     ls   The lifting size.
@@ -759,7 +759,7 @@ int init_ldpc_dec_c_avx512long_flood(void* p, const int8_t* llrs, uint16_t ls);
 
 /*!
  * Updates the messages from variable nodes to check nodes (optimized 8-bit version,
- * flooded scheduling, LS > \ref SRSLTE_AVX512_B_SIZE).
+ * flooded scheduling, LS > \ref SRSRAN_AVX512_B_SIZE).
  * \param[in,out] p       A pointer to the decoder registers (an ldpc_regs_c_avx512long_flood structure).
  * \param[in]     i_layer The index of the variable-to-check layer to update.
  * \return An integer: 0 if the function executes correctly, -1 otherwise.
@@ -768,7 +768,7 @@ int update_ldpc_var_to_check_c_avx512long_flood(void* p, int i_layer);
 
 /*!
  * Updates the messages from check nodes to variable nodes (optimized 8-bit version,
- * flooded scheduling, LS > \ref SRSLTE_AVX512_B_SIZE).
+ * flooded scheduling, LS > \ref SRSRAN_AVX512_B_SIZE).
  * \param[in,out] p        A pointer to the decoder registers (an ldpc_regs_c_avx512long_flood structure).
  * \param[in]     i_layer  The index of the variable-to-check layer to update.
  * \param[in]     this_pcm A pointer to the row of the parity check matrix (i.e. base
@@ -785,7 +785,7 @@ int update_ldpc_check_to_var_c_avx512long_flood(void*           p,
 
 /*!
  * Updates the current estimate of the (soft) bits of the codeword (optimized 8-bit version,
- * flooded scheduling, LS > \ref SRSLTE_AVX512_B_SIZE).
+ * flooded scheduling, LS > \ref SRSRAN_AVX512_B_SIZE).
  * \param[in,out] p        A pointer to the decoder registers (an ldpc_regs_c_avx512long_flood structure).
  * \param[in]     these_var_indices
  *                         Contains the indices of the variable nodes connected
@@ -796,7 +796,7 @@ int update_ldpc_soft_bits_c_avx512long_flood(void* p, const int8_t (*these_var_i
 
 /*!
  * Returns the decoded message (hard bits) from the current soft bits (optimized 8-bit version,
- * flooded scheduling, LS > \ref SRSLTE_AVX512_B_SIZE).
+ * flooded scheduling, LS > \ref SRSRAN_AVX512_B_SIZE).
  * \param[in]  p       A pointer to the decoder registers (an ldpc_regs_c_avx512long_flood structure).
  * \param[out] message A pointer to the decoded message.
  * \param[in]  liftK   The length of the decoded message.
@@ -804,4 +804,4 @@ int update_ldpc_soft_bits_c_avx512long_flood(void* p, const int8_t (*these_var_i
  */
 int extract_ldpc_message_c_avx512long_flood(void* p, uint8_t* message, uint16_t liftK);
 
-#endif // SRSLTE_LDPCDEC_ALL_H
+#endif // SRSRAN_LDPCDEC_ALL_H

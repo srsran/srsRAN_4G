@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -13,25 +13,25 @@
 #include "srsenb/hdr/stack/rrc/rrc.h"
 #include "srsenb/hdr/stack/rrc/rrc_cell_cfg.h"
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
-#include "srslte/asn1/asn1_utils.h"
-#include "srslte/asn1/rrc_utils.h"
-#include "srslte/common/bcd_helpers.h"
-#include "srslte/common/int_helpers.h"
-#include "srslte/common/standard_streams.h"
-#include "srslte/interfaces/enb_mac_interfaces.h"
-#include "srslte/interfaces/enb_pdcp_interfaces.h"
-#include "srslte/interfaces/enb_rlc_interfaces.h"
-#include "srslte/interfaces/sched_interface.h"
+#include "srsran/asn1/asn1_utils.h"
+#include "srsran/asn1/rrc_utils.h"
+#include "srsran/common/bcd_helpers.h"
+#include "srsran/common/int_helpers.h"
+#include "srsran/common/standard_streams.h"
+#include "srsran/interfaces/enb_mac_interfaces.h"
+#include "srsran/interfaces/enb_pdcp_interfaces.h"
+#include "srsran/interfaces/enb_rlc_interfaces.h"
+#include "srsran/interfaces/sched_interface.h"
 
-using srslte::byte_buffer_t;
-using srslte::uint32_to_uint8;
-using srslte::uint8_to_uint32;
+using srsran::byte_buffer_t;
+using srsran::uint32_to_uint8;
+using srsran::uint8_to_uint32;
 
 using namespace asn1::rrc;
 
 namespace srsenb {
 
-rrc::rrc(srslte::task_sched_handle task_sched_) :
+rrc::rrc(srsran::task_sched_handle task_sched_) :
   logger(srslog::fetch_basic_logger("RRC")), task_sched(task_sched_), rx_pdu_queue(64)
 {
   pending_paging.clear();
@@ -76,7 +76,7 @@ void rrc::init(const rrc_cfg_t&       cfg_,
   uint32_t n310 = cfg.sibs[1].sib2().ue_timers_and_consts.n310.to_number();
   logger.info("T310 %d, T311 %d, N310 %d", t310, t311, n310);
   if (cfg.inactivity_timeout_ms < t310 + t311 + n310) {
-    srslte::console("\nWarning: Inactivity timeout is smaller than the sum of t310, t311 and n310.\n"
+    srsran::console("\nWarning: Inactivity timeout is smaller than the sum of t310, t311 and n310.\n"
                     "This may break the UE's re-establishment procedure.\n");
     logger.warning("Inactivity timeout is smaller than the sum of t310, t311 and n310. This may break the UE's "
                    "re-establishment procedure.");
@@ -160,12 +160,12 @@ int rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
 {
   auto user_it = users.find(rnti);
   if (user_it == users.end()) {
-    if (rnti != SRSLTE_MRNTI) {
+    if (rnti != SRSRAN_MRNTI) {
       // only non-eMBMS RNTIs are present in user map
       std::unique_ptr<ue> u{new ue(this, rnti, sched_ue_cfg)};
-      if (u->init() != SRSLTE_SUCCESS) {
+      if (u->init() != SRSRAN_SUCCESS) {
         logger.error("Adding user rnti=0x%x - Failed to allocate user resources", rnti);
-        return SRSLTE_ERROR;
+        return SRSRAN_ERROR;
       }
       users.insert(std::make_pair(rnti, std::move(u)));
     }
@@ -176,19 +176,19 @@ int rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
     logger.error("Adding user rnti=0x%x (already exists)", rnti);
   }
 
-  if (rnti == SRSLTE_MRNTI) {
+  if (rnti == SRSRAN_MRNTI) {
     uint32_t teid_in = 1;
     for (auto& mbms_item : mcch.msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[0].mbms_session_info_list_r9) {
       uint32_t lcid = mbms_item.lc_ch_id_r9;
 
       // adding UE object to MAC for MRNTI without scheduling configuration (broadcast not part of regular scheduling)
-      mac->ue_cfg(SRSLTE_MRNTI, NULL);
-      rlc->add_bearer_mrb(SRSLTE_MRNTI, lcid);
-      pdcp->add_bearer(SRSLTE_MRNTI, lcid, srslte::make_drb_pdcp_config_t(1, false));
-      teid_in = gtpu->add_bearer(SRSLTE_MRNTI, lcid, 1, 1);
+      mac->ue_cfg(SRSRAN_MRNTI, NULL);
+      rlc->add_bearer_mrb(SRSRAN_MRNTI, lcid);
+      pdcp->add_bearer(SRSRAN_MRNTI, lcid, srsran::make_drb_pdcp_config_t(1, false));
+      teid_in = gtpu->add_bearer(SRSRAN_MRNTI, lcid, 1, 1);
     }
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 /* Function called by MAC after the reception of a C-RNTI CE indicating that the UE still has a
@@ -225,7 +225,7 @@ void rrc::send_rrc_connection_reject(uint16_t rnti)
   dl_ccch_msg.msg.set_c1().set_rrc_conn_reject().crit_exts.set_c1().set_rrc_conn_reject_r8().wait_time = 10;
 
   // Allocate a new PDU buffer, pack the message and send to PDCP
-  srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+  srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
   if (pdu == nullptr) {
     logger.error("Allocating pdu");
     return;
@@ -246,7 +246,7 @@ void rrc::send_rrc_connection_reject(uint16_t rnti)
 /*******************************************************************************
   PDCP interface
 *******************************************************************************/
-void rrc::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu)
+void rrc::write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
   rrc_pdu p = {rnti, lcid, std::move(pdu)};
   if (not rx_pdu_queue.try_push(std::move(p))) {
@@ -257,7 +257,7 @@ void rrc::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t p
 /*******************************************************************************
   S1AP interface
 *******************************************************************************/
-void rrc::write_dl_info(uint16_t rnti, srslte::unique_byte_buffer_t sdu)
+void rrc::write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu)
 {
   dl_dcch_msg_s dl_dcch_msg;
   dl_dcch_msg.msg.set_c1();
@@ -452,7 +452,7 @@ void rrc::add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& ue_pagi
     paging_elem.ue_id.set_imsi();
     paging_elem.ue_id.imsi().resize(ue_paging_id.imsi().size());
     memcpy(paging_elem.ue_id.imsi().data(), ue_paging_id.imsi().data(), ue_paging_id.imsi().size());
-    srslte::console("Warning IMSI paging not tested\n");
+    srsran::console("Warning IMSI paging not tested\n");
   } else {
     paging_elem.ue_id.set_s_tmsi();
     paging_elem.ue_id.s_tmsi().mmec.from_number(ue_paging_id.s_tmsi().mmec[0]);
@@ -576,7 +576,7 @@ void rrc::read_pdu_pcch(uint8_t* payload, uint32_t buffer_size)
 void rrc::ho_preparation_complete(uint16_t                     rnti,
                                   bool                         is_success,
                                   const asn1::s1ap::ho_cmd_s&  msg,
-                                  srslte::unique_byte_buffer_t rrc_container)
+                                  srsran::unique_byte_buffer_t rrc_container)
 {
   users.at(rnti)->mobility_handler->handle_ho_preparation_complete(is_success, msg, std::move(rrc_container));
 }
@@ -597,7 +597,7 @@ void rrc::set_erab_status(uint16_t rnti, const asn1::s1ap::bearers_subject_to_st
   from either a public function or the internal thread
 *******************************************************************************/
 
-void rrc::parse_ul_ccch(uint16_t rnti, srslte::unique_byte_buffer_t pdu)
+void rrc::parse_ul_ccch(uint16_t rnti, srsran::unique_byte_buffer_t pdu)
 {
   if (pdu) {
     ul_ccch_msg_s  ul_ccch_msg;
@@ -636,7 +636,7 @@ void rrc::parse_ul_ccch(uint16_t rnti, srslte::unique_byte_buffer_t pdu)
 }
 
 ///< User mutex must be hold by caller
-void rrc::parse_ul_dcch(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu)
+void rrc::parse_ul_dcch(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
   if (pdu) {
     auto user_it = users.find(rnti);
@@ -673,7 +673,7 @@ void rrc::rem_user(uint16_t rnti)
 {
   auto user_it = users.find(rnti);
   if (user_it != users.end()) {
-    srslte::console("Disconnecting rnti=0x%x.\n", rnti);
+    srsran::console("Disconnecting rnti=0x%x.\n", rnti);
     logger.info("Disconnecting rnti=0x%x.", rnti);
 
     /* First remove MAC and GTPU to stop processing DL/UL traffic for this user
@@ -728,7 +728,7 @@ void rrc::config_mac()
     item.n1pucch_an          = cfg.sibs[1].sib2().rr_cfg_common.pucch_cfg_common.n1_pucch_an;
     item.nrb_cqi             = cfg.sibs[1].sib2().rr_cfg_common.pucch_cfg_common.nrb_cqi;
 
-    item.nrb_pucch = SRSLTE_MAX(cfg.sr_cfg.nof_prb, cfg.cqi_cfg.nof_prb);
+    item.nrb_pucch = SRSRAN_MAX(cfg.sr_cfg.nof_prb, cfg.cqi_cfg.nof_prb);
     logger.info("Allocating %d PRBs for PUCCH", item.nrb_pucch);
 
     // Copy base cell configuration
@@ -808,7 +808,7 @@ uint32_t rrc::generate_sibs()
 
     // Pack payload for all messages
     for (uint32_t msg_index = 0; msg_index < nof_messages; msg_index++) {
-      srslte::unique_byte_buffer_t sib_buffer = srslte::make_byte_buffer();
+      srsran::unique_byte_buffer_t sib_buffer = srsran::make_byte_buffer();
       asn1::bit_ref                bref(sib_buffer->msg, sib_buffer->get_tailroom());
       if (msg[msg_index].pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
         logger.error("Failed to pack SIB message %d", msg_index);
@@ -833,48 +833,48 @@ uint32_t rrc::generate_sibs()
 void rrc::configure_mbsfn_sibs()
 {
   // populate struct with sib2 values needed in PHY/MAC
-  srslte::sib2_mbms_t sibs2;
+  srsran::sib2_mbms_t sibs2;
   sibs2.mbsfn_sf_cfg_list_present = cfg.sibs[1].sib2().mbsfn_sf_cfg_list_present;
   sibs2.nof_mbsfn_sf_cfg          = cfg.sibs[1].sib2().mbsfn_sf_cfg_list.size();
   for (int i = 0; i < sibs2.nof_mbsfn_sf_cfg; i++) {
-    sibs2.mbsfn_sf_cfg_list[i].nof_alloc_subfrs = srslte::mbsfn_sf_cfg_t::sf_alloc_type_t::one_frame;
+    sibs2.mbsfn_sf_cfg_list[i].nof_alloc_subfrs = srsran::mbsfn_sf_cfg_t::sf_alloc_type_t::one_frame;
     sibs2.mbsfn_sf_cfg_list[i].radioframe_alloc_offset =
         cfg.sibs[1].sib2().mbsfn_sf_cfg_list[i].radioframe_alloc_offset;
     sibs2.mbsfn_sf_cfg_list[i].radioframe_alloc_period =
-        (srslte::mbsfn_sf_cfg_t::alloc_period_t)cfg.sibs[1].sib2().mbsfn_sf_cfg_list[i].radioframe_alloc_period.value;
+        (srsran::mbsfn_sf_cfg_t::alloc_period_t)cfg.sibs[1].sib2().mbsfn_sf_cfg_list[i].radioframe_alloc_period.value;
     sibs2.mbsfn_sf_cfg_list[i].sf_alloc =
         (uint32_t)cfg.sibs[1].sib2().mbsfn_sf_cfg_list[i].sf_alloc.one_frame().to_number();
   }
   // populate struct with sib13 values needed for PHY/MAC
-  srslte::sib13_t sibs13;
+  srsran::sib13_t sibs13;
   sibs13.notif_cfg.notif_offset = cfg.sibs[12].sib13_v920().notif_cfg_r9.notif_offset_r9;
   sibs13.notif_cfg.notif_repeat_coeff =
-      (srslte::mbms_notif_cfg_t::coeff_t)cfg.sibs[12].sib13_v920().notif_cfg_r9.notif_repeat_coeff_r9.value;
+      (srsran::mbms_notif_cfg_t::coeff_t)cfg.sibs[12].sib13_v920().notif_cfg_r9.notif_repeat_coeff_r9.value;
   sibs13.notif_cfg.notif_sf_idx = cfg.sibs[12].sib13_v920().notif_cfg_r9.notif_sf_idx_r9;
   sibs13.nof_mbsfn_area_info    = cfg.sibs[12].sib13_v920().mbsfn_area_info_list_r9.size();
   for (uint32_t i = 0; i < sibs13.nof_mbsfn_area_info; i++) {
     sibs13.mbsfn_area_info_list[i].mbsfn_area_id =
         cfg.sibs[12].sib13_v920().mbsfn_area_info_list_r9[i].mbsfn_area_id_r9;
     sibs13.mbsfn_area_info_list[i].notif_ind        = cfg.sibs[12].sib13_v920().mbsfn_area_info_list_r9[i].notif_ind_r9;
-    sibs13.mbsfn_area_info_list[i].mcch_cfg.sig_mcs = (srslte::mbsfn_area_info_t::mcch_cfg_t::sig_mcs_t)cfg.sibs[12]
+    sibs13.mbsfn_area_info_list[i].mcch_cfg.sig_mcs = (srsran::mbsfn_area_info_t::mcch_cfg_t::sig_mcs_t)cfg.sibs[12]
                                                           .sib13_v920()
                                                           .mbsfn_area_info_list_r9[i]
                                                           .mcch_cfg_r9.sig_mcs_r9.value;
     sibs13.mbsfn_area_info_list[i].mcch_cfg.sf_alloc_info =
         cfg.sibs[12].sib13_v920().mbsfn_area_info_list_r9[i].mcch_cfg_r9.sf_alloc_info_r9.to_number();
     sibs13.mbsfn_area_info_list[i].mcch_cfg.mcch_repeat_period =
-        (srslte::mbsfn_area_info_t::mcch_cfg_t::repeat_period_t)cfg.sibs[12]
+        (srsran::mbsfn_area_info_t::mcch_cfg_t::repeat_period_t)cfg.sibs[12]
             .sib13_v920()
             .mbsfn_area_info_list_r9[i]
             .mcch_cfg_r9.mcch_repeat_period_r9.value;
     sibs13.mbsfn_area_info_list[i].mcch_cfg.mcch_offset =
         cfg.sibs[12].sib13_v920().mbsfn_area_info_list_r9[i].mcch_cfg_r9.mcch_offset_r9;
     sibs13.mbsfn_area_info_list[i].mcch_cfg.mcch_mod_period =
-        (srslte::mbsfn_area_info_t::mcch_cfg_t::mod_period_t)cfg.sibs[12]
+        (srsran::mbsfn_area_info_t::mcch_cfg_t::mod_period_t)cfg.sibs[12]
             .sib13_v920()
             .mbsfn_area_info_list_r9[i]
             .mcch_cfg_r9.mcch_mod_period_r9.value;
-    sibs13.mbsfn_area_info_list[i].non_mbsfn_region_len = (srslte::mbsfn_area_info_t::region_len_t)cfg.sibs[12]
+    sibs13.mbsfn_area_info_list[i].non_mbsfn_region_len = (srsran::mbsfn_area_info_t::region_len_t)cfg.sibs[12]
                                                               .sib13_v920()
                                                               .mbsfn_area_info_list_r9[i]
                                                               .non_mbsfn_region_len.value;
@@ -883,15 +883,15 @@ void rrc::configure_mbsfn_sibs()
 
   // pack MCCH for transmission and pass relevant MCCH values to PHY/MAC
   pack_mcch();
-  srslte::mcch_msg_t mcch_t;
-  mcch_t.common_sf_alloc_period         = srslte::mcch_msg_t::common_sf_alloc_period_t::rf64;
+  srsran::mcch_msg_t mcch_t;
+  mcch_t.common_sf_alloc_period         = srsran::mcch_msg_t::common_sf_alloc_period_t::rf64;
   mcch_t.nof_common_sf_alloc            = 1;
-  srslte::mbsfn_sf_cfg_t sf_alloc_item  = mcch_t.common_sf_alloc[0];
+  srsran::mbsfn_sf_cfg_t sf_alloc_item  = mcch_t.common_sf_alloc[0];
   sf_alloc_item.radioframe_alloc_offset = 0;
-  sf_alloc_item.radioframe_alloc_period = srslte::mbsfn_sf_cfg_t::alloc_period_t::n1;
+  sf_alloc_item.radioframe_alloc_period = srsran::mbsfn_sf_cfg_t::alloc_period_t::n1;
   sf_alloc_item.sf_alloc                = 63;
   mcch_t.nof_pmch_info                  = 1;
-  srslte::pmch_info_t* pmch_item        = &mcch_t.pmch_info_list[0];
+  srsran::pmch_info_t* pmch_item        = &mcch_t.pmch_info_list[0];
 
   pmch_item->nof_mbms_session_info              = 1;
   pmch_item->mbms_session_info_list[0].lc_ch_id = 1;
@@ -905,7 +905,7 @@ void rrc::configure_mbsfn_sibs()
   }
   logger.debug("PMCH data MCS=%d", mbms_mcs);
   pmch_item->data_mcs         = mbms_mcs;
-  pmch_item->mch_sched_period = srslte::pmch_info_t::mch_sched_period_t::rf64;
+  pmch_item->mch_sched_period = srsran::pmch_info_t::mch_sched_period_t::rf64;
   pmch_item->sf_alloc_end     = 64 * 6;
   phy->configure_mbsfn(&sibs2, &sibs13, mcch_t);
   mac->write_mcch(&sibs2, &sibs13, &mcch_t, mcch_payload_buffer, current_mcch_length);
@@ -930,9 +930,9 @@ int rrc::pack_mcch()
   pmch_item->mbms_session_info_list_r9[0].session_id_r9_present = true;
   pmch_item->mbms_session_info_list_r9[0].session_id_r9[0]      = 0;
   pmch_item->mbms_session_info_list_r9[0].tmgi_r9.plmn_id_r9.set_explicit_value_r9();
-  srslte::plmn_id_t plmn_obj;
+  srsran::plmn_id_t plmn_obj;
   plmn_obj.from_string("00003");
-  srslte::to_asn1(&pmch_item->mbms_session_info_list_r9[0].tmgi_r9.plmn_id_r9.explicit_value_r9(), plmn_obj);
+  srsran::to_asn1(&pmch_item->mbms_session_info_list_r9[0].tmgi_r9.plmn_id_r9.explicit_value_r9(), plmn_obj);
   uint8_t byte[] = {0x0, 0x0, 0x0};
   memcpy(&pmch_item->mbms_session_info_list_r9[0].tmgi_r9.service_id_r9[0], &byte[0], 3);
 

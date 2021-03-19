@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -156,7 +156,7 @@ void metrics_csv::set_metrics(const ue_metrics_t& metrics, const uint32_t period
       file << (metrics.stack.rrc.state == RRC_STATE_CONNECTED ? "1.0" : "0.0") << ";";
 
       // Write system metrics.
-      const srslte::sys_metrics_t& m = metrics.sys;
+      const srsran::sys_metrics_t& m = metrics.sys;
       file << float_to_string(m.process_realmem, 2);
       file << std::to_string(m.process_realmem_kB) << ";";
       file << float_to_string(m.process_virtualmem, 2);

@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2020 Software Radio Systems Limited
+# Copyright 2013-2021 Software Radio Systems Limited
 #
 # By using this file, you agree to the terms and conditions set
 # forth in the LICENSE file which can be found at the top level of
@@ -11,7 +11,7 @@
 ########################################################################
 
 add_executable(viterbi_test viterbi_test.c)
-target_link_libraries(viterbi_test srslte_phy)
+target_link_libraries(viterbi_test srsran_phy)
 
 add_test(viterbi_40_0 viterbi_test -n 1000 -s 1 -l 40 -t -e 0.0) 
 add_test(viterbi_40_2 viterbi_test -n 1000 -s 1 -l 40 -t -e 2.0) 

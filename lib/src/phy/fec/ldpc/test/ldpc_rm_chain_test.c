@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -43,21 +43,21 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "srslte/phy/channel/ch_awgn.h"
-#include "srslte/phy/fec/ldpc/ldpc_common.h"
-#include "srslte/phy/fec/ldpc/ldpc_decoder.h"
-#include "srslte/phy/fec/ldpc/ldpc_encoder.h"
-#include "srslte/phy/fec/ldpc/ldpc_rm.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/random.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/channel/ch_awgn.h"
+#include "srsran/phy/fec/ldpc/ldpc_common.h"
+#include "srsran/phy/fec/ldpc/ldpc_decoder.h"
+#include "srsran/phy/fec/ldpc/ldpc_encoder.h"
+#include "srsran/phy/fec/ldpc/ldpc_rm.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/random.h"
+#include "srsran/phy/utils/vector.h"
 
-static srslte_basegraph_t base_graph = BG1;     /*!< \brief Base Graph (BG1 or BG2). */
+static srsran_basegraph_t base_graph = BG1;     /*!< \brief Base Graph (BG1 or BG2). */
 static uint32_t           lift_size  = 2;       /*!< \brief Lifting Size. */
 static uint32_t           rm_length  = 0;       /*!< \brief Codeword length after rate matching. */
 static uint32_t           F          = 0;       /*!< \brief Number of filler bits in each CBS. */
 static uint8_t            rv         = 0;       /*!< \brief Redundancy version {0-3}. */
-static srslte_mod_t mod_type = SRSLTE_MOD_BPSK; /*!< \brief Modulation type: BPSK, QPSK, QAM16, QAM64, QAM256 = 4 */
+static srsran_mod_t mod_type = SRSRAN_MOD_BPSK; /*!< \brief Modulation type: BPSK, QPSK, QAM16, QAM64, QAM256 = 4 */
 static uint32_t     Nref     = 0;               /*!< \brief Limited buffer size. */
 static float        snr      = 0;               /*!< \brief Signal-to-Noise Ratio [dB]. */
 static uint8_t            rm_aware = 1; /*!< \brief Flag rate matching aware encoding/decoding (1 to enable). */
@@ -114,7 +114,7 @@ void parse_args(int argc, char** argv)
         rv = (uint8_t)strtol(optarg, NULL, 10);
         break;
       case 'm':
-        mod_type = (srslte_mod_t)strtol(optarg, NULL, 10);
+        mod_type = (srsran_mod_t)strtol(optarg, NULL, 10);
         break;
       case 'M':
         Nref = (uint32_t)strtol(optarg, NULL, 10);
@@ -175,21 +175,21 @@ int main(int argc, char** argv)
   parse_args(argc, argv);
 
   // create an LDPC encoder
-  srslte_ldpc_encoder_t encoder;
+  srsran_ldpc_encoder_t encoder;
 
 #ifdef LV_HAVE_AVX512
-  if (srslte_ldpc_encoder_init(&encoder, SRSLTE_LDPC_ENCODER_AVX512, base_graph, lift_size) != 0) {
+  if (srsran_ldpc_encoder_init(&encoder, SRSRAN_LDPC_ENCODER_AVX512, base_graph, lift_size) != 0) {
     perror("encoder init");
     exit(-1);
   }
 #else // no AVX512
 #ifdef LV_HAVE_AVX2
-  if (srslte_ldpc_encoder_init(&encoder, SRSLTE_LDPC_ENCODER_AVX2, base_graph, lift_size) != 0) {
+  if (srsran_ldpc_encoder_init(&encoder, SRSRAN_LDPC_ENCODER_AVX2, base_graph, lift_size) != 0) {
     perror("encoder init");
     exit(-1);
   }
 #else  // no AVX2
-  if (srslte_ldpc_encoder_init(&encoder, SRSLTE_LDPC_ENCODER_C, base_graph, lift_size) != 0) {
+  if (srsran_ldpc_encoder_init(&encoder, SRSRAN_LDPC_ENCODER_C, base_graph, lift_size) != 0) {
     perror("encoder init");
     exit(-1);
   }
@@ -207,68 +207,68 @@ int main(int argc, char** argv)
   }
 
   // create a LDPC rate Matcher
-  srslte_ldpc_rm_t rm_tx;
-  if (srslte_ldpc_rm_tx_init(&rm_tx) != 0) {
+  srsran_ldpc_rm_t rm_tx;
+  if (srsran_ldpc_rm_tx_init(&rm_tx) != 0) {
     perror("rate matcher init");
     exit(-1);
   }
 
   // create a LDPC rate DeMatcher
-  srslte_ldpc_rm_t rm_rx;
-  if (srslte_ldpc_rm_rx_init_f(&rm_rx) != 0) {
+  srsran_ldpc_rm_t rm_rx;
+  if (srsran_ldpc_rm_rx_init_f(&rm_rx) != 0) {
     perror("rate dematcher init");
     exit(-1);
   }
 
   // create a LDPC rate DeMatcher (int16_t)
-  srslte_ldpc_rm_t rm_rx_s;
-  if (srslte_ldpc_rm_rx_init_s(&rm_rx_s) != 0) {
+  srsran_ldpc_rm_t rm_rx_s;
+  if (srsran_ldpc_rm_rx_init_s(&rm_rx_s) != 0) {
     perror("rate dematcher init (int16_t)");
     exit(-1);
   }
 
   // create a LDPC rate DeMatcher (int8_t)
-  srslte_ldpc_rm_t rm_rx_c;
-  if (srslte_ldpc_rm_rx_init_c(&rm_rx_c) != 0) {
+  srsran_ldpc_rm_t rm_rx_c;
+  if (srsran_ldpc_rm_rx_init_c(&rm_rx_c) != 0) {
     perror("rate dematcher init (int8_t)");
     exit(-1);
   }
 
   // create an LDPC decoder (float)
-  srslte_ldpc_decoder_t decoder_f;
-  if (srslte_ldpc_decoder_init(&decoder_f, SRSLTE_LDPC_DECODER_F, base_graph, lift_size, MS_SF) != 0) {
+  srsran_ldpc_decoder_t decoder_f;
+  if (srsran_ldpc_decoder_init(&decoder_f, SRSRAN_LDPC_DECODER_F, base_graph, lift_size, MS_SF) != 0) {
     perror("decoder init");
     exit(-1);
   }
   // create an LDPC decoder (16 bit)
-  srslte_ldpc_decoder_t decoder_s;
-  if (srslte_ldpc_decoder_init(&decoder_s, SRSLTE_LDPC_DECODER_S, base_graph, lift_size, MS_SF) != 0) {
+  srsran_ldpc_decoder_t decoder_s;
+  if (srsran_ldpc_decoder_init(&decoder_s, SRSRAN_LDPC_DECODER_S, base_graph, lift_size, MS_SF) != 0) {
     perror("decoder init (int16_t)");
     exit(-1);
   }
   // create an LDPC decoder (8 bit)
-  srslte_ldpc_decoder_t decoder_c;
-  if (srslte_ldpc_decoder_init(&decoder_c, SRSLTE_LDPC_DECODER_C, base_graph, lift_size, MS_SF) != 0) {
+  srsran_ldpc_decoder_t decoder_c;
+  if (srsran_ldpc_decoder_init(&decoder_c, SRSRAN_LDPC_DECODER_C, base_graph, lift_size, MS_SF) != 0) {
     perror("decoder init (int8_t)");
     exit(-1);
   }
   // create an LDPC decoder (8 bit, flooded)
-  srslte_ldpc_decoder_t decoder_c_flood;
-  if (srslte_ldpc_decoder_init(&decoder_c_flood, SRSLTE_LDPC_DECODER_C_FLOOD, base_graph, lift_size, MS_SF) != 0) {
+  srsran_ldpc_decoder_t decoder_c_flood;
+  if (srsran_ldpc_decoder_init(&decoder_c_flood, SRSRAN_LDPC_DECODER_C_FLOOD, base_graph, lift_size, MS_SF) != 0) {
     perror("decoder init");
     exit(-1);
   }
 #ifdef LV_HAVE_AVX2
   // create an LDPC decoder (8 bit, AVX2 version)
-  srslte_ldpc_decoder_t decoder_avx;
-  if (srslte_ldpc_decoder_init(&decoder_avx, SRSLTE_LDPC_DECODER_C_AVX2, base_graph, lift_size, MS_SF) != 0) {
+  srsran_ldpc_decoder_t decoder_avx;
+  if (srsran_ldpc_decoder_init(&decoder_avx, SRSRAN_LDPC_DECODER_C_AVX2, base_graph, lift_size, MS_SF) != 0) {
     perror("decoder init");
     exit(-1);
   }
 
   // create an LDPC decoder (8 bit, flooded scheduling, AVX2 version)
-  srslte_ldpc_decoder_t decoder_avx_flood;
-  if (srslte_ldpc_decoder_init(&decoder_avx_flood, SRSLTE_LDPC_DECODER_C_AVX2_FLOOD, base_graph, lift_size, MS_SF) !=
+  srsran_ldpc_decoder_t decoder_avx_flood;
+  if (srsran_ldpc_decoder_init(&decoder_avx_flood, SRSRAN_LDPC_DECODER_C_AVX2_FLOOD, base_graph, lift_size, MS_SF) !=
       0) {
     perror("decoder init");
     exit(-1);
@@ -277,23 +277,23 @@ int main(int argc, char** argv)
 
 #ifdef LV_HAVE_AVX512
   // create an LDPC decoder (8 bit, AVX2 version)
-  srslte_ldpc_decoder_t decoder_avx512;
-  if (srslte_ldpc_decoder_init(&decoder_avx512, SRSLTE_LDPC_DECODER_C_AVX512, base_graph, lift_size, MS_SF) != 0) {
+  srsran_ldpc_decoder_t decoder_avx512;
+  if (srsran_ldpc_decoder_init(&decoder_avx512, SRSRAN_LDPC_DECODER_C_AVX512, base_graph, lift_size, MS_SF) != 0) {
     perror("decoder init");
     exit(-1);
   }
 
   // create an LDPC decoder (8 bit, flooded scheduling, AVX512 version)
-  srslte_ldpc_decoder_t decoder_avx512_flood;
-  if (srslte_ldpc_decoder_init(
-          &decoder_avx512_flood, SRSLTE_LDPC_DECODER_C_AVX512_FLOOD, base_graph, lift_size, MS_SF) != 0) {
+  srsran_ldpc_decoder_t decoder_avx512_flood;
+  if (srsran_ldpc_decoder_init(
+          &decoder_avx512_flood, SRSRAN_LDPC_DECODER_C_AVX512_FLOOD, base_graph, lift_size, MS_SF) != 0) {
     perror("decoder init");
     exit(-1);
   }
 #endif // LV_HAVE_AVX512
 
   // create a random generator
-  srslte_random_t random_gen = srslte_random_init(0);
+  srsran_random_t random_gen = srsran_random_init(0);
 
   printf("Test LDPC chain:\n");
   printf("  Base Graph      -> BG%d\n", encoder.bg + 1);
@@ -317,24 +317,24 @@ int main(int argc, char** argv)
          1.0 * (encoder.liftK - F) / rm_length);
   printf("\n  Signal-to-Noise Ratio -> %.2f dB\n", snr);
 
-  messages_true             = srslte_vec_u8_malloc(finalK * batch_size);
-  messages_sim_f            = srslte_vec_u8_malloc(finalK * batch_size);
-  messages_sim_s            = srslte_vec_u8_malloc(finalK * batch_size);
-  messages_sim_c            = srslte_vec_u8_malloc(finalK * batch_size);
-  messages_sim_c_flood      = srslte_vec_u8_malloc(finalK * batch_size);
-  messages_sim_avx          = srslte_vec_u8_malloc(finalK * batch_size);
-  messages_sim_avx_flood    = srslte_vec_u8_malloc(finalK * batch_size);
-  messages_sim_avx512       = srslte_vec_u8_malloc(finalK * batch_size);
-  messages_sim_avx512_flood = srslte_vec_u8_malloc(finalK * batch_size);
-  codewords                 = srslte_vec_u8_malloc(finalN * batch_size);
-  rm_codewords              = srslte_vec_u8_malloc(rm_length * batch_size);
-  rm_symbols                = srslte_vec_f_malloc(rm_length * batch_size);
-  rm_symbols_s              = srslte_vec_i16_malloc(rm_length * batch_size);
-  rm_symbols_c              = srslte_vec_i8_malloc(rm_length * batch_size);
+  messages_true             = srsran_vec_u8_malloc(finalK * batch_size);
+  messages_sim_f            = srsran_vec_u8_malloc(finalK * batch_size);
+  messages_sim_s            = srsran_vec_u8_malloc(finalK * batch_size);
+  messages_sim_c            = srsran_vec_u8_malloc(finalK * batch_size);
+  messages_sim_c_flood      = srsran_vec_u8_malloc(finalK * batch_size);
+  messages_sim_avx          = srsran_vec_u8_malloc(finalK * batch_size);
+  messages_sim_avx_flood    = srsran_vec_u8_malloc(finalK * batch_size);
+  messages_sim_avx512       = srsran_vec_u8_malloc(finalK * batch_size);
+  messages_sim_avx512_flood = srsran_vec_u8_malloc(finalK * batch_size);
+  codewords                 = srsran_vec_u8_malloc(finalN * batch_size);
+  rm_codewords              = srsran_vec_u8_malloc(rm_length * batch_size);
+  rm_symbols                = srsran_vec_f_malloc(rm_length * batch_size);
+  rm_symbols_s              = srsran_vec_i16_malloc(rm_length * batch_size);
+  rm_symbols_c              = srsran_vec_i8_malloc(rm_length * batch_size);
 
-  symbols   = srslte_vec_f_malloc(finalN * batch_size);
-  symbols_s = srslte_vec_i16_malloc(finalN * batch_size);
-  symbols_c = srslte_vec_i8_malloc(finalN * batch_size);
+  symbols   = srsran_vec_f_malloc(finalN * batch_size);
+  symbols_s = srsran_vec_i16_malloc(finalN * batch_size);
+  symbols_c = srsran_vec_i8_malloc(finalN * batch_size);
   if (!messages_true || !messages_sim_f || !messages_sim_s || !messages_sim_c ||                    //
       !messages_sim_avx || !messages_sim_avx || !messages_sim_c_flood || !messages_sim_avx_flood || //
       !messages_sim_avx512_flood || !codewords || !rm_codewords || !rm_symbols || !rm_symbols_s || !rm_symbols_c ||
@@ -370,7 +370,7 @@ int main(int argc, char** argv)
   int    n_error_words_avx512_flood    = 0;
 #endif // LV_HAVE_AVX512
 
-  float noise_std_dev = srslte_convert_dB_to_amplitude(-snr);
+  float noise_std_dev = srsran_convert_dB_to_amplitude(-snr);
 
   int16_t inf15  = (1U << 14U) - 1;
   float   gain_s = inf15 * noise_std_dev / 20 / (1 / noise_std_dev + 2);
@@ -403,7 +403,7 @@ int main(int argc, char** argv)
     /* generate data_tx */
     for (i = 0; i < batch_size; i++) {
       for (j = 0; j < finalK - F; j++) {
-        messages_true[i * finalK + j] = srslte_random_uniform_int_dist(random_gen, 0, 1);
+        messages_true[i * finalK + j] = srsran_random_uniform_int_dist(random_gen, 0, 1);
       }
       for (; j < finalK; j++) {
         messages_true[i * finalK + j] = FILLER_BIT;
@@ -412,7 +412,7 @@ int main(int argc, char** argv)
 
     gettimeofday(&t[1], NULL);
     for (j = 0; j < batch_size; j++) {
-      srslte_ldpc_encoder_encode_rm(
+      srsran_ldpc_encoder_encode_rm(
           &encoder, messages_true + j * finalK, codewords + j * finalN, finalK, n_useful_symbols_enc);
     }
     gettimeofday(&t[2], NULL);
@@ -421,7 +421,7 @@ int main(int argc, char** argv)
 
     // rate matching
     for (j = 0; j < batch_size; j++) {
-      srslte_ldpc_rm_tx(&rm_tx,
+      srsran_ldpc_rm_tx(&rm_tx,
                         codewords + j * finalN,
                         rm_codewords + j * rm_length,
                         rm_length,
@@ -439,7 +439,7 @@ int main(int argc, char** argv)
     }
 
     // Apply AWGN
-    srslte_ch_awgn_f(rm_symbols, rm_symbols, noise_std_dev, batch_size * rm_length);
+    srsran_ch_awgn_f(rm_symbols, rm_symbols, noise_std_dev, batch_size * rm_length);
 
     // Convert symbols into LLRs
     for (i = 0; i < batch_size; i++) {
@@ -457,7 +457,7 @@ int main(int argc, char** argv)
     }
 
     for (i = 0; i < batch_size; i++) {
-      if (srslte_ldpc_rm_rx_f(&rm_rx,
+      if (srsran_ldpc_rm_rx_f(&rm_rx,
                               rm_symbols + i * rm_length,
                               symbols + i * finalN,
                               rm_length,
@@ -475,7 +475,7 @@ int main(int argc, char** argv)
     // Recover messages
     gettimeofday(&t[1], NULL);
     for (j = 0; j < batch_size; j++) {
-      srslte_ldpc_decoder_decode_f(&decoder_f, symbols + j * finalN, messages_sim_f + j * finalK, n_useful_symbols_dec);
+      srsran_ldpc_decoder_decode_f(&decoder_f, symbols + j * finalN, messages_sim_f + j * finalK, n_useful_symbols_dec);
     }
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
@@ -493,11 +493,11 @@ int main(int argc, char** argv)
     //////// Fixed point - 16 bit
 
     // Quantize LLRs with 16 bits
-    srslte_vec_quant_fs(rm_symbols, rm_symbols_s, gain_s, 0, inf15, batch_size * rm_length);
+    srsran_vec_quant_fs(rm_symbols, rm_symbols_s, gain_s, 0, inf15, batch_size * rm_length);
 
     // Rate dematcher
     for (i = 0; i < batch_size; i++) {
-      if (srslte_ldpc_rm_rx_s(&rm_rx_s,
+      if (srsran_ldpc_rm_rx_s(&rm_rx_s,
                               rm_symbols_s + i * rm_length,
                               symbols_s + i * finalN,
                               rm_length,
@@ -514,7 +514,7 @@ int main(int argc, char** argv)
     // Recover messages
     gettimeofday(&t[1], NULL);
     for (j = 0; j < batch_size; j++) {
-      srslte_ldpc_decoder_decode_s(
+      srsran_ldpc_decoder_decode_s(
           &decoder_s, symbols_s + j * finalN, messages_sim_s + j * finalK, n_useful_symbols_dec);
     }
     gettimeofday(&t[2], NULL);
@@ -533,11 +533,11 @@ int main(int argc, char** argv)
 
     //////// Fixed point - 8 bit
     // Quantize LLRs with 8 bits
-    srslte_vec_quant_fc(rm_symbols, rm_symbols_c, gain_c, 0, inf7, batch_size * rm_length);
+    srsran_vec_quant_fc(rm_symbols, rm_symbols_c, gain_c, 0, inf7, batch_size * rm_length);
 
     // Rate dematcher
     for (i = 0; i < batch_size; i++) {
-      if (srslte_ldpc_rm_rx_c(&rm_rx_c,
+      if (srsran_ldpc_rm_rx_c(&rm_rx_c,
                               rm_symbols_c + i * rm_length,
                               symbols_c + i * finalN,
                               rm_length,
@@ -554,7 +554,7 @@ int main(int argc, char** argv)
     // Recover messages
     gettimeofday(&t[1], NULL);
     for (j = 0; j < batch_size; j++) {
-      srslte_ldpc_decoder_decode_rm_c(
+      srsran_ldpc_decoder_decode_rm_c(
           &decoder_c, symbols_c + j * finalN, messages_sim_c + j * finalK, n_useful_symbols_dec);
     }
     gettimeofday(&t[2], NULL);
@@ -576,7 +576,7 @@ int main(int argc, char** argv)
     // Recover messages
     gettimeofday(&t[1], NULL);
     for (j = 0; j < batch_size; j++) {
-      srslte_ldpc_decoder_decode_rm_c(
+      srsran_ldpc_decoder_decode_rm_c(
           &decoder_c_flood, symbols_c + j * finalN, messages_sim_c_flood + j * finalK, n_useful_symbols_dec);
     }
     gettimeofday(&t[2], NULL);
@@ -599,7 +599,7 @@ int main(int argc, char** argv)
     // Recover messages
     gettimeofday(&t[1], NULL);
     for (j = 0; j < batch_size; j++) {
-      srslte_ldpc_decoder_decode_rm_c(
+      srsran_ldpc_decoder_decode_rm_c(
           &decoder_avx, symbols_c + j * finalN, messages_sim_avx + j * finalK, n_useful_symbols_dec);
     }
     gettimeofday(&t[2], NULL);
@@ -621,7 +621,7 @@ int main(int argc, char** argv)
     // Recover messages
     gettimeofday(&t[1], NULL);
     for (j = 0; j < batch_size; j++) {
-      srslte_ldpc_decoder_decode_rm_c(
+      srsran_ldpc_decoder_decode_rm_c(
           &decoder_avx_flood, symbols_c + j * finalN, messages_sim_avx_flood + j * finalK, n_useful_symbols_dec);
     }
     gettimeofday(&t[2], NULL);
@@ -645,7 +645,7 @@ int main(int argc, char** argv)
     // Recover messages
     gettimeofday(&t[1], NULL);
     for (j = 0; j < batch_size; j++) {
-      srslte_ldpc_decoder_decode_rm_c(
+      srsran_ldpc_decoder_decode_rm_c(
           &decoder_avx512, symbols_c + j * finalN, messages_sim_avx512 + j * finalK, finalN);
     }
     gettimeofday(&t[2], NULL);
@@ -667,7 +667,7 @@ int main(int argc, char** argv)
     // Recover messages
     gettimeofday(&t[1], NULL);
     for (j = 0; j < batch_size; j++) {
-      srslte_ldpc_decoder_decode_rm_c(
+      srsran_ldpc_decoder_decode_rm_c(
           &decoder_avx512_flood, symbols_c + j * finalN, messages_sim_avx512_flood + j * finalK, finalN);
     }
     gettimeofday(&t[2], NULL);
@@ -748,24 +748,24 @@ int main(int argc, char** argv)
   free(messages_sim_s);
   free(messages_sim_f);
   free(messages_true);
-  srslte_random_free(random_gen);
+  srsran_random_free(random_gen);
 #ifdef LV_HAVE_AVX2
-  srslte_ldpc_decoder_free(&decoder_avx);
-  srslte_ldpc_decoder_free(&decoder_avx_flood);
+  srsran_ldpc_decoder_free(&decoder_avx);
+  srsran_ldpc_decoder_free(&decoder_avx_flood);
 #endif // LV_HAVE_AVX2
 #ifdef LV_HAVE_AVX512
-  srslte_ldpc_decoder_free(&decoder_avx512);
-  srslte_ldpc_decoder_free(&decoder_avx512_flood);
+  srsran_ldpc_decoder_free(&decoder_avx512);
+  srsran_ldpc_decoder_free(&decoder_avx512_flood);
 #endif // LV_HAVE_AVX512
-  srslte_ldpc_decoder_free(&decoder_c_flood);
-  srslte_ldpc_decoder_free(&decoder_c);
-  srslte_ldpc_decoder_free(&decoder_s);
-  srslte_ldpc_decoder_free(&decoder_f);
-  srslte_ldpc_encoder_free(&encoder);
-  srslte_ldpc_rm_tx_free(&rm_tx);
-  srslte_ldpc_rm_rx_free_f(&rm_rx);
-  srslte_ldpc_rm_rx_free_s(&rm_rx_s);
-  srslte_ldpc_rm_rx_free_c(&rm_rx_c);
+  srsran_ldpc_decoder_free(&decoder_c_flood);
+  srsran_ldpc_decoder_free(&decoder_c);
+  srsran_ldpc_decoder_free(&decoder_s);
+  srsran_ldpc_decoder_free(&decoder_f);
+  srsran_ldpc_encoder_free(&encoder);
+  srsran_ldpc_rm_tx_free(&rm_tx);
+  srsran_ldpc_rm_rx_free_f(&rm_rx);
+  srsran_ldpc_rm_rx_free_s(&rm_rx_s);
+  srsran_ldpc_rm_rx_free_c(&rm_rx_c);
 }
 
 void print_decoder(char* title, int n_batches, int n_errors, double elapsed_time)

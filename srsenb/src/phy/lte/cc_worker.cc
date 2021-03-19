@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,22 +10,22 @@
  *
  */
 
-#include "srslte/common/threads.h"
-#include "srslte/srslte.h"
+#include "srsran/common/threads.h"
+#include "srsran/srsran.h"
 
 #include "srsenb/hdr/phy/lte/cc_worker.h"
 
 #define Error(fmt, ...)                                                                                                \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
   logger.error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...)                                                                                              \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
   logger.warning(fmt, ##__VA_ARGS__)
 #define Info(fmt, ...)                                                                                                 \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
   logger.info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)                                                                                                \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
   logger.debug(fmt, ##__VA_ARGS__)
 
 using namespace std;
@@ -52,11 +52,11 @@ cc_worker::cc_worker(srslog::basic_logger& logger) : logger(logger)
 
 cc_worker::~cc_worker()
 {
-  srslte_softbuffer_tx_free(&temp_mbsfn_softbuffer);
-  srslte_enb_dl_free(&enb_dl);
-  srslte_enb_ul_free(&enb_ul);
+  srsran_softbuffer_tx_free(&temp_mbsfn_softbuffer);
+  srsran_enb_dl_free(&enb_dl);
+  srsran_enb_ul_free(&enb_ul);
 
-  for (int p = 0; p < SRSLTE_MAX_PORTS; p++) {
+  for (int p = 0; p < SRSRAN_MAX_PORTS; p++) {
     if (signal_buffer_rx[p]) {
       free(signal_buffer_rx[p]);
     }
@@ -79,60 +79,60 @@ void cc_worker::init(phy_common* phy_, uint32_t cc_idx_)
 {
   phy                   = phy_;
   cc_idx                = cc_idx_;
-  srslte_cell_t cell    = phy_->get_cell(cc_idx);
+  srsran_cell_t cell    = phy_->get_cell(cc_idx);
   uint32_t      nof_prb = phy_->get_nof_prb(cc_idx);
-  uint32_t      sf_len  = SRSLTE_SF_LEN_PRB(nof_prb);
+  uint32_t      sf_len  = SRSRAN_SF_LEN_PRB(nof_prb);
 
   // Init cell here
   for (uint32_t p = 0; p < phy->get_nof_ports(cc_idx); p++) {
-    signal_buffer_rx[p] = srslte_vec_cf_malloc(2 * sf_len);
+    signal_buffer_rx[p] = srsran_vec_cf_malloc(2 * sf_len);
     if (!signal_buffer_rx[p]) {
       ERROR("Error allocating memory");
       return;
     }
-    srslte_vec_cf_zero(signal_buffer_rx[p], 2 * sf_len);
-    signal_buffer_tx[p] = srslte_vec_cf_malloc(2 * sf_len);
+    srsran_vec_cf_zero(signal_buffer_rx[p], 2 * sf_len);
+    signal_buffer_tx[p] = srsran_vec_cf_malloc(2 * sf_len);
     if (!signal_buffer_tx[p]) {
       ERROR("Error allocating memory");
       return;
     }
-    srslte_vec_cf_zero(signal_buffer_tx[p], 2 * sf_len);
+    srsran_vec_cf_zero(signal_buffer_tx[p], 2 * sf_len);
   }
-  if (srslte_enb_dl_init(&enb_dl, signal_buffer_tx, nof_prb)) {
+  if (srsran_enb_dl_init(&enb_dl, signal_buffer_tx, nof_prb)) {
     ERROR("Error initiating ENB DL (cc=%d)", cc_idx);
     return;
   }
-  if (srslte_enb_dl_set_cell(&enb_dl, cell)) {
+  if (srsran_enb_dl_set_cell(&enb_dl, cell)) {
     ERROR("Error initiating ENB DL (cc=%d)", cc_idx);
     return;
   }
-  if (srslte_enb_ul_init(&enb_ul, signal_buffer_rx[0], nof_prb)) {
+  if (srsran_enb_ul_init(&enb_ul, signal_buffer_rx[0], nof_prb)) {
     ERROR("Error initiating ENB UL");
     return;
   }
 
-  if (srslte_enb_ul_set_cell(&enb_ul, cell, &phy->dmrs_pusch_cfg, nullptr)) {
+  if (srsran_enb_ul_set_cell(&enb_ul, cell, &phy->dmrs_pusch_cfg, nullptr)) {
     ERROR("Error initiating ENB UL");
     return;
   }
 
   /* Setup SI-RNTI in PHY */
-  add_rnti(SRSLTE_SIRNTI);
+  add_rnti(SRSRAN_SIRNTI);
 
   /* Setup P-RNTI in PHY */
-  add_rnti(SRSLTE_PRNTI);
+  add_rnti(SRSRAN_PRNTI);
 
   /* Setup RA-RNTI in PHY */
-  for (int i = SRSLTE_RARNTI_START; i <= SRSLTE_RARNTI_END; i++) {
+  for (int i = SRSRAN_RARNTI_START; i <= SRSRAN_RARNTI_END; i++) {
     add_rnti(i);
   }
 
-  if (srslte_softbuffer_tx_init(&temp_mbsfn_softbuffer, nof_prb)) {
+  if (srsran_softbuffer_tx_init(&temp_mbsfn_softbuffer, nof_prb)) {
     ERROR("Error initiating soft buffer");
     exit(-1);
   }
 
-  srslte_softbuffer_tx_reset(&temp_mbsfn_softbuffer);
+  srsran_softbuffer_tx_reset(&temp_mbsfn_softbuffer);
 
   Info("Component Carrier Worker %d configured cell %d PRB", cc_idx, nof_prb);
 
@@ -178,7 +178,7 @@ int cc_worker::add_rnti(uint16_t rnti)
   if (ue_db.count(rnti) == 0) {
     ue_db[rnti] = new ue(rnti);
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 void cc_worker::rem_rnti(uint16_t rnti)
@@ -198,14 +198,14 @@ uint32_t cc_worker::get_nof_rnti()
   return ue_db.size();
 }
 
-void cc_worker::work_ul(const srslte_ul_sf_cfg_t& ul_sf_cfg, stack_interface_phy_lte::ul_sched_t& ul_grants)
+void cc_worker::work_ul(const srsran_ul_sf_cfg_t& ul_sf_cfg, stack_interface_phy_lte::ul_sched_t& ul_grants)
 {
   std::lock_guard<std::mutex> lock(mutex);
   ul_sf = ul_sf_cfg;
   logger.set_context(ul_sf.tti);
 
   // Process UL signal
-  srslte_enb_ul_fft(&enb_ul);
+  srsran_enb_ul_fft(&enb_ul);
 
   // Decode pending UL grants for the tti they were scheduled
   decode_pusch(ul_grants.pusch, ul_grants.nof_grants);
@@ -214,19 +214,19 @@ void cc_worker::work_ul(const srslte_ul_sf_cfg_t& ul_sf_cfg, stack_interface_phy
   decode_pucch();
 }
 
-void cc_worker::work_dl(const srslte_dl_sf_cfg_t&            dl_sf_cfg,
+void cc_worker::work_dl(const srsran_dl_sf_cfg_t&            dl_sf_cfg,
                         stack_interface_phy_lte::dl_sched_t& dl_grants,
                         stack_interface_phy_lte::ul_sched_t& ul_grants,
-                        srslte_mbsfn_cfg_t*                  mbsfn_cfg)
+                        srsran_mbsfn_cfg_t*                  mbsfn_cfg)
 {
   std::lock_guard<std::mutex> lock(mutex);
   dl_sf = dl_sf_cfg;
 
   // Put base signals (references, PBCH, PCFICH and PSS/SSS) into the resource grid
-  srslte_enb_dl_put_base(&enb_dl, &dl_sf);
+  srsran_enb_dl_put_base(&enb_dl, &dl_sf);
 
   // Put DL grants to resource grid. PDSCH data will be encoded as well.
-  if (dl_sf_cfg.sf_type == SRSLTE_SF_NORM) {
+  if (dl_sf_cfg.sf_type == SRSRAN_SF_NORM) {
     encode_pdcch_dl(dl_grants.pdsch, dl_grants.nof_grants);
     encode_pdsch(dl_grants.pdsch, dl_grants.nof_grants);
   } else {
@@ -242,22 +242,22 @@ void cc_worker::work_dl(const srslte_dl_sf_cfg_t&            dl_sf_cfg,
   encode_phich(ul_grants.phich, ul_grants.nof_phich);
 
   // Generate signal and transmit
-  srslte_enb_dl_gen_signal(&enb_dl);
+  srsran_enb_dl_gen_signal(&enb_dl);
 
   // Scale if cell gain is set
   float cell_gain_db = phy->get_cell_gain(cc_idx);
   if (std::isnormal(cell_gain_db)) {
-    float    scale  = srslte_convert_dB_to_amplitude(cell_gain_db);
-    uint32_t sf_len = SRSLTE_SF_LEN_PRB(enb_dl.cell.nof_prb);
+    float    scale  = srsran_convert_dB_to_amplitude(cell_gain_db);
+    uint32_t sf_len = SRSRAN_SF_LEN_PRB(enb_dl.cell.nof_prb);
     for (uint32_t i = 0; i < enb_dl.cell.nof_ports; i++) {
-      srslte_vec_sc_prod_cfc(signal_buffer_tx[i], scale, signal_buffer_tx[i], sf_len);
+      srsran_vec_sc_prod_cfc(signal_buffer_tx[i], scale, signal_buffer_tx[i], sf_len);
     }
   }
 }
 
 void cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_grant,
-                                  srslte_ul_cfg_t&                           ul_cfg,
-                                  srslte_pusch_res_t&                        pusch_res)
+                                  srsran_ul_cfg_t&                           ul_cfg,
+                                  srsran_pusch_res_t&                        pusch_res)
 {
   uint16_t rnti = ul_grant.dci.rnti;
 
@@ -279,8 +279,8 @@ void cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_
       phy->ue_db.fill_uci_cfg(tti_rx, cc_idx, rnti, ul_grant.dci.cqi_request, true, ul_cfg.pusch.uci_cfg);
 
   // Compute UL grant
-  srslte_pusch_grant_t& grant = ul_cfg.pusch.grant;
-  if (srslte_ra_ul_dci_to_grant(&enb_ul.cell, &ul_sf, &ul_cfg.hopping, &ul_grant.dci, &grant)) {
+  srsran_pusch_grant_t& grant = ul_cfg.pusch.grant;
+  if (srsran_ra_ul_dci_to_grant(&enb_ul.cell, &ul_sf, &ul_cfg.hopping, &ul_grant.dci, &grant)) {
     Error("Computing PUSCH dci for RNTI %x", rnti);
     return;
   }
@@ -304,7 +304,7 @@ void cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_
   ul_cfg.pusch.softbuffers.rx = ul_grant.softbuffer_rx;
   pusch_res.data              = ul_grant.data;
   if (pusch_res.data) {
-    if (srslte_enb_ul_get_pusch(&enb_ul, &ul_sf, &ul_cfg.pusch, &pusch_res)) {
+    if (srsran_enb_ul_get_pusch(&enb_ul, &ul_sf, &ul_cfg.pusch, &pusch_res)) {
       Error("Decoding PUSCH for RNTI %x", rnti);
       return;
     }
@@ -346,8 +346,8 @@ void cc_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, 
     stack_interface_phy_lte::ul_sched_grant_t& ul_grant = grants[i];
     uint16_t                                   rnti     = ul_grant.dci.rnti;
 
-    srslte_pusch_res_t pusch_res = {};
-    srslte_ul_cfg_t    ul_cfg    = {};
+    srsran_pusch_res_t pusch_res = {};
+    srsran_ul_cfg_t    ul_cfg    = {};
 
     // Decodes PUSCH for the given grant
     decode_pusch_rnti(ul_grant, ul_cfg, pusch_res);
@@ -361,7 +361,7 @@ void cc_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, 
       // Logging
       if (logger.info.enabled()) {
         char str[512];
-        srslte_pusch_rx_info(&ul_cfg.pusch, &pusch_res, &enb_ul.chest_res, str, sizeof(str));
+        srsran_pusch_rx_info(&ul_cfg.pusch, &pusch_res, &enb_ul.chest_res, str, sizeof(str));
         logger.info("PUSCH: cc=%d, %s", cc_idx, str);
       }
     }
@@ -370,21 +370,21 @@ void cc_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, 
 
 int cc_worker::decode_pucch()
 {
-  srslte_pucch_res_t pucch_res = {};
+  srsran_pucch_res_t pucch_res = {};
 
   for (auto& iter : ue_db) {
     uint16_t rnti = iter.first;
 
     // If it's a User RNTI and doesn't have PUSCH grant in this TTI
-    if (SRSLTE_RNTI_ISUSER(rnti) and phy->ue_db.is_pcell(rnti, cc_idx)) {
-      srslte_ul_cfg_t ul_cfg = phy->ue_db.get_ul_config(rnti, cc_idx);
+    if (SRSRAN_RNTI_ISUSER(rnti) and phy->ue_db.is_pcell(rnti, cc_idx)) {
+      srsran_ul_cfg_t ul_cfg = phy->ue_db.get_ul_config(rnti, cc_idx);
 
       // Check if user needs to receive PUCCH
       if (phy->ue_db.fill_uci_cfg(tti_rx, cc_idx, rnti, false, false, ul_cfg.pucch.uci_cfg)) {
         // Decode PUCCH
-        if (srslte_enb_ul_get_pucch(&enb_ul, &ul_sf, &ul_cfg.pucch, &pucch_res)) {
+        if (srsran_enb_ul_get_pucch(&enb_ul, &ul_sf, &ul_cfg.pucch, &pucch_res)) {
           ERROR("Error getting PUCCH");
-          return SRSLTE_ERROR;
+          return SRSRAN_ERROR;
         }
 
         // Send UCI data to MAC
@@ -398,7 +398,7 @@ int cc_worker::decode_pucch()
         // Logging
         if (logger.info.enabled()) {
           char str[512];
-          srslte_pucch_rx_info(&ul_cfg.pucch, &pucch_res, str, sizeof(str));
+          srsran_pucch_rx_info(&ul_cfg.pucch, &pucch_res, str, sizeof(str));
           logger.info("PUCCH: cc=%d; %s", cc_idx, str);
         }
 
@@ -414,7 +414,7 @@ int cc_worker::encode_phich(stack_interface_phy_lte::ul_sched_ack_t* acks, uint3
 {
   for (uint32_t i = 0; i < nof_acks; i++) {
     if (acks[i].rnti && ue_db.count(acks[i].rnti)) {
-      srslte_enb_dl_put_phich(&enb_dl, &ue_db[acks[i].rnti]->phich_grant, acks[i].ack);
+      srsran_enb_dl_put_phich(&enb_dl, &ue_db[acks[i].rnti]->phich_grant, acks[i].ack);
 
       Info("PHICH: rnti=0x%x, hi=%d, I_lowest=%d, n_dmrs=%d, tti_tx_dl=%d",
            acks[i].rnti,
@@ -424,37 +424,37 @@ int cc_worker::encode_phich(stack_interface_phy_lte::ul_sched_ack_t* acks, uint3
            tti_tx_dl);
     }
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int cc_worker::encode_pdcch_ul(stack_interface_phy_lte::ul_sched_grant_t* grants, uint32_t nof_grants)
 {
   for (uint32_t i = 0; i < nof_grants; i++) {
     if (grants[i].needs_pdcch) {
-      srslte_dci_cfg_t dci_cfg = phy->ue_db.get_dci_ul_config(grants[i].dci.rnti, cc_idx);
+      srsran_dci_cfg_t dci_cfg = phy->ue_db.get_dci_ul_config(grants[i].dci.rnti, cc_idx);
 
-      if (SRSLTE_RNTI_ISUSER(grants[i].dci.rnti)) {
-        if (srslte_enb_dl_location_is_common_ncce(&enb_dl, grants[i].dci.location.ncce) &&
+      if (SRSRAN_RNTI_ISUSER(grants[i].dci.rnti)) {
+        if (srsran_enb_dl_location_is_common_ncce(&enb_dl, grants[i].dci.location.ncce) &&
             phy->ue_db.is_pcell(grants[i].dci.rnti, cc_idx)) {
           // Disable extended CSI request and SRS request in common SS
-          srslte_dci_cfg_set_common_ss(&dci_cfg);
+          srsran_dci_cfg_set_common_ss(&dci_cfg);
         }
       }
 
-      if (srslte_enb_dl_put_pdcch_ul(&enb_dl, &dci_cfg, &grants[i].dci)) {
+      if (srsran_enb_dl_put_pdcch_ul(&enb_dl, &dci_cfg, &grants[i].dci)) {
         ERROR("Error putting PUSCH %d", i);
-        return SRSLTE_ERROR;
+        return SRSRAN_ERROR;
       }
 
       // Logging
       if (logger.info.enabled()) {
         char str[512];
-        srslte_dci_ul_info(&grants[i].dci, str, 512);
+        srsran_dci_ul_info(&grants[i].dci, str, 512);
         logger.info("PDCCH: cc=%d, %s, tti_tx_dl=%d", cc_idx, str, tti_tx_dl);
       }
     }
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int cc_worker::encode_pdcch_dl(stack_interface_phy_lte::dl_sched_grant_t* grants, uint32_t nof_grants)
@@ -462,24 +462,24 @@ int cc_worker::encode_pdcch_dl(stack_interface_phy_lte::dl_sched_grant_t* grants
   for (uint32_t i = 0; i < nof_grants; i++) {
     uint16_t rnti = grants[i].dci.rnti;
     if (rnti) {
-      srslte_dci_cfg_t dci_cfg = phy->ue_db.get_dci_dl_config(grants[i].dci.rnti, cc_idx);
+      srsran_dci_cfg_t dci_cfg = phy->ue_db.get_dci_dl_config(grants[i].dci.rnti, cc_idx);
 
-      if (SRSLTE_RNTI_ISUSER(grants[i].dci.rnti) && grants[i].dci.format == SRSLTE_DCI_FORMAT1A) {
-        if (srslte_enb_dl_location_is_common_ncce(&enb_dl, grants[i].dci.location.ncce) &&
+      if (SRSRAN_RNTI_ISUSER(grants[i].dci.rnti) && grants[i].dci.format == SRSRAN_DCI_FORMAT1A) {
+        if (srsran_enb_dl_location_is_common_ncce(&enb_dl, grants[i].dci.location.ncce) &&
             phy->ue_db.is_pcell(grants[i].dci.rnti, cc_idx)) {
-          srslte_dci_cfg_set_common_ss(&dci_cfg);
+          srsran_dci_cfg_set_common_ss(&dci_cfg);
         }
       }
 
-      if (srslte_enb_dl_put_pdcch_dl(&enb_dl, &dci_cfg, &grants[i].dci)) {
+      if (srsran_enb_dl_put_pdcch_dl(&enb_dl, &dci_cfg, &grants[i].dci)) {
         ERROR("Error putting PDCCH %d", i);
-        return SRSLTE_ERROR;
+        return SRSRAN_ERROR;
       }
 
       if (LOG_THIS(rnti) and logger.info.enabled()) {
         // Logging
         char str[512];
-        srslte_dci_dl_info(&grants[i].dci, str, 512);
+        srsran_dci_dl_info(&grants[i].dci, str, 512);
         logger.info("PDCCH: cc=%d, %s, tti_tx_dl=%d", cc_idx, str, tti_tx_dl);
       }
     }
@@ -487,65 +487,65 @@ int cc_worker::encode_pdcch_dl(stack_interface_phy_lte::dl_sched_grant_t* grants
   return 0;
 }
 
-int cc_worker::encode_pmch(stack_interface_phy_lte::dl_sched_grant_t* grant, srslte_mbsfn_cfg_t* mbsfn_cfg)
+int cc_worker::encode_pmch(stack_interface_phy_lte::dl_sched_grant_t* grant, srsran_mbsfn_cfg_t* mbsfn_cfg)
 {
-  srslte_pmch_cfg_t pmch_cfg;
+  srsran_pmch_cfg_t pmch_cfg;
   ZERO_OBJECT(pmch_cfg);
-  srslte_configure_pmch(&pmch_cfg, &enb_dl.cell, mbsfn_cfg);
-  srslte_ra_dl_compute_nof_re(&enb_dl.cell, &dl_sf, &pmch_cfg.pdsch_cfg.grant);
+  srsran_configure_pmch(&pmch_cfg, &enb_dl.cell, mbsfn_cfg);
+  srsran_ra_dl_compute_nof_re(&enb_dl.cell, &dl_sf, &pmch_cfg.pdsch_cfg.grant);
 
   // Set soft buffer
   pmch_cfg.pdsch_cfg.softbuffers.tx[0] = &temp_mbsfn_softbuffer;
 
   // Encode PMCH
-  if (srslte_enb_dl_put_pmch(&enb_dl, &pmch_cfg, grant->data[0])) {
+  if (srsran_enb_dl_put_pmch(&enb_dl, &pmch_cfg, grant->data[0])) {
     Error("Error putting PMCH");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // Logging
   if (logger.info.enabled()) {
     char str[512];
-    srslte_pdsch_tx_info(&pmch_cfg.pdsch_cfg, str, 512);
+    srsran_pdsch_tx_info(&pmch_cfg.pdsch_cfg, str, 512);
     logger.info("PMCH: %s", str);
   }
 
   // Save metrics stats
-  if (ue_db.count(SRSLTE_MRNTI)) {
-    ue_db[SRSLTE_MRNTI]->metrics_dl(mbsfn_cfg->mbsfn_mcs);
+  if (ue_db.count(SRSRAN_MRNTI)) {
+    ue_db[SRSRAN_MRNTI]->metrics_dl(mbsfn_cfg->mbsfn_mcs);
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int cc_worker::encode_pdsch(stack_interface_phy_lte::dl_sched_grant_t* grants, uint32_t nof_grants)
 {
   /* Scales the Resources Elements affected by the power allocation (p_b) */
-  // srslte_enb_dl_prepare_power_allocation(&enb_dl);
+  // srsran_enb_dl_prepare_power_allocation(&enb_dl);
   for (uint32_t i = 0; i < nof_grants; i++) {
     uint16_t rnti = grants[i].dci.rnti;
 
     if (rnti && ue_db.count(rnti)) {
-      srslte_dl_cfg_t dl_cfg = phy->ue_db.get_dl_config(rnti, cc_idx);
+      srsran_dl_cfg_t dl_cfg = phy->ue_db.get_dl_config(rnti, cc_idx);
 
       // Compute DL grant
-      if (srslte_ra_dl_dci_to_grant(
+      if (srsran_ra_dl_dci_to_grant(
               &enb_dl.cell, &dl_sf, dl_cfg.tm, dl_cfg.pdsch.use_tbs_index_alt, &grants[i].dci, &dl_cfg.pdsch.grant)) {
         Error("Computing DL grant");
       }
 
       // Set soft buffer
-      for (uint32_t j = 0; j < SRSLTE_MAX_CODEWORDS; j++) {
+      for (uint32_t j = 0; j < SRSRAN_MAX_CODEWORDS; j++) {
         dl_cfg.pdsch.softbuffers.tx[j] = grants[i].softbuffer_tx[j];
       }
 
       // Encode PDSCH
-      if (srslte_enb_dl_put_pdsch(&enb_dl, &dl_cfg.pdsch, grants[i].data)) {
+      if (srsran_enb_dl_put_pdsch(&enb_dl, &dl_cfg.pdsch, grants[i].data)) {
         Error("Error putting PDSCH %d", i);
-        return SRSLTE_ERROR;
+        return SRSRAN_ERROR;
       }
 
       // Save pending ACK
-      if (SRSLTE_RNTI_ISUSER(rnti)) {
+      if (SRSRAN_RNTI_ISUSER(rnti)) {
         // Push whole DCI
         phy->ue_db.set_ack_pending(tti_tx_ul, cc_idx, grants[i].dci);
       }
@@ -553,7 +553,7 @@ int cc_worker::encode_pdsch(stack_interface_phy_lte::dl_sched_grant_t* grants, u
       if (LOG_THIS(rnti) and logger.info.enabled()) {
         // Logging
         char str[512];
-        srslte_pdsch_tx_info(&dl_cfg.pdsch, str, 512);
+        srsran_pdsch_tx_info(&dl_cfg.pdsch, str, 512);
         logger.info("PDSCH: cc=%d, %s, tti_tx_dl=%d", cc_idx, str, tti_tx_dl);
       }
 
@@ -564,9 +564,9 @@ int cc_worker::encode_pdsch(stack_interface_phy_lte::dl_sched_grant_t* grants, u
     }
   }
 
-  // srslte_enb_dl_apply_power_allocation(&enb_dl);
+  // srsran_enb_dl_apply_power_allocation(&enb_dl);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 /************ METRICS interface ********************/
@@ -576,7 +576,7 @@ uint32_t cc_worker::get_metrics(std::vector<phy_metrics_t>& metrics)
   uint32_t                    cnt = 0;
   metrics.resize(ue_db.size());
   for (auto& ue : ue_db) {
-    if ((SRSLTE_RNTI_ISUSER(ue.first) || ue.first == SRSLTE_MRNTI)) {
+    if ((SRSRAN_RNTI_ISUSER(ue.first) || ue.first == SRSRAN_MRNTI)) {
       ue.second->metrics_read(&metrics[cnt++]);
     }
   }
@@ -594,40 +594,40 @@ void cc_worker::ue::metrics_read(phy_metrics_t* metrics_)
 
 void cc_worker::ue::metrics_dl(uint32_t mcs)
 {
-  metrics.dl.mcs = SRSLTE_VEC_CMA(mcs, metrics.dl.mcs, metrics.dl.n_samples);
+  metrics.dl.mcs = SRSRAN_VEC_CMA(mcs, metrics.dl.mcs, metrics.dl.n_samples);
   metrics.dl.n_samples++;
 }
 
 void cc_worker::ue::metrics_ul(uint32_t mcs, float rssi, float sinr, float turbo_iters)
 {
-  metrics.ul.mcs         = SRSLTE_VEC_CMA((float)mcs, metrics.ul.mcs, metrics.ul.n_samples);
-  metrics.ul.pusch_sinr  = SRSLTE_VEC_CMA((float)sinr, metrics.ul.pusch_sinr, metrics.ul.n_samples);
-  metrics.ul.rssi        = SRSLTE_VEC_CMA((float)rssi, metrics.ul.rssi, metrics.ul.n_samples);
-  metrics.ul.turbo_iters = SRSLTE_VEC_CMA((float)turbo_iters, metrics.ul.turbo_iters, metrics.ul.n_samples);
+  metrics.ul.mcs         = SRSRAN_VEC_CMA((float)mcs, metrics.ul.mcs, metrics.ul.n_samples);
+  metrics.ul.pusch_sinr  = SRSRAN_VEC_CMA((float)sinr, metrics.ul.pusch_sinr, metrics.ul.n_samples);
+  metrics.ul.rssi        = SRSRAN_VEC_CMA((float)rssi, metrics.ul.rssi, metrics.ul.n_samples);
+  metrics.ul.turbo_iters = SRSRAN_VEC_CMA((float)turbo_iters, metrics.ul.turbo_iters, metrics.ul.n_samples);
   metrics.ul.n_samples++;
 }
 
 void cc_worker::ue::metrics_ul_pucch(float sinr)
 {
-  metrics.ul.pucch_sinr = SRSLTE_VEC_CMA((float)sinr, metrics.ul.pucch_sinr, metrics.ul.n_samples_pucch);
+  metrics.ul.pucch_sinr = SRSRAN_VEC_CMA((float)sinr, metrics.ul.pucch_sinr, metrics.ul.n_samples_pucch);
   metrics.ul.n_samples_pucch++;
 }
 
 int cc_worker::read_ce_abs(float* ce_abs)
 {
-  int sz = srslte_symbol_sz(phy->get_nof_prb(cc_idx));
-  srslte_vec_f_zero(ce_abs, sz);
-  int g = (sz - SRSLTE_NRE * phy->get_nof_prb(cc_idx)) / 2;
-  srslte_vec_abs_dB_cf(enb_ul.chest_res.ce, -80.0f, &ce_abs[g], SRSLTE_NRE * phy->get_nof_prb(cc_idx));
+  int sz = srsran_symbol_sz(phy->get_nof_prb(cc_idx));
+  srsran_vec_f_zero(ce_abs, sz);
+  int g = (sz - SRSRAN_NRE * phy->get_nof_prb(cc_idx)) / 2;
+  srsran_vec_abs_dB_cf(enb_ul.chest_res.ce, -80.0f, &ce_abs[g], SRSRAN_NRE * phy->get_nof_prb(cc_idx));
   return sz;
 }
 
 int cc_worker::read_ce_arg(float* ce_arg)
 {
-  int sz = srslte_symbol_sz(phy->get_nof_prb(cc_idx));
-  srslte_vec_f_zero(ce_arg, sz);
-  int g = (sz - SRSLTE_NRE * phy->get_nof_prb(cc_idx)) / 2;
-  srslte_vec_arg_deg_cf(enb_ul.chest_res.ce, -80.0f, &ce_arg[g], SRSLTE_NRE * phy->get_nof_prb(cc_idx));
+  int sz = srsran_symbol_sz(phy->get_nof_prb(cc_idx));
+  srsran_vec_f_zero(ce_arg, sz);
+  int g = (sz - SRSRAN_NRE * phy->get_nof_prb(cc_idx)) / 2;
+  srsran_vec_arg_deg_cf(enb_ul.chest_res.ce, -80.0f, &ce_arg[g], SRSRAN_NRE * phy->get_nof_prb(cc_idx));
   return sz;
 }
 
@@ -640,7 +640,7 @@ int cc_worker::read_pusch_d(cf_t* pdsch_d)
 
 int cc_worker::read_pucch_d(cf_t* pdsch_d)
 {
-  int nof_re = SRSLTE_PUCCH_MAX_BITS / 2;
+  int nof_re = SRSRAN_PUCCH_MAX_BITS / 2;
   memcpy(pdsch_d, enb_ul.pucch.z_tmp, nof_re * sizeof(cf_t));
   return nof_re;
 }

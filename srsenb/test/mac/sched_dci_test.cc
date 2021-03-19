@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -13,7 +13,7 @@
 #include "sched_test_utils.h"
 #include "srsenb/hdr/stack/mac/sched_common.h"
 #include "srsenb/hdr/stack/mac/sched_phy_ch/sched_dci.h"
-#include "srslte/common/test_common.h"
+#include "srsran/common/test_common.h"
 
 namespace srsenb {
 
@@ -38,46 +38,46 @@ struct tbs_test_args {
   float get_max_coderate() const
   {
     if (is_ul) {
-      return srslte_cqi_to_coderate(std::min(cqi + 1u, 15u), false);
+      return srsran_cqi_to_coderate(std::min(cqi + 1u, 15u), false);
     }
-    return srslte_cqi_to_coderate(std::min(cqi + 1u, 15u), use_tbs_index_alt);
+    return srsran_cqi_to_coderate(std::min(cqi + 1u, 15u), use_tbs_index_alt);
   }
 };
 
 bool lower_coderate(tbs_info tb, uint32_t nof_re, const tbs_test_args& args)
 {
-  float max_coderate = srslte_cqi_to_coderate(std::min(args.cqi + 1u, 15u), args.use_tbs_index_alt);
-  float coderate     = srslte_coderate(tb.tbs_bytes * 8, nof_re);
+  float max_coderate = srsran_cqi_to_coderate(std::min(args.cqi + 1u, 15u), args.use_tbs_index_alt);
+  float coderate     = srsran_coderate(tb.tbs_bytes * 8, nof_re);
   if (coderate > max_coderate) {
     return false;
   }
-  srslte_mod_t mod =
-      (args.is_ul) ? srslte_ra_ul_mod_from_mcs(tb.mcs) : srslte_ra_dl_mod_from_mcs(tb.mcs, args.use_tbs_index_alt);
-  float Qm = std::min(args.get_max_Qm(), srslte_mod_bits_x_symbol(mod));
+  srsran_mod_t mod =
+      (args.is_ul) ? srsran_ra_ul_mod_from_mcs(tb.mcs) : srsran_ra_dl_mod_from_mcs(tb.mcs, args.use_tbs_index_alt);
+  float Qm = std::min(args.get_max_Qm(), srsran_mod_bits_x_symbol(mod));
   return coderate <= 0.932f * Qm;
 }
 
 int test_mcs_tbs_dl_helper(const sched_cell_params_t& cell_params, const tbs_test_args& args, tbs_info* result)
 {
-  srslte_dci_dl_t dci;
-  dci.format     = SRSLTE_DCI_FORMAT1;
-  dci.alloc_type = SRSLTE_RA_ALLOC_TYPE0;
+  srsran_dci_dl_t dci;
+  dci.format     = SRSRAN_DCI_FORMAT1;
+  dci.alloc_type = SRSRAN_RA_ALLOC_TYPE0;
   rbgmask_t rbgmask(cell_params.nof_rbgs);
   rbgmask.fill(0, cell_params.nof_prbs_to_rbgs(args.prb_grant_size));
   dci.type0_alloc.rbg_bitmask = (uint32_t)rbgmask.to_uint64();
   uint32_t nof_re             = cell_params.get_dl_nof_res(args.tti_tx_dl, dci, 1);
   float    max_coderate       = args.get_max_coderate();
 
-  if (srslte_coderate(16, nof_re) > max_coderate) {
+  if (srsran_coderate(16, nof_re) > max_coderate) {
     // no solution is possible
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   // Verify MCS, TBS
   tbs_info ret = compute_mcs_and_tbs(
       args.prb_grant_size, nof_re, args.cqi, args.max_mcs, args.is_ul, args.ul64qam_enabled, args.use_tbs_index_alt);
   if (ret.tbs_bytes < 0) {
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
   if (result != nullptr) {
     *result = ret;
@@ -85,8 +85,8 @@ int test_mcs_tbs_dl_helper(const sched_cell_params_t& cell_params, const tbs_tes
   CONDERROR(ret.mcs > (int)args.max_mcs, "Result mcs=%d is higher than stipulated max_mcs=%d", ret.mcs, args.max_mcs);
 
   // Verify TBS is a valid value in TS tables
-  uint32_t tbs_idx      = srslte_ra_tbs_idx_from_mcs(ret.mcs, args.use_tbs_index_alt, args.is_ul);
-  int      expected_tbs = srslte_ra_tbs_from_idx(tbs_idx, args.prb_grant_size);
+  uint32_t tbs_idx      = srsran_ra_tbs_idx_from_mcs(ret.mcs, args.use_tbs_index_alt, args.is_ul);
+  int      expected_tbs = srsran_ra_tbs_from_idx(tbs_idx, args.prb_grant_size);
   CONDERROR(expected_tbs != ret.tbs_bytes * 8,
             "The tbs=%d is not valid. For {mcs=%d,tbs_idx=%d,nof_re=%d,nof_prb=%d}, it should have been tbs=%d",
             ret.tbs_bytes * 8,
@@ -102,8 +102,8 @@ int test_mcs_tbs_dl_helper(const sched_cell_params_t& cell_params, const tbs_tes
   // Verify there were no better {mcs,tbs} solutions
   tbs_info tb2;
   for (tb2.mcs = ret.mcs + 1; tb2.mcs <= (int)args.max_mcs; ++tb2.mcs) {
-    int tbs_idx2  = srslte_ra_tbs_idx_from_mcs(tb2.mcs, args.use_tbs_index_alt, args.is_ul);
-    tb2.tbs_bytes = srslte_ra_tbs_from_idx(tbs_idx2, args.prb_grant_size) / 8U;
+    int tbs_idx2  = srsran_ra_tbs_idx_from_mcs(tb2.mcs, args.use_tbs_index_alt, args.is_ul);
+    tb2.tbs_bytes = srsran_ra_tbs_from_idx(tbs_idx2, args.prb_grant_size) / 8U;
     TESTASSERT(not lower_coderate(tb2, nof_re, args) or (args.prb_grant_size == 1 and tb2.mcs == 6));
   }
 
@@ -119,7 +119,7 @@ int test_mcs_tbs_dl_helper(const sched_cell_params_t& cell_params, const tbs_tes
            tbs_idx);
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int assert_mcs_tbs_result(uint32_t cell_nof_prb,
@@ -143,7 +143,7 @@ int assert_mcs_tbs_result(uint32_t cell_nof_prb,
   }
 
   tbs_info expected_result;
-  TESTASSERT(test_mcs_tbs_dl_helper(cell_params, args, &expected_result) == SRSLTE_SUCCESS);
+  TESTASSERT(test_mcs_tbs_dl_helper(cell_params, args, &expected_result) == SRSRAN_SUCCESS);
   CONDERROR(expected_result != tbs_info(tbs / 8, mcs),
             "TBS computation failure. {%d, %d}!={%d, %d}",
             expected_result.tbs_bytes * 8,
@@ -151,28 +151,28 @@ int assert_mcs_tbs_result(uint32_t cell_nof_prb,
             tbs,
             mcs);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_mcs_lookup_specific()
 {
   /* TEST CASE: DL, no 256-QAM */
   // cqi=5,Nprb=1 -> {mcs=3, tbs_idx=3, tbs=40}
-  TESTASSERT(assert_mcs_tbs_result(6, 5, 1, 40, 3) == SRSLTE_SUCCESS);
-  TESTASSERT(assert_mcs_tbs_result(6, 5, 4, 256, 4) == SRSLTE_SUCCESS);
+  TESTASSERT(assert_mcs_tbs_result(6, 5, 1, 40, 3) == SRSRAN_SUCCESS);
+  TESTASSERT(assert_mcs_tbs_result(6, 5, 4, 256, 4) == SRSRAN_SUCCESS);
 
-  TESTASSERT(assert_mcs_tbs_result(100, 9, 1, 712, 28) == SRSLTE_SUCCESS);
-  TESTASSERT(assert_mcs_tbs_result(100, 10, 10, 5736, 25) == SRSLTE_SUCCESS);
+  TESTASSERT(assert_mcs_tbs_result(100, 9, 1, 712, 28) == SRSRAN_SUCCESS);
+  TESTASSERT(assert_mcs_tbs_result(100, 10, 10, 5736, 25) == SRSRAN_SUCCESS);
 
   // cqi=15
-  TESTASSERT(assert_mcs_tbs_result(6, 15, 1, 336, 19) == SRSLTE_SUCCESS);     // I_tbs=17
-  TESTASSERT(assert_mcs_tbs_result(6, 15, 6, 2152, 19) == SRSLTE_SUCCESS);    // I_tbs=17
-  TESTASSERT(assert_mcs_tbs_result(100, 15, 1, 712, 28) == SRSLTE_SUCCESS);   // I_tbs=26
-  TESTASSERT(assert_mcs_tbs_result(100, 15, 2, 1480, 28) == SRSLTE_SUCCESS);  // I_tbs=26
-  TESTASSERT(assert_mcs_tbs_result(100, 15, 10, 7480, 28) == SRSLTE_SUCCESS); // I_tbs=26
-  TESTASSERT(assert_mcs_tbs_result(100, 15, 1, 968, 27, true) == SRSLTE_SUCCESS);
+  TESTASSERT(assert_mcs_tbs_result(6, 15, 1, 336, 19) == SRSRAN_SUCCESS);     // I_tbs=17
+  TESTASSERT(assert_mcs_tbs_result(6, 15, 6, 2152, 19) == SRSRAN_SUCCESS);    // I_tbs=17
+  TESTASSERT(assert_mcs_tbs_result(100, 15, 1, 712, 28) == SRSRAN_SUCCESS);   // I_tbs=26
+  TESTASSERT(assert_mcs_tbs_result(100, 15, 2, 1480, 28) == SRSRAN_SUCCESS);  // I_tbs=26
+  TESTASSERT(assert_mcs_tbs_result(100, 15, 10, 7480, 28) == SRSRAN_SUCCESS); // I_tbs=26
+  TESTASSERT(assert_mcs_tbs_result(100, 15, 1, 968, 27, true) == SRSRAN_SUCCESS);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 /// Verify consistency of MCS,TBS computation for different permutations of banwidths, grant sizes, cqi, max_mcs
@@ -193,12 +193,12 @@ int test_mcs_tbs_consistency_all()
           args.prb_grant_size = prb_grant;
           args.cqi            = cqi;
           args.max_mcs        = max_mcs;
-          TESTASSERT(test_mcs_tbs_dl_helper(cell_params, args, nullptr) == SRSLTE_SUCCESS);
+          TESTASSERT(test_mcs_tbs_dl_helper(cell_params, args, nullptr) == SRSRAN_SUCCESS);
         }
       }
     }
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 /**
@@ -216,7 +216,7 @@ int test_min_mcs_tbs_dl_helper(const sched_cell_params_t& cell_params, const tbs
                                                         args.ul64qam_enabled,
                                                         args.use_tbs_index_alt);
   tbs_info tb_max;
-  TESTASSERT(test_mcs_tbs_dl_helper(cell_params, args, &tb_max) == SRSLTE_SUCCESS);
+  TESTASSERT(test_mcs_tbs_dl_helper(cell_params, args, &tb_max) == SRSRAN_SUCCESS);
   CONDERROR(tb_max.mcs < result->mcs or tb_max.tbs_bytes < result->tbs_bytes, "Invalid min MCS calculation");
 
   if (args.verbose) {
@@ -228,7 +228,7 @@ int test_min_mcs_tbs_dl_helper(const sched_cell_params_t& cell_params, const tbs
            args.req_bytes * 8);
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 /// Test search for minimum MCS/TBS in TS 36.213 table 7.1.7.2.1-1 that fulfills a TBS >= required bytes
@@ -246,29 +246,29 @@ int test_min_mcs_tbs_specific()
   args.cqi            = 10;
   args.prb_grant_size = 5;
   args.req_bytes      = 10;
-  TESTASSERT(test_min_mcs_tbs_dl_helper(cell_params, args, &result) == SRSLTE_SUCCESS);
+  TESTASSERT(test_min_mcs_tbs_dl_helper(cell_params, args, &result) == SRSRAN_SUCCESS);
   CONDERROR(result.tbs_bytes < (int)args.req_bytes, "Invalid MCS calculation");
   CONDERROR(result.tbs_bytes * 8 != 120, "Invalid min TBS calculation");
 
   args.req_bytes = 50;
-  TESTASSERT(test_min_mcs_tbs_dl_helper(cell_params, args, &result) == SRSLTE_SUCCESS);
+  TESTASSERT(test_min_mcs_tbs_dl_helper(cell_params, args, &result) == SRSRAN_SUCCESS);
   CONDERROR(result.tbs_bytes < (int)args.req_bytes, "Invalid MCS calculation");
   CONDERROR(result.tbs_bytes * 8 != 424, "Invalid min TBS calculation");
 
   args.cqi            = 15;
   args.prb_grant_size = 10;
   args.req_bytes      = 100;
-  TESTASSERT(test_min_mcs_tbs_dl_helper(cell_params, args, &result) == SRSLTE_SUCCESS);
+  TESTASSERT(test_min_mcs_tbs_dl_helper(cell_params, args, &result) == SRSRAN_SUCCESS);
   CONDERROR(result.tbs_bytes < (int)args.req_bytes, "Invalid MCS calculation");
   CONDERROR(result.tbs_bytes * 8 != 872, "Invalid min TBS calculation");
 
   // Check equality case
   args.req_bytes = 109;
-  TESTASSERT(test_min_mcs_tbs_dl_helper(cell_params, args, &result) == SRSLTE_SUCCESS);
+  TESTASSERT(test_min_mcs_tbs_dl_helper(cell_params, args, &result) == SRSRAN_SUCCESS);
   CONDERROR(result.tbs_bytes < (int)args.req_bytes, "Invalid MCS calculation");
   CONDERROR(result.tbs_bytes * 8 != 872, "Invalid min TBS calculation");
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 } // namespace srsenb
@@ -283,9 +283,9 @@ int main()
   // Start the log backend.
   srslog::init();
 
-  TESTASSERT(srsenb::test_mcs_lookup_specific() == SRSLTE_SUCCESS);
-  TESTASSERT(srsenb::test_mcs_tbs_consistency_all() == SRSLTE_SUCCESS);
-  TESTASSERT(srsenb::test_min_mcs_tbs_specific() == SRSLTE_SUCCESS);
+  TESTASSERT(srsenb::test_mcs_lookup_specific() == SRSRAN_SUCCESS);
+  TESTASSERT(srsenb::test_mcs_tbs_consistency_all() == SRSRAN_SUCCESS);
+  TESTASSERT(srsenb::test_min_mcs_tbs_specific() == SRSRAN_SUCCESS);
 
   printf("Success\n");
   return 0;

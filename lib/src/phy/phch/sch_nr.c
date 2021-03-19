@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,24 +10,24 @@
  *
  */
 
-#include "srslte/phy/phch/sch_nr.h"
-#include "srslte/config.h"
-#include "srslte/phy/fec/cbsegm.h"
-#include "srslte/phy/fec/ldpc/ldpc_common.h"
-#include "srslte/phy/fec/ldpc/ldpc_rm.h"
-#include "srslte/phy/phch/ra_nr.h"
-#include "srslte/phy/utils/bit.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/phch/sch_nr.h"
+#include "srsran/config.h"
+#include "srsran/phy/fec/cbsegm.h"
+#include "srsran/phy/fec/ldpc/ldpc_common.h"
+#include "srsran/phy/fec/ldpc/ldpc_rm.h"
+#include "srsran/phy/phch/ra_nr.h"
+#include "srsran/phy/utils/bit.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/vector.h"
 
 #define SCH_INFO_TX(...) INFO("SCH Tx: " __VA_ARGS__)
 #define SCH_INFO_RX(...) INFO("SCH Rx: " __VA_ARGS__)
 
-srslte_basegraph_t srslte_sch_nr_select_basegraph(uint32_t tbs, double R)
+srsran_basegraph_t srsran_sch_nr_select_basegraph(uint32_t tbs, double R)
 {
   // if A ≤ 292 , or if A ≤ 3824 and R ≤ 0.67 , or if R ≤ 0 . 25 , LDPC base graph 2 is used;
   // otherwise, LDPC base graph 1 is used
-  srslte_basegraph_t bg = BG1;
+  srsran_basegraph_t bg = BG1;
   if ((tbs <= 292) || (tbs <= 3824 && R <= 0.67) || (R <= 0.25)) {
     bg = BG2;
   }
@@ -65,39 +65,39 @@ uint32_t sch_nr_n_prb_lbrm(uint32_t nof_prb)
   return 273;
 }
 
-int srslte_sch_nr_fill_tb_info(const srslte_carrier_nr_t* carrier,
-                               const srslte_sch_cfg_t*    sch_cfg,
-                               const srslte_sch_tb_t*     tb,
-                               srslte_sch_nr_tb_info_t*   cfg)
+int srsran_sch_nr_fill_tb_info(const srsran_carrier_nr_t* carrier,
+                               const srsran_sch_cfg_t*    sch_cfg,
+                               const srsran_sch_tb_t*     tb,
+                               srsran_sch_nr_tb_info_t*   cfg)
 {
   if (!sch_cfg || !tb || !cfg) {
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
   // LDPC base graph selection
-  srslte_basegraph_t bg = srslte_sch_nr_select_basegraph(tb->tbs, tb->R);
+  srsran_basegraph_t bg = srsran_sch_nr_select_basegraph(tb->tbs, tb->R);
 
   // Compute code block segmentation
-  srslte_cbsegm_t cbsegm = {};
+  srsran_cbsegm_t cbsegm = {};
   if (bg == BG1) {
-    if (srslte_cbsegm_ldpc_bg1(&cbsegm, tb->tbs) != SRSLTE_SUCCESS) {
+    if (srsran_cbsegm_ldpc_bg1(&cbsegm, tb->tbs) != SRSRAN_SUCCESS) {
       ERROR("Error: calculating LDPC BG1 code block segmentation for tbs=%d", tb->tbs);
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
   } else {
-    if (srslte_cbsegm_ldpc_bg2(&cbsegm, tb->tbs) != SRSLTE_SUCCESS) {
+    if (srsran_cbsegm_ldpc_bg2(&cbsegm, tb->tbs) != SRSRAN_SUCCESS) {
       ERROR("Error: calculating LDPC BG1 code block segmentation for tbs=%d", tb->tbs);
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
   }
 
   if (cbsegm.Z > MAX_LIFTSIZE) {
     ERROR("Error: lifting size Z=%d is out-of-range maximum is %d", cbsegm.Z, MAX_LIFTSIZE);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   cfg->bg   = bg;
-  cfg->Qm   = srslte_mod_bits_x_symbol(tb->mod);
+  cfg->Qm   = srsran_mod_bits_x_symbol(tb->mod);
   cfg->A    = tb->tbs;
   cfg->L_tb = cbsegm.L_tb;
   cfg->L_cb = cbsegm.L_cb;
@@ -113,8 +113,8 @@ int srslte_sch_nr_fill_tb_info(const srslte_carrier_nr_t* carrier,
   // Calculate Nref
   uint32_t N_re_lbrm = 156 * sch_nr_n_prb_lbrm(carrier->nof_prb);
   double   TCR_lbrm  = 948.0 / 1024.0;
-  uint32_t Qm_lbrm   = (sch_cfg->mcs_table == srslte_mcs_table_256qam) ? 8 : 6;
-  uint32_t TBS_LRBM  = srslte_ra_nr_tbs(N_re_lbrm, 1.0, TCR_lbrm, Qm_lbrm, carrier->max_mimo_layers);
+  uint32_t Qm_lbrm   = (sch_cfg->mcs_table == srsran_mcs_table_256qam) ? 8 : 6;
+  uint32_t TBS_LRBM  = srsran_ra_nr_tbs(N_re_lbrm, 1.0, TCR_lbrm, Qm_lbrm, carrier->max_mimo_layers);
   double   R         = 2.0 / 3.0;
   cfg->Nref          = ceil(TBS_LRBM / (cbsegm.C * R));
 
@@ -122,18 +122,18 @@ int srslte_sch_nr_fill_tb_info(const srslte_carrier_nr_t* carrier,
   for (uint32_t r = 0; r < cbsegm.C; r++) {
     cfg->mask[r] = true;
   }
-  for (uint32_t r = cbsegm.C; r < SRSLTE_SCH_NR_MAX_NOF_CB_LDPC; r++) {
+  for (uint32_t r = cbsegm.C; r < SRSRAN_SCH_NR_MAX_NOF_CB_LDPC; r++) {
     cfg->mask[r] = false;
   }
   cfg->C  = cbsegm.C;
   cfg->Cp = cbsegm.C;
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 #define MOD(NUM, DEN) ((NUM) % (DEN))
 
-static inline uint32_t sch_nr_get_E(const srslte_sch_nr_tb_info_t* cfg, uint32_t j)
+static inline uint32_t sch_nr_get_E(const srsran_sch_nr_tb_info_t* cfg, uint32_t j)
 {
   if (cfg->Nl == 0 || cfg->Qm == 0 || cfg->Cp == 0) {
     ERROR("Invalid Nl (%d), Qm (%d) or Cp (%d)", cfg->Nl, cfg->Qm, cfg->Cp);
@@ -143,54 +143,54 @@ static inline uint32_t sch_nr_get_E(const srslte_sch_nr_tb_info_t* cfg, uint32_t
   if (j <= (cfg->Cp - MOD(cfg->G / (cfg->Nl * cfg->Qm), cfg->Cp) - 1)) {
     return cfg->Nl * cfg->Qm * (cfg->G / (cfg->Nl * cfg->Qm * cfg->Cp));
   }
-  return cfg->Nl * cfg->Qm * SRSLTE_CEIL(cfg->G, cfg->Nl * cfg->Qm * cfg->Cp);
+  return cfg->Nl * cfg->Qm * SRSRAN_CEIL(cfg->G, cfg->Nl * cfg->Qm * cfg->Cp);
 }
 
-static inline int sch_nr_init_common(srslte_sch_nr_t* q)
+static inline int sch_nr_init_common(srsran_sch_nr_t* q)
 {
   if (q == NULL) {
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
-  if (srslte_crc_init(&q->crc_tb_24, SRSLTE_LTE_CRC24A, 24) < SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+  if (srsran_crc_init(&q->crc_tb_24, SRSRAN_LTE_CRC24A, 24) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
   }
 
-  if (srslte_crc_init(&q->crc_cb, SRSLTE_LTE_CRC24B, 24) < SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+  if (srsran_crc_init(&q->crc_cb, SRSRAN_LTE_CRC24B, 24) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
   }
 
-  if (srslte_crc_init(&q->crc_tb_16, SRSLTE_LTE_CRC16, 16) < SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+  if (srsran_crc_init(&q->crc_tb_16, SRSRAN_LTE_CRC16, 16) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
   }
 
   if (!q->temp_cb) {
-    q->temp_cb = srslte_vec_u8_malloc(SRSLTE_LDPC_MAX_LEN_CB * 8);
+    q->temp_cb = srsran_vec_u8_malloc(SRSRAN_LDPC_MAX_LEN_CB * 8);
     if (!q->temp_cb) {
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-int srslte_sch_nr_init_tx(srslte_sch_nr_t* q, const srslte_sch_nr_args_t* args)
+int srsran_sch_nr_init_tx(srsran_sch_nr_t* q, const srsran_sch_nr_args_t* args)
 {
   int ret = sch_nr_init_common(q);
-  if (ret < SRSLTE_SUCCESS) {
+  if (ret < SRSRAN_SUCCESS) {
     return ret;
   }
 
-  srslte_ldpc_encoder_type_t encoder_type = SRSLTE_LDPC_ENCODER_C;
+  srsran_ldpc_encoder_type_t encoder_type = SRSRAN_LDPC_ENCODER_C;
 
 #ifdef LV_HAVE_AVX512
   if (!args->disable_simd) {
-    encoder_type = SRSLTE_LDPC_ENCODER_AVX512;
+    encoder_type = SRSRAN_LDPC_ENCODER_AVX512;
   }
 #else // LV_HAVE_AVX512
 #ifdef LV_HAVE_AVX2
   if (!args->disable_simd) {
-    encoder_type = SRSLTE_LDPC_ENCODER_AVX2;
+    encoder_type = SRSRAN_LDPC_ENCODER_AVX2;
   }
 #endif // LV_HAVE_AVX2
 #endif // LV_HAVE_AVX612
@@ -206,56 +206,56 @@ int srslte_sch_nr_init_tx(srslte_sch_nr_t* q, const srslte_sch_nr_args_t* args)
       continue;
     }
 
-    q->encoder_bg1[ls] = SRSLTE_MEM_ALLOC(srslte_ldpc_encoder_t, 1);
+    q->encoder_bg1[ls] = SRSRAN_MEM_ALLOC(srsran_ldpc_encoder_t, 1);
     if (!q->encoder_bg1[ls]) {
       ERROR("Error: calloc");
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
-    SRSLTE_MEM_ZERO(q->encoder_bg1[ls], srslte_ldpc_encoder_t, 1);
+    SRSRAN_MEM_ZERO(q->encoder_bg1[ls], srsran_ldpc_encoder_t, 1);
 
-    if (srslte_ldpc_encoder_init(q->encoder_bg1[ls], encoder_type, BG1, ls) < SRSLTE_SUCCESS) {
+    if (srsran_ldpc_encoder_init(q->encoder_bg1[ls], encoder_type, BG1, ls) < SRSRAN_SUCCESS) {
       ERROR("Error: initialising BG1 LDPC encoder for ls=%d", ls);
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
 
-    q->encoder_bg2[ls] = SRSLTE_MEM_ALLOC(srslte_ldpc_encoder_t, 1);
+    q->encoder_bg2[ls] = SRSRAN_MEM_ALLOC(srsran_ldpc_encoder_t, 1);
     if (!q->encoder_bg2[ls]) {
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
-    SRSLTE_MEM_ZERO(q->encoder_bg2[ls], srslte_ldpc_encoder_t, 1);
+    SRSRAN_MEM_ZERO(q->encoder_bg2[ls], srsran_ldpc_encoder_t, 1);
 
-    if (srslte_ldpc_encoder_init(q->encoder_bg2[ls], encoder_type, BG2, ls) < SRSLTE_SUCCESS) {
+    if (srsran_ldpc_encoder_init(q->encoder_bg2[ls], encoder_type, BG2, ls) < SRSRAN_SUCCESS) {
       ERROR("Error: initialising BG2 LDPC encoder for ls=%d", ls);
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
   }
 
-  if (srslte_ldpc_rm_tx_init(&q->tx_rm) < SRSLTE_SUCCESS) {
+  if (srsran_ldpc_rm_tx_init(&q->tx_rm) < SRSRAN_SUCCESS) {
     ERROR("Error: initialising Tx LDPC Rate matching");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-int srslte_sch_nr_init_rx(srslte_sch_nr_t* q, const srslte_sch_nr_args_t* args)
+int srsran_sch_nr_init_rx(srsran_sch_nr_t* q, const srsran_sch_nr_args_t* args)
 {
   int ret = sch_nr_init_common(q);
-  if (ret < SRSLTE_SUCCESS) {
+  if (ret < SRSRAN_SUCCESS) {
     return ret;
   }
 
-  srslte_ldpc_decoder_type_t decoder_type =
-      args->decoder_use_flooded ? SRSLTE_LDPC_DECODER_C_FLOOD : SRSLTE_LDPC_DECODER_C;
+  srsran_ldpc_decoder_type_t decoder_type =
+      args->decoder_use_flooded ? SRSRAN_LDPC_DECODER_C_FLOOD : SRSRAN_LDPC_DECODER_C;
 
 #ifdef LV_HAVE_AVX512
   if (!args->disable_simd) {
-    decoder_type = args->decoder_use_flooded ? SRSLTE_LDPC_DECODER_C_AVX512_FLOOD : SRSLTE_LDPC_DECODER_C_AVX512;
+    decoder_type = args->decoder_use_flooded ? SRSRAN_LDPC_DECODER_C_AVX512_FLOOD : SRSRAN_LDPC_DECODER_C_AVX512;
   }
 #else // LV_HAVE_AVX512
 #ifdef LV_HAVE_AVX2
   if (!args->disable_simd) {
-    decoder_type = args->decoder_use_flooded ? SRSLTE_LDPC_DECODER_C_AVX2_FLOOD : SRSLTE_LDPC_DECODER_C_AVX2;
+    decoder_type = args->decoder_use_flooded ? SRSRAN_LDPC_DECODER_C_AVX2_FLOOD : SRSRAN_LDPC_DECODER_C_AVX2;
   }
 #endif // LV_HAVE_AVX2
 #endif // LV_HAVE_AVX512
@@ -275,49 +275,49 @@ int srslte_sch_nr_init_rx(srslte_sch_nr_t* q, const srslte_sch_nr_args_t* args)
       continue;
     }
 
-    q->decoder_bg1[ls] = calloc(1, sizeof(srslte_ldpc_decoder_t));
+    q->decoder_bg1[ls] = calloc(1, sizeof(srsran_ldpc_decoder_t));
     if (!q->decoder_bg1[ls]) {
       ERROR("Error: calloc");
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
 
-    if (srslte_ldpc_decoder_init(q->decoder_bg1[ls], decoder_type, BG1, ls, scaling_factor) < SRSLTE_SUCCESS) {
+    if (srsran_ldpc_decoder_init(q->decoder_bg1[ls], decoder_type, BG1, ls, scaling_factor) < SRSRAN_SUCCESS) {
       ERROR("Error: initialising BG1 LDPC decoder for ls=%d", ls);
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
 
-    q->decoder_bg2[ls] = calloc(1, sizeof(srslte_ldpc_decoder_t));
+    q->decoder_bg2[ls] = calloc(1, sizeof(srsran_ldpc_decoder_t));
     if (!q->decoder_bg2[ls]) {
       ERROR("Error: calloc");
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
 
-    if (srslte_ldpc_decoder_init(q->decoder_bg2[ls], decoder_type, BG2, ls, scaling_factor) < SRSLTE_SUCCESS) {
+    if (srsran_ldpc_decoder_init(q->decoder_bg2[ls], decoder_type, BG2, ls, scaling_factor) < SRSRAN_SUCCESS) {
       ERROR("Error: initialising BG2 LDPC decoder for ls=%d", ls);
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
   }
 
-  if (srslte_ldpc_rm_rx_init_c(&q->rx_rm) < SRSLTE_SUCCESS) {
+  if (srsran_ldpc_rm_rx_init_c(&q->rx_rm) < SRSRAN_SUCCESS) {
     ERROR("Error: initialising Rx LDPC Rate matching");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-int srslte_sch_nr_set_carrier(srslte_sch_nr_t* q, const srslte_carrier_nr_t* carrier)
+int srsran_sch_nr_set_carrier(srsran_sch_nr_t* q, const srsran_carrier_nr_t* carrier)
 {
   if (!q) {
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
   q->carrier = *carrier;
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-void srslte_sch_nr_free(srslte_sch_nr_t* q)
+void srsran_sch_nr_free(srsran_sch_nr_t* q)
 {
   // Protect pointer
   if (!q) {
@@ -330,65 +330,65 @@ void srslte_sch_nr_free(srslte_sch_nr_t* q)
 
   for (uint16_t ls = 0; ls <= MAX_LIFTSIZE; ls++) {
     if (q->encoder_bg1[ls]) {
-      srslte_ldpc_encoder_free(q->encoder_bg1[ls]);
+      srsran_ldpc_encoder_free(q->encoder_bg1[ls]);
       free(q->encoder_bg1[ls]);
     }
     if (q->encoder_bg2[ls]) {
-      srslte_ldpc_encoder_free(q->encoder_bg2[ls]);
+      srsran_ldpc_encoder_free(q->encoder_bg2[ls]);
       free(q->encoder_bg2[ls]);
     }
     if (q->decoder_bg1[ls]) {
-      srslte_ldpc_decoder_free(q->decoder_bg1[ls]);
+      srsran_ldpc_decoder_free(q->decoder_bg1[ls]);
       free(q->decoder_bg1[ls]);
     }
     if (q->decoder_bg2[ls]) {
-      srslte_ldpc_decoder_free(q->decoder_bg2[ls]);
+      srsran_ldpc_decoder_free(q->decoder_bg2[ls]);
       free(q->decoder_bg2[ls]);
     }
   }
 
-  srslte_ldpc_rm_tx_free(&q->tx_rm);
-  srslte_ldpc_rm_rx_free_c(&q->rx_rm);
+  srsran_ldpc_rm_tx_free(&q->tx_rm);
+  srsran_ldpc_rm_rx_free_c(&q->rx_rm);
 }
 
-static inline int sch_nr_encode(srslte_sch_nr_t*        q,
-                                const srslte_sch_cfg_t* sch_cfg,
-                                const srslte_sch_tb_t*  tb,
+static inline int sch_nr_encode(srsran_sch_nr_t*        q,
+                                const srsran_sch_cfg_t* sch_cfg,
+                                const srsran_sch_tb_t*  tb,
                                 const uint8_t*          data,
                                 uint8_t*                e_bits)
 {
   // Pointer protection
   if (!q || !sch_cfg || !tb || !data || !e_bits) {
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
   if (!tb->softbuffer.tx) {
     ERROR("Error: Missing Tx softbuffer");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   const uint8_t* input_ptr  = data;
   uint8_t*       output_ptr = e_bits;
 
-  srslte_sch_nr_tb_info_t cfg = {};
-  if (srslte_sch_nr_fill_tb_info(&q->carrier, sch_cfg, tb, &cfg) < SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+  srsran_sch_nr_tb_info_t cfg = {};
+  if (srsran_sch_nr_fill_tb_info(&q->carrier, sch_cfg, tb, &cfg) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
   }
 
   // Select encoder and CRC
-  srslte_ldpc_encoder_t* encoder = (cfg.bg == BG1) ? q->encoder_bg1[cfg.Z] : q->encoder_bg2[cfg.Z];
-  srslte_crc_t*          crc_tb  = (cfg.L_tb == 24) ? &q->crc_tb_24 : &q->crc_tb_16;
+  srsran_ldpc_encoder_t* encoder = (cfg.bg == BG1) ? q->encoder_bg1[cfg.Z] : q->encoder_bg2[cfg.Z];
+  srsran_crc_t*          crc_tb  = (cfg.L_tb == 24) ? &q->crc_tb_24 : &q->crc_tb_16;
 
   // Check encoder
   if (encoder == NULL) {
     ERROR("Error: encoder for lifting size Z=%d not found (tbs=%d)", cfg.Z, tb->tbs);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // Check CRC for TB
   if (crc_tb == NULL) {
     ERROR("Error: CRC for TB not found");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // Soft-buffer number of code-block protection
@@ -397,7 +397,7 @@ static inline int sch_nr_encode(srslte_sch_nr_t*        q,
           tb->softbuffer.tx->max_cb,
           tb->tbs,
           cfg.C);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   if (tb->softbuffer.tx->max_cb_size < (encoder->liftN - 2 * cfg.Z)) {
@@ -405,14 +405,14 @@ static inline int sch_nr_encode(srslte_sch_nr_t*        q,
           tb->softbuffer.tx->max_cb_size,
           tb->tbs,
           (encoder->liftN - 2 * cfg.Z));
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // Calculate TB CRC
-  uint32_t checksum_tb = srslte_crc_checksum_byte(crc_tb, data, tb->tbs);
-  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_DEBUG && !handler_registered) {
+  uint32_t checksum_tb = srsran_crc_checksum_byte(crc_tb, data, tb->tbs);
+  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
     DEBUG("tb=");
-    srslte_vec_fprint_byte(stdout, data, tb->tbs / 8);
+    srsran_vec_fprint_byte(stdout, data, tb->tbs / 8);
   }
 
   // For each code block...
@@ -422,7 +422,7 @@ static inline int sch_nr_encode(srslte_sch_nr_t*        q,
     uint8_t* rm_buffer = tb->softbuffer.tx->buffer_b[r];
     if (rm_buffer == NULL) {
       ERROR("Error: soft-buffer provided NULL buffer for cb_idx=%d", r);
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
 
     // If data provided, encode and store in RM circular buffer
@@ -434,28 +434,28 @@ static inline int sch_nr_encode(srslte_sch_nr_t*        q,
         cb_len -= cfg.L_tb;
 
         // Copy payload without TB CRC
-        srslte_bit_unpack_vector(input_ptr, q->temp_cb, (int)cb_len);
+        srsran_bit_unpack_vector(input_ptr, q->temp_cb, (int)cb_len);
 
         // Append TB CRC
         uint8_t* ptr = &q->temp_cb[cb_len];
-        srslte_bit_unpack(checksum_tb, &ptr, cfg.L_tb);
+        srsran_bit_unpack(checksum_tb, &ptr, cfg.L_tb);
         SCH_INFO_TX("CB %d: appending TB CRC=%06x", r, checksum_tb);
       } else {
         // Copy payload
-        srslte_bit_unpack_vector(input_ptr, q->temp_cb, (int)cb_len);
+        srsran_bit_unpack_vector(input_ptr, q->temp_cb, (int)cb_len);
       }
 
-      if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_DEBUG && !handler_registered) {
+      if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
         DEBUG("cb%d=", r);
-        srslte_vec_fprint_byte(stdout, input_ptr, cb_len / 8);
+        srsran_vec_fprint_byte(stdout, input_ptr, cb_len / 8);
       }
 
       input_ptr += cb_len / 8;
 
       // Attach code block CRC if required
       if (cfg.L_cb) {
-        srslte_crc_attach(&q->crc_cb, q->temp_cb, (int)(cfg.Kp - cfg.L_cb));
-        SCH_INFO_TX("CB %d: CRC=%06x", r, (uint32_t)srslte_crc_checksum_get(&q->crc_cb));
+        srsran_crc_attach(&q->crc_cb, q->temp_cb, (int)(cfg.Kp - cfg.L_cb));
+        SCH_INFO_TX("CB %d: CRC=%06x", r, (uint32_t)srsran_crc_checksum_get(&q->crc_cb));
       }
 
       // Insert filler bits
@@ -464,11 +464,11 @@ static inline int sch_nr_encode(srslte_sch_nr_t*        q,
       }
 
       // Encode code block
-      srslte_ldpc_encoder_encode(encoder, q->temp_cb, rm_buffer, cfg.Kr);
+      srsran_ldpc_encoder_encode(encoder, q->temp_cb, rm_buffer, cfg.Kr);
 
-      if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_DEBUG && !handler_registered) {
+      if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
         DEBUG("encoded=");
-        srslte_vec_fprint_b(stdout, rm_buffer, encoder->liftN - 2 * encoder->ls);
+        srsran_vec_fprint_b(stdout, rm_buffer, encoder->liftN - 2 * encoder->ls);
       }
     }
 
@@ -491,51 +491,51 @@ static inline int sch_nr_encode(srslte_sch_nr_t*        q,
                 tb->rv,
                 cfg.Qm,
                 cfg.Nref);
-    srslte_ldpc_rm_tx(&q->tx_rm, rm_buffer, output_ptr, E, cfg.bg, cfg.Z, tb->rv, tb->mod, cfg.Nref);
+    srsran_ldpc_rm_tx(&q->tx_rm, rm_buffer, output_ptr, E, cfg.bg, cfg.Z, tb->rv, tb->mod, cfg.Nref);
     output_ptr += E;
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-int sch_nr_decode(srslte_sch_nr_t*        q,
-                  const srslte_sch_cfg_t* sch_cfg,
-                  const srslte_sch_tb_t*  tb,
+int sch_nr_decode(srsran_sch_nr_t*        q,
+                  const srsran_sch_cfg_t* sch_cfg,
+                  const srsran_sch_tb_t*  tb,
                   int8_t*                 e_bits,
                   uint8_t*                data,
                   bool*                   crc_ok)
 {
   // Pointer protection
   if (!q || !sch_cfg || !tb || !data || !e_bits || !crc_ok) {
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
   int8_t* input_ptr = e_bits;
 
-  srslte_sch_nr_tb_info_t cfg = {};
-  if (srslte_sch_nr_fill_tb_info(&q->carrier, sch_cfg, tb, &cfg) < SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+  srsran_sch_nr_tb_info_t cfg = {};
+  if (srsran_sch_nr_fill_tb_info(&q->carrier, sch_cfg, tb, &cfg) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
   }
 
   // Select encoder and CRC
-  srslte_ldpc_decoder_t* decoder = (cfg.bg == BG1) ? q->decoder_bg1[cfg.Z] : q->decoder_bg2[cfg.Z];
-  srslte_crc_t*          crc_tb  = (cfg.L_tb == 24) ? &q->crc_tb_24 : &q->crc_tb_16;
+  srsran_ldpc_decoder_t* decoder = (cfg.bg == BG1) ? q->decoder_bg1[cfg.Z] : q->decoder_bg2[cfg.Z];
+  srsran_crc_t*          crc_tb  = (cfg.L_tb == 24) ? &q->crc_tb_24 : &q->crc_tb_16;
 
   // Check decoder
   if (decoder == NULL) {
     ERROR("Error: decoder for lifting size Z=%d not found", cfg.Z);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // Check CRC for TB
   if (crc_tb == NULL) {
     ERROR("Error: CRC for TB not found");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // Soft-buffer number of code-block protection
   if (tb->softbuffer.rx->max_cb < cfg.Cp || tb->softbuffer.rx->max_cb_size < (decoder->liftN - 2 * cfg.Z)) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // Counter of code blocks that have matched CRC
@@ -548,7 +548,7 @@ int sch_nr_decode(srslte_sch_nr_t*        q,
     int8_t* rm_buffer = (int8_t*)tb->softbuffer.tx->buffer_b[r];
     if (!rm_buffer) {
       ERROR("Error: soft-buffer provided NULL buffer for cb_idx=%d", r);
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
 
     // Skip CB if mask indicates no transmission of the CB
@@ -581,17 +581,17 @@ int sch_nr_decode(srslte_sch_nr_t*        q,
                 tb->rv,
                 cfg.Qm,
                 cfg.Nref);
-    srslte_ldpc_rm_rx_c(&q->rx_rm, input_ptr, rm_buffer, E, cfg.F, cfg.bg, cfg.Z, tb->rv, tb->mod, cfg.Nref);
+    srsran_ldpc_rm_rx_c(&q->rx_rm, input_ptr, rm_buffer, E, cfg.F, cfg.bg, cfg.Z, tb->rv, tb->mod, cfg.Nref);
 
     // Decode
-    srslte_ldpc_decoder_decode_c(decoder, rm_buffer, q->temp_cb);
+    srsran_ldpc_decoder_decode_c(decoder, rm_buffer, q->temp_cb);
 
     // Compute CB CRC
     uint32_t cb_len = cfg.Kp - cfg.L_cb;
     if (cfg.L_cb) {
       uint8_t* ptr                 = q->temp_cb + cb_len;
-      uint32_t checksum1           = srslte_crc_checksum(&q->crc_cb, q->temp_cb, (int)cb_len);
-      uint32_t checksum2           = srslte_bit_pack(&ptr, cfg.L_cb);
+      uint32_t checksum1           = srsran_crc_checksum(&q->crc_cb, q->temp_cb, (int)cb_len);
+      uint32_t checksum2           = srsran_bit_pack(&ptr, cfg.L_cb);
       tb->softbuffer.rx->cb_crc[r] = (checksum1 == checksum2);
 
       SCH_INFO_RX("CB %d/%d: CRC={%06x, %06x} ... %s",
@@ -606,7 +606,7 @@ int sch_nr_decode(srslte_sch_nr_t*        q,
 
     // Pack and count CRC OK only if CRC is match
     if (tb->softbuffer.rx->cb_crc[r]) {
-      srslte_bit_pack_vector(q->temp_cb, tb->softbuffer.rx->data[r], cb_len);
+      srsran_bit_pack_vector(q->temp_cb, tb->softbuffer.rx->data[r], cb_len);
       cb_ok++;
     }
 
@@ -626,18 +626,18 @@ int sch_nr_decode(srslte_sch_nr_t*        q,
         cb_len -= cfg.L_tb;
       }
 
-      srslte_vec_u8_copy(output_ptr, tb->softbuffer.rx->data[r], cb_len / 8);
+      srsran_vec_u8_copy(output_ptr, tb->softbuffer.rx->data[r], cb_len / 8);
       output_ptr += cb_len / 8;
 
-      if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_DEBUG && !handler_registered) {
+      if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
         DEBUG("CB %d:", r);
-        srslte_vec_fprint_byte(stdout, tb->softbuffer.rx->data[r], cb_len / 8);
+        srsran_vec_fprint_byte(stdout, tb->softbuffer.rx->data[r], cb_len / 8);
       }
       if (r == cfg.C - 1) {
         uint8_t  tb_crc_unpacked[24] = {};
         uint8_t* tb_crc_unpacked_ptr = tb_crc_unpacked;
-        srslte_bit_unpack_vector(&tb->softbuffer.rx->data[r][cb_len / 8], tb_crc_unpacked, cfg.L_tb);
-        checksum2 = srslte_bit_pack(&tb_crc_unpacked_ptr, cfg.L_tb);
+        srsran_bit_unpack_vector(&tb->softbuffer.rx->data[r][cb_len / 8], tb_crc_unpacked, cfg.L_tb);
+        checksum2 = srsran_bit_pack(&tb_crc_unpacked_ptr, cfg.L_tb);
       }
     }
 
@@ -648,33 +648,33 @@ int sch_nr_decode(srslte_sch_nr_t*        q,
     }
 
     // Calculate TB CRC from packed data
-    uint32_t checksum1 = srslte_crc_checksum_byte(crc_tb, data, tb->tbs);
+    uint32_t checksum1 = srsran_crc_checksum_byte(crc_tb, data, tb->tbs);
     *crc_ok            = (checksum1 == checksum2 && !all_zeros);
 
     SCH_INFO_RX("TB: TBS=%d; CRC={%06x, %06x}", tb->tbs, checksum1, checksum2);
-    if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_DEBUG && !handler_registered) {
+    if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
       DEBUG("Decode: ");
-      srslte_vec_fprint_byte(stdout, data, tb->tbs / 8);
+      srsran_vec_fprint_byte(stdout, data, tb->tbs / 8);
     }
   } else {
     *crc_ok = false;
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-int srslte_dlsch_nr_encode(srslte_sch_nr_t*        q,
-                           const srslte_sch_cfg_t* pdsch_cfg,
-                           const srslte_sch_tb_t*  tb,
+int srsran_dlsch_nr_encode(srsran_sch_nr_t*        q,
+                           const srsran_sch_cfg_t* pdsch_cfg,
+                           const srsran_sch_tb_t*  tb,
                            const uint8_t*          data,
                            uint8_t*                e_bits)
 {
   return sch_nr_encode(q, pdsch_cfg, tb, data, e_bits);
 }
 
-int srslte_dlsch_nr_decode(srslte_sch_nr_t*        q,
-                           const srslte_sch_cfg_t* sch_cfg,
-                           const srslte_sch_tb_t*  tb,
+int srsran_dlsch_nr_decode(srsran_sch_nr_t*        q,
+                           const srsran_sch_cfg_t* sch_cfg,
+                           const srsran_sch_tb_t*  tb,
                            int8_t*                 e_bits,
                            uint8_t*                data,
                            bool*                   crc_ok)
@@ -682,18 +682,18 @@ int srslte_dlsch_nr_decode(srslte_sch_nr_t*        q,
   return sch_nr_decode(q, sch_cfg, tb, e_bits, data, crc_ok);
 }
 
-int srslte_ulsch_nr_encode(srslte_sch_nr_t*        q,
-                           const srslte_sch_cfg_t* pdsch_cfg,
-                           const srslte_sch_tb_t*  tb,
+int srsran_ulsch_nr_encode(srsran_sch_nr_t*        q,
+                           const srsran_sch_cfg_t* pdsch_cfg,
+                           const srsran_sch_tb_t*  tb,
                            const uint8_t*          data,
                            uint8_t*                e_bits)
 {
   return sch_nr_encode(q, pdsch_cfg, tb, data, e_bits);
 }
 
-int srslte_ulsch_nr_decode(srslte_sch_nr_t*        q,
-                           const srslte_sch_cfg_t* sch_cfg,
-                           const srslte_sch_tb_t*  tb,
+int srsran_ulsch_nr_decode(srsran_sch_nr_t*        q,
+                           const srsran_sch_cfg_t* sch_cfg,
+                           const srsran_sch_tb_t*  tb,
                            int8_t*                 e_bits,
                            uint8_t*                data,
                            bool*                   crc_ok)
@@ -701,16 +701,16 @@ int srslte_ulsch_nr_decode(srslte_sch_nr_t*        q,
   return sch_nr_decode(q, sch_cfg, tb, e_bits, data, crc_ok);
 }
 
-int srslte_sch_nr_tb_info(const srslte_sch_tb_t* tb, char* str, uint32_t str_len)
+int srsran_sch_nr_tb_info(const srsran_sch_tb_t* tb, char* str, uint32_t str_len)
 {
   int len = 0;
 
   if (tb->enabled) {
-    len += srslte_print_check(str,
+    len += srsran_print_check(str,
                               str_len,
                               len,
                               "tb={mod=%s,Nl=%d,tbs=%d,R=%.3f,rv=%d,Nre=%d,Nbit=%d,cw=%d}",
-                              srslte_mod_string(tb->mod),
+                              srsran_mod_string(tb->mod),
                               tb->N_L,
                               tb->tbs / 8,
                               tb->R,

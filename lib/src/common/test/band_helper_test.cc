@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,12 +10,12 @@
  *
  */
 
-#include "srslte/common/band_helper.h"
-#include "srslte/common/test_common.h"
+#include "srsran/common/band_helper.h"
+#include "srsran/common/test_common.h"
 
 int bands_test_nr()
 {
-  srslte::srslte_band_helper bands;
+  srsran::srsran_band_helper bands;
 
   TESTASSERT(bands.nr_arfcn_to_freq(632628) == 3489.42e6);
 
@@ -34,15 +34,15 @@ int bands_test_nr()
 
   // Invalid configs
   // For 30 kHz, 620001 is not a valid ARFCN, only every 2nd
-  band_vector = bands.get_bands_nr(620001, srslte::srslte_band_helper::KHZ_30);
+  band_vector = bands.get_bands_nr(620001, srsran::srsran_band_helper::KHZ_30);
   TESTASSERT(band_vector.empty());
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int main(int argc, char** argv)
 {
-  TESTASSERT(bands_test_nr() == SRSLTE_SUCCESS);
+  TESTASSERT(bands_test_nr() == SRSRAN_SUCCESS);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }

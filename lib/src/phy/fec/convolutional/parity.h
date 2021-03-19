@@ -2,15 +2,15 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
  * the distribution.
  *
  */
-#ifndef SRSLTE_PARITY_H_
-#define SRSLTE_PARITY_H_
+#ifndef SRSRAN_PARITY_H_
+#define SRSRAN_PARITY_H_
 
 #include <inttypes.h>
 
@@ -47,4 +47,4 @@ static inline uint32_t parity(int x)
   return parityb(x);
 }
 
-#endif /* SRSLTE_PARITY_H_ */
+#endif /* SRSRAN_PARITY_H_ */

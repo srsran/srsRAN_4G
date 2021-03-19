@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -14,7 +14,7 @@
 #include <sys/mman.h>
 
 #include "srsenb/hdr/phy/vnf_phy_nr.h"
-#include "srslte/common/basic_vnf_api.h"
+#include "srsran/common/basic_vnf_api.h"
 
 using namespace std;
 
@@ -32,11 +32,11 @@ int vnf_phy_nr::init(const srsenb::phy_args_t& args, const nr_phy_cfg_t& cfg, sr
   mlockall(MCL_CURRENT | MCL_FUTURE);
 
   // create VNF
-  vnf = std::unique_ptr<srslte::srslte_basic_vnf>(new srslte::srslte_basic_vnf(args.vnf_args, stack_));
+  vnf = std::unique_ptr<srsran::srsran_basic_vnf>(new srsran::srsran_basic_vnf(args.vnf_args, stack_));
 
   initialized = true;
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 void vnf_phy_nr::stop()

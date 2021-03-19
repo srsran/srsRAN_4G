@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -11,11 +11,11 @@
  */
 
 #include "srsenb/hdr/stack/upper/pdcp_nr.h"
-#include "lib/include/srslte/interfaces/nr_common_interface_types.h"
+#include "lib/include/srsran/interfaces/nr_common_interface_types.h"
 
 namespace srsenb {
 
-pdcp_nr::pdcp_nr(srslte::task_sched_handle task_sched_, const char* logname) :
+pdcp_nr::pdcp_nr(srsran::task_sched_handle task_sched_, const char* logname) :
   task_sched(task_sched_), logger(srslog::fetch_basic_logger(logname))
 {}
 
@@ -44,7 +44,7 @@ void pdcp_nr::stop()
 void pdcp_nr::add_user(uint16_t rnti)
 {
   if (users.count(rnti) == 0) {
-    users[rnti].pdcp.reset(new srslte::pdcp(task_sched, "PDCP"));
+    users[rnti].pdcp.reset(new srsran::pdcp(task_sched, "PDCP"));
     users[rnti].rlc_itf.rnti  = rnti;
     users[rnti].sdap_itf.rnti = rnti;
     users[rnti].rrc_itf.rnti  = rnti;
@@ -60,7 +60,7 @@ void pdcp_nr::rem_user(uint16_t rnti)
   users.erase(rnti);
 }
 
-void pdcp_nr::add_bearer(uint16_t rnti, uint32_t lcid, srslte::pdcp_config_t cfg)
+void pdcp_nr::add_bearer(uint16_t rnti, uint32_t lcid, srsran::pdcp_config_t cfg)
 {
   if (users.count(rnti)) {
     users[rnti].pdcp->add_bearer(lcid, cfg);
@@ -74,7 +74,7 @@ void pdcp_nr::reset(uint16_t rnti)
   }
 }
 
-void pdcp_nr::config_security(uint16_t rnti, uint32_t lcid, srslte::as_security_config_t sec_cfg)
+void pdcp_nr::config_security(uint16_t rnti, uint32_t lcid, srsran::as_security_config_t sec_cfg)
 {
   if (users.count(rnti)) {
     users[rnti].pdcp->config_security(lcid, sec_cfg);
@@ -83,15 +83,15 @@ void pdcp_nr::config_security(uint16_t rnti, uint32_t lcid, srslte::as_security_
 
 void pdcp_nr::enable_integrity(uint16_t rnti, uint32_t lcid)
 {
-  users[rnti].pdcp->enable_integrity(lcid, srslte::DIRECTION_TXRX);
+  users[rnti].pdcp->enable_integrity(lcid, srsran::DIRECTION_TXRX);
 }
 
 void pdcp_nr::enable_encryption(uint16_t rnti, uint32_t lcid)
 {
-  users[rnti].pdcp->enable_encryption(lcid, srslte::DIRECTION_TXRX);
+  users[rnti].pdcp->enable_encryption(lcid, srsran::DIRECTION_TXRX);
 }
 
-void pdcp_nr::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu)
+void pdcp_nr::write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t sdu)
 {
   if (users.count(rnti)) {
     users[rnti].pdcp->write_pdu(lcid, std::move(sdu));
@@ -100,7 +100,7 @@ void pdcp_nr::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer
   }
 }
 
-void pdcp_nr::notify_delivery(uint16_t rnti, uint32_t lcid, const srslte::pdcp_sn_vector_t& pdcp_sns)
+void pdcp_nr::notify_delivery(uint16_t rnti, uint32_t lcid, const srsran::pdcp_sn_vector_t& pdcp_sns)
 {
   if (users.count(rnti)) {
     users[rnti].pdcp->notify_delivery(lcid, pdcp_sns);
@@ -109,7 +109,7 @@ void pdcp_nr::notify_delivery(uint16_t rnti, uint32_t lcid, const srslte::pdcp_s
   }
 }
 
-void pdcp_nr::notify_failure(uint16_t rnti, uint32_t lcid, const srslte::pdcp_sn_vector_t& pdcp_sns)
+void pdcp_nr::notify_failure(uint16_t rnti, uint32_t lcid, const srsran::pdcp_sn_vector_t& pdcp_sns)
 {
   if (users.count(rnti)) {
     users[rnti].pdcp->notify_failure(lcid, pdcp_sns);
@@ -118,7 +118,7 @@ void pdcp_nr::notify_failure(uint16_t rnti, uint32_t lcid, const srslte::pdcp_sn
   }
 }
 
-void pdcp_nr::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu)
+void pdcp_nr::write_sdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t sdu)
 {
   if (users.count(rnti)) {
     users[rnti].pdcp->write_sdu(lcid, std::move(sdu));
@@ -127,12 +127,12 @@ void pdcp_nr::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer
   }
 }
 
-void pdcp_nr::user_interface_sdap::write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
+void pdcp_nr::user_interface_sdap::write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
   sdap->write_pdu(rnti, lcid, std::move(pdu));
 }
 
-void pdcp_nr::user_interface_rlc::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)
+void pdcp_nr::user_interface_rlc::write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu)
 {
   rlc->write_sdu(rnti, lcid, std::move(sdu));
 }
@@ -152,29 +152,29 @@ bool pdcp_nr::user_interface_rlc::sdu_queue_is_full(uint32_t lcid)
   return rlc->sdu_queue_is_full(rnti, lcid);
 }
 
-void pdcp_nr::user_interface_rrc::write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
+void pdcp_nr::user_interface_rrc::write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
   rrc->write_pdu(rnti, lcid, std::move(pdu));
 }
 
-void pdcp_nr::user_interface_rrc::write_pdu_bcch_bch(srslte::unique_byte_buffer_t pdu)
+void pdcp_nr::user_interface_rrc::write_pdu_bcch_bch(srsran::unique_byte_buffer_t pdu)
 {
   ERROR("Error: Received BCCH from ue=%d", rnti);
 }
 
-void pdcp_nr::user_interface_rrc::write_pdu_bcch_dlsch(srslte::unique_byte_buffer_t pdu)
+void pdcp_nr::user_interface_rrc::write_pdu_bcch_dlsch(srsran::unique_byte_buffer_t pdu)
 {
   ERROR("Error: Received BCCH from ue=%d", rnti);
 }
 
-void pdcp_nr::user_interface_rrc::write_pdu_pcch(srslte::unique_byte_buffer_t pdu)
+void pdcp_nr::user_interface_rrc::write_pdu_pcch(srsran::unique_byte_buffer_t pdu)
 {
   ERROR("Error: Received PCCH from ue=%d", rnti);
 }
 
 std::string pdcp_nr::user_interface_rrc::get_rb_name(uint32_t lcid)
 {
-  return srslte::to_string(static_cast<srslte::rb_id_nr_t>(lcid));
+  return srsran::to_string(static_cast<srsran::rb_id_nr_t>(lcid));
 }
 
 } // namespace srsenb

@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,15 +10,15 @@
  *
  */
 
-#ifndef SRSLTE_RRC_BEARER_CFG_H
-#define SRSLTE_RRC_BEARER_CFG_H
+#ifndef SRSRAN_RRC_BEARER_CFG_H
+#define SRSRAN_RRC_BEARER_CFG_H
 
 #include "srsenb/hdr/stack/rrc/rrc_config.h"
-#include "srslte/asn1/s1ap.h"
-#include "srslte/interfaces/enb_gtpu_interfaces.h"
-#include "srslte/interfaces/enb_interfaces.h"
-#include "srslte/interfaces/enb_rrc_interface_types.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/asn1/s1ap.h"
+#include "srsran/interfaces/enb_gtpu_interfaces.h"
+#include "srsran/interfaces/enb_interfaces.h"
+#include "srsran/interfaces/enb_rrc_interface_types.h"
+#include "srsran/srslog/srslog.h"
 
 namespace srsenb {
 
@@ -42,7 +42,7 @@ public:
   void set_ncc(uint8_t ncc_) { ncc = ncc_; }
 
   asn1::rrc::security_algorithm_cfg_s get_security_algorithm_cfg();
-  const srslte::as_security_config_t& get_as_sec_cfg() const { return sec_cfg; }
+  const srsran::as_security_config_t& get_as_sec_cfg() const { return sec_cfg; }
   uint8_t                             get_ncc() const { return ncc; }
   bool                                is_as_sec_cfg_valid() const { return k_enb_present; }
 
@@ -56,7 +56,7 @@ private:
   bool                          k_enb_present         = false;
   asn1::s1ap::ue_security_cap_s security_capabilities = {};
   uint8_t                       k_enb[32]             = {}; // Provided by MME
-  srslte::as_security_config_t  sec_cfg               = {};
+  srsran::as_security_config_t  sec_cfg               = {};
   uint8_t                       ncc                   = 0;
 };
 
@@ -117,4 +117,4 @@ private:
 
 } // namespace srsenb
 
-#endif // SRSLTE_RRC_BEARER_CFG_H
+#endif // SRSRAN_RRC_BEARER_CFG_H

@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -84,7 +84,7 @@ static const __m256i mask_even_epi8 = {0x00FF00FF00FF00FF,
  * \brief Mask needed for node rotation: mask_least_epi8[i] marks the bits
  * corresponding to the \b i least significant chars.
  */
-static const __m256i mask_least_epi8[SRSLTE_AVX2_B_SIZE + 1] = {
+static const __m256i mask_least_epi8[SRSRAN_AVX2_B_SIZE + 1] = {
     {0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000},  // NOLINT
     {0x00000000000000FF, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000},  // NOLINT
     {0x000000000000FFFF, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000},  // NOLINT
@@ -121,9 +121,9 @@ static const __m256i mask_least_epi8[SRSLTE_AVX2_B_SIZE + 1] = {
 
 /*!
  * \brief Mask needed for node rotation: mask_most_epi8[i] marks the bits
- * corresponding to the SRSLTE_AVX2_B_SIZE - \b i most significant chars.
+ * corresponding to the SRSRAN_AVX2_B_SIZE - \b i most significant chars.
  */
-static const __m256i mask_most_epi8[SRSLTE_AVX2_B_SIZE + 1] = {
+static const __m256i mask_most_epi8[SRSRAN_AVX2_B_SIZE + 1] = {
     {0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF},  // NOLINT
     {0xFFFFFFFFFFFFFF00, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF},  // NOLINT
     {0xFFFFFFFFFFFF0000, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF},  // NOLINT

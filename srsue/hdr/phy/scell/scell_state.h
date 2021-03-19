@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,12 +10,12 @@
  *
  */
 
-#ifndef SRSLTE_SCELL_STATE_H
-#define SRSLTE_SCELL_STATE_H
+#ifndef SRSRAN_SCELL_STATE_H
+#define SRSRAN_SCELL_STATE_H
 
 #include <cinttypes>
 #include <mutex>
-#include <srslte/common/common.h>
+#include <srsran/common/common.h>
 
 namespace srsue {
 namespace scell {
@@ -47,7 +47,7 @@ private:
     enum { none = 0, inactive, active } status = none;
   };
 
-  std::array<cfg, SRSLTE_MAX_CARRIERS> scell_cfg;
+  std::array<cfg, SRSRAN_MAX_CARRIERS> scell_cfg;
 
   enum { idle = 0, waiting, transition } activation_state = idle;
   uint32_t           activation_cmd                       = 0;
@@ -116,7 +116,7 @@ public:
         if (TTI_SUB(tti, activation_tti) >= activation_margin_tti) {
 
           // Reload cell states
-          for (uint32_t i = 1; i < SRSLTE_MAX_CARRIERS; i++) {
+          for (uint32_t i = 1; i < SRSRAN_MAX_CARRIERS; i++) {
             // Get Activation command value
             bool activate = _get_cmd_activation(i);
 
@@ -137,7 +137,7 @@ public:
   {
     std::unique_lock<std::mutex> lock(mutex);
 
-    if (cc_idx == 0 or cc_idx >= SRSLTE_MAX_CARRIERS) {
+    if (cc_idx == 0 or cc_idx >= SRSRAN_MAX_CARRIERS) {
       ERROR("CC IDX %d out-of-range", cc_idx);
       return;
     }
@@ -154,7 +154,7 @@ public:
       return true;
     }
 
-    if (cc_idx >= SRSLTE_MAX_CARRIERS) {
+    if (cc_idx >= SRSRAN_MAX_CARRIERS) {
       return false;
     }
 
@@ -176,7 +176,7 @@ public:
       return true;
     }
 
-    if (cc_idx >= SRSLTE_MAX_CARRIERS) {
+    if (cc_idx >= SRSRAN_MAX_CARRIERS) {
       return false;
     }
 
@@ -202,7 +202,7 @@ public:
   {
     std::unique_lock<std::mutex> lock(mutex);
 
-    if (cc_idx == 0 or cc_idx >= SRSLTE_MAX_CARRIERS) {
+    if (cc_idx == 0 or cc_idx >= SRSRAN_MAX_CARRIERS) {
       ERROR("CC IDX %d out-of-range", cc_idx);
       return 0;
     }
@@ -214,7 +214,7 @@ public:
   {
     std::unique_lock<std::mutex> lock(mutex);
 
-    if (cc_idx == 0 or cc_idx >= SRSLTE_MAX_CARRIERS) {
+    if (cc_idx == 0 or cc_idx >= SRSRAN_MAX_CARRIERS) {
       ERROR("CC IDX %d out-of-range", cc_idx);
       return 0;
     }
@@ -224,4 +224,4 @@ public:
 };
 } // namespace scell
 } // namespace srsue
-#endif // SRSLTE_SCELL_STATE_H
+#endif // SRSRAN_SCELL_STATE_H

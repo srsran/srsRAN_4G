@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -10,11 +10,11 @@
  *
  */
 
-#include "srslte/asn1/rrc/meascfg.h"
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/test_common.h"
-#include "srslte/test/ue_test_interfaces.h"
-#include "srslte/upper/pdcp.h"
+#include "srsran/asn1/rrc/meascfg.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/common/test_common.h"
+#include "srsran/test/ue_test_interfaces.h"
+#include "srsran/upper/pdcp.h"
 #include "srsue/hdr/stack/rrc/rrc.h"
 #include "srsue/hdr/stack/rrc/rrc_meas.h"
 #include "srsue/hdr/stack/rrc/rrc_nr.h"
@@ -34,12 +34,12 @@ public:
   }
 
   // Not implemented methods
-  bool set_config(srslte::phy_cfg_t config, uint32_t cc_idx) override { return true; }
-  bool set_scell(srslte_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn) override { return true; }
-  void set_config_tdd(srslte_tdd_config_t& tdd_config) override {}
-  void set_config_mbsfn_sib2(srslte::mbsfn_sf_cfg_t* cfg_list, uint32_t nof_cfgs) override {}
-  void set_config_mbsfn_sib13(const srslte::sib13_t& sib13) override {}
-  void set_config_mbsfn_mcch(const srslte::mcch_msg_t& mcch) override {}
+  bool set_config(srsran::phy_cfg_t config, uint32_t cc_idx) override { return true; }
+  bool set_scell(srsran_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn) override { return true; }
+  void set_config_tdd(srsran_tdd_config_t& tdd_config) override {}
+  void set_config_mbsfn_sib2(srsran::mbsfn_sf_cfg_t* cfg_list, uint32_t nof_cfgs) override {}
+  void set_config_mbsfn_sib13(const srsran::sib13_t& sib13) override {}
+  void set_config_mbsfn_mcch(const srsran::mcch_msg_t& mcch) override {}
   bool cell_search() override { return true; }
   bool cell_is_camping() override { return true; }
   void deactivate_scells() override {}
@@ -101,10 +101,10 @@ private:
 class mac_test : public srsue::mac_interface_rrc
 {
 public:
-  srslte::task_sched_handle task_sched;
+  srsran::task_sched_handle task_sched;
   rrc*                      rrc_ptr;
 
-  mac_test(rrc* rrc_, srslte::task_sched_handle task_sched_) : rrc_ptr(rrc_), task_sched(task_sched_) {}
+  mac_test(rrc* rrc_, srsran::task_sched_handle task_sched_) : rrc_ptr(rrc_), task_sched(task_sched_) {}
 
   int get_dlsch_with_sib1(bcch_dl_sch_msg_s& dlsch_msg)
   {
@@ -125,7 +125,7 @@ public:
   void bcch_start_rx(int si_window_start, int si_window_length) override
   {
     task_sched.defer_task([this]() {
-      srslte::unique_byte_buffer_t pdu;
+      srsran::unique_byte_buffer_t pdu;
       for (uint32_t i = 0; i < 2; ++i) {
         bcch_dl_sch_msg_s dlsch_msg;
         if (i == 0) {
@@ -134,7 +134,7 @@ public:
           get_dlsch_with_sys_info(dlsch_msg);
         }
 
-        pdu = srslte::make_byte_buffer();
+        pdu = srsran::make_byte_buffer();
         asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
         dlsch_msg.pack(bref);
         pdu->N_bytes = bref.distance_bytes();
@@ -149,8 +149,8 @@ public:
 
   void mch_start_rx(uint32_t lcid) override {}
 
-  void set_config(srslte::mac_cfg_t& mac_cfg) override {}
-  void set_config(srslte::sr_cfg_t& sr_cfg) override {}
+  void set_config(srsran::mac_cfg_t& mac_cfg) override {}
+  void set_config(srsran::sr_cfg_t& sr_cfg) override {}
   void set_rach_ded_cfg(uint32_t preamble_index, uint32_t prach_mask) override {}
 
   void get_rntis(ue_rnti_t* rntis) override {}
@@ -165,8 +165,8 @@ class rrc_nr_test final : public srsue::rrc_nr_interface_rrc
 {
 public:
   ~rrc_nr_test() = default;
-  void get_eutra_nr_capabilities(srslte::byte_buffer_t* eutra_nr_caps) override{};
-  void get_nr_capabilities(srslte::byte_buffer_t* nr_cap) override{};
+  void get_eutra_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps) override{};
+  void get_nr_capabilities(srsran::byte_buffer_t* nr_cap) override{};
   void phy_set_cells_to_meas(uint32_t carrier_freq_r15) override{};
   void phy_meas_stop() override{};
   bool rrc_reconfiguration(bool                endc_release_and_add_r15,
@@ -185,15 +185,15 @@ public:
 class nas_test : public srsue::nas
 {
 public:
-  nas_test(srslte::task_sched_handle t) : srsue::nas(t) {}
+  nas_test(srsran::task_sched_handle t) : srsue::nas(t) {}
   bool is_registered() override { return false; }
 };
 
-class pdcp_test : public srslte::pdcp
+class pdcp_test : public srsran::pdcp
 {
 public:
-  pdcp_test(const char* logname, srslte::task_sched_handle t) : srslte::pdcp(t, logname) {}
-  void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, int sn = -1) override
+  pdcp_test(const char* logname, srsran::task_sched_handle t) : srsran::pdcp(t, logname) {}
+  void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu, int sn = -1) override
   {
     ul_dcch_msg_s  ul_dcch_msg;
     asn1::cbit_ref bref(sdu->msg, sdu->N_bytes);
@@ -298,7 +298,7 @@ public:
 
   void send_ccch_msg(dl_ccch_msg_s& dl_ccch_msg)
   {
-    srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+    srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
 
     asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
     dl_ccch_msg.pack(bref);
@@ -310,7 +310,7 @@ public:
 
   void send_dcch_msg(dl_dcch_msg_s& dl_dcch_msg)
   {
-    srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+    srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
     ;
     asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
     dl_dcch_msg.pack(bref);
@@ -397,7 +397,7 @@ int cell_select_test()
     TESTASSERT(!rrctest.has_neighbour_cell(2, 2));
 
     // Start cell selection procedure. The RRC will start with strongest cell
-    TESTASSERT(rrctest.start_cell_select() == SRSLTE_SUCCESS);
+    TESTASSERT(rrctest.start_cell_select() == SRSRAN_SUCCESS);
     stack.run_pending_tasks();
     TESTASSERT(rrctest.phytest.last_selected_cell.earfcn == 2);
     TESTASSERT(rrctest.phytest.last_selected_cell.pci == 2);
@@ -424,7 +424,7 @@ int cell_select_test()
     TESTASSERT(rrctest.has_neighbour_cell(2, 3));
 
     // Start cell selection procedure. The RRC will start with strongest cell
-    TESTASSERT(rrctest.start_cell_select() == SRSLTE_SUCCESS);
+    TESTASSERT(rrctest.start_cell_select() == SRSRAN_SUCCESS);
     TESTASSERT(rrctest.phytest.last_selected_cell.earfcn == 1);
     TESTASSERT(rrctest.phytest.last_selected_cell.pci == 1);
     stack.run_pending_tasks();
@@ -449,7 +449,7 @@ int cell_select_test()
     cell_search_cell.pci                                      = 5;
     cell_search_cell.earfcn                                   = 5;
     cell_search_ret.found = srsue::rrc_interface_phy_lte::cell_search_ret_t::CELL_FOUND;
-    TESTASSERT(rrctest.start_cell_select() == SRSLTE_SUCCESS);
+    TESTASSERT(rrctest.start_cell_select() == SRSRAN_SUCCESS);
     rrctest.cell_select_complete(false); // it will fail to select pci=2
     stack.run_pending_tasks();
     rrctest.cell_select_complete(false); // it will fail to select pci=3
@@ -465,7 +465,7 @@ int cell_select_test()
     TESTASSERT(rrctest.is_serving_cell(5, 5));
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // Tests the measObject configuration and the successful activation of PHY cells to search for
@@ -1131,7 +1131,7 @@ int a3event_report_test(uint32_t a3_offset, uint32_t hyst, bool report_on_leave)
   TESTASSERT(meas_res.meas_result_neigh_cells.meas_result_list_eutra()[0].meas_result.rsrp_result ==
              81 + (hyst + a3_offset) / 2);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // Minimal testcase for testing inter rat reporting with nr
@@ -1226,7 +1226,7 @@ int meas_obj_inter_rat_nr_test()
     rrctest.add_neighbour_cell_nr(500, 631680, -60.0);
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int main(int argc, char** argv)
@@ -1240,21 +1240,21 @@ int main(int argc, char** argv)
 
   srslog::init();
 
-  TESTASSERT(cell_select_test() == SRSLTE_SUCCESS);
-  TESTASSERT(meas_obj_test() == SRSLTE_SUCCESS);
-  TESTASSERT(meas_obj_inter_rat_nr_test() == SRSLTE_SUCCESS);
+  TESTASSERT(cell_select_test() == SRSRAN_SUCCESS);
+  TESTASSERT(meas_obj_test() == SRSRAN_SUCCESS);
+  TESTASSERT(meas_obj_inter_rat_nr_test() == SRSRAN_SUCCESS);
   TESTASSERT(
       a1event_report_test(
           30, time_to_trigger_opts::ms40, 3, report_cfg_eutra_s::report_amount_opts::r1, report_interv_opts::ms120) ==
-      SRSLTE_SUCCESS);
+      SRSRAN_SUCCESS);
   TESTASSERT(
       a1event_report_test(
           30, time_to_trigger_opts::ms0, 3, report_cfg_eutra_s::report_amount_opts::r1, report_interv_opts::ms120) ==
-      SRSLTE_SUCCESS);
+      SRSRAN_SUCCESS);
   TESTASSERT(
       a1event_report_test(
           30, time_to_trigger_opts::ms40, 3, report_cfg_eutra_s::report_amount_opts::r8, report_interv_opts::ms120) ==
-      SRSLTE_SUCCESS);
-  TESTASSERT(a3event_report_test(6, 3, true) == SRSLTE_SUCCESS);
-  return SRSLTE_SUCCESS;
+      SRSRAN_SUCCESS);
+  TESTASSERT(a3event_report_test(6, 3, true) == SRSRAN_SUCCESS);
+  return SRSRAN_SUCCESS;
 }

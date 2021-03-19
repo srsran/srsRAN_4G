@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -15,11 +15,11 @@
 #include <stdlib.h>
 #include <strings.h>
 
-#include "srslte/phy/io/filesink.h"
+#include "srsran/phy/io/filesink.h"
 
-int srslte_filesink_init(srslte_filesink_t* q, char* filename, srslte_datatype_t type)
+int srsran_filesink_init(srsran_filesink_t* q, char* filename, srsran_datatype_t type)
 {
-  bzero(q, sizeof(srslte_filesink_t));
+  bzero(q, sizeof(srsran_filesink_t));
   q->f = fopen(filename, "w");
   if (!q->f) {
     perror("fopen");
@@ -29,15 +29,15 @@ int srslte_filesink_init(srslte_filesink_t* q, char* filename, srslte_datatype_t
   return 0;
 }
 
-void srslte_filesink_free(srslte_filesink_t* q)
+void srsran_filesink_free(srsran_filesink_t* q)
 {
   if (q->f) {
     fclose(q->f);
   }
-  bzero(q, sizeof(srslte_filesink_t));
+  bzero(q, sizeof(srsran_filesink_t));
 }
 
-int srslte_filesink_write(srslte_filesink_t* q, void* buffer, int nsamples)
+int srsran_filesink_write(srsran_filesink_t* q, void* buffer, int nsamples)
 {
   int             i    = 0;
   float*          fbuf = (float*)buffer;
@@ -46,15 +46,15 @@ int srslte_filesink_write(srslte_filesink_t* q, void* buffer, int nsamples)
   int             size = 0;
 
   switch (q->type) {
-    case SRSLTE_TEXT:
+    case SRSRAN_TEXT:
       fprintf(q->f, "%s", (char*)buffer);
       break;
-    case SRSLTE_FLOAT:
+    case SRSRAN_FLOAT:
       for (i = 0; i < nsamples; i++) {
         fprintf(q->f, "%g\n", fbuf[i]);
       }
       break;
-    case SRSLTE_COMPLEX_FLOAT:
+    case SRSRAN_COMPLEX_FLOAT:
       for (i = 0; i < nsamples; i++) {
         if (__imag__ cbuf[i] >= 0)
           fprintf(q->f, "%g+%gi\n", __real__ cbuf[i], __imag__ cbuf[i]);
@@ -62,7 +62,7 @@ int srslte_filesink_write(srslte_filesink_t* q, void* buffer, int nsamples)
           fprintf(q->f, "%g-%gi\n", __real__ cbuf[i], fabsf(__imag__ cbuf[i]));
       }
       break;
-    case SRSLTE_COMPLEX_SHORT:
+    case SRSRAN_COMPLEX_SHORT:
       for (i = 0; i < nsamples; i++) {
         if (__imag__ sbuf[i] >= 0)
           fprintf(q->f, "%hd+%hdi\n", __real__ sbuf[i], __imag__ sbuf[i]);
@@ -70,14 +70,14 @@ int srslte_filesink_write(srslte_filesink_t* q, void* buffer, int nsamples)
           fprintf(q->f, "%hd-%hdi\n", __real__ sbuf[i], (short)abs(__imag__ sbuf[i]));
       }
       break;
-    case SRSLTE_FLOAT_BIN:
-    case SRSLTE_COMPLEX_FLOAT_BIN:
-    case SRSLTE_COMPLEX_SHORT_BIN:
-      if (q->type == SRSLTE_FLOAT_BIN) {
+    case SRSRAN_FLOAT_BIN:
+    case SRSRAN_COMPLEX_FLOAT_BIN:
+    case SRSRAN_COMPLEX_SHORT_BIN:
+      if (q->type == SRSRAN_FLOAT_BIN) {
         size = sizeof(float);
-      } else if (q->type == SRSLTE_COMPLEX_FLOAT_BIN) {
+      } else if (q->type == SRSRAN_COMPLEX_FLOAT_BIN) {
         size = sizeof(_Complex float);
-      } else if (q->type == SRSLTE_COMPLEX_SHORT_BIN) {
+      } else if (q->type == SRSRAN_COMPLEX_SHORT_BIN) {
         size = sizeof(_Complex short);
       }
       return fwrite(buffer, size, nsamples, q->f);
@@ -88,7 +88,7 @@ int srslte_filesink_write(srslte_filesink_t* q, void* buffer, int nsamples)
   return i;
 }
 
-int srslte_filesink_write_multi(srslte_filesink_t* q, void** buffer, int nsamples, int nchannels)
+int srsran_filesink_write_multi(srsran_filesink_t* q, void** buffer, int nsamples, int nchannels)
 {
   int              i, j;
   float**          fbuf = (float**)buffer;
@@ -97,35 +97,35 @@ int srslte_filesink_write_multi(srslte_filesink_t* q, void** buffer, int nsample
   int              size = 0;
 
   switch (q->type) {
-    case SRSLTE_FLOAT:
+    case SRSRAN_FLOAT:
       for (i = 0; i < nsamples; i++) {
         for (j = 0; j < nchannels; j++) {
           fprintf(q->f, "%g%c", fbuf[j][i], (j != (nchannels - 1)) ? '\t' : '\n');
         }
       }
       break;
-    case SRSLTE_COMPLEX_FLOAT:
+    case SRSRAN_COMPLEX_FLOAT:
       for (i = 0; i < nsamples; i++) {
         for (j = 0; j < nchannels; j++) {
           fprintf(q->f, "%g%+gi%c", __real__ cbuf[j][i], __imag__ cbuf[j][i], (j != (nchannels - 1)) ? '\t' : '\n');
         }
       }
       break;
-    case SRSLTE_COMPLEX_SHORT:
+    case SRSRAN_COMPLEX_SHORT:
       for (i = 0; i < nsamples; i++) {
         for (j = 0; j < nchannels; j++) {
           fprintf(q->f, "%hd%+hdi%c", __real__ sbuf[j][i], __imag__ sbuf[j][i], (j != (nchannels - 1)) ? '\t' : '\n');
         }
       }
       break;
-    case SRSLTE_FLOAT_BIN:
-    case SRSLTE_COMPLEX_FLOAT_BIN:
-    case SRSLTE_COMPLEX_SHORT_BIN:
-      if (q->type == SRSLTE_FLOAT_BIN) {
+    case SRSRAN_FLOAT_BIN:
+    case SRSRAN_COMPLEX_FLOAT_BIN:
+    case SRSRAN_COMPLEX_SHORT_BIN:
+      if (q->type == SRSRAN_FLOAT_BIN) {
         size = sizeof(float);
-      } else if (q->type == SRSLTE_COMPLEX_FLOAT_BIN) {
+      } else if (q->type == SRSRAN_COMPLEX_FLOAT_BIN) {
         size = sizeof(_Complex float);
-      } else if (q->type == SRSLTE_COMPLEX_SHORT_BIN) {
+      } else if (q->type == SRSRAN_COMPLEX_SHORT_BIN) {
         size = sizeof(_Complex short);
       }
       if (nchannels > 1) {
