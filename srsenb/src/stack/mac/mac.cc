@@ -443,22 +443,26 @@ uint16_t mac::allocate_ue()
   ue* inserted_ue = nullptr;
   do {
     // Get pre-allocated UE object
-    if (ue_pool.empty()) {
-      logger.error("Ignoring RACH attempt. UE pool empty.");
+    std::unique_ptr<ue> ue_ptr;
+    if (not ue_pool.try_pop(ue_ptr)) {
+      logger.error("UE pool empty. Ignoring RACH attempt.");
       return SRSRAN_INVALID_RNTI;
     }
-    std::unique_ptr<ue> ue_ptr = ue_pool.pop_blocking();
+    uint16_t rnti    = ue_ptr->get_rnti();
+    size_t   max_ues = std::min((size_t)args.max_nof_ues, ue_db.capacity());
 
     // Add UE to map
     {
       srsran::rwlock_write_guard lock(rwlock);
       if (ue_db.size() >= args.max_nof_ues) {
-        logger.warning("Maximum number of connected UEs %d reached. Ignoring PRACH", args.max_nof_ues);
+        logger.warning("Maximum number of connected UEs %zd connected to the eNB. Ignoring PRACH", max_ues);
         return SRSRAN_INVALID_RNTI;
       }
-      auto ret = ue_db.insert(ue_ptr->get_rnti(), std::move(ue_ptr));
+      auto ret = ue_db.insert(rnti, std::move(ue_ptr));
       if (ret) {
         inserted_ue = ret.value()->second.get();
+      } else {
+        logger.info("Failed to allocate rnti=0x%x. Attempting a different rnti.", rnti);
       }
     }
 
