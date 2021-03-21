@@ -87,7 +87,7 @@ int ue_sim::update(const sf_output_res_t& sf_out)
 void ue_sim::update_dl_harqs(const sf_output_res_t& sf_out)
 {
   for (uint32_t cc = 0; cc < sf_out.cc_params.size(); ++cc) {
-    for (uint32_t i = 0; i < sf_out.dl_cc_result[cc].nof_data_elems; ++i) {
+    for (uint32_t i = 0; i < sf_out.dl_cc_result[cc].data.size(); ++i) {
       const auto& data = sf_out.dl_cc_result[cc].data[i];
       if (data.dci.rnti != ctxt.rnti) {
         continue;
@@ -116,7 +116,7 @@ void ue_sim::update_ul_harqs(const sf_output_res_t& sf_out)
   uint32_t pid = to_tx_ul(sf_out.tti_rx).to_uint() % (FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS);
   for (uint32_t cc = 0; cc < sf_out.cc_params.size(); ++cc) {
     // Update UL harqs with PHICH info
-    for (uint32_t i = 0; i < sf_out.ul_cc_result[cc].nof_phich_elems; ++i) {
+    for (uint32_t i = 0; i < sf_out.ul_cc_result[cc].phich.size(); ++i) {
       const auto& phich = sf_out.ul_cc_result[cc].phich[i];
       if (phich.rnti != ctxt.rnti) {
         continue;
@@ -137,7 +137,7 @@ void ue_sim::update_ul_harqs(const sf_output_res_t& sf_out)
     }
 
     // Update UL harqs with PUSCH grants
-    for (uint32_t i = 0; i < sf_out.ul_cc_result[cc].nof_dci_elems; ++i) {
+    for (uint32_t i = 0; i < sf_out.ul_cc_result[cc].pusch.size(); ++i) {
       const auto& data = sf_out.ul_cc_result[cc].pusch[i];
       if (data.dci.rnti != ctxt.rnti) {
         continue;
@@ -180,7 +180,7 @@ void ue_sim::update_conn_state(const sf_output_res_t& sf_out)
     srslte::tti_interval rar_window{ctxt.prach_tti_rx + 3, ctxt.prach_tti_rx + 3 + rar_win_size};
 
     if (rar_window.contains(tti_tx_dl)) {
-      for (uint32_t i = 0; i < dl_cc_result.nof_rar_elems; ++i) {
+      for (uint32_t i = 0; i < dl_cc_result.rar.size(); ++i) {
         for (uint32_t j = 0; j < dl_cc_result.rar[i].msg3_grant.size(); ++j) {
           const auto& data = dl_cc_result.rar[i].msg3_grant[j].data;
           if (data.prach_tti == (uint32_t)ctxt.prach_tti_rx.to_uint() and data.preamble_idx == ctxt.preamble_idx) {
@@ -197,7 +197,7 @@ void ue_sim::update_conn_state(const sf_output_res_t& sf_out)
     srslte::tti_point expected_msg3_tti_rx = ctxt.rar_tti_rx + MSG3_DELAY_MS;
     if (expected_msg3_tti_rx == sf_out.tti_rx) {
       // Msg3 should exist
-      for (uint32_t i = 0; i < ul_cc_result.nof_dci_elems; ++i) {
+      for (uint32_t i = 0; i < ul_cc_result.pusch.size(); ++i) {
         if (ul_cc_result.pusch[i].dci.rnti == ctxt.rnti) {
           ctxt.msg3_tti_rx = sf_out.tti_rx;
         }
@@ -207,7 +207,7 @@ void ue_sim::update_conn_state(const sf_output_res_t& sf_out)
 
   if (ctxt.msg3_tti_rx.is_valid() and not ctxt.msg4_tti_rx.is_valid()) {
     // Msg3 scheduled, but Msg4 not yet scheduled
-    for (uint32_t i = 0; i < dl_cc_result.nof_data_elems; ++i) {
+    for (uint32_t i = 0; i < dl_cc_result.data.size(); ++i) {
       if (dl_cc_result.data[i].dci.rnti == ctxt.rnti) {
         for (uint32_t j = 0; j < dl_cc_result.data[i].nof_pdu_elems[0]; ++j) {
           if (dl_cc_result.data[i].pdu[0][j].lcid == (uint32_t)srslte::dl_sch_lcid::CON_RES_ID) {
@@ -220,10 +220,21 @@ void ue_sim::update_conn_state(const sf_output_res_t& sf_out)
   }
 }
 
+sched_sim_base::sched_sim_base(sched_interface*                                sched_ptr_,
+                               const sched_interface::sched_args_t&            sched_args,
+                               const std::vector<sched_interface::cell_cfg_t>& cell_cfg_list) :
+  logger(srslog::fetch_basic_logger("TEST")), sched_ptr(sched_ptr_), cell_params(cell_cfg_list.size())
+{
+  for (uint32_t cc = 0; cc < cell_params.size(); ++cc) {
+    cell_params[cc].set_cfg(cc, cell_cfg_list[cc], sched_args);
+  }
+  sched_ptr->cell_cfg(cell_cfg_list); // call parent cfg
+}
+
 int sched_sim_base::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& ue_cfg_, uint32_t preamble_idx)
 {
   CONDERROR(!srslte_prach_tti_opportunity_config_fdd(
-                (*cell_params)[ue_cfg_.supported_cc_list[0].enb_cc_idx].prach_config, current_tti_rx.to_uint(), -1),
+                cell_params[ue_cfg_.supported_cc_list[0].enb_cc_idx].cfg.prach_config, current_tti_rx.to_uint(), -1),
             "New user added in a non-PRACH TTI");
   TESTASSERT(ue_db.count(rnti) == 0);
 
@@ -287,7 +298,7 @@ sim_enb_ctxt_t sched_sim_base::get_enb_ctxt() const
 int sched_sim_base::set_default_tti_events(const sim_ue_ctxt_t& ue_ctxt, ue_tti_events& pending_events)
 {
   pending_events.cc_list.clear();
-  pending_events.cc_list.resize(cell_params->size());
+  pending_events.cc_list.resize(cell_params.size());
   pending_events.tti_rx = current_tti_rx;
 
   for (uint32_t enb_cc_idx = 0; enb_cc_idx < pending_events.cc_list.size(); ++enb_cc_idx) {
@@ -380,8 +391,8 @@ int sched_sim_base::apply_tti_events(sim_ue_ctxt_t& ue_ctxt, const ue_tti_events
       sched_ptr->dl_cqi_info(events.tti_rx.to_uint(), ue_ctxt.rnti, enb_cc_idx, cc_feedback.dl_cqi);
     }
 
-    if (cc_feedback.ul_cqi >= 0) {
-      sched_ptr->ul_snr_info(events.tti_rx.to_uint(), ue_ctxt.rnti, enb_cc_idx, cc_feedback.ul_cqi, 0);
+    if (cc_feedback.ul_snr >= 0) {
+      sched_ptr->ul_snr_info(events.tti_rx.to_uint(), ue_ctxt.rnti, enb_cc_idx, cc_feedback.ul_snr, 0);
     }
   }
 

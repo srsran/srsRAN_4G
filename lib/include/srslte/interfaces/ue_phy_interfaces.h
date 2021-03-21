@@ -113,8 +113,8 @@ class phy_interface_mac_common
 {
 public:
   /* Time advance commands */
-  virtual void set_timeadv_rar(uint32_t ta_cmd) = 0;
-  virtual void set_timeadv(uint32_t ta_cmd)     = 0;
+  virtual void set_timeadv_rar(uint32_t tti, uint32_t ta_cmd) = 0;
+  virtual void set_timeadv(uint32_t tti, uint32_t ta_cmd)     = 0;
 
   /* Activate / Disactivate SCell*/
   virtual void set_activation_deactivation_scell(uint32_t cmd, uint32_t tti) = 0;

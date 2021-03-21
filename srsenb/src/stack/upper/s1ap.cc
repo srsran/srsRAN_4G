@@ -183,11 +183,7 @@ srslte::proc_outcome_t s1ap::s1_setup_proc_t::start_mme_connection()
   }
 
   if (not s1ap_ptr->connect_mme()) {
-    procInfo("Failed to initiate SCTP socket. Attempting reconnection in %d seconds",
-             s1ap_ptr->mme_connect_timer.duration() / 1000);
-    srslte::console("Failed to initiate SCTP socket. Attempting reconnection in %d seconds\n",
-                    s1ap_ptr->mme_connect_timer.duration() / 1000);
-    s1ap_ptr->mme_connect_timer.run();
+    procInfo("Could not connect to MME");
     return srslte::proc_outcome_t::error;
   }
 
@@ -212,7 +208,7 @@ srslte::proc_outcome_t s1ap::s1_setup_proc_t::react(const srsenb::s1ap::s1_setup
     procInfo("S1Setup procedure completed successfully");
     return srslte::proc_outcome_t::success;
   }
-  procError("S1Setup failed. Exiting...");
+  procError("S1Setup failed.");
   srslte::console("S1setup failed\n");
   return srslte::proc_outcome_t::error;
 }
@@ -220,8 +216,15 @@ srslte::proc_outcome_t s1ap::s1_setup_proc_t::react(const srsenb::s1ap::s1_setup
 void s1ap::s1_setup_proc_t::then(const srslte::proc_state_t& result) const
 {
   if (result.is_error()) {
+    procInfo("Failed to initiate S1 connection. Attempting reconnection in %d seconds",
+             s1ap_ptr->mme_connect_timer.duration() / 1000);
+    srslte::console("Failed to initiate S1 connection. Attempting reconnection in %d seconds\n",
+                    s1ap_ptr->mme_connect_timer.duration() / 1000);
+    s1ap_ptr->mme_connect_timer.run();
+    s1ap_ptr->stack->remove_mme_socket(s1ap_ptr->s1ap_socket.get_socket());
     s1ap_ptr->s1ap_socket.reset();
     procInfo("S1AP socket closed.");
+    // Try again with in 10 seconds
   }
 }
 
@@ -438,11 +441,13 @@ bool s1ap::connect_mme()
           &s1ap_socket, srslte::net_utils::socket_type::seqpacket, args.s1c_bind_addr.c_str())) {
     return false;
   }
+  logger.info("SCTP socket opened. fd=%d", s1ap_socket.fd());
 
   // Connect to the MME address
   if (not s1ap_socket.connect_to(args.mme_addr.c_str(), MME_PORT, &mme_addr)) {
     return false;
   }
+  logger.info("SCTP socket connected with MME. fd=%d", s1ap_socket.fd());
 
   // Assign a handler to rx MME packets (going to run in a different thread)
   stack->add_mme_socket(s1ap_socket.fd());

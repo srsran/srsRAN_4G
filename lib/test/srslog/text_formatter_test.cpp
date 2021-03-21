@@ -36,7 +36,7 @@ static detail::log_entry_metadata build_log_entry_metadata()
   fmt::dynamic_format_arg_store<fmt::printf_context> store;
   store.push_back(88);
 
-  return {tp, {10, true}, "Text %d", std::move(store), "ABC", 'Z'};
+  return {tp, {10, true}, "Text %d", std::move(store), "ABC", 'Z', small_str_buffer()};
 }
 
 static bool when_fully_filled_log_entry_then_everything_is_formatted()

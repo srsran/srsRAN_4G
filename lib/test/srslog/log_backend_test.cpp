@@ -79,19 +79,6 @@ private:
 
 } // namespace
 
-static bool when_backend_is_not_started_then_pushed_log_entries_are_ignored()
-{
-  sink_spy spy;
-  log_backend_impl backend;
-
-  detail::log_entry entry = {&spy};
-  backend.push(std::move(entry));
-
-  ASSERT_EQ(spy.write_invocation_count(), 0);
-
-  return true;
-}
-
 /// Builds a basic log entry.
 static detail::log_entry build_log_entry(sink* s)
 {
@@ -104,7 +91,19 @@ static detail::log_entry build_log_entry(sink* s)
   return {
       s,
       [](detail::log_entry_metadata&& metadata, fmt::memory_buffer& buffer) {},
-      {tp, {0, false}, "Text %d", std::move(store), "", '\0'}};
+      {tp, {0, false}, "Text %d", std::move(store), "", '\0', small_str_buffer()}};
+}
+
+static bool when_backend_is_not_started_then_pushed_log_entries_are_ignored()
+{
+  sink_spy spy;
+  log_backend_impl backend;
+
+  backend.push(build_log_entry(&spy));
+
+  ASSERT_EQ(spy.write_invocation_count(), 0);
+
+  return true;
 }
 
 static bool when_backend_is_started_then_pushed_log_entries_are_sent_to_sink()

@@ -61,8 +61,8 @@ struct sim_ue_ctxt_t {
 };
 
 struct sim_enb_ctxt_t {
-  const std::vector<sched_interface::cell_cfg_t>* cell_params;
-  std::map<uint16_t, const sim_ue_ctxt_t*>        ue_db;
+  srslte::span<const sched_cell_params_t>  cell_params;
+  std::map<uint16_t, const sim_ue_ctxt_t*> ue_db;
 };
 struct ue_tti_events {
   struct cc_data {
@@ -74,7 +74,7 @@ struct ue_tti_events {
     int      ul_pid     = -1;
     bool     ul_ack     = false;
     int      dl_cqi     = -1;
-    int      ul_cqi     = -1;
+    int      ul_snr     = -1;
   };
   srslte::tti_point    tti_rx;
   std::vector<cc_data> cc_list;
@@ -108,11 +108,9 @@ private:
 class sched_sim_base
 {
 public:
-  sched_sim_base(sched_interface* sched_ptr_, const std::vector<sched_interface::cell_cfg_t>& cell_params_) :
-    logger(srslog::fetch_basic_logger("MAC")), sched_ptr(sched_ptr_), cell_params(&cell_params_)
-  {
-    sched_ptr->cell_cfg(cell_params_); // call parent cfg
-  }
+  sched_sim_base(sched_interface*                                sched_ptr_,
+                 const sched_interface::sched_args_t&            sched_args,
+                 const std::vector<sched_interface::cell_cfg_t>& cell_params_);
   virtual ~sched_sim_base() = default;
 
   int add_user(uint16_t rnti, const sched_interface::ue_cfg_t& ue_cfg_, uint32_t preamble_idx);
@@ -142,6 +140,9 @@ public:
     const ue_sim* ret = find_rnti(rnti);
     return ret == nullptr ? nullptr : &ret->get_ctxt().ue_cfg;
   }
+  sched_interface*                        get_sched() { return sched_ptr; }
+  srslte::const_span<sched_cell_params_t> get_cell_params() { return cell_params; }
+  tti_point                               get_tti_rx() const { return current_tti_rx; }
 
   std::map<uint16_t, ue_sim>::iterator begin() { return ue_db.begin(); }
   std::map<uint16_t, ue_sim>::iterator end() { return ue_db.end(); }
@@ -153,9 +154,9 @@ private:
   int set_default_tti_events(const sim_ue_ctxt_t& ue_ctxt, ue_tti_events& pending_events);
   int apply_tti_events(sim_ue_ctxt_t& ue_ctxt, const ue_tti_events& events);
 
-  srslog::basic_logger&                           logger;
-  sched_interface*                                sched_ptr;
-  const std::vector<sched_interface::cell_cfg_t>* cell_params;
+  srslog::basic_logger&            logger;
+  sched_interface*                 sched_ptr;
+  std::vector<sched_cell_params_t> cell_params;
 
   srslte::tti_point                             current_tti_rx;
   std::map<uint16_t, ue_sim>                    ue_db;

@@ -593,7 +593,7 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
       srslte::rwlock_read_guard lock(rwlock);
 
       // Copy data grants
-      for (uint32_t i = 0; i < sched_result.nof_data_elems; i++) {
+      for (uint32_t i = 0; i < sched_result.data.size(); i++) {
         uint32_t tb_count = 0;
 
         // Get UE
@@ -654,7 +654,7 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
     }
 
     // Copy RAR grants
-    for (uint32_t i = 0; i < sched_result.nof_rar_elems; i++) {
+    for (uint32_t i = 0; i < sched_result.rar.size(); i++) {
       // Copy dci info
       dl_sched_res->pdsch[n].dci = sched_result.rar[i].dci;
 
@@ -689,7 +689,7 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
     }
 
     // Copy SI and Paging grants
-    for (uint32_t i = 0; i < sched_result.nof_bc_elems; i++) {
+    for (uint32_t i = 0; i < sched_result.bc.size(); i++) {
       // Copy dci info
       dl_sched_res->pdsch[n].dci = sched_result.bc[i].dci;
 
@@ -909,7 +909,7 @@ int mac::get_ul_sched(uint32_t tti_tx_ul, ul_sched_list_t& ul_sched_res_list)
       // Copy DCI grants
       phy_ul_sched_res->nof_grants = 0;
       int n                        = 0;
-      for (uint32_t i = 0; i < sched_result.nof_dci_elems; i++) {
+      for (uint32_t i = 0; i < sched_result.pusch.size(); i++) {
         if (sched_result.pusch[i].tbs > 0) {
           // Get UE
           uint16_t rnti = sched_result.pusch[i].dci.rnti;
@@ -952,11 +952,11 @@ int mac::get_ul_sched(uint32_t tti_tx_ul, ul_sched_list_t& ul_sched_res_list)
     }
 
     // Copy PHICH actions
-    for (uint32_t i = 0; i < sched_result.nof_phich_elems; i++) {
+    for (uint32_t i = 0; i < sched_result.phich.size(); i++) {
       phy_ul_sched_res->phich[i].ack  = sched_result.phich[i].phich == sched_interface::ul_sched_phich_t::ACK;
       phy_ul_sched_res->phich[i].rnti = sched_result.phich[i].rnti;
     }
-    phy_ul_sched_res->nof_phich = sched_result.nof_phich_elems;
+    phy_ul_sched_res->nof_phich = sched_result.phich.size();
   }
   // clear old buffers from all users
   for (auto& u : ue_db) {

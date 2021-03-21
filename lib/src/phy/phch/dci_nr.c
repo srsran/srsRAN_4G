@@ -799,7 +799,7 @@ static int dci_nr_format_1_0_to_str(const srslte_dci_dl_nr_t* dci, char* str, ui
 
   // Downlink assignment index – 2 bits
   if (dci->rnti_type == srslte_rnti_type_c || dci->rnti_type == srslte_rnti_type_tc) {
-    len = srslte_print_check(str, str_len, len, "sii=%d ", dci->sii);
+    len = srslte_print_check(str, str_len, len, "dai=%d ", dci->dai);
   }
 
   // TPC command for scheduled PUCCH – 2 bits

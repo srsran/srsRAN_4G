@@ -20,7 +20,7 @@
  */
 
 #include "srslte/srslog/event_trace.h"
-#include "sinks/single_write_file_sink.h"
+#include "sinks/buffered_file_sink.h"
 #include "srslte/srslog/srslog.h"
 #include <ctime>
 
@@ -71,16 +71,14 @@ bool srslog::event_trace_init(const std::string& filename, std::size_t capacity)
     return false;
   }
 
-  auto tracer_sink = std::unique_ptr<sink>(new single_write_file_sink(
-      filename, capacity, get_default_log_formatter()));
+  auto tracer_sink = std::unique_ptr<sink>(new buffered_file_sink(filename, capacity, get_default_log_formatter()));
   if (!install_custom_sink(sink_name, std::move(tracer_sink))) {
     return false;
   }
 
   if (sink* s = find_sink(sink_name)) {
-    log_channel& c =
-        fetch_log_channel("event_trace_channel", *s, {"TRACE", '\0', false});
-    tracer = &c;
+    log_channel& c = fetch_log_channel("event_trace_channel", *s, {"TRACE", '\0', false});
+    tracer         = &c;
     return true;
   }
 
@@ -91,7 +89,7 @@ bool srslog::event_trace_init(const std::string& filename, std::size_t capacity)
 static void format_time(char* buffer, size_t len)
 {
   std::time_t t = std::time(nullptr);
-  std::tm lt{};
+  std::tm     lt{};
   ::localtime_r(&t, &lt);
   std::strftime(buffer, len, "%FT%T", &lt);
 }
@@ -106,11 +104,7 @@ void trace_duration_begin(const std::string& category, const std::string& name)
 
   char fmt_time[24];
   format_time(fmt_time, sizeof(fmt_time));
-  (*tracer)("[%s] [TID:%0u] Entering \"%s\": %s",
-            fmt_time,
-            (unsigned)::pthread_self(),
-            category,
-            name);
+  (*tracer)("[%s] [TID:%0u] Entering \"%s\": %s", fmt_time, (unsigned)::pthread_self(), category, name);
 }
 
 void trace_duration_end(const std::string& category, const std::string& name)
@@ -121,11 +115,7 @@ void trace_duration_end(const std::string& category, const std::string& name)
 
   char fmt_time[24];
   format_time(fmt_time, sizeof(fmt_time));
-  (*tracer)("[%s] [TID:%0u] Leaving \"%s\": %s",
-            fmt_time,
-            (unsigned)::pthread_self(),
-            category,
-            name);
+  (*tracer)("[%s] [TID:%0u] Leaving \"%s\": %s", fmt_time, (unsigned)::pthread_self(), category, name);
 }
 
 } // namespace srslog
@@ -133,17 +123,16 @@ void trace_duration_end(const std::string& category, const std::string& name)
 /// Private implementation of the complete event destructor.
 srslog::detail::scoped_complete_event::~scoped_complete_event()
 {
-  if (!tracer)
+  if (!tracer) {
     return;
+  }
 
-  auto end = std::chrono::steady_clock::now();
-  unsigned long long diff =
-      std::chrono::duration_cast<std::chrono::microseconds>(end - start)
-          .count();
+  auto               end  = std::chrono::steady_clock::now();
+  unsigned long long diff = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
-  (*tracer)("[TID:%0u] Complete event \"%s\" (duration %lld us): %s",
-            (unsigned)::pthread_self(),
-            category,
-            diff,
-            name);
+  small_str_buffer str;
+  // Limit to the category and name strings to a predefined length so everything fits in a small string.
+  fmt::format_to(str, "{:.32} {:.16}, {}", category, name, diff);
+  str.push_back('\0');
+  (*tracer)(std::move(str));
 }

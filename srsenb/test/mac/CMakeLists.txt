@@ -70,3 +70,7 @@ add_test(sched_tpc_test sched_tpc_test)
 add_executable(sched_dci_test sched_dci_test.cc)
 target_link_libraries(sched_dci_test srslte_common srsenb_mac srslte_mac sched_test_common)
 add_test(sched_dci_test sched_dci_test)
+
+add_executable(sched_benchmark_test sched_benchmark.cc)
+target_link_libraries(sched_benchmark_test srslte_common srsenb_mac srslte_mac sched_test_common)
+add_test(sched_benchmark_test sched_benchmark_test)

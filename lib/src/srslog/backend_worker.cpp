@@ -99,6 +99,11 @@ void backend_worker::process_log_entry(detail::log_entry&& entry)
 
   assert(entry.format_func && "Invalid format function");
   fmt_buffer.clear();
+
+  // Already formatted strings in the foreground are passed to the formatter as the fmtstring.
+  if (entry.metadata.small_str.size()) {
+    entry.metadata.fmtstring = entry.metadata.small_str.data();
+  }
   entry.format_func(std::move(entry.metadata), fmt_buffer);
 
   if (auto err_str = entry.s->write({fmt_buffer.data(), fmt_buffer.size()})) {
@@ -108,8 +113,7 @@ void backend_worker::process_log_entry(detail::log_entry&& entry)
 
 void backend_worker::process_outstanding_entries()
 {
-  assert(!running_flag &&
-         "Cannot process outstanding entries while thread is running");
+  assert(!running_flag && "Cannot process outstanding entries while thread is running");
 
   while (true) {
     auto item = queue.timed_pop(1);

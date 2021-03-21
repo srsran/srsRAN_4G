@@ -52,18 +52,16 @@ int sim_ue_ctxt_t::enb_to_ue_cc_idx(uint32_t enb_cc_idx) const
 
 const pusch_t* find_pusch_grant(uint16_t rnti, const sched_interface::ul_sched_res_t& ul_cc_res)
 {
-  const pusch_t* ptr = std::find_if(&ul_cc_res.pusch[0],
-                                    &ul_cc_res.pusch[ul_cc_res.nof_dci_elems],
-                                    [rnti](const pusch_t& pusch) { return pusch.dci.rnti == rnti; });
-  return ptr == &ul_cc_res.pusch[ul_cc_res.nof_dci_elems] ? nullptr : ptr;
+  const pusch_t* ptr = std::find_if(
+      ul_cc_res.pusch.begin(), ul_cc_res.pusch.end(), [rnti](const pusch_t& pusch) { return pusch.dci.rnti == rnti; });
+  return ptr == ul_cc_res.pusch.end() ? nullptr : ptr;
 }
 
 const pdsch_t* find_pdsch_grant(uint16_t rnti, const sched_interface::dl_sched_res_t& dl_cc_res)
 {
-  const pdsch_t* ptr = std::find_if(&dl_cc_res.data[0],
-                                    &dl_cc_res.data[dl_cc_res.nof_data_elems],
-                                    [rnti](const pdsch_t& pdsch) { return pdsch.dci.rnti == rnti; });
-  return ptr == &dl_cc_res.data[dl_cc_res.nof_data_elems] ? nullptr : ptr;
+  const pdsch_t* ptr = std::find_if(
+      dl_cc_res.data.begin(), dl_cc_res.data.end(), [rnti](const pdsch_t& pdsch) { return pdsch.dci.rnti == rnti; });
+  return ptr == dl_cc_res.data.end() ? nullptr : ptr;
 }
 
 int test_pdsch_grant(const sim_enb_ctxt_t&                   enb_ctxt,
@@ -74,7 +72,7 @@ int test_pdsch_grant(const sim_enb_ctxt_t&                   enb_ctxt,
   tti_point                                  tti_rx      = sf_out.tti_rx;
   const sim_ue_ctxt_t&                       ue_ctxt     = *enb_ctxt.ue_db.at(pdsch.dci.rnti);
   const sched_interface::ue_cfg_t::cc_cfg_t* cc_cfg      = ue_ctxt.get_cc_cfg(enb_cc_idx);
-  const sched_interface::cell_cfg_t&         cell_params = (*enb_ctxt.cell_params)[enb_cc_idx];
+  const sched_cell_params_t&                 cell_params = enb_ctxt.cell_params[enb_cc_idx];
   bool has_pusch_grant = find_pusch_grant(pdsch.dci.rnti, sf_out.ul_cc_result[enb_cc_idx]) != nullptr;
 
   // TEST: Check if CC is configured and active
@@ -87,7 +85,7 @@ int test_pdsch_grant(const sim_enb_ctxt_t&                   enb_ctxt,
   uint32_t nof_retx = get_nof_retx(pdsch.dci.tb[0].rv); // 0..3
   if (h.nof_txs == 0 or h.ndi != pdsch.dci.tb[0].ndi) {
     // It is newtx
-    CONDERROR(nof_retx != 0, "Invalid rv index for new tx");
+    CONDERROR(nof_retx != 0, "Invalid rv index for new DL tx");
     CONDERROR(h.active, "DL newtx for already active DL harq pid=%d", h.pid);
   } else {
     // it is retx
@@ -109,19 +107,19 @@ int test_pdsch_grant(const sim_enb_ctxt_t&                   enb_ctxt,
     srslte_dl_sf_cfg_t   dl_sf = {};
     dl_sf.cfi                  = sf_out.dl_cc_result[enb_cc_idx].cfi;
     dl_sf.tti                  = to_tx_dl(tti_rx).to_uint();
-    srslte_ra_dl_grant_to_grant_prb_allocation(&pdsch.dci, &grant, cell_params.cell.nof_prb);
-    uint32_t     nof_re   = srslte_ra_dl_grant_nof_re(&cell_params.cell, &dl_sf, &grant);
+    srslte_ra_dl_grant_to_grant_prb_allocation(&pdsch.dci, &grant, cell_params.nof_prb());
+    uint32_t     nof_re   = srslte_ra_dl_grant_nof_re(&cell_params.cfg.cell, &dl_sf, &grant);
     float        coderate = srslte_coderate(pdsch.tbs[0] * 8, nof_re);
     srslte_mod_t mod      = srslte_ra_dl_mod_from_mcs(pdsch.dci.tb[0].mcs_idx, ue_ctxt.ue_cfg.use_tbs_index_alt);
     uint32_t     max_Qm   = ue_ctxt.ue_cfg.use_tbs_index_alt ? 8 : 6;
     uint32_t     Qm       = std::min(max_Qm, srslte_mod_bits_x_symbol(mod));
-    CONDERROR(coderate > 0.930f * Qm, "Max coderate was exceeded");
+    CONDERROR(coderate > 0.932f * Qm, "Max coderate was exceeded");
   }
 
   // TEST: PUCCH-ACK will not collide with SR
   CONDERROR(not has_pusch_grant and is_pucch_sr_collision(ue_ctxt.ue_cfg.pucch_cfg,
                                                           to_tx_dl_ack(sf_out.tti_rx),
-                                                          pdsch.dci.location.ncce + cell_params.n1pucch_an),
+                                                          pdsch.dci.location.ncce + cell_params.cfg.n1pucch_an),
             "Collision detected between UE PUCCH-ACK and SR");
 
   return SRSLTE_SUCCESS;
@@ -129,8 +127,8 @@ int test_pdsch_grant(const sim_enb_ctxt_t&                   enb_ctxt,
 
 int test_dl_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
 {
-  for (uint32_t cc = 0; cc < enb_ctxt.cell_params->size(); ++cc) {
-    for (uint32_t i = 0; i < sf_out.dl_cc_result[cc].nof_data_elems; ++i) {
+  for (uint32_t cc = 0; cc < enb_ctxt.cell_params.size(); ++cc) {
+    for (uint32_t i = 0; i < sf_out.dl_cc_result[cc].data.size(); ++i) {
       const sched_interface::dl_sched_data_t& data = sf_out.dl_cc_result[cc].data[i];
       CONDERROR(
           enb_ctxt.ue_db.count(data.dci.rnti) == 0, "Allocated DL grant for non-existent rnti=0x%x", data.dci.rnti);
@@ -144,11 +142,11 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
 {
   uint32_t pid = to_tx_ul(sf_out.tti_rx).to_uint() % (FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS);
 
-  for (size_t cc = 0; cc < enb_ctxt.cell_params->size(); ++cc) {
-    const auto* phich_begin = &sf_out.ul_cc_result[cc].phich[0];
-    const auto* phich_end   = &sf_out.ul_cc_result[cc].phich[sf_out.ul_cc_result[cc].nof_phich_elems];
-    const auto* pusch_begin = &sf_out.ul_cc_result[cc].pusch[0];
-    const auto* pusch_end   = &sf_out.ul_cc_result[cc].pusch[sf_out.ul_cc_result[cc].nof_dci_elems];
+  for (size_t cc = 0; cc < enb_ctxt.cell_params.size(); ++cc) {
+    const auto* phich_begin = sf_out.ul_cc_result[cc].phich.begin();
+    const auto* phich_end   = sf_out.ul_cc_result[cc].phich.end();
+    const auto* pusch_begin = sf_out.ul_cc_result[cc].pusch.begin();
+    const auto* pusch_end   = sf_out.ul_cc_result[cc].pusch.end();
 
     // TEST: rnti must exist for all PHICH
     CONDERROR(std::any_of(phich_begin,
@@ -205,7 +203,7 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
 
         if (h.nof_txs == 0 or h.ndi != pusch_ptr->dci.tb.ndi) {
           // newtx
-          CONDERROR(nof_retx != 0, "Invalid rv index for new tx");
+          CONDERROR(nof_retx != 0, "Invalid rv index for new UL tx");
           CONDERROR(pusch_ptr->current_tx_nb != 0, "UL HARQ retxs need to have been previously transmitted");
           CONDERROR(not h_inactive, "New tx for already active UL HARQ");
           CONDERROR(not pusch_ptr->needs_pdcch and ue.msg3_tti_rx.is_valid() and sf_out.tti_rx > ue.msg3_tti_rx,
@@ -237,7 +235,7 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
 
 int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
 {
-  for (uint32_t cc = 0; cc < enb_ctxt.cell_params->size(); ++cc) {
+  for (uint32_t cc = 0; cc < enb_ctxt.cell_params.size(); ++cc) {
     const auto& dl_cc_res = sf_out.dl_cc_result[cc];
     const auto& ul_cc_res = sf_out.ul_cc_result[cc];
     for (const auto& ue_pair : enb_ctxt.ue_db) {
@@ -251,7 +249,7 @@ int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
       }
 
       // TEST: RAR allocation
-      uint32_t             rar_win_size = (*enb_ctxt.cell_params)[cc].prach_rar_window;
+      uint32_t             rar_win_size = enb_ctxt.cell_params[cc].cfg.prach_rar_window;
       srslte::tti_interval rar_window{ue.prach_tti_rx + 3, ue.prach_tti_rx + 3 + rar_win_size};
       srslte::tti_point    tti_tx_dl = to_tx_dl(sf_out.tti_rx);
 
@@ -259,14 +257,14 @@ int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
         CONDERROR(not ue.rar_tti_rx.is_valid() and tti_tx_dl > rar_window.stop(),
                   "rnti=0x%x RAR not scheduled within the RAR Window",
                   rnti);
-        for (uint32_t i = 0; i < sf_out.dl_cc_result[cc].nof_rar_elems; ++i) {
+        for (uint32_t i = 0; i < sf_out.dl_cc_result[cc].rar.size(); ++i) {
           CONDERROR(sf_out.dl_cc_result[cc].rar[i].dci.rnti == rnti,
                     "No RAR allocations allowed outside of user RAR window");
         }
       } else {
         // Inside RAR window
         uint32_t nof_rars = ue.rar_tti_rx.is_valid() ? 1 : 0;
-        for (uint32_t i = 0; i < dl_cc_res.nof_rar_elems; ++i) {
+        for (uint32_t i = 0; i < dl_cc_res.rar.size(); ++i) {
           for (const auto& grant : dl_cc_res.rar[i].msg3_grant) {
             const auto& data = grant.data;
             if (data.prach_tti == (uint32_t)ue.prach_tti_rx.to_uint() and data.preamble_idx == ue.preamble_idx) {
@@ -287,7 +285,7 @@ int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
         if (expected_msg3_tti_rx == sf_out.tti_rx) {
           // Msg3 should exist
           uint32_t msg3_count = 0;
-          for (uint32_t i = 0; i < ul_cc_res.nof_dci_elems; ++i) {
+          for (uint32_t i = 0; i < ul_cc_res.pusch.size(); ++i) {
             if (ul_cc_res.pusch[i].dci.rnti == rnti) {
               msg3_count++;
               CONDERROR(ul_cc_res.pusch[i].needs_pdcch, "Msg3 allocations do not require PDCCH");
@@ -304,7 +302,7 @@ int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
       if (ue.msg3_tti_rx.is_valid() and not ue.msg4_tti_rx.is_valid()) {
         // Msg3 scheduled, but Msg4 not yet scheduled
         uint32_t msg4_count = 0;
-        for (uint32_t i = 0; i < dl_cc_res.nof_data_elems; ++i) {
+        for (uint32_t i = 0; i < dl_cc_res.data.size(); ++i) {
           if (dl_cc_res.data[i].dci.rnti == rnti) {
             CONDERROR(to_tx_dl(sf_out.tti_rx) < to_tx_ul(ue.msg3_tti_rx),
                       "Msg4 cannot be scheduled without Msg3 being tx");
@@ -325,7 +323,7 @@ int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
 
       if (not ue.msg4_tti_rx.is_valid()) {
         // TEST: No UL allocs except for Msg3 before Msg4
-        for (uint32_t i = 0; i < ul_cc_res.nof_dci_elems; ++i) {
+        for (uint32_t i = 0; i < ul_cc_res.pusch.size(); ++i) {
           if (ul_cc_res.pusch[i].dci.rnti == rnti) {
             CONDERROR(not ue.rar_tti_rx.is_valid(), "No UL allocs before RAR allowed");
             srslte::tti_point expected_msg3_tti = ue.rar_tti_rx + MSG3_DELAY_MS;
@@ -340,7 +338,7 @@ int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
 
         // TEST: No DL allocs before Msg3
         if (not ue.msg3_tti_rx.is_valid()) {
-          for (uint32_t i = 0; i < dl_cc_res.nof_data_elems; ++i) {
+          for (uint32_t i = 0; i < dl_cc_res.data.size(); ++i) {
             CONDERROR(dl_cc_res.data[i].dci.rnti == rnti, "No DL data allocs allowed before Msg3 is scheduled");
           }
         }
@@ -348,7 +346,7 @@ int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
     }
 
     // TEST: Ensure there are no spurious RARs that do not belong to any user
-    for (uint32_t i = 0; i < dl_cc_res.nof_rar_elems; ++i) {
+    for (uint32_t i = 0; i < dl_cc_res.rar.size(); ++i) {
       for (uint32_t j = 0; j < dl_cc_res.rar[i].msg3_grant.size(); ++j) {
         uint32_t prach_tti    = dl_cc_res.rar[i].msg3_grant[j].data.prach_tti;
         uint32_t preamble_idx = dl_cc_res.rar[i].msg3_grant[j].data.preamble_idx;
@@ -374,7 +372,7 @@ bool is_in_measgap(srslte::tti_point tti, uint32_t period, uint32_t offset)
 
 int test_meas_gaps(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
 {
-  for (uint32_t cc = 0; cc < enb_ctxt.cell_params->size(); ++cc) {
+  for (uint32_t cc = 0; cc < enb_ctxt.cell_params.size(); ++cc) {
     const auto& dl_cc_res = sf_out.dl_cc_result[cc];
     const auto& ul_cc_res = sf_out.ul_cc_result[cc];
     for (const auto& ue_pair : enb_ctxt.ue_db) {

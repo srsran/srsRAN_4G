@@ -112,6 +112,14 @@ typedef struct SRSLTE_API {
 } srslte_ue_dl_nr_harq_ack_cfg_t;
 
 typedef struct SRSLTE_API {
+  uint32_t                    coreset_id;
+  uint32_t                    ss_id;
+  srslte_dci_location_t       location;
+  srslte_dmrs_pdcch_measure_t measure;
+  srslte_pdcch_nr_res_t       result;
+} srslte_ue_dl_nr_pdcch_info_t;
+
+typedef struct SRSLTE_API {
   uint32_t max_prb;
   uint32_t nof_rx_antennas;
   float    pdcch_dmrs_corr_thr;
@@ -130,6 +138,14 @@ typedef struct SRSLTE_API {
   srslte_dmrs_pdcch_estimator_t dmrs_pdcch[SRSLTE_UE_DL_NR_MAX_NOF_CORESET];
   srslte_pdcch_nr_t             pdcch;
   srslte_dmrs_pdcch_ce_t*       pdcch_ce;
+
+  /// Store Blind-search information from all possible candidate locations for debug purposes
+  srslte_ue_dl_nr_pdcch_info_t pdcch_info[SRSLTE_MAX_NOF_CANDIDATES_SLOT_NR];
+  uint32_t                     pdcch_info_count;
+
+  /// Temporally stores Found DCI messages from all SS
+  srslte_dci_msg_nr_t dci_msg[SRSLTE_MAX_DCI_MSG_NR];
+  uint32_t            dci_msg_count;
 
   srslte_dci_msg_nr_t pending_ul_dci_msg[SRSLTE_MAX_DCI_MSG_NR];
   uint32_t            pending_ul_dci_count;

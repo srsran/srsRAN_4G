@@ -64,7 +64,7 @@ int test_pusch_collisions(const sf_output_res_t& sf_out, uint32_t enb_cc_idx, co
   try_ul_fill({cell_params.cfg.cell.nof_prb - pucch_nrb, (uint32_t)cell_params.cfg.cell.nof_prb}, "PUCCH", strict);
 
   /* TEST: check collisions in the UL PUSCH */
-  for (uint32_t i = 0; i < ul_result.nof_dci_elems; ++i) {
+  for (uint32_t i = 0; i < ul_result.pusch.size(); ++i) {
     uint32_t L, RBstart;
     srslte_ra_type2_from_riv(ul_result.pusch[i].dci.type2_alloc.riv, &L, &RBstart, nof_prb, nof_prb);
     strict = ul_result.pusch[i].needs_pdcch or nof_prb != 6; // Msg3 may collide with PUCCH at PRB==6
@@ -122,12 +122,12 @@ int test_pdsch_collisions(const sf_output_res_t& sf_out, uint32_t enb_cc_idx, co
   };
 
   // Decode BC allocations, check collisions, and fill cumulative mask
-  for (uint32_t i = 0; i < dl_result.nof_bc_elems; ++i) {
+  for (uint32_t i = 0; i < dl_result.bc.size(); ++i) {
     TESTASSERT(try_dl_mask_fill(dl_result.bc[i].dci, "BC") == SRSLTE_SUCCESS);
   }
 
   // Decode RAR allocations, check collisions, and fill cumulative mask
-  for (uint32_t i = 0; i < dl_result.nof_rar_elems; ++i) {
+  for (uint32_t i = 0; i < dl_result.rar.size(); ++i) {
     TESTASSERT(try_dl_mask_fill(dl_result.rar[i].dci, "RAR") == SRSLTE_SUCCESS);
   }
 
@@ -140,7 +140,7 @@ int test_pdsch_collisions(const sf_output_res_t& sf_out, uint32_t enb_cc_idx, co
   }
 
   // Decode Data allocations, check collisions and fill cumulative mask
-  for (uint32_t i = 0; i < dl_result.nof_data_elems; ++i) {
+  for (uint32_t i = 0; i < dl_result.data.size(); ++i) {
     TESTASSERT(try_dl_mask_fill(dl_result.data[i].dci, "data") == SRSLTE_SUCCESS);
   }
 
@@ -179,8 +179,8 @@ int test_sib_scheduling(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
   bool        sib1_expected = ((sfn % 2) == 0) and sf_idx == 5;
 
   using bc_elem     = const sched_interface::dl_sched_bc_t;
-  bc_elem* bc_begin = &dl_result.bc[0];
-  bc_elem* bc_end   = &dl_result.bc[dl_result.nof_bc_elems];
+  bc_elem* bc_begin = dl_result.bc.begin();
+  bc_elem* bc_end   = dl_result.bc.end();
 
   /* Test if SIB1 was correctly scheduled */
   auto it = std::find_if(bc_begin, bc_end, [](bc_elem& elem) { return elem.index == 0; });
@@ -197,6 +197,9 @@ int test_sib_scheduling(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
               "Allocated BC process with TBS=%d < sib_len=%d",
               bc->tbs,
               cell_params.cfg.sibs[bc->index].len);
+    CONDERROR(bc->dci.rnti != 0xffff, "Invalid rnti=0x%x for SIB%d", bc->dci.rnti, bc->index);
+    CONDERROR(bc->dci.format != SRSLTE_DCI_FORMAT1A, "Invalid DCI format for SIB%d", bc->index);
+
     uint32_t x         = (bc->index - 1) * cell_params.cfg.si_window_ms;
     uint32_t sf        = x % 10;
     uint32_t sfn_start = sfn;
@@ -235,7 +238,7 @@ int test_pdcch_collisions(const sf_output_res_t&                   sf_out,
   };
 
   /* TEST: verify there are no dci collisions for UL, DL data, BC, RAR */
-  for (uint32_t i = 0; i < ul_result.nof_dci_elems; ++i) {
+  for (uint32_t i = 0; i < ul_result.pusch.size(); ++i) {
     const auto& pusch = ul_result.pusch[i];
     if (not pusch.needs_pdcch) {
       // In case of non-adaptive retx or Msg3
@@ -243,13 +246,13 @@ int test_pdcch_collisions(const sf_output_res_t&                   sf_out,
     }
     try_cce_fill(pusch.dci.location, "UL");
   }
-  for (uint32_t i = 0; i < dl_result.nof_data_elems; ++i) {
+  for (uint32_t i = 0; i < dl_result.data.size(); ++i) {
     try_cce_fill(dl_result.data[i].dci.location, "DL data");
   }
-  for (uint32_t i = 0; i < dl_result.nof_bc_elems; ++i) {
+  for (uint32_t i = 0; i < dl_result.bc.size(); ++i) {
     try_cce_fill(dl_result.bc[i].dci.location, "DL BC");
   }
-  for (uint32_t i = 0; i < dl_result.nof_rar_elems; ++i) {
+  for (uint32_t i = 0; i < dl_result.rar.size(); ++i) {
     try_cce_fill(dl_result.rar[i].dci.location, "DL RAR");
   }
 
@@ -268,7 +271,7 @@ int test_dci_content_common(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
   const auto& ul_result   = sf_out.ul_cc_result[enb_cc_idx];
 
   std::set<uint16_t> alloc_rntis;
-  for (uint32_t i = 0; i < ul_result.nof_dci_elems; ++i) {
+  for (uint32_t i = 0; i < ul_result.pusch.size(); ++i) {
     const auto& pusch = ul_result.pusch[i];
     uint16_t    rnti  = pusch.dci.rnti;
     CONDERROR(pusch.tbs == 0, "Allocated PUSCH with invalid TBS=%d", pusch.tbs);
@@ -287,7 +290,7 @@ int test_dci_content_common(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
   }
 
   alloc_rntis.clear();
-  for (uint32_t i = 0; i < dl_result.nof_data_elems; ++i) {
+  for (uint32_t i = 0; i < dl_result.data.size(); ++i) {
     auto&    data = dl_result.data[i];
     uint16_t rnti = data.dci.rnti;
     CONDERROR(data.tbs[0] == 0 and data.tbs[1] == 0, "Allocated DL data has empty TBS");
@@ -311,8 +314,24 @@ int test_dci_content_common(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
       }
     }
   }
-  for (uint32_t i = 0; i < dl_result.nof_bc_elems; ++i) {
-    auto& bc = dl_result.bc[i];
+
+  // TEST: max coderate is not exceeded for RA and Broadcast
+  srslte_dl_sf_cfg_t dl_sf = {};
+  dl_sf.cfi                = sf_out.dl_cc_result[enb_cc_idx].cfi;
+  dl_sf.tti                = to_tx_dl(sf_out.tti_rx).to_uint();
+  auto test_ra_bc_coderate = [&dl_sf, &cell_params](uint32_t tbs, const srslte_dci_dl_t& dci) {
+    srslte_pdsch_grant_t grant = {};
+    srslte_ra_dl_grant_to_grant_prb_allocation(&dci, &grant, cell_params.cfg.cell.nof_prb);
+    uint32_t       nof_re   = srslte_ra_dl_grant_nof_re(&cell_params.cfg.cell, &dl_sf, &grant);
+    float          coderate = srslte_coderate(tbs * 8, nof_re);
+    const uint32_t Qm       = 2;
+    CONDERROR(
+        coderate > 0.932f * Qm, "Max coderate was exceeded from %s DCI", dci.rnti == SRSLTE_SIRNTI ? "SIB" : "RAR");
+    return SRSLTE_SUCCESS;
+  };
+
+  for (uint32_t i = 0; i < dl_result.bc.size(); ++i) {
+    const sched_interface::dl_sched_bc_t& bc = dl_result.bc[i];
     if (bc.type == sched_interface::dl_sched_bc_t::BCCH) {
       CONDERROR(bc.tbs < cell_params.cfg.sibs[bc.index].len,
                 "Allocated BC process with TBS=%d < sib_len=%d",
@@ -323,10 +342,16 @@ int test_dci_content_common(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
     } else {
       TESTERROR("Invalid broadcast process id=%d", (int)bc.type);
     }
+
+    TESTASSERT(test_ra_bc_coderate(bc.tbs, bc.dci) == SRSLTE_SUCCESS);
   }
-  for (uint32_t i = 0; i < dl_result.nof_rar_elems; ++i) {
+
+  for (uint32_t i = 0; i < dl_result.rar.size(); ++i) {
     const auto& rar = dl_result.rar[i];
     CONDERROR(rar.tbs == 0, "Allocated RAR process with invalid TBS=%d", rar.tbs);
+
+    // TEST: max coderate is not exceeded
+    TESTASSERT(test_ra_bc_coderate(rar.tbs, rar.dci) == SRSLTE_SUCCESS);
   }
 
   return SRSLTE_SUCCESS;

@@ -80,7 +80,7 @@ int srslte_pucch_nr_alpha_idx(const srslte_carrier_nr_t*          carrier,
   }
 
   // Compute number of slot
-  uint32_t n_slot = slot->idx % SRSLTE_NSLOTS_PER_FRAME_NR(carrier->numerology);
+  uint32_t n_slot = SRSLTE_SLOT_NR_MOD(carrier->numerology, slot->idx);
 
   // Generate pseudo-random sequence
   uint32_t cinit = cfg->hopping_id_present ? cfg->hopping_id : carrier->id;

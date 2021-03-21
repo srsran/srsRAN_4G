@@ -483,14 +483,7 @@ public:
 
     bool ret     = true;
     pdu->N_bytes = static_cast<uint32_t>(n_recv);
-    if (flags & MSG_NOTIFICATION) {
-      // Received notification
-      union sctp_notification* notification = (union sctp_notification*)pdu->msg;
-      if (notification->sn_header.sn_type == SCTP_SHUTDOWN_EVENT) {
-        // Socket Shutdown
-        ret = false;
-      }
-    }
+    // SCTP notifications handled in callback.
     func(std::move(pdu), from, sri, flags);
     return ret;
   }

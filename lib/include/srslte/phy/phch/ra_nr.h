@@ -130,4 +130,18 @@ SRSLTE_API int srslte_ra_ul_dci_to_grant_nr(const srslte_carrier_nr_t*    carrie
                                             srslte_sch_cfg_nr_t*          pusch_cfg,
                                             srslte_sch_grant_nr_t*        pusch_grant);
 
+/**
+ * @brief Set up the Uplink Control Information configuration for a PUSCH transmission
+ *
+ * @remark Implement procedure described in TS 38.213 9.3 UCI reporting in physical uplink shared channel
+ *
+ * @param pusch_hl_cfg PUSCH configuration provided by higher layers
+ * @param uci_cfg Uplink Control Information configuration for this PUSCH transmission
+ * @param pusch_cfg PUSCH configuration after applying the procedure
+ * @return SRSLTE_SUCCESS if the procedure is successful, SRSLTE_ERROR code otherwise
+ */
+SRSLTE_API int srslte_ra_ul_set_grant_uci_nr(const srslte_sch_hl_cfg_nr_t* pusch_hl_cfg,
+                                             const srslte_uci_cfg_nr_t*    uci_cfg,
+                                             srslte_sch_cfg_nr_t*          pusch_cfg);
+
 #endif // SRSLTE_RA_NR_H

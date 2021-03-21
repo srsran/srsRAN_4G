@@ -157,9 +157,10 @@ int test_gtpu_direct_tunneling()
   logger1.set_hex_dump_max_size(2048);
   srslog::basic_logger& logger2 = srslog::fetch_basic_logger("GTPU2");
   logger2.set_hex_dump_max_size(2048);
-  srsenb::gtpu senb_gtpu(logger1), tenb_gtpu(logger2);
-  stack_tester senb_stack, tenb_stack;
-  pdcp_tester  senb_pdcp, tenb_pdcp;
+  srslte::task_scheduler task_sched;
+  srsenb::gtpu           senb_gtpu(&task_sched, logger1), tenb_gtpu(&task_sched, logger2);
+  stack_tester           senb_stack, tenb_stack;
+  pdcp_tester            senb_pdcp, tenb_pdcp;
   senb_gtpu.init(senb_addr_str, sgw_addr_str, "", "", &senb_pdcp, &senb_stack, false);
   tenb_gtpu.init(tenb_addr_str, sgw_addr_str, "", "", &tenb_pdcp, &tenb_stack, false);
 

@@ -154,6 +154,21 @@ void cc_worker::decode_pdcch_dl()
     // Enqueue UL grants
     phy->set_dl_pending_grant(dl_slot_cfg.idx, dci_rx[i]);
   }
+
+  if (logger.debug.enabled()) {
+    for (uint32_t i = 0; i < ue_dl.pdcch_info_count; i++) {
+      const srslte_ue_dl_nr_pdcch_info_t* info = &ue_dl.pdcch_info[i];
+      logger.debug("PDCCH: crst_id=%d, ss_id=%d, ncce=%d, al=%d, EPRE=%+.2f, RSRP=%+.2f, corr=%.3f; crc=%s",
+                   info->coreset_id,
+                   info->ss_id,
+                   info->location.ncce,
+                   info->location.L,
+                   info->measure.epre_dBfs,
+                   info->measure.rsrp_dBfs,
+                   info->measure.norm_corr,
+                   info->result.crc ? "OK" : "KO");
+    }
+  }
 }
 
 void cc_worker::decode_pdcch_ul()
@@ -190,6 +205,11 @@ void cc_worker::decode_pdcch_ul()
 
 bool cc_worker::work_dl()
 {
+  // Check if it is a DL slot, if not skip
+  if (!srslte_tdd_nr_is_dl(&phy->cfg.tdd, 0, dl_slot_cfg.idx)) {
+    return true;
+  }
+
   // Run FFT
   srslte_ue_dl_nr_estimate_fft(&ue_dl, &dl_slot_cfg);
 
@@ -258,6 +278,13 @@ bool cc_worker::work_dl()
 
 bool cc_worker::work_ul()
 {
+  // Check if it is a UL slot, if not skip
+  if (!srslte_tdd_nr_is_ul(&phy->cfg.tdd, 0, ul_slot_cfg.idx)) {
+    // No NR signal shall be transmitted
+    srslte_vec_cf_zero(tx_buffer[0], ue_ul.ifft.sf_sz);
+    return true;
+  }
+
   srslte_uci_data_nr_t uci_data = {};
   uint32_t             pid      = 0;
 
@@ -292,14 +319,18 @@ bool cc_worker::work_ul()
     mac_ul_grant.rnti                                    = pusch_cfg.grant.rnti;
     mac_ul_grant.tti                                     = ul_slot_cfg.idx;
     mac_ul_grant.tbs                                     = pusch_cfg.grant.tb[0].tbs;
-
     phy->stack->new_grant_ul(0, mac_ul_grant, &ul_action);
 
-    // Assignning MAC provided values to PUSCH config structs
+    // Set UCI configuration following procedures
+    srslte_ra_ul_set_grant_uci_nr(&phy->cfg.pusch, &uci_data.cfg, &pusch_cfg);
+
+    // Assigning MAC provided values to PUSCH config structs
     pusch_cfg.grant.tb[0].softbuffer.tx = ul_action.tb.softbuffer;
 
+    // Setup data for encoding
     srslte_pusch_data_nr_t data = {};
     data.payload                = ul_action.tb.payload->msg;
+    data.uci                    = uci_data.value;
 
     // Encode PUSCH transmission
     if (srslte_ue_ul_nr_encode_pusch(&ue_ul, &ul_slot_cfg, &pusch_cfg, &data) < SRSLTE_SUCCESS) {
@@ -310,7 +341,7 @@ bool cc_worker::work_ul()
     // PUSCH Logging
     if (logger.info.enabled()) {
       std::array<char, 512> str;
-      srslte_ue_ul_nr_pusch_info(&ue_ul, &pusch_cfg, str.data(), str.size());
+      srslte_ue_ul_nr_pusch_info(&ue_ul, &pusch_cfg, &data.uci, str.data(), str.size());
       logger.info(ul_action.tb.payload->msg,
                   pusch_cfg.grant.tb[0].tbs / 8,
                   "PUSCH (NR): cc=%d, %s, tti_tx=%d",

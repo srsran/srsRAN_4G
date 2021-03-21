@@ -76,8 +76,11 @@ SRSLTE_API int srslte_ue_ul_nr_encode_pucch(srslte_ue_ul_nr_t*                  
 
 SRSLTE_API void srslte_ue_ul_nr_free(srslte_ue_ul_nr_t* q);
 
-SRSLTE_API int
-srslte_ue_ul_nr_pusch_info(const srslte_ue_ul_nr_t* q, const srslte_sch_cfg_nr_t* cfg, char* str, uint32_t str_len);
+SRSLTE_API int srslte_ue_ul_nr_pusch_info(const srslte_ue_ul_nr_t*     q,
+                                          const srslte_sch_cfg_nr_t*   cfg,
+                                          const srslte_uci_value_nr_t* uci_value,
+                                          char*                        str,
+                                          uint32_t                     str_len);
 
 SRSLTE_API int srslte_ue_ul_nr_pucch_info(const srslte_pucch_nr_resource_t* resource,
                                           const srslte_uci_data_nr_t*       uci_data,

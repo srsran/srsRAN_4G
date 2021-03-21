@@ -163,7 +163,7 @@ uint32_t ra_re_x_prb(const srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, uint32_t
 
 /** Compute PRB allocation for Downlink as defined in 7.1.6 of 36.213
  * Decode grant->type?_alloc to grant
- * This function only reads grant->type?_alloc and grant->alloc_type fields.
+ * This function only reads dci->type?_alloc (e.g. rbg_bitmask, mode, riv) and dci->alloc_type fields.
  * This function only writes grant->prb_idx and grant->nof_prb.
  */
 /** Compute PRB allocation for Downlink as defined in 7.1.6 of 36.213 */

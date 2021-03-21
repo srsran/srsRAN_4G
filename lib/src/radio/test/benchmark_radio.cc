@@ -341,6 +341,7 @@ static void* radio_thread_run(void* arg)
     radio_args.nof_carriers = 1;
     radio_args.device_args  = radios_args[r].empty() ? "auto" : radios_args[r];
     radio_args.rx_gain      = agc_enable ? -1 : rf_gain;
+    radio_args.tx_gain      = agc_enable ? -1 : rf_gain;
     radio_args.device_name  = radio_device;
 
     if (radio_h[r]->init(radio_args, &phy) != SRSLTE_SUCCESS) {

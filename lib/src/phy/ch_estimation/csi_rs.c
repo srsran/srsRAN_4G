@@ -121,7 +121,7 @@ uint32_t csi_rs_cinit(const srslte_carrier_nr_t*          carrier,
                       const srslte_csi_rs_nzp_resource_t* resource,
                       uint32_t                            l)
 {
-  uint32_t n    = slot_cfg->idx % SRSLTE_NSLOTS_PER_FRAME_NR(carrier->numerology);
+  uint32_t n    = SRSLTE_SLOT_NR_MOD(carrier->numerology, slot_cfg->idx);
   uint32_t n_id = resource->scrambling_id;
 
   return ((SRSLTE_NSYMB_PER_SLOT_NR * n + l + 1UL) * (2UL * n_id) << 10UL) + n_id;

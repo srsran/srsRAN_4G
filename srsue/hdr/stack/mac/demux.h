@@ -87,7 +87,7 @@ private:
   void            process_sch_pdu(srslte::sch_pdu* pdu);
   void            process_mch_pdu(srslte::mch_pdu* pdu);
   bool            process_ce(srslte::sch_subh* subheader, uint32_t tti);
-  void            parse_ta_cmd(srslte::sch_subh* subh);
+  void            parse_ta_cmd(srslte::sch_subh* subh, uint32_t tti);
 
   bool is_uecrid_successful = false;
 

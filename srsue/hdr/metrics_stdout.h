@@ -47,6 +47,8 @@ public:
   void stop(){};
 
 private:
+  static const bool FORCE_NEIGHBOUR_CELL = false; // Set to true for printing always neighbour cells
+
   std::string float_to_string(float f, int digits);
   std::string float_to_eng_string(float f, int digits);
   void        print_table(const bool display_neighbours);

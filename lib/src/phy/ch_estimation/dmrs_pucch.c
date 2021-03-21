@@ -265,7 +265,7 @@ int srslte_dmrs_pucch_format1_estimate(const srslte_pucch_nr_t*            q,
   }
 
   // Measure CFO
-  res->cfo = NAN; // Not implemented
+  res->cfo_hz = NAN; // Not implemented
 
   // Do averaging here
   // ... Not implemented
@@ -298,7 +298,7 @@ static uint32_t dmrs_pucch_format2_cinit(const srslte_carrier_nr_t*          car
                                          const srslte_slot_cfg_t*            slot,
                                          uint32_t                            l)
 {
-  uint64_t n    = slot->idx;
+  uint64_t n    = SRSLTE_SLOT_NR_MOD(carrier->numerology, slot->idx);
   uint64_t n_id = (cfg->scrambling_id_present) ? cfg->scambling_id : carrier->id;
 
   return SRSLTE_SEQUENCE_MOD((((SRSLTE_NSYMB_PER_SLOT_NR * n + l + 1UL) * (2UL * n_id + 1UL)) << 17UL) + 2UL * n_id);

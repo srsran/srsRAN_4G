@@ -311,11 +311,11 @@ void ra_proc::preamble_transmission()
 }
 
 // Process Timing Advance Command as defined in Section 5.2
-void ra_proc::process_timeadv_cmd(uint32_t ta)
+void ra_proc::process_timeadv_cmd(uint32_t tti, uint32_t ta)
 {
   if (preambleIndex == 0) {
     // Preamble not selected by UE MAC
-    phy_h->set_timeadv_rar(ta);
+    phy_h->set_timeadv_rar(tti, ta);
     // Only if timer is running reset the timer
     if (time_alignment_timer->is_running()) {
       time_alignment_timer->run();
@@ -324,7 +324,7 @@ void ra_proc::process_timeadv_cmd(uint32_t ta)
   } else {
     // Preamble selected by UE MAC
     if (!time_alignment_timer->is_running()) {
-      phy_h->set_timeadv_rar(ta);
+      phy_h->set_timeadv_rar(tti, ta);
       time_alignment_timer->run();
       logger.debug("Applying RAR TA CMD %d", ta);
     } else {
@@ -386,7 +386,7 @@ void ra_proc::tb_decoded_ok(const uint8_t cc_idx, const uint32_t tti)
   while (rar_pdu_msg.next()) {
     if (rar_pdu_msg.get()->has_rapid() && rar_pdu_msg.get()->get_rapid() == sel_preamble) {
       rar_received = true;
-      process_timeadv_cmd(rar_pdu_msg.get()->get_ta_cmd());
+      process_timeadv_cmd(tti, rar_pdu_msg.get()->get_ta_cmd());
 
       // TODO: Indicate received target power
       // phy_h->set_target_power_rar(iniReceivedTargetPower, (preambleTransmissionCounter-1)*powerRampingStep);

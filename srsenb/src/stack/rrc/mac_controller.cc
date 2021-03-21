@@ -308,6 +308,11 @@ void mac_controller::handle_ho_prep(const asn1::rrc::ho_prep_info_r8_ies_s& ho_p
   }
 }
 
+void mac_controller::handle_max_retx()
+{
+  set_drb_activation(false);
+}
+
 void mac_controller::set_scell_activation(const std::bitset<SRSLTE_MAX_CARRIERS>& scell_mask)
 {
   for (uint32_t i = 1; i < current_sched_ue_cfg.supported_cc_list.size(); ++i) {

@@ -37,7 +37,7 @@ using dl_sched_res_t    = sched_interface::dl_sched_res_t;
 using dl_sched_data_t   = sched_interface::dl_sched_data_t;
 using custom_mem_buffer = fmt::basic_memory_buffer<char, 1024>;
 
-srslog::basic_logger& get_mac_logger()
+static srslog::basic_logger& get_mac_logger()
 {
   static srslog::basic_logger& mac_logger = srslog::fetch_basic_logger("MAC");
   return mac_logger;
@@ -125,8 +125,7 @@ void log_dl_cc_results(srslog::basic_logger& logger, uint32_t enb_cc_idx, const 
   }
 
   custom_mem_buffer strbuf;
-  for (uint32_t i = 0; i < result.nof_data_elems; ++i) {
-    const dl_sched_data_t& data = result.data[i];
+  for (const auto& data : result.data) {
     if (logger.debug.enabled()) {
       fill_dl_cc_result_debug(strbuf, data);
     } else {
@@ -151,7 +150,7 @@ void log_phich_cc_results(srslog::basic_logger&                  logger,
     return;
   }
   custom_mem_buffer strbuf;
-  for (uint32_t i = 0; i < result.nof_phich_elems; ++i) {
+  for (uint32_t i = 0; i < result.phich.size(); ++i) {
     const phich_t& phich  = result.phich[i];
     const char*    prefix = strbuf.size() > 0 ? " | " : "";
     const char*    val    = phich.phich == phich_t::ACK ? "ACK" : "NACK";
@@ -392,8 +391,6 @@ sched_cell_params_t::get_dl_nof_res(srslte::tti_point tti_tx_dl, const srslte_dc
     }
   }
 
-  // sanity check
-  assert(nof_re == srslte_ra_dl_grant_nof_re(&cfg.cell, &dl_sf, &grant));
   return nof_re;
 }
 

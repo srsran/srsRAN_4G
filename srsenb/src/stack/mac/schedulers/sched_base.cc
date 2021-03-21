@@ -69,7 +69,12 @@ rbgmask_t find_available_rb_mask(const rbgmask_t& in_mask, uint32_t max_size)
   return localmask;
 }
 
-rbgmask_t compute_user_rbgmask_greedy(uint32_t max_nof_rbgs, bool is_contiguous, const rbgmask_t& current_mask)
+rbg_interval find_empty_rbg_interval(uint32_t max_nof_rbgs, const rbgmask_t& current_mask)
+{
+  return find_contiguous_interval(current_mask, max_nof_rbgs);
+}
+
+rbgmask_t compute_rbgmask_greedy(uint32_t max_nof_rbgs, bool is_contiguous, const rbgmask_t& current_mask)
 {
   // Allocate enough RBs that accommodate pending data
   rbgmask_t newtx_mask(current_mask.size());
@@ -116,27 +121,26 @@ const dl_harq_proc* get_dl_newtx_harq(sched_ue& user, sf_sched* tti_sched)
   return user.get_empty_dl_harq(tti_sched->get_tti_tx_dl(), tti_sched->get_enb_cc_idx());
 }
 
-alloc_outcome_t try_dl_retx_alloc(sf_sched& tti_sched, sched_ue& ue, const dl_harq_proc& h)
+alloc_result try_dl_retx_alloc(sf_sched& tti_sched, sched_ue& ue, const dl_harq_proc& h)
 {
   // Try to reuse the same mask
-  rbgmask_t       retx_mask = h.get_rbgmask();
-  alloc_outcome_t code      = tti_sched.alloc_dl_user(&ue, retx_mask, h.get_id());
-  if (code == alloc_outcome_t::SUCCESS or code == alloc_outcome_t::DCI_COLLISION) {
+  rbgmask_t    retx_mask = h.get_rbgmask();
+  alloc_result code      = tti_sched.alloc_dl_user(&ue, retx_mask, h.get_id());
+  if (code != alloc_result::sch_collision) {
     return code;
   }
 
   // If previous mask does not fit, find another with exact same number of rbgs
   size_t nof_rbg             = retx_mask.count();
   bool   is_contiguous_alloc = ue.get_dci_format() == SRSLTE_DCI_FORMAT1A;
-  retx_mask                  = compute_user_rbgmask_greedy(nof_rbg, is_contiguous_alloc, tti_sched.get_dl_mask());
+  retx_mask                  = compute_rbgmask_greedy(nof_rbg, is_contiguous_alloc, tti_sched.get_dl_mask());
   if (retx_mask.count() == nof_rbg) {
     return tti_sched.alloc_dl_user(&ue, retx_mask, h.get_id());
   }
-  return alloc_outcome_t::RB_COLLISION;
+  return alloc_result::sch_collision;
 }
 
-alloc_outcome_t
-try_dl_newtx_alloc_greedy(sf_sched& tti_sched, sched_ue& ue, const dl_harq_proc& h, rbgmask_t* result_mask)
+alloc_result try_dl_newtx_alloc_greedy(sf_sched& tti_sched, sched_ue& ue, const dl_harq_proc& h, rbgmask_t* result_mask)
 {
   if (result_mask != nullptr) {
     *result_mask = {};
@@ -145,25 +149,25 @@ try_dl_newtx_alloc_greedy(sf_sched& tti_sched, sched_ue& ue, const dl_harq_proc&
   // If all RBGs are occupied, the next steps can be shortcut
   const rbgmask_t& current_mask = tti_sched.get_dl_mask();
   if (current_mask.all()) {
-    return alloc_outcome_t::RB_COLLISION;
+    return alloc_result::no_sch_space;
   }
 
   // If there is no data to transmit, no need to allocate
   rbg_interval req_rbgs = ue.get_required_dl_rbgs(tti_sched.get_enb_cc_idx());
   if (req_rbgs.stop() == 0) {
-    return alloc_outcome_t::NO_DATA;
+    return alloc_result::no_rnti_opportunity;
   }
 
   // Find RBG mask that accommodates pending data
   bool      is_contiguous_alloc = ue.get_dci_format() == SRSLTE_DCI_FORMAT1A;
-  rbgmask_t newtxmask           = compute_user_rbgmask_greedy(req_rbgs.stop(), is_contiguous_alloc, current_mask);
+  rbgmask_t newtxmask           = compute_rbgmask_greedy(req_rbgs.stop(), is_contiguous_alloc, current_mask);
   if (newtxmask.none() or newtxmask.count() < req_rbgs.start()) {
-    return alloc_outcome_t::RB_COLLISION;
+    return alloc_result::no_sch_space;
   }
 
   // empty RBGs were found. Attempt allocation
-  alloc_outcome_t ret = tti_sched.alloc_dl_user(&ue, newtxmask, h.get_id());
-  if (ret == alloc_outcome_t::SUCCESS and result_mask != nullptr) {
+  alloc_result ret = tti_sched.alloc_dl_user(&ue, newtxmask, h.get_id());
+  if (ret == alloc_result::success and result_mask != nullptr) {
     *result_mask = newtxmask;
   }
   return ret;
@@ -232,7 +236,7 @@ const ul_harq_proc* get_ul_newtx_harq(sched_ue& user, sf_sched* tti_sched)
   return h->is_empty() ? h : nullptr;
 }
 
-alloc_outcome_t try_ul_retx_alloc(sf_sched& tti_sched, sched_ue& ue, const ul_harq_proc& h)
+alloc_result try_ul_retx_alloc(sf_sched& tti_sched, sched_ue& ue, const ul_harq_proc& h)
 {
   prb_interval alloc = h.get_alloc();
   if (tti_sched.get_cc_cfg()->nof_prb() == 6 and h.is_msg3()) {
@@ -242,20 +246,20 @@ alloc_outcome_t try_ul_retx_alloc(sf_sched& tti_sched, sched_ue& ue, const ul_ha
 
   // If can schedule the same mask as in earlier tx, do it
   if (not tti_sched.get_ul_mask().any(alloc.start(), alloc.stop())) {
-    alloc_outcome_t ret = tti_sched.alloc_ul_user(&ue, alloc);
-    if (ret == alloc_outcome_t::SUCCESS or ret == alloc_outcome_t::DCI_COLLISION) {
+    alloc_result ret = tti_sched.alloc_ul_user(&ue, alloc);
+    if (ret != alloc_result::sch_collision) {
       return ret;
     }
   }
 
   // Avoid measGaps accounting for PDCCH
   if (not ue.pusch_enabled(tti_sched.get_tti_rx(), tti_sched.get_enb_cc_idx(), true)) {
-    return alloc_outcome_t::MEASGAP_COLLISION;
+    return alloc_result::no_rnti_opportunity;
   }
   uint32_t nof_prbs = alloc.length();
   alloc             = find_contiguous_ul_prbs(nof_prbs, tti_sched.get_ul_mask());
   if (alloc.length() != nof_prbs) {
-    return alloc_outcome_t::RB_COLLISION;
+    return alloc_result::no_sch_space;
   }
   return tti_sched.alloc_ul_user(&ue, alloc);
 }

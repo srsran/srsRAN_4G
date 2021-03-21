@@ -42,7 +42,7 @@ enb_stack_lte::enb_stack_lte(srslog::sink& log_sink) :
   pdcp(&task_sched, pdcp_logger),
   mac(&task_sched, mac_logger),
   rlc(rlc_logger),
-  gtpu(gtpu_logger),
+  gtpu(&task_sched, gtpu_logger),
   s1ap(&task_sched, s1ap_logger),
   rrc(&task_sched),
   mac_pcap(),

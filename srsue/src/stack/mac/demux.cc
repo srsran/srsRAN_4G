@@ -105,7 +105,7 @@ void demux::push_pdu_temp_crnti(uint8_t* buff, uint32_t nof_bytes)
           }
           break;
         case srslte::dl_sch_lcid::TA_CMD:
-          parse_ta_cmd(pending_mac_msg.get());
+          parse_ta_cmd(pending_mac_msg.get(), 0);
           break;
         default:
           break;
@@ -284,7 +284,7 @@ bool demux::process_ce(srslte::sch_subh* subh, uint32_t tti)
       // Do nothing
       break;
     case srslte::dl_sch_lcid::TA_CMD:
-      parse_ta_cmd(subh);
+      parse_ta_cmd(subh, tti);
       break;
     case srslte::dl_sch_lcid::SCELL_ACTIVATION: {
       uint32_t cmd = (uint32_t)subh->get_activation_deactivation_cmd();
@@ -302,9 +302,9 @@ bool demux::process_ce(srslte::sch_subh* subh, uint32_t tti)
   return true;
 }
 
-void demux::parse_ta_cmd(srslte::sch_subh* subh)
+void demux::parse_ta_cmd(srslte::sch_subh* subh, uint32_t tti)
 {
-  phy_h->set_timeadv(subh->get_ta_cmd());
+  phy_h->set_timeadv(tti, subh->get_ta_cmd());
   Info("Received TA=%d (%d/%d) ",
        subh->get_ta_cmd(),
        time_alignment_timer->time_elapsed(),

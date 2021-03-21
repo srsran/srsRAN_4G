@@ -145,6 +145,8 @@ void rrc::ue::max_retx_reached()
 
     // Give UE time to start re-establishment
     set_activity_timeout(UE_REESTABLISH_TIMEOUT);
+
+    mac_ctrl.handle_max_retx();
   }
 }
 

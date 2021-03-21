@@ -26,7 +26,7 @@
 
 using namespace srsenb;
 
-uint32_t const seed = std::chrono::system_clock::now().time_since_epoch().count();
+uint32_t seed = std::chrono::system_clock::now().time_since_epoch().count();
 
 /*******************
  *     Logging     *
@@ -166,7 +166,7 @@ int test_scell_activation(uint32_t sim_number, test_scell_activation_params para
     }
   };
   generate_data(20, 1.0, P_ul_sr, randf());
-  tester.test_next_ttis(generator.tti_events);
+  TESTASSERT(tester.test_next_ttis(generator.tti_events) == SRSLTE_SUCCESS);
 
   // Event: Reconf Complete. Activate SCells. Check if CE correctly transmitted
   generator.step_tti();
@@ -178,7 +178,7 @@ int test_scell_activation(uint32_t sim_number, test_scell_activation_params para
     user->ue_sim_cfg->ue_cfg.supported_cc_list[i].active     = true;
     user->ue_sim_cfg->ue_cfg.supported_cc_list[i].enb_cc_idx = cc_idxs[i];
   }
-  tester.test_next_ttis(generator.tti_events);
+  TESTASSERT(tester.test_next_ttis(generator.tti_events) == SRSLTE_SUCCESS);
   auto activ_list = tester.get_enb_ue_cc_map(rnti1);
   for (uint32_t i = 0; i < cc_idxs.size(); ++i) {
     TESTASSERT(activ_list[i] >= 0);
@@ -186,7 +186,7 @@ int test_scell_activation(uint32_t sim_number, test_scell_activation_params para
 
   // TEST: When a DL newtx takes place, it should also encode the CE
   for (uint32_t i = 0; i < 100; ++i) {
-    if (tester.tti_info.dl_sched_result[params.pcell_idx].nof_data_elems > 0) {
+    if (not tester.tti_info.dl_sched_result[params.pcell_idx].data.empty()) {
       // DL data was allocated
       if (tester.tti_info.dl_sched_result[params.pcell_idx].data[0].nof_pdu_elems[0] > 0) {
         // it is a new DL tx
@@ -196,7 +196,7 @@ int test_scell_activation(uint32_t sim_number, test_scell_activation_params para
       }
     }
     generator.step_tti();
-    tester.test_next_ttis(generator.tti_events);
+    TESTASSERT(tester.test_next_ttis(generator.tti_events) == SRSLTE_SUCCESS);
   }
 
   // Event: Wait for UE to receive and ack CE. Send cqi==0, which should not activate the SCell
@@ -207,12 +207,12 @@ int test_scell_activation(uint32_t sim_number, test_scell_activation_params para
       generator.step_tti();
     }
   }
-  tester.test_next_ttis(generator.tti_events);
+  TESTASSERT(tester.test_next_ttis(generator.tti_events) == SRSLTE_SUCCESS);
   // The UE should now have received the CE
 
   // Event: Generate a bit more data, it should *not* go through SCells until we send a CQI
   generate_data(5, P_dl, P_ul_sr, randf());
-  tester.test_next_ttis(generator.tti_events);
+  TESTASSERT(tester.test_next_ttis(generator.tti_events) == SRSLTE_SUCCESS);
   TESTASSERT(tester.sched_stats->users[rnti1].tot_dl_sched_data[params.pcell_idx] > 0);
   TESTASSERT(tester.sched_stats->users[rnti1].tot_ul_sched_data[params.pcell_idx] > 0);
   for (uint32_t i = 1; i < cc_idxs.size(); ++i) {
@@ -226,7 +226,7 @@ int test_scell_activation(uint32_t sim_number, test_scell_activation_params para
     tester.dl_cqi_info(tester.tti_rx.to_uint(), rnti1, cc_idxs[i], cqi);
   }
   generate_data(10, 1.0, 1.0, 1.0);
-  tester.test_next_ttis(generator.tti_events);
+  TESTASSERT(tester.test_next_ttis(generator.tti_events) == SRSLTE_SUCCESS);
   uint64_t tot_dl_sched_data = 0;
   uint64_t tot_ul_sched_data = 0;
   for (const auto& c : cc_idxs) {

@@ -289,7 +289,15 @@ bool radio::rx_now(rf_buffer_interface& buffer, rf_timestamp_interface& rxd_time
   std::unique_lock<std::mutex> lock(rx_mutex);
   bool                         ret = true;
   rf_buffer_t                  buffer_rx;
-  uint32_t                     ratio = SRSLTE_MAX(1, decimators[0].ratio);
+
+  // Extract decimation ratio. As the decimation may take some time to set a new ratio, deactivate the decimation and
+  // keep receiving samples to avoid stalling the RX stream
+  uint32_t ratio = 1; // No decimation by default
+  if (decimator_busy) {
+    lock.unlock();
+  } else if (decimators[0].ratio > 1) {
+    ratio = decimators[0].ratio;
+  }
 
   // Calculate number of samples, considering the decimation ratio
   uint32_t nof_samples = buffer.get_nof_samples() * ratio;
@@ -683,6 +691,7 @@ void radio::set_rx_srate(const double& srate)
   }
   // If fix sampling rate...
   if (std::isnormal(fix_srate_hz)) {
+    decimator_busy = true;
     std::unique_lock<std::mutex> lock(rx_mutex);
 
     // If the sampling rate was not set, set it
@@ -698,6 +707,7 @@ void radio::set_rx_srate(const double& srate)
       srslte_resampler_fft_init(&decimators[ch], SRSLTE_RESAMPLER_MODE_DECIMATE, ratio);
     }
 
+    decimator_busy = false;
   } else {
     for (srslte_rf_t& rf_device : rf_devices) {
       cur_rx_srate = srslte_rf_set_rx_srate(&rf_device, srate);

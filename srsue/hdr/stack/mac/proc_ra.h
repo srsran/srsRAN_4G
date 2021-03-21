@@ -79,7 +79,7 @@ private:
   void state_backoff_wait(uint32_t tti);
   void state_contention_resolution();
 
-  void process_timeadv_cmd(uint32_t ta_cmd);
+  void process_timeadv_cmd(uint32_t tti, uint32_t ta_cmd);
   void initialization();
   void resource_selection();
   void preamble_transmission();

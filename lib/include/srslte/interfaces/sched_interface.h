@@ -223,27 +223,22 @@ public:
 
   } dl_sched_bc_t;
 
-  typedef struct {
-    uint32_t        cfi;
-    uint32_t        nof_data_elems;
-    uint32_t        nof_rar_elems;
-    uint32_t        nof_bc_elems;
-    dl_sched_data_t data[MAX_DATA_LIST];
-    dl_sched_rar_t  rar[MAX_RAR_LIST];
-    dl_sched_bc_t   bc[MAX_BC_LIST];
-  } dl_sched_res_t;
+  struct dl_sched_res_t {
+    uint32_t                                               cfi;
+    srslte::bounded_vector<dl_sched_data_t, MAX_DATA_LIST> data;
+    srslte::bounded_vector<dl_sched_rar_t, MAX_RAR_LIST>   rar;
+    srslte::bounded_vector<dl_sched_bc_t, MAX_BC_LIST>     bc;
+  };
 
   typedef struct {
     uint16_t rnti;
     enum phich_elem { ACK, NACK } phich;
   } ul_sched_phich_t;
 
-  typedef struct {
-    uint32_t         nof_dci_elems;
-    uint32_t         nof_phich_elems;
-    ul_sched_data_t  pusch[MAX_DATA_LIST];
-    ul_sched_phich_t phich[MAX_PHICH_LIST];
-  } ul_sched_res_t;
+  struct ul_sched_res_t {
+    srslte::bounded_vector<ul_sched_data_t, MAX_DATA_LIST>   pusch;
+    srslte::bounded_vector<ul_sched_phich_t, MAX_PHICH_LIST> phich;
+  };
 
   /******************* Scheduler Control ****************************/
 

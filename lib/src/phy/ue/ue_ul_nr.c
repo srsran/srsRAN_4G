@@ -239,12 +239,16 @@ void srslte_ue_ul_nr_free(srslte_ue_ul_nr_t* q)
   SRSLTE_MEM_ZERO(q, srslte_ue_ul_nr_t, 1);
 }
 
-int srslte_ue_ul_nr_pusch_info(const srslte_ue_ul_nr_t* q, const srslte_sch_cfg_nr_t* cfg, char* str, uint32_t str_len)
+int srslte_ue_ul_nr_pusch_info(const srslte_ue_ul_nr_t*     q,
+                               const srslte_sch_cfg_nr_t*   cfg,
+                               const srslte_uci_value_nr_t* uci_value,
+                               char*                        str,
+                               uint32_t                     str_len)
 {
   int len = 0;
 
   // Append PDSCH info
-  len += srslte_pusch_nr_tx_info(&q->pusch, cfg, &cfg->grant, &str[len], str_len - len);
+  len += srslte_pusch_nr_tx_info(&q->pusch, cfg, &cfg->grant, uci_value, &str[len], str_len - len);
 
   return len;
 }

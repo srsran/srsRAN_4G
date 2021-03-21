@@ -225,12 +225,12 @@ int lte_ttcn3_phy::sr_last_tx_tti()
 // The RAT-agnostic interface for MAC
 
 /* Time advance commands */
-void lte_ttcn3_phy::set_timeadv_rar(uint32_t ta_cmd)
+void lte_ttcn3_phy::set_timeadv_rar(uint32_t tti, uint32_t ta_cmd)
 {
   logger.debug("%s not implemented.", __FUNCTION__);
 }
 
-void lte_ttcn3_phy::set_timeadv(uint32_t ta_cmd)
+void lte_ttcn3_phy::set_timeadv(uint32_t tti, uint32_t ta_cmd)
 {
   logger.debug("%s not implemented.", __FUNCTION__);
 }

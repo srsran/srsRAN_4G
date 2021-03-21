@@ -794,12 +794,6 @@ srslte::interval<uint32_t> sched_ue::get_requested_dl_bytes(uint32_t enb_cc_idx)
   assert(cells.at(enb_cc_idx).configured());
 
   /* Set Maximum boundary */
-  // Ensure there is space for ConRes and RRC Setup
-  // SRB0 is a special case due to being RLC TM (no segmentation possible)
-  if (not lch_handler.is_bearer_dl(0)) {
-    logger.error("SRB0 must always be activated for DL");
-    return {};
-  }
   if (cells[enb_cc_idx].cc_state() != cc_st::active) {
     return {};
   }

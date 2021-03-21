@@ -120,17 +120,18 @@ protected:
 public:
   std::string last_error;
 
-  virtual uhd_error usrp_make(const uhd::device_addr_t& dev_addr, uint32_t nof_channels)             = 0;
-  virtual uhd_error get_mboard_name(std::string& mboard_name)                                        = 0;
-  virtual uhd_error get_mboard_sensor_names(std::vector<std::string>& sensors)                       = 0;
-  virtual uhd_error get_rx_sensor_names(std::vector<std::string>& sensors)                           = 0;
-  virtual uhd_error get_sensor(const std::string& sensor_name, double& sensor_value)                 = 0;
-  virtual uhd_error get_sensor(const std::string& sensor_name, bool& sensor_value)                   = 0;
-  virtual uhd_error get_rx_sensor(const std::string& sensor_name, bool& sensor_value)                = 0;
-  virtual uhd_error set_time_unknown_pps(const uhd::time_spec_t& timespec)                           = 0;
-  virtual uhd_error get_time_now(uhd::time_spec_t& timespec)                                         = 0;
+  virtual uhd_error usrp_make(const uhd::device_addr_t& dev_addr, uint32_t nof_channels) = 0;
+  virtual uhd_error get_mboard_name(std::string& mboard_name)                            = 0;
+  virtual uhd_error get_mboard_sensor_names(std::vector<std::string>& sensors)           = 0;
+  virtual uhd_error get_rx_sensor_names(std::vector<std::string>& sensors)               = 0;
+  virtual uhd_error get_sensor(const std::string& sensor_name, double& sensor_value)     = 0;
+  virtual uhd_error get_sensor(const std::string& sensor_name, bool& sensor_value)       = 0;
+  virtual uhd_error get_rx_sensor(const std::string& sensor_name, bool& sensor_value)    = 0;
+  virtual uhd_error set_time_unknown_pps(const uhd::time_spec_t& timespec)               = 0;
+  virtual uhd_error get_time_now(uhd::time_spec_t& timespec)                             = 0;
   uhd_error         start_rx_stream(double delay)
   {
+    Debug("Starting Rx stream");
     uhd::time_spec_t time_spec;
     uhd_error        err = get_time_now(time_spec);
     if (err != UHD_ERROR_NONE) {
@@ -146,7 +147,9 @@ public:
   }
   uhd_error stop_rx_stream()
   {
+    Debug("Stopping Rx stream");
     UHD_SAFE_C_SAVE_ERROR(this, uhd::stream_cmd_t stream_cmd(uhd::stream_cmd_t::STREAM_MODE_STOP_CONTINUOUS);
+                          stream_cmd.stream_now = true;
                           rx_stream->issue_stream_cmd(stream_cmd);)
   }
   virtual uhd_error set_sync_source(const std::string& source)                                         = 0;
@@ -156,15 +159,13 @@ public:
   virtual uhd_error set_tx_rate(double rate)                                                           = 0;
   virtual uhd_error set_command_time(const uhd::time_spec_t& timespec)                                 = 0;
   virtual uhd_error get_rx_stream(size_t& max_num_samps)                                               = 0;
-  virtual uhd_error destroy_rx_stream() { UHD_SAFE_C_SAVE_ERROR(this, rx_stream = nullptr;) }
-  virtual uhd_error get_tx_stream(size_t& max_num_samps) = 0;
-  virtual uhd_error destroy_tx_stream() { UHD_SAFE_C_SAVE_ERROR(this, rx_stream = nullptr;) }
-  virtual uhd_error set_tx_gain(size_t ch, double gain)                               = 0;
-  virtual uhd_error set_rx_gain(size_t ch, double gain)                               = 0;
-  virtual uhd_error get_rx_gain(double& gain)                                         = 0;
-  virtual uhd_error get_tx_gain(double& gain)                                         = 0;
-  virtual uhd_error set_tx_freq(uint32_t ch, double target_freq, double& actual_freq) = 0;
-  virtual uhd_error set_rx_freq(uint32_t ch, double target_freq, double& actual_freq) = 0;
+  virtual uhd_error get_tx_stream(size_t& max_num_samps)                                               = 0;
+  virtual uhd_error set_tx_gain(size_t ch, double gain)                                                = 0;
+  virtual uhd_error set_rx_gain(size_t ch, double gain)                                                = 0;
+  virtual uhd_error get_rx_gain(double& gain)                                                          = 0;
+  virtual uhd_error get_tx_gain(double& gain)                                                          = 0;
+  virtual uhd_error set_tx_freq(uint32_t ch, double target_freq, double& actual_freq)                  = 0;
+  virtual uhd_error set_rx_freq(uint32_t ch, double target_freq, double& actual_freq)                  = 0;
   uhd_error         receive(void**              buffs,
                             const size_t        nsamps_per_buff,
                             uhd::rx_metadata_t& metadata,

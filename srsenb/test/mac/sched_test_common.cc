@@ -83,8 +83,8 @@ void sched_sim_random::set_external_tti_events(const sim_ue_ctxt_t& ue_ctxt, ue_
     }
 
     // UL CQI
-    if (cc_feedback.ul_cqi >= 0) {
-      cc_feedback.ul_cqi = std::uniform_int_distribution<uint32_t>{5, 40}(get_rand_gen());
+    if (cc_feedback.ul_snr >= 0) {
+      cc_feedback.ul_snr = std::uniform_int_distribution<uint32_t>{5, 40}(get_rand_gen());
     }
   }
 }
@@ -98,12 +98,12 @@ void sched_result_stats::process_results(tti_point                              
                                          const std::vector<sched_interface::ul_sched_res_t>& ul_result)
 {
   for (uint32_t ccidx = 0; ccidx < dl_result.size(); ++ccidx) {
-    for (uint32_t i = 0; i < dl_result[ccidx].nof_data_elems; ++i) {
+    for (uint32_t i = 0; i < dl_result[ccidx].data.size(); ++i) {
       user_stats* user = get_user(dl_result[ccidx].data[i].dci.rnti);
       user->tot_dl_sched_data[ccidx] += dl_result[ccidx].data[i].tbs[0];
       user->tot_dl_sched_data[ccidx] += dl_result[ccidx].data[i].tbs[1];
     }
-    for (uint32_t i = 0; i < ul_result[ccidx].nof_dci_elems; ++i) {
+    for (uint32_t i = 0; i < ul_result[ccidx].pusch.size(); ++i) {
       user_stats* user = get_user(ul_result[ccidx].pusch[i].dci.rnti);
       user->tot_ul_sched_data[ccidx] += ul_result[ccidx].pusch[i].tbs;
     }
@@ -125,6 +125,10 @@ sched_result_stats::user_stats* sched_result_stats::get_user(uint16_t rnti)
  * Common Sched Tester
  **********************/
 
+common_sched_tester::common_sched_tester() : logger(srslog::fetch_basic_logger("TEST")) {}
+
+common_sched_tester::~common_sched_tester() {}
+
 const sched::ue_cfg_t* common_sched_tester::get_current_ue_cfg(uint16_t rnti) const
 {
   return sched_sim->get_user_cfg(rnti);
@@ -134,9 +138,9 @@ int common_sched_tester::sim_cfg(sim_sched_args args)
 {
   sim_args0 = std::move(args);
 
-  sched::init(nullptr, sim_args0.sched_args);
+  sched::init(&rrc_ptr, sim_args0.sched_args);
 
-  sched_sim.reset(new sched_sim_random{this, sim_args0.cell_cfg});
+  sched_sim.reset(new sched_sim_random{this, sim_args0.sched_args, sim_args0.cell_cfg});
   sched_stats.reset(new sched_result_stats{sim_args0.cell_cfg});
 
   return SRSLTE_SUCCESS;
