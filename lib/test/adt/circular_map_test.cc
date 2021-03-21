@@ -61,6 +61,30 @@ int test_id_map()
   return SRSRAN_SUCCESS;
 }
 
+int test_id_map_wraparound()
+{
+  static_circular_map<uint32_t, std::string, 4> mymap;
+
+  // Fill map
+  TESTASSERT(mymap.insert(0, "0"));
+  TESTASSERT(mymap.insert(1, "1"));
+  TESTASSERT(mymap.insert(2, "2"));
+  TESTASSERT(mymap.insert(3, "3"));
+  TESTASSERT(mymap.full());
+
+  // TEST: Ensure that insertion fails when map is full
+  TESTASSERT(not mymap.insert(4, "4"));
+  TESTASSERT(not mymap.erase(4));
+
+  // TEST: Ensure that insertion works once the element with matching map index is removed
+  TESTASSERT(mymap.erase(0));
+  TESTASSERT(not mymap.full());
+  TESTASSERT(mymap.insert(4, "4"));
+  TESTASSERT(mymap.full());
+
+  return SRSRAN_SUCCESS;
+}
+
 } // namespace srsran
 
 int main()
@@ -72,5 +96,6 @@ int main()
   srslog::init();
 
   TESTASSERT(srsran::test_id_map() == SRSRAN_SUCCESS);
+  TESTASSERT(srsran::test_id_map_wraparound() == SRSRAN_SUCCESS);
   return SRSRAN_SUCCESS;
 }

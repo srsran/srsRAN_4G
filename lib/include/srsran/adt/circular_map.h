@@ -46,15 +46,32 @@ public:
       return *this;
     }
 
-    obj_t&       operator*() { return ptr->get_obj_(idx); }
-    obj_t*       operator->() { return &ptr->get_obj_(idx); }
-    const obj_t* operator*() const { return ptr->buffer[idx]; }
-    const obj_t* operator->() const { return ptr->buffer[idx]; }
+    obj_t& operator*()
+    {
+      assert(idx < ptr->buffer.size() && "Index out-of-bounds");
+      return ptr->get_obj_(idx);
+    }
+    obj_t* operator->()
+    {
+      assert(idx < ptr->buffer.size() && "Index out-of-bounds");
+      return &ptr->get_obj_(idx);
+    }
+    const obj_t* operator*() const
+    {
+      assert(idx < ptr->buffer.size() && "Index out-of-bounds");
+      return ptr->buffer[idx];
+    }
+    const obj_t* operator->() const
+    {
+      assert(idx < ptr->buffer.size() && "Index out-of-bounds");
+      return ptr->buffer[idx];
+    }
 
     bool operator==(const iterator& other) const { return ptr == other.ptr and idx == other.idx; }
     bool operator!=(const iterator& other) const { return not(*this == other); }
 
   private:
+    friend class static_circular_map<K, T, N>;
     static_circular_map<K, T, N>* ptr = nullptr;
     size_t                        idx = 0;
   };
@@ -78,6 +95,7 @@ public:
     bool operator!=(const const_iterator& other) const { return not(*this == other); }
 
   private:
+    friend class static_circular_map<K, T, N>;
     const static_circular_map<K, T, N>* ptr = nullptr;
     size_t                              idx = 0;
   };
@@ -171,7 +189,7 @@ public:
 
   iterator erase(iterator it)
   {
-    assert(it->first < N);
+    assert(it.idx < N);
     iterator next = it;
     ++next;
     it->~obj_t();
