@@ -25,43 +25,35 @@ public:
 
   std::unique_ptr<log_formatter> clone() const override;
 
-  void format(detail::log_entry_metadata&& metadata,
-              fmt::memory_buffer& buffer) override;
+  void format(detail::log_entry_metadata&& metadata, fmt::memory_buffer& buffer) override;
 
 private:
   void format_context_begin(const detail::log_entry_metadata& md,
-                            const std::string& ctx_name,
-                            unsigned size,
-                            fmt::memory_buffer& buffer) override;
+                            fmt::string_view                  ctx_name,
+                            unsigned                          size,
+                            fmt::memory_buffer&               buffer) override;
 
   void format_context_end(const detail::log_entry_metadata& md,
-                          const std::string& ctx_name,
-                          fmt::memory_buffer& buffer) override;
+                          fmt::string_view                  ctx_name,
+                          fmt::memory_buffer&               buffer) override;
 
-  void format_metric_set_begin(const std::string& set_name,
-                               unsigned size,
-                               unsigned level,
+  void format_metric_set_begin(fmt::string_view    set_name,
+                               unsigned            size,
+                               unsigned            level,
                                fmt::memory_buffer& buffer) override;
 
-  void format_metric_set_end(const std::string& set_name,
-                             unsigned level,
-                             fmt::memory_buffer& buffer) override;
+  void format_metric_set_end(fmt::string_view set_name, unsigned level, fmt::memory_buffer& buffer) override;
 
-  void format_list_begin(const std::string& list_name,
-                         unsigned size,
-                         unsigned level,
-                         fmt::memory_buffer& buffer) override;
+  void
+  format_list_begin(fmt::string_view list_name, unsigned size, unsigned level, fmt::memory_buffer& buffer) override;
 
-  void format_list_end(const std::string& list_name,
-                       unsigned level,
-                       fmt::memory_buffer& buffer) override
-  {}
+  void format_list_end(fmt::string_view list_name, unsigned level, fmt::memory_buffer& buffer) override {}
 
-  void format_metric(const std::string& metric_name,
-                     const std::string& metric_value,
-                     const std::string& metric_units,
-                     metric_kind kind,
-                     unsigned level,
+  void format_metric(fmt::string_view    metric_name,
+                     fmt::string_view    metric_value,
+                     fmt::string_view    metric_units,
+                     metric_kind         kind,
+                     unsigned            level,
                      fmt::memory_buffer& buffer) override;
 
   /// Returns the set name of current scope.
@@ -92,9 +84,7 @@ private:
 private:
   /// Keeps track of some state required for formatting.
   struct scope {
-    scope(unsigned size, std::string set_name) :
-      size(size), set_name(std::move(set_name))
-    {}
+    scope(unsigned size, std::string set_name) : size(size), set_name(std::move(set_name)) {}
     /// Number of elements this scope holds.
     unsigned size;
     /// Set name in this scope.
@@ -103,7 +93,7 @@ private:
 
 private:
   /// Flags that the formatting should take place into a single line.
-  bool do_one_line_ctx_format = false;
+  bool               do_one_line_ctx_format = false;
   std::vector<scope> scope_stack;
 };
 

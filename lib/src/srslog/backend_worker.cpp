@@ -95,7 +95,13 @@ void backend_worker::process_log_entry(detail::log_entry&& entry)
   if (entry.metadata.small_str.size()) {
     entry.metadata.fmtstring = entry.metadata.small_str.data();
   }
+
+  // Save the pointer before moving the entry.
+  auto* arg_store = entry.metadata.store;
+
   entry.format_func(std::move(entry.metadata), fmt_buffer);
+
+  arg_pool.dealloc(arg_store);
 
   if (auto err_str = entry.s->write({fmt_buffer.data(), fmt_buffer.size()})) {
     err_handler(err_str.get_error());

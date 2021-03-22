@@ -13,12 +13,9 @@
 #ifndef SRSLOG_DETAIL_SUPPORT_WORK_QUEUE_H
 #define SRSLOG_DETAIL_SUPPORT_WORK_QUEUE_H
 
+#include "srsran/srslog/detail/support/backend_capacity.h"
 #include "srsran/srslog/detail/support/thread_utils.h"
 #include <queue>
-
-#ifndef SRSLOG_QUEUE_CAPACITY
-#define SRSLOG_QUEUE_CAPACITY 8192
-#endif
 
 namespace srslog {
 
@@ -30,9 +27,9 @@ namespace detail {
 template <typename T, size_t capacity = SRSLOG_QUEUE_CAPACITY>
 class work_queue
 {
-  std::queue<T> queue;
+  std::queue<T>              queue;
   mutable condition_variable cond_var;
-  static constexpr size_t threshold = capacity * 0.98;
+  static constexpr size_t    threshold = capacity * 0.98;
 
 public:
   work_queue() = default;

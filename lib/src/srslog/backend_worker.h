@@ -14,6 +14,7 @@
 #define SRSLOG_BACKEND_WORKER_H
 
 #include "srsran/srslog/detail/log_entry.h"
+#include "srsran/srslog/detail/support/dyn_arg_store_pool.h"
 #include "srsran/srslog/detail/support/work_queue.h"
 #include "srsran/srslog/shared_types.h"
 #include <mutex>
@@ -31,8 +32,8 @@ class backend_worker
   static constexpr unsigned sleep_period_ms = 500;
 
 public:
-  explicit backend_worker(detail::work_queue<detail::log_entry>& queue) :
-    queue(queue), running_flag(false)
+  explicit backend_worker(detail::work_queue<detail::log_entry>& queue, detail::dyn_arg_store_pool& arg_pool) :
+    queue(queue), arg_pool(arg_pool), running_flag(false)
   {}
 
   backend_worker(const backend_worker&) = delete;
@@ -94,23 +95,21 @@ private:
   void report_queue_on_full_once()
   {
     if (queue.is_almost_full()) {
-      err_handler(
-          fmt::format("The backend queue size is about to reach its maximum "
-                      "capacity of {} elements, new log entries will get "
-                      "discarded.\nConsider increasing the queue capacity.",
-                      queue.get_capacity()));
+      err_handler(fmt::format("The backend queue size is about to reach its maximum "
+                              "capacity of {} elements, new log entries will get "
+                              "discarded.\nConsider increasing the queue capacity.",
+                              queue.get_capacity()));
       err_handler = [](const std::string&) {};
     }
   }
 
 private:
   detail::work_queue<detail::log_entry>& queue;
-  detail::shared_variable<bool> running_flag;
-  error_handler err_handler = [](const std::string& error) {
-    fmt::print(stderr, "srsLog error - {}\n", error);
-  };
-  std::once_flag start_once_flag;
-  std::thread worker_thread;
+  detail::dyn_arg_store_pool&            arg_pool;
+  detail::shared_variable<bool>          running_flag;
+  error_handler      err_handler = [](const std::string& error) { fmt::print(stderr, "srsLog error - {}\n", error); };
+  std::once_flag     start_once_flag;
+  std::thread        worker_thread;
   fmt::memory_buffer fmt_buffer;
 };
 

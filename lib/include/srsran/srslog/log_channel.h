@@ -47,14 +47,9 @@ struct log_channel_config {
 class log_channel
 {
 public:
-  log_channel(std::string id, sink& s, detail::log_backend& backend) :
-    log_channel(std::move(id), s, backend, {})
-  {}
+  log_channel(std::string id, sink& s, detail::log_backend& backend) : log_channel(std::move(id), s, backend, {}) {}
 
-  log_channel(std::string id,
-              sink& s,
-              detail::log_backend& backend,
-              log_channel_config config) :
+  log_channel(std::string id, sink& s, detail::log_backend& backend, log_channel_config config) :
     log_id(std::move(id)),
     log_sink(s),
     backend(backend),
@@ -96,91 +91,87 @@ public:
     }
 
     // Populate the store with all incoming arguments.
-    fmt::dynamic_format_arg_store<fmt::printf_context> store;
-    (void)std::initializer_list<int>{
-        (store.push_back(std::forward<Args>(args)), 0)...};
+    auto* store = backend.alloc_arg_store();
+    if (!store) {
+      return;
+    }
+    (void)std::initializer_list<int>{(store->push_back(std::forward<Args>(args)), 0)...};
 
     // Send the log entry to the backend.
-    log_formatter& formatter = log_sink.get_formatter();
-    detail::log_entry entry = {
-        &log_sink,
-        [&formatter](detail::log_entry_metadata&& metadata,
-                     fmt::memory_buffer& buffer) {
-          formatter.format(std::move(metadata), buffer);
-        },
-        {std::chrono::high_resolution_clock::now(),
-         {ctx_value, should_print_context},
-         fmtstr,
-         std::move(store),
-         log_name,
-         log_tag,
-         small_str_buffer()}};
+    log_formatter&    formatter = log_sink.get_formatter();
+    detail::log_entry entry     = {&log_sink,
+                               [&formatter](detail::log_entry_metadata&& metadata, fmt::memory_buffer& buffer) {
+                                 formatter.format(std::move(metadata), buffer);
+                               },
+                               {std::chrono::high_resolution_clock::now(),
+                                {ctx_value, should_print_context},
+                                fmtstr,
+                                store,
+                                log_name,
+                                log_tag,
+                                small_str_buffer()}};
     backend.push(std::move(entry));
   }
 
   /// Builds the provided log entry and passes it to the backend. When the
   /// channel is disabled the log entry will be discarded.
-  void operator()(small_str_buffer &&str)
+  void operator()(small_str_buffer&& str)
   {
     if (!enabled()) {
       return;
     }
 
     // Send the log entry to the backend.
-    log_formatter& formatter = log_sink.get_formatter();
-    detail::log_entry entry = {
-        &log_sink,
-        [&formatter](detail::log_entry_metadata&& metadata,
-                     fmt::memory_buffer& buffer) {
-          formatter.format(std::move(metadata), buffer);
-        },
-        {std::chrono::high_resolution_clock::now(),
-         {ctx_value, should_print_context},
-         nullptr,
-         {},
-         log_name,
-         log_tag,
-         std::move(str)}};
+    log_formatter&    formatter = log_sink.get_formatter();
+    detail::log_entry entry     = {&log_sink,
+                               [&formatter](detail::log_entry_metadata&& metadata, fmt::memory_buffer& buffer) {
+                                 formatter.format(std::move(metadata), buffer);
+                               },
+                               {std::chrono::high_resolution_clock::now(),
+                                {ctx_value, should_print_context},
+                                nullptr,
+                                nullptr,
+                                log_name,
+                                log_tag,
+                                std::move(str)}};
     backend.push(std::move(entry));
   }
 
   /// Builds the provided log entry and passes it to the backend. When the
   /// channel is disabled the log entry will be discarded.
   template <typename... Args>
-  void operator()(const uint8_t* buffer,
-                  size_t len,
-                  const char* fmtstr,
-                  Args&&... args)
+  void operator()(const uint8_t* buffer, size_t len, const char* fmtstr, Args&&... args)
   {
     if (!enabled()) {
       return;
     }
 
     // Populate the store with all incoming arguments.
-    fmt::dynamic_format_arg_store<fmt::printf_context> store;
-    (void)std::initializer_list<int>{
-        (store.push_back(std::forward<Args>(args)), 0)...};
+    auto* store = backend.alloc_arg_store();
+    if (!store) {
+      return;
+    }
+    (void)std::initializer_list<int>{(store->push_back(std::forward<Args>(args)), 0)...};
 
     // Calculate the length to capture in the buffer.
-    if (hex_max_size >= 0)
+    if (hex_max_size >= 0) {
       len = std::min<size_t>(len, hex_max_size);
+    }
 
     // Send the log entry to the backend.
-    log_formatter& formatter = log_sink.get_formatter();
-    detail::log_entry entry = {
-        &log_sink,
-        [&formatter](detail::log_entry_metadata&& metadata,
-                     fmt::memory_buffer& buffer) {
-          formatter.format(std::move(metadata), buffer);
-        },
-        {std::chrono::high_resolution_clock::now(),
-         {ctx_value, should_print_context},
-         fmtstr,
-         std::move(store),
-         log_name,
-         log_tag,
-         small_str_buffer(),
-         std::vector<uint8_t>(buffer, buffer + len)}};
+    log_formatter&    formatter = log_sink.get_formatter();
+    detail::log_entry entry     = {&log_sink,
+                               [&formatter](detail::log_entry_metadata&& metadata, fmt::memory_buffer& buffer) {
+                                 formatter.format(std::move(metadata), buffer);
+                               },
+                               {std::chrono::high_resolution_clock::now(),
+                                {ctx_value, should_print_context},
+                                fmtstr,
+                                store,
+                                log_name,
+                                log_tag,
+                                small_str_buffer(),
+                                std::vector<uint8_t>(buffer, buffer + len)}};
     backend.push(std::move(entry));
   }
 
@@ -194,20 +185,18 @@ public:
     }
 
     // Send the log entry to the backend.
-    log_formatter& formatter = log_sink.get_formatter();
-    detail::log_entry entry = {
-        &log_sink,
-        [&formatter, ctx](detail::log_entry_metadata&& metadata,
-                          fmt::memory_buffer& buffer) {
-          formatter.format_ctx(ctx, std::move(metadata), buffer);
-        },
-        {std::chrono::high_resolution_clock::now(),
-         {ctx_value, should_print_context},
-         nullptr,
-         {},
-         log_name,
-         log_tag,
-         small_str_buffer()}};
+    log_formatter&    formatter = log_sink.get_formatter();
+    detail::log_entry entry     = {&log_sink,
+                               [&formatter, ctx](detail::log_entry_metadata&& metadata, fmt::memory_buffer& buffer) {
+                                 formatter.format_ctx(ctx, std::move(metadata), buffer);
+                               },
+                               {std::chrono::high_resolution_clock::now(),
+                                {ctx_value, should_print_context},
+                                nullptr,
+                                nullptr,
+                                log_name,
+                                log_tag,
+                                small_str_buffer()}};
     backend.push(std::move(entry));
   }
 
@@ -221,38 +210,38 @@ public:
     }
 
     // Populate the store with all incoming arguments.
-    fmt::dynamic_format_arg_store<fmt::printf_context> store;
-    (void)std::initializer_list<int>{
-        (store.push_back(std::forward<Args>(args)), 0)...};
+    auto* store = backend.alloc_arg_store();
+    if (!store) {
+      return;
+    }
+    (void)std::initializer_list<int>{(store->push_back(std::forward<Args>(args)), 0)...};
 
     // Send the log entry to the backend.
-    log_formatter& formatter = log_sink.get_formatter();
-    detail::log_entry entry = {
-        &log_sink,
-        [&formatter, ctx](detail::log_entry_metadata&& metadata,
-                          fmt::memory_buffer& buffer) {
-          formatter.format_ctx(ctx, std::move(metadata), buffer);
-        },
-        {std::chrono::high_resolution_clock::now(),
-         {ctx_value, should_print_context},
-         fmtstr,
-         std::move(store),
-         log_name,
-         log_tag,
-         small_str_buffer()}};
+    log_formatter&    formatter = log_sink.get_formatter();
+    detail::log_entry entry     = {&log_sink,
+                               [&formatter, ctx](detail::log_entry_metadata&& metadata, fmt::memory_buffer& buffer) {
+                                 formatter.format_ctx(ctx, std::move(metadata), buffer);
+                               },
+                               {std::chrono::high_resolution_clock::now(),
+                                {ctx_value, should_print_context},
+                                fmtstr,
+                                store,
+                                log_name,
+                                log_tag,
+                                small_str_buffer()}};
     backend.push(std::move(entry));
   }
 
 private:
-  const std::string log_id;
-  sink& log_sink;
-  detail::log_backend& backend;
-  const std::string log_name;
-  const char log_tag;
-  const bool should_print_context;
+  const std::string                 log_id;
+  sink&                             log_sink;
+  detail::log_backend&              backend;
+  const std::string                 log_name;
+  const char                        log_tag;
+  const bool                        should_print_context;
   detail::shared_variable<uint32_t> ctx_value;
-  detail::shared_variable<int> hex_max_size;
-  detail::shared_variable<bool> is_enabled;
+  detail::shared_variable<int>      hex_max_size;
+  detail::shared_variable<bool>     is_enabled;
 };
 
 } // namespace srslog

@@ -198,6 +198,7 @@ void srslog::flush()
   }
 
   detail::log_entry cmd;
+  cmd.metadata.store = nullptr;
   cmd.flush_cmd = std::unique_ptr<detail::flush_backend_cmd>(
       new detail::flush_backend_cmd{completion_flag, std::move(sinks)});
 

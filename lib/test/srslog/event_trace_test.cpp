@@ -32,6 +32,8 @@ public:
     return true;
   }
 
+  fmt::dynamic_format_arg_store<fmt::printf_context>* alloc_arg_store() override { return &store; }
+
   bool is_running() const override { return true; }
 
   void reset() { count = 0; }
@@ -39,13 +41,13 @@ public:
   unsigned push_invocation_count() const { return count; }
 
 private:
-  unsigned count = 0;
+  unsigned                                           count = 0;
+  fmt::dynamic_format_arg_store<fmt::printf_context> store;
 };
 
 } // namespace
 
-static bool
-when_tracing_with_duration_event_then_two_events_are_generated(backend_spy& spy)
+static bool when_tracing_with_duration_event_then_two_events_are_generated(backend_spy& spy)
 {
   trace_duration_begin("a", "b");
   ASSERT_EQ(spy.push_invocation_count(), 1);
@@ -56,8 +58,7 @@ when_tracing_with_duration_event_then_two_events_are_generated(backend_spy& spy)
   return true;
 }
 
-static bool
-when_tracing_with_complete_event_then_one_event_is_generated(backend_spy& spy)
+static bool when_tracing_with_complete_event_then_one_event_is_generated(backend_spy& spy)
 {
   {
     trace_complete_event("a", "b");
@@ -70,17 +71,15 @@ when_tracing_with_complete_event_then_one_event_is_generated(backend_spy& spy)
 int main()
 {
   test_dummies::sink_dummy s;
-  backend_spy backend;
-  log_channel c("test", s, backend);
+  backend_spy              backend;
+  log_channel              c("test", s, backend);
 
   // Inject our spy into the framework.
   event_trace_init(c);
 
-  TEST_FUNCTION(when_tracing_with_duration_event_then_two_events_are_generated,
-                backend);
+  TEST_FUNCTION(when_tracing_with_duration_event_then_two_events_are_generated, backend);
   backend.reset();
-  TEST_FUNCTION(when_tracing_with_complete_event_then_one_event_is_generated,
-                backend);
+  TEST_FUNCTION(when_tracing_with_complete_event_then_one_event_is_generated, backend);
 
   return 0;
 }
