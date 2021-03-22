@@ -535,16 +535,24 @@ void rlc_am_lte::rlc_am_lte_tx::timer_expired(uint32_t timeout_id)
 
 void rlc_am_lte::rlc_am_lte_tx::retransmit_pdu()
 {
-  if (not tx_window.empty()) {
-    // select first PDU in tx window for retransmission
-    rlc_amd_tx_pdu_t& pdu = tx_window[vt_a];
-    logger.info("%s Schedule SN=%d for reTx.", RB_NAME, pdu.rlc_sn);
-    rlc_amd_retx_t& retx = retx_queue.push();
-    retx.is_segment      = false;
-    retx.so_start        = 0;
-    retx.so_end          = pdu.buf->N_bytes;
-    retx.sn              = pdu.rlc_sn;
+  if (tx_window.empty()) {
+    logger.warning("%s No PDU to retransmit.", RB_NAME);
+    return;
   }
+
+  if (not tx_window.has_sn(vt_a)) {
+    logger.warning("%s Can't retransmit unexisting SN=%d.", RB_NAME, vt_a);
+    return;
+  }
+
+  // select first PDU in tx window for retransmission
+  rlc_amd_tx_pdu_t& pdu = tx_window[vt_a];
+  logger.info("%s Schedule SN=%d for reTx.", RB_NAME, pdu.rlc_sn);
+  rlc_amd_retx_t& retx = retx_queue.push();
+  retx.is_segment      = false;
+  retx.so_start        = 0;
+  retx.so_end          = pdu.buf->N_bytes;
+  retx.sn              = pdu.rlc_sn;
 }
 
 /****************************************************************************
@@ -1184,6 +1192,11 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
       }
     }
     i = (i + 1) % MOD;
+  }
+
+  // Make sure vt_a points to valid SN
+  if (not tx_window.empty() && not tx_window.has_sn(vt_a)) {
+    logger.error("%s vt_a=%d points to invalid position in Tx window", RB_NAME, vt_a);
   }
 
   if (not notify_info_vec.empty()) {
