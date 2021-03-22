@@ -81,6 +81,8 @@ option(ENABLE_TIMEPROF "Enable time profiling"                    ON)
 option(FORCE_32BIT     "Add flags to force 32 bit compilation"    OFF)
 
 option(ENABLE_SRSLOG_TRACING "Enable event tracing using srslog"  OFF)
+option(ASSERTS_ENABLED       "Enable srsRAN asserts"              ON)
+option(STOP_ON_WARNING     "Interrupt application on warning"     OFF)
 
 # Users that want to try this feature need to make sure the lto plugin is
 # loaded by bintools (ar, nm, ...). Older versions of bintools will not do
@@ -106,6 +108,14 @@ endif ()
 if (ENABLE_SRSLOG_TRACING)
   add_definitions(-DENABLE_SRSLOG_EVENT_TRACE)
 endif (ENABLE_SRSLOG_TRACING)
+
+if (ASSERTS_ENABLED)
+  add_definitions(-DASSERTS_ENABLED)
+endif()
+
+if (STOP_ON_WARNING)
+  add_definitions(-DSTOP_ON_WARNING)
+endif()
 
 ########################################################################
 # Find dependencies

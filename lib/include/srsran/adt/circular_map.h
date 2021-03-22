@@ -14,15 +14,15 @@
 #define SRSRAN_ID_MAP_H
 
 #include "expected.h"
+#include "srsran/common/srsran_assert.h"
 #include <array>
-#include <cassert>
 
 namespace srsran {
 
 template <typename K, typename T, size_t N>
 class static_circular_map
 {
-  static_assert(std::is_integral<K>::value, "Map key must be an integer");
+  static_assert(std::is_integral<K>::value and std::is_unsigned<K>::value, "Map key must be an unsigned integer");
 
   using obj_t         = std::pair<K, T>;
   using obj_storage_t = typename std::aligned_storage<sizeof(obj_t), alignof(obj_t)>::type;
@@ -48,22 +48,22 @@ public:
 
     obj_t& operator*()
     {
-      assert(idx < ptr->buffer.size() && "Index out-of-bounds");
+      srsran_assert(idx < ptr->buffer.size(), "Iterator out-of-bounds (%zd >= %zd)", idx, ptr->buffer.size());
       return ptr->get_obj_(idx);
     }
     obj_t* operator->()
     {
-      assert(idx < ptr->buffer.size() && "Index out-of-bounds");
+      srsran_assert(idx < ptr->buffer.size(), "Iterator out-of-bounds (%zd >= %zd)", idx, ptr->buffer.size());
       return &ptr->get_obj_(idx);
     }
     const obj_t* operator*() const
     {
-      assert(idx < ptr->buffer.size() && "Index out-of-bounds");
+      srsran_assert(idx < ptr->buffer.size(), "Iterator out-of-bounds (%zd >= %zd)", idx, ptr->buffer.size());
       return ptr->buffer[idx];
     }
     const obj_t* operator->() const
     {
-      assert(idx < ptr->buffer.size() && "Index out-of-bounds");
+      srsran_assert(idx < ptr->buffer.size(), "Iterator out-of-bounds (%zd >= %zd)", idx, ptr->buffer.size());
       return ptr->buffer[idx];
     }
 
@@ -189,7 +189,7 @@ public:
 
   iterator erase(iterator it)
   {
-    assert(it.idx < N);
+    srsran_assert(it.idx < N, "Iterator out-of-bounds (%zd >= %zd)", it.idx, N);
     iterator next = it;
     ++next;
     it->~obj_t();
@@ -207,12 +207,12 @@ public:
 
   T& operator[](K id)
   {
-    assert(contains(id));
+    srsran_assert(contains(id), "Accessing non-existent ID=%zd", (size_t)id);
     return get_obj_(id % N).second;
   }
   const T& operator[](K id) const
   {
-    assert(contains(id));
+    srsran_assert(contains(id), "Accessing non-existent ID=%zd", (size_t)id);
     return get_obj_(id % N).second;
   }
 

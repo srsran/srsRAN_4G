@@ -17,6 +17,8 @@
 
 #ifdef __cplusplus
 
+#include "srsran/common/crash_handler.h"
+#include "srsran/common/srsran_assert.h"
 #include "srsran/common/standard_streams.h"
 #include "srsran/srslog/srslog.h"
 #include <atomic>
@@ -128,27 +130,24 @@ private:
   std::vector<std::string> entries;
 };
 
+inline void test_init(int argc, char** argv)
+{
+  // Setup a backtrace pretty printer
+  srsran_debug_handle_crash(argc, argv);
+
+  srslog::fetch_basic_logger("ALL").set_level(srslog::basic_levels::info);
+
+  // Start the log backend.
+  srslog::init();
+}
+
 } // namespace srsran
 
-#define TESTERROR(fmt, ...)                                                                                            \
-  do {                                                                                                                 \
-    srslog::fetch_basic_logger("TEST").error(fmt, ##__VA_ARGS__);                                                      \
-    return SRSRAN_ERROR;                                                                                               \
-  } while (0)
+#define CONDERROR(cond, fmt, ...) srsran_assert(not(cond), fmt, ##__VA_ARGS__)
 
-#define TESTWARN(fmt, ...)                                                                                             \
-  do {                                                                                                                 \
-    srslog::fetch_basic_logger("TEST").warning(fmt, ##__VA_ARGS__);                                                    \
-  } while (0)
+#define TESTERROR(fmt, ...) CONDERROR(true, fmt, ##__VA_ARGS__)
 
-#define CONDERROR(cond, fmt, ...)                                                                                      \
-  do {                                                                                                                 \
-    if (cond) {                                                                                                        \
-      TESTERROR(fmt, ##__VA_ARGS__);                                                                                   \
-    }                                                                                                                  \
-  } while (0)
-
-#define TESTASSERT(cond) CONDERROR((not(cond)), "[%s][Line %d] Fail at \"%s\"", __FUNCTION__, __LINE__, (#cond))
+#define TESTASSERT(cond) srsran_assert((cond), "Fail at \"%s\"", (#cond))
 
 #else // if C
 

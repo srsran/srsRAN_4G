@@ -28,12 +28,11 @@ int test_pusch_collisions(const sf_output_res_t& sf_out, uint32_t enb_cc_idx, co
   auto try_ul_fill = [&](prb_interval alloc, const char* ch_str, bool strict = true) {
     CONDERROR(alloc.stop() > nof_prb, "Allocated RBs %s out-of-bounds", fmt::format("{}", alloc).c_str());
     CONDERROR(alloc.empty(), "Allocations must have at least one PRB");
-    if (strict and ul_allocs.any(alloc.start(), alloc.stop())) {
-      TESTERROR("Collision Detected of %s alloc=%s and cumulative_mask=0x%s",
-                ch_str,
-                fmt::format("{}", alloc).c_str(),
-                fmt::format("{:x}", ul_allocs).c_str());
-    }
+    CONDERROR(strict and ul_allocs.any(alloc.start(), alloc.stop()),
+              "Collision Detected of %s alloc=%s and cumulative_mask=0x%s",
+              ch_str,
+              fmt::format("{}", alloc).c_str(),
+              fmt::format("{:x}", ul_allocs).c_str());
     ul_allocs.fill(alloc.start(), alloc.stop(), true);
     return SRSRAN_SUCCESS;
   };
@@ -102,12 +101,11 @@ int test_pdsch_collisions(const sf_output_res_t& sf_out, uint32_t enb_cc_idx, co
       return SRSRAN_ERROR;
     }
     CONDERROR(alloc_mask.none(), "DL allocation must occupy at least one RBG.");
-    if ((dl_allocs & alloc_mask).any()) {
-      TESTERROR("Detected collision in the DL %s allocation (%s intersects %s)",
-                channel,
-                fmt::format("{}", dl_allocs).c_str(),
-                fmt::format("{}", alloc_mask).c_str());
-    }
+    CONDERROR((dl_allocs & alloc_mask).any(),
+              "Detected collision in the DL %s allocation (%s intersects %s)",
+              channel,
+              fmt::format("{}", dl_allocs).c_str(),
+              fmt::format("{}", alloc_mask).c_str());
     dl_allocs |= alloc_mask;
     return SRSRAN_SUCCESS;
   };

@@ -10,8 +10,8 @@
  *
  */
 
-#include "srsran/common/test_common.h"
 #include "srsran/adt/circular_map.h"
+#include "srsran/common/test_common.h"
 
 namespace srsran {
 
@@ -87,13 +87,12 @@ int test_id_map_wraparound()
 
 } // namespace srsran
 
-int main()
+int main(int argc, char** argv)
 {
   auto& test_log = srslog::fetch_basic_logger("TEST");
   test_log.set_level(srslog::basic_levels::info);
 
-  // Start the log backend.
-  srslog::init();
+  srsran::test_init(argc, argv);
 
   TESTASSERT(srsran::test_id_map() == SRSRAN_SUCCESS);
   TESTASSERT(srsran::test_id_map_wraparound() == SRSRAN_SUCCESS);
