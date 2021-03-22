@@ -820,7 +820,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_segment(uint8_t* payload, uint32_t nof_byte
   }
 
   // Santity check we don't pack beyond the provided buffer
-  assert(head_len + (retx.so_end - retx.so_start) <= nof_bytes);
+  srsran_expect(head_len + (retx.so_end - retx.so_start) <= nof_bytes, "The provided buffer was overflown.");
 
   // Update retx_queue
   if (tx_window[retx.sn].buf->N_bytes == retx.so_end) {
@@ -1129,7 +1129,7 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
           auto& pdu = tx_window[i];
           if (!retx_queue.has_sn(i)) {
             rlc_amd_retx_t& retx = retx_queue.push();
-            assert(tx_window[i].rlc_sn == i);
+            srsran_expect(tx_window[i].rlc_sn == i, "Incorrect RLC SN=%d!=%d being accessed", tx_window[i].rlc_sn, i);
             retx.sn         = i;
             retx.is_segment = false;
             retx.so_start   = 0;

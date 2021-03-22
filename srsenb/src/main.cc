@@ -512,7 +512,7 @@ int main(int argc, char* argv[])
   // Start the log backend.
   srslog::init();
 
-  srslog::fetch_basic_logger("COMMON").set_level(srslog::basic_levels::info);
+  srslog::fetch_basic_logger("ALL").set_level(srslog::basic_levels::warning);
   srsran::log_args(argc, argv, "ENB");
 
   srsran::check_scaling_governor(args.rf.device_name);

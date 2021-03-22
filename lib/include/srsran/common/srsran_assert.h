@@ -32,11 +32,11 @@
 
 #ifdef STOP_ON_WARNING
 
-#define srsran_warning(condition, fmt, ...) srsran_assert(condition, fmt, ##__VA_ARGS__)
+#define srsran_expect(condition, fmt, ...) srsran_assert(condition, fmt, ##__VA_ARGS__)
 
 #else // STOP_ON_WARNING
 
-#define srsran_warning(condition, fmt, ...)                                                                            \
+#define srsran_expect(condition, fmt, ...)                                                                             \
   do {                                                                                                                 \
     if (srsran_unlikely(not(condition))) {                                                                             \
       srslog::fetch_basic_logger("ALL").warning("%s:%d: " fmt, __FILE__, __LINE__, ##__VA_ARGS__);                     \
@@ -51,7 +51,7 @@
   do {                                                                                                                 \
   } while (0)
 
-#define srsran_warning(condition, fmt, ...)                                                                            \
+#define srsran_expect(condition, fmt, ...)                                                                             \
   do {                                                                                                                 \
   } while (0)
 

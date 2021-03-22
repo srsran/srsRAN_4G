@@ -17,6 +17,7 @@
 #include "srsran/adt/circular_array.h"
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/common.h"
+#include "srsran/common/srsran_assert.h"
 #include "srsran/common/task_scheduler.h"
 #include "srsran/common/timeout.h"
 #include "srsran/interfaces/pdcp_interface_types.h"
@@ -75,7 +76,7 @@ struct rlc_ringbuffer_t {
   rlc_ringbuffer_t() { clear(); }
   T& add_pdu(size_t sn)
   {
-    assert(not has_sn(sn));
+    srsran_expect(not has_sn(sn), "The same SN=%d should not be added twice", sn);
     window[sn].rlc_sn = sn;
     active_flag[sn]   = true;
     count++;
@@ -83,14 +84,14 @@ struct rlc_ringbuffer_t {
   }
   void remove_pdu(size_t sn)
   {
-    assert(active_flag[sn]);
+    srsran_expect(has_sn(sn), "The removed SN=%d is not in the window", sn);
     window[sn]      = {};
     active_flag[sn] = false;
     count--;
   }
   T& operator[](size_t sn)
   {
-    assert(has_sn(sn));
+    srsran_expect(has_sn(sn), "The accessed SN=%d is not in the window", sn);
     return window[sn];
   }
   size_t size() const { return count; }

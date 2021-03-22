@@ -15,6 +15,7 @@
 
 #include "srsran/adt/interval.h"
 #include "srsran/common/common.h"
+#include "srsran/common/srsran_assert.h"
 #include "srsran/srslog/srslog.h"
 #include <cstdint>
 #include <limits>
@@ -23,16 +24,13 @@ namespace srsran {
 
 struct tti_point {
   constexpr tti_point() = default;
-  explicit tti_point(uint32_t tti_val_) : tti_val(tti_val_ % 10240u)
+  explicit tti_point(uint32_t tti_val_) : tti_val(tti_val_ % 10240U)
   {
     if (tti_val_ > std::numeric_limits<uint32_t>::max() / 2) {
       // there was a overflow at tti initialization
       uint32_t diff = std::numeric_limits<uint32_t>::max() - tti_val_;
-      if (diff < 10240) {
-        tti_val = 10240 - diff - 1;
-      } else {
-        srslog::fetch_basic_logger("COMMON").error("Invalid TTI point assigned");
-      }
+      srsran_expect(diff < 10240, "Invalid TTI point assigned");
+      tti_val = 10240 - diff - 1;
     }
   }
   void     reset() { tti_val = std::numeric_limits<uint32_t>::max(); }
