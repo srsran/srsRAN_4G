@@ -85,10 +85,10 @@ void mac_pcap_base::pack_and_queue(uint8_t* payload,
       memcpy(pdu.pdu->msg, payload, payload_len);
       pdu.pdu->N_bytes = payload_len;
       if (not queue.try_push(std::move(pdu))) {
-        logger.error("Failed to push message to pcap writer queue");
+        logger.warning("Dropping PDU (%d B) in PCAP. Write queue full.", payload_len);
       }
     } else {
-      logger.info("Dropping PDU in PCAP. No buffer available or not enough space (pdu_len=%d).", payload_len);
+      logger.warning("Dropping PDU in PCAP. No buffer available or not enough space (pdu_len=%d).", payload_len);
     }
   }
 }
@@ -122,10 +122,10 @@ void mac_pcap_base::pack_and_queue_nr(uint8_t* payload,
       memcpy(pdu.pdu->msg, payload, payload_len);
       pdu.pdu->N_bytes = payload_len;
       if (not queue.try_push(std::move(pdu))) {
-        logger.error("Failed to push message to pcap writer queue");
+        logger.warning("Dropping PDU (%d B) in NR PCAP. Write queue full.", payload_len);
       }
     } else {
-      logger.info("Dropping PDU in NR PCAP. No buffer available or not enough space (pdu_len=%d).", payload_len);
+      logger.warning("Dropping PDU in NR PCAP. No buffer available or not enough space (pdu_len=%d).", payload_len);
     }
   }
 }
