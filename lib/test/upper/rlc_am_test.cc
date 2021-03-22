@@ -3413,6 +3413,85 @@ bool reestablish_test()
   return SRSRAN_SUCCESS;
 }
 
+// This test checks the correct functioning of RLC discard functionality
+bool discard_test()
+{
+  const rlc_config_t config = rlc_config_t::default_rlc_am_config();
+#if HAVE_PCAP
+  rlc_pcap pcap;
+  pcap.open("rlc_am_reestablish_test.pcap", config);
+  rlc_am_tester tester(&pcap);
+#else
+  rlc_am_tester tester(NULL);
+#endif
+
+  srsran::timer_handler timers(8);
+
+  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am_lte rlc2(srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+
+  srslog::fetch_basic_logger("RLC_AM_1").set_hex_dump_max_size(100);
+  srslog::fetch_basic_logger("RLC_AM_2").set_hex_dump_max_size(100);
+  srslog::fetch_basic_logger("RLC").set_hex_dump_max_size(100);
+
+  if (not rlc1.configure(config)) {
+    return -1;
+  }
+
+  if (not rlc2.configure(config)) {
+    return -1;
+  }
+
+  // Check has_data() after a SDU discard
+  {
+    uint32_t num_tx_pdus = 1;
+    for (uint32_t i = 0; i < num_tx_pdus; ++i) {
+      // Write SDU
+      unique_byte_buffer_t sdu = srsran::make_byte_buffer();
+      TESTASSERT(sdu != nullptr);
+      sdu->N_bytes = 5;
+      for (uint32_t k = 0; k < sdu->N_bytes; ++k) {
+        sdu->msg[k] = i; // Write the index into the buffer
+      }
+      sdu->md.pdcp_sn = i;
+      rlc1.write_sdu(std::move(sdu));
+    }
+  }
+  rlc1.discard_sdu(0); // Try to discard PDCP_SN=1
+  TESTASSERT(rlc1.has_data() == false);
+
+  // Discard an SDU in the midle of the queue and read PDUs after
+  {
+    uint32_t num_tx_pdus = 10;
+    for (uint32_t i = 0; i < num_tx_pdus; ++i) {
+      // Write SDU
+      unique_byte_buffer_t sdu = srsran::make_byte_buffer();
+      TESTASSERT(sdu != nullptr);
+      sdu->N_bytes = 1;
+      for (uint32_t k = 0; k < sdu->N_bytes; ++k) {
+        sdu->msg[k] = i; // Write the index into the buffer
+      }
+      sdu->md.pdcp_sn = i;
+      rlc1.write_sdu(std::move(sdu));
+    }
+  }
+  rlc1.discard_sdu(3); // Try to discard PDCP_SN=1
+  TESTASSERT(rlc1.has_data() == true);
+  TESTASSERT(rlc1.get_buffer_state() == 23); // 2 bytes fixed header, 12 , 9 bytes of data,
+
+  unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  uint32_t             len = rlc1.read_pdu(pdu->msg, 50); // enough for all PDUs
+  pdu->N_bytes             = len;
+  TESTASSERT(23 == len);
+
+  srslog::fetch_basic_logger("TEST").info("Received %zd SDUs", tester.sdus.size());
+
+#if HAVE_PCAP
+  pcap.close();
+#endif
+
+  return SRSRAN_SUCCESS;
+}
 int main(int argc, char** argv)
 {
   // Setup the log message spy to intercept error and warning log entries from RLC
@@ -3600,6 +3679,11 @@ int main(int argc, char** argv)
 
   if (status_pdu_test()) {
     printf("status_pdu_test failed\n");
+    exit(-1);
+  };
+
+  if (discard_test()) {
+    printf("discard_test failed\n");
     exit(-1);
   };
 

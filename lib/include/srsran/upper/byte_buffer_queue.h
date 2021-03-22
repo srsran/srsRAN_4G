@@ -23,7 +23,9 @@
 
 #include "srsran/adt/circular_buffer.h"
 #include "srsran/common/block_queue.h"
+#include "srsran/common/byte_buffer.h"
 #include "srsran/common/common.h"
+#include <functional>
 #include <pthread.h>
 
 namespace srsran {
@@ -31,7 +33,9 @@ namespace srsran {
 class byte_buffer_queue
 {
 public:
-  byte_buffer_queue(int capacity = 128) : queue(capacity, push_callback(unread_bytes), pop_callback(unread_bytes)) {}
+  byte_buffer_queue(int capacity = 128) :
+    queue(capacity, push_callback(unread_bytes, n_sdus), pop_callback(unread_bytes, n_sdus))
+  {}
 
   void write(unique_byte_buffer_t msg) { queue.push_blocking(std::move(msg)); }
 
@@ -46,6 +50,7 @@ public:
 
   void     resize(uint32_t capacity) { queue.set_size(capacity); }
   uint32_t size() { return (uint32_t)queue.size(); }
+  uint32_t get_n_sdus() { return n_sdus; }
 
   uint32_t size_bytes() { return unread_bytes; }
 
@@ -67,20 +72,42 @@ public:
 
   bool is_full() { return queue.full(); }
 
+  template <typename F>
+  bool discard_if(const F& func)
+  {
+    return queue.discard_if(func);
+  }
+
 private:
   struct push_callback {
-    explicit push_callback(uint32_t& unread_bytes_) : unread_bytes(&unread_bytes_) {}
-    void      operator()(const unique_byte_buffer_t& msg) { *unread_bytes += msg->N_bytes; }
+    explicit push_callback(uint32_t& unread_bytes_, uint32_t& n_sdus_) : unread_bytes(&unread_bytes_), n_sdus(&n_sdus_)
+    {}
+    void operator()(const unique_byte_buffer_t& msg)
+    {
+      *unread_bytes += msg->N_bytes;
+      (*n_sdus)++;
+    }
     uint32_t* unread_bytes;
+    uint32_t* n_sdus;
   };
   struct pop_callback {
-    explicit pop_callback(uint32_t& unread_bytes_) : unread_bytes(&unread_bytes_) {}
-    void      operator()(const unique_byte_buffer_t& msg) { *unread_bytes -= std::min(msg->N_bytes, *unread_bytes); }
+    explicit pop_callback(uint32_t& unread_bytes_, uint32_t& n_sdus_) : unread_bytes(&unread_bytes_), n_sdus(&n_sdus_)
+    {}
+    void operator()(const unique_byte_buffer_t& msg)
+    {
+      if (msg == nullptr) {
+        return;
+      }
+      *unread_bytes -= std::min(msg->N_bytes, *unread_bytes);
+      *n_sdus = std::max(0, (int32_t)(*n_sdus) - 1);
+    }
     uint32_t* unread_bytes;
+    uint32_t* n_sdus;
   };
 
   dyn_blocking_queue<unique_byte_buffer_t, push_callback, pop_callback> queue;
   uint32_t                                                              unread_bytes = 0;
+  uint32_t                                                              n_sdus       = 0;
 };
 
 } // namespace srsran

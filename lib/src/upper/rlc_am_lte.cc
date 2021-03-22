@@ -209,12 +209,9 @@ rlc_am_lte::rlc_am_lte_tx::rlc_am_lte_tx(rlc_am_lte* parent_) :
   pool(byte_buffer_pool::get_instance()),
   poll_retx_timer(parent_->timers->get_unique_timer()),
   status_prohibit_timer(parent_->timers->get_unique_timer())
-{
-}
+{}
 
-rlc_am_lte::rlc_am_lte_tx::~rlc_am_lte_tx()
-{
-}
+rlc_am_lte::rlc_am_lte_tx::~rlc_am_lte_tx() {}
 
 void rlc_am_lte::rlc_am_lte_tx::set_bsr_callback(bsr_callback_t callback)
 {
@@ -320,7 +317,7 @@ bool rlc_am_lte::rlc_am_lte_tx::has_data()
   return (((do_status() && not status_prohibit_timer.is_running())) || // if we have a status PDU to transmit
           (not retx_queue.empty()) ||                                  // if we have a retransmission
           (tx_sdu != NULL) ||                                          // if we are currently transmitting a SDU
-          (not tx_sdu_queue.is_empty())); // or if there is a SDU queued up for transmission
+          (tx_sdu_queue.get_n_sdus() != 0)); // or if there is a SDU queued up for transmission
 }
 
 /**
@@ -345,8 +342,8 @@ void rlc_am_lte::rlc_am_lte_tx::check_sn_reached_max_retx(uint32_t sn)
 uint32_t rlc_am_lte::rlc_am_lte_tx::get_buffer_state()
 {
   std::lock_guard<std::mutex> lock(mutex);
-  uint32_t n_bytes = 0;
-  uint32_t n_sdus  = 0;
+  uint32_t                    n_bytes = 0;
+  uint32_t                    n_sdus  = 0;
 
   logger.debug("%s Buffer state - do_status=%s, status_prohibit_running=%s (%d/%d)",
                RB_NAME,
@@ -384,7 +381,7 @@ uint32_t rlc_am_lte::rlc_am_lte_tx::get_buffer_state()
 
   // Bytes needed for tx SDUs
   if (tx_window.size() < 1024) {
-    n_sdus = tx_sdu_queue.size();
+    n_sdus = tx_sdu_queue.get_n_sdus();
     n_bytes += tx_sdu_queue.size_bytes();
     if (tx_sdu != NULL) {
       n_sdus++;
@@ -456,7 +453,21 @@ void rlc_am_lte::rlc_am_lte_tx::discard_sdu(uint32_t discard_sn)
   if (!tx_enabled) {
     return;
   }
-  logger.warning("Discard SDU not implemented yet");
+
+  bool discarded =
+      tx_sdu_queue.discard_if([&discard_sn](const unique_byte_buffer_t& sdu) { return sdu->md.pdcp_sn == discard_sn; });
+
+  if (discarded) {
+    // remove also from undelivered SDUs queue
+    logger.info("Discarding SDU with PDCP_SN=%d", discard_sn);
+    if (not undelivered_sdu_info_queue.has_pdcp_sn(discard_sn)) {
+      logger.info("PDCP SDU info does not exists for discarded SDU. PDCP_SN=%d", discard_sn);
+    } else {
+      undelivered_sdu_info_queue.clear_pdcp_sdu(discard_sn);
+    }
+  } else {
+    logger.info("Could not find SDU to discard. PDCP_SN=%d", discard_sn);
+  }
 }
 
 bool rlc_am_lte::rlc_am_lte_tx::sdu_queue_is_full()
@@ -966,7 +977,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
   }
 
   // Pull SDUs from queue
-  while (pdu_space > head_len && tx_sdu_queue.size() > 0 && header.N_li < RLC_AM_WINDOW_SIZE) {
+  while (pdu_space > head_len && tx_sdu_queue.get_n_sdus() > 0 && header.N_li < RLC_AM_WINDOW_SIZE) {
     if (last_li > 0) {
       header.li[header.N_li] = last_li;
       header.N_li++;
@@ -978,7 +989,18 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
       }
       break;
     }
-    tx_sdu  = tx_sdu_queue.read();
+
+    do {
+      tx_sdu = tx_sdu_queue.read();
+    } while (tx_sdu == nullptr && tx_sdu_queue.size() != 0);
+
+    if (tx_sdu == nullptr) {
+      if (header.N_li > 0) {
+        header.N_li--;
+      }
+      break;
+    }
+
     to_move = ((pdu_space - head_len) >= tx_sdu->N_bytes) ? tx_sdu->N_bytes : pdu_space - head_len;
     memcpy(pdu_ptr, tx_sdu->msg, to_move);
     last_li = to_move;
@@ -1045,7 +1067,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
   }
 
   // Update Tx window
-  vt_s      = (vt_s + 1) % MOD;
+  vt_s = (vt_s + 1) % MOD;
 
   // Write final header and TX
   tx_pdu.buf                      = std::move(pdu);
@@ -1318,9 +1340,7 @@ rlc_am_lte::rlc_am_lte_rx::rlc_am_lte_rx(rlc_am_lte* parent_) :
   reordering_timer(parent_->timers->get_unique_timer())
 {}
 
-rlc_am_lte::rlc_am_lte_rx::~rlc_am_lte_rx()
-{
-}
+rlc_am_lte::rlc_am_lte_rx::~rlc_am_lte_rx() {}
 
 bool rlc_am_lte::rlc_am_lte_rx::configure(rlc_am_config_t cfg_)
 {
@@ -1752,8 +1772,8 @@ void rlc_am_lte::rlc_am_lte_rx::write_pdu(uint8_t* payload, const uint32_t nof_b
     parent->tx.handle_control_pdu(payload, nof_bytes);
   } else {
     std::lock_guard<std::mutex> lock(mutex);
-    rlc_amd_pdu_header_t header      = {};
-    uint32_t             payload_len = nof_bytes;
+    rlc_amd_pdu_header_t        header      = {};
+    uint32_t                    payload_len = nof_bytes;
     rlc_am_read_data_pdu_header(&payload, &payload_len, &header);
     if (payload_len > nof_bytes) {
       logger.info("Dropping corrupted PDU (%d B). Remaining length after header %d B.", nof_bytes, payload_len);
@@ -1858,9 +1878,9 @@ int rlc_am_lte::rlc_am_lte_rx::get_status_pdu(rlc_status_pdu_t* status, const ui
 int rlc_am_lte::rlc_am_lte_rx::get_status_pdu_length()
 {
   std::lock_guard<std::mutex> lock(mutex);
-  rlc_status_pdu_t status = {};
-  status.ack_sn           = vr_ms;
-  uint32_t i              = vr_r;
+  rlc_status_pdu_t            status = {};
+  status.ack_sn                      = vr_ms;
+  uint32_t i                         = vr_r;
   while (RX_MOD_BASE(i) < RX_MOD_BASE(vr_ms) && status.N_nack < RLC_AM_WINDOW_SIZE) {
     if (not rx_window.has_sn(i)) {
       status.N_nack++;

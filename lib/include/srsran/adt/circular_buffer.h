@@ -18,6 +18,7 @@
 #include <array>
 #include <cassert>
 #include <condition_variable>
+#include <functional>
 #include <mutex>
 #include <thread>
 #include <type_traits>
@@ -156,6 +157,19 @@ public:
     buffer.resize(size);
   }
 
+  template <typename F>
+  T discard_if(const F& func)
+  {
+    for (auto it = buffer.begin(); it != buffer.end(); it++) {
+      if (*it != nullptr && func(*it)) {
+        T tmp = std::move(*it);
+        *it   = nullptr;
+        return tmp;
+      }
+    }
+    return nullptr;
+  }
+
 private:
   Container buffer;
   size_t    rpos  = 0;
@@ -262,6 +276,18 @@ public:
       return true;
     }
     return false;
+  }
+
+  template <typename F>
+  bool discard_if(const F& func)
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    T                           tmp = circ_buffer.discard_if(func);
+    if (tmp == nullptr) {
+      return false;
+    }
+    pop_func(tmp);
+    return true;
   }
 
 protected:
@@ -443,6 +469,12 @@ public:
     base_t(push_callback, pop_callback, size)
   {}
   void set_size(size_t size) { base_t::circ_buffer.set_size(size); }
+
+  template <typename F>
+  bool discard_if(const F& func)
+  {
+    return base_t::discard_if(func);
+  }
 };
 
 } // namespace srsran
