@@ -52,13 +52,13 @@ public:
   explicit rrc(srsran::task_sched_handle task_sched_);
   ~rrc();
 
-  void init(const rrc_cfg_t&       cfg_,
-            phy_interface_rrc_lte* phy,
-            mac_interface_rrc*     mac,
-            rlc_interface_rrc*     rlc,
-            pdcp_interface_rrc*    pdcp,
-            s1ap_interface_rrc*    s1ap,
-            gtpu_interface_rrc*    gtpu);
+  int32_t init(const rrc_cfg_t&       cfg_,
+               phy_interface_rrc_lte* phy,
+               mac_interface_rrc*     mac,
+               rlc_interface_rrc*     rlc,
+               pdcp_interface_rrc*    pdcp,
+               s1ap_interface_rrc*    s1ap,
+               gtpu_interface_rrc*    gtpu);
 
   void stop();
   void get_metrics(rrc_metrics_t& m);

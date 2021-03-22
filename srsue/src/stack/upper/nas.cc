@@ -317,7 +317,7 @@ void nas::start_attach_request(srsran::establishment_cause_t cause_)
   // Start attach request
   unique_byte_buffer_t msg = srsran::make_byte_buffer();
   if (msg == nullptr) {
-    logger.warning("Couldn't allocate buffer for Attach request.\n");
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
     return;
   }
 
@@ -359,6 +359,10 @@ void nas::start_service_request(srsran::establishment_cause_t cause_)
 
   // Start service request
   unique_byte_buffer_t msg = srsran::make_byte_buffer();
+  if (msg == nullptr) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return;
+  }
   gen_service_request(msg);
   if (not rrc->connection_request(cause_, std::move(msg))) {
     logger.error("Error starting RRC connection");
@@ -1857,7 +1861,7 @@ void nas::send_security_mode_reject(uint8_t cause)
 {
   unique_byte_buffer_t msg = srsran::make_byte_buffer();
   if (!msg) {
-    logger.error("Fatal Error: Couldn't allocate PDU in send_security_mode_reject().");
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
     return;
   }
 
@@ -1878,7 +1882,7 @@ void nas::send_attach_request()
 {
   unique_byte_buffer_t pdu = srsran::make_byte_buffer();
   if (!pdu) {
-    logger.error("Fatal Error: Couldn't allocate PDU in %s().", __FUNCTION__);
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
     return;
   }
   gen_attach_request(pdu);
@@ -1889,7 +1893,7 @@ void nas::send_detach_request(bool switch_off)
 {
   unique_byte_buffer_t pdu = srsran::make_byte_buffer();
   if (!pdu) {
-    logger.error("Fatal Error: Couldn't allocate PDU in %s().", __FUNCTION__);
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
     return;
   }
 
@@ -1969,6 +1973,10 @@ void nas::send_attach_complete(const uint8_t& transaction_id_, const uint8_t& ep
 
   // Pack entire message
   unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  if (pdu == nullptr) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return;
+  }
   liblte_mme_pack_attach_complete_msg(
       &attach_complete, current_sec_hdr, ctxt.tx_count, (LIBLTE_BYTE_MSG_STRUCT*)pdu.get());
   // Write NAS pcap
@@ -1993,7 +2001,7 @@ void nas::send_detach_accept()
 {
   unique_byte_buffer_t pdu = srsran::make_byte_buffer();
   if (!pdu) {
-    logger.error("Fatal Error: Couldn't allocate PDU in %s().", __FUNCTION__);
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
     return;
   }
 
@@ -2018,7 +2026,7 @@ void nas::send_authentication_response(const uint8_t* res, const size_t res_len)
 {
   unique_byte_buffer_t pdu = srsran::make_byte_buffer();
   if (!pdu) {
-    logger.error("Fatal Error: Couldn't allocate PDU in send_authentication_response().");
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
     return;
   }
 
@@ -2049,7 +2057,7 @@ void nas::send_authentication_failure(const uint8_t cause, const uint8_t* auth_f
 {
   unique_byte_buffer_t msg = srsran::make_byte_buffer();
   if (!msg) {
-    logger.error("Fatal Error: Couldn't allocate PDU in send_authentication_failure().");
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
     return;
   }
 
@@ -2097,7 +2105,7 @@ void nas::send_identity_response(const uint8 id_type)
 
   unique_byte_buffer_t pdu = srsran::make_byte_buffer();
   if (!pdu) {
-    logger.error("Fatal Error: Couldn't allocate PDU in send_identity_response().");
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
     return;
   }
 
@@ -2121,7 +2129,7 @@ void nas::send_service_request()
 {
   unique_byte_buffer_t msg = srsran::make_byte_buffer();
   if (!msg) {
-    logger.error("Fatal Error: Couldn't allocate PDU in send_service_request().");
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
     return;
   }
 
@@ -2240,8 +2248,8 @@ void nas::send_esm_information_response(const uint8 proc_transaction_id)
   }
 
   unique_byte_buffer_t pdu = srsran::make_byte_buffer();
-  if (!pdu) {
-    logger.error("Fatal Error: Couldn't allocate PDU in %s.", __FUNCTION__);
+  if (pdu == nullptr) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
     return;
   }
 
@@ -2271,6 +2279,10 @@ void nas::send_activate_dedicated_eps_bearer_context_accept(const uint8_t& proc_
                                                             const uint8_t& eps_bearer_id)
 {
   unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  if (pdu == nullptr) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return;
+  }
 
   LIBLTE_MME_ACTIVATE_DEDICATED_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT accept = {};
 
@@ -2305,6 +2317,10 @@ void nas::send_activate_dedicated_eps_bearer_context_accept(const uint8_t& proc_
 void nas::send_deactivate_eps_bearer_context_accept(const uint8_t& proc_transaction_id, const uint8_t& eps_bearer_id)
 {
   unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  if (pdu == nullptr) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return;
+  }
 
   LIBLTE_MME_DEACTIVATE_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT accept = {};
 
@@ -2339,6 +2355,10 @@ void nas::send_deactivate_eps_bearer_context_accept(const uint8_t& proc_transact
 void nas::send_modify_eps_bearer_context_accept(const uint8_t& proc_transaction_id, const uint8_t& eps_bearer_id)
 {
   unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  if (pdu == nullptr) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return;
+  }
 
   LIBLTE_MME_MODIFY_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT accept = {};
 
@@ -2373,6 +2393,10 @@ void nas::send_modify_eps_bearer_context_accept(const uint8_t& proc_transaction_
 void nas::send_activate_test_mode_complete()
 {
   unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  if (pdu == nullptr) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return;
+  }
 
   if (liblte_mme_pack_activate_test_mode_complete_msg(
           (LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), current_sec_hdr, ctxt.tx_count)) {
@@ -2398,6 +2422,10 @@ void nas::send_activate_test_mode_complete()
 void nas::send_close_ue_test_loop_complete()
 {
   unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  if (pdu == nullptr) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return;
+  }
 
   if (liblte_mme_pack_close_ue_test_loop_complete_msg(
           (LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), current_sec_hdr, ctxt.tx_count)) {

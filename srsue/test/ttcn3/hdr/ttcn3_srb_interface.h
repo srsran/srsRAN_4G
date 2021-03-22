@@ -109,6 +109,10 @@ private:
 
     // pack into byte buffer
     unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+    if (pdu == nullptr) {
+      logger.error("Couldn't allocate buffer in %s().", __FUNCTION__);
+      return;
+    }
     pdu->N_bytes             = len;
     memcpy(pdu->msg, payload, pdu->N_bytes);
 
@@ -129,6 +133,10 @@ private:
 
     // pack into byte buffer
     unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+    if (pdu == nullptr) {
+      logger.error("Couldn't allocate buffer in %s().", __FUNCTION__);
+      return;
+    }
     pdu->N_bytes             = len;
     memcpy(pdu->msg, payload, pdu->N_bytes);
 
@@ -154,9 +162,6 @@ private:
 
   ss_srb_interface* syssim = nullptr;
   byte_buffer_pool* pool   = nullptr;
-
-  // struct sctp_sndrcvinfo sri = {};
-  // struct sockaddr_in client_addr;
 };
 
 #endif // SRSUE_TTCN3_SRB_INTERFACE_H

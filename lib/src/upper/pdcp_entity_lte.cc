@@ -958,8 +958,12 @@ std::map<uint32_t, srsran::unique_byte_buffer_t> undelivered_sdus_queue::get_buf
     if (sdu.sdu != nullptr) {
       // TODO: Find ways to avoid deep copy
       srsran::unique_byte_buffer_t fwd_sdu = make_byte_buffer();
-      *fwd_sdu                             = *sdu.sdu;
-      fwd_sdus.emplace(sdu.sdu->md.pdcp_sn, std::move(fwd_sdu));
+      if (fwd_sdu != nullptr) {
+        *fwd_sdu = *sdu.sdu;
+        fwd_sdus.emplace(sdu.sdu->md.pdcp_sn, std::move(fwd_sdu));
+      } else {
+        srslog::fetch_basic_logger("PDCP").warning("Can't allocate buffer to forward buffered SDUs.");
+      }
     }
   }
   return fwd_sdus;

@@ -40,13 +40,13 @@ rrc::rrc(srsran::task_sched_handle task_sched_) :
 
 rrc::~rrc() {}
 
-void rrc::init(const rrc_cfg_t&       cfg_,
-               phy_interface_rrc_lte* phy_,
-               mac_interface_rrc*     mac_,
-               rlc_interface_rrc*     rlc_,
-               pdcp_interface_rrc*    pdcp_,
-               s1ap_interface_rrc*    s1ap_,
-               gtpu_interface_rrc*    gtpu_)
+int32_t rrc::init(const rrc_cfg_t&       cfg_,
+                  phy_interface_rrc_lte* phy_,
+                  mac_interface_rrc*     mac_,
+                  rlc_interface_rrc*     rlc_,
+                  pdcp_interface_rrc*    pdcp_,
+                  s1ap_interface_rrc*    s1ap_,
+                  gtpu_interface_rrc*    gtpu_)
 {
   phy  = phy_;
   mac  = mac_;
@@ -67,7 +67,10 @@ void rrc::init(const rrc_cfg_t&       cfg_,
   // Loads the PRACH root sequence
   cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.root_seq_idx = cfg.cell_list[0].root_seq_idx;
 
-  nof_si_messages = generate_sibs();
+  if (generate_sibs() != SRSRAN_SUCCESS) {
+    logger.error("Couldn't generate SIBs.");
+    return false;
+  }
   config_mac();
 
   // Check valid inactivity timeout config
@@ -84,6 +87,8 @@ void rrc::init(const rrc_cfg_t&       cfg_,
   logger.info("Inactivity timeout: %d ms", cfg.inactivity_timeout_ms);
 
   running = true;
+
+  return SRSRAN_SUCCESS;
 }
 
 void rrc::stop()
@@ -764,7 +769,9 @@ void rrc::config_mac()
  * Before packing the message, it patches the cell specific params of
  * the SIB, including the cellId and the PRACH config index.
  *
- * @return The number of SIBs messages per CC
+ * The number of generates SIB messages is stored in the class member nof_si_messages
+ *
+ * @return SRSRAN_SUCCESS on success, SRSRAN_ERROR on failure
  */
 uint32_t rrc::generate_sibs()
 {
@@ -809,9 +816,14 @@ uint32_t rrc::generate_sibs()
     // Pack payload for all messages
     for (uint32_t msg_index = 0; msg_index < nof_messages; msg_index++) {
       srsran::unique_byte_buffer_t sib_buffer = srsran::make_byte_buffer();
+      if (sib_buffer == nullptr) {
+        logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+        return SRSRAN_ERROR;
+      }
       asn1::bit_ref                bref(sib_buffer->msg, sib_buffer->get_tailroom());
       if (msg[msg_index].pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
         logger.error("Failed to pack SIB message %d", msg_index);
+        return SRSRAN_ERROR;
       }
       sib_buffer->N_bytes = bref.distance_bytes();
       cell_ctxt->sib_buffer.push_back(std::move(sib_buffer));
@@ -827,7 +839,9 @@ uint32_t rrc::generate_sibs()
     }
   }
 
-  return nof_messages;
+  nof_si_messages = nof_messages;
+
+  return SRSRAN_SUCCESS;
 }
 
 void rrc::configure_mbsfn_sibs()

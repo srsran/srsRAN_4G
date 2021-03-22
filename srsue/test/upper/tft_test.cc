@@ -106,10 +106,15 @@ int tft_filter_test_ipv6_combined()
   srslog::basic_logger&        logger = srslog::fetch_basic_logger("TFT");
   srsran::unique_byte_buffer_t ip_msg1, ip_msg2, ip_msg3, ip_msg4, ip_msg5;
   ip_msg1 = make_byte_buffer();
+  TESTASSERT(ip_msg1 != nullptr);
   ip_msg2 = make_byte_buffer();
+  TESTASSERT(ip_msg2 != nullptr);
   ip_msg3 = make_byte_buffer();
+  TESTASSERT(ip_msg3 != nullptr);
   ip_msg4 = make_byte_buffer();
+  TESTASSERT(ip_msg4 != nullptr);
   ip_msg5 = make_byte_buffer();
+  TESTASSERT(ip_msg5 != nullptr);
 
   // Set IP test message
   ip_msg1->N_bytes = sizeof(ipv6_matched_packet);
@@ -164,7 +169,9 @@ int tft_filter_test_single_local_port()
 
   srsran::unique_byte_buffer_t ip_msg1, ip_msg2;
   ip_msg1 = make_byte_buffer();
+  TESTASSERT(ip_msg1 != nullptr);
   ip_msg2 = make_byte_buffer();
+  TESTASSERT(ip_msg2 != nullptr);
 
   // Filter length: 3 bytes
   // Filter type:   Single local port
@@ -208,7 +215,9 @@ int tft_filter_test_single_remote_port()
 
   srsran::unique_byte_buffer_t ip_msg1, ip_msg2;
   ip_msg1 = make_byte_buffer();
+  TESTASSERT(ip_msg1 != nullptr);
   ip_msg2 = make_byte_buffer();
+  TESTASSERT(ip_msg2 != nullptr);
 
   // Filter length: 3 bytes
   // Filter type:   Single remote port
@@ -252,7 +261,9 @@ int tft_filter_test_ipv4_local_addr()
 
   srsran::unique_byte_buffer_t ip_msg1, ip_msg2;
   ip_msg1 = make_byte_buffer();
+  TESTASSERT(ip_msg1 != nullptr);
   ip_msg2 = make_byte_buffer();
+  TESTASSERT(ip_msg2 != nullptr);
 
   // Filter length: 9 bytes
   // Filter type:   IPv4 local address
@@ -299,7 +310,9 @@ int tft_filter_test_ipv4_remote_addr()
 
   srsran::unique_byte_buffer_t ip_msg1, ip_msg2;
   ip_msg1 = make_byte_buffer();
+  TESTASSERT(ip_msg1 != nullptr);
   ip_msg2 = make_byte_buffer();
+  TESTASSERT(ip_msg2 != nullptr);
 
   // Filter length: 5 bytes
   // Filter type:   IPv4 local address
@@ -345,7 +358,9 @@ int tft_filter_test_ipv4_tos()
 
   srsran::unique_byte_buffer_t ip_msg1, ip_msg2;
   ip_msg1 = make_byte_buffer();
+  TESTASSERT(ip_msg1 != nullptr);
   ip_msg2 = make_byte_buffer();
+  TESTASSERT(ip_msg2 != nullptr);
 
   // Filter length: 3 bytes
   // Filter type:   Type of service

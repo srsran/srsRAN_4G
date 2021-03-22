@@ -200,6 +200,7 @@ int test_visit()
   // TEST: visitor hits type E and steals pdu
   E e;
   e.pdu = srsran::make_byte_buffer();
+  TESTASSERT(e.pdu != nullptr);
   c     = std::move(e);
   TESTASSERT(c.is<E>() and srsran::get<E>(c).pdu != nullptr);
   srsran::visit(v, c);
@@ -209,6 +210,7 @@ int test_visit()
   // TEST: visitor hits type E and steals pdu. Second type called there is no pdu to steal.
   v.pdu = nullptr;
   e.pdu = srsran::make_byte_buffer();
+  TESTASSERT(e.pdu != nullptr);
   c     = std::move(e);
   srsran::visit(v, c);
   TESTASSERT(v.pdu != nullptr);

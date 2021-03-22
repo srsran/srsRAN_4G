@@ -15,12 +15,17 @@
 
 namespace srsue {
 
-mux_nr::mux_nr(srslog::basic_logger& logger_) : logger(logger_)
+mux_nr::mux_nr(srslog::basic_logger& logger_) : logger(logger_){};
+
+int32_t mux_nr::init()
 {
   msg3_buff = srsran::make_byte_buffer();
-};
+  if (msg3_buff == nullptr) {
+    return SRSRAN_ERROR;
+  }
 
-void mux_nr::init() {}
+  return SRSRAN_SUCCESS;
+}
 
 void mux_nr::msg3_flush()
 {

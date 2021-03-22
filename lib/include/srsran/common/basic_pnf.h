@@ -363,6 +363,9 @@ private:
       uint32_t len = sizeof(*msg) - sizeof(msg->pdus->data) + msg->pdus->length;
 
       srsran::unique_byte_buffer_t tx = srsran::make_byte_buffer();
+      if (tx == nullptr) {
+        return -1;
+      }
       memcpy(tx->msg, msg, len);
       rf_out_queue->push(std::move(tx));
     }

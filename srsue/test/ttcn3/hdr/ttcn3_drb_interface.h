@@ -120,6 +120,10 @@ private:
 
     // pack into byte buffer
     unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+    if (pdu == nullptr) {
+      logger.error("Couldn't allocate buffer in %s().", __FUNCTION__);
+      return;
+    }
     pdu->N_bytes             = len;
     memcpy(pdu->msg, payload, pdu->N_bytes);
 

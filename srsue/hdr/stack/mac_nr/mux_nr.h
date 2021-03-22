@@ -25,7 +25,7 @@ public:
   explicit mux_nr(srslog::basic_logger& logger);
   ~mux_nr(){};
   void reset();
-  void init();
+  int32_t init();
 
   void step();
 

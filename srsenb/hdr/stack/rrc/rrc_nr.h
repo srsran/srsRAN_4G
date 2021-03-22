@@ -63,13 +63,13 @@ class rrc_nr final : public rrc_interface_pdcp_nr,
 public:
   explicit rrc_nr(srsran::timer_handler* timers_);
 
-  void init(const rrc_nr_cfg_t&     cfg,
-            phy_interface_stack_nr* phy,
-            mac_interface_rrc_nr*   mac,
-            rlc_interface_rrc_nr*   rlc,
-            pdcp_interface_rrc_nr*  pdcp,
-            ngap_interface_rrc_nr*  ngap_,
-            gtpu_interface_rrc_nr*  gtpu);
+  int32_t init(const rrc_nr_cfg_t&     cfg,
+               phy_interface_stack_nr* phy,
+               mac_interface_rrc_nr*   mac,
+               rlc_interface_rrc_nr*   rlc,
+               pdcp_interface_rrc_nr*  pdcp,
+               ngap_interface_rrc_nr*  ngap_,
+               gtpu_interface_rrc_nr*  gtpu);
 
   void stop();
 
@@ -78,7 +78,7 @@ public:
   rrc_nr_cfg_t update_default_cfg(const rrc_nr_cfg_t& rrc_cfg);
   void         add_user(uint16_t rnti);
   void         config_mac();
-  uint32_t     generate_sibs();
+  int32_t      generate_sibs();
   int          read_pdu_bcch_bch(const uint32_t tti, srsran::unique_byte_buffer_t& buffer) final;
   int          read_pdu_bcch_dlsch(uint32_t sib_index, srsran::unique_byte_buffer_t& buffer) final;
 

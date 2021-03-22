@@ -32,7 +32,9 @@ int nas_dedicated_eps_bearer_context_setup_request_test()
 
   srsran::unique_byte_buffer_t tst_msg, out_msg;
   tst_msg = srsran::make_byte_buffer();
+  TESTASSERT(tst_msg != nullptr);
   out_msg = srsran::make_byte_buffer();
+  TESTASSERT(out_msg != nullptr);
 
   LIBLTE_MME_ACTIVATE_DEDICATED_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT ded_bearer_req;
 

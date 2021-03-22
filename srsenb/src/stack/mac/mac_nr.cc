@@ -22,14 +22,6 @@ namespace srsenb {
 
 mac_nr::mac_nr() : logger(srslog::fetch_basic_logger("MAC"))
 {
-  bcch_bch_payload = srsran::make_byte_buffer();
-
-  // allocate 8 tx buffers for UE (TODO: as we don't handle softbuffers why do we need so many buffers)
-  for (int i = 0; i < SRSRAN_FDD_NOF_HARQ; i++) {
-    ue_tx_buffer.emplace_back(srsran::make_byte_buffer());
-  }
-
-  ue_rlc_buffer = srsran::make_byte_buffer();
 }
 
 mac_nr::~mac_nr()
@@ -56,6 +48,25 @@ int mac_nr::init(const mac_nr_args_t&    args_,
   if (args.pcap.enable) {
     pcap = std::unique_ptr<srsran::mac_pcap>(new srsran::mac_pcap());
     pcap->open(args.pcap.filename);
+  }
+
+  bcch_bch_payload = srsran::make_byte_buffer();
+  if (bcch_bch_payload == nullptr) {
+    return SRSRAN_ERROR;
+  }
+
+  // allocate 8 tx buffers for UE (TODO: as we don't handle softbuffers why do we need so many buffers)
+  for (int i = 0; i < SRSRAN_FDD_NOF_HARQ; i++) {
+    srsran::unique_byte_buffer_t buffer = srsran::make_byte_buffer();
+    if (buffer == nullptr) {
+      return SRSRAN_ERROR;
+    }
+    ue_tx_buffer.emplace_back(std::move(buffer));
+  }
+
+  ue_rlc_buffer = srsran::make_byte_buffer();
+  if (ue_rlc_buffer == nullptr) {
+    return SRSRAN_ERROR;
   }
 
   logger.info("Started");

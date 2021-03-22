@@ -135,6 +135,9 @@ public:
         }
 
         pdu = srsran::make_byte_buffer();
+        if (pdu == nullptr) {
+          return;
+        }
         asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
         dlsch_msg.pack(bref);
         pdu->N_bytes = bref.distance_bytes();
@@ -299,6 +302,9 @@ public:
   void send_ccch_msg(dl_ccch_msg_s& dl_ccch_msg)
   {
     srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+    if (pdu == nullptr) {
+      return;
+    }
 
     asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
     dl_ccch_msg.pack(bref);
@@ -311,7 +317,9 @@ public:
   void send_dcch_msg(dl_dcch_msg_s& dl_dcch_msg)
   {
     srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
-    ;
+    if (pdu == nullptr) {
+      return;
+    }
     asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
     dl_dcch_msg.pack(bref);
     bref.align_bytes_zero();

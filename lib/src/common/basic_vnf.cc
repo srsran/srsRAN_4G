@@ -183,14 +183,15 @@ int srsran_basic_vnf::handle_dl_ind(basic_vnf_api::dl_ind_msg_t* msg)
 
   for (uint32_t i = 0; i < msg->nof_pdus; ++i) {
     dl_grant.tb[i] = srsran::make_byte_buffer();
-    if (dl_grant.tb[i]->get_tailroom() >= msg->pdus[i].length) {
+    if (dl_grant.tb[i] && dl_grant.tb[i]->get_tailroom() >= msg->pdus[i].length) {
       memcpy(dl_grant.tb[i]->msg, msg->pdus[i].data, msg->pdus[i].length);
       dl_grant.tb[i]->N_bytes = msg->pdus[i].length;
       if (msg->pdus[i].type == basic_vnf_api::PDSCH) {
         m_ue_stack->tb_decoded(cc_idx, dl_grant);
       }
     } else {
-      logger.error("TB too big to fit into buffer (%d > %d)", msg->pdus[i].length, dl_grant.tb[i]->get_tailroom());
+      logger.error("TB too big to fit into buffer (%d)", msg->pdus[i].length);
+      return SRSRAN_ERROR;
     }
   }
 

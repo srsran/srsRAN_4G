@@ -217,6 +217,10 @@ bool cc_worker::work_dl()
   if (phy->get_dl_pending_grant(dl_slot_cfg.idx, pdsch_cfg, ack_resource, pid)) {
     // Get data buffer
     srsran::unique_byte_buffer_t data = srsran::make_byte_buffer();
+    if (data == nullptr) {
+      logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+      return false;
+    }
     data->N_bytes                     = pdsch_cfg.grant.tb[0].tbs / 8U;
 
     // Get soft-buffer from MAC

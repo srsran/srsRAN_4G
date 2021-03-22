@@ -37,10 +37,12 @@ int test_tx_sdu_notify(const srsran::pdcp_lte_state_t& init_state,
 
   // Write test SDU
   srsran::unique_byte_buffer_t sdu = srsran::make_byte_buffer();
+  TESTASSERT(sdu != nullptr);
   sdu->append_bytes(sdu1, sizeof(sdu1));
   pdcp->write_sdu(std::move(sdu));
 
   srsran::unique_byte_buffer_t out_pdu = srsran::make_byte_buffer();
+  TESTASSERT(out_pdu != nullptr);
   rlc->get_last_sdu(out_pdu);
   TESTASSERT(out_pdu->N_bytes == 4);
 
@@ -84,10 +86,12 @@ int test_tx_sdu_discard(const srsran::pdcp_lte_state_t& init_state,
 
   // Write test SDU
   srsran::unique_byte_buffer_t sdu = srsran::make_byte_buffer();
+  TESTASSERT(sdu != nullptr);
   sdu->append_bytes(sdu1, sizeof(sdu1));
   pdcp->write_sdu(std::move(sdu));
 
   srsran::unique_byte_buffer_t out_pdu = srsran::make_byte_buffer();
+  TESTASSERT(out_pdu != nullptr);
   rlc->get_last_sdu(out_pdu);
   TESTASSERT(out_pdu->N_bytes == 4);
 

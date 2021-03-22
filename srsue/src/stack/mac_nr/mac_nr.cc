@@ -19,8 +19,6 @@ namespace srsue {
 mac_nr::mac_nr(srsran::ext_task_sched_handle task_sched_) :
   task_sched(task_sched_), logger(srslog::fetch_basic_logger("MAC")), proc_ra(logger), mux(logger), pcap(nullptr)
 {
-  tx_buffer  = srsran::make_byte_buffer();
-  rlc_buffer = srsran::make_byte_buffer();
 }
 
 mac_nr::~mac_nr()
@@ -39,11 +37,23 @@ int mac_nr::init(const mac_nr_args_t& args_, phy_interface_mac_nr* phy_, rlc_int
 
   proc_ra.init(phy, this, &task_sched);
 
-  mux.init();
+  if (mux.init() != SRSRAN_SUCCESS) {
+    logger.error("Couldn't initialize mux unit.");
+    return SRSRAN_ERROR;
+  }
 
   if (srsran_softbuffer_tx_init_guru(&softbuffer_tx, SRSRAN_SCH_NR_MAX_NOF_CB_LDPC, SRSRAN_LDPC_MAX_LEN_ENCODED_CB) <
       SRSRAN_SUCCESS) {
     ERROR("Error init soft-buffer");
+    return SRSRAN_ERROR;
+  }
+
+  tx_buffer = srsran::make_byte_buffer();
+  if (tx_buffer == nullptr) {
+    return SRSRAN_ERROR;
+  }
+  rlc_buffer = srsran::make_byte_buffer();
+  if (rlc_buffer == nullptr) {
     return SRSRAN_ERROR;
   }
 

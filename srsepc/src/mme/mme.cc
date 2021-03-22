@@ -89,6 +89,10 @@ void mme::stop()
 void mme::run_thread()
 {
   srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer("mme::run_thread");
+  if (pdu == nullptr) {
+    m_s1ap_logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return;
+  }
   uint32_t                     sz  = SRSRAN_MAX_BUFFER_SIZE_BYTES - SRSRAN_BUFFER_HEADER_OFFSET;
 
   struct sockaddr_in     enb_addr;

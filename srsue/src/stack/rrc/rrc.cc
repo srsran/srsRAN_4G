@@ -1533,8 +1533,8 @@ void rrc::send_ul_ccch_msg(const ul_ccch_msg_s& msg)
 {
   // Reset and reuse sdu buffer if provided
   unique_byte_buffer_t pdcp_buf = srsran::make_byte_buffer();
-  if (not pdcp_buf.get()) {
-    logger.error("Fatal Error: Couldn't allocate PDU in byte_align_and_pack().");
+  if (pdcp_buf == nullptr) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
     return;
   }
 
@@ -1565,8 +1565,8 @@ void rrc::send_ul_dcch_msg(uint32_t lcid, const ul_dcch_msg_s& msg)
 {
   // Reset and reuse sdu buffer if provided
   unique_byte_buffer_t pdcp_buf = srsran::make_byte_buffer();
-  if (not pdcp_buf.get()) {
-    logger.error("Fatal Error: Couldn't allocate PDU in byte_align_and_pack().");
+  if (pdcp_buf == nullptr) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
     return;
   }
 
@@ -1681,8 +1681,8 @@ void rrc::parse_dl_dcch(uint32_t lcid, unique_byte_buffer_t pdu)
   switch (dl_dcch_msg.msg.c1().type().value) {
     case dl_dcch_msg_type_c::c1_c_::types::dl_info_transfer:
       pdu = srsran::make_byte_buffer();
-      if (!pdu.get()) {
-        logger.error("Fatal error: out of buffers in pool");
+      if (pdu == nullptr) {
+        logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
         return;
       }
       pdu->N_bytes = c1->dl_info_transfer().crit_exts.c1().dl_info_transfer_r8().ded_info_type.ded_info_nas().size();

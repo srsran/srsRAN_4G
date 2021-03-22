@@ -194,6 +194,10 @@ private:
       payload_ptr += 2;
 
       unique_byte_buffer_t sib = srsran::make_byte_buffer();
+      if (sib == nullptr) {
+        logger.error("Couldn't allocate buffer in %s().", __FUNCTION__);
+        return;
+      }
       memcpy(sib->msg, payload_ptr, tb_len);
       payload_ptr += tb_len;
       sib->N_bytes = tb_len;
@@ -695,6 +699,10 @@ private:
     payload_ptr += 2;
 
     unique_byte_buffer_t pch = srsran::make_byte_buffer();
+    if (pch == nullptr) {
+      logger.error("Couldn't allocate buffer in %s().", __FUNCTION__);
+      return;
+    }
     memcpy(pch->msg, payload_ptr, tb_len);
     payload_ptr += tb_len;
     pch->N_bytes = tb_len;

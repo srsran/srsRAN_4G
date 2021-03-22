@@ -229,6 +229,10 @@ void mbms_gw::run_thread()
   // Mark the thread as running
   m_running                        = true;
   srsran::unique_byte_buffer_t msg = srsran::make_byte_buffer();
+  if (msg == nullptr) {
+    m_logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return;
+  }
 
   uint8_t seq = 0;
   while (m_running) {

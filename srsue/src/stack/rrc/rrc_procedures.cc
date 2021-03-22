@@ -1033,12 +1033,12 @@ srsran::proc_outcome_t rrc::connection_reconf_no_ho_proc::react(const bool& conf
   srsran::unique_byte_buffer_t nas_pdu;
   for (auto& pdu : rx_recfg.ded_info_nas_list) {
     nas_pdu = srsran::make_byte_buffer();
-    if (nas_pdu.get()) {
+    if (nas_pdu != nullptr) {
       memcpy(nas_pdu->msg, pdu.data(), pdu.size());
       nas_pdu->N_bytes = pdu.size();
       rrc_ptr->nas->write_pdu(RB_ID_SRB1, std::move(nas_pdu));
     } else {
-      rrc_ptr->logger.error("Fatal Error: Couldn't allocate PDU in %s.", __FUNCTION__);
+      rrc_ptr->logger.error("Couldn't allocate PDU in %s.", __FUNCTION__);
       return proc_outcome_t::error;
     }
   }

@@ -21,13 +21,13 @@ namespace srsenb {
 
 rrc_nr::rrc_nr(srsran::timer_handler* timers_) : logger(srslog::fetch_basic_logger("RRC")), timers(timers_) {}
 
-void rrc_nr::init(const rrc_nr_cfg_t&     cfg_,
-                  phy_interface_stack_nr* phy_,
-                  mac_interface_rrc_nr*   mac_,
-                  rlc_interface_rrc_nr*   rlc_,
-                  pdcp_interface_rrc_nr*  pdcp_,
-                  ngap_interface_rrc_nr*  ngap_,
-                  gtpu_interface_rrc_nr*  gtpu_)
+int rrc_nr::init(const rrc_nr_cfg_t&     cfg_,
+                 phy_interface_stack_nr* phy_,
+                 mac_interface_rrc_nr*   mac_,
+                 rlc_interface_rrc_nr*   rlc_,
+                 pdcp_interface_rrc_nr*  pdcp_,
+                 ngap_interface_rrc_nr*  ngap_,
+                 gtpu_interface_rrc_nr*  gtpu_)
 {
   phy  = phy_;
   mac  = mac_;
@@ -46,7 +46,11 @@ void rrc_nr::init(const rrc_nr_cfg_t&     cfg_,
   // derived
   slot_dur_ms = 1;
 
-  nof_si_messages = generate_sibs();
+  if (generate_sibs() != SRSRAN_SUCCESS) {
+    logger.error("Couldn't generate SIB messages.");
+    return SRSRAN_ERROR;
+  }
+
   config_mac();
 
   // add dummy user
@@ -67,6 +71,8 @@ void rrc_nr::init(const rrc_nr_cfg_t&     cfg_,
   logger.info("Started");
 
   running = true;
+
+  return SRSRAN_SUCCESS;
 }
 
 void rrc_nr::stop()
@@ -198,7 +204,7 @@ void rrc_nr::config_mac()
   mac->cell_cfg(&sched_cfg);
 }
 
-uint32_t rrc_nr::generate_sibs()
+int32_t rrc_nr::generate_sibs()
 {
   // MIB packing
   bcch_bch_msg_s mib_msg;
@@ -206,6 +212,10 @@ uint32_t rrc_nr::generate_sibs()
   mib                = cfg.mib;
   {
     srsran::unique_byte_buffer_t mib_buf = srsran::make_byte_buffer();
+    if (mib_buf == nullptr) {
+      logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+      return SRSRAN_ERROR;
+    }
     asn1::bit_ref                bref(mib_buf->msg, mib_buf->get_tailroom());
     mib_msg.pack(bref);
     mib_buf->N_bytes = bref.distance_bytes();
@@ -240,6 +250,10 @@ uint32_t rrc_nr::generate_sibs()
   // Pack payload for all messages
   for (uint32_t msg_index = 0; msg_index < nof_messages + 1; msg_index++) {
     srsran::unique_byte_buffer_t sib = srsran::make_byte_buffer();
+    if (sib == nullptr) {
+      logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+      return SRSRAN_ERROR;
+    }
     asn1::bit_ref                bref(sib->msg, sib->get_tailroom());
     msg[msg_index].pack(bref);
     sib->N_bytes = bref.distance_bytes();
@@ -249,7 +263,9 @@ uint32_t rrc_nr::generate_sibs()
     log_rrc_message("SIB payload", Tx, sib_buffer.back().get(), msg[msg_index]);
   }
 
-  return sib_buffer.size() - 1;
+  nof_si_messages = sib_buffer.size() - 1;
+
+  return SRSRAN_SUCCESS;
 }
 
 /*******************************************************************************

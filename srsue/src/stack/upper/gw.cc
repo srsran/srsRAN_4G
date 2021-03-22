@@ -247,7 +247,7 @@ void gw::run_thread()
 
   srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
   if (!pdu) {
-    logger.error("Fatal Error: Couldn't allocate PDU in run_thread().");
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
     return;
   }
 

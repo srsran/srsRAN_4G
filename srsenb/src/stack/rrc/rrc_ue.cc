@@ -201,6 +201,10 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 
   srsran::unique_byte_buffer_t original_pdu = std::move(pdu);
   pdu                                       = srsran::make_byte_buffer();
+  if (pdu == nullptr) {
+    parent->logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return;
+  }
 
   transaction_id = 0;
 
@@ -748,6 +752,10 @@ bool rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
 
   if (eutra_capabilities_unpacked) {
     srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+    if (pdu == nullptr) {
+      parent->logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+      return false;
+    }
     asn1::bit_ref                bref2{pdu->msg, pdu->get_tailroom()};
     msg->pack(bref2);
     asn1::rrc::ue_radio_access_cap_info_s ue_rat_caps;

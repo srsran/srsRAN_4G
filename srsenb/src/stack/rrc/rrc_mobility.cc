@@ -329,6 +329,10 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
     hoprep_r8.ue_radio_access_cap_info[0].rat_type = asn1::rrc::rat_type_e::eutra;
 
     srsran::unique_byte_buffer_t buffer = srsran::make_byte_buffer();
+    if (buffer == nullptr) {
+      logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+      return false;
+    }
     asn1::bit_ref                bref(buffer->msg, buffer->get_tailroom());
     if (rrc_ue->eutra_capabilities.pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
       logger.error("Failed to pack UE EUTRA Capability");
@@ -368,6 +372,10 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
 
   /*** pack HO Preparation Info into an RRC container buffer ***/
   srsran::unique_byte_buffer_t buffer = srsran::make_byte_buffer();
+  if (buffer == nullptr) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return false;
+  }
   asn1::bit_ref                bref(buffer->msg, buffer->get_tailroom());
   if (hoprep.pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
     Error("Failed to pack HO preparation msg");
@@ -711,7 +719,12 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
 
   /* Prepare Handover Command to be sent via S1AP */
   srsran::unique_byte_buffer_t ho_cmd_pdu = srsran::make_byte_buffer();
-  asn1::bit_ref                bref2{ho_cmd_pdu->msg, ho_cmd_pdu->get_tailroom()};
+  if (ho_cmd_pdu == nullptr) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    trigger(srsran::failure_ev{});
+    return;
+  }
+  asn1::bit_ref bref2{ho_cmd_pdu->msg, ho_cmd_pdu->get_tailroom()};
   if (dl_dcch_msg.pack(bref2) != asn1::SRSASN_SUCCESS) {
     logger.error("Failed to pack HandoverCommand");
     trigger(srsran::failure_ev{});
