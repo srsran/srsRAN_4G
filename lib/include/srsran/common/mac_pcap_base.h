@@ -96,7 +96,7 @@ protected:
   std::mutex                             mutex;
   srslog::basic_logger&                  logger;
   bool                                   running = false;
-  static_blocking_queue<pcap_pdu_t, 256> queue;
+  static_blocking_queue<pcap_pdu_t, 512> queue;
   uint16_t                               ue_id = 0;
 
 private:
