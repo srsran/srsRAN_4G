@@ -139,9 +139,13 @@ void lch_ue_manager::dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t r
     logger.warning("The provided lcid=%d is not valid", lcid);
     return;
   }
+  if (lcid < 3 and (lch[lcid].buf_tx != (int)tx_queue or lch[lcid].buf_retx != (int)retx_queue)) {
+    logger.info("SCHED: DL lcid=%d buffer_state=%d,%d", lcid, tx_queue, retx_queue);
+  } else {
+    logger.debug("SCHED: DL lcid=%d buffer_state=%d,%d", lcid, tx_queue, retx_queue);
+  }
   lch[lcid].buf_retx = retx_queue;
   lch[lcid].buf_tx   = tx_queue;
-  logger.debug("SCHED: DL lcid=%d buffer_state=%d,%d", lcid, tx_queue, retx_queue);
 }
 
 int lch_ue_manager::get_max_prio_lcid() const
