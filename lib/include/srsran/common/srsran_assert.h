@@ -28,8 +28,8 @@
   do {                                                                                                                 \
     if (srsran_unlikely(not(condition))) {                                                                             \
       srslog::fetch_basic_logger("ALL").error("%s:%d: " fmt, __FILE__, __LINE__, ##__VA_ARGS__);                       \
-      srsran::console_stderr("%s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__);                                   \
       srslog::flush();                                                                                                 \
+      srsran::console_stderr("%s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__);                                   \
       std::abort();                                                                                                    \
     }                                                                                                                  \
   } while (0)

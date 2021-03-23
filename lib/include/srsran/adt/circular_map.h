@@ -105,7 +105,7 @@ public:
   {
     for (size_t idx = 0; idx < other.capacity(); ++idx) {
       if (present[idx]) {
-        buffer[idx].template construct(other.get_obj_(idx));
+        buffer[idx].template emplace(other.get_obj_(idx));
       }
     }
   }
@@ -113,7 +113,7 @@ public:
   {
     for (size_t idx = 0; idx < other.capacity(); ++idx) {
       if (present[idx]) {
-        buffer[idx].template construct(std::move(other.get_obj_(idx)));
+        buffer[idx].template emplace(std::move(other.get_obj_(idx)));
       }
     }
     other.clear();
@@ -153,7 +153,7 @@ public:
     if (present[idx]) {
       return false;
     }
-    buffer[idx].template construct(id, obj);
+    buffer[idx].template emplace(id, obj);
     present[idx] = true;
     count++;
     return true;
@@ -164,7 +164,7 @@ public:
     if (present[idx]) {
       return srsran::expected<iterator, T>(std::move(obj));
     }
-    buffer[idx].template construct(id, std::move(obj));
+    buffer[idx].template emplace(id, std::move(obj));
     present[idx] = true;
     count++;
     return iterator(this, idx);
@@ -240,9 +240,9 @@ private:
   obj_t&       get_obj_(size_t idx) { return buffer[idx].get(); }
   const obj_t& get_obj_(size_t idx) const { return buffer[idx].get(); }
 
-  std::array<type_storage<obj_t>, N> buffer;
-  std::array<bool, N>                present;
-  size_t                             count = 0;
+  std::array<detail::type_storage<obj_t>, N> buffer;
+  std::array<bool, N>                        present;
+  size_t                                     count = 0;
 };
 
 } // namespace srsran

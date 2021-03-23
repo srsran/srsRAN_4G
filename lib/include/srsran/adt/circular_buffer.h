@@ -13,7 +13,9 @@
 #ifndef SRSRAN_CIRCULAR_BUFFER_H
 #define SRSRAN_CIRCULAR_BUFFER_H
 
+#include "srsran/adt/detail/type_storage.h"
 #include "srsran/adt/expected.h"
+#include "srsran/common/srsran_assert.h"
 
 #include <array>
 #include <cassert>
@@ -51,51 +53,97 @@ size_t get_max_size(const std::vector<T>& a)
 template <typename Container>
 class base_circular_buffer
 {
-  using T = typename Container::value_type;
+  using storage_t = typename Container::value_type;
+  using T         = typename storage_t::value_type;
 
-public:
-  using value_type      = T;
-  using difference_type = typename Container::difference_type;
+  template <typename DataType>
+  class iterator_impl
+  {
+    using parent_type = typename std::conditional<std::is_same<DataType, T>::value,
+                                                  base_circular_buffer<Container>,
+                                                  const base_circular_buffer<Container> >::type;
 
-  struct iterator {
-    iterator(base_circular_buffer<Container>& parent_, size_t i) : parent(&parent_), idx(i) {}
-    iterator& operator++()
+  public:
+    using value_type        = DataType;
+    using reference         = DataType&;
+    using pointer           = DataType*;
+    using difference_type   = std::ptrdiff_t;
+    using iterator_category = std::forward_iterator_tag;
+
+    iterator_impl(parent_type& parent_, size_t i) : parent(&parent_), idx(i) {}
+
+    iterator_impl<DataType>& operator++()
     {
       idx = (idx + 1) % parent->max_size();
       return *this;
     }
-    iterator operator++(int)
+    iterator_impl<DataType> operator++(int)
     {
-      iterator tmp(*this);
+      iterator_impl<DataType> tmp(*this);
       ++(*this);
       return tmp;
     }
-    iterator operator+(difference_type n)
+    iterator_impl<DataType> operator+(difference_type n)
     {
-      iterator tmp(*this);
+      iterator_impl<DataType> tmp(*this);
       tmp += n;
       return tmp;
     }
-    iterator& operator+=(difference_type n)
+    iterator_impl<DataType>& operator+=(difference_type n)
     {
       idx = (idx + n) % parent->max_size();
       return *this;
     }
-    value_type*       operator->() { return &parent->buffer[idx]; }
-    const value_type* operator->() const { return &parent->buffer[idx]; }
-    value_type&       operator*() { return parent->buffer[idx]; }
-    const value_type& operator*() const { return parent->buffer[idx]; }
-    bool              operator==(const iterator& it) const { return it.parent == parent and it.idx == idx; }
-    bool              operator!=(const iterator& it) const { return not(*this == it); }
+    value_type*       operator->() { return &get(); }
+    const value_type* operator->() const { return &get(); }
+    value_type&       operator*() { return get(); }
+    const value_type& operator*() const { return get(); }
+
+    bool operator==(const iterator_impl<DataType>& it) const { return it.parent == parent and it.idx == idx; }
+    bool operator!=(const iterator_impl<DataType>& it) const { return not(*this == it); }
 
   private:
-    base_circular_buffer<Container>* parent;
-    size_t                           idx;
+    void assert_idx_within_bounds()
+    {
+      srsran_assert(idx + (idx >= parent->rpos ? 0 : parent->max_size()) < parent->rpos + parent->count,
+                    "index=%zd is out-of-bounds [%zd, %zd)",
+                    idx,
+                    parent->rpos,
+                    parent->count);
+    }
+    value_type& get()
+    {
+      assert_idx_within_bounds();
+      return parent->buffer[idx].get();
+    }
+    const value_type& get() const
+    {
+      assert_idx_within_bounds();
+      return parent->buffer[idx].get();
+    }
+    parent_type* parent;
+    size_t       idx;
   };
 
-  template <typename... Args>
-  explicit base_circular_buffer(Args&&... args) : buffer(std::forward<Args>(args)...)
-  {}
+public:
+  using value_type      = T;
+  using difference_type = typename Container::difference_type;
+  using size_type       = std::size_t;
+
+  using iterator       = iterator_impl<T>;
+  using const_iterator = iterator_impl<const T>;
+
+  base_circular_buffer() = default;
+  ~base_circular_buffer() { clear(); }
+
+  template <typename U>
+  typename std::enable_if<std::is_constructible<T, U>::value>::type push(U&& t)
+  {
+    srsran_assert(not full(), "Circular buffer is full.");
+    size_t wpos = (rpos + count) % max_size();
+    buffer[wpos].emplace(std::forward<U>(t));
+    count++;
+  }
 
   bool try_push(T&& t)
   {
@@ -104,13 +152,7 @@ public:
     }
     push(std::move(t));
   }
-  void push(T&& t)
-  {
-    assert(not full());
-    size_t wpos  = (rpos + count) % max_size();
-    buffer[wpos] = std::move(t);
-    count++;
-  }
+
   bool try_push(const T& t)
   {
     if (full()) {
@@ -118,49 +160,56 @@ public:
     }
     push(t);
   }
-  void push(const T& t)
-  {
-    assert(not full());
-    size_t wpos  = (rpos + count) % max_size();
-    buffer[wpos] = t;
-    count++;
-  }
   void pop()
   {
-    assert(not empty());
+    srsran_assert(not empty(), "Cannot call pop() in empty circular buffer");
+    buffer[rpos].destroy();
     rpos = (rpos + 1) % max_size();
     count--;
   }
   T& top()
   {
-    assert(not empty());
-    return buffer[rpos];
+    srsran_assert(not empty(), "Cannot call top() in empty circular buffer");
+    return buffer[rpos].get();
   }
   const T& top() const
   {
-    assert(not empty());
-    return buffer[rpos];
+    srsran_assert(not empty(), "Cannot call top() in empty circular buffer");
+    return buffer[rpos].get();
   }
-  void clear() { count = 0; }
+  void clear()
+  {
+    for (size_t i = 0; i < count; ++i) {
+      buffer[rpos + i].destroy();
+    }
+    count = 0;
+  }
 
   bool   full() const { return count == max_size(); }
   bool   empty() const { return count == 0; }
   size_t size() const { return count; }
   size_t max_size() const { return detail::get_max_size(buffer); }
 
-  iterator begin() { return iterator(*this, rpos); }
-  iterator end() { return iterator(*this, (rpos + count) % max_size()); }
-
-  template <typename = std::enable_if<std::is_same<Container, std::vector<T> >::value> >
-  void set_size(size_t size)
+  T& operator[](size_t i)
   {
-    buffer.resize(size);
+    srsran_assert(i < count, "Out-of-bounds access to circular buffer (%zd >= %zd)", i, count);
+    return buffer[(rpos + i) % max_size()].get();
   }
+  const T& operator[](size_t i) const
+  {
+    srsran_assert(i < count, "Out-of-bounds access to circular buffer (%zd >= %zd)", i, count);
+    return buffer[(rpos + i) % max_size()].get();
+  }
+
+  iterator       begin() { return iterator(*this, rpos); }
+  const_iterator begin() const { return const_iterator(*this, rpos); }
+  iterator       end() { return iterator(*this, (rpos + count) % max_size()); }
+  const_iterator end() const { return const_iterator(*this, (rpos + count) % max_size()); }
 
   template <typename F>
   T discard_if(const F& func)
   {
-    for (auto it = buffer.begin(); it != buffer.end(); it++) {
+    for (auto it = begin(); it != end(); it++) {
       if (*it != nullptr && func(*it)) {
         T tmp = std::move(*it);
         *it   = nullptr;
@@ -170,7 +219,13 @@ public:
     return nullptr;
   }
 
-private:
+protected:
+  base_circular_buffer(size_t rpos_, size_t count_) : rpos(rpos_), count(count_) {}
+  template <typename... BufferArgs>
+  base_circular_buffer(size_t rpos_, size_t count_, BufferArgs&&... args) :
+    rpos(rpos_), count(count_), buffer(std::forward<BufferArgs>(args)...)
+  {}
+
   Container buffer;
   size_t    rpos  = 0;
   size_t    count = 0;
@@ -394,8 +449,53 @@ protected:
  * @tparam N size of the queue
  */
 template <typename T, size_t N>
-class static_circular_buffer : public detail::base_circular_buffer<std::array<T, N> >
-{};
+class static_circular_buffer : public detail::base_circular_buffer<std::array<detail::type_storage<T>, N> >
+{
+  using base_t = detail::base_circular_buffer<std::array<detail::type_storage<T>, N> >;
+
+public:
+  static_circular_buffer() = default;
+  static_circular_buffer(const static_circular_buffer& other) : base_t(other.rpos, other.count)
+  {
+    static_assert(std::is_copy_constructible<T>::value, "T must be copy-constructible");
+    std::uninitialized_copy(other.begin(), other.end(), base_t::begin());
+  }
+  static_circular_buffer(static_circular_buffer<T, N>&& other) noexcept : base_t(other.rpos, other.count)
+  {
+    static_assert(std::is_move_constructible<T>::value, "T must be move-constructible");
+    for (size_t i = 0; i < other.count; ++i) {
+      size_t idx = (other.rpos + i) % other.max_size();
+      base_t::buffer[idx].move_ctor(std::move(other.buffer[idx]));
+    }
+    other.clear();
+  }
+  static_circular_buffer& operator=(const static_circular_buffer& other)
+  {
+    if (this == &other) {
+      return *this;
+    }
+    base_t::clear();
+    base_t::rpos  = other.rpos;
+    base_t::count = other.count;
+    for (size_t i = 0; i < other.count; ++i) {
+      size_t idx = (other.rpos + i) % other.max_size();
+      base_t::buffer[idx].copy_ctor(other.buffer[idx]);
+    }
+    return *this;
+  }
+  static_circular_buffer& operator=(static_circular_buffer&& other) noexcept
+  {
+    base_t::clear();
+    base_t::rpos  = other.rpos;
+    base_t::count = other.count;
+    for (size_t i = 0; i < other.count; ++i) {
+      size_t idx = (other.rpos + i) % other.max_size();
+      base_t::buffer[idx].move_ctor(std::move(other.buffer[idx]));
+    }
+    other.clear();
+    return *this;
+  }
+};
 
 /**
  * Circular buffer with buffer storage via a std::vector<T>.
@@ -404,19 +504,44 @@ class static_circular_buffer : public detail::base_circular_buffer<std::array<T,
  * @tparam T value type stored by buffer
  */
 template <typename T>
-class dyn_circular_buffer : public detail::base_circular_buffer<std::vector<T> >
+class dyn_circular_buffer : public detail::base_circular_buffer<std::vector<detail::type_storage<T> > >
 {
-  using base_t = detail::base_circular_buffer<std::vector<T> >;
+  using base_t = detail::base_circular_buffer<std::vector<detail::type_storage<T> > >;
 
 public:
   dyn_circular_buffer() = default;
-  explicit dyn_circular_buffer(size_t size) : base_t(size) {}
+  explicit dyn_circular_buffer(size_t max_size) : base_t(0, 0, max_size) {}
+  dyn_circular_buffer(dyn_circular_buffer&& other) noexcept : base_t(other.rpos, other.count, std::move(other.buffer))
+  {
+    other.count = 0;
+    other.rpos  = 0;
+  }
+  dyn_circular_buffer(const dyn_circular_buffer& other) : base_t(other.rpos, other.count, other.max_size())
+  {
+    static_assert(std::is_copy_constructible<T>::value, "T must be copy-constructible");
+    for (size_t i = 0; i < other.count; ++i) {
+      size_t idx = (other.rpos + i) % other.max_size();
+      base_t::buffer[idx].copy_ctor(other.buffer[idx]);
+    }
+  }
+  dyn_circular_buffer& operator=(dyn_circular_buffer other) noexcept
+  {
+    swap(other);
+    other.clear();
+    return *this;
+  }
+
+  void swap(dyn_circular_buffer& other) noexcept
+  {
+    std::swap(base_t::rpos, other.rpos);
+    std::swap(base_t::count, other.count);
+    std::swap(base_t::buffer, other.buffer);
+  }
 
   void set_size(size_t size)
   {
-    // Note: dynamic resizes not supported.
-    assert(base_t::empty());
-    base_t::set_size(size);
+    srsran_assert(base_t::empty(), "Dynamic resizes not supported when circular buffer is not empty");
+    base_t::buffer.resize(size);
   }
 };
 

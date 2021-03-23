@@ -18,23 +18,21 @@
 
 namespace srsran {
 
+namespace detail {
+
 template <typename T>
 struct type_storage {
+  using value_type = T;
+
   template <typename... Args>
-  void construct(Args&&... args)
+  void emplace(Args&&... args)
   {
     new (&buffer) T(std::forward<Args>(args)...);
   }
   void destroy() { get().~T(); }
-  void copy_ctor(const type_storage<T>& other) { buffer.get() = other.get(); }
-  void move_ctor(type_storage<T>&& other) { buffer.get() = std::move(other.get()); }
-  void copy_assign(const type_storage<T>& other)
-  {
-    if (this == &other) {
-      return;
-    }
-    get() = other.get();
-  }
+  void copy_ctor(const type_storage<T>& other) { emplace(other.get()); }
+  void move_ctor(type_storage<T>&& other) { emplace(std::move(other.get())); }
+  void copy_assign(const type_storage<T>& other) { get() = other.get(); }
   void move_assign(type_storage<T>&& other) { get() = std::move(other.get()); }
 
   T&       get() { return reinterpret_cast<T&>(buffer); }
@@ -53,7 +51,7 @@ void copy_if_present_helper(type_storage<T>& lhs, const type_storage<T>& rhs, bo
     lhs.destroy();
   }
   if (rhs_present) {
-    lhs.template construct(rhs.get());
+    lhs.copy_ctor(rhs);
   }
 }
 
@@ -67,9 +65,11 @@ void move_if_present_helper(type_storage<T>& lhs, type_storage<T>& rhs, bool lhs
     lhs.destroy();
   }
   if (rhs_present) {
-    lhs.template construct(std::move(rhs.get()));
+    lhs.move_ctor(std::move(rhs));
   }
 }
+
+} // namespace detail
 
 } // namespace srsran
 
