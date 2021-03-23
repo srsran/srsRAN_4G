@@ -20,6 +20,10 @@
 
 #define srsran_unlikely(expr) __builtin_expect(!!(expr), 0)
 
+/**
+ * Macro that asserts condition is true. If false, it logs the remaining parameters, prints the backtrace and closes
+ * the application
+ */
 #define srsran_assert(condition, fmt, ...)                                                                             \
   do {                                                                                                                 \
     if (srsran_unlikely(not(condition))) {                                                                             \
@@ -32,6 +36,10 @@
 
 #ifdef STOP_ON_WARNING
 
+/**
+ * Macro that verifies if condition is true. If false, and STOP_ON_WARNING is true, it behaves like srsran_assert.
+ * If STOP_ON_WARNING is false, it logs a warning.
+ */
 #define srsran_expect(condition, fmt, ...) srsran_assert(condition, fmt, ##__VA_ARGS__)
 
 #else // STOP_ON_WARNING
