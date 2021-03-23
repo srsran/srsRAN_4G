@@ -12,23 +12,27 @@
 
 #include "srsran/phy/ch_estimation/csi_rs.h"
 #include "srsran/phy/common/sequence.h"
+#include "srsran/phy/utils/debug.h"
 #include "srsran/phy/utils/vector.h"
 #include <complex.h>
 #include <stdbool.h>
 #include <stdint.h>
 
-#define SRSRAN_CSI_RS_NOF_FREQ_DOMAIN_ALLOC_ROW1 4
-#define SRSRAN_CSI_RS_NOF_FREQ_DOMAIN_ALLOC_ROW2 12
-#define SRSRAN_CSI_RS_NOF_FREQ_DOMAIN_ALLOC_ROW4 3
-#define SRSRAN_CSI_RS_NOF_FREQ_DOMAIN_ALLOC_OTHER 6
-#define SRSRAN_CSI_RS_NOF_FREQ_DOMAIN_ALLOC_MAX 12
+/**
+ * @brief Maximum number of subcarriers occupied by a CSI-RS resource as defined in TS 38.211 Table 7.4.1.5.3-1
+ */
+#define CSI_RS_MAX_SUBC_PRB 4
 
-#define CSI_RS_MAX_CDM_GROUP 16
+/**
+ * @brief Maximum number of symbols occupied by a CSI-RS resource as defined in TS 38.211 Table 7.4.1.5.3-1
+ */
+#define CSI_RS_MAX_SYMBOLS_SLOT 4
 
 static int csi_rs_location_f(const srsran_csi_rs_resource_mapping_t* resource, uint32_t i)
 {
   uint32_t count           = 0;
   uint32_t nof_freq_domain = 0;
+  uint32_t mul             = 1;
   switch (resource->row) {
     case srsran_csi_rs_resource_mapping_row_1:
       nof_freq_domain = SRSRAN_CSI_RS_NOF_FREQ_DOMAIN_ALLOC_ROW1;
@@ -38,28 +42,32 @@ static int csi_rs_location_f(const srsran_csi_rs_resource_mapping_t* resource, u
       break;
     case srsran_csi_rs_resource_mapping_row_4:
       nof_freq_domain = SRSRAN_CSI_RS_NOF_FREQ_DOMAIN_ALLOC_ROW4;
+      mul             = 4;
       break;
     case srsran_csi_rs_resource_mapping_row_other:
       nof_freq_domain = SRSRAN_CSI_RS_NOF_FREQ_DOMAIN_ALLOC_OTHER;
+      mul             = 2;
       break;
   }
 
   for (uint32_t j = 0; j < nof_freq_domain; j++) {
-    if (resource->frequency_domain_alloc[j]) {
+    if (resource->frequency_domain_alloc[nof_freq_domain - 1 - j]) {
       count++;
     }
 
     if (count == i) {
-      return i;
+      return j * mul;
     }
   }
 
+  ERROR("Unhandled configuration");
   return SRSRAN_ERROR;
 }
 
 // Table 7.4.1.5.3-1: CSI-RS locations within a slot
 static int csi_rs_location_get_k_list(const srsran_csi_rs_resource_mapping_t* resource,
-                                      uint32_t                                k_list[CSI_RS_MAX_CDM_GROUP])
+                                      uint32_t                                j,
+                                      uint32_t                                k_list[CSI_RS_MAX_SUBC_PRB])
 {
   int k0 = csi_rs_location_f(resource, 1);
   //  int k1 = csi_rs_location_f(resource, 2);
@@ -71,20 +79,49 @@ static int csi_rs_location_get_k_list(const srsran_csi_rs_resource_mapping_t* re
   }
 
   // Row 1
-  if (resource->row == srsran_csi_rs_resource_mapping_row_1 && resource->ports == 1 &&
-      resource->density == srsran_csi_rs_resource_mapping_density_three && resource->cdm == srsran_csi_rs_cdm_nocdm) {
+  if (resource->row == srsran_csi_rs_resource_mapping_row_1 && resource->nof_ports == 1 &&
+      resource->density == srsran_csi_rs_resource_mapping_density_three && resource->cdm == srsran_csi_rs_cdm_nocdm &&
+      j == 0) {
     k_list[0] = k0;
     k_list[1] = k0 + 4;
     k_list[2] = k0 + 8;
     return 3;
   }
 
+  // Row 2
+  if (resource->row == srsran_csi_rs_resource_mapping_row_2 && resource->nof_ports == 1 &&
+      resource->cdm == srsran_csi_rs_cdm_nocdm) {
+    if (resource->density == srsran_csi_rs_resource_mapping_density_one ||
+        resource->density == srsran_csi_rs_resource_mapping_density_dot5_even ||
+        resource->density == srsran_csi_rs_resource_mapping_density_dot5_odd) {
+      k_list[0] = k0;
+      return 1;
+    }
+  }
+
+  // Row 4
+  if (resource->row == srsran_csi_rs_resource_mapping_row_4 && resource->nof_ports == 4 &&
+      resource->density == srsran_csi_rs_resource_mapping_density_one && resource->cdm == srsran_csi_rs_cdm_fd_cdm2) {
+    if (j == 0) {
+      k_list[0] = k0;
+      k_list[1] = k0 + 1;
+      return 2;
+    }
+    if (j == 1) {
+      k_list[0] = k0 + 2;
+      k_list[1] = k0 + 2 + 1;
+      return 2;
+    }
+  }
+
+  ERROR("Unhandled configuration");
   return SRSRAN_ERROR;
 }
 
 // Table 7.4.1.5.3-1: CSI-RS locations within a slot
 static int csi_rs_location_get_l_list(const srsran_csi_rs_resource_mapping_t* resource,
-                                      uint32_t                                l_list[CSI_RS_MAX_CDM_GROUP])
+                                      uint32_t                                j,
+                                      uint32_t                                l_list[CSI_RS_MAX_SYMBOLS_SLOT])
 {
   uint32_t l0 = resource->first_symbol_idx;
 
@@ -98,19 +135,44 @@ static int csi_rs_location_get_l_list(const srsran_csi_rs_resource_mapping_t* re
   //  }
 
   // Row 1
-  if (resource->row == srsran_csi_rs_resource_mapping_row_1 && resource->ports == 1 &&
+  if (resource->row == srsran_csi_rs_resource_mapping_row_1 && resource->nof_ports == 1 &&
       resource->density == srsran_csi_rs_resource_mapping_density_three && resource->cdm == srsran_csi_rs_cdm_nocdm) {
     l_list[0] = l0;
     return 1;
   }
 
+  // Row 2
+  if (resource->row == srsran_csi_rs_resource_mapping_row_2 && resource->nof_ports == 1 &&
+      resource->cdm == srsran_csi_rs_cdm_nocdm) {
+    if (resource->density == srsran_csi_rs_resource_mapping_density_one ||
+        resource->density == srsran_csi_rs_resource_mapping_density_dot5_even ||
+        resource->density == srsran_csi_rs_resource_mapping_density_dot5_odd) {
+      l_list[0] = l0;
+      return 1;
+    }
+  }
+
+  // Row 4
+  if (resource->row == srsran_csi_rs_resource_mapping_row_4 && resource->nof_ports == 4 &&
+      resource->density == srsran_csi_rs_resource_mapping_density_one && resource->cdm == srsran_csi_rs_cdm_fd_cdm2) {
+    if (j == 0) {
+      l_list[0] = l0;
+      return 1;
+    }
+    if (j == 1) {
+      l_list[0] = l0;
+      return 1;
+    }
+  }
+
+  ERROR("Unhandled configuration");
   return SRSRAN_ERROR;
 }
 
-uint32_t csi_rs_cinit(const srsran_carrier_nr_t*          carrier,
-                      const srsran_slot_cfg_t*            slot_cfg,
-                      const srsran_csi_rs_nzp_resource_t* resource,
-                      uint32_t                            l)
+static uint32_t csi_rs_cinit(const srsran_carrier_nr_t*          carrier,
+                             const srsran_slot_cfg_t*            slot_cfg,
+                             const srsran_csi_rs_nzp_resource_t* resource,
+                             uint32_t                            l)
 {
   uint32_t n    = SRSRAN_SLOT_NR_MOD(carrier->numerology, slot_cfg->idx);
   uint32_t n_id = resource->scrambling_id;
@@ -118,7 +180,7 @@ uint32_t csi_rs_cinit(const srsran_carrier_nr_t*          carrier,
   return ((SRSRAN_NSYMB_PER_SLOT_NR * n + l + 1UL) * (2UL * n_id) << 10UL) + n_id;
 }
 
-bool srsran_csi_send(const srsran_csi_rs_period_and_offset_t* periodicity, const srsran_slot_cfg_t* slot_cfg)
+bool srsran_csi_rs_send(const srsran_csi_rs_period_and_offset_t* periodicity, const srsran_slot_cfg_t* slot_cfg)
 {
   if (periodicity == NULL || slot_cfg == NULL) {
     return false;
@@ -131,6 +193,43 @@ bool srsran_csi_send(const srsran_csi_rs_period_and_offset_t* periodicity, const
   uint32_t n = ((slot_cfg->idx + periodicity->period) - periodicity->offset) % periodicity->period;
 
   return n == 0;
+}
+
+static int csi_rs_nof_cdm_groups(const srsran_csi_rs_resource_mapping_t* resource)
+{
+  if (resource->row == srsran_csi_rs_resource_mapping_row_1 && resource->nof_ports == 1 &&
+      resource->density == srsran_csi_rs_resource_mapping_density_three && resource->cdm == srsran_csi_rs_cdm_nocdm) {
+    return 1;
+  }
+
+  // Row 1
+  if (resource->row == srsran_csi_rs_resource_mapping_row_2 && resource->nof_ports == 1 &&
+      resource->cdm == srsran_csi_rs_cdm_nocdm) {
+    if (resource->density == srsran_csi_rs_resource_mapping_density_one ||
+        resource->density == srsran_csi_rs_resource_mapping_density_dot5_even ||
+        resource->density == srsran_csi_rs_resource_mapping_density_dot5_odd) {
+      return 1;
+    }
+  }
+
+  // Row 2
+  if (resource->row == srsran_csi_rs_resource_mapping_row_2 && resource->nof_ports == 1 &&
+      resource->cdm == srsran_csi_rs_cdm_nocdm) {
+    if (resource->density == srsran_csi_rs_resource_mapping_density_one ||
+        resource->density == srsran_csi_rs_resource_mapping_density_dot5_even ||
+        resource->density == srsran_csi_rs_resource_mapping_density_dot5_odd) {
+      return 1;
+    }
+  }
+
+  // Row 3
+  if (resource->row == srsran_csi_rs_resource_mapping_row_4 && resource->nof_ports == 4 &&
+      resource->density == srsran_csi_rs_resource_mapping_density_one && resource->cdm == srsran_csi_rs_cdm_fd_cdm2) {
+    return 2;
+  }
+
+  ERROR("Unhandled configuration");
+  return SRSRAN_ERROR;
 }
 
 uint32_t csi_rs_count(srsran_csi_rs_density_t density, uint32_t nprb)
@@ -150,7 +249,7 @@ uint32_t csi_rs_count(srsran_csi_rs_density_t density, uint32_t nprb)
   return 0;
 }
 
-uint32_t csi_rs_rb_begin(const srsran_carrier_nr_t* carrier, const srsran_csi_rs_resource_mapping_t* m)
+static uint32_t csi_rs_rb_begin(const srsran_carrier_nr_t* carrier, const srsran_csi_rs_resource_mapping_t* m)
 {
   uint32_t ret = SRSRAN_MAX(carrier->start, m->freq_band.start_rb);
 
@@ -162,12 +261,12 @@ uint32_t csi_rs_rb_begin(const srsran_carrier_nr_t* carrier, const srsran_csi_rs
   return ret;
 }
 
-uint32_t csi_rs_rb_end(const srsran_carrier_nr_t* carrier, const srsran_csi_rs_resource_mapping_t* m)
+static uint32_t csi_rs_rb_end(const srsran_carrier_nr_t* carrier, const srsran_csi_rs_resource_mapping_t* m)
 {
   return SRSRAN_MIN(carrier->start + carrier->nof_prb, m->freq_band.start_rb + m->freq_band.nof_rb);
 }
 
-uint32_t csi_rs_rb_stride(const srsran_csi_rs_resource_mapping_t* m)
+static uint32_t csi_rs_rb_stride(const srsran_csi_rs_resource_mapping_t* m)
 {
   uint32_t ret = 1;
 
@@ -181,6 +280,65 @@ uint32_t csi_rs_rb_stride(const srsran_csi_rs_resource_mapping_t* m)
   return ret;
 }
 
+int srsran_csi_rs_append_resource_to_pattern(const srsran_carrier_nr_t*              carrier,
+                                             const srsran_csi_rs_resource_mapping_t* resource,
+                                             srsran_re_pattern_list_t*               re_pattern_list)
+{
+  // Check inputs
+  if (resource == NULL || re_pattern_list == NULL) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+
+  // Create temporal pattern
+  srsran_re_pattern_t pattern = {};
+  pattern.rb_begin            = csi_rs_rb_begin(carrier, resource);
+  pattern.rb_end              = csi_rs_rb_end(carrier, resource);
+  pattern.rb_stride           = csi_rs_rb_stride(resource);
+
+  // Calculate number of CDM groups
+  int nof_cdm_groups = csi_rs_nof_cdm_groups(resource);
+  if (nof_cdm_groups < SRSRAN_SUCCESS) {
+    ERROR("Error getting number of CDM groups");
+    return SRSRAN_ERROR;
+  }
+
+  // Iterate over all CDM groups
+  for (int j = 0; j < nof_cdm_groups; j++) {
+    // Get SC indexes
+    uint32_t k_list[CSI_RS_MAX_SUBC_PRB] = {};
+    int      nof_k                       = csi_rs_location_get_k_list(resource, j, k_list);
+    if (nof_k < SRSRAN_SUCCESS) {
+      ERROR("Error getting indexes for CSI-RS");
+      return SRSRAN_ERROR;
+    }
+
+    // Fill subcarrier mask
+    for (int k = 0; k < nof_k; k++) {
+      pattern.sc[k_list[k]] = true;
+    }
+
+    // Get OFDM symbol indexes
+    uint32_t l_list[CSI_RS_MAX_SUBC_PRB] = {};
+    int      nof_l                       = csi_rs_location_get_l_list(resource, j, l_list);
+    if (nof_l < SRSRAN_SUCCESS) {
+      ERROR("Error getting indexes for CSI-RS");
+      return SRSRAN_ERROR;
+    }
+
+    // Fill OFDM symbol mask
+    for (int l = 0; l < nof_l; l++) {
+      pattern.symbol[l_list[l]] = true;
+    }
+
+    if (srsran_re_pattern_merge(re_pattern_list, &pattern) < SRSRAN_SUCCESS) {
+      ERROR("Error merging pattern");
+      return SRSRAN_ERROR;
+    }
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
 int srsran_csi_rs_nzp_put(const srsran_carrier_nr_t*          carrier,
                           const srsran_slot_cfg_t*            slot_cfg,
                           const srsran_csi_rs_nzp_resource_t* resource,
@@ -190,14 +348,17 @@ int srsran_csi_rs_nzp_put(const srsran_carrier_nr_t*          carrier,
     return SRSRAN_ERROR;
   }
 
-  uint32_t k_list[CSI_RS_MAX_CDM_GROUP];
-  int      nof_k = csi_rs_location_get_k_list(&resource->resource_mapping, k_list);
+  // Force CDM group to 0
+  uint32_t j = 0;
+
+  uint32_t k_list[CSI_RS_MAX_SUBC_PRB];
+  int      nof_k = csi_rs_location_get_k_list(&resource->resource_mapping, j, k_list);
   if (nof_k <= 0) {
     return SRSRAN_ERROR;
   }
 
-  uint32_t l_list[CSI_RS_MAX_CDM_GROUP];
-  int      nof_l = csi_rs_location_get_l_list(&resource->resource_mapping, l_list);
+  uint32_t l_list[CSI_RS_MAX_SYMBOLS_SLOT];
+  int      nof_l = csi_rs_location_get_l_list(&resource->resource_mapping, j, l_list);
   if (nof_l <= 0) {
     return SRSRAN_ERROR;
   }
@@ -261,14 +422,17 @@ int srsran_csi_rs_nzp_measure(const srsran_carrier_nr_t*          carrier,
     return SRSRAN_ERROR;
   }
 
-  uint32_t k_list[CSI_RS_MAX_CDM_GROUP];
-  int      nof_k = csi_rs_location_get_k_list(&resource->resource_mapping, k_list);
+  // Force CDM group to 0
+  uint32_t j = 0;
+
+  uint32_t k_list[CSI_RS_MAX_SUBC_PRB];
+  int      nof_k = csi_rs_location_get_k_list(&resource->resource_mapping, j, k_list);
   if (nof_k <= 0) {
     return SRSRAN_ERROR;
   }
 
-  uint32_t l_list[CSI_RS_MAX_CDM_GROUP];
-  int      nof_l = csi_rs_location_get_l_list(&resource->resource_mapping, l_list);
+  uint32_t l_list[CSI_RS_MAX_SYMBOLS_SLOT];
+  int      nof_l = csi_rs_location_get_l_list(&resource->resource_mapping, j, l_list);
   if (nof_l <= 0) {
     return SRSRAN_ERROR;
   }

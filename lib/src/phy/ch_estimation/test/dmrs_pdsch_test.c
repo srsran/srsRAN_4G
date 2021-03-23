@@ -164,41 +164,44 @@ static int assert_cfg(const srsran_sch_cfg_nr_t* pdsch_cfg, const srsran_sch_gra
       continue;
     }
 
-    if (grant->mapping != gold[i].mapping_type) {
+    // Skip golden sample if one of the parameters does not match
+    if (grant->mapping != gold[i].mapping_type || pdsch_cfg->dmrs.typeA_pos != gold[i].typeA_pos ||
+        pdsch_cfg->dmrs.additional_pos != gold[i].additional_pos || pdsch_cfg->dmrs.length != gold[i].max_length ||
+        pdsch_cfg->dmrs.type != gold[i].type) {
       continue;
     }
 
-    if (pdsch_cfg->dmrs.typeA_pos != gold[i].typeA_pos) {
-      continue;
+    // Generate subcarrier mask from golden sample
+    bool sc_mask[SRSRAN_NRE] = {};
+    if (grant->nof_dmrs_cdm_groups_without_data == 1) {
+      for (uint32_t j = 0; j < gold[i].nof_sc; j++) {
+        sc_mask[gold[i].sc_idx[j] % SRSRAN_NRE] = true;
+      }
+    } else if (pdsch_cfg->dmrs.type == srsran_dmrs_sch_type_1) {
+      for (uint32_t k = 0; k < SRSRAN_NRE; k++) {
+        sc_mask[k] = true;
+      }
+    } else if (pdsch_cfg->dmrs.type == srsran_dmrs_sch_type_2) {
+      for (uint32_t k = 0; k < SRSRAN_NRE; k++) {
+        sc_mask[k] = ((k % 6) < grant->nof_dmrs_cdm_groups_without_data * 2);
+      }
     }
 
-    if (pdsch_cfg->dmrs.additional_pos != gold[i].additional_pos) {
-      continue;
-    }
-
-    if (pdsch_cfg->dmrs.length != gold[i].max_length) {
-      continue;
-    }
-
-    if (pdsch_cfg->dmrs.type != gold[i].type) {
-      continue;
-    }
-
-    uint32_t symbols[SRSRAN_DMRS_SCH_MAX_SYMBOLS] = {};
-    int      nof_symbols                          = srsran_dmrs_sch_get_symbols_idx(&pdsch_cfg->dmrs, grant, symbols);
-
-    TESTASSERT(nof_symbols == gold[i].nof_symbols);
-
+    // Generate symbol mask from golden sample
+    bool symbol_mask[SRSRAN_NSYMB_PER_SLOT_NR] = {};
     for (uint32_t j = 0; j < gold[i].nof_symbols; j++) {
-      TESTASSERT(symbols[j] == gold[i].symbol_idx[j]);
+      symbol_mask[gold[i].symbol_idx[j] % SRSRAN_NSYMB_PER_SLOT_NR] = true;
     }
 
-    uint32_t sc[SRSRAN_NRE] = {};
-    srsran_dmrs_sch_get_sc_idx(&pdsch_cfg->dmrs, SRSRAN_NRE, sc);
+    // Generate DMRS pattern
+    srsran_re_pattern_t pattern = {};
+    TESTASSERT(srsran_dmrs_sch_rvd_re_pattern(&pdsch_cfg->dmrs, grant, &pattern) == SRSRAN_SUCCESS);
 
-    for (uint32_t j = 0; j < gold[i].nof_sc; j++) {
-      TESTASSERT(sc[j] == gold[i].sc_idx[j]);
-    }
+    // Assert subcarrier mask
+    TESTASSERT(memcmp(pattern.sc, sc_mask, sizeof(bool) * SRSRAN_NRE) == 0);
+
+    // Assert symbol mask
+    TESTASSERT(memcmp(pattern.symbol, symbol_mask, sizeof(bool) * SRSRAN_NSYMB_PER_SLOT_NR) == 0);
 
     return SRSRAN_SUCCESS;
   }
@@ -307,7 +310,15 @@ int main(int argc, char** argv)
               for (grant.nof_dmrs_cdm_groups_without_data = 1; grant.nof_dmrs_cdm_groups_without_data <= 3;
                    grant.nof_dmrs_cdm_groups_without_data++) {
                 // Load default type A grant
-                srsran_ra_dl_nr_time_default_A(0, pdsch_cfg.dmrs.typeA_pos, &grant);
+                if (srsran_ra_dl_nr_time_default_A(m, pdsch_cfg.dmrs.typeA_pos, &grant) < SRSRAN_SUCCESS) {
+                  ERROR("Error loading time resource");
+                  continue;
+                }
+
+                // Mapping type B is not supported
+                if (grant.mapping == srsran_sch_mapping_type_B) {
+                  continue;
+                }
 
                 int n = run_test(&dmrs_pdsch, &pdsch_cfg, &grant, sf_symbols, &chest_dl_res);
 

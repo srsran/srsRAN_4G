@@ -142,11 +142,11 @@ public:
    * @param tti_rx The TTI in which the grant was received
    * @param dci_dl The DL DCI message to store
    */
-  void set_dl_pending_grant(uint32_t tti_rx, const srsran_dci_dl_nr_t& dci_dl)
+  void set_dl_pending_grant(const srsran_slot_cfg_t& slot, const srsran_dci_dl_nr_t& dci_dl)
   {
     // Convert DL DCI to grant
     srsran_sch_cfg_nr_t pdsch_cfg = {};
-    if (srsran_ra_dl_dci_to_grant_nr(&carrier, &cfg.pdsch, &dci_dl, &pdsch_cfg, &pdsch_cfg.grant)) {
+    if (srsran_ra_dl_dci_to_grant_nr(&carrier, &slot, &cfg.pdsch, &dci_dl, &pdsch_cfg, &pdsch_cfg.grant)) {
       ERROR("Computing UL grant");
       return;
     }
@@ -159,7 +159,7 @@ public:
     }
 
     // Calculate Receive TTI
-    tti_rx = TTI_ADD(tti_rx, pdsch_cfg.grant.k);
+    uint32_t tti_rx = TTI_ADD(slot.idx, pdsch_cfg.grant.k);
 
     // Scope mutex to protect read/write the list
     std::lock_guard<std::mutex> lock(pending_dl_grant_mutex);

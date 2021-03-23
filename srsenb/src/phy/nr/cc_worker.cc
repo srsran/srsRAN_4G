@@ -125,8 +125,11 @@ int cc_worker::encode_pdsch(stack_interface_phy_nr::dl_sched_grant_t* grants, ui
     srsran_sch_cfg_nr_t    pdsch_cfg    = {};
 
     // Compute DL grant
-    if (srsran_ra_dl_dci_to_grant_nr(&enb_dl.carrier, &pdsch_hl_cfg, &grants[i].dci, &pdsch_cfg, &pdsch_cfg.grant)) {
+    if (srsran_ra_dl_dci_to_grant_nr(
+            &enb_dl.carrier, &dl_slot_cfg, &pdsch_hl_cfg, &grants[i].dci, &pdsch_cfg, &pdsch_cfg.grant) <
+        SRSRAN_SUCCESS) {
       ERROR("Computing DL grant");
+      return false;
     }
 
     // Set soft buffer

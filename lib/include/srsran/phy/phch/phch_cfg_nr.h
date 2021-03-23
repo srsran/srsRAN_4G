@@ -21,9 +21,17 @@
 #ifndef SRSRAN_PHCH_CFG_NR_H
 #define SRSRAN_PHCH_CFG_NR_H
 
+#include "srsran/phy/ch_estimation/csi_rs_cfg.h"
 #include "srsran/phy/common/phy_common_nr.h"
 #include "srsran/phy/phch/sch_cfg_nr.h"
 #include "srsran/phy/phch/uci_cfg_nr.h"
+#include "srsran/phy/utils/re_pattern.h"
+
+/**
+ * @brief Specifies the maximum number of ZP-CSI-RS resources configured per slot. It is not implicitly specified in the
+ * TS.
+ */
+#define SRSRAN_PHCH_CFG_MAX_NOF_ZP_CSI_RS_RES_PER_SLOT 16
 
 /**
  * @brief PDSCH DMRS type
@@ -203,6 +211,12 @@ typedef struct SRSRAN_API {
 
   srsran_sch_cfg_t sch_cfg; ///< Common shared channel parameters
 
+  /// PDSCH Periodic ZP-CSI-RS set
+  srsran_csi_rs_zp_set_t p_zp_csi_rs_set;
+
+  /// PDSCH Periodic NZP-CSI-RS set, indexed by nzp-CSI-ResourceSetId
+  srsran_csi_rs_nzp_set_t nzp_csi_rs_sets[SRSRAN_PHCH_CFG_MAX_NOF_CSI_RS_SETS];
+
   /// PUSCH only
   srsran_beta_offsets_t beta_offsets; /// Semi-static only.
   float scaling; /// Indicates a scaling factor to limit the number of resource elements assigned to UCI on PUSCH.
@@ -213,12 +227,12 @@ typedef struct SRSRAN_API {
  */
 typedef struct SRSRAN_API {
   bool     scrambling_id_present;
-  uint32_t scambling_id; // Identifier used to initialize data scrambling (0-1023)
+  uint32_t scambling_id; ///< Identifier used to initialize data scrambling (0-1023)
 
-  srsran_dmrs_sch_cfg_t dmrs;
-  srsran_sch_grant_nr_t grant;
-
-  srsran_sch_cfg_t sch_cfg; ///< Common shared channel parameters
+  srsran_dmrs_sch_cfg_t    dmrs;    ///< DMRS configuration for this transmission
+  srsran_sch_grant_nr_t    grant;   ///< Actual SCH grant
+  srsran_sch_cfg_t         sch_cfg; ///< Common shared channel parameters
+  srsran_re_pattern_list_t rvd_re;  ///< Reserved resource elements, as pattern
 
   /// PUSCH only parameters
   srsran_uci_cfg_nr_t uci; ///< Uplink Control Information configuration

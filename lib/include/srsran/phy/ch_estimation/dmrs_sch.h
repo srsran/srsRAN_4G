@@ -63,15 +63,14 @@ SRSRAN_API int srsran_dmrs_sch_get_symbols_idx(const srsran_dmrs_sch_cfg_t* dmrs
                                                uint32_t                     symbols_idx[SRSRAN_DMRS_SCH_MAX_SYMBOLS]);
 
 /**
- * @brief Computes the sub-carrier indexes carrying DMRS
- *
+ * @brief Computes the resource element pattern of resource elements reserved for DMRS
  * @param cfg PDSCH DMRS configuration provided by upper layers
- * @param max_count is the number of sub-carriers to generate
- * @param sc_idx is the destination pointer where the sub-carrier indexes are stored
- *
- * @return It returns the number of sub-carriers if inputs are valid, otherwise, it returns SRSRAN_ERROR code.
+ * @param[out] pattern Provides the RE pattern to fill
+ * @return SRSRAN_SUCCESS if computation is successful, SRSRAN_ERROR code otherwise
  */
-SRSRAN_API int srsran_dmrs_sch_get_sc_idx(const srsran_dmrs_sch_cfg_t* cfg, uint32_t max_count, uint32_t* sc_idx);
+SRSRAN_API int srsran_dmrs_sch_rvd_re_pattern(const srsran_dmrs_sch_cfg_t* cfg,
+                                              const srsran_sch_grant_nr_t* grant,
+                                              srsran_re_pattern_t*         pattern);
 
 /**
  * @brief Calculates the number of resource elements taken by a PDSCH-DMRS for a given PDSCH transmission
@@ -143,8 +142,8 @@ SRSRAN_API int srsran_dmrs_sch_put_sf(srsran_dmrs_sch_t*           q,
  * @attention Current implementation supports only type1 PDSCH DMRS (1 pilot every 2 RE)
  *
  * @param q DMRS-PDSCH object
- * @param slot_cfg Slot configuration
- * @param pdsch_cfg PDSCH configuration provided by upper layers
+ * @param slot Slot configuration
+ * @param cfg PDSCH configuration provided by upper layers
  * @param grant PDSCH information provided by a DCI
  * @param sf_symbols Received resource grid
  * @param[out] ce Channel estimates
@@ -152,8 +151,8 @@ SRSRAN_API int srsran_dmrs_sch_put_sf(srsran_dmrs_sch_t*           q,
  * @return it returns SRSRAN_ERROR code if an error occurs, otherwise it returns SRSRAN_SUCCESS
  */
 SRSRAN_API int srsran_dmrs_sch_estimate(srsran_dmrs_sch_t*           q,
-                                        const srsran_slot_cfg_t*     slot_cfg,
-                                        const srsran_sch_cfg_nr_t*   pdsch_cfg,
+                                        const srsran_slot_cfg_t*     slot,
+                                        const srsran_sch_cfg_nr_t*   cfg,
                                         const srsran_sch_grant_nr_t* grant,
                                         const cf_t*                  sf_symbols,
                                         srsran_chest_dl_res_t*       chest_res);

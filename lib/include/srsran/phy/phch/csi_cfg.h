@@ -26,6 +26,7 @@
  * @brief Maximum number of CSI-RS resources defined in TS 38.331 maxNrofCSI-ResourceConfigurations
  */
 #define SRSRAN_CSI_MAX_NOF_RESOURCES 112
+
 /**
  * @brief CSI report types defined in TS 38.331 CSI-ReportConfig
  */

@@ -11,6 +11,7 @@
  */
 
 #include "srsran/phy/phch/pdsch_nr.h"
+#include "srsran/phy/ch_estimation/csi_rs.h"
 #include "srsran/phy/common/phy_common_nr.h"
 #include "srsran/phy/mimo/layermap.h"
 #include "srsran/phy/mimo/precoding.h"
@@ -174,171 +175,25 @@ void srsran_pdsch_nr_free(srsran_pdsch_nr_t* q)
   }
 }
 
-/**
- * @brief copies a number of countiguous Resource Elements
- * @param sf_symbols slot symbols in frequency domain
- * @param symbols resource elements
- * @param count number of resource elements to copy
- * @param put Direction, symbols are copied into sf_symbols if put is true, otherwise sf_symbols are copied into symbols
- */
-static void srsran_pdsch_re_cp(cf_t* sf_symbols, cf_t* symbols, uint32_t count, bool put)
-{
-  if (put) {
-    srsran_vec_cf_copy(sf_symbols, symbols, count);
-  } else {
-    srsran_vec_cf_copy(symbols, sf_symbols, count);
-  }
-}
-
-/*
- * As a RB is 12 RE wide, positions marked as 1 will be used for the 1st CDM group, and the same with group 2:
- *
- *  +---+---+---+---+---+---+---+---+---+---+---+---+
- *  | 1 | 2 | 1 | 2 | 1 | 2 | 1 | 2 | 1 | 2 | 1 | 2 |
- *  +---+---+---+---+---+---+---+---+---+---+---+---+
- *  -- k -->
- *
- * If the number of DMRS CDM groups without data is set to:
- * - 1, data is mapped in RE marked as 2
- * - Otherwise, no data is mapped in this symbol
- */
-static uint32_t srsran_pdsch_nr_cp_dmrs_type1(const srsran_pdsch_nr_t*     q,
-                                              const srsran_sch_grant_nr_t* grant,
-                                              cf_t*                        symbols,
-                                              cf_t*                        sf_symbols,
-                                              bool                         put)
+static inline uint32_t pdsch_nr_put_rb(cf_t* dst, cf_t* src, bool* rvd_mask)
 {
   uint32_t count = 0;
-  uint32_t delta = 0;
-
-  if (grant->nof_dmrs_cdm_groups_without_data != 1) {
-    return count;
-  }
-
-  for (uint32_t i = 0; i < q->carrier.nof_prb; i++) {
-    if (grant->prb_idx[i]) {
-      for (uint32_t j = 0; j < SRSRAN_NRE; j += 2) {
-        if (put) {
-          sf_symbols[i * SRSRAN_NRE + delta + j + 1] = symbols[count++];
-        } else {
-          symbols[count++] = sf_symbols[i * SRSRAN_NRE + delta + j + 1];
-        }
-      }
+  for (uint32_t i = 0; i < SRSRAN_NRE; i++) {
+    if (!rvd_mask[i]) {
+      dst[i] = src[count++];
     }
   }
-
   return count;
 }
 
-/*
- * As a RB is 12 RE wide, positions marked as 1 will be used for the 1st CDM group, and the same with groups 2 and 3:
- *
- *  +---+---+---+---+---+---+---+---+---+---+---+---+
- *  | 1 | 1 | 2 | 2 | 3 | 3 | 1 | 1 | 2 | 2 | 3 | 3 |
- *  +---+---+---+---+---+---+---+---+---+---+---+---+
- *  -- k -->
- *
- * If the number of DMRS CDM groups without data is set to:
- * - 1, data is mapped in RE marked as 2 and 3
- * - 2, data is mapped in RE marked as 3
- * - otherwise, no data is mapped in this symbol
- */
-static uint32_t srsran_pdsch_nr_cp_dmrs_type2(const srsran_pdsch_nr_t*     q,
-                                              const srsran_sch_grant_nr_t* grant,
-                                              cf_t*                        symbols,
-                                              cf_t*                        sf_symbols,
-                                              bool                         put)
+static inline uint32_t pdsch_nr_get_rb(cf_t* dst, cf_t* src, bool* rvd_mask)
 {
   uint32_t count = 0;
-
-  if (grant->nof_dmrs_cdm_groups_without_data != 1 && grant->nof_dmrs_cdm_groups_without_data != 2) {
-    return count;
-  }
-
-  uint32_t re_offset = (grant->nof_dmrs_cdm_groups_without_data == 1) ? 2 : 4;
-  uint32_t re_count  = (grant->nof_dmrs_cdm_groups_without_data == 1) ? 4 : 2;
-
-  for (uint32_t i = 0; i < q->carrier.nof_prb; i++) {
-    if (grant->prb_idx[i]) {
-      // Copy RE between pilot pairs
-      srsran_pdsch_re_cp(&sf_symbols[i * SRSRAN_NRE + re_offset], &symbols[count], re_count, put);
-      count += re_count;
-
-      // Copy RE after second pilot
-      srsran_pdsch_re_cp(&sf_symbols[(i + 1) * SRSRAN_NRE - re_count], &symbols[count], re_count, put);
-      count += re_count;
+  for (uint32_t i = 0; i < SRSRAN_NRE; i++) {
+    if (!rvd_mask[i]) {
+      dst[count++] = src[i];
     }
   }
-
-  return count;
-}
-
-static uint32_t srsran_pdsch_nr_cp_dmrs(const srsran_pdsch_nr_t*     q,
-                                        const srsran_sch_cfg_nr_t*   cfg,
-                                        const srsran_sch_grant_nr_t* grant,
-                                        cf_t*                        symbols,
-                                        cf_t*                        sf_symbols,
-                                        bool                         put)
-{
-  uint32_t count = 0;
-
-  const srsran_dmrs_sch_cfg_t* dmrs_cfg = &cfg->dmrs;
-
-  switch (dmrs_cfg->type) {
-    case srsran_dmrs_sch_type_1:
-      count = srsran_pdsch_nr_cp_dmrs_type1(q, grant, symbols, sf_symbols, put);
-      break;
-    case srsran_dmrs_sch_type_2:
-      count = srsran_pdsch_nr_cp_dmrs_type2(q, grant, symbols, sf_symbols, put);
-      break;
-  }
-
-  return count;
-}
-
-static uint32_t srsran_pdsch_nr_cp_clean(const srsran_pdsch_nr_t*     q,
-                                         const srsran_sch_grant_nr_t* grant,
-                                         cf_t*                        symbols,
-                                         cf_t*                        sf_symbols,
-                                         bool                         put)
-{
-  uint32_t count  = 0;
-  uint32_t start  = 0; // Index of the start of continuous data
-  uint32_t length = 0; // End of continuous RE
-
-  for (uint32_t i = 0; i < q->carrier.nof_prb; i++) {
-    if (grant->prb_idx[i]) {
-      // If fist continuous block, save start
-      if (length == 0) {
-        start = i * SRSRAN_NRE;
-      }
-      length += SRSRAN_NRE;
-    } else {
-      // Consecutive block is finished
-      if (put) {
-        srsran_vec_cf_copy(&sf_symbols[start], &symbols[count], length);
-      } else {
-        srsran_vec_cf_copy(&symbols[count], &sf_symbols[start], length);
-      }
-
-      // Increase RE count
-      count += length;
-
-      // Reset consecutive block
-      length = 0;
-    }
-  }
-
-  // Copy last contiguous block
-  if (length > 0) {
-    if (put) {
-      srsran_vec_cf_copy(&sf_symbols[start], &symbols[count], length);
-    } else {
-      srsran_vec_cf_copy(&symbols[count], &sf_symbols[start], length);
-    }
-    count += length;
-  }
-
   return count;
 }
 
@@ -349,35 +204,40 @@ static int srsran_pdsch_nr_cp(const srsran_pdsch_nr_t*     q,
                               cf_t*                        sf_symbols,
                               bool                         put)
 {
-  uint32_t count                                   = 0;
-  uint32_t dmrs_l_idx[SRSRAN_DMRS_SCH_MAX_SYMBOLS] = {};
-  uint32_t dmrs_l_count                            = 0;
-
-  // Get symbol indexes carrying DMRS
-  int32_t nof_dmrs_symbols = srsran_dmrs_sch_get_symbols_idx(&cfg->dmrs, grant, dmrs_l_idx);
-  if (nof_dmrs_symbols < SRSRAN_SUCCESS) {
-    return SRSRAN_ERROR;
-  }
-
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
-    DEBUG("dmrs_l_idx=");
-    srsran_vec_fprint_i(stdout, (int32_t*)dmrs_l_idx, nof_dmrs_symbols);
-  }
+  uint32_t count = 0;
 
   for (uint32_t l = grant->S; l < grant->S + grant->L; l++) {
-    // Advance DMRS symbol counter until:
-    // - the current DMRS symbol index is greater or equal than current symbol l
-    // - no more DMRS symbols
-    while (dmrs_l_idx[dmrs_l_count] < l && dmrs_l_count < nof_dmrs_symbols) {
-      dmrs_l_count++;
+    // Initialise reserved RE mask to all false
+    bool rvd_mask[SRSRAN_NRE * SRSRAN_MAX_PRB_NR] = {};
+
+    // Reserve DMRS
+    if (srsran_re_pattern_to_symbol_mask(&q->dmrs_re_pattern, l, rvd_mask) < SRSRAN_SUCCESS) {
+      ERROR("Error generating DMRS reserved RE mask");
+      return SRSRAN_ERROR;
     }
 
-    if (l == dmrs_l_idx[dmrs_l_count]) {
-      count += srsran_pdsch_nr_cp_dmrs(
-          q, cfg, grant, &symbols[count], &sf_symbols[l * q->carrier.nof_prb * SRSRAN_NRE], put);
-    } else {
-      count +=
-          srsran_pdsch_nr_cp_clean(q, grant, &symbols[count], &sf_symbols[l * q->carrier.nof_prb * SRSRAN_NRE], put);
+    // Reserve RE from configuration
+    if (srsran_re_pattern_list_to_symbol_mask(&cfg->rvd_re, l, rvd_mask) < SRSRAN_SUCCESS) {
+      ERROR("Error generating reserved RE mask");
+      return SRSRAN_ERROR;
+    }
+
+    // Actual copy
+    for (uint32_t rb = 0; rb < q->carrier.nof_prb; rb++) {
+      // Skip PRB if not available in grant
+      if (!grant->prb_idx[rb]) {
+        continue;
+      }
+
+      // Calculate RE index at the begin of the symbol
+      uint32_t re_idx = (q->carrier.nof_prb * l + rb) * SRSRAN_NRE;
+
+      // Put or get
+      if (put) {
+        count += pdsch_nr_put_rb(&sf_symbols[re_idx], &symbols[count], &rvd_mask[rb * SRSRAN_NRE]);
+      } else {
+        count += pdsch_nr_get_rb(&symbols[count], &sf_symbols[re_idx], &rvd_mask[rb * SRSRAN_NRE]);
+      }
     }
   }
 
@@ -487,6 +347,12 @@ int srsran_pdsch_nr_encode(srsran_pdsch_nr_t*           q,
     return SRSRAN_ERROR;
   }
 
+  // Compute DMRS pattern
+  if (srsran_dmrs_sch_rvd_re_pattern(&cfg->dmrs, grant, &q->dmrs_re_pattern) < SRSRAN_SUCCESS) {
+    ERROR("Error computing DMRS pattern");
+    return SRSRAN_ERROR;
+  }
+
   // 7.3.1.1 and 7.3.1.2
   uint32_t nof_cw = 0;
   for (uint32_t tb = 0; tb < SRSRAN_MAX_TB; tb++) {
@@ -571,10 +437,8 @@ static inline int pdsch_nr_decode_codeword(srsran_pdsch_nr_t*         q,
     res->evm = srsran_evm_run_b(q->evm_buffer, &q->modem_tables[tb->mod], q->d[tb->cw_idx], llr, tb->nof_bits);
   }
 
-  // Change LLR sign
-  for (uint32_t i = 0; i < tb->nof_bits; i++) {
-    llr[i] = -llr[i];
-  }
+  // Change LLR sign and set to zero the LLR that are not used
+  srsran_vec_neg_bb(llr, llr, tb->nof_bits);
 
   // Descrambling
   srsran_sequence_apply_c(llr, llr, tb->nof_bits, pdsch_nr_cinit(&q->carrier, cfg, rnti, tb->cw_idx));
@@ -610,12 +474,18 @@ int srsran_pdsch_nr_decode(srsran_pdsch_nr_t*           q,
     gettimeofday(&t[1], NULL);
   }
 
+  // Compute DMRS pattern
+  if (srsran_dmrs_sch_rvd_re_pattern(&cfg->dmrs, grant, &q->dmrs_re_pattern) < SRSRAN_SUCCESS) {
+    ERROR("Error computing DMRS pattern");
+    return SRSRAN_ERROR;
+  }
+
   uint32_t nof_cw = 0;
   for (uint32_t tb = 0; tb < SRSRAN_MAX_TB; tb++) {
     nof_cw += grant->tb[tb].enabled ? 1 : 0;
   }
 
-  uint32_t nof_re = srsran_ra_dl_nr_slot_nof_re(cfg, grant);
+  uint32_t nof_re = grant->tb[0].nof_re;
 
   if (channel->nof_re != nof_re) {
     ERROR("Inconsistent number of RE (%d!=%d)", channel->nof_re, nof_re);
@@ -723,6 +593,12 @@ uint32_t srsran_pdsch_nr_rx_info(const srsran_pdsch_nr_t*     q,
 
   len += srsran_pdsch_nr_grant_info(cfg, grant, &str[len], str_len - len);
 
+  if (cfg->rvd_re.count != 0) {
+    len = srsran_print_check(str, str_len, len, ", Reserved={");
+    len += srsran_re_pattern_list_info(&cfg->rvd_re, &str[len], str_len - len);
+    len = srsran_print_check(str, str_len, len, "}");
+  }
+
   if (q->evm_buffer != NULL) {
     len = srsran_print_check(str, str_len, len, ",evm={", 0);
     for (uint32_t i = 0; i < SRSRAN_MAX_CODEWORDS; i++) {
@@ -766,13 +642,5 @@ uint32_t srsran_pdsch_nr_tx_info(const srsran_pdsch_nr_t*     q,
                                  char*                        str,
                                  uint32_t                     str_len)
 {
-  uint32_t len = 0;
-
-  len += srsran_pdsch_nr_grant_info(cfg, grant, &str[len], str_len - len);
-
-  if (q->meas_time_en) {
-    len = srsran_print_check(str, str_len, len, ", t=%d us", q->meas_time_us);
-  }
-
-  return len;
+  return srsran_pdsch_nr_rx_info(q, cfg, grant, NULL, str, str_len);
 }

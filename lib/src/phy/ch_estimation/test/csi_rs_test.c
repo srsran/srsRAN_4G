@@ -136,10 +136,10 @@ int main(int argc, char** argv)
   }
 
   // Fixed parameters, other params are not implemented
-  resource.resource_mapping.cdm     = srsran_csi_rs_cdm_nocdm;
-  resource.resource_mapping.density = srsran_csi_rs_resource_mapping_density_three;
-  resource.resource_mapping.row     = srsran_csi_rs_resource_mapping_row_1;
-  resource.resource_mapping.ports   = 1;
+  resource.resource_mapping.cdm       = srsran_csi_rs_cdm_nocdm;
+  resource.resource_mapping.density   = srsran_csi_rs_resource_mapping_density_three;
+  resource.resource_mapping.row       = srsran_csi_rs_resource_mapping_row_1;
+  resource.resource_mapping.nof_ports = 1;
 
   // Row 1 supported only!
   uint32_t nof_freq_dom_alloc = SRSRAN_CSI_RS_NOF_FREQ_DOMAIN_ALLOC_ROW1;

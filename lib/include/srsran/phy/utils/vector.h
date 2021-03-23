@@ -181,6 +181,7 @@ SRSRAN_API void srsran_vec_prod_sss(const int16_t* x, const int16_t* y, int16_t*
 // Negate sign (scrambling)
 SRSRAN_API void srsran_vec_neg_sss(const int16_t* x, const int16_t* y, int16_t* z, const uint32_t len);
 SRSRAN_API void srsran_vec_neg_bbb(const int8_t* x, const int8_t* y, int8_t* z, const uint32_t len);
+SRSRAN_API void srsran_vec_neg_bb(const int8_t* x, int8_t* z, const uint32_t len);
 
 /* Dot-product */
 SRSRAN_API cf_t    srsran_vec_dot_prod_cfc(const cf_t* x, const float* y, const uint32_t len);

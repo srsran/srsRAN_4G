@@ -222,24 +222,6 @@ int srsran_ra_ul_nr_nof_dmrs_cdm_groups_without_data_format_0_0(const srsran_sch
   return SRSRAN_SUCCESS;
 }
 
-int srsran_ra_ul_nr_dmrs_power_offset(srsran_sch_grant_nr_t* grant)
-{
-  if (grant == NULL) {
-    return SRSRAN_ERROR_INVALID_INPUTS;
-  }
-
-  float ratio_dB[3] = {0, -3, -4.77};
-
-  if (grant->nof_dmrs_cdm_groups_without_data < 1 || grant->nof_dmrs_cdm_groups_without_data > 3) {
-    ERROR("Invalid number of DMRS CDM groups without data (%d)", grant->nof_dmrs_cdm_groups_without_data);
-    return SRSRAN_ERROR;
-  }
-
-  grant->beta_dmrs = srsran_convert_dB_to_amplitude(-ratio_dB[grant->nof_dmrs_cdm_groups_without_data - 1]);
-
-  return SRSRAN_SUCCESS;
-}
-
 #define RA_UL_PUCCH_CODE_RATE_N 8
 #define RA_UL_PUCCH_CODE_RATE_RESERVED NAN
 

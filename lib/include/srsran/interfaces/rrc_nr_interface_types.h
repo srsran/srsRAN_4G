@@ -161,6 +161,63 @@ struct phy_cfg_nr_t {
     pdcch.search_space[2].nof_candidates[4] = 0;
     pdcch.search_space[2].type              = srsran_search_space_type_ue;
     pdcch.search_space_present[2]           = true;
+    // pdsch-Config: setup (1)
+    //     setup
+    //         dmrs-DownlinkForPDSCH-MappingTypeA: setup (1)
+    //             setup
+    //                 dmrs-AdditionalPosition: pos1 (1)
+    //         tci-StatesToAddModList: 1 item
+    //             Item 0
+    //                 TCI-State
+    //                     tci-StateId: 0
+    //                     qcl-Type1
+    //                         referenceSignal: ssb (1)
+    //                             ssb: 0
+    //                         qcl-Type: typeD (3)
+    //         resourceAllocation: resourceAllocationType1 (1)
+    //         rbg-Size: config1 (0)
+    //         prb-BundlingType: staticBundling (0)
+    //             staticBundling
+    //                 bundleSize: wideband (1)
+    //         zp-CSI-RS-ResourceToAddModList: 1 item
+    //             Item 0
+    //                 ZP-CSI-RS-Resource
+    //                     zp-CSI-RS-ResourceId: 0
+    //                     resourceMapping
+    //                         frequencyDomainAllocation: row4 (2)
+    //                             row4: 80 [bit length 3, 5 LSB pad bits, 100. ....
+    //                             decimal value 4]
+    //                         nrofPorts: p4 (2)
+    //                         firstOFDMSymbolInTimeDomain: 8
+    //                         cdm-Type: fd-CDM2 (1)
+    //                         density: one (1)
+    //                             one: NULL
+    //                         freqBand
+    //                             startingRB: 0
+    //                             nrofRBs: 52
+    //                     periodicityAndOffset: slots80 (9)
+    //                         slots80: 1
+    //         p-ZP-CSI-RS-ResourceSet: setup (1)
+    //             setup
+    //                 zp-CSI-RS-ResourceSetId: 0
+    //                 zp-CSI-RS-ResourceIdList: 1 item
+    //                     Item 0
+    //                         ZP-CSI-RS-ResourceId: 0
+    srsran_csi_rs_zp_resource_t zp_csi_rs_resource0                = {};
+    zp_csi_rs_resource0.resource_mapping.row                       = srsran_csi_rs_resource_mapping_row_4;
+    zp_csi_rs_resource0.resource_mapping.frequency_domain_alloc[0] = true;
+    zp_csi_rs_resource0.resource_mapping.frequency_domain_alloc[1] = false;
+    zp_csi_rs_resource0.resource_mapping.frequency_domain_alloc[2] = false;
+    zp_csi_rs_resource0.resource_mapping.nof_ports                 = 4;
+    zp_csi_rs_resource0.resource_mapping.first_symbol_idx          = 8;
+    zp_csi_rs_resource0.resource_mapping.cdm                       = srsran_csi_rs_cdm_fd_cdm2;
+    zp_csi_rs_resource0.resource_mapping.density                   = srsran_csi_rs_resource_mapping_density_one;
+    zp_csi_rs_resource0.resource_mapping.freq_band.start_rb        = 0;
+    zp_csi_rs_resource0.resource_mapping.freq_band.nof_rb          = 52;
+    zp_csi_rs_resource0.periodicity.period                         = 80;
+    zp_csi_rs_resource0.periodicity.offset                         = 1;
+    pdsch.p_zp_csi_rs_set.data[0]                                  = zp_csi_rs_resource0;
+    pdsch.p_zp_csi_rs_set.count                                    = 1;
 
     // pdsch-ConfigCommon: setup (1)
     //    setup
@@ -648,6 +705,230 @@ struct phy_cfg_nr_t {
     harq_ack.dl_data_to_ul_ack[6]  = 11;
     harq_ack.nof_dl_data_to_ul_ack = 7;
 
+    // nzp-CSI-RS-ResourceToAddModList: 5 items
+    //    Item 0
+    //        NZP-CSI-RS-Resource
+    //            nzp-CSI-RS-ResourceId: 0
+    //            resourceMapping
+    //                frequencyDomainAllocation: row2 (1)
+    //                    row2: 8000 [bit length 12, 4 LSB pad bits, 1000 0000  0000 .... decimal value 2048]
+    //                nrofPorts: p1 (0)
+    //                firstOFDMSymbolInTimeDomain: 4
+    //                cdm-Type: noCDM (0)
+    //                density: one (1)
+    //                    one: NULL
+    //                freqBand
+    //                    startingRB: 0
+    //                    nrofRBs: 52
+    //            powerControlOffset: 0dB
+    //            powerControlOffsetSS: db0 (1)
+    //            scramblingID: 0
+    //            periodicityAndOffset: slots80 (9)
+    //                slots80: 1
+    //            qcl-InfoPeriodicCSI-RS: 0
+    srsran_csi_rs_nzp_resource_t nzp_resource_0                = {};
+    nzp_resource_0.resource_mapping.row                        = srsran_csi_rs_resource_mapping_row_2;
+    nzp_resource_0.resource_mapping.frequency_domain_alloc[0]  = true;
+    nzp_resource_0.resource_mapping.frequency_domain_alloc[1]  = false;
+    nzp_resource_0.resource_mapping.frequency_domain_alloc[2]  = false;
+    nzp_resource_0.resource_mapping.frequency_domain_alloc[3]  = false;
+    nzp_resource_0.resource_mapping.frequency_domain_alloc[4]  = false;
+    nzp_resource_0.resource_mapping.frequency_domain_alloc[5]  = false;
+    nzp_resource_0.resource_mapping.frequency_domain_alloc[6]  = false;
+    nzp_resource_0.resource_mapping.frequency_domain_alloc[7]  = false;
+    nzp_resource_0.resource_mapping.frequency_domain_alloc[8]  = false;
+    nzp_resource_0.resource_mapping.frequency_domain_alloc[9]  = false;
+    nzp_resource_0.resource_mapping.frequency_domain_alloc[10] = false;
+    nzp_resource_0.resource_mapping.frequency_domain_alloc[11] = false;
+    nzp_resource_0.resource_mapping.nof_ports                  = 1;
+    nzp_resource_0.resource_mapping.first_symbol_idx           = 4;
+    nzp_resource_0.resource_mapping.cdm                        = srsran_csi_rs_cdm_nocdm;
+    nzp_resource_0.resource_mapping.density                    = srsran_csi_rs_resource_mapping_density_one;
+    nzp_resource_0.resource_mapping.freq_band.start_rb         = 0;
+    nzp_resource_0.resource_mapping.freq_band.nof_rb           = 52;
+    nzp_resource_0.power_control_offset                        = 0;
+    nzp_resource_0.power_control_offset_ss                     = 0;
+    nzp_resource_0.scrambling_id                               = 0;
+    nzp_resource_0.periodicity.period                          = 80;
+    nzp_resource_0.periodicity.offset                          = 1;
+
+    //    Item 1
+    //        NZP-CSI-RS-Resource
+    //            nzp-CSI-RS-ResourceId: 1
+    //            resourceMapping
+    //                frequencyDomainAllocation: row1 (0)
+    //                    row1: 10 [bit length 4, 4 LSB pad bits, 0001 .... decimal value 1]
+    //                nrofPorts: p1 (0)
+    //                firstOFDMSymbolInTimeDomain: 4
+    //                cdm-Type: noCDM (0)
+    //                density: three (2)
+    //                    three: NULL
+    //                freqBand
+    //                    startingRB: 0
+    //                    nrofRBs: 52
+    //            powerControlOffset: 0dB
+    //            powerControlOffsetSS: db0 (1)
+    //            scramblingID: 0
+    //            periodicityAndOffset: slots40 (7)
+    //                slots40: 11
+    //            qcl-InfoPeriodicCSI-RS: 0
+    srsran_csi_rs_nzp_resource_t nzp_resource_1               = {};
+    nzp_resource_1.resource_mapping.row                       = srsran_csi_rs_resource_mapping_row_1;
+    nzp_resource_1.resource_mapping.frequency_domain_alloc[0] = false;
+    nzp_resource_1.resource_mapping.frequency_domain_alloc[1] = false;
+    nzp_resource_1.resource_mapping.frequency_domain_alloc[2] = false;
+    nzp_resource_1.resource_mapping.frequency_domain_alloc[3] = true;
+    nzp_resource_1.resource_mapping.nof_ports                 = 1;
+    nzp_resource_1.resource_mapping.first_symbol_idx          = 4;
+    nzp_resource_1.resource_mapping.cdm                       = srsran_csi_rs_cdm_nocdm;
+    nzp_resource_1.resource_mapping.density                   = srsran_csi_rs_resource_mapping_density_three;
+    nzp_resource_1.resource_mapping.freq_band.start_rb        = 0;
+    nzp_resource_1.resource_mapping.freq_band.nof_rb          = 52;
+    nzp_resource_1.power_control_offset                       = 0;
+    nzp_resource_1.power_control_offset_ss                    = 0;
+    nzp_resource_1.scrambling_id                              = 0;
+    nzp_resource_1.periodicity.period                         = 40;
+    nzp_resource_1.periodicity.offset                         = 11;
+    //    Item 2
+    //        NZP-CSI-RS-Resource
+    //            nzp-CSI-RS-ResourceId: 2
+    //            resourceMapping
+    //                frequencyDomainAllocation: row1 (0)
+    //                    row1: 10 [bit length 4, 4 LSB pad bits, 0001 .... decimal value 1]
+    //                nrofPorts: p1 (0)
+    //                firstOFDMSymbolInTimeDomain: 8
+    //                cdm-Type: noCDM (0)
+    //                density: three (2)
+    //                    three: NULL
+    //                freqBand
+    //                    startingRB: 0
+    //                    nrofRBs: 52
+    //            powerControlOffset: 0dB
+    //            powerControlOffsetSS: db0 (1)
+    //            scramblingID: 0
+    //            periodicityAndOffset: slots40 (7)
+    //                slots40: 11
+    //            qcl-InfoPeriodicCSI-RS: 0
+    srsran_csi_rs_nzp_resource_t nzp_resource_2               = {};
+    nzp_resource_2.resource_mapping.row                       = srsran_csi_rs_resource_mapping_row_1;
+    nzp_resource_2.resource_mapping.frequency_domain_alloc[0] = false;
+    nzp_resource_2.resource_mapping.frequency_domain_alloc[1] = false;
+    nzp_resource_2.resource_mapping.frequency_domain_alloc[2] = false;
+    nzp_resource_2.resource_mapping.frequency_domain_alloc[3] = true;
+    nzp_resource_2.resource_mapping.nof_ports                 = 1;
+    nzp_resource_2.resource_mapping.first_symbol_idx          = 8;
+    nzp_resource_2.resource_mapping.cdm                       = srsran_csi_rs_cdm_nocdm;
+    nzp_resource_2.resource_mapping.density                   = srsran_csi_rs_resource_mapping_density_three;
+    nzp_resource_2.resource_mapping.freq_band.start_rb        = 0;
+    nzp_resource_2.resource_mapping.freq_band.nof_rb          = 52;
+    nzp_resource_2.power_control_offset                       = 0;
+    nzp_resource_2.power_control_offset_ss                    = 0;
+    nzp_resource_2.scrambling_id                              = 0;
+    nzp_resource_2.periodicity.period                         = 40;
+    nzp_resource_2.periodicity.offset                         = 11;
+    //    Item 3
+    //        NZP-CSI-RS-Resource
+    //            nzp-CSI-RS-ResourceId: 3
+    //            resourceMapping
+    //                frequencyDomainAllocation: row1 (0)
+    //                    row1: 10 [bit length 4, 4 LSB pad bits, 0001 .... decimal value 1]
+    //                nrofPorts: p1 (0)
+    //                firstOFDMSymbolInTimeDomain: 4
+    //                cdm-Type: noCDM (0)
+    //                density: three (2)
+    //                    three: NULL
+    //                freqBand
+    //                    startingRB: 0
+    //                    nrofRBs: 52
+    //            powerControlOffset: 0dB
+    //            powerControlOffsetSS: db0 (1)
+    //            scramblingID: 0
+    //            periodicityAndOffset: slots40 (7)
+    //                slots40: 12
+    //            qcl-InfoPeriodicCSI-RS: 0
+    srsran_csi_rs_nzp_resource_t nzp_resource_3               = {};
+    nzp_resource_3.resource_mapping.row                       = srsran_csi_rs_resource_mapping_row_1;
+    nzp_resource_3.resource_mapping.frequency_domain_alloc[0] = false;
+    nzp_resource_3.resource_mapping.frequency_domain_alloc[1] = false;
+    nzp_resource_3.resource_mapping.frequency_domain_alloc[2] = false;
+    nzp_resource_3.resource_mapping.frequency_domain_alloc[3] = true;
+    nzp_resource_3.resource_mapping.nof_ports                 = 1;
+    nzp_resource_3.resource_mapping.first_symbol_idx          = 4;
+    nzp_resource_3.resource_mapping.cdm                       = srsran_csi_rs_cdm_nocdm;
+    nzp_resource_3.resource_mapping.density                   = srsran_csi_rs_resource_mapping_density_three;
+    nzp_resource_3.resource_mapping.freq_band.start_rb        = 0;
+    nzp_resource_3.resource_mapping.freq_band.nof_rb          = 52;
+    nzp_resource_3.power_control_offset                       = 0;
+    nzp_resource_3.power_control_offset_ss                    = 0;
+    nzp_resource_3.scrambling_id                              = 0;
+    nzp_resource_3.periodicity.period                         = 40;
+    nzp_resource_3.periodicity.offset                         = 12;
+    //    Item 4
+    //        NZP-CSI-RS-Resource
+    //            nzp-CSI-RS-ResourceId: 4
+    //            resourceMapping
+    //                frequencyDomainAllocation: row1 (0)
+    //                    row1: 10 [bit length 4, 4 LSB pad bits, 0001 .... decimal value 1]
+    //                nrofPorts: p1 (0)
+    //                firstOFDMSymbolInTimeDomain: 8
+    //                cdm-Type: noCDM (0)
+    //                density: three (2)
+    //                    three: NULL
+    //                freqBand
+    //                    startingRB: 0
+    //                    nrofRBs: 52
+    //            powerControlOffset: 0dB
+    //            powerControlOffsetSS: db0 (1)
+    //            scramblingID: 0
+    //            periodicityAndOffset: slots40 (7)
+    //                slots40: 12
+    //            qcl-InfoPeriodicCSI-RS: 0
+    srsran_csi_rs_nzp_resource_t nzp_resource_4               = {};
+    nzp_resource_4.resource_mapping.row                       = srsran_csi_rs_resource_mapping_row_1;
+    nzp_resource_4.resource_mapping.frequency_domain_alloc[0] = false;
+    nzp_resource_4.resource_mapping.frequency_domain_alloc[1] = false;
+    nzp_resource_4.resource_mapping.frequency_domain_alloc[2] = false;
+    nzp_resource_4.resource_mapping.frequency_domain_alloc[3] = true;
+    nzp_resource_4.resource_mapping.nof_ports                 = 1;
+    nzp_resource_4.resource_mapping.first_symbol_idx          = 8;
+    nzp_resource_4.resource_mapping.cdm                       = srsran_csi_rs_cdm_nocdm;
+    nzp_resource_4.resource_mapping.density                   = srsran_csi_rs_resource_mapping_density_three;
+    nzp_resource_4.resource_mapping.freq_band.start_rb        = 0;
+    nzp_resource_4.resource_mapping.freq_band.nof_rb          = 52;
+    nzp_resource_4.power_control_offset                       = 0;
+    nzp_resource_4.power_control_offset_ss                    = 0;
+    nzp_resource_4.scrambling_id                              = 0;
+    nzp_resource_4.periodicity.period                         = 40;
+    nzp_resource_4.periodicity.offset                         = 12;
+    // zp-CSI-RS-ResourceSetToAddModList: 2 items
+    //    Item 0
+    //        NZP-CSI-RS-ResourceSet
+    //            nzp-CSI-ResourceSetId: 0
+    //            nzp-CSI-RS-Resources: 1 item
+    //                Item 0
+    //                    NZP-CSI-RS-ResourceId: 0
+    pdsch.nzp_csi_rs_sets[0].data[0]  = nzp_resource_0;
+    pdsch.nzp_csi_rs_sets[0].count    = 1;
+    pdsch.nzp_csi_rs_sets[0].trs_info = false;
+    //    Item 1
+    //        NZP-CSI-RS-ResourceSet
+    //            nzp-CSI-ResourceSetId: 1
+    //            nzp-CSI-RS-Resources: 4 items
+    //                Item 0
+    //                    NZP-CSI-RS-ResourceId: 1
+    //                Item 1
+    //                    NZP-CSI-RS-ResourceId: 2
+    //                Item 2
+    //                    NZP-CSI-RS-ResourceId: 3
+    //                Item 3
+    //                    NZP-CSI-RS-ResourceId: 4
+    //            trs-Info: true (0)
+    pdsch.nzp_csi_rs_sets[1].data[0]  = nzp_resource_1;
+    pdsch.nzp_csi_rs_sets[1].data[1]  = nzp_resource_2;
+    pdsch.nzp_csi_rs_sets[1].data[2]  = nzp_resource_3;
+    pdsch.nzp_csi_rs_sets[1].data[3]  = nzp_resource_4;
+    pdsch.nzp_csi_rs_sets[1].count    = 4;
+    pdsch.nzp_csi_rs_sets[1].trs_info = true;
     // csi-ReportConfigToAddModList: 1 item
     //    Item 0
     //        CSI-ReportConfig

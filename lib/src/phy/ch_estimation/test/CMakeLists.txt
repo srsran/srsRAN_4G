@@ -77,7 +77,7 @@ add_lte_test(chest_test_sl_psbch chest_test_sl)
 add_executable(dmrs_pdsch_test dmrs_pdsch_test.c)
 target_link_libraries(dmrs_pdsch_test srsran_phy)
 
-add_lte_test(dmrs_pdsch_test dmrs_pdsch_test)
+add_nr_test(dmrs_pdsch_test dmrs_pdsch_test)
 
 
 ########################################################################
@@ -87,7 +87,7 @@ add_lte_test(dmrs_pdsch_test dmrs_pdsch_test)
 add_executable(dmrs_pdcch_test dmrs_pdcch_test.c)
 target_link_libraries(dmrs_pdcch_test srsran_phy)
 
-add_lte_test(dmrs_pdcch_test dmrs_pdcch_test)
+add_nr_test(dmrs_pdcch_test dmrs_pdcch_test)
 
 
 ########################################################################
@@ -97,5 +97,15 @@ add_lte_test(dmrs_pdcch_test dmrs_pdcch_test)
 add_executable(csi_rs_test csi_rs_test.c)
 target_link_libraries(csi_rs_test srsran_phy)
 
-add_lte_test(csi_rs_test csi_rs_test -o 3 -S 0 -L 150 -f 3 -p 15)
+add_nr_test(csi_rs_test csi_rs_test -o 3 -S 0 -L 150 -f 3 -p 15)
+
+
+########################################################################
+# NR CSI RS Pattern test
+########################################################################
+
+add_executable(csi_rs_pattern_test csi_rs_pattern_test.c)
+target_link_libraries(csi_rs_pattern_test srsran_phy)
+
+add_nr_test(csi_rs_pattern_test csi_rs_pattern_test)
 

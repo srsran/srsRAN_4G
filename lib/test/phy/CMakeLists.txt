@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2021 Software Radio Systems Limited
+# Copyright 2013-2020 Software Radio Systems Limited
 #
 # By using this file, you agree to the terms and conditions set
 # forth in the LICENSE file which can be found at the top level of
@@ -53,3 +53,6 @@ add_lte_test(pucch_ca_test pucch_ca_test)
 add_executable(phy_dl_nr_test phy_dl_nr_test.c)
 target_link_libraries(phy_dl_nr_test srsran_phy srsran_common srsran_phy ${SEC_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 add_nr_test(phy_dl_nr_test phy_dl_nr_test -p 100 -m 28)
+add_nr_test(phy_dl_nr_test_rvd phy_dl_nr_test -P 52 -p 52 -m 0
+        -R 0 52 1 010010010010 00000000010000
+        -R 0 52 1 100100100100 00000010000000)

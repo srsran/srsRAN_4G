@@ -11,6 +11,7 @@
  */
 
 #include "srsran/phy/ch_estimation/dmrs_sch.h"
+#include "srsran/phy/ch_estimation/csi_rs.h"
 #include "srsran/phy/common/sequence.h"
 #include <complex.h>
 #include <srsran/phy/utils/debug.h>
@@ -399,26 +400,56 @@ int srsran_dmrs_sch_get_symbols_idx(const srsran_dmrs_sch_cfg_t* dmrs_cfg,
   return SRSRAN_ERROR;
 }
 
-int srsran_dmrs_sch_get_sc_idx(const srsran_dmrs_sch_cfg_t* cfg, uint32_t max_count, uint32_t* sc_idx)
+int srsran_dmrs_sch_rvd_re_pattern(const srsran_dmrs_sch_cfg_t* cfg,
+                                   const srsran_sch_grant_nr_t* grant,
+                                   srsran_re_pattern_t*         pattern)
 {
-  int      count = 0;
-  uint32_t delta = 0;
+  if (cfg == NULL || pattern == NULL) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
 
+  // Initialise pattern with zeros
+  SRSRAN_MEM_ZERO(pattern, srsran_re_pattern_t, 1);
+
+  // Fill RB bounds
+  pattern->rb_begin  = 0;
+  pattern->rb_end    = SRSRAN_MAX_PRB_NR;
+  pattern->rb_stride = 1;
+
+  // Fill subcarrier mask
   if (cfg->type == srsran_dmrs_sch_type_1) {
-    for (uint32_t n = 0; count < max_count; n += 4) {
-      for (uint32_t k_prime = 0; k_prime < 2 && count < max_count; k_prime++) {
-        sc_idx[count++] = n + 2 * k_prime + delta;
+    for (uint32_t n = 0; n < 3; n++) {
+      for (uint32_t k_prime = 0; k_prime < 2; k_prime++) {
+        for (uint32_t delta = 0; delta < grant->nof_dmrs_cdm_groups_without_data; delta++) {
+          pattern->sc[(4 * n + 2 * k_prime + delta) % SRSRAN_NRE] = true;
+        }
       }
     }
   } else {
-    for (uint32_t n = 0; count < max_count; n += 6) {
-      for (uint32_t k_prime = 0; k_prime < 2 && count < max_count; k_prime++) {
-        sc_idx[count++] = n + k_prime + delta;
+    for (uint32_t n = 0; n < 2; n++) {
+      for (uint32_t k_prime = 0; k_prime < 2; k_prime++) {
+        for (uint32_t delta = 0; delta < grant->nof_dmrs_cdm_groups_without_data; delta++) {
+          pattern->sc[(6 * n + k_prime + 2 * delta) % SRSRAN_NRE] = true;
+        }
       }
     }
   }
 
-  return count;
+  // Calculate OFDM symbols
+  uint32_t symbols[SRSRAN_DMRS_SCH_MAX_SYMBOLS];
+  int      nof_l = srsran_dmrs_sch_get_symbols_idx(cfg, grant, symbols);
+  if (nof_l < SRSRAN_SUCCESS) {
+    ERROR("Error calculating OFDM symbols");
+    return SRSRAN_ERROR;
+  }
+
+  // Set OFDM symbol mask
+  for (int i = 0; i < nof_l; i++) {
+    uint32_t l                                    = symbols[i];
+    pattern->symbol[l % SRSRAN_NSYMB_PER_SLOT_NR] = true;
+  }
+
+  return SRSRAN_SUCCESS;
 }
 
 int srsran_dmrs_sch_get_N_prb(const srsran_dmrs_sch_cfg_t* dmrs_cfg, const srsran_sch_grant_nr_t* grant)
@@ -666,26 +697,26 @@ static int srsran_dmrs_sch_get_symbol(srsran_dmrs_sch_t*           q,
 }
 
 int srsran_dmrs_sch_estimate(srsran_dmrs_sch_t*           q,
-                             const srsran_slot_cfg_t*     slot_cfg,
-                             const srsran_sch_cfg_nr_t*   pdsch_cfg,
+                             const srsran_slot_cfg_t*     slot,
+                             const srsran_sch_cfg_nr_t*   cfg,
                              const srsran_sch_grant_nr_t* grant,
                              const cf_t*                  sf_symbols,
                              srsran_chest_dl_res_t*       chest_res)
 {
   const uint32_t delta = 0;
 
-  if (q == NULL || slot_cfg == NULL || sf_symbols == NULL || chest_res == NULL) {
+  if (q == NULL || slot == NULL || sf_symbols == NULL || chest_res == NULL) {
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
-  const srsran_dmrs_sch_cfg_t* dmrs_cfg = &pdsch_cfg->dmrs;
+  const srsran_dmrs_sch_cfg_t* dmrs_cfg = &cfg->dmrs;
 
   cf_t*    ce        = q->temp;
   uint32_t symbol_sz = q->carrier.nof_prb * SRSRAN_NRE; // Symbol size in resource elements
 
   // Get symbols indexes
   uint32_t symbols[SRSRAN_DMRS_SCH_MAX_SYMBOLS] = {};
-  int      nof_symbols                          = srsran_dmrs_sch_get_symbols_idx(&pdsch_cfg->dmrs, grant, symbols);
+  int      nof_symbols                          = srsran_dmrs_sch_get_symbols_idx(&cfg->dmrs, grant, symbols);
   if (nof_symbols <= SRSRAN_SUCCESS) {
     ERROR("Error getting symbol indexes");
     return SRSRAN_ERROR;
@@ -697,11 +728,11 @@ int srsran_dmrs_sch_estimate(srsran_dmrs_sch_t*           q,
   for (uint32_t i = 0; i < nof_symbols; i++) {
     uint32_t l = symbols[i]; // Symbol index inside the slot
 
-    uint32_t cinit = srsran_dmrs_sch_seed(
-        &q->carrier, pdsch_cfg, grant, SRSRAN_SLOT_NR_MOD(q->carrier.numerology, slot_cfg->idx), l);
+    uint32_t cinit =
+        srsran_dmrs_sch_seed(&q->carrier, cfg, grant, SRSRAN_SLOT_NR_MOD(q->carrier.numerology, slot->idx), l);
 
     nof_pilots_x_symbol = srsran_dmrs_sch_get_symbol(
-        q, pdsch_cfg, grant, cinit, delta, &sf_symbols[symbol_sz * l], &q->pilot_estimates[nof_pilots_x_symbol * i]);
+        q, cfg, grant, cinit, delta, &sf_symbols[symbol_sz * l], &q->pilot_estimates[nof_pilots_x_symbol * i]);
 
     if (nof_pilots_x_symbol == 0) {
       ERROR("Error, no pilots extracted (i=%d, l=%d)", i, l);
@@ -784,6 +815,26 @@ int srsran_dmrs_sch_estimate(srsran_dmrs_sch_t*           q,
       symbol_idx++;
     }
 
+    // Initialise reserved mask
+    bool rvd_mask_wb[SRSRAN_NRE * SRSRAN_MAX_PRB_NR] = {};
+
+    // Compute reserved RE
+    if (srsran_re_pattern_list_to_symbol_mask(&cfg->rvd_re, l, rvd_mask_wb) < SRSRAN_SUCCESS) {
+      ERROR("Error generating reserved RE mask");
+      return SRSRAN_ERROR;
+    }
+
+    // Narrow reserved subcarriers to the ones used in the transmission
+    bool rvd_mask[SRSRAN_NRE * SRSRAN_MAX_PRB_NR] = {};
+    for (uint32_t i = 0, k = 0; i < q->carrier.nof_prb; i++) {
+      if (grant->prb_idx[i]) {
+        for (uint32_t j = 0; j < SRSRAN_NRE; j++) {
+          rvd_mask[k++] = rvd_mask_wb[i * SRSRAN_NRE + j];
+        }
+      }
+    }
+
+    // Check if it s DMRS symbol
     if (symbols[symbol_idx] == l) {
       switch (dmrs_cfg->type) {
         case srsran_dmrs_sch_type_1:
@@ -792,8 +843,9 @@ int srsran_dmrs_sch_estimate(srsran_dmrs_sch_t*           q,
             continue;
           }
           for (uint32_t i = 1; i < nof_re_x_symbol; i += 2) {
-            chest_res->ce[0][0][count] = ce[i];
-            count++;
+            if (!rvd_mask[i]) {
+              chest_res->ce[0][0][count++] = ce[i];
+            }
           }
           break;
         case srsran_dmrs_sch_type_2:
@@ -803,14 +855,20 @@ int srsran_dmrs_sch_estimate(srsran_dmrs_sch_t*           q,
           }
           for (uint32_t i = grant->nof_dmrs_cdm_groups_without_data * 2; i < nof_re_x_symbol; i += 6) {
             uint32_t nof_re = (3 - grant->nof_dmrs_cdm_groups_without_data) * 2;
-            srsran_vec_cf_copy(&chest_res->ce[0][0][count], &ce[i], nof_re);
-            count += nof_re;
+            for (uint32_t j = 0; j < nof_re; j++) {
+              if (!rvd_mask[i + j]) {
+                chest_res->ce[0][0][count++] = ce[i + j];
+              }
+            }
           }
           break;
       }
     } else {
-      srsran_vec_cf_copy(&chest_res->ce[0][0][count], ce, nof_re_x_symbol);
-      count += nof_re_x_symbol;
+      for (uint32_t i = 0; i < nof_re_x_symbol; i++) {
+        if (!rvd_mask[i]) {
+          chest_res->ce[0][0][count++] = ce[i];
+        }
+      }
     }
   }
   // Set other values in the estimation result

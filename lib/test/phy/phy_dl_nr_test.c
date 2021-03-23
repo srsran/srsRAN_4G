@@ -20,20 +20,18 @@
 #include <getopt.h>
 
 static srsran_carrier_nr_t carrier = {
-    0,   // cell_id
+    501, // cell_id
     0,   // numerology
-    100, // nof_prb
+    52,  // nof_prb
     0,   // start
     1    // max_mimo_layers
 
 };
 
-static uint32_t              n_prb       = 0;  // Set to 0 for steering
-static uint32_t              mcs         = 30; // Set to 30 for steering
-static srsran_sch_cfg_nr_t   pdsch_cfg   = {};
-static srsran_sch_grant_nr_t pdsch_grant = {};
-static uint16_t              rnti        = 0x1234;
-static uint32_t              nof_slots   = 10;
+static uint32_t            n_prb     = 0;  // Set to 0 for steering
+static uint32_t            mcs       = 30; // Set to 30 for steering
+static srsran_sch_cfg_nr_t pdsch_cfg = {};
+static uint32_t            nof_slots = 10;
 
 static void usage(char* prog)
 {
@@ -44,6 +42,7 @@ static void usage(char* prog)
   printf("\t-m MCS PRB, set to >28 for steering [Default %d]\n", mcs);
   printf("\t-T Provide MCS table (64qam, 256qam, 64qamLowSE) [Default %s]\n",
          srsran_mcs_table_to_str(pdsch_cfg.sch_cfg.mcs_table));
+  printf("\t-R Reserve RE: [rb_begin] [rb_end] [rb_stride] [sc_mask] [symbol_mask]\n");
   printf("\t-L Provide number of layers [Default %d]\n", carrier.max_mimo_layers);
   printf("\t-v [set srsran_verbose to debug, default none]\n");
 }
@@ -51,7 +50,7 @@ static void usage(char* prog)
 static int parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "PpmnTLv")) != -1) {
+  while ((opt = getopt(argc, argv, "RPpmnTLv")) != -1) {
     switch (opt) {
       case 'P':
         carrier.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
@@ -68,6 +67,24 @@ static int parse_args(int argc, char** argv)
       case 'T':
         pdsch_cfg.sch_cfg.mcs_table = srsran_mcs_table_from_str(argv[optind]);
         break;
+      case 'R': {
+        srsran_re_pattern_t pattern = {};
+        pattern.rb_begin            = (uint32_t)strtol(argv[optind++], NULL, 10);
+        pattern.rb_end              = (uint32_t)strtol(argv[optind++], NULL, 10);
+        pattern.rb_stride           = (uint32_t)strtol(argv[optind++], NULL, 10);
+        uint32_t sc_mask            = (uint32_t)strtol(argv[optind++], NULL, 2);
+        for (uint32_t i = 0; i < SRSRAN_NRE; i++) {
+          pattern.sc[i] = ((sc_mask >> (SRSRAN_NRE - 1U - i)) & 0x1) == 0x1;
+        }
+        uint32_t symbol_mask = (uint32_t)strtol(argv[optind], NULL, 2);
+        for (uint32_t i = 0; i < SRSRAN_NSYMB_PER_SLOT_NR; i++) {
+          pattern.symbol[i] = ((symbol_mask >> (SRSRAN_NSYMB_PER_SLOT_NR - 1U - i)) & 0x1) == 0x1;
+        }
+        if (srsran_re_pattern_merge(&pdsch_cfg.rvd_re, &pattern) < SRSRAN_ERROR) {
+          ERROR("Error adding pattern");
+          return SRSRAN_ERROR;
+        }
+      } break;
       case 'L':
         carrier.max_mimo_layers = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
@@ -86,7 +103,6 @@ static int parse_args(int argc, char** argv)
 static int work_gnb_dl(srsran_enb_dl_nr_t*    enb_dl,
                        srsran_slot_cfg_t*     slot,
                        srsran_search_space_t* search_space,
-                       srsran_dci_dl_nr_t*    dci_dl,
                        srsran_dci_location_t* dci_location,
                        uint8_t**              data_tx)
 {
@@ -96,20 +112,26 @@ static int work_gnb_dl(srsran_enb_dl_nr_t*    enb_dl,
   }
 
   // Hard-coded values
-  dci_dl->format       = srsran_dci_format_nr_1_0;
-  dci_dl->rnti_type    = srsran_rnti_type_c;
-  dci_dl->location     = *dci_location;
-  dci_dl->search_space = search_space->type;
-  dci_dl->rnti         = rnti;
+  srsran_dci_dl_nr_t dci_dl    = {};
+  dci_dl.rnti                  = pdsch_cfg.grant.rnti;
+  dci_dl.rnti_type             = pdsch_cfg.grant.rnti_type;
+  dci_dl.format                = srsran_dci_format_nr_1_0;
+  dci_dl.location              = *dci_location;
+  dci_dl.search_space          = search_space->type;
+  dci_dl.coreset_id            = 1;
+  dci_dl.freq_domain_assigment = 0;
+  dci_dl.time_domain_assigment = 0;
+  dci_dl.vrb_to_prb_mapping    = 0;
+  dci_dl.mcs                   = mcs;
+  dci_dl.rv                    = 0;
 
   // Put actual DCI
-  if (srsran_enb_dl_nr_pdcch_put(enb_dl, slot, dci_dl) < SRSRAN_SUCCESS) {
+  if (srsran_enb_dl_nr_pdcch_put(enb_dl, slot, &dci_dl) < SRSRAN_SUCCESS) {
     ERROR("Error putting PDCCH");
     return SRSRAN_ERROR;
   }
 
   // Put PDSCH transmission
-  pdsch_cfg.grant = pdsch_grant;
   if (srsran_enb_dl_nr_pdsch_put(enb_dl, slot, &pdsch_cfg, data_tx) < SRSRAN_SUCCESS) {
     ERROR("Error putting PDSCH");
     return SRSRAN_ERROR;
@@ -124,8 +146,9 @@ static int work_ue_dl(srsran_ue_dl_nr_t* ue_dl, srsran_slot_cfg_t* slot, srsran_
 {
   srsran_ue_dl_nr_estimate_fft(ue_dl, slot);
 
-  srsran_dci_dl_nr_t dci_dl_rx     = {};
-  int                nof_found_dci = srsran_ue_dl_nr_find_dl_dci(ue_dl, slot, rnti, srsran_rnti_type_c, &dci_dl_rx, 1);
+  srsran_dci_dl_nr_t dci_dl_rx = {};
+  int                nof_found_dci =
+      srsran_ue_dl_nr_find_dl_dci(ue_dl, slot, pdsch_cfg.grant.rnti, pdsch_cfg.grant.rnti_type, &dci_dl_rx, 1);
   if (nof_found_dci < SRSRAN_SUCCESS) {
     ERROR("Error decoding");
     return SRSRAN_ERROR;
@@ -136,7 +159,6 @@ static int work_ue_dl(srsran_ue_dl_nr_t* ue_dl, srsran_slot_cfg_t* slot, srsran_
     return SRSRAN_ERROR;
   }
 
-  pdsch_cfg.grant = pdsch_grant;
   if (srsran_ue_dl_nr_decode_pdsch(ue_dl, slot, &pdsch_cfg, pdsch_res) < SRSRAN_SUCCESS) {
     ERROR("Error decoding");
     return SRSRAN_ERROR;
@@ -192,8 +214,8 @@ int main(int argc, char** argv)
   srsran_ue_dl_nr_pdcch_cfg_t pdcch_cfg = {};
 
   // Configure CORESET
-  srsran_coreset_t* coreset    = &pdcch_cfg.coreset[0];
-  pdcch_cfg.coreset_present[0] = true;
+  srsran_coreset_t* coreset    = &pdcch_cfg.coreset[1];
+  pdcch_cfg.coreset_present[1] = true;
   coreset->duration            = 2;
   for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
     coreset->freq_resources[i] = i < carrier.nof_prb / 6;
@@ -202,7 +224,9 @@ int main(int argc, char** argv)
   // Configure Search Space
   srsran_search_space_t* search_space = &pdcch_cfg.search_space[0];
   pdcch_cfg.search_space_present[0]   = true;
-  search_space->type                  = srsran_search_space_type_ue;
+  search_space->id                    = 0;
+  search_space->coreset_id            = 1;
+  search_space->type                  = srsran_search_space_type_common_3;
   for (uint32_t L = 0; L < SRSRAN_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR; L++) {
     search_space->nof_candidates[L] = srsran_pdcch_nr_max_candidates_coreset(coreset, L);
   }
@@ -264,13 +288,16 @@ int main(int argc, char** argv)
   }
 
   // Use grant default A time resources with m=0
-  if (srsran_ra_dl_nr_time_default_A(0, pdsch_cfg.dmrs.typeA_pos, &pdsch_grant) < SRSRAN_SUCCESS) {
+  pdsch_cfg.dmrs.typeA_pos = srsran_dmrs_sch_typeA_pos_2;
+  if (srsran_ra_dl_nr_time_default_A(0, pdsch_cfg.dmrs.typeA_pos, &pdsch_cfg.grant) < SRSRAN_SUCCESS) {
     ERROR("Error loading default grant");
     goto clean_exit;
   }
-  pdsch_grant.nof_layers                       = carrier.max_mimo_layers;
-  pdsch_grant.dci_format                       = srsran_dci_format_nr_1_0;
-  pdsch_grant.nof_dmrs_cdm_groups_without_data = 1;
+  pdsch_cfg.grant.nof_layers                       = carrier.max_mimo_layers;
+  pdsch_cfg.grant.dci_format                       = srsran_dci_format_nr_1_0;
+  pdsch_cfg.grant.nof_dmrs_cdm_groups_without_data = 1;
+  pdsch_cfg.grant.rnti_type                        = srsran_rnti_type_c;
+  pdsch_cfg.grant.rnti                             = 0x4601;
 
   uint32_t n_prb_start = 1;
   uint32_t n_prb_end   = carrier.nof_prb + 1;
@@ -291,10 +318,11 @@ int main(int argc, char** argv)
     for (n_prb = n_prb_start; n_prb < n_prb_end; n_prb++) {
       for (mcs = mcs_start; mcs < mcs_end; mcs++, slot_count++) {
         for (uint32_t n = 0; n < SRSRAN_MAX_PRB_NR; n++) {
-          pdsch_grant.prb_idx[n] = (n < n_prb);
+          pdsch_cfg.grant.prb_idx[n] = (n < n_prb);
         }
+        pdsch_cfg.grant.nof_prb = n_prb;
 
-        if (srsran_ra_nr_fill_tb(&pdsch_cfg, &pdsch_grant, mcs, &pdsch_grant.tb[0]) < SRSRAN_SUCCESS) {
+        if (srsran_ra_nr_fill_tb(&pdsch_cfg, &pdsch_cfg.grant, mcs, &pdsch_cfg.grant.tb[0]) < SRSRAN_SUCCESS) {
           ERROR("Error filing tb");
           goto clean_exit;
         }
@@ -305,17 +333,17 @@ int main(int argc, char** argv)
             continue;
           }
 
-          for (uint32_t i = 0; i < pdsch_grant.tb[tb].tbs; i++) {
+          for (uint32_t i = 0; i < pdsch_cfg.grant.tb[tb].tbs; i++) {
             data_tx[tb][i] = (uint8_t)srsran_random_uniform_int_dist(rand_gen, 0, UINT8_MAX);
           }
-          pdsch_grant.tb[tb].softbuffer.tx = &softbuffer_tx;
+          pdsch_cfg.grant.tb[tb].softbuffer.tx = &softbuffer_tx;
         }
 
         // Compute PDCCH candidate locations
         uint32_t L                                                          = 0;
         uint32_t ncce_candidates[SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR] = {};
-        int      nof_candidates =
-            srsran_pdcch_nr_locations_coreset(coreset, search_space, rnti, L, slot.idx, ncce_candidates);
+        int      nof_candidates                                             = srsran_pdcch_nr_locations_coreset(
+            coreset, search_space, pdsch_cfg.grant.rnti, L, slot.idx, ncce_candidates);
         if (nof_candidates < SRSRAN_SUCCESS) {
           ERROR("Error getting PDCCH candidates");
           goto clean_exit;
@@ -326,11 +354,8 @@ int main(int argc, char** argv)
         dci_location.ncce                  = ncce_candidates[0];
         dci_location.L                     = L;
 
-        // Setup DCI
-        srsran_dci_dl_nr_t dci_dl = {};
-
         gettimeofday(&t[1], NULL);
-        if (work_gnb_dl(&enb_dl, &slot, search_space, &dci_dl, &dci_location, data_tx) < SRSRAN_ERROR) {
+        if (work_gnb_dl(&enb_dl, &slot, search_space, &dci_location, data_tx) < SRSRAN_ERROR) {
           ERROR("Error running eNb DL");
           goto clean_exit;
         }
@@ -339,8 +364,8 @@ int main(int argc, char** argv)
         pdsch_encode_us += (size_t)(t[0].tv_sec * 1e6 + t[0].tv_usec);
 
         for (uint32_t tb = 0; tb < SRSRAN_MAX_TB; tb++) {
-          pdsch_grant.tb[tb].softbuffer.rx = &softbuffer_rx;
-          srsran_softbuffer_rx_reset(pdsch_grant.tb[tb].softbuffer.rx);
+          pdsch_cfg.grant.tb[tb].softbuffer.rx = &softbuffer_rx;
+          srsran_softbuffer_rx_reset(pdsch_cfg.grant.tb[tb].softbuffer.rx);
         }
 
         gettimeofday(&t[1], NULL);
@@ -358,23 +383,23 @@ int main(int argc, char** argv)
         }
 
         if (!pdsch_res[0].crc) {
-          ERROR("Failed to match CRC; n_prb=%d; mcs=%d; TBS=%d;", n_prb, mcs, pdsch_grant.tb[0].tbs);
+          ERROR("Failed to match CRC; n_prb=%d; mcs=%d; TBS=%d;", n_prb, mcs, pdsch_cfg.grant.tb[0].tbs);
           goto clean_exit;
         }
 
-        if (memcmp(data_tx[0], data_rx[0], pdsch_grant.tb[0].tbs / 8) != 0) {
-          ERROR("Failed to match Tx/Rx data; n_prb=%d; mcs=%d; TBS=%d;", n_prb, mcs, pdsch_grant.tb[0].tbs);
+        if (memcmp(data_tx[0], data_rx[0], pdsch_cfg.grant.tb[0].tbs / 8) != 0) {
+          ERROR("Failed to match Tx/Rx data; n_prb=%d; mcs=%d; TBS=%d;", n_prb, mcs, pdsch_cfg.grant.tb[0].tbs);
           printf("Tx data: ");
-          srsran_vec_fprint_byte(stdout, data_tx[0], pdsch_grant.tb[0].tbs / 8);
+          srsran_vec_fprint_byte(stdout, data_tx[0], pdsch_cfg.grant.tb[0].tbs / 8);
           printf("Rx data: ");
-          srsran_vec_fprint_byte(stdout, data_rx[0], pdsch_grant.tb[0].tbs / 8);
+          srsran_vec_fprint_byte(stdout, data_rx[0], pdsch_cfg.grant.tb[0].tbs / 8);
           goto clean_exit;
         }
 
-        INFO("n_prb=%d; mcs=%d; TBS=%d; EVM=%f; PASSED!", n_prb, mcs, pdsch_grant.tb[0].tbs, pdsch_res[0].evm);
+        INFO("n_prb=%d; mcs=%d; TBS=%d; EVM=%f; PASSED!", n_prb, mcs, pdsch_cfg.grant.tb[0].tbs, pdsch_res[0].evm);
 
         // Count the Tx/Rx'd number of bits
-        nof_bits += pdsch_grant.tb[0].tbs;
+        nof_bits += pdsch_cfg.grant.tb[0].tbs;
       }
     }
   }

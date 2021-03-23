@@ -25,6 +25,7 @@
 
 #define DMRS_PDCCH_INFO_TX(...) INFO("PDCCH DMRS Tx: " __VA_ARGS__)
 #define DMRS_PDCCH_INFO_RX(...) INFO("PDCCH DMRS Rx: " __VA_ARGS__)
+#define DMRS_PDCCH_DEBUG_RX(...) DEBUG("PDCCH DMRS Rx: " __VA_ARGS__)
 
 /// @brief Enables interpolation at CCE frequency bandwidth to avoid interference with adjacent PDCCH DMRS
 #define DMRS_PDCCH_INTERPOLATE_GROUP 1
@@ -347,8 +348,6 @@ int srsran_dmrs_pdcch_estimate(srsran_dmrs_pdcch_estimator_t* q,
     // Calculate PRN sequence initial state
     uint32_t cinit = dmrs_pdcch_get_cinit(slot_idx, l, n_id);
 
-    DMRS_PDCCH_INFO_RX("n=%d; l=%d; cinit=%08x", slot_idx, l, cinit);
-
     // Extract pilots least square estimates
     srsran_dmrs_pdcch_extract(q, cinit, &sf_symbols[l * q->carrier.nof_prb * SRSRAN_NRE], q->lse[l]);
   }
@@ -410,8 +409,8 @@ int srsran_dmrs_pdcch_get_measure(const srsran_dmrs_pdcch_estimator_t* q,
   float sync_err                          = 0.0f;
   cf_t  corr[SRSRAN_CORESET_DURATION_MAX] = {};
   for (uint32_t l = 0; l < q->coreset.duration; l++) {
-    if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !handler_registered) {
-      DMRS_PDCCH_INFO_RX("Measuring PDCCH l=%d; lse=", l);
+    if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
+      DMRS_PDCCH_DEBUG_RX("Measuring PDCCH l=%d; lse=", l);
       srsran_vec_fprint_c(stdout, &q->lse[l][pilot_idx], nof_pilots);
     }
 

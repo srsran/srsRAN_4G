@@ -37,9 +37,18 @@ add_test(vector_test vector_test)
 
 
 ########################################################################
+# Ring-Buffer TEST
+########################################################################
 
 add_executable(ringbuffer_test ring_buffer_test.c)
 target_link_libraries(ringbuffer_test srsran_phy)
 
 add_test(ringbuffer_tester ringbuffer_test)
+
 ########################################################################
+# RE-Pattern TEST
+########################################################################
+add_executable(re_pattern_test re_pattern_test.c)
+target_link_libraries(re_pattern_test srsran_phy)
+
+add_test(re_pattern_test re_pattern_test)

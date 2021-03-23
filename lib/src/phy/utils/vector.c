@@ -465,9 +465,17 @@ void srsran_vec_neg_sss(const int16_t* x, const int16_t* y, int16_t* z, const ui
 {
   srsran_vec_neg_sss_simd(x, y, z, len);
 }
+
 void srsran_vec_neg_bbb(const int8_t* x, const int8_t* y, int8_t* z, const uint32_t len)
 {
   srsran_vec_neg_bbb_simd(x, y, z, len);
+}
+
+void srsran_vec_neg_bb(const int8_t* x, int8_t* z, const uint32_t len)
+{
+  for (uint32_t i = 0; i < len; i++) {
+    z[i] = -x[i];
+  }
 }
 
 // CFO and OFDM processing

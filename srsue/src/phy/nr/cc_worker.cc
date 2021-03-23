@@ -143,7 +143,7 @@ void cc_worker::decode_pdcch_dl()
     }
 
     // Enqueue UL grants
-    phy->set_dl_pending_grant(dl_slot_cfg.idx, dci_rx[i]);
+    phy->set_dl_pending_grant(dl_slot_cfg, dci_rx[i]);
   }
 
   if (logger.debug.enabled()) {

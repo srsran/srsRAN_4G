@@ -212,6 +212,44 @@ TEST(
     free(z);)
 
 TEST(
+    srsran_vec_neg_bbb, MALLOC(int8_t, x); MALLOC(int8_t, y); MALLOC(int8_t, z);
+
+    int16_t gold = 0.0f;
+    for (int i = 0; i < block_size; i++) {
+      x[i] = RANDOM_B();
+      do {
+        y[i] = RANDOM_B();
+      } while (!y[i]);
+    }
+
+    TEST_CALL(srsran_vec_neg_bbb(x, y, z, block_size))
+
+        for (int i = 0; i < block_size; i++) {
+          gold = y[i] < 0 ? -x[i] : x[i];
+          mse += abs(gold - z[i]);
+        }
+
+    free(x);
+    free(y);
+    free(z);)
+
+TEST(
+    srsran_vec_neg_bb, MALLOC(int8_t, x); MALLOC(int8_t, z);
+
+    int16_t gold = 0.0f;
+    for (int i = 0; i < block_size; i++) { x[i] = RANDOM_B(); }
+
+    TEST_CALL(srsran_vec_neg_bb(x, z, block_size))
+
+        for (int i = 0; i < block_size; i++) {
+          gold = -x[i];
+          mse += abs(gold - z[i]);
+        }
+
+    free(x);
+    free(z);)
+
+TEST(
     srsran_vec_acc_cc, MALLOC(cf_t, x); cf_t z = 0.0f;
 
     cf_t gold = 0.0f;
@@ -834,6 +872,14 @@ int main(int argc, char** argv)
 
     passed[func_count][size_count] =
         test_srsran_vec_neg_sss(func_names[func_count], &timmings[func_count][size_count], block_size);
+    func_count++;
+
+    passed[func_count][size_count] =
+        test_srsran_vec_neg_bbb(func_names[func_count], &timmings[func_count][size_count], block_size);
+    func_count++;
+
+    passed[func_count][size_count] =
+        test_srsran_vec_neg_bb(func_names[func_count], &timmings[func_count][size_count], block_size);
     func_count++;
 
     passed[func_count][size_count] =

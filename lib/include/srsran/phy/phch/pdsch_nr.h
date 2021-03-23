@@ -55,6 +55,8 @@ typedef struct SRSRAN_API {
   srsran_evm_buffer_t* evm_buffer;
   bool                 meas_time_en;
   uint32_t             meas_time_us;
+  srsran_re_pattern_t  dmrs_re_pattern;
+  uint32_t             nof_rvd_re;
 } srsran_pdsch_nr_t;
 
 /**

@@ -90,12 +90,14 @@ SRSRAN_API int srsran_ra_nr_fill_tb(const srsran_sch_cfg_nr_t*   pdsch_cfg,
  * Note: Only TypeA PDSCH mapping type is supported
  *
  * @param carrier Carrier information struct
+ * @param slot Slot configuration
  * @param pdsch_cfg PDSCH configuration indicated by higher layers
  * @param dci_dl DCI downlink (format 1_0 or 1_1)
  * @param pdsch_grant Generated PDSCH grant
  * @return 0 on success, -1 on error
  */
 SRSRAN_API int srsran_ra_dl_dci_to_grant_nr(const srsran_carrier_nr_t*    carrier,
+                                            const srsran_slot_cfg_t*      slot,
                                             const srsran_sch_hl_cfg_nr_t* pdsch_cfg,
                                             const srsran_dci_dl_nr_t*     dci_dl,
                                             srsran_sch_cfg_nr_t*          cfg,
