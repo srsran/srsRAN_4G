@@ -13,6 +13,7 @@
 #include "srsran/upper/gtpu.h"
 #include "srsenb/hdr/stack/upper/gtpu.h"
 #include "srsran/common/network_utils.h"
+#include "srsran/common/srsran_assert.h"
 #include "srsran/common/standard_streams.h"
 #include "srsran/common/string_helpers.h"
 #include "srsran/interfaces/enb_interfaces.h"
@@ -213,24 +214,22 @@ uint32_t gtpu::add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t 
 
 void gtpu::set_tunnel_status(uint32_t teidin, bool dl_active)
 {
-  auto tun_it = tunnels.find(teidin);
-  if (tun_it == tunnels.end()) {
+  tunnel* tun = get_tunnel(teidin);
+  if (tun == nullptr) {
     logger.warning("Setting TEID=%d status", teidin);
     return;
   }
-  tun_it->second.dl_enabled = dl_active;
-  if (dl_active) {
-    logger.info("Activating GTPU tunnel rnti=0x%x,TEID=%d. %d SDUs currently buffered",
-                tun_it->second.rnti,
-                teidin,
-                tun_it->second.buffer.size());
-    for (auto& sdu_it : tun_it->second.buffer) {
-      pdcp->write_sdu(tun_it->second.rnti,
-                      tun_it->second.lcid,
-                      std::move(sdu_it.second),
-                      sdu_it.first == undefined_pdcp_sn ? -1 : sdu_it.first);
+
+  bool old_state  = tun->dl_enabled;
+  tun->dl_enabled = dl_active;
+  if (dl_active and not old_state) {
+    logger.info(
+        "Activating GTPU tunnel rnti=0x%x,TEID=%d. %d SDUs currently buffered", tun->rnti, teidin, tun->buffer.size());
+    for (auto& sdu_it : tun->buffer) {
+      pdcp->write_sdu(
+          tun->rnti, tun->lcid, std::move(sdu_it.second), sdu_it.first == undefined_pdcp_sn ? -1 : sdu_it.first);
     }
-    tun_it->second.buffer.clear();
+    tun->buffer.clear();
   }
 }
 
@@ -289,10 +288,12 @@ void gtpu::rem_tunnel(uint32_t teidin)
     logger.warning("Removing GTPU tunnel TEID In=0x%x", teidin);
     return;
   }
-  auto                   ue_it        = ue_teidin_db.find(it->second.rnti);
-  std::vector<uint32_t>& lcid_tunnels = ue_it->second[it->second.lcid];
+  tunnel& tun   = it->second;
+  auto    ue_it = ue_teidin_db.find(tun.rnti);
+  srsran_assert(ue_it != ue_teidin_db.end(), "ue_teidin_db must be consistent with tunnels data structure");
+  std::vector<uint32_t>& lcid_tunnels = ue_it->second[tun.lcid];
   lcid_tunnels.erase(std::remove(lcid_tunnels.begin(), lcid_tunnels.end(), teidin), lcid_tunnels.end());
-  logger.debug("TEID In=%d for rnti=0x%x erased", teidin, it->second.rnti);
+  logger.info("TEID In=%d for rnti=0x%x erased", teidin, tun.rnti);
   tunnels.erase(it);
 }
 
@@ -300,11 +301,13 @@ void gtpu::rem_user(uint16_t rnti)
 {
   logger.info("Removing rnti=0x%x", rnti);
   auto ue_it = ue_teidin_db.find(rnti);
-  if (ue_it != ue_teidin_db.end()) {
-    for (auto& bearer : ue_it->second) {
-      while (not bearer.empty()) {
-        rem_tunnel(bearer.back());
-      }
+  if (ue_it == ue_teidin_db.end()) {
+    logger.warning("Removing user: rnti=0x%x does not exist", rnti);
+    return;
+  }
+  for (auto& bearer : ue_it->second) {
+    while (not bearer.empty()) {
+      rem_tunnel(bearer.back());
     }
   }
 }
@@ -344,72 +347,85 @@ void gtpu::handle_end_marker(tunnel& rx_tunnel)
 
 void gtpu::handle_gtpu_s1u_rx_packet(srsran::unique_byte_buffer_t pdu, const sockaddr_in& addr)
 {
+  srsran_assert(pdu != nullptr, "Called with null PDU");
+
+  struct iphdr* ip_pkt = (struct iphdr*)pdu->msg;
+  if (ip_pkt->version != 4 && ip_pkt->version != 6) {
+    logger.error("Received Packet with invalid IP version=%d", (int)ip_pkt->version);
+    return;
+  }
+
   logger.debug("Received %d bytes from S1-U interface", pdu->N_bytes);
   pdu->set_timestamp();
 
+  // Decode GTPU Header
   gtpu_header_t header;
   if (not gtpu_read_header(pdu.get(), &header, logger)) {
     return;
   }
 
-  tunnel* rx_tunnel = nullptr;
-  if (header.teid != 0) {
-    auto it = tunnels.find(header.teid);
-    if (it == tunnels.end()) {
-      // Received G-PDU for non-existing and non-zero TEID.
-      // Sending GTP-U error indication
-      error_indication(addr.sin_addr.s_addr, addr.sin_port, header.teid);
-    }
-    rx_tunnel = &it->second;
+  if (header.message_type == GTPU_MSG_ECHO_REQUEST) {
+    // Echo request - send response
+    echo_response(addr.sin_addr.s_addr, addr.sin_port, header.seq_number);
+    return;
+  }
 
-    if (rx_tunnel->rx_timer.is_valid()) {
-      // Restart Rx timer
-      rx_tunnel->rx_timer.run();
-    }
+  // Find TEID present in GTPU Header
+  auto tun_it = tunnels.find(header.teid);
+  if (tun_it == tunnels.end()) {
+    // Received G-PDU for non-existing and non-zero TEID.
+    // Sending GTP-U error indication
+    error_indication(addr.sin_addr.s_addr, addr.sin_port, header.teid);
+    return;
+  }
+  tunnel& rx_tunnel = tun_it->second;
+
+  if (tun_it->second.rx_timer.is_valid()) {
+    // Restart Rx timer
+    tun_it->second.rx_timer.run();
   }
 
   switch (header.message_type) {
-    case GTPU_MSG_ECHO_REQUEST:
-      // Echo request - send response
-      echo_response(addr.sin_addr.s_addr, addr.sin_port, header.seq_number);
-      break;
     case GTPU_MSG_DATA_PDU: {
-      auto&    rx_tun = tunnels.find(header.teid)->second;
-      uint16_t rnti   = rx_tun.rnti;
-      uint16_t lcid   = rx_tun.lcid;
-
-      log_message(rx_tun, true, srsran::make_span(pdu));
-
-      if (lcid < SRSENB_N_SRB || lcid >= SRSENB_N_RADIO_BEARERS) {
-        logger.error("Invalid LCID for DL PDU: %d - dropping packet", lcid);
-        return;
-      }
-      struct iphdr* ip_pkt = (struct iphdr*)pdu->msg;
-      if (ip_pkt->version != 4 && ip_pkt->version != 6) {
-        return;
-      }
-
-      if (rx_tun.fwd_teid_in_present) {
-        tunnel& tx_tun = tunnels.at(rx_tun.fwd_teid_in);
-        send_pdu_to_tunnel(tx_tun, std::move(pdu));
-      } else {
-        uint32_t pdcp_sn = undefined_pdcp_sn;
-        if (header.flags & GTPU_FLAGS_EXTENDED_HDR and header.next_ext_hdr_type == GTPU_EXT_HEADER_PDCP_PDU_NUMBER) {
-          pdcp_sn = (header.ext_buffer[1] << 8u) + header.ext_buffer[2];
-        }
-        if (not rx_tun.dl_enabled) {
-          rx_tun.buffer.insert(std::make_pair(pdcp_sn, std::move(pdu)));
-        } else {
-          pdcp->write_sdu(rnti, lcid, std::move(pdu), pdcp_sn == undefined_pdcp_sn ? -1 : pdcp_sn);
-        }
-      }
+      handle_msg_data_pdu(header, rx_tunnel, std::move(pdu));
     } break;
     case GTPU_MSG_END_MARKER:
-      handle_end_marker(*rx_tunnel);
+      handle_end_marker(rx_tunnel);
       break;
     default:
       logger.warning("Unhandled GTPU message type=%d", header.message_type);
       break;
+  }
+}
+
+void gtpu::handle_msg_data_pdu(const gtpu_header_t& header, tunnel& rx_tunnel, srsran::unique_byte_buffer_t pdu)
+{
+  uint16_t rnti = rx_tunnel.rnti;
+  uint16_t lcid = rx_tunnel.lcid;
+
+  log_message(rx_tunnel, true, srsran::make_span(pdu));
+
+  if (rx_tunnel.fwd_teid_in_present) {
+    // Forward SDU to direct/indirect tunnel during Handover
+    auto tx_tun_it = tunnels.find(rx_tunnel.fwd_teid_in);
+    if (tx_tun_it == tunnels.end()) {
+      logger.error("Forwarding tunnel TEID=%d does not exist", rx_tunnel.fwd_teid_in);
+      return;
+    }
+    tunnel& tx_tun = tx_tun_it->second;
+    send_pdu_to_tunnel(tx_tun, std::move(pdu));
+
+  } else {
+    // Forward SDU to PDCP or buffer it if tunnel is disabled
+    uint32_t pdcp_sn = undefined_pdcp_sn;
+    if ((header.flags & GTPU_FLAGS_EXTENDED_HDR) != 0 and header.next_ext_hdr_type == GTPU_EXT_HEADER_PDCP_PDU_NUMBER) {
+      pdcp_sn = (header.ext_buffer[1] << 8U) + header.ext_buffer[2];
+    }
+    if (not rx_tunnel.dl_enabled) {
+      rx_tunnel.buffer.insert(std::make_pair(pdcp_sn, std::move(pdu)));
+    } else {
+      pdcp->write_sdu(rnti, lcid, std::move(pdu), pdcp_sn == undefined_pdcp_sn ? -1 : (int)pdcp_sn);
+    }
   }
 }
 
@@ -560,11 +576,7 @@ bool gtpu::end_marker(uint32_t teidin)
 gtpu::tunnel* gtpu::get_tunnel(uint32_t teidin)
 {
   auto it = tunnels.find(teidin);
-  if (it == tunnels.end()) {
-    logger.error("TEID=%d In does not exist.", teidin);
-    return nullptr;
-  }
-  return &it->second;
+  return it != tunnels.end() ? &it->second : nullptr;
 }
 
 srsran::span<uint32_t> gtpu::get_lcid_teids(uint16_t rnti, uint32_t lcid)

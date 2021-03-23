@@ -27,6 +27,10 @@
 #ifndef SRSENB_GTPU_H
 #define SRSENB_GTPU_H
 
+namespace srsran {
+struct gtpu_header_t;
+}
+
 namespace srsenb {
 
 class pdcp_interface_gtpu;
@@ -135,6 +139,7 @@ private:
   bool end_marker(uint32_t teidin);
 
   void handle_end_marker(tunnel& rx_tunnel);
+  void handle_msg_data_pdu(const srsran::gtpu_header_t& header, tunnel& rx_tunnel, srsran::unique_byte_buffer_t pdu);
 
   int create_dl_fwd_tunnel(uint32_t rx_teid_in, uint32_t tx_teid_in);
 
