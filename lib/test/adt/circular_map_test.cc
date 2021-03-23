@@ -15,7 +15,7 @@
 
 namespace srsran {
 
-int test_id_map()
+void test_id_map()
 {
   static_circular_map<uint32_t, std::string, 16> myobj;
   TESTASSERT(myobj.size() == 0 and myobj.empty() and not myobj.full());
@@ -57,11 +57,9 @@ int test_id_map()
   TESTASSERT(myobj.size() == 2 and not myobj.empty() and not myobj.full());
   myobj.clear();
   TESTASSERT(myobj.size() == 0 and myobj.empty());
-
-  return SRSRAN_SUCCESS;
 }
 
-int test_id_map_wraparound()
+void test_id_map_wraparound()
 {
   static_circular_map<uint32_t, std::string, 4> mymap;
 
@@ -81,8 +79,56 @@ int test_id_map_wraparound()
   TESTASSERT(not mymap.full());
   TESTASSERT(mymap.insert(4, "4"));
   TESTASSERT(mymap.full());
+}
 
-  return SRSRAN_SUCCESS;
+struct C {
+  C() { count++; }
+  ~C() { count--; }
+  C(C&&) { count++; }
+  C(const C&) = delete;
+  C& operator=(C&&) = default;
+
+  static size_t count;
+};
+size_t C::count = 0;
+
+void test_correct_destruction()
+{
+  TESTASSERT(C::count == 0);
+  {
+    static_circular_map<uint32_t, C, 4> circ_buffer;
+    TESTASSERT(C::count == 0);
+    TESTASSERT(circ_buffer.insert(0, C{}));
+    TESTASSERT(C::count == 1);
+    TESTASSERT(circ_buffer.insert(1, C{}));
+    TESTASSERT(circ_buffer.insert(2, C{}));
+    TESTASSERT(circ_buffer.insert(3, C{}));
+    TESTASSERT(C::count == 4);
+    TESTASSERT(not circ_buffer.insert(4, C{}));
+    TESTASSERT(C::count == 4);
+    TESTASSERT(circ_buffer.erase(1));
+    TESTASSERT(C::count == 3);
+    TESTASSERT(not circ_buffer.contains(1));
+
+    std::array<uint32_t, 3> content{0, 2, 3};
+    size_t                  i = 0;
+    for (auto& e : circ_buffer) {
+      TESTASSERT(content[i] == e.first);
+      i++;
+    }
+
+    TESTASSERT(C::count == 3);
+    static_circular_map<uint32_t, C, 4> circ_buffer2;
+    circ_buffer2 = std::move(circ_buffer);
+    TESTASSERT(C::count == 3);
+
+    static_circular_map<uint32_t, C, 4> circ_buffer3;
+    TESTASSERT(circ_buffer3.insert(1, C{}));
+    TESTASSERT(C::count == 4);
+    circ_buffer2 = std::move(circ_buffer3);
+    TESTASSERT(C::count == 1);
+  }
+  TESTASSERT(C::count == 0);
 }
 
 } // namespace srsran
@@ -94,7 +140,10 @@ int main(int argc, char** argv)
 
   srsran::test_init(argc, argv);
 
-  TESTASSERT(srsran::test_id_map() == SRSRAN_SUCCESS);
-  TESTASSERT(srsran::test_id_map_wraparound() == SRSRAN_SUCCESS);
+  srsran::test_id_map();
+  srsran::test_id_map_wraparound();
+  srsran::test_correct_destruction();
+
+  printf("Success\n");
   return SRSRAN_SUCCESS;
 }

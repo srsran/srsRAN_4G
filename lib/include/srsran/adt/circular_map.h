@@ -13,6 +13,7 @@
 #ifndef SRSRAN_ID_MAP_H
 #define SRSRAN_ID_MAP_H
 
+#include "detail/type_storage.h"
 #include "expected.h"
 #include "srsran/common/srsran_assert.h"
 #include <array>
@@ -24,8 +25,7 @@ class static_circular_map
 {
   static_assert(std::is_integral<K>::value and std::is_unsigned<K>::value, "Map key must be an unsigned integer");
 
-  using obj_t         = std::pair<K, T>;
-  using obj_storage_t = typename std::aligned_storage<sizeof(obj_t), alignof(obj_t)>::type;
+  using obj_t = std::pair<K, T>;
 
 public:
   class iterator
@@ -48,23 +48,23 @@ public:
 
     obj_t& operator*()
     {
-      srsran_assert(idx < ptr->buffer.size(), "Iterator out-of-bounds (%zd >= %zd)", idx, ptr->buffer.size());
+      srsran_assert(idx < ptr->capacity(), "Iterator out-of-bounds (%zd >= %zd)", idx, ptr->capacity());
       return ptr->get_obj_(idx);
     }
     obj_t* operator->()
     {
-      srsran_assert(idx < ptr->buffer.size(), "Iterator out-of-bounds (%zd >= %zd)", idx, ptr->buffer.size());
+      srsran_assert(idx < ptr->capacity(), "Iterator out-of-bounds (%zd >= %zd)", idx, ptr->capacity());
       return &ptr->get_obj_(idx);
     }
     const obj_t* operator*() const
     {
-      srsran_assert(idx < ptr->buffer.size(), "Iterator out-of-bounds (%zd >= %zd)", idx, ptr->buffer.size());
-      return ptr->buffer[idx];
+      srsran_assert(idx < ptr->capacity(), "Iterator out-of-bounds (%zd >= %zd)", idx, ptr->capacity());
+      return &ptr->get_obj_(idx);
     }
     const obj_t* operator->() const
     {
-      srsran_assert(idx < ptr->buffer.size(), "Iterator out-of-bounds (%zd >= %zd)", idx, ptr->buffer.size());
-      return ptr->buffer[idx];
+      srsran_assert(idx < ptr->capacity(), "Iterator out-of-bounds (%zd >= %zd)", idx, ptr->capacity());
+      return &ptr->get_obj_(idx);
     }
 
     bool operator==(const iterator& other) const { return ptr == other.ptr and idx == other.idx; }
@@ -88,8 +88,8 @@ public:
       return *this;
     }
 
-    const obj_t* operator*() const { return ptr->buffer[idx]; }
-    const obj_t* operator->() const { return ptr->buffer[idx]; }
+    const obj_t* operator*() const { return &ptr->buffer[idx].get(); }
+    const obj_t* operator->() const { return &ptr->buffer[idx].get(); }
 
     bool operator==(const const_iterator& other) const { return ptr == other.ptr and idx == other.idx; }
     bool operator!=(const const_iterator& other) const { return not(*this == other); }
@@ -103,17 +103,17 @@ public:
   static_circular_map() { std::fill(present.begin(), present.end(), false); }
   static_circular_map(const static_circular_map<K, T, N>& other) : present(other.present), count(other.count)
   {
-    for (size_t idx = 0; idx < other.size(); ++idx) {
+    for (size_t idx = 0; idx < other.capacity(); ++idx) {
       if (present[idx]) {
-        new (&buffer[idx]) obj_t(other.get_obj_(idx));
+        buffer[idx].template construct(other.get_obj_(idx));
       }
     }
   }
   static_circular_map(static_circular_map<K, T, N>&& other) noexcept : present(other.present), count(other.count)
   {
-    for (size_t idx = 0; idx < other.size(); ++idx) {
+    for (size_t idx = 0; idx < other.capacity(); ++idx) {
       if (present[idx]) {
-        new (&buffer[idx]) obj_t(std::move(other.get_obj_(idx)));
+        buffer[idx].template construct(std::move(other.get_obj_(idx)));
       }
     }
     other.clear();
@@ -124,26 +124,21 @@ public:
     if (this == &other) {
       return *this;
     }
-    clear();
+    for (size_t idx = 0; idx < other.capacity(); ++idx) {
+      copy_if_present_helper(buffer[idx], other.buffer[idx], present[idx], other.present[idx]);
+    }
     count   = other.count;
     present = other.present;
-    for (size_t idx = 0; idx < other.size(); ++idx) {
-      if (present[idx]) {
-        new (&buffer[idx]) obj_t(other.get_obj_(idx));
-      }
-    }
   }
   static_circular_map& operator=(static_circular_map<K, T, N>&& other) noexcept
   {
-    clear();
+    for (size_t idx = 0; idx < other.capacity(); ++idx) {
+      move_if_present_helper(buffer[idx], other.buffer[idx], present[idx], other.present[idx]);
+    }
     count   = other.count;
     present = other.present;
-    for (size_t idx = 0; idx < other.size(); ++idx) {
-      if (present[idx]) {
-        new (&buffer[idx]) obj_t(std::move(other.get_obj_(idx)));
-      }
-    }
-    clear();
+    other.clear();
+    return *this;
   }
 
   bool contains(K id)
@@ -158,7 +153,7 @@ public:
     if (present[idx]) {
       return false;
     }
-    new (&buffer[idx]) obj_t(id, obj);
+    buffer[idx].template construct(id, obj);
     present[idx] = true;
     count++;
     return true;
@@ -169,7 +164,7 @@ public:
     if (present[idx]) {
       return srsran::expected<iterator, T>(std::move(obj));
     }
-    new (&buffer[idx]) obj_t(id, std::move(obj));
+    buffer[idx].template construct(id, std::move(obj));
     present[idx] = true;
     count++;
     return iterator(this, idx);
@@ -242,12 +237,12 @@ public:
   }
 
 private:
-  obj_t&       get_obj_(size_t idx) { return reinterpret_cast<obj_t&>(buffer[idx]); }
-  const obj_t& get_obj_(size_t idx) const { return reinterpret_cast<obj_t&>(buffer[idx]); }
+  obj_t&       get_obj_(size_t idx) { return buffer[idx].get(); }
+  const obj_t& get_obj_(size_t idx) const { return buffer[idx].get(); }
 
-  std::array<obj_storage_t, N> buffer;
-  std::array<bool, N>          present;
-  size_t                       count = 0;
+  std::array<type_storage<obj_t>, N> buffer;
+  std::array<bool, N>                present;
+  size_t                             count = 0;
 };
 
 } // namespace srsran
