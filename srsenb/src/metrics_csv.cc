@@ -58,8 +58,8 @@ void metrics_csv::set_metrics(const enb_metrics_t& metrics, const uint32_t perio
       file << "time;nof_ue;dl_brate;ul_brate;"
               "proc_rmem;proc_rmem_kB;proc_vmem_kB;sys_mem;system_load;thread_count";
 
-      // Add the cores.
-      for (uint32_t i = 0, e = ::sysconf(_SC_NPROCESSORS_CONF); i != e; ++i) {
+      // Add the cpus
+      for (uint32_t i = 0, e = metrics.sys.cpu_count; i != e; ++i) {
         file << ";cpu_" << std::to_string(i);
       }
 

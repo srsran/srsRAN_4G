@@ -17,6 +17,8 @@
 
 namespace srsran {
 
+constexpr uint32_t metrics_max_supported_cpu = 32;
+
 /// Metrics of cpu usage, memory consumption and number of thread used by the process.
 struct sys_metrics_t {
   uint32_t process_realmem_kB    = 0;
@@ -26,7 +28,7 @@ struct sys_metrics_t {
   float    process_cpu_usage     = 0.f;
   float    system_mem            = 0.f;
   uint32_t cpu_count             = 0;
-  float    cpu_load[128];
+  float    cpu_load[metrics_max_supported_cpu];
 };
 
 } // namespace srsran

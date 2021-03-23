@@ -102,6 +102,11 @@ sys_metrics_processor::cpu_metrics_t sys_metrics_processor::read_cpu_idle_from_l
 
 void sys_metrics_processor::calculate_cpu_metrics(sys_metrics_t& metrics, float delta_time_in_seconds)
 {
+  // When the number of cpu is higher than system_metrics_t supports, skip the cpu metrics.
+  if (cpu_count > metrics_max_supported_cpu) {
+    return;
+  }
+
   metrics.cpu_count = cpu_count;
 
   std::ifstream file("/proc/stat");

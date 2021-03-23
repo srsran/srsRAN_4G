@@ -81,7 +81,7 @@ void metrics_csv::set_metrics(const ue_metrics_t& metrics, const uint32_t period
               "proc_rmem;proc_rmem_kB;proc_vmem_kB;sys_mem;sys_load;thread_count";
 
       // Add the cores.
-      for (uint32_t i = 0, e = ::sysconf(_SC_NPROCESSORS_CONF); i != e; ++i) {
+      for (uint32_t i = 0, e = metrics.sys.cpu_count; i != e; ++i) {
         file << ";cpu_" << std::to_string(i);
       }
 
