@@ -73,9 +73,9 @@ public:
   bool is_full() { return queue.full(); }
 
   template <typename F>
-  bool discard_if(const F& func)
+  bool apply_first(const F& func)
   {
-    return queue.discard_if(func);
+    return queue.apply_first(func);
   }
 
 private:
@@ -105,9 +105,11 @@ private:
     uint32_t* n_sdus;
   };
 
+  uint32_t unread_bytes = 0;
+  uint32_t n_sdus       = 0;
+
+public:
   dyn_blocking_queue<unique_byte_buffer_t, push_callback, pop_callback> queue;
-  uint32_t                                                              unread_bytes = 0;
-  uint32_t                                                              n_sdus       = 0;
 };
 
 } // namespace srsran

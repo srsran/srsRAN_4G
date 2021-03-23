@@ -454,8 +454,13 @@ void rlc_am_lte::rlc_am_lte_tx::discard_sdu(uint32_t discard_sn)
     return;
   }
 
-  bool discarded =
-      tx_sdu_queue.discard_if([&discard_sn](const unique_byte_buffer_t& sdu) { return sdu->md.pdcp_sn == discard_sn; });
+  bool discarded = tx_sdu_queue.apply_first([&discard_sn, this](unique_byte_buffer_t& sdu) {
+    if (sdu != nullptr && sdu->md.pdcp_sn == discard_sn) {
+      tx_sdu_queue.queue.pop_func(sdu);
+      sdu = nullptr;
+    }
+    return false;
+  });
 
   if (discarded) {
     // remove also from undelivered SDUs queue

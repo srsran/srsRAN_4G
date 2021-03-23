@@ -207,16 +207,14 @@ public:
   const_iterator end() const { return const_iterator(*this, (rpos + count) % max_size()); }
 
   template <typename F>
-  T discard_if(const F& func)
+  bool apply_first(const F& func)
   {
     for (auto it = begin(); it != end(); it++) {
-      if (*it != nullptr && func(*it)) {
-        T tmp = std::move(*it);
-        *it   = nullptr;
-        return tmp;
+      if (func(*it)) {
+        return true;
       }
     }
-    return nullptr;
+    return false;
   }
 
 protected:
@@ -334,24 +332,20 @@ public:
   }
 
   template <typename F>
-  bool discard_if(const F& func)
+  bool apply_first(const F& func)
   {
     std::lock_guard<std::mutex> lock(mutex);
-    T                           tmp = circ_buffer.discard_if(func);
-    if (tmp == nullptr) {
-      return false;
-    }
-    pop_func(tmp);
-    return true;
+    return circ_buffer.apply_first(func);
   }
+
+  PushingFunc push_func;
+  PoppingFunc pop_func;
 
 protected:
   bool                    active      = true;
   uint8_t                 nof_waiting = 0;
   mutable std::mutex      mutex;
   std::condition_variable cvar_empty, cvar_full;
-  PushingFunc             push_func;
-  PoppingFunc             pop_func;
   CircBuffer              circ_buffer;
 
   ~base_blocking_queue() { stop(); }
@@ -596,9 +590,9 @@ public:
   void set_size(size_t size) { base_t::circ_buffer.set_size(size); }
 
   template <typename F>
-  bool discard_if(const F& func)
+  bool apply_first(const F& func)
   {
-    return base_t::discard_if(func);
+    return base_t::apply_first(func);
   }
 };
 
