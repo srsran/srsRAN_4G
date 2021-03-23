@@ -42,6 +42,18 @@ class sys_metrics_processor
     std::string comm;
   };
 
+  /// Helper class to read the cpu metrics.
+  struct cpu_metrics_t {
+    std::string name    = "";
+    int32_t     user    = 0;
+    int32_t     nice    = 0;
+    int32_t     system  = 0;
+    int32_t     idle    = 0;
+    int32_t     iowait  = 0;
+    int32_t     irq     = 0;
+    int32_t     softirq = 0;
+  };
+
 public:
   /// Measures and returns the system metrics.
   sys_metrics_t get_metrics();
@@ -56,9 +68,17 @@ private:
   /// NOTE: on error, metrics memory parameters are set to 0.
   void calculate_mem_usage(sys_metrics_t& metrics) const;
 
+  /// Calculate the cpu metrics and stores them in the given metrics. delta_time_in_seconds is the number of seconds
+  /// elapsed since the last cpu metrics measurement.
+  void calculate_cpu_metrics(sys_metrics_t& metrics, float delta_time_in_seconds);
+
+  /// Returns the cpu metrics from the given line.
+  cpu_metrics_t read_cpu_idle_from_line(const std::string& line) const;
+
 private:
-  proc_stats_info                                    last_query      = {};
-  std::chrono::time_point<std::chrono::steady_clock> last_query_time = std::chrono::steady_clock::now();
+  proc_stats_info                                    last_query           = {};
+  cpu_metrics_t                                      last_cpu_thread[128] = {};
+  std::chrono::time_point<std::chrono::steady_clock> last_query_time      = std::chrono::steady_clock::now();
 };
 
 } // namespace srsran

@@ -78,7 +78,15 @@ void metrics_csv::set_metrics(const ue_metrics_t& metrics, const uint32_t period
               "bler;"
               "rf_o;rf_"
               "u;rf_l;is_attached;"
-              "proc_rmem;proc_rmem_kB;proc_vmem;proc_vmem_kB;sys_mem;proc_cpu;thread_count\n";
+              "proc_rmem;proc_rmem_kB;proc_vmem_kB;sys_mem;sys_load;thread_count";
+
+      // Add the cores.
+      for (uint32_t i = 0, e = ::sysconf(_SC_NPROCESSORS_CONF); i != e; ++i) {
+        file << ";cpu_" << std::to_string(i);
+      }
+
+      // Add the new line.
+      file << "\n";
     }
 
     for (uint32_t r = 0; r < metrics.phy.nof_active_cc; r++) {
@@ -159,11 +167,15 @@ void metrics_csv::set_metrics(const ue_metrics_t& metrics, const uint32_t period
       const srsran::sys_metrics_t& m = metrics.sys;
       file << float_to_string(m.process_realmem, 2);
       file << std::to_string(m.process_realmem_kB) << ";";
-      file << float_to_string(m.process_virtualmem, 2);
       file << std::to_string(m.process_virtualmem_kB) << ";";
       file << float_to_string(m.system_mem, 2);
       file << float_to_string(m.process_cpu_usage, 2);
-      file << std::to_string(m.thread_count);
+      file << std::to_string(m.thread_count) << ";";
+
+      // Write the cpu metrics.
+      for (uint32_t i = 0, e = m.cpu_count, last_cpu_index = e - 1; i != e; ++i) {
+        file << float_to_string(m.cpu_load[i], 2, (i != last_cpu_index));
+      }
 
       file << "\n";
     }

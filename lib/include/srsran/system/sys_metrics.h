@@ -21,11 +21,12 @@ namespace srsran {
 struct sys_metrics_t {
   uint32_t process_realmem_kB    = 0;
   uint32_t process_virtualmem_kB = 0;
-  float    process_realmem       = -1.f;
-  float    process_virtualmem    = -1.f;
+  float    process_realmem       = 0.f;
   uint32_t thread_count          = 0;
-  float    process_cpu_usage     = -1.f;
-  float    system_mem            = -1.f;
+  float    process_cpu_usage     = 0.f;
+  float    system_mem            = 0.f;
+  uint32_t cpu_count             = 0;
+  float    cpu_load[128];
 };
 
 } // namespace srsran
