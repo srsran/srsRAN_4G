@@ -728,7 +728,7 @@ bool cc_worker::encode_uplink(mac_interface_phy_lte::tb_action_ul_t* action, srs
   ue_ul_cfg.cc_idx         = cc_idx;
 
   // Setup input data
-  if (action) {
+  if (action != nullptr) {
     data.ptr                              = action->tb.payload;
     ue_ul_cfg.ul_cfg.pusch.softbuffers.tx = action->tb.softbuffer.tx;
 
@@ -740,7 +740,7 @@ bool cc_worker::encode_uplink(mac_interface_phy_lte::tb_action_ul_t* action, srs
   }
 
   // Set UCI data and configuration
-  if (uci_data) {
+  if (uci_data != nullptr) {
     data.uci                       = uci_data->value;
     ue_ul_cfg.ul_cfg.pusch.uci_cfg = uci_data->cfg;
     ue_ul_cfg.ul_cfg.pucch.uci_cfg = uci_data->cfg;
@@ -751,6 +751,11 @@ bool cc_worker::encode_uplink(mac_interface_phy_lte::tb_action_ul_t* action, srs
 
   // Set UL RNTI
   ue_ul_cfg.ul_cfg.pucch.rnti = phy->stack->get_ul_sched_rnti(CURRENT_TTI_TX);
+
+  // Check if the RNTI is valid. Early return without transmitting any signal if the RNTI is invalid.
+  if (ue_ul_cfg.ul_cfg.pucch.rnti == SRSRAN_INVALID_RNTI) {
+    return false;
+  }
 
   // Encode signal
   int ret = srsran_ue_ul_encode(&ue_ul, &sf_cfg_ul, &ue_ul_cfg, &data);
