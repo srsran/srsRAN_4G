@@ -152,6 +152,11 @@ inline int phy_ue_db::_assert_enb_cc(uint16_t rnti, uint32_t enb_cc_idx) const
   return SRSRAN_SUCCESS;
 }
 
+bool phy_ue_db::ue_has_cell(uint16_t rnti, uint32_t enb_cc_idx) const
+{
+  return _assert_enb_cc(rnti, enb_cc_idx) == SRSRAN_SUCCESS;
+}
+
 inline int phy_ue_db::_assert_enb_pcell(uint16_t rnti, uint32_t enb_cc_idx) const
 {
   if (_assert_enb_cc(rnti, enb_cc_idx) != SRSRAN_SUCCESS) {

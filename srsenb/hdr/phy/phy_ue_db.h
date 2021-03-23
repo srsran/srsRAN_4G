@@ -289,6 +289,14 @@ public:
   bool is_pcell(uint16_t rnti, uint32_t enb_cc_idx) const;
 
   /**
+   * Asserts a given eNb cell is part of the given RNTI
+   * @param rnti identifier of the UE
+   * @param enb_cc_idx eNb cell/carrier index
+   * @return It returns true if the cell is part of the UE, othwerwise it returns false
+   */
+  bool ue_has_cell(uint16_t rnti, uint32_t enb_cc_idx) const;
+
+  /**
    * Get the current down-link physical layer configuration for an RNTI and an eNb cell/carrier
    *
    * @param rnti identifier of the UE
