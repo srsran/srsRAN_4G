@@ -93,7 +93,7 @@ void parse_args(stress_test_args_t* args, int argc, char* argv[])
   bpo::options_description common("Configuration options");
   common.add_options()
       ("rat",          bpo::value<std::string>(&args->rat)->default_value("LTE"), "The RLC version to use (LTE/NR)")
-      ("mode",          bpo::value<std::string>(&args->mode)->default_value("AM"), "Whether to test RLC acknowledged or unacknowledged mode (AM/UM)")
+      ("mode",          bpo::value<std::string>(&args->mode)->default_value("AM"), "Whether to test RLC acknowledged or unacknowledged mode (AM/UM for LTE) (UM6/UM12 for NR)")
       ("duration",      bpo::value<uint32_t>(&args->test_duration_sec)->default_value(5), "Duration (sec)")
       ("sdu_size",      bpo::value<int32_t>(&args->sdu_size)->default_value(-1), "Size of SDUs (-1 means random)")
       ("random_opp",    bpo::value<bool>(&args->random_opp)->default_value(true), "Whether to generate random MAC opportunities")
@@ -477,8 +477,10 @@ void stress_test(stress_test_args_t args)
       pcap.open("rlc_stress_test.pcap", cnfg_);
     }
   } else if (args.rat == "NR") {
-    if (args.mode == "UM") {
+    if (args.mode == "UM6") {
       cnfg_ = rlc_config_t::default_rlc_um_nr_config(6);
+    } else if (args.mode == "UM12") {
+      cnfg_ = rlc_config_t::default_rlc_um_nr_config(12);
     } else {
       cout << "Unsupported RLC mode " << args.mode << ", exiting." << endl;
       exit(-1);

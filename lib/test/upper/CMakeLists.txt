@@ -30,7 +30,8 @@ add_lte_test(rlc_am_stress_test rlc_stress_test --mode=AM --loglevel 1 --sdu_gen
 add_lte_test(rlc_um_stress_test rlc_stress_test --mode=UM --loglevel 1)
 add_lte_test(rlc_tm_stress_test rlc_stress_test --mode=TM --loglevel 1 --random_opp=false)
 
-add_nr_test(rlc_um_nr_stress_test rlc_stress_test --rat NR --mode=UM --loglevel 1)
+add_nr_test(rlc_um6_nr_stress_test rlc_stress_test --rat NR --mode=UM6 --loglevel 1)
+add_nr_test(rlc_um12_nr_stress_test rlc_stress_test --rat NR --mode=UM12 --loglevel 1) 
 
 add_executable(rlc_um_data_test rlc_um_data_test.cc)
 target_link_libraries(rlc_um_data_test srsran_upper srsran_phy srsran_common)
