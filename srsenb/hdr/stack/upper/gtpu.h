@@ -55,8 +55,9 @@ struct gtpu_tunnel {
 class gtpu_tunnel_manager
 {
 public:
-  using lcid_teid_list      = std::vector<uint32_t>;
-  using ue_lcid_tunnel_list = srsran::static_circular_map<uint16_t, lcid_teid_list, SRSENB_N_RADIO_BEARERS>;
+  const static size_t MAX_TUNNELS_PER_UE = 4;
+  using lcid_teid_list                   = std::vector<uint32_t>;
+  using ue_lcid_tunnel_list              = srsran::static_circular_map<uint16_t, lcid_teid_list, MAX_TUNNELS_PER_UE>;
 
   gtpu_tunnel_manager();
 
@@ -64,7 +65,7 @@ public:
   ue_lcid_tunnel_list*   find_rnti_tunnels(uint16_t rnti);
   srsran::span<uint32_t> find_rnti_lcid_tunnels(uint16_t rnti, uint32_t lcid);
 
-  gtpu_tunnel* add_tunnel(uint32_t teid, uint16_t rnti, uint32_t lcid);
+  gtpu_tunnel* add_tunnel(uint16_t rnti, uint32_t lcid, uint32_t teidout, uint32_t spgw_addr);
   bool         update_rnti(uint16_t old_rnti, uint16_t new_rnti);
 
   bool remove_tunnel(uint32_t teid);
@@ -74,8 +75,8 @@ public:
 private:
   srslog::basic_logger& logger;
 
-  std::unordered_map<uint32_t, gtpu_tunnel>                                  tunnels;
-  srsran::static_circular_map<uint16_t, ue_lcid_tunnel_list, SRSENB_MAX_UES> ue_teidin_db;
+  srsran::static_id_obj_pool<uint32_t, gtpu_tunnel, SRSENB_MAX_UES * MAX_TUNNELS_PER_UE> tunnels;
+  srsran::static_circular_map<uint16_t, ue_lcid_tunnel_list, SRSENB_MAX_UES>             ue_teidin_db;
 };
 
 class gtpu final : public gtpu_interface_rrc, public gtpu_interface_pdcp
@@ -160,7 +161,7 @@ private:
   // Socket file descriptor
   int fd = -1;
 
-  void send_pdu_to_tunnel(gtpu_tunnel& tx_tun, srsran::unique_byte_buffer_t pdu, int pdcp_sn = -1);
+  void send_pdu_to_tunnel(const gtpu_tunnel& tx_tun, srsran::unique_byte_buffer_t pdu, int pdcp_sn = -1);
 
   void echo_response(in_addr_t addr, in_port_t port, uint16_t seq);
   void error_indication(in_addr_t addr, in_port_t port, uint32_t err_teid);
@@ -175,8 +176,6 @@ private:
   /****************************************************************************
    * TEID to RNIT/LCID helper functions
    ***************************************************************************/
-  uint32_t next_teid_in = 0;
-
   void log_message(const gtpu_tunnel& tun, bool is_rx, srsran::span<uint8_t> pdu, int pdcp_sn = -1);
 };
 

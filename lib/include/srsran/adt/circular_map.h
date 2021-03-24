@@ -214,6 +214,7 @@ public:
   size_t size() const { return count; }
   bool   empty() const { return count == 0; }
   bool   full() const { return count == N; }
+  bool   has_space(K id) { return not present[id % N]; }
   size_t capacity() const { return N; }
 
   iterator       begin() { return iterator(this, 0); }
@@ -243,6 +244,44 @@ private:
   std::array<detail::type_storage<obj_t>, N> buffer;
   std::array<bool, N>                        present;
   size_t                                     count = 0;
+};
+
+template <typename K, typename T, size_t MAX_N>
+class static_id_obj_pool : private static_circular_map<K, T, MAX_N>
+{
+  using base_t = static_circular_map<K, T, MAX_N>;
+
+public:
+  using iterator       = typename base_t::iterator;
+  using const_iterator = typename base_t::const_iterator;
+
+  using base_t::operator[];
+  using base_t::begin;
+  using base_t::contains;
+  using base_t::empty;
+  using base_t::end;
+  using base_t::erase;
+  using base_t::find;
+  using base_t::full;
+  using base_t::size;
+
+  explicit static_id_obj_pool(K first_id = 0) : next_id(first_id) {}
+
+  template <typename U>
+  srsran::expected<K> insert(U&& t)
+  {
+    if (full()) {
+      return srsran::default_error_t{};
+    }
+    while (not base_t::has_space(next_id)) {
+      ++next_id;
+    }
+    base_t::insert(next_id, std::forward<U>(t));
+    return next_id++;
+  }
+
+private:
+  K next_id = 0;
 };
 
 } // namespace srsran

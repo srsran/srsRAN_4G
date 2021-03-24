@@ -58,13 +58,19 @@ srsran::span<uint32_t> gtpu_tunnel_manager::find_rnti_lcid_tunnels(uint16_t rnti
   return (*ue_ptr)[lcid];
 }
 
-gtpu_tunnel* gtpu_tunnel_manager::add_tunnel(uint32_t teidin, uint16_t rnti, uint32_t lcid)
+gtpu_tunnel* gtpu_tunnel_manager::add_tunnel(uint16_t rnti, uint32_t lcid, uint32_t teidout, uint32_t spgw_addr)
 {
-  auto ret_pair = tunnels.emplace(teidin, gtpu_tunnel());
-  if (not ret_pair.second) {
-    logger.warning("Adding GTPU TEID In=0x%x", teidin);
+  auto ret_pair = tunnels.insert(gtpu_tunnel());
+  if (not ret_pair) {
+    logger.warning("Adding new GTPU TEID In");
     return nullptr;
   }
+  gtpu_tunnel* tun = &tunnels[ret_pair.value()];
+  tun->teid_in     = ret_pair.value();
+  tun->rnti        = rnti;
+  tun->lcid        = lcid;
+  tun->teid_out    = teidout;
+  tun->spgw_addr   = spgw_addr;
 
   if (not ue_teidin_db.contains(rnti)) {
     ue_teidin_db.insert(rnti, ue_lcid_tunnel_list());
@@ -72,9 +78,18 @@ gtpu_tunnel* gtpu_tunnel_manager::add_tunnel(uint32_t teidin, uint16_t rnti, uin
   if (not ue_teidin_db[rnti].contains(lcid)) {
     ue_teidin_db[rnti].insert(lcid, std::vector<uint32_t>());
   }
-  ue_teidin_db[rnti][lcid].push_back(teidin);
+  ue_teidin_db[rnti][lcid].push_back(tun->teid_in);
 
-  return &ret_pair.first->second;
+  fmt::memory_buffer str_buffer;
+  srsran::gtpu_ntoa(str_buffer, htonl(spgw_addr));
+  logger.info("New tunnel teid_in=0x%x, teid_out=0x%x, rnti=0x%x, lcid=%d, addr=%s",
+              tun->teid_in,
+              teidout,
+              rnti,
+              lcid,
+              srsran::to_c_str(str_buffer));
+
+  return tun;
 }
 
 bool gtpu_tunnel_manager::update_rnti(uint16_t old_rnti, uint16_t new_rnti)
@@ -244,7 +259,7 @@ void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t 
   send_pdu_to_tunnel(tx_tun, std::move(pdu));
 }
 
-void gtpu::send_pdu_to_tunnel(gtpu_tunnel& tx_tun, srsran::unique_byte_buffer_t pdu, int pdcp_sn)
+void gtpu::send_pdu_to_tunnel(const gtpu_tunnel& tx_tun, srsran::unique_byte_buffer_t pdu, int pdcp_sn)
 {
   // Check valid IP version
   struct iphdr* ip_pkt = (struct iphdr*)pdu->msg;
@@ -286,25 +301,11 @@ void gtpu::send_pdu_to_tunnel(gtpu_tunnel& tx_tun, srsran::unique_byte_buffer_t 
 uint32_t gtpu::add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out, const bearer_props* props)
 {
   // Allocate a TEID for the incoming tunnel
-  uint32_t     teid_in = ++next_teid_in;
-  gtpu_tunnel* new_tun = tunnels.add_tunnel(teid_in, rnti, lcid);
+  gtpu_tunnel* new_tun = tunnels.add_tunnel(rnti, lcid, teid_out, addr);
   if (new_tun == nullptr) {
     return -1;
   }
-  new_tun->teid_in   = teid_in;
-  new_tun->rnti      = rnti;
-  new_tun->lcid      = lcid;
-  new_tun->spgw_addr = addr;
-  new_tun->teid_out  = teid_out;
-
-  fmt::memory_buffer str_buffer;
-  srsran::gtpu_ntoa(str_buffer, htonl(addr));
-  logger.info("New tunnel teid_in=0x%x, teid_out=0x%x, rnti=0x%x, lcid=%d, addr=%s",
-              teid_in,
-              teid_out,
-              rnti,
-              lcid,
-              srsran::to_c_str(str_buffer));
+  uint32_t teid_in = new_tun->teid_in;
 
   if (props != nullptr) {
     if (props->flush_before_teidin_present) {
@@ -489,7 +490,7 @@ void gtpu::handle_msg_data_pdu(const gtpu_header_t& header, gtpu_tunnel& rx_tunn
 
   if (rx_tunnel.fwd_teid_in_present) {
     // Forward SDU to direct/indirect tunnel during Handover
-    gtpu_tunnel* tx_tun_ptr = tunnels.find_tunnel(rx_tunnel.fwd_teid_in);
+    const gtpu_tunnel* tx_tun_ptr = tunnels.find_tunnel(rx_tunnel.fwd_teid_in);
     if (tx_tun_ptr == nullptr) {
       logger.error("Forwarding tunnel TEID=%d does not exist", rx_tunnel.fwd_teid_in);
       return;
