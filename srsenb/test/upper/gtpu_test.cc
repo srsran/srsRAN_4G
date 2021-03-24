@@ -28,7 +28,7 @@ static const size_t PDU_HEADER_SIZE = 20;
 class stack_tester : public stack_interface_gtpu_lte
 {
 public:
-  int  s1u_fd;
+  int  s1u_fd = -1;
   void add_gtpu_s1u_socket_handler(int fd) { s1u_fd = fd; }
   void add_gtpu_m1u_socket_handler(int fd) {}
 };
@@ -127,7 +127,9 @@ srsran::unique_byte_buffer_t read_socket(int fd)
   return pdu;
 }
 
-int test_gtpu_direct_tunneling()
+enum class tunnel_test_event { success, wait_end_marker_timeout };
+
+int test_gtpu_direct_tunneling(tunnel_test_event event)
 {
   uint16_t           rnti = 0x46, rnti2 = 0x50;
   uint32_t           drb1         = 3;
@@ -236,10 +238,19 @@ int test_gtpu_direct_tunneling()
   TESTASSERT(tenb_pdcp.last_sdu->N_bytes == encoded_data.size() and
              memcmp(tenb_pdcp.last_sdu->msg, encoded_data.data(), encoded_data.size()) == 0);
   tenb_pdcp.clear();
-  // EndMarker is forwarded via MME->SeNB->TeNB, and TeNB buffered PDUs are flushed
-  pdu = encode_end_marker(senb_teid_in);
-  senb_gtpu.handle_gtpu_s1u_rx_packet(std::move(pdu), sgw_sockaddr);
-  tenb_gtpu.handle_gtpu_s1u_rx_packet(read_socket(tenb_stack.s1u_fd), senb_sockaddr);
+
+  TESTASSERT(tenb_pdcp.last_sdu == nullptr);
+  if (event == tunnel_test_event::wait_end_marker_timeout) {
+    // TEST: EndMarker does not reach TeNB, but there is a timeout that will resume the new GTPU tunnel
+    for (size_t i = 0; i < 1000; ++i) {
+      task_sched.tic();
+    }
+  } else {
+    // TEST: EndMarker is forwarded via MME->SeNB->TeNB, and TeNB buffered PDUs are flushed
+    pdu = encode_end_marker(senb_teid_in);
+    senb_gtpu.handle_gtpu_s1u_rx_packet(std::move(pdu), sgw_sockaddr);
+    tenb_gtpu.handle_gtpu_s1u_rx_packet(read_socket(tenb_stack.s1u_fd), senb_sockaddr);
+  }
   srsran::span<uint8_t> encoded_data2{tenb_pdcp.last_sdu->msg + 20u, tenb_pdcp.last_sdu->msg + 30u};
   TESTASSERT(std::all_of(encoded_data2.begin(), encoded_data2.end(), [N_pdus](uint8_t b) { return b == N_pdus - 1; }));
 
@@ -248,7 +259,7 @@ int test_gtpu_direct_tunneling()
 
 } // namespace srsenb
 
-int main()
+int main(int argc, char** argv)
 {
   // Setup logging.
   auto& logger = srslog::fetch_basic_logger("GTPU", false);
@@ -256,9 +267,10 @@ int main()
   logger.set_hex_dump_max_size(-1);
 
   // Start the log backend.
-  srslog::init();
+  srsran::test_init(argc, argv);
 
-  TESTASSERT(srsenb::test_gtpu_direct_tunneling() == SRSRAN_SUCCESS);
+  TESTASSERT(srsenb::test_gtpu_direct_tunneling(srsenb::tunnel_test_event::success) == SRSRAN_SUCCESS);
+  TESTASSERT(srsenb::test_gtpu_direct_tunneling(srsenb::tunnel_test_event::wait_end_marker_timeout) == SRSRAN_SUCCESS);
 
   srslog::flush();
 
