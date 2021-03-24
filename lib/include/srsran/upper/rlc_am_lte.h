@@ -76,7 +76,7 @@ struct rlc_ringbuffer_t {
   rlc_ringbuffer_t() { clear(); }
   T& add_pdu(size_t sn)
   {
-    srsran_expect(not has_sn(sn), "The same SN=%d should not be added twice", sn);
+    srsran_expect(not has_sn(sn), "The same SN=%zd should not be added twice", sn);
     window[sn].rlc_sn = sn;
     active_flag[sn]   = true;
     count++;
@@ -84,14 +84,14 @@ struct rlc_ringbuffer_t {
   }
   void remove_pdu(size_t sn)
   {
-    srsran_expect(has_sn(sn), "The removed SN=%d is not in the window", sn);
+    srsran_expect(has_sn(sn), "The removed SN=%zd is not in the window", sn);
     window[sn]      = {};
     active_flag[sn] = false;
     count--;
   }
   T& operator[](size_t sn)
   {
-    srsran_expect(has_sn(sn), "The accessed SN=%d is not in the window", sn);
+    srsran_expect(has_sn(sn), "The accessed SN=%zd is not in the window", sn);
     return window[sn];
   }
   size_t size() const { return count; }

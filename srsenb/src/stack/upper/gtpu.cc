@@ -322,6 +322,7 @@ uint32_t gtpu::add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t 
     if (props->flush_before_teidin_present) {
       // GTPU should wait for the bearer ctxt to arrive before sending SDUs from DL tunnel to PDCP
       new_tun->dl_enabled = false;
+      new_tun->buffer.emplace();
       // GTPU should not forward SDUs from main tunnel until the SeNB-TeNB tunnel has been flushed
       gtpu_tunnel* after_tun = tunnels.find_tunnel(props->flush_before_teidin);
       if (after_tun == nullptr) {
@@ -329,7 +330,8 @@ uint32_t gtpu::add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t 
         tunnels.remove_tunnel(teid_in);
         return -1;
       }
-      after_tun->dl_enabled            = false;
+      after_tun->dl_enabled = false;
+      after_tun->buffer.emplace();
       after_tun->prior_teid_in_present = true;
       after_tun->prior_teid_in         = teid_in;
 
@@ -378,17 +380,17 @@ void gtpu::set_tunnel_status(uint32_t teidin, bool dl_active)
   tun->dl_enabled = dl_active;
   if (dl_active and not old_state) {
     logger.info(
-        "Activating GTPU tunnel rnti=0x%x,TEID=%d. %d SDUs currently buffered", tun->rnti, teidin, tun->buffer.size());
+        "Activating GTPU tunnel rnti=0x%x,TEID=%d. %d SDUs currently buffered", tun->rnti, teidin, tun->buffer->size());
     std::stable_sort(
-        tun->buffer.begin(),
-        tun->buffer.end(),
+        tun->buffer->begin(),
+        tun->buffer->end(),
         [](const std::pair<uint32_t, srsran::unique_byte_buffer_t>& lhs,
            const std::pair<uint32_t, srsran::unique_byte_buffer_t>& rhs) { return lhs.first < rhs.first; });
-    for (auto& sdu_it : tun->buffer) {
+    for (auto& sdu_it : *tun->buffer) {
       pdcp->write_sdu(
           tun->rnti, tun->lcid, std::move(sdu_it.second), sdu_it.first == undefined_pdcp_sn ? -1 : sdu_it.first);
     }
-    tun->buffer.clear();
+    tun->buffer.reset();
   }
 }
 
@@ -513,7 +515,7 @@ void gtpu::handle_msg_data_pdu(const gtpu_header_t& header, gtpu_tunnel& rx_tunn
       pdcp_sn = (header.ext_buffer[1] << 8U) + header.ext_buffer[2];
     }
     if (not rx_tunnel.dl_enabled) {
-      rx_tunnel.buffer.push_back(std::make_pair(pdcp_sn, std::move(pdu)));
+      rx_tunnel.buffer->push_back(std::make_pair(pdcp_sn, std::move(pdu)));
     } else {
       pdcp->write_sdu(rnti, lcid, std::move(pdu), pdcp_sn == undefined_pdcp_sn ? -1 : (int)pdcp_sn);
     }

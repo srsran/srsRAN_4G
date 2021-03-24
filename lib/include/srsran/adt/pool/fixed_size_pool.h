@@ -62,6 +62,8 @@ class concurrent_fixed_memory_pool
   }
 
 public:
+  const static size_t BLOCK_SIZE = ObjSize;
+
   concurrent_fixed_memory_pool(const concurrent_fixed_memory_pool&) = delete;
   concurrent_fixed_memory_pool(concurrent_fixed_memory_pool&&)      = delete;
   concurrent_fixed_memory_pool& operator=(const concurrent_fixed_memory_pool&) = delete;

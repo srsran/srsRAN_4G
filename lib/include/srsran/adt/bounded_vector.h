@@ -13,7 +13,7 @@
 #ifndef SRSRAN_BOUNDED_VECTOR_H
 #define SRSRAN_BOUNDED_VECTOR_H
 
-#include <cassert>
+#include "srsran/common/srsran_assert.h"
 #include <iterator>
 #include <memory>
 #include <type_traits>
@@ -87,22 +87,22 @@ public:
   // Element access
   T& operator[](std::size_t i)
   {
-    assert(i < size_ && "Array index is out of bounds.");
+    srsran_assert(i < size_, "Array index is out of bounds.");
     return reinterpret_cast<T&>(buffer[i]);
   }
   const T& operator[](std::size_t i) const
   {
-    assert(i < size_ && "Array index is out of bounds.");
+    srsran_assert(i < size_, "Array index is out of bounds.");
     return reinterpret_cast<const T&>(buffer[i]);
   }
   T& back()
   {
-    assert(size_ > 0 && "Trying to get back of empty array.");
+    srsran_assert(size_ > 0, "Trying to get back of empty array.");
     return *(begin() + size_ - 1);
   }
   const T& back() const
   {
-    assert(size_ > 0 && "Trying to get back of empty array.");
+    srsran_assert(size_ > 0, "Trying to get back of empty array.");
     return *(begin() + size_ - 1);
   }
   T&       front() { return (*this)[0]; }
@@ -130,8 +130,8 @@ public:
   }
   iterator erase(iterator pos)
   {
-    assert(pos >= this->begin() && "Iterator to erase is out of bounds.");
-    assert(pos < this->end() && "Erasing at past-the-end iterator.");
+    srsran_assert(pos >= this->begin(), "Iterator to erase is out of bounds.");
+    srsran_assert(pos < this->end(), "Erasing at past-the-end iterator.");
     iterator ret = pos;
     std::move(pos + 1, end(), pos);
     pop_back();
@@ -139,9 +139,9 @@ public:
   }
   iterator erase(iterator it_start, iterator it_end)
   {
-    assert(it_start >= begin() && "Range to erase is out of bounds.");
-    assert(it_start <= it_end && "Trying to erase invalid range.");
-    assert(it_end <= end() && "Trying to erase past the end.");
+    srsran_assert(it_start >= begin(), "Range to erase is out of bounds.");
+    srsran_assert(it_start <= it_end, "Trying to erase invalid range.");
+    srsran_assert(it_end <= end(), "Trying to erase past the end.");
 
     iterator ret = it_start;
     // Shift all elts down.
@@ -154,14 +154,14 @@ public:
   {
     static_assert(std::is_copy_constructible<T>::value, "T must be copy-constructible");
     size_++;
-    assert(size_ <= MAX_N);
+    srsran_assert(size_ <= MAX_N, "bounded vector maximum size=%zd was exceeded", MAX_N);
     new (&back()) T(value);
   }
   void push_back(T&& value)
   {
     static_assert(std::is_move_constructible<T>::value, "T must be move-constructible");
     size_++;
-    assert(size_ <= MAX_N);
+    srsran_assert(size_ <= MAX_N, "bounded vector maximum size=%zd was exceeded", MAX_N);
     new (&back()) T(std::move(value));
   }
   template <typename... Args>
@@ -169,12 +169,12 @@ public:
   {
     static_assert(std::is_constructible<T, Args&&...>::value, "Passed arguments to emplace_back are invalid");
     size_++;
-    assert(size_ <= MAX_N);
+    srsran_assert(size_ <= MAX_N, "bounded vector maximum size=%zd was exceeded", MAX_N);
     new (&back()) T(std::forward<Args>(args)...);
   }
   void pop_back()
   {
-    assert(size_ > 0 && "Trying to erase element from empty vector.");
+    srsran_assert(size_ > 0, "Trying to erase element from empty vector.");
     back().~T();
     size_--;
   }
@@ -210,21 +210,21 @@ private:
   void append(const_iterator it_begin, const_iterator it_end)
   {
     size_type N = std::distance(it_begin, it_end);
-    assert(N + size_ <= MAX_N);
+    srsran_assert(N + size_ <= MAX_N, "bounded vector maximum size=%zd was exceeded", MAX_N);
     std::uninitialized_copy(it_begin, it_end, end());
     size_ += N;
   }
   void append(size_type N, const T& element)
   {
     static_assert(std::is_copy_constructible<T>::value, "T must be copy-constructible");
-    assert(N + size_ <= MAX_N);
+    srsran_assert(N + size_ <= MAX_N, "bounded vector maximum size=%zd was exceeded", MAX_N);
     std::uninitialized_fill_n(end(), N, element);
     size_ += N;
   }
   void append(size_type N)
   {
     static_assert(std::is_default_constructible<T>::value, "T must be default-constructible");
-    assert(N + size_ <= MAX_N);
+    srsran_assert(N + size_ <= MAX_N, "bounded vector maximum size=%zd was exceeded", MAX_N);
     for (size_type i = size_; i < size_ + N; ++i) {
       new (&buffer[i]) T();
     }

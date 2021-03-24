@@ -49,7 +49,7 @@ struct gtpu_tunnel {
   uint32_t             fwd_teid_in           = 0; ///< forward Rx SDUs to this TEID
   uint32_t             prior_teid_in         = 0; ///< buffer bearer SDUs until this TEID receives an End Marker
   srsran::unique_timer rx_timer;
-  std::vector<std::pair<uint32_t, srsran::unique_byte_buffer_t> > buffer;
+  srsran::byte_buffer_pool_ptr<srsran::bounded_vector<std::pair<uint32_t, srsran::unique_byte_buffer_t>, 512> > buffer;
 };
 
 class gtpu_tunnel_manager

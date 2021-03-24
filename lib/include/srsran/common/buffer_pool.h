@@ -14,6 +14,7 @@
 #define SRSRAN_BUFFER_POOL_H
 
 #include "byte_buffer.h"
+#include "srsran/adt/bounded_vector.h"
 #include <algorithm>
 #include <map>
 #include <pthread.h>
@@ -182,6 +183,49 @@ inline unique_byte_buffer_t make_byte_buffer(const char* debug_ctxt) noexcept
   }
   return buffer;
 }
+
+namespace detail {
+struct byte_buffer_pool_deleter {
+  void operator()(void* ptr) { byte_buffer_pool::get_instance()->deallocate_node(ptr); }
+};
+} // namespace detail
+
+template <typename T>
+struct byte_buffer_pool_ptr {
+  static_assert(sizeof(T) <= byte_buffer_pool::BLOCK_SIZE, "pool_bounded_vector does not fit buffer pool block size");
+
+public:
+  byte_buffer_pool_ptr() = default;
+  void reset() { ptr.reset(); }
+
+  T*       operator->() { return ptr.get(); }
+  const T* operator->() const { return ptr.get(); }
+  T&       operator*() { return *ptr; }
+  const T& operator*() const { return *ptr; }
+
+  template <typename... CtorArgs>
+  void emplace(CtorArgs&&... args)
+  {
+    ptr.reset(make(std::forward<CtorArgs>(args)...).ptr.release());
+  }
+
+  template <typename... CtorArgs>
+  static byte_buffer_pool_ptr<T> make(CtorArgs&&... args)
+  {
+    void* memblock = byte_buffer_pool::get_instance()->allocate_node(sizeof(T));
+    if (memblock == nullptr) {
+      return byte_buffer_pool_ptr<T>();
+    }
+    new (memblock) T(std::forward<CtorArgs>(args)...);
+    byte_buffer_pool_ptr<T> ret;
+    ret.ptr = std::unique_ptr<T, detail::byte_buffer_pool_deleter>(static_cast<T*>(memblock),
+                                                                   detail::byte_buffer_pool_deleter());
+    return ret;
+  };
+
+private:
+  std::unique_ptr<T, detail::byte_buffer_pool_deleter> ptr;
+};
 
 } // namespace srsran
 
