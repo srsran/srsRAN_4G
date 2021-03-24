@@ -79,7 +79,7 @@ public:
   {
   public:
     const_iterator() = default;
-    const_iterator(static_circular_map<K, T, N>* map, size_t idx_) : ptr(map), idx(idx_) {}
+    const_iterator(const static_circular_map<K, T, N>* map, size_t idx_) : ptr(map), idx(idx_) {}
 
     const_iterator& operator++()
     {
@@ -141,7 +141,7 @@ public:
     return *this;
   }
 
-  bool contains(K id)
+  bool contains(K id) const
   {
     size_t idx = id % N;
     return present[idx] and get_obj_(idx).first == id;
@@ -220,7 +220,7 @@ public:
   iterator       begin() { return iterator(this, 0); }
   iterator       end() { return iterator(this, N); }
   const_iterator begin() const { return iterator(this, 0); }
-  const_iterator end() const { return iterator(this, N); }
+  const_iterator end() const { return const_iterator(this, N); }
 
   iterator find(K id)
   {
@@ -232,7 +232,7 @@ public:
   const_iterator find(K id) const
   {
     if (contains(id)) {
-      return iterator(this, id % N);
+      return const_iterator(this, id % N);
     }
     return end();
   }

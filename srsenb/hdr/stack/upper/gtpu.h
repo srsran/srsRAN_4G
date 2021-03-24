@@ -38,7 +38,6 @@ class pdcp_interface_gtpu;
 class stack_interface_gtpu_lte;
 
 struct gtpu_tunnel {
-  bool                 dl_enabled            = true;
   bool                 fwd_teid_in_present   = false;
   bool                 prior_teid_in_present = false;
   uint16_t             rnti                  = SRSRAN_INVALID_RNTI;
@@ -49,7 +48,6 @@ struct gtpu_tunnel {
   uint32_t             fwd_teid_in           = 0; ///< forward Rx SDUs to this TEID
   uint32_t             prior_teid_in         = 0; ///< buffer bearer SDUs until this TEID receives an End Marker
   srsran::unique_timer rx_timer;
-  srsran::byte_buffer_pool_ptr<srsran::bounded_vector<std::pair<uint32_t, srsran::unique_byte_buffer_t>, 512> > buffer;
 };
 
 class gtpu_tunnel_manager
@@ -77,15 +75,30 @@ public:
   gtpu_tunnel* add_tunnel(uint16_t rnti, uint32_t lcid, uint32_t teidout, uint32_t spgw_addr);
   bool         update_rnti(uint16_t old_rnti, uint16_t new_rnti);
 
+  int                    set_tunnel_dl_state(uint32_t teid, bool state, pdcp_interface_gtpu* pdcp);
+  srsran::expected<bool> get_tunnel_dl_state(uint32_t teid) const;
+  void                   buffer_pdcp_sdu(uint32_t teid, uint32_t pdcp_sn, srsran::unique_byte_buffer_t sdu);
+
   bool remove_tunnel(uint32_t teid);
   bool remove_bearer(uint16_t rnti, uint32_t lcid);
   bool remove_rnti(uint16_t rnti);
 
 private:
+  const uint32_t undefined_pdcp_sn = std::numeric_limits<uint32_t>::max();
+
+  struct tunnel_ctxt {
+    gtpu_tunnel params;
+    bool        dl_enabled = true;
+    srsran::byte_buffer_pool_ptr<srsran::bounded_vector<std::pair<uint32_t, srsran::unique_byte_buffer_t>, 512> >
+        buffer;
+  };
+  using tunnel_list_t  = srsran::static_id_obj_pool<uint32_t, tunnel_ctxt, SRSENB_MAX_UES * MAX_TUNNELS_PER_UE>;
+  using tunnel_ctxt_it = typename tunnel_list_t::iterator;
+
   srslog::basic_logger& logger;
 
-  srsran::static_id_obj_pool<uint32_t, gtpu_tunnel, SRSENB_MAX_UES * MAX_TUNNELS_PER_UE> tunnels;
-  srsran::static_circular_map<uint16_t, ue_lcid_tunnel_list, SRSENB_MAX_UES>             ue_teidin_db;
+  tunnel_list_t                                                              tunnels;
+  srsran::static_circular_map<uint16_t, ue_lcid_tunnel_list, SRSENB_MAX_UES> ue_teidin_db;
 };
 
 class gtpu final : public gtpu_interface_rrc, public gtpu_interface_pdcp
