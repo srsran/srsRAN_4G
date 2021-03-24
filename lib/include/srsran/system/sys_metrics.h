@@ -17,7 +17,7 @@
 
 namespace srsran {
 
-constexpr uint32_t metrics_max_supported_cpu = 32;
+constexpr uint32_t metrics_max_supported_cpu = 32u;
 
 /// Metrics of cpu usage, memory consumption and number of thread used by the process.
 struct sys_metrics_t {

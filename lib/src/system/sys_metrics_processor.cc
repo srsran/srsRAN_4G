@@ -21,6 +21,13 @@ using namespace srsran;
 static const uint32_t cpu_count        = ::sysconf(_SC_NPROCESSORS_CONF);
 static const float    ticks_per_second = ::sysconf(_SC_CLK_TCK);
 
+sys_metrics_processor::sys_metrics_processor(srslog::basic_logger& log) : log(log)
+{
+  if (cpu_count > metrics_max_supported_cpu) {
+    log.warning("Number of cpu is greater than supported. CPU metrics will be disabled.");
+  }
+}
+
 sys_metrics_processor::proc_stats_info::proc_stats_info()
 {
   std::string line;

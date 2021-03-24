@@ -23,7 +23,7 @@
 namespace srsenb {
 
 enb::enb(srslog::sink& log_sink) :
-  started(false), log_sink(log_sink), enb_log(srslog::fetch_basic_logger("ENB", log_sink, false))
+  started(false), log_sink(log_sink), enb_log(srslog::fetch_basic_logger("ENB", log_sink, false)), sys_proc(enb_log)
 {
   // print build info
   std::cout << std::endl << get_build_string() << std::endl << std::endl;

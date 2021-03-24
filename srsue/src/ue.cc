@@ -29,7 +29,7 @@ using namespace srsran;
 
 namespace srsue {
 
-ue::ue() : logger(srslog::fetch_basic_logger("UE", false))
+ue::ue() : logger(srslog::fetch_basic_logger("UE", false)), sys_proc(logger)
 {
   // print build info
   std::cout << std::endl << get_build_string() << std::endl << std::endl;
