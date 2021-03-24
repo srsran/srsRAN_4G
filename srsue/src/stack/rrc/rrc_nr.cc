@@ -415,6 +415,7 @@ void rrc_nr::get_nr_capabilities(srsran::byte_buffer_t* nr_caps_pdu)
   nr_cap.rlc_params_present                  = true;
   nr_cap.rlc_params.um_with_short_sn_present = true;
   nr_cap.rlc_params.um_with_long_sn_present  = true;
+  nr_cap.pdcp_params.short_sn_present        = true;
 
   // Pack nr_caps
   asn1::bit_ref bref(nr_caps_pdu->msg, nr_caps_pdu->get_tailroom());
