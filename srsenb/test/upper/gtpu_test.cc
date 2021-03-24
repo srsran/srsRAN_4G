@@ -127,6 +127,46 @@ srsran::unique_byte_buffer_t read_socket(int fd)
   return pdu;
 }
 
+void test_gtpu_tunnel_manager()
+{
+  const char*        sgw_addr_str = "127.0.0.1";
+  struct sockaddr_in sgw_sockaddr = {};
+  srsran::net_utils::set_sockaddr(&sgw_sockaddr, sgw_addr_str, GTPU_PORT);
+  uint32_t       sgw_addr  = ntohl(sgw_sockaddr.sin_addr.s_addr);
+  const uint32_t drb1_lcid = 3;
+
+  gtpu_tunnel_manager tunnels;
+  TESTASSERT(tunnels.find_tunnel(0) == nullptr);
+  TESTASSERT(tunnels.find_rnti_lcid_tunnels(0x46, drb1_lcid).empty());
+  TESTASSERT(tunnels.find_rnti_tunnels(0x46) == nullptr);
+  TESTASSERT(not tunnels.remove_tunnel(0));
+
+  // Creation of tunnels for different users and lcids
+  gtpu_tunnel* tun = tunnels.add_tunnel(0x46, drb1_lcid, 5, sgw_addr);
+  TESTASSERT(tun != nullptr);
+  TESTASSERT(tunnels.find_tunnel(tun->teid_in) == tun);
+  gtpu_tunnel* tun2 = tunnels.add_tunnel(0x47, drb1_lcid, 6, sgw_addr);
+  TESTASSERT(tun2 != nullptr);
+  TESTASSERT(tunnels.find_tunnel(tun2->teid_in) == tun2);
+  tun2 = tunnels.add_tunnel(0x47, drb1_lcid + 1, 6, sgw_addr);
+  TESTASSERT(tun2 != nullptr);
+  TESTASSERT(tunnels.find_tunnel(tun2->teid_in) == tun2);
+  TESTASSERT(tunnels.find_rnti_lcid_tunnels(0x46, drb1_lcid).size() == 1);
+  TESTASSERT(tunnels.find_rnti_lcid_tunnels(0x47, drb1_lcid).size() == 1);
+  TESTASSERT(tunnels.find_rnti_lcid_tunnels(0x47, drb1_lcid + 1).size() == 1);
+
+  // TEST: Creation/Removal of indirect tunnel
+  gtpu_tunnel* fwd_tun = tunnels.add_tunnel(0x46, drb1_lcid, 6, sgw_addr);
+  TESTASSERT(fwd_tun != nullptr);
+  TESTASSERT(tunnels.find_tunnel(fwd_tun->teid_in) == fwd_tun);
+  tun->fwd_teid_in_present = true;
+  tun->fwd_teid_in         = fwd_tun->teid_in;
+  TESTASSERT(tunnels.find_rnti_lcid_tunnels(0x46, drb1_lcid).size() == 2);
+  // Removing a tunnel also removes any associated forwarding tunnel
+  TESTASSERT(tunnels.remove_tunnel(tun->teid_in));
+  TESTASSERT(tunnels.find_rnti_lcid_tunnels(0x46, drb1_lcid).empty());
+}
+
 enum class tunnel_test_event { success, wait_end_marker_timeout };
 
 int test_gtpu_direct_tunneling(tunnel_test_event event)
@@ -269,6 +309,7 @@ int main(int argc, char** argv)
   // Start the log backend.
   srsran::test_init(argc, argv);
 
+  srsenb::test_gtpu_tunnel_manager();
   TESTASSERT(srsenb::test_gtpu_direct_tunneling(srsenb::tunnel_test_event::success) == SRSRAN_SUCCESS);
   TESTASSERT(srsenb::test_gtpu_direct_tunneling(srsenb::tunnel_test_event::wait_end_marker_timeout) == SRSRAN_SUCCESS);
 

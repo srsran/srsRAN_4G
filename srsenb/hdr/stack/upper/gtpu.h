@@ -12,7 +12,6 @@
 
 #include <map>
 #include <string.h>
-#include <unordered_map>
 
 #include "common_enb.h"
 #include "srsran/adt/bounded_vector.h"
@@ -175,9 +174,9 @@ private:
 
   void echo_response(in_addr_t addr, in_port_t port, uint16_t seq);
   void error_indication(in_addr_t addr, in_port_t port, uint32_t err_teid);
-  bool end_marker(uint32_t teidin);
+  bool send_end_marker(uint32_t teidin);
 
-  void handle_end_marker(gtpu_tunnel& rx_tunnel);
+  void handle_end_marker(const gtpu_tunnel& rx_tunnel);
   void
   handle_msg_data_pdu(const srsran::gtpu_header_t& header, gtpu_tunnel& rx_tunnel, srsran::unique_byte_buffer_t pdu);
 

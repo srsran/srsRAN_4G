@@ -135,6 +135,11 @@ bool gtpu_tunnel_manager::remove_tunnel(uint32_t teidin)
   }
   gtpu_tunnel& tun = it->second;
 
+  // Erase any present forwarding tunnel
+  if (tun.fwd_teid_in_present) {
+    remove_tunnel(tun.fwd_teid_in);
+  }
+
   // erase keeping the relative order
   auto& ue      = ue_teidin_db[tun.rnti];
   auto  lcid_it = std::find(ue.begin(), ue.end(), lcid_tunnel{tun.lcid, tun.teid_in});
@@ -407,7 +412,7 @@ void gtpu::rem_user(uint16_t rnti)
   tunnels.remove_rnti(rnti);
 }
 
-void gtpu::handle_end_marker(gtpu_tunnel& rx_tunnel)
+void gtpu::handle_end_marker(const gtpu_tunnel& rx_tunnel)
 {
   uint16_t rnti = rx_tunnel.rnti;
   logger.info("Received GTPU End Marker for rnti=0x%x.", rnti);
@@ -415,9 +420,7 @@ void gtpu::handle_end_marker(gtpu_tunnel& rx_tunnel)
   // TS 36.300, Sec 10.1.2.2.1 - Path Switch upon handover
   if (rx_tunnel.fwd_teid_in_present) {
     // END MARKER should be forwarded to TeNB if forwarding is activated
-    end_marker(rx_tunnel.fwd_teid_in);
-    rx_tunnel.fwd_teid_in_present = false;
-
+    send_end_marker(rx_tunnel.fwd_teid_in);
     rem_tunnel(rx_tunnel.teid_in);
   } else {
     // TeNB switches paths, and flushes PDUs that have been buffered
@@ -622,7 +625,7 @@ void gtpu::echo_response(in_addr_t addr, in_port_t port, uint16_t seq)
 /****************************************************************************
  * GTP-U END MARKER
  ***************************************************************************/
-bool gtpu::end_marker(uint32_t teidin)
+bool gtpu::send_end_marker(uint32_t teidin)
 {
   logger.info("TX GTPU End Marker.");
   const gtpu_tunnel* tx_tun = tunnels.find_tunnel(teidin);
