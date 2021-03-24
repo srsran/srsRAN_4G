@@ -246,6 +246,14 @@ private:
   size_t                                     count = 0;
 };
 
+/**
+ * Operates like a circular map, but automatically assigns the ID/key to inserted objects in a monotonically
+ * increasing way. The assigned IDs are not necessarily contiguous, as they are selected based on the available slots
+ * in the circular map
+ * @tparam K type of ID/key
+ * @tparam T object being inserted
+ * @tparam MAX_N maximum size of pool
+ */
 template <typename K, typename T, size_t MAX_N>
 class static_id_obj_pool : private static_circular_map<K, T, MAX_N>
 {

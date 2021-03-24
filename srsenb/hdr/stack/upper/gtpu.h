@@ -15,6 +15,7 @@
 #include <unordered_map>
 
 #include "common_enb.h"
+#include "srsran/adt/bounded_vector.h"
 #include "srsran/adt/circular_map.h"
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/task_scheduler.h"
@@ -56,14 +57,23 @@ class gtpu_tunnel_manager
 {
 public:
   const static size_t MAX_TUNNELS_PER_UE = 4;
-  using lcid_teid_list                   = std::vector<uint32_t>;
-  using ue_lcid_tunnel_list              = srsran::static_circular_map<uint16_t, lcid_teid_list, MAX_TUNNELS_PER_UE>;
+  struct lcid_tunnel {
+    uint32_t lcid;
+    uint32_t teid;
+
+    bool operator<(const lcid_tunnel& other) const
+    {
+      return lcid < other.lcid or (lcid == other.lcid and teid < other.teid);
+    }
+    bool operator==(const lcid_tunnel& other) const { return lcid == other.lcid and teid == other.teid; }
+  };
+  using ue_lcid_tunnel_list = srsran::bounded_vector<lcid_tunnel, MAX_TUNNELS_PER_UE>;
 
   gtpu_tunnel_manager();
 
-  gtpu_tunnel*           find_tunnel(uint32_t teid);
-  ue_lcid_tunnel_list*   find_rnti_tunnels(uint16_t rnti);
-  srsran::span<uint32_t> find_rnti_lcid_tunnels(uint16_t rnti, uint32_t lcid);
+  gtpu_tunnel*              find_tunnel(uint32_t teid);
+  ue_lcid_tunnel_list*      find_rnti_tunnels(uint16_t rnti);
+  srsran::span<lcid_tunnel> find_rnti_lcid_tunnels(uint16_t rnti, uint32_t lcid);
 
   gtpu_tunnel* add_tunnel(uint16_t rnti, uint32_t lcid, uint32_t teidout, uint32_t spgw_addr);
   bool         update_rnti(uint16_t old_rnti, uint16_t new_rnti);

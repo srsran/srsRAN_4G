@@ -45,21 +45,28 @@ gtpu_tunnel_manager::ue_lcid_tunnel_list* gtpu_tunnel_manager::find_rnti_tunnels
   return &ue_teidin_db[rnti];
 }
 
-srsran::span<uint32_t> gtpu_tunnel_manager::find_rnti_lcid_tunnels(uint16_t rnti, uint32_t lcid)
+srsran::span<gtpu_tunnel_manager::lcid_tunnel> gtpu_tunnel_manager::find_rnti_lcid_tunnels(uint16_t rnti, uint32_t lcid)
 {
   if (lcid < SRSENB_N_SRB or lcid >= SRSENB_N_RADIO_BEARERS) {
     logger.warning("Searching for bearer with invalid lcid=%d", lcid);
     return {};
   }
   auto* ue_ptr = find_rnti_tunnels(rnti);
-  if (ue_ptr == nullptr or not ue_ptr->contains(lcid)) {
+  if (ue_ptr == nullptr) {
     return {};
   }
-  return (*ue_ptr)[lcid];
+  auto lcid_it_begin = std::lower_bound(ue_ptr->begin(), ue_ptr->end(), lcid_tunnel{lcid, 0});
+  auto lcid_it_end   = std::lower_bound(ue_ptr->begin(), ue_ptr->end(), lcid_tunnel{lcid + 1, 0});
+
+  return srsran::span<lcid_tunnel>(&(*lcid_it_begin), &(*lcid_it_end));
 }
 
 gtpu_tunnel* gtpu_tunnel_manager::add_tunnel(uint16_t rnti, uint32_t lcid, uint32_t teidout, uint32_t spgw_addr)
 {
+  if (lcid < SRSENB_N_SRB or lcid >= SRSENB_N_RADIO_BEARERS) {
+    logger.warning("Adding TEID with invalid parmaters");
+    return nullptr;
+  }
   auto ret_pair = tunnels.insert(gtpu_tunnel());
   if (not ret_pair) {
     logger.warning("Adding new GTPU TEID In");
@@ -75,10 +82,15 @@ gtpu_tunnel* gtpu_tunnel_manager::add_tunnel(uint16_t rnti, uint32_t lcid, uint3
   if (not ue_teidin_db.contains(rnti)) {
     ue_teidin_db.insert(rnti, ue_lcid_tunnel_list());
   }
-  if (not ue_teidin_db[rnti].contains(lcid)) {
-    ue_teidin_db[rnti].insert(lcid, std::vector<uint32_t>());
+  auto& ue_tunnels = ue_teidin_db[rnti];
+
+  if (ue_tunnels.full()) {
+    logger.error("The number of TEIDs per UE exceeded for rnti=0x%x", rnti);
+    tunnels.erase(tun->teid_in);
+    return nullptr;
   }
-  ue_teidin_db[rnti][lcid].push_back(tun->teid_in);
+  ue_tunnels.push_back(lcid_tunnel{lcid, tun->teid_in});
+  std::sort(ue_tunnels.begin(), ue_tunnels.end());
 
   fmt::memory_buffer str_buffer;
   srsran::gtpu_ntoa(str_buffer, htonl(spgw_addr));
@@ -107,10 +119,8 @@ bool gtpu_tunnel_manager::update_rnti(uint16_t old_rnti, uint16_t new_rnti)
 
   // Change TEID in existing tunnels
   auto* new_rnti_ptr = find_rnti_tunnels(new_rnti);
-  for (auto& bearer : *new_rnti_ptr) {
-    for (uint32_t teid : bearer.second) {
-      tunnels[teid].rnti = new_rnti;
-    }
+  for (lcid_tunnel& bearer : *new_rnti_ptr) {
+    tunnels[bearer.teid].rnti = new_rnti;
   }
 
   return true;
@@ -124,11 +134,11 @@ bool gtpu_tunnel_manager::remove_tunnel(uint32_t teidin)
     return false;
   }
   gtpu_tunnel& tun = it->second;
-  srsran_assert(ue_teidin_db.contains(tun.rnti) or ue_teidin_db[tun.rnti].contains(tun.lcid),
-                "inconsistency in internal data structs");
 
-  std::vector<uint32_t>& lcids = ue_teidin_db[tun.rnti][tun.lcid];
-  lcids.erase(std::remove(lcids.begin(), lcids.end(), teidin), lcids.end());
+  // erase keeping the relative order
+  auto& ue      = ue_teidin_db[tun.rnti];
+  auto  lcid_it = std::find(ue.begin(), ue.end(), lcid_tunnel{tun.lcid, tun.teid_in});
+  ue.erase(lcid_it);
 
   logger.info("TEID In=%d for rnti=0x%x erased", teidin, tun.rnti);
   tunnels.erase(it);
@@ -137,18 +147,16 @@ bool gtpu_tunnel_manager::remove_tunnel(uint32_t teidin)
 
 bool gtpu_tunnel_manager::remove_bearer(uint16_t rnti, uint32_t lcid)
 {
-  ue_lcid_tunnel_list* ue_ptr = find_rnti_tunnels(rnti);
-  if (ue_ptr == nullptr or not ue_ptr->contains(lcid)) {
-    logger.warning("Removing rnti=0x%x, lcid=%d", rnti, lcid);
+  srsran::span<lcid_tunnel> to_rem = find_rnti_lcid_tunnels(rnti, lcid);
+  if (to_rem.empty()) {
     return false;
   }
-
   logger.info("Removing rnti=0x%x,lcid=%d", rnti, lcid);
-  lcid_teid_list& lcid_list = (*ue_ptr)[lcid];
-  for (uint32_t teid : lcid_list) {
-    srsran_expect(tunnels.erase(teid) > 0, "Inconsistency detected between two internal data structures");
+
+  for (lcid_tunnel& lcid_tun : to_rem) {
+    srsran_expect(tunnels.erase(lcid_tun.teid) > 0, "Inconsistency detected between two internal data structures");
   }
-  ue_ptr->erase(lcid);
+  ue_teidin_db[rnti].erase(to_rem.begin(), to_rem.end());
   return true;
 }
 
@@ -160,10 +168,8 @@ bool gtpu_tunnel_manager::remove_rnti(uint16_t rnti)
   }
   logger.info("Removing rnti=0x%x", rnti);
 
-  for (auto& lcid_pair : ue_teidin_db[rnti]) {
-    for (uint32_t teid : lcid_pair.second) {
-      srsran_expect(tunnels.erase(teid) > 0, "Inconsistency detected between two internal data structures");
-    }
+  for (lcid_tunnel& ue_tuns : ue_teidin_db[rnti]) {
+    srsran_expect(tunnels.erase(ue_tuns.teid) > 0, "Inconsistency detected between two internal data structures");
   }
   ue_teidin_db.erase(rnti);
   return true;
@@ -249,12 +255,12 @@ void gtpu::stop()
 // gtpu_interface_pdcp
 void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
-  srsran::span<uint32_t> teids = tunnels.find_rnti_lcid_tunnels(rnti, lcid);
+  srsran::span<gtpu_tunnel_manager::lcid_tunnel> teids = tunnels.find_rnti_lcid_tunnels(rnti, lcid);
   if (teids.empty()) {
     logger.warning("The rnti=0x%x,lcid=%d does not have any active tunnel", rnti, lcid);
     return;
   }
-  gtpu_tunnel& tx_tun = *tunnels.find_tunnel(teids[0]);
+  gtpu_tunnel& tx_tun = *tunnels.find_tunnel(teids[0].teid);
   log_message(tx_tun, false, srsran::make_span(pdu));
   send_pdu_to_tunnel(tx_tun, std::move(pdu));
 }
@@ -415,10 +421,10 @@ void gtpu::handle_end_marker(gtpu_tunnel& rx_tunnel)
     rem_tunnel(rx_tunnel.teid_in);
   } else {
     // TeNB switches paths, and flushes PDUs that have been buffered
-    srsran::span<uint32_t> lcid_tunnels = tunnels.find_rnti_lcid_tunnels(rnti, rx_tunnel.lcid);
-    for (uint32_t new_teidin : lcid_tunnels) {
-      gtpu_tunnel* new_tun = tunnels.find_tunnel(new_teidin);
-      if (new_teidin != rx_tunnel.teid_in and new_tun->prior_teid_in_present and
+    srsran::span<gtpu_tunnel_manager::lcid_tunnel> lcid_tunnels = tunnels.find_rnti_lcid_tunnels(rnti, rx_tunnel.lcid);
+    for (auto& lcid_tun : lcid_tunnels) {
+      gtpu_tunnel* new_tun = tunnels.find_tunnel(lcid_tun.teid);
+      if (new_tun->teid_in != rx_tunnel.teid_in and new_tun->prior_teid_in_present and
           new_tun->prior_teid_in == rx_tunnel.teid_in) {
         rem_tunnel(new_tun->prior_teid_in);
         new_tun->prior_teid_in_present = false;
