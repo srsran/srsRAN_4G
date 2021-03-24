@@ -57,7 +57,7 @@ sys_metrics_t sys_metrics_processor::get_metrics()
 
   // The time elapsed between 2 measures must be greater that 100 milliseconds.
   if (measure_interval_ms < 100u) {
-    logger.warning("Interval less that 100ms, skipping measurement.");
+    logger.warning("Interval less than 100ms, skipping measurement.");
     return {};
   }
 
