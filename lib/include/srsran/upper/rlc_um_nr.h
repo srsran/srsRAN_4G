@@ -62,6 +62,9 @@ private:
 
     uint32_t next_so = 0; // The segment offset for the next generated PDU
 
+    static constexpr uint32_t head_len_full = 1;       // full SDU header size is always
+    uint32_t head_len_first = 0, head_len_segment = 0; // are computed during configure based on SN length
+
     void debug_state();
   };
 
