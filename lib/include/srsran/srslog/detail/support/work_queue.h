@@ -13,9 +13,9 @@
 #ifndef SRSLOG_DETAIL_SUPPORT_WORK_QUEUE_H
 #define SRSLOG_DETAIL_SUPPORT_WORK_QUEUE_H
 
+#include "srsran/adt/circular_buffer.h"
 #include "srsran/srslog/detail/support/backend_capacity.h"
 #include "srsran/srslog/detail/support/thread_utils.h"
-#include <queue>
 
 namespace srslog {
 
@@ -27,9 +27,9 @@ namespace detail {
 template <typename T, size_t capacity = SRSLOG_QUEUE_CAPACITY>
 class work_queue
 {
-  std::queue<T>              queue;
-  mutable condition_variable cond_var;
-  static constexpr size_t    threshold = capacity * 0.98;
+  srsran::static_circular_buffer<T, capacity> queue;
+  mutable condition_variable                  cond_var;
+  static constexpr size_t                     threshold = capacity * 0.98;
 
 public:
   work_queue() = default;
@@ -43,7 +43,7 @@ public:
   {
     cond_var.lock();
     // Discard the new element if we reach the maximum capacity.
-    if (queue.size() > capacity) {
+    if (queue.full()) {
       cond_var.unlock();
       return false;
     }
@@ -60,7 +60,7 @@ public:
   {
     cond_var.lock();
     // Discard the new element if we reach the maximum capacity.
-    if (queue.size() > capacity) {
+    if (queue.full()) {
       cond_var.unlock();
       return false;
     }
@@ -81,7 +81,7 @@ public:
       cond_var.wait();
     }
 
-    T elem = std::move(queue.front());
+    T elem = std::move(queue.top());
     queue.pop();
 
     cond_var.unlock();
@@ -112,7 +112,7 @@ public:
     }
 
     // Here we have been woken up normally.
-    T Item = std::move(queue.front());
+    T Item = std::move(queue.top());
     queue.pop();
 
     cond_var.unlock();
