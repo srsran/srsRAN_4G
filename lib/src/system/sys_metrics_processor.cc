@@ -21,10 +21,10 @@ using namespace srsran;
 static const uint32_t cpu_count        = ::sysconf(_SC_NPROCESSORS_CONF);
 static const float    ticks_per_second = ::sysconf(_SC_CLK_TCK);
 
-sys_metrics_processor::sys_metrics_processor(srslog::basic_logger& log) : log(log)
+sys_metrics_processor::sys_metrics_processor(srslog::basic_logger& logger) : logger(logger)
 {
   if (cpu_count > metrics_max_supported_cpu) {
-    log.warning("Number of cpu is greater than supported. CPU metrics will be disabled.");
+    logger.warning("Number of cpu is greater than supported. CPU metrics will be disabled.");
   }
 }
 
@@ -57,6 +57,7 @@ sys_metrics_t sys_metrics_processor::get_metrics()
 
   // The time elapsed between 2 measures must be greater that 100 milliseconds.
   if (measure_interval_ms < 100u) {
+    logger.warning("Interval less that 100ms, skipping measurement.");
     return {};
   }
 

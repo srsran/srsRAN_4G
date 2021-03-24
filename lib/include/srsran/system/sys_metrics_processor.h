@@ -56,7 +56,7 @@ class sys_metrics_processor
   };
 
 public:
-  explicit sys_metrics_processor(srslog::basic_logger& log);
+  explicit sys_metrics_processor(srslog::basic_logger& logger);
   /// Measures and returns the system metrics.
   sys_metrics_t get_metrics();
 
@@ -78,7 +78,7 @@ private:
   cpu_metrics_t read_cpu_idle_from_line(const std::string& line) const;
 
 private:
-  srslog::basic_logger&                              log;
+  srslog::basic_logger&                              logger;
   proc_stats_info                                    last_query                                 = {};
   cpu_metrics_t                                      last_cpu_thread[metrics_max_supported_cpu] = {};
   std::chrono::time_point<std::chrono::steady_clock> last_query_time = std::chrono::steady_clock::now();
