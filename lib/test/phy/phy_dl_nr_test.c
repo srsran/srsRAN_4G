@@ -32,6 +32,7 @@ static uint32_t            n_prb     = 0;  // Set to 0 for steering
 static uint32_t            mcs       = 30; // Set to 30 for steering
 static srsran_sch_cfg_nr_t pdsch_cfg = {};
 static uint32_t            nof_slots = 10;
+static uint32_t            rv_idx    = 0;
 
 static void usage(char* prog)
 {
@@ -40,6 +41,7 @@ static void usage(char* prog)
   printf("\t-p Number of grant PRB, set to 0 for steering [Default %d]\n", n_prb);
   printf("\t-n Number of slots to simulate [Default %d]\n", nof_slots);
   printf("\t-m MCS PRB, set to >28 for steering [Default %d]\n", mcs);
+  printf("\t-r Redundancy version, set to >28 for steering [Default %d]\n", mcs);
   printf("\t-T Provide MCS table (64qam, 256qam, 64qamLowSE) [Default %s]\n",
          srsran_mcs_table_to_str(pdsch_cfg.sch_cfg.mcs_table));
   printf("\t-R Reserve RE: [rb_begin] [rb_end] [rb_stride] [sc_mask] [symbol_mask]\n");
@@ -50,7 +52,7 @@ static void usage(char* prog)
 static int parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "RPpmnTLv")) != -1) {
+  while ((opt = getopt(argc, argv, "rRPpmnTLv")) != -1) {
     switch (opt) {
       case 'P':
         carrier.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
@@ -63,6 +65,9 @@ static int parse_args(int argc, char** argv)
         break;
       case 'm':
         mcs = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'r':
+        rv_idx = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'T':
         pdsch_cfg.sch_cfg.mcs_table = srsran_mcs_table_from_str(argv[optind]);
@@ -298,6 +303,7 @@ int main(int argc, char** argv)
   pdsch_cfg.grant.nof_dmrs_cdm_groups_without_data = 1;
   pdsch_cfg.grant.rnti_type                        = srsran_rnti_type_c;
   pdsch_cfg.grant.rnti                             = 0x4601;
+  pdsch_cfg.grant.tb[0].rv                         = rv_idx;
 
   uint32_t n_prb_start = 1;
   uint32_t n_prb_end   = carrier.nof_prb + 1;

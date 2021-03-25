@@ -985,8 +985,6 @@ uint32_t srsran_uci_nr_info(const srsran_uci_data_nr_t* uci_data, char* str, uin
 {
   uint32_t len = 0;
 
-  len = srsran_print_check(str, str_len, len, "rnti=0x%x", uci_data->cfg.pucch.rnti);
-
   if (uci_data->cfg.o_ack > 0) {
     char str2[10];
     srsran_vec_sprint_bin(str2, 10, uci_data->value.ack, uci_data->cfg.o_ack);

@@ -767,7 +767,7 @@ uint32_t srsran_pucch_nr_tx_info(const srsran_pucch_nr_resource_t* resource,
 
   len += pucch_nr_resource_info(resource, &str[len], str_len - len);
 
-  len = srsran_print_check(str, str_len, len, ", ");
+  len = srsran_print_check(str, str_len, len, "rnti=0x%x ", uci_data->cfg.pucch.rnti);
 
   len += srsran_uci_nr_info(uci_data, &str[len], str_len - len);
 
