@@ -18,13 +18,13 @@ namespace srsran {
 void* byte_buffer_t::operator new(size_t sz, const std::nothrow_t& nothrow_value) noexcept
 {
   assert(sz == sizeof(byte_buffer_t));
-  return byte_buffer_pool::get_instance()->allocate(nullptr, false);
+  return byte_buffer_pool::get_instance()->allocate_node(sz);
 }
 
 void* byte_buffer_t::operator new(size_t sz)
 {
   assert(sz == sizeof(byte_buffer_t));
-  void* ptr = byte_buffer_pool::get_instance()->allocate(nullptr, false);
+  void* ptr = byte_buffer_pool::get_instance()->allocate_node(sz);
   if (ptr == nullptr) {
     throw std::bad_alloc();
   }
@@ -33,7 +33,7 @@ void* byte_buffer_t::operator new(size_t sz)
 
 void byte_buffer_t::operator delete(void* ptr)
 {
-  byte_buffer_pool::get_instance()->deallocate(ptr);
+  byte_buffer_pool::get_instance()->deallocate_node(ptr);
 }
 
 } // namespace srsran

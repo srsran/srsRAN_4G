@@ -15,7 +15,6 @@
 
 #include "memblock_cache.h"
 #include "srsran/adt/circular_buffer.h"
-#include "srsran/adt/singleton.h"
 #include <thread>
 
 namespace srsran {
@@ -31,10 +30,9 @@ namespace srsran {
  * @tparam NofObjects number of objects in the pool
  * @tparam ObjSize object size
  */
-template <size_t NofObjects, size_t ObjSize, size_t MaxWorkerCacheSize = NofObjects / 16>
-class concurrent_fixed_memory_pool : public singleton_t<concurrent_fixed_memory_pool<NofObjects, ObjSize> >
+template <size_t ObjSize, bool DebugSanitizeAddress = false>
+class concurrent_fixed_memory_pool
 {
-  static_assert(NofObjects > 256, "This pool is particularly designed for a high number of objects");
   static_assert(ObjSize > 256, "This pool is particularly designed for large objects");
 
   struct obj_storage_t {
@@ -45,20 +43,41 @@ class concurrent_fixed_memory_pool : public singleton_t<concurrent_fixed_memory_
 
   const static size_t batch_steal_size = 10;
 
-protected:
-  // ctor only accessible from singleton
-  concurrent_fixed_memory_pool()
+  // ctor only accessible from singleton get_instance()
+  explicit concurrent_fixed_memory_pool(size_t nof_objects_)
   {
-    allocated_blocks.resize(NofObjects);
+    srsran_assert(nof_objects_ > 0, "A positive pool size must be provided");
+
+    std::lock_guard<std::mutex> lock(mutex);
+    allocated_blocks.resize(nof_objects_);
     for (std::unique_ptr<obj_storage_t>& b : allocated_blocks) {
       b.reset(new obj_storage_t(std::this_thread::get_id()));
       srsran_assert(b.get() != nullptr, "Failed to instantiate fixed memory pool");
       shared_mem_cache.push(static_cast<void*>(b.get()));
     }
+    max_objs_per_cache = allocated_blocks.size() / 16;
+    max_objs_per_cache = max_objs_per_cache < batch_steal_size ? batch_steal_size : max_objs_per_cache;
   }
 
 public:
-  static size_t size() { return NofObjects; }
+  concurrent_fixed_memory_pool(const concurrent_fixed_memory_pool&) = delete;
+  concurrent_fixed_memory_pool(concurrent_fixed_memory_pool&&)      = delete;
+  concurrent_fixed_memory_pool& operator=(const concurrent_fixed_memory_pool&) = delete;
+  concurrent_fixed_memory_pool& operator=(concurrent_fixed_memory_pool&&) = delete;
+
+  ~concurrent_fixed_memory_pool()
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    allocated_blocks.clear();
+  }
+
+  static concurrent_fixed_memory_pool<ObjSize, DebugSanitizeAddress>* get_instance(size_t size = 4096)
+  {
+    static concurrent_fixed_memory_pool<ObjSize, DebugSanitizeAddress> pool(size);
+    return &pool;
+  }
+
+  size_t size() { return allocated_blocks.size(); }
 
   void* allocate_node(size_t sz)
   {
@@ -76,6 +95,12 @@ public:
       }
       node = worker_cache->try_pop();
     }
+
+#ifdef SRSRAN_BUFFER_POOL_LOG_ENABLED
+    if (node == nullptr) {
+      print_error("Error allocating buffer in pool of ObjSize=%zd", ObjSize);
+    }
+#endif
     return node;
   }
 
@@ -85,7 +110,16 @@ public:
     memblock_cache* worker_cache = get_worker_cache();
     obj_storage_t*  block_ptr    = static_cast<obj_storage_t*>(p);
 
-    if (block_ptr->worker_id != std::this_thread::get_id() or worker_cache->size() >= MaxWorkerCacheSize) {
+    if (DebugSanitizeAddress) {
+      std::lock_guard<std::mutex> lock(mutex);
+      srsran_assert(std::any_of(allocated_blocks.begin(),
+                                allocated_blocks.end(),
+                                [block_ptr](const std::unique_ptr<obj_storage_t>& b) { return b.get() == block_ptr; }),
+                    "Error deallocating block with address 0x%lx.",
+                    (long unsigned)block_ptr);
+    }
+
+    if (block_ptr->worker_id != std::this_thread::get_id() or worker_cache->size() >= max_objs_per_cache) {
       // if block was allocated in a different thread or local cache reached max capacity, send block to shared
       // container
       shared_mem_cache.push(static_cast<void*>(block_ptr));
@@ -96,12 +130,42 @@ public:
     worker_cache->push(static_cast<uint8_t*>(p));
   }
 
+  void enable_logger(bool enabled)
+  {
+    if (enabled) {
+      logger = &srslog::fetch_basic_logger("POOL");
+      logger->set_level(srslog::basic_levels::debug);
+    } else {
+      logger = nullptr;
+    }
+  }
+
+  void print_all_buffers()
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    printf("There are %zd/%zd buffers in shared block container.\n", shared_mem_cache.size(), allocated_blocks.size());
+  }
+
 private:
   memblock_cache* get_worker_cache()
   {
     thread_local memblock_cache worker_cache;
     return &worker_cache;
   }
+
+  /// Formats and prints the input string and arguments into the configured output stream.
+  template <typename... Args>
+  void print_error(const char* str, Args&&... args)
+  {
+    if (logger != nullptr) {
+      logger->error(str, std::forward<Args>(args)...);
+    } else {
+      fmt::printf(std::string(str) + "\n", std::forward<Args>(args)...);
+    }
+  }
+
+  size_t                max_objs_per_cache = 0;
+  srslog::basic_logger* logger             = nullptr;
 
   mutexed_memblock_cache                       shared_mem_cache;
   std::mutex                                   mutex;

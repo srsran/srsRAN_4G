@@ -197,9 +197,6 @@ struct bit_buffer_t {
   uint32_t get_headroom() { return msg - buffer; }
 };
 
-// Create a Managed Life-Time Byte Buffer
-class byte_buffer_pool;
-
 using unique_byte_buffer_t = std::unique_ptr<byte_buffer_t>;
 
 ///
