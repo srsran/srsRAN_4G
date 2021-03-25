@@ -151,6 +151,7 @@ public:
       return false;
     }
     push(std::move(t));
+    return true;
   }
 
   bool try_push(const T& t)
@@ -159,6 +160,7 @@ public:
       return false;
     }
     push(t);
+    return true;
   }
   void pop()
   {
@@ -180,7 +182,7 @@ public:
   void clear()
   {
     for (size_t i = 0; i < count; ++i) {
-      buffer[rpos + i].destroy();
+      buffer[(rpos + i) % max_size()].destroy();
     }
     count = 0;
   }

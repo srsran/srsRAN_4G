@@ -32,7 +32,7 @@ class backend_worker
   static constexpr unsigned sleep_period_ms = 500;
 
 public:
-  explicit backend_worker(detail::work_queue<detail::log_entry>& queue, detail::dyn_arg_store_pool& arg_pool) :
+  backend_worker(detail::work_queue<detail::log_entry>& queue, detail::dyn_arg_store_pool& arg_pool) :
     queue(queue), arg_pool(arg_pool), running_flag(false)
   {}
 
