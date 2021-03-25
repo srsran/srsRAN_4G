@@ -136,7 +136,7 @@ void test_gtpu_tunnel_manager()
   const uint32_t         drb1_lcid = 3;
   srsran::task_scheduler task_sched;
 
-  gtpu_tunnel_manager tunnels(&task_sched);
+  gtpu_tunnel_manager tunnels(&task_sched, srslog::fetch_basic_logger("GTPU"));
   TESTASSERT(tunnels.find_tunnel(0) == nullptr);
   TESTASSERT(tunnels.find_rnti_lcid_tunnels(0x46, drb1_lcid).empty());
   TESTASSERT(tunnels.find_rnti_tunnels(0x46) == nullptr);

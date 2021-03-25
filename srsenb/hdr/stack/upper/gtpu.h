@@ -82,7 +82,7 @@ public:
   };
   using ue_lcid_tunnel_list = srsran::bounded_vector<lcid_tunnel, MAX_TUNNELS_PER_UE>;
 
-  explicit gtpu_tunnel_manager(srsran::task_sched_handle task_sched_);
+  explicit gtpu_tunnel_manager(srsran::task_sched_handle task_sched_, srslog::basic_logger& logger);
   void init(pdcp_interface_gtpu* pdcp_);
 
   bool                      has_teid(uint32_t teid) const { return tunnels.contains(teid); }
@@ -93,21 +93,21 @@ public:
   const tunnel* add_tunnel(uint16_t rnti, uint32_t lcid, uint32_t teidout, uint32_t spgw_addr);
   bool          update_rnti(uint16_t old_rnti, uint16_t new_rnti);
 
-  void         activate_tunnel(uint32_t teid);
-  void         suspend_tunnel(uint32_t teid);
-  void         set_tunnel_priority(uint32_t first_teid, uint32_t second_teid);
-  tunnel_state handle_rx_pdcp_sdu(uint32_t teid);
-  void         buffer_pdcp_sdu(uint32_t teid, uint32_t pdcp_sn, srsran::unique_byte_buffer_t sdu);
-  void         setup_forwarding(uint32_t rx_teid, uint32_t tx_teid);
+  void activate_tunnel(uint32_t teid);
+  void suspend_tunnel(uint32_t teid);
+  void set_tunnel_priority(uint32_t first_teid, uint32_t second_teid);
+  void handle_rx_pdcp_sdu(uint32_t teid);
+  void buffer_pdcp_sdu(uint32_t teid, uint32_t pdcp_sn, srsran::unique_byte_buffer_t sdu);
+  void setup_forwarding(uint32_t rx_teid, uint32_t tx_teid);
 
   bool remove_tunnel(uint32_t teid);
   bool remove_bearer(uint16_t rnti, uint32_t lcid);
   bool remove_rnti(uint16_t rnti);
 
 private:
-  const uint32_t undefined_pdcp_sn = std::numeric_limits<uint32_t>::max();
-  using tunnel_list_t              = srsran::static_id_obj_pool<uint32_t, tunnel, SRSENB_MAX_UES * MAX_TUNNELS_PER_UE>;
-  using tunnel_ctxt_it             = typename tunnel_list_t::iterator;
+  static const uint32_t undefined_pdcp_sn = std::numeric_limits<uint32_t>::max();
+  using tunnel_list_t  = srsran::static_id_obj_pool<uint32_t, tunnel, SRSENB_MAX_UES * MAX_TUNNELS_PER_UE>;
+  using tunnel_ctxt_it = typename tunnel_list_t::iterator;
 
   srsran::task_sched_handle task_sched;
   pdcp_interface_gtpu*      pdcp = nullptr;
@@ -193,8 +193,8 @@ private:
   };
   m1u_handler m1u;
 
-  const uint32_t      undefined_pdcp_sn = std::numeric_limits<uint32_t>::max();
-  gtpu_tunnel_manager tunnels;
+  static const uint32_t undefined_pdcp_sn = std::numeric_limits<uint32_t>::max();
+  gtpu_tunnel_manager   tunnels;
 
   // Tx sequence number for signaling messages
   uint32_t tx_seq = 0;
