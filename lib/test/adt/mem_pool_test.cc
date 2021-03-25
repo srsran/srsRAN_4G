@@ -134,6 +134,7 @@ void test_fixedsize_pool()
       TESTASSERT(obj != nullptr);
     }
     stop.store(true);
+    fixed_pool->print_all_buffers();
     t.join();
   }
   fixed_pool->print_all_buffers();

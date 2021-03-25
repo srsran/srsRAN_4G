@@ -34,6 +34,7 @@ template <size_t ObjSize, bool DebugSanitizeAddress = false>
 class concurrent_fixed_memory_pool
 {
   static_assert(ObjSize > 256, "This pool is particularly designed for large objects");
+  using pool_type = concurrent_fixed_memory_pool<ObjSize, DebugSanitizeAddress>;
 
   struct obj_storage_t {
     typename std::aligned_storage<ObjSize, alignof(detail::max_alignment_t)>::type buffer;
@@ -41,7 +42,7 @@ class concurrent_fixed_memory_pool
     explicit obj_storage_t(std::thread::id id_) : worker_id(id_) {}
   };
 
-  const static size_t batch_steal_size = 10;
+  const static size_t batch_steal_size = 16;
 
   // ctor only accessible from singleton get_instance()
   explicit concurrent_fixed_memory_pool(size_t nof_objects_)
@@ -82,18 +83,18 @@ public:
   void* allocate_node(size_t sz)
   {
     srsran_assert(sz <= ObjSize, "Allocated node size=%zd exceeds max object size=%zd", sz, ObjSize);
-    memblock_cache* worker_cache = get_worker_cache();
+    worker_ctxt* worker_ctxt = get_worker_cache();
 
-    void* node = worker_cache->try_pop();
+    void* node = worker_ctxt->cache.try_pop();
     if (node == nullptr) {
       // fill the thread local cache enough for this and next allocations
       std::array<void*, batch_steal_size> popped_blocks;
       size_t                              n = shared_mem_cache.try_pop(popped_blocks);
       for (size_t i = 0; i < n; ++i) {
-        new (popped_blocks[i]) obj_storage_t(std::this_thread::get_id());
-        worker_cache->push(static_cast<uint8_t*>(popped_blocks[i]));
+        new (popped_blocks[i]) obj_storage_t(worker_ctxt->id);
+        worker_ctxt->cache.push(static_cast<void*>(popped_blocks[i]));
       }
-      node = worker_cache->try_pop();
+      node = worker_ctxt->cache.try_pop();
     }
 
 #ifdef SRSRAN_BUFFER_POOL_LOG_ENABLED
@@ -107,8 +108,8 @@ public:
   void deallocate_node(void* p)
   {
     srsran_assert(p != nullptr, "Deallocated nodes must have valid address");
-    memblock_cache* worker_cache = get_worker_cache();
-    obj_storage_t*  block_ptr    = static_cast<obj_storage_t*>(p);
+    worker_ctxt*   worker_ctxt = get_worker_cache();
+    obj_storage_t* block_ptr   = static_cast<obj_storage_t*>(p);
 
     if (DebugSanitizeAddress) {
       std::lock_guard<std::mutex> lock(mutex);
@@ -119,7 +120,7 @@ public:
                     (long unsigned)block_ptr);
     }
 
-    if (block_ptr->worker_id != std::this_thread::get_id() or worker_cache->size() >= max_objs_per_cache) {
+    if (block_ptr->worker_id != worker_ctxt->id or worker_ctxt->cache.size() >= max_objs_per_cache) {
       // if block was allocated in a different thread or local cache reached max capacity, send block to shared
       // container
       shared_mem_cache.push(static_cast<void*>(block_ptr));
@@ -127,7 +128,7 @@ public:
     }
 
     // push to local memory block cache
-    worker_cache->push(static_cast<uint8_t*>(p));
+    worker_ctxt->cache.push(static_cast<void*>(p));
   }
 
   void enable_logger(bool enabled)
@@ -147,9 +148,22 @@ public:
   }
 
 private:
-  memblock_cache* get_worker_cache()
+  struct worker_ctxt {
+    std::thread::id id;
+    memblock_cache  cache;
+
+    worker_ctxt() : id(std::this_thread::get_id()) {}
+    ~worker_ctxt()
+    {
+      while (not cache.is_empty()) {
+        pool_type::get_instance()->shared_mem_cache.push(cache.try_pop());
+      }
+    }
+  };
+
+  worker_ctxt* get_worker_cache()
   {
-    thread_local memblock_cache worker_cache;
+    thread_local worker_ctxt worker_cache;
     return &worker_cache;
   }
 
