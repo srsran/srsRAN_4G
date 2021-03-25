@@ -137,8 +137,6 @@ void rrc::init(phy_interface_rrc_lte* phy_,
   t311 = task_sched.get_unique_timer();
   t304 = task_sched.get_unique_timer();
 
-  ue_identity_configured = false;
-
   transaction_id = 0;
 
   cell_clean_cnt = 0;

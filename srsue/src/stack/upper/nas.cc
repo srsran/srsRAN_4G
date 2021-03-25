@@ -1885,6 +1885,7 @@ void nas::send_attach_request()
     logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
     return;
   }
+
   gen_attach_request(pdu);
   rrc->write_sdu(std::move(pdu));
 }
@@ -2522,6 +2523,11 @@ bool nas::read_ctxt_file(nas_sec_ctxt* ctxt_)
     have_ctxt       = true;
     current_sec_hdr = LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED;
 
+    // Set UE identity in RRC
+    s_tmsi_t s_tmsi;
+    s_tmsi.mmec   = ctxt.guti.mme_code;
+    s_tmsi.m_tmsi = ctxt.guti.m_tmsi;
+    rrc->set_ue_identity(s_tmsi);
     return true;
   }
   return false;

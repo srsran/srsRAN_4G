@@ -822,7 +822,9 @@ proc_outcome_t rrc::connection_request_proc::step()
   if (state == state_t::cell_selection) {
     // NOTE: cell selection will signal back with an event trigger
     return proc_outcome_t::yield;
-  } else if (state == state_t::config_serving_cell) {
+  }
+
+  if (state == state_t::config_serving_cell) {
     if (rrc_ptr->serv_cell_cfg.run()) {
       return proc_outcome_t::yield;
     }

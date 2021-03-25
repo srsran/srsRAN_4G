@@ -307,6 +307,7 @@ void rrc::ue::handle_rrc_con_req(rrc_conn_request_s* msg)
         parent->logger.info("RRC connection request: UE context already exists. M-TMSI=%d", m_tmsi);
         parent->rem_user_thread(ue_it->first); // Simply remove the old context. No need to notify the MME, it will
                                                // update the eNB/MME-UE S1AP Id pair.
+        break;
       }
     }
   }
