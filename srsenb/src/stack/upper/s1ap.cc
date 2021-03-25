@@ -881,9 +881,12 @@ bool s1ap::handle_handover_request(const asn1::s1ap::ho_request_s& msg)
     }
   });
 
-  if (msg.ext or msg.protocol_ies.ho_restrict_list_present or
-      msg.protocol_ies.handov_type.value.value != handov_type_opts::intralte) {
-    logger.error("Not handling S1AP non-intra LTE handovers and extensions");
+  if (msg.ext or msg.protocol_ies.ho_restrict_list_present) {
+    logger.warning("Not handling S1AP Handover Request extensions or Handover Restriction List");
+  }
+
+  if (msg.protocol_ies.handov_type.value.value != handov_type_opts::intralte) {
+    logger.error("Not handling S1AP non-intra LTE handovers");
     return false;
   }
 
