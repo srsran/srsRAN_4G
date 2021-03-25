@@ -27,12 +27,12 @@ namespace detail {
 template <typename T, size_t capacity = SRSLOG_QUEUE_CAPACITY>
 class work_queue
 {
-  srsran::static_circular_buffer<T, capacity> queue;
-  mutable condition_variable                  cond_var;
-  static constexpr size_t                     threshold = capacity * 0.98;
+  srsran::dyn_circular_buffer<T> queue;
+  mutable condition_variable     cond_var;
+  static constexpr size_t        threshold = capacity * 0.98;
 
 public:
-  work_queue() = default;
+  work_queue() : queue(capacity) {}
 
   work_queue(const work_queue&) = delete;
   work_queue& operator=(const work_queue&) = delete;

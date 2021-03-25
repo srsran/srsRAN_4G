@@ -13,8 +13,8 @@
 #ifndef SRSRAN_ASSERT_H
 #define SRSRAN_ASSERT_H
 
-#include "srsran/common/standard_streams.h"
 #include "srsran/srslog/srslog.h"
+#include <cstdio>
 
 #ifdef ASSERTS_ENABLED
 
@@ -27,6 +27,7 @@
 #define srsran_assert(condition, fmt, ...)                                                                             \
   do {                                                                                                                 \
     if (srsran_unlikely(not(condition))) {                                                                             \
+      std::fprintf(stderr, "%s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__);                                     \
       std::abort();                                                                                                    \
     }                                                                                                                  \
   } while (0)
