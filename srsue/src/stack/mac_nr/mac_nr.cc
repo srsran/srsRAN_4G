@@ -17,9 +17,13 @@
 namespace srsue {
 
 mac_nr::mac_nr(srsran::ext_task_sched_handle task_sched_) :
-  task_sched(task_sched_), logger(srslog::fetch_basic_logger("MAC")), proc_ra(logger), mux(logger), pcap(nullptr)
-{
-}
+  task_sched(task_sched_),
+  logger(srslog::fetch_basic_logger("MAC")),
+  proc_ra(logger),
+  proc_sr(logger),
+  mux(logger),
+  pcap(nullptr)
+{}
 
 mac_nr::~mac_nr()
 {
@@ -307,10 +311,9 @@ void mac_nr::set_config(const srsran::bsr_cfg_t& bsr_cfg)
   logger.warning("Not handling BSR config yet");
 }
 
-void mac_nr::set_config(const srsran::sr_cfg_t& sr_cfg)
+int32_t mac_nr::set_config(const srsran::sr_cfg_nr_t& sr_cfg)
 {
-  logger.info("Scheduling Request Config DSR tansmax %d", sr_cfg.dsr_transmax);
-  logger.warning("Not Scheduling Request Config yet");
+  return proc_sr.set_config(sr_cfg);
 }
 
 void mac_nr::set_config(const srsran::rach_nr_cfg_t& rach_cfg)

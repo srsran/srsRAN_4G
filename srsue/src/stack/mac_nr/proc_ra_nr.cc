@@ -74,6 +74,18 @@ void proc_ra_nr::start_by_rrc()
   ra_procedure_initialization();
 }
 
+void proc_ra_nr::start_by_mac()
+{
+  if (state != IDLE || configured == false) {
+    logger.warning("Trying to start PRACH by MAC order in invalid state (%s)",
+                   srsran::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, state));
+    return;
+  }
+  started_by = initiators_t::MAC;
+  logger.info("Starting PRACH by MAC order");
+  ra_procedure_initialization();
+}
+
 bool proc_ra_nr::is_rar_opportunity(uint32_t tti)
 {
   // TODO replace second "&&"" by rar_timeout_timer.running if timer thread safe and delayed starting (tti+3)

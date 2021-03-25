@@ -527,14 +527,24 @@ bool rrc_nr::apply_rlc_add_mod(const rlc_bearer_cfg_s& rlc_bearer_cfg)
 bool rrc_nr::apply_mac_cell_group(const mac_cell_group_cfg_s& mac_cell_group_cfg)
 {
   if (mac_cell_group_cfg.sched_request_cfg_present) {
-    sr_cfg_t sr_cfg;
     if (mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list_present) {
-      if (mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list.size() > 1) {
+      if (mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list.size() == 1) {
+        const sched_request_to_add_mod_s& asn1_cfg =
+            mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list[0];
+        sr_cfg_nr_t sr_cfg              = {};
+        sr_cfg.num_items                = 1;
+        sr_cfg.item[0].sched_request_id = asn1_cfg.sched_request_id;
+        sr_cfg.item[0].trans_max        = asn1_cfg.sr_trans_max.to_number();
+        if (asn1_cfg.sr_prohibit_timer_present) {
+          sr_cfg.item[0].prohibit_timer = asn1_cfg.sr_trans_max;
+        }
+        if (mac->set_config(sr_cfg) != SRSRAN_SUCCESS) {
+          logger.error("Couldn't configure SR procedure.");
+          return false;
+        }
+      } else {
         logger.warning("Only handling 1 scheduling request index to add");
         return false;
-      } else {
-        sr_cfg.dsr_transmax = mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list[1].sr_trans_max;
-        mac->set_config(sr_cfg);
       }
     }
 

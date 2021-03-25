@@ -47,6 +47,7 @@ public:
   void pdcch_to_crnti();
 
   void start_by_rrc();
+  void start_by_mac();
   void reset();
 
 private:

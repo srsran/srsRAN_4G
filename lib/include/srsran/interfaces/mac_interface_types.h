@@ -136,6 +136,20 @@ struct rach_nr_cfg_t {
   }
 };
 
+// 38.321 Section 5.4.4 (only one config supported right now)
+struct sr_cfg_item_nr_t {
+  uint8_t sched_request_id;
+  uint8_t prohibit_timer;
+  uint8_t trans_max;
+};
+
+#define SRSRAN_MAX_MAX_NR_OF_SR_CFG_PER_CELL_GROUP (8)
+struct sr_cfg_nr_t {
+  bool enabled;
+  uint8_t          num_items;
+  sr_cfg_item_nr_t item[SRSRAN_MAX_MAX_NR_OF_SR_CFG_PER_CELL_GROUP];
+};
+
 struct mac_cfg_t {
   // Default constructor with default values as in 36.331 9.2.2
   mac_cfg_t() { set_defaults(); }

@@ -15,6 +15,7 @@
 
 #include "mac_nr_interfaces.h"
 #include "proc_ra_nr.h"
+#include "proc_sr_nr.h"
 #include "srsran/common/block_queue.h"
 #include "srsran/common/mac_pcap.h"
 #include "srsran/interfaces/mac_interface_types.h"
@@ -66,13 +67,13 @@ public:
   void get_metrics(mac_metrics_t* metrics);
 
   /// Interface for RRC (RRC -> MAC)
-  void setup_lcid(const srsran::logical_channel_config_t& config);
-  void set_config(const srsran::bsr_cfg_t& bsr_cfg);
-  void set_config(const srsran::sr_cfg_t& sr_cfg);
-  void set_config(const srsran::rach_nr_cfg_t& rach_cfg);
-  void set_contention_id(const uint64_t ue_identity);
-  bool set_crnti(const uint16_t crnti);
-  void start_ra_procedure();
+  void    setup_lcid(const srsran::logical_channel_config_t& config);
+  void    set_config(const srsran::bsr_cfg_t& bsr_cfg);
+  int32_t set_config(const srsran::sr_cfg_nr_t& sr_cfg);
+  void    set_config(const srsran::rach_nr_cfg_t& rach_cfg);
+  void    set_contention_id(const uint64_t ue_identity);
+  bool    set_crnti(const uint16_t crnti);
+  void    start_ra_procedure();
 
   /// procedure ra nr interface
   uint64_t get_contention_id();
@@ -144,6 +145,7 @@ private:
 
   // MAC Uplink-related procedures
   proc_ra_nr proc_ra;
+  proc_sr_nr proc_sr;
   mux_nr     mux;
 };
 
