@@ -15,7 +15,7 @@
 
 #include "mac_controller.h"
 #include "rrc.h"
-#include "srsran/adt/mem_pool.h"
+#include "srsran/adt/pool/mem_pool.h"
 #include "srsran/interfaces/enb_phy_interfaces.h"
 #include "srsran/interfaces/pdcp_interface_types.h"
 

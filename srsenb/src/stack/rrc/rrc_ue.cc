@@ -14,7 +14,7 @@
 #include "srsenb/hdr/stack/rrc/mac_controller.h"
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
 #include "srsenb/hdr/stack/rrc/ue_rr_cfg.h"
-#include "srsran/adt/mem_pool.h"
+#include "srsran/adt/pool/mem_pool.h"
 #include "srsran/asn1/rrc_utils.h"
 #include "srsran/common/enb_events.h"
 #include "srsran/common/int_helpers.h"
