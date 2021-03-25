@@ -1028,22 +1028,10 @@ int srsran_ldpc_decoder_decode_s(srsran_ldpc_decoder_t* q,
   return q->decode_s(q, llrs, message, cdwd_rm_length);
 }
 
-int srsran_ldpc_decoder_decode_c(srsran_ldpc_decoder_t* q, const int8_t* llrs, uint8_t* message)
-{
-  uint32_t cdwd_rm_length = q->liftN - 2 * q->ls;
-
-  // Trim input LLR to find last zero
-  while (llrs[cdwd_rm_length - 1] == 0 && cdwd_rm_length > 0) {
-    cdwd_rm_length--;
-  }
-
-  return q->decode_c(q, llrs, message, cdwd_rm_length);
-}
-
-int srsran_ldpc_decoder_decode_rm_c(srsran_ldpc_decoder_t* q,
-                                    const int8_t*          llrs,
-                                    uint8_t*               message,
-                                    uint32_t               cdwd_rm_length)
+int srsran_ldpc_decoder_decode_c(srsran_ldpc_decoder_t* q,
+                                 const int8_t*          llrs,
+                                 uint8_t*               message,
+                                 uint32_t               cdwd_rm_length)
 {
   return q->decode_c(q, llrs, message, cdwd_rm_length);
 }

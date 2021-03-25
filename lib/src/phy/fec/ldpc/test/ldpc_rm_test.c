@@ -256,7 +256,8 @@ int main(int argc, char** argv)
       exit(-1);
     }
     if (srsran_ldpc_rm_rx_c(
-            &rm_rx_c, rm_symbols_c + r * E, unrm_symbols_c + r * N, E, F, base_graph, lift_size, rv, mod_type, Nref)) {
+            &rm_rx_c, rm_symbols_c + r * E, unrm_symbols_c + r * N, E, F, base_graph, lift_size, rv, mod_type, Nref) <
+        0) {
       exit(-1);
     }
 
@@ -269,7 +270,6 @@ int main(int argc, char** argv)
           ((unrm_symbols[i + r * N] < 0) && (codewords[i + r * N]))) {
         // any of these cases are ok
       } else {
-
         error = -1;
         break;
       }
