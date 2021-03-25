@@ -299,7 +299,18 @@ void rrc::ue::handle_rrc_con_req(rrc_conn_request_s* msg)
     mmec     = (uint8_t)msg_r8->ue_id.s_tmsi().mmec.to_number();
     m_tmsi   = (uint32_t)msg_r8->ue_id.s_tmsi().m_tmsi.to_number();
     has_tmsi = true;
+
+    // Make sure that the context does not already exist
+    for (auto ue_it = parent->users.begin(); ue_it != parent->users.end(); ue_it++) {
+      if (ue_it->first != rnti && ue_it->second->has_tmsi && ue_it->second->mmec == mmec &&
+          ue_it->second->m_tmsi == m_tmsi) {
+        parent->logger.info("RRC connection request: UE context already exists. M-TMSI=%d", m_tmsi);
+        parent->rem_user_thread(ue_it->first); // Simply remove the old context. No need to notify the MME, it will
+                                               // update the eNB/MME-UE S1AP Id pair.
+      }
+    }
   }
+
   establishment_cause = msg_r8->establishment_cause;
   send_connection_setup();
   state = RRC_STATE_WAIT_FOR_CON_SETUP_COMPLETE;
@@ -756,7 +767,7 @@ bool rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
       parent->logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
       return false;
     }
-    asn1::bit_ref                bref2{pdu->msg, pdu->get_tailroom()};
+    asn1::bit_ref bref2{pdu->msg, pdu->get_tailroom()};
     msg->pack(bref2);
     asn1::rrc::ue_radio_access_cap_info_s ue_rat_caps;
     auto& dest = ue_rat_caps.crit_exts.set_c1().set_ue_radio_access_cap_info_r8().ue_radio_access_cap_info;

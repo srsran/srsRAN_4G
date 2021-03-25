@@ -820,7 +820,7 @@ uint32_t rrc::generate_sibs()
         logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
         return SRSRAN_ERROR;
       }
-      asn1::bit_ref                bref(sib_buffer->msg, sib_buffer->get_tailroom());
+      asn1::bit_ref bref(sib_buffer->msg, sib_buffer->get_tailroom());
       if (msg[msg_index].pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
         logger.error("Failed to pack SIB message %d", msg_index);
         return SRSRAN_ERROR;
