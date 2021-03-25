@@ -37,23 +37,39 @@ namespace srsenb {
 class pdcp_interface_gtpu;
 class stack_interface_gtpu_lte;
 
-struct gtpu_tunnel {
-  bool                 fwd_teid_in_present   = false;
-  bool                 prior_teid_in_present = false;
-  uint16_t             rnti                  = SRSRAN_INVALID_RNTI;
-  uint32_t             lcid                  = SRSENB_N_RADIO_BEARERS;
-  uint32_t             teid_in               = 0;
-  uint32_t             teid_out              = 0;
-  uint32_t             spgw_addr             = 0;
-  uint32_t             fwd_teid_in           = 0; ///< forward Rx SDUs to this TEID
-  uint32_t             prior_teid_in         = 0; ///< buffer bearer SDUs until this TEID receives an End Marker
-  srsran::unique_timer rx_timer;
-};
-
 class gtpu_tunnel_manager
 {
+  using buffered_sdu_list = srsran::bounded_vector<std::pair<uint32_t, srsran::unique_byte_buffer_t>, 512>;
+
 public:
   const static size_t MAX_TUNNELS_PER_UE = 4;
+
+  enum class tunnel_state { pdcp_active, buffering, forward_to, forwarded_from };
+
+  struct tunnel {
+    uint16_t rnti      = SRSRAN_INVALID_RNTI;
+    uint32_t lcid      = SRSENB_N_RADIO_BEARERS;
+    uint32_t teid_in   = 0;
+    uint32_t teid_out  = 0;
+    uint32_t spgw_addr = 0;
+
+    tunnel_state                                    state = tunnel_state::pdcp_active;
+    srsran::unique_timer                            rx_timer;
+    srsran::byte_buffer_pool_ptr<buffered_sdu_list> buffer;
+    tunnel*                                         fwd_tunnel = nullptr; ///< forward Rx SDUs to this TEID
+    srsran::move_callback<void()>                   on_removal;
+
+    tunnel()                  = default;
+    tunnel(tunnel&&) noexcept = default;
+    tunnel& operator=(tunnel&&) noexcept = default;
+    ~tunnel()
+    {
+      if (not on_removal.is_empty()) {
+        on_removal();
+      }
+    }
+  };
+
   struct lcid_tunnel {
     uint32_t lcid;
     uint32_t teid;
@@ -66,18 +82,23 @@ public:
   };
   using ue_lcid_tunnel_list = srsran::bounded_vector<lcid_tunnel, MAX_TUNNELS_PER_UE>;
 
-  gtpu_tunnel_manager();
+  explicit gtpu_tunnel_manager(srsran::task_sched_handle task_sched_);
+  void init(pdcp_interface_gtpu* pdcp_);
 
-  gtpu_tunnel*              find_tunnel(uint32_t teid);
+  bool                      has_teid(uint32_t teid) const { return tunnels.contains(teid); }
+  const tunnel*             find_tunnel(uint32_t teid);
   ue_lcid_tunnel_list*      find_rnti_tunnels(uint16_t rnti);
   srsran::span<lcid_tunnel> find_rnti_lcid_tunnels(uint16_t rnti, uint32_t lcid);
 
-  gtpu_tunnel* add_tunnel(uint16_t rnti, uint32_t lcid, uint32_t teidout, uint32_t spgw_addr);
-  bool         update_rnti(uint16_t old_rnti, uint16_t new_rnti);
+  const tunnel* add_tunnel(uint16_t rnti, uint32_t lcid, uint32_t teidout, uint32_t spgw_addr);
+  bool          update_rnti(uint16_t old_rnti, uint16_t new_rnti);
 
-  int                    set_tunnel_dl_state(uint32_t teid, bool state, pdcp_interface_gtpu* pdcp);
-  srsran::expected<bool> get_tunnel_dl_state(uint32_t teid) const;
-  void                   buffer_pdcp_sdu(uint32_t teid, uint32_t pdcp_sn, srsran::unique_byte_buffer_t sdu);
+  void         activate_tunnel(uint32_t teid);
+  void         suspend_tunnel(uint32_t teid);
+  void         set_tunnel_priority(uint32_t first_teid, uint32_t second_teid);
+  tunnel_state handle_rx_pdcp_sdu(uint32_t teid);
+  void         buffer_pdcp_sdu(uint32_t teid, uint32_t pdcp_sn, srsran::unique_byte_buffer_t sdu);
+  void         setup_forwarding(uint32_t rx_teid, uint32_t tx_teid);
 
   bool remove_tunnel(uint32_t teid);
   bool remove_bearer(uint16_t rnti, uint32_t lcid);
@@ -85,21 +106,19 @@ public:
 
 private:
   const uint32_t undefined_pdcp_sn = std::numeric_limits<uint32_t>::max();
+  using tunnel_list_t              = srsran::static_id_obj_pool<uint32_t, tunnel, SRSENB_MAX_UES * MAX_TUNNELS_PER_UE>;
+  using tunnel_ctxt_it             = typename tunnel_list_t::iterator;
 
-  struct tunnel_ctxt {
-    gtpu_tunnel params;
-    bool        dl_enabled = true;
-    srsran::byte_buffer_pool_ptr<srsran::bounded_vector<std::pair<uint32_t, srsran::unique_byte_buffer_t>, 512> >
-        buffer;
-  };
-  using tunnel_list_t  = srsran::static_id_obj_pool<uint32_t, tunnel_ctxt, SRSENB_MAX_UES * MAX_TUNNELS_PER_UE>;
-  using tunnel_ctxt_it = typename tunnel_list_t::iterator;
-
-  srslog::basic_logger& logger;
+  srsran::task_sched_handle task_sched;
+  pdcp_interface_gtpu*      pdcp = nullptr;
+  srslog::basic_logger&     logger;
 
   tunnel_list_t                                                              tunnels;
   srsran::static_circular_map<uint16_t, ue_lcid_tunnel_list, SRSENB_MAX_UES> ue_teidin_db;
 };
+
+using gtpu_tunnel_state = gtpu_tunnel_manager::tunnel_state;
+using gtpu_tunnel       = gtpu_tunnel_manager::tunnel;
 
 class gtpu final : public gtpu_interface_rrc, public gtpu_interface_pdcp
 {
@@ -190,8 +209,9 @@ private:
   bool send_end_marker(uint32_t teidin);
 
   void handle_end_marker(const gtpu_tunnel& rx_tunnel);
-  void
-  handle_msg_data_pdu(const srsran::gtpu_header_t& header, gtpu_tunnel& rx_tunnel, srsran::unique_byte_buffer_t pdu);
+  void handle_msg_data_pdu(const srsran::gtpu_header_t& header,
+                           const gtpu_tunnel&           rx_tunnel,
+                           srsran::unique_byte_buffer_t pdu);
 
   int create_dl_fwd_tunnel(uint32_t rx_teid_in, uint32_t tx_teid_in);
 
