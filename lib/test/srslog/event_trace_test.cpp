@@ -14,6 +14,7 @@
 #include "srsran/srslog/log_channel.h"
 #include "test_dummies.h"
 #include "testing_helpers.h"
+#include <thread>
 
 using namespace srslog;
 
@@ -68,6 +69,27 @@ static bool when_tracing_with_complete_event_then_one_event_is_generated(backend
   return true;
 }
 
+static bool when_tracing_with_under_threshold_complete_event_then_no_event_is_generated(backend_spy& spy)
+{
+  {
+    trace_threshold_complete_event("a", "b", std::chrono::microseconds(100000));
+  }
+  ASSERT_EQ(spy.push_invocation_count(), 0);
+
+  return true;
+}
+
+static bool when_tracing_with_above_threshold_complete_event_then_one_event_is_generated(backend_spy& spy)
+{
+  {
+    trace_threshold_complete_event("a", "b", std::chrono::microseconds(10));
+    std::this_thread::sleep_for(std::chrono::microseconds(1000));
+  }
+  ASSERT_EQ(spy.push_invocation_count(), 1);
+
+  return true;
+}
+
 int main()
 {
   test_dummies::sink_dummy s;
@@ -80,6 +102,10 @@ int main()
   TEST_FUNCTION(when_tracing_with_duration_event_then_two_events_are_generated, backend);
   backend.reset();
   TEST_FUNCTION(when_tracing_with_complete_event_then_one_event_is_generated, backend);
+  backend.reset();
+  TEST_FUNCTION(when_tracing_with_under_threshold_complete_event_then_no_event_is_generated, backend);
+  backend.reset();
+  TEST_FUNCTION(when_tracing_with_above_threshold_complete_event_then_one_event_is_generated, backend);
 
   return 0;
 }

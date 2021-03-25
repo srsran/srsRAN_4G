@@ -118,12 +118,16 @@ srslog::detail::scoped_complete_event::~scoped_complete_event()
     return;
   }
 
-  auto               end  = std::chrono::steady_clock::now();
-  unsigned long long diff = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+  auto end  = std::chrono::steady_clock::now();
+  auto diff = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+
+  if (diff < threshold) {
+    return;
+  }
 
   small_str_buffer str;
-  // Limit to the category and name strings to a predefined length so everything fits in a small string.
-  fmt::format_to(str, "{:.32} {:.16}, {}", category, name, diff);
+  // Limit the category and name strings to a predefined length so everything fits in a small string.
+  fmt::format_to(str, "{:.32} {:.16}, {}", category, name, diff.count());
   str.push_back('\0');
   (*tracer)(std::move(str));
 }
