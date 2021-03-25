@@ -747,6 +747,10 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
 
     if (cellroot.exists("ho_active") and cellroot["ho_active"]) {
       HANDLEPARSERCODE(parse_meas_cell_list(&cell_cfg.meas_cfg, cellroot["meas_cell_list"]));
+      if (not cellroot.exists("meas_report_desc")) {
+        ERROR("PARSER ERROR: \"ho_active\" is set to true, but field \"meas_report_desc\" doesn't exist.\n");
+        return -1;
+      }
       HANDLEPARSERCODE(parse_meas_report_desc(&cell_cfg.meas_cfg, cellroot["meas_report_desc"]));
     }
 
