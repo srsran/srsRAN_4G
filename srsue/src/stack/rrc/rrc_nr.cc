@@ -734,6 +734,13 @@ bool rrc_nr::apply_ul_common_cfg(const asn1::rrc_nr::ul_cfg_common_s& ul_cfg_com
         rach_nr_cfg_t rach_nr_cfg = make_mac_rach_cfg(ul_cfg_common.init_ul_bwp.rach_cfg_common.setup());
         phy_cfg.pdcch.ra_rnti     = ul_cfg_common.init_ul_bwp.rach_cfg_common.setup().rach_cfg_generic.prach_cfg_idx;
         mac->set_config(rach_nr_cfg);
+
+        // Make the RACH configuration for PHY
+        if (not make_phy_rach_cfg(ul_cfg_common.init_ul_bwp.rach_cfg_common.setup(), &phy_cfg.prach)) {
+          logger.warning("Error parsing rach_cfg_common");
+          return false;
+        }
+
       } else {
         logger.warning("Option rach_cfg_common not of type setup");
         return false;
@@ -881,7 +888,6 @@ bool rrc_nr::apply_sp_cell_ded_ul_pusch(const asn1::rrc_nr::pusch_cfg_s& pusch_c
       }
     } else {
       logger.warning("Option dmrs_ul_for_pusch_map_type_a not of type setup");
-      return false;
       return false;
     }
   } else {

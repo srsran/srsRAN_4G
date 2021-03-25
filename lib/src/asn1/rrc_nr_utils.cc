@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2020 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -193,6 +193,38 @@ srsran::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue
                     false);
   return cfg;
 }
+
+bool make_phy_rach_cfg(const rach_cfg_common_s& asn1_type, srsran_prach_cfg_t* prach_cfg)
+{
+  prach_cfg->is_nr            = true;
+  prach_cfg->config_idx       = asn1_type.rach_cfg_generic.prach_cfg_idx;
+  prach_cfg->zero_corr_zone   = (uint32_t)asn1_type.rach_cfg_generic.zero_correlation_zone_cfg;
+  prach_cfg->num_ra_preambles = 64;    // Hard-coded
+  prach_cfg->hs_flag          = false; // Hard-coded
+  prach_cfg->tdd_config       = {};    // Hard-coded
+
+  // As the current PRACH is based on LTE, the freq-offset shall be subtracted 1 for aligning with NR bandwidth
+  // For example. A 52 PRB cell with an freq_offset of 1 will match a LTE 50 PRB cell with freq_offset of 0
+  prach_cfg->freq_offset = (uint32_t)asn1_type.rach_cfg_generic.msg1_freq_start;
+  if (prach_cfg->freq_offset == 0) {
+    asn1::log_error("PRACH freq offset must be at least one");
+    return false;
+  }
+  prach_cfg->freq_offset--;
+
+  switch (prach_cfg->root_seq_idx = asn1_type.prach_root_seq_idx.type()) {
+    case rach_cfg_common_s::prach_root_seq_idx_c_::types_opts::l839:
+      prach_cfg->root_seq_idx = (uint32_t)asn1_type.prach_root_seq_idx.l839();
+      break;
+    case rach_cfg_common_s::prach_root_seq_idx_c_::types_opts::l139:
+    default:
+      asn1::log_error("Not-implemented option for prach_root_seq_idx type %s",
+                      asn1_type.prach_root_seq_idx.type().to_string());
+      return false;
+  }
+
+  return true;
+};
 
 bool make_phy_tdd_cfg(const tdd_ul_dl_cfg_common_s& tdd_ul_dl_cfg_common,
                       srsran_tdd_config_nr_t*       in_srsran_tdd_config_nr)

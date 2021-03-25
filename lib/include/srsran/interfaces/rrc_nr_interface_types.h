@@ -35,15 +35,6 @@ struct phy_cfg_nr_t {
 
   phy_cfg_nr_t()
   {
-    // Default PRACH configuration
-    prach.is_nr            = true;
-    prach.config_idx       = 16;
-    prach.root_seq_idx     = 1;
-    prach.freq_offset      = 0;
-    prach.zero_corr_zone   = 0;
-    prach.num_ra_preambles = 64;
-    prach.hs_flag          = false;
-
     // tdd-UL-DL-ConfigurationCommon
     //    referenceSubcarrierSpacing: kHz15 (0)
     //    pattern1

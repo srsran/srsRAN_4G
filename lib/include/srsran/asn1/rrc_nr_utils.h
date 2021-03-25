@@ -61,6 +61,8 @@ void      to_asn1(asn1::rrc_nr::plmn_id_s* asn1_type, const plmn_id_t& cfg);
 /***************************
  *      PHY Config
  **************************/
+bool make_phy_rach_cfg(const asn1::rrc_nr::rach_cfg_common_s& asn1_type, srsran_prach_cfg_t* prach_cfg);
+
 bool make_phy_tdd_cfg(const asn1::rrc_nr::tdd_ul_dl_cfg_common_s& tdd_ul_dl_cfg_common,
                       srsran_tdd_config_nr_t*                     srsran_tdd_config_nr);
 bool make_phy_harq_ack_cfg(const asn1::rrc_nr::phys_cell_group_cfg_s& phys_cell_group_cfg,

@@ -55,15 +55,6 @@ bool worker_pool::init(const phy_args_nr_t& args, phy_common* common, stack_inte
   prach_buffer = std::unique_ptr<prach>(new prach(prach_log));
   prach_buffer->init(phy_state.args.dl.nof_max_prb);
 
-  // Set PRACH hard-coded cell
-  srsran_cell_t cell = {};
-  cell.nof_prb       = 50;
-  cell.id            = phy_state.carrier.id;
-  if (not prach_buffer->set_cell(cell, phy_state.cfg.prach)) {
-    prach_log.error("Setting PRACH cell");
-    return false;
-  }
-
   return true;
 }
 
@@ -130,6 +121,16 @@ int worker_pool::set_ul_grant(std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> pac
 bool worker_pool::set_config(const srsran::phy_cfg_nr_t& cfg)
 {
   phy_state.cfg = cfg;
+
+  // Set PRACH hard-coded cell
+  srsran_cell_t cell = {};
+  cell.nof_prb       = 50;
+  cell.id            = phy_state.carrier.id;
+  if (not prach_buffer->set_cell(cell, phy_state.cfg.prach)) {
+    logger.error("Error setting PRACH cell");
+    return false;
+  }
+
   return true;
 }
 
