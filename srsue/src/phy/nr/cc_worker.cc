@@ -217,7 +217,7 @@ bool cc_worker::work_dl()
   if (phy->get_dl_pending_grant(dl_slot_cfg.idx, pdsch_cfg, ack_resource, pid)) {
     // As HARQ processes are not implemented nor LDPC early-stop, retransmissions are disabled for performance reasons
     if (pdsch_cfg.grant.tb[0].rv != 0) {
-      phy->set_pending_ack(dl_slot_cfg.idx, ack_resource, false);
+      phy->set_pending_ack(dl_slot_cfg.idx, ack_resource, true);
       logger.warning("PDSCH Retransmission with rv=%d not supported", pdsch_cfg.grant.tb[0].rv);
       return true;
     }
