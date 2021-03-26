@@ -87,6 +87,9 @@ public:
   bool msg3_is_pending() { return mux.msg3_is_pending(); }
   bool msg3_is_empty() { return mux.msg3_is_empty(); }
 
+  /// RRC
+  void rrc_ra_problem() { rrc->ra_problem(); }
+
   /// stack interface
   void process_pdus();
 

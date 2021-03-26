@@ -82,10 +82,12 @@ private:
   srsran::timer_handler::unique_timer prach_send_timer;
   srsran::timer_handler::unique_timer rar_timeout_timer;
   srsran::timer_handler::unique_timer contention_resolution_timer;
+  srsran::timer_handler::unique_timer backoff_timer;
 
   // 38.321 5.1.1 Variables
   uint32_t preamble_index = 0;
   uint32_t preamble_transmission_counter = 0;
+  uint32_t preamble_backoff               = 0; // in ms
   uint32_t preamble_power_ramping_step = 0;
   int preamble_received_target_power = 0;
   uint32_t scaling_factor_bi = 0;

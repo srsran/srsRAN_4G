@@ -96,13 +96,12 @@ public:
   void in_sync() final;
   void out_of_sync() final;
 
-  // MAC interface
-  void run_tti(uint32_t tti) final;
 
   // RLC interface
   void max_retx_attempted() final;
 
   // MAC interface
+  void run_tti(uint32_t tti) final;
   void ra_completed() final;
   void ra_problem() final;
   void release_pucch_srs() final;

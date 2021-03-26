@@ -32,6 +32,9 @@ public:
   virtual void msg3_flush()          = 0;
   virtual void msg3_prepare()        = 0;
   virtual bool msg3_is_empty()       = 0;
+
+  // RRC functions
+  virtual void rrc_ra_problem() = 0;
 };
 
 /**

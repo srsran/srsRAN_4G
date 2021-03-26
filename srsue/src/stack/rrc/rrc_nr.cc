@@ -1190,7 +1190,11 @@ void rrc_nr::max_retx_attempted() {}
 
 // MAC interface
 void rrc_nr::ra_completed() {}
-void rrc_nr::ra_problem() {}
+void rrc_nr::ra_problem()
+{
+  rrc_eutra->nr_scg_failure_information(scg_failure_cause_t::random_access_problem);
+}
+
 void rrc_nr::release_pucch_srs() {}
 
 // STACK interface
@@ -1245,7 +1249,7 @@ proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const reconf_initiator
         return proc_outcome_t::error;
       }
 
-      rrc_ptr->log_rrc_message("RRC NR Reconfiguration",
+      rrc_ptr->log_rrc_message("RRC NRf Reconfiguration",
                                Rx,
                                rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group,
                                cell_group_cfg,

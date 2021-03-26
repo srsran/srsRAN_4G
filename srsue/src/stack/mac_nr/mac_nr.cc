@@ -322,7 +322,7 @@ bool mac_nr::set_crnti(const uint16_t c_rnti_)
 
 void mac_nr::start_ra_procedure()
 {
-  proc_ra.start_by_rrc();
+  stack_task_dispatch_queue.push([this]() {proc_ra.start_by_rrc();});
 }
 
 bool mac_nr::is_valid_crnti(const uint16_t crnti)
