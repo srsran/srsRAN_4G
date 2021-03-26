@@ -63,6 +63,8 @@ tx_gain = 80
 # Protocol=udp. Further, enable the heuristic dissection in UDP under:
 # Analyze > Enabled Protocols > MAC-LTE > mac_lte_udp and MAC-NR > mac_nr_udp
 # For more information see: https://wiki.wireshark.org/MAC-LTE
+# Using the same filename for mac_filename and mac_nr_filename writes both
+# MAC-LTE and MAC-NR to the same file allowing a better analysis. 
 # NAS-layer packets are dissected with DLT=148, and Protocol = nas-eps.
 #
 # enable:            Enable packet captures of layers (mac/mac_nr/nas/none) multiple option list 
