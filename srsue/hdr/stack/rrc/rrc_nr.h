@@ -40,7 +40,8 @@ struct core_less_args_t {
 
 struct rrc_nr_args_t {
   core_less_args_t      coreless;
-  std::vector<uint32_t> supported_bands;
+  std::vector<uint32_t> supported_bands_nr;
+  std::vector<uint32_t> supported_bands_eutra;
   std::string           log_level;
   uint32_t              log_hex_limit;
 };
