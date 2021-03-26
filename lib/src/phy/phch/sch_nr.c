@@ -648,7 +648,7 @@ int sch_nr_decode(srsran_sch_nr_t*        q,
 
     // Check if TB is all zeros
     bool all_zeros = true;
-    for (uint32_t i = 0; i < tb->tbs && all_zeros; i++) {
+    for (uint32_t i = 0; i < tb->tbs / 8 && all_zeros; i++) {
       all_zeros = (data[i] == 0);
     }
 
