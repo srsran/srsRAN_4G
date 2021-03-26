@@ -106,6 +106,14 @@ public:
     stack.push(block);
   }
 
+  void steal_blocks(memblock_cache& other, size_t max_n) noexcept
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    for (size_t i = 0; i < max_n and not other.is_empty(); ++i) {
+      stack.push(other.try_pop());
+    }
+  }
+
   uint8_t* try_pop() noexcept
   {
     std::lock_guard<std::mutex> lock(mutex);
