@@ -687,5 +687,5 @@ int srsran_ldpc_rm_rx_c(srsran_ldpc_rm_t*        q,
   }
 
   // Return the number of useful LLR
-  return (int)((q->k0 + q->E) % q->Ncb);
+  return (int)SRSRAN_MIN(q->k0 + q->E, q->Ncb);
 }

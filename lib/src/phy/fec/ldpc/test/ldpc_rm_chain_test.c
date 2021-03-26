@@ -546,7 +546,7 @@ int main(int argc, char** argv)
                               lift_size,
                               rv,
                               mod_type,
-                              Nref)) {
+                              Nref) < 0) {
         exit(-1);
       }
     }
