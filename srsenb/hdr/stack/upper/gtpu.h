@@ -39,10 +39,16 @@ class stack_interface_gtpu_lte;
 
 class gtpu_tunnel_manager
 {
-  using buffered_sdu_list = srsran::bounded_vector<std::pair<uint32_t, srsran::unique_byte_buffer_t>, 512>;
+  // Buffer used to store SDUs while PDCP is still getting configured during handover.
+  // Note: The buffer cannot be too large, otherwise it risks depleting the byte buffer pool.
+  const static size_t BUFFER_SIZE = 512;
+  using buffered_sdu_list = srsran::bounded_vector<std::pair<uint32_t, srsran::unique_byte_buffer_t>, BUFFER_SIZE>;
+
+  static const uint32_t undefined_pdcp_sn = std::numeric_limits<uint32_t>::max();
 
 public:
-  const static size_t MAX_TUNNELS_PER_UE = 4;
+  // A UE should have <= 3 DRBs active, and each DRB should have two tunnels active at the same time at most
+  const static size_t MAX_TUNNELS_PER_UE = 6;
 
   enum class tunnel_state { pdcp_active, buffering, forward_to, forwarded_from };
 
@@ -105,7 +111,6 @@ public:
   bool remove_rnti(uint16_t rnti);
 
 private:
-  static const uint32_t undefined_pdcp_sn = std::numeric_limits<uint32_t>::max();
   using tunnel_list_t  = srsran::static_id_obj_pool<uint32_t, tunnel, SRSENB_MAX_UES * MAX_TUNNELS_PER_UE>;
   using tunnel_ctxt_it = typename tunnel_list_t::iterator;
 
@@ -136,15 +141,15 @@ public:
   void stop();
 
   // gtpu_interface_rrc
-  uint32_t add_bearer(uint16_t            rnti,
-                      uint32_t            lcid,
-                      uint32_t            addr,
-                      uint32_t            teid_out,
-                      const bearer_props* props = nullptr) override;
-  void     set_tunnel_status(uint32_t teidin, bool dl_active) override;
-  void     rem_bearer(uint16_t rnti, uint32_t lcid) override;
-  void     mod_bearer_rnti(uint16_t old_rnti, uint16_t new_rnti) override;
-  void     rem_user(uint16_t rnti) override;
+  srsran::expected<uint32_t> add_bearer(uint16_t            rnti,
+                                        uint32_t            lcid,
+                                        uint32_t            addr,
+                                        uint32_t            teid_out,
+                                        const bearer_props* props = nullptr) override;
+  void                       set_tunnel_status(uint32_t teidin, bool dl_active) override;
+  void                       rem_bearer(uint16_t rnti, uint32_t lcid) override;
+  void                       mod_bearer_rnti(uint16_t old_rnti, uint16_t new_rnti) override;
+  void                       rem_user(uint16_t rnti) override;
 
   // gtpu_interface_pdcp
   void write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu) override;

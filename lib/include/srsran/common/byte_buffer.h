@@ -14,6 +14,7 @@
 #define SRSRAN_BYTE_BUFFER_H
 
 #include "common.h"
+#include "srsran/adt/span.h"
 #include <chrono>
 #include <cstdint>
 

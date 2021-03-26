@@ -309,32 +309,41 @@ bool bearer_cfg_handler::modify_erab(uint8_t                                    
 void bearer_cfg_handler::add_gtpu_bearer(uint32_t erab_id)
 {
   auto it = erabs.find(erab_id);
-  if (it == erabs.end()) {
-    logger->error("Adding erab_id=%d to GTPU", erab_id);
-    return;
+  if (it != erabs.end()) {
+    srsran::expected<uint32_t> teidin =
+        add_gtpu_bearer(erab_id, it->second.teid_out, it->second.address.to_number(), nullptr);
+    if (teidin.has_value()) {
+      it->second.teid_in = teidin.value();
+      return;
+    }
   }
-  it->second.teid_in = add_gtpu_bearer(erab_id, it->second.teid_out, it->second.address.to_number(), nullptr);
+  logger->error("Adding erab_id=%d to GTPU", erab_id);
 }
 
-uint32_t bearer_cfg_handler::add_gtpu_bearer(uint32_t                                erab_id,
-                                             uint32_t                                teid_out,
-                                             uint32_t                                addr,
-                                             const gtpu_interface_rrc::bearer_props* props)
+srsran::expected<uint32_t> bearer_cfg_handler::add_gtpu_bearer(uint32_t                                erab_id,
+                                                               uint32_t                                teid_out,
+                                                               uint32_t                                addr,
+                                                               const gtpu_interface_rrc::bearer_props* props)
 {
   auto it = erabs.find(erab_id);
   if (it == erabs.end()) {
     logger->error("Adding erab_id=%d to GTPU", erab_id);
-    return 0;
+    return srsran::default_error_t();
   }
 
   // Initialize ERAB tunnel in GTPU right-away. DRBs are only created during RRC setup/reconf
   erab_t&             erab = it->second;
   erab_t::gtpu_tunnel bearer;
-  bearer.teid_out = teid_out;
-  bearer.addr     = addr;
-  bearer.teid_in  = gtpu->add_bearer(rnti, erab.id - 2, addr, teid_out, props);
+  bearer.teid_out                   = teid_out;
+  bearer.addr                       = addr;
+  srsran::expected<uint32_t> teidin = gtpu->add_bearer(rnti, erab.id - 2, addr, teid_out, props);
+  if (teidin.is_error()) {
+    logger->error("Adding erab_id=%d to GTPU", erab_id);
+    return srsran::default_error_t();
+  }
+  bearer.teid_in = teidin.value();
   erab.tunnels.push_back(bearer);
-  return bearer.teid_in;
+  return teidin;
 }
 
 void bearer_cfg_handler::rem_gtpu_bearer(uint32_t erab_id)

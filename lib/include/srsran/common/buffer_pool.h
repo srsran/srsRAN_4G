@@ -185,11 +185,17 @@ inline unique_byte_buffer_t make_byte_buffer(const char* debug_ctxt) noexcept
 }
 
 namespace detail {
+
 struct byte_buffer_pool_deleter {
   void operator()(void* ptr) { byte_buffer_pool::get_instance()->deallocate_node(ptr); }
 };
+
 } // namespace detail
 
+/**
+ * Class to wrap objects of type T which get allocated/deallocated using the byte_buffer_pool
+ * @tparam T type of the object being allocated
+ */
 template <typename T>
 struct byte_buffer_pool_ptr {
   static_assert(sizeof(T) <= byte_buffer_pool::BLOCK_SIZE, "pool_bounded_vector does not fit buffer pool block size");
@@ -202,6 +208,7 @@ public:
   const T* operator->() const { return ptr.get(); }
   T&       operator*() { return *ptr; }
   const T& operator*() const { return *ptr; }
+  bool     has_value() const { return ptr.get() != nullptr; }
 
   template <typename... CtorArgs>
   void emplace(CtorArgs&&... args)

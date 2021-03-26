@@ -414,12 +414,13 @@ void gtpu::send_pdu_to_tunnel(const gtpu_tunnel& tx_tun, srsran::unique_byte_buf
   }
 }
 
-uint32_t gtpu::add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out, const bearer_props* props)
+srsran::expected<uint32_t>
+gtpu::add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out, const bearer_props* props)
 {
   // Allocate a TEID for the incoming tunnel
   const gtpu_tunnel* new_tun = tunnels.add_tunnel(rnti, lcid, teid_out, addr);
   if (new_tun == nullptr) {
-    return -1;
+    return default_error_t();
   }
   uint32_t teid_in = new_tun->teid_in;
 
@@ -436,7 +437,7 @@ uint32_t gtpu::add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t 
     if (props->forward_from_teidin_present) {
       if (create_dl_fwd_tunnel(props->forward_from_teidin, teid_in) != SRSRAN_SUCCESS) {
         rem_tunnel(teid_in);
-        return -1;
+        return default_error_t();
       }
     }
   }

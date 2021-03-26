@@ -333,7 +333,7 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
       logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
       return false;
     }
-    asn1::bit_ref                bref(buffer->msg, buffer->get_tailroom());
+    asn1::bit_ref bref(buffer->msg, buffer->get_tailroom());
     if (rrc_ue->eutra_capabilities.pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
       logger.error("Failed to pack UE EUTRA Capability");
       return false;
@@ -376,7 +376,7 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
     logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
     return false;
   }
-  asn1::bit_ref                bref(buffer->msg, buffer->get_tailroom());
+  asn1::bit_ref bref(buffer->msg, buffer->get_tailroom());
   if (hoprep.pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
     Error("Failed to pack HO preparation msg");
     return false;
@@ -782,12 +782,17 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
           fwd_erab.dl_forwarding.value == asn1::s1ap::dl_forwarding_opts::dl_forwarding_proposed) {
         admitted_erab.dl_g_tp_teid_present = true;
         gtpu_interface_rrc::bearer_props props;
-        props.flush_before_teidin_present = true;
-        props.flush_before_teidin         = erab.second.teid_in;
-        uint32_t dl_teid_in               = rrc_ue->bearer_list.add_gtpu_bearer(
+        props.flush_before_teidin_present     = true;
+        props.flush_before_teidin             = erab.second.teid_in;
+        srsran::expected<uint32_t> dl_teid_in = rrc_ue->bearer_list.add_gtpu_bearer(
             erab.second.id, erab.second.teid_out, erab.second.address.to_number(), &props);
-        fwd_tunnels.push_back(dl_teid_in);
-        srsran::uint32_to_uint8(dl_teid_in, admitted_erabs.back().dl_g_tp_teid.data());
+        if (not dl_teid_in.has_value()) {
+          logger.error("Failed to allocate GTPU TEID");
+          trigger(srsran::failure_ev{});
+          return;
+        }
+        fwd_tunnels.push_back(dl_teid_in.value());
+        srsran::uint32_to_uint8(dl_teid_in.value(), admitted_erabs.back().dl_g_tp_teid.data());
       }
     }
   }

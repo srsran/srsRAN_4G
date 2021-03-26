@@ -15,6 +15,7 @@
 
 #include "srsenb/hdr/stack/mac/sched_common.h"
 #include "srsran/adt/bounded_bitset.h"
+#include "srsran/adt/span.h"
 #include "srsran/common/tti_point.h"
 #include "srsran/interfaces/sched_interface.h"
 

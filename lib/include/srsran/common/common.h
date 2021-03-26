@@ -17,7 +17,6 @@
                               INCLUDES
 *******************************************************************************/
 
-#include "srsran/adt/span.h"
 #include <chrono>
 #include <memory>
 #include <stdint.h>

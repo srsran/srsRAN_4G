@@ -148,10 +148,10 @@ public:
 class gtpu_dummy : public gtpu_interface_rrc
 {
 public:
-  uint32_t
+  srsran::expected<uint32_t>
   add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out, const bearer_props* props) override
   {
-    return 0;
+    return 1;
   }
   void set_tunnel_status(uint32_t teidin, bool dl_active) override {}
   void rem_bearer(uint16_t rnti, uint32_t lcid) override {}

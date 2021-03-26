@@ -182,7 +182,6 @@ int rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
   }
 
   if (rnti == SRSRAN_MRNTI) {
-    uint32_t teid_in = 1;
     for (auto& mbms_item : mcch.msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[0].mbms_session_info_list_r9) {
       uint32_t lcid = mbms_item.lc_ch_id_r9;
 
@@ -190,7 +189,7 @@ int rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
       mac->ue_cfg(SRSRAN_MRNTI, NULL);
       rlc->add_bearer_mrb(SRSRAN_MRNTI, lcid);
       pdcp->add_bearer(SRSRAN_MRNTI, lcid, srsran::make_drb_pdcp_config_t(1, false));
-      teid_in = gtpu->add_bearer(SRSRAN_MRNTI, lcid, 1, 1);
+      gtpu->add_bearer(SRSRAN_MRNTI, lcid, 1, 1);
     }
   }
   return SRSRAN_SUCCESS;

@@ -216,8 +216,8 @@ int test_gtpu_direct_tunneling(tunnel_test_event event)
   tenb_gtpu.init(tenb_addr_str, sgw_addr_str, "", "", &tenb_pdcp, &tenb_stack, false);
 
   // create tunnels MME-SeNB and MME-TeNB
-  uint32_t senb_teid_in = senb_gtpu.add_bearer(rnti, drb1, sgw_addr, sgw_teidout1);
-  uint32_t tenb_teid_in = tenb_gtpu.add_bearer(rnti2, drb1, sgw_addr, sgw_teidout2);
+  uint32_t senb_teid_in = senb_gtpu.add_bearer(rnti, drb1, sgw_addr, sgw_teidout1).value();
+  uint32_t tenb_teid_in = tenb_gtpu.add_bearer(rnti2, drb1, sgw_addr, sgw_teidout2).value();
 
   // Buffer PDUs in SeNB PDCP
   for (size_t sn = 6; sn < 10; ++sn) {
@@ -230,7 +230,7 @@ int test_gtpu_direct_tunneling(tunnel_test_event event)
   gtpu::bearer_props props;
   props.flush_before_teidin_present = true;
   props.flush_before_teidin         = tenb_teid_in;
-  uint32_t dl_tenb_teid_in          = tenb_gtpu.add_bearer(rnti2, drb1, senb_addr, 0, &props);
+  uint32_t dl_tenb_teid_in          = tenb_gtpu.add_bearer(rnti2, drb1, senb_addr, 0, &props).value();
   props                             = {};
   props.forward_from_teidin_present = true;
   props.forward_from_teidin         = senb_teid_in;

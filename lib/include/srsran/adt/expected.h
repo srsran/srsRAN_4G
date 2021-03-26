@@ -29,7 +29,9 @@ class expected
 public:
   expected() : has_val(true), val(T{}) {}
   expected(T&& t) : has_val(true), val(std::forward<T>(t)) {}
+  expected(const T& t) : has_val(true), val(t) {}
   expected(E&& e) : has_val(false), unexpected(std::forward<E>(e)) {}
+  expected(const E& e) : has_val(false), unexpected(e) {}
   expected(const expected& other)
   {
     if (other.has_val) {
