@@ -388,18 +388,21 @@ int main(int argc, char** argv)
           goto clean_exit;
         }
 
-        if (!pdsch_res[0].crc) {
-          ERROR("Failed to match CRC; n_prb=%d; mcs=%d; TBS=%d;", n_prb, mcs, pdsch_cfg.grant.tb[0].tbs);
-          goto clean_exit;
-        }
+        // Check CRC only for RV=0
+        if (rv_idx == 0) {
+          if (!pdsch_res[0].crc) {
+            ERROR("Failed to match CRC; n_prb=%d; mcs=%d; TBS=%d;", n_prb, mcs, pdsch_cfg.grant.tb[0].tbs);
+            goto clean_exit;
+          }
 
-        if (memcmp(data_tx[0], data_rx[0], pdsch_cfg.grant.tb[0].tbs / 8) != 0) {
-          ERROR("Failed to match Tx/Rx data; n_prb=%d; mcs=%d; TBS=%d;", n_prb, mcs, pdsch_cfg.grant.tb[0].tbs);
-          printf("Tx data: ");
-          srsran_vec_fprint_byte(stdout, data_tx[0], pdsch_cfg.grant.tb[0].tbs / 8);
-          printf("Rx data: ");
-          srsran_vec_fprint_byte(stdout, data_rx[0], pdsch_cfg.grant.tb[0].tbs / 8);
-          goto clean_exit;
+          if (memcmp(data_tx[0], data_rx[0], pdsch_cfg.grant.tb[0].tbs / 8) != 0) {
+            ERROR("Failed to match Tx/Rx data; n_prb=%d; mcs=%d; TBS=%d;", n_prb, mcs, pdsch_cfg.grant.tb[0].tbs);
+            printf("Tx data: ");
+            srsran_vec_fprint_byte(stdout, data_tx[0], pdsch_cfg.grant.tb[0].tbs / 8);
+            printf("Rx data: ");
+            srsran_vec_fprint_byte(stdout, data_rx[0], pdsch_cfg.grant.tb[0].tbs / 8);
+            goto clean_exit;
+          }
         }
 
         INFO("n_prb=%d; mcs=%d; TBS=%d; EVM=%f; PASSED!", n_prb, mcs, pdsch_cfg.grant.tb[0].tbs, pdsch_res[0].evm);
