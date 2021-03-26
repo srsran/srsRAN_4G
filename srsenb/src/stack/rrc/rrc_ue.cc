@@ -109,16 +109,30 @@ void rrc::ue::set_activity()
   }
 }
 
-void rrc::ue::activity_timer_expired()
+void rrc::ue::activity_timer_expired(activity_timeout_type_t type)
 {
   if (parent) {
     parent->logger.info("Activity timer for rnti=0x%x expired after %d ms", rnti, activity_timer.time_elapsed());
 
     if (parent->s1ap->user_exists(rnti)) {
-      parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::user_inactivity);
-      event_logger::get().log_rrc_disconnect(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
-                                             static_cast<unsigned>(rrc_idle_transition_cause::timeout),
-                                             rnti);
+      if (type == UE_INACTIVITY_TIMEOUT) {
+        parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::user_inactivity);
+        event_logger::get().log_rrc_disconnect(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                               static_cast<unsigned>(rrc_idle_transition_cause::timeout),
+                                               rnti);
+      } else if (type == UE_REESTABLISH_TIMEOUT) {
+        parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::radio_conn_with_ue_lost);
+        event_logger::get().log_rrc_disconnect(
+            ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+            static_cast<unsigned>(rrc_idle_transition_cause::radio_conn_with_ue_lost),
+            rnti);
+      } else {
+        parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::unspecified);
+        event_logger::get().log_rrc_disconnect(
+            ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+            static_cast<unsigned>(rrc_idle_transition_cause::radio_conn_with_ue_lost),
+            rnti);
+      }
     } else {
       if (rnti != SRSRAN_MRNTI) {
         parent->rem_user_thread(rnti);
@@ -168,7 +182,7 @@ void rrc::ue::set_activity_timeout(const activity_timeout_type_t type)
   }
 
   uint32_t deadline = deadline_s * 1e3 + deadline_ms;
-  activity_timer.set(deadline, [this](uint32_t tid) { activity_timer_expired(); });
+  activity_timer.set(deadline, [this, type](uint32_t tid) { activity_timer_expired(type); });
   parent->logger.debug("Setting timer for %s for rnti=0x%x to %dms", to_string(type).c_str(), rnti, deadline);
 
   set_activity();

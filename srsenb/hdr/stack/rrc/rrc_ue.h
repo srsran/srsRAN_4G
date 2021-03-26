@@ -41,7 +41,7 @@ public:
   std::string to_string(const activity_timeout_type_t& type);
   void        set_activity_timeout(const activity_timeout_type_t type);
   void        set_activity();
-  void        activity_timer_expired();
+  void        activity_timer_expired(const activity_timeout_type_t type);
   void        max_retx_reached();
 
   rrc_state_t get_state();
@@ -68,7 +68,7 @@ public:
   enum class conn_request_result_t { success, error_mme_not_connected, error_unknown_rnti };
 
   /// Possible causes for the RRC to transition to the idle state.
-  enum class rrc_idle_transition_cause { release, timeout };
+  enum class rrc_idle_transition_cause { release, timeout, radio_conn_with_ue_lost };
 
   void handle_rrc_con_req(asn1::rrc::rrc_conn_request_s* msg);
   void handle_rrc_con_setup_complete(asn1::rrc::rrc_conn_setup_complete_s* msg, srsran::unique_byte_buffer_t pdu);
