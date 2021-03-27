@@ -10,15 +10,19 @@
  *
  */
 
-#include "srsue/hdr/stack/mac/proc_bsr.h"
+#include "srsue/hdr/stack/mac_nr/proc_bsr_nr.h"
 #include "srsran/interfaces/ue_rlc_interfaces.h"
-#include "srsue/hdr/stack/mac/mux.h"
+#include "srsran/mac/mac_sch_pdu_nr.h"
 
 namespace srsue {
 
-void bsr_proc::init(sr_proc* sr_, rlc_interface_mac* rlc_, srsran::ext_task_sched_handle* task_sched_)
+int32_t proc_bsr_nr::init(proc_sr_nr*                    sr_,
+                          mux_interface_bsr_nr*          mux_,
+                          rlc_interface_mac*             rlc_,
+                          srsran::ext_task_sched_handle* task_sched_)
 {
   rlc        = rlc_;
+  mux        = mux_;
   sr         = sr_;
   task_sched = task_sched_;
 
@@ -37,9 +41,11 @@ void bsr_proc::init(sr_proc* sr_, rlc_interface_mac* rlc_, srsran::ext_task_sche
   timer_queue_status_print.run();
 
   initiated = true;
+
+  return SRSRAN_SUCCESS;
 }
 
-void bsr_proc::print_state()
+void proc_bsr_nr::print_state()
 {
   char str[128];
   str[0] = '\0';
@@ -53,7 +59,7 @@ void bsr_proc::print_state()
       "BSR:   triggered_bsr_type=%s, LCID QUEUE status: %s", bsr_trigger_type_tostring(triggered_bsr_type), str);
 }
 
-void bsr_proc::set_trigger(bsr_trigger_type_t new_trigger)
+void proc_bsr_nr::set_trigger(bsr_trigger_type_t new_trigger)
 {
   triggered_bsr_type = new_trigger;
 
@@ -64,7 +70,7 @@ void bsr_proc::set_trigger(bsr_trigger_type_t new_trigger)
   }
 }
 
-void bsr_proc::reset()
+void proc_bsr_nr::reset()
 {
   timer_periodic.stop();
   timer_retx.stop();
@@ -72,7 +78,7 @@ void bsr_proc::reset()
   triggered_bsr_type = NONE;
 }
 
-void bsr_proc::set_config(srsran::bsr_cfg_t& bsr_cfg_)
+int proc_bsr_nr::set_config(const srsran::bsr_cfg_nr_t& bsr_cfg_)
 {
   std::lock_guard<std::mutex> lock(mutex);
 
@@ -86,10 +92,12 @@ void bsr_proc::set_config(srsran::bsr_cfg_t& bsr_cfg_)
     timer_retx.set(bsr_cfg_.retx_timer, [this](uint32_t tid) { timer_expired(tid); });
     logger.info("BSR:   Configured timer reTX %d ms", bsr_cfg_.retx_timer);
   }
+
+  return SRSRAN_SUCCESS;
 }
 
 /* Process Periodic BSR */
-void bsr_proc::timer_expired(uint32_t timer_id)
+void proc_bsr_nr::timer_expired(uint32_t timer_id)
 {
   std::lock_guard<std::mutex> lock(mutex);
 
@@ -111,26 +119,27 @@ void bsr_proc::timer_expired(uint32_t timer_id)
   }
 }
 
-uint32_t bsr_proc::get_buffer_state()
+uint32_t proc_bsr_nr::get_buffer_state()
 {
   uint32_t buffer = 0;
-  for (int i = 0; i < NOF_LCG; i++) {
+  for (int i = 0; i < MAX_NOF_LCG; i++) {
     buffer += get_buffer_state_lcg(i);
   }
   return buffer;
 }
 
 // Checks if data is available for a channel with higher priority than others
-bool bsr_proc::check_highest_channel()
+bool proc_bsr_nr::check_highest_channel()
 {
-  for (int i = 0; i < NOF_LCG; i++) {
+  // TODO: move 4G implementation to base class or rewrite
+  for (int i = 0; i < MAX_NOF_LCG; i++) {
     for (std::map<uint32_t, lcid_t>::iterator iter = lcgs[i].begin(); iter != lcgs[i].end(); ++iter) {
       // If new data available
       if (iter->second.new_buffer > iter->second.old_buffer) {
         // Check if this LCID has higher priority than any other LCID ("belong to any LCG") for which data is already
         // available for transmission
         bool is_max_priority = true;
-        for (int j = 0; j < NOF_LCG; j++) {
+        for (int j = 0; j < MAX_NOF_LCG; j++) {
           for (std::map<uint32_t, lcid_t>::iterator iter2 = lcgs[j].begin(); iter2 != lcgs[j].end(); ++iter2) {
             // No max prio LCG if prio isn't higher or LCID already had buffered data
             if (iter2->second.priority <= iter->second.priority && (iter2->second.old_buffer > 0)) {
@@ -148,9 +157,10 @@ bool bsr_proc::check_highest_channel()
   return false;
 }
 
-bool bsr_proc::check_any_channel()
+bool proc_bsr_nr::check_any_channel()
 {
-  for (int i = 0; i < NOF_LCG; i++) {
+  // TODO: move 4G implementation to base class or rewrite
+  for (int i = 0; i < MAX_NOF_LCG; i++) {
     if (get_buffer_state_lcg(i)) {
       return true;
     }
@@ -159,9 +169,10 @@ bool bsr_proc::check_any_channel()
 }
 
 // Checks if only one logical channel has data avaiable for Tx
-bool bsr_proc::check_new_data()
+bool proc_bsr_nr::check_new_data()
 {
-  for (int i = 0; i < NOF_LCG; i++) {
+  // TODO: move 4G implementation to base class or rewrite
+  for (int i = 0; i < MAX_NOF_LCG; i++) {
     // If there was no data available in any LCID belonging to this LCG
     if (get_buffer_state_lcg(i) == 0) {
       for (std::map<uint32_t, lcid_t>::iterator iter = lcgs[i].begin(); iter != lcgs[i].end(); ++iter) {
@@ -175,26 +186,29 @@ bool bsr_proc::check_new_data()
   return false;
 }
 
-void bsr_proc::update_new_data()
+void proc_bsr_nr::update_new_data()
 {
-  for (int i = 0; i < NOF_LCG; i++) {
+  // TODO: move 4G implementation to base class or rewrite
+  for (int i = 0; i < MAX_NOF_LCG; i++) {
     for (std::map<uint32_t, lcid_t>::iterator iter = lcgs[i].begin(); iter != lcgs[i].end(); ++iter) {
       iter->second.new_buffer = rlc->get_buffer_state(iter->first);
     }
   }
 }
 
-void bsr_proc::update_old_buffer()
+void proc_bsr_nr::update_old_buffer()
 {
-  for (int i = 0; i < NOF_LCG; i++) {
+  // TODO: move 4G implementation to base class or rewrite
+  for (int i = 0; i < MAX_NOF_LCG; i++) {
     for (std::map<uint32_t, lcid_t>::iterator iter = lcgs[i].begin(); iter != lcgs[i].end(); ++iter) {
       iter->second.old_buffer = iter->second.new_buffer;
     }
   }
 }
 
-uint32_t bsr_proc::get_buffer_state_lcg(uint32_t lcg)
+uint32_t proc_bsr_nr::get_buffer_state_lcg(uint32_t lcg)
 {
+  // TODO: move 4G implementation to base class or rewrite
   uint32_t n = 0;
   for (std::map<uint32_t, lcid_t>::iterator iter = lcgs[lcg].begin(); iter != lcgs[lcg].end(); ++iter) {
     n += iter->second.old_buffer;
@@ -202,91 +216,23 @@ uint32_t bsr_proc::get_buffer_state_lcg(uint32_t lcg)
   return n;
 }
 
-// Checks if a BSR needs to be generated and, if so, configures the BSR format
-// It does not update the BSR values of the LCGs
-bool bsr_proc::generate_bsr(bsr_t* bsr, uint32_t pdu_space)
+// Generate BSR
+bool proc_bsr_nr::generate_bsr(bsr_t* bsr, uint32_t pdu_space)
 {
+  // TODO: add BSR generation
   bool     send_bsr = false;
-  uint32_t nof_lcg  = 0;
-
-  // Check if more than one LCG has data to sned
-  for (int i = 0; i < NOF_LCG; i++) {
-    if (bsr->buff_size[i] > 0) {
-      nof_lcg++;
-    }
-  }
-
-  if (pdu_space >= CE_SUBHEADER_LEN + ce_size(srsran::ul_sch_lcid::LONG_BSR)) {
-    // we could fit a long BSR
-    if (triggered_bsr_type != PADDING && nof_lcg <= 1) {
-      // for Regular and periodic BSR we still send a short BSR if only one LCG has data to send
-      bsr->format = SHORT_BSR;
-    } else {
-      bsr->format = LONG_BSR;
-    }
-    send_bsr = true;
-  } else if (pdu_space >= CE_SUBHEADER_LEN + ce_size(srsran::ul_sch_lcid::SHORT_BSR)) {
-    // we can only fit a short or truncated BSR
-    if (nof_lcg > 1) {
-      // send truncated BSR
-      bsr->format           = TRUNC_BSR;
-      uint32_t max_prio_lcg = find_max_priority_lcg_with_data();
-      for (uint32_t i = 0; i < NOF_LCG; i++) {
-        if (max_prio_lcg != i) {
-          bsr->buff_size[i] = 0;
-        }
-      }
-    } else {
-      bsr->format = SHORT_BSR;
-    }
-    send_bsr = true;
-  }
-
-  if (send_bsr) {
-    // Restart or Start Periodic timer every time a BSR is generated and transmitted in an UL grant
-    if (timer_periodic.duration() && bsr->format != TRUNC_BSR) {
-      timer_periodic.run();
-      logger.debug("BSR:   Started periodicBSR-Timer");
-    }
-    // reset trigger to avoid another BSR in the next UL grant
-    triggered_bsr_type = NONE;
-  }
-
   return send_bsr;
 }
 
-/* After packing all UL PDUs for this TTI, the internal buffer state of the BSR procedure needs to be updated with what
- * has actually been transmitted in each LCG. We don't ask RLC again as new SDUs could have queued up again. Currently
- * we just get the updates per LCG. Since we are only interested when zero outstanding data has been reported, we
- * currently just reset the buffer for each LCID of the LCG.
- */
-void bsr_proc::update_bsr_tti_end(const bsr_t* bsr)
-{
-  std::lock_guard<std::mutex> lock(mutex);
-
-  // Don't handle TBSR as it would reset old state for all non-reported LCGs, which might be wrong.
-  if (bsr->format == TRUNC_BSR) {
-    return;
-  }
-
-  for (uint32_t i = 0; i < NOF_LCG; i++) {
-    if (bsr->buff_size[i] == 0) {
-      for (std::map<uint32_t, lcid_t>::iterator iter = lcgs[i].begin(); iter != lcgs[i].end(); ++iter) {
-        // Reset buffer state for all LCIDs of that the LCG for which we reported no further data to transmit
-        iter->second.old_buffer = 0;
-      }
-    }
-  }
-}
-
+// Called by MAC every TTI
 // Checks if Regular BSR must be assembled, as defined in 5.4.5
 // Padding BSR is assembled when called by mux_unit when UL dci is received
 // Periodic BSR is triggered by the expiration of the timers
-void bsr_proc::step(uint32_t tti)
+void proc_bsr_nr::step(uint32_t tti)
 {
   std::lock_guard<std::mutex> lock(mutex);
 
-  if (!initiated) {
+  if (not initiated) {
     return;
   }
 
@@ -301,52 +247,29 @@ void bsr_proc::step(uint32_t tti)
   update_old_buffer();
 }
 
-char* bsr_proc::bsr_format_tostring(bsr_format_t format)
-{
-  switch (format) {
-    case bsr_proc::LONG_BSR:
-      return (char*)"Long";
-    case bsr_proc::SHORT_BSR:
-      return (char*)"Short";
-    case bsr_proc::TRUNC_BSR:
-      return (char*)"Truncated";
-    default:
-      return (char*)"Short";
-  }
-}
-
-bool bsr_proc::need_to_send_bsr_on_ul_grant(uint32_t grant_size, uint32_t total_data, bsr_t* bsr)
+void proc_bsr_nr::new_grant_ul(uint32_t grant_size)
 {
   std::lock_guard<std::mutex> lock(mutex);
-
-  bool send_bsr = false;
-  if (triggered_bsr_type == PERIODIC || triggered_bsr_type == REGULAR) {
-    // All triggered BSRs shall be cancelled in case the UL grant can accommodate all pending data
-    if (grant_size >= total_data) {
-      triggered_bsr_type = NONE;
-    } else {
-      send_bsr = generate_bsr(bsr, grant_size);
-    }
+  if (triggered_bsr_type != NONE) {
+    // inform MUX we need to generate a BSR
+    mux->generate_bsr_mac_ce();
   }
 
-  // Cancel SR if an Uplink grant is received
-  logger.debug("BSR:   Cancelling SR procedure due to uplink grant");
-  sr->reset();
-
-  // Restart or Start ReTX timer upon indication of a grant
-  if (timer_retx.duration()) {
-    timer_retx.run();
-    logger.debug("BSR:   Started retxBSR-Timer");
-  }
-  return send_bsr;
+  // TODO: restart retxBSR-Timer
 }
 
 // This function is called by MUX only if Regular BSR has not been triggered before
-bool bsr_proc::generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t* bsr)
+bool proc_bsr_nr::generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t* bsr)
 {
   std::lock_guard<std::mutex> lock(mutex);
 
-  if (nof_padding_bytes >= CE_SUBHEADER_LEN + ce_size(srsran::ul_sch_lcid::SHORT_BSR)) {
+  // TODO: get correct values from mac_sch_pdu_nr
+  const uint32_t SBSR_CE_SUBHEADER_LEN = 1;
+  const uint32_t LBSR_CE_SUBHEADER_LEN = 1;
+  // if the number of padding bits is equal to or larger than the size of the Short BSR plus its subheader but smaller
+  // than the size of the Long BSR plus its subheader
+  if (nof_padding_bytes >= SBSR_CE_SUBHEADER_LEN + srsran::mac_sch_subpdu_nr::sizeof_ce(SHORT_BSR, true) &&
+      nof_padding_bytes <= LBSR_CE_SUBHEADER_LEN + srsran::mac_sch_subpdu_nr::sizeof_ce(LONG_BSR, true)) {
     // generate padding BSR
     set_trigger(PADDING);
     generate_bsr(bsr, nof_padding_bytes);
@@ -357,30 +280,35 @@ bool bsr_proc::generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t* bsr)
   return false;
 }
 
-void bsr_proc::setup_lcid(uint32_t lcid, uint32_t new_lcg, uint32_t priority)
+int proc_bsr_nr::setup_lcid(uint32_t lcid, uint32_t new_lcg, uint32_t priority)
 {
+  // TODO: move 4G implementation to base class
+  if (new_lcg > MAX_NOF_LCG) {
+    logger.error("BSR:   Invalid lcg=%d for lcid=%d", new_lcg, lcid);
+    return SRSRAN_ERROR;
+  }
+
   std::lock_guard<std::mutex> lock(mutex);
 
-  if (new_lcg < NOF_LCG) {
-    // First see if it already exists and eliminate it
-    for (int i = 0; i < NOF_LCG; i++) {
-      if (lcgs[i].count(lcid)) {
-        lcgs[i].erase(lcid);
-      }
+  // First see if it already exists and eliminate it
+  for (int i = 0; i < MAX_NOF_LCG; i++) {
+    if (lcgs[i].count(lcid)) {
+      lcgs[i].erase(lcid);
     }
-    // Now add it
-    lcgs[new_lcg][lcid].priority   = priority;
-    lcgs[new_lcg][lcid].old_buffer = 0;
-  } else {
-    logger.error("BSR:   Invalid lcg=%d for lcid=%d", new_lcg, lcid);
   }
+  // Now add it
+  lcgs[new_lcg][lcid].priority   = priority;
+  lcgs[new_lcg][lcid].old_buffer = 0;
+
+  return SRSRAN_SUCCESS;
 }
 
-uint32_t bsr_proc::find_max_priority_lcg_with_data()
+uint32_t proc_bsr_nr::find_max_priority_lcg_with_data()
 {
+  // TODO: move 4G implementation to base class or rewrite
   int32_t  max_prio = 99;
   uint32_t max_idx  = 0;
-  for (int i = 0; i < NOF_LCG; i++) {
+  for (int i = 0; i < MAX_NOF_LCG; i++) {
     for (std::map<uint32_t, lcid_t>::iterator iter = lcgs[i].begin(); iter != lcgs[i].end(); ++iter) {
       if (iter->second.priority < max_prio && iter->second.old_buffer > 0) {
         max_prio = iter->second.priority;

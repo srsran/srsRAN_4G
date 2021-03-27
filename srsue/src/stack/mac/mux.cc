@@ -70,74 +70,17 @@ bool mux::is_pending_any_sdu()
   return false;
 }
 
-bool mux::has_logical_channel(const uint32_t& lcid)
-{
-  for (auto& channel : logical_channels) {
-    if (channel.lcid == lcid) {
-      return true;
-    }
-  }
-  return false;
-}
-
-bool priority_compare(const logical_channel_config_t& u1, const logical_channel_config_t& u2)
-{
-  return u1.priority <= u2.priority;
-}
-
 // This is called by RRC (stack thread) during bearer addition
 void mux::setup_lcid(const logical_channel_config_t& config)
 {
   std::lock_guard<std::mutex> lock(mutex);
-
-  if (has_logical_channel(config.lcid)) {
-    // update settings
-    for (auto& channel : logical_channels) {
-      if (channel.lcid == config.lcid) {
-        channel = config;
-        break;
-      }
-    }
-    // warn user if there is another LCID with same prio
-    for (auto& channel : logical_channels) {
-      if (channel.priority == config.priority && channel.lcid != config.lcid) {
-        logger.warning("LCID %d and %d have same priority.", channel.lcid, config.lcid);
-      }
-    }
-  } else {
-    // add new entry
-    logical_channels.push_back(config);
-  }
-
-  // sort according to priority (increasing is lower priority)
-  std::sort(logical_channels.begin(), logical_channels.end(), priority_compare);
+  mux_base::setup_lcid(config);
 }
 
 // mutex should be hold by caller
 void mux::print_logical_channel_state(const std::string& info)
 {
-  std::string logline = info;
-
-  for (auto& channel : logical_channels) {
-    logline += "\n";
-    logline += "- lcid=";
-    logline += std::to_string(channel.lcid);
-    logline += ", lcg=";
-    logline += std::to_string(channel.lcg);
-    logline += ", prio=";
-    logline += std::to_string(channel.priority);
-    logline += ", Bj=";
-    logline += std::to_string(channel.Bj);
-    logline += ", PBR=";
-    logline += std::to_string(channel.PBR);
-    logline += ", BSD=";
-    logline += std::to_string(channel.BSD);
-    logline += ", buffer_len=";
-    logline += std::to_string(channel.buffer_len);
-    logline += ", sched_len=";
-    logline += std::to_string(channel.sched_len);
-  }
-  logger.debug("%s", logline.c_str());
+  mux_base::print_logical_channel_state(info);
 }
 
 srsran::ul_sch_lcid bsr_format_convert(bsr_proc::bsr_format_t format)

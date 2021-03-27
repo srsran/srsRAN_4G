@@ -53,8 +53,12 @@ class dummy_mac : public mac_interface_proc_ra_nr
 {
 public:
   uint64_t get_contention_id() { return 0xdeadbeaf; }
-  uint16_t get_c_rnti() { return crnti; }
-  void     set_c_rnti(uint64_t c_rnti) { crnti = c_rnti; }
+  uint16_t get_crnti() { return crnti; }
+  bool     set_crnti(uint16_t c_rnti)
+  {
+    crnti = c_rnti;
+    return true;
+  }
 
   bool msg3_is_transmitted() { return true; }
   void msg3_flush() {}
@@ -79,9 +83,9 @@ int main()
   srsran::task_scheduler        task_sched{5, 2};
   srsran::ext_task_sched_handle ext_task_sched_h(&task_sched);
 
-  proc_ra_nr proc_ra_nr(mac_logger);
+  proc_ra_nr proc_ra_nr(dummy_mac, mac_logger);
 
-  proc_ra_nr.init(&dummy_phy, &dummy_mac, &ext_task_sched_h);
+  proc_ra_nr.init(&dummy_phy, &ext_task_sched_h);
   TESTASSERT(proc_ra_nr.is_rar_opportunity(1) == false);
   srsran::rach_nr_cfg_t rach_cfg;
   rach_cfg.powerRampingStep             = 4;

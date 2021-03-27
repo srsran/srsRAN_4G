@@ -50,6 +50,7 @@ struct rrc_nr_metrics_t {};
 class rrc_nr final : public rrc_interface_phy_nr,
                      public rrc_interface_pdcp,
                      public rrc_interface_rlc,
+                     public rrc_interface_mac,
                      public rrc_nr_interface_rrc,
                      public srsran::timer_callback
 {
@@ -99,6 +100,11 @@ public:
 
   // RLC interface
   void max_retx_attempted() final;
+
+  // MAC interface
+  void ra_completed() final;
+  void ra_problem() final;
+  void release_pucch_srs() final;
 
   // PDCP interface
   void write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu) final;

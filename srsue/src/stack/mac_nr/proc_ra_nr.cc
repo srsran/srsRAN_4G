@@ -30,14 +30,11 @@ uint32_t backoff_table_nr[16] = {0, 10, 20, 30, 40, 60, 80, 120, 160, 240, 320, 
 // Table 7.6-1: DELTA_PREAMBLE values long
 int delta_preamble_db_table_nr[5] = {0, -3, -6, 0};
 
-proc_ra_nr::proc_ra_nr(srslog::basic_logger& logger_) : logger(logger_) {}
+proc_ra_nr::proc_ra_nr(mac_interface_proc_ra_nr& mac_, srslog::basic_logger& logger_) : mac(mac_), logger(logger_) {}
 
-void proc_ra_nr::init(phy_interface_mac_nr*          phy_,
-                      mac_interface_proc_ra_nr*      mac_,
-                      srsran::ext_task_sched_handle* task_sched_)
+void proc_ra_nr::init(phy_interface_mac_nr* phy_, srsran::ext_task_sched_handle* task_sched_)
 {
   phy                         = phy_;
-  mac                         = mac_;
   task_sched                  = task_sched_;
   task_queue                  = task_sched->make_task_queue();
   prach_send_timer            = task_sched->get_unique_timer();
@@ -144,7 +141,7 @@ void proc_ra_nr::timer_expired(uint32_t timer_id)
 // 5.1.2 Random Access Resource selection
 void proc_ra_nr::ra_procedure_initialization()
 {
-  mac->msg3_flush();
+  mac.msg3_flush();
   preamble_power_ramping_step = rach_cfg.powerRampingStep;
   scaling_factor_bi           = 1;
   preambleTransMax            = rach_cfg.preambleTransMax;
@@ -206,7 +203,7 @@ void proc_ra_nr::ra_response_reception(const mac_interface_phy_nr::mac_nr_grant_
 
           // reset all parameters that are used before rar
           rar_rnti = SRSRAN_INVALID_RNTI;
-          mac->msg3_prepare();
+          mac.msg3_prepare();
           current_ta = subpdu.get_ta();
         }
       }
@@ -260,8 +257,8 @@ void proc_ra_nr::ra_completion()
                    srsran::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, WAITING_FOR_COMPLETION));
     return;
   }
-  srsran::console("Random Access Complete.     c-rnti=0x%x, ta=%d\n", mac->get_c_rnti(), current_ta);
-  logger.info("Random Access Complete.     c-rnti=0x%x, ta=%d", mac->get_c_rnti(), current_ta);
+  srsran::console("Random Access Complete.     c-rnti=0x%x, ta=%d\n", mac.get_crnti(), current_ta);
+  logger.info("Random Access Complete.     c-rnti=0x%x, ta=%d", mac.get_crnti(), current_ta);
   temp_rnti = SRSRAN_INVALID_RNTI;
   reset();
 }

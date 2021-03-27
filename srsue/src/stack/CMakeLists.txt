@@ -6,6 +6,7 @@
 # the distribution.
 #
 
+add_subdirectory(mac_common)
 add_subdirectory(mac)
 add_subdirectory(rrc)
 add_subdirectory(upper)

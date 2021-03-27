@@ -23,11 +23,12 @@
 #include "srsran/interfaces/mac_interface_types.h"
 #include "srsran/mac/pdu.h"
 #include "srsran/srslog/srslog.h"
+#include "srsue/hdr/stack/mac_common/mux_base.h"
 #include <mutex>
 
 namespace srsue {
 
-class mux
+class mux : private mux_base
 {
 public:
   explicit mux(srslog::basic_logger& logger);
@@ -56,14 +57,11 @@ public:
   void print_logical_channel_state(const std::string& info);
 
 private:
-  bool     has_logical_channel(const uint32_t& lcid);
   bool     pdu_move_to_msg3(uint32_t pdu_sz);
   uint32_t allocate_sdu(uint32_t lcid, srsran::sch_pdu* pdu, int max_sdu_sz);
   bool     sched_sdu(srsran::logical_channel_config_t* ch, int* sdu_space, int max_sdu_sz);
 
   const static int MAX_NOF_SUBHEADERS = 20;
-
-  std::vector<srsran::logical_channel_config_t> logical_channels;
 
   // Mutex for exclusive access
   std::mutex mutex;

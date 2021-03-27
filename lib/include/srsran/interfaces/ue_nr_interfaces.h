@@ -99,10 +99,10 @@ class mac_interface_rrc_nr
 {
 public:
   // Config calls that return SRSRAN_SUCCESS or SRSRAN_ERROR
-  virtual void    setup_lcid(const srsran::logical_channel_config_t& config) = 0;
-  virtual void    set_config(const srsran::bsr_cfg_t& bsr_cfg)               = 0;
-  virtual int32_t set_config(const srsran::sr_cfg_nr_t& sr_cfg)              = 0;
-  virtual void    set_config(const srsran::rach_nr_cfg_t& rach_cfg)          = 0;
+  virtual int  setup_lcid(const srsran::logical_channel_config_t& config) = 0;
+  virtual int  set_config(const srsran::bsr_cfg_nr_t& bsr_cfg)            = 0;
+  virtual int  set_config(const srsran::sr_cfg_nr_t& sr_cfg)              = 0;
+  virtual void set_config(const srsran::rach_nr_cfg_t& rach_cfg)          = 0;
 
   // RRC triggers MAC ra procedure
   virtual void start_ra_procedure() = 0;

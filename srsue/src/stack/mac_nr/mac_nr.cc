@@ -11,6 +11,7 @@
  */
 
 #include "srsue/hdr/stack/mac_nr/mac_nr.h"
+#include "srsran/interfaces/ue_rlc_interfaces.h"
 #include "srsran/mac/mac_rar_pdu_nr.h"
 #include "srsue/hdr/stack/mac_nr/proc_ra_nr.h"
 
@@ -19,9 +20,10 @@ namespace srsue {
 mac_nr::mac_nr(srsran::ext_task_sched_handle task_sched_) :
   task_sched(task_sched_),
   logger(srslog::fetch_basic_logger("MAC")),
-  proc_ra(logger),
+  proc_ra(*this, logger),
   proc_sr(logger),
-  mux(logger),
+  proc_bsr(logger),
+  mux(*this, logger),
   pcap(nullptr)
 {}
 
@@ -30,18 +32,29 @@ mac_nr::~mac_nr()
   stop();
 }
 
-int mac_nr::init(const mac_nr_args_t& args_, phy_interface_mac_nr* phy_, rlc_interface_mac* rlc_)
+int mac_nr::init(const mac_nr_args_t&  args_,
+                 phy_interface_mac_nr* phy_,
+                 rlc_interface_mac*    rlc_,
+                 rrc_interface_mac*    rrc_)
 {
   args = args_;
   phy  = phy_;
   rlc  = rlc_;
+  rrc  = rrc_;
 
   // Create Stack task dispatch queue
   stack_task_dispatch_queue = task_sched.make_task_queue();
 
-  proc_ra.init(phy, this, &task_sched);
+  // Init MAC sub procedures
+  proc_ra.init(phy, &task_sched);
+  proc_sr.init(&proc_ra, phy, rrc);
 
-  if (mux.init() != SRSRAN_SUCCESS) {
+  if (proc_bsr.init(&proc_sr, &mux, rlc, &task_sched) != SRSRAN_SUCCESS) {
+    logger.error("Couldn't initialize BSR procedure.");
+    return SRSRAN_ERROR;
+  }
+
+  if (mux.init(rlc) != SRSRAN_SUCCESS) {
     logger.error("Couldn't initialize mux unit.");
     return SRSRAN_ERROR;
   }
@@ -52,12 +65,8 @@ int mac_nr::init(const mac_nr_args_t& args_, phy_interface_mac_nr* phy_, rlc_int
     return SRSRAN_ERROR;
   }
 
-  tx_buffer = srsran::make_byte_buffer();
-  if (tx_buffer == nullptr) {
-    return SRSRAN_ERROR;
-  }
-  rlc_buffer = srsran::make_byte_buffer();
-  if (rlc_buffer == nullptr) {
+  ul_harq_buffer = srsran::make_byte_buffer();
+  if (ul_harq_buffer == nullptr) {
     return SRSRAN_ERROR;
   }
 
@@ -224,67 +233,26 @@ void mac_nr::new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant,
     proc_ra.pdcch_to_crnti();
   }
 
+  // Let BSR know there is a new grant, might have to send a BSR
+  proc_bsr.new_grant_ul(grant.tbs);
+
+  // TODO: add proper UL-HARQ
+  // The code below assumes a single HARQ entity, no retx, every Tx is always a new transmission
+  ul_harq_buffer = mux.get_pdu(grant.tbs);
+
   // fill TB action (goes into UL harq eventually)
-  action->tb.payload    = tx_buffer.get();
+  action->tb.payload    = ul_harq_buffer.get(); // pass handle to PDU to PHY
   action->tb.enabled    = true;
   action->tb.rv         = 0;
   action->tb.softbuffer = &softbuffer_tx;
   srsran_softbuffer_tx_reset(&softbuffer_tx);
 
-  // Pack MAC PDU
-  get_ul_data(grant, action->tb.payload);
+  // store PCAP
+  if (pcap) {
+    pcap->write_ul_crnti_nr(ul_harq_buffer->msg, ul_harq_buffer->N_bytes, grant.rnti, grant.pid, grant.tti);
+  }
 
   metrics[cc_idx].tx_pkts++;
-}
-
-void mac_nr::get_ul_data(const mac_nr_grant_ul_t& grant, srsran::byte_buffer_t* phy_tx_pdu)
-{
-  // initialize MAC PDU
-  phy_tx_pdu->clear();
-  tx_pdu.init_tx(phy_tx_pdu, grant.tbs / 8U, true);
-
-  if (mux.msg3_is_pending()) {
-    // If message 3 is pending pack message 3 for uplink transmission
-    // Use the CRNTI which is provided in the RRC reconfiguration (only for DC mode maybe other)
-    tx_pdu.add_crnti_ce(c_rnti);
-    srsran::mac_sch_subpdu_nr::lcg_bsr_t sbsr = {};
-    sbsr.lcg_id                               = 0;
-    sbsr.buffer_size                          = 1;
-    tx_pdu.add_sbsr_ce(sbsr);
-    logger.info("Generated msg3 with RNTI 0x%x", c_rnti);
-    mux.msg3_transmitted();
-  } else {
-    // Pack normal UL data PDU
-    while (tx_pdu.get_remaing_len() >= MIN_RLC_PDU_LEN) {
-      // read RLC PDU
-      rlc_buffer->clear();
-      uint8_t* rd      = rlc_buffer->msg;
-      int      pdu_len = 0;
-      pdu_len          = rlc->read_pdu(4, rd, tx_pdu.get_remaing_len() - 2);
-
-      // Add SDU if RLC has something to tx
-      if (pdu_len > 0) {
-        rlc_buffer->N_bytes = pdu_len;
-        logger.info(rlc_buffer->msg, rlc_buffer->N_bytes, "Read %d B from RLC", rlc_buffer->N_bytes);
-
-        // add to MAC PDU and pack
-        if (tx_pdu.add_sdu(4, rlc_buffer->msg, rlc_buffer->N_bytes) != SRSRAN_SUCCESS) {
-          logger.error("Error packing MAC PDU");
-        }
-      } else {
-        break;
-      }
-    }
-  }
-
-  // Pack PDU
-  tx_pdu.pack();
-
-  logger.info(phy_tx_pdu->msg, phy_tx_pdu->N_bytes, "Generated MAC PDU (%d B)", phy_tx_pdu->N_bytes);
-
-  if (pcap) {
-    pcap->write_ul_crnti_nr(phy_tx_pdu->msg, phy_tx_pdu->N_bytes, grant.rnti, grant.pid, grant.tti);
-  }
 }
 
 void mac_nr::timer_expired(uint32_t timer_id)
@@ -292,8 +260,18 @@ void mac_nr::timer_expired(uint32_t timer_id)
   // not implemented
 }
 
-void mac_nr::setup_lcid(const srsran::logical_channel_config_t& config)
+int mac_nr::setup_lcid(const srsran::logical_channel_config_t& config)
 {
+  if (mux.setup_lcid(config) != SRSRAN_SUCCESS) {
+    logger.error("Couldn't register logical channel at MUX unit.");
+    return SRSRAN_ERROR;
+  }
+
+  if (proc_bsr.setup_lcid(config.lcid, config.lcg, config.priority) != SRSRAN_SUCCESS) {
+    logger.error("Couldn't register logical channel at BSR procedure.");
+    return SRSRAN_ERROR;
+  }
+
   logger.info("Logical Channel Setup: LCID=%d, LCG=%d, priority=%d, PBR=%d, BSD=%dms, bucket_size=%d",
               config.lcid,
               config.lcg,
@@ -301,17 +279,16 @@ void mac_nr::setup_lcid(const srsran::logical_channel_config_t& config)
               config.PBR,
               config.BSD,
               config.bucket_size);
-  // mux_unit.setup_lcid(config);
-  // bsr_procedure.setup_lcid(config.lcid, config.lcg, config.priority);
+
+  return SRSRAN_SUCCESS;
 }
 
-void mac_nr::set_config(const srsran::bsr_cfg_t& bsr_cfg)
+int mac_nr::set_config(const srsran::bsr_cfg_nr_t& bsr_cfg)
 {
-  logger.info("BSR config periodic timer %d retx timer %d", bsr_cfg.periodic_timer, bsr_cfg.retx_timer);
-  logger.warning("Not handling BSR config yet");
+  return proc_bsr.set_config(bsr_cfg);
 }
 
-int32_t mac_nr::set_config(const srsran::sr_cfg_nr_t& sr_cfg)
+int mac_nr::set_config(const srsran::sr_cfg_nr_t& sr_cfg)
 {
   return proc_sr.set_config(sr_cfg);
 }
@@ -378,25 +355,13 @@ void mac_nr::handle_pdu(srsran::unique_byte_buffer_t pdu)
                 subpdu.get_c_rnti(),
                 subpdu.get_lcid(),
                 subpdu.get_sdu_length());
-    if (subpdu.get_lcid() == 4) {
-      rlc->write_pdu(subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());
-    }
+    rlc->write_pdu(subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());
   }
 }
 
 uint64_t mac_nr::get_contention_id()
 {
   return 0xdeadbeef; // TODO when rebased on PR
-}
-
-uint16_t mac_nr::get_c_rnti()
-{
-  return c_rnti;
-}
-
-void mac_nr::set_c_rnti(uint64_t c_rnti_)
-{
-  c_rnti = c_rnti_;
 }
 
 // TODO same function as for mac_eutra

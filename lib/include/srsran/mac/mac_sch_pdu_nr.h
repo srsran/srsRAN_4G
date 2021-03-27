@@ -88,9 +88,10 @@ public:
 
   uint32_t write_subpdu(const uint8_t* start_);
 
-private:
-  uint32_t sizeof_ce(uint32_t lcid, bool is_ul);
+  // Used by BSR procedure to determine size of BSR types
+  static uint32_t sizeof_ce(uint32_t lcid, bool is_ul);
 
+private:
   // protected:
   uint32_t lcid          = 0;
   int      header_length = 0;
