@@ -1,30 +1,21 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #ifndef SRSUE_PACKET_FILTER_H
 #define SRSUE_PACKET_FILTER_H
 
-#include "srslte/asn1/liblte_mme.h"
-#include "srslte/common/buffer_pool.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/asn1/liblte_mme.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/srslog/srslog.h"
 #include <mutex>
 
 namespace srsue {
@@ -71,7 +62,7 @@ public:
                       uint8_t                                lcid_,
                       const LIBLTE_MME_PACKET_FILTER_STRUCT& tft_,
                       srslog::basic_logger&                  logger);
-  bool match(const srslte::unique_byte_buffer_t& pdu);
+  bool match(const srsran::unique_byte_buffer_t& pdu);
   bool filter_contains(uint16_t filtertype);
 
   uint8_t  eps_bearer_id{};
@@ -101,11 +92,11 @@ public:
 
   srslog::basic_logger& logger;
 
-  bool match_ip(const srslte::unique_byte_buffer_t& pdu);
-  bool match_protocol(const srslte::unique_byte_buffer_t& pdu);
-  bool match_type_of_service(const srslte::unique_byte_buffer_t& pdu);
-  bool match_flow_label(const srslte::unique_byte_buffer_t& pdu);
-  bool match_port(const srslte::unique_byte_buffer_t& pdu);
+  bool match_ip(const srsran::unique_byte_buffer_t& pdu);
+  bool match_protocol(const srsran::unique_byte_buffer_t& pdu);
+  bool match_type_of_service(const srsran::unique_byte_buffer_t& pdu);
+  bool match_flow_label(const srsran::unique_byte_buffer_t& pdu);
+  bool match_port(const srsran::unique_byte_buffer_t& pdu);
 };
 
 /**
@@ -118,7 +109,7 @@ public:
   ~tft_pdu_matcher(){};
 
   void    set_default_lcid(const uint8_t lcid);
-  uint8_t check_tft_filter_match(const srslte::unique_byte_buffer_t& pdu);
+  uint8_t check_tft_filter_match(const srsran::unique_byte_buffer_t& pdu);
   int     apply_traffic_flow_template(const uint8_t&                                 erab_id,
                                       const uint8_t&                                 lcid,
                                       const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft);

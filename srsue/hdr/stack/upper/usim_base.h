@@ -1,31 +1,22 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #ifndef SRSUE_USIM_BASE_H
 #define SRSUE_USIM_BASE_H
 
-#include "srslte/common/common.h"
-#include "srslte/common/security.h"
-#include "srslte/interfaces/ue_usim_interfaces.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/common/common.h"
+#include "srsran/common/security.h"
+#include "srsran/interfaces/ue_usim_interfaces.h"
+#include "srsran/srslog/srslog.h"
 #include <string>
 
 namespace srsue {
@@ -79,7 +70,7 @@ public:
 
   bool get_imsi_vec(uint8_t* imsi_, uint32_t n) final;
   bool get_imei_vec(uint8_t* imei_, uint32_t n) final;
-  bool get_home_plmn_id(srslte::plmn_id_t* home_plmn_id) final;
+  bool get_home_plmn_id(srsran::plmn_id_t* home_plmn_id) final;
 
   virtual auth_result_t generate_authentication_response(uint8_t* rand,
                                                          uint8_t* autn_enb,
@@ -92,18 +83,18 @@ public:
   void generate_nas_keys(uint8_t*                            k_asme,
                          uint8_t*                            k_nas_enc,
                          uint8_t*                            k_nas_int,
-                         srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
-                         srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo) final;
+                         srsran::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
+                         srsran::INTEGRITY_ALGORITHM_ID_ENUM integ_algo) final;
 
   // RRC interface
-  void generate_as_keys(uint8_t* k_asme, uint32_t count_ul, srslte::as_security_config_t* sec_cfg) final;
-  void generate_as_keys_ho(uint32_t pci, uint32_t earfcn, int ncc, srslte::as_security_config_t* sec_cfg) final;
-  void store_keys_before_ho(const srslte::as_security_config_t& as_ctx) final;
-  void restore_keys_from_failed_ho(srslte::as_security_config_t* as_ctx) final;
+  void generate_as_keys(uint8_t* k_asme, uint32_t count_ul, srsran::as_security_config_t* sec_cfg) final;
+  void generate_as_keys_ho(uint32_t pci, uint32_t earfcn, int ncc, srsran::as_security_config_t* sec_cfg) final;
+  void store_keys_before_ho(const srsran::as_security_config_t& as_ctx) final;
+  void restore_keys_from_failed_ho(srsran::as_security_config_t* as_ctx) final;
 
   // NR RRC interface
-  void generate_nr_context(uint16_t sk_counter, srslte::as_security_config_t* sec_cfg) final;
-  void update_nr_context(srslte::as_security_config_t* sec_cfg) final;
+  bool generate_nr_context(uint16_t sk_counter, srsran::as_security_config_t* sec_cfg) final;
+  bool update_nr_context(srsran::as_security_config_t* sec_cfg) final;
 
   // Helpers
   std::string         get_mcc_str(const uint8_t* imsi_vec);
@@ -132,12 +123,12 @@ protected:
   uint8_t auts[AKA_AUTS_LEN]     = {};
 
   // Current K_eNB context (K_eNB, NH and NCC)
-  srslte::k_enb_context_t k_enb_ctx = {};
-  srslte::k_gnb_context_t k_gnb_ctx = {};
+  srsran::k_enb_context_t k_enb_ctx = {};
+  srsran::k_gnb_context_t k_gnb_ctx = {};
 
   // Helpers to restore security context if HO fails
-  srslte::k_enb_context_t      old_k_enb_ctx = {};
-  srslte::as_security_config_t old_as_ctx    = {};
+  srsran::k_enb_context_t      old_k_enb_ctx = {};
+  srsran::as_security_config_t old_as_ctx    = {};
 };
 
 } // namespace srsue

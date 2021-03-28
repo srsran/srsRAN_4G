@@ -1,27 +1,18 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #include "srsenb/hdr/stack/mac/mac_nr.h"
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/log_helper.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/common/log_helper.h"
 #include <pthread.h>
 #include <string.h>
 #include <strings.h>
@@ -31,14 +22,6 @@ namespace srsenb {
 
 mac_nr::mac_nr() : logger(srslog::fetch_basic_logger("MAC"))
 {
-  bcch_bch_payload = srslte::make_byte_buffer();
-
-  // allocate 8 tx buffers for UE (TODO: as we don't handle softbuffers why do we need so many buffers)
-  for (int i = 0; i < SRSLTE_FDD_NOF_HARQ; i++) {
-    ue_tx_buffer.emplace_back(srslte::make_byte_buffer());
-  }
-
-  ue_rlc_buffer = srslte::make_byte_buffer();
 }
 
 mac_nr::~mac_nr()
@@ -63,15 +46,34 @@ int mac_nr::init(const mac_nr_args_t&    args_,
   logger.set_hex_dump_max_size(args.log_hex_limit);
 
   if (args.pcap.enable) {
-    pcap = std::unique_ptr<srslte::mac_pcap>(new srslte::mac_pcap());
+    pcap = std::unique_ptr<srsran::mac_pcap>(new srsran::mac_pcap());
     pcap->open(args.pcap.filename);
+  }
+
+  bcch_bch_payload = srsran::make_byte_buffer();
+  if (bcch_bch_payload == nullptr) {
+    return SRSRAN_ERROR;
+  }
+
+  // allocate 8 tx buffers for UE (TODO: as we don't handle softbuffers why do we need so many buffers)
+  for (int i = 0; i < SRSRAN_FDD_NOF_HARQ; i++) {
+    srsran::unique_byte_buffer_t buffer = srsran::make_byte_buffer();
+    if (buffer == nullptr) {
+      return SRSRAN_ERROR;
+    }
+    ue_tx_buffer.emplace_back(std::move(buffer));
+  }
+
+  ue_rlc_buffer = srsran::make_byte_buffer();
+  if (ue_rlc_buffer == nullptr) {
+    return SRSRAN_ERROR;
   }
 
   logger.info("Started");
 
   started = true;
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 void mac_nr::stop()
@@ -95,7 +97,7 @@ void mac_nr::get_dl_config(const uint32_t                               tti,
   // send MIB over BCH every 80ms
   if (tti % 80 == 0) {
     // try to read BCH PDU from RRC
-    if (rrc_h->read_pdu_bcch_bch(tti, bcch_bch_payload) == SRSLTE_SUCCESS) {
+    if (rrc_h->read_pdu_bcch_bch(tti, bcch_bch_payload) == SRSRAN_SUCCESS) {
       logger.info("Adding BCH in TTI=%d", tti);
       tx_request.pdus[tx_request.nof_pdus].pbch.mib_present = true;
       tx_request.pdus[tx_request.nof_pdus].data[0]          = bcch_bch_payload->msg;
@@ -132,7 +134,7 @@ void mac_nr::get_dl_config(const uint32_t                               tti,
 
   // Add MAC padding if TTI is empty
   if (tx_request.nof_pdus == 0) {
-    uint32_t buffer_index = tti % SRSLTE_FDD_NOF_HARQ;
+    uint32_t buffer_index = tti % SRSRAN_FDD_NOF_HARQ;
 
     ue_tx_buffer.at(buffer_index)->clear();
     ue_tx_pdu.init_tx(ue_tx_buffer.at(buffer_index).get(), args.tb_size);
@@ -192,7 +194,7 @@ int mac_nr::sf_indication(const uint32_t tti)
   // send TX.request
   phy_h->tx_request(tx_request);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int mac_nr::rx_data_indication(stack_interface_phy_nr::rx_data_ind_t& rx_data)
@@ -208,7 +210,7 @@ int mac_nr::rx_data_indication(stack_interface_phy_nr::rx_data_ind_t& rx_data)
   // inform stack that new PDUs may have been received
   stack_h->process_pdus();
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 /**
@@ -217,13 +219,13 @@ int mac_nr::rx_data_indication(stack_interface_phy_nr::rx_data_ind_t& rx_data)
 void mac_nr::process_pdus()
 {
   while (started and not ue_rx_pdu_queue.empty()) {
-    srslte::unique_byte_buffer_t pdu = ue_rx_pdu_queue.wait_pop();
+    srsran::unique_byte_buffer_t pdu = ue_rx_pdu_queue.wait_pop();
     /// TODO; delegate to demux class
     handle_pdu(std::move(pdu));
   }
 }
 
-int mac_nr::handle_pdu(srslte::unique_byte_buffer_t pdu)
+int mac_nr::handle_pdu(srsran::unique_byte_buffer_t pdu)
 {
   logger.info(pdu->msg, pdu->N_bytes, "Handling MAC PDU (%d B)", pdu->N_bytes);
 
@@ -231,7 +233,7 @@ int mac_nr::handle_pdu(srslte::unique_byte_buffer_t pdu)
   ue_rx_pdu.unpack(pdu->msg, pdu->N_bytes);
 
   for (uint32_t i = 0; i < ue_rx_pdu.get_num_subpdus(); ++i) {
-    srslte::mac_sch_subpdu_nr subpdu = ue_rx_pdu.get_subpdu(i);
+    srsran::mac_sch_subpdu_nr subpdu = ue_rx_pdu.get_subpdu(i);
     logger.info("Handling subPDU %d/%d: lcid=%d, sdu_len=%d",
                 i,
                 ue_rx_pdu.get_num_subpdus(),
@@ -240,7 +242,7 @@ int mac_nr::handle_pdu(srslte::unique_byte_buffer_t pdu)
 
     // rlc_h->write_pdu(args.rnti, subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int mac_nr::cell_cfg(srsenb::sched_interface::cell_cfg_t* cell_cfg)
@@ -253,8 +255,8 @@ int mac_nr::cell_cfg(srsenb::sched_interface::cell_cfg_t* cell_cfg)
       sib_info_t sib  = {};
       sib.index       = i;
       sib.periodicity = cell_cfg->sibs->period_rf;
-      sib.payload     = srslte::make_byte_buffer();
-      if (rrc_h->read_pdu_bcch_dlsch(sib.index, sib.payload) != SRSLTE_SUCCESS) {
+      sib.payload     = srsran::make_byte_buffer();
+      if (rrc_h->read_pdu_bcch_dlsch(sib.index, sib.payload) != SRSRAN_SUCCESS) {
         logger.error("Couldn't read SIB %d from RRC", sib.index);
       }
 
@@ -263,7 +265,7 @@ int mac_nr::cell_cfg(srsenb::sched_interface::cell_cfg_t* cell_cfg)
     }
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 } // namespace srsenb

@@ -1,27 +1,18 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #include "srsenb/hdr/stack/rrc/ue_meas_cfg.h"
 #include "srsenb/hdr/stack/rrc/rrc_cell_cfg.h"
-#include "srslte/rrc/rrc_cfg_utils.h"
+#include "srsran/rrc/rrc_cfg_utils.h"
 
 using namespace asn1::rrc;
 
@@ -33,20 +24,20 @@ namespace srsenb {
 
 bool is_same_earfcn(const meas_obj_t& lhs, const meas_obj_t& rhs)
 {
-  int freq1 = srslte::get_carrier_freq(lhs);
-  int freq2 = srslte::get_carrier_freq(rhs);
+  int freq1 = srsran::get_carrier_freq(lhs);
+  int freq2 = srsran::get_carrier_freq(rhs);
   return freq1 != -1 and freq1 == freq2;
 }
 
 meas_obj_t* find_meas_obj(meas_obj_to_add_mod_list_l& l, uint32_t earfcn)
 {
-  auto same_earfcn = [earfcn](const meas_obj_t& obj) { return (int)earfcn == srslte::get_carrier_freq(obj); };
+  auto same_earfcn = [earfcn](const meas_obj_t& obj) { return (int)earfcn == srsran::get_carrier_freq(obj); };
   auto it          = std::find_if(l.begin(), l.end(), same_earfcn);
   return it == l.end() ? nullptr : &(*it);
 }
 const meas_obj_t* find_meas_obj(const meas_obj_to_add_mod_list_l& l, uint32_t earfcn)
 {
-  auto same_earfcn = [earfcn](const meas_obj_t& obj) { return (int)earfcn == srslte::get_carrier_freq(obj); };
+  auto same_earfcn = [earfcn](const meas_obj_t& obj) { return (int)earfcn == srsran::get_carrier_freq(obj); };
   auto it          = std::find_if(l.begin(), l.end(), same_earfcn);
   return it == l.end() ? nullptr : &(*it);
 }
@@ -76,13 +67,13 @@ std::pair<bool, meas_obj_t*> add_meas_obj(meas_obj_list& list, uint32_t dl_earfc
   }
 
   meas_obj_t new_obj;
-  new_obj.meas_obj_id                = srslte::find_rrc_obj_id_gap(list);
+  new_obj.meas_obj_id                = srsran::find_rrc_obj_id_gap(list);
   asn1::rrc::meas_obj_eutra_s& eutra = new_obj.meas_obj.set_meas_obj_eutra();
   eutra.carrier_freq                 = dl_earfcn;
   eutra.allowed_meas_bw.value        = asn1::rrc::allowed_meas_bw_e::mbw6; // TODO: What value to add here?
   eutra.neigh_cell_cfg.from_number(1);                                     // No MBSFN subframes present in neighbors
   eutra.offset_freq_present = false;                                       // no offset
-  obj                       = srslte::add_rrc_obj(list, new_obj);
+  obj                       = srsran::add_rrc_obj(list, new_obj);
   return {true, obj};
 }
 
@@ -112,8 +103,8 @@ std::tuple<bool, meas_obj_t*, cells_to_add_mod_s*> add_cell_enb_cfg(meas_obj_lis
     } else {
       auto& eutra_obj = ret.first->meas_obj.meas_obj_eutra();
       // pci not found. create new cell
-      new_cell.cell_idx                       = srslte::find_rrc_obj_id_gap(eutra_obj.cells_to_add_mod_list);
-      ret.second                              = srslte::add_rrc_obj(eutra_obj.cells_to_add_mod_list, new_cell);
+      new_cell.cell_idx                       = srsran::find_rrc_obj_id_gap(eutra_obj.cells_to_add_mod_list);
+      ret.second                              = srsran::add_rrc_obj(eutra_obj.cells_to_add_mod_list, new_cell);
       eutra_obj.cells_to_add_mod_list_present = true;
     }
   } else {
@@ -140,7 +131,7 @@ meas_obj_to_add_mod_s* meascfg_add_meas_obj(meas_cfg_s* meas_cfg, const meas_obj
   meas_cfg->meas_obj_to_add_mod_list_present = true;
 
   // search for meas_obj by obj_id to ensure uniqueness (assume sorted)
-  auto meas_obj_it = srslte::add_rrc_obj_id(meas_cfg->meas_obj_to_add_mod_list, meas_obj.meas_obj_id);
+  auto meas_obj_it = srsran::add_rrc_obj_id(meas_cfg->meas_obj_to_add_mod_list, meas_obj.meas_obj_id);
   // TODO: Assert dl_earfcn is the same
 
   auto& target_eutra               = meas_obj_it->meas_obj.set_meas_obj_eutra();
@@ -162,7 +153,7 @@ void compute_diff_cells(const meas_obj_eutra_s& src_it,
                         meas_obj_to_add_mod_s*  added_obj)
 {
   meas_obj_eutra_s* eutra_obj = &added_obj->meas_obj.meas_obj_eutra();
-  srslte::compute_cfg_diff(src_it.cells_to_add_mod_list,
+  srsran::compute_cfg_diff(src_it.cells_to_add_mod_list,
                            target_it.cells_to_add_mod_list,
                            eutra_obj->cells_to_add_mod_list,
                            eutra_obj->cells_to_rem_list);
@@ -186,7 +177,7 @@ void compute_diff_meas_objs(const meas_cfg_s& prev_cfg, const meas_cfg_s& target
       compute_diff_cells(src_it->meas_obj.meas_obj_eutra(), target_it->meas_obj.meas_obj_eutra(), added_obj);
     }
   };
-  srslte::compute_cfg_diff(
+  srsran::compute_cfg_diff(
       prev_cfg.meas_obj_to_add_mod_list, target_cfg.meas_obj_to_add_mod_list, rem_func, add_func, mod_func);
   meas_cfg.meas_obj_to_add_mod_list_present = meas_cfg.meas_obj_to_add_mod_list.size() > 0;
   meas_cfg.meas_obj_to_rem_list_present     = meas_cfg.meas_obj_to_rem_list.size() > 0;
@@ -200,10 +191,10 @@ void compute_diff_meas_objs(const meas_cfg_s& prev_cfg, const meas_cfg_s& target
 report_cfg_to_add_mod_s* add_report_cfg(report_cfg_list& list, const report_cfg_eutra_s& reportcfg)
 {
   report_cfg_to_add_mod_s new_rep;
-  new_rep.report_cfg_id                     = srslte::find_rrc_obj_id_gap(list);
+  new_rep.report_cfg_id                     = srsran::find_rrc_obj_id_gap(list);
   new_rep.report_cfg.set_report_cfg_eutra() = reportcfg;
 
-  return srslte::add_rrc_obj(list, new_rep);
+  return srsran::add_rrc_obj(list, new_rep);
 }
 
 /**
@@ -211,7 +202,7 @@ report_cfg_to_add_mod_s* add_report_cfg(report_cfg_list& list, const report_cfg_
  */
 void compute_diff_report_cfgs(const meas_cfg_s& src_cfg, const meas_cfg_s& target_cfg, meas_cfg_s& meas_cfg)
 {
-  srslte::compute_cfg_diff(src_cfg.report_cfg_to_add_mod_list,
+  srsran::compute_cfg_diff(src_cfg.report_cfg_to_add_mod_list,
                            target_cfg.report_cfg_to_add_mod_list,
                            meas_cfg.report_cfg_to_add_mod_list,
                            meas_cfg.report_cfg_to_rem_list);
@@ -224,13 +215,13 @@ meas_id_to_add_mod_s* add_measid_cfg(meas_id_to_add_mod_list_l& meas_id_list, ui
   meas_id_to_add_mod_s new_measid;
   new_measid.report_cfg_id = measrepid;
   new_measid.meas_obj_id   = measobjid;
-  new_measid.meas_id       = srslte::find_rrc_obj_id_gap(meas_id_list);
-  return srslte::add_rrc_obj(meas_id_list, new_measid);
+  new_measid.meas_id       = srsran::find_rrc_obj_id_gap(meas_id_list);
+  return srsran::add_rrc_obj(meas_id_list, new_measid);
 }
 
 void compute_diff_meas_ids(const meas_cfg_s& src_cfg, const meas_cfg_s& target_cfg, meas_cfg_s& meas_cfg)
 {
-  srslte::compute_cfg_diff(src_cfg.meas_id_to_add_mod_list,
+  srsran::compute_cfg_diff(src_cfg.meas_id_to_add_mod_list,
                            target_cfg.meas_id_to_add_mod_list,
                            meas_cfg.meas_id_to_add_mod_list,
                            meas_cfg.meas_id_to_rem_list);

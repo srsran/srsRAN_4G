@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -26,8 +17,8 @@
 #include <stdint.h>
 
 #include "proc_sr.h"
-#include "srslte/common/task_scheduler.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/common/task_scheduler.h"
+#include "srsran/srslog/srslog.h"
 
 /* Buffer status report procedure */
 
@@ -56,14 +47,14 @@ public:
   virtual void update_bsr_tti_end(const bsr_t* bsr) = 0;
 };
 
-class bsr_proc : public srslte::timer_callback, public bsr_interface_mux
+class bsr_proc : public srsran::timer_callback, public bsr_interface_mux
 {
 public:
   explicit bsr_proc(srslog::basic_logger& logger) : logger(logger) {}
-  void init(sr_proc* sr_proc, rlc_interface_mac* rlc, srslte::ext_task_sched_handle* task_sched_);
+  void init(sr_proc* sr_proc, rlc_interface_mac* rlc, srsran::ext_task_sched_handle* task_sched_);
   void step(uint32_t tti);
   void reset();
-  void set_config(srslte::bsr_cfg_t& bsr_cfg);
+  void set_config(srsran::bsr_cfg_t& bsr_cfg);
 
   void     setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority);
   void     timer_expired(uint32_t timer_id);
@@ -77,12 +68,12 @@ private:
 
   std::mutex mutex;
 
-  srslte::ext_task_sched_handle* task_sched = nullptr;
+  srsran::ext_task_sched_handle* task_sched = nullptr;
   srslog::basic_logger&          logger;
   rlc_interface_mac*             rlc = nullptr;
   sr_proc*                       sr  = nullptr;
 
-  srslte::bsr_cfg_t bsr_cfg;
+  srsran::bsr_cfg_t bsr_cfg;
 
   bool initiated = false;
 
@@ -112,9 +103,9 @@ private:
   char*    bsr_type_tostring(triggered_bsr_type_t type);
   char*    bsr_format_tostring(bsr_format_t format);
 
-  srslte::timer_handler::unique_timer timer_periodic;
-  srslte::timer_handler::unique_timer timer_retx;
-  srslte::timer_handler::unique_timer timer_queue_status_print;
+  srsran::timer_handler::unique_timer timer_periodic;
+  srsran::timer_handler::unique_timer timer_retx;
+  srsran::timer_handler::unique_timer timer_queue_status_print;
 };
 
 } // namespace srsue

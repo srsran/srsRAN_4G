@@ -33,13 +33,13 @@ endif (RPATH)
 add_executable(srsue main.cc ue.cc metrics_stdout.cc metrics_csv.cc)
 
 set(SRSUE_SOURCES srsue_phy srsue_stack srsue_upper srsue_mac srsue_rrc srslog system)
-set(SRSLTE_SOURCES srslte_common srslte_mac srslte_phy srslte_radio srslte_upper rrc_asn1 srslog system)
+set(SRSRAN_SOURCES srsran_common srsran_mac srsran_phy srsran_radio srsran_upper rrc_asn1 srslog system)
 
 set(SRSUE_SOURCES ${SRSUE_SOURCES} srsue_nr_stack srsue_rrc_nr srsue_mac_nr)
-set(SRSLTE_SOURCES ${SRSLTE_SOURCES} rrc_nr_asn1 ngap_nr_asn1)
+set(SRSRAN_SOURCES ${SRSRAN_SOURCES} rrc_nr_asn1 ngap_nr_asn1)
 
 target_link_libraries(srsue   ${SRSUE_SOURCES}
-                              ${SRSLTE_SOURCES}
+                              ${SRSRAN_SOURCES}
                               ${CMAKE_THREAD_LIBS_INIT}
                               ${Boost_LIBRARIES})
 

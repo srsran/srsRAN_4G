@@ -1,26 +1,17 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #include "srsenb/hdr/metrics_csv.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/utils/vector.h"
 
 #include <float.h>
 #include <iomanip>
@@ -65,7 +56,15 @@ void metrics_csv::set_metrics(const enb_metrics_t& metrics, const uint32_t perio
   if (file.is_open() && enb != NULL) {
     if (n_reports == 0) {
       file << "time;nof_ue;dl_brate;ul_brate;"
-              "proc_rmem;proc_rmem_kB;proc_vmem;proc_vmem_kB;sys_mem;proc_cpu;thread_count\n";
+              "proc_rmem;proc_rmem_kB;proc_vmem_kB;sys_mem;system_load;thread_count";
+
+      // Add the cpus
+      for (uint32_t i = 0, e = metrics.sys.cpu_count; i != e; ++i) {
+        file << ";cpu_" << std::to_string(i);
+      }
+
+      // Add the new line.
+      file << "\n";
     }
 
     // Time
@@ -83,27 +82,31 @@ void metrics_csv::set_metrics(const enb_metrics_t& metrics, const uint32_t perio
 
     // DL rate
     if (dl_rate_sum > 0) {
-      file << float_to_string(SRSLTE_MAX(0.1, (float)dl_rate_sum), 2);
+      file << float_to_string(SRSRAN_MAX(0.1, (float)dl_rate_sum), 2);
     } else {
       file << float_to_string(0, 2);
     }
 
     // UL rate
     if (ul_rate_sum > 0) {
-      file << float_to_string(SRSLTE_MAX(0.1, (float)ul_rate_sum), 2);
+      file << float_to_string(SRSRAN_MAX(0.1, (float)ul_rate_sum), 2);
     } else {
       file << float_to_string(0, 2);
     }
 
     // Write system metrics.
-    const srslte::sys_metrics_t& m = metrics.sys;
+    const srsran::sys_metrics_t& m = metrics.sys;
     file << float_to_string(m.process_realmem, 2);
     file << std::to_string(m.process_realmem_kB) << ";";
-    file << float_to_string(m.process_virtualmem, 2);
     file << std::to_string(m.process_virtualmem_kB) << ";";
     file << float_to_string(m.system_mem, 2);
     file << float_to_string(m.process_cpu_usage, 2);
-    file << std::to_string(m.thread_count);
+    file << std::to_string(m.thread_count) << ";";
+
+    // Write the cpu metrics.
+    for (uint32_t i = 0, e = m.cpu_count, last_cpu_index = e - 1; i != e; ++i) {
+      file << float_to_string(m.cpu_load[i], 2, (i != last_cpu_index));
+    }
 
     file << "\n";
 

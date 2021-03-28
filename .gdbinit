@@ -12,7 +12,7 @@
 
 python
 
-###### srslte::bounded_vector<T, N> ########
+###### srsran::bounded_vector<T, N> ########
 
 class BoundedVectorPrinter(object):
     def __init__(self, val):
@@ -35,7 +35,7 @@ class BoundedVectorPrinter(object):
 
     @staticmethod
     def make(val):
-        if str(val.type).startswith('srslte::bounded_vector<'):
+        if str(val.type).startswith('srsran::bounded_vector<'):
             return BoundedVectorPrinter(val)
 
 gdb.pretty_printers.append(BoundedVectorPrinter.make)

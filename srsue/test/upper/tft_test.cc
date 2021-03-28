@@ -1,28 +1,19 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
-#include "srslte/asn1/liblte_mme.h"
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/int_helpers.h"
-#include "srslte/srslte.h"
+#include "srsran/asn1/liblte_mme.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/common/int_helpers.h"
+#include "srsran/srsran.h"
 #include "srsue/hdr/stack/upper/tft_packet_filter.h"
 #include <iostream>
 
@@ -34,7 +25,7 @@
     }                                                                                                                  \
   }
 using namespace srsue;
-using namespace srslte;
+using namespace srsran;
 
 // IP test message 1
 // Source IP 127.0.0.1, Destination IP 127.0.0.2
@@ -113,12 +104,17 @@ uint8_t ipv6_unmatched_packet_lport[] = {
 int tft_filter_test_ipv6_combined()
 {
   srslog::basic_logger&        logger = srslog::fetch_basic_logger("TFT");
-  srslte::unique_byte_buffer_t ip_msg1, ip_msg2, ip_msg3, ip_msg4, ip_msg5;
+  srsran::unique_byte_buffer_t ip_msg1, ip_msg2, ip_msg3, ip_msg4, ip_msg5;
   ip_msg1 = make_byte_buffer();
+  TESTASSERT(ip_msg1 != nullptr);
   ip_msg2 = make_byte_buffer();
+  TESTASSERT(ip_msg2 != nullptr);
   ip_msg3 = make_byte_buffer();
+  TESTASSERT(ip_msg3 != nullptr);
   ip_msg4 = make_byte_buffer();
+  TESTASSERT(ip_msg4 != nullptr);
   ip_msg5 = make_byte_buffer();
+  TESTASSERT(ip_msg5 != nullptr);
 
   // Set IP test message
   ip_msg1->N_bytes = sizeof(ipv6_matched_packet);
@@ -171,16 +167,18 @@ int tft_filter_test_single_local_port()
 {
   srslog::basic_logger& logger = srslog::fetch_basic_logger("TFT");
 
-  srslte::unique_byte_buffer_t ip_msg1, ip_msg2;
+  srsran::unique_byte_buffer_t ip_msg1, ip_msg2;
   ip_msg1 = make_byte_buffer();
+  TESTASSERT(ip_msg1 != nullptr);
   ip_msg2 = make_byte_buffer();
+  TESTASSERT(ip_msg2 != nullptr);
 
   // Filter length: 3 bytes
   // Filter type:   Single local port
   // Local port:    2222
   uint8_t filter_message[3];
   filter_message[0] = SINGLE_LOCAL_PORT_TYPE;
-  srslte::uint16_to_uint8(2222, &filter_message[1]);
+  srsran::uint16_to_uint8(2222, &filter_message[1]);
 
   // Set IP test message
   ip_msg1->N_bytes = ip_message_len1;
@@ -215,16 +213,18 @@ int tft_filter_test_single_remote_port()
 {
   srslog::basic_logger& logger = srslog::fetch_basic_logger("TFT");
 
-  srslte::unique_byte_buffer_t ip_msg1, ip_msg2;
+  srsran::unique_byte_buffer_t ip_msg1, ip_msg2;
   ip_msg1 = make_byte_buffer();
+  TESTASSERT(ip_msg1 != nullptr);
   ip_msg2 = make_byte_buffer();
+  TESTASSERT(ip_msg2 != nullptr);
 
   // Filter length: 3 bytes
   // Filter type:   Single remote port
   // Remote port:   2001
   uint8_t filter_message[3];
   filter_message[0] = SINGLE_REMOTE_PORT_TYPE;
-  srslte::uint16_to_uint8(2001, &filter_message[1]);
+  srsran::uint16_to_uint8(2001, &filter_message[1]);
 
   // Set IP test message
   ip_msg1->N_bytes = ip_message_len1;
@@ -259,9 +259,11 @@ int tft_filter_test_ipv4_local_addr()
 {
   srslog::basic_logger& logger = srslog::fetch_basic_logger("TFT");
 
-  srslte::unique_byte_buffer_t ip_msg1, ip_msg2;
+  srsran::unique_byte_buffer_t ip_msg1, ip_msg2;
   ip_msg1 = make_byte_buffer();
+  TESTASSERT(ip_msg1 != nullptr);
   ip_msg2 = make_byte_buffer();
+  TESTASSERT(ip_msg2 != nullptr);
 
   // Filter length: 9 bytes
   // Filter type:   IPv4 local address
@@ -306,9 +308,11 @@ int tft_filter_test_ipv4_remote_addr()
 {
   srslog::basic_logger& logger = srslog::fetch_basic_logger("TFT");
 
-  srslte::unique_byte_buffer_t ip_msg1, ip_msg2;
+  srsran::unique_byte_buffer_t ip_msg1, ip_msg2;
   ip_msg1 = make_byte_buffer();
+  TESTASSERT(ip_msg1 != nullptr);
   ip_msg2 = make_byte_buffer();
+  TESTASSERT(ip_msg2 != nullptr);
 
   // Filter length: 5 bytes
   // Filter type:   IPv4 local address
@@ -352,9 +356,11 @@ int tft_filter_test_ipv4_tos()
 {
   srslog::basic_logger& logger = srslog::fetch_basic_logger("TFT");
 
-  srslte::unique_byte_buffer_t ip_msg1, ip_msg2;
+  srsran::unique_byte_buffer_t ip_msg1, ip_msg2;
   ip_msg1 = make_byte_buffer();
+  TESTASSERT(ip_msg1 != nullptr);
   ip_msg2 = make_byte_buffer();
+  TESTASSERT(ip_msg2 != nullptr);
 
   // Filter length: 3 bytes
   // Filter type:   Type of service
@@ -402,7 +408,7 @@ int main(int argc, char** argv)
   logger.set_hex_dump_max_size(128);
   srslog::init();
 
-  srslte::byte_buffer_pool::get_instance();
+  srsran::byte_buffer_pool::get_instance();
   if (tft_filter_test_single_local_port()) {
     return -1;
   }

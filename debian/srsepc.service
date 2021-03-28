@@ -4,7 +4,7 @@ Description=Software Radio System's light-weight EPC implementation
 [Service]
 Type=simple
 Restart=always
-ExecStart=/usr/bin/srsepc /etc/srslte/epc.conf
+ExecStart=/usr/bin/srsepc /etc/srsran/epc.conf
 RestartSec=2
 
 [Install]

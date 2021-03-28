@@ -1,30 +1,21 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #include "srsepc/hdr/mme/s1ap_erab_mngmt_proc.h"
 #include "srsepc/hdr/mme/s1ap.h"
-#include "srslte/common/bcd_helpers.h"
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/int_helpers.h"
-#include "srslte/common/liblte_security.h"
+#include "srsran/common/bcd_helpers.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/common/int_helpers.h"
+#include "srsran/common/liblte_security.h"
 #include <endian.h>
 
 namespace srsepc {
@@ -106,7 +97,7 @@ bool s1ap_erab_mngmt_proc::send_erab_release_command(uint32_t               enb_
 bool s1ap_erab_mngmt_proc::send_erab_modify_request(uint32_t                     enb_ue_s1ap_id,
                                                     uint32_t                     mme_ue_s1ap_id,
                                                     std::map<uint16_t, uint16_t> erabs_to_modify,
-                                                    srslte::byte_buffer_t*       nas_msg,
+                                                    srsran::byte_buffer_t*       nas_msg,
                                                     struct sctp_sndrcvinfo       enb_sri)
 {
   m_logger.info("Preparing to send E-RAB Modify Command");

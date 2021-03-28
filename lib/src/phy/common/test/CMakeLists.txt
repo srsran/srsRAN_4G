@@ -23,6 +23,6 @@
 ########################################################################
 
 add_executable(sequence_test sequence_test.c)
-target_link_libraries(sequence_test srslte_phy)
+target_link_libraries(sequence_test srsran_phy)
 
 add_test(sequence_test sequence_test)

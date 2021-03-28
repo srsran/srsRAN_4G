@@ -4,7 +4,7 @@ Description=Software Radio System's LTE eNB implementation
 [Service]
 Type=simple
 Restart=always
-ExecStart=/usr/bin/srsenb /etc/srslte/enb.conf
+ExecStart=/usr/bin/srsenb /etc/srsran/enb.conf
 RestartSec=2
 
 [Install]

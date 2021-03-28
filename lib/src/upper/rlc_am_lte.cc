@@ -1,29 +1,20 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
-#include "srslte/upper/rlc_am_lte.h"
-#include "srslte/common/string_helpers.h"
-#include "srslte/interfaces/ue_pdcp_interfaces.h"
-#include "srslte/interfaces/ue_rrc_interfaces.h"
-#include "srslte/srslog/event_trace.h"
+#include "srsran/upper/rlc_am_lte.h"
+#include "srsran/common/string_helpers.h"
+#include "srsran/interfaces/ue_pdcp_interfaces.h"
+#include "srsran/interfaces/ue_rrc_interfaces.h"
+#include "srsran/srslog/event_trace.h"
 #include <iostream>
 
 #define MOD 1024
@@ -32,7 +23,7 @@
 #define LCID (parent->lcid)
 #define RB_NAME (parent->rb_name.c_str())
 
-namespace srslte {
+namespace srsran {
 
 /*******************************
  *       Helper methods
@@ -74,7 +65,7 @@ rlc_am_lte::rlc_am_lte(srslog::basic_logger&      logger,
                        uint32_t                   lcid_,
                        srsue::pdcp_interface_rlc* pdcp_,
                        srsue::rrc_interface_rlc*  rrc_,
-                       srslte::timer_handler*     timers_) :
+                       srsran::timer_handler*     timers_) :
   logger(logger), rrc(rrc_), pdcp(pdcp_), timers(timers_), lcid(lcid_), tx(this), rx(this)
 {}
 
@@ -163,7 +154,7 @@ void rlc_am_lte::reset_metrics()
 
 void rlc_am_lte::write_sdu(unique_byte_buffer_t sdu)
 {
-  if (tx.write_sdu(std::move(sdu)) == SRSLTE_SUCCESS) {
+  if (tx.write_sdu(std::move(sdu)) == SRSRAN_SUCCESS) {
     metrics.num_tx_sdus++;
   }
 }
@@ -218,12 +209,9 @@ rlc_am_lte::rlc_am_lte_tx::rlc_am_lte_tx(rlc_am_lte* parent_) :
   pool(byte_buffer_pool::get_instance()),
   poll_retx_timer(parent_->timers->get_unique_timer()),
   status_prohibit_timer(parent_->timers->get_unique_timer())
-{
-}
+{}
 
-rlc_am_lte::rlc_am_lte_tx::~rlc_am_lte_tx()
-{
-}
+rlc_am_lte::rlc_am_lte_tx::~rlc_am_lte_tx() {}
 
 void rlc_am_lte::rlc_am_lte_tx::set_bsr_callback(bsr_callback_t callback)
 {
@@ -329,7 +317,7 @@ bool rlc_am_lte::rlc_am_lte_tx::has_data()
   return (((do_status() && not status_prohibit_timer.is_running())) || // if we have a status PDU to transmit
           (not retx_queue.empty()) ||                                  // if we have a retransmission
           (tx_sdu != NULL) ||                                          // if we are currently transmitting a SDU
-          (not tx_sdu_queue.is_empty())); // or if there is a SDU queued up for transmission
+          (tx_sdu_queue.get_n_sdus() != 0)); // or if there is a SDU queued up for transmission
 }
 
 /**
@@ -354,8 +342,8 @@ void rlc_am_lte::rlc_am_lte_tx::check_sn_reached_max_retx(uint32_t sn)
 uint32_t rlc_am_lte::rlc_am_lte_tx::get_buffer_state()
 {
   std::lock_guard<std::mutex> lock(mutex);
-  uint32_t n_bytes = 0;
-  uint32_t n_sdus  = 0;
+  uint32_t                    n_bytes = 0;
+  uint32_t                    n_sdus  = 0;
 
   logger.debug("%s Buffer state - do_status=%s, status_prohibit_running=%s (%d/%d)",
                RB_NAME,
@@ -393,7 +381,7 @@ uint32_t rlc_am_lte::rlc_am_lte_tx::get_buffer_state()
 
   // Bytes needed for tx SDUs
   if (tx_window.size() < 1024) {
-    n_sdus = tx_sdu_queue.size();
+    n_sdus = tx_sdu_queue.get_n_sdus();
     n_bytes += tx_sdu_queue.size_bytes();
     if (tx_sdu != NULL) {
       n_sdus++;
@@ -420,12 +408,12 @@ int rlc_am_lte::rlc_am_lte_tx::write_sdu(unique_byte_buffer_t sdu)
   std::lock_guard<std::mutex> lock(mutex);
 
   if (!tx_enabled) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   if (sdu.get() == nullptr) {
     logger.warning("NULL SDU pointer in write_sdu()");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // Get SDU info
@@ -434,7 +422,7 @@ int rlc_am_lte::rlc_am_lte_tx::write_sdu(unique_byte_buffer_t sdu)
   // Store SDU
   uint8_t*                                 msg_ptr   = sdu->msg;
   uint32_t                                 nof_bytes = sdu->N_bytes;
-  srslte::error_type<unique_byte_buffer_t> ret       = tx_sdu_queue.try_write(std::move(sdu));
+  srsran::error_type<unique_byte_buffer_t> ret       = tx_sdu_queue.try_write(std::move(sdu));
   if (ret) {
     logger.info(msg_ptr, nof_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", RB_NAME, nof_bytes, tx_sdu_queue.size());
   } else {
@@ -445,19 +433,19 @@ int rlc_am_lte::rlc_am_lte_tx::write_sdu(unique_byte_buffer_t sdu)
                    RB_NAME,
                    ret.error()->N_bytes,
                    tx_sdu_queue.size());
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   if (undelivered_sdu_info_queue.has_pdcp_sn(sdu_pdcp_sn)) {
     logger.warning("PDCP_SN=%d already marked as undelivered", sdu_pdcp_sn);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // Store SDU info
   logger.debug("Marking PDCP_SN=%d as undelivered (queue_len=%ld)", sdu_pdcp_sn, undelivered_sdu_info_queue.nof_sdus());
 
   undelivered_sdu_info_queue.add_pdcp_sdu(sdu_pdcp_sn);
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 void rlc_am_lte::rlc_am_lte_tx::discard_sdu(uint32_t discard_sn)
@@ -465,7 +453,26 @@ void rlc_am_lte::rlc_am_lte_tx::discard_sdu(uint32_t discard_sn)
   if (!tx_enabled) {
     return;
   }
-  logger.warning("Discard SDU not implemented yet");
+
+  bool discarded = tx_sdu_queue.apply_first([&discard_sn, this](unique_byte_buffer_t& sdu) {
+    if (sdu != nullptr && sdu->md.pdcp_sn == discard_sn) {
+      tx_sdu_queue.queue.pop_func(sdu);
+      sdu = nullptr;
+    }
+    return false;
+  });
+
+  if (discarded) {
+    // remove also from undelivered SDUs queue
+    logger.info("Discarding SDU with PDCP_SN=%d", discard_sn);
+    if (not undelivered_sdu_info_queue.has_pdcp_sn(discard_sn)) {
+      logger.info("PDCP SDU info does not exists for discarded SDU. PDCP_SN=%d", discard_sn);
+    } else {
+      undelivered_sdu_info_queue.clear_pdcp_sdu(discard_sn);
+    }
+  } else {
+    logger.info("Could not find SDU to discard. PDCP_SN=%d", discard_sn);
+  }
 }
 
 bool rlc_am_lte::rlc_am_lte_tx::sdu_queue_is_full()
@@ -533,16 +540,24 @@ void rlc_am_lte::rlc_am_lte_tx::timer_expired(uint32_t timeout_id)
 
 void rlc_am_lte::rlc_am_lte_tx::retransmit_pdu()
 {
-  if (not tx_window.empty()) {
-    // select first PDU in tx window for retransmission
-    rlc_amd_tx_pdu_t& pdu = tx_window[vt_a];
-    logger.info("%s Schedule SN=%d for reTx.", RB_NAME, pdu.rlc_sn);
-    rlc_amd_retx_t& retx = retx_queue.push();
-    retx.is_segment      = false;
-    retx.so_start        = 0;
-    retx.so_end          = pdu.buf->N_bytes;
-    retx.sn              = pdu.rlc_sn;
+  if (tx_window.empty()) {
+    logger.warning("%s No PDU to retransmit.", RB_NAME);
+    return;
   }
+
+  if (not tx_window.has_sn(vt_a)) {
+    logger.warning("%s Can't retransmit unexisting SN=%d.", RB_NAME, vt_a);
+    return;
+  }
+
+  // select first PDU in tx window for retransmission
+  rlc_amd_tx_pdu_t& pdu = tx_window[vt_a];
+  logger.info("%s Schedule SN=%d for reTx.", RB_NAME, pdu.rlc_sn);
+  rlc_amd_retx_t& retx = retx_queue.push();
+  retx.is_segment      = false;
+  retx.so_start        = 0;
+  retx.so_end          = pdu.buf->N_bytes;
+  retx.sn              = pdu.rlc_sn;
 }
 
 /****************************************************************************
@@ -818,7 +833,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_segment(uint8_t* payload, uint32_t nof_byte
   }
 
   // Santity check we don't pack beyond the provided buffer
-  assert(head_len + (retx.so_end - retx.so_start) <= nof_bytes);
+  srsran_expect(head_len + (retx.so_end - retx.so_start) <= nof_bytes, "The provided buffer was overflown.");
 
   // Update retx_queue
   if (tx_window[retx.sn].buf->N_bytes == retx.so_end) {
@@ -894,16 +909,16 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
     return 0;
   }
 
-  unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+  unique_byte_buffer_t pdu = srsran::make_byte_buffer();
   if (pdu == NULL) {
 #ifdef RLC_AM_BUFFER_DEBUG
-    srslte::console("Fatal Error: Could not allocate PDU in build_data_pdu()\n");
-    srslte::console("tx_window size: %zd PDUs\n", tx_window.size());
-    srslte::console("vt_a = %d, vt_ms = %d, vt_s = %d, poll_sn = %d\n", vt_a, vt_ms, vt_s, poll_sn);
-    srslte::console("retx_queue size: %zd PDUs\n", retx_queue.size());
+    srsran::console("Fatal Error: Could not allocate PDU in build_data_pdu()\n");
+    srsran::console("tx_window size: %zd PDUs\n", tx_window.size());
+    srsran::console("vt_a = %d, vt_ms = %d, vt_s = %d, poll_sn = %d\n", vt_a, vt_ms, vt_s, poll_sn);
+    srsran::console("retx_queue size: %zd PDUs\n", retx_queue.size());
     std::map<uint32_t, rlc_amd_tx_pdu_t>::iterator txit;
     for (txit = tx_window.begin(); txit != tx_window.end(); txit++) {
-      srslte::console("tx_window - SN=%d\n", txit->first);
+      srsran::console("tx_window - SN=%d\n", txit->first);
     }
     exit(-1);
 #else
@@ -924,7 +939,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
   uint32_t head_len  = rlc_am_packed_length(&header);
   uint32_t to_move   = 0;
   uint32_t last_li   = 0;
-  uint32_t pdu_space = SRSLTE_MIN(nof_bytes, pdu->get_tailroom());
+  uint32_t pdu_space = SRSRAN_MIN(nof_bytes, pdu->get_tailroom());
   uint8_t* pdu_ptr   = pdu->msg;
 
   logger.debug("%s Building PDU - pdu_space: %d, head_len: %d ", RB_NAME, pdu_space, head_len);
@@ -959,7 +974,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
       tx_sdu.reset();
     }
     if (pdu_space > to_move) {
-      pdu_space -= SRSLTE_MIN(to_move, pdu->get_tailroom());
+      pdu_space -= SRSRAN_MIN(to_move, pdu->get_tailroom());
     } else {
       pdu_space = 0;
     }
@@ -975,7 +990,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
   }
 
   // Pull SDUs from queue
-  while (pdu_space > head_len && tx_sdu_queue.size() > 0 && header.N_li < RLC_AM_WINDOW_SIZE) {
+  while (pdu_space > head_len && tx_sdu_queue.get_n_sdus() > 0 && header.N_li < RLC_AM_WINDOW_SIZE) {
     if (last_li > 0) {
       header.li[header.N_li] = last_li;
       header.N_li++;
@@ -987,7 +1002,18 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
       }
       break;
     }
-    tx_sdu  = tx_sdu_queue.read();
+
+    do {
+      tx_sdu = tx_sdu_queue.read();
+    } while (tx_sdu == nullptr && tx_sdu_queue.size() != 0);
+
+    if (tx_sdu == nullptr) {
+      if (header.N_li > 0) {
+        header.N_li--;
+      }
+      break;
+    }
+
     to_move = ((pdu_space - head_len) >= tx_sdu->N_bytes) ? tx_sdu->N_bytes : pdu_space - head_len;
     memcpy(pdu_ptr, tx_sdu->msg, to_move);
     last_li = to_move;
@@ -1054,7 +1080,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
   }
 
   // Update Tx window
-  vt_s      = (vt_s + 1) % MOD;
+  vt_s = (vt_s + 1) % MOD;
 
   // Write final header and TX
   tx_pdu.buf                      = std::move(pdu);
@@ -1116,7 +1142,7 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
           auto& pdu = tx_window[i];
           if (!retx_queue.has_sn(i)) {
             rlc_amd_retx_t& retx = retx_queue.push();
-            assert(tx_window[i].rlc_sn == i);
+            srsran_expect(tx_window[i].rlc_sn == i, "Incorrect RLC SN=%d!=%d being accessed", tx_window[i].rlc_sn, i);
             retx.sn         = i;
             retx.is_segment = false;
             retx.so_start   = 0;
@@ -1171,6 +1197,11 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
       }
     }
     i = (i + 1) % MOD;
+  }
+
+  // Make sure vt_a points to valid SN
+  if (not tx_window.empty() && not tx_window.has_sn(vt_a)) {
+    logger.error("%s vt_a=%d points to invalid position in Tx window", RB_NAME, vt_a);
   }
 
   if (not notify_info_vec.empty()) {
@@ -1327,9 +1358,7 @@ rlc_am_lte::rlc_am_lte_rx::rlc_am_lte_rx(rlc_am_lte* parent_) :
   reordering_timer(parent_->timers->get_unique_timer())
 {}
 
-rlc_am_lte::rlc_am_lte_rx::~rlc_am_lte_rx()
-{
-}
+rlc_am_lte::rlc_am_lte_rx::~rlc_am_lte_rx() {}
 
 bool rlc_am_lte::rlc_am_lte_rx::configure(rlc_am_config_t cfg_)
 {
@@ -1426,10 +1455,10 @@ void rlc_am_lte::rlc_am_lte_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_b
 
   // Write to rx window
   rlc_amd_rx_pdu_t& pdu = rx_window.add_pdu(header.sn);
-  pdu.buf               = srslte::make_byte_buffer();
+  pdu.buf               = srsran::make_byte_buffer();
   if (pdu.buf == NULL) {
 #ifdef RLC_AM_BUFFER_DEBUG
-    srslte::console("Fatal Error: Couldn't allocate PDU in handle_data_pdu().\n");
+    srsran::console("Fatal Error: Couldn't allocate PDU in handle_data_pdu().\n");
     exit(-1);
 #else
     logger.error("Fatal Error: Couldn't allocate PDU in handle_data_pdu().");
@@ -1531,10 +1560,10 @@ void rlc_am_lte::rlc_am_lte_rx::handle_data_pdu_segment(uint8_t*              pa
   }
 
   rlc_amd_rx_pdu_t segment;
-  segment.buf = srslte::make_byte_buffer();
+  segment.buf = srsran::make_byte_buffer();
   if (segment.buf == NULL) {
 #ifdef RLC_AM_BUFFER_DEBUG
-    srslte::console("Fatal Error: Couldn't allocate PDU in handle_data_pdu_segment().\n");
+    srsran::console("Fatal Error: Couldn't allocate PDU in handle_data_pdu_segment().\n");
     exit(-1);
 #else
     logger.error("Fatal Error: Couldn't allocate PDU in handle_data_pdu_segment().");
@@ -1598,10 +1627,10 @@ void rlc_am_lte::rlc_am_lte_rx::reassemble_rx_sdus()
 {
   uint32_t len = 0;
   if (rx_sdu == NULL) {
-    rx_sdu = srslte::make_byte_buffer();
+    rx_sdu = srsran::make_byte_buffer();
     if (rx_sdu == NULL) {
 #ifdef RLC_AM_BUFFER_DEBUG
-      srslte::console("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (1)\n");
+      srsran::console("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (1)\n");
       exit(-1);
 #else
       logger.error("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (1)");
@@ -1630,7 +1659,7 @@ void rlc_am_lte::rlc_am_lte_rx::reassemble_rx_sdus()
       }
 
       if (rx_sdu->get_tailroom() >= len) {
-        if ((rx_window[vr_r].buf->msg - rx_window[vr_r].buf->buffer) + len < SRSLTE_MAX_BUFFER_SIZE_BYTES) {
+        if ((rx_window[vr_r].buf->msg - rx_window[vr_r].buf->buffer) + len < SRSRAN_MAX_BUFFER_SIZE_BYTES) {
           if (rx_window[vr_r].buf->N_bytes < len) {
             logger.error("Dropping corrupted SN=%d", vr_r);
             rx_sdu.reset();
@@ -1653,10 +1682,10 @@ void rlc_am_lte::rlc_am_lte_rx::reassemble_rx_sdus()
           parent->pdcp->write_pdu(parent->lcid, std::move(rx_sdu));
           parent->metrics.num_rx_sdus++;
 
-          rx_sdu = srslte::make_byte_buffer();
+          rx_sdu = srsran::make_byte_buffer();
           if (rx_sdu == nullptr) {
 #ifdef RLC_AM_BUFFER_DEBUG
-            srslte::console("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (2)\n");
+            srsran::console("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (2)\n");
             exit(-1);
 #else
             logger.error("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (2)");
@@ -1703,10 +1732,10 @@ void rlc_am_lte::rlc_am_lte_rx::reassemble_rx_sdus()
       parent->pdcp->write_pdu(parent->lcid, std::move(rx_sdu));
       parent->metrics.num_rx_sdus++;
 
-      rx_sdu = srslte::make_byte_buffer();
+      rx_sdu = srsran::make_byte_buffer();
       if (rx_sdu == NULL) {
 #ifdef RLC_AM_BUFFER_DEBUG
-        srslte::console("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (3)\n");
+        srsran::console("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (3)\n");
         exit(-1);
 #else
         logger.error("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (3)");
@@ -1761,8 +1790,8 @@ void rlc_am_lte::rlc_am_lte_rx::write_pdu(uint8_t* payload, const uint32_t nof_b
     parent->tx.handle_control_pdu(payload, nof_bytes);
   } else {
     std::lock_guard<std::mutex> lock(mutex);
-    rlc_amd_pdu_header_t header      = {};
-    uint32_t             payload_len = nof_bytes;
+    rlc_amd_pdu_header_t        header      = {};
+    uint32_t                    payload_len = nof_bytes;
     rlc_am_read_data_pdu_header(&payload, &payload_len, &header);
     if (payload_len > nof_bytes) {
       logger.info("Dropping corrupted PDU (%d B). Remaining length after header %d B.", nof_bytes, payload_len);
@@ -1867,9 +1896,9 @@ int rlc_am_lte::rlc_am_lte_rx::get_status_pdu(rlc_status_pdu_t* status, const ui
 int rlc_am_lte::rlc_am_lte_rx::get_status_pdu_length()
 {
   std::lock_guard<std::mutex> lock(mutex);
-  rlc_status_pdu_t status = {};
-  status.ack_sn           = vr_ms;
-  uint32_t i              = vr_r;
+  rlc_status_pdu_t            status = {};
+  status.ack_sn                      = vr_ms;
+  uint32_t i                         = vr_r;
   while (RX_MOD_BASE(i) < RX_MOD_BASE(vr_ms) && status.N_nack < RLC_AM_WINDOW_SIZE) {
     if (not rx_window.has_sn(i)) {
       status.N_nack++;
@@ -1940,7 +1969,7 @@ bool rlc_am_lte::rlc_am_lte_rx::add_segment_and_check(rlc_amd_rx_pdu_segments_t*
       it = pdu->segments.erase(it); // Returns next iterator
     } else {
       // Update segment offset it shall not go backwards
-      so = SRSLTE_MAX(so, it->header.so + it->buf->N_bytes);
+      so = SRSRAN_MAX(so, it->header.so + it->buf->N_bytes);
       it++; // Increments iterator
     }
   }
@@ -2044,10 +2073,10 @@ bool rlc_am_lte::rlc_am_lte_rx::add_segment_and_check(rlc_amd_rx_pdu_segments_t*
   logger.debug("Finished header reconstruction of %zd segments", pdu->segments.size());
 
   // Copy data
-  unique_byte_buffer_t full_pdu = srslte::make_byte_buffer();
+  unique_byte_buffer_t full_pdu = srsran::make_byte_buffer();
   if (full_pdu == NULL) {
 #ifdef RLC_AM_BUFFER_DEBUG
-    srslte::console("Fatal Error: Could not allocate PDU in add_segment_and_check()\n");
+    srsran::console("Fatal Error: Could not allocate PDU in add_segment_and_check()\n");
     exit(-1);
 #else
     logger.error("Fatal Error: Could not allocate PDU in add_segment_and_check()");
@@ -2254,25 +2283,25 @@ void rlc_am_read_status_pdu(uint8_t* payload, uint32_t nof_bytes, rlc_status_pdu
   bit_buffer_t tmp;
   uint8_t*     ptr = tmp.msg;
 
-  srslte_bit_unpack_vector(payload, tmp.msg, nof_bytes * 8);
+  srsran_bit_unpack_vector(payload, tmp.msg, nof_bytes * 8);
   tmp.N_bits = nof_bytes * 8;
 
-  rlc_dc_field_t dc = static_cast<rlc_dc_field_t>(srslte_bit_pack(&ptr, 1));
+  rlc_dc_field_t dc = static_cast<rlc_dc_field_t>(srsran_bit_pack(&ptr, 1));
 
   if (RLC_DC_FIELD_CONTROL_PDU == dc) {
-    uint8_t cpt = srslte_bit_pack(&ptr, 3); // 3-bit Control PDU Type (0 == status)
+    uint8_t cpt = srsran_bit_pack(&ptr, 3); // 3-bit Control PDU Type (0 == status)
     if (0 == cpt) {
-      status->ack_sn = srslte_bit_pack(&ptr, 10); // 10 bits ACK_SN
-      ext1           = srslte_bit_pack(&ptr, 1);  // 1 bits E1
+      status->ack_sn = srsran_bit_pack(&ptr, 10); // 10 bits ACK_SN
+      ext1           = srsran_bit_pack(&ptr, 1);  // 1 bits E1
       status->N_nack = 0;
       while (ext1) {
-        status->nacks[status->N_nack].nack_sn = srslte_bit_pack(&ptr, 10);
-        ext1                                  = srslte_bit_pack(&ptr, 1); // 1 bits E1
-        ext2                                  = srslte_bit_pack(&ptr, 1); // 1 bits E2
+        status->nacks[status->N_nack].nack_sn = srsran_bit_pack(&ptr, 10);
+        ext1                                  = srsran_bit_pack(&ptr, 1); // 1 bits E1
+        ext2                                  = srsran_bit_pack(&ptr, 1); // 1 bits E2
         if (ext2) {
           status->nacks[status->N_nack].has_so   = true;
-          status->nacks[status->N_nack].so_start = srslte_bit_pack(&ptr, 15);
-          status->nacks[status->N_nack].so_end   = srslte_bit_pack(&ptr, 15);
+          status->nacks[status->N_nack].so_start = srsran_bit_pack(&ptr, 15);
+          status->nacks[status->N_nack].so_end   = srsran_bit_pack(&ptr, 15);
         }
         status->N_nack++;
       }
@@ -2292,32 +2321,32 @@ int rlc_am_write_status_pdu(rlc_status_pdu_t* status, uint8_t* payload)
   bit_buffer_t tmp;
   uint8_t*     ptr = tmp.msg;
 
-  srslte_bit_unpack(RLC_DC_FIELD_CONTROL_PDU, &ptr, 1); // D/C
-  srslte_bit_unpack(0, &ptr, 3);                        // CPT (0 == STATUS)
-  srslte_bit_unpack(status->ack_sn, &ptr, 10);          // 10 bit ACK_SN
+  srsran_bit_unpack(RLC_DC_FIELD_CONTROL_PDU, &ptr, 1); // D/C
+  srsran_bit_unpack(0, &ptr, 3);                        // CPT (0 == STATUS)
+  srsran_bit_unpack(status->ack_sn, &ptr, 10);          // 10 bit ACK_SN
   ext1 = (status->N_nack == 0) ? 0 : 1;
-  srslte_bit_unpack(ext1, &ptr, 1); // E1
+  srsran_bit_unpack(ext1, &ptr, 1); // E1
   for (i = 0; i < status->N_nack; i++) {
-    srslte_bit_unpack(status->nacks[i].nack_sn, &ptr, 10); // 10 bit NACK_SN
+    srsran_bit_unpack(status->nacks[i].nack_sn, &ptr, 10); // 10 bit NACK_SN
     ext1 = ((status->N_nack - 1) == i) ? 0 : 1;
-    srslte_bit_unpack(ext1, &ptr, 1); // E1
+    srsran_bit_unpack(ext1, &ptr, 1); // E1
     if (status->nacks[i].has_so) {
-      srslte_bit_unpack(1, &ptr, 1); // E2
-      srslte_bit_unpack(status->nacks[i].so_start, &ptr, 15);
-      srslte_bit_unpack(status->nacks[i].so_end, &ptr, 15);
+      srsran_bit_unpack(1, &ptr, 1); // E2
+      srsran_bit_unpack(status->nacks[i].so_start, &ptr, 15);
+      srsran_bit_unpack(status->nacks[i].so_end, &ptr, 15);
     } else {
-      srslte_bit_unpack(0, &ptr, 1); // E2
+      srsran_bit_unpack(0, &ptr, 1); // E2
     }
   }
 
   // Pad
   tmp.N_bits    = ptr - tmp.msg;
   uint8_t n_pad = 8 - (tmp.N_bits % 8);
-  srslte_bit_unpack(0, &ptr, n_pad);
+  srsran_bit_unpack(0, &ptr, n_pad);
   tmp.N_bits = ptr - tmp.msg;
 
   // Pack bits
-  srslte_bit_pack_vector(tmp.msg, payload, tmp.N_bits);
+  srsran_bit_pack_vector(tmp.msg, payload, tmp.N_bits);
   return tmp.N_bits / 8;
 }
 
@@ -2435,4 +2464,4 @@ bool rlc_am_not_start_aligned(const uint8_t fi)
   return (fi == RLC_FI_FIELD_NOT_START_ALIGNED || fi == RLC_FI_FIELD_NOT_START_OR_END_ALIGNED);
 }
 
-} // namespace srslte
+} // namespace srsran

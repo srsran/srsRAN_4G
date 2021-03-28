@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -48,21 +39,21 @@ int main(int argc, char** argv)
   srsue::pcsc_usim usim(logger);
   if (usim.init(&args)) {
     printf("Error initializing PC/SC USIM.\n");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   };
 
   std::string imsi = usim.get_imsi_str();
   cout << "IMSI: " << imsi << endl;
 
-  srslte::plmn_id_t home_plmn_id = {};
+  srsran::plmn_id_t home_plmn_id = {};
   if (usim.get_home_plmn_id(&home_plmn_id) == false) {
     printf("Error reading home PLMN\n");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   cout << "Home PLMN: " << home_plmn_id.to_string() << endl;
 
   auth_result_t result = usim.generate_authentication_response(rand_enb, autn_enb, mcc, mnc, res, &res_len, k_asme);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }

@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -23,14 +14,14 @@
 #include "srsenb/hdr/stack/rrc/mac_controller.h"
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
 #include "srsenb/hdr/stack/rrc/ue_rr_cfg.h"
-#include "srslte/adt/mem_pool.h"
-#include "srslte/asn1/rrc_utils.h"
-#include "srslte/common/enb_events.h"
-#include "srslte/common/int_helpers.h"
-#include "srslte/common/standard_streams.h"
-#include "srslte/interfaces/enb_pdcp_interfaces.h"
-#include "srslte/interfaces/enb_rlc_interfaces.h"
-#include "srslte/interfaces/enb_s1ap_interfaces.h"
+#include "srsran/adt/mem_pool.h"
+#include "srsran/asn1/rrc_utils.h"
+#include "srsran/common/enb_events.h"
+#include "srsran/common/int_helpers.h"
+#include "srsran/common/standard_streams.h"
+#include "srsran/interfaces/enb_pdcp_interfaces.h"
+#include "srsran/interfaces/enb_rlc_interfaces.h"
+#include "srsran/interfaces/enb_s1ap_interfaces.h"
 
 using namespace asn1::rrc;
 
@@ -59,7 +50,7 @@ int rrc::ue::init()
 {
   // Allocate cell and PUCCH resources
   if (ue_cell_list.add_cell(mac_ctrl.get_ue_sched_cfg().supported_cc_list[0].enb_cc_idx) == nullptr) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // Configure
@@ -69,10 +60,10 @@ int rrc::ue::init()
   set_activity_timeout(MSG3_RX_TIMEOUT); // next UE response is Msg3
 
   mobility_handler.reset(new rrc_mobility(this));
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-srslte::background_allocator_obj_pool<rrc::ue, 16, 4>* rrc::ue::get_ue_pool()
+srsran::background_allocator_obj_pool<rrc::ue, 16, 4>* rrc::ue::get_ue_pool()
 {
   // Note: batch allocation is going to be explicitly called in enb class construction. The pool object, therefore,
   //       will only be initialized if we instantiate an eNB
@@ -129,7 +120,7 @@ void rrc::ue::activity_timer_expired()
                                              static_cast<unsigned>(rrc_idle_transition_cause::timeout),
                                              rnti);
     } else {
-      if (rnti != SRSLTE_MRNTI) {
+      if (rnti != SRSRAN_MRNTI) {
         parent->rem_user_thread(rnti);
       }
     }
@@ -193,7 +184,7 @@ bool rrc::ue::is_idle()
   return state == RRC_STATE_IDLE;
 }
 
-void rrc::ue::parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
+void rrc::ue::parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
   set_activity();
 
@@ -208,8 +199,12 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
   parent->log_rrc_message(
       srsenb::to_string((rb_id_t)lcid), Rx, pdu.get(), ul_dcch_msg, ul_dcch_msg.msg.c1().type().to_string());
 
-  srslte::unique_byte_buffer_t original_pdu = std::move(pdu);
-  pdu                                       = srslte::make_byte_buffer();
+  srsran::unique_byte_buffer_t original_pdu = std::move(pdu);
+  pdu                                       = srsran::make_byte_buffer();
+  if (pdu == nullptr) {
+    parent->logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return;
+  }
 
   transaction_id = 0;
 
@@ -239,7 +234,7 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
       break;
     case ul_dcch_msg_type_c::c1_c_::types::rrc_conn_recfg_complete:
       handle_rrc_reconf_complete(&ul_dcch_msg.msg.c1().rrc_conn_recfg_complete(), std::move(pdu));
-      srslte::console("User 0x%x connected\n", rnti);
+      srsran::console("User 0x%x connected\n", rnti);
       state = RRC_STATE_REGISTERED;
       set_activity_timeout(UE_INACTIVITY_TIMEOUT);
       break;
@@ -280,7 +275,7 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 std::string rrc::ue::to_string(const activity_timeout_type_t& type)
 {
   constexpr static const char* options[] = {"Msg3 reception", "UE inactivity", "UE reestablishment"};
-  return srslte::enum_to_text(options, (uint32_t)activity_timeout_type_t::nulltype, (uint32_t)type);
+  return srsran::enum_to_text(options, (uint32_t)activity_timeout_type_t::nulltype, (uint32_t)type);
 }
 
 /*
@@ -304,7 +299,19 @@ void rrc::ue::handle_rrc_con_req(rrc_conn_request_s* msg)
     mmec     = (uint8_t)msg_r8->ue_id.s_tmsi().mmec.to_number();
     m_tmsi   = (uint32_t)msg_r8->ue_id.s_tmsi().m_tmsi.to_number();
     has_tmsi = true;
+
+    // Make sure that the context does not already exist
+    for (auto ue_it = parent->users.begin(); ue_it != parent->users.end(); ue_it++) {
+      if (ue_it->first != rnti && ue_it->second->has_tmsi && ue_it->second->mmec == mmec &&
+          ue_it->second->m_tmsi == m_tmsi) {
+        parent->logger.info("RRC connection request: UE context already exists. M-TMSI=%d", m_tmsi);
+        parent->rem_user_thread(ue_it->first); // Simply remove the old context. No need to notify the MME, it will
+                                               // update the eNB/MME-UE S1AP Id pair.
+        break;
+      }
+    }
   }
+
   establishment_cause = msg_r8->establishment_cause;
   send_connection_setup();
   state = RRC_STATE_WAIT_FOR_CON_SETUP_COMPLETE;
@@ -341,7 +348,7 @@ void rrc::ue::send_connection_setup()
   apply_rr_cfg_ded_diff(current_ue_cfg.rr_cfg, rr_cfg);
 }
 
-void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srslte::unique_byte_buffer_t pdu)
+void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srsran::unique_byte_buffer_t pdu)
 {
   // Inform PHY about the configuration completion
   parent->phy->complete_config(rnti);
@@ -508,7 +515,7 @@ void rrc::ue::send_connection_reest(uint8_t ncc)
   apply_rr_cfg_ded_diff(current_ue_cfg.rr_cfg, rr_cfg);
 }
 
-void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srslte::unique_byte_buffer_t pdu)
+void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srsran::unique_byte_buffer_t pdu)
 {
   // Inform PHY about the configuration completion
   parent->phy->complete_config(rnti);
@@ -566,7 +573,7 @@ void rrc::ue::send_connection_reest_rej()
 /*
  * Connection Reconfiguration
  */
-void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t           pdu,
+void rrc::ue::send_connection_reconf(srsran::unique_byte_buffer_t           pdu,
                                      bool                                   phy_cfg_updated,
                                      const asn1::unbounded_octstring<true>* nas_pdu)
 {
@@ -629,7 +636,7 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t           pdu,
   state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
 }
 
-void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte::unique_byte_buffer_t pdu)
+void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srsran::unique_byte_buffer_t pdu)
 {
   // Inform PHY about the configuration completion
   parent->phy->complete_config(rnti);
@@ -667,7 +674,7 @@ void rrc::ue::send_ue_info_req()
   send_dl_dcch(&msg);
 }
 
-void rrc::ue::handle_ue_info_resp(const asn1::rrc::ue_info_resp_r9_s& msg, srslte::unique_byte_buffer_t pdu)
+void rrc::ue::handle_ue_info_resp(const asn1::rrc::ue_info_resp_r9_s& msg, srsran::unique_byte_buffer_t pdu)
 {
   auto& resp_r9 = msg.crit_exts.c1().ue_info_resp_r9();
   if (resp_r9.rlf_report_r9_present) {
@@ -750,14 +757,18 @@ bool rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
       parent->logger.debug("rnti=0x%x EUTRA capabilities: %s", rnti, js.to_string().c_str());
     }
     eutra_capabilities_unpacked = true;
-    ue_capabilities             = srslte::make_rrc_ue_capabilities(eutra_capabilities);
+    ue_capabilities             = srsran::make_rrc_ue_capabilities(eutra_capabilities);
 
     parent->logger.info("UE rnti: 0x%x category: %d", rnti, eutra_capabilities.ue_category);
   }
 
   if (eutra_capabilities_unpacked) {
-    srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer();
-    asn1::bit_ref                bref2{pdu->msg, pdu->get_tailroom()};
+    srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+    if (pdu == nullptr) {
+      parent->logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+      return false;
+    }
+    asn1::bit_ref bref2{pdu->msg, pdu->get_tailroom()};
     msg->pack(bref2);
     asn1::rrc::ue_radio_access_cap_info_s ue_rat_caps;
     auto& dest = ue_rat_caps.crit_exts.set_c1().set_ue_radio_access_cap_info_r8().ue_radio_access_cap_info;
@@ -912,7 +923,7 @@ void rrc::ue::notify_s1ap_ue_ctxt_setup_complete()
     res.protocol_ies.erab_setup_list_ctxt_su_res.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_SETUP_ITEM_CTXT_SU_RES);
     auto& item   = res.protocol_ies.erab_setup_list_ctxt_su_res.value[i].value.erab_setup_item_ctxt_su_res();
     item.erab_id = erab.second.id;
-    srslte::uint32_to_uint8(erab.second.teid_in, item.gtp_teid.data());
+    srsran::uint32_to_uint8(erab.second.teid_in, item.gtp_teid.data());
     i++;
   }
 
@@ -940,7 +951,7 @@ bool rrc::ue::setup_erabs(const asn1::s1ap::erab_to_be_setup_list_ctxt_su_req_l&
     }
 
     uint32_t teid_out;
-    srslte::uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
+    srsran::uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
     const asn1::unbounded_octstring<true>* nas_pdu = erab.nas_pdu_present ? &erab.nas_pdu : nullptr;
     bearer_list.add_erab(erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, nas_pdu);
     bearer_list.add_gtpu_bearer(erab.erab_id);
@@ -964,7 +975,7 @@ bool rrc::ue::setup_erabs(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_
     }
 
     uint32_t teid_out;
-    srslte::uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
+    srsran::uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
     bearer_list.add_erab(
         erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, &erab.nas_pdu);
     bearer_list.add_gtpu_bearer(erab.erab_id);
@@ -1011,7 +1022,7 @@ void rrc::ue::notify_s1ap_ue_erab_setup_response(const asn1::s1ap::erab_to_be_se
       auto& item = res.protocol_ies.erab_setup_list_bearer_su_res.value.back();
       item.load_info_obj(ASN1_S1AP_ID_ERAB_SETUP_ITEM_BEARER_SU_RES);
       item.value.erab_setup_item_bearer_su_res().erab_id = id;
-      srslte::uint32_to_uint8(bearer_list.get_erabs().at(id).teid_in,
+      srsran::uint32_to_uint8(bearer_list.get_erabs().at(id).teid_in,
                               &item.value.erab_setup_item_bearer_su_res().gtp_teid[0]);
     } else {
       res.protocol_ies.erab_failed_to_setup_list_bearer_su_res_present = true;
@@ -1069,7 +1080,7 @@ void rrc::ue::update_scells()
 void rrc::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
 {
   // Allocate a new PDU buffer, pack the message and send to PDCP
-  srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+  srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
   if (pdu) {
     asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
     if (dl_ccch_msg->pack(bref) != asn1::SRSASN_SUCCESS) {
@@ -1087,10 +1098,10 @@ void rrc::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
   }
 }
 
-bool rrc::ue::send_dl_dcch(const dl_dcch_msg_s* dl_dcch_msg, srslte::unique_byte_buffer_t pdu)
+bool rrc::ue::send_dl_dcch(const dl_dcch_msg_s* dl_dcch_msg, srsran::unique_byte_buffer_t pdu)
 {
   if (!pdu) {
-    pdu = srslte::make_byte_buffer();
+    pdu = srsran::make_byte_buffer();
   }
   if (pdu) {
     asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
@@ -1152,7 +1163,7 @@ void rrc::ue::apply_setup_phy_config_dedicated(const asn1::rrc::phys_cfg_ded_s& 
   }
 
   // Load PCell dedicated configuration
-  srslte::set_phy_cfg_t_dedicated_cfg(&phy_rrc_dedicated_list[0].phy_cfg, phys_cfg_ded);
+  srsran::set_phy_cfg_t_dedicated_cfg(&phy_rrc_dedicated_list[0].phy_cfg, phys_cfg_ded);
 
   // Deactivates eNb/Cells for this UE
   for (uint32_t cc = 1; cc < phy_rrc_dedicated_list.size(); cc++) {
@@ -1177,8 +1188,8 @@ void rrc::ue::apply_reconf_phy_config(const rrc_conn_recfg_r8_ies_s& reconfig_r8
     auto& rr_cfg_ded = reconfig_r8.rr_cfg_ded;
     if (rr_cfg_ded.phys_cfg_ded_present) {
       auto& phys_cfg_ded = rr_cfg_ded.phys_cfg_ded;
-      srslte::set_phy_cfg_t_dedicated_cfg(&phy_rrc_dedicated_list[0].phy_cfg, phys_cfg_ded);
-      srslte::set_phy_cfg_t_enable_64qam(
+      srsran::set_phy_cfg_t_dedicated_cfg(&phy_rrc_dedicated_list[0].phy_cfg, phys_cfg_ded);
+      srsran::set_phy_cfg_t_enable_64qam(
           &phy_rrc_dedicated_list[0].phy_cfg,
           ue_capabilities.support_ul_64qam and
               parent->cfg.sibs[1].sib2().rr_cfg_common.pusch_cfg_common.pusch_cfg_basic.enable64_qam);
@@ -1201,7 +1212,7 @@ void rrc::ue::apply_reconf_phy_config(const rrc_conn_recfg_r8_ies_s& reconfig_r8
             ue_cell_ded* ue_cc = ue_cell_list.get_ue_cc_idx(scell.scell_idx_r10);
             // Create new PHY configuration structure for this SCell
             phy_interface_rrc_lte::phy_rrc_cfg_t scell_phy_rrc_ded = {};
-            srslte::set_phy_cfg_t_scell_config(&scell_phy_rrc_ded.phy_cfg, scell);
+            srsran::set_phy_cfg_t_scell_config(&scell_phy_rrc_ded.phy_cfg, scell);
             scell_phy_rrc_ded.configured = true;
 
             // Set PUSCH dedicated configuration following 3GPP TS 36.331 R 10 Section 6.3.2 Radio resource control
@@ -1216,7 +1227,7 @@ void rrc::ue::apply_reconf_phy_config(const rrc_conn_recfg_r8_ies_s& reconfig_r8
 
             // Append to PHY RRC config dedicated which will be applied further down
             phy_rrc_dedicated_list[scell.scell_idx_r10] = scell_phy_rrc_ded;
-            srslte::set_phy_cfg_t_enable_64qam(
+            srsran::set_phy_cfg_t_enable_64qam(
                 &phy_rrc_dedicated_list[scell.scell_idx_r10].phy_cfg,
                 ue_capabilities.support_ul_64qam and
                     parent->cfg.sibs[1].sib2().rr_cfg_common.pusch_cfg_common.pusch_cfg_basic.enable64_qam);
@@ -1235,7 +1246,7 @@ void rrc::ue::apply_reconf_phy_config(const rrc_conn_recfg_r8_ies_s& reconfig_r8
 void rrc::ue::apply_pdcp_srb_updates(const rr_cfg_ded_s& pending_rr_cfg)
 {
   for (const srb_to_add_mod_s& srb : pending_rr_cfg.srb_to_add_mod_list) {
-    parent->pdcp->add_bearer(rnti, srb.srb_id, srslte::make_srb_pdcp_config_t(srb.srb_id, false));
+    parent->pdcp->add_bearer(rnti, srb.srb_id, srsran::make_srb_pdcp_config_t(srb.srb_id, false));
 
     // enable security config
     if (ue_security_cfg.is_as_sec_cfg_valid()) {
@@ -1254,10 +1265,10 @@ void rrc::ue::apply_pdcp_drb_updates(const rr_cfg_ded_s& pending_rr_cfg)
   for (const drb_to_add_mod_s& drb : pending_rr_cfg.drb_to_add_mod_list) {
     // Configure DRB1 in PDCP
     if (drb.pdcp_cfg_present) {
-      srslte::pdcp_config_t pdcp_cnfg_drb = srslte::make_drb_pdcp_config_t(drb.drb_id, false, drb.pdcp_cfg);
+      srsran::pdcp_config_t pdcp_cnfg_drb = srsran::make_drb_pdcp_config_t(drb.drb_id, false, drb.pdcp_cfg);
       parent->pdcp->add_bearer(rnti, drb.lc_ch_id, pdcp_cnfg_drb);
     } else {
-      srslte::pdcp_config_t pdcp_cnfg_drb = srslte::make_drb_pdcp_config_t(drb.drb_id, false);
+      srsran::pdcp_config_t pdcp_cnfg_drb = srsran::make_drb_pdcp_config_t(drb.drb_id, false);
       parent->pdcp->add_bearer(rnti, drb.lc_ch_id, pdcp_cnfg_drb);
     }
 
@@ -1295,7 +1306,7 @@ void rrc::ue::apply_pdcp_drb_updates(const rr_cfg_ded_s& pending_rr_cfg)
 void rrc::ue::apply_rlc_rb_updates(const rr_cfg_ded_s& pending_rr_cfg)
 {
   for (const srb_to_add_mod_s& srb : pending_rr_cfg.srb_to_add_mod_list) {
-    parent->rlc->add_bearer(rnti, srb.srb_id, srslte::rlc_config_t::srb_config(srb.srb_id));
+    parent->rlc->add_bearer(rnti, srb.srb_id, srsran::rlc_config_t::srb_config(srb.srb_id));
   }
   if (pending_rr_cfg.drb_to_release_list.size() > 0) {
     for (uint8_t drb_id : pending_rr_cfg.drb_to_release_list) {
@@ -1306,7 +1317,7 @@ void rrc::ue::apply_rlc_rb_updates(const rr_cfg_ded_s& pending_rr_cfg)
     if (not drb.rlc_cfg_present) {
       parent->logger.warning("Default RLC DRB config not supported");
     }
-    parent->rlc->add_bearer(rnti, drb.lc_ch_id, srslte::make_rlc_config_t(drb.rlc_cfg));
+    parent->rlc->add_bearer(rnti, drb.lc_ch_id, srsran::make_rlc_config_t(drb.rlc_cfg));
   }
 }
 
@@ -1316,10 +1327,10 @@ int rrc::ue::get_cqi(uint16_t* pmi_idx, uint16_t* n_pucch, uint32_t ue_cc_idx)
   if (c != nullptr and c->cqi_res_present) {
     *pmi_idx = c->cqi_res.pmi_idx;
     *n_pucch = c->cqi_res.pucch_res;
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   } else {
     parent->logger.error("CQI resources for ue_cc_idx=%d have not been allocated", ue_cc_idx);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 }
 
@@ -1330,7 +1341,7 @@ bool rrc::ue::is_allocated() const
 
 int rrc::ue::get_ri(uint32_t m_ri, uint16_t* ri_idx)
 {
-  int32_t ret = SRSLTE_SUCCESS;
+  int32_t ret = SRSRAN_SUCCESS;
 
   uint32_t I_ri        = 0;
   int32_t  N_offset_ri = 0; // Naivest approach: overlap RI with PMI

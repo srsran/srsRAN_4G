@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -27,9 +18,9 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
-#include "srslte/common/basic_vnf_api.h"
-#include "srslte/common/test_common.h"
-#include "srslte/common/threads.h"
+#include "srsran/common/basic_vnf_api.h"
+#include "srsran/common/test_common.h"
+#include "srsran/common/threads.h"
 #include "srsue/hdr/phy/vnf_phy_nr.h"
 
 using namespace std;
@@ -50,9 +41,9 @@ int vnf_phy_nr::init(const srsue::phy_args_t& args_, srsue::stack_interface_phy_
 int vnf_phy_nr::init(const srsue::phy_args_t& args_)
 {
   // create VNF
-  vnf         = std::unique_ptr<srslte::srslte_basic_vnf>(new srslte::srslte_basic_vnf(args_.vnf_args, stack));
+  vnf         = std::unique_ptr<srsran::srsran_basic_vnf>(new srsran::srsran_basic_vnf(args_.vnf_args, stack));
   initialized = true;
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 void vnf_phy_nr::set_earfcn(std::vector<uint32_t> earfcns) {}
@@ -77,7 +68,7 @@ int vnf_phy_nr::tx_request(const tx_request_t& request)
   // send Tx request over basic API
   return vnf->tx_request(request);
 }
-bool vnf_phy_nr::set_config(const srslte::phy_cfg_nr_t& cfg)
+bool vnf_phy_nr::set_config(const srsran::phy_cfg_nr_t& cfg)
 {
   return false;
 }

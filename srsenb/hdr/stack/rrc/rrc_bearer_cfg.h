@@ -1,33 +1,24 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
-#ifndef SRSLTE_RRC_BEARER_CFG_H
-#define SRSLTE_RRC_BEARER_CFG_H
+#ifndef SRSRAN_RRC_BEARER_CFG_H
+#define SRSRAN_RRC_BEARER_CFG_H
 
 #include "srsenb/hdr/stack/rrc/rrc_config.h"
-#include "srslte/asn1/s1ap.h"
-#include "srslte/interfaces/enb_gtpu_interfaces.h"
-#include "srslte/interfaces/enb_interfaces.h"
-#include "srslte/interfaces/enb_rrc_interface_types.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/asn1/s1ap.h"
+#include "srsran/interfaces/enb_gtpu_interfaces.h"
+#include "srsran/interfaces/enb_interfaces.h"
+#include "srsran/interfaces/enb_rrc_interface_types.h"
+#include "srsran/srslog/srslog.h"
 
 namespace srsenb {
 
@@ -51,7 +42,7 @@ public:
   void set_ncc(uint8_t ncc_) { ncc = ncc_; }
 
   asn1::rrc::security_algorithm_cfg_s get_security_algorithm_cfg();
-  const srslte::as_security_config_t& get_as_sec_cfg() const { return sec_cfg; }
+  const srsran::as_security_config_t& get_as_sec_cfg() const { return sec_cfg; }
   uint8_t                             get_ncc() const { return ncc; }
   bool                                is_as_sec_cfg_valid() const { return k_enb_present; }
 
@@ -65,7 +56,7 @@ private:
   bool                          k_enb_present         = false;
   asn1::s1ap::ue_security_cap_s security_capabilities = {};
   uint8_t                       k_enb[32]             = {}; // Provided by MME
-  srslte::as_security_config_t  sec_cfg               = {};
+  srsran::as_security_config_t  sec_cfg               = {};
   uint8_t                       ncc                   = 0;
 };
 
@@ -126,4 +117,4 @@ private:
 
 } // namespace srsenb
 
-#endif // SRSLTE_RRC_BEARER_CFG_H
+#endif // SRSRAN_RRC_BEARER_CFG_H

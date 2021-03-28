@@ -1,26 +1,17 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
-#include "srslte/common/thread_pool.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/common/thread_pool.h"
+#include "srsran/srslog/srslog.h"
 #include <assert.h>
 #include <chrono>
 #include <stdio.h>
@@ -32,7 +23,7 @@
       printf(fmt, __VA_ARGS__);                                                                                        \
   } while (0)
 
-namespace srslte {
+namespace srsran {
 
 thread_pool::worker::worker() : thread("THREAD_POOL_WORKER") {}
 
@@ -335,7 +326,7 @@ uint32_t task_thread_pool::nof_pending_tasks() const
   return pending_tasks.size();
 }
 
-task_thread_pool::worker_t::worker_t(srslte::task_thread_pool* parent_, uint32_t my_id) :
+task_thread_pool::worker_t::worker_t(srsran::task_thread_pool* parent_, uint32_t my_id) :
   parent(parent_), thread(std::string("TASKWORKER") + std::to_string(my_id)), id_(my_id), running(true)
 {
   if (parent->mask == 255) {
@@ -386,4 +377,4 @@ task_thread_pool& get_background_workers()
   return background_workers;
 }
 
-} // namespace srslte
+} // namespace srsran

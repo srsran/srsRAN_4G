@@ -19,10 +19,10 @@
 #
 
 file(GLOB SOURCES "*.c" "*.cpp")
-add_library(srslte_utils OBJECT ${SOURCES})
+add_library(srsran_utils OBJECT ${SOURCES})
 
 if(VOLK_FOUND)
-  set_target_properties(srslte_utils PROPERTIES COMPILE_DEFINITIONS "${VOLK_DEFINITIONS}")
+  set_target_properties(srsran_utils PROPERTIES COMPILE_DEFINITIONS "${VOLK_DEFINITIONS}")
 endif(VOLK_FOUND)
 
 add_subdirectory(test)

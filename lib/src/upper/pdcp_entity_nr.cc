@@ -1,33 +1,24 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
-#include "srslte/upper/pdcp_entity_nr.h"
-#include "srslte/common/security.h"
+#include "srsran/upper/pdcp_entity_nr.h"
+#include "srsran/common/security.h"
 
-namespace srslte {
+namespace srsran {
 
 pdcp_entity_nr::pdcp_entity_nr(srsue::rlc_interface_pdcp* rlc_,
                                srsue::rrc_interface_pdcp* rrc_,
                                srsue::gw_interface_pdcp*  gw_,
-                               srslte::task_sched_handle  task_sched_,
+                               srsran::task_sched_handle  task_sched_,
                                srslog::basic_logger&      logger,
                                uint32_t                   lcid_,
                                pdcp_config_t              cfg_) :
@@ -78,8 +69,8 @@ void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, int sn)
               sdu->N_bytes,
               "TX %s SDU, integrity=%s, encryption=%s",
               rrc->get_rb_name(lcid).c_str(),
-              srslte_direction_text[integrity_direction],
-              srslte_direction_text[encryption_direction]);
+              srsran_direction_text[integrity_direction],
+              srsran_direction_text[encryption_direction]);
 
   // Check for COUNT overflow
   if (tx_overflow) {
@@ -135,8 +126,8 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
               "RX %s PDU (%d B), integrity=%s, encryption=%s",
               rrc->get_rb_name(lcid).c_str(),
               pdu->N_bytes,
-              srslte_direction_text[integrity_direction],
-              srslte_direction_text[encryption_direction]);
+              srsran_direction_text[integrity_direction],
+              srsran_direction_text[encryption_direction]);
 
   // Sanity check
   if (pdu->N_bytes <= cfg.hdr_len_bytes) {
@@ -311,4 +302,4 @@ void pdcp_entity_nr::reset_metrics()
   metrics = {};
 }
 
-} // namespace srslte
+} // namespace srsran

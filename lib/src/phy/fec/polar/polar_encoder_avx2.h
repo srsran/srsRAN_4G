@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -46,7 +37,7 @@ void delete_polar_encoder_avx2(void* p);
  * \param[in] input The encoder input vector.
  * \param[out] output The encoder output vector.
  * \param[in] code_size_log The \f$ log_2\f$ of the number of bits of the encoder input/output vector.
- * It can less or equal to the maximum code_size_log specified in q.code_size_log of the srslte_polar_encoder_t
+ * It can less or equal to the maximum code_size_log specified in q.code_size_log of the srsran_polar_encoder_t
  * structure \return An integer: 0 if the function executes correctly, -1 otherwise.
  */
 int polar_encoder_encode_avx2(void* p, const uint8_t* input, uint8_t* output, uint8_t code_size_log);

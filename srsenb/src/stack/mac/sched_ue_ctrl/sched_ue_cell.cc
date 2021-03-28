@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -232,10 +223,10 @@ std::tuple<int, YType, int, YType> false_position_method(int x1, int x2, YType y
 tbs_info cqi_to_tbs_dl(const sched_ue_cell& cell,
                        uint32_t             nof_prb,
                        uint32_t             nof_re,
-                       srslte_dci_format_t  dci_format,
+                       srsran_dci_format_t  dci_format,
                        int                  req_bytes)
 {
-  bool use_tbs_index_alt = cell.get_ue_cfg()->use_tbs_index_alt and dci_format != SRSLTE_DCI_FORMAT1A;
+  bool use_tbs_index_alt = cell.get_ue_cfg()->use_tbs_index_alt and dci_format != SRSRAN_DCI_FORMAT1A;
 
   tbs_info ret;
   if (cell.fixed_mcs_dl < 0 or not cell.dl_cqi_rx) {
@@ -243,7 +234,7 @@ tbs_info cqi_to_tbs_dl(const sched_ue_cell& cell,
     ret = compute_min_mcs_and_tbs_from_required_bytes(
         nof_prb, nof_re, cell.dl_cqi, cell.max_mcs_dl, req_bytes, false, false, use_tbs_index_alt);
 
-    // If coderate > SRSLTE_MIN(max_coderate, 0.932 * Qm) we should set TBS=0. We don't because it's not correctly
+    // If coderate > SRSRAN_MIN(max_coderate, 0.932 * Qm) we should set TBS=0. We don't because it's not correctly
     // handled by the scheduler, but we might be scheduling undecodable codewords at very low SNR
     if (ret.tbs_bytes < 0) {
       ret.mcs       = 0;
@@ -269,7 +260,7 @@ tbs_info cqi_to_tbs_ul(const sched_ue_cell& cell, uint32_t nof_prb, uint32_t nof
     ret = compute_min_mcs_and_tbs_from_required_bytes(
         nof_prb, nof_re, cell.ul_cqi, cell.max_mcs_ul, req_bytes, true, ulqam64_enabled, false);
 
-    // If coderate > SRSLTE_MIN(max_coderate, 0.932 * Qm) we should set TBS=0. We don't because it's not correctly
+    // If coderate > SRSRAN_MIN(max_coderate, 0.932 * Qm) we should set TBS=0. We don't because it's not correctly
     // handled by the scheduler, but we might be scheduling undecodable codewords at very low SNR
     if (ret.tbs_bytes < 0) {
       ret.mcs       = 0;
@@ -286,7 +277,7 @@ tbs_info cqi_to_tbs_ul(const sched_ue_cell& cell, uint32_t nof_prb, uint32_t nof
 
 int get_required_prb_dl(const sched_ue_cell& cell,
                         tti_point            tti_tx_dl,
-                        srslte_dci_format_t  dci_format,
+                        srsran_dci_format_t  dci_format,
                         uint32_t             req_bytes)
 {
   auto compute_tbs_approx = [tti_tx_dl, &cell, dci_format](uint32_t nof_prb) {
@@ -296,7 +287,7 @@ int get_required_prb_dl(const sched_ue_cell& cell,
   };
 
   std::tuple<uint32_t, int, uint32_t, int> ret = false_position_method(
-      1U, cell.cell_cfg->nof_prb(), (int)req_bytes, compute_tbs_approx, [](int y) { return y == SRSLTE_ERROR; });
+      1U, cell.cell_cfg->nof_prb(), (int)req_bytes, compute_tbs_approx, [](int y) { return y == SRSRAN_ERROR; });
   int      upper_tbs  = std::get<3>(ret);
   uint32_t upper_nprb = std::get<2>(ret);
   return (upper_tbs < 0) ? 0 : ((upper_tbs < (int)req_bytes) ? -1 : static_cast<int>(upper_nprb));
@@ -309,7 +300,7 @@ uint32_t get_required_prb_ul(const sched_ue_cell& cell, uint32_t req_bytes)
   }
   auto compute_tbs_approx = [&cell](uint32_t nof_prb) {
     const uint32_t N_srs  = 0;
-    uint32_t       nof_re = (2 * (SRSLTE_CP_NSYMB(cell.cell_cfg->cfg.cell.cp) - 1) - N_srs) * nof_prb * SRSLTE_NRE;
+    uint32_t       nof_re = (2 * (SRSRAN_CP_NSYMB(cell.cell_cfg->cfg.cell.cp) - 1) - N_srs) * nof_prb * SRSRAN_NRE;
     return cqi_to_tbs_ul(cell, nof_prb, nof_re, -1).tbs_bytes;
   };
 
@@ -317,9 +308,9 @@ uint32_t get_required_prb_ul(const sched_ue_cell& cell, uint32_t req_bytes)
   int                                      target_tbs = static_cast<int>(req_bytes) + 4;
   uint32_t                                 max_prbs   = std::min(cell.tpc_fsm.max_ul_prbs(), cell.cell_cfg->nof_prb());
   std::tuple<uint32_t, int, uint32_t, int> ret =
-      false_position_method(1U, max_prbs, target_tbs, compute_tbs_approx, [](int y) { return y == SRSLTE_ERROR; });
+      false_position_method(1U, max_prbs, target_tbs, compute_tbs_approx, [](int y) { return y == SRSRAN_ERROR; });
   uint32_t req_prbs = std::get<2>(ret);
-  while (!srslte_dft_precoding_valid_prb(req_prbs) && req_prbs < cell.cell_cfg->nof_prb()) {
+  while (!srsran_dft_precoding_valid_prb(req_prbs) && req_prbs < cell.cell_cfg->nof_prb()) {
     req_prbs++;
   }
   return req_prbs;

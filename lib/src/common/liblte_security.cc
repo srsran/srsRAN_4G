@@ -15,11 +15,11 @@
                               INCLUDES
 *******************************************************************************/
 
-#include "srslte/common/liblte_security.h"
+#include "srsran/common/liblte_security.h"
 #include "math.h"
-#include "srslte/common/ssl.h"
-#include "srslte/common/s3g.h"
-#include "srslte/common/zuc.h"
+#include "srsran/common/s3g.h"
+#include "srsran/common/ssl.h"
+#include "srsran/common/zuc.h"
 
 /*******************************************************************************
                               LOCAL FUNCTION PROTOTYPES

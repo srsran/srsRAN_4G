@@ -1,27 +1,18 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #include "srsenb/hdr/phy/txrx.h"
-#include "srslte/common/threads.h"
-#include "srslte/phy/channel/channel.h"
+#include "srsran/common/threads.h"
+#include "srsran/phy/channel/channel.h"
 #include <sstream>
 
 #include <assert.h>
@@ -42,7 +33,7 @@ void phy_common::reset()
 
 bool phy_common::init(const phy_cell_cfg_list_t&    cell_list_,
                       const phy_cell_cfg_list_nr_t& cell_list_nr_,
-                      srslte::radio_interface_phy*  radio_h_,
+                      srsran::radio_interface_phy*  radio_h_,
                       stack_interface_phy_lte*      stack_)
 {
   radio         = radio_h_;
@@ -55,10 +46,10 @@ bool phy_common::init(const phy_cell_cfg_list_t&    cell_list_,
 
   // Instantiate DL channel emulator
   if (params.dl_channel_args.enable) {
-    dl_channel = srslte::channel_ptr(
-        new srslte::channel(params.dl_channel_args, get_nof_rf_channels(), srslog::fetch_basic_logger("PHY")));
-    dl_channel->set_srate((uint32_t)srslte_sampling_freq_hz(cell_list_lte[0].cell.nof_prb));
-    dl_channel->set_signal_power_dBfs(srslte_enb_dl_get_maximum_signal_power_dBfs(cell_list_lte[0].cell.nof_prb));
+    dl_channel = srsran::channel_ptr(
+        new srsran::channel(params.dl_channel_args, get_nof_rf_channels(), srslog::fetch_basic_logger("PHY")));
+    dl_channel->set_srate((uint32_t)srsran_sampling_freq_hz(cell_list_lte[0].cell.nof_prb));
+    dl_channel->set_signal_power_dBfs(srsran_enb_dl_get_maximum_signal_power_dBfs(cell_list_lte[0].cell.nof_prb));
   }
 
   // Create grants
@@ -113,7 +104,7 @@ void phy_common::set_ul_grants(uint32_t tti, const stack_interface_phy_lte::ul_s
  * Each worker uses this function to indicate that all processing is done and data is ready for transmission or
  * there is no transmission at all (tx_enable). In that case, the end of burst message will be sent to the radio
  */
-void phy_common::worker_end(void* tx_sem_id, srslte::rf_buffer_t& buffer, srslte::rf_timestamp_t& tx_time, bool is_nr)
+void phy_common::worker_end(void* tx_sem_id, srsran::rf_buffer_t& buffer, srsran::rf_timestamp_t& tx_time, bool is_nr)
 {
   // Wait for the green light to transmit in the current TTI
   semaphore.wait(tx_sem_id);
@@ -129,7 +120,7 @@ void phy_common::worker_end(void* tx_sem_id, srslte::rf_buffer_t& buffer, srslte
   // ... otherwise, append NR base-band from saved buffer if available
   if (nr_tx_buffer_ready) {
     uint32_t j = 0;
-    for (uint32_t i = 0; i < SRSLTE_MAX_CHANNELS; i++) {
+    for (uint32_t i = 0; i < SRSRAN_MAX_CHANNELS; i++) {
       if (buffer.get(i) == nullptr) {
         buffer.set(i, nr_tx_buffer.get(j));
         j++;
@@ -159,7 +150,7 @@ void phy_common::set_mch_period_stop(uint32_t stop)
   pthread_mutex_unlock(&mtch_mutex);
 }
 
-void phy_common::configure_mbsfn(srslte::phy_cfg_mbsfn_t* cfg)
+void phy_common::configure_mbsfn(srsran::phy_cfg_mbsfn_t* cfg)
 {
   mbsfn = *cfg;
 
@@ -176,10 +167,10 @@ void phy_common::build_mch_table()
 
   // 40 element table represents 4 frames (40 subframes)
   uint32_t nof_sfs = 0;
-  if (mbsfn.mbsfn_subfr_cnfg.nof_alloc_subfrs == srslte::mbsfn_sf_cfg_t::sf_alloc_type_t::one_frame) {
+  if (mbsfn.mbsfn_subfr_cnfg.nof_alloc_subfrs == srsran::mbsfn_sf_cfg_t::sf_alloc_type_t::one_frame) {
     generate_mch_table(&mch_table[0], (uint32_t)mbsfn.mbsfn_subfr_cnfg.sf_alloc, 1);
     nof_sfs = 10;
-  } else if (mbsfn.mbsfn_subfr_cnfg.nof_alloc_subfrs == srslte::mbsfn_sf_cfg_t::sf_alloc_type_t::four_frames) {
+  } else if (mbsfn.mbsfn_subfr_cnfg.nof_alloc_subfrs == srsran::mbsfn_sf_cfg_t::sf_alloc_type_t::four_frames) {
     generate_mch_table(&mch_table[0], (uint32_t)mbsfn.mbsfn_subfr_cnfg.sf_alloc, 4);
     nof_sfs = 40;
   } else {
@@ -208,7 +199,7 @@ void phy_common::build_mcch_table()
   }
 }
 
-bool phy_common::is_mcch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
+bool phy_common::is_mcch_subframe(srsran_mbsfn_cfg_t* cfg, uint32_t phy_tti)
 {
   uint32_t sfn; // System Frame Number
   uint8_t  sf;  // Subframe
@@ -220,7 +211,7 @@ bool phy_common::is_mcch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
 
   if (sib13_configured) {
     // mbsfn_area_info_r9_s* area_info = &mbsfn.mbsfn_area_info;
-    srslte::mbsfn_area_info_t* area_info = &mbsfn.mbsfn_area_info;
+    srsran::mbsfn_area_info_t* area_info = &mbsfn.mbsfn_area_info;
     offset                               = area_info->mcch_cfg.mcch_offset;
     period                               = enum_to_number(area_info->mcch_cfg.mcch_repeat_period);
 
@@ -237,7 +228,7 @@ bool phy_common::is_mcch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
   return false;
 }
 
-bool phy_common::is_mch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
+bool phy_common::is_mch_subframe(srsran_mbsfn_cfg_t* cfg, uint32_t phy_tti)
 {
   uint32_t sfn; // System Frame Number
   uint8_t  sf;  // Subframe
@@ -262,13 +253,13 @@ bool phy_common::is_mch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
   }
 
   // Not MCCH, check for MCH
-  srslte::mbsfn_sf_cfg_t*    subfr_cnfg = &mbsfn.mbsfn_subfr_cnfg;
-  srslte::mbsfn_area_info_t* area_info  = &mbsfn.mbsfn_area_info;
+  srsran::mbsfn_sf_cfg_t*    subfr_cnfg = &mbsfn.mbsfn_subfr_cnfg;
+  srsran::mbsfn_area_info_t* area_info  = &mbsfn.mbsfn_area_info;
 
   offset = subfr_cnfg->radioframe_alloc_offset;
   period = enum_to_number(subfr_cnfg->radioframe_alloc_period);
 
-  if (subfr_cnfg->nof_alloc_subfrs == srslte::mbsfn_sf_cfg_t::sf_alloc_type_t::one_frame) {
+  if (subfr_cnfg->nof_alloc_subfrs == srsran::mbsfn_sf_cfg_t::sf_alloc_type_t::one_frame) {
     if ((sfn % period == offset) && (mch_table[sf] > 0)) {
       if (sib13_configured) {
         cfg->mbsfn_area_id           = area_info->mbsfn_area_id;
@@ -292,7 +283,7 @@ bool phy_common::is_mch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
       }
       return true;
     }
-  } else if (subfr_cnfg->nof_alloc_subfrs == srslte::mbsfn_sf_cfg_t::sf_alloc_type_t::four_frames) {
+  } else if (subfr_cnfg->nof_alloc_subfrs == srsran::mbsfn_sf_cfg_t::sf_alloc_type_t::four_frames) {
     uint8_t idx = sfn % period;
     if ((idx >= offset) && (idx < offset + 4)) {
       if (mch_table[(idx * 10) + sf] > 0) {
@@ -309,7 +300,7 @@ bool phy_common::is_mch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
   return false;
 }
 
-bool phy_common::is_mbsfn_sf(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
+bool phy_common::is_mbsfn_sf(srsran_mbsfn_cfg_t* cfg, uint32_t phy_tti)
 {
   return is_mch_subframe(cfg, phy_tti);
 }

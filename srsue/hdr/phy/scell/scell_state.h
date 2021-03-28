@@ -1,30 +1,21 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
-#ifndef SRSLTE_SCELL_STATE_H
-#define SRSLTE_SCELL_STATE_H
+#ifndef SRSRAN_SCELL_STATE_H
+#define SRSRAN_SCELL_STATE_H
 
 #include <cinttypes>
 #include <mutex>
-#include <srslte/common/common.h>
+#include <srsran/common/common.h>
 
 namespace srsue {
 namespace scell {
@@ -56,7 +47,7 @@ private:
     enum { none = 0, inactive, active } status = none;
   };
 
-  std::array<cfg, SRSLTE_MAX_CARRIERS> scell_cfg;
+  std::array<cfg, SRSRAN_MAX_CARRIERS> scell_cfg;
 
   enum { idle = 0, waiting, transition } activation_state = idle;
   uint32_t           activation_cmd                       = 0;
@@ -125,7 +116,7 @@ public:
         if (TTI_SUB(tti, activation_tti) >= activation_margin_tti) {
 
           // Reload cell states
-          for (uint32_t i = 1; i < SRSLTE_MAX_CARRIERS; i++) {
+          for (uint32_t i = 1; i < SRSRAN_MAX_CARRIERS; i++) {
             // Get Activation command value
             bool activate = _get_cmd_activation(i);
 
@@ -146,7 +137,7 @@ public:
   {
     std::unique_lock<std::mutex> lock(mutex);
 
-    if (cc_idx == 0 or cc_idx >= SRSLTE_MAX_CARRIERS) {
+    if (cc_idx == 0 or cc_idx >= SRSRAN_MAX_CARRIERS) {
       ERROR("CC IDX %d out-of-range", cc_idx);
       return;
     }
@@ -163,7 +154,7 @@ public:
       return true;
     }
 
-    if (cc_idx >= SRSLTE_MAX_CARRIERS) {
+    if (cc_idx >= SRSRAN_MAX_CARRIERS) {
       return false;
     }
 
@@ -185,7 +176,7 @@ public:
       return true;
     }
 
-    if (cc_idx >= SRSLTE_MAX_CARRIERS) {
+    if (cc_idx >= SRSRAN_MAX_CARRIERS) {
       return false;
     }
 
@@ -211,7 +202,7 @@ public:
   {
     std::unique_lock<std::mutex> lock(mutex);
 
-    if (cc_idx == 0 or cc_idx >= SRSLTE_MAX_CARRIERS) {
+    if (cc_idx == 0 or cc_idx >= SRSRAN_MAX_CARRIERS) {
       ERROR("CC IDX %d out-of-range", cc_idx);
       return 0;
     }
@@ -223,7 +214,7 @@ public:
   {
     std::unique_lock<std::mutex> lock(mutex);
 
-    if (cc_idx == 0 or cc_idx >= SRSLTE_MAX_CARRIERS) {
+    if (cc_idx == 0 or cc_idx >= SRSRAN_MAX_CARRIERS) {
       ERROR("CC IDX %d out-of-range", cc_idx);
       return 0;
     }
@@ -233,4 +224,4 @@ public:
 };
 } // namespace scell
 } // namespace srsue
-#endif // SRSLTE_SCELL_STATE_H
+#endif // SRSRAN_SCELL_STATE_H

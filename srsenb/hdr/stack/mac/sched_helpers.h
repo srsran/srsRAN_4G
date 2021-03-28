@@ -1,30 +1,21 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
-#ifndef SRSLTE_SCHED_HELPERS_H
-#define SRSLTE_SCHED_HELPERS_H
+#ifndef SRSRAN_SCHED_HELPERS_H
+#define SRSRAN_SCHED_HELPERS_H
 
 #include "srsenb/hdr/stack/mac/sched_common.h"
-#include "srslte/interfaces/sched_interface.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/interfaces/sched_interface.h"
+#include "srsran/srslog/srslog.h"
 
 namespace srsenb {
 
@@ -101,7 +92,7 @@ inline uint32_t cell_nof_rbg_to_prb(uint32_t nof_rbgs)
 inline uint32_t count_prb_per_tb(const rbgmask_t& bitmask)
 {
   uint32_t Nprb    = cell_nof_rbg_to_prb(bitmask.size());
-  uint32_t P       = srslte_ra_type0_P(Nprb);
+  uint32_t P       = srsran_ra_type0_P(Nprb);
   uint32_t nof_prb = P * bitmask.count();
   if (bitmask.test(bitmask.size() - 1)) {
     nof_prb -= bitmask.size() * P - Nprb;
@@ -111,7 +102,7 @@ inline uint32_t count_prb_per_tb(const rbgmask_t& bitmask)
 
 inline uint32_t count_prb_per_tb_approx(uint32_t nof_rbgs, uint32_t cell_nof_prb)
 {
-  uint32_t P = srslte_ra_type0_P(cell_nof_prb);
+  uint32_t P = srsran_ra_type0_P(cell_nof_prb);
   return std::min(nof_rbgs * P, cell_nof_prb);
 }
 
@@ -125,20 +116,20 @@ cce_frame_position_table generate_cce_location_table(uint16_t rnti, const sched_
  * @param sf_idx subframe index specific to the tx TTI (relevant only for data and RAR transmissions)
  * @param rnti identity of the user (invalid RNTI for RAR and BC transmissions)
  */
-void generate_cce_location(srslte_regs_t*          regs,
+void generate_cce_location(srsran_regs_t*          regs,
                            cce_cfi_position_table& locations,
                            uint32_t                cfi,
                            uint32_t                sf_idx = 0,
-                           uint16_t                rnti   = SRSLTE_INVALID_RNTI);
+                           uint16_t                rnti   = SRSRAN_INVALID_RNTI);
 
 /// Obtains TB size *in bytes* for a given MCS and nof allocated prbs
 inline uint32_t get_tbs_bytes(uint32_t mcs, uint32_t nof_alloc_prb, bool use_tbs_index_alt, bool is_ul)
 {
-  int tbs_idx = srslte_ra_tbs_idx_from_mcs(mcs, use_tbs_index_alt, is_ul);
-  assert(tbs_idx != SRSLTE_ERROR);
+  int tbs_idx = srsran_ra_tbs_idx_from_mcs(mcs, use_tbs_index_alt, is_ul);
+  assert(tbs_idx != SRSRAN_ERROR);
 
-  int tbs = srslte_ra_tbs_from_idx((uint32_t)tbs_idx, nof_alloc_prb);
-  assert(tbs != SRSLTE_ERROR);
+  int tbs = srsran_ra_tbs_from_idx((uint32_t)tbs_idx, nof_alloc_prb);
+  assert(tbs != SRSRAN_ERROR);
 
   return (uint32_t)tbs / 8U;
 }
@@ -182,4 +173,4 @@ const char* to_string(sched_interface::ue_bearer_cfg_t::direction_t dir);
 
 } // namespace srsenb
 
-#endif // SRSLTE_SCHED_HELPERS_H
+#endif // SRSRAN_SCHED_HELPERS_H

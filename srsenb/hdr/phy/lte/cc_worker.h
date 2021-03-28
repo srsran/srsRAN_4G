@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -25,7 +16,7 @@
 #include <string.h>
 
 #include "../phy_common.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/srslog/srslog.h"
 
 #define LOG_EXECTIME
 
@@ -55,11 +46,11 @@ public:
   int  read_pucch_d(cf_t* pusch_d);
   void start_plot();
 
-  void work_ul(const srslte_ul_sf_cfg_t& ul_sf, stack_interface_phy_lte::ul_sched_t& ul_grants);
-  void work_dl(const srslte_dl_sf_cfg_t&            dl_sf_cfg,
+  void work_ul(const srsran_ul_sf_cfg_t& ul_sf, stack_interface_phy_lte::ul_sched_t& ul_grants);
+  void work_dl(const srsran_dl_sf_cfg_t&            dl_sf_cfg,
                stack_interface_phy_lte::dl_sched_t& dl_grants,
                stack_interface_phy_lte::ul_sched_t& ul_grants,
-               srslte_mbsfn_cfg_t*                  mbsfn_cfg);
+               srsran_mbsfn_cfg_t*                  mbsfn_cfg);
 
   uint32_t get_metrics(std::vector<phy_metrics_t>& metrics);
 
@@ -68,10 +59,10 @@ private:
   constexpr static float PUCCH_RL_CORR_TH   = 0.15f;
 
   int  encode_pdsch(stack_interface_phy_lte::dl_sched_grant_t* grants, uint32_t nof_grants);
-  int  encode_pmch(stack_interface_phy_lte::dl_sched_grant_t* grant, srslte_mbsfn_cfg_t* mbsfn_cfg);
+  int  encode_pmch(stack_interface_phy_lte::dl_sched_grant_t* grant, srsran_mbsfn_cfg_t* mbsfn_cfg);
   void decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_grant,
-                         srslte_ul_cfg_t&                           ul_cfg,
-                         srslte_pusch_res_t&                        pusch_res);
+                         srsran_ul_cfg_t&                           ul_cfg,
+                         srsran_pusch_res_t&                        pusch_res);
   void decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, uint32_t nof_pusch);
   int  encode_phich(stack_interface_phy_lte::ul_sched_ack_t* acks, uint32_t nof_acks);
   int  encode_pdcch_dl(stack_interface_phy_lte::dl_sched_grant_t* grants, uint32_t nof_grants);
@@ -83,17 +74,17 @@ private:
   phy_common*           phy       = nullptr;
   bool                  initiated = false;
 
-  cf_t*    signal_buffer_rx[SRSLTE_MAX_PORTS] = {};
-  cf_t*    signal_buffer_tx[SRSLTE_MAX_PORTS] = {};
+  cf_t*    signal_buffer_rx[SRSRAN_MAX_PORTS] = {};
+  cf_t*    signal_buffer_tx[SRSRAN_MAX_PORTS] = {};
   uint32_t tti_rx = 0, tti_tx_dl = 0, tti_tx_ul = 0;
 
-  srslte_enb_dl_t enb_dl = {};
-  srslte_enb_ul_t enb_ul = {};
+  srsran_enb_dl_t enb_dl = {};
+  srsran_enb_ul_t enb_ul = {};
 
-  srslte_dl_sf_cfg_t dl_sf = {};
-  srslte_ul_sf_cfg_t ul_sf = {};
+  srsran_dl_sf_cfg_t dl_sf = {};
+  srsran_ul_sf_cfg_t ul_sf = {};
 
-  srslte_softbuffer_tx_t temp_mbsfn_softbuffer = {};
+  srsran_softbuffer_tx_t temp_mbsfn_softbuffer = {};
 
   // Class to store user information
   class ue
@@ -104,7 +95,7 @@ private:
       // Do nothing
     }
 
-    srslte_phich_grant_t phich_grant = {};
+    srsran_phich_grant_t phich_grant = {};
 
     void     metrics_read(phy_metrics_t* metrics);
     void     metrics_dl(uint32_t mcs);

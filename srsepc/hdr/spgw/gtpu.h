@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -23,11 +14,11 @@
 #define SRSEPC_GTPU_H
 
 #include "srsepc/hdr/spgw/spgw.h"
-#include "srslte/asn1/gtpc.h"
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/standard_streams.h"
-#include "srslte/interfaces/epc_interfaces.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/asn1/gtpc.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/common/standard_streams.h"
+#include "srsran/interfaces/epc_interfaces.h"
+#include "srsran/srslog/srslog.h"
 #include <cstddef>
 #include <queue>
 
@@ -46,17 +37,17 @@ public:
   int get_sgi();
   int get_s1u();
 
-  void handle_sgi_pdu(srslte::unique_byte_buffer_t msg);
-  void handle_s1u_pdu(srslte::byte_buffer_t* msg);
-  void send_s1u_pdu(srslte::gtp_fteid_t enb_fteid, srslte::byte_buffer_t* msg);
+  void handle_sgi_pdu(srsran::unique_byte_buffer_t msg);
+  void handle_s1u_pdu(srsran::byte_buffer_t* msg);
+  void send_s1u_pdu(srsran::gtp_fteid_t enb_fteid, srsran::byte_buffer_t* msg);
 
   virtual in_addr_t get_s1u_addr();
 
-  virtual bool modify_gtpu_tunnel(in_addr_t ue_ipv4, srslte::gtp_fteid_t dw_user_fteid, uint32_t up_ctr_fteid);
+  virtual bool modify_gtpu_tunnel(in_addr_t ue_ipv4, srsran::gtp_fteid_t dw_user_fteid, uint32_t up_ctr_fteid);
   virtual bool delete_gtpu_tunnel(in_addr_t ue_ipv4);
   virtual bool delete_gtpc_tunnel(in_addr_t ue_ipv4);
-  virtual void send_all_queued_packets(srslte::gtp_fteid_t                       dw_user_fteid,
-                                       std::queue<srslte::unique_byte_buffer_t>& pkt_queue);
+  virtual void send_all_queued_packets(srsran::gtp_fteid_t                       dw_user_fteid,
+                                       std::queue<srsran::unique_byte_buffer_t>& pkt_queue);
 
   spgw*                m_spgw;
   gtpc_interface_gtpu* m_gtpc;
@@ -68,7 +59,7 @@ public:
   int         m_s1u;
   sockaddr_in m_s1u_addr;
 
-  std::map<in_addr_t, srslte::gtp_fteid_t> m_ip_to_usr_teid; // Map IP to User-plane TEID for downlink traffic
+  std::map<in_addr_t, srsran::gtp_fteid_t> m_ip_to_usr_teid; // Map IP to User-plane TEID for downlink traffic
   std::map<in_addr_t, uint32_t>            m_ip_to_ctr_teid; // IP to control TEID map. Important to check if
                                                              // UE is attached without an active user-plane
                                                              // for downlink notifications.

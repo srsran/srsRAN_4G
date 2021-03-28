@@ -1,28 +1,19 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
-#include "srslte/common/timers.h"
+#include "srsran/common/timers.h"
 #include <iostream>
 #include <random>
-#include <srslte/common/tti_sync_cv.h>
+#include <srsran/common/tti_sync_cv.h>
 #include <thread>
 
 #define TESTASSERT(cond)                                                                                               \
@@ -33,7 +24,7 @@
     }                                                                                                                  \
   } while (0)
 
-using namespace srslte;
+using namespace srsran;
 
 int timers_test1()
 {
@@ -127,7 +118,7 @@ int timers_test1()
   // TEST: timer dtor is called and removes "timer" from "timers"
   TESTASSERT(timers.nof_timers() == 0);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int timers_test2()
@@ -162,7 +153,7 @@ int timers_test2()
   utimer2.stop();
   TESTASSERT(utimer2.is_expired());
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int timers_test3()
@@ -193,13 +184,13 @@ int timers_test3()
   timers.step_all();
   TESTASSERT(not utimer.is_running());
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 struct timers_test4_ctxt {
   std::vector<timer_handler::unique_timer> timers;
-  srslte::tti_sync_cv                      tti_sync1;
-  srslte::tti_sync_cv                      tti_sync2;
+  srsran::tti_sync_cv                      tti_sync1;
+  srsran::tti_sync_cv                      tti_sync2;
   const uint32_t                           duration = 1000;
 };
 
@@ -302,7 +293,7 @@ int timers_test4()
 
   delete ctx;
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 /**
@@ -364,7 +355,7 @@ int timers_test5()
   TESTASSERT(vals.size() == 3);
   TESTASSERT(vals[2] == 3);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 /**
@@ -409,17 +400,17 @@ int timers_test6()
   timers.step_all();
   TESTASSERT(vals.size() == 1 and vals[0] == 3);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int main()
 {
-  TESTASSERT(timers_test1() == SRSLTE_SUCCESS);
-  TESTASSERT(timers_test2() == SRSLTE_SUCCESS);
-  TESTASSERT(timers_test3() == SRSLTE_SUCCESS);
-  TESTASSERT(timers_test4() == SRSLTE_SUCCESS);
-  TESTASSERT(timers_test5() == SRSLTE_SUCCESS);
-  TESTASSERT(timers_test6() == SRSLTE_SUCCESS);
+  TESTASSERT(timers_test1() == SRSRAN_SUCCESS);
+  TESTASSERT(timers_test2() == SRSRAN_SUCCESS);
+  TESTASSERT(timers_test3() == SRSRAN_SUCCESS);
+  TESTASSERT(timers_test4() == SRSRAN_SUCCESS);
+  TESTASSERT(timers_test5() == SRSRAN_SUCCESS);
+  TESTASSERT(timers_test6() == SRSRAN_SUCCESS);
   printf("Success\n");
   return 0;
 }

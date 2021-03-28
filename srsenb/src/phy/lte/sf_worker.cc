@@ -1,40 +1,31 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
-#include "srslte/common/threads.h"
-#include "srslte/srslte.h"
+#include "srsran/common/threads.h"
+#include "srsran/srsran.h"
 
 #include "srsenb/hdr/phy/lte/sf_worker.h"
 
 #define Error(fmt, ...)                                                                                                \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
   logger.error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...)                                                                                              \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
   logger.warning(fmt, ##__VA_ARGS__)
 #define Info(fmt, ...)                                                                                                 \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
   logger.info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)                                                                                                \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
   logger.debug(fmt, ##__VA_ARGS__)
 
 using namespace std;
@@ -50,7 +41,7 @@ using namespace std;
 #include "srsgui/srsgui.h"
 #include <semaphore.h>
 
-#include "srslte/srslte.h"
+#include "srsran/srsran.h"
 
 void       init_plots(srsenb::lte::sf_worker* worker);
 pthread_t  plot_thread;
@@ -88,12 +79,12 @@ void sf_worker::init(phy_common* phy_)
     cc_workers.push_back(std::unique_ptr<cc_worker>(q));
   }
 
-  if (srslte_softbuffer_tx_init(&temp_mbsfn_softbuffer, phy->get_nof_prb(0))) {
+  if (srsran_softbuffer_tx_init(&temp_mbsfn_softbuffer, phy->get_nof_prb(0))) {
     ERROR("Error initiating soft buffer");
     exit(-1);
   }
 
-  srslte_softbuffer_tx_reset(&temp_mbsfn_softbuffer);
+  srsran_softbuffer_tx_reset(&temp_mbsfn_softbuffer);
 
   Info("Worker %d configured cell %d PRB", get_id(), phy->get_nof_prb(0));
 
@@ -110,7 +101,7 @@ cf_t* sf_worker::get_buffer_rx(uint32_t cc_idx, uint32_t antenna_idx)
   return cc_workers[cc_idx]->get_buffer_rx(antenna_idx);
 }
 
-void sf_worker::set_time(uint32_t tti_, uint32_t tx_worker_cnt_, const srslte::rf_timestamp_t& tx_time_)
+void sf_worker::set_time(uint32_t tti_, uint32_t tx_worker_cnt_, const srsran::rf_timestamp_t& tx_time_)
 {
   tti_rx    = tti_;
   tti_tx_dl = TTI_ADD(tti_rx, FDD_HARQ_DELAY_UL_MS);
@@ -130,11 +121,11 @@ void sf_worker::set_time(uint32_t tti_, uint32_t tx_worker_cnt_, const srslte::r
 
 int sf_worker::add_rnti(uint16_t rnti, uint32_t cc_idx)
 {
-  int ret = SRSLTE_ERROR;
+  int ret = SRSRAN_ERROR;
 
   if (cc_idx < cc_workers.size()) {
     cc_workers[cc_idx]->add_rnti(rnti);
-    ret = SRSLTE_SUCCESS;
+    ret = SRSRAN_SUCCESS;
   }
 
   return ret;
@@ -156,11 +147,11 @@ void sf_worker::work_imp()
 {
   std::lock_guard<std::mutex> lock(work_mutex);
 
-  srslte_ul_sf_cfg_t ul_sf = {};
-  srslte_dl_sf_cfg_t dl_sf = {};
+  srsran_ul_sf_cfg_t ul_sf = {};
+  srsran_dl_sf_cfg_t dl_sf = {};
 
   // Get Transmission buffers
-  srslte::rf_buffer_t tx_buffer = {};
+  srsran::rf_buffer_t tx_buffer = {};
   for (uint32_t cc = 0; cc < phy->get_nof_carriers_lte(); cc++) {
     for (uint32_t ant = 0; ant < phy->get_nof_ports(0); ant++) {
       tx_buffer.set(cc, ant, phy->get_nof_ports(0), cc_workers[cc]->get_buffer_tx(ant));
@@ -172,8 +163,8 @@ void sf_worker::work_imp()
     return;
   }
 
-  srslte_mbsfn_cfg_t mbsfn_cfg;
-  srslte_sf_t        sf_type = phy->is_mbsfn_sf(&mbsfn_cfg, tti_tx_dl) ? SRSLTE_SF_MBSFN : SRSLTE_SF_NORM;
+  srsran_mbsfn_cfg_t mbsfn_cfg;
+  srsran_sf_t        sf_type = phy->is_mbsfn_sf(&mbsfn_cfg, tti_tx_dl) ? SRSRAN_SF_MBSFN : SRSRAN_SF_NORM;
 
   // Uplink grants to receive this TTI
   stack_interface_phy_lte::ul_sched_list_t ul_grants = phy->get_ul_grants(t_rx);
@@ -193,7 +184,9 @@ void sf_worker::work_imp()
   ul_sf.tti = tti_rx;
 
   // Set UL grant availability prior to any UL processing
-  phy->ue_db.set_ul_grant_available(tti_rx, ul_grants);
+  if (phy->ue_db.set_ul_grant_available(tti_rx, ul_grants)) {
+    Error("Error setting UL grants. Some grant's RNTI does not exist.");
+  }
 
   // Process UL
   for (uint32_t cc = 0; cc < cc_workers.size(); cc++) {
@@ -201,7 +194,7 @@ void sf_worker::work_imp()
   }
 
   // Get DL scheduling for the TX TTI from MAC
-  if (sf_type == SRSLTE_SF_NORM) {
+  if (sf_type == SRSRAN_SF_NORM) {
     if (stack->get_dl_sched(tti_tx_dl, dl_grants) < 0) {
       Error("Getting DL scheduling from MAC");
       phy->worker_end(this, tx_buffer, tx_time);
@@ -217,8 +210,8 @@ void sf_worker::work_imp()
   }
 
   // Make sure CFI is in the right range
-  dl_grants[0].cfi = SRSLTE_MAX(dl_grants[0].cfi, 1);
-  dl_grants[0].cfi = SRSLTE_MIN(dl_grants[0].cfi, 3);
+  dl_grants[0].cfi = SRSRAN_MAX(dl_grants[0].cfi, 1);
+  dl_grants[0].cfi = SRSRAN_MIN(dl_grants[0].cfi, 3);
 
   // Get UL scheduling for the TX TTI from MAC
   if (stack->get_ul_sched(tti_tx_ul, ul_grants_tx) < 0) {
@@ -246,11 +239,11 @@ void sf_worker::work_imp()
   phy->set_ul_grants(t_rx, ul_grants);
 
   Debug("Sending to radio");
-  tx_buffer.set_nof_samples(SRSLTE_SF_LEN_PRB(phy->get_nof_prb(0)));
+  tx_buffer.set_nof_samples(SRSRAN_SF_LEN_PRB(phy->get_nof_prb(0)));
   phy->worker_end(this, tx_buffer, tx_time);
 
 #ifdef DEBUG_WRITE_FILE
-  fwrite(signal_buffer_tx, SRSLTE_SF_LEN_PRB(phy->cell.nof_prb) * sizeof(cf_t), 1, f);
+  fwrite(signal_buffer_tx, SRSRAN_SF_LEN_PRB(phy->cell.nof_prb) * sizeof(cf_t), 1, f);
 #endif
 
 #ifdef DEBUG_WRITE_FILE
@@ -279,15 +272,15 @@ uint32_t sf_worker::get_metrics(std::vector<phy_metrics_t>& metrics)
     for (uint32_t r = 0; r < cnt; r++) {
       phy_metrics_t* m  = &metrics[r];
       phy_metrics_t* m_ = &metrics_[r];
-      m->dl.mcs         = SRSLTE_VEC_PMA(m->dl.mcs, m->dl.n_samples, m_->dl.mcs, m_->dl.n_samples);
+      m->dl.mcs         = SRSRAN_VEC_PMA(m->dl.mcs, m->dl.n_samples, m_->dl.mcs, m_->dl.n_samples);
       m->dl.n_samples += m_->dl.n_samples;
-      m->ul.n          = SRSLTE_VEC_PMA(m->ul.n, m->ul.n_samples, m_->ul.n, m_->ul.n_samples);
-      m->ul.pusch_sinr = SRSLTE_VEC_PMA(m->ul.pusch_sinr, m->ul.n_samples, m_->ul.pusch_sinr, m_->ul.n_samples);
+      m->ul.n          = SRSRAN_VEC_PMA(m->ul.n, m->ul.n_samples, m_->ul.n, m_->ul.n_samples);
+      m->ul.pusch_sinr = SRSRAN_VEC_PMA(m->ul.pusch_sinr, m->ul.n_samples, m_->ul.pusch_sinr, m_->ul.n_samples);
       m->ul.pucch_sinr =
-          SRSLTE_VEC_PMA(m->ul.pucch_sinr, m->ul.n_samples_pucch, m_->ul.pucch_sinr, m_->ul.n_samples_pucch);
-      m->ul.mcs         = SRSLTE_VEC_PMA(m->ul.mcs, m->ul.n_samples, m_->ul.mcs, m_->ul.n_samples);
-      m->ul.rssi        = SRSLTE_VEC_PMA(m->ul.rssi, m->ul.n_samples, m_->ul.rssi, m_->ul.n_samples);
-      m->ul.turbo_iters = SRSLTE_VEC_PMA(m->ul.turbo_iters, m->ul.n_samples, m_->ul.turbo_iters, m_->ul.n_samples);
+          SRSRAN_VEC_PMA(m->ul.pucch_sinr, m->ul.n_samples_pucch, m_->ul.pucch_sinr, m_->ul.n_samples_pucch);
+      m->ul.mcs         = SRSRAN_VEC_PMA(m->ul.mcs, m->ul.n_samples, m_->ul.mcs, m_->ul.n_samples);
+      m->ul.rssi        = SRSRAN_VEC_PMA(m->ul.rssi, m->ul.n_samples, m_->ul.rssi, m_->ul.n_samples);
+      m->ul.turbo_iters = SRSRAN_VEC_PMA(m->ul.turbo_iters, m->ul.n_samples, m_->ul.turbo_iters, m_->ul.n_samples);
       m->ul.n_samples += m_->ul.n_samples;
       m->ul.n_samples_pucch += m_->ul.n_samples_pucch;
     }
@@ -300,13 +293,13 @@ void sf_worker::start_plot()
 #ifdef ENABLE_GUI
   if (plot_worker_id == -1) {
     plot_worker_id = get_id();
-    srslte::console("Starting plot for worker_id=%d\n", plot_worker_id);
+    srsran::console("Starting plot for worker_id=%d\n", plot_worker_id);
     init_plots(this);
   } else {
-    srslte::console("Trying to start a plot but already started by worker_id=%d\n", plot_worker_id);
+    srsran::console("Trying to start a plot but already started by worker_id=%d\n", plot_worker_id);
   }
 #else
-  srslte::console("Trying to start a plot but plots are disabled (ENABLE_GUI constant in sf_worker.cc)\n");
+  srsran::console("Trying to start a plot but plots are disabled (ENABLE_GUI constant in sf_worker.cc)\n");
 #endif
 }
 
@@ -340,7 +333,7 @@ int sf_worker::read_pucch_d(uint32_t cc_idx, cf_t* pdsch_d)
 
 sf_worker::~sf_worker()
 {
-  srslte_softbuffer_tx_free(&temp_mbsfn_softbuffer);
+  srsran_softbuffer_tx_free(&temp_mbsfn_softbuffer);
 }
 
 } // namespace lte
@@ -359,11 +352,11 @@ struct plot_cc_s {
   plot_scatter_t pconst2;
 };
 static std::map<uint32_t, plot_cc_s> plots;
-#define SCATTER_PUSCH_BUFFER_LEN (20 * 6 * SRSLTE_SF_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_CP_NORM))
+#define SCATTER_PUSCH_BUFFER_LEN (20 * 6 * SRSRAN_SF_LEN_RE(SRSRAN_MAX_PRB, SRSRAN_CP_NORM))
 static float tmp_plot[SCATTER_PUSCH_BUFFER_LEN];
 static float tmp_plot_arg[SCATTER_PUSCH_BUFFER_LEN];
-static cf_t  tmp_plot2[SRSLTE_SF_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_CP_NORM)];
-static cf_t  tmp_pucch_plot[SRSLTE_PUCCH_MAX_BITS / 2];
+static cf_t  tmp_plot2[SRSRAN_SF_LEN_RE(SRSRAN_MAX_PRB, SRSRAN_CP_NORM)];
+static cf_t  tmp_pucch_plot[SRSRAN_PUCCH_MAX_BITS / 2];
 
 void* plot_thread_run(void* arg)
 {

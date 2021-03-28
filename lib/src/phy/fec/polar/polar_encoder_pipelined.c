@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -34,8 +25,8 @@
  *
  */
 
-#include "srslte/phy/fec/polar/polar_encoder.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/fec/polar/polar_encoder.h"
+#include "srsran/phy/utils/vector.h"
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -81,14 +72,14 @@ void* create_polar_encoder_pipelined(const uint8_t code_size_log)
   uint16_t code_size      = 1U << code_size_log;
   uint16_t code_half_size = code_size / 2;
 
-  q->i_odd = srslte_vec_u16_malloc(code_half_size);
+  q->i_odd = srsran_vec_u16_malloc(code_half_size);
   if (!q->i_odd) {
     free(q);
     perror("malloc");
     return NULL;
   }
 
-  q->i_even = srslte_vec_u16_malloc(code_half_size);
+  q->i_even = srsran_vec_u16_malloc(code_half_size);
   if (!q->i_even) {
     free(q->i_odd);
     free(q);
@@ -96,7 +87,7 @@ void* create_polar_encoder_pipelined(const uint8_t code_size_log)
     return NULL;
   }
 
-  q->tmp = srslte_vec_u8_malloc(code_size);
+  q->tmp = srsran_vec_u8_malloc(code_size);
   if (!q->tmp) {
     free(q->i_even);
     free(q->i_odd);

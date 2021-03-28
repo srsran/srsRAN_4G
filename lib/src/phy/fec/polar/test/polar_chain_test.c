@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -60,13 +51,13 @@
 
 #include "math.h"
 
-#include "srslte/phy/channel/ch_awgn.h"
-#include "srslte/phy/common/timestamp.h"
-#include "srslte/phy/utils/bit.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/phy_logger.h"
-#include "srslte/phy/utils/random.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/channel/ch_awgn.h"
+#include "srsran/phy/common/timestamp.h"
+#include "srsran/phy/utils/bit.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/phy_logger.h"
+#include "srsran/phy/utils/random.h"
+#include "srsran/phy/utils/vector.h"
 
 #include <inttypes.h>
 #include <stdio.h>
@@ -75,14 +66,14 @@
 #include <unistd.h>
 
 // utils lib
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/utils/vector.h"
 
 //  polar libs
-#include "srslte/phy/fec/polar/polar_chanalloc.h"
-#include "srslte/phy/fec/polar/polar_code.h"
-#include "srslte/phy/fec/polar/polar_decoder.h"
-#include "srslte/phy/fec/polar/polar_encoder.h"
-#include "srslte/phy/fec/polar/polar_rm.h"
+#include "srsran/phy/fec/polar/polar_chanalloc.h"
+#include "srsran/phy/fec/polar/polar_code.h"
+#include "srsran/phy/fec/polar/polar_decoder.h"
+#include "srsran/phy/fec/polar/polar_encoder.h"
+#include "srsran/phy/fec/polar/polar_rm.h"
 
 //#define debug
 //#define DATA_ALL_ONES
@@ -225,90 +216,90 @@ int main(int argc, char** argv)
   float   gain_c_avx2 = NAN;
 #endif
 
-  srslte_polar_code_t    code;
-  srslte_polar_encoder_t enc;
-  srslte_polar_decoder_t dec;
-  srslte_polar_decoder_t dec_s; // 16-bit
-  srslte_polar_decoder_t dec_c; // 8-bit
-  srslte_polar_rm_t      rm_tx;
-  srslte_polar_rm_t      rm_rx_f;
-  srslte_polar_rm_t      rm_rx_s;
-  srslte_polar_rm_t      rm_rx_c;
+  srsran_polar_code_t    code;
+  srsran_polar_encoder_t enc;
+  srsran_polar_decoder_t dec;
+  srsran_polar_decoder_t dec_s; // 16-bit
+  srsran_polar_decoder_t dec_c; // 8-bit
+  srsran_polar_rm_t      rm_tx;
+  srsran_polar_rm_t      rm_rx_f;
+  srsran_polar_rm_t      rm_rx_s;
+  srsran_polar_rm_t      rm_rx_c;
 
 #ifdef LV_HAVE_AVX2
-  srslte_polar_encoder_t enc_avx2;
-  srslte_polar_decoder_t dec_c_avx2; // 8-bit
+  srsran_polar_encoder_t enc_avx2;
+  srsran_polar_decoder_t dec_c_avx2; // 8-bit
 #endif                               // LV_HAVE_AVX2
 
   parse_args(argc, argv);
 
   // uinitialize polar code
-  srslte_polar_code_init(&code);
+  srsran_polar_code_init(&code);
 
   // initialize encoder pipeline
-  srslte_polar_encoder_init(&enc, SRSLTE_POLAR_ENCODER_PIPELINED, nMax);
+  srsran_polar_encoder_init(&enc, SRSRAN_POLAR_ENCODER_PIPELINED, nMax);
 
   // initialize rate-matcher
-  srslte_polar_rm_tx_init(&rm_tx);
+  srsran_polar_rm_tx_init(&rm_tx);
 
   // initialize rate-matcher
-  srslte_polar_rm_rx_init_f(&rm_rx_f);
+  srsran_polar_rm_rx_init_f(&rm_rx_f);
 
   // initialize rate-matcher
-  srslte_polar_rm_rx_init_s(&rm_rx_s);
+  srsran_polar_rm_rx_init_s(&rm_rx_s);
 
   // initialize rate-matcher
-  srslte_polar_rm_rx_init_c(&rm_rx_c);
+  srsran_polar_rm_rx_init_c(&rm_rx_c);
 
   // initialize a POLAR decoder (float)
-  srslte_polar_decoder_init(&dec, SRSLTE_POLAR_DECODER_SSC_F, nMax);
+  srsran_polar_decoder_init(&dec, SRSRAN_POLAR_DECODER_SSC_F, nMax);
 
   // initialize a POLAR decoder (16 bit)
-  srslte_polar_decoder_init(&dec_s, SRSLTE_POLAR_DECODER_SSC_S, nMax);
+  srsran_polar_decoder_init(&dec_s, SRSRAN_POLAR_DECODER_SSC_S, nMax);
 
   // initialize a POLAR decoder (8 bit)
-  srslte_polar_decoder_init(&dec_c, SRSLTE_POLAR_DECODER_SSC_C, nMax);
+  srsran_polar_decoder_init(&dec_c, SRSRAN_POLAR_DECODER_SSC_C, nMax);
 
 #ifdef LV_HAVE_AVX2
 
   // initialize encoder  avx2
-  srslte_polar_encoder_init(&enc_avx2, SRSLTE_POLAR_ENCODER_AVX2, nMax);
+  srsran_polar_encoder_init(&enc_avx2, SRSRAN_POLAR_ENCODER_AVX2, nMax);
 
   // initialize a POLAR decoder (8 bit, avx2)
-  srslte_polar_decoder_init(&dec_c_avx2, SRSLTE_POLAR_DECODER_SSC_C_AVX2, nMax);
+  srsran_polar_decoder_init(&dec_c_avx2, SRSRAN_POLAR_DECODER_SSC_C_AVX2, nMax);
 #endif // LV_HAVE_AVX2
 
 #ifdef DATA_ALL_ONES
 #else
-  srslte_random_t random_gen = srslte_random_init(0);
+  srsran_random_t random_gen = srsran_random_init(0);
 #endif
 
-  data_tx        = srslte_vec_u8_malloc(K * BATCH_SIZE);
-  data_rx        = srslte_vec_u8_malloc(K * BATCH_SIZE);
-  data_rx_s      = srslte_vec_u8_malloc(K * BATCH_SIZE);
-  data_rx_c      = srslte_vec_u8_malloc(K * BATCH_SIZE);
-  data_rx_c_avx2 = srslte_vec_u8_malloc(K * BATCH_SIZE);
+  data_tx        = srsran_vec_u8_malloc(K * BATCH_SIZE);
+  data_rx        = srsran_vec_u8_malloc(K * BATCH_SIZE);
+  data_rx_s      = srsran_vec_u8_malloc(K * BATCH_SIZE);
+  data_rx_c      = srsran_vec_u8_malloc(K * BATCH_SIZE);
+  data_rx_c_avx2 = srsran_vec_u8_malloc(K * BATCH_SIZE);
 
-  input_enc       = srslte_vec_u8_malloc(NMAX * BATCH_SIZE);
-  output_enc      = srslte_vec_u8_malloc(NMAX * BATCH_SIZE);
-  output_enc_avx2 = srslte_vec_u8_malloc(NMAX * BATCH_SIZE);
+  input_enc       = srsran_vec_u8_malloc(NMAX * BATCH_SIZE);
+  output_enc      = srsran_vec_u8_malloc(NMAX * BATCH_SIZE);
+  output_enc_avx2 = srsran_vec_u8_malloc(NMAX * BATCH_SIZE);
 
-  rm_codeword = srslte_vec_u8_malloc(E * BATCH_SIZE);
+  rm_codeword = srsran_vec_u8_malloc(E * BATCH_SIZE);
 
-  rm_llr        = srslte_vec_f_malloc(E * BATCH_SIZE);
-  rm_llr_s      = srslte_vec_i16_malloc(E * BATCH_SIZE);
-  rm_llr_c      = srslte_vec_i8_malloc(E * BATCH_SIZE);
-  rm_llr_c_avx2 = srslte_vec_i8_malloc(E * BATCH_SIZE);
+  rm_llr        = srsran_vec_f_malloc(E * BATCH_SIZE);
+  rm_llr_s      = srsran_vec_i16_malloc(E * BATCH_SIZE);
+  rm_llr_c      = srsran_vec_i8_malloc(E * BATCH_SIZE);
+  rm_llr_c_avx2 = srsran_vec_i8_malloc(E * BATCH_SIZE);
 
-  llr        = srslte_vec_f_malloc(NMAX * BATCH_SIZE);
-  llr_s      = srslte_vec_i16_malloc(NMAX * BATCH_SIZE);
-  llr_c      = srslte_vec_i8_malloc(NMAX * BATCH_SIZE);
-  llr_c_avx2 = srslte_vec_i8_malloc(NMAX * BATCH_SIZE);
+  llr        = srsran_vec_f_malloc(NMAX * BATCH_SIZE);
+  llr_s      = srsran_vec_i16_malloc(NMAX * BATCH_SIZE);
+  llr_c      = srsran_vec_i8_malloc(NMAX * BATCH_SIZE);
+  llr_c_avx2 = srsran_vec_i8_malloc(NMAX * BATCH_SIZE);
 
-  output_dec        = srslte_vec_u8_malloc(NMAX * BATCH_SIZE);
-  output_dec_s      = srslte_vec_u8_malloc(NMAX * BATCH_SIZE);
-  output_dec_c      = srslte_vec_u8_malloc(NMAX * BATCH_SIZE);
-  output_dec_c_avx2 = srslte_vec_u8_malloc(NMAX * BATCH_SIZE);
+  output_dec        = srsran_vec_u8_malloc(NMAX * BATCH_SIZE);
+  output_dec_s      = srsran_vec_u8_malloc(NMAX * BATCH_SIZE);
+  output_dec_c      = srsran_vec_u8_malloc(NMAX * BATCH_SIZE);
+  output_dec_c_avx2 = srsran_vec_u8_malloc(NMAX * BATCH_SIZE);
 
   if (!data_tx || !data_rx || !data_rx_s || !data_rx_c || !data_rx_c_avx2 || !input_enc || !output_enc ||
       !output_enc_avx2 || !rm_codeword || !rm_llr || !rm_llr_s || !rm_llr_c || !rm_llr_c_avx2 || !llr || !llr_s ||
@@ -328,13 +319,13 @@ int main(int argc, char** argv)
     for (int i = 0; i < snr_points; i++) {
       snr_db        = SNR_MIN + i * snr_inc;
       snr_db_vec[i] = snr_db;
-      var[i]        = srslte_convert_dB_to_amplitude(-snr_db);
+      var[i]        = srsran_convert_dB_to_amplitude(-snr_db);
     }
     snr_db_vec[snr_points] = 101; // include the no noise case
     snr_points++;
   } else {
     snr_db_vec[0] = snr_db;
-    var[0]        = srslte_convert_dB_to_amplitude(-snr_db);
+    var[0]        = srsran_convert_dB_to_amplitude(-snr_db);
     snr_points    = 1;
   }
 
@@ -399,13 +390,13 @@ int main(int argc, char** argv)
 #else
       for (int i = 0; i < BATCH_SIZE; i++) {
         for (j = 0; j < K; j++) {
-          data_tx[i * K + j] = srslte_random_uniform_int_dist(random_gen, 0, 1);
+          data_tx[i * K + j] = srsran_random_uniform_int_dist(random_gen, 0, 1);
         }
       }
 #endif
 
       // get polar code, compute frozen_set (F_set), message_set (K_set) and parity bit set (PC_set)
-      if (srslte_polar_code_get(&code, K, E, nMax) == -1) {
+      if (srsran_polar_code_get(&code, K, E, nMax) == -1) {
         return -1;
       }
 
@@ -424,14 +415,14 @@ int main(int argc, char** argv)
       }
       // subchannel_allocation block
       for (int i = 0; i < BATCH_SIZE; i++) {
-        srslte_polar_chanalloc_tx(
+        srsran_polar_chanalloc_tx(
             data_tx + i * K, input_enc + i * code.N, code.N, code.K, code.nPC, code.K_set, code.PC_set);
       }
 
       // encoding pipeline
       gettimeofday(&t[1], NULL);
       for (j = 0; j < BATCH_SIZE; j++) {
-        srslte_polar_encoder_encode(&enc, input_enc + j * code.N, output_enc + j * code.N, code.n);
+        srsran_polar_encoder_encode(&enc, input_enc + j * code.N, output_enc + j * code.N, code.n);
       }
       gettimeofday(&t[2], NULL);
       get_time_interval(t);
@@ -440,14 +431,14 @@ int main(int argc, char** argv)
 
       // rate matcher
       for (j = 0; j < BATCH_SIZE; j++) {
-        srslte_polar_rm_tx(&rm_tx, output_enc + j * code.N, rm_codeword + j * E, code.n, E, K, bil);
+        srsran_polar_rm_tx(&rm_tx, output_enc + j * code.N, rm_codeword + j * E, code.n, E, K, bil);
       }
 
 #ifdef LV_HAVE_AVX2
       // encoding  avx2
       gettimeofday(&t[1], NULL);
       for (j = 0; j < BATCH_SIZE; j++) {
-        srslte_polar_encoder_encode(&enc_avx2, input_enc + j * code.N, output_enc_avx2 + j * code.N, code.n);
+        srsran_polar_encoder_encode(&enc_avx2, input_enc + j * code.N, output_enc_avx2 + j * code.N, code.n);
       }
       gettimeofday(&t[2], NULL);
       get_time_interval(t);
@@ -456,7 +447,7 @@ int main(int argc, char** argv)
 
       // check errors with respect the output of the pipeline encoder
       for (int i = 0; i < BATCH_SIZE; i++) {
-        if (srslte_bit_diff(output_enc + i * code.N, output_enc_avx2 + i * code.N, code.N) != 0) {
+        if (srsran_bit_diff(output_enc + i * code.N, output_enc_avx2 + i * code.N, code.N) != 0) {
           printf("ERROR: Wrong avx2 encoder output. SNR= %f, Batch: %d\n", snr_db_vec[i_snr], i);
           exit(-1);
         }
@@ -469,7 +460,7 @@ int main(int argc, char** argv)
 
       // add noise
       if (snr_db_vec[i_snr] != 101) {
-        srslte_ch_awgn_f(rm_llr, rm_llr, var[i_snr], BATCH_SIZE * E);
+        srsran_ch_awgn_f(rm_llr, rm_llr, var[i_snr], BATCH_SIZE * E);
 
         // Convert symbols into LLRs
         for (j = 0; j < BATCH_SIZE * code.N; j++) {
@@ -480,13 +471,13 @@ int main(int argc, char** argv)
       // rate-Dematcher
 
       for (j = 0; j < BATCH_SIZE; j++) {
-        srslte_polar_rm_rx_f(&rm_rx_f, rm_llr + j * E, llr + j * code.N, E, code.n, K, bil);
+        srsran_polar_rm_rx_f(&rm_rx_f, rm_llr + j * E, llr + j * code.N, E, code.n, K, bil);
       }
 
       // decoding float point
       gettimeofday(&t[1], NULL);
       for (j = 0; j < BATCH_SIZE; j++) {
-        srslte_polar_decoder_decode_f(
+        srsran_polar_decoder_decode_f(
             &dec, llr + j * code.N, output_dec + j * code.N, code.n, code.F_set, code.F_set_size);
       }
 
@@ -496,7 +487,7 @@ int main(int argc, char** argv)
 
       // extract message bits - float decoder
       for (j = 0; j < BATCH_SIZE; j++) {
-        srslte_polar_chanalloc_rx(output_dec + j * code.N, data_rx + j * K, code.K, code.nPC, code.K_set, code.PC_set);
+        srsran_polar_chanalloc_rx(output_dec + j * code.N, data_rx + j * K, code.K, code.nPC, code.K_set, code.PC_set);
       }
 
 // check errors - float decpder
@@ -504,7 +495,7 @@ int main(int argc, char** argv)
       int i_error = 0;
 #endif
       for (int i = 0; i < BATCH_SIZE; i++) {
-        errors_symb = srslte_bit_diff(data_tx + i * K, data_rx + i * K, K);
+        errors_symb = srsran_bit_diff(data_tx + i * K, data_rx + i * K, K);
 
         if (errors_symb != 0) {
           n_error_words[i_snr]++;
@@ -514,22 +505,22 @@ int main(int argc, char** argv)
       // decoding 16-bit
       // 16-quantization
       if (snr_db_vec[i_snr] == 101) {
-        srslte_vec_quant_fs(rm_llr, rm_llr_s, 8192, 0, 32767, BATCH_SIZE * E);
+        srsran_vec_quant_fs(rm_llr, rm_llr_s, 8192, 0, 32767, BATCH_SIZE * E);
       } else {
         gain_s = inf16 * var[i_snr] / 20 / (1 / var[i_snr] + 2);
         // printf("gain_s: %f, inf16:%d\n", gain_s, inf16);
-        srslte_vec_quant_fs(rm_llr, rm_llr_s, gain_s, 0, inf16, BATCH_SIZE * E);
+        srsran_vec_quant_fs(rm_llr, rm_llr_s, gain_s, 0, inf16, BATCH_SIZE * E);
       }
 
       // Rate dematcher
       for (j = 0; j < BATCH_SIZE; j++) {
-        srslte_polar_rm_rx_s(&rm_rx_s, rm_llr_s + j * E, llr_s + j * code.N, E, code.n, K, bil);
+        srsran_polar_rm_rx_s(&rm_rx_s, rm_llr_s + j * E, llr_s + j * code.N, E, code.n, K, bil);
       }
 
       // decoding 16-bit
       gettimeofday(&t[1], NULL);
       for (j = 0; j < BATCH_SIZE; j++) {
-        srslte_polar_decoder_decode_s(
+        srsran_polar_decoder_decode_s(
             &dec_s, llr_s + j * code.N, output_dec_s + j * code.N, code.n, code.F_set, code.F_set_size);
       }
 
@@ -539,13 +530,13 @@ int main(int argc, char** argv)
 
       // extract message bits  16-bit decoder
       for (j = 0; j < BATCH_SIZE; j++) {
-        srslte_polar_chanalloc_rx(
+        srsran_polar_chanalloc_rx(
             output_dec_s + j * code.N, data_rx_s + j * K, code.K, code.nPC, code.K_set, code.PC_set);
       }
 
       // check errors 16-bit decoder
       for (int i = 0; i < BATCH_SIZE; i++) {
-        errors_symb_s = srslte_bit_diff(data_tx + i * K, data_rx_s + i * K, K);
+        errors_symb_s = srsran_bit_diff(data_tx + i * K, data_rx_s + i * K, K);
 
         if (errors_symb_s != 0) {
           n_error_words_s[i_snr]++;
@@ -555,21 +546,21 @@ int main(int argc, char** argv)
       // 8-bit decoding
       // 8-bit quantization
       if (snr_db_vec[i_snr] == 101) {
-        srslte_vec_quant_fc(rm_llr, rm_llr_c, 32, 0, 127, BATCH_SIZE * E);
+        srsran_vec_quant_fc(rm_llr, rm_llr_c, 32, 0, 127, BATCH_SIZE * E);
       } else {
         gain_c = inf8 * var[i_snr] / 20 / (1 / var[i_snr] + 2);
-        srslte_vec_quant_fc(rm_llr, rm_llr_c, gain_c, 0, inf8, BATCH_SIZE * E);
+        srsran_vec_quant_fc(rm_llr, rm_llr_c, gain_c, 0, inf8, BATCH_SIZE * E);
       }
 
       // Rate dematcher
       for (j = 0; j < BATCH_SIZE; j++) {
-        srslte_polar_rm_rx_c(&rm_rx_c, rm_llr_c + j * E, llr_c + j * code.N, E, code.n, K, bil);
+        srsran_polar_rm_rx_c(&rm_rx_c, rm_llr_c + j * E, llr_c + j * code.N, E, code.n, K, bil);
       }
 
       // Decoding
       gettimeofday(&t[1], NULL);
       for (j = 0; j < BATCH_SIZE; j++) {
-        srslte_polar_decoder_decode_c(
+        srsran_polar_decoder_decode_c(
             &dec_c, llr_c + j * code.N, output_dec_c + j * code.N, code.n, code.F_set, code.F_set_size);
       }
       gettimeofday(&t[2], NULL);
@@ -578,14 +569,13 @@ int main(int argc, char** argv)
 
       // extract message bits
       for (j = 0; j < BATCH_SIZE; j++) {
-        srslte_polar_chanalloc_rx(
+        srsran_polar_chanalloc_rx(
             output_dec_c + j * code.N, data_rx_c + j * K, code.K, code.nPC, code.K_set, code.PC_set);
       }
 
       // check errors 8-bits decoder
       for (int i = 0; i < BATCH_SIZE; i++) {
-
-        errors_symb_c = srslte_bit_diff(data_tx + i * K, data_rx_c + i * K, K);
+        errors_symb_c = srsran_bit_diff(data_tx + i * K, data_rx_c + i * K, K);
 
         if (errors_symb_c != 0) {
           n_error_words_c[i_snr]++;
@@ -596,20 +586,20 @@ int main(int argc, char** argv)
       // 8-bit avx2 decoding
       // 8-bit quantization
       if (snr_db_vec[i_snr] == 101) {
-        srslte_vec_quant_fc(rm_llr, rm_llr_c_avx2, 32, 0, 127, BATCH_SIZE * E);
+        srsran_vec_quant_fc(rm_llr, rm_llr_c_avx2, 32, 0, 127, BATCH_SIZE * E);
       } else {
         gain_c_avx2 = inf8 * var[i_snr] / 20 / (1 / var[i_snr] + 2);
-        srslte_vec_quant_fc(rm_llr, rm_llr_c_avx2, gain_c_avx2, 0, inf8, BATCH_SIZE * E);
+        srsran_vec_quant_fc(rm_llr, rm_llr_c_avx2, gain_c_avx2, 0, inf8, BATCH_SIZE * E);
       }
 
       // Rate dematcher
       for (j = 0; j < BATCH_SIZE; j++) {
-        srslte_polar_rm_rx_c(&rm_rx_c, rm_llr_c_avx2 + j * E, llr_c_avx2 + j * code.N, E, code.n, K, bil);
+        srsran_polar_rm_rx_c(&rm_rx_c, rm_llr_c_avx2 + j * E, llr_c_avx2 + j * code.N, E, code.n, K, bil);
       }
 
       gettimeofday(&t[1], NULL);
       for (j = 0; j < BATCH_SIZE; j++) {
-        srslte_polar_decoder_decode_c(
+        srsran_polar_decoder_decode_c(
             &dec_c_avx2, llr_c_avx2 + j * code.N, output_dec_c_avx2 + j * code.N, code.n, code.F_set, code.F_set_size);
       }
       gettimeofday(&t[2], NULL);
@@ -618,14 +608,13 @@ int main(int argc, char** argv)
 
       // extract message bits
       for (j = 0; j < BATCH_SIZE; j++) {
-        srslte_polar_chanalloc_rx(
+        srsran_polar_chanalloc_rx(
             output_dec_c_avx2 + j * code.N, data_rx_c_avx2 + j * K, code.K, code.nPC, code.K_set, code.PC_set);
       }
 
       // check errors 8-bits decoder
       for (int i = 0; i < BATCH_SIZE; i++) {
-
-        errors_symb_c_avx2 = srslte_bit_diff(data_tx + i * K, data_rx_c_avx2 + i * K, K);
+        errors_symb_c_avx2 = srsran_bit_diff(data_tx + i * K, data_rx_c_avx2 + i * K, K);
 
         if (errors_symb_c_avx2 != 0) {
           n_error_words_c_avx2[i_snr]++;
@@ -806,21 +795,21 @@ int main(int argc, char** argv)
 
 #ifdef DATA_ALL_ONES
 #else
-  srslte_random_free(random_gen);
+  srsran_random_free(random_gen);
 #endif
   // free code
-  srslte_polar_code_free(&code);
-  srslte_polar_encoder_free(&enc);
-  srslte_polar_decoder_free(&dec);
-  srslte_polar_decoder_free(&dec_s);
-  srslte_polar_decoder_free(&dec_c);
-  srslte_polar_rm_rx_free_f(&rm_rx_f);
-  srslte_polar_rm_rx_free_s(&rm_rx_s);
-  srslte_polar_rm_rx_free_c(&rm_rx_c);
-  srslte_polar_rm_tx_free(&rm_tx);
+  srsran_polar_code_free(&code);
+  srsran_polar_encoder_free(&enc);
+  srsran_polar_decoder_free(&dec);
+  srsran_polar_decoder_free(&dec_s);
+  srsran_polar_decoder_free(&dec_c);
+  srsran_polar_rm_rx_free_f(&rm_rx_f);
+  srsran_polar_rm_rx_free_s(&rm_rx_s);
+  srsran_polar_rm_rx_free_c(&rm_rx_c);
+  srsran_polar_rm_tx_free(&rm_tx);
 #ifdef LV_HAVE_AVX2
-  srslte_polar_encoder_free(&enc_avx2);
-  srslte_polar_decoder_free(&dec_c_avx2);
+  srsran_polar_encoder_free(&enc_avx2);
+  srsran_polar_decoder_free(&dec_c_avx2);
 #endif // LV_HAVE_AVX2
 
   int expected_errors = 0;

@@ -19,5 +19,5 @@
 #
 
 file(GLOB SOURCES "*.c")
-add_library(srslte_mimo OBJECT ${SOURCES})
+add_library(srsran_mimo OBJECT ${SOURCES})
 add_subdirectory(test)

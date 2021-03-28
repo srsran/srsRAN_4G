@@ -1,29 +1,20 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #include "srsenb/hdr/enb.h"
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
 #include "srsenb/test/common/dummy_classes.h"
-#include "srslte/asn1/rrc_utils.h"
-#include "srslte/common/test_common.h"
+#include "srsran/asn1/rrc_utils.h"
+#include "srsran/common/test_common.h"
 #include "test_helpers.h"
 #include <iostream>
 
@@ -83,12 +74,12 @@ struct mobility_tester {
     // Do all the handshaking until the first RRC Connection Reconf
     test_helpers::bring_rrc_to_reconf_state(rrc, *task_sched.get_timer_handler(), rnti);
     logger.set_level(srslog::basic_levels::info);
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   mobility_test_params   args;
   srslog::basic_logger&  logger;
-  srslte::task_scheduler task_sched;
+  srsran::task_scheduler task_sched;
   rrc_cfg_t              cfg;
 
   srsenb::rrc                       rrc;
@@ -112,19 +103,19 @@ protected:
   int generate_rrc_cfg_common()
   {
     srsenb::all_args_t all_args;
-    TESTASSERT(test_helpers::parse_default_cfg(&cfg, all_args) == SRSLTE_SUCCESS);
+    TESTASSERT(test_helpers::parse_default_cfg(&cfg, all_args) == SRSRAN_SUCCESS);
     cfg.meas_cfg_present   = true;
     report_cfg_eutra_s rep = generate_rep1();
     cfg.cell_list[0].meas_cfg.meas_reports.push_back(rep);
     cfg.cell_list[0].meas_cfg.meas_cells.resize(1);
     cfg.cell_list[0].meas_cfg.meas_cells[0]     = generate_cell1();
     cfg.cell_list[0].meas_cfg.meas_cells[0].pci = 2;
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
   int setup_rrc_common()
   {
     rrc.init(cfg, &phy, &mac, &rlc, &pdcp, &s1ap, &gtpu);
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 };
 
@@ -132,11 +123,11 @@ struct s1ap_mobility_tester : public mobility_tester {
   explicit s1ap_mobility_tester(const mobility_test_params& args_) : mobility_tester(args_) {}
   int generate_rrc_cfg() final
   {
-    TESTASSERT(generate_rrc_cfg_common() == SRSLTE_SUCCESS);
+    TESTASSERT(generate_rrc_cfg_common() == SRSRAN_SUCCESS);
     cfg.cell_list[0].meas_cfg.meas_cells[0].eci    = 0x19C02;
     cfg.cell_list[0].meas_cfg.meas_cells[0].earfcn = 2850;
     cfg.cell_list[0].meas_cfg.meas_gap_period      = 40;
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 };
 
@@ -144,7 +135,7 @@ struct intraenb_mobility_tester : public mobility_tester {
   explicit intraenb_mobility_tester(const mobility_test_params& args_) : mobility_tester(args_) {}
   int generate_rrc_cfg() final
   {
-    TESTASSERT(generate_rrc_cfg_common() == SRSLTE_SUCCESS);
+    TESTASSERT(generate_rrc_cfg_common() == SRSRAN_SUCCESS);
     cfg.cell_list[0].meas_cfg.meas_cells[0].eci    = 0x19B02;
     cfg.cell_list[0].meas_cfg.meas_gap_period      = 40;
     cfg.cell_list[0].meas_cfg.meas_cells[0].earfcn = 2850;
@@ -159,25 +150,25 @@ struct intraenb_mobility_tester : public mobility_tester {
     cell2.meas_cfg.meas_gap_period      = 80;
     cfg.cell_list.push_back(cell2);
 
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 };
 
-int test_s1ap_mobility(srslte::log_sink_spy& spy, mobility_test_params test_params)
+int test_s1ap_mobility(srsran::log_sink_spy& spy, mobility_test_params test_params)
 {
   printf("\n===== TEST: test_s1ap_mobility() for event %s =====\n", test_params.to_string());
   s1ap_mobility_tester tester{test_params};
   spy.reset_counters();
-  srslte::unique_byte_buffer_t pdu;
+  srsran::unique_byte_buffer_t pdu;
 
-  TESTASSERT(tester.generate_rrc_cfg() == SRSLTE_SUCCESS);
-  TESTASSERT(tester.setup_rrc() == SRSLTE_SUCCESS);
-  TESTASSERT(tester.run_preamble() == SRSLTE_SUCCESS);
+  TESTASSERT(tester.generate_rrc_cfg() == SRSRAN_SUCCESS);
+  TESTASSERT(tester.setup_rrc() == SRSRAN_SUCCESS);
+  TESTASSERT(tester.run_preamble() == SRSRAN_SUCCESS);
   test_dummies::s1ap_mobility_dummy& s1ap = tester.s1ap;
 
   /* Receive correct measConfig */
   dl_dcch_msg_s dl_dcch_msg;
-  TESTASSERT(test_helpers::unpack_asn1(dl_dcch_msg, srslte::make_span(tester.pdcp.last_sdu.sdu)));
+  TESTASSERT(test_helpers::unpack_asn1(dl_dcch_msg, srsran::make_span(tester.pdcp.last_sdu.sdu)));
   rrc_conn_recfg_r8_ies_s& recfg_r8 = dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
   TESTASSERT(recfg_r8.meas_cfg_present and recfg_r8.meas_cfg.meas_gap_cfg_present);
   TESTASSERT(recfg_r8.meas_cfg.meas_gap_cfg.type().value == setup_opts::setup);
@@ -199,7 +190,7 @@ int test_s1ap_mobility(srslte::log_sink_spy& spy, mobility_test_params test_para
   if (test_params.fail_at == mobility_test_params::test_event::wrong_measreport) {
     TESTASSERT(s1ap.last_ho_required.rrc_container == nullptr);
     TESTASSERT(spy.get_warning_counter() == 1);
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
   TESTASSERT(s1ap.last_ho_required.rrc_container != nullptr);
 
@@ -211,7 +202,7 @@ int test_s1ap_mobility(srslte::log_sink_spy& spy, mobility_test_params test_para
     tester.rrc.write_pdu(tester.rnti, 1, std::move(pdu));
     tester.tic();
     TESTASSERT(s1ap.last_ho_required.rrc_container == nullptr);
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   /* Test Case: Check HO Required was sent to S1AP */
@@ -237,7 +228,7 @@ int test_s1ap_mobility(srslte::log_sink_spy& spy, mobility_test_params test_para
     tester.rrc.ho_preparation_complete(tester.rnti, false, {}, nullptr);
     //    TESTASSERT(spy.get_error_counter() == 1);
     TESTASSERT(not s1ap.last_enb_status.status_present);
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   /* MME returns back an HandoverCommand, S1AP unwraps the RRC container */
@@ -251,26 +242,26 @@ int test_s1ap_mobility(srslte::log_sink_spy& spy, mobility_test_params test_para
   TESTASSERT(s1ap.last_enb_status.status_present);
   TESTASSERT(spy.get_error_counter() == 0);
   asn1::rrc::dl_dcch_msg_s ho_cmd;
-  TESTASSERT(test_helpers::unpack_asn1(ho_cmd, srslte::make_span(tester.pdcp.last_sdu.sdu)));
+  TESTASSERT(test_helpers::unpack_asn1(ho_cmd, srsran::make_span(tester.pdcp.last_sdu.sdu)));
   recfg_r8 = ho_cmd.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
   TESTASSERT(recfg_r8.mob_ctrl_info_present);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_s1ap_tenb_mobility(mobility_test_params test_params)
 {
   printf("\n===== TEST: test_s1ap_tenb_mobility() for event %s =====\n", test_params.to_string());
   s1ap_mobility_tester         tester{test_params};
-  srslte::unique_byte_buffer_t pdu;
+  srsran::unique_byte_buffer_t pdu;
 
-  TESTASSERT(tester.generate_rrc_cfg() == SRSLTE_SUCCESS);
+  TESTASSERT(tester.generate_rrc_cfg() == SRSRAN_SUCCESS);
   tester.cfg.cell_list[0].meas_cfg.meas_cells[0].eci = 0x19B01;
   tester.cfg.enb_id                                  = 0x19C;
   tester.cfg.cell.id                                 = 0x02;
   tester.cfg.cell_list[0].cell_id                    = 0x02;
   tester.cfg.cell_list[0].pci                        = 2;
-  TESTASSERT(tester.setup_rrc() == SRSLTE_SUCCESS);
+  TESTASSERT(tester.setup_rrc() == SRSRAN_SUCCESS);
   security_cfg_handler sec_cfg{tester.cfg};
 
   /* TeNB receives S1AP Handover Request */
@@ -315,7 +306,7 @@ int test_s1ap_tenb_mobility(mobility_test_params test_params)
   sec_cfg.set_security_capabilities(ho_req.protocol_ies.ue_security_cap.value);
   sec_cfg.set_security_key(ho_req.protocol_ies.security_context.value.next_hop_param);
   sec_cfg.regenerate_keys_handover(tester.cfg.cell_list[0].pci, tester.cfg.cell_list[0].dl_earfcn);
-  srslte::as_security_config_t as_sec_cfg = sec_cfg.get_as_sec_cfg();
+  srsran::as_security_config_t as_sec_cfg = sec_cfg.get_as_sec_cfg();
   TESTASSERT(tester.pdcp.bearers[0x46][rb_id_t::RB_ID_SRB1].sec_cfg.k_rrc_int == as_sec_cfg.k_rrc_int);
   TESTASSERT(tester.pdcp.bearers[0x46][rb_id_t::RB_ID_SRB1].sec_cfg.k_rrc_enc == as_sec_cfg.k_rrc_enc);
   TESTASSERT(tester.pdcp.bearers[0x46][rb_id_t::RB_ID_SRB1].sec_cfg.k_up_int == as_sec_cfg.k_up_int);
@@ -373,23 +364,23 @@ int test_s1ap_tenb_mobility(mobility_test_params test_params)
   TESTASSERT(mac_ue.pucch_cfg.n_pucch_sr ==
              recfg_r8.rr_cfg_ded.phys_cfg_ded.sched_request_cfg.setup().sr_pucch_res_idx);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-int test_intraenb_mobility(srslte::log_sink_spy& spy, mobility_test_params test_params)
+int test_intraenb_mobility(srsran::log_sink_spy& spy, mobility_test_params test_params)
 {
   printf("\n===== TEST: test_intraenb_mobility() for event %s =====\n", test_params.to_string());
   intraenb_mobility_tester tester{test_params};
   spy.reset_counters();
-  srslte::unique_byte_buffer_t pdu;
+  srsran::unique_byte_buffer_t pdu;
 
-  TESTASSERT(tester.generate_rrc_cfg() == SRSLTE_SUCCESS);
-  TESTASSERT(tester.setup_rrc() == SRSLTE_SUCCESS);
-  TESTASSERT(tester.run_preamble() == SRSLTE_SUCCESS);
+  TESTASSERT(tester.generate_rrc_cfg() == SRSRAN_SUCCESS);
+  TESTASSERT(tester.setup_rrc() == SRSRAN_SUCCESS);
+  TESTASSERT(tester.run_preamble() == SRSRAN_SUCCESS);
 
   /* Receive correct measConfig */
   dl_dcch_msg_s dl_dcch_msg;
-  TESTASSERT(test_helpers::unpack_asn1(dl_dcch_msg, srslte::make_span(tester.pdcp.last_sdu.sdu)));
+  TESTASSERT(test_helpers::unpack_asn1(dl_dcch_msg, srsran::make_span(tester.pdcp.last_sdu.sdu)));
   rrc_conn_recfg_r8_ies_s& recfg_r8 = dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
   TESTASSERT(recfg_r8.meas_cfg_present and recfg_r8.meas_cfg.meas_gap_cfg_present);
   TESTASSERT(recfg_r8.meas_cfg.meas_gap_cfg.type().value == setup_opts::setup);
@@ -416,7 +407,7 @@ int test_intraenb_mobility(srslte::log_sink_spy& spy, mobility_test_params test_
   if (test_params.fail_at == mobility_test_params::test_event::wrong_measreport) {
     TESTASSERT(spy.get_warning_counter() == 1);
     TESTASSERT(tester.pdcp.last_sdu.sdu == nullptr);
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
   TESTASSERT(tester.pdcp.last_sdu.sdu != nullptr);
   TESTASSERT(tester.s1ap.last_ho_required.rrc_container == nullptr);
@@ -430,7 +421,7 @@ int test_intraenb_mobility(srslte::log_sink_spy& spy, mobility_test_params test_
     tester.rrc.write_pdu(tester.rnti, 1, std::move(pdu));
     tester.tic();
     TESTASSERT(tester.pdcp.last_sdu.sdu == nullptr);
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   /* Test Case: the HandoverCommand was sent to the lower layers */
@@ -438,7 +429,7 @@ int test_intraenb_mobility(srslte::log_sink_spy& spy, mobility_test_params test_
   TESTASSERT(tester.pdcp.last_sdu.rnti == tester.rnti);
   TESTASSERT(tester.pdcp.last_sdu.lcid == 1); // SRB1
   asn1::rrc::dl_dcch_msg_s ho_cmd;
-  TESTASSERT(test_helpers::unpack_asn1(ho_cmd, srslte::make_span(tester.pdcp.last_sdu.sdu)));
+  TESTASSERT(test_helpers::unpack_asn1(ho_cmd, srsran::make_span(tester.pdcp.last_sdu.sdu)));
   recfg_r8 = ho_cmd.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
   TESTASSERT(recfg_r8.mob_ctrl_info_present);
   TESTASSERT(recfg_r8.mob_ctrl_info.new_ue_id.to_number() == tester.rnti);
@@ -496,27 +487,27 @@ int test_intraenb_mobility(srslte::log_sink_spy& spy, mobility_test_params test_
   TESTASSERT(tester.pdcp.last_sdu.sdu != nullptr);
   TESTASSERT(tester.s1ap.last_ho_required.rrc_container == nullptr);
   TESTASSERT(not tester.s1ap.last_enb_status.status_present);
-  TESTASSERT(test_helpers::unpack_asn1(ho_cmd, srslte::make_span(tester.pdcp.last_sdu.sdu)));
+  TESTASSERT(test_helpers::unpack_asn1(ho_cmd, srsran::make_span(tester.pdcp.last_sdu.sdu)));
   recfg_r8 = ho_cmd.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
   TESTASSERT(recfg_r8.mob_ctrl_info_present);
   TESTASSERT(recfg_r8.mob_ctrl_info.new_ue_id.to_number() == tester.rnti);
   TESTASSERT(recfg_r8.mob_ctrl_info.target_pci == 1);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int main(int argc, char** argv)
 {
   // Setup the log spy to intercept error and warning log entries.
   if (!srslog::install_custom_sink(
-          srslte::log_sink_spy::name(),
-          std::unique_ptr<srslte::log_sink_spy>(new srslte::log_sink_spy(srslog::get_default_log_formatter())))) {
-    return SRSLTE_ERROR;
+          srsran::log_sink_spy::name(),
+          std::unique_ptr<srsran::log_sink_spy>(new srsran::log_sink_spy(srslog::get_default_log_formatter())))) {
+    return SRSRAN_ERROR;
   }
 
-  auto* spy = static_cast<srslte::log_sink_spy*>(srslog::find_sink(srslte::log_sink_spy::name()));
+  auto* spy = static_cast<srsran::log_sink_spy*>(srslog::find_sink(srsran::log_sink_spy::name()));
   if (!spy) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   srslog::set_default_sink(*spy);
 
@@ -552,5 +543,5 @@ int main(int argc, char** argv)
 
   printf("\nSuccess\n");
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }

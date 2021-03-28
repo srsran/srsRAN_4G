@@ -1,31 +1,22 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #include "srsenb/hdr/stack/enb_stack_lte.h"
 #include "srsenb/hdr/enb.h"
-#include "srslte/common/network_utils.h"
-#include "srslte/interfaces/enb_metrics_interface.h"
-#include "srslte/srslog/event_trace.h"
+#include "srsran/common/network_utils.h"
+#include "srsran/interfaces/enb_metrics_interface.h"
+#include "srsran/srslog/event_trace.h"
 
-using namespace srslte;
+using namespace srsran;
 
 namespace srsenb {
 
@@ -69,10 +60,10 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_, ph
 {
   phy = phy_;
   if (init(args_, rrc_cfg_)) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
@@ -119,7 +110,7 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   }
 
   // Init Rx socket handler
-  rx_sockets.reset(new srslte::rx_multisocket_handler("ENBSOCKETS", stack_logger));
+  rx_sockets.reset(new srsran::rx_multisocket_handler("ENBSOCKETS", stack_logger));
 
   // add sync queue
   sync_task_queue = task_sched.make_task_queue(args.sync_queue_size);
@@ -127,14 +118,17 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   // Init all layers
   if (!mac.init(args.mac, rrc_cfg.cell_list, phy, &rlc, &rrc)) {
     stack_logger.error("Couldn't initialize MAC");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   rlc.init(&pdcp, &rrc, &mac, task_sched.get_timer_handler());
   pdcp.init(&rlc, &rrc, &gtpu);
-  rrc.init(rrc_cfg, phy, &mac, &rlc, &pdcp, &s1ap, &gtpu);
-  if (s1ap.init(args.s1ap, &rrc, this) != SRSLTE_SUCCESS) {
+  if (rrc.init(rrc_cfg, phy, &mac, &rlc, &pdcp, &s1ap, &gtpu) != SRSRAN_SUCCESS) {
+    stack_logger.error("Couldn't initialize RRC");
+    return SRSRAN_ERROR;
+  }
+  if (s1ap.init(args.s1ap, &rrc, this) != SRSRAN_SUCCESS) {
     stack_logger.error("Couldn't initialize S1AP");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   if (gtpu.init(args.s1ap.gtp_bind_addr,
                 args.s1ap.mme_addr,
@@ -144,13 +138,13 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
                 this,
                 args.embms.enable)) {
     stack_logger.error("Couldn't initialize GTPU");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   started = true;
   start(STACK_MAIN_THREAD_PRIO);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 void enb_stack_lte::tti_clock()
@@ -234,13 +228,13 @@ void enb_stack_lte::run_thread()
   }
 }
 
-void enb_stack_lte::handle_mme_rx_packet(srslte::unique_byte_buffer_t pdu,
+void enb_stack_lte::handle_mme_rx_packet(srsran::unique_byte_buffer_t pdu,
                                          const sockaddr_in&           from,
                                          const sctp_sndrcvinfo&       sri,
                                          int                          flags)
 {
   // Defer the handling of MME packet to eNB stack main thread
-  auto task_handler = [this, from, sri, flags](srslte::unique_byte_buffer_t& t) {
+  auto task_handler = [this, from, sri, flags](srsran::unique_byte_buffer_t& t) {
     s1ap.handle_mme_rx_msg(std::move(t), from, sri, flags);
   };
   // Defer the handling of MME packet to main stack thread
@@ -251,7 +245,7 @@ void enb_stack_lte::add_mme_socket(int fd)
 {
   // Pass MME Rx packet handler functor to socket handler to run in socket thread
   auto mme_rx_handler =
-      [this](srslte::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags) {
+      [this](srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags) {
         handle_mme_rx_packet(std::move(pdu), from, sri, flags);
       };
   rx_sockets->add_socket_sctp_pdu_handler(fd, mme_rx_handler);
@@ -264,8 +258,8 @@ void enb_stack_lte::remove_mme_socket(int fd)
 
 void enb_stack_lte::add_gtpu_s1u_socket_handler(int fd)
 {
-  auto gtpu_s1u_handler = [this](srslte::unique_byte_buffer_t pdu, const sockaddr_in& from) {
-    auto task_handler = [this, from](srslte::unique_byte_buffer_t& t) {
+  auto gtpu_s1u_handler = [this](srsran::unique_byte_buffer_t pdu, const sockaddr_in& from) {
+    auto task_handler = [this, from](srsran::unique_byte_buffer_t& t) {
       gtpu.handle_gtpu_s1u_rx_packet(std::move(t), from);
     };
     gtpu_task_queue.push(std::bind(task_handler, std::move(pdu)));
@@ -275,8 +269,8 @@ void enb_stack_lte::add_gtpu_s1u_socket_handler(int fd)
 
 void enb_stack_lte::add_gtpu_m1u_socket_handler(int fd)
 {
-  auto gtpu_m1u_handler = [this](srslte::unique_byte_buffer_t pdu, const sockaddr_in& from) {
-    auto task_handler = [this, from](srslte::unique_byte_buffer_t& t) {
+  auto gtpu_m1u_handler = [this](srsran::unique_byte_buffer_t pdu, const sockaddr_in& from) {
+    auto task_handler = [this, from](srsran::unique_byte_buffer_t& t) {
       gtpu.handle_gtpu_m1u_rx_packet(std::move(t), from);
     };
     gtpu_task_queue.push(std::bind(task_handler, std::move(pdu)));

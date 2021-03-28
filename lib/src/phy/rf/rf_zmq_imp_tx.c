@@ -1,35 +1,26 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #include "rf_zmq_imp_trx.h"
 #include <inttypes.h>
-#include <srslte/config.h>
-#include <srslte/phy/utils/vector.h>
+#include <srsran/config.h>
+#include <srsran/phy/utils/vector.h>
 #include <stdlib.h>
 #include <string.h>
 #include <zmq.h>
 
 int rf_zmq_tx_open(rf_zmq_tx_t* q, rf_zmq_opts_t opts, void* zmq_ctx, char* sock_args)
 {
-  int ret = SRSLTE_ERROR;
+  int ret = SRSRAN_ERROR;
 
   if (q) {
     // Zero object
@@ -82,13 +73,13 @@ int rf_zmq_tx_open(rf_zmq_tx_t* q, rf_zmq_opts_t opts, void* zmq_ctx, char* sock
       goto clean_exit;
     }
 
-    q->temp_buffer_convert = srslte_vec_malloc(ZMQ_MAX_BUFFER_SIZE);
+    q->temp_buffer_convert = srsran_vec_malloc(ZMQ_MAX_BUFFER_SIZE);
     if (!q->temp_buffer_convert) {
       fprintf(stderr, "Error: allocating rx buffer\n");
       goto clean_exit;
     }
 
-    q->zeros = srslte_vec_malloc(ZMQ_MAX_BUFFER_SIZE);
+    q->zeros = srsran_vec_malloc(ZMQ_MAX_BUFFER_SIZE);
     if (!q->zeros) {
       fprintf(stderr, "Error: allocating zeros\n");
       goto clean_exit;
@@ -97,7 +88,7 @@ int rf_zmq_tx_open(rf_zmq_tx_t* q, rf_zmq_opts_t opts, void* zmq_ctx, char* sock
 
     q->running = true;
 
-    ret = SRSLTE_SUCCESS;
+    ret = SRSRAN_SUCCESS;
   }
 
 clean_exit:
@@ -106,7 +97,7 @@ clean_exit:
 
 static int _rf_zmq_tx_baseband(rf_zmq_tx_t* q, cf_t* buffer, uint32_t nsamples)
 {
-  int n = SRSLTE_ERROR;
+  int n = SRSRAN_ERROR;
 
   while (n < 0 && q->running) {
     // Receive Transmit request is socket type is REPLY
@@ -115,7 +106,7 @@ static int _rf_zmq_tx_baseband(rf_zmq_tx_t* q, cf_t* buffer, uint32_t nsamples)
       n = zmq_recv(q->sock, &dummy, sizeof(dummy), 0);
       if (n < 0) {
         if (rf_zmq_handle_error(q->id, "tx request receive")) {
-          n = SRSLTE_ERROR;
+          n = SRSRAN_ERROR;
           goto clean_exit;
         }
       } else {
@@ -134,7 +125,7 @@ static int _rf_zmq_tx_baseband(rf_zmq_tx_t* q, cf_t* buffer, uint32_t nsamples)
     if (q->sample_format == ZMQ_TYPE_SC16) {
       buf       = q->temp_buffer_convert;
       sample_sz = 2 * sizeof(short);
-      srslte_vec_convert_fi((float*)buffer, INT16_MAX, (short*)q->temp_buffer_convert, 2 * nsamples);
+      srsran_vec_convert_fi((float*)buffer, INT16_MAX, (short*)q->temp_buffer_convert, 2 * nsamples);
     }
 
     // Send base-band if request was received
@@ -142,7 +133,7 @@ static int _rf_zmq_tx_baseband(rf_zmq_tx_t* q, cf_t* buffer, uint32_t nsamples)
       n = zmq_send(q->sock, buf, (size_t)sample_sz * nsamples, 0);
       if (n < 0) {
         if (rf_zmq_handle_error(q->id, "tx baseband send")) {
-          n = SRSLTE_ERROR;
+          n = SRSRAN_ERROR;
           goto clean_exit;
         }
       } else if (n != NSAMPLES2NBYTES(nsamples)) {
@@ -151,7 +142,7 @@ static int _rf_zmq_tx_baseband(rf_zmq_tx_t* q, cf_t* buffer, uint32_t nsamples)
                      NSAMPLES2NBYTES(nsamples),
                      n,
                      strerror(zmq_errno()));
-        n = SRSLTE_ERROR;
+        n = SRSRAN_ERROR;
         goto clean_exit;
       }
     }
@@ -193,7 +184,7 @@ int rf_zmq_tx_baseband(rf_zmq_tx_t* q, cf_t* buffer, uint32_t nsamples)
     _rf_zmq_tx_baseband(q, q->zeros, (uint32_t)q->sample_offset);
     q->sample_offset = 0;
   } else if (q->sample_offset < 0) {
-    n = SRSLTE_MIN(-q->sample_offset, nsamples);
+    n = SRSRAN_MIN(-q->sample_offset, nsamples);
     buffer += n;
     nsamples -= n;
     q->sample_offset += n;

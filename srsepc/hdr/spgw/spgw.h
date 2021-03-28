@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -28,10 +19,10 @@
 #ifndef SRSEPC_SPGW_H
 #define SRSEPC_SPGW_H
 
-#include "srslte/asn1/gtpc.h"
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/threads.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/asn1/gtpc.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/common/threads.h"
+#include "srsran/srslog/srslog.h"
 #include <cstddef>
 #include <queue>
 
@@ -52,15 +43,15 @@ typedef struct spgw_tunnel_ctx {
   uint64_t                                 imsi;
   in_addr_t                                ue_ipv4;
   uint8_t                                  ebi;
-  srslte::gtp_fteid_t                      up_ctrl_fteid;
-  srslte::gtp_fteid_t                      up_user_fteid;
-  srslte::gtp_fteid_t                      dw_ctrl_fteid;
-  srslte::gtp_fteid_t                      dw_user_fteid;
+  srsran::gtp_fteid_t                      up_ctrl_fteid;
+  srsran::gtp_fteid_t                      up_user_fteid;
+  srsran::gtp_fteid_t                      dw_ctrl_fteid;
+  srsran::gtp_fteid_t                      dw_user_fteid;
   bool                                     paging_pending;
-  std::queue<srslte::unique_byte_buffer_t> paging_queue;
+  std::queue<srsran::unique_byte_buffer_t> paging_queue;
 } spgw_tunnel_ctx_t;
 
-class spgw : public srslte::thread
+class spgw : public srsran::thread
 {
   class gtpc;
   class gtpu;
@@ -77,7 +68,7 @@ private:
   virtual ~spgw();
   static spgw* m_instance;
 
-  spgw_tunnel_ctx_t* create_gtp_ctx(struct srslte::gtpc_create_session_request* cs_req);
+  spgw_tunnel_ctx_t* create_gtp_ctx(struct srsran::gtpc_create_session_request* cs_req);
   bool               delete_gtp_ctx(uint32_t ctrl_teid);
 
   bool      m_running;

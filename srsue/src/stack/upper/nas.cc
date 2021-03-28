@@ -1,41 +1,32 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
-#include "srslte/common/bcd_helpers.h"
-#include "srslte/common/security.h"
-#include "srslte/common/string_helpers.h"
+#include "srsran/common/bcd_helpers.h"
+#include "srsran/common/security.h"
+#include "srsran/common/string_helpers.h"
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <unistd.h>
 
-#include "srslte/asn1/liblte_mme.h"
-#include "srslte/common/standard_streams.h"
-#include "srslte/interfaces/ue_gw_interfaces.h"
-#include "srslte/interfaces/ue_rrc_interfaces.h"
-#include "srslte/interfaces/ue_usim_interfaces.h"
+#include "srsran/asn1/liblte_mme.h"
+#include "srsran/common/standard_streams.h"
+#include "srsran/interfaces/ue_gw_interfaces.h"
+#include "srsran/interfaces/ue_rrc_interfaces.h"
+#include "srsran/interfaces/ue_usim_interfaces.h"
 #include "srsue/hdr/stack/upper/nas.h"
 #include "srsue/hdr/stack/upper/nas_idle_procedures.h"
 
-using namespace srslte;
+using namespace srsran;
 
 namespace srsue {
 
@@ -43,7 +34,7 @@ namespace srsue {
  *   NAS
  ********************************************************************/
 
-nas::nas(srslte::task_sched_handle task_sched_) :
+nas::nas(srsran::task_sched_handle task_sched_) :
   plmn_searcher(this),
   task_sched(task_sched_),
   t3402(task_sched_.get_unique_timer()),
@@ -68,7 +59,7 @@ void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_
 
   // parse and sanity check EIA list
   std::vector<uint8_t> cap_list;
-  srslte::string_parse_list(cfg_.eia, ',', cap_list);
+  srsran::string_parse_list(cfg_.eia, ',', cap_list);
   if (cap_list.empty()) {
     logger.error("Empty EIA list. Select at least one EIA algorithm.");
   }
@@ -81,7 +72,7 @@ void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_
   }
 
   // parse and sanity check EEA list
-  srslte::string_parse_list(cfg_.eea, ',', cap_list);
+  srsran::string_parse_list(cfg_.eea, ',', cap_list);
   if (cap_list.empty()) {
     logger.error("Empty EEA list. Select at least one EEA algorithm.");
   }
@@ -152,7 +143,7 @@ void nas::run_tti()
           break;
         case emm_state_t::deregistered_substate_t::normal_service:
         case emm_state_t::deregistered_substate_t::attach_needed:
-          start_attach_request(srslte::establishment_cause_t::mo_data);
+          start_attach_request(srsran::establishment_cause_t::mo_data);
           break;
         case emm_state_t::deregistered_substate_t::attempting_to_attach:
           logger.debug("Attempting to attach");
@@ -211,7 +202,7 @@ void nas::timer_expired(uint32_t timeout_id)
     // Section 5.5.1.2.6 case c)
     attach_attempt_counter++;
 
-    srslte::console("Attach failed (attempt %d/%d)\n", attach_attempt_counter, max_attach_attempts);
+    srsran::console("Attach failed (attempt %d/%d)\n", attach_attempt_counter, max_attach_attempts);
     if (attach_attempt_counter < max_attach_attempts) {
       logger.warning("Timer T3410 expired after attach attempt %d/%d: starting T3411",
                      attach_attempt_counter,
@@ -231,7 +222,7 @@ void nas::timer_expired(uint32_t timeout_id)
     enter_emm_deregistered(emm_state_t::deregistered_substate_t::plmn_search);
   } else if (timeout_id == reattach_timer.id()) {
     logger.warning("Reattach timer expired: trying to attach again");
-    start_attach_request(srslte::establishment_cause_t::mo_sig);
+    start_attach_request(srsran::establishment_cause_t::mo_sig);
   } else if (timeout_id == airplane_mode_sim_timer.id()) {
     if (airplane_mode_state == DISABLED) {
       // Enabling air-plane mode
@@ -244,7 +235,7 @@ void nas::timer_expired(uint32_t timeout_id)
       }
     } else if (airplane_mode_state == ENABLED) {
       // Disabling airplane mode again
-      start_attach_request(srslte::establishment_cause_t::mo_sig);
+      start_attach_request(srsran::establishment_cause_t::mo_sig);
       airplane_mode_state = DISABLED;
 
       if (cfg.sim.airplane_t_off_ms > 0) {
@@ -299,7 +290,7 @@ bool nas::disable_data()
  * The function returns true if the UE could attach correctly or false in case of error or timeout during attachment.
  *
  */
-void nas::start_attach_request(srslte::establishment_cause_t cause_)
+void nas::start_attach_request(srsran::establishment_cause_t cause_)
 {
   logger.info("Attach Request with cause %s.", to_string(cause_).c_str());
 
@@ -324,9 +315,9 @@ void nas::start_attach_request(srslte::establishment_cause_t cause_)
   }
 
   // Start attach request
-  unique_byte_buffer_t msg = srslte::make_byte_buffer();
+  unique_byte_buffer_t msg = srsran::make_byte_buffer();
   if (msg == nullptr) {
-    logger.warning("Couldn't allocate buffer for Attach request.\n");
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
     return;
   }
 
@@ -349,10 +340,10 @@ void nas::start_attach_request(srslte::establishment_cause_t cause_)
  * The function returns true if the UE could attach correctly or false in case of error or timeout during attachment.
  *
  */
-void nas::start_service_request(srslte::establishment_cause_t cause_)
+void nas::start_service_request(srsran::establishment_cause_t cause_)
 {
   logger.info("Service Request with cause %s.", to_string(cause_).c_str());
-  srslte::console("Service Request with cause %s.\n", to_string(cause_).c_str());
+  srsran::console("Service Request with cause %s.\n", to_string(cause_).c_str());
   if (state.get_state() != emm_state_t::state_t::registered) {
     logger.info("NAS in invalid state for Service Request");
     logger.info("Service request ignored. State = %s", state.get_full_state_text().c_str());
@@ -367,7 +358,11 @@ void nas::start_service_request(srslte::establishment_cause_t cause_)
   logger.info("NAS is already registered but RRC disconnected. Connecting now...");
 
   // Start service request
-  unique_byte_buffer_t msg = srslte::make_byte_buffer();
+  unique_byte_buffer_t msg = srsran::make_byte_buffer();
+  if (msg == nullptr) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return;
+  }
   gen_service_request(msg);
   if (not rrc->connection_request(cause_, std::move(msg))) {
     logger.error("Error starting RRC connection");
@@ -413,7 +408,7 @@ bool nas::connection_request_completed(bool outcome)
   if (outcome == true) {
     logger.debug("RRC connection request completed. NAS State %s.", state.get_full_state_text().c_str());
     if (state.get_state() == emm_state_t::state_t::service_request_initiated) {
-      srslte::console("Service Request successful.\n");
+      srsran::console("Service Request successful.\n");
       logger.info("Service Request successful.");
       rrc->paging_completed(true);
       state.set_registered(emm_state_t::registered_substate_t::normal_service);
@@ -421,7 +416,7 @@ bool nas::connection_request_completed(bool outcome)
   } else {
     logger.debug("RRC connection request failed. NAS State %s.", state.get_full_state_text().c_str());
     if (state.get_state() == emm_state_t::state_t::service_request_initiated) {
-      srslte::console("RRC connection for Service Request failed.\n");
+      srsran::console("RRC connection for Service Request failed.\n");
       logger.info("RRC connection for Service Request failed.");
       rrc->paging_completed(false);
       state.set_registered(emm_state_t::registered_substate_t::normal_service);
@@ -444,7 +439,7 @@ bool nas::paging(s_tmsi_t* ue_identity)
 {
   if (state.get_state() == emm_state_t::state_t::registered) {
     logger.info("Received paging: requesting RRC connection establishment");
-    start_service_request(srslte::establishment_cause_t::mt_access);
+    start_service_request(srsran::establishment_cause_t::mt_access);
   } else {
     logger.warning("Received paging while in state %s", state.get_full_state_text().c_str());
     return false;
@@ -661,7 +656,7 @@ void nas::select_plmn()
   }
 
   // First find if Home PLMN is available
-  for (const srslte::plmn_id_t& known_plmn : known_plmns) {
+  for (const srsran::plmn_id_t& known_plmn : known_plmns) {
     if (known_plmn == home_plmn) {
       logger.info("Selecting Home PLMN Id=%s", known_plmn.to_string().c_str());
       current_plmn = known_plmn;
@@ -675,7 +670,7 @@ void nas::select_plmn()
     std::string debug_str = "Could not find Home PLMN Id=" + home_plmn.to_string() +
                             ", trying to connect to PLMN Id=" + known_plmns[0].to_string();
     logger.info("%s", debug_str.c_str());
-    srslte::console("%s\n", debug_str.c_str());
+    srsran::console("%s\n", debug_str.c_str());
     current_plmn = known_plmns[0];
     state.set_deregistered(emm_state_t::deregistered_substate_t::normal_service);
   }
@@ -895,7 +890,7 @@ bool nas::check_cap_replay(LIBLTE_MME_UE_SECURITY_CAPABILITIES_STRUCT* caps)
  * @param sec_hdr_type Security header type of the message
  * @return True if successful, false otherwise
  */
-int nas::apply_security_config(srslte::unique_byte_buffer_t& pdu, uint8_t sec_hdr_type)
+int nas::apply_security_config(srsran::unique_byte_buffer_t& pdu, uint8_t sec_hdr_type)
 {
   if (have_ctxt) {
     if (pdu->N_bytes > 5) {
@@ -909,12 +904,12 @@ int nas::apply_security_config(srslte::unique_byte_buffer_t& pdu, uint8_t sec_hd
       }
     } else {
       logger.error("Invalid PDU size %d", pdu->N_bytes);
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
   } else {
     logger.debug("Not applying security for PDU. No context configured.");
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 /**
@@ -1029,7 +1024,7 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
                   act_def_eps_bearer_context_req.pdn_addr.addr[2],
                   act_def_eps_bearer_context_req.pdn_addr.addr[3]);
 
-      srslte::console("Network attach successful. IP: %u.%u.%u.%u\n",
+      srsran::console("Network attach successful. IP: %u.%u.%u.%u\n",
                       act_def_eps_bearer_context_req.pdn_addr.addr[0],
                       act_def_eps_bearer_context_req.pdn_addr.addr[1],
                       act_def_eps_bearer_context_req.pdn_addr.addr[2],
@@ -1044,7 +1039,7 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
                             nullptr,
                             err_str)) {
         logger.error("%s - %s", gw_setup_failure_str.c_str(), err_str ? err_str : "");
-        srslte::console("%s\n", gw_setup_failure_str.c_str());
+        srsran::console("%s\n", gw_setup_failure_str.c_str());
       }
     } else if (LIBLTE_MME_PDN_TYPE_IPV6 == act_def_eps_bearer_context_req.pdn_addr.pdn_type) {
       memcpy(ipv6_if_id, act_def_eps_bearer_context_req.pdn_addr.addr, 8);
@@ -1059,7 +1054,7 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
                   act_def_eps_bearer_context_req.pdn_addr.addr[6],
                   act_def_eps_bearer_context_req.pdn_addr.addr[7]);
 
-      srslte::console("Network attach successful. IPv6 interface Id: %02x%02x:%02x%02x:%02x%02x:%02x%02x\n",
+      srsran::console("Network attach successful. IPv6 interface Id: %02x%02x:%02x%02x:%02x%02x:%02x%02x\n",
                       act_def_eps_bearer_context_req.pdn_addr.addr[0],
                       act_def_eps_bearer_context_req.pdn_addr.addr[1],
                       act_def_eps_bearer_context_req.pdn_addr.addr[2],
@@ -1077,7 +1072,7 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
                             ipv6_if_id,
                             err_str)) {
         logger.error("%s - %s", gw_setup_failure_str.c_str(), err_str);
-        srslte::console("%s\n", gw_setup_failure_str.c_str());
+        srsran::console("%s\n", gw_setup_failure_str.c_str());
       }
     } else if (LIBLTE_MME_PDN_TYPE_IPV4V6 == act_def_eps_bearer_context_req.pdn_addr.pdn_type) {
       memcpy(ipv6_if_id, act_def_eps_bearer_context_req.pdn_addr.addr, 8);
@@ -1092,7 +1087,7 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
                   act_def_eps_bearer_context_req.pdn_addr.addr[5],
                   act_def_eps_bearer_context_req.pdn_addr.addr[6],
                   act_def_eps_bearer_context_req.pdn_addr.addr[7]);
-      srslte::console("Network attach successful. IPv6 interface Id: %02x%02x:%02x%02x:%02x%02x:%02x%02x\n",
+      srsran::console("Network attach successful. IPv6 interface Id: %02x%02x:%02x%02x:%02x%02x:%02x%02x\n",
                       act_def_eps_bearer_context_req.pdn_addr.addr[0],
                       act_def_eps_bearer_context_req.pdn_addr.addr[1],
                       act_def_eps_bearer_context_req.pdn_addr.addr[2],
@@ -1114,7 +1109,7 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
                   act_def_eps_bearer_context_req.pdn_addr.addr[10],
                   act_def_eps_bearer_context_req.pdn_addr.addr[11]);
 
-      srslte::console("Network attach successful. IP: %u.%u.%u.%u\n",
+      srsran::console("Network attach successful. IP: %u.%u.%u.%u\n",
                       act_def_eps_bearer_context_req.pdn_addr.addr[8],
                       act_def_eps_bearer_context_req.pdn_addr.addr[9],
                       act_def_eps_bearer_context_req.pdn_addr.addr[10],
@@ -1128,7 +1123,7 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
                             ipv6_if_id,
                             err_str)) {
         logger.error("%s - %s", gw_setup_failure_str.c_str(), err_str);
-        srslte::console("%s\n", gw_setup_failure_str.c_str());
+        srsran::console("%s\n", gw_setup_failure_str.c_str());
       }
     } else {
       logger.error("PDN type not IPv4, IPv6 nor IPv4v6");
@@ -1204,7 +1199,7 @@ void nas::parse_attach_reject(uint32_t lcid, unique_byte_buffer_t pdu)
 
   liblte_mme_unpack_attach_reject_msg((LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), &attach_rej);
   logger.warning("Received Attach Reject. Cause= %02X", attach_rej.emm_cause);
-  srslte::console("Received Attach Reject. Cause= %02X\n", attach_rej.emm_cause);
+  srsran::console("Received Attach Reject. Cause= %02X\n", attach_rej.emm_cause);
 
   // stop T3410
   if (t3410.is_running()) {
@@ -1268,7 +1263,7 @@ void nas::parse_authentication_request(uint32_t lcid, unique_byte_buffer_t pdu, 
     ctxt.ksi = auth_req.nas_ksi.nas_ksi;
   } else {
     logger.error("NAS mapped security context not currently supported");
-    srslte::console("Warning: NAS mapped security context not currently supported\n");
+    srsran::console("Warning: NAS mapped security context not currently supported\n");
   }
 
   if (auth_result == AUTH_OK) {
@@ -1285,7 +1280,7 @@ void nas::parse_authentication_request(uint32_t lcid, unique_byte_buffer_t pdu, 
     send_authentication_failure(LIBLTE_MME_EMM_CAUSE_SYNCH_FAILURE, res);
   } else {
     logger.warning("Network authentication failure");
-    srslte::console("Warning: Network authentication failure\n");
+    srsran::console("Warning: Network authentication failure\n");
     send_authentication_failure(LIBLTE_MME_EMM_CAUSE_MAC_FAILURE, nullptr);
   }
 }
@@ -1437,7 +1432,7 @@ void nas::parse_service_reject(uint32_t lcid, unique_byte_buffer_t pdu)
     return;
   }
 
-  srslte::console("Received service reject with EMM cause=0x%x.\n", service_reject.emm_cause);
+  srsran::console("Received service reject with EMM cause=0x%x.\n", service_reject.emm_cause);
   if (service_reject.t3446_present) {
     logger.info(
         "Received service reject with EMM cause=0x%x and t3446=%d", service_reject.emm_cause, service_reject.t3446);
@@ -1474,7 +1469,7 @@ void nas::parse_emm_information(uint32_t lcid, unique_byte_buffer_t pdu)
   liblte_mme_unpack_emm_information_msg((LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), &emm_info);
   std::string str = emm_info_str(&emm_info);
   logger.info("Received EMM Information: %s", str.c_str());
-  srslte::console("%s\n", str.c_str());
+  srsran::console("%s\n", str.c_str());
   ctxt.rx_count++;
 }
 
@@ -1592,7 +1587,7 @@ void nas::parse_deactivate_eps_bearer_context_request(unique_byte_buffer_t pdu)
   send_deactivate_eps_bearer_context_accept(request.proc_transaction_id, request.eps_bearer_id);
 }
 
-void nas::parse_modify_eps_bearer_context_request(srslte::unique_byte_buffer_t pdu)
+void nas::parse_modify_eps_bearer_context_request(srsran::unique_byte_buffer_t pdu)
 {
   LIBLTE_MME_MODIFY_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT request;
 
@@ -1678,7 +1673,7 @@ void nas::parse_emm_status(uint32_t lcid, unique_byte_buffer_t pdu)
  * Senders
  ******************************************************************************/
 
-void nas::gen_attach_request(srslte::unique_byte_buffer_t& msg)
+void nas::gen_attach_request(srsran::unique_byte_buffer_t& msg)
 {
   if (msg == nullptr) {
     logger.error("Fatal Error: Couldn't allocate PDU in gen_attach_request().");
@@ -1787,7 +1782,7 @@ void nas::gen_attach_request(srslte::unique_byte_buffer_t& msg)
   t3410.run();
 }
 
-void nas::gen_service_request(srslte::unique_byte_buffer_t& msg)
+void nas::gen_service_request(srsran::unique_byte_buffer_t& msg)
 {
   if (msg == nullptr) {
     logger.error("Fatal Error: Couldn't allocate PDU in gen_service_request().");
@@ -1842,7 +1837,7 @@ void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT* msg)
     pdn_con_req.pdn_type = LIBLTE_MME_PDN_TYPE_IPV4V6;
   } else {
     logger.warning("Unsupported PDN prtocol. Defaulting to IPv4");
-    srslte::console("Unsupported PDN prtocol: %s. Defaulting to IPv4\n", cfg.apn_protocol.c_str());
+    srsran::console("Unsupported PDN prtocol: %s. Defaulting to IPv4\n", cfg.apn_protocol.c_str());
     pdn_con_req.pdn_type = LIBLTE_MME_PDN_TYPE_IPV4;
   }
 
@@ -1864,9 +1859,9 @@ void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT* msg)
 
 void nas::send_security_mode_reject(uint8_t cause)
 {
-  unique_byte_buffer_t msg = srslte::make_byte_buffer();
+  unique_byte_buffer_t msg = srsran::make_byte_buffer();
   if (!msg) {
-    logger.error("Fatal Error: Couldn't allocate PDU in send_security_mode_reject().");
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
     return;
   }
 
@@ -1885,20 +1880,21 @@ void nas::send_security_mode_reject(uint8_t cause)
  */
 void nas::send_attach_request()
 {
-  unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+  unique_byte_buffer_t pdu = srsran::make_byte_buffer();
   if (!pdu) {
-    logger.error("Fatal Error: Couldn't allocate PDU in %s().", __FUNCTION__);
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
     return;
   }
+
   gen_attach_request(pdu);
   rrc->write_sdu(std::move(pdu));
 }
 
 void nas::send_detach_request(bool switch_off)
 {
-  unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+  unique_byte_buffer_t pdu = srsran::make_byte_buffer();
   if (!pdu) {
-    logger.error("Fatal Error: Couldn't allocate PDU in %s().", __FUNCTION__);
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
     return;
   }
 
@@ -1957,7 +1953,7 @@ void nas::send_detach_request(bool switch_off)
   if (rrc->is_connected()) {
     rrc->write_sdu(std::move(pdu));
   } else {
-    if (not rrc->connection_request(srslte::establishment_cause_t::mo_sig, std::move(pdu))) {
+    if (not rrc->connection_request(srsran::establishment_cause_t::mo_sig, std::move(pdu))) {
       logger.error("Error starting RRC connection");
     }
   }
@@ -1977,7 +1973,11 @@ void nas::send_attach_complete(const uint8_t& transaction_id_, const uint8_t& ep
                                                                  &attach_complete.esm_msg);
 
   // Pack entire message
-  unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+  unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  if (pdu == nullptr) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return;
+  }
   liblte_mme_pack_attach_complete_msg(
       &attach_complete, current_sec_hdr, ctxt.tx_count, (LIBLTE_BYTE_MSG_STRUCT*)pdu.get());
   // Write NAS pcap
@@ -2000,9 +2000,9 @@ void nas::send_attach_complete(const uint8_t& transaction_id_, const uint8_t& ep
 
 void nas::send_detach_accept()
 {
-  unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+  unique_byte_buffer_t pdu = srsran::make_byte_buffer();
   if (!pdu) {
-    logger.error("Fatal Error: Couldn't allocate PDU in %s().", __FUNCTION__);
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
     return;
   }
 
@@ -2025,9 +2025,9 @@ void nas::send_detach_accept()
 
 void nas::send_authentication_response(const uint8_t* res, const size_t res_len)
 {
-  unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+  unique_byte_buffer_t pdu = srsran::make_byte_buffer();
   if (!pdu) {
-    logger.error("Fatal Error: Couldn't allocate PDU in send_authentication_response().");
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
     return;
   }
 
@@ -2056,9 +2056,9 @@ void nas::send_authentication_response(const uint8_t* res, const size_t res_len)
 
 void nas::send_authentication_failure(const uint8_t cause, const uint8_t* auth_fail_param)
 {
-  unique_byte_buffer_t msg = srslte::make_byte_buffer();
+  unique_byte_buffer_t msg = srsran::make_byte_buffer();
   if (!msg) {
-    logger.error("Fatal Error: Couldn't allocate PDU in send_authentication_failure().");
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
     return;
   }
 
@@ -2104,9 +2104,9 @@ void nas::send_identity_response(const uint8 id_type)
       return;
   }
 
-  unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+  unique_byte_buffer_t pdu = srsran::make_byte_buffer();
   if (!pdu) {
-    logger.error("Fatal Error: Couldn't allocate PDU in send_identity_response().");
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
     return;
   }
 
@@ -2128,9 +2128,9 @@ void nas::send_identity_response(const uint8 id_type)
 
 void nas::send_service_request()
 {
-  unique_byte_buffer_t msg = srslte::make_byte_buffer();
+  unique_byte_buffer_t msg = srsran::make_byte_buffer();
   if (!msg) {
-    logger.error("Fatal Error: Couldn't allocate PDU in send_service_request().");
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
     return;
   }
 
@@ -2248,9 +2248,9 @@ void nas::send_esm_information_response(const uint8 proc_transaction_id)
     esm_info_resp.protocol_cnfg_opts_present = false;
   }
 
-  unique_byte_buffer_t pdu = srslte::make_byte_buffer();
-  if (!pdu) {
-    logger.error("Fatal Error: Couldn't allocate PDU in %s.", __FUNCTION__);
+  unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  if (pdu == nullptr) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
     return;
   }
 
@@ -2279,7 +2279,11 @@ void nas::send_esm_information_response(const uint8 proc_transaction_id)
 void nas::send_activate_dedicated_eps_bearer_context_accept(const uint8_t& proc_transaction_id,
                                                             const uint8_t& eps_bearer_id)
 {
-  unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+  unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  if (pdu == nullptr) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return;
+  }
 
   LIBLTE_MME_ACTIVATE_DEDICATED_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT accept = {};
 
@@ -2313,7 +2317,11 @@ void nas::send_activate_dedicated_eps_bearer_context_accept(const uint8_t& proc_
 
 void nas::send_deactivate_eps_bearer_context_accept(const uint8_t& proc_transaction_id, const uint8_t& eps_bearer_id)
 {
-  unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+  unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  if (pdu == nullptr) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return;
+  }
 
   LIBLTE_MME_DEACTIVATE_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT accept = {};
 
@@ -2347,7 +2355,11 @@ void nas::send_deactivate_eps_bearer_context_accept(const uint8_t& proc_transact
 
 void nas::send_modify_eps_bearer_context_accept(const uint8_t& proc_transaction_id, const uint8_t& eps_bearer_id)
 {
-  unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+  unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  if (pdu == nullptr) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return;
+  }
 
   LIBLTE_MME_MODIFY_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT accept = {};
 
@@ -2381,7 +2393,11 @@ void nas::send_modify_eps_bearer_context_accept(const uint8_t& proc_transaction_
 
 void nas::send_activate_test_mode_complete()
 {
-  unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+  unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  if (pdu == nullptr) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return;
+  }
 
   if (liblte_mme_pack_activate_test_mode_complete_msg(
           (LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), current_sec_hdr, ctxt.tx_count)) {
@@ -2406,7 +2422,11 @@ void nas::send_activate_test_mode_complete()
 
 void nas::send_close_ue_test_loop_complete()
 {
-  unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+  unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  if (pdu == nullptr) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return;
+  }
 
   if (liblte_mme_pack_close_ue_test_loop_complete_msg(
           (LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), current_sec_hdr, ctxt.tx_count)) {
@@ -2503,6 +2523,11 @@ bool nas::read_ctxt_file(nas_sec_ctxt* ctxt_)
     have_ctxt       = true;
     current_sec_hdr = LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED;
 
+    // Set UE identity in RRC
+    s_tmsi_t s_tmsi;
+    s_tmsi.mmec   = ctxt.guti.mme_code;
+    s_tmsi.m_tmsi = ctxt.guti.m_tmsi;
+    rrc->set_ue_identity(s_tmsi);
     return true;
   }
   return false;

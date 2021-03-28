@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -25,25 +16,25 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "srslte/common/common_helper.h"
-#include "srslte/common/config_file.h"
-#include "srslte/common/crash_handler.h"
-#include "srslte/common/signal_handler.h"
-#include "srslte/srslog/event_trace.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/common/common_helper.h"
+#include "srsran/common/config_file.h"
+#include "srsran/common/crash_handler.h"
+#include "srsran/common/signal_handler.h"
+#include "srsran/srslog/event_trace.h"
+#include "srsran/srslog/srslog.h"
 
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <iostream>
 #include <memory>
-#include <srslte/common/string_helpers.h>
+#include <srsran/common/string_helpers.h>
 #include <string>
 
 #include "srsenb/hdr/enb.h"
 #include "srsenb/hdr/metrics_csv.h"
 #include "srsenb/hdr/metrics_json.h"
 #include "srsenb/hdr/metrics_stdout.h"
-#include "srslte/common/enb_events.h"
+#include "srsran/common/enb_events.h"
 
 using namespace std;
 using namespace srsenb;
@@ -280,8 +271,8 @@ void parse_args(all_args_t* args, int argc, char* argv[])
 
   // print version number and exit
   if (vm.count("version")) {
-    cout << "Version " << srslte_get_version_major() << "." << srslte_get_version_minor() << "."
-         << srslte_get_version_patch() << endl;
+    cout << "Version " << srsran_get_version_major() << "." << srsran_get_version_minor() << "."
+         << srsran_get_version_patch() << endl;
     exit(0);
   }
 
@@ -310,10 +301,10 @@ void parse_args(all_args_t* args, int argc, char* argv[])
   }
 
   // Convert MCC/MNC strings
-  if (!srslte::string_to_mcc(mcc, &args->stack.s1ap.mcc)) {
+  if (!srsran::string_to_mcc(mcc, &args->stack.s1ap.mcc)) {
     cout << "Error parsing enb.mcc:" << mcc << " - must be a 3-digit string." << endl;
   }
-  if (!srslte::string_to_mnc(mnc, &args->stack.s1ap.mnc)) {
+  if (!srsran::string_to_mnc(mnc, &args->stack.s1ap.mnc)) {
     cout << "Error parsing enb.mnc:" << mnc << " - must be a 2 or 3-digit string." << endl;
   }
 
@@ -426,7 +417,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     exit(1);
   }
 
-  srslte_use_standard_symbol_size(use_standard_lte_rates);
+  srsran_use_standard_symbol_size(use_standard_lte_rates);
 }
 
 static bool do_metrics = false;
@@ -445,7 +436,7 @@ static void* input_loop(metrics_stdout* metrics, srsenb::enb_command_interface* 
         break;
       } else if (not input_line.empty()) {
         vector<string> cmd;
-        srslte::string_parse_list(input_line, ' ', cmd);
+        srsran::string_parse_list(input_line, ' ', cmd);
         if (cmd[0] == "t") {
           do_metrics = !do_metrics;
           if (do_metrics) {
@@ -463,8 +454,8 @@ static void* input_loop(metrics_stdout* metrics, srsenb::enb_command_interface* 
           }
 
           // Parse command arguments
-          uint32_t cell_id = srslte::string_cast<uint32_t>(cmd[1]);
-          float    gain_db = srslte::string_cast<float>(cmd[2]);
+          uint32_t cell_id = srsran::string_cast<uint32_t>(cmd[1]);
+          float    gain_db = srsran::string_cast<float>(cmd[2]);
 
           // Set cell gain
           control->cmd_cell_gain(cell_id, gain_db);
@@ -489,14 +480,14 @@ static size_t fixup_log_file_maxsize(int x)
 
 int main(int argc, char* argv[])
 {
-  srslte_register_signal_handler();
+  srsran_register_signal_handler();
   all_args_t                         args = {};
-  srslte::metrics_hub<enb_metrics_t> metricshub;
+  srsran::metrics_hub<enb_metrics_t> metricshub;
   metrics_stdout                     metrics_screen;
 
   cout << "---  Software Radio Systems LTE eNodeB  ---" << endl << endl;
 
-  srslte_debug_handle_crash(argc, argv);
+  srsran_debug_handle_crash(argc, argv);
   parse_args(&args, argc, argv);
 
   // Setup the default log sink.
@@ -513,7 +504,7 @@ int main(int argc, char* argv[])
 #ifdef ENABLE_SRSLOG_EVENT_TRACE
   if (args.general.tracing_enable) {
     if (!srslog::event_trace_init(args.general.tracing_filename, args.general.tracing_buffcapacity)) {
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
   }
 #endif
@@ -521,10 +512,10 @@ int main(int argc, char* argv[])
   // Start the log backend.
   srslog::init();
 
-  srslog::fetch_basic_logger("COMMON").set_level(srslog::basic_levels::info);
-  srslte::log_args(argc, argv, "ENB");
+  srslog::fetch_basic_logger("ALL").set_level(srslog::basic_levels::warning);
+  srsran::log_args(argc, argv, "ENB");
 
-  srslte::check_scaling_governor(args.rf.device_name);
+  srsran::check_scaling_governor(args.rf.device_name);
 
   // Set up the JSON log channel used by metrics and events.
   srslog::sink& json_sink =
@@ -539,9 +530,9 @@ int main(int argc, char* argv[])
 
   // Create eNB
   unique_ptr<srsenb::enb> enb{new srsenb::enb(srslog::get_default_sink())};
-  if (enb->init(args) != SRSLTE_SUCCESS) {
+  if (enb->init(args) != SRSRAN_SUCCESS) {
     enb->stop();
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // Set metrics
@@ -585,5 +576,5 @@ int main(int argc, char* argv[])
   enb->stop();
   cout << "---  exiting  ---" << endl;
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }

@@ -25,7 +25,7 @@ enb_pid=0
 ue_pid=0
 
 print_use(){
-  echo "Please call script with srsLTE build path as first argument and number of PRBs as second (number of component carrier is optional)"
+  echo "Please call script with srsRAN build path as first argument and number of PRBs as second (number of component carrier is optional)"
   echo "E.g. ./run_lte.sh [build_path] [nof_prb] [num_cc]"
   exit -1
 }
@@ -57,9 +57,9 @@ kill_lte(){
     kill -9 $epc_pid
   fi
 
-  if [ -f ./srsLTE.backtrace.crash ]; then
+  if [ -f ./srsRAN.backtrace.crash ]; then
     echo "Rename backtrace"
-    mv ./srsLTE.backtrace.crash srsLTE.backtrace.log
+    mv ./srsRAN.backtrace.crash srsRAN.backtrace.log
   fi
 
   # Delete netns

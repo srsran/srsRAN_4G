@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -26,7 +17,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "srslte/srslte.h"
+#include "srsran/srsran.h"
 
 #define TESTASSERT(cond)                                                                                               \
   do {                                                                                                                 \
@@ -38,24 +29,24 @@
 
 int fdd_tests(uint32_t max_cc)
 {
-  srslte_ue_dl_t     ue_dl     = {};
-  srslte_dl_sf_cfg_t sf_cfg_dl = {}; // This is used for TDD only
+  srsran_ue_dl_t     ue_dl     = {};
+  srsran_dl_sf_cfg_t sf_cfg_dl = {}; // This is used for TDD only
 
   uint32_t test_cnt = 0;
 
   // Force FDD
-  ue_dl.cell.frame_type = SRSLTE_FDD;
+  ue_dl.cell.frame_type = SRSRAN_FDD;
 
   for (uint32_t nof_cc = 1; nof_cc <= max_cc; nof_cc++) {
-    for (uint32_t nof_tb = 1; nof_tb <= SRSLTE_MAX_CODEWORDS; nof_tb++) {
+    for (uint32_t nof_tb = 1; nof_tb <= SRSRAN_MAX_CODEWORDS; nof_tb++) {
       for (uint32_t nof_active_cc = 1; nof_active_cc <= nof_cc; nof_active_cc++) {
         for (uint32_t nof_active_tb = 1; nof_active_tb <= nof_tb; nof_active_tb++) {
-          srslte_pdsch_ack_t ack_info = {};
+          srsran_pdsch_ack_t ack_info = {};
           ack_info.nof_cc             = nof_cc;
-          ack_info.transmission_mode  = nof_tb == 1 ? SRSLTE_TM1 : SRSLTE_TM4;
+          ack_info.transmission_mode  = nof_tb == 1 ? SRSRAN_TM1 : SRSRAN_TM4;
 
           // Check different modes?
-          ack_info.ack_nack_feedback_mode = SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS;
+          ack_info.ack_nack_feedback_mode = SRSRAN_PUCCH_ACK_NACK_FEEDBACK_MODE_CS;
 
           for (uint32_t cc_idx = 0; cc_idx < nof_cc; cc_idx++) {
             ack_info.cc[cc_idx].M                   = 1; // always 1 in FDD
@@ -66,7 +57,7 @@ int fdd_tests(uint32_t max_cc)
                 ack_info.cc[cc_idx].m[0].value[j] = j < nof_active_tb ? 1 : 2;
               }
             } else {
-              memset(ack_info.cc[cc_idx].m[0].value, 2, SRSLTE_MAX_CODEWORDS);
+              memset(ack_info.cc[cc_idx].m[0].value, 2, SRSRAN_MAX_CODEWORDS);
             }
           }
 
@@ -74,13 +65,13 @@ int fdd_tests(uint32_t max_cc)
             for (uint8_t cqi_enabled = 0; cqi_enabled < 2; cqi_enabled++) {
               for (uint8_t simul_cqi_ack = 0; simul_cqi_ack < cqi_enabled + 1; simul_cqi_ack++) {
                 for (uint8_t pusch_enabled = 0; pusch_enabled < 2; pusch_enabled++) {
-                  srslte_uci_data_t uci_data = {};
+                  srsran_uci_data_t uci_data = {};
 
                   ack_info.is_pusch_available = (pusch_enabled > 0);
                   ack_info.simul_cqi_ack      = (simul_cqi_ack > 0);
 
                   // Generate ACK/NACK bits
-                  srslte_uci_data_reset(&uci_data);
+                  srsran_uci_data_reset(&uci_data);
                   uci_data.value.scheduling_request = (sr_enabled > 0);
                   uci_data.cfg.cqi.data_enable      = (cqi_enabled > 0);
 
@@ -96,7 +87,7 @@ int fdd_tests(uint32_t max_cc)
                          simul_cqi_ack ? "yes" : "no",
                          pusch_enabled ? "yes" : "no");
 
-                  srslte_ue_dl_gen_ack(&ue_dl.cell, &sf_cfg_dl, &ack_info, &uci_data);
+                  srsran_ue_dl_gen_ack(&ue_dl.cell, &sf_cfg_dl, &ack_info, &uci_data);
 
                   // Check output
                   if (nof_cc == 1) {
@@ -137,7 +128,7 @@ int fdd_tests(uint32_t max_cc)
                       TESTASSERT(uci_data.value.ack.ack_value[k++]);
                     }
                   }
-                  TESTASSERT(k == srslte_uci_cfg_total_ack(&uci_data.cfg));
+                  TESTASSERT(k == srsran_uci_cfg_total_ack(&uci_data.cfg));
                   TESTASSERT(uci_data.value.ack.ack_value[k] == 2);
                 }
               }

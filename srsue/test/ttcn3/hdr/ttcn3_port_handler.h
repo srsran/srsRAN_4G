@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -27,9 +18,9 @@
 #ifndef SRSUE_TTCN3_PORT_HANDLER_H
 #define SRSUE_TTCN3_PORT_HANDLER_H
 
-#include "srslte/common/epoll_helper.h"
-#include "srslte/common/standard_streams.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/common/epoll_helper.h"
+#include "srsran/common/standard_streams.h"
+#include "srsran/srslog/srslog.h"
 #include "ttcn3_common.h"
 #include <arpa/inet.h>
 #include <fcntl.h>
@@ -68,7 +59,7 @@ public:
         }
       }
     }
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   int handle_notification(const uint8_t* payload, const uint32_t len)
@@ -77,14 +68,14 @@ public:
     uint32_t                 notif_header_size = sizeof(((union sctp_notification*)NULL)->sn_header);
     if (notif_header_size > len) {
       printf("Error: Notification msg size is smaller than notification header size!\n");
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
 
     switch (notif->sn_header.sn_type) {
       case SCTP_ASSOC_CHANGE: {
         if (sizeof(struct sctp_assoc_change) > len) {
           printf("Error notification msg size is smaller than struct sctp_assoc_change size\n");
-          return SRSLTE_ERROR;
+          return SRSRAN_ERROR;
         }
 
         const char*               state = NULL;
@@ -121,7 +112,7 @@ public:
       case SCTP_SHUTDOWN_EVENT: {
         if (sizeof(struct sctp_shutdown_event) > len) {
           printf("Error notification msg size is smaller than struct sctp_assoc_change size\n");
-          return SRSLTE_ERROR;
+          return SRSRAN_ERROR;
         }
         struct sctp_shutdown_event* n = &notif->sn_shutdown_event;
         logger.debug("SCTP_SHUTDOWN_EVENT notif: assoc id: %d", n->sse_assoc_id);
@@ -133,7 +124,7 @@ public:
         break;
     }
 
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   ///< Send buffer to tester
@@ -150,27 +141,27 @@ public:
     int flags = fcntl(fd, F_GETFL, 0);
     if (flags == -1) {
       perror("fcntl");
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
 
     flags |= O_NONBLOCK;
     int s = fcntl(fd, F_SETFL, flags);
     if (s == -1) {
       perror("fcntl");
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
 
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   ///< Create, bind and listen on SCTP socket
   int port_listen()
   {
-    int ret = SRSLTE_ERROR;
+    int ret = SRSRAN_ERROR;
 
     sock_fd = socket(AF_INET, SOCK_SEQPACKET, IPPROTO_SCTP);
     if (sock_fd == -1) {
-      srslte::console("Could not create SCTP socket\n");
+      srsran::console("Could not create SCTP socket\n");
       return ret;
     }
 
@@ -182,8 +173,8 @@ public:
     events.sctp_association_event      = 1;
     if (setsockopt(sock_fd, IPPROTO_SCTP, SCTP_EVENTS, &events, sizeof(events))) {
       close(sock_fd);
-      srslte::console("Subscribing to sctp_data_io_events failed\n");
-      return SRSLTE_ERROR;
+      srsran::console("Subscribing to sctp_data_io_events failed\n");
+      return SRSRAN_ERROR;
     }
 
     // Port bind
@@ -198,17 +189,17 @@ public:
     if (ret != 0) {
       close(sock_fd);
       logger.error("Error binding SCTP socket");
-      srslte::console("Error binding SCTP socket\n");
-      return SRSLTE_ERROR;
+      srsran::console("Error binding SCTP socket\n");
+      return SRSRAN_ERROR;
     }
 
     // Listen for connections
     ret = listen(sock_fd, SOMAXCONN);
-    if (ret != SRSLTE_SUCCESS) {
+    if (ret != SRSRAN_SUCCESS) {
       close(sock_fd);
       logger.error("Error in SCTP socket listen");
-      srslte::console("Error in SCTP socket listen\n");
-      return SRSLTE_ERROR;
+      srsran::console("Error in SCTP socket listen\n");
+      return SRSRAN_ERROR;
     }
 
     set_non_blocking(sock_fd);

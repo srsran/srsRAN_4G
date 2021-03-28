@@ -1,31 +1,22 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #ifndef SRSUE_PRACH_H
 #define SRSUE_PRACH_H
 
-#include "srslte/interfaces/ue_phy_interfaces.h"
-#include "srslte/radio/radio.h"
-#include "srslte/srslog/srslog.h"
-#include "srslte/srslte.h"
+#include "srsran/interfaces/ue_phy_interfaces.h"
+#include "srsran/radio/radio.h"
+#include "srsran/srslog/srslog.h"
+#include "srsran/srsran.h"
 #include <bitset>
 
 namespace srsue {
@@ -38,7 +29,7 @@ public:
 
   void  init(uint32_t max_prb);
   void  stop();
-  bool  set_cell(srslte_cell_t cell, srslte_prach_cfg_t prach_cfg);
+  bool  set_cell(srsran_cell_t cell, srsran_prach_cfg_t prach_cfg);
   bool  prepare_to_send(uint32_t preamble_idx, int allowed_subframe = -1, float target_power_dbm = -1);
   bool  is_ready_to_send(uint32_t current_tti, uint32_t current_pci);
   bool  is_pending() const;
@@ -65,10 +56,10 @@ private:
   static constexpr unsigned max_preambles = 64;
 
   srslog::basic_logger&                                logger;
-  srslte_prach_t                                       prach_obj        = {};
-  srslte_cell_t                                        cell             = {};
-  srslte_cfo_t                                         cfo_h            = {};
-  srslte_prach_cfg_t                                   cfg              = {};
+  srsran_prach_t                                       prach_obj        = {};
+  srsran_cell_t                                        cell             = {};
+  srsran_cfo_t                                         cfo_h            = {};
+  srsran_prach_cfg_t                                   cfg              = {};
   std::array<std::array<cf_t*, max_preambles>, max_fs> buffer           = {};
   cf_t*                                                signal_buffer    = nullptr;
   int                                                  preamble_idx     = -1;

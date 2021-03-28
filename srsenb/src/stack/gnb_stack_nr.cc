@@ -1,27 +1,18 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #include "srsenb/hdr/stack/gnb_stack_nr.h"
-#include "srslte/srslte.h"
-#include <srslte/interfaces/enb_metrics_interface.h>
+#include "srsran/srsran.h"
+#include <srsran/interfaces/enb_metrics_interface.h>
 
 namespace srsenb {
 
@@ -55,9 +46,9 @@ int gnb_stack_nr::init(const srsenb::stack_args_t& args_, const rrc_nr_cfg_t& rr
 {
   phy = phy_;
   if (init(args_, rrc_cfg_)) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int gnb_stack_nr::init(const srsenb::stack_args_t& args_, const rrc_nr_cfg_t& rrc_cfg_)
@@ -112,7 +103,7 @@ int gnb_stack_nr::init(const srsenb::stack_args_t& args_, const rrc_nr_cfg_t& rr
 
   start(STACK_MAIN_THREAD_PRIO);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 void gnb_stack_nr::stop()
@@ -124,7 +115,7 @@ void gnb_stack_nr::stop()
     m_pdcp->stop();
     m_mac->stop();
 
-    srslte::get_background_workers().stop();
+    srsran::get_background_workers().stop();
     running = false;
   }
 }
@@ -183,7 +174,7 @@ int gnb_stack_nr::rx_data_indication(rx_data_ind_t& grant)
 }
 
 // Temporary GW interface
-void gnb_stack_nr::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)
+void gnb_stack_nr::write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu)
 {
   m_pdcp->write_sdu(args.coreless.rnti, lcid, std::move(sdu));
 }

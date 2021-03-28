@@ -1,12 +1,12 @@
-srsLTE
+srsRAN
 ========
 
-[![Build Status](https://travis-ci.org/srsLTE/srsLTE.svg?branch=master)](https://travis-ci.org/srsLTE/srsLTE)
-[![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/srsLTE/srsLTE.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/srsLTE/srsLTE/context:cpp)
-[![Coverity](https://scan.coverity.com/projects/10045/badge.svg)](https://scan.coverity.com/projects/srslte)
+[![Build Status](https://travis-ci.org/srsRAN/srsRAN.svg?branch=master)](https://travis-ci.org/srsRAN/srsRAN)
+[![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/srsRAN/srsRAN.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/srsRAN/srsRAN/context:cpp)
+[![Coverity](https://scan.coverity.com/projects/10045/badge.svg)](https://scan.coverity.com/projects/srsran)
 
-srsLTE is a 4G/5G software radio suite developed by SRS (www.softwareradiosystems.com)
-See the srsLTE project pages (www.srslte.com) for documentation, guides and project news.
+srsRAN is a 4G/5G software radio suite developed by SRS (www.softwareradiosystems.com)
+See the srsRAN project pages (www.srsran.com) for documentation, guides and project news.
 
 It includes:
   * srsUE - a complete SDR LTE UE application featuring all layers from PHY to IP
@@ -85,7 +85,7 @@ srsEPC Features
 Hardware
 --------
 
-srsLTE has native support for the Ettus Universal Hardware Driver (UHD) and the bladeRF driver. We also support SoapySDR.
+srsRAN has native support for the Ettus Universal Hardware Driver (UHD) and the bladeRF driver. We also support SoapySDR.
 Thus, any hardware supported by SoapySDR can be used. There is no sampling rate conversion, therefore the hardware should
 support 30.72 MHz clock in order to work correctly with LTE sampling frequencies and decode signals from live LTE base stations.
 
@@ -130,7 +130,7 @@ For CentOS, use the Fedora packages but replace `libconfig-devel` with just `lib
 Note that depending on your flavor and version of Linux, the actual package names may be different.
 
 * Optional requirements: 
-  * srsgui:              https://github.com/srslte/srsgui - for real-time plotting.
+  * srsgui:              https://github.com/srsran/srsgui - for real-time plotting.
   * libpcsclite-dev:     https://pcsclite.apdu.fr/ - for accessing smart card readers
   * libdw-dev            libdw - for truly informative backtraces using backward-cpp
 
@@ -140,10 +140,10 @@ Note that depending on your flavor and version of Linux, the actual package name
   * BladeRF:             https://github.com/Nuand/bladeRF
   * ZeroMQ:              https://github.com/zeromq
 
-Download and build srsLTE: 
+Download and build srsRAN: 
 ```
-git clone https://github.com/srsLTE/srsLTE.git
-cd srsLTE
+git clone https://github.com/srsRAN/srsRAN.git
+cd srsRAN
 mkdir build
 cd build
 cmake ../
@@ -151,15 +151,15 @@ make
 make test
 ```
 
-Install srsLTE:
+Install srsRAN:
 
 ```
 sudo make install
-srslte_install_configs.sh user
+srsran_install_configs.sh user
 ```
 
-This installs srsLTE and also copies the default srsLTE config files to
-the user's home directory (~/.config/srslte).
+This installs srsRAN and also copies the default srsRAN config files to
+the user's home directory (~/.config/srsran).
 
 
 Execution Instructions
@@ -171,7 +171,7 @@ if needed, to meet the system configuration.
 On many systems they should work out of the box.
 
 By default, all applications will search for config files in the user's home
-directory (~/.config/srslte) upon startup.
+directory (~/.config/srsran) upon startup.
 
 Note that you have to execute the applications with root privileges to enable
 real-time thread priorities and to permit creation of virtual network interfaces.
@@ -180,7 +180,7 @@ srsENB and srsEPC can run on the same machine as a network-in-the-box configurat
 srsUE needs to run on a separate machine.
 
 If you have installed the software suite using ```sudo make install``` and
-have installed the example config files using ```srslte_install_configs.sh user```,
+have installed the example config files using ```srsran_install_configs.sh user```,
 you may just start all applications with their default parameters.
 
 ### srsEPC
@@ -224,4 +224,4 @@ ping 172.16.0.1
 Support
 ========
 
-Mailing list: http://www.softwareradiosystems.com/mailman/listinfo/srslte-users
+Mailing list: http://www.softwareradiosystems.com/mailman/listinfo/srsran-users

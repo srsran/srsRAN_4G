@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -28,7 +19,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "srslte/srslte.h"
+#include "srsran/srsran.h"
 
 uint32_t nof_e_bits = 0;
 uint32_t rv_idx     = 0;
@@ -84,29 +75,29 @@ int main(int argc, char** argv)
 
   parse_args(argc, argv);
 
-  srslte_rm_turbo_gentables();
+  srsran_rm_turbo_gentables();
 
-  rm_bits_s = srslte_vec_i16_malloc(nof_e_bits);
+  rm_bits_s = srsran_vec_i16_malloc(nof_e_bits);
   if (!rm_bits_s) {
     perror("malloc");
     exit(-1);
   }
-  rm_bits_f = srslte_vec_f_malloc(nof_e_bits);
+  rm_bits_f = srsran_vec_f_malloc(nof_e_bits);
   if (!rm_bits_f) {
     perror("malloc");
     exit(-1);
   }
-  rm_bits = srslte_vec_u8_malloc(nof_e_bits);
+  rm_bits = srsran_vec_u8_malloc(nof_e_bits);
   if (!rm_bits) {
     perror("malloc");
     exit(-1);
   }
-  rm_bits2 = srslte_vec_u8_malloc(nof_e_bits);
+  rm_bits2 = srsran_vec_u8_malloc(nof_e_bits);
   if (!rm_bits2) {
     perror("malloc");
     exit(-1);
   }
-  rm_bits2_bytes = srslte_vec_u8_malloc(nof_e_bits / 8 + 1);
+  rm_bits2_bytes = srsran_vec_u8_malloc(nof_e_bits / 8 + 1);
   if (!rm_bits2_bytes) {
     perror("malloc");
     exit(-1);
@@ -125,7 +116,7 @@ int main(int argc, char** argv)
 
   for (cb_idx = st; cb_idx < end; cb_idx++) {
     for (rv_idx = rv_st; rv_idx < rv_end; rv_idx++) {
-      uint32_t long_cb_enc = 3 * srslte_cbsegm_cbsize(cb_idx) + 12;
+      uint32_t long_cb_enc = 3 * srsran_cbsegm_cbsize(cb_idx) + 12;
 
       printf("checking cb_idx=%3d rv_idx=%d...", cb_idx, rv_idx);
 
@@ -135,10 +126,10 @@ int main(int argc, char** argv)
 
       bzero(buff_b, BUFFSZ * sizeof(uint8_t));
 
-      srslte_rm_turbo_tx(buff_b, BUFFSZ, bits, long_cb_enc, rm_bits, nof_e_bits, 0);
+      srsran_rm_turbo_tx(buff_b, BUFFSZ, bits, long_cb_enc, rm_bits, nof_e_bits, 0);
 
       if (rv_idx > 0) {
-        srslte_rm_turbo_tx(buff_b, BUFFSZ, bits, long_cb_enc, rm_bits, nof_e_bits, rv_idx);
+        srsran_rm_turbo_tx(buff_b, BUFFSZ, bits, long_cb_enc, rm_bits, nof_e_bits, rv_idx);
       }
 
       for (int i = 0; i < long_cb_enc / 3; i++) {
@@ -147,19 +138,19 @@ int main(int argc, char** argv)
         parity[i + long_cb_enc / 3] = bits[3 * i + 2];
       }
 
-      srslte_bit_pack_vector(systematic, systematic_bytes, long_cb_enc / 3);
-      srslte_bit_pack_vector(parity, parity_bytes, 2 * long_cb_enc / 3);
+      srsran_bit_pack_vector(systematic, systematic_bytes, long_cb_enc / 3);
+      srsran_bit_pack_vector(parity, parity_bytes, 2 * long_cb_enc / 3);
 
       bzero(buff_b, BUFFSZ * sizeof(uint8_t));
 
       bzero(rm_bits2_bytes, nof_e_bits / 8);
-      srslte_rm_turbo_tx_lut(buff_b, systematic_bytes, parity_bytes, rm_bits2_bytes, cb_idx, nof_e_bits, 0, 0);
+      srsran_rm_turbo_tx_lut(buff_b, systematic_bytes, parity_bytes, rm_bits2_bytes, cb_idx, nof_e_bits, 0, 0);
       if (rv_idx > 0) {
         bzero(rm_bits2_bytes, nof_e_bits / 8);
-        srslte_rm_turbo_tx_lut(buff_b, systematic_bytes, parity_bytes, rm_bits2_bytes, cb_idx, nof_e_bits, 0, rv_idx);
+        srsran_rm_turbo_tx_lut(buff_b, systematic_bytes, parity_bytes, rm_bits2_bytes, cb_idx, nof_e_bits, 0, rv_idx);
       }
 
-      srslte_bit_unpack_vector(rm_bits2_bytes, rm_bits2, nof_e_bits);
+      srsran_bit_unpack_vector(rm_bits2_bytes, rm_bits2, nof_e_bits);
 
       for (int i = 0; i < nof_e_bits; i++) {
         if (rm_bits2[i] != rm_bits[i]) {
@@ -175,11 +166,11 @@ int main(int argc, char** argv)
         rm_bits_s[i] = (short)rm_bits_f[i];
       }
 
-      srslte_vec_f_zero(buff_f, BUFFSZ);
-      srslte_rm_turbo_rx(buff_f, BUFFSZ, rm_bits_f, nof_e_bits, bits_f, long_cb_enc, rv_idx, 0);
+      srsran_vec_f_zero(buff_f, BUFFSZ);
+      srsran_rm_turbo_rx(buff_f, BUFFSZ, rm_bits_f, nof_e_bits, bits_f, long_cb_enc, rv_idx, 0);
 
       bzero(bits2_s, long_cb_enc * sizeof(short));
-      srslte_rm_turbo_rx_lut_(rm_bits_s, bits2_s, nof_e_bits, cb_idx, rv_idx, false);
+      srsran_rm_turbo_rx_lut_(rm_bits_s, bits2_s, nof_e_bits, cb_idx, rv_idx, false);
 
       for (int i = 0; i < long_cb_enc; i++) {
         if (bits_f[i] != bits2_s[i]) {
@@ -192,7 +183,7 @@ int main(int argc, char** argv)
     }
   }
 
-  srslte_rm_turbo_free_tables();
+  srsran_rm_turbo_free_tables();
   free(rm_bits_s);
   free(rm_bits_f);
   free(rm_bits);

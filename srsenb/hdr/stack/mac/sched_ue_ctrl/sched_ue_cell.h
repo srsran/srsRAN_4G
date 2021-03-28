@@ -1,26 +1,17 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
-#ifndef SRSLTE_SCHED_UE_CELL_H
-#define SRSLTE_SCHED_UE_CELL_H
+#ifndef SRSRAN_SCHED_UE_CELL_H
+#define SRSRAN_SCHED_UE_CELL_H
 
 #include "../sched_common.h"
 #include "sched_harq.h"
@@ -99,17 +90,17 @@ private:
 tbs_info cqi_to_tbs_dl(const sched_ue_cell& cell,
                        uint32_t             nof_prb,
                        uint32_t             nof_re,
-                       srslte_dci_format_t  dci_format,
+                       srsran_dci_format_t  dci_format,
                        int                  req_bytes = -1);
 tbs_info
 cqi_to_tbs_ul(const sched_ue_cell& cell, uint32_t nof_prb, uint32_t nof_re, int req_bytes = -1, int explicit_mcs = -1);
 
 int      get_required_prb_dl(const sched_ue_cell& cell,
                              tti_point            tti_tx_dl,
-                             srslte_dci_format_t  dci_format,
+                             srsran_dci_format_t  dci_format,
                              uint32_t             req_bytes);
 uint32_t get_required_prb_ul(const sched_ue_cell& cell, uint32_t req_bytes);
 
 } // namespace srsenb
 
-#endif // SRSLTE_SCHED_UE_CELL_H
+#endif // SRSRAN_SCHED_UE_CELL_H

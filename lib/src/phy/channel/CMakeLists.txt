@@ -19,6 +19,6 @@
 #
 
 file(GLOB SOURCES "*.c" "*.cc")
-add_library(srslte_channel OBJECT ${SOURCES})
+add_library(srsran_channel OBJECT ${SOURCES})
 
 add_subdirectory(test)

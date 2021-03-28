@@ -1,55 +1,46 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #include <string>
 #include <sys/mman.h>
 
-#include "srslte/common/standard_streams.h"
-#include "srslte/srslte.h"
+#include "srsran/common/standard_streams.h"
+#include "srsran/srsran.h"
 #include "srsue/hdr/phy/phy.h"
 
 #define Error(fmt, ...)                                                                                                \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
   logger_phy.error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...)                                                                                              \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
   logger_phy.warning(fmt, ##__VA_ARGS__)
 #define Info(fmt, ...)                                                                                                 \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
   logger_phy.info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)                                                                                                \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
   logger_phy.debug(fmt, ##__VA_ARGS__)
 
 using namespace std;
 
 namespace srsue {
 
-static void srslte_phy_handler(phy_logger_level_t log_level, void* ctx, char* str)
+static void srsran_phy_handler(phy_logger_level_t log_level, void* ctx, char* str)
 {
   phy* r = (phy*)ctx;
-  r->srslte_phy_logger(log_level, str);
+  r->srsran_phy_logger(log_level, str);
 }
 
-void phy::srslte_phy_logger(phy_logger_level_t log_level, char* str)
+void phy::srsran_phy_logger(phy_logger_level_t log_level, char* str)
 {
   switch (log_level) {
     case LOG_LEVEL_INFO_S:
@@ -89,24 +80,24 @@ void phy::set_default_args(phy_args_t& args_)
 bool phy::check_args(const phy_args_t& args_)
 {
   if (args_.nof_phy_threads > MAX_WORKERS) {
-    srslte::console("Error in PHY args: nof_phy_threads must be 1, 2 or 3\n");
+    srsran::console("Error in PHY args: nof_phy_threads must be 1, 2 or 3\n");
     return false;
   }
   if (args_.snr_ema_coeff > 1.0) {
-    srslte::console("Error in PHY args: snr_ema_coeff must be 0<=w<=1\n");
+    srsran::console("Error in PHY args: snr_ema_coeff must be 0<=w<=1\n");
     return false;
   }
   return true;
 }
 
-int phy::init(const phy_args_t& args_, stack_interface_phy_lte* stack_, srslte::radio_interface_phy* radio_)
+int phy::init(const phy_args_t& args_, stack_interface_phy_lte* stack_, srsran::radio_interface_phy* radio_)
 {
   stack = stack_;
   radio = radio_;
 
   init(args_);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int phy::init(const phy_args_t& args_)
@@ -126,7 +117,7 @@ int phy::init(const phy_args_t& args_)
   logger_phy_lib.set_level(lib_log_level);
   logger_phy_lib.set_hex_dump_max_size(args.log.phy_hex_limit);
   if (lib_log_level != srslog::basic_levels::none) {
-    srslte_phy_log_register_handler(this, srslte_phy_handler);
+    srsran_phy_log_register_handler(this, srsran_phy_handler);
   }
 
   // set default logger
@@ -146,7 +137,7 @@ int phy::init(const phy_args_t& args_)
 void phy::run_thread()
 {
   std::unique_lock<std::mutex> lock(config_mutex);
-  prach_buffer.init(SRSLTE_MAX_PRB);
+  prach_buffer.init(SRSRAN_MAX_PRB);
   common.init(&args, radio, stack, &sfsync);
 
   // Initialise workers
@@ -196,7 +187,7 @@ void phy::stop()
 void phy::get_metrics(phy_metrics_t* m)
 {
   uint32_t      dl_earfcn = 0;
-  srslte_cell_t cell      = {};
+  srsran_cell_t cell      = {};
   sfsync.get_current_cell(&cell, &dl_earfcn);
   m->info[0].pci       = cell.id;
   m->info[0].dl_earfcn = dl_earfcn;
@@ -269,7 +260,7 @@ void phy::set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci)
   // If not available and a non-configured carrier is available, configure it.
   if (not available and cc_empty != 0) {
     // Copy all attributes from serving cell
-    srslte_cell_t cell = selected_cell;
+    srsran_cell_t cell = selected_cell;
 
     // Select the first PCI in the list
     if (not pci.empty()) {
@@ -302,7 +293,7 @@ bool phy::cell_select(phy_cell_t cell)
     cmd_worker_cell.add_cmd([this, cell]() {
       bool ret = sfsync.cell_select_start(cell);
       if (ret) {
-        srslte_cell_t sync_cell;
+        srsran_cell_t sync_cell;
         sfsync.get_current_cell(&sync_cell);
         selected_cell = sync_cell;
       }
@@ -400,7 +391,7 @@ int phy::sr_last_tx_tti()
   return common.sr_last_tx_tti;
 }
 
-void phy::set_rar_grant(uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN], uint16_t rnti)
+void phy::set_rar_grant(uint8_t grant_payload[SRSRAN_RAR_GRANT_LEN], uint16_t rnti)
 {
   common.set_rar_grant(grant_payload, rnti, tdd_config);
 }
@@ -421,7 +412,7 @@ void phy::enable_pregen_signals(bool enable)
   }
 }
 
-bool phy::set_config(srslte::phy_cfg_t config_, uint32_t cc_idx)
+bool phy::set_config(srsran::phy_cfg_t config_, uint32_t cc_idx)
 {
   if (!is_initiated()) {
     fprintf(stderr, "Error calling set_config(): PHY not initialized\n");
@@ -430,7 +421,7 @@ bool phy::set_config(srslte::phy_cfg_t config_, uint32_t cc_idx)
 
   // Check parameters are valid
   if (cc_idx >= args.nof_lte_carriers) {
-    srslte::console("Received SCell configuration for index %d but there are not enough CC workers available\n",
+    srsran::console("Received SCell configuration for index %d but there are not enough CC workers available\n",
                     cc_idx);
     return false;
   }
@@ -464,7 +455,7 @@ bool phy::set_config(srslte::phy_cfg_t config_, uint32_t cc_idx)
   return true;
 }
 
-bool phy::set_scell(srslte_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn)
+bool phy::set_scell(srsran_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn)
 {
   if (!is_initiated()) {
     fprintf(stderr, "Error calling set_config(): PHY not initialized\n");
@@ -478,13 +469,13 @@ bool phy::set_scell(srslte_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn)
 
   // Check parameters are valid
   if (cc_idx >= args.nof_lte_carriers) {
-    srslte::console("Received SCell configuration for index %d but there are not enough CC workers available\n",
+    srsran::console("Received SCell configuration for index %d but there are not enough CC workers available\n",
                     cc_idx);
     return false;
   }
 
   // First of all check validity of parameters
-  if (!srslte_cell_isvalid(&cell_info)) {
+  if (!srsran_cell_isvalid(&cell_info)) {
     logger_phy.error("Received SCell configuration for an invalid cell");
     return false;
   }
@@ -517,8 +508,8 @@ bool phy::set_scell(srslte_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn)
 
     // Change frequency only if the earfcn was modified
     if (earfcn_is_different) {
-      double dl_freq = srslte_band_fd(earfcn) * 1e6;
-      double ul_freq = srslte_band_fu(common.get_ul_earfcn(earfcn)) * 1e6;
+      double dl_freq = srsran_band_fd(earfcn) * 1e6;
+      double ul_freq = srsran_band_fu(common.get_ul_earfcn(earfcn)) * 1e6;
       radio->set_rx_freq(cc_idx, dl_freq);
       radio->set_tx_freq(cc_idx, ul_freq);
     }
@@ -533,12 +524,12 @@ bool phy::set_scell(srslte_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn)
   return true;
 }
 
-void phy::set_config_tdd(srslte_tdd_config_t& tdd_config_)
+void phy::set_config_tdd(srsran_tdd_config_t& tdd_config_)
 {
   tdd_config = tdd_config_;
 
   if (!tdd_config.configured) {
-    srslte::console("Setting TDD-config: %d, SS config: %d\n", tdd_config.sf_config, tdd_config.ss_config);
+    srsran::console("Setting TDD-config: %d, SS config: %d\n", tdd_config.sf_config, tdd_config.ss_config);
   }
   tdd_config.configured = true;
 
@@ -555,7 +546,7 @@ void phy::set_config_tdd(srslte_tdd_config_t& tdd_config_)
   });
 }
 
-void phy::set_config_mbsfn_sib2(srslte::mbsfn_sf_cfg_t* cfg_list, uint32_t nof_cfgs)
+void phy::set_config_mbsfn_sib2(srsran::mbsfn_sf_cfg_t* cfg_list, uint32_t nof_cfgs)
 {
   if (nof_cfgs > 1) {
     Warning("SIB2 has %d MBSFN subframe configs - only 1 supported", nof_cfgs);
@@ -566,7 +557,7 @@ void phy::set_config_mbsfn_sib2(srslte::mbsfn_sf_cfg_t* cfg_list, uint32_t nof_c
   }
 }
 
-void phy::set_config_mbsfn_sib13(const srslte::sib13_t& sib13)
+void phy::set_config_mbsfn_sib13(const srsran::sib13_t& sib13)
 {
   common.mbsfn_config.mbsfn_notification_cnfg = sib13.notif_cfg;
   if (sib13.nof_mbsfn_area_info > 1) {
@@ -578,7 +569,7 @@ void phy::set_config_mbsfn_sib13(const srslte::sib13_t& sib13)
   }
 }
 
-void phy::set_config_mbsfn_mcch(const srslte::mcch_msg_t& mcch)
+void phy::set_config_mbsfn_mcch(const srsran::mcch_msg_t& mcch)
 {
   common.mbsfn_config.mcch = mcch;
   stack->set_mbsfn_config(common.mbsfn_config.mcch.pmch_info_list[0].nof_mbms_session_info);
@@ -591,18 +582,18 @@ void phy::set_mch_period_stop(uint32_t stop)
   common.set_mch_period_stop(stop);
 }
 
-int phy::init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srslte::radio_interface_phy* radio_)
+int phy::init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_)
 {
   if (!nr_workers.init(args_, &common, stack_, WORKERS_THREAD_PRIO)) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-int phy::set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS> packed_ul_grant,
+int phy::set_ul_grant(std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,
                       uint16_t                                       rnti,
-                      srslte_rnti_type_t                             rnti_type)
+                      srsran_rnti_type_t                             rnti_type)
 {
   return nr_workers.set_ul_grant(packed_ul_grant, rnti, rnti_type);
 }
@@ -625,7 +616,7 @@ void phy::set_earfcn(std::vector<uint32_t> earfcns)
   // Do nothing
 }
 
-bool phy::set_config(const srslte::phy_cfg_nr_t& cfg)
+bool phy::set_config(const srsran::phy_cfg_nr_t& cfg)
 {
   return nr_workers.set_config(cfg);
 }

@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -24,20 +15,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "srslte/common/crash_handler.h"
+#include "srsran/common/crash_handler.h"
 
 #if HAVE_BACKWARD
-#include "srslte/common/backward.hpp"
+#include "srsran/common/backward.hpp"
 using namespace backward;
-void srslte_debug_handle_crash(int argc, char** argv)
+void srsran_debug_handle_crash(int argc, char** argv)
 {
   backward::SignalHandling sh;
 }
 #else // HAVE_BACKWARD
-#include "srslte/common/backtrace.h"
-#include "srslte/version.h"
+#include "srsran/common/backtrace.h"
+#include "srsran/version.h"
 
-const static char crash_file_name[] = "./srsLTE.backtrace.crash";
+const static char crash_file_name[] = "./srsRAN.backtrace.crash";
 static int        bt_argc;
 static char**     bt_argv;
 
@@ -45,7 +36,7 @@ static void crash_handler(int sig)
 {
   FILE* f = fopen(crash_file_name, "a");
   if (!f) {
-    printf("srsLTE crashed... we could not save backtrace in '%s'...\n", crash_file_name);
+    printf("srsRAN crashed... we could not save backtrace in '%s'...\n", crash_file_name);
   } else {
     time_t     lnTime;
     struct tm  stTime;
@@ -60,19 +51,19 @@ static void crash_handler(int sig)
     for (int i = 0; i < bt_argc; i++) {
       fprintf(f, "%s%s", (i == 0) ? "" : " ", bt_argv[i]);
     }
-    fprintf(f, "' version=%s signal=%d date='%s' ---\n", SRSLTE_VERSION_STRING, sig, strdate);
+    fprintf(f, "' version=%s signal=%d date='%s' ---\n", SRSRAN_VERSION_STRING, sig, strdate);
 
-    srslte_backtrace_print(f);
+    srsran_backtrace_print(f);
     fprintf(f, "\n");
 
-    printf("srsLTE crashed... backtrace saved in '%s'...\n", crash_file_name);
+    printf("srsRAN crashed... backtrace saved in '%s'...\n", crash_file_name);
     fclose(f);
   }
   printf("---  exiting  ---\n");
   exit(1);
 }
 
-void srslte_debug_handle_crash(int argc, char** argv)
+void srsran_debug_handle_crash(int argc, char** argv)
 {
   bt_argc = argc;
   bt_argv = argv;

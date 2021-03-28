@@ -1,35 +1,26 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
-#include "srslte/phy/fec/cbsegm.h"
-#include "srslte/phy/fec/ldpc/base_graph.h"
-#include "srslte/phy/fec/turbo/turbodecoder_gen.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/fec/cbsegm.h"
+#include "srsran/phy/fec/ldpc/base_graph.h"
+#include "srsran/phy/fec/turbo/turbodecoder_gen.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/vector.h"
 #include <strings.h>
 
 /**
  * TS 36.212 V8.8.0 Table 5.1.3-3: Turbo code internal interleaver parameters
  */
-const uint32_t tc_cb_sizes[SRSLTE_NOF_TC_CB_SIZES] = {
+const uint32_t tc_cb_sizes[SRSRAN_NOF_TC_CB_SIZES] = {
     40,   48,   56,   64,   72,   80,   88,   96,   104,  112,  120,  128,  136,  144,  152,  160,  168,  176,  184,
     192,  200,  208,  216,  224,  232,  240,  248,  256,  264,  272,  280,  288,  296,  304,  312,  320,  328,  336,
     344,  352,  360,  368,  376,  384,  392,  400,  408,  416,  424,  432,  440,  448,  456,  464,  472,  480,  488,
@@ -54,37 +45,37 @@ static void cbsegm_cb_size(uint32_t B, uint32_t Z, uint32_t* C, uint32_t* B_prim
     *C       = 1;
     *B_prime = B;
   } else {
-    *C       = SRSLTE_CEIL(B, (Z - 24U));
+    *C       = SRSRAN_CEIL(B, (Z - 24U));
     *B_prime = B + 24U * (*C);
   }
 }
 
-int srslte_cbsegm(srslte_cbsegm_t* s, uint32_t tbs)
+int srsran_cbsegm(srsran_cbsegm_t* s, uint32_t tbs)
 {
   uint32_t Bp, B, idx1;
   int      ret;
 
   if (tbs == 0) {
-    bzero(s, sizeof(srslte_cbsegm_t));
-    ret = SRSLTE_SUCCESS;
+    bzero(s, sizeof(srsran_cbsegm_t));
+    ret = SRSRAN_SUCCESS;
   } else {
     B      = tbs + 24;
     s->tbs = tbs;
 
     // Calculate CB sizes
-    cbsegm_cb_size(B, SRSLTE_TCOD_MAX_LEN_CB, &s->C, &Bp);
+    cbsegm_cb_size(B, SRSRAN_TCOD_MAX_LEN_CB, &s->C, &Bp);
 
-    ret = srslte_cbsegm_cbindex((Bp - 1) / s->C + 1);
-    if (ret != SRSLTE_ERROR) {
+    ret = srsran_cbsegm_cbindex((Bp - 1) / s->C + 1);
+    if (ret != SRSRAN_ERROR) {
       idx1 = (uint32_t)ret;
-      ret  = srslte_cbsegm_cbsize(idx1);
-      if (ret != SRSLTE_ERROR) {
+      ret  = srsran_cbsegm_cbsize(idx1);
+      if (ret != SRSRAN_ERROR) {
         s->K1     = (uint32_t)ret;
         s->K1_idx = idx1;
         if (idx1 > 0) {
-          ret = srslte_cbsegm_cbsize(idx1 - 1);
+          ret = srsran_cbsegm_cbsize(idx1 - 1);
         }
-        if (ret != SRSLTE_ERROR) {
+        if (ret != SRSRAN_ERROR) {
           if (s->C == 1) {
             s->K2     = 0;
             s->K2_idx = 0;
@@ -108,7 +99,7 @@ int srslte_cbsegm(srslte_cbsegm_t* s, uint32_t tbs)
                s->K2,
                s->F,
                Bp);
-          ret = SRSLTE_SUCCESS;
+          ret = SRSRAN_SUCCESS;
         }
       }
     }
@@ -116,32 +107,32 @@ int srslte_cbsegm(srslte_cbsegm_t* s, uint32_t tbs)
   return ret;
 }
 
-int srslte_cbsegm_cbindex(uint32_t long_cb)
+int srsran_cbsegm_cbindex(uint32_t long_cb)
 {
   int j = 0;
-  while (j < SRSLTE_NOF_TC_CB_SIZES && tc_cb_sizes[j] < long_cb) {
+  while (j < SRSRAN_NOF_TC_CB_SIZES && tc_cb_sizes[j] < long_cb) {
     j++;
   }
 
-  if (j == SRSLTE_NOF_TC_CB_SIZES) {
-    return SRSLTE_ERROR;
+  if (j == SRSRAN_NOF_TC_CB_SIZES) {
+    return SRSRAN_ERROR;
   } else {
     return j;
   }
 }
 
-int srslte_cbsegm_cbsize(uint32_t index)
+int srsran_cbsegm_cbsize(uint32_t index)
 {
-  if (index < SRSLTE_NOF_TC_CB_SIZES) {
+  if (index < SRSRAN_NOF_TC_CB_SIZES) {
     return (int)tc_cb_sizes[index];
   } else {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 }
 
-bool srslte_cbsegm_cbsize_isvalid(uint32_t size)
+bool srsran_cbsegm_cbsize_isvalid(uint32_t size)
 {
-  for (int i = 0; i < SRSLTE_NOF_TC_CB_SIZES; i++) {
+  for (int i = 0; i < SRSRAN_NOF_TC_CB_SIZES; i++) {
     if (tc_cb_sizes[i] == size) {
       return true;
     }
@@ -159,12 +150,12 @@ bool srslte_cbsegm_cbsize_isvalid(uint32_t size)
 static int cbsegm_ldpc_select_ls(uint32_t Kp, uint32_t K_b, uint32_t* Z_c, uint8_t* i_ls)
 {
   // Early return if the minimum required lift size is too high
-  if (SRSLTE_CEIL(Kp, K_b) > MAX_LIFTSIZE) {
-    return SRSLTE_ERROR;
+  if (SRSRAN_CEIL(Kp, K_b) > MAX_LIFTSIZE) {
+    return SRSRAN_ERROR;
   }
 
   // Iterate from the minimum required lift size to the maximum value
-  for (uint16_t Z = SRSLTE_CEIL(Kp, K_b); Z <= MAX_LIFTSIZE; Z++) {
+  for (uint16_t Z = SRSRAN_CEIL(Kp, K_b); Z <= MAX_LIFTSIZE; Z++) {
     // Get index for a selected lifting size
     uint8_t i = get_ls_index(Z);
 
@@ -178,13 +169,13 @@ static int cbsegm_ldpc_select_ls(uint32_t Kp, uint32_t K_b, uint32_t* Z_c, uint8
         *Z_c = Z;
       }
 
-      return SRSLTE_SUCCESS;
+      return SRSRAN_SUCCESS;
     }
 
     // Otherwise continue...
   }
 
-  return SRSLTE_ERROR;
+  return SRSRAN_ERROR;
 }
 
 /**
@@ -195,7 +186,7 @@ static int cbsegm_ldpc_select_ls(uint32_t Kp, uint32_t K_b, uint32_t* Z_c, uint8
  * @param tbs Transport block size
  * @return The TB CRC length L
  */
-static uint32_t srslte_cbsegm_ldpc_L(uint32_t tbs)
+static uint32_t srsran_cbsegm_ldpc_L(uint32_t tbs)
 {
   if (tbs <= 3824) {
     return 16;
@@ -204,24 +195,24 @@ static uint32_t srslte_cbsegm_ldpc_L(uint32_t tbs)
   return 24;
 }
 
-static int srslte_cbsegm_ldpc(srslte_cbsegm_t* s, srslte_basegraph_t bg, uint32_t tbs)
+static int srsran_cbsegm_ldpc(srsran_cbsegm_t* s, srsran_basegraph_t bg, uint32_t tbs)
 {
   // Check input pointer
   if (s == NULL) {
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
   // Early return if no TBS is provided
   if (tbs == 0) {
-    bzero(s, sizeof(srslte_cbsegm_t));
-    return SRSLTE_SUCCESS;
+    bzero(s, sizeof(srsran_cbsegm_t));
+    return SRSRAN_SUCCESS;
   }
 
   // Calculate TB CRC length
-  uint32_t L = srslte_cbsegm_ldpc_L(tbs);
+  uint32_t L = srsran_cbsegm_ldpc_L(tbs);
 
   // Select maximum code block size
-  uint32_t K_cb = (bg == BG1) ? SRSLTE_LDPC_BG1_MAX_LEN_CB : SRSLTE_LDPC_BG2_MAX_LEN_CB;
+  uint32_t K_cb = (bg == BG1) ? SRSRAN_LDPC_BG1_MAX_LEN_CB : SRSRAN_LDPC_BG2_MAX_LEN_CB;
 
   // Calculate CB sizes
   uint32_t B  = tbs + L;
@@ -248,8 +239,8 @@ static int srslte_cbsegm_ldpc(srslte_cbsegm_t* s, srslte_basegraph_t bg, uint32_
   uint8_t  i_ls = 0;
   uint32_t Z_c  = 0;
   int      ret  = cbsegm_ldpc_select_ls(Kp, K_b, &Z_c, &i_ls);
-  if (ret < SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+  if (ret < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
   }
   uint32_t K = Z_c * ((bg == BG1) ? 22U : 10U);
 
@@ -271,15 +262,15 @@ static int srslte_cbsegm_ldpc(srslte_cbsegm_t* s, srslte_basegraph_t bg, uint32_
 
   INFO("LDPC CB Segmentation: TBS: %d, C=%d, K=%d, F=%d, Bp=%d", tbs, s->C, s->K1, s->F, Bp);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-int srslte_cbsegm_ldpc_bg1(srslte_cbsegm_t* s, uint32_t tbs)
+int srsran_cbsegm_ldpc_bg1(srsran_cbsegm_t* s, uint32_t tbs)
 {
-  return srslte_cbsegm_ldpc(s, BG1, tbs);
+  return srsran_cbsegm_ldpc(s, BG1, tbs);
 }
 
-int srslte_cbsegm_ldpc_bg2(srslte_cbsegm_t* s, uint32_t tbs)
+int srsran_cbsegm_ldpc_bg2(srsran_cbsegm_t* s, uint32_t tbs)
 {
-  return srslte_cbsegm_ldpc(s, BG2, tbs);
+  return srsran_cbsegm_ldpc(s, BG2, tbs);
 }

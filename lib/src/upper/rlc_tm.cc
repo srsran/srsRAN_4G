@@ -1,29 +1,20 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
-#include "srslte/upper/rlc_tm.h"
-#include "srslte/interfaces/ue_pdcp_interfaces.h"
-#include "srslte/interfaces/ue_rrc_interfaces.h"
+#include "srsran/upper/rlc_tm.h"
+#include "srsran/interfaces/ue_pdcp_interfaces.h"
+#include "srsran/interfaces/ue_rrc_interfaces.h"
 
-namespace srslte {
+namespace srsran {
 
 rlc_tm::rlc_tm(srslog::basic_logger&      logger,
                uint32_t                   lcid_,
@@ -86,7 +77,7 @@ void rlc_tm::write_sdu(unique_byte_buffer_t sdu)
   if (sdu != nullptr) {
     uint8_t*                                 msg_ptr   = sdu->msg;
     uint32_t                                 nof_bytes = sdu->N_bytes;
-    srslte::error_type<unique_byte_buffer_t> ret       = ul_queue.try_write(std::move(sdu));
+    srsran::error_type<unique_byte_buffer_t> ret       = ul_queue.try_write(std::move(sdu));
     if (ret) {
       logger.info(msg_ptr,
                   nof_bytes,
@@ -161,7 +152,7 @@ int rlc_tm::read_pdu(uint8_t* payload, uint32_t nof_bytes)
                 pdu_size,
                 "%s Tx %s PDU, queue size=%d, bytes=%d",
                 rrc->get_rb_name(lcid).c_str(),
-                srslte::to_string(rlc_mode_t::tm).c_str(),
+                srsran::to_string(rlc_mode_t::tm).c_str(),
                 ul_queue.size(),
                 ul_queue.size_bytes());
 
@@ -196,4 +187,4 @@ void rlc_tm::write_pdu(uint8_t* payload, uint32_t nof_bytes)
   }
 }
 
-} // namespace srslte
+} // namespace srsran

@@ -1,31 +1,22 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #ifndef SRSENB_SCHEDULER_HARQ_H
 #define SRSENB_SCHEDULER_HARQ_H
 
-#include "srslte/adt/bounded_bitset.h"
-#include "srslte/common/tti_point.h"
-#include "srslte/interfaces/sched_interface.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/adt/bounded_bitset.h"
+#include "srsran/common/tti_point.h"
+#include "srsran/interfaces/sched_interface.h"
+#include "srsran/srslog/srslog.h"
 
 namespace srsenb {
 
@@ -41,13 +32,13 @@ public:
 
   uint32_t          nof_tx(uint32_t tb_idx) const;
   uint32_t          nof_retx(uint32_t tb_idx) const;
-  srslte::tti_point get_tti() const;
+  srsran::tti_point get_tti() const;
   bool              get_ndi(uint32_t tb_idx) const;
   uint32_t          max_nof_retx() const;
 
 protected:
-  void new_tx_common(uint32_t tb_idx, srslte::tti_point tti, int mcs, int tbs, uint32_t max_retx_);
-  void new_retx_common(uint32_t tb_idx, srslte::tti_point tti, int* mcs, int* tbs);
+  void new_tx_common(uint32_t tb_idx, srsran::tti_point tti, int mcs, int tbs, uint32_t max_retx_);
+  void new_retx_common(uint32_t tb_idx, srsran::tti_point tti, int* mcs, int* tbs);
   bool has_pending_retx_common(uint32_t tb_idx) const;
   int  set_ack_common(uint32_t tb_idx, bool ack);
   void reset_pending_data_common();
@@ -55,16 +46,16 @@ protected:
   enum ack_t { NACK, ACK };
 
   srslog::basic_logger*           logger;
-  bool                            ack_state[SRSLTE_MAX_TB];
-  bool                            active[SRSLTE_MAX_TB];
-  std::array<bool, SRSLTE_MAX_TB> ndi = {};
+  bool                            ack_state[SRSRAN_MAX_TB];
+  bool                            active[SRSRAN_MAX_TB];
+  std::array<bool, SRSRAN_MAX_TB> ndi = {};
   uint32_t                        id;
   uint32_t                        max_retx = 5;
-  uint32_t                        n_rtx[SRSLTE_MAX_TB];
-  uint32_t                        tx_cnt[SRSLTE_MAX_TB];
-  srslte::tti_point               tti;
-  int                             last_mcs[SRSLTE_MAX_TB];
-  int                             last_tbs[SRSLTE_MAX_TB];
+  uint32_t                        n_rtx[SRSRAN_MAX_TB];
+  uint32_t                        tx_cnt[SRSRAN_MAX_TB];
+  srsran::tti_point               tti;
+  int                             last_mcs[SRSRAN_MAX_TB];
+  int                             last_tbs[SRSRAN_MAX_TB];
 };
 
 class dl_harq_proc : public harq_proc
@@ -95,10 +86,10 @@ private:
 class ul_harq_proc : public harq_proc
 {
 public:
-  void new_tx(srslte::tti_point tti, int mcs, int tbs, prb_interval alloc, uint32_t max_retx_, bool is_msg3);
-  void new_retx(srslte::tti_point tti_, int* mcs, int* tbs, prb_interval alloc);
+  void new_tx(srsran::tti_point tti, int mcs, int tbs, prb_interval alloc, uint32_t max_retx_, bool is_msg3);
+  void new_retx(srsran::tti_point tti_, int* mcs, int* tbs, prb_interval alloc);
   bool set_ack(uint32_t tb_idx, bool ack);
-  bool retx_requires_pdcch(srslte::tti_point tti_, prb_interval alloc) const;
+  bool retx_requires_pdcch(srsran::tti_point tti_, prb_interval alloc) const;
 
   prb_interval get_alloc() const;
   bool         has_pending_retx() const;
@@ -160,15 +151,15 @@ public:
   /**
    * Set ACK state for UL Harq Proc
    */
-  int set_ul_crc(srslte::tti_point tti_tx_ul, uint32_t tb_idx, bool ack_);
+  int set_ul_crc(srsran::tti_point tti_tx_ul, uint32_t tb_idx, bool ack_);
 
   //! Resets pending harq ACKs and cleans UL Harqs with maxretx == 0
-  void reset_pending_data(srslte::tti_point tti_rx);
+  void reset_pending_data(srsran::tti_point tti_rx);
 
 private:
   dl_harq_proc* get_oldest_dl_harq(tti_point tti_tx_dl);
 
-  std::array<tti_point, SRSLTE_FDD_NOF_HARQ> last_ttis;
+  std::array<tti_point, SRSRAN_FDD_NOF_HARQ> last_ttis;
 
   std::vector<dl_harq_proc> dl_harqs;
   std::vector<ul_harq_proc> ul_harqs;

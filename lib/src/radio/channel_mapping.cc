@@ -1,29 +1,20 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
-#include "srslte/radio/channel_mapping.h"
-#include "srslte/phy/utils/debug.h"
+#include "srsran/radio/channel_mapping.h"
+#include "srsran/phy/utils/debug.h"
 #include <sstream>
 
-namespace srslte {
+namespace srsran {
 
 void channel_mapping::set_config(const uint32_t& nof_channels_x_dev_, const uint32_t& nof_antennas_)
 {
@@ -99,4 +90,4 @@ std::string channel_mapping::to_string() const
   return ss.str();
 }
 
-} // namespace srslte
+} // namespace srsran

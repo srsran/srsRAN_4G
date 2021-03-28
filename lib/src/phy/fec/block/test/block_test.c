@@ -1,29 +1,20 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
-#include "srslte/common/test_common.h"
-#include "srslte/phy/fec/block/block.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/random.h"
+#include "srsran/common/test_common.h"
+#include "srsran/phy/fec/block/block.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/random.h"
 #include <memory.h>
-#include <srslte/phy/utils/vector.h>
+#include <srsran/phy/utils/vector.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
@@ -32,16 +23,16 @@
 
 static uint32_t        seed            = 0x1234;
 static uint32_t        nof_repetitions = 1;
-static uint32_t        E               = SRSLTE_FEC_BLOCK_SIZE;
+static uint32_t        E               = SRSRAN_FEC_BLOCK_SIZE;
 static uint32_t        A               = 100;
-static srslte_random_t random_gen      = NULL;
+static srsran_random_t random_gen      = NULL;
 
 void usage(char* prog)
 {
   printf("Usage: %s [Rv]\n", prog);
   printf("\t-R Number of repetitions [Default %d]\n", nof_repetitions);
   printf("\t-E Number of encoded bits [Default %d]\n", E);
-  printf("\t-v increase verbose [Default %d]\n", srslte_verbose);
+  printf("\t-v increase verbose [Default %d]\n", srsran_verbose);
 }
 
 void parse_args(int argc, char** argv)
@@ -56,7 +47,7 @@ void parse_args(int argc, char** argv)
         E = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
-        srslte_verbose++;
+        srsran_verbose++;
         break;
       default:
         usage(argv[0]);
@@ -68,20 +59,20 @@ void parse_args(int argc, char** argv)
 int test(uint32_t block_size)
 {
   struct timeval t[3]                               = {};
-  uint8_t        tx[SRSLTE_FEC_BLOCK_MAX_NOF_BITS]  = {};
-  uint8_t        rx[SRSLTE_FEC_BLOCK_MAX_NOF_BITS]  = {};
-  uint8_t        encoded[4 * SRSLTE_FEC_BLOCK_SIZE] = {};
-  int16_t        llr_i16[4 * SRSLTE_FEC_BLOCK_SIZE] = {};
-  int8_t         llr_i8[4 * SRSLTE_FEC_BLOCK_SIZE]  = {};
+  uint8_t        tx[SRSRAN_FEC_BLOCK_MAX_NOF_BITS]  = {};
+  uint8_t        rx[SRSRAN_FEC_BLOCK_MAX_NOF_BITS]  = {};
+  uint8_t        encoded[4 * SRSRAN_FEC_BLOCK_SIZE] = {};
+  int16_t        llr_i16[4 * SRSRAN_FEC_BLOCK_SIZE] = {};
+  int8_t         llr_i8[4 * SRSRAN_FEC_BLOCK_SIZE]  = {};
 
   // Generate random data
   for (uint32_t i = 0; i < block_size; i++) {
-    tx[i] = (uint8_t)srslte_random_uniform_int_dist(random_gen, 0, 1);
+    tx[i] = (uint8_t)srsran_random_uniform_int_dist(random_gen, 0, 1);
   }
 
   gettimeofday(&t[1], NULL);
   for (uint32_t r = 0; r < nof_repetitions; r++) {
-    srslte_block_encode(tx, block_size, encoded, E);
+    srsran_block_encode(tx, block_size, encoded, E);
   }
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
@@ -97,7 +88,7 @@ int test(uint32_t block_size)
   gettimeofday(&t[1], NULL);
 
   for (uint32_t r = 0; r < nof_repetitions; r++) {
-    corr_i16 = srslte_block_decode_i16(llr_i16, E, rx, block_size);
+    corr_i16 = srsran_block_decode_i16(llr_i16, E, rx, block_size);
   }
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
@@ -108,7 +99,7 @@ int test(uint32_t block_size)
   gettimeofday(&t[1], NULL);
   int32_t corr_i8 = 0;
   for (uint32_t r = 0; r < nof_repetitions; r++) {
-    corr_i8 = srslte_block_decode_i8(llr_i8, E, rx, block_size);
+    corr_i8 = srsran_block_decode_i8(llr_i8, E, rx, block_size);
   }
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
@@ -127,19 +118,19 @@ int test(uint32_t block_size)
        t_decode_i8_us / (double)nof_repetitions,
        total_bits / (double)t_decode_i8_us);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int main(int argc, char** argv)
 {
   parse_args(argc, argv);
-  random_gen = srslte_random_init(seed);
+  random_gen = srsran_random_init(seed);
 
-  for (uint32_t block_size = 3; block_size <= SRSLTE_FEC_BLOCK_MAX_NOF_BITS; block_size++) {
-    if (test(block_size) < SRSLTE_SUCCESS) {
+  for (uint32_t block_size = 3; block_size <= SRSRAN_FEC_BLOCK_MAX_NOF_BITS; block_size++) {
+    if (test(block_size) < SRSRAN_SUCCESS) {
       break;
     }
   }
 
-  srslte_random_free(random_gen);
+  srsran_random_free(random_gen);
 }

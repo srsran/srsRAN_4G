@@ -23,7 +23,7 @@
 ########################################################################
 
 add_executable(viterbi_test viterbi_test.c)
-target_link_libraries(viterbi_test srslte_phy)
+target_link_libraries(viterbi_test srsran_phy)
 
 add_test(viterbi_40_0 viterbi_test -n 1000 -s 1 -l 40 -t -e 0.0) 
 add_test(viterbi_40_2 viterbi_test -n 1000 -s 1 -l 40 -t -e 2.0) 

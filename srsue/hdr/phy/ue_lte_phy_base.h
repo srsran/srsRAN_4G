@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -27,14 +18,14 @@
 #ifndef SRSUE_UE_LTE_PHY_BASE_H
 #define SRSUE_UE_LTE_PHY_BASE_H
 
-#include "srslte/interfaces/radio_interfaces.h"
+#include "srsran/interfaces/radio_interfaces.h"
 #include "srsue/hdr/phy/ue_phy_base.h"
 
 namespace srsue {
 
 class stack_interface_phy_lte;
 
-class ue_lte_phy_base : public ue_phy_base, public phy_interface_stack_lte, public srslte::phy_interface_radio
+class ue_lte_phy_base : public ue_phy_base, public phy_interface_stack_lte, public srsran::phy_interface_radio
 {
 public:
   ue_lte_phy_base(){};
@@ -43,7 +34,7 @@ public:
   virtual std::string get_type() = 0;
 
   virtual int  init(const phy_args_t& args_)                                                                       = 0;
-  virtual int  init(const phy_args_t& args_, stack_interface_phy_lte* stack_, srslte::radio_interface_phy* radio_) = 0;
+  virtual int  init(const phy_args_t& args_, stack_interface_phy_lte* stack_, srsran::radio_interface_phy* radio_) = 0;
   virtual void stop()                                                                                              = 0;
 
   virtual void wait_initialize() = 0;

@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -25,38 +16,38 @@
 #include <strings.h>
 #include <unistd.h>
 
-#include "srslte/srslte.h"
+#include "srsran/srsran.h"
 
 char* input_file_name = NULL;
 
-srslte_cell_t cell = {
+srsran_cell_t cell = {
     6,                 // nof_prb
     1,                 // nof_ports
     0,                 // cell_id
-    SRSLTE_CP_NORM,    // cyclic prefix
-    SRSLTE_PHICH_NORM, // PHICH length
-    SRSLTE_PHICH_R_1,  // PHICH resources
-    SRSLTE_FDD,
+    SRSRAN_CP_NORM,    // cyclic prefix
+    SRSRAN_PHICH_NORM, // PHICH length
+    SRSRAN_PHICH_R_1,  // PHICH resources
+    SRSRAN_FDD,
 
 };
 
 int flen;
 
 uint32_t cfi  = 2;
-uint16_t rnti = SRSLTE_SIRNTI;
+uint16_t rnti = SRSRAN_SIRNTI;
 
 int      max_frames = 10;
 uint32_t sf_idx     = 0;
 
-srslte_dci_format_t dci_format = SRSLTE_DCI_FORMAT1A;
-srslte_filesource_t fsrc;
-srslte_ue_dl_t      ue_dl;
-cf_t*               input_buffer[SRSLTE_MAX_PORTS];
+srsran_dci_format_t dci_format = SRSRAN_DCI_FORMAT1A;
+srsran_filesource_t fsrc;
+srsran_ue_dl_t      ue_dl;
+cf_t*               input_buffer[SRSRAN_MAX_PORTS];
 
 void usage(char* prog)
 {
   printf("Usage: %s [rovfcenmps] -i input_file\n", prog);
-  printf("\t-o DCI format [Default %s]\n", srslte_dci_format_string(dci_format));
+  printf("\t-o DCI format [Default %s]\n", srsran_dci_format_string(dci_format));
   printf("\t-c cell.id [Default %d]\n", cell.id);
   printf("\t-s Start subframe_idx [Default %d]\n", sf_idx);
   printf("\t-f cfi [Default %d]\n", cfi);
@@ -65,7 +56,7 @@ void usage(char* prog)
   printf("\t-n cell.nof_prb [Default %d]\n", cell.nof_prb);
   printf("\t-m max_frames [Default %d]\n", max_frames);
   printf("\t-e Set extended prefix [Default Normal]\n");
-  printf("\t-v [set srslte_verbose to debug, default none]\n");
+  printf("\t-v [set srsran_verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char** argv)
@@ -98,17 +89,17 @@ void parse_args(int argc, char** argv)
         cell.nof_ports = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'o':
-        dci_format = srslte_dci_format_from_string(argv[optind]);
-        if (dci_format == SRSLTE_DCI_NOF_FORMATS) {
+        dci_format = srsran_dci_format_from_string(argv[optind]);
+        if (dci_format == SRSRAN_DCI_NOF_FORMATS) {
           ERROR("Error unsupported format %s", argv[optind]);
           exit(-1);
         }
         break;
       case 'v':
-        srslte_verbose++;
+        srsran_verbose++;
         break;
       case 'e':
-        cell.cp = SRSLTE_CP_EXT;
+        cell.cp = SRSRAN_CP_EXT;
         break;
       default:
         usage(argv[0]);
@@ -123,24 +114,24 @@ void parse_args(int argc, char** argv)
 
 int base_init()
 {
-  if (srslte_filesource_init(&fsrc, input_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
+  if (srsran_filesource_init(&fsrc, input_file_name, SRSRAN_COMPLEX_FLOAT_BIN)) {
     ERROR("Error opening file %s", input_file_name);
     exit(-1);
   }
 
-  flen = SRSLTE_SF_LEN(srslte_symbol_sz(cell.nof_prb));
+  flen = SRSRAN_SF_LEN(srsran_symbol_sz(cell.nof_prb));
 
-  input_buffer[0] = srslte_vec_cf_malloc(flen);
+  input_buffer[0] = srsran_vec_cf_malloc(flen);
   if (!input_buffer[0]) {
     perror("malloc");
     exit(-1);
   }
 
-  if (srslte_ue_dl_init(&ue_dl, input_buffer, cell.nof_prb, 1)) {
+  if (srsran_ue_dl_init(&ue_dl, input_buffer, cell.nof_prb, 1)) {
     ERROR("Error initializing UE DL");
     return -1;
   }
-  if (srslte_ue_dl_set_cell(&ue_dl, cell)) {
+  if (srsran_ue_dl_set_cell(&ue_dl, cell)) {
     ERROR("Error initializing UE DL");
     return -1;
   }
@@ -151,8 +142,8 @@ int base_init()
 
 void base_free()
 {
-  srslte_filesource_free(&fsrc);
-  srslte_ue_dl_free(&ue_dl);
+  srsran_filesource_free(&fsrc);
+  srsran_ue_dl_free(&ue_dl);
   free(input_buffer[0]);
 }
 
@@ -160,8 +151,8 @@ int main(int argc, char** argv)
 {
   int  nof_frames;
   int  ret;
-  bool acks[SRSLTE_MAX_TB];
-  bzero(acks, sizeof(bool) * SRSLTE_MAX_TB);
+  bool acks[SRSRAN_MAX_TB];
+  bzero(acks, sizeof(bool) * SRSRAN_MAX_TB);
 
   if (argc < 3) {
     usage(argv[0]);
@@ -180,28 +171,28 @@ int main(int argc, char** argv)
     exit(-1);
   }
 
-  srslte_ue_dl_cfg_t ue_dl_cfg;
+  srsran_ue_dl_cfg_t ue_dl_cfg;
   ZERO_OBJECT(ue_dl_cfg);
 
-  srslte_dl_sf_cfg_t dl_sf;
+  srsran_dl_sf_cfg_t dl_sf;
   ZERO_OBJECT(dl_sf);
 
-  srslte_pdsch_cfg_t pdsch_cfg;
+  srsran_pdsch_cfg_t pdsch_cfg;
   ZERO_OBJECT(pdsch_cfg);
 
-  srslte_softbuffer_rx_t softbuffer_rx;
-  srslte_softbuffer_rx_init(&softbuffer_rx, cell.nof_prb);
+  srsran_softbuffer_rx_t softbuffer_rx;
+  srsran_softbuffer_rx_init(&softbuffer_rx, cell.nof_prb);
   pdsch_cfg.softbuffers.rx[0] = &softbuffer_rx;
   pdsch_cfg.rnti              = rnti;
 
   ret        = -1;
   nof_frames = 0;
   do {
-    srslte_filesource_read(&fsrc, input_buffer[0], flen);
+    srsran_filesource_read(&fsrc, input_buffer[0], flen);
     INFO("Reading %d samples sub-frame %d", flen, sf_idx);
 
     dl_sf.tti = sf_idx;
-    ret       = srslte_ue_dl_find_and_decode(&ue_dl, &dl_sf, &ue_dl_cfg, &pdsch_cfg, data, acks);
+    ret       = srsran_ue_dl_find_and_decode(&ue_dl, &dl_sf, &ue_dl_cfg, &pdsch_cfg, data, acks);
     if (ret > 0) {
       printf("PDSCH Decoded OK!\n");
     } else if (ret == 0) {

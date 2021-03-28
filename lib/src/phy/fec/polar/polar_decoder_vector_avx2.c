@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -48,10 +39,10 @@
 // General remarks
 // We replace bits by {0, 128} (uint8_t) or {0, -128} (int8_t)
 
-void srslte_vec_function_f_ccc_avx2(const int8_t* x, const int8_t* y, int8_t* z, const uint16_t len)
+void srsran_vec_function_f_ccc_avx2(const int8_t* x, const int8_t* y, int8_t* z, const uint16_t len)
 {
 
-  for (int i = 0; i < len; i += SRSLTE_AVX2_B_SIZE) {
+  for (int i = 0; i < len; i += SRSRAN_AVX2_B_SIZE) {
     __m256i m_x = _mm256_loadu_si256((__m256i*)&x[i]);
     __m256i m_y = _mm256_loadu_si256((__m256i*)&y[i]);
 
@@ -65,13 +56,13 @@ void srslte_vec_function_f_ccc_avx2(const int8_t* x, const int8_t* y, int8_t* z,
   }
 }
 
-void srslte_vec_function_g_bccc_avx2(const uint8_t* b, const int8_t* x, const int8_t* y, int8_t* z, const uint16_t len)
+void srsran_vec_function_g_bccc_avx2(const uint8_t* b, const int8_t* x, const int8_t* y, int8_t* z, const uint16_t len)
 {
 
   const __m256i M_1      = _mm256_set1_epi8(1);
   const __m256i M_NEG127 = _mm256_set1_epi8(-127);
 
-  for (int i = 0; i < len; i += SRSLTE_AVX2_B_SIZE) {
+  for (int i = 0; i < len; i += SRSRAN_AVX2_B_SIZE) {
 
     __m256i m_x = _mm256_loadu_si256((__m256i*)&x[i]);
     __m256i m_y = _mm256_loadu_si256((__m256i*)&y[i]);
@@ -87,10 +78,10 @@ void srslte_vec_function_g_bccc_avx2(const uint8_t* b, const int8_t* x, const in
   }
 }
 
-void srslte_vec_xor_bbb_avx2(const uint8_t* x, const uint8_t* y, uint8_t* z, uint16_t len)
+void srsran_vec_xor_bbb_avx2(const uint8_t* x, const uint8_t* y, uint8_t* z, uint16_t len)
 {
 
-  for (int i = 0; i < len; i += SRSLTE_AVX2_B_SIZE) {
+  for (int i = 0; i < len; i += SRSRAN_AVX2_B_SIZE) {
     __m256i m_x = _mm256_loadu_si256((__m256i*)&x[i]);
     __m256i m_y = _mm256_loadu_si256((__m256i*)&y[i]);
 
@@ -100,27 +91,27 @@ void srslte_vec_xor_bbb_avx2(const uint8_t* x, const uint8_t* y, uint8_t* z, uin
   }
 }
 
-void srslte_vec_hard_bit_cc_avx2(const int8_t* x, uint8_t* z, const uint16_t len)
+void srsran_vec_hard_bit_cc_avx2(const int8_t* x, uint8_t* z, const uint16_t len)
 {
   const __m256i M_MSB_MASK = _mm256_set1_epi8(MSB_MASK);
 
-  for (int i = 0; i < len; i += SRSLTE_AVX2_B_SIZE) {
+  for (int i = 0; i < len; i += SRSRAN_AVX2_B_SIZE) {
     __m256i m_x = _mm256_loadu_si256((__m256i*)&x[i]);
 
     __m256i m_z = _mm256_and_si256(m_x, M_MSB_MASK);
 
     _mm256_storeu_si256((__m256i*)&z[i], m_z);
   }
-  // restore, by setting to 0, the memory positions between z + len and z + len + SRSLTE_AVX2_B_SIZE
-  memset(z + len, 0, SRSLTE_AVX2_B_SIZE);
+  // restore, by setting to 0, the memory positions between z + len and z + len + SRSRAN_AVX2_B_SIZE
+  memset(z + len, 0, SRSRAN_AVX2_B_SIZE);
 }
 
-void srslte_vec_sign_to_bit_c_avx2(uint8_t* x, uint16_t len)
+void srsran_vec_sign_to_bit_c_avx2(uint8_t* x, uint16_t len)
 {
   const __m256i M_NEG1 = _mm256_set1_epi8(-1);
 
   int i = 0;
-  for (; i < len - SRSLTE_AVX2_B_SIZE + 1; i += SRSLTE_AVX2_B_SIZE) {
+  for (; i < len - SRSRAN_AVX2_B_SIZE + 1; i += SRSRAN_AVX2_B_SIZE) {
     __m256i m_x = _mm256_loadu_si256((__m256i*)&x[i]);
 
     __m256i m_abs_x = _mm256_sign_epi8(M_NEG1, m_x);

@@ -1,31 +1,22 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 #ifndef SRSEPC_GTPC_H
 #define SRSEPC_GTPC_H
 
 #include "srsepc/hdr/spgw/spgw.h"
-#include "srslte/asn1/gtpc.h"
-#include "srslte/common/standard_streams.h"
-#include "srslte/interfaces/epc_interfaces.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/asn1/gtpc.h"
+#include "srsran/common/standard_streams.h"
+#include "srsran/interfaces/epc_interfaces.h"
+#include "srsran/srslog/srslog.h"
 
 #include <set>
 #include <sys/socket.h>
@@ -49,27 +40,27 @@ public:
   uint64_t  get_new_user_teid();
   in_addr_t get_new_ue_ipv4(uint64_t imsi);
 
-  void handle_s11_pdu(srslte::byte_buffer_t* msg);
-  bool send_s11_pdu(const srslte::gtpc_pdu& pdu);
+  void handle_s11_pdu(srsran::byte_buffer_t* msg);
+  bool send_s11_pdu(const srsran::gtpc_pdu& pdu);
 
-  void handle_create_session_request(const srslte::gtpc_create_session_request& cs_req);
-  void handle_modify_bearer_request(const srslte::gtpc_header&                mb_req_hdr,
-                                    const srslte::gtpc_modify_bearer_request& mb_req);
-  void handle_delete_session_request(const srslte::gtpc_header&                 header,
-                                     const srslte::gtpc_delete_session_request& del_req);
-  void handle_release_access_bearers_request(const srslte::gtpc_header&                         header,
-                                             const srslte::gtpc_release_access_bearers_request& rel_req);
+  void handle_create_session_request(const srsran::gtpc_create_session_request& cs_req);
+  void handle_modify_bearer_request(const srsran::gtpc_header&                mb_req_hdr,
+                                    const srsran::gtpc_modify_bearer_request& mb_req);
+  void handle_delete_session_request(const srsran::gtpc_header&                 header,
+                                     const srsran::gtpc_delete_session_request& del_req);
+  void handle_release_access_bearers_request(const srsran::gtpc_header&                         header,
+                                             const srsran::gtpc_release_access_bearers_request& rel_req);
   void
-       handle_downlink_data_notification_acknowledge(const srslte::gtpc_header&                                 header,
-                                                     const srslte::gtpc_downlink_data_notification_acknowledge& not_ack);
+       handle_downlink_data_notification_acknowledge(const srsran::gtpc_header&                                 header,
+                                                     const srsran::gtpc_downlink_data_notification_acknowledge& not_ack);
   void handle_downlink_data_notification_failure_indication(
-      const srslte::gtpc_header&                                        header,
-      const srslte::gtpc_downlink_data_notification_failure_indication& not_fail);
+      const srsran::gtpc_header&                                        header,
+      const srsran::gtpc_downlink_data_notification_failure_indication& not_fail);
 
-  virtual bool queue_downlink_packet(uint32_t spgw_ctr_teid, srslte::unique_byte_buffer_t msg) override;
+  virtual bool queue_downlink_packet(uint32_t spgw_ctr_teid, srsran::unique_byte_buffer_t msg) override;
   virtual bool send_downlink_data_notification(uint32_t spgw_ctr_teid) override;
 
-  spgw_tunnel_ctx_t* create_gtpc_ctx(const srslte::gtpc_create_session_request& cs_req);
+  spgw_tunnel_ctx_t* create_gtpc_ctx(const srsran::gtpc_create_session_request& cs_req);
   bool               delete_gtpc_ctx(uint32_t ctrl_teid);
 
   bool free_all_queued_packets(spgw_tunnel_ctx_t* tunnel_ctx);

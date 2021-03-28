@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -31,7 +22,7 @@ std::string to_string(const phy_cell_t& cell)
 }
 
 phy_controller::phy_controller(srsue::phy_interface_rrc_lte*                 phy_,
-                               srslte::task_sched_handle                     task_sched_,
+                               srsran::task_sched_handle                     task_sched_,
                                std::function<void(uint32_t, uint32_t, bool)> on_cell_selection) :
   base_t(srslog::fetch_basic_logger("RRC")),
   phy(phy_),
@@ -44,7 +35,7 @@ void phy_controller::in_sync()
   trigger(in_sync_ev{});
 }
 
-bool phy_controller::set_cell_config(const srslte::phy_cfg_t& config, uint32_t cc_idx)
+bool phy_controller::set_cell_config(const srsran::phy_cfg_t& config, uint32_t cc_idx)
 {
   logger.info("Setting PHY config for cc_idx=%d", cc_idx);
   return set_cell_config(config, cc_idx, true);
@@ -54,9 +45,9 @@ void phy_controller::set_phy_to_default()
 {
   logger.info("Setting default PHY config (common and dedicated)");
 
-  srslte::phy_cfg_t& default_cfg = current_cells_cfg[0];
+  srsran::phy_cfg_t& default_cfg = current_cells_cfg[0];
   default_cfg.set_defaults();
-  for (uint32_t i = 0; i < SRSLTE_MAX_CARRIERS; ++i) {
+  for (uint32_t i = 0; i < SRSRAN_MAX_CARRIERS; ++i) {
     set_cell_config(default_cfg, i, false);
   }
 }
@@ -66,9 +57,9 @@ void phy_controller::set_phy_to_default_dedicated()
 {
   logger.info("Setting default dedicated PHY config");
 
-  srslte::phy_cfg_t& default_cfg = current_cells_cfg[0];
+  srsran::phy_cfg_t& default_cfg = current_cells_cfg[0];
   default_cfg.set_defaults_dedicated();
-  for (uint32_t i = 0; i < SRSLTE_MAX_CARRIERS; ++i) {
+  for (uint32_t i = 0; i < SRSRAN_MAX_CARRIERS; ++i) {
     set_cell_config(default_cfg, i, false);
   }
 }
@@ -77,14 +68,14 @@ void phy_controller::set_phy_to_default_pucch_srs()
 {
   logger.info("Setting default PHY config dedicated");
 
-  srslte::phy_cfg_t& default_cfg_ded = current_cells_cfg[0];
+  srsran::phy_cfg_t& default_cfg_ded = current_cells_cfg[0];
   default_cfg_ded.set_defaults_pucch_sr();
-  for (uint32_t i = 0; i < SRSLTE_MAX_CARRIERS; ++i) {
+  for (uint32_t i = 0; i < SRSRAN_MAX_CARRIERS; ++i) {
     set_cell_config(default_cfg_ded, i, false);
   }
 }
 
-bool phy_controller::set_cell_config(const srslte::phy_cfg_t& cfg, uint32_t cc_idx, bool is_set)
+bool phy_controller::set_cell_config(const srsran::phy_cfg_t& cfg, uint32_t cc_idx, bool is_set)
 {
   if ((is_set or cc_idx == 0 or configured_scell_mask[cc_idx]) and phy->set_config(cfg, cc_idx)) {
     current_cells_cfg[cc_idx] = cfg;
@@ -110,7 +101,7 @@ void phy_controller::set_config_complete()
  *    PHY Cell Select Procedure
  *************************************/
 
-bool phy_controller::start_cell_select(const phy_cell_t& phy_cell, srslte::event_observer<bool> observer)
+bool phy_controller::start_cell_select(const phy_cell_t& phy_cell, srsran::event_observer<bool> observer)
 {
   if (is_in_state<selecting_cell>()) {
     logger.warning("Failed to launch cell selection as it is already running");
@@ -142,7 +133,7 @@ void phy_controller::selecting_cell::enter(phy_controller* f, const cell_sel_cmd
 
   fsmInfo("Starting for pci=%d, earfcn=%d", target_cell.pci, target_cell.earfcn);
   if (not f->phy->cell_select(target_cell)) {
-    trigger(srslte::failure_ev{});
+    trigger(srsran::failure_ev{});
   }
 }
 
@@ -175,7 +166,7 @@ void phy_controller::selecting_cell::wait_in_sync::enter(selecting_cell* f)
  *************************************/
 
 //! Searches for a cell in the current frequency and retrieves SIB1 if not retrieved yet
-bool phy_controller::start_cell_search(srslte::event_observer<cell_srch_res> observer)
+bool phy_controller::start_cell_search(srsran::event_observer<cell_srch_res> observer)
 {
   if (is_in_state<searching_cell>()) {
     fsmInfo("Cell search already launched.");

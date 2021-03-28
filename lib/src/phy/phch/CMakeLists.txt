@@ -19,5 +19,5 @@
 #
 
 file(GLOB SOURCES "*.c")
-add_library(srslte_phch OBJECT ${SOURCES})
+add_library(srsran_phch OBJECT ${SOURCES})
 add_subdirectory(test)

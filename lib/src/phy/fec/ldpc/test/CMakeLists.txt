@@ -21,40 +21,40 @@
 set(CTEST_LABELS "lib;phy;fec;ldpc")
 
 add_executable(ldpc_enc_test ldpc_enc_test.c)
-target_link_libraries(ldpc_enc_test srslte_phy)
+target_link_libraries(ldpc_enc_test srsran_phy)
 
 add_executable(ldpc_dec_test ldpc_dec_test.c)
-target_link_libraries(ldpc_dec_test srslte_phy)
+target_link_libraries(ldpc_dec_test srsran_phy)
 
 add_executable(ldpc_dec_s_test ldpc_dec_s_test.c)
-target_link_libraries(ldpc_dec_s_test srslte_phy)
+target_link_libraries(ldpc_dec_s_test srsran_phy)
 
 add_executable(ldpc_dec_c_test ldpc_dec_c_test.c)
-target_link_libraries(ldpc_dec_c_test srslte_phy)
+target_link_libraries(ldpc_dec_c_test srsran_phy)
 
 add_executable(ldpc_chain_test ldpc_chain_test.c)
-target_link_libraries(ldpc_chain_test srslte_phy)
+target_link_libraries(ldpc_chain_test srsran_phy)
 
 add_executable(ldpc_rm_test ldpc_rm_test.c)
-target_link_libraries(ldpc_rm_test srslte_phy)
+target_link_libraries(ldpc_rm_test srsran_phy)
 
 add_executable(ldpc_rm_chain_test ldpc_rm_chain_test.c)
-target_link_libraries(ldpc_rm_chain_test srslte_phy)
+target_link_libraries(ldpc_rm_chain_test srsran_phy)
 
 if(HAVE_AVX2)
   add_executable(ldpc_enc_avx2_test ldpc_enc_avx2_test.c)
-  target_link_libraries(ldpc_enc_avx2_test srslte_phy)
+  target_link_libraries(ldpc_enc_avx2_test srsran_phy)
 
   add_executable(ldpc_dec_avx2_test ldpc_dec_avx2_test.c)
-  target_link_libraries(ldpc_dec_avx2_test srslte_phy)
+  target_link_libraries(ldpc_dec_avx2_test srsran_phy)
 endif(HAVE_AVX2)
 
 if(HAVE_AVX512)
   add_executable(ldpc_enc_avx512_test ldpc_enc_avx512_test.c)
-  target_link_libraries(ldpc_enc_avx512_test srslte_phy)
+  target_link_libraries(ldpc_enc_avx512_test srsran_phy)
 
   add_executable(ldpc_dec_avx512_test ldpc_dec_avx512_test.c)
-  target_link_libraries(ldpc_dec_avx512_test srslte_phy)
+  target_link_libraries(ldpc_dec_avx512_test srsran_phy)
 endif(HAVE_AVX512)
 
 ### Test LDPC libs

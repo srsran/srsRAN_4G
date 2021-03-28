@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -87,7 +78,15 @@ void metrics_csv::set_metrics(const ue_metrics_t& metrics, const uint32_t period
               "bler;"
               "rf_o;rf_"
               "u;rf_l;is_attached;"
-              "proc_rmem;proc_rmem_kB;proc_vmem;proc_vmem_kB;sys_mem;proc_cpu;thread_count\n";
+              "proc_rmem;proc_rmem_kB;proc_vmem_kB;sys_mem;sys_load;thread_count";
+
+      // Add the cores.
+      for (uint32_t i = 0, e = metrics.sys.cpu_count; i != e; ++i) {
+        file << ";cpu_" << std::to_string(i);
+      }
+
+      // Add the new line.
+      file << "\n";
     }
 
     for (uint32_t r = 0; r < metrics.phy.nof_active_cc; r++) {
@@ -165,14 +164,18 @@ void metrics_csv::set_metrics(const ue_metrics_t& metrics, const uint32_t period
       file << (metrics.stack.rrc.state == RRC_STATE_CONNECTED ? "1.0" : "0.0") << ";";
 
       // Write system metrics.
-      const srslte::sys_metrics_t& m = metrics.sys;
+      const srsran::sys_metrics_t& m = metrics.sys;
       file << float_to_string(m.process_realmem, 2);
       file << std::to_string(m.process_realmem_kB) << ";";
-      file << float_to_string(m.process_virtualmem, 2);
       file << std::to_string(m.process_virtualmem_kB) << ";";
       file << float_to_string(m.system_mem, 2);
       file << float_to_string(m.process_cpu_usage, 2);
-      file << std::to_string(m.thread_count);
+      file << std::to_string(m.thread_count) << ";";
+
+      // Write the cpu metrics.
+      for (uint32_t i = 0, e = m.cpu_count, last_cpu_index = e - 1; i != e; ++i) {
+        file << float_to_string(m.cpu_load[i], 2, (i != last_cpu_index));
+      }
 
       file << "\n";
     }

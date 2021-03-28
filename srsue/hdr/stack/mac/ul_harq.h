@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -24,12 +15,12 @@
 
 #include "mux.h"
 #include "proc_ra.h"
-#include "srslte/common/interfaces_common.h"
-#include "srslte/common/mac_pcap.h"
-#include "srslte/common/timers.h"
+#include "srsran/common/interfaces_common.h"
+#include "srsran/common/mac_pcap.h"
+#include "srsran/common/timers.h"
 #include "ul_sps.h"
 
-using namespace srslte;
+using namespace srsran;
 
 namespace srsue {
 
@@ -42,9 +33,9 @@ public:
 
   void reset();
   void reset_ndi();
-  void set_config(srslte::ul_harq_cfg_t& harq_cfg);
+  void set_config(srsran::ul_harq_cfg_t& harq_cfg);
 
-  void start_pcap(srslte::mac_pcap* pcap_);
+  void start_pcap(srsran::mac_pcap* pcap_);
 
   /***************** PHY->MAC interface for UL processes **************************/
   void new_grant_ul(mac_interface_phy_lte::mac_grant_ul_t grant, mac_interface_phy_lte::tb_action_ul_t* action);
@@ -86,7 +77,7 @@ private:
 
     srslog::basic_logger&  logger;
     ul_harq_entity*        harq_entity;
-    srslte_softbuffer_tx_t softbuffer;
+    srsran_softbuffer_tx_t softbuffer;
 
     const static int               payload_buffer_len = 128 * 1024;
     std::unique_ptr<byte_buffer_t> payload_buffer     = nullptr;
@@ -102,11 +93,11 @@ private:
   std::vector<ul_harq_process> proc;
 
   mux*                  mux_unit = nullptr;
-  srslte::mac_pcap*     pcap     = nullptr;
+  srsran::mac_pcap*     pcap     = nullptr;
   srslog::basic_logger& logger;
 
   mac_interface_rrc_common::ue_rnti_t* rntis    = nullptr;
-  srslte::ul_harq_cfg_t                harq_cfg = {};
+  srsran::ul_harq_cfg_t                harq_cfg = {};
 
   float    average_retx = 0.0;
   uint64_t nof_pkts     = 0;
@@ -116,7 +107,7 @@ private:
 };
 
 typedef std::unique_ptr<ul_harq_entity>                     ul_harq_entity_ptr;
-typedef std::array<ul_harq_entity_ptr, SRSLTE_MAX_CARRIERS> ul_harq_entity_vector;
+typedef std::array<ul_harq_entity_ptr, SRSRAN_MAX_CARRIERS> ul_harq_entity_vector;
 
 } // namespace srsue
 

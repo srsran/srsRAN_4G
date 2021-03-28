@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -24,7 +15,7 @@
 
 #include "sched_grid.h"
 #include "sched_ue.h"
-#include "srslte/interfaces/sched_interface.h"
+#include "srsran/interfaces/sched_interface.h"
 #include <atomic>
 #include <map>
 #include <mutex>
@@ -82,15 +73,15 @@ public:
   /* Custom functions
    */
   void                                  set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs) final;
-  std::array<int, SRSLTE_MAX_CARRIERS>  get_enb_ue_cc_map(uint16_t rnti) final;
-  std::array<bool, SRSLTE_MAX_CARRIERS> get_scell_activation_mask(uint16_t rnti) final;
+  std::array<int, SRSRAN_MAX_CARRIERS>  get_enb_ue_cc_map(uint16_t rnti) final;
+  std::array<bool, SRSRAN_MAX_CARRIERS> get_scell_activation_mask(uint16_t rnti) final;
   int                                   ul_buffer_add(uint16_t rnti, uint32_t lcid, uint32_t bytes) final;
 
   class carrier_sched;
 
 protected:
-  void new_tti(srslte::tti_point tti_rx);
-  bool is_generated(srslte::tti_point, uint32_t enb_cc_idx) const;
+  void new_tti(srsran::tti_point tti_rx);
+  bool is_generated(srsran::tti_point, uint32_t enb_cc_idx) const;
   // Helper methods
   template <typename Func>
   int ue_db_access_locked(uint16_t rnti, Func&& f, const char* func_name = nullptr);
@@ -108,7 +99,7 @@ protected:
   // Storage of past scheduling results
   sched_result_ringbuffer sched_results;
 
-  srslte::tti_point last_tti;
+  srsran::tti_point last_tti;
   std::mutex        sched_mutex;
   bool              configured;
 };

@@ -1,26 +1,17 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #include "srsenb/hdr/stack/rrc/rrc_cell_cfg.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/utils/vector.h"
 
 using namespace asn1::rrc;
 
@@ -51,7 +42,7 @@ enb_cell_common_list::enb_cell_common_list(const rrc_cfg_t& cfg_) : cfg(cfg_)
     cell_access->cell_id.from_number((cfg.enb_id << 8u) + new_cell->cell_cfg.cell_id);
     cell_access->tac.from_number(new_cell->cell_cfg.tac);
     // Update DL EARFCN
-    new_cell->sib1.freq_band_ind = (uint8_t)srslte_band_get_band(new_cell->cell_cfg.dl_earfcn);
+    new_cell->sib1.freq_band_ind = (uint8_t)srsran_band_get_band(new_cell->cell_cfg.dl_earfcn);
 
     // Set Cell SIB2
     // update PRACH root seq index for this cell
@@ -342,9 +333,9 @@ bool ue_cell_ded_list::alloc_cqi_resources(uint32_t ue_cc_idx, uint32_t period)
   }
 
   const auto& pcell_pucch_cfg   = get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->sib2.rr_cfg_common.pucch_cfg_common;
-  uint32_t    c                 = SRSLTE_CP_ISNORM(cfg.cell.cp) ? 3 : 2;
+  uint32_t    c                 = SRSRAN_CP_ISNORM(cfg.cell.cp) ? 3 : 2;
   uint32_t    delta_pucch_shift = pcell_pucch_cfg.delta_pucch_shift.to_number();
-  delta_pucch_shift             = SRSLTE_MAX(1, delta_pucch_shift);
+  delta_pucch_shift             = SRSRAN_MAX(1, delta_pucch_shift);
   uint32_t max_users            = 12 * c / delta_pucch_shift;
 
   // Allocate all CQI resources for all carriers now
@@ -447,9 +438,9 @@ bool ue_cell_ded_list::alloc_sr_resources(uint32_t period)
     return false;
   }
 
-  uint32_t c                 = SRSLTE_CP_ISNORM(cfg.cell.cp) ? 3 : 2;
+  uint32_t c                 = SRSRAN_CP_ISNORM(cfg.cell.cp) ? 3 : 2;
   uint32_t delta_pucch_shift = cell->cell_common->sib2.rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
-  delta_pucch_shift          = SRSLTE_MAX(1, delta_pucch_shift); // prevent div by zero
+  delta_pucch_shift          = SRSRAN_MAX(1, delta_pucch_shift); // prevent div by zero
   uint32_t max_users         = 12 * c / delta_pucch_shift;
 
   // Find freq-time resources with least number of users

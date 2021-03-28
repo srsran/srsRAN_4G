@@ -23,7 +23,7 @@ set(CTEST_LABELS "srsenb;phy")
 add_executable(enb_phy_test enb_phy_test.cc)
 target_link_libraries(enb_phy_test
         srsenb_phy
-        srslte_phy
+        srsran_phy
         rrc_asn1
         ${CMAKE_THREAD_LIBS_INIT}
         ${Boost_LIBRARIES})

@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -29,17 +20,17 @@
 
 #include "mac_nr/mac_nr.h"
 #include "rrc/rrc_nr.h"
-#include "srslte/radio/radio.h"
-#include "srslte/upper/pdcp.h"
-#include "srslte/upper/rlc.h"
+#include "srsran/radio/radio.h"
+#include "srsran/upper/pdcp.h"
+#include "srsran/upper/rlc.h"
 #include "upper/nas.h"
 #include "upper/usim.h"
 
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/mac_pcap.h"
-#include "srslte/common/multiqueue.h"
-#include "srslte/common/thread_pool.h"
-#include "srslte/interfaces/ue_nr_interfaces.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/common/mac_pcap.h"
+#include "srsran/common/multiqueue.h"
+#include "srsran/common/thread_pool.h"
+#include "srsran/interfaces/ue_nr_interfaces.h"
 
 #include "srsue/hdr/ue_metrics_interface.h"
 #include "ue_stack_base.h"
@@ -55,7 +46,7 @@ class ue_stack_nr final : public ue_stack_base,
                           public stack_interface_phy_nr,
                           public stack_interface_gw,
                           public stack_interface_rrc,
-                          public srslte::thread
+                          public srsran::thread
 {
 public:
   ue_stack_nr();
@@ -87,7 +78,7 @@ public:
   int          sf_indication(const uint32_t tti)
   {
     run_tti(tti);
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
   void tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant) final { mac->tb_decoded(cc_idx, grant); }
   void new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, tb_action_ul_t* action) final
@@ -100,11 +91,11 @@ public:
   }
 
   // Interface for GW
-  void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu) final;
+  void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu) final;
   bool is_lcid_enabled(uint32_t lcid) final { return pdcp->is_lcid_enabled(lcid); }
 
   // Interface for RRC
-  srslte::tti_point get_current_tti() { return srslte::tti_point{0}; };
+  srsran::tti_point get_current_tti() { return srsran::tti_point{0}; };
 
 private:
   void run_thread() final;
@@ -115,8 +106,8 @@ private:
   srsue::stack_args_t args    = {};
 
   // task scheduler
-  srslte::task_scheduler                task_sched;
-  srslte::task_multiqueue::queue_handle sync_task_queue, ue_task_queue, gw_task_queue;
+  srsran::task_scheduler                task_sched;
+  srsran::task_multiqueue::queue_handle sync_task_queue, ue_task_queue, gw_task_queue;
 
   // UE stack logging
   srslog::basic_logger& mac_logger;
@@ -126,8 +117,8 @@ private:
   // stack components
   std::unique_ptr<mac_nr>       mac;
   std::unique_ptr<rrc_nr>       rrc;
-  std::unique_ptr<srslte::rlc>  rlc;
-  std::unique_ptr<srslte::pdcp> pdcp;
+  std::unique_ptr<srsran::rlc>  rlc;
+  std::unique_ptr<srsran::pdcp> pdcp;
 
   // RAT-specific interfaces
   phy_interface_stack_nr* phy = nullptr;

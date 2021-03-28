@@ -19,4 +19,4 @@
 #
 
 file(GLOB SOURCES "*.c")
-add_library(srslte_io OBJECT ${SOURCES})
+add_library(srsran_io OBJECT ${SOURCES})

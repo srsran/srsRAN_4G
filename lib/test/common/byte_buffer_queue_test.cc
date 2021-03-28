@@ -1,31 +1,22 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #define NMSGS 1000000
 
-#include "srslte/common/buffer_pool.h"
-#include "srslte/upper/byte_buffer_queue.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/upper/byte_buffer_queue.h"
 #include <stdio.h>
 
-using namespace srslte;
+using namespace srsran;
 
 typedef struct {
   byte_buffer_queue* q;
@@ -35,7 +26,10 @@ void* write_thread(void* a)
 {
   args_t* args = (args_t*)a;
   for (uint32_t i = 0; i < NMSGS; i++) {
-    unique_byte_buffer_t b = srslte::make_byte_buffer();
+    unique_byte_buffer_t b = srsran::make_byte_buffer();
+    if (b == nullptr) {
+      return nullptr;
+    }
     memcpy(b->msg, &i, 4);
     b->N_bytes = 4;
     args->q->write(std::move(b));

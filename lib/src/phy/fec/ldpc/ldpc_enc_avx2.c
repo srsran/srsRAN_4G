@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -33,10 +24,10 @@
 
 #include "../utils_avx2.h"
 #include "ldpc_enc_all.h"
-#include "srslte/phy/fec/ldpc/base_graph.h"
-#include "srslte/phy/fec/ldpc/ldpc_encoder.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/fec/ldpc/base_graph.h"
+#include "srsran/phy/fec/ldpc/ldpc_encoder.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/vector.h"
 
 #ifdef LV_HAVE_AVX2
 
@@ -48,7 +39,7 @@
  * \brief Represents a node of the base factor graph.
  */
 typedef union bg_node_t {
-  uint8_t* c; /*!< Each base node may contain up to \ref SRSLTE_AVX2_B_SIZE lifted nodes. */
+  uint8_t* c; /*!< Each base node may contain up to \ref SRSRAN_AVX2_B_SIZE lifted nodes. */
   __m256i* v; /*!< All the lifted nodes of the current base node as a 256-bit line. */
 } bg_node_t;
 
@@ -100,20 +91,20 @@ static __m256i rotate_node_left(__m256i a, int imm, uint16_t ls);
  */
 static __m256i rotate_node_right(__m256i a, int imm, uint16_t ls);
 
-void* create_ldpc_enc_avx2(srslte_ldpc_encoder_t* q)
+void* create_ldpc_enc_avx2(srsran_ldpc_encoder_t* q)
 {
   struct ldpc_enc_avx2* vp = NULL;
 
-  if ((vp = SRSLTE_MEM_ALLOC(struct ldpc_enc_avx2, 1)) == NULL) {
+  if ((vp = SRSRAN_MEM_ALLOC(struct ldpc_enc_avx2, 1)) == NULL) {
     return NULL;
   }
 
-  if ((vp->codeword.v = SRSLTE_MEM_ALLOC(__m256i, q->bgN)) == NULL) {
+  if ((vp->codeword.v = SRSRAN_MEM_ALLOC(__m256i, q->bgN)) == NULL) {
     delete_ldpc_enc_avx2(vp);
     return NULL;
   }
 
-  if ((vp->aux = SRSLTE_MEM_ALLOC(__m256i, q->bgM)) == NULL) {
+  if ((vp->aux = SRSRAN_MEM_ALLOC(__m256i, q->bgM)) == NULL) {
     delete_ldpc_enc_avx2(vp);
     return NULL;
   }
@@ -146,17 +137,17 @@ int load_avx2(void* p, const uint8_t* input, const uint8_t msg_len, const uint8_
   }
 
   int ini       = 0;
-  int node_size = SRSLTE_AVX2_B_SIZE;
+  int node_size = SRSRAN_AVX2_B_SIZE;
   for (int i = 0; i < msg_len * ls; i = i + ls) {
     for (int k = 0; k < ls; k++) {
       vp->codeword.c[ini + k] = input[i + k];
     }
     // this zero padding can be removed
-    srslte_vec_u8_zero(&vp->codeword.c[ini + ls], node_size - ls);
+    srsran_vec_u8_zero(&vp->codeword.c[ini + ls], node_size - ls);
     ini = ini + node_size;
   }
 
-  SRSLTE_MEM_ZERO(vp->codeword.v + msg_len, __m256i, cdwd_len - msg_len);
+  SRSRAN_MEM_ZERO(vp->codeword.v + msg_len, __m256i, cdwd_len - msg_len);
 
   return 0;
 }
@@ -169,17 +160,17 @@ int return_codeword_avx2(void* p, uint8_t* output, const uint8_t cdwd_len, const
     return -1;
   }
 
-  int ini = SRSLTE_AVX2_B_SIZE + SRSLTE_AVX2_B_SIZE;
+  int ini = SRSRAN_AVX2_B_SIZE + SRSRAN_AVX2_B_SIZE;
   for (int i = 0; i < (cdwd_len - 2) * ls; i = i + ls) {
     for (int k = 0; k < ls; k++) {
       output[i + k] = vp->codeword.c[ini + k];
     }
-    ini = ini + SRSLTE_AVX2_B_SIZE;
+    ini = ini + SRSRAN_AVX2_B_SIZE;
   }
   return 0;
 }
 
-void encode_ext_region_avx2(srslte_ldpc_encoder_t* q, uint8_t n_layers)
+void encode_ext_region_avx2(srsran_ldpc_encoder_t* q, uint8_t n_layers)
 {
   struct ldpc_enc_avx2* vp = q->ptr;
 
@@ -210,7 +201,7 @@ void encode_ext_region_avx2(srslte_ldpc_encoder_t* q, uint8_t n_layers)
   }
 }
 
-void preprocess_systematic_bits_avx2(srslte_ldpc_encoder_t* q)
+void preprocess_systematic_bits_avx2(srsran_ldpc_encoder_t* q)
 {
   struct ldpc_enc_avx2* vp = q->ptr;
 
@@ -251,7 +242,7 @@ void preprocess_systematic_bits_avx2(srslte_ldpc_encoder_t* q)
 
 void encode_high_rate_case1_avx2(void* o)
 {
-  srslte_ldpc_encoder_t* q  = o;
+  srsran_ldpc_encoder_t* q  = o;
   struct ldpc_enc_avx2*  vp = q->ptr;
 
   int ls = q->ls;
@@ -277,7 +268,7 @@ void encode_high_rate_case1_avx2(void* o)
 
 void encode_high_rate_case2_avx2(void* o)
 {
-  srslte_ldpc_encoder_t* q  = o;
+  srsran_ldpc_encoder_t* q  = o;
   struct ldpc_enc_avx2*  vp = q->ptr;
 
   int ls = q->ls;
@@ -303,7 +294,7 @@ void encode_high_rate_case2_avx2(void* o)
 
 void encode_high_rate_case3_avx2(void* o)
 {
-  srslte_ldpc_encoder_t* q  = o;
+  srsran_ldpc_encoder_t* q  = o;
   struct ldpc_enc_avx2*  vp = q->ptr;
 
   int ls = q->ls;
@@ -329,7 +320,7 @@ void encode_high_rate_case3_avx2(void* o)
 
 void encode_high_rate_case4_avx2(void* o)
 {
-  srslte_ldpc_encoder_t* q  = o;
+  srsran_ldpc_encoder_t* q  = o;
   struct ldpc_enc_avx2*  vp = q->ptr;
 
   int ls = q->ls;
@@ -411,7 +402,7 @@ static __m256i rotate_node_left(__m256i a, int imm, uint16_t ls)
     return a;
   }
   __m256i step1 = _mm256_rotatelli_si256(a, imm);
-  if (ls == SRSLTE_AVX2_B_SIZE) {
+  if (ls == SRSRAN_AVX2_B_SIZE) {
     return step1;
   }
 
@@ -432,7 +423,7 @@ static __m256i rotate_node_right(__m256i a, int imm, uint16_t ls)
     return a;
   }
   __m256i step1 = _mm256_rotaterli_si256(a, imm);
-  if (ls == SRSLTE_AVX2_B_SIZE) {
+  if (ls == SRSRAN_AVX2_B_SIZE) {
     return step1;
   }
 

@@ -1,28 +1,19 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #include "sched_test_common.h"
 #include "sched_test_utils.h"
 #include "srsenb/hdr/stack/mac/sched.h"
-#include "srslte/mac/pdu.h"
+#include "srsran/mac/pdu.h"
 
 using namespace srsenb;
 
@@ -36,7 +27,7 @@ uint32_t seed = std::chrono::system_clock::now().time_since_epoch().count();
 class sched_diagnostic_printer
 {
 public:
-  explicit sched_diagnostic_printer(srslte::log_sink_spy& s) : s(s) {}
+  explicit sched_diagnostic_printer(srsran::log_sink_spy& s) : s(s) {}
 
   ~sched_diagnostic_printer()
   {
@@ -48,7 +39,7 @@ public:
   }
 
 private:
-  srslte::log_sink_spy& s;
+  srsran::log_sink_spy& s;
 };
 
 /******************************
@@ -166,7 +157,7 @@ int test_scell_activation(uint32_t sim_number, test_scell_activation_params para
     }
   };
   generate_data(20, 1.0, P_ul_sr, randf());
-  TESTASSERT(tester.test_next_ttis(generator.tti_events) == SRSLTE_SUCCESS);
+  TESTASSERT(tester.test_next_ttis(generator.tti_events) == SRSRAN_SUCCESS);
 
   // Event: Reconf Complete. Activate SCells. Check if CE correctly transmitted
   generator.step_tti();
@@ -178,7 +169,7 @@ int test_scell_activation(uint32_t sim_number, test_scell_activation_params para
     user->ue_sim_cfg->ue_cfg.supported_cc_list[i].active     = true;
     user->ue_sim_cfg->ue_cfg.supported_cc_list[i].enb_cc_idx = cc_idxs[i];
   }
-  TESTASSERT(tester.test_next_ttis(generator.tti_events) == SRSLTE_SUCCESS);
+  TESTASSERT(tester.test_next_ttis(generator.tti_events) == SRSRAN_SUCCESS);
   auto activ_list = tester.get_enb_ue_cc_map(rnti1);
   for (uint32_t i = 0; i < cc_idxs.size(); ++i) {
     TESTASSERT(activ_list[i] >= 0);
@@ -191,12 +182,12 @@ int test_scell_activation(uint32_t sim_number, test_scell_activation_params para
       if (tester.tti_info.dl_sched_result[params.pcell_idx].data[0].nof_pdu_elems[0] > 0) {
         // it is a new DL tx
         TESTASSERT(tester.tti_info.dl_sched_result[params.pcell_idx].data[0].pdu[0][0].lcid ==
-                   (uint32_t)srslte::dl_sch_lcid::SCELL_ACTIVATION);
+                   (uint32_t)srsran::dl_sch_lcid::SCELL_ACTIVATION);
         break;
       }
     }
     generator.step_tti();
-    TESTASSERT(tester.test_next_ttis(generator.tti_events) == SRSLTE_SUCCESS);
+    TESTASSERT(tester.test_next_ttis(generator.tti_events) == SRSRAN_SUCCESS);
   }
 
   // Event: Wait for UE to receive and ack CE. Send cqi==0, which should not activate the SCell
@@ -207,12 +198,12 @@ int test_scell_activation(uint32_t sim_number, test_scell_activation_params para
       generator.step_tti();
     }
   }
-  TESTASSERT(tester.test_next_ttis(generator.tti_events) == SRSLTE_SUCCESS);
+  TESTASSERT(tester.test_next_ttis(generator.tti_events) == SRSRAN_SUCCESS);
   // The UE should now have received the CE
 
   // Event: Generate a bit more data, it should *not* go through SCells until we send a CQI
   generate_data(5, P_dl, P_ul_sr, randf());
-  TESTASSERT(tester.test_next_ttis(generator.tti_events) == SRSLTE_SUCCESS);
+  TESTASSERT(tester.test_next_ttis(generator.tti_events) == SRSRAN_SUCCESS);
   TESTASSERT(tester.sched_stats->users[rnti1].tot_dl_sched_data[params.pcell_idx] > 0);
   TESTASSERT(tester.sched_stats->users[rnti1].tot_ul_sched_data[params.pcell_idx] > 0);
   for (uint32_t i = 1; i < cc_idxs.size(); ++i) {
@@ -226,7 +217,7 @@ int test_scell_activation(uint32_t sim_number, test_scell_activation_params para
     tester.dl_cqi_info(tester.tti_rx.to_uint(), rnti1, cc_idxs[i], cqi);
   }
   generate_data(10, 1.0, 1.0, 1.0);
-  TESTASSERT(tester.test_next_ttis(generator.tti_events) == SRSLTE_SUCCESS);
+  TESTASSERT(tester.test_next_ttis(generator.tti_events) == SRSRAN_SUCCESS);
   uint64_t tot_dl_sched_data = 0;
   uint64_t tot_ul_sched_data = 0;
   for (const auto& c : cc_idxs) {
@@ -239,7 +230,7 @@ int test_scell_activation(uint32_t sim_number, test_scell_activation_params para
 
   srslog::flush();
   printf("[TESTER] Sim%d finished successfully\n\n", sim_number);
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int main()
@@ -249,14 +240,14 @@ int main()
 
   // Setup the log spy to intercept error and warning log entries.
   if (!srslog::install_custom_sink(
-          srslte::log_sink_spy::name(),
-          std::unique_ptr<srslte::log_sink_spy>(new srslte::log_sink_spy(srslog::get_default_log_formatter())))) {
-    return SRSLTE_ERROR;
+          srsran::log_sink_spy::name(),
+          std::unique_ptr<srsran::log_sink_spy>(new srsran::log_sink_spy(srslog::get_default_log_formatter())))) {
+    return SRSRAN_ERROR;
   }
 
-  auto* spy = static_cast<srslte::log_sink_spy*>(srslog::find_sink(srslte::log_sink_spy::name()));
+  auto* spy = static_cast<srsran::log_sink_spy*>(srslog::find_sink(srsran::log_sink_spy::name()));
   if (!spy) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   auto& mac_log = srslog::fetch_basic_logger("MAC");
@@ -276,11 +267,11 @@ int main()
 
     test_scell_activation_params p = {};
     p.pcell_idx                    = 0;
-    TESTASSERT(test_scell_activation(n * 2, p) == SRSLTE_SUCCESS);
+    TESTASSERT(test_scell_activation(n * 2, p) == SRSRAN_SUCCESS);
 
     p           = {};
     p.pcell_idx = 1;
-    TESTASSERT(test_scell_activation(n * 2 + 1, p) == SRSLTE_SUCCESS);
+    TESTASSERT(test_scell_activation(n * 2 + 1, p) == SRSRAN_SUCCESS);
   }
 
   srslog::flush();

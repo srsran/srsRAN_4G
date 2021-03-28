@@ -1,29 +1,20 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #include "../sched_common.h"
 #include "sched_result.h"
 
-#ifndef SRSLTE_PDCCH_SCHED_H
-#define SRSLTE_PDCCH_SCHED_H
+#ifndef SRSRAN_PDCCH_SCHED_H
+#define SRSRAN_PDCCH_SCHED_H
 
 namespace srsenb {
 
@@ -36,15 +27,15 @@ public:
   const static uint32_t MAX_CFI = 3;
   struct tree_node {
     int8_t                pucch_n_prb = -1; ///< this PUCCH resource identifier
-    uint16_t              rnti        = SRSLTE_INVALID_RNTI;
+    uint16_t              rnti        = SRSRAN_INVALID_RNTI;
     uint32_t              record_idx  = 0;
     uint32_t              dci_pos_idx = 0;
-    srslte_dci_location_t dci_pos     = {0, 0};
+    srsran_dci_location_t dci_pos     = {0, 0};
     /// Accumulation of all PDCCH masks for the current solution (DFS path)
     pdcch_mask_t total_mask, current_mask;
     prbmask_t    total_pucch_mask;
   };
-  using alloc_result_t = srslte::bounded_vector<const tree_node*, 16>;
+  using alloc_result_t = srsran::bounded_vector<const tree_node*, 16>;
 
   sf_cch_allocator() : logger(srslog::fetch_basic_logger("MAC")) {}
 
@@ -86,7 +77,7 @@ private:
   // consts
   const sched_cell_params_t* cc_cfg = nullptr;
   srslog::basic_logger&      logger;
-  srslte_pucch_cfg_t         pucch_cfg_common = {};
+  srsran_pucch_cfg_t         pucch_cfg_common = {};
 
   // tti vars
   tti_point                 tti_rx;
@@ -97,8 +88,8 @@ private:
 };
 
 // Helper methods
-bool is_pucch_sr_collision(const srslte_pucch_cfg_t& ue_pucch_cfg, tti_point tti_tx_dl_ack, uint32_t n1_pucch);
+bool is_pucch_sr_collision(const srsran_pucch_cfg_t& ue_pucch_cfg, tti_point tti_tx_dl_ack, uint32_t n1_pucch);
 
 } // namespace srsenb
 
-#endif // SRSLTE_PDCCH_SCHED_H
+#endif // SRSRAN_PDCCH_SCHED_H

@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -39,11 +30,11 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "srslte/phy/fec/ldpc/ldpc_common.h"
-#include "srslte/phy/fec/ldpc/ldpc_decoder.h"
-#include "srslte/phy/utils/debug.h"
+#include "srsran/phy/fec/ldpc/ldpc_common.h"
+#include "srsran/phy/fec/ldpc/ldpc_decoder.h"
+#include "srsran/phy/utils/debug.h"
 
-srslte_basegraph_t base_graph = BG1; /*!< \brief Base Graph (BG1 or BG2). */
+srsran_basegraph_t base_graph = BG1; /*!< \brief Base Graph (BG1 or BG2). */
 int                lift_size  = 2;   /*!< \brief Lifting Size. */
 int                finalK;           /*!< \brief Number of uncoded bits (message length). */
 int                finalN;           /*!< \brief Number of coded bits (codeword length). */
@@ -158,12 +149,12 @@ int main(int argc, char** argv)
 
   parse_args(argc, argv);
 
-  srslte_ldpc_decoder_type_t dectype =
-      (scheduling == 0) ? SRSLTE_LDPC_DECODER_C_AVX512 : SRSLTE_LDPC_DECODER_C_AVX512_FLOOD;
+  srsran_ldpc_decoder_type_t dectype =
+      (scheduling == 0) ? SRSRAN_LDPC_DECODER_C_AVX512 : SRSRAN_LDPC_DECODER_C_AVX512_FLOOD;
 
   // create an LDPC decoder
-  srslte_ldpc_decoder_t decoder;
-  if (srslte_ldpc_decoder_init(&decoder, dectype, base_graph, lift_size, 1) != 0) {
+  srsran_ldpc_decoder_t decoder;
+  if (srsran_ldpc_decoder_init(&decoder, dectype, base_graph, lift_size, 1) != 0) {
     perror("decoder init");
     exit(-1);
   }
@@ -215,7 +206,7 @@ int main(int argc, char** argv)
     printf("  codeword %d\n", j);
     gettimeofday(&t[1], NULL);
     for (l = 0; l < nof_reps; l++) {
-      srslte_ldpc_decoder_decode_rm_c(&decoder, symbols + j * finalN, messages_sim + j * finalK, finalN);
+      srsran_ldpc_decoder_decode_rm_c(&decoder, symbols + j * finalN, messages_sim + j * finalK, finalN);
     }
 
     gettimeofday(&t[2], NULL);
@@ -243,5 +234,5 @@ int main(int argc, char** argv)
   free(codewords);
   free(messages_sim);
   free(messages_true);
-  srslte_ldpc_decoder_free(&decoder);
+  srsran_ldpc_decoder_free(&decoder);
 }

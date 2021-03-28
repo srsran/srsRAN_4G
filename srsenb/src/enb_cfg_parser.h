@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -31,7 +22,7 @@
 #include <string>
 
 #include "srsenb/hdr/stack/rrc/rrc.h"
-#include "srslte/asn1/asn1_utils.h"
+#include "srsran/asn1/asn1_utils.h"
 
 namespace srsenb {
 
@@ -45,9 +36,9 @@ bool sib_is_present(const asn1::rrc::sched_info_list_l& l, asn1::rrc::sib_type_e
 // enb.conf parsing
 namespace enb_conf_sections {
 
-int parse_cell_cfg(all_args_t* args_, srslte_cell_t* cell);
+int parse_cell_cfg(all_args_t* args_, srsran_cell_t* cell);
 int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_);
-int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_, const srslte_cell_t& cell_cfg_);
+int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_, const srsran_cell_t& cell_cfg_);
 
 } // namespace enb_conf_sections
 

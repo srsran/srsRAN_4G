@@ -1,30 +1,21 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
-#include "srslte/upper/gtpu.h"
-#include "srslte/common/int_helpers.h"
+#include "srsran/upper/gtpu.h"
+#include "srsran/common/int_helpers.h"
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-namespace srslte {
+namespace srsran {
 
 const static size_t HEADER_PDCP_PDU_NUMBER_SIZE = 4;
 
@@ -32,7 +23,7 @@ const static size_t HEADER_PDCP_PDU_NUMBER_SIZE = 4;
  * Header pack/unpack helper functions
  * Ref: 3GPP TS 29.281 v10.1.0 Section 5
  ***************************************************************************/
-bool gtpu_write_header(gtpu_header_t* header, srslte::byte_buffer_t* pdu, srslog::basic_logger& logger)
+bool gtpu_write_header(gtpu_header_t* header, srsran::byte_buffer_t* pdu, srslog::basic_logger& logger)
 {
   // flags
   if (!gtpu_supported_flags_check(header, logger)) {
@@ -112,7 +103,7 @@ bool gtpu_write_header(gtpu_header_t* header, srslte::byte_buffer_t* pdu, srslog
   return true;
 }
 
-bool gtpu_read_ext_header(srslte::byte_buffer_t* pdu,
+bool gtpu_read_ext_header(srsran::byte_buffer_t* pdu,
                           uint8_t**              ptr,
                           gtpu_header_t*         header,
                           srslog::basic_logger&  logger)
@@ -136,7 +127,7 @@ bool gtpu_read_ext_header(srslte::byte_buffer_t* pdu,
   return true;
 }
 
-bool gtpu_read_header(srslte::byte_buffer_t* pdu, gtpu_header_t* header, srslog::basic_logger& logger)
+bool gtpu_read_header(srsran::byte_buffer_t* pdu, gtpu_header_t* header, srslog::basic_logger& logger)
 {
   uint8_t* ptr = pdu->msg;
 
@@ -201,4 +192,4 @@ void gtpu_ntoa(fmt::memory_buffer& buffer, uint32_t addr)
   }
 }
 
-} // namespace srslte
+} // namespace srsran

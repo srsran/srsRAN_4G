@@ -18,7 +18,7 @@ DESCRIPTION
     - 75 Mbps DL in 20 MHz SISO configuration in i7 Quad-Core CPU.
     - 36 Mbps DL in 10 MHz SISO configuration in i5 Dual-Core CPU.
 
-  An example configuration file is available in /usr/share/srslte/ue.conf.example
+  An example configuration file is available in /usr/share/srsran/ue.conf.example
 
 OPTIONS
 

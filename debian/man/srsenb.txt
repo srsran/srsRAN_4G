@@ -18,7 +18,7 @@ DESCRIPTION
     - 75 Mbps DL in SISO configuration with commercial UEs
     - 50 Mbps UL in 20 MHz with commercial UEs
 
-  An example configuration file is available in /usr/share/srslte/enb.conf.example
+  An example configuration file is available in /usr/share/srsran/enb.conf.example
 
 OPTIONS
 

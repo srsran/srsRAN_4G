@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -25,8 +16,8 @@
 #include <sstream>
 
 extern "C" {
-SRSLTE_API char* srslte_get_build_info();
-SRSLTE_API char* srslte_get_build_mode();
+SRSRAN_API char* srsran_get_build_info();
+SRSRAN_API char* srsran_get_build_mode();
 }
 
 ttcn3_ue::ttcn3_ue() : logger(srslog::fetch_basic_logger("UE", false)), tft_matcher(logger) {}
@@ -36,7 +27,7 @@ int ttcn3_ue::init(all_args_t args, syssim_interface_phy* syssim_, const std::st
   // Init UE log
   logger.set_level(srslog::basic_levels::info);
   logger.set_hex_dump_max_size(128);
-  logger.info("Built in %s mode using %s.", srslte_get_build_mode(), srslte_get_build_info());
+  logger.info("Built in %s mode using %s.", srsran_get_build_mode(), srsran_get_build_info());
 
   // Patch args
   args.stack.nas.force_imsi_attach = true;
@@ -50,7 +41,7 @@ int ttcn3_ue::init(all_args_t args, syssim_interface_phy* syssim_, const std::st
   args.stack.usim.k    = "000102030405060708090A0B0C0D0E0F"; // fixed as per TS 34.108 Sec. 8.2
 
   args.stack.rrc.feature_group       = 0xe6041000;
-  args.stack.rrc.ue_category_str     = SRSLTE_UE_CATEGORY_DEFAULT;
+  args.stack.rrc.ue_category_str     = SRSRAN_UE_CATEGORY_DEFAULT;
   args.stack.rrc.ue_category         = strtol(args.stack.rrc.ue_category_str.c_str(), nullptr, 10);
   args.stack.rrc.nof_supported_bands = 1;
   args.stack.rrc.supported_bands[0]  = 7;
@@ -66,32 +57,32 @@ int ttcn3_ue::init(all_args_t args, syssim_interface_phy* syssim_, const std::st
   if (args.stack.type == "lte") {
     stack = std::unique_ptr<ue_stack_lte>(new ue_stack_lte);
     if (!stack) {
-      srslte::console("Error creating LTE stack instance.\n");
-      return SRSLTE_ERROR;
+      srsran::console("Error creating LTE stack instance.\n");
+      return SRSRAN_ERROR;
     }
 
     phy = std::unique_ptr<srsue::lte_ttcn3_phy>(new srsue::lte_ttcn3_phy);
     if (!phy) {
-      srslte::console("Error creating LTE PHY instance.\n");
-      return SRSLTE_ERROR;
+      srsran::console("Error creating LTE PHY instance.\n");
+      return SRSRAN_ERROR;
     }
   } else {
-    srslte::console("Invalid stack type %s. Supported values are [lte].\n", args.stack.type.c_str());
-    return SRSLTE_ERROR;
+    srsran::console("Invalid stack type %s. Supported values are [lte].\n", args.stack.type.c_str());
+    return SRSRAN_ERROR;
   }
 
   // init layers
   if (phy->init(args.phy, stack.get(), syssim_)) {
-    srslte::console("Error initializing PHY.\n");
-    return SRSLTE_ERROR;
+    srsran::console("Error initializing PHY.\n");
+    return SRSRAN_ERROR;
   }
 
   if (stack->init(args.stack, phy.get(), this)) {
-    srslte::console("Error initializing stack.\n");
-    return SRSLTE_ERROR;
+    srsran::console("Error initializing stack.\n");
+    return SRSRAN_ERROR;
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 ttcn3_ue::~ttcn3_ue()
@@ -159,7 +150,7 @@ uint16_t ttcn3_ue::get_dl_sched_rnti(uint32_t tti)
 
 // GW interface
 void ttcn3_ue::add_mch_port(uint32_t lcid, uint32_t port) {}
-void ttcn3_ue::write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
+void ttcn3_ue::write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
   logger.debug(pdu->msg, pdu->N_bytes, "Rx PDU (%d B) on lcid=%d", pdu->N_bytes, lcid);
   switch (test_loop_mode) {
@@ -187,7 +178,7 @@ void ttcn3_ue::write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
       break;
   }
 }
-void ttcn3_ue::write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
+void ttcn3_ue::write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t pdu) {}
 int  ttcn3_ue::setup_if_addr(uint32_t eps_bearer_id,
                             uint32_t lcid,
                             uint8_t  pdn_type,
@@ -199,7 +190,7 @@ int  ttcn3_ue::setup_if_addr(uint32_t eps_bearer_id,
 }
 int ttcn3_ue::update_lcid(uint32_t eps_bearer_id, uint32_t new_lcid)
 {
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int ttcn3_ue::apply_traffic_flow_template(const uint8_t&                                 eps_bearer_id,
@@ -255,14 +246,14 @@ void ttcn3_ue::send_queued_data()
   for (auto& bearer_pdu_queue : pdu_queue) {
     logger.info("Delivering %zd buffered PDUs for LCID=%d", bearer_pdu_queue.second.size(), bearer_pdu_queue.first);
     while (not bearer_pdu_queue.second.empty()) {
-      srslte::unique_byte_buffer_t pdu;
+      srsran::unique_byte_buffer_t pdu;
       bearer_pdu_queue.second.try_pop(&pdu);
       loop_back_pdu_with_tft(bearer_pdu_queue.first, std::move(pdu));
     }
   }
 }
 
-void ttcn3_ue::loop_back_pdu_with_tft(uint32_t input_lcid, srslte::unique_byte_buffer_t pdu)
+void ttcn3_ue::loop_back_pdu_with_tft(uint32_t input_lcid, srsran::unique_byte_buffer_t pdu)
 {
   logger.info(pdu->msg, pdu->N_bytes, "Rx PDU (%d B) on lcid=%d, looping back", pdu->N_bytes, input_lcid);
   stack->write_sdu(input_lcid, std::move(pdu));

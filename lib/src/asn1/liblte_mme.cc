@@ -15,8 +15,8 @@
                               INCLUDES
 *******************************************************************************/
 
-#include "srslte/asn1/liblte_mme.h"
-#include "srslte/common/liblte_security.h"
+#include "srsran/asn1/liblte_mme.h"
+#include "srsran/common/liblte_security.h"
 
 /*******************************************************************************
                               DEFINES
@@ -9116,7 +9116,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_deactivate_eps_bearer_context_request_msg(
     Document Reference: 24.301 v10.2.0 Section 8.3.13
 *********************************************************************/
 LIBLTE_ERROR_ENUM
-srslte_mme_pack_esm_information_request_msg(LIBLTE_MME_ESM_INFORMATION_REQUEST_MSG_STRUCT* esm_info_req,
+srsran_mme_pack_esm_information_request_msg(LIBLTE_MME_ESM_INFORMATION_REQUEST_MSG_STRUCT* esm_info_req,
                                             uint8                                          sec_hdr_type,
                                             uint32                                         count,
                                             LIBLTE_BYTE_MSG_STRUCT*                        msg)
@@ -9301,7 +9301,7 @@ liblte_mme_pack_esm_information_response_msg(LIBLTE_MME_ESM_INFORMATION_RESPONSE
 }
 
 LIBLTE_ERROR_ENUM
-srslte_mme_unpack_esm_information_response_msg(LIBLTE_BYTE_MSG_STRUCT*                         msg,
+srsran_mme_unpack_esm_information_response_msg(LIBLTE_BYTE_MSG_STRUCT*                         msg,
                                                LIBLTE_MME_ESM_INFORMATION_RESPONSE_MSG_STRUCT* esm_info_resp)
 {
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;

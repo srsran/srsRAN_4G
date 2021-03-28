@@ -1,37 +1,28 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
-#ifndef SRSLTE_PDCP_BASE_TEST_H
-#define SRSLTE_PDCP_BASE_TEST_H
+#ifndef SRSRAN_PDCP_BASE_TEST_H
+#define SRSRAN_PDCP_BASE_TEST_H
 
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/security.h"
-#include "srslte/common/test_common.h"
-#include "srslte/interfaces/pdcp_interface_types.h"
-#include "srslte/interfaces/ue_gw_interfaces.h"
-#include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/interfaces/ue_rlc_interfaces.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/common/security.h"
+#include "srsran/common/test_common.h"
+#include "srsran/interfaces/pdcp_interface_types.h"
+#include "srsran/interfaces/ue_gw_interfaces.h"
+#include "srsran/interfaces/ue_interfaces.h"
+#include "srsran/interfaces/ue_rlc_interfaces.h"
 #include <iostream>
 
-int compare_two_packets(const srslte::unique_byte_buffer_t& msg1, const srslte::unique_byte_buffer_t& msg2)
+int compare_two_packets(const srsran::unique_byte_buffer_t& msg1, const srsran::unique_byte_buffer_t& msg2)
 {
   TESTASSERT(msg1->N_bytes == msg2->N_bytes);
   TESTASSERT(memcmp(msg1->msg, msg2->msg, msg1->N_bytes) == 0);
@@ -46,12 +37,12 @@ class rlc_dummy : public srsue::rlc_interface_pdcp
 public:
   explicit rlc_dummy(srslog::basic_logger& logger) : logger(logger) {}
 
-  void get_last_sdu(const srslte::unique_byte_buffer_t& pdu)
+  void get_last_sdu(const srsran::unique_byte_buffer_t& pdu)
   {
     memcpy(pdu->msg, last_pdcp_pdu->msg, last_pdcp_pdu->N_bytes);
     pdu->N_bytes = last_pdcp_pdu->N_bytes;
   }
-  void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)
+  void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu)
   {
     logger.info(sdu->msg, sdu->N_bytes, "RLC SDU");
     last_pdcp_pdu.swap(sdu);
@@ -69,7 +60,7 @@ public:
 
 private:
   srslog::basic_logger&        logger;
-  srslte::unique_byte_buffer_t last_pdcp_pdu;
+  srsran::unique_byte_buffer_t last_pdcp_pdu;
 
   bool rb_is_um(uint32_t lcid) { return false; }
   bool sdu_queue_is_full(uint32_t lcid) { return false; };
@@ -80,10 +71,10 @@ class rrc_dummy : public srsue::rrc_interface_pdcp
 public:
   explicit rrc_dummy(srslog::basic_logger& logger) : logger(logger) {}
 
-  void write_pdu_bcch_bch(srslte::unique_byte_buffer_t pdu) {}
-  void write_pdu_bcch_dlsch(srslte::unique_byte_buffer_t pdu) {}
-  void write_pdu_pcch(srslte::unique_byte_buffer_t pdu) {}
-  void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
+  void write_pdu_bcch_bch(srsran::unique_byte_buffer_t pdu) {}
+  void write_pdu_bcch_dlsch(srsran::unique_byte_buffer_t pdu) {}
+  void write_pdu_pcch(srsran::unique_byte_buffer_t pdu) {}
+  void write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t pdu) {}
 
   std::string get_rb_name(uint32_t lcid) { return "None"; }
 
@@ -91,16 +82,16 @@ public:
 
   // Members for testing
   uint32_t                     rx_count = 0;
-  srslte::unique_byte_buffer_t last_pdu;
+  srsran::unique_byte_buffer_t last_pdu;
 
   // Methods for testing
-  void get_last_pdu(const srslte::unique_byte_buffer_t& pdu)
+  void get_last_pdu(const srsran::unique_byte_buffer_t& pdu)
   {
     memcpy(pdu->msg, last_pdu->msg, last_pdu->N_bytes);
     pdu->N_bytes = last_pdu->N_bytes;
   }
 
-  void write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
+  void write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
   {
     logger.info(pdu->msg, pdu->N_bytes, "RRC PDU");
     rx_count++;
@@ -113,15 +104,15 @@ class gw_dummy : public srsue::gw_interface_pdcp
 public:
   explicit gw_dummy(srslog::basic_logger& logger) : logger(logger) {}
 
-  void     write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
+  void     write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t pdu) {}
   uint32_t rx_count = 0;
 
-  void get_last_pdu(const srslte::unique_byte_buffer_t& pdu)
+  void get_last_pdu(const srsran::unique_byte_buffer_t& pdu)
   {
     memcpy(pdu->msg, last_pdu->msg, last_pdu->N_bytes);
     pdu->N_bytes = last_pdu->N_bytes;
   }
-  void write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
+  void write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
   {
     logger.info(pdu->msg, pdu->N_bytes, "GW PDU");
     rx_count++;
@@ -130,11 +121,11 @@ public:
 
 private:
   srslog::basic_logger&        logger;
-  srslte::unique_byte_buffer_t last_pdu;
+  srsran::unique_byte_buffer_t last_pdu;
 };
 
 // Helper to print packets
-void print_packet_array(const srslte::unique_byte_buffer_t& msg)
+void print_packet_array(const srsran::unique_byte_buffer_t& msg)
 {
   printf("uint8_t msg[] = {\n");
   for (uint64_t i = 0; i < msg->N_bytes; ++i) {
@@ -142,4 +133,4 @@ void print_packet_array(const srslte::unique_byte_buffer_t& msg)
   }
   printf("\n};\n");
 }
-#endif // SRSLTE_PDCP_BASE_TEST_H
+#endif // SRSRAN_PDCP_BASE_TEST_H

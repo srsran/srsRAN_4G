@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -25,14 +16,14 @@
 #include "rrc_config_common.h"
 #include "rrc_metrics.h"
 #include "srsenb/hdr/stack/enb_stack_base.h"
-#include "srslte/asn1/rrc_nr.h"
-#include "srslte/common/block_queue.h"
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/common.h"
-#include "srslte/common/task_scheduler.h"
-#include "srslte/common/threads.h"
-#include "srslte/common/timeout.h"
-#include "srslte/interfaces/gnb_interfaces.h"
+#include "srsran/asn1/rrc_nr.h"
+#include "srsran/common/block_queue.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/common/common.h"
+#include "srsran/common/task_scheduler.h"
+#include "srsran/common/threads.h"
+#include "srsran/common/timeout.h"
+#include "srsran/interfaces/gnb_interfaces.h"
 #include <map>
 #include <queue>
 
@@ -56,7 +47,7 @@ struct rrc_nr_cfg_t {
   uint32_t                                                nof_sibs;
   rrc_nr_cfg_sr_t                                         sr_cfg;
   rrc_cfg_cqi_t                                           cqi_cfg;
-  srslte_cell_t                                           cell;
+  srsran_cell_t                                           cell;
 
   std::string log_level;
   uint32_t    log_hex_limit;
@@ -70,15 +61,15 @@ class rrc_nr final : public rrc_interface_pdcp_nr,
                      public rrc_interface_ngap_nr
 {
 public:
-  explicit rrc_nr(srslte::timer_handler* timers_);
+  explicit rrc_nr(srsran::timer_handler* timers_);
 
-  void init(const rrc_nr_cfg_t&     cfg,
-            phy_interface_stack_nr* phy,
-            mac_interface_rrc_nr*   mac,
-            rlc_interface_rrc_nr*   rlc,
-            pdcp_interface_rrc_nr*  pdcp,
-            ngap_interface_rrc_nr*  ngap_,
-            gtpu_interface_rrc_nr*  gtpu);
+  int32_t init(const rrc_nr_cfg_t&     cfg,
+               phy_interface_stack_nr* phy,
+               mac_interface_rrc_nr*   mac,
+               rlc_interface_rrc_nr*   rlc,
+               pdcp_interface_rrc_nr*  pdcp,
+               ngap_interface_rrc_nr*  ngap_,
+               gtpu_interface_rrc_nr*  gtpu);
 
   void stop();
 
@@ -87,9 +78,9 @@ public:
   rrc_nr_cfg_t update_default_cfg(const rrc_nr_cfg_t& rrc_cfg);
   void         add_user(uint16_t rnti);
   void         config_mac();
-  uint32_t     generate_sibs();
-  int          read_pdu_bcch_bch(const uint32_t tti, srslte::unique_byte_buffer_t& buffer) final;
-  int          read_pdu_bcch_dlsch(uint32_t sib_index, srslte::unique_byte_buffer_t& buffer) final;
+  int32_t      generate_sibs();
+  int          read_pdu_bcch_bch(const uint32_t tti, srsran::unique_byte_buffer_t& buffer) final;
+  int          read_pdu_bcch_dlsch(uint32_t sib_index, srsran::unique_byte_buffer_t& buffer) final;
 
   // RLC interface
   // TODO
@@ -97,7 +88,7 @@ public:
   void max_retx_attempted(uint16_t rnti) {}
 
   // PDCP interface
-  void write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu) final;
+  void write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu) final;
 
   class ue
   {
@@ -121,7 +112,7 @@ public:
     // state
     rrc_nr_state_t                      state          = rrc_nr_state_t::RRC_IDLE;
     uint8_t                             transaction_id = 0;
-    srslte::timer_handler::unique_timer rrc_setup_periodic_timer;
+    srsran::timer_handler::unique_timer rrc_setup_periodic_timer;
   };
 
 private:
@@ -136,7 +127,7 @@ private:
   ngap_interface_rrc_nr*  ngap = nullptr;
 
   // args
-  srslte::timer_handler* timers = nullptr;
+  srsran::timer_handler* timers = nullptr;
 
   // derived
   uint32_t              slot_dur_ms = 0;
@@ -145,18 +136,18 @@ private:
   // vars
   std::map<uint16_t, std::unique_ptr<ue> >  users;
   bool                                      running = false;
-  std::vector<srslte::unique_byte_buffer_t> sib_buffer;
-  srslte::unique_byte_buffer_t              mib_buffer = nullptr;
+  std::vector<srsran::unique_byte_buffer_t> sib_buffer;
+  srsran::unique_byte_buffer_t              mib_buffer = nullptr;
 
   uint32_t nof_si_messages = 0;
 
   // Private Methods
-  void handle_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu);
+  void handle_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu);
 
   // logging
   typedef enum { Rx = 0, Tx } direction_t;
   template <class T>
-  void log_rrc_message(const std::string& source, direction_t dir, const srslte::byte_buffer_t* pdu, const T& msg);
+  void log_rrc_message(const std::string& source, direction_t dir, const srsran::byte_buffer_t* pdu, const T& msg);
 };
 
 } // namespace srsenb

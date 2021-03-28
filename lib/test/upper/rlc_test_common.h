@@ -1,33 +1,24 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
-#ifndef SRSLTE_RLC_TEST_COMMON_H
-#define SRSLTE_RLC_TEST_COMMON_H
+#ifndef SRSRAN_RLC_TEST_COMMON_H
+#define SRSRAN_RLC_TEST_COMMON_H
 
-#include "srslte/common/byte_buffer.h"
-#include "srslte/interfaces/ue_pdcp_interfaces.h"
-#include "srslte/interfaces/ue_rrc_interfaces.h"
+#include "srsran/common/byte_buffer.h"
+#include "srsran/interfaces/ue_pdcp_interfaces.h"
+#include "srsran/interfaces/ue_rrc_interfaces.h"
 #include <vector>
 
-namespace srslte {
+namespace srsran {
 
 class rlc_um_tester : public srsue::pdcp_interface_rlc, public srsue::rrc_interface_rlc
 {
@@ -48,20 +39,20 @@ public:
     for (uint32_t i = 0; i < sdu->N_bytes; i++) {
       if (sdu->msg[i] != first_byte) {
         printf("Received corrupted SDU with size %d. Exiting.\n", sdu->N_bytes);
-        srslte_vec_fprint_byte(stdout, sdu->msg, sdu->N_bytes);
+        srsran_vec_fprint_byte(stdout, sdu->msg, sdu->N_bytes);
         exit(-1);
       }
     }
 
-    // srslte_vec_fprint_byte(stdout, sdu->msg, sdu->N_bytes);
+    // srsran_vec_fprint_byte(stdout, sdu->msg, sdu->N_bytes);
     sdus.push_back(std::move(sdu));
   }
   void write_pdu_bcch_bch(unique_byte_buffer_t sdu) {}
   void write_pdu_bcch_dlsch(unique_byte_buffer_t sdu) {}
   void write_pdu_pcch(unique_byte_buffer_t sdu) {}
-  void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu) { sdus.push_back(std::move(sdu)); }
-  void notify_delivery(uint32_t lcid, const srslte::pdcp_sn_vector_t& pdcp_sns) {}
-  void notify_failure(uint32_t lcid, const srslte::pdcp_sn_vector_t& pdcp_sns) {}
+  void write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t sdu) { sdus.push_back(std::move(sdu)); }
+  void notify_delivery(uint32_t lcid, const srsran::pdcp_sn_vector_t& pdcp_sns) {}
+  void notify_failure(uint32_t lcid, const srsran::pdcp_sn_vector_t& pdcp_sns) {}
 
   // RRC interface
   void        max_retx_attempted() {}
@@ -75,6 +66,6 @@ public:
   uint32_t                          expected_sdu_len = 0;
 };
 
-} // namespace srslte
+} // namespace srsran
 
-#endif // SRSLTE_RLC_TEST_COMMON_H
+#endif // SRSRAN_RLC_TEST_COMMON_H

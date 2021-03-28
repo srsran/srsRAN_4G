@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -23,9 +14,9 @@
 #include <stdlib.h>
 #include <sys/time.h>
 
-#include "srslte/common/liblte_security.h"
-#include "srslte/common/test_common.h"
-#include "srslte/srslte.h"
+#include "srsran/common/liblte_security.h"
+#include "srsran/common/test_common.h"
+#include "srsran/srsran.h"
 
 /*
  * Prototypes
@@ -85,7 +76,7 @@ int test_set_1()
   TESTASSERT(err_cmp == 0);
 
   free(out);
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_set_2()
@@ -130,7 +121,7 @@ int test_set_2()
   TESTASSERT(err_cmp == 0);
 
   free(out);
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_set_3()
@@ -169,7 +160,7 @@ int test_set_3()
   TESTASSERT(err_cmp == 0);
 
   free(out);
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_set_4()
@@ -218,7 +209,7 @@ int test_set_4()
   TESTASSERT(err_cmp == 0);
 
   free(out);
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_set_5()
@@ -271,7 +262,7 @@ int test_set_5()
   TESTASSERT(err_cmp == 0);
 
   free(out);
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_set_6()
@@ -370,7 +361,7 @@ int test_set_6()
   TESTASSERT(err_cmp == 0);
 
   free(out);
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // set len_bitsgth to multiple of 8 respectively 128
@@ -408,7 +399,7 @@ int test_set_1_block_size()
   TESTASSERT(err_cmp == 0);
 
   free(out);
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // inserted bit flip in msg[0]
@@ -446,7 +437,7 @@ int test_set_1_invalid()
   TESTASSERT(err_cmp != 0);
 
   free(out);
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 /*
@@ -455,13 +446,13 @@ int test_set_1_invalid()
 
 int main(int argc, char* argv[])
 {
-  TESTASSERT(test_set_1() == SRSLTE_SUCCESS);
-  TESTASSERT(test_set_2() == SRSLTE_SUCCESS);
-  TESTASSERT(test_set_3() == SRSLTE_SUCCESS);
-  TESTASSERT(test_set_4() == SRSLTE_SUCCESS);
-  TESTASSERT(test_set_5() == SRSLTE_SUCCESS);
-  TESTASSERT(test_set_6() == SRSLTE_SUCCESS);
-  TESTASSERT(test_set_1_block_size() == SRSLTE_SUCCESS);
-  TESTASSERT(test_set_1_invalid() == SRSLTE_SUCCESS);
-  return SRSLTE_SUCCESS;
+  TESTASSERT(test_set_1() == SRSRAN_SUCCESS);
+  TESTASSERT(test_set_2() == SRSRAN_SUCCESS);
+  TESTASSERT(test_set_3() == SRSRAN_SUCCESS);
+  TESTASSERT(test_set_4() == SRSRAN_SUCCESS);
+  TESTASSERT(test_set_5() == SRSRAN_SUCCESS);
+  TESTASSERT(test_set_6() == SRSRAN_SUCCESS);
+  TESTASSERT(test_set_1_block_size() == SRSRAN_SUCCESS);
+  TESTASSERT(test_set_1_invalid() == SRSRAN_SUCCESS);
+  return SRSRAN_SUCCESS;
 }

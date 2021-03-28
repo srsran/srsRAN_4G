@@ -1,31 +1,22 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #include "srsue/hdr/stack/mac/proc_bsr.h"
-#include "srslte/interfaces/ue_rlc_interfaces.h"
+#include "srsran/interfaces/ue_rlc_interfaces.h"
 #include "srsue/hdr/stack/mac/mux.h"
 
 namespace srsue {
 
-void bsr_proc::init(sr_proc* sr_, rlc_interface_mac* rlc_, srslte::ext_task_sched_handle* task_sched_)
+void bsr_proc::init(sr_proc* sr_, rlc_interface_mac* rlc_, srsran::ext_task_sched_handle* task_sched_)
 {
   rlc        = rlc_;
   sr         = sr_;
@@ -55,7 +46,7 @@ void bsr_proc::print_state()
   int n  = 0;
   for (auto& lcg : lcgs) {
     for (auto& iter : lcg) {
-      n = srslte_print_check(str, 128, n, "%d: %d ", iter.first, iter.second.old_buffer);
+      n = srsran_print_check(str, 128, n, "%d: %d ", iter.first, iter.second.old_buffer);
     }
   }
   logger.info("BSR:   triggered_bsr_type=%s, LCID QUEUE status: %s", bsr_type_tostring(triggered_bsr_type), str);
@@ -80,7 +71,7 @@ void bsr_proc::reset()
   triggered_bsr_type = NONE;
 }
 
-void bsr_proc::set_config(srslte::bsr_cfg_t& bsr_cfg_)
+void bsr_proc::set_config(srsran::bsr_cfg_t& bsr_cfg_)
 {
   std::lock_guard<std::mutex> lock(mutex);
 
@@ -224,7 +215,7 @@ bool bsr_proc::generate_bsr(bsr_t* bsr, uint32_t pdu_space)
     }
   }
 
-  if (pdu_space >= CE_SUBHEADER_LEN + ce_size(srslte::ul_sch_lcid::LONG_BSR)) {
+  if (pdu_space >= CE_SUBHEADER_LEN + ce_size(srsran::ul_sch_lcid::LONG_BSR)) {
     // we could fit a long BSR
     if (triggered_bsr_type != PADDING && nof_lcg <= 1) {
       // for Regular and periodic BSR we still send a short BSR if only one LCG has data to send
@@ -233,7 +224,7 @@ bool bsr_proc::generate_bsr(bsr_t* bsr, uint32_t pdu_space)
       bsr->format = LONG_BSR;
     }
     send_bsr = true;
-  } else if (pdu_space >= CE_SUBHEADER_LEN + ce_size(srslte::ul_sch_lcid::SHORT_BSR)) {
+  } else if (pdu_space >= CE_SUBHEADER_LEN + ce_size(srsran::ul_sch_lcid::SHORT_BSR)) {
     // we can only fit a short or truncated BSR
     if (nof_lcg > 1) {
       // send truncated BSR
@@ -369,7 +360,7 @@ bool bsr_proc::generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t* bsr)
 {
   std::lock_guard<std::mutex> lock(mutex);
 
-  if (nof_padding_bytes >= CE_SUBHEADER_LEN + ce_size(srslte::ul_sch_lcid::SHORT_BSR)) {
+  if (nof_padding_bytes >= CE_SUBHEADER_LEN + ce_size(srsran::ul_sch_lcid::SHORT_BSR)) {
     // generate padding BSR
     set_trigger(PADDING);
     generate_bsr(bsr, nof_padding_bytes);

@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -35,16 +26,16 @@
 // (1) #include "polar_decoder_ssc_s.h"
 // (2) the naming of the external function, which finish with _s instead of _f
 // (3) the initialization of them  of the set functions in create_polar_decoder_ssc_s
-//  pp->f        = srslte_vec_function_f_sss;
-//  pp->g        = srslte_vec_function_g_bsss;
-//  pp->xor      = srslte_vec_xor_bbb;
-//  pp->hard_bit = srslte_vec_hard_bit_sc;
+//  pp->f        = srsran_vec_function_f_sss;
+//  pp->g        = srsran_vec_function_g_bsss;
+//  pp->xor      = srsran_vec_xor_bbb;
+//  pp->hard_bit = srsran_vec_hard_bit_sc;
 
 #include "polar_decoder_ssc_s.h"
 #include "../utils_avx2.h"
 #include "polar_decoder_vector.h"
-#include "srslte/phy/fec/polar/polar_encoder.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/fec/polar/polar_encoder.h"
+#include "srsran/phy/utils/vector.h"
 
 /*!
  * \brief Type indicator for printing LLRs if debugging
@@ -61,7 +52,7 @@ struct pSSC_s {
   struct Params*          param;         /*!< \brief Pointer to a Params structure. */
   struct State*           state;         /*!< \brief Pointer to a State. */
   void*                   tmp_node_type; /*!< \brief Pointer to a Tmp_node_type. */
-  srslte_polar_encoder_t* enc;           /*!< \brief Pointer to a srslte_polar_encoder_t. */
+  srsran_polar_encoder_t* enc;           /*!< \brief Pointer to a srsran_polar_encoder_t. */
   void (*f)(const int16_t* x,
             const int16_t* y,
             int16_t*       z,
@@ -104,9 +95,9 @@ static void rate_1_node(void* p, uint8_t* message);
 /*!
  * ::RATE_R nodes at stage \f$ s \f$ return the associated \f$2^s\f$ decoded bit by calling
  * the child nodes to the right and left of the decoding tree and then polar encoding (xor) their output.
- * At stage \f$ s \f$, this function runs function srslte_vec_function_f_fff() and srslte_vec_function_g_bfff()
+ * At stage \f$ s \f$, this function runs function srsran_vec_function_f_fff() and srsran_vec_function_g_bfff()
  * with vector size \f$2^{ s - 1}\f$ and updates \a llr0 and \a llr1 memory space for stage \f$(s - 1)\f$.
- * This function also runs srslte_vec_xor_bbb() with vector size \f$2^{s-1}\f$ and
+ * This function also runs srsran_vec_xor_bbb() with vector size \f$2^{s-1}\f$ and
  * updates \a estbits memory space for stage \f$(s + 1)\f$.
  *
  */
@@ -183,7 +174,7 @@ void delete_polar_decoder_ssc_s(void* p)
     free(pp->param);
     free(pp->state->active_node_per_stage);
     free(pp->state);
-    srslte_polar_encoder_free(pp->enc);
+    srsran_polar_encoder_free(pp->enc);
     free(pp->enc);
     // free(pp->frozen_set); // this is not SSC responsibility.
     delete_tmp_node_type(pp->tmp_node_type);
@@ -201,17 +192,17 @@ void* create_polar_decoder_ssc_s(const uint8_t nMax)
   }
 
   // set functions
-  pp->f        = srslte_vec_function_f_sss;
-  pp->g        = srslte_vec_function_g_bsss;
-  pp->xor      = srslte_vec_xor_bbb;
-  pp->hard_bit = srslte_vec_hard_bit_sc;
+  pp->f        = srsran_vec_function_f_sss;
+  pp->g        = srsran_vec_function_g_bsss;
+  pp->xor      = srsran_vec_xor_bbb;
+  pp->hard_bit = srsran_vec_hard_bit_sc;
 
   // encoder of maximum size
-  if ((pp->enc = malloc(sizeof(srslte_polar_encoder_t))) == NULL) {
+  if ((pp->enc = malloc(sizeof(srsran_polar_encoder_t))) == NULL) {
     free(pp);
     return NULL;
   }
-  srslte_polar_encoder_init(pp->enc, SRSLTE_POLAR_ENCODER_PIPELINED, nMax);
+  srsran_polar_encoder_init(pp->enc, SRSRAN_POLAR_ENCODER_PIPELINED, nMax);
 
   // algorithm constants/parameters
   if ((pp->param = malloc(sizeof(struct Params))) == NULL) {
@@ -220,7 +211,7 @@ void* create_polar_decoder_ssc_s(const uint8_t nMax)
     return NULL;
   }
 
-  if ((pp->param->code_stage_size = srslte_vec_u16_malloc(nMax + 1)) == NULL) {
+  if ((pp->param->code_stage_size = srsran_vec_u16_malloc(nMax + 1)) == NULL) {
     free(pp->param);
     free(pp->enc);
     free(pp);
@@ -240,7 +231,7 @@ void* create_polar_decoder_ssc_s(const uint8_t nMax)
     free(pp);
     return NULL;
   }
-  if ((pp->state->active_node_per_stage = srslte_vec_u16_malloc(nMax + 1)) == NULL) {
+  if ((pp->state->active_node_per_stage = srsran_vec_u16_malloc(nMax + 1)) == NULL) {
     free(pp->state);
     free(pp->param->code_stage_size);
     free(pp->param);
@@ -252,7 +243,7 @@ void* create_polar_decoder_ssc_s(const uint8_t nMax)
   // allocates memory for estimated bits per stage
   uint16_t est_bits_size = pp->param->code_stage_size[nMax];
 
-  pp->est_bit = srslte_vec_u8_malloc(est_bits_size); // every 32 chars are aligned
+  pp->est_bit = srsran_vec_u8_malloc(est_bits_size); // every 32 chars are aligned
 
   // allocate memory for LLR pointers.
   pp->llr0 = malloc((nMax + 1) * sizeof(int16_t*));
@@ -260,7 +251,7 @@ void* create_polar_decoder_ssc_s(const uint8_t nMax)
 
   // There are LLR buffers for n = 0 to n = code_size_log. Each with size 2^n. Thus,
   // the total memory needed is 2^(n+1)-1.
-  // Only the stages starting at multiples of SRSLTE_AVX2_B_SIZE are aligned.
+  // Only the stages starting at multiples of SRSRAN_AVX2_B_SIZE are aligned.
 
   // Let n_simd_llr be the exponent of the SIMD size in nummer of LLRs.
   // i.e. in a SIMD instruction we can load 2^(n_simd_llr) LLR values
@@ -269,7 +260,7 @@ void* create_polar_decoder_ssc_s(const uint8_t nMax)
   uint8_t  n_llr_all_stages = nMax + 1; // there are 2^(n_llr_all_stages) - 1 LLR values summing up all stages.
   uint16_t llr_all_stages   = 1U << n_llr_all_stages;
 
-  pp->llr0[0] = srslte_vec_i16_malloc(llr_all_stages); // 32*8=256
+  pp->llr0[0] = srsran_vec_i16_malloc(llr_all_stages); // 32*8=256
   // allocate memory to the polar decoder instance
   if (pp->llr0[0] == NULL) {
     free(pp->est_bit);
@@ -293,7 +284,7 @@ void* create_polar_decoder_ssc_s(const uint8_t nMax)
 
   // allocate memory to node_type_ssc. Stage s has  2^(N-s) nodes s=0,...,N.
   // Thus, same size as LLRs all stages.
-  pp->param->node_type[0] = srslte_vec_u8_malloc(llr_all_stages); // 32*8=256
+  pp->param->node_type[0] = srsran_vec_u8_malloc(llr_all_stages); // 32*8=256
 
   if (pp->param->node_type[0] == NULL) {
     free(pp->param->node_type);
@@ -392,7 +383,7 @@ static void rate_1_node(void* p, uint8_t* message)
   pp->hard_bit(LLR, codeword, code_stage_size);
 
   if (stage != 0) {
-    srslte_polar_encoder_encode(pp->enc, codeword, message + bit_pos, stage);
+    srsran_polar_encoder_encode(pp->enc, codeword, message + bit_pos, stage);
   } else {
     message[bit_pos] = codeword[0];
   }

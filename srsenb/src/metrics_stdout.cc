@@ -1,26 +1,17 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #include "srsenb/hdr/metrics_stdout.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/utils/vector.h"
 
 #include <float.h>
 #include <iomanip>
@@ -110,16 +101,16 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
     }
 
     cout << int_to_hex_string(metrics.stack.mac.ues[i].rnti, 4) << " ";
-    cout << float_to_string(SRSLTE_MAX(0.1, metrics.stack.mac.ues[i].dl_cqi), 1, 3);
+    cout << float_to_string(SRSRAN_MAX(0.1, metrics.stack.mac.ues[i].dl_cqi), 1, 3);
     cout << float_to_string(metrics.stack.mac.ues[i].dl_ri, 1, 4);
     if (not isnan(metrics.phy[i].dl.mcs)) {
-      cout << float_to_string(SRSLTE_MAX(0.1, metrics.phy[i].dl.mcs), 1, 4);
+      cout << float_to_string(SRSRAN_MAX(0.1, metrics.phy[i].dl.mcs), 1, 4);
     } else {
       cout << float_to_string(0, 2, 4);
     }
     if (metrics.stack.mac.ues[i].tx_brate > 0) {
       cout << float_to_eng_string(
-          SRSLTE_MAX(0.1, (float)metrics.stack.mac.ues[i].tx_brate / (metrics.stack.mac.ues[i].nof_tti * 1e-3)), 1);
+          SRSRAN_MAX(0.1, (float)metrics.stack.mac.ues[i].tx_brate / (metrics.stack.mac.ues[i].nof_tti * 1e-3)), 1);
     } else {
       cout << float_to_string(0, 1, 6) << "";
     }
@@ -127,7 +118,7 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
     cout << std::setw(5) << metrics.stack.mac.ues[i].tx_errors;
     if (metrics.stack.mac.ues[i].tx_pkts > 0 && metrics.stack.mac.ues[i].tx_errors) {
       cout << float_to_string(
-                  SRSLTE_MAX(0.1, (float)100 * metrics.stack.mac.ues[i].tx_errors / metrics.stack.mac.ues[i].tx_pkts), 1, 4)
+                  SRSRAN_MAX(0.1, (float)100 * metrics.stack.mac.ues[i].tx_errors / metrics.stack.mac.ues[i].tx_pkts), 1, 4)
            << "%";
     } else {
       cout << float_to_string(0, 1, 4) << "%";
@@ -135,13 +126,13 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
     cout << "  ";
 
     if (not isnan(metrics.phy[i].ul.pusch_sinr)) {
-      cout << float_to_string(SRSLTE_MAX(0.1, metrics.phy[i].ul.pusch_sinr), 2, 5);
+      cout << float_to_string(SRSRAN_MAX(0.1, metrics.phy[i].ul.pusch_sinr), 2, 5);
     } else {
       cout << float_to_string(0, 2, 5);
     }
 
     if (not isnan(metrics.phy[i].ul.pucch_sinr)) {
-      cout << float_to_string(SRSLTE_MAX(0.1, metrics.phy[i].ul.pucch_sinr), 2, 5);
+      cout << float_to_string(SRSRAN_MAX(0.1, metrics.phy[i].ul.pucch_sinr), 2, 5);
     } else {
       cout << float_to_string(0, 2, 5);
     }
@@ -149,13 +140,13 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
 
     cout << float_to_string(metrics.stack.mac.ues[i].phr, 2, 5);
     if (not isnan(metrics.phy[i].ul.mcs)) {
-      cout << float_to_string(SRSLTE_MAX(0.1, metrics.phy[i].ul.mcs), 1, 4);
+      cout << float_to_string(SRSRAN_MAX(0.1, metrics.phy[i].ul.mcs), 1, 4);
     } else {
       cout << float_to_string(0, 1, 4);
     }
     if (metrics.stack.mac.ues[i].rx_brate > 0) {
       cout << float_to_eng_string(
-          SRSLTE_MAX(0.1, (float)metrics.stack.mac.ues[i].rx_brate / (metrics.stack.mac.ues[i].nof_tti * 1e-3)), 1);
+          SRSRAN_MAX(0.1, (float)metrics.stack.mac.ues[i].rx_brate / (metrics.stack.mac.ues[i].nof_tti * 1e-3)), 1);
     } else {
       cout << float_to_string(0, 1) << "";
     }
@@ -164,7 +155,7 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
 
     if (metrics.stack.mac.ues[i].rx_pkts > 0 && metrics.stack.mac.ues[i].rx_errors > 0) {
       cout << float_to_string(
-                  SRSLTE_MAX(0.1, (float)100 * metrics.stack.mac.ues[i].rx_errors / metrics.stack.mac.ues[i].rx_pkts), 1, 4)
+                  SRSRAN_MAX(0.1, (float)100 * metrics.stack.mac.ues[i].rx_errors / metrics.stack.mac.ues[i].rx_pkts), 1, 4)
            << "%";
     } else {
       cout << float_to_string(0, 1, 4) << "%";

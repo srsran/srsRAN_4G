@@ -20,8 +20,8 @@
  */
 
 #include "srsue/hdr/stack/mac_nr/proc_ra_nr.h"
-#include "srslte/common/standard_streams.h"
-#include "srslte/mac/mac_rar_pdu_nr.h"
+#include "srsran/common/standard_streams.h"
+#include "srsran/mac/mac_rar_pdu_nr.h"
 #include "srsue/hdr/stack/mac_nr/mac_nr.h"
 
 namespace srsue {
@@ -43,7 +43,7 @@ proc_ra_nr::proc_ra_nr(srslog::basic_logger& logger_) : logger(logger_) {}
 
 void proc_ra_nr::init(phy_interface_mac_nr*          phy_,
                       mac_interface_proc_ra_nr*      mac_,
-                      srslte::ext_task_sched_handle* task_sched_)
+                      srsran::ext_task_sched_handle* task_sched_)
 {
   phy                         = phy_;
   mac                         = mac_;
@@ -55,12 +55,12 @@ void proc_ra_nr::init(phy_interface_mac_nr*          phy_,
 }
 
 /* Sets a new configuration. The configuration is applied by initialization() function */
-void proc_ra_nr::set_config(const srslte::rach_nr_cfg_t& rach_cfg_)
+void proc_ra_nr::set_config(const srsran::rach_nr_cfg_t& rach_cfg_)
 {
   if (state != IDLE) {
     logger.warning("Wrong state for ra reponse reception %s (expected state %s)",
-                   srslte::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, state),
-                   srslte::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, IDLE));
+                   srsran::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, state),
+                   srsran::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, IDLE));
     return;
   }
   rach_cfg   = rach_cfg_;
@@ -75,11 +75,23 @@ void proc_ra_nr::start_by_rrc()
 {
   if (state != IDLE || configured == false) {
     logger.warning("Trying to start PRACH by RRC order in invalid state (%s)",
-                   srslte::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, state));
+                   srsran::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, state));
     return;
   }
   started_by = initiators_t::RRC;
   logger.info("Starting PRACH by RRC order");
+  ra_procedure_initialization();
+}
+
+void proc_ra_nr::start_by_mac()
+{
+  if (state != IDLE || configured == false) {
+    logger.warning("Trying to start PRACH by MAC order in invalid state (%s)",
+                   srsran::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, state));
+    return;
+  }
+  started_by = initiators_t::MAC;
+  logger.info("Starting PRACH by MAC order");
   ra_procedure_initialization();
 }
 
@@ -96,16 +108,16 @@ bool proc_ra_nr::is_rar_opportunity(uint32_t tti)
 
 uint16_t proc_ra_nr::get_rar_rnti()
 {
-  if (rar_rnti == SRSLTE_INVALID_RNTI || state != WAITING_FOR_RESPONSE_RECEPTION) {
+  if (rar_rnti == SRSRAN_INVALID_RNTI || state != WAITING_FOR_RESPONSE_RECEPTION) {
     logger.error("Requested ra rnti is invalid. Anyway we return an invalid ra rnti");
-    return SRSLTE_INVALID_RNTI;
+    return SRSRAN_INVALID_RNTI;
   }
   return rar_rnti;
 }
 
 bool proc_ra_nr::has_rar_rnti()
 {
-  if (rar_rnti != SRSLTE_INVALID_RNTI) {
+  if (rar_rnti != SRSRAN_INVALID_RNTI) {
     return true;
   }
   return false;
@@ -113,7 +125,7 @@ bool proc_ra_nr::has_rar_rnti()
 
 bool proc_ra_nr::has_temp_rnti()
 {
-  return temp_rnti != SRSLTE_INVALID_RNTI;
+  return temp_rnti != SRSRAN_INVALID_RNTI;
 }
 
 uint16_t proc_ra_nr::get_temp_rnti()
@@ -177,16 +189,16 @@ void proc_ra_nr::ra_response_reception(const mac_interface_phy_nr::mac_nr_grant_
   if (state != WAITING_FOR_RESPONSE_RECEPTION) {
     logger.warning(
         "Wrong state for ra reponse reception %s (expected state %s)",
-        srslte::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, state),
-        srslte::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, WAITING_FOR_RESPONSE_RECEPTION));
+        srsran::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, state),
+        srsran::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, WAITING_FOR_RESPONSE_RECEPTION));
     return;
   }
 
   // Stop rar timer
   rar_timeout_timer.stop();
-  for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; ++i) {
+  for (uint32_t i = 0; i < SRSRAN_MAX_CODEWORDS; ++i) {
     if (grant.tb[i] != nullptr) {
-      srslte::mac_rar_pdu_nr pdu;
+      srsran::mac_rar_pdu_nr pdu;
       if (!pdu.unpack(grant.tb[i]->msg, grant.tb[i]->N_bytes)) {
         logger.warning("Error unpacking RAR PDU (%d)", i);
         return;
@@ -199,10 +211,10 @@ void proc_ra_nr::ra_response_reception(const mac_interface_phy_nr::mac_nr_grant_
           temp_rnti = subpdu.get_temp_crnti();
 
           // Set Temporary-C-RNTI if provided, otherwise C-RNTI is ok
-          phy->set_ul_grant(subpdu.get_ul_grant(), temp_rnti, srslte_rnti_type_c);
+          phy->set_ul_grant(subpdu.get_ul_grant(), temp_rnti, srsran_rnti_type_c);
 
           // reset all parameters that are used before rar
-          rar_rnti = SRSLTE_INVALID_RNTI;
+          rar_rnti = SRSRAN_INVALID_RNTI;
           mac->msg3_prepare();
           current_ta = subpdu.get_ta();
         }
@@ -222,8 +234,8 @@ void proc_ra_nr::ra_contention_resolution()
   if (state != WAITING_FOR_CONTENTION_RESOLUTION) {
     logger.warning(
         "Wrong state for ra contention resolution by phy %s (expected state %s)",
-        srslte::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, state),
-        srslte::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, WAITING_FOR_CONTENTION_RESOLUTION));
+        srsran::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, state),
+        srsran::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, WAITING_FOR_CONTENTION_RESOLUTION));
     return;
   }
   if (started_by == initiators_t::RRC || started_by == initiators_t::MAC) {
@@ -242,8 +254,8 @@ void proc_ra_nr::ra_contention_resolution(uint64_t rx_contention_id)
   if (state != WAITING_FOR_CONTENTION_RESOLUTION) {
     logger.warning(
         "Wrong state for ra contention resolution by phy %s (expected state %s)",
-        srslte::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, state),
-        srslte::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, WAITING_FOR_CONTENTION_RESOLUTION));
+        srsran::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, state),
+        srsran::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, WAITING_FOR_CONTENTION_RESOLUTION));
     return;
   }
   // TODO
@@ -253,13 +265,13 @@ void proc_ra_nr::ra_completion()
 {
   if (state != WAITING_FOR_COMPLETION) {
     logger.warning("Wrong state for ra completion by phy %s (expected state %s)",
-                   srslte::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, state),
-                   srslte::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, WAITING_FOR_COMPLETION));
+                   srsran::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, state),
+                   srsran::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, WAITING_FOR_COMPLETION));
     return;
   }
-  srslte::console("Random Access Complete.     c-rnti=0x%x, ta=%d\n", mac->get_c_rnti(), current_ta);
+  srsran::console("Random Access Complete.     c-rnti=0x%x, ta=%d\n", mac->get_c_rnti(), current_ta);
   logger.info("Random Access Complete.     c-rnti=0x%x, ta=%d", mac->get_c_rnti(), current_ta);
-  temp_rnti = SRSLTE_INVALID_RNTI;
+  temp_rnti = SRSRAN_INVALID_RNTI;
   reset();
 }
 
@@ -274,8 +286,8 @@ void proc_ra_nr::prach_sent(uint32_t tti, uint32_t s_id, uint32_t t_id, uint32_t
   task_queue.push([this, tti, s_id, t_id, f_id, ul_carrier_id]() {
     if (state != WAITING_FOR_PRACH_SENT) {
       logger.warning("Wrong state for prach sent notification by phy %s (expected state %s)",
-                     srslte::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, state),
-                     srslte::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, WAITING_FOR_PRACH_SENT));
+                     srsran::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, state),
+                     srsran::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, WAITING_FOR_PRACH_SENT));
       return;
     }
     prach_send_timer.stop();
@@ -290,7 +302,7 @@ void proc_ra_nr::prach_sent(uint32_t tti, uint32_t s_id, uint32_t t_id, uint32_t
         t_id,
         f_id,
         ul_carrier_id);
-    srslte::console("Random Access Transmission: prach_occasion=%d, preamble_index=%d, ra-rnti=0x%x, tti=%d\n",
+    srsran::console("Random Access Transmission: prach_occasion=%d, preamble_index=%d, ra-rnti=0x%x, tti=%d\n",
                     prach_occasion,
                     preamble_index,
                     rar_rnti,

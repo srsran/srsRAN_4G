@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -46,20 +37,20 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "srslte/phy/fec/ldpc/ldpc_common.h"
-#include "srslte/phy/fec/ldpc/ldpc_encoder.h"
-#include "srslte/phy/fec/ldpc/ldpc_rm.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/random.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/fec/ldpc/ldpc_common.h"
+#include "srsran/phy/fec/ldpc/ldpc_encoder.h"
+#include "srsran/phy/fec/ldpc/ldpc_rm.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/random.h"
+#include "srsran/phy/utils/vector.h"
 
-static srslte_basegraph_t base_graph = BG2; /*!< \brief Base Graph (BG1 or BG2). */
+static srsran_basegraph_t base_graph = BG2; /*!< \brief Base Graph (BG1 or BG2). */
 static uint32_t           lift_size  = 208; /*!< \brief Lifting Size. */
 static uint32_t           C          = 2;   /*!< \brief Number of code block segments (CBS). */
 static uint32_t           F          = 10;  /*!< \brief Number of filler bits in each CBS. */
 static uint32_t           E          = 0;   /*!< \brief Rate-matched codeword size (E = 0, no rate matching). */
 static uint8_t            rv         = 0;   /*!< \brief Redundancy version {0-3}. */
-static srslte_mod_t       mod_type = SRSLTE_MOD_QPSK; /*!< \brief Modulation type: BPSK, QPSK, QAM16, QAM64, QAM256. */
+static srsran_mod_t       mod_type = SRSRAN_MOD_QPSK; /*!< \brief Modulation type: BPSK, QPSK, QAM16, QAM64, QAM256. */
 static uint32_t           Nref     = 0;               /*!< \brief Limited buffer size.*/
 
 static uint32_t N = 0; /*!< \brief Codeblock size (including punctured and filler bits). */
@@ -104,7 +95,7 @@ void parse_args(int argc, char** argv)
         rv = (uint8_t)strtol(optarg, NULL, 10);
         break;
       case 'm':
-        mod_type = (srslte_mod_t)strtol(optarg, NULL, 10);
+        mod_type = (srsran_mod_t)strtol(optarg, NULL, 10);
         break;
       case 'M':
         Nref = (uint32_t)strtol(optarg, NULL, 10);
@@ -137,11 +128,11 @@ int main(int argc, char** argv)
 
   parse_args(argc, argv);
 
-  srslte_random_t random_gen = srslte_random_init(0);
+  srsran_random_t random_gen = srsran_random_init(0);
 
   // create an LDPC encoder
-  srslte_ldpc_encoder_t encoder;
-  if (srslte_ldpc_encoder_init(&encoder, SRSLTE_LDPC_ENCODER_C, base_graph, lift_size) != 0) {
+  srsran_ldpc_encoder_t encoder;
+  if (srsran_ldpc_encoder_init(&encoder, SRSRAN_LDPC_ENCODER_C, base_graph, lift_size) != 0) {
     perror("encoder init");
     exit(-1);
   }
@@ -156,29 +147,29 @@ int main(int argc, char** argv)
   }
 
   // create a LDPC rate Matcher
-  srslte_ldpc_rm_t rm_tx;
-  if (srslte_ldpc_rm_tx_init(&rm_tx) != 0) {
+  srsran_ldpc_rm_t rm_tx;
+  if (srsran_ldpc_rm_tx_init(&rm_tx) != 0) {
     perror("rate matcher init");
     exit(-1);
   }
 
   // create a LDPC rate DeMatcher
-  srslte_ldpc_rm_t rm_rx;
-  if (srslte_ldpc_rm_rx_init_f(&rm_rx) != 0) {
+  srsran_ldpc_rm_t rm_rx;
+  if (srsran_ldpc_rm_rx_init_f(&rm_rx) != 0) {
     perror("rate dematcher init");
     exit(-1);
   }
 
   // create a LDPC rate DeMatcher (int16_t)
-  srslte_ldpc_rm_t rm_rx_s;
-  if (srslte_ldpc_rm_rx_init_s(&rm_rx_s) != 0) {
+  srsran_ldpc_rm_t rm_rx_s;
+  if (srsran_ldpc_rm_rx_init_s(&rm_rx_s) != 0) {
     perror("rate dematcher init (int16_t)");
     exit(-1);
   }
 
   // create a LDPC rate DeMatcher (int8_t)
-  srslte_ldpc_rm_t rm_rx_c;
-  if (srslte_ldpc_rm_rx_init_c(&rm_rx_c) != 0) {
+  srsran_ldpc_rm_t rm_rx_c;
+  if (srsran_ldpc_rm_rx_init_c(&rm_rx_c) != 0) {
     perror("rate dematcher init (int8_t)");
     exit(-1);
   }
@@ -201,15 +192,15 @@ int main(int argc, char** argv)
   printf("  Final code rate  -> (K-F)/E = (%d - %d)/%d = %.3f\n", encoder.liftK, F, E, 1.0 * (encoder.liftK - F) / E);
   printf("\n");
 
-  codeblocks     = srslte_vec_u8_malloc(C * K);
-  codewords      = srslte_vec_u8_malloc(C * N);
-  rm_codewords   = srslte_vec_u8_malloc(C * E);
-  rm_symbols     = srslte_vec_f_malloc(C * E);
-  rm_symbols_s   = srslte_vec_i16_malloc(C * E);
-  rm_symbols_c   = srslte_vec_i8_malloc(C * E);
-  unrm_symbols   = srslte_vec_f_malloc(C * N);
-  unrm_symbols_s = srslte_vec_i16_malloc(C * N);
-  unrm_symbols_c = srslte_vec_i8_malloc(C * N);
+  codeblocks     = srsran_vec_u8_malloc(C * K);
+  codewords      = srsran_vec_u8_malloc(C * N);
+  rm_codewords   = srsran_vec_u8_malloc(C * E);
+  rm_symbols     = srsran_vec_f_malloc(C * E);
+  rm_symbols_s   = srsran_vec_i16_malloc(C * E);
+  rm_symbols_c   = srsran_vec_i8_malloc(C * E);
+  unrm_symbols   = srsran_vec_f_malloc(C * N);
+  unrm_symbols_s = srsran_vec_i16_malloc(C * N);
+  unrm_symbols_c = srsran_vec_i8_malloc(C * N);
   if (!codeblocks || !codewords || !rm_codewords || !rm_symbols || !rm_symbols_s || !rm_symbols_c || !unrm_symbols ||
       !unrm_symbols_s || !unrm_symbols_c) {
     perror("malloc");
@@ -219,7 +210,7 @@ int main(int argc, char** argv)
   // Generate random bits
   for (r = 0; r < C; r++) {
     for (i = 0; i < K - F; i++) {
-      codeblocks[r * K + i] = srslte_random_uniform_int_dist(random_gen, 0, 1);
+      codeblocks[r * K + i] = srsran_random_uniform_int_dist(random_gen, 0, 1);
     }
     for (; i < K; i++) { // add filler bits
       codeblocks[r * K + i] = FILLER_BIT;
@@ -229,12 +220,12 @@ int main(int argc, char** argv)
   // Encode messages
   // gettimeofday(&t[1], NULL);
   for (r = 0; r < C; r++) {
-    if (srslte_ldpc_encoder_encode(&encoder, codeblocks + r * K, codewords + r * N, K)) {
+    if (srsran_ldpc_encoder_encode(&encoder, codeblocks + r * K, codewords + r * N, K)) {
       exit(-1);
     }
 
     // LDPC rate matching
-    if (srslte_ldpc_rm_tx(
+    if (srsran_ldpc_rm_tx(
             &rm_tx, codewords + r * N, rm_codewords + r * E, E, base_graph, lift_size, rv, mod_type, Nref)) {
       exit(-1);
     }
@@ -256,15 +247,15 @@ int main(int argc, char** argv)
     bzero(unrm_symbols_s + r * N, N * sizeof(int16_t));
     bzero(unrm_symbols_c + r * N, N * sizeof(int8_t));
 
-    if (srslte_ldpc_rm_rx_f(
+    if (srsran_ldpc_rm_rx_f(
             &rm_rx, rm_symbols + r * E, unrm_symbols + r * N, E, F, base_graph, lift_size, rv, mod_type, Nref)) {
       exit(-1);
     }
-    if (srslte_ldpc_rm_rx_s(
+    if (srsran_ldpc_rm_rx_s(
             &rm_rx_s, rm_symbols_s + r * E, unrm_symbols_s + r * N, E, F, base_graph, lift_size, rv, mod_type, Nref)) {
       exit(-1);
     }
-    if (srslte_ldpc_rm_rx_c(
+    if (srsran_ldpc_rm_rx_c(
             &rm_rx_c, rm_symbols_c + r * E, unrm_symbols_c + r * N, E, F, base_graph, lift_size, rv, mod_type, Nref)) {
       exit(-1);
     }
@@ -347,11 +338,11 @@ int main(int argc, char** argv)
   free(rm_codewords);
   free(codewords);
   free(codeblocks);
-  srslte_random_free(random_gen);
-  srslte_ldpc_encoder_free(&encoder);
-  srslte_ldpc_rm_tx_free(&rm_tx);
-  srslte_ldpc_rm_rx_free_f(&rm_rx);
-  srslte_ldpc_rm_rx_free_s(&rm_rx_s);
-  srslte_ldpc_rm_rx_free_c(&rm_rx_c);
+  srsran_random_free(random_gen);
+  srsran_ldpc_encoder_free(&encoder);
+  srsran_ldpc_rm_tx_free(&rm_tx);
+  srsran_ldpc_rm_rx_free_f(&rm_rx);
+  srsran_ldpc_rm_rx_free_s(&rm_rx_s);
+  srsran_ldpc_rm_rx_free_c(&rm_rx_c);
   return error;
 }

@@ -1,35 +1,26 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #ifndef SRSUE_TTCN3_SRB_INTERFACE_H
 #define SRSUE_TTCN3_SRB_INTERFACE_H
 
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/common.h"
-#include "srslte/mac/pdu.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/common/common.h"
+#include "srsran/mac/pdu.h"
 #include "ttcn3_interfaces.h"
 #include "ttcn3_port_handler.h"
-#include <srslte/interfaces/ue_interfaces.h>
+#include <srsran/interfaces/ue_interfaces.h>
 
-using namespace srslte;
+using namespace srsran;
 
 // The SRB interface
 class ttcn3_srb_interface : public ttcn3_port_handler
@@ -77,7 +68,7 @@ private:
     Document document;
     if (document.Parse((char*)&rx_buf->at(2)).HasParseError() || document.IsObject() == false) {
       logger.error((uint8_t*)&rx_buf->at(2), json_len, "Error parsing incoming data.");
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
 
     // Pretty-print
@@ -108,7 +99,7 @@ private:
       logger.error("Received unknown request.");
     }
 
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   // Todo: move to SYSSIM
@@ -117,7 +108,11 @@ private:
     logger.info(payload, len, "Received CCCH RRC PDU");
 
     // pack into byte buffer
-    unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+    unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+    if (pdu == nullptr) {
+      logger.error("Couldn't allocate buffer in %s().", __FUNCTION__);
+      return;
+    }
     pdu->N_bytes             = len;
     memcpy(pdu->msg, payload, pdu->N_bytes);
 
@@ -137,7 +132,11 @@ private:
     logger.info(payload, len, "Received DCCH RRC PDU (lcid=%d)", lcid);
 
     // pack into byte buffer
-    unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+    unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+    if (pdu == nullptr) {
+      logger.error("Couldn't allocate buffer in %s().", __FUNCTION__);
+      return;
+    }
     pdu->N_bytes             = len;
     memcpy(pdu->msg, payload, pdu->N_bytes);
 
@@ -163,9 +162,6 @@ private:
 
   ss_srb_interface* syssim = nullptr;
   byte_buffer_pool* pool   = nullptr;
-
-  // struct sctp_sndrcvinfo sri = {};
-  // struct sockaddr_in client_addr;
 };
 
 #endif // SRSUE_TTCN3_SRB_INTERFACE_H

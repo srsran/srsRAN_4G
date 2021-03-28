@@ -19,7 +19,7 @@
 #
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-switch -Wno-unused-variable -Wno-return-type -Wno-sign-compare -Wno-reorder -Wno-parentheses -fno-exceptions")
-add_library(srslte_asn1 STATIC
+add_library(srsran_asn1 STATIC
   liblte_common.cc
   liblte_mme.cc
   gtpc.cc
@@ -27,7 +27,7 @@ add_library(srslte_asn1 STATIC
 
 # ASN1 utils
 add_library(asn1_utils STATIC asn1_utils.cc)
-target_link_libraries(asn1_utils srslte_common)
+target_link_libraries(asn1_utils srsran_common)
 INSTALL(TARGETS asn1_utils DESTINATION ${LIBRARY_DIR})
 
 # RRC ASN1 lib
@@ -53,25 +53,25 @@ add_library(rrc_asn1 STATIC
     rrc_utils.cc)
 # Compile RRC ASN1 optimized for size
 target_compile_options(rrc_asn1 PRIVATE "-Os")
-target_link_libraries(rrc_asn1 asn1_utils srslte_common)
+target_link_libraries(rrc_asn1 asn1_utils srsran_common)
 INSTALL(TARGETS rrc_asn1 DESTINATION ${LIBRARY_DIR})
 
 # S1AP ASN1 lib
 add_library(s1ap_asn1 STATIC
         s1ap.cc)
 target_compile_options(s1ap_asn1 PRIVATE "-Os")
-target_link_libraries(s1ap_asn1 asn1_utils srslte_common)
+target_link_libraries(s1ap_asn1 asn1_utils srsran_common)
 INSTALL(TARGETS s1ap_asn1 DESTINATION ${LIBRARY_DIR})
 
 # RRC NR ASN1
 add_library(rrc_nr_asn1 STATIC rrc_nr.cc rrc_nr_utils.cc)
 target_compile_options(rrc_nr_asn1 PRIVATE "-Os")
-target_link_libraries(rrc_nr_asn1 asn1_utils srslte_common)
+target_link_libraries(rrc_nr_asn1 asn1_utils srsran_common)
 INSTALL(TARGETS rrc_nr_asn1 DESTINATION ${LIBRARY_DIR})
 # NGAP ASN1
 add_library(ngap_nr_asn1 STATIC ngap.cc)
 target_compile_options(ngap_nr_asn1 PRIVATE "-Os")
-target_link_libraries(ngap_nr_asn1 asn1_utils srslte_common)
+target_link_libraries(ngap_nr_asn1 asn1_utils srsran_common)
 INSTALL(TARGETS ngap_nr_asn1 DESTINATION ${LIBRARY_DIR})
 
 

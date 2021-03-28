@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -60,7 +51,7 @@ static int sgn(float v)
     }                                                                                                                  \
   }
 
-void srslte_vec_function_f_fff(const float* x, const float* y, float* z, const uint16_t len)
+void srsran_vec_function_f_fff(const float* x, const float* y, float* z, const uint16_t len)
 {
   float L0      = NAN;
   float L1      = NAN;
@@ -83,7 +74,7 @@ void srslte_vec_function_f_fff(const float* x, const float* y, float* z, const u
   }
 }
 
-void srslte_vec_function_f_sss(const int16_t* x, const int16_t* y, int16_t* z, const uint16_t len)
+void srsran_vec_function_f_sss(const int16_t* x, const int16_t* y, int16_t* z, const uint16_t len)
 {
 
   int16_t L0      = 0;
@@ -107,7 +98,7 @@ void srslte_vec_function_f_sss(const int16_t* x, const int16_t* y, int16_t* z, c
   }
 }
 
-void srslte_vec_function_f_ccc(const int8_t* x, const int8_t* y, int8_t* z, const uint16_t len)
+void srsran_vec_function_f_ccc(const int8_t* x, const int8_t* y, int8_t* z, const uint16_t len)
 {
   int8_t L0      = 0;
   int8_t L1      = 0;
@@ -130,22 +121,22 @@ void srslte_vec_function_f_ccc(const int8_t* x, const int8_t* y, int8_t* z, cons
   }
 }
 
-void srslte_vec_hard_bit_fc(const float* x, uint8_t* z, const uint16_t len)
+void srsran_vec_hard_bit_fc(const float* x, uint8_t* z, const uint16_t len)
 {
   hard_bit;
 }
 
-void srslte_vec_hard_bit_sc(const int16_t* x, uint8_t* z, const uint16_t len)
+void srsran_vec_hard_bit_sc(const int16_t* x, uint8_t* z, const uint16_t len)
 {
   hard_bit;
 }
 
-void srslte_vec_hard_bit_cc(const int8_t* x, uint8_t* z, const uint16_t len)
+void srsran_vec_hard_bit_cc(const int8_t* x, uint8_t* z, const uint16_t len)
 {
   hard_bit;
 }
 
-void srslte_vec_function_g_bfff(const uint8_t* b, const float* x, const float* y, float* z, const uint16_t len)
+void srsran_vec_function_g_bfff(const uint8_t* b, const float* x, const float* y, float* z, const uint16_t len)
 {
 
   float  L0 = NAN;
@@ -161,7 +152,7 @@ void srslte_vec_function_g_bfff(const uint8_t* b, const float* x, const float* y
   }
 }
 
-void srslte_vec_function_g_bsss(const uint8_t* b, const int16_t* x, const int16_t* y, int16_t* z, const uint16_t len)
+void srsran_vec_function_g_bsss(const uint8_t* b, const int16_t* x, const int16_t* y, int16_t* z, const uint16_t len)
 {
 
   int16_t L0 = 0;
@@ -188,7 +179,7 @@ void srslte_vec_function_g_bsss(const uint8_t* b, const int16_t* x, const int16_
   }
 }
 
-void srslte_vec_function_g_bccc(const uint8_t* b, const int8_t* x, const int8_t* y, int8_t* z, const uint16_t len)
+void srsran_vec_function_g_bccc(const uint8_t* b, const int8_t* x, const int8_t* y, int8_t* z, const uint16_t len)
 {
 
   int8_t L0 = 0;

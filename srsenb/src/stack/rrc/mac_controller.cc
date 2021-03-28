@@ -1,28 +1,19 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #include "srsenb/hdr/stack/rrc/mac_controller.h"
 #include "srsenb/hdr/stack/upper/common_enb.h"
-#include "srslte/asn1/rrc_utils.h"
-#include "srslte/interfaces/enb_mac_interfaces.h"
+#include "srsran/asn1/rrc_utils.h"
+#include "srsran/interfaces/enb_mac_interfaces.h"
 
 namespace srsenb {
 
@@ -79,7 +70,7 @@ void ue_cfg_apply_phy_cfg_ded(ue_cfg_t& ue_cfg, const asn1::rrc::phys_cfg_ded_s&
  */
 void ue_cfg_apply_conn_reconf(ue_cfg_t& ue_cfg, const rrc_conn_recfg_r8_ies_s& conn_recfg, const rrc_cfg_t& rrc_cfg);
 
-void ue_cfg_apply_capabilities(ue_cfg_t& ue_cfg, const rrc_cfg_t& rrc_cfg, const srslte::rrc_ue_capabilities_t& uecaps);
+void ue_cfg_apply_capabilities(ue_cfg_t& ue_cfg, const rrc_cfg_t& rrc_cfg, const srsran::rrc_ue_capabilities_t& uecaps);
 
 /***************************
  *  MAC Controller class
@@ -170,7 +161,7 @@ int mac_controller::apply_basic_conn_cfg(const asn1::rrc::rr_cfg_ded_s& rr_cfg)
   current_sched_ue_cfg.ue_bearers[1] = get_bearer_default_srb1_config();
 
   // Set default configuration
-  current_sched_ue_cfg.supported_cc_list[0].dl_cfg.tm = SRSLTE_TM1;
+  current_sched_ue_cfg.supported_cc_list[0].dl_cfg.tm = SRSRAN_TM1;
   current_sched_ue_cfg.use_tbs_index_alt              = false;
 
   // Apply common PhyConfig updates (e.g. SR/CQI resources, antenna cfg)
@@ -210,7 +201,7 @@ void mac_controller::handle_con_reest_complete()
 }
 
 void mac_controller::handle_con_reconf(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg,
-                                       const srslte::rrc_ue_capabilities_t&      uecaps)
+                                       const srsran::rrc_ue_capabilities_t&      uecaps)
 {
   ue_cfg_apply_conn_reconf(current_sched_ue_cfg, conn_recfg, *rrc_cfg);
 
@@ -257,7 +248,7 @@ void mac_controller::apply_current_bearers_cfg()
 }
 
 void mac_controller::handle_target_enb_ho_cmd(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg,
-                                              const srslte::rrc_ue_capabilities_t&      uecaps)
+                                              const srsran::rrc_ue_capabilities_t&      uecaps)
 {
   ue_cfg_apply_conn_reconf(current_sched_ue_cfg, conn_recfg, *rrc_cfg);
 
@@ -274,7 +265,7 @@ void mac_controller::handle_target_enb_ho_cmd(const asn1::rrc::rrc_conn_recfg_r8
 }
 
 void mac_controller::handle_intraenb_ho_cmd(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg,
-                                            const srslte::rrc_ue_capabilities_t&      uecaps)
+                                            const srsran::rrc_ue_capabilities_t&      uecaps)
 {
   next_sched_ue_cfg = current_sched_ue_cfg;
   next_sched_ue_cfg.supported_cc_list.resize(1);
@@ -313,7 +304,7 @@ void mac_controller::handle_max_retx()
   set_drb_activation(false);
 }
 
-void mac_controller::set_scell_activation(const std::bitset<SRSLTE_MAX_CARRIERS>& scell_mask)
+void mac_controller::set_scell_activation(const std::bitset<SRSRAN_MAX_CARRIERS>& scell_mask)
 {
   for (uint32_t i = 1; i < current_sched_ue_cfg.supported_cc_list.size(); ++i) {
     current_sched_ue_cfg.supported_cc_list[i].active = scell_mask[i];
@@ -364,10 +355,10 @@ void ue_cfg_apply_phy_cfg_ded(ue_cfg_t& ue_cfg, const asn1::rrc::phys_cfg_ded_s&
   // Apply Antenna Configuration
   if (phy_cfg.ant_info_present) {
     if (phy_cfg.ant_info.type().value == phys_cfg_ded_s::ant_info_c_::types_opts::explicit_value) {
-      ue_cfg.dl_ant_info = srslte::make_ant_info_ded(phy_cfg.ant_info.explicit_value());
+      ue_cfg.dl_ant_info = srsran::make_ant_info_ded(phy_cfg.ant_info.explicit_value());
     } else {
       srslog::fetch_basic_logger("RRC").warning("No antenna configuration provided");
-      pcell_cfg.dl_cfg.tm        = SRSLTE_TM1;
+      pcell_cfg.dl_cfg.tm        = SRSRAN_TM1;
       ue_cfg.dl_ant_info.tx_mode = sched_interface::ant_info_ded_t::tx_mode_t::tm1;
     }
   }
@@ -511,7 +502,7 @@ void ue_cfg_apply_conn_reconf(ue_cfg_t& ue_cfg, const rrc_conn_recfg_r8_ies_s& c
   }
 }
 
-void ue_cfg_apply_capabilities(ue_cfg_t& ue_cfg, const rrc_cfg_t& rrc_cfg, const srslte::rrc_ue_capabilities_t& uecaps)
+void ue_cfg_apply_capabilities(ue_cfg_t& ue_cfg, const rrc_cfg_t& rrc_cfg, const srsran::rrc_ue_capabilities_t& uecaps)
 {
   bool enb_enable64qam   = rrc_cfg.sibs[1].sib2().rr_cfg_common.pusch_cfg_common.pusch_cfg_basic.enable64_qam;
   ue_cfg.support_ul64qam = ue_cfg_t::ul64qam_cap::undefined;

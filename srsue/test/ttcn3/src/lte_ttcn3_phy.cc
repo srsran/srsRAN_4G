@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -39,7 +30,7 @@ int lte_ttcn3_phy::init(const phy_args_t& args_, stack_interface_phy_lte* stack_
   return init(args_);
 }
 
-int lte_ttcn3_phy::init(const phy_args_t& args_, stack_interface_phy_lte* stack_, srslte::radio_interface_phy* radio_)
+int lte_ttcn3_phy::init(const phy_args_t& args_, stack_interface_phy_lte* stack_, srsran::radio_interface_phy* radio_)
 {
   return init(args_);
 }
@@ -50,7 +41,7 @@ int lte_ttcn3_phy::init(const phy_args_t& args_)
   logger.set_level(srslog::str_to_basic_level(args_.log.phy_level));
   logger.set_hex_dump_max_size(-1);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 void lte_ttcn3_phy::stop(){};
@@ -68,7 +59,7 @@ void lte_ttcn3_phy::set_cell_map(const cell_list_t& cells_)
   cells = cells_;
 }
 
-void lte_ttcn3_phy::set_config_tdd(srslte_tdd_config_t& tdd_config) {}
+void lte_ttcn3_phy::set_config_tdd(srsran_tdd_config_t& tdd_config) {}
 
 void lte_ttcn3_phy::enable_pregen_signals(bool enable)
 {
@@ -85,14 +76,14 @@ void lte_ttcn3_phy::set_activation_deactivation_scell(uint32_t cmd, uint32_t tti
   logger.debug("%s not implemented.", __FUNCTION__);
 }
 
-bool lte_ttcn3_phy::set_config(srslte::phy_cfg_t config, uint32_t cc_idx_)
+bool lte_ttcn3_phy::set_config(srsran::phy_cfg_t config, uint32_t cc_idx_)
 {
   logger.debug("%s not implemented.", __FUNCTION__);
   task_sched.defer_task([this]() { stack->set_config_complete(true); });
   return true;
 }
 
-bool lte_ttcn3_phy::set_scell(srslte_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn)
+bool lte_ttcn3_phy::set_scell(srsran_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn)
 {
   logger.debug("%s not implemented.", __FUNCTION__);
   task_sched.defer_task([this]() { stack->set_scell_complete(true); });
@@ -236,7 +227,7 @@ void lte_ttcn3_phy::set_timeadv(uint32_t tti, uint32_t ta_cmd)
 }
 
 // Sets RAR grant payload
-void lte_ttcn3_phy::set_rar_grant(uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN], uint16_t rnti)
+void lte_ttcn3_phy::set_rar_grant(uint8_t grant_payload[SRSRAN_RAR_GRANT_LEN], uint16_t rnti)
 {
   // Empty, SYSSIM knows when to provide UL grant for Msg3
   logger.debug("%s not implemented.", __FUNCTION__);
@@ -301,7 +292,7 @@ void lte_ttcn3_phy::new_tb(const srsue::mac_interface_phy_lte::mac_grant_dl_t dl
 
   stack->new_grant_dl(cc_idx, dl_grant, &dl_action);
 
-  bool dl_ack[SRSLTE_MAX_CODEWORDS] = {};
+  bool dl_ack[SRSRAN_MAX_CODEWORDS] = {};
 
   if (dl_action.tb[0].enabled && dl_action.tb[0].payload != nullptr) {
     logger.info(data,

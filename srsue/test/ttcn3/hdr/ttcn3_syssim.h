@@ -1,31 +1,22 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #ifndef SRSUE_TTCN3_SYSSIM_H
 #define SRSUE_TTCN3_SYSSIM_H
 
-#include "srslte/mac/pdu_queue.h"
-#include "srslte/test/ue_test_interfaces.h"
-#include "srslte/upper/pdcp.h"
-#include "srslte/upper/rlc.h"
+#include "srsran/mac/pdu_queue.h"
+#include "srsran/test/ue_test_interfaces.h"
+#include "srsran/upper/pdcp.h"
+#include "srsran/upper/rlc.h"
 #include "ttcn3_common.h"
 #include "ttcn3_drb_interface.h"
 #include "ttcn3_ip_ctrl_interface.h"
@@ -44,7 +35,7 @@ class ttcn3_syssim : public syssim_interface_phy,
                      public rlc_interface_pdcp,
                      public rrc_interface_pdcp,
                      public gw_interface_pdcp,
-                     public srslte::pdu_queue::process_callback
+                     public srsran::pdu_queue::process_callback
 {
 public:
   explicit ttcn3_syssim(ttcn3_ue* ue_);
@@ -100,7 +91,7 @@ public:
   void send_sr_ul_grant();
 
   // internal function called from tx_pdu (called from main thread)
-  bool process_ce(srslte::sch_subh* subh);
+  bool process_ce(srsran::sch_subh* subh);
 
   uint32_t get_pid(const uint32_t tti_);
 
@@ -181,23 +172,23 @@ public:
                        std::array<uint8_t, 32>                   k_rrc_enc_,
                        std::array<uint8_t, 32>                   k_rrc_int_,
                        std::array<uint8_t, 32>                   k_up_enc_,
-                       const srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
-                       const srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_,
+                       const srsran::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
+                       const srsran::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_,
                        const ttcn3_helpers::pdcp_count_map_t     bearers_);
 
   void set_as_security_impl(const std::string                         cell_name,
                             std::array<uint8_t, 32>                   k_rrc_enc_,
                             std::array<uint8_t, 32>                   k_rrc_int_,
                             std::array<uint8_t, 32>                   k_up_enc_,
-                            const srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
-                            const srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_,
+                            const srsran::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
+                            const srsran::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_,
                             const ttcn3_helpers::pdcp_count_map_t     bearers);
 
   void release_as_security(const ttcn3_helpers::timing_info_t timing, const std::string cell_name);
 
   void release_as_security_impl(const std::string cell_name);
 
-  void select_cell(srslte_cell_t phy_cell);
+  void select_cell(srsran_cell_t phy_cell);
 
   ttcn3_helpers::pdcp_count_map_t get_pdcp_count(const std::string cell_name);
 
@@ -249,15 +240,15 @@ private:
   uint16_t                dl_rnti              = 0;
   int                     force_lcid           = -1;
   srsue::stack_test_dummy stack;
-  bool                    last_dl_ndi[SRSLTE_FDD_NOF_HARQ] = {};
-  bool                    last_ul_ndi[SRSLTE_FDD_NOF_HARQ] = {};
+  bool                    last_dl_ndi[SRSRAN_FDD_NOF_HARQ] = {};
+  bool                    last_ul_ndi[SRSRAN_FDD_NOF_HARQ] = {};
 
   // For events/actions that need to be carried out in a specific TTI
   typedef std::queue<move_task_t>                task_queue_t;
   typedef std::map<const uint32_t, task_queue_t> tti_action_map_t;
   tti_action_map_t                               tti_actions;
 
-  // Map between the cellId (name) used by 3GPP test suite and srsLTE cell struct
+  // Map between the cellId (name) used by 3GPP test suite and srsRAN cell struct
   class syssim_cell_t
   {
   public:
@@ -270,13 +261,13 @@ private:
     int                               sib_idx = 0; ///< Index of SIB scheduled for next transmission
 
     // Simulator objects
-    srslte::rlc              rlc;
-    srslte::pdcp             pdcp;
+    srsran::rlc              rlc;
+    srsran::pdcp             pdcp;
     std::map<uint32_t, bool> bearer_follow_on_map; ///< Indicates if for a given LCID the follow_on_flag is set or not
 
     // security config
     ttcn3_helpers::pdcp_count_map_t pending_bearer_config; ///< List of bearers with pending security configuration
-    srslte::as_security_config_t    sec_cfg;
+    srsran::as_security_config_t    sec_cfg;
   };
   typedef std::unique_ptr<syssim_cell_t> unique_syssim_cell_t;
   std::vector<unique_syssim_cell_t>      cells;
@@ -288,12 +279,12 @@ private:
   syssim_cell_t* get_cell(const std::string cell_name);
   bool           have_valid_pcell();
 
-  srslte::pdu_queue pdus;
-  srslte::sch_pdu   mac_msg_dl, mac_msg_ul;
+  srsran::pdu_queue pdus;
+  srsran::sch_pdu   mac_msg_dl, mac_msg_ul;
 
   // buffer for DL transmissions
-  srslte::byte_buffer_t rar_buffer;
-  srslte::byte_buffer_t tx_payload_buffer; // Used to buffer final MAC PDU
+  srsran::byte_buffer_t rar_buffer;
+  srsran::byte_buffer_t tx_payload_buffer; // Used to buffer final MAC PDU
 
   uint64_t conres_id = 0;
 

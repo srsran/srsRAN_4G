@@ -1,26 +1,17 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
-#include "srslte/common/test_common.h"
-#include "srslte/test/ue_test_interfaces.h"
+#include "srsran/common/test_common.h"
+#include "srsran/test/ue_test_interfaces.h"
 #include "srsue/hdr/stack/rrc/phy_controller.h"
 
 namespace srsue {
@@ -72,7 +63,7 @@ struct cell_select_result_test {
 
 int test_phy_ctrl_fsm()
 {
-  srslte::task_scheduler  task_sched;
+  srsran::task_scheduler  task_sched;
   phy_dummy_interface     phy;
   phy_controller          phy_ctrl{&phy, &task_sched};
   cell_search_result_test csearch_tester{&phy_ctrl};
@@ -168,7 +159,7 @@ int test_phy_ctrl_fsm()
 
   phy_ctrl.start_cell_select(found_cell, csel_tester);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 class phy_test_dummy : public phy_dummy_interface
@@ -182,7 +173,7 @@ public:
 /// TEST: Check if controller handles the case when PHY fails to init cell selection
 int test_phy_cell_select_init_error_handling()
 {
-  srslte::task_scheduler task_sched;
+  srsran::task_scheduler task_sched;
   phy_test_dummy         phy;
   phy_controller         phy_ctrl{&phy, &task_sched};
   phy_cell_t             found_cell{};
@@ -208,7 +199,7 @@ int main()
   RRC_logger.set_hex_dump_max_size(-1);
   srslog::init();
 
-  TESTASSERT(srsue::test_phy_ctrl_fsm() == SRSLTE_SUCCESS);
-  TESTASSERT(srsue::test_phy_cell_select_init_error_handling() == SRSLTE_SUCCESS);
+  TESTASSERT(srsue::test_phy_ctrl_fsm() == SRSRAN_SUCCESS);
+  TESTASSERT(srsue::test_phy_cell_select_init_error_handling() == SRSRAN_SUCCESS);
   test_logger.info("Finished RRC PHY controller test successfully");
 }

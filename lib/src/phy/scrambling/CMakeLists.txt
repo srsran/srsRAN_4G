@@ -19,5 +19,5 @@
 #
 
 file(GLOB SOURCES "*.c")
-add_library(srslte_scrambling OBJECT ${SOURCES})
+add_library(srsran_scrambling OBJECT ${SOURCES})
 add_subdirectory(test)

@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -23,8 +14,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "srslte/phy/fec/convolutional/rm_conv.h"
-#include "srslte/phy/utils/debug.h"
+#include "srsran/phy/fec/convolutional/rm_conv.h"
+#include "srsran/phy/utils/debug.h"
 
 #define NCOLS 32
 #define NROWS_MAX NCOLS
@@ -40,7 +31,7 @@ uint8_t RM_PERM_CC_INV[NCOLS] = {16, 0, 24, 8, 20, 4, 28, 12, 18, 2, 26, 10, 22,
  * @param[in] input Unpacked bit array. Size in_len
  * @param[output] output Unpacked bit array. Size out_len <= in_len
  */
-int srslte_rm_conv_tx(uint8_t* input, uint32_t in_len, uint8_t* output, uint32_t out_len)
+int srsran_rm_conv_tx(uint8_t* input, uint32_t in_len, uint8_t* output, uint32_t out_len)
 {
   uint8_t tmp[3 * NCOLS * NROWS_MAX];
   int     nrows, ndummy, K_p;
@@ -63,7 +54,7 @@ int srslte_rm_conv_tx(uint8_t* input, uint32_t in_len, uint8_t* output, uint32_t
     for (j = 0; j < NCOLS; j++) {
       for (i = 0; i < nrows; i++) {
         if (i * NCOLS + RM_PERM_CC[j] < ndummy) {
-          tmp[k] = SRSLTE_TX_NULL;
+          tmp[k] = SRSRAN_TX_NULL;
         } else {
           tmp[k] = input[(i * NCOLS + RM_PERM_CC[j] - ndummy) * 3 + s];
         }
@@ -75,7 +66,7 @@ int srslte_rm_conv_tx(uint8_t* input, uint32_t in_len, uint8_t* output, uint32_t
   k = 0;
   j = 0;
   while (k < out_len) {
-    if (tmp[j] != SRSLTE_TX_NULL) {
+    if (tmp[j] != SRSRAN_TX_NULL) {
       output[k] = tmp[j];
       k++;
     }
@@ -90,7 +81,7 @@ int srslte_rm_conv_tx(uint8_t* input, uint32_t in_len, uint8_t* output, uint32_t
 /* Undoes Convolutional Code Rate Matching.
  * 3GPP TS 36.212 v10.1.0 section 5.1.4.2
  */
-int srslte_rm_conv_rx(float* input, uint32_t in_len, float* output, uint32_t out_len)
+int srsran_rm_conv_rx(float* input, uint32_t in_len, float* output, uint32_t out_len)
 {
   int nrows, ndummy, K_p;
   int i, j, k;
@@ -111,7 +102,7 @@ int srslte_rm_conv_rx(float* input, uint32_t in_len, float* output, uint32_t out
   }
 
   for (i = 0; i < 3 * K_p; i++) {
-    tmp[i] = SRSLTE_RX_NULL;
+    tmp[i] = SRSRAN_RX_NULL;
   }
 
   /* Undo bit collection. Account for dummy bits */
@@ -122,9 +113,9 @@ int srslte_rm_conv_rx(float* input, uint32_t in_len, float* output, uint32_t out
     d_j = (j % K_p) % nrows;
 
     if (d_j * NCOLS + RM_PERM_CC[d_i] >= ndummy) {
-      if (tmp[j] == SRSLTE_RX_NULL) {
+      if (tmp[j] == SRSRAN_RX_NULL) {
         tmp[j] = input[k];
-      } else if (input[k] != SRSLTE_RX_NULL) {
+      } else if (input[k] != SRSRAN_RX_NULL) {
         tmp[j] += input[k]; /* soft combine LLRs */
       }
       k++;
@@ -141,7 +132,7 @@ int srslte_rm_conv_rx(float* input, uint32_t in_len, float* output, uint32_t out
     d_j = (i + ndummy) % NCOLS;
     for (j = 0; j < 3; j++) {
       float o = tmp[K_p * j + RM_PERM_CC_INV[d_j] * nrows + d_i];
-      if (o != SRSLTE_RX_NULL) {
+      if (o != SRSRAN_RX_NULL) {
         output[i * 3 + j] = o;
       } else {
         output[i * 3 + j] = 0;
@@ -156,7 +147,7 @@ int srslte_rm_conv_rx(float* input, uint32_t in_len, float* output, uint32_t out
 /* Undoes Convolutional Code Rate Matching.
  * 3GPP TS 36.212 v10.1.0 section 5.1.4.2
  */
-int srslte_rm_conv_rx_s(int16_t* input, uint32_t in_len, int16_t* output, uint32_t out_len)
+int srsran_rm_conv_rx_s(int16_t* input, uint32_t in_len, int16_t* output, uint32_t out_len)
 {
   int nrows, ndummy, K_p;
   int i, j, k;
@@ -177,7 +168,7 @@ int srslte_rm_conv_rx_s(int16_t* input, uint32_t in_len, int16_t* output, uint32
   }
 
   for (i = 0; i < 3 * K_p; i++) {
-    tmp[i] = SRSLTE_RX_NULL;
+    tmp[i] = SRSRAN_RX_NULL;
   }
 
   /* Undo bit collection. Account for dummy bits */
@@ -188,9 +179,9 @@ int srslte_rm_conv_rx_s(int16_t* input, uint32_t in_len, int16_t* output, uint32
     d_j = (j % K_p) % nrows;
 
     if (d_j * NCOLS + RM_PERM_CC[d_i] >= ndummy) {
-      if (tmp[j] == SRSLTE_RX_NULL) {
+      if (tmp[j] == SRSRAN_RX_NULL) {
         tmp[j] = input[k];
-      } else if (input[k] != SRSLTE_RX_NULL) {
+      } else if (input[k] != SRSRAN_RX_NULL) {
         tmp[j] += input[k]; /* soft combine LLRs */
       }
       k++;
@@ -207,7 +198,7 @@ int srslte_rm_conv_rx_s(int16_t* input, uint32_t in_len, int16_t* output, uint32
     d_j = (i + ndummy) % NCOLS;
     for (j = 0; j < 3; j++) {
       int16_t o = tmp[K_p * j + RM_PERM_CC_INV[d_j] * nrows + d_i];
-      if (o != SRSLTE_RX_NULL) {
+      if (o != SRSRAN_RX_NULL) {
         output[i * 3 + j] = o;
       } else {
         output[i * 3 + j] = 0;

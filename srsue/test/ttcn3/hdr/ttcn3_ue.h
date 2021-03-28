@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -23,7 +14,7 @@
 #define SRSUE_TTCN3_UE_H
 
 #include "lte_ttcn3_phy.h"
-#include "srslte/common/standard_streams.h"
+#include "srsran/common/standard_streams.h"
 #include "srsue/hdr/stack/ue_stack_lte.h"
 #include <sstream>
 
@@ -59,8 +50,8 @@ public:
 
   // GW interface
   void add_mch_port(uint32_t lcid, uint32_t port);
-  void write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
-  void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
+  void write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
+  void write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
   int  setup_if_addr(uint32_t eps_bearer_id,
                      uint32_t lcid,
                      uint8_t  pdn_type,
@@ -79,7 +70,7 @@ public:
 
   void send_queued_data();
 
-  void loop_back_pdu_with_tft(uint32_t input_lcid, srslte::unique_byte_buffer_t pdu);
+  void loop_back_pdu_with_tft(uint32_t input_lcid, srsran::unique_byte_buffer_t pdu);
 
 private:
   std::unique_ptr<lte_ttcn3_phy> phy;
@@ -89,8 +80,8 @@ private:
   srslog::basic_logger& logger;
 
   test_loop_mode_state_t                                         test_loop_mode = TEST_LOOP_INACTIVE;
-  srslte::timer_handler::unique_timer                            pdu_delay_timer;
-  std::map<uint32_t, block_queue<srslte::unique_byte_buffer_t> > pdu_queue; // A PDU queue for each DRB
+  srsran::timer_handler::unique_timer                            pdu_delay_timer;
+  std::map<uint32_t, block_queue<srsran::unique_byte_buffer_t> > pdu_queue; // A PDU queue for each DRB
   tft_pdu_matcher                                                tft_matcher;
 
   all_args_t args = {};

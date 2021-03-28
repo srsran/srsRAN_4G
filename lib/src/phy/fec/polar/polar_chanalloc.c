@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -29,10 +20,10 @@
  *
  */
 
-#include "srslte/phy/fec/polar/polar_chanalloc.h"
+#include "srsran/phy/fec/polar/polar_chanalloc.h"
 #include <string.h>
 
-void srslte_polar_chanalloc_tx(const uint8_t*  message,
+void srsran_polar_chanalloc_tx(const uint8_t*  message,
                                uint8_t*        input_encoder,
                                const uint16_t  N,
                                const uint16_t  K,
@@ -81,7 +72,7 @@ void srslte_polar_chanalloc_tx(const uint8_t*  message,
   }
 }
 
-void srslte_polar_chanalloc_rx(const uint8_t*  output_decoder,
+void srsran_polar_chanalloc_rx(const uint8_t*  output_decoder,
                                uint8_t*        message,
                                const uint16_t  K,
                                const uint8_t   nPC,

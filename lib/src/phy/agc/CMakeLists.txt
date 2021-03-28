@@ -19,4 +19,4 @@
 #
 
 file(GLOB SOURCES "*.c")
-add_library(srslte_agc OBJECT ${SOURCES})
+add_library(srsran_agc OBJECT ${SOURCES})

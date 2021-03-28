@@ -19,5 +19,5 @@
 #
 
 file(GLOB SOURCES "*.c")
-add_library(srslte_resampling OBJECT ${SOURCES})
+add_library(srsran_resampling OBJECT ${SOURCES})
 add_subdirectory(test)

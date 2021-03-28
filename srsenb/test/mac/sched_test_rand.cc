@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -28,15 +19,15 @@
 #include <set>
 #include <unistd.h>
 
-#include "srslte/interfaces/sched_interface.h"
-#include "srslte/phy/utils/debug.h"
+#include "srsran/interfaces/sched_interface.h"
+#include "srsran/phy/utils/debug.h"
 
 #include "sched_common_test_suite.h"
 #include "sched_test_common.h"
 #include "sched_test_utils.h"
-#include "srslte/common/test_common.h"
+#include "srsran/common/test_common.h"
 
-using srslte::tti_point;
+using srsran::tti_point;
 
 uint32_t seed = std::chrono::system_clock::now().time_since_epoch().count();
 
@@ -58,7 +49,7 @@ ue_stats_t                     ue_tot_stats;
 class sched_diagnostic_printer
 {
 public:
-  explicit sched_diagnostic_printer(srslte::log_sink_spy& s) : s(s) {}
+  explicit sched_diagnostic_printer(srsran::log_sink_spy& s) : s(s) {}
 
   ~sched_diagnostic_printer()
   {
@@ -84,7 +75,7 @@ public:
   }
 
 private:
-  srslte::log_sink_spy& s;
+  srsran::log_sink_spy& s;
 };
 
 /*******************
@@ -150,18 +141,18 @@ int sched_tester::process_results()
   srsenb::sf_output_res_t        sf_out{sched_cell_params, tti_rx, tti_info.ul_sched_result, tti_info.dl_sched_result};
 
   // Common tests
-  TESTASSERT(test_pdcch_collisions(sf_out, CARRIER_IDX, &cc_result->pdcch_mask) == SRSLTE_SUCCESS);
-  TESTASSERT(test_dci_content_common(sf_out, CARRIER_IDX) == SRSLTE_SUCCESS);
-  TESTASSERT(test_sib_scheduling(sf_out, CARRIER_IDX) == SRSLTE_SUCCESS);
-  TESTASSERT(test_pusch_collisions(sf_out, CARRIER_IDX, &cc_result->ul_mask) == SRSLTE_SUCCESS);
-  TESTASSERT(test_pdsch_collisions(sf_out, CARRIER_IDX, &cc_result->dl_mask) == SRSLTE_SUCCESS);
+  TESTASSERT(test_pdcch_collisions(sf_out, CARRIER_IDX, &cc_result->pdcch_mask) == SRSRAN_SUCCESS);
+  TESTASSERT(test_dci_content_common(sf_out, CARRIER_IDX) == SRSRAN_SUCCESS);
+  TESTASSERT(test_sib_scheduling(sf_out, CARRIER_IDX) == SRSRAN_SUCCESS);
+  TESTASSERT(test_pusch_collisions(sf_out, CARRIER_IDX, &cc_result->ul_mask) == SRSRAN_SUCCESS);
+  TESTASSERT(test_pdsch_collisions(sf_out, CARRIER_IDX, &cc_result->dl_mask) == SRSRAN_SUCCESS);
 
   // UE dedicated tests
-  TESTASSERT(run_ue_ded_tests_and_update_ctxt(sf_out) == SRSLTE_SUCCESS);
-  TESTASSERT(test_harqs() == SRSLTE_SUCCESS);
-  TESTASSERT(update_ue_stats() == SRSLTE_SUCCESS);
+  TESTASSERT(run_ue_ded_tests_and_update_ctxt(sf_out) == SRSRAN_SUCCESS);
+  TESTASSERT(test_harqs() == SRSRAN_SUCCESS);
+  TESTASSERT(update_ue_stats() == SRSRAN_SUCCESS);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int sched_tester::test_harqs()
@@ -201,7 +192,7 @@ int sched_tester::test_harqs()
     }
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int sched_tester::update_ue_stats()
@@ -210,7 +201,7 @@ int sched_tester::update_ue_stats()
   for (uint32_t i = 0; i < tti_info.ul_sched_result[CARRIER_IDX].pusch.size(); ++i) {
     const auto& pusch = tti_info.ul_sched_result[CARRIER_IDX].pusch[i];
     uint32_t    L, RBstart;
-    srslte_ra_type2_from_riv(pusch.dci.type2_alloc.riv,
+    srsran_ra_type2_from_riv(pusch.dci.type2_alloc.riv,
                              &L,
                              &RBstart,
                              sched_cell_params[CARRIER_IDX].cfg.cell.nof_prb,
@@ -222,12 +213,12 @@ int sched_tester::update_ue_stats()
   }
 
   // update ue stats with number of DL RB allocations
-  srslte::bounded_bitset<100, true> alloc_mask(sched_cell_params[CARRIER_IDX].cfg.cell.nof_prb);
+  srsran::bounded_bitset<100, true> alloc_mask(sched_cell_params[CARRIER_IDX].cfg.cell.nof_prb);
   for (uint32_t i = 0; i < tti_info.dl_sched_result[CARRIER_IDX].data.size(); ++i) {
     auto& data = tti_info.dl_sched_result[CARRIER_IDX].data[i];
     TESTASSERT(srsenb::extract_dl_prbmask(sched_cell_params[CARRIER_IDX].cfg.cell,
                                           tti_info.dl_sched_result[CARRIER_IDX].data[i].dci,
-                                          alloc_mask) == SRSLTE_SUCCESS);
+                                          alloc_mask) == SRSRAN_SUCCESS);
     ue_stats[data.dci.rnti].nof_dl_rbs += alloc_mask.count();
     ue_stats[data.dci.rnti].nof_dl_bytes += data.tbs[0] + data.tbs[1];
     ue_tot_stats.nof_dl_rbs += alloc_mask.count();
@@ -239,7 +230,7 @@ int sched_tester::update_ue_stats()
   }
   ue_tot_stats.nof_ttis++;
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_scheduler_rand(sched_sim_events sim)
@@ -250,8 +241,8 @@ int test_scheduler_rand(sched_sim_events sim)
 
   tester.sim_cfg(std::move(sim.sim_args));
 
-  TESTASSERT(tester.test_next_ttis(sim.tti_events) == SRSLTE_SUCCESS);
-  return SRSLTE_SUCCESS;
+  TESTASSERT(tester.test_next_ttis(sim.tti_events) == SRSRAN_SUCCESS);
+  return SRSRAN_SUCCESS;
 }
 
 template <typename T>
@@ -319,7 +310,7 @@ sched_sim_events rand_sim_params(uint32_t nof_ttis)
 
     // may add new user (For now, we only support one UE per PRACH)
     bool is_prach_tti =
-        srslte_prach_tti_opportunity_config_fdd(sim_gen.sim_args.cell_cfg[CARRIER_IDX].prach_config, tti, -1);
+        srsran_prach_tti_opportunity_config_fdd(sim_gen.sim_args.cell_cfg[CARRIER_IDX].prach_config, tti, -1);
     if (is_prach_tti and generator.current_users.size() < max_nof_users and srsenb::randf() < P_prach) {
       generator.add_new_default_user(connection_dur_dist(srsenb::get_rand_gen()), sim_gen.sim_args.default_ue_sim_cfg);
     }
@@ -339,14 +330,14 @@ int main()
 
   // Setup the log spy to intercept error and warning log entries.
   if (!srslog::install_custom_sink(
-          srslte::log_sink_spy::name(),
-          std::unique_ptr<srslte::log_sink_spy>(new srslte::log_sink_spy(srslog::get_default_log_formatter())))) {
-    return SRSLTE_ERROR;
+          srsran::log_sink_spy::name(),
+          std::unique_ptr<srsran::log_sink_spy>(new srsran::log_sink_spy(srslog::get_default_log_formatter())))) {
+    return SRSRAN_ERROR;
   }
 
-  auto* spy = static_cast<srslte::log_sink_spy*>(srslog::find_sink(srslte::log_sink_spy::name()));
+  auto* spy = static_cast<srsran::log_sink_spy*>(srslog::find_sink(srsran::log_sink_spy::name()));
   if (!spy) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   auto& mac_log = srslog::fetch_basic_logger("MAC");
@@ -363,7 +354,7 @@ int main()
   for (uint32_t n = 0; n < N_runs; ++n) {
     printf("Sim run number: %u\n", n + 1);
     sched_sim_events sim = rand_sim_params(nof_ttis);
-    TESTASSERT(test_scheduler_rand(std::move(sim)) == SRSLTE_SUCCESS);
+    TESTASSERT(test_scheduler_rand(std::move(sim)) == SRSRAN_SUCCESS);
   }
 
   return 0;

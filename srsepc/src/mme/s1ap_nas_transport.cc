@@ -1,30 +1,21 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #include "srsepc/hdr/mme/s1ap_nas_transport.h"
 #include "srsepc/hdr/mme/mme.h"
 #include "srsepc/hdr/mme/s1ap.h"
-#include "srslte/common/int_helpers.h"
-#include "srslte/common/liblte_security.h"
-#include "srslte/common/security.h"
+#include "srsran/common/int_helpers.h"
+#include "srsran/common/liblte_security.h"
+#include "srsran/common/security.h"
 #include <cmath>
 #include <inttypes.h> // for printing uint64_t
 
@@ -91,7 +82,7 @@ bool s1ap_nas_transport::handle_initial_ue_message(const asn1::s1ap::init_ue_msg
 {
   bool                         err, mac_valid;
   uint8_t                      pd, msg_type, sec_hdr_type;
-  srslte::unique_byte_buffer_t nas_msg = srslte::make_byte_buffer();
+  srsran::unique_byte_buffer_t nas_msg = srsran::make_byte_buffer();
   memcpy(nas_msg->msg, init_ue.protocol_ies.nas_pdu.value.data(), init_ue.protocol_ies.nas_pdu.value.size());
   nas_msg->N_bytes = init_ue.protocol_ies.nas_pdu.value.size();
 
@@ -100,38 +91,38 @@ bool s1ap_nas_transport::handle_initial_ue_message(const asn1::s1ap::init_ue_msg
   uint32_t enb_ue_s1ap_id = init_ue.protocol_ies.enb_ue_s1ap_id.value.value;
   liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT*)nas_msg.get(), &pd, &msg_type);
 
-  srslte::console("Initial UE message: %s\n", liblte_nas_msg_type_to_string(msg_type));
+  srsran::console("Initial UE message: %s\n", liblte_nas_msg_type_to_string(msg_type));
   m_logger.info("Initial UE message: %s", liblte_nas_msg_type_to_string(msg_type));
 
   if (init_ue.protocol_ies.s_tmsi_present) {
-    srslte::uint8_to_uint32(init_ue.protocol_ies.s_tmsi.value.m_tmsi.data(), &m_tmsi);
+    srsran::uint8_to_uint32(init_ue.protocol_ies.s_tmsi.value.m_tmsi.data(), &m_tmsi);
   }
 
   switch (msg_type) {
     case LIBLTE_MME_MSG_TYPE_ATTACH_REQUEST:
-      srslte::console("Received Initial UE message -- Attach Request\n");
+      srsran::console("Received Initial UE message -- Attach Request\n");
       m_logger.info("Received Initial UE message -- Attach Request");
       err = nas::handle_attach_request(enb_ue_s1ap_id, enb_sri, nas_msg.get(), m_nas_init, m_nas_if);
       break;
     case LIBLTE_MME_SECURITY_HDR_TYPE_SERVICE_REQUEST:
-      srslte::console("Received Initial UE message -- Service Request\n");
+      srsran::console("Received Initial UE message -- Service Request\n");
       m_logger.info("Received Initial UE message -- Service Request");
       err = nas::handle_service_request(m_tmsi, enb_ue_s1ap_id, enb_sri, nas_msg.get(), m_nas_init, m_nas_if);
       break;
     case LIBLTE_MME_MSG_TYPE_DETACH_REQUEST:
-      srslte::console("Received Initial UE message -- Detach Request\n");
+      srsran::console("Received Initial UE message -- Detach Request\n");
       m_logger.info("Received Initial UE message -- Detach Request");
       err = nas::handle_detach_request(m_tmsi, enb_ue_s1ap_id, enb_sri, nas_msg.get(), m_nas_init, m_nas_if);
       break;
     case LIBLTE_MME_MSG_TYPE_TRACKING_AREA_UPDATE_REQUEST:
-      srslte::console("Received Initial UE message -- Tracking Area Update Request\n");
+      srsran::console("Received Initial UE message -- Tracking Area Update Request\n");
       m_logger.info("Received Initial UE message -- Tracking Area Update Request");
       err = nas::handle_tracking_area_update_request(
           m_tmsi, enb_ue_s1ap_id, enb_sri, nas_msg.get(), m_nas_init, m_nas_if);
       break;
     default:
       m_logger.info("Unhandled Initial UE Message 0x%x ", msg_type);
-      srslte::console("Unhandled Initial UE Message 0x%x \n", msg_type);
+      srsran::console("Unhandled Initial UE Message 0x%x \n", msg_type);
       err = false;
   }
   return err;
@@ -159,7 +150,7 @@ bool s1ap_nas_transport::handle_uplink_nas_transport(const asn1::s1ap::ul_nas_tr
   sec_ctx_t* sec_ctx = &nas_ctx->m_sec_ctx;
 
   // Parse NAS message header
-  srslte::unique_byte_buffer_t nas_msg = srslte::make_byte_buffer();
+  srsran::unique_byte_buffer_t nas_msg = srsran::make_byte_buffer();
   memcpy(nas_msg->msg, ul_xport.protocol_ies.nas_pdu.value.data(), ul_xport.protocol_ies.nas_pdu.value.size());
   nas_msg->N_bytes   = ul_xport.protocol_ies.nas_pdu.value.size();
   bool msg_encrypted = false;
@@ -237,17 +228,17 @@ bool s1ap_nas_transport::handle_uplink_nas_transport(const asn1::s1ap::ul_nas_tr
   switch (msg_type) {
     case LIBLTE_MME_MSG_TYPE_ATTACH_REQUEST:
       m_logger.info("UL NAS: Attach Request");
-      srslte::console("UL NAS: Attach Resquest\n");
+      srsran::console("UL NAS: Attach Resquest\n");
       nas_ctx->handle_attach_request(nas_msg.get());
       break;
     case LIBLTE_MME_MSG_TYPE_IDENTITY_RESPONSE:
       m_logger.info("UL NAS: Received Identity Response");
-      srslte::console("UL NAS: Received Identity Response\n");
+      srsran::console("UL NAS: Received Identity Response\n");
       nas_ctx->handle_identity_response(nas_msg.get());
       break;
     case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_RESPONSE:
       m_logger.info("UL NAS: Received Authentication Response");
-      srslte::console("UL NAS: Received Authentication Response\n");
+      srsran::console("UL NAS: Received Authentication Response\n");
       nas_ctx->handle_authentication_response(nas_msg.get());
       // In case of a successful authentication response, security mode command follows.
       // Reset counter for incoming security mode complete
@@ -258,25 +249,25 @@ bool s1ap_nas_transport::handle_uplink_nas_transport(const asn1::s1ap::ul_nas_tr
     // Authentication failure with the option sync failure can be sent not integrity protected
     case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_FAILURE:
       m_logger.info("UL NAS: Authentication Failure");
-      srslte::console("UL NAS: Authentication Failure\n");
+      srsran::console("UL NAS: Authentication Failure\n");
       nas_ctx->handle_authentication_failure(nas_msg.get());
       break;
     // Detach request can be sent not integrity protected when "power off" option is used
     case LIBLTE_MME_MSG_TYPE_DETACH_REQUEST:
       m_logger.info("UL NAS: Detach Request");
-      srslte::console("UL NAS: Detach Request\n");
+      srsran::console("UL NAS: Detach Request\n");
       // TODO: check integrity protection in detach request
       nas_ctx->handle_detach_request(nas_msg.get());
       break;
     case LIBLTE_MME_MSG_TYPE_SECURITY_MODE_COMPLETE:
       m_logger.info("UL NAS: Received Security Mode Complete");
-      srslte::console("UL NAS: Received Security Mode Complete\n");
+      srsran::console("UL NAS: Received Security Mode Complete\n");
       if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED_WITH_NEW_EPS_SECURITY_CONTEXT &&
           mac_valid == true) {
         nas_ctx->handle_security_mode_complete(nas_msg.get());
       } else {
         // Security Mode Complete was not integrity protected
-        srslte::console("Security Mode Complete %s. Discard message.\n",
+        srsran::console("Security Mode Complete %s. Discard message.\n",
                         (mac_valid ? "not integrity protected" : "invalid integrity"));
         m_logger.warning("Security Mode Complete %s. Discard message.",
                          (mac_valid ? "not integrity protected" : "invalid integrity"));
@@ -285,24 +276,24 @@ bool s1ap_nas_transport::handle_uplink_nas_transport(const asn1::s1ap::ul_nas_tr
       break;
     case LIBLTE_MME_MSG_TYPE_ATTACH_COMPLETE:
       m_logger.info("UL NAS: Received Attach Complete");
-      srslte::console("UL NAS: Received Attach Complete\n");
+      srsran::console("UL NAS: Received Attach Complete\n");
       if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED && mac_valid == true) {
         nas_ctx->handle_attach_complete(nas_msg.get());
       } else {
         // Attach Complete was not integrity protected
-        srslte::console("Attach Complete not integrity protected. Discard message.\n");
+        srsran::console("Attach Complete not integrity protected. Discard message.\n");
         m_logger.warning("Attach Complete not integrity protected. Discard message.");
         increase_ul_nas_cnt = false;
       }
       break;
     case LIBLTE_MME_MSG_TYPE_ESM_INFORMATION_RESPONSE:
       m_logger.info("UL NAS: Received ESM Information Response");
-      srslte::console("UL NAS: Received ESM Information Response\n");
+      srsran::console("UL NAS: Received ESM Information Response\n");
       if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED && mac_valid == true) {
         nas_ctx->handle_esm_information_response(nas_msg.get());
       } else {
         // Attach Complete was not integrity protected
-        srslte::console("ESM Information Response %s. Discard message.\n",
+        srsran::console("ESM Information Response %s. Discard message.\n",
                         (mac_valid ? "not integrity protected" : "invalid integrity"));
         m_logger.warning("ESM Information Response %s. Discard message.",
                          (mac_valid ? "not integrity protected" : "invalid integrity"));
@@ -311,12 +302,12 @@ bool s1ap_nas_transport::handle_uplink_nas_transport(const asn1::s1ap::ul_nas_tr
       break;
     case LIBLTE_MME_MSG_TYPE_TRACKING_AREA_UPDATE_REQUEST:
       m_logger.info("UL NAS: Tracking Area Update Request");
-      srslte::console("UL NAS: Tracking Area Update Request\n");
+      srsran::console("UL NAS: Tracking Area Update Request\n");
       nas_ctx->handle_tracking_area_update_request(nas_msg.get());
       break;
     default:
       m_logger.warning("Unhandled NAS integrity protected message %s", liblte_nas_msg_type_to_string(msg_type));
-      srslte::console("Unhandled NAS integrity protected message %s\n", liblte_nas_msg_type_to_string(msg_type));
+      srsran::console("Unhandled NAS integrity protected message %s\n", liblte_nas_msg_type_to_string(msg_type));
       return false;
   }
 
@@ -330,7 +321,7 @@ bool s1ap_nas_transport::handle_uplink_nas_transport(const asn1::s1ap::ul_nas_tr
 
 bool s1ap_nas_transport::send_downlink_nas_transport(uint32_t               enb_ue_s1ap_id,
                                                      uint32_t               mme_ue_s1ap_id,
-                                                     srslte::byte_buffer_t* nas_msg,
+                                                     srsran::byte_buffer_t* nas_msg,
                                                      struct sctp_sndrcvinfo enb_sri)
 {
   m_logger.debug("Sending message to eNB with SCTP association %d. MME UE S1AP ID %d, eNB UE S1AP ID %d",

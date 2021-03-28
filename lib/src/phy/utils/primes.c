@@ -1,25 +1,16 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
-#include "srslte/phy/utils/primes.h"
+#include "srsran/phy/utils/primes.h"
 
 #define NOF_PRIME_NUMBERS 463
 
@@ -50,7 +41,7 @@ static const uint32_t prime_numbers[NOF_PRIME_NUMBERS] = {
     3061, 3067, 3079, 3083, 3089, 3109, 3119, 3121, 3137, 3163, 3167, 3169, 3181, 3187, 3191, 3203, 3209, 3217, 3221,
     3229, 3251, 3253, 3257, 3259, 3271, 3299};
 
-int srslte_prime_greater_than(uint32_t n)
+int srsran_prime_greater_than(uint32_t n)
 {
   for (uint32_t i = 0; i < NOF_PRIME_NUMBERS; i++) {
     if (prime_numbers[i] > n) {
@@ -58,14 +49,14 @@ int srslte_prime_greater_than(uint32_t n)
     }
   }
 
-  return SRSLTE_ERROR_OUT_OF_BOUNDS;
+  return SRSRAN_ERROR_OUT_OF_BOUNDS;
 }
 
-int srslte_prime_lower_than(uint32_t n)
+int srsran_prime_lower_than(uint32_t n)
 {
 
   if (n > prime_numbers[NOF_PRIME_NUMBERS - 1]) {
-    return SRSLTE_ERROR_OUT_OF_BOUNDS;
+    return SRSRAN_ERROR_OUT_OF_BOUNDS;
   }
 
   for (uint32_t i = NOF_PRIME_NUMBERS - 1; i > 0; i--) {

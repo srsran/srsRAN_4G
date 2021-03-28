@@ -1,28 +1,19 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #include "srsue/hdr/stack/mac/demux.h"
-#include "srslte/common/standard_streams.h"
-#include "srslte/common/string_helpers.h"
-#include "srslte/interfaces/ue_phy_interfaces.h"
+#include "srsran/common/standard_streams.h"
+#include "srsran/common/string_helpers.h"
+#include "srsran/interfaces/ue_phy_interfaces.h"
 
 #define Error(fmt, ...) logger.error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) logger.warning(fmt, ##__VA_ARGS__)
@@ -38,7 +29,7 @@ demux::demux(srslog::basic_logger& logger) :
 void demux::init(phy_interface_mac_common*            phy_,
                  rlc_interface_mac*                   rlc_,
                  mac_interface_demux*                 mac_,
-                 srslte::timer_handler::unique_timer* time_alignment_timer_)
+                 srsran::timer_handler::unique_timer* time_alignment_timer_)
 {
   phy_h                = phy_;
   rlc                  = rlc_;
@@ -98,13 +89,13 @@ void demux::push_pdu_temp_crnti(uint8_t* buff, uint32_t nof_bytes)
     is_uecrid_successful = false;
     while (pending_mac_msg.next()) {
       switch (pending_mac_msg.get()->dl_sch_ce_type()) {
-        case srslte::dl_sch_lcid::CON_RES_ID:
+        case srsran::dl_sch_lcid::CON_RES_ID:
           if (!is_uecrid_successful) {
             Debug("Found Contention Resolution ID CE");
             is_uecrid_successful = mac->contention_resolution_id_rcv(pending_mac_msg.get()->get_con_res_id());
           }
           break;
-        case srslte::dl_sch_lcid::TA_CMD:
+        case srsran::dl_sch_lcid::TA_CMD:
           parse_ta_cmd(pending_mac_msg.get(), 0);
           break;
         default:
@@ -114,7 +105,7 @@ void demux::push_pdu_temp_crnti(uint8_t* buff, uint32_t nof_bytes)
     pending_mac_msg.reset();
     if (is_uecrid_successful) {
       Debug("Saved MAC PDU with Temporal C-RNTI in buffer");
-      pdus.push(buff, nof_bytes, srslte::pdu_queue::DCH);
+      pdus.push(buff, nof_bytes, srsran::pdu_queue::DCH);
     } else {
       pdus.deallocate(buff);
     }
@@ -132,7 +123,7 @@ void demux::push_pdu(uint8_t* buff, uint32_t nof_bytes, uint32_t tti)
   // Process Real-Time PDUs
   process_sch_pdu_rt(buff, nof_bytes, tti);
 
-  return pdus.push(buff, nof_bytes, srslte::pdu_queue::DCH);
+  return pdus.push(buff, nof_bytes, srsran::pdu_queue::DCH);
 }
 
 /* Demultiplexing of MAC PDU associated with SI-RNTI. The PDU passes through
@@ -140,14 +131,14 @@ void demux::push_pdu(uint8_t* buff, uint32_t nof_bytes, uint32_t tti)
  */
 void demux::push_pdu_bcch(uint8_t* buff, uint32_t nof_bytes)
 {
-  pdus.push(buff, nof_bytes, srslte::pdu_queue::BCH);
+  pdus.push(buff, nof_bytes, srsran::pdu_queue::BCH);
 }
 
 void demux::push_pdu_mch(uint8_t* buff, uint32_t nof_bytes)
 {
   uint8_t* mch_buffer_ptr = request_buffer(nof_bytes);
   memcpy(mch_buffer_ptr, buff, nof_bytes);
-  pdus.push(mch_buffer_ptr, nof_bytes, srslte::pdu_queue::MCH);
+  pdus.push(mch_buffer_ptr, nof_bytes, srsran::pdu_queue::MCH);
   mch_buffer_ptr = NULL;
 }
 
@@ -156,26 +147,26 @@ bool demux::process_pdus()
   return pdus.process_pdus();
 }
 
-void demux::process_pdu(uint8_t* mac_pdu, uint32_t nof_bytes, srslte::pdu_queue::channel_t channel)
+void demux::process_pdu(uint8_t* mac_pdu, uint32_t nof_bytes, srsran::pdu_queue::channel_t channel)
 {
   Debug("Processing MAC PDU channel %d", channel);
   switch (channel) {
-    case srslte::pdu_queue::DCH:
+    case srsran::pdu_queue::DCH:
       // Unpack DLSCH MAC PDU
       mac_msg.init_rx(nof_bytes);
       mac_msg.parse_packet(mac_pdu);
       {
         fmt::memory_buffer buffer;
         mac_msg.to_string(buffer);
-        Info("%s", srslte::to_c_str(buffer));
+        Info("%s", srsran::to_c_str(buffer));
       }
       process_sch_pdu(&mac_msg);
       pdus.deallocate(mac_pdu);
       break;
-    case srslte::pdu_queue::BCH:
+    case srsran::pdu_queue::BCH:
       rlc->write_pdu_bcch_dlsch(mac_pdu, nof_bytes);
       break;
-    case srslte::pdu_queue::MCH:
+    case srsran::pdu_queue::MCH:
       mch_mac_msg.init_rx(nof_bytes);
       mch_mac_msg.parse_packet(mac_pdu);
       deallocate(mac_pdu);
@@ -187,7 +178,7 @@ void demux::process_pdu(uint8_t* mac_pdu, uint32_t nof_bytes, srslte::pdu_queue:
 
 void demux::process_sch_pdu_rt(uint8_t* buff, uint32_t nof_bytes, uint32_t tti)
 {
-  srslte::sch_pdu mac_msg_rt(20, logger);
+  srsran::sch_pdu mac_msg_rt(20, logger);
 
   mac_msg_rt.init_rx(nof_bytes);
   mac_msg_rt.parse_packet(buff);
@@ -204,7 +195,7 @@ void demux::process_sch_pdu_rt(uint8_t* buff, uint32_t nof_bytes, uint32_t tti)
   }
 }
 
-void demux::process_sch_pdu(srslte::sch_pdu* pdu_msg)
+void demux::process_sch_pdu(srsran::sch_pdu* pdu_msg)
 {
   while (pdu_msg->next()) {
     if (pdu_msg->get()->is_sdu()) {
@@ -229,7 +220,7 @@ void demux::process_sch_pdu(srslte::sch_pdu* pdu_msg)
               pdu_msg->get()->get_sdu_lcid(), pdu_msg->get()->get_sdu_ptr(), pdu_msg->get()->get_payload_size());
         } else {
           char tmp[1024];
-          srslte_vec_sprint_hex(tmp, sizeof(tmp), pdu_msg->get()->get_sdu_ptr(), 32);
+          srsran_vec_sprint_hex(tmp, sizeof(tmp), pdu_msg->get()->get_sdu_ptr(), 32);
           Error("PDU size %d exceeds maximum PDU buffer size, lcid=%d, hex=[%s]",
                 pdu_msg->get()->get_payload_size(),
                 pdu_msg->get()->get_sdu_lcid(),
@@ -241,11 +232,11 @@ void demux::process_sch_pdu(srslte::sch_pdu* pdu_msg)
     }
   }
 }
-void demux::process_mch_pdu(srslte::mch_pdu* mch_msg)
+void demux::process_mch_pdu(srsran::mch_pdu* mch_msg)
 {
   // disgarding headers that have already been processed
   while (mch_msg->next()) {
-    if (srslte::mch_lcid::MCH_SCHED_INFO == mch_msg->get()->mch_ce_type()) {
+    if (srsran::mch_lcid::MCH_SCHED_INFO == mch_msg->get()->mch_ce_type()) {
       uint16_t stop;
       uint8_t  lcid;
       if (mch_msg->get()->get_next_mch_sched_info(&lcid, &stop)) {
@@ -255,8 +246,8 @@ void demux::process_mch_pdu(srslte::mch_pdu* mch_msg)
     if (mch_msg->get()->is_sdu()) {
       uint32_t lcid = mch_msg->get()->get_sdu_lcid();
 
-      if (lcid >= SRSLTE_N_MCH_LCIDS) {
-        Error("Radio bearer id must be in [0:%d] - %d", SRSLTE_N_MCH_LCIDS, lcid);
+      if (lcid >= SRSRAN_N_MCH_LCIDS) {
+        Error("Radio bearer id must be in [0:%d] - %d", SRSRAN_N_MCH_LCIDS, lcid);
         return;
       }
       Debug("Wrote MCH LCID=%d to RLC", lcid);
@@ -277,23 +268,23 @@ void demux::mch_start_rx(uint32_t lcid)
   }
 }
 
-bool demux::process_ce(srslte::sch_subh* subh, uint32_t tti)
+bool demux::process_ce(srsran::sch_subh* subh, uint32_t tti)
 {
   switch (subh->dl_sch_ce_type()) {
-    case srslte::dl_sch_lcid::CON_RES_ID:
+    case srsran::dl_sch_lcid::CON_RES_ID:
       // Do nothing
       break;
-    case srslte::dl_sch_lcid::TA_CMD:
+    case srsran::dl_sch_lcid::TA_CMD:
       parse_ta_cmd(subh, tti);
       break;
-    case srslte::dl_sch_lcid::SCELL_ACTIVATION: {
+    case srsran::dl_sch_lcid::SCELL_ACTIVATION: {
       uint32_t cmd = (uint32_t)subh->get_activation_deactivation_cmd();
-      srslte::console("SCELL Activation / Deactivation CMD: %x\n", cmd);
+      srsran::console("SCELL Activation / Deactivation CMD: %x\n", cmd);
       logger.info("SCELL Activation / Deactivation CMD: %x", cmd);
       phy_h->set_activation_deactivation_scell(cmd, tti);
       break;
     }
-    case srslte::dl_sch_lcid::PADDING:
+    case srsran::dl_sch_lcid::PADDING:
       break;
     default:
       Error("MAC CE 0x%x not supported", subh->lcid_value());
@@ -302,7 +293,7 @@ bool demux::process_ce(srslte::sch_subh* subh, uint32_t tti)
   return true;
 }
 
-void demux::parse_ta_cmd(srslte::sch_subh* subh, uint32_t tti)
+void demux::parse_ta_cmd(srsran::sch_subh* subh, uint32_t tti)
 {
   phy_h->set_timeadv(tti, subh->get_ta_cmd());
   Info("Received TA=%d (%d/%d) ",

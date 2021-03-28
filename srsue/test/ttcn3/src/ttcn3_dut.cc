@@ -1,26 +1,17 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
-#include "srslte/build_info.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/build_info.h"
+#include "srsran/srslog/srslog.h"
 #include "srsue/hdr/ue.h"
 #include "swappable_sink.h"
 #include "ttcn3_syssim.h"
@@ -28,7 +19,7 @@
 #include <boost/program_options/parsers.hpp>
 #include <iostream>
 
-using namespace srslte;
+using namespace srsran;
 using namespace srsue;
 ;
 using namespace std;
@@ -115,7 +106,7 @@ all_args_t parse_args(ttcn3_dut_args_t* args, int argc, char* argv[])
 
 int main(int argc, char** argv)
 {
-  std::cout << "Built in " << srslte_get_build_mode() << " mode using " << srslte_get_build_info() << "." << std::endl;
+  std::cout << "Built in " << srsran_get_build_mode() << " mode using " << srsran_get_build_info() << "." << std::endl;
 
   // we handle OS signals through epoll
   block_signals();
@@ -127,11 +118,11 @@ int main(int argc, char** argv)
   if (!srslog::install_custom_sink(swappable_sink::name(),
                                    std::unique_ptr<swappable_sink>(new swappable_sink(
                                        dut_args.log_filename, srslog::get_default_log_formatter())))) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   auto* default_sink = srslog::find_sink(swappable_sink::name());
   if (!default_sink) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   srslog::set_default_sink(*default_sink);
 
@@ -143,9 +134,9 @@ int main(int argc, char** argv)
 
   // create and init SYSSIM
   ttcn3_syssim syssim(ue.get());
-  if (syssim.init(ue_args) != SRSLTE_SUCCESS) {
+  if (syssim.init(ue_args) != SRSRAN_SUCCESS) {
     fprintf(stderr, "Error: Couldn't initialize system simulator\n");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   return syssim.run();

@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -24,8 +15,8 @@
 
 #include "demux.h"
 #include "dl_sps.h"
-#include "srslte/common/mac_pcap.h"
-#include "srslte/common/timers.h"
+#include "srsran/common/mac_pcap.h"
+#include "srsran/common/timers.h"
 
 /* Downlink HARQ entity as defined in 5.3.2 of 36.321 */
 
@@ -38,11 +29,11 @@ public:
 
   bool init(mac_interface_rrc::ue_rnti_t* rntis, demux* demux_unit);
   void reset();
-  void start_pcap(srslte::mac_pcap* pcap_);
+  void start_pcap(srsran::mac_pcap* pcap_);
 
   /***************** PHY->MAC interface for DL processes **************************/
   void new_grant_dl(mac_interface_phy_lte::mac_grant_dl_t grant, mac_interface_phy_lte::tb_action_dl_t* action);
-  void tb_decoded(mac_interface_phy_lte::mac_grant_dl_t grant, bool ack[SRSLTE_MAX_CODEWORDS]);
+  void tb_decoded(mac_interface_phy_lte::mac_grant_dl_t grant, bool ack[SRSRAN_MAX_CODEWORDS]);
 
   void set_si_window_start(int si_window_start);
 
@@ -58,7 +49,7 @@ private:
     void reset_ndi();
 
     void new_grant_dl(mac_interface_phy_lte::mac_grant_dl_t grant, mac_interface_phy_lte::tb_action_dl_t* action);
-    void tb_decoded(mac_interface_phy_lte::mac_grant_dl_t grant, bool ack[SRSLTE_MAX_CODEWORDS]);
+    void tb_decoded(mac_interface_phy_lte::mac_grant_dl_t grant, bool ack[SRSRAN_MAX_CODEWORDS]);
 
     bool is_sps();
 
@@ -100,7 +91,7 @@ private:
       uint32_t n_retx;
 
       mac_interface_phy_lte::mac_grant_dl_t cur_grant;
-      srslte_softbuffer_rx_t                softbuffer;
+      srsran_softbuffer_rx_t                softbuffer;
     };
 
     /* Transport blocks */
@@ -117,7 +108,7 @@ private:
   dl_harq_process               bcch_proc;
   demux*                        demux_unit = nullptr;
   srslog::basic_logger&         logger;
-  srslte::mac_pcap*             pcap                = nullptr;
+  srsran::mac_pcap*             pcap                = nullptr;
   mac_interface_rrc::ue_rnti_t* rntis               = nullptr;
   uint16_t                      last_temporal_crnti = 0;
   int                           si_window_start     = 0;
@@ -128,7 +119,7 @@ private:
 };
 
 typedef std::unique_ptr<dl_harq_entity>                     dl_harq_entity_ptr;
-typedef std::array<dl_harq_entity_ptr, SRSLTE_MAX_CARRIERS> dl_harq_entity_vector;
+typedef std::array<dl_harq_entity_ptr, SRSRAN_MAX_CARRIERS> dl_harq_entity_vector;
 
 } // namespace srsue
 

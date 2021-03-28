@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -24,11 +15,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "srslte/phy/fec/cbsegm.h"
-#include "srslte/phy/fec/turbo/turbocoder.h"
-#include "srslte/phy/utils/bit.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/fec/cbsegm.h"
+#include "srsran/phy/fec/turbo/turbocoder.h"
+#include "srsran/phy/utils/bit.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/vector.h"
 
 #define NOF_REGS 3
 
@@ -42,23 +33,23 @@ typedef struct {
 
 static tcod_lut_t               tcod_lut[8][256];
 static uint16_t                 tcod_per_fw[188][6144];
-static srslte_bit_interleaver_t tcod_interleavers[188];
+static srsran_bit_interleaver_t tcod_interleavers[188];
 
 static bool table_initiated = false;
 
-int srslte_tcod_init(srslte_tcod_t* h, uint32_t max_long_cb)
+int srsran_tcod_init(srsran_tcod_t* h, uint32_t max_long_cb)
 {
   h->max_long_cb = max_long_cb;
-  h->temp        = srslte_vec_malloc(max_long_cb / 8);
+  h->temp        = srsran_vec_malloc(max_long_cb / 8);
 
   if (!table_initiated) {
     table_initiated = true;
-    srslte_tcod_gentable();
+    srsran_tcod_gentable();
   }
   return 0;
 }
 
-void srslte_tcod_free(srslte_tcod_t* h)
+void srsran_tcod_free(srsran_tcod_t* h)
 {
   h->max_long_cb = 0;
   if (h->temp) {
@@ -67,14 +58,14 @@ void srslte_tcod_free(srslte_tcod_t* h)
 
   if (table_initiated) {
     for (int i = 0; i < 188; i++) {
-      srslte_bit_interleaver_free(&tcod_interleavers[i]);
+      srsran_bit_interleaver_free(&tcod_interleavers[i]);
     }
     table_initiated = false;
   }
 }
 
 /* Expects bits (1 byte = 1 bit) and produces bits. The systematic and parity bits are interlaced in the output */
-int srslte_tcod_encode(srslte_tcod_t* h, uint8_t* input, uint8_t* output, uint32_t long_cb)
+int srsran_tcod_encode(srsran_tcod_t* h, uint8_t* input, uint8_t* output, uint32_t long_cb)
 {
   uint8_t   reg1_0, reg1_1, reg1_2, reg2_0, reg2_1, reg2_2;
   uint32_t  i, k = 0, j;
@@ -87,7 +78,7 @@ int srslte_tcod_encode(srslte_tcod_t* h, uint8_t* input, uint8_t* output, uint32
     return -1;
   }
 
-  int longcb_idx = srslte_cbsegm_cbindex(long_cb);
+  int longcb_idx = srsran_cbsegm_cbindex(long_cb);
   if (longcb_idx < 0) {
     ERROR("Invalid CB size %d", long_cb);
     return -1;
@@ -105,7 +96,7 @@ int srslte_tcod_encode(srslte_tcod_t* h, uint8_t* input, uint8_t* output, uint32
 
   k = 0;
   for (i = 0; i < long_cb; i++) {
-    if (input[i] == SRSLTE_TX_NULL) {
+    if (input[i] == SRSRAN_TX_NULL) {
       bit = 0;
     } else {
       bit = input[i];
@@ -121,15 +112,15 @@ int srslte_tcod_encode(srslte_tcod_t* h, uint8_t* input, uint8_t* output, uint32
     reg1_1 = reg1_0;
     reg1_0 = in;
 
-    if (input[i] == SRSLTE_TX_NULL) {
-      output[k] = SRSLTE_TX_NULL;
+    if (input[i] == SRSRAN_TX_NULL) {
+      output[k] = SRSRAN_TX_NULL;
     } else {
       output[k] = out;
     }
     k++;
 
     bit = input[per[i]];
-    if (bit == SRSLTE_TX_NULL) {
+    if (bit == SRSRAN_TX_NULL) {
       bit = 0;
     }
 
@@ -185,16 +176,16 @@ int srslte_tcod_encode(srslte_tcod_t* h, uint8_t* input, uint8_t* output, uint32
 }
 
 /* Expects bytes and produces bytes. The systematic and parity bits are interlaced in the output */
-int srslte_tcod_encode_lut(srslte_tcod_t* h,
-                           srslte_crc_t*  crc_tb,
-                           srslte_crc_t*  crc_cb,
+int srsran_tcod_encode_lut(srsran_tcod_t* h,
+                           srsran_crc_t*  crc_tb,
+                           srsran_crc_t*  crc_cb,
                            uint8_t*       input,
                            uint8_t*       parity,
                            uint32_t       cblen_idx,
                            bool           last_cb)
 {
   if (cblen_idx < 188) {
-    uint32_t long_cb = (uint32_t)srslte_cbsegm_cbsize(cblen_idx);
+    uint32_t long_cb = (uint32_t)srsran_cbsegm_cbsize(cblen_idx);
 
     if (long_cb % 8) {
       ERROR("Turbo coder LUT implementation long_cb must be multiple of 8");
@@ -203,7 +194,7 @@ int srslte_tcod_encode_lut(srslte_tcod_t* h,
 
     /* Reset CRC */
     if (crc_cb) {
-      srslte_crc_set_init(crc_cb, 0);
+      srsran_crc_set_init(crc_cb, 0);
     }
 
     /* Parity bits for the 1st constituent encoders */
@@ -216,10 +207,10 @@ int srslte_tcod_encode_lut(srslte_tcod_t* h,
         uint8_t in = input[i];
 
         /* Put byte in TB CRC and save latest checksum */
-        srslte_crc_checksum_put_byte(crc_tb, in);
+        srsran_crc_checksum_put_byte(crc_tb, in);
 
         /* Put byte in CB CRC and save latest checksum */
-        srslte_crc_checksum_put_byte(crc_cb, in);
+        srsran_crc_checksum_put_byte(crc_cb, in);
 
         /* Run actual encoder */
         tcod_lut_t l = tcod_lut[state0][in];
@@ -228,14 +219,14 @@ int srslte_tcod_encode_lut(srslte_tcod_t* h,
       }
 
       if (last_cb) {
-        uint32_t checksum = (uint32_t)srslte_crc_checksum_get(crc_tb);
+        uint32_t checksum = (uint32_t)srsran_crc_checksum_get(crc_tb);
         for (int i = 0; i < crc_tb->order / 8; i++) {
           int     mask_shift = 8 * (crc_tb->order / 8 - i - 1);
           int     idx        = block_size_nocrc + i;
           uint8_t in         = (uint8_t)((checksum >> mask_shift) & 0xff);
 
           /* Put byte in CB CRC and save latest checksum */
-          srslte_crc_checksum_put_byte(crc_cb, in);
+          srsran_crc_checksum_put_byte(crc_cb, in);
 
           input[idx]   = in;
           tcod_lut_t l = tcod_lut[state0][in];
@@ -244,7 +235,7 @@ int srslte_tcod_encode_lut(srslte_tcod_t* h,
         }
       }
 
-      uint32_t checksum = (uint32_t)srslte_crc_checksum_get(crc_cb);
+      uint32_t checksum = (uint32_t)srsran_crc_checksum_get(crc_cb);
       for (int i = 0; i < crc_cb->order / 8; i++) {
         int     mask_shift = 8 * (crc_cb->order / 8 - i - 1);
         int     idx        = (long_cb - crc_cb->order) / 8 + i;
@@ -263,7 +254,7 @@ int srslte_tcod_encode_lut(srslte_tcod_t* h,
       for (uint32_t i = 0; i < block_size_nocrc; i++) {
         uint8_t in = input[i];
 
-        srslte_crc_checksum_put_byte(crc_tb, in);
+        srsran_crc_checksum_put_byte(crc_tb, in);
 
         tcod_lut_t l = tcod_lut[state0][in];
         parity[i]    = l.output;
@@ -271,7 +262,7 @@ int srslte_tcod_encode_lut(srslte_tcod_t* h,
       }
 
       if (last_cb) {
-        uint32_t checksum = (uint32_t)srslte_crc_checksum_get(crc_tb);
+        uint32_t checksum = (uint32_t)srsran_crc_checksum_get(crc_tb);
         for (int i = 0; i < crc_tb->order / 8; i++) {
           int     mask_shift = 8 * (crc_tb->order / 8 - i - 1);
           int     idx        = block_size_nocrc + i;
@@ -287,8 +278,8 @@ int srslte_tcod_encode_lut(srslte_tcod_t* h,
     parity[long_cb / 8] = 0; // will put tail here later
 
     /* Interleave input */
-    srslte_bit_interleaver_run(&tcod_interleavers[cblen_idx], input, h->temp, 0);
-    // srslte_bit_interleave(input, h->temp, tcod_per_fw[cblen_idx], long_cb);
+    srsran_bit_interleaver_run(&tcod_interleavers[cblen_idx], input, h->temp, 0);
+    // srsran_bit_interleave(input, h->temp, tcod_per_fw[cblen_idx], long_cb);
 
     /* Parity bits for the 2nd constituent encoders */
     uint8_t state1 = 0;
@@ -357,11 +348,11 @@ int srslte_tcod_encode_lut(srslte_tcod_t* h,
       }
     }
     uint8_t* x         = tailv[0];
-    input[long_cb / 8] = (srslte_bit_pack(&x, 4) << 4);
+    input[long_cb / 8] = (srsran_bit_pack(&x, 4) << 4);
     x                  = tailv[1];
-    parity[long_cb / 8] |= (srslte_bit_pack(&x, 4) << 4);
+    parity[long_cb / 8] |= (srsran_bit_pack(&x, 4) << 4);
     x = tailv[2];
-    parity[2 * long_cb / 8] |= (srslte_bit_pack(&x, 4) & 0xf);
+    parity[2 * long_cb / 8] |= (srsran_bit_pack(&x, 4) & 0xf);
 
     return 3 * long_cb + TOTALTAIL;
   } else {
@@ -369,18 +360,18 @@ int srslte_tcod_encode_lut(srslte_tcod_t* h,
   }
 }
 
-void srslte_tcod_gentable()
+void srsran_tcod_gentable()
 {
-  srslte_tc_interl_t interl;
+  srsran_tc_interl_t interl;
 
-  if (srslte_tc_interl_init(&interl, 6144)) {
+  if (srsran_tc_interl_init(&interl, 6144)) {
     ERROR("Error initiating interleave");
     return;
   }
 
   for (uint32_t len = 0; len < 188; len++) {
-    uint32_t long_cb = srslte_cbsegm_cbsize(len);
-    if (srslte_tc_interl_LTE_gen(&interl, long_cb)) {
+    uint32_t long_cb = srsran_cbsegm_cbsize(len);
+    if (srsran_tc_interl_LTE_gen(&interl, long_cb)) {
       ERROR("Error initiating TC interleaver for long_cb=%d", long_cb);
       return;
     }
@@ -388,7 +379,7 @@ void srslte_tcod_gentable()
     for (uint32_t i = 0; i < long_cb; i++) {
       tcod_per_fw[len][i] = interl.forward[i];
     }
-    srslte_bit_interleaver_init(&tcod_interleavers[len], tcod_per_fw[len], long_cb);
+    srsran_bit_interleaver_init(&tcod_interleavers[len], tcod_per_fw[len], long_cb);
     for (uint32_t i = long_cb; i < 6144; i++) {
       tcod_per_fw[len][i] = 0;
     }
@@ -419,5 +410,5 @@ void srslte_tcod_gentable()
     }
   }
 
-  srslte_tc_interl_free(&interl);
+  srsran_tc_interl_free(&interl);
 }

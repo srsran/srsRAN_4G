@@ -20,7 +20,7 @@
 
 if(RF_FOUND)
   add_executable(benchmark_radio benchmark_radio.cc)
-  target_link_libraries(benchmark_radio srslte_common srslte_phy srslte_radio)
+  target_link_libraries(benchmark_radio srsran_common srsran_phy srsran_radio)
   if(SRSGUI_FOUND)
     include_directories(${SRSGUI_INCLUDE_DIRS})
     target_link_libraries(benchmark_radio ${SRSGUI_LIBRARIES})

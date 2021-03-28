@@ -1,29 +1,20 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #include "srsue/hdr/stack/upper/nas_idle_procedures.h"
-#include "srslte/common/standard_streams.h"
-#include "srslte/interfaces/ue_rrc_interfaces.h"
+#include "srsran/common/standard_streams.h"
+#include "srsran/interfaces/ue_rrc_interfaces.h"
 
-using namespace srslte;
+using namespace srsran;
 
 #define ProcError(fmt, ...) nas_ptr->logger.error("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
 #define ProcWarning(fmt, ...) nas_ptr->logger.warning("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
@@ -31,7 +22,7 @@ using namespace srslte;
 
 namespace srsue {
 
-using srslte::proc_outcome_t;
+using srsran::proc_outcome_t;
 
 /*
  * PLMN Selection Procedures
@@ -54,7 +45,7 @@ proc_outcome_t nas::plmn_search_proc::step()
   return proc_outcome_t::yield;
 }
 
-void nas::plmn_search_proc::then(const srslte::proc_state_t& result)
+void nas::plmn_search_proc::then(const srsran::proc_state_t& result)
 {
   ProcInfo("Completed with %s", result.is_success() ? "success" : "failure");
 
@@ -86,7 +77,7 @@ proc_outcome_t nas::plmn_search_proc::react(const plmn_search_complete_t& t)
   for (int i = 0; i < t.nof_plmns; i++) {
     nas_ptr->known_plmns.push_back(t.found_plmns[i].plmn_id);
     ProcInfo("Found PLMN:  Id=%s, TAC=%d", t.found_plmns[i].plmn_id.to_string().c_str(), t.found_plmns[i].tac);
-    srslte::console("Found PLMN:  Id=%s, TAC=%d\n", t.found_plmns[i].plmn_id.to_string().c_str(), t.found_plmns[i].tac);
+    srsran::console("Found PLMN:  Id=%s, TAC=%d\n", t.found_plmns[i].plmn_id.to_string().c_str(), t.found_plmns[i].tac);
   }
   nas_ptr->select_plmn();
 

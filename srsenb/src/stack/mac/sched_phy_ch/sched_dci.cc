@@ -1,28 +1,19 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #include "srsenb/hdr/stack/mac/sched_phy_ch/sched_dci.h"
 #include "srsenb/hdr/stack/mac/sched_common.h"
 #include "srsenb/hdr/stack/mac/sched_helpers.h"
-#include "srslte/common/string_helpers.h"
+#include "srsran/common/string_helpers.h"
 
 #include <cmath>
 #include <cstdint>
@@ -54,9 +45,9 @@ int compute_mcs_from_max_tbs(uint32_t nof_prb,
 
   // Compute I_TBS based on max TBS
   uint32_t max_tbs_idx = (use_tbs_index_alt) ? 33 : 26;
-  tbs_idx              = srslte_ra_tbs_to_table_idx(max_tbs, nof_prb, max_tbs_idx);
+  tbs_idx              = srsran_ra_tbs_to_table_idx(max_tbs, nof_prb, max_tbs_idx);
   if (tbs_idx <= 0) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   --tbs_idx; // get TBS index lower bound
   if (use_tbs_index_alt and
@@ -66,17 +57,17 @@ int compute_mcs_from_max_tbs(uint32_t nof_prb,
   }
 
   // Compute I_mcs based on I_TBS. Reverse of TS 36.213 - Table 7.1.7.1-1/1A
-  mcs = srslte_ra_mcs_from_tbs_idx(tbs_idx, use_tbs_index_alt, is_ul);
+  mcs = srsran_ra_mcs_from_tbs_idx(tbs_idx, use_tbs_index_alt, is_ul);
   if (mcs < 0) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   if (mcs > (int)max_mcs) {
     // bound mcs
     mcs     = max_mcs;
-    tbs_idx = srslte_ra_tbs_idx_from_mcs(mcs, use_tbs_index_alt, is_ul);
+    tbs_idx = srsran_ra_tbs_idx_from_mcs(mcs, use_tbs_index_alt, is_ul);
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 tbs_info compute_mcs_and_tbs(uint32_t nof_prb,
@@ -90,7 +81,7 @@ tbs_info compute_mcs_and_tbs(uint32_t nof_prb,
   assert((not is_ul or not use_tbs_index_alt) && "UL cannot use Alt CQI Table");
   assert((is_ul or not ulqam64_enabled) && "DL cannot use UL-QAM64 enable flag");
 
-  float    max_coderate = srslte_cqi_to_coderate(std::min(cqi + 1U, 15U), use_tbs_index_alt);
+  float    max_coderate = srsran_cqi_to_coderate(std::min(cqi + 1U, 15U), use_tbs_index_alt);
   uint32_t max_Qm       = (is_ul) ? (ulqam64_enabled ? 6 : 4) : (use_tbs_index_alt ? 8 : 6);
   max_coderate          = std::min(max_coderate, 0.932F * max_Qm);
 
@@ -105,7 +96,7 @@ tbs_info compute_mcs_and_tbs(uint32_t nof_prb,
 
     // Compute max {MCS,I_TBS} based on given max_tbs, nof_prb
     int tbs_idx = 0;
-    if (compute_mcs_from_max_tbs(nof_prb, max_tbs, max_mcs, is_ul, use_tbs_index_alt, mcs, tbs_idx) != SRSLTE_SUCCESS) {
+    if (compute_mcs_from_max_tbs(nof_prb, max_tbs, max_mcs, is_ul, use_tbs_index_alt, mcs, tbs_idx) != SRSRAN_SUCCESS) {
       return tbs_info{};
     }
 
@@ -116,12 +107,12 @@ tbs_info compute_mcs_and_tbs(uint32_t nof_prb,
     }
 
     // compute real TBS and coderate based on maximum achievable MCS
-    int   tbs      = srslte_ra_tbs_from_idx(tbs_idx, nof_prb);
-    float coderate = srslte_coderate(tbs, nof_re);
+    int   tbs      = srsran_ra_tbs_from_idx(tbs_idx, nof_prb);
+    float coderate = srsran_coderate(tbs, nof_re);
 
     // update max coderate based on mcs
-    srslte_mod_t mod = (is_ul) ? srslte_ra_ul_mod_from_mcs(mcs) : srslte_ra_dl_mod_from_mcs(mcs, use_tbs_index_alt);
-    uint32_t     Qm  = srslte_mod_bits_x_symbol(mod);
+    srsran_mod_t mod = (is_ul) ? srsran_ra_ul_mod_from_mcs(mcs) : srsran_ra_dl_mod_from_mcs(mcs, use_tbs_index_alt);
+    uint32_t     Qm  = srsran_mod_bits_x_symbol(mod);
     max_coderate     = std::min(0.932F * Qm, max_coderate);
 
     if (coderate <= max_coderate) {
@@ -161,7 +152,7 @@ tbs_info compute_min_mcs_and_tbs_from_required_bytes(uint32_t nof_prb,
   // Note: we subtract -1 to required data to get an exclusive lower bound for maximum MCS. This works ok because
   //       req_bytes * 8 is always even
   if (compute_mcs_from_max_tbs(nof_prb, req_bytes * 8U - 1, max_mcs, is_ul, use_tbs_index_alt, mcs_min, tbs_idx_min) !=
-      SRSLTE_SUCCESS) {
+      SRSRAN_SUCCESS) {
     // Failed to compute maximum MCS that leads to TBS < req bytes. MCS=0 is likely a valid solution
     tbs_info tb2 = compute_mcs_and_tbs(nof_prb, nof_re, cqi, 0, is_ul, ulqam64_enabled, use_tbs_index_alt);
     if (tb2.tbs_bytes >= (int)req_bytes) {
@@ -180,7 +171,7 @@ tbs_info compute_min_mcs_and_tbs_from_required_bytes(uint32_t nof_prb,
   return tb_max;
 }
 
-int generate_ra_bc_dci_format1a_common(srslte_dci_dl_t&           dci,
+int generate_ra_bc_dci_format1a_common(srsran_dci_dl_t&           dci,
                                        uint16_t                   rnti,
                                        tti_point                  tti_tx_dl,
                                        uint32_t                   req_bytes,
@@ -189,22 +180,22 @@ int generate_ra_bc_dci_format1a_common(srslte_dci_dl_t&           dci,
                                        uint32_t                   current_cfi)
 {
   static const uint32_t Qm = 2, bc_rar_cqi = 4;
-  static const float    max_ctrl_coderate = std::min(srslte_cqi_to_coderate(bc_rar_cqi + 1, false), 0.932F * Qm);
+  static const float    max_ctrl_coderate = std::min(srsran_cqi_to_coderate(bc_rar_cqi + 1, false), 0.932F * Qm);
 
   // Calculate I_tbs for this TBS
   int tbs = static_cast<int>(req_bytes) * 8;
   int mcs = -1;
   for (uint32_t i = 0; i < 27; i++) {
-    if (srslte_ra_tbs_from_idx(i, 2) >= tbs) {
-      dci.type2_alloc.n_prb1a = srslte_ra_type2_t::SRSLTE_RA_TYPE2_NPRB1A_2;
+    if (srsran_ra_tbs_from_idx(i, 2) >= tbs) {
+      dci.type2_alloc.n_prb1a = srsran_ra_type2_t::SRSRAN_RA_TYPE2_NPRB1A_2;
       mcs                     = i;
-      tbs                     = srslte_ra_tbs_from_idx(i, 2);
+      tbs                     = srsran_ra_tbs_from_idx(i, 2);
       break;
     }
-    if (srslte_ra_tbs_from_idx(i, 3) >= tbs) {
-      dci.type2_alloc.n_prb1a = srslte_ra_type2_t::SRSLTE_RA_TYPE2_NPRB1A_3;
+    if (srsran_ra_tbs_from_idx(i, 3) >= tbs) {
+      dci.type2_alloc.n_prb1a = srsran_ra_type2_t::SRSRAN_RA_TYPE2_NPRB1A_3;
       mcs                     = i;
-      tbs                     = srslte_ra_tbs_from_idx(i, 3);
+      tbs                     = srsran_ra_tbs_from_idx(i, 3);
       break;
     }
   }
@@ -214,26 +205,26 @@ int generate_ra_bc_dci_format1a_common(srslte_dci_dl_t&           dci,
   }
 
   // Generate remaining DCI Format1A content
-  dci.alloc_type         = SRSLTE_RA_ALLOC_TYPE2;
-  dci.type2_alloc.mode   = srslte_ra_type2_t::SRSLTE_RA_TYPE2_LOC;
+  dci.alloc_type         = SRSRAN_RA_ALLOC_TYPE2;
+  dci.type2_alloc.mode   = srsran_ra_type2_t::SRSRAN_RA_TYPE2_LOC;
   prb_interval prb_range = prb_interval::rbgs_to_prbs(rbg_range, cell_params.nof_prb());
-  dci.type2_alloc.riv    = srslte_ra_type2_to_riv(prb_range.length(), prb_range.start(), cell_params.nof_prb());
+  dci.type2_alloc.riv    = srsran_ra_type2_to_riv(prb_range.length(), prb_range.start(), cell_params.nof_prb());
   dci.pid                = 0;
   dci.tb[0].mcs_idx      = mcs;
   dci.tb[0].rv           = 0; // used for SIBs
-  dci.format             = SRSLTE_DCI_FORMAT1A;
+  dci.format             = SRSRAN_DCI_FORMAT1A;
   dci.rnti               = rnti;
   dci.ue_cc_idx          = std::numeric_limits<uint32_t>::max();
 
   // Compute effective code rate and verify it doesn't exceed max code rate
   uint32_t nof_re = cell_params.get_dl_nof_res(tti_tx_dl, dci, current_cfi);
-  if (srslte_coderate(tbs, nof_re) >= max_ctrl_coderate) {
+  if (srsran_coderate(tbs, nof_re) >= max_ctrl_coderate) {
     return -1;
   }
 
   get_mac_logger().debug("ra_tbs=%d/%d, tbs_bytes=%d, tbs=%d, mcs=%d",
-                         srslte_ra_tbs_from_idx(mcs, 2),
-                         srslte_ra_tbs_from_idx(mcs, 3),
+                         srsran_ra_tbs_from_idx(mcs, 2),
+                         srsran_ra_tbs_from_idx(mcs, 3),
                          req_bytes,
                          tbs,
                          mcs);
@@ -251,7 +242,7 @@ bool generate_sib_dci(sched_interface::dl_sched_bc_t& bc,
 {
   bc           = {};
   int tbs_bits = generate_ra_bc_dci_format1a_common(
-      bc.dci, SRSLTE_SIRNTI, tti_tx_dl, cell_params.cfg.sibs[sib_idx].len, rbg_range, cell_params, current_cfi);
+      bc.dci, SRSRAN_SIRNTI, tti_tx_dl, cell_params.cfg.sibs[sib_idx].len, rbg_range, cell_params, current_cfi);
   if (tbs_bits < 0) {
     return false;
   }
@@ -275,7 +266,7 @@ bool generate_paging_dci(sched_interface::dl_sched_bc_t& bc,
 {
   bc           = {};
   int tbs_bits = generate_ra_bc_dci_format1a_common(
-      bc.dci, SRSLTE_PRNTI, tti_tx_dl, req_bytes, rbg_range, cell_params, current_cfi);
+      bc.dci, SRSRAN_PRNTI, tti_tx_dl, req_bytes, rbg_range, cell_params, current_cfi);
   if (tbs_bits < 0) {
     return false;
   }
@@ -311,7 +302,7 @@ bool generate_rar_dci(sched_interface::dl_sched_rar_t& rar,
     rar.msg3_grant[i].data            = pending_rar.msg3_grant[i];
     rar.msg3_grant[i].grant.tpc_pusch = 3;
     rar.msg3_grant[i].grant.trunc_mcs = 0;
-    rar.msg3_grant[i].grant.rba       = srslte_ra_type2_to_riv(msg3_Lcrb, start_msg3_prb, cell_params.nof_prb());
+    rar.msg3_grant[i].grant.rba       = srsran_ra_type2_to_riv(msg3_Lcrb, start_msg3_prb, cell_params.nof_prb());
 
     start_msg3_prb += msg3_Lcrb;
   }
@@ -347,7 +338,7 @@ void log_broadcast_allocation(const sched_interface::dl_sched_bc_t& bc,
   } else {
     get_mac_logger().info("SCHED: PCH, cc=%d, rbgs=%s, dci=(%d,%d), tbs=%d, mcs=%d",
                           cell_params.enb_cc_idx,
-                          srslte::to_c_str(str_buffer),
+                          srsran::to_c_str(str_buffer),
                           bc.dci.location.L,
                           bc.dci.location.ncce,
                           bc.tbs,
@@ -376,10 +367,10 @@ void log_rar_allocation(const sched_interface::dl_sched_rar_t& rar, rbg_interval
 
   get_mac_logger().info("SCHED: RAR, ra-rnti=%d, rbgs=%s, dci=(%d,%d), msg3 grants=[%s]",
                         rar.dci.rnti,
-                        srslte::to_c_str(str_buffer),
+                        srsran::to_c_str(str_buffer),
                         rar.dci.location.L,
                         rar.dci.location.ncce,
-                        srslte::to_c_str(str_buffer2));
+                        srsran::to_c_str(str_buffer2));
 }
 
 } // namespace srsenb

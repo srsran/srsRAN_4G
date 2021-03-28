@@ -1,28 +1,19 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #include "srsenb/hdr/stack/mac/sched_ue_ctrl/sched_lch.h"
 #include "srsenb/hdr/stack/mac/sched_helpers.h"
-#include "srslte/common/string_helpers.h"
-#include "srslte/srslog/bundled/fmt/ranges.h"
+#include "srsran/common/string_helpers.h"
+#include "srsran/srslog/bundled/fmt/ranges.h"
 
 namespace srsenb {
 
@@ -123,7 +114,7 @@ void lch_ue_manager::ul_bsr(uint8_t lcg_id, uint32_t bsr)
   if (logger.debug.enabled()) {
     fmt::memory_buffer str_buffer;
     fmt::format_to(str_buffer, "{}", get_bsr_state());
-    logger.debug("SCHED: bsr=%d, lcg_id=%d, bsr=%s", bsr, lcg_id, srslte::to_c_str(str_buffer));
+    logger.debug("SCHED: bsr=%d, lcg_id=%d, bsr=%s", bsr, lcg_id, srsran::to_c_str(str_buffer));
   }
 }
 
@@ -138,7 +129,7 @@ void lch_ue_manager::ul_buffer_add(uint8_t lcid, uint32_t bytes)
     fmt::memory_buffer str_buffer;
     fmt::format_to(str_buffer, "{}", get_bsr_state());
     logger.debug(
-        "SCHED: UL buffer update=%d, lcg_id=%d, bsr=%s", bytes, lch[lcid].cfg.group, srslte::to_c_str(str_buffer));
+        "SCHED: UL buffer update=%d, lcg_id=%d, bsr=%s", bytes, lch[lcid].cfg.group, srsran::to_c_str(str_buffer));
   }
 }
 
@@ -148,9 +139,13 @@ void lch_ue_manager::dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t r
     logger.warning("The provided lcid=%d is not valid", lcid);
     return;
   }
+  if (lcid < 3 and (lch[lcid].buf_tx != (int)tx_queue or lch[lcid].buf_retx != (int)retx_queue)) {
+    logger.info("SCHED: DL lcid=%d buffer_state=%d,%d", lcid, tx_queue, retx_queue);
+  } else {
+    logger.debug("SCHED: DL lcid=%d buffer_state=%d,%d", lcid, tx_queue, retx_queue);
+  }
   lch[lcid].buf_retx = retx_queue;
   lch[lcid].buf_tx   = tx_queue;
-  logger.debug("SCHED: DL lcid=%d buffer_state=%d,%d", lcid, tx_queue, retx_queue);
 }
 
 int lch_ue_manager::get_max_prio_lcid() const
@@ -371,7 +366,7 @@ uint32_t allocate_mac_ces(sched_interface::dl_sched_data_t* data, lch_ue_manager
 {
   int rem_tbs = total_tbs;
   while (not lch_handler.pending_ces.empty() and data->nof_pdu_elems[0] < sched_interface::MAX_RLC_PDU_LIST) {
-    int toalloc = srslte::ce_total_size(lch_handler.pending_ces.front());
+    int toalloc = srsran::ce_total_size(lch_handler.pending_ces.front());
     if (rem_tbs < toalloc) {
       break;
     }

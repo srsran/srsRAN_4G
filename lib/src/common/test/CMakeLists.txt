@@ -20,14 +20,14 @@
 
 add_executable(thread_pool_test thread_pool_test.cc)
 target_link_libraries(thread_pool_test
-        srslte_common)
+        srsran_common)
 add_test(thread_pool_test thread_pool_test)
 
 add_executable(thread_test thread_test.cc)
 target_link_libraries(thread_test
-        srslte_common)
+        srsran_common)
 add_test(thread_test thread_test)
 
 add_executable(band_helper_test band_helper_test.cc)
-target_link_libraries(band_helper_test srslte_common)
+target_link_libraries(band_helper_test srsran_common)
 add_test(band_helper_test band_helper_test)

@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -25,7 +16,7 @@
 #define Debug(fmt, ...) logger.debug(fmt, ##__VA_ARGS__)
 
 #include "srsue/hdr/stack/mac/proc_phr.h"
-#include "srslte/interfaces/ue_phy_interfaces.h"
+#include "srsran/interfaces/ue_phy_interfaces.h"
 
 namespace srsue {
 
@@ -36,7 +27,7 @@ phr_proc::phr_proc(srslog::basic_logger& logger) : logger(logger)
   phr_cfg          = {};
 }
 
-void phr_proc::init(phy_interface_mac_lte* phy_h_, srslte::ext_task_sched_handle* task_sched_)
+void phr_proc::init(phy_interface_mac_lte* phy_h_, srsran::ext_task_sched_handle* task_sched_)
 {
   phy_h      = phy_h_;
   task_sched = task_sched_;
@@ -55,7 +46,7 @@ void phr_proc::reset()
   phr_is_triggered = false;
 }
 
-void phr_proc::set_config(srslte::phr_cfg_t& cfg)
+void phr_proc::set_config(srsran::phr_cfg_t& cfg)
 {
   phr_cfg = cfg;
 

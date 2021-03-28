@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -33,10 +24,10 @@
 
 #include "../utils_avx512.h"
 #include "ldpc_enc_all.h"
-#include "srslte/phy/fec/ldpc/base_graph.h"
-#include "srslte/phy/fec/ldpc/ldpc_encoder.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/fec/ldpc/base_graph.h"
+#include "srsran/phy/fec/ldpc/ldpc_encoder.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/vector.h"
 
 #ifdef LV_HAVE_AVX512
 
@@ -48,7 +39,7 @@
  * \brief Represents a node of the base factor graph.
  */
 typedef union bg_node_avx512_t {
-  uint8_t c[SRSLTE_AVX512_B_SIZE]; /*!< Each base node may contain up to \ref SRSLTE_AVX512_B_SIZE lifted nodes. */
+  uint8_t c[SRSRAN_AVX512_B_SIZE]; /*!< Each base node may contain up to \ref SRSRAN_AVX512_B_SIZE lifted nodes. */
   __m512i v;                       /*!< All the lifted nodes of the current base node as a 512-bit line. */
 } bg_node_avx512_t;
 
@@ -57,12 +48,12 @@ typedef union bg_node_avx512_t {
  */
 struct ldpc_enc_avx512long {
   bg_node_avx512_t* codeword;         /*!< \brief Contains the entire codeword, before puncturing. */
-  bg_node_avx512_t* codeword_to_free; /*!< \brief Auxiliary pointer with a free memory of size SRSLTE_AVX512_B_SIZE
+  bg_node_avx512_t* codeword_to_free; /*!< \brief Auxiliary pointer with a free memory of size SRSRAN_AVX512_B_SIZE
                                       previous to codeword. */
   __m512i* aux;                       /*!< \brief Auxiliary register. */
   __m512i* rotated_node;              /*!< \brief To store rotated versions of the nodes. */
   __m512i* rotated_node_to_free; /*!< \brief Auxiliary pointer to store rotated versions of the nodes with extra free
-                                   memory of size SRSLTE_AVX512_B_SIZE previous to rotated_node */
+                                   memory of size SRSRAN_AVX512_B_SIZE previous to rotated_node */
   uint8_t  n_subnodes;           /*!< \brief Number of subnodes. */
   uint16_t node_size;            /*!> \brief Size of a node in bytes. */
 };
@@ -77,7 +68,7 @@ struct ldpc_enc_avx512long {
  */
 static void rotate_node_right(const uint8_t* mem_addr, __m512i* out, uint16_t this_shift2, uint16_t ls);
 
-void* create_ldpc_enc_avx512long(srslte_ldpc_encoder_t* q)
+void* create_ldpc_enc_avx512long(srsran_ldpc_encoder_t* q)
 {
   struct ldpc_enc_avx512long* vp = NULL;
 
@@ -85,22 +76,22 @@ void* create_ldpc_enc_avx512long(srslte_ldpc_encoder_t* q)
     return NULL;
   }
 
-  int left_out   = q->ls % SRSLTE_AVX512_B_SIZE;
-  vp->n_subnodes = q->ls / SRSLTE_AVX512_B_SIZE + (left_out > 0);
+  int left_out   = q->ls % SRSRAN_AVX512_B_SIZE;
+  vp->n_subnodes = q->ls / SRSRAN_AVX512_B_SIZE + (left_out > 0);
 
-  if ((vp->codeword_to_free = srslte_vec_malloc((q->bgN * vp->n_subnodes + 1) * sizeof(bg_node_avx512_t))) == NULL) {
+  if ((vp->codeword_to_free = srsran_vec_malloc((q->bgN * vp->n_subnodes + 1) * sizeof(bg_node_avx512_t))) == NULL) {
     free(vp);
     return NULL;
   }
   vp->codeword = &vp->codeword_to_free[1];
 
-  if ((vp->aux = srslte_vec_malloc(q->bgM * vp->n_subnodes * sizeof(__m512i))) == NULL) {
+  if ((vp->aux = srsran_vec_malloc(q->bgM * vp->n_subnodes * sizeof(__m512i))) == NULL) {
     free(vp->codeword_to_free);
     free(vp);
     return NULL;
   }
 
-  if ((vp->rotated_node_to_free = srslte_vec_malloc((vp->n_subnodes + 2) * sizeof(__m512i))) == NULL) {
+  if ((vp->rotated_node_to_free = srsran_vec_malloc((vp->n_subnodes + 2) * sizeof(__m512i))) == NULL) {
     free(vp->aux);
     free(vp->codeword_to_free);
     free(vp);
@@ -108,7 +99,7 @@ void* create_ldpc_enc_avx512long(srslte_ldpc_encoder_t* q)
   }
   vp->rotated_node = &vp->rotated_node_to_free[1];
 
-  vp->node_size = SRSLTE_AVX512_B_SIZE * vp->n_subnodes;
+  vp->node_size = SRSRAN_AVX512_B_SIZE * vp->n_subnodes;
   return vp;
 }
 
@@ -166,7 +157,7 @@ int return_codeword_avx512long(void* p, uint8_t* output, const uint8_t cdwd_len,
   return 0;
 }
 
-void encode_ext_region_avx512long(srslte_ldpc_encoder_t* q, uint8_t n_layers)
+void encode_ext_region_avx512long(srsran_ldpc_encoder_t* q, uint8_t n_layers)
 {
   struct ldpc_enc_avx512long* vp   = q->ptr;
   int                         m    = 0;
@@ -202,7 +193,7 @@ void encode_ext_region_avx512long(srslte_ldpc_encoder_t* q, uint8_t n_layers)
   }
 }
 
-void preprocess_systematic_bits_avx512long(srslte_ldpc_encoder_t* q)
+void preprocess_systematic_bits_avx512long(srsran_ldpc_encoder_t* q)
 {
   struct ldpc_enc_avx512long* vp = q->ptr;
 
@@ -248,7 +239,7 @@ void preprocess_systematic_bits_avx512long(srslte_ldpc_encoder_t* q)
 
 void encode_high_rate_case1_avx512long(void* o)
 {
-  srslte_ldpc_encoder_t*      q  = o;
+  srsran_ldpc_encoder_t*      q  = o;
   struct ldpc_enc_avx512long* vp = q->ptr;
 
   int ls = q->ls;
@@ -279,7 +270,7 @@ void encode_high_rate_case1_avx512long(void* o)
 
 void encode_high_rate_case2_avx512long(void* o)
 {
-  srslte_ldpc_encoder_t*      q  = o;
+  srsran_ldpc_encoder_t*      q  = o;
   struct ldpc_enc_avx512long* vp = q->ptr;
 
   int ls = q->ls;
@@ -310,7 +301,7 @@ void encode_high_rate_case2_avx512long(void* o)
 
 void encode_high_rate_case3_avx512long(void* o)
 {
-  srslte_ldpc_encoder_t*      q  = o;
+  srsran_ldpc_encoder_t*      q  = o;
   struct ldpc_enc_avx512long* vp = q->ptr;
 
   int ls = q->ls;
@@ -341,7 +332,7 @@ void encode_high_rate_case3_avx512long(void* o)
 
 void encode_high_rate_case4_avx512long(void* o)
 {
-  srslte_ldpc_encoder_t*      q  = o;
+  srsran_ldpc_encoder_t*      q  = o;
   struct ldpc_enc_avx512long* vp = q->ptr;
 
   int ls = q->ls;
@@ -385,7 +376,7 @@ static void rotate_node_right(const uint8_t* mem_addr, __m512i* out, uint16_t th
   int jj = 0;
 
   // copy full avx512 registers from this_shift_2
-  for (j = this_shift2; j <= ls - SRSLTE_AVX512_B_SIZE; j = j + SRSLTE_AVX512_B_SIZE) {
+  for (j = this_shift2; j <= ls - SRSRAN_AVX512_B_SIZE; j = j + SRSRAN_AVX512_B_SIZE) {
     out[jj] = _mm512_loadu_si512(mem_addr + j);
     jj      = jj + 1;
   }
@@ -393,7 +384,7 @@ static void rotate_node_right(const uint8_t* mem_addr, __m512i* out, uint16_t th
   // if the last is broken, take _shift bits from the end and "shift" bits from the begin.
   if (ls > j) {
     _shift = ls - j;
-    shift  = SRSLTE_AVX512_B_SIZE - _shift;
+    shift  = SRSRAN_AVX512_B_SIZE - _shift;
 
     mask1 = (1ULL << _shift) - 1; // i.e. 000001111 _shift =4
     mask2 = (1ULL << shift) - 1;
@@ -406,7 +397,7 @@ static void rotate_node_right(const uint8_t* mem_addr, __m512i* out, uint16_t th
   }
 
   // copy full avx512 registers from the start of mem_addr, fill with zeros after out is filled with ls
-  for (j = shift; j < this_shift2; j = j + SRSLTE_AVX512_B_SIZE) {
+  for (j = shift; j < this_shift2; j = j + SRSRAN_AVX512_B_SIZE) {
     out[jj] = _mm512_loadu_si512(mem_addr + j); // the exes is filled with something arbitrary
 
     jj = jj + 1;

@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -28,19 +19,19 @@
 #include <unistd.h>
 
 #include "srsenb/hdr/phy/phy.h"
-#include "srslte/common/threads.h"
+#include "srsran/common/threads.h"
 
 #define Error(fmt, ...)                                                                                                \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
   phy_log.error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...)                                                                                              \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
   phy_log.warning(fmt, ##__VA_ARGS__)
 #define Info(fmt, ...)                                                                                                 \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
   phy_log.info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)                                                                                                \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
   phy_log.debug(fmt, ##__VA_ARGS__)
 
 using namespace std;
@@ -48,13 +39,13 @@ using namespace asn1::rrc;
 
 namespace srsenb {
 
-static void srslte_phy_handler(phy_logger_level_t log_level, void* ctx, char* str)
+static void srsran_phy_handler(phy_logger_level_t log_level, void* ctx, char* str)
 {
   phy* r = (phy*)ctx;
-  r->srslte_phy_logger(log_level, str);
+  r->srsran_phy_logger(log_level, str);
 }
 
-void phy::srslte_phy_logger(phy_logger_level_t log_level, char* str)
+void phy::srsran_phy_logger(phy_logger_level_t log_level, char* str)
 {
   switch (log_level) {
     case LOG_LEVEL_INFO_S:
@@ -105,7 +96,7 @@ void phy::parse_common_config(const phy_cfg_t& cfg)
 
 int phy::init(const phy_args_t&            args,
               const phy_cfg_t&             cfg,
-              srslte::radio_interface_phy* radio_,
+              srsran::radio_interface_phy* radio_,
               stack_interface_phy_lte*     stack_)
 {
   mlockall((uint32_t)MCL_CURRENT | (uint32_t)MCL_FUTURE);
@@ -116,7 +107,7 @@ int phy::init(const phy_args_t&            args,
   phy_lib_log.set_level(log_lvl);
   phy_lib_log.set_hex_dump_max_size(args.log.phy_hex_limit);
   if (log_lvl != srslog::basic_levels::none) {
-    srslte_phy_log_register_handler(this, srslte_phy_handler);
+    srsran_phy_log_register_handler(this, srsran_phy_handler);
   }
 
   // Create default log.
@@ -149,7 +140,7 @@ int phy::init(const phy_args_t&            args,
 
   initialized = true;
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 void phy::stop()
@@ -177,7 +168,7 @@ void phy::rem_rnti(uint16_t rnti)
       w->release();
     }
   }
-  if (SRSLTE_RNTI_ISUSER(rnti)) {
+  if (SRSRAN_RNTI_ISUSER(rnti)) {
     workers_common.ue_db.rem_rnti(rnti);
     workers_common.clear_grants(rnti);
   }
@@ -188,10 +179,10 @@ void phy::set_mch_period_stop(uint32_t stop)
   workers_common.set_mch_period_stop(stop);
 }
 
-void phy::set_activation_deactivation_scell(uint16_t rnti, const std::array<bool, SRSLTE_MAX_CARRIERS>& activation)
+void phy::set_activation_deactivation_scell(uint16_t rnti, const std::array<bool, SRSRAN_MAX_CARRIERS>& activation)
 {
   // Iterate all elements except 0 that is reserved for primary cell
-  for (uint32_t scell_idx = 1; scell_idx < SRSLTE_MAX_CARRIERS; scell_idx++) {
+  for (uint32_t scell_idx = 1; scell_idx < SRSRAN_MAX_CARRIERS; scell_idx++) {
     workers_common.ue_db.activate_deactivate_scell(rnti, scell_idx, activation[scell_idx]);
   }
 }
@@ -257,10 +248,12 @@ void phy::set_config(uint16_t rnti, const phy_rrc_cfg_list_t& phy_cfg_list)
 void phy::complete_config(uint16_t rnti)
 {
   // Forwards call to the UE Database
-  workers_common.ue_db.complete_config(rnti);
+  if (workers_common.ue_db.complete_config(rnti) < SRSRAN_SUCCESS) {
+    Error("Error completing configuration for RNTI %x. It does not exist.", rnti);
+  }
 }
 
-void phy::configure_mbsfn(srslte::sib2_mbms_t* sib2, srslte::sib13_t* sib13, const srslte::mcch_msg_t& mcch)
+void phy::configure_mbsfn(srsran::sib2_mbms_t* sib2, srsran::sib13_t* sib13, const srsran::mcch_msg_t& mcch)
 {
   if (sib2->mbsfn_sf_cfg_list_present) {
     if (sib2->nof_mbsfn_sf_cfg == 0) {

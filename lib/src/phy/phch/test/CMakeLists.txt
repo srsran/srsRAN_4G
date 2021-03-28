@@ -25,7 +25,7 @@ set(CTEST_LABELS "lib;phy;phch")
 ########################################################################
 
 add_executable(pbch_test pbch_test.c)
-target_link_libraries(pbch_test srslte_phy)
+target_link_libraries(pbch_test srsran_phy)
 
 add_lte_test(pbch_test_6 pbch_test -p 1 -n 6 -c 100)
 add_lte_test(pbch_test_62 pbch_test -p 2 -n 6 -c 100)
@@ -39,7 +39,7 @@ add_lte_test(pbch_test_504 pbch_test -p 4 -n 50 -c 50)
 ########################################################################
 
 add_executable(psbch_test psbch_test.c)
-target_link_libraries(psbch_test srslte_phy)
+target_link_libraries(psbch_test srsran_phy)
 
 # TM2 self tests
 add_lte_test(psbch_test_self_test_tm2_p6_c168_self psbch_test -p 6 -c 168 -t 2)
@@ -54,7 +54,7 @@ add_lte_test(psbch_test_self_test_tm4_p50_c168_self psbch_test -p 50 -c 252 -t 4
 add_lte_test(psbch_test_self_test_tm4_p100_c168_self psbch_test -p 100 -c 335 -t 4)
 
 add_executable(psbch_file_test psbch_file_test.c)
-target_link_libraries(psbch_file_test srslte_phy)
+target_link_libraries(psbch_file_test srsran_phy)
 
 # TM2 file tests
 add_lte_test(psbch_file_test_ideal_tm2_p6_c0 psbch_file_test -p 6 -c 0 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p6_c0_s1.92e6.dat)
@@ -72,7 +72,7 @@ add_lte_test(psbch_file_test_cmw_tm4_p50_c169 psbch_file_test -p 50 -c 169 -t 4 
 ########################################################################
 
 add_executable(pscch_test pscch_test.c)
-target_link_libraries(pscch_test srslte_phy)
+target_link_libraries(pscch_test srsran_phy)
 
 # TM2 self tests
 add_lte_test(pscch_test_tm2_p6 pscch_test -p 6)
@@ -95,7 +95,7 @@ add_lte_test(pscch_test_tm4_p100 pscch_test -p 100 -t 4)
 ########################################################################
 
 add_executable(pssch_test pssch_test.c)
-target_link_libraries(pssch_test srslte_phy)
+target_link_libraries(pssch_test srsran_phy)
 
 # TM2 self tests
 add_lte_test(pssch_test_tm2_p6 pssch_test -p 6 -m 2)
@@ -120,7 +120,7 @@ add_lte_test(pssch_test_tm4_p100 pssch_test -p 100 -t 4 -m 21)
 ########################################################################
 
 add_executable(pssch_pscch_file_test pssch_pscch_file_test.c)
-target_link_libraries(pssch_pscch_file_test srslte_phy)
+target_link_libraries(pssch_pscch_file_test srsran_phy)
 
 # TM2 file tests
 add_lte_test(pssch_pscch_file_test_ideal_tm2_p100 pssch_pscch_file_test -p 100 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p100_c335_s30.72e6.dat)
@@ -162,7 +162,7 @@ set_property(TEST pssch_pscch_test_tm4_p50_uxm4 PROPERTY PASS_REGULAR_EXPRESSION
 ########################################################################
 
 add_executable(npbch_test npbch_test.c)
-target_link_libraries(npbch_test srslte_phy)
+target_link_libraries(npbch_test srsran_phy)
 add_lte_test(npbch_test npbch_test)
 
 add_lte_test(npbch_file_test_r13 npbch_file_test -i ${CMAKE_CURRENT_SOURCE_DIR}/signal_nbiot_amari_nid0_sfn514_sib2.bin)
@@ -175,7 +175,7 @@ add_lte_test(npbch_file_test_nid257_r14 npbch_file_test -l 257 -R -r 7 -i ${CMAK
 ########################################################################
 
 add_executable(pcfich_test pcfich_test.c)
-target_link_libraries(pcfich_test srslte_phy)
+target_link_libraries(pcfich_test srsran_phy)
 
 add_lte_test(pcfich_test_6 pcfich_test -p 1 -n 6)
 add_lte_test(pcfich_test_62 pcfich_test -p 2 -n 6)
@@ -189,7 +189,7 @@ add_lte_test(pcfich_test_104 pcfich_test -p 4 -n 10)
 ########################################################################
 
 add_executable(phich_test phich_test.c)
-target_link_libraries(phich_test srslte_phy)
+target_link_libraries(phich_test srsran_phy)
 
 add_lte_test(phich_test_6 phich_test -p 1 -n 6)
 add_lte_test(phich_test_62 phich_test -p 2 -n 6)
@@ -208,7 +208,7 @@ add_lte_test(phich_test_104 phich_test -p 4 -n 10 -e -l -g 1/2)
 ########################################################################
 
 add_executable(pdcch_test pdcch_test.c)
-target_link_libraries(pdcch_test srslte_phy)
+target_link_libraries(pdcch_test srsran_phy)
 
 add_lte_test(pdcch_test_6 pdcch_test -n 6)
 add_lte_test(pdcch_test_15 pdcch_test -n 15)
@@ -229,7 +229,7 @@ add_lte_test(pdcch_test_100_mimo pdcch_test -n 100 -p 2)
 ########################################################################
 
 add_executable(pdsch_test pdsch_test.c)
-target_link_libraries(pdsch_test srslte_phy)
+target_link_libraries(pdsch_test srsran_phy)
 
 add_lte_test(pdsch_test_qpsk pdsch_test -m 10 -n 50 -r 1)
 add_lte_test(pdsch_test_qam16 pdsch_test -m 20 -n 100)
@@ -337,7 +337,7 @@ add_lte_test(pdsch_test_multiplex2cw_p1_100 pdsch_test -x 4 -a 2 -t 0 -p 1 -n 10
 ########################################################################
 
 add_executable(pmch_test pmch_test.c)
-target_link_libraries(pmch_test srslte_phy)
+target_link_libraries(pmch_test srsran_phy)
 
 add_lte_test(pmch_test_qpsk pmch_test -m 6 -n 50)
 add_lte_test(pmch_test_qam16 pmch_test -m 15 -n 100)
@@ -349,7 +349,7 @@ add_lte_test(pmch_test_qam64 pmch_test -m 25 -n 100)
 ########################################################################
 
 add_executable(npdsch_test npdsch_test.c)
-target_link_libraries(npdsch_test srslte_phy)
+target_link_libraries(npdsch_test srsran_phy)
 
 add_lte_test(npdsch_test_tbs208 npdsch_test -m 12)
 add_lte_test(npdsch_test_tbs104 npdsch_test -m 7)
@@ -402,7 +402,7 @@ add_lte_test(npdsch_test_cellid5_inband_diffpci_2port_2port npdsch_test -l 5 -M 
 ########################################################################
 
 add_executable(dci_nbiot_test dci_nbiot_test.c)
-target_link_libraries(dci_nbiot_test srslte_phy)
+target_link_libraries(dci_nbiot_test srsran_phy)
 add_lte_test(dci_nbiot_test dci_nbiot_test)
 
 ########################################################################
@@ -410,30 +410,30 @@ add_lte_test(dci_nbiot_test dci_nbiot_test)
 ########################################################################
 
 add_executable(pbch_file_test pbch_file_test.c)
-target_link_libraries(pbch_file_test srslte_phy)
+target_link_libraries(pbch_file_test srsran_phy)
 
 add_executable(pcfich_file_test pcfich_file_test.c)
-target_link_libraries(pcfich_file_test srslte_phy)
+target_link_libraries(pcfich_file_test srsran_phy)
 
 add_executable(phich_file_test phich_file_test.c)
-target_link_libraries(phich_file_test srslte_phy)
+target_link_libraries(phich_file_test srsran_phy)
 
 add_executable(pdcch_file_test pdcch_file_test.c)
-target_link_libraries(pdcch_file_test srslte_phy)
+target_link_libraries(pdcch_file_test srsran_phy)
 
 add_executable(pdsch_pdcch_file_test pdsch_pdcch_file_test.c)
-target_link_libraries(pdsch_pdcch_file_test srslte_phy)
+target_link_libraries(pdsch_pdcch_file_test srsran_phy)
 
 add_executable(npbch_file_test npbch_file_test.c)
-target_link_libraries(npbch_file_test srslte_phy)
+target_link_libraries(npbch_file_test srsran_phy)
 
 add_executable(npdsch_npdcch_file_test npdsch_npdcch_file_test.c)
-target_link_libraries(npdsch_npdcch_file_test srslte_phy)
+target_link_libraries(npdsch_npdcch_file_test srsran_phy)
 
 add_lte_test(pbch_file_test pbch_file_test -i ${CMAKE_CURRENT_SOURCE_DIR}/signal.1.92M.dat)
 
 add_executable(pmch_file_test pmch_file_test.c)
-target_link_libraries(pmch_file_test srslte_phy)
+target_link_libraries(pmch_file_test srsran_phy)
 
 add_lte_test(pbch_file_test pbch_file_test -i ${CMAKE_CURRENT_SOURCE_DIR}/signal.1.92M.dat)
 add_lte_test(pcfich_file_test pcfich_file_test -c 150 -n 50 -p 2 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal.10M.dat)
@@ -447,11 +447,11 @@ add_lte_test(pmch_file_test pmch_file_test  -i ${CMAKE_CURRENT_SOURCE_DIR}/pmch_
 ########################################################################
 
 add_executable(npdcch_test npdcch_test.c)
-target_link_libraries(npdcch_test srslte_phy)
+target_link_libraries(npdcch_test srsran_phy)
 add_lte_test(npdcch_formatN1_test npdcch_test -o FormatN1)
 
 add_executable(npdcch_file_test npdcch_file_test.c)
-target_link_libraries(npdcch_file_test srslte_phy)
+target_link_libraries(npdcch_file_test srsran_phy)
 add_lte_test(npdcch_formatN0_file_test npdcch_file_test -c 0 -t 8624 -r 258 -L 1 -l 0 -v -o FormatN0 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal_nbiot_dci_formatN0_L_1_nid0_tti_8624_rnti_0x102.bin)
 add_lte_test(npdcch_formatN1_file_test npdcch_file_test -c 0 -t 5461 -r 137 -L 2 -l 0 -v -o FormatN1 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal_nbiot_dci_formatN1_nid0_tti_5461_rnti_0x89.bin)
 
@@ -463,7 +463,7 @@ add_lte_test(npdsch_npdcch_dci_formatN1_test npdsch_npdcch_file_test -c 0 -s 1 -
 ########################################################################
 
 add_executable(pusch_test pusch_test.c)
-target_link_libraries(pusch_test srslte_phy)
+target_link_libraries(pusch_test srsran_phy)
 
 if (NOT DEFINED TEST_EXTENSION)
   set(TEST_EXTENSION Normal)
@@ -545,7 +545,7 @@ endforeach (cell_n_prb)
 ########################################################################
 
 add_executable(pucch_test pucch_test.c)
-target_link_libraries(pucch_test srslte_phy)
+target_link_libraries(pucch_test srsran_phy)
 
 add_lte_test(pucch_test pucch_test)
 add_lte_test(pucch_test_uci_cqi_decoder pucch_test -q)
@@ -555,7 +555,7 @@ add_lte_test(pucch_test_uci_cqi_decoder pucch_test -q)
 ########################################################################
 
 add_executable(prach_test prach_test.c)
-target_link_libraries(prach_test srslte_phy)
+target_link_libraries(prach_test srsran_phy)
 
 add_lte_test(prach prach_test)
 
@@ -579,7 +579,7 @@ add_lte_test(prach_zc2 prach_test -z 2)
 add_lte_test(prach_zc3 prach_test -z 3)
 
 add_executable(prach_test_multi prach_test_multi.c)
-target_link_libraries(prach_test_multi srslte_phy)
+target_link_libraries(prach_test_multi srsran_phy)
 
 add_lte_test(prach_test_multi prach_test_multi)
 
@@ -621,7 +621,7 @@ add_lte_test(prach_test_multi_freq_offset_test_n4_o800_prb50 prach_test_multi -n
 
 if(RF_FOUND)
   add_executable(prach_test_usrp prach_test_usrp.c)
-  target_link_libraries(prach_test_usrp srslte_rf srslte_phy pthread)
+  target_link_libraries(prach_test_usrp srsran_rf srsran_phy pthread)
 endif(RF_FOUND)
 
 ########################################################################
@@ -629,19 +629,19 @@ endif(RF_FOUND)
 ########################################################################
 
 add_executable(pucch_nr_test pucch_nr_test.c)
-target_link_libraries(pucch_nr_test srslte_phy)
+target_link_libraries(pucch_nr_test srsran_phy)
 add_nr_test(pucch_nr_test pucch_nr_test)
 
 add_executable(sch_nr_test sch_nr_test.c)
-target_link_libraries(sch_nr_test srslte_phy)
+target_link_libraries(sch_nr_test srsran_phy)
 add_nr_test(sch_nr_test sch_nr_test -m 0 -p 1)
 
 add_executable(pdsch_nr_test pdsch_nr_test.c)
-target_link_libraries(pdsch_nr_test srslte_phy)
+target_link_libraries(pdsch_nr_test srsran_phy)
 add_nr_test(pdsch_nr_test pdsch_nr_test -p 6 -m 20)
 
 add_executable(pusch_nr_test pusch_nr_test.c)
-target_link_libraries(pusch_nr_test srslte_phy)
+target_link_libraries(pusch_nr_test srsran_phy)
 add_nr_test(pusch_nr_test pusch_nr_test -p 6 -m 20)
 add_nr_test(pusch_nr_ack1_test pusch_nr_test -p 50 -m 20 -A 1)
 add_nr_test(pusch_nr_ack2_test pusch_nr_test -p 50 -m 20 -A 2)
@@ -656,5 +656,5 @@ add_nr_test(pusch_nr_ack20_csi4_test pusch_nr_test -p 50 -m 20 -A 20 -C 4)
 
 
 add_executable(pdcch_nr_test pdcch_nr_test.c)
-target_link_libraries(pdcch_nr_test srslte_phy)
+target_link_libraries(pdcch_nr_test srsran_phy)
 add_nr_test(pdcch_nr_test pdcch_nr_test)

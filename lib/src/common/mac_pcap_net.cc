@@ -1,27 +1,18 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
-#include "srslte/common/mac_pcap_net.h"
+#include "srsran/common/mac_pcap_net.h"
 
-namespace srslte {
+namespace srsran {
 
 mac_pcap_net::mac_pcap_net() : mac_pcap_base() {}
 
@@ -39,18 +30,18 @@ uint32_t mac_pcap_net::open(std::string client_ip_addr_,
 
   if (socket.is_init()) {
     logger.error("PCAP socket writer for %s already running. Close first.", bind_addr_str.c_str());
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   if (not socket.open_socket(
           net_utils::addr_family::ipv4, net_utils::socket_type::datagram, net_utils::protocol_type::UDP)) {
     logger.error("Couldn't open socket %s to write PCAP", bind_addr_str.c_str());
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   if (not socket.bind_addr(bind_addr_str.c_str(), bind_udp_port_)) {
     socket.reset();
     logger.error("Couldn't bind socket %s to write PCAP", bind_addr_str.c_str());
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   logger.info("Sending MAC PCAP frames to %s:%d (from %s:%d)",
@@ -66,7 +57,7 @@ uint32_t mac_pcap_net::open(std::string client_ip_addr_,
   // start writer thread
   start();
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 uint32_t mac_pcap_net::close()
@@ -74,7 +65,7 @@ uint32_t mac_pcap_net::close()
   {
     std::lock_guard<std::mutex> lock(mutex);
     if (running == false || socket.is_init() == false) {
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
 
     // tell writer thread to stop
@@ -90,17 +81,17 @@ uint32_t mac_pcap_net::close()
     socket.close();
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 void mac_pcap_net::write_pdu(pcap_pdu_t& pdu)
 {
   if (pdu.pdu != nullptr && socket.is_init()) {
     switch (pdu.rat) {
-      case srslte_rat_t::lte:
+      case srsran_rat_t::lte:
         write_mac_lte_pdu_to_net(pdu);
         break;
-      case srslte_rat_t::nr:
+      case srsran_rat_t::nr:
         write_mac_nr_pdu_to_net(pdu);
         break;
       default:
@@ -176,4 +167,4 @@ void mac_pcap_net::write_mac_nr_pdu_to_net(pcap_pdu_t& pdu)
         "Sending UDP packet mismatches %d != %d (err %s)", pdu.pdu.get()->N_bytes, bytes_sent, strerror(errno));
   }
 }
-} // namespace srslte
+} // namespace srsran

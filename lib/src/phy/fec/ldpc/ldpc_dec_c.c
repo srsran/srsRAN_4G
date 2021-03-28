@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -40,8 +31,8 @@
 #include <strings.h>
 
 #include "ldpc_dec_all.h"
-#include "srslte/phy/fec/ldpc/base_graph.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/fec/ldpc/base_graph.h"
+#include "srsran/phy/utils/vector.h"
 
 #define F2I 100 /*!< \brief Used for float to int conversion---float f is stored as (int)(f*F2I). */
 
@@ -97,18 +88,18 @@ void* create_ldpc_dec_c(uint8_t bgN, uint8_t bgM, uint16_t ls, float scaling_fct
     return NULL;
   }
 
-  if ((vp->soft_bits = srslte_vec_i8_malloc(liftN)) == NULL) {
+  if ((vp->soft_bits = srsran_vec_i8_malloc(liftN)) == NULL) {
     free(vp);
     return NULL;
   }
 
-  if ((vp->check_to_var = srslte_vec_i8_malloc((hrrN + ls) * bgM)) == NULL) {
+  if ((vp->check_to_var = srsran_vec_i8_malloc((hrrN + ls) * bgM)) == NULL) {
     free(vp->soft_bits);
     free(vp);
     return NULL;
   }
 
-  if ((vp->var_to_check = srslte_vec_i8_malloc((hrrN + ls))) == NULL) {
+  if ((vp->var_to_check = srsran_vec_i8_malloc((hrrN + ls))) == NULL) {
     free(vp->check_to_var);
     free(vp->soft_bits);
     free(vp);
@@ -123,7 +114,7 @@ void* create_ldpc_dec_c(uint8_t bgN, uint8_t bgM, uint16_t ls, float scaling_fct
     return NULL;
   }
 
-  if ((vp->min_v_index = srslte_vec_i32_malloc(ls)) == NULL) {
+  if ((vp->min_v_index = srsran_vec_i32_malloc(ls)) == NULL) {
     free(vp->min_v2c);
     free(vp->var_to_check);
     free(vp->check_to_var);
@@ -132,7 +123,7 @@ void* create_ldpc_dec_c(uint8_t bgN, uint8_t bgM, uint16_t ls, float scaling_fct
     return NULL;
   }
 
-  if ((vp->prod_v2c = srslte_vec_i32_malloc(ls)) == NULL) {
+  if ((vp->prod_v2c = srsran_vec_i32_malloc(ls)) == NULL) {
     free(vp->min_v_index);
     free(vp->min_v2c);
     free(vp->var_to_check);

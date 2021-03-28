@@ -25,7 +25,7 @@ set(CTEST_LABELS "lib;phy;chest")
 ########################################################################
 
 add_executable(chest_test_dl chest_test_dl.c)
-target_link_libraries(chest_test_dl srslte_phy)
+target_link_libraries(chest_test_dl srsran_phy)
 
 add_lte_test(chest_test_dl_cellid0 chest_test_dl -c 0)
 add_lte_test(chest_test_dl_cellid1 chest_test_dl -c 1)
@@ -41,10 +41,10 @@ add_lte_test(chest_test_dl_cellid2_50prb chest_test_dl -c 2 -r 50)
 ########################################################################
 
 add_executable(chest_test_ul chest_test_ul.c)
-target_link_libraries(chest_test_ul srslte_phy srslte_common)
+target_link_libraries(chest_test_ul srsran_phy srsran_common)
 
 add_executable(refsignal_ul_test_all refsignal_ul_test.c)
-target_link_libraries(refsignal_ul_test_all srslte_phy srslte_common)
+target_link_libraries(refsignal_ul_test_all srsran_phy srsran_common)
 
 add_lte_test(chest_test_ul_cellid0 chest_test_ul -c 0 -r 50)
 add_lte_test(chest_test_ul_cellid1 chest_test_ul -c 1 -r 50)
@@ -55,7 +55,7 @@ add_lte_test(chest_test_ul_cellid2 chest_test_ul -c 2 -r 50)
 ########################################################################
 
 add_executable(chest_test_srs chest_test_srs.c)
-target_link_libraries(chest_test_srs srslte_phy srslte_common)
+target_link_libraries(chest_test_srs srsran_phy srsran_common)
 
 foreach (cell_n_prb 6 15 25 50 75 100)
   add_lte_test(chest_test_srs_${cell_n_prb} chest_test_srs -c 2 -r ${cell_n_prb})
@@ -67,7 +67,7 @@ endforeach(cell_n_prb 6 15 25 50 75 100)
 ########################################################################
 
 add_executable(chest_nbiot_test_dl chest_nbiot_test_dl.c)
-target_link_libraries(chest_nbiot_test_dl srslte_phy)
+target_link_libraries(chest_nbiot_test_dl srsran_phy)
 
 add_lte_test(chest_nbiot_test_dl chest_nbiot_test_dl)
 
@@ -77,7 +77,7 @@ add_lte_test(chest_nbiot_test_dl chest_nbiot_test_dl)
 ########################################################################
 
 add_executable(chest_test_sl chest_test_sl.c)
-target_link_libraries(chest_test_sl srslte_phy)
+target_link_libraries(chest_test_sl srsran_phy)
 
 add_lte_test(chest_test_sl_psbch chest_test_sl)
 
@@ -87,9 +87,9 @@ add_lte_test(chest_test_sl_psbch chest_test_sl)
 ########################################################################
 
 add_executable(dmrs_pdsch_test dmrs_pdsch_test.c)
-target_link_libraries(dmrs_pdsch_test srslte_phy)
+target_link_libraries(dmrs_pdsch_test srsran_phy)
 
-add_lte_test(dmrs_pdsch_test dmrs_pdsch_test)
+add_nr_test(dmrs_pdsch_test dmrs_pdsch_test)
 
 
 ########################################################################
@@ -97,9 +97,9 @@ add_lte_test(dmrs_pdsch_test dmrs_pdsch_test)
 ########################################################################
 
 add_executable(dmrs_pdcch_test dmrs_pdcch_test.c)
-target_link_libraries(dmrs_pdcch_test srslte_phy)
+target_link_libraries(dmrs_pdcch_test srsran_phy)
 
-add_lte_test(dmrs_pdcch_test dmrs_pdcch_test)
+add_nr_test(dmrs_pdcch_test dmrs_pdcch_test)
 
 
 ########################################################################
@@ -107,7 +107,17 @@ add_lte_test(dmrs_pdcch_test dmrs_pdcch_test)
 ########################################################################
 
 add_executable(csi_rs_test csi_rs_test.c)
-target_link_libraries(csi_rs_test srslte_phy)
+target_link_libraries(csi_rs_test srsran_phy)
 
-add_lte_test(csi_rs_test csi_rs_test -o 3 -S 0 -L 150 -f 3 -p 15)
+add_nr_test(csi_rs_test csi_rs_test -o 3 -S 0 -L 150 -f 3 -p 15)
+
+
+########################################################################
+# NR CSI RS Pattern test
+########################################################################
+
+add_executable(csi_rs_pattern_test csi_rs_pattern_test.c)
+target_link_libraries(csi_rs_pattern_test srsran_phy)
+
+add_nr_test(csi_rs_pattern_test csi_rs_pattern_test)
 

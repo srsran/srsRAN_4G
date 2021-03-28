@@ -1,25 +1,16 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
-#include "srslte/common/network_utils.h"
+#include "srsran/common/network_utils.h"
 #include <iostream>
 
 #define TESTASSERT(cond)                                                                                               \
@@ -36,11 +27,11 @@ int test_socket_handler()
 
   int counter = 0;
 
-  srslte::socket_handler_t       server_socket, client_socket, client_socket2;
-  srslte::rx_multisocket_handler sockhandler("RXSOCKETS", logger);
+  srsran::socket_handler_t       server_socket, client_socket, client_socket2;
+  srsran::rx_multisocket_handler sockhandler("RXSOCKETS", logger);
   int                            server_port = 36412;
   const char*                    server_addr = "127.0.100.1";
-  using namespace srslte::net_utils;
+  using namespace srsran::net_utils;
 
   TESTASSERT(sctp_init_server(&server_socket, socket_type::seqpacket, server_addr, server_port));
   logger.info("Listening from fd=%d", server_socket.fd());
@@ -53,7 +44,7 @@ int test_socket_handler()
   // register server Rx handler
   auto pdu_handler =
       [&logger,
-       &counter](srslte::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags) {
+       &counter](srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags) {
         if (pdu->N_bytes > 0) {
           logger.info(pdu->msg, pdu->N_bytes, "Received msg from %s:", get_ip(from).c_str());
           counter++;
@@ -69,7 +60,7 @@ int test_socket_handler()
   for (int32_t i = 0; i < nof_counts; ++i) {
     buf[i] = i;
     // Round-robin between clients
-    srslte::socket_handler_t* chosen = &client_socket;
+    srsran::socket_handler_t* chosen = &client_socket;
     if (i % 2 == 1) {
       chosen = &client_socket2;
     }

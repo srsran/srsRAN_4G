@@ -1,29 +1,20 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
-#ifndef SRSLTE_SCHED_DCI_H
-#define SRSLTE_SCHED_DCI_H
+#ifndef SRSRAN_SCHED_DCI_H
+#define SRSRAN_SCHED_DCI_H
 
 #include "../sched_common.h"
-#include "srslte/adt/bounded_vector.h"
+#include "srsran/adt/bounded_vector.h"
 
 namespace srsenb {
 
@@ -72,7 +63,7 @@ tbs_info compute_min_mcs_and_tbs_from_required_bytes(uint32_t nof_prb,
 struct pending_rar_t {
   uint16_t                                                                                    ra_rnti = 0;
   tti_point                                                                                   prach_tti{};
-  srslte::bounded_vector<sched_interface::dl_sched_rar_info_t, sched_interface::MAX_RAR_LIST> msg3_grant = {};
+  srsran::bounded_vector<sched_interface::dl_sched_rar_info_t, sched_interface::MAX_RAR_LIST> msg3_grant = {};
 };
 
 bool generate_sib_dci(sched_interface::dl_sched_bc_t& bc,
@@ -111,4 +102,4 @@ void log_rar_allocation(const sched_interface::dl_sched_rar_t& rar, rbg_interval
 
 } // namespace srsenb
 
-#endif // SRSLTE_SCHED_DCI_H
+#endif // SRSRAN_SCHED_DCI_H

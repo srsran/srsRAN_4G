@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -33,10 +24,10 @@
 #include <string>
 
 #include "phy/ue_phy_base.h"
-#include "srslte/common/buffer_pool.h"
-#include "srslte/radio/radio.h"
-#include "srslte/srslog/srslog.h"
-#include "srslte/system/sys_metrics_processor.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/radio/radio.h"
+#include "srsran/srslog/srslog.h"
+#include "srsran/system/sys_metrics_processor.h"
 #include "stack/ue_stack_base.h"
 
 #include "ue_metrics_interface.h"
@@ -76,7 +67,7 @@ typedef struct {
 } general_args_t;
 
 typedef struct {
-  srslte::rf_args_t rf;
+  srsran::rf_args_t rf;
   trace_args_t      trace;
   log_args_t        log;
   gui_args_t        gui;
@@ -112,7 +103,7 @@ public:
 private:
   // UE consists of a radio, a PHY and a stack element
   std::unique_ptr<ue_phy_base>        phy;
-  std::unique_ptr<srslte::radio_base> radio;
+  std::unique_ptr<srsran::radio_base> radio;
   std::unique_ptr<ue_stack_base>      stack;
   std::unique_ptr<gw>                 gw_inst;
 
@@ -120,7 +111,7 @@ private:
   srslog::basic_logger& logger;
 
   // System metrics processor.
-  srslte::sys_metrics_processor sys_proc;
+  srsran::sys_metrics_processor sys_proc;
 
   all_args_t args;
 

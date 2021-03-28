@@ -1,30 +1,21 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
-#ifndef SRSLTE_RRC_MEAS_H_
-#define SRSLTE_RRC_MEAS_H_
+#ifndef SRSRAN_RRC_MEAS_H_
+#define SRSRAN_RRC_MEAS_H_
 
-#include "srslte/asn1/rrc.h"
-#include "srslte/asn1/rrc_utils.h"
-#include "srslte/common/common.h"
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srsran/asn1/rrc.h"
+#include "srsran/asn1/rrc_utils.h"
+#include "srsran/common/common.h"
+#include "srsran/interfaces/ue_interfaces.h"
 #include "srsue/hdr/stack/rrc/rrc.h"
 
 #include <map>
@@ -97,7 +88,7 @@ private:
       cell_triggered_t                    cell_triggered_list = {};
       report_cfg_eutra_s                  report_cfg_eutra    = {};
       report_cfg_inter_rat_s              report_cfg_inter    = {};
-      srslte::timer_handler::unique_timer periodic_timer      = {};
+      srsran::timer_handler::unique_timer periodic_timer      = {};
     };
     var_meas_cfg*                       meas_cfg = nullptr;
     srslog::basic_logger&               logger;
@@ -211,4 +202,4 @@ private:
 
 } // namespace srsue
 
-#endif // SRSLTE_SRSUE_HDR_STACK_RRC_RRC_MEAS_H_
+#endif // SRSRAN_SRSUE_HDR_STACK_RRC_RRC_MEAS_H_

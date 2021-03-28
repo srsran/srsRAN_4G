@@ -1,27 +1,18 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #include "polar_interleaver_gold.h"
-#include "srslte/common/test_common.h"
-#include "srslte/phy/fec/polar/polar_interleaver.h"
+#include "srsran/common/test_common.h"
+#include "srsran/phy/fec/polar/polar_interleaver.h"
 
 int main(int argc, char** argv)
 {
@@ -30,14 +21,14 @@ int main(int argc, char** argv)
     uint32_t K = polar_interleaver_gold[idx].K;
 
     // Create indexes in order
-    uint16_t indexes_in[SRSLTE_POLAR_INTERLEAVER_K_MAX_IL];
+    uint16_t indexes_in[SRSRAN_POLAR_INTERLEAVER_K_MAX_IL];
     for (uint16_t i = 0; i < (uint16_t)K; i++) {
       indexes_in[i] = i;
     }
 
     // Run interleaver forward
-    uint16_t indexes_out[SRSLTE_POLAR_INTERLEAVER_K_MAX_IL];
-    srslte_polar_interleaver_run_u16(indexes_in, indexes_out, K, true);
+    uint16_t indexes_out[SRSRAN_POLAR_INTERLEAVER_K_MAX_IL];
+    srsran_polar_interleaver_run_u16(indexes_in, indexes_out, K, true);
 
     // Check indexes
     for (uint32_t i = 0; i < K; i++) {
@@ -45,7 +36,7 @@ int main(int argc, char** argv)
     }
 
     // Run interleaver backwards
-    srslte_polar_interleaver_run_u16(indexes_out, indexes_in, K, false);
+    srsran_polar_interleaver_run_u16(indexes_out, indexes_in, K, false);
 
     // Check indexes
     for (uint16_t i = 0; i < (uint16_t)K; i++) {
@@ -55,5 +46,5 @@ int main(int argc, char** argv)
     idx++;
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }

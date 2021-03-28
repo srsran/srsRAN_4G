@@ -1,33 +1,24 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #include "srsenb/hdr/stack/upper/pdcp.h"
 #include "srsenb/hdr/stack/upper/common_enb.h"
-#include "srslte/interfaces/enb_gtpu_interfaces.h"
-#include "srslte/interfaces/enb_rlc_interfaces.h"
-#include "srslte/interfaces/enb_rrc_interfaces.h"
+#include "srsran/interfaces/enb_gtpu_interfaces.h"
+#include "srsran/interfaces/enb_rlc_interfaces.h"
+#include "srsran/interfaces/enb_rrc_interfaces.h"
 
 namespace srsenb {
 
-pdcp::pdcp(srslte::task_sched_handle task_sched_, srslog::basic_logger& logger_) :
+pdcp::pdcp(srsran::task_sched_handle task_sched_, srslog::basic_logger& logger_) :
   task_sched(task_sched_), logger(logger_)
 {}
 
@@ -49,7 +40,7 @@ void pdcp::stop()
 void pdcp::add_user(uint16_t rnti)
 {
   if (users.count(rnti) == 0) {
-    srslte::pdcp* obj = new srslte::pdcp(task_sched, logger.id().c_str());
+    srsran::pdcp* obj = new srsran::pdcp(task_sched, logger.id().c_str());
     obj->init(&users[rnti].rlc_itf, &users[rnti].rrc_itf, &users[rnti].gtpu_itf);
     users[rnti].rlc_itf.rnti  = rnti;
     users[rnti].gtpu_itf.rnti = rnti;
@@ -78,10 +69,10 @@ void pdcp::rem_user(uint16_t rnti)
   }
 }
 
-void pdcp::add_bearer(uint16_t rnti, uint32_t lcid, srslte::pdcp_config_t cfg)
+void pdcp::add_bearer(uint16_t rnti, uint32_t lcid, srsran::pdcp_config_t cfg)
 {
   if (users.count(rnti)) {
-    if (rnti != SRSLTE_MRNTI) {
+    if (rnti != SRSRAN_MRNTI) {
       users[rnti].pdcp->add_bearer(lcid, cfg);
     } else {
       users[rnti].pdcp->add_bearer_mrb(lcid, cfg);
@@ -103,7 +94,7 @@ void pdcp::reset(uint16_t rnti)
   }
 }
 
-void pdcp::config_security(uint16_t rnti, uint32_t lcid, srslte::as_security_config_t sec_cfg)
+void pdcp::config_security(uint16_t rnti, uint32_t lcid, srsran::as_security_config_t sec_cfg)
 {
   if (users.count(rnti)) {
     users[rnti].pdcp->config_security(lcid, sec_cfg);
@@ -112,15 +103,15 @@ void pdcp::config_security(uint16_t rnti, uint32_t lcid, srslte::as_security_con
 
 void pdcp::enable_integrity(uint16_t rnti, uint32_t lcid)
 {
-  users[rnti].pdcp->enable_integrity(lcid, srslte::DIRECTION_TXRX);
+  users[rnti].pdcp->enable_integrity(lcid, srsran::DIRECTION_TXRX);
 }
 
 void pdcp::enable_encryption(uint16_t rnti, uint32_t lcid)
 {
-  users[rnti].pdcp->enable_encryption(lcid, srslte::DIRECTION_TXRX);
+  users[rnti].pdcp->enable_encryption(lcid, srsran::DIRECTION_TXRX);
 }
 
-bool pdcp::get_bearer_state(uint16_t rnti, uint32_t lcid, srslte::pdcp_lte_state_t* state)
+bool pdcp::get_bearer_state(uint16_t rnti, uint32_t lcid, srsran::pdcp_lte_state_t* state)
 {
   if (users.count(rnti) == 0) {
     return false;
@@ -128,7 +119,7 @@ bool pdcp::get_bearer_state(uint16_t rnti, uint32_t lcid, srslte::pdcp_lte_state
   return users[rnti].pdcp->get_bearer_state(lcid, state);
 }
 
-bool pdcp::set_bearer_state(uint16_t rnti, uint32_t lcid, const srslte::pdcp_lte_state_t& state)
+bool pdcp::set_bearer_state(uint16_t rnti, uint32_t lcid, const srsran::pdcp_lte_state_t& state)
 {
   if (users.count(rnti) == 0) {
     return false;
@@ -152,24 +143,24 @@ void pdcp::send_status_report(uint16_t rnti)
   users[rnti].pdcp->send_status_report();
 }
 
-void pdcp::notify_delivery(uint16_t rnti, uint32_t lcid, const srslte::pdcp_sn_vector_t& pdcp_sns)
+void pdcp::notify_delivery(uint16_t rnti, uint32_t lcid, const srsran::pdcp_sn_vector_t& pdcp_sns)
 {
   if (users.count(rnti)) {
     users[rnti].pdcp->notify_delivery(lcid, pdcp_sns);
   }
 }
 
-void pdcp::notify_failure(uint16_t rnti, uint32_t lcid, const srslte::pdcp_sn_vector_t& pdcp_sns)
+void pdcp::notify_failure(uint16_t rnti, uint32_t lcid, const srsran::pdcp_sn_vector_t& pdcp_sns)
 {
   if (users.count(rnti)) {
     users[rnti].pdcp->notify_failure(lcid, pdcp_sns);
   }
 }
 
-void pdcp::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu, int pdcp_sn)
+void pdcp::write_sdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t sdu, int pdcp_sn)
 {
   if (users.count(rnti)) {
-    if (rnti != SRSLTE_MRNTI) {
+    if (rnti != SRSRAN_MRNTI) {
       // TODO: Handle PDCP SN coming from GTPU
       users[rnti].pdcp->write_sdu(lcid, std::move(sdu), pdcp_sn);
     } else {
@@ -185,7 +176,7 @@ void pdcp::send_status_report(uint16_t rnti, uint32_t lcid)
   }
 }
 
-std::map<uint32_t, srslte::unique_byte_buffer_t> pdcp::get_buffered_pdus(uint16_t rnti, uint32_t lcid)
+std::map<uint32_t, srsran::unique_byte_buffer_t> pdcp::get_buffered_pdus(uint16_t rnti, uint32_t lcid)
 {
   if (users.count(rnti)) {
     return users[rnti].pdcp->get_buffered_pdus(lcid);
@@ -193,19 +184,19 @@ std::map<uint32_t, srslte::unique_byte_buffer_t> pdcp::get_buffered_pdus(uint16_
   return {};
 }
 
-void pdcp::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu)
+void pdcp::write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t sdu)
 {
   if (users.count(rnti)) {
     users[rnti].pdcp->write_pdu(lcid, std::move(sdu));
   }
 }
 
-void pdcp::user_interface_gtpu::write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
+void pdcp::user_interface_gtpu::write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
   gtpu->write_pdu(rnti, lcid, std::move(pdu));
 }
 
-void pdcp::user_interface_rlc::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)
+void pdcp::user_interface_rlc::write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu)
 {
   rlc->write_sdu(rnti, lcid, std::move(sdu));
 }
@@ -225,22 +216,22 @@ bool pdcp::user_interface_rlc::sdu_queue_is_full(uint32_t lcid)
   return rlc->sdu_queue_is_full(rnti, lcid);
 }
 
-void pdcp::user_interface_rrc::write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
+void pdcp::user_interface_rrc::write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
   rrc->write_pdu(rnti, lcid, std::move(pdu));
 }
 
-void pdcp::user_interface_rrc::write_pdu_bcch_bch(srslte::unique_byte_buffer_t pdu)
+void pdcp::user_interface_rrc::write_pdu_bcch_bch(srsran::unique_byte_buffer_t pdu)
 {
   ERROR("Error: Received BCCH from ue=%d", rnti);
 }
 
-void pdcp::user_interface_rrc::write_pdu_bcch_dlsch(srslte::unique_byte_buffer_t pdu)
+void pdcp::user_interface_rrc::write_pdu_bcch_dlsch(srsran::unique_byte_buffer_t pdu)
 {
   ERROR("Error: Received BCCH from ue=%d", rnti);
 }
 
-void pdcp::user_interface_rrc::write_pdu_pcch(srslte::unique_byte_buffer_t pdu)
+void pdcp::user_interface_rrc::write_pdu_pcch(srsran::unique_byte_buffer_t pdu)
 {
   ERROR("Error: Received PCCH from ue=%d", rnti);
 }

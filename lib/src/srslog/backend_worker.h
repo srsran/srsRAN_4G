@@ -1,30 +1,22 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #ifndef SRSLOG_BACKEND_WORKER_H
 #define SRSLOG_BACKEND_WORKER_H
 
-#include "srslte/srslog/detail/log_entry.h"
-#include "srslte/srslog/detail/support/work_queue.h"
-#include "srslte/srslog/shared_types.h"
+#include "srsran/srslog/detail/log_entry.h"
+#include "srsran/srslog/detail/support/dyn_arg_store_pool.h"
+#include "srsran/srslog/detail/support/work_queue.h"
+#include "srsran/srslog/shared_types.h"
 #include <mutex>
 #include <thread>
 
@@ -40,8 +32,8 @@ class backend_worker
   static constexpr unsigned sleep_period_ms = 500;
 
 public:
-  explicit backend_worker(detail::work_queue<detail::log_entry>& queue) :
-    queue(queue), running_flag(false)
+  backend_worker(detail::work_queue<detail::log_entry>& queue, detail::dyn_arg_store_pool& arg_pool) :
+    queue(queue), arg_pool(arg_pool), running_flag(false)
   {}
 
   backend_worker(const backend_worker&) = delete;
@@ -103,23 +95,21 @@ private:
   void report_queue_on_full_once()
   {
     if (queue.is_almost_full()) {
-      err_handler(
-          fmt::format("The backend queue size is about to reach its maximum "
-                      "capacity of {} elements, new log entries will get "
-                      "discarded.\nConsider increasing the queue capacity.",
-                      queue.get_capacity()));
+      err_handler(fmt::format("The backend queue size is about to reach its maximum "
+                              "capacity of {} elements, new log entries will get "
+                              "discarded.\nConsider increasing the queue capacity.",
+                              queue.get_capacity()));
       err_handler = [](const std::string&) {};
     }
   }
 
 private:
   detail::work_queue<detail::log_entry>& queue;
-  detail::shared_variable<bool> running_flag;
-  error_handler err_handler = [](const std::string& error) {
-    fmt::print(stderr, "srsLog error - {}\n", error);
-  };
-  std::once_flag start_once_flag;
-  std::thread worker_thread;
+  detail::dyn_arg_store_pool&            arg_pool;
+  detail::shared_variable<bool>          running_flag;
+  error_handler      err_handler = [](const std::string& error) { fmt::print(stderr, "srsLog error - {}\n", error); };
+  std::once_flag     start_once_flag;
+  std::thread        worker_thread;
   fmt::memory_buffer fmt_buffer;
 };
 

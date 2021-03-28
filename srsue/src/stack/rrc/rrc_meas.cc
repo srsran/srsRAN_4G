@@ -1,28 +1,19 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #include "srsue/hdr/stack/rrc/rrc_meas.h"
-#include "srslte/asn1/rrc/dl_dcch_msg.h"
-#include "srslte/interfaces/ue_phy_interfaces.h"
-#include "srslte/rrc/rrc_cfg_utils.h"
+#include "srsran/asn1/rrc/dl_dcch_msg.h"
+#include "srsran/interfaces/ue_phy_interfaces.h"
+#include "srsran/rrc/rrc_cfg_utils.h"
 #include "srsue/hdr/stack/rrc/rrc.h"
 
 /************************************************************************
@@ -32,7 +23,7 @@
  *
  *
  ************************************************************************/
-using namespace srslte;
+using namespace srsran;
 using namespace asn1::rrc;
 
 namespace srsue {
@@ -40,7 +31,7 @@ namespace srsue {
 meas_obj_to_add_mod_s* find_meas_obj_map(std::map<uint32_t, meas_obj_to_add_mod_s>& l, uint32_t earfcn)
 {
   auto same_earfcn = [earfcn](const std::pair<uint32_t, meas_obj_to_add_mod_s>& c) {
-    return (int)earfcn == srslte::get_carrier_freq(c.second);
+    return (int)earfcn == srsran::get_carrier_freq(c.second);
   };
   auto it = std::find_if(l.begin(), l.end(), same_earfcn);
   if (it == l.end()) {
@@ -68,14 +59,14 @@ void rrc::rrc_meas::reset()
 float rrc::rrc_meas::rsrp_filter(const float new_value, const float avg_value)
 {
   phy_quant_t f = meas_cfg.get_filter_a();
-  return std::isnormal(avg_value) ? SRSLTE_VEC_EMA(new_value, avg_value, f.rsrp) : new_value;
+  return std::isnormal(avg_value) ? SRSRAN_VEC_EMA(new_value, avg_value, f.rsrp) : new_value;
 }
 
 // Perform Layer 3 filtering 5.5.3.2
 float rrc::rrc_meas::rsrq_filter(const float new_value, const float avg_value)
 {
   phy_quant_t f = meas_cfg.get_filter_a();
-  return std::isnormal(avg_value) ? SRSLTE_VEC_EMA(new_value, avg_value, f.rsrq) : new_value;
+  return std::isnormal(avg_value) ? SRSRAN_VEC_EMA(new_value, avg_value, f.rsrq) : new_value;
 }
 
 /* Instruct PHY to start measurement on every configured frequency */

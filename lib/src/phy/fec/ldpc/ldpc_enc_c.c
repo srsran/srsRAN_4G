@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -31,11 +22,11 @@
 
 #include <stdint.h>
 
-#include "srslte/phy/fec/ldpc/base_graph.h"
-#include "srslte/phy/fec/ldpc/ldpc_encoder.h"
-#include "srslte/phy/utils/debug.h"
+#include "srsran/phy/fec/ldpc/base_graph.h"
+#include "srsran/phy/fec/ldpc/ldpc_encoder.h"
+#include "srsran/phy/utils/debug.h"
 
-void encode_ext_region(srslte_ldpc_encoder_t* q, uint8_t* output, uint8_t n_layers)
+void encode_ext_region(srsran_ldpc_encoder_t* q, uint8_t* output, uint8_t n_layers)
 {
 
   uint8_t(*aux)[q->ls] = q->ptr;
@@ -68,7 +59,7 @@ void encode_ext_region(srslte_ldpc_encoder_t* q, uint8_t* output, uint8_t n_laye
   }
 }
 
-void preprocess_systematic_bits(srslte_ldpc_encoder_t* q, const uint8_t* input)
+void preprocess_systematic_bits(srsran_ldpc_encoder_t* q, const uint8_t* input)
 {
   uint8_t(*aux)[q->ls] = q->ptr;
 
@@ -109,7 +100,7 @@ void preprocess_systematic_bits(srslte_ldpc_encoder_t* q, const uint8_t* input)
 
 void encode_high_rate_case1(void* q_, uint8_t* output)
 {
-  srslte_ldpc_encoder_t* q = (srslte_ldpc_encoder_t*)q_;
+  srsran_ldpc_encoder_t* q = (srsran_ldpc_encoder_t*)q_;
   uint8_t(*aux)[q->ls]     = q->ptr;
 
   int ls = q->ls;
@@ -137,7 +128,7 @@ void encode_high_rate_case1(void* q_, uint8_t* output)
 
 void encode_high_rate_case2(void* q_, uint8_t* output)
 {
-  srslte_ldpc_encoder_t* q = (srslte_ldpc_encoder_t*)q_;
+  srsran_ldpc_encoder_t* q = (srsran_ldpc_encoder_t*)q_;
   uint8_t(*aux)[q->ls]     = q->ptr;
 
   int ls = q->ls;
@@ -167,7 +158,7 @@ void encode_high_rate_case2(void* q_, uint8_t* output)
 
 void encode_high_rate_case3(void* q_, uint8_t* output)
 {
-  srslte_ldpc_encoder_t* q = (srslte_ldpc_encoder_t*)q_;
+  srsran_ldpc_encoder_t* q = (srsran_ldpc_encoder_t*)q_;
   uint8_t(*aux)[q->ls]     = q->ptr;
 
   int ls = q->ls;
@@ -197,7 +188,7 @@ void encode_high_rate_case3(void* q_, uint8_t* output)
 
 void encode_high_rate_case4(void* q_, uint8_t* output)
 {
-  srslte_ldpc_encoder_t* q = (srslte_ldpc_encoder_t*)q_;
+  srsran_ldpc_encoder_t* q = (srsran_ldpc_encoder_t*)q_;
   uint8_t(*aux)[q->ls]     = q->ptr;
 
   int ls = q->ls;

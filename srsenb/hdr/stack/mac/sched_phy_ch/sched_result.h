@@ -1,26 +1,17 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
-#ifndef SRSLTE_SCHED_RESULT_H
-#define SRSLTE_SCHED_RESULT_H
+#ifndef SRSRAN_SCHED_RESULT_H
+#define SRSRAN_SCHED_RESULT_H
 
 #include "../sched_common.h"
 
@@ -47,4 +38,4 @@ struct cc_sched_result {
 
 } // namespace srsenb
 
-#endif // SRSLTE_SCHED_RESULT_H
+#endif // SRSRAN_SCHED_RESULT_H

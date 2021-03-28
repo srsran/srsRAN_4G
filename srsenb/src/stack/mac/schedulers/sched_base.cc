@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -132,7 +123,7 @@ alloc_result try_dl_retx_alloc(sf_sched& tti_sched, sched_ue& ue, const dl_harq_
 
   // If previous mask does not fit, find another with exact same number of rbgs
   size_t nof_rbg             = retx_mask.count();
-  bool   is_contiguous_alloc = ue.get_dci_format() == SRSLTE_DCI_FORMAT1A;
+  bool   is_contiguous_alloc = ue.get_dci_format() == SRSRAN_DCI_FORMAT1A;
   retx_mask                  = compute_rbgmask_greedy(nof_rbg, is_contiguous_alloc, tti_sched.get_dl_mask());
   if (retx_mask.count() == nof_rbg) {
     return tti_sched.alloc_dl_user(&ue, retx_mask, h.get_id());
@@ -159,7 +150,7 @@ alloc_result try_dl_newtx_alloc_greedy(sf_sched& tti_sched, sched_ue& ue, const 
   }
 
   // Find RBG mask that accommodates pending data
-  bool      is_contiguous_alloc = ue.get_dci_format() == SRSLTE_DCI_FORMAT1A;
+  bool      is_contiguous_alloc = ue.get_dci_format() == SRSRAN_DCI_FORMAT1A;
   rbgmask_t newtxmask           = compute_rbgmask_greedy(req_rbgs.stop(), is_contiguous_alloc, current_mask);
   if (newtxmask.none() or newtxmask.count() < req_rbgs.start()) {
     return alloc_result::no_sch_space;
@@ -186,15 +177,15 @@ prb_interval find_contiguous_ul_prbs(uint32_t L, const prbmask_t& current_mask)
 
   // Make sure L is allowed by SC-FDMA modulation
   prb_interval prb_interv2 = prb_interv;
-  while (not srslte_dft_precoding_valid_prb(prb_interv.length()) and prb_interv.stop() < current_mask.size() and
+  while (not srsran_dft_precoding_valid_prb(prb_interv.length()) and prb_interv.stop() < current_mask.size() and
          not current_mask.test(prb_interv.stop())) {
     prb_interv.resize_by(1);
   }
-  if (not srslte_dft_precoding_valid_prb(prb_interv.length())) {
+  if (not srsran_dft_precoding_valid_prb(prb_interv.length())) {
     // if length increase failed, try to decrease
     prb_interv = prb_interv2;
     prb_interv.resize_by(-1);
-    while (not srslte_dft_precoding_valid_prb(prb_interv.length()) and not prb_interv.empty()) {
+    while (not srsran_dft_precoding_valid_prb(prb_interv.length()) and not prb_interv.empty()) {
       prb_interv.resize_by(-1);
     }
   }

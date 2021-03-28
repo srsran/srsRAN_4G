@@ -1,42 +1,33 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #include <unistd.h>
 
-#include "srslte/common/threads.h"
-#include "srslte/srslte.h"
+#include "srsran/common/threads.h"
+#include "srsran/srsran.h"
 
 #include "srsenb/hdr/phy/txrx.h"
 
 #define Error(fmt, ...)                                                                                                \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
   logger.error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...)                                                                                              \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
   logger.warning(fmt, ##__VA_ARGS__)
 #define Info(fmt, ...)                                                                                                 \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
   logger.info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)                                                                                                \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
   logger.debug(fmt, ##__VA_ARGS__)
 
 using namespace std;
@@ -49,7 +40,7 @@ txrx::txrx(srslog::basic_logger& logger) : thread("TXRX"), logger(logger)
 }
 
 bool txrx::init(stack_interface_phy_lte*     stack_,
-                srslte::radio_interface_phy* radio_h_,
+                srsran::radio_interface_phy* radio_h_,
                 lte::worker_pool*            lte_workers_,
                 nr::worker_pool*             nr_workers_,
                 phy_common*                  worker_com_,
@@ -69,8 +60,8 @@ bool txrx::init(stack_interface_phy_lte*     stack_,
 
   // Instantiate UL channel emulator
   if (worker_com->params.ul_channel_args.enable) {
-    ul_channel = srslte::channel_ptr(
-        new srslte::channel(worker_com->params.ul_channel_args, worker_com->get_nof_rf_channels(), logger));
+    ul_channel = srsran::channel_ptr(
+        new srsran::channel(worker_com->params.ul_channel_args, worker_com->get_nof_rf_channels(), logger));
   }
 
   start(prio_);
@@ -87,11 +78,11 @@ void txrx::stop()
 
 void txrx::run_thread()
 {
-  srslte::rf_buffer_t    buffer    = {};
-  srslte::rf_timestamp_t timestamp = {};
-  uint32_t               sf_len    = SRSLTE_SF_LEN_PRB(worker_com->get_nof_prb(0));
+  srsran::rf_buffer_t    buffer    = {};
+  srsran::rf_timestamp_t timestamp = {};
+  uint32_t               sf_len    = SRSRAN_SF_LEN_PRB(worker_com->get_nof_prb(0));
 
-  float samp_rate = srslte_sampling_freq_hz(worker_com->get_nof_prb(0));
+  float samp_rate = srsran_sampling_freq_hz(worker_com->get_nof_prb(0));
 
   // Configure radio
   radio_h->set_rx_srate(samp_rate);
@@ -102,7 +93,7 @@ void txrx::run_thread()
     double   tx_freq_hz = worker_com->get_dl_freq_hz(cc_idx);
     double   rx_freq_hz = worker_com->get_ul_freq_hz(cc_idx);
     uint32_t rf_port    = worker_com->get_rf_port(cc_idx);
-    srslte::console("Setting frequency: DL=%.1f Mhz, UL=%.1f MHz for cc_idx=%d nof_prb=%d\n",
+    srsran::console("Setting frequency: DL=%.1f Mhz, UL=%.1f MHz for cc_idx=%d nof_prb=%d\n",
                     tx_freq_hz / 1e6f,
                     rx_freq_hz / 1e6f,
                     cc_idx,

@@ -1,26 +1,17 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
-#ifndef SRSLTE_SCELL_SYNC_H
-#define SRSLTE_SCELL_SYNC_H
+#ifndef SRSRAN_SCELL_SYNC_H
+#define SRSRAN_SCELL_SYNC_H
 
 namespace srsue {
 namespace scell {
@@ -62,10 +53,10 @@ private:
   state_t                                         state    = STATE_IDLE;
   sync_callback*                                  callback = nullptr;
   uint32_t                                        channel  = 0;
-  srslte_sync_t                                   find_pss = {};
+  srsran_sync_t                                   find_pss = {};
   int32_t                                         sf_len   = 0;
   int32_t                                         cell_id  = -1;
-  std::array<cf_t, BUFFER_LEN* SRSLTE_SF_LEN_MAX> temp     = {};
+  std::array<cf_t, BUFFER_LEN* SRSRAN_SF_LEN_MAX> temp     = {};
   std::mutex mutex; ///< Used for avoiding reconfiguring (set_cell) while it is searching
 
   /**
@@ -79,18 +70,18 @@ private:
 
     // Append new base-band
     if (buffer == nullptr) {
-      srslte_vec_cf_zero(&temp[sf_len], sf_len);
+      srsran_vec_cf_zero(&temp[sf_len], sf_len);
     } else {
-      srslte_vec_cf_copy(&temp[sf_len], buffer, sf_len);
+      srsran_vec_cf_copy(&temp[sf_len], buffer, sf_len);
     }
 
     // Run PSS search
-    switch (srslte_sync_find(&find_pss, temp.data(), 0, &peak_pos)) {
-      case SRSLTE_SYNC_FOUND:
+    switch (srsran_sync_find(&find_pss, temp.data(), 0, &peak_pos)) {
+      case SRSRAN_SYNC_FOUND:
         if (callback != nullptr) {
           // Calculate Sample Offset from TTI difference
-          int tti_mod    = (int)tti % (SRSLTE_NOF_SF_X_FRAME / 2);
-          int tti_offset = (tti_mod < 3) ? tti_mod : (tti_mod - SRSLTE_NOF_SF_X_FRAME / 2);
+          int tti_mod    = (int)tti % (SRSRAN_NOF_SF_X_FRAME / 2);
+          int tti_offset = (tti_mod < 3) ? tti_mod : (tti_mod - SRSRAN_NOF_SF_X_FRAME / 2);
 
           // Calculate sample offset from PSS correlation peak
           int offset = (int)(peak_pos - (3 * sf_len) / 2);
@@ -100,20 +91,20 @@ private:
         }
         state = STATE_IN_SYNCH;
         break;
-      case SRSLTE_SYNC_FOUND_NOSPACE:
+      case SRSRAN_SYNC_FOUND_NOSPACE:
         ERROR("No space error");
         break;
-      case SRSLTE_SYNC_NOFOUND:
+      case SRSRAN_SYNC_NOFOUND:
         // Ignore
         break;
-      case SRSLTE_SYNC_ERROR:
+      case SRSRAN_SYNC_ERROR:
         ERROR("Error finding PSS");
         break;
     }
 
     // If the state has not changed, copy new data into the temp buffer
     if (state == STATE_SEARCH_PSS) {
-      srslte_vec_cf_copy(&temp[0], buffer, sf_len);
+      srsran_vec_cf_copy(&temp[0], buffer, sf_len);
     }
   }
 
@@ -122,11 +113,11 @@ private:
    */
   void resize(uint32_t new_nof_prb)
   {
-    uint32_t symbol_sz  = srslte_symbol_sz(new_nof_prb);
-    int32_t  new_sf_len = SRSLTE_SF_LEN_PRB(new_nof_prb);
+    uint32_t symbol_sz  = srsran_symbol_sz(new_nof_prb);
+    int32_t  new_sf_len = SRSRAN_SF_LEN_PRB(new_nof_prb);
 
     // Reset Temporal buffer
-    srslte_vec_cf_zero(temp.data(), BUFFER_LEN * new_sf_len);
+    srsran_vec_cf_zero(temp.data(), BUFFER_LEN * new_sf_len);
 
     // Skip if no BW is changed
     if (new_sf_len == sf_len) {
@@ -137,7 +128,7 @@ private:
     // serving cell, the PSS may be located away from the primary serving cell PSS time. The secondary serving cell PSS
     // could be in the boundary between subframes, so more than a subframe is required to ensure PSS is captured. Two
     // subframes is a simple and conservative buffer size.
-    if (srslte_sync_resize(&find_pss, BUFFER_LEN * new_sf_len, BUFFER_LEN * new_sf_len, symbol_sz) != SRSLTE_SUCCESS) {
+    if (srsran_sync_resize(&find_pss, BUFFER_LEN * new_sf_len, BUFFER_LEN * new_sf_len, symbol_sz) != SRSRAN_SUCCESS) {
       ERROR("Error setting cell sync find");
     }
 
@@ -158,13 +149,13 @@ public:
   sync(sync_callback* _callback, uint32_t _channel) : callback(_callback), channel(_channel)
   {
     // Initialise Find PSS object
-    if (srslte_sync_init(&find_pss, 2 * SRSLTE_SF_LEN_MAX, 2 * SRSLTE_SF_LEN_MAX, SRSLTE_SYMBOL_SZ_MAX) !=
-        SRSLTE_SUCCESS) {
+    if (srsran_sync_init(&find_pss, 2 * SRSRAN_SF_LEN_MAX, 2 * SRSRAN_SF_LEN_MAX, SRSRAN_SYMBOL_SZ_MAX) !=
+        SRSRAN_SUCCESS) {
       ERROR("Initiating Synchronizer");
     }
   }
 
-  ~sync() { srslte_sync_free(&find_pss); };
+  ~sync() { srsran_sync_free(&find_pss); };
 
   void set_bw(const uint32_t nof_prb)
   {
@@ -181,7 +172,7 @@ public:
   /**
    * Sets the cell for the synchronizer
    */
-  void set_cell(const srslte_cell_t& cell)
+  void set_cell(const srsran_cell_t& cell)
   {
     // Protect DSP objects and buffers; As it is called by asynchronous thread, it can wait to finish current processing
     std::unique_lock<std::mutex> lock(mutex);
@@ -192,12 +183,12 @@ public:
     // Configure only if the cell identifier has changed
     int32_t new_cell_id = cell.id;
     if (cell_id != new_cell_id) {
-      srslte_sync_set_frame_type(&find_pss, cell.frame_type);
-      srslte_sync_set_N_id_2(&find_pss, new_cell_id % SRSLTE_NOF_NID_2);
-      srslte_sync_set_N_id_1(&find_pss, new_cell_id / SRSLTE_NOF_NID_2);
-      srslte_sync_set_cfo_ema_alpha(&find_pss, 0.1);
-      srslte_sync_set_em_alpha(&find_pss, 1);
-      srslte_sync_set_threshold(&find_pss, 3.0);
+      srsran_sync_set_frame_type(&find_pss, cell.frame_type);
+      srsran_sync_set_N_id_2(&find_pss, new_cell_id % SRSRAN_NOF_NID_2);
+      srsran_sync_set_N_id_1(&find_pss, new_cell_id / SRSRAN_NOF_NID_2);
+      srsran_sync_set_cfo_ema_alpha(&find_pss, 0.1);
+      srsran_sync_set_em_alpha(&find_pss, 1);
+      srsran_sync_set_threshold(&find_pss, 3.0);
       cell_id = new_cell_id;
     }
 
@@ -247,4 +238,4 @@ public:
 };
 } // namespace scell
 } // namespace srsue
-#endif // SRSLTE_SCELL_SYNC_H
+#endif // SRSRAN_SCELL_SYNC_H

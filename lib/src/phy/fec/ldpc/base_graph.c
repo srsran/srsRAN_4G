@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -38,8 +29,8 @@
 
 #include <stdint.h>
 
-#include "srslte/phy/fec/ldpc/base_graph.h"
-#include "srslte/phy/utils/debug.h"
+#include "srsran/phy/fec/ldpc/base_graph.h"
+#include "srsran/phy/utils/debug.h"
 
 /*!
  * \brief Lifting size look-up table.
@@ -4459,12 +4450,12 @@ static const int8_t BG2_positions[BG2M][MAX_CNCT] = {
 /*!
  * Returns a pointer to the desired variation of the selected base graph.
  */
-static inline const uint16_t* get_cnct_matrix(srslte_basegraph_t bg, uint8_t ls)
+static inline const uint16_t* get_cnct_matrix(srsran_basegraph_t bg, uint8_t ls)
 {
   return (bg == BG1 ? (const uint16_t*)BG1_matrices[ls] : (const uint16_t*)BG2_matrices[ls]);
 }
 
-int create_compact_pcm(uint16_t* pcm, int8_t (*positions)[MAX_CNCT], srslte_basegraph_t bg, uint16_t ls)
+int create_compact_pcm(uint16_t* pcm, int8_t (*positions)[MAX_CNCT], srsran_basegraph_t bg, uint16_t ls)
 {
   uint8_t  ls_index = 0;
   uint16_t value    = 0;

@@ -22,7 +22,7 @@
 #ifndef SRSUE_MAC_NR_INTERFACES_H
 #define SRSUE_MAC_NR_INTERFACES_H
 
-#include "srslte/common/interfaces_common.h"
+#include "srsran/common/interfaces_common.h"
 
 namespace srsue {
 /**

@@ -27,10 +27,10 @@
 #include <stdint.h>
 
 #include "mac_nr_interfaces.h"
-#include "srslte/common/common.h"
-#include "srslte/common/task_scheduler.h"
-#include "srslte/interfaces/ue_nr_interfaces.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/common/common.h"
+#include "srsran/common/task_scheduler.h"
+#include "srsran/interfaces/ue_nr_interfaces.h"
+#include "srsran/srslog/srslog.h"
 
 namespace srsue {
 
@@ -40,8 +40,8 @@ public:
   proc_ra_nr(srslog::basic_logger& logger_);
   ~proc_ra_nr(){};
 
-  void init(phy_interface_mac_nr* phy_h_, mac_interface_proc_ra_nr* mac_, srslte::ext_task_sched_handle* task_sched_);
-  void set_config(const srslte::rach_nr_cfg_t& rach_cfg);
+  void init(phy_interface_mac_nr* phy_h_, mac_interface_proc_ra_nr* mac_, srsran::ext_task_sched_handle* task_sched_);
+  void set_config(const srsran::rach_nr_cfg_t& rach_cfg);
   bool is_contention_resolution();
 
   bool is_rar_opportunity(uint32_t tti);
@@ -56,20 +56,21 @@ public:
   void pdcch_to_crnti();
 
   void start_by_rrc();
+  void start_by_mac();
   void reset();
 
 private:
   srslog::basic_logger&                 logger;
   phy_interface_mac_nr*                 phy        = nullptr;
   mac_interface_proc_ra_nr*             mac        = nullptr;
-  srslte::ext_task_sched_handle*        task_sched = nullptr;
-  srslte::task_multiqueue::queue_handle task_queue;
+  srsran::ext_task_sched_handle*        task_sched = nullptr;
+  srsran::task_multiqueue::queue_handle task_queue;
 
   int      ra_window_length = -1, ra_window_start = -1;
-  uint16_t rar_rnti  = SRSLTE_INVALID_RNTI;
-  uint16_t temp_rnti = SRSLTE_INVALID_RNTI;
+  uint16_t rar_rnti  = SRSRAN_INVALID_RNTI;
+  uint16_t temp_rnti = SRSRAN_INVALID_RNTI;
 
-  srslte::rach_nr_cfg_t rach_cfg   = {};
+  srsran::rach_nr_cfg_t rach_cfg   = {};
   bool                  configured = false;
 
   enum ra_state_t {
@@ -86,11 +87,11 @@ private:
 
   enum initiators_t { MAC, RRC, initiators_t_NULLTYPE };
   std::atomic<initiators_t> started_by = {initiators_t_NULLTYPE};
-  
-  srslte::timer_handler::unique_timer prach_send_timer;
-  srslte::timer_handler::unique_timer rar_timeout_timer;
-  srslte::timer_handler::unique_timer contention_resolution_timer;
-  
+
+  srsran::timer_handler::unique_timer prach_send_timer;
+  srsran::timer_handler::unique_timer rar_timeout_timer;
+  srsran::timer_handler::unique_timer contention_resolution_timer;
+
   // 38.321 5.1.1 Variables
   uint32_t preamble_index = 0;
   uint32_t preamble_transmission_counter = 0;

@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -23,8 +14,8 @@
 #define SRSUE_LTE_SF_WORKER_H
 
 #include "cc_worker.h"
-#include "srslte/common/thread_pool.h"
-#include "srslte/srslte.h"
+#include "srsran/common/thread_pool.h"
+#include "srsran/srsran.h"
 #include "srsue/hdr/phy/phy_common.h"
 #include <string.h>
 
@@ -39,25 +30,25 @@ namespace lte {
  * A sf_worker object is executed by a thread within the thread_pool.
  */
 
-class sf_worker : public srslte::thread_pool::worker
+class sf_worker : public srsran::thread_pool::worker
 {
 public:
   sf_worker(uint32_t max_prb, phy_common* phy_, srslog::basic_logger& logger);
   virtual ~sf_worker();
 
   void reset_cell_unlocked(uint32_t cc_idx);
-  bool set_cell_unlocked(uint32_t cc_idx, srslte_cell_t cell_);
+  bool set_cell_unlocked(uint32_t cc_idx, srsran_cell_t cell_);
 
   /* Functions used by main PHY thread */
   cf_t*    get_buffer(uint32_t cc_idx, uint32_t antenna_idx);
   uint32_t get_buffer_len();
   void     set_tti(uint32_t tti);
-  void     set_tx_time(const srslte::rf_timestamp_t& tx_time);
+  void     set_tx_time(const srsran::rf_timestamp_t& tx_time);
   void     set_prach(cf_t* prach_ptr, float prach_power);
   void     set_cfo_unlocked(const uint32_t& cc_idx, float cfo);
 
-  void set_tdd_config_unlocked(srslte_tdd_config_t config);
-  void set_config_unlocked(uint32_t cc_idx, srslte::phy_cfg_t phy_cfg);
+  void set_tdd_config_unlocked(srsran_tdd_config_t config);
+  void set_config_unlocked(uint32_t cc_idx, srsran::phy_cfg_t phy_cfg);
   void set_crnti_unlocked(uint16_t rnti);
   void enable_pregen_signals_unlocked(bool enabled);
 
@@ -82,7 +73,7 @@ private:
   void work_imp() final;
 
   void update_measurements();
-  void reset_uci(srslte_uci_data_t* uci_data);
+  void reset_uci(srsran_uci_data_t* uci_data);
 
   std::vector<cc_worker*> cc_workers;
 
@@ -90,9 +81,9 @@ private:
 
   srslog::basic_logger& logger;
 
-  srslte_cell_t       cell = {};
+  srsran_cell_t       cell = {};
   std::mutex          cell_mutex;
-  srslte_tdd_config_t tdd_config = {};
+  srsran_tdd_config_t tdd_config = {};
 
   std::condition_variable cell_init_cond;
   bool                    cell_initiated = false;
@@ -101,7 +92,7 @@ private:
   float prach_power = 0;
 
   uint32_t               tti     = 0;
-  srslte::rf_timestamp_t tx_time = {};
+  srsran::rf_timestamp_t tx_time = {};
 };
 
 } // namespace lte

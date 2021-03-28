@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -23,15 +14,15 @@
 #define SRSENB_UE_H
 
 #include "mac_metrics.h"
-#include "srslte/adt/circular_array.h"
-#include "srslte/common/block_queue.h"
-#include "srslte/common/mac_pcap.h"
-#include "srslte/common/mac_pcap_net.h"
-#include "srslte/common/tti_point.h"
-#include "srslte/interfaces/sched_interface.h"
-#include "srslte/mac/pdu.h"
-#include "srslte/mac/pdu_queue.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/adt/circular_array.h"
+#include "srsran/common/block_queue.h"
+#include "srsran/common/mac_pcap.h"
+#include "srsran/common/mac_pcap_net.h"
+#include "srsran/common/tti_point.h"
+#include "srsran/interfaces/sched_interface.h"
+#include "srsran/mac/pdu.h"
+#include "srsran/mac/pdu_queue.h"
+#include "srsran/srslog/srslog.h"
 
 #include "ta.h"
 #include <pthread.h>
@@ -46,7 +37,7 @@ class phy_interface_stack_lte;
 class cc_used_buffers_map
 {
 public:
-  explicit cc_used_buffers_map(srslte::pdu_queue& shared_pdu_queue_);
+  explicit cc_used_buffers_map(srsran::pdu_queue& shared_pdu_queue_);
 
   uint8_t* request_pdu(tti_point tti, uint32_t len);
 
@@ -66,20 +57,20 @@ private:
   void remove_pdu(tti_point tti);
 
   srslog::basic_logger* logger;
-  srslte::pdu_queue*    shared_pdu_queue;
+  srsran::pdu_queue*    shared_pdu_queue;
 
-  srslte::circular_array<std::pair<tti_point, uint8_t*>, SRSLTE_FDD_NOF_HARQ * 8> pdu_map;
+  srsran::circular_array<std::pair<tti_point, uint8_t*>, SRSRAN_FDD_NOF_HARQ * 8> pdu_map;
 };
 
 class cc_buffer_handler
 {
 public:
   // List of Tx softbuffers for all HARQ processes of one carrier
-  using cc_softbuffer_tx_list_t = std::vector<srslte_softbuffer_tx_t>;
+  using cc_softbuffer_tx_list_t = std::vector<srsran_softbuffer_tx_t>;
   // List of Rx softbuffers for all HARQ processes of one carrier
-  using cc_softbuffer_rx_list_t = std::vector<srslte_softbuffer_rx_t>;
+  using cc_softbuffer_rx_list_t = std::vector<srsran_softbuffer_rx_t>;
 
-  explicit cc_buffer_handler(srslte::pdu_queue& shared_pdu_queue_);
+  explicit cc_buffer_handler(srsran::pdu_queue& shared_pdu_queue_);
   ~cc_buffer_handler();
 
   void reset();
@@ -87,12 +78,12 @@ public:
   void deallocate_cc();
 
   bool                    empty() const { return softbuffer_tx_list.empty() and softbuffer_rx_list.empty(); }
-  srslte_softbuffer_tx_t& get_tx_softbuffer(uint32_t pid, uint32_t tb_idx)
+  srsran_softbuffer_tx_t& get_tx_softbuffer(uint32_t pid, uint32_t tb_idx)
   {
-    return softbuffer_tx_list.at(pid * SRSLTE_MAX_TB + tb_idx);
+    return softbuffer_tx_list.at(pid * SRSRAN_MAX_TB + tb_idx);
   }
-  srslte_softbuffer_rx_t& get_rx_softbuffer(uint32_t tti) { return softbuffer_rx_list.at(tti % nof_rx_harq_proc); }
-  srslte::byte_buffer_t*  get_tx_payload_buffer(size_t harq_pid, size_t tb)
+  srsran_softbuffer_rx_t& get_rx_softbuffer(uint32_t tti) { return softbuffer_rx_list.at(tti % nof_rx_harq_proc); }
+  srsran::byte_buffer_t*  get_tx_payload_buffer(size_t harq_pid, size_t tb)
   {
     return tx_payload_buffer[harq_pid][tb].get();
   }
@@ -110,10 +101,10 @@ private:
   cc_used_buffers_map     rx_used_buffers;
 
   // One buffer per TB per HARQ process and per carrier is needed for each UE.
-  std::array<std::array<srslte::unique_byte_buffer_t, SRSLTE_MAX_TB>, SRSLTE_FDD_NOF_HARQ> tx_payload_buffer;
+  std::array<std::array<srsran::unique_byte_buffer_t, SRSRAN_MAX_TB>, SRSRAN_FDD_NOF_HARQ> tx_payload_buffer;
 };
 
-class ue : public srslte::read_pdu_interface, public srslte::pdu_queue::process_callback, public mac_ta_ue_interface
+class ue : public srsran::read_pdu_interface, public srsran::pdu_queue::process_callback, public mac_ta_ue_interface
 {
 public:
   ue(uint16_t                 rnti,
@@ -124,13 +115,13 @@ public:
      phy_interface_stack_lte* phy_,
      srslog::basic_logger&    logger,
      uint32_t                 nof_cells_,
-     uint32_t                 nof_rx_harq_proc = SRSLTE_FDD_NOF_HARQ,
-     uint32_t                 nof_tx_harq_proc = SRSLTE_FDD_NOF_HARQ);
+     uint32_t                 nof_rx_harq_proc = SRSRAN_FDD_NOF_HARQ,
+     uint32_t                 nof_tx_harq_proc = SRSRAN_FDD_NOF_HARQ);
 
   virtual ~ue();
   void     reset();
-  void     start_pcap(srslte::mac_pcap* pcap_);
-  void     start_pcap_net(srslte::mac_pcap_net* pcap_net_);
+  void     start_pcap(srsran::mac_pcap* pcap_);
+  void     start_pcap_net(srsran::mac_pcap_net* pcap_net_);
   void     set_tti(uint32_t tti);
   uint16_t get_rnti() { return rnti; }
   uint32_t set_ta(int ta) override;
@@ -147,13 +138,13 @@ public:
   uint8_t*
   generate_mch_pdu(uint32_t harq_pid, sched_interface::dl_pdu_mch_t sched, uint32_t nof_pdu_elems, uint32_t grant_size);
 
-  srslte_softbuffer_tx_t*
+  srsran_softbuffer_tx_t*
                           get_tx_softbuffer(const uint32_t ue_cc_idx, const uint32_t harq_process, const uint32_t tb_idx);
-  srslte_softbuffer_rx_t* get_rx_softbuffer(const uint32_t ue_cc_idx, const uint32_t tti);
+  srsran_softbuffer_rx_t* get_rx_softbuffer(const uint32_t ue_cc_idx, const uint32_t tti);
 
   bool     process_pdus();
   uint8_t* request_buffer(uint32_t tti, uint32_t ue_cc_idx, const uint32_t len);
-  void     process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channel_t channel) override;
+  void     process_pdu(uint8_t* pdu, uint32_t nof_bytes, srsran::pdu_queue::channel_t channel) override;
   void     push_pdu(uint32_t tti, uint32_t ue_cc_idx, uint32_t len);
   void     deallocate_pdu(uint32_t tti, uint32_t ue_cc_idx);
   void     clear_old_buffers(uint32_t tti);
@@ -170,9 +161,9 @@ public:
   int read_pdu(uint32_t lcid, uint8_t* payload, uint32_t requested_bytes) final;
 
 private:
-  void allocate_sdu(srslte::sch_pdu* pdu, uint32_t lcid, uint32_t sdu_len);
-  bool process_ce(srslte::sch_subh* subh);
-  void allocate_ce(srslte::sch_pdu* pdu, uint32_t lcid);
+  void allocate_sdu(srsran::sch_pdu* pdu, uint32_t lcid, uint32_t sdu_len);
+  bool process_ce(srsran::sch_subh* subh);
+  void allocate_ce(srsran::sch_pdu* pdu, uint32_t lcid);
 
   uint32_t         phr_counter    = 0;
   uint32_t         dl_cqi_counter = 0;
@@ -180,8 +171,8 @@ private:
   uint32_t         dl_pmi_counter = 0;
   mac_ue_metrics_t ue_metrics     = {};
 
-  srslte::mac_pcap*     pcap             = nullptr;
-  srslte::mac_pcap_net* pcap_net         = nullptr;
+  srsran::mac_pcap*     pcap             = nullptr;
+  srsran::mac_pcap_net* pcap_net         = nullptr;
   uint64_t              conres_id        = 0;
   uint16_t              rnti             = 0;
   uint32_t              nof_prb          = 0;
@@ -190,17 +181,17 @@ private:
   int                   nof_rx_harq_proc = 0;
   int                   nof_tx_harq_proc = 0;
 
-  srslte::bounded_vector<cc_buffer_handler, SRSLTE_MAX_CARRIERS> cc_buffers;
+  srsran::bounded_vector<cc_buffer_handler, SRSRAN_MAX_CARRIERS> cc_buffers;
 
   std::mutex rx_buffers_mutex;
 
-  srslte::block_queue<uint32_t> pending_ta_commands;
+  srsran::block_queue<uint32_t> pending_ta_commands;
   ta                            ta_fsm;
 
   // For UL there are multiple buffers per PID and are managed by pdu_queue
-  srslte::pdu_queue pdus;
-  srslte::sch_pdu   mac_msg_dl, mac_msg_ul;
-  srslte::mch_pdu   mch_mac_msg_dl;
+  srsran::pdu_queue pdus;
+  srsran::sch_pdu   mac_msg_dl, mac_msg_ul;
+  srsran::mch_pdu   mch_mac_msg_dl;
 
   rlc_interface_mac*       rlc = nullptr;
   rrc_interface_mac*       rrc = nullptr;

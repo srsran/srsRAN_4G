@@ -1,26 +1,17 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
-#ifndef SRSLTE_SCHED_TIME_PF_H
-#define SRSLTE_SCHED_TIME_PF_H
+#ifndef SRSRAN_SCHED_TIME_PF_H
+#define SRSRAN_SCHED_TIME_PF_H
 
 #include "sched_base.h"
 #include <queue>
@@ -42,7 +33,7 @@ private:
   const sched_cell_params_t* cc_cfg         = nullptr;
   float                      fairness_coeff = 1;
 
-  srslte::tti_point current_tti_rx;
+  srsran::tti_point current_tti_rx;
 
   struct ue_ctxt {
     ue_ctxt(uint16_t rnti_, float fairness_coeff_) : rnti(rnti_), fairness_coeff(fairness_coeff_) {}
@@ -86,4 +77,4 @@ private:
 
 } // namespace srsenb
 
-#endif // SRSLTE_SCHED_TIME_PF_H
+#endif // SRSRAN_SCHED_TIME_PF_H

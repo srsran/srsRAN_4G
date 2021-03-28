@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -36,12 +27,12 @@
 #include "polar_sets.h"
 
 #include <inttypes.h>
-#include <srslte/phy/utils/vector.h>
+#include <srsran/phy/utils/vector.h>
 #include <stdio.h>
 #include <stdlib.h> //exit
 #include <string.h>
 
-void srslte_polar_code_sets_free(srslte_polar_sets_t* c)
+void srsran_polar_code_sets_free(srsran_polar_sets_t* c)
 {
   if (c != NULL) {
     free(c->frozen_set);
@@ -51,7 +42,7 @@ void srslte_polar_code_sets_free(srslte_polar_sets_t* c)
   }
 }
 
-int srslte_polar_code_sets_read(srslte_polar_sets_t* c,
+int srsran_polar_code_sets_read(srsran_polar_sets_t* c,
                                 const uint16_t       message_size,
                                 const uint8_t        code_size_log,
                                 const uint16_t       rate_matching_size,
@@ -68,25 +59,25 @@ int srslte_polar_code_sets_read(srslte_polar_sets_t* c,
   c->info_set_size    = message_size + parity_set_size;
   c->message_set_size = message_size;
 
-  c->frozen_set = srslte_vec_u16_malloc(c->frozen_set_size);
+  c->frozen_set = srsran_vec_u16_malloc(c->frozen_set_size);
   if (!c->frozen_set) {
     perror("malloc");
     exit(-1);
   }
 
-  c->info_set = srslte_vec_u16_malloc(c->info_set_size);
+  c->info_set = srsran_vec_u16_malloc(c->info_set_size);
   if (!c->info_set) {
     perror("malloc");
     exit(-1);
   }
 
-  c->message_set = srslte_vec_u16_malloc(c->message_set_size);
+  c->message_set = srsran_vec_u16_malloc(c->message_set_size);
   if (!c->message_set) {
     perror("malloc");
     exit(-1);
   }
 
-  c->parity_set = srslte_vec_u16_malloc(parity_set_size);
+  c->parity_set = srsran_vec_u16_malloc(parity_set_size);
   if (!c->parity_set) {
     perror("malloc");
     exit(-1);

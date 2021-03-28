@@ -1,32 +1,23 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
-#ifndef SRSLTE_RRC_CONFIG_H
-#define SRSLTE_RRC_CONFIG_H
+#ifndef SRSRAN_RRC_CONFIG_H
+#define SRSRAN_RRC_CONFIG_H
 
 #include "rrc_config_common.h"
-#include "srslte/asn1/rrc.h"
-#include "srslte/common/security.h"
-#include "srslte/interfaces/enb_rrc_interface_types.h"
-#include "srslte/phy/common/phy_common.h"
+#include "srsran/asn1/rrc.h"
+#include "srsran/common/security.h"
+#include "srsran/interfaces/enb_rrc_interface_types.h"
+#include "srsran/phy/common/phy_common.h"
 #include <array>
 
 namespace srsenb {
@@ -62,10 +53,10 @@ struct rrc_cfg_t {
   bool                                                                                    enable_mbsfn;
   uint16_t                                                                                mbms_mcs;
   uint32_t                                                                                inactivity_timeout_ms;
-  std::array<srslte::CIPHERING_ALGORITHM_ID_ENUM, srslte::CIPHERING_ALGORITHM_ID_N_ITEMS> eea_preference_list;
-  std::array<srslte::INTEGRITY_ALGORITHM_ID_ENUM, srslte::INTEGRITY_ALGORITHM_ID_N_ITEMS> eia_preference_list;
+  std::array<srsran::CIPHERING_ALGORITHM_ID_ENUM, srsran::CIPHERING_ALGORITHM_ID_N_ITEMS> eea_preference_list;
+  std::array<srsran::INTEGRITY_ALGORITHM_ID_ENUM, srsran::INTEGRITY_ALGORITHM_ID_N_ITEMS> eia_preference_list;
   bool                                                                                    meas_cfg_present = false;
-  srslte_cell_t                                                                           cell;
+  srsran_cell_t                                                                           cell;
   cell_list_t                                                                             cell_list;
   cell_list_t                                                                             cell_list_nr;
 };
@@ -80,4 +71,4 @@ struct ue_var_cfg_t {
 
 } // namespace srsenb
 
-#endif // SRSLTE_RRC_CONFIG_H
+#endif // SRSRAN_RRC_CONFIG_H

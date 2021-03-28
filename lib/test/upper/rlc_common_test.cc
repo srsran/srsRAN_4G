@@ -1,25 +1,16 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
-#include "srslte/upper/rlc.h"
+#include "srsran/upper/rlc.h"
 #include <iostream>
 
 #define TESTASSERT(cond)                                                                                               \
@@ -33,7 +24,7 @@
 #define MAX_NBUFS 100
 #define NBUFS 5
 
-using namespace srslte;
+using namespace srsran;
 
 class rlc_tester : public srsue::pdcp_interface_rlc, public srsue::rrc_interface_rlc
 {
@@ -54,12 +45,12 @@ public:
     }
     sdus[n_sdus++] = std::move(sdu);
   }
-  void notify_delivery(uint32_t lcid, const srslte::pdcp_sn_vector_t& pdcp_sn) {}
-  void notify_failure(uint32_t lcid, const srslte::pdcp_sn_vector_t& pdcp_sn) {}
+  void notify_delivery(uint32_t lcid, const srsran::pdcp_sn_vector_t& pdcp_sn) {}
+  void notify_failure(uint32_t lcid, const srsran::pdcp_sn_vector_t& pdcp_sn) {}
   void write_pdu_bcch_bch(unique_byte_buffer_t sdu) {}
   void write_pdu_bcch_dlsch(unique_byte_buffer_t sdu) {}
   void write_pdu_pcch(unique_byte_buffer_t sdu) {}
-  void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu) { sdus[n_sdus++] = std::move(sdu); }
+  void write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t sdu) { sdus[n_sdus++] = std::move(sdu); }
 
   // RRC interface
   void        max_retx_attempted() {}
@@ -81,7 +72,7 @@ int meas_obj_test()
   logger_rlc2.set_hex_dump_max_size(-1);
 
   rlc_tester            tester;
-  srslte::timer_handler timers(1);
+  srsran::timer_handler timers(1);
 
   int len = 0;
 
@@ -111,7 +102,7 @@ int meas_obj_test()
 
   // Push 5 SDUs into RLC1
   for (int i = 0; i < NBUFS; i++) {
-    sdu_bufs[i]          = srslte::make_byte_buffer();
+    sdu_bufs[i]          = srsran::make_byte_buffer();
     *sdu_bufs[i]->msg    = i; // Write the index into the buffer
     sdu_bufs[i]->N_bytes = 1; // Give each buffer a size of 1 byte
     rlc1.write_sdu(lcid, std::move(sdu_bufs[i]));
@@ -126,7 +117,7 @@ int meas_obj_test()
 
   // Push again 5 SDUs, SN should start from 0
   for (int i = 0; i < NBUFS; i++) {
-    sdu_bufs[i]          = srslte::make_byte_buffer();
+    sdu_bufs[i]          = srsran::make_byte_buffer();
     *sdu_bufs[i]->msg    = i; // Write the index into the buffer
     sdu_bufs[i]->N_bytes = 1; // Give each buffer a size of 1 byte
     rlc1.write_sdu(lcid, std::move(sdu_bufs[i]));

@@ -1,30 +1,21 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
-#include "srslte/common/block_queue.h"
-#include "srslte/common/crash_handler.h"
-#include "srslte/common/rlc_pcap.h"
-#include "srslte/common/test_common.h"
-#include "srslte/common/threads.h"
-#include "srslte/upper/rlc.h"
+#include "srsran/common/block_queue.h"
+#include "srsran/common/crash_handler.h"
+#include "srsran/common/rlc_pcap.h"
+#include "srsran/common/test_common.h"
+#include "srsran/common/threads.h"
+#include "srsran/upper/rlc.h"
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <cassert>
@@ -38,15 +29,15 @@
 #define PCAP_CRNTI (0x1001)
 #define PCAP_TTI (666)
 
-#include "srslte/common/mac_pcap.h"
-#include "srslte/mac/mac_sch_pdu_nr.h"
-static std::unique_ptr<srslte::mac_pcap> pcap_handle = nullptr;
+#include "srsran/common/mac_pcap.h"
+#include "srsran/mac/mac_sch_pdu_nr.h"
+static std::unique_ptr<srsran::mac_pcap> pcap_handle = nullptr;
 
 int write_pdu_to_pcap(const bool is_dl, const uint32_t lcid, const uint8_t* payload, const uint32_t len)
 {
   if (pcap_handle) {
-    srslte::byte_buffer_t  tx_buffer;
-    srslte::mac_sch_pdu_nr tx_pdu;
+    srsran::byte_buffer_t  tx_buffer;
+    srsran::mac_sch_pdu_nr tx_pdu;
     tx_pdu.init_tx(&tx_buffer, len + 10);
     tx_pdu.add_sdu(lcid, payload, len);
     tx_pdu.pack();
@@ -56,14 +47,14 @@ int write_pdu_to_pcap(const bool is_dl, const uint32_t lcid, const uint8_t* payl
       pcap_handle->write_ul_crnti_nr(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
     }
 
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
-  return SRSLTE_ERROR;
+  return SRSRAN_ERROR;
 }
 
 using namespace std;
 using namespace srsue;
-using namespace srslte;
+using namespace srsran;
 namespace bpo = boost::program_options;
 
 #define MIN_SDU_SIZE (5)
@@ -102,7 +93,7 @@ void parse_args(stress_test_args_t* args, int argc, char* argv[])
   bpo::options_description common("Configuration options");
   common.add_options()
       ("rat",          bpo::value<std::string>(&args->rat)->default_value("LTE"), "The RLC version to use (LTE/NR)")
-      ("mode",          bpo::value<std::string>(&args->mode)->default_value("AM"), "Whether to test RLC acknowledged or unacknowledged mode (AM/UM)")
+      ("mode",          bpo::value<std::string>(&args->mode)->default_value("AM"), "Whether to test RLC acknowledged or unacknowledged mode (AM/UM for LTE) (UM6/UM12 for NR)")
       ("duration",      bpo::value<uint32_t>(&args->test_duration_sec)->default_value(5), "Duration (sec)")
       ("sdu_size",      bpo::value<int32_t>(&args->sdu_size)->default_value(-1), "Size of SDUs (-1 means random)")
       ("random_opp",    bpo::value<bool>(&args->random_opp)->default_value(true), "Whether to generate random MAC opportunities")
@@ -149,7 +140,7 @@ void parse_args(stress_test_args_t* args, int argc, char* argv[])
   }
 }
 
-class mac_dummy : public srslte::thread
+class mac_dummy : public srsran::thread
 {
 public:
   mac_dummy(rlc_interface_mac* rlc1_,
@@ -181,7 +172,7 @@ public:
     wait_thread_finish();
   }
 
-  void enqueue_task(srslte::move_task_t task) { pending_tasks.push(std::move(task)); }
+  void enqueue_task(srsran::move_task_t task) { pending_tasks.push(std::move(task)); }
 
 private:
   void run_tx_tti(rlc_interface_mac* tx_rlc, rlc_interface_mac* rx_rlc, std::vector<unique_byte_buffer_t>& pdu_list)
@@ -189,7 +180,7 @@ private:
     // Generate A number of MAC PDUs
     for (uint32_t i = 0; i < args.nof_pdu_tti; i++) {
       // Create PDU unique buffer
-      unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+      unique_byte_buffer_t pdu = srsran::make_byte_buffer();
       if (!pdu) {
         printf("Fatal Error: Could not allocate PDU in mac_reader::run_thread\n");
         exit(-1);
@@ -285,7 +276,7 @@ private:
 
   void run_thread() override
   {
-    srslte::move_task_t task;
+    srsran::move_task_t task;
     while (run_enable) {
       // Downlink direction first (RLC1->RLC2)
       run_tti(rlc1, rlc2, true);
@@ -313,15 +304,15 @@ private:
   rlc_pcap*              pcap       = nullptr;
   uint32_t               lcid       = 0;
   srslog::basic_logger&  logger;
-  srslte::timer_handler* timers = nullptr;
+  srsran::timer_handler* timers = nullptr;
 
-  srslte::block_queue<srslte::move_task_t> pending_tasks;
+  srsran::block_queue<srsran::move_task_t> pending_tasks;
 
   std::mt19937                          mt19937;
   std::uniform_real_distribution<float> real_dist;
 };
 
-class rlc_tester : public pdcp_interface_rlc, public rrc_interface_rlc, public srslte::thread
+class rlc_tester : public pdcp_interface_rlc, public rrc_interface_rlc, public srsran::thread
 {
 public:
   rlc_tester(rlc_interface_pdcp* rlc_pdcp_,
@@ -377,9 +368,9 @@ public:
   void write_pdu_bcch_bch(unique_byte_buffer_t sdu) {}
   void write_pdu_bcch_dlsch(unique_byte_buffer_t sdu) {}
   void write_pdu_pcch(unique_byte_buffer_t sdu) {}
-  void write_pdu_mch(uint32_t lcid_, srslte::unique_byte_buffer_t sdu) {}
-  void notify_delivery(uint32_t lcid_, const srslte::pdcp_sn_vector_t& pdcp_sns) {}
-  void notify_failure(uint32_t lcid_, const srslte::pdcp_sn_vector_t& pdcp_sns) {}
+  void write_pdu_mch(uint32_t lcid_, srsran::unique_byte_buffer_t sdu) {}
+  void notify_delivery(uint32_t lcid_, const srsran::pdcp_sn_vector_t& pdcp_sns) {}
+  void notify_failure(uint32_t lcid_, const srsran::pdcp_sn_vector_t& pdcp_sns) {}
 
   // RRC interface
   void max_retx_attempted()
@@ -406,7 +397,7 @@ private:
         continue;
       }
 
-      unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+      unique_byte_buffer_t pdu = srsran::make_byte_buffer();
       if (pdu == NULL) {
         printf("Error: Could not allocate PDU in rlc_tester::run_thread\n\n\n");
         // backoff for a bit
@@ -486,15 +477,17 @@ void stress_test(stress_test_args_t args)
       pcap.open("rlc_stress_test.pcap", cnfg_);
     }
   } else if (args.rat == "NR") {
-    if (args.mode == "UM") {
+    if (args.mode == "UM6") {
       cnfg_ = rlc_config_t::default_rlc_um_nr_config(6);
+    } else if (args.mode == "UM12") {
+      cnfg_ = rlc_config_t::default_rlc_um_nr_config(12);
     } else {
       cout << "Unsupported RLC mode " << args.mode << ", exiting." << endl;
       exit(-1);
     }
 
     if (args.write_pcap) {
-      pcap_handle = std::unique_ptr<srslte::mac_pcap>(new srslte::mac_pcap());
+      pcap_handle = std::unique_ptr<srsran::mac_pcap>(new srsran::mac_pcap());
       pcap_handle->open("rlc_stress_test_nr.pcap");
     }
   } else {
@@ -509,7 +502,7 @@ void stress_test(stress_test_args_t args)
     seed = rd();
   }
 
-  srslte::timer_handler timers(8);
+  srsran::timer_handler timers(8);
 
   rlc rlc1(log1.id().c_str());
   rlc rlc2(log2.id().c_str());
@@ -582,7 +575,7 @@ void stress_test(stress_test_args_t args)
 
 int main(int argc, char** argv)
 {
-  srslte_debug_handle_crash(argc, argv);
+  srsran_debug_handle_crash(argc, argv);
 
   stress_test_args_t args = {};
   parse_args(&args, argc, argv);

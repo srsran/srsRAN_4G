@@ -23,7 +23,7 @@
 ########################################################################
 
 add_executable(ofdm_test ofdm_test.c)
-target_link_libraries(ofdm_test srslte_phy)
+target_link_libraries(ofdm_test srsran_phy)
 
 add_test(ofdm_normal ofdm_test -r 1)
 add_test(ofdm_extended ofdm_test -e -r 1)

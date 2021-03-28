@@ -1,42 +1,33 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
-#include "srslte/asn1/rrc/rr_common.h"
-#include "srslte/asn1/rrc_utils.h"
-#include "srslte/common/mac_pcap.h"
-#include "srslte/common/test_common.h"
-#include "srslte/test/ue_test_interfaces.h"
+#include "srsran/asn1/rrc/rr_common.h"
+#include "srsran/asn1/rrc_utils.h"
+#include "srsran/common/mac_pcap.h"
+#include "srsran/common/test_common.h"
+#include "srsran/test/ue_test_interfaces.h"
 #include "srsue/hdr/stack/mac/mac.h"
 #include "srsue/hdr/stack/mac/mux.h"
 #include <iostream>
 #include <string.h>
 
 using namespace srsue;
-using namespace srslte;
+using namespace srsran;
 
 #define HAVE_PCAP 0
 
-static std::unique_ptr<srslte::mac_pcap> pcap_handle = nullptr;
+static std::unique_ptr<srsran::mac_pcap> pcap_handle = nullptr;
 
-namespace srslte {
+namespace srsran {
 
 // fake classes
 class rlc_dummy : public srsue::rlc_dummy_interface
@@ -55,7 +46,7 @@ public:
       nof_bytes = read_len;
     }
 
-    uint32_t len = SRSLTE_MIN(ul_queues[lcid], nof_bytes);
+    uint32_t len = SRSRAN_MIN(ul_queues[lcid], nof_bytes);
 
     // set payload bytes to LCID so we can check later if the scheduling was correct
     memset(payload, lcid > 0 ? lcid : 0xf, len);
@@ -156,9 +147,9 @@ public:
   void set_timeadv_rar(uint32_t tti, uint32_t ta_cmd) override { rar_time_adv = ta_cmd; }
   void set_timeadv(uint32_t tti, uint32_t ta_cmd) override{};
   void set_activation_deactivation_scell(uint32_t cmd, uint32_t tti) override { scell_cmd = cmd; };
-  void set_rar_grant(uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN], uint16_t rnti) override
+  void set_rar_grant(uint8_t grant_payload[SRSRAN_RAR_GRANT_LEN], uint16_t rnti) override
   {
-    memcpy(rar_payload, grant_payload, SRSLTE_RAR_GRANT_LEN);
+    memcpy(rar_payload, grant_payload, SRSRAN_RAR_GRANT_LEN);
     rar_temp_rnti = rnti;
     nof_rar_grants++;
   }
@@ -173,7 +164,7 @@ public:
   // Testing methods
   int dl_grant(mac* mac_h, bool ack, uint16_t rnti, uint32_t len, const uint8_t* payload)
   {
-    bool ack_v[SRSLTE_MAX_CODEWORDS] = {ack, 0};
+    bool ack_v[SRSRAN_MAX_CODEWORDS] = {ack, 0};
 
     mac_interface_phy_lte::tb_action_dl_t dl_action    = {};
     mac_interface_phy_lte::mac_grant_dl_t dl_mac_grant = {};
@@ -185,7 +176,7 @@ public:
     dl_mac_grant.tb[0].tbs         = len;
     mac_h->new_grant_dl(0, dl_mac_grant, &dl_action);
 
-    if (ack && !SRSLTE_RNTI_ISRAR(rnti)) {
+    if (ack && !SRSRAN_RNTI_ISRAR(rnti)) {
       dl_ndi = !dl_ndi;
     }
 
@@ -210,11 +201,11 @@ public:
   int rar_and_check(mac* mac_h, bool preamble_matches, uint32_t temp_rnti)
   {
     // Generate RAR to MAC
-    uint8_t grant[SRSLTE_RAR_GRANT_LEN] = {1};
+    uint8_t grant[SRSRAN_RAR_GRANT_LEN] = {1};
 
     uint32_t rar_timeadv = 16;
 
-    srslte::rar_pdu rar_pdu_msg;
+    srsran::rar_pdu rar_pdu_msg;
     byte_buffer.clear();
     rar_pdu_msg.init_tx(&byte_buffer, 7);
     if (rar_pdu_msg.new_subh()) {
@@ -230,7 +221,7 @@ public:
 
     // Check MAC passes RAR grant and TA cmd to PHY
     if (preamble_matches) {
-      TESTASSERT(!memcmp(rar_payload, grant, SRSLTE_RAR_GRANT_LEN));
+      TESTASSERT(!memcmp(rar_payload, grant, SRSRAN_RAR_GRANT_LEN));
       TESTASSERT(rar_temp_rnti == temp_rnti);
       TESTASSERT(rar_time_adv == rar_timeadv);
     }
@@ -316,7 +307,7 @@ private:
   uint32_t nof_rar_grants = 0;
   uint32_t rar_time_adv   = 0;
   uint16_t rar_temp_rnti  = 0;
-  uint8_t  rar_payload[SRSLTE_RAR_GRANT_LEN];
+  uint8_t  rar_payload[SRSRAN_RAR_GRANT_LEN];
 };
 
 class rrc_dummy : public rrc_interface_mac
@@ -350,7 +341,7 @@ private:
   mac*                   mac_h = nullptr;
 };
 
-} // namespace srslte
+} // namespace srsran
 
 int mac_unpack_test()
 {
@@ -396,7 +387,7 @@ int mac_unpack_test()
   mac.new_grant_dl(cc_idx, mac_grant, &dl_action);
 
   // Copy PDU into provided buffer
-  bool dl_ack[SRSLTE_MAX_CODEWORDS] = {true, false};
+  bool dl_ack[SRSRAN_MAX_CODEWORDS] = {true, false};
   memcpy(dl_action.tb[0].payload, dl_sch_pdu, sizeof(dl_sch_pdu));
   dl_action.tb[0].enabled = true;
   mac.tb_decoded(cc_idx, mac_grant, dl_ack);
@@ -411,7 +402,7 @@ int mac_unpack_test()
   // check received SCell activation command
   TESTASSERT(phy.get_scell_cmd() == 2);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // Basic test with a single padding byte and a 10B SCH SDU
@@ -463,7 +454,7 @@ int mac_ul_sch_pdu_test1()
   stack.run_tti(0);
   mac.stop();
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // Basic logical channel prioritization test with 3 SCH SDUs
@@ -557,7 +548,7 @@ int mac_ul_logical_channel_prioritization_test1()
   stack.run_tti(0);
   mac.stop();
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // Similar test like above but with a much larger UL grant, we expect that each LCID is fully served
@@ -660,7 +651,7 @@ int mac_ul_logical_channel_prioritization_test2()
   stack.run_tti(0);
   mac.stop();
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // Basic logical channel prioritization test with 2 SCH SDUs
@@ -746,7 +737,7 @@ int mac_ul_logical_channel_prioritization_test3()
   stack.run_tti(0);
   mac.stop();
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // Manual excecution of TC 7.1.4.6 of 36.523-1
@@ -896,7 +887,7 @@ int mac_ul_logical_channel_prioritization_test4()
   stack.run_tti(0);
   mac.stop();
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // PDU with single SDU and short BSR (entire RLC buffers are transmitted in MAC PDU)
@@ -953,7 +944,7 @@ int mac_ul_sch_pdu_with_short_bsr_test()
   stack.run_tti(tti);
   mac.stop();
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // PDU with single SDU and short BSR reporting zero data to transmit
@@ -1010,7 +1001,7 @@ int mac_ul_sch_pdu_with_short_bsr_zero_test()
   stack.run_tti(tti);
   mac.stop();
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // PDU with only padding BSR (long BSR) and the rest padding
@@ -1060,7 +1051,7 @@ int mac_ul_sch_pdu_with_padding_long_bsr_test()
   stack.run_tti(0);
   mac.stop();
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // PDU SDU and Long BSR as padding (indicating that more data is ready to be sent)
@@ -1132,7 +1123,7 @@ int mac_ul_sch_pdu_with_padding_long_bsr_test2()
   stack.run_tti(0);
   mac.stop();
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // PDU with truncated BSR as two LCGs have data to transmit
@@ -1214,7 +1205,7 @@ int mac_ul_sch_pdu_with_padding_trunc_bsr_test()
   stack.run_tti(0);
   mac.stop();
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // Test correct operation of retx BSR timer
@@ -1356,7 +1347,7 @@ int mac_ul_sch_regular_bsr_retx_test()
   stack.run_tti(tti);
   mac.stop();
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 /**
@@ -1633,7 +1624,7 @@ int mac_ul_sch_periodic_bsr_test()
   stack.run_tti(tti);
   mac.stop();
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 /**
@@ -1799,7 +1790,7 @@ int mac_ul_sch_trunc_bsr_test2()
   stack.run_tti(tti);
   mac.stop();
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // Single byte MAC PDU
@@ -1851,7 +1842,7 @@ int mac_ul_sch_pdu_one_byte_test()
   stack.run_tti(0);
   mac.stop();
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // Two byte MAC PDU
@@ -1903,7 +1894,7 @@ int mac_ul_sch_pdu_two_byte_test()
   stack.run_tti(0);
   mac.stop();
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // Three byte MAC PDU (Single byte padding, SDU header, 1 B SDU)
@@ -1955,7 +1946,7 @@ int mac_ul_sch_pdu_three_byte_test()
   stack.run_tti(0);
   mac.stop();
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 struct ra_test {
@@ -1977,7 +1968,7 @@ struct ra_test {
 
 struct ra_test test;
 
-int run_mac_ra_test(struct ra_test test, mac* mac, phy_dummy* phy, uint32_t* tti_state, srslte::stack_dummy* stack)
+int run_mac_ra_test(struct ra_test test, mac* mac, phy_dummy* phy, uint32_t* tti_state, srsran::stack_dummy* stack)
 {
   uint32_t tti = *tti_state;
 
@@ -2016,7 +2007,7 @@ int run_mac_ra_test(struct ra_test test, mac* mac, phy_dummy* phy, uint32_t* tti
     // Check MAC does not schedule RA-RNTI before window starts
     for (uint32_t i = 0; i < phy->prach_delay + 3 - 1 + test.rar_offset; i++) {
       stack->run_tti(tti);
-      TESTASSERT(!SRSLTE_RNTI_ISRAR(mac->get_dl_sched_rnti(tti)));
+      TESTASSERT(!SRSRAN_RNTI_ISRAR(mac->get_dl_sched_rnti(tti)));
       tti++;
     }
 
@@ -2155,7 +2146,7 @@ int mac_random_access_test()
   mac mac("MAC", &stack.task_sched);
   stack.init(&mac, &phy);
   mac.init(&phy, &rlc, &rrc);
-  srslte::mac_cfg_t mac_cfg;
+  srsran::mac_cfg_t mac_cfg;
   set_mac_cfg_t_rach_cfg_common(&mac_cfg, rach_cfg);
   mac.set_config(mac_cfg);
 
@@ -2344,13 +2335,13 @@ int mac_random_access_test()
 
   mac.stop();
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int main(int argc, char** argv)
 {
 #if HAVE_PCAP
-  pcap_handle = std::unique_ptr<srslte::mac_pcap>(new srslte::mac_pcap());
+  pcap_handle = std::unique_ptr<srsran::mac_pcap>(new srsran::mac_pcap());
   pcap_handle->open("mac_test.pcap");
 #endif
 
@@ -2365,25 +2356,25 @@ int main(int argc, char** argv)
   phy_logger.set_hex_dump_max_size(100000);
   srslog::init();
 
-  TESTASSERT(mac_unpack_test() == SRSLTE_SUCCESS);
-  TESTASSERT(mac_ul_sch_pdu_test1() == SRSLTE_SUCCESS);
-  TESTASSERT(mac_ul_logical_channel_prioritization_test1() == SRSLTE_SUCCESS);
-  TESTASSERT(mac_ul_logical_channel_prioritization_test2() == SRSLTE_SUCCESS);
-  TESTASSERT(mac_ul_logical_channel_prioritization_test3() == SRSLTE_SUCCESS);
-  TESTASSERT(mac_ul_logical_channel_prioritization_test4() == SRSLTE_SUCCESS);
-  TESTASSERT(mac_ul_sch_pdu_with_short_bsr_test() == SRSLTE_SUCCESS);
-  TESTASSERT(mac_ul_sch_pdu_with_padding_long_bsr_test() == SRSLTE_SUCCESS);
-  TESTASSERT(mac_ul_sch_pdu_with_padding_long_bsr_test2() == SRSLTE_SUCCESS);
-  TESTASSERT(mac_ul_sch_pdu_with_padding_trunc_bsr_test() == SRSLTE_SUCCESS);
-  TESTASSERT(mac_ul_sch_regular_bsr_retx_test() == SRSLTE_SUCCESS);
-  TESTASSERT(mac_ul_sch_periodic_bsr_test() == SRSLTE_SUCCESS);
-  TESTASSERT(mac_ul_sch_trunc_bsr_test2() == SRSLTE_SUCCESS);
-  TESTASSERT(mac_ul_sch_pdu_one_byte_test() == SRSLTE_SUCCESS);
-  TESTASSERT(mac_ul_sch_pdu_two_byte_test() == SRSLTE_SUCCESS);
-  TESTASSERT(mac_ul_sch_pdu_three_byte_test() == SRSLTE_SUCCESS);
+  TESTASSERT(mac_unpack_test() == SRSRAN_SUCCESS);
+  TESTASSERT(mac_ul_sch_pdu_test1() == SRSRAN_SUCCESS);
+  TESTASSERT(mac_ul_logical_channel_prioritization_test1() == SRSRAN_SUCCESS);
+  TESTASSERT(mac_ul_logical_channel_prioritization_test2() == SRSRAN_SUCCESS);
+  TESTASSERT(mac_ul_logical_channel_prioritization_test3() == SRSRAN_SUCCESS);
+  TESTASSERT(mac_ul_logical_channel_prioritization_test4() == SRSRAN_SUCCESS);
+  TESTASSERT(mac_ul_sch_pdu_with_short_bsr_test() == SRSRAN_SUCCESS);
+  TESTASSERT(mac_ul_sch_pdu_with_padding_long_bsr_test() == SRSRAN_SUCCESS);
+  TESTASSERT(mac_ul_sch_pdu_with_padding_long_bsr_test2() == SRSRAN_SUCCESS);
+  TESTASSERT(mac_ul_sch_pdu_with_padding_trunc_bsr_test() == SRSRAN_SUCCESS);
+  TESTASSERT(mac_ul_sch_regular_bsr_retx_test() == SRSRAN_SUCCESS);
+  TESTASSERT(mac_ul_sch_periodic_bsr_test() == SRSRAN_SUCCESS);
+  TESTASSERT(mac_ul_sch_trunc_bsr_test2() == SRSRAN_SUCCESS);
+  TESTASSERT(mac_ul_sch_pdu_one_byte_test() == SRSRAN_SUCCESS);
+  TESTASSERT(mac_ul_sch_pdu_two_byte_test() == SRSRAN_SUCCESS);
+  TESTASSERT(mac_ul_sch_pdu_three_byte_test() == SRSRAN_SUCCESS);
   phy_logger.set_level(srslog::basic_levels::debug);
-  TESTASSERT(mac_random_access_test() == SRSLTE_SUCCESS);
+  TESTASSERT(mac_random_access_test() == SRSRAN_SUCCESS);
   phy_logger.set_level(srslog::basic_levels::none);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }

@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -32,7 +23,7 @@
  */
 
 #include "../utils_avx2.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/utils/vector.h"
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -75,10 +66,10 @@ void* create_polar_encoder_avx2(const uint8_t code_size_log)
 
   uint16_t code_size = 1U << code_size_log;
 
-  if (code_size_log > SRSLTE_AVX2_B_SIZE_LOG) {
-    q->tmp = srslte_vec_u8_malloc(code_size);
+  if (code_size_log > SRSRAN_AVX2_B_SIZE_LOG) {
+    q->tmp = srsran_vec_u8_malloc(code_size);
   } else {
-    q->tmp = srslte_vec_u8_malloc(SRSLTE_AVX2_B_SIZE);
+    q->tmp = srsran_vec_u8_malloc(SRSRAN_AVX2_B_SIZE);
   }
   if (!q->tmp) {
     free(q);
@@ -94,7 +85,7 @@ void* create_polar_encoder_avx2(const uint8_t code_size_log)
 /*!
  * Runs, in parallel, \f$ 2^{5-stage}\f$ polar encoders of size \f$ 2^{stage} \f$ each for s=1 to 5.
  */
-static inline void srslte_vec_polar_encoder_32_avx2(const uint8_t* x, uint8_t* z, uint8_t stage)
+static inline void srsran_vec_polar_encoder_32_avx2(const uint8_t* x, uint8_t* z, uint8_t stage)
 {
   const __m256i MZERO = _mm256_set1_epi8(0);
 
@@ -127,10 +118,10 @@ static inline void srslte_vec_polar_encoder_32_avx2(const uint8_t* x, uint8_t* z
 /*!
  * Computes \f$ z = x \oplus y \f$ elementwise with AVX2 instructions.
  */
-static inline void srslte_vec_xor_bbb_avx2(const uint8_t* x, const uint8_t* y, uint8_t* z, uint16_t len)
+static inline void srsran_vec_xor_bbb_avx2(const uint8_t* x, const uint8_t* y, uint8_t* z, uint16_t len)
 {
 
-  for (int i = 0; i < len; i += SRSLTE_AVX2_B_SIZE) {
+  for (int i = 0; i < len; i += SRSRAN_AVX2_B_SIZE) {
     __m256i simd_x = _mm256_loadu_si256((__m256i*)&x[i]);
     __m256i simd_y = _mm256_loadu_si256((__m256i*)&y[i]);
 
@@ -169,7 +160,7 @@ int polar_encoder_encode_avx2(void* p, const uint8_t* input, uint8_t* output, co
   uint32_t code_half_size_stage = 0;
   uint32_t num_blocks           = 0;
   uint32_t s                    = code_size_log;
-  for (; s > SRSLTE_AVX2_B_SIZE_LOG; s--) {
+  for (; s > SRSRAN_AVX2_B_SIZE_LOG; s--) {
     code_size_stage      = 1U << s;
     code_half_size_stage = 1U << (s - 1);
     num_blocks           = 1U << (code_size_log - s);
@@ -178,19 +169,19 @@ int polar_encoder_encode_avx2(void* p, const uint8_t* input, uint8_t* output, co
       x = &tmp[b * code_size_stage];
       y = x + code_half_size_stage;
       z = x;
-      srslte_vec_xor_bbb_avx2(x, y, z, code_half_size_stage);
+      srsran_vec_xor_bbb_avx2(x, y, z, code_half_size_stage);
     }
   }
 
   uint32_t num_simd_size_blocks = 1;
-  if (code_size_log > SRSLTE_AVX2_B_SIZE_LOG) {
-    num_simd_size_blocks = 1U << (code_size_log - SRSLTE_AVX2_B_SIZE_LOG);
+  if (code_size_log > SRSRAN_AVX2_B_SIZE_LOG) {
+    num_simd_size_blocks = 1U << (code_size_log - SRSRAN_AVX2_B_SIZE_LOG);
   }
 
   for (uint32_t b = 0; b < num_simd_size_blocks; b++) {
-    x = &tmp[b * SRSLTE_AVX2_B_SIZE];
+    x = &tmp[b * SRSRAN_AVX2_B_SIZE];
     z = x;
-    srslte_vec_polar_encoder_32_avx2(x, z, s);
+    srsran_vec_polar_encoder_32_avx2(x, z, s);
   }
 
   memcpy(output, tmp, code_size * sizeof(uint8_t));

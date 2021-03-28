@@ -1,38 +1,29 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #ifndef SRSENB_PHY_INTERFACES_H_
 #define SRSENB_PHY_INTERFACES_H_
 
-#include "srslte/asn1/rrc/rr_common.h"
-#include "srslte/common/interfaces_common.h"
-#include "srslte/phy/channel/channel.h"
-#include "srslte/phy/common/phy_common_nr.h"
+#include "srsran/asn1/rrc/rr_common.h"
+#include "srsran/common/interfaces_common.h"
+#include "srsran/phy/channel/channel.h"
+#include "srsran/phy/common/phy_common_nr.h"
 #include <inttypes.h>
 #include <vector>
 
 namespace srsenb {
 
 struct phy_cell_cfg_t {
-  srslte_cell_t cell;
+  srsran_cell_t cell;
   uint32_t      rf_port;
   uint32_t      cell_id;
   double        dl_freq_hz;
@@ -43,7 +34,7 @@ struct phy_cell_cfg_t {
 };
 
 struct phy_cell_cfg_nr_t {
-  srslte_carrier_nr_t carrier;
+  srsran_carrier_nr_t carrier;
   uint32_t            rf_port;
   uint32_t            cell_id;
   double              dl_freq_hz;
@@ -58,7 +49,7 @@ typedef std::vector<phy_cell_cfg_nr_t> phy_cell_cfg_list_nr_t;
 
 struct phy_args_t {
   std::string            type;
-  srslte::phy_log_args_t log;
+  srsran::phy_log_args_t log;
 
   float       max_prach_offset_us = 10;
   int         pusch_max_its       = 10;
@@ -73,10 +64,10 @@ struct phy_args_t {
   bool        pucch_meas_ta       = true;
   uint32_t    nof_prach_threads   = 1;
 
-  srslte::channel::args_t dl_channel_args;
-  srslte::channel::args_t ul_channel_args;
+  srsran::channel::args_t dl_channel_args;
+  srsran::channel::args_t ul_channel_args;
 
-  srslte::vnf_args_t vnf_args;
+  srsran::vnf_args_t vnf_args;
 };
 
 struct phy_cfg_t {

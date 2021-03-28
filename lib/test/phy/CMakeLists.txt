@@ -24,7 +24,7 @@
 set(CTEST_LABELS "lib;phy")
 
 add_executable(phy_dl_test phy_dl_test.c)
-target_link_libraries(phy_dl_test srslte_phy srslte_common srslte_phy ${SEC_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(phy_dl_test srsran_phy srsran_common srsran_phy ${SEC_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 # All valid number of PRBs for PUSCH
 set(ue_dl_min_mcs 0)
@@ -59,9 +59,12 @@ foreach (cell_n_prb 6 15 25 50 75 100)
 endforeach (cell_n_prb)
 
 add_executable(pucch_ca_test pucch_ca_test.c)
-target_link_libraries(pucch_ca_test srslte_phy srslte_common srslte_phy ${SEC_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(pucch_ca_test srsran_phy srsran_common srsran_phy ${SEC_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 add_lte_test(pucch_ca_test pucch_ca_test)
 
 add_executable(phy_dl_nr_test phy_dl_nr_test.c)
-target_link_libraries(phy_dl_nr_test srslte_phy srslte_common srslte_phy ${SEC_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(phy_dl_nr_test srsran_phy srsran_common srsran_phy ${SEC_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 add_nr_test(phy_dl_nr_test phy_dl_nr_test -p 100 -m 28)
+add_nr_test(phy_dl_nr_test_rvd phy_dl_nr_test -P 52 -p 52 -m 0
+        -R 0 52 1 010010010010 00000000010000
+        -R 0 52 1 100100100100 00000010000000)

@@ -64,7 +64,7 @@ IF(UHD_FOUND)
   set(CMAKE_REQUIRED_FLAGS "${CMAKE_CXX_FLAGS} -L${UHD_LIBRARY_DIR}")
   set(CMAKE_REQUIRED_LIBRARIES uhd boost_program_options boost_system)
 
-  # Checks whether the UHD driver supports X300 reset from srsLTE. This functionality requires changing the function
+  # Checks whether the UHD driver supports X300 reset from srsRAN. This functionality requires changing the function
   # `x300_make_ctrl_iface_enet` visibility in the file `uhd/host/lib/usrp/x300_fw_ctrl.cpp`. This can be accomplished
   # adding the following line:
   #   `UHD_API wb_iface::sptr x300_make_ctrl_iface_enet(uhd::transport::udp_simple::sptr udp, bool enable_errors);`

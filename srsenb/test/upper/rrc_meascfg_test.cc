@@ -1,30 +1,21 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #include "srsenb/hdr/enb.h"
 #include "srsenb/hdr/stack/rrc/ue_meas_cfg.h"
-#include "srslte/asn1/rrc_utils.h"
-#include "srslte/common/test_common.h"
-#include "srslte/interfaces/enb_rrc_interface_types.h"
-#include "srslte/rrc/rrc_cfg_utils.h"
+#include "srsran/asn1/rrc_utils.h"
+#include "srsran/common/test_common.h"
+#include "srsran/interfaces/enb_rrc_interface_types.h"
+#include "srsran/rrc/rrc_cfg_utils.h"
 #include "test_helpers.h"
 
 using namespace asn1::rrc;
@@ -223,7 +214,7 @@ int test_correct_meascfg_calculation()
     // TEST: creation of a meas_cfg using the srsenb::rrc_cfg_t
     rrc_cfg_t          cfg;
     srsenb::all_args_t all_args;
-    TESTASSERT(test_helpers::parse_default_cfg(&cfg, all_args) == SRSLTE_SUCCESS);
+    TESTASSERT(test_helpers::parse_default_cfg(&cfg, all_args) == SRSRAN_SUCCESS);
     cfg.enb_id           = 0x19B;
     cfg.cell.nof_prb     = 6;
     cfg.meas_cfg_present = true;
@@ -278,14 +269,14 @@ int test_correct_meascfg_calculation()
     TESTASSERT(not measobjs2[0].meas_obj.meas_obj_eutra().cells_to_add_mod_list_present);
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_minimize_meascfg_reordering()
 {
   rrc_cfg_t          default_cfg, cfg1;
   srsenb::all_args_t all_args;
-  TESTASSERT(test_helpers::parse_default_cfg(&default_cfg, all_args) == SRSLTE_SUCCESS);
+  TESTASSERT(test_helpers::parse_default_cfg(&default_cfg, all_args) == SRSRAN_SUCCESS);
   cfg1                  = default_cfg;
   cfg1.enb_id           = 0x19B;
   cfg1.cell.nof_prb     = 6;
@@ -319,16 +310,16 @@ int test_minimize_meascfg_reordering()
   // TEST1: Ensure consistent order of measObjects based on DL-EARFCN
   TESTASSERT(mcfg1.meas_obj_to_add_mod_list_present and mcfg2.meas_obj_to_add_mod_list_present);
   TESTASSERT(mcfg1.meas_obj_to_add_mod_list.size() == mcfg2.meas_obj_to_add_mod_list.size());
-  TESTASSERT(srslte::get_carrier_freq(mcfg1.meas_obj_to_add_mod_list[0]) ==
-             srslte::get_carrier_freq(mcfg2.meas_obj_to_add_mod_list[0]));
-  TESTASSERT(srslte::get_carrier_freq(mcfg1.meas_obj_to_add_mod_list[1]) ==
-             srslte::get_carrier_freq(mcfg2.meas_obj_to_add_mod_list[1]));
+  TESTASSERT(srsran::get_carrier_freq(mcfg1.meas_obj_to_add_mod_list[0]) ==
+             srsran::get_carrier_freq(mcfg2.meas_obj_to_add_mod_list[0]));
+  TESTASSERT(srsran::get_carrier_freq(mcfg1.meas_obj_to_add_mod_list[1]) ==
+             srsran::get_carrier_freq(mcfg2.meas_obj_to_add_mod_list[1]));
   TESTASSERT(std::is_sorted(
-      mcfg1.meas_obj_to_add_mod_list.begin(), mcfg1.meas_obj_to_add_mod_list.end(), srslte::rrc_obj_id_cmp{}));
+      mcfg1.meas_obj_to_add_mod_list.begin(), mcfg1.meas_obj_to_add_mod_list.end(), srsran::rrc_obj_id_cmp{}));
   TESTASSERT(std::is_sorted(
-      mcfg2.meas_obj_to_add_mod_list.begin(), mcfg2.meas_obj_to_add_mod_list.end(), srslte::rrc_obj_id_cmp{}));
+      mcfg2.meas_obj_to_add_mod_list.begin(), mcfg2.meas_obj_to_add_mod_list.end(), srsran::rrc_obj_id_cmp{}));
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 } // namespace srsenb
@@ -351,7 +342,7 @@ int main(int argc, char** argv)
 
   srslog::flush();
 
-  srslte::console("Success\n");
+  srsran::console("Success\n");
 
   return 0;
 }

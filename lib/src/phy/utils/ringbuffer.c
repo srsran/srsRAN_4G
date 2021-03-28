@@ -1,51 +1,42 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #include <stdlib.h>
 #include <string.h>
 
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/ringbuffer.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/ringbuffer.h"
+#include "srsran/phy/utils/vector.h"
 
-int srslte_ringbuffer_init(srslte_ringbuffer_t* q, int capacity)
+int srsran_ringbuffer_init(srsran_ringbuffer_t* q, int capacity)
 {
-  q->buffer = srslte_vec_malloc(capacity);
+  q->buffer = srsran_vec_malloc(capacity);
   if (!q->buffer) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   q->active   = true;
   q->capacity = capacity;
   pthread_mutex_init(&q->mutex, NULL);
   pthread_cond_init(&q->write_cvar, NULL);
   pthread_cond_init(&q->read_cvar, NULL);
-  srslte_ringbuffer_reset(q);
+  srsran_ringbuffer_reset(q);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-void srslte_ringbuffer_free(srslte_ringbuffer_t* q)
+void srsran_ringbuffer_free(srsran_ringbuffer_t* q)
 {
   if (q) {
-    srslte_ringbuffer_stop(q);
+    srsran_ringbuffer_stop(q);
     if (q->buffer) {
       free(q->buffer);
       q->buffer = NULL;
@@ -56,7 +47,7 @@ void srslte_ringbuffer_free(srslte_ringbuffer_t* q)
   }
 }
 
-void srslte_ringbuffer_reset(srslte_ringbuffer_t* q)
+void srsran_ringbuffer_reset(srsran_ringbuffer_t* q)
 {
   // Check first if it is initiated
   if (q->capacity != 0) {
@@ -68,51 +59,51 @@ void srslte_ringbuffer_reset(srslte_ringbuffer_t* q)
   }
 }
 
-int srslte_ringbuffer_resize(srslte_ringbuffer_t* q, int capacity)
+int srsran_ringbuffer_resize(srsran_ringbuffer_t* q, int capacity)
 {
   if (q->buffer) {
     free(q->buffer);
     q->buffer = NULL;
   }
-  srslte_ringbuffer_reset(q);
-  q->buffer = srslte_vec_malloc(capacity);
+  srsran_ringbuffer_reset(q);
+  q->buffer = srsran_vec_malloc(capacity);
   if (!q->buffer) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   q->active   = true;
   q->capacity = capacity;
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-int srslte_ringbuffer_status(srslte_ringbuffer_t* q)
+int srsran_ringbuffer_status(srsran_ringbuffer_t* q)
 {
   return q->count;
 }
 
-int srslte_ringbuffer_space(srslte_ringbuffer_t* q)
+int srsran_ringbuffer_space(srsran_ringbuffer_t* q)
 {
   return q->capacity - q->count;
 }
 
-int srslte_ringbuffer_write(srslte_ringbuffer_t* q, void* ptr, int nof_bytes)
+int srsran_ringbuffer_write(srsran_ringbuffer_t* q, void* ptr, int nof_bytes)
 {
-  return srslte_ringbuffer_write_timed_block(q, ptr, nof_bytes, 0);
+  return srsran_ringbuffer_write_timed_block(q, ptr, nof_bytes, 0);
 }
 
-int srslte_ringbuffer_write_timed(srslte_ringbuffer_t* q, void* ptr, int nof_bytes, int32_t timeout_ms)
+int srsran_ringbuffer_write_timed(srsran_ringbuffer_t* q, void* ptr, int nof_bytes, int32_t timeout_ms)
 {
-  return srslte_ringbuffer_write_timed_block(q, ptr, nof_bytes, timeout_ms);
+  return srsran_ringbuffer_write_timed_block(q, ptr, nof_bytes, timeout_ms);
 }
 
-int srslte_ringbuffer_write_block(srslte_ringbuffer_t* q, void* ptr, int nof_bytes)
+int srsran_ringbuffer_write_block(srsran_ringbuffer_t* q, void* ptr, int nof_bytes)
 {
-  return srslte_ringbuffer_write_timed_block(q, ptr, nof_bytes, -1);
+  return srsran_ringbuffer_write_timed_block(q, ptr, nof_bytes, -1);
 }
 
-int srslte_ringbuffer_write_timed_block(srslte_ringbuffer_t* q, void* p, int nof_bytes, int32_t timeout_ms)
+int srsran_ringbuffer_write_timed_block(srsran_ringbuffer_t* q, void* p, int nof_bytes, int32_t timeout_ms)
 {
-  int             ret     = SRSLTE_SUCCESS;
+  int             ret     = SRSRAN_SUCCESS;
   uint8_t*        ptr     = (uint8_t*)p;
   int             w_bytes = nof_bytes;
   struct timespec towait;
@@ -120,7 +111,7 @@ int srslte_ringbuffer_write_timed_block(srslte_ringbuffer_t* q, void* p, int nof
 
   if (q == NULL || q->buffer == NULL) {
     ERROR("Invalid inputs");
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
   // Get current time and update timeout
@@ -132,7 +123,7 @@ int srslte_ringbuffer_write_timed_block(srslte_ringbuffer_t* q, void* p, int nof
   pthread_mutex_lock(&q->mutex);
 
   // Wait to have enough space in the buffer
-  while (q->count + w_bytes > q->capacity && q->active && ret == SRSLTE_SUCCESS) {
+  while (q->count + w_bytes > q->capacity && q->active && ret == SRSRAN_SUCCESS) {
     if (timeout_ms > 0) {
       ret = pthread_cond_timedwait(&q->read_cvar, &q->mutex, &towait);
     } else if (timeout_ms < 0) {
@@ -143,10 +134,10 @@ int srslte_ringbuffer_write_timed_block(srslte_ringbuffer_t* q, void* p, int nof
     }
   }
   if (ret == ETIMEDOUT) {
-    ret = SRSLTE_ERROR_TIMEOUT;
+    ret = SRSRAN_ERROR_TIMEOUT;
   } else if (!q->active) {
-    ret = SRSLTE_SUCCESS;
-  } else if (ret == SRSLTE_SUCCESS) {
+    ret = SRSRAN_SUCCESS;
+  } else if (ret == SRSRAN_SUCCESS) {
     if (ptr != NULL) {
       if (w_bytes > q->capacity - q->wpm) {
         int x = q->capacity - q->wpm;
@@ -171,26 +162,26 @@ int srslte_ringbuffer_write_timed_block(srslte_ringbuffer_t* q, void* p, int nof
     q->count += w_bytes;
     ret = w_bytes;
   } else {
-    ret = SRSLTE_ERROR;
+    ret = SRSRAN_ERROR;
   }
   pthread_cond_broadcast(&q->write_cvar);
   pthread_mutex_unlock(&q->mutex);
   return ret;
 }
 
-int srslte_ringbuffer_read(srslte_ringbuffer_t* q, void* p, int nof_bytes)
+int srsran_ringbuffer_read(srsran_ringbuffer_t* q, void* p, int nof_bytes)
 {
-  return srslte_ringbuffer_read_timed_block(q, p, nof_bytes, -1);
+  return srsran_ringbuffer_read_timed_block(q, p, nof_bytes, -1);
 }
 
-int srslte_ringbuffer_read_timed(srslte_ringbuffer_t* q, void* p, int nof_bytes, int32_t timeout_ms)
+int srsran_ringbuffer_read_timed(srsran_ringbuffer_t* q, void* p, int nof_bytes, int32_t timeout_ms)
 {
-  return srslte_ringbuffer_read_timed_block(q, p, nof_bytes, timeout_ms);
+  return srsran_ringbuffer_read_timed_block(q, p, nof_bytes, timeout_ms);
 }
 
-int srslte_ringbuffer_read_timed_block(srslte_ringbuffer_t* q, void* p, int nof_bytes, int32_t timeout_ms)
+int srsran_ringbuffer_read_timed_block(srsran_ringbuffer_t* q, void* p, int nof_bytes, int32_t timeout_ms)
 {
-  int             ret    = SRSLTE_SUCCESS;
+  int             ret    = SRSRAN_SUCCESS;
   uint8_t*        ptr    = (uint8_t*)p;
   struct timespec towait = {};
 
@@ -210,7 +201,7 @@ int srslte_ringbuffer_read_timed_block(srslte_ringbuffer_t* q, void* p, int nof_
   pthread_mutex_lock(&q->mutex);
 
   // Wait for having enough samples
-  while (q->count < nof_bytes && q->active && ret == SRSLTE_SUCCESS) {
+  while (q->count < nof_bytes && q->active && ret == SRSRAN_SUCCESS) {
     if (timeout_ms > 0) {
       ret = pthread_cond_timedwait(&q->write_cvar, &q->mutex, &towait);
     } else {
@@ -219,10 +210,10 @@ int srslte_ringbuffer_read_timed_block(srslte_ringbuffer_t* q, void* p, int nof_
   }
 
   if (ret == ETIMEDOUT) {
-    ret = SRSLTE_ERROR_TIMEOUT;
+    ret = SRSRAN_ERROR_TIMEOUT;
   } else if (!q->active) {
-    ret = SRSLTE_SUCCESS;
-  } else if (ret == SRSLTE_SUCCESS) {
+    ret = SRSRAN_SUCCESS;
+  } else if (ret == SRSRAN_SUCCESS) {
     if (nof_bytes + q->rpm > q->capacity) {
       int x = q->capacity - q->rpm;
       memcpy(ptr, &q->buffer[q->rpm], x);
@@ -238,10 +229,10 @@ int srslte_ringbuffer_read_timed_block(srslte_ringbuffer_t* q, void* p, int nof_
     ret = nof_bytes;
   } else if (ret == EINVAL) {
     fprintf(stderr, "Error: pthread_cond_timedwait() returned EINVAL, timeout value corrupted.\n");
-    ret = SRSLTE_ERROR;
+    ret = SRSRAN_ERROR;
   } else {
     printf("ret=%d %s\n", ret, strerror(ret));
-    ret = SRSLTE_ERROR;
+    ret = SRSRAN_ERROR;
   }
 
   // Unlock mutex
@@ -251,7 +242,7 @@ int srslte_ringbuffer_read_timed_block(srslte_ringbuffer_t* q, void* p, int nof_
   return ret;
 }
 
-void srslte_ringbuffer_stop(srslte_ringbuffer_t* q)
+void srsran_ringbuffer_stop(srsran_ringbuffer_t* q)
 {
   pthread_mutex_lock(&q->mutex);
   q->active = false;
@@ -261,7 +252,7 @@ void srslte_ringbuffer_stop(srslte_ringbuffer_t* q)
 }
 
 // Converts SC16 to cf_t
-int srslte_ringbuffer_read_convert_conj(srslte_ringbuffer_t* q, cf_t* dst_ptr, float norm, int nof_samples)
+int srsran_ringbuffer_read_convert_conj(srsran_ringbuffer_t* q, cf_t* dst_ptr, float norm, int nof_samples)
 {
   uint32_t nof_bytes = nof_samples * 4;
 
@@ -271,7 +262,7 @@ int srslte_ringbuffer_read_convert_conj(srslte_ringbuffer_t* q, cf_t* dst_ptr, f
   }
   if (!q->active) {
     pthread_mutex_unlock(&q->mutex);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   int16_t* src = (int16_t*)&q->buffer[q->rpm];
@@ -279,12 +270,12 @@ int srslte_ringbuffer_read_convert_conj(srslte_ringbuffer_t* q, cf_t* dst_ptr, f
 
   if (nof_bytes + q->rpm > q->capacity) {
     int x = (q->capacity - q->rpm);
-    srslte_vec_convert_if(src, norm, dst, x / 2);
-    srslte_vec_convert_if((int16_t*)q->buffer, norm, &dst[x / 2], 2 * nof_samples - x / 2);
+    srsran_vec_convert_if(src, norm, dst, x / 2);
+    srsran_vec_convert_if((int16_t*)q->buffer, norm, &dst[x / 2], 2 * nof_samples - x / 2);
   } else {
-    srslte_vec_convert_if(src, norm, dst, 2 * nof_samples);
+    srsran_vec_convert_if(src, norm, dst, 2 * nof_samples);
   }
-  srslte_vec_conj_cc(dst_ptr, dst_ptr, nof_samples);
+  srsran_vec_conj_cc(dst_ptr, dst_ptr, nof_samples);
   q->rpm += nof_bytes;
   if (q->rpm >= q->capacity) {
     q->rpm -= q->capacity;
@@ -296,9 +287,9 @@ int srslte_ringbuffer_read_convert_conj(srslte_ringbuffer_t* q, cf_t* dst_ptr, f
 }
 
 /* For this function, the ring buffer capacity must be multiple of block size */
-int srslte_ringbuffer_read_block(srslte_ringbuffer_t* q, void** p, int nof_bytes, int32_t timeout_ms)
+int srsran_ringbuffer_read_block(srsran_ringbuffer_t* q, void** p, int nof_bytes, int32_t timeout_ms)
 {
-  int             ret    = SRSLTE_SUCCESS;
+  int             ret    = SRSRAN_SUCCESS;
   struct timespec towait = {};
 
   // Get current time and update timeout
@@ -316,7 +307,7 @@ int srslte_ringbuffer_read_block(srslte_ringbuffer_t* q, void** p, int nof_bytes
   pthread_mutex_lock(&q->mutex);
 
   // Wait for having enough samples
-  while (q->count < nof_bytes && q->active && ret == SRSLTE_SUCCESS) {
+  while (q->count < nof_bytes && q->active && ret == SRSRAN_SUCCESS) {
     if (timeout_ms > 0) {
       ret = pthread_cond_timedwait(&q->write_cvar, &q->mutex, &towait);
     } else {
@@ -325,10 +316,10 @@ int srslte_ringbuffer_read_block(srslte_ringbuffer_t* q, void** p, int nof_bytes
   }
 
   if (ret == ETIMEDOUT) {
-    ret = SRSLTE_ERROR_TIMEOUT;
+    ret = SRSRAN_ERROR_TIMEOUT;
   } else if (!q->active) {
     ret = 0;
-  } else if (ret == SRSLTE_SUCCESS) {
+  } else if (ret == SRSRAN_SUCCESS) {
     *p = &q->buffer[q->rpm];
 
     q->count -= nof_bytes;
@@ -340,10 +331,10 @@ int srslte_ringbuffer_read_block(srslte_ringbuffer_t* q, void** p, int nof_bytes
     ret = nof_bytes;
   } else if (ret == EINVAL) {
     fprintf(stderr, "Error: pthread_cond_timedwait() returned EINVAL, timeout value corrupted.\n");
-    ret = SRSLTE_ERROR;
+    ret = SRSRAN_ERROR;
   } else {
     printf("ret=%d %s\n", ret, strerror(ret));
-    ret = SRSLTE_ERROR;
+    ret = SRSRAN_ERROR;
   }
   pthread_cond_broadcast(&q->read_cvar);
   pthread_mutex_unlock(&q->mutex);

@@ -19,5 +19,5 @@
 #
 
 set(SRCS dft_fftw.c dft_precoding.c ofdm.c)
-add_library(srslte_dft OBJECT ${SRCS})
+add_library(srsran_dft OBJECT ${SRCS})
 add_subdirectory(test)

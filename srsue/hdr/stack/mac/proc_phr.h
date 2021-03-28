@@ -1,30 +1,21 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #ifndef SRSUE_PROC_PHR_H
 #define SRSUE_PROC_PHR_H
 
-#include "srslte/common/task_scheduler.h"
-#include "srslte/interfaces/ue_mac_interfaces.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/common/task_scheduler.h"
+#include "srsran/interfaces/ue_mac_interfaces.h"
+#include "srsran/srslog/srslog.h"
 #include <stdint.h>
 
 /* Power headroom report procedure */
@@ -33,12 +24,12 @@ namespace srsue {
 
 class phy_interface_mac_lte;
 
-class phr_proc : public srslte::timer_callback
+class phr_proc : public srsran::timer_callback
 {
 public:
   explicit phr_proc(srslog::basic_logger& logger);
-  void init(phy_interface_mac_lte* phy_h, srslte::ext_task_sched_handle* task_sched_);
-  void set_config(srslte::phr_cfg_t& cfg);
+  void init(phy_interface_mac_lte* phy_h, srsran::ext_task_sched_handle* task_sched_);
+  void set_config(srsran::phr_cfg_t& cfg);
   void step();
   void reset();
 
@@ -53,14 +44,14 @@ private:
 
   srslog::basic_logger&          logger;
   phy_interface_mac_lte*         phy_h;
-  srslte::ext_task_sched_handle* task_sched;
-  srslte::phr_cfg_t              phr_cfg;
+  srsran::ext_task_sched_handle* task_sched;
+  srsran::phr_cfg_t              phr_cfg;
   bool                           initiated;
   int                            last_pathloss_db;
   bool                           phr_is_triggered;
 
-  srslte::timer_handler::unique_timer timer_periodic;
-  srslte::timer_handler::unique_timer timer_prohibit;
+  srsran::timer_handler::unique_timer timer_periodic;
+  srsran::timer_handler::unique_timer timer_prohibit;
 };
 
 } // namespace srsue

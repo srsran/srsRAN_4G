@@ -1,27 +1,18 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #include "sched_test_common.h"
 #include "srsenb/hdr/stack/mac/sched_grid.h"
-#include "srslte/common/test_common.h"
+#include "srsran/common/test_common.h"
 
 using namespace srsenb;
 const uint32_t seed = std::chrono::system_clock::now().time_since_epoch().count();
@@ -31,8 +22,8 @@ const std::array<uint32_t, 6> prb_list  = {6, 15, 25, 50, 75, 100};
 
 uint32_t get_aggr_level(sched_ue& sched_ue, uint32_t enb_cc_idx, const std::vector<sched_cell_params_t>& cell_params)
 {
-  srslte_dci_format_t dci_format = sched_ue.get_dci_format();
-  uint32_t nof_dci_bits = srslte_dci_format_sizeof(&cell_params[enb_cc_idx].cfg.cell, nullptr, nullptr, dci_format);
+  srsran_dci_format_t dci_format = sched_ue.get_dci_format();
+  uint32_t nof_dci_bits = srsran_dci_format_sizeof(&cell_params[enb_cc_idx].cfg.cell, nullptr, nullptr, dci_format);
   uint32_t aggr_level   = sched_ue.get_aggr_level(enb_cc_idx, nof_dci_bits);
   return aggr_level;
 }
@@ -44,7 +35,7 @@ int test_pdcch_one_ue()
   // Params
   uint32_t          nof_prb = prb_list[rand_uint{0, 5}(get_rand_gen())];
   uint16_t          rnti    = rand_uint{70, 120}(get_rand_gen());
-  srslte::tti_point start_tti{rand_uint{0, 10240}(get_rand_gen())};
+  srsran::tti_point start_tti{rand_uint{0, 10240}(get_rand_gen())};
   uint32_t          nof_ttis = 100;
 
   // Derived
@@ -136,7 +127,7 @@ int test_pdcch_one_ue()
   }
   TESTASSERT(tti_counter == nof_ttis);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_pdcch_ue_and_sibs()
@@ -187,7 +178,7 @@ int test_pdcch_ue_and_sibs()
     return dci_result[1]->dci_pos.ncce == val;
   }));
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_6prbs()
@@ -248,7 +239,7 @@ int test_6prbs()
   TESTASSERT(dci_result[0]->dci_pos.ncce == rnti_dci_locs3[0]);
   TESTASSERT(dci_result[1]->dci_pos.ncce == rnti_dci_locs4[0]);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int main()
@@ -262,9 +253,9 @@ int main()
   // Start the log backend.
   srslog::init();
 
-  TESTASSERT(test_pdcch_one_ue() == SRSLTE_SUCCESS);
-  TESTASSERT(test_pdcch_ue_and_sibs() == SRSLTE_SUCCESS);
-  TESTASSERT(test_6prbs() == SRSLTE_SUCCESS);
+  TESTASSERT(test_pdcch_one_ue() == SRSRAN_SUCCESS);
+  TESTASSERT(test_pdcch_ue_and_sibs() == SRSRAN_SUCCESS);
+  TESTASSERT(test_6prbs() == SRSRAN_SUCCESS);
 
   srslog::flush();
 

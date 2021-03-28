@@ -1,21 +1,12 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -28,7 +19,7 @@
 #include <unistd.h>
 
 #include "crc_test.h"
-#include "srslte/srslte.h"
+#include "srsran/srsran.h"
 
 int      num_bits = 5001, crc_length = 24;
 uint32_t crc_poly = 0x1864CFB;
@@ -41,7 +32,7 @@ void usage(char* prog)
   printf("\t-l crc_length [Default %d]\n", crc_length);
   printf("\t-p crc_poly (Hex) [Default 0x%x]\n", crc_poly);
   printf("\t-s seed [Default 0=time]\n");
-  printf("\t-v [set srslte_verbose to debug, default none]\n");
+  printf("\t-v [set srsran_verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char** argv)
@@ -62,7 +53,7 @@ void parse_args(int argc, char** argv)
         seed = (uint32_t)strtoul(argv[optind], NULL, 0);
         break;
       case 'v':
-        srslte_verbose++;
+        srsran_verbose++;
         break;
       default:
         usage(argv[0]);
@@ -76,11 +67,11 @@ int main(int argc, char** argv)
   int          i;
   uint8_t*     data;
   uint32_t     crc_word, expected_word;
-  srslte_crc_t crc_p;
+  srsran_crc_t crc_p;
 
   parse_args(argc, argv);
 
-  data = srslte_vec_u8_malloc(num_bits + crc_length * 2);
+  data = srsran_vec_u8_malloc(num_bits + crc_length * 2);
   if (!data) {
     perror("malloc");
     exit(-1);
@@ -96,18 +87,18 @@ int main(int argc, char** argv)
     data[i] = rand() % 2;
   }
 
-  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !handler_registered) {
     INFO("data=");
-    srslte_vec_fprint_b(stdout, data, num_bits);
+    srsran_vec_fprint_b(stdout, data, num_bits);
   }
 
   // Initialize CRC params and tables
-  if (srslte_crc_init(&crc_p, crc_poly, crc_length)) {
+  if (srsran_crc_init(&crc_p, crc_poly, crc_length)) {
     exit(-1);
   }
 
   // generate CRC word
-  crc_word = srslte_crc_checksum(&crc_p, data, num_bits);
+  crc_word = srsran_crc_checksum(&crc_p, data, num_bits);
 
   INFO("checksum=%x", crc_word);
 

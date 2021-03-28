@@ -1,32 +1,23 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
-#include "srslte/upper/rlc.h"
-#include "srslte/common/rwlock_guard.h"
-#include "srslte/upper/rlc_am_lte.h"
-#include "srslte/upper/rlc_tm.h"
-#include "srslte/upper/rlc_um_lte.h"
-#include "srslte/upper/rlc_um_nr.h"
+#include "srsran/upper/rlc.h"
+#include "srsran/common/rwlock_guard.h"
+#include "srsran/upper/rlc_am_lte.h"
+#include "srsran/upper/rlc_tm.h"
+#include "srsran/upper/rlc_um_lte.h"
+#include "srsran/upper/rlc_um_nr.h"
 
-namespace srslte {
+namespace srsran {
 
 rlc::rlc(const char* logname) : logger(srslog::fetch_basic_logger(logname))
 {
@@ -56,7 +47,7 @@ rlc::~rlc()
 
 void rlc::init(srsue::pdcp_interface_rlc* pdcp_,
                srsue::rrc_interface_rlc*  rrc_,
-               srslte::timer_handler*     timers_,
+               srsran::timer_handler*     timers_,
                uint32_t                   lcid_)
 {
   pdcp         = pdcp_;
@@ -72,7 +63,7 @@ void rlc::init(srsue::pdcp_interface_rlc* pdcp_,
 
 void rlc::init(srsue::pdcp_interface_rlc* pdcp_,
                srsue::rrc_interface_rlc*  rrc_,
-               srslte::timer_handler*     timers_,
+               srsran::timer_handler*     timers_,
                uint32_t                   lcid_,
                bsr_callback_t             bsr_callback_)
 {
@@ -333,7 +324,7 @@ void rlc::write_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
 }
 
 // Pass directly to PDCP, no DL througput counting done
-void rlc::write_pdu_bcch_bch(srslte::unique_byte_buffer_t pdu)
+void rlc::write_pdu_bcch_bch(srsran::unique_byte_buffer_t pdu)
 {
   logger.info(pdu->msg, pdu->N_bytes, "BCCH BCH message received.");
   pdcp->write_pdu_bcch_bch(std::move(pdu));
@@ -355,7 +346,7 @@ void rlc::write_pdu_bcch_dlsch(uint8_t* payload, uint32_t nof_bytes)
 }
 
 // Pass directly to PDCP, no DL througput counting done
-void rlc::write_pdu_pcch(srslte::unique_byte_buffer_t pdu)
+void rlc::write_pdu_pcch(srsran::unique_byte_buffer_t pdu)
 {
   logger.info(pdu->msg, pdu->N_bytes, "PCCH message received.");
   pdcp->write_pdu_pcch(std::move(pdu));
@@ -408,7 +399,7 @@ void rlc::add_bearer(uint32_t lcid, const rlc_config_t& cnfg)
   }
 
   if (not valid_lcid(lcid)) {
-    if (cnfg.rat == srslte_rat_t::lte) {
+    if (cnfg.rat == srsran_rat_t::lte) {
       switch (cnfg.rlc_mode) {
         case rlc_mode_t::tm:
           rlc_entity = new rlc_tm(logger, lcid, pdcp, rrc);
@@ -426,7 +417,7 @@ void rlc::add_bearer(uint32_t lcid, const rlc_config_t& cnfg)
       if (rlc_entity != nullptr) {
         rlc_entity->set_bsr_callback(bsr_callback);
       }
-    } else if (cnfg.rat == srslte_rat_t::nr) {
+    } else if (cnfg.rat == srsran_rat_t::nr) {
       switch (cnfg.rlc_mode) {
         case rlc_mode_t::tm:
           rlc_entity = new rlc_tm(logger, lcid, pdcp, rrc);
@@ -595,8 +586,8 @@ bool rlc::has_bearer(uint32_t lcid)
 *******************************************************************************/
 bool rlc::valid_lcid(uint32_t lcid)
 {
-  if (lcid >= SRSLTE_N_RADIO_BEARERS) {
-    logger.error("Radio bearer id must be in [0:%d] - %d", SRSLTE_N_RADIO_BEARERS, lcid);
+  if (lcid >= SRSRAN_N_RADIO_BEARERS) {
+    logger.error("Radio bearer id must be in [0:%d] - %d", SRSRAN_N_RADIO_BEARERS, lcid);
     return false;
   }
 
@@ -609,8 +600,8 @@ bool rlc::valid_lcid(uint32_t lcid)
 
 bool rlc::valid_lcid_mrb(uint32_t lcid)
 {
-  if (lcid >= SRSLTE_N_MCH_LCIDS) {
-    logger.error("Radio bearer id must be in [0:%d] - %d", SRSLTE_N_RADIO_BEARERS, lcid);
+  if (lcid >= SRSRAN_N_MCH_LCIDS) {
+    logger.error("Radio bearer id must be in [0:%d] - %d", SRSRAN_N_RADIO_BEARERS, lcid);
     return false;
   }
 
@@ -653,4 +644,4 @@ void rlc_bearer_metrics_print(const rlc_bearer_metrics_t& metrics)
   std::cout << "num_lost_sdus=" << metrics.num_lost_sdus << "\n";
 }
 
-} // namespace srslte
+} // namespace srsran

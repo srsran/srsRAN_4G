@@ -24,47 +24,47 @@
 /*
  * Test correct transmission of FMS and Bitmap in status report
  */
-int test_tx_status_report(const srslte::pdcp_lte_state_t& init_state, srslog::basic_logger& logger)
+int test_tx_status_report(const srsran::pdcp_lte_state_t& init_state, srslog::basic_logger& logger)
 {
-  srslte::pdcp_config_t cfg_tx = {1,
-                                  srslte::PDCP_RB_IS_DRB,
-                                  srslte::SECURITY_DIRECTION_UPLINK,
-                                  srslte::SECURITY_DIRECTION_DOWNLINK,
-                                  srslte::PDCP_SN_LEN_12,
-                                  srslte::pdcp_t_reordering_t::ms500,
-                                  srslte::pdcp_discard_timer_t::ms500,
+  srsran::pdcp_config_t cfg_tx = {1,
+                                  srsran::PDCP_RB_IS_DRB,
+                                  srsran::SECURITY_DIRECTION_UPLINK,
+                                  srsran::SECURITY_DIRECTION_DOWNLINK,
+                                  srsran::PDCP_SN_LEN_12,
+                                  srsran::pdcp_t_reordering_t::ms500,
+                                  srsran::pdcp_discard_timer_t::ms500,
                                   true};
 
-  srslte::pdcp_config_t cfg_rx = {1,
-                                  srslte::PDCP_RB_IS_DRB,
-                                  srslte::SECURITY_DIRECTION_DOWNLINK,
-                                  srslte::SECURITY_DIRECTION_UPLINK,
-                                  srslte::PDCP_SN_LEN_12,
-                                  srslte::pdcp_t_reordering_t::ms500,
-                                  srslte::pdcp_discard_timer_t::ms500,
+  srsran::pdcp_config_t cfg_rx = {1,
+                                  srsran::PDCP_RB_IS_DRB,
+                                  srsran::SECURITY_DIRECTION_DOWNLINK,
+                                  srsran::SECURITY_DIRECTION_UPLINK,
+                                  srsran::PDCP_SN_LEN_12,
+                                  srsran::pdcp_t_reordering_t::ms500,
+                                  srsran::pdcp_discard_timer_t::ms500,
                                   true};
 
   // Setup TX
   pdcp_lte_test_helper     pdcp_hlp_tx(cfg_tx, sec_cfg, logger);
-  srslte::pdcp_entity_lte* pdcp_tx  = &pdcp_hlp_tx.pdcp;
+  srsran::pdcp_entity_lte* pdcp_tx  = &pdcp_hlp_tx.pdcp;
   rlc_dummy*               rlc_tx   = &pdcp_hlp_tx.rlc;
   srsue::stack_test_dummy* stack_tx = &pdcp_hlp_tx.stack;
   pdcp_hlp_tx.set_pdcp_initial_state(init_state);
 
   // Setup RX
   pdcp_lte_test_helper     pdcp_hlp_rx(cfg_tx, sec_cfg, logger);
-  srslte::pdcp_entity_lte* pdcp_rx  = &pdcp_hlp_tx.pdcp;
+  srsran::pdcp_entity_lte* pdcp_rx  = &pdcp_hlp_tx.pdcp;
   rlc_dummy*               rlc_rx   = &pdcp_hlp_tx.rlc;
   srsue::stack_test_dummy* stack_rx = &pdcp_hlp_tx.stack;
   pdcp_hlp_rx.set_pdcp_initial_state(init_state);
 
   // Tmp variable to hold the PDCP PDU
-  srslte::unique_byte_buffer_t out_pdu = srslte::make_byte_buffer();
+  srsran::unique_byte_buffer_t out_pdu = srsran::make_byte_buffer();
 
   // Write 256 SDUs and notify imediatly -> FMS 0001 0000 0001
   for (uint32_t i = 0; i < 257; i++) {
-    srslte::unique_byte_buffer_t sdu = srslte::make_byte_buffer();
-    srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+    srsran::unique_byte_buffer_t sdu = srsran::make_byte_buffer();
+    srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
     sdu->append_bytes(sdu1, sizeof(sdu1));
     pdcp_tx->write_sdu(std::move(sdu));
     pdcp_tx->notify_delivery({i});
@@ -91,8 +91,8 @@ int test_tx_status_report(const srslte::pdcp_lte_state_t& init_state, srslog::ba
 
   // Write another 16 SDUs but don't notify SN=257, SN=258, SN=271 and SN=272
   for (uint32_t i = 257; i < 273; i++) {
-    srslte::unique_byte_buffer_t sdu = srslte::make_byte_buffer();
-    srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+    srsran::unique_byte_buffer_t sdu = srsran::make_byte_buffer();
+    srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
     sdu->append_bytes(sdu1, sizeof(sdu1));
     pdcp_tx->write_sdu(std::move(sdu));
     if (i != 257 && i != 258 && i != 271 && i != 272) {
@@ -128,49 +128,49 @@ int test_tx_status_report(const srslte::pdcp_lte_state_t& init_state, srslog::ba
 /*
  * Test correct transmission of FMS and Bitmap in status report
  */
-int test_tx_wraparound_status_report(const srslte::pdcp_lte_state_t& init_state, srslog::basic_logger& logger)
+int test_tx_wraparound_status_report(const srsran::pdcp_lte_state_t& init_state, srslog::basic_logger& logger)
 {
-  srslte::pdcp_config_t cfg_tx = {1,
-                                  srslte::PDCP_RB_IS_DRB,
-                                  srslte::SECURITY_DIRECTION_UPLINK,
-                                  srslte::SECURITY_DIRECTION_DOWNLINK,
-                                  srslte::PDCP_SN_LEN_12,
-                                  srslte::pdcp_t_reordering_t::ms500,
-                                  srslte::pdcp_discard_timer_t::ms500,
+  srsran::pdcp_config_t cfg_tx = {1,
+                                  srsran::PDCP_RB_IS_DRB,
+                                  srsran::SECURITY_DIRECTION_UPLINK,
+                                  srsran::SECURITY_DIRECTION_DOWNLINK,
+                                  srsran::PDCP_SN_LEN_12,
+                                  srsran::pdcp_t_reordering_t::ms500,
+                                  srsran::pdcp_discard_timer_t::ms500,
                                   true};
 
-  srslte::pdcp_config_t cfg_rx = {1,
-                                  srslte::PDCP_RB_IS_DRB,
-                                  srslte::SECURITY_DIRECTION_DOWNLINK,
-                                  srslte::SECURITY_DIRECTION_UPLINK,
-                                  srslte::PDCP_SN_LEN_12,
-                                  srslte::pdcp_t_reordering_t::ms500,
-                                  srslte::pdcp_discard_timer_t::ms500,
+  srsran::pdcp_config_t cfg_rx = {1,
+                                  srsran::PDCP_RB_IS_DRB,
+                                  srsran::SECURITY_DIRECTION_DOWNLINK,
+                                  srsran::SECURITY_DIRECTION_UPLINK,
+                                  srsran::PDCP_SN_LEN_12,
+                                  srsran::pdcp_t_reordering_t::ms500,
+                                  srsran::pdcp_discard_timer_t::ms500,
                                   true};
 
   // Setup TX
   pdcp_lte_test_helper     pdcp_hlp_tx(cfg_tx, sec_cfg, logger);
-  srslte::pdcp_entity_lte* pdcp_tx  = &pdcp_hlp_tx.pdcp;
+  srsran::pdcp_entity_lte* pdcp_tx  = &pdcp_hlp_tx.pdcp;
   rlc_dummy*               rlc_tx   = &pdcp_hlp_tx.rlc;
   srsue::stack_test_dummy* stack_tx = &pdcp_hlp_tx.stack;
   pdcp_hlp_tx.set_pdcp_initial_state(init_state);
 
   // Setup RX
   pdcp_lte_test_helper     pdcp_hlp_rx(cfg_tx, sec_cfg, logger);
-  srslte::pdcp_entity_lte* pdcp_rx  = &pdcp_hlp_tx.pdcp;
+  srsran::pdcp_entity_lte* pdcp_rx  = &pdcp_hlp_tx.pdcp;
   rlc_dummy*               rlc_rx   = &pdcp_hlp_tx.rlc;
   srsue::stack_test_dummy* stack_rx = &pdcp_hlp_tx.stack;
   pdcp_hlp_rx.set_pdcp_initial_state(init_state);
 
-  srslte::unique_byte_buffer_t out_pdu = srslte::make_byte_buffer();
+  srsran::unique_byte_buffer_t out_pdu = srsran::make_byte_buffer();
 
   // Write 256 SDUs and notify imediatly -> FMS 1111 1111 0000
   for (uint32_t i = 0; i < 4080; i++) {
-    srslte::unique_byte_buffer_t sdu = srslte::make_byte_buffer();
-    srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+    srsran::unique_byte_buffer_t sdu = srsran::make_byte_buffer();
+    srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
     if (sdu == nullptr or pdu == nullptr) {
       logger.error("Could not allocate byte buffer");
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
     sdu->append_bytes(sdu1, sizeof(sdu1));
     pdcp_tx->write_sdu(std::move(sdu));
@@ -198,11 +198,11 @@ int test_tx_wraparound_status_report(const srslte::pdcp_lte_state_t& init_state,
 
   // Write another 32 SDUs but don't notify SN=4080, SN=4081, SN=14 and SN=15
   for (uint32_t i = 4080; i < 4112; i++) {
-    srslte::unique_byte_buffer_t sdu = srslte::make_byte_buffer();
-    srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+    srsran::unique_byte_buffer_t sdu = srsran::make_byte_buffer();
+    srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
     if (sdu == nullptr or pdu == nullptr) {
       logger.error("Could not allocate byte buffer");
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
     sdu->append_bytes(sdu1, sizeof(sdu1));
     pdcp_tx->write_sdu(std::move(sdu));
@@ -240,29 +240,29 @@ int test_tx_wraparound_status_report(const srslte::pdcp_lte_state_t& init_state,
 /*
  * Test reception of status report
  */
-int test_rx_status_report(const srslte::pdcp_lte_state_t& init_state, srslog::basic_logger& logger)
+int test_rx_status_report(const srsran::pdcp_lte_state_t& init_state, srslog::basic_logger& logger)
 {
-  srslte::pdcp_config_t cfg = {1,
-                               srslte::PDCP_RB_IS_DRB,
-                               srslte::SECURITY_DIRECTION_UPLINK,
-                               srslte::SECURITY_DIRECTION_DOWNLINK,
-                               srslte::PDCP_SN_LEN_12,
-                               srslte::pdcp_t_reordering_t::ms500,
-                               srslte::pdcp_discard_timer_t::ms500,
+  srsran::pdcp_config_t cfg = {1,
+                               srsran::PDCP_RB_IS_DRB,
+                               srsran::SECURITY_DIRECTION_UPLINK,
+                               srsran::SECURITY_DIRECTION_DOWNLINK,
+                               srsran::PDCP_SN_LEN_12,
+                               srsran::pdcp_t_reordering_t::ms500,
+                               srsran::pdcp_discard_timer_t::ms500,
                                true};
 
   pdcp_lte_test_helper     pdcp_hlp(cfg, sec_cfg, logger);
-  srslte::pdcp_entity_lte* pdcp  = &pdcp_hlp.pdcp;
+  srsran::pdcp_entity_lte* pdcp  = &pdcp_hlp.pdcp;
   rlc_dummy*               rlc   = &pdcp_hlp.rlc;
   srsue::stack_test_dummy* stack = &pdcp_hlp.stack;
 
   pdcp_hlp.set_pdcp_initial_state(init_state);
-  srslte::unique_byte_buffer_t status_pdu = srslte::make_byte_buffer();
-  srslte::unique_byte_buffer_t out_pdu    = srslte::make_byte_buffer();
+  srsran::unique_byte_buffer_t status_pdu = srsran::make_byte_buffer();
+  srsran::unique_byte_buffer_t out_pdu    = srsran::make_byte_buffer();
 
   // Write 256 SDUs and notify imediatly -> FMS 0001 0000 0001
   for (uint32_t i = 0; i < 257; i++) {
-    srslte::unique_byte_buffer_t sdu = srslte::make_byte_buffer();
+    srsran::unique_byte_buffer_t sdu = srsran::make_byte_buffer();
     sdu->append_bytes(sdu1, sizeof(sdu1));
     pdcp->write_sdu(std::move(sdu));
     pdcp->notify_delivery({i});
@@ -270,7 +270,7 @@ int test_rx_status_report(const srslte::pdcp_lte_state_t& init_state, srslog::ba
 
   // Write another 16 SDUs but don't notify SN=257, SN=258, SN=271 and SN=272
   for (uint32_t i = 257; i < 273; i++) {
-    srslte::unique_byte_buffer_t sdu = srslte::make_byte_buffer();
+    srsran::unique_byte_buffer_t sdu = srsran::make_byte_buffer();
     sdu->append_bytes(sdu1, sizeof(sdu1));
     pdcp->write_sdu(std::move(sdu));
     if (i != 257 && i != 258 && i != 271 && i != 272) {
@@ -309,7 +309,7 @@ int run_all_tests()
   logger.set_hex_dump_max_size(128);
 
   // This is the normal initial state. All state variables are set to zero
-  srslte::pdcp_lte_state_t normal_init_state  = {};
+  srsran::pdcp_lte_state_t normal_init_state  = {};
   normal_init_state.last_submitted_pdcp_rx_sn = 4095;
 
   TESTASSERT(test_tx_status_report(normal_init_state, logger) == 0);
@@ -322,10 +322,10 @@ int main()
 {
   srslog::init();
 
-  if (run_all_tests() != SRSLTE_SUCCESS) {
+  if (run_all_tests() != SRSRAN_SUCCESS) {
     fprintf(stderr, "pdcp_lte_tests() failed\n");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }

@@ -1,30 +1,21 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
-#include "srslte/common/mac_pcap_base.h"
-#include "srslte/config.h"
-#include "srslte/phy/common/phy_common.h"
+#include "srsran/common/mac_pcap_base.h"
+#include "srsran/config.h"
+#include "srsran/phy/common/phy_common.h"
 #include <stdint.h>
 
-namespace srslte {
+namespace srsran {
 
 mac_pcap_base::mac_pcap_base() : logger(srslog::fetch_basic_logger("MAC")), thread("PCAP_WRITER_MAC") {}
 
@@ -75,7 +66,7 @@ void mac_pcap_base::pack_and_queue(uint8_t* payload,
 {
   if (running && payload != nullptr) {
     pcap_pdu_t pdu             = {};
-    pdu.rat                    = srslte::srslte_rat_t::lte;
+    pdu.rat                    = srsran::srsran_rat_t::lte;
     pdu.context.radioType      = FDD_RADIO;
     pdu.context.direction      = direction;
     pdu.context.rntiType       = rnti_type;
@@ -88,16 +79,16 @@ void mac_pcap_base::pack_and_queue(uint8_t* payload,
     pdu.context.subFrameNumber = (uint16_t)(tti % 10);
 
     // try to allocate PDU buffer
-    pdu.pdu = srslte::make_byte_buffer();
+    pdu.pdu = srsran::make_byte_buffer();
     if (pdu.pdu != nullptr && pdu.pdu->get_tailroom() >= payload_len) {
       // copy payload into PDU buffer
       memcpy(pdu.pdu->msg, payload, payload_len);
       pdu.pdu->N_bytes = payload_len;
       if (not queue.try_push(std::move(pdu))) {
-        logger.error("Failed to push message to pcap writer queue");
+        logger.warning("Dropping PDU (%d B) in PCAP. Write queue full.", payload_len);
       }
     } else {
-      logger.info("Dropping PDU in PCAP. No buffer available or not enough space (pdu_len=%d).", payload_len);
+      logger.warning("Dropping PDU in PCAP. No buffer available or not enough space (pdu_len=%d).", payload_len);
     }
   }
 }
@@ -114,7 +105,7 @@ void mac_pcap_base::pack_and_queue_nr(uint8_t* payload,
 {
   if (running && payload != nullptr) {
     pcap_pdu_t pdu                     = {};
-    pdu.rat                            = srslte_rat_t::nr;
+    pdu.rat                            = srsran_rat_t::nr;
     pdu.context_nr.radioType           = FDD_RADIO;
     pdu.context_nr.direction           = direction;
     pdu.context_nr.rntiType            = rnti_type;
@@ -125,16 +116,16 @@ void mac_pcap_base::pack_and_queue_nr(uint8_t* payload,
     pdu.context_nr.sub_frame_number    = tti % 10;
 
     // try to allocate PDU buffer
-    pdu.pdu = srslte::make_byte_buffer();
+    pdu.pdu = srsran::make_byte_buffer();
     if (pdu.pdu != nullptr && pdu.pdu->get_tailroom() >= payload_len) {
       // copy payload into PDU buffer
       memcpy(pdu.pdu->msg, payload, payload_len);
       pdu.pdu->N_bytes = payload_len;
       if (not queue.try_push(std::move(pdu))) {
-        logger.error("Failed to push message to pcap writer queue");
+        logger.warning("Dropping PDU (%d B) in NR PCAP. Write queue full.", payload_len);
       }
     } else {
-      logger.info("Dropping PDU in NR PCAP. No buffer available or not enough space (pdu_len=%d).", payload_len);
+      logger.warning("Dropping PDU in NR PCAP. No buffer available or not enough space (pdu_len=%d).", payload_len);
     }
   }
 }
@@ -205,15 +196,15 @@ void mac_pcap_base::write_dl_bch(uint8_t* pdu, uint32_t pdu_len_bytes, bool crc_
 }
 void mac_pcap_base::write_dl_pch(uint8_t* pdu, uint32_t pdu_len_bytes, bool crc_ok, uint32_t tti, uint8_t cc_idx)
 {
-  pack_and_queue(pdu, pdu_len_bytes, ue_id, 0, crc_ok, cc_idx, tti, SRSLTE_PRNTI, DIRECTION_DOWNLINK, P_RNTI);
+  pack_and_queue(pdu, pdu_len_bytes, ue_id, 0, crc_ok, cc_idx, tti, SRSRAN_PRNTI, DIRECTION_DOWNLINK, P_RNTI);
 }
 void mac_pcap_base::write_dl_mch(uint8_t* pdu, uint32_t pdu_len_bytes, bool crc_ok, uint32_t tti, uint8_t cc_idx)
 {
-  pack_and_queue(pdu, pdu_len_bytes, ue_id, 0, crc_ok, cc_idx, tti, SRSLTE_MRNTI, DIRECTION_DOWNLINK, M_RNTI);
+  pack_and_queue(pdu, pdu_len_bytes, ue_id, 0, crc_ok, cc_idx, tti, SRSRAN_MRNTI, DIRECTION_DOWNLINK, M_RNTI);
 }
 void mac_pcap_base::write_dl_sirnti(uint8_t* pdu, uint32_t pdu_len_bytes, bool crc_ok, uint32_t tti, uint8_t cc_idx)
 {
-  pack_and_queue(pdu, pdu_len_bytes, ue_id, 0, crc_ok, cc_idx, tti, SRSLTE_SIRNTI, DIRECTION_DOWNLINK, SI_RNTI);
+  pack_and_queue(pdu, pdu_len_bytes, ue_id, 0, crc_ok, cc_idx, tti, SRSRAN_SIRNTI, DIRECTION_DOWNLINK, SI_RNTI);
 }
 
 void mac_pcap_base::write_dl_crnti_nr(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, uint8_t harqid, uint32_t tti)
@@ -346,4 +337,4 @@ void mac_pcap_base::write_ul_rrc_pdu(const uint8_t* input, const int32_t input_l
 
   write_ul_crnti(pdu, pdu_ptr - pdu, 14931, true, 0, 0);
 }
-} // namespace srslte
+} // namespace srsran

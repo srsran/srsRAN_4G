@@ -1,41 +1,32 @@
 /**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
 #include "srsenb/hdr/enb.h"
 #include "srsenb/src/enb_cfg_parser.h"
-#include "srslte/asn1/rrc_utils.h"
-#include "srslte/common/test_common.h"
+#include "srsran/asn1/rrc_utils.h"
+#include "srsran/common/test_common.h"
 #include "test_helpers.h"
 #include <iostream>
 
-int test_erab_setup(srslte::log_sink_spy& spy, bool qci_exists)
+int test_erab_setup(srsran::log_sink_spy& spy, bool qci_exists)
 {
   printf("\n===== TEST: test_erab_setup()  =====\n");
 
-  srslte::task_scheduler       task_sched;
-  srslte::unique_byte_buffer_t pdu;
+  srsran::task_scheduler       task_sched;
+  srsran::unique_byte_buffer_t pdu;
 
   srsenb::all_args_t args;
   rrc_cfg_t          cfg;
-  TESTASSERT(test_helpers::parse_default_cfg(&cfg, args) == SRSLTE_SUCCESS);
+  TESTASSERT(test_helpers::parse_default_cfg(&cfg, args) == SRSRAN_SUCCESS);
 
   spy.reset_counters();
   auto& logger = srslog::fetch_basic_logger("RRC", false);
@@ -86,7 +77,7 @@ int test_erab_setup(srslte::log_sink_spy& spy, bool qci_exists)
       0x81, 0x06, 0x08, 0x08, 0x08, 0x08, 0x00, 0x0d, 0x04, 0x08, 0x08, 0x08, 0x08};
 
   asn1::s1ap::s1ap_pdu_c s1ap_pdu;
-  srslte::byte_buffer_t  byte_buf;
+  srsran::byte_buffer_t  byte_buf;
   if (qci_exists) {
     byte_buf.N_bytes = sizeof(drb2_erab_setup_request_ok);
     memcpy(byte_buf.msg, drb2_erab_setup_request_ok, byte_buf.N_bytes);
@@ -108,21 +99,21 @@ int test_erab_setup(srslte::log_sink_spy& spy, bool qci_exists)
     TESTASSERT(spy.get_error_counter() > 0);
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int main(int argc, char** argv)
 {
   // Setup the log spy to intercept error and warning log entries.
   if (!srslog::install_custom_sink(
-          srslte::log_sink_spy::name(),
-          std::unique_ptr<srslte::log_sink_spy>(new srslte::log_sink_spy(srslog::get_default_log_formatter())))) {
-    return SRSLTE_ERROR;
+          srsran::log_sink_spy::name(),
+          std::unique_ptr<srsran::log_sink_spy>(new srsran::log_sink_spy(srslog::get_default_log_formatter())))) {
+    return SRSRAN_ERROR;
   }
 
-  auto* spy = static_cast<srslte::log_sink_spy*>(srslog::find_sink(srslte::log_sink_spy::name()));
+  auto* spy = static_cast<srsran::log_sink_spy*>(srslog::find_sink(srsran::log_sink_spy::name()));
   if (!spy) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   srslog::set_default_sink(*spy);
 
@@ -134,12 +125,12 @@ int main(int argc, char** argv)
     return -1;
   }
   argparse::parse_args(argc, argv);
-  TESTASSERT(test_erab_setup(*spy, true) == SRSLTE_SUCCESS);
-  TESTASSERT(test_erab_setup(*spy, false) == SRSLTE_SUCCESS);
+  TESTASSERT(test_erab_setup(*spy, true) == SRSRAN_SUCCESS);
+  TESTASSERT(test_erab_setup(*spy, false) == SRSRAN_SUCCESS);
 
   srslog::flush();
 
   printf("\nSuccess\n");
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
