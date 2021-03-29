@@ -100,17 +100,17 @@ void sf_worker::work_imp()
   grants.pdsch[0].softbuffer_tx[0] = &softbuffer_tx;
   srsran_softbuffer_tx_reset(&softbuffer_tx);
 
-  grants.pdsch[0].dci.rnti   = 0x1234;
-  grants.pdsch[0].dci.format = srsran_dci_format_nr_1_0;
+  grants.pdsch[0].dci.ctx.rnti   = 0x1234;
+  grants.pdsch[0].dci.ctx.format = srsran_dci_format_nr_1_0;
 
   grants.pdsch[0].dci.freq_domain_assigment = 0x1FFF;
   grants.pdsch[0].dci.time_domain_assigment = 0;
   grants.pdsch[0].dci.mcs                   = 27;
 
-  grants.pdsch[0].dci.search_space  = srsran_search_space_type_ue;
-  grants.pdsch[0].dci.coreset_id    = 1;
-  grants.pdsch[0].dci.location.L    = 0;
-  grants.pdsch[0].dci.location.ncce = 0;
+  grants.pdsch[0].dci.ctx.ss_type       = srsran_search_space_type_ue;
+  grants.pdsch[0].dci.ctx.coreset_id    = 1;
+  grants.pdsch[0].dci.ctx.location.L    = 0;
+  grants.pdsch[0].dci.ctx.location.ncce = 0;
 
   for (auto& w : cc_workers) {
     w->work_dl(dl_cfg, grants);

@@ -26,6 +26,7 @@ public:
   ~cc_worker();
 
   bool set_carrier(const srsran_carrier_nr_t* carrier);
+  bool update_cfg();
   void set_tti(uint32_t tti);
 
   cf_t*    get_rx_buffer(uint32_t antenna_idx);
@@ -38,6 +39,7 @@ public:
   int read_pdsch_d(cf_t* pdsch_d);
 
 private:
+  bool                                configured  = false;
   srsran_slot_cfg_t                   dl_slot_cfg = {};
   srsran_slot_cfg_t                   ul_slot_cfg = {};
   uint32_t                            cc_idx      = 0;

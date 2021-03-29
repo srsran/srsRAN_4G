@@ -118,12 +118,12 @@ static int work_gnb_dl(srsran_enb_dl_nr_t*    enb_dl,
 
   // Hard-coded values
   srsran_dci_dl_nr_t dci_dl    = {};
-  dci_dl.rnti                  = pdsch_cfg.grant.rnti;
-  dci_dl.rnti_type             = pdsch_cfg.grant.rnti_type;
-  dci_dl.format                = srsran_dci_format_nr_1_0;
-  dci_dl.location              = *dci_location;
-  dci_dl.search_space          = search_space->type;
-  dci_dl.coreset_id            = 1;
+  dci_dl.ctx.rnti              = pdsch_cfg.grant.rnti;
+  dci_dl.ctx.rnti_type         = pdsch_cfg.grant.rnti_type;
+  dci_dl.ctx.format            = srsran_dci_format_nr_1_0;
+  dci_dl.ctx.location          = *dci_location;
+  dci_dl.ctx.ss_type           = search_space->type;
+  dci_dl.ctx.coreset_id        = 1;
   dci_dl.freq_domain_assigment = 0;
   dci_dl.time_domain_assigment = 0;
   dci_dl.vrb_to_prb_mapping    = 0;
@@ -216,7 +216,7 @@ int main(int argc, char** argv)
     goto clean_exit;
   }
 
-  srsran_ue_dl_nr_pdcch_cfg_t pdcch_cfg = {};
+  srsran_pdcch_cfg_nr_t pdcch_cfg = {};
 
   // Configure CORESET
   srsran_coreset_t* coreset    = &pdcch_cfg.coreset[1];
@@ -232,6 +232,9 @@ int main(int argc, char** argv)
   search_space->id                    = 0;
   search_space->coreset_id            = 1;
   search_space->type                  = srsran_search_space_type_common_3;
+  search_space->formats[0]            = srsran_dci_format_nr_0_0;
+  search_space->formats[1]            = srsran_dci_format_nr_1_0;
+  search_space->nof_formats           = 2;
   for (uint32_t L = 0; L < SRSRAN_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR; L++) {
     search_space->nof_candidates[L] = srsran_pdcch_nr_max_candidates_coreset(coreset, L);
   }
@@ -249,9 +252,14 @@ int main(int argc, char** argv)
   if (srsran_ue_dl_nr_set_carrier(&ue_dl, &carrier)) {
     ERROR("Error setting SCH NR carrier");
     goto clean_exit;
+    goto clean_exit;
   }
 
-  if (srsran_ue_dl_nr_set_pdcch_config(&ue_dl, &pdcch_cfg)) {
+  srsran_dci_cfg_nr_t dci_cfg = {};
+  dci_cfg.bwp_dl_initial_bw   = carrier.nof_prb;
+  dci_cfg.bwp_ul_initial_bw   = carrier.nof_prb;
+  dci_cfg.monitor_common_0_0  = true;
+  if (srsran_ue_dl_nr_set_pdcch_config(&ue_dl, &pdcch_cfg, &dci_cfg)) {
     ERROR("Error setting CORESET");
     goto clean_exit;
   }
@@ -261,7 +269,7 @@ int main(int argc, char** argv)
     goto clean_exit;
   }
 
-  if (srsran_enb_dl_nr_set_coreset(&enb_dl, coreset)) {
+  if (srsran_enb_dl_nr_set_pdcch_config(&enb_dl, &pdcch_cfg, &dci_cfg)) {
     ERROR("Error setting CORESET");
     goto clean_exit;
   }
@@ -346,14 +354,20 @@ int main(int argc, char** argv)
         }
 
         // Compute PDCCH candidate locations
-        uint32_t L                                                          = 0;
+        uint32_t L                                                          = 1;
         uint32_t ncce_candidates[SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR] = {};
-        int      nof_candidates                                             = srsran_pdcch_nr_locations_coreset(
-            coreset, search_space, pdsch_cfg.grant.rnti, L, slot.idx, ncce_candidates);
+        int      nof_candidates                                             = srsran_pdcch_nr_locations_coreset(coreset,
+                                                               search_space,
+                                                               pdsch_cfg.grant.rnti,
+                                                               L,
+                                                               SRSRAN_SLOT_NR_MOD(carrier.numerology, slot.idx),
+                                                               ncce_candidates);
         if (nof_candidates < SRSRAN_SUCCESS) {
           ERROR("Error getting PDCCH candidates");
           goto clean_exit;
         }
+
+        srsran_vec_fprint_i(stdout, (int*)ncce_candidates, nof_candidates);
 
         // Setup DCI location
         srsran_dci_location_t dci_location = {};

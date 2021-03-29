@@ -113,7 +113,7 @@ extern "C" {
  * @brief Maximum number of PDSCH time domain resource allocations. This is defined by TS 38.331 v15.10.0
  * as maxNrofDL-Allocations
  */
-#define SRSRAN_MAX_NOF_DL_ALLOCATION 16
+#define SRSRAN_MAX_NOF_TIME_RA 16
 
 /**
  * @brief Maximum dl-DataToUL-ACK value. This is defined by TS 38.331 v15.10.1 in PUCCH-Config
@@ -143,7 +143,7 @@ typedef enum SRSRAN_API {
 typedef enum SRSRAN_API { srsran_sch_mapping_type_A = 0, srsran_sch_mapping_type_B } srsran_sch_mapping_type_t;
 
 /**
- * @brief Search spaces
+ * @brief Search Space (SS) type
  * @remark Described in TS 38.213 V15.10.0 Section 10.1 UE procedure for determining physical downlink control channel
  * assignment
  */
@@ -209,7 +209,8 @@ typedef enum SRSRAN_API {
   srsran_dci_format_nr_2_2, ///< @brief Transmission of TPC commands for PUCCH and PUSCH
   srsran_dci_format_nr_2_3, ///< @brief Transmission of a group of TPC commands for SRS transmissions by one or more UEs
   srsran_dci_format_nr_rar, ///< @brief Scheduling a transmission of PUSCH from RAR
-  srsran_dci_format_nr_cg   ///< @brief Scheduling of PUSCH using a configured grant
+  srsran_dci_format_nr_cg,  ///< @brief Scheduling of PUSCH using a configured grant
+  SRSRAN_DCI_FORMAT_NR_COUNT ///< @brief Number of DCI formats
 } srsran_dci_format_nr_t;
 
 /**
@@ -232,7 +233,18 @@ typedef enum SRSRAN_API {
   srsran_pdsch_harq_ack_codebook_none = 0,
   srsran_pdsch_harq_ack_codebook_semi_static,
   srsran_pdsch_harq_ack_codebook_dynamic,
-} srsran_pdsch_harq_ack_codebook_t;
+} srsran_harq_ack_codebook_t;
+
+/**
+ * @brief PDSCH/PUSCH Resource allocation configuration
+ * @remark Described in TS 38.331 V15.10.0 PhysicalCellGroupConfig
+ */
+typedef enum SRSRAN_API {
+  srsran_resource_alloc_type0 = 0,
+  srsran_resource_alloc_type1,
+  srsran_resource_alloc_dynamic,
+} srsran_resource_alloc_t;
+
 /**
  * @brief NR carrier parameters. It is a combination of fixed cell and bandwidth-part (BWP)
  */
@@ -303,8 +315,10 @@ typedef struct SRSRAN_API {
 typedef struct SRSRAN_API {
   uint32_t                   id;
   uint32_t                   coreset_id;
-  uint32_t                   duration; // in slots
-  srsran_search_space_type_t type;
+  uint32_t                   duration; ///< SS duration length in slots
+  srsran_search_space_type_t type;     ///< Sets the SS type, common (multiple types) or UE specific
+  srsran_dci_format_nr_t     formats[SRSRAN_DCI_FORMAT_NR_COUNT]; ///< Specifies the DCI formats that shall be searched
+  uint32_t                   nof_formats;
   uint32_t                   nof_candidates[SRSRAN_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR];
 } srsran_search_space_t;
 
@@ -333,6 +347,13 @@ typedef struct SRSRAN_API {
  * @return Constant string with the RNTI type name
  */
 SRSRAN_API const char* srsran_rnti_type_str(srsran_rnti_type_t rnti_type);
+
+/**
+ * @brief Get the RNTI type name for NR
+ * @param rnti_type RNTI type name
+ * @return Constant string with the RNTI type name
+ */
+SRSRAN_API const char* srsran_dci_format_nr_string(srsran_dci_format_nr_t format);
 
 /**
  * @brief Calculates the bandwidth of a given CORESET in physical resource blocks (PRB) . This function uses the

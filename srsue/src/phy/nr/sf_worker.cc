@@ -45,6 +45,15 @@ bool sf_worker::set_carrier_unlocked(uint32_t cc_idx, const srsran_carrier_nr_t*
   return cc_workers.at(cc_idx)->set_carrier(carrier_);
 }
 
+bool sf_worker::update_cfg(uint32_t cc_idx)
+{
+  if (cc_idx >= cc_workers.size()) {
+    return false;
+  }
+
+  return cc_workers[cc_idx]->update_cfg();
+}
+
 cf_t* sf_worker::get_buffer(uint32_t cc_idx, uint32_t antenna_idx)
 {
   if (cc_idx >= cc_workers.size()) {

@@ -17,21 +17,10 @@
 #include "srsran/phy/common/phy_common_nr.h"
 #include "srsran/phy/dft/ofdm.h"
 #include "srsran/phy/phch/dci_nr.h"
+#include "srsran/phy/phch/pdcch_cfg_nr.h"
 #include "srsran/phy/phch/pdcch_nr.h"
 #include "srsran/phy/phch/pdsch_nr.h"
 #include "srsran/phy/phch/uci_cfg_nr.h"
-
-/**
- * Maximum number of CORESET
- * @remark Defined in TS 38.331 by maxNrofControlResourceSets-1
- */
-#define SRSRAN_UE_DL_NR_MAX_NOF_CORESET 12
-
-/**
- * Maximum number of Search spaces
- * @remark Defined in TS 38.331 by maxNrofSearchSpaces-1
- */
-#define SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE 40
 
 /**
  * Maximum number of DCI messages to receive
@@ -46,18 +35,6 @@ typedef struct SRSRAN_API {
   float                  pdcch_dmrs_corr_thr;
   float                  pdcch_dmrs_epre_thr;
 } srsran_ue_dl_nr_args_t;
-
-typedef struct SRSRAN_API {
-  srsran_coreset_t coreset[SRSRAN_UE_DL_NR_MAX_NOF_CORESET]; ///< PDCCH Control resource sets (CORESET) collection
-  bool             coreset_present[SRSRAN_UE_DL_NR_MAX_NOF_CORESET]; ///< CORESET present flags
-
-  srsran_search_space_t search_space[SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE];
-  bool                  search_space_present[SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE];
-
-  uint16_t              ra_rnti; ///< Needs to be deduced from the PRACH configuration
-  srsran_search_space_t ra_search_space;
-  bool                  ra_search_space_present;
-} srsran_ue_dl_nr_pdcch_cfg_t;
 
 typedef struct {
   uint32_t scell_idx;  ///< Serving cell index
@@ -93,9 +70,9 @@ typedef struct {
 } srsran_pdsch_ack_nr_t;
 
 typedef struct SRSRAN_API {
-  bool harq_ack_spatial_bundling_pucch; ///< Param harq-ACK-SpatialBundlingPUCCH, set to true if provided
-  bool harq_ack_spatial_bundling_pusch; ///< Param harq-ACK-SpatialBundlingPUSCH, set to true if provided
-  srsran_pdsch_harq_ack_codebook_t pdsch_harq_ack_codebook; ///< pdsch-HARQ-ACK-Codebook configuration
+  bool harq_ack_spatial_bundling_pucch;         ///< Param harq-ACK-SpatialBundlingPUCCH, set to true if provided
+  bool harq_ack_spatial_bundling_pusch;         ///< Param harq-ACK-SpatialBundlingPUSCH, set to true if provided
+  srsran_harq_ack_codebook_t harq_ack_codebook; ///< pdsch-HARQ-ACK-Codebook configuration
   bool max_cw_sched_dci_is_2; ///< Param maxNrofCodeWordsScheduledByDCI, set to true if present and equal to 2
 
   uint32_t dl_data_to_ul_ack[SRSRAN_MAX_NOF_DL_DATA_TO_UL];
@@ -103,11 +80,10 @@ typedef struct SRSRAN_API {
 } srsran_ue_dl_nr_harq_ack_cfg_t;
 
 typedef struct SRSRAN_API {
-  uint32_t                    coreset_id;
-  uint32_t                    ss_id;
-  srsran_dci_location_t       location;
+  srsran_dci_ctx_t            dci_ctx;
   srsran_dmrs_pdcch_measure_t measure;
   srsran_pdcch_nr_res_t       result;
+  uint32_t                    nof_bits;
 } srsran_ue_dl_nr_pdcch_info_t;
 
 typedef struct SRSRAN_API {
@@ -116,8 +92,8 @@ typedef struct SRSRAN_API {
   float    pdcch_dmrs_corr_thr;
   float    pdcch_dmrs_epre_thr;
 
-  srsran_carrier_nr_t         carrier;
-  srsran_ue_dl_nr_pdcch_cfg_t cfg;
+  srsran_carrier_nr_t   carrier;
+  srsran_pdcch_cfg_nr_t cfg;
 
   srsran_ofdm_t fft[SRSRAN_MAX_PORTS];
 
@@ -134,12 +110,15 @@ typedef struct SRSRAN_API {
   srsran_ue_dl_nr_pdcch_info_t pdcch_info[SRSRAN_MAX_NOF_CANDIDATES_SLOT_NR];
   uint32_t                     pdcch_info_count;
 
-  /// Temporally stores Found DCI messages from all SS
-  srsran_dci_msg_nr_t dci_msg[SRSRAN_MAX_DCI_MSG_NR];
-  uint32_t            dci_msg_count;
+  /// DCI packing/unpacking object
+  srsran_dci_nr_t dci;
 
-  srsran_dci_msg_nr_t pending_ul_dci_msg[SRSRAN_MAX_DCI_MSG_NR];
-  uint32_t            pending_ul_dci_count;
+  /// Temporally stores Found DCI messages from all SS
+  srsran_dci_msg_nr_t dl_dci_msg[SRSRAN_MAX_DCI_MSG_NR];
+  uint32_t            dl_dci_msg_count;
+
+  srsran_dci_msg_nr_t ul_dci_msg[SRSRAN_MAX_DCI_MSG_NR];
+  uint32_t            ul_dci_count;
 } srsran_ue_dl_nr_t;
 
 SRSRAN_API int
@@ -147,7 +126,9 @@ srsran_ue_dl_nr_init(srsran_ue_dl_nr_t* q, cf_t* input[SRSRAN_MAX_PORTS], const 
 
 SRSRAN_API int srsran_ue_dl_nr_set_carrier(srsran_ue_dl_nr_t* q, const srsran_carrier_nr_t* carrier);
 
-SRSRAN_API int srsran_ue_dl_nr_set_pdcch_config(srsran_ue_dl_nr_t* q, const srsran_ue_dl_nr_pdcch_cfg_t* cfg);
+SRSRAN_API int srsran_ue_dl_nr_set_pdcch_config(srsran_ue_dl_nr_t*           q,
+                                                const srsran_pdcch_cfg_nr_t* cfg,
+                                                const srsran_dci_cfg_nr_t*   dci_cfg);
 
 SRSRAN_API void srsran_ue_dl_nr_free(srsran_ue_dl_nr_t* q);
 

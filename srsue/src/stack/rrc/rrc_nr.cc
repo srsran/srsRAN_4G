@@ -562,8 +562,8 @@ bool rrc_nr::apply_mac_cell_group(const mac_cell_group_cfg_s& mac_cell_group_cfg
     if (mac_cell_group_cfg.bsr_cfg_present) {
       logger.debug("Handling MAC BSR config");
       srsran::bsr_cfg_nr_t bsr_cfg = {};
-      bsr_cfg.periodic_timer = mac_cell_group_cfg.bsr_cfg.periodic_bsr_timer.to_number();
-      bsr_cfg.retx_timer     = mac_cell_group_cfg.bsr_cfg.retx_bsr_timer.to_number();
+      bsr_cfg.periodic_timer       = mac_cell_group_cfg.bsr_cfg.periodic_bsr_timer.to_number();
+      bsr_cfg.retx_timer           = mac_cell_group_cfg.bsr_cfg.retx_bsr_timer.to_number();
       if (mac->set_config(bsr_cfg) != SRSRAN_SUCCESS) {
         return false;
       }
@@ -610,7 +610,7 @@ bool rrc_nr::apply_sp_cell_init_dl_pdsch(const asn1::rrc_nr::pdsch_cfg_s& pdsch_
 
 bool rrc_nr::apply_res_csi_report_cfg(const asn1::rrc_nr::csi_report_cfg_s& csi_report_cfg)
 {
-  uint32_t report_cfg_id             = csi_report_cfg.report_cfg_id;
+  uint32_t                   report_cfg_id = csi_report_cfg.report_cfg_id;
   srsran_csi_hl_report_cfg_t srsran_csi_hl_report_cfg;
   if (make_phy_csi_report(csi_report_cfg, &srsran_csi_hl_report_cfg) == true) {
     phy_cfg.csi.reports[report_cfg_id] = srsran_csi_hl_report_cfg;
@@ -692,7 +692,7 @@ bool rrc_nr::apply_dl_common_cfg(const asn1::rrc_nr::dl_cfg_common_s& dl_cfg_com
             // phy_cfg.pdcch.ra_rnti                 = 0x16; //< Supposed to be deduced from PRACH configuration
             phy_cfg.pdcch.ra_search_space         = phy_cfg.pdcch.search_space[pdcch_cfg_common.ra_search_space];
             phy_cfg.pdcch.ra_search_space_present = true;
-            phy_cfg.pdcch.ra_search_space.type    = srsran_search_space_type_common_3;
+            phy_cfg.pdcch.ra_search_space.type    = srsran_search_space_type_common_1;
           } else {
             logger.warning("Search space %d not presenet for random access search space",
                            pdcch_cfg_common.ra_search_space);
@@ -748,7 +748,6 @@ bool rrc_nr::apply_ul_common_cfg(const asn1::rrc_nr::ul_cfg_common_s& ul_cfg_com
     if (ul_cfg_common.init_ul_bwp.rach_cfg_common_present) {
       if (ul_cfg_common.init_ul_bwp.rach_cfg_common.type() == setup_release_c<rach_cfg_common_s>::types_opts::setup) {
         rach_nr_cfg_t rach_nr_cfg = make_mac_rach_cfg(ul_cfg_common.init_ul_bwp.rach_cfg_common.setup());
-        phy_cfg.pdcch.ra_rnti     = ul_cfg_common.init_ul_bwp.rach_cfg_common.setup().rach_cfg_generic.prach_cfg_idx;
         mac->set_config(rach_nr_cfg);
 
         // Make the RACH configuration for PHY

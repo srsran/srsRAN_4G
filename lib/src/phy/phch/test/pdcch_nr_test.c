@@ -43,8 +43,8 @@ static int test(srsran_pdcch_nr_t*      tx,
   // Encode PDCCH
   TESTASSERT(srsran_pdcch_nr_encode(tx, dci_msg_tx, grid) == SRSRAN_SUCCESS);
 
-  enc_time[dci_msg_tx->location.L].time_us += tx->meas_time_us;
-  enc_time[dci_msg_tx->location.L].count++;
+  enc_time[dci_msg_tx->ctx.location.L].time_us += tx->meas_time_us;
+  enc_time[dci_msg_tx->ctx.location.L].count++;
 
   // Init Rx MSG
   srsran_pdcch_nr_res_t res        = {};
@@ -54,8 +54,8 @@ static int test(srsran_pdcch_nr_t*      tx,
   // Decode PDCCH
   TESTASSERT(srsran_pdcch_nr_decode(rx, grid, ce, &dci_msg_rx, &res) == SRSRAN_SUCCESS);
 
-  dec_time[dci_msg_tx->location.L].time_us += rx->meas_time_us;
-  dec_time[dci_msg_tx->location.L].count++;
+  dec_time[dci_msg_tx->ctx.location.L].time_us += rx->meas_time_us;
+  dec_time[dci_msg_tx->ctx.location.L].count++;
 
   // Assert
   TESTASSERT(res.evm < 0.01f);
@@ -142,8 +142,27 @@ int main(int argc, char** argv)
     }
     for (coreset.duration = SRSRAN_CORESET_DURATION_MIN; coreset.duration <= SRSRAN_CORESET_DURATION_MAX;
          coreset.duration++) {
-      srsran_search_space_t search_space = {};
-      search_space.type                  = srsran_search_space_type_ue;
+      srsran_search_space_t search_space               = {};
+      search_space.type                                = srsran_search_space_type_ue;
+      search_space.formats[search_space.nof_formats++] = srsran_dci_format_nr_0_0;
+      search_space.formats[search_space.nof_formats++] = srsran_dci_format_nr_1_0;
+
+      srsran_dci_cfg_nr_t dci_cfg = {};
+      dci_cfg.coreset0_bw         = 0;
+      dci_cfg.bwp_dl_initial_bw   = carrier.nof_prb;
+      dci_cfg.bwp_dl_active_bw    = carrier.nof_prb;
+      dci_cfg.bwp_ul_initial_bw   = carrier.nof_prb;
+      dci_cfg.bwp_ul_active_bw    = carrier.nof_prb;
+      dci_cfg.monitor_common_0_0  = true;
+      dci_cfg.monitor_0_0_and_1_0 = true;
+      dci_cfg.monitor_0_1_and_1_1 = true;
+
+      // Precompute DCI sizes
+      srsran_dci_nr_t dci = {};
+      if (srsran_dci_nr_set_cfg(&dci, &dci_cfg) < SRSRAN_SUCCESS) {
+        ERROR("Error setting DCI configuratio");
+        goto clean_exit;
+      }
 
       if (srsran_pdcch_nr_set_carrier(&pdcch_tx, &carrier, &coreset) < SRSRAN_SUCCESS) {
         ERROR("Error setting carrier");
@@ -185,11 +204,11 @@ int main(int argc, char** argv)
           for (uint32_t ncce_idx = 0; ncce_idx < n; ncce_idx++) {
             // Init MSG
             srsran_dci_msg_nr_t dci_msg = {};
-            dci_msg.format              = srsran_dci_format_nr_1_0;
-            dci_msg.rnti_type           = srsran_rnti_type_c;
-            dci_msg.location.L          = aggregation_level;
-            dci_msg.location.ncce       = dci_locations[ncce_idx];
-            dci_msg.nof_bits            = srsran_dci_nr_format_1_0_sizeof(&carrier, &coreset, dci_msg.rnti_type);
+            dci_msg.ctx.format          = srsran_dci_format_nr_1_0;
+            dci_msg.ctx.rnti_type       = srsran_rnti_type_c;
+            dci_msg.ctx.location.L      = aggregation_level;
+            dci_msg.ctx.location.ncce   = dci_locations[ncce_idx];
+            dci_msg.nof_bits            = srsran_dci_nr_size(&dci, search_space.type, srsran_dci_format_nr_1_0);
 
             // Generate random payload
             for (uint32_t i = 0; i < dci_msg.nof_bits; i++) {

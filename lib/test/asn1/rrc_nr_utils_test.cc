@@ -110,7 +110,7 @@ int make_phy_harq_ack_cfg_test()
   srsran_ue_dl_nr_harq_ack_cfg_t srsran_ue_dl_nr_harq_ack_cfg;
   TESTASSERT(make_phy_harq_ack_cfg(phys_cell_group_cfg, &srsran_ue_dl_nr_harq_ack_cfg) == true);
 
-  TESTASSERT(srsran_ue_dl_nr_harq_ack_cfg.pdsch_harq_ack_codebook == srsran_pdsch_harq_ack_codebook_dynamic);
+  TESTASSERT(srsran_ue_dl_nr_harq_ack_cfg.harq_ack_codebook == srsran_pdsch_harq_ack_codebook_dynamic);
   return SRSRAN_SUCCESS;
 }
 

@@ -132,7 +132,7 @@ int srsran_ra_ul_nr_time(const srsran_sch_hl_cfg_nr_t*    cfg,
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
-  if (m >= SRSRAN_MAX_NOF_DL_ALLOCATION) {
+  if (m >= SRSRAN_MAX_NOF_TIME_RA) {
     ERROR("m (%d) is out-of-range", m);
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
@@ -142,12 +142,12 @@ int srsran_ra_ul_nr_time(const srsran_sch_hl_cfg_nr_t*    cfg,
     // Row 1
     if (cfg->nof_common_time_ra == 0) {
       srsran_ra_ul_nr_pusch_time_resource_default_A(cfg->scs_cfg, m, grant);
-    } else if (m < SRSRAN_MAX_NOF_DL_ALLOCATION && m < cfg->nof_common_time_ra) {
+    } else if (m < SRSRAN_MAX_NOF_TIME_RA && m < cfg->nof_common_time_ra) {
       ra_ul_nr_time_hl(&cfg->common_time_ra[m], grant);
     } else {
       ERROR("Time domain resource selection (m=%d) exceeds the maximum value (%d)",
             m,
-            SRSRAN_MIN(cfg->nof_common_time_ra, SRSRAN_MAX_NOF_DL_ALLOCATION));
+            SRSRAN_MIN(cfg->nof_common_time_ra, SRSRAN_MAX_NOF_TIME_RA));
     }
   } else if ((rnti_type == srsran_rnti_type_c || rnti_type == srsran_rnti_type_mcs_c ||
               rnti_type == srsran_rnti_type_tc || rnti_type == srsran_rnti_type_cs) &&
@@ -155,7 +155,7 @@ int srsran_ra_ul_nr_time(const srsran_sch_hl_cfg_nr_t*    cfg,
     // Row 2
     if (cfg->nof_common_time_ra == 0) {
       srsran_ra_ul_nr_pusch_time_resource_default_A(cfg->scs_cfg, m, grant);
-    } else if (m < SRSRAN_MAX_NOF_DL_ALLOCATION) {
+    } else if (m < SRSRAN_MAX_NOF_TIME_RA) {
       ra_ul_nr_time_hl(&cfg->common_time_ra[m], grant);
     }
   } else if ((rnti_type == srsran_rnti_type_c || rnti_type == srsran_rnti_type_mcs_c ||
@@ -374,12 +374,12 @@ int srsran_ra_ul_nr_freq(const srsran_carrier_nr_t*    carrier,
   }
 
   // RA scheme
-  if (dci_ul->format == srsran_dci_format_nr_0_0) {
+  if (dci_ul->ctx.format == srsran_dci_format_nr_0_0 || dci_ul->ctx.format == srsran_dci_format_nr_rar) {
     // when the scheduling grant is received with DCI format 1_0 , then downlink resource allocation type 1 is used.
     return ra_helper_freq_type1(carrier->nof_prb, dci_ul->freq_domain_assigment, grant);
   }
 
-  ERROR("Only DCI Format 0_0 is supported");
+  ERROR("Unhandled DCI Format %s", srsran_dci_format_nr_string(dci_ul->ctx.format));
   return SRSRAN_ERROR;
 }
 

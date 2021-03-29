@@ -94,16 +94,16 @@ int worker_pool::set_ul_grant(std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> pac
 {
   // Copy DCI bits and setup DCI context
   srsran_dci_msg_nr_t dci_msg = {};
-  dci_msg.format              = srsran_dci_format_nr_0_0; // MAC RAR grant shall be unpacked as DCI 0_0 format
-  dci_msg.rnti_type           = rnti_type;
-  dci_msg.search_space        = srsran_search_space_type_rar; // This indicates it is a MAC RAR
-  dci_msg.rnti                = rnti;
+  dci_msg.ctx.format          = srsran_dci_format_nr_rar; // MAC RAR grant shall be unpacked as DCI 0_0 format
+  dci_msg.ctx.rnti_type       = rnti_type;
+  dci_msg.ctx.ss_type         = srsran_search_space_type_rar; // This indicates it is a MAC RAR
+  dci_msg.ctx.rnti            = rnti;
   dci_msg.nof_bits            = SRSRAN_RAR_UL_GRANT_NBITS;
   srsran_vec_u8_copy(dci_msg.payload, packed_ul_grant.data(), SRSRAN_RAR_UL_GRANT_NBITS);
 
   srsran_dci_ul_nr_t dci_ul = {};
 
-  if (srsran_dci_nr_rar_unpack(&dci_msg, &dci_ul) < SRSRAN_SUCCESS) {
+  if (srsran_dci_nr_ul_unpack(NULL, &dci_msg, &dci_ul) < SRSRAN_SUCCESS) {
     return SRSRAN_ERROR;
   }
 
@@ -129,6 +129,13 @@ bool worker_pool::set_config(const srsran::phy_cfg_nr_t& cfg)
   if (not prach_buffer->set_cell(cell, phy_state.cfg.prach)) {
     logger.error("Error setting PRACH cell");
     return false;
+  }
+
+  // Request workers to run any procedure related to configuration update
+  for (auto& w : workers) {
+    if (not w->update_cfg(0)) {
+      return false;
+    }
   }
 
   return true;

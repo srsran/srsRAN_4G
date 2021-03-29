@@ -35,6 +35,7 @@ public:
   ~sf_worker() = default;
 
   bool set_carrier_unlocked(uint32_t cc_idx, const srsran_carrier_nr_t* carrier_);
+  bool update_cfg(uint32_t cc_idx);
 
   /* Functions used by main PHY thread */
   cf_t*    get_buffer(uint32_t cc_idx, uint32_t antenna_idx);

@@ -70,11 +70,6 @@ bool cc_worker::set_carrier(const srsran_carrier_nr_t* carrier)
     return false;
   }
 
-  if (srsran_ue_dl_nr_set_pdcch_config(&ue_dl, &phy->cfg.pdcch) < SRSRAN_SUCCESS) {
-    ERROR("Error setting carrier");
-    return false;
-  }
-
   if (srsran_ue_ul_nr_set_carrier(&ue_ul, carrier) < SRSRAN_SUCCESS) {
     ERROR("Error setting carrier");
     return false;
@@ -82,6 +77,20 @@ bool cc_worker::set_carrier(const srsran_carrier_nr_t* carrier)
 
   // Set default PDSCH config
   phy->cfg.pdsch.rbg_size_cfg_1 = false;
+
+  return true;
+}
+
+bool cc_worker::update_cfg()
+{
+  srsran_dci_cfg_nr_t dci_cfg = phy->cfg.get_dci_cfg(phy->carrier);
+
+  if (srsran_ue_dl_nr_set_pdcch_config(&ue_dl, &phy->cfg.pdcch, &dci_cfg) < SRSRAN_SUCCESS) {
+    logger.error("Error setting NR PDCCH configuration");
+    return false;
+  }
+
+  configured = true;
 
   return true;
 }
@@ -129,7 +138,7 @@ void cc_worker::decode_pdcch_dl()
   int n_dl =
       srsran_ue_dl_nr_find_dl_dci(&ue_dl, &dl_slot_cfg, rnti.id, rnti.type, dci_rx.data(), (uint32_t)dci_rx.size());
   if (n_dl < SRSRAN_SUCCESS) {
-    logger.error("Error decoding DL NR-PDCCH");
+    logger.error("Error decoding DL NR-PDCCH for %s=0x%x", srsran_rnti_type_str(rnti.type), rnti.id);
     return;
   }
 
@@ -149,14 +158,17 @@ void cc_worker::decode_pdcch_dl()
   if (logger.debug.enabled()) {
     for (uint32_t i = 0; i < ue_dl.pdcch_info_count; i++) {
       const srsran_ue_dl_nr_pdcch_info_t* info = &ue_dl.pdcch_info[i];
-      logger.debug("PDCCH: crst_id=%d, ss_id=%d, ncce=%d, al=%d, EPRE=%+.2f, RSRP=%+.2f, corr=%.3f; crc=%s",
-                   info->coreset_id,
-                   info->ss_id,
-                   info->location.ncce,
-                   info->location.L,
+      logger.debug("PDCCH: rnti=0x%x, crst_id=%d, ss_type=%d, ncce=%d, al=%d, EPRE=%+.2f, RSRP=%+.2f, corr=%.3f; "
+                   "nof_bits=%d; crc=%s;",
+                   info->dci_ctx.rnti,
+                   info->dci_ctx.coreset_id,
+                   info->dci_ctx.ss_type,
+                   info->dci_ctx.location.ncce,
+                   info->dci_ctx.location.L,
                    info->measure.epre_dBfs,
                    info->measure.rsrp_dBfs,
                    info->measure.norm_corr,
+                   info->nof_bits,
                    info->result.crc ? "OK" : "KO");
     }
   }
@@ -196,6 +208,11 @@ void cc_worker::decode_pdcch_ul()
 
 bool cc_worker::work_dl()
 {
+  // Do NOT process any DL if it is not configured
+  if (not configured) {
+    return true;
+  }
+
   // Check if it is a DL slot, if not skip
   if (!srsran_tdd_nr_is_dl(&phy->cfg.tdd, 0, dl_slot_cfg.idx)) {
     return true;
