@@ -13,6 +13,8 @@
 #ifndef CPP_TESTS_INDEX_SEQUENCE_H
 #define CPP_TESTS_INDEX_SEQUENCE_H
 
+#include <cstddef>
+
 namespace srsran {
 
 template <std::size_t...>

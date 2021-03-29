@@ -10,7 +10,7 @@
  *
  */
 
-#include "srsran/common/fsm.h"
+#include "srsran/adt/fsm.h"
 #include "srsran/common/test_common.h"
 
 /////////////////////////////

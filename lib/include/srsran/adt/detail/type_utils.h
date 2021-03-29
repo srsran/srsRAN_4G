@@ -271,19 +271,15 @@ const T* get_if(const TypeContainer& c)
 template <typename T, typename TypeContainer>
 T& get(TypeContainer& c)
 {
-  if (c.template is<T>()) {
-    return c.template get_unchecked<T>();
-  }
-  THROW_BAD_ACCESS("in get<T>");
+  srsran_assert(c.template is<T>(), "Bad access via get<T>");
+  return c.template get_unchecked<T>();
 }
 
 template <typename T, typename TypeContainer>
 const T& get(const TypeContainer& c)
 {
-  if (c.template is<T>()) {
-    return c.template get_unchecked<T>();
-  }
-  THROW_BAD_ACCESS("in get<T>");
+  srsran_assert(c.template is<T>(), "Bad access via get<T>");
+  return c.template get_unchecked<T>();
 }
 
 template <size_t I,

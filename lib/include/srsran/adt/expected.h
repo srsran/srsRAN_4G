@@ -13,13 +13,21 @@
 #ifndef SRSRAN_EXPECTED_H
 #define SRSRAN_EXPECTED_H
 
-#include "adt_utils.h"
+#include "srsran/common/srsran_assert.h"
 #include <memory>
 #include <system_error>
 
 namespace srsran {
 
 struct default_error_t {};
+
+template <typename T, typename E>
+class expected;
+
+template <typename T>
+struct is_expected : std::false_type {};
+template <typename V, typename E>
+struct is_expected<expected<V, E> > : std::true_type {};
 
 template <typename T, typename E = default_error_t>
 class expected
@@ -32,6 +40,12 @@ public:
   expected(const T& t) : has_val(true), val(t) {}
   expected(E&& e) : has_val(false), unexpected(std::forward<E>(e)) {}
   expected(const E& e) : has_val(false), unexpected(e) {}
+  template <
+      typename U,
+      typename std::enable_if<std::is_convertible<U, T>::value and not is_expected<typename std::decay<U>::type>::value,
+                              int>::type = 0>
+  explicit expected(U&& u) : has_val(true), val(std::forward<U>(u))
+  {}
   expected(const expected& other)
   {
     if (other.has_val) {
@@ -105,30 +119,22 @@ public:
   bool     is_error() const { return not has_value(); }
   const T& value() const
   {
-    if (not has_val) {
-      THROW_BAD_ACCESS("Bad expected value access");
-    }
+    srsran_assert(has_value(), "Bad expected<T> value access");
     return val;
   }
   T& value()
   {
-    if (not has_val) {
-      THROW_BAD_ACCESS("Bad expected value access");
-    }
+    srsran_assert(has_value(), "Bad expected<T> value access");
     return val;
   }
   const E& error() const
   {
-    if (has_val) {
-      THROW_BAD_ACCESS("Bad expected error access");
-    }
+    srsran_assert(not has_value(), "Bad expected<T> error access");
     return unexpected;
   }
   E& error()
   {
-    if (has_val) {
-      THROW_BAD_ACCESS("Bad expected error access");
-    }
+    srsran_assert(not has_value(), "Bad expected<T> error access");
     return unexpected;
   }
 

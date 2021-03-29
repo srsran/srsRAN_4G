@@ -15,7 +15,7 @@
 
 #include "rrc.h"
 #include "rrc_ue.h"
-#include "srsran/common/fsm.h"
+#include "srsran/adt/fsm.h"
 #include <map>
 
 namespace srsenb {

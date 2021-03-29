@@ -13,7 +13,7 @@
 #ifndef SRSRAN_INTERVAL_H
 #define SRSRAN_INTERVAL_H
 
-#include "adt_utils.h"
+#include "srsran/common/srsran_assert.h"
 #include "srsran/srslog/bundled/fmt/format.h"
 #include <cassert>
 #include <string>
@@ -43,7 +43,7 @@ public:
 
   void set(T start_point, T stop_point)
   {
-    assert(stop_point >= start_point);
+    srsran_assert(stop_point >= start_point, "interval::set called for invalid range points");
     start_ = start_point;
     stop_  = stop_point;
   }
@@ -51,13 +51,13 @@ public:
   void resize_by(T len)
   {
     // Detect length overflows
-    assert(std::is_unsigned<T>::value or (len >= 0 or length() >= -len));
+    srsran_assert(std::is_unsigned<T>::value or (len >= 0 or length() >= -len), "Resulting interval would be invalid");
     stop_ += len;
   }
 
   void resize_to(T len)
   {
-    assert(std::is_unsigned<T>::value or len >= 0);
+    srsran_assert(std::is_unsigned<T>::value or len >= 0, "Interval width must be positive");
     stop_ = start_ + len;
   }
 

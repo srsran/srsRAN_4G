@@ -13,6 +13,7 @@
 #ifndef SRSRAN_BOUNDED_VECTOR_H
 #define SRSRAN_BOUNDED_VECTOR_H
 
+#include "srsran/adt/detail/type_storage.h"
 #include "srsran/common/srsran_assert.h"
 #include <iterator>
 #include <memory>
@@ -88,12 +89,12 @@ public:
   T& operator[](std::size_t i)
   {
     srsran_assert(i < size_, "Array index is out of bounds.");
-    return reinterpret_cast<T&>(buffer[i]);
+    return buffer[i].get();
   }
   const T& operator[](std::size_t i) const
   {
     srsran_assert(i < size_, "Array index is out of bounds.");
-    return reinterpret_cast<const T&>(buffer[i]);
+    return buffer[i].get();
   }
   T& back()
   {
@@ -107,8 +108,8 @@ public:
   }
   T&       front() { return (*this)[0]; }
   const T& front() const { return (*this)[0]; }
-  T*       data() { return reinterpret_cast<T*>(buffer); }
-  const T* data() const { return reinterpret_cast<const T*>(buffer); }
+  T*       data() { return &buffer[0].get(); }
+  const T* data() const { return &buffer[0].get(); }
 
   // Iterators
   iterator       begin() { return data(); }
@@ -226,13 +227,13 @@ private:
     static_assert(std::is_default_constructible<T>::value, "T must be default-constructible");
     srsran_assert(N + size_ <= MAX_N, "bounded vector maximum size=%zd was exceeded", MAX_N);
     for (size_type i = size_; i < size_ + N; ++i) {
-      new (&buffer[i]) T();
+      buffer[i].emplace();
     }
     size_ += N;
   }
 
-  std::size_t                                                size_ = 0;
-  typename std::aligned_storage<sizeof(T), alignof(T)>::type buffer[MAX_N];
+  std::size_t                                size_ = 0;
+  std::array<detail::type_storage<T>, MAX_N> buffer;
 };
 } // namespace srsran
 
