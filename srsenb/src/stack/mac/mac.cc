@@ -89,6 +89,8 @@ void mac::stop()
 {
   srsran::rwlock_write_guard lock(rwlock);
   if (started) {
+    started = false;
+
     ue_db.clear();
     for (auto& cc : common_buffers) {
       for (int i = 0; i < NOF_BCCH_DLSCH_MSG; i++) {
@@ -96,8 +98,8 @@ void mac::stop()
       }
       srsran_softbuffer_tx_free(&cc.pcch_softbuffer_tx);
       srsran_softbuffer_tx_free(&cc.rar_softbuffer_tx);
-      started = false;
     }
+    ue_pool.stop();
   }
 }
 
@@ -454,6 +456,10 @@ uint16_t mac::allocate_ue()
     // Add UE to map
     {
       srsran::rwlock_write_guard lock(rwlock);
+      if (not started) {
+        logger.info("RACH ignored as eNB is being shutdown");
+        return SRSRAN_INVALID_RNTI;
+      }
       if (ue_db.size() >= args.max_nof_ues) {
         logger.warning("Maximum number of connected UEs %zd connected to the eNB. Ignoring PRACH", max_ues);
         return SRSRAN_INVALID_RNTI;
