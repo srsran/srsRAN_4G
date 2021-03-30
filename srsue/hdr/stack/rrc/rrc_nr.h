@@ -212,16 +212,20 @@ private:
 
   srsran::as_security_config_t sec_cfg;
 
+  typedef enum { mcg_srb1, en_dc_srb3, nr } reconf_initiator_t;
+
   class connection_reconf_no_ho_proc
   {
   public:
     explicit connection_reconf_no_ho_proc(rrc_nr* parent_);
-    srsran::proc_outcome_t init(const bool                              endc_release_and_add_r15,
-                                const asn1::rrc_nr::rrc_recfg_s&        rrc_recfg,
-                                const asn1::rrc_nr::cell_group_cfg_s&   cell_group_cfg,
-                                bool                                    sk_counter_r15_present,
-                                const uint32_t                          sk_counter_r15,
-                                const asn1::rrc_nr::radio_bearer_cfg_s& radio_bearer_cfg);
+    srsran::proc_outcome_t init(const reconf_initiator_t initiator_,
+                                const bool                endc_release_and_add_r15,
+                                const bool                nr_secondary_cell_group_cfg_r15_present,
+                                const asn1::dyn_octstring nr_secondary_cell_group_cfg_r15,
+                                const bool                sk_counter_r15_present,
+                                const uint32_t            sk_counter_r15,
+                                const bool                nr_radio_bearer_cfg1_r15_present,
+                                const asn1::dyn_octstring nr_radio_bearer_cfg1_r15);
     srsran::proc_outcome_t step() { return srsran::proc_outcome_t::yield; }
     static const char*     name() { return "NR Connection Reconfiguration"; }
     srsran::proc_outcome_t react(const bool& config_complete);
@@ -229,8 +233,8 @@ private:
 
   private:
     // const
-    rrc_nr* rrc_ptr;
-
+    rrc_nr*                        rrc_ptr;
+    reconf_initiator_t             initiator;
     asn1::rrc_nr::rrc_recfg_s      rrc_recfg;
     asn1::rrc_nr::cell_group_cfg_s cell_group_cfg;
   };

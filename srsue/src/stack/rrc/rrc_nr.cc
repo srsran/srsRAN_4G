@@ -330,69 +330,17 @@ bool rrc_nr::rrc_reconfiguration(bool                endc_release_and_add_r15,
                                  bool                sk_counter_r15_present,
                                  uint32_t            sk_counter_r15,
                                  bool                nr_radio_bearer_cfg1_r15_present,
-                                 asn1::dyn_octstring nr_radio_bearer_cfg1_r15)
+                                 asn1::dyn_octstring nr_radio_bearer_cfg1_r15)                            
 {
-  // sanity check only for now
-  if (nr_secondary_cell_group_cfg_r15_present == false || sk_counter_r15_present == false ||
-      nr_radio_bearer_cfg1_r15_present == false) {
-    logger.error("RRC NR Reconfiguration failed sanity check failed");
-    return false;
-  }
-
-  rrc_recfg_s        rrc_recfg;
-  cell_group_cfg_s   cell_group_cfg;
-  radio_bearer_cfg_s radio_bearer_cfg;
-  asn1::SRSASN_CODE  err;
-
-  cbit_ref bref(nr_secondary_cell_group_cfg_r15.data(), nr_secondary_cell_group_cfg_r15.size());
-
-  err = rrc_recfg.unpack(bref);
-  if (err != asn1::SRSASN_SUCCESS) {
-    logger.error("Could not unpack NR reconfiguration message.");
-    return false;
-  }
-
-  log_rrc_message(
-      "RRC NR Reconfiguration", Rx, nr_secondary_cell_group_cfg_r15, rrc_recfg, "NR Secondary Cell Group Cfg R15");
-
-  if (rrc_recfg.crit_exts.type() == asn1::rrc_nr::rrc_recfg_s::crit_exts_c_::types::rrc_recfg) {
-    if (rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group_present == true) {
-      cbit_ref bref0(rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group.data(),
-                     rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group.size());
-
-      err = cell_group_cfg.unpack(bref0);
-      if (err != asn1::SRSASN_SUCCESS) {
-        logger.error("Could not unpack cell group message message.");
-        return false;
-      }
-
-      log_rrc_message("RRC NR Reconfiguration",
-                      Rx,
-                      rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group,
-                      cell_group_cfg,
-                      "Secondary Cell Group Config");
-    } else {
-      logger.error("Reconfiguration does not contain Secondary Cell Group Config");
-      return false;
-    }
-  }
-
-  cbit_ref bref1(nr_radio_bearer_cfg1_r15.data(), nr_radio_bearer_cfg1_r15.size());
-
-  err = radio_bearer_cfg.unpack(bref1);
-  if (err != asn1::SRSASN_SUCCESS) {
-    logger.error("Could not unpack radio bearer config.");
-    return false;
-  }
-
-  log_rrc_message("RRC NR Reconfiguration", Rx, nr_radio_bearer_cfg1_r15, radio_bearer_cfg, "Radio Bearer Config R15");
-  if (not conn_recfg_proc.launch(endc_release_and_add_r15,
-                                 rrc_recfg,
-                                 cell_group_cfg,
+  if (not conn_recfg_proc.launch(reconf_initiator_t::mcg_srb1,
+                                 endc_release_and_add_r15,
+                                 nr_secondary_cell_group_cfg_r15_present,
+                                 nr_secondary_cell_group_cfg_r15,
                                  sk_counter_r15_present,
                                  sk_counter_r15,
-                                 radio_bearer_cfg)) {
-    logger.error("Unable to launch NR RRC configuration procedure");
+                                 nr_radio_bearer_cfg1_r15_present,
+                                 nr_radio_bearer_cfg1_r15)) {
+    logger.error("Unable to launch NR RRC reconfiguration procedure");
     return false;
   } else {
     callback_list.add_proc(conn_recfg_proc);
@@ -1252,14 +1200,72 @@ void rrc_nr::cell_search_completed(const rrc_interface_phy_lte::cell_search_ret_
 /* Procedures */
 rrc_nr::connection_reconf_no_ho_proc::connection_reconf_no_ho_proc(rrc_nr* parent_) : rrc_ptr(parent_) {}
 
-proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const bool                       endc_release_and_add_r15,
-                                                          const asn1::rrc_nr::rrc_recfg_s& rrc_recfg,
-                                                          const asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg,
-                                                          bool                                  sk_counter_r15_present,
-                                                          const uint32_t                        sk_counter_r15,
-                                                          const asn1::rrc_nr::radio_bearer_cfg_s& radio_bearer_cfg)
+proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const reconf_initiator_t initiator_,
+                                                          const bool               endc_release_and_add_r15,
+                                                          const bool nr_secondary_cell_group_cfg_r15_present,
+                                                          const asn1::dyn_octstring nr_secondary_cell_group_cfg_r15,
+                                                          const bool                sk_counter_r15_present,
+                                                          const uint32_t            sk_counter_r15,
+                                                          const bool                nr_radio_bearer_cfg1_r15_present,
+                                                          const asn1::dyn_octstring nr_radio_bearer_cfg1_r15)
 {
   Info("Starting...");
+  initiator = initiator_;
+
+  rrc_recfg_s        rrc_recfg;
+  cell_group_cfg_s   cell_group_cfg;
+  radio_bearer_cfg_s radio_bearer_cfg;
+  asn1::SRSASN_CODE  err;
+
+  if (nr_secondary_cell_group_cfg_r15_present == false || sk_counter_r15_present == false ||
+      nr_radio_bearer_cfg1_r15_present == false) {
+    Error("RRC NR Reconfiguration failed sanity check failed");
+    return proc_outcome_t::error;
+  }
+
+  cbit_ref bref(nr_secondary_cell_group_cfg_r15.data(), nr_secondary_cell_group_cfg_r15.size());
+
+  err = rrc_recfg.unpack(bref);
+  if (err != asn1::SRSASN_SUCCESS) {
+    Error("Could not unpack NR reconfiguration message.");
+    return proc_outcome_t::error;
+  }
+
+  rrc_ptr->log_rrc_message(
+      "RRC NR Reconfiguration", Rx, nr_secondary_cell_group_cfg_r15, rrc_recfg, "NR Secondary Cell Group Cfg R15");
+
+  if (rrc_recfg.crit_exts.type() == asn1::rrc_nr::rrc_recfg_s::crit_exts_c_::types::rrc_recfg) {
+    if (rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group_present == true) {
+      cbit_ref bref0(rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group.data(),
+                     rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group.size());
+
+      err = cell_group_cfg.unpack(bref0);
+      if (err != asn1::SRSASN_SUCCESS) {
+        Error("Could not unpack cell group message message.");
+        return proc_outcome_t::error;
+      }
+
+      rrc_ptr->log_rrc_message("RRC NR Reconfiguration",
+                               Rx,
+                               rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group,
+                               cell_group_cfg,
+                               "Secondary Cell Group Config");
+    } else {
+      Error("Reconfiguration does not contain Secondary Cell Group Config");
+      return proc_outcome_t::error;
+    }
+  }
+
+  cbit_ref bref1(nr_radio_bearer_cfg1_r15.data(), nr_radio_bearer_cfg1_r15.size());
+
+  err = radio_bearer_cfg.unpack(bref1);
+  if (err != asn1::SRSASN_SUCCESS) {
+    Error("Could not unpack radio bearer config.");
+    return proc_outcome_t::error;
+  }
+
+  rrc_ptr->log_rrc_message(
+      "RRC NR Reconfiguration", Rx, nr_radio_bearer_cfg1_r15, radio_bearer_cfg, "Radio Bearer Config R15");
 
   Info("Applying Cell Group Cfg");
   if (!rrc_ptr->apply_cell_group_cfg(cell_group_cfg)) {
@@ -1283,12 +1289,16 @@ proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const bool            
 proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::react(const bool& config_complete)
 {
   if (not config_complete) {
-    Error("Failed to config PHY");
+    Error("NR reconfiguration failed");
     return proc_outcome_t::error;
   }
 
-  rrc_ptr->rrc_eutra->nr_rrc_con_reconfig_complete(true);
-
+  // TODO phy ctrl
+  // in case there are scell to configure, wait for second phy configuration
+  // if (not rrc_ptr->phy_ctrl->is_config_pending()) {
+  //   return proc_outcome_t::yield;
+  // }
+  
   Info("Reconfig NR return successful");
   return proc_outcome_t::success;
 }
@@ -1298,11 +1308,21 @@ void rrc_nr::connection_reconf_no_ho_proc::then(const srsran::proc_state_t& resu
   if (result.is_success()) {
     Info("Finished %s successfully", name());
     srsran::console("RRC NR reconfiguration successful.\n");
-    return;
+    rrc_ptr->rrc_eutra->nr_rrc_con_reconfig_complete(true);
+  } else {
+    // 5.3.5.8.2 Inability to comply with RRCReconfiguration
+    switch (initiator) {
+      case reconf_initiator_t::mcg_srb1:
+        rrc_ptr->rrc_eutra->nr_notify_reconfiguration_failure();
+        break;
+      default:
+        Warning("Reconfiguration failure not implemented for initiator %d", initiator);
+        break;
+    }
+    srsran::console("RRC NR reconfiguration failed.\n");
+    Warning("Finished %s with failure", name());
   }
-
-  // Section 5.3.5.5 - Reconfiguration failure
-  // rrc_ptr->con_reconfig_failed();
+  return;
 }
 
 } // namespace srsue

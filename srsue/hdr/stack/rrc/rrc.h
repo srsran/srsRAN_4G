@@ -339,6 +339,10 @@ private:
   // RLC interface
   void max_retx_attempted();
 
+  // RRC NR interface
+  void nr_scg_failure_information(const srsran::scg_failure_cause_t cause);
+  void nr_notify_reconfiguration_failure();
+
   // Senders
   void send_con_request(srsran::establishment_cause_t cause);
   void send_con_restablish_request(asn1::rrc::reest_cause_e cause, uint16_t rnti, uint16_t pci, uint32_t cellid);
@@ -404,7 +408,7 @@ private:
   void set_mac_default();
   void set_rrc_default();
 
-  bool nr_reconfiguration_proc(const asn1::rrc::rrc_conn_recfg_r8_ies_s& rx_recfg);
+  bool nr_reconfiguration_proc(const asn1::rrc::rrc_conn_recfg_r8_ies_s& rx_recfg, bool* has_5g_nr_reconfig);
 
   // Helpers for nr communicaiton
   asn1::rrc::ue_cap_rat_container_s get_eutra_nr_capabilities();

@@ -32,8 +32,10 @@ public:
 class rrc_eutra_interface_rrc_nr
 {
 public:
-  virtual void new_cell_meas_nr(const std::vector<phy_meas_nr_t>& meas) = 0;
-  virtual void nr_rrc_con_reconfig_complete(bool status)                = 0;
+  virtual void new_cell_meas_nr(const std::vector<phy_meas_nr_t>& meas)            = 0;
+  virtual void nr_rrc_con_reconfig_complete(bool status)                           = 0;
+  virtual void nr_notify_reconfiguration_failure()                                 = 0;
+  virtual void nr_scg_failure_information(const srsran::scg_failure_cause_t cause) = 0;
 };
 
 class rrc_interface_phy_lte

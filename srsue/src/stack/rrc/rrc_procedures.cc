@@ -995,12 +995,11 @@ srsran::proc_outcome_t rrc::connection_reconf_no_ho_proc::init(const asn1::rrc::
   }
 
   // Apply NR config
-  bool rtn = rrc_ptr->nr_reconfiguration_proc(rx_recfg);
-  if (rtn == false) {
-    rrc_ptr->logger.error("Can not launch NR RRC Reconfiguration procedure");
+  bool rtn = rrc_ptr->nr_reconfiguration_proc(rx_recfg, &has_5g_nr_reconfig);
+  if (rtn == false && has_5g_nr_reconfig == true) {
+    rrc_ptr->logger.error("Unable to launch NR RRC Reconfiguration procedure");
     return proc_outcome_t::error;
   }
-  has_5g_nr_reconfig = true;
 
   // No phy config was scheduled, run config completion immediately
   if (rrc_ptr->phy_ctrl->is_config_pending()) {
@@ -1012,7 +1011,7 @@ srsran::proc_outcome_t rrc::connection_reconf_no_ho_proc::init(const asn1::rrc::
 srsran::proc_outcome_t rrc::connection_reconf_no_ho_proc::react(const bool& config_complete)
 {
   if (not config_complete) {
-    rrc_ptr->logger.error("Failed to config PHY");
+    rrc_ptr->logger.error("Reconfiguration Failed");
     return proc_outcome_t::error;
   }
 
@@ -1059,7 +1058,6 @@ void rrc::connection_reconf_no_ho_proc::then(const srsran::proc_state_t& result)
   }
 
   // Section 5.3.5.5 - Reconfiguration failure
-  // TODO: if RRC NR configuration this also need to be signaled via LTE
   rrc_ptr->con_reconfig_failed();
 }
 
@@ -1456,7 +1454,7 @@ rrc::connection_reest_proc::react(const cell_selection_proc::cell_selection_comp
             rrc_ptr->meas_cells.serving_cell().has_sib3());
     return proc_outcome_t::yield; // wait for t311 expiry
   }
-
+  Info("Apply Cell Criteria");
   return cell_criteria();
 }
 

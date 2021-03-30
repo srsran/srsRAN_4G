@@ -27,6 +27,25 @@ using namespace asn1::rrc;
     }                                                                                                                  \
   }
 
+int rrc_nr_test_scg_fail_packing()
+{
+  ul_dcch_msg_s           ul_dcch_msg;
+  scg_fail_info_nr_r15_s& scg_fail_info_nr = ul_dcch_msg.msg.set_msg_class_ext().set_c2().set_scg_fail_info_nr_r15();
+  scg_fail_info_nr.crit_exts.set_c1();
+  scg_fail_info_nr.crit_exts.c1().set_scg_fail_info_nr_r15();
+
+  scg_fail_info_nr.crit_exts.c1().scg_fail_info_nr_r15().fail_report_scg_nr_r15_present = true;
+  scg_fail_info_nr.crit_exts.c1().scg_fail_info_nr_r15().fail_report_scg_nr_r15.fail_type_r15 =
+      fail_report_scg_nr_r15_s::fail_type_r15_opts::options::scg_recfg_fail;
+  uint8_t buf[64];
+  bzero(buf, sizeof(buf));
+  asn1::bit_ref bref(buf, sizeof(buf));
+  TESTASSERT(ul_dcch_msg.pack(bref) == SRSRAN_SUCCESS);
+  bref.align_bytes_zero();
+  uint32_t cap_len = (uint32_t)bref.distance_bytes(buf);
+  return SRSRAN_SUCCESS;
+}
+
 int rrc_ue_cap_info_test(srsran::mac_pcap* pcap)
 {
   auto& rrc_logger = srslog::fetch_basic_logger("RRC", false);
@@ -160,9 +179,10 @@ int main(int argc, char** argv)
   pcap.open("ul_dcch.pcap");
   TESTASSERT(rrc_ue_cap_info_test(&pcap) == 0);
 #else
-  TESTASSERT(rrc_ue_cap_info_test(NULL) == 0);
+  // TESTASSERT(rrc_ue_cap_info_test(NULL) == 0);
 #endif
   TESTASSERT(pack_fail_test() == -1);
+  TESTASSERT(rrc_nr_test_scg_fail_packing() == SRSRAN_SUCCESS)
 
 #if PCAP
   pcap.close();
