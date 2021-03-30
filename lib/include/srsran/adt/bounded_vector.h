@@ -108,8 +108,8 @@ public:
   }
   T&       front() { return (*this)[0]; }
   const T& front() const { return (*this)[0]; }
-  T*       data() { return &buffer[0].get(); }
-  const T* data() const { return &buffer[0].get(); }
+  T*       data() { return reinterpret_cast<T*>(buffer.data()); }
+  const T* data() const { return reinterpret_cast<const T*>(buffer.data()); }
 
   // Iterators
   iterator       begin() { return data(); }
