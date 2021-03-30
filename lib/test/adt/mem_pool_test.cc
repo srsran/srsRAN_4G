@@ -10,6 +10,7 @@
  *
  */
 
+#include "srsran/adt/pool/background_mem_pool.h"
 #include "srsran/adt/pool/fixed_size_pool.h"
 #include "srsran/adt/pool/mem_pool.h"
 #include "srsran/common/test_common.h"
@@ -137,6 +138,20 @@ void test_fixedsize_pool()
     t.join();
   }
   fixed_pool->print_all_buffers();
+  TESTASSERT(C::default_ctor_counter == C::dtor_counter);
+}
+
+void test_background_pool()
+{
+  C::default_ctor_counter = 0;
+  C::dtor_counter         = 0;
+  {
+    srsran::background_obj_pool<C, 16, 4> obj_pool;
+
+    srsran::unique_pool_ptr<C> c = obj_pool.allocate_object();
+    TESTASSERT(C::default_ctor_counter == 16);
+  }
+  TESTASSERT(C::dtor_counter == 16);
 }
 
 int main(int argc, char** argv)
@@ -145,6 +160,7 @@ int main(int argc, char** argv)
 
   test_nontrivial_obj_pool();
   test_fixedsize_pool();
+  test_background_pool();
 
   printf("Success\n");
   return 0;

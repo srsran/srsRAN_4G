@@ -15,6 +15,7 @@
 
 #include "srsran/adt/detail/type_storage.h"
 #include "srsran/adt/expected.h"
+#include "srsran/adt/pool/pool_utils.h"
 #include "srsran/common/srsran_assert.h"
 
 #include <array>
@@ -229,14 +230,6 @@ protected:
   Container buffer;
   size_t    rpos  = 0;
   size_t    count = 0;
-};
-
-struct noop_operator {
-  template <typename T>
-  void operator()(const T&)
-  {
-    // noop
-  }
 };
 
 /**

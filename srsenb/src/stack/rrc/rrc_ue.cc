@@ -65,7 +65,7 @@ int rrc::ue::init()
   return SRSRAN_SUCCESS;
 }
 
-srsran::background_allocator_obj_pool<rrc::ue, 16, 4>* rrc::ue::get_ue_pool()
+srsran::background_obj_pool<rrc::ue, 16, 4>* rrc::ue::get_ue_pool()
 {
   // Note: batch allocation is going to be explicitly called in enb class construction. The pool object, therefore,
   //       will only be initialized if we instantiate an eNB
