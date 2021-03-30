@@ -126,12 +126,20 @@ void rrc::ue::activity_timer_expired(activity_timeout_type_t type)
             ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
             static_cast<unsigned>(rrc_idle_transition_cause::radio_conn_with_ue_lost),
             rnti);
+      } else if (type == MSG3_RX_TIMEOUT) {
+        // MSG3 timeout, no need to notify S1AP, just remove UE
+        parent->rem_user_thread(rnti);
+        event_logger::get().log_rrc_disconnect(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                               static_cast<unsigned>(rrc_idle_transition_cause::msg3_timeout),
+                                               rnti);
       } else {
-        parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::unspecified);
-        event_logger::get().log_rrc_disconnect(
-            ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
-            static_cast<unsigned>(rrc_idle_transition_cause::radio_conn_with_ue_lost),
-            rnti);
+        // Unhandled activity timeout, just remove UE and log an error
+        parent->rem_user_thread(rnti);
+        event_logger::get().log_rrc_disconnect(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                               static_cast<unsigned>(rrc_idle_transition_cause::msg3_timeout),
+                                               rnti);
+        parent->logger.error(
+            "Unhandled reason for activity timer expiration. rnti=0x%x, cause %d", rnti, static_cast<unsigned>(type));
       }
     } else {
       if (rnti != SRSRAN_MRNTI) {
