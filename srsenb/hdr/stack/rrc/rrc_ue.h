@@ -153,7 +153,7 @@ public:
   void  operator delete(void* ptr)noexcept;
   void  operator delete[](void* ptr) = delete;
 
-  using ue_pool_t = srsran::background_obj_pool<ue, 16, 4>;
+  using ue_pool_t = srsran::background_mem_pool<ue, 16, 4>;
   static ue_pool_t* get_ue_pool();
 
 private:

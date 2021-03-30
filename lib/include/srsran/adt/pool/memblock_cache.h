@@ -43,6 +43,13 @@ public:
     return *this;
   }
 
+  template <typename T>
+  void push(T* block) noexcept
+  {
+    static_assert(sizeof(T) >= sizeof(node), "Provided memory block is too small");
+    push(static_cast<void*>(block));
+  }
+
   void push(void* block) noexcept
   {
     node* next = ::new (block) node(head);
@@ -57,6 +64,7 @@ public:
     }
     node* last_head = head;
     head            = head->prev;
+    last_head->~node();
     count--;
     return static_cast<void*>(last_head);
   }
@@ -99,7 +107,8 @@ public:
     return *this;
   }
 
-  void push(void* block) noexcept
+  template <typename T>
+  void push(T* block) noexcept
   {
     std::lock_guard<std::mutex> lock(mutex);
     stack.push(block);

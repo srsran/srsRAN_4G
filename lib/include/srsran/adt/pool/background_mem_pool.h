@@ -33,11 +33,7 @@ namespace detail {
  * @tparam BatchSize number of T objects in a batch
  * @tparam ThresholdSize number of T objects below which a new batch needs to be allocated
  */
-template <typename T,
-          size_t BatchSize,
-          size_t ThresholdSize,
-          typename CtorFunc    = default_ctor_operator<T>,
-          typename RecycleFunc = noop_operator>
+template <typename T, size_t BatchSize, size_t ThresholdSize, typename CtorFunc, typename RecycleFunc>
 class base_background_pool
 {
   static_assert(ThresholdSize > 0, "ThresholdSize needs to be positive");
@@ -92,10 +88,8 @@ public:
   void deallocate_node(void* p)
   {
     std::lock_guard<std::mutex> lock(mutex);
-    if (p != nullptr) {
-      recycle_func(static_cast<void*>(p));
-      obj_cache.push(static_cast<uint8_t*>(p));
-    }
+    recycle_func(static_cast<void*>(p));
+    obj_cache.push(static_cast<void*>(p));
   }
 
   void allocate_batch_in_background()
@@ -107,22 +101,22 @@ public:
   }
 
 private:
-  using obj_storage_t = type_storage<T>;
+  using obj_storage_t = type_storage<T, memblock_cache::min_memblock_size()>;
   using batch_obj_t   = std::array<obj_storage_t, BatchSize>;
 
   /// Unprotected allocation of new Batch of Objects
   void allocate_batch_()
   {
-    batch_obj_t* batch = new batch_obj_t();
+    std::unique_ptr<batch_obj_t> batch(new batch_obj_t());
     if (batch == nullptr) {
       srslog::fetch_basic_logger("POOL").warning("Failed to allocate new batch in background thread");
       return;
     }
-    batches.emplace_back(batch);
     for (obj_storage_t& obj_store : *batch) {
-      ctor_func(static_cast<void*>(&obj_store));
-      obj_cache.push(static_cast<void*>(&obj_store));
+      ctor_func(obj_store.addr());
+      obj_cache.push(&obj_store.buffer);
     }
+    batches.emplace_back(std::move(batch));
   }
 
   CtorFunc    ctor_func;
@@ -138,7 +132,7 @@ private:
 
 template <typename T, size_t BatchSize, size_t ThresholdSize>
 using background_mem_pool =
-    detail::base_background_pool<typename std::aligned_storage<sizeof(T), alignof(T)>::type, BatchSize, ThresholdSize>;
+    detail::base_background_pool<T, BatchSize, ThresholdSize, detail::noop_operator, detail::noop_operator>;
 
 template <typename T,
           size_t BatchSize,

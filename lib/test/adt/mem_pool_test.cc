@@ -148,10 +148,12 @@ void test_background_pool()
   {
     srsran::background_obj_pool<C, 16, 4> obj_pool;
 
-    srsran::unique_pool_ptr<C> c = obj_pool.allocate_object();
+    srsran::unique_pool_ptr<C> c  = obj_pool.allocate_object();
+    srsran::unique_pool_ptr<C> c2 = obj_pool.allocate_object();
+    srsran::unique_pool_ptr<C> c3 = obj_pool.allocate_object();
     TESTASSERT(C::default_ctor_counter == 16);
   }
-  TESTASSERT(C::dtor_counter == 16);
+  TESTASSERT(C::dtor_counter == 16 and C::dtor_counter == C::default_ctor_counter);
 }
 
 int main(int argc, char** argv)

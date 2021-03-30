@@ -58,7 +58,7 @@ public:
   void deallocate_node(void* p)
   {
     if (p != nullptr) {
-      stack.push(static_cast<uint8_t*>(p));
+      stack.push(p);
     }
   }
 
@@ -67,7 +67,7 @@ public:
   {
     static const size_t blocksize = std::max(sizeof(T), memblock_cache::min_memblock_size());
     for (size_t i = 0; i < N; ++i) {
-      stack.push(new uint8_t[blocksize]);
+      stack.push(static_cast<void*>(new uint8_t[blocksize]));
     }
   }
 
