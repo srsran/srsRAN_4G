@@ -45,9 +45,9 @@ void mac_pcap_base::run_thread()
   }
 
   // write remainder of queue
-  std::lock_guard<std::mutex> lock(mutex);
   pcap_pdu_t                  pdu = {};
   while (queue.try_pop(pdu)) {
+    std::lock_guard<std::mutex> lock(mutex);
     write_pdu(pdu);
   }
 }
