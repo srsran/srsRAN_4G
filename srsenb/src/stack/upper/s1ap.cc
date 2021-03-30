@@ -23,11 +23,9 @@
 #include <inttypes.h>
 #include <netinet/in.h>
 #include <netinet/sctp.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
-#include <unistd.h> //for close(), sleep()
 
 using srsran::s1ap_mccmnc_to_plmn;
 using srsran::uint32_to_uint8;
@@ -1705,8 +1703,7 @@ bool s1ap::ue::send_ho_required(uint32_t                     target_eci,
   container.mme_ue_s1ap_id.value                        = ctxt.mme_ue_s1ap_id;
   container.direct_forwarding_path_availability_present = false;                // NOTE: X2 for fwd path not supported
   container.handov_type.value.value               = handov_type_opts::intralte; // NOTE: only intra-LTE HO supported
-  container.cause.value.set_radio_network().value = cause_radio_network_opts::unspecified;
-  // LIBLTE_S1AP_CAUSERADIONETWORK_S1_INTRA_SYSTEM_HANDOVER_TRIGGERED;
+  container.cause.value.set_radio_network().value = cause_radio_network_opts::s1_intra_sys_ho_triggered;
 
   /*** set the target eNB ***/
   container.csg_id_present           = false; // NOTE: CSG/hybrid target cell not supported
