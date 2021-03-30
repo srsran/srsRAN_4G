@@ -139,7 +139,7 @@ public:
   generate_mch_pdu(uint32_t harq_pid, sched_interface::dl_pdu_mch_t sched, uint32_t nof_pdu_elems, uint32_t grant_size);
 
   srsran_softbuffer_tx_t*
-                          get_tx_softbuffer(const uint32_t ue_cc_idx, const uint32_t harq_process, const uint32_t tb_idx);
+  get_tx_softbuffer(const uint32_t ue_cc_idx, const uint32_t harq_process, const uint32_t tb_idx);
   srsran_softbuffer_rx_t* get_rx_softbuffer(const uint32_t ue_cc_idx, const uint32_t tti);
 
   bool     process_pdus();
@@ -159,6 +159,8 @@ public:
   void metrics_cnt();
 
   int read_pdu(uint32_t lcid, uint8_t* payload, uint32_t requested_bytes) final;
+
+  uint32_t ko_counter = 0;
 
 private:
   void allocate_sdu(srsran::sch_pdu* pdu, uint32_t lcid, uint32_t sdu_len);

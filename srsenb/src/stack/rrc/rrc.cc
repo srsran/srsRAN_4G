@@ -131,9 +131,15 @@ uint8_t* rrc::read_pdu_bcch_dlsch(const uint8_t cc_idx, const uint32_t sib_index
   return nullptr;
 }
 
-void rrc::set_activity_user(uint16_t rnti)
+void rrc::set_activity_user(uint16_t rnti, bool ack_info)
 {
-  rrc_pdu p = {rnti, LCID_ACT_USER, nullptr};
+  rrc_pdu p;
+  if (ack_info) {
+    p = {rnti, LCID_ACT_USER, nullptr};
+  } else {
+    p = {rnti, LCID_RTX_USER, nullptr};
+  }
+
   if (not rx_pdu_queue.try_push(std::move(p))) {
     logger.error("Failed to push UE activity command to RRC queue");
   }

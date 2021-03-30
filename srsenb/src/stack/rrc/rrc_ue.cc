@@ -103,7 +103,6 @@ void rrc::ue::set_activity()
 {
   // re-start activity timer with current timeout value
   activity_timer.run();
-
   if (parent) {
     parent->logger.debug("Activity registered for rnti=0x%x (timeout_value=%dms)", rnti, activity_timer.duration());
   }
