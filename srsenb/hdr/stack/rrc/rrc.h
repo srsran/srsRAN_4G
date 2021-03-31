@@ -77,7 +77,7 @@ public:
 
   // rrc_interface_s1ap
   void write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu) override;
-  void release_complete(uint16_t rnti) override;
+  void release_ue(uint16_t rnti) override;
   bool setup_ue_ctxt(uint16_t rnti, const asn1::s1ap::init_context_setup_request_s& msg) override;
   bool modify_ue_ctxt(uint16_t rnti, const asn1::s1ap::ue_context_mod_request_s& msg) override;
   bool setup_ue_erabs(uint16_t rnti, const asn1::s1ap::erab_setup_request_s& msg) override;

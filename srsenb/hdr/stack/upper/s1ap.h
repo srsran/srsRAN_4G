@@ -24,6 +24,7 @@
 #include "srsran/interfaces/enb_s1ap_interfaces.h"
 
 #include "s1ap_metrics.h"
+#include "srsran/adt/optional.h"
 #include "srsran/asn1/s1ap.h"
 #include "srsran/common/network_utils.h"
 #include "srsran/common/stack_procedure.h"
@@ -90,7 +91,9 @@ public:
   void send_ho_notify(uint16_t rnti, uint64_t target_eci) override;
   void send_ho_cancel(uint16_t rnti) override;
   bool release_erabs(uint16_t rnti, const std::vector<uint16_t>& erabs_successfully_released) override;
-  bool send_error_indication(uint16_t rnti, const asn1::s1ap::cause_c& cause);
+  bool send_error_indication(const asn1::s1ap::cause_c& cause,
+                             srsran::optional<uint32_t> enb_ue_s1ap_id = {},
+                             srsran::optional<uint32_t> mme_ue_s1ap_id = {});
   bool send_ue_cap_info_indication(uint16_t rnti, srsran::unique_byte_buffer_t ue_radio_cap) override;
 
   // Stack interface

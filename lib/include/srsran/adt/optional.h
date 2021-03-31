@@ -28,13 +28,13 @@ public:
   optional(const optional<T>& other) : has_val_(other.has_value())
   {
     if (other.has_value()) {
-      storage.copy_ctor(other.get());
+      storage.copy_ctor(other.storage);
     }
   }
   optional(optional<T>&& other) noexcept : has_val_(other.has_value())
   {
     if (other.has_value()) {
-      storage.move_ctor(other.get());
+      storage.move_ctor(std::move(other.storage));
     }
   }
   optional& operator=(const optional<T>& other)

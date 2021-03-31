@@ -226,6 +226,7 @@ void test_s1ap_erab_setup(test_event event)
     TESTASSERT(erab_item.erab_id == 6);
     TESTASSERT(erab_item.cause.type().value == asn1::s1ap::cause_c::types_opts::radio_network);
     TESTASSERT(erab_item.cause.radio_network().value == asn1::s1ap::cause_radio_network_opts::unknown_erab_id);
+    return;
   } else {
     TESTASSERT(protocol_ies.erab_modify_list_bearer_mod_res_present);
     TESTASSERT(not protocol_ies.erab_failed_to_modify_list_present);

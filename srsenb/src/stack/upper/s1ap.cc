@@ -357,7 +357,7 @@ bool s1ap::user_release(uint16_t rnti, asn1::s1ap::cause_radio_network_e cause_r
   if (u->was_uectxtrelease_requested()) {
     logger.warning("UE context for RNTI:0x%x is in zombie state. Releasing...", rnti);
     users.erase(u);
-    rrc->release_complete(rnti);
+    rrc->release_ue(rnti);
     return false;
   }
 
@@ -539,7 +539,7 @@ bool s1ap::handle_s1ap_rx_pdu(srsran::byte_buffer_t* pdu)
     logger.error(pdu->msg, pdu->N_bytes, "Failed to unpack received PDU");
     cause_c cause;
     cause.set_protocol().value = cause_protocol_opts::transfer_syntax_error;
-    send_error_indication(SRSRAN_INVALID_RNTI, cause);
+    send_error_indication(cause);
     return false;
   }
   log_s1ap_msg(rx_pdu, srsran::make_span(*pdu), true);
@@ -832,7 +832,7 @@ bool s1ap::handle_uectxtreleasecommand(const ue_context_release_cmd_s& msg)
   u->send_uectxtreleasecomplete();
   users.erase(u);
   logger.info("UE context for RNTI:0x%x released", rnti);
-  rrc->release_complete(rnti);
+  rrc->release_ue(rnti);
   return true;
 }
 
@@ -1061,7 +1061,9 @@ bool s1ap::send_ue_cap_info_indication(uint16_t rnti, srsran::unique_byte_buffer
   return user_ptr->send_ue_cap_info_indication(std::move(ue_radio_cap));
 }
 
-bool s1ap::send_error_indication(uint16_t rnti, const asn1::s1ap::cause_c& cause)
+bool s1ap::send_error_indication(const asn1::s1ap::cause_c& cause,
+                                 srsran::optional<uint32_t> enb_ue_s1ap_id,
+                                 srsran::optional<uint32_t> mme_ue_s1ap_id)
 {
   if (not mme_connected) {
     return false;
@@ -1071,17 +1073,16 @@ bool s1ap::send_error_indication(uint16_t rnti, const asn1::s1ap::cause_c& cause
   tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_ERROR_IND);
   auto& container = tx_pdu.init_msg().value.error_ind().protocol_ies;
 
-  if (rnti != SRSRAN_INVALID_RNTI) {
-    ue* user_ptr = users.find_ue_rnti(rnti);
-    if (user_ptr == nullptr) {
-      return false;
-    }
-    container.enb_ue_s1ap_id_present = true;
-    container.enb_ue_s1ap_id.value   = user_ptr->ctxt.enb_ue_s1ap_id;
-    container.mme_ue_s1ap_id_present = user_ptr->ctxt.mme_ue_s1ap_id_present;
-    if (user_ptr->ctxt.mme_ue_s1ap_id_present) {
-      container.mme_ue_s1ap_id.value = user_ptr->ctxt.mme_ue_s1ap_id;
-    }
+  uint16_t rnti                    = SRSRAN_INVALID_RNTI;
+  container.enb_ue_s1ap_id_present = enb_ue_s1ap_id.has_value();
+  if (enb_ue_s1ap_id.has_value()) {
+    container.enb_ue_s1ap_id.value = enb_ue_s1ap_id.value();
+    ue* user_ptr                   = users.find_ue_enbid(enb_ue_s1ap_id.value());
+    rnti                           = user_ptr != nullptr ? user_ptr->ctxt.enb_ue_s1ap_id : SRSRAN_INVALID_RNTI;
+  }
+  container.mme_ue_s1ap_id_present = mme_ue_s1ap_id.has_value();
+  if (mme_ue_s1ap_id.has_value()) {
+    container.mme_ue_s1ap_id.value = mme_ue_s1ap_id.value();
   }
 
   container.s_tmsi_present = false;
@@ -1581,9 +1582,9 @@ bool s1ap::sctp_send_s1ap_pdu(const asn1::s1ap::s1ap_pdu_c& tx_pdu, uint32_t rnt
   }
 
   if (rnti != SRSRAN_INVALID_RNTI) {
-    logger.info(buf->msg, buf->N_bytes, "Sending %s for rnti=0x%x", procedure_name, rnti);
+    logger.info(buf->msg, buf->N_bytes, "Tx S1AP SDU, %s, rnti=0x%x", rnti, procedure_name);
   } else {
-    logger.info(buf->msg, buf->N_bytes, "Sending %s to MME", procedure_name);
+    logger.info(buf->msg, buf->N_bytes, "Tx S1AP SDU, %s", procedure_name);
   }
   uint16_t streamid = rnti == SRSRAN_INVALID_RNTI ? NONUE_STREAM_ID : users.find_ue_rnti(rnti)->stream_id;
 
@@ -1598,10 +1599,10 @@ bool s1ap::sctp_send_s1ap_pdu(const asn1::s1ap::s1ap_pdu_c& tx_pdu, uint32_t rnt
                                 0,
                                 0);
   if (n_sent == -1) {
-    if (rnti > 0) {
-      logger.error("Failed to send %s for rnti=0x%x", procedure_name, rnti);
+    if (rnti != SRSRAN_INVALID_RNTI) {
+      logger.error("Error: Failure at Tx S1AP SDU, %s, rnti=0x%x", rnti, procedure_name);
     } else {
-      logger.error("Failed to send %s", procedure_name);
+      logger.error("Error: Failure at Tx S1AP SDU, %s", procedure_name);
     }
     return false;
   }
@@ -1616,26 +1617,50 @@ bool s1ap::sctp_send_s1ap_pdu(const asn1::s1ap::s1ap_pdu_c& tx_pdu, uint32_t rnt
  */
 s1ap::ue* s1ap::find_s1apmsg_user(uint32_t enb_id, uint32_t mme_id)
 {
-  ue*     user_ptr = users.find_ue_enbid(enb_id);
+  ue*     user_ptr     = users.find_ue_enbid(enb_id);
+  ue*     user_mme_ptr = nullptr;
   cause_c cause;
   if (user_ptr != nullptr) {
-    if (not user_ptr->ctxt.mme_ue_s1ap_id_present) {
+    if (user_ptr->ctxt.mme_ue_s1ap_id_present and user_ptr->ctxt.mme_ue_s1ap_id == mme_id) {
+      // No ID inconsistency found
+      return user_ptr;
+    }
+
+    user_mme_ptr = users.find_ue_mmeid(mme_id);
+    if (not user_ptr->ctxt.mme_ue_s1ap_id_present and user_mme_ptr == nullptr) {
+      // First "returned message", no inconsistency found (see 36.413, Section 10.6)
       user_ptr->ctxt.mme_ue_s1ap_id_present = true;
       user_ptr->ctxt.mme_ue_s1ap_id         = mme_id;
       return user_ptr;
-    } else if (user_ptr->ctxt.mme_ue_s1ap_id == mme_id) {
-      return user_ptr;
-    } else {
-      logger.warning("MME UE S1AP ID=%d not found - discarding message", enb_id);
-      cause.set_radio_network().value = cause_radio_network_opts::unknown_mme_ue_s1ap_id;
     }
+
+    // TS 36.413, Sec. 10.6 - If a node receives a first returned message that includes a remote AP ID (...)
+
+    logger.warning("MME UE S1AP ID=%d not found - discarding message", enb_id);
+    cause.set_radio_network().value = user_mme_ptr != nullptr ? cause_radio_network_opts::unknown_mme_ue_s1ap_id
+                                                              : cause_radio_network_opts::unknown_pair_ue_s1ap_id;
   } else {
+    // TS 36.413, Sec. 10.6 - If a node receives a message (other than the first or first returned messages) that
+    // includes AP ID(s) identifying (...)
+    user_mme_ptr = users.find_ue_mmeid(mme_id);
+
     logger.warning("ENB UE S1AP ID=%d not found - discarding message", enb_id);
-    cause.set_radio_network().value = users.find_ue_mmeid(mme_id) != nullptr
-                                          ? cause_radio_network_opts::unknown_enb_ue_s1ap_id
-                                          : cause_radio_network_opts::unknown_pair_ue_s1ap_id;
+    cause.set_radio_network().value = user_mme_ptr != nullptr ? cause_radio_network_opts::unknown_enb_ue_s1ap_id
+                                                              : cause_radio_network_opts::unknown_pair_ue_s1ap_id;
   }
-  send_error_indication(SRSRAN_INVALID_RNTI, cause);
+
+  // the node shall initiate an Error Indication procedure with inclusion of the received AP ID(s) from the peer node
+  // and an appropriate cause value.
+  send_error_indication(cause, enb_id, mme_id);
+
+  // Both nodes shall initiate a local release of any established UE-associated logical connection (for the same S1
+  // interface) having the erroneous AP ID(s) as local or remote identifier.
+  if (user_ptr != nullptr) {
+    rrc->release_ue(user_ptr->ctxt.rnti);
+  }
+  if (user_mme_ptr != nullptr and user_mme_ptr != user_ptr) {
+    rrc->release_ue(user_mme_ptr->ctxt.rnti);
+  }
   return nullptr;
 }
 

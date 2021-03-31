@@ -287,7 +287,7 @@ void rrc::write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu)
   }
 }
 
-void rrc::release_complete(uint16_t rnti)
+void rrc::release_ue(uint16_t rnti)
 {
   rrc_pdu p = {rnti, LCID_REL_USER, nullptr};
   if (not rx_pdu_queue.try_push(std::move(p))) {
