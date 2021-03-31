@@ -115,6 +115,7 @@ void test_fixedsize_pool()
     fixed_pool->print_all_buffers();
   }
   fixed_pool->print_all_buffers();
+  TESTASSERT(C::default_ctor_counter == C::dtor_counter);
 
   // TEST: one thread allocates, and the other deallocates
   {
