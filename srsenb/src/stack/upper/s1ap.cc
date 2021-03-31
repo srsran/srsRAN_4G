@@ -1078,7 +1078,7 @@ bool s1ap::send_error_indication(const asn1::s1ap::cause_c& cause,
   if (enb_ue_s1ap_id.has_value()) {
     container.enb_ue_s1ap_id.value = enb_ue_s1ap_id.value();
     ue* user_ptr                   = users.find_ue_enbid(enb_ue_s1ap_id.value());
-    rnti                           = user_ptr != nullptr ? user_ptr->ctxt.enb_ue_s1ap_id : SRSRAN_INVALID_RNTI;
+    rnti                           = user_ptr != nullptr ? user_ptr->ctxt.rnti : SRSRAN_INVALID_RNTI;
   }
   container.mme_ue_s1ap_id_present = mme_ue_s1ap_id.has_value();
   if (mme_ue_s1ap_id.has_value()) {
@@ -1582,7 +1582,7 @@ bool s1ap::sctp_send_s1ap_pdu(const asn1::s1ap::s1ap_pdu_c& tx_pdu, uint32_t rnt
   }
 
   if (rnti != SRSRAN_INVALID_RNTI) {
-    logger.info(buf->msg, buf->N_bytes, "Tx S1AP SDU, %s, rnti=0x%x", rnti, procedure_name);
+    logger.info(buf->msg, buf->N_bytes, "Tx S1AP SDU, %s, rnti=0x%x", procedure_name, rnti);
   } else {
     logger.info(buf->msg, buf->N_bytes, "Tx S1AP SDU, %s", procedure_name);
   }
@@ -1600,7 +1600,7 @@ bool s1ap::sctp_send_s1ap_pdu(const asn1::s1ap::s1ap_pdu_c& tx_pdu, uint32_t rnt
                                 0);
   if (n_sent == -1) {
     if (rnti != SRSRAN_INVALID_RNTI) {
-      logger.error("Error: Failure at Tx S1AP SDU, %s, rnti=0x%x", rnti, procedure_name);
+      logger.error("Error: Failure at Tx S1AP SDU, %s, rnti=0x%x", procedure_name, rnti);
     } else {
       logger.error("Error: Failure at Tx S1AP SDU, %s", procedure_name);
     }
