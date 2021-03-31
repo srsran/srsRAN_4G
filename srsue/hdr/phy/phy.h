@@ -176,7 +176,8 @@ public:
                   const float    ta_base_sec = 0.0f) final;
   int  tx_request(const tx_request_t& request) final;
   void set_earfcn(std::vector<uint32_t> earfcns) final;
-  void sr_send(uint32_t sr_id) final;
+  bool has_valid_sr_resource(uint32_t sr_id) final;
+  void clear_pending_grants() final;
 
 private:
   void run_thread() final;

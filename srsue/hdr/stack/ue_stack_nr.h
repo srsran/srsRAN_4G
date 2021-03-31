@@ -89,6 +89,10 @@ public:
   {
     mac->prach_sent(tti, s_id, t_id, f_id, ul_carrier_id);
   }
+  bool sr_opportunity(uint32_t tti, uint32_t sr_id, bool meas_gap, bool ul_sch_tx)
+  {
+    return mac->sr_opportunity(tti, sr_id, meas_gap, ul_sch_tx);
+  }
 
   // Interface for GW
   void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu) final;

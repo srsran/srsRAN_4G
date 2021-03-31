@@ -35,10 +35,9 @@ public:
   int32_t set_config(const srsran::sr_cfg_nr_t& cfg);
   void    reset();
   void    start();
+  bool    sr_opportunity(uint32_t tti, uint32_t sr_id, bool meas_gap, bool ul_sch_tx);
 
 private:
-  bool need_tx(uint32_t tti);
-
   int  sr_counter    = 0;
   bool is_pending_sr = 0;
 

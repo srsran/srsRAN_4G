@@ -47,7 +47,8 @@ public:
     *preamble_index_                 = preamble_index;
     *preamble_received_target_power_ = preamble_received_target_power;
   }
-  void sr_send(uint32_t sr_id) override {}
+  bool has_valid_sr_resource(uint32_t sr_id) override { return false; }
+  void clear_pending_grants() override {}
 
 private:
   uint32_t prach_occasion                 = 0;

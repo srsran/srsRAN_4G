@@ -72,6 +72,11 @@ bool vnf_phy_nr::set_config(const srsran::phy_cfg_nr_t& cfg)
 {
   return false;
 }
-void vnf_phy_nr::sr_send(uint32_t sr_id) {}
+bool vnf_phy_nr::has_valid_sr_resource(uint32_t sr_id)
+{
+  return false;
+}
+
+void vnf_phy_nr::clear_pending_grants() {}
 
 } // namespace srsue

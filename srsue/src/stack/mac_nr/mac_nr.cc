@@ -181,6 +181,11 @@ void mac_nr::prach_sent(const uint32_t tti,
   proc_ra.prach_sent(tti, s_id, t_id, f_id, ul_carrier_id);
 }
 
+bool mac_nr::sr_opportunity(uint32_t tti, uint32_t sr_id, bool meas_gap, bool ul_sch_tx)
+{
+  return proc_sr.sr_opportunity(tti, sr_id, meas_gap, ul_sch_tx);
+}
+
 // This function handles all PCAP writing for a decoded DL TB
 void mac_nr::write_pcap(const uint32_t cc_idx, mac_nr_grant_dl_t& grant)
 {

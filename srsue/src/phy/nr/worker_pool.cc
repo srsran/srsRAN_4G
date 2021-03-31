@@ -134,9 +134,15 @@ bool worker_pool::set_config(const srsran::phy_cfg_nr_t& cfg)
   return true;
 }
 
-void worker_pool::sr_send(uint32_t sr_id)
+bool worker_pool::has_valid_sr_resource(uint32_t sr_id)
 {
-  phy_state.set_pending_sr(sr_id);
+  return phy_state.has_valid_sr_resource(sr_id);
 }
+
+void worker_pool::clear_pending_grants()
+{
+  phy_state.clear_pending_grants();
+}
+
 } // namespace nr
 } // namespace srsue

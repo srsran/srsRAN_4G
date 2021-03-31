@@ -29,8 +29,7 @@ namespace srsue {
 
 class rlc_interface_mac;
 
-struct mac_nr_args_t {
-};
+struct mac_nr_args_t {};
 
 class mac_nr final : public mac_interface_phy_nr,
                      public mac_interface_rrc_nr,
@@ -63,6 +62,7 @@ public:
                   const uint32_t t_id,
                   const uint32_t f_id,
                   const uint32_t ul_carrier_id);
+  bool sr_opportunity(uint32_t tti, uint32_t sr_id, bool meas_gap, bool ul_sch_tx);
 
   /// Stack interface
   void timer_expired(uint32_t timer_id);
@@ -92,10 +92,6 @@ public:
 
   static bool is_in_window(uint32_t tti, int* start, int* len);
 
-  // PHY Interface
-  void prach_sent(const uint32_t tti);
-  void tb_decoded_ok(const uint8_t cc_idx, const uint32_t tti);
-
 private:
   void write_pcap(const uint32_t cc_idx, mac_nr_grant_dl_t& grant); // If PCAPs are enabled for this MAC
   void handle_pdu(srsran::unique_byte_buffer_t pdu);
@@ -107,8 +103,8 @@ private:
   bool is_si_opportunity();
   bool is_paging_opportunity();
 
-  bool     has_crnti();
-  bool     is_valid_crnti(const uint16_t crnti);
+  bool has_crnti();
+  bool is_valid_crnti(const uint16_t crnti);
 
   /// Interaction with rest of the stack
   phy_interface_mac_nr*         phy = nullptr;
@@ -135,8 +131,8 @@ private:
 
   /// Tx buffer
   srsran::unique_byte_buffer_t ul_harq_buffer = nullptr; // store PDU generated from MUX
-  srsran::unique_byte_buffer_t rlc_buffer    = nullptr;
-  srsran_softbuffer_tx_t       softbuffer_tx = {}; /// UL HARQ (temporal)
+  srsran::unique_byte_buffer_t rlc_buffer     = nullptr;
+  srsran_softbuffer_tx_t       softbuffer_tx  = {}; /// UL HARQ (temporal)
 
   srsran::task_multiqueue::queue_handle stack_task_dispatch_queue;
 

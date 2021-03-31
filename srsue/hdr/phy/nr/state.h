@@ -259,7 +259,26 @@ public:
 
   void reset() { pending_sr_id.clear(); }
 
-  void set_pending_sr(uint32_t value) { pending_sr_id.insert(value); }
+  bool has_valid_sr_resource(uint32_t sr_id)
+  {
+    for (const srsran_pucch_nr_sr_resource_t& r : cfg.pucch.sr_resources) {
+      if (r.configured && r.sr_id == sr_id) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  void clear_pending_grants()
+  {
+    // Scope mutex to protect read/write the list
+    std::lock_guard<std::mutex> lock(pending_ul_grant_mutex);
+
+    // Clear all PDSCH assignments and PUSCH grants
+    pending_dl_grant = {};
+    pending_ul_grant = {};
+    pending_ack      = {};
+  }
 
   void get_pending_sr(const uint32_t& tti, srsran_uci_data_nr_t& uci_data)
   {
