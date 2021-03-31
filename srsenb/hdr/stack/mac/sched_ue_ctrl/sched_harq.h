@@ -24,9 +24,10 @@ class harq_proc
 {
 public:
   harq_proc();
-  void     init(uint32_t id);
-  void     reset(uint32_t tb_idx);
-  uint32_t get_id() const;
+  void init(uint32_t id);
+  void reset(uint32_t tb_idx);
+
+  uint32_t get_id() const { return id; }
   bool     is_empty() const;
   bool     is_empty(uint32_t tb_idx) const;
 
@@ -62,6 +63,9 @@ class dl_harq_proc : public harq_proc
 {
 public:
   dl_harq_proc();
+
+  void new_tti(tti_point tti_tx_dl);
+
   void new_tx(const rbgmask_t& new_mask,
               uint32_t         tb_idx,
               tti_point        tti_tx_dl,
@@ -86,6 +90,8 @@ private:
 class ul_harq_proc : public harq_proc
 {
 public:
+  void new_tti();
+
   void new_tx(srsran::tti_point tti, int mcs, int tbs, prb_interval alloc, uint32_t max_retx_, bool is_msg3);
   void new_retx(srsran::tti_point tti_, int* mcs, int* tbs, prb_interval alloc);
   bool set_ack(uint32_t tb_idx, bool ack);
