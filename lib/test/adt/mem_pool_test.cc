@@ -147,14 +147,18 @@ void test_background_pool()
   C::default_ctor_counter = 0;
   C::dtor_counter         = 0;
   {
-    srsran::background_obj_pool<C, 16, 4> obj_pool;
+    srsran::background_obj_pool<C, 16, 4>    obj_pool(16);
+    std::vector<srsran::unique_pool_ptr<C> > objs;
 
-    srsran::unique_pool_ptr<C> c  = obj_pool.allocate_object();
-    srsran::unique_pool_ptr<C> c2 = obj_pool.allocate_object();
-    srsran::unique_pool_ptr<C> c3 = obj_pool.allocate_object();
+    for (size_t i = 0; i < 16 - 4; ++i) {
+      objs.push_back(obj_pool.allocate_object());
+    }
     TESTASSERT(C::default_ctor_counter == 16);
+
+    // This will trigger a new batch allocation in the background
+    objs.push_back(obj_pool.allocate_object());
   }
-  TESTASSERT(C::dtor_counter == 16 and C::dtor_counter == C::default_ctor_counter);
+  TESTASSERT(C::dtor_counter == C::default_ctor_counter);
 }
 
 int main(int argc, char** argv)

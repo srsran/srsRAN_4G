@@ -27,6 +27,7 @@ class memblock_cache
 
 public:
   constexpr static size_t min_memblock_size() { return sizeof(node); }
+  constexpr static size_t min_memblock_align() { return alignof(node); }
 
   memblock_cache() = default;
 
@@ -46,7 +47,7 @@ public:
   template <typename T>
   void push(T* block) noexcept
   {
-    static_assert(sizeof(T) >= sizeof(node), "Provided memory block is too small");
+    static_assert(sizeof(T) >= sizeof(node) and alignof(T) >= alignof(node), "Provided memory block is too small");
     push(static_cast<void*>(block));
   }
 
