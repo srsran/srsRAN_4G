@@ -47,9 +47,6 @@ private:
   srsran::circular_array<srsran_pdsch_ack_nr_t, TTIMOD_SZ> pending_ack = {};
   mutable std::mutex                                       pending_ack_mutex;
 
-  /// Pending scheduling request identifiers
-  std::set<uint32_t> pending_sr_id;
-
   /// CSI-RS measurements
   std::array<srsran_csi_measurements_t, SRSRAN_CSI_MAX_NOF_RESOURCES> csi_measurements = {};
 
@@ -257,7 +254,7 @@ public:
     return true;
   }
 
-  void reset() { pending_sr_id.clear(); }
+  void reset() { clear_pending_grants(); }
 
   bool has_valid_sr_resource(uint32_t sr_id)
   {
@@ -282,9 +279,6 @@ public:
 
   void get_pending_sr(const uint32_t& tti, srsran_uci_data_nr_t& uci_data)
   {
-    // Append fixed SR
-    pending_sr_id.insert(args.fixed_sr.begin(), args.fixed_sr.end());
-
     // Calculate all SR opportunities in the given TTI
     uint32_t sr_resource_id[SRSRAN_PUCCH_MAX_NOF_SR_RESOURCES] = {};
     int      n = srsran_ue_ul_nr_sr_send_slot(cfg.pucch.sr_resources, tti, sr_resource_id);
@@ -303,12 +297,10 @@ public:
       uint32_t sr_id = cfg.pucch.sr_resources[sr_resource_id[i]].sr_id;
 
       // Check if the SR resource ID is pending
-      if (pending_sr_id.count(sr_id) > 0) {
+      if (args.fixed_sr.count(sr_id) > 0 ||
+          stack->sr_opportunity(tti, sr_id, false, pending_ul_grant[TTI_TX(tti)].enable)) {
         // Count it as present
         sr_count_positive++;
-
-        // Erase pending SR
-        pending_sr_id.erase(sr_id);
       }
     }
 
