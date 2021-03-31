@@ -53,3 +53,7 @@ add_test(circular_map_test circular_map_test)
 add_executable(fsm_test fsm_test.cc)
 target_link_libraries(fsm_test srsran_common)
 add_test(fsm_test fsm_test)
+
+add_executable(optional_test optional_test.cc)
+target_link_libraries(optional_test srsran_common)
+add_test(optional_test optional_test)
