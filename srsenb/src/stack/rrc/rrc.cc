@@ -85,6 +85,7 @@ int32_t rrc::init(const rrc_cfg_t&       cfg_,
                    "re-establishment procedure.");
   }
   logger.info("Inactivity timeout: %d ms", cfg.inactivity_timeout_ms);
+  logger.info("Max consecutive MAC KOs: %d", cfg.max_mac_dl_kos);
 
   running = true;
 
@@ -137,7 +138,7 @@ void rrc::set_activity_user(uint16_t rnti, bool ack_info)
   if (ack_info) {
     p = {rnti, LCID_ACT_USER, nullptr};
   } else {
-    p = {rnti, LCID_RTX_USER, nullptr};
+    p = {rnti, LCID_MAC_KO_USER, nullptr};
   }
 
   if (not rx_pdu_queue.try_push(std::move(p))) {
@@ -1024,6 +1025,9 @@ void rrc::tti_clock()
         break;
       case LCID_ACT_USER:
         user_it->second->set_activity();
+        break;
+      case LCID_MAC_KO_USER:
+        user_it->second->mac_ko_activity();
         break;
       case LCID_RTX_USER:
         user_it->second->max_retx_reached();

@@ -41,6 +41,7 @@ public:
   std::string to_string(const activity_timeout_type_t& type);
   void        set_activity_timeout(const activity_timeout_type_t type);
   void        set_activity();
+  void        mac_ko_activity();
   void        activity_timer_expired(const activity_timeout_type_t type);
   void        max_retx_reached();
 
@@ -181,6 +182,9 @@ private:
   srsran::rrc_ue_capabilities_t              ue_capabilities;
 
   const static uint32_t UE_PCELL_CC_IDX = 0;
+
+  uint32_t consecutive_kos = 0;
+  uint32_t max_mac_dl_retx;
 
   ue_cell_ded_list     ue_cell_list;
   bearer_cfg_handler   bearer_list;

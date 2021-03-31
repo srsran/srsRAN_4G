@@ -181,11 +181,12 @@ private:
     srsran::unique_byte_buffer_t pdu;
   } rrc_pdu;
 
-  const static uint32_t LCID_EXIT     = 0xffff0000;
-  const static uint32_t LCID_REM_USER = 0xffff0001;
-  const static uint32_t LCID_REL_USER = 0xffff0002;
-  const static uint32_t LCID_ACT_USER = 0xffff0004;
-  const static uint32_t LCID_RTX_USER = 0xffff0005;
+  const static uint32_t LCID_EXIT        = 0xffff0000;
+  const static uint32_t LCID_REM_USER    = 0xffff0001;
+  const static uint32_t LCID_REL_USER    = 0xffff0002;
+  const static uint32_t LCID_ACT_USER    = 0xffff0004;
+  const static uint32_t LCID_RTX_USER    = 0xffff0005;
+  const static uint32_t LCID_MAC_KO_USER = 0xffff0006;
 
   bool                                running = false;
   srsran::dyn_blocking_queue<rrc_pdu> rx_pdu_queue;

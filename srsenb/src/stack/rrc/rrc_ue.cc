@@ -103,12 +103,29 @@ void rrc::ue::set_activity()
 {
   // re-start activity timer with current timeout value
   activity_timer.run();
+  consecutive_kos = 0;
   if (parent) {
     parent->logger.debug("Activity registered for rnti=0x%x (timeout_value=%dms)", rnti, activity_timer.duration());
   }
 }
 
-void rrc::ue::activity_timer_expired(activity_timeout_type_t type)
+void rrc::ue::mac_ko_activity()
+{
+  // Count KOs in MAC and trigger release if it goes above a certain value.
+  // This is done to detect out-of-coverage UEs
+  consecutive_kos++;
+  parent->logger.debug("KO activity registered for rnti=0x%x (consecutive_kos=%d, max_mac_dl_kos=%d)",
+                       rnti,
+                       consecutive_kos,
+                       parent->cfg.max_mac_dl_kos);
+
+  if (consecutive_kos > parent->cfg.max_mac_dl_kos) {
+    parent->logger.debug("Max KOs reached, triggering release rnti=0x%x", rnti);
+    max_retx_reached();
+  }
+}
+
+void rrc::ue::activity_timer_expired(const activity_timeout_type_t type)
 {
   if (parent) {
     parent->logger.info("Activity timer for rnti=0x%x expired after %d ms", rnti, activity_timer.time_elapsed());

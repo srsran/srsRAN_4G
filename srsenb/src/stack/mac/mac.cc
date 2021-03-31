@@ -292,17 +292,13 @@ int mac::ack_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, uint32_t 
   ue_db[rnti]->metrics_tx(ack, nof_bytes);
 
   if (ack) {
-    ue_db[rnti]->ko_counter = 0;
     if (nof_bytes > 64) { // do not count RLC status messages only
       rrc_h->set_activity_user(rnti, true);
       logger.info("DL activity rnti=0x%x, n_bytes=%d", rnti, nof_bytes);
     }
   } else {
-    ue_db[rnti]->ko_counter++;
-    if (ue_db[rnti]->ko_counter > args.max_nof_kos) {
-      rrc_h->set_activity_user(rnti, false);
-      logger.info("DL max KOs reached rnti=0x%x, n_bytes=%d", rnti, nof_bytes);
-    }
+    rrc_h->set_activity_user(rnti, false);
+    logger.info("DL KO activity rnti=0x%x, n_bytes=%d", rnti, nof_bytes);
   }
   return SRSRAN_SUCCESS;
 }
