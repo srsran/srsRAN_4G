@@ -107,9 +107,27 @@ bool operator==(const optional<T>& lhs, const optional<T>& rhs)
 }
 
 template <typename T>
+bool operator==(const optional<T>& lhs, const T& rhs)
+{
+  return lhs.has_value() and lhs.value() == rhs;
+}
+
+template <typename T>
 bool operator!=(const optional<T>& lhs, const optional<T>& rhs)
 {
   return not(lhs == rhs);
+}
+
+template <typename T>
+bool operator!=(const optional<T>& lhs, const T& rhs)
+{
+  return not(lhs == rhs);
+}
+
+template <typename T>
+bool operator<(const optional<T>& lhs, const optional<T>& rhs)
+{
+  return rhs.has_value() and ((lhs.has_value() and lhs.value() < rhs.value()) or (not lhs.has_value()));
 }
 
 } // namespace srsran

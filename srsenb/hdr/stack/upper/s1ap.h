@@ -39,12 +39,11 @@ class rrc_interface_s1ap;
 struct ue_ctxt_t {
   static const uint32_t invalid_enb_id = std::numeric_limits<uint32_t>::max();
 
-  bool           mme_ue_s1ap_id_present = false;
-  uint16_t       rnti                   = SRSRAN_INVALID_RNTI;
-  uint32_t       enb_ue_s1ap_id         = invalid_enb_id;
-  uint32_t       mme_ue_s1ap_id         = 0;
-  uint32_t       enb_cc_idx             = 0;
-  struct timeval init_timestamp         = {};
+  uint16_t                   rnti           = SRSRAN_INVALID_RNTI;
+  uint32_t                   enb_ue_s1ap_id = invalid_enb_id;
+  srsran::optional<uint32_t> mme_ue_s1ap_id = 0;
+  uint32_t                   enb_cc_idx     = 0;
+  struct timeval             init_timestamp = {};
 };
 
 class s1ap : public s1ap_interface_rrc
@@ -314,7 +313,7 @@ private:
     s1ap* s1ap_ptr = nullptr;
   };
 
-  ue*         find_s1apmsg_user(uint32_t enb_id, uint32_t mme_id);
+  ue*         handle_s1apmsg_ue_id(uint32_t enb_id, uint32_t mme_id);
   std::string get_cause(const asn1::s1ap::cause_c& c);
   void        log_s1ap_msg(const asn1::s1ap::s1ap_pdu_c& msg, srsran::const_span<uint8_t> sdu, bool is_rx);
 
