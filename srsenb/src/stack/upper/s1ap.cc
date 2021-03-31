@@ -1366,7 +1366,7 @@ bool s1ap::ue::send_erab_release_response(const std::vector<uint16_t>& erabs_suc
     }
   }
 
-  return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "E_RABReleaseResponse");
+  return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "E-RABReleaseResponse");
 }
 
 bool s1ap::ue::send_erab_modify_response(const std::vector<uint16_t>& erabs_successfully_modified,
@@ -1407,7 +1407,7 @@ bool s1ap::ue::send_erab_modify_response(const std::vector<uint16_t>& erabs_succ
     }
   }
 
-  return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "E_RABReleaseResponse");
+  return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "E-RABModifyResponse");
 }
 
 bool s1ap::ue::send_erab_release_indication(const std::vector<uint16_t>& erabs_successfully_released)
