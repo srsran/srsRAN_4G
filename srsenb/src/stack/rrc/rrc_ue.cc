@@ -882,6 +882,8 @@ void rrc::ue::send_connection_release()
                                     static_cast<unsigned>(rrc_event_type::con_release),
                                     static_cast<unsigned>(con_release_result),
                                     rnti);
+  // Restore release result.
+  con_release_result = procedure_result_code::none;
 }
 
 /*
