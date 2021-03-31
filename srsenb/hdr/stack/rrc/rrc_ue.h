@@ -33,16 +33,18 @@ public:
   bool is_idle();
 
   typedef enum {
-    MSG3_RX_TIMEOUT = 0,    ///< Msg3 has its own timeout to quickly remove fake UEs from random PRACHs
-    UE_INACTIVITY_TIMEOUT,  ///< UE inactivity timeout (usually bigger than reestablishment timeout)
-    UE_REESTABLISH_TIMEOUT, ///< Maximum timeout in which UE reestablishment is expected
+    MSG3_RX_TIMEOUT = 0,   ///< Msg3 has its own timeout to quickly remove fake UEs from random PRACHs
+    UE_INACTIVITY_TIMEOUT, ///< UE inactivity timeout (usually bigger than reestablishment timeout)
     nulltype
   } activity_timeout_type_t;
+
   std::string to_string(const activity_timeout_type_t& type);
   void        set_activity_timeout(const activity_timeout_type_t type);
+  void        set_rlf_timeout();
   void        set_activity();
   void        mac_ko_activity();
   void        activity_timer_expired(const activity_timeout_type_t type);
+  void        rlf_timer_expired();
   void        max_retx_reached();
 
   rrc_state_t get_state();
@@ -157,6 +159,7 @@ public:
 private:
   // args
   srsran::timer_handler::unique_timer activity_timer;
+  srsran::timer_handler::unique_timer rlf_timer;
 
   /// cached ASN1 fields for RRC config update checking, and ease of context transfer during HO
   ue_var_cfg_t current_ue_cfg;

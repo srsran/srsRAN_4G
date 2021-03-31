@@ -56,6 +56,7 @@ int rrc::ue::init()
   // Configure
   apply_setup_phy_common(parent->cfg.sibs[1].sib2().rr_cfg_common, true);
 
+  rlf_timer      = parent->task_sched.get_unique_timer();
   activity_timer = parent->task_sched.get_unique_timer();
   set_activity_timeout(MSG3_RX_TIMEOUT); // next UE response is Msg3
 
@@ -103,6 +104,7 @@ void rrc::ue::set_activity()
 {
   // re-start activity timer with current timeout value
   activity_timer.run();
+  rlf_timer.stop();
   consecutive_kos = 0;
   if (parent) {
     parent->logger.debug("Activity registered for rnti=0x%x (timeout_value=%dms)", rnti, activity_timer.duration());
@@ -113,14 +115,14 @@ void rrc::ue::mac_ko_activity()
 {
   // Count KOs in MAC and trigger release if it goes above a certain value.
   // This is done to detect out-of-coverage UEs
-  consecutive_kos++;
-  parent->logger.debug("KO activity registered for rnti=0x%x (consecutive_kos=%d, max_mac_dl_kos=%d)",
-                       rnti,
-                       consecutive_kos,
-                       parent->cfg.max_mac_dl_kos);
+  if (rlf_timer.is_running()) {
+    // RLF timer already running, no need to count KOs
+    return;
+  }
 
+  consecutive_kos++;
   if (consecutive_kos > parent->cfg.max_mac_dl_kos) {
-    parent->logger.debug("Max KOs reached, triggering release rnti=0x%x", rnti);
+    parent->logger.info("Max KOs reached, triggering release rnti=0x%x", rnti);
     max_retx_reached();
   }
 }
@@ -134,9 +136,6 @@ void rrc::ue::activity_timer_expired(const activity_timeout_type_t type)
       if (type == UE_INACTIVITY_TIMEOUT) {
         parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::user_inactivity);
         con_release_result = procedure_result_code::activity_timeout;
-      } else if (type == UE_REESTABLISH_TIMEOUT) {
-        parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::radio_conn_with_ue_lost);
-        con_release_result = procedure_result_code::radio_conn_with_ue_lost;
       } else if (type == MSG3_RX_TIMEOUT) {
         // MSG3 timeout, no need to notify S1AP, just remove UE
         parent->rem_user_thread(rnti);
@@ -158,16 +157,51 @@ void rrc::ue::activity_timer_expired(const activity_timeout_type_t type)
   state = RRC_STATE_RELEASE_REQUEST;
 }
 
+void rrc::ue::rlf_timer_expired()
+{
+  if (parent) {
+    parent->logger.info("RLF timer for rnti=0x%x expired after %d ms", rnti, rlf_timer.time_elapsed());
+
+    if (parent->s1ap->user_exists(rnti)) {
+      parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::radio_conn_with_ue_lost);
+      con_release_result = procedure_result_code::radio_conn_with_ue_lost;
+    } else {
+      if (rnti != SRSRAN_MRNTI) {
+        parent->rem_user(rnti);
+      }
+    }
+  }
+
+  state = RRC_STATE_RELEASE_REQUEST;
+}
+
 void rrc::ue::max_retx_reached()
 {
   if (parent) {
     parent->logger.info("Max retx reached for rnti=0x%x", rnti);
 
     // Give UE time to start re-establishment
-    set_activity_timeout(UE_REESTABLISH_TIMEOUT);
+    set_rlf_timeout();
 
     mac_ctrl.handle_max_retx();
   }
+}
+
+void rrc::ue::set_rlf_timeout()
+{
+  uint32_t deadline_s  = 0;
+  uint32_t deadline_ms = 0;
+
+  deadline_ms = static_cast<uint32_t>((get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.ue_timers_and_consts.t310.to_number()) +
+                                      (get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.ue_timers_and_consts.t311.to_number()) +
+                                      (get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.ue_timers_and_consts.n310.to_number()));
+  deadline_s  = deadline_ms / 1000;
+  deadline_ms = deadline_ms % 1000;
+
+  uint32_t deadline = deadline_s * 1e3 + deadline_ms;
+  rlf_timer.set(deadline, [this](uint32_t tid) { rlf_timer_expired(); });
+  parent->logger.debug("Setting RLF timer for rnti=0x%x to %dms", rnti, deadline);
+  rlf_timer.run();
 }
 
 void rrc::ue::set_activity_timeout(const activity_timeout_type_t type)
@@ -184,13 +218,6 @@ void rrc::ue::set_activity_timeout(const activity_timeout_type_t type)
     case UE_INACTIVITY_TIMEOUT:
       deadline_s  = parent->cfg.inactivity_timeout_ms / 1000;
       deadline_ms = parent->cfg.inactivity_timeout_ms % 1000;
-      break;
-    case UE_REESTABLISH_TIMEOUT:
-      deadline_ms = static_cast<uint32_t>((get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.ue_timers_and_consts.t310.to_number()) +
-                                          (get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.ue_timers_and_consts.t311.to_number()) +
-                                          (get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.ue_timers_and_consts.n310.to_number()));
-      deadline_s  = deadline_ms / 1000;
-      deadline_ms = deadline_ms % 1000;
       break;
     default:
       parent->logger.error("Unknown timeout type %d", type);

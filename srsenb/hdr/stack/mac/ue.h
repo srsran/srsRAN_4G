@@ -160,8 +160,6 @@ public:
 
   int read_pdu(uint32_t lcid, uint8_t* payload, uint32_t requested_bytes) final;
 
-  uint32_t ko_counter = 0;
-
 private:
   void allocate_sdu(srsran::sch_pdu* pdu, uint32_t lcid, uint32_t sdu_len);
   bool process_ce(srsran::sch_subh* subh);

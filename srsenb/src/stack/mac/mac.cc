@@ -298,7 +298,6 @@ int mac::ack_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, uint32_t 
     }
   } else {
     rrc_h->set_activity_user(rnti, false);
-    logger.info("DL KO activity rnti=0x%x, n_bytes=%d", rnti, nof_bytes);
   }
   return SRSRAN_SUCCESS;
 }
