@@ -69,6 +69,19 @@ struct mme_dummy {
   srsran::unique_byte_buffer_t last_sdu;
 };
 
+struct rrc_tester : public rrc_dummy {
+  void modify_erabs(uint16_t                                 rnti,
+                    const asn1::s1ap::erab_modify_request_s& msg,
+                    std::vector<uint16_t>*                   erabs_modified,
+                    std::vector<uint16_t>*                   erabs_failed_to_modify) override
+  {
+    *erabs_modified         = next_erabs_modified;
+    *erabs_failed_to_modify = next_erabs_failed_to_modify;
+  }
+
+  std::vector<uint16_t> next_erabs_modified, next_erabs_failed_to_modify;
+};
+
 void run_s1_setup(s1ap& s1ap_obj, mme_dummy& mme)
 {
   asn1::s1ap::s1ap_pdu_c s1ap_pdu;
@@ -93,7 +106,7 @@ void run_s1_setup(s1ap& s1ap_obj, mme_dummy& mme)
   TESTASSERT(s1ap_obj.handle_mme_rx_msg(std::move(sdu), mme_addr, rcvinfo, flags));
 }
 
-void add_rnti(s1ap& s1ap_obj)
+void add_rnti(s1ap& s1ap_obj, mme_dummy& mme)
 {
   asn1::s1ap::s1ap_pdu_c s1ap_pdu;
 
@@ -106,6 +119,12 @@ void add_rnti(s1ap& s1ap_obj)
   memcpy(sdu->msg, nas_msg, sizeof(nas_msg));
   sdu->N_bytes = sizeof(nas_msg);
   s1ap_obj.initial_ue(0x46, 0, asn1::s1ap::rrc_establishment_cause_opts::mo_data, std::move(sdu));
+  sdu = mme.read_msg();
+  TESTASSERT(sdu->N_bytes > 0);
+  asn1::cbit_ref cbref{sdu->msg, sdu->N_bytes};
+  TESTASSERT(s1ap_pdu.unpack(cbref) == SRSRAN_SUCCESS);
+  TESTASSERT(s1ap_pdu.type().value == asn1::s1ap::s1ap_pdu_c::types_opts::init_msg);
+  TESTASSERT(s1ap_pdu.init_msg().proc_code == ASN1_S1AP_ID_INIT_UE_MSG);
 
   // InitialContextSetupRequest (skip all NAS exchange)
   sockaddr_in     mme_addr   = {};
@@ -128,20 +147,28 @@ void add_rnti(s1ap& s1ap_obj)
   TESTASSERT(s1ap_obj.handle_mme_rx_msg(std::move(sdu), mme_addr, rcvinfo, flags));
 
   // InitialContextSetupResponse
-  uint8_t        icsresp[] = {0x20, 0x09, 0x00, 0x22, 0x00, 0x00, 0x03, 0x00, 0x00, 0x40, 0x02, 0x00, 0x01,
+  uint8_t icsresp[] = {0x20, 0x09, 0x00, 0x22, 0x00, 0x00, 0x03, 0x00, 0x00, 0x40, 0x02, 0x00, 0x01,
                        0x00, 0x08, 0x40, 0x02, 0x00, 0x01, 0x00, 0x33, 0x40, 0x0f, 0x00, 0x00, 0x32,
                        0x40, 0x0a, 0x0a, 0x1f, 0x7f, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x01};
-  asn1::cbit_ref cbref(icsresp, sizeof(icsresp));
+  cbref             = asn1::cbit_ref(icsresp, sizeof(icsresp));
   TESTASSERT(s1ap_pdu.unpack(cbref) == SRSRAN_SUCCESS);
   s1ap_obj.ue_ctxt_setup_complete(0x46, s1ap_pdu.successful_outcome().value.init_context_setup_resp());
+  sdu = mme.read_msg();
+  TESTASSERT(sdu->N_bytes > 0);
+  cbref = asn1::cbit_ref{sdu->msg, sdu->N_bytes};
+  TESTASSERT(s1ap_pdu.unpack(cbref) == SRSRAN_SUCCESS);
+  TESTASSERT(s1ap_pdu.type().value == asn1::s1ap::s1ap_pdu_c::types_opts::successful_outcome);
+  TESTASSERT(s1ap_pdu.successful_outcome().proc_code == ASN1_S1AP_ID_INIT_CONTEXT_SETUP);
 }
 
-void test_s1ap_erab_setup()
+enum class test_event { success, wrong_erabid_mod };
+
+void test_s1ap_erab_setup(test_event event)
 {
   srsran::task_scheduler       task_sched;
   srslog::basic_logger&        logger = srslog::fetch_basic_logger("S1AP");
   s1ap                         s1ap_obj(&task_sched, logger);
-  rrc_dummy                    rrc;
+  rrc_tester                   rrc;
   stack_dummy                  stack;
   asn1::s1ap::s1ap_pdu_c       s1ap_pdu;
   srsran::unique_byte_buffer_t sdu;
@@ -164,7 +191,7 @@ void test_s1ap_erab_setup()
   TESTASSERT(s1ap_obj.init(args, &rrc, &stack) == SRSRAN_SUCCESS);
 
   run_s1_setup(s1ap_obj, mme);
-  add_rnti(s1ap_obj);
+  add_rnti(s1ap_obj, mme);
 
   // E-RAB Modify Request
   sockaddr_in     mme_addr      = {};
@@ -173,10 +200,39 @@ void test_s1ap_erab_setup()
   uint8_t         mod_req_msg[] = {0x00, 0x06, 0x00, 0x1E, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x02, 0x00,
                            0x01, 0x00, 0x08, 0x00, 0x02, 0x00, 0x01, 0x00, 0x1E, 0x00, 0x0B, 0x00,
                            0x00, 0x24, 0x00, 0x06, 0x0A, 0x00, 0x09, 0x3C, 0x01, 0x00};
-  sdu                           = srsran::make_byte_buffer();
+  // 00 06 00 1E 00 00 03 00 00 00 02 00 01 00 08 00 02 00 01 00 1E 00 0B 00 00 24 00 06 0A 00 09 3C 01 00
+  if (event == test_event::wrong_erabid_mod) {
+    mod_req_msg[sizeof(mod_req_msg) - 6] = 0x0C; // E-RAB id == 6
+    rrc.next_erabs_failed_to_modify.push_back(6);
+  } else {
+    rrc.next_erabs_modified.push_back(5);
+  }
+  sdu = srsran::make_byte_buffer();
   memcpy(sdu->msg, mod_req_msg, sizeof(mod_req_msg));
   sdu->N_bytes = sizeof(mod_req_msg);
   TESTASSERT(s1ap_obj.handle_mme_rx_msg(std::move(sdu), mme_addr, rcvinfo, flags));
+  sdu = mme.read_msg();
+  TESTASSERT(sdu->N_bytes > 0);
+  asn1::cbit_ref cbref{sdu->msg, sdu->N_bytes};
+  TESTASSERT(s1ap_pdu.unpack(cbref) == SRSRAN_SUCCESS);
+  TESTASSERT(s1ap_pdu.type().value == asn1::s1ap::s1ap_pdu_c::types_opts::successful_outcome);
+  TESTASSERT(s1ap_pdu.successful_outcome().proc_code == ASN1_S1AP_ID_ERAB_MODIFY);
+  auto& protocol_ies = s1ap_pdu.successful_outcome().value.erab_modify_resp().protocol_ies;
+  if (event == test_event::wrong_erabid_mod) {
+    TESTASSERT(not protocol_ies.erab_modify_list_bearer_mod_res_present);
+    TESTASSERT(protocol_ies.erab_failed_to_modify_list_present);
+    TESTASSERT(protocol_ies.erab_failed_to_modify_list.value.size() == 1);
+    auto& erab_item = protocol_ies.erab_failed_to_modify_list.value[0].value.erab_item();
+    TESTASSERT(erab_item.erab_id == 6);
+    TESTASSERT(erab_item.cause.type().value == asn1::s1ap::cause_c::types_opts::radio_network);
+    TESTASSERT(erab_item.cause.radio_network().value == asn1::s1ap::cause_radio_network_opts::unknown_erab_id);
+  } else {
+    TESTASSERT(protocol_ies.erab_modify_list_bearer_mod_res_present);
+    TESTASSERT(not protocol_ies.erab_failed_to_modify_list_present);
+    TESTASSERT(protocol_ies.erab_modify_list_bearer_mod_res.value.size() == 1);
+    TESTASSERT(protocol_ies.erab_modify_list_bearer_mod_res.value[0].value.erab_modify_item_bearer_mod_res().erab_id ==
+               5);
+  }
 }
 
 int main(int argc, char** argv)
@@ -189,5 +245,6 @@ int main(int argc, char** argv)
   // Start the log backend.
   srsran::test_init(argc, argv);
 
-  test_s1ap_erab_setup();
+  test_s1ap_erab_setup(test_event::success);
+  test_s1ap_erab_setup(test_event::wrong_erabid_mod);
 }

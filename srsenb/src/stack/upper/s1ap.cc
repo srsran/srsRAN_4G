@@ -1401,9 +1401,10 @@ bool s1ap::ue::send_erab_modify_response(const std::vector<uint16_t>& erabs_succ
     for (uint32_t i = 0; i < container.erab_failed_to_modify_list.value.size(); i++) {
       container.erab_failed_to_modify_list.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_ITEM);
       container.erab_failed_to_modify_list.value[i].value.erab_item().erab_id = erabs_failed_to_modify[i];
-      container.erab_failed_to_modify_list.value[i].value.erab_item().cause.set(asn1::s1ap::cause_c::types::misc);
-      container.erab_failed_to_modify_list.value[i].value.erab_item().cause.misc() =
-          asn1::s1ap::cause_misc_opts::unspecified;
+      container.erab_failed_to_modify_list.value[i].value.erab_item().cause.set(
+          asn1::s1ap::cause_c::types_opts::radio_network);
+      container.erab_failed_to_modify_list.value[i].value.erab_item().cause.radio_network().value =
+          cause_radio_network_opts::unknown_erab_id;
     }
   }
 
