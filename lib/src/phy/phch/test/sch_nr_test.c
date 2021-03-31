@@ -33,7 +33,7 @@ static srsran_sch_cfg_nr_t pdsch_cfg = {};
 
 static void usage(char* prog)
 {
-  printf("Usage: %s [pTL] \n", prog);
+  printf("Usage: %s [prTL] \n", prog);
   printf("\t-P Number of carrier PRB [Default %d]\n", carrier.nof_prb);
   printf("\t-p Number of grant PRB, set to 0 for steering [Default %d]\n", n_prb);
   printf("\t-r Redundancy version, set to 4 or higher for steering [Default %d]\n", rv);
@@ -47,7 +47,7 @@ static void usage(char* prog)
 int parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "PpmTLv")) != -1) {
+  while ((opt = getopt(argc, argv, "PpmTLvr")) != -1) {
     switch (opt) {
       case 'P':
         carrier.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
@@ -57,6 +57,9 @@ int parse_args(int argc, char** argv)
         break;
       case 'm':
         mcs = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'r':
+        rv = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'T':
         pdsch_cfg.sch_cfg.mcs_table = srsran_mcs_table_from_str(argv[optind]);
