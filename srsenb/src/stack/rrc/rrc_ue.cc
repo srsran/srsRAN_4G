@@ -59,6 +59,7 @@ int rrc::ue::init()
   rlf_timer      = parent->task_sched.get_unique_timer();
   activity_timer = parent->task_sched.get_unique_timer();
   set_activity_timeout(MSG3_RX_TIMEOUT); // next UE response is Msg3
+  set_rlf_timeout();
 
   mobility_handler.reset(new rrc_mobility(this));
   return SRSRAN_SUCCESS;
@@ -129,6 +130,7 @@ void rrc::ue::mac_ko_activity()
 
 void rrc::ue::activity_timer_expired(const activity_timeout_type_t type)
 {
+  rlf_timer.stop();
   if (parent) {
     parent->logger.info("Activity timer for rnti=0x%x expired after %d ms", rnti, activity_timer.time_elapsed());
 
@@ -159,6 +161,7 @@ void rrc::ue::activity_timer_expired(const activity_timeout_type_t type)
 
 void rrc::ue::rlf_timer_expired()
 {
+  activity_timer.stop();
   if (parent) {
     parent->logger.info("RLF timer for rnti=0x%x expired after %d ms", rnti, rlf_timer.time_elapsed());
 
@@ -181,7 +184,7 @@ void rrc::ue::max_retx_reached()
     parent->logger.info("Max retx reached for rnti=0x%x", rnti);
 
     // Give UE time to start re-establishment
-    set_rlf_timeout();
+    rlf_timer.run();
 
     mac_ctrl.handle_max_retx();
   }
@@ -201,7 +204,6 @@ void rrc::ue::set_rlf_timeout()
   uint32_t deadline = deadline_s * 1e3 + deadline_ms;
   rlf_timer.set(deadline, [this](uint32_t tid) { rlf_timer_expired(); });
   parent->logger.debug("Setting RLF timer for rnti=0x%x to %dms", rnti, deadline);
-  rlf_timer.run();
 }
 
 void rrc::ue::set_activity_timeout(const activity_timeout_type_t type)
