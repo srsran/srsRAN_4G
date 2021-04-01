@@ -76,6 +76,21 @@ bool mac::init(const mac_args_t&        args_,
 
   reset();
 
+  // Initiate common pool of softbuffers
+  using softbuffer_pool_t   = srsran::background_obj_pool<ue_cc_softbuffers,
+                                                        16,
+                                                        4,
+                                                        srsran::move_callback<void(void*)>,
+                                                        srsran::move_callback<void(ue_cc_softbuffers&)> >;
+  uint32_t nof_prb          = args.nof_prb;
+  auto     init_softbuffers = [nof_prb](void* ptr) {
+    new (ptr) ue_cc_softbuffers(nof_prb, SRSRAN_FDD_NOF_HARQ, SRSRAN_FDD_NOF_HARQ);
+  };
+  auto recycle_softbuffers = [](ue_cc_softbuffers& softbuffers) { softbuffers.clear(); };
+  softbuffer_pool.reset(new softbuffer_pool_t(std::min(args.max_nof_ues, 16U), // initial allocation size
+                                              init_softbuffers,
+                                              recycle_softbuffers));
+
   // Pre-alloc UE objects for first attaching users
   prealloc_ue(10);
 
@@ -570,8 +585,8 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
 void mac::prealloc_ue(uint32_t nof_ue)
 {
   for (uint32_t i = 0; i < nof_ue; i++) {
-    std::unique_ptr<ue> ptr = std::unique_ptr<ue>(
-        new ue(allocate_rnti(), args.nof_prb, &scheduler, rrc_h, rlc_h, phy_h, logger, cells.size()));
+    std::unique_ptr<ue> ptr = std::unique_ptr<ue>(new ue(
+        allocate_rnti(), args.nof_prb, &scheduler, rrc_h, rlc_h, phy_h, logger, cells.size(), softbuffer_pool.get()));
     if (not ue_pool.try_push(std::move(ptr))) {
       logger.info("Cannot preallocate more UEs as pool is full");
       return;
@@ -1000,8 +1015,8 @@ void mac::write_mcch(const srsran::sib2_mbms_t* sib2_,
   sib13 = *sib13_;
   memcpy(mcch_payload_buffer, mcch_payload, mcch_payload_length * sizeof(uint8_t));
   current_mcch_length = mcch_payload_length;
-  ue_db[SRSRAN_MRNTI] =
-      std::unique_ptr<ue>{new ue(SRSRAN_MRNTI, args.nof_prb, &scheduler, rrc_h, rlc_h, phy_h, logger, cells.size())};
+  ue_db[SRSRAN_MRNTI] = std::unique_ptr<ue>{
+      new ue(SRSRAN_MRNTI, args.nof_prb, &scheduler, rrc_h, rlc_h, phy_h, logger, cells.size(), softbuffer_pool.get())};
 
   rrc_h->add_user(SRSRAN_MRNTI, {});
 }

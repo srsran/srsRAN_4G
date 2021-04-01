@@ -21,7 +21,7 @@ namespace srsran {
 namespace detail {
 
 template <typename T>
-struct default_ctor_operator {
+struct inplace_default_ctor_operator {
   void operator()(void* ptr) { new (ptr) T(); }
 };
 
@@ -34,10 +34,6 @@ struct noop_operator {
 };
 
 } // namespace detail
-
-/// unique ptr with type-erased dtor, so that it can be used by any pool
-template <typename T>
-using unique_pool_ptr = std::unique_ptr<T, srsran::move_callback<void(void*)> >;
 
 } // namespace srsran
 

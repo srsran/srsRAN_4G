@@ -16,6 +16,7 @@
 #include "sched.h"
 #include "srsenb/hdr/stack/mac/schedulers/sched_time_rr.h"
 #include "srsran/adt/circular_map.h"
+#include "srsran/adt/pool/background_mem_pool.h"
 #include "srsran/common/mac_pcap.h"
 #include "srsran/common/mac_pcap_net.h"
 #include "srsran/common/task_scheduler.h"
@@ -180,6 +181,9 @@ private:
 
   // Number of rach preambles detected for a cc.
   std::vector<uint32_t> detected_rachs;
+
+  // Softbuffer pool
+  std::unique_ptr<srsran::obj_pool_itf<ue_cc_softbuffers> > softbuffer_pool;
 };
 
 } // namespace srsenb

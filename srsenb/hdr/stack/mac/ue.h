@@ -16,6 +16,7 @@
 #include "mac_metrics.h"
 #include "srsran/adt/circular_array.h"
 #include "srsran/adt/circular_map.h"
+#include "srsran/adt/pool/common_pool.h"
 #include "srsran/common/block_queue.h"
 #include "srsran/common/mac_pcap.h"
 #include "srsran/common/mac_pcap_net.h"
@@ -34,6 +35,28 @@ namespace srsenb {
 class rrc_interface_mac;
 class rlc_interface_mac;
 class phy_interface_stack_lte;
+
+struct ue_cc_softbuffers {
+  // List of Tx softbuffers for all HARQ processes of one carrier
+  using cc_softbuffer_tx_list_t = std::vector<srsran_softbuffer_tx_t>;
+  // List of Rx softbuffers for all HARQ processes of one carrier
+  using cc_softbuffer_rx_list_t = std::vector<srsran_softbuffer_rx_t>;
+
+  const uint32_t          nof_tx_harq_proc;
+  const uint32_t          nof_rx_harq_proc;
+  cc_softbuffer_tx_list_t softbuffer_tx_list;
+  cc_softbuffer_rx_list_t softbuffer_rx_list;
+
+  ue_cc_softbuffers(uint32_t nof_prb, uint32_t nof_tx_harq_proc_, uint32_t nof_rx_harq_proc_);
+  ~ue_cc_softbuffers();
+  void clear();
+
+  srsran_softbuffer_tx_t& get_tx(uint32_t pid, uint32_t tb_idx)
+  {
+    return softbuffer_tx_list.at(pid * SRSRAN_MAX_TB + tb_idx);
+  }
+  srsran_softbuffer_rx_t& get_rx(uint32_t tti) { return softbuffer_rx_list.at(tti % nof_rx_harq_proc); }
+};
 
 class cc_used_buffers_map
 {
@@ -66,24 +89,19 @@ private:
 class cc_buffer_handler
 {
 public:
-  // List of Tx softbuffers for all HARQ processes of one carrier
-  using cc_softbuffer_tx_list_t = std::vector<srsran_softbuffer_tx_t>;
-  // List of Rx softbuffers for all HARQ processes of one carrier
-  using cc_softbuffer_rx_list_t = std::vector<srsran_softbuffer_rx_t>;
-
   explicit cc_buffer_handler(srsran::pdu_queue& shared_pdu_queue_);
   ~cc_buffer_handler();
 
   void reset();
-  void allocate_cc(uint32_t nof_prb, uint32_t nof_rx_harq_proc, uint32_t nof_tx_harq_proc);
+  void allocate_cc(srsran::unique_pool_ptr<ue_cc_softbuffers> cc_softbuffers_);
   void deallocate_cc();
 
-  bool                    empty() const { return softbuffer_tx_list.empty() and softbuffer_rx_list.empty(); }
+  bool                    empty() const { return cc_softbuffers == nullptr; }
   srsran_softbuffer_tx_t& get_tx_softbuffer(uint32_t pid, uint32_t tb_idx)
   {
-    return softbuffer_tx_list.at(pid * SRSRAN_MAX_TB + tb_idx);
+    return cc_softbuffers->get_tx(pid, tb_idx);
   }
-  srsran_softbuffer_rx_t& get_rx_softbuffer(uint32_t tti) { return softbuffer_rx_list.at(tti % nof_rx_harq_proc); }
+  srsran_softbuffer_rx_t& get_rx_softbuffer(uint32_t tti) { return cc_softbuffers->get_rx(tti); }
   srsran::byte_buffer_t*  get_tx_payload_buffer(size_t harq_pid, size_t tb)
   {
     return tx_payload_buffer[harq_pid][tb].get();
@@ -91,15 +109,11 @@ public:
   cc_used_buffers_map& get_rx_used_buffers() { return rx_used_buffers; }
 
 private:
-  // args
-  uint32_t nof_prb;
-  uint32_t nof_rx_harq_proc;
-  uint32_t nof_tx_harq_proc;
+  // CC softbuffers
+  srsran::unique_pool_ptr<ue_cc_softbuffers> cc_softbuffers;
 
   // buffers
-  cc_softbuffer_tx_list_t softbuffer_tx_list; ///< List of softbuffer lists for Tx
-  cc_softbuffer_rx_list_t softbuffer_rx_list; ///< List of softbuffer lists for Rx
-  cc_used_buffers_map     rx_used_buffers;
+  cc_used_buffers_map rx_used_buffers;
 
   // One buffer per TB per HARQ process and per carrier is needed for each UE.
   std::array<std::array<srsran::unique_byte_buffer_t, SRSRAN_MAX_TB>, SRSRAN_FDD_NOF_HARQ> tx_payload_buffer;
@@ -108,16 +122,17 @@ private:
 class ue : public srsran::read_pdu_interface, public srsran::pdu_queue::process_callback, public mac_ta_ue_interface
 {
 public:
-  ue(uint16_t                 rnti,
-     uint32_t                 nof_prb,
-     sched_interface*         sched,
-     rrc_interface_mac*       rrc_,
-     rlc_interface_mac*       rlc,
-     phy_interface_stack_lte* phy_,
-     srslog::basic_logger&    logger,
-     uint32_t                 nof_cells_,
-     uint32_t                 nof_rx_harq_proc = SRSRAN_FDD_NOF_HARQ,
-     uint32_t                 nof_tx_harq_proc = SRSRAN_FDD_NOF_HARQ);
+  ue(uint16_t                                 rnti,
+     uint32_t                                 nof_prb,
+     sched_interface*                         sched,
+     rrc_interface_mac*                       rrc_,
+     rlc_interface_mac*                       rlc,
+     phy_interface_stack_lte*                 phy_,
+     srslog::basic_logger&                    logger,
+     uint32_t                                 nof_cells_,
+     srsran::obj_pool_itf<ue_cc_softbuffers>* softbuffer_pool,
+     uint32_t                                 nof_rx_harq_proc = SRSRAN_FDD_NOF_HARQ,
+     uint32_t                                 nof_tx_harq_proc = SRSRAN_FDD_NOF_HARQ);
 
   virtual ~ue();
   void     reset();
@@ -181,6 +196,8 @@ private:
   uint32_t              nof_failures     = 0;
   int                   nof_rx_harq_proc = 0;
   int                   nof_tx_harq_proc = 0;
+
+  srsran::obj_pool_itf<ue_cc_softbuffers>* softbuffer_pool = nullptr;
 
   srsran::bounded_vector<cc_buffer_handler, SRSRAN_MAX_CARRIERS> cc_buffers;
 

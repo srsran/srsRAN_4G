@@ -23,6 +23,45 @@
 
 namespace srsenb {
 
+ue_cc_softbuffers::ue_cc_softbuffers(uint32_t nof_prb, uint32_t nof_tx_harq_proc_, uint32_t nof_rx_harq_proc_) :
+  nof_tx_harq_proc(nof_tx_harq_proc_), nof_rx_harq_proc(nof_rx_harq_proc_)
+{
+  // Create and init Rx buffers
+  softbuffer_rx_list.resize(nof_rx_harq_proc);
+  for (srsran_softbuffer_rx_t& buffer : softbuffer_rx_list) {
+    srsran_softbuffer_rx_init(&buffer, nof_prb);
+  }
+
+  // Create and init Tx buffers
+  softbuffer_tx_list.resize(nof_tx_harq_proc * SRSRAN_MAX_TB);
+  for (auto& buffer : softbuffer_tx_list) {
+    srsran_softbuffer_tx_init(&buffer, nof_prb);
+  }
+}
+
+ue_cc_softbuffers::~ue_cc_softbuffers()
+{
+  for (auto& buffer : softbuffer_rx_list) {
+    srsran_softbuffer_rx_free(&buffer);
+  }
+  softbuffer_rx_list.clear();
+
+  for (auto& buffer : softbuffer_tx_list) {
+    srsran_softbuffer_tx_free(&buffer);
+  }
+  softbuffer_tx_list.clear();
+}
+
+void ue_cc_softbuffers::clear()
+{
+  for (auto& buffer : softbuffer_rx_list) {
+    srsran_softbuffer_rx_reset(&buffer);
+  }
+  for (auto& buffer : softbuffer_tx_list) {
+    srsran_softbuffer_tx_reset(&buffer);
+  }
+}
+
 cc_used_buffers_map::cc_used_buffers_map(srsran::pdu_queue& shared_pdu_queue_) :
   shared_pdu_queue(&shared_pdu_queue_), logger(&srslog::fetch_basic_logger("MAC"))
 {}
@@ -136,59 +175,33 @@ cc_buffer_handler::~cc_buffer_handler()
  * @param num_cc Number of carriers to add buffers for (default 1)
  * @return number of carriers
  */
-void cc_buffer_handler::allocate_cc(uint32_t nof_prb_, uint32_t nof_rx_harq_proc_, uint32_t nof_tx_harq_proc_)
+void cc_buffer_handler::allocate_cc(srsran::unique_pool_ptr<ue_cc_softbuffers> cc_softbuffers_)
 {
   srsran_assert(empty(), "Cannot allocate softbuffers in CC that is already initialized");
-  nof_prb          = nof_prb_;
-  nof_rx_harq_proc = nof_rx_harq_proc_;
-  nof_tx_harq_proc = nof_tx_harq_proc_;
-
-  // Create and init Rx buffers
-  softbuffer_rx_list.resize(nof_rx_harq_proc);
-  for (srsran_softbuffer_rx_t& buffer : softbuffer_rx_list) {
-    srsran_softbuffer_rx_init(&buffer, nof_prb);
-  }
-
-  // Create and init Tx buffers
-  softbuffer_tx_list.resize(nof_tx_harq_proc * SRSRAN_MAX_TB);
-  for (auto& buffer : softbuffer_tx_list) {
-    srsran_softbuffer_tx_init(&buffer, nof_prb);
-  }
+  cc_softbuffers = std::move(cc_softbuffers_);
 }
 
 void cc_buffer_handler::deallocate_cc()
 {
-  for (auto& buffer : softbuffer_rx_list) {
-    srsran_softbuffer_rx_free(&buffer);
-  }
-  softbuffer_rx_list.clear();
-
-  for (auto& buffer : softbuffer_tx_list) {
-    srsran_softbuffer_tx_free(&buffer);
-  }
-  softbuffer_tx_list.clear();
+  cc_softbuffers.reset();
 }
 
 void cc_buffer_handler::reset()
 {
-  for (auto& buffer : softbuffer_rx_list) {
-    srsran_softbuffer_rx_reset(&buffer);
-  }
-  for (auto& buffer : softbuffer_tx_list) {
-    srsran_softbuffer_tx_reset(&buffer);
-  }
+  cc_softbuffers->clear();
 }
 
-ue::ue(uint16_t                 rnti_,
-       uint32_t                 nof_prb_,
-       sched_interface*         sched_,
-       rrc_interface_mac*       rrc_,
-       rlc_interface_mac*       rlc_,
-       phy_interface_stack_lte* phy_,
-       srslog::basic_logger&    logger_,
-       uint32_t                 nof_cells_,
-       uint32_t                 nof_rx_harq_proc_,
-       uint32_t                 nof_tx_harq_proc_) :
+ue::ue(uint16_t                                 rnti_,
+       uint32_t                                 nof_prb_,
+       sched_interface*                         sched_,
+       rrc_interface_mac*                       rrc_,
+       rlc_interface_mac*                       rlc_,
+       phy_interface_stack_lte*                 phy_,
+       srslog::basic_logger&                    logger_,
+       uint32_t                                 nof_cells_,
+       srsran::obj_pool_itf<ue_cc_softbuffers>* softbuffer_pool_,
+       uint32_t                                 nof_rx_harq_proc_,
+       uint32_t                                 nof_tx_harq_proc_) :
   rnti(rnti_),
   nof_prb(nof_prb_),
   sched(sched_),
@@ -202,7 +215,8 @@ ue::ue(uint16_t                 rnti_,
   pdus(logger_),
   nof_rx_harq_proc(nof_rx_harq_proc_),
   nof_tx_harq_proc(nof_tx_harq_proc_),
-  ta_fsm(this)
+  ta_fsm(this),
+  softbuffer_pool(softbuffer_pool_)
 {
   for (size_t i = 0; i < nof_cells_; ++i) {
     cc_buffers.emplace_back(pdus);
@@ -210,7 +224,7 @@ ue::ue(uint16_t                 rnti_,
   pdus.init(this);
 
   // Allocate buffer for PCell
-  cc_buffers[0].allocate_cc(nof_prb, nof_rx_harq_proc, nof_tx_harq_proc);
+  cc_buffers[0].allocate_cc(softbuffer_pool->allocate_object());
 }
 
 ue::~ue()
@@ -540,7 +554,7 @@ void ue::allocate_ce(srsran::sch_pdu* pdu, uint32_t lcid)
           // Allocate and initialize Rx/Tx softbuffers for new carriers (exclude PCell)
           for (size_t i = 0; i < std::min(active_scell_list.size(), cc_buffers.size()); ++i) {
             if (active_scell_list[i] and cc_buffers[i].empty()) {
-              cc_buffers[i].allocate_cc(nof_prb, nof_rx_harq_proc, nof_tx_harq_proc);
+              cc_buffers[i].allocate_cc(softbuffer_pool->allocate_object());
             }
           }
         } else {

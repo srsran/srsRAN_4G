@@ -13,6 +13,7 @@
 #ifndef SRSRAN_BACKGROUND_MEM_POOL_H
 #define SRSRAN_BACKGROUND_MEM_POOL_H
 
+#include "common_pool.h"
 #include "memblock_cache.h"
 #include "pool_utils.h"
 #include "srsran/common/srsran_assert.h"
@@ -41,10 +42,12 @@ class base_background_pool
   using pool_type = base_background_pool<T, BatchSize, ThresholdSize, CtorFunc, RecycleFunc>;
 
 public:
-  explicit base_background_pool(size_t      initial_size  = BatchSize,
-                                CtorFunc    ctor_func_    = {},
-                                RecycleFunc recycle_func_ = {}) :
-    ctor_func(ctor_func_), recycle_func(recycle_func_), state(std::make_shared<detached_pool_state>(this))
+  explicit base_background_pool(size_t        initial_size  = BatchSize,
+                                CtorFunc&&    ctor_func_    = {},
+                                RecycleFunc&& recycle_func_ = {}) :
+    ctor_func(std::forward<CtorFunc>(ctor_func_)),
+    recycle_func(std::forward<RecycleFunc>(recycle_func_)),
+    state(std::make_shared<detached_pool_state>(this))
   {
     int nof_batches = ceilf(initial_size / (float)BatchSize);
     while (nof_batches-- > 0) {
@@ -90,7 +93,7 @@ public:
   void deallocate_node(void* p)
   {
     std::lock_guard<std::mutex> lock(state->mutex);
-    recycle_func(static_cast<void*>(p));
+    recycle_func(*static_cast<T*>(p));
     obj_cache.push(static_cast<void*>(p));
   }
 
@@ -148,9 +151,9 @@ using background_mem_pool =
 template <typename T,
           size_t BatchSize,
           size_t ThresholdSize,
-          typename CtorFunc    = detail::default_ctor_operator<T>,
+          typename CtorFunc    = detail::inplace_default_ctor_operator<T>,
           typename RecycleFunc = detail::noop_operator>
-class background_obj_pool
+class background_obj_pool : public obj_pool_itf<T>
 {
   using pool_type     = background_obj_pool<T, BatchSize, ThresholdSize, CtorFunc, RecycleFunc>;
   using mem_pool_type = detail::base_background_pool<T, BatchSize, ThresholdSize, CtorFunc, RecycleFunc>;
@@ -171,7 +174,7 @@ public:
     pool(initial_size, std::forward<CtorFunc>(ctor_func), std::forward<RecycleFunc>(recycle_func))
   {}
 
-  unique_pool_ptr<T> allocate_object()
+  unique_pool_ptr<T> allocate_object() final
   {
     void* ptr = pool.allocate_node(sizeof(T));
     return std::unique_ptr<T, pool_deleter>(static_cast<T*>(ptr), pool_deleter(&pool));
