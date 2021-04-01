@@ -41,7 +41,7 @@ struct ue_ctxt_t {
 
   uint16_t                   rnti           = SRSRAN_INVALID_RNTI;
   uint32_t                   enb_ue_s1ap_id = invalid_enb_id;
-  srsran::optional<uint32_t> mme_ue_s1ap_id = 0;
+  srsran::optional<uint32_t> mme_ue_s1ap_id;
   uint32_t                   enb_cc_idx     = 0;
   struct timeval             init_timestamp = {};
 };
