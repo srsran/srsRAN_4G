@@ -15,6 +15,7 @@
 #include <netinet/sctp.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <unistd.h> // for the pipe
 
 #define rxSockError(fmt, ...) logger.error("RxSockets: " fmt, ##__VA_ARGS__)
 #define rxSockWarn(fmt, ...) logger.warning("RxSockets: " fmt, ##__VA_ARGS__)
@@ -322,109 +323,22 @@ bool sctp_init_server(unique_socket* socket, net_utils::socket_type socktype, co
 } // namespace net_utils
 
 /***************************************************************
- *                 Rx Multisocket Task Types
- **************************************************************/
-
-/**
- * Description: Specialization of recv_task for the case the received data is
- * in the form of unique_byte_buffer, and a recvfrom(...) call is used
- */
-class recvfrom_pdu_task final : public rx_multisocket_handler::recv_task
-{
-public:
-  using callback_t = std::function<void(srsran::unique_byte_buffer_t pdu, const sockaddr_in& from)>;
-  explicit recvfrom_pdu_task(srslog::basic_logger& logger, callback_t func_) : logger(logger), func(std::move(func_)) {}
-
-  bool operator()(int fd) override
-  {
-    srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
-    if (pdu == nullptr) {
-      logger.error("Unable to allocate byte buffer");
-      return true;
-    }
-    sockaddr_in from    = {};
-    socklen_t   fromlen = sizeof(from);
-
-    ssize_t n_recv = recvfrom(fd, pdu->msg, pdu->get_tailroom(), 0, (struct sockaddr*)&from, &fromlen);
-    if (n_recv == -1 and errno != EAGAIN) {
-      logger.error("Error reading from socket: %s", strerror(errno));
-      return true;
-    }
-    if (n_recv == -1 and errno == EAGAIN) {
-      logger.debug("Socket timeout reached");
-      return true;
-    }
-
-    pdu->N_bytes = static_cast<uint32_t>(n_recv);
-    func(std::move(pdu), from);
-    return true;
-  }
-
-private:
-  srslog::basic_logger& logger;
-  callback_t            func;
-};
-
-class sctp_recvmsg_pdu_task final : public rx_multisocket_handler::recv_task
-{
-public:
-  using callback_t = std::function<
-      void(srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags)>;
-  explicit sctp_recvmsg_pdu_task(srslog::basic_logger& logger, callback_t func_) :
-    logger(logger), func(std::move(func_))
-  {}
-
-  bool operator()(int fd) override
-  {
-    // inside rx_sockets thread. Read socket
-    srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
-    if (pdu == nullptr) {
-      logger.error("Unable to allocate byte buffer");
-      return true;
-    }
-    sockaddr_in     from    = {};
-    socklen_t       fromlen = sizeof(from);
-    sctp_sndrcvinfo sri     = {};
-    int             flags   = 0;
-    ssize_t n_recv = sctp_recvmsg(fd, pdu->msg, pdu->get_tailroom(), (struct sockaddr*)&from, &fromlen, &sri, &flags);
-    if (n_recv == -1 and errno != EAGAIN) {
-      logger.error("Error reading from SCTP socket: %s", strerror(errno));
-      return true;
-    }
-    if (n_recv == -1 and errno == EAGAIN) {
-      logger.debug("Socket timeout reached");
-      return true;
-    }
-
-    bool ret     = true;
-    pdu->N_bytes = static_cast<uint32_t>(n_recv);
-    // SCTP notifications handled in callback.
-    func(std::move(pdu), from, sri, flags);
-    return ret;
-  }
-
-private:
-  srslog::basic_logger& logger;
-  callback_t            func;
-};
-
-/***************************************************************
  *                 Rx Multisocket Handler
  **************************************************************/
 
-rx_multisocket_handler::rx_multisocket_handler() : thread("RXsockets"), logger(srslog::fetch_basic_logger("COMN"))
+socket_manager::socket_manager() : thread("RXsockets"), socket_manager_itf(srslog::fetch_basic_logger("COMN"))
 {
   // register control pipe fd
   srsran_assert(pipe(pipefd) != -1, "Failed to open control pipe");
   start(thread_prio);
 }
 
-rx_multisocket_handler::~rx_multisocket_handler()
+socket_manager::~socket_manager()
 {
   stop();
 }
 
-void rx_multisocket_handler::stop()
+void socket_manager::stop()
 {
   if (running) {
     // close thread
@@ -449,27 +363,7 @@ void rx_multisocket_handler::stop()
   }
 }
 
-/**
- * Convenience method for read PDUs from socket
- */
-bool rx_multisocket_handler::add_socket_pdu_handler(int fd, recvfrom_callback_t pdu_task)
-{
-  std::unique_ptr<srsran::rx_multisocket_handler::recv_task> task;
-  task.reset(new srsran::recvfrom_pdu_task(logger, std::move(pdu_task)));
-  return add_socket_handler(fd, std::move(task));
-}
-
-/**
- * Convenience method for reading PDUs from SCTP socket
- */
-bool rx_multisocket_handler::add_socket_sctp_pdu_handler(int fd, sctp_recv_callback_t pdu_task)
-{
-  srsran::rx_multisocket_handler::task_callback_t task;
-  task.reset(new srsran::sctp_recvmsg_pdu_task(logger, std::move(pdu_task)));
-  return add_socket_handler(fd, std::move(task));
-}
-
-bool rx_multisocket_handler::add_socket_handler(int fd, task_callback_t handler)
+bool socket_manager::add_socket_handler(int fd, recv_callback_t handler)
 {
   std::lock_guard<std::mutex> lock(socket_mutex);
   if (fd < 0) {
@@ -481,7 +375,7 @@ bool rx_multisocket_handler::add_socket_handler(int fd, task_callback_t handler)
     return false;
   }
 
-  active_sockets.insert(std::pair<const int, task_callback_t>(fd, std::move(handler)));
+  active_sockets.insert(std::make_pair(fd, std::move(handler)));
 
   // this unlocks the reading thread to add new connections
   ctrl_cmd_t msg;
@@ -496,7 +390,7 @@ bool rx_multisocket_handler::add_socket_handler(int fd, task_callback_t handler)
   return true;
 }
 
-bool rx_multisocket_handler::remove_socket_nonblocking(int fd, bool signal_completion)
+bool socket_manager::remove_socket_nonblocking(int fd, bool signal_completion)
 {
   std::lock_guard<std::mutex> lock(socket_mutex);
   auto                        it = active_sockets.find(fd);
@@ -516,7 +410,7 @@ bool rx_multisocket_handler::remove_socket_nonblocking(int fd, bool signal_compl
   return true;
 }
 
-bool rx_multisocket_handler::remove_socket(int fd)
+bool socket_manager::remove_socket(int fd)
 {
   bool result = remove_socket_nonblocking(fd, true);
 
@@ -531,8 +425,8 @@ bool rx_multisocket_handler::remove_socket(int fd)
   return result;
 }
 
-std::map<int, rx_multisocket_handler::task_callback_t>::iterator
-rx_multisocket_handler::remove_socket_unprotected(int fd, fd_set* total_fd_set, int* max_fd)
+std::map<int, socket_manager::recv_callback_t>::iterator
+socket_manager::remove_socket_unprotected(int fd, fd_set* total_fd_set, int* max_fd)
 {
   if (fd < 0) {
     rxSockError("fd to be removed is not valid");
@@ -547,7 +441,7 @@ rx_multisocket_handler::remove_socket_unprotected(int fd, fd_set* total_fd_set, 
   return it;
 }
 
-void rx_multisocket_handler::run_thread()
+void socket_manager::run_thread()
 {
   running = true;
   fd_set total_fd_set, read_fd_set;
@@ -576,13 +470,13 @@ void rx_multisocket_handler::run_thread()
 
     // call read callback for all SCTP/TCP/UDP connections
     for (auto handler_it = active_sockets.begin(); handler_it != active_sockets.end();) {
-      int        fd       = handler_it->first;
-      recv_task* callback = handler_it->second.get();
+      int              fd       = handler_it->first;
+      recv_callback_t& callback = handler_it->second;
       if (not FD_ISSET(fd, &read_fd_set)) {
         ++handler_it;
         continue;
       }
-      bool socket_valid = callback->operator()(fd);
+      bool socket_valid = callback(fd);
       if (not socket_valid) {
         rxSockInfo("The socket fd=%d has been closed by peer", fd);
         handler_it = remove_socket_unprotected(fd, &total_fd_set, &max_fd);
@@ -626,10 +520,115 @@ void rx_multisocket_handler::run_thread()
   }
 }
 
-rx_multisocket_handler& get_stack_socket_manager()
+/***************************************************************
+ *                 Rx Multisocket Task Types
+ **************************************************************/
+
+class sctp_recvmsg_pdu_task
 {
-  static rx_multisocket_handler handler;
-  return handler;
+public:
+  using callback_t = sctp_recv_callback_t;
+
+  explicit sctp_recvmsg_pdu_task(srslog::basic_logger& logger, srsran::task_queue_handle& queue_, callback_t func_) :
+    logger(logger), queue(queue_), func(std::move(func_))
+  {}
+
+  bool operator()(int fd)
+  {
+    // inside rx_sockets thread. Read socket
+    srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+    if (pdu == nullptr) {
+      logger.error("Unable to allocate byte buffer");
+      return true;
+    }
+    sockaddr_in     from    = {};
+    socklen_t       fromlen = sizeof(from);
+    sctp_sndrcvinfo sri     = {};
+    int             flags   = 0;
+    ssize_t n_recv = sctp_recvmsg(fd, pdu->msg, pdu->get_tailroom(), (struct sockaddr*)&from, &fromlen, &sri, &flags);
+    if (n_recv == -1 and errno != EAGAIN) {
+      logger.error("Error reading from SCTP socket: %s", strerror(errno));
+      return true;
+    }
+    if (n_recv == -1 and errno == EAGAIN) {
+      logger.debug("Socket timeout reached");
+      return true;
+    }
+
+    bool ret     = true;
+    pdu->N_bytes = static_cast<uint32_t>(n_recv);
+
+    // Defer handling of received packet to provided queue
+    // SCTP notifications handled in callback.
+    queue.push(std::bind(
+        [this, from, sri, flags](srsran::unique_byte_buffer_t& sdu) { func(std::move(sdu), from, sri, flags); },
+        std::move(pdu)));
+    return ret;
+  }
+
+private:
+  srslog::basic_logger&      logger;
+  srsran::task_queue_handle& queue;
+  callback_t                 func;
+};
+
+socket_manager_itf::recv_callback_t
+make_sctp_sdu_handler(srslog::basic_logger& logger, srsran::task_queue_handle& queue, sctp_recv_callback_t rx_callback)
+{
+  return socket_manager_itf::recv_callback_t(sctp_recvmsg_pdu_task(logger, queue, std::move(rx_callback)));
+}
+
+/**
+ * Description: Functor for the case the received data is
+ * in the form of unique_byte_buffer, and a recvfrom(...) call is used
+ */
+class recvfrom_pdu_task
+{
+public:
+  using callback_t = recvfrom_callback_t;
+  explicit recvfrom_pdu_task(srslog::basic_logger& logger, srsran::task_queue_handle& queue_, callback_t func_) :
+    logger(logger), queue(queue_), func(std::move(func_))
+  {}
+
+  bool operator()(int fd)
+  {
+    srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+    if (pdu == nullptr) {
+      logger.error("Unable to allocate byte buffer");
+      return true;
+    }
+    sockaddr_in from    = {};
+    socklen_t   fromlen = sizeof(from);
+
+    ssize_t n_recv = recvfrom(fd, pdu->msg, pdu->get_tailroom(), 0, (struct sockaddr*)&from, &fromlen);
+    if (n_recv == -1 and errno != EAGAIN) {
+      logger.error("Error reading from socket: %s", strerror(errno));
+      return true;
+    }
+    if (n_recv == -1 and errno == EAGAIN) {
+      logger.debug("Socket timeout reached");
+      return true;
+    }
+
+    pdu->N_bytes = static_cast<uint32_t>(n_recv);
+
+    // Defer handling of received packet to provided queue
+    queue.push(
+        std::bind([this, from](srsran::unique_byte_buffer_t& sdu) { func(std::move(sdu), from); }, std::move(pdu)));
+
+    return true;
+  }
+
+private:
+  srslog::basic_logger&      logger;
+  srsran::task_queue_handle& queue;
+  callback_t                 func;
+};
+
+socket_manager_itf::recv_callback_t
+make_sdu_handler(srslog::basic_logger& logger, srsran::task_queue_handle& queue, recvfrom_callback_t rx_callback)
+{
+  return socket_manager_itf::recv_callback_t(recvfrom_pdu_task(logger, queue, std::move(rx_callback)));
 }
 
 } // namespace srsran

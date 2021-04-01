@@ -105,14 +105,12 @@ private:
   void run_thread() override;
   void stop_impl();
   void tti_clock_impl();
-  void handle_mme_rx_packet(srsran::unique_byte_buffer_t pdu,
-                            const sockaddr_in&           from,
-                            const sctp_sndrcvinfo&       sri,
-                            int                          flags);
 
   // args
   stack_args_t args    = {};
   rrc_cfg_t    rrc_cfg = {};
+
+  srsran::socket_manager rx_sockets;
 
   srslog::basic_logger& mac_logger;
   srslog::basic_logger& rlc_logger;

@@ -45,11 +45,11 @@ template <typename R, typename... Args>
 class oper_table_t
 {
 public:
-  constexpr    oper_table_t()                        = default;
-  virtual R    call(void* src, Args&&... args) const = 0;
-  virtual void move(void* src, void* dest) const     = 0;
-  virtual void dtor(void* src) const                 = 0;
-  virtual bool is_in_small_buffer() const            = 0;
+  constexpr    oper_table_t()                      = default;
+  virtual R    call(void* src, Args... args) const = 0;
+  virtual void move(void* src, void* dest) const   = 0;
+  virtual void dtor(void* src) const               = 0;
+  virtual bool is_in_small_buffer() const          = 0;
 };
 
 //! specialization of move/call/destroy operations for when the "move_callback<R(Args...)>" is empty
@@ -58,7 +58,7 @@ class empty_table_t : public oper_table_t<R, Args...>
 {
 public:
   constexpr empty_table_t() = default;
-  R         call(void* src, Args&&... args) const final
+  R         call(void* src, Args... args) const final
   {
     srsran_terminate("ERROR: bad function call (cause: function ptr is empty)");
   }
@@ -73,7 +73,7 @@ class smallbuffer_table_t : public oper_table_t<R, Args...>
 {
 public:
   constexpr smallbuffer_table_t() = default;
-  R    call(void* src, Args&&... args) const final { return (*static_cast<FunT*>(src))(std::forward<Args>(args)...); }
+  R    call(void* src, Args... args) const final { return (*static_cast<FunT*>(src))(std::forward<Args>(args)...); }
   void move(void* src, void* dest) const final
   {
     ::new (dest) FunT(std::move(*static_cast<FunT*>(src)));
@@ -89,7 +89,7 @@ class heap_table_t : public oper_table_t<R, Args...>
 {
 public:
   constexpr heap_table_t() = default;
-  R    call(void* src, Args&&... args) const final { return (**static_cast<FunT**>(src))(std::forward<Args>(args)...); }
+  R    call(void* src, Args... args) const final { return (**static_cast<FunT**>(src))(std::forward<Args>(args)...); }
   void move(void* src, void* dest) const final
   {
     *static_cast<FunT**>(dest) = *static_cast<FunT**>(src);
@@ -163,7 +163,7 @@ public:
     return *this;
   }
 
-  R operator()(Args&&... args) const noexcept { return oper_ptr->call(&buffer, std::forward<Args>(args)...); }
+  R operator()(Args... args) const noexcept { return oper_ptr->call(&buffer, std::forward<Args>(args)...); }
 
   bool is_empty() const { return oper_ptr == &empty_table; }
   bool is_in_small_buffer() const { return oper_ptr->is_in_small_buffer(); }

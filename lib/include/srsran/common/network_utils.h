@@ -14,20 +14,18 @@
 #define SRSRAN_RX_SOCKET_HANDLER_H
 
 #include "srsran/common/buffer_pool.h"
+#include "srsran/common/multiqueue.h"
 #include "srsran/common/threads.h"
 
 #include <arpa/inet.h>
-#include <functional>
 #include <map>
 #include <mutex>
 #include <netinet/in.h>
 #include <netinet/sctp.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
-#include <queue>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <unistd.h> // for the pipe
 
 namespace srsran {
 
@@ -97,40 +95,46 @@ bool sctp_init_server(unique_socket* socket, net_utils::socket_type socktype, co
  * Rx multisocket handler
  ***************************/
 
+class socket_manager_itf
+{
+public:
+  /// Callback called when socket fd (passed as argument) has data
+  using recv_callback_t = srsran::move_callback<bool(int)>;
+
+  explicit socket_manager_itf(srslog::basic_logger& logger_) : logger(logger_) {}
+  socket_manager_itf(socket_manager_itf&&)      = delete;
+  socket_manager_itf(const socket_manager_itf&) = delete;
+  socket_manager_itf& operator=(const socket_manager_itf&) = delete;
+  socket_manager_itf& operator=(socket_manager_itf&&) = delete;
+  virtual ~socket_manager_itf()                       = default;
+
+  /// Register (fd, callback). callback is called within socket thread when fd has data.
+  virtual bool add_socket_handler(int fd, recv_callback_t handler) = 0;
+
+  /// remove registered socket fd
+  virtual bool remove_socket(int fd) = 0;
+
+protected:
+  srslog::basic_logger& logger;
+};
+
 /**
  * Description - Instantiates a thread that will block waiting for IO from multiple sockets, via a select
  *               The user can register their own (socket fd, data handler) in this class via the
  *               add_socket_handler(fd, task) API or its other variants
  */
-class rx_multisocket_handler final : public thread
+class socket_manager final : public thread, public socket_manager_itf
 {
-public:
-  // polymorphic callback to handle the socket recv
-  class recv_task
-  {
-  public:
-    virtual ~recv_task()            = default;
-    virtual bool operator()(int fd) = 0; // returns false, if socket needs to be removed
-  };
-  using task_callback_t     = std::unique_ptr<recv_task>;
-  using recvfrom_callback_t = std::function<void(srsran::unique_byte_buffer_t, const sockaddr_in&)>;
-  using sctp_recv_callback_t =
-      std::function<void(srsran::unique_byte_buffer_t, const sockaddr_in&, const sctp_sndrcvinfo&, int)>;
+  using recv_callback_t = socket_manager_itf::recv_callback_t;
 
-  rx_multisocket_handler();
-  rx_multisocket_handler(rx_multisocket_handler&&)      = delete;
-  rx_multisocket_handler(const rx_multisocket_handler&) = delete;
-  rx_multisocket_handler& operator=(const rx_multisocket_handler&) = delete;
-  rx_multisocket_handler& operator=(rx_multisocket_handler&&) = delete;
-  ~rx_multisocket_handler() final;
+public:
+  socket_manager();
+  ~socket_manager() final;
 
   void stop();
   bool remove_socket_nonblocking(int fd, bool signal_completion = false);
-  bool remove_socket(int fd);
-  bool add_socket_handler(int fd, task_callback_t handler);
-  // convenience methods for recv using buffer pool
-  bool add_socket_pdu_handler(int fd, recvfrom_callback_t pdu_task);
-  bool add_socket_sctp_pdu_handler(int fd, sctp_recv_callback_t task);
+  bool remove_socket(int fd) final;
+  bool add_socket_handler(int fd, recv_callback_t handler) final;
 
   void run_thread() override;
 
@@ -144,22 +148,43 @@ private:
     int      new_fd             = -1;
     bool     signal_rm_complete = false;
   };
-  std::map<int, rx_multisocket_handler::task_callback_t>::iterator
-  remove_socket_unprotected(int fd, fd_set* total_fd_set, int* max_fd);
-
-  // args
-  srslog::basic_logger& logger;
+  std::map<int, recv_callback_t>::iterator remove_socket_unprotected(int fd, fd_set* total_fd_set, int* max_fd);
 
   // state
   std::mutex                     socket_mutex;
-  std::map<int, task_callback_t> active_sockets;
+  std::map<int, recv_callback_t> active_sockets;
   bool                           running   = false;
-  int                            pipefd[2] = {};
+  int                            pipefd[2] = {-1, -1};
   std::vector<int>               rem_fd_tmp_list;
   std::condition_variable        rem_cvar;
 };
 
-rx_multisocket_handler& get_stack_socket_manager();
+/// Function signature for SDU byte buffers received from SCTP socket
+using sctp_recv_callback_t =
+    srsran::move_callback<void(srsran::unique_byte_buffer_t, const sockaddr_in&, const sctp_sndrcvinfo&, int)>;
+
+/// Function signature for SDU byte buffers received from any sockaddr_in-based socket
+using recvfrom_callback_t = srsran::move_callback<void(srsran::unique_byte_buffer_t, const sockaddr_in&)>;
+
+/**
+ * Helper function that creates a callback that is called when a SCTP socket has data, and does the following tasks:
+ * 1. receive SDU byte buffer from SCTP socket and associated metadata - sockaddr_in, sctp_sndrcvinfo, flags
+ * 2. dispatches the received SDU+metadata+rx_callback into the "queue"
+ * 3. potentially on a separate thread, the SDU+metadata+callback are popped from the queue, and callback is called with
+ * the SDU+metadata as arguments
+ * @param logger logger used by recv_callback_t to log any failure/reception of an SDU
+ * @param queue queue to which the SDU+metadata+callback are going to be dispatched
+ * @param rx_callback callback that is run when a new SDU arrives, from the thread that calls queue.pop()
+ * @return callback void(int) that can be registered in socket_manager
+ */
+socket_manager_itf::recv_callback_t
+make_sctp_sdu_handler(srslog::basic_logger& logger, srsran::task_queue_handle& queue, sctp_recv_callback_t rx_callback);
+
+/**
+ * Similar to make_sctp_sdu_handler, but for any sockaddr_in-based socket type
+ */
+socket_manager_itf::recv_callback_t
+make_sdu_handler(srslog::basic_logger& logger, srsran::task_queue_handle& queue, recvfrom_callback_t rx_callback);
 
 } // namespace srsran
 

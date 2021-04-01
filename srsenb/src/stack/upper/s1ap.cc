@@ -209,7 +209,7 @@ void s1ap::s1_setup_proc_t::then(const srsran::proc_state_t& result) const
              s1ap_ptr->mme_connect_timer.duration() / 1000);
     srsran::console("Failed to initiate S1 connection. Attempting reconnection in %d seconds\n",
                     s1ap_ptr->mme_connect_timer.duration() / 1000);
-    srsran::get_stack_socket_manager().remove_socket(s1ap_ptr->mme_socket.get_socket());
+    s1ap_ptr->rx_socket_handler->remove_socket(s1ap_ptr->mme_socket.get_socket());
     s1ap_ptr->mme_socket.close();
     procInfo("S1AP socket closed.");
     s1ap_ptr->mme_connect_timer.run();
@@ -221,8 +221,10 @@ void s1ap::s1_setup_proc_t::then(const srsran::proc_state_t& result) const
  *                     S1AP class
  *********************************************************/
 
-s1ap::s1ap(srsran::task_sched_handle task_sched_, srslog::basic_logger& logger) :
-  s1setup_proc(this), logger(logger), task_sched(task_sched_)
+s1ap::s1ap(srsran::task_sched_handle   task_sched_,
+           srslog::basic_logger&       logger,
+           srsran::socket_manager_itf* rx_socket_handler_) :
+  s1setup_proc(this), logger(logger), task_sched(task_sched_), rx_socket_handler(rx_socket_handler_)
 {
   mme_task_queue = task_sched.make_task_queue();
 }
@@ -423,24 +425,6 @@ bool s1ap::is_mme_connected()
 /* S1AP connection helpers
 ********************************************************************************/
 
-/// Callback that will run inside the Sockets thread, and is going to be called whenever a SDU is received from the MME
-struct sctp_rx_packet_handler {
-  s1ap*                      s1ap_ptr;
-  srsran::task_queue_handle* task_queue;
-
-  sctp_rx_packet_handler(s1ap* ptr, srsran::task_queue_handle& task_queue_) : s1ap_ptr(ptr), task_queue(&task_queue_) {}
-
-  void operator()(srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags)
-  {
-    // Defer the handling of MME packet to eNB stack main thread
-    auto packet_handler = [this, from, sri, flags](srsran::unique_byte_buffer_t& t) {
-      s1ap_ptr->handle_mme_rx_msg(std::move(t), from, sri, flags);
-    };
-    // Defer the handling of MME packet to main stack thread
-    task_queue->push(std::bind(packet_handler, std::move(pdu)));
-  }
-};
-
 bool s1ap::connect_mme()
 {
   using namespace srsran::net_utils;
@@ -458,9 +442,14 @@ bool s1ap::connect_mme()
   }
   logger.info("SCTP socket connected with MME. fd=%d", mme_socket.fd());
 
-  // Assign a handler to rx MME packets (going to run in a different thread)
-  srsran::get_stack_socket_manager().add_socket_sctp_pdu_handler(mme_socket.fd(),
-                                                                 sctp_rx_packet_handler(this, mme_task_queue));
+  // Assign a handler to rx MME packets
+  auto rx_callback =
+      [this](srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags) {
+        // Defer the handling of MME packet to eNB stack main thread
+        handle_mme_rx_msg(std::move(pdu), from, sri, flags);
+      };
+  rx_socket_handler->add_socket_handler(mme_socket.fd(),
+                                        srsran::make_sctp_sdu_handler(logger, mme_task_queue, rx_callback));
 
   logger.info("SCTP socket established with MME");
   return true;
@@ -519,13 +508,13 @@ bool s1ap::handle_mme_rx_msg(srsran::unique_byte_buffer_t pdu,
     if (notification->sn_header.sn_type == SCTP_SHUTDOWN_EVENT) {
       logger.info("SCTP Association Shutdown. Association: %d", sri.sinfo_assoc_id);
       srsran::console("SCTP Association Shutdown. Association: %d\n", sri.sinfo_assoc_id);
-      srsran::get_stack_socket_manager().remove_socket(mme_socket.get_socket());
+      rx_socket_handler->remove_socket(mme_socket.get_socket());
       mme_socket.close();
     } else if (notification->sn_header.sn_type == SCTP_PEER_ADDR_CHANGE &&
                notification->sn_paddr_change.spc_state == SCTP_ADDR_UNREACHABLE) {
       logger.info("SCTP peer addres unreachable. Association: %d", sri.sinfo_assoc_id);
       srsran::console("SCTP peer address unreachable. Association: %d\n", sri.sinfo_assoc_id);
-      srsran::get_stack_socket_manager().remove_socket(mme_socket.get_socket());
+      rx_socket_handler->remove_socket(mme_socket.get_socket());
       mme_socket.close();
     }
   } else if (pdu->N_bytes == 0) {

@@ -34,7 +34,7 @@ enb_stack_lte::enb_stack_lte(srslog::sink& log_sink) :
   mac(&task_sched, mac_logger),
   rlc(rlc_logger),
   gtpu(&task_sched, gtpu_logger),
-  s1ap(&task_sched, s1ap_logger),
+  s1ap(&task_sched, s1ap_logger, &rx_sockets),
   rrc(&task_sched),
   mac_pcap(),
   pending_stack_metrics(64)
@@ -166,7 +166,7 @@ void enb_stack_lte::stop()
 
 void enb_stack_lte::stop_impl()
 {
-  srsran::get_stack_socket_manager().stop();
+  rx_sockets.stop();
 
   s1ap.stop();
   gtpu.stop();
@@ -225,39 +225,21 @@ void enb_stack_lte::run_thread()
   }
 }
 
-void enb_stack_lte::handle_mme_rx_packet(srsran::unique_byte_buffer_t pdu,
-                                         const sockaddr_in&           from,
-                                         const sctp_sndrcvinfo&       sri,
-                                         int                          flags)
-{
-  // Defer the handling of MME packet to eNB stack main thread
-  auto task_handler = [this, from, sri, flags](srsran::unique_byte_buffer_t& t) {
-    s1ap.handle_mme_rx_msg(std::move(t), from, sri, flags);
-  };
-  // Defer the handling of MME packet to main stack thread
-  mme_task_queue.push(std::bind(task_handler, std::move(pdu)));
-}
-
 void enb_stack_lte::add_gtpu_s1u_socket_handler(int fd)
 {
   auto gtpu_s1u_handler = [this](srsran::unique_byte_buffer_t pdu, const sockaddr_in& from) {
-    auto task_handler = [this, from](srsran::unique_byte_buffer_t& t) {
-      gtpu.handle_gtpu_s1u_rx_packet(std::move(t), from);
-    };
-    gtpu_task_queue.push(std::bind(task_handler, std::move(pdu)));
+    gtpu.handle_gtpu_s1u_rx_packet(std::move(pdu), from);
   };
-  srsran::get_stack_socket_manager().add_socket_pdu_handler(fd, gtpu_s1u_handler);
+
+  rx_sockets.add_socket_handler(fd, srsran::make_sdu_handler(gtpu_logger, gtpu_task_queue, gtpu_s1u_handler));
 }
 
 void enb_stack_lte::add_gtpu_m1u_socket_handler(int fd)
 {
   auto gtpu_m1u_handler = [this](srsran::unique_byte_buffer_t pdu, const sockaddr_in& from) {
-    auto task_handler = [this, from](srsran::unique_byte_buffer_t& t) {
-      gtpu.handle_gtpu_m1u_rx_packet(std::move(t), from);
-    };
-    gtpu_task_queue.push(std::bind(task_handler, std::move(pdu)));
+    gtpu.handle_gtpu_m1u_rx_packet(std::move(pdu), from);
   };
-  srsran::get_stack_socket_manager().add_socket_pdu_handler(fd, gtpu_m1u_handler);
+  rx_sockets.add_socket_handler(fd, srsran::make_sdu_handler(gtpu_logger, gtpu_task_queue, gtpu_m1u_handler));
 }
 
 } // namespace srsenb
