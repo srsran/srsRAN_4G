@@ -109,9 +109,6 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
     s1ap.start_pcap(&s1ap_pcap);
   }
 
-  // Init Rx socket handler
-  rx_sockets.reset(new srsran::rx_multisocket_handler("ENBSOCKETS", stack_logger));
-
   // add sync queue
   sync_task_queue = task_sched.make_task_queue(args.sync_queue_size);
 
@@ -126,7 +123,7 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
     stack_logger.error("Couldn't initialize RRC");
     return SRSRAN_ERROR;
   }
-  if (s1ap.init(args.s1ap, &rrc, this) != SRSRAN_SUCCESS) {
+  if (s1ap.init(args.s1ap, &rrc) != SRSRAN_SUCCESS) {
     stack_logger.error("Couldn't initialize S1AP");
     return SRSRAN_ERROR;
   }
@@ -169,7 +166,7 @@ void enb_stack_lte::stop()
 
 void enb_stack_lte::stop_impl()
 {
-  rx_sockets->stop();
+  srsran::get_stack_socket_manager().stop();
 
   s1ap.stop();
   gtpu.stop();
@@ -241,21 +238,6 @@ void enb_stack_lte::handle_mme_rx_packet(srsran::unique_byte_buffer_t pdu,
   mme_task_queue.push(std::bind(task_handler, std::move(pdu)));
 }
 
-void enb_stack_lte::add_mme_socket(int fd)
-{
-  // Pass MME Rx packet handler functor to socket handler to run in socket thread
-  auto mme_rx_handler =
-      [this](srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags) {
-        handle_mme_rx_packet(std::move(pdu), from, sri, flags);
-      };
-  rx_sockets->add_socket_sctp_pdu_handler(fd, mme_rx_handler);
-}
-
-void enb_stack_lte::remove_mme_socket(int fd)
-{
-  rx_sockets->remove_socket(fd);
-}
-
 void enb_stack_lte::add_gtpu_s1u_socket_handler(int fd)
 {
   auto gtpu_s1u_handler = [this](srsran::unique_byte_buffer_t pdu, const sockaddr_in& from) {
@@ -264,7 +246,7 @@ void enb_stack_lte::add_gtpu_s1u_socket_handler(int fd)
     };
     gtpu_task_queue.push(std::bind(task_handler, std::move(pdu)));
   };
-  rx_sockets->add_socket_pdu_handler(fd, gtpu_s1u_handler);
+  srsran::get_stack_socket_manager().add_socket_pdu_handler(fd, gtpu_s1u_handler);
 }
 
 void enb_stack_lte::add_gtpu_m1u_socket_handler(int fd)
@@ -275,7 +257,7 @@ void enb_stack_lte::add_gtpu_m1u_socket_handler(int fd)
     };
     gtpu_task_queue.push(std::bind(task_handler, std::move(pdu)));
   };
-  rx_sockets->add_socket_pdu_handler(fd, gtpu_m1u_handler);
+  srsran::get_stack_socket_manager().add_socket_pdu_handler(fd, gtpu_m1u_handler);
 }
 
 } // namespace srsenb

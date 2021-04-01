@@ -28,7 +28,7 @@ int test_socket_handler()
   int counter = 0;
 
   srsran::unique_socket          server_socket, client_socket, client_socket2;
-  srsran::rx_multisocket_handler sockhandler("RXSOCKETS", logger);
+  srsran::rx_multisocket_handler sockhandler;
   int                            server_port = 36412;
   const char*                    server_addr = "127.0.100.1";
   using namespace srsran::net_utils;

@@ -53,7 +53,7 @@ public:
   static const uint32_t ts1_reloc_overall_timeout_ms = 10000;
 
   s1ap(srsran::task_sched_handle task_sched_, srslog::basic_logger& logger);
-  int  init(s1ap_args_t args_, rrc_interface_s1ap* rrc_, srsenb::stack_interface_s1ap_lte* stack_);
+  int  init(s1ap_args_t args_, rrc_interface_s1ap* rrc_);
   void stop();
   void get_metrics(s1ap_metrics_t& m);
 
@@ -109,11 +109,11 @@ private:
   static const int NONUE_STREAM_ID = 0;
 
   // args
-  rrc_interface_s1ap*               rrc = nullptr;
-  s1ap_args_t                       args;
-  srslog::basic_logger&             logger;
-  srsenb::stack_interface_s1ap_lte* stack = nullptr;
-  srsran::task_sched_handle         task_sched;
+  rrc_interface_s1ap*       rrc = nullptr;
+  s1ap_args_t               args;
+  srslog::basic_logger&     logger;
+  srsran::task_sched_handle task_sched;
+  srsran::task_queue_handle mme_task_queue;
 
   srsran::unique_socket mme_socket;
   struct sockaddr_in    mme_addr            = {}; // MME address

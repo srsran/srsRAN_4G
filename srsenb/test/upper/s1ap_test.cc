@@ -17,13 +17,6 @@
 
 using namespace srsenb;
 
-class stack_dummy : public srsenb::stack_interface_s1ap_lte
-{
-public:
-  void add_mme_socket(int fd) {}
-  void remove_mme_socket(int fd) {}
-};
-
 struct mme_dummy {
   mme_dummy(const char* addr_str_, int port_) : addr_str(addr_str_), port(port_)
   {
@@ -171,7 +164,6 @@ void test_s1ap_erab_setup(test_event event)
   srslog::basic_logger&        logger = srslog::fetch_basic_logger("S1AP");
   s1ap                         s1ap_obj(&task_sched, logger);
   rrc_tester                   rrc;
-  stack_dummy                  stack;
   asn1::s1ap::s1ap_pdu_c       s1ap_pdu;
   srsran::unique_byte_buffer_t sdu;
 
@@ -190,7 +182,7 @@ void test_s1ap_erab_setup(test_event event)
   args.mme_addr      = mme_addr_str;
   args.enb_name      = "srsenb01";
 
-  TESTASSERT(s1ap_obj.init(args, &rrc, &stack) == SRSRAN_SUCCESS);
+  TESTASSERT(s1ap_obj.init(args, &rrc) == SRSRAN_SUCCESS);
 
   run_s1_setup(s1ap_obj, mme);
   add_rnti(s1ap_obj, mme);

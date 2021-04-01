@@ -117,7 +117,7 @@ public:
   using sctp_recv_callback_t =
       std::function<void(srsran::unique_byte_buffer_t, const sockaddr_in&, const sctp_sndrcvinfo&, int)>;
 
-  rx_multisocket_handler(std::string name_, srslog::basic_logger& logger, int thread_prio = 65);
+  rx_multisocket_handler();
   rx_multisocket_handler(rx_multisocket_handler&&)      = delete;
   rx_multisocket_handler(const rx_multisocket_handler&) = delete;
   rx_multisocket_handler& operator=(const rx_multisocket_handler&) = delete;
@@ -135,6 +135,8 @@ public:
   void run_thread() override;
 
 private:
+  const int thread_prio = 65;
+
   // used to unlock select
   struct ctrl_cmd_t {
     enum class cmd_id_t { EXIT, NEW_FD, RM_FD };
@@ -146,7 +148,6 @@ private:
   remove_socket_unprotected(int fd, fd_set* total_fd_set, int* max_fd);
 
   // args
-  std::string           name;
   srslog::basic_logger& logger;
 
   // state
@@ -157,6 +158,8 @@ private:
   std::vector<int>               rem_fd_tmp_list;
   std::condition_variable        rem_cvar;
 };
+
+rx_multisocket_handler& get_stack_socket_manager();
 
 } // namespace srsran
 

@@ -123,7 +123,8 @@ public:
   {
     sched->defer_callback(duration_ms, std::forward<F>(func));
   }
-  void defer_task(srsran::move_task_t func) { sched->defer_task(std::move(func)); }
+  void                      defer_task(srsran::move_task_t func) { sched->defer_task(std::move(func)); }
+  srsran::task_queue_handle make_task_queue() { return sched->make_task_queue(); }
 
 private:
   task_scheduler* sched;

@@ -16,10 +16,10 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
-#define rxSockError(fmt, ...) logger.error("%s: " fmt, name.c_str(), ##__VA_ARGS__)
-#define rxSockWarn(fmt, ...) logger.warning("%s: " fmt, name.c_str(), ##__VA_ARGS__)
-#define rxSockInfo(fmt, ...) logger.info("%s: " fmt, name.c_str(), ##__VA_ARGS__)
-#define rxSockDebug(fmt, ...) logger.debug("%s: " fmt, name.c_str(), ##__VA_ARGS__)
+#define rxSockError(fmt, ...) logger.error("RxSockets: " fmt, ##__VA_ARGS__)
+#define rxSockWarn(fmt, ...) logger.warning("RxSockets: " fmt, ##__VA_ARGS__)
+#define rxSockInfo(fmt, ...) logger.info("RxSockets: " fmt, ##__VA_ARGS__)
+#define rxSockDebug(fmt, ...) logger.debug("RxSockets: " fmt, ##__VA_ARGS__)
 
 namespace srsran {
 
@@ -412,14 +412,10 @@ private:
  *                 Rx Multisocket Handler
  **************************************************************/
 
-rx_multisocket_handler::rx_multisocket_handler(std::string name_, srslog::basic_logger& logger, int thread_prio) :
-  thread(name_), name(std::move(name_)), logger(logger)
+rx_multisocket_handler::rx_multisocket_handler() : thread("RXsockets"), logger(srslog::fetch_basic_logger("COMN"))
 {
   // register control pipe fd
-  if (pipe(pipefd) == -1) {
-    rxSockInfo("Failed to open control pipe");
-    return;
-  }
+  srsran_assert(pipe(pipefd) != -1, "Failed to open control pipe");
   start(thread_prio);
 }
 
@@ -628,6 +624,12 @@ void rx_multisocket_handler::run_thread()
       }
     }
   }
+}
+
+rx_multisocket_handler& get_stack_socket_manager()
+{
+  static rx_multisocket_handler handler;
+  return handler;
 }
 
 } // namespace srsran
