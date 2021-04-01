@@ -115,7 +115,7 @@ private:
   srsenb::stack_interface_s1ap_lte* stack = nullptr;
   srsran::task_sched_handle         task_sched;
 
-  srsran::unique_socket s1ap_socket;
+  srsran::unique_socket mme_socket;
   struct sockaddr_in    mme_addr            = {}; // MME address
   bool                  mme_connected       = false;
   bool                  running             = false;

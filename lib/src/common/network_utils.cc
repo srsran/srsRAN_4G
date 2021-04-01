@@ -500,23 +500,39 @@ bool rx_multisocket_handler::add_socket_handler(int fd, task_callback_t handler)
   return true;
 }
 
-bool rx_multisocket_handler::remove_socket(int fd)
+bool rx_multisocket_handler::remove_socket_nonblocking(int fd, bool signal_completion)
 {
   std::lock_guard<std::mutex> lock(socket_mutex);
   auto                        it = active_sockets.find(fd);
   if (it == active_sockets.end()) {
-    rxSockError("The socket fd=%d to be removed does not exist", fd);
+    rxSockWarn("The socket fd=%d to be removed does not exist", fd);
     return false;
   }
 
   ctrl_cmd_t msg;
-  msg.cmd    = ctrl_cmd_t::cmd_id_t::RM_FD;
-  msg.new_fd = fd;
+  msg.cmd                = ctrl_cmd_t::cmd_id_t::RM_FD;
+  msg.new_fd             = fd;
+  msg.signal_rm_complete = signal_completion;
   if (write(pipefd[1], &msg, sizeof(msg)) != sizeof(msg)) {
     rxSockError("while writing to control pipe");
     return false;
   }
   return true;
+}
+
+bool rx_multisocket_handler::remove_socket(int fd)
+{
+  bool result = remove_socket_nonblocking(fd, true);
+
+  // block waiting for socket removal
+  if (result) {
+    std::unique_lock<std::mutex> lock(socket_mutex);
+    while (std::count(rem_fd_tmp_list.begin(), rem_fd_tmp_list.end(), fd) == 0) {
+      rem_cvar.wait(lock);
+    }
+    rem_fd_tmp_list.erase(std::find(rem_fd_tmp_list.begin(), rem_fd_tmp_list.end(), fd));
+  }
+  return result;
 }
 
 std::map<int, rx_multisocket_handler::task_callback_t>::iterator
@@ -601,6 +617,10 @@ void rx_multisocket_handler::run_thread()
           break;
         case ctrl_cmd_t::cmd_id_t::RM_FD:
           remove_socket_unprotected(msg.new_fd, &total_fd_set, &max_fd);
+          if (msg.signal_rm_complete) {
+            rem_fd_tmp_list.push_back(msg.new_fd);
+            rem_cvar.notify_one();
+          }
           rxSockDebug("Socket fd=%d has been successfully removed", msg.new_fd);
           break;
         default:

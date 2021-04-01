@@ -122,9 +122,10 @@ public:
   rx_multisocket_handler(const rx_multisocket_handler&) = delete;
   rx_multisocket_handler& operator=(const rx_multisocket_handler&) = delete;
   rx_multisocket_handler& operator=(rx_multisocket_handler&&) = delete;
-  ~rx_multisocket_handler();
+  ~rx_multisocket_handler() final;
 
   void stop();
+  bool remove_socket_nonblocking(int fd, bool signal_completion = false);
   bool remove_socket(int fd);
   bool add_socket_handler(int fd, task_callback_t handler);
   // convenience methods for recv using buffer pool
@@ -137,8 +138,9 @@ private:
   // used to unlock select
   struct ctrl_cmd_t {
     enum class cmd_id_t { EXIT, NEW_FD, RM_FD };
-    cmd_id_t cmd    = cmd_id_t::EXIT;
-    int      new_fd = -1;
+    cmd_id_t cmd                = cmd_id_t::EXIT;
+    int      new_fd             = -1;
+    bool     signal_rm_complete = false;
   };
   std::map<int, rx_multisocket_handler::task_callback_t>::iterator
   remove_socket_unprotected(int fd, fd_set* total_fd_set, int* max_fd);
@@ -152,6 +154,8 @@ private:
   std::map<int, task_callback_t> active_sockets;
   bool                           running   = false;
   int                            pipefd[2] = {};
+  std::vector<int>               rem_fd_tmp_list;
+  std::condition_variable        rem_cvar;
 };
 
 } // namespace srsran
