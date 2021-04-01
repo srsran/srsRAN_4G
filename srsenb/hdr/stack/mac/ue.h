@@ -15,6 +15,7 @@
 
 #include "mac_metrics.h"
 #include "srsran/adt/circular_array.h"
+#include "srsran/adt/circular_map.h"
 #include "srsran/common/block_queue.h"
 #include "srsran/common/mac_pcap.h"
 #include "srsran/common/mac_pcap_net.h"
@@ -59,7 +60,7 @@ private:
   srslog::basic_logger* logger;
   srsran::pdu_queue*    shared_pdu_queue;
 
-  srsran::circular_array<std::pair<tti_point, uint8_t*>, SRSRAN_FDD_NOF_HARQ * 8> pdu_map;
+  srsran::static_circular_map<uint32_t, uint8_t*, SRSRAN_FDD_NOF_HARQ * 8> pdu_map;
 };
 
 class cc_buffer_handler

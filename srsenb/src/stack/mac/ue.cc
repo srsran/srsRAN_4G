@@ -24,7 +24,7 @@
 namespace srsenb {
 
 cc_used_buffers_map::cc_used_buffers_map(srsran::pdu_queue& shared_pdu_queue_) :
-  pdu_map(), shared_pdu_queue(&shared_pdu_queue_), logger(&srslog::fetch_basic_logger("MAC"))
+  shared_pdu_queue(&shared_pdu_queue_), logger(&srslog::fetch_basic_logger("MAC"))
 {}
 
 bool cc_used_buffers_map::push_pdu(tti_point tti, uint32_t len)
@@ -32,23 +32,22 @@ bool cc_used_buffers_map::push_pdu(tti_point tti, uint32_t len)
   if (not has_tti(tti)) {
     return false;
   }
-  auto& pdu_pair = pdu_map[tti.to_uint()];
+  uint8_t* buffer = pdu_map[tti.to_uint()];
   if (len > 0) {
-    shared_pdu_queue->push(pdu_pair.second, len);
+    shared_pdu_queue->push(buffer, len);
   } else {
-    shared_pdu_queue->deallocate(pdu_pair.second);
+    shared_pdu_queue->deallocate(buffer);
     logger->error("Error pushing PDU: null length");
   }
   // clear entry in map
-  pdu_pair.first  = tti_point();
-  pdu_pair.second = nullptr;
+  pdu_map.erase(tti.to_uint());
   return len > 0;
 }
 
 uint8_t* cc_used_buffers_map::request_pdu(tti_point tti, uint32_t len)
 {
-  if (pdu_map[tti.to_uint()].second != nullptr) {
-    logger->error("UE buffers: buffer for tti=%d already allocated", tti.to_uint());
+  if (pdu_map.has_space(tti.to_uint())) {
+    logger->error("UE buffers: could not allocate buffer for tti=%d", tti.to_uint());
     return nullptr;
   }
 
@@ -58,8 +57,8 @@ uint8_t* cc_used_buffers_map::request_pdu(tti_point tti, uint32_t len)
     return nullptr;
   }
 
-  pdu_map[tti.to_uint()].first  = tti;
-  pdu_map[tti.to_uint()].second = pdu;
+  bool inserted = pdu_map.insert(tti.to_uint(), pdu);
+  srsran_assert(inserted, "Failure to allocate new buffer");
   return pdu;
 }
 
@@ -69,29 +68,26 @@ void cc_used_buffers_map::clear_old_pdus(tti_point current_tti)
 
   tti_point max_tti{current_tti - old_tti_threshold};
   for (auto& pdu_pair : pdu_map) {
-    if (pdu_pair.second != nullptr and pdu_pair.first < max_tti) {
-      logger->warning("UE buffers: Removing old buffer tti=%d, interval=%d",
-                      pdu_pair.first.to_uint(),
-                      current_tti - pdu_pair.first);
-      remove_pdu(pdu_pair.first);
+    tti_point t(pdu_pair.first);
+    if (t < max_tti) {
+      logger->warning("UE buffers: Removing old buffer tti=%d, interval=%d", t.to_uint(), current_tti - t);
+      remove_pdu(t);
     }
   }
 }
 
 void cc_used_buffers_map::remove_pdu(tti_point tti)
 {
-  auto& pdu_pair = pdu_map[tti.to_uint()];
-  assert(pdu_pair.second != nullptr && "cannot remove inexistent PDU");
+  uint8_t* buffer = pdu_map[tti.to_uint()];
   // return pdus back to the queue
-  shared_pdu_queue->deallocate(pdu_pair.second);
+  shared_pdu_queue->deallocate(buffer);
   // clear entry in map
-  pdu_pair.first  = tti_point();
-  pdu_pair.second = nullptr;
+  pdu_map.erase(tti.to_uint());
 }
 
 bool cc_used_buffers_map::try_deallocate_pdu(tti_point tti)
 {
-  if (pdu_map[tti.to_uint()].second != nullptr) {
+  if (has_tti(tti)) {
     remove_pdu(tti);
     return true;
   }
@@ -100,20 +96,17 @@ bool cc_used_buffers_map::try_deallocate_pdu(tti_point tti)
 
 void cc_used_buffers_map::clear()
 {
-  for (auto& pdu : pdu_map) {
-    try_deallocate_pdu(pdu.first);
-  }
+  pdu_map.clear();
 }
 
 uint8_t*& cc_used_buffers_map::operator[](tti_point tti)
 {
-  assert(has_tti(tti) && "Trying to access buffer that does not exist");
-  return pdu_map[tti.to_uint()].second;
+  return pdu_map[tti.to_uint()];
 }
 
 bool cc_used_buffers_map::has_tti(tti_point tti) const
 {
-  return pdu_map[tti.to_uint()].first == tti and pdu_map[tti.to_uint()].second != nullptr;
+  return pdu_map.contains(tti.to_uint()) and pdu_map[tti.to_uint()] != nullptr;
 }
 
 ////////////////
