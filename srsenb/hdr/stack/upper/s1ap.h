@@ -115,13 +115,13 @@ private:
   srsenb::stack_interface_s1ap_lte* stack = nullptr;
   srsran::task_sched_handle         task_sched;
 
-  srsran::socket_handler_t s1ap_socket;
-  struct sockaddr_in       mme_addr            = {}; // MME address
-  bool                     mme_connected       = false;
-  bool                     running             = false;
-  uint32_t                 next_enb_ue_s1ap_id = 1; // Next ENB-side UE identifier
-  uint16_t                 next_ue_stream_id   = 1; // Next UE SCTP stream identifier
-  srsran::unique_timer     mme_connect_timer, s1setup_timeout;
+  srsran::unique_socket s1ap_socket;
+  struct sockaddr_in    mme_addr            = {}; // MME address
+  bool                  mme_connected       = false;
+  bool                  running             = false;
+  uint32_t              next_enb_ue_s1ap_id = 1; // Next ENB-side UE identifier
+  uint16_t              next_ue_stream_id   = 1; // Next UE SCTP stream identifier
+  srsran::unique_timer  mme_connect_timer, s1setup_timeout;
 
   // Protocol IEs sent with every UL S1AP message
   asn1::s1ap::tai_s        tai;

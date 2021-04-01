@@ -27,7 +27,7 @@ int test_socket_handler()
 
   int counter = 0;
 
-  srsran::socket_handler_t       server_socket, client_socket, client_socket2;
+  srsran::unique_socket          server_socket, client_socket, client_socket2;
   srsran::rx_multisocket_handler sockhandler("RXSOCKETS", logger);
   int                            server_port = 36412;
   const char*                    server_addr = "127.0.100.1";
@@ -60,7 +60,7 @@ int test_socket_handler()
   for (int32_t i = 0; i < nof_counts; ++i) {
     buf[i] = i;
     // Round-robin between clients
-    srsran::socket_handler_t* chosen = &client_socket;
+    srsran::unique_socket* chosen = &client_socket;
     if (i % 2 == 1) {
       chosen = &client_socket2;
     }

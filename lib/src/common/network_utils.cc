@@ -234,63 +234,53 @@ bool connect_to(int fd, const char* dest_addr_str, int dest_port, sockaddr_in* d
  *           Socket Classes
  *******************************************/
 
-socket_handler_t::socket_handler_t(socket_handler_t&& other) noexcept
+unique_socket::unique_socket(unique_socket&& other) noexcept : sockfd(other.sockfd), addr(other.addr)
+{
+  other.sockfd = -1;
+  other.addr   = {};
+}
+unique_socket::~unique_socket()
+{
+  close();
+}
+unique_socket& unique_socket::operator=(unique_socket&& other) noexcept
 {
   sockfd       = other.sockfd;
   addr         = other.addr;
-  other.sockfd = 0;
+  other.sockfd = -1;
   other.addr   = {};
-}
-socket_handler_t::~socket_handler_t()
-{
-  reset();
-}
-socket_handler_t& socket_handler_t::operator=(socket_handler_t&& other) noexcept
-{
-  if (this == &other) {
-    return *this;
-  }
-  addr         = other.addr;
-  sockfd       = other.sockfd;
-  other.addr   = {};
-  other.sockfd = 0;
   return *this;
 }
 
-void socket_handler_t::close()
+void unique_socket::close()
 {
   if (sockfd >= 0) {
     ::close(sockfd);
     sockfd = -1;
+    addr   = {};
   }
 }
 
-void socket_handler_t::reset()
-{
-  this->close();
-  addr = {};
-}
-
-bool socket_handler_t::bind_addr(const char* bind_addr_str, int port)
+bool unique_socket::bind_addr(const char* bind_addr_str, int port)
 {
   return net_utils::bind_addr(sockfd, bind_addr_str, port, &addr);
 }
 
-bool socket_handler_t::connect_to(const char* dest_addr_str, int dest_port, sockaddr_in* dest_sockaddr)
+bool unique_socket::connect_to(const char* dest_addr_str, int dest_port, sockaddr_in* dest_sockaddr)
 {
   return net_utils::connect_to(sockfd, dest_addr_str, dest_port, dest_sockaddr);
 }
 
-bool socket_handler_t::open_socket(net_utils::addr_family   ip_type,
-                                   net_utils::socket_type   socket_type,
-                                   net_utils::protocol_type protocol)
+bool unique_socket::open_socket(net_utils::addr_family   ip_type,
+                                net_utils::socket_type   socket_type,
+                                net_utils::protocol_type protocol)
 {
-  if (sockfd >= 0) {
+  if (is_open()) {
     srslog::fetch_basic_logger(LOGSERVICE).error("Socket is already open.");
     return false;
   }
   sockfd = net_utils::open_socket(ip_type, socket_type, protocol);
-  return sockfd >= 0;
+  return is_open();
 }
 
 /***********************************************************************
@@ -299,24 +289,24 @@ bool socket_handler_t::open_socket(net_utils::addr_family   ip_type,
 
 namespace net_utils {
 
-bool sctp_init_socket(socket_handler_t* socket, net_utils::socket_type socktype, const char* bind_addr_str, int port)
+bool sctp_init_socket(unique_socket* socket, net_utils::socket_type socktype, const char* bind_addr_str, int port)
 {
   if (not socket->open_socket(net_utils::addr_family::ipv4, socktype, net_utils::protocol_type::SCTP)) {
     return false;
   }
   if (not socket->bind_addr(bind_addr_str, port)) {
-    socket->reset();
+    socket->close();
     return false;
   }
   return true;
 }
 
-bool sctp_init_client(socket_handler_t* socket, net_utils::socket_type socktype, const char* bind_addr_str)
+bool sctp_init_client(unique_socket* socket, net_utils::socket_type socktype, const char* bind_addr_str)
 {
   return sctp_init_socket(socket, socktype, bind_addr_str, 0);
 }
 
-bool sctp_init_server(socket_handler_t* socket, net_utils::socket_type socktype, const char* bind_addr_str, int port)
+bool sctp_init_server(unique_socket* socket, net_utils::socket_type socktype, const char* bind_addr_str, int port)
 {
   if (not sctp_init_socket(socket, socktype, bind_addr_str, port)) {
     return false;
@@ -327,72 +317,6 @@ bool sctp_init_server(socket_handler_t* socket, net_utils::socket_type socktype,
     return false;
   }
   return true;
-}
-
-/***************************************************************
- *                        TCP Socket
- **************************************************************/
-
-bool tcp_make_server(socket_handler_t* socket, const char* bind_addr_str, int port, int nof_connections)
-{
-  if (not socket->open_socket(addr_family::ipv4, socket_type::stream, protocol_type::TCP)) {
-    return false;
-  }
-  if (not socket->bind_addr(bind_addr_str, port)) {
-    socket->reset();
-    return false;
-  }
-  // Listen for connections
-  if (listen(socket->fd(), nof_connections) != 0) {
-    srslog::fetch_basic_logger(LOGSERVICE).error("Failed to listen to incoming TCP connections");
-    return false;
-  }
-  return true;
-}
-
-int tcp_accept(socket_handler_t* socket, sockaddr_in* destaddr)
-{
-  socklen_t clilen = sizeof(destaddr);
-  int       connfd = accept(socket->fd(), (struct sockaddr*)&destaddr, &clilen);
-  if (connfd < 0) {
-    srslog::fetch_basic_logger(LOGSERVICE).error("Failed to accept connection");
-    perror("accept");
-    return -1;
-  }
-  return connfd;
-}
-
-int tcp_read(int remotefd, void* buf, size_t nbytes)
-{
-  int n = ::read(remotefd, buf, nbytes);
-  if (n == 0) {
-    srslog::fetch_basic_logger(LOGSERVICE).info("TCP connection closed");
-    close(remotefd);
-    return 0;
-  }
-  if (n == -1) {
-    srslog::fetch_basic_logger(LOGSERVICE).error("Failed to read from TCP socket.");
-    perror("TCP read");
-  }
-  return n;
-}
-
-int tcp_send(int remotefd, const void* buf, size_t nbytes)
-{
-  // Loop until all bytes are sent
-  char*   ptr              = (char*)buf;
-  ssize_t nbytes_remaining = nbytes;
-  while (nbytes_remaining > 0) {
-    ssize_t i = ::send(remotefd, ptr, nbytes_remaining, 0);
-    if (i < 1) {
-      srslog::fetch_basic_logger(LOGSERVICE).error("Failed to send data to TCP socket");
-      perror("Error calling send()\n");
-      return i;
-    }
-    ptr += i;
-    nbytes_remaining -= i;
-  }
-  return nbytes - nbytes_remaining;
 }
 
 } // namespace net_utils

@@ -58,20 +58,19 @@ bool connect_to(int fd, const char* dest_addr_str, int dest_port, sockaddr_in* d
 /**
  * Description: Net socket class with convenience methods for connecting, binding, and opening socket
  */
-class socket_handler_t
+class unique_socket
 {
 public:
-  socket_handler_t()                        = default;
-  socket_handler_t(const socket_handler_t&) = delete;
-  socket_handler_t(socket_handler_t&& other) noexcept;
-  ~socket_handler_t();
-  socket_handler_t& operator=(const socket_handler_t&) = delete;
-  socket_handler_t& operator                           =(socket_handler_t&&) noexcept;
+  unique_socket()                     = default;
+  unique_socket(const unique_socket&) = delete;
+  unique_socket(unique_socket&& other) noexcept;
+  ~unique_socket();
+  unique_socket& operator=(const unique_socket&) = delete;
+  unique_socket& operator                        =(unique_socket&&) noexcept;
 
   void close();
-  void reset();
 
-  bool                   is_init() const { return sockfd >= 0; }
+  bool                   is_open() const { return sockfd >= 0; }
   int                    fd() const { return sockfd; }
   const sockaddr_in&     get_addr_in() const { return addr; }
   std::string            get_ip() const { return net_utils::get_ip(addr); }
@@ -80,7 +79,7 @@ public:
   bool bind_addr(const char* bind_addr_str, int port);
   bool connect_to(const char* dest_addr_str, int dest_port, sockaddr_in* dest_sockaddr = nullptr);
   bool open_socket(net_utils::addr_family ip, net_utils::socket_type socket_type, net_utils::protocol_type protocol);
-  int  get_socket() { return sockfd; };
+  int  get_socket() const { return sockfd; };
 
 protected:
   sockaddr_in addr   = {};
@@ -89,14 +88,8 @@ protected:
 
 namespace net_utils {
 
-bool sctp_init_client(socket_handler_t* socket, net_utils::socket_type socktype, const char* bind_addr_str);
-bool sctp_init_server(socket_handler_t* socket, net_utils::socket_type socktype, const char* bind_addr_str, int port);
-
-// TODO: for TCP and UDP
-bool tcp_make_server(socket_handler_t* socket, const char* bind_addr_str, int port, int nof_connections = 1);
-int  tcp_accept(socket_handler_t* socket, sockaddr_in* destaddr);
-int  tcp_read(int remotefd, void* buf, size_t nbytes);
-int  tcp_send(int remotefd, const void* buf, size_t nbytes);
+bool sctp_init_client(unique_socket* socket, net_utils::socket_type socktype, const char* bind_addr_str);
+bool sctp_init_server(unique_socket* socket, net_utils::socket_type socktype, const char* bind_addr_str, int port);
 
 } // namespace net_utils
 

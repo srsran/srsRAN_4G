@@ -28,7 +28,7 @@ uint32_t mac_pcap_net::open(std::string client_ip_addr_,
 {
   std::lock_guard<std::mutex> lock(mutex);
 
-  if (socket.is_init()) {
+  if (socket.is_open()) {
     logger.error("PCAP socket writer for %s already running. Close first.", bind_addr_str.c_str());
     return SRSRAN_ERROR;
   }
@@ -39,7 +39,7 @@ uint32_t mac_pcap_net::open(std::string client_ip_addr_,
     return SRSRAN_ERROR;
   }
   if (not socket.bind_addr(bind_addr_str.c_str(), bind_udp_port_)) {
-    socket.reset();
+    socket.close();
     logger.error("Couldn't bind socket %s to write PCAP", bind_addr_str.c_str());
     return SRSRAN_ERROR;
   }
@@ -64,7 +64,7 @@ uint32_t mac_pcap_net::close()
 {
   {
     std::lock_guard<std::mutex> lock(mutex);
-    if (running == false || socket.is_init() == false) {
+    if (running == false || socket.is_open() == false) {
       return SRSRAN_ERROR;
     }
 
@@ -76,7 +76,7 @@ uint32_t mac_pcap_net::close()
 
   wait_thread_finish();
   // close socket handle
-  if (socket.is_init()) {
+  if (socket.is_open()) {
     std::lock_guard<std::mutex> lock(mutex);
     socket.close();
   }
@@ -86,7 +86,7 @@ uint32_t mac_pcap_net::close()
 
 void mac_pcap_net::write_pdu(pcap_pdu_t& pdu)
 {
-  if (pdu.pdu != nullptr && socket.is_init()) {
+  if (pdu.pdu != nullptr && socket.is_open()) {
     switch (pdu.rat) {
       case srsran_rat_t::lte:
         write_mac_lte_pdu_to_net(pdu);
