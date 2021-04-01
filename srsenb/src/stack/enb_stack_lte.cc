@@ -33,7 +33,7 @@ enb_stack_lte::enb_stack_lte(srslog::sink& log_sink) :
   pdcp(&task_sched, pdcp_logger),
   mac(&task_sched, mac_logger),
   rlc(rlc_logger),
-  gtpu(&task_sched, gtpu_logger),
+  gtpu(&task_sched, gtpu_logger, &rx_sockets),
   s1ap(&task_sched, s1ap_logger, &rx_sockets),
   rrc(&task_sched),
   mac_pcap(),
@@ -132,7 +132,6 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
                 args.embms.m1u_multiaddr,
                 args.embms.m1u_if_addr,
                 &pdcp,
-                this,
                 args.embms.enable)) {
     stack_logger.error("Couldn't initialize GTPU");
     return SRSRAN_ERROR;
@@ -223,23 +222,6 @@ void enb_stack_lte::run_thread()
   while (started) {
     task_sched.run_next_task();
   }
-}
-
-void enb_stack_lte::add_gtpu_s1u_socket_handler(int fd)
-{
-  auto gtpu_s1u_handler = [this](srsran::unique_byte_buffer_t pdu, const sockaddr_in& from) {
-    gtpu.handle_gtpu_s1u_rx_packet(std::move(pdu), from);
-  };
-
-  rx_sockets.add_socket_handler(fd, srsran::make_sdu_handler(gtpu_logger, gtpu_task_queue, gtpu_s1u_handler));
-}
-
-void enb_stack_lte::add_gtpu_m1u_socket_handler(int fd)
-{
-  auto gtpu_m1u_handler = [this](srsran::unique_byte_buffer_t pdu, const sockaddr_in& from) {
-    gtpu.handle_gtpu_m1u_rx_packet(std::move(pdu), from);
-  };
-  rx_sockets.add_socket_handler(fd, srsran::make_sdu_handler(gtpu_logger, gtpu_task_queue, gtpu_m1u_handler));
 }
 
 } // namespace srsenb

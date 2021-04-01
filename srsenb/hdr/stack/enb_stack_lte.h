@@ -33,10 +33,7 @@
 
 namespace srsenb {
 
-class enb_stack_lte final : public enb_stack_base,
-                            public stack_interface_phy_lte,
-                            public stack_interface_gtpu_lte,
-                            public srsran::thread
+class enb_stack_lte final : public enb_stack_base, public stack_interface_phy_lte, public srsran::thread
 {
 public:
   enb_stack_lte(srslog::sink& log_sink);
@@ -95,9 +92,6 @@ public:
     mac.set_sched_dl_tti_mask(tti_mask, nof_sfs);
   }
   void tti_clock() override;
-
-  void add_gtpu_s1u_socket_handler(int fd) override;
-  void add_gtpu_m1u_socket_handler(int fd) override;
 
 private:
   static const int STACK_MAIN_THREAD_PRIO = 4;
