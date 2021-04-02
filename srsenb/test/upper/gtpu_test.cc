@@ -65,7 +65,7 @@ struct dummy_socket_manager : public srsran::socket_manager_itf {
   /// Register (fd, callback). callback is called within socket thread when fd has data.
   bool add_socket_handler(int fd, recv_callback_t handler) final
   {
-    if (s1u_fd > 0) {
+    if (s1u_fd >= 0) {
       return false;
     }
     s1u_fd   = fd;
@@ -83,7 +83,7 @@ struct dummy_socket_manager : public srsran::socket_manager_itf {
     return true;
   }
 
-  int             s1u_fd;
+  int             s1u_fd = -1;
   recv_callback_t callback;
 };
 
