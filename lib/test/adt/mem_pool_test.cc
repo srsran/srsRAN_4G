@@ -21,13 +21,14 @@ public:
   ~C() { dtor_counter++; }
 
   void* operator new(size_t sz);
+  void* operator new(size_t sz, void*& ptr) { return ptr; }
   void  operator delete(void* ptr)noexcept;
 
-  static int default_ctor_counter;
-  static int dtor_counter;
+  static std::atomic<int> default_ctor_counter;
+  static std::atomic<int> dtor_counter;
 };
-int C::default_ctor_counter = 0;
-int C::dtor_counter         = 0;
+std::atomic<int> C::default_ctor_counter(0);
+std::atomic<int> C::dtor_counter(0);
 
 srsran::big_obj_pool<C> pool;
 
@@ -41,7 +42,7 @@ void C::operator delete(void* ptr)noexcept
   pool.deallocate_node(ptr);
 }
 
-int test_nontrivial_obj_pool()
+void test_nontrivial_obj_pool()
 {
   // No object creation on reservation
   {
@@ -72,8 +73,6 @@ int test_nontrivial_obj_pool()
   }
   TESTASSERT(C::default_ctor_counter == 1);
   TESTASSERT(C::dtor_counter == 1);
-
-  return SRSRAN_SUCCESS;
 }
 
 struct BigObj {
@@ -144,9 +143,9 @@ int main(int argc, char** argv)
 {
   srsran::test_init(argc, argv);
 
-  TESTASSERT(test_nontrivial_obj_pool() == SRSRAN_SUCCESS);
+  test_nontrivial_obj_pool();
   test_fixedsize_pool();
 
-  srsran::console("Success\n");
+  printf("Success\n");
   return 0;
 }

@@ -45,7 +45,6 @@ public:
 
   void push(void* block) noexcept
   {
-    // printf("head: %ld\n", (long)head);
     node* next = ::new (block) node(head);
     head       = next;
     count++;

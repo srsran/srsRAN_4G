@@ -47,42 +47,42 @@ bool mac::init(const mac_args_t&        args_,
 {
   started = false;
 
-  if (phy && rlc) {
-    phy_h = phy;
-    rlc_h = rlc;
-    rrc_h = rrc;
+  if (not phy or not rlc) {
+    return false;
+  }
+  phy_h = phy;
+  rlc_h = rlc;
+  rrc_h = rrc;
 
-    args  = args_;
-    cells = cells_;
+  args  = args_;
+  cells = cells_;
 
-    stack_task_queue = task_sched.make_task_queue();
+  stack_task_queue = task_sched.make_task_queue();
 
-    scheduler.init(rrc, args.sched);
+  scheduler.init(rrc, args.sched);
 
-    // Init softbuffer for SI messages
-    common_buffers.resize(cells.size());
-    for (auto& cc : common_buffers) {
-      for (int i = 0; i < NOF_BCCH_DLSCH_MSG; i++) {
-        srsran_softbuffer_tx_init(&cc.bcch_softbuffer_tx[i], args.nof_prb);
-      }
-      // Init softbuffer for PCCH
-      srsran_softbuffer_tx_init(&cc.pcch_softbuffer_tx, args.nof_prb);
-
-      // Init softbuffer for RAR
-      srsran_softbuffer_tx_init(&cc.rar_softbuffer_tx, args.nof_prb);
+  // Init softbuffer for SI messages
+  common_buffers.resize(cells.size());
+  for (auto& cc : common_buffers) {
+    for (int i = 0; i < NOF_BCCH_DLSCH_MSG; i++) {
+      srsran_softbuffer_tx_init(&cc.bcch_softbuffer_tx[i], args.nof_prb);
     }
+    // Init softbuffer for PCCH
+    srsran_softbuffer_tx_init(&cc.pcch_softbuffer_tx, args.nof_prb);
 
-    reset();
-
-    // Pre-alloc UE objects for first attaching users
-    prealloc_ue(10);
-
-    detected_rachs.resize(cells.size());
-
-    started = true;
+    // Init softbuffer for RAR
+    srsran_softbuffer_tx_init(&cc.rar_softbuffer_tx, args.nof_prb);
   }
 
-  return started;
+  reset();
+
+  // Pre-alloc UE objects for first attaching users
+  prealloc_ue(10);
+
+  detected_rachs.resize(cells.size());
+
+  started = true;
+  return true;
 }
 
 void mac::stop()
@@ -832,9 +832,9 @@ int mac::get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res
       int requested_bytes = (mcs_data.tbs / 8 > (int)mch.mtch_sched[mtch_index].lcid_buffer_size)
                                 ? (mch.mtch_sched[mtch_index].lcid_buffer_size)
                                 : ((mcs_data.tbs / 8) - 2);
-      int bytes_received  = ue_db[SRSRAN_MRNTI]->read_pdu(current_lcid, mtch_payload_buffer, requested_bytes);
-      mch.pdu[0].lcid     = current_lcid;
-      mch.pdu[0].nbytes   = bytes_received;
+      int bytes_received = ue_db[SRSRAN_MRNTI]->read_pdu(current_lcid, mtch_payload_buffer, requested_bytes);
+      mch.pdu[0].lcid    = current_lcid;
+      mch.pdu[0].nbytes  = bytes_received;
       mch.mtch_sched[0].mtch_payload  = mtch_payload_buffer;
       dl_sched_res->pdsch[0].dci.rnti = SRSRAN_MRNTI;
       if (bytes_received) {

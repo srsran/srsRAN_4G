@@ -138,7 +138,7 @@ cc_buffer_handler::~cc_buffer_handler()
  */
 void cc_buffer_handler::allocate_cc(uint32_t nof_prb_, uint32_t nof_rx_harq_proc_, uint32_t nof_tx_harq_proc_)
 {
-  assert(empty());
+  srsran_assert(empty(), "Cannot allocate softbuffers in CC that is already initialized");
   nof_prb          = nof_prb_;
   nof_rx_harq_proc = nof_rx_harq_proc_;
   nof_tx_harq_proc = nof_tx_harq_proc_;
