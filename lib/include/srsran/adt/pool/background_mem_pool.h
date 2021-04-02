@@ -145,8 +145,11 @@ private:
 } // namespace detail
 
 template <typename T, size_t BatchSize, size_t ThresholdSize>
-using background_mem_pool =
-    detail::base_background_pool<T, BatchSize, ThresholdSize, detail::noop_operator, detail::noop_operator>;
+using background_mem_pool = detail::base_background_pool<detail::type_storage<T>,
+                                                         BatchSize,
+                                                         ThresholdSize,
+                                                         detail::noop_operator,
+                                                         detail::noop_operator>;
 
 template <typename T,
           size_t BatchSize,
