@@ -50,7 +50,7 @@ public:
     count++;
   }
 
-  uint8_t* try_pop() noexcept
+  void* try_pop() noexcept
   {
     if (is_empty()) {
       return nullptr;
@@ -58,7 +58,7 @@ public:
     node* last_head = head;
     head            = head->prev;
     count--;
-    return (uint8_t*)last_head;
+    return static_cast<void*>(last_head);
   }
 
   bool is_empty() const { return head == nullptr; }
@@ -113,10 +113,10 @@ public:
     }
   }
 
-  uint8_t* try_pop() noexcept
+  void* try_pop() noexcept
   {
     std::lock_guard<std::mutex> lock(mutex);
-    uint8_t*                    block = stack.try_pop();
+    void*                       block = stack.try_pop();
     return block;
   }
 

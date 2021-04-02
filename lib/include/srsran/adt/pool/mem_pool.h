@@ -48,7 +48,7 @@ public:
   {
     assert(sz == sizeof(T));
     static const size_t blocksize = std::max(sizeof(T), memblock_cache::min_memblock_size());
-    uint8_t*            block     = stack.try_pop();
+    void*               block     = stack.try_pop();
     if (block == nullptr) {
       block = new uint8_t[blocksize];
     }
@@ -75,10 +75,10 @@ public:
 
   void clear()
   {
-    uint8_t* block = stack.try_pop();
+    uint8_t* block = static_cast<uint8_t*>(stack.try_pop());
     while (block != nullptr) {
       delete[] block;
-      block = stack.try_pop();
+      block = static_cast<uint8_t*>(stack.try_pop());
     }
   }
 };
@@ -119,7 +119,7 @@ public:
   {
     assert(sz == sizeof(T));
     std::lock_guard<std::mutex> lock(mutex);
-    uint8_t*                    block = obj_cache.try_pop();
+    void*                       block = obj_cache.try_pop();
 
     if (block != nullptr) {
       // allocation successful
