@@ -46,7 +46,7 @@ bool cc_used_buffers_map::push_pdu(tti_point tti, uint32_t len)
 
 uint8_t* cc_used_buffers_map::request_pdu(tti_point tti, uint32_t len)
 {
-  if (pdu_map.has_space(tti.to_uint())) {
+  if (not pdu_map.has_space(tti.to_uint())) {
     logger->error("UE buffers: could not allocate buffer for tti=%d", tti.to_uint());
     return nullptr;
   }
