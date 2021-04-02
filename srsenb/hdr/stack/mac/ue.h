@@ -130,9 +130,7 @@ public:
      phy_interface_stack_lte*                 phy_,
      srslog::basic_logger&                    logger,
      uint32_t                                 nof_cells_,
-     srsran::obj_pool_itf<ue_cc_softbuffers>* softbuffer_pool,
-     uint32_t                                 nof_rx_harq_proc = SRSRAN_FDD_NOF_HARQ,
-     uint32_t                                 nof_tx_harq_proc = SRSRAN_FDD_NOF_HARQ);
+     srsran::obj_pool_itf<ue_cc_softbuffers>* softbuffer_pool);
 
   virtual ~ue();
   void     reset();
@@ -155,7 +153,7 @@ public:
   generate_mch_pdu(uint32_t harq_pid, sched_interface::dl_pdu_mch_t sched, uint32_t nof_pdu_elems, uint32_t grant_size);
 
   srsran_softbuffer_tx_t*
-  get_tx_softbuffer(const uint32_t ue_cc_idx, const uint32_t harq_process, const uint32_t tb_idx);
+                          get_tx_softbuffer(const uint32_t ue_cc_idx, const uint32_t harq_process, const uint32_t tb_idx);
   srsran_softbuffer_rx_t* get_rx_softbuffer(const uint32_t ue_cc_idx, const uint32_t tti);
 
   bool     process_pdus();
@@ -187,15 +185,12 @@ private:
   uint32_t         dl_pmi_counter = 0;
   mac_ue_metrics_t ue_metrics     = {};
 
-  srsran::mac_pcap*     pcap             = nullptr;
-  srsran::mac_pcap_net* pcap_net         = nullptr;
-  uint64_t              conres_id        = 0;
-  uint16_t              rnti             = 0;
-  uint32_t              nof_prb          = 0;
-  uint32_t              last_tti         = 0;
-  uint32_t              nof_failures     = 0;
-  int                   nof_rx_harq_proc = 0;
-  int                   nof_tx_harq_proc = 0;
+  srsran::mac_pcap*     pcap         = nullptr;
+  srsran::mac_pcap_net* pcap_net     = nullptr;
+  uint64_t              conres_id    = 0;
+  uint16_t              rnti         = 0;
+  uint32_t              last_tti     = 0;
+  uint32_t              nof_failures = 0;
 
   srsran::obj_pool_itf<ue_cc_softbuffers>* softbuffer_pool = nullptr;
 

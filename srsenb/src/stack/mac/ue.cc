@@ -199,11 +199,8 @@ ue::ue(uint16_t                                 rnti_,
        phy_interface_stack_lte*                 phy_,
        srslog::basic_logger&                    logger_,
        uint32_t                                 nof_cells_,
-       srsran::obj_pool_itf<ue_cc_softbuffers>* softbuffer_pool_,
-       uint32_t                                 nof_rx_harq_proc_,
-       uint32_t                                 nof_tx_harq_proc_) :
+       srsran::obj_pool_itf<ue_cc_softbuffers>* softbuffer_pool_) :
   rnti(rnti_),
-  nof_prb(nof_prb_),
   sched(sched_),
   rrc(rrc_),
   rlc(rlc_),
@@ -213,8 +210,6 @@ ue::ue(uint16_t                                 rnti_,
   mch_mac_msg_dl(10, logger_),
   mac_msg_ul(20, logger_),
   pdus(logger_),
-  nof_rx_harq_proc(nof_rx_harq_proc_),
-  nof_tx_harq_proc(nof_tx_harq_proc_),
   ta_fsm(this),
   softbuffer_pool(softbuffer_pool_)
 {
@@ -262,7 +257,7 @@ srsran_softbuffer_rx_t* ue::get_rx_softbuffer(const uint32_t ue_cc_idx, const ui
     return nullptr;
   }
 
-  return &cc_buffers[ue_cc_idx].get_rx_softbuffer(tti % nof_rx_harq_proc);
+  return &cc_buffers[ue_cc_idx].get_rx_softbuffer(tti);
 }
 
 srsran_softbuffer_tx_t*
