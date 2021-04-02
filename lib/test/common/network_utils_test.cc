@@ -24,15 +24,16 @@ struct rx_thread_tester {
 
   rx_thread_tester() :
     task_queue(task_sched.make_task_queue()), t([this]() {
-      while (not stop_token.load()) {
+      stop_token.store(false);
+      while (not stop_token.load(std::memory_order_relaxed)) {
         task_sched.run_pending_tasks();
-        std::this_thread::yield();
+        std::this_thread::sleep_for(std::chrono::microseconds(100));
       }
     })
   {}
   ~rx_thread_tester()
   {
-    stop_token.store(true);
+    stop_token.store(true, std::memory_order_relaxed);
     t.join();
   }
 };
