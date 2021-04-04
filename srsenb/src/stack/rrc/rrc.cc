@@ -94,6 +94,7 @@ int32_t rrc::init(const rrc_cfg_t&       cfg_,
                    "re-establishment procedure.");
   }
   logger.info("Inactivity timeout: %d ms", cfg.inactivity_timeout_ms);
+  logger.info("Max consecutive MAC KOs: %d", cfg.max_mac_dl_kos);
 
   running = true;
 
@@ -140,9 +141,15 @@ uint8_t* rrc::read_pdu_bcch_dlsch(const uint8_t cc_idx, const uint32_t sib_index
   return nullptr;
 }
 
-void rrc::set_activity_user(uint16_t rnti)
+void rrc::set_activity_user(uint16_t rnti, bool ack_info)
 {
-  rrc_pdu p = {rnti, LCID_ACT_USER, nullptr};
+  rrc_pdu p;
+  if (ack_info) {
+    p = {rnti, LCID_ACT_USER, nullptr};
+  } else {
+    p = {rnti, LCID_MAC_KO_USER, nullptr};
+  }
+
   if (not rx_pdu_queue.try_push(std::move(p))) {
     logger.error("Failed to push UE activity command to RRC queue");
   }
@@ -191,7 +198,6 @@ int rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
   }
 
   if (rnti == SRSRAN_MRNTI) {
-    uint32_t teid_in = 1;
     for (auto& mbms_item : mcch.msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[0].mbms_session_info_list_r9) {
       uint32_t lcid = mbms_item.lc_ch_id_r9;
 
@@ -199,7 +205,7 @@ int rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
       mac->ue_cfg(SRSRAN_MRNTI, NULL);
       rlc->add_bearer_mrb(SRSRAN_MRNTI, lcid);
       pdcp->add_bearer(SRSRAN_MRNTI, lcid, srsran::make_drb_pdcp_config_t(1, false));
-      teid_in = gtpu->add_bearer(SRSRAN_MRNTI, lcid, 1, 1);
+      gtpu->add_bearer(SRSRAN_MRNTI, lcid, 1, 1);
     }
   }
   return SRSRAN_SUCCESS;
@@ -297,7 +303,7 @@ void rrc::write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu)
   }
 }
 
-void rrc::release_complete(uint16_t rnti)
+void rrc::release_ue(uint16_t rnti)
 {
   rrc_pdu p = {rnti, LCID_REL_USER, nullptr};
   if (not rx_pdu_queue.try_push(std::move(p))) {
@@ -1028,6 +1034,9 @@ void rrc::tti_clock()
         break;
       case LCID_ACT_USER:
         user_it->second->set_activity();
+        break;
+      case LCID_MAC_KO_USER:
+        user_it->second->mac_ko_activity();
         break;
       case LCID_RTX_USER:
         user_it->second->max_retx_reached();

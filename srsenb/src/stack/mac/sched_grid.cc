@@ -695,7 +695,8 @@ void sf_sched::set_dl_data_sched_result(const sf_cch_allocator::alloc_result_t& 
     // Print Resulting DL Allocation
     fmt::memory_buffer str_buffer;
     fmt::format_to(str_buffer,
-                   "SCHED: DL {} rnti=0x{:x}, cc={}, pid={}, mask=0x{:x}, dci=({}, {}), n_rtx={}, tbs={}, buffer={}/{}",
+                   "SCHED: DL {} rnti=0x{:x}, cc={}, pid={}, mask=0x{:x}, dci=({}, {}), n_rtx={}, tbs={}, "
+                   "buffer={}/{}, tti_tx_dl={}",
                    is_newtx ? "tx" : "retx",
                    user->get_rnti(),
                    cc_cfg->enb_cc_idx,
@@ -706,7 +707,8 @@ void sf_sched::set_dl_data_sched_result(const sf_cch_allocator::alloc_result_t& 
                    dl_harq.nof_retx(0) + dl_harq.nof_retx(1),
                    tbs,
                    data_before,
-                   user->get_requested_dl_bytes(cc_cfg->enb_cc_idx).stop());
+                   user->get_requested_dl_bytes(cc_cfg->enb_cc_idx).stop(),
+                   get_tti_tx_dl());
     logger.info("%s", srsran::to_c_str(str_buffer));
   }
 }

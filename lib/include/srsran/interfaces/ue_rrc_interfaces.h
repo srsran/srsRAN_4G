@@ -30,16 +30,11 @@
 
 namespace srsue {
 
-class rrc_interface_mac_common
-{
-public:
-  virtual void ra_problem() = 0;
-};
-
-class rrc_interface_mac : public rrc_interface_mac_common
+class rrc_interface_mac
 {
 public:
   virtual void ra_completed()      = 0;
+  virtual void ra_problem()        = 0;
   virtual void release_pucch_srs() = 0;
 };
 

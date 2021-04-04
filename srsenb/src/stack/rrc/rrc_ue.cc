@@ -23,7 +23,7 @@
 #include "srsenb/hdr/stack/rrc/mac_controller.h"
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
 #include "srsenb/hdr/stack/rrc/ue_rr_cfg.h"
-#include "srsran/adt/mem_pool.h"
+#include "srsran/adt/pool/mem_pool.h"
 #include "srsran/asn1/rrc_utils.h"
 #include "srsran/common/enb_events.h"
 #include "srsran/common/int_helpers.h"
@@ -65,8 +65,10 @@ int rrc::ue::init()
   // Configure
   apply_setup_phy_common(parent->cfg.sibs[1].sib2().rr_cfg_common, true);
 
+  rlf_timer      = parent->task_sched.get_unique_timer();
   activity_timer = parent->task_sched.get_unique_timer();
   set_activity_timeout(MSG3_RX_TIMEOUT); // next UE response is Msg3
+  set_rlf_timeout();
 
   mobility_handler.reset(new rrc_mobility(this));
   return SRSRAN_SUCCESS;
@@ -112,25 +114,72 @@ void rrc::ue::set_activity()
 {
   // re-start activity timer with current timeout value
   activity_timer.run();
-
+  rlf_timer.stop();
+  consecutive_kos = 0;
   if (parent) {
     parent->logger.debug("Activity registered for rnti=0x%x (timeout_value=%dms)", rnti, activity_timer.duration());
   }
 }
 
-void rrc::ue::activity_timer_expired()
+void rrc::ue::mac_ko_activity()
 {
+  // Count KOs in MAC and trigger release if it goes above a certain value.
+  // This is done to detect out-of-coverage UEs
+  if (rlf_timer.is_running()) {
+    // RLF timer already running, no need to count KOs
+    return;
+  }
+
+  consecutive_kos++;
+  if (consecutive_kos > parent->cfg.max_mac_dl_kos) {
+    parent->logger.info("Max KOs reached, triggering release rnti=0x%x", rnti);
+    max_retx_reached();
+  }
+}
+
+void rrc::ue::activity_timer_expired(const activity_timeout_type_t type)
+{
+  rlf_timer.stop();
   if (parent) {
     parent->logger.info("Activity timer for rnti=0x%x expired after %d ms", rnti, activity_timer.time_elapsed());
 
     if (parent->s1ap->user_exists(rnti)) {
-      parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::user_inactivity);
-      event_logger::get().log_rrc_disconnect(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
-                                             static_cast<unsigned>(rrc_idle_transition_cause::timeout),
-                                             rnti);
+      if (type == UE_INACTIVITY_TIMEOUT) {
+        parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::user_inactivity);
+        con_release_result = procedure_result_code::activity_timeout;
+      } else if (type == MSG3_RX_TIMEOUT) {
+        // MSG3 timeout, no need to notify S1AP, just remove UE
+        parent->rem_user_thread(rnti);
+        con_release_result = procedure_result_code::msg3_timeout;
+      } else {
+        // Unhandled activity timeout, just remove UE and log an error
+        parent->rem_user_thread(rnti);
+        con_release_result = procedure_result_code::activity_timeout;
+        parent->logger.error(
+            "Unhandled reason for activity timer expiration. rnti=0x%x, cause %d", rnti, static_cast<unsigned>(type));
+      }
     } else {
       if (rnti != SRSRAN_MRNTI) {
         parent->rem_user_thread(rnti);
+      }
+    }
+  }
+
+  state = RRC_STATE_RELEASE_REQUEST;
+}
+
+void rrc::ue::rlf_timer_expired()
+{
+  activity_timer.stop();
+  if (parent) {
+    parent->logger.info("RLF timer for rnti=0x%x expired after %d ms", rnti, rlf_timer.time_elapsed());
+
+    if (parent->s1ap->user_exists(rnti)) {
+      parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::radio_conn_with_ue_lost);
+      con_release_result = procedure_result_code::radio_conn_with_ue_lost;
+    } else {
+      if (rnti != SRSRAN_MRNTI) {
+        parent->rem_user(rnti);
       }
     }
   }
@@ -144,10 +193,26 @@ void rrc::ue::max_retx_reached()
     parent->logger.info("Max retx reached for rnti=0x%x", rnti);
 
     // Give UE time to start re-establishment
-    set_activity_timeout(UE_REESTABLISH_TIMEOUT);
+    rlf_timer.run();
 
     mac_ctrl.handle_max_retx();
   }
+}
+
+void rrc::ue::set_rlf_timeout()
+{
+  uint32_t deadline_s  = 0;
+  uint32_t deadline_ms = 0;
+
+  deadline_ms = static_cast<uint32_t>((get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.ue_timers_and_consts.t310.to_number()) +
+                                      (get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.ue_timers_and_consts.t311.to_number()) +
+                                      (get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.ue_timers_and_consts.n310.to_number()));
+  deadline_s  = deadline_ms / 1000;
+  deadline_ms = deadline_ms % 1000;
+
+  uint32_t deadline = deadline_s * 1e3 + deadline_ms;
+  rlf_timer.set(deadline, [this](uint32_t tid) { rlf_timer_expired(); });
+  parent->logger.debug("Setting RLF timer for rnti=0x%x to %dms", rnti, deadline);
 }
 
 void rrc::ue::set_activity_timeout(const activity_timeout_type_t type)
@@ -165,19 +230,12 @@ void rrc::ue::set_activity_timeout(const activity_timeout_type_t type)
       deadline_s  = parent->cfg.inactivity_timeout_ms / 1000;
       deadline_ms = parent->cfg.inactivity_timeout_ms % 1000;
       break;
-    case UE_REESTABLISH_TIMEOUT:
-      deadline_ms = static_cast<uint32_t>((get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.ue_timers_and_consts.t310.to_number()) +
-                                          (get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.ue_timers_and_consts.t311.to_number()) +
-                                          (get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.ue_timers_and_consts.n310.to_number()));
-      deadline_s  = deadline_ms / 1000;
-      deadline_ms = deadline_ms % 1000;
-      break;
     default:
       parent->logger.error("Unknown timeout type %d", type);
   }
 
   uint32_t deadline = deadline_s * 1e3 + deadline_ms;
-  activity_timer.set(deadline, [this](uint32_t tid) { activity_timer_expired(); });
+  activity_timer.set(deadline, [this, type](uint32_t tid) { activity_timer_expired(type); });
   parent->logger.debug("Setting timer for %s for rnti=0x%x to %dms", to_string(type).c_str(), rnti, deadline);
 
   set_activity();
@@ -219,9 +277,11 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 
   switch (ul_dcch_msg.msg.c1().type()) {
     case ul_dcch_msg_type_c::c1_c_::types::rrc_conn_setup_complete:
+      save_ul_message(std::move(original_pdu));
       handle_rrc_con_setup_complete(&ul_dcch_msg.msg.c1().rrc_conn_setup_complete(), std::move(pdu));
       break;
     case ul_dcch_msg_type_c::c1_c_::types::rrc_conn_reest_complete:
+      save_ul_message(std::move(original_pdu));
       handle_rrc_con_reest_complete(&ul_dcch_msg.msg.c1().rrc_conn_reest_complete(), std::move(pdu));
       break;
     case ul_dcch_msg_type_c::c1_c_::types::ul_info_transfer:
@@ -242,6 +302,7 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
       parent->s1ap->write_pdu(rnti, std::move(pdu));
       break;
     case ul_dcch_msg_type_c::c1_c_::types::rrc_conn_recfg_complete:
+      save_ul_message(std::move(original_pdu));
       handle_rrc_reconf_complete(&ul_dcch_msg.msg.c1().rrc_conn_recfg_complete(), std::move(pdu));
       srsran::console("User 0x%x connected\n", rnti);
       state = RRC_STATE_REGISTERED;
@@ -261,7 +322,7 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
         send_connection_reconf(std::move(pdu));
         state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
       } else {
-        send_connection_reject();
+        send_connection_reject(procedure_result_code::none);
         state = RRC_STATE_IDLE;
       }
       break;
@@ -292,13 +353,16 @@ std::string rrc::ue::to_string(const activity_timeout_type_t& type)
  */
 void rrc::ue::handle_rrc_con_req(rrc_conn_request_s* msg)
 {
+  // Log event.
+  event_logger::get().log_rrc_event(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                    asn1::octstring_to_string(last_ul_msg->msg, last_ul_msg->N_bytes),
+                                    static_cast<unsigned>(rrc_event_type::con_request),
+                                    static_cast<unsigned>(procedure_result_code::none),
+                                    rnti);
+
   if (not parent->s1ap->is_mme_connected()) {
     parent->logger.error("MME isn't connected. Sending Connection Reject");
-    event_logger::get().log_rrc_connected(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
-                                          asn1::octstring_to_string(last_ul_msg->msg, last_ul_msg->N_bytes),
-                                          static_cast<unsigned>(conn_request_result_t::error_mme_not_connected),
-                                          rnti);
-    send_connection_reject();
+    send_connection_reject(procedure_result_code::error_mme_not_connected);
     return;
   }
 
@@ -352,13 +416,28 @@ void rrc::ue::send_connection_setup()
   // Configure PHY layer
   apply_setup_phy_config_dedicated(rr_cfg.phys_cfg_ded); // It assumes SCell has not been set before
 
-  send_dl_ccch(&dl_ccch_msg);
+  std::string octet_str;
+  send_dl_ccch(&dl_ccch_msg, &octet_str);
+
+  // Log event.
+  event_logger::get().log_rrc_event(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                    octet_str,
+                                    static_cast<unsigned>(rrc_event_type::con_setup),
+                                    static_cast<unsigned>(procedure_result_code::none),
+                                    rnti);
 
   apply_rr_cfg_ded_diff(current_ue_cfg.rr_cfg, rr_cfg);
 }
 
 void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srsran::unique_byte_buffer_t pdu)
 {
+  // Log event.
+  event_logger::get().log_rrc_event(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                    asn1::octstring_to_string(last_ul_msg->msg, last_ul_msg->N_bytes),
+                                    static_cast<unsigned>(rrc_event_type::con_setup_complete),
+                                    static_cast<unsigned>(procedure_result_code::none),
+                                    rnti);
+
   // Inform PHY about the configuration completion
   parent->phy->complete_config(rnti);
 
@@ -385,12 +464,6 @@ void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srsr
   }
   state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
 
-  // Log event.
-  event_logger::get().log_rrc_connected(enb_cc_idx,
-                                        asn1::octstring_to_string(last_ul_msg->msg, last_ul_msg->N_bytes),
-                                        static_cast<unsigned>(conn_request_result_t::success),
-                                        rnti);
-
   // 2> if the UE has radio link failure or handover failure information available
   if (msg->crit_exts.type().value == c1_or_crit_ext_opts::c1 and
       msg->crit_exts.c1().type().value ==
@@ -402,13 +475,22 @@ void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srsr
   }
 }
 
-void rrc::ue::send_connection_reject()
+void rrc::ue::send_connection_reject(procedure_result_code cause)
 {
   mac_ctrl.handle_con_reject();
 
   dl_ccch_msg_s dl_ccch_msg;
   dl_ccch_msg.msg.set_c1().set_rrc_conn_reject().crit_exts.set_c1().set_rrc_conn_reject_r8().wait_time = 10;
-  send_dl_ccch(&dl_ccch_msg);
+
+  std::string octet_str;
+  send_dl_ccch(&dl_ccch_msg, &octet_str);
+
+  // Log event.
+  event_logger::get().log_rrc_event(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                    octet_str,
+                                    static_cast<unsigned>(rrc_event_type::con_reject),
+                                    static_cast<unsigned>(cause),
+                                    rnti);
 }
 
 /*
@@ -416,13 +498,16 @@ void rrc::ue::send_connection_reject()
  */
 void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
 {
+  // Log event.
+  event_logger::get().log_rrc_event(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                    asn1::octstring_to_string(last_ul_msg->msg, last_ul_msg->N_bytes),
+                                    static_cast<unsigned>(rrc_event_type::con_reest_req),
+                                    static_cast<unsigned>(procedure_result_code::none),
+                                    rnti);
+
   if (not parent->s1ap->is_mme_connected()) {
     parent->logger.error("MME isn't connected. Sending Connection Reject");
-    event_logger::get().log_rrc_connected(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
-                                          asn1::octstring_to_string(last_ul_msg->msg, last_ul_msg->N_bytes),
-                                          static_cast<unsigned>(conn_request_result_t::error_mme_not_connected),
-                                          rnti);
-    send_connection_reject();
+    send_connection_reject(procedure_result_code::error_mme_not_connected);
     return;
   }
   parent->logger.debug("rnti=0x%x, phyid=0x%x, smac=0x%x, cause=%s",
@@ -483,11 +568,7 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
       set_activity_timeout(UE_INACTIVITY_TIMEOUT);
     } else {
       parent->logger.error("Received ConnectionReestablishment for rnti=0x%x without context", old_rnti);
-      event_logger::get().log_rrc_connected(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
-                                            asn1::octstring_to_string(last_ul_msg->msg, last_ul_msg->N_bytes),
-                                            static_cast<unsigned>(conn_request_result_t::error_unknown_rnti),
-                                            rnti);
-      send_connection_reest_rej();
+      send_connection_reest_rej(procedure_result_code::error_unknown_rnti);
     }
   } else {
     parent->logger.error("Received ReestablishmentRequest from an rnti=0x%x not in IDLE", rnti);
@@ -519,13 +600,28 @@ void rrc::ue::send_connection_reest(uint8_t ncc)
   // Configure PHY layer
   apply_setup_phy_config_dedicated(rr_cfg.phys_cfg_ded); // It assumes SCell has not been set before
 
-  send_dl_ccch(&dl_ccch_msg);
+  std::string octet_str;
+  send_dl_ccch(&dl_ccch_msg, &octet_str);
 
   apply_rr_cfg_ded_diff(current_ue_cfg.rr_cfg, rr_cfg);
+
+  // Log event.
+  event_logger::get().log_rrc_event(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                    octet_str,
+                                    static_cast<unsigned>(rrc_event_type::con_reest),
+                                    static_cast<unsigned>(procedure_result_code::none),
+                                    rnti);
 }
 
 void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srsran::unique_byte_buffer_t pdu)
 {
+  // Log event.
+  event_logger::get().log_rrc_event(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                    asn1::octstring_to_string(last_ul_msg->msg, last_ul_msg->N_bytes),
+                                    static_cast<unsigned>(rrc_event_type::con_reest_complete),
+                                    static_cast<unsigned>(procedure_result_code::none),
+                                    rnti);
+
   // Inform PHY about the configuration completion
   parent->phy->complete_config(rnti);
 
@@ -554,11 +650,6 @@ void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srsr
 
   state = RRC_STATE_REESTABLISHMENT_COMPLETE;
 
-  event_logger::get().log_rrc_connected(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
-                                        asn1::octstring_to_string(last_ul_msg->msg, last_ul_msg->N_bytes),
-                                        0,
-                                        rnti);
-
   // 2> if the UE has radio link failure or handover failure information available
   if (msg->crit_exts.type().value == rrc_conn_reest_complete_s::crit_exts_c_::types_opts::rrc_conn_reest_complete_r8) {
     const auto& complete_r8 = msg->crit_exts.rrc_conn_reest_complete_r8();
@@ -570,13 +661,22 @@ void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srsr
   send_connection_reconf(std::move(pdu));
 }
 
-void rrc::ue::send_connection_reest_rej()
+void rrc::ue::send_connection_reest_rej(procedure_result_code cause)
 {
   mac_ctrl.handle_con_reject();
 
   dl_ccch_msg_s dl_ccch_msg;
   dl_ccch_msg.msg.set_c1().set_rrc_conn_reest_reject().crit_exts.set_rrc_conn_reest_reject_r8();
-  send_dl_ccch(&dl_ccch_msg);
+
+  std::string octet_str;
+  send_dl_ccch(&dl_ccch_msg, &octet_str);
+
+  // Log event.
+  event_logger::get().log_rrc_event(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                    octet_str,
+                                    static_cast<unsigned>(rrc_event_type::con_reest_reject),
+                                    static_cast<unsigned>(cause),
+                                    rnti);
 }
 
 /*
@@ -640,7 +740,15 @@ void rrc::ue::send_connection_reconf(srsran::unique_byte_buffer_t           pdu,
   }
 
   // send DL-DCCH message to lower layers
-  send_dl_dcch(&dl_dcch_msg, std::move(pdu));
+  std::string octet_str;
+  send_dl_dcch(&dl_dcch_msg, std::move(pdu), &octet_str);
+
+  // Log event.
+  event_logger::get().log_rrc_event(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                    octet_str,
+                                    static_cast<unsigned>(rrc_event_type::con_reconf),
+                                    static_cast<unsigned>(procedure_result_code::none),
+                                    rnti);
 
   state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
 }
@@ -655,6 +763,13 @@ void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srsran:
         "Expected RRCReconfigurationComplete with transaction ID: %d, got %d", transaction_id, msg->rrc_transaction_id);
     return;
   }
+
+  // Log event.
+  event_logger::get().log_rrc_event(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                    asn1::octstring_to_string(last_ul_msg->msg, last_ul_msg->N_bytes),
+                                    static_cast<unsigned>(rrc_event_type::con_reconf_complete),
+                                    static_cast<unsigned>(procedure_result_code::none),
+                                    rnti);
 
   // Activate SCells and bearers in the MAC scheduler that were advertised in the RRC Reconf message
   mac_ctrl.handle_con_reconf_complete();
@@ -812,12 +927,17 @@ void rrc::ue::send_connection_release()
     }
   }
 
-  send_dl_dcch(&dl_dcch_msg);
+  std::string octet_str;
+  send_dl_dcch(&dl_dcch_msg, nullptr, &octet_str);
 
   // Log rrc release event.
-  event_logger::get().log_rrc_disconnect(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
-                                         static_cast<unsigned>(rrc_idle_transition_cause::release),
-                                         rnti);
+  event_logger::get().log_rrc_event(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                    octet_str,
+                                    static_cast<unsigned>(rrc_event_type::con_release),
+                                    static_cast<unsigned>(con_release_result),
+                                    rnti);
+  // Restore release result.
+  con_release_result = procedure_result_code::none;
 }
 
 /*
@@ -1086,7 +1206,7 @@ void rrc::ue::update_scells()
 
 /********************** HELPERS ***************************/
 
-void rrc::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
+void rrc::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg, std::string* octet_str)
 {
   // Allocate a new PDU buffer, pack the message and send to PDCP
   srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
@@ -1101,13 +1221,19 @@ void rrc::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
     char buf[32] = {};
     sprintf(buf, "SRB0 - rnti=0x%x", rnti);
     parent->log_rrc_message(buf, Tx, pdu.get(), *dl_ccch_msg, dl_ccch_msg->msg.c1().type().to_string());
+
+    // Encode the pdu as an octet string if the user passed a valid pointer.
+    if (octet_str) {
+      *octet_str = asn1::octstring_to_string(pdu->msg, pdu->N_bytes);
+    }
+
     parent->rlc->write_sdu(rnti, RB_ID_SRB0, std::move(pdu));
   } else {
     parent->logger.error("Allocating pdu");
   }
 }
 
-bool rrc::ue::send_dl_dcch(const dl_dcch_msg_s* dl_dcch_msg, srsran::unique_byte_buffer_t pdu)
+bool rrc::ue::send_dl_dcch(const dl_dcch_msg_s* dl_dcch_msg, srsran::unique_byte_buffer_t pdu, std::string* octet_str)
 {
   if (!pdu) {
     pdu = srsran::make_byte_buffer();
@@ -1129,6 +1255,11 @@ bool rrc::ue::send_dl_dcch(const dl_dcch_msg_s* dl_dcch_msg, srsran::unique_byte
     char buf[32] = {};
     sprintf(buf, "SRB%d - rnti=0x%x", lcid, rnti);
     parent->log_rrc_message(buf, Tx, pdu.get(), *dl_dcch_msg, dl_dcch_msg->msg.c1().type().to_string());
+
+    // Encode the pdu as an octet string if the user passed a valid pointer.
+    if (octet_str) {
+      *octet_str = asn1::octstring_to_string(pdu->msg, pdu->N_bytes);
+    }
 
     parent->pdcp->write_sdu(rnti, lcid, std::move(pdu));
   } else {

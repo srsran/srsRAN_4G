@@ -208,7 +208,7 @@ int ue_stack_lte::init(const stack_args_t& args_)
   nas.init(usim.get(), &rrc, gw, args.nas);
 
   mac_nr_args_t mac_nr_args = {};
-  mac_nr.init(mac_nr_args, phy_nr, &rlc);
+  mac_nr.init(mac_nr_args, phy_nr, &rlc, &rrc_nr);
   rrc_nr.init(phy_nr, &mac_nr, &rlc, &pdcp, gw, &rrc, usim.get(), task_sched.get_timer_handler(), nullptr, args.rrc_nr);
   rrc.init(phy, &mac, &rlc, &pdcp, &nas, usim.get(), gw, &rrc_nr, args.rrc);
 

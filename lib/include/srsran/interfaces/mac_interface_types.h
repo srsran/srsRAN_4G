@@ -159,6 +159,17 @@ struct sr_cfg_nr_t {
   sr_cfg_item_nr_t item[SRSRAN_MAX_MAX_NR_OF_SR_CFG_PER_CELL_GROUP];
 };
 
+struct bsr_cfg_nr_t {
+  // mandatory BSR config
+  int periodic_timer;
+  int retx_timer;
+
+  // SR specific configs for logical channel
+  bool sr_delay_timer_enabled;
+  int  sr_delay_timer;
+  bool sr_mask; // Indicates whether SR masking is configured for this logical channel
+};
+
 struct mac_cfg_t {
   // Default constructor with default values as in 36.331 9.2.2
   mac_cfg_t() { set_defaults(); }

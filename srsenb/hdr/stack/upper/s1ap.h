@@ -33,6 +33,7 @@
 #include "srsran/interfaces/enb_s1ap_interfaces.h"
 
 #include "s1ap_metrics.h"
+#include "srsran/adt/optional.h"
 #include "srsran/asn1/s1ap.h"
 #include "srsran/common/network_utils.h"
 #include "srsran/common/stack_procedure.h"
@@ -47,12 +48,11 @@ class rrc_interface_s1ap;
 struct ue_ctxt_t {
   static const uint32_t invalid_enb_id = std::numeric_limits<uint32_t>::max();
 
-  bool           mme_ue_s1ap_id_present = false;
-  uint16_t       rnti                   = SRSRAN_INVALID_RNTI;
-  uint32_t       enb_ue_s1ap_id         = invalid_enb_id;
-  uint32_t       mme_ue_s1ap_id         = 0;
-  uint32_t       enb_cc_idx             = 0;
-  struct timeval init_timestamp         = {};
+  uint16_t                   rnti           = SRSRAN_INVALID_RNTI;
+  uint32_t                   enb_ue_s1ap_id = invalid_enb_id;
+  srsran::optional<uint32_t> mme_ue_s1ap_id;
+  uint32_t                   enb_cc_idx     = 0;
+  struct timeval             init_timestamp = {};
 };
 
 class s1ap : public s1ap_interface_rrc
@@ -99,7 +99,9 @@ public:
   void send_ho_notify(uint16_t rnti, uint64_t target_eci) override;
   void send_ho_cancel(uint16_t rnti) override;
   bool release_erabs(uint16_t rnti, const std::vector<uint16_t>& erabs_successfully_released) override;
-  bool send_error_indication(uint16_t rnti, const asn1::s1ap::cause_c& cause);
+  bool send_error_indication(const asn1::s1ap::cause_c& cause,
+                             srsran::optional<uint32_t> enb_ue_s1ap_id = {},
+                             srsran::optional<uint32_t> mme_ue_s1ap_id = {});
   bool send_ue_cap_info_indication(uint16_t rnti, srsran::unique_byte_buffer_t ue_radio_cap) override;
 
   // Stack interface
@@ -320,7 +322,7 @@ private:
     s1ap* s1ap_ptr = nullptr;
   };
 
-  ue*         find_s1apmsg_user(uint32_t enb_id, uint32_t mme_id);
+  ue*         handle_s1apmsg_ue_id(uint32_t enb_id, uint32_t mme_id);
   std::string get_cause(const asn1::s1ap::cause_c& c);
   void        log_s1ap_msg(const asn1::s1ap::s1ap_pdu_c& msg, srsran::const_span<uint8_t> sdu, bool is_rx);
 

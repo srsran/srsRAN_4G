@@ -24,7 +24,7 @@
 
 #include "mac_controller.h"
 #include "rrc.h"
-#include "srsran/adt/mem_pool.h"
+#include "srsran/adt/pool/mem_pool.h"
 #include "srsran/interfaces/enb_phy_interfaces.h"
 #include "srsran/interfaces/pdcp_interface_types.h"
 
@@ -42,15 +42,18 @@ public:
   bool is_idle();
 
   typedef enum {
-    MSG3_RX_TIMEOUT = 0,    ///< Msg3 has its own timeout to quickly remove fake UEs from random PRACHs
-    UE_INACTIVITY_TIMEOUT,  ///< UE inactivity timeout (usually bigger than reestablishment timeout)
-    UE_REESTABLISH_TIMEOUT, ///< Maximum timeout in which UE reestablishment is expected
+    MSG3_RX_TIMEOUT = 0,   ///< Msg3 has its own timeout to quickly remove fake UEs from random PRACHs
+    UE_INACTIVITY_TIMEOUT, ///< UE inactivity timeout (usually bigger than reestablishment timeout)
     nulltype
   } activity_timeout_type_t;
+
   std::string to_string(const activity_timeout_type_t& type);
   void        set_activity_timeout(const activity_timeout_type_t type);
+  void        set_rlf_timeout();
   void        set_activity();
-  void        activity_timer_expired();
+  void        mac_ko_activity();
+  void        activity_timer_expired(const activity_timeout_type_t type);
+  void        rlf_timer_expired();
   void        max_retx_reached();
 
   rrc_state_t get_state();
@@ -59,11 +62,22 @@ public:
   ///< Helper to access a cell cfg based on ue_cc_idx
   enb_cell_common* get_ue_cc_cfg(uint32_t ue_cc_idx);
 
+  /// List of results a RRC procedure may produce.
+  enum class procedure_result_code {
+    none,
+    activity_timeout,
+    error_mme_not_connected,
+    error_unknown_rnti,
+    radio_conn_with_ue_lost,
+    msg3_timeout,
+    unspecified
+  };
+
   void send_connection_setup();
   void send_connection_reest(uint8_t ncc);
-  void send_connection_reject();
+  void send_connection_reject(procedure_result_code cause);
   void send_connection_release();
-  void send_connection_reest_rej();
+  void send_connection_reest_rej(procedure_result_code cause);
   void send_connection_reconf(srsran::unique_byte_buffer_t           sdu             = {},
                               bool                                   phy_cfg_updated = true,
                               const asn1::unbounded_octstring<true>* nas_pdu         = nullptr);
@@ -73,11 +87,20 @@ public:
 
   void parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
 
-  /// List of results for a connection request.
-  enum class conn_request_result_t { success, error_mme_not_connected, error_unknown_rnti };
-
-  /// Possible causes for the RRC to transition to the idle state.
-  enum class rrc_idle_transition_cause { release, timeout };
+  /// List of generated RRC events.
+  enum class rrc_event_type {
+    con_request,
+    con_setup,
+    con_setup_complete,
+    con_reconf,
+    con_reconf_complete,
+    con_reest_req,
+    con_reest,
+    con_reest_complete,
+    con_reest_reject,
+    con_reject,
+    con_release
+  };
 
   void handle_rrc_con_req(asn1::rrc::rrc_conn_request_s* msg);
   void handle_rrc_con_setup_complete(asn1::rrc::rrc_conn_setup_complete_s* msg, srsran::unique_byte_buffer_t pdu);
@@ -110,9 +133,19 @@ public:
   bool is_allocated() const;
   bool is_crnti_set() const { return mac_ctrl.is_crnti_set(); }
 
-  void send_dl_ccch(asn1::rrc::dl_ccch_msg_s* dl_ccch_msg);
+  /**
+   * Sends the CCCH message to the underlying layer and optionally encodes it as an octet string if a valid string
+   * pointer is passed.
+   */
+  void send_dl_ccch(asn1::rrc::dl_ccch_msg_s* dl_ccch_msg, std::string* octet_str = nullptr);
+
+  /**
+   * Sends the DCCH message to the underlying layer and optionally encodes it as an octet string if a valid string
+   * pointer is passed.
+   */
   bool send_dl_dcch(const asn1::rrc::dl_dcch_msg_s* dl_dcch_msg,
-                    srsran::unique_byte_buffer_t    pdu = srsran::unique_byte_buffer_t());
+                    srsran::unique_byte_buffer_t    pdu       = srsran::unique_byte_buffer_t(),
+                    std::string*                    octet_str = nullptr);
 
   void save_ul_message(srsran::unique_byte_buffer_t pdu) { last_ul_msg = std::move(pdu); }
 
@@ -135,6 +168,7 @@ public:
 private:
   // args
   srsran::timer_handler::unique_timer activity_timer;
+  srsran::timer_handler::unique_timer rlf_timer;
 
   /// cached ASN1 fields for RRC config update checking, and ease of context transfer during HO
   ue_var_cfg_t current_ue_cfg;
@@ -161,12 +195,18 @@ private:
 
   const static uint32_t UE_PCELL_CC_IDX = 0;
 
+  uint32_t consecutive_kos = 0;
+  uint32_t max_mac_dl_retx;
+
   ue_cell_ded_list     ue_cell_list;
   bearer_cfg_handler   bearer_list;
   security_cfg_handler ue_security_cfg;
 
-  /// Cached message of the last uplinl message.
+  /// Cached message of the last uplink message.
   srsran::unique_byte_buffer_t last_ul_msg;
+
+  /// Connection release result.
+  procedure_result_code con_release_result = procedure_result_code::none;
 
   // controllers
   mac_controller mac_ctrl;

@@ -22,8 +22,8 @@
 #ifndef SRSRAN_PHY_CONTROLLER_H
 #define SRSRAN_PHY_CONTROLLER_H
 
+#include "srsran/adt/fsm.h"
 #include "srsran/adt/observer.h"
-#include "srsran/common/fsm.h"
 #include "srsran/common/task_scheduler.h"
 #include "srsran/interfaces/ue_phy_interfaces.h"
 #include "srsran/interfaces/ue_rrc_interfaces.h"

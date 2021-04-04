@@ -58,10 +58,11 @@ void bsr_proc::print_state()
       n = srsran_print_check(str, 128, n, "%d: %d ", iter.first, iter.second.old_buffer);
     }
   }
-  logger.info("BSR:   triggered_bsr_type=%s, LCID QUEUE status: %s", bsr_type_tostring(triggered_bsr_type), str);
+  logger.info(
+      "BSR:   triggered_bsr_type=%s, LCID QUEUE status: %s", bsr_trigger_type_tostring(triggered_bsr_type), str);
 }
 
-void bsr_proc::set_trigger(srsue::bsr_proc::triggered_bsr_type_t new_trigger)
+void bsr_proc::set_trigger(bsr_trigger_type_t new_trigger)
 {
   triggered_bsr_type = new_trigger;
 
@@ -307,21 +308,6 @@ void bsr_proc::step(uint32_t tti)
   }
 
   update_old_buffer();
-}
-
-char* bsr_proc::bsr_type_tostring(triggered_bsr_type_t type)
-{
-  switch (type) {
-    case bsr_proc::NONE:
-      return (char*)"none";
-    case bsr_proc::REGULAR:
-      return (char*)"Regular";
-    case bsr_proc::PADDING:
-      return (char*)"Padding";
-    case bsr_proc::PERIODIC:
-      return (char*)"Periodic";
-  }
-  return (char*)"unknown";
 }
 
 char* bsr_proc::bsr_format_tostring(bsr_format_t format)

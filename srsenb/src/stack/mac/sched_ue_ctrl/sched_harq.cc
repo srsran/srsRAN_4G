@@ -54,11 +54,6 @@ void harq_proc::reset(uint32_t tb_idx)
   tx_cnt[tb_idx]    = 0;
 }
 
-uint32_t harq_proc::get_id() const
-{
-  return id;
-}
-
 bool harq_proc::is_empty() const
 {
   for (uint32_t i = 0; i < SRSRAN_MAX_TB; ++i) {
@@ -92,14 +87,7 @@ int harq_proc::set_ack_common(uint32_t tb_idx, bool ack_)
   }
   ack_state[tb_idx] = ack_;
   logger->debug("ACK=%d received pid=%d, tb_idx=%d, n_rtx=%d, max_retx=%d", ack_, id, tb_idx, n_rtx[tb_idx], max_retx);
-  if (!ack_ && (n_rtx[tb_idx] + 1 >= max_retx)) {
-    logger->info("SCHED: discarding TB=%d pid=%d, tti=%d, maximum number of retx exceeded (%d)",
-                 tb_idx,
-                 id,
-                 tti.to_uint(),
-                 max_retx);
-    active[tb_idx] = false;
-  } else if (ack_) {
+  if (ack_) {
     active[tb_idx] = false;
   }
   return SRSRAN_SUCCESS;
@@ -170,6 +158,20 @@ dl_harq_proc::dl_harq_proc() : harq_proc()
   n_cce = 0;
 }
 
+void dl_harq_proc::new_tti(tti_point tti_tx_dl)
+{
+  for (uint32_t tb = 0; tb < SRSRAN_MAX_TB; ++tb) {
+    if (has_pending_retx(tb, tti_tx_dl) and nof_retx(tb) + 1 >= max_nof_retx()) {
+      logger->info("SCHED: discarding DL TB=%d pid=%d, tti=%d, maximum number of retx exceeded (%d)",
+                   tb,
+                   get_id(),
+                   tti.to_uint(),
+                   max_retx);
+      active[tb] = false;
+    }
+  }
+}
+
 void dl_harq_proc::new_tx(const rbgmask_t& new_mask,
                           uint32_t         tb_idx,
                           tti_point        tti_tx_dl,
@@ -231,8 +233,17 @@ void dl_harq_proc::reset_pending_data()
 }
 
 /******************************************************
- *                  UE::UL HARQ class                    *
+ *                  UE::UL HARQ class                 *
  ******************************************************/
+
+void ul_harq_proc::new_tti()
+{
+  if (has_pending_retx() and nof_retx(0) + 1 >= max_nof_retx()) {
+    logger->info(
+        "SCHED: discarding UL pid=%d, tti=%d, maximum number of retx exceeded (%d)", get_id(), tti.to_uint(), max_retx);
+    active[0] = false;
+  }
+}
 
 prb_interval ul_harq_proc::get_alloc() const
 {
@@ -338,6 +349,12 @@ void harq_entity::reset()
 void harq_entity::new_tti(tti_point tti_rx)
 {
   last_ttis[tti_rx.to_uint() % last_ttis.size()] = tti_rx;
+  for (auto& hul : ul_harqs) {
+    hul.new_tti();
+  }
+  for (auto& hdl : dl_harqs) {
+    hdl.new_tti(to_tx_dl(tti_rx));
+  }
 }
 
 dl_harq_proc* harq_entity::get_empty_dl_harq(tti_point tti_tx_dl)

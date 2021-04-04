@@ -306,7 +306,7 @@ int sched::dl_sched(uint32_t tti_tx_dl, uint32_t enb_cc_idx, sched_interface::dl
     return 0;
   }
 
-  tti_point tti_rx = tti_point{tti_tx_dl} - FDD_HARQ_DELAY_UL_MS;
+  tti_point tti_rx = tti_point{tti_tx_dl} - TX_ENB_DELAY;
   new_tti(tti_rx);
 
   // copy result
@@ -327,7 +327,7 @@ int sched::ul_sched(uint32_t tti, uint32_t enb_cc_idx, srsenb::sched_interface::
   }
 
   // Compute scheduling Result for tti_rx
-  tti_point tti_rx = tti_point{tti} - FDD_HARQ_DELAY_UL_MS - FDD_HARQ_DELAY_DL_MS;
+  tti_point tti_rx = tti_point{tti} - TX_ENB_DELAY - FDD_HARQ_DELAY_DL_MS;
   new_tti(tti_rx);
 
   // copy result

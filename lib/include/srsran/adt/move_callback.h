@@ -22,6 +22,8 @@
 #ifndef SRSRAN_MOVE_CALLBACK_H
 #define SRSRAN_MOVE_CALLBACK_H
 
+#include "detail/type_storage.h"
+#include "srsran/common/srsran_assert.h"
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -34,22 +36,10 @@
 #define THROW_BAD_FUNCTION_CALL(const char* cause) throw std::bad_function_call{};
 #else
 #define THROW_BAD_FUNCTION_CALL(cause)                                                                                 \
-  fprintf(stderr, "ERROR: exception thrown due to bad function call (cause: %s)\n", cause);                            \
-  std::abort()
+  srsran_assert(false, "ERROR: exception thrown due to bad function call (cause: %s)\n", cause);
 #endif
 
 namespace srsran {
-
-// NOTE: gcc 4.8.5 is missing std::max_align_t. Need to create a struct
-union max_alignment_t {
-  char        c;
-  float       f;
-  uint32_t    i;
-  uint64_t    i2;
-  double      d;
-  long double d2;
-  uint32_t*   ptr;
-};
 
 //! Size of the buffer used by "move_callback<R(Args...)>" to store functors without calling "new"
 constexpr size_t default_buffer_size = 32;
@@ -77,10 +67,13 @@ class empty_table_t : public oper_table_t<R, Args...>
 {
 public:
   constexpr empty_table_t() = default;
-  R         call(void* src, Args&&... args) const final { THROW_BAD_FUNCTION_CALL("function ptr is empty"); }
-  void      move(void* src, void* dest) const final {}
-  void      dtor(void* src) const final {}
-  bool      is_in_small_buffer() const final { return true; }
+  R         call(void* src, Args&&... args) const final
+  {
+    srsran_terminate("ERROR: bad function call (cause: function ptr is empty)");
+  }
+  void move(void* src, void* dest) const final {}
+  void dtor(void* src) const final {}
+  bool is_in_small_buffer() const final { return true; }
 };
 
 //! specialization of move/call/destroy operations for when the functor is stored in "move_callback<R(Args...)>" buffer
@@ -135,7 +128,7 @@ template <class R, class... Args, size_t Capacity>
 class move_callback<R(Args...), Capacity>
 {
   static constexpr size_t capacity = Capacity >= sizeof(void*) ? Capacity : sizeof(void*); ///< size of buffer
-  using storage_t                  = typename std::aligned_storage<capacity, alignof(max_alignment_t)>::type;
+  using storage_t                  = typename std::aligned_storage<capacity, alignof(detail::max_alignment_t)>::type;
   using oper_table_t               = task_details::oper_table_t<R, Args...>;
   static constexpr task_details::empty_table_t<R, Args...> empty_table{};
 

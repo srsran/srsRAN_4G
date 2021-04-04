@@ -22,6 +22,7 @@
 #ifndef SRSENB_DUMMY_CLASSES_H
 #define SRSENB_DUMMY_CLASSES_H
 
+#include "srsran/interfaces/enb_gtpu_interfaces.h"
 #include "srsran/interfaces/enb_interfaces.h"
 #include "srsran/interfaces/enb_mac_interfaces.h"
 #include "srsran/interfaces/enb_pdcp_interfaces.h"
@@ -154,18 +155,52 @@ public:
   void complete_config(uint16_t rnti) override{};
 };
 
-class gtpu_dummy : public gtpu_interface_rrc
+class gtpu_dummy : public srsenb::gtpu_interface_rrc
 {
 public:
-  uint32_t
+  srsran::expected<uint32_t>
   add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out, const bearer_props* props) override
   {
-    return 0;
+    return 1;
   }
   void set_tunnel_status(uint32_t teidin, bool dl_active) override {}
   void rem_bearer(uint16_t rnti, uint32_t lcid) override {}
   void mod_bearer_rnti(uint16_t old_rnti, uint16_t new_rnti) override {}
   void rem_user(uint16_t rnti) override {}
+};
+
+class rrc_dummy : public rrc_interface_s1ap
+{
+public:
+  void write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu) override {}
+  void release_ue(uint16_t rnti) override {}
+  bool setup_ue_ctxt(uint16_t rnti, const asn1::s1ap::init_context_setup_request_s& msg) override { return true; }
+  bool modify_ue_ctxt(uint16_t rnti, const asn1::s1ap::ue_context_mod_request_s& msg) override { return true; }
+  bool setup_ue_erabs(uint16_t rnti, const asn1::s1ap::erab_setup_request_s& msg) override { return true; }
+  void modify_erabs(uint16_t                                 rnti,
+                    const asn1::s1ap::erab_modify_request_s& msg,
+                    std::vector<uint16_t>*                   erabs_modified,
+                    std::vector<uint16_t>*                   erabs_failed_to_modify) override
+  {}
+  bool release_erabs(uint32_t rnti) override { return true; }
+  void release_erabs(uint32_t                              rnti,
+                     const asn1::s1ap::erab_release_cmd_s& msg,
+                     std::vector<uint16_t>*                erabs_released,
+                     std::vector<uint16_t>*                erabs_failed_to_release) override
+  {}
+  void add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& ue_paging_id) override {}
+  void ho_preparation_complete(uint16_t                     rnti,
+                               bool                         is_success,
+                               const asn1::s1ap::ho_cmd_s&  msg,
+                               srsran::unique_byte_buffer_t container) override
+  {}
+  uint16_t
+  start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&                                   msg,
+                             const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container) override
+  {
+    return SRSRAN_INVALID_RNTI;
+  }
+  void set_erab_status(uint16_t rnti, const asn1::s1ap::bearers_subject_to_status_transfer_list_l& erabs) override {}
 };
 
 } // namespace srsenb

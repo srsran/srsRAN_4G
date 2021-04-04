@@ -98,6 +98,8 @@ void mac::stop()
 {
   srsran::rwlock_write_guard lock(rwlock);
   if (started) {
+    started = false;
+
     ue_db.clear();
     for (auto& cc : common_buffers) {
       for (int i = 0; i < NOF_BCCH_DLSCH_MSG; i++) {
@@ -105,8 +107,8 @@ void mac::stop()
       }
       srsran_softbuffer_tx_free(&cc.pcch_softbuffer_tx);
       srsran_softbuffer_tx_free(&cc.rar_softbuffer_tx);
-      started = false;
     }
+    ue_pool.stop();
   }
 }
 
@@ -300,9 +302,11 @@ int mac::ack_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, uint32_t 
 
   if (ack) {
     if (nof_bytes > 64) { // do not count RLC status messages only
-      rrc_h->set_activity_user(rnti);
+      rrc_h->set_activity_user(rnti, true);
       logger.info("DL activity rnti=0x%x, n_bytes=%d", rnti, nof_bytes);
     }
+  } else {
+    rrc_h->set_activity_user(rnti, false);
   }
   return SRSRAN_SUCCESS;
 }
@@ -463,6 +467,10 @@ uint16_t mac::allocate_ue()
     // Add UE to map
     {
       srsran::rwlock_write_guard lock(rwlock);
+      if (not started) {
+        logger.info("RACH ignored as eNB is being shutdown");
+        return SRSRAN_INVALID_RNTI;
+      }
       if (ue_db.size() >= args.max_nof_ues) {
         logger.warning("Maximum number of connected UEs %zd connected to the eNB. Ignoring PRACH", max_ues);
         return SRSRAN_INVALID_RNTI;
@@ -833,9 +841,9 @@ int mac::get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res
       int requested_bytes = (mcs_data.tbs / 8 > (int)mch.mtch_sched[mtch_index].lcid_buffer_size)
                                 ? (mch.mtch_sched[mtch_index].lcid_buffer_size)
                                 : ((mcs_data.tbs / 8) - 2);
-      int bytes_received = ue_db[SRSRAN_MRNTI]->read_pdu(current_lcid, mtch_payload_buffer, requested_bytes);
-      mch.pdu[0].lcid    = current_lcid;
-      mch.pdu[0].nbytes  = bytes_received;
+      int bytes_received  = ue_db[SRSRAN_MRNTI]->read_pdu(current_lcid, mtch_payload_buffer, requested_bytes);
+      mch.pdu[0].lcid     = current_lcid;
+      mch.pdu[0].nbytes   = bytes_received;
       mch.mtch_sched[0].mtch_payload  = mtch_payload_buffer;
       dl_sched_res->pdsch[0].dci.rnti = SRSRAN_MRNTI;
       if (bytes_received) {

@@ -23,6 +23,7 @@
 #define SRSRAN_BUFFER_POOL_H
 
 #include "byte_buffer.h"
+#include "srsran/adt/bounded_vector.h"
 #include <algorithm>
 #include <map>
 #include <pthread.h>
@@ -30,10 +31,7 @@
 #include <string>
 #include <vector>
 
-/*******************************************************************************
-                              INCLUDES
-*******************************************************************************/
-
+#include "srsran/adt/pool/fixed_size_pool.h"
 #include "srsran/common/common.h"
 #include "srsran/srslog/srslog.h"
 
@@ -174,58 +172,7 @@ private:
   uint32_t               capacity;
 };
 
-class byte_buffer_pool
-{
-  using mem_chunk = typename std::aligned_storage<sizeof(byte_buffer_t), alignof(byte_buffer_t)>::type;
-
-public:
-  // Singleton static methods
-  static byte_buffer_pool* get_instance(int capacity = -1)
-  {
-    static std::unique_ptr<byte_buffer_pool> instance(new byte_buffer_pool(capacity));
-    return instance.get();
-  }
-  byte_buffer_pool(int capacity = -1) : pool(capacity) {}
-  byte_buffer_pool(const byte_buffer_pool& other) = delete;
-  byte_buffer_pool(byte_buffer_pool&& other)      = delete;
-  byte_buffer_pool& operator=(const byte_buffer_pool& other) = delete;
-  byte_buffer_pool& operator=(byte_buffer_pool&& other) = delete;
-  void*             allocate(const char* debug_name = nullptr, bool blocking = false)
-  {
-    return pool.allocate(debug_name, blocking);
-  }
-  void enable_logger(bool enabled) { print_to_log = enabled; }
-  void deallocate(void* b)
-  {
-    if (!b) {
-      return;
-    }
-    if (!pool.deallocate(static_cast<mem_chunk*>(b))) {
-#ifdef SRSRAN_BUFFER_POOL_LOG_ENABLED
-      print_error("Error deallocating PDU: Addr=0x%p, name=%s not found in pool", (void*)b, b->debug_name);
-#else
-      print_error("Error deallocating PDU: Addr=0x%p", (void*)b);
-#endif
-    }
-  }
-  void print_all_buffers() { pool.print_all_buffers(); }
-
-private:
-  /// Formats and prints the input string and arguments into the configured output stream.
-  template <typename... Args>
-  void print_error(const char* str, Args&&... args)
-  {
-    if (print_to_log) {
-      srslog::fetch_basic_logger("POOL", false).error(str, std::forward<Args>(args)...);
-    } else {
-      fmt::printf(std::string(str) + "\n", std::forward<Args>(args)...);
-    }
-  }
-
-private:
-  bool                   print_to_log = false;
-  buffer_pool<mem_chunk> pool;
-};
+using byte_buffer_pool = concurrent_fixed_memory_pool<sizeof(byte_buffer_t)>;
 
 inline unique_byte_buffer_t make_byte_buffer() noexcept
 {
@@ -245,6 +192,56 @@ inline unique_byte_buffer_t make_byte_buffer(const char* debug_ctxt) noexcept
   }
   return buffer;
 }
+
+namespace detail {
+
+struct byte_buffer_pool_deleter {
+  void operator()(void* ptr) { byte_buffer_pool::get_instance()->deallocate_node(ptr); }
+};
+
+} // namespace detail
+
+/**
+ * Class to wrap objects of type T which get allocated/deallocated using the byte_buffer_pool
+ * @tparam T type of the object being allocated
+ */
+template <typename T>
+struct byte_buffer_pool_ptr {
+  static_assert(sizeof(T) <= byte_buffer_pool::BLOCK_SIZE, "pool_bounded_vector does not fit buffer pool block size");
+
+public:
+  byte_buffer_pool_ptr() = default;
+  void reset() { ptr.reset(); }
+
+  T*       operator->() { return ptr.get(); }
+  const T* operator->() const { return ptr.get(); }
+  T&       operator*() { return *ptr; }
+  const T& operator*() const { return *ptr; }
+  bool     has_value() const { return ptr.get() != nullptr; }
+
+  template <typename... CtorArgs>
+  void emplace(CtorArgs&&... args)
+  {
+    ptr.reset(make(std::forward<CtorArgs>(args)...).ptr.release());
+  }
+
+  template <typename... CtorArgs>
+  static byte_buffer_pool_ptr<T> make(CtorArgs&&... args)
+  {
+    void* memblock = byte_buffer_pool::get_instance()->allocate_node(sizeof(T));
+    if (memblock == nullptr) {
+      return byte_buffer_pool_ptr<T>();
+    }
+    new (memblock) T(std::forward<CtorArgs>(args)...);
+    byte_buffer_pool_ptr<T> ret;
+    ret.ptr = std::unique_ptr<T, detail::byte_buffer_pool_deleter>(static_cast<T*>(memblock),
+                                                                   detail::byte_buffer_pool_deleter());
+    return ret;
+  };
+
+private:
+  std::unique_ptr<T, detail::byte_buffer_pool_deleter> ptr;
+};
 
 } // namespace srsran
 

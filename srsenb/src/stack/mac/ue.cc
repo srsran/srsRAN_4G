@@ -382,7 +382,7 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srsran::pdu_queue::channe
 
       // Indicate RRC about successful activity if valid RLC message is received
       if (mac_msg_ul.get()->get_payload_size() > 64) { // do not count RLC status messages only
-        rrc->set_activity_user(rnti);
+        rrc->set_activity_user(rnti, true);
         logger.debug("UL activity rnti=0x%x, n_bytes=%d", rnti, nof_bytes);
       }
 
@@ -432,10 +432,8 @@ void ue::deallocate_pdu(uint32_t tti, uint32_t ue_cc_idx)
 {
   std::unique_lock<std::mutex> lock(rx_buffers_mutex);
   if (not cc_buffers[ue_cc_idx].get_rx_used_buffers().try_deallocate_pdu(tti_point(tti))) {
-    logger.warning("UE buffers: Null RX PDU pointer in deallocate_pdu for rnti=0x%x tti=%d cc_idx=%d",
-                   rnti,
-                   tti,
-                   ue_cc_idx);
+    logger.warning(
+        "UE buffers: Null RX PDU pointer in deallocate_pdu for rnti=0x%x tti=%d cc_idx=%d", rnti, tti, ue_cc_idx);
   }
 }
 
@@ -443,8 +441,7 @@ void ue::push_pdu(uint32_t tti, uint32_t ue_cc_idx, uint32_t len)
 {
   std::unique_lock<std::mutex> lock(rx_buffers_mutex);
   if (not cc_buffers[ue_cc_idx].get_rx_used_buffers().push_pdu(tti_point(tti), len)) {
-    logger.warning(
-        "UE buffers: Failed to push RX PDU for rnti=0x%x tti=%d cc_idx=%d", rnti, tti, ue_cc_idx);
+    logger.warning("UE buffers: Failed to push RX PDU for rnti=0x%x tti=%d cc_idx=%d", rnti, tti, ue_cc_idx);
   }
 }
 

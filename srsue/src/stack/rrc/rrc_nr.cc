@@ -566,10 +566,12 @@ bool rrc_nr::apply_mac_cell_group(const mac_cell_group_cfg_s& mac_cell_group_cfg
 
     if (mac_cell_group_cfg.bsr_cfg_present) {
       logger.debug("Handling MAC BSR config");
-      srsran::bsr_cfg_t bsr_cfg;
+      srsran::bsr_cfg_nr_t bsr_cfg = {};
       bsr_cfg.periodic_timer = mac_cell_group_cfg.bsr_cfg.periodic_bsr_timer.to_number();
       bsr_cfg.retx_timer     = mac_cell_group_cfg.bsr_cfg.retx_bsr_timer.to_number();
-      mac->set_config(bsr_cfg);
+      if (mac->set_config(bsr_cfg) != SRSRAN_SUCCESS) {
+        return false;
+      }
     }
 
   if (mac_cell_group_cfg.tag_cfg_present) {
@@ -1243,6 +1245,11 @@ bool rrc_nr::apply_radio_bearer_cfg(const radio_bearer_cfg_s& radio_bearer_cfg)
 }
 // RLC interface
 void rrc_nr::max_retx_attempted() {}
+
+// MAC interface
+void rrc_nr::ra_completed() {}
+void rrc_nr::ra_problem() {}
+void rrc_nr::release_pucch_srs() {}
 
 // STACK interface
 void rrc_nr::cell_search_completed(const rrc_interface_phy_lte::cell_search_ret_t& cs_ret, const phy_cell_t& found_cell)

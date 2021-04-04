@@ -100,13 +100,13 @@ public:
                    const asn1::unbounded_octstring<true>*     nas_pdu);
 
   // Methods to apply bearer updates
-  void     add_gtpu_bearer(uint32_t erab_id);
-  uint32_t add_gtpu_bearer(uint32_t                                erab_id,
-                           uint32_t                                teid_out,
-                           uint32_t                                addr,
-                           const gtpu_interface_rrc::bearer_props* props = nullptr);
-  void     rem_gtpu_bearer(uint32_t erab_id);
-  void     fill_pending_nas_info(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg);
+  void                       add_gtpu_bearer(uint32_t erab_id);
+  srsran::expected<uint32_t> add_gtpu_bearer(uint32_t                                erab_id,
+                                             uint32_t                                teid_out,
+                                             uint32_t                                addr,
+                                             const gtpu_interface_rrc::bearer_props* props = nullptr);
+  void                       rem_gtpu_bearer(uint32_t erab_id);
+  void                       fill_pending_nas_info(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg);
 
   const std::map<uint8_t, erab_t>&        get_erabs() const { return erabs; }
   const asn1::rrc::drb_to_add_mod_list_l& get_established_drbs() const { return current_drbs; }

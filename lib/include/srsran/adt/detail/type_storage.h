@@ -22,12 +22,24 @@
 #ifndef SRSRAN_TYPE_STORAGE_H
 #define SRSRAN_TYPE_STORAGE_H
 
+#include <cstdint>
 #include <type_traits>
 #include <utility>
 
 namespace srsran {
 
 namespace detail {
+
+// NOTE: gcc 4.8.5 is missing std::max_align_t. Need to create a struct
+union max_alignment_t {
+  char        c;
+  float       f;
+  uint32_t    i;
+  uint64_t    i2;
+  double      d;
+  long double d2;
+  uint32_t*   ptr;
+};
 
 template <typename T>
 struct type_storage {

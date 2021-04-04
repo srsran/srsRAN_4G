@@ -22,6 +22,7 @@
 #ifndef SRSRAN_ENB_GTPU_INTERFACES_H
 #define SRSRAN_ENB_GTPU_INTERFACES_H
 
+#include "srsran/adt/expected.h"
 #include "srsran/common/byte_buffer.h"
 
 namespace srsenb {
@@ -44,7 +45,7 @@ public:
     uint32_t flush_before_teidin         = 0;
   };
 
-  virtual uint32_t
+  virtual srsran::expected<uint32_t>
                add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out, const bearer_props* props = nullptr) = 0;
   virtual void set_tunnel_status(uint32_t teidin, bool dl_active)    = 0;
   virtual void rem_bearer(uint16_t rnti, uint32_t lcid)              = 0;

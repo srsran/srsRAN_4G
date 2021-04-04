@@ -37,10 +37,10 @@ namespace srsue {
 class proc_ra_nr
 {
 public:
-  proc_ra_nr(srslog::basic_logger& logger_);
+  proc_ra_nr(mac_interface_proc_ra_nr& mac_, srslog::basic_logger& logger_);
   ~proc_ra_nr(){};
 
-  void init(phy_interface_mac_nr* phy_h_, mac_interface_proc_ra_nr* mac_, srsran::ext_task_sched_handle* task_sched_);
+  void init(phy_interface_mac_nr* phy_h_, srsran::ext_task_sched_handle* task_sched_);
   void set_config(const srsran::rach_nr_cfg_t& rach_cfg);
   bool is_contention_resolution();
 
@@ -60,9 +60,9 @@ public:
   void reset();
 
 private:
+  mac_interface_proc_ra_nr&             mac;
   srslog::basic_logger&                 logger;
   phy_interface_mac_nr*                 phy        = nullptr;
-  mac_interface_proc_ra_nr*             mac        = nullptr;
   srsran::ext_task_sched_handle*        task_sched = nullptr;
   srsran::task_multiqueue::queue_handle task_queue;
 

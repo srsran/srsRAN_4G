@@ -28,6 +28,7 @@
 #include "proc_sr.h"
 #include "srsran/common/task_scheduler.h"
 #include "srsran/srslog/srslog.h"
+#include "srsue/hdr/stack/mac_common/mac_common.h"
 
 /* Buffer status report procedure */
 
@@ -97,11 +98,11 @@ private:
   std::map<uint32_t, lcid_t> lcgs[NOF_LCG]; // groups LCID in LCG
 
   uint32_t find_max_priority_lcg_with_data();
-  typedef enum { NONE, REGULAR, PADDING, PERIODIC } triggered_bsr_type_t;
-  triggered_bsr_type_t triggered_bsr_type = NONE;
+
+  bsr_trigger_type_t triggered_bsr_type = NONE;
 
   void     print_state();
-  void     set_trigger(triggered_bsr_type_t new_trigger);
+  void     set_trigger(bsr_trigger_type_t new_trigger);
   void     update_new_data();
   void     update_old_buffer();
   bool     check_highest_channel();
@@ -109,7 +110,7 @@ private:
   bool     check_any_channel();
   uint32_t get_buffer_state_lcg(uint32_t lcg);
   bool     generate_bsr(bsr_t* bsr, uint32_t nof_padding_bytes);
-  char*    bsr_type_tostring(triggered_bsr_type_t type);
+  char*    bsr_type_tostring(bsr_trigger_type_t type);
   char*    bsr_format_tostring(bsr_format_t format);
 
   srsran::timer_handler::unique_timer timer_periodic;

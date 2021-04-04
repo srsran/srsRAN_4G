@@ -35,6 +35,7 @@ namespace srsenb {
 #define SRSENB_N_SRB 3
 #define SRSENB_N_DRB 8
 #define SRSENB_N_RADIO_BEARERS 11
+#define SRSENB_MAX_UES 64
 
 enum rb_id_t {
   RB_ID_SRB0 = 0,

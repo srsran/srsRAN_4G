@@ -22,7 +22,7 @@
 #ifndef SRSRAN_DYN_BITSET_H
 #define SRSRAN_DYN_BITSET_H
 
-#include "adt_utils.h"
+#include "srsran/common/srsran_assert.h"
 #include "srsran/srslog/bundled/fmt/format.h"
 #include <cstdint>
 #include <inttypes.h>
@@ -52,11 +52,7 @@ public:
 
   void resize(size_t new_size)
   {
-    if (new_size > max_size()) {
-      std::string msg =
-          "ERROR: new size=" + std::to_string(new_size) + " exceeds bitset capacity=" + std::to_string(max_size());
-      THROW_BAD_ACCESS(msg.c_str());
-    }
+    srsran_assert(new_size <= max_size(), "ERROR: new size=%zd exceeds bitset capacity=%zd", new_size, max_size());
     if (new_size == cur_size) {
       return;
     }
@@ -200,11 +196,10 @@ public:
 
   bounded_bitset<N, reversed>& operator|=(const bounded_bitset<N, reversed>& other)
   {
-    if (other.size() != size()) {
-      std::string msg = "operator|= called for bitsets of different sizes (" + std::to_string(size()) +
-                        "!=" + std::to_string(other.size()) + ")";
-      THROW_BAD_ACCESS(msg.c_str());
-    }
+    srsran_assert(other.size() == size(),
+                  "ERROR: operator|= called for bitsets of different sizes (%zd!=%zd)",
+                  size(),
+                  other.size());
     for (size_t i = 0; i < nof_words_(); ++i) {
       buffer[i] |= other.buffer[i];
     }
@@ -213,11 +208,10 @@ public:
 
   bounded_bitset<N, reversed>& operator&=(const bounded_bitset<N, reversed>& other)
   {
-    if (other.size() != size()) {
-      std::string msg = "operator&= called for bitsets of different sizes (" + std::to_string(size()) +
-                        "!=" + std::to_string(other.size()) + ")";
-      THROW_BAD_ACCESS(msg.c_str());
-    }
+    srsran_assert(other.size() == size(),
+                  "ERROR: operator&= called for bitsets of different sizes (%zd!=%zd)",
+                  size(),
+                  other.size());
     for (size_t i = 0; i < nof_words_(); ++i) {
       buffer[i] &= other.buffer[i];
     }
@@ -254,10 +248,7 @@ public:
 
   uint64_t to_uint64() const
   {
-    if (nof_words_() > 1) {
-      std::string msg = "ERROR: cannot convert bitset of size=" + std::to_string(size()) + " to uint64_t";
-      THROW_BAD_ACCESS(msg.c_str());
-    }
+    srsran_assert(nof_words_() == 1, "ERROR: cannot convert bitset of size=%zd to uint64_t", size());
     return get_word_(0);
   }
 
@@ -319,11 +310,10 @@ private:
 
   void assert_within_bounds_(size_t pos, bool strict) const
   {
-    if (pos > size() or (strict and pos == size())) {
-      std::string msg =
-          "ERROR: index=" + std::to_string(pos) + "is out of bounds for bitset of size=" + std::to_string(size());
-      THROW_BAD_ACCESS(msg.c_str());
-    }
+    srsran_assert(pos < size() or (not strict and pos == size()),
+                  "ERROR: index=%zd is out-of-bounds for bitset of size=%zd",
+                  pos,
+                  size());
   }
 
   static word_t maskbit(size_t pos) { return (static_cast<word_t>(1)) << (pos % bits_per_word); }

@@ -38,11 +38,12 @@ class event_logger_interface
 public:
   virtual ~event_logger_interface() = default;
 
-  /// Logs into the underlying log channel the RRC connected event.
-  virtual void log_rrc_connected(uint32_t enb_cc_idx, const std::string& asn1, unsigned error_code, uint16_t rnti) = 0;
-
-  /// Logs into the underlying log channel the RRC disconnected event.
-  virtual void log_rrc_disconnect(uint32_t enb_cc_idx, unsigned reason, uint16_t rnti) = 0;
+  /// Logs into the underlying log channel any RRC event.
+  virtual void log_rrc_event(uint32_t           enb_cc_idx,
+                             const std::string& asn1,
+                             unsigned           type,
+                             unsigned           additional_info,
+                             uint16_t           rnti) = 0;
 
   /// Logs into the underlying log channel the S1 context create event.
   virtual void log_s1_ctx_create(uint32_t enb_cc_idx, uint32_t mme_id, uint32_t enb_id, uint16_t rnti) = 0;

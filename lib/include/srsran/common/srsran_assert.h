@@ -25,9 +25,13 @@
 #include "srsran/srslog/srslog.h"
 #include <cstdio>
 
-#ifdef ASSERTS_ENABLED
-
 #define srsran_unlikely(expr) __builtin_expect(!!(expr), 0)
+
+#define srsran_terminate(fmt, ...)                                                                                     \
+  std::fprintf(stderr, "%s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__);                                         \
+  std::abort()
+
+#ifdef ASSERTS_ENABLED
 
 /**
  * Macro that asserts condition is true. If false, it logs the remaining parameters, prints the backtrace and closes
@@ -36,8 +40,7 @@
 #define srsran_assert(condition, fmt, ...)                                                                             \
   do {                                                                                                                 \
     if (srsran_unlikely(not(condition))) {                                                                             \
-      std::fprintf(stderr, "%s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__);                                     \
-      std::abort();                                                                                                    \
+      srsran_terminate(fmt, ##__VA_ARGS__);                                                                            \
     }                                                                                                                  \
   } while (0)
 

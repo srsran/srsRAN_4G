@@ -27,8 +27,6 @@
 #include "srsran/srslog/srslog.h"
 #include <cstdio>
 #include <deque>
-#include <limits>
-#include <list>
 #include <memory>
 #include <tuple>
 
@@ -45,17 +43,17 @@
 
 namespace srsran {
 
-//! Forward declarations
+/// Forward declarations
 template <typename Derived>
 class base_fsm_t;
 template <typename Derived, typename ParentFSM>
 class composite_fsm_t;
 
-//! Check if type T is an FSM
+/// Check if type T is an FSM
 template <typename T>
 using is_fsm = std::is_base_of<base_fsm_t<T>, T>;
 
-//! Check if type T is a composite FSM
+/// Check if type T is a composite FSM
 template <typename T, typename TCheck = void>
 struct is_composite_fsm : public std::false_type {};
 template <typename T>
@@ -268,7 +266,7 @@ struct apply_first_guard_pass<FSM, type_list<> > {
   }
 };
 
-//! Trigger Event, that will result in a state transition
+/// Trigger Event that may result in a state transition
 template <typename FSM, typename Event>
 struct trigger_visitor {
   using event_t = typename std::decay<Event>::type;
@@ -688,10 +686,8 @@ public:
 
   const Result& get_result() const
   {
-    if (launch_counter > 0 and base_t::template is_in_state<idle_st>()) {
-      return last_result;
-    }
-    THROW_BAD_ACCESS("in proc_fsm_t::get_result");
+    srsran_assert(launch_counter > 0 and base_t::template is_in_state<idle_st>(), "in proc_fsm_t::get_result");
+    return last_result;
   }
 
   template <typename OtherFSM>

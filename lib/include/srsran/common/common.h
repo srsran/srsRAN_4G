@@ -26,11 +26,11 @@
                               INCLUDES
 *******************************************************************************/
 
-#include "srsran/adt/span.h"
 #include <chrono>
+#include <cstring>
 #include <memory>
 #include <stdint.h>
-#include <string.h>
+#include <string>
 #include <sys/time.h>
 
 /*******************************************************************************

@@ -37,7 +37,7 @@ static const size_t PDU_HEADER_SIZE = 20;
 class stack_tester : public stack_interface_gtpu_lte
 {
 public:
-  int  s1u_fd;
+  int  s1u_fd = -1;
   void add_gtpu_s1u_socket_handler(int fd) { s1u_fd = fd; }
   void add_gtpu_m1u_socket_handler(int fd) {}
 };
@@ -136,8 +136,68 @@ srsran::unique_byte_buffer_t read_socket(int fd)
   return pdu;
 }
 
-int test_gtpu_direct_tunneling()
+void test_gtpu_tunnel_manager()
 {
+  const char*        sgw_addr_str = "127.0.0.1";
+  struct sockaddr_in sgw_sockaddr = {};
+  srsran::net_utils::set_sockaddr(&sgw_sockaddr, sgw_addr_str, GTPU_PORT);
+  uint32_t               sgw_addr  = ntohl(sgw_sockaddr.sin_addr.s_addr);
+  const uint32_t         drb1_lcid = 3;
+  srsran::task_scheduler task_sched;
+
+  gtpu_tunnel_manager tunnels(&task_sched, srslog::fetch_basic_logger("GTPU"));
+  TESTASSERT(tunnels.find_tunnel(0) == nullptr);
+  TESTASSERT(tunnels.find_rnti_lcid_tunnels(0x46, drb1_lcid).empty());
+  TESTASSERT(tunnels.find_rnti_tunnels(0x46) == nullptr);
+
+  // Creation of tunnels for different users and lcids
+  const gtpu_tunnel* tun = tunnels.add_tunnel(0x46, drb1_lcid, 5, sgw_addr);
+  TESTASSERT(tun != nullptr);
+  TESTASSERT(tunnels.find_tunnel(tun->teid_in) == tun);
+  const gtpu_tunnel* tun2 = tunnels.add_tunnel(0x47, drb1_lcid, 6, sgw_addr);
+  TESTASSERT(tun2 != nullptr);
+  TESTASSERT(tunnels.find_tunnel(tun2->teid_in) == tun2);
+  tun2 = tunnels.add_tunnel(0x47, drb1_lcid + 1, 7, sgw_addr);
+  TESTASSERT(tun2 != nullptr);
+  TESTASSERT(tunnels.find_tunnel(tun2->teid_in) == tun2);
+  TESTASSERT(tunnels.find_rnti_lcid_tunnels(0x46, drb1_lcid).size() == 1);
+  TESTASSERT(tunnels.find_rnti_lcid_tunnels(0x47, drb1_lcid).size() == 1);
+  TESTASSERT(tunnels.find_rnti_lcid_tunnels(0x47, drb1_lcid + 1).size() == 1);
+
+  // TEST: Creation/Removal of indirect tunnel
+  const gtpu_tunnel* fwd_tun = tunnels.add_tunnel(0x46, drb1_lcid, 8, sgw_addr);
+  TESTASSERT(fwd_tun != nullptr);
+  TESTASSERT(tunnels.find_tunnel(fwd_tun->teid_in) == fwd_tun);
+  tunnels.setup_forwarding(tun->teid_in, fwd_tun->teid_in);
+  TESTASSERT(tunnels.find_rnti_lcid_tunnels(0x46, drb1_lcid).size() == 2);
+  // Removing a tunnel also clears any associated forwarding tunnel
+  TESTASSERT(tunnels.remove_tunnel(tun->teid_in));
+  TESTASSERT(tunnels.find_rnti_lcid_tunnels(0x46, drb1_lcid).empty());
+
+  // TEST: Prioritization of one TEID over another
+  const gtpu_tunnel* before_tun = tunnels.add_tunnel(0x46, drb1_lcid, 7, sgw_addr);
+  const gtpu_tunnel* after_tun  = tunnels.add_tunnel(0x46, drb1_lcid, 8, sgw_addr);
+  TESTASSERT(before_tun != nullptr and after_tun != nullptr);
+  tunnels.set_tunnel_priority(before_tun->teid_in, after_tun->teid_in);
+  for (uint32_t i = 0; i < 1000; ++i) {
+    TESTASSERT(before_tun->state == gtpu_tunnel_manager::tunnel_state::pdcp_active);
+    TESTASSERT(after_tun->state == gtpu_tunnel_manager::tunnel_state::buffering);
+    // while Rx packets are received, active forwarding TEID should not be removed
+    tunnels.handle_rx_pdcp_sdu(before_tun->teid_in);
+  }
+  // Removing active TEID, will automatically switch TEID paths
+  TESTASSERT(tunnels.find_rnti_lcid_tunnels(0x46, drb1_lcid).size() == 2);
+  tunnels.remove_tunnel(before_tun->teid_in);
+  TESTASSERT(tunnels.find_rnti_lcid_tunnels(0x46, drb1_lcid).size() == 1);
+  TESTASSERT(after_tun->state == gtpu_tunnel_manager::tunnel_state::pdcp_active);
+}
+
+enum class tunnel_test_event { success, wait_end_marker_timeout };
+
+int test_gtpu_direct_tunneling(tunnel_test_event event)
+{
+  srslog::basic_logger& logger = srslog::fetch_basic_logger("TEST");
+  logger.info("\n\n**** Test GTPU Direct Tunneling ****\n");
   uint16_t           rnti = 0x46, rnti2 = 0x50;
   uint32_t           drb1         = 3;
   uint32_t           sgw_teidout1 = 1, sgw_teidout2 = 2;
@@ -165,8 +225,8 @@ int test_gtpu_direct_tunneling()
   tenb_gtpu.init(tenb_addr_str, sgw_addr_str, "", "", &tenb_pdcp, &tenb_stack, false);
 
   // create tunnels MME-SeNB and MME-TeNB
-  uint32_t senb_teid_in = senb_gtpu.add_bearer(rnti, drb1, sgw_addr, sgw_teidout1);
-  uint32_t tenb_teid_in = tenb_gtpu.add_bearer(rnti2, drb1, sgw_addr, sgw_teidout2);
+  uint32_t senb_teid_in = senb_gtpu.add_bearer(rnti, drb1, sgw_addr, sgw_teidout1).value();
+  uint32_t tenb_teid_in = tenb_gtpu.add_bearer(rnti2, drb1, sgw_addr, sgw_teidout2).value();
 
   // Buffer PDUs in SeNB PDCP
   for (size_t sn = 6; sn < 10; ++sn) {
@@ -179,7 +239,7 @@ int test_gtpu_direct_tunneling()
   gtpu::bearer_props props;
   props.flush_before_teidin_present = true;
   props.flush_before_teidin         = tenb_teid_in;
-  uint32_t dl_tenb_teid_in          = tenb_gtpu.add_bearer(rnti2, drb1, senb_addr, 0, &props);
+  uint32_t dl_tenb_teid_in          = tenb_gtpu.add_bearer(rnti2, drb1, senb_addr, 0, &props).value();
   props                             = {};
   props.forward_from_teidin_present = true;
   props.forward_from_teidin         = senb_teid_in;
@@ -245,10 +305,19 @@ int test_gtpu_direct_tunneling()
   TESTASSERT(tenb_pdcp.last_sdu->N_bytes == encoded_data.size() and
              memcmp(tenb_pdcp.last_sdu->msg, encoded_data.data(), encoded_data.size()) == 0);
   tenb_pdcp.clear();
-  // EndMarker is forwarded via MME->SeNB->TeNB, and TeNB buffered PDUs are flushed
-  pdu = encode_end_marker(senb_teid_in);
-  senb_gtpu.handle_gtpu_s1u_rx_packet(std::move(pdu), sgw_sockaddr);
-  tenb_gtpu.handle_gtpu_s1u_rx_packet(read_socket(tenb_stack.s1u_fd), senb_sockaddr);
+
+  TESTASSERT(tenb_pdcp.last_sdu == nullptr);
+  if (event == tunnel_test_event::wait_end_marker_timeout) {
+    // TEST: EndMarker does not reach TeNB, but there is a timeout that will resume the new GTPU tunnel
+    for (size_t i = 0; i < 1000; ++i) {
+      task_sched.tic();
+    }
+  } else {
+    // TEST: EndMarker is forwarded via MME->SeNB->TeNB, and TeNB buffered PDUs are flushed
+    pdu = encode_end_marker(senb_teid_in);
+    senb_gtpu.handle_gtpu_s1u_rx_packet(std::move(pdu), sgw_sockaddr);
+    tenb_gtpu.handle_gtpu_s1u_rx_packet(read_socket(tenb_stack.s1u_fd), senb_sockaddr);
+  }
   srsran::span<uint8_t> encoded_data2{tenb_pdcp.last_sdu->msg + 20u, tenb_pdcp.last_sdu->msg + 30u};
   TESTASSERT(std::all_of(encoded_data2.begin(), encoded_data2.end(), [N_pdus](uint8_t b) { return b == N_pdus - 1; }));
 
@@ -257,7 +326,7 @@ int test_gtpu_direct_tunneling()
 
 } // namespace srsenb
 
-int main()
+int main(int argc, char** argv)
 {
   // Setup logging.
   auto& logger = srslog::fetch_basic_logger("GTPU", false);
@@ -265,9 +334,11 @@ int main()
   logger.set_hex_dump_max_size(-1);
 
   // Start the log backend.
-  srslog::init();
+  srsran::test_init(argc, argv);
 
-  TESTASSERT(srsenb::test_gtpu_direct_tunneling() == SRSRAN_SUCCESS);
+  srsenb::test_gtpu_tunnel_manager();
+  TESTASSERT(srsenb::test_gtpu_direct_tunneling(srsenb::tunnel_test_event::success) == SRSRAN_SUCCESS);
+  TESTASSERT(srsenb::test_gtpu_direct_tunneling(srsenb::tunnel_test_event::wait_end_marker_timeout) == SRSRAN_SUCCESS);
 
   srslog::flush();
 

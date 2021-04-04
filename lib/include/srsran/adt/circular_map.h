@@ -88,7 +88,7 @@ public:
   {
   public:
     const_iterator() = default;
-    const_iterator(static_circular_map<K, T, N>* map, size_t idx_) : ptr(map), idx(idx_) {}
+    const_iterator(const static_circular_map<K, T, N>* map, size_t idx_) : ptr(map), idx(idx_) {}
 
     const_iterator& operator++()
     {
@@ -150,7 +150,7 @@ public:
     return *this;
   }
 
-  bool contains(K id)
+  bool contains(K id) const
   {
     size_t idx = id % N;
     return present[idx] and get_obj_(idx).first == id;
@@ -223,12 +223,13 @@ public:
   size_t size() const { return count; }
   bool   empty() const { return count == 0; }
   bool   full() const { return count == N; }
+  bool   has_space(K id) { return not present[id % N]; }
   size_t capacity() const { return N; }
 
   iterator       begin() { return iterator(this, 0); }
   iterator       end() { return iterator(this, N); }
   const_iterator begin() const { return iterator(this, 0); }
-  const_iterator end() const { return iterator(this, N); }
+  const_iterator end() const { return const_iterator(this, N); }
 
   iterator find(K id)
   {
@@ -240,7 +241,7 @@ public:
   const_iterator find(K id) const
   {
     if (contains(id)) {
-      return iterator(this, id % N);
+      return const_iterator(this, id % N);
     }
     return end();
   }
@@ -252,6 +253,52 @@ private:
   std::array<detail::type_storage<obj_t>, N> buffer;
   std::array<bool, N>                        present;
   size_t                                     count = 0;
+};
+
+/**
+ * Operates like a circular map, but automatically assigns the ID/key to inserted objects in a monotonically
+ * increasing way. The assigned IDs are not necessarily contiguous, as they are selected based on the available slots
+ * in the circular map
+ * @tparam K type of ID/key
+ * @tparam T object being inserted
+ * @tparam MAX_N maximum size of pool
+ */
+template <typename K, typename T, size_t MAX_N>
+class static_id_obj_pool : private static_circular_map<K, T, MAX_N>
+{
+  using base_t = static_circular_map<K, T, MAX_N>;
+
+public:
+  using iterator       = typename base_t::iterator;
+  using const_iterator = typename base_t::const_iterator;
+
+  using base_t::operator[];
+  using base_t::begin;
+  using base_t::contains;
+  using base_t::empty;
+  using base_t::end;
+  using base_t::erase;
+  using base_t::find;
+  using base_t::full;
+  using base_t::size;
+
+  explicit static_id_obj_pool(K first_id = 0) : next_id(first_id) {}
+
+  template <typename U>
+  srsran::expected<K> insert(U&& t)
+  {
+    if (full()) {
+      return srsran::default_error_t{};
+    }
+    while (not base_t::has_space(next_id)) {
+      ++next_id;
+    }
+    base_t::insert(next_id, std::forward<U>(t));
+    return next_id++;
+  }
+
+private:
+  K next_id = 0;
 };
 
 } // namespace srsran

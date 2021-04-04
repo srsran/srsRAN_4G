@@ -23,14 +23,13 @@
 #define SRSUE_MAC_NR_H
 
 #include "mac_nr_interfaces.h"
+#include "proc_bsr_nr.h"
 #include "proc_ra_nr.h"
 #include "proc_sr_nr.h"
 #include "srsran/common/block_queue.h"
 #include "srsran/common/mac_pcap.h"
 #include "srsran/interfaces/mac_interface_types.h"
 #include "srsran/interfaces/ue_nr_interfaces.h"
-#include "srsran/interfaces/ue_rlc_interfaces.h"
-#include "srsran/mac/mac_sch_pdu_nr.h"
 #include "srsran/srslog/srslog.h"
 #include "srsue/hdr/stack/mac_nr/mux_nr.h"
 #include "srsue/hdr/stack/ue_stack_base.h"
@@ -42,13 +41,16 @@ class rlc_interface_mac;
 struct mac_nr_args_t {
 };
 
-class mac_nr final : public mac_interface_phy_nr, public mac_interface_rrc_nr, public mac_interface_proc_ra_nr
+class mac_nr final : public mac_interface_phy_nr,
+                     public mac_interface_rrc_nr,
+                     public mac_interface_proc_ra_nr,
+                     public mac_interface_mux_nr
 {
 public:
   mac_nr(srsran::ext_task_sched_handle task_sched_);
   ~mac_nr();
 
-  int  init(const mac_nr_args_t& args_, phy_interface_mac_nr* phy, rlc_interface_mac* rlc);
+  int  init(const mac_nr_args_t& args_, phy_interface_mac_nr* phy, rlc_interface_mac* rlc, rrc_interface_mac* rrc_);
   void stop();
 
   void reset();
@@ -76,18 +78,17 @@ public:
   void get_metrics(mac_metrics_t* metrics);
 
   /// Interface for RRC (RRC -> MAC)
-  void    setup_lcid(const srsran::logical_channel_config_t& config);
-  void    set_config(const srsran::bsr_cfg_t& bsr_cfg);
-  int32_t set_config(const srsran::sr_cfg_nr_t& sr_cfg);
-  void    set_config(const srsran::rach_nr_cfg_t& rach_cfg);
-  void    set_contention_id(const uint64_t ue_identity);
-  bool    set_crnti(const uint16_t crnti);
-  void    start_ra_procedure();
+  int  setup_lcid(const srsran::logical_channel_config_t& config);
+  int  set_config(const srsran::bsr_cfg_nr_t& bsr_cfg);
+  int  set_config(const srsran::sr_cfg_nr_t& sr_cfg);
+  void set_config(const srsran::rach_nr_cfg_t& rach_cfg);
+  void set_contention_id(const uint64_t ue_identity);
+  bool set_crnti(const uint16_t crnti);
+  void start_ra_procedure();
 
-  /// procedure ra nr interface
+  /// procedure ra nr interface + mux
   uint64_t get_contention_id();
-  uint16_t get_c_rnti();
-  void     set_c_rnti(uint64_t c_rnti_);
+  uint16_t get_crnti();
 
   void msg3_flush() { mux.msg3_flush(); }
   bool msg3_is_transmitted() { return mux.msg3_is_transmitted(); }
@@ -116,12 +117,12 @@ private:
   bool is_paging_opportunity();
 
   bool     has_crnti();
-  uint16_t get_crnti();
   bool     is_valid_crnti(const uint16_t crnti);
 
   /// Interaction with rest of the stack
   phy_interface_mac_nr*         phy = nullptr;
   rlc_interface_mac*            rlc = nullptr;
+  rrc_interface_mac*            rrc = nullptr;
   srsran::ext_task_sched_handle task_sched;
 
   srsran::mac_pcap*     pcap = nullptr;
@@ -133,9 +134,6 @@ private:
   uint16_t c_rnti        = SRSRAN_INVALID_RNTI;
   uint64_t contention_id = 0;
 
-  static constexpr uint32_t MIN_RLC_PDU_LEN =
-      5; ///< minimum bytes that need to be available in a MAC PDU for attempting to add another RLC SDU
-
   srsran::block_queue<srsran::unique_byte_buffer_t>
       pdu_queue; ///< currently only DCH PDUs supported (add BCH, PCH, etc)
 
@@ -145,17 +143,17 @@ private:
   srsran::mac_sch_pdu_nr rx_pdu;
 
   /// Tx buffer
-  srsran::mac_sch_pdu_nr       tx_pdu;
-  srsran::unique_byte_buffer_t tx_buffer     = nullptr;
+  srsran::unique_byte_buffer_t ul_harq_buffer = nullptr; // store PDU generated from MUX
   srsran::unique_byte_buffer_t rlc_buffer    = nullptr;
   srsran_softbuffer_tx_t       softbuffer_tx = {}; /// UL HARQ (temporal)
 
   srsran::task_multiqueue::queue_handle stack_task_dispatch_queue;
 
   // MAC Uplink-related procedures
-  proc_ra_nr proc_ra;
-  proc_sr_nr proc_sr;
-  mux_nr     mux;
+  proc_ra_nr  proc_ra;
+  proc_sr_nr  proc_sr;
+  proc_bsr_nr proc_bsr;
+  mux_nr      mux;
 };
 
 } // namespace srsue
