@@ -207,6 +207,7 @@ private:
   bool apply_csi_meas_cfg(const asn1::rrc_nr::csi_meas_cfg_s& csi_meas_cfg);
   bool apply_res_csi_report_cfg(const asn1::rrc_nr::csi_report_cfg_s& csi_report_cfg);
   bool apply_drb_add_mod(const asn1::rrc_nr::drb_to_add_mod_s& drb_cfg);
+  bool apply_drb_release(const uint8_t drb);
   bool apply_security_cfg(const asn1::rrc_nr::security_cfg_s& security_cfg);
 
   srsran::as_security_config_t sec_cfg;

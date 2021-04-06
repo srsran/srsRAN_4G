@@ -330,7 +330,7 @@ bool rrc_nr::rrc_reconfiguration(bool                endc_release_and_add_r15,
                                  bool                sk_counter_r15_present,
                                  uint32_t            sk_counter_r15,
                                  bool                nr_radio_bearer_cfg1_r15_present,
-                                 asn1::dyn_octstring nr_radio_bearer_cfg1_r15)                            
+                                 asn1::dyn_octstring nr_radio_bearer_cfg1_r15)
 {
   if (not conn_recfg_proc.launch(reconf_initiator_t::mcg_srb1,
                                  endc_release_and_add_r15,
@@ -1068,6 +1068,22 @@ bool rrc_nr::apply_cell_group_cfg(const cell_group_cfg_s& cell_group_cfg)
   return true;
 }
 
+bool rrc_nr::apply_drb_release(const uint8_t drb)
+{
+  uint32_t lcid = get_lcid_for_rbid(drb);
+  if(lcid == 0){
+    logger.warning("Can not release bearer with lcid %d and drb %d", lcid, drb);
+    return false;
+  }
+  logger.info("Releasing bearer DRB: %d LCID: %d", drb, lcid);
+  pdcp->del_bearer(lcid);
+  // TODO
+  //  2>  if the UE is operating in EN-DC
+  // 3>  if a new bearer is not added either with NR or E-UTRA with same eps-BearerIdentity:
+  // 4>  indicate the release of the DRB and the eps-BearerIdentity of the released DRB to upper layers.
+  return true;
+}
+
 bool rrc_nr::apply_drb_add_mod(const drb_to_add_mod_s& drb_cfg)
 {
   if (!drb_cfg.pdcp_cfg_present) {
@@ -1178,6 +1194,13 @@ bool rrc_nr::apply_radio_bearer_cfg(const radio_bearer_cfg_s& radio_bearer_cfg)
       }
     }
   }
+  if (radio_bearer_cfg.drb_to_release_list_present) {
+    for (uint32_t i = 0; i < radio_bearer_cfg.drb_to_release_list.size(); i++) {
+      if (apply_drb_release(radio_bearer_cfg.drb_to_release_list[i]) == false) {
+        return false;
+      }
+    }
+  }
   if (radio_bearer_cfg.security_cfg_present) {
     if (apply_security_cfg(radio_bearer_cfg.security_cfg) == false) {
       return false;
@@ -1221,45 +1244,56 @@ proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const reconf_initiator
   radio_bearer_cfg_s radio_bearer_cfg;
   asn1::SRSASN_CODE  err;
 
-  if (nr_secondary_cell_group_cfg_r15_present == false || sk_counter_r15_present == false ||
-      nr_radio_bearer_cfg1_r15_present == false) {
-    Error("RRC NR Reconfiguration failed sanity check failed");
-    return proc_outcome_t::error;
-  }
+  if (nr_secondary_cell_group_cfg_r15_present) {
+    cbit_ref bref(nr_secondary_cell_group_cfg_r15.data(), nr_secondary_cell_group_cfg_r15.size());
+    err = rrc_recfg.unpack(bref);
+    if (err != asn1::SRSASN_SUCCESS) {
+      Error("Could not unpack NR reconfiguration message.");
+      return proc_outcome_t::error;
+    }
 
-  cbit_ref bref(nr_secondary_cell_group_cfg_r15.data(), nr_secondary_cell_group_cfg_r15.size());
+    rrc_ptr->log_rrc_message(
+        "RRC NR Reconfiguration", Rx, nr_secondary_cell_group_cfg_r15, rrc_recfg, "NR Secondary Cell Group Cfg R15");
 
-  err = rrc_recfg.unpack(bref);
-  if (err != asn1::SRSASN_SUCCESS) {
-    Error("Could not unpack NR reconfiguration message.");
-    return proc_outcome_t::error;
-  }
-
-  rrc_ptr->log_rrc_message(
-      "RRC NR Reconfiguration", Rx, nr_secondary_cell_group_cfg_r15, rrc_recfg, "NR Secondary Cell Group Cfg R15");
-
-  if (rrc_recfg.crit_exts.type() == asn1::rrc_nr::rrc_recfg_s::crit_exts_c_::types::rrc_recfg) {
-    if (rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group_present == true) {
-      cbit_ref bref0(rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group.data(),
-                     rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group.size());
-
-      err = cell_group_cfg.unpack(bref0);
-      if (err != asn1::SRSASN_SUCCESS) {
-        Error("Could not unpack cell group message message.");
-        return proc_outcome_t::error;
-      }
-
-      rrc_ptr->log_rrc_message("RRC NRf Reconfiguration",
-                               Rx,
-                               rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group,
-                               cell_group_cfg,
-                               "Secondary Cell Group Config");
-    } else {
+    if (rrc_recfg.crit_exts.type() != asn1::rrc_nr::rrc_recfg_s::crit_exts_c_::types::rrc_recfg) {
       Error("Reconfiguration does not contain Secondary Cell Group Config");
+      return proc_outcome_t::error;
+    }
+    
+    if (not rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group_present) {
+      Error("Reconfiguration does not contain Secondary Cell Group Config");
+      return proc_outcome_t::error;
+    }
+
+    cbit_ref bref0(rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group.data(),
+                   rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group.size());
+
+    err = cell_group_cfg.unpack(bref0);
+    if (err != asn1::SRSASN_SUCCESS) {
+      Error("Could not unpack cell group message message.");
+      return proc_outcome_t::error;
+    }
+
+    rrc_ptr->log_rrc_message("RRC NR Reconfiguration",
+                             Rx,
+                             rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group,
+                             cell_group_cfg,
+                             "Secondary Cell Group Config");
+
+    Info("Applying Cell Group Cfg");
+    if (!rrc_ptr->apply_cell_group_cfg(cell_group_cfg)) {
       return proc_outcome_t::error;
     }
   }
 
+  if (sk_counter_r15_present) {
+    Info("Applying Cell Group Cfg");
+    if (!rrc_ptr->configure_sk_counter((uint16_t)sk_counter_r15)) {
+      return proc_outcome_t::error;
+    }
+  }
+
+  if(nr_radio_bearer_cfg1_r15_present){
   cbit_ref bref1(nr_radio_bearer_cfg1_r15.data(), nr_radio_bearer_cfg1_r15.size());
 
   err = radio_bearer_cfg.unpack(bref1);
@@ -1271,22 +1305,12 @@ proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const reconf_initiator
   rrc_ptr->log_rrc_message(
       "RRC NR Reconfiguration", Rx, nr_radio_bearer_cfg1_r15, radio_bearer_cfg, "Radio Bearer Config R15");
 
-  Info("Applying Cell Group Cfg");
-  if (!rrc_ptr->apply_cell_group_cfg(cell_group_cfg)) {
-    return proc_outcome_t::error;
-  }
-
-  if (sk_counter_r15_present) {
-    Info("Applying Cell Group Cfg");
-    if (!rrc_ptr->configure_sk_counter((uint16_t)sk_counter_r15)) {
-      return proc_outcome_t::error;
-    }
-  }
-
   Info("Applying Radio Bearer Cfg");
   if (!rrc_ptr->apply_radio_bearer_cfg(radio_bearer_cfg)) {
     return proc_outcome_t::error;
   }
+ }
+
   return proc_outcome_t::success;
 }
 
@@ -1302,7 +1326,7 @@ proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::react(const bool& config_co
   // if (not rrc_ptr->phy_ctrl->is_config_pending()) {
   //   return proc_outcome_t::yield;
   // }
-  
+
   Info("Reconfig NR return successful");
   return proc_outcome_t::success;
 }

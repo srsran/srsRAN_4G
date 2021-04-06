@@ -777,13 +777,21 @@ bool rrc::nr_reconfiguration_proc(const rrc_conn_recfg_r8_ies_s& rx_recfg, bool 
   bool                nr_radio_bearer_cfg1_r15_present = false;
   asn1::dyn_octstring nr_radio_bearer_cfg1_r15;
 
-  endc_release_and_add_r15 = rrc_conn_recfg_v1510_ies->nr_cfg_r15.setup().endc_release_and_add_r15;
-
-  if (rrc_conn_recfg_v1510_ies->nr_cfg_r15.setup().nr_secondary_cell_group_cfg_r15_present == true) {
-    nr_secondary_cell_group_cfg_r15_present = true;
-    nr_secondary_cell_group_cfg_r15 = rrc_conn_recfg_v1510_ies->nr_cfg_r15.setup().nr_secondary_cell_group_cfg_r15;
+  switch (rrc_conn_recfg_v1510_ies->nr_cfg_r15.type()) {
+    case setup_opts::options::release:
+      logger.info("NR config R15 of type release"); 
+      break;
+    case setup_opts::options::setup:
+      endc_release_and_add_r15 = rrc_conn_recfg_v1510_ies->nr_cfg_r15.setup().endc_release_and_add_r15;
+      if (rrc_conn_recfg_v1510_ies->nr_cfg_r15.setup().nr_secondary_cell_group_cfg_r15_present) {
+        nr_secondary_cell_group_cfg_r15_present = true;
+        nr_secondary_cell_group_cfg_r15 = rrc_conn_recfg_v1510_ies->nr_cfg_r15.setup().nr_secondary_cell_group_cfg_r15;
+      }
+      break;
+    default:
+      logger.error("NR config R15 type not defined");
+      break;
   }
-
   if (rrc_conn_recfg_v1510_ies->sk_counter_r15_present) {
     sk_counter_r15_present = true;
     sk_counter_r15         = rrc_conn_recfg_v1510_ies->sk_counter_r15;
@@ -793,14 +801,14 @@ bool rrc::nr_reconfiguration_proc(const rrc_conn_recfg_r8_ies_s& rx_recfg, bool 
     nr_radio_bearer_cfg1_r15_present = true;
     nr_radio_bearer_cfg1_r15         = rrc_conn_recfg_v1510_ies->nr_radio_bearer_cfg1_r15;
   }
-  *has_5g_nr_reconfig = true;
-  return rrc_nr->rrc_reconfiguration(endc_release_and_add_r15,
-                                     nr_secondary_cell_group_cfg_r15_present,
-                                     nr_secondary_cell_group_cfg_r15,
-                                     sk_counter_r15_present,
-                                     sk_counter_r15,
-                                     nr_radio_bearer_cfg1_r15_present,
-                                     nr_radio_bearer_cfg1_r15);
+    *has_5g_nr_reconfig = true;
+    return rrc_nr->rrc_reconfiguration(endc_release_and_add_r15,
+                                       nr_secondary_cell_group_cfg_r15_present,
+                                       nr_secondary_cell_group_cfg_r15,
+                                       sk_counter_r15_present,
+                                       sk_counter_r15,
+                                       nr_radio_bearer_cfg1_r15_present,
+                                       nr_radio_bearer_cfg1_r15);
 }
 /*******************************************************************************
  *
@@ -2641,6 +2649,10 @@ void rrc::add_drb(const drb_to_add_mod_s& drb_cnfg)
   drbs[drb_cnfg.drb_id] = drb_cnfg;
   drb_up                = true;
   logger.info("Added DRB Id %d (LCID=%d)", drb_cnfg.drb_id, lcid);
+  // Update LCID if gw is running
+  if(gw->is_running()){
+    gw->update_lcid(drb_cnfg.eps_bearer_id, lcid);
+  }
 }
 
 void rrc::release_drb(uint32_t drb_id)
