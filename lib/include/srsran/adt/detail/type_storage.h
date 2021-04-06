@@ -32,6 +32,7 @@ union max_alignment_t {
   long double d2;
   uint32_t*   ptr;
 };
+const static size_t max_alignment = alignof(max_alignment_t);
 
 template <typename T, size_t MinSize = 0, size_t AlignSize = 0>
 struct type_storage {

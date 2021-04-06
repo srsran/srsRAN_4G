@@ -16,7 +16,7 @@
 #include "mac_metrics.h"
 #include "srsran/adt/circular_array.h"
 #include "srsran/adt/circular_map.h"
-#include "srsran/adt/pool/common_pool.h"
+#include "srsran/adt/pool/pool_interface.h"
 #include "srsran/common/block_queue.h"
 #include "srsran/common/mac_pcap.h"
 #include "srsran/common/mac_pcap_net.h"
@@ -48,6 +48,7 @@ struct ue_cc_softbuffers {
   cc_softbuffer_rx_list_t softbuffer_rx_list;
 
   ue_cc_softbuffers(uint32_t nof_prb, uint32_t nof_tx_harq_proc_, uint32_t nof_rx_harq_proc_);
+  ue_cc_softbuffers(ue_cc_softbuffers&&) noexcept = default;
   ~ue_cc_softbuffers();
   void clear();
 

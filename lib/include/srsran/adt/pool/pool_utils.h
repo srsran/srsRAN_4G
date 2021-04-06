@@ -27,13 +27,33 @@ struct inplace_default_ctor_operator {
 
 struct noop_operator {
   template <typename T>
-  void operator()(const T& ptr)
+  void operator()(T&& t) const
   {
     // do nothing
   }
 };
 
 } // namespace detail
+
+/// check if alignment is power of 2
+constexpr bool is_valid_alignment(std::size_t alignment)
+{
+  return alignment && (alignment & (alignment - 1)) == 0u;
+}
+
+inline bool is_aligned(void* ptr, std::size_t alignment)
+{
+  return (reinterpret_cast<std::uintptr_t>(ptr) & (alignment - 1)) == 0;
+}
+
+constexpr std::uintptr_t align_next(std::uintptr_t pos, size_t alignment)
+{
+  return (pos + (alignment - 1)) & ~(alignment - 1);
+}
+inline void* align_to(void* pos, size_t alignment)
+{
+  return reinterpret_cast<void*>(align_next(reinterpret_cast<std::uintptr_t>(pos), alignment));
+}
 
 } // namespace srsran
 

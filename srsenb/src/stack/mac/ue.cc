@@ -219,7 +219,7 @@ ue::ue(uint16_t                                 rnti_,
   pdus.init(this);
 
   // Allocate buffer for PCell
-  cc_buffers[0].allocate_cc(softbuffer_pool->allocate_object());
+  cc_buffers[0].allocate_cc(softbuffer_pool->make());
 }
 
 ue::~ue()
@@ -549,7 +549,7 @@ void ue::allocate_ce(srsran::sch_pdu* pdu, uint32_t lcid)
           // Allocate and initialize Rx/Tx softbuffers for new carriers (exclude PCell)
           for (size_t i = 0; i < std::min(active_scell_list.size(), cc_buffers.size()); ++i) {
             if (active_scell_list[i] and cc_buffers[i].empty()) {
-              cc_buffers[i].allocate_cc(softbuffer_pool->allocate_object());
+              cc_buffers[i].allocate_cc(softbuffer_pool->make());
             }
           }
         } else {

@@ -35,7 +35,7 @@ template <typename T, bool ThreadSafe = false>
 class big_obj_pool
 {
   // memory stack type derivation (thread safe or not)
-  using stack_type = typename std::conditional<ThreadSafe, mutexed_memblock_cache, memblock_cache>::type;
+  using stack_type = typename std::conditional<ThreadSafe, concurrent_free_memblock_list, free_memblock_list>::type;
 
   // memory stack to cache allocate memory chunks
   stack_type stack;
@@ -47,7 +47,7 @@ public:
   void* allocate_node(size_t sz)
   {
     assert(sz == sizeof(T));
-    static const size_t blocksize = std::max(sizeof(T), memblock_cache::min_memblock_size());
+    static const size_t blocksize = std::max(sizeof(T), free_memblock_list::min_memblock_size());
     void*               block     = stack.try_pop();
     if (block == nullptr) {
       block = new uint8_t[blocksize];
@@ -65,7 +65,7 @@ public:
   /// Pre-reserve N memory chunks for future object allocations
   void reserve(size_t N)
   {
-    static const size_t blocksize = std::max(sizeof(T), memblock_cache::min_memblock_size());
+    static const size_t blocksize = std::max(sizeof(T), free_memblock_list::min_memblock_size());
     for (size_t i = 0; i < N; ++i) {
       stack.push(static_cast<void*>(new uint8_t[blocksize]));
     }
@@ -170,7 +170,7 @@ private:
 
   // memory stack to cache allocate memory chunks
   std::mutex                                 mutex;
-  memblock_cache                             obj_cache;
+  free_memblock_list                         obj_cache;
   std::vector<std::unique_ptr<batch_obj_t> > batches;
 };
 

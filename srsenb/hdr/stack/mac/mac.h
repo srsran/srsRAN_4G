@@ -16,7 +16,7 @@
 #include "sched.h"
 #include "srsenb/hdr/stack/mac/schedulers/sched_time_rr.h"
 #include "srsran/adt/circular_map.h"
-#include "srsran/adt/pool/background_mem_pool.h"
+#include "srsran/adt/pool/batch_mem_pool.h"
 #include "srsran/common/mac_pcap.h"
 #include "srsran/common/mac_pcap_net.h"
 #include "srsran/common/task_scheduler.h"

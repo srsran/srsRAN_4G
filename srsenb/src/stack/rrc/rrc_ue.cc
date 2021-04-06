@@ -69,7 +69,7 @@ rrc::ue::ue_pool_t* rrc::ue::get_ue_pool()
 {
   // Note: batch allocation is going to be explicitly called in enb class construction. The pool object, therefore,
   //       will only be initialized if we instantiate an eNB
-  static rrc::ue::ue_pool_t ue_pool;
+  static rrc::ue::ue_pool_t ue_pool(16, sizeof(ue), 4);
   return &ue_pool;
 }
 

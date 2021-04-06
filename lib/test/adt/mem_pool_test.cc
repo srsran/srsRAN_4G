@@ -10,9 +10,9 @@
  *
  */
 
-#include "srsran/adt/pool/background_mem_pool.h"
 #include "srsran/adt/pool/fixed_size_pool.h"
 #include "srsran/adt/pool/mem_pool.h"
+#include "srsran/adt/pool/obj_pool.h"
 #include "srsran/common/test_common.h"
 
 class C
@@ -142,21 +142,32 @@ void test_fixedsize_pool()
   TESTASSERT(C::default_ctor_counter == C::dtor_counter);
 }
 
+struct D : public C {
+  char val = '\0';
+};
+
 void test_background_pool()
 {
   C::default_ctor_counter = 0;
   C::dtor_counter         = 0;
   {
-    srsran::background_obj_pool<C, 16, 4>    obj_pool(16);
-    std::vector<srsran::unique_pool_ptr<C> > objs;
+    auto init_D_val = [](void* ptr) {
+      new (ptr) D();
+      static_cast<D*>(ptr)->val = 'c';
+    };
+    srsran::background_obj_pool<D> obj_pool(16, 4, 16, init_D_val);
+    TESTASSERT(obj_pool.cache_size() == 16);
+    std::vector<srsran::unique_pool_ptr<D> > objs;
 
     for (size_t i = 0; i < 16 - 4; ++i) {
-      objs.push_back(obj_pool.allocate_object());
+      objs.push_back(obj_pool.make());
     }
+    TESTASSERT(
+        std::all_of(objs.begin(), objs.end(), [](const srsran::unique_pool_ptr<D>& d) { return d->val == 'c'; }));
     TESTASSERT(C::default_ctor_counter == 16);
 
     // This will trigger a new batch allocation in the background
-    objs.push_back(obj_pool.allocate_object());
+    objs.push_back(obj_pool.make());
   }
   TESTASSERT(C::dtor_counter == C::default_ctor_counter);
 }

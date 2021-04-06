@@ -15,7 +15,7 @@
 
 #include "mac_controller.h"
 #include "rrc.h"
-#include "srsran/adt/pool/background_mem_pool.h"
+#include "srsran/adt/pool/batch_mem_pool.h"
 #include "srsran/interfaces/enb_phy_interfaces.h"
 #include "srsran/interfaces/pdcp_interface_types.h"
 
@@ -153,7 +153,7 @@ public:
   void  operator delete(void* ptr)noexcept;
   void  operator delete[](void* ptr) = delete;
 
-  using ue_pool_t = srsran::background_mem_pool<ue, 16, 4>;
+  using ue_pool_t = srsran::background_mem_pool;
   static ue_pool_t* get_ue_pool();
 
 private:

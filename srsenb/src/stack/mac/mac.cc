@@ -14,6 +14,7 @@
 #include <string.h>
 
 #include "srsenb/hdr/stack/mac/mac.h"
+#include "srsran/adt/pool/obj_pool.h"
 #include "srsran/common/rwlock_guard.h"
 #include "srsran/common/standard_streams.h"
 #include "srsran/common/time_prof.h"
@@ -77,19 +78,17 @@ bool mac::init(const mac_args_t&        args_,
   reset();
 
   // Initiate common pool of softbuffers
-  using softbuffer_pool_t   = srsran::background_obj_pool<ue_cc_softbuffers,
-                                                        16,
-                                                        4,
-                                                        srsran::move_callback<void(void*)>,
-                                                        srsran::move_callback<void(ue_cc_softbuffers&)> >;
   uint32_t nof_prb          = args.nof_prb;
   auto     init_softbuffers = [nof_prb](void* ptr) {
     new (ptr) ue_cc_softbuffers(nof_prb, SRSRAN_FDD_NOF_HARQ, SRSRAN_FDD_NOF_HARQ);
   };
   auto recycle_softbuffers = [](ue_cc_softbuffers& softbuffers) { softbuffers.clear(); };
-  softbuffer_pool.reset(new softbuffer_pool_t(std::min(args.max_nof_ues, 16U), // initial allocation size
-                                              init_softbuffers,
-                                              recycle_softbuffers));
+  softbuffer_pool.reset(
+      new srsran::background_obj_pool<ue_cc_softbuffers>(16,
+                                                         4,
+                                                         std::min(args.max_nof_ues, 16U), // initial allocation size
+                                                         init_softbuffers,
+                                                         recycle_softbuffers));
 
   // Pre-alloc UE objects for first attaching users
   prealloc_ue(10);
