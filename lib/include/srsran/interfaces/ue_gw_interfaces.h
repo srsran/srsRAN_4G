@@ -51,6 +51,7 @@ class gw_interface_rrc
 public:
   virtual void add_mch_port(uint32_t lcid, uint32_t port)             = 0;
   virtual int  update_lcid(uint32_t eps_bearer_id, uint32_t new_lcid) = 0;
+  virtual bool is_running() = 0;
 };
 
 class gw_interface_pdcp

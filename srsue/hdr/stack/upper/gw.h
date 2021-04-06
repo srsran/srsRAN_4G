@@ -66,6 +66,7 @@ public:
   // RRC interface
   void add_mch_port(uint32_t lcid, uint32_t port);
   int  update_lcid(uint32_t eps_bearer_id, uint32_t new_lcid);
+  bool is_running();
 
 private:
   static const int GW_THREAD_PRIO = -1;

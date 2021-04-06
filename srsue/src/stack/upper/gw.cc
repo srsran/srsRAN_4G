@@ -195,6 +195,12 @@ int gw::setup_if_addr(uint32_t eps_bearer_id,
   return SRSRAN_SUCCESS;
 }
 
+
+bool gw::is_running()
+{
+  return running;
+}
+
 int gw::update_lcid(uint32_t eps_bearer_id, uint32_t new_lcid)
 {
   auto it = eps_lcid.find(eps_bearer_id);
@@ -348,6 +354,8 @@ void gw::run_thread()
   running = false;
   logger.info("GW IP receiver thread exiting.");
 }
+
+
 
 /**************************/
 /* TUN Interface Helpers  */
