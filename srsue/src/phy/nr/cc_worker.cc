@@ -318,6 +318,14 @@ bool cc_worker::work_ul()
   // If PDSCH UL ACK is available, load into UCI
   if (has_ul_ack) {
     pdsch_ack.use_pusch = has_pusch_grant;
+
+    if (logger.debug.enabled()) {
+      std::array<char, 512> str = {};
+      if (srsran_ue_dl_nr_ack_info(&pdsch_ack, str.data(), (uint32_t)str.size()) > 0) {
+        logger.debug("%s", str.data());
+      }
+    }
+
     if (srsran_ue_dl_nr_gen_ack(&phy->cfg.harq_ack, &pdsch_ack, &uci_data) < SRSRAN_SUCCESS) {
       ERROR("Filling UCI ACK bits");
       return false;

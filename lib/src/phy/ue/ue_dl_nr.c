@@ -760,3 +760,72 @@ int srsran_ue_dl_nr_gen_ack(const srsran_ue_dl_nr_harq_ack_cfg_t* cfg,
   ERROR("No HARQ-ACK codebook determination is NOT implemented");
   return SRSRAN_ERROR;
 }
+
+int srsran_ue_dl_nr_ack_insert_m(srsran_pdsch_ack_nr_t* ack_info, srsran_pdsch_ack_m_nr_t* m)
+{
+  // Check inputs
+  if (ack_info == NULL || m == NULL) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+
+  // Protect SCell index and extract information
+  if (m->resource.scell_idx >= SRSRAN_MAX_CARRIERS) {
+    ERROR("Serving cell index (%d) exceeds maximum", m->resource.scell_idx);
+    return SRSRAN_ERROR;
+  }
+  srsran_pdsch_ack_cc_nr_t* cc = &ack_info->cc[m->resource.scell_idx];
+
+  // Find insertion index
+  uint32_t idx = cc->M; // Append at the end by default
+  for (uint32_t i = 0; i < cc->M; i++) {
+    if (cc->m[i].resource.k1 < m->resource.k1) {
+      idx = i;
+      break;
+    }
+  }
+
+  // Increment count
+  cc->M += 1;
+
+  // Make space for insertion
+  for (uint32_t i = cc->M - 1; i > idx; i--) {
+    cc->m[i] = cc->m[i - 1];
+  }
+
+  // Actual insertion
+  cc->m[idx] = *m;
+
+  return SRSRAN_SUCCESS;
+}
+
+uint32_t srsran_ue_dl_nr_ack_info(const srsran_pdsch_ack_nr_t* ack_info, char* str, uint32_t str_len)
+{
+  uint32_t len = 0;
+
+  if (ack_info == NULL || str == NULL) {
+    return 0;
+  }
+
+  // Print base info
+  len = srsran_print_check(
+      str, str_len, len, "use_pusch=%c nof_cc=%d\n", ack_info->use_pusch ? 'y' : 'n', ack_info->nof_cc);
+
+  // Iterate all carriers
+  for (uint32_t cc = 0; cc < ack_info->nof_cc; cc++) {
+    len = srsran_print_check(str, str_len, len, "  CC %d: M=%d\n", cc, ack_info->cc[cc].M);
+    for (uint32_t m = 0; m < ack_info->cc[cc].M; m++) {
+      if (ack_info->cc[cc].m[m].present) {
+        len = srsran_print_check(str,
+                                 str_len,
+                                 len,
+                                 "    m %d: k1=%d dai=%d ack=%d\n",
+                                 m,
+                                 ack_info->cc[cc].m[m].resource.k1,
+                                 ack_info->cc[cc].m[m].resource.v_dai_dl,
+                                 ack_info->cc[cc].m[m].value[0]);
+      }
+    }
+  }
+
+  return len;
+}

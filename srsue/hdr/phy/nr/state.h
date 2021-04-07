@@ -214,6 +214,12 @@ public:
     // Calculate Receive TTI
     uint32_t tti_tx = TTI_ADD(tti_rx, ack_resource.k1);
 
+    // Prepare ACK information
+    srsran_pdsch_ack_m_nr_t ack_m = {};
+    ack_m.resource                = ack_resource;
+    ack_m.value[0]                = crc_ok ? 1 : 0;
+    ack_m.present                 = true;
+
     // Scope mutex to protect read/write the list
     std::lock_guard<std::mutex> lock(pending_ack_mutex);
 
@@ -221,15 +227,10 @@ public:
     srsran_pdsch_ack_nr_t& ack = pending_ack[tti_tx];
     ack.nof_cc                 = 1;
 
-    // Select serving cell
-    srsran_pdsch_ack_cc_nr_t& ack_cc = ack.cc[ack_resource.scell_idx];
-    srsran_pdsch_ack_m_nr_t&  ack_m  = ack_cc.m[ack_cc.M];
-    ack_cc.M++;
-
-    // Set PDSCH transmission information
-    ack_m.resource = ack_resource;
-    ack_m.value[0] = crc_ok ? 1 : 0;
-    ack_m.present  = true;
+    // Insert PDSCH transmission information
+    if (srsran_ue_dl_nr_ack_insert_m(&ack, &ack_m) < SRSRAN_SUCCESS) {
+      ERROR("Error inserting ACK m value");
+    }
   }
 
   bool get_pending_ack(const uint32_t& tti_tx, srsran_pdsch_ack_nr_t& pdsch_ack)
