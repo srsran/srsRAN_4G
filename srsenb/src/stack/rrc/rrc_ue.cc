@@ -203,7 +203,7 @@ void rrc::ue::set_rlf_timeout()
 
   uint32_t deadline = deadline_s * 1e3 + deadline_ms;
   rlf_timer.set(deadline, [this](uint32_t tid) { rlf_timer_expired(); });
-  parent->logger.debug("Setting RLF timer for rnti=0x%x to %dms", rnti, deadline);
+  parent->logger.info("Setting RLF timer for rnti=0x%x to %dms", rnti, deadline);
 }
 
 void rrc::ue::set_activity_timeout(const activity_timeout_type_t type)

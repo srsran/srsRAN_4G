@@ -187,7 +187,6 @@ private:
   const static uint32_t UE_PCELL_CC_IDX = 0;
 
   uint32_t consecutive_kos = 0;
-  uint32_t max_mac_dl_retx;
 
   ue_cell_ded_list     ue_cell_list;
   bearer_cfg_handler   bearer_list;
