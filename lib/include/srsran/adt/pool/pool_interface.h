@@ -27,10 +27,8 @@ public:
     explicit pool_deallocator(obj_pool_itf<T>* pool_ = nullptr) : pool(pool_) {}
     void operator()(void* ptr)
     {
-      if (ptr != nullptr) {
-        static_cast<T*>(ptr)->~T();
-        pool->do_deallocate(ptr);
-      }
+      // dtor is not called, as object is going to be recycled
+      pool->do_deallocate(ptr);
     }
   };
   using object_type = T;
