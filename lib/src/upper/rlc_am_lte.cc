@@ -1140,7 +1140,7 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
         update_vt_a = false;
         if (tx_window.has_sn(i)) {
           auto& pdu = tx_window[i];
-          if (!retx_queue.has_sn(i)) {
+          if (not retx_queue.has_sn(i)) {
             rlc_amd_retx_t& retx = retx_queue.push();
             srsran_expect(tx_window[i].rlc_sn == i, "Incorrect RLC SN=%d!=%d being accessed", tx_window[i].rlc_sn, i);
             retx.sn         = i;
@@ -1176,6 +1176,8 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
                                pdu.buf->N_bytes);
               }
             }
+          } else {
+            logger.info("%s NACKed SN=%d already considered for retransmission", RB_NAME, i);
           }
         } else {
           logger.warning("%s NACKed SN=%d already removed from Tx window", RB_NAME, i);
