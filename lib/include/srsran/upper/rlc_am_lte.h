@@ -116,13 +116,20 @@ public:
 
   void add_pdcp_sdu(uint32_t sn)
   {
-    assert(not has_pdcp_sn(sn));
+    srsran_assert(not has_pdcp_sn(sn), "Cannot re-add same PDCP SN twice");
+    uint32_t sn_idx = get_idx(sn);
+    if (buffered_pdus[sn_idx].sn != invalid_sn) {
+      clear_pdcp_sdu(buffered_pdus[sn_idx].sn);
+    }
     buffered_pdus[get_idx(sn)].sn = sn;
     count++;
   }
   void clear_pdcp_sdu(uint32_t sn)
   {
-    uint32_t sn_idx                   = get_idx(sn);
+    uint32_t sn_idx = get_idx(sn);
+    if (buffered_pdus[sn_idx].sn == invalid_sn) {
+      return;
+    }
     buffered_pdus[sn_idx].sn          = invalid_sn;
     buffered_pdus[sn_idx].fully_acked = false;
     buffered_pdus[sn_idx].fully_txed  = false;

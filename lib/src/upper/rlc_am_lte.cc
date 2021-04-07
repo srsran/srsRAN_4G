@@ -2128,6 +2128,7 @@ buffered_pdcp_pdu_list::buffered_pdcp_pdu_list() : buffered_pdus(max_buffer_idx 
 
 void buffered_pdcp_pdu_list::clear()
 {
+  count = 0;
   for (auto& b : buffered_pdus) {
     b.sn          = invalid_sn;
     b.fully_acked = false;
