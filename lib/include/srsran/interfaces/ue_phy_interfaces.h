@@ -39,6 +39,8 @@ struct phy_args_t {
   std::vector<uint32_t> dl_nr_arfcn_list = {
       632628}; // vectorized version of dl_nr_arfcn that gets populated during init
 
+  int force_N_id_2 = -1; // Cell identity within the identity group (PSS) to filter.
+
   float dl_freq = -1.0f;
   float ul_freq = -1.0f;
 

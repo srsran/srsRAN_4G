@@ -396,6 +396,10 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
      bpo::value<bool>(&use_standard_lte_rates)->default_value(false),
      "Whether to use default LTE sample rates instead of shorter variants.")
 
+    ("phy.force_N_id_2",
+     bpo::value<int>(&args->phy.force_N_id_2)->default_value(-1),
+     "Force using a specific PSS (set to -1 to allow all PSSs).")
+
     // UE simulation args
     ("sim.airplane_t_on_ms",
      bpo::value<int>(&args->stack.nas.sim.airplane_t_on_ms)->default_value(-1),

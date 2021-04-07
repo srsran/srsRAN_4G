@@ -36,7 +36,7 @@ public:
 
   explicit search(srslog::basic_logger& logger) : logger(logger) {}
   ~search();
-  void     init(srsran::rf_buffer_t& buffer_, uint32_t nof_rx_channels, search_callback* parent);
+  void     init(srsran::rf_buffer_t& buffer_, uint32_t nof_rx_channels, search_callback* parent, int force_N_id_2_);
   void     reset();
   float    get_last_cfo();
   void     set_agc_enable(bool enable);
