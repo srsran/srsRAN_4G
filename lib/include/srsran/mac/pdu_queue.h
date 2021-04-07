@@ -58,8 +58,8 @@ private:
 
   } pdu_t;
 
-  static_blocking_queue<pdu_t*, DEFAULT_POOL_SIZE> pdu_q;
   buffer_pool<pdu_t>                               pool;
+  static_blocking_queue<pdu_t*, DEFAULT_POOL_SIZE> pdu_q;
 
   process_callback*     callback;
   srslog::basic_logger& logger;

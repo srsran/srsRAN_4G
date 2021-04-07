@@ -63,6 +63,7 @@ class cc_used_buffers_map
 {
 public:
   explicit cc_used_buffers_map(srsran::pdu_queue& shared_pdu_queue_);
+  ~cc_used_buffers_map();
 
   uint8_t* request_pdu(tti_point tti, uint32_t len);
 
@@ -180,11 +181,11 @@ private:
   bool process_ce(srsran::sch_subh* subh);
   void allocate_ce(srsran::sch_pdu* pdu, uint32_t lcid);
 
-  uint32_t         phr_counter    = 0;
-  uint32_t         dl_cqi_counter = 0;
-  uint32_t         dl_ri_counter  = 0;
-  uint32_t         dl_pmi_counter = 0;
-  mac_ue_metrics_t ue_metrics     = {};
+  rlc_interface_mac*       rlc = nullptr;
+  rrc_interface_mac*       rrc = nullptr;
+  phy_interface_stack_lte* phy = nullptr;
+  srslog::basic_logger&    logger;
+  sched_interface*         sched = nullptr;
 
   srsran::mac_pcap*     pcap         = nullptr;
   srsran::mac_pcap_net* pcap_net     = nullptr;
@@ -193,11 +194,13 @@ private:
   uint32_t              last_tti     = 0;
   uint32_t              nof_failures = 0;
 
+  uint32_t         phr_counter    = 0;
+  uint32_t         dl_cqi_counter = 0;
+  uint32_t         dl_ri_counter  = 0;
+  uint32_t         dl_pmi_counter = 0;
+  mac_ue_metrics_t ue_metrics     = {};
+
   srsran::obj_pool_itf<ue_cc_softbuffers>* softbuffer_pool = nullptr;
-
-  srsran::bounded_vector<cc_buffer_handler, SRSRAN_MAX_CARRIERS> cc_buffers;
-
-  std::mutex rx_buffers_mutex;
 
   srsran::block_queue<uint32_t> pending_ta_commands;
   ta                            ta_fsm;
@@ -207,14 +210,11 @@ private:
   srsran::sch_pdu   mac_msg_dl, mac_msg_ul;
   srsran::mch_pdu   mch_mac_msg_dl;
 
-  rlc_interface_mac*       rlc = nullptr;
-  rrc_interface_mac*       rrc = nullptr;
-  phy_interface_stack_lte* phy = nullptr;
-  srslog::basic_logger&    logger;
-  sched_interface*         sched = nullptr;
+  srsran::bounded_vector<cc_buffer_handler, SRSRAN_MAX_CARRIERS> cc_buffers;
 
   // Mutexes
   std::mutex mutex;
+  std::mutex rx_buffers_mutex;
 
   const uint8_t UL_CC_IDX = 0; ///< Passed to write CC index in PCAP (TODO: use actual CC idx)
 };

@@ -66,6 +66,11 @@ cc_used_buffers_map::cc_used_buffers_map(srsran::pdu_queue& shared_pdu_queue_) :
   shared_pdu_queue(&shared_pdu_queue_), logger(&srslog::fetch_basic_logger("MAC"))
 {}
 
+cc_used_buffers_map::~cc_used_buffers_map()
+{
+  clear();
+}
+
 bool cc_used_buffers_map::push_pdu(tti_point tti, uint32_t len)
 {
   if (not has_tti(tti)) {
@@ -135,6 +140,9 @@ bool cc_used_buffers_map::try_deallocate_pdu(tti_point tti)
 
 void cc_used_buffers_map::clear()
 {
+  for (auto& buffer : pdu_map) {
+    shared_pdu_queue->deallocate(buffer.second);
+  }
   pdu_map.clear();
 }
 
