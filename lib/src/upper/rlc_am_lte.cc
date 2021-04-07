@@ -849,11 +849,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_segment(uint8_t* payload, uint32_t nof_byte
     retx_queue.front().so_start   = retx.so_end;
   }
 
-  // increment counter for retx of first segment
-  if (retx.so_start == 0) {
-    tx_window[retx.sn].retx_count++;
-  }
-
+  tx_window[retx.sn].retx_count++;
   check_sn_reached_max_retx(retx.sn);
 
   // Write header and pdu
