@@ -158,7 +158,12 @@ bool gtpu_tunnel_manager::remove_bearer(uint16_t rnti, uint32_t lcid)
   logger.info("Removing rnti=0x%x,lcid=%d", rnti, lcid);
 
   for (lcid_tunnel& lcid_tun : to_rem) {
-    srsran_expect(tunnels.erase(lcid_tun.teid) > 0, "Inconsistency detected between two internal data structures");
+    bool ret = tunnels.erase(lcid_tun.teid);
+    srsran_expect(ret,
+                  "Inconsistency detected between internal data structures for rnti=0x%x,lcid=%d," TEID_IN_FMT,
+                  rnti,
+                  lcid,
+                  lcid_tun.teid);
   }
   ue_teidin_db[rnti].erase(to_rem.begin(), to_rem.end());
   return true;
@@ -172,8 +177,11 @@ bool gtpu_tunnel_manager::remove_rnti(uint16_t rnti)
   }
   logger.info("Removing rnti=0x%x", rnti);
 
-  for (lcid_tunnel& ue_tuns : ue_teidin_db[rnti]) {
-    srsran_expect(tunnels.erase(ue_tuns.teid) > 0, "Inconsistency detected between two internal data structures");
+  while (not ue_teidin_db[rnti].empty()) {
+    uint32_t teid = ue_teidin_db[rnti].front().teid;
+    bool     ret  = remove_tunnel(teid);
+    srsran_expect(
+        ret, "Inconsistency detected between internal data structures for rnti=0x%x," TEID_IN_FMT, rnti, teid);
   }
   ue_teidin_db.erase(rnti);
   return true;
@@ -255,7 +263,18 @@ void gtpu_tunnel_manager::buffer_pdcp_sdu(uint32_t teid, uint32_t pdcp_sn, srsra
   tunnel& rx_tun = tunnels[teid];
 
   srsran_assert(rx_tun.state == tunnel_state::buffering, "Buffering of PDCP SDUs only enabled when PDCP is not active");
-  rx_tun.buffer->push_back(std::make_pair(pdcp_sn, std::move(sdu)));
+  if (not rx_tun.buffer->full()) {
+    rx_tun.buffer->push_back(std::make_pair(pdcp_sn, std::move(sdu)));
+  } else {
+    fmt::memory_buffer str_buffer;
+    if (pdcp_sn != undefined_pdcp_sn) {
+      fmt::format_to(str_buffer, " PDCP SN={}", pdcp_sn);
+    }
+    logger.warning("GTPU tunnel " TEID_IN_FMT " internal buffer of size=%zd is full. Discarding SDU%s.",
+                   teid,
+                   rx_tun.buffer->size(),
+                   to_c_str(str_buffer));
+  }
 }
 
 void gtpu_tunnel_manager::setup_forwarding(uint32_t rx_teid, uint32_t tx_teid)
