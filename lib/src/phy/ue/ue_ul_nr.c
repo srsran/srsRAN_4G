@@ -224,6 +224,7 @@ void srsran_ue_ul_nr_free(srsran_ue_ul_nr_t* q)
   if (q->sf_symbols[0] != NULL) {
     free(q->sf_symbols[0]);
   }
+  srsran_pucch_nr_free(&q->pucch);
   srsran_pusch_nr_free(&q->pusch);
   srsran_dmrs_sch_free(&q->dmrs);
 

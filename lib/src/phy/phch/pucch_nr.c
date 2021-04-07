@@ -732,7 +732,7 @@ static uint32_t pucch_nr_resource_info(const srsran_pucch_nr_resource_t* r, char
   len = srsran_print_check(str,
                            str_len,
                            len,
-                           "f=%d, prb=%d:%d, symb=%d:%d",
+                           "f=%d prb=%d:%d symb=%d:%d ",
                            (int)r->format,
                            r->starting_prb,
                            nof_prb,
@@ -740,19 +740,19 @@ static uint32_t pucch_nr_resource_info(const srsran_pucch_nr_resource_t* r, char
                            r->nof_symbols);
 
   if (r->intra_slot_hopping) {
-    len = srsran_print_check(str, str_len, len, ", hop=%d", r->second_hop_prb);
+    len = srsran_print_check(str, str_len, len, "hop=%d ", r->second_hop_prb);
   }
 
   if (r->format == SRSRAN_PUCCH_NR_FORMAT_0 || r->format == SRSRAN_PUCCH_NR_FORMAT_1) {
-    len = srsran_print_check(str, str_len, len, ", cs=%d", r->initial_cyclic_shift);
+    len = srsran_print_check(str, str_len, len, "cs=%d ", r->initial_cyclic_shift);
   }
 
   if (r->format == SRSRAN_PUCCH_NR_FORMAT_1) {
-    len = srsran_print_check(str, str_len, len, ", occ=%d", r->time_domain_occ);
+    len = srsran_print_check(str, str_len, len, "occ=%d ", r->time_domain_occ);
   }
 
   if (r->format == SRSRAN_PUCCH_NR_FORMAT_4) {
-    len = srsran_print_check(str, str_len, len, ", occ=%d:%d", r->occ_index, r->occ_lenth);
+    len = srsran_print_check(str, str_len, len, "occ=%d:%d ", r->occ_index, r->occ_lenth);
   }
 
   return len;
