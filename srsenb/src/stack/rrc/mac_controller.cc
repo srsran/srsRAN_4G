@@ -302,6 +302,7 @@ void mac_controller::handle_ho_prep(const asn1::rrc::ho_prep_info_r8_ies_s& ho_p
 void mac_controller::handle_max_retx()
 {
   set_drb_activation(false);
+  update_mac(other);
 }
 
 void mac_controller::set_scell_activation(const std::bitset<SRSRAN_MAX_CARRIERS>& scell_mask)
