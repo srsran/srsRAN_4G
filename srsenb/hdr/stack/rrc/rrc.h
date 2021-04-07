@@ -16,7 +16,8 @@
 #include "rrc_bearer_cfg.h"
 #include "rrc_cell_cfg.h"
 #include "rrc_metrics.h"
-#include "srsenb/hdr/stack/upper/common_enb.h"
+#include "srsenb/hdr/common/common_enb.h"
+#include "srsenb/hdr/common/rnti_pool.h"
 #include "srsran/adt/circular_buffer.h"
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/common.h"
@@ -156,7 +157,7 @@ private:
 
   // state
   std::unique_ptr<freq_res_common_list>          cell_res_list;
-  std::map<uint16_t, std::unique_ptr<ue> >       users; // NOTE: has to have fixed addr
+  std::map<uint16_t, unique_rnti_ptr<ue> >       users; // NOTE: has to have fixed addr
   std::map<uint32_t, asn1::rrc::paging_record_s> pending_paging;
 
   void     process_release_complete(uint16_t rnti);

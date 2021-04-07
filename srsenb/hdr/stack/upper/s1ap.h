@@ -15,7 +15,7 @@
 
 #include <map>
 
-#include "common_enb.h"
+#include "srsenb/hdr/common/common_enb.h"
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/common.h"
 #include "srsran/common/s1ap_pcap.h"

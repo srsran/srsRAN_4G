@@ -11,7 +11,7 @@
  */
 
 #include "srsenb/hdr/stack/upper/rlc.h"
-#include "srsenb/hdr/stack/upper/common_enb.h"
+#include "srsenb/hdr/common/common_enb.h"
 #include "srsran/interfaces/enb_mac_interfaces.h"
 #include "srsran/interfaces/enb_pdcp_interfaces.h"
 #include "srsran/interfaces/enb_rrc_interfaces.h"

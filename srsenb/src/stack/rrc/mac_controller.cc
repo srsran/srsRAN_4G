@@ -11,7 +11,7 @@
  */
 
 #include "srsenb/hdr/stack/rrc/mac_controller.h"
-#include "srsenb/hdr/stack/upper/common_enb.h"
+#include "srsenb/hdr/common/common_enb.h"
 #include "srsran/asn1/rrc_utils.h"
 #include "srsran/interfaces/enb_mac_interfaces.h"
 

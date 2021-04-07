@@ -11,7 +11,7 @@
  */
 
 #include "srsenb/hdr/stack/upper/s1ap.h"
-#include "srsenb/hdr/stack/upper/common_enb.h"
+#include "srsenb/hdr/common/common_enb.h"
 #include "srsran/adt/scope_exit.h"
 #include "srsran/common/bcd_helpers.h"
 #include "srsran/common/enb_events.h"

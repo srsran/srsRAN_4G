@@ -11,8 +11,8 @@
  */
 
 #include "srsenb/hdr/stack/enb_stack_lte.h"
+#include "srsenb/hdr/common/rnti_pool.h"
 #include "srsenb/hdr/enb.h"
-#include "srsran/common/network_utils.h"
 #include "srsran/interfaces/enb_metrics_interface.h"
 #include "srsran/srslog/event_trace.h"
 
@@ -70,6 +70,9 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
 {
   args    = args_;
   rrc_cfg = rrc_cfg_;
+
+  // Init RNTI memory pool
+  reserve_rnti_memblocks(args.mac.max_nof_ues);
 
   // setup logging for each layer
   mac_logger.set_level(srslog::str_to_basic_level(args.log.mac_level));

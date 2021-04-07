@@ -47,7 +47,7 @@ public:
     srsran_assert(cache_size() == size(), "Not all nodes have been deallocated yet (%zd < %zd)", cache_size(), size());
   }
 
-  size_t get_node_max_size() const { return allocated.get_node_max_size(); }
+  size_t get_node_max_size() const { return memblock_size; }
 
   void clear()
   {
@@ -132,7 +132,14 @@ public:
     grow_pool.deallocate_node(p);
   }
 
+  void allocate_batch()
+  {
+    std::lock_guard<std::mutex> lock(state->mutex);
+    grow_pool.allocate_batch();
+  }
+
   size_t get_node_max_size() const { return grow_pool.get_node_max_size(); }
+  size_t cache_size() const { return grow_pool.cache_size(); }
 
 private:
   void allocate_batch_in_background()

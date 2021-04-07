@@ -13,7 +13,7 @@
 #ifndef SRSENB_RRC_METRICS_H
 #define SRSENB_RRC_METRICS_H
 
-#include "srsenb/hdr/stack/upper/common_enb.h"
+#include "srsenb/hdr/common/common_enb.h"
 #include <vector>
 
 namespace srsenb {

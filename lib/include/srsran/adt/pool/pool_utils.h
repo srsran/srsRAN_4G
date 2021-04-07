@@ -54,6 +54,10 @@ inline void* align_to(void* pos, size_t alignment)
 {
   return reinterpret_cast<void*>(align_next(reinterpret_cast<std::uintptr_t>(pos), alignment));
 }
+inline void* offset_byte_ptr(void* pos, size_t offset)
+{
+  return static_cast<void*>(static_cast<uint8_t*>(pos) + offset);
+}
 
 } // namespace srsran
 

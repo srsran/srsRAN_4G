@@ -11,7 +11,7 @@
  */
 
 #include "srsenb/hdr/stack/upper/pdcp.h"
-#include "srsenb/hdr/stack/upper/common_enb.h"
+#include "srsenb/hdr/common/common_enb.h"
 #include "srsran/interfaces/enb_gtpu_interfaces.h"
 #include "srsran/interfaces/enb_rlc_interfaces.h"
 #include "srsran/interfaces/enb_rrc_interfaces.h"

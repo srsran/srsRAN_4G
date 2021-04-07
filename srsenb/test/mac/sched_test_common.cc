@@ -11,8 +11,8 @@
  */
 
 #include "sched_test_common.h"
+#include "srsenb/hdr/common/common_enb.h"
 #include "srsenb/hdr/stack/mac/sched.h"
-#include "srsenb/hdr/stack/upper/common_enb.h"
 
 #include "sched_common_test_suite.h"
 #include "sched_ue_ded_test_suite.h"

@@ -11,7 +11,7 @@
  */
 
 #include "srsenb/hdr/stack/rrc/rrc_bearer_cfg.h"
-#include "srsenb/hdr/stack/upper/common_enb.h"
+#include "srsenb/hdr/common/common_enb.h"
 #include "srsran/asn1/rrc_utils.h"
 #include "srsran/rrc/rrc_cfg_utils.h"
 

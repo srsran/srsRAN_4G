@@ -144,17 +144,9 @@ public:
   rrc*     parent = nullptr;
 
   bool                          connect_notified = false;
-  std::unique_ptr<rrc_mobility> mobility_handler;
+  unique_rnti_ptr<rrc_mobility> mobility_handler;
 
   bool is_csfb = false;
-
-  void* operator new(size_t sz);
-  void* operator new[](size_t sz) = delete;
-  void  operator delete(void* ptr)noexcept;
-  void  operator delete[](void* ptr) = delete;
-
-  using ue_pool_t = srsran::background_mem_pool;
-  static ue_pool_t* get_ue_pool();
 
 private:
   // args

@@ -13,7 +13,7 @@
 #include <map>
 #include <string.h>
 
-#include "common_enb.h"
+#include "srsenb/hdr/common/common_enb.h"
 #include "srsran/adt/bounded_vector.h"
 #include "srsran/adt/circular_map.h"
 #include "srsran/common/buffer_pool.h"

@@ -11,7 +11,7 @@
  */
 
 #include "srsenb/hdr/stack/rrc/rrc_nr.h"
-#include "srsenb/hdr/stack/upper/common_enb.h"
+#include "srsenb/hdr/common/common_enb.h"
 #include "srsran/asn1/rrc_nr_utils.h"
 #include "srsran/interfaces/nr_common_interface_types.h"
 
@@ -216,7 +216,7 @@ int32_t rrc_nr::generate_sibs()
       logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
       return SRSRAN_ERROR;
     }
-    asn1::bit_ref                bref(mib_buf->msg, mib_buf->get_tailroom());
+    asn1::bit_ref bref(mib_buf->msg, mib_buf->get_tailroom());
     mib_msg.pack(bref);
     mib_buf->N_bytes = bref.distance_bytes();
     logger.debug(mib_buf->msg, mib_buf->N_bytes, "MIB payload (%d B)", mib_buf->N_bytes);
@@ -254,7 +254,7 @@ int32_t rrc_nr::generate_sibs()
       logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
       return SRSRAN_ERROR;
     }
-    asn1::bit_ref                bref(sib->msg, sib->get_tailroom());
+    asn1::bit_ref bref(sib->msg, sib->get_tailroom());
     msg[msg_index].pack(bref);
     sib->N_bytes = bref.distance_bytes();
     sib_buffer.push_back(std::move(sib));
