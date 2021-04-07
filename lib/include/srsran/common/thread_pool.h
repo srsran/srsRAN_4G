@@ -58,6 +58,7 @@ public:
     void run_thread();
     void wait_to_start();
     void finished();
+    bool is_stopped() const;
   };
 
   thread_pool(uint32_t nof_workers);

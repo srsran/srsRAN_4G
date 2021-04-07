@@ -82,21 +82,22 @@ void thread_pool::init_worker(uint32_t id, worker* obj, uint32_t prio, uint32_t 
 
 void thread_pool::stop()
 {
-  mutex_queue.lock();
+  {
+    std::lock_guard<std::mutex> lock(mutex_queue);
 
-  /* Stop any thread waiting for available worker */
-  running = false;
+    /* Stop any thread waiting for available worker */
+    running = false;
 
-  /* Now stop all workers */
-  for (uint32_t i = 0; i < nof_workers; i++) {
-    if (workers[i]) {
-      debug_thread("stop(): stopping %d\n", i);
-      status[i] = STOP;
-      cvar_worker[i].notify_all();
-      cvar_queue.notify_all();
+    /* Now stop all workers */
+    for (uint32_t i = 0; i < nof_workers; i++) {
+      if (workers[i]) {
+        debug_thread("stop(): stopping %d\n", i);
+        status[i] = STOP;
+        cvar_worker[i].notify_all();
+        cvar_queue.notify_all();
+      }
     }
   }
-  mutex_queue.unlock();
 
   for (uint32_t i = 0; i < nof_workers; i++) {
     debug_thread("stop(): waiting %d\n", i);
@@ -134,6 +135,12 @@ void thread_pool::worker::finished()
     my_parent->cvar_worker[my_id].notify_all();
     my_parent->cvar_queue.notify_all();
   }
+}
+
+bool thread_pool::worker::is_stopped() const
+{
+  std::lock_guard<std::mutex> lock(my_parent->mutex_queue);
+  return my_parent->status[my_id] == STOP;
 }
 
 bool thread_pool::find_finished_worker(uint32_t tti, uint32_t* id)

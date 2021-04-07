@@ -18,6 +18,7 @@
 #include "srsran/common/threads.h"
 #include "srsran/interfaces/enb_phy_interfaces.h"
 #include "srsran/srslog/srslog.h"
+#include <atomic>
 
 // Setting ENABLE_PRACH_GUI to non zero enables a GUI showing signal received in the PRACH window.
 #define ENABLE_PRACH_GUI 0
@@ -88,10 +89,10 @@ private:
   stack_interface_phy_lte* stack               = nullptr;
   float                    max_prach_offset_us = 0.0f;
   bool                     initiated           = false;
-  bool                     running             = false;
-  uint32_t                 nof_sf              = 0;
-  uint32_t                 sf_cnt              = 0;
-  uint32_t                 nof_workers         = 0;
+  std::atomic<bool>        running;
+  uint32_t                 nof_sf      = 0;
+  uint32_t                 sf_cnt      = 0;
+  uint32_t                 nof_workers = 0;
 
   void run_thread() final;
   int  run_tti(sf_buffer* b);
