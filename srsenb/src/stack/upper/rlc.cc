@@ -56,7 +56,7 @@ void rlc::add_user(uint16_t rnti)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti) == 0) {
-    std::unique_ptr<srsran::rlc> obj(new srsran::rlc(logger.id().c_str()));
+    auto obj = make_rnti_obj<srsran::rlc>(rnti, logger.id().c_str());
     obj->init(&users[rnti],
               &users[rnti],
               timers,

@@ -40,7 +40,7 @@ void pdcp::stop()
 void pdcp::add_user(uint16_t rnti)
 {
   if (users.count(rnti) == 0) {
-    srsran::pdcp* obj = new srsran::pdcp(task_sched, logger.id().c_str());
+    unique_rnti_ptr<srsran::pdcp> obj = make_rnti_obj<srsran::pdcp>(rnti, task_sched, logger.id().c_str());
     obj->init(&users[rnti].rlc_itf, &users[rnti].rrc_itf, &users[rnti].gtpu_itf);
     users[rnti].rlc_itf.rnti  = rnti;
     users[rnti].gtpu_itf.rnti = rnti;
@@ -49,7 +49,7 @@ void pdcp::add_user(uint16_t rnti)
     users[rnti].rrc_itf.rrc   = rrc;
     users[rnti].rlc_itf.rlc   = rlc;
     users[rnti].gtpu_itf.gtpu = gtpu;
-    users[rnti].pdcp          = obj;
+    users[rnti].pdcp          = std::move(obj);
   }
 }
 
@@ -57,8 +57,7 @@ void pdcp::add_user(uint16_t rnti)
 void pdcp::clear_user(user_interface* ue)
 {
   ue->pdcp->stop();
-  delete ue->pdcp;
-  ue->pdcp = NULL;
+  ue->pdcp.reset();
 }
 
 void pdcp::rem_user(uint16_t rnti)
