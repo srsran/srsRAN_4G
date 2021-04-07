@@ -119,8 +119,8 @@ private:
   pdcp_interface_gtpu*      pdcp = nullptr;
   srslog::basic_logger&     logger;
 
-  tunnel_list_t                                                              tunnels;
   srsran::static_circular_map<uint16_t, ue_lcid_tunnel_list, SRSENB_MAX_UES> ue_teidin_db;
+  tunnel_list_t                                                              tunnels;
 };
 
 using gtpu_tunnel_state = gtpu_tunnel_manager::tunnel_state;
