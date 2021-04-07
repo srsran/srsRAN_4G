@@ -87,6 +87,10 @@ void sf_worker::work_imp()
     w->work_dl();
   }
 
+  // Align workers, wait for previous workers to finish DL processing before starting UL processing
+  phy_state->dl_ul_semaphore.wait(this);
+  phy_state->dl_ul_semaphore.release();
+
   // Check if PRACH is available
   if (prach_ptr != nullptr) {
     // PRACH is available, set buffer, transmit and return

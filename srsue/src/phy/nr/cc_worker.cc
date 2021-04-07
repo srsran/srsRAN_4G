@@ -99,6 +99,7 @@ void cc_worker::set_tti(uint32_t tti)
 {
   dl_slot_cfg.idx = tti;
   ul_slot_cfg.idx = TTI_TX(tti);
+  logger.set_context(tti);
 }
 
 cf_t* cc_worker::get_rx_buffer(uint32_t antenna_idx)

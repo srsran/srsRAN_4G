@@ -60,7 +60,9 @@ public:
   /// Physical layer higher layer configuration, provided by higher layers through configuration messages
   srsran::phy_cfg_nr_t cfg = {};
 
-  uint16_t ra_rnti       = 0;
+  /// Semaphore for aligning UL work
+  srsran::tti_semaphore<void*> dl_ul_semaphore;
+
   uint32_t rar_grant_tti = 0;
 
   state()

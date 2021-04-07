@@ -60,6 +60,10 @@ bool worker_pool::init(const phy_args_nr_t& args, phy_common* common, stack_inte
 
 void worker_pool::start_worker(sf_worker* w)
 {
+  // Push worker pointer for internal worker TTI synchronization
+  phy_state.dl_ul_semaphore.push(w);
+
+  // Signal worker to start processing asynchronously
   pool.start_worker(w);
 }
 
