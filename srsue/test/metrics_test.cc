@@ -60,6 +60,14 @@ public:
       m->stack.rrc.neighbour_cells.push_back(neighbor); // need to add twice since we use CA
     }
 
+    m->phy_nr.nof_active_cc      = 1;
+    m->phy_nr.ch[0].rsrp         = -10.0f;
+    m->phy_nr.ch[0].pathloss     = 32;
+    m->stack.mac_nr[0].rx_pkts   = 100;
+    m->stack.mac_nr[0].rx_errors = 2;
+    m->stack.mac_nr[0].rx_brate  = 223;
+    m->stack.mac_nr[0].nof_tti   = 1;
+
     m->stack.rrc.state = (rand() % 2 == 0) ? RRC_STATE_CONNECTED : RRC_STATE_IDLE;
 
     return true;
