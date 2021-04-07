@@ -491,6 +491,8 @@ typedef struct {
   std::vector<uint32_t> dl_earfcn_list = {3400}; // vectorized version of dl_earfcn that gets populated during init
   std::map<uint32_t, uint32_t> ul_earfcn_map;    // Map linking DL EARFCN and UL EARFCN
 
+  int force_N_id_2 = -1; // Cell identity within the identity group (PSS) to filter.
+
   float dl_freq = -1.0f;
   float ul_freq = -1.0f;
 

@@ -54,7 +54,7 @@ search::~search()
   srslte_ue_cellsearch_free(&cs);
 }
 
-void search::init(srslte::rf_buffer_t& buffer_, srslte::log* log_h_, uint32_t nof_rx_channels, search_callback* parent)
+void search::init(srslte::rf_buffer_t& buffer_, srslte::log* log_h_, uint32_t nof_rx_channels, search_callback* parent, int force_N_id_2_)
 {
   log_h = log_h_;
   p     = parent;
@@ -73,7 +73,7 @@ void search::init(srslte::rf_buffer_t& buffer_, srslte::log* log_h_, uint32_t no
   // Set options defined in expert section
   p->set_ue_sync_opts(&cs.ue_sync, 0);
 
-  force_N_id_2 = -1;
+  force_N_id_2 = force_N_id_2_;
 }
 
 void search::reset()

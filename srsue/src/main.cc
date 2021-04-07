@@ -391,6 +391,10 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
      bpo::value<uint32_t>(&args->phy.nof_out_of_sync_events)->default_value(20),
      "Number of PHY out-sync events before sending an out-sync event to RRC")
 
+    ("phy.force_N_id_2",
+     bpo::value<int>(&args->phy.force_N_id_2)->default_value(-1),
+     "Force using a specific PSS (set to -1 to allow all PSSs).")
+
     // UE simulation args
     ("sim.airplane_t_on_ms",
      bpo::value<int>(&args->stack.nas.sim.airplane_t_on_ms)->default_value(-1),

@@ -92,7 +92,7 @@ void sync::init(srslte::radio_interface_phy* _radio,
   worker_com->set_nof_workers(nof_workers);
 
   // Initialize cell searcher
-  search_p.init(sf_buffer, log_h, nof_rf_channels, this);
+  search_p.init(sf_buffer, log_h, nof_rf_channels, this, worker_com->args->force_N_id_2);
 
   // Initialize SFN synchronizer, it uses only pcell buffer
   sfn_p.init(&ue_sync, worker_com->args, sf_buffer, sf_buffer.size(), log_h);
