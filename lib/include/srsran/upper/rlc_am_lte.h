@@ -15,6 +15,7 @@
 
 #include "srsran/adt/accumulators.h"
 #include "srsran/adt/circular_array.h"
+#include "srsran/adt/circular_map.h"
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/common.h"
 #include "srsran/common/srsran_assert.h"
@@ -73,53 +74,39 @@ struct pdcp_sdu_info_t {
 
 template <class T>
 struct rlc_ringbuffer_t {
-  rlc_ringbuffer_t() { clear(); }
   T& add_pdu(size_t sn)
   {
     srsran_expect(not has_sn(sn), "The same SN=%zd should not be added twice", sn);
+    window.overwrite(sn, T{});
     window[sn].rlc_sn = sn;
-    active_flag[sn]   = true;
-    count++;
     return window[sn];
   }
   void remove_pdu(size_t sn)
   {
     srsran_expect(has_sn(sn), "The removed SN=%zd is not in the window", sn);
-    window[sn]      = {};
-    active_flag[sn] = false;
-    count--;
+    window.erase(sn);
   }
-  T& operator[](size_t sn)
-  {
-    srsran_expect(has_sn(sn), "The accessed SN=%zd is not in the window", sn);
-    return window[sn];
-  }
-  size_t size() const { return count; }
-  bool   empty() const { return count == 0; }
-  void   clear()
-  {
-    std::fill(active_flag.begin(), active_flag.end(), false);
-    count = 0;
-  }
+  T&     operator[](size_t sn) { return window[sn]; }
+  size_t size() const { return window.size(); }
+  bool   empty() const { return window.empty(); }
+  void   clear() { window.clear(); }
 
-  bool has_sn(uint32_t sn) const { return active_flag[sn] and (window[sn].rlc_sn == sn); }
+  bool has_sn(uint32_t sn) const { return window.contains(sn); }
 
   // Return the sum data bytes of all active PDUs (check PDU is non-null)
   uint32_t get_buffered_bytes()
   {
     uint32_t buff_size = 0;
     for (const auto& pdu : window) {
-      if (pdu.buf != nullptr) {
-        buff_size += pdu.buf->N_bytes;
+      if (pdu.second.buf != nullptr) {
+        buff_size += pdu.second.buf->N_bytes;
       }
     }
     return buff_size;
   }
 
 private:
-  size_t                                           count       = 0;
-  srsran::circular_array<bool, RLC_AM_WINDOW_SIZE> active_flag = {};
-  srsran::circular_array<T, RLC_AM_WINDOW_SIZE>    window;
+  srsran::static_circular_map<uint32_t, T, RLC_AM_WINDOW_SIZE> window;
 };
 
 struct buffered_pdcp_pdu_list {

@@ -170,6 +170,16 @@ public:
     return iterator(this, idx);
   }
 
+  template <typename U>
+  void overwrite(K id, U&& obj)
+  {
+    size_t idx = id % N;
+    if (present[idx]) {
+      erase(buffer[idx].get().first);
+    }
+    insert(id, std::forward<U>(obj));
+  }
+
   bool erase(K id)
   {
     if (not contains(id)) {
