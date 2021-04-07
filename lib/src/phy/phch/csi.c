@@ -20,7 +20,7 @@
 /// Implements SNRI to CQI conversion
 uint32_t csi_snri_db_to_cqi(srsran_csi_cqi_table_t table, float snri_db)
 {
-  return 6;
+  return 15;
 }
 
 // Implements CSI report triggers

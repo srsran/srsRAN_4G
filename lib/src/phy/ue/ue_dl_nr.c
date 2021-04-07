@@ -14,7 +14,7 @@
 #include <complex.h>
 
 #define UE_DL_NR_PDCCH_CORR_DEFAULT_THR 0.5f
-#define UE_DL_NR_PDCCH_EPRE_DEFAULT_THR -10.0f
+#define UE_DL_NR_PDCCH_EPRE_DEFAULT_THR -80.0f
 
 static int ue_dl_nr_alloc_prb(srsran_ue_dl_nr_t* q, uint32_t new_nof_prb)
 {

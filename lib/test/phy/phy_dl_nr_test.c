@@ -367,8 +367,6 @@ int main(int argc, char** argv)
           goto clean_exit;
         }
 
-        srsran_vec_fprint_i(stdout, (int*)ncce_candidates, nof_candidates);
-
         // Setup DCI location
         srsran_dci_location_t dci_location = {};
         dci_location.ncce                  = ncce_candidates[0];
