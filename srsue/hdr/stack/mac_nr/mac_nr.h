@@ -22,6 +22,7 @@
 #include "srsran/interfaces/mac_interface_types.h"
 #include "srsran/interfaces/ue_nr_interfaces.h"
 #include "srsran/srslog/srslog.h"
+#include "srsue/hdr/stack/mac_common/mac_common.h"
 #include "srsue/hdr/stack/mac_nr/mux_nr.h"
 #include "srsue/hdr/stack/ue_stack_base.h"
 
@@ -81,6 +82,9 @@ public:
   uint64_t get_contention_id();
   uint16_t get_crnti();
 
+  /// Interface for MUX
+  srsran::mac_sch_subpdu_nr::lcg_bsr_t generate_sbsr();
+
   void msg3_flush() { mux.msg3_flush(); }
   bool msg3_is_transmitted() { return mux.msg3_is_transmitted(); }
   void msg3_prepare() { mux.msg3_prepare(); }
@@ -108,6 +112,12 @@ private:
 
   bool has_crnti();
   bool is_valid_crnti(const uint16_t crnti);
+
+  std::vector<srsran::logical_channel_config_t> logical_channels; // stores the raw configs provide by upper layers
+
+  /// LCID and LCG related members and helper functions
+  void                update_buffer_states();
+  mac_buffer_states_t mac_buffer_states;
 
   /// Interaction with rest of the stack
   phy_interface_mac_nr*         phy = nullptr;

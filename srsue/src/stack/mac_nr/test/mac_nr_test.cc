@@ -188,11 +188,6 @@ int mac_nr_ul_logical_channel_prioritization_test1()
     mac.setup_lcid(channel);
   }
 
-  srsran::bsr_cfg_nr_t bsr_cfg = {};
-  bsr_cfg.periodic_timer       = 20;
-  bsr_cfg.retx_timer           = 320;
-  TESTASSERT(mac.set_config(bsr_cfg) == SRSRAN_SUCCESS);
-
   // write dummy data to DRB2
   rlc.write_sdu(4, 10);
 
@@ -233,6 +228,159 @@ int mac_nr_ul_logical_channel_prioritization_test1()
   return SRSRAN_SUCCESS;
 }
 
+// Basic test for periodic BSR transmission
+int mac_nr_ul_periodic_bsr_test()
+{
+  // PDU layout (10 B in total)
+  // - SBSR
+  // - 6B LCID=4
+  const uint8_t tv1[] = {0x3d, 0xd1, 0x04, 0x06, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04};
+
+  // PDU layout (10 B in total)
+  // - 8B LCID=4
+  const uint8_t tv2[] = {0x04, 0x08, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04};
+
+  // dummy layers
+  dummy_phy   phy;
+  rlc_dummy   rlc;
+  rrc_dummy   rrc;
+  stack_dummy stack;
+
+  // the actual MAC
+  mac_nr mac(&stack.task_sched);
+
+  mac_nr_args_t args = {};
+  mac.init(args, &phy, &rlc, &rrc);
+
+  stack.init(&mac, &phy);
+  const uint16_t crnti = 0x1001;
+
+  // generate config (default DRB2 config for EN-DC)
+  std::vector<srsran::logical_channel_config_t> lcids;
+  srsran::logical_channel_config_t              config = {};
+  config.lcid                                          = 4;
+  config.lcg                                           = 6;
+  config.PBR                                           = 0;
+  config.BSD                                           = 1000; // 1000ms
+  config.priority                                      = 11;
+  lcids.push_back(config);
+
+  // setup LCIDs in MAC
+  for (auto& channel : lcids) {
+    mac.setup_lcid(channel);
+  }
+
+  srsran::bsr_cfg_nr_t bsr_cfg = {};
+  bsr_cfg.periodic_timer       = 20;
+  bsr_cfg.retx_timer           = 320;
+  TESTASSERT(mac.set_config(bsr_cfg) == SRSRAN_SUCCESS);
+
+  // run TTI to establish LCGs old buffer states at BSR
+  uint32_t tti = 0;
+  stack.run_tti(tti++);
+
+  // write large amount of dummy data to DRB2
+  rlc.write_sdu(4, 2000);
+
+  // run TTI to setup Bj, BSR should be generated
+  stack.run_tti(tti++);
+  usleep(100);
+
+  // create UL action and grant and read MAC PDU
+  {
+    mac_interface_phy_nr::tb_action_ul_t    ul_action = {};
+    mac_interface_phy_nr::mac_nr_grant_ul_t mac_grant = {};
+
+    mac_grant.rnti = crnti; // make sure MAC picks it up as valid UL grant
+    mac_grant.pid  = 0;
+    mac_grant.rnti = 0x1001;
+    mac_grant.tti  = 0;
+    mac_grant.tbs  = 10;
+    int cc_idx     = 0;
+
+    // Send grant to MAC and get action for this TB
+    mac.new_grant_ul(cc_idx, mac_grant, &ul_action);
+
+    // print generated PDU
+    srslog::fetch_basic_logger("MAC").info(
+        ul_action.tb.payload->msg, mac_grant.tbs, "Generated PDU (%d B)", mac_grant.tbs);
+#if HAVE_PCAP
+    pcap_handle->write_ul_crnti_nr(
+        ul_action.tb.payload->msg, mac_grant.tbs, mac_grant.rnti, UE_ID, mac_grant.pid, mac_grant.tti);
+#endif
+
+    TESTASSERT(memcmp(ul_action.tb.payload->msg, tv1, sizeof(tv1)) == 0);
+  }
+
+  // for the next 19 TTI, until the periodic BSR is triggered again, no BSR should be included in the MAC PDU
+  for (int i = 0; i < bsr_cfg.periodic_timer - 1; ++i) {
+    stack.run_tti(tti++);
+    usleep(100);
+
+    // create UL action and grant and read MAC PDU
+    {
+      mac_interface_phy_nr::tb_action_ul_t    ul_action = {};
+      mac_interface_phy_nr::mac_nr_grant_ul_t mac_grant = {};
+
+      mac_grant.rnti = crnti; // make sure MAC picks it up as valid UL grant
+      mac_grant.pid  = 0;
+      mac_grant.rnti = 0x1001;
+      mac_grant.tti  = 0;
+      mac_grant.tbs  = 10;
+      int cc_idx     = 0;
+
+      // Send grant to MAC and get action for this TB
+      mac.new_grant_ul(cc_idx, mac_grant, &ul_action);
+
+      // print generated PDU
+      srslog::fetch_basic_logger("MAC").info(
+          ul_action.tb.payload->msg, mac_grant.tbs, "Generated PDU (%d B)", mac_grant.tbs);
+#if HAVE_PCAP
+      pcap_handle->write_ul_crnti_nr(
+          ul_action.tb.payload->msg, mac_grant.tbs, mac_grant.rnti, UE_ID, mac_grant.pid, mac_grant.tti);
+#endif
+
+      TESTASSERT(memcmp(ul_action.tb.payload->msg, tv2, sizeof(tv2)) == 0);
+    }
+  }
+
+  // run TTI to setup Bj, the same BSR should be generated again
+  stack.run_tti(tti++);
+  usleep(100);
+
+  // create UL action and grant and read MAC PDU
+  {
+    mac_interface_phy_nr::tb_action_ul_t    ul_action = {};
+    mac_interface_phy_nr::mac_nr_grant_ul_t mac_grant = {};
+
+    mac_grant.rnti = crnti; // make sure MAC picks it up as valid UL grant
+    mac_grant.pid  = 0;
+    mac_grant.rnti = 0x1001;
+    mac_grant.tti  = 0;
+    mac_grant.tbs  = 10;
+    int cc_idx     = 0;
+
+    // Send grant to MAC and get action for this TB
+    mac.new_grant_ul(cc_idx, mac_grant, &ul_action);
+
+    // print generated PDU
+    srslog::fetch_basic_logger("MAC").info(
+        ul_action.tb.payload->msg, mac_grant.tbs, "Generated PDU (%d B)", mac_grant.tbs);
+#if HAVE_PCAP
+    pcap_handle->write_ul_crnti_nr(
+        ul_action.tb.payload->msg, mac_grant.tbs, mac_grant.rnti, UE_ID, mac_grant.pid, mac_grant.tti);
+#endif
+
+    TESTASSERT(memcmp(ul_action.tb.payload->msg, tv1, sizeof(tv1)) == 0);
+  }
+
+  // make sure MAC PDU thread picks up before stopping
+  stack.run_tti(tti++);
+  mac.stop();
+
+  return SRSRAN_SUCCESS;
+}
+
 int main()
 {
 #if HAVE_PCAP
@@ -247,6 +395,7 @@ int main()
 
   TESTASSERT(msg3_test() == SRSRAN_SUCCESS);
   TESTASSERT(mac_nr_ul_logical_channel_prioritization_test1() == SRSRAN_SUCCESS);
+  TESTASSERT(mac_nr_ul_periodic_bsr_test() == SRSRAN_SUCCESS);
 
   return SRSRAN_SUCCESS;
 }

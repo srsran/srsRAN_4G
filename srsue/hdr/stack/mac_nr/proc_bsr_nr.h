@@ -18,6 +18,7 @@
 
 #include "proc_sr_nr.h"
 #include "srsran/common/task_scheduler.h"
+#include "srsran/mac/mac_sch_pdu_nr.h"
 #include "srsran/srslog/srslog.h"
 #include "srsue/hdr/stack/mac_common/mac_common.h"
 
@@ -34,21 +35,15 @@ public:
   // TS 38.321 Sec 6.1.3.1
   typedef enum { SHORT_BSR, LONG_BSR, SHORT_TRUNC_BSR, LONG_TRUNC_BSR } bsr_format_nr_t;
 
-  // FIXME: this will be replaced
-  typedef struct {
-    bsr_format_nr_t format;
-    uint32_t        buff_size[4];
-  } bsr_t;
-
-  /// MUX calls BSR to let it generate a padding BSR if there is space in PDU.
-  virtual bool generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t* bsr) = 0;
+  /// MUX calls BSR to receive the buffer state of a single LCG.
+  virtual srsran::mac_sch_subpdu_nr::lcg_bsr_t generate_sbsr() = 0;
 };
 
 class mux_interface_bsr_nr
 {
 public:
   /// Inform MUX unit to that a BSR needs to be generated in the next UL transmission.
-  virtual void generate_bsr_mac_ce() = 0;
+  virtual void generate_bsr_mac_ce(const bsr_interface_mux_nr::bsr_format_nr_t& format) = 0;
 };
 
 /**
@@ -59,25 +54,24 @@ public:
 class proc_bsr_nr : public srsran::timer_callback, public bsr_interface_mux_nr
 {
 public:
-  explicit proc_bsr_nr(srslog::basic_logger& logger) : logger(logger) {}
+  explicit proc_bsr_nr(srslog::basic_logger& logger_) : logger(logger_) {}
   int  init(proc_sr_nr*                    sr_proc,
             mux_interface_bsr_nr*          mux_,
             rlc_interface_mac*             rlc,
             srsran::ext_task_sched_handle* task_sched_);
-  void step(uint32_t tti);
+  void step(uint32_t tti, const mac_buffer_states_t& new_buffer_state);
   void reset();
   int  set_config(const srsran::bsr_cfg_nr_t& bsr_cfg);
 
   int      setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority);
   void     timer_expired(uint32_t timer_id);
-  uint32_t get_buffer_state();
 
   /// Called by MAC when an UL grant is received
   void new_grant_ul(uint32_t grant_size);
 
-  // bool     need_to_send_bsr();
-  bool generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t* bsr);
-  void update_bsr_tti_end(const bsr_t* bsr);
+  /// MUX interface for BSR generation
+  srsran::mac_sch_subpdu_nr::lcg_bsr_t generate_sbsr();
+  bool                                 generate_padding_bsr(uint32_t nof_padding_bytes);
 
 private:
   const static int QUEUE_STATUS_PERIOD_MS = 1000;
@@ -94,27 +88,20 @@ private:
 
   bool initiated = false;
 
-  const static int MAX_NOF_LCG = 8;
+  mac_buffer_states_t buffer_state;
 
-  typedef struct {
-    int      priority;
-    uint32_t old_buffer;
-    uint32_t new_buffer;
-  } lcid_t;
-
-  std::map<uint32_t, lcid_t> lcgs[MAX_NOF_LCG]; // groups LCID in LCG
+  // map of LCGs and their priorities, key is the priority (sorted) and the value the LCG
+  std::map<uint32_t, uint32_t> lcg_priorities;
 
   bsr_trigger_type_t triggered_bsr_type = NONE;
 
   void     print_state();
   void     set_trigger(bsr_trigger_type_t new_trigger);
-  void     update_new_data();
-  void     update_old_buffer();
   bool     check_highest_channel();
-  bool     check_new_data();
+  bool     check_new_data(const mac_buffer_states_t& new_buffer_state);
   bool     check_any_channel();
-  uint32_t get_buffer_state_lcg(uint32_t lcg);
-  bool     generate_bsr(bsr_t* bsr, uint32_t nof_padding_bytes);
+
+  uint8_t buff_size_bytes_to_field(uint32_t buffer_size, bsr_format_nr_t format);
 
   uint32_t find_max_priority_lcg_with_data();
 

@@ -136,6 +136,9 @@ void mac_sch_subpdu_nr::set_sbsr(const lcg_bsr_t bsr_)
   ce_write_buffer.at(0) = ((bsr_.lcg_id & 0x07) << 5) | (bsr_.buffer_size & 0x1f);
 }
 
+// Turn a subPDU into a long BSR with variable size
+void mac_sch_subpdu_nr::set_lbsr(const std::array<mac_sch_subpdu_nr::lcg_bsr_t, max_num_lcg_lbsr> bsr_) {}
+
 // Section 6.1.2
 uint32_t mac_sch_subpdu_nr::write_subpdu(const uint8_t* start_)
 {
@@ -397,6 +400,14 @@ uint32_t mac_sch_pdu_nr::add_sbsr_ce(const mac_sch_subpdu_nr::lcg_bsr_t bsr_)
 {
   mac_sch_subpdu_nr ce(this);
   ce.set_sbsr(bsr_);
+  return add_sudpdu(ce);
+}
+
+uint32_t
+mac_sch_pdu_nr::add_lbsr_ce(const std::array<mac_sch_subpdu_nr::lcg_bsr_t, mac_sch_subpdu_nr::max_num_lcg_lbsr> bsr_)
+{
+  mac_sch_subpdu_nr ce(this);
+  ce.set_lbsr(bsr_);
   return add_sudpdu(ce);
 }
 

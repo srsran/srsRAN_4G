@@ -88,6 +88,8 @@ private:
 
   std::map<uint32_t, lcid_t> lcgs[NOF_LCG]; // groups LCID in LCG
 
+  mac_buffer_states_t old_buffer_state;
+
   uint32_t find_max_priority_lcg_with_data();
 
   bsr_trigger_type_t triggered_bsr_type = NONE;

@@ -62,6 +62,10 @@ srsran::unique_byte_buffer_t mux_nr::get_pdu(uint32_t max_pdu_len)
     msg3_transmitted();
   } else {
     // Pack normal UL data PDU
+    if (add_bsr_ce == sbsr_ce) {
+      tx_pdu.add_sbsr_ce(mac.generate_sbsr());
+      add_bsr_ce = no_bsr;
+    }
 
     // TODO: Add proper priority handling
     for (const auto& lc : logical_channels) {
@@ -91,7 +95,7 @@ srsran::unique_byte_buffer_t mux_nr::get_pdu(uint32_t max_pdu_len)
   // Pack PDU
   tx_pdu.pack();
 
-  logger.info(phy_tx_pdu->msg, phy_tx_pdu->N_bytes, "Generated MAC PDU (%d B)", phy_tx_pdu->N_bytes);
+  logger.debug(phy_tx_pdu->msg, phy_tx_pdu->N_bytes, "Generated MAC PDU (%d B)", phy_tx_pdu->N_bytes);
 
   return phy_tx_pdu;
 }
@@ -127,6 +131,17 @@ bool mux_nr::msg3_is_empty()
   return msg3_buff->N_bytes == 0;
 }
 
-void mux_nr::generate_bsr_mac_ce() {}
+void mux_nr::generate_bsr_mac_ce(const bsr_interface_mux_nr::bsr_format_nr_t& format)
+{
+  switch (format) {
+    case bsr_interface_mux_nr::SHORT_BSR:
+      add_bsr_ce = sbsr_ce;
+      break;
+    case bsr_interface_mux_nr::LONG_BSR:
+      add_bsr_ce = lbsr_ce;
+    default:
+      logger.error("MUX can only be instructred to generate short or long BSRs.");
+  }
+}
 
 } // namespace srsue

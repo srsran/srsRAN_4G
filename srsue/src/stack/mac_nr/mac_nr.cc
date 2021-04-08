@@ -99,6 +99,31 @@ void mac_nr::run_tti(const uint32_t tti)
 {
   // Step all procedures
   logger.debug("Running MAC tti=%d", tti);
+
+  // Update state for all LCIDs/LCGs once so all procedures can use them
+  update_buffer_states();
+
+  proc_bsr.step(tti, mac_buffer_states);
+  proc_sr.step(tti);
+}
+
+void mac_nr::update_buffer_states()
+{
+  // reset variables
+  mac_buffer_states.reset();
+  for (auto& channel : logical_channels) {
+    uint32_t buffer_len = rlc->get_buffer_state(channel.lcid);
+    if (buffer_len > 0) {
+      mac_buffer_states.nof_lcids_with_data++;
+      if (channel.lcg != mac_buffer_states.last_non_zero_lcg) {
+        mac_buffer_states.nof_lcgs_with_data++;
+      }
+      mac_buffer_states.last_non_zero_lcg = channel.lcg;
+    }
+    mac_buffer_states.lcid_buffer_size[channel.lcid] += buffer_len;
+    mac_buffer_states.lcg_buffer_size[channel.lcg] += buffer_len;
+  }
+  logger.info("%s", mac_buffer_states.to_string());
 }
 
 mac_interface_phy_nr::sched_rnti_t mac_nr::get_ul_sched_rnti_nr(const uint32_t tti)
@@ -154,6 +179,11 @@ bool mac_nr::has_crnti()
 uint16_t mac_nr::get_crnti()
 {
   return c_rnti;
+}
+
+srsran::mac_sch_subpdu_nr::lcg_bsr_t mac_nr::generate_sbsr()
+{
+  return proc_bsr.generate_sbsr();
 }
 
 void mac_nr::bch_decoded_ok(uint32_t tti, srsran::unique_byte_buffer_t payload)
@@ -284,6 +314,9 @@ int mac_nr::setup_lcid(const srsran::logical_channel_config_t& config)
               config.PBR,
               config.BSD,
               config.bucket_size);
+
+  // store full config
+  logical_channels.push_back(config);
 
   return SRSRAN_SUCCESS;
 }
