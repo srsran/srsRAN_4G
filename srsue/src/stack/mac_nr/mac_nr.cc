@@ -360,7 +360,23 @@ void mac_nr::handle_pdu(srsran::unique_byte_buffer_t pdu)
                 subpdu.get_c_rnti(),
                 subpdu.get_lcid(),
                 subpdu.get_sdu_length());
-    rlc->write_pdu(subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());
+
+    // Handle Timing Advance CE
+    switch (subpdu.get_lcid()) {
+      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::DRX_CMD:
+        logger.info("DRX CE not implemented.");
+        break;
+      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::TA_CMD:
+        logger.info("Timing Advance CE not implemented.");
+        break;
+      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CON_RES_ID:
+        logger.info("Contention Resolution CE not implemented.");
+        break;
+      default:
+        if (subpdu.is_sdu()) {
+          rlc->write_pdu(subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());
+        }
+    }
   }
 }
 
