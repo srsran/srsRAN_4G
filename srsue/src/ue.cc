@@ -196,23 +196,21 @@ int ue::parse_args(const all_args_t& args_)
     return SRSRAN_ERROR;
   }
 
-  if (args.rf.nof_carriers > SRSRAN_MAX_CARRIERS) {
-    fprintf(stderr, "Maximum number of carriers exceeded (%d > %d)\n", args.rf.nof_carriers, SRSRAN_MAX_CARRIERS);
-    return SRSRAN_ERROR;
-  }
+  args.rf.nof_carriers = args.phy.nof_lte_carriers + args.phy.nof_nr_carriers;
 
-  if (args.rf.nof_carriers <= args.phy.nof_nr_carriers) {
+  if (args.rf.nof_carriers > SRSRAN_MAX_CARRIERS) {
     fprintf(stderr,
-            "Maximum number of carriers enough for NR and LTE (%d <= %d)\n",
+            "Maximum number of carriers exceeded (%d > %d) (nof_lte_carriers %d + nof_nr_carriers %d)\n",
             args.rf.nof_carriers,
+            SRSRAN_MAX_CARRIERS,
+            args.phy.nof_lte_carriers,
             args.phy.nof_nr_carriers);
     return SRSRAN_ERROR;
   }
 
   // replicate some RF parameter to make them available to PHY
-  args.phy.nof_lte_carriers = args.rf.nof_carriers - args.phy.nof_nr_carriers;
-  args.phy.nof_rx_ant       = args.rf.nof_antennas;
-  args.phy.agc_enable       = args.rf.rx_gain < 0.0f;
+  args.phy.nof_rx_ant  = args.rf.nof_antennas;
+  args.phy.agc_enable  = args.rf.rx_gain < 0.0f;
 
   // populate DL EARFCN list
   if (not args.phy.dl_earfcn.empty()) {

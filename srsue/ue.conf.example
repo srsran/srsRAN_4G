@@ -5,16 +5,10 @@
 #####################################################################
 # RF configuration
 #
-# dl_earfcn:   Downlink EARFCN code.
 # freq_offset: Uplink and Downlink optional frequency offset (in Hz)
 # tx_gain: Transmit gain (dB). 
 # rx_gain: Optional receive gain (dB). If disabled, AGC if enabled
 #
-# Optional parameters: 
-# dl_nr_arfcn:        Downlink NR ARFCN for EN-DC
-# dl_freq:            Override DL frequency corresponding to dl_earfcn
-# ul_freq:            Override UL frequency corresponding to dl_earfcn
-# nof_carriers:       Number of carriers
 # nof_antennas:       Number of antennas per carrier (all carriers have the same number of antennas)
 # device_name:        Device driver family. Supported options: "auto" (uses first found), "UHD" or "bladeRF" 
 # device_args:        Arguments for the device driver. Options are "auto" or any string. 
@@ -29,13 +23,10 @@
 #                     Default is auto (yes for UHD, no for rest)
 #####################################################################
 [rf]
-dl_earfcn = 3350
-#dl_nr_arfcn = 632628
 freq_offset = 0
 tx_gain = 80
 #rx_gain = 40
 
-#nof_carriers = 1
 #nof_antennas = 1
 
 # For best performance in 2x2 MIMO and >= 15 MHz use the following device_args settings:
@@ -51,6 +42,35 @@ tx_gain = 80
 # Example for ZMQ-based operation with TCP transport for I/Q samples
 #device_name = zmq
 #device_args = tx_port=tcp://*:2001,rx_port=tcp://localhost:2000,id=ue,base_srate=23.04e6
+
+#####################################################################
+# EUTRA RAT configuration
+# 
+# dl_earfcn:   Downlink EARFCN list.
+#
+# Optional parameters: 
+# dl_freq:            Override DL frequency corresponding to dl_earfcn
+# ul_freq:            Override UL frequency corresponding to dl_earfcn
+# nof_carriers:       Number of carriers
+#####################################################################
+[rat.eutra]
+dl_earfcn = 3350
+#nof_carriers = 1
+
+#####################################################################
+# NR RAT configuration
+# 
+# Optional parameters: 
+# dl_arfcn:        Downlink NR ARFCN for EN-DC
+# dl_freq:         Override DL frequency corresponding to rat.nr.dl_arfcn
+# nof_carriers:    Number of NR carriers (must be at least 1 for DC support)
+# nof_prb:         Number of PRBs 
+#####################################################################
+[rat.nr]
+# dl_arfcn = 634240
+# dl_freq = 3513.6e6
+# nof_prb = 52
+# nof_carriers = 0
 
 #####################################################################
 # Packet capture configuration
