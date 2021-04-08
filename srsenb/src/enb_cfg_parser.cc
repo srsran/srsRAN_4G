@@ -35,7 +35,7 @@
 #define ASSERT_VALID_CFG(cond, msg_fmt, ...)                                                                           \
   do {                                                                                                                 \
     if (not(cond)) {                                                                                                   \
-      fprintf(stderr, "Error: Invalid configuration - " msg_fmt, ##__VA_ARGS__);                                       \
+      fprintf(stderr, "Error: Invalid configuration - " msg_fmt "\n", ##__VA_ARGS__);                                  \
       return SRSRAN_ERROR;                                                                                             \
     }                                                                                                                  \
   } while (0)
