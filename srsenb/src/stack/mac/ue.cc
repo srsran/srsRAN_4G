@@ -196,7 +196,9 @@ void cc_buffer_handler::deallocate_cc()
 
 void cc_buffer_handler::reset()
 {
-  cc_softbuffers->clear();
+  if (not empty()) {
+    cc_softbuffers->clear();
+  }
 }
 
 ue::ue(uint16_t                                 rnti_,
