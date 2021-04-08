@@ -326,6 +326,26 @@ int mac_rar_pdu_unpack_test8()
   return SRSRAN_SUCCESS;
 }
 
+int mac_dl_sch_pdu_unpack_test9()
+{
+  // MAC PDU with Timing Advance CE and padding
+  uint8_t tv[] = {0x3d, 0x1f, 0x3f, 0x00, 0x00, 0x00};
+
+  if (pcap_handle) {
+    pcap_handle->write_dl_crnti_nr(tv, sizeof(tv), PCAP_CRNTI, true, PCAP_TTI);
+  }
+
+  srsran::mac_sch_pdu_nr pdu;
+  pdu.unpack(tv, sizeof(tv));
+  TESTASSERT(pdu.get_num_subpdus() == 2);
+  mac_sch_subpdu_nr subpdu = pdu.get_subpdu(0);
+
+  TESTASSERT(subpdu.get_ta().tag_id == 0);
+  TESTASSERT(subpdu.get_ta().ta_command == 31);
+
+  return SRSRAN_SUCCESS;
+}
+
 int mac_ul_sch_pdu_unpack_test1()
 {
   // UL-SCH MAC PDU with fixed-size CE and DL-SCH subheader with 16-bit length field
@@ -654,6 +674,11 @@ int main(int argc, char** argv)
 
   if (mac_rar_pdu_unpack_test8()) {
     fprintf(stderr, "mac_rar_pdu_unpack_test8() failed.\n");
+    return SRSRAN_ERROR;
+  }
+
+  if (mac_dl_sch_pdu_unpack_test9()) {
+    fprintf(stderr, "mac_dl_sch_pdu_unpack_test9() failed.\n");
     return SRSRAN_ERROR;
   }
 

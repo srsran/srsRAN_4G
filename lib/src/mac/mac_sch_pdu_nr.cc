@@ -218,6 +218,16 @@ uint8_t mac_sch_subpdu_nr::get_pcmax()
   return 0;
 }
 
+mac_sch_subpdu_nr::ta_t mac_sch_subpdu_nr::get_ta()
+{
+  ta_t ta = {};
+  if (lcid == TA_CMD) {
+    ta.tag_id     = (sdu[0] & 0xc0) >> 6;
+    ta.ta_command = sdu[0] & 0x3f;
+  }
+  return ta;
+}
+
 mac_sch_subpdu_nr::lcg_bsr_t mac_sch_subpdu_nr::get_sbsr()
 {
   lcg_bsr_t sbsr = {};

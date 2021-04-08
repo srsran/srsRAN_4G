@@ -79,6 +79,13 @@ public:
   static const uint8_t                    max_num_lcg_lbsr = 8;
   std::array<lcg_bsr_t, max_num_lcg_lbsr> get_lbsr();
 
+  // TA
+  struct ta_t {
+    uint8_t tag_id;
+    uint8_t ta_command;
+  };
+  ta_t get_ta();
+
   // setters
   void set_sdu(const uint32_t lcid_, const uint8_t* payload_, const uint32_t len_);
   void set_padding(const uint32_t len_);
