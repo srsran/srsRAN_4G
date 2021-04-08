@@ -43,12 +43,13 @@ public:
 
   void* allocate(size_t sz, size_t alignment)
   {
-    void* alloc_start = align_to(cur, alignment);
-    cur               = static_cast<uint8_t*>(alloc_start) + sz;
-    srsran_assert(cur <= end,
-                  "Linear Allocator buffer of size=%zd was exceeded (current size=%zd)",
-                  size(),
-                  nof_bytes_allocated());
+    void*    alloc_start = align_to(cur, alignment);
+    uint8_t* new_cur     = static_cast<uint8_t*>(alloc_start) + sz;
+    if (new_cur > end) {
+      // Cannot fit allocation in memory block
+      return nullptr;
+    }
+    cur = new_cur;
     return alloc_start;
   }
 

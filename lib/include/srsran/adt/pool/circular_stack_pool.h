@@ -39,7 +39,8 @@ class circular_stack_pool
 
 public:
   circular_stack_pool(size_t nof_objs_per_batch, size_t stack_size, size_t batch_thres, int initial_size = -1) :
-    central_cache(std::min(NofStacks, nof_objs_per_batch), stack_size, batch_thres, initial_size)
+    central_cache(std::min(NofStacks, nof_objs_per_batch), stack_size, batch_thres, initial_size),
+    logger(srslog::fetch_basic_logger("POOL"))
   {}
   circular_stack_pool(circular_stack_pool&&)      = delete;
   circular_stack_pool(const circular_stack_pool&) = delete;
@@ -66,13 +67,18 @@ public:
     if (not elem.alloc.is_init()) {
       void* block = central_cache.allocate_node(central_cache.get_node_max_size());
       if (block == nullptr) {
+        logger.warning("Failed to allocate memory block from central cache");
         return nullptr;
       }
       elem.key   = key;
       elem.alloc = linear_allocator(block, central_cache.get_node_max_size());
     }
     void* ptr = elem.alloc.allocate(size, alignment);
-    elem.count++;
+    if (ptr == nullptr) {
+      logger.warning("No space left in memory block with key=%zd of circular stack pool", key);
+    } else {
+      elem.count++;
+    }
     return ptr;
   }
 
@@ -98,6 +104,7 @@ public:
 private:
   srsran::circular_array<mem_block_elem_t, NofStacks> pools;
   srsran::background_mem_pool                         central_cache;
+  srslog::basic_logger&                               logger;
 };
 
 } // namespace srsran
