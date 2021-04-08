@@ -83,12 +83,8 @@ bool mac::init(const mac_args_t&        args_,
     new (ptr) ue_cc_softbuffers(nof_prb, SRSRAN_FDD_NOF_HARQ, SRSRAN_FDD_NOF_HARQ);
   };
   auto recycle_softbuffers = [](ue_cc_softbuffers& softbuffers) { softbuffers.clear(); };
-  softbuffer_pool.reset(
-      new srsran::background_obj_pool<ue_cc_softbuffers>(16,
-                                                         4,
-                                                         std::min(args.max_nof_ues, 16U), // initial allocation size
-                                                         init_softbuffers,
-                                                         recycle_softbuffers));
+  softbuffer_pool.reset(new srsran::background_obj_pool<ue_cc_softbuffers>(
+      8, 8, args.max_nof_ues, init_softbuffers, recycle_softbuffers));
 
   // Pre-alloc UE objects for first attaching users
   prealloc_ue(10);
