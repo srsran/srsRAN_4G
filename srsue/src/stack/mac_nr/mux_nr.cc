@@ -72,9 +72,14 @@ srsran::unique_byte_buffer_t mux_nr::get_pdu(uint32_t max_pdu_len)
       while (tx_pdu.get_remaing_len() >= MIN_RLC_PDU_LEN) {
         // read RLC PDU
         rlc_buff->clear();
-        uint8_t* rd      = rlc_buff->msg;
-        int      pdu_len = 0;
-        pdu_len          = rlc->read_pdu(lc.lcid, rd, tx_pdu.get_remaing_len() - 2);
+        uint8_t* rd = rlc_buff->msg;
+
+        // Determine space for RLC
+        uint32_t rlc_opportunity = tx_pdu.get_remaing_len();
+        rlc_opportunity -= tx_pdu.get_remaing_len() >= srsran::mac_sch_subpdu_nr::MAC_SUBHEADER_LEN_THRESHOLD ? 3 : 2;
+
+        // Read PDU from RLC
+        int pdu_len = rlc->read_pdu(lc.lcid, rd, rlc_opportunity);
 
         // Add SDU if RLC has something to tx
         if (pdu_len > 0) {
@@ -84,6 +89,7 @@ srsran::unique_byte_buffer_t mux_nr::get_pdu(uint32_t max_pdu_len)
           // add to MAC PDU and pack
           if (tx_pdu.add_sdu(lc.lcid, rlc_buff->msg, rlc_buff->N_bytes) != SRSRAN_SUCCESS) {
             logger.error("Error packing MAC PDU");
+            break;
           }
         } else {
           break;

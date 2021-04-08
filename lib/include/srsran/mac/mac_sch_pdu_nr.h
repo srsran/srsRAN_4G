@@ -51,7 +51,10 @@ public:
     PADDING = 0b111111,
   } nr_lcid_sch_t;
 
-  mac_sch_subpdu_nr(mac_sch_pdu_nr* parent_);
+  // SDUs up to 256 B can use the short 8-bit L field
+  static const int32_t MAC_SUBHEADER_LEN_THRESHOLD = 256;
+
+  mac_sch_subpdu_nr(mac_sch_pdu_nr* parent_) : parent(parent_), logger(&srslog::fetch_basic_logger("MAC")){};
 
   nr_lcid_sch_t get_type();
   bool          is_sdu();
@@ -100,7 +103,8 @@ public:
   static uint32_t sizeof_ce(uint32_t lcid, bool is_ul);
 
 private:
-  // protected:
+  srslog::basic_logger* logger;
+
   uint32_t lcid          = 0;
   int      header_length = 0;
   int      sdu_length    = 0;
