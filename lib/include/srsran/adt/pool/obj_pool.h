@@ -182,12 +182,21 @@ private:
 
   void allocate_batch_in_background_()
   {
-    std::shared_ptr<detached_pool_state> state_copy = state;
-    get_background_workers().push_task([state_copy]() {
-      std::lock_guard<std::mutex> lock(state_copy->mutex);
-      if (state_copy->pool != nullptr) {
-        state_copy->pool->grow_pool.allocate_batch();
+    if (state->dispatched) {
+      // new batch allocation already ongoing
+      return;
+    }
+    state->dispatched                               = true;
+    std::shared_ptr<detached_pool_state> state_sptr = state;
+    get_background_workers().push_task([state_sptr]() {
+      std::lock_guard<std::mutex> lock(state_sptr->mutex);
+      if (state_sptr->pool != nullptr) {
+        auto* pool = state_sptr->pool;
+        do {
+          pool->grow_pool.allocate_batch();
+        } while (pool->grow_pool.cache_size() < pool->thres);
       }
+      state_sptr->dispatched = false;
     });
   }
 
@@ -197,6 +206,7 @@ private:
   struct detached_pool_state {
     std::mutex              mutex;
     background_obj_pool<T>* pool;
+    bool                    dispatched = false;
     explicit detached_pool_state(background_obj_pool<T>* pool_) : pool(pool_) {}
   };
   std::shared_ptr<detached_pool_state> state;

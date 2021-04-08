@@ -121,7 +121,7 @@ public:
     void*                       node = grow_pool.allocate_node();
 
     if (grow_pool.size() < batch_threshold) {
-      allocate_batch_in_background();
+      allocate_batch_in_background_unlocked();
     }
     return node;
   }
@@ -139,23 +139,39 @@ public:
   }
 
   size_t get_node_max_size() const { return grow_pool.get_node_max_size(); }
-  size_t cache_size() const { return grow_pool.cache_size(); }
+  size_t cache_size() const
+  {
+    std::lock_guard<std::mutex> lock(state->mutex);
+    return grow_pool.cache_size();
+  }
 
 private:
-  void allocate_batch_in_background()
+  void allocate_batch_in_background_unlocked()
   {
-    std::shared_ptr<detached_pool_state> state_copy = state;
-    get_background_workers().push_task([state_copy]() {
-      std::lock_guard<std::mutex> lock(state_copy->mutex);
-      if (state_copy->pool != nullptr) {
-        state_copy->pool->grow_pool.allocate_batch();
+    if (state->dispatched) {
+      // new batch allocation already ongoing
+      return;
+    }
+    state->dispatched                               = true;
+    std::shared_ptr<detached_pool_state> state_sptr = state;
+    get_background_workers().push_task([state_sptr]() {
+      std::lock_guard<std::mutex> lock(state_sptr->mutex);
+      // check if pool has not been destroyed
+      if (state_sptr->pool != nullptr) {
+        auto* pool = state_sptr->pool;
+        do {
+          pool->grow_pool.allocate_batch();
+        } while (pool->grow_pool.cache_size() < pool->batch_threshold);
       }
+      state_sptr->dispatched = false;
     });
   }
 
+  // State is stored in a shared_ptr that may outlive the pool.
   struct detached_pool_state {
     std::mutex           mutex;
     background_mem_pool* pool;
+    bool                 dispatched = false;
     explicit detached_pool_state(background_mem_pool* pool_) : pool(pool_) {}
   };
   std::shared_ptr<detached_pool_state> state;
