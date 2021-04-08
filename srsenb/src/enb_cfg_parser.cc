@@ -32,6 +32,14 @@
     }                                                                                                                  \
   } while (0)
 
+#define ASSERT_VALID_CFG(cond, msg_fmt, ...)                                                                           \
+  do {                                                                                                                 \
+    if (not(cond)) {                                                                                                   \
+      fprintf(stderr, "Error: Invalid configuration - " msg_fmt, ##__VA_ARGS__);                                       \
+      return SRSRAN_ERROR;                                                                                             \
+    }                                                                                                                  \
+  } while (0)
+
 using namespace asn1::rrc;
 
 namespace srsenb {
@@ -893,11 +901,12 @@ int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_)
 
 int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_, const srsran_cell_t& cell_cfg_)
 {
-  // Sanity check
-  if (rrc_cfg_->cell_list.empty()) {
-    ERROR("No cell specified in RR config.");
-    return SRSRAN_ERROR;
-  }
+  // Sanity checks
+  ASSERT_VALID_CFG(not rrc_cfg_->cell_list.empty(), "No cell specified in rr.conf.");
+  ASSERT_VALID_CFG(args_->stack.mac.max_nof_ues <= SRSENB_MAX_UES and args_->stack.mac.max_nof_ues > 0,
+                   "mac.max_nof_ues=%d must be within [0, %d]",
+                   args_->stack.mac.max_nof_ues,
+                   SRSENB_MAX_UES);
 
   // Check for a forced  DL EARFCN or frequency (only valid for a single cell config (Xico's favorite feature))
   if (rrc_cfg_->cell_list.size() == 1) {

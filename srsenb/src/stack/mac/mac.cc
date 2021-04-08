@@ -466,8 +466,7 @@ uint16_t mac::allocate_ue()
       logger.error("UE pool empty. Ignoring RACH attempt.");
       return SRSRAN_INVALID_RNTI;
     }
-    uint16_t rnti    = ue_ptr->get_rnti();
-    size_t   max_ues = std::min((size_t)args.max_nof_ues, ue_db.capacity());
+    uint16_t rnti = ue_ptr->get_rnti();
 
     // Add UE to map
     {
@@ -477,7 +476,7 @@ uint16_t mac::allocate_ue()
         return SRSRAN_INVALID_RNTI;
       }
       if (ue_db.size() >= args.max_nof_ues) {
-        logger.warning("Maximum number of connected UEs %zd connected to the eNB. Ignoring PRACH", max_ues);
+        logger.warning("Maximum number of connected UEs %zd connected to the eNB. Ignoring PRACH", args.max_nof_ues);
         return SRSRAN_INVALID_RNTI;
       }
       auto ret = ue_db.insert(rnti, std::move(ue_ptr));
