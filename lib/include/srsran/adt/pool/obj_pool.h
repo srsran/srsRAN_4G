@@ -74,6 +74,14 @@ public:
     }
   }
 
+  unique_pool_ptr<T> make() final
+  {
+    return unique_pool_ptr<T>(do_allocate(), [this](T* ptr) {
+      // dtor is not called, as object is going to be recycled
+      do_deallocate(ptr);
+    });
+  }
+
   void allocate_batch()
   {
     uint8_t* batch_payload = static_cast<uint8_t*>(allocated.allocate_block());
@@ -89,7 +97,7 @@ public:
 private:
   friend class background_obj_pool<T>;
 
-  T* do_allocate() final
+  T* do_allocate()
   {
     if (cache.empty()) {
       allocate_batch();
@@ -99,10 +107,10 @@ private:
     return static_cast<T*>(top);
   }
 
-  void do_deallocate(void* payload_ptr) final
+  void do_deallocate(T* payload_ptr)
   {
-    recycle_oper(*static_cast<T*>(payload_ptr));
-    void* header_ptr = cache.get_node_header(payload_ptr);
+    recycle_oper(*payload_ptr);
+    void* header_ptr = cache.get_node_header(static_cast<void*>(payload_ptr));
     cache.push(header_ptr);
   }
 
@@ -146,10 +154,18 @@ public:
     grow_pool.clear();
   }
 
+  unique_pool_ptr<T> make() final
+  {
+    return unique_pool_ptr<T>(do_allocate(), [this](T* ptr) {
+      // dtor is not called, as object is going to be recycled
+      do_deallocate(ptr);
+    });
+  }
+
   size_t cache_size() const { return grow_pool.cache_size(); }
 
 private:
-  T* do_allocate() final
+  T* do_allocate()
   {
     std::lock_guard<std::mutex> lock(state->mutex);
     T*                          obj = grow_pool.do_allocate();
@@ -158,7 +174,7 @@ private:
     }
     return obj;
   }
-  void do_deallocate(void* ptr) final
+  void do_deallocate(T* ptr)
   {
     std::lock_guard<std::mutex> lock(state->mutex);
     return grow_pool.do_deallocate(ptr);
