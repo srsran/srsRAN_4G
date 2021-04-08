@@ -6,6 +6,7 @@
 // For the license information refer to format.h.
 
 #include "fmt/format-inl.h"
+#include <mutex>
 
 FMT_BEGIN_NAMESPACE
 namespace detail {
@@ -23,6 +24,60 @@ int format_float(char* buf, std::size_t size, const char* format, int precision,
   return precision < 0 ? snprintf_ptr(buf, size, format, value)
                        : snprintf_ptr(buf, size, format, precision, value);
 }
+
+#define NODE_POOL_SIZE (10000u)
+class dyn_node_pool
+{
+  using type = std::array<uint8_t, dynamic_arg_list::max_pool_node_size>;
+
+public:
+  dyn_node_pool() {
+    pool.resize(NODE_POOL_SIZE);
+    free_list.reserve(NODE_POOL_SIZE);
+    for (auto& elem : pool) {
+      free_list.push_back(elem.data());
+    }
+  }
+
+  void* alloc(std::size_t sz) {
+    assert(sz <= dynamic_arg_list::max_pool_node_size && "Object is too large to fit in the pool");
+
+    std::lock_guard<std::mutex> lock(m);
+    if (free_list.empty()) {
+      return nullptr;
+    }
+
+    auto* p = free_list.back();
+    free_list.pop_back();
+
+    return p;
+  }
+
+  void dealloc(void* p) {
+    if (!p) {
+      return;
+    }
+
+    std::lock_guard<std::mutex> lock(m);
+    free_list.push_back(reinterpret_cast<uint8_t *>(p));
+  }
+
+private:
+  std::vector<type> pool;
+  std::vector<uint8_t *> free_list;
+  mutable std::mutex m;
+};
+
+static dyn_node_pool node_pool;
+
+void *dynamic_arg_list::allocate_from_pool(std::size_t sz) {
+  return node_pool.alloc(sz);
+}
+
+void dynamic_arg_list::free_from_pool(void *ptr) {
+  return node_pool.dealloc(ptr);
+}
+
 }  // namespace detail
 
 template struct FMT_INSTANTIATION_DEF_API detail::basic_data<void>;
