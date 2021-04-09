@@ -23,12 +23,26 @@
 /// per frequency resource.
 #define NOF_PILOTS_X_FREQ_RES 18
 
+///@brief Maximum number of pilots in a PDCCH candidate location
+#define DMRS_PDCCH_MAX_NOF_PILOTS_CANDIDATE                                                                            \
+  ((SRSRAN_NRE / 3) * (1U << (SRSRAN_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR - 1U)) * 6U)
+
 #define DMRS_PDCCH_INFO_TX(...) INFO("PDCCH DMRS Tx: " __VA_ARGS__)
 #define DMRS_PDCCH_INFO_RX(...) INFO("PDCCH DMRS Rx: " __VA_ARGS__)
 #define DMRS_PDCCH_DEBUG_RX(...) DEBUG("PDCCH DMRS Rx: " __VA_ARGS__)
 
 /// @brief Enables interpolation at CCE frequency bandwidth to avoid interference with adjacent PDCCH DMRS
 #define DMRS_PDCCH_INTERPOLATE_GROUP 1
+
+///@brief Enables synchronization error pre-compensation before group interpolator. It should decrease EVM in expense of
+/// computing complexity.
+#define DMRS_PDCCH_SYNC_PRECOMPENSATE_INTERP 0
+
+///@brief Enables synchronization error pre-compensation before candidate measurement. It improves detection probability
+/// in expense of computing complexity.
+#define DMRS_PDCCH_SYNC_PRECOMPENSATE_MEAS 1
+
+///@brief Enables/Disables smoothing filter
 #define DMRS_PDCCH_SMOOTH_FILTER 0
 
 static uint32_t dmrs_pdcch_get_cinit(uint32_t slot_idx, uint32_t symbol_idx, uint32_t n_id)
@@ -362,21 +376,32 @@ int srsran_dmrs_pdcch_estimate(srsran_dmrs_pdcch_estimator_t* q,
   uint32_t group_size  = NOF_PILOTS_X_FREQ_RES / q->coreset.duration;
   for (uint32_t l = 0; l < q->coreset.duration; l++) {
     for (uint32_t j = 0; j < group_count; j++) {
-#if DMRS_PDCCH_SMOOTH_FILTER
       cf_t tmp[NOF_PILOTS_X_FREQ_RES];
 
-      // Smoothing filter group
-      srsran_conv_same_cf(&q->lse[l][j * group_size], q->filter, tmp, group_size, q->filter_len);
+      // Copy group into temporal vector
+      srsran_vec_cf_copy(tmp, &q->lse[l][j * group_size], group_size);
 
-      srsran_interp_linear_offset(
-          &q->interpolator, tmp, &q->ce[SRSRAN_NRE * q->coreset_bw * l + j * group_size * 4], 1, 3);
-#else  // DMRS_PDCCH_SMOOTH_FILTER
-      srsran_interp_linear_offset(&q->interpolator,
-                                  &q->lse[l][j * group_size],
-                                  &q->ce[SRSRAN_NRE * q->coreset_bw * l + j * group_size * 4],
-                                  1,
-                                  3);
+#if DMRS_PDCCH_SYNC_PRECOMPENSATE_INTERP
+      float sync_err = srsran_vec_estimate_frequency(tmp, group_size);
+      if (isnormal(sync_err)) {
+        srsran_vec_apply_cfo(tmp, sync_err, tmp, group_size);
+      }
+#endif // DMRS_PDCCH_SYNC_PRECOMPENSATION
+
+#if DMRS_PDCCH_SMOOTH_FILTER
+      // Smoothing filter group
+      srsran_conv_same_cf(tmp, q->filter, tmp, group_size, q->filter_len);
 #endif // DMRS_PDCCH_SMOOTH_FILTER
+
+      // Interpolate group
+      cf_t* dst = &q->ce[SRSRAN_NRE * q->coreset_bw * l + j * group_size * 4];
+      srsran_interp_linear_offset(&q->interpolator, tmp, dst, 1, 3);
+
+#if DMRS_PDCCH_SYNC_PRECOMPENSATE_INTERP
+      if (isnormal(sync_err)) {
+        srsran_vec_apply_cfo(dst, -sync_err / 4, dst, group_size * 4);
+      }
+#endif // DMRS_PDCCH_SYNC_PRECOMPENSATION
     }
   }
 #else  // DMRS_PDCCH_INTERPOLATE_GROUP
@@ -423,22 +448,32 @@ int srsran_dmrs_pdcch_get_measure(const srsran_dmrs_pdcch_estimator_t* q,
       srsran_vec_fprint_c(stdout, &q->lse[l][pilot_idx], nof_pilots);
     }
 
+    // Measure synchronization error
+    float tmp_sync_err = srsran_vec_estimate_frequency(&q->lse[l][pilot_idx], nof_pilots);
+    sync_err += tmp_sync_err;
+
+#if DMRS_PDCCH_SYNC_PRECOMPENSATE_MEAS
+    cf_t tmp[DMRS_PDCCH_MAX_NOF_PILOTS_CANDIDATE];
+
+    // Pre-compensate synchronization error
+    srsran_vec_apply_cfo(&q->lse[l][pilot_idx], tmp_sync_err, tmp, nof_pilots);
+#else  // DMRS_PDCCH_SYNC_PRECOMPENSATE_MEAS
+    const cf_t* tmp = &q->lse[l][pilot_idx];
+#endif // DMRS_PDCCH_SYNC_PRECOMPENSATE_MEAS
+
     // Correlate DMRS
-    corr[l] = srsran_vec_acc_cc(&q->lse[l][pilot_idx], nof_pilots) / (float)nof_pilots;
+    corr[l] = srsran_vec_acc_cc(tmp, nof_pilots) / (float)nof_pilots;
 
     // Measure symbol RSRP
     rsrp += __real__ corr[l] * __real__ corr[l] + __imag__ corr[l] * __imag__ corr[l];
 
     // Measure symbol EPRE
-    epre += srsran_vec_avg_power_cf(&q->lse[l][pilot_idx], nof_pilots);
+    epre += srsran_vec_avg_power_cf(tmp, nof_pilots);
 
     // Measure CFO only from the second and third symbols
     if (l != 0) {
       cfo += cargf(corr[l] * conjf(corr[l - 1]));
     }
-
-    // Measure synchronization error
-    sync_err += srsran_vec_estimate_frequency(&q->lse[l][pilot_idx], nof_pilots);
   }
 
   if (q->coreset.duration > 1) {
