@@ -179,7 +179,13 @@ float srsran_symbol_distance_s(uint32_t l0, uint32_t l1, uint32_t numerology)
 
 bool srsran_tdd_nr_is_dl(const srsran_tdd_config_nr_t* cfg, uint32_t numerology, uint32_t slot_idx)
 {
+  // Protect NULL pointer access
   if (cfg == NULL) {
+    return false;
+  }
+
+  // Prevent zero division
+  if (cfg->pattern1.period_ms == 0 && cfg->pattern2.period_ms == 0) {
     return false;
   }
 
@@ -195,13 +201,20 @@ bool srsran_tdd_nr_is_dl(const srsran_tdd_config_nr_t* cfg, uint32_t numerology,
     slot_idx_period -= cfg->pattern1.period_ms * slot_x_ms; // Remove pattern 1 offset
   }
 
+  // Check DL boundaries
   return (slot_idx_period < pattern->nof_dl_slots ||
           (slot_idx_period == pattern->nof_dl_slots && pattern->nof_dl_symbols != 0));
 }
 
 bool srsran_tdd_nr_is_ul(const srsran_tdd_config_nr_t* cfg, uint32_t numerology, uint32_t slot_idx)
 {
+  // Protect NULL pointer access
   if (cfg == NULL) {
+    return false;
+  }
+
+  // Prevent zero division
+  if (cfg->pattern1.period_ms == 0 && cfg->pattern2.period_ms == 0) {
     return false;
   }
 
@@ -220,5 +233,6 @@ bool srsran_tdd_nr_is_ul(const srsran_tdd_config_nr_t* cfg, uint32_t numerology,
   // Calculate slot in which UL starts
   uint32_t start_ul = (pattern->period_ms * slot_x_ms - pattern->nof_ul_slots) - 1;
 
+  // Check UL boundaries
   return (slot_idx_period > start_ul || (slot_idx_period == start_ul && pattern->nof_ul_symbols != 0));
 }
