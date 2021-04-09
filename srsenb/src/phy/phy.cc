@@ -99,6 +99,12 @@ int phy::init(const phy_args_t&            args,
               srsran::radio_interface_phy* radio_,
               stack_interface_phy_lte*     stack_)
 {
+  if (cfg.phy_cell_cfg.size() > SRSRAN_MAX_CARRIERS) {
+    phy_log.error(
+        "Number of carriers=%zd provided above its maximum=%zd", cfg.phy_cell_cfg.size(), SRSRAN_MAX_CARRIERS);
+    return SRSRAN_ERROR;
+  }
+
   mlockall((uint32_t)MCL_CURRENT | (uint32_t)MCL_FUTURE);
 
   // Add PHY lib log.
