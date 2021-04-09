@@ -267,7 +267,7 @@ bool cc_worker::work_dl()
     if (logger.info.enabled()) {
       std::array<char, 512> str;
       srsran_ue_dl_nr_pdsch_info(&ue_dl, &pdsch_cfg, pdsch_res.data(), str.data(), str.size());
-      logger.info(pdsch_res[0].payload, pdsch_cfg.grant.tb[0].tbs / 8, "PDSCH: cc=%d, %s", cc_idx, str.data());
+      logger.info(pdsch_res[0].payload, pdsch_cfg.grant.tb[0].tbs / 8, "PDSCH (NR): cc=%d, %s", cc_idx, str.data());
     }
 
     // Enqueue PDSCH ACK information only if the RNTI is type C
