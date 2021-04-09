@@ -89,7 +89,7 @@ private:
 
 class task_thread_pool
 {
-  using task_t = srsran::move_callback<void()>;
+  using task_t = srsran::move_callback<void(), default_move_callback_buffer_size, true>;
 
 public:
   task_thread_pool(uint32_t nof_workers = 1, bool start_deferred = false, int32_t prio_ = -1, uint32_t mask_ = 255);

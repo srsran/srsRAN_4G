@@ -33,9 +33,9 @@
 namespace srsran {
 
 //! Size of the buffer used by "move_callback<R(Args...)>" to store functors without calling "new"
-constexpr size_t default_buffer_size = 32;
+constexpr size_t default_move_callback_buffer_size = 32;
 
-template <class Signature, size_t Capacity = default_buffer_size>
+template <class Signature, size_t Capacity = default_move_callback_buffer_size, bool ForbidAlloc = false>
 class move_callback;
 
 namespace task_details {
@@ -115,8 +115,8 @@ using enable_if_big_capture =
 
 } // namespace task_details
 
-template <class R, class... Args, size_t Capacity>
-class move_callback<R(Args...), Capacity>
+template <class R, class... Args, size_t Capacity, bool ForbidAlloc>
+class move_callback<R(Args...), Capacity, ForbidAlloc>
 {
   static constexpr size_t capacity = Capacity >= sizeof(void*) ? Capacity : sizeof(void*); ///< size of buffer
   using storage_t                  = typename std::aligned_storage<capacity, alignof(detail::max_alignment_t)>::type;
@@ -140,6 +140,9 @@ public:
   template <typename T, task_details::enable_if_big_capture<T, capacity> = true>
   move_callback(T&& function)
   {
+    static_assert(
+        not ForbidAlloc,
+        "Failed to store provided callback in std::move_callback specialization that forbids heap allocations.");
     using FunT = typename std::decay<T>::type;
     static const task_details::heap_table_t<FunT, R, Args...> heap_oper_table{};
     oper_ptr = &heap_oper_table;
@@ -176,8 +179,8 @@ private:
   const oper_table_t* oper_ptr;
 };
 
-template <typename R, typename... Args, size_t Capacity>
-constexpr task_details::empty_table_t<R, Args...> move_callback<R(Args...), Capacity>::empty_table;
+template <typename R, typename... Args, size_t Capacity, bool ForbidAlloc>
+constexpr task_details::empty_table_t<R, Args...> move_callback<R(Args...), Capacity, ForbidAlloc>::empty_table;
 
 //! Generic move task
 using move_task_t = move_callback<void()>;
