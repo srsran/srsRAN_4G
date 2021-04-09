@@ -1037,7 +1037,7 @@ srsran::proc_outcome_t rrc::connection_reconf_no_ho_proc::react(const bool& conf
     if (nas_pdu != nullptr) {
       memcpy(nas_pdu->msg, pdu.data(), pdu.size());
       nas_pdu->N_bytes = pdu.size();
-      rrc_ptr->nas->write_pdu(RB_ID_SRB1, std::move(nas_pdu));
+      rrc_ptr->nas->write_pdu((uint32_t)srsran::lte_rb::srb1, std::move(nas_pdu));
     } else {
       rrc_ptr->logger.error("Couldn't allocate PDU in %s.", __FUNCTION__);
       return proc_outcome_t::error;
@@ -1332,9 +1332,9 @@ proc_outcome_t rrc::connection_reest_proc::init(asn1::rrc::reest_cause_e cause)
   reest_cellid = rrc_ptr->meas_cells.find_cell(reest_source_freq, reest_source_pci)->get_cell_id();
 
   Info("Starting... cause: \"%s\", UE context: {C-RNTI=0x%x, PCI=%d, CELL ID=%d}",
-       reest_cause == asn1::rrc::reest_cause_opts::recfg_fail ? "Reconfiguration failure"
-       : cause == asn1::rrc::reest_cause_opts::ho_fail        ? "Handover failure"
-                                                              : "Other failure",
+       reest_cause == asn1::rrc::reest_cause_opts::recfg_fail
+           ? "Reconfiguration failure"
+           : cause == asn1::rrc::reest_cause_opts::ho_fail ? "Handover failure" : "Other failure",
        reest_rnti,
        reest_source_pci,
        reest_cellid);

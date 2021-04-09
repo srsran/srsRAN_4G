@@ -157,7 +157,7 @@ public:
   void write_pdu_mch(uint32_t lcid, unique_byte_buffer_t pdu);
   void max_retx_attempted();
 
-  std::string get_rb_name(uint32_t lcid);
+  const char* get_rb_name(uint32_t lcid);
 
   void write_sdu(uint32_t lcid, unique_byte_buffer_t sdu);
 

@@ -96,7 +96,6 @@ public:
   void in_sync() final;
   void out_of_sync() final;
 
-
   // RLC interface
   void max_retx_attempted() final;
 
@@ -173,7 +172,7 @@ private:
   // RRC constants and timers
   srsran::timer_handler* timers = nullptr;
 
-  std::string get_rb_name(uint32_t lcid) final { return srsran::to_string((srsran::rb_id_nr_t)lcid); }
+  const char* get_rb_name(uint32_t lcid) final { return srsran::to_string((srsran::rb_id_nr_t)lcid); }
 
   typedef enum { Srb = 0, Drb } rb_type_t;
   typedef struct {
@@ -218,7 +217,7 @@ private:
   {
   public:
     explicit connection_reconf_no_ho_proc(rrc_nr* parent_);
-    srsran::proc_outcome_t init(const reconf_initiator_t initiator_,
+    srsran::proc_outcome_t init(const reconf_initiator_t  initiator_,
                                 const bool                endc_release_and_add_r15,
                                 const bool                nr_secondary_cell_group_cfg_r15_present,
                                 const asn1::dyn_octstring nr_secondary_cell_group_cfg_r15,

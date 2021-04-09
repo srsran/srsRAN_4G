@@ -237,8 +237,7 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
     return;
   }
 
-  parent->log_rrc_message(
-      srsenb::to_string((rb_id_t)lcid), Rx, pdu.get(), ul_dcch_msg, ul_dcch_msg.msg.c1().type().to_string());
+  parent->log_rrc_message(get_rb_name(lcid), Rx, pdu.get(), ul_dcch_msg, ul_dcch_msg.msg.c1().type().to_string());
 
   srsran::unique_byte_buffer_t original_pdu = std::move(pdu);
   pdu                                       = srsran::make_byte_buffer();
@@ -612,9 +611,9 @@ void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srsr
   mac_ctrl.handle_con_reest_complete();
 
   // Activate security for SRB1
-  parent->pdcp->config_security(rnti, RB_ID_SRB1, ue_security_cfg.get_as_sec_cfg());
-  parent->pdcp->enable_integrity(rnti, RB_ID_SRB1);
-  parent->pdcp->enable_encryption(rnti, RB_ID_SRB1);
+  parent->pdcp->config_security(rnti, rb_to_lcid(lte_rb::srb1), ue_security_cfg.get_as_sec_cfg());
+  parent->pdcp->enable_integrity(rnti, rb_to_lcid(lte_rb::srb1));
+  parent->pdcp->enable_encryption(rnti, rb_to_lcid(lte_rb::srb1));
 
   // Reestablish current DRBs during ConnectionReconfiguration
   bearer_list = std::move(parent->users.at(old_reest_rnti)->bearer_list);
@@ -790,8 +789,8 @@ void rrc::ue::handle_ue_info_resp(const asn1::rrc::ue_info_resp_r9_s& msg, srsra
 void rrc::ue::send_security_mode_command()
 {
   // Setup SRB1 security/integrity. Encryption is set on completion
-  parent->pdcp->config_security(rnti, RB_ID_SRB1, ue_security_cfg.get_as_sec_cfg());
-  parent->pdcp->enable_integrity(rnti, RB_ID_SRB1);
+  parent->pdcp->config_security(rnti, rb_to_lcid(lte_rb::srb1), ue_security_cfg.get_as_sec_cfg());
+  parent->pdcp->enable_integrity(rnti, rb_to_lcid(lte_rb::srb1));
 
   dl_dcch_msg_s        dl_dcch_msg;
   security_mode_cmd_s* comm = &dl_dcch_msg.msg.set_c1().set_security_mode_cmd();
@@ -807,7 +806,7 @@ void rrc::ue::handle_security_mode_complete(security_mode_complete_s* msg)
 {
   parent->logger.info("SecurityModeComplete transaction ID: %d", msg->rrc_transaction_id);
 
-  parent->pdcp->enable_encryption(rnti, RB_ID_SRB1);
+  parent->pdcp->enable_encryption(rnti, rb_to_lcid(lte_rb::srb1));
 }
 
 void rrc::ue::handle_security_mode_failure(security_mode_fail_s* msg)
@@ -1201,7 +1200,7 @@ void rrc::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg, std::string* octet_str)
       *octet_str = asn1::octstring_to_string(pdu->msg, pdu->N_bytes);
     }
 
-    parent->rlc->write_sdu(rnti, RB_ID_SRB0, std::move(pdu));
+    parent->rlc->write_sdu(rnti, rb_to_lcid(lte_rb::srb0), std::move(pdu));
   } else {
     parent->logger.error("Allocating pdu");
   }
@@ -1220,14 +1219,15 @@ bool rrc::ue::send_dl_dcch(const dl_dcch_msg_s* dl_dcch_msg, srsran::unique_byte
     }
     pdu->N_bytes = (uint32_t)bref.distance_bytes();
 
-    uint32_t lcid = RB_ID_SRB1;
+    lte_rb rb = lte_rb::srb1;
     if (dl_dcch_msg->msg.c1().type() == dl_dcch_msg_type_c::c1_c_::types_opts::dl_info_transfer) {
       // send messages with NAS on SRB2 if user is fully registered (after RRC reconfig complete)
-      lcid = parent->rlc->has_bearer(rnti, RB_ID_SRB2) && state == RRC_STATE_REGISTERED ? RB_ID_SRB2 : RB_ID_SRB1;
+      rb = (parent->rlc->has_bearer(rnti, rb_to_lcid(lte_rb::srb2)) && state == RRC_STATE_REGISTERED) ? lte_rb::srb2
+                                                                                                      : lte_rb::srb1;
     }
 
     char buf[32] = {};
-    sprintf(buf, "SRB%d - rnti=0x%x", lcid, rnti);
+    sprintf(buf, "%s - rnti=0x%x", srsran::get_rb_name(rb), rnti);
     parent->log_rrc_message(buf, Tx, pdu.get(), *dl_dcch_msg, dl_dcch_msg->msg.c1().type().to_string());
 
     // Encode the pdu as an octet string if the user passed a valid pointer.
@@ -1235,7 +1235,7 @@ bool rrc::ue::send_dl_dcch(const dl_dcch_msg_s* dl_dcch_msg, srsran::unique_byte
       *octet_str = asn1::octstring_to_string(pdu->msg, pdu->N_bytes);
     }
 
-    parent->pdcp->write_sdu(rnti, lcid, std::move(pdu));
+    parent->pdcp->write_sdu(rnti, rb_to_lcid(rb), std::move(pdu));
   } else {
     parent->logger.error("Allocating pdu");
     return false;

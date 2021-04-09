@@ -71,7 +71,7 @@ public:
   // RRC interface
   void max_retx_attempted() { max_retx_triggered = true; }
 
-  std::string get_rb_name(uint32_t lcid) { return std::string(""); }
+  const char* get_rb_name(uint32_t lcid) { return ""; }
 
   std::vector<unique_byte_buffer_t> sdus;
   rlc_pcap*                         pcap               = nullptr;

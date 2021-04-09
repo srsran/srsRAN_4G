@@ -296,22 +296,22 @@ int test_s1ap_tenb_mobility(mobility_test_params test_params)
   auto& mac_ue = tester.mac.ue_db[0x46];
   TESTASSERT(mac_ue.supported_cc_list[0].active);
   TESTASSERT(mac_ue.supported_cc_list[0].enb_cc_idx == 0);
-  TESTASSERT(mac_ue.ue_bearers[rb_id_t::RB_ID_SRB0].direction == sched_interface::ue_bearer_cfg_t::BOTH);
+  TESTASSERT(mac_ue.ue_bearers[rb_to_lcid(lte_rb::srb0)].direction == sched_interface::ue_bearer_cfg_t::BOTH);
   // Check Security Configuration
   TESTASSERT(tester.pdcp.bearers.count(0x46));
-  TESTASSERT(tester.pdcp.bearers[0x46].count(rb_id_t::RB_ID_SRB1) and
-             tester.pdcp.bearers[0x46].count(rb_id_t::RB_ID_SRB2));
-  TESTASSERT(tester.pdcp.bearers[0x46][rb_id_t::RB_ID_SRB1].enable_encryption);
-  TESTASSERT(tester.pdcp.bearers[0x46][rb_id_t::RB_ID_SRB1].enable_integrity);
+  TESTASSERT(tester.pdcp.bearers[0x46].count(rb_to_lcid(lte_rb::srb1)) and
+             tester.pdcp.bearers[0x46].count(rb_to_lcid(lte_rb::srb2)));
+  TESTASSERT(tester.pdcp.bearers[0x46][rb_to_lcid(lte_rb::srb1)].enable_encryption);
+  TESTASSERT(tester.pdcp.bearers[0x46][rb_to_lcid(lte_rb::srb1)].enable_integrity);
   sec_cfg.set_security_capabilities(ho_req.protocol_ies.ue_security_cap.value);
   sec_cfg.set_security_key(ho_req.protocol_ies.security_context.value.next_hop_param);
   sec_cfg.regenerate_keys_handover(tester.cfg.cell_list[0].pci, tester.cfg.cell_list[0].dl_earfcn);
   srsran::as_security_config_t as_sec_cfg = sec_cfg.get_as_sec_cfg();
-  TESTASSERT(tester.pdcp.bearers[0x46][rb_id_t::RB_ID_SRB1].sec_cfg.k_rrc_int == as_sec_cfg.k_rrc_int);
-  TESTASSERT(tester.pdcp.bearers[0x46][rb_id_t::RB_ID_SRB1].sec_cfg.k_rrc_enc == as_sec_cfg.k_rrc_enc);
-  TESTASSERT(tester.pdcp.bearers[0x46][rb_id_t::RB_ID_SRB1].sec_cfg.k_up_int == as_sec_cfg.k_up_int);
-  TESTASSERT(tester.pdcp.bearers[0x46][rb_id_t::RB_ID_SRB1].sec_cfg.cipher_algo == as_sec_cfg.cipher_algo);
-  TESTASSERT(tester.pdcp.bearers[0x46][rb_id_t::RB_ID_SRB1].sec_cfg.integ_algo == as_sec_cfg.integ_algo);
+  TESTASSERT(tester.pdcp.bearers[0x46][rb_to_lcid(lte_rb::srb1)].sec_cfg.k_rrc_int == as_sec_cfg.k_rrc_int);
+  TESTASSERT(tester.pdcp.bearers[0x46][rb_to_lcid(lte_rb::srb1)].sec_cfg.k_rrc_enc == as_sec_cfg.k_rrc_enc);
+  TESTASSERT(tester.pdcp.bearers[0x46][rb_to_lcid(lte_rb::srb1)].sec_cfg.k_up_int == as_sec_cfg.k_up_int);
+  TESTASSERT(tester.pdcp.bearers[0x46][rb_to_lcid(lte_rb::srb1)].sec_cfg.cipher_algo == as_sec_cfg.cipher_algo);
+  TESTASSERT(tester.pdcp.bearers[0x46][rb_to_lcid(lte_rb::srb1)].sec_cfg.integ_algo == as_sec_cfg.integ_algo);
 
   // Check if S1AP Handover Request ACK send is called
   TESTASSERT(tester.s1ap.last_ho_req_ack.rnti == 0x46);
@@ -355,11 +355,11 @@ int test_s1ap_tenb_mobility(mobility_test_params test_params)
 
   uint8_t recfg_complete[] = {0x10, 0x00};
   test_helpers::copy_msg_to_buffer(pdu, recfg_complete);
-  tester.rrc.write_pdu(0x46, rb_id_t::RB_ID_SRB1, std::move(pdu));
+  tester.rrc.write_pdu(0x46, rb_to_lcid(lte_rb::srb1), std::move(pdu));
   tester.tic();
-  TESTASSERT(mac_ue.ue_bearers[rb_id_t::RB_ID_SRB1].direction == sched_interface::ue_bearer_cfg_t::BOTH);
-  TESTASSERT(mac_ue.ue_bearers[rb_id_t::RB_ID_SRB2].direction == sched_interface::ue_bearer_cfg_t::BOTH);
-  TESTASSERT(mac_ue.ue_bearers[rb_id_t::RB_ID_DRB1].direction == sched_interface::ue_bearer_cfg_t::BOTH);
+  TESTASSERT(mac_ue.ue_bearers[rb_to_lcid(lte_rb::srb1)].direction == sched_interface::ue_bearer_cfg_t::BOTH);
+  TESTASSERT(mac_ue.ue_bearers[rb_to_lcid(lte_rb::srb2)].direction == sched_interface::ue_bearer_cfg_t::BOTH);
+  TESTASSERT(mac_ue.ue_bearers[rb_to_lcid(lte_rb::drb1)].direction == sched_interface::ue_bearer_cfg_t::BOTH);
   TESTASSERT(mac_ue.pucch_cfg.I_sr == recfg_r8.rr_cfg_ded.phys_cfg_ded.sched_request_cfg.setup().sr_cfg_idx);
   TESTASSERT(mac_ue.pucch_cfg.n_pucch_sr ==
              recfg_r8.rr_cfg_ded.phys_cfg_ded.sched_request_cfg.setup().sr_pucch_res_idx);
@@ -468,7 +468,7 @@ int test_intraenb_mobility(srsran::log_sink_spy& spy, mobility_test_params test_
   /* Test Case: Terminate first Handover. No extra messages should be sent DL. SR/CQI resources match recfg message */
   uint8_t recfg_complete[] = {0x10, 0x00};
   test_helpers::copy_msg_to_buffer(pdu, recfg_complete);
-  tester.rrc.write_pdu(tester.rnti, rb_id_t::RB_ID_SRB2, std::move(pdu));
+  tester.rrc.write_pdu(tester.rnti, rb_to_lcid(lte_rb::srb2), std::move(pdu));
   TESTASSERT(tester.pdcp.last_sdu.sdu == nullptr);
   sched_interface::ue_cfg_t& ue_cfg = tester.mac.ue_db[tester.rnti];
   TESTASSERT(ue_cfg.pucch_cfg.sr_configured);

@@ -60,7 +60,7 @@ void rlc::add_user(uint16_t rnti)
     obj->init(&users[rnti],
               &users[rnti],
               timers,
-              RB_ID_SRB0,
+              rb_to_lcid(srsran::lte_rb::srb0),
               [rnti, this](uint32_t lcid, uint32_t tx_queue, uint32_t retx_queue) {
                 update_bsr(rnti, lcid, tx_queue, retx_queue);
               });
@@ -262,7 +262,7 @@ void rlc::user_interface::max_retx_attempted()
 
 void rlc::user_interface::write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu)
 {
-  if (lcid == RB_ID_SRB0) {
+  if (lcid == rb_to_lcid(srsran::lte_rb::srb0)) {
     rrc->write_pdu(rnti, lcid, std::move(sdu));
   } else {
     pdcp->write_pdu(rnti, lcid, std::move(sdu));
@@ -294,9 +294,9 @@ void rlc::user_interface::write_pdu_pcch(srsran::unique_byte_buffer_t sdu)
   ERROR("Error: Received PCCH from ue=%d", rnti);
 }
 
-std::string rlc::user_interface::get_rb_name(uint32_t lcid)
+const char* rlc::user_interface::get_rb_name(uint32_t lcid)
 {
-  return to_string((rb_id_t)lcid);
+  return srsenb::get_rb_name(lcid);
 }
 
 } // namespace srsenb

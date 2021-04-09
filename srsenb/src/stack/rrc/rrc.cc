@@ -245,7 +245,7 @@ void rrc::send_rrc_connection_reject(uint16_t rnti)
   char buf[32] = {};
   sprintf(buf, "SRB0 - rnti=0x%x", rnti);
   log_rrc_message(buf, Tx, pdu.get(), dl_ccch_msg, dl_ccch_msg.msg.c1().type().to_string());
-  rlc->write_sdu(rnti, RB_ID_SRB0, std::move(pdu));
+  rlc->write_sdu(rnti, rb_to_lcid(srsran::lte_rb::srb0), std::move(pdu));
 }
 
 /*******************************************************************************
@@ -648,7 +648,7 @@ void rrc::parse_ul_dcch(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer
     if (user_it != users.end()) {
       user_it->second->parse_ul_dcch(lcid, std::move(pdu));
     } else {
-      logger.error("Processing %s: Unknown rnti=0x%x", srsenb::to_string((rb_id_t)lcid), rnti);
+      logger.error("Processing %s: Unknown rnti=0x%x", get_rb_name(lcid), rnti);
     }
   }
 }
@@ -992,7 +992,7 @@ void rrc::tti_clock()
   while (rx_pdu_queue.try_pop(p)) {
     // print Rx PDU
     if (p.pdu != nullptr) {
-      logger.info(p.pdu->msg, p.pdu->N_bytes, "Rx %s PDU", to_string((rb_id_t)p.lcid));
+      logger.info(p.pdu->msg, p.pdu->N_bytes, "Rx %s PDU", get_rb_name(p.lcid));
     }
 
     // check if user exists
@@ -1004,11 +1004,11 @@ void rrc::tti_clock()
 
     // handle queue cmd
     switch (p.lcid) {
-      case RB_ID_SRB0:
+      case static_cast<uint32_t>(lte_rb::srb0):
         parse_ul_ccch(p.rnti, std::move(p.pdu));
         break;
-      case RB_ID_SRB1:
-      case RB_ID_SRB2:
+      case static_cast<uint32_t>(lte_rb::srb1):
+      case static_cast<uint32_t>(lte_rb::srb2):
         parse_ul_dcch(p.rnti, p.lcid, std::move(p.pdu));
         break;
       case LCID_REM_USER:

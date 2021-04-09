@@ -135,7 +135,7 @@ int mac_controller::handle_crnti_ce(uint32_t temp_crnti)
   set_drb_activation(false);
 
   // Re-activate SRBs UL (needed for ReconfComplete)
-  for (uint32_t i = rb_id_t::RB_ID_SRB1; i <= rb_id_t::RB_ID_SRB2; ++i) {
+  for (uint32_t i = (uint32_t)lte_rb::srb1; i <= (uint32_t)lte_rb::srb2; ++i) {
     current_sched_ue_cfg.ue_bearers[i] = next_sched_ue_cfg.ue_bearers[i];
   }
 
@@ -284,7 +284,7 @@ void mac_controller::handle_intraenb_ho_cmd(const asn1::rrc::rrc_conn_recfg_r8_i
   set_drb_activation(false);
 
   // Stop any SRB UL (including SRs)
-  for (uint32_t i = rb_id_t::RB_ID_SRB1; i <= rb_id_t::RB_ID_SRB2; ++i) {
+  for (uint32_t i = (uint32_t)lte_rb::srb1; i <= (uint32_t)lte_rb::srb2; ++i) {
     next_sched_ue_cfg.ue_bearers[i].direction = sched_interface::ue_bearer_cfg_t::DL;
   }
 
@@ -315,7 +315,7 @@ void mac_controller::set_scell_activation(const std::bitset<SRSRAN_MAX_CARRIERS>
 void mac_controller::set_drb_activation(bool active)
 {
   for (const drb_to_add_mod_s& drb : bearer_list.get_established_drbs()) {
-    current_sched_ue_cfg.ue_bearers[drb.drb_id + rb_id_t::RB_ID_SRB2].direction =
+    current_sched_ue_cfg.ue_bearers[drb.drb_id + (uint32_t)lte_rb::srb2].direction =
         active ? sched_interface::ue_bearer_cfg_t::BOTH : sched_interface::ue_bearer_cfg_t::IDLE;
   }
 }

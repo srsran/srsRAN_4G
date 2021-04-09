@@ -458,7 +458,7 @@ void nas::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
   uint8 msg_type     = 0;
   uint8 sec_hdr_type = 0;
 
-  logger.info(pdu->msg, pdu->N_bytes, "DL %s PDU", rrc->get_rb_name(lcid).c_str());
+  logger.info(pdu->msg, pdu->N_bytes, "DL %s PDU", rrc->get_rb_name(lcid));
 
   // Parse the message security header
   liblte_mme_parse_msg_sec_header((LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), &pd, &sec_hdr_type);
@@ -492,7 +492,7 @@ void nas::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
 
   // Parse the message header
   liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), &pd, &msg_type);
-  logger.info(pdu->msg, pdu->N_bytes, "DL %s Decrypted PDU", rrc->get_rb_name(lcid).c_str());
+  logger.info(pdu->msg, pdu->N_bytes, "DL %s Decrypted PDU", rrc->get_rb_name(lcid));
 
   // drop messages if integrity protection isn't applied (see TS 24.301 Sec. 4.4.4.2)
   if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS) {
@@ -1414,9 +1414,8 @@ void nas::parse_security_mode_command(uint32_t lcid, unique_byte_buffer_t pdu)
     return;
   }
 
-  logger.info("Sending Security Mode Complete nas_current_ctxt.tx_count=%d, RB=%s",
-              ctxt.tx_count,
-              rrc->get_rb_name(lcid).c_str());
+  logger.info(
+      "Sending Security Mode Complete nas_current_ctxt.tx_count=%d, RB=%s", ctxt.tx_count, rrc->get_rb_name(lcid));
   rrc->write_sdu(std::move(pdu));
   ctxt.tx_count++;
 

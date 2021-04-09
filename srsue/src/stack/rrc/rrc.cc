@@ -748,7 +748,7 @@ void rrc::timer_expired(uint32_t timeout_id)
   }
 }
 
-bool rrc::nr_reconfiguration_proc(const rrc_conn_recfg_r8_ies_s& rx_recfg, bool *has_5g_nr_reconfig)
+bool rrc::nr_reconfiguration_proc(const rrc_conn_recfg_r8_ies_s& rx_recfg, bool* has_5g_nr_reconfig)
 {
   if (!(rx_recfg.non_crit_ext_present && rx_recfg.non_crit_ext.non_crit_ext_present &&
         rx_recfg.non_crit_ext.non_crit_ext.non_crit_ext_present &&
@@ -779,7 +779,7 @@ bool rrc::nr_reconfiguration_proc(const rrc_conn_recfg_r8_ies_s& rx_recfg, bool 
 
   switch (rrc_conn_recfg_v1510_ies->nr_cfg_r15.type()) {
     case setup_opts::options::release:
-      logger.info("NR config R15 of type release"); 
+      logger.info("NR config R15 of type release");
       break;
     case setup_opts::options::setup:
       endc_release_and_add_r15 = rrc_conn_recfg_v1510_ies->nr_cfg_r15.setup().endc_release_and_add_r15;
@@ -801,14 +801,14 @@ bool rrc::nr_reconfiguration_proc(const rrc_conn_recfg_r8_ies_s& rx_recfg, bool 
     nr_radio_bearer_cfg1_r15_present = true;
     nr_radio_bearer_cfg1_r15         = rrc_conn_recfg_v1510_ies->nr_radio_bearer_cfg1_r15;
   }
-    *has_5g_nr_reconfig = true;
-    return rrc_nr->rrc_reconfiguration(endc_release_and_add_r15,
-                                       nr_secondary_cell_group_cfg_r15_present,
-                                       nr_secondary_cell_group_cfg_r15,
-                                       sk_counter_r15_present,
-                                       sk_counter_r15,
-                                       nr_radio_bearer_cfg1_r15_present,
-                                       nr_radio_bearer_cfg1_r15);
+  *has_5g_nr_reconfig = true;
+  return rrc_nr->rrc_reconfiguration(endc_release_and_add_r15,
+                                     nr_secondary_cell_group_cfg_r15_present,
+                                     nr_secondary_cell_group_cfg_r15,
+                                     sk_counter_r15_present,
+                                     sk_counter_r15,
+                                     nr_radio_bearer_cfg1_r15_present,
+                                     nr_radio_bearer_cfg1_r15);
 }
 /*******************************************************************************
  *
@@ -940,7 +940,7 @@ void rrc::send_con_restablish_complete()
   ul_dcch_msg.msg.set_c1().set_rrc_conn_reest_complete().crit_exts.set_rrc_conn_reest_complete_r8();
   ul_dcch_msg.msg.c1().rrc_conn_reest_complete().rrc_transaction_id = transaction_id;
 
-  send_ul_dcch_msg(RB_ID_SRB1, ul_dcch_msg);
+  send_ul_dcch_msg((uint32_t)srsran::lte_rb::srb1, ul_dcch_msg);
 
   reestablishment_successful = true;
 }
@@ -960,12 +960,13 @@ void rrc::send_con_setup_complete(srsran::unique_byte_buffer_t nas_msg)
   rrc_conn_setup_complete->ded_info_nas.resize(nas_msg->N_bytes);
   memcpy(rrc_conn_setup_complete->ded_info_nas.data(), nas_msg->msg, nas_msg->N_bytes); // TODO Check!
 
-  send_ul_dcch_msg(RB_ID_SRB1, ul_dcch_msg);
+  send_ul_dcch_msg((uint32_t)srsran::lte_rb::srb1, ul_dcch_msg);
 }
 
 void rrc::send_ul_info_transfer(unique_byte_buffer_t nas_msg)
 {
-  uint32_t lcid = rlc->has_bearer(RB_ID_SRB2) ? RB_ID_SRB2 : RB_ID_SRB1;
+  uint32_t lcid =
+      (uint32_t)(rlc->has_bearer((uint32_t)srsran::lte_rb::srb2) ? srsran::lte_rb::srb2 : srsran::lte_rb::srb1);
 
   // Prepare UL INFO packet
   asn1::rrc::ul_dcch_msg_s   ul_dcch_msg;
@@ -988,7 +989,7 @@ void rrc::send_security_mode_complete()
   ul_dcch_msg.msg.set_c1().set_security_mode_complete().crit_exts.set_security_mode_complete_r8();
   ul_dcch_msg.msg.c1().security_mode_complete().rrc_transaction_id = transaction_id;
 
-  send_ul_dcch_msg(RB_ID_SRB1, ul_dcch_msg);
+  send_ul_dcch_msg((uint32_t)srsran::lte_rb::srb1, ul_dcch_msg);
 }
 
 void rrc::send_rrc_con_reconfig_complete(bool contains_nr_complete)
@@ -1016,7 +1017,7 @@ void rrc::send_rrc_con_reconfig_complete(bool contains_nr_complete)
     rrc_conn_recfg_complete_v1430_ies->non_crit_ext.scg_cfg_resp_nr_r15_present = true;
     rrc_conn_recfg_complete_v1430_ies->non_crit_ext.scg_cfg_resp_nr_r15.from_string("00");
   }
-  send_ul_dcch_msg(RB_ID_SRB1, ul_dcch_msg);
+  send_ul_dcch_msg((uint32_t)srsran::lte_rb::srb1, ul_dcch_msg);
 }
 
 void rrc::ra_completed()
@@ -1168,12 +1169,12 @@ void rrc::start_con_restablishment(reest_cause_e cause)
 bool rrc::srbs_flushed()
 {
   // Check SRB1
-  if (rlc->has_data(RB_ID_SRB1) && not rlc->is_suspended(RB_ID_SRB1)) {
+  if (rlc->has_data((uint32_t)srsran::lte_rb::srb1) && not rlc->is_suspended((uint32_t)srsran::lte_rb::srb1)) {
     return false;
   }
 
   // Check SRB2
-  if (rlc->has_data(RB_ID_SRB2) && not rlc->is_suspended(RB_ID_SRB2)) {
+  if (rlc->has_data((uint32_t)srsran::lte_rb::srb2) && not rlc->is_suspended((uint32_t)srsran::lte_rb::srb2)) {
     return false;
   }
 
@@ -1187,7 +1188,7 @@ bool rrc::srbs_flushed()
  *******************************************************************************/
 void rrc::send_srb1_msg(const ul_dcch_msg_s& msg)
 {
-  send_ul_dcch_msg(RB_ID_SRB1, msg);
+  send_ul_dcch_msg((uint32_t)srsran::lte_rb::srb1, msg);
 }
 
 std::set<uint32_t> rrc::get_cells(const uint32_t earfcn)
@@ -1561,8 +1562,8 @@ void rrc::send_ul_ccch_msg(const ul_ccch_msg_s& msg)
   logger.debug("Setting UE contention resolution ID: %" PRIu64 "", uecri);
   mac->set_contention_id(uecri);
 
-  uint32_t lcid = RB_ID_SRB0;
-  log_rrc_message(get_rb_name(lcid).c_str(), Tx, pdcp_buf.get(), msg, msg.msg.c1().type().to_string());
+  uint32_t lcid = (uint32_t)srsran::lte_rb::srb0;
+  log_rrc_message(get_rb_name(lcid), Tx, pdcp_buf.get(), msg, msg.msg.c1().type().to_string());
 
   rlc->write_sdu(lcid, std::move(pdcp_buf));
 }
@@ -1583,13 +1584,12 @@ void rrc::send_ul_dcch_msg(uint32_t lcid, const ul_dcch_msg_s& msg)
   pdcp_buf->set_timestamp();
 
   if (msg.msg.type() == ul_dcch_msg_type_c::types_opts::options::c1) {
-    log_rrc_message(get_rb_name(lcid).c_str(), Tx, pdcp_buf.get(), msg, msg.msg.c1().type().to_string());
+    log_rrc_message(get_rb_name(lcid), Tx, pdcp_buf.get(), msg, msg.msg.c1().type().to_string());
   } else if (msg.msg.type() == ul_dcch_msg_type_c::types_opts::options::msg_class_ext) {
     if (msg.msg.msg_class_ext().type() == ul_dcch_msg_type_c::msg_class_ext_c_::types_opts::options::c2) {
-      log_rrc_message(
-          get_rb_name(lcid).c_str(), Tx, pdcp_buf.get(), msg, msg.msg.msg_class_ext().c2().type().to_string());
+      log_rrc_message(get_rb_name(lcid), Tx, pdcp_buf.get(), msg, msg.msg.msg_class_ext().c2().type().to_string());
     } else {
-      log_rrc_message(get_rb_name(lcid).c_str(), Tx, pdcp_buf.get(), msg, msg.msg.msg_class_ext().type().to_string());
+      log_rrc_message(get_rb_name(lcid), Tx, pdcp_buf.get(), msg, msg.msg.msg_class_ext().type().to_string());
     }
   }
 
@@ -1613,12 +1613,12 @@ void rrc::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
 void rrc::process_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
   logger.debug("RX PDU, LCID: %d", lcid);
-  switch (lcid) {
-    case RB_ID_SRB0:
+  switch (static_cast<srsran::lte_rb>(lcid)) {
+    case srsran::lte_rb::srb0:
       parse_dl_ccch(std::move(pdu));
       break;
-    case RB_ID_SRB1:
-    case RB_ID_SRB2:
+    case srsran::lte_rb::srb1:
+    case srsran::lte_rb::srb2:
       parse_dl_dcch(lcid, std::move(pdu));
       break;
     default:
@@ -1636,7 +1636,8 @@ void rrc::parse_dl_ccch(unique_byte_buffer_t pdu)
     logger.error(pdu->msg, pdu->N_bytes, "Failed to unpack DL-CCCH message (%d B)", pdu->N_bytes);
     return;
   }
-  log_rrc_message(get_rb_name(RB_ID_SRB0).c_str(), Rx, pdu.get(), dl_ccch_msg, dl_ccch_msg.msg.c1().type().to_string());
+  log_rrc_message(
+      srsran::get_rb_name(srsran::lte_rb::srb0), Rx, pdu.get(), dl_ccch_msg, dl_ccch_msg.msg.c1().type().to_string());
 
   dl_ccch_msg_type_c::c1_c_* c1 = &dl_ccch_msg.msg.c1();
   switch (dl_ccch_msg.msg.c1().type().value) {
@@ -1690,7 +1691,7 @@ void rrc::parse_dl_dcch(uint32_t lcid, unique_byte_buffer_t pdu)
     logger.error(pdu->msg, pdu->N_bytes, "Failed to unpack DL-DCCH message (%d B)", pdu->N_bytes);
     return;
   }
-  log_rrc_message(get_rb_name(lcid).c_str(), Rx, pdu.get(), dl_dcch_msg, dl_dcch_msg.msg.c1().type().to_string());
+  log_rrc_message(get_rb_name(lcid), Rx, pdu.get(), dl_dcch_msg, dl_dcch_msg.msg.c1().type().to_string());
 
   dl_dcch_msg_type_c::c1_c_* c1 = &dl_dcch_msg.msg.c1();
   switch (dl_dcch_msg.msg.c1().type().value) {
@@ -2113,7 +2114,7 @@ void rrc::handle_ue_capability_enquiry(const ue_cap_enquiry_s& enquiry)
     }
   }
 
-  send_ul_dcch_msg(RB_ID_SRB1, ul_dcch_msg);
+  send_ul_dcch_msg((uint32_t)srsran::lte_rb::srb1, ul_dcch_msg);
 }
 
 /*******************************************************************************
@@ -2550,7 +2551,7 @@ void rrc::add_srb(const srb_to_add_mod_s& srb_cnfg)
 {
   // Setup PDCP
   pdcp->add_bearer(srb_cnfg.srb_id, make_srb_pdcp_config_t(srb_cnfg.srb_id, true));
-  if (RB_ID_SRB2 == srb_cnfg.srb_id) {
+  if (static_cast<uint32_t>(srsran::lte_rb::srb2) == srb_cnfg.srb_id) {
     pdcp->config_security(srb_cnfg.srb_id, sec_cfg);
     pdcp->enable_integrity(srb_cnfg.srb_id, DIRECTION_TXRX);
     pdcp->enable_encryption(srb_cnfg.srb_id, DIRECTION_TXRX);
@@ -2571,20 +2572,23 @@ void rrc::add_srb(const srb_to_add_mod_s& srb_cnfg)
   if (srb_cnfg.lc_ch_cfg_present) {
     if (srb_cnfg.lc_ch_cfg.type() == srb_to_add_mod_s::lc_ch_cfg_c_::types::default_value) {
       // Set default SRB values as defined in Table 9.2.1
-      switch (srb_cnfg.srb_id) {
-        case RB_ID_SRB0:
+      switch (static_cast<srsran::lte_rb>(srb_cnfg.srb_id)) {
+        case srsran::lte_rb::srb0:
           logger.error("Setting SRB0: Should not be set by RRC");
           break;
-        case RB_ID_SRB1:
+        case srsran::lte_rb::srb1:
           priority             = 1;
           prioritized_bit_rate = -1;
           bucket_size_duration = 0;
           break;
-        case RB_ID_SRB2:
+        case srsran::lte_rb::srb2:
           priority             = 3;
           prioritized_bit_rate = -1;
           bucket_size_duration = 0;
           break;
+        default:
+          logger.error("Invalid SRB configuration");
+          return;
       }
     } else {
       if (srb_cnfg.lc_ch_cfg.explicit_value().lc_ch_sr_mask_r9_present) {
@@ -2603,7 +2607,7 @@ void rrc::add_srb(const srb_to_add_mod_s& srb_cnfg)
   }
 
   srbs[srb_cnfg.srb_id] = srb_cnfg;
-  logger.info("Added radio bearer %s", get_rb_name(srb_cnfg.srb_id).c_str());
+  logger.info("Added radio bearer %s", get_rb_name(srb_cnfg.srb_id));
 }
 
 void rrc::add_drb(const drb_to_add_mod_s& drb_cnfg)
@@ -2616,7 +2620,7 @@ void rrc::add_drb(const drb_to_add_mod_s& drb_cnfg)
   if (drb_cnfg.lc_ch_id_present) {
     lcid = drb_cnfg.lc_ch_id;
   } else {
-    lcid = RB_ID_SRB2 + drb_cnfg.drb_id;
+    lcid = srsran::MAX_LTE_SRB_ID + drb_cnfg.drb_id;
     logger.warning("LCID not present, using %d", lcid);
   }
 
@@ -2650,7 +2654,7 @@ void rrc::add_drb(const drb_to_add_mod_s& drb_cnfg)
   drb_up                = true;
   logger.info("Added DRB Id %d (LCID=%d)", drb_cnfg.drb_id, lcid);
   // Update LCID if gw is running
-  if(gw->is_running()){
+  if (gw->is_running()) {
     gw->update_lcid(drb_cnfg.eps_bearer_id, lcid);
   }
 }
@@ -2675,7 +2679,7 @@ uint32_t rrc::get_lcid_for_eps_bearer(const uint32_t& eps_bearer_id)
   if (drb_cnfg.lc_ch_id_present) {
     lcid = drb_cnfg.lc_ch_id;
   } else {
-    lcid = RB_ID_SRB2 + drb_cnfg.drb_id;
+    lcid = srsran::MAX_LTE_SRB_ID + drb_cnfg.drb_id;
     logger.warning("LCID not present, using %d", lcid);
   }
   return lcid;
@@ -2780,7 +2784,7 @@ void rrc::nr_scg_failure_information(const scg_failure_cause_t cause)
   scg_fail_info_nr.crit_exts.c1().scg_fail_info_nr_r15().fail_report_scg_nr_r15_present = true;
   scg_fail_info_nr.crit_exts.c1().scg_fail_info_nr_r15().fail_report_scg_nr_r15.fail_type_r15 =
       (fail_report_scg_nr_r15_s::fail_type_r15_opts::options)cause;
-  send_ul_dcch_msg(RB_ID_SRB1, ul_dcch_msg);
+  send_ul_dcch_msg((uint32_t)srsran::lte_rb::srb1, ul_dcch_msg);
 }
 
 } // namespace srsue

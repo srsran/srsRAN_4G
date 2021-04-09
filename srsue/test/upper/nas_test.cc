@@ -70,7 +70,7 @@ public:
   void        write_pdu_bcch_dlsch(unique_byte_buffer_t pdu) {}
   void        write_pdu_pcch(unique_byte_buffer_t pdu) {}
   void        write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t sdu) {}
-  std::string get_rb_name(uint32_t lcid) { return std::string("lcid"); }
+  const char* get_rb_name(uint32_t lcid) { return "lcid"; }
   void        write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu) {}
   bool        is_lcid_enabled(uint32_t lcid) { return false; }
 };
@@ -90,7 +90,7 @@ public:
     // printf("NAS generated SDU (len=%d):\n", sdu->N_bytes);
     // srsran_vec_fprint_byte(stdout, sdu->msg, sdu->N_bytes);
   }
-  std::string get_rb_name(uint32_t lcid) { return std::string("lcid"); }
+  const char* get_rb_name(uint32_t lcid) { return "lcid"; }
   uint32_t    get_last_sdu_len() { return last_sdu_len; }
   void        reset() { last_sdu_len = 0; }
 

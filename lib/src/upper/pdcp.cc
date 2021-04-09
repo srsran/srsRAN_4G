@@ -100,22 +100,19 @@ void pdcp::add_bearer(uint32_t lcid, pdcp_config_t cfg)
       logger.error("Can not configure PDCP entity");
       return;
     }
-    
+
     if (not pdcp_array.insert(std::make_pair(lcid, std::move(entity))).second) {
       logger.error("Error inserting PDCP entity in to array.");
       return;
     }
-    logger.info("Add %s (lcid=%d, bearer_id=%d, sn_len=%dbits)",
-                rrc->get_rb_name(lcid).c_str(),
-                lcid,
-                cfg.bearer_id,
-                cfg.sn_len);
+    logger.info(
+        "Add %s (lcid=%d, bearer_id=%d, sn_len=%dbits)", rrc->get_rb_name(lcid), lcid, cfg.bearer_id, cfg.sn_len);
     {
       std::lock_guard<std::mutex> lock(cache_mutex);
       valid_lcids_cached.insert(lcid);
     }
   } else {
-    logger.info("Bearer %s already configured.", rrc->get_rb_name(lcid).c_str());
+    logger.info("Bearer %s already configured.", rrc->get_rb_name(lcid));
   }
 }
 
@@ -123,27 +120,20 @@ void pdcp::add_bearer_mrb(uint32_t lcid, pdcp_config_t cfg)
 {
   if (not valid_mch_lcid(lcid)) {
     std::unique_ptr<pdcp_entity_lte> entity;
-    entity.reset(new pdcp_entity_lte{rlc, rrc, gw, task_sched, logger, lcid});    
-    if(not entity->configure(cfg)){
+    entity.reset(new pdcp_entity_lte{rlc, rrc, gw, task_sched, logger, lcid});
+    if (not entity->configure(cfg)) {
       logger.error("Can not configure PDCP entity");
-      return; 
+      return;
     }
 
-    if (not pdcp_array_mrb
-                .insert(std::make_pair(
-                    lcid,
-                    std::move(entity)))
-                .second) {
+    if (not pdcp_array_mrb.insert(std::make_pair(lcid, std::move(entity))).second) {
       logger.error("Error inserting PDCP entity in to array.");
       return;
     }
-    logger.info("Add %s (lcid=%d, bearer_id=%d, sn_len=%dbits)",
-                rrc->get_rb_name(lcid).c_str(),
-                lcid,
-                cfg.bearer_id,
-                cfg.sn_len);
+    logger.info(
+        "Add %s (lcid=%d, bearer_id=%d, sn_len=%dbits)", rrc->get_rb_name(lcid), lcid, cfg.bearer_id, cfg.sn_len);
   } else {
-    logger.warning("Bearer %s already configured. Reconfiguration not supported", rrc->get_rb_name(lcid).c_str());
+    logger.warning("Bearer %s already configured. Reconfiguration not supported", rrc->get_rb_name(lcid));
   }
 }
 
@@ -155,9 +145,9 @@ void pdcp::del_bearer(uint32_t lcid)
   }
   if (valid_lcid(lcid)) {
     pdcp_array.erase(lcid);
-    logger.warning("Deleted PDCP bearer %s", rrc->get_rb_name(lcid).c_str());
+    logger.warning("Deleted PDCP bearer %s", rrc->get_rb_name(lcid));
   } else {
-    logger.warning("Can't delete bearer %s. Bearer doesn't exist.", rrc->get_rb_name(lcid).c_str());
+    logger.warning("Can't delete bearer %s. Bearer doesn't exist.", rrc->get_rb_name(lcid));
   }
 }
 
@@ -180,7 +170,7 @@ void pdcp::change_lcid(uint32_t old_lcid, uint32_t new_lcid)
     logger.warning("Changed LCID of PDCP bearer from %d to %d", old_lcid, new_lcid);
   } else {
     logger.error("Can't change PDCP of bearer %s from %d to %d. Bearer doesn't exist or new LCID already occupied.",
-                 rrc->get_rb_name(old_lcid).c_str(),
+                 rrc->get_rb_name(old_lcid),
                  old_lcid,
                  new_lcid);
   }

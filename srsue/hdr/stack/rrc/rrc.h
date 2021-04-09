@@ -21,6 +21,7 @@
 #include "srsran/common/block_queue.h"
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/common.h"
+#include "srsran/common/lte_common.h"
 #include "srsran/common/security.h"
 #include "srsran/common/stack_procedure.h"
 #include "srsran/interfaces/ue_interfaces.h"
@@ -214,28 +215,12 @@ private:
   uint32_t                            n311_cnt = 0, N311 = 0;
   srsran::timer_handler::unique_timer t300, t301, t302, t310, t311, t304;
 
-  // Radio bearers
-  typedef enum {
-    RB_ID_SRB0 = 0,
-    RB_ID_SRB1,
-    RB_ID_SRB2,
-    RB_ID_DRB1,
-    RB_ID_DRB2,
-    RB_ID_DRB3,
-    RB_ID_DRB4,
-    RB_ID_DRB5,
-    RB_ID_DRB6,
-    RB_ID_DRB7,
-    RB_ID_DRB8,
-    RB_ID_MAX
-  } rb_id_t;
-
   static const std::string rb_id_str[];
 
-  std::string get_rb_name(uint32_t lcid)
+  const char* get_rb_name(uint32_t lcid)
   {
-    if (lcid < RB_ID_MAX) {
-      return rb_id_str[lcid];
+    if (lcid < (uint32_t)srsran::lte_rb::count) {
+      return rb_id_str[lcid].c_str();
     } else {
       return "INVALID_RB";
     }

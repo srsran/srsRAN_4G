@@ -87,7 +87,7 @@ private:
     void        write_pdu_bcch_dlsch(srsran::unique_byte_buffer_t pdu) final;
     void        write_pdu_pcch(srsran::unique_byte_buffer_t pdu) final;
     void        write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t pdu) final {}
-    std::string get_rb_name(uint32_t lcid) final;
+    const char* get_rb_name(uint32_t lcid) final;
   };
 
   class user_interface
