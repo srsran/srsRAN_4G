@@ -16,6 +16,13 @@
 #define UE_DL_NR_PDCCH_CORR_DEFAULT_THR 0.5f
 #define UE_DL_NR_PDCCH_EPRE_DEFAULT_THR -80.0f
 
+/**
+ * @brief Shifts FFT window a fraction of the cyclic prefix. Set to 0.0f for disabling.
+ * @note Increases protection against inter-symbol interference in case of synchronization error in expense of computing
+ * performance
+ */
+#define UE_DL_NR_FFT_WINDOW_OFFSET 0.5f
+
 static int ue_dl_nr_alloc_prb(srsran_ue_dl_nr_t* q, uint32_t new_nof_prb)
 {
   if (q->max_prb < new_nof_prb) {
@@ -82,6 +89,7 @@ int srsran_ue_dl_nr_init(srsran_ue_dl_nr_t* q, cf_t* input[SRSRAN_MAX_PORTS], co
   fft_cfg.nof_prb           = args->nof_max_prb;
   fft_cfg.symbol_sz         = srsran_symbol_sz(args->nof_max_prb);
   fft_cfg.keep_dc           = true;
+  fft_cfg.rx_window_offset  = UE_DL_NR_FFT_WINDOW_OFFSET;
 
   for (uint32_t i = 0; i < q->nof_rx_antennas; i++) {
     fft_cfg.in_buffer  = input[i];
@@ -156,6 +164,7 @@ int srsran_ue_dl_nr_set_carrier(srsran_ue_dl_nr_t* q, const srsran_carrier_nr_t*
       cfg.symbol_sz         = srsran_min_symbol_sz_rb(carrier->nof_prb);
       cfg.cp                = SRSRAN_CP_NORM;
       cfg.keep_dc           = true;
+      cfg.rx_window_offset  = UE_DL_NR_FFT_WINDOW_OFFSET;
       srsran_ofdm_rx_init_cfg(&q->fft[i], &cfg);
     }
   }
