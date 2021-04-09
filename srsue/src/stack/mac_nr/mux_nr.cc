@@ -49,6 +49,12 @@ srsran::unique_byte_buffer_t mux_nr::get_pdu(uint32_t max_pdu_len)
     return nullptr;
   }
 
+  // verify buffer is large enough for UL grant
+  if (phy_tx_pdu->get_tailroom() < max_pdu_len) {
+    logger.error("Can't provide MAC PDU. Grant too big (%d < %d).", phy_tx_pdu->get_tailroom(), max_pdu_len);
+    return nullptr;
+  }
+
   logger.debug("Building new MAC PDU (%d B)", max_pdu_len);
   tx_pdu.init_tx(phy_tx_pdu.get(), max_pdu_len, true);
 

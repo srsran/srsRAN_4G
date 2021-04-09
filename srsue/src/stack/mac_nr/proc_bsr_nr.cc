@@ -199,8 +199,10 @@ bool proc_bsr_nr::check_new_data(const mac_buffer_states_t& new_buffer_state)
 srsran::mac_sch_subpdu_nr::lcg_bsr_t proc_bsr_nr::generate_sbsr()
 {
   srsran::mac_sch_subpdu_nr::lcg_bsr_t sbsr = {};
-  sbsr.lcg_id                               = buffer_state.last_non_zero_lcg;
-  sbsr.buffer_size   = buff_size_bytes_to_field(buffer_state.lcg_buffer_size.at(sbsr.lcg_id), SHORT_BSR);
+  if (buffer_state.nof_lcgs_with_data > 0) {
+    sbsr.lcg_id      = buffer_state.last_non_zero_lcg;
+    sbsr.buffer_size = buff_size_bytes_to_field(buffer_state.lcg_buffer_size.at(sbsr.lcg_id), SHORT_BSR);
+  }
   triggered_bsr_type = NONE;
   return sbsr;
 }

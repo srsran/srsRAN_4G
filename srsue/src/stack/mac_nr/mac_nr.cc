@@ -128,7 +128,8 @@ void mac_nr::update_buffer_states()
     mac_buffer_states.lcid_buffer_size[channel.lcid] += buffer_len;
     mac_buffer_states.lcg_buffer_size[channel.lcg] += buffer_len;
   }
-  logger.info("%s", mac_buffer_states.to_string());
+  logger.debug("%s", mac_buffer_states.to_string());
+
   // Count TTI for metrics
   for (uint32_t i = 0; i < SRSRAN_MAX_CARRIERS; ++i) {
     metrics[i].nof_tti++;
@@ -286,11 +287,15 @@ void mac_nr::new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant,
   ul_harq_buffer = mux.get_pdu(grant.tbs);
 
   // fill TB action (goes into UL harq eventually)
-  action->tb.payload    = ul_harq_buffer.get(); // pass handle to PDU to PHY
-  action->tb.enabled    = true;
-  action->tb.rv         = 0;
-  action->tb.softbuffer = &softbuffer_tx;
-  srsran_softbuffer_tx_reset(&softbuffer_tx);
+  if (ul_harq_buffer != nullptr) {
+    action->tb.payload    = ul_harq_buffer.get(); // pass handle to PDU to PHY
+    action->tb.enabled    = true;
+    action->tb.rv         = 0;
+    action->tb.softbuffer = &softbuffer_tx;
+    srsran_softbuffer_tx_reset(&softbuffer_tx);
+  } else {
+    action->tb.enabled = false;
+  }
 
   // store PCAP
   if (pcap) {
