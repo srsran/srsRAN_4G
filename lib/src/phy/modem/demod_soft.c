@@ -928,5 +928,15 @@ int srsran_demod_soft_demodulate_b(srsran_mod_t modulation, const cf_t* symbols,
       ERROR("Invalid modulation %d", modulation);
       return -1;
   }
+
+  uint32_t nof_bits_x_symbol = srsran_mod_bits_x_symbol(modulation);
+  for (uint32_t i = 0; i < nsymbols; i++) {
+    if (!isnormal(__real__ symbols[i]) || !isnormal(__imag__ symbols[i])) {
+      for (uint32_t j = 0; j < nof_bits_x_symbol; j++) {
+        llr[i * nof_bits_x_symbol + j] = 0;
+      }
+    }
+  }
+
   return 0;
 }
