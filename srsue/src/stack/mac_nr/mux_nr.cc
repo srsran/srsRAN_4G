@@ -45,9 +45,11 @@ srsran::unique_byte_buffer_t mux_nr::get_pdu(uint32_t max_pdu_len)
   // initialize MAC PDU
   srsran::unique_byte_buffer_t phy_tx_pdu = srsran::make_byte_buffer();
   if (phy_tx_pdu == nullptr) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
     return nullptr;
   }
 
+  logger.debug("Building new MAC PDU (%d B)", max_pdu_len);
   tx_pdu.init_tx(phy_tx_pdu.get(), max_pdu_len, true);
 
   if (msg3_is_pending()) {
@@ -84,7 +86,7 @@ srsran::unique_byte_buffer_t mux_nr::get_pdu(uint32_t max_pdu_len)
         // Add SDU if RLC has something to tx
         if (pdu_len > 0) {
           rlc_buff->N_bytes = pdu_len;
-          logger.info(rlc_buff->msg, rlc_buff->N_bytes, "Read %d B from RLC", rlc_buff->N_bytes);
+          logger.debug(rlc_buff->msg, rlc_buff->N_bytes, "Read %d B from RLC", rlc_buff->N_bytes);
 
           // add to MAC PDU and pack
           if (tx_pdu.add_sdu(lc.lcid, rlc_buff->msg, rlc_buff->N_bytes) != SRSRAN_SUCCESS) {

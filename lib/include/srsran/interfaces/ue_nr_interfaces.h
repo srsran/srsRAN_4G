@@ -44,7 +44,7 @@ public:
     uint32_t pid;
     uint16_t rnti;
     uint32_t tti;
-    uint32_t tbs;
+    uint32_t tbs; // transport block size in Bytes
   } mac_nr_grant_ul_t;
 
   /// For UL, payload buffer remains in MAC
