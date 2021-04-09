@@ -245,7 +245,7 @@ void rrc::send_rrc_connection_reject(uint16_t rnti)
   char buf[32] = {};
   sprintf(buf, "SRB0 - rnti=0x%x", rnti);
   log_rrc_message(buf, Tx, pdu.get(), dl_ccch_msg, dl_ccch_msg.msg.c1().type().to_string());
-  rlc->write_sdu(rnti, rb_to_lcid(srsran::lte_rb::srb0), std::move(pdu));
+  rlc->write_sdu(rnti, srb_to_lcid(lte_srb::srb0), std::move(pdu));
 }
 
 /*******************************************************************************
@@ -1004,11 +1004,11 @@ void rrc::tti_clock()
 
     // handle queue cmd
     switch (p.lcid) {
-      case static_cast<uint32_t>(lte_rb::srb0):
+      case srb_to_lcid(lte_srb::srb0):
         parse_ul_ccch(p.rnti, std::move(p.pdu));
         break;
-      case static_cast<uint32_t>(lte_rb::srb1):
-      case static_cast<uint32_t>(lte_rb::srb2):
+      case srb_to_lcid(lte_srb::srb1):
+      case srb_to_lcid(lte_srb::srb2):
         parse_ul_dcch(p.rnti, p.lcid, std::move(p.pdu));
         break;
       case LCID_REM_USER:

@@ -396,7 +396,7 @@ int sched_sim_base::apply_tti_events(sim_ue_ctxt_t& ue_ctxt, const ue_tti_events
       sched_interface::ue_cfg_t ue_cfg = generate_setup_ue_cfg(final_ue_cfg[ue_ctxt.rnti]);
       TESTASSERT(ue_recfg(ue_ctxt.rnti, ue_cfg) == SRSRAN_SUCCESS);
 
-      uint32_t lcid = rb_to_lcid(lte_rb::srb0); // Use SRB0 to schedule Msg4
+      uint32_t lcid = srb_to_lcid(lte_srb::srb0); // Use SRB0 to schedule Msg4
       TESTASSERT(sched_ptr->dl_rlc_buffer_state(ue_ctxt.rnti, lcid, 50, 0) == SRSRAN_SUCCESS);
       TESTASSERT(sched_ptr->dl_mac_buffer_state(ue_ctxt.rnti, (uint32_t)srsran::dl_sch_lcid::CON_RES_ID, 1) ==
                  SRSRAN_SUCCESS);

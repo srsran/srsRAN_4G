@@ -36,6 +36,8 @@ bool simulate_rlf = false;
 
 using namespace srsran;
 using namespace asn1::rrc;
+using srsran::lte_srb;
+using srsran::srb_to_lcid;
 
 namespace srsue {
 
@@ -940,7 +942,7 @@ void rrc::send_con_restablish_complete()
   ul_dcch_msg.msg.set_c1().set_rrc_conn_reest_complete().crit_exts.set_rrc_conn_reest_complete_r8();
   ul_dcch_msg.msg.c1().rrc_conn_reest_complete().rrc_transaction_id = transaction_id;
 
-  send_ul_dcch_msg((uint32_t)srsran::lte_rb::srb1, ul_dcch_msg);
+  send_ul_dcch_msg(srb_to_lcid(lte_srb::srb1), ul_dcch_msg);
 
   reestablishment_successful = true;
 }
@@ -960,13 +962,12 @@ void rrc::send_con_setup_complete(srsran::unique_byte_buffer_t nas_msg)
   rrc_conn_setup_complete->ded_info_nas.resize(nas_msg->N_bytes);
   memcpy(rrc_conn_setup_complete->ded_info_nas.data(), nas_msg->msg, nas_msg->N_bytes); // TODO Check!
 
-  send_ul_dcch_msg((uint32_t)srsran::lte_rb::srb1, ul_dcch_msg);
+  send_ul_dcch_msg(srb_to_lcid(lte_srb::srb1), ul_dcch_msg);
 }
 
 void rrc::send_ul_info_transfer(unique_byte_buffer_t nas_msg)
 {
-  uint32_t lcid =
-      (uint32_t)(rlc->has_bearer((uint32_t)srsran::lte_rb::srb2) ? srsran::lte_rb::srb2 : srsran::lte_rb::srb1);
+  uint32_t lcid = (uint32_t)(rlc->has_bearer(srb_to_lcid(lte_srb::srb2)) ? lte_srb::srb2 : lte_srb::srb1);
 
   // Prepare UL INFO packet
   asn1::rrc::ul_dcch_msg_s   ul_dcch_msg;
@@ -989,7 +990,7 @@ void rrc::send_security_mode_complete()
   ul_dcch_msg.msg.set_c1().set_security_mode_complete().crit_exts.set_security_mode_complete_r8();
   ul_dcch_msg.msg.c1().security_mode_complete().rrc_transaction_id = transaction_id;
 
-  send_ul_dcch_msg((uint32_t)srsran::lte_rb::srb1, ul_dcch_msg);
+  send_ul_dcch_msg(srb_to_lcid(lte_srb::srb1), ul_dcch_msg);
 }
 
 void rrc::send_rrc_con_reconfig_complete(bool contains_nr_complete)
@@ -1017,7 +1018,7 @@ void rrc::send_rrc_con_reconfig_complete(bool contains_nr_complete)
     rrc_conn_recfg_complete_v1430_ies->non_crit_ext.scg_cfg_resp_nr_r15_present = true;
     rrc_conn_recfg_complete_v1430_ies->non_crit_ext.scg_cfg_resp_nr_r15.from_string("00");
   }
-  send_ul_dcch_msg((uint32_t)srsran::lte_rb::srb1, ul_dcch_msg);
+  send_ul_dcch_msg(srb_to_lcid(lte_srb::srb1), ul_dcch_msg);
 }
 
 void rrc::ra_completed()
@@ -1169,12 +1170,12 @@ void rrc::start_con_restablishment(reest_cause_e cause)
 bool rrc::srbs_flushed()
 {
   // Check SRB1
-  if (rlc->has_data((uint32_t)srsran::lte_rb::srb1) && not rlc->is_suspended((uint32_t)srsran::lte_rb::srb1)) {
+  if (rlc->has_data(srb_to_lcid(lte_srb::srb1)) && not rlc->is_suspended(srb_to_lcid(lte_srb::srb1))) {
     return false;
   }
 
   // Check SRB2
-  if (rlc->has_data((uint32_t)srsran::lte_rb::srb2) && not rlc->is_suspended((uint32_t)srsran::lte_rb::srb2)) {
+  if (rlc->has_data(srb_to_lcid(lte_srb::srb2)) && not rlc->is_suspended(srb_to_lcid(lte_srb::srb2))) {
     return false;
   }
 
@@ -1188,7 +1189,7 @@ bool rrc::srbs_flushed()
  *******************************************************************************/
 void rrc::send_srb1_msg(const ul_dcch_msg_s& msg)
 {
-  send_ul_dcch_msg((uint32_t)srsran::lte_rb::srb1, msg);
+  send_ul_dcch_msg(srb_to_lcid(lte_srb::srb1), msg);
 }
 
 std::set<uint32_t> rrc::get_cells(const uint32_t earfcn)
@@ -1562,7 +1563,7 @@ void rrc::send_ul_ccch_msg(const ul_ccch_msg_s& msg)
   logger.debug("Setting UE contention resolution ID: %" PRIu64 "", uecri);
   mac->set_contention_id(uecri);
 
-  uint32_t lcid = (uint32_t)srsran::lte_rb::srb0;
+  uint32_t lcid = srb_to_lcid(lte_srb::srb0);
   log_rrc_message(get_rb_name(lcid), Tx, pdcp_buf.get(), msg, msg.msg.c1().type().to_string());
 
   rlc->write_sdu(lcid, std::move(pdcp_buf));
@@ -1613,12 +1614,12 @@ void rrc::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
 void rrc::process_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
   logger.debug("RX PDU, LCID: %d", lcid);
-  switch (static_cast<srsran::lte_rb>(lcid)) {
-    case srsran::lte_rb::srb0:
+  switch (static_cast<lte_srb>(lcid)) {
+    case lte_srb::srb0:
       parse_dl_ccch(std::move(pdu));
       break;
-    case srsran::lte_rb::srb1:
-    case srsran::lte_rb::srb2:
+    case lte_srb::srb1:
+    case lte_srb::srb2:
       parse_dl_dcch(lcid, std::move(pdu));
       break;
     default:
@@ -1637,7 +1638,7 @@ void rrc::parse_dl_ccch(unique_byte_buffer_t pdu)
     return;
   }
   log_rrc_message(
-      srsran::get_rb_name(srsran::lte_rb::srb0), Rx, pdu.get(), dl_ccch_msg, dl_ccch_msg.msg.c1().type().to_string());
+      get_rb_name(srb_to_lcid(lte_srb::srb0)), Rx, pdu.get(), dl_ccch_msg, dl_ccch_msg.msg.c1().type().to_string());
 
   dl_ccch_msg_type_c::c1_c_* c1 = &dl_ccch_msg.msg.c1();
   switch (dl_ccch_msg.msg.c1().type().value) {
@@ -2114,7 +2115,7 @@ void rrc::handle_ue_capability_enquiry(const ue_cap_enquiry_s& enquiry)
     }
   }
 
-  send_ul_dcch_msg((uint32_t)srsran::lte_rb::srb1, ul_dcch_msg);
+  send_ul_dcch_msg(srb_to_lcid(lte_srb::srb1), ul_dcch_msg);
 }
 
 /*******************************************************************************
@@ -2551,7 +2552,7 @@ void rrc::add_srb(const srb_to_add_mod_s& srb_cnfg)
 {
   // Setup PDCP
   pdcp->add_bearer(srb_cnfg.srb_id, make_srb_pdcp_config_t(srb_cnfg.srb_id, true));
-  if (static_cast<uint32_t>(srsran::lte_rb::srb2) == srb_cnfg.srb_id) {
+  if (lte_srb::srb2 == static_cast<lte_srb>(srb_cnfg.srb_id)) {
     pdcp->config_security(srb_cnfg.srb_id, sec_cfg);
     pdcp->enable_integrity(srb_cnfg.srb_id, DIRECTION_TXRX);
     pdcp->enable_encryption(srb_cnfg.srb_id, DIRECTION_TXRX);
@@ -2572,16 +2573,16 @@ void rrc::add_srb(const srb_to_add_mod_s& srb_cnfg)
   if (srb_cnfg.lc_ch_cfg_present) {
     if (srb_cnfg.lc_ch_cfg.type() == srb_to_add_mod_s::lc_ch_cfg_c_::types::default_value) {
       // Set default SRB values as defined in Table 9.2.1
-      switch (static_cast<srsran::lte_rb>(srb_cnfg.srb_id)) {
-        case srsran::lte_rb::srb0:
+      switch (static_cast<lte_srb>(srb_cnfg.srb_id)) {
+        case lte_srb::srb0:
           logger.error("Setting SRB0: Should not be set by RRC");
           break;
-        case srsran::lte_rb::srb1:
+        case lte_srb::srb1:
           priority             = 1;
           prioritized_bit_rate = -1;
           bucket_size_duration = 0;
           break;
-        case srsran::lte_rb::srb2:
+        case lte_srb::srb2:
           priority             = 3;
           prioritized_bit_rate = -1;
           bucket_size_duration = 0;
@@ -2784,7 +2785,7 @@ void rrc::nr_scg_failure_information(const scg_failure_cause_t cause)
   scg_fail_info_nr.crit_exts.c1().scg_fail_info_nr_r15().fail_report_scg_nr_r15_present = true;
   scg_fail_info_nr.crit_exts.c1().scg_fail_info_nr_r15().fail_report_scg_nr_r15.fail_type_r15 =
       (fail_report_scg_nr_r15_s::fail_type_r15_opts::options)cause;
-  send_ul_dcch_msg((uint32_t)srsran::lte_rb::srb1, ul_dcch_msg);
+  send_ul_dcch_msg(srb_to_lcid(lte_srb::srb1), ul_dcch_msg);
 }
 
 } // namespace srsue

@@ -60,7 +60,7 @@ void rlc::add_user(uint16_t rnti)
     obj->init(&users[rnti],
               &users[rnti],
               timers,
-              rb_to_lcid(srsran::lte_rb::srb0),
+              srb_to_lcid(lte_srb::srb0),
               [rnti, this](uint32_t lcid, uint32_t tx_queue, uint32_t retx_queue) {
                 update_bsr(rnti, lcid, tx_queue, retx_queue);
               });
@@ -262,7 +262,7 @@ void rlc::user_interface::max_retx_attempted()
 
 void rlc::user_interface::write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu)
 {
-  if (lcid == rb_to_lcid(srsran::lte_rb::srb0)) {
+  if (lcid == srb_to_lcid(lte_srb::srb0)) {
     rrc->write_pdu(rnti, lcid, std::move(sdu));
   } else {
     pdcp->write_pdu(rnti, lcid, std::move(sdu));

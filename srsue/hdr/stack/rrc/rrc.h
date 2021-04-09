@@ -217,14 +217,7 @@ private:
 
   static const std::string rb_id_str[];
 
-  const char* get_rb_name(uint32_t lcid)
-  {
-    if (lcid < (uint32_t)srsran::lte_rb::count) {
-      return rb_id_str[lcid].c_str();
-    } else {
-      return "INVALID_RB";
-    }
-  }
+  const char* get_rb_name(uint32_t lcid) { return srsran::is_lte_rb(lcid) ? rb_id_str[lcid].c_str() : "invalid RB"; }
 
   // Measurements private subclass
   class rrc_meas;

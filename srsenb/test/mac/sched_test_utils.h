@@ -65,15 +65,15 @@ inline srsenb::sched_interface::ue_cfg_t generate_default_ue_cfg()
 
   ue_cfg.maxharq_tx = 5;
   ue_cfg.supported_cc_list.resize(1);
-  ue_cfg.supported_cc_list[0].aperiodic_cqi_period      = 40;
-  ue_cfg.supported_cc_list[0].enb_cc_idx                = 0;
-  ue_cfg.supported_cc_list[0].active                    = true;
-  ue_cfg.supported_cc_list[0].dl_cfg.tm                 = SRSRAN_TM1;
-  ue_cfg.ue_bearers[rb_to_lcid(lte_rb::srb0)].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-  ue_cfg.ue_bearers[rb_to_lcid(lte_rb::srb1)].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-  ue_cfg.ue_bearers[rb_to_lcid(lte_rb::srb2)].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-  ue_cfg.ue_bearers[rb_to_lcid(lte_rb::drb1)].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-  ue_cfg.ue_bearers[rb_to_lcid(lte_rb::drb1)].group     = 1;
+  ue_cfg.supported_cc_list[0].aperiodic_cqi_period        = 40;
+  ue_cfg.supported_cc_list[0].enb_cc_idx                  = 0;
+  ue_cfg.supported_cc_list[0].active                      = true;
+  ue_cfg.supported_cc_list[0].dl_cfg.tm                   = SRSRAN_TM1;
+  ue_cfg.ue_bearers[srb_to_lcid(lte_srb::srb0)].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+  ue_cfg.ue_bearers[srb_to_lcid(lte_srb::srb1)].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+  ue_cfg.ue_bearers[srb_to_lcid(lte_srb::srb2)].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+  ue_cfg.ue_bearers[drb_to_lcid(lte_drb::drb1)].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+  ue_cfg.ue_bearers[drb_to_lcid(lte_drb::drb1)].group     = 1;
 
   ue_cfg.pucch_cfg.sr_configured = true;
   ue_cfg.pucch_cfg.I_sr          = 15; // periodicity of 20 msec
@@ -86,18 +86,18 @@ inline srsenb::sched_interface::ue_cfg_t generate_default_ue_cfg2()
 {
   srsenb::sched_interface::ue_cfg_t ue_cfg = generate_default_ue_cfg();
 
-  ue_cfg.ue_bearers[rb_to_lcid(lte_rb::srb1)].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-  ue_cfg.ue_bearers[rb_to_lcid(lte_rb::srb2)].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-  ue_cfg.ue_bearers[rb_to_lcid(lte_rb::drb1)].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-  ue_cfg.ue_bearers[rb_to_lcid(lte_rb::drb1)].group     = 1;
+  ue_cfg.ue_bearers[srb_to_lcid(lte_srb::srb1)].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+  ue_cfg.ue_bearers[srb_to_lcid(lte_srb::srb2)].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+  ue_cfg.ue_bearers[drb_to_lcid(lte_drb::drb1)].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+  ue_cfg.ue_bearers[drb_to_lcid(lte_drb::drb1)].group     = 1;
 
   return ue_cfg;
 }
 
 inline srsenb::sched_interface::ue_cfg_t generate_rach_ue_cfg(const srsenb::sched_interface::ue_cfg_t& final_cfg)
 {
-  srsenb::sched_interface::ue_cfg_t cfg              = {};
-  cfg.ue_bearers[rb_to_lcid(lte_rb::srb0)].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+  srsenb::sched_interface::ue_cfg_t cfg                = {};
+  cfg.ue_bearers[srb_to_lcid(lte_srb::srb0)].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
   cfg.supported_cc_list.resize(1);
   cfg.supported_cc_list[0].enb_cc_idx = final_cfg.supported_cc_list[0].enb_cc_idx;
   cfg.supported_cc_list[0].active     = true;
@@ -108,10 +108,10 @@ inline srsenb::sched_interface::ue_cfg_t generate_setup_ue_cfg(const srsenb::sch
 {
   srsenb::sched_interface::ue_cfg_t cfg = generate_rach_ue_cfg(final_cfg);
 
-  cfg.maxharq_tx                                     = final_cfg.maxharq_tx;
-  cfg.ue_bearers[rb_to_lcid(lte_rb::srb1)].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-  cfg.supported_cc_list[0].dl_cfg.tm                 = SRSRAN_TM1;
-  cfg.continuous_pusch                               = final_cfg.continuous_pusch;
+  cfg.maxharq_tx                                       = final_cfg.maxharq_tx;
+  cfg.ue_bearers[srb_to_lcid(lte_srb::srb1)].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+  cfg.supported_cc_list[0].dl_cfg.tm                   = SRSRAN_TM1;
+  cfg.continuous_pusch                                 = final_cfg.continuous_pusch;
 
   cfg.supported_cc_list[0].dl_cfg.cqi_report    = final_cfg.supported_cc_list[0].dl_cfg.cqi_report;
   cfg.pucch_cfg                                 = final_cfg.pucch_cfg;
@@ -122,8 +122,8 @@ inline srsenb::sched_interface::ue_cfg_t generate_setup_ue_cfg(const srsenb::sch
 
 inline srsenb::sched_interface::ue_cfg_t generate_reconf_ue_cfg(const srsenb::sched_interface::ue_cfg_t& final_cfg)
 {
-  srsenb::sched_interface::ue_cfg_t cfg    = generate_setup_ue_cfg(final_cfg);
-  cfg.ue_bearers[rb_to_lcid(lte_rb::srb2)] = final_cfg.ue_bearers[rb_to_lcid(lte_rb::srb1)];
+  srsenb::sched_interface::ue_cfg_t cfg      = generate_setup_ue_cfg(final_cfg);
+  cfg.ue_bearers[srb_to_lcid(lte_srb::srb2)] = final_cfg.ue_bearers[srb_to_lcid(lte_srb::srb1)];
 
   return cfg;
 }
@@ -257,11 +257,11 @@ struct sched_sim_event_generator {
     ue_sim_cfg.ue_cfg = generate_default_ue_cfg();
     user->ue_sim_cfg.reset(new ue_ctxt_test_cfg{ue_sim_cfg});
     // it should by now have a DRB1. Add other DRBs manually
-    user->ue_sim_cfg->ue_cfg.ue_bearers[rb_to_lcid(lte_rb::srb2)].direction =
+    user->ue_sim_cfg->ue_cfg.ue_bearers[srb_to_lcid(lte_srb::srb2)].direction =
         srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-    user->ue_sim_cfg->ue_cfg.ue_bearers[rb_to_lcid(lte_rb::drb1)].direction =
+    user->ue_sim_cfg->ue_cfg.ue_bearers[drb_to_lcid(lte_drb::drb1)].direction =
         srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-    user->ue_sim_cfg->ue_cfg.ue_bearers[rb_to_lcid(lte_rb::drb1)].group = 1;
+    user->ue_sim_cfg->ue_cfg.ue_bearers[drb_to_lcid(lte_drb::drb1)].group = 1;
     return user;
   }
 
