@@ -70,7 +70,7 @@ public:
   // RRC interface for PHY
   void in_sync() final;
   void out_of_sync() final;
-  void run_tti(uint32_t tti) final;
+  void run_tti(const uint32_t tti) final;
 
   // MAC interface for PHY
   sched_rnti_t get_dl_sched_rnti_nr(const uint32_t tti) final { return mac->get_dl_sched_rnti_nr(tti); }

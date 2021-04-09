@@ -299,6 +299,7 @@ bool ue_stack_lte::get_metrics(stack_metrics_t* metrics)
     stack_metrics_t metrics{};
     metrics.ul_dropped_sdus = ul_dropped_sdus;
     mac.get_metrics(metrics.mac);
+    mac_nr.get_metrics(metrics.mac_nr);
     rlc.get_metrics(metrics.rlc, metrics.mac[0].nof_tti);
     nas.get_metrics(&metrics.nas);
     rrc.get_metrics(metrics.rrc);
@@ -411,9 +412,11 @@ void ue_stack_lte::run_tti_impl(uint32_t tti, uint32_t tti_jump)
   for (uint32_t i = 0; i < tti_jump; ++i) {
     uint32_t next_tti = TTI_SUB(tti, (tti_jump - i - 1));
     mac.run_tti(next_tti);
+    mac_nr.run_tti(next_tti);
     task_sched.tic();
   }
   rrc.run_tti();
+  rrc_nr.run_tti(tti);
   nas.run_tti();
 
   if (args.have_tti_time_stats) {

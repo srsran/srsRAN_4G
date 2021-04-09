@@ -335,6 +335,7 @@ bool ue::get_metrics(ue_metrics_t* m)
   stack->get_metrics(&m->stack);
   gw_inst->get_metrics(m->gw, m->stack.mac[0].nof_tti);
   m->sys = sys_proc.get_metrics();
+  m->phy_nr.nof_active_cc = args.phy.nof_nr_carriers; // FIXME: temporary until PHY metrics are complete
   return true;
 }
 

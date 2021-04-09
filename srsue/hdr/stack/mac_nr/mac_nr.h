@@ -137,7 +137,7 @@ private:
   srsran::block_queue<srsran::unique_byte_buffer_t>
       pdu_queue; ///< currently only DCH PDUs supported (add BCH, PCH, etc)
 
-  mac_metrics_t metrics[SRSRAN_MAX_CARRIERS] = {};
+  std::array<mac_metrics_t, SRSRAN_MAX_CARRIERS> metrics = {};
 
   /// Rx buffer
   srsran::mac_sch_pdu_nr rx_pdu;

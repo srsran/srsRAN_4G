@@ -97,6 +97,11 @@ void mac_nr::reset()
 
 void mac_nr::run_tti(const uint32_t tti)
 {
+  // Early exit if MAC NR isn't used
+  if (not started) {
+    return;
+  }
+
   // Step all procedures
   logger.debug("Running MAC tti=%d", tti);
 
@@ -124,6 +129,10 @@ void mac_nr::update_buffer_states()
     mac_buffer_states.lcg_buffer_size[channel.lcg] += buffer_len;
   }
   logger.info("%s", mac_buffer_states.to_string());
+  // Count TTI for metrics
+  for (uint32_t i = 0; i < SRSRAN_MAX_CARRIERS; ++i) {
+    metrics[i].nof_tti++;
+  }
 }
 
 mac_interface_phy_nr::sched_rnti_t mac_nr::get_ul_sched_rnti_nr(const uint32_t tti)
@@ -252,12 +261,13 @@ void mac_nr::tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant)
     // Push DL PDUs to queue for back-ground processing
     for (uint32_t i = 0; i < SRSRAN_MAX_CODEWORDS; ++i) {
       if (grant.tb[i] != nullptr) {
+        metrics[cc_idx].rx_pkts++;
+        metrics[cc_idx].rx_brate += grant.tb[i]->N_bytes;
         pdu_queue.push(std::move(grant.tb[i]));
       }
     }
   }
 
-  metrics[cc_idx].rx_pkts++;
   stack_task_dispatch_queue.push([this]() { process_pdus(); });
 }
 
@@ -364,7 +374,31 @@ bool mac_nr::is_valid_crnti(const uint16_t crnti)
   return (crnti >= 0x0001 && crnti <= 0xFFEF);
 }
 
-void mac_nr::get_metrics(mac_metrics_t m[SRSRAN_MAX_CARRIERS]) {}
+void mac_nr::get_metrics(mac_metrics_t m[SRSRAN_MAX_CARRIERS])
+{
+  int   tx_pkts          = 0;
+  int   tx_errors        = 0;
+  int   tx_brate         = 0;
+  int   rx_pkts          = 0;
+  int   rx_errors        = 0;
+  int   rx_brate         = 0;
+  int   ul_buffer        = 0;
+  float dl_avg_ret       = 0;
+  int   dl_avg_ret_count = 0;
+
+  for (const auto& cc : metrics) {
+    tx_pkts += cc.tx_pkts;
+    tx_errors += cc.tx_errors;
+    tx_brate += cc.tx_brate;
+    rx_pkts += cc.rx_pkts;
+    rx_errors += cc.rx_errors;
+    rx_brate += cc.rx_brate;
+    ul_buffer += cc.ul_buffer;
+  }
+
+  memcpy(m, metrics.data(), sizeof(mac_metrics_t) * SRSRAN_MAX_CARRIERS);
+  metrics = {};
+}
 
 /**
  * Called from the main stack thread to process received PDUs
