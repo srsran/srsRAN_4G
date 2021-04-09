@@ -665,7 +665,7 @@ bool rrc_nr::apply_dl_common_cfg(const asn1::rrc_nr::dl_cfg_common_s& dl_cfg_com
             srsran_sch_time_ra_t common_time_ra;
             if (make_phy_common_time_ra(pdsch_cfg_common.pdsch_time_domain_alloc_list[i], &common_time_ra) == true) {
               phy_cfg.pdsch.common_time_ra[i]  = common_time_ra;
-              phy_cfg.pdsch.nof_common_time_ra = i;
+              phy_cfg.pdsch.nof_common_time_ra = i + 1;
             } else {
               logger.warning("Warning while building common_time_ra structure");
               return false;
