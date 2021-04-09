@@ -346,7 +346,7 @@ bool cc_worker::work_ul()
     mac_ul_grant.pid                                     = pid;
     mac_ul_grant.rnti                                    = pusch_cfg.grant.rnti;
     mac_ul_grant.tti                                     = ul_slot_cfg.idx;
-    mac_ul_grant.tbs                                     = pusch_cfg.grant.tb[0].tbs;
+    mac_ul_grant.tbs                                     = pusch_cfg.grant.tb[0].tbs / 8;
     phy->stack->new_grant_ul(0, mac_ul_grant, &ul_action);
 
     // Set UCI configuration following procedures
