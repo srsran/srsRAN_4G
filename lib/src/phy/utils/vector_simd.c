@@ -1710,14 +1710,13 @@ void srsran_vec_apply_cfo_simd(const cf_t* x, float cfo, cf_t* z, int len)
     }
   } else {
     for (; i < len - SRSRAN_SIMD_F_SIZE + 1; i += SRSRAN_SIMD_F_SIZE) {
-      for (; i < len - SRSRAN_SIMD_CF_SIZE + 1; i += SRSRAN_SIMD_CF_SIZE) {
-        simd_cf_t a = srsran_simd_cfi_loadu(&x[i]);
+      simd_cf_t a = srsran_simd_cfi_loadu(&x[i]);
 
-        simd_cf_t r = srsran_simd_cf_prod(a, _simd_phase);
-        _simd_phase = srsran_simd_cf_prod(_simd_phase, _simd_osc);
+      simd_cf_t r = srsran_simd_cf_prod(a, _simd_phase);
 
-        srsran_simd_cfi_storeu(&z[i], r);
-      }
+      srsran_simd_cfi_storeu(&z[i], r);
+
+      _simd_phase = srsran_simd_cf_prod(_simd_phase, _simd_osc);
     }
   }
 #endif
