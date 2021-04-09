@@ -714,7 +714,7 @@ int srsran_sch_nr_tb_info(const srsran_sch_tb_t* tb, char* str, uint32_t str_len
     len += srsran_print_check(str,
                               str_len,
                               len,
-                              "tb={mod=%s,Nl=%d,tbs=%d,R=%.3f,rv=%d,Nre=%d,Nbit=%d,cw=%d}",
+                              "CW0: mod=%s Nl=%d tbs=%d R=%.3f rv=%d Nre=%d Nbit=%d cw=%d",
                               srsran_mod_string(tb->mod),
                               tb->N_L,
                               tb->tbs / 8,

@@ -33,6 +33,8 @@ static uint32_t            mcs       = 30; // Set to 30 for steering
 static srsran_sch_cfg_nr_t pdsch_cfg = {};
 static uint32_t            nof_slots = 10;
 static uint32_t            rv_idx    = 0;
+static uint32_t            delay_n   = 4;      // Integer delay
+static float               cfo_hz    = 100.0f; // CFO Hz
 
 static void usage(char* prog)
 {
@@ -46,13 +48,15 @@ static void usage(char* prog)
          srsran_mcs_table_to_str(pdsch_cfg.sch_cfg.mcs_table));
   printf("\t-R Reserve RE: [rb_begin] [rb_end] [rb_stride] [sc_mask] [symbol_mask]\n");
   printf("\t-L Provide number of layers [Default %d]\n", carrier.max_mimo_layers);
+  printf("\t-D Delay signal an integer number of samples [Default %d samples]\n", delay_n);
+  printf("\t-C Frequency shift (CFO) signal in Hz [Default %+.0f Hz]\n", cfo_hz);
   printf("\t-v [set srsran_verbose to debug, default none]\n");
 }
 
 static int parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "rRPpmnTLv")) != -1) {
+  while ((opt = getopt(argc, argv, "rRPpmnTLDCv")) != -1) {
     switch (opt) {
       case 'P':
         carrier.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
@@ -92,6 +96,12 @@ static int parse_args(int argc, char** argv)
       } break;
       case 'L':
         carrier.max_mimo_layers = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'D':
+        delay_n = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'C':
+        cfo_hz = strtof(argv[optind], NULL);
         break;
       case 'v':
         srsran_verbose++;
@@ -187,22 +197,26 @@ int main(int argc, char** argv)
 
   uint8_t* data_tx[SRSRAN_MAX_TB]        = {};
   uint8_t* data_rx[SRSRAN_MAX_CODEWORDS] = {};
-  cf_t*    buffer                        = NULL;
+  cf_t*    buffer_gnb[SRSRAN_MAX_PORTS]  = {};
+  cf_t*    buffer_ue[SRSRAN_MAX_PORTS]   = {};
 
-  buffer = srsran_vec_cf_malloc(SRSRAN_SF_LEN_PRB(carrier.nof_prb));
-  if (buffer == NULL) {
+  uint32_t sf_len = SRSRAN_SF_LEN_PRB(carrier.nof_prb);
+  buffer_gnb[0]   = srsran_vec_cf_malloc(sf_len);
+  buffer_ue[0]    = srsran_vec_cf_malloc(sf_len);
+  if (buffer_gnb[0] == NULL || buffer_ue[0] == NULL) {
     ERROR("Error malloc");
     goto clean_exit;
   }
 
-  srsran_ue_dl_nr_args_t ue_dl_args        = {};
-  ue_dl_args.nof_rx_antennas               = 1;
-  ue_dl_args.pdsch.sch.disable_simd        = false;
-  ue_dl_args.pdsch.sch.decoder_use_flooded = false;
-  ue_dl_args.pdsch.measure_evm             = true;
-  ue_dl_args.pdcch.disable_simd            = false;
-  ue_dl_args.pdcch.measure_evm             = true;
-  ue_dl_args.nof_max_prb                   = carrier.nof_prb;
+  srsran_ue_dl_nr_args_t ue_dl_args          = {};
+  ue_dl_args.nof_rx_antennas                 = 1;
+  ue_dl_args.pdsch.sch.disable_simd          = false;
+  ue_dl_args.pdsch.sch.decoder_use_flooded   = false;
+  ue_dl_args.pdsch.measure_evm               = true;
+  ue_dl_args.pdsch.disable_zero_re_around_dc = true;
+  ue_dl_args.pdcch.disable_simd              = false;
+  ue_dl_args.pdcch.measure_evm               = true;
+  ue_dl_args.nof_max_prb                     = carrier.nof_prb;
 
   srsran_enb_dl_nr_args_t enb_dl_args = {};
   enb_dl_args.nof_tx_antennas         = 1;
@@ -239,12 +253,12 @@ int main(int argc, char** argv)
     search_space->nof_candidates[L] = srsran_pdcch_nr_max_candidates_coreset(coreset, L);
   }
 
-  if (srsran_ue_dl_nr_init(&ue_dl, &buffer, &ue_dl_args)) {
+  if (srsran_ue_dl_nr_init(&ue_dl, buffer_ue, &ue_dl_args)) {
     ERROR("Error UE DL");
     goto clean_exit;
   }
 
-  if (srsran_enb_dl_nr_init(&enb_dl, &buffer, &enb_dl_args)) {
+  if (srsran_enb_dl_nr_init(&enb_dl, buffer_gnb, &enb_dl_args)) {
     ERROR("Error UE DL");
     goto clean_exit;
   }
@@ -309,6 +323,7 @@ int main(int argc, char** argv)
   pdsch_cfg.grant.nof_layers                       = carrier.max_mimo_layers;
   pdsch_cfg.grant.dci_format                       = srsran_dci_format_nr_1_0;
   pdsch_cfg.grant.nof_dmrs_cdm_groups_without_data = 1;
+  pdsch_cfg.grant.beta_dmrs                        = srsran_convert_dB_to_amplitude(3);
   pdsch_cfg.grant.rnti_type                        = srsran_rnti_type_c;
   pdsch_cfg.grant.rnti                             = 0x4601;
   pdsch_cfg.grant.tb[0].rv                         = rv_idx;
@@ -381,6 +396,22 @@ int main(int argc, char** argv)
         get_time_interval(t);
         pdsch_encode_us += (size_t)(t[0].tv_sec * 1e6 + t[0].tv_usec);
 
+        // Emulate channel delay
+        if (delay_n >= sf_len) {
+          ERROR("Delay exceeds SF length");
+          goto clean_exit;
+        }
+        srsran_vec_cf_copy(&buffer_ue[0][0], &buffer_gnb[0][delay_n], sf_len - delay_n);
+        srsran_vec_cf_copy(&buffer_ue[0][sf_len - delay_n], &buffer_gnb[0][0], delay_n);
+
+        // Emulate channel CFO
+        if (isnormal(cfo_hz) && ue_dl.fft[0].cfg.symbol_sz > 0) {
+          srsran_vec_apply_cfo(buffer_ue[0],
+                               cfo_hz / (ue_dl.fft[0].cfg.symbol_sz * SRSRAN_SUBC_SPACING_NR(carrier.numerology)),
+                               buffer_ue[0],
+                               sf_len);
+        }
+
         for (uint32_t tb = 0; tb < SRSRAN_MAX_TB; tb++) {
           pdsch_cfg.grant.tb[tb].softbuffer.rx = &softbuffer_rx;
           srsran_softbuffer_rx_reset(pdsch_cfg.grant.tb[tb].softbuffer.rx);
@@ -395,7 +426,7 @@ int main(int argc, char** argv)
         get_time_interval(t);
         pdsch_decode_us += (size_t)(t[0].tv_sec * 1e6 + t[0].tv_usec);
 
-        if (pdsch_res->evm > 0.001f) {
+        if (pdsch_res->evm > 0.02f) {
           ERROR("Error PDSCH EVM is too high %f", pdsch_res->evm);
           goto clean_exit;
         }
@@ -447,8 +478,11 @@ clean_exit:
       free(data_rx[i]);
     }
   }
-  if (buffer) {
-    free(buffer);
+  if (buffer_gnb[0]) {
+    free(buffer_gnb[0]);
+  }
+  if (buffer_ue[0]) {
+    free(buffer_ue[0]);
   }
   srsran_softbuffer_tx_free(&softbuffer_tx);
   srsran_softbuffer_rx_free(&softbuffer_rx);
