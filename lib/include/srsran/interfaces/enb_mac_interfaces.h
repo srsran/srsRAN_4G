@@ -53,7 +53,7 @@ public:
   /**
    * List of DL scheduling results, one entry per cell/carrier
    */
-  typedef std::vector<dl_sched_t> dl_sched_list_t;
+  using dl_sched_list_t = srsran::bounded_vector<dl_sched_t, SRSRAN_MAX_CARRIERS>;
 
   typedef struct {
     uint16_t rnti;
@@ -85,7 +85,7 @@ public:
   /**
    * List of UL scheduling results, one entry per cell/carrier
    */
-  typedef std::vector<ul_sched_t> ul_sched_list_t;
+  using ul_sched_list_t = srsran::bounded_vector<ul_sched_t, SRSRAN_MAX_CARRIERS>;
 
   virtual int  sr_detected(uint32_t tti, uint16_t rnti)                                                       = 0;
   virtual void rach_detected(uint32_t tti, uint32_t primary_cc_idx, uint32_t preamble_idx, uint32_t time_adv) = 0;
