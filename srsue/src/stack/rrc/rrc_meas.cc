@@ -1061,6 +1061,7 @@ void rrc::rrc_meas::var_meas_cfg::remove_varmeas_report(const uint32_t meas_id)
 {
   meas_report->remove_varmeas_report(meas_id);
   trigger_state.erase(meas_id);
+  trigger_state_nr.erase(meas_id);
 }
 
 std::list<meas_obj_to_add_mod_s> rrc::rrc_meas::var_meas_cfg::get_active_objects()
