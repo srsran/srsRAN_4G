@@ -19,6 +19,26 @@
 #define SRSRAN_DMRS_SCH_TYPEA_SINGLE_DURATION_MIN 3
 #define SRSRAN_DMRS_SCH_TYPEA_DOUBLE_DURATION_MIN 4
 
+/**
+ * @brief Set to 1 for synchronization error pre-compensation before interpolator
+ */
+#define DMRS_SCH_SYNC_PRECOMPENSATE 1
+
+/**
+ * @brief Set to 1 for CFO error pre-compensation before interpolator
+ */
+#define DMRS_SCH_CFO_PRECOMPENSATE 1
+
+/**
+ * @brief Set Smoothing filter length, set to 0 for disabling. The recommended value is 5.
+ */
+#define DMRS_SCH_SMOOTH_FILTER_LEN 5
+
+/**
+ * @brief Set smoothing filter (gaussian) standard deviation
+ */
+#define DMRS_SCH_SMOOTH_FILTER_STDDEV 2
+
 int srsran_dmrs_sch_cfg_to_str(const srsran_dmrs_sch_cfg_t* cfg, char* msg, uint32_t max_len)
 {
   int type           = (int)cfg->type + 1;
@@ -503,9 +523,21 @@ int srsran_dmrs_sch_init(srsran_dmrs_sch_t* q, bool is_rx)
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
+  SRSRAN_MEM_ZERO(q, srsran_dmrs_sch_t, 1);
+
   if (is_rx) {
     q->is_rx = true;
   }
+
+#if DMRS_SCH_SMOOTH_FILTER_LEN
+  if (q->filter == NULL) {
+    q->filter = srsran_vec_f_malloc(DMRS_SCH_SMOOTH_FILTER_LEN);
+    if (q->filter == NULL) {
+      return SRSRAN_ERROR;
+    }
+    srsran_chest_set_smooth_filter_gauss(q->filter, DMRS_SCH_SMOOTH_FILTER_LEN - 1, 2);
+  }
+#endif // DMRS_SCH_SMOOTH_FILTER_LEN
 
   return SRSRAN_SUCCESS;
 }
@@ -523,6 +555,9 @@ void srsran_dmrs_sch_free(srsran_dmrs_sch_t* q)
   }
   if (q->temp) {
     free(q->temp);
+  }
+  if (q->filter) {
+    free(q->filter);
   }
 
   SRSRAN_MEM_ZERO(q, srsran_dmrs_sch_t, 1);
@@ -722,9 +757,16 @@ int srsran_dmrs_sch_estimate(srsran_dmrs_sch_t*           q,
     return SRSRAN_ERROR;
   }
 
+  // Get DMRS reserved RE pattern
+  srsran_re_pattern_t dmrs_pattern = {};
+  if (srsran_dmrs_sch_rvd_re_pattern(dmrs_cfg, grant, &dmrs_pattern) < SRSRAN_SUCCESS) {
+    ERROR("Error computing DMRS Reserved Re pattern");
+    return SRSRAN_ERROR;
+  }
+
   uint32_t nof_pilots_x_symbol = 0;
 
-  // Iterate symbols
+  // Iterate symbols and extract LSE estimates
   for (uint32_t i = 0; i < nof_symbols; i++) {
     uint32_t l = symbols[i]; // Symbol index inside the slot
 
@@ -739,6 +781,27 @@ int srsran_dmrs_sch_estimate(srsran_dmrs_sch_t*           q,
       return SRSRAN_ERROR;
     }
   }
+
+  // Estimate average synchronization error
+  float dmrs_stride = (dmrs_cfg->type == srsran_dmrs_sch_type_1) ? 2 : 3;
+  float sync_err    = 0.0f;
+  for (uint32_t i = 0; i < nof_symbols; i++) {
+    sync_err += srsran_vec_estimate_frequency(&q->pilot_estimates[nof_pilots_x_symbol * i], nof_pilots_x_symbol);
+  }
+  sync_err /= (float)nof_symbols;
+  chest_res->sync_error = sync_err / (dmrs_stride * SRSRAN_SUBC_SPACING_NR(q->carrier.numerology));
+
+#if DMRS_SCH_SYNC_PRECOMPENSATE
+  // Pre-compensate synchronization error
+  if (isnormal(sync_err)) {
+    for (uint32_t i = 0; i < nof_symbols; i++) {
+      srsran_vec_apply_cfo(&q->pilot_estimates[nof_pilots_x_symbol * i],
+                           sync_err,
+                           &q->pilot_estimates[nof_pilots_x_symbol * i],
+                           nof_pilots_x_symbol);
+    }
+  }
+#endif // DMRS_SCH_SYNC_ERROR_PRECOMPENSATE
 
   // Perform Power measurements
   float rsrp                              = 0.0f;
@@ -774,6 +837,37 @@ int srsran_dmrs_sch_estimate(srsran_dmrs_sch_t*           q,
   }
   chest_res->cfo = cfo_avg;
 
+#if DMRS_SCH_CFO_PRECOMPENSATE
+  // Pre-compensate CFO
+  cf_t cfo_correction[SRSRAN_NSYMB_PER_SLOT_NR] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+  if (isnormal(cfo_avg)) {
+    // Calculate phase of the first OFDM symbol (l = 0)
+    float arg0 =
+        cargf(corr[0]) - 2.0f * M_PI * srsran_symbol_distance_s(0, symbols[0], q->carrier.numerology) * cfo_avg;
+
+    // Calculate CFO corrections
+    for (uint32_t l = 0; l < SRSRAN_NSYMB_PER_SLOT_NR; l++) {
+      float arg         = arg0 + 2.0f * M_PI * cfo_avg * srsran_symbol_distance_s(0, l, q->carrier.numerology);
+      cfo_correction[l] = cexpf(I * arg);
+    }
+
+    // Remove CFO phases
+    for (uint32_t i = 0; i < nof_symbols; i++) {
+      uint32_t l = symbols[i];
+      srsran_vec_sc_prod_ccc(&q->pilot_estimates[nof_pilots_x_symbol * i],
+                             conjf(cfo_correction[l]),
+                             &q->pilot_estimates[nof_pilots_x_symbol * i],
+                             nof_pilots_x_symbol);
+    }
+  }
+#endif // DMRS_SCH_CFO_PRECOMPENSATE
+
+  INFO("PDSCH-DMRS: RSRP=%+.2fdB EPRE=%+.2fdB CFO=%+.0fHz Sync=%.3fus",
+       chest_res->rsrp_dbm,
+       srsran_convert_power_to_dB(epre),
+       cfo_avg,
+       chest_res->sync_error * 1e6);
+
   // Average over time, only if more than one DMRS symbol
   for (uint32_t i = 1; i < nof_symbols; i++) {
     srsran_vec_sum_ccc(
@@ -782,6 +876,12 @@ int srsran_dmrs_sch_estimate(srsran_dmrs_sch_t*           q,
   if (nof_symbols > 0) {
     srsran_vec_sc_prod_cfc(q->pilot_estimates, 1.0f / (float)nof_symbols, q->pilot_estimates, nof_pilots_x_symbol);
   }
+
+#if DMRS_SCH_SMOOTH_FILTER_LEN
+  // Apply smoothing filter
+  srsran_conv_same_cf(
+      q->pilot_estimates, q->filter, q->pilot_estimates, nof_pilots_x_symbol, DMRS_SCH_SMOOTH_FILTER_LEN);
+#endif // DMRS_SCH_SMOOTH_FILTER_LEN
 
   // Frequency domain interpolate
   uint32_t nof_re_x_symbol =
@@ -807,19 +907,27 @@ int srsran_dmrs_sch_estimate(srsran_dmrs_sch_t*           q,
     srsran_interp_linear_offset(&q->interpolator_type2, q->pilot_estimates, ce, delta, 3 - delta);
   }
 
-  // Time domain hold, extract resource elements estimates for PDSCH
-  uint32_t symbol_idx = 0;
-  uint32_t count      = 0;
-  for (uint32_t l = grant->S; l < grant->S + grant->L; l++) {
-    while (symbols[symbol_idx] < l && symbol_idx < nof_symbols - 1) {
-      symbol_idx++;
-    }
+#if DMRS_SCH_SYNC_PRECOMPENSATE
+  // Remove synchronization error pre-compensation
+  if (isnormal(sync_err)) {
+    srsran_vec_apply_cfo(ce, -sync_err / dmrs_stride, ce, nof_re_x_symbol);
+  }
+#endif // DMRS_SCH_SYNC_ERROR_PRECOMPENSATE
 
+  // Time domain hold, extract resource elements estimates for PDSCH
+  uint32_t count = 0;
+  for (uint32_t l = grant->S; l < grant->S + grant->L; l++) {
     // Initialise reserved mask
     bool rvd_mask_wb[SRSRAN_NRE * SRSRAN_MAX_PRB_NR] = {};
 
-    // Compute reserved RE
+    // Compute reserved RE mask by procedures
     if (srsran_re_pattern_list_to_symbol_mask(&cfg->rvd_re, l, rvd_mask_wb) < SRSRAN_SUCCESS) {
+      ERROR("Error generating reserved RE mask");
+      return SRSRAN_ERROR;
+    }
+
+    // Compute reserved RE mask for DMRS
+    if (srsran_re_pattern_to_symbol_mask(&dmrs_pattern, l, rvd_mask_wb) < SRSRAN_SUCCESS) {
       ERROR("Error generating reserved RE mask");
       return SRSRAN_ERROR;
     }
@@ -834,40 +942,13 @@ int srsran_dmrs_sch_estimate(srsran_dmrs_sch_t*           q,
       }
     }
 
-    // Check if it s DMRS symbol
-    if (symbols[symbol_idx] == l) {
-      switch (dmrs_cfg->type) {
-        case srsran_dmrs_sch_type_1:
-          // Skip if there is no data to read
-          if (grant->nof_dmrs_cdm_groups_without_data != 1) {
-            continue;
-          }
-          for (uint32_t i = 1; i < nof_re_x_symbol; i += 2) {
-            if (!rvd_mask[i]) {
-              chest_res->ce[0][0][count++] = ce[i];
-            }
-          }
-          break;
-        case srsran_dmrs_sch_type_2:
-          // Skip if there is no data to read
-          if (grant->nof_dmrs_cdm_groups_without_data != 1 && grant->nof_dmrs_cdm_groups_without_data != 2) {
-            continue;
-          }
-          for (uint32_t i = grant->nof_dmrs_cdm_groups_without_data * 2; i < nof_re_x_symbol; i += 6) {
-            uint32_t nof_re = (3 - grant->nof_dmrs_cdm_groups_without_data) * 2;
-            for (uint32_t j = 0; j < nof_re; j++) {
-              if (!rvd_mask[i + j]) {
-                chest_res->ce[0][0][count++] = ce[i + j];
-              }
-            }
-          }
-          break;
-      }
-    } else {
-      for (uint32_t i = 0; i < nof_re_x_symbol; i++) {
-        if (!rvd_mask[i]) {
-          chest_res->ce[0][0][count++] = ce[i];
-        }
+    for (uint32_t i = 0; i < nof_re_x_symbol; i++) {
+      if (!rvd_mask[i]) {
+#if DMRS_SCH_CFO_PRECOMPENSATE
+        chest_res->ce[0][0][count++] = ce[i] * cfo_correction[l];
+#else  // DMRS_SCH_CFO_PRECOMPENSATE
+        chest_res->ce[0][0][count++] = ce[i];
+#endif // DMRS_SCH_CFO_PRECOMPENSATE
       }
     }
   }

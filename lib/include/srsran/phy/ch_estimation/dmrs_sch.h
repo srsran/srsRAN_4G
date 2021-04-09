@@ -49,6 +49,7 @@ typedef struct {
   cf_t*    pilot_estimates; /// Pilots least squares estimates
   cf_t*    temp;            /// Temporal data vector of size SRSRAN_NRE * carrier.nof_prb
 
+  float* filter; ///< Smoothing filter
 } srsran_dmrs_sch_t;
 
 /**
