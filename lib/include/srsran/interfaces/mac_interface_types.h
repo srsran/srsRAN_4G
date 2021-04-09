@@ -150,6 +150,26 @@ struct sr_cfg_nr_t {
   sr_cfg_item_nr_t item[SRSRAN_MAX_MAX_NR_OF_SR_CFG_PER_CELL_GROUP];
 };
 
+struct tag_cfg_nr_t {
+  uint8_t  tag_id;
+  uint32_t time_align_timer;
+};
+
+struct phr_cfg_nr_t {
+  int  periodic_timer;
+  int  prohibit_timer;
+  int  tx_pwr_factor_change;
+  bool extended;
+  phr_cfg_nr_t() { reset(); }
+  void reset()
+  {
+    periodic_timer       = -1;
+    prohibit_timer       = -1;
+    tx_pwr_factor_change = -1;
+    extended             = false;
+  }
+};
+
 struct bsr_cfg_nr_t {
   // mandatory BSR config
   int periodic_timer;

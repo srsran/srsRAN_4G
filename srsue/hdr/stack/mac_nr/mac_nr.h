@@ -76,6 +76,9 @@ public:
   void set_config(const srsran::rach_nr_cfg_t& rach_cfg);
   void set_contention_id(const uint64_t ue_identity);
   bool set_crnti(const uint16_t crnti);
+  int  add_tag_config(const srsran::tag_cfg_nr_t& tag_cfg);
+  int  set_config(const srsran::phr_cfg_nr_t& phr_cfg);
+  int  remove_tag_config(const uint32_t tag_id);
   void start_ra_procedure();
 
   /// procedure ra nr interface + mux

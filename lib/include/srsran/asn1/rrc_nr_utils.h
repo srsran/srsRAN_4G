@@ -31,6 +31,7 @@ struct rlc_cfg_c;
 struct pdcp_cfg_s;
 struct lc_ch_cfg_s;
 struct rach_cfg_common_s;
+struct phr_cfg_s;
 
 // Phy
 struct tdd_ul_dl_cfg_common_s;
@@ -92,6 +93,7 @@ bool make_phy_pusch_scaling(const asn1::rrc_nr::uci_on_pusch_s& uci_on_pusch, fl
  **************************/
 logical_channel_config_t make_mac_logical_channel_cfg_t(uint8_t lcid, const asn1::rrc_nr::lc_ch_cfg_s& asn1_type);
 rach_nr_cfg_t            make_mac_rach_cfg(const asn1::rrc_nr::rach_cfg_common_s& asn1_type);
+bool                     make_mac_phr_cfg_t(const asn1::rrc_nr::phr_cfg_s& asn1_type, phr_cfg_nr_t* phr_cfg_nr);
 /***************************
  *      RLC Config
  **************************/

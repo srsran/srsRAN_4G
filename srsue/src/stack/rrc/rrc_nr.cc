@@ -518,11 +518,40 @@ bool rrc_nr::apply_mac_cell_group(const mac_cell_group_cfg_s& mac_cell_group_cfg
     }
 
   if (mac_cell_group_cfg.tag_cfg_present) {
-    logger.warning("Not handling tag cfg in MAC cell group config");
+    if (mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list_present) {
+      for (uint32_t i = 0; i < mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list.size(); i++) {
+        tag_cfg_nr_t tag_cfg_nr     = {};
+        tag_cfg_nr.tag_id           = mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list[i].tag_id;
+        tag_cfg_nr.time_align_timer = mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list[i].time_align_timer.to_number();
+        if (mac->add_tag_config(tag_cfg_nr) != SRSRAN_SUCCESS) {
+          logger.warning("Unable to add TAG config with tag_id %d", tag_cfg_nr.tag_id);
+          return false;
+        }
+      }
+    }
+    if (mac_cell_group_cfg.tag_cfg.tag_to_release_list_present) {
+      for (uint32_t i = 0; i < mac_cell_group_cfg.tag_cfg.tag_to_release_list.size(); i++) {
+        uint32_t tag_id = mac_cell_group_cfg.tag_cfg.tag_to_release_list[i];
+        if (mac->remove_tag_config(tag_id) != SRSRAN_SUCCESS) {
+          logger.warning("Unable to release TAG config with tag_id %d", tag_id);
+          return false;
+        }
+      }
+    }
   }
 
   if (mac_cell_group_cfg.phr_cfg_present) {
-    logger.warning("Not handling phr cfg in MAC cell group config");
+    if (mac_cell_group_cfg.phr_cfg.type() == setup_release_c<asn1::rrc_nr::phr_cfg_s>::types_opts::setup) {
+      phr_cfg_nr_t phr_cfg_nr;
+      if (make_mac_phr_cfg_t(mac_cell_group_cfg.phr_cfg.setup(), &phr_cfg_nr) != true) {
+        logger.warning("Unable to build PHR config");
+        return false;
+      }
+      if (mac->set_config(phr_cfg_nr) != SRSRAN_SUCCESS) {
+        logger.warning("Unable to set PHR config");
+        return false;
+      }
+    }
   }
 
   if (mac_cell_group_cfg.skip_ul_tx_dynamic) {

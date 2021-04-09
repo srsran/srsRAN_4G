@@ -337,6 +337,24 @@ int mac_nr::setup_lcid(const srsran::logical_channel_config_t& config)
   return SRSRAN_SUCCESS;
 }
 
+int mac_nr::add_tag_config(const srsran::tag_cfg_nr_t& tag_cfg)
+{
+  logger.warning("Add tag config not supported yet");
+  return SRSRAN_SUCCESS;
+}
+
+int mac_nr::remove_tag_config(const uint32_t tag_id)
+{
+  logger.warning("Remove tag config not supported yet");
+  return SRSRAN_SUCCESS;
+}
+
+int mac_nr::set_config(const srsran::phr_cfg_nr_t& phr_cfg)
+{
+  logger.warning("Add phr config not supported yet");
+  return SRSRAN_SUCCESS;
+}
+
 int mac_nr::set_config(const srsran::bsr_cfg_nr_t& bsr_cfg)
 {
   return proc_bsr.set_config(bsr_cfg);

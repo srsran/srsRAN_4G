@@ -66,6 +66,15 @@ logical_channel_config_t make_mac_logical_channel_cfg_t(uint8_t lcid, const lc_c
   return logical_channel_config;
 }
 
+bool make_mac_phr_cfg_t(const phr_cfg_s& asn1_type, phr_cfg_nr_t* phr_cfg_nr)
+{
+  phr_cfg_nr->extended             = asn1_type.ext;
+  phr_cfg_nr->periodic_timer       = asn1_type.phr_periodic_timer.to_number();
+  phr_cfg_nr->prohibit_timer       = asn1_type.phr_prohibit_timer.to_number();
+  phr_cfg_nr->tx_pwr_factor_change = asn1_type.phr_tx_pwr_factor_change.to_number();
+  return true;
+}
+
 rach_nr_cfg_t make_mac_rach_cfg(const rach_cfg_common_s& asn1_type)
 {
   rach_nr_cfg_t rach_nr_cfg                = {};
