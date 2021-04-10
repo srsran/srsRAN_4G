@@ -62,12 +62,12 @@ private:
   typedef enum { none, pending, transmitted } msg3_state_t;
   msg3_state_t msg3_state = none;
 
-  static constexpr uint32_t MIN_RLC_PDU_LEN =
+  static constexpr int32_t MIN_RLC_PDU_LEN =
       5; ///< minimum bytes that need to be available in a MAC PDU for attempting to add another RLC SDU
 
   srsran::unique_byte_buffer_t rlc_buff = nullptr;
 
-  srsran::mac_sch_pdu_nr tx_pdu;
+  srsran::mac_sch_pdu_nr tx_pdu; /// single MAC PDU for packing
 
   enum { no_bsr, sbsr_ce, lbsr_ce } add_bsr_ce = no_bsr; /// BSR procedure requests MUX to add a BSR CE
 

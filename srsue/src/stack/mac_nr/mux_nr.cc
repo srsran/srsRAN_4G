@@ -70,40 +70,59 @@ srsran::unique_byte_buffer_t mux_nr::get_pdu(uint32_t max_pdu_len)
     msg3_transmitted();
   } else {
     // Pack normal UL data PDU
+    int32_t remaining_len = tx_pdu.get_remaing_len(); // local variable to reserv space for CEs
+
     if (add_bsr_ce == sbsr_ce) {
-      tx_pdu.add_sbsr_ce(mac.generate_sbsr());
-      add_bsr_ce = no_bsr;
+      // reserve space for SBSR
+      remaining_len -= 2;
     }
 
-    // TODO: Add proper priority handling
+    // First add MAC SDUs
     for (const auto& lc : logical_channels) {
-      while (tx_pdu.get_remaing_len() >= MIN_RLC_PDU_LEN) {
+      // TODO: Add proper priority handling
+      logger.debug("Adding SDUs for LCID=%d (max %d B)", lc.lcid, remaining_len);
+      while (remaining_len >= MIN_RLC_PDU_LEN) {
         // read RLC PDU
         rlc_buff->clear();
         uint8_t* rd = rlc_buff->msg;
 
         // Determine space for RLC
-        uint32_t rlc_opportunity = tx_pdu.get_remaing_len();
-        rlc_opportunity -= tx_pdu.get_remaing_len() >= srsran::mac_sch_subpdu_nr::MAC_SUBHEADER_LEN_THRESHOLD ? 3 : 2;
+        remaining_len -= remaining_len >= srsran::mac_sch_subpdu_nr::MAC_SUBHEADER_LEN_THRESHOLD ? 3 : 2;
 
         // Read PDU from RLC
-        int pdu_len = rlc->read_pdu(lc.lcid, rd, rlc_opportunity);
+        int pdu_len = rlc->read_pdu(lc.lcid, rd, remaining_len);
 
-        // Add SDU if RLC has something to tx
-        if (pdu_len > 0) {
-          rlc_buff->N_bytes = pdu_len;
-          logger.debug(rlc_buff->msg, rlc_buff->N_bytes, "Read %d B from RLC", rlc_buff->N_bytes);
+        if (pdu_len > remaining_len) {
+          logger.error("Can't add SDU of %d B. Available space %d B", pdu_len, remaining_len);
+          break;
+        } else {
+          // Add SDU if RLC has something to tx
+          if (pdu_len > 0) {
+            rlc_buff->N_bytes = pdu_len;
+            logger.debug(rlc_buff->msg, rlc_buff->N_bytes, "Read %d B from RLC", rlc_buff->N_bytes);
 
-          // add to MAC PDU and pack
-          if (tx_pdu.add_sdu(lc.lcid, rlc_buff->msg, rlc_buff->N_bytes) != SRSRAN_SUCCESS) {
-            logger.error("Error packing MAC PDU");
+            // add to MAC PDU and pack
+            if (tx_pdu.add_sdu(lc.lcid, rlc_buff->msg, rlc_buff->N_bytes) != SRSRAN_SUCCESS) {
+              logger.error("Error packing MAC PDU");
+              break;
+            }
+          } else {
             break;
           }
-        } else {
-          break;
+
+          remaining_len -= pdu_len;
+          logger.debug("%d B remaining PDU", remaining_len);
         }
       }
     }
+
+    // Second add fixed-sized MAC CEs (e.g. SBSR)
+    if (add_bsr_ce == sbsr_ce) {
+      tx_pdu.add_sbsr_ce(mac.generate_sbsr());
+      add_bsr_ce = no_bsr;
+    }
+
+    // Lastly, add variable-sized MAC CEs
   }
 
   // Pack PDU

@@ -325,9 +325,9 @@ int mac_nr_ul_logical_channel_prioritization_test2()
 int mac_nr_ul_periodic_bsr_test()
 {
   // PDU layout (10 B in total)
-  // - SBSR
-  // - 6B LCID=4
-  const uint8_t tv1[] = {0x3d, 0xd1, 0x04, 0x06, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04};
+  // - 6B LCID=4 (+2B header, 8 B total)
+  // - 2B SBSR
+  const uint8_t tv1[] = {0x04, 0x06, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x3d, 0xd1};
 
   // PDU layout (10 B in total)
   // - 8B LCID=4
