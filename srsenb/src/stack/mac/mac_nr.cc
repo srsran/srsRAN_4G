@@ -230,7 +230,9 @@ int mac_nr::handle_pdu(srsran::unique_byte_buffer_t pdu)
   logger.info(pdu->msg, pdu->N_bytes, "Handling MAC PDU (%d B)", pdu->N_bytes);
 
   ue_rx_pdu.init_rx(true);
-  ue_rx_pdu.unpack(pdu->msg, pdu->N_bytes);
+  if (ue_rx_pdu.unpack(pdu->msg, pdu->N_bytes) != SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
+  }
 
   for (uint32_t i = 0; i < ue_rx_pdu.get_num_subpdus(); ++i) {
     srsran::mac_sch_subpdu_nr subpdu = ue_rx_pdu.get_subpdu(i);

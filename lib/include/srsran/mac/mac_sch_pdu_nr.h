@@ -123,7 +123,7 @@ public:
   mac_sch_pdu_nr(bool ulsch_ = false) : ulsch(ulsch_), logger(srslog::fetch_basic_logger("MAC")) {}
 
   void                     pack();
-  void                     unpack(const uint8_t* payload, const uint32_t& len);
+  int                      unpack(const uint8_t* payload, const uint32_t& len);
   uint32_t                 get_num_subpdus();
   const mac_sch_subpdu_nr& get_subpdu(const uint32_t& index);
   bool                     is_ulsch();
