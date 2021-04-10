@@ -294,6 +294,8 @@ int rlc::read_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
     logger.warning("LCID %d doesn't exist.", lcid);
   }
 
+  srsran_expect(ret <= nof_bytes, "Created too big RLC PDU (%d > %d)", ret, nof_bytes);
+
   return ret;
 }
 
@@ -308,6 +310,8 @@ int rlc::read_pdu_mch(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
   } else {
     logger.warning("LCID %d doesn't exist.", lcid);
   }
+
+  srsran_expect(ret <= nof_bytes, "Created too big RLC PDU for MCH (%d > %d)", ret, nof_bytes);
 
   return ret;
 }
