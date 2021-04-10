@@ -16,6 +16,7 @@
 #include "srsran/interfaces/ue_rrc_interfaces.h"
 #include "srsran/srslog/event_trace.h"
 #include <iostream>
+#include <srsran/upper/rlc_am_lte.h>
 
 #define MOD 1024
 #define RX_MOD_BASE(x) (((x)-vr_r) % 1024)
@@ -55,6 +56,87 @@ void log_rlc_am_status_pdu_to_string(srslog::log_channel& log_ch,
     }
   }
   log_ch(fmt_str, std::forward<Args>(args)..., to_c_str(buffer));
+}
+
+/*******************************
+ *      RLC AM Segments
+ ******************************/
+
+int rlc_am_pdu_segment_pool::segment_resource::id() const
+{
+  return std::distance(parent_pool->segments.cbegin(), this);
+}
+
+void rlc_am_pdu_segment_pool::segment_resource::deallocate()
+{
+  acked                  = false;
+  next_free              = parent_pool->free_list;
+  parent_pool->free_list = this;
+}
+
+rlc_am_pdu_segment_pool::rlc_am_pdu_segment_pool()
+{
+  for (segment_resource& s : segments) {
+    s.parent_pool = this;
+    s.next_free   = free_list;
+    free_list     = &s;
+  }
+}
+
+bool rlc_am_pdu_segment_pool::has_segments() const
+{
+  return free_list != nullptr;
+}
+
+bool rlc_am_pdu_segment_pool::allocate_segment(uint32_t               rlc_sn,
+                                               rlc_pdu_segment_list&  rlc_list,
+                                               uint32_t               pdcp_sn,
+                                               pdcp_pdu_segment_list& pdcp_list)
+{
+  if (free_list == nullptr) {
+    return false;
+  }
+  segment_resource* segment = free_list;
+  free_list                 = segment->next_free;
+  rlc_list.push(segment);
+  segment->rlc_sn_ = rlc_sn;
+  pdcp_list.push(segment);
+  segment->pdcp_sn_ = pdcp_sn;
+  return true;
+}
+
+template <bool rlcSnList>
+void pdu_segment_list<rlcSnList>::push(rlc_am_pdu_segment_pool::segment_resource* obj)
+{
+  if (head != nullptr) {
+    if (rlcSnList) {
+      obj->rlc_next = head.release();
+    } else {
+      obj->pdcp_next = head.release();
+    }
+  }
+  head.reset(obj);
+}
+
+template <bool rlcSnList>
+void pdu_segment_list<rlcSnList>::list_deleter::operator()(rlc_am_pdu_segment_pool::segment_resource* node)
+{
+  while (node != nullptr) {
+    rlc_am_pdu_segment_pool::segment_resource* next = nullptr;
+    if (rlcSnList) {
+      next           = node->rlc_next;
+      node->rlc_next = nullptr;
+      node->rlc_sn_  = rlc_am_pdu_segment::invalid_sn;
+    } else {
+      next            = node->pdcp_next;
+      node->pdcp_next = nullptr;
+      node->pdcp_sn_  = rlc_am_pdu_segment::invalid_sn;
+    }
+    if (node->empty()) {
+      node->deallocate();
+    }
+    node = next;
+  }
 }
 
 /*******************************
@@ -316,7 +398,7 @@ bool rlc_am_lte::rlc_am_lte_tx::has_data()
 {
   return (((do_status() && not status_prohibit_timer.is_running())) || // if we have a status PDU to transmit
           (not retx_queue.empty()) ||                                  // if we have a retransmission
-          (tx_sdu != NULL) ||                                          // if we are currently transmitting a SDU
+          (tx_sdu != nullptr) ||                                       // if we are currently transmitting a SDU
           (tx_sdu_queue.get_n_sdus() != 0)); // or if there is a SDU queued up for transmission
 }
 
@@ -332,9 +414,13 @@ bool rlc_am_lte::rlc_am_lte_tx::has_data()
 void rlc_am_lte::rlc_am_lte_tx::check_sn_reached_max_retx(uint32_t sn)
 {
   if (tx_window[sn].retx_count == cfg.max_retx_thresh) {
-    logger.warning("%s Signaling max number of reTx=%d for for SN=%d", RB_NAME, tx_window[sn].retx_count, sn);
+    logger.warning("%s Signaling max number of reTx=%d for SN=%d", RB_NAME, tx_window[sn].retx_count, sn);
     parent->rrc->max_retx_attempted();
-    parent->pdcp->notify_failure(parent->lcid, tx_window[sn].pdcp_sns);
+    srsran::pdcp_sn_vector_t pdcp_sns;
+    for (const rlc_am_pdu_segment& segment : tx_window[sn].pdcp_sn_list) {
+      pdcp_sns.push_back(segment.pdcp_sn());
+    }
+    parent->pdcp->notify_failure(parent->lcid, pdcp_sns);
     parent->metrics.num_lost_pdus++;
   }
 }
@@ -930,7 +1016,6 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
   // insert newly assigned SN into window and use reference for in-place operations
   // NOTE: from now on, we can't return from this function anymore before increasing vt_s
   rlc_amd_tx_pdu_t& tx_pdu = tx_window.add_pdu(header.sn);
-  tx_pdu.pdcp_sns.clear();
 
   uint32_t head_len  = rlc_am_packed_length(&header);
   uint32_t to_move   = 0;
@@ -939,6 +1024,13 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
   uint8_t* pdu_ptr   = pdu->msg;
 
   logger.debug("%s Building PDU - pdu_space: %d, head_len: %d ", RB_NAME, pdu_space, head_len);
+
+  bool segments_created = false;
+  if (not segment_pool.has_segments()) {
+    logger.info("Can't build a PDU - No segments available");
+    tx_window.remove_pdu(tx_pdu.rlc_sn);
+    return 0;
+  }
 
   // Check for SDU segment
   if (tx_sdu != nullptr) {
@@ -951,15 +1043,11 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
     tx_sdu->msg += to_move;
     if (undelivered_sdu_info_queue.has_pdcp_sn(tx_sdu->md.pdcp_sn)) {
       pdcp_sdu_info_t& pdcp_sdu = undelivered_sdu_info_queue[tx_sdu->md.pdcp_sn];
-      pdcp_sdu.rlc_sn_info_list.push_back({header.sn, false});
-      if (not tx_pdu.pdcp_sns.full()) {
-        tx_pdu.pdcp_sns.push_back(tx_sdu->md.pdcp_sn);
-      } else {
-        logger.warning("Cant't store PDCP_SN=%d for delivery notification.", tx_sdu->md.pdcp_sn);
-      }
+      segment_pool.allocate_segment(header.sn, pdcp_sdu.rlc_segment_list, tx_sdu->md.pdcp_sn, tx_pdu.pdcp_sn_list);
       if (tx_sdu->N_bytes == 0) {
         pdcp_sdu.fully_txed = true;
       }
+      segments_created = true;
     } else {
       // PDCP SNs for the RLC SDU has been removed from the queue
       logger.warning("Couldn't find PDCP_SN=%d in SDU info queue (segment)", tx_sdu->md.pdcp_sn);
@@ -987,6 +1075,14 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
 
   // Pull SDUs from queue
   while (pdu_space > head_len && tx_sdu_queue.get_n_sdus() > 0 && header.N_li < RLC_AM_WINDOW_SIZE) {
+    if (not segment_pool.has_segments()) {
+      logger.info("Can't build a PDU segment - No segment resources available");
+      if (segments_created) {
+        break; // continue with the segments created up to this point
+      }
+      tx_window.remove_pdu(tx_pdu.rlc_sn);
+      return 0;
+    }
     if (last_li > 0) {
       header.li[header.N_li] = last_li;
       header.N_li++;
@@ -1019,15 +1115,11 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
     tx_sdu->msg += to_move;
     if (undelivered_sdu_info_queue.has_pdcp_sn(tx_sdu->md.pdcp_sn)) {
       pdcp_sdu_info_t& pdcp_sdu = undelivered_sdu_info_queue[tx_sdu->md.pdcp_sn];
-      pdcp_sdu.rlc_sn_info_list.push_back({header.sn, false});
-      if (not tx_pdu.pdcp_sns.full()) {
-        tx_pdu.pdcp_sns.push_back(tx_sdu->md.pdcp_sn);
-      } else {
-        logger.warning("Cant't store PDCP_SN=%d for delivery notification.", tx_sdu->md.pdcp_sn);
-      }
+      segment_pool.allocate_segment(header.sn, pdcp_sdu.rlc_segment_list, tx_sdu->md.pdcp_sn, tx_pdu.pdcp_sn_list);
       if (tx_sdu->N_bytes == 0) {
         pdcp_sdu.fully_txed = true;
       }
+      segments_created = true;
     } else {
       // PDCP SNs for the RLC SDU has been removed from the queue
       logger.warning("Couldn't find PDCP_SN=%d in SDU info queue.", tx_sdu->md.pdcp_sn);
@@ -1186,6 +1278,7 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
       if (tx_window.has_sn(i)) {
         auto& pdu = tx_window[i];
         update_notification_ack_info(pdu);
+        logger.debug("Tx PDU SN=%zd being removed from tx window", i);
         tx_window.remove_pdu(i);
       }
       // Advance window if possible
@@ -1200,17 +1293,6 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
   // Make sure vt_a points to valid SN
   if (not tx_window.empty() && not tx_window.has_sn(vt_a)) {
     logger.error("%s vt_a=%d points to invalid position in Tx window", RB_NAME, vt_a);
-  }
-
-  if (not notify_info_vec.empty()) {
-    // Remove all SDUs that were fully acked
-    for (uint32_t acked_pdcp_sn : notify_info_vec) {
-      logger.debug("Erasing SDU info: PDCP_SN=%d", acked_pdcp_sn);
-      if (not undelivered_sdu_info_queue.has_pdcp_sn(acked_pdcp_sn)) {
-        logger.error("Could not find info to erase: SN=%d", acked_pdcp_sn);
-      }
-      undelivered_sdu_info_queue.clear_pdcp_sdu(acked_pdcp_sn);
-    }
   }
 
   debug_state();
@@ -1239,28 +1321,27 @@ void rlc_am_lte::rlc_am_lte_tx::update_notification_ack_info(const rlc_amd_tx_pd
   if (not tx_window.has_sn(tx_pdu.header.sn)) {
     return;
   }
-  pdcp_sn_vector_t& pdcp_sns = tx_window[tx_pdu.header.sn].pdcp_sns;
-  for (uint32_t pdcp_sn : pdcp_sns) {
+  pdcp_pdu_segment_list& pdcp_sns = tx_window[tx_pdu.header.sn].pdcp_sn_list;
+  for (rlc_am_pdu_segment& pdcp_segment : pdcp_sns) {
     // Iterate over all SNs that were TX'ed
-    auto& info = undelivered_sdu_info_queue[pdcp_sn];
-    for (auto& rlc_sn_info : info.rlc_sn_info_list) {
-      // Mark this SN as acked, if necessary
-      if (rlc_sn_info.is_acked == false && rlc_sn_info.sn == tx_pdu.header.sn) {
-        rlc_sn_info.is_acked = true;
-      }
-    }
+    uint32_t pdcp_sn = pdcp_segment.pdcp_sn();
+    pdcp_segment.set_ack();
+
+    pdcp_sdu_info_t& info = undelivered_sdu_info_queue[pdcp_sn];
     // Check wether the SDU was fully acked
     if (info.fully_txed and not info.fully_acked) {
       // Check if all SNs were ACK'ed
-      info.fully_acked = std::all_of(info.rlc_sn_info_list.begin(),
-                                     info.rlc_sn_info_list.end(),
-                                     [](rlc_sn_info_t rlc_sn_info) { return rlc_sn_info.is_acked; });
+      info.fully_acked = std::all_of(info.rlc_segment_list.begin(),
+                                     info.rlc_segment_list.end(),
+                                     [](const rlc_am_pdu_segment& elem) { return elem.is_acked(); });
       if (info.fully_acked) {
         if (not notify_info_vec.full()) {
           notify_info_vec.push_back(pdcp_sn);
         } else {
           logger.warning("Can't notify delivery of PDCP_SN=%d.", pdcp_sn);
         }
+        logger.debug("Erasing SDU info: PDCP_SN=%d", pdcp_sn);
+        undelivered_sdu_info_queue.clear_pdcp_sdu(pdcp_sn);
       }
     }
   }
@@ -2120,9 +2201,6 @@ const size_t buffered_pdcp_pdu_list::max_buffer_idx;
 
 buffered_pdcp_pdu_list::buffered_pdcp_pdu_list() : buffered_pdus(max_buffer_idx + 1)
 {
-  for (size_t i = 0; i < buffered_pdus.size(); ++i) {
-    buffered_pdus[i].rlc_sn_info_list.reserve(5);
-  }
   clear();
 }
 
@@ -2133,7 +2211,7 @@ void buffered_pdcp_pdu_list::clear()
     b.sn          = invalid_sn;
     b.fully_acked = false;
     b.fully_txed  = false;
-    b.rlc_sn_info_list.clear();
+    b.rlc_segment_list.clear();
   }
 }
 
@@ -2393,26 +2471,16 @@ bool rlc_am_is_pdu_segment(uint8_t* payload)
   return ((*(payload) >> 6) & 0x01) == 1;
 }
 
-std::string rlc_am_undelivered_sdu_info_to_string(const std::map<uint32_t, pdcp_sdu_info_t>& info_queue)
+void rlc_am_undelivered_sdu_info_to_string(fmt::memory_buffer& buffer, const std::vector<pdcp_sdu_info_t>& info_queue)
 {
-  std::string str = "\n";
-  for (const auto& info_it : info_queue) {
-    uint32_t    pdcp_sn = info_it.first;
-    auto        info    = info_it.second;
-    std::string tmp_str = fmt::format("\tPDCP_SN = {}, RLC_SNs = [", pdcp_sn);
-    for (auto rlc_sn_info : info.rlc_sn_info_list) {
-      std::string tmp_str2;
-      if (rlc_sn_info.is_acked) {
-        tmp_str2 = fmt::format("ACK={}, ", rlc_sn_info.sn);
-      } else {
-        tmp_str2 = fmt::format("NACK={}, ", rlc_sn_info.sn);
-      }
-      tmp_str += tmp_str2;
+  fmt::format_to(buffer, "\n");
+  for (const auto& pdcp_pdu : info_queue) {
+    fmt::format_to(buffer, "\tPDCP_SN = {}, RLC_SNs = [", pdcp_pdu.sn);
+    for (const auto& rlc_sn_info : pdcp_pdu.rlc_segment_list) {
+      fmt::format_to(buffer, "{}ACK={}, ", rlc_sn_info.is_acked() ? "" : "N", rlc_sn_info.rlc_sn());
     }
-    tmp_str += "]\n";
-    str += tmp_str;
+    fmt::format_to(buffer, "]\n");
   }
-  return str;
 }
 
 void log_rlc_amd_pdu_header_to_string(srslog::log_channel& log_ch, const rlc_amd_pdu_header_t& header)
