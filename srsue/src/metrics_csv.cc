@@ -203,8 +203,8 @@ void metrics_csv::set_metrics(const ue_metrics_t& metrics, const uint32_t period
                          metrics.phy_nr,
                          metrics.stack.mac_nr,
                          metrics.stack.rrc,
-                         r,
-                         metrics.phy.nof_active_cc + r);
+                         metrics.phy.nof_active_cc + r, // NR carrier offset
+                         r);
     }
 
     n_reports++;
