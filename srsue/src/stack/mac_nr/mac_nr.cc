@@ -259,11 +259,11 @@ void mac_nr::tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant)
   if (proc_ra.has_rar_rnti() && grant.rnti == proc_ra.get_rar_rnti()) {
     proc_ra.handle_rar_pdu(grant);
   } else {
-    // Push DL PDUs to queue for back-ground processing
+    // Push DL PDUs to queue for background processing
     for (uint32_t i = 0; i < SRSRAN_MAX_CODEWORDS; ++i) {
       if (grant.tb[i] != nullptr) {
         metrics[cc_idx].rx_pkts++;
-        metrics[cc_idx].rx_brate += grant.tb[i]->N_bytes;
+        metrics[cc_idx].rx_brate += grant.tb[i]->N_bytes * 8;
         pdu_queue.push(std::move(grant.tb[i]));
       }
     }
@@ -302,6 +302,7 @@ void mac_nr::new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant,
     pcap->write_ul_crnti_nr(ul_harq_buffer->msg, ul_harq_buffer->N_bytes, grant.rnti, grant.pid, grant.tti);
   }
 
+  metrics[cc_idx].tx_brate += grant.tbs * 8;
   metrics[cc_idx].tx_pkts++;
 }
 
