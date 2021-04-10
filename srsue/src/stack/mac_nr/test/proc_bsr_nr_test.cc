@@ -35,6 +35,7 @@ int sbsr_tests()
 
   uint32_t            tti = 0;
   mac_buffer_states_t buffer_state;
+  buffer_state.nof_lcgs_with_data = 1;
   buffer_state.last_non_zero_lcg  = 1;
   buffer_state.lcg_buffer_size[1] = 10;
   proc.step(tti++, buffer_state);
