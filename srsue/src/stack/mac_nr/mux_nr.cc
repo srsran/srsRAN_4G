@@ -42,6 +42,9 @@ int mux_nr::setup_lcid(const srsran::logical_channel_config_t& config)
 
 srsran::unique_byte_buffer_t mux_nr::get_pdu(uint32_t max_pdu_len)
 {
+  // Lock MAC PDU from current access from PHY workers (will be moved to UL HARQ)
+  std::lock_guard<std::mutex> lock(mutex);
+
   // initialize MAC PDU
   srsran::unique_byte_buffer_t phy_tx_pdu = srsran::make_byte_buffer();
   if (phy_tx_pdu == nullptr) {
