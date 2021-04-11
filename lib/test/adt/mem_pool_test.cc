@@ -21,6 +21,7 @@
 
 #include "srsran/adt/pool/fixed_size_pool.h"
 #include "srsran/adt/pool/mem_pool.h"
+#include "srsran/adt/pool/obj_pool.h"
 #include "srsran/common/test_common.h"
 
 class C
@@ -30,13 +31,14 @@ public:
   ~C() { dtor_counter++; }
 
   void* operator new(size_t sz);
+  void* operator new(size_t sz, void*& ptr) { return ptr; }
   void  operator delete(void* ptr)noexcept;
 
-  static int default_ctor_counter;
-  static int dtor_counter;
+  static std::atomic<int> default_ctor_counter;
+  static std::atomic<int> dtor_counter;
 };
-int C::default_ctor_counter = 0;
-int C::dtor_counter         = 0;
+std::atomic<int> C::default_ctor_counter(0);
+std::atomic<int> C::dtor_counter(0);
 
 srsran::big_obj_pool<C> pool;
 
@@ -50,7 +52,7 @@ void C::operator delete(void* ptr)noexcept
   pool.deallocate_node(ptr);
 }
 
-int test_nontrivial_obj_pool()
+void test_nontrivial_obj_pool()
 {
   // No object creation on reservation
   {
@@ -81,8 +83,6 @@ int test_nontrivial_obj_pool()
   }
   TESTASSERT(C::default_ctor_counter == 1);
   TESTASSERT(C::dtor_counter == 1);
-
-  return SRSRAN_SUCCESS;
 }
 
 struct BigObj {
@@ -124,6 +124,7 @@ void test_fixedsize_pool()
     fixed_pool->print_all_buffers();
   }
   fixed_pool->print_all_buffers();
+  TESTASSERT(C::default_ctor_counter == C::dtor_counter);
 
   // TEST: one thread allocates, and the other deallocates
   {
@@ -147,15 +148,47 @@ void test_fixedsize_pool()
     t.join();
   }
   fixed_pool->print_all_buffers();
+  TESTASSERT(C::default_ctor_counter == C::dtor_counter);
+}
+
+struct D : public C {
+  char val = '\0';
+};
+
+void test_background_pool()
+{
+  C::default_ctor_counter = 0;
+  C::dtor_counter         = 0;
+  {
+    auto init_D_val = [](void* ptr) {
+      new (ptr) D();
+      static_cast<D*>(ptr)->val = 'c';
+    };
+    srsran::background_obj_pool<D> obj_pool(16, 4, 16, init_D_val);
+    TESTASSERT(obj_pool.cache_size() == 16);
+    std::vector<srsran::unique_pool_ptr<D> > objs;
+
+    for (size_t i = 0; i < 16 - 4; ++i) {
+      objs.push_back(obj_pool.make());
+    }
+    TESTASSERT(
+        std::all_of(objs.begin(), objs.end(), [](const srsran::unique_pool_ptr<D>& d) { return d->val == 'c'; }));
+    TESTASSERT(C::default_ctor_counter == 16);
+
+    // This will trigger a new batch allocation in the background
+    objs.push_back(obj_pool.make());
+  }
+  TESTASSERT(C::dtor_counter == C::default_ctor_counter);
 }
 
 int main(int argc, char** argv)
 {
   srsran::test_init(argc, argv);
 
-  TESTASSERT(test_nontrivial_obj_pool() == SRSRAN_SUCCESS);
+  test_nontrivial_obj_pool();
   test_fixedsize_pool();
+  test_background_pool();
 
-  srsran::console("Success\n");
+  printf("Success\n");
   return 0;
 }

@@ -22,8 +22,8 @@
 #ifndef SRSRAN_SCHED_TEST_UTILS_H
 #define SRSRAN_SCHED_TEST_UTILS_H
 
+#include "srsenb/hdr/common/common_enb.h"
 #include "srsenb/hdr/stack/mac/sched.h"
-#include "srsenb/hdr/stack/upper/common_enb.h"
 #include "srsran/common/test_common.h"
 #include "srsran/interfaces/sched_interface.h"
 #include <algorithm>

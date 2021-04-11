@@ -49,6 +49,7 @@ void proc_ra_nr::init(phy_interface_mac_nr* phy_, srsran::ext_task_sched_handle*
   prach_send_timer            = task_sched->get_unique_timer();
   rar_timeout_timer           = task_sched->get_unique_timer();
   contention_resolution_timer = task_sched->get_unique_timer();
+  backoff_timer               = task_sched->get_unique_timer();
 }
 
 /* Sets a new configuration. The configuration is applied by initialization() function */
@@ -133,15 +134,18 @@ uint16_t proc_ra_nr::get_temp_rnti()
 void proc_ra_nr::timer_expired(uint32_t timer_id)
 {
   if (prach_send_timer.id() == timer_id) {
-    logger.error("PRACH Send timer expired. PRACH was not transmitted within %d ttis by phy. (TODO)",
+    logger.warning("PRACH Send timer expired. PRACH was not transmitted within %d ttis by phy. (TODO)",
                  prach_send_timer.duration());
     ra_error();
   } else if (rar_timeout_timer.id() == timer_id) {
-    logger.error("RAR Timer expired. RA response not received within the response window Response Error (TODO)");
+    logger.warning("RAR Timer expired. RA response not received within the response window");
     ra_error();
   } else if (contention_resolution_timer.id() == timer_id) {
-    logger.error("Contention Resolution Timer expired. Stopping PDCCH Search and going to Response Error (TODO)");
+    logger.warning("Contention Resolution Timer expired. Stopping PDCCH Search and going to Response Error (TODO)");
     ra_error();
+  } else if (backoff_timer.id() == timer_id) {
+    logger.info("Transmitting new preamble (%d/%d)", preamble_transmission_counter, rach_cfg.preambleTransMax);
+    ra_resource_selection();
   } else {
     logger.error("Timer not implemented");
   }
@@ -151,8 +155,10 @@ void proc_ra_nr::timer_expired(uint32_t timer_id)
 void proc_ra_nr::ra_procedure_initialization()
 {
   mac.msg3_flush();
+  preamble_transmission_counter = 1;
   preamble_power_ramping_step = rach_cfg.powerRampingStep;
   scaling_factor_bi           = 1;
+  preamble_backoff              = 0;
   preambleTransMax            = rach_cfg.preambleTransMax;
   ra_resource_selection();
 }
@@ -214,6 +220,13 @@ void proc_ra_nr::ra_response_reception(const mac_interface_phy_nr::mac_nr_grant_
           rar_rnti = SRSRAN_INVALID_RNTI;
           mac.msg3_prepare();
           current_ta = subpdu.get_ta();
+
+          // Set Backoff parameter
+          if (subpdu.has_backoff()) {
+            preamble_backoff = backoff_table_nr[subpdu.get_backoff() % 16]; // TODO multiplied with SCALING_FACTOR_BI.
+          } else {
+            preamble_backoff = 0;
+          }
         }
       }
     }
@@ -274,7 +287,31 @@ void proc_ra_nr::ra_completion()
 
 void proc_ra_nr::ra_error()
 {
-  logger.error("NR random access procedure error recovery not implemented yet");
+  temp_rnti = 0;
+  preamble_transmission_counter++;
+  contention_resolution_timer.stop();
+  uint32_t backoff_wait;
+  bool     ra_procedure_completed = false; // true = (unsuccessfully) completed, false = uncompleted
+
+  if (preamble_transmission_counter >= rach_cfg.preambleTransMax + 1) {
+    logger.warning("Maximum number of transmissions reached (%d)", rach_cfg.preambleTransMax);
+    // if the Random Access Preamble is transmitted on the SpCell assumption (TODO)
+    mac.rrc_ra_problem();                 //  indicate a Random Access problem to upper layers;
+    if (started_by == initiators_t::MAC) { // if this Random Access procedure was triggered for SI request
+      ra_procedure_completed = true;        // consider the Random Access procedure unsuccessfully completed.
+      reset();
+    }
+  } else {
+    // if the Random Access procedure is not completed
+    if (preamble_backoff) {
+      backoff_wait = rand() % preamble_backoff;
+    } else {
+      backoff_wait = 0;
+    }
+    logger.warning("Backoff wait interval %d", backoff_wait);
+    backoff_timer.set(backoff_wait, [this](uint32_t tid) { timer_expired(tid); });
+    backoff_timer.run();
+  }
 }
 
 // Is called by PHY once it has transmitted the prach transmitted, than configure RA-RNTI and wait for RAR reception
@@ -306,7 +343,7 @@ void proc_ra_nr::prach_sent(uint32_t tti, uint32_t s_id, uint32_t t_id, uint32_t
                     tti);
     uint32_t rar_window_st = TTI_ADD(tti, 3);
     // TODO check ra_response window (delayed start)? // last 3 check if needed when we have a delayed start
-    rar_timeout_timer.set(rach_cfg.ra_responseWindow + 3 + 3, [this](uint32_t tid) { timer_expired(tid); });
+    rar_timeout_timer.set(rach_cfg.ra_responseWindow + 3 + 10, [this](uint32_t tid) { timer_expired(tid); });
     rar_timeout_timer.run();
     // Wait for RAR reception
     ra_window_length = rach_cfg.ra_responseWindow;

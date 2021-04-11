@@ -106,8 +106,43 @@ void mac_nr::reset()
 
 void mac_nr::run_tti(const uint32_t tti)
 {
+  // Early exit if MAC NR isn't used
+  if (not started) {
+    return;
+  }
+
   // Step all procedures
   logger.debug("Running MAC tti=%d", tti);
+
+  // Update state for all LCIDs/LCGs once so all procedures can use them
+  update_buffer_states();
+
+  proc_bsr.step(tti, mac_buffer_states);
+  proc_sr.step(tti);
+}
+
+void mac_nr::update_buffer_states()
+{
+  // reset variables
+  mac_buffer_states.reset();
+  for (auto& channel : logical_channels) {
+    uint32_t buffer_len = rlc->get_buffer_state(channel.lcid);
+    if (buffer_len > 0) {
+      mac_buffer_states.nof_lcids_with_data++;
+      if (channel.lcg != mac_buffer_states.last_non_zero_lcg) {
+        mac_buffer_states.nof_lcgs_with_data++;
+      }
+      mac_buffer_states.last_non_zero_lcg = channel.lcg;
+    }
+    mac_buffer_states.lcid_buffer_size[channel.lcid] += buffer_len;
+    mac_buffer_states.lcg_buffer_size[channel.lcg] += buffer_len;
+  }
+  logger.debug("%s", mac_buffer_states.to_string());
+
+  // Count TTI for metrics
+  for (uint32_t i = 0; i < SRSRAN_MAX_CARRIERS; ++i) {
+    metrics[i].nof_tti++;
+  }
 }
 
 mac_interface_phy_nr::sched_rnti_t mac_nr::get_ul_sched_rnti_nr(const uint32_t tti)
@@ -165,6 +200,11 @@ uint16_t mac_nr::get_crnti()
   return c_rnti;
 }
 
+srsran::mac_sch_subpdu_nr::lcg_bsr_t mac_nr::generate_sbsr()
+{
+  return proc_bsr.generate_sbsr();
+}
+
 void mac_nr::bch_decoded_ok(uint32_t tti, srsran::unique_byte_buffer_t payload)
 {
   // Send MIB to RLC
@@ -188,6 +228,11 @@ void mac_nr::prach_sent(const uint32_t tti,
                         const uint32_t ul_carrier_id)
 {
   proc_ra.prach_sent(tti, s_id, t_id, f_id, ul_carrier_id);
+}
+
+bool mac_nr::sr_opportunity(uint32_t tti, uint32_t sr_id, bool meas_gap, bool ul_sch_tx)
+{
+  return proc_sr.sr_opportunity(tti, sr_id, meas_gap, ul_sch_tx);
 }
 
 // This function handles all PCAP writing for a decoded DL TB
@@ -223,15 +268,16 @@ void mac_nr::tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant)
   if (proc_ra.has_rar_rnti() && grant.rnti == proc_ra.get_rar_rnti()) {
     proc_ra.handle_rar_pdu(grant);
   } else {
-    // Push DL PDUs to queue for back-ground processing
+    // Push DL PDUs to queue for background processing
     for (uint32_t i = 0; i < SRSRAN_MAX_CODEWORDS; ++i) {
       if (grant.tb[i] != nullptr) {
+        metrics[cc_idx].rx_pkts++;
+        metrics[cc_idx].rx_brate += grant.tb[i]->N_bytes * 8;
         pdu_queue.push(std::move(grant.tb[i]));
       }
     }
   }
 
-  metrics[cc_idx].rx_pkts++;
   stack_task_dispatch_queue.push([this]() { process_pdus(); });
 }
 
@@ -250,17 +296,22 @@ void mac_nr::new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant,
   ul_harq_buffer = mux.get_pdu(grant.tbs);
 
   // fill TB action (goes into UL harq eventually)
-  action->tb.payload    = ul_harq_buffer.get(); // pass handle to PDU to PHY
-  action->tb.enabled    = true;
-  action->tb.rv         = 0;
-  action->tb.softbuffer = &softbuffer_tx;
-  srsran_softbuffer_tx_reset(&softbuffer_tx);
+  if (ul_harq_buffer != nullptr) {
+    action->tb.payload    = ul_harq_buffer.get(); // pass handle to PDU to PHY
+    action->tb.enabled    = true;
+    action->tb.rv         = 0;
+    action->tb.softbuffer = &softbuffer_tx;
+    srsran_softbuffer_tx_reset(&softbuffer_tx);
+  } else {
+    action->tb.enabled = false;
+  }
 
   // store PCAP
   if (pcap) {
     pcap->write_ul_crnti_nr(ul_harq_buffer->msg, ul_harq_buffer->N_bytes, grant.rnti, grant.pid, grant.tti);
   }
 
+  metrics[cc_idx].tx_brate += grant.tbs * 8;
   metrics[cc_idx].tx_pkts++;
 }
 
@@ -288,6 +339,9 @@ int mac_nr::setup_lcid(const srsran::logical_channel_config_t& config)
               config.PBR,
               config.BSD,
               config.bucket_size);
+
+  // store full config
+  logical_channels.push_back(config);
 
   return SRSRAN_SUCCESS;
 }
@@ -326,7 +380,7 @@ bool mac_nr::set_crnti(const uint16_t c_rnti_)
 
 void mac_nr::start_ra_procedure()
 {
-  proc_ra.start_by_rrc();
+  stack_task_dispatch_queue.push([this]() {proc_ra.start_by_rrc();});
 }
 
 bool mac_nr::is_valid_crnti(const uint16_t crnti)
@@ -335,7 +389,31 @@ bool mac_nr::is_valid_crnti(const uint16_t crnti)
   return (crnti >= 0x0001 && crnti <= 0xFFEF);
 }
 
-void mac_nr::get_metrics(mac_metrics_t m[SRSRAN_MAX_CARRIERS]) {}
+void mac_nr::get_metrics(mac_metrics_t m[SRSRAN_MAX_CARRIERS])
+{
+  int   tx_pkts          = 0;
+  int   tx_errors        = 0;
+  int   tx_brate         = 0;
+  int   rx_pkts          = 0;
+  int   rx_errors        = 0;
+  int   rx_brate         = 0;
+  int   ul_buffer        = 0;
+  float dl_avg_ret       = 0;
+  int   dl_avg_ret_count = 0;
+
+  for (const auto& cc : metrics) {
+    tx_pkts += cc.tx_pkts;
+    tx_errors += cc.tx_errors;
+    tx_brate += cc.tx_brate;
+    rx_pkts += cc.rx_pkts;
+    rx_errors += cc.rx_errors;
+    rx_brate += cc.rx_brate;
+    ul_buffer += cc.ul_buffer;
+  }
+
+  memcpy(m, metrics.data(), sizeof(mac_metrics_t) * SRSRAN_MAX_CARRIERS);
+  metrics = {};
+}
 
 /**
  * Called from the main stack thread to process received PDUs
@@ -364,7 +442,23 @@ void mac_nr::handle_pdu(srsran::unique_byte_buffer_t pdu)
                 subpdu.get_c_rnti(),
                 subpdu.get_lcid(),
                 subpdu.get_sdu_length());
-    rlc->write_pdu(subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());
+
+    // Handle Timing Advance CE
+    switch (subpdu.get_lcid()) {
+      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::DRX_CMD:
+        logger.info("DRX CE not implemented.");
+        break;
+      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::TA_CMD:
+        logger.info("Timing Advance CE not implemented.");
+        break;
+      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CON_RES_ID:
+        logger.info("Contention Resolution CE not implemented.");
+        break;
+      default:
+        if (subpdu.is_sdu()) {
+          rlc->write_pdu(subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());
+        }
+    }
   }
 }
 

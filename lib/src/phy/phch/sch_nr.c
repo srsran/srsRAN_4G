@@ -590,10 +590,15 @@ int sch_nr_decode(srsran_sch_nr_t*        q,
                 tb->rv,
                 cfg.Qm,
                 cfg.Nref);
-    srsran_ldpc_rm_rx_c(&q->rx_rm, input_ptr, rm_buffer, E, cfg.F, cfg.bg, cfg.Z, tb->rv, tb->mod, cfg.Nref);
+    int n_llr =
+        srsran_ldpc_rm_rx_c(&q->rx_rm, input_ptr, rm_buffer, E, cfg.F, cfg.bg, cfg.Z, tb->rv, tb->mod, cfg.Nref);
+    if (n_llr < SRSRAN_SUCCESS) {
+      ERROR("Error in LDPC rate mateching");
+      return SRSRAN_ERROR;
+    }
 
     // Decode
-    srsran_ldpc_decoder_decode_c(decoder, rm_buffer, q->temp_cb);
+    srsran_ldpc_decoder_decode_c(decoder, rm_buffer, q->temp_cb, n_llr);
 
     // Compute CB CRC
     uint32_t cb_len = cfg.Kp - cfg.L_cb;
@@ -652,7 +657,7 @@ int sch_nr_decode(srsran_sch_nr_t*        q,
 
     // Check if TB is all zeros
     bool all_zeros = true;
-    for (uint32_t i = 0; i < tb->tbs && all_zeros; i++) {
+    for (uint32_t i = 0; i < tb->tbs / 8 && all_zeros; i++) {
       all_zeros = (data[i] == 0);
     }
 

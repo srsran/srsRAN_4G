@@ -210,13 +210,14 @@ typedef struct SRSRAN_API {
     bool                      present;
   } dmrs_typeB;
 
-  srsran_sch_time_ra_t common_time_ra[SRSRAN_MAX_NOF_DL_ALLOCATION];
+  srsran_sch_time_ra_t common_time_ra[SRSRAN_MAX_NOF_TIME_RA];
   uint32_t             nof_common_time_ra;
 
-  srsran_sch_time_ra_t dedicated_time_ra[SRSRAN_MAX_NOF_DL_ALLOCATION];
+  srsran_sch_time_ra_t dedicated_time_ra[SRSRAN_MAX_NOF_TIME_RA];
   uint32_t             nof_dedicated_time_ra;
 
-  bool rbg_size_cfg_1; ///< RBG size configuration (1 or 2)
+  bool                    rbg_size_cfg_1; ///< RBG size configuration (1 or 2)
+  srsran_resource_alloc_t alloc;
 
   srsran_sch_cfg_t sch_cfg; ///< Common shared channel parameters
 

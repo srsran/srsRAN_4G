@@ -662,9 +662,9 @@ int srsran_ra_dl_dci_to_grant_nr(const srsran_carrier_nr_t*    carrier,
 {
   // 5.2.1.1 Resource allocation in time domain
   if (srsran_ra_dl_nr_time(pdsch_hl_cfg,
-                           dci_dl->rnti_type,
-                           dci_dl->search_space,
-                           dci_dl->coreset_id,
+                           dci_dl->ctx.rnti_type,
+                           dci_dl->ctx.ss_type,
+                           dci_dl->ctx.coreset_id,
                            dci_dl->time_domain_assigment,
                            pdsch_grant) < SRSRAN_SUCCESS) {
     ERROR("Error computing time domain resource allocation");
@@ -681,9 +681,9 @@ int srsran_ra_dl_dci_to_grant_nr(const srsran_carrier_nr_t*    carrier,
   // ...
 
   pdsch_grant->nof_layers = 1;
-  pdsch_grant->dci_format = dci_dl->format;
-  pdsch_grant->rnti       = dci_dl->rnti;
-  pdsch_grant->rnti_type  = dci_dl->rnti_type;
+  pdsch_grant->dci_format = dci_dl->ctx.format;
+  pdsch_grant->rnti       = dci_dl->ctx.rnti;
+  pdsch_grant->rnti_type  = dci_dl->ctx.rnti_type;
   pdsch_grant->tb[0].rv   = dci_dl->rv;
 
   // 5.1.4 PDSCH resource mapping
@@ -714,7 +714,8 @@ ra_ul_dmrs(const srsran_sch_hl_cfg_nr_t* pusch_hl_cfg, srsran_sch_grant_nr_t* pu
                                           ? pusch_hl_cfg->dmrs_typeA.present
                                           : pusch_hl_cfg->dmrs_typeB.present;
 
-  if (pusch_grant->dci_format == srsran_dci_format_nr_0_0 || !dedicated_dmrs_present) {
+  if (pusch_grant->dci_format == srsran_dci_format_nr_0_0 || pusch_grant->dci_format == srsran_dci_format_nr_rar ||
+      !dedicated_dmrs_present) {
     if (pusch_grant->mapping == srsran_sch_mapping_type_A) {
       // Absent default values are defined is TS 38.331 - DMRS-DownlinkConfig
       cfg->dmrs.additional_pos         = srsran_dmrs_sch_add_pos_2;
@@ -743,13 +744,13 @@ ra_ul_dmrs(const srsran_sch_hl_cfg_nr_t* pusch_hl_cfg, srsran_sch_grant_nr_t* pu
   }
 
   // Set number of DMRS CDM groups without data
-  if (pusch_grant->dci_format == srsran_dci_format_nr_0_0) {
+  if (pusch_grant->dci_format == srsran_dci_format_nr_0_0 || pusch_grant->dci_format == srsran_dci_format_nr_rar) {
     if (srsran_ra_ul_nr_nof_dmrs_cdm_groups_without_data_format_0_0(cfg, pusch_grant) < SRSRAN_SUCCESS) {
       ERROR("Error loading number of DMRS CDM groups");
       return SRSRAN_ERROR;
     }
   } else {
-    ERROR("Invalid case");
+    ERROR("DCI format not implemented %s", srsran_dci_format_nr_string(pusch_grant->dci_format));
     return SRSRAN_ERROR;
   }
 
@@ -770,9 +771,9 @@ int srsran_ra_ul_dci_to_grant_nr(const srsran_carrier_nr_t*    carrier,
 {
   // 5.2.1.1 Resource allocation in time domain
   if (srsran_ra_ul_nr_time(pusch_hl_cfg,
-                           dci_ul->rnti_type,
-                           dci_ul->search_space,
-                           dci_ul->coreset_id,
+                           dci_ul->ctx.rnti_type,
+                           dci_ul->ctx.ss_type,
+                           dci_ul->ctx.coreset_id,
                            dci_ul->time_domain_assigment,
                            pusch_grant) < SRSRAN_SUCCESS) {
     ERROR("Error computing time domain resource allocation");
@@ -789,9 +790,9 @@ int srsran_ra_ul_dci_to_grant_nr(const srsran_carrier_nr_t*    carrier,
   // ...
 
   pusch_grant->nof_layers = 1;
-  pusch_grant->dci_format = dci_ul->format;
-  pusch_grant->rnti       = dci_ul->rnti;
-  pusch_grant->rnti_type  = dci_ul->rnti_type;
+  pusch_grant->dci_format = dci_ul->ctx.format;
+  pusch_grant->rnti       = dci_ul->ctx.rnti;
+  pusch_grant->rnti_type  = dci_ul->ctx.rnti_type;
 
   // 5.1.6.2 DM-RS reception procedure
   if (ra_ul_dmrs(pusch_hl_cfg, pusch_grant, pusch_cfg) < SRSRAN_SUCCESS) {

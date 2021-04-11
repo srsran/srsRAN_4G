@@ -29,19 +29,6 @@
 namespace srsenb {
 
 class stack_interface_phy_lte;
-class stack_interface_s1ap_lte
-{
-public:
-  virtual void add_mme_socket(int fd)    = 0;
-  virtual void remove_mme_socket(int fd) = 0;
-};
-
-class stack_interface_gtpu_lte
-{
-public:
-  virtual void add_gtpu_s1u_socket_handler(int fd) = 0;
-  virtual void add_gtpu_m1u_socket_handler(int fd) = 0;
-};
 
 } // namespace srsenb
 

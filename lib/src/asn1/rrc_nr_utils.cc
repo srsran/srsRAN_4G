@@ -277,13 +277,13 @@ bool make_phy_harq_ack_cfg(const phys_cell_group_cfg_s&    phys_cell_group_cfg,
   srsran_ue_dl_nr_harq_ack_cfg_t srsran_ue_dl_nr_harq_ack_cfg;
   switch (phys_cell_group_cfg.pdsch_harq_ack_codebook) {
     case phys_cell_group_cfg_s::pdsch_harq_ack_codebook_opts::dynamic_value:
-      srsran_ue_dl_nr_harq_ack_cfg.pdsch_harq_ack_codebook = srsran_pdsch_harq_ack_codebook_dynamic;
+      srsran_ue_dl_nr_harq_ack_cfg.harq_ack_codebook = srsran_pdsch_harq_ack_codebook_dynamic;
       break;
     case phys_cell_group_cfg_s::pdsch_harq_ack_codebook_opts::semi_static:
-      srsran_ue_dl_nr_harq_ack_cfg.pdsch_harq_ack_codebook = srsran_pdsch_harq_ack_codebook_semi_static;
+      srsran_ue_dl_nr_harq_ack_cfg.harq_ack_codebook = srsran_pdsch_harq_ack_codebook_semi_static;
       break;
     case phys_cell_group_cfg_s::pdsch_harq_ack_codebook_opts::nulltype:
-      srsran_ue_dl_nr_harq_ack_cfg.pdsch_harq_ack_codebook = srsran_pdsch_harq_ack_codebook_none;
+      srsran_ue_dl_nr_harq_ack_cfg.harq_ack_codebook = srsran_pdsch_harq_ack_codebook_none;
       break;
     default:
       asn1::log_warning("Invalid option for pdsch_harq_ack_codebook %s",
@@ -321,9 +321,51 @@ bool make_phy_search_space_cfg(const search_space_s& search_space, srsran_search
   switch (search_space.search_space_type.type()) {
     case search_space_s::search_space_type_c_::types_opts::options::common:
       srsran_search_space.type = srsran_search_space_type_common_3;
+
+      // dci-Format0-0-AndFormat1-0
+      // If configured, the UE monitors the DCI formats 0_0 and 1_0 according to TS 38.213 [13], clause 10.1.
+      if (search_space.search_space_type.common().dci_format0_minus0_and_format1_minus0_present) {
+        srsran_search_space.formats[srsran_search_space.nof_formats++] = srsran_dci_format_nr_0_0;
+        srsran_search_space.formats[srsran_search_space.nof_formats++] = srsran_dci_format_nr_1_0;
+      }
+
+      // dci-Format2-0
+      // If configured, UE monitors the DCI format 2_0 according to TS 38.213 [13], clause 10.1, 11.1.1.
+      if (search_space.search_space_type.common().dci_format2_minus0_present) {
+        srsran_search_space.formats[srsran_search_space.nof_formats++] = srsran_dci_format_nr_2_0;
+      }
+
+      // dci-Format2-1
+      // If configured, UE monitors the DCI format 2_1 according to TS 38.213 [13], clause 10.1, 11.2.
+      if (search_space.search_space_type.common().dci_format2_minus1_present) {
+        srsran_search_space.formats[srsran_search_space.nof_formats++] = srsran_dci_format_nr_2_1;
+      }
+
+      // dci-Format2-2
+      // If configured, UE monitors the DCI format 2_2 according to TS 38.213 [13], clause 10.1, 11.3.
+      if (search_space.search_space_type.common().dci_format2_minus2_present) {
+        srsran_search_space.formats[srsran_search_space.nof_formats++] = srsran_dci_format_nr_2_2;
+      }
+
+      // dci-Format2-3
+      // If configured, UE monitors the DCI format 2_3 according to TS 38.213 [13], clause 10.1, 11.4
+      if (search_space.search_space_type.common().dci_format2_minus3_present) {
+        srsran_search_space.formats[srsran_search_space.nof_formats++] = srsran_dci_format_nr_2_3;
+      }
+
       break;
     case search_space_s::search_space_type_c_::types_opts::options::ue_specific:
       srsran_search_space.type = srsran_search_space_type_ue;
+      switch (search_space.search_space_type.ue_specific().dci_formats.value) {
+        case search_space_s::search_space_type_c_::ue_specific_s_::dci_formats_e_::formats0_minus0_and_minus1_minus0:
+          srsran_search_space.formats[srsran_search_space.nof_formats++] = srsran_dci_format_nr_0_0;
+          srsran_search_space.formats[srsran_search_space.nof_formats++] = srsran_dci_format_nr_1_0;
+          break;
+        case search_space_s::search_space_type_c_::ue_specific_s_::dci_formats_e_::formats0_minus1_and_minus1_minus1:
+          srsran_search_space.formats[srsran_search_space.nof_formats++] = srsran_dci_format_nr_0_1;
+          srsran_search_space.formats[srsran_search_space.nof_formats++] = srsran_dci_format_nr_1_1;
+          break;
+      }
       break;
     default:
       asn1::log_warning("Invalid option for search_space_type %s", search_space.search_space_type.type().to_string());

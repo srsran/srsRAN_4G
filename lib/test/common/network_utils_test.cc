@@ -20,15 +20,32 @@
  */
 
 #include "srsran/common/network_utils.h"
+#include "srsran/common/task_scheduler.h"
+#include "srsran/common/test_common.h"
+#include <atomic>
 #include <iostream>
 
-#define TESTASSERT(cond)                                                                                               \
-  do {                                                                                                                 \
-    if (!(cond)) {                                                                                                     \
-      std::cout << "[" << __FUNCTION__ << "][Line " << __LINE__ << "]: FAIL at " << (#cond) << std::endl;              \
-      return -1;                                                                                                       \
-    }                                                                                                                  \
-  } while (0)
+struct rx_thread_tester {
+  srsran::task_scheduler    task_sched;
+  srsran::task_queue_handle task_queue;
+  std::atomic<bool>         stop_token;
+  std::thread               t;
+
+  rx_thread_tester() :
+    task_queue(task_sched.make_task_queue()), t([this]() {
+      stop_token.store(false);
+      while (not stop_token.load(std::memory_order_relaxed)) {
+        task_sched.run_pending_tasks();
+        std::this_thread::sleep_for(std::chrono::microseconds(100));
+      }
+    })
+  {}
+  ~rx_thread_tester()
+  {
+    stop_token.store(true, std::memory_order_relaxed);
+    t.join();
+  }
+};
 
 int test_socket_handler()
 {
@@ -36,10 +53,10 @@ int test_socket_handler()
 
   int counter = 0;
 
-  srsran::socket_handler_t       server_socket, client_socket, client_socket2;
-  srsran::rx_multisocket_handler sockhandler("RXSOCKETS", logger);
-  int                            server_port = 36412;
-  const char*                    server_addr = "127.0.100.1";
+  srsran::unique_socket  server_socket, client_socket, client_socket2;
+  srsran::socket_manager sockhandler;
+  int                    server_port = 36412;
+  const char*            server_addr = "127.0.100.1";
   using namespace srsran::net_utils;
 
   TESTASSERT(sctp_init_server(&server_socket, socket_type::seqpacket, server_addr, server_port));
@@ -59,7 +76,9 @@ int test_socket_handler()
           counter++;
         }
       };
-  sockhandler.add_socket_sctp_pdu_handler(server_socket.fd(), pdu_handler);
+  rx_thread_tester rx_tester;
+  sockhandler.add_socket_handler(server_socket.fd(),
+                                 srsran::make_sctp_sdu_handler(logger, rx_tester.task_queue, pdu_handler));
 
   uint8_t     buf[128]        = {};
   int32_t     nof_counts      = 5;
@@ -69,7 +88,7 @@ int test_socket_handler()
   for (int32_t i = 0; i < nof_counts; ++i) {
     buf[i] = i;
     // Round-robin between clients
-    srsran::socket_handler_t* chosen = &client_socket;
+    srsran::unique_socket* chosen = &client_socket;
     if (i % 2 == 1) {
       chosen = &client_socket2;
     }

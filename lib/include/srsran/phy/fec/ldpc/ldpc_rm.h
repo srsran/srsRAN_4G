@@ -178,7 +178,7 @@ SRSRAN_API int srsran_ldpc_rm_rx_init_c(srsran_ldpc_rm_t* q);
  * \param[in] rv          Redundancy version 0,1,2,3.
  * \param[in] mod_type    Modulation type.
  * \param[in] Nref        Size of limited buffer.
- * \return An integer: 0 if the function executes correctly, -1 otherwise.
+ * \return An integer: The number of useful LLR if the function executes correctly, -1 otherwise.
  */
 SRSRAN_API int srsran_ldpc_rm_rx_c(srsran_ldpc_rm_t*        q,
                                    const int8_t*            input,

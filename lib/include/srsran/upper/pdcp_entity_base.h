@@ -65,6 +65,7 @@ public:
   pdcp_entity_base(task_sched_handle task_sched_, srslog::basic_logger& logger);
   pdcp_entity_base(pdcp_entity_base&&) = default;
   virtual ~pdcp_entity_base();
+  virtual bool configure(const pdcp_config_t& cnfg_) = 0;
   virtual void reset()       = 0;
   virtual void reestablish() = 0;
 

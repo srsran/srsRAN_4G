@@ -24,6 +24,7 @@
 
 #include "srsran/adt/detail/type_storage.h"
 #include "srsran/adt/expected.h"
+#include "srsran/adt/pool/pool_utils.h"
 #include "srsran/common/srsran_assert.h"
 
 #include <array>
@@ -240,14 +241,6 @@ protected:
   size_t    count = 0;
 };
 
-struct noop_operator {
-  template <typename T>
-  void operator()(const T&)
-  {
-    // noop
-  }
-};
-
 /**
  * Base common class for definition of blocking queue data structures with the following features:
  * - it stores pushed/popped samples in an internal circular buffer
@@ -267,22 +260,29 @@ public:
   base_blocking_queue(PushingFunc push_func_, PoppingFunc pop_func_, Args&&... args) :
     circ_buffer(std::forward<Args>(args)...), push_func(push_func_), pop_func(pop_func_)
   {}
+  base_blocking_queue(const base_blocking_queue&) = delete;
+  base_blocking_queue(base_blocking_queue&&)      = delete;
+  base_blocking_queue& operator=(const base_blocking_queue&) = delete;
+  base_blocking_queue& operator=(base_blocking_queue&&) = delete;
 
   void stop()
   {
     std::unique_lock<std::mutex> lock(mutex);
     if (active) {
       active = false;
-      if (nof_waiting == 0) {
-        return;
+      if (nof_waiting > 0) {
+        // Stop pending pushing/popping threads
+        do {
+          lock.unlock();
+          cvar_empty.notify_all();
+          cvar_full.notify_all();
+          std::this_thread::yield();
+          lock.lock();
+        } while (nof_waiting > 0);
       }
-      do {
-        lock.unlock();
-        cvar_empty.notify_all();
-        cvar_full.notify_all();
-        std::this_thread::yield();
-        lock.lock();
-      } while (nof_waiting > 0);
+
+      // Empty queue
+      circ_buffer.clear();
     }
   }
 
@@ -300,8 +300,7 @@ public:
   bool pop_wait_until(T& obj, const std::chrono::system_clock::time_point& until) { return pop_(obj, true, &until); }
   void clear()
   {
-    std::lock_guard<std::mutex> lock(mutex);
-    T                           obj;
+    T obj;
     while (pop_(obj, false)) {
     }
   }

@@ -104,7 +104,12 @@ void pdcp::add_bearer(uint32_t lcid, pdcp_config_t cfg)
   if (not valid_lcid(lcid)) {
     std::unique_ptr<pdcp_entity_base> entity;
     // For now we create an pdcp entity lte for nr due to it's maturity
-    entity.reset(new pdcp_entity_lte{rlc, rrc, gw, task_sched, logger, lcid, cfg});
+    entity.reset(new pdcp_entity_lte{rlc, rrc, gw, task_sched, logger, lcid});
+    if (not entity->configure(cfg)) {
+      logger.error("Can not configure PDCP entity");
+      return;
+    }
+    
     if (not pdcp_array.insert(std::make_pair(lcid, std::move(entity))).second) {
       logger.error("Error inserting PDCP entity in to array.");
       return;
@@ -126,10 +131,17 @@ void pdcp::add_bearer(uint32_t lcid, pdcp_config_t cfg)
 void pdcp::add_bearer_mrb(uint32_t lcid, pdcp_config_t cfg)
 {
   if (not valid_mch_lcid(lcid)) {
+    std::unique_ptr<pdcp_entity_lte> entity;
+    entity.reset(new pdcp_entity_lte{rlc, rrc, gw, task_sched, logger, lcid});    
+    if(not entity->configure(cfg)){
+      logger.error("Can not configure PDCP entity");
+      return; 
+    }
+
     if (not pdcp_array_mrb
                 .insert(std::make_pair(
                     lcid,
-                    std::unique_ptr<pdcp_entity_lte>(new pdcp_entity_lte(rlc, rrc, gw, task_sched, logger, lcid, cfg))))
+                    std::move(entity)))
                 .second) {
       logger.error("Error inserting PDCP entity in to array.");
       return;

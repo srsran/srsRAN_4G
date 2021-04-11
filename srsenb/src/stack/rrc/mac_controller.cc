@@ -20,7 +20,7 @@
  */
 
 #include "srsenb/hdr/stack/rrc/mac_controller.h"
-#include "srsenb/hdr/stack/upper/common_enb.h"
+#include "srsenb/hdr/common/common_enb.h"
 #include "srsran/asn1/rrc_utils.h"
 #include "srsran/interfaces/enb_mac_interfaces.h"
 
@@ -311,6 +311,7 @@ void mac_controller::handle_ho_prep(const asn1::rrc::ho_prep_info_r8_ies_s& ho_p
 void mac_controller::handle_max_retx()
 {
   set_drb_activation(false);
+  update_mac(other);
 }
 
 void mac_controller::set_scell_activation(const std::bitset<SRSRAN_MAX_CARRIERS>& scell_mask)

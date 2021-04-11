@@ -49,7 +49,8 @@ public:
   void       send_prach(uint32_t prach_occasion, uint32_t preamble_index, int preamble_received_target_power);
   int  set_ul_grant(std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> array, uint16_t rnti, srsran_rnti_type_t rnti_type);
   bool set_config(const srsran::phy_cfg_nr_t& cfg);
-  void       sr_send(uint32_t sr_id);
+  bool       has_valid_sr_resource(uint32_t sr_id);
+  void       clear_pending_grants();
 };
 
 } // namespace nr

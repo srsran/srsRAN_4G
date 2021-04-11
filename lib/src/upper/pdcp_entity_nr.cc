@@ -29,8 +29,7 @@ pdcp_entity_nr::pdcp_entity_nr(srsue::rlc_interface_pdcp* rlc_,
                                srsue::gw_interface_pdcp*  gw_,
                                srsran::task_sched_handle  task_sched_,
                                srslog::basic_logger&      logger,
-                               uint32_t                   lcid_,
-                               pdcp_config_t              cfg_) :
+                               uint32_t                   lcid_) :
   pdcp_entity_base(task_sched_, logger),
   rlc(rlc_),
   rrc(rrc_),
@@ -38,20 +37,8 @@ pdcp_entity_nr::pdcp_entity_nr(srsue::rlc_interface_pdcp* rlc_,
   reordering_fnc(new pdcp_entity_nr::reordering_callback(this))
 {
   lcid                 = lcid_;
-  cfg                  = cfg_;
-  active               = true;
   integrity_direction  = DIRECTION_NONE;
   encryption_direction = DIRECTION_NONE;
-
-  window_size = 1 << (cfg.sn_len - 1);
-
-  // Timers
-  reordering_timer = task_sched.get_unique_timer();
-
-  // configure timer
-  if (static_cast<uint32_t>(cfg.t_reordering) > 0) {
-    reordering_timer.set(static_cast<uint32_t>(cfg.t_reordering), *reordering_fnc);
-  }
 }
 
 pdcp_entity_nr::~pdcp_entity_nr() {}
@@ -61,6 +48,22 @@ void pdcp_entity_nr::reestablish()
 {
   logger.info("Re-establish %s with bearer ID: %d", rrc->get_rb_name(lcid).c_str(), cfg.bearer_id);
   // TODO
+}
+
+bool pdcp_entity_nr::configure(const pdcp_config_t& cnfg_)
+{
+  cfg         = cnfg_;
+  window_size = 1 << (cfg.sn_len - 1);
+
+  // Timers
+  reordering_timer = task_sched.get_unique_timer();
+
+  // configure timer
+  if (static_cast<uint32_t>(cfg.t_reordering) > 0) {
+    reordering_timer.set(static_cast<uint32_t>(cfg.t_reordering), *reordering_fnc);
+  }
+  active               = true;
+  return true;
 }
 
 // Used to stop/pause the entity (called on RRC conn release)

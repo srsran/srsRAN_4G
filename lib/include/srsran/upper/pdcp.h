@@ -49,7 +49,7 @@ public:
   void write_sdu_mch(uint32_t lcid, unique_byte_buffer_t sdu);
   void add_bearer(uint32_t lcid, pdcp_config_t cnfg) override;
   void add_bearer_mrb(uint32_t lcid, pdcp_config_t cnfg);
-  void del_bearer(uint32_t lcid);
+  void del_bearer(uint32_t lcid) override;
   void change_lcid(uint32_t old_lcid, uint32_t new_lcid) override;
   void config_security(uint32_t lcid, as_security_config_t sec_cfg) override;
   void config_security_all(as_security_config_t sec_cfg) override;

@@ -23,8 +23,10 @@
 #define SRSENB_NR_CC_WORKER_H
 
 #include "srsran/interfaces/gnb_interfaces.h"
+#include "srsran/interfaces/rrc_nr_interface_types.h"
 #include "srsran/phy/enb/enb_dl_nr.h"
 #include "srsran/srslog/srslog.h"
+#include "srsran/srsran.h"
 #include <array>
 #include <vector>
 
@@ -36,15 +38,11 @@ typedef struct {
   srsran_enb_dl_nr_args_t dl;
 } phy_nr_args_t;
 
-typedef struct {
-  srsran_sch_hl_cfg_nr_t pdsch;
-} phy_nr_cfg_t;
-
 class phy_nr_state
 {
 public:
-  phy_nr_args_t args = {};
-  phy_nr_cfg_t  cfg  = {};
+  phy_nr_args_t        args = {};
+  srsran::phy_cfg_nr_t cfg  = {};
 
   phy_nr_state()
   {
@@ -53,8 +51,7 @@ public:
     args.dl.nof_tx_antennas        = 1;
     args.dl.pdsch.measure_evm      = true;
     args.dl.pdsch.measure_time     = true;
-    args.dl.pdsch.sch.disable_simd = true;
-    cfg.pdsch.sch_cfg.mcs_table    = srsran_mcs_table_256qam;
+    args.dl.pdsch.sch.disable_simd = false;
   }
 };
 

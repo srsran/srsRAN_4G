@@ -26,6 +26,10 @@ add_executable(gen_ack_test gen_ack_test.c)
 target_link_libraries(gen_ack_test srsran_phy)
 add_test(gen_ack_test gen_ack_test)
 
+add_executable(gen_ack_nr_test gen_ack_nr_test.c)
+target_link_libraries(gen_ack_nr_test srsran_phy)
+add_test(gen_ack_nr_test gen_ack_nr_test)
+
 add_executable(pucch_resource_test pucch_resource_test.c)
 target_link_libraries(pucch_resource_test srsran_phy)
 add_test(pucch_resource_test pucch_resource_test)

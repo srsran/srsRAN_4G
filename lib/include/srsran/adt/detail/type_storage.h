@@ -22,6 +22,7 @@
 #ifndef SRSRAN_TYPE_STORAGE_H
 #define SRSRAN_TYPE_STORAGE_H
 
+#include <cstddef>
 #include <cstdint>
 #include <type_traits>
 #include <utility>
@@ -40,8 +41,9 @@ union max_alignment_t {
   long double d2;
   uint32_t*   ptr;
 };
+const static size_t max_alignment = alignof(max_alignment_t);
 
-template <typename T>
+template <typename T, size_t MinSize = 0, size_t AlignSize = 0>
 struct type_storage {
   using value_type = T;
 
@@ -51,19 +53,29 @@ struct type_storage {
     new (&buffer) T(std::forward<Args>(args)...);
   }
   void destroy() { get().~T(); }
-  void copy_ctor(const type_storage<T>& other) { emplace(other.get()); }
-  void move_ctor(type_storage<T>&& other) { emplace(std::move(other.get())); }
-  void copy_assign(const type_storage<T>& other) { get() = other.get(); }
-  void move_assign(type_storage<T>&& other) { get() = std::move(other.get()); }
+  void copy_ctor(const type_storage& other) { emplace(other.get()); }
+  void move_ctor(type_storage&& other) { emplace(std::move(other.get())); }
+  void copy_assign(const type_storage& other) { get() = other.get(); }
+  void move_assign(type_storage&& other) { get() = std::move(other.get()); }
 
   T&       get() { return reinterpret_cast<T&>(buffer); }
   const T& get() const { return reinterpret_cast<const T&>(buffer); }
 
-  typename std::aligned_storage<sizeof(T), alignof(T)>::type buffer;
+  void*       addr() { return static_cast<void*>(&buffer); }
+  const void* addr() const { return static_cast<void*>(&buffer); }
+  explicit    operator void*() { return addr(); }
+
+  const static size_t obj_size   = sizeof(T) > MinSize ? sizeof(T) : MinSize;
+  const static size_t align_size = alignof(T) > AlignSize ? alignof(T) : AlignSize;
+
+  typename std::aligned_storage<obj_size, align_size>::type buffer;
 };
 
-template <typename T>
-void copy_if_present_helper(type_storage<T>& lhs, const type_storage<T>& rhs, bool lhs_present, bool rhs_present)
+template <typename T, size_t MinSize, size_t AlignSize>
+void copy_if_present_helper(type_storage<T, MinSize, AlignSize>&       lhs,
+                            const type_storage<T, MinSize, AlignSize>& rhs,
+                            bool                                       lhs_present,
+                            bool                                       rhs_present)
 {
   if (lhs_present and rhs_present) {
     lhs.get() = rhs.get();
@@ -76,8 +88,11 @@ void copy_if_present_helper(type_storage<T>& lhs, const type_storage<T>& rhs, bo
   }
 }
 
-template <typename T>
-void move_if_present_helper(type_storage<T>& lhs, type_storage<T>& rhs, bool lhs_present, bool rhs_present)
+template <typename T, size_t MinSize, size_t AlignSize>
+void move_if_present_helper(type_storage<T, MinSize, AlignSize>& lhs,
+                            type_storage<T, MinSize, AlignSize>& rhs,
+                            bool                                 lhs_present,
+                            bool                                 rhs_present)
 {
   if (lhs_present and rhs_present) {
     lhs.move_assign(std::move(rhs));

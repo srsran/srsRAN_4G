@@ -34,14 +34,6 @@ namespace srsenb {
 
 static const size_t PDU_HEADER_SIZE = 20;
 
-class stack_tester : public stack_interface_gtpu_lte
-{
-public:
-  int  s1u_fd = -1;
-  void add_gtpu_s1u_socket_handler(int fd) { s1u_fd = fd; }
-  void add_gtpu_m1u_socket_handler(int fd) {}
-};
-
 class pdcp_tester : public pdcp_dummy
 {
 public:
@@ -76,7 +68,35 @@ public:
   uint32_t                                         last_lcid    = 0;
 };
 
-int GTPU_PORT = 2152;
+struct dummy_socket_manager : public srsran::socket_manager_itf {
+  dummy_socket_manager() : srsran::socket_manager_itf(srslog::fetch_basic_logger("TEST")) {}
+
+  /// Register (fd, callback). callback is called within socket thread when fd has data.
+  bool add_socket_handler(int fd, recv_callback_t handler) final
+  {
+    if (s1u_fd >= 0) {
+      return false;
+    }
+    s1u_fd   = fd;
+    callback = std::move(handler);
+    return true;
+  }
+
+  /// remove registered socket fd
+  bool remove_socket(int fd) final
+  {
+    if (s1u_fd < 0) {
+      return false;
+    }
+    s1u_fd = -1;
+    return true;
+  }
+
+  int             s1u_fd = -1;
+  recv_callback_t callback;
+};
+
+const int GTPU_PORT = 2152;
 
 srsran::unique_byte_buffer_t encode_ipv4_packet(srsran::span<uint8_t>     data,
                                                 uint32_t                  teid,
@@ -218,11 +238,11 @@ int test_gtpu_direct_tunneling(tunnel_test_event event)
   srslog::basic_logger& logger2 = srslog::fetch_basic_logger("GTPU2");
   logger2.set_hex_dump_max_size(2048);
   srsran::task_scheduler task_sched;
-  srsenb::gtpu           senb_gtpu(&task_sched, logger1), tenb_gtpu(&task_sched, logger2);
-  stack_tester           senb_stack, tenb_stack;
-  pdcp_tester            senb_pdcp, tenb_pdcp;
-  senb_gtpu.init(senb_addr_str, sgw_addr_str, "", "", &senb_pdcp, &senb_stack, false);
-  tenb_gtpu.init(tenb_addr_str, sgw_addr_str, "", "", &tenb_pdcp, &tenb_stack, false);
+  dummy_socket_manager   senb_rx_sockets, tenb_rx_sockets;
+  srsenb::gtpu senb_gtpu(&task_sched, logger1, &senb_rx_sockets), tenb_gtpu(&task_sched, logger2, &tenb_rx_sockets);
+  pdcp_tester  senb_pdcp, tenb_pdcp;
+  senb_gtpu.init(senb_addr_str, sgw_addr_str, "", "", &senb_pdcp, false);
+  tenb_gtpu.init(tenb_addr_str, sgw_addr_str, "", "", &tenb_pdcp, false);
 
   // create tunnels MME-SeNB and MME-TeNB
   uint32_t senb_teid_in = senb_gtpu.add_bearer(rnti, drb1, sgw_addr, sgw_teidout1).value();
@@ -253,9 +273,9 @@ int test_gtpu_direct_tunneling(tunnel_test_event event)
   srsran::span<uint8_t> pdu_view{};
 
   // TEST: GTPU buffers incoming PDCP buffered SNs until the TEID is explicitly activated
-  tenb_gtpu.handle_gtpu_s1u_rx_packet(read_socket(tenb_stack.s1u_fd), senb_sockaddr);
+  tenb_gtpu.handle_gtpu_s1u_rx_packet(read_socket(tenb_rx_sockets.s1u_fd), senb_sockaddr);
   TESTASSERT(tenb_pdcp.last_sdu == nullptr);
-  tenb_gtpu.handle_gtpu_s1u_rx_packet(read_socket(tenb_stack.s1u_fd), senb_sockaddr);
+  tenb_gtpu.handle_gtpu_s1u_rx_packet(read_socket(tenb_rx_sockets.s1u_fd), senb_sockaddr);
   TESTASSERT(tenb_pdcp.last_sdu == nullptr);
   tenb_gtpu.set_tunnel_status(dl_tenb_teid_in, true);
   pdu_view = srsran::make_span(tenb_pdcp.last_sdu);
@@ -266,7 +286,7 @@ int test_gtpu_direct_tunneling(tunnel_test_event event)
 
   // TEST: verify that PDCP buffered SNs have been forwarded through SeNB->TeNB tunnel
   for (size_t sn = 8; sn < 10; ++sn) {
-    tenb_gtpu.handle_gtpu_s1u_rx_packet(read_socket(tenb_stack.s1u_fd), senb_sockaddr);
+    tenb_gtpu.handle_gtpu_s1u_rx_packet(read_socket(tenb_rx_sockets.s1u_fd), senb_sockaddr);
     pdu_view = srsran::make_span(tenb_pdcp.last_sdu);
     TESTASSERT(std::count(pdu_view.begin() + PDU_HEADER_SIZE, pdu_view.end(), sn) == 10);
     TESTASSERT(tenb_pdcp.last_rnti == rnti2);
@@ -279,7 +299,7 @@ int test_gtpu_direct_tunneling(tunnel_test_event event)
   pdu = encode_gtpu_packet(data_vec, senb_teid_in, sgw_sockaddr, senb_sockaddr);
   encoded_data.assign(pdu->msg + 8u, pdu->msg + pdu->N_bytes);
   senb_gtpu.handle_gtpu_s1u_rx_packet(std::move(pdu), sgw_sockaddr);
-  tenb_gtpu.handle_gtpu_s1u_rx_packet(read_socket(tenb_stack.s1u_fd), senb_sockaddr);
+  tenb_gtpu.handle_gtpu_s1u_rx_packet(read_socket(tenb_rx_sockets.s1u_fd), senb_sockaddr);
   pdu_view = srsran::make_span(tenb_pdcp.last_sdu);
   TESTASSERT(pdu_view.size() == encoded_data.size() and
              std::equal(pdu_view.begin(), pdu_view.end(), encoded_data.begin()));
@@ -301,7 +321,7 @@ int test_gtpu_direct_tunneling(tunnel_test_event event)
   pdu = encode_gtpu_packet(data_vec, senb_teid_in, sgw_sockaddr, senb_sockaddr);
   encoded_data.assign(pdu->msg + 8u, pdu->msg + pdu->N_bytes);
   senb_gtpu.handle_gtpu_s1u_rx_packet(std::move(pdu), sgw_sockaddr);
-  tenb_gtpu.handle_gtpu_s1u_rx_packet(read_socket(tenb_stack.s1u_fd), senb_sockaddr);
+  tenb_gtpu.handle_gtpu_s1u_rx_packet(read_socket(tenb_rx_sockets.s1u_fd), senb_sockaddr);
   TESTASSERT(tenb_pdcp.last_sdu->N_bytes == encoded_data.size() and
              memcmp(tenb_pdcp.last_sdu->msg, encoded_data.data(), encoded_data.size()) == 0);
   tenb_pdcp.clear();
@@ -316,7 +336,7 @@ int test_gtpu_direct_tunneling(tunnel_test_event event)
     // TEST: EndMarker is forwarded via MME->SeNB->TeNB, and TeNB buffered PDUs are flushed
     pdu = encode_end_marker(senb_teid_in);
     senb_gtpu.handle_gtpu_s1u_rx_packet(std::move(pdu), sgw_sockaddr);
-    tenb_gtpu.handle_gtpu_s1u_rx_packet(read_socket(tenb_stack.s1u_fd), senb_sockaddr);
+    tenb_gtpu.handle_gtpu_s1u_rx_packet(read_socket(tenb_rx_sockets.s1u_fd), senb_sockaddr);
   }
   srsran::span<uint8_t> encoded_data2{tenb_pdcp.last_sdu->msg + 20u, tenb_pdcp.last_sdu->msg + 30u};
   TESTASSERT(std::all_of(encoded_data2.begin(), encoded_data2.end(), [N_pdus](uint8_t b) { return b == N_pdus - 1; }));

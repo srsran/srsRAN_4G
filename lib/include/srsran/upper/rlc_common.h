@@ -24,6 +24,7 @@
 
 #include "srsran/adt/circular_buffer.h"
 #include "srsran/interfaces/rlc_interface_types.h"
+#include "srsran/upper/bearer_mem_pool.h"
 #include "srsran/upper/rlc_metrics.h"
 #include <stdlib.h>
 
@@ -278,6 +279,9 @@ public:
   virtual void     write_pdu(uint8_t* payload, uint32_t nof_bytes) = 0;
 
   virtual void set_bsr_callback(bsr_callback_t callback) = 0;
+
+  void* operator new(size_t sz) { return allocate_rlc_bearer(sz); }
+  void  operator delete(void* p) { return deallocate_rlc_bearer(p); }
 
 private:
   bool suspended = false;

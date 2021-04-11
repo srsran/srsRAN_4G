@@ -26,13 +26,6 @@
 
 using namespace srsenb;
 
-class stack_dummy : public srsenb::stack_interface_s1ap_lte
-{
-public:
-  void add_mme_socket(int fd) {}
-  void remove_mme_socket(int fd) {}
-};
-
 struct mme_dummy {
   mme_dummy(const char* addr_str_, int port_) : addr_str(addr_str_), port(port_)
   {
@@ -76,6 +69,34 @@ struct mme_dummy {
   struct sockaddr_in           mme_sockaddr = {};
   int                          fd;
   srsran::unique_byte_buffer_t last_sdu;
+};
+
+struct dummy_socket_manager : public srsran::socket_manager_itf {
+  dummy_socket_manager() : srsran::socket_manager_itf(srslog::fetch_basic_logger("TEST")) {}
+
+  /// Register (fd, callback). callback is called within socket thread when fd has data.
+  bool add_socket_handler(int fd, recv_callback_t handler) final
+  {
+    if (s1u_fd > 0) {
+      return false;
+    }
+    s1u_fd   = fd;
+    callback = std::move(handler);
+    return true;
+  }
+
+  /// remove registered socket fd
+  bool remove_socket(int fd) final
+  {
+    if (s1u_fd < 0) {
+      return false;
+    }
+    s1u_fd = -1;
+    return true;
+  }
+
+  int             s1u_fd;
+  recv_callback_t callback;
 };
 
 struct rrc_tester : public rrc_dummy {
@@ -178,9 +199,9 @@ void test_s1ap_erab_setup(test_event event)
 {
   srsran::task_scheduler       task_sched;
   srslog::basic_logger&        logger = srslog::fetch_basic_logger("S1AP");
-  s1ap                         s1ap_obj(&task_sched, logger);
+  dummy_socket_manager         rx_sockets;
+  s1ap                         s1ap_obj(&task_sched, logger, &rx_sockets);
   rrc_tester                   rrc;
-  stack_dummy                  stack;
   asn1::s1ap::s1ap_pdu_c       s1ap_pdu;
   srsran::unique_byte_buffer_t sdu;
 
@@ -199,7 +220,7 @@ void test_s1ap_erab_setup(test_event event)
   args.mme_addr      = mme_addr_str;
   args.enb_name      = "srsenb01";
 
-  TESTASSERT(s1ap_obj.init(args, &rrc, &stack) == SRSRAN_SUCCESS);
+  TESTASSERT(s1ap_obj.init(args, &rrc) == SRSRAN_SUCCESS);
 
   run_s1_setup(s1ap_obj, mme);
   add_rnti(s1ap_obj, mme);

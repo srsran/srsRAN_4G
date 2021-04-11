@@ -39,14 +39,17 @@ namespace srsue {
 typedef struct {
   uint32_t              ul_dropped_sdus;
   mac_metrics_t         mac[SRSRAN_MAX_CARRIERS];
+  mac_metrics_t         mac_nr[SRSRAN_MAX_CARRIERS];
   srsran::rlc_metrics_t rlc;
   nas_metrics_t         nas;
   rrc_metrics_t         rrc;
+  rrc_metrics_t         rrc_nr;
 } stack_metrics_t;
 
 typedef struct {
   srsran::rf_metrics_t  rf;
   phy_metrics_t         phy;
+  phy_metrics_t         phy_nr;
   gw_metrics_t          gw;
   stack_metrics_t       stack;
   srsran::sys_metrics_t sys;

@@ -19,6 +19,7 @@
  *
  */
 
+#include "srsenb/hdr/common/rnti_pool.h"
 #include "srsran/common/timers.h"
 #include "srsran/interfaces/enb_metrics_interface.h"
 #include "srsran/interfaces/enb_pdcp_interfaces.h"
@@ -113,10 +114,10 @@ private:
   class user_interface
   {
   public:
-    user_interface_rlc  rlc_itf;
-    user_interface_gtpu gtpu_itf;
-    user_interface_rrc  rrc_itf;
-    srsran::pdcp*       pdcp;
+    user_interface_rlc            rlc_itf;
+    user_interface_gtpu           gtpu_itf;
+    user_interface_rrc            rrc_itf;
+    unique_rnti_ptr<srsran::pdcp> pdcp;
   };
 
   void clear_user(user_interface* ue);

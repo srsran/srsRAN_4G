@@ -858,11 +858,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_segment(uint8_t* payload, uint32_t nof_byte
     retx_queue.front().so_start   = retx.so_end;
   }
 
-  // increment counter for retx of first segment
-  if (retx.so_start == 0) {
-    tx_window[retx.sn].retx_count++;
-  }
-
+  tx_window[retx.sn].retx_count++;
   check_sn_reached_max_retx(retx.sn);
 
   // Write header and pdu
@@ -1149,7 +1145,7 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
         update_vt_a = false;
         if (tx_window.has_sn(i)) {
           auto& pdu = tx_window[i];
-          if (!retx_queue.has_sn(i)) {
+          if (not retx_queue.has_sn(i)) {
             rlc_amd_retx_t& retx = retx_queue.push();
             srsran_expect(tx_window[i].rlc_sn == i, "Incorrect RLC SN=%d!=%d being accessed", tx_window[i].rlc_sn, i);
             retx.sn         = i;
@@ -1185,6 +1181,8 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
                                pdu.buf->N_bytes);
               }
             }
+          } else {
+            logger.info("%s NACKed SN=%d already considered for retransmission", RB_NAME, i);
           }
         } else {
           logger.warning("%s NACKed SN=%d already removed from Tx window", RB_NAME, i);
@@ -2139,6 +2137,7 @@ buffered_pdcp_pdu_list::buffered_pdcp_pdu_list() : buffered_pdus(max_buffer_idx 
 
 void buffered_pdcp_pdu_list::clear()
 {
+  count = 0;
   for (auto& b : buffered_pdus) {
     b.sn          = invalid_sn;
     b.fully_acked = false;

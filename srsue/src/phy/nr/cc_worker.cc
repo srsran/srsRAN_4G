@@ -79,11 +79,6 @@ bool cc_worker::set_carrier(const srsran_carrier_nr_t* carrier)
     return false;
   }
 
-  if (srsran_ue_dl_nr_set_pdcch_config(&ue_dl, &phy->cfg.pdcch) < SRSRAN_SUCCESS) {
-    ERROR("Error setting carrier");
-    return false;
-  }
-
   if (srsran_ue_ul_nr_set_carrier(&ue_ul, carrier) < SRSRAN_SUCCESS) {
     ERROR("Error setting carrier");
     return false;
@@ -95,10 +90,25 @@ bool cc_worker::set_carrier(const srsran_carrier_nr_t* carrier)
   return true;
 }
 
+bool cc_worker::update_cfg()
+{
+  srsran_dci_cfg_nr_t dci_cfg = phy->cfg.get_dci_cfg(phy->carrier);
+
+  if (srsran_ue_dl_nr_set_pdcch_config(&ue_dl, &phy->cfg.pdcch, &dci_cfg) < SRSRAN_SUCCESS) {
+    logger.error("Error setting NR PDCCH configuration");
+    return false;
+  }
+
+  configured = true;
+
+  return true;
+}
+
 void cc_worker::set_tti(uint32_t tti)
 {
   dl_slot_cfg.idx = tti;
   ul_slot_cfg.idx = TTI_TX(tti);
+  logger.set_context(tti);
 }
 
 cf_t* cc_worker::get_rx_buffer(uint32_t antenna_idx)
@@ -138,7 +148,7 @@ void cc_worker::decode_pdcch_dl()
   int n_dl =
       srsran_ue_dl_nr_find_dl_dci(&ue_dl, &dl_slot_cfg, rnti.id, rnti.type, dci_rx.data(), (uint32_t)dci_rx.size());
   if (n_dl < SRSRAN_SUCCESS) {
-    logger.error("Error decoding DL NR-PDCCH");
+    logger.error("Error decoding DL NR-PDCCH for %s=0x%x", srsran_rnti_type_str(rnti.type), rnti.id);
     return;
   }
 
@@ -158,14 +168,17 @@ void cc_worker::decode_pdcch_dl()
   if (logger.debug.enabled()) {
     for (uint32_t i = 0; i < ue_dl.pdcch_info_count; i++) {
       const srsran_ue_dl_nr_pdcch_info_t* info = &ue_dl.pdcch_info[i];
-      logger.debug("PDCCH: crst_id=%d, ss_id=%d, ncce=%d, al=%d, EPRE=%+.2f, RSRP=%+.2f, corr=%.3f; crc=%s",
-                   info->coreset_id,
-                   info->ss_id,
-                   info->location.ncce,
-                   info->location.L,
+      logger.debug("PDCCH: rnti=0x%x, crst_id=%d, ss_type=%d, ncce=%d, al=%d, EPRE=%+.2f, RSRP=%+.2f, corr=%.3f; "
+                   "nof_bits=%d; crc=%s;",
+                   info->dci_ctx.rnti,
+                   info->dci_ctx.coreset_id,
+                   info->dci_ctx.ss_type,
+                   info->dci_ctx.location.ncce,
+                   info->dci_ctx.location.L,
                    info->measure.epre_dBfs,
                    info->measure.rsrp_dBfs,
                    info->measure.norm_corr,
+                   info->nof_bits,
                    info->result.crc ? "OK" : "KO");
     }
   }
@@ -205,6 +218,11 @@ void cc_worker::decode_pdcch_ul()
 
 bool cc_worker::work_dl()
 {
+  // Do NOT process any DL if it is not configured
+  if (not configured) {
+    return true;
+  }
+
   // Check if it is a DL slot, if not skip
   if (!srsran_tdd_nr_is_dl(&phy->cfg.tdd, 0, dl_slot_cfg.idx)) {
     return true;
@@ -224,13 +242,20 @@ bool cc_worker::work_dl()
   srsran_sch_cfg_nr_t            pdsch_cfg    = {};
   srsran_pdsch_ack_resource_nr_t ack_resource = {};
   if (phy->get_dl_pending_grant(dl_slot_cfg.idx, pdsch_cfg, ack_resource, pid)) {
+    // As HARQ processes are not implemented nor LDPC early-stop, retransmissions are disabled for performance reasons
+    if (pdsch_cfg.grant.tb[0].rv != 0) {
+      phy->set_pending_ack(dl_slot_cfg.idx, ack_resource, true);
+      logger.warning("PDSCH Retransmission with rv=%d not supported", pdsch_cfg.grant.tb[0].rv);
+      return true;
+    }
+
     // Get data buffer
     srsran::unique_byte_buffer_t data = srsran::make_byte_buffer();
     if (data == nullptr) {
       logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
       return false;
     }
-    data->N_bytes                     = pdsch_cfg.grant.tb[0].tbs / 8U;
+    data->N_bytes = pdsch_cfg.grant.tb[0].tbs / 8U;
 
     // Get soft-buffer from MAC
     // ...
@@ -303,6 +328,14 @@ bool cc_worker::work_ul()
   // If PDSCH UL ACK is available, load into UCI
   if (has_ul_ack) {
     pdsch_ack.use_pusch = has_pusch_grant;
+
+    if (logger.debug.enabled()) {
+      std::array<char, 512> str = {};
+      if (srsran_ue_dl_nr_ack_info(&pdsch_ack, str.data(), (uint32_t)str.size()) > 0) {
+        logger.debug("%s", str.data());
+      }
+    }
+
     if (srsran_ue_dl_nr_gen_ack(&phy->cfg.harq_ack, &pdsch_ack, &uci_data) < SRSRAN_SUCCESS) {
       ERROR("Filling UCI ACK bits");
       return false;
@@ -322,7 +355,7 @@ bool cc_worker::work_ul()
     mac_ul_grant.pid                                     = pid;
     mac_ul_grant.rnti                                    = pusch_cfg.grant.rnti;
     mac_ul_grant.tti                                     = ul_slot_cfg.idx;
-    mac_ul_grant.tbs                                     = pusch_cfg.grant.tb[0].tbs;
+    mac_ul_grant.tbs                                     = pusch_cfg.grant.tb[0].tbs / 8;
     phy->stack->new_grant_ul(0, mac_ul_grant, &ul_action);
 
     // Set UCI configuration following procedures

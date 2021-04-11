@@ -23,8 +23,6 @@
 
 namespace srsran {
 
-mac_sch_subpdu_nr::mac_sch_subpdu_nr(mac_sch_pdu_nr* parent_) : parent(parent_) {}
-
 mac_sch_subpdu_nr::nr_lcid_sch_t mac_sch_subpdu_nr::get_type()
 {
   if (lcid >= 32) {
@@ -94,11 +92,11 @@ void mac_sch_subpdu_nr::set_sdu(const uint32_t lcid_, const uint8_t* payload_, c
     F_bit      = false;
     sdu_length = sizeof_ce(lcid, parent->is_ulsch());
     if (len_ != static_cast<uint32_t>(sdu_length)) {
-      srslog::fetch_basic_logger("MAC").warning("Invalid SDU length of UL-SCH SDU (%d != %d)", len_, sdu_length);
+      logger->warning("Invalid SDU length of UL-SCH SDU (%d != %d)", len_, sdu_length);
     }
   }
 
-  if (sdu_length >= 256) {
+  if (sdu_length >= MAC_SUBHEADER_LEN_THRESHOLD) {
     F_bit = true;
     header_length += 1;
   }
@@ -145,6 +143,9 @@ void mac_sch_subpdu_nr::set_sbsr(const lcg_bsr_t bsr_)
   ce_write_buffer.at(0) = ((bsr_.lcg_id & 0x07) << 5) | (bsr_.buffer_size & 0x1f);
 }
 
+// Turn a subPDU into a long BSR with variable size
+void mac_sch_subpdu_nr::set_lbsr(const std::array<mac_sch_subpdu_nr::lcg_bsr_t, max_num_lcg_lbsr> bsr_) {}
+
 // Section 6.1.2
 uint32_t mac_sch_subpdu_nr::write_subpdu(const uint8_t* start_)
 {
@@ -166,7 +167,7 @@ uint32_t mac_sch_subpdu_nr::write_subpdu(const uint8_t* start_)
   } else if (header_length == 1) {
     // do nothing
   } else {
-    srslog::fetch_basic_logger("MAC").warning("Error while packing PDU. Unsupported header length (%d)", header_length);
+    logger->error("Error while packing PDU. Unsupported header length (%d)", header_length);
   }
 
   // copy SDU payload
@@ -225,6 +226,16 @@ uint8_t mac_sch_subpdu_nr::get_pcmax()
     return sdu[1] & 0x3f;
   }
   return 0;
+}
+
+mac_sch_subpdu_nr::ta_t mac_sch_subpdu_nr::get_ta()
+{
+  ta_t ta = {};
+  if (lcid == TA_CMD) {
+    ta.tag_id     = (sdu[0] & 0xc0) >> 6;
+    ta.ta_command = sdu[0] & 0x3f;
+  }
+  return ta;
 }
 
 mac_sch_subpdu_nr::lcg_bsr_t mac_sch_subpdu_nr::get_sbsr()
@@ -297,7 +308,7 @@ void mac_sch_pdu_nr::unpack(const uint8_t* payload, const uint32_t& len)
   while (offset < len) {
     mac_sch_subpdu_nr sch_pdu(this);
     if (sch_pdu.read_subheader(payload + offset) == SRSRAN_ERROR) {
-      fprintf(stderr, "Error parsing NR MAC PDU (len=%d, offset=%d)\n", len, offset);
+      logger.error("Error parsing NR MAC PDU (len=%d, offset=%d)\n", len, offset);
       return;
     }
     offset += sch_pdu.get_total_length();
@@ -310,7 +321,7 @@ void mac_sch_pdu_nr::unpack(const uint8_t* payload, const uint32_t& len)
     subpdus.push_back(sch_pdu);
   }
   if (offset != len) {
-    fprintf(stderr, "Error parsing NR MAC PDU (len=%d, offset=%d)\n", len, offset);
+    logger.error("Error parsing NR MAC PDU (len=%d, offset=%d)\n", len, offset);
   }
 }
 
@@ -369,7 +380,7 @@ uint32_t mac_sch_pdu_nr::add_sdu(const uint32_t lcid_, const uint8_t* payload_, 
 {
   int header_size = size_header_sdu(lcid_, len_);
   if (header_size + len_ > remaining_len) {
-    printf("Header and SDU exceed space in PDU (%d > %d).\n", header_size + len_, remaining_len);
+    logger.error("Header and SDU exceed space in PDU (%d + %d > %d)", header_size, len_, remaining_len);
     return SRSRAN_ERROR;
   }
 
@@ -396,6 +407,14 @@ uint32_t mac_sch_pdu_nr::add_sbsr_ce(const mac_sch_subpdu_nr::lcg_bsr_t bsr_)
 {
   mac_sch_subpdu_nr ce(this);
   ce.set_sbsr(bsr_);
+  return add_sudpdu(ce);
+}
+
+uint32_t
+mac_sch_pdu_nr::add_lbsr_ce(const std::array<mac_sch_subpdu_nr::lcg_bsr_t, mac_sch_subpdu_nr::max_num_lcg_lbsr> bsr_)
+{
+  mac_sch_subpdu_nr ce(this);
+  ce.set_lbsr(bsr_);
   return add_sudpdu(ce);
 }
 

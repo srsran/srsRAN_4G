@@ -757,7 +757,7 @@ void rrc::timer_expired(uint32_t timeout_id)
   }
 }
 
-bool rrc::nr_reconfiguration_proc(const rrc_conn_recfg_r8_ies_s& rx_recfg)
+bool rrc::nr_reconfiguration_proc(const rrc_conn_recfg_r8_ies_s& rx_recfg, bool *has_5g_nr_reconfig)
 {
   if (!(rx_recfg.non_crit_ext_present && rx_recfg.non_crit_ext.non_crit_ext_present &&
         rx_recfg.non_crit_ext.non_crit_ext.non_crit_ext_present &&
@@ -786,13 +786,21 @@ bool rrc::nr_reconfiguration_proc(const rrc_conn_recfg_r8_ies_s& rx_recfg)
   bool                nr_radio_bearer_cfg1_r15_present = false;
   asn1::dyn_octstring nr_radio_bearer_cfg1_r15;
 
-  endc_release_and_add_r15 = rrc_conn_recfg_v1510_ies->nr_cfg_r15.setup().endc_release_and_add_r15;
-
-  if (rrc_conn_recfg_v1510_ies->nr_cfg_r15.setup().nr_secondary_cell_group_cfg_r15_present == true) {
-    nr_secondary_cell_group_cfg_r15_present = true;
-    nr_secondary_cell_group_cfg_r15 = rrc_conn_recfg_v1510_ies->nr_cfg_r15.setup().nr_secondary_cell_group_cfg_r15;
+  switch (rrc_conn_recfg_v1510_ies->nr_cfg_r15.type()) {
+    case setup_opts::options::release:
+      logger.info("NR config R15 of type release"); 
+      break;
+    case setup_opts::options::setup:
+      endc_release_and_add_r15 = rrc_conn_recfg_v1510_ies->nr_cfg_r15.setup().endc_release_and_add_r15;
+      if (rrc_conn_recfg_v1510_ies->nr_cfg_r15.setup().nr_secondary_cell_group_cfg_r15_present) {
+        nr_secondary_cell_group_cfg_r15_present = true;
+        nr_secondary_cell_group_cfg_r15 = rrc_conn_recfg_v1510_ies->nr_cfg_r15.setup().nr_secondary_cell_group_cfg_r15;
+      }
+      break;
+    default:
+      logger.error("NR config R15 type not defined");
+      break;
   }
-
   if (rrc_conn_recfg_v1510_ies->sk_counter_r15_present) {
     sk_counter_r15_present = true;
     sk_counter_r15         = rrc_conn_recfg_v1510_ies->sk_counter_r15;
@@ -802,14 +810,14 @@ bool rrc::nr_reconfiguration_proc(const rrc_conn_recfg_r8_ies_s& rx_recfg)
     nr_radio_bearer_cfg1_r15_present = true;
     nr_radio_bearer_cfg1_r15         = rrc_conn_recfg_v1510_ies->nr_radio_bearer_cfg1_r15;
   }
-
-  return rrc_nr->rrc_reconfiguration(endc_release_and_add_r15,
-                                     nr_secondary_cell_group_cfg_r15_present,
-                                     nr_secondary_cell_group_cfg_r15,
-                                     sk_counter_r15_present,
-                                     sk_counter_r15,
-                                     nr_radio_bearer_cfg1_r15_present,
-                                     nr_radio_bearer_cfg1_r15);
+    *has_5g_nr_reconfig = true;
+    return rrc_nr->rrc_reconfiguration(endc_release_and_add_r15,
+                                       nr_secondary_cell_group_cfg_r15_present,
+                                       nr_secondary_cell_group_cfg_r15,
+                                       sk_counter_r15_present,
+                                       sk_counter_r15,
+                                       nr_radio_bearer_cfg1_r15_present,
+                                       nr_radio_bearer_cfg1_r15);
 }
 /*******************************************************************************
  *
@@ -1583,7 +1591,16 @@ void rrc::send_ul_dcch_msg(uint32_t lcid, const ul_dcch_msg_s& msg)
   pdcp_buf->N_bytes = (uint32_t)bref.distance_bytes(pdcp_buf->msg);
   pdcp_buf->set_timestamp();
 
-  log_rrc_message(get_rb_name(lcid).c_str(), Tx, pdcp_buf.get(), msg, msg.msg.c1().type().to_string());
+  if (msg.msg.type() == ul_dcch_msg_type_c::types_opts::options::c1) {
+    log_rrc_message(get_rb_name(lcid).c_str(), Tx, pdcp_buf.get(), msg, msg.msg.c1().type().to_string());
+  } else if (msg.msg.type() == ul_dcch_msg_type_c::types_opts::options::msg_class_ext) {
+    if (msg.msg.msg_class_ext().type() == ul_dcch_msg_type_c::msg_class_ext_c_::types_opts::options::c2) {
+      log_rrc_message(
+          get_rb_name(lcid).c_str(), Tx, pdcp_buf.get(), msg, msg.msg.msg_class_ext().c2().type().to_string());
+    } else {
+      log_rrc_message(get_rb_name(lcid).c_str(), Tx, pdcp_buf.get(), msg, msg.msg.msg_class_ext().type().to_string());
+    }
+  }
 
   pdcp->write_sdu(lcid, std::move(pdcp_buf));
 }
@@ -2641,6 +2658,10 @@ void rrc::add_drb(const drb_to_add_mod_s& drb_cnfg)
   drbs[drb_cnfg.drb_id] = drb_cnfg;
   drb_up                = true;
   logger.info("Added DRB Id %d (LCID=%d)", drb_cnfg.drb_id, lcid);
+  // Update LCID if gw is running
+  if(gw->is_running()){
+    gw->update_lcid(drb_cnfg.eps_bearer_id, lcid);
+  }
 }
 
 void rrc::release_drb(uint32_t drb_id)
@@ -2749,6 +2770,26 @@ asn1::rrc::ue_cap_rat_container_s rrc::get_nr_capabilities()
   cap.ue_cap_rat_container.resize(caps_buf.N_bytes);
   memcpy(cap.ue_cap_rat_container.data(), caps_buf.msg, caps_buf.N_bytes);
   return cap;
+}
+
+void rrc::nr_notify_reconfiguration_failure()
+{
+  logger.warning("Notify reconfiguration about NR reconfiguration failure");
+  if (conn_recfg_proc.is_busy()) {
+    conn_recfg_proc.trigger(false);
+  }
+}
+//  5.6.13a   NR SCG failure information
+void rrc::nr_scg_failure_information(const scg_failure_cause_t cause)
+{
+  logger.warning("Sending NR SCG failure information with cause %s", to_string(cause));
+  ul_dcch_msg_s           ul_dcch_msg;
+  scg_fail_info_nr_r15_s& scg_fail_info_nr = ul_dcch_msg.msg.set_msg_class_ext().set_c2().set_scg_fail_info_nr_r15();
+  scg_fail_info_nr.crit_exts.set_c1().set_scg_fail_info_nr_r15();
+  scg_fail_info_nr.crit_exts.c1().scg_fail_info_nr_r15().fail_report_scg_nr_r15_present = true;
+  scg_fail_info_nr.crit_exts.c1().scg_fail_info_nr_r15().fail_report_scg_nr_r15.fail_type_r15 =
+      (fail_report_scg_nr_r15_s::fail_type_r15_opts::options)cause;
+  send_ul_dcch_msg(RB_ID_SRB1, ul_dcch_msg);
 }
 
 } // namespace srsue

@@ -431,8 +431,7 @@ int main(int argc, char** argv)
     // Recover messages
     gettimeofday(&t[1], NULL);
     for (j = 0; j < batch_size; j++) {
-      srsran_ldpc_decoder_decode_rm_c(
-          &decoder_c, symbols_c + j * finalN, messages_sim_c + j * finalK, n_useful_symbols);
+      srsran_ldpc_decoder_decode_c(&decoder_c, symbols_c + j * finalN, messages_sim_c + j * finalK, n_useful_symbols);
     }
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
@@ -453,7 +452,7 @@ int main(int argc, char** argv)
     // Recover messages
     gettimeofday(&t[1], NULL);
     for (j = 0; j < batch_size; j++) {
-      srsran_ldpc_decoder_decode_rm_c(
+      srsran_ldpc_decoder_decode_c(
           &decoder_c_flood, symbols_c + j * finalN, messages_sim_c_flood + j * finalK, n_useful_symbols);
     }
     gettimeofday(&t[2], NULL);
@@ -476,7 +475,7 @@ int main(int argc, char** argv)
     // Recover messages
     gettimeofday(&t[1], NULL);
     for (j = 0; j < batch_size; j++) {
-      srsran_ldpc_decoder_decode_rm_c(
+      srsran_ldpc_decoder_decode_c(
           &decoder_avx, symbols_c + j * finalN, messages_sim_avx + j * finalK, n_useful_symbols);
     }
     gettimeofday(&t[2], NULL);
@@ -498,7 +497,7 @@ int main(int argc, char** argv)
     // Recover messages
     gettimeofday(&t[1], NULL);
     for (j = 0; j < batch_size; j++) {
-      srsran_ldpc_decoder_decode_rm_c(
+      srsran_ldpc_decoder_decode_c(
           &decoder_avx_flood, symbols_c + j * finalN, messages_sim_avx_flood + j * finalK, n_useful_symbols);
     }
     gettimeofday(&t[2], NULL);
@@ -522,7 +521,7 @@ int main(int argc, char** argv)
     // Recover messages
     gettimeofday(&t[1], NULL);
     for (j = 0; j < batch_size; j++) {
-      srsran_ldpc_decoder_decode_rm_c(
+      srsran_ldpc_decoder_decode_c(
           &decoder_avx512, symbols_c + j * finalN, messages_sim_avx512 + j * finalK, n_useful_symbols);
     }
     gettimeofday(&t[2], NULL);
@@ -543,7 +542,7 @@ int main(int argc, char** argv)
     // Recover messages
     gettimeofday(&t[1], NULL);
     for (j = 0; j < batch_size; j++) {
-      srsran_ldpc_decoder_decode_rm_c(
+      srsran_ldpc_decoder_decode_c(
           &decoder_avx512_flood, symbols_c + j * finalN, messages_sim_avx512_flood + j * finalK, n_useful_symbols);
     }
     gettimeofday(&t[2], NULL);

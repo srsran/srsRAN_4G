@@ -25,7 +25,6 @@
 #include "srsran/asn1/asn1_utils.h"
 #include "srsran/asn1/rrc_utils.h"
 #include "srsran/common/bcd_helpers.h"
-#include "srsran/common/int_helpers.h"
 #include "srsran/common/standard_streams.h"
 #include "srsran/interfaces/enb_mac_interfaces.h"
 #include "srsran/interfaces/enb_pdcp_interfaces.h"
@@ -33,8 +32,6 @@
 #include "srsran/interfaces/sched_interface.h"
 
 using srsran::byte_buffer_t;
-using srsran::uint32_to_uint8;
-using srsran::uint8_to_uint32;
 
 using namespace asn1::rrc;
 
@@ -42,10 +39,7 @@ namespace srsenb {
 
 rrc::rrc(srsran::task_sched_handle task_sched_) :
   logger(srslog::fetch_basic_logger("RRC")), task_sched(task_sched_), rx_pdu_queue(64)
-{
-  pending_paging.clear();
-  rrc::ue::get_ue_pool()->allocate_batch_in_background();
-}
+{}
 
 rrc::~rrc() {}
 
@@ -183,7 +177,7 @@ int rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
   if (user_it == users.end()) {
     if (rnti != SRSRAN_MRNTI) {
       // only non-eMBMS RNTIs are present in user map
-      std::unique_ptr<ue> u{new ue(this, rnti, sched_ue_cfg)};
+      unique_rnti_ptr<ue> u = make_rnti_obj<ue>(rnti, this, rnti, sched_ue_cfg);
       if (u->init() != SRSRAN_SUCCESS) {
         logger.error("Adding user rnti=0x%x - Failed to allocate user resources", rnti);
         return SRSRAN_ERROR;

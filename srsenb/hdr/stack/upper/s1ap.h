@@ -24,7 +24,7 @@
 
 #include <map>
 
-#include "common_enb.h"
+#include "srsenb/hdr/common/common_enb.h"
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/common.h"
 #include "srsran/common/s1ap_pcap.h"
@@ -61,8 +61,10 @@ public:
   static const uint32_t ts1_reloc_prep_timeout_ms    = 10000;
   static const uint32_t ts1_reloc_overall_timeout_ms = 10000;
 
-  s1ap(srsran::task_sched_handle task_sched_, srslog::basic_logger& logger);
-  int  init(s1ap_args_t args_, rrc_interface_s1ap* rrc_, srsenb::stack_interface_s1ap_lte* stack_);
+  s1ap(srsran::task_sched_handle   task_sched_,
+       srslog::basic_logger&       logger,
+       srsran::socket_manager_itf* rx_socket_handler);
+  int  init(s1ap_args_t args_, rrc_interface_s1ap* rrc_);
   void stop();
   void get_metrics(s1ap_metrics_t& m);
 
@@ -118,19 +120,20 @@ private:
   static const int NONUE_STREAM_ID = 0;
 
   // args
-  rrc_interface_s1ap*               rrc = nullptr;
-  s1ap_args_t                       args;
-  srslog::basic_logger&             logger;
-  srsenb::stack_interface_s1ap_lte* stack = nullptr;
-  srsran::task_sched_handle         task_sched;
+  rrc_interface_s1ap*         rrc = nullptr;
+  s1ap_args_t                 args;
+  srslog::basic_logger&       logger;
+  srsran::task_sched_handle   task_sched;
+  srsran::task_queue_handle   mme_task_queue;
+  srsran::socket_manager_itf* rx_socket_handler;
 
-  srsran::socket_handler_t s1ap_socket;
-  struct sockaddr_in       mme_addr            = {}; // MME address
-  bool                     mme_connected       = false;
-  bool                     running             = false;
-  uint32_t                 next_enb_ue_s1ap_id = 1; // Next ENB-side UE identifier
-  uint16_t                 next_ue_stream_id   = 1; // Next UE SCTP stream identifier
-  srsran::unique_timer     mme_connect_timer, s1setup_timeout;
+  srsran::unique_socket mme_socket;
+  struct sockaddr_in    mme_addr            = {}; // MME address
+  bool                  mme_connected       = false;
+  bool                  running             = false;
+  uint32_t              next_enb_ue_s1ap_id = 1; // Next ENB-side UE identifier
+  uint16_t              next_ue_stream_id   = 1; // Next UE SCTP stream identifier
+  srsran::unique_timer  mme_connect_timer, s1setup_timeout;
 
   // Protocol IEs sent with every UL S1AP message
   asn1::s1ap::tai_s        tai;

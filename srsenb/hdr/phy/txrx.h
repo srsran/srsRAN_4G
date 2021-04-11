@@ -29,6 +29,7 @@
 #include "srsran/config.h"
 #include "srsran/phy/channel/channel.h"
 #include "srsran/radio/radio.h"
+#include <atomic>
 
 namespace srsenb {
 
@@ -60,9 +61,9 @@ private:
   // Main system TTI counter
   uint32_t tti = 0;
 
-  uint32_t tx_worker_cnt = 0;
-  uint32_t nof_workers   = 0;
-  bool     running       = false;
+  uint32_t          tx_worker_cnt = 0;
+  uint32_t          nof_workers   = 0;
+  std::atomic<bool> running;
 };
 
 } // namespace srsenb

@@ -333,11 +333,11 @@ static uint32_t pdcch_nr_cp(const srsran_pdcch_nr_t*     q,
 
 static uint32_t pdcch_nr_c_init(const srsran_pdcch_nr_t* q, const srsran_dci_msg_nr_t* dci_msg)
 {
-  uint32_t n_id = (dci_msg->search_space == srsran_search_space_type_ue && q->coreset.dmrs_scrambling_id_present)
+  uint32_t n_id = (dci_msg->ctx.ss_type == srsran_search_space_type_ue && q->coreset.dmrs_scrambling_id_present)
                       ? q->coreset.dmrs_scrambling_id
                       : q->carrier.id;
-  uint32_t n_rnti = (dci_msg->search_space == srsran_search_space_type_ue && q->coreset.dmrs_scrambling_id_present)
-                        ? dci_msg->rnti
+  uint32_t n_rnti = (dci_msg->ctx.ss_type == srsran_search_space_type_ue && q->coreset.dmrs_scrambling_id_present)
+                        ? dci_msg->ctx.rnti
                         : 0U;
   return ((n_rnti << 16U) + n_id) & 0x7fffffffU;
 }
@@ -354,10 +354,10 @@ int srsran_pdcch_nr_encode(srsran_pdcch_nr_t* q, const srsran_dci_msg_nr_t* dci_
   }
 
   // Calculate...
-  q->K           = dci_msg->nof_bits + 24U;                              // Payload size including CRC
-  q->M           = (1U << dci_msg->location.L) * (SRSRAN_NRE - 3U) * 6U; // Number of RE
-  q->E           = q->M * 2;                                             // Number of Rate-Matched bits
-  uint32_t cinit = pdcch_nr_c_init(q, dci_msg);                          // Pseudo-random sequence initiation
+  q->K           = dci_msg->nof_bits + 24U;                                  // Payload size including CRC
+  q->M           = (1U << dci_msg->ctx.location.L) * (SRSRAN_NRE - 3U) * 6U; // Number of RE
+  q->E           = q->M * 2;                                                 // Number of Rate-Matched bits
+  uint32_t cinit = pdcch_nr_c_init(q, dci_msg);                              // Pseudo-random sequence initiation
 
   // Get polar code
   if (srsran_polar_code_get(&q->code, q->K, q->E, 9U) < SRSRAN_SUCCESS) {
@@ -380,7 +380,7 @@ int srsran_pdcch_nr_encode(srsran_pdcch_nr_t* q, const srsran_dci_msg_nr_t* dci_
   // Unpack RNTI
   uint8_t  unpacked_rnti[16] = {};
   uint8_t* ptr               = unpacked_rnti;
-  srsran_bit_unpack(dci_msg->rnti, &ptr, 16);
+  srsran_bit_unpack(dci_msg->ctx.rnti, &ptr, 16);
 
   // Scramble CRC with RNTI
   srsran_vec_xor_bbb(unpacked_rnti, &c[q->K - 16], &c[q->K - 16], 16);
@@ -421,7 +421,7 @@ int srsran_pdcch_nr_encode(srsran_pdcch_nr_t* q, const srsran_dci_msg_nr_t* dci_
   srsran_mod_modulate(&q->modem_table, q->f, q->symbols, q->E);
 
   // Put symbols in grid
-  uint32_t m = pdcch_nr_cp(q, &dci_msg->location, slot_symbols, q->symbols, true);
+  uint32_t m = pdcch_nr_cp(q, &dci_msg->ctx.location, slot_symbols, q->symbols, true);
   if (q->M != m) {
     ERROR("Unmatch number of RE (%d != %d)", m, q->M);
     return SRSRAN_ERROR;
@@ -458,9 +458,9 @@ int srsran_pdcch_nr_decode(srsran_pdcch_nr_t*      q,
   }
 
   // Calculate...
-  q->K = dci_msg->nof_bits + 24U;                              // Payload size including CRC
-  q->M = (1U << dci_msg->location.L) * (SRSRAN_NRE - 3U) * 6U; // Number of RE
-  q->E = q->M * 2;                                             // Number of Rate-Matched bits
+  q->K = dci_msg->nof_bits + 24U;                                  // Payload size including CRC
+  q->M = (1U << dci_msg->ctx.location.L) * (SRSRAN_NRE - 3U) * 6U; // Number of RE
+  q->E = q->M * 2;                                                 // Number of Rate-Matched bits
 
   // Check number of estimates is correct
   if (ce->nof_re != q->M) {
@@ -475,7 +475,7 @@ int srsran_pdcch_nr_decode(srsran_pdcch_nr_t*      q,
   PDCCH_INFO_RX("K=%d; E=%d; M=%d; n=%d;", q->K, q->E, q->M, q->code.n);
 
   // Get symbols from grid
-  uint32_t m = pdcch_nr_cp(q, &dci_msg->location, slot_symbols, q->symbols, false);
+  uint32_t m = pdcch_nr_cp(q, &dci_msg->ctx.location, slot_symbols, q->symbols, false);
   if (q->M != m) {
     ERROR("Unmatch number of RE (%d != %d)", m, q->M);
     return SRSRAN_ERROR;
@@ -555,7 +555,7 @@ int srsran_pdcch_nr_decode(srsran_pdcch_nr_t*      q,
   // Unpack RNTI
   uint8_t  unpacked_rnti[16] = {};
   uint8_t* ptr               = unpacked_rnti;
-  srsran_bit_unpack(dci_msg->rnti, &ptr, 16);
+  srsran_bit_unpack(dci_msg->ctx.rnti, &ptr, 16);
 
   // De-Scramble CRC with RNTI
   srsran_vec_xor_bbb(unpacked_rnti, &c[q->K - 16], &c[q->K - 16], 16);

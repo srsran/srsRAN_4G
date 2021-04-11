@@ -69,7 +69,8 @@ bool cc_worker::set_carrier(const srsran_carrier_nr_t* carrier)
   coreset.freq_resources[0] = true; // Enable the bottom 6 PRB for PDCCH
   coreset.duration          = 2;
 
-  if (srsran_enb_dl_nr_set_coreset(&enb_dl, &coreset) < SRSRAN_SUCCESS) {
+  srsran_dci_cfg_nr_t dci_cfg = phy_state->cfg.get_dci_cfg(*carrier);
+  if (srsran_enb_dl_nr_set_pdcch_config(&enb_dl, &phy_state->cfg.pdcch, &dci_cfg) < SRSRAN_SUCCESS) {
     ERROR("Error setting coreset");
     return false;
   }

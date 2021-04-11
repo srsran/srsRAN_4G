@@ -62,6 +62,8 @@ int pusch_nr_init_common(srsran_pusch_nr_t* q, const srsran_pusch_nr_args_t* arg
     return SRSRAN_ERROR;
   }
 
+  q->meas_time_en = args->measure_time;
+
   return SRSRAN_SUCCESS;
 }
 
@@ -105,8 +107,6 @@ int srsran_pusch_nr_init_gnb(srsran_pusch_nr_t* q, const srsran_pusch_nr_args_t*
       return SRSRAN_ERROR;
     }
   }
-
-  q->meas_time_en = args->measure_time;
 
   return SRSRAN_SUCCESS;
 }

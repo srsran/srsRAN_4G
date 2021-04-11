@@ -70,25 +70,8 @@ int rrc::ue::init()
   set_activity_timeout(MSG3_RX_TIMEOUT); // next UE response is Msg3
   set_rlf_timeout();
 
-  mobility_handler.reset(new rrc_mobility(this));
+  mobility_handler = make_rnti_obj<rrc_mobility>(rnti, this);
   return SRSRAN_SUCCESS;
-}
-
-srsran::background_allocator_obj_pool<rrc::ue, 16, 4>* rrc::ue::get_ue_pool()
-{
-  // Note: batch allocation is going to be explicitly called in enb class construction. The pool object, therefore,
-  //       will only be initialized if we instantiate an eNB
-  static rrc::ue::ue_pool_t ue_pool(true);
-  return &ue_pool;
-}
-
-void* rrc::ue::operator new(size_t sz)
-{
-  return rrc::ue::get_ue_pool()->allocate_node(sz);
-}
-void rrc::ue::operator delete(void* ptr)noexcept
-{
-  rrc::ue::get_ue_pool()->deallocate_node(ptr);
 }
 
 rrc_state_t rrc::ue::get_state()
@@ -212,7 +195,7 @@ void rrc::ue::set_rlf_timeout()
 
   uint32_t deadline = deadline_s * 1e3 + deadline_ms;
   rlf_timer.set(deadline, [this](uint32_t tid) { rlf_timer_expired(); });
-  parent->logger.debug("Setting RLF timer for rnti=0x%x to %dms", rnti, deadline);
+  parent->logger.info("Setting RLF timer for rnti=0x%x to %dms", rnti, deadline);
 }
 
 void rrc::ue::set_activity_timeout(const activity_timeout_type_t type)

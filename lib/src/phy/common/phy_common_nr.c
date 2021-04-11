@@ -46,6 +46,36 @@ const char* srsran_rnti_type_str(srsran_rnti_type_t rnti_type)
   return "unknown";
 }
 
+const char* srsran_dci_format_nr_string(srsran_dci_format_nr_t format)
+{
+  switch (format) {
+    case srsran_dci_format_nr_0_0:
+      return "0_0";
+    case srsran_dci_format_nr_0_1:
+      return "0_1";
+    case srsran_dci_format_nr_1_0:
+      return "1_0";
+    case srsran_dci_format_nr_1_1:
+      return "1_1";
+    case srsran_dci_format_nr_2_0:
+      return "2_0";
+    case srsran_dci_format_nr_2_1:
+      return "2_1";
+    case srsran_dci_format_nr_2_2:
+      return "2_2";
+    case srsran_dci_format_nr_2_3:
+      return "2_3";
+    case srsran_dci_format_nr_rar:
+      return "RAR";
+    case srsran_dci_format_nr_cg:
+      return "CG";
+    default:
+    case SRSRAN_DCI_FORMAT_NR_COUNT:
+      break;
+  }
+  return "unknown";
+}
+
 uint32_t srsran_coreset_get_bw(const srsran_coreset_t* coreset)
 {
   uint32_t prb_count = 0;

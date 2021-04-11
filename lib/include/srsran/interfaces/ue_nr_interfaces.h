@@ -53,7 +53,7 @@ public:
     uint32_t pid;
     uint16_t rnti;
     uint32_t tti;
-    uint32_t tbs;
+    uint32_t tbs; // transport block size in Bytes
   } mac_nr_grant_ul_t;
 
   /// For UL, payload buffer remains in MAC
@@ -102,6 +102,14 @@ public:
    * @param ul_carrier_id The UL carrier used for Msg1 transmission (0 for NUL carrier, and 1 for SUL carrier).
    */
   virtual void prach_sent(uint32_t tti, uint32_t s_id, uint32_t t_id, uint32_t f_id, uint32_t ul_carrier_id) = 0;
+
+  /**
+   * @brief Indicate a valid SR transmission occasion on the valid PUCCH resource for SR configured; and the SR
+   * transmission occasion does not overlap with a measurement gap; and the PUCCH resource for the SR transmission
+   * occasion does not overlap with a UL-SCH resource;
+   * @param tti  The TTI from the PHY viewpoint at which the SR occasion was sent over-the-air (not to the radio).
+   */
+  virtual bool sr_opportunity(uint32_t tti, uint32_t sr_id, bool meas_gap, bool ul_sch_tx) = 0;
 };
 
 class mac_interface_rrc_nr
@@ -124,13 +132,13 @@ public:
 };
 
 struct phy_args_nr_t {
-  uint32_t               nof_carriers;
-  uint32_t               nof_prb;
-  uint32_t               nof_phy_threads;
-  uint32_t               worker_cpu_mask;
-  srsran::phy_log_args_t log;
-  srsran_ue_dl_nr_args_t dl;
-  srsran_ue_ul_nr_args_t ul;
+  uint32_t               nof_carriers     = 1;
+  uint32_t               nof_prb          = 52;
+  uint32_t               nof_phy_threads  = 3;
+  uint32_t               worker_cpu_mask  = 0;
+  srsran::phy_log_args_t log              = {};
+  srsran_ue_dl_nr_args_t dl               = {};
+  srsran_ue_ul_nr_args_t ul               = {};
   std::set<uint32_t>     fixed_sr         = {1};
   uint32_t               fix_wideband_cqi = 15; // Set to a non-zero value for fixing the wide-band CQI report
 
@@ -172,8 +180,17 @@ public:
                           const float    preamble_received_target_power,
                           const float    ta_base_sec = 0.0f) = 0;
 
-  /// Instruct PHY to transmit SR for a given identifier
-  virtual void sr_send(uint32_t sr_id) = 0;
+  /**
+   * @brief Query PHY if there is a valid PUCCH SR resource configured for a given SR identifier
+   * @param sr_id SR identifier
+   * @return True if there is a valid PUCCH resource configured
+   */
+  virtual bool has_valid_sr_resource(uint32_t sr_id) = 0;
+
+  /**
+   * @brief Clear any configured downlink assignments and uplink grants
+   */
+  virtual void clear_pending_grants() = 0;
 };
 
 class phy_interface_rrc_nr

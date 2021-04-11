@@ -56,9 +56,6 @@ private:
   srsran::circular_array<srsran_pdsch_ack_nr_t, TTIMOD_SZ> pending_ack = {};
   mutable std::mutex                                       pending_ack_mutex;
 
-  /// Pending scheduling request identifiers
-  std::set<uint32_t> pending_sr_id;
-
   /// CSI-RS measurements
   std::array<srsran_csi_measurements_t, SRSRAN_CSI_MAX_NOF_RESOURCES> csi_measurements = {};
 
@@ -72,7 +69,9 @@ public:
   /// Physical layer higher layer configuration, provided by higher layers through configuration messages
   srsran::phy_cfg_nr_t cfg = {};
 
-  uint16_t ra_rnti       = 0;
+  /// Semaphore for aligning UL work
+  srsran::tti_semaphore<void*> dl_ul_semaphore;
+
   uint32_t rar_grant_tti = 0;
 
   state()
@@ -226,6 +225,12 @@ public:
     // Calculate Receive TTI
     uint32_t tti_tx = TTI_ADD(tti_rx, ack_resource.k1);
 
+    // Prepare ACK information
+    srsran_pdsch_ack_m_nr_t ack_m = {};
+    ack_m.resource                = ack_resource;
+    ack_m.value[0]                = crc_ok ? 1 : 0;
+    ack_m.present                 = true;
+
     // Scope mutex to protect read/write the list
     std::lock_guard<std::mutex> lock(pending_ack_mutex);
 
@@ -233,15 +238,10 @@ public:
     srsran_pdsch_ack_nr_t& ack = pending_ack[tti_tx];
     ack.nof_cc                 = 1;
 
-    // Select serving cell
-    srsran_pdsch_ack_cc_nr_t& ack_cc = ack.cc[ack_resource.scell_idx];
-    srsran_pdsch_ack_m_nr_t&  ack_m  = ack_cc.m[ack_cc.M];
-    ack_cc.M++;
-
-    // Set PDSCH transmission information
-    ack_m.resource = ack_resource;
-    ack_m.value[0] = crc_ok ? 1 : 0;
-    ack_m.present  = true;
+    // Insert PDSCH transmission information
+    if (srsran_ue_dl_nr_ack_insert_m(&ack, &ack_m) < SRSRAN_SUCCESS) {
+      ERROR("Error inserting ACK m value");
+    }
   }
 
   bool get_pending_ack(const uint32_t& tti_tx, srsran_pdsch_ack_nr_t& pdsch_ack)
@@ -266,15 +266,31 @@ public:
     return true;
   }
 
-  void reset() { pending_sr_id.clear(); }
+  void reset() { clear_pending_grants(); }
 
-  void set_pending_sr(uint32_t value) { pending_sr_id.insert(value); }
+  bool has_valid_sr_resource(uint32_t sr_id)
+  {
+    for (const srsran_pucch_nr_sr_resource_t& r : cfg.pucch.sr_resources) {
+      if (r.configured && r.sr_id == sr_id) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  void clear_pending_grants()
+  {
+    // Scope mutex to protect read/write the list
+    std::lock_guard<std::mutex> lock(pending_ul_grant_mutex);
+
+    // Clear all PDSCH assignments and PUSCH grants
+    pending_dl_grant = {};
+    pending_ul_grant = {};
+    pending_ack      = {};
+  }
 
   void get_pending_sr(const uint32_t& tti, srsran_uci_data_nr_t& uci_data)
   {
-    // Append fixed SR
-    pending_sr_id.insert(args.fixed_sr.begin(), args.fixed_sr.end());
-
     // Calculate all SR opportunities in the given TTI
     uint32_t sr_resource_id[SRSRAN_PUCCH_MAX_NOF_SR_RESOURCES] = {};
     int      n = srsran_ue_ul_nr_sr_send_slot(cfg.pucch.sr_resources, tti, sr_resource_id);
@@ -293,12 +309,10 @@ public:
       uint32_t sr_id = cfg.pucch.sr_resources[sr_resource_id[i]].sr_id;
 
       // Check if the SR resource ID is pending
-      if (pending_sr_id.count(sr_id) > 0) {
+      if (args.fixed_sr.count(sr_id) > 0 ||
+          stack->sr_opportunity(tti, sr_id, false, pending_ul_grant[TTI_TX(tti)].enable)) {
         // Count it as present
         sr_count_positive++;
-
-        // Erase pending SR
-        pending_sr_id.erase(sr_id);
       }
     }
 

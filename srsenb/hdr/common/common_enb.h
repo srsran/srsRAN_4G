@@ -26,6 +26,7 @@
                               INCLUDES
 *******************************************************************************/
 
+#include <memory>
 #include <stdint.h>
 
 namespace srsenb {

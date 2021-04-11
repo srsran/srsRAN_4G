@@ -167,7 +167,12 @@ bool gtpu_tunnel_manager::remove_bearer(uint16_t rnti, uint32_t lcid)
   logger.info("Removing rnti=0x%x,lcid=%d", rnti, lcid);
 
   for (lcid_tunnel& lcid_tun : to_rem) {
-    srsran_expect(tunnels.erase(lcid_tun.teid) > 0, "Inconsistency detected between two internal data structures");
+    bool ret = tunnels.erase(lcid_tun.teid);
+    srsran_expect(ret,
+                  "Inconsistency detected between internal data structures for rnti=0x%x,lcid=%d," TEID_IN_FMT,
+                  rnti,
+                  lcid,
+                  lcid_tun.teid);
   }
   ue_teidin_db[rnti].erase(to_rem.begin(), to_rem.end());
   return true;
@@ -181,8 +186,11 @@ bool gtpu_tunnel_manager::remove_rnti(uint16_t rnti)
   }
   logger.info("Removing rnti=0x%x", rnti);
 
-  for (lcid_tunnel& ue_tuns : ue_teidin_db[rnti]) {
-    srsran_expect(tunnels.erase(ue_tuns.teid) > 0, "Inconsistency detected between two internal data structures");
+  while (not ue_teidin_db[rnti].empty()) {
+    uint32_t teid = ue_teidin_db[rnti].front().teid;
+    bool     ret  = remove_tunnel(teid);
+    srsran_expect(
+        ret, "Inconsistency detected between internal data structures for rnti=0x%x," TEID_IN_FMT, rnti, teid);
   }
   ue_teidin_db.erase(rnti);
   return true;
@@ -264,7 +272,18 @@ void gtpu_tunnel_manager::buffer_pdcp_sdu(uint32_t teid, uint32_t pdcp_sn, srsra
   tunnel& rx_tun = tunnels[teid];
 
   srsran_assert(rx_tun.state == tunnel_state::buffering, "Buffering of PDCP SDUs only enabled when PDCP is not active");
-  rx_tun.buffer->push_back(std::make_pair(pdcp_sn, std::move(sdu)));
+  if (not rx_tun.buffer->full()) {
+    rx_tun.buffer->push_back(std::make_pair(pdcp_sn, std::move(sdu)));
+  } else {
+    fmt::memory_buffer str_buffer;
+    if (pdcp_sn != undefined_pdcp_sn) {
+      fmt::format_to(str_buffer, " PDCP SN={}", pdcp_sn);
+    }
+    logger.warning("GTPU tunnel " TEID_IN_FMT " internal buffer of size=%zd is full. Discarding SDU%s.",
+                   teid,
+                   rx_tun.buffer->size(),
+                   to_c_str(str_buffer));
+  }
 }
 
 void gtpu_tunnel_manager::setup_forwarding(uint32_t rx_teid, uint32_t tx_teid)
@@ -296,9 +315,17 @@ void gtpu_tunnel_manager::setup_forwarding(uint32_t rx_teid, uint32_t tx_teid)
  *    GTPU class
  *******************/
 
-gtpu::gtpu(srsran::task_sched_handle task_sched_, srslog::basic_logger& logger) :
-  m1u(this), task_sched(task_sched_), logger(logger), tunnels(task_sched_, logger)
-{}
+gtpu::gtpu(srsran::task_sched_handle   task_sched_,
+           srslog::basic_logger&       logger,
+           srsran::socket_manager_itf* rx_socket_handler_) :
+  m1u(this),
+  task_sched(task_sched_),
+  logger(logger),
+  tunnels(task_sched_, logger),
+  rx_socket_handler(rx_socket_handler_)
+{
+  gtpu_queue = task_sched.make_task_queue();
+}
 
 gtpu::~gtpu()
 {
@@ -310,13 +337,11 @@ int gtpu::init(std::string                  gtp_bind_addr_,
                std::string                  m1u_multiaddr_,
                std::string                  m1u_if_addr_,
                srsenb::pdcp_interface_gtpu* pdcp_,
-               stack_interface_gtpu_lte*    stack_,
                bool                         enable_mbsfn_)
 {
   pdcp          = pdcp_;
   gtp_bind_addr = gtp_bind_addr_;
   mme_addr      = mme_addr_;
-  stack         = stack_;
 
   tunnels.init(pdcp);
 
@@ -351,7 +376,11 @@ int gtpu::init(std::string                  gtp_bind_addr_,
     return SRSRAN_ERROR;
   }
 
-  stack->add_gtpu_s1u_socket_handler(fd);
+  // Assign a handler to rx S1U packets
+  auto rx_callback = [this](srsran::unique_byte_buffer_t pdu, const sockaddr_in& from) {
+    handle_gtpu_s1u_rx_packet(std::move(pdu), from);
+  };
+  rx_socket_handler->add_socket_handler(fd, srsran::make_sdu_handler(logger, gtpu_queue, rx_callback));
 
   // Start MCH socket if enabled
   enable_mbsfn = enable_mbsfn_;
@@ -860,8 +889,12 @@ bool gtpu::m1u_handler::init(std::string m1u_multiaddr_, std::string m1u_if_addr
   initiated    = true;
   lcid_counter = 1;
 
-  // Register socket in stack rx sockets thread
-  parent->stack->add_gtpu_m1u_socket_handler(m1u_sd);
+  // Assign a handler to rx M1U packets
+  auto rx_callback = [this](srsran::unique_byte_buffer_t pdu, const sockaddr_in& from) {
+    parent->handle_gtpu_m1u_rx_packet(std::move(pdu), from);
+  };
+  parent->rx_socket_handler->add_socket_handler(m1u_sd,
+                                                srsran::make_sdu_handler(logger, parent->gtpu_queue, rx_callback));
 
   return true;
 }

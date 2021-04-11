@@ -97,8 +97,9 @@ class pdcp_nr_test_helper
 {
 public:
   pdcp_nr_test_helper(srsran::pdcp_config_t cfg, srsran::as_security_config_t sec_cfg_, srslog::basic_logger& logger) :
-    rlc(logger), rrc(logger), gw(logger), pdcp(&rlc, &rrc, &gw, &stack.task_sched, logger, 0, cfg)
+    rlc(logger), rrc(logger), gw(logger), pdcp(&rlc, &rrc, &gw, &stack.task_sched, logger, 0)
   {
+    pdcp.configure(cfg);
     pdcp.config_security(sec_cfg_);
     pdcp.enable_integrity(srsran::DIRECTION_TXRX);
     pdcp.enable_encryption(srsran::DIRECTION_TXRX);

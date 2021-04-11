@@ -197,6 +197,12 @@ int  ttcn3_ue::setup_if_addr(uint32_t eps_bearer_id,
 {
   return 0;
 }
+
+bool ttcn3_ue::is_running()
+{
+  return true;
+}
+
 int ttcn3_ue::update_lcid(uint32_t eps_bearer_id, uint32_t new_lcid)
 {
   return SRSRAN_SUCCESS;

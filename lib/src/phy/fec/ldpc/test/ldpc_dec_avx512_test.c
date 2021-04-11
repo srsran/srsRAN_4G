@@ -215,7 +215,7 @@ int main(int argc, char** argv)
     printf("  codeword %d\n", j);
     gettimeofday(&t[1], NULL);
     for (l = 0; l < nof_reps; l++) {
-      srsran_ldpc_decoder_decode_rm_c(&decoder, symbols + j * finalN, messages_sim + j * finalK, finalN);
+      srsran_ldpc_decoder_decode_c(&decoder, symbols + j * finalN, messages_sim + j * finalK, finalN);
     }
 
     gettimeofday(&t[2], NULL);

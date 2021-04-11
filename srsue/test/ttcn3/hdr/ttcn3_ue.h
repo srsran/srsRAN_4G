@@ -68,6 +68,7 @@ public:
                      uint8_t* ipv6_if_id,
                      char*    err_str);
   int  update_lcid(uint32_t eps_bearer_id, uint32_t new_lcid);
+  bool is_running();
 
   int apply_traffic_flow_template(const uint8_t&                                 eps_bearer_id,
                                   const uint8_t&                                 lcid,

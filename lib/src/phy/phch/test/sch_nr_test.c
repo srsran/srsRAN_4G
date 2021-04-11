@@ -35,15 +35,17 @@ static srsran_carrier_nr_t carrier = {
     1                  // max_mimo_layers
 };
 
-static uint32_t              n_prb       = 0;  // Set to 0 for steering
-static uint32_t              mcs         = 30; // Set to 30 for steering
-static srsran_sch_cfg_nr_t   pdsch_cfg   = {};
-static srsran_sch_grant_nr_t pdsch_grant = {};
+static uint32_t            n_prb     = 0;  // Set to 0 for steering
+static uint32_t            mcs       = 30; // Set to 30 for steering
+static uint32_t            rv        = 4;  // Set to 30 for steering
+static srsran_sch_cfg_nr_t pdsch_cfg = {};
 
-void usage(char* prog)
+static void usage(char* prog)
 {
-  printf("Usage: %s [pTL] \n", prog);
+  printf("Usage: %s [prTL] \n", prog);
+  printf("\t-P Number of carrier PRB [Default %d]\n", carrier.nof_prb);
   printf("\t-p Number of grant PRB, set to 0 for steering [Default %d]\n", n_prb);
+  printf("\t-r Redundancy version, set to 4 or higher for steering [Default %d]\n", rv);
   printf("\t-m MCS PRB, set to >28 for steering [Default %d]\n", mcs);
   printf("\t-T Provide MCS table (64qam, 256qam, 64qamLowSE) [Default %s]\n",
          srsran_mcs_table_to_str(pdsch_cfg.sch_cfg.mcs_table));
@@ -54,13 +56,19 @@ void usage(char* prog)
 int parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "pmTLv")) != -1) {
+  while ((opt = getopt(argc, argv, "PpmTLvr")) != -1) {
     switch (opt) {
+      case 'P':
+        carrier.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
       case 'p':
         n_prb = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'm':
         mcs = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'r':
+        rv = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'T':
         pdsch_cfg.sch_cfg.mcs_table = srsran_mcs_table_from_str(argv[optind]);
@@ -141,18 +149,25 @@ int main(int argc, char** argv)
   }
 
   // Use grant default A time resources with m=0
-  if (srsran_ra_dl_nr_time_default_A(0, pdsch_cfg.dmrs.typeA_pos, &pdsch_grant) < SRSRAN_SUCCESS) {
+  if (srsran_ra_dl_nr_time_default_A(0, pdsch_cfg.dmrs.typeA_pos, &pdsch_cfg.grant) < SRSRAN_SUCCESS) {
     ERROR("Error loading default grant");
     goto clean_exit;
   }
-  pdsch_grant.nof_layers = carrier.max_mimo_layers;
-  pdsch_grant.dci_format = srsran_dci_format_nr_1_0;
+  pdsch_cfg.grant.nof_layers = carrier.max_mimo_layers;
+  pdsch_cfg.grant.dci_format = srsran_dci_format_nr_1_0;
 
   uint32_t n_prb_start = 1;
   uint32_t n_prb_end   = carrier.nof_prb + 1;
   if (n_prb > 0) {
     n_prb_start = SRSRAN_MIN(n_prb, n_prb_end - 1);
     n_prb_end   = SRSRAN_MIN(n_prb + 1, n_prb_end);
+  }
+
+  uint32_t rv_start = 0;
+  uint32_t rv_end   = 4;
+  if (rv < 4) {
+    rv_start = rv;
+    rv_end   = rv + 1;
   }
 
   uint32_t mcs_start = 0;
@@ -164,55 +179,66 @@ int main(int argc, char** argv)
 
   for (n_prb = n_prb_start; n_prb < n_prb_end; n_prb++) {
     for (mcs = mcs_start; mcs < mcs_end; mcs++) {
-      for (uint32_t n = 0; n < SRSRAN_MAX_PRB_NR; n++) {
-        pdsch_grant.prb_idx[n] = (n < n_prb);
+      for (rv = rv_start; rv < rv_end; rv++) {
+        for (uint32_t n = 0; n < SRSRAN_MAX_PRB_NR; n++) {
+          pdsch_cfg.grant.prb_idx[n] = (n < n_prb);
+        }
+
+        if (srsran_ra_dl_nr_nof_dmrs_cdm_groups_without_data_format_1_0(&pdsch_cfg.dmrs, &pdsch_cfg.grant) <
+            SRSRAN_SUCCESS) {
+          ERROR("Error calculating number of DMRS CDM groups");
+          goto clean_exit;
+        }
+
+        srsran_sch_tb_t tb = {};
+        tb.rv              = rv;
+        if (srsran_ra_nr_fill_tb(&pdsch_cfg, &pdsch_cfg.grant, mcs, &tb) < SRSRAN_SUCCESS) {
+          ERROR("Error filing tb");
+          goto clean_exit;
+        }
+
+        for (uint32_t i = 0; i < tb.tbs; i++) {
+          data_tx[i] = (uint8_t)srsran_random_uniform_int_dist(rand_gen, 0, UINT8_MAX);
+        }
+
+        tb.softbuffer.tx = &softbuffer_tx;
+
+        if (srsran_dlsch_nr_encode(&sch_nr_tx, &pdsch_cfg.sch_cfg, &tb, data_tx, encoded) < SRSRAN_SUCCESS) {
+          ERROR("Error encoding");
+          goto clean_exit;
+        }
+
+        for (uint32_t i = 0; i < tb.nof_bits; i++) {
+          llr[i] = encoded[i] ? -10 : +10;
+        }
+
+        tb.softbuffer.rx = &softbuffer_rx;
+        srsran_softbuffer_rx_reset(tb.softbuffer.rx);
+
+        bool crc = false;
+        if (srsran_dlsch_nr_decode(&sch_nr_rx, &pdsch_cfg.sch_cfg, &tb, llr, data_rx, &crc) < SRSRAN_SUCCESS) {
+          ERROR("Error encoding");
+          goto clean_exit;
+        }
+
+        if (rv == 0) {
+          if (!crc) {
+            ERROR("Failed to match CRC; n_prb=%d; mcs=%d; TBS=%d;", n_prb, mcs, tb.tbs);
+            goto clean_exit;
+          }
+
+          if (memcmp(data_tx, data_rx, tb.tbs / 8) != 0) {
+            ERROR("Failed to match Tx/Rx data; n_prb=%d; mcs=%d; TBS=%d;", n_prb, mcs, tb.tbs);
+            printf("Tx data: ");
+            srsran_vec_fprint_byte(stdout, data_tx, tb.tbs / 8);
+            printf("Rx data: ");
+            srsran_vec_fprint_byte(stdout, data_rx, tb.tbs / 8);
+            goto clean_exit;
+          }
+        }
+
+        INFO("n_prb=%d; mcs=%d; rv=%d TBS=%d; PASSED!\n", n_prb, mcs, rv, tb.tbs);
       }
-
-      srsran_sch_tb_t tb = {};
-      if (srsran_ra_nr_fill_tb(&pdsch_cfg, &pdsch_grant, mcs, &tb) < SRSRAN_SUCCESS) {
-        ERROR("Error filing tb");
-        goto clean_exit;
-      }
-
-      for (uint32_t i = 0; i < tb.tbs; i++) {
-        data_tx[i] = (uint8_t)srsran_random_uniform_int_dist(rand_gen, 0, UINT8_MAX);
-      }
-
-      tb.softbuffer.tx = &softbuffer_tx;
-
-      if (srsran_dlsch_nr_encode(&sch_nr_tx, &pdsch_cfg.sch_cfg, &tb, data_tx, encoded) < SRSRAN_SUCCESS) {
-        ERROR("Error encoding");
-        goto clean_exit;
-      }
-
-      for (uint32_t i = 0; i < tb.nof_bits; i++) {
-        llr[i] = encoded[i] ? -10 : +10;
-      }
-
-      tb.softbuffer.rx = &softbuffer_rx;
-      srsran_softbuffer_rx_reset(tb.softbuffer.rx);
-
-      bool crc = false;
-      if (srsran_dlsch_nr_decode(&sch_nr_rx, &pdsch_cfg.sch_cfg, &tb, llr, data_rx, &crc) < SRSRAN_SUCCESS) {
-        ERROR("Error encoding");
-        goto clean_exit;
-      }
-
-      if (!crc) {
-        ERROR("Failed to match CRC; n_prb=%d; mcs=%d; TBS=%d;", n_prb, mcs, tb.tbs);
-        goto clean_exit;
-      }
-
-      if (memcmp(data_tx, data_rx, tb.tbs / 8) != 0) {
-        ERROR("Failed to match Tx/Rx data; n_prb=%d; mcs=%d; TBS=%d;", n_prb, mcs, tb.tbs);
-        printf("Tx data: ");
-        srsran_vec_fprint_byte(stdout, data_tx, tb.tbs / 8);
-        printf("Rx data: ");
-        srsran_vec_fprint_byte(stdout, data_rx, tb.tbs / 8);
-        goto clean_exit;
-      }
-
-      printf("n_prb=%d; mcs=%d; TBS=%d; PASSED!\n", n_prb, mcs, tb.tbs);
     }
   }
 
@@ -237,5 +263,5 @@ clean_exit:
   srsran_softbuffer_tx_free(&softbuffer_tx);
   srsran_softbuffer_rx_free(&softbuffer_rx);
 
-  return SRSRAN_SUCCESS;
+  return ret;
 }

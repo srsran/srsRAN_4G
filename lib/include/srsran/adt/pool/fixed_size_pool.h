@@ -167,13 +167,13 @@ public:
 
 private:
   struct worker_ctxt {
-    std::thread::id id;
-    memblock_cache  cache;
+    std::thread::id    id;
+    free_memblock_list cache;
 
     worker_ctxt() : id(std::this_thread::get_id()) {}
     ~worker_ctxt()
     {
-      mutexed_memblock_cache& central_cache = pool_type::get_instance()->central_mem_cache;
+      concurrent_free_memblock_list& central_cache = pool_type::get_instance()->central_mem_cache;
       central_cache.steal_blocks(cache, cache.size());
     }
   };
@@ -198,7 +198,7 @@ private:
   size_t                local_growth_thres = 0;
   srslog::basic_logger* logger             = nullptr;
 
-  mutexed_memblock_cache                       central_mem_cache;
+  concurrent_free_memblock_list                central_mem_cache;
   std::mutex                                   mutex;
   std::vector<std::unique_ptr<obj_storage_t> > allocated_blocks;
 };

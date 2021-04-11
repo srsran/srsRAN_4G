@@ -30,7 +30,8 @@ set(SOURCES gtpu.cc
             rlc_am_lte.cc
             pdcp_entity_nr.cc
             rlc_um_nr.cc
-            rlc_am_nr.cc)
+            rlc_am_nr.cc
+            bearer_mem_pool.cc)
 
 add_library(srsran_upper STATIC ${SOURCES})
 target_link_libraries(srsran_upper srsran_common srsran_asn1)

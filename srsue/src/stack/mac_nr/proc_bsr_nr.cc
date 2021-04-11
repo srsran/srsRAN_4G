@@ -25,6 +25,68 @@
 
 namespace srsue {
 
+// TS 38.321, Table 6.1.3.1-1 Buffer size levels (in bytes) for 5-bit Buffer Size field, all values <= except marked
+static const uint32_t buffer_size_levels_5bit_max_idx                              = 31;
+static uint32_t       buffer_size_levels_5bit[buffer_size_levels_5bit_max_idx + 1] = {
+    /* == */ 0, 10,    14,    20,    28,    38,    53,    74,     102,    142,           198,
+    276,        384,   535,   745,   1038,  1446,  2014,  2806,   3909,   5446,          7587,
+    10570,      14726, 20516, 28581, 39818, 55474, 77284, 107669, 150000, /* > */ 150000};
+
+// TS 38.321, Table 6.1.3.1-2: Buffer size levels (in bytes) for 8-bit Buffer Size field, all values <= except marked
+static const uint32_t buffer_size_levels_8bit_max_idx                              = 254;
+static uint32_t       buffer_size_levels_8bit[buffer_size_levels_8bit_max_idx + 1] = {
+    /* == */ 0, 10,       11,       12,       13,
+    14,         15,       16,       17,       18,
+    19,         20,       22,       23,       25,
+    26,         28,       30,       32,       34,
+    36,         38,       40,       43,       46,
+    49,         52,       55,       59,       62,
+    66,         71,       75,       80,       85,
+    91,         97,       103,      110,      117,
+    124,        132,      141,      150,      160,
+    170,        181,      193,      205,      218,
+    233,        248,      264,      281,      299,
+    318,        339,      361,      384,      409,
+    436,        464,      494,      526,      560,
+    597,        635,      677,      720,      767,
+    817,        870,      926,      987,      1051,
+    1119,       1191,     1269,     1351,     1439,
+    1532,       1631,     1737,     1850,     1970,
+    2098,       2234,     2379,     2533,     2698,
+    2873,       3059,     3258,     3469,     3694,
+    3934,       4189,     4461,     4751,     5059,
+    5387,       5737,     6109,     6506,     6928,
+    7378,       7857,     8367,     8910,     9488,
+    10104,      10760,    11458,    12202,    12994,
+    13838,      14736,    15692,    16711,    17795,
+    18951,      20181,    21491,    22885,    24371,
+    25953,      27638,    29431,    31342,    33376,
+    35543,      37850,    40307,    42923,    45709,
+    48676,      51836,    55200,    58784,    62599,
+    66663,      70990,    75598,    80505,    85730,
+    91295,      97221,    103532,   110252,   117409,
+    125030,     133146,   141789,   150992,   160793,
+    171231,     182345,   194182,   206786,   220209,
+    234503,     249725,   265935,   283197,   301579,
+    321155,     342002,   364202,   387842,   413018,
+    439827,     468377,   498780,   531156,   565634,
+    602350,     641449,   683087,   727427,   774645,
+    824928,     878475,   935498,   996222,   1060888,
+    1129752,    1203085,  1281179,  1364342,  1452903,
+    1547213,    1647644,  1754595,  1868488,  1989774,
+    2118933,    2256475,  2402946,  2558924,  2725027,
+    2901912,    3090279,  3290873,  3504487,  3731968,
+    3974215,    4232186,  4506902,  4799451,  5110989,
+    5442750,    5796046,  6172275,  6572925,  6999582,
+    7453933,    7937777,  8453028,  9001725,  9586039,
+    10208280,   10870913, 11576557, 12328006, 13128233,
+    13980403,   14887889, 15854280, 16883401, 17979324,
+    19146385,   20389201, 21712690, 23122088, 24622972,
+    26221280,   27923336, 29735875, 31666069, 33721553,
+    35910462,   38241455, 40723756, 43367187, 46182206,
+    49179951,   52372284, 55771835, 59392055, 63247269,
+    67352729,   71724679, 76380419, 81338368, /* > */ 81338368};
+
 int32_t proc_bsr_nr::init(proc_sr_nr*                    sr_,
                           mux_interface_bsr_nr*          mux_,
                           rlc_interface_mac*             rlc_,
@@ -43,7 +105,7 @@ int32_t proc_bsr_nr::init(proc_sr_nr*                    sr_,
 
   // Print periodically the LCID queue status
   auto queue_status_print_task = [this](uint32_t tid) {
-    print_state();
+    logger.debug("BSR:   %s", buffer_state.to_string());
     timer_queue_status_print.run();
   };
   timer_queue_status_print.set(QUEUE_STATUS_PERIOD_MS, queue_status_print_task);
@@ -54,20 +116,6 @@ int32_t proc_bsr_nr::init(proc_sr_nr*                    sr_,
   return SRSRAN_SUCCESS;
 }
 
-void proc_bsr_nr::print_state()
-{
-  char str[128];
-  str[0] = '\0';
-  int n  = 0;
-  for (auto& lcg : lcgs) {
-    for (auto& iter : lcg) {
-      n = srsran_print_check(str, 128, n, "%d: %d ", iter.first, iter.second.old_buffer);
-    }
-  }
-  logger.info(
-      "BSR:   triggered_bsr_type=%s, LCID QUEUE status: %s", bsr_trigger_type_tostring(triggered_bsr_type), str);
-}
-
 void proc_bsr_nr::set_trigger(bsr_trigger_type_t new_trigger)
 {
   triggered_bsr_type = new_trigger;
@@ -75,7 +123,7 @@ void proc_bsr_nr::set_trigger(bsr_trigger_type_t new_trigger)
   // Trigger SR always when Regular BSR is triggered in the current TTI. Will be cancelled if a grant is received
   if (triggered_bsr_type == REGULAR) {
     logger.debug("BSR:   Triggering SR procedure");
-    sr->start();
+    // sr->start();
   }
 }
 
@@ -128,49 +176,17 @@ void proc_bsr_nr::timer_expired(uint32_t timer_id)
   }
 }
 
-uint32_t proc_bsr_nr::get_buffer_state()
-{
-  uint32_t buffer = 0;
-  for (int i = 0; i < MAX_NOF_LCG; i++) {
-    buffer += get_buffer_state_lcg(i);
-  }
-  return buffer;
-}
-
 // Checks if data is available for a channel with higher priority than others
 bool proc_bsr_nr::check_highest_channel()
 {
   // TODO: move 4G implementation to base class or rewrite
-  for (int i = 0; i < MAX_NOF_LCG; i++) {
-    for (std::map<uint32_t, lcid_t>::iterator iter = lcgs[i].begin(); iter != lcgs[i].end(); ++iter) {
-      // If new data available
-      if (iter->second.new_buffer > iter->second.old_buffer) {
-        // Check if this LCID has higher priority than any other LCID ("belong to any LCG") for which data is already
-        // available for transmission
-        bool is_max_priority = true;
-        for (int j = 0; j < MAX_NOF_LCG; j++) {
-          for (std::map<uint32_t, lcid_t>::iterator iter2 = lcgs[j].begin(); iter2 != lcgs[j].end(); ++iter2) {
-            // No max prio LCG if prio isn't higher or LCID already had buffered data
-            if (iter2->second.priority <= iter->second.priority && (iter2->second.old_buffer > 0)) {
-              is_max_priority = false;
-            }
-          }
-        }
-        if (is_max_priority) {
-          logger.debug("BSR:   New data for lcid=%d with maximum priority in lcg=%d", iter->first, i);
-          return true;
-        }
-      }
-    }
-  }
   return false;
 }
 
 bool proc_bsr_nr::check_any_channel()
 {
-  // TODO: move 4G implementation to base class or rewrite
-  for (int i = 0; i < MAX_NOF_LCG; i++) {
-    if (get_buffer_state_lcg(i)) {
+  for (const auto& lcg : buffer_state.lcg_buffer_size) {
+    if (lcg.second > 0) {
       return true;
     }
   }
@@ -178,66 +194,40 @@ bool proc_bsr_nr::check_any_channel()
 }
 
 // Checks if only one logical channel has data avaiable for Tx
-bool proc_bsr_nr::check_new_data()
+bool proc_bsr_nr::check_new_data(const mac_buffer_states_t& new_buffer_state)
 {
-  // TODO: move 4G implementation to base class or rewrite
-  for (int i = 0; i < MAX_NOF_LCG; i++) {
-    // If there was no data available in any LCID belonging to this LCG
-    if (get_buffer_state_lcg(i) == 0) {
-      for (std::map<uint32_t, lcid_t>::iterator iter = lcgs[i].begin(); iter != lcgs[i].end(); ++iter) {
-        if (iter->second.new_buffer > 0) {
-          logger.debug("BSR:   New data available for lcid=%d", iter->first);
-          return true;
-        }
-      }
+  for (const auto& lcg : buffer_state.lcg_buffer_size) {
+    if (lcg.second == 0 and new_buffer_state.lcg_buffer_size.at(lcg.first) > 0) {
+      logger.debug("BSR:   New data available for LCG=%d", lcg.first);
+      return true;
     }
   }
   return false;
 }
 
-void proc_bsr_nr::update_new_data()
+srsran::mac_sch_subpdu_nr::lcg_bsr_t proc_bsr_nr::generate_sbsr()
 {
-  // TODO: move 4G implementation to base class or rewrite
-  for (int i = 0; i < MAX_NOF_LCG; i++) {
-    for (std::map<uint32_t, lcid_t>::iterator iter = lcgs[i].begin(); iter != lcgs[i].end(); ++iter) {
-      iter->second.new_buffer = rlc->get_buffer_state(iter->first);
-    }
+  srsran::mac_sch_subpdu_nr::lcg_bsr_t sbsr = {};
+  if (buffer_state.nof_lcgs_with_data > 0) {
+    sbsr.lcg_id      = buffer_state.last_non_zero_lcg;
+    sbsr.buffer_size = buff_size_bytes_to_field(buffer_state.lcg_buffer_size.at(sbsr.lcg_id), SHORT_BSR);
   }
+  triggered_bsr_type = NONE;
+  return sbsr;
 }
 
-void proc_bsr_nr::update_old_buffer()
-{
-  // TODO: move 4G implementation to base class or rewrite
-  for (int i = 0; i < MAX_NOF_LCG; i++) {
-    for (std::map<uint32_t, lcid_t>::iterator iter = lcgs[i].begin(); iter != lcgs[i].end(); ++iter) {
-      iter->second.old_buffer = iter->second.new_buffer;
-    }
-  }
-}
-
-uint32_t proc_bsr_nr::get_buffer_state_lcg(uint32_t lcg)
-{
-  // TODO: move 4G implementation to base class or rewrite
-  uint32_t n = 0;
-  for (std::map<uint32_t, lcid_t>::iterator iter = lcgs[lcg].begin(); iter != lcgs[lcg].end(); ++iter) {
-    n += iter->second.old_buffer;
-  }
-  return n;
-}
-
-// Generate BSR
-bool proc_bsr_nr::generate_bsr(bsr_t* bsr, uint32_t pdu_space)
-{
-  // TODO: add BSR generation
-  bool     send_bsr = false;
-  return send_bsr;
-}
-
-// Called by MAC every TTI
-// Checks if Regular BSR must be assembled, as defined in 5.4.5
-// Padding BSR is assembled when called by mux_unit when UL dci is received
-// Periodic BSR is triggered by the expiration of the timers
-void proc_bsr_nr::step(uint32_t tti)
+/**
+ * @brief Called by MAC every TTI with the current state of each LCID/LCGs
+ *
+ * Checks if Regular BSR must be assembled, as defined in 5.4.5.
+ * Padding BSR is assembled when explicitly called by MUX when UL DCI is received
+ * Periodic BSR is triggered by the expiration of the timers
+ *
+ * @param tti              The current TTI
+ * @param new_buffer_state Buffer state of all LCID/LCGs at the start of the TTI
+ *
+ */
+void proc_bsr_nr::step(uint32_t tti, const mac_buffer_states_t& new_buffer_state_)
 {
   std::lock_guard<std::mutex> lock(mutex);
 
@@ -245,30 +235,40 @@ void proc_bsr_nr::step(uint32_t tti)
     return;
   }
 
-  update_new_data();
-
   // Regular BSR triggered if new data arrives or channel with high priority has new data
-  if (check_new_data() || check_highest_channel()) {
+  if (check_new_data(new_buffer_state_) || check_highest_channel()) {
     logger.debug("BSR:   Triggering Regular BSR tti=%d", tti);
     set_trigger(REGULAR);
   }
 
-  update_old_buffer();
+  // store buffer state for comparision in next TTI
+  buffer_state = new_buffer_state_;
 }
 
 void proc_bsr_nr::new_grant_ul(uint32_t grant_size)
 {
   std::lock_guard<std::mutex> lock(mutex);
   if (triggered_bsr_type != NONE) {
-    // inform MUX we need to generate a BSR
-    mux->generate_bsr_mac_ce();
-  }
+    // Decide BSR type to be transmitted, state for all LCG/LCIDs has already been updated by step()
+    if (buffer_state.nof_lcgs_with_data > 1) {
+      // report Long BSR if more than one LCG has data to send
+      mux->generate_bsr_mac_ce(LONG_BSR);
+    } else {
+      // report Short BSR otherwise
+      mux->generate_bsr_mac_ce(SHORT_BSR);
+    }
 
-  // TODO: restart retxBSR-Timer
+    // 3> start or restart periodicBSR-Timer, except when all the generated BSRs are long or short Truncated BSRs
+    // TODO: add check if only truncated version can be included
+    timer_periodic.run();
+
+    // 3> start or restart retxBSR-Timer.
+    timer_retx.run();
+  }
 }
 
 // This function is called by MUX only if Regular BSR has not been triggered before
-bool proc_bsr_nr::generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t* bsr)
+bool proc_bsr_nr::generate_padding_bsr(uint32_t nof_padding_bytes)
 {
   std::lock_guard<std::mutex> lock(mutex);
 
@@ -281,7 +281,7 @@ bool proc_bsr_nr::generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t* bsr)
       nof_padding_bytes <= LBSR_CE_SUBHEADER_LEN + srsran::mac_sch_subpdu_nr::sizeof_ce(LONG_BSR, true)) {
     // generate padding BSR
     set_trigger(PADDING);
-    generate_bsr(bsr, nof_padding_bytes);
+    // generate_bsr(bsr, nof_padding_bytes);
     set_trigger(NONE);
     return true;
   }
@@ -292,40 +292,76 @@ bool proc_bsr_nr::generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t* bsr)
 int proc_bsr_nr::setup_lcid(uint32_t lcid, uint32_t new_lcg, uint32_t priority)
 {
   // TODO: move 4G implementation to base class
-  if (new_lcg > MAX_NOF_LCG) {
+  if (new_lcg > srsran::mac_sch_subpdu_nr::max_num_lcg_lbsr) {
     logger.error("BSR:   Invalid lcg=%d for lcid=%d", new_lcg, lcid);
     return SRSRAN_ERROR;
   }
 
   std::lock_guard<std::mutex> lock(mutex);
 
-  // First see if it already exists and eliminate it
-  for (int i = 0; i < MAX_NOF_LCG; i++) {
-    if (lcgs[i].count(lcid)) {
-      lcgs[i].erase(lcid);
-    }
+  // Check that the new priority doesn't not already exist
+  if (lcg_priorities.find(priority) != lcg_priorities.end()) {
+    logger.error(
+        "BSR:   Invalid config. Priority=%d already configured for lcg=%d", priority, lcg_priorities.at(priority));
+    return SRSRAN_ERROR;
   }
-  // Now add it
-  lcgs[new_lcg][lcid].priority   = priority;
-  lcgs[new_lcg][lcid].old_buffer = 0;
+
+  lcg_priorities[priority] = new_lcg;
 
   return SRSRAN_SUCCESS;
 }
 
 uint32_t proc_bsr_nr::find_max_priority_lcg_with_data()
 {
-  // TODO: move 4G implementation to base class or rewrite
-  int32_t  max_prio = 99;
-  uint32_t max_idx  = 0;
-  for (int i = 0; i < MAX_NOF_LCG; i++) {
-    for (std::map<uint32_t, lcid_t>::iterator iter = lcgs[i].begin(); iter != lcgs[i].end(); ++iter) {
-      if (iter->second.priority < max_prio && iter->second.old_buffer > 0) {
-        max_prio = iter->second.priority;
-        max_idx  = i;
-      }
+  // iterate over LCGs in order of their priorities and check if there is one with data to transmit
+  for (const auto& lcg_prio : lcg_priorities) {
+    if (buffer_state.lcg_buffer_size.at(lcg_prio.second) > 0) {
+      return lcg_prio.second;
     }
   }
-  return max_idx;
+  return 0;
+}
+
+/** Converts the buffer size levels (in Bytes) to the 5 or 8-bit Buffer Size field
+ * @param buffer_size The actual buffer size level in Bytes
+ * @param format      The BSR format that determines the buffer size field length
+ * @return uint8_t    The buffer size field that will be used for the MAC PDU
+ */
+uint8_t proc_bsr_nr::buff_size_bytes_to_field(uint32_t buffer_size, bsr_format_nr_t format)
+{
+  if (buffer_size == 0) {
+  }
+
+  switch (format) {
+    case SHORT_BSR:
+    case SHORT_TRUNC_BSR:
+      if (buffer_size > buffer_size_levels_5bit[buffer_size_levels_5bit_max_idx]) {
+        return buffer_size_levels_5bit_max_idx;
+      } else {
+        for (uint32_t i = 1; i < buffer_size_levels_5bit_max_idx; i++) {
+          if (buffer_size <= buffer_size_levels_5bit[i]) {
+            return i;
+          }
+        }
+        return buffer_size_levels_5bit_max_idx - 1;
+      }
+      break;
+    case LONG_BSR:
+    case LONG_TRUNC_BSR:
+      if (buffer_size > buffer_size_levels_8bit[buffer_size_levels_8bit_max_idx]) {
+        return buffer_size_levels_8bit_max_idx;
+      } else {
+        for (uint32_t i = 1; i < buffer_size_levels_8bit_max_idx; i++) {
+          if (buffer_size <= buffer_size_levels_8bit[i + 1]) {
+            return i + 1;
+          }
+        }
+        return buffer_size_levels_8bit_max_idx - 1;
+      }
+      break;
+  }
+
+  return 0;
 }
 
 } // namespace srsue

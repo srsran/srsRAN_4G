@@ -71,7 +71,7 @@ int srsran_ra_dl_nr_time_default_A(uint32_t m, srsran_dmrs_sch_typeA_pos_t dmrs_
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
-  if (m >= SRSRAN_MAX_NOF_DL_ALLOCATION) {
+  if (m >= SRSRAN_MAX_NOF_TIME_RA) {
     ERROR("m (%d) is out-of-range", m);
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
@@ -98,10 +98,10 @@ int srsran_ra_dl_nr_time_default_A(uint32_t m, srsran_dmrs_sch_typeA_pos_t dmrs_
                                                             srsran_sch_mapping_type_B};
   grant->mapping                                         = pdsch_mapping_lut[m];
 
-  static uint32_t S_pos2[SRSRAN_MAX_NOF_DL_ALLOCATION] = {2, 2, 2, 2, 2, 9, 4, 5, 5, 9, 12, 1, 1, 2, 4, 8};
-  static uint32_t L_pos2[SRSRAN_MAX_NOF_DL_ALLOCATION] = {12, 10, 9, 7, 5, 4, 4, 7, 2, 2, 2, 13, 6, 4, 7, 4};
-  static uint32_t S_pos3[SRSRAN_MAX_NOF_DL_ALLOCATION] = {3, 3, 3, 3, 3, 10, 6, 5, 5, 9, 12, 1, 1, 2, 4, 8};
-  static uint32_t L_pos3[SRSRAN_MAX_NOF_DL_ALLOCATION] = {11, 9, 8, 6, 4, 4, 4, 7, 2, 2, 2, 13, 6, 4, 7, 4};
+  static uint32_t S_pos2[SRSRAN_MAX_NOF_TIME_RA] = {2, 2, 2, 2, 2, 9, 4, 5, 5, 9, 12, 1, 1, 2, 4, 8};
+  static uint32_t L_pos2[SRSRAN_MAX_NOF_TIME_RA] = {12, 10, 9, 7, 5, 4, 4, 7, 2, 2, 2, 13, 6, 4, 7, 4};
+  static uint32_t S_pos3[SRSRAN_MAX_NOF_TIME_RA] = {3, 3, 3, 3, 3, 10, 6, 5, 5, 9, 12, 1, 1, 2, 4, 8};
+  static uint32_t L_pos3[SRSRAN_MAX_NOF_TIME_RA] = {11, 9, 8, 6, 4, 4, 4, 7, 2, 2, 2, 13, 6, 4, 7, 4};
 
   // Select start symbol (S) and length (L)
   switch (dmrs_typeA_pos) {
@@ -141,7 +141,7 @@ int srsran_ra_dl_nr_time(const srsran_sch_hl_cfg_nr_t*    cfg,
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
-  if (m >= SRSRAN_MAX_NOF_DL_ALLOCATION) {
+  if (m >= SRSRAN_MAX_NOF_TIME_RA) {
     ERROR("m (%d) is out-of-range", m);
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
@@ -186,7 +186,7 @@ int srsran_ra_dl_nr_time(const srsran_sch_hl_cfg_nr_t*    cfg,
       srsran_ra_dl_nr_time_default_A(m, cfg->typeA_pos, grant);
     }
   } else {
-    ERROR("Unhandled case");
+    ERROR("Unhandled case %s, ss_type=%d", srsran_rnti_type_str(rnti_type), ss_type);
   }
 
   // Validate S and L parameters
@@ -273,7 +273,7 @@ int srsran_ra_dl_nr_freq(const srsran_carrier_nr_t*    carrier,
   }
 
   // RA scheme
-  if (dci_dl->format == srsran_dci_format_nr_1_0) {
+  if (dci_dl->ctx.format == srsran_dci_format_nr_1_0) {
     // when the scheduling grant is received with DCI format 1_0 , then downlink resource allocation type 1 is used.
     return ra_helper_freq_type1(carrier->nof_prb, dci_dl->freq_domain_assigment, grant);
   }

@@ -20,7 +20,7 @@
  */
 
 #include "srsenb/hdr/stack/upper/rlc.h"
-#include "srsenb/hdr/stack/upper/common_enb.h"
+#include "srsenb/hdr/common/common_enb.h"
 #include "srsran/interfaces/enb_mac_interfaces.h"
 #include "srsran/interfaces/enb_pdcp_interfaces.h"
 #include "srsran/interfaces/enb_rrc_interfaces.h"
@@ -65,7 +65,7 @@ void rlc::add_user(uint16_t rnti)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti) == 0) {
-    std::unique_ptr<srsran::rlc> obj(new srsran::rlc(logger.id().c_str()));
+    auto obj = make_rnti_obj<srsran::rlc>(rnti, logger.id().c_str());
     obj->init(&users[rnti],
               &users[rnti],
               timers,

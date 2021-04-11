@@ -38,6 +38,7 @@
 
 /// @brief Enables interpolation at CCE frequency bandwidth to avoid interference with adjacent PDCCH DMRS
 #define DMRS_PDCCH_INTERPOLATE_GROUP 1
+#define DMRS_PDCCH_SMOOTH_FILTER 0
 
 static uint32_t dmrs_pdcch_get_cinit(uint32_t slot_idx, uint32_t symbol_idx, uint32_t n_id)
 {
@@ -370,6 +371,7 @@ int srsran_dmrs_pdcch_estimate(srsran_dmrs_pdcch_estimator_t* q,
   uint32_t group_size  = NOF_PILOTS_X_FREQ_RES / q->coreset.duration;
   for (uint32_t l = 0; l < q->coreset.duration; l++) {
     for (uint32_t j = 0; j < group_count; j++) {
+#if DMRS_PDCCH_SMOOTH_FILTER
       cf_t tmp[NOF_PILOTS_X_FREQ_RES];
 
       // Smoothing filter group
@@ -377,13 +379,20 @@ int srsran_dmrs_pdcch_estimate(srsran_dmrs_pdcch_estimator_t* q,
 
       srsran_interp_linear_offset(
           &q->interpolator, tmp, &q->ce[SRSRAN_NRE * q->coreset_bw * l + j * group_size * 4], 1, 3);
+#else  // DMRS_PDCCH_SMOOTH_FILTER
+      srsran_interp_linear_offset(&q->interpolator,
+                                  &q->lse[l][j * group_size],
+                                  &q->ce[SRSRAN_NRE * q->coreset_bw * l + j * group_size * 4],
+                                  1,
+                                  3);
+#endif // DMRS_PDCCH_SMOOTH_FILTER
     }
   }
-#else
+#else  // DMRS_PDCCH_INTERPOLATE_GROUP
   for (uint32_t l = 0; l < q->coreset.duration; l++) {
     srsran_interp_linear_offset(&q->interpolator, q->lse[l], &q->ce[SRSRAN_NRE * q->coreset_bw * l], 1, 3);
   }
-#endif
+#endif // DMRS_PDCCH_INTERPOLATE_GROUP
 
   return SRSRAN_SUCCESS;
 }

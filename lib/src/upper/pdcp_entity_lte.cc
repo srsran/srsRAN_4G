@@ -38,29 +38,36 @@ pdcp_entity_lte::pdcp_entity_lte(srsue::rlc_interface_pdcp* rlc_,
                                  srsue::gw_interface_pdcp*  gw_,
                                  srsran::task_sched_handle  task_sched_,
                                  srslog::basic_logger&      logger,
-                                 uint32_t                   lcid_,
-                                 pdcp_config_t              cfg_) :
+                                 uint32_t                   lcid_) :
   pdcp_entity_base(task_sched_, logger), rlc(rlc_), rrc(rrc_), gw(gw_)
 {
-  lcid                 = lcid_;
-  cfg                  = cfg_;
-  active               = true;
+  // Initial state
   integrity_direction  = DIRECTION_NONE;
   encryption_direction = DIRECTION_NONE;
 
+  st.next_pdcp_tx_sn = 0;
+  st.tx_hfn          = 0;
+  st.rx_hfn          = 0;
+  st.next_pdcp_rx_sn = 0;
+
+  lcid = lcid_;
+}
+
+pdcp_entity_lte::~pdcp_entity_lte()
+{
+  reset();
+}
+
+bool pdcp_entity_lte::configure(const pdcp_config_t& cnfg_)
+{
+  cfg                          = cnfg_;
+  maximum_pdcp_sn              = (1u << cfg.sn_len) - 1u;
+  st.last_submitted_pdcp_rx_sn = maximum_pdcp_sn;
   if (is_srb()) {
     reordering_window = 0;
   } else if (is_drb()) {
     reordering_window = 2048;
   }
-
-  // Initial state
-  st.next_pdcp_tx_sn           = 0;
-  st.tx_hfn                    = 0;
-  st.rx_hfn                    = 0;
-  st.next_pdcp_rx_sn           = 0;
-  maximum_pdcp_sn              = (1u << cfg.sn_len) - 1u;
-  st.last_submitted_pdcp_rx_sn = maximum_pdcp_sn;
 
   if (is_drb() && not rlc->rb_is_um(lcid) && cfg.discard_timer == pdcp_discard_timer_t::infinity) {
     logger.warning(
@@ -89,14 +96,11 @@ pdcp_entity_lte::pdcp_entity_lte(srsue::rlc_interface_pdcp* rlc_,
   // Check supported config
   if (!check_valid_config()) {
     srsran::console("Warning: Invalid PDCP config.\n");
+    return false;
   }
+  active = true;
+  return true;
 }
-
-pdcp_entity_lte::~pdcp_entity_lte()
-{
-  reset();
-}
-
 // Reestablishment procedure: 36.323 5.2
 void pdcp_entity_lte::reestablish()
 {

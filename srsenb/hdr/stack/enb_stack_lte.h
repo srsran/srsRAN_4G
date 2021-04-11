@@ -42,11 +42,7 @@
 
 namespace srsenb {
 
-class enb_stack_lte final : public enb_stack_base,
-                            public stack_interface_phy_lte,
-                            public stack_interface_s1ap_lte,
-                            public stack_interface_gtpu_lte,
-                            public srsran::thread
+class enb_stack_lte final : public enb_stack_base, public stack_interface_phy_lte, public srsran::thread
 {
 public:
   enb_stack_lte(srslog::sink& log_sink);
@@ -106,26 +102,18 @@ public:
   }
   void tti_clock() override;
 
-  /* STACK-S1AP interface*/
-  void add_mme_socket(int fd) override;
-  void remove_mme_socket(int fd) override;
-  void add_gtpu_s1u_socket_handler(int fd) override;
-  void add_gtpu_m1u_socket_handler(int fd) override;
-
 private:
   static const int STACK_MAIN_THREAD_PRIO = 4;
   // thread loop
   void run_thread() override;
   void stop_impl();
   void tti_clock_impl();
-  void handle_mme_rx_packet(srsran::unique_byte_buffer_t pdu,
-                            const sockaddr_in&           from,
-                            const sctp_sndrcvinfo&       sri,
-                            int                          flags);
 
   // args
   stack_args_t args    = {};
   rrc_cfg_t    rrc_cfg = {};
+
+  srsran::socket_manager rx_sockets;
 
   srslog::basic_logger& mac_logger;
   srslog::basic_logger& rlc_logger;
@@ -143,9 +131,6 @@ private:
   // task handling
   srsran::task_scheduler    task_sched;
   srsran::task_queue_handle enb_task_queue, gtpu_task_queue, mme_task_queue, sync_task_queue;
-
-  // components that layers depend on (need to be destroyed after layers)
-  std::unique_ptr<srsran::rx_multisocket_handler> rx_sockets;
 
   srsenb::mac  mac;
   srsenb::rlc  rlc;

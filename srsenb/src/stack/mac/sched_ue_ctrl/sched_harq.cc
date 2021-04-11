@@ -349,9 +349,7 @@ void harq_entity::reset()
 void harq_entity::new_tti(tti_point tti_rx)
 {
   last_ttis[tti_rx.to_uint() % last_ttis.size()] = tti_rx;
-  for (auto& hul : ul_harqs) {
-    hul.new_tti();
-  }
+  get_ul_harq(to_tx_ul(tti_rx))->new_tti();
   for (auto& hdl : dl_harqs) {
     hdl.new_tti(to_tx_dl(tti_rx));
   }

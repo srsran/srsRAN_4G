@@ -44,19 +44,6 @@ void proc_sr_nr::reset()
   is_pending_sr = false;
 }
 
-bool proc_sr_nr::need_tx(uint32_t tti)
-{
-  int last_tx_tti = 0; // FIXME: phy->sr_last_tx_tti();
-  logger.debug("SR:    need_tx(): last_tx_tti=%d, tti=%d", last_tx_tti, tti);
-  if (last_tx_tti >= 0) {
-    // TODO: implement prohibit timer
-    if (TTI_SUB(last_tx_tti, tti) >= 8) {
-      return true;
-    }
-  }
-  return false;
-}
-
 int32_t proc_sr_nr::set_config(const srsran::sr_cfg_nr_t& cfg_)
 {
   // disable by default
@@ -89,36 +76,79 @@ int32_t proc_sr_nr::set_config(const srsran::sr_cfg_nr_t& cfg_)
 
 void proc_sr_nr::step(uint32_t tti)
 {
-  if (initiated) {
-    if (is_pending_sr) {
-      if (cfg.enabled) {
-        if (sr_counter < cfg.item[0].trans_max) {
-          if (sr_counter == 0 || need_tx(tti)) {
-            sr_counter++;
-            logger.info("SR:    Signalling PHY sr_counter=%d", sr_counter);
-            phy->sr_send(0); // @xavierarteaga what is the ID you expect here?
-          }
-        } else {
-          if (need_tx(tti)) {
-            logger.info("SR:    Releasing PUCCH/SRS resources, sr_counter=%d, sr-TransMax=%d",
-                        sr_counter,
-                        cfg.item[0].trans_max);
-            srsran::console("Scheduling request failed: releasing RRC connection...\n");
-            rrc->release_pucch_srs();
-            // TODO:
-            // - clear any configured downlink assignments and uplink grants;
-            // - clear any PUSCH resources for semi-persistent CSI reporting;
-            ra->start_by_mac();
-            reset();
-          }
-        }
-      } else {
-        logger.info("SR:    PUCCH not configured. Starting RA procedure");
-        ra->start_by_mac();
-        reset();
-      }
-    }
+  if (!initiated) {
+    return;
   }
+
+  // As long as at least one SR is pending, the MAC entity shall for each pending SR:
+  if (!is_pending_sr) {
+    return;
+  }
+
+  // 1> if the MAC entity has no valid PUCCH resource configured for the pending SR:
+  if (!cfg.enabled || not phy->has_valid_sr_resource(0)) {
+    // 2> initiate a Random Access procedure (see clause 5.1) on the SpCell and cancel the pending SR.
+    logger.info("SR:    PUCCH not configured. Starting RA procedure");
+    ra->start_by_mac();
+    reset();
+    return;
+  }
+
+  // Handle
+  if (sr_counter >= cfg.item[0].trans_max) {
+    logger.info(
+        "SR:    Releasing PUCCH/SRS resources, sr_counter=%d, sr-TransMax=%d", sr_counter, cfg.item[0].trans_max);
+    srsran::console("Scheduling request failed: releasing RRC connection...\n");
+    rrc->release_pucch_srs();
+
+    // 4> clear any configured downlink assignments and uplink grants;
+    phy->clear_pending_grants();
+
+    // 4> clear any PUSCH resources for semi-persistent CSI reporting;
+    // ... TODO
+
+    ra->start_by_mac();
+    reset();
+  }
+}
+
+bool proc_sr_nr::sr_opportunity(uint32_t tti, uint32_t sr_id, bool meas_gap, bool ul_sch_tx)
+{
+  // 2> when the MAC entity has an SR transmission occasion on the valid PUCCH resource for SR configured; and
+  if (!initiated || !cfg.enabled || !is_pending_sr) {
+    return false;
+  }
+
+  // 2> if sr-ProhibitTimer is not running at the time of the SR transmission occasion; and
+  // ... TODO
+
+  // 2> if the PUCCH resource for the SR transmission occasion does not overlap with a measurement gap; and
+  if (meas_gap) {
+    return false;
+  }
+
+  // 2> if the PUCCH resource for the SR transmission occasion does not overlap with a UL-SCH resource:
+  if (ul_sch_tx) {
+    return false;
+  }
+
+  // 3> if SR_COUNTER < sr-TransMax:
+  if (sr_counter < cfg.item[0].trans_max) { //
+    // 4> increment SR_COUNTER by 1;
+    sr_counter += 1;
+
+    // 4> start the sr-ProhibitTimer.
+    // ... TODO
+
+    // 4> instruct the physical layer to signal the SR on one valid PUCCH resource for SR;
+    logger.info("SR:    Signalling PHY sr_counter=%d", sr_counter);
+    return true;
+  }
+
+  // 3> else:
+  // step will execute
+
+  return false;
 }
 
 void proc_sr_nr::start()

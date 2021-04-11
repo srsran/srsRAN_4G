@@ -31,6 +31,7 @@
 #include "srsran/interfaces/mac_interface_types.h"
 #include "srsran/interfaces/ue_nr_interfaces.h"
 #include "srsran/srslog/srslog.h"
+#include "srsue/hdr/stack/mac_common/mac_common.h"
 #include "srsue/hdr/stack/mac_nr/mux_nr.h"
 #include "srsue/hdr/stack/ue_stack_base.h"
 
@@ -38,8 +39,7 @@ namespace srsue {
 
 class rlc_interface_mac;
 
-struct mac_nr_args_t {
-};
+struct mac_nr_args_t {};
 
 class mac_nr final : public mac_interface_phy_nr,
                      public mac_interface_rrc_nr,
@@ -72,6 +72,7 @@ public:
                   const uint32_t t_id,
                   const uint32_t f_id,
                   const uint32_t ul_carrier_id);
+  bool sr_opportunity(uint32_t tti, uint32_t sr_id, bool meas_gap, bool ul_sch_tx);
 
   /// Stack interface
   void timer_expired(uint32_t timer_id);
@@ -90,20 +91,22 @@ public:
   uint64_t get_contention_id();
   uint16_t get_crnti();
 
+  /// Interface for MUX
+  srsran::mac_sch_subpdu_nr::lcg_bsr_t generate_sbsr();
+
   void msg3_flush() { mux.msg3_flush(); }
   bool msg3_is_transmitted() { return mux.msg3_is_transmitted(); }
   void msg3_prepare() { mux.msg3_prepare(); }
   bool msg3_is_pending() { return mux.msg3_is_pending(); }
   bool msg3_is_empty() { return mux.msg3_is_empty(); }
 
+  /// RRC
+  void rrc_ra_problem() { rrc->ra_problem(); }
+
   /// stack interface
   void process_pdus();
 
   static bool is_in_window(uint32_t tti, int* start, int* len);
-
-  // PHY Interface
-  void prach_sent(const uint32_t tti);
-  void tb_decoded_ok(const uint8_t cc_idx, const uint32_t tti);
 
 private:
   void write_pcap(const uint32_t cc_idx, mac_nr_grant_dl_t& grant); // If PCAPs are enabled for this MAC
@@ -116,8 +119,14 @@ private:
   bool is_si_opportunity();
   bool is_paging_opportunity();
 
-  bool     has_crnti();
-  bool     is_valid_crnti(const uint16_t crnti);
+  bool has_crnti();
+  bool is_valid_crnti(const uint16_t crnti);
+
+  std::vector<srsran::logical_channel_config_t> logical_channels; // stores the raw configs provide by upper layers
+
+  /// LCID and LCG related members and helper functions
+  void                update_buffer_states();
+  mac_buffer_states_t mac_buffer_states;
 
   /// Interaction with rest of the stack
   phy_interface_mac_nr*         phy = nullptr;
@@ -137,15 +146,15 @@ private:
   srsran::block_queue<srsran::unique_byte_buffer_t>
       pdu_queue; ///< currently only DCH PDUs supported (add BCH, PCH, etc)
 
-  mac_metrics_t metrics[SRSRAN_MAX_CARRIERS] = {};
+  std::array<mac_metrics_t, SRSRAN_MAX_CARRIERS> metrics = {};
 
   /// Rx buffer
   srsran::mac_sch_pdu_nr rx_pdu;
 
   /// Tx buffer
   srsran::unique_byte_buffer_t ul_harq_buffer = nullptr; // store PDU generated from MUX
-  srsran::unique_byte_buffer_t rlc_buffer    = nullptr;
-  srsran_softbuffer_tx_t       softbuffer_tx = {}; /// UL HARQ (temporal)
+  srsran::unique_byte_buffer_t rlc_buffer     = nullptr;
+  srsran_softbuffer_tx_t       softbuffer_tx  = {}; /// UL HARQ (temporal)
 
   srsran::task_multiqueue::queue_handle stack_task_dispatch_queue;
 

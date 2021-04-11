@@ -24,6 +24,7 @@
 
 #include "srsran/phy/common/phy_common_nr.h"
 #include "srsran/phy/dft/ofdm.h"
+#include "srsran/phy/phch/pdcch_cfg_nr.h"
 #include "srsran/phy/phch/pdcch_nr.h"
 #include "srsran/phy/phch/pdsch_nr.h"
 
@@ -35,10 +36,10 @@ typedef struct SRSRAN_API {
 } srsran_enb_dl_nr_args_t;
 
 typedef struct SRSRAN_API {
-  uint32_t            max_prb;
-  uint32_t            nof_tx_antennas;
-  srsran_carrier_nr_t carrier;
-  srsran_coreset_t    coreset;
+  uint32_t              max_prb;
+  uint32_t              nof_tx_antennas;
+  srsran_carrier_nr_t   carrier;
+  srsran_pdcch_cfg_nr_t pdcch_cfg;
 
   srsran_ofdm_t fft[SRSRAN_MAX_PORTS];
 
@@ -46,6 +47,7 @@ typedef struct SRSRAN_API {
   srsran_pdsch_nr_t pdsch;
   srsran_dmrs_sch_t dmrs;
 
+  srsran_dci_nr_t   dci; ///< Stores DCI configuration
   srsran_pdcch_nr_t pdcch;
 } srsran_enb_dl_nr_t;
 
@@ -54,7 +56,9 @@ srsran_enb_dl_nr_init(srsran_enb_dl_nr_t* q, cf_t* output[SRSRAN_MAX_PORTS], con
 
 SRSRAN_API int srsran_enb_dl_nr_set_carrier(srsran_enb_dl_nr_t* q, const srsran_carrier_nr_t* carrier);
 
-SRSRAN_API int srsran_enb_dl_nr_set_coreset(srsran_enb_dl_nr_t* q, const srsran_coreset_t* coreset);
+SRSRAN_API int srsran_enb_dl_nr_set_pdcch_config(srsran_enb_dl_nr_t*          q,
+                                                 const srsran_pdcch_cfg_nr_t* cfg,
+                                                 const srsran_dci_cfg_nr_t*   dci_cfg);
 
 SRSRAN_API void srsran_enb_dl_nr_free(srsran_enb_dl_nr_t* q);
 

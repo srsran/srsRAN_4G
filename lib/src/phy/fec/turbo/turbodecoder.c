@@ -99,7 +99,7 @@ srsran_tdec_8bit_impl_t avx8_win_impl = {tdec_winavx8_init,
 
 #ifdef HAVE_NEON
 #define WINIMP_IS_NEON16
-#include "srsran/phy/fec/turbodecoder_win.h"
+#include "srsran/phy/fec/turbo/turbodecoder_win.h"
 #undef WINIMP_IS_NEON16
 
 srsran_tdec_16bit_impl_t arm16_win_impl = {tdec_winarm16_init,

@@ -20,10 +20,11 @@
  */
 
 #include "srsenb/hdr/stack/enb_stack_lte.h"
+#include "srsenb/hdr/common/rnti_pool.h"
 #include "srsenb/hdr/enb.h"
-#include "srsran/common/network_utils.h"
 #include "srsran/interfaces/enb_metrics_interface.h"
 #include "srsran/srslog/event_trace.h"
+#include "srsran/upper/bearer_mem_pool.h"
 
 using namespace srsran;
 
@@ -42,8 +43,8 @@ enb_stack_lte::enb_stack_lte(srslog::sink& log_sink) :
   pdcp(&task_sched, pdcp_logger),
   mac(&task_sched, mac_logger),
   rlc(rlc_logger),
-  gtpu(&task_sched, gtpu_logger),
-  s1ap(&task_sched, s1ap_logger),
+  gtpu(&task_sched, gtpu_logger, &rx_sockets),
+  s1ap(&task_sched, s1ap_logger, &rx_sockets),
   rrc(&task_sched),
   mac_pcap(),
   pending_stack_metrics(64)
@@ -79,6 +80,11 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
 {
   args    = args_;
   rrc_cfg = rrc_cfg_;
+
+  // Init RNTI and bearer memory pools
+  reserve_rnti_memblocks(args.mac.max_nof_ues);
+  uint32_t min_nof_bearers_per_ue = 4;
+  reserve_rlc_memblocks(args.mac.max_nof_ues * min_nof_bearers_per_ue);
 
   // setup logging for each layer
   mac_logger.set_level(srslog::str_to_basic_level(args.log.mac_level));
@@ -118,9 +124,6 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
     s1ap.start_pcap(&s1ap_pcap);
   }
 
-  // Init Rx socket handler
-  rx_sockets.reset(new srsran::rx_multisocket_handler("ENBSOCKETS", stack_logger));
-
   // add sync queue
   sync_task_queue = task_sched.make_task_queue(args.sync_queue_size);
 
@@ -135,7 +138,7 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
     stack_logger.error("Couldn't initialize RRC");
     return SRSRAN_ERROR;
   }
-  if (s1ap.init(args.s1ap, &rrc, this) != SRSRAN_SUCCESS) {
+  if (s1ap.init(args.s1ap, &rrc) != SRSRAN_SUCCESS) {
     stack_logger.error("Couldn't initialize S1AP");
     return SRSRAN_ERROR;
   }
@@ -144,7 +147,6 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
                 args.embms.m1u_multiaddr,
                 args.embms.m1u_if_addr,
                 &pdcp,
-                this,
                 args.embms.enable)) {
     stack_logger.error("Couldn't initialize GTPU");
     return SRSRAN_ERROR;
@@ -178,7 +180,7 @@ void enb_stack_lte::stop()
 
 void enb_stack_lte::stop_impl()
 {
-  rx_sockets->stop();
+  rx_sockets.stop();
 
   s1ap.stop();
   gtpu.stop();
@@ -235,56 +237,6 @@ void enb_stack_lte::run_thread()
   while (started) {
     task_sched.run_next_task();
   }
-}
-
-void enb_stack_lte::handle_mme_rx_packet(srsran::unique_byte_buffer_t pdu,
-                                         const sockaddr_in&           from,
-                                         const sctp_sndrcvinfo&       sri,
-                                         int                          flags)
-{
-  // Defer the handling of MME packet to eNB stack main thread
-  auto task_handler = [this, from, sri, flags](srsran::unique_byte_buffer_t& t) {
-    s1ap.handle_mme_rx_msg(std::move(t), from, sri, flags);
-  };
-  // Defer the handling of MME packet to main stack thread
-  mme_task_queue.push(std::bind(task_handler, std::move(pdu)));
-}
-
-void enb_stack_lte::add_mme_socket(int fd)
-{
-  // Pass MME Rx packet handler functor to socket handler to run in socket thread
-  auto mme_rx_handler =
-      [this](srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags) {
-        handle_mme_rx_packet(std::move(pdu), from, sri, flags);
-      };
-  rx_sockets->add_socket_sctp_pdu_handler(fd, mme_rx_handler);
-}
-
-void enb_stack_lte::remove_mme_socket(int fd)
-{
-  rx_sockets->remove_socket(fd);
-}
-
-void enb_stack_lte::add_gtpu_s1u_socket_handler(int fd)
-{
-  auto gtpu_s1u_handler = [this](srsran::unique_byte_buffer_t pdu, const sockaddr_in& from) {
-    auto task_handler = [this, from](srsran::unique_byte_buffer_t& t) {
-      gtpu.handle_gtpu_s1u_rx_packet(std::move(t), from);
-    };
-    gtpu_task_queue.push(std::bind(task_handler, std::move(pdu)));
-  };
-  rx_sockets->add_socket_pdu_handler(fd, gtpu_s1u_handler);
-}
-
-void enb_stack_lte::add_gtpu_m1u_socket_handler(int fd)
-{
-  auto gtpu_m1u_handler = [this](srsran::unique_byte_buffer_t pdu, const sockaddr_in& from) {
-    auto task_handler = [this, from](srsran::unique_byte_buffer_t& t) {
-      gtpu.handle_gtpu_m1u_rx_packet(std::move(t), from);
-    };
-    gtpu_task_queue.push(std::bind(task_handler, std::move(pdu)));
-  };
-  rx_sockets->add_socket_pdu_handler(fd, gtpu_m1u_handler);
 }
 
 } // namespace srsenb

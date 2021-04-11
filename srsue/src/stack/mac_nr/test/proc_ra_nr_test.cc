@@ -50,7 +50,8 @@ public:
     *preamble_index_                 = preamble_index;
     *preamble_received_target_power_ = preamble_received_target_power;
   }
-  void sr_send(uint32_t sr_id) override {}
+  bool has_valid_sr_resource(uint32_t sr_id) override { return false; }
+  void clear_pending_grants() override {}
 
 private:
   uint32_t prach_occasion                 = 0;
@@ -61,6 +62,7 @@ private:
 class dummy_mac : public mac_interface_proc_ra_nr
 {
 public:
+  dummy_mac() : logger(srslog::fetch_basic_logger("MAC")) {}
   uint64_t get_contention_id() { return 0xdeadbeaf; }
   uint16_t get_crnti() { return crnti; }
   bool     set_crnti(uint16_t c_rnti)
@@ -75,26 +77,24 @@ public:
   bool msg3_is_empty() { return true; }
 
   void msga_flush(){};
+  // RRC RA problem
+  void rrc_ra_problem() { logger.warning("Dummy MAC RRC ra problem"); }
 
 private:
-  uint16_t crnti = SRSRAN_INVALID_RNTI;
+  uint16_t             crnti = SRSRAN_INVALID_RNTI;
+  srslog::basic_logger& logger;
 };
 
-int main()
+int proc_ra_normal_test()
 {
-  srslog::init();
-  auto& mac_logger = srslog::fetch_basic_logger("MAC");
-  mac_logger.set_level(srslog::basic_levels::debug);
-  mac_logger.set_hex_dump_max_size(-1);
-
   dummy_phy                     dummy_phy;
   dummy_mac                     dummy_mac;
   srsran::task_scheduler        task_sched{5, 2};
   srsran::ext_task_sched_handle ext_task_sched_h(&task_sched);
 
-  proc_ra_nr proc_ra_nr(dummy_mac, mac_logger);
-
+  proc_ra_nr proc_ra_nr(dummy_mac, srslog::fetch_basic_logger("MAC"));
   proc_ra_nr.init(&dummy_phy, &ext_task_sched_h);
+
   TESTASSERT(proc_ra_nr.is_rar_opportunity(1) == false);
   srsran::rach_nr_cfg_t rach_cfg;
   rach_cfg.powerRampingStep             = 4;
@@ -113,7 +113,7 @@ int main()
   dummy_phy.get_last_send_prach(&prach_occasion, &preamble_index, &preamble_received_target_power);
   TESTASSERT(prach_occasion == 0);
   TESTASSERT(preamble_index == 0);
-  TESTASSERT(preamble_received_target_power == -114);
+  TESTASSERT(preamble_received_target_power == -110);
   // Simulate PHY and call prach_sent (random values)
   uint32_t tti_start = 0;
   proc_ra_nr.prach_sent(tti_start, 7, 1, 0, 0);
@@ -143,9 +143,64 @@ int main()
   task_sched.tic();
   task_sched.run_pending_tasks();
 
-  proc_ra_nr.pdcch_to_crnti();
+  return SRSRAN_SUCCESS;
+}
 
+int proc_ra_timeout_test()
+{
+  dummy_phy                     dummy_phy;
+  dummy_mac                     dummy_mac;
+  srsran::task_scheduler        task_sched{5, 2};
+  srsran::ext_task_sched_handle ext_task_sched_h(&task_sched);
+
+  proc_ra_nr proc_ra_nr(dummy_mac, srslog::fetch_basic_logger("MAC"));
+
+  proc_ra_nr.init(&dummy_phy, &ext_task_sched_h);
+  TESTASSERT(proc_ra_nr.is_rar_opportunity(1) == false);
+  srsran::rach_nr_cfg_t rach_cfg;
+  rach_cfg.powerRampingStep             = 4;
+  rach_cfg.prach_ConfigurationIndex     = 16;
+  rach_cfg.PreambleReceivedTargetPower  = -110;
+  rach_cfg.preambleTransMax             = 7;
+  rach_cfg.ra_ContentionResolutionTimer = 64;
+  rach_cfg.ra_responseWindow            = 10;
+  proc_ra_nr.set_config(rach_cfg);
+  proc_ra_nr.start_by_rrc();
+
+  // Test send prach parameters
+  uint32_t prach_occasion                 = 0;
+  uint32_t preamble_index                 = 0;
+  int      preamble_received_target_power = 0;
+  dummy_phy.get_last_send_prach(&prach_occasion, &preamble_index, &preamble_received_target_power);
+  TESTASSERT(prach_occasion == 0);
+  TESTASSERT(preamble_index == 0);
+  TESTASSERT(preamble_received_target_power == -110);
+  // Simulate PHY and call prach_sent (random values)
+  uint32_t tti = 0;
+
+  for (uint32_t j = 0; j < rach_cfg.preambleTransMax; j++) {
+    proc_ra_nr.prach_sent(tti, 7, 1, 0, 0);
+    uint32_t i = 0;
+    for (i = tti; i < tti + rach_cfg.ra_responseWindow + 100; i++) {
+      // update clock and run internal tasks
+      task_sched.tic();
+      task_sched.run_pending_tasks();
+    }
+    tti = i;
+  }
   task_sched.tic();
   task_sched.run_pending_tasks();
+  return SRSRAN_SUCCESS;
+}
+
+int main()
+{
+  srslog::init();
+
+  auto& mac_logger = srslog::fetch_basic_logger("MAC");
+  mac_logger.set_level(srslog::basic_levels::debug);
+  mac_logger.set_hex_dump_max_size(-1);
+  // TESTASSERT(proc_ra_normal_test() == SRSRAN_SUCCESS);
+  TESTASSERT(proc_ra_timeout_test() == SRSRAN_SUCCESS);
   return SRSRAN_SUCCESS;
 }

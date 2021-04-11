@@ -85,6 +85,62 @@ void metrics_stdout::print_table(const bool display_neighbours)
   n_reports            = 0;
 }
 
+void metrics_stdout::set_metrics_helper(const phy_metrics_t phy,
+                                        const mac_metrics_t mac[SRSRAN_MAX_CARRIERS],
+                                        const rrc_metrics_t rrc,
+                                        bool                display_neighbours,
+                                        const uint32_t      r)
+{
+  if (phy.info[r].pci != UINT32_MAX) {
+    cout << std::setw(4) << phy.info[r].pci << std::setw(0);
+  } else {
+    cout << " n/a";
+  }
+  cout << float_to_string(phy.ch[r].rsrp, 2);
+  cout << float_to_string(phy.ch[r].pathloss, 2);
+  cout << float_to_eng_string(phy.sync[r].cfo, 2);
+
+  // Find strongest neighbour for this EARFCN (cells are ordered)
+  if (display_neighbours) {
+    bool has_neighbour = false;
+    for (auto& c : rrc.neighbour_cells) {
+      if (c.earfcn == phy.info[r].dl_earfcn && c.pci != phy.info[r].pci) {
+        cout << std::setw(4) << c.pci << std::setw(0);
+        cout << float_to_string(c.rsrp, 2);
+        has_neighbour = true;
+        break;
+      }
+    }
+    if (!has_neighbour) {
+      cout << "  n/a";
+      cout << "  n/a";
+    }
+  }
+
+  cout << float_to_string(phy.dl[r].mcs, 2);
+  cout << float_to_string(phy.ch[r].sinr, 2);
+  cout << float_to_string(phy.dl[r].turbo_iters, 2);
+
+  cout << float_to_eng_string((float)mac[r].rx_brate / (mac[r].nof_tti * 1e-3), 2);
+  if (mac[r].rx_pkts > 0) {
+    cout << float_to_string((float)100 * mac[r].rx_errors / mac[r].rx_pkts, 1) << "%";
+  } else {
+    cout << float_to_string(0, 1) << "%";
+  }
+
+  cout << float_to_string(phy.sync[r].ta_us, 2);
+
+  cout << float_to_string(phy.ul[r].mcs, 2);
+  cout << float_to_eng_string((float)mac[r].ul_buffer, 2);
+  cout << float_to_eng_string((float)mac[r].tx_brate / (mac[r].nof_tti * 1e-3), 2);
+  if (mac[r].tx_pkts > 0) {
+    cout << float_to_string((float)100 * mac[r].tx_errors / mac[r].tx_pkts, 1) << "%";
+  } else {
+    cout << float_to_string(0, 1) << "%";
+  }
+  cout << endl;
+}
+
 void metrics_stdout::set_metrics(const ue_metrics_t& metrics, const uint32_t period_usec)
 {
   if (ue == nullptr) {
@@ -124,54 +180,13 @@ void metrics_stdout::set_metrics(const ue_metrics_t& metrics, const uint32_t per
 
   for (uint32_t r = 0; r < metrics.phy.nof_active_cc; r++) {
     cout << std::setw(2) << r;
-    if (metrics.phy.info[r].pci != UINT32_MAX) {
-      cout << std::setw(4) << metrics.phy.info[r].pci << std::setw(0);
-    } else {
-      cout << " n/a";
-    }
-    cout << float_to_string(metrics.phy.ch[r].rsrp, 2);
-    cout << float_to_string(metrics.phy.ch[r].pathloss, 2);
-    cout << float_to_eng_string(metrics.phy.sync[r].cfo, 2);
+    set_metrics_helper(metrics.phy, metrics.stack.mac, metrics.stack.rrc, display_neighbours, r);
+  }
 
-    // Find strongest neighbour for this EARFCN (cells are ordered)
-    if (display_neighbours) {
-      bool has_neighbour = false;
-      for (auto& c : metrics.stack.rrc.neighbour_cells) {
-        if (c.earfcn == metrics.phy.info[r].dl_earfcn && c.pci != metrics.phy.info[r].pci) {
-          cout << std::setw(4) << c.pci << std::setw(0);
-          cout << float_to_string(c.rsrp, 2);
-          has_neighbour = true;
-          break;
-        }
-      }
-      if (!has_neighbour) {
-        cout << "  n/a";
-        cout << "  n/a";
-      }
-    }
-
-    cout << float_to_string(metrics.phy.dl[r].mcs, 2);
-    cout << float_to_string(metrics.phy.ch[r].sinr, 2);
-    cout << float_to_string(metrics.phy.dl[r].turbo_iters, 2);
-
-    cout << float_to_eng_string((float)metrics.stack.mac[r].rx_brate / (metrics.stack.mac[r].nof_tti * 1e-3), 2);
-    if (metrics.stack.mac[r].rx_pkts > 0) {
-      cout << float_to_string((float)100 * metrics.stack.mac[r].rx_errors / metrics.stack.mac[r].rx_pkts, 1) << "%";
-    } else {
-      cout << float_to_string(0, 1) << "%";
-    }
-
-    cout << float_to_string(metrics.phy.sync[r].ta_us, 2);
-
-    cout << float_to_string(metrics.phy.ul[r].mcs, 2);
-    cout << float_to_eng_string((float)metrics.stack.mac[r].ul_buffer, 2);
-    cout << float_to_eng_string((float)metrics.stack.mac[r].tx_brate / (metrics.stack.mac[r].nof_tti * 1e-3), 2);
-    if (metrics.stack.mac[r].tx_pkts > 0) {
-      cout << float_to_string((float)100 * metrics.stack.mac[r].tx_errors / metrics.stack.mac[r].tx_pkts, 1) << "%";
-    } else {
-      cout << float_to_string(0, 1) << "%";
-    }
-    cout << endl;
+  for (uint32_t r = 0; r < metrics.phy_nr.nof_active_cc; r++) {
+    // Assumption LTE is followed by the NR carriers.
+    cout << std::setw(2) << metrics.phy.nof_active_cc + r;
+    set_metrics_helper(metrics.phy_nr, metrics.stack.mac_nr, metrics.stack.rrc, display_neighbours, r);
   }
 
   if (metrics.rf.rf_error) {

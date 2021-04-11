@@ -630,8 +630,14 @@ bool phy::set_config(const srsran::phy_cfg_nr_t& cfg)
   return nr_workers.set_config(cfg);
 }
 
-void phy::sr_send(uint32_t sr_id)
+bool phy::has_valid_sr_resource(uint32_t sr_id)
 {
-  nr_workers.sr_send(sr_id);
+  return nr_workers.has_valid_sr_resource(sr_id);
 }
+
+void phy::clear_pending_grants()
+{
+  nr_workers.clear_pending_grants();
+}
+
 } // namespace srsue

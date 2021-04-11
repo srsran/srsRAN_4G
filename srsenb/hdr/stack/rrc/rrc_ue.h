@@ -24,7 +24,7 @@
 
 #include "mac_controller.h"
 #include "rrc.h"
-#include "srsran/adt/pool/mem_pool.h"
+#include "srsran/adt/pool/batch_mem_pool.h"
 #include "srsran/interfaces/enb_phy_interfaces.h"
 #include "srsran/interfaces/pdcp_interface_types.h"
 
@@ -153,17 +153,9 @@ public:
   rrc*     parent = nullptr;
 
   bool                          connect_notified = false;
-  std::unique_ptr<rrc_mobility> mobility_handler;
+  unique_rnti_ptr<rrc_mobility> mobility_handler;
 
   bool is_csfb = false;
-
-  void* operator new(size_t sz);
-  void* operator new[](size_t sz) = delete;
-  void  operator delete(void* ptr)noexcept;
-  void  operator delete[](void* ptr) = delete;
-
-  using ue_pool_t = srsran::background_allocator_obj_pool<ue, 16, 4>;
-  static ue_pool_t* get_ue_pool();
 
 private:
   // args
@@ -196,7 +188,6 @@ private:
   const static uint32_t UE_PCELL_CC_IDX = 0;
 
   uint32_t consecutive_kos = 0;
-  uint32_t max_mac_dl_retx;
 
   ue_cell_ded_list     ue_cell_list;
   bearer_cfg_handler   bearer_list;

@@ -155,6 +155,27 @@ inline std::string to_string(const establishment_cause_t& cause)
   return enum_to_text(options, (uint32_t)establishment_cause_t::nulltype, (uint32_t)cause);
 }
 
+enum class scg_failure_cause_t {
+  t310_expiry,
+  random_access_problem,
+  rlc_max_num_retx,
+  synch_recfg_fail_scg,
+  scg_recfg_fail,
+  srb3_integrity_fail,
+  nulltype
+};
+
+inline std::string to_string(const scg_failure_cause_t& cause)
+{
+  constexpr static const char* options[] = {"t310_expiry",
+                                            "random_access_problem",
+                                            "rlc_max_num_retx",
+                                            "synch_recfg_fail_scg",
+                                            "scg_recfg_fail",
+                                            "srb3_integrity_fail",
+                                            "nulltype"};
+  return enum_to_text(options, (uint32_t)scg_failure_cause_t::nulltype, (uint32_t)cause);
+}
 /***************************
  *      PHY Config
  **************************/

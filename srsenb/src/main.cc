@@ -222,7 +222,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("expert.print_buffer_state", bpo::value<bool>(&args->general.print_buffer_state)->default_value(false), "Prints on the console the buffer state every 10 seconds")
     ("expert.eea_pref_list", bpo::value<string>(&args->general.eea_pref_list)->default_value("EEA0, EEA2, EEA1"), "Ordered preference list for the selection of encryption algorithm (EEA) (default: EEA0, EEA2, EEA1).")
     ("expert.eia_pref_list", bpo::value<string>(&args->general.eia_pref_list)->default_value("EIA2, EIA1, EIA0"), "Ordered preference list for the selection of integrity algorithm (EIA) (default: EIA2, EIA1, EIA0).")
-    ("expert.max_nof_ues", bpo::value<uint32_t>(&args->stack.mac.max_nof_ues)->default_value(64), "Maximum number of connected UEs")
+    ("expert.max_nof_ues", bpo::value<uint32_t>(&args->stack.mac.max_nof_ues)->default_value(8), "Maximum number of connected UEs")
     ("expert.max_mac_dl_kos", bpo::value<uint32_t>(&args->general.max_mac_dl_kos)->default_value(100), "Maximum number of consecutive KOs before triggering the UE's release")
 
     // eMBMS section
@@ -523,6 +523,7 @@ int main(int argc, char* argv[])
   srslog::init();
 
   srslog::fetch_basic_logger("ALL").set_level(srslog::basic_levels::warning);
+  srslog::fetch_basic_logger("POOL").set_level(srslog::basic_levels::warning);
   srsran::log_args(argc, argv, "ENB");
 
   srsran::check_scaling_governor(args.rf.device_name);

@@ -42,8 +42,6 @@ public:
   void reset();
   int32_t init(rlc_interface_mac* rlc_);
 
-  void step();
-
   void msg3_flush();
   void msg3_prepare();
   void msg3_transmitted();
@@ -58,7 +56,7 @@ public:
   srsran::unique_byte_buffer_t get_pdu(uint32_t max_pdu_len);
 
   // Interface for BSR procedure
-  void generate_bsr_mac_ce();
+  void generate_bsr_mac_ce(const bsr_interface_mux_nr::bsr_format_nr_t& format);
 
 private:
   // internal helper methods
@@ -73,12 +71,14 @@ private:
   typedef enum { none, pending, transmitted } msg3_state_t;
   msg3_state_t msg3_state = none;
 
-  static constexpr uint32_t MIN_RLC_PDU_LEN =
+  static constexpr int32_t MIN_RLC_PDU_LEN =
       5; ///< minimum bytes that need to be available in a MAC PDU for attempting to add another RLC SDU
 
   srsran::unique_byte_buffer_t rlc_buff = nullptr;
 
-  srsran::mac_sch_pdu_nr tx_pdu;
+  srsran::mac_sch_pdu_nr tx_pdu; /// single MAC PDU for packing
+
+  enum { no_bsr, sbsr_ce, lbsr_ce } add_bsr_ce = no_bsr; /// BSR procedure requests MUX to add a BSR CE
 
   // Mutex for exclusive access
   std::mutex mutex;

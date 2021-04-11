@@ -130,6 +130,11 @@ void mac_rar_subpdu_nr::set_backoff(const uint8_t backoff_indicator_)
   backoff_indicator = backoff_indicator_;
 }
 
+uint8_t mac_rar_subpdu_nr::get_backoff() const
+{
+  return backoff_indicator;
+}
+
 std::array<uint8_t, mac_rar_subpdu_nr::UL_GRANT_NBITS> mac_rar_subpdu_nr::get_ul_grant() const
 {
   return ul_grant;

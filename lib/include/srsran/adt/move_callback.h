@@ -42,9 +42,9 @@
 namespace srsran {
 
 //! Size of the buffer used by "move_callback<R(Args...)>" to store functors without calling "new"
-constexpr size_t default_buffer_size = 32;
+constexpr size_t default_move_callback_buffer_size = 32;
 
-template <class Signature, size_t Capacity = default_buffer_size>
+template <class Signature, size_t Capacity = default_move_callback_buffer_size, bool ForbidAlloc = false>
 class move_callback;
 
 namespace task_details {
@@ -54,11 +54,11 @@ template <typename R, typename... Args>
 class oper_table_t
 {
 public:
-  constexpr    oper_table_t()                        = default;
-  virtual R    call(void* src, Args&&... args) const = 0;
-  virtual void move(void* src, void* dest) const     = 0;
-  virtual void dtor(void* src) const                 = 0;
-  virtual bool is_in_small_buffer() const            = 0;
+  constexpr    oper_table_t()                      = default;
+  virtual R    call(void* src, Args... args) const = 0;
+  virtual void move(void* src, void* dest) const   = 0;
+  virtual void dtor(void* src) const               = 0;
+  virtual bool is_in_small_buffer() const          = 0;
 };
 
 //! specialization of move/call/destroy operations for when the "move_callback<R(Args...)>" is empty
@@ -67,7 +67,7 @@ class empty_table_t : public oper_table_t<R, Args...>
 {
 public:
   constexpr empty_table_t() = default;
-  R         call(void* src, Args&&... args) const final
+  R         call(void* src, Args... args) const final
   {
     srsran_terminate("ERROR: bad function call (cause: function ptr is empty)");
   }
@@ -82,7 +82,7 @@ class smallbuffer_table_t : public oper_table_t<R, Args...>
 {
 public:
   constexpr smallbuffer_table_t() = default;
-  R    call(void* src, Args&&... args) const final { return (*static_cast<FunT*>(src))(std::forward<Args>(args)...); }
+  R    call(void* src, Args... args) const final { return (*static_cast<FunT*>(src))(std::forward<Args>(args)...); }
   void move(void* src, void* dest) const final
   {
     ::new (dest) FunT(std::move(*static_cast<FunT*>(src)));
@@ -98,7 +98,7 @@ class heap_table_t : public oper_table_t<R, Args...>
 {
 public:
   constexpr heap_table_t() = default;
-  R    call(void* src, Args&&... args) const final { return (**static_cast<FunT**>(src))(std::forward<Args>(args)...); }
+  R    call(void* src, Args... args) const final { return (**static_cast<FunT**>(src))(std::forward<Args>(args)...); }
   void move(void* src, void* dest) const final
   {
     *static_cast<FunT**>(dest) = *static_cast<FunT**>(src);
@@ -124,8 +124,8 @@ using enable_if_big_capture =
 
 } // namespace task_details
 
-template <class R, class... Args, size_t Capacity>
-class move_callback<R(Args...), Capacity>
+template <class R, class... Args, size_t Capacity, bool ForbidAlloc>
+class move_callback<R(Args...), Capacity, ForbidAlloc>
 {
   static constexpr size_t capacity = Capacity >= sizeof(void*) ? Capacity : sizeof(void*); ///< size of buffer
   using storage_t                  = typename std::aligned_storage<capacity, alignof(detail::max_alignment_t)>::type;
@@ -149,6 +149,9 @@ public:
   template <typename T, task_details::enable_if_big_capture<T, capacity> = true>
   move_callback(T&& function)
   {
+    static_assert(
+        not ForbidAlloc,
+        "Failed to store provided callback in std::move_callback specialization that forbids heap allocations.");
     using FunT = typename std::decay<T>::type;
     static const task_details::heap_table_t<FunT, R, Args...> heap_oper_table{};
     oper_ptr = &heap_oper_table;
@@ -172,7 +175,7 @@ public:
     return *this;
   }
 
-  R operator()(Args&&... args) const noexcept { return oper_ptr->call(&buffer, std::forward<Args>(args)...); }
+  R operator()(Args... args) const noexcept { return oper_ptr->call(&buffer, std::forward<Args>(args)...); }
 
   bool is_empty() const { return oper_ptr == &empty_table; }
   bool is_in_small_buffer() const { return oper_ptr->is_in_small_buffer(); }
@@ -185,8 +188,8 @@ private:
   const oper_table_t* oper_ptr;
 };
 
-template <typename R, typename... Args, size_t Capacity>
-constexpr task_details::empty_table_t<R, Args...> move_callback<R(Args...), Capacity>::empty_table;
+template <typename R, typename... Args, size_t Capacity, bool ForbidAlloc>
+constexpr task_details::empty_table_t<R, Args...> move_callback<R(Args...), Capacity, ForbidAlloc>::empty_table;
 
 //! Generic move task
 using move_task_t = move_callback<void()>;

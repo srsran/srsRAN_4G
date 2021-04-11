@@ -283,6 +283,10 @@ bool nas::handle_imsi_attach_request_unknown_ue(uint32_t                        
 
   // Pack NAS Authentication Request in Downlink NAS Transport msg
   nas_tx = srsran::make_byte_buffer();
+  if (nas_tx == nullptr) {
+    nas_logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return false;
+  }
   nas_ctx->pack_authentication_request(nas_tx.get());
 
   // Send reply to eNB
@@ -392,6 +396,10 @@ bool nas::handle_guti_attach_request_unknown_ue(uint32_t                        
 
   // Send Identity Request
   nas_tx = srsran::make_byte_buffer();
+  if (nas_tx == nullptr) {
+    srslog::fetch_basic_logger("NAS").error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return false;
+  }
   nas_ctx->pack_identity_request(nas_tx.get());
   s1ap->send_downlink_nas_transport(
       nas_ctx->m_ecm_ctx.enb_ue_s1ap_id, nas_ctx->m_ecm_ctx.mme_ue_s1ap_id, nas_tx.get(), nas_ctx->m_ecm_ctx.enb_sri);
@@ -468,6 +476,10 @@ bool nas::handle_guti_attach_request_known_ue(nas*                              
 
     // Send reply
     nas_tx = srsran::make_byte_buffer();
+    if (nas_tx == nullptr) {
+      nas_logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+      return false;
+    }
     if (ecm_ctx->eit) {
       srsran::console("Secure ESM information transfer requested.\n");
       nas_logger.info("Secure ESM information transfer requested.");
@@ -540,7 +552,11 @@ bool nas::handle_guti_attach_request_known_ue(nas*                              
 
     // Restarting security context. Reseting eKSI to 0.
     sec_ctx->eksi = 0;
-    nas_tx        = srsran::unique_byte_buffer_t();
+    nas_tx        = srsran::make_byte_buffer();
+    if (nas_tx == nullptr) {
+      nas_logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+      return false;
+    }
     nas_ctx->pack_authentication_request(nas_tx.get());
 
     // Send reply to eNB
@@ -590,6 +606,10 @@ bool nas::handle_service_request(uint32_t                m_tmsi,
     nas_tmp.m_ecm_ctx.mme_ue_s1ap_id = s1ap->get_next_mme_ue_s1ap_id();
 
     srsran::unique_byte_buffer_t nas_tx = srsran::make_byte_buffer();
+    if (nas_tx == nullptr) {
+      nas_logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+      return false;
+    }
     nas_tmp.pack_service_reject(nas_tx.get(), LIBLTE_MME_EMM_CAUSE_IMPLICITLY_DETACHED);
     s1ap->send_downlink_nas_transport(enb_ue_s1ap_id, nas_tmp.m_ecm_ctx.mme_ue_s1ap_id, nas_tx.get(), *enb_sri);
     return true;
@@ -604,6 +624,10 @@ bool nas::handle_service_request(uint32_t                m_tmsi,
     nas_tmp.m_ecm_ctx.mme_ue_s1ap_id = s1ap->get_next_mme_ue_s1ap_id();
 
     srsran::unique_byte_buffer_t nas_tx = srsran::make_byte_buffer();
+    if (nas_tx == nullptr) {
+      nas_logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+      return false;
+    }
     nas_tmp.pack_service_reject(nas_tx.get(), LIBLTE_MME_EMM_CAUSE_IMPLICITLY_DETACHED);
     s1ap->send_downlink_nas_transport(enb_ue_s1ap_id, nas_tmp.m_ecm_ctx.mme_ue_s1ap_id, nas_tx.get(), *enb_sri);
     return true;
@@ -688,6 +712,10 @@ bool nas::handle_service_request(uint32_t                m_tmsi,
     s1ap->add_nas_ctx_to_mme_ue_s1ap_id_map(nas_ctx);
     s1ap->add_ue_to_enb_set(enb_sri->sinfo_assoc_id, nas_ctx->m_ecm_ctx.mme_ue_s1ap_id);
     srsran::unique_byte_buffer_t nas_tx = srsran::make_byte_buffer();
+    if (nas_tx == nullptr) {
+      nas_logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+      return false;
+    }
     nas_ctx->pack_service_reject(nas_tx.get(), LIBLTE_MME_EMM_CAUSE_UE_IDENTITY_CANNOT_BE_DERIVED_BY_THE_NETWORK);
     s1ap->send_downlink_nas_transport(ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id, nas_tx.get(), *enb_sri);
 
@@ -792,6 +820,10 @@ bool nas::handle_tracking_area_update_request(uint32_t                m_tmsi,
   nas_tmp.m_ecm_ctx.mme_ue_s1ap_id = s1ap->get_next_mme_ue_s1ap_id();
 
   srsran::unique_byte_buffer_t nas_tx = srsran::make_byte_buffer();
+  if (nas_tx == nullptr) {
+    nas_logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return false;
+  }
   nas_tmp.pack_tracking_area_update_reject(nas_tx.get(), LIBLTE_MME_EMM_CAUSE_IMPLICITLY_DETACHED);
   s1ap->send_downlink_nas_transport(enb_ue_s1ap_id, nas_tmp.m_ecm_ctx.mme_ue_s1ap_id, nas_tx.get(), *enb_sri);
   return true;
@@ -895,6 +927,10 @@ bool nas::handle_attach_request(srsran::byte_buffer_t* nas_rx)
 
     // Pack NAS Authentication Request in Downlink NAS Transport msg
     srsran::unique_byte_buffer_t nas_tx = srsran::make_byte_buffer();
+    if (nas_tx == nullptr) {
+      m_logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+      return false;
+    }
     pack_authentication_request(nas_tx.get());
 
     // Send reply to eNB
@@ -912,8 +948,7 @@ bool nas::handle_attach_request(srsran::byte_buffer_t* nas_rx)
 
 bool nas::handle_authentication_response(srsran::byte_buffer_t* nas_rx)
 {
-  srsran::unique_byte_buffer_t                  nas_tx;
-  LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT auth_resp;
+  LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT auth_resp = {};
   bool                                          ue_valid = true;
 
   // Get NAS authentication response
@@ -936,7 +971,11 @@ bool nas::handle_authentication_response(srsran::byte_buffer_t* nas_rx)
     }
   }
 
-  nas_tx = srsran::make_byte_buffer();
+  srsran::unique_byte_buffer_t nas_tx = srsran::make_byte_buffer();
+  if (nas_tx == nullptr) {
+    m_logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return false;
+  }
   if (!ue_valid) {
     // Authentication rejected
     srsran::console("UE Authentication Rejected.\n");
@@ -964,8 +1003,7 @@ bool nas::handle_authentication_response(srsran::byte_buffer_t* nas_rx)
 
 bool nas::handle_security_mode_complete(srsran::byte_buffer_t* nas_rx)
 {
-  srsran::unique_byte_buffer_t                 nas_tx;
-  LIBLTE_MME_SECURITY_MODE_COMPLETE_MSG_STRUCT sm_comp;
+  LIBLTE_MME_SECURITY_MODE_COMPLETE_MSG_STRUCT sm_comp = {};
 
   // Get NAS security mode complete
   LIBLTE_ERROR_ENUM err = liblte_mme_unpack_security_mode_complete_msg((LIBLTE_BYTE_MSG_STRUCT*)nas_rx, &sm_comp);
@@ -979,7 +1017,11 @@ bool nas::handle_security_mode_complete(srsran::byte_buffer_t* nas_rx)
   srsran::console("Security Mode Command Complete -- IMSI: %015" PRIu64 "\n", m_emm_ctx.imsi);
 
   // Check wether secure ESM information transfer is required
-  nas_tx = srsran::make_byte_buffer();
+  srsran::unique_byte_buffer_t nas_tx = srsran::make_byte_buffer();
+  if (nas_tx == nullptr) {
+    m_logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return false;
+  }
   if (m_ecm_ctx.eit == true) {
     // Secure ESM information transfer is required
     srsran::console("Sending ESM information request\n");
@@ -1006,7 +1048,6 @@ bool nas::handle_attach_complete(srsran::byte_buffer_t* nas_rx)
   LIBLTE_MME_ATTACH_COMPLETE_MSG_STRUCT                            attach_comp;
   uint8_t                                                          pd, msg_type;
   LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT act_bearer;
-  srsran::unique_byte_buffer_t                                     nas_tx;
 
   // Get NAS authentication response
   std::memset(&attach_comp, 0, sizeof(attach_comp));
@@ -1036,7 +1077,11 @@ bool nas::handle_attach_complete(srsran::byte_buffer_t* nas_rx)
         m_emm_ctx.imsi, act_bearer.eps_bearer_id, &m_esm_ctx[act_bearer.eps_bearer_id].enb_fteid);
 
     // Send reply to EMM Info to UE
-    nas_tx = srsran::make_byte_buffer();
+    srsran::unique_byte_buffer_t nas_tx = srsran::make_byte_buffer();
+    if (nas_tx == nullptr) {
+      m_logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+      return false;
+    }
     pack_emm_information(nas_tx.get());
 
     m_s1ap->send_downlink_nas_transport(
@@ -1126,6 +1171,10 @@ bool nas::handle_identity_response(srsran::byte_buffer_t* nas_rx)
 
   // Pack NAS Authentication Request in Downlink NAS Transport msg
   nas_tx = srsran::make_byte_buffer();
+  if (nas_tx == nullptr) {
+    m_logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return false;
+  }
   pack_authentication_request(nas_tx.get());
 
   // Send reply to eNB
@@ -1147,6 +1196,10 @@ bool nas::handle_tracking_area_update_request(srsran::byte_buffer_t* nas_rx)
   /* TAU handling unsupported, therefore send TAU reject with cause IMPLICITLY DETACHED.
    * this will trigger full re-attach by the UE, instead of going to a TAU request loop */
   nas_tx = srsran::make_byte_buffer();
+  if (nas_tx == nullptr) {
+    m_logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return false;
+  }
   // TODO we could enable integrity protection in some cases, but UE should comply anyway
   pack_tracking_area_update_reject(nas_tx.get(), LIBLTE_MME_EMM_CAUSE_IMPLICITLY_DETACHED);
   // Send reply
@@ -1204,6 +1257,10 @@ bool nas::handle_authentication_failure(srsran::byte_buffer_t* nas_rx)
 
       // Pack NAS Authentication Request in Downlink NAS Transport msg
       nas_tx = srsran::make_byte_buffer();
+      if (nas_tx == nullptr) {
+        m_logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+        return false;
+      }
       pack_authentication_request(nas_tx.get());
 
       // Send reply to eNB

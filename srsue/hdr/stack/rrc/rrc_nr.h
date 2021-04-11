@@ -49,7 +49,8 @@ struct core_less_args_t {
 
 struct rrc_nr_args_t {
   core_less_args_t      coreless;
-  std::vector<uint32_t> supported_bands;
+  std::vector<uint32_t> supported_bands_nr;
+  std::vector<uint32_t> supported_bands_eutra;
   std::string           log_level;
   uint32_t              log_hex_limit;
 };
@@ -104,13 +105,12 @@ public:
   void in_sync() final;
   void out_of_sync() final;
 
-  // MAC interface
-  void run_tti(uint32_t tti) final;
 
   // RLC interface
   void max_retx_attempted() final;
 
   // MAC interface
+  void run_tti(uint32_t tti) final;
   void ra_completed() final;
   void ra_problem() final;
   void release_pucch_srs() final;
@@ -216,20 +216,25 @@ private:
   bool apply_csi_meas_cfg(const asn1::rrc_nr::csi_meas_cfg_s& csi_meas_cfg);
   bool apply_res_csi_report_cfg(const asn1::rrc_nr::csi_report_cfg_s& csi_report_cfg);
   bool apply_drb_add_mod(const asn1::rrc_nr::drb_to_add_mod_s& drb_cfg);
+  bool apply_drb_release(const uint8_t drb);
   bool apply_security_cfg(const asn1::rrc_nr::security_cfg_s& security_cfg);
 
   srsran::as_security_config_t sec_cfg;
+
+  typedef enum { mcg_srb1, en_dc_srb3, nr } reconf_initiator_t;
 
   class connection_reconf_no_ho_proc
   {
   public:
     explicit connection_reconf_no_ho_proc(rrc_nr* parent_);
-    srsran::proc_outcome_t init(const bool                              endc_release_and_add_r15,
-                                const asn1::rrc_nr::rrc_recfg_s&        rrc_recfg,
-                                const asn1::rrc_nr::cell_group_cfg_s&   cell_group_cfg,
-                                bool                                    sk_counter_r15_present,
-                                const uint32_t                          sk_counter_r15,
-                                const asn1::rrc_nr::radio_bearer_cfg_s& radio_bearer_cfg);
+    srsran::proc_outcome_t init(const reconf_initiator_t initiator_,
+                                const bool                endc_release_and_add_r15,
+                                const bool                nr_secondary_cell_group_cfg_r15_present,
+                                const asn1::dyn_octstring nr_secondary_cell_group_cfg_r15,
+                                const bool                sk_counter_r15_present,
+                                const uint32_t            sk_counter_r15,
+                                const bool                nr_radio_bearer_cfg1_r15_present,
+                                const asn1::dyn_octstring nr_radio_bearer_cfg1_r15);
     srsran::proc_outcome_t step() { return srsran::proc_outcome_t::yield; }
     static const char*     name() { return "NR Connection Reconfiguration"; }
     srsran::proc_outcome_t react(const bool& config_complete);
@@ -237,8 +242,8 @@ private:
 
   private:
     // const
-    rrc_nr* rrc_ptr;
-
+    rrc_nr*                        rrc_ptr;
+    reconf_initiator_t             initiator;
     asn1::rrc_nr::rrc_recfg_s      rrc_recfg;
     asn1::rrc_nr::cell_group_cfg_s cell_group_cfg;
   };

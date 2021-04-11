@@ -60,7 +60,10 @@ public:
     PADDING = 0b111111,
   } nr_lcid_sch_t;
 
-  mac_sch_subpdu_nr(mac_sch_pdu_nr* parent_);
+  // SDUs up to 256 B can use the short 8-bit L field
+  static const int32_t MAC_SUBHEADER_LEN_THRESHOLD = 256;
+
+  mac_sch_subpdu_nr(mac_sch_pdu_nr* parent_) : parent(parent_), logger(&srslog::fetch_basic_logger("MAC")){};
 
   nr_lcid_sch_t get_type();
   bool          is_sdu();
@@ -88,12 +91,20 @@ public:
   static const uint8_t                    max_num_lcg_lbsr = 8;
   std::array<lcg_bsr_t, max_num_lcg_lbsr> get_lbsr();
 
+  // TA
+  struct ta_t {
+    uint8_t tag_id;
+    uint8_t ta_command;
+  };
+  ta_t get_ta();
+
   // setters
   void set_sdu(const uint32_t lcid_, const uint8_t* payload_, const uint32_t len_);
   void set_padding(const uint32_t len_);
   void set_c_rnti(const uint16_t crnti_);
   void set_se_phr(const uint8_t phr_, const uint8_t pcmax_);
   void set_sbsr(const lcg_bsr_t bsr_);
+  void set_lbsr(const std::array<mac_sch_subpdu_nr::lcg_bsr_t, max_num_lcg_lbsr> bsr_);
 
   uint32_t write_subpdu(const uint8_t* start_);
 
@@ -101,7 +112,8 @@ public:
   static uint32_t sizeof_ce(uint32_t lcid, bool is_ul);
 
 private:
-  // protected:
+  srslog::basic_logger* logger;
+
   uint32_t lcid          = 0;
   int      header_length = 0;
   int      sdu_length    = 0;
@@ -129,11 +141,12 @@ public:
   void init_rx(bool ulsch_ = false);
 
   // Add SDU or CEs to PDU
-  // All functions will return SRSRAN_SUCCESS on success, and SRSLE_ERROR otherwise
+  // All functions will return SRSRAN_SUCCESS on success, and SRSRAN_ERROR otherwise
   uint32_t add_sdu(const uint32_t lcid_, const uint8_t* payload_, const uint32_t len_);
   uint32_t add_crnti_ce(const uint16_t crnti_);
   uint32_t add_se_phr_ce(const uint8_t phr_, const uint8_t pcmax_);
   uint32_t add_sbsr_ce(const mac_sch_subpdu_nr::lcg_bsr_t bsr_);
+  uint32_t add_lbsr_ce(const std::array<mac_sch_subpdu_nr::lcg_bsr_t, mac_sch_subpdu_nr::max_num_lcg_lbsr> bsr_);
 
   uint32_t get_remaing_len();
 

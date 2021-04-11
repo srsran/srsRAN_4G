@@ -23,6 +23,7 @@
 #include <string.h>
 
 #include "srsenb/hdr/stack/mac/mac.h"
+#include "srsran/adt/pool/obj_pool.h"
 #include "srsran/common/rwlock_guard.h"
 #include "srsran/common/standard_streams.h"
 #include "srsran/common/time_prof.h"
@@ -56,42 +57,51 @@ bool mac::init(const mac_args_t&        args_,
 {
   started = false;
 
-  if (phy && rlc) {
-    phy_h = phy;
-    rlc_h = rlc;
-    rrc_h = rrc;
+  if (not phy or not rlc) {
+    return false;
+  }
+  phy_h = phy;
+  rlc_h = rlc;
+  rrc_h = rrc;
 
-    args  = args_;
-    cells = cells_;
+  args  = args_;
+  cells = cells_;
 
-    stack_task_queue = task_sched.make_task_queue();
+  stack_task_queue = task_sched.make_task_queue();
 
-    scheduler.init(rrc, args.sched);
+  scheduler.init(rrc, args.sched);
 
-    // Init softbuffer for SI messages
-    common_buffers.resize(cells.size());
-    for (auto& cc : common_buffers) {
-      for (int i = 0; i < NOF_BCCH_DLSCH_MSG; i++) {
-        srsran_softbuffer_tx_init(&cc.bcch_softbuffer_tx[i], args.nof_prb);
-      }
-      // Init softbuffer for PCCH
-      srsran_softbuffer_tx_init(&cc.pcch_softbuffer_tx, args.nof_prb);
-
-      // Init softbuffer for RAR
-      srsran_softbuffer_tx_init(&cc.rar_softbuffer_tx, args.nof_prb);
+  // Init softbuffer for SI messages
+  common_buffers.resize(cells.size());
+  for (auto& cc : common_buffers) {
+    for (int i = 0; i < NOF_BCCH_DLSCH_MSG; i++) {
+      srsran_softbuffer_tx_init(&cc.bcch_softbuffer_tx[i], args.nof_prb);
     }
+    // Init softbuffer for PCCH
+    srsran_softbuffer_tx_init(&cc.pcch_softbuffer_tx, args.nof_prb);
 
-    reset();
-
-    // Pre-alloc UE objects for first attaching users
-    prealloc_ue(10);
-
-    detected_rachs.resize(cells.size());
-
-    started = true;
+    // Init softbuffer for RAR
+    srsran_softbuffer_tx_init(&cc.rar_softbuffer_tx, args.nof_prb);
   }
 
-  return started;
+  reset();
+
+  // Initiate common pool of softbuffers
+  uint32_t nof_prb          = args.nof_prb;
+  auto     init_softbuffers = [nof_prb](void* ptr) {
+    new (ptr) ue_cc_softbuffers(nof_prb, SRSRAN_FDD_NOF_HARQ, SRSRAN_FDD_NOF_HARQ);
+  };
+  auto recycle_softbuffers = [](ue_cc_softbuffers& softbuffers) { softbuffers.clear(); };
+  softbuffer_pool.reset(new srsran::background_obj_pool<ue_cc_softbuffers>(
+      8, 8, args.max_nof_ues, init_softbuffers, recycle_softbuffers));
+
+  // Pre-alloc UE objects for first attaching users
+  prealloc_ue(10);
+
+  detected_rachs.resize(cells.size());
+
+  started = true;
+  return true;
 }
 
 void mac::stop()
@@ -461,8 +471,7 @@ uint16_t mac::allocate_ue()
       logger.error("UE pool empty. Ignoring RACH attempt.");
       return SRSRAN_INVALID_RNTI;
     }
-    uint16_t rnti    = ue_ptr->get_rnti();
-    size_t   max_ues = std::min((size_t)args.max_nof_ues, ue_db.capacity());
+    uint16_t rnti = ue_ptr->get_rnti();
 
     // Add UE to map
     {
@@ -472,7 +481,7 @@ uint16_t mac::allocate_ue()
         return SRSRAN_INVALID_RNTI;
       }
       if (ue_db.size() >= args.max_nof_ues) {
-        logger.warning("Maximum number of connected UEs %zd connected to the eNB. Ignoring PRACH", max_ues);
+        logger.warning("Maximum number of connected UEs %zd connected to the eNB. Ignoring PRACH", args.max_nof_ues);
         return SRSRAN_INVALID_RNTI;
       }
       auto ret = ue_db.insert(rnti, std::move(ue_ptr));
@@ -579,8 +588,8 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
 void mac::prealloc_ue(uint32_t nof_ue)
 {
   for (uint32_t i = 0; i < nof_ue; i++) {
-    std::unique_ptr<ue> ptr = std::unique_ptr<ue>(
-        new ue(allocate_rnti(), args.nof_prb, &scheduler, rrc_h, rlc_h, phy_h, logger, cells.size()));
+    std::unique_ptr<ue> ptr = std::unique_ptr<ue>(new ue(
+        allocate_rnti(), args.nof_prb, &scheduler, rrc_h, rlc_h, phy_h, logger, cells.size(), softbuffer_pool.get()));
     if (not ue_pool.try_push(std::move(ptr))) {
       logger.info("Cannot preallocate more UEs as pool is full");
       return;
@@ -841,9 +850,9 @@ int mac::get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res
       int requested_bytes = (mcs_data.tbs / 8 > (int)mch.mtch_sched[mtch_index].lcid_buffer_size)
                                 ? (mch.mtch_sched[mtch_index].lcid_buffer_size)
                                 : ((mcs_data.tbs / 8) - 2);
-      int bytes_received  = ue_db[SRSRAN_MRNTI]->read_pdu(current_lcid, mtch_payload_buffer, requested_bytes);
-      mch.pdu[0].lcid     = current_lcid;
-      mch.pdu[0].nbytes   = bytes_received;
+      int bytes_received = ue_db[SRSRAN_MRNTI]->read_pdu(current_lcid, mtch_payload_buffer, requested_bytes);
+      mch.pdu[0].lcid    = current_lcid;
+      mch.pdu[0].nbytes  = bytes_received;
       mch.mtch_sched[0].mtch_payload  = mtch_payload_buffer;
       dl_sched_res->pdsch[0].dci.rnti = SRSRAN_MRNTI;
       if (bytes_received) {
@@ -1009,8 +1018,8 @@ void mac::write_mcch(const srsran::sib2_mbms_t* sib2_,
   sib13 = *sib13_;
   memcpy(mcch_payload_buffer, mcch_payload, mcch_payload_length * sizeof(uint8_t));
   current_mcch_length = mcch_payload_length;
-  ue_db[SRSRAN_MRNTI] =
-      std::unique_ptr<ue>{new ue(SRSRAN_MRNTI, args.nof_prb, &scheduler, rrc_h, rlc_h, phy_h, logger, cells.size())};
+  ue_db[SRSRAN_MRNTI] = std::unique_ptr<ue>{
+      new ue(SRSRAN_MRNTI, args.nof_prb, &scheduler, rrc_h, rlc_h, phy_h, logger, cells.size(), softbuffer_pool.get())};
 
   rrc_h->add_user(SRSRAN_MRNTI, {});
 }

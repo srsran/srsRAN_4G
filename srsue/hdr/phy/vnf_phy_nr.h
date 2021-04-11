@@ -66,7 +66,8 @@ public:
                   const int      prach_occasion,
                   const float    target_power_dbm,
                   const float    ta_base_sec = 0.0f) override{};
-  void sr_send(uint32_t sr_id) override;
+  bool has_valid_sr_resource(uint32_t sr_id) override;
+  void clear_pending_grants() override;
 
 private:
   std::unique_ptr<srsran::srsran_basic_vnf> vnf;

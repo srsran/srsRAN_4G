@@ -54,6 +54,15 @@ bool sf_worker::set_carrier_unlocked(uint32_t cc_idx, const srsran_carrier_nr_t*
   return cc_workers.at(cc_idx)->set_carrier(carrier_);
 }
 
+bool sf_worker::update_cfg(uint32_t cc_idx)
+{
+  if (cc_idx >= cc_workers.size()) {
+    return false;
+  }
+
+  return cc_workers[cc_idx]->update_cfg();
+}
+
 cf_t* sf_worker::get_buffer(uint32_t cc_idx, uint32_t antenna_idx)
 {
   if (cc_idx >= cc_workers.size()) {
@@ -86,6 +95,10 @@ void sf_worker::work_imp()
   for (auto& w : cc_workers) {
     w->work_dl();
   }
+
+  // Align workers, wait for previous workers to finish DL processing before starting UL processing
+  phy_state->dl_ul_semaphore.wait(this);
+  phy_state->dl_ul_semaphore.release();
 
   // Check if PRACH is available
   if (prach_ptr != nullptr) {

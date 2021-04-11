@@ -48,9 +48,9 @@ public:
                  srsue::gw_interface_pdcp*  gw_,
                  srsran::task_sched_handle  task_sched_,
                  srslog::basic_logger&      logger,
-                 uint32_t                   lcid,
-                 pdcp_config_t              cfg_);
+                 uint32_t                   lcid);
   ~pdcp_entity_nr() final;
+  bool configure(const pdcp_config_t& cnfg_) final;
   void reset() final;
   void reestablish() final;
 

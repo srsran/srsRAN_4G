@@ -237,6 +237,12 @@ int ue::parse_args(const all_args_t& args_)
           args.stack.rrc.supported_bands.end()) {
         args.stack.rrc.supported_bands[args.stack.rrc.nof_supported_bands++] = band;
       }
+      // RRC NR needs also information about supported eutra bands
+      if (std::find(args.stack.rrc_nr.supported_bands_eutra.begin(),
+                    args.stack.rrc_nr.supported_bands_eutra.end(),
+                    band) == args.stack.rrc_nr.supported_bands_eutra.end()) {
+        args.stack.rrc_nr.supported_bands_eutra.push_back(band);
+      }
     }
   } else {
     logger.error("Error: dl_earfcn list is empty");
@@ -269,9 +275,10 @@ int ue::parse_args(const all_args_t& args_)
         std::vector<uint32_t> bands = bands_helper.get_bands_nr(arfcn);
         for (const auto& band : bands) {
           // make sure we don't add duplicates
-          if (std::find(args.stack.rrc_nr.supported_bands.begin(), args.stack.rrc_nr.supported_bands.end(), band) ==
-              args.stack.rrc_nr.supported_bands.end()) {
-            args.stack.rrc_nr.supported_bands.push_back(band);
+          if (std::find(args.stack.rrc_nr.supported_bands_nr.begin(),
+                        args.stack.rrc_nr.supported_bands_nr.end(),
+                        band) == args.stack.rrc_nr.supported_bands_nr.end()) {
+            args.stack.rrc_nr.supported_bands_nr.push_back(band);
           }
         }
       }
@@ -337,6 +344,7 @@ bool ue::get_metrics(ue_metrics_t* m)
   stack->get_metrics(&m->stack);
   gw_inst->get_metrics(m->gw, m->stack.mac[0].nof_tti);
   m->sys = sys_proc.get_metrics();
+  m->phy_nr.nof_active_cc = args.phy.nof_nr_carriers; // FIXME: temporary until PHY metrics are complete
   return true;
 }
 

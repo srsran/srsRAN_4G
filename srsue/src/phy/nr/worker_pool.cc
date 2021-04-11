@@ -69,6 +69,10 @@ bool worker_pool::init(const phy_args_nr_t& args, phy_common* common, stack_inte
 
 void worker_pool::start_worker(sf_worker* w)
 {
+  // Push worker pointer for internal worker TTI synchronization
+  phy_state.dl_ul_semaphore.push(w);
+
+  // Signal worker to start processing asynchronously
   pool.start_worker(w);
 }
 
@@ -103,16 +107,16 @@ int worker_pool::set_ul_grant(std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> pac
 {
   // Copy DCI bits and setup DCI context
   srsran_dci_msg_nr_t dci_msg = {};
-  dci_msg.format              = srsran_dci_format_nr_0_0; // MAC RAR grant shall be unpacked as DCI 0_0 format
-  dci_msg.rnti_type           = rnti_type;
-  dci_msg.search_space        = srsran_search_space_type_rar; // This indicates it is a MAC RAR
-  dci_msg.rnti                = rnti;
+  dci_msg.ctx.format          = srsran_dci_format_nr_rar; // MAC RAR grant shall be unpacked as DCI 0_0 format
+  dci_msg.ctx.rnti_type       = rnti_type;
+  dci_msg.ctx.ss_type         = srsran_search_space_type_rar; // This indicates it is a MAC RAR
+  dci_msg.ctx.rnti            = rnti;
   dci_msg.nof_bits            = SRSRAN_RAR_UL_GRANT_NBITS;
   srsran_vec_u8_copy(dci_msg.payload, packed_ul_grant.data(), SRSRAN_RAR_UL_GRANT_NBITS);
 
   srsran_dci_ul_nr_t dci_ul = {};
 
-  if (srsran_dci_nr_rar_unpack(&dci_msg, &dci_ul) < SRSRAN_SUCCESS) {
+  if (srsran_dci_nr_ul_unpack(NULL, &dci_msg, &dci_ul) < SRSRAN_SUCCESS) {
     return SRSRAN_ERROR;
   }
 
@@ -140,12 +144,25 @@ bool worker_pool::set_config(const srsran::phy_cfg_nr_t& cfg)
     return false;
   }
 
+  // Request workers to run any procedure related to configuration update
+  for (auto& w : workers) {
+    if (not w->update_cfg(0)) {
+      return false;
+    }
+  }
+
   return true;
 }
 
-void worker_pool::sr_send(uint32_t sr_id)
+bool worker_pool::has_valid_sr_resource(uint32_t sr_id)
 {
-  phy_state.set_pending_sr(sr_id);
+  return phy_state.has_valid_sr_resource(sr_id);
 }
+
+void worker_pool::clear_pending_grants()
+{
+  phy_state.clear_pending_grants();
+}
+
 } // namespace nr
 } // namespace srsue

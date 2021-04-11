@@ -144,15 +144,21 @@ int srsran_enb_dl_nr_set_carrier(srsran_enb_dl_nr_t* q, const srsran_carrier_nr_
   return SRSRAN_SUCCESS;
 }
 
-int srsran_enb_dl_nr_set_coreset(srsran_enb_dl_nr_t* q, const srsran_coreset_t* coreset)
+int srsran_enb_dl_nr_set_pdcch_config(srsran_enb_dl_nr_t*          q,
+                                      const srsran_pdcch_cfg_nr_t* cfg,
+                                      const srsran_dci_cfg_nr_t*   dci_cfg)
 {
-  if (q == NULL || coreset == NULL) {
+  if (q == NULL || cfg == NULL) {
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
-  q->coreset = *coreset;
+  q->pdcch_cfg = *cfg;
 
-  if (srsran_pdcch_nr_set_carrier(&q->pdcch, &q->carrier, &q->coreset) < SRSRAN_SUCCESS) {
+  if (srsran_pdcch_nr_set_carrier(&q->pdcch, &q->carrier, &q->pdcch_cfg.coreset[0]) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
+  }
+
+  if (srsran_dci_nr_set_cfg(&q->dci, dci_cfg) < SRSRAN_SUCCESS) {
     return SRSRAN_ERROR;
   }
 
@@ -191,15 +197,27 @@ int srsran_enb_dl_nr_pdcch_put(srsran_enb_dl_nr_t*       q,
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
+  if (dci_dl->ctx.coreset_id >= SRSRAN_UE_DL_NR_MAX_NOF_CORESET ||
+      !q->pdcch_cfg.coreset_present[dci_dl->ctx.coreset_id]) {
+    ERROR("Invalid CORESET ID %d", dci_dl->ctx.coreset_id);
+    return SRSRAN_ERROR;
+  }
+  srsran_coreset_t* coreset = &q->pdcch_cfg.coreset[dci_dl->ctx.coreset_id];
+
+  if (srsran_pdcch_nr_set_carrier(&q->pdcch, &q->carrier, coreset) < SRSRAN_SUCCESS) {
+    ERROR("Error setting PDCCH carrier/CORESET");
+    return SRSRAN_ERROR;
+  }
+
   // Put DMRS
-  if (srsran_dmrs_pdcch_put(&q->carrier, &q->coreset, slot_cfg, &dci_dl->location, q->sf_symbols[0]) < SRSRAN_SUCCESS) {
+  if (srsran_dmrs_pdcch_put(&q->carrier, coreset, slot_cfg, &dci_dl->ctx.location, q->sf_symbols[0]) < SRSRAN_SUCCESS) {
     ERROR("Error putting PDCCH DMRS");
     return SRSRAN_ERROR;
   }
 
   // Pack DCI
   srsran_dci_msg_nr_t dci_msg = {};
-  if (srsran_dci_nr_pack(&q->carrier, &q->coreset, dci_dl, &dci_msg) < SRSRAN_SUCCESS) {
+  if (srsran_dci_nr_dl_pack(&q->dci, dci_dl, &dci_msg) < SRSRAN_SUCCESS) {
     ERROR("Error packing DL DCI");
     return SRSRAN_ERROR;
   }
@@ -210,7 +228,7 @@ int srsran_enb_dl_nr_pdcch_put(srsran_enb_dl_nr_t*       q,
     return SRSRAN_ERROR;
   }
 
-  INFO("DCI DL NR: L=%d; ncce=%d;", dci_dl->location.L, dci_dl->location.ncce);
+  INFO("DCI DL NR: L=%d; ncce=%d;", dci_dl->ctx.location.L, dci_dl->ctx.location.ncce);
 
   return SRSRAN_SUCCESS;
 }

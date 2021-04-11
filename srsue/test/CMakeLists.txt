@@ -20,7 +20,6 @@
 
 add_subdirectory(phy)
 add_subdirectory(upper)
-add_subdirectory(mac_nr)
 
 if (ENABLE_TTCN3)
   add_subdirectory(ttcn3)

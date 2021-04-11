@@ -22,10 +22,11 @@
 #include <map>
 #include <string.h>
 
-#include "common_enb.h"
+#include "srsenb/hdr/common/common_enb.h"
 #include "srsran/adt/bounded_vector.h"
 #include "srsran/adt/circular_map.h"
 #include "srsran/common/buffer_pool.h"
+#include "srsran/common/network_utils.h"
 #include "srsran/common/task_scheduler.h"
 #include "srsran/common/threads.h"
 #include "srsran/interfaces/enb_gtpu_interfaces.h"
@@ -127,8 +128,8 @@ private:
   pdcp_interface_gtpu*      pdcp = nullptr;
   srslog::basic_logger&     logger;
 
-  tunnel_list_t                                                              tunnels;
   srsran::static_circular_map<uint16_t, ue_lcid_tunnel_list, SRSENB_MAX_UES> ue_teidin_db;
+  tunnel_list_t                                                              tunnels;
 };
 
 using gtpu_tunnel_state = gtpu_tunnel_manager::tunnel_state;
@@ -137,16 +138,17 @@ using gtpu_tunnel       = gtpu_tunnel_manager::tunnel;
 class gtpu final : public gtpu_interface_rrc, public gtpu_interface_pdcp
 {
 public:
-  explicit gtpu(srsran::task_sched_handle task_sched_, srslog::basic_logger& logger);
+  explicit gtpu(srsran::task_sched_handle   task_sched_,
+                srslog::basic_logger&       logger,
+                srsran::socket_manager_itf* rx_socket_handler_);
   ~gtpu();
 
-  int  init(std::string               gtp_bind_addr_,
-            std::string               mme_addr_,
-            std::string               m1u_multiaddr_,
-            std::string               m1u_if_addr_,
-            pdcp_interface_gtpu*      pdcp_,
-            stack_interface_gtpu_lte* stack_,
-            bool                      enable_mbsfn = false);
+  int  init(std::string          gtp_bind_addr_,
+            std::string          mme_addr_,
+            std::string          m1u_multiaddr_,
+            std::string          m1u_if_addr_,
+            pdcp_interface_gtpu* pdcp_,
+            bool                 enable_mbsfn = false);
   void stop();
 
   // gtpu_interface_rrc
@@ -172,7 +174,8 @@ private:
 
   void rem_tunnel(uint32_t teidin);
 
-  stack_interface_gtpu_lte* stack = nullptr;
+  srsran::socket_manager_itf* rx_socket_handler = nullptr;
+  srsran::task_queue_handle   gtpu_queue;
 
   bool                         enable_mbsfn = false;
   std::string                  gtp_bind_addr;

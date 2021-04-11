@@ -45,8 +45,8 @@ private:
   void write_mac_lte_pdu_to_net(srsran::mac_pcap_base::pcap_pdu_t& pdu);
   void write_mac_nr_pdu_to_net(srsran::mac_pcap_base::pcap_pdu_t& pdu);
 
-  srsran::socket_handler_t socket;
-  struct sockaddr_in       client_addr;
+  srsran::unique_socket socket;
+  struct sockaddr_in    client_addr;
 };
 } // namespace srsran
 

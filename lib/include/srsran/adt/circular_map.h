@@ -179,6 +179,16 @@ public:
     return iterator(this, idx);
   }
 
+  template <typename U>
+  void overwrite(K id, U&& obj)
+  {
+    size_t idx = id % N;
+    if (present[idx]) {
+      erase(buffer[idx].get().first);
+    }
+    insert(id, std::forward<U>(obj));
+  }
+
   bool erase(K id)
   {
     if (not contains(id)) {
@@ -193,20 +203,24 @@ public:
 
   iterator erase(iterator it)
   {
-    srsran_assert(it.idx < N, "Iterator out-of-bounds (%zd >= %zd)", it.idx, N);
+    srsran_assert(it.idx < N and it.ptr == this, "Iterator out-of-bounds (%zd >= %zd)", it.idx, N);
     iterator next = it;
     ++next;
-    it->~obj_t();
-    present[it->first] = false;
+    present[it.idx] = false;
+    get_obj_(it.idx).~obj_t();
     --count;
     return next;
   }
 
   void clear()
   {
-    for (auto it = begin(); it != end();) {
-      it = erase(it);
+    for (size_t i = 0; i < N; ++i) {
+      if (present[i]) {
+        present[i] = false;
+        get_obj_(i).~obj_t();
+      }
     }
+    count = 0;
   }
 
   T& operator[](K id)

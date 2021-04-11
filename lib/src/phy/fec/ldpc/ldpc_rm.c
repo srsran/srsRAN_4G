@@ -695,5 +695,6 @@ int srsran_ldpc_rm_rx_c(srsran_ldpc_rm_t*        q,
     bit_selection_rm_rx_c(tmp_rm_symbol, q->E, output, indices, ini_exclude, end_exclude, q->k0, q->Ncb);
   }
 
-  return 0;
+  // Return the number of useful LLR
+  return (int)SRSRAN_MIN(q->k0 + q->E, q->Ncb);
 }
