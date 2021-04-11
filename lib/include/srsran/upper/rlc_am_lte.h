@@ -345,6 +345,9 @@ private:
 
     // Mutexes
     std::mutex mutex;
+
+    // default to RLC SDU queue length
+    const uint32_t MAX_SDUS_PER_RLC_PDU = RLC_TX_QUEUE_LEN;
   };
 
   // Receiver sub-class

@@ -148,7 +148,7 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, int upper_sn)
   if (!rlc->rb_is_um(lcid) and is_drb()) {
     if (not store_sdu(used_sn, sdu)) {
       // Could not store the SDU, discarding
-      logger.info("Could not store SDU. Discarding %d\n", used_sn);
+      logger.warning("Could not store SDU. Discarding SN=%d", used_sn);
       return;
     }
   }
@@ -688,7 +688,7 @@ bool pdcp_entity_lte::store_sdu(uint32_t sn, const unique_byte_buffer_t& sdu)
 // Discard Timer Callback (discardTimer)
 void pdcp_entity_lte::discard_callback::operator()(uint32_t timer_id)
 {
-  parent->logger.debug("Discard timer expired for PDU with SN = %d", discard_sn);
+  parent->logger.info("Discard timer for SN=%d expired", discard_sn);
 
   // Notify the RLC of the discard. It's the RLC to actually discard, if no segment was transmitted yet.
   parent->rlc->discard_sdu(parent->lcid, discard_sn);
