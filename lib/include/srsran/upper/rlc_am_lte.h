@@ -16,6 +16,7 @@
 #include "srsran/adt/accumulators.h"
 #include "srsran/adt/circular_array.h"
 #include "srsran/adt/circular_map.h"
+#include "srsran/adt/intrusive_list.h"
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/common.h"
 #include "srsran/common/srsran_assert.h"
@@ -33,94 +34,101 @@ namespace srsran {
 
 #undef RLC_AM_BUFFER_DEBUG
 
-/// RLC AM PDU Segment, containing the PDCP SN and RLC SN it has been assigned to, and its current ACK state
-struct rlc_am_pdu_segment {
-  const static uint32_t invalid_sn = std::numeric_limits<uint32_t>::max();
+struct pdcp_pdu_segment_list;
+struct rlc_pdu_segment_list;
 
-  bool     empty() const { return rlc_sn() == invalid_sn and pdcp_sn() == invalid_sn; }
-  void     set_ack(bool val = true) { acked = val; }
-  bool     is_acked() const { return acked; }
-  uint32_t rlc_sn() const { return rlc_sn_; }
-  uint32_t pdcp_sn() const { return pdcp_sn_; }
-
-protected:
-  uint32_t rlc_sn_  = invalid_sn;
-  uint32_t pdcp_sn_ = invalid_sn;
-  bool     acked    = false;
-};
-
-template <bool rlcSnList>
-struct pdu_segment_list;
-using rlc_pdu_segment_list  = pdu_segment_list<true>;
-using pdcp_pdu_segment_list = pdu_segment_list<false>;
-
-/// Pool that manages the allocation of RLC AM PDU Segments to RLC SDUs
+/// Pool that manages the allocation of RLC AM PDU Segments to RLC PDUs and tracking of segments ACK state
 struct rlc_am_pdu_segment_pool {
   const static size_t MAX_POOL_SIZE = 16384;
+  using rlc_list_tag                = default_intrusive_tag;
+  struct free_list_tag {};
 
-  struct segment_resource : public rlc_am_pdu_segment {
-    int  id() const;
-    void deallocate();
+  /// RLC AM PDU Segment, containing the PDCP SN and RLC SN it has been assigned to, and its current ACK state
+  struct segment_resource : public intrusive_forward_list_element<rlc_list_tag>,
+                            public intrusive_forward_list_element<free_list_tag>,
+                            public intrusive_double_linked_list_element<> {
+    const static uint32_t invalid_sn = std::numeric_limits<uint32_t>::max();
 
-    using rlc_am_pdu_segment::pdcp_sn_;
-    using rlc_am_pdu_segment::rlc_sn_;
+    int      id() const;
+    void     release_pdcp_sn();
+    void     release_rlc_sn();
+    uint32_t rlc_sn() const { return rlc_sn_; }
+    uint32_t pdcp_sn() const { return pdcp_sn_; }
+    bool     empty() const { return rlc_sn_ == invalid_sn and pdcp_sn_ == invalid_sn; }
+    bool     is_acked() const { return rlc_sn() != invalid_sn; }
 
-    // intrusive same RLC PDU segment list
-    segment_resource* rlc_next = nullptr;
-    // intrusive same PDCP PDU segment list
-    segment_resource* pdcp_next = nullptr;
-
-    // intrusive linked lists
-    segment_resource*        next_free   = nullptr;
+  private:
+    friend struct rlc_am_pdu_segment_pool;
+    uint32_t                 rlc_sn_     = invalid_sn;
+    uint32_t                 pdcp_sn_    = invalid_sn;
     rlc_am_pdu_segment_pool* parent_pool = nullptr;
   };
 
   rlc_am_pdu_segment_pool();
   rlc_am_pdu_segment_pool(const rlc_am_pdu_segment_pool&) = delete;
   rlc_am_pdu_segment_pool(rlc_am_pdu_segment_pool&&)      = delete;
-  bool has_segments() const;
+  bool has_segments() const { return not free_list.empty(); }
   bool
-  allocate_segment(uint32_t rlc_sn, rlc_pdu_segment_list& rlc_list, uint32_t pdcp_sn, pdcp_pdu_segment_list& pdcp_list);
+  make_segment(uint32_t rlc_sn, uint32_t pdcp_sn, rlc_pdu_segment_list& rlc_list, pdcp_pdu_segment_list& pdcp_list);
 
 private:
-  segment_resource*                           free_list = nullptr;
-  std::array<segment_resource, MAX_POOL_SIZE> segments;
+  intrusive_forward_list<segment_resource, free_list_tag> free_list;
+  std::array<segment_resource, MAX_POOL_SIZE>             segments;
 };
 
-template <bool rlcSnList>
-struct pdu_segment_list {
-  void push(rlc_am_pdu_segment_pool::segment_resource* obj);
-  void clear() { head.reset(); }
+/// RLC AM PDU Segment, containing the PDCP SN and RLC SN it has been assigned to, and its current ACK state
+using rlc_am_pdu_segment = rlc_am_pdu_segment_pool::segment_resource;
 
-  struct iterator : public std::iterator<std::forward_iterator_tag, iterator> {
-    explicit iterator(rlc_am_pdu_segment_pool::segment_resource* item_ = nullptr) : item(item_) {}
-    const rlc_am_pdu_segment* operator->() const { return item; }
-    rlc_am_pdu_segment*       operator->() { return item; }
-    const rlc_am_pdu_segment& operator*() const { return *item; }
-    rlc_am_pdu_segment&       operator*() { return *item; }
-    iterator&                 operator++()
-    {
-      item = (rlcSnList) ? item->rlc_next : item->pdcp_next;
-      return *this;
+class pdcp_pdu_segment_list
+{
+  using list_type = intrusive_double_linked_list<rlc_am_pdu_segment>;
+  list_type list;
+
+public:
+  using iterator       = typename list_type::iterator;
+  using const_iterator = typename list_type::const_iterator;
+
+  iterator       begin() { return list.begin(); }
+  iterator       end() { return list.end(); }
+  const_iterator begin() const { return list.begin(); }
+  const_iterator end() const { return list.end(); }
+  bool           empty() const { return list.empty(); }
+
+  pdcp_pdu_segment_list()                                 = default;
+  pdcp_pdu_segment_list(pdcp_pdu_segment_list&&) noexcept = default;
+  pdcp_pdu_segment_list& operator=(pdcp_pdu_segment_list&&) noexcept = default;
+  ~pdcp_pdu_segment_list() { clear(); }
+  void push(rlc_am_pdu_segment& segment) { list.push_front(&segment); }
+  void pop(rlc_am_pdu_segment& segment);
+  void clear()
+  {
+    while (not empty()) {
+      pop(*begin());
     }
-    bool operator==(iterator other) const { return item == other.item; }
-    bool operator!=(iterator other) const { return item != other.item; }
+  }
+};
 
-  private:
-    rlc_am_pdu_segment_pool::segment_resource* item;
-  };
-  using const_iterator = iterator;
+struct rlc_pdu_segment_list {
+  using list_type      = intrusive_forward_list<rlc_am_pdu_segment>;
+  using iterator       = typename list_type::iterator;
+  using const_iterator = typename list_type::const_iterator;
 
-  iterator       begin() { return iterator(head.get()); }
-  iterator       end() { return iterator(nullptr); }
-  const_iterator begin() const { return iterator(head.get()); }
-  const_iterator end() const { return iterator(nullptr); }
+  const_iterator begin() const { return list.begin(); }
+  const_iterator end() const { return list.end(); }
+  iterator       begin() { return list.begin(); }
+  iterator       end() { return list.end(); }
+  bool           empty() const { return list.empty(); }
+
+  rlc_pdu_segment_list()                                      = default;
+  rlc_pdu_segment_list(rlc_pdu_segment_list&& other) noexcept = default;
+  rlc_pdu_segment_list(const rlc_pdu_segment_list&)           = delete;
+  rlc_pdu_segment_list& operator=(rlc_pdu_segment_list&& other) noexcept = default;
+  ~rlc_pdu_segment_list() { clear(); }
+  void push(rlc_am_pdu_segment& segment) { list.push_front(&segment); }
+  void clear();
 
 private:
-  struct list_deleter {
-    void operator()(rlc_am_pdu_segment_pool::segment_resource* ptr);
-  };
-  std::unique_ptr<rlc_am_pdu_segment_pool::segment_resource, list_deleter> head;
+  list_type list;
 };
 
 //
@@ -136,12 +144,12 @@ struct rlc_amd_rx_pdu_segments_t {
 };
 
 struct rlc_amd_tx_pdu_t {
-  rlc_amd_pdu_header_t  header;
-  unique_byte_buffer_t  buf;
-  pdcp_pdu_segment_list pdcp_sn_list;
-  uint32_t              retx_count;
-  uint32_t              rlc_sn   = std::numeric_limits<uint32_t>::max();
-  bool                  is_acked = false;
+  rlc_amd_pdu_header_t header;
+  unique_byte_buffer_t buf;
+  rlc_pdu_segment_list segment_list;
+  uint32_t             retx_count;
+  uint32_t             rlc_sn   = std::numeric_limits<uint32_t>::max();
+  bool                 is_acked = false;
 };
 
 struct rlc_amd_retx_t {
@@ -157,11 +165,10 @@ struct rlc_sn_info_t {
 };
 
 struct pdcp_sdu_info_t {
-  uint32_t sn;
-  bool     fully_txed;  // Boolean indicating if the SDU is fully transmitted.
-  bool     fully_acked; // Boolean indicating if the SDU is fully acked. This is only necessary temporarely to avoid
-                        // duplicate removal from the queue while processing the status report
-  rlc_pdu_segment_list rlc_segment_list; // List of RLC PDUs in transit and whether they have been acked or not.
+  uint32_t              sn;
+  bool                  fully_txed;   // Boolean indicating if the SDU is fully transmitted.
+  pdcp_pdu_segment_list segment_list; // List of RLC PDUs in transit and whether they have been acked or not.
+  bool                  fully_acked() const { return segment_list.empty(); }
 };
 
 template <class T>
@@ -222,10 +229,9 @@ public:
     if (buffered_pdus[sn_idx].sn == invalid_sn) {
       return;
     }
-    buffered_pdus[sn_idx].sn          = invalid_sn;
-    buffered_pdus[sn_idx].fully_acked = false;
-    buffered_pdus[sn_idx].fully_txed  = false;
-    buffered_pdus[sn_idx].rlc_segment_list.clear();
+    buffered_pdus[sn_idx].sn         = invalid_sn;
+    buffered_pdus[sn_idx].fully_txed = false;
+    buffered_pdus[sn_idx].segment_list.clear();
     count--;
   }
 
