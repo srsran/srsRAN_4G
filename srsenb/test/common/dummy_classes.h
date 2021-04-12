@@ -168,10 +168,11 @@ public:
   bool setup_ue_ctxt(uint16_t rnti, const asn1::s1ap::init_context_setup_request_s& msg) override { return true; }
   bool modify_ue_ctxt(uint16_t rnti, const asn1::s1ap::ue_context_mod_request_s& msg) override { return true; }
   bool setup_ue_erabs(uint16_t rnti, const asn1::s1ap::erab_setup_request_s& msg) override { return true; }
-  void modify_erabs(uint16_t                                                                         rnti,
-                    srsran::const_span<const asn1::s1ap::erab_to_be_modified_item_bearer_mod_req_s*> erabs_to_modify,
-                    std::vector<uint16_t>* erabs_failed_to_modify) override
+  void modify_erabs(
+      uint16_t                                                                         rnti,
+      srsran::const_span<const asn1::s1ap::erab_to_be_modified_item_bearer_mod_req_s*> erabs_to_modify) override
   {}
+  bool has_erab(uint16_t rnti, uint32_t erab_id) const override { return true; }
   bool release_erabs(uint32_t rnti) override { return true; }
   void release_erabs(uint32_t                              rnti,
                      const asn1::s1ap::erab_release_cmd_s& msg,

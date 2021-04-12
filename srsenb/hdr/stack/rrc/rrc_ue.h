@@ -53,6 +53,9 @@ public:
   ///< Helper to access a cell cfg based on ue_cc_idx
   enb_cell_common* get_ue_cc_cfg(uint32_t ue_cc_idx);
 
+  /// Helper to check UE ERABs
+  bool has_erab(uint32_t erab_id) const { return bearer_list.get_erabs().count(erab_id) > 0; }
+
   /// List of results a RRC procedure may produce.
   enum class procedure_result_code {
     none,

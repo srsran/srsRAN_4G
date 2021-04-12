@@ -91,16 +91,18 @@ struct dummy_socket_manager : public srsran::socket_manager_itf {
 };
 
 struct rrc_tester : public rrc_dummy {
-  void modify_erabs(uint16_t                                                                         rnti,
-                    srsran::const_span<const asn1::s1ap::erab_to_be_modified_item_bearer_mod_req_s*> erabs_to_modify,
-                    std::vector<uint16_t>* erabs_failed_to_modify) override
+  void modify_erabs(
+      uint16_t                                                                         rnti,
+      srsran::const_span<const asn1::s1ap::erab_to_be_modified_item_bearer_mod_req_s*> erabs_to_modify) override
   {
+    last_erabs_modified.clear();
     for (auto& erab : erabs_to_modify) {
-      if (std::count(next_erabs_failed_to_modify.begin(), next_erabs_failed_to_modify.end(), erab->erab_id) == 0) {
-        last_erabs_modified.push_back(erab->erab_id);
-      }
+      last_erabs_modified.push_back(erab->erab_id);
     }
-    *erabs_failed_to_modify = next_erabs_failed_to_modify;
+  }
+  bool has_erab(uint16_t rnti, uint32_t erab_id) const override
+  {
+    return std::count(next_erabs_failed_to_modify.begin(), next_erabs_failed_to_modify.end(), erab_id) == 0;
   }
   void release_ue(uint16_t rnti) override { last_released_rnti = rnti; }
 
@@ -187,7 +189,7 @@ void add_rnti(s1ap& s1ap_obj, mme_dummy& mme)
   TESTASSERT(s1ap_pdu.successful_outcome().proc_code == ASN1_S1AP_ID_INIT_CONTEXT_SETUP);
 }
 
-enum class test_event { success, wrong_erabid_mod, wrong_mme_s1ap_id };
+enum class test_event { success, wrong_erabid_mod, wrong_mme_s1ap_id, repeated_erabid_mod };
 
 void test_s1ap_erab_setup(test_event event)
 {
@@ -220,22 +222,37 @@ void test_s1ap_erab_setup(test_event event)
   add_rnti(s1ap_obj, mme);
 
   // E-RAB Modify Request
-  sockaddr_in     mme_addr      = {};
-  sctp_sndrcvinfo rcvinfo       = {};
-  int             flags         = 0;
-  uint8_t         mod_req_msg[] = {0x00, 0x06, 0x00, 0x1E, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x02, 0x00,
-                           0x01, 0x00, 0x08, 0x00, 0x02, 0x00, 0x01, 0x00, 0x1E, 0x00, 0x0B, 0x00,
-                           0x00, 0x24, 0x00, 0x06, 0x0A, 0x00, 0x09, 0x3C, 0x01, 0x00};
-  // 00 06 00 1E 00 00 03 00 00 00 02 00 01 00 08 00 02 00 01 00 1E 00 0B 00 00 24 00 06 0A 00 09 3C 01 00
+  sockaddr_in            mme_addr = {};
+  sctp_sndrcvinfo        rcvinfo  = {};
+  int                    flags    = 0;
+  asn1::s1ap::s1ap_pdu_c mod_req_pdu;
+  mod_req_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_ERAB_MODIFY);
+  auto& protocols                = mod_req_pdu.init_msg().value.erab_modify_request().protocol_ies;
+  protocols.enb_ue_s1ap_id.value = 1;
+  protocols.mme_ue_s1ap_id.value = event == test_event::wrong_mme_s1ap_id ? 2 : 1;
+  auto& erab_list                = protocols.erab_to_be_modified_list_bearer_mod_req.value;
+  erab_list.resize(2);
+  erab_list[0].load_info_obj(ASN1_S1AP_ID_ERAB_TO_BE_MODIFIED_ITEM_BEARER_MOD_REQ);
+  auto* erab_ptr                      = &erab_list[0].value.erab_to_be_modified_item_bearer_mod_req();
+  erab_ptr->erab_id                   = 5;
+  erab_ptr->erab_level_qos_params.qci = 9;
+  erab_ptr->erab_level_qos_params.alloc_retention_prio.prio_level = 15;
+  erab_ptr->erab_level_qos_params.alloc_retention_prio.pre_emption_cap.value =
+      asn1::s1ap::pre_emption_cap_opts::shall_not_trigger_pre_emption;
+  erab_ptr->erab_level_qos_params.alloc_retention_prio.pre_emption_vulnerability.value =
+      asn1::s1ap::pre_emption_vulnerability_opts::not_pre_emptable;
+  erab_ptr->nas_pdu.resize(1);
+  erab_list[1]      = erab_list[0];
+  erab_ptr          = &erab_list[1].value.erab_to_be_modified_item_bearer_mod_req();
+  erab_ptr->erab_id = event == test_event::repeated_erabid_mod ? 5 : 6;
   if (event == test_event::wrong_erabid_mod) {
-    mod_req_msg[sizeof(mod_req_msg) - 6] = 0x0C; // E-RAB id = 6
     rrc.next_erabs_failed_to_modify.push_back(6);
-  } else if (event == test_event::wrong_mme_s1ap_id) {
-    mod_req_msg[12] = 0x02; // MME-UE-S1AP-ID = 2
   }
   sdu = srsran::make_byte_buffer();
-  memcpy(sdu->msg, mod_req_msg, sizeof(mod_req_msg));
-  sdu->N_bytes = sizeof(mod_req_msg);
+  asn1::bit_ref bref(sdu->msg, sdu->get_tailroom());
+  TESTASSERT(mod_req_pdu.pack(bref) == SRSRAN_SUCCESS);
+  sdu->N_bytes = bref.distance_bytes();
+
   TESTASSERT(rrc.last_released_rnti == SRSRAN_INVALID_RNTI);
   TESTASSERT(s1ap_obj.handle_mme_rx_msg(std::move(sdu), mme_addr, rcvinfo, flags));
   sdu = mme.read_msg();
@@ -258,7 +275,10 @@ void test_s1ap_erab_setup(test_event event)
   TESTASSERT(s1ap_pdu.successful_outcome().proc_code == ASN1_S1AP_ID_ERAB_MODIFY);
   auto& protocol_ies = s1ap_pdu.successful_outcome().value.erab_modify_resp().protocol_ies;
   if (event == test_event::wrong_erabid_mod) {
-    TESTASSERT(not protocol_ies.erab_modify_list_bearer_mod_res_present);
+    TESTASSERT(protocol_ies.erab_modify_list_bearer_mod_res_present);
+    TESTASSERT(protocol_ies.erab_modify_list_bearer_mod_res.value.size() == 1);
+    TESTASSERT(protocol_ies.erab_modify_list_bearer_mod_res.value[0].value.erab_modify_item_bearer_mod_res().erab_id ==
+               5);
     TESTASSERT(protocol_ies.erab_failed_to_modify_list_present);
     TESTASSERT(protocol_ies.erab_failed_to_modify_list.value.size() == 1);
     auto& erab_item = protocol_ies.erab_failed_to_modify_list.value[0].value.erab_item();
@@ -267,10 +287,21 @@ void test_s1ap_erab_setup(test_event event)
     TESTASSERT(erab_item.cause.radio_network().value == asn1::s1ap::cause_radio_network_opts::unknown_erab_id);
     return;
   }
+  if (event == test_event::repeated_erabid_mod) {
+    TESTASSERT(not protocol_ies.erab_modify_list_bearer_mod_res_present);
+    TESTASSERT(protocol_ies.erab_failed_to_modify_list_present);
+    TESTASSERT(protocol_ies.erab_failed_to_modify_list.value.size() == 1);
+    auto& erab_item = protocol_ies.erab_failed_to_modify_list.value[0].value.erab_item();
+    TESTASSERT(erab_item.erab_id == 5);
+    TESTASSERT(erab_item.cause.type().value == asn1::s1ap::cause_c::types_opts::radio_network);
+    TESTASSERT(erab_item.cause.radio_network().value ==
+               asn1::s1ap::cause_radio_network_opts::multiple_erab_id_instances);
+    return;
+  }
 
   TESTASSERT(protocol_ies.erab_modify_list_bearer_mod_res_present);
   TESTASSERT(not protocol_ies.erab_failed_to_modify_list_present);
-  TESTASSERT(protocol_ies.erab_modify_list_bearer_mod_res.value.size() == 1);
+  TESTASSERT(protocol_ies.erab_modify_list_bearer_mod_res.value.size() == 2);
   auto& erab_item = protocol_ies.erab_modify_list_bearer_mod_res.value[0].value.erab_modify_item_bearer_mod_res();
   TESTASSERT(erab_item.erab_id == 5);
 }
@@ -288,4 +319,5 @@ int main(int argc, char** argv)
   test_s1ap_erab_setup(test_event::success);
   test_s1ap_erab_setup(test_event::wrong_erabid_mod);
   test_s1ap_erab_setup(test_event::wrong_mme_s1ap_id);
+  test_s1ap_erab_setup(test_event::repeated_erabid_mod);
 }

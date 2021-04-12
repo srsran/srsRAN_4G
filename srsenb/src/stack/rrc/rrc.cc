@@ -386,9 +386,18 @@ void rrc::release_erabs(uint32_t                              rnti,
   user_it->second->send_connection_reconf(nullptr, false, nas_pdu);
 }
 
+bool rrc::has_erab(uint16_t rnti, uint32_t erab_id) const
+{
+  auto user_it = users.find(rnti);
+  if (user_it == users.end()) {
+    logger.warning("Unrecognised rnti: 0x%x", rnti);
+    return false;
+  }
+  return user_it->second->has_erab(erab_id);
+}
+
 void rrc::modify_erabs(uint16_t                                                                         rnti,
-                       srsran::const_span<const asn1::s1ap::erab_to_be_modified_item_bearer_mod_req_s*> erabs_to_modify,
-                       std::vector<uint16_t>* erabs_failed_to_modify)
+                       srsran::const_span<const asn1::s1ap::erab_to_be_modified_item_bearer_mod_req_s*> erabs_to_modify)
 {
   logger.info("Modifying E-RABs for 0x%x", rnti);
   auto user_it = users.find(rnti);
@@ -401,9 +410,7 @@ void rrc::modify_erabs(uint16_t                                                 
   for (const auto* erab_ptr : erabs_to_modify) {
     // Attempt to modify E-RAB
     bool ret = modify_ue_erab(rnti, erab_ptr->erab_id, erab_ptr->erab_level_qos_params, &erab_ptr->nas_pdu);
-    if (not ret) {
-      erabs_failed_to_modify->push_back(erab_ptr->erab_id);
-    }
+    srsran_expect(ret, "modify_erabs should not called for valid E-RAB Ids");
   }
 }
 

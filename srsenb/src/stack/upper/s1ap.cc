@@ -736,39 +736,53 @@ bool s1ap::handle_erabmodifyrequest(const erab_modify_request_s& msg)
   }
 
   // make a copy, sort by ERAB ID
-  using erab_t = erab_to_be_modified_item_bearer_mod_req_s;
+  using erab_t        = erab_to_be_modified_item_bearer_mod_req_s;
+  using failed_erab_t = std::pair<uint16_t, cause_c>;
   srsran::bounded_vector<const erab_t*, 256> erab_mod_list;
-  for (const auto& erab : msg.protocol_ies.erab_to_be_modified_list_bearer_mod_req.value) {
-    erab_mod_list.push_back(&erab.value.erab_to_be_modified_item_bearer_mod_req());
-  }
-  auto lower_erab = [](const erab_t* lhs, const erab_t* rhs) { return lhs->erab_id < rhs->erab_id; };
-  std::sort(erab_mod_list.begin(), erab_mod_list.end(), lower_erab);
+  std::vector<failed_erab_t>                 erabs_failed_to_modify;
+  auto&                                      msg_erabs = msg.protocol_ies.erab_to_be_modified_list_bearer_mod_req.value;
 
-  // Find repeated ERAB-IDs and add them to list of ERABs failed to modify
-  std::vector<std::pair<uint16_t, cause_c> > erabs_failed_to_modify;
-  auto                                       new_end = std::unique(erab_mod_list.begin(), erab_mod_list.end());
-  for (auto it = new_end; it != erab_mod_list.end(); ++it) {
-    cause_c cause;
-    cause.set_radio_network().value = cause_radio_network_opts::multiple_erab_id_instances;
-    erabs_failed_to_modify.emplace_back((*it)->erab_id, cause);
+  for (const auto& msg_erab : msg_erabs) {
+    const erab_t& e = msg_erab.value.erab_to_be_modified_item_bearer_mod_req();
+
+    // Check if E-RAB exists. If not, add to "erabs_failed_to_modify" with "unknown_erab_id" cause
+    if (not rrc->has_erab(u->ctxt.rnti, e.erab_id)) {
+      cause_c cause;
+      cause.set_radio_network().value = cause_radio_network_opts::unknown_erab_id;
+      erabs_failed_to_modify.emplace_back(e.erab_id, cause);
+      continue;
+    }
+
+    // Check Repeated E-RABs in the modification list. If repeated, add to the list of "erabs_failed_to_modify"
+    // with cause "multiple_erab_id_instances"
+    for (const auto& msg_erab2 : msg_erabs) {
+      const erab_t& e2 = msg_erab2.value.erab_to_be_modified_item_bearer_mod_req();
+      if (&msg_erab2 != &msg_erab and e2.erab_id == e.erab_id) {
+        cause_c cause;
+        cause.set_radio_network().value = cause_radio_network_opts::multiple_erab_id_instances;
+        erabs_failed_to_modify.emplace_back(e.erab_id, cause);
+        break;
+      }
+    }
+    if (not erabs_failed_to_modify.empty() and erabs_failed_to_modify.back().first == e.erab_id) {
+      continue;
+    }
+
+    // Add to the list to modify
+    erab_mod_list.push_back(&e);
   }
-  erab_mod_list.erase(new_end, erab_mod_list.end());
 
   // Modify E-RABs from RRC
-  std::vector<uint16_t> unknown_erabids;
-  rrc->modify_erabs(u->ctxt.rnti, erab_mod_list, &unknown_erabids);
+  rrc->modify_erabs(u->ctxt.rnti, erab_mod_list);
 
-  // Add Unknown E-RAB to the list of failed to modify
-  for (uint16_t erab : unknown_erabids) {
-    cause_c cause;
-    cause.set_radio_network().value = cause_radio_network_opts::unknown_erab_id;
-    erabs_failed_to_modify.emplace_back(erab, cause);
-    auto lower_erab2 = [](const erab_t* lhs, uint16_t erab) { return lhs->erab_id < erab; };
-    auto it          = std::lower_bound(erab_mod_list.begin(), erab_mod_list.end(), erab, lower_erab2);
-    if (it != erab_mod_list.end() and (*it)->erab_id == erab) {
-      erab_mod_list.erase(it);
-    }
-  }
+  // Sort by E-RAB id, and remove duplicates
+  auto lower_erab = [](const erab_t* lhs, const erab_t* rhs) { return lhs->erab_id < rhs->erab_id; };
+  std::sort(erab_mod_list.begin(), erab_mod_list.end(), lower_erab);
+  auto lower_erab2 = [](const failed_erab_t& lhs, const failed_erab_t& rhs) { return lhs.first < rhs.first; };
+  auto equal_erab2 = [](const failed_erab_t& lhs, const failed_erab_t& rhs) { return lhs.first == rhs.first; };
+  std::sort(erabs_failed_to_modify.begin(), erabs_failed_to_modify.end(), lower_erab2);
+  erabs_failed_to_modify.erase(std::unique(erabs_failed_to_modify.begin(), erabs_failed_to_modify.end(), equal_erab2),
+                               erabs_failed_to_modify.end());
 
   // Send E-RAB modify response back to the MME
   if (not u->send_erab_modify_response(erab_mod_list, erabs_failed_to_modify)) {

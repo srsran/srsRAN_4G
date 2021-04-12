@@ -30,8 +30,8 @@ public:
   virtual bool setup_ue_erabs(uint16_t rnti, const asn1::s1ap::erab_setup_request_s& msg)        = 0;
   virtual void
                modify_erabs(uint16_t                                                                         rnti,
-                            srsran::const_span<const asn1::s1ap::erab_to_be_modified_item_bearer_mod_req_s*> erabs_to_modify,
-                            std::vector<uint16_t>* erabs_failed_to_modify)                  = 0;
+                            srsran::const_span<const asn1::s1ap::erab_to_be_modified_item_bearer_mod_req_s*> erabs_to_modify) = 0;
+  virtual bool has_erab(uint16_t rnti, uint32_t erab_id) const                              = 0;
   virtual bool release_erabs(uint32_t rnti)                                                 = 0;
   virtual void release_erabs(uint32_t                              rnti,
                              const asn1::s1ap::erab_release_cmd_s& msg,
