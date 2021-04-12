@@ -97,7 +97,8 @@ public:
                        uint16_t                                       rnti,
                        uint32_t                                       enb_cc_idx,
                        srsran::unique_byte_buffer_t                   ho_cmd,
-                       srsran::span<asn1::s1ap::erab_admitted_item_s> admitted_bearers) override
+                       srsran::span<asn1::s1ap::erab_admitted_item_s> admitted_bearers,
+                       srsran::const_span<asn1::s1ap::erab_item_s>    not_admitted_bearers) override
   {
     last_ho_req_ack.rnti       = rnti;
     last_ho_req_ack.ho_cmd_pdu = std::move(ho_cmd);

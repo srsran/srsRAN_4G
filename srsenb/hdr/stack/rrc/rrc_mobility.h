@@ -45,10 +45,6 @@ public:
   bool start_s1_tenb_ho(const asn1::s1ap::ho_request_s&                                   msg,
                         const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container);
 
-  static uint16_t
-  start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&                                   msg,
-                             const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container);
-
 private:
   // helper methods
   bool update_ue_var_meas_cfg(uint32_t               src_earfcn,
@@ -63,7 +59,9 @@ private:
                                    const enb_cell_common&    target_cell,
                                    uint32_t                  src_dl_earfcn,
                                    uint32_t                  src_pci);
-  bool apply_ho_prep_cfg(const asn1::rrc::ho_prep_info_r8_ies_s& ho_prep, const asn1::s1ap::ho_request_s& ho_req_msg);
+  void apply_ho_prep_cfg(const asn1::rrc::ho_prep_info_r8_ies_s& ho_prep,
+                         const asn1::s1ap::ho_request_s&         ho_req_msg,
+                         std::vector<asn1::s1ap::erab_item_s>&   erabs_failed_to_setup);
 
   rrc::ue*              rrc_ue  = nullptr;
   rrc*                  rrc_enb = nullptr;
@@ -82,9 +80,12 @@ private:
     const asn1::s1ap::ho_request_s*                                   ho_req_msg;
     const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s* transparent_container;
   };
-  using unsuccessful_outcome_ev = std::false_type;
-  using recfg_complete_ev       = asn1::rrc::rrc_conn_recfg_complete_s;
-  using status_transfer_ev      = asn1::s1ap::bearers_subject_to_status_transfer_list_l;
+  struct ho_failure_ev {
+    asn1::s1ap::cause_c cause;
+    ho_failure_ev(const asn1::s1ap::cause_c& cause_) : cause(cause_) {}
+  };
+  using recfg_complete_ev  = asn1::rrc::rrc_conn_recfg_complete_s;
+  using status_transfer_ev = asn1::s1ap::bearers_subject_to_status_transfer_list_l;
 
   // states
   struct idle_st {};
@@ -96,6 +97,7 @@ private:
     void enter(rrc_mobility* f, const ho_meas_report_ev& meas_report);
   };
   struct s1_target_ho_st {
+    asn1::s1ap::cause_c   failure_cause;
     std::vector<uint32_t> pending_tunnels;
   };
   struct wait_recfg_comp {};
@@ -145,6 +147,7 @@ private:
   void handle_crnti_ce(intraenb_ho_st& s, const user_crnti_upd_ev& ev);
   void handle_recfg_complete(intraenb_ho_st& s, const recfg_complete_ev& ev);
   void handle_ho_requested(idle_st& s, const ho_req_rx_ev& ho_req);
+  void handle_ho_failure(s1_target_ho_st& s, const ho_failure_ev& ev);
   void handle_status_transfer(s1_target_ho_st& s, const status_transfer_ev& ev);
   void defer_recfg_complete(s1_target_ho_st& s, const recfg_complete_ev& ev);
   void handle_recfg_complete(wait_recfg_comp& s, const recfg_complete_ev& ev);
@@ -172,6 +175,7 @@ protected:
   row< intraenb_ho_st,  idle_st,           recfg_complete_ev,   &fsm::handle_recfg_complete                            >,
   // +----------------+-------------------+---------------------+----------------------------+-------------------------+
   row< s1_target_ho_st, wait_recfg_comp,   status_transfer_ev,  &fsm::handle_status_transfer                           >,
+  row< s1_target_ho_st, idle_st,           ho_failure_ev,       &fsm::handle_ho_failure                                >,
   upd< s1_target_ho_st,                    recfg_complete_ev,   &fsm::defer_recfg_complete                             >,
   row< wait_recfg_comp, idle_st,           recfg_complete_ev,   &fsm::handle_recfg_complete                            >
   // +----------------+-------------------+---------------------+----------------------------+-------------------------+

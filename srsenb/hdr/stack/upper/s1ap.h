@@ -84,19 +84,24 @@ public:
                         srsran::span<uint32_t>       fwd_erabs,
                         srsran::unique_byte_buffer_t rrc_container) override;
   bool send_enb_status_transfer_proc(uint16_t rnti, std::vector<bearer_status_info>& bearer_status_list) override;
-  bool send_ho_failure(uint32_t mme_ue_s1ap_id);
   bool send_ho_req_ack(const asn1::s1ap::ho_request_s&                msg,
                        uint16_t                                       rnti,
                        uint32_t                                       enb_cc_idx,
                        srsran::unique_byte_buffer_t                   ho_cmd,
-                       srsran::span<asn1::s1ap::erab_admitted_item_s> admitted_bearers) override;
-  void send_ho_notify(uint16_t rnti, uint64_t target_eci) override;
+                       srsran::span<asn1::s1ap::erab_admitted_item_s> admitted_bearers,
+                       srsran::const_span<asn1::s1ap::erab_item_s>    not_admitted_bearers) override;
   void send_ho_cancel(uint16_t rnti) override;
   bool release_erabs(uint16_t rnti, const std::vector<uint16_t>& erabs_successfully_released) override;
   bool send_error_indication(const asn1::s1ap::cause_c& cause,
                              srsran::optional<uint32_t> enb_ue_s1ap_id = {},
                              srsran::optional<uint32_t> mme_ue_s1ap_id = {});
   bool send_ue_cap_info_indication(uint16_t rnti, srsran::unique_byte_buffer_t ue_radio_cap) override;
+
+  /// Target eNB Handover
+  /// Section 8.4.2 - Handover Resource Allocation
+  void send_ho_failure(uint32_t mme_ue_s1ap_id, const asn1::s1ap::cause_c& cause);
+  /// Section 8.4.3 - Handover Notification
+  void send_ho_notify(uint16_t rnti, uint64_t target_eci) override;
 
   // Stack interface
   bool

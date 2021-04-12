@@ -978,14 +978,10 @@ bool s1ap::handle_handover_command(const asn1::s1ap::ho_cmd_s& msg)
 
 bool s1ap::handle_handover_request(const asn1::s1ap::ho_request_s& msg)
 {
-  uint16_t rnti = SRSRAN_INVALID_RNTI;
-
-  auto on_scope_exit = srsran::make_scope_exit([this, &rnti, msg]() {
-    // If rnti is not allocated successfully, remove from s1ap and send handover failure
-    if (rnti == SRSRAN_INVALID_RNTI) {
-      send_ho_failure(msg.protocol_ies.mme_ue_s1ap_id.value.value);
-    }
-  });
+  uint16_t            rnti           = SRSRAN_INVALID_RNTI;
+  uint32_t            mme_ue_s1ap_id = msg.protocol_ies.mme_ue_s1ap_id.value.value;
+  asn1::s1ap::cause_c cause;
+  cause.set_misc().value = cause_misc_opts::unspecified;
 
   if (msg.ext or msg.protocol_ies.ho_restrict_list_present) {
     logger.warning("Not handling S1AP Handover Request extensions or Handover Restriction List");
@@ -993,6 +989,8 @@ bool s1ap::handle_handover_request(const asn1::s1ap::ho_request_s& msg)
 
   if (msg.protocol_ies.handov_type.value.value != handov_type_opts::intralte) {
     logger.error("Not handling S1AP non-intra LTE handovers");
+    cause.set_radio_network().value = cause_radio_network_opts::interrat_redirection;
+    send_ho_failure(mme_ue_s1ap_id, cause);
     return false;
   }
 
@@ -1000,31 +998,37 @@ bool s1ap::handle_handover_request(const asn1::s1ap::ho_request_s& msg)
   if (users.find_ue_mmeid(msg.protocol_ies.mme_ue_s1ap_id.value.value) != nullptr) {
     logger.error("The provided MME_UE_S1AP_ID=%" PRIu64 " is already connected to the cell",
                  msg.protocol_ies.mme_ue_s1ap_id.value.value);
+    cause.set_radio_network().value = cause_radio_network_opts::unknown_mme_ue_s1ap_id;
+    send_ho_failure(mme_ue_s1ap_id, cause);
     return false;
   }
 
   // Create user ctxt object and associated MME context
   std::unique_ptr<ue> ue_ptr{new ue{this}};
   ue_ptr->ctxt.mme_ue_s1ap_id = msg.protocol_ies.mme_ue_s1ap_id.value.value;
-  if (users.add_user(std::move(ue_ptr)) == nullptr) {
-    return false;
-  }
+  srsran_assert(users.add_user(std::move(ue_ptr)) != nullptr, "Unexpected failure to create S1AP UE");
 
   // Unpack Transparent Container
   sourceenb_to_targetenb_transparent_container_s container;
   asn1::cbit_ref bref{msg.protocol_ies.source_to_target_transparent_container.value.data(),
                       msg.protocol_ies.source_to_target_transparent_container.value.size()};
   if (container.unpack(bref) != asn1::SRSASN_SUCCESS) {
-    logger.error("Failed to unpack SourceToTargetTransparentContainer");
+    logger.warning("Failed to unpack SourceToTargetTransparentContainer");
+    cause.set_protocol().value = cause_protocol_opts::transfer_syntax_error;
+    send_ho_failure(mme_ue_s1ap_id, cause);
     return false;
   }
 
   // Handle Handover Resource Allocation
-  rnti = rrc->start_ho_ue_resource_alloc(msg, container);
-  return rnti != SRSRAN_INVALID_RNTI;
+  rnti = rrc->start_ho_ue_resource_alloc(msg, container, cause);
+  if (rnti == SRSRAN_INVALID_RNTI) {
+    send_ho_failure(mme_ue_s1ap_id, cause);
+    return false;
+  }
+  return true;
 }
 
-bool s1ap::send_ho_failure(uint32_t mme_ue_s1ap_id)
+void s1ap::send_ho_failure(uint32_t mme_ue_s1ap_id, const asn1::s1ap::cause_c& cause)
 {
   // Remove created s1ap user
   ue* u = users.find_ue_mmeid(mme_ue_s1ap_id);
@@ -1037,17 +1041,17 @@ bool s1ap::send_ho_failure(uint32_t mme_ue_s1ap_id)
   ho_fail_ies_container& container = tx_pdu.unsuccessful_outcome().value.ho_fail().protocol_ies;
 
   container.mme_ue_s1ap_id.value = mme_ue_s1ap_id;
-  // TODO: Setup cause
-  container.cause.value.set_radio_network().value = cause_radio_network_opts::ho_target_not_allowed;
+  container.cause.value          = cause;
 
-  return sctp_send_s1ap_pdu(tx_pdu, SRSRAN_INVALID_RNTI, "HandoverFailure");
+  sctp_send_s1ap_pdu(tx_pdu, SRSRAN_INVALID_RNTI, "HandoverFailure");
 }
 
 bool s1ap::send_ho_req_ack(const asn1::s1ap::ho_request_s&                msg,
                            uint16_t                                       rnti,
                            uint32_t                                       enb_cc_idx,
                            srsran::unique_byte_buffer_t                   ho_cmd,
-                           srsran::span<asn1::s1ap::erab_admitted_item_s> admitted_bearers)
+                           srsran::span<asn1::s1ap::erab_admitted_item_s> admitted_bearers,
+                           srsran::const_span<asn1::s1ap::erab_item_s>    not_admitted_bearers)
 {
   s1ap_pdu_c tx_pdu;
   tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_HO_RES_ALLOC);
@@ -1076,6 +1080,19 @@ bool s1ap::send_ho_req_ack(const asn1::s1ap::ho_request_s&                msg,
     if (c.ul_gtp_teid_present) {
       c.ul_transport_layer_address_present = true;
       c.ul_transport_layer_address         = c.transport_layer_address;
+    }
+  }
+
+  // Add failed to Setup E-RABs
+  if (not not_admitted_bearers.empty()) {
+    container.erab_failed_to_setup_list_ho_req_ack_present = true;
+    container.erab_failed_to_setup_list_ho_req_ack.value.resize(not_admitted_bearers.size());
+    for (size_t i = 0; i < not_admitted_bearers.size(); ++i) {
+      container.erab_failed_to_setup_list_ho_req_ack.value[i].load_info_obj(
+          ASN1_S1AP_ID_ERAB_FAILEDTO_SETUP_ITEM_HO_REQ_ACK);
+      auto& erab = container.erab_failed_to_setup_list_ho_req_ack.value[i].value.erab_failedto_setup_item_ho_req_ack();
+      erab.erab_id = not_admitted_bearers[i].erab_id;
+      erab.cause   = not_admitted_bearers[i].cause;
     }
   }
 

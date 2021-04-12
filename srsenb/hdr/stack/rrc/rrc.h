@@ -101,7 +101,8 @@ public:
                                srsran::unique_byte_buffer_t rrc_container) override;
   uint16_t
        start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&                                   msg,
-                                  const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container) override;
+                                  const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container,
+                                      asn1::s1ap::cause_c& failure_cause) override;
   void set_erab_status(uint16_t rnti, const asn1::s1ap::bearers_subject_to_status_transfer_list_l& erabs) override;
 
   // rrc_interface_pdcp

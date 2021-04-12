@@ -14493,6 +14493,7 @@ std::string erab_modify_resp_ies_o::value_c::types_opts::to_string() const
 }
 
 template struct asn1::s1ap::protocol_ie_field_s<erab_modify_resp_ies_o>;
+template struct asn1::s1ap::protocol_ie_single_container_s<asn1::s1ap::erab_failedto_setup_item_ho_req_ack_ies_o>;
 
 erab_modify_resp_ies_container::erab_modify_resp_ies_container() :
   mme_ue_s1ap_id(0, crit_e::ignore),

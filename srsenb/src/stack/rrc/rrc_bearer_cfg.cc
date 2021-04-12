@@ -222,8 +222,8 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
     logger->error("QCI=%d not configured", qos.qci);
     return SRSRAN_ERROR;
   }
-  if (lcid < 3 or lcid > 10) {
-    logger->error("DRB logical channel ids must be within 3 and 10");
+  if (not srsran::is_lte_drb(lcid)) {
+    logger->error("E-RAB=%d logical channel id=%d is invalid", erab_id, lcid);
     return SRSRAN_ERROR;
   }
   const rrc_cfg_qci_t& qci_cfg = qci_it->second;
@@ -306,7 +306,7 @@ bool bearer_cfg_handler::modify_erab(uint8_t                                    
   return true;
 }
 
-void bearer_cfg_handler::add_gtpu_bearer(uint32_t erab_id)
+int bearer_cfg_handler::add_gtpu_bearer(uint32_t erab_id)
 {
   auto it = erabs.find(erab_id);
   if (it != erabs.end()) {
@@ -314,10 +314,11 @@ void bearer_cfg_handler::add_gtpu_bearer(uint32_t erab_id)
         add_gtpu_bearer(erab_id, it->second.teid_out, it->second.address.to_number(), nullptr);
     if (teidin.has_value()) {
       it->second.teid_in = teidin.value();
-      return;
+      return SRSRAN_SUCCESS;
     }
   }
   logger->error("Adding erab_id=%d to GTPU", erab_id);
+  return SRSRAN_ERROR;
 }
 
 srsran::expected<uint32_t> bearer_cfg_handler::add_gtpu_bearer(uint32_t                                erab_id,

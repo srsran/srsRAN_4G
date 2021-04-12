@@ -138,7 +138,8 @@ std::string to_string(const cells_to_add_mod_s& obj)
  * @return rnti of created ue
  */
 uint16_t rrc::start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&                                   msg,
-                                         const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container)
+                                         const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container,
+                                         asn1::s1ap::cause_c&                                              cause)
 {
   // TODO: Decision Making on whether the same QoS of the source eNB can be provided by target eNB
 
@@ -147,6 +148,7 @@ uint16_t rrc::start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&        
   const enb_cell_common* target_cell = cell_common_list->get_cell_id(rrc_details::eci_to_cellid(target_eci));
   if (target_cell == nullptr) {
     logger.error("The S1-handover target cell_id=0x%x does not exist", rrc_details::eci_to_cellid(target_eci));
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::ho_target_not_allowed;
     return SRSRAN_INVALID_RNTI;
   }
 
@@ -162,6 +164,7 @@ uint16_t rrc::start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&        
   uint16_t rnti                          = mac->reserve_new_crnti(ue_cfg);
   if (rnti == SRSRAN_INVALID_RNTI) {
     logger.error("Failed to allocate C-RNTI resources");
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::radio_res_not_available;
     return SRSRAN_INVALID_RNTI;
   }
 
@@ -177,7 +180,6 @@ uint16_t rrc::start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&        
   //    rrc_ptr->logger.error("Failed to setup e-RABs for rnti=0x%x", );
   //  }
 
-  // TODO: KeNB derivations
   if (not ue_ptr->mobility_handler->start_s1_tenb_ho(msg, container)) {
     rem_user_thread(rnti);
     return SRSRAN_INVALID_RNTI;
@@ -671,29 +673,33 @@ void rrc::ue::rrc_mobility::s1_source_ho_st::handle_ho_cancel(const ho_cancel_ev
  */
 void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& ho_req)
 {
-  const auto& rrc_container = ho_req.transparent_container->rrc_container;
+  const auto&                          rrc_container = ho_req.transparent_container->rrc_container;
+  asn1::s1ap::cause_c                  failure_cause;
+  std::vector<asn1::s1ap::erab_item_s> not_admitted_erabs;
+  auto&                                fwd_tunnels = get_state<s1_target_ho_st>()->pending_tunnels;
+  fwd_tunnels.clear();
 
   /* TS 36.331 10.2.2. - Decode HandoverPreparationInformation */
   asn1::cbit_ref            bref{rrc_container.data(), rrc_container.size()};
   asn1::rrc::ho_prep_info_s hoprep;
   if (hoprep.unpack(bref) != asn1::SRSASN_SUCCESS) {
     rrc_enb->logger.error("Failed to decode HandoverPreparationinformation in S1AP SourceENBToTargetENBContainer");
-    trigger(srsran::failure_ev{});
+    failure_cause.set_protocol().value = asn1::s1ap::cause_protocol_opts::transfer_syntax_error;
+    trigger(ho_failure_ev{failure_cause});
     return;
   }
   if (hoprep.crit_exts.type().value != c1_or_crit_ext_opts::c1 or
       hoprep.crit_exts.c1().type().value != ho_prep_info_s::crit_exts_c_::c1_c_::types_opts::ho_prep_info_r8) {
     rrc_enb->logger.error("Only release 8 supported");
-    trigger(srsran::failure_ev{});
+    failure_cause.set_protocol().value = asn1::s1ap::cause_protocol_opts::semantic_error;
+    trigger(ho_failure_ev{failure_cause});
     return;
   }
   rrc_enb->log_rrc_message("HandoverPreparation", direction_t::fromS1AP, rrc_container, hoprep, "HandoverPreparation");
 
   /* Setup UE current state in TeNB based on HandoverPreparation message */
   const ho_prep_info_r8_ies_s& hoprep_r8 = hoprep.crit_exts.c1().ho_prep_info_r8();
-  if (not apply_ho_prep_cfg(hoprep_r8, *ho_req.ho_req_msg)) {
-    return;
-  }
+  apply_ho_prep_cfg(hoprep_r8, *ho_req.ho_req_msg, not_admitted_erabs);
 
   /* Prepare Handover Request Acknowledgment - Handover Command */
   dl_dcch_msg_s      dl_dcch_msg;
@@ -721,13 +727,16 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
   srsran::unique_byte_buffer_t ho_cmd_pdu = srsran::make_byte_buffer();
   if (ho_cmd_pdu == nullptr) {
     logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
-    trigger(srsran::failure_ev{});
+    failure_cause.set_radio_network().value =
+        asn1::s1ap::cause_radio_network_opts::no_radio_res_available_in_target_cell;
+    trigger(ho_failure_ev{failure_cause});
     return;
   }
   asn1::bit_ref bref2{ho_cmd_pdu->msg, ho_cmd_pdu->get_tailroom()};
   if (dl_dcch_msg.pack(bref2) != asn1::SRSASN_SUCCESS) {
     logger.error("Failed to pack HandoverCommand");
-    trigger(srsran::failure_ev{});
+    failure_cause.set_protocol().value = asn1::s1ap::cause_protocol_opts::transfer_syntax_error;
+    trigger(ho_failure_ev{failure_cause});
     return;
   }
   ho_cmd_pdu->N_bytes = bref2.distance_bytes();
@@ -740,7 +749,8 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
   bref2 = {ho_cmd_pdu->msg, ho_cmd_pdu->get_tailroom()};
   if (ho_cmd.pack(bref2) != asn1::SRSASN_SUCCESS) {
     logger.error("Failed to pack HandoverCommand");
-    trigger(srsran::failure_ev{});
+    failure_cause.set_protocol().value = asn1::s1ap::cause_protocol_opts::transfer_syntax_error;
+    trigger(ho_failure_ev{failure_cause});
     return;
   }
   ho_cmd_pdu->N_bytes = bref2.distance_bytes();
@@ -756,8 +766,6 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
 
   // Set admitted E-RABs
   std::vector<asn1::s1ap::erab_admitted_item_s> admitted_erabs;
-  auto&                                         fwd_tunnels = get_state<s1_target_ho_st>()->pending_tunnels;
-  fwd_tunnels.clear();
   for (const auto& erab : rrc_ue->bearer_list.get_erabs()) {
     admitted_erabs.emplace_back();
     asn1::s1ap::erab_admitted_item_s& admitted_erab = admitted_erabs.back();
@@ -766,8 +774,8 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
 
     // Establish GTPU Forwarding Paths
     if (ho_req.transparent_container->erab_info_list_present) {
-      auto& lst = ho_req.transparent_container->erab_info_list;
-      auto  it  = std::find_if(
+      const auto& lst = ho_req.transparent_container->erab_info_list;
+      const auto* it  = std::find_if(
           lst.begin(),
           lst.end(),
           [&erab](const asn1::s1ap::protocol_ie_single_container_s<asn1::s1ap::erab_info_list_ies_o>& fwd_erab) {
@@ -776,7 +784,7 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
       if (it == lst.end()) {
         continue;
       }
-      auto& fwd_erab = it->value.erab_info_list_item();
+      const auto& fwd_erab = it->value.erab_info_list_item();
 
       if (fwd_erab.dl_forwarding_present and
           fwd_erab.dl_forwarding.value == asn1::s1ap::dl_forwarding_opts::dl_forwarding_proposed) {
@@ -787,9 +795,13 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
         srsran::expected<uint32_t> dl_teid_in = rrc_ue->bearer_list.add_gtpu_bearer(
             erab.second.id, erab.second.teid_out, erab.second.address.to_number(), &props);
         if (not dl_teid_in.has_value()) {
-          logger.error("Failed to allocate GTPU TEID");
-          trigger(srsran::failure_ev{});
-          return;
+          logger.error("Failed to allocate GTPU TEID for E-RAB id=%d", fwd_erab.erab_id);
+          not_admitted_erabs.emplace_back();
+          not_admitted_erabs.back().erab_id = erab.second.id;
+          not_admitted_erabs.back().cause.set_radio_network().value =
+              asn1::s1ap::cause_radio_network_opts::no_radio_res_available_in_target_cell;
+          admitted_erabs.pop_back();
+          continue;
         }
         fwd_tunnels.push_back(dl_teid_in.value());
         srsran::uint32_to_uint8(dl_teid_in.value(), admitted_erabs.back().dl_g_tp_teid.data());
@@ -802,42 +814,60 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
                                          rrc_ue->rnti,
                                          rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
                                          std::move(ho_cmd_pdu),
-                                         admitted_erabs)) {
-    trigger(srsran::failure_ev{});
+                                         admitted_erabs,
+                                         not_admitted_erabs)) {
+    failure_cause.set_protocol().value = asn1::s1ap::cause_protocol_opts::transfer_syntax_error;
+    trigger(ho_failure_ev{failure_cause});
     return;
   }
 }
 
-bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&    ho_prep,
-                                              const asn1::s1ap::ho_request_s& ho_req_msg)
+void rrc::ue::rrc_mobility::handle_ho_failure(s1_target_ho_st& s, const ho_failure_ev& ev)
+{
+  // Store Handover failure cause
+  s.failure_cause = ev.cause;
+}
+
+void rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&          ho_prep,
+                                              const asn1::s1ap::ho_request_s&       ho_req_msg,
+                                              std::vector<asn1::s1ap::erab_item_s>& erabs_failed_to_setup)
 {
   const ue_cell_ded* target_cell     = rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
   const cell_cfg_t&  target_cell_cfg = target_cell->cell_common->cell_cfg;
 
   // Establish ERABs/DRBs
   for (const auto& erab_item : ho_req_msg.protocol_ies.erab_to_be_setup_list_ho_req.value) {
-    auto& erab = erab_item.value.erab_to_be_setup_item_ho_req();
+    const auto& erab = erab_item.value.erab_to_be_setup_item_ho_req();
     if (erab.ext) {
       get_logger().warning("Not handling E-RABToBeSetupList extensions");
     }
     if (erab.transport_layer_address.length() > 32) {
       get_logger().error("IPv6 addresses not currently supported");
-      trigger(srsran::failure_ev{});
-      return false;
-    }
-
-    if (not erab.ie_exts_present or not erab.ie_exts.data_forwarding_not_possible_present or
-        erab.ie_exts.data_forwarding_not_possible.ext.value !=
-            asn1::s1ap::data_forwarding_not_possible_opts::data_forwarding_not_possible) {
-      get_logger().warning("Data Forwarding of E-RABs not supported");
+      erabs_failed_to_setup.emplace_back();
+      erabs_failed_to_setup.back().erab_id                     = erab.erab_id;
+      erabs_failed_to_setup.back().cause.set_transport().value = asn1::s1ap::cause_transport_opts::unspecified;
+      continue;
     }
 
     // Create E-RAB and associated main GTPU tunnel
-    uint32_t teid_out;
+    uint32_t teid_out = 0;
     srsran::uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
-    rrc_ue->bearer_list.add_erab(
-        erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, nullptr);
-    rrc_ue->bearer_list.add_gtpu_bearer(erab.erab_id);
+    if (rrc_ue->bearer_list.add_erab(
+            erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, nullptr) !=
+        SRSRAN_SUCCESS) {
+      erabs_failed_to_setup.emplace_back();
+      erabs_failed_to_setup.back().erab_id = erab.erab_id;
+      erabs_failed_to_setup.back().cause.set_radio_network().value =
+          asn1::s1ap::cause_radio_network_opts::invalid_qos_combination;
+      continue;
+    }
+    if (rrc_ue->bearer_list.add_gtpu_bearer(erab.erab_id) != SRSRAN_SUCCESS) {
+      erabs_failed_to_setup.emplace_back();
+      erabs_failed_to_setup.back().erab_id = erab.erab_id;
+      erabs_failed_to_setup.back().cause.set_radio_network().value =
+          asn1::s1ap::cause_radio_network_opts::no_radio_res_available_in_target_cell;
+      continue;
+    }
   }
 
   // Regenerate AS Keys
@@ -876,8 +906,6 @@ bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&    ho
 
   // Save source UE MAC configuration as a base
   rrc_ue->mac_ctrl.handle_ho_prep(ho_prep);
-
-  return true;
 }
 
 void rrc::ue::rrc_mobility::handle_recfg_complete(wait_recfg_comp& s, const recfg_complete_ev& ev)

@@ -86,24 +86,22 @@ public:
    */
   virtual bool send_enb_status_transfer_proc(uint16_t rnti, std::vector<bearer_status_info>& bearer_status_list) = 0;
 
-  /* Acknowledge Handover Request message back to MME.
-   * This message signals the completion of the HandoverPreparation from the TeNB point of view. */
-  virtual bool send_ho_req_ack(const asn1::s1ap::ho_request_s&                msg,
-                               uint16_t                                       rnti,
-                               uint32_t                                       enb_cc_idx,
-                               srsran::unique_byte_buffer_t                   ho_cmd,
-                               srsran::span<asn1::s1ap::erab_admitted_item_s> admitted_bearers) = 0;
-
-  /**
-   * Notify MME that Handover is complete
-   */
-  virtual void send_ho_notify(uint16_t rnti, uint64_t target_eci) = 0;
-
   /**
    * Cancel on-going S1 Handover. MME should release UE context in target eNB
    * SeNB --> MME
    */
   virtual void send_ho_cancel(uint16_t rnti) = 0;
+
+  /*************************
+   *  Target eNB Handover
+   ************************/
+  virtual bool send_ho_req_ack(const asn1::s1ap::ho_request_s&                msg,
+                               uint16_t                                       rnti,
+                               uint32_t                                       enb_cc_idx,
+                               srsran::unique_byte_buffer_t                   ho_cmd,
+                               srsran::span<asn1::s1ap::erab_admitted_item_s> admitted_bearers,
+                               srsran::const_span<asn1::s1ap::erab_item_s>    not_admitted_bearers) = 0;
+  virtual void send_ho_notify(uint16_t rnti, uint64_t target_eci)                                = 0;
 
   /**
    * Called during release of a subset of eNB E-RABs. Send E-RAB RELEASE INDICATION to MME.

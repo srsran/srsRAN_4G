@@ -27,7 +27,8 @@ struct mobility_test_params {
     concurrent_ho,
     ho_prep_failure,
     duplicate_crnti_ce,
-    recover
+    recover,
+    wrong_target_cell,
   } fail_at;
   const char* to_string()
   {
@@ -44,6 +45,8 @@ struct mobility_test_params {
         return "fail and success";
       case test_event::duplicate_crnti_ce:
         return "duplicate CRNTI CE";
+      case test_event::wrong_target_cell:
+        return "wrong target cell";
       default:
         return "none";
     }
@@ -271,7 +274,11 @@ int test_s1ap_tenb_mobility(mobility_test_params test_params)
   erab.erab_id = 5;
   erab.erab_level_qos_params.qci = 9;
   asn1::s1ap::sourceenb_to_targetenb_transparent_container_s container;
-  container.target_cell_id.cell_id.from_number(0x19C02);
+  if (test_params.fail_at == mobility_test_params::test_event::wrong_target_cell) {
+    container.target_cell_id.cell_id.from_number(0x19C03);
+  } else {
+    container.target_cell_id.cell_id.from_number(0x19C02);
+  }
   uint8_t ho_prep_container[] = {
       0x0a, 0x10, 0x0b, 0x81, 0x80, 0x00, 0x01, 0x80, 0x00, 0xf3, 0x02, 0x08, 0x00, 0x00, 0x15, 0x80, 0x00, 0x14,
       0x06, 0xa4, 0x02, 0xf0, 0x04, 0x04, 0xf0, 0x00, 0x14, 0x80, 0x4a, 0x00, 0x00, 0x00, 0x02, 0x12, 0x31, 0xb6,
@@ -289,7 +296,13 @@ int test_s1ap_tenb_mobility(mobility_test_params test_params)
   container.erab_info_list[0].value.erab_info_list_item().dl_forwarding.value =
       asn1::s1ap::dl_forwarding_opts::dl_forwarding_proposed;
   memcpy(container.rrc_container.data(), ho_prep_container, sizeof(ho_prep_container));
-  tester.rrc.start_ho_ue_resource_alloc(ho_req, container);
+  asn1::s1ap::cause_c cause;
+  int                 rnti = tester.rrc.start_ho_ue_resource_alloc(ho_req, container, cause);
+  if (test_params.fail_at == mobility_test_params::test_event::wrong_target_cell) {
+    TESTASSERT(rnti == SRSRAN_INVALID_RNTI);
+    TESTASSERT(tester.rrc.get_nof_users() == 0);
+    return SRSRAN_SUCCESS;
+  }
   tester.tic();
   TESTASSERT(tester.rrc.get_nof_users() == 1);
   TESTASSERT(tester.mac.ue_db.count(0x46));
@@ -525,12 +538,13 @@ int main(int argc, char** argv)
   }
   argparse::parse_args(argc, argv);
 
-  // S1AP Handover
+  // Source ENB - S1 Handover
   TESTASSERT(test_s1ap_mobility(*spy, mobility_test_params{event::wrong_measreport}) == 0);
   TESTASSERT(test_s1ap_mobility(*spy, mobility_test_params{event::concurrent_ho}) == 0);
   TESTASSERT(test_s1ap_mobility(*spy, mobility_test_params{event::ho_prep_failure}) == 0);
   TESTASSERT(test_s1ap_mobility(*spy, mobility_test_params{event::success}) == 0);
 
+  TESTASSERT(test_s1ap_tenb_mobility(mobility_test_params{event::wrong_target_cell}) == 0);
   TESTASSERT(test_s1ap_tenb_mobility(mobility_test_params{event::success}) == 0);
 
   // intraeNB Handover

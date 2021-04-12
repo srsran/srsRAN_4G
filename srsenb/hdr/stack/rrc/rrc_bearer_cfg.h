@@ -91,7 +91,7 @@ public:
                    const asn1::unbounded_octstring<true>*     nas_pdu);
 
   // Methods to apply bearer updates
-  void                       add_gtpu_bearer(uint32_t erab_id);
+  int                        add_gtpu_bearer(uint32_t erab_id);
   srsran::expected<uint32_t> add_gtpu_bearer(uint32_t                                erab_id,
                                              uint32_t                                teid_out,
                                              uint32_t                                addr,

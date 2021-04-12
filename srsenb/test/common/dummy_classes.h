@@ -123,7 +123,8 @@ public:
                        uint16_t                                       rnti,
                        uint32_t                                       enb_cc_idx,
                        srsran::unique_byte_buffer_t                   ho_cmd,
-                       srsran::span<asn1::s1ap::erab_admitted_item_s> admitted_bearers) override
+                       srsran::span<asn1::s1ap::erab_admitted_item_s> admitted_bearers,
+                       srsran::const_span<asn1::s1ap::erab_item_s>    not_admitted_bearers) override
   {
     return true;
   }
@@ -184,9 +185,9 @@ public:
                                const asn1::s1ap::ho_cmd_s&  msg,
                                srsran::unique_byte_buffer_t container) override
   {}
-  uint16_t
-  start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&                                   msg,
-                             const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container) override
+  uint16_t start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&                                   msg,
+                                      const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container,
+                                      asn1::s1ap::cause_c& failure_cause) override
   {
     return SRSRAN_INVALID_RNTI;
   }
