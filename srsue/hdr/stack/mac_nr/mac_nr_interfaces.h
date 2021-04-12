@@ -39,7 +39,17 @@ public:
 };
 
 /**
- * @brief Interface from MAC NR parent class to mux ubclass
+ * @brief Interface from MAC NR parent class to SR subclass
+ */
+class mac_interface_sr_nr
+{
+public:
+  // MUX can query MAC for current C-RNTI for Msg3 transmission
+  virtual void start_ra() = 0;
+};
+
+/**
+ * @brief Interface from MAC NR parent class to mux subclass
  */
 class mac_interface_mux_nr
 {

@@ -35,6 +35,7 @@ struct mac_nr_args_t {};
 class mac_nr final : public mac_interface_phy_nr,
                      public mac_interface_rrc_nr,
                      public mac_interface_proc_ra_nr,
+                     public mac_interface_sr_nr,
                      public mac_interface_mux_nr
 {
 public:
@@ -84,6 +85,9 @@ public:
   /// procedure ra nr interface + mux
   uint64_t get_contention_id();
   uint16_t get_crnti();
+
+  /// procedure sr nr interface
+  void start_ra() { proc_ra.start_by_mac(); }
 
   /// Interface for MUX
   srsran::mac_sch_subpdu_nr::lcg_bsr_t generate_sbsr();

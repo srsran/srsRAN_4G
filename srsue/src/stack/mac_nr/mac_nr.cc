@@ -47,7 +47,7 @@ int mac_nr::init(const mac_nr_args_t&  args_,
 
   // Init MAC sub procedures
   proc_ra.init(phy, &task_sched);
-  proc_sr.init(&proc_ra, phy, rrc);
+  proc_sr.init(this, phy, rrc);
 
   if (proc_bsr.init(&proc_sr, &mux, rlc, &task_sched) != SRSRAN_SUCCESS) {
     logger.error("Couldn't initialize BSR procedure.");
