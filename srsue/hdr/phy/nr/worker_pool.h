@@ -42,6 +42,7 @@ public:
   bool set_config(const srsran::phy_cfg_nr_t& cfg);
   bool       has_valid_sr_resource(uint32_t sr_id);
   void       clear_pending_grants();
+  void       get_metrics(phy_metrics_t& m);
 };
 
 } // namespace nr

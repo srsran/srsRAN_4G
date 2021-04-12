@@ -155,5 +155,10 @@ void worker_pool::clear_pending_grants()
   phy_state.clear_pending_grants();
 }
 
+void worker_pool::get_metrics(phy_metrics_t& m)
+{
+  phy_state.get_metrics(m);
+}
+
 } // namespace nr
 } // namespace srsue

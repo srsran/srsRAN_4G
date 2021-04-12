@@ -136,16 +136,16 @@ public:
   srsran::radio_interface_phy* get_radio();
 
   void set_dl_metrics(uint32_t cc_idx, const dl_metrics_t& m);
-  void get_dl_metrics(dl_metrics_t m[SRSRAN_MAX_CARRIERS]);
+  void get_dl_metrics(dl_metrics_t::array_t& m);
 
   void set_ch_metrics(uint32_t cc_idx, const ch_metrics_t& m);
-  void get_ch_metrics(ch_metrics_t m[SRSRAN_MAX_CARRIERS]);
+  void get_ch_metrics(ch_metrics_t::array_t& m);
 
   void set_ul_metrics(uint32_t cc_idx, const ul_metrics_t& m);
-  void get_ul_metrics(ul_metrics_t m[SRSRAN_MAX_CARRIERS]);
+  void get_ul_metrics(ul_metrics_t::array_t& m);
 
   void set_sync_metrics(const uint32_t& cc_idx, const sync_metrics_t& m);
-  void get_sync_metrics(sync_metrics_t m[SRSRAN_MAX_CARRIERS]);
+  void get_sync_metrics(sync_metrics_t::array_t& m);
 
   void reset();
   void reset_radio();
@@ -302,14 +302,10 @@ private:
 
   std::mutex metrics_mutex;
 
-  ch_metrics_t   ch_metrics[SRSRAN_MAX_CARRIERS]         = {};
-  uint32_t       ch_metrics_count[SRSRAN_MAX_CARRIERS]   = {};
-  dl_metrics_t   dl_metrics[SRSRAN_MAX_CARRIERS]         = {};
-  uint32_t       dl_metrics_count[SRSRAN_MAX_CARRIERS]   = {};
-  ul_metrics_t   ul_metrics[SRSRAN_MAX_CARRIERS]         = {};
-  uint32_t       ul_metrics_count[SRSRAN_MAX_CARRIERS]   = {};
-  sync_metrics_t sync_metrics[SRSRAN_MAX_CARRIERS]       = {};
-  uint32_t       sync_metrics_count[SRSRAN_MAX_CARRIERS] = {};
+  ch_metrics_t::array_t   ch_metrics   = {};
+  dl_metrics_t::array_t   dl_metrics   = {};
+  ul_metrics_t::array_t   ul_metrics   = {};
+  sync_metrics_t::array_t sync_metrics = {};
 
   // MBSFN
   bool     sib13_configured = false;

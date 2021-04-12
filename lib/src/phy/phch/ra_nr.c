@@ -676,6 +676,7 @@ int srsran_ra_dl_dci_to_grant_nr(const srsran_carrier_nr_t*    carrier,
   pdsch_grant->rnti       = dci_dl->ctx.rnti;
   pdsch_grant->rnti_type  = dci_dl->ctx.rnti_type;
   pdsch_grant->tb[0].rv   = dci_dl->rv;
+  pdsch_grant->tb[0].mcs  = dci_dl->mcs;
 
   // 5.1.4 PDSCH resource mapping
   if (ra_dl_resource_mapping(carrier, slot, pdsch_hl_cfg, pdsch_cfg) < SRSRAN_SUCCESS) {
@@ -785,6 +786,7 @@ int srsran_ra_ul_dci_to_grant_nr(const srsran_carrier_nr_t*    carrier,
   pusch_grant->rnti       = dci_ul->ctx.rnti;
   pusch_grant->rnti_type  = dci_ul->ctx.rnti_type;
   pusch_grant->tb[0].rv   = dci_ul->rv;
+  pusch_grant->tb[0].mcs  = dci_ul->mcs;
 
   // 5.1.6.2 DM-RS reception procedure
   if (ra_ul_dmrs(pusch_hl_cfg, pusch_grant, pusch_cfg) < SRSRAN_SUCCESS) {

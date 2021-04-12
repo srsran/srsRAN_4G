@@ -40,7 +40,6 @@ typedef struct {
 typedef struct {
   srsran::rf_metrics_t  rf;
   phy_metrics_t         phy;
-  phy_metrics_t         phy_nr;
   gw_metrics_t          gw;
   stack_metrics_t       stack;
   srsran::sys_metrics_t sys;

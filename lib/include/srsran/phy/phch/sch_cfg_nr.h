@@ -25,10 +25,11 @@ typedef struct SRSRAN_API {
 
 typedef struct SRSRAN_API {
   srsran_mod_t mod;
-  uint32_t     N_L; ///< the number of transmission layers that the transport block is mapped onto
-  int          tbs; ///< Payload size, TS 38.212 refers to it as A
-  double       R;   ///< Target LDPC rate
-  int          rv;
+  uint32_t     N_L;      ///< the number of transmission layers that the transport block is mapped onto
+  uint32_t     mcs;      ///< Modulation Code Scheme (MCS) for debug and trace purpose
+  int          tbs;      ///< Payload size, TS 38.212 refers to it as A
+  double       R;        ///< Target LDPC rate
+  int          rv;       ///< Redundancy version
   uint32_t     nof_re;   ///< Number of available resource elements to send, known as N_RE
   uint32_t     nof_bits; ///< Number of available bits to send, known as G
   uint32_t     cw_idx;

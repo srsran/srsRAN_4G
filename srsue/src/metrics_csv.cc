@@ -70,7 +70,7 @@ void metrics_csv::set_metrics_helper(const srsran::rf_metrics_t  rf,
                                      const phy_metrics_t         phy,
                                      const mac_metrics_t         mac[SRSRAN_MAX_CARRIERS],
                                      const rrc_metrics_t         rrc,
-                                     const uint32_t              cc, 
+                                     const uint32_t              cc,
                                      const uint32_t              r)
 {
   if (not file.is_open()) {
@@ -108,7 +108,7 @@ void metrics_csv::set_metrics_helper(const srsran::rf_metrics_t  rf,
 
   file << float_to_string(phy.dl[r].mcs, 2);
   file << float_to_string(phy.ch[r].sinr, 2);
-  file << float_to_string(phy.dl[r].turbo_iters, 2);
+  file << float_to_string(phy.dl[r].fec_iters, 2);
 
   if (mac[r].rx_brate > 0) {
     file << float_to_string(mac[r].rx_brate / (mac[r].nof_tti * 1e-3), 2);
@@ -191,16 +191,16 @@ void metrics_csv::set_metrics(const ue_metrics_t& metrics, const uint32_t period
       file << "\n";
     }
 
-    // Metrics for LTE carrier 
+    // Metrics for LTE carrier
     for (uint32_t r = 0; r < metrics.phy.nof_active_cc; r++) {
       set_metrics_helper(metrics.rf, metrics.sys, metrics.phy, metrics.stack.mac, metrics.stack.rrc, r, r);
     }
 
-    // Metrics for NR carrier 
-    for (uint32_t r = 0; r < metrics.phy_nr.nof_active_cc; r++) {
+    // Metrics for NR carrier
+    for (uint32_t r = 0; r < metrics.phy.nof_active_cc; r++) {
       set_metrics_helper(metrics.rf,
                          metrics.sys,
-                         metrics.phy_nr,
+                         metrics.phy,
                          metrics.stack.mac_nr,
                          metrics.stack.rrc,
                          metrics.phy.nof_active_cc + r, // NR carrier offset

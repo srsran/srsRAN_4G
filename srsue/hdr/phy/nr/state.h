@@ -13,6 +13,7 @@
 #ifndef SRSRAN_STATE_H
 #define SRSRAN_STATE_H
 
+#include "../phy_metrics.h"
 #include "srsran/adt/circular_array.h"
 #include "srsran/common/common.h"
 #include "srsran/interfaces/ue_nr_interfaces.h"
@@ -47,8 +48,26 @@ private:
   srsran::circular_array<srsran_pdsch_ack_nr_t, TTIMOD_SZ> pending_ack = {};
   mutable std::mutex                                       pending_ack_mutex;
 
+  info_metrics_t     info_metrics = {};
+  sync_metrics_t     sync_metrics = {};
+  ch_metrics_t       ch_metrics   = {};
+  dl_metrics_t       dl_metrics   = {};
+  ul_metrics_t       ul_metrics   = {};
+  mutable std::mutex metrics_mutex;
+
   /// CSI-RS measurements
   std::array<srsran_csi_measurements_t, SRSRAN_CSI_MAX_NOF_RESOURCES> csi_measurements = {};
+
+  /**
+   * @brief Resets all metrics (unprotected)
+   */
+  void reset_metrics_()
+  {
+    sync_metrics.reset();
+    ch_metrics.reset();
+    dl_metrics.reset();
+    ul_metrics.reset();
+  }
 
 public:
   mac_interface_phy_nr* stack   = nullptr;
@@ -70,6 +89,8 @@ public:
     carrier.id              = 500;
     carrier.nof_prb         = 100;
     carrier.max_mimo_layers = 1;
+
+    info_metrics.pci = carrier.id;
 
     // Hard-coded values, this should be set when the measurements take place
     csi_measurements[0].K_csi_rs  = 1;
@@ -257,7 +278,11 @@ public:
     return true;
   }
 
-  void reset() { clear_pending_grants(); }
+  void reset()
+  {
+    clear_pending_grants();
+    reset_metrics();
+  }
 
   bool has_valid_sr_resource(uint32_t sr_id)
   {
@@ -322,6 +347,85 @@ public:
     }
 
     uci_data.cfg.pucch.rnti = stack->get_ul_sched_rnti_nr(tti).id;
+  }
+
+  /**
+   * @brief Sets time and frequency synchronization metrics
+   * @param m Metrics object
+   */
+  void set_info_metrics(const info_metrics_t& m)
+  {
+    std::lock_guard<std::mutex> lock(metrics_mutex);
+    info_metrics = m;
+  }
+
+  /**
+   * @brief Sets time and frequency synchronization metrics
+   * @param m Metrics object
+   */
+  void set_sync_metrics(const sync_metrics_t& m)
+  {
+    std::lock_guard<std::mutex> lock(metrics_mutex);
+    sync_metrics.set(m);
+  }
+
+  /**
+   * @brief Sets DL channel metrics from received CSI-RS resources
+   * @param m Metrics object
+   */
+  void set_channel_metrics(const ch_metrics_t& m)
+  {
+    std::lock_guard<std::mutex> lock(metrics_mutex);
+    ch_metrics.set(m);
+  }
+
+  /**
+   * @brief Sets DL metrics of a given PDSCH transmission
+   * @param m Metrics object
+   */
+  void set_dl_metrics(const dl_metrics_t& m)
+  {
+    std::lock_guard<std::mutex> lock(metrics_mutex);
+    dl_metrics.set(m);
+  }
+
+  /**
+   * @brief Sets UL metrics of a given PUSCH transmission
+   * @param m Metrics object
+   */
+  void set_ul_metrics(const ul_metrics_t& m)
+  {
+    std::lock_guard<std::mutex> lock(metrics_mutex);
+    ul_metrics.set(m);
+  }
+
+  /**
+   * @brief Resets all metrics (protected)
+   */
+  void reset_metrics()
+  {
+    std::lock_guard<std::mutex> lock(metrics_mutex);
+    reset_metrics_();
+  }
+
+  /**
+   * @brief Appends the NR PHY metrics to the general metric hub
+   * @param m PHY Metrics object
+   */
+  void get_metrics(phy_metrics_t& m)
+  {
+    std::lock_guard<std::mutex> lock(metrics_mutex);
+
+    uint32_t cc = m.nof_active_cc;
+    m.info[cc]  = info_metrics;
+    m.sync[cc]  = sync_metrics;
+    m.ch[cc]    = ch_metrics;
+    m.dl[cc]    = dl_metrics;
+    m.ul[cc]    = ul_metrics;
+    m.nof_active_cc++;
+
+    // Reset all metrics
+    reset_metrics_();
   }
 };
 } // namespace nr

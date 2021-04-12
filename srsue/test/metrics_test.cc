@@ -54,15 +54,15 @@ public:
     // random neighbour cells
     if (rand() % 2 == 0) {
       phy_meas_t neighbor = {};
-      neighbor.pci                               = 8;
-      neighbor.rsrp                              = -33;
+      neighbor.pci        = 8;
+      neighbor.rsrp       = -33;
       m->stack.rrc.neighbour_cells.push_back(neighbor);
       m->stack.rrc.neighbour_cells.push_back(neighbor); // need to add twice since we use CA
     }
 
-    m->phy_nr.nof_active_cc      = 1;
-    m->phy_nr.ch[0].rsrp         = -10.0f;
-    m->phy_nr.ch[0].pathloss     = 32;
+    m->phy.nof_active_cc         = 1;
+    m->phy.ch[0].rsrp            = -10.0f;
+    m->phy.ch[0].pathloss        = 32;
     m->stack.mac_nr[0].rx_pkts   = 100;
     m->stack.mac_nr[0].rx_errors = 2;
     m->stack.mac_nr[0].rx_brate  = 223;

@@ -70,6 +70,7 @@ typedef struct {
   uint8_t* payload;
   bool     crc;
   float    evm;
+  uint32_t fec_iters;
 } srsran_pdsch_res_nr_t;
 
 SRSRAN_API int srsran_pdsch_nr_init_enb(srsran_pdsch_nr_t* q, const srsran_pdsch_nr_args_t* args);

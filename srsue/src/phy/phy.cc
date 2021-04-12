@@ -202,6 +202,11 @@ void phy::get_metrics(phy_metrics_t* m)
   common.get_ul_metrics(m->ul);
   common.get_sync_metrics(m->sync);
   m->nof_active_cc = args.nof_lte_carriers;
+
+  // Get NR metrics
+  if (args.nof_nr_carriers > 0) {
+    nr_workers.get_metrics(*m);
+  }
 }
 
 void phy::set_timeadv_rar(uint32_t tti, uint32_t ta_cmd)

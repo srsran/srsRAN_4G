@@ -290,6 +290,26 @@ bool cc_worker::work_dl()
 
       // Send data to MAC
       phy->stack->tb_decoded(cc_idx, mac_nr_grant);
+
+      // Generate DL metrics
+      dl_metrics_t dl_m = {};
+      dl_m.mcs          = pdsch_cfg.grant.tb[0].mcs;
+      dl_m.fec_iters    = pdsch_res[0].fec_iters;
+      dl_m.evm          = pdsch_res[0].evm;
+      phy->set_dl_metrics(dl_m);
+
+      // Generate Synch metrics
+      sync_metrics_t sync_m = {};
+      sync_m.cfo            = ue_dl.chest.cfo;
+      phy->set_sync_metrics(sync_m);
+
+      // Generate channel metrics
+      ch_metrics_t ch_m = {};
+      ch_m.n            = ue_dl.chest.noise_estimate;
+      ch_m.sinr         = ue_dl.chest.snr_db;
+      ch_m.rsrp         = ue_dl.chest.rsrp_dbm;
+      ch_m.sync_err     = ue_dl.chest.sync_error;
+      phy->set_channel_metrics(ch_m);
     }
   }
 
@@ -377,6 +397,13 @@ bool cc_worker::work_ul()
                   str.data(),
                   ul_slot_cfg.idx);
     }
+
+    // Set metrics
+    ul_metrics_t ul_m = {};
+    ul_m.mcs          = pusch_cfg.grant.tb[0].mcs;
+    ul_m.power        = srsran_convert_power_to_dB(srsran_vec_avg_power_cf(tx_buffer[0], ue_ul.ifft.sf_sz));
+    phy->set_ul_metrics(ul_m);
+
   } else if (srsran_uci_nr_total_bits(&uci_data.cfg) > 0) {
     // Get PUCCH resource
     srsran_pucch_nr_resource_t resource = {};
