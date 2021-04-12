@@ -77,6 +77,7 @@ public:
     uint16_t                                      rnti;
     srsran::unique_byte_buffer_t                  ho_cmd_pdu;
     std::vector<asn1::s1ap::erab_admitted_item_s> admitted_bearers;
+    std::vector<asn1::s1ap::erab_item_s>          not_admitted_bearers;
   } last_ho_req_ack;
 
   bool send_ho_required(uint16_t                     rnti,
@@ -103,6 +104,7 @@ public:
     last_ho_req_ack.rnti       = rnti;
     last_ho_req_ack.ho_cmd_pdu = std::move(ho_cmd);
     last_ho_req_ack.admitted_bearers.assign(admitted_bearers.begin(), admitted_bearers.end());
+    last_ho_req_ack.not_admitted_bearers.assign(not_admitted_bearers.begin(), not_admitted_bearers.end());
     return true;
   }
   void ue_erab_setup_complete(uint16_t rnti, const asn1::s1ap::erab_setup_resp_s& res) override

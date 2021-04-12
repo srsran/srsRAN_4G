@@ -43,7 +43,8 @@ public:
 
   // S1-Handover
   bool start_s1_tenb_ho(const asn1::s1ap::ho_request_s&                                   msg,
-                        const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container);
+                        const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container,
+                        asn1::s1ap::cause_c&                                              cause);
 
 private:
   // helper methods
@@ -70,6 +71,7 @@ private:
   // vars
   asn1::rrc::meas_cfg_s                current_meas_cfg;
   asn1::rrc::rrc_conn_recfg_complete_s pending_recfg_complete;
+  asn1::s1ap::cause_c                  failure_cause;
 
   // events
   struct ho_meas_report_ev {
@@ -147,7 +149,7 @@ private:
   void handle_crnti_ce(intraenb_ho_st& s, const user_crnti_upd_ev& ev);
   void handle_recfg_complete(intraenb_ho_st& s, const recfg_complete_ev& ev);
   void handle_ho_requested(idle_st& s, const ho_req_rx_ev& ho_req);
-  void handle_ho_failure(s1_target_ho_st& s, const ho_failure_ev& ev);
+  void handle_ho_failure(const ho_failure_ev& ev);
   void handle_status_transfer(s1_target_ho_st& s, const status_transfer_ev& ev);
   void defer_recfg_complete(s1_target_ho_st& s, const recfg_complete_ev& ev);
   void handle_recfg_complete(wait_recfg_comp& s, const recfg_complete_ev& ev);
@@ -175,7 +177,7 @@ protected:
   row< intraenb_ho_st,  idle_st,           recfg_complete_ev,   &fsm::handle_recfg_complete                            >,
   // +----------------+-------------------+---------------------+----------------------------+-------------------------+
   row< s1_target_ho_st, wait_recfg_comp,   status_transfer_ev,  &fsm::handle_status_transfer                           >,
-  row< s1_target_ho_st, idle_st,           ho_failure_ev,       &fsm::handle_ho_failure                                >,
+  to_state<             idle_st,           ho_failure_ev,       &fsm::handle_ho_failure                                >,
   upd< s1_target_ho_st,                    recfg_complete_ev,   &fsm::defer_recfg_complete                             >,
   row< wait_recfg_comp, idle_st,           recfg_complete_ev,   &fsm::handle_recfg_complete                            >
   // +----------------+-------------------+---------------------+----------------------------+-------------------------+

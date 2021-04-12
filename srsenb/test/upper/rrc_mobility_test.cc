@@ -29,6 +29,7 @@ struct mobility_test_params {
     duplicate_crnti_ce,
     recover,
     wrong_target_cell,
+    wrong_qos,
   } fail_at;
   const char* to_string()
   {
@@ -47,6 +48,8 @@ struct mobility_test_params {
         return "duplicate CRNTI CE";
       case test_event::wrong_target_cell:
         return "wrong target cell";
+      case test_event::wrong_qos:
+        return "invalid QoS";
       default:
         return "none";
     }
@@ -273,11 +276,13 @@ int test_s1ap_tenb_mobility(mobility_test_params test_params)
   auto& erab   = ho_req.protocol_ies.erab_to_be_setup_list_ho_req.value[0].value.erab_to_be_setup_item_ho_req();
   erab.erab_id = 5;
   erab.erab_level_qos_params.qci = 9;
+  if (test_params.fail_at == mobility_test_params::test_event::wrong_qos) {
+    erab.erab_level_qos_params.qci = 10;
+  }
   asn1::s1ap::sourceenb_to_targetenb_transparent_container_s container;
+  container.target_cell_id.cell_id.from_number(0x19C02);
   if (test_params.fail_at == mobility_test_params::test_event::wrong_target_cell) {
     container.target_cell_id.cell_id.from_number(0x19C03);
-  } else {
-    container.target_cell_id.cell_id.from_number(0x19C02);
   }
   uint8_t ho_prep_container[] = {
       0x0a, 0x10, 0x0b, 0x81, 0x80, 0x00, 0x01, 0x80, 0x00, 0xf3, 0x02, 0x08, 0x00, 0x00, 0x15, 0x80, 0x00, 0x14,
@@ -300,6 +305,15 @@ int test_s1ap_tenb_mobility(mobility_test_params test_params)
   int                 rnti = tester.rrc.start_ho_ue_resource_alloc(ho_req, container, cause);
   if (test_params.fail_at == mobility_test_params::test_event::wrong_target_cell) {
     TESTASSERT(rnti == SRSRAN_INVALID_RNTI);
+    TESTASSERT(cause.type().value == asn1::s1ap::cause_c::types_opts::radio_network);
+    TESTASSERT(cause.radio_network().value == asn1::s1ap::cause_radio_network_opts::ho_target_not_allowed);
+    TESTASSERT(tester.rrc.get_nof_users() == 0);
+    return SRSRAN_SUCCESS;
+  }
+  if (test_params.fail_at == mobility_test_params::test_event::wrong_qos) {
+    TESTASSERT(rnti == SRSRAN_INVALID_RNTI);
+    TESTASSERT(cause.type().value == asn1::s1ap::cause_c::types_opts::radio_network);
+    TESTASSERT(cause.radio_network().value == asn1::s1ap::cause_radio_network_opts::invalid_qos_combination);
     TESTASSERT(tester.rrc.get_nof_users() == 0);
     return SRSRAN_SUCCESS;
   }
@@ -545,6 +559,7 @@ int main(int argc, char** argv)
   TESTASSERT(test_s1ap_mobility(*spy, mobility_test_params{event::success}) == 0);
 
   TESTASSERT(test_s1ap_tenb_mobility(mobility_test_params{event::wrong_target_cell}) == 0);
+  TESTASSERT(test_s1ap_tenb_mobility(mobility_test_params{event::wrong_qos}) == 0);
   TESTASSERT(test_s1ap_tenb_mobility(mobility_test_params{event::success}) == 0);
 
   // intraeNB Handover

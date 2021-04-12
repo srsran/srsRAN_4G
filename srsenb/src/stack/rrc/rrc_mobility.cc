@@ -180,8 +180,8 @@ uint16_t rrc::start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&        
   //    rrc_ptr->logger.error("Failed to setup e-RABs for rnti=0x%x", );
   //  }
 
-  if (not ue_ptr->mobility_handler->start_s1_tenb_ho(msg, container)) {
-    rem_user_thread(rnti);
+  if (not ue_ptr->mobility_handler->start_s1_tenb_ho(msg, container, cause)) {
+    rem_user(rnti);
     return SRSRAN_INVALID_RNTI;
   }
   return rnti;
@@ -435,10 +435,15 @@ void rrc::ue::rrc_mobility::handle_ho_preparation_complete(bool                 
 
 bool rrc::ue::rrc_mobility::start_s1_tenb_ho(
     const asn1::s1ap::ho_request_s&                                   msg,
-    const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container)
+    const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container,
+    asn1::s1ap::cause_c&                                              cause)
 {
   trigger(ho_req_rx_ev{&msg, &container});
-  return is_in_state<s1_target_ho_st>();
+  if (not is_in_state<s1_target_ho_st>()) {
+    cause = failure_cause;
+    return false;
+  }
+  return true;
 }
 
 /**
@@ -674,7 +679,6 @@ void rrc::ue::rrc_mobility::s1_source_ho_st::handle_ho_cancel(const ho_cancel_ev
 void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& ho_req)
 {
   const auto&                          rrc_container = ho_req.transparent_container->rrc_container;
-  asn1::s1ap::cause_c                  failure_cause;
   std::vector<asn1::s1ap::erab_item_s> not_admitted_erabs;
   auto&                                fwd_tunnels = get_state<s1_target_ho_st>()->pending_tunnels;
   fwd_tunnels.clear();
@@ -684,15 +688,17 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
   asn1::rrc::ho_prep_info_s hoprep;
   if (hoprep.unpack(bref) != asn1::SRSASN_SUCCESS) {
     rrc_enb->logger.error("Failed to decode HandoverPreparationinformation in S1AP SourceENBToTargetENBContainer");
-    failure_cause.set_protocol().value = asn1::s1ap::cause_protocol_opts::transfer_syntax_error;
-    trigger(ho_failure_ev{failure_cause});
+    asn1::s1ap::cause_c cause;
+    cause.set_protocol().value = asn1::s1ap::cause_protocol_opts::transfer_syntax_error;
+    trigger(ho_failure_ev{cause});
     return;
   }
   if (hoprep.crit_exts.type().value != c1_or_crit_ext_opts::c1 or
       hoprep.crit_exts.c1().type().value != ho_prep_info_s::crit_exts_c_::c1_c_::types_opts::ho_prep_info_r8) {
     rrc_enb->logger.error("Only release 8 supported");
-    failure_cause.set_protocol().value = asn1::s1ap::cause_protocol_opts::semantic_error;
-    trigger(ho_failure_ev{failure_cause});
+    asn1::s1ap::cause_c cause;
+    cause.set_protocol().value = asn1::s1ap::cause_protocol_opts::semantic_error;
+    trigger(ho_failure_ev{cause});
     return;
   }
   rrc_enb->log_rrc_message("HandoverPreparation", direction_t::fromS1AP, rrc_container, hoprep, "HandoverPreparation");
@@ -727,16 +733,17 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
   srsran::unique_byte_buffer_t ho_cmd_pdu = srsran::make_byte_buffer();
   if (ho_cmd_pdu == nullptr) {
     logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
-    failure_cause.set_radio_network().value =
-        asn1::s1ap::cause_radio_network_opts::no_radio_res_available_in_target_cell;
-    trigger(ho_failure_ev{failure_cause});
+    asn1::s1ap::cause_c cause;
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::no_radio_res_available_in_target_cell;
+    trigger(ho_failure_ev{cause});
     return;
   }
   asn1::bit_ref bref2{ho_cmd_pdu->msg, ho_cmd_pdu->get_tailroom()};
   if (dl_dcch_msg.pack(bref2) != asn1::SRSASN_SUCCESS) {
     logger.error("Failed to pack HandoverCommand");
-    failure_cause.set_protocol().value = asn1::s1ap::cause_protocol_opts::transfer_syntax_error;
-    trigger(ho_failure_ev{failure_cause});
+    asn1::s1ap::cause_c cause;
+    cause.set_protocol().value = asn1::s1ap::cause_protocol_opts::transfer_syntax_error;
+    trigger(ho_failure_ev{cause});
     return;
   }
   ho_cmd_pdu->N_bytes = bref2.distance_bytes();
@@ -749,8 +756,9 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
   bref2 = {ho_cmd_pdu->msg, ho_cmd_pdu->get_tailroom()};
   if (ho_cmd.pack(bref2) != asn1::SRSASN_SUCCESS) {
     logger.error("Failed to pack HandoverCommand");
-    failure_cause.set_protocol().value = asn1::s1ap::cause_protocol_opts::transfer_syntax_error;
-    trigger(ho_failure_ev{failure_cause});
+    asn1::s1ap::cause_c cause;
+    cause.set_protocol().value = asn1::s1ap::cause_protocol_opts::transfer_syntax_error;
+    trigger(ho_failure_ev{cause});
     return;
   }
   ho_cmd_pdu->N_bytes = bref2.distance_bytes();
@@ -809,6 +817,17 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
     }
   }
 
+  /// If the target eNB does not admit at least one non-GBR E-RAB, ..., it shall send the HANDOVER FAILURE message ...
+  if (admitted_erabs.empty()) {
+    asn1::s1ap::cause_c cause;
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::unspecified;
+    if (not not_admitted_erabs.empty()) {
+      cause = not_admitted_erabs[0].cause;
+    }
+    trigger(ho_failure_ev{cause});
+    return;
+  }
+
   // send S1AP HandoverRequestAcknowledge
   if (not rrc_enb->s1ap->send_ho_req_ack(*ho_req.ho_req_msg,
                                          rrc_ue->rnti,
@@ -816,16 +835,17 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
                                          std::move(ho_cmd_pdu),
                                          admitted_erabs,
                                          not_admitted_erabs)) {
-    failure_cause.set_protocol().value = asn1::s1ap::cause_protocol_opts::transfer_syntax_error;
-    trigger(ho_failure_ev{failure_cause});
+    asn1::s1ap::cause_c cause;
+    cause.set_protocol().value = asn1::s1ap::cause_protocol_opts::transfer_syntax_error;
+    trigger(ho_failure_ev{cause});
     return;
   }
 }
 
-void rrc::ue::rrc_mobility::handle_ho_failure(s1_target_ho_st& s, const ho_failure_ev& ev)
+void rrc::ue::rrc_mobility::handle_ho_failure(const ho_failure_ev& ev)
 {
   // Store Handover failure cause
-  s.failure_cause = ev.cause;
+  failure_cause = ev.cause;
 }
 
 void rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&          ho_prep,
