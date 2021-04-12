@@ -16,6 +16,7 @@
 #include <map>
 
 #include "srsenb/hdr/common/common_enb.h"
+#include "srsran/adt/circular_map.h"
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/common.h"
 #include "srsran/common/s1ap_pcap.h"
@@ -237,8 +238,9 @@ private:
     bool send_initial_ctxt_setup_response(const asn1::s1ap::init_context_setup_resp_s& res_);
     bool send_initial_ctxt_setup_failure();
     bool send_erab_setup_response(const asn1::s1ap::erab_setup_resp_s& res_);
-    bool send_erab_release_response(const std::vector<uint16_t>& erabs_successfully_released,
-                                    const std::vector<uint16_t>& erabs_failed_to_release);
+    bool send_erab_release_response(
+        const srsran::bounded_vector<uint16_t, MAX_NOF_ERABS>&                               erabs_released,
+        const srsran::static_circular_map<uint16_t, asn1::s1ap::erab_item_s, MAX_NOF_ERABS>& erabs_failed_to_release);
     bool send_erab_modify_response(
         srsran::const_span<const asn1::s1ap::erab_to_be_modified_item_bearer_mod_req_s*> erabs_modified,
         srsran::const_span<std::pair<uint16_t, asn1::s1ap::cause_c> >                    erabs_failed_to_modify);

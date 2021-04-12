@@ -33,10 +33,9 @@ public:
                             srsran::const_span<const asn1::s1ap::erab_to_be_modified_item_bearer_mod_req_s*> erabs_to_modify) = 0;
   virtual bool has_erab(uint16_t rnti, uint32_t erab_id) const                              = 0;
   virtual bool release_erabs(uint32_t rnti)                                                 = 0;
-  virtual void release_erabs(uint32_t                              rnti,
-                             const asn1::s1ap::erab_release_cmd_s& msg,
-                             std::vector<uint16_t>*                erabs_released,
-                             std::vector<uint16_t>*                erabs_failed_to_release)                = 0;
+  virtual void release_erabs(uint32_t                               rnti,
+                             srsran::const_span<uint16_t>           erabs_to_release,
+                             const asn1::unbounded_octstring<true>* nas_pdu)                = 0;
   virtual void add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& ue_paging_id) = 0;
 
   /**

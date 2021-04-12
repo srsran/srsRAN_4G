@@ -26,6 +26,8 @@ namespace srsenb {
 
 #define SRSENB_N_SRB 3
 #define SRSENB_MAX_UES 64
+const uint32_t MAX_ERAB_ID   = 15;
+const uint32_t MAX_NOF_ERABS = 16;
 
 using srsran::lte_drb;
 using srsran::lte_srb;

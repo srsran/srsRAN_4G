@@ -735,15 +735,18 @@ bool s1ap::handle_erabmodifyrequest(const erab_modify_request_s& msg)
     return false;
   }
 
-  // make a copy, sort by ERAB ID
   using erab_t        = erab_to_be_modified_item_bearer_mod_req_s;
   using failed_erab_t = std::pair<uint16_t, cause_c>;
-  srsran::bounded_vector<const erab_t*, 256> erab_mod_list;
-  std::vector<failed_erab_t>                 erabs_failed_to_modify;
-  auto&                                      msg_erabs = msg.protocol_ies.erab_to_be_modified_list_bearer_mod_req.value;
+  srsran::bounded_vector<const erab_t*, MAX_ERAB_ID + 1> erab_mod_list;
+  srsran::bounded_vector<failed_erab_t, MAX_ERAB_ID + 1> erabs_failed_to_modify;
+  const auto& msg_erabs = msg.protocol_ies.erab_to_be_modified_list_bearer_mod_req.value;
 
-  for (const auto& msg_erab : msg_erabs) {
-    const erab_t& e = msg_erab.value.erab_to_be_modified_item_bearer_mod_req();
+  if (msg_erabs.size() > erab_mod_list.capacity()) {
+    logger.warning("Not handling more than %d E-RABs per modify request message.", erab_mod_list.capacity());
+  }
+
+  for (size_t i = 0; i < SRSRAN_MIN(msg_erabs.size(), erab_mod_list.capacity()); ++i) {
+    const erab_t& e = msg_erabs[i].value.erab_to_be_modified_item_bearer_mod_req();
 
     // Check if E-RAB exists. If not, add to "erabs_failed_to_modify" with "unknown_erab_id" cause
     if (not rrc->has_erab(u->ctxt.rnti, e.erab_id)) {
@@ -757,7 +760,7 @@ bool s1ap::handle_erabmodifyrequest(const erab_modify_request_s& msg)
     // with cause "multiple_erab_id_instances"
     for (const auto& msg_erab2 : msg_erabs) {
       const erab_t& e2 = msg_erab2.value.erab_to_be_modified_item_bearer_mod_req();
-      if (&msg_erab2 != &msg_erab and e2.erab_id == e.erab_id) {
+      if (&e2 != &e and e2.erab_id == e.erab_id) {
         cause_c cause;
         cause.set_radio_network().value = cause_radio_network_opts::multiple_erab_id_instances;
         erabs_failed_to_modify.emplace_back(e.erab_id, cause);
@@ -802,9 +805,6 @@ bool s1ap::handle_erabmodifyrequest(const erab_modify_request_s& msg)
  */
 bool s1ap::handle_erabreleasecommand(const erab_release_cmd_s& msg)
 {
-  std::vector<uint16_t> erab_successful_release = {};
-  std::vector<uint16_t> erab_failed_to_release  = {};
-
   if (msg.ext) {
     logger.warning("Not handling S1AP message extension");
   }
@@ -814,11 +814,56 @@ bool s1ap::handle_erabreleasecommand(const erab_release_cmd_s& msg)
     return false;
   }
 
+  srsran::bounded_vector<uint16_t, MAX_NOF_ERABS>                   erabs_to_release;
+  srsran::static_circular_map<uint16_t, erab_item_s, MAX_NOF_ERABS> erabs_failed_to_release;
+  const auto& msg_erabs = msg.protocol_ies.erab_to_be_released_list.value;
+
+  for (const auto& msg_erab : msg_erabs) {
+    const erab_item_s& e = msg_erab.value.erab_item();
+    if (e.erab_id >= erabs_failed_to_release.capacity()) {
+      logger.warning("Not handling E-RAB Ids above %zd", erabs_to_release.capacity());
+      continue;
+    }
+    if (erabs_to_release.full()) {
+      logger.warning("Not handling more than %zd releases per ERAB release request message",
+                     erabs_to_release.capacity());
+      break;
+    }
+
+    // Check if E-RAB exists. If not, add to "erabs_failed_to_modify" with "unknown_erab_id" cause
+    if (not rrc->has_erab(u->ctxt.rnti, e.erab_id)) {
+      erabs_failed_to_release.overwrite(e.erab_id, erab_item_s());
+      erabs_failed_to_release[e.erab_id].cause.set_radio_network().value = cause_radio_network_opts::unknown_erab_id;
+      continue;
+    }
+
+    // Check Repeated E-RABs in the modification list. If repeated, add to the list of "erabs_failed_to_modify"
+    // with cause "multiple_erab_id_instances"
+    for (const auto& msg_erab2 : msg_erabs) {
+      const erab_item_s& e2 = msg_erab2.value.erab_item();
+      if (&e2 != &e and e2.erab_id == e.erab_id) {
+        erabs_failed_to_release.overwrite(e.erab_id, erab_item_s());
+        erabs_failed_to_release[e.erab_id].cause.set_radio_network().value =
+            cause_radio_network_opts::multiple_erab_id_instances;
+        break;
+      }
+    }
+    if (erabs_failed_to_release.has_space(e.erab_id)) {
+      continue;
+    }
+
+    // Add to the list to modify
+    erabs_to_release.push_back(e.erab_id);
+  }
+
   // Release E-RABs from RRC
-  rrc->release_erabs(u->ctxt.rnti, msg, &erab_successful_release, &erab_failed_to_release);
+  std::sort(erabs_to_release.begin(), erabs_to_release.end());
+  erabs_to_release.erase(std::unique(erabs_to_release.begin(), erabs_to_release.end()), erabs_to_release.end());
+  rrc->release_erabs(
+      u->ctxt.rnti, erabs_to_release, msg.protocol_ies.nas_pdu_present ? &msg.protocol_ies.nas_pdu.value : nullptr);
 
   // Send E-RAB release response back to the MME
-  if (not u->send_erab_release_response(erab_successful_release, erab_failed_to_release)) {
+  if (not u->send_erab_release_response(erabs_to_release, erabs_failed_to_release)) {
     logger.info("Failed to send ERABReleaseResponse");
     return false;
   }
@@ -1391,8 +1436,9 @@ bool s1ap::ue::send_uectxtmodifyfailure(const cause_c& cause)
  * @param erabs_failed_to_release
  * @return true if message was sent
  */
-bool s1ap::ue::send_erab_release_response(const std::vector<uint16_t>& erabs_successfully_released,
-                                          const std::vector<uint16_t>& erabs_failed_to_release)
+bool s1ap::ue::send_erab_release_response(
+    const srsran::bounded_vector<uint16_t, MAX_NOF_ERABS>&                               erabs_released,
+    const srsran::static_circular_map<uint16_t, asn1::s1ap::erab_item_s, MAX_NOF_ERABS>& erabs_failed_to_release)
 {
   if (not s1ap_ptr->mme_connected) {
     return false;
@@ -1406,14 +1452,14 @@ bool s1ap::ue::send_erab_release_response(const std::vector<uint16_t>& erabs_suc
   container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id.value();
 
   // Fill in which E-RABs were successfully released
-  if (not erabs_successfully_released.empty()) {
+  if (not erabs_released.empty()) {
     container.erab_release_list_bearer_rel_comp_present = true;
-    container.erab_release_list_bearer_rel_comp.value.resize(erabs_successfully_released.size());
-    for (uint32_t i = 0; i < container.erab_release_list_bearer_rel_comp.value.size(); i++) {
+    container.erab_release_list_bearer_rel_comp.value.resize(erabs_released.size());
+    for (size_t i = 0; i < erabs_released.size(); ++i) {
       container.erab_release_list_bearer_rel_comp.value[i].load_info_obj(
           ASN1_S1AP_ID_ERAB_RELEASE_ITEM_BEARER_REL_COMP);
       container.erab_release_list_bearer_rel_comp.value[i].value.erab_release_item_bearer_rel_comp().erab_id =
-          erabs_successfully_released[i];
+          erabs_released[i];
     }
   }
 
@@ -1421,12 +1467,11 @@ bool s1ap::ue::send_erab_release_response(const std::vector<uint16_t>& erabs_suc
   if (not erabs_failed_to_release.empty()) {
     container.erab_failed_to_release_list_present = true;
     container.erab_failed_to_release_list.value.resize(erabs_failed_to_release.size());
-    for (uint32_t i = 0; i < container.erab_failed_to_release_list.value.size(); i++) {
-      container.erab_failed_to_release_list.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_ITEM);
-      container.erab_failed_to_release_list.value[i].value.erab_item().erab_id = erabs_failed_to_release[i];
-      container.erab_failed_to_release_list.value[i].value.erab_item().cause.set(asn1::s1ap::cause_c::types::misc);
-      container.erab_failed_to_release_list.value[i].value.erab_item().cause.misc() =
-          asn1::s1ap::cause_misc_opts::unspecified;
+    size_t count = 0;
+    for (const auto& erab : erabs_failed_to_release) {
+      container.erab_failed_to_release_list.value[count].load_info_obj(ASN1_S1AP_ID_ERAB_ITEM);
+      container.erab_failed_to_release_list.value[count].value.erab_item() = erab->second;
+      count++;
     }
   }
 

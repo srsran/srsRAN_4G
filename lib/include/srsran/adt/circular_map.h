@@ -233,7 +233,7 @@ public:
 
   iterator       begin() { return iterator(this, 0); }
   iterator       end() { return iterator(this, N); }
-  const_iterator begin() const { return iterator(this, 0); }
+  const_iterator begin() const { return const_iterator(this, 0); }
   const_iterator end() const { return const_iterator(this, N); }
 
   iterator find(K id)

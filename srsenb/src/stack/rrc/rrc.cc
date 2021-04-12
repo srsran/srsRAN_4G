@@ -358,10 +358,9 @@ bool rrc::release_erabs(uint32_t rnti)
   return ret;
 }
 
-void rrc::release_erabs(uint32_t                              rnti,
-                        const asn1::s1ap::erab_release_cmd_s& msg,
-                        std::vector<uint16_t>*                erabs_released,
-                        std::vector<uint16_t>*                erabs_failed_to_release)
+void rrc::release_erabs(uint32_t                               rnti,
+                        srsran::const_span<uint16_t>           erabs_to_release,
+                        const asn1::unbounded_octstring<true>* nas_pdu)
 {
   logger.info("Releasing E-RAB for 0x%x", rnti);
   auto user_it = users.find(rnti);
@@ -371,18 +370,10 @@ void rrc::release_erabs(uint32_t                              rnti,
     return;
   }
 
-  for (uint32_t i = 0; i < msg.protocol_ies.erab_to_be_released_list.value.size(); i++) {
-    const asn1::s1ap::erab_item_s& erab_to_release =
-        msg.protocol_ies.erab_to_be_released_list.value[i].value.erab_item();
-    bool ret = user_it->second->release_erab(erab_to_release.erab_id);
-    if (ret) {
-      erabs_released->push_back(erab_to_release.erab_id);
-    } else {
-      erabs_failed_to_release->push_back(erab_to_release.erab_id);
-    }
+  for (uint16_t erab_id : erabs_to_release) {
+    bool ret = user_it->second->release_erab(erab_id);
+    srsran_expect(ret, "E-RAB id=%d not found", erab_id);
   }
-  const asn1::unbounded_octstring<true>* nas_pdu =
-      msg.protocol_ies.nas_pdu_present ? &msg.protocol_ies.nas_pdu.value : nullptr;
   user_it->second->send_connection_reconf(nullptr, false, nas_pdu);
 }
 

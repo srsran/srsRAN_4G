@@ -174,10 +174,9 @@ public:
   {}
   bool has_erab(uint16_t rnti, uint32_t erab_id) const override { return true; }
   bool release_erabs(uint32_t rnti) override { return true; }
-  void release_erabs(uint32_t                              rnti,
-                     const asn1::s1ap::erab_release_cmd_s& msg,
-                     std::vector<uint16_t>*                erabs_released,
-                     std::vector<uint16_t>*                erabs_failed_to_release) override
+  void release_erabs(uint32_t                               rnti,
+                     srsran::const_span<uint16_t>           erabs_to_release,
+                     const asn1::unbounded_octstring<true>* nas_pdu) override
   {}
   void add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& ue_paging_id) override {}
   void ho_preparation_complete(uint16_t                     rnti,
