@@ -91,18 +91,21 @@ struct dummy_socket_manager : public srsran::socket_manager_itf {
 };
 
 struct rrc_tester : public rrc_dummy {
-  void modify_erabs(uint16_t                                 rnti,
-                    const asn1::s1ap::erab_modify_request_s& msg,
-                    std::vector<uint16_t>*                   erabs_modified,
-                    std::vector<uint16_t>*                   erabs_failed_to_modify) override
+  void modify_erabs(uint16_t                                                                         rnti,
+                    srsran::const_span<const asn1::s1ap::erab_to_be_modified_item_bearer_mod_req_s*> erabs_to_modify,
+                    std::vector<uint16_t>* erabs_failed_to_modify) override
   {
-    *erabs_modified         = next_erabs_modified;
+    for (auto& erab : erabs_to_modify) {
+      if (std::count(next_erabs_failed_to_modify.begin(), next_erabs_failed_to_modify.end(), erab->erab_id) == 0) {
+        last_erabs_modified.push_back(erab->erab_id);
+      }
+    }
     *erabs_failed_to_modify = next_erabs_failed_to_modify;
   }
   void release_ue(uint16_t rnti) override { last_released_rnti = rnti; }
 
   uint16_t              last_released_rnti = SRSRAN_INVALID_RNTI;
-  std::vector<uint16_t> next_erabs_modified, next_erabs_failed_to_modify;
+  std::vector<uint16_t> next_erabs_failed_to_modify, last_erabs_modified;
 };
 
 void run_s1_setup(s1ap& s1ap_obj, mme_dummy& mme)
@@ -229,8 +232,6 @@ void test_s1ap_erab_setup(test_event event)
     rrc.next_erabs_failed_to_modify.push_back(6);
   } else if (event == test_event::wrong_mme_s1ap_id) {
     mod_req_msg[12] = 0x02; // MME-UE-S1AP-ID = 2
-  } else {
-    rrc.next_erabs_modified.push_back(5);
   }
   sdu = srsran::make_byte_buffer();
   memcpy(sdu->msg, mod_req_msg, sizeof(mod_req_msg));

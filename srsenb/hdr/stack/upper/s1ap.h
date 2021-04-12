@@ -239,8 +239,9 @@ private:
     bool send_erab_setup_response(const asn1::s1ap::erab_setup_resp_s& res_);
     bool send_erab_release_response(const std::vector<uint16_t>& erabs_successfully_released,
                                     const std::vector<uint16_t>& erabs_failed_to_release);
-    bool send_erab_modify_response(const std::vector<uint16_t>& erabs_successfully_released,
-                                   const std::vector<uint16_t>& erabs_failed_to_release);
+    bool send_erab_modify_response(
+        srsran::const_span<const asn1::s1ap::erab_to_be_modified_item_bearer_mod_req_s*> erabs_modified,
+        srsran::const_span<std::pair<uint16_t, asn1::s1ap::cause_c> >                    erabs_failed_to_modify);
     bool send_erab_release_indication(const std::vector<uint16_t>& erabs_successfully_released);
     bool send_ue_cap_info_indication(srsran::unique_byte_buffer_t ue_radio_cap);
 

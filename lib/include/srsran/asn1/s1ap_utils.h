@@ -38,6 +38,7 @@ struct bearers_subject_to_status_transfer_item_ies_o;
 struct erab_level_qos_params_s;
 struct ho_cmd_s;
 struct erab_admitted_item_s;
+struct erab_to_be_modified_item_bearer_mod_req_s;
 
 template <class ies_set_paramT_>
 struct protocol_ie_single_container_s;

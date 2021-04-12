@@ -726,9 +726,6 @@ bool s1ap::handle_erabsetuprequest(const erab_setup_request_s& msg)
 
 bool s1ap::handle_erabmodifyrequest(const erab_modify_request_s& msg)
 {
-  std::vector<uint16_t> erab_successful_modified = {};
-  std::vector<uint16_t> erab_failed_to_modify    = {};
-
   if (msg.ext) {
     logger.warning("Not handling S1AP message extension");
   }
@@ -738,11 +735,43 @@ bool s1ap::handle_erabmodifyrequest(const erab_modify_request_s& msg)
     return false;
   }
 
+  // make a copy, sort by ERAB ID
+  using erab_t = erab_to_be_modified_item_bearer_mod_req_s;
+  srsran::bounded_vector<const erab_t*, 256> erab_mod_list;
+  for (const auto& erab : msg.protocol_ies.erab_to_be_modified_list_bearer_mod_req.value) {
+    erab_mod_list.push_back(&erab.value.erab_to_be_modified_item_bearer_mod_req());
+  }
+  auto lower_erab = [](const erab_t* lhs, const erab_t* rhs) { return lhs->erab_id < rhs->erab_id; };
+  std::sort(erab_mod_list.begin(), erab_mod_list.end(), lower_erab);
+
+  // Find repeated ERAB-IDs and add them to list of ERABs failed to modify
+  std::vector<std::pair<uint16_t, cause_c> > erabs_failed_to_modify;
+  auto                                       new_end = std::unique(erab_mod_list.begin(), erab_mod_list.end());
+  for (auto it = new_end; it != erab_mod_list.end(); ++it) {
+    cause_c cause;
+    cause.set_radio_network().value = cause_radio_network_opts::multiple_erab_id_instances;
+    erabs_failed_to_modify.emplace_back((*it)->erab_id, cause);
+  }
+  erab_mod_list.erase(new_end, erab_mod_list.end());
+
   // Modify E-RABs from RRC
-  rrc->modify_erabs(u->ctxt.rnti, msg, &erab_successful_modified, &erab_failed_to_modify);
+  std::vector<uint16_t> unknown_erabids;
+  rrc->modify_erabs(u->ctxt.rnti, erab_mod_list, &unknown_erabids);
+
+  // Add Unknown E-RAB to the list of failed to modify
+  for (uint16_t erab : unknown_erabids) {
+    cause_c cause;
+    cause.set_radio_network().value = cause_radio_network_opts::unknown_erab_id;
+    erabs_failed_to_modify.emplace_back(erab, cause);
+    auto lower_erab2 = [](const erab_t* lhs, uint16_t erab) { return lhs->erab_id < erab; };
+    auto it          = std::lower_bound(erab_mod_list.begin(), erab_mod_list.end(), erab, lower_erab2);
+    if (it != erab_mod_list.end() and (*it)->erab_id == erab) {
+      erab_mod_list.erase(it);
+    }
+  }
 
   // Send E-RAB modify response back to the MME
-  if (not u->send_erab_modify_response(erab_successful_modified, erab_failed_to_modify)) {
+  if (not u->send_erab_modify_response(erab_mod_list, erabs_failed_to_modify)) {
     logger.info("Failed to send ERABReleaseResponse");
     return false;
   }
@@ -1390,8 +1419,9 @@ bool s1ap::ue::send_erab_release_response(const std::vector<uint16_t>& erabs_suc
   return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "E-RABReleaseResponse");
 }
 
-bool s1ap::ue::send_erab_modify_response(const std::vector<uint16_t>& erabs_successfully_modified,
-                                         const std::vector<uint16_t>& erabs_failed_to_modify)
+bool s1ap::ue::send_erab_modify_response(
+    srsran::const_span<const erab_to_be_modified_item_bearer_mod_req_s*> erabs_modified,
+    srsran::const_span<std::pair<uint16_t, cause_c> >                    erabs_failed_to_modify)
 {
   if (not s1ap_ptr->mme_connected) {
     return false;
@@ -1405,13 +1435,13 @@ bool s1ap::ue::send_erab_modify_response(const std::vector<uint16_t>& erabs_succ
   container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id.value();
 
   // Fill in which E-RABs were successfully released
-  if (not erabs_successfully_modified.empty()) {
+  if (not erabs_modified.empty()) {
     container.erab_modify_list_bearer_mod_res_present = true;
-    container.erab_modify_list_bearer_mod_res.value.resize(erabs_successfully_modified.size());
+    container.erab_modify_list_bearer_mod_res.value.resize(erabs_modified.size());
     for (uint32_t i = 0; i < container.erab_modify_list_bearer_mod_res.value.size(); i++) {
       container.erab_modify_list_bearer_mod_res.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_MODIFY_ITEM_BEARER_MOD_RES);
       container.erab_modify_list_bearer_mod_res.value[i].value.erab_modify_item_bearer_mod_res().erab_id =
-          erabs_successfully_modified[i];
+          erabs_modified[i]->erab_id;
     }
   }
 
@@ -1421,11 +1451,8 @@ bool s1ap::ue::send_erab_modify_response(const std::vector<uint16_t>& erabs_succ
     container.erab_failed_to_modify_list.value.resize(erabs_failed_to_modify.size());
     for (uint32_t i = 0; i < container.erab_failed_to_modify_list.value.size(); i++) {
       container.erab_failed_to_modify_list.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_ITEM);
-      container.erab_failed_to_modify_list.value[i].value.erab_item().erab_id = erabs_failed_to_modify[i];
-      container.erab_failed_to_modify_list.value[i].value.erab_item().cause.set(
-          asn1::s1ap::cause_c::types_opts::radio_network);
-      container.erab_failed_to_modify_list.value[i].value.erab_item().cause.radio_network().value =
-          cause_radio_network_opts::unknown_erab_id;
+      container.erab_failed_to_modify_list.value[i].value.erab_item().erab_id = erabs_failed_to_modify[i].first;
+      container.erab_failed_to_modify_list.value[i].value.erab_item().cause   = erabs_failed_to_modify[i].second;
     }
   }
 
