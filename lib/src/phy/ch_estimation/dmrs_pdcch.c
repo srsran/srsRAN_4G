@@ -437,20 +437,23 @@ int srsran_dmrs_pdcch_get_measure(const srsran_dmrs_pdcch_estimator_t* q,
   uint32_t pilot_idx  = (dci_location->ncce * 18) / q->coreset.duration;
   uint32_t nof_pilots = (L * 18) / q->coreset.duration;
 
-  float rsrp                              = 0.0f;
-  float epre                              = 0.0f;
-  float cfo                               = 0.0f;
-  float sync_err                          = 0.0f;
-  cf_t  corr[SRSRAN_CORESET_DURATION_MAX] = {};
+  // Initialise measurements
+  float rsrp                              = 0.0f; //< Averages linear RSRP
+  float epre                              = 0.0f; //< Averages linear EPRE
+  float cfo_avg_Hz                        = 0.0f; //< Averages CFO in Radians
+  float sync_err_avg                      = 0.0f; //< Averages synchronization
+  cf_t  corr[SRSRAN_CORESET_DURATION_MAX] = {};   //< Saves correlation for the different symbols
+
+  // Iterate the CORESET duration
   for (uint32_t l = 0; l < q->coreset.duration; l++) {
     if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
       DMRS_PDCCH_DEBUG_RX("Measuring PDCCH l=%d; lse=", l);
       srsran_vec_fprint_c(stdout, &q->lse[l][pilot_idx], nof_pilots);
     }
 
-    // Measure synchronization error
+    // Measure synchronization error and accumulate for average
     float tmp_sync_err = srsran_vec_estimate_frequency(&q->lse[l][pilot_idx], nof_pilots);
-    sync_err += tmp_sync_err;
+    sync_err_avg += tmp_sync_err;
 
 #if DMRS_PDCCH_SYNC_PRECOMPENSATE_MEAS
     cf_t tmp[DMRS_PDCCH_MAX_NOF_PILOTS_CANDIDATE];
@@ -472,26 +475,33 @@ int srsran_dmrs_pdcch_get_measure(const srsran_dmrs_pdcch_estimator_t* q,
 
     // Measure CFO only from the second and third symbols
     if (l != 0) {
-      cfo += cargf(corr[l] * conjf(corr[l - 1]));
+      // Calculates the time between the previous and the current symbol
+      float Ts = srsran_symbol_distance_s(l - 1, l, q->carrier.numerology);
+      if (isnormal(Ts)) {
+        // Compute phase difference between symbols and convert to Hz
+        cfo_avg_Hz += cargf(corr[l] * conjf(corr[l - 1])) / (2.0f * (float)M_PI * Ts);
+      }
     }
   }
 
+  // Store results
+  measure->rsrp = rsrp / (float)q->coreset.duration;
+  measure->epre = epre / (float)q->coreset.duration;
   if (q->coreset.duration > 1) {
-    cfo /= (float)(q->coreset.duration - 1);
+    // Protected zero division
+    measure->cfo_hz /= (float)(q->coreset.duration - 1);
+  } else {
+    // There are not enough symbols for computing CFO, set to NAN
+    measure->cfo_hz = NAN;
   }
-
-  // Symbol time, including cyclic prefix. Required for CFO estimation
-  float Ts = (71.3541666667f / (float)(1 << q->carrier.numerology));
-
-  measure->rsrp   = rsrp / (float)q->coreset.duration;
-  measure->epre   = epre / (float)q->coreset.duration;
-  measure->cfo_hz = cfo / (2.0f * (float)M_PI * Ts);
   measure->sync_error_us =
-      sync_err / (4.0e-6f * (float)q->coreset.duration * SRSRAN_SUBC_SPACING_NR(q->carrier.numerology));
+      sync_err_avg / (4.0e-6f * (float)q->coreset.duration * SRSRAN_SUBC_SPACING_NR(q->carrier.numerology));
 
+  // Convert power measurements into logarithmic scale
   measure->rsrp_dBfs = srsran_convert_power_to_dB(measure->rsrp);
   measure->epre_dBfs = srsran_convert_power_to_dB(measure->epre);
 
+  // Store DMRS correlation
   if (isnormal(measure->rsrp) && isnormal(measure->epre)) {
     measure->norm_corr = measure->rsrp / measure->epre;
   } else {
