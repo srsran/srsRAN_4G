@@ -330,7 +330,8 @@ void ue::start_plot()
 bool ue::get_metrics(ue_metrics_t* m)
 {
   bzero(m, sizeof(ue_metrics_t));
-  phy->get_metrics(&m->phy);
+  phy->get_metrics("lte", &m->phy);
+  phy->get_metrics("nr", &m->phy_nr);
   radio->get_metrics(&m->rf);
   stack->get_metrics(&m->stack);
   gw_inst->get_metrics(m->gw, m->stack.mac[0].nof_tti);

@@ -48,7 +48,7 @@ public:
   void        stop() override;
   void        wait_initialize() override;
   void        start_plot() override;
-  void        get_metrics(phy_metrics_t* m) override;
+  void        get_metrics(const std::string& rat, phy_metrics_t* m) override;
   std::string get_type() override;
 
   // The interface for the SS

@@ -40,7 +40,7 @@ public:
   virtual void wait_initialize() = 0;
   virtual void start_plot()      = 0;
 
-  virtual void get_metrics(phy_metrics_t* m) = 0;
+  virtual void get_metrics(const std::string& rat, phy_metrics_t* m) = 0;
 };
 
 } // namespace srsue

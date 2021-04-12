@@ -184,8 +184,18 @@ void phy::stop()
   }
 }
 
-void phy::get_metrics(phy_metrics_t* m)
+void phy::get_metrics(const std::string& rat, phy_metrics_t* m)
 {
+  // Get NR metrics
+  if (rat == "nr" and args.nof_nr_carriers > 0) {
+    nr_workers.get_metrics(*m);
+    return;
+  }
+
+  if (rat != "lte") {
+    *m = {};
+    return;
+  }
   uint32_t      dl_earfcn = 0;
   srsran_cell_t cell      = {};
   sfsync.get_current_cell(&cell, &dl_earfcn);
@@ -202,11 +212,6 @@ void phy::get_metrics(phy_metrics_t* m)
   common.get_ul_metrics(m->ul);
   common.get_sync_metrics(m->sync);
   m->nof_active_cc = args.nof_lte_carriers;
-
-  // Get NR metrics
-  if (args.nof_nr_carriers > 0) {
-    nr_workers.get_metrics(*m);
-  }
 }
 
 void phy::set_timeadv_rar(uint32_t tti, uint32_t ta_cmd)

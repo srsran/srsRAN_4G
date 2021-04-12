@@ -174,6 +174,12 @@ void metrics_stdout::set_metrics(const ue_metrics_t& metrics, const uint32_t per
     set_metrics_helper(metrics.phy, metrics.stack.mac, metrics.stack.rrc, display_neighbours, r);
   }
 
+  for (uint32_t r = 0; r < metrics.phy_nr.nof_active_cc; r++) {
+    // Assumption LTE is followed by the NR carriers.
+    cout << std::setw(2) << metrics.phy_nr.nof_active_cc + r;
+    set_metrics_helper(metrics.phy_nr, metrics.stack.mac_nr, metrics.stack.rrc, display_neighbours, r);
+  }
+
   if (metrics.rf.rf_error) {
     printf("RF status: O=%d, U=%d, L=%d\n", metrics.rf.rf_o, metrics.rf.rf_u, metrics.rf.rf_l);
   }
