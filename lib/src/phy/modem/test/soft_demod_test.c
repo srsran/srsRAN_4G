@@ -10,11 +10,8 @@
  *
  */
 
-#include <math.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <strings.h>
 #include <time.h>
 #include <unistd.h>
@@ -25,7 +22,7 @@ static uint32_t     nof_frames = 10;
 static uint32_t     num_bits   = 1000;
 static srsran_mod_t modulation = SRSRAN_MOD_NITEMS;
 
-void usage(char* prog)
+static void usage(char* prog)
 {
   printf("Usage: %s [nfv] -m modulation (1: BPSK, 2: QPSK, 4: QAM16, 6: QAM64)\n", prog);
   printf("\t-n num_bits [Default %d]\n", num_bits);
@@ -33,7 +30,7 @@ void usage(char* prog)
   printf("\t-v srsran_verbose [Default None]\n");
 }
 
-void parse_args(int argc, char** argv)
+static void parse_args(int argc, char** argv)
 {
   int opt;
   while ((opt = getopt(argc, argv, "nmvf")) != -1) {
@@ -82,33 +79,16 @@ void parse_args(int argc, char** argv)
   }
 }
 
-float mse_threshold()
-{
-  switch (modulation) {
-    case SRSRAN_MOD_BPSK:
-      return 1.0e-6;
-    case SRSRAN_MOD_QPSK:
-      return 1.0e-6;
-    case SRSRAN_MOD_16QAM:
-      return 0.11;
-    case SRSRAN_MOD_64QAM:
-      return 0.19;
-    case SRSRAN_MOD_256QAM:
-      return 0.3;
-    default:
-      return -1.0f;
-  }
-}
-
 int main(int argc, char** argv)
 {
-  int                  i;
   srsran_modem_table_t mod;
-  uint8_t *            input, *output;
-  cf_t*                symbols;
-  float*               llr;
-  short*               llr_s;
-  int8_t*              llr_b;
+  uint8_t*             input      = NULL;
+  cf_t*                symbols    = NULL;
+  float*               llr        = NULL;
+  short*               llr_s      = NULL;
+  int8_t*              llr_b      = NULL;
+  int8_t*              llr_b2     = NULL;
+  srsran_random_t      random_gen = srsran_random_init(0);
 
   parse_args(argc, argv);
 
@@ -124,11 +104,6 @@ int main(int argc, char** argv)
   /* allocate buffers */
   input = srsran_vec_u8_malloc(num_bits);
   if (!input) {
-    perror("malloc");
-    exit(-1);
-  }
-  output = srsran_vec_u8_malloc(num_bits);
-  if (!output) {
     perror("malloc");
     exit(-1);
   }
@@ -156,17 +131,21 @@ int main(int argc, char** argv)
     exit(-1);
   }
 
-  /* generate random data */
-  srand(0);
+  llr_b2 = srsran_vec_i8_malloc(num_bits);
+  if (!llr_b2) {
+    perror("malloc");
+    exit(-1);
+  }
 
   int            ret = -1;
   struct timeval t[3];
-  float          mean_texec   = 0.0;
-  float          mean_texec_s = 0.0;
-  float          mean_texec_b = 0.0;
+  float          mean_texec    = 0.0f;
+  float          mean_texec_s  = 0.0f;
+  float          mean_texec_b  = 0.0f;
+  float          mean_texec_b2 = 0.0f;
   for (int n = 0; n < nof_frames; n++) {
-    for (i = 0; i < num_bits; i++) {
-      input[i] = rand() % 2;
+    for (int i = 0; i < num_bits; i++) {
+      input[i] = srsran_random_uniform_int_dist(random_gen, 0, 1);
     }
 
     /* modulate */
@@ -200,6 +179,15 @@ int main(int argc, char** argv)
       mean_texec_b = SRSRAN_VEC_CMA((float)t[0].tv_usec, mean_texec_b, n - 1);
     }
 
+    gettimeofday(&t[1], NULL);
+    srsran_demod_soft_demodulate2_b(modulation, symbols, llr_b2, num_bits / mod.nbits_x_symbol);
+    gettimeofday(&t[2], NULL);
+    get_time_interval(t);
+
+    if (n > 0) {
+      mean_texec_b2 = SRSRAN_VEC_CMA((float)t[0].tv_usec, mean_texec_b2, n - 1);
+    }
+
     if (SRSRAN_VERBOSE_ISDEBUG()) {
       printf("bits=");
       srsran_vec_fprint_b(stdout, input, num_bits);
@@ -215,12 +203,27 @@ int main(int argc, char** argv)
 
       printf("llr_b=");
       srsran_vec_fprint_bs(stdout, llr_b, num_bits);
+
+      printf("llr_b2=");
+      srsran_vec_fprint_bs(stdout, llr_b2, num_bits);
     }
 
     // Check demodulation errors
-    for (int i = 0; i < num_bits; i++) {
-      if (input[i] != (llr[i] > 0 ? 1 : 0)) {
-        printf("Error in bit %d\n", i);
+    for (int j = 0; j < num_bits; j++) {
+      if (input[j] != (llr[j] > 0 ? 1 : 0)) {
+        ERROR("Error in bit %d\n", j);
+        goto clean_exit;
+      }
+      if (input[j] != (llr_s[j] > 0 ? 1 : 0)) {
+        ERROR("Error in bit %d\n", j);
+        goto clean_exit;
+      }
+      if (input[j] != (llr_b[j] > 0 ? 1 : 0)) {
+        ERROR("Error in bit %d\n", j);
+        goto clean_exit;
+      }
+      if (input[j] != (llr_b2[j] > 0 ? 1 : 0)) {
+        ERROR("Error in bit %d\n", j);
         goto clean_exit;
       }
     }
@@ -228,21 +231,23 @@ int main(int argc, char** argv)
   ret = 0;
 
 clean_exit:
+  srsran_random_free(random_gen);
   free(llr_b);
   free(llr_s);
   free(llr);
   free(symbols);
-  free(output);
   free(input);
 
   srsran_modem_table_free(&mod);
 
-  printf("Mean Throughput: %.2f/%.2f/%.2f. Mbps ExTime: %.2f/%.2f/%.2f us\n",
+  printf("Mean Throughput: %.2f/%.2f/%.2f/%.2f. Mbps ExTime: %.2f/%.2f/%.2f/%.2f us\n",
          num_bits / mean_texec,
          num_bits / mean_texec_s,
          num_bits / mean_texec_b,
+         num_bits / mean_texec_b2,
          mean_texec,
          mean_texec_s,
-         mean_texec_b);
+         mean_texec_b,
+         mean_texec_b2);
   exit(ret);
 }
