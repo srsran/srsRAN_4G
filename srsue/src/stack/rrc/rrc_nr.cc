@@ -484,6 +484,7 @@ bool rrc_nr::apply_mac_cell_group(const mac_cell_group_cfg_s& mac_cell_group_cfg
         const sched_request_to_add_mod_s& asn1_cfg =
             mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list[0];
         sr_cfg_nr_t sr_cfg              = {};
+        sr_cfg.enabled                  = true;
         sr_cfg.num_items                = 1;
         sr_cfg.item[0].sched_request_id = asn1_cfg.sched_request_id;
         sr_cfg.item[0].trans_max        = asn1_cfg.sr_trans_max.to_number();
