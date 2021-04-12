@@ -34,8 +34,8 @@ namespace srsran {
 
 #undef RLC_AM_BUFFER_DEBUG
 
-struct pdcp_pdu_segment_list;
-struct rlc_pdu_segment_list;
+class rlc_amd_tx_pdu;
+class pdcp_pdu_info;
 
 /// Pool that manages the allocation of RLC AM PDU Segments to RLC PDUs and tracking of segments ACK state
 struct rlc_am_pdu_segment_pool {
@@ -55,7 +55,6 @@ struct rlc_am_pdu_segment_pool {
     uint32_t rlc_sn() const { return rlc_sn_; }
     uint32_t pdcp_sn() const { return pdcp_sn_; }
     bool     empty() const { return rlc_sn_ == invalid_sn and pdcp_sn_ == invalid_sn; }
-    bool     is_acked() const { return rlc_sn() != invalid_sn; }
 
   private:
     friend struct rlc_am_pdu_segment_pool;
@@ -67,9 +66,10 @@ struct rlc_am_pdu_segment_pool {
   rlc_am_pdu_segment_pool();
   rlc_am_pdu_segment_pool(const rlc_am_pdu_segment_pool&) = delete;
   rlc_am_pdu_segment_pool(rlc_am_pdu_segment_pool&&)      = delete;
-  bool has_segments() const { return not free_list.empty(); }
-  bool
-  make_segment(uint32_t rlc_sn, uint32_t pdcp_sn, rlc_pdu_segment_list& rlc_list, pdcp_pdu_segment_list& pdcp_list);
+  rlc_am_pdu_segment_pool& operator=(const rlc_am_pdu_segment_pool&) = delete;
+  rlc_am_pdu_segment_pool& operator=(rlc_am_pdu_segment_pool&&) = delete;
+  bool                     has_segments() const { return not free_list.empty(); }
+  bool                     make_segment(rlc_amd_tx_pdu& rlc_list, pdcp_pdu_info& pdcp_info);
 
 private:
   intrusive_forward_list<segment_resource, free_list_tag> free_list;
@@ -79,77 +79,49 @@ private:
 /// RLC AM PDU Segment, containing the PDCP SN and RLC SN it has been assigned to, and its current ACK state
 using rlc_am_pdu_segment = rlc_am_pdu_segment_pool::segment_resource;
 
-class pdcp_pdu_segment_list
+struct rlc_amd_rx_pdu {
+  rlc_amd_pdu_header_t header;
+  unique_byte_buffer_t buf;
+  uint32_t             rlc_sn;
+
+  rlc_amd_rx_pdu() = default;
+  explicit rlc_amd_rx_pdu(uint32_t rlc_sn_) : rlc_sn(rlc_sn_) {}
+};
+
+struct rlc_amd_rx_pdu_segments_t {
+  std::list<rlc_amd_rx_pdu> segments;
+};
+
+/// Class that contains the parameters and state (e.g. segments) of a RLC PDU
+class rlc_amd_tx_pdu
 {
-  using list_type = intrusive_double_linked_list<rlc_am_pdu_segment>;
+  using list_type                  = intrusive_forward_list<rlc_am_pdu_segment>;
+  const static uint32_t invalid_sn = std::numeric_limits<uint32_t>::max();
+
   list_type list;
 
 public:
   using iterator       = typename list_type::iterator;
   using const_iterator = typename list_type::const_iterator;
 
-  iterator       begin() { return list.begin(); }
-  iterator       end() { return list.end(); }
-  const_iterator begin() const { return list.begin(); }
-  const_iterator end() const { return list.end(); }
-  bool           empty() const { return list.empty(); }
+  const uint32_t       rlc_sn     = invalid_sn;
+  uint32_t             retx_count = 0;
+  rlc_amd_pdu_header_t header;
+  unique_byte_buffer_t buf;
 
-  pdcp_pdu_segment_list()                                 = default;
-  pdcp_pdu_segment_list(pdcp_pdu_segment_list&&) noexcept = default;
-  pdcp_pdu_segment_list& operator=(pdcp_pdu_segment_list&&) noexcept = default;
-  ~pdcp_pdu_segment_list() { clear(); }
-  void push(rlc_am_pdu_segment& segment) { list.push_front(&segment); }
-  void pop(rlc_am_pdu_segment& segment);
-  void clear()
-  {
-    while (not empty()) {
-      pop(*begin());
-    }
-  }
-};
+  explicit rlc_amd_tx_pdu(uint32_t rlc_sn_) : rlc_sn(rlc_sn_) {}
+  rlc_amd_tx_pdu(const rlc_amd_tx_pdu&)           = delete;
+  rlc_amd_tx_pdu(rlc_amd_tx_pdu&& other) noexcept = default;
+  rlc_amd_tx_pdu& operator=(const rlc_amd_tx_pdu& other) = delete;
+  rlc_amd_tx_pdu& operator=(rlc_amd_tx_pdu&& other) = delete;
+  ~rlc_amd_tx_pdu();
 
-struct rlc_pdu_segment_list {
-  using list_type      = intrusive_forward_list<rlc_am_pdu_segment>;
-  using iterator       = typename list_type::iterator;
-  using const_iterator = typename list_type::const_iterator;
-
+  // Segment List Interface
+  void           add_segment(rlc_am_pdu_segment& segment) { list.push_front(&segment); }
   const_iterator begin() const { return list.begin(); }
   const_iterator end() const { return list.end(); }
   iterator       begin() { return list.begin(); }
   iterator       end() { return list.end(); }
-  bool           empty() const { return list.empty(); }
-
-  rlc_pdu_segment_list()                                      = default;
-  rlc_pdu_segment_list(rlc_pdu_segment_list&& other) noexcept = default;
-  rlc_pdu_segment_list(const rlc_pdu_segment_list&)           = delete;
-  rlc_pdu_segment_list& operator=(rlc_pdu_segment_list&& other) noexcept = default;
-  ~rlc_pdu_segment_list() { clear(); }
-  void push(rlc_am_pdu_segment& segment) { list.push_front(&segment); }
-  void clear();
-
-private:
-  list_type list;
-};
-
-//
-
-struct rlc_amd_rx_pdu_t {
-  rlc_amd_pdu_header_t header;
-  unique_byte_buffer_t buf;
-  uint32_t             rlc_sn;
-};
-
-struct rlc_amd_rx_pdu_segments_t {
-  std::list<rlc_amd_rx_pdu_t> segments;
-};
-
-struct rlc_amd_tx_pdu_t {
-  rlc_amd_pdu_header_t header;
-  unique_byte_buffer_t buf;
-  rlc_pdu_segment_list segment_list;
-  uint32_t             retx_count;
-  uint32_t             rlc_sn   = std::numeric_limits<uint32_t>::max();
-  bool                 is_acked = false;
 };
 
 struct rlc_amd_retx_t {
@@ -164,11 +136,45 @@ struct rlc_sn_info_t {
   bool     is_acked;
 };
 
-struct pdcp_sdu_info_t {
-  uint32_t              sn;
-  bool                  fully_txed;   // Boolean indicating if the SDU is fully transmitted.
-  pdcp_pdu_segment_list segment_list; // List of RLC PDUs in transit and whether they have been acked or not.
-  bool                  fully_acked() const { return segment_list.empty(); }
+/// Class that contains the parameters and state (e.g. unACKed segments) of a PDCP PDU
+class pdcp_pdu_info
+{
+  using list_type                  = intrusive_double_linked_list<rlc_am_pdu_segment>;
+  const static uint32_t invalid_sn = std::numeric_limits<uint32_t>::max();
+
+  list_type list; // List of unACKed RLC PDUs that contain segments that belong to the PDCP PDU.
+
+public:
+  using iterator       = typename list_type::iterator;
+  using const_iterator = typename list_type::const_iterator;
+
+  // Copy is forbidden to avoid multiple PDCP SN references to the same segment
+  pdcp_pdu_info()                              = default;
+  pdcp_pdu_info(pdcp_pdu_info&&) noexcept      = default;
+  pdcp_pdu_info(const pdcp_pdu_info&) noexcept = delete;
+  pdcp_pdu_info& operator=(const pdcp_pdu_info&) noexcept = delete;
+  pdcp_pdu_info& operator=(pdcp_pdu_info&&) noexcept = default;
+  ~pdcp_pdu_info() { clear(); }
+
+  uint32_t sn         = invalid_sn;
+  bool     fully_txed = false; // Boolean indicating if the SDU is fully transmitted.
+
+  bool fully_acked() const { return list.empty(); }
+  bool valid() const { return sn != invalid_sn; }
+
+  // Interface for list of unACKed RLC segments of the PDCP PDU
+  void add_segment(rlc_am_pdu_segment& segment) { list.push_front(&segment); }
+  void ack_segment(rlc_am_pdu_segment& segment);
+  void clear()
+  {
+    sn         = invalid_sn;
+    fully_txed = false;
+    while (not list.empty()) {
+      ack_segment(list.front());
+    }
+  }
+  const_iterator begin() const { return list.begin(); }
+  const_iterator end() const { return list.end(); }
 };
 
 template <class T>
@@ -176,8 +182,7 @@ struct rlc_ringbuffer_t {
   T& add_pdu(size_t sn)
   {
     srsran_expect(not has_sn(sn), "The same SN=%zd should not be added twice", sn);
-    window.overwrite(sn, T{});
-    window[sn].rlc_sn = sn;
+    window.overwrite(sn, T(sn));
     return window[sn];
   }
   void remove_pdu(size_t sn)
@@ -229,20 +234,18 @@ public:
     if (buffered_pdus[sn_idx].sn == invalid_sn) {
       return;
     }
-    buffered_pdus[sn_idx].sn         = invalid_sn;
-    buffered_pdus[sn_idx].fully_txed = false;
-    buffered_pdus[sn_idx].segment_list.clear();
+    buffered_pdus[sn_idx].clear();
     count--;
   }
 
-  pdcp_sdu_info_t& operator[](uint32_t sn)
+  pdcp_pdu_info& operator[](uint32_t sn)
   {
-    assert(has_pdcp_sn(sn));
+    srsran_expect(has_pdcp_sn(sn), "Invalid access to non-existent PDCP SN=%d", sn);
     return buffered_pdus[get_idx(sn)];
   }
   bool has_pdcp_sn(uint32_t pdcp_sn) const
   {
-    assert(pdcp_sn <= max_pdcp_sn or pdcp_sn == status_report_sn);
+    srsran_expect(pdcp_sn <= max_pdcp_sn or pdcp_sn == status_report_sn, "Invalid PDCP SN=%d", pdcp_sn);
     return buffered_pdus[get_idx(pdcp_sn)].sn == pdcp_sn;
   }
   uint32_t nof_sdus() const { return count; }
@@ -259,8 +262,8 @@ private:
   }
 
   // size equal to buffer_size + 1 (last element for Status Report)
-  std::vector<pdcp_sdu_info_t> buffered_pdus;
-  uint32_t                     count = 0;
+  std::vector<pdcp_pdu_info> buffered_pdus;
+  uint32_t                   count = 0;
 };
 
 class pdu_retx_queue
@@ -376,7 +379,7 @@ private:
     int  build_retx_pdu(uint8_t* payload, uint32_t nof_bytes);
     int  build_segment(uint8_t* payload, uint32_t nof_bytes, rlc_amd_retx_t retx);
     int  build_data_pdu(uint8_t* payload, uint32_t nof_bytes);
-    void update_notification_ack_info(const rlc_amd_tx_pdu_t& tx_pdu);
+    void update_notification_ack_info(uint32_t rlc_sn);
 
     void debug_state();
 
@@ -438,9 +441,9 @@ private:
     bsr_callback_t bsr_callback;
 
     // Tx windows
-    rlc_ringbuffer_t<rlc_amd_tx_pdu_t> tx_window;
-    pdu_retx_queue                     retx_queue;
-    pdcp_sn_vector_t                   notify_info_vec;
+    rlc_ringbuffer_t<rlc_amd_tx_pdu> tx_window;
+    pdu_retx_queue                   retx_queue;
+    pdcp_sn_vector_t                 notify_info_vec;
 
     // Mutexes
     std::mutex mutex;
@@ -481,7 +484,7 @@ private:
     bool inside_rx_window(const int16_t sn);
     void debug_state();
     void print_rx_segments();
-    bool add_segment_and_check(rlc_amd_rx_pdu_segments_t* pdu, rlc_amd_rx_pdu_t* segment);
+    bool add_segment_and_check(rlc_amd_rx_pdu_segments_t* pdu, rlc_amd_rx_pdu* segment);
 
     rlc_am_lte*           parent = nullptr;
     byte_buffer_pool*     pool   = nullptr;
@@ -512,7 +515,7 @@ private:
     std::mutex mutex;
 
     // Rx windows
-    rlc_ringbuffer_t<rlc_amd_rx_pdu_t>            rx_window;
+    rlc_ringbuffer_t<rlc_amd_rx_pdu>              rx_window;
     std::map<uint32_t, rlc_amd_rx_pdu_segments_t> rx_segments;
 
     bool poll_received = false;
@@ -564,7 +567,7 @@ uint32_t    rlc_am_packed_length(rlc_status_pdu_t* status);
 uint32_t    rlc_am_packed_length(rlc_amd_retx_t retx);
 bool        rlc_am_is_valid_status_pdu(const rlc_status_pdu_t& status);
 bool        rlc_am_is_pdu_segment(uint8_t* payload);
-std::string rlc_am_undelivered_sdu_info_to_string(const std::map<uint32_t, pdcp_sdu_info_t>& info_queue);
+std::string rlc_am_undelivered_sdu_info_to_string(const std::map<uint32_t, pdcp_pdu_info>& info_queue);
 void        log_rlc_amd_pdu_header_to_string(srslog::log_channel& log_ch, const rlc_amd_pdu_header_t& header);
 bool        rlc_am_start_aligned(const uint8_t fi);
 bool        rlc_am_end_aligned(const uint8_t fi);

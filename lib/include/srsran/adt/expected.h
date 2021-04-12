@@ -36,15 +36,15 @@ class expected
 
 public:
   expected() : has_val(true), val(T{}) {}
-  expected(T&& t) : has_val(true), val(std::forward<T>(t)) {}
+  expected(T&& t) noexcept : has_val(true), val(std::move(t)) {}
   expected(const T& t) : has_val(true), val(t) {}
-  expected(E&& e) : has_val(false), unexpected(std::forward<E>(e)) {}
+  expected(E&& e) noexcept : has_val(false), unexpected(std::move(e)) {}
   expected(const E& e) : has_val(false), unexpected(e) {}
   template <
       typename U,
       typename std::enable_if<std::is_convertible<U, T>::value and not is_expected<typename std::decay<U>::type>::value,
                               int>::type = 0>
-  explicit expected(U&& u) : has_val(true), val(std::forward<U>(u))
+  explicit expected(U&& u) noexcept : has_val(true), val(std::forward<U>(u))
   {}
   expected(const expected& other)
   {
