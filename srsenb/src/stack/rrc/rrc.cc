@@ -384,8 +384,6 @@ void rrc::release_erabs(uint32_t                              rnti,
   const asn1::unbounded_octstring<true>* nas_pdu =
       msg.protocol_ies.nas_pdu_present ? &msg.protocol_ies.nas_pdu.value : nullptr;
   user_it->second->send_connection_reconf(nullptr, false, nas_pdu);
-
-  return;
 }
 
 void rrc::modify_erabs(uint16_t                                 rnti,
@@ -401,16 +399,26 @@ void rrc::modify_erabs(uint16_t                                 rnti,
     return;
   }
 
-  // Iterate over bearers
-  for (uint32_t i = 0; i < msg.protocol_ies.erab_to_be_modified_list_bearer_mod_req.value.size(); i++) {
-    const asn1::s1ap::erab_to_be_modified_item_bearer_mod_req_s& erab_to_mod =
-        msg.protocol_ies.erab_to_be_modified_list_bearer_mod_req.value[i]
-            .value.erab_to_be_modified_item_bearer_mod_req();
+  const auto& erab_mod_list = msg.protocol_ies.erab_to_be_modified_list_bearer_mod_req.value;
 
-    uint32_t                            erab_id    = erab_to_mod.erab_id;
-    asn1::s1ap::erab_level_qos_params_s qos_params = erab_to_mod.erab_level_qos_params;
+  for (const auto* it = erab_mod_list.begin(); it != erab_mod_list.end(); ++it) {
+    const auto& erab_to_mod = it->value.erab_to_be_modified_item_bearer_mod_req();
 
-    bool ret = modify_ue_erab(rnti, erab_id, qos_params, &erab_to_mod.nas_pdu);
+    for (const auto* it2 = it + 1; it2 != erab_mod_list.end(); ++it2) {
+      // Detect repeated E-RAB IDs
+      if (it2->value.erab_to_be_modified_item_bearer_mod_req().erab_id == erab_to_mod.erab_id) {
+        erabs_failed_to_modify->push_back(it->id);
+        continue;
+      }
+    }
+    if (std::find(erabs_failed_to_modify->begin(), erabs_failed_to_modify->end(), erab_to_mod.erab_id) !=
+        erabs_failed_to_modify->end()) {
+      // Already added to the list of E-RABs that modification as failed
+      continue;
+    }
+
+    // Attempt to modify E-RAB
+    bool ret = modify_ue_erab(rnti, erab_to_mod.erab_id, erab_to_mod.erab_level_qos_params, &erab_to_mod.nas_pdu);
     if (ret) {
       erabs_modified->push_back(erab_to_mod.erab_id);
     } else {
@@ -418,7 +426,9 @@ void rrc::modify_erabs(uint16_t                                 rnti,
     }
   }
 
-  return;
+  // Sort output vectors by ERAB ID
+  std::sort(erabs_modified->begin(), erabs_modified->end());
+  std::sort(erabs_failed_to_modify->begin(), erabs_failed_to_modify->end());
 }
 
 bool rrc::modify_ue_erab(uint16_t                                   rnti,
