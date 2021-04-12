@@ -842,6 +842,21 @@ bool rrc_nr::apply_sp_cell_ded_ul_pucch(const asn1::rrc_nr::pucch_cfg_s& pucch_c
       if (make_phy_sr_resource(pucch_cfg.sched_request_res_to_add_mod_list[i], &srsran_pucch_nr_sr_resource) ==
           true) { // TODO: fix that if indexing is solved
         phy_cfg.pucch.sr_resources[res_id] = srsran_pucch_nr_sr_resource;
+
+        // Set PUCCH resource
+        if (pucch_cfg.sched_request_res_to_add_mod_list[i].res_present) {
+          uint32_t pucch_res_id = pucch_cfg.sched_request_res_to_add_mod_list[i].res;
+          if (res_list_present[res_id]) {
+            phy_cfg.pucch.sr_resources[res_id].resource = res_list[pucch_res_id];
+          } else {
+            logger.warning("Warning SR's PUCCH resource is invalid (%d)", pucch_res_id);
+            phy_cfg.pucch.sr_resources[res_id].configured = false;
+          }
+        } else {
+          logger.warning("Warning SR resource is present but no PUCCH resource is assigned to it");
+          phy_cfg.pucch.sr_resources[res_id].configured = false;
+        }
+
       } else {
         logger.warning("Warning while building srsran_pucch_nr_sr_resource structure");
         return false;
