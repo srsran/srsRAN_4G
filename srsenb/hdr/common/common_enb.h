@@ -25,8 +25,6 @@ namespace srsenb {
 #define SRSENB_RRC_MAX_N_PLMN_IDENTITIES 6
 
 #define SRSENB_N_SRB 3
-#define SRSENB_N_DRB 8
-#define SRSENB_N_RADIO_BEARERS 11
 #define SRSENB_MAX_UES 64
 
 using srsran::lte_drb;

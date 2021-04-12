@@ -237,7 +237,7 @@ void pdcp::user_interface_rrc::write_pdu_pcch(srsran::unique_byte_buffer_t pdu)
 
 const char* pdcp::user_interface_rrc::get_rb_name(uint32_t lcid)
 {
-  return get_rb_name(lcid);
+  return srsenb::get_rb_name(lcid);
 }
 
 void pdcp::get_metrics(pdcp_metrics_t& m, const uint32_t nof_tti)

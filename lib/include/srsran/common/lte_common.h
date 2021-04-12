@@ -24,6 +24,15 @@ const std::array<uint32_t, 6> lte_cell_nof_prbs = {6, 15, 25, 50, 75, 100};
 // Radio Bearers
 enum class lte_srb { srb0, srb1, srb2, count };
 const uint32_t MAX_LTE_SRB_ID = 2;
+enum class lte_drb { drb1 = 1, drb2, drb3, drb4, drb5, drb6, drb7, drb8, drb9, drb10, drb11, invalid };
+const uint32_t MAX_LTE_DRB_ID  = 11;
+const uint32_t MAX_NOF_BEARERS = 14;
+
+constexpr bool is_lte_rb(uint32_t lcid)
+{
+  return lcid < MAX_NOF_BEARERS;
+}
+
 constexpr bool is_lte_srb(uint32_t lcid)
 {
   return lcid <= MAX_LTE_SRB_ID;
@@ -42,21 +51,15 @@ constexpr lte_srb lte_lcid_to_srb(uint32_t lcid)
   return static_cast<lte_srb>(lcid);
 }
 
-enum class lte_drb { drb1 = 1, drb2, drb3, drb4, drb5, drb6, drb7, drb8, drb9, drb10, drb11, invalid };
-const uint32_t MAX_LTE_DRB_ID = 11;
 constexpr bool is_lte_drb(uint32_t lcid)
 {
-  return lcid > MAX_LTE_SRB_ID and lcid <= MAX_LTE_DRB_ID + MAX_LTE_SRB_ID;
+  return lcid > MAX_LTE_SRB_ID and is_lte_rb(lcid);
 }
 inline const char* get_drb_name(lte_drb drb_id)
 {
   static const char* names[] = {
       "DRB1", "DRB2", "DRB3", "DRB4", "DRB5", "DRB6", "DRB7", "DRB8", "DRB9", "DRB10", "DRB11", "invalid DRB id"};
   return names[(uint32_t)(drb_id < lte_drb::invalid ? drb_id : lte_drb::invalid) - 1];
-}
-constexpr bool is_lte_rb(uint32_t lcid)
-{
-  return lcid <= MAX_LTE_DRB_ID + MAX_LTE_SRB_ID;
 }
 
 } // namespace srsran

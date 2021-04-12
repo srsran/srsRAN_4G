@@ -11,6 +11,7 @@
  */
 
 #include "srsran/upper/rlc_tm.h"
+#include "srsran/common/lte_common.h"
 #include "srsran/interfaces/ue_pdcp_interfaces.h"
 #include "srsran/interfaces/ue_rrc_interfaces.h"
 
@@ -176,7 +177,7 @@ void rlc_tm::write_pdu(uint8_t* payload, uint32_t nof_bytes)
     buf->set_timestamp();
     metrics.num_rx_pdu_bytes += nof_bytes;
     metrics.num_rx_pdus++;
-    if (strcmp(rrc->get_rb_name(lcid), "SRB0") == 0) {
+    if (srsran::srb_to_lcid(srsran::lte_srb::srb0) == lcid) {
       rrc->write_pdu(lcid, std::move(buf));
     } else {
       pdcp->write_pdu(lcid, std::move(buf));
