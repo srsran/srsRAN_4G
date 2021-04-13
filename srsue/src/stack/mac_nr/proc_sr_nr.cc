@@ -24,8 +24,10 @@ int32_t proc_sr_nr::init(mac_interface_sr_nr* mac_, phy_interface_mac_nr* phy_, 
   rrc        = rrc_;
   mac        = mac_;
   phy        = phy_;
-  initiated  = true;
   sr_counter = 0;
+
+  initiated = true;
+
   return SRSRAN_SUCCESS;
 }
 
@@ -56,6 +58,8 @@ int32_t proc_sr_nr::set_config(const srsran::sr_cfg_nr_t& cfg_)
 
   if (cfg_.enabled) {
     logger.info("SR:    Set sr-TransMax=%d", cfg_.item[0].trans_max);
+  } else {
+    logger.info("SR:    Disabling procedure");
   }
 
   // store config
@@ -144,10 +148,15 @@ bool proc_sr_nr::sr_opportunity(uint32_t tti, uint32_t sr_id, bool meas_gap, boo
 void proc_sr_nr::start()
 {
   if (initiated) {
-    if (!is_pending_sr) {
+    if (not is_pending_sr) {
+      logger.info("SR:    Starting procedure");
       sr_counter    = 0;
       is_pending_sr = true;
+    } else {
+      logger.debug("SR:    Already pending for Tx");
     }
+  } else {
+    logger.warning("SR:    Procedure not initiated");
   }
 }
 
