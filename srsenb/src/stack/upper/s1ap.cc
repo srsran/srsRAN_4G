@@ -1851,7 +1851,7 @@ bool s1ap::ue::send_ho_required(uint32_t                     target_eci,
   container.mme_ue_s1ap_id.value                        = ctxt.mme_ue_s1ap_id.value();
   container.direct_forwarding_path_availability_present = false;                // NOTE: X2 for fwd path not supported
   container.handov_type.value.value               = handov_type_opts::intralte; // NOTE: only intra-LTE HO supported
-  container.cause.value.set_radio_network().value = cause_radio_network_opts::s1_intra_sys_ho_triggered;
+  container.cause.value.set_radio_network().value = cause_radio_network_opts::ho_desirable_for_radio_reason;
 
   /*** set the target eNB ***/
   container.csg_id_present           = false; // NOTE: CSG/hybrid target cell not supported
@@ -1867,14 +1867,14 @@ bool s1ap::ue::send_ho_required(uint32_t                     target_eci,
   // NOTE: Only HO to different Macro eNB is supported.
   auto& macroenb = targetenb.global_enb_id.enb_id.set_macro_enb_id();
   target_plmn.to_s1ap_plmn_bytes(targetenb.global_enb_id.plm_nid.data());
-  macroenb.from_number(target_eci >> 8u);
+  macroenb.from_number(target_eci >> 8U);
 
   /*** fill the transparent container ***/
   container.source_to_target_transparent_container_secondary_present = false;
   sourceenb_to_targetenb_transparent_container_s transparent_cntr;
-  transparent_cntr.erab_info_list_present               = true;  // TODO: CHECK
   transparent_cntr.subscriber_profile_idfor_rfp_present = false; // TODO: CHECK
 
+  transparent_cntr.erab_info_list_present = true;
   transparent_cntr.erab_info_list.resize(fwd_erabs.size());
   for (uint32_t i = 0; i < fwd_erabs.size(); ++i) {
     transparent_cntr.erab_info_list[i].load_info_obj(ASN1_S1AP_ID_ERAB_INFO_LIST_ITEM);
