@@ -30,7 +30,11 @@ public:
     uint16_t crnti;
     uint16_t temp_crnti;
   };
-  struct ho_cancel_ev {};
+  struct ho_cancel_ev {
+    asn1::s1ap::cause_c cause;
+
+    ho_cancel_ev(const asn1::s1ap::cause_c& cause_) : cause(cause_) {}
+  };
 
   rrc_mobility(srsenb::rrc::ue* outer_ue);
 
@@ -119,9 +123,9 @@ private:
     explicit s1_source_ho_st(rrc_mobility* parent_);
 
   private:
-    void handle_ho_cmd(wait_ho_cmd& s, const ho_cmd_msg& ho_cmd);
-    void handle_ho_cancel(const ho_cancel_ev& ev);
-    bool start_enb_status_transfer(const asn1::s1ap::ho_cmd_s& s1ap_ho_cmd);
+    void                handle_ho_cmd(wait_ho_cmd& s, const ho_cmd_msg& ho_cmd);
+    void                handle_ho_cancel(const ho_cancel_ev& ev);
+    asn1::s1ap::cause_c start_enb_status_transfer(const asn1::s1ap::ho_cmd_s& s1ap_ho_cmd);
 
     rrc*                  rrc_enb;
     rrc::ue*              rrc_ue;

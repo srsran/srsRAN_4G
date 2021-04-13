@@ -83,7 +83,8 @@ public:
                 const asn1::s1ap::erab_level_qos_params_s&         qos,
                 const asn1::bounded_bitstring<1, 160, true, true>& addr,
                 uint32_t                                           teid_out,
-                const asn1::unbounded_octstring<true>*             nas_pdu);
+                const asn1::unbounded_octstring<true>*             nas_pdu,
+                asn1::s1ap::cause_c&                               cause);
   bool release_erab(uint8_t erab_id);
   void release_erabs();
   bool modify_erab(uint8_t                                    erab_id,

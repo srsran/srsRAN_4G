@@ -412,6 +412,16 @@ void rrc::ue::rrc_mobility::handle_ho_preparation_complete(bool                 
     trigger(srsran::failure_ev{});
     return;
   }
+
+  // Check if any E-RAB that was not admitted. Cancel Handover, in such case.
+  if (msg.protocol_ies.erab_to_release_list_ho_cmd_present) {
+    get_logger().warning("E-RAB id=%d was not admitted in target eNB. Cancelling handover...",
+                         msg.protocol_ies.erab_to_release_list_ho_cmd.value[0].value.erab_item().erab_id);
+    asn1::s1ap::cause_c cause;
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::no_radio_res_available_in_target_cell;
+    trigger(ho_cancel_ev{cause});
+  }
+
   /* unpack RRC HOCmd struct and perform sanity checks */
   asn1::rrc::ho_cmd_s rrchocmd;
   {
@@ -419,14 +429,18 @@ void rrc::ue::rrc_mobility::handle_ho_preparation_complete(bool                 
     if (rrchocmd.unpack(bref) != asn1::SRSASN_SUCCESS) {
       get_logger().warning("Unpacking of RRC HOCommand was unsuccessful");
       get_logger().warning(container->msg, container->N_bytes, "Received container:");
-      trigger(ho_cancel_ev{});
+      asn1::s1ap::cause_c cause;
+      cause.set_protocol().value = asn1::s1ap::cause_protocol_opts::transfer_syntax_error;
+      trigger(ho_cancel_ev{cause});
       return;
     }
   }
   if (rrchocmd.crit_exts.type().value != c1_or_crit_ext_opts::c1 or
       rrchocmd.crit_exts.c1().type().value != ho_cmd_s::crit_exts_c_::c1_c_::types_opts::ho_cmd_r8) {
     get_logger().warning("Only handling r8 Handover Commands");
-    trigger(ho_cancel_ev{});
+    asn1::s1ap::cause_c cause;
+    cause.set_protocol().value = asn1::s1ap::cause_protocol_opts::msg_not_compatible_with_receiver_state;
+    trigger(ho_cancel_ev{cause});
     return;
   }
 
@@ -545,8 +559,10 @@ rrc::ue::rrc_mobility::s1_source_ho_st::s1_source_ho_st(rrc_mobility* parent_) :
  *         - The eNB sends eNBStatusTransfer to MME
  *         - A GTPU forwarding tunnel is opened to forward buffered PDCP PDUs and incoming GTPU PDUs
  */
-bool rrc::ue::rrc_mobility::s1_source_ho_st::start_enb_status_transfer(const asn1::s1ap::ho_cmd_s& s1ap_ho_cmd)
+asn1::s1ap::cause_c
+rrc::ue::rrc_mobility::s1_source_ho_st::start_enb_status_transfer(const asn1::s1ap::ho_cmd_s& s1ap_ho_cmd)
 {
+  asn1::s1ap::cause_c                                 cause;
   std::vector<s1ap_interface_rrc::bearer_status_info> s1ap_bearers;
   s1ap_bearers.reserve(rrc_ue->bearer_list.get_erabs().size());
 
@@ -557,7 +573,8 @@ bool rrc::ue::rrc_mobility::s1_source_ho_st::start_enb_status_transfer(const asn
     srsran::pdcp_lte_state_t pdcp_state         = {};
     if (not rrc_enb->pdcp->get_bearer_state(rrc_ue->rnti, lcid, &pdcp_state)) {
       Error("PDCP bearer lcid=%d for rnti=0x%x was not found", lcid, rrc_ue->rnti);
-      return false;
+      cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::unknown_erab_id;
+      return cause;
     }
     b.dl_hfn     = pdcp_state.tx_hfn;
     b.pdcp_dl_sn = pdcp_state.next_pdcp_tx_sn;
@@ -568,7 +585,8 @@ bool rrc::ue::rrc_mobility::s1_source_ho_st::start_enb_status_transfer(const asn
 
   Info("PDCP Bearer list sent to S1AP to initiate the eNB Status Transfer");
   if (not rrc_enb->s1ap->send_enb_status_transfer_proc(rrc_ue->rnti, s1ap_bearers)) {
-    return false;
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::invalid_qos_combination;
+    return cause;
   }
 
   // Setup GTPU forwarding tunnel
@@ -595,7 +613,7 @@ bool rrc::ue::rrc_mobility::s1_source_ho_st::start_enb_status_transfer(const asn
     }
   }
 
-  return true;
+  return cause;
 }
 
 void rrc::ue::rrc_mobility::s1_source_ho_st::enter(rrc_mobility* f, const ho_meas_report_ev& ev)
@@ -624,20 +642,26 @@ void rrc::ue::rrc_mobility::s1_source_ho_st::handle_ho_cmd(wait_ho_cmd& s, const
     asn1::cbit_ref bref(&ho_cmd.ho_cmd->ho_cmd_msg[0], ho_cmd.ho_cmd->ho_cmd_msg.size());
     if (dl_dcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS) {
       Warning("Unpacking of RRC DL-DCCH message with HO Command was unsuccessful.");
-      trigger(ho_cancel_ev{});
+      asn1::s1ap::cause_c cause;
+      cause.set_protocol().value = asn1::s1ap::cause_protocol_opts::transfer_syntax_error;
+      trigger(ho_cancel_ev{cause});
       return;
     }
   }
   if (dl_dcch_msg.msg.type().value != dl_dcch_msg_type_c::types_opts::c1 or
       dl_dcch_msg.msg.c1().type().value != dl_dcch_msg_type_c::c1_c_::types_opts::rrc_conn_recfg) {
     Warning("HandoverCommand is expected to contain an RRC Connection Reconf message inside");
-    trigger(ho_cancel_ev{});
+    asn1::s1ap::cause_c cause;
+    cause.set_protocol().value = asn1::s1ap::cause_protocol_opts::semantic_error;
+    trigger(ho_cancel_ev{cause});
     return;
   }
   asn1::rrc::rrc_conn_recfg_s& reconf = dl_dcch_msg.msg.c1().rrc_conn_recfg();
   if (not reconf.crit_exts.c1().rrc_conn_recfg_r8().mob_ctrl_info_present) {
     Warning("HandoverCommand is expected to have mobility control subfield");
-    trigger(ho_cancel_ev{});
+    asn1::s1ap::cause_c cause;
+    cause.set_protocol().value = asn1::s1ap::cause_protocol_opts::semantic_error;
+    trigger(ho_cancel_ev{cause});
     return;
   }
 
@@ -650,20 +674,23 @@ void rrc::ue::rrc_mobility::s1_source_ho_st::handle_ho_cmd(wait_ho_cmd& s, const
 
   // Send HO Command to UE
   if (not rrc_ue->send_dl_dcch(&dl_dcch_msg)) {
-    trigger(ho_cancel_ev{});
+    asn1::s1ap::cause_c cause;
+    cause.set_protocol().value = asn1::s1ap::cause_protocol_opts::transfer_syntax_error;
+    trigger(ho_cancel_ev{cause});
     return;
   }
 
   /* Start S1AP eNBStatusTransfer Procedure */
-  if (not start_enb_status_transfer(*ho_cmd.s1ap_ho_cmd)) {
-    trigger(ho_cancel_ev{});
+  asn1::s1ap::cause_c cause = start_enb_status_transfer(*ho_cmd.s1ap_ho_cmd);
+  if (cause.type().value != asn1::s1ap::cause_c::types_opts::nulltype) {
+    trigger(ho_cancel_ev{cause});
   }
 }
 
 //! Called in Source ENB during S1-Handover when there was a Reestablishment Request
 void rrc::ue::rrc_mobility::s1_source_ho_st::handle_ho_cancel(const ho_cancel_ev& ev)
 {
-  rrc_enb->s1ap->send_ho_cancel(rrc_ue->rnti);
+  rrc_enb->s1ap->send_ho_cancel(rrc_ue->rnti, ev.cause);
 }
 
 /*************************************
@@ -870,13 +897,13 @@ bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&      
     // Create E-RAB and associated main GTPU tunnel
     uint32_t teid_out = 0;
     srsran::uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
+    asn1::s1ap::cause_c erab_cause;
     if (rrc_ue->bearer_list.add_erab(
-            erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, nullptr) !=
+            erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, nullptr, erab_cause) !=
         SRSRAN_SUCCESS) {
       erabs_failed_to_setup.emplace_back();
       erabs_failed_to_setup.back().erab_id = erab.erab_id;
-      erabs_failed_to_setup.back().cause.set_radio_network().value =
-          asn1::s1ap::cause_radio_network_opts::invalid_qos_combination;
+      erabs_failed_to_setup.back().cause   = erab_cause;
       continue;
     }
     if (rrc_ue->bearer_list.add_gtpu_bearer(erab.erab_id) != SRSRAN_SUCCESS) {

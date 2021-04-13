@@ -29,7 +29,7 @@ struct mobility_test_params {
     duplicate_crnti_ce,
     recover,
     wrong_target_cell,
-    wrong_qos,
+    unknown_qci,
   } fail_at;
   const char* to_string()
   {
@@ -48,7 +48,7 @@ struct mobility_test_params {
         return "duplicate CRNTI CE";
       case test_event::wrong_target_cell:
         return "wrong target cell";
-      case test_event::wrong_qos:
+      case test_event::unknown_qci:
         return "invalid QoS";
       default:
         return "none";
@@ -276,7 +276,7 @@ int test_s1ap_tenb_mobility(mobility_test_params test_params)
   auto& erab   = ho_req.protocol_ies.erab_to_be_setup_list_ho_req.value[0].value.erab_to_be_setup_item_ho_req();
   erab.erab_id = 5;
   erab.erab_level_qos_params.qci = 9;
-  if (test_params.fail_at == mobility_test_params::test_event::wrong_qos) {
+  if (test_params.fail_at == mobility_test_params::test_event::unknown_qci) {
     erab.erab_level_qos_params.qci = 10;
   }
   ho_req.protocol_ies.ue_security_cap.value.integrity_protection_algorithms.set(14, true);
@@ -311,10 +311,10 @@ int test_s1ap_tenb_mobility(mobility_test_params test_params)
     TESTASSERT(tester.rrc.get_nof_users() == 0);
     return SRSRAN_SUCCESS;
   }
-  if (test_params.fail_at == mobility_test_params::test_event::wrong_qos) {
+  if (test_params.fail_at == mobility_test_params::test_event::unknown_qci) {
     TESTASSERT(rnti == SRSRAN_INVALID_RNTI);
     TESTASSERT(cause.type().value == asn1::s1ap::cause_c::types_opts::radio_network);
-    TESTASSERT(cause.radio_network().value == asn1::s1ap::cause_radio_network_opts::invalid_qos_combination);
+    TESTASSERT(cause.radio_network().value == asn1::s1ap::cause_radio_network_opts::not_supported_qci_value);
     TESTASSERT(tester.rrc.get_nof_users() == 0);
     return SRSRAN_SUCCESS;
   }
@@ -560,7 +560,7 @@ int main(int argc, char** argv)
   TESTASSERT(test_s1ap_mobility(*spy, mobility_test_params{event::success}) == 0);
 
   TESTASSERT(test_s1ap_tenb_mobility(mobility_test_params{event::wrong_target_cell}) == 0);
-  TESTASSERT(test_s1ap_tenb_mobility(mobility_test_params{event::wrong_qos}) == 0);
+  TESTASSERT(test_s1ap_tenb_mobility(mobility_test_params{event::unknown_qci}) == 0);
   TESTASSERT(test_s1ap_tenb_mobility(mobility_test_params{event::success}) == 0);
 
   // intraeNB Handover

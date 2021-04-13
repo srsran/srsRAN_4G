@@ -1149,10 +1149,11 @@ void s1ap::send_ho_notify(uint16_t rnti, uint64_t target_eci)
   sctp_send_s1ap_pdu(tx_pdu, rnti, "HandoverNotify");
 }
 
-void s1ap::send_ho_cancel(uint16_t rnti)
+void s1ap::send_ho_cancel(uint16_t rnti, const asn1::s1ap::cause_c& cause)
 {
   ue* user_ptr = users.find_ue_rnti(rnti);
   if (user_ptr == nullptr) {
+    logger.warning("Canceling handover for non-existent rnti=0x%x", rnti);
     return;
   }
 
@@ -1161,9 +1162,9 @@ void s1ap::send_ho_cancel(uint16_t rnti)
   tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_HO_CANCEL);
   ho_cancel_ies_container& container = tx_pdu.init_msg().value.ho_cancel().protocol_ies;
 
-  container.mme_ue_s1ap_id.value                  = user_ptr->ctxt.mme_ue_s1ap_id.value();
-  container.enb_ue_s1ap_id.value                  = user_ptr->ctxt.enb_ue_s1ap_id;
-  container.cause.value.set_radio_network().value = cause_radio_network_opts::ho_cancelled;
+  container.mme_ue_s1ap_id.value = user_ptr->ctxt.mme_ue_s1ap_id.value();
+  container.enb_ue_s1ap_id.value = user_ptr->ctxt.enb_ue_s1ap_id;
+  container.cause.value          = cause;
 
   sctp_send_s1ap_pdu(tx_pdu, rnti, "HandoverCancel");
 }

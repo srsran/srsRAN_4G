@@ -206,10 +206,12 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
                                  const asn1::s1ap::erab_level_qos_params_s&         qos,
                                  const asn1::bounded_bitstring<1, 160, true, true>& addr,
                                  uint32_t                                           teid_out,
-                                 const asn1::unbounded_octstring<true>*             nas_pdu)
+                                 const asn1::unbounded_octstring<true>*             nas_pdu,
+                                 asn1::s1ap::cause_c&                               cause)
 {
   if (erab_id < 5) {
     logger->error("ERAB id=%d is invalid", erab_id);
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::unknown_erab_id;
     return SRSRAN_ERROR;
   }
   uint8_t lcid  = erab_id - 2; // Map e.g. E-RAB 5 to LCID 3 (==DRB1)
@@ -218,10 +220,12 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
   auto qci_it = cfg->qci_cfg.find(qos.qci);
   if (qci_it == cfg->qci_cfg.end() or not qci_it->second.configured) {
     logger->error("QCI=%d not configured", qos.qci);
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::not_supported_qci_value;
     return SRSRAN_ERROR;
   }
   if (not srsran::is_lte_drb(lcid)) {
     logger->error("E-RAB=%d logical channel id=%d is invalid", erab_id, lcid);
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::unknown_erab_id;
     return SRSRAN_ERROR;
   }
   const rrc_cfg_qci_t& qci_cfg = qci_it->second;
@@ -233,6 +237,32 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
 
   if (addr.length() > 32) {
     logger->error("Only addresses with length <= 32 are supported");
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::invalid_qos_combination;
+    return SRSRAN_ERROR;
+  }
+  if (qos.gbr_qos_info_present and not qci_cfg.configured) {
+    logger->warning("Provided E-RAB id=%d QoS not supported", erab_id);
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::invalid_qos_combination;
+    return SRSRAN_ERROR;
+  }
+  if (qos.gbr_qos_info_present) {
+    uint64_t req_bitrate =
+        std::max(qos.gbr_qos_info.erab_guaranteed_bitrate_dl, qos.gbr_qos_info.erab_guaranteed_bitrate_ul);
+    int16_t  pbr_kbps = qci_cfg.lc_cfg.prioritised_bit_rate.to_number();
+    uint64_t pbr      = pbr_kbps < 0 ? std::numeric_limits<uint64_t>::max() : pbr_kbps * 1000u;
+    if (req_bitrate > pbr) {
+      logger->warning("Provided E-RAB id=%d QoS not supported (guaranteed bitrates)", erab_id);
+      cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::invalid_qos_combination;
+      return SRSRAN_ERROR;
+    }
+  }
+  if (qos.alloc_retention_prio.pre_emption_cap.value == asn1::s1ap::pre_emption_cap_opts::may_trigger_pre_emption and
+      qos.alloc_retention_prio.prio_level < qci_cfg.lc_cfg.prio) {
+    logger->warning("Provided E-RAB id=%d QoS not supported (priority %d < %d)",
+                    erab_id,
+                    qos.alloc_retention_prio.prio_level,
+                    qci_cfg.lc_cfg.prio);
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::invalid_qos_combination;
     return SRSRAN_ERROR;
   }
 
@@ -300,8 +330,8 @@ bool bearer_cfg_handler::modify_erab(uint8_t                                    
   auto     address  = erab_it->second.address;
   uint32_t teid_out = erab_it->second.teid_out;
   release_erab(erab_id);
-  add_erab(erab_id, qos, address, teid_out, nas_pdu);
-  return true;
+  asn1::s1ap::cause_c cause;
+  return add_erab(erab_id, qos, address, teid_out, nas_pdu, cause) == SRSRAN_SUCCESS;
 }
 
 int bearer_cfg_handler::add_gtpu_bearer(uint32_t erab_id)

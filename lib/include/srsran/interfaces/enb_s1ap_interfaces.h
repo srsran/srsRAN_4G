@@ -90,7 +90,7 @@ public:
    * Cancel on-going S1 Handover. MME should release UE context in target eNB
    * SeNB --> MME
    */
-  virtual void send_ho_cancel(uint16_t rnti) = 0;
+  virtual void send_ho_cancel(uint16_t rnti, const asn1::s1ap::cause_c& cause) = 0;
 
   /*************************
    *  Target eNB Handover

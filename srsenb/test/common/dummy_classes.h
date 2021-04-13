@@ -130,7 +130,7 @@ public:
   }
   void send_ho_notify(uint16_t rnti, uint64_t target_eci) override {}
 
-  void send_ho_cancel(uint16_t rnti) override {}
+  void send_ho_cancel(uint16_t rnti, const asn1::s1ap::cause_c& cause) override {}
 
   bool release_erabs(uint16_t rnti, const std::vector<uint16_t>& erabs_successfully_released) override { return true; }
   bool send_ue_cap_info_indication(uint16_t rnti, const srsran::unique_byte_buffer_t ue_radio_cap) override

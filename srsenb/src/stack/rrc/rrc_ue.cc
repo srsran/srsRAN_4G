@@ -500,7 +500,9 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
                           old_rnti);
 
       // Cancel Handover in Target eNB if on-going
-      parent->users.at(old_rnti)->mobility_handler->trigger(rrc_mobility::ho_cancel_ev{});
+      asn1::s1ap::cause_c cause;
+      cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::interaction_with_other_proc;
+      parent->users.at(old_rnti)->mobility_handler->trigger(rrc_mobility::ho_cancel_ev{cause});
 
       // Recover security setup
       const enb_cell_common* pcell_cfg = get_ue_cc_cfg(UE_PCELL_CC_IDX);
@@ -1055,7 +1057,9 @@ bool rrc::ue::setup_erabs(const asn1::s1ap::erab_to_be_setup_list_ctxt_su_req_l&
     uint32_t teid_out;
     srsran::uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
     const asn1::unbounded_octstring<true>* nas_pdu = erab.nas_pdu_present ? &erab.nas_pdu : nullptr;
-    bearer_list.add_erab(erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, nas_pdu);
+    asn1::s1ap::cause_c                    cause;
+    bearer_list.add_erab(
+        erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, nas_pdu, cause);
     bearer_list.add_gtpu_bearer(erab.erab_id);
   }
   return true;
@@ -1078,8 +1082,9 @@ bool rrc::ue::setup_erabs(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_
 
     uint32_t teid_out;
     srsran::uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
+    asn1::s1ap::cause_c cause;
     bearer_list.add_erab(
-        erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, &erab.nas_pdu);
+        erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, &erab.nas_pdu, cause);
     bearer_list.add_gtpu_bearer(erab.erab_id);
   }
 

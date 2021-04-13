@@ -90,7 +90,7 @@ public:
                        srsran::unique_byte_buffer_t                   ho_cmd,
                        srsran::span<asn1::s1ap::erab_admitted_item_s> admitted_bearers,
                        srsran::const_span<asn1::s1ap::erab_item_s>    not_admitted_bearers) override;
-  void send_ho_cancel(uint16_t rnti) override;
+  void send_ho_cancel(uint16_t rnti, const asn1::s1ap::cause_c& cause) override;
   bool release_erabs(uint16_t rnti, const std::vector<uint16_t>& erabs_successfully_released) override;
   bool send_error_indication(const asn1::s1ap::cause_c& cause,
                              srsran::optional<uint32_t> enb_ue_s1ap_id = {},
