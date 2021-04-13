@@ -787,6 +787,8 @@ int srsran_ra_ul_dci_to_grant_nr(const srsran_carrier_nr_t*    carrier,
   pusch_grant->rnti_type  = dci_ul->ctx.rnti_type;
   pusch_grant->tb[0].rv   = dci_ul->rv;
   pusch_grant->tb[0].mcs  = dci_ul->mcs;
+  pusch_grant->tb[0].ndi  = dci_ul->ndi;
+  pusch_grant->tb[0].pid  = dci_ul->pid;
 
   // 5.1.6.2 DM-RS reception procedure
   if (ra_ul_dmrs(pusch_hl_cfg, pusch_grant, pusch_cfg) < SRSRAN_SUCCESS) {
