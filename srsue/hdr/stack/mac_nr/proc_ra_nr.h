@@ -38,9 +38,9 @@ public:
   bool is_rar_opportunity(uint32_t tti);
   bool has_rar_rnti();
   uint16_t get_rar_rnti();
-  bool has_temp_rnti();
-  uint16_t get_temp_rnti();
-  
+  bool     has_temp_crnti();
+  uint16_t get_temp_crnti();
+
   // PHY interfaces
   void prach_sent(uint32_t tti, uint32_t s_id, uint32_t t_id, uint32_t f_id, uint32_t ul_carrier_id);
   void handle_rar_pdu(mac_interface_phy_nr::mac_nr_grant_dl_t& grant);
@@ -59,7 +59,7 @@ private:
 
   int      ra_window_length = -1, ra_window_start = -1;
   uint16_t rar_rnti  = SRSRAN_INVALID_RNTI;
-  uint16_t temp_rnti = SRSRAN_INVALID_RNTI;
+  uint16_t temp_crnti = SRSRAN_INVALID_RNTI;
 
   srsran::rach_nr_cfg_t rach_cfg   = {};
   bool                  configured = false;

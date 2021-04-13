@@ -141,9 +141,61 @@ private:
   std::map<uint32_t, uint32_t> ul_queues;
 };
 
-// TODO: Add test
 int msg3_test()
 {
+  // UL-SCH PDU for Msg3 with C-RNTI CE and SBSR
+  const uint8_t tv[] = {0x3a, 0x10, 0x01, 0x3d, 0x00, 0x3f, 0x00, 0x00, 0x00};
+
+  // dummy layers
+  dummy_phy   phy;
+  rlc_dummy   rlc;
+  rrc_dummy   rrc;
+  stack_dummy stack;
+
+  // the actual MAC
+  mac_nr mac(&stack.task_sched);
+
+  mac_nr_args_t args = {};
+  mac.init(args, &phy, &rlc, &rrc);
+  const uint16_t crnti = 0x1001;
+
+  // set C-RNTI and tell MAC to prepare Msg3 transmission
+  mac.set_crnti(crnti);
+  mac.msg3_prepare();
+
+  stack.init(&mac, &phy);
+
+  // create UL action and grant and read MAC PDU
+  {
+    mac_interface_phy_nr::tb_action_ul_t    ul_action = {};
+    mac_interface_phy_nr::mac_nr_grant_ul_t mac_grant = {};
+
+    mac_grant.rnti = crnti; // make sure MAC picks it up as valid UL grant
+    mac_grant.pid  = 0;
+    mac_grant.tti  = 0;
+    mac_grant.tbs  = 9;
+    int cc_idx     = 0;
+
+    // Send grant to MAC and get action for this TB, 0x
+    mac.new_grant_ul(cc_idx, mac_grant, &ul_action);
+
+    TESTASSERT(ul_action.tb.enabled == true);
+
+    // print generated PDU
+    srslog::fetch_basic_logger("MAC").info(
+        ul_action.tb.payload->msg, mac_grant.tbs, "Generated PDU (%d B)", mac_grant.tbs);
+#if HAVE_PCAP
+    pcap_handle->write_ul_crnti_nr(
+        ul_action.tb.payload->msg, mac_grant.tbs, mac_grant.rnti, UE_ID, mac_grant.pid, mac_grant.tti);
+#endif
+
+    TESTASSERT(memcmp(ul_action.tb.payload->msg, tv, sizeof(tv)) == 0);
+  }
+
+  // make sure MAC PDU thread picks up before stopping
+  stack.run_tti(0);
+  mac.stop();
+
   return SRSRAN_SUCCESS;
 }
 
@@ -172,6 +224,7 @@ int mac_nr_ul_logical_channel_prioritization_test1()
 
   stack.init(&mac, &phy);
   const uint16_t crnti = 0x1001;
+  mac.set_crnti(crnti);
 
   // generate config (default DRB2 config for EN-DC)
   std::vector<srsran::logical_channel_config_t> lcids;
@@ -202,13 +255,45 @@ int mac_nr_ul_logical_channel_prioritization_test1()
 
     mac_grant.rnti = crnti; // make sure MAC picks it up as valid UL grant
     mac_grant.pid  = 0;
-    mac_grant.rnti = 0x1001;
     mac_grant.tti  = 0;
     mac_grant.tbs  = 20;
+    mac_grant.ndi  = 0;
     int cc_idx     = 0;
 
     // Send grant to MAC and get action for this TB, 0x
     mac.new_grant_ul(cc_idx, mac_grant, &ul_action);
+
+    TESTASSERT(ul_action.tb.enabled == true);
+
+    // print generated PDU
+    srslog::fetch_basic_logger("MAC").info(
+        ul_action.tb.payload->msg, mac_grant.tbs, "Generated PDU (%d B)", mac_grant.tbs);
+#if HAVE_PCAP
+    pcap_handle->write_ul_crnti_nr(
+        ul_action.tb.payload->msg, mac_grant.tbs, mac_grant.rnti, UE_ID, mac_grant.pid, mac_grant.tti);
+#endif
+
+    TESTASSERT(memcmp(ul_action.tb.payload->msg, tv, sizeof(tv)) == 0);
+  }
+
+  stack.run_tti(0);
+
+  // create new grant that indicates/requests a retx of the previous PDU
+  {
+    mac_interface_phy_nr::tb_action_ul_t    ul_action = {};
+    mac_interface_phy_nr::mac_nr_grant_ul_t mac_grant = {};
+
+    mac_grant.rnti = crnti; // make sure MAC picks it up as valid UL grant
+    mac_grant.pid  = 0;     // same PID as above
+    mac_grant.tbs  = 20;
+    mac_grant.rv   = 1; // this is RV=1
+    mac_grant.ndi  = 0; // NDI keeps zero to request retx
+    int cc_idx     = 0;
+
+    // Send grant to MAC and get action for this TB, 0x
+    mac.new_grant_ul(cc_idx, mac_grant, &ul_action);
+
+    TESTASSERT(ul_action.tb.enabled == true);
 
     // print generated PDU
     srslog::fetch_basic_logger("MAC").info(
@@ -260,11 +345,12 @@ int mac_nr_ul_logical_channel_prioritization_test2()
   // the actual MAC
   mac_nr mac(&stack.task_sched);
 
+  const uint16_t crnti = 0x1001;
   mac_nr_args_t args = {};
   mac.init(args, &phy, &rlc, &rrc);
+  mac.set_crnti(crnti);
 
   stack.init(&mac, &phy);
-  const uint16_t crnti = 0x1001;
 
   // generate config (default DRB2 config for EN-DC)
   std::vector<srsran::logical_channel_config_t> lcids;
@@ -295,7 +381,6 @@ int mac_nr_ul_logical_channel_prioritization_test2()
 
     mac_grant.rnti = crnti; // make sure MAC picks it up as valid UL grant
     mac_grant.pid  = 0;
-    mac_grant.rnti = 0x1001;
     mac_grant.tti  = 0;
     mac_grant.tbs  = 260;
     int cc_idx     = 0;
@@ -343,10 +428,11 @@ int mac_nr_ul_periodic_bsr_test()
   mac_nr mac(&stack.task_sched);
 
   mac_nr_args_t args = {};
+  const uint16_t crnti = 0x1001;
   mac.init(args, &phy, &rlc, &rrc);
+  mac.set_crnti(crnti);
 
   stack.init(&mac, &phy);
-  const uint16_t crnti = 0x1001;
 
   // generate config (default DRB2 config for EN-DC)
   std::vector<srsran::logical_channel_config_t> lcids;
@@ -379,6 +465,8 @@ int mac_nr_ul_periodic_bsr_test()
   stack.run_tti(tti++);
   usleep(100);
 
+  int ul_ndi = 0;
+
   // create UL action and grant and read MAC PDU
   {
     mac_interface_phy_nr::tb_action_ul_t    ul_action = {};
@@ -386,13 +474,15 @@ int mac_nr_ul_periodic_bsr_test()
 
     mac_grant.rnti = crnti; // make sure MAC picks it up as valid UL grant
     mac_grant.pid  = 0;
-    mac_grant.rnti = 0x1001;
     mac_grant.tti  = 0;
     mac_grant.tbs  = 10;
+    mac_grant.ndi  = (ul_ndi++) % 2;
     int cc_idx     = 0;
 
     // Send grant to MAC and get action for this TB
     mac.new_grant_ul(cc_idx, mac_grant, &ul_action);
+
+    TESTASSERT(ul_action.tb.enabled == true);
 
     // print generated PDU
     srslog::fetch_basic_logger("MAC").info(
@@ -417,13 +507,15 @@ int mac_nr_ul_periodic_bsr_test()
 
       mac_grant.rnti = crnti; // make sure MAC picks it up as valid UL grant
       mac_grant.pid  = 0;
-      mac_grant.rnti = 0x1001;
       mac_grant.tti  = 0;
       mac_grant.tbs  = 10;
+      mac_grant.ndi  = (ul_ndi++) % 2;
       int cc_idx     = 0;
 
       // Send grant to MAC and get action for this TB
       mac.new_grant_ul(cc_idx, mac_grant, &ul_action);
+
+      TESTASSERT(ul_action.tb.enabled == true);
 
       // print generated PDU
       srslog::fetch_basic_logger("MAC").info(
@@ -448,13 +540,14 @@ int mac_nr_ul_periodic_bsr_test()
 
     mac_grant.rnti = crnti; // make sure MAC picks it up as valid UL grant
     mac_grant.pid  = 0;
-    mac_grant.rnti = 0x1001;
     mac_grant.tti  = 0;
     mac_grant.tbs  = 10;
     int cc_idx     = 0;
 
     // Send grant to MAC and get action for this TB
     mac.new_grant_ul(cc_idx, mac_grant, &ul_action);
+
+    TESTASSERT(ul_action.tb.enabled == true);
 
     // print generated PDU
     srslog::fetch_basic_logger("MAC").info(

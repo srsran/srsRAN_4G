@@ -25,6 +25,7 @@
 #include "srsue/hdr/stack/mac_common/mac_common.h"
 #include "srsue/hdr/stack/mac_nr/mux_nr.h"
 #include "srsue/hdr/stack/ue_stack_base.h"
+#include "ul_harq_nr.h"
 
 namespace srsue {
 
@@ -36,7 +37,8 @@ class mac_nr final : public mac_interface_phy_nr,
                      public mac_interface_rrc_nr,
                      public mac_interface_proc_ra_nr,
                      public mac_interface_sr_nr,
-                     public mac_interface_mux_nr
+                     public mac_interface_mux_nr,
+                     public mac_interface_harq_nr
 {
 public:
   mac_nr(srsran::ext_task_sched_handle task_sched_);
@@ -82,9 +84,11 @@ public:
   int  remove_tag_config(const uint32_t tag_id);
   void start_ra_procedure();
 
-  /// procedure ra nr interface + mux
+  /// Interface for internal procedures (RA, MUX, HARQ)
   uint64_t get_contention_id();
   uint16_t get_crnti();
+  uint16_t get_temp_crnti();
+  uint16_t get_csrnti() { return SRSRAN_INVALID_RNTI; }; // SPS not supported
 
   /// procedure sr nr interface
   void start_ra() { proc_ra.start_by_mac(); }
@@ -136,7 +140,7 @@ private:
   srslog::basic_logger& logger;
   mac_nr_args_t         args = {};
 
-  bool started = false;
+  std::atomic<bool> started = {false};
 
   uint16_t c_rnti        = SRSRAN_INVALID_RNTI;
   uint64_t contention_id = 0;
@@ -149,11 +153,6 @@ private:
   /// Rx buffer
   srsran::mac_sch_pdu_nr rx_pdu;
 
-  /// Tx buffer
-  srsran::unique_byte_buffer_t ul_harq_buffer = nullptr; // store PDU generated from MUX
-  srsran::unique_byte_buffer_t rlc_buffer     = nullptr;
-  srsran_softbuffer_tx_t       softbuffer_tx  = {}; /// UL HARQ (temporal)
-
   srsran::task_multiqueue::queue_handle stack_task_dispatch_queue;
 
   // MAC Uplink-related procedures
@@ -161,6 +160,12 @@ private:
   proc_sr_nr  proc_sr;
   proc_bsr_nr proc_bsr;
   mux_nr      mux;
+
+  // UL HARQ
+  ul_harq_entity_nr_vector ul_harq = {};
+  ul_harq_cfg_t            ul_harq_cfg;
+
+  const uint8_t PCELL_CC_IDX = 0;
 };
 
 } // namespace srsue

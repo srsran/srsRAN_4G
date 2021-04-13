@@ -371,6 +371,12 @@ bool cc_worker::work_ul()
     mac_ul_grant.rv                                      = pusch_cfg.grant.tb[0].rv;
     phy->stack->new_grant_ul(0, mac_ul_grant, &ul_action);
 
+    // Don't process further if MAC can't provide PDU
+    if (not ul_action.tb.enabled) {
+      ERROR("No MAC PDU provided by MAC");
+      return false;
+    }
+
     // Set UCI configuration following procedures
     srsran_ra_ul_set_grant_uci_nr(&phy->cfg.pusch, &uci_data.cfg, &pusch_cfg);
 

@@ -44,7 +44,7 @@ public:
 class mac_interface_sr_nr
 {
 public:
-  // MUX can query MAC for current C-RNTI for Msg3 transmission
+  // SR can query MAC (as proxy for RA) to start RA procedure
   virtual void start_ra() = 0;
 };
 
@@ -59,6 +59,22 @@ public:
 
   // MUX queries MAC to return LCG state for SBSR
   virtual srsran::mac_sch_subpdu_nr::lcg_bsr_t generate_sbsr() = 0;
+};
+
+/**
+ * @brief Interface from MAC NR parent class to HARQ subclass
+ */
+class mac_interface_harq_nr
+{
+public:
+  // HARQ can query MAC for current C-RNTI
+  virtual uint16_t get_crnti() = 0;
+
+  // MAC also provides Temp C-RNTI (through RA proc)
+  virtual uint16_t get_temp_crnti() = 0;
+
+  // MAC provides the Currently Scheduled RNTI (for SPS)
+  virtual uint16_t get_csrnti() = 0;
 };
 
 } // namespace srsue

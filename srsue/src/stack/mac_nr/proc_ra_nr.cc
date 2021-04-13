@@ -112,14 +112,14 @@ bool proc_ra_nr::has_rar_rnti()
   return false;
 }
 
-bool proc_ra_nr::has_temp_rnti()
+bool proc_ra_nr::has_temp_crnti()
 {
-  return temp_rnti != SRSRAN_INVALID_RNTI;
+  return temp_crnti != SRSRAN_INVALID_RNTI;
 }
 
-uint16_t proc_ra_nr::get_temp_rnti()
+uint16_t proc_ra_nr::get_temp_crnti()
 {
-  return temp_rnti;
+  return temp_crnti;
 }
 
 void proc_ra_nr::timer_expired(uint32_t timer_id)
@@ -201,11 +201,11 @@ void proc_ra_nr::ra_response_reception(const mac_interface_phy_nr::mac_nr_grant_
 
       for (auto& subpdu : pdu.get_subpdus()) {
         if (subpdu.has_rapid() && subpdu.get_rapid() == preamble_index) {
-          logger.info("PROC RA NR: Setting ul grant and prepare msg3");
-          temp_rnti = subpdu.get_temp_crnti();
+          logger.debug("PROC RA NR: Setting UL grant and prepare Msg3");
+          temp_crnti = subpdu.get_temp_crnti();
 
           // Set Temporary-C-RNTI if provided, otherwise C-RNTI is ok
-          phy->set_ul_grant(subpdu.get_ul_grant(), temp_rnti, srsran_rnti_type_c);
+          phy->set_ul_grant(subpdu.get_ul_grant(), temp_crnti, srsran_rnti_type_c);
 
           // reset all parameters that are used before rar
           rar_rnti = SRSRAN_INVALID_RNTI;
@@ -272,13 +272,13 @@ void proc_ra_nr::ra_completion()
   }
   srsran::console("Random Access Complete.     c-rnti=0x%x, ta=%d\n", mac.get_crnti(), current_ta);
   logger.info("Random Access Complete.     c-rnti=0x%x, ta=%d", mac.get_crnti(), current_ta);
-  temp_rnti = SRSRAN_INVALID_RNTI;
+  temp_crnti = SRSRAN_INVALID_RNTI;
   reset();
 }
 
 void proc_ra_nr::ra_error()
 {
-  temp_rnti = 0;
+  temp_crnti = SRSRAN_INVALID_RNTI;
   preamble_transmission_counter++;
   contention_resolution_timer.stop();
   uint32_t backoff_wait;
