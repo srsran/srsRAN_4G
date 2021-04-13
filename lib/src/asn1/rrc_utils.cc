@@ -207,7 +207,8 @@ srsran::pdcp_config_t make_srb_pdcp_config_t(const uint8_t bearer_id, bool is_ue
                     PDCP_SN_LEN_5,
                     pdcp_t_reordering_t::ms500,
                     pdcp_discard_timer_t::infinity,
-                    false);
+                    false,
+                    srsran_rat_t::lte);
   return cfg;
 }
 
@@ -220,7 +221,8 @@ srsran::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue
                     PDCP_SN_LEN_12,
                     pdcp_t_reordering_t::ms500,
                     pdcp_discard_timer_t::infinity,
-                    false);
+                    false,
+                    srsran_rat_t::lte);
   return cfg;
 }
 
@@ -325,7 +327,8 @@ srsran::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue
                     sn_len,
                     t_reordering,
                     discard_timer,
-                    status_report_required);
+                    status_report_required,
+                    srsran_rat_t::lte);
   return cfg;
 }
 

@@ -65,7 +65,8 @@ int rrc_nr::init(const rrc_nr_cfg_t&     cfg_,
                                   srsran::PDCP_SN_LEN_18,
                                   srsran::pdcp_t_reordering_t::ms500,
                                   srsran::pdcp_discard_timer_t::infinity,
-                                  false};
+                                  false, 
+                                  srsran::srsran_rat_t::nr};
   pdcp->add_bearer(cfg.coreless.rnti, cfg.coreless.drb_lcid, pdcp_cnfg);
 
   logger.info("Started");

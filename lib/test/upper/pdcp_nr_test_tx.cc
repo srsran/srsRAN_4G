@@ -29,7 +29,8 @@ int test_tx(uint32_t                     n_packets,
                                pdcp_sn_len,
                                srsran::pdcp_t_reordering_t::ms500,
                                srsran::pdcp_discard_timer_t::infinity,
-                               false};
+                               false,
+                               srsran::srsran_rat_t::nr};
 
   pdcp_nr_test_helper     pdcp_hlp(cfg, sec_cfg, logger);
   srsran::pdcp_entity_nr* pdcp = &pdcp_hlp.pdcp;

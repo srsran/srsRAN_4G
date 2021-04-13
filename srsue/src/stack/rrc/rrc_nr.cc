@@ -79,7 +79,8 @@ void rrc_nr::init_core_less()
                                   srsran::PDCP_SN_LEN_18,
                                   srsran::pdcp_t_reordering_t::ms500,
                                   srsran::pdcp_discard_timer_t::ms100,
-                                  false};
+                                  false,
+                                  srsran_rat_t::nr};
 
   pdcp->add_bearer(args.coreless.drb_lcid, pdcp_cnfg);
   return;

@@ -26,7 +26,8 @@ int test_tx_sdu_notify(const srsran::pdcp_lte_state_t& init_state,
                                srsran::PDCP_SN_LEN_12,
                                srsran::pdcp_t_reordering_t::ms500,
                                discard_timeout,
-                               false};
+                               false,
+                               srsran::srsran_rat_t::lte};
 
   pdcp_lte_test_helper     pdcp_hlp(cfg, sec_cfg, logger);
   srsran::pdcp_entity_lte* pdcp  = &pdcp_hlp.pdcp;
@@ -75,7 +76,8 @@ int test_tx_sdu_discard(const srsran::pdcp_lte_state_t& init_state,
                                srsran::PDCP_SN_LEN_12,
                                srsran::pdcp_t_reordering_t::ms500,
                                discard_timeout,
-                               false};
+                               false,
+                               srsran::srsran_rat_t::lte};
 
   pdcp_lte_test_helper     pdcp_hlp(cfg, sec_cfg, logger);
   srsran::pdcp_entity_lte* pdcp  = &pdcp_hlp.pdcp;

@@ -126,7 +126,8 @@ public:
                 uint8_t              sn_len_,
                 pdcp_t_reordering_t  t_reordering_,
                 pdcp_discard_timer_t discard_timer_,
-                bool                 status_report_required_) :
+                bool                 status_report_required_,
+                srsran::srsran_rat_t rat_) :
     bearer_id(bearer_id_),
     rb_type(rb_type_),
     tx_direction(tx_direction_),
@@ -134,7 +135,8 @@ public:
     sn_len(sn_len_),
     t_reordering(t_reordering_),
     discard_timer(discard_timer_),
-    status_report_required(status_report_required_)
+    status_report_required(status_report_required_),
+    rat(rat_)
   {
     hdr_len_bytes = ceilf((float)sn_len / 8);
   }
@@ -148,6 +150,7 @@ public:
 
   pdcp_t_reordering_t  t_reordering  = pdcp_t_reordering_t::ms500;
   pdcp_discard_timer_t discard_timer = pdcp_discard_timer_t::infinity;
+  srsran::srsran_rat_t rat           = srsran::srsran_rat_t::lte;
 
   bool status_report_required = false;
 

@@ -212,7 +212,8 @@ srsran::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue
                     sn_len,
                     t_reordering,
                     discard_timer,
-                    false);
+                    false,
+                    srsran_rat_t::nr);
   return cfg;
 }
 

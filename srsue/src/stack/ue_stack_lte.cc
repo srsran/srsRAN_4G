@@ -202,7 +202,7 @@ int ue_stack_lte::init(const stack_args_t& args_)
 
   mac.init(phy, &rlc, &rrc);
   rlc.init(&pdcp, &rrc, task_sched.get_timer_handler(), 0 /* RB_ID_SRB0 */);
-  pdcp.init(&rlc, &rrc, gw);
+  pdcp.init(&rlc, &rrc, &rrc_nr, gw);
   nas.init(usim.get(), &rrc, gw, args.nas);
 
   mac_nr_args_t mac_nr_args = {};
