@@ -19,7 +19,7 @@ using namespace asn1::rrc_nr;
 
 namespace srsenb {
 
-rrc_nr::rrc_nr(srsran::timer_handler* timers_) : logger(srslog::fetch_basic_logger("RRC")), timers(timers_) {}
+rrc_nr::rrc_nr(srsran::timer_handler* timers_) : logger(srslog::fetch_basic_logger("RRC-NR")), timers(timers_) {}
 
 int rrc_nr::init(const rrc_nr_cfg_t&     cfg_,
                  phy_interface_stack_nr* phy_,

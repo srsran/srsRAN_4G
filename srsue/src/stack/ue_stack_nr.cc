@@ -18,16 +18,16 @@ using namespace srsran;
 namespace srsue {
 
 ue_stack_nr::ue_stack_nr() :
-  thread("STACK"),
+  thread("STACK-NR"),
   task_sched(64, 64),
-  mac_logger(srslog::fetch_basic_logger("MAC")),
-  rlc_logger(srslog::fetch_basic_logger("RLC", false)),
-  pdcp_logger(srslog::fetch_basic_logger("PDCP", false))
+  mac_logger(srslog::fetch_basic_logger("MAC-NR")),
+  rlc_logger(srslog::fetch_basic_logger("RLC-NR", false)),
+  pdcp_logger(srslog::fetch_basic_logger("PDCP-NR", false))
 {
   get_background_workers().set_nof_workers(2);
   mac.reset(new mac_nr(&task_sched));
-  pdcp.reset(new srsran::pdcp(&task_sched, "PDCP"));
-  rlc.reset(new srsran::rlc("RLC"));
+  pdcp.reset(new srsran::pdcp(&task_sched, "PDCP-NR"));
+  rlc.reset(new srsran::rlc("RLC-NR"));
   rrc.reset(new rrc_nr(&task_sched));
 
   // setup logging for pool, RLC and PDCP

@@ -67,7 +67,7 @@ int32_t mac_sch_subpdu_nr::read_subheader(const uint8_t* ptr)
     }
     sdu = (uint8_t*)ptr;
   } else {
-    srslog::fetch_basic_logger("MAC").warning("Invalid LCID (%d) in MAC PDU", lcid);
+    srslog::fetch_basic_logger("MAC-NR").warning("Invalid LCID (%d) in MAC PDU", lcid);
     return SRSRAN_ERROR;
   }
   return header_length;

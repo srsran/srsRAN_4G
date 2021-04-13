@@ -20,9 +20,7 @@
 
 namespace srsenb {
 
-mac_nr::mac_nr() : logger(srslog::fetch_basic_logger("MAC"))
-{
-}
+mac_nr::mac_nr() : logger(srslog::fetch_basic_logger("MAC-NR")) {}
 
 mac_nr::~mac_nr()
 {

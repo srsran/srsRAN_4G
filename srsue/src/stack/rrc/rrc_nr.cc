@@ -30,7 +30,7 @@ namespace srsue {
 const char* rrc_nr::rrc_nr_state_text[] = {"IDLE", "CONNECTED", "CONNECTED-INACTIVE"};
 
 rrc_nr::rrc_nr(srsran::task_sched_handle task_sched_) :
-  logger(srslog::fetch_basic_logger("RRC")), task_sched(task_sched_), conn_recfg_proc(this)
+  logger(srslog::fetch_basic_logger("RRC-NR")), task_sched(task_sched_), conn_recfg_proc(this)
 {}
 
 rrc_nr::~rrc_nr() = default;

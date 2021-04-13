@@ -47,7 +47,7 @@ static void format_metadata(const detail::log_entry_metadata& metadata, fmt::mem
 
   // Format optional fields if present.
   if (!metadata.log_name.empty()) {
-    fmt::format_to(buffer, "[{: <4}] ", metadata.log_name);
+    fmt::format_to(buffer, "[{: <7}] ", metadata.log_name);
   }
   if (metadata.log_tag != '\0') {
     fmt::format_to(buffer, "[{}] ", metadata.log_tag);

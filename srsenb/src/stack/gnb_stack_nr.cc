@@ -16,11 +16,11 @@
 
 namespace srsenb {
 
-gnb_stack_nr::gnb_stack_nr() : task_sched{512, 128}, thread("gNB"), rlc_logger(srslog::fetch_basic_logger("RLC"))
+gnb_stack_nr::gnb_stack_nr() : task_sched{512, 128}, thread("gNB"), rlc_logger(srslog::fetch_basic_logger("RLC-NR"))
 {
   m_mac.reset(new mac_nr());
-  m_rlc.reset(new rlc_nr("RLC"));
-  m_pdcp.reset(new pdcp_nr(&task_sched, "PDCP"));
+  m_rlc.reset(new rlc_nr("RLC-NR"));
+  m_pdcp.reset(new pdcp_nr(&task_sched, "PDCP-NR"));
   m_rrc.reset(new rrc_nr(task_sched.get_timer_handler()));
   m_sdap.reset(new sdap());
   m_gw.reset(new srsue::gw());

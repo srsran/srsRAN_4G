@@ -22,7 +22,7 @@ extern "C" {
 namespace srsran {
 
 mac_rar_subpdu_nr::mac_rar_subpdu_nr(mac_rar_pdu_nr* parent_) :
-  parent(parent_), logger(srslog::fetch_basic_logger("MAC"))
+  parent(parent_), logger(srslog::fetch_basic_logger("MAC-NR"))
 {}
 
 // Return true if subPDU could be parsed correctly, false otherwise
@@ -147,7 +147,7 @@ std::string mac_rar_subpdu_nr::to_string()
   return ss.str();
 }
 
-mac_rar_pdu_nr::mac_rar_pdu_nr() : logger(srslog::fetch_basic_logger("MAC")) {}
+mac_rar_pdu_nr::mac_rar_pdu_nr() : logger(srslog::fetch_basic_logger("MAC-NR")) {}
 
 bool mac_rar_pdu_nr::pack()
 {
