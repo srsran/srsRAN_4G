@@ -91,7 +91,7 @@ public:
   void wait_initialize() final;
   bool is_initiated();
 
-  void get_metrics(const std::string& rat, phy_metrics_t* m) final;
+  void get_metrics(const srsran::srsran_rat_t& rat, phy_metrics_t* m) final;
   void srsran_phy_logger(phy_logger_level_t log_level, char* str);
 
   void enable_pregen_signals(bool enable) final;

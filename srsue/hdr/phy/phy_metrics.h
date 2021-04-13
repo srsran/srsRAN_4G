@@ -14,12 +14,12 @@
 #define SRSUE_PHY_METRICS_H
 
 #include "srsran/srsran.h"
-#include <srsran/adt/circular_array.h>
+#include <array>
 
 namespace srsue {
 
 struct info_metrics_t {
-  typedef srsran::circular_array<info_metrics_t, SRSRAN_MAX_CARRIERS> array_t;
+  typedef std::array<info_metrics_t, SRSRAN_MAX_CARRIERS> array_t;
 
   uint32_t pci;
   uint32_t dl_earfcn;
@@ -31,7 +31,7 @@ struct info_metrics_t {
   } while (false)
 
 struct sync_metrics_t {
-  typedef srsran::circular_array<sync_metrics_t, SRSRAN_MAX_CARRIERS> array_t;
+  typedef std::array<sync_metrics_t, SRSRAN_MAX_CARRIERS> array_t;
 
   float ta_us;
   float distance_km;
@@ -64,7 +64,7 @@ private:
 };
 
 struct ch_metrics_t {
-  typedef srsran::circular_array<ch_metrics_t, SRSRAN_MAX_CARRIERS> array_t;
+  typedef std::array<ch_metrics_t, SRSRAN_MAX_CARRIERS> array_t;
 
   float n;
   float sinr;
@@ -106,7 +106,7 @@ private:
 };
 
 struct dl_metrics_t {
-  typedef srsran::circular_array<dl_metrics_t, SRSRAN_MAX_CARRIERS> array_t;
+  typedef std::array<dl_metrics_t, SRSRAN_MAX_CARRIERS> array_t;
 
   float fec_iters;
   float mcs;
@@ -133,7 +133,7 @@ private:
 };
 
 struct ul_metrics_t {
-  typedef srsran::circular_array<ul_metrics_t, SRSRAN_MAX_CARRIERS> array_t;
+  typedef std::array<ul_metrics_t, SRSRAN_MAX_CARRIERS> array_t;
 
   float mcs;
   float power;

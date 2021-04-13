@@ -38,7 +38,7 @@ public:
   void stop() override;
 
   void wait_initialize() override;
-  void get_metrics(const std::string& rat, phy_metrics_t* m) override;
+  void get_metrics(const srsran::srsran_rat_t& rat, phy_metrics_t* m) override;
 
   std::string get_type() override { return "vnf_nr"; };
 

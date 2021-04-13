@@ -38,7 +38,7 @@ public:
 
   virtual void set_earfcn(std::vector<uint32_t> earfcns) = 0;
 
-  virtual void get_metrics(const std::string& rat, phy_metrics_t* m) = 0;
+  virtual void get_metrics(const srsran::srsran_rat_t& rat, phy_metrics_t* m) = 0;
 };
 
 } // namespace srsue

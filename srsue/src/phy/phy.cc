@@ -184,34 +184,40 @@ void phy::stop()
   }
 }
 
-void phy::get_metrics(const std::string& rat, phy_metrics_t* m)
+void phy::get_metrics(const srsran::srsran_rat_t& rat, phy_metrics_t* m)
 {
+  // Zero structure by default
+  *m = {};
+
+  // Get LTE metrics
+  if (rat == srsran::srsran_rat_t::lte && args.nof_lte_carriers > 0) {
+    uint32_t      dl_earfcn = 0;
+    srsran_cell_t cell      = {};
+    sfsync.get_current_cell(&cell, &dl_earfcn);
+    m->info[0].pci       = cell.id;
+    m->info[0].dl_earfcn = dl_earfcn;
+
+    for (uint32_t i = 1; i < args.nof_lte_carriers; i++) {
+      m->info[i].dl_earfcn = common.cell_state.get_earfcn(i);
+      m->info[i].pci       = common.cell_state.get_pci(i);
+    }
+
+    common.get_ch_metrics(m->ch);
+    common.get_dl_metrics(m->dl);
+    common.get_ul_metrics(m->ul);
+    common.get_sync_metrics(m->sync);
+    m->nof_active_cc = args.nof_lte_carriers;
+    return;
+  }
+
   // Get NR metrics
-  if (rat == "nr" and args.nof_nr_carriers > 0) {
+  if (rat == srsran::srsran_rat_t::nr && args.nof_nr_carriers > 0) {
     nr_workers.get_metrics(*m);
     return;
   }
 
-  if (rat != "lte") {
-    *m = {};
-    return;
-  }
-  uint32_t      dl_earfcn = 0;
-  srsran_cell_t cell      = {};
-  sfsync.get_current_cell(&cell, &dl_earfcn);
-  m->info[0].pci       = cell.id;
-  m->info[0].dl_earfcn = dl_earfcn;
-
-  for (uint32_t i = 1; i < args.nof_lte_carriers; i++) {
-    m->info[i].dl_earfcn = common.cell_state.get_earfcn(i);
-    m->info[i].pci       = common.cell_state.get_pci(i);
-  }
-
-  common.get_ch_metrics(m->ch);
-  common.get_dl_metrics(m->dl);
-  common.get_ul_metrics(m->ul);
-  common.get_sync_metrics(m->sync);
-  m->nof_active_cc = args.nof_lte_carriers;
+  // Add other RAT here
+  // ...
 }
 
 void phy::set_timeadv_rar(uint32_t tti, uint32_t ta_cmd)

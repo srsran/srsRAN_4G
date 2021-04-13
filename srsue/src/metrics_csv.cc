@@ -197,10 +197,10 @@ void metrics_csv::set_metrics(const ue_metrics_t& metrics, const uint32_t period
     }
 
     // Metrics for NR carrier
-    for (uint32_t r = 0; r < metrics.phy.nof_active_cc; r++) {
+    for (uint32_t r = 0; r < metrics.phy_nr.nof_active_cc; r++) {
       set_metrics_helper(metrics.rf,
                          metrics.sys,
-                         metrics.phy,
+                         metrics.phy_nr,
                          metrics.stack.mac_nr,
                          metrics.stack.rrc,
                          metrics.phy.nof_active_cc + r, // NR carrier offset
