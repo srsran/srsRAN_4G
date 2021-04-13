@@ -18,7 +18,7 @@ using namespace srsran;
 namespace srsue {
 
 ue_stack_nr::ue_stack_nr() :
-  thread("STACK-NR"),
+  thread("STACK"),
   task_sched(64, 64),
   mac_logger(srslog::fetch_basic_logger("MAC-NR")),
   rlc_logger(srslog::fetch_basic_logger("RLC-NR", false)),
