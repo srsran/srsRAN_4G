@@ -41,6 +41,11 @@ public:
     }
   }
 
+  dyn_node_pool(const dyn_node_pool&) = delete;
+  dyn_node_pool(dyn_node_pool&&) = delete;
+  dyn_node_pool& operator=(dyn_node_pool&&) = delete;
+  dyn_node_pool& operator=(const dyn_node_pool&) = delete;
+
   void* alloc(std::size_t sz) {
     assert(sz <= dynamic_arg_list::max_pool_node_size && "Object is too large to fit in the pool");
 
