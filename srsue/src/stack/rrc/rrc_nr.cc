@@ -87,6 +87,25 @@ void rrc_nr::init_core_less()
 }
 void rrc_nr::get_metrics(rrc_nr_metrics_t& m) {}
 
+const char* rrc_nr::get_rb_name(uint32_t lcid)
+{
+  uint32_t offset;
+  if (lcid_rb.find(lcid) != lcid_rb.end()) {
+    // Calulate offset for rb_id table
+    if (lcid_rb[lcid].rb_type == Srb) {
+      // SRB start at 0
+      offset = NR_SRB0 + lcid_rb[lcid].rb_id;
+    } else {
+      // DRB start at 1
+      offset = NR_SRB3 + lcid_rb[lcid].rb_id;
+    }
+  } else {
+    logger.warning("Unable to find lcid: %d. Return guessed rb name.");
+    offset = lcid;
+  }
+  return srsran::to_string((srsran::rb_id_nr_t)offset);
+}
+
 // Timeout callback interface
 void rrc_nr::timer_expired(uint32_t timeout_id)
 {
@@ -161,7 +180,7 @@ void rrc_nr::log_rrc_message(const std::string& source,
 bool rrc_nr::add_lcid_rb(uint32_t lcid, rb_type_t rb_type, uint32_t rbid)
 {
   if (lcid_rb.find(lcid) != lcid_rb.end()) {
-    logger.error("Couldn't add RB to LCID. RB %d does exist.", rbid);
+    logger.error("Couldn't add RB to LCID (%d). RB %d already does exist.", lcid, rbid);
     return false;
   } else {
     logger.info("Adding lcid %d and radio bearer ID %d with type %s ", lcid, rbid, (rb_type == Srb) ? "SRB" : "DRB");

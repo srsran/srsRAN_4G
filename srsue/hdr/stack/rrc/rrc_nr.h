@@ -173,7 +173,7 @@ private:
   // RRC constants and timers
   srsran::timer_handler* timers = nullptr;
 
-  const char* get_rb_name(uint32_t lcid) final { return srsran::to_string((srsran::rb_id_nr_t)lcid); }
+  const char* get_rb_name(uint32_t lcid) final;
 
   typedef enum { Srb = 0, Drb } rb_type_t;
   typedef struct {
