@@ -60,9 +60,10 @@ private:
                                    const enb_cell_common&    target_cell,
                                    uint32_t                  src_dl_earfcn,
                                    uint32_t                  src_pci);
-  void apply_ho_prep_cfg(const asn1::rrc::ho_prep_info_r8_ies_s& ho_prep,
+  bool apply_ho_prep_cfg(const asn1::rrc::ho_prep_info_r8_ies_s& ho_prep,
                          const asn1::s1ap::ho_request_s&         ho_req_msg,
-                         std::vector<asn1::s1ap::erab_item_s>&   erabs_failed_to_setup);
+                         std::vector<asn1::s1ap::erab_item_s>&   erabs_failed_to_setup,
+                         asn1::s1ap::cause_c&                    cause);
 
   rrc::ue*              rrc_ue  = nullptr;
   rrc*                  rrc_enb = nullptr;

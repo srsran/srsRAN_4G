@@ -147,8 +147,6 @@ bool security_cfg_handler::set_security_capabilities(const asn1::s1ap::ue_securi
   }
 
   if (not integ_algo_found || not enc_algo_found) {
-    // TODO: if no security algorithm found abort radio connection and issue
-    // encryption-and-or-integrity-protection-algorithms-not-supported message
     logger.error("Did not find a matching integrity or encryption algorithm with the UE");
     return false;
   }

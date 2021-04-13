@@ -279,11 +279,19 @@ int test_s1ap_tenb_mobility(mobility_test_params test_params)
   if (test_params.fail_at == mobility_test_params::test_event::wrong_qos) {
     erab.erab_level_qos_params.qci = 10;
   }
+  ho_req.protocol_ies.ue_security_cap.value.integrity_protection_algorithms.set(14, true);
   asn1::s1ap::sourceenb_to_targetenb_transparent_container_s container;
   container.target_cell_id.cell_id.from_number(0x19C02);
   if (test_params.fail_at == mobility_test_params::test_event::wrong_target_cell) {
     container.target_cell_id.cell_id.from_number(0x19C03);
   }
+  container.erab_info_list_present = true;
+  container.erab_info_list.resize(1);
+  container.erab_info_list[0].load_info_obj(ASN1_S1AP_ID_ERAB_INFO_LIST_ITEM);
+  container.erab_info_list[0].value.erab_info_list_item().erab_id               = 5;
+  container.erab_info_list[0].value.erab_info_list_item().dl_forwarding_present = true;
+  container.erab_info_list[0].value.erab_info_list_item().dl_forwarding.value =
+      asn1::s1ap::dl_forwarding_opts::dl_forwarding_proposed;
   uint8_t ho_prep_container[] = {
       0x0a, 0x10, 0x0b, 0x81, 0x80, 0x00, 0x01, 0x80, 0x00, 0xf3, 0x02, 0x08, 0x00, 0x00, 0x15, 0x80, 0x00, 0x14,
       0x06, 0xa4, 0x02, 0xf0, 0x04, 0x04, 0xf0, 0x00, 0x14, 0x80, 0x4a, 0x00, 0x00, 0x00, 0x02, 0x12, 0x31, 0xb6,
@@ -293,13 +301,6 @@ int test_s1ap_tenb_mobility(mobility_test_params test_params)
       0x5c, 0xe1, 0x86, 0x35, 0x39, 0x80, 0x0e, 0x06, 0xa4, 0x40, 0x0f, 0x22, 0x78};
   // 0a100b818000018000f3020800001580001406a402f00404f00014804a000000021231b6f83ea06f05e465141d39d0544c00025400200460000000100100c000000000020500041400670dfbc46606500f00080020800c14ca2d5ce1863539800e06a4400f2278
   container.rrc_container.resize(sizeof(ho_prep_container));
-  container.erab_info_list_present = true;
-  container.erab_info_list.resize(1);
-  container.erab_info_list[0].load_info_obj(ASN1_S1AP_ID_ERAB_INFO_LIST_ITEM);
-  container.erab_info_list[0].value.erab_info_list_item().erab_id               = 5;
-  container.erab_info_list[0].value.erab_info_list_item().dl_forwarding_present = true;
-  container.erab_info_list[0].value.erab_info_list_item().dl_forwarding.value =
-      asn1::s1ap::dl_forwarding_opts::dl_forwarding_proposed;
   memcpy(container.rrc_container.data(), ho_prep_container, sizeof(ho_prep_container));
   asn1::s1ap::cause_c cause;
   int                 rnti = tester.rrc.start_ho_ue_resource_alloc(ho_req, container, cause);

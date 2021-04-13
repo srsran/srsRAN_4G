@@ -678,6 +678,7 @@ void rrc::ue::rrc_mobility::s1_source_ho_st::handle_ho_cancel(const ho_cancel_ev
  */
 void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& ho_req)
 {
+  asn1::s1ap::cause_c                  cause; // in case of failure
   const auto&                          rrc_container = ho_req.transparent_container->rrc_container;
   std::vector<asn1::s1ap::erab_item_s> not_admitted_erabs;
   auto&                                fwd_tunnels = get_state<s1_target_ho_st>()->pending_tunnels;
@@ -688,7 +689,6 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
   asn1::rrc::ho_prep_info_s hoprep;
   if (hoprep.unpack(bref) != asn1::SRSASN_SUCCESS) {
     rrc_enb->logger.error("Failed to decode HandoverPreparationinformation in S1AP SourceENBToTargetENBContainer");
-    asn1::s1ap::cause_c cause;
     cause.set_protocol().value = asn1::s1ap::cause_protocol_opts::transfer_syntax_error;
     trigger(ho_failure_ev{cause});
     return;
@@ -696,7 +696,6 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
   if (hoprep.crit_exts.type().value != c1_or_crit_ext_opts::c1 or
       hoprep.crit_exts.c1().type().value != ho_prep_info_s::crit_exts_c_::c1_c_::types_opts::ho_prep_info_r8) {
     rrc_enb->logger.error("Only release 8 supported");
-    asn1::s1ap::cause_c cause;
     cause.set_protocol().value = asn1::s1ap::cause_protocol_opts::semantic_error;
     trigger(ho_failure_ev{cause});
     return;
@@ -705,7 +704,10 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
 
   /* Setup UE current state in TeNB based on HandoverPreparation message */
   const ho_prep_info_r8_ies_s& hoprep_r8 = hoprep.crit_exts.c1().ho_prep_info_r8();
-  apply_ho_prep_cfg(hoprep_r8, *ho_req.ho_req_msg, not_admitted_erabs);
+  if (not apply_ho_prep_cfg(hoprep_r8, *ho_req.ho_req_msg, not_admitted_erabs, cause)) {
+    trigger(ho_failure_ev{cause});
+    return;
+  }
 
   /* Prepare Handover Request Acknowledgment - Handover Command */
   dl_dcch_msg_s      dl_dcch_msg;
@@ -733,7 +735,6 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
   srsran::unique_byte_buffer_t ho_cmd_pdu = srsran::make_byte_buffer();
   if (ho_cmd_pdu == nullptr) {
     logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
-    asn1::s1ap::cause_c cause;
     cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::no_radio_res_available_in_target_cell;
     trigger(ho_failure_ev{cause});
     return;
@@ -741,7 +742,6 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
   asn1::bit_ref bref2{ho_cmd_pdu->msg, ho_cmd_pdu->get_tailroom()};
   if (dl_dcch_msg.pack(bref2) != asn1::SRSASN_SUCCESS) {
     logger.error("Failed to pack HandoverCommand");
-    asn1::s1ap::cause_c cause;
     cause.set_protocol().value = asn1::s1ap::cause_protocol_opts::transfer_syntax_error;
     trigger(ho_failure_ev{cause});
     return;
@@ -756,7 +756,6 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
   bref2 = {ho_cmd_pdu->msg, ho_cmd_pdu->get_tailroom()};
   if (ho_cmd.pack(bref2) != asn1::SRSASN_SUCCESS) {
     logger.error("Failed to pack HandoverCommand");
-    asn1::s1ap::cause_c cause;
     cause.set_protocol().value = asn1::s1ap::cause_protocol_opts::transfer_syntax_error;
     trigger(ho_failure_ev{cause});
     return;
@@ -819,7 +818,6 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
 
   /// If the target eNB does not admit at least one non-GBR E-RAB, ..., it shall send the HANDOVER FAILURE message ...
   if (admitted_erabs.empty()) {
-    asn1::s1ap::cause_c cause;
     cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::unspecified;
     if (not not_admitted_erabs.empty()) {
       cause = not_admitted_erabs[0].cause;
@@ -835,7 +833,6 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
                                          std::move(ho_cmd_pdu),
                                          admitted_erabs,
                                          not_admitted_erabs)) {
-    asn1::s1ap::cause_c cause;
     cause.set_protocol().value = asn1::s1ap::cause_protocol_opts::transfer_syntax_error;
     trigger(ho_failure_ev{cause});
     return;
@@ -848,9 +845,10 @@ void rrc::ue::rrc_mobility::handle_ho_failure(const ho_failure_ev& ev)
   failure_cause = ev.cause;
 }
 
-void rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&          ho_prep,
+bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&          ho_prep,
                                               const asn1::s1ap::ho_request_s&       ho_req_msg,
-                                              std::vector<asn1::s1ap::erab_item_s>& erabs_failed_to_setup)
+                                              std::vector<asn1::s1ap::erab_item_s>& erabs_failed_to_setup,
+                                              asn1::s1ap::cause_c&                  cause)
 {
   const ue_cell_ded* target_cell     = rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
   const cell_cfg_t&  target_cell_cfg = target_cell->cell_common->cell_cfg;
@@ -892,7 +890,11 @@ void rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&      
 
   // Regenerate AS Keys
   // See TS 33.401, Sec. 7.2.8.4.3
-  rrc_ue->ue_security_cfg.set_security_capabilities(ho_req_msg.protocol_ies.ue_security_cap.value);
+  if (not rrc_ue->ue_security_cfg.set_security_capabilities(ho_req_msg.protocol_ies.ue_security_cap.value)) {
+    cause.set_radio_network().value =
+        asn1::s1ap::cause_radio_network_opts::encryption_and_or_integrity_protection_algorithms_not_supported;
+    return false;
+  }
   rrc_ue->ue_security_cfg.set_security_key(ho_req_msg.protocol_ies.security_context.value.next_hop_param);
   rrc_ue->ue_security_cfg.set_ncc(ho_req_msg.protocol_ies.security_context.value.next_hop_chaining_count);
   rrc_ue->ue_security_cfg.regenerate_keys_handover(target_cell_cfg.pci, target_cell_cfg.dl_earfcn);
@@ -926,6 +928,8 @@ void rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&      
 
   // Save source UE MAC configuration as a base
   rrc_ue->mac_ctrl.handle_ho_prep(ho_prep);
+
+  return true;
 }
 
 void rrc::ue::rrc_mobility::handle_recfg_complete(wait_recfg_comp& s, const recfg_complete_ev& ev)
