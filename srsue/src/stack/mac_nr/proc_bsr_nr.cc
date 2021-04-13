@@ -256,6 +256,10 @@ void proc_bsr_nr::new_grant_ul(uint32_t grant_size)
     // 3> start or restart retxBSR-Timer.
     timer_retx.run();
   }
+
+  // Cancel SR if an UL grant is received
+  logger.debug("BSR:   Cancelling SR procedure due to UL grant");
+  sr->reset();
 }
 
 // This function is called by MUX only if Regular BSR has not been triggered before
