@@ -578,11 +578,61 @@ bool rrc_nr::apply_sp_cell_init_dl_pdcch(const asn1::rrc_nr::pdcch_cfg_s& pdcch_
     logger.warning("Option search_spaces_to_add_mod_list not present");
     return false;
   }
+  if (pdcch_cfg.ctrl_res_set_to_add_mod_list_present) {
+    for (uint32_t i = 0; i < pdcch_cfg.ctrl_res_set_to_add_mod_list.size(); i++) {
+      srsran_coreset_t coreset;
+      if (make_phy_coreset_cfg(pdcch_cfg.ctrl_res_set_to_add_mod_list[i], &coreset) == true) {
+        phy_cfg.pdcch.coreset[coreset.id]         = coreset;
+        phy_cfg.pdcch.coreset_present[coreset.id] = true;
+      } else {
+        logger.warning("Warning while building coreset structure");
+        return false;
+      }
+    }
+  } else {
+    logger.warning("Option ctrl_res_set_to_add_mod_list not present");
+  }
   return true;
 }
 
 bool rrc_nr::apply_sp_cell_init_dl_pdsch(const asn1::rrc_nr::pdsch_cfg_s& pdsch_cfg)
 {
+  if (pdsch_cfg.zp_csi_rs_res_to_add_mod_list_present) {
+    for (uint32_t i = 0; i < pdsch_cfg.zp_csi_rs_res_to_add_mod_list.size(); i++) {
+      srsran_csi_rs_zp_resource_t zp_csi_rs_resource;
+      if (make_phy_zp_csi_rs_resource(pdsch_cfg.zp_csi_rs_res_to_add_mod_list[i], &zp_csi_rs_resource) == true) {
+        // temporally store csi_rs_zp_res
+        csi_rs_zp_res[zp_csi_rs_resource.id] = zp_csi_rs_resource;
+      } else {
+        logger.warning("Warning while building zp_csi_rs resource");
+        return false;
+      }
+    }
+  } else {
+    logger.warning("Option zp_csi_rs_res_to_add_mod_list not present");
+    return false;
+  }
+
+  if (pdsch_cfg.p_zp_csi_rs_res_set_present) {
+    if (pdsch_cfg.p_zp_csi_rs_res_set.type() == setup_release_c<zp_csi_rs_res_set_s>::types_opts::setup) {
+      for (uint32_t i = 0; i < pdsch_cfg.p_zp_csi_rs_res_set.setup().zp_csi_rs_res_id_list.size(); i++) {
+        uint8_t res = pdsch_cfg.p_zp_csi_rs_res_set.setup().zp_csi_rs_res_id_list[i];
+        // use temporally stored values to assign
+        if (csi_rs_zp_res.find(res) == csi_rs_zp_res.end()) {
+          logger.warning("Can not find p_zp_csi_rs_res in temporally stored csi_rs_zp_res");
+          return false;
+        }
+        phy_cfg.pdsch.p_zp_csi_rs_set.data[i] = csi_rs_zp_res[res];
+        phy_cfg.pdsch.p_zp_csi_rs_set.count += 1;
+      }
+    } else {
+      logger.warning("Option p_zp_csi_rs_res_set not of type setup");
+      return false;
+    }
+  } else {
+    logger.warning("Option p_zp_csi_rs_res_set not present");
+    return false;
+  }
   return true;
 }
 
@@ -627,6 +677,45 @@ bool rrc_nr::apply_csi_meas_cfg(const asn1::rrc_nr::csi_meas_cfg_s& csi_meas_cfg
     logger.warning("Option csi_report_cfg_to_add_mod_list not present");
     return false;
   }
+
+  if (csi_meas_cfg.nzp_csi_rs_res_to_add_mod_list_present) {
+    for (uint32_t i = 0; i < csi_meas_cfg.nzp_csi_rs_res_to_add_mod_list.size(); i++) {
+      srsran_csi_rs_nzp_resource_t csi_rs_nzp_resource;
+      if (make_phy_nzp_csi_rs_resource(csi_meas_cfg.nzp_csi_rs_res_to_add_mod_list[i], &csi_rs_nzp_resource) == true) {
+        // temporally store csi_rs_zp_res
+        csi_rs_nzp_res[csi_rs_nzp_resource.id] = csi_rs_nzp_resource;
+      } else {
+        logger.warning("Warning while building phy_nzp_csi_rs resource");
+        return false;
+      }
+    }
+  } else {
+    logger.warning("Option nzp_csi_rs_res_to_add_mod_list not present");
+    return false;
+  }
+
+  if (csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list_present) {
+    for (uint32_t i = 0; i < csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list.size(); i++) {
+      uint8_t set_id = csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list[i].nzp_csi_res_set_id;
+      for (uint32_t j = 0; j < csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list[i].nzp_csi_rs_res.size(); j++) {
+        uint8_t res = csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list[i].nzp_csi_rs_res[j];
+        // use temporally stored values to assign
+        if (csi_rs_nzp_res.find(res) == csi_rs_nzp_res.end()) {
+          logger.warning("Can not find p_zp_csi_rs_res in temporally stored csi_rs_zp_res");
+          return false;
+        }
+        phy_cfg.pdsch.nzp_csi_rs_sets[set_id].data[i] = csi_rs_nzp_res[res];
+        phy_cfg.pdsch.nzp_csi_rs_sets[set_id].count += 1;
+      }
+      if (csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list[i].trs_info_present) {
+        phy_cfg.pdsch.nzp_csi_rs_sets[set_id].trs_info = true;
+      }
+    }
+  } else {
+    logger.warning("Option p_zp_csi_rs_res_set not present");
+    return false;
+  }
+
   return true;
 }
 
@@ -640,8 +729,8 @@ bool rrc_nr::apply_dl_common_cfg(const asn1::rrc_nr::dl_cfg_common_s& dl_cfg_com
         if (pdcch_cfg_common.common_ctrl_res_set_present) {
           srsran_coreset_t coreset;
           if (make_phy_coreset_cfg(pdcch_cfg_common.common_ctrl_res_set, &coreset) == true) {
-            phy_cfg.pdcch.coreset[coreset.coreset_id]         = coreset;
-            phy_cfg.pdcch.coreset_present[coreset.coreset_id] = true;
+            phy_cfg.pdcch.coreset[coreset.id]         = coreset;
+            phy_cfg.pdcch.coreset_present[coreset.id] = true;
           } else {
             logger.warning("Warning while building coreset structure");
             return false;

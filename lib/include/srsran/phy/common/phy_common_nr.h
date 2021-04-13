@@ -310,7 +310,6 @@ typedef struct SRSRAN_API {
  */
 typedef struct SRSRAN_API {
   uint32_t                      id;
-  uint32_t                      coreset_id;
   srsran_coreset_mapping_type_t mapping_type;
   uint32_t                      duration;
   bool                          freq_resources[SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE];

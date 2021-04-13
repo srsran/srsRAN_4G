@@ -126,7 +126,7 @@ int make_phy_coreset_cfg_test()
   srsran_coreset_t srsran_coreset;
   TESTASSERT(make_phy_coreset_cfg(ctrl_res_set, &srsran_coreset) == true);
 
-  TESTASSERT(srsran_coreset.coreset_id == 1);
+  TESTASSERT(srsran_coreset.id == 1);
   TESTASSERT(srsran_coreset.precoder_granularity == srsran_coreset_precoder_granularity_reg_bundle);
   TESTASSERT(srsran_coreset.duration == 1);
   TESTASSERT(srsran_coreset.mapping_type == srsran_coreset_mapping_type_non_interleaved);
@@ -546,6 +546,127 @@ int make_phy_pusch_scaling_test()
   return SRSRAN_SUCCESS;
 }
 
+int make_phy_zp_csi_rs_resource_test()
+{
+  srsran_csi_rs_zp_resource_t zp_csi_rs_resource0 = {};
+    //             Item 0
+    //                 ZP-CSI-RS-Resource
+    //                     zp-CSI-RS-ResourceId: 0
+    //                     resourceMapping
+    //                         frequencyDomainAllocation: row4 (2)
+    //                             row4: 80 [bit length 3, 5 LSB pad bits, 100. ....
+    //                             decimal value 4]
+    //                         nrofPorts: p4 (2)
+    //                         firstOFDMSymbolInTimeDomain: 8
+    //                         cdm-Type: fd-CDM2 (1)
+    //                         density: one (1)
+    //                             one: NULL
+    //                         freqBand
+    //                             startingRB: 0
+    //                             nrofRBs: 52
+    //                     periodicityAndOffset: slots80 (9)
+    //                         slots80: 1
+
+  asn1::rrc_nr::zp_csi_rs_res_s zp_csi_rs_res0;
+  zp_csi_rs_res0.res_map.freq_domain_alloc.set_row4();
+  zp_csi_rs_res0.res_map.freq_domain_alloc.row4().from_string("100");
+  zp_csi_rs_res0.res_map.nrof_ports                       = csi_rs_res_map_s::nrof_ports_opts::options::p4;
+  zp_csi_rs_res0.res_map.first_ofdm_symbol_in_time_domain = 8;
+  zp_csi_rs_res0.res_map.cdm_type                         = csi_rs_res_map_s::cdm_type_opts::options::fd_cdm2;
+  zp_csi_rs_res0.res_map.density.set_one();
+  zp_csi_rs_res0.res_map.freq_band.start_rb = 0; 
+  zp_csi_rs_res0.res_map.freq_band.nrof_rbs = 52;
+  zp_csi_rs_res0.periodicity_and_offset_present = true;
+  zp_csi_rs_res0.periodicity_and_offset.set_slots80() = 1;
+
+  TESTASSERT(make_phy_zp_csi_rs_resource(zp_csi_rs_res0, &zp_csi_rs_resource0) == true);
+
+  TESTASSERT(zp_csi_rs_resource0.resource_mapping.row == srsran_csi_rs_resource_mapping_row_4);
+  TESTASSERT(zp_csi_rs_resource0.resource_mapping.frequency_domain_alloc[0] == true);
+  TESTASSERT(zp_csi_rs_resource0.resource_mapping.frequency_domain_alloc[1] == false);
+  TESTASSERT(zp_csi_rs_resource0.resource_mapping.frequency_domain_alloc[2] == false);
+  TESTASSERT(zp_csi_rs_resource0.resource_mapping.nof_ports == 4);
+  TESTASSERT(zp_csi_rs_resource0.resource_mapping.first_symbol_idx == 8);
+  TESTASSERT(zp_csi_rs_resource0.resource_mapping.cdm == srsran_csi_rs_cdm_fd_cdm2);
+  TESTASSERT(zp_csi_rs_resource0.resource_mapping.density == srsran_csi_rs_resource_mapping_density_one);
+  TESTASSERT(zp_csi_rs_resource0.resource_mapping.freq_band.start_rb == 0);
+  TESTASSERT(zp_csi_rs_resource0.resource_mapping.freq_band.nof_rb == 52);
+  TESTASSERT(zp_csi_rs_resource0.periodicity.period == 80);
+  TESTASSERT(zp_csi_rs_resource0.periodicity.offset == 1);
+  return SRSRAN_SUCCESS;
+}
+
+int make_phy_nzp_csi_rs_resource_test()
+{
+  // nzp-CSI-RS-ResourceToAddModList: 5 items
+  //    Item 0
+  //        NZP-CSI-RS-Resource
+  //            nzp-CSI-RS-ResourceId: 0
+  //            resourceMapping
+  //                frequencyDomainAllocation: row2 (1)
+  //                    row2: 8000 [bit length 12, 4 LSB pad bits, 1000 0000  0000 .... decimal value 2048]
+  //                nrofPorts: p1 (0)
+  //                firstOFDMSymbolInTimeDomain: 4
+  //                cdm-Type: noCDM (0)
+  //                density: one (1)
+  //                    one: NULL
+  //                freqBand
+  //                    startingRB: 0
+  //                    nrofRBs: 52
+  //            powerControlOffset: 0dB
+  //            powerControlOffsetSS: db0 (1)
+  //            scramblingID: 0
+  //            periodicityAndOffset: slots80 (9)
+  //                slots80: 1
+  //            qcl-InfoPeriodicCSI-RS: 0
+  asn1::rrc_nr::nzp_csi_rs_res_s nzp_csi_rs_res;
+  nzp_csi_rs_res.nzp_csi_rs_res_id = 0;
+  nzp_csi_rs_res.res_map.freq_domain_alloc.set_row2();
+  nzp_csi_rs_res.res_map.freq_domain_alloc.row2().from_string("100000000000");
+  nzp_csi_rs_res.res_map.nrof_ports = csi_rs_res_map_s::nrof_ports_opts::options::p1; 
+  nzp_csi_rs_res.res_map.first_ofdm_symbol_in_time_domain = 4;
+  nzp_csi_rs_res.res_map.cdm_type                         = csi_rs_res_map_s::cdm_type_opts::options::no_cdm;
+  nzp_csi_rs_res.res_map.density.set_one();
+  nzp_csi_rs_res.res_map.freq_band.start_rb           = 0;
+  nzp_csi_rs_res.res_map.freq_band.nrof_rbs           = 52;
+  nzp_csi_rs_res.pwr_ctrl_offset                      = 0;
+  nzp_csi_rs_res.pwr_ctrl_offset_ss_present           = true;
+  nzp_csi_rs_res.pwr_ctrl_offset_ss                   = nzp_csi_rs_res_s::pwr_ctrl_offset_ss_opts::options::db0;
+  nzp_csi_rs_res.scrambling_id                        = 0;
+  nzp_csi_rs_res.periodicity_and_offset_present       = true;
+  nzp_csi_rs_res.periodicity_and_offset.set_slots80() = 1;
+  
+  srsran_csi_rs_nzp_resource_t nzp_resource_0;
+  TESTASSERT(make_phy_nzp_csi_rs_resource(nzp_csi_rs_res, &nzp_resource_0) == true);
+
+  TESTASSERT(nzp_resource_0.resource_mapping.row == srsran_csi_rs_resource_mapping_row_2);
+  TESTASSERT(nzp_resource_0.resource_mapping.frequency_domain_alloc[0] == true);
+  TESTASSERT(nzp_resource_0.resource_mapping.frequency_domain_alloc[1] == false);
+  TESTASSERT(nzp_resource_0.resource_mapping.frequency_domain_alloc[2] == false);
+  TESTASSERT(nzp_resource_0.resource_mapping.frequency_domain_alloc[3] == false);
+  TESTASSERT(nzp_resource_0.resource_mapping.frequency_domain_alloc[4] == false);
+  TESTASSERT(nzp_resource_0.resource_mapping.frequency_domain_alloc[5] == false);
+  TESTASSERT(nzp_resource_0.resource_mapping.frequency_domain_alloc[6] == false);
+  TESTASSERT(nzp_resource_0.resource_mapping.frequency_domain_alloc[7] == false);
+  TESTASSERT(nzp_resource_0.resource_mapping.frequency_domain_alloc[8] == false);
+  TESTASSERT(nzp_resource_0.resource_mapping.frequency_domain_alloc[9] == false);
+  TESTASSERT(nzp_resource_0.resource_mapping.frequency_domain_alloc[10] == false);
+  TESTASSERT(nzp_resource_0.resource_mapping.frequency_domain_alloc[11] == false);
+  TESTASSERT(nzp_resource_0.resource_mapping.nof_ports == 1);
+  TESTASSERT(nzp_resource_0.resource_mapping.first_symbol_idx == 4);
+  TESTASSERT(nzp_resource_0.resource_mapping.cdm == srsran_csi_rs_cdm_nocdm);
+  TESTASSERT(nzp_resource_0.resource_mapping.density == srsran_csi_rs_resource_mapping_density_one);
+  TESTASSERT(nzp_resource_0.resource_mapping.freq_band.start_rb == 0);
+  TESTASSERT(nzp_resource_0.resource_mapping.freq_band.nof_rb == 52);
+  TESTASSERT(nzp_resource_0.power_control_offset == 0);
+  TESTASSERT(nzp_resource_0.power_control_offset_ss == 0);
+  TESTASSERT(nzp_resource_0.scrambling_id == 0);
+  TESTASSERT(nzp_resource_0.periodicity.period == 80);
+  TESTASSERT(nzp_resource_0.periodicity.offset == 1);
+
+  return SRSRAN_SUCCESS;
+}
+
 int main()
 {
   auto& asn1_logger = srslog::fetch_basic_logger("ASN1", false);
@@ -572,7 +693,8 @@ int main()
   TESTASSERT(make_phy_dmrs_additional_pos_test() == SRSRAN_SUCCESS);
   TESTASSERT(make_phy_beta_offsets_test() == SRSRAN_SUCCESS);
   TESTASSERT(make_phy_pusch_scaling_test() == SRSRAN_SUCCESS);
-
+  TESTASSERT(make_phy_zp_csi_rs_resource_test() == SRSRAN_SUCCESS);
+  TESTASSERT(make_phy_nzp_csi_rs_resource_test() == SRSRAN_SUCCESS);
   srslog::flush();
 
   printf("Success\n");

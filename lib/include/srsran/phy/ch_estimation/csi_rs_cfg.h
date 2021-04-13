@@ -94,6 +94,7 @@ typedef struct SRSRAN_API {
  * @brief Contains TS 38.331 NZP-CSI-RS-Resource flattened configuration
  */
 typedef struct SRSRAN_API {
+  uint32_t                          id;
   srsran_csi_rs_resource_mapping_t  resource_mapping;        ///< CSI-RS time/frequency mapping
   float                             power_control_offset;    ///< -8..15 dB
   float                             power_control_offset_ss; ///< -3, 0, 3, 6 dB
@@ -114,6 +115,7 @@ typedef struct SRSRAN_API {
  * @brief Contains TS 38.331 ZP-CSI-RS-Resource flattened configuration
  */
 typedef struct {
+  uint32_t                          id;
   srsran_csi_rs_resource_mapping_t  resource_mapping; ///< CSI-RS time/frequency mapping
   srsran_csi_rs_period_and_offset_t periodicity;
 } srsran_csi_rs_zp_resource_t;

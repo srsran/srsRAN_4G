@@ -48,6 +48,8 @@ struct sched_request_res_cfg_s;
 struct dmrs_ul_cfg_s;
 struct beta_offsets_s;
 struct uci_on_pusch_s;
+struct zp_csi_rs_res_s;
+struct nzp_csi_rs_res_s;
 
 } // namespace rrc_nr
 } // namespace asn1
@@ -88,6 +90,8 @@ bool make_phy_dmrs_additional_pos(const asn1::rrc_nr::dmrs_ul_cfg_s& dmrs_ul_cfg
 bool make_phy_beta_offsets(const asn1::rrc_nr::beta_offsets_s& beta_offsets,
                            srsran_beta_offsets_t*              srsran_beta_offsets);
 bool make_phy_pusch_scaling(const asn1::rrc_nr::uci_on_pusch_s& uci_on_pusch, float* scaling);
+bool make_phy_zp_csi_rs_resource(const asn1::rrc_nr::zp_csi_rs_res_s & zp_csi_rs_res, srsran_csi_rs_zp_resource_t* zp_csi_rs_resource);
+bool make_phy_nzp_csi_rs_resource(const asn1::rrc_nr::nzp_csi_rs_res_s & nzp_csi_rs_res, srsran_csi_rs_nzp_resource_t* csi_rs_nzp_resource);
 /***************************
  *      MAC Config
  **************************/
