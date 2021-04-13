@@ -28,6 +28,9 @@ void sf_cch_allocator::init(const sched_cell_params_t& cell_params_)
 {
   cc_cfg           = &cell_params_;
   pucch_cfg_common = cc_cfg->pucch_cfg_common;
+  dci_record_list.reserve(16);
+  last_dci_dfs.reserve(16);
+  temp_dci_dfs.reserve(16);
 }
 
 void sf_cch_allocator::new_tti(tti_point tti_rx_)
