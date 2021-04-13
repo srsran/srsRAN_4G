@@ -1277,7 +1277,7 @@ template <typename T> const T& unwrap(const std::reference_wrapper<T>& v) {
 
 class dynamic_arg_list {
 public:
-  static constexpr std::size_t max_pool_string_size = 140;
+  static constexpr std::size_t max_pool_string_size = 256;
 
 private:
   // Workaround for clang's -Wweak-vtables. Unlike for regular classes, for

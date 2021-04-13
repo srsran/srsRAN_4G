@@ -26,9 +26,11 @@ int format_float(char* buf, std::size_t size, const char* format, int precision,
 }
 
 #define NODE_POOL_SIZE (10000u)
+static constexpr uint8_t memory_heap_tag = 0xAA;
 class dyn_node_pool
 {
-  using type = std::array<uint8_t, dynamic_arg_list::max_pool_node_size>;
+  /// The extra byte is used to store the memory tag at position 0 in the array.
+  using type = std::array<uint8_t, dynamic_arg_list::max_pool_node_size + 1>;
 
 public:
   dyn_node_pool() {
@@ -44,13 +46,18 @@ public:
 
     std::lock_guard<std::mutex> lock(m);
     if (free_list.empty()) {
-      return nullptr;
+      // Tag that this allocation was performed by the heap.
+      auto *p = new type;
+      (*p)[0] = memory_heap_tag;
+      return p->data() + 1;
     }
 
     auto* p = free_list.back();
     free_list.pop_back();
 
-    return p;
+    // Tag that this allocation was performed by the pool.
+    p[0] = 0;
+    return p + 1;
   }
 
   void dealloc(void* p) {
@@ -59,7 +66,14 @@ public:
     }
 
     std::lock_guard<std::mutex> lock(m);
-    free_list.push_back(reinterpret_cast<uint8_t *>(p));
+    uint8_t* base_ptr = reinterpret_cast<uint8_t *>(p) - 1;
+    if (*base_ptr == memory_heap_tag) {
+      // This pointer was allocated using the heap.
+      delete reinterpret_cast<type *>(base_ptr);
+      return;
+    }
+
+    free_list.push_back(base_ptr);
   }
 
 private:
