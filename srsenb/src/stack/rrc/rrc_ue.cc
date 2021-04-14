@@ -1050,7 +1050,7 @@ bool rrc::ue::release_erabs()
   return true;
 }
 
-bool rrc::ue::release_erab(uint32_t erab_id)
+int rrc::ue::release_erab(uint32_t erab_id)
 {
   return bearer_list.release_erab(erab_id);
 }

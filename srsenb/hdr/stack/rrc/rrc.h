@@ -91,9 +91,7 @@ public:
                           const asn1::s1ap::erab_level_qos_params_s& qos_params,
                           const asn1::unbounded_octstring<true>*     nas_pdu);
   bool     release_erabs(uint32_t rnti) override;
-  void     release_erabs(uint32_t                               rnti,
-                         srsran::const_span<uint16_t>           erabs_to_release,
-                         const asn1::unbounded_octstring<true>* nas_pdu) override;
+  int      release_erab(uint16_t rnti, uint16_t erab_id) override;
   void     add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& UEPagingID) override;
   void     ho_preparation_complete(uint16_t                     rnti,
                                    rrc::ho_prep_result          result,
@@ -103,6 +101,8 @@ public:
                                       const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container,
                                       asn1::s1ap::cause_c& failure_cause) override;
   void     set_erab_status(uint16_t rnti, const asn1::s1ap::bearers_subject_to_status_transfer_list_l& erabs) override;
+
+  int notify_ue_erab_updates(uint16_t rnti, const asn1::unbounded_octstring<true>* nas_pdu) override;
 
   // rrc_interface_pdcp
   void write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu) override;

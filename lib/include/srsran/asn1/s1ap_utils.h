@@ -49,6 +49,25 @@ using bearers_subject_to_status_transfer_list_l =
 using rrc_establishment_cause_e = enumerated<rrc_establishment_cause_opts, true, 3>;
 using cause_radio_network_e     = enumerated<cause_radio_network_opts, true, 4>;
 
+/**************************
+ *     S1AP Obj Id
+ *************************/
+
+template <typename T>
+uint32_t get_obj_id(const T& obj);
+
+template <typename T>
+bool lower_obj_id(const T& lhs, const T& rhs)
+{
+  return get_obj_id(lhs) < get_obj_id(rhs);
+}
+
+template <typename T>
+bool equal_obj_id(const T& lhs, const T& rhs)
+{
+  return get_obj_id(lhs) == get_obj_id(rhs);
+}
+
 } // namespace s1ap
 } // namespace asn1
 

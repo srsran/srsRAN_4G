@@ -175,10 +175,7 @@ public:
   {}
   bool has_erab(uint16_t rnti, uint32_t erab_id) const override { return true; }
   bool release_erabs(uint32_t rnti) override { return true; }
-  void release_erabs(uint32_t                               rnti,
-                     srsran::const_span<uint16_t>           erabs_to_release,
-                     const asn1::unbounded_octstring<true>* nas_pdu) override
-  {}
+  int  release_erab(uint16_t rnti, uint16_t erab_id) override { return SRSRAN_SUCCESS; }
   void add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& ue_paging_id) override {}
   void ho_preparation_complete(uint16_t                     rnti,
                                ho_prep_result               result,
@@ -192,6 +189,8 @@ public:
     return SRSRAN_INVALID_RNTI;
   }
   void set_erab_status(uint16_t rnti, const asn1::s1ap::bearers_subject_to_status_transfer_list_l& erabs) override {}
+
+  int notify_ue_erab_updates(uint16_t rnti, const asn1::unbounded_octstring<true>* nas_pdu) { return SRSRAN_SUCCESS; }
 };
 
 } // namespace srsenb

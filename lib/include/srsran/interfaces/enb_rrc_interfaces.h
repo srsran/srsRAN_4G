@@ -33,12 +33,17 @@ public:
   virtual void
                modify_erabs(uint16_t                                                                         rnti,
                             srsran::const_span<const asn1::s1ap::erab_to_be_modified_item_bearer_mod_req_s*> erabs_to_modify) = 0;
-  virtual bool has_erab(uint16_t rnti, uint32_t erab_id) const                              = 0;
-  virtual bool release_erabs(uint32_t rnti)                                                 = 0;
-  virtual void release_erabs(uint32_t                               rnti,
-                             srsran::const_span<uint16_t>           erabs_to_release,
-                             const asn1::unbounded_octstring<true>* nas_pdu)                = 0;
+  virtual bool has_erab(uint16_t rnti, uint32_t erab_id) const = 0;
+  virtual bool release_erabs(uint32_t rnti)                    = 0;
+  /**
+   * Release E-RAB id
+   * @return error if E-RAB id or rnti were not found
+   */
+  virtual int  release_erab(uint16_t rnti, uint16_t erab_id)                                = 0;
   virtual void add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& ue_paging_id) = 0;
+
+  /// Notify UE of ERAB updates (done via RRC Reconfiguration Message)
+  virtual int notify_ue_erab_updates(uint16_t rnti, const asn1::unbounded_octstring<true>* nas_pdu) = 0;
 
   /**
    * Reports the reception of S1 HandoverCommand / HandoverPreparationFailure or abnormal conditions during

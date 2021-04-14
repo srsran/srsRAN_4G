@@ -358,23 +358,28 @@ bool rrc::release_erabs(uint32_t rnti)
   return ret;
 }
 
-void rrc::release_erabs(uint32_t                               rnti,
-                        srsran::const_span<uint16_t>           erabs_to_release,
-                        const asn1::unbounded_octstring<true>* nas_pdu)
+int rrc::release_erab(uint16_t rnti, uint16_t erab_id)
 {
-  logger.info("Releasing E-RAB for 0x%x", rnti);
+  logger.info("Releasing E-RAB id=%d for 0x%x", erab_id, rnti);
   auto user_it = users.find(rnti);
 
   if (user_it == users.end()) {
     logger.warning("Unrecognised rnti: 0x%x", rnti);
-    return;
+    return SRSRAN_ERROR;
   }
 
-  for (uint16_t erab_id : erabs_to_release) {
-    bool ret = user_it->second->release_erab(erab_id);
-    srsran_expect(ret, "E-RAB id=%d not found", erab_id);
+  return user_it->second->release_erab(erab_id);
+}
+
+int rrc::notify_ue_erab_updates(uint16_t rnti, const asn1::unbounded_octstring<true>* nas_pdu)
+{
+  auto user_it = users.find(rnti);
+  if (user_it == users.end()) {
+    logger.warning("Unrecognised rnti: 0x%x", rnti);
+    return SRSRAN_ERROR;
   }
   user_it->second->send_connection_reconf(nullptr, false, nas_pdu);
+  return SRSRAN_SUCCESS;
 }
 
 bool rrc::has_erab(uint16_t rnti, uint32_t erab_id) const

@@ -60,6 +60,22 @@ asn1::bounded_bitstring<1, 160, true, true> addr_to_asn1(const char* addr_str)
   return transport_layer_addr;
 }
 
+/// Helper to add ERAB items that are duplicates in the received S1AP message
+template <typename List>
+void add_repeated_erab_ids(const List&                                                   list,
+                           srsran::bounded_vector<erab_item_s, ASN1_S1AP_MAXNOOF_ERABS>& failed_cfg_erabs)
+{
+  for (auto it = list.begin(); it != list.end(); ++it) {
+    for (auto it2 = it + 1; it2 != list.end(); ++it2) {
+      if (get_obj_id(*it) == get_obj_id(*it2)) {
+        failed_cfg_erabs.push_back(erab_item_s());
+        failed_cfg_erabs.back().erab_id                         = get_obj_id(*it);
+        failed_cfg_erabs.back().cause.set_radio_network().value = cause_radio_network_opts::multiple_erab_id_instances;
+      }
+    }
+  }
+}
+
 /*********************************************************
  * TS 36.413 - Section 8.4.1 - "Handover Preparation"
  *********************************************************/
@@ -823,65 +839,51 @@ bool s1ap::handle_erabmodifyrequest(const erab_modify_request_s& msg)
  */
 bool s1ap::handle_erabreleasecommand(const erab_release_cmd_s& msg)
 {
-  if (msg.ext) {
-    logger.warning("Not handling S1AP message extension");
-  }
+  WarnUnsupportFeature(msg.ext, "S1AP message extension");
+
   ue* u =
       handle_s1apmsg_ue_id(msg.protocol_ies.enb_ue_s1ap_id.value.value, msg.protocol_ies.mme_ue_s1ap_id.value.value);
   if (u == nullptr) {
     return false;
   }
 
-  srsran::bounded_vector<uint16_t, MAX_NOF_ERABS>                   erabs_to_release;
-  srsran::static_circular_map<uint16_t, erab_item_s, MAX_NOF_ERABS> erabs_failed_to_release;
-  const auto& msg_erabs = msg.protocol_ies.erab_to_be_released_list.value;
+  failed_cfg_erabs.clear();
+  updated_erabs.clear();
 
-  for (const auto& msg_erab : msg_erabs) {
-    const erab_item_s& e = msg_erab.value.erab_item();
-    if (e.erab_id >= erabs_failed_to_release.capacity()) {
-      logger.warning("Not handling E-RAB Ids above %zd", erabs_to_release.capacity());
-      continue;
-    }
-    if (erabs_to_release.full()) {
-      logger.warning("Not handling more than %zd releases per ERAB release request message",
-                     erabs_to_release.capacity());
-      break;
-    }
+  auto is_repeated_erab_id = [this](uint8_t erab_id) {
+    return (std::count(updated_erabs.begin(), updated_erabs.end(), erab_id) > 0) or
+           (std::any_of(failed_cfg_erabs.begin(), failed_cfg_erabs.end(), [erab_id](const erab_item_s& e) {
+             return e.erab_id == erab_id;
+           }));
+  };
+  for (const auto& item : msg.protocol_ies.erab_to_be_released_list.value) {
+    const auto& erab = item.value.erab_item();
 
-    // Check if E-RAB exists. If not, add to "erabs_failed_to_modify" with "unknown_erab_id" cause
-    if (not rrc->has_erab(u->ctxt.rnti, e.erab_id)) {
-      erabs_failed_to_release.overwrite(e.erab_id, erab_item_s());
-      erabs_failed_to_release[e.erab_id].cause.set_radio_network().value = cause_radio_network_opts::unknown_erab_id;
+    if (is_repeated_erab_id(erab.erab_id)) {
+      // TS 36.413, 8.2.3.3 - ignore the duplication of E-RAB ID IEs
       continue;
     }
 
-    // Check Repeated E-RABs in the modification list. If repeated, add to the list of "erabs_failed_to_modify"
-    // with cause "multiple_erab_id_instances"
-    for (const auto& msg_erab2 : msg_erabs) {
-      const erab_item_s& e2 = msg_erab2.value.erab_item();
-      if (&e2 != &e and e2.erab_id == e.erab_id) {
-        erabs_failed_to_release.overwrite(e.erab_id, erab_item_s());
-        erabs_failed_to_release[e.erab_id].cause.set_radio_network().value =
-            cause_radio_network_opts::multiple_erab_id_instances;
-        break;
-      }
+    if (rrc->release_erab(u->ctxt.rnti, erab.erab_id) == SRSRAN_SUCCESS) {
+      updated_erabs.push_back(erab.erab_id);
+    } else {
+      failed_cfg_erabs.push_back(erab_item_s());
+      failed_cfg_erabs.back().erab_id                         = erab.erab_id;
+      failed_cfg_erabs.back().cause.set_radio_network().value = cause_radio_network_opts::unknown_erab_id;
     }
-    if (erabs_failed_to_release.has_space(e.erab_id)) {
-      continue;
-    }
-
-    // Add to the list to modify
-    erabs_to_release.push_back(e.erab_id);
   }
 
-  // Release E-RABs from RRC
-  std::sort(erabs_to_release.begin(), erabs_to_release.end());
-  erabs_to_release.erase(std::unique(erabs_to_release.begin(), erabs_to_release.end()), erabs_to_release.end());
-  rrc->release_erabs(
-      u->ctxt.rnti, erabs_to_release, msg.protocol_ies.nas_pdu_present ? &msg.protocol_ies.nas_pdu.value : nullptr);
+  // Sort E-RABs to be sent
+  std::sort(failed_cfg_erabs.begin(), failed_cfg_erabs.end(), &lower_obj_id<erab_item_s>);
+  std::sort(updated_erabs.begin(), updated_erabs.end());
+
+  // Notify RRC of E-RAB update. (RRC reconf message is going to be sent.
+  if (not updated_erabs.empty()) {
+    rrc->notify_ue_erab_updates(u->ctxt.rnti, nullptr);
+  }
 
   // Send E-RAB release response back to the MME
-  if (not u->send_erab_release_response(erabs_to_release, erabs_failed_to_release)) {
+  if (not u->send_erab_release_response(updated_erabs, failed_cfg_erabs)) {
     logger.info("Failed to send ERABReleaseResponse");
     return false;
   }
@@ -1479,14 +1481,9 @@ bool s1ap::ue::send_uectxtmodifyfailure(const cause_c& cause)
  * @param erabs_failed_to_release
  * @return true if message was sent
  */
-bool s1ap::ue::send_erab_release_response(
-    const srsran::bounded_vector<uint16_t, MAX_NOF_ERABS>&                               erabs_released,
-    const srsran::static_circular_map<uint16_t, asn1::s1ap::erab_item_s, MAX_NOF_ERABS>& erabs_failed_to_release)
+bool s1ap::ue::send_erab_release_response(srsran::const_span<uint16_t>                erabs_released,
+                                          srsran::const_span<asn1::s1ap::erab_item_s> erabs_failed)
 {
-  if (not s1ap_ptr->mme_connected) {
-    return false;
-  }
-
   asn1::s1ap::s1ap_pdu_c tx_pdu;
   tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_ERAB_RELEASE);
 
@@ -1507,14 +1504,12 @@ bool s1ap::ue::send_erab_release_response(
   }
 
   // Fill in which E-RABs were *not* successfully released
-  if (not erabs_failed_to_release.empty()) {
+  if (not erabs_failed.empty()) {
     container.erab_failed_to_release_list_present = true;
-    container.erab_failed_to_release_list.value.resize(erabs_failed_to_release.size());
-    size_t count = 0;
-    for (const auto& erab : erabs_failed_to_release) {
-      container.erab_failed_to_release_list.value[count].load_info_obj(ASN1_S1AP_ID_ERAB_ITEM);
-      container.erab_failed_to_release_list.value[count].value.erab_item() = erab->second;
-      count++;
+    container.erab_failed_to_release_list.value.resize(erabs_failed.size());
+    for (size_t i = 0; i < erabs_failed.size(); ++i) {
+      container.erab_failed_to_release_list.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_ITEM);
+      container.erab_failed_to_release_list.value[i].value.erab_item() = erabs_failed[i];
     }
   }
 

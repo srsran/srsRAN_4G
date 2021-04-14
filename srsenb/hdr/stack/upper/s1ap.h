@@ -141,6 +141,10 @@ private:
 
   asn1::s1ap::s1_setup_resp_s s1setupresponse;
 
+  // Procedure state
+  srsran::bounded_vector<uint16_t, ASN1_S1AP_MAXNOOF_ERABS>                updated_erabs;
+  srsran::bounded_vector<asn1::s1ap::erab_item_s, ASN1_S1AP_MAXNOOF_ERABS> failed_cfg_erabs;
+
   void build_tai_cgi();
   bool connect_mme();
   bool setup_s1();
@@ -243,9 +247,8 @@ private:
     bool send_initial_ctxt_setup_response(const asn1::s1ap::init_context_setup_resp_s& res_);
     bool send_initial_ctxt_setup_failure();
     bool send_erab_setup_response(const asn1::s1ap::erab_setup_resp_s& res_);
-    bool send_erab_release_response(
-        const srsran::bounded_vector<uint16_t, MAX_NOF_ERABS>&                               erabs_released,
-        const srsran::static_circular_map<uint16_t, asn1::s1ap::erab_item_s, MAX_NOF_ERABS>& erabs_failed_to_release);
+    bool send_erab_release_response(srsran::const_span<uint16_t>                erabs_released,
+                                    srsran::const_span<asn1::s1ap::erab_item_s> erabs_failed);
     bool send_erab_modify_response(
         srsran::const_span<const asn1::s1ap::erab_to_be_modified_item_bearer_mod_req_s*> erabs_modified,
         srsran::const_span<std::pair<uint16_t, asn1::s1ap::cause_c> >                    erabs_failed_to_modify);

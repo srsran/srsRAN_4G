@@ -290,12 +290,12 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
   return SRSRAN_SUCCESS;
 }
 
-bool bearer_cfg_handler::release_erab(uint8_t erab_id)
+int bearer_cfg_handler::release_erab(uint8_t erab_id)
 {
   auto it = erabs.find(erab_id);
   if (it == erabs.end()) {
     logger->warning("The user rnti=0x%x does not contain ERAB-ID=%d", rnti, erab_id);
-    return false;
+    return SRSRAN_ERROR;
   }
 
   uint8_t drb_id = erab_id - 4;
@@ -305,7 +305,7 @@ bool bearer_cfg_handler::release_erab(uint8_t erab_id)
   erabs.erase(it);
   erab_info_list.erase(erab_id);
 
-  return true;
+  return SRSRAN_SUCCESS;
 }
 
 void bearer_cfg_handler::release_erabs()
