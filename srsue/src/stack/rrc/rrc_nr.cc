@@ -89,9 +89,9 @@ void rrc_nr::get_metrics(rrc_nr_metrics_t& m) {}
 // Timeout callback interface
 void rrc_nr::timer_expired(uint32_t timeout_id)
 {
-  logger.debug("[NR] Handling Timer Expired");
+  logger.debug("Handling Timer Expired");
   if (timeout_id == fake_measurement_timer.id()) {
-    logger.debug("[NR] Triggered Fake Measurement");
+    logger.debug("Triggered Fake Measurement");
 
     phy_meas_nr_t              fake_meas = {};
     std::vector<phy_meas_nr_t> phy_meas_nr;
@@ -395,13 +395,13 @@ void rrc_nr::phy_meas_stop()
 {
   // possbile race condition for fake_measurement timer, which might be set at the same moment as stopped => fix with
   // phy integration
-  logger.debug("[NR] Stopping fake measurements");
+  logger.debug("Stopping fake measurements");
   fake_measurement_timer.stop();
 }
 
 void rrc_nr::phy_set_cells_to_meas(uint32_t carrier_freq_r15)
 {
-  logger.debug("[NR] Measuring phy cell %d ", carrier_freq_r15);
+  logger.debug("Measuring phy cell %d ", carrier_freq_r15);
   // Start timer for fake measurements
   auto timer_expire_func            = [this](uint32_t tid) { timer_expired(tid); };
   fake_measurement_carrier_freq_r15 = carrier_freq_r15;
@@ -411,7 +411,7 @@ void rrc_nr::phy_set_cells_to_meas(uint32_t carrier_freq_r15)
 
 bool rrc_nr::configure_sk_counter(uint16_t sk_counter)
 {
-  logger.info("[NR] Configure new SK counter %d. Update Key for secondary gnb", sk_counter);
+  logger.info("Configure new SK counter %d. Update Key for secondary gnb", sk_counter);
   if (usim->generate_nr_context(sk_counter, &sec_cfg) == false) {
     return false;
   }
