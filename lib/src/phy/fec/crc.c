@@ -14,6 +14,10 @@
 #include "srsran/phy/utils/bit.h"
 #include "srsran/phy/utils/debug.h"
 
+#ifdef LV_HAVE_SSE
+#include <immintrin.h>
+#endif // LV_HAVE_SSE
+
 static void gen_crc_table(srsran_crc_t* h)
 {
   uint32_t pad        = (h->order < 8) ? (8 - h->order) : 0;
@@ -104,7 +108,18 @@ uint32_t srsran_crc_checksum(srsran_crc_t* h, uint8_t* data, int len)
         byte |= ((uint8_t) * (pter + k)) << (7 - k);
       }
     } else {
+#ifdef LV_HAVE_SSE
+      // Get 8 Bit
+      __m64 mask = _mm_cmpgt_pi8(*((__m64*)pter), _mm_set1_pi8(0));
+
+      // Reverse
+      mask = _mm_shuffle_pi8(mask, _mm_set_pi8(0, 1, 2, 3, 4, 5, 6, 7));
+
+      // Get mask and write
+      byte = (uint8_t)_mm_movemask_pi8(mask);
+#else  /* LV_HAVE_SSE */
       byte = (uint8_t)(srsran_bit_pack(&pter, 8) & 0xFF);
+#endif /* LV_HAVE_SSE */
     }
     srsran_crc_checksum_put_byte(h, byte);
   }
@@ -158,4 +173,12 @@ uint32_t srsran_crc_attach(srsran_crc_t* h, uint8_t* data, int len)
   uint8_t* ptr = &data[len];
   srsran_bit_unpack(checksum, &ptr, h->order);
   return checksum;
+}
+
+bool srsran_crc_match(srsran_crc_t* h, uint8_t* data, int len)
+{
+  uint8_t* ptr       = &data[len];
+  uint32_t checksum1 = srsran_crc_checksum(h, data, len);
+  uint32_t checksum2 = srsran_bit_pack(&ptr, h->order);
+  return (checksum1 == checksum2);
 }

@@ -24,6 +24,7 @@
 #define SRSRAN_CRC_H
 
 #include "srsran/config.h"
+#include <stdbool.h>
 #include <stdint.h>
 
 typedef struct SRSRAN_API {
@@ -72,5 +73,7 @@ static inline uint64_t srsran_crc_checksum_get(srsran_crc_t* h)
 SRSRAN_API uint32_t srsran_crc_checksum_byte(srsran_crc_t* h, const uint8_t* data, int len);
 
 SRSRAN_API uint32_t srsran_crc_checksum(srsran_crc_t* h, uint8_t* data, int len);
+
+SRSRAN_API bool srsran_crc_match(srsran_crc_t* h, uint8_t* data, int len);
 
 #endif // SRSRAN_CRC_H
