@@ -184,16 +184,16 @@ static int work_ue_dl(srsran_ue_dl_nr_t* ue_dl, srsran_slot_cfg_t* slot, srsran_
 
 int main(int argc, char** argv)
 {
-  int                   ret                      = SRSRAN_ERROR;
-  srsran_enb_dl_nr_t    enb_dl                   = {};
-  srsran_ue_dl_nr_t     ue_dl                    = {};
-  srsran_pdsch_res_nr_t pdsch_res[SRSRAN_MAX_TB] = {};
-  srsran_random_t       rand_gen                 = srsran_random_init(1234);
-  srsran_slot_cfg_t     slot                     = {};
-  struct timeval        t[3]                     = {};
-  uint64_t              pdsch_encode_us          = 0;
-  uint64_t              pdsch_decode_us          = 0;
-  uint64_t              nof_bits                 = 0;
+  int                   ret             = SRSRAN_ERROR;
+  srsran_enb_dl_nr_t    enb_dl          = {};
+  srsran_ue_dl_nr_t     ue_dl           = {};
+  srsran_pdsch_res_nr_t pdsch_res       = {};
+  srsran_random_t       rand_gen        = srsran_random_init(1234);
+  srsran_slot_cfg_t     slot            = {};
+  struct timeval        t[3]            = {};
+  uint64_t              pdsch_encode_us = 0;
+  uint64_t              pdsch_decode_us = 0;
+  uint64_t              nof_bits        = 0;
 
   uint8_t* data_tx[SRSRAN_MAX_TB]        = {};
   uint8_t* data_rx[SRSRAN_MAX_CODEWORDS] = {};
@@ -296,7 +296,7 @@ int main(int argc, char** argv)
       goto clean_exit;
     }
 
-    pdsch_res[i].payload = data_rx[i];
+    pdsch_res.tb[i].payload = data_rx[i];
   }
 
   srsran_softbuffer_tx_t softbuffer_tx = {};
@@ -418,7 +418,7 @@ int main(int argc, char** argv)
         }
 
         gettimeofday(&t[1], NULL);
-        if (work_ue_dl(&ue_dl, &slot, pdsch_res) < SRSRAN_SUCCESS) {
+        if (work_ue_dl(&ue_dl, &slot, &pdsch_res) < SRSRAN_SUCCESS) {
           ERROR("Error running UE DL");
           goto clean_exit;
         }
@@ -426,14 +426,14 @@ int main(int argc, char** argv)
         get_time_interval(t);
         pdsch_decode_us += (size_t)(t[0].tv_sec * 1e6 + t[0].tv_usec);
 
-        if (pdsch_res->evm > 0.02f) {
-          ERROR("Error PDSCH EVM is too high %f", pdsch_res->evm);
+        if (pdsch_res.evm[0] > 0.02f) {
+          ERROR("Error PDSCH EVM is too high %f", pdsch_res.evm[0]);
           goto clean_exit;
         }
 
         // Check CRC only for RV=0
         if (rv_idx == 0) {
-          if (!pdsch_res[0].crc) {
+          if (!pdsch_res.tb[0].crc) {
             ERROR("Failed to match CRC; n_prb=%d; mcs=%d; TBS=%d;", n_prb, mcs, pdsch_cfg.grant.tb[0].tbs);
             goto clean_exit;
           }
@@ -448,7 +448,7 @@ int main(int argc, char** argv)
           }
         }
 
-        INFO("n_prb=%d; mcs=%d; TBS=%d; EVM=%f; PASSED!", n_prb, mcs, pdsch_cfg.grant.tb[0].tbs, pdsch_res[0].evm);
+        INFO("n_prb=%d; mcs=%d; TBS=%d; EVM=%f; PASSED!", n_prb, mcs, pdsch_cfg.grant.tb[0].tbs, pdsch_res.evm[0]);
 
         // Count the Tx/Rx'd number of bits
         nof_bits += pdsch_cfg.grant.tb[0].tbs;

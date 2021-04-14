@@ -206,14 +206,15 @@ int main(int argc, char** argv)
         tb.softbuffer.rx = &softbuffer_rx;
         srsran_softbuffer_rx_reset(tb.softbuffer.rx);
 
-        bool crc = false;
-        if (srsran_dlsch_nr_decode(&sch_nr_rx, &pdsch_cfg.sch_cfg, &tb, llr, data_rx, &crc) < SRSRAN_SUCCESS) {
+        srsran_sch_tb_res_nr_t res = {};
+        res.payload                = data_rx;
+        if (srsran_dlsch_nr_decode(&sch_nr_rx, &pdsch_cfg.sch_cfg, &tb, llr, &res) < SRSRAN_SUCCESS) {
           ERROR("Error encoding");
           goto clean_exit;
         }
 
         if (rv == 0) {
-          if (!crc) {
+          if (!res.crc) {
             ERROR("Failed to match CRC; n_prb=%d; mcs=%d; TBS=%d;", n_prb, mcs, tb.tbs);
             goto clean_exit;
           }

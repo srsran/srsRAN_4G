@@ -462,7 +462,8 @@ static inline int pdsch_nr_decode_codeword(srsran_pdsch_nr_t*         q,
 
   // EVM
   if (q->evm_buffer != NULL) {
-    res->evm = srsran_evm_run_b(q->evm_buffer, &q->modem_tables[tb->mod], q->d[tb->cw_idx], llr, tb->nof_bits);
+    res->evm[tb->cw_idx] =
+        srsran_evm_run_b(q->evm_buffer, &q->modem_tables[tb->mod], q->d[tb->cw_idx], llr, tb->nof_bits);
   }
 
   // Change LLR sign and set to zero the LLR that are not used
@@ -477,7 +478,7 @@ static inline int pdsch_nr_decode_codeword(srsran_pdsch_nr_t*         q,
   }
 
   // Decode SCH
-  if (srsran_dlsch_nr_decode(&q->sch, &cfg->sch_cfg, tb, llr, res->payload, &res->crc) < SRSRAN_SUCCESS) {
+  if (srsran_dlsch_nr_decode(&q->sch, &cfg->sch_cfg, tb, llr, &res->tb[tb->cw_idx]) < SRSRAN_SUCCESS) {
     ERROR("Error in DL-SCH encoding");
     return SRSRAN_ERROR;
   }
@@ -566,10 +567,12 @@ int srsran_pdsch_nr_decode(srsran_pdsch_nr_t*           q,
   return SRSRAN_SUCCESS;
 }
 
-static uint32_t srsran_pdsch_nr_grant_info(const srsran_sch_cfg_nr_t*   cfg,
-                                           const srsran_sch_grant_nr_t* grant,
-                                           char*                        str,
-                                           uint32_t                     str_len)
+static uint32_t pdsch_nr_grant_info(const srsran_pdsch_nr_t*     q,
+                                    const srsran_sch_cfg_nr_t*   cfg,
+                                    const srsran_sch_grant_nr_t* grant,
+                                    const srsran_pdsch_res_nr_t* res,
+                                    char*                        str,
+                                    uint32_t                     str_len)
 {
   uint32_t len = 0;
   len          = srsran_print_check(str, str_len, len, "rnti=0x%x ", grant->rnti);
@@ -606,7 +609,15 @@ static uint32_t srsran_pdsch_nr_grant_info(const srsran_sch_cfg_nr_t*   cfg,
 
   // Append TB info
   for (uint32_t i = 0; i < SRSRAN_MAX_TB; i++) {
-    len += srsran_sch_nr_tb_info(&grant->tb[i], &str[len], str_len - len);
+    len += srsran_sch_nr_tb_info(&grant->tb[i], &res->tb[i], &str[len], str_len - len);
+
+    if (res != NULL) {
+      if (grant->tb[i].enabled && !isnan(res->evm[i])) {
+        len = srsran_print_check(str, str_len, len, "evm=%.2f ", res->evm[i]);
+        if (i < SRSRAN_MAX_CODEWORDS - 1) {
+        }
+      }
+    }
   }
 
   return len;
@@ -615,52 +626,21 @@ static uint32_t srsran_pdsch_nr_grant_info(const srsran_sch_cfg_nr_t*   cfg,
 uint32_t srsran_pdsch_nr_rx_info(const srsran_pdsch_nr_t*     q,
                                  const srsran_sch_cfg_nr_t*   cfg,
                                  const srsran_sch_grant_nr_t* grant,
-                                 const srsran_pdsch_res_nr_t  res[SRSRAN_MAX_CODEWORDS],
+                                 const srsran_pdsch_res_nr_t* res,
                                  char*                        str,
                                  uint32_t                     str_len)
 {
   uint32_t len = 0;
 
-  len += srsran_pdsch_nr_grant_info(cfg, grant, &str[len], str_len - len);
+  len += pdsch_nr_grant_info(q, cfg, grant, res, &str[len], str_len - len);
 
   if (cfg->rvd_re.count != 0) {
-    len = srsran_print_check(str, str_len, len, ", Reserved={");
+    len = srsran_print_check(str, str_len, len, "Reserved: ");
     len += srsran_re_pattern_list_info(&cfg->rvd_re, &str[len], str_len - len);
-    len = srsran_print_check(str, str_len, len, "}");
-  }
-
-  if (q->evm_buffer != NULL) {
-    len = srsran_print_check(str, str_len, len, ",evm={", 0);
-    for (uint32_t i = 0; i < SRSRAN_MAX_CODEWORDS; i++) {
-      if (grant->tb[i].enabled && !isnan(res[i].evm)) {
-        len = srsran_print_check(str, str_len, len, "%.2f", res[i].evm);
-        if (i < SRSRAN_MAX_CODEWORDS - 1) {
-          if (grant->tb[i + 1].enabled) {
-            len = srsran_print_check(str, str_len, len, ",", 0);
-          }
-        }
-      }
-    }
-    len = srsran_print_check(str, str_len, len, "}", 0);
-  }
-
-  if (res != NULL) {
-    len = srsran_print_check(str, str_len, len, ",crc={", 0);
-    for (uint32_t i = 0; i < SRSRAN_MAX_CODEWORDS; i++) {
-      if (grant->tb[i].enabled) {
-        len = srsran_print_check(str, str_len, len, "%s", res[i].crc ? "OK" : "KO");
-        if (i < SRSRAN_MAX_CODEWORDS - 1) {
-          if (grant->tb[i + 1].enabled) {
-            len = srsran_print_check(str, str_len, len, ",", 0);
-          }
-        }
-      }
-    }
-    len = srsran_print_check(str, str_len, len, "}", 0);
   }
 
   if (q->meas_time_en) {
-    len = srsran_print_check(str, str_len, len, ", t=%d us", q->meas_time_us);
+    len = srsran_print_check(str, str_len, len, " t=%d us", q->meas_time_us);
   }
 
   return len;

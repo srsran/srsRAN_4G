@@ -253,12 +253,12 @@ bool cc_worker::work_dl()
     srsran_softbuffer_rx_reset(&softbuffer_rx);
 
     // Initialise PDSCH Result
-    std::array<srsran_pdsch_res_nr_t, SRSRAN_MAX_CODEWORDS> pdsch_res = {};
-    pdsch_res[0].payload                                              = data->msg;
-    pdsch_cfg.grant.tb[0].softbuffer.rx                               = &softbuffer_rx;
+    srsran_pdsch_res_nr_t pdsch_res     = {};
+    pdsch_res.tb[0].payload             = data->msg;
+    pdsch_cfg.grant.tb[0].softbuffer.rx = &softbuffer_rx;
 
     // Decode actual PDSCH transmission
-    if (srsran_ue_dl_nr_decode_pdsch(&ue_dl, &dl_slot_cfg, &pdsch_cfg, pdsch_res.data()) < SRSRAN_SUCCESS) {
+    if (srsran_ue_dl_nr_decode_pdsch(&ue_dl, &dl_slot_cfg, &pdsch_cfg, &pdsch_res) < SRSRAN_SUCCESS) {
       ERROR("Error decoding PDSCH");
       return false;
     }
@@ -266,17 +266,17 @@ bool cc_worker::work_dl()
     // Logging
     if (logger.info.enabled()) {
       std::array<char, 512> str;
-      srsran_ue_dl_nr_pdsch_info(&ue_dl, &pdsch_cfg, pdsch_res.data(), str.data(), str.size());
-      logger.info(pdsch_res[0].payload, pdsch_cfg.grant.tb[0].tbs / 8, "PDSCH: cc=%d, %s", cc_idx, str.data());
+      srsran_ue_dl_nr_pdsch_info(&ue_dl, &pdsch_cfg, &pdsch_res, str.data(), str.size());
+      logger.info(pdsch_res.tb[0].payload, pdsch_cfg.grant.tb[0].tbs / 8, "PDSCH: cc=%d, %s", cc_idx, str.data());
     }
 
     // Enqueue PDSCH ACK information only if the RNTI is type C
     if (pdsch_cfg.grant.rnti_type == srsran_rnti_type_c) {
-      phy->set_pending_ack(dl_slot_cfg.idx, ack_resource, pdsch_res[0].crc);
+      phy->set_pending_ack(dl_slot_cfg.idx, ack_resource, pdsch_res.tb[0].crc);
     }
 
     // Notify MAC about PDSCH decoding result
-    if (pdsch_res[0].crc) {
+    if (pdsch_res.tb[0].crc) {
       // Prepare grant
       mac_interface_phy_nr::mac_nr_grant_dl_t mac_nr_grant = {};
       mac_nr_grant.tb[0]                                   = std::move(data);
@@ -294,8 +294,8 @@ bool cc_worker::work_dl()
       // Generate DL metrics
       dl_metrics_t dl_m = {};
       dl_m.mcs          = pdsch_cfg.grant.tb[0].mcs;
-      dl_m.fec_iters    = pdsch_res[0].fec_iters;
-      dl_m.evm          = pdsch_res[0].evm;
+      dl_m.fec_iters    = pdsch_res.tb[0].avg_iter;
+      dl_m.evm          = pdsch_res.evm[0];
       phy->set_dl_metrics(dl_m);
 
       // Generate Synch metrics
@@ -386,7 +386,7 @@ bool cc_worker::work_ul()
 
     // Setup data for encoding
     srsran_pusch_data_nr_t data = {};
-    data.payload                = ul_action.tb.payload->msg;
+    data.payload[0]             = ul_action.tb.payload->msg;
     data.uci                    = uci_data.value;
 
     // Encode PUSCH transmission

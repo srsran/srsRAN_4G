@@ -90,8 +90,8 @@ int main(int argc, char** argv)
   srsran_chest_dl_res_t chest    = {};
   srsran_random_t       rand_gen = srsran_random_init(1234);
 
-  srsran_pusch_data_nr_t data_tx[SRSRAN_MAX_TB]           = {};
-  srsran_pusch_res_nr_t  data_rx[SRSRAN_MAX_CODEWORDS]    = {};
+  srsran_pusch_data_nr_t data_tx                          = {};
+  srsran_pusch_res_nr_t  data_rx                          = {};
   cf_t*                  sf_symbols[SRSRAN_MAX_LAYERS_NR] = {};
 
   // Set default PUSCH configuration
@@ -134,9 +134,9 @@ int main(int argc, char** argv)
   }
 
   for (uint32_t i = 0; i < pusch_tx.max_cw; i++) {
-    data_tx[i].payload = srsran_vec_u8_malloc(SRSRAN_SLOT_MAX_NOF_BITS_NR);
-    data_rx[i].payload = srsran_vec_u8_malloc(SRSRAN_SLOT_MAX_NOF_BITS_NR);
-    if (data_tx[i].payload == NULL || data_rx[i].payload == NULL) {
+    data_tx.payload[i]    = srsran_vec_u8_malloc(SRSRAN_SLOT_MAX_NOF_BITS_NR);
+    data_rx.tb[i].payload = srsran_vec_u8_malloc(SRSRAN_SLOT_MAX_NOF_BITS_NR);
+    if (data_tx.payload[i] == NULL || data_rx.tb[i].payload == NULL) {
       ERROR("Error malloc");
       goto clean_exit;
     }
@@ -212,12 +212,12 @@ int main(int argc, char** argv)
       // Generate SCH payload
       for (uint32_t tb = 0; tb < SRSRAN_MAX_TB; tb++) {
         // Skip TB if no allocated
-        if (data_tx[tb].payload == NULL) {
+        if (data_tx.payload[tb] == NULL) {
           continue;
         }
 
         for (uint32_t i = 0; i < pusch_cfg.grant.tb[tb].tbs; i++) {
-          data_tx[tb].payload[i] = (uint8_t)srsran_random_uniform_int_dist(rand_gen, 0, UINT8_MAX);
+          data_tx.payload[tb][i] = (uint8_t)srsran_random_uniform_int_dist(rand_gen, 0, UINT8_MAX);
         }
         pusch_cfg.grant.tb[tb].softbuffer.tx = &softbuffer_tx;
       }
@@ -226,7 +226,7 @@ int main(int argc, char** argv)
       if (nof_ack_bits > 0) {
         pusch_cfg.uci.o_ack = nof_ack_bits;
         for (uint32_t i = 0; i < nof_ack_bits; i++) {
-          data_tx->uci.ack[i] = (uint8_t)srsran_random_uniform_int_dist(rand_gen, 0, 1);
+          data_tx.uci.ack[i] = (uint8_t)srsran_random_uniform_int_dist(rand_gen, 0, 1);
         }
       }
 
@@ -237,15 +237,15 @@ int main(int argc, char** argv)
         pusch_cfg.uci.csi[0].quantity = SRSRAN_CSI_REPORT_QUANTITY_NONE;
         pusch_cfg.uci.csi[0].K_csi_rs = nof_csi_bits;
         pusch_cfg.uci.nof_csi         = 1;
-        data_tx->uci.csi[0].none      = csi_report_tx;
+        data_tx.uci.csi[0].none       = csi_report_tx;
         for (uint32_t i = 0; i < nof_csi_bits; i++) {
           csi_report_tx[i] = (uint8_t)srsran_random_uniform_int_dist(rand_gen, 0, 1);
         }
 
-        data_rx->uci.csi[0].none = csi_report_rx;
+        data_rx.uci.csi[0].none = csi_report_rx;
       }
 
-      if (srsran_pusch_nr_encode(&pusch_tx, &pusch_cfg, &pusch_cfg.grant, data_tx, sf_symbols) < SRSRAN_SUCCESS) {
+      if (srsran_pusch_nr_encode(&pusch_tx, &pusch_cfg, &pusch_cfg.grant, &data_tx, sf_symbols) < SRSRAN_SUCCESS) {
         ERROR("Error encoding");
         goto clean_exit;
       }
@@ -260,14 +260,14 @@ int main(int argc, char** argv)
       }
       chest.nof_re = pusch_cfg.grant.tb->nof_re;
 
-      if (srsran_pusch_nr_decode(&pusch_rx, &pusch_cfg, &pusch_cfg.grant, &chest, sf_symbols, data_rx) <
+      if (srsran_pusch_nr_decode(&pusch_rx, &pusch_cfg, &pusch_cfg.grant, &chest, sf_symbols, &data_rx) <
           SRSRAN_SUCCESS) {
         ERROR("Error encoding");
         goto clean_exit;
       }
 
-      if (data_rx[0].evm > 0.001f) {
-        ERROR("Error PUSCH EVM is too high %f", data_rx[0].evm);
+      if (data_rx.evm[0] > 0.001f) {
+        ERROR("Error PUSCH EVM is too high %f", data_rx.evm[0]);
         goto clean_exit;
       }
 
@@ -293,24 +293,24 @@ int main(int argc, char** argv)
       }
 
       // Validate UL-SCH CRC check
-      if (!data_rx[0].crc) {
+      if (!data_rx.tb[0].crc) {
         ERROR("Failed to match CRC; n_prb=%d; mcs=%d; TBS=%d;", n_prb, mcs, pusch_cfg.grant.tb[0].tbs);
         goto clean_exit;
       }
 
       // Validate UL-SCH payload
-      if (memcmp(data_tx[0].payload, data_rx[0].payload, pusch_cfg.grant.tb[0].tbs / 8) != 0) {
+      if (memcmp(data_tx.payload[0], data_rx.tb[0].payload, pusch_cfg.grant.tb[0].tbs / 8) != 0) {
         ERROR("Failed to match Tx/Rx data; n_prb=%d; mcs=%d; TBS=%d;", n_prb, mcs, pusch_cfg.grant.tb[0].tbs);
         printf("Tx data: ");
-        srsran_vec_fprint_byte(stdout, data_tx[0].payload, pusch_cfg.grant.tb[0].tbs / 8);
+        srsran_vec_fprint_byte(stdout, data_tx.payload[0], pusch_cfg.grant.tb[0].tbs / 8);
         printf("Rx data: ");
-        srsran_vec_fprint_byte(stdout, data_tx[0].payload, pusch_cfg.grant.tb[0].tbs / 8);
+        srsran_vec_fprint_byte(stdout, data_tx.payload[0], pusch_cfg.grant.tb[0].tbs / 8);
         goto clean_exit;
       }
 
       // Validate UCI is decoded successfully
       if (nof_ack_bits > 0 || nof_csi_bits > 0) {
-        if (!data_rx[0].uci.valid) {
+        if (!data_rx.uci.valid) {
           ERROR("UCI data was not decoded ok");
           goto clean_exit;
         }
@@ -318,29 +318,29 @@ int main(int argc, char** argv)
 
       // Validate HARQ-ACK is decoded successfully
       if (nof_ack_bits > 0) {
-        if (memcmp(data_tx[0].uci.ack, data_rx[0].uci.ack, nof_ack_bits) != 0) {
+        if (memcmp(data_tx.uci.ack, data_rx.uci.ack, nof_ack_bits) != 0) {
           ERROR("UCI HARQ-ACK bits are unmatched");
           printf("Tx data: ");
-          srsran_vec_fprint_byte(stdout, data_tx[0].uci.ack, nof_ack_bits);
+          srsran_vec_fprint_byte(stdout, data_tx.uci.ack, nof_ack_bits);
           printf("Rx data: ");
-          srsran_vec_fprint_byte(stdout, data_rx[0].uci.ack, nof_ack_bits);
+          srsran_vec_fprint_byte(stdout, data_rx.uci.ack, nof_ack_bits);
           goto clean_exit;
         }
       }
 
       // Validate CSI is decoded successfully
       if (nof_csi_bits > 0) {
-        if (memcmp(data_tx[0].uci.csi[0].none, data_rx[0].uci.csi[0].none, nof_csi_bits) != 0) {
+        if (memcmp(data_tx.uci.csi[0].none, data_rx.uci.csi[0].none, nof_csi_bits) != 0) {
           ERROR("UCI CSI bits are unmatched");
           printf("Tx data: ");
-          srsran_vec_fprint_byte(stdout, data_tx[0].uci.csi[0].none, nof_csi_bits);
+          srsran_vec_fprint_byte(stdout, data_tx.uci.csi[0].none, nof_csi_bits);
           printf("Rx data: ");
-          srsran_vec_fprint_byte(stdout, data_rx[0].uci.csi[0].none, nof_csi_bits);
+          srsran_vec_fprint_byte(stdout, data_rx.uci.csi[0].none, nof_csi_bits);
           goto clean_exit;
         }
       }
 
-      printf("n_prb=%d; mcs=%d; TBS=%d; EVM=%f; PASSED!\n", n_prb, mcs, pusch_cfg.grant.tb[0].tbs, data_rx[0].evm);
+      printf("n_prb=%d; mcs=%d; TBS=%d; EVM=%f; PASSED!\n", n_prb, mcs, pusch_cfg.grant.tb[0].tbs, data_rx.evm[0]);
     }
   }
 
@@ -352,11 +352,11 @@ clean_exit:
   srsran_pusch_nr_free(&pusch_tx);
   srsran_pusch_nr_free(&pusch_rx);
   for (uint32_t i = 0; i < SRSRAN_MAX_CODEWORDS; i++) {
-    if (data_tx[i].payload) {
-      free(data_tx[i].payload);
+    if (data_tx.payload[i]) {
+      free(data_tx.payload[i]);
     }
-    if (data_rx[i].payload) {
-      free(data_rx[i].payload);
+    if (data_rx.tb[i].payload) {
+      free(data_rx.tb[i].payload);
     }
   }
   for (uint32_t i = 0; i < SRSRAN_MAX_LAYERS_NR; i++) {

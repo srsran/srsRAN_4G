@@ -64,13 +64,11 @@ typedef struct SRSRAN_API {
 } srsran_pdsch_nr_t;
 
 /**
- *
+ * @brief Groups NR-PDSCH data for reception
  */
 typedef struct {
-  uint8_t* payload;
-  bool     crc;
-  float    evm;
-  uint32_t fec_iters;
+  srsran_sch_tb_res_nr_t tb[SRSRAN_MAX_TB];         ///< SCH payload
+  float                  evm[SRSRAN_MAX_CODEWORDS]; ///< EVM measurement if configured through arguments
 } srsran_pdsch_res_nr_t;
 
 SRSRAN_API int srsran_pdsch_nr_init_enb(srsran_pdsch_nr_t* q, const srsran_pdsch_nr_args_t* args);
@@ -92,7 +90,7 @@ SRSRAN_API int srsran_pdsch_nr_decode(srsran_pdsch_nr_t*           q,
                                       const srsran_sch_grant_nr_t* grant,
                                       srsran_chest_dl_res_t*       channel,
                                       cf_t*                        sf_symbols[SRSRAN_MAX_PORTS],
-                                      srsran_pdsch_res_nr_t        data[SRSRAN_MAX_TB]);
+                                      srsran_pdsch_res_nr_t*       res);
 
 SRSRAN_API uint32_t srsran_pdsch_nr_rx_info(const srsran_pdsch_nr_t*     q,
                                             const srsran_sch_cfg_nr_t*   cfg,

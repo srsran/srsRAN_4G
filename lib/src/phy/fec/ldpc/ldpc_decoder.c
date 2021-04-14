@@ -74,10 +74,23 @@
                                                                                                                        \
         update_ldpc_soft_bits_##SUFFIX(q->ptr, i_layer, these_var_indices);                                            \
       }                                                                                                                \
+                                                                                                                       \
+      if (crc != NULL) {                                                                                               \
+        extract_ldpc_message_##SUFFIX(q->ptr, message, q->liftK);                                                      \
+                                                                                                                       \
+        if (srsran_crc_match(crc, message, q->liftK - crc->order)) {                                                   \
+          return i_iteration + 1;                                                                                      \
+        }                                                                                                              \
+      }                                                                                                                \
     }                                                                                                                  \
                                                                                                                        \
-    extract_ldpc_message_##SUFFIX(q->ptr, message, q->liftK);                                                          \
+    /* If reached here, and CRC is being checked, it has failed */                                                     \
+    if (crc != NULL) {                                                                                                 \
+      return 0;                                                                                                        \
+    }                                                                                                                  \
                                                                                                                        \
+    /* Without CRC, extract message and return the maximum number of iterations */                                     \
+    extract_ldpc_message_##SUFFIX(q->ptr, message, q->liftK);                                                          \
     return q->max_nof_iter;                                                                                            \
   }
 #define LDPC_DECODER_TEMPLATE_FLOOD(LLR_TYPE, SUFFIX)                                                                  \
@@ -637,4 +650,13 @@ int srsran_ldpc_decoder_decode_c(srsran_ldpc_decoder_t* q,
                                  uint32_t               cdwd_rm_length)
 {
   return q->decode_c(q, llrs, message, cdwd_rm_length, NULL);
+}
+
+int srsran_ldpc_decoder_decode_crc_c(srsran_ldpc_decoder_t* q,
+                                     const int8_t*          llrs,
+                                     uint8_t*               message,
+                                     uint32_t               cdwd_rm_length,
+                                     srsran_crc_t*          crc)
+{
+  return q->decode_c(q, llrs, message, cdwd_rm_length, crc);
 }

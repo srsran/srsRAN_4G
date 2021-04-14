@@ -150,4 +150,24 @@ srsran_ldpc_decoder_decode_s(srsran_ldpc_decoder_t* q, const int16_t* llrs, uint
 SRSRAN_API int
 srsran_ldpc_decoder_decode_c(srsran_ldpc_decoder_t* q, const int8_t* llrs, uint8_t* message, uint32_t cdwd_rm_length);
 
+/*!
+ * Carries out the actual decoding with 8-bit integer-valued LLRs. It is
+ * recommended to use a 7-bit representation for the LLRs, given that all
+ * values exceeding \f$ 2^{7}-1 \f$ (in magnitude) will be considered as infinity.
+ * \param[in] q A pointer to the LDPC decoder (a srsran_ldpc_decoder_t structure
+ *    instance) that carries out the decoding.
+ * \param[in] llrs The LLRs obtained from the channel samples that correspond to
+ *    the codeword to be decoded.
+ * \param[out] message The message (uncoded bits) resulting from the decoding
+ *    operation.
+ * \param[in] cdwd_rm_length The number of bits forming the codeword (after rate matching).
+ * \param[in,out] crc Code-block CRC object for early stop. Set for NULL to disable check
+ * \return -1 if an error occurred, the number of used iterations, and 0 if CRC is provided and did not match
+ */
+SRSRAN_API int srsran_ldpc_decoder_decode_crc_c(srsran_ldpc_decoder_t* q,
+                                                const int8_t*          llrs,
+                                                uint8_t*               message,
+                                                uint32_t               cdwd_rm_length,
+                                                srsran_crc_t*          crc);
+
 #endif // SRSRAN_LDPCDECODER_H

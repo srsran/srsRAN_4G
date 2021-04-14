@@ -32,6 +32,15 @@
 #define SRSRAN_SCH_NR_MAX_NOF_CB_LDPC                                                                                  \
   ((SRSRAN_SLOT_MAX_NOF_BITS_NR + (SRSRAN_LDPC_BG2_MAX_LEN_CB - 1)) / SRSRAN_LDPC_BG2_MAX_LEN_CB)
 
+/**
+ * @brief Groups NR-PUSCH data for reception
+ */
+typedef struct {
+  uint8_t* payload;  ///< SCH payload
+  bool     crc;      ///< CRC match
+  float    avg_iter; ///< Average iterations
+} srsran_sch_tb_res_nr_t;
+
 typedef struct SRSRAN_API {
   srsran_carrier_nr_t carrier;
 
@@ -153,8 +162,7 @@ SRSRAN_API int srsran_dlsch_nr_decode(srsran_sch_nr_t*        q,
                                       const srsran_sch_cfg_t* sch_cfg,
                                       const srsran_sch_tb_t*  tb,
                                       int8_t*                 e_bits,
-                                      uint8_t*                data,
-                                      bool*                   crc_ok);
+                                      srsran_sch_tb_res_nr_t* res);
 
 SRSRAN_API int srsran_ulsch_nr_encode(srsran_sch_nr_t*        q,
                                       const srsran_sch_cfg_t* cfg,
@@ -166,9 +174,9 @@ SRSRAN_API int srsran_ulsch_nr_decode(srsran_sch_nr_t*        q,
                                       const srsran_sch_cfg_t* sch_cfg,
                                       const srsran_sch_tb_t*  tb,
                                       int8_t*                 e_bits,
-                                      uint8_t*                data,
-                                      bool*                   crc_ok);
+                                      srsran_sch_tb_res_nr_t* res);
 
-SRSRAN_API int srsran_sch_nr_tb_info(const srsran_sch_tb_t* tb, char* str, uint32_t str_len);
+SRSRAN_API int
+srsran_sch_nr_tb_info(const srsran_sch_tb_t* tb, const srsran_sch_tb_res_nr_t* res, char* str, uint32_t str_len);
 
 #endif // SRSRAN_SCH_NR_H

@@ -585,7 +585,7 @@ int srsran_ue_dl_nr_pdsch_info(const srsran_ue_dl_nr_t*     q,
   len += srsran_pdsch_nr_rx_info(&q->pdsch, cfg, &cfg->grant, res, &str[len], str_len - len);
 
   // Append channel estimator info
-  len = srsran_print_check(str, str_len, len, ",SNR=%+.1f", q->chest.snr_db);
+  len = srsran_print_check(str, str_len, len, "SNR=%+.1f", q->chest.snr_db);
 
   return len;
 }

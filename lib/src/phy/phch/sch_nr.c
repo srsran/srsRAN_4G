@@ -509,19 +509,19 @@ static inline int sch_nr_encode(srsran_sch_nr_t*        q,
   return SRSRAN_SUCCESS;
 }
 
-int sch_nr_decode(srsran_sch_nr_t*        q,
-                  const srsran_sch_cfg_t* sch_cfg,
-                  const srsran_sch_tb_t*  tb,
-                  int8_t*                 e_bits,
-                  uint8_t*                data,
-                  bool*                   crc_ok)
+static int sch_nr_decode(srsran_sch_nr_t*        q,
+                         const srsran_sch_cfg_t* sch_cfg,
+                         const srsran_sch_tb_t*  tb,
+                         int8_t*                 e_bits,
+                         srsran_sch_tb_res_nr_t* res)
 {
   // Pointer protection
-  if (!q || !sch_cfg || !tb || !data || !e_bits || !crc_ok) {
+  if (!q || !sch_cfg || !tb || !e_bits || !res) {
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
-  int8_t* input_ptr = e_bits;
+  int8_t*  input_ptr    = e_bits;
+  uint32_t nof_iter_sum = 0;
 
   srsran_sch_nr_tb_info_t cfg = {};
   if (srsran_sch_nr_fill_tb_info(&q->carrier, sch_cfg, tb, &cfg) < SRSRAN_SUCCESS) {
@@ -599,26 +599,24 @@ int sch_nr_decode(srsran_sch_nr_t*        q,
       return SRSRAN_ERROR;
     }
 
-    // Decode
-    srsran_ldpc_decoder_decode_c(decoder, rm_buffer, q->temp_cb, n_llr);
-
-    // Compute CB CRC
-    uint32_t cb_len = cfg.Kp - cfg.L_cb;
+    // Select CB or TB early stop CRC
+    srsran_crc_t* crc = (cfg.L_tb == 16) ? &q->crc_tb_16 : &q->crc_tb_24;
     if (cfg.L_cb) {
-      uint8_t* ptr                 = q->temp_cb + cb_len;
-      uint32_t checksum1           = srsran_crc_checksum(&q->crc_cb, q->temp_cb, (int)cb_len);
-      uint32_t checksum2           = srsran_bit_pack(&ptr, cfg.L_cb);
-      tb->softbuffer.rx->cb_crc[r] = (checksum1 == checksum2);
-
-      SCH_INFO_RX("CB %d/%d: CRC={%06x, %06x} ... %s",
-                  r,
-                  cfg.C,
-                  checksum1,
-                  checksum2,
-                  tb->softbuffer.rx->cb_crc[r] ? "OK" : "KO");
-    } else {
-      tb->softbuffer.rx->cb_crc[r] = true;
+      crc = &q->crc_cb;
     }
+
+    // Decode
+    int n_iter = srsran_ldpc_decoder_decode_crc_c(decoder, rm_buffer, q->temp_cb, n_llr, crc);
+    if (n_iter < SRSRAN_SUCCESS) {
+      ERROR("Error decoding CB");
+      return SRSRAN_ERROR;
+    }
+    nof_iter_sum += ((n_iter == 0) ? decoder->max_nof_iter : (uint32_t)n_iter);
+
+    // Compute CB CRC only if LDPC decoder reached the end
+    uint32_t cb_len              = cfg.Kp - cfg.L_cb;
+    tb->softbuffer.rx->cb_crc[r] = (n_iter != 0);
+    SCH_INFO_RX("CB %d/%d CRC=%s", r, cfg.C, tb->softbuffer.rx->cb_crc[r] ? "OK" : "KO");
 
     // Pack and count CRC OK only if CRC is match
     if (tb->softbuffer.rx->cb_crc[r]) {
@@ -629,51 +627,64 @@ int sch_nr_decode(srsran_sch_nr_t*        q,
     input_ptr += E;
   }
 
-  // All CB are decoded
-  if (cb_ok == cfg.C) {
-    uint32_t checksum2  = 0;
-    uint8_t* output_ptr = data;
+  // Not all CB are decoded, skip TB union and CRC check
+  if (cb_ok != cfg.C) {
+    return SRSRAN_SUCCESS;
+  }
 
-    for (uint32_t r = 0; r < cfg.C; r++) {
-      uint32_t cb_len = cfg.Kp - cfg.L_cb;
+  uint32_t checksum2  = 0;
+  uint8_t* output_ptr = res->payload;
 
-      // Subtract TB CRC from the last code block
-      if (r == cfg.C - 1) {
-        cb_len -= cfg.L_tb;
-      }
+  for (uint32_t r = 0; r < cfg.C; r++) {
+    uint32_t cb_len = cfg.Kp - cfg.L_cb;
 
-      srsran_vec_u8_copy(output_ptr, tb->softbuffer.rx->data[r], cb_len / 8);
-      output_ptr += cb_len / 8;
-
-      if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
-        DEBUG("CB %d:", r);
-        srsran_vec_fprint_byte(stdout, tb->softbuffer.rx->data[r], cb_len / 8);
-      }
-      if (r == cfg.C - 1) {
-        uint8_t  tb_crc_unpacked[24] = {};
-        uint8_t* tb_crc_unpacked_ptr = tb_crc_unpacked;
-        srsran_bit_unpack_vector(&tb->softbuffer.rx->data[r][cb_len / 8], tb_crc_unpacked, cfg.L_tb);
-        checksum2 = srsran_bit_pack(&tb_crc_unpacked_ptr, cfg.L_tb);
-      }
+    // Subtract TB CRC from the last code block
+    if (r == cfg.C - 1) {
+      cb_len -= cfg.L_tb;
     }
 
-    // Check if TB is all zeros
-    bool all_zeros = true;
-    for (uint32_t i = 0; i < tb->tbs / 8 && all_zeros; i++) {
-      all_zeros = (data[i] == 0);
-    }
+    // Append CB
+    srsran_vec_u8_copy(output_ptr, tb->softbuffer.rx->data[r], cb_len / 8);
+    output_ptr += cb_len / 8;
 
-    // Calculate TB CRC from packed data
-    uint32_t checksum1 = srsran_crc_checksum_byte(crc_tb, data, tb->tbs);
-    *crc_ok            = (checksum1 == checksum2 && !all_zeros);
-
-    SCH_INFO_RX("TB: TBS=%d; CRC={%06x, %06x}", tb->tbs, checksum1, checksum2);
+    // CB Debug trace
     if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
-      DEBUG("Decode: ");
-      srsran_vec_fprint_byte(stdout, data, tb->tbs / 8);
+      DEBUG("CB %d/%d:", r, cfg.C);
+      srsran_vec_fprint_byte(stdout, tb->softbuffer.rx->data[r], cb_len / 8);
     }
+
+    // Compute TB CRC for last block
+    if (cfg.C > 1 && r == cfg.C - 1) {
+      uint8_t  tb_crc_unpacked[24] = {};
+      uint8_t* tb_crc_unpacked_ptr = tb_crc_unpacked;
+      srsran_bit_unpack_vector(&tb->softbuffer.rx->data[r][cb_len / 8], tb_crc_unpacked, cfg.L_tb);
+      checksum2 = srsran_bit_pack(&tb_crc_unpacked_ptr, cfg.L_tb);
+    }
+  }
+
+  // Check if TB is all zeros
+  bool all_zeros = true;
+  for (uint32_t i = 0; i < tb->tbs / 8 && all_zeros; i++) {
+    all_zeros = (res->payload[i] == 0);
+  }
+
+  // Calculate TB CRC from packed data
+  if (cfg.C == 1) {
+    res->crc = !all_zeros;
+    SCH_INFO_RX("TB: TBS=%d; CRC=%s", tb->tbs, tb->softbuffer.rx->cb_crc[0] ? "OK" : "KO");
   } else {
-    *crc_ok = false;
+    // More than one
+    uint32_t checksum1 = srsran_crc_checksum_byte(crc_tb, res->payload, tb->tbs);
+    res->crc           = (checksum1 == checksum2 && !all_zeros);
+    SCH_INFO_RX("TB: TBS=%d; CRC={%06x, %06x}", tb->tbs, checksum1, checksum2);
+  }
+
+  // Set average number of iterations
+  res->avg_iter = (float)nof_iter_sum / (float)cfg.C;
+
+  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
+    DEBUG("Decode: ");
+    srsran_vec_fprint_byte(stdout, res->payload, tb->tbs / 8);
   }
 
   return SRSRAN_SUCCESS;
@@ -692,10 +703,9 @@ int srsran_dlsch_nr_decode(srsran_sch_nr_t*        q,
                            const srsran_sch_cfg_t* sch_cfg,
                            const srsran_sch_tb_t*  tb,
                            int8_t*                 e_bits,
-                           uint8_t*                data,
-                           bool*                   crc_ok)
+                           srsran_sch_tb_res_nr_t* res)
 {
-  return sch_nr_decode(q, sch_cfg, tb, e_bits, data, crc_ok);
+  return sch_nr_decode(q, sch_cfg, tb, e_bits, res);
 }
 
 int srsran_ulsch_nr_encode(srsran_sch_nr_t*        q,
@@ -711,29 +721,32 @@ int srsran_ulsch_nr_decode(srsran_sch_nr_t*        q,
                            const srsran_sch_cfg_t* sch_cfg,
                            const srsran_sch_tb_t*  tb,
                            int8_t*                 e_bits,
-                           uint8_t*                data,
-                           bool*                   crc_ok)
+                           srsran_sch_tb_res_nr_t* res)
 {
-  return sch_nr_decode(q, sch_cfg, tb, e_bits, data, crc_ok);
+  return sch_nr_decode(q, sch_cfg, tb, e_bits, res);
 }
 
-int srsran_sch_nr_tb_info(const srsran_sch_tb_t* tb, char* str, uint32_t str_len)
+int srsran_sch_nr_tb_info(const srsran_sch_tb_t* tb, const srsran_sch_tb_res_nr_t* res, char* str, uint32_t str_len)
 {
   int len = 0;
 
   if (tb->enabled) {
-    len += srsran_print_check(str,
-                              str_len,
-                              len,
-                              "CW0: mod=%s Nl=%d tbs=%d R=%.3f rv=%d Nre=%d Nbit=%d cw=%d",
-                              srsran_mod_string(tb->mod),
-                              tb->N_L,
-                              tb->tbs / 8,
-                              tb->R,
-                              tb->rv,
-                              tb->nof_re,
-                              tb->nof_bits,
-                              tb->cw_idx);
+    len = srsran_print_check(str,
+                             str_len,
+                             len,
+                             "CW%d: mod=%s Nl=%d tbs=%d R=%.3f rv=%d Nre=%d Nbit=%d ",
+                             tb->cw_idx,
+                             srsran_mod_string(tb->mod),
+                             tb->N_L,
+                             tb->tbs / 8,
+                             tb->R,
+                             tb->rv,
+                             tb->nof_re,
+                             tb->nof_bits);
+
+    if (res != NULL) {
+      len = srsran_print_check(str, str_len, len, "CRC=%s iter=%.1f ", res->crc ? "OK" : "KO", res->avg_iter);
+    }
   }
 
   return len;

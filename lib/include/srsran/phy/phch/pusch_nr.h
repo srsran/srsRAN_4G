@@ -70,18 +70,17 @@ typedef struct SRSRAN_API {
  * @brief Groups NR-PUSCH data for transmission
  */
 typedef struct {
-  uint8_t*              payload; ///< SCH payload
-  srsran_uci_value_nr_t uci;     ///< UCI payload
+  uint8_t*              payload[SRSRAN_MAX_TB]; ///< SCH payload
+  srsran_uci_value_nr_t uci;                    ///< UCI payload
 } srsran_pusch_data_nr_t;
 
 /**
  * @brief Groups NR-PUSCH data for reception
  */
 typedef struct {
-  uint8_t*              payload; ///< SCH payload
-  srsran_uci_value_nr_t uci;     ///< UCI payload
-  bool                  crc;     ///< CRC match
-  float                 evm;     ///< EVM measurement if configured through arguments
+  srsran_sch_tb_res_nr_t tb[SRSRAN_MAX_TB];         ///< SCH payload
+  srsran_uci_value_nr_t  uci;                       ///< UCI payload
+  float                  evm[SRSRAN_MAX_CODEWORDS]; ///< EVM measurement if configured through arguments
 } srsran_pusch_res_nr_t;
 
 SRSRAN_API int srsran_pusch_nr_init_gnb(srsran_pusch_nr_t* q, const srsran_pusch_nr_args_t* args);
