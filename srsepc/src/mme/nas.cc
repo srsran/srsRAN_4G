@@ -44,6 +44,8 @@ nas::nas(const nas_init_t& args, const nas_if_t& itf, srslte::log* nas_log) :
   m_tac(args.tac),
   m_apn(args.apn),
   m_dns(args.dns),
+  m_full_net_name(args.full_net_name),
+  m_short_net_name(args.short_net_name),
   m_t3413(args.paging_timer)
 {
   m_sec_ctx.integ_algo  = args.integ_algo;
@@ -1534,10 +1536,10 @@ bool nas::pack_emm_information(srslte::byte_buffer_t* nas_buffer)
 
   LIBLTE_MME_EMM_INFORMATION_MSG_STRUCT emm_info;
   emm_info.full_net_name_present = true;
-  strncpy(emm_info.full_net_name.name, "Software Radio Systems LTE", LIBLTE_STRING_LEN);
+  memccpy(emm_info.full_net_name.name, m_full_net_name.c_str(), 0, LIBLTE_STRING_LEN);
   emm_info.full_net_name.add_ci   = LIBLTE_MME_ADD_CI_DONT_ADD;
   emm_info.short_net_name_present = true;
-  strncpy(emm_info.short_net_name.name, "srsLTE", LIBLTE_STRING_LEN);
+  memccpy(emm_info.short_net_name.name, m_short_net_name.c_str(), 0, LIBLTE_STRING_LEN);
   emm_info.short_net_name.add_ci = LIBLTE_MME_ADD_CI_DONT_ADD;
 
   emm_info.local_time_zone_present         = false;

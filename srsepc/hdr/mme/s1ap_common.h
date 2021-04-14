@@ -44,6 +44,8 @@ typedef struct {
   std::string                         mme_bind_addr;
   std::string                         mme_name;
   std::string                         dns_addr;
+  std::string                         full_net_name;
+  std::string                         short_net_name;
   std::string                         mme_apn;
   bool                                pcap_enable;
   std::string                         pcap_filename;
