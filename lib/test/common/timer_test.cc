@@ -10,19 +10,12 @@
  *
  */
 
+#include "srsran/common/test_common.h"
 #include "srsran/common/timers.h"
 #include <iostream>
 #include <random>
 #include <srsran/common/tti_sync_cv.h>
 #include <thread>
-
-#define TESTASSERT(cond)                                                                                               \
-  do {                                                                                                                 \
-    if (!(cond)) {                                                                                                     \
-      std::cout << "[" << __FUNCTION__ << "][Line " << __LINE__ << "]: FAIL at " << (#cond) << std::endl;              \
-      return -1;                                                                                                       \
-    }                                                                                                                  \
-  } while (0)
 
 using namespace srsran;
 
@@ -42,8 +35,7 @@ int timers_test1()
 
     // TEST: Run multiple times with the same duration
     bool callback_called = false;
-    t.set(dur, [&callback_called](int) { callback_called = true; });
-    TESTASSERT(timers.get_cur_time() == 0);
+    t.set(dur, [&callback_called](int tid) { callback_called = true; });
     for (uint32_t runs = 0; runs < 3; ++runs) {
       callback_called = false;
       TESTASSERT(not t.is_running());
@@ -57,7 +49,6 @@ int timers_test1()
       TESTASSERT(not t.is_running() and t.is_expired());
       TESTASSERT(callback_called);
     }
-    TESTASSERT(timers.get_cur_time() == 3 * dur);
 
     // TEST: interrupt a timer. check if callback was called
     callback_called = false;

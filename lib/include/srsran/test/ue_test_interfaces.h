@@ -26,15 +26,13 @@ class stack_test_dummy : public stack_interface_rrc
 public:
   stack_test_dummy() {}
 
-  srsran::tti_point get_current_tti() override
-  {
-    return srsran::tti_point{task_sched.get_timer_handler()->get_cur_time() % 10240};
-  }
+  srsran::tti_point get_current_tti() override { return srsran::tti_point{tti % 10240}; }
 
   // Testing utility functions
   void run_tti()
   {
     // update clock and run internal tasks
+    tti++;
     task_sched.tic();
 
     task_sched.run_pending_tasks();
@@ -43,6 +41,7 @@ public:
   // run pending tasks without updating timers
   void run_pending_tasks() { task_sched.run_pending_tasks(); }
 
+  uint32_t               tti = 0;
   srsran::task_scheduler task_sched{512, 100};
 };
 
