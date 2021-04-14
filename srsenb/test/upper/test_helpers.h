@@ -72,7 +72,6 @@ public:
     uint16_t                        rnti;
     std::vector<bearer_status_info> bearer_list;
   } last_enb_status = {};
-  std::vector<uint8_t> added_erab_ids;
   struct ho_req_ack {
     uint16_t                                      rnti;
     srsran::unique_byte_buffer_t                  ho_cmd_pdu;
@@ -106,14 +105,6 @@ public:
     last_ho_req_ack.admitted_bearers.assign(admitted_bearers.begin(), admitted_bearers.end());
     last_ho_req_ack.not_admitted_bearers.assign(not_admitted_bearers.begin(), not_admitted_bearers.end());
     return true;
-  }
-  void ue_erab_setup_complete(uint16_t rnti, const asn1::s1ap::erab_setup_resp_s& res) override
-  {
-    if (res.protocol_ies.erab_setup_list_bearer_su_res_present) {
-      for (const auto& item : res.protocol_ies.erab_setup_list_bearer_su_res.value) {
-        added_erab_ids.push_back(item.value.erab_setup_item_bearer_su_res().erab_id);
-      }
-    }
   }
   void user_mod(uint16_t old_rnti, uint16_t new_rnti) override {}
 };

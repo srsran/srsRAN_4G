@@ -323,27 +323,6 @@ bool rrc::modify_ue_ctxt(uint16_t rnti, const asn1::s1ap::ue_context_mod_request
   return user_it->second->handle_ue_ctxt_mod_req(msg);
 }
 
-bool rrc::setup_ue_erabs(uint16_t rnti, const asn1::s1ap::erab_setup_request_s& msg)
-{
-  logger.info("Setting up erab(s) for 0x%x", rnti);
-  auto user_it = users.find(rnti);
-
-  if (user_it == users.end()) {
-    logger.warning("Unrecognised rnti: 0x%x", rnti);
-    return false;
-  }
-
-  if (msg.protocol_ies.ueaggregate_maximum_bitrate_present) {
-    // UEAggregateMaximumBitrate
-    user_it->second->set_bitrates(msg.protocol_ies.ueaggregate_maximum_bitrate.value);
-  }
-
-  // Setup E-RABs
-  user_it->second->setup_erabs(msg.protocol_ies.erab_to_be_setup_list_bearer_su_req.value);
-
-  return true;
-}
-
 bool rrc::release_erabs(uint32_t rnti)
 {
   logger.info("Releasing E-RABs for 0x%x", rnti);
@@ -390,6 +369,44 @@ bool rrc::has_erab(uint16_t rnti, uint32_t erab_id) const
     return false;
   }
   return user_it->second->has_erab(erab_id);
+}
+
+int rrc::get_erab_addr_in(uint16_t rnti, uint16_t erab_id, transp_addr_t& addr_in, uint32_t& teid_in) const
+{
+  auto user_it = users.find(rnti);
+  if (user_it == users.end()) {
+    logger.warning("Unrecognised rnti: 0x%x", rnti);
+    return SRSRAN_ERROR;
+  }
+  return user_it->second->get_erab_addr_in(erab_id, addr_in, teid_in);
+}
+
+void rrc::set_aggregate_max_bitrate(uint16_t rnti, const asn1::s1ap::ue_aggregate_maximum_bitrate_s& bitrate)
+{
+  auto user_it = users.find(rnti);
+  if (user_it == users.end()) {
+    logger.warning("Unrecognised rnti: 0x%x", rnti);
+    return;
+  }
+  user_it->second->set_bitrates(bitrate);
+}
+
+int rrc::setup_erab(uint16_t                                           rnti,
+                    uint16_t                                           erab_id,
+                    const asn1::s1ap::erab_level_qos_params_s&         qos_params,
+                    const asn1::unbounded_octstring<true>*             nas_pdu,
+                    const asn1::bounded_bitstring<1, 160, true, true>& addr,
+                    uint32_t                                           gtpu_teid_out,
+                    asn1::s1ap::cause_c&                               cause)
+{
+  logger.info("Setting up erab id=%d for 0x%x", erab_id, rnti);
+  auto user_it = users.find(rnti);
+  if (user_it == users.end()) {
+    logger.warning("Unrecognised rnti: 0x%x", rnti);
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::unknown_erab_id;
+    return SRSRAN_ERROR;
+  }
+  return user_it->second->setup_erab(erab_id, qos_params, nas_pdu, addr, gtpu_teid_out, cause);
 }
 
 int rrc::modify_erab(uint16_t                                   rnti,

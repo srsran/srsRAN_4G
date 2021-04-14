@@ -41,6 +41,7 @@ struct erab_admitted_item_s;
 struct erab_to_be_modified_item_bearer_mod_req_s;
 struct cause_c;
 struct erab_item_s;
+struct ue_aggregate_maximum_bitrate_s;
 
 template <class ies_set_paramT_>
 struct protocol_ie_single_container_s;
@@ -70,5 +71,11 @@ bool equal_obj_id(const T& lhs, const T& rhs)
 
 } // namespace s1ap
 } // namespace asn1
+
+namespace srsenb {
+
+using transp_addr_t = asn1::bounded_bitstring<1, 160, true, true>;
+
+}
 
 #endif // SRSRAN_S1AP_UTILS_H

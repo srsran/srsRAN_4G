@@ -81,8 +81,16 @@ public:
   void     release_ue(uint16_t rnti) override;
   bool     setup_ue_ctxt(uint16_t rnti, const asn1::s1ap::init_context_setup_request_s& msg) override;
   bool     modify_ue_ctxt(uint16_t rnti, const asn1::s1ap::ue_context_mod_request_s& msg) override;
-  bool     setup_ue_erabs(uint16_t rnti, const asn1::s1ap::erab_setup_request_s& msg) override;
   bool     has_erab(uint16_t rnti, uint32_t erab_id) const override;
+  int      get_erab_addr_in(uint16_t rnti, uint16_t erab_id, transp_addr_t& addr_in, uint32_t& teid_in) const override;
+  void     set_aggregate_max_bitrate(uint16_t rnti, const asn1::s1ap::ue_aggregate_maximum_bitrate_s& bitrate) override;
+  int      setup_erab(uint16_t                                           rnti,
+                      uint16_t                                           erab_id,
+                      const asn1::s1ap::erab_level_qos_params_s&         qos_params,
+                      const asn1::unbounded_octstring<true>*             nas_pdu,
+                      const asn1::bounded_bitstring<1, 160, true, true>& addr,
+                      uint32_t                                           gtpu_teid_out,
+                      asn1::s1ap::cause_c&                               cause) override;
   int      modify_erab(uint16_t                                   rnti,
                        uint16_t                                   erab_id,
                        const asn1::s1ap::erab_level_qos_params_s& qos_params,

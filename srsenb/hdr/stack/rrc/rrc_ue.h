@@ -53,9 +53,6 @@ public:
   ///< Helper to access a cell cfg based on ue_cc_idx
   enb_cell_common* get_ue_cc_cfg(uint32_t ue_cc_idx);
 
-  /// Helper to check UE ERABs
-  bool has_erab(uint32_t erab_id) const { return bearer_list.get_erabs().count(erab_id) > 0; }
-
   /// List of results a RRC procedure may produce.
   enum class procedure_result_code {
     none,
@@ -110,17 +107,25 @@ public:
 
   void set_bitrates(const asn1::s1ap::ue_aggregate_maximum_bitrate_s& rates);
 
+  /// Helper to check UE ERABs
+  bool has_erab(uint32_t erab_id) const { return bearer_list.get_erabs().count(erab_id) > 0; }
+  int  get_erab_addr_in(uint16_t erab_id, transp_addr_t& addr_in, uint32_t& teid_in) const;
+
   bool setup_erabs(const asn1::s1ap::erab_to_be_setup_list_ctxt_su_req_l& e);
-  bool setup_erabs(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e);
   bool release_erabs();
   int  release_erab(uint32_t erab_id);
+  int  setup_erab(uint16_t                                           erab_id,
+                  const asn1::s1ap::erab_level_qos_params_s&         qos_params,
+                  const asn1::unbounded_octstring<true>*             nas_pdu,
+                  const asn1::bounded_bitstring<1, 160, true, true>& addr,
+                  uint32_t                                           gtpu_teid_out,
+                  asn1::s1ap::cause_c&                               cause);
   int  modify_erab(uint16_t                                   erab_id,
                    const asn1::s1ap::erab_level_qos_params_s& qos_params,
                    const asn1::unbounded_octstring<true>*     nas_pdu,
                    asn1::s1ap::cause_c&                       cause);
 
   void notify_s1ap_ue_ctxt_setup_complete();
-  void notify_s1ap_ue_erab_setup_response(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e);
 
   // Getters for PUCCH resources
   int  get_cqi(uint16_t* pmi_idx, uint16_t* n_pucch, uint32_t ue_cc_idx);

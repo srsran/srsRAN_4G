@@ -992,7 +992,7 @@ void rrc::ue::set_bitrates(const asn1::s1ap::ue_aggregate_maximum_bitrate_s& rat
 bool rrc::ue::setup_erabs(const asn1::s1ap::erab_to_be_setup_list_ctxt_su_req_l& e)
 {
   for (const auto& item : e) {
-    auto& erab = item.value.erab_to_be_setup_item_ctxt_su_req();
+    const auto& erab = item.value.erab_to_be_setup_item_ctxt_su_req();
     if (erab.ext) {
       parent->logger.warning("Not handling E-RABToBeSetupListCtxtSURequest extensions");
     }
@@ -1004,7 +1004,7 @@ bool rrc::ue::setup_erabs(const asn1::s1ap::erab_to_be_setup_list_ctxt_su_req_l&
       return false;
     }
 
-    uint32_t teid_out;
+    uint32_t teid_out = 0;
     srsran::uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
     const asn1::unbounded_octstring<true>* nas_pdu = erab.nas_pdu_present ? &erab.nas_pdu : nullptr;
     asn1::s1ap::cause_c                    cause;
@@ -1012,35 +1012,6 @@ bool rrc::ue::setup_erabs(const asn1::s1ap::erab_to_be_setup_list_ctxt_su_req_l&
         erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, nas_pdu, cause);
     bearer_list.add_gtpu_bearer(erab.erab_id);
   }
-  return true;
-}
-
-bool rrc::ue::setup_erabs(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e)
-{
-  for (const auto& item : e) {
-    auto& erab = item.value.erab_to_be_setup_item_bearer_su_req();
-    if (erab.ext) {
-      parent->logger.warning("Not handling E-RABToBeSetupListBearerSUReq extensions");
-    }
-    if (erab.ie_exts_present) {
-      parent->logger.warning("Not handling E-RABToBeSetupListBearerSUReq extensions");
-    }
-    if (erab.transport_layer_address.length() > 32) {
-      parent->logger.error("IPv6 addresses not currently supported");
-      return false;
-    }
-
-    uint32_t teid_out;
-    srsran::uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
-    asn1::s1ap::cause_c cause;
-    bearer_list.add_erab(
-        erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, &erab.nas_pdu, cause);
-    bearer_list.add_gtpu_bearer(erab.erab_id);
-  }
-
-  // Work in progress
-  notify_s1ap_ue_erab_setup_response(e);
-  send_connection_reconf(nullptr, false);
   return true;
 }
 
@@ -1055,41 +1026,45 @@ int rrc::ue::release_erab(uint32_t erab_id)
   return bearer_list.release_erab(erab_id);
 }
 
+int rrc::ue::get_erab_addr_in(uint16_t erab_id, transp_addr_t& addr_in, uint32_t& teid_in) const
+{
+  auto it = bearer_list.get_erabs().find(erab_id);
+  if (it == bearer_list.get_erabs().end()) {
+    parent->logger.error("E-RAB id=%d for rnti=0x%x not found", erab_id, rnti);
+    return SRSRAN_ERROR;
+  }
+  addr_in = it->second.address;
+  teid_in = it->second.teid_in;
+  return SRSRAN_SUCCESS;
+}
+
+int rrc::ue::setup_erab(uint16_t                                           erab_id,
+                        const asn1::s1ap::erab_level_qos_params_s&         qos_params,
+                        const asn1::unbounded_octstring<true>*             nas_pdu,
+                        const asn1::bounded_bitstring<1, 160, true, true>& addr,
+                        uint32_t                                           gtpu_teid_out,
+                        asn1::s1ap::cause_c&                               cause)
+{
+  if (bearer_list.get_erabs().count(erab_id) > 0) {
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::multiple_erab_id_instances;
+    return SRSRAN_ERROR;
+  }
+  if (bearer_list.add_erab(erab_id, qos_params, addr, gtpu_teid_out, nas_pdu, cause) != SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
+  }
+  if (bearer_list.add_gtpu_bearer(erab_id) != SRSRAN_SUCCESS) {
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::radio_res_not_available;
+    return SRSRAN_ERROR;
+  }
+  return SRSRAN_SUCCESS;
+}
+
 int rrc::ue::modify_erab(uint16_t                                   erab_id,
                          const asn1::s1ap::erab_level_qos_params_s& qos_params,
                          const asn1::unbounded_octstring<true>*     nas_pdu,
                          asn1::s1ap::cause_c&                       cause)
 {
   return bearer_list.modify_erab(erab_id, qos_params, nas_pdu, cause);
-}
-
-void rrc::ue::notify_s1ap_ue_erab_setup_response(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e)
-{
-  asn1::s1ap::erab_setup_resp_s res;
-
-  const auto& erabs = bearer_list.get_erabs();
-  for (const auto& erab : e) {
-    uint8_t id = erab.value.erab_to_be_setup_item_bearer_su_req().erab_id;
-    if (erabs.count(id)) {
-      res.protocol_ies.erab_setup_list_bearer_su_res_present = true;
-      res.protocol_ies.erab_setup_list_bearer_su_res.value.push_back({});
-      auto& item = res.protocol_ies.erab_setup_list_bearer_su_res.value.back();
-      item.load_info_obj(ASN1_S1AP_ID_ERAB_SETUP_ITEM_BEARER_SU_RES);
-      item.value.erab_setup_item_bearer_su_res().erab_id = id;
-      srsran::uint32_to_uint8(bearer_list.get_erabs().at(id).teid_in,
-                              &item.value.erab_setup_item_bearer_su_res().gtp_teid[0]);
-    } else {
-      res.protocol_ies.erab_failed_to_setup_list_bearer_su_res_present = true;
-      res.protocol_ies.erab_failed_to_setup_list_bearer_su_res.value.push_back({});
-      auto& item = res.protocol_ies.erab_failed_to_setup_list_bearer_su_res.value.back();
-      item.load_info_obj(ASN1_S1AP_ID_ERAB_ITEM);
-      item.value.erab_item().erab_id = id;
-      item.value.erab_item().cause.set_radio_network().value =
-          asn1::s1ap::cause_radio_network_opts::invalid_qos_combination;
-    }
-  }
-
-  parent->s1ap->ue_erab_setup_complete(rnti, res);
 }
 
 //! Helper method to access Cell configuration based on UE Carrier Index

@@ -57,7 +57,6 @@ public:
   virtual void user_mod(uint16_t old_rnti, uint16_t new_rnti)                                          = 0;
   virtual bool user_release(uint16_t rnti, asn1::s1ap::cause_radio_network_e cause_radio)              = 0;
   virtual void ue_ctxt_setup_complete(uint16_t rnti, const asn1::s1ap::init_context_setup_resp_s& res) = 0;
-  virtual void ue_erab_setup_complete(uint16_t rnti, const asn1::s1ap::erab_setup_resp_s& res)         = 0;
   virtual bool is_mme_connected()                                                                      = 0;
 
   /**

@@ -29,10 +29,22 @@ public:
   virtual void release_ue(uint16_t rnti)                                                         = 0;
   virtual bool setup_ue_ctxt(uint16_t rnti, const asn1::s1ap::init_context_setup_request_s& msg) = 0;
   virtual bool modify_ue_ctxt(uint16_t rnti, const asn1::s1ap::ue_context_mod_request_s& msg)    = 0;
-  virtual bool setup_ue_erabs(uint16_t rnti, const asn1::s1ap::erab_setup_request_s& msg)        = 0;
   virtual bool has_erab(uint16_t rnti, uint32_t erab_id) const                                   = 0;
   virtual bool release_erabs(uint32_t rnti)                                                      = 0;
 
+  virtual int  get_erab_addr_in(uint16_t rnti, uint16_t erab_id, transp_addr_t& addr_in, uint32_t& teid_in) const  = 0;
+  virtual void set_aggregate_max_bitrate(uint16_t rnti, const asn1::s1ap::ue_aggregate_maximum_bitrate_s& bitrate) = 0;
+  /**
+   * TS 36.413, 8.2.1 - Setup E-RAB
+   * @return if error, cause argument is updated with cause
+   */
+  virtual int setup_erab(uint16_t                                   rnti,
+                         uint16_t                                   erab_id,
+                         const asn1::s1ap::erab_level_qos_params_s& qos_params,
+                         const asn1::unbounded_octstring<true>*     nas_pdu,
+                         const transp_addr_t&                       addr,
+                         uint32_t                                   gtpu_teid_out,
+                         asn1::s1ap::cause_c&                       cause) = 0;
   /**
    * TS 36.413, 8.2.2 - Modify E-RAB
    * @return if error, cause argument is updated with cause

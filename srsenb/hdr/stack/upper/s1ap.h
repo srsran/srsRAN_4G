@@ -76,7 +76,6 @@ public:
   void user_mod(uint16_t old_rnti, uint16_t new_rnti) override;
   bool user_release(uint16_t rnti, asn1::s1ap::cause_radio_network_e cause_radio) override;
   void ue_ctxt_setup_complete(uint16_t rnti, const asn1::s1ap::init_context_setup_resp_s& res) override;
-  void ue_erab_setup_complete(uint16_t rnti, const asn1::s1ap::erab_setup_resp_s& res) override;
   bool is_mme_connected() override;
   bool send_ho_required(uint16_t                     rnti,
                         uint32_t                     target_eci,
@@ -246,7 +245,8 @@ private:
                                uint8_t                               mmec   = 0);
     bool send_initial_ctxt_setup_response(const asn1::s1ap::init_context_setup_resp_s& res_);
     bool send_initial_ctxt_setup_failure();
-    bool send_erab_setup_response(const asn1::s1ap::erab_setup_resp_s& res_);
+    bool send_erab_setup_response(srsran::const_span<uint16_t>                erabs_released,
+                                  srsran::const_span<asn1::s1ap::erab_item_s> erabs_failed);
     bool send_erab_release_response(srsran::const_span<uint16_t>                erabs_released,
                                     srsran::const_span<asn1::s1ap::erab_item_s> erabs_failed);
     bool send_erab_modify_response(srsran::const_span<uint16_t>                erabs_modified,
