@@ -40,7 +40,7 @@ public:
 
   bool fill_conn_recfg_no_ho_cmd(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_recfg);
   void handle_ue_meas_report(const asn1::rrc::meas_report_s& msg, srsran::unique_byte_buffer_t pdu);
-  void handle_ho_preparation_complete(bool                         is_success,
+  void handle_ho_preparation_complete(rrc::ho_prep_result          result,
                                       const asn1::s1ap::ho_cmd_s&  msg,
                                       srsran::unique_byte_buffer_t container);
   bool is_ho_running() const { return not is_in_state<idle_st>(); }

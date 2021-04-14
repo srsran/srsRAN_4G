@@ -403,13 +403,19 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
  * @param is_success flag to whether an HandoverCommand or HandoverReject was received
  * @param container RRC container with HandoverCommand to send to UE
  */
-void rrc::ue::rrc_mobility::handle_ho_preparation_complete(bool                         is_success,
+void rrc::ue::rrc_mobility::handle_ho_preparation_complete(rrc::ho_prep_result          result,
                                                            const asn1::s1ap::ho_cmd_s&  msg,
                                                            srsran::unique_byte_buffer_t container)
 {
-  if (not is_success) {
+  if (result == rrc_interface_s1ap::ho_prep_result::failure) {
     logger.info("Received S1AP HandoverFailure. Aborting Handover...");
     trigger(srsran::failure_ev{});
+    return;
+  }
+  if (result == rrc_interface_s1ap::ho_prep_result::timeout) {
+    asn1::s1ap::cause_c cause;
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::ts1relocprep_expiry;
+    trigger(ho_cancel_ev{cause});
     return;
   }
 

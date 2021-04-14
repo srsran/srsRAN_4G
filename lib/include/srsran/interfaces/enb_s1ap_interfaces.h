@@ -34,6 +34,7 @@ struct s1ap_args_t {
 class s1ap_interface_rrc
 {
 public:
+  using failed_erab_list = std::map<uint32_t, asn1::s1ap::cause_c>;
   struct bearer_status_info {
     uint8_t  erab_id;
     uint16_t pdcp_dl_sn, pdcp_ul_sn;

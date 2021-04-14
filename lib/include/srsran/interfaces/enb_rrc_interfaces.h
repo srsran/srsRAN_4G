@@ -23,6 +23,8 @@ namespace srsenb {
 class rrc_interface_s1ap
 {
 public:
+  using failed_erab_list = std::map<uint32_t, asn1::s1ap::cause_c>;
+
   virtual void write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu)                    = 0;
   virtual void release_ue(uint16_t rnti)                                                         = 0;
   virtual bool setup_ue_ctxt(uint16_t rnti, const asn1::s1ap::init_context_setup_request_s& msg) = 0;
@@ -46,8 +48,9 @@ public:
    * @param is_success true if ho cmd was received
    * @param container TargeteNB RRCConnectionReconfiguration message with MobilityControlInfo
    */
+  enum class ho_prep_result { success, failure, timeout };
   virtual void ho_preparation_complete(uint16_t                     rnti,
-                                       bool                         is_success,
+                                       ho_prep_result               result,
                                        const asn1::s1ap::ho_cmd_s&  msg,
                                        srsran::unique_byte_buffer_t container) = 0;
   virtual uint16_t

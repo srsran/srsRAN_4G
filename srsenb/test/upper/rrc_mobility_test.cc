@@ -231,7 +231,7 @@ int test_s1ap_mobility(srsran::log_sink_spy& spy, mobility_test_params test_para
 
   /* Test Case: HandoverPreparation has failed */
   if (test_params.fail_at == mobility_test_params::test_event::ho_prep_failure) {
-    tester.rrc.ho_preparation_complete(tester.rnti, false, {}, nullptr);
+    tester.rrc.ho_preparation_complete(tester.rnti, rrc::ho_prep_result::failure, {}, nullptr);
     //    TESTASSERT(spy.get_error_counter() == 1);
     TESTASSERT(not s1ap.last_enb_status.status_present);
     return SRSRAN_SUCCESS;
@@ -244,7 +244,7 @@ int test_s1ap_mobility(srsran::log_sink_spy& spy, mobility_test_params test_para
                                     0x86, 0x0d, 0x30, 0x00, 0x0b, 0x5a, 0x02, 0x17, 0x86, 0x00, 0x05, 0xa0, 0x20};
   test_helpers::copy_msg_to_buffer(pdu, ho_cmd_rrc_container);
   TESTASSERT(s1ap.last_enb_status.rnti != tester.rnti);
-  tester.rrc.ho_preparation_complete(tester.rnti, true, asn1::s1ap::ho_cmd_s{}, std::move(pdu));
+  tester.rrc.ho_preparation_complete(tester.rnti, rrc::ho_prep_result::success, asn1::s1ap::ho_cmd_s{}, std::move(pdu));
   TESTASSERT(s1ap.last_enb_status.status_present);
   TESTASSERT(spy.get_error_counter() == 0);
   asn1::rrc::dl_dcch_msg_s ho_cmd;

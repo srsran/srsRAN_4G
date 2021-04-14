@@ -916,47 +916,10 @@ void rrc::ue::send_connection_release()
 }
 
 /*
- * UE context
+ * UE Init Context Setup Request
  */
 void rrc::ue::handle_ue_init_ctxt_setup_req(const asn1::s1ap::init_context_setup_request_s& msg)
 {
-  if (msg.protocol_ies.add_cs_fallback_ind_present) {
-    parent->logger.warning("Not handling AdditionalCSFallbackIndicator");
-  }
-  if (msg.protocol_ies.csg_membership_status_present) {
-    parent->logger.warning("Not handling CSGMembershipStatus");
-  }
-  if (msg.protocol_ies.gummei_id_present) {
-    parent->logger.warning("Not handling GUMMEI_ID");
-  }
-  if (msg.protocol_ies.ho_restrict_list_present) {
-    parent->logger.warning("Not handling HandoverRestrictionList");
-  }
-  if (msg.protocol_ies.management_based_mdt_allowed_present) {
-    parent->logger.warning("Not handling ManagementBasedMDTAllowed");
-  }
-  if (msg.protocol_ies.management_based_mdtplmn_list_present) {
-    parent->logger.warning("Not handling ManagementBasedMDTPLMNList");
-  }
-  if (msg.protocol_ies.mme_ue_s1ap_id_minus2_present) {
-    parent->logger.warning("Not handling MME_UE_S1AP_ID_2");
-  }
-  if (msg.protocol_ies.registered_lai_present) {
-    parent->logger.warning("Not handling RegisteredLAI");
-  }
-  if (msg.protocol_ies.srvcc_operation_possible_present) {
-    parent->logger.warning("Not handling SRVCCOperationPossible");
-  }
-  if (msg.protocol_ies.subscriber_profile_idfor_rfp_present) {
-    parent->logger.warning("Not handling SubscriberProfileIDforRFP");
-  }
-  if (msg.protocol_ies.trace_activation_present) {
-    parent->logger.warning("Not handling TraceActivation");
-  }
-  if (msg.protocol_ies.ue_radio_cap_present) {
-    parent->logger.warning("Not handling UERadioCapability");
-  }
-
   set_bitrates(msg.protocol_ies.ueaggregate_maximum_bitrate.value);
   ue_security_cfg.set_security_capabilities(msg.protocol_ies.ue_security_cap.value);
   ue_security_cfg.set_security_key(msg.protocol_ies.security_key.value);
@@ -984,19 +947,6 @@ bool rrc::ue::handle_ue_ctxt_mod_req(const asn1::s1ap::ue_context_mod_request_s&
       /* Remember that we are in a CSFB right now */
       is_csfb = true;
     }
-  }
-
-  if (msg.protocol_ies.add_cs_fallback_ind_present) {
-    parent->logger.warning("Not handling AdditionalCSFallbackIndicator");
-  }
-  if (msg.protocol_ies.csg_membership_status_present) {
-    parent->logger.warning("Not handling CSGMembershipStatus");
-  }
-  if (msg.protocol_ies.registered_lai_present) {
-    parent->logger.warning("Not handling RegisteredLAI");
-  }
-  if (msg.protocol_ies.subscriber_profile_idfor_rfp_present) {
-    parent->logger.warning("Not handling SubscriberProfileIDforRFP");
   }
 
   // UEAggregateMaximumBitrate

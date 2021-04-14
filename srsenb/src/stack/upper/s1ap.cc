@@ -34,9 +34,20 @@ using srsran::uint32_to_uint8;
 #define procWarning(fmt, ...) s1ap_ptr->logger.warning("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
 #define procInfo(fmt, ...) s1ap_ptr->logger.info("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
 
+#define WarnUnsupportFeature(cond, featurename)                                                                        \
+  do {                                                                                                                 \
+    if (cond) {                                                                                                        \
+      logger.warning("Not handling feature - %s", featurename);                                                        \
+    }                                                                                                                  \
+  } while (0)
+
 using namespace asn1::s1ap;
 
 namespace srsenb {
+
+/*************************
+ *    Helper Functions
+ ************************/
 
 asn1::bounded_bitstring<1, 160, true, true> addr_to_asn1(const char* addr_str)
 {
@@ -108,12 +119,6 @@ srsran::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(const asn1::s1ap::ho_cmd_
     procWarning("Not handling HandoverCommand extensions and non-intraLTE params");
   }
 
-  // Check for E-RABs that could not be admitted in the target
-  if (msg.protocol_ies.erab_to_release_list_ho_cmd_present) {
-    procWarning("Not handling E-RABtoReleaseList");
-    // TODO
-  }
-
   // In case of intra-system Handover, Target to Source Transparent Container IE shall be encoded as
   // Target eNB to Source eNB Transparent Container IE
   asn1::cbit_ref bref(msg.protocol_ies.target_to_source_transparent_container.value.data(),
@@ -143,9 +148,13 @@ srsran::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(const asn1::s1ap::ho_cmd_
 void s1ap::ue::ho_prep_proc_t::then(const srsran::proc_state_t& result)
 {
   if (result.is_error()) {
-    s1ap_ptr->rrc->ho_preparation_complete(ue_ptr->ctxt.rnti, false, *ho_cmd_msg, {});
+    rrc_interface_s1ap::ho_prep_result ho_prep_result = ue_ptr->ts1_reloc_prep.is_expired()
+                                                            ? rrc_interface_s1ap::ho_prep_result::timeout
+                                                            : rrc_interface_s1ap::ho_prep_result::failure;
+    s1ap_ptr->rrc->ho_preparation_complete(ue_ptr->ctxt.rnti, ho_prep_result, *ho_cmd_msg, {});
   } else {
-    s1ap_ptr->rrc->ho_preparation_complete(ue_ptr->ctxt.rnti, true, *ho_cmd_msg, std::move(rrc_container));
+    s1ap_ptr->rrc->ho_preparation_complete(
+        ue_ptr->ctxt.rnti, rrc_interface_s1ap::ho_prep_result::success, *ho_cmd_msg, std::move(rrc_container));
     procInfo("Completed with success");
   }
 }
@@ -669,9 +678,21 @@ bool s1ap::handle_dlnastransport(const dl_nas_transport_s& msg)
 
 bool s1ap::handle_initialctxtsetuprequest(const init_context_setup_request_s& msg)
 {
-  if (msg.ext) {
-    logger.warning("Not handling S1AP message extension");
-  }
+  const auto& prot_ies = msg.protocol_ies;
+  WarnUnsupportFeature(msg.ext, "message extension");
+  WarnUnsupportFeature(prot_ies.add_cs_fallback_ind_present, "AdditionalCSFallbackIndicator");
+  WarnUnsupportFeature(prot_ies.csg_membership_status_present, "CSGMembershipStatus");
+  WarnUnsupportFeature(prot_ies.gummei_id_present, "GUMMEI_ID");
+  WarnUnsupportFeature(prot_ies.ho_restrict_list_present, "HandoverRestrictionList");
+  WarnUnsupportFeature(prot_ies.management_based_mdt_allowed_present, "ManagementBasedMDTAllowed");
+  WarnUnsupportFeature(prot_ies.management_based_mdtplmn_list_present, "ManagementBasedMDTPLMNList");
+  WarnUnsupportFeature(prot_ies.mme_ue_s1ap_id_minus2_present, "MME_UE_S1AP_ID_2");
+  WarnUnsupportFeature(prot_ies.registered_lai_present, "RegisteredLAI");
+  WarnUnsupportFeature(prot_ies.srvcc_operation_possible_present, "SRVCCOperationPossible");
+  WarnUnsupportFeature(prot_ies.subscriber_profile_idfor_rfp_present, "SubscriberProfileIDforRFP");
+  WarnUnsupportFeature(prot_ies.trace_activation_present, "TraceActivation");
+  WarnUnsupportFeature(prot_ies.ue_radio_cap_present, "UERadioCapability");
+
   ue* u =
       handle_s1apmsg_ue_id(msg.protocol_ies.enb_ue_s1ap_id.value.value, msg.protocol_ies.mme_ue_s1ap_id.value.value);
   if (u == nullptr) {
@@ -690,7 +711,6 @@ bool s1ap::handle_initialctxtsetuprequest(const init_context_setup_request_s& ms
       // Send RRC Release (cs-fallback-triggered) to MME
       cause_c cause;
       cause.set_radio_network().value = cause_radio_network_opts::cs_fallback_triggered;
-
       /* TODO: This should normally probably only be sent after the SecurityMode procedure has completed! */
       u->send_uectxtreleaserequest(cause);
     }
@@ -701,9 +721,8 @@ bool s1ap::handle_initialctxtsetuprequest(const init_context_setup_request_s& ms
 
 bool s1ap::handle_paging(const asn1::s1ap::paging_s& msg)
 {
-  if (msg.ext) {
-    logger.warning("Not handling S1AP message extension");
-  }
+  WarnUnsupportFeature(msg.ext, "S1AP message extension");
+
   uint32_t ueid = msg.protocol_ies.ue_id_idx_value.value.to_number();
   rrc->add_paging_id(ueid, msg.protocol_ies.ue_paging_id.value);
   return true;
@@ -711,9 +730,8 @@ bool s1ap::handle_paging(const asn1::s1ap::paging_s& msg)
 
 bool s1ap::handle_erabsetuprequest(const erab_setup_request_s& msg)
 {
-  if (msg.ext) {
-    logger.warning("Not handling S1AP message extension");
-  }
+  WarnUnsupportFeature(msg.ext, "S1AP message extension");
+
   ue* u =
       handle_s1apmsg_ue_id(msg.protocol_ies.enb_ue_s1ap_id.value.value, msg.protocol_ies.mme_ue_s1ap_id.value.value);
   if (u == nullptr) {
@@ -873,6 +891,12 @@ bool s1ap::handle_erabreleasecommand(const erab_release_cmd_s& msg)
 
 bool s1ap::handle_uecontextmodifyrequest(const ue_context_mod_request_s& msg)
 {
+  WarnUnsupportFeature(msg.ext, "S1AP message extension");
+  WarnUnsupportFeature(msg.protocol_ies.add_cs_fallback_ind_present, "AdditionalCSFallbackIndicator");
+  WarnUnsupportFeature(msg.protocol_ies.csg_membership_status_present, "CSGMembershipStatus");
+  WarnUnsupportFeature(msg.protocol_ies.registered_lai_present, "RegisteredLAI");
+  WarnUnsupportFeature(msg.protocol_ies.subscriber_profile_idfor_rfp_present, "SubscriberProfileIDforRFP");
+
   ue* u =
       handle_s1apmsg_ue_id(msg.protocol_ies.enb_ue_s1ap_id.value.value, msg.protocol_ies.mme_ue_s1ap_id.value.value);
   if (u == nullptr) {
@@ -906,9 +930,7 @@ bool s1ap::handle_uecontextmodifyrequest(const ue_context_mod_request_s& msg)
 
 bool s1ap::handle_uectxtreleasecommand(const ue_context_release_cmd_s& msg)
 {
-  if (msg.ext) {
-    logger.warning("Not handling S1AP message extension");
-  }
+  WarnUnsupportFeature(msg.ext, "S1AP message extension");
 
   ue* u = nullptr;
   if (msg.protocol_ies.ue_s1ap_ids.value.type().value == ue_s1ap_ids_c::types_opts::ue_s1ap_id_pair) {
@@ -1324,6 +1346,9 @@ bool s1ap::ue::send_uectxtreleasecomplete()
   auto& container                = tx_pdu.successful_outcome().value.ue_context_release_complete().protocol_ies;
   container.enb_ue_s1ap_id.value = ctxt.enb_ue_s1ap_id;
   container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id.value();
+
+  // Stop TS1 Reloc Overall
+  ts1_reloc_overall.stop();
 
   // Log event.
   event_logger::get().log_s1_ctx_delete(ctxt.enb_cc_idx, ctxt.mme_ue_s1ap_id.value(), ctxt.enb_ue_s1ap_id, ctxt.rnti);
@@ -1834,7 +1859,11 @@ s1ap::ue::ue(s1ap* s1ap_ptr_) : s1ap_ptr(s1ap_ptr_), ho_prep_proc(this), logger(
   ts1_reloc_prep.set(ts1_reloc_prep_timeout_ms,
                      [this](uint32_t tid) { ho_prep_proc.trigger(ho_prep_proc_t::ts1_reloc_prep_expired{}); });
   ts1_reloc_overall = s1ap_ptr->task_sched.get_unique_timer();
-  ts1_reloc_overall.set(ts1_reloc_overall_timeout_ms, [](uint32_t tid) { /* TODO */ });
+  ts1_reloc_overall.set(ts1_reloc_overall_timeout_ms, [this](uint32_t tid) {
+    //> If the UE Context Release procedure is not initiated towards the eNB before the expiry of the timer
+    //  TS1RELOCOverall, the eNB shall request the MME to release the UE context.
+    s1ap_ptr->user_release(ctxt.rnti, asn1::s1ap::cause_radio_network_opts::ts1relocoverall_expiry);
+  });
 }
 
 bool s1ap::ue::send_ho_required(uint32_t                     target_eci,

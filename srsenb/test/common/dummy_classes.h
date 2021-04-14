@@ -181,7 +181,7 @@ public:
   {}
   void add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& ue_paging_id) override {}
   void ho_preparation_complete(uint16_t                     rnti,
-                               bool                         is_success,
+                               ho_prep_result               result,
                                const asn1::s1ap::ho_cmd_s&  msg,
                                srsran::unique_byte_buffer_t container) override
   {}
