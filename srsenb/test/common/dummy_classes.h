@@ -104,7 +104,7 @@ public:
   void write_pdu(uint16_t rnti, srsran::unique_byte_buffer_t pdu) override {}
   bool user_exists(uint16_t rnti) override { return true; }
   bool user_release(uint16_t rnti, asn1::s1ap::cause_radio_network_e cause_radio) override { return true; }
-  void ue_ctxt_setup_complete(uint16_t rnti, const asn1::s1ap::init_context_setup_resp_s& res) override {}
+  void ue_ctxt_setup_complete(uint16_t rnti) override {}
   bool is_mme_connected() override { return true; }
   bool send_ho_required(uint16_t                     rnti,
                         uint32_t                     target_eci,
@@ -175,7 +175,7 @@ public:
   int  setup_erab(uint16_t                                           rnti,
                   uint16_t                                           erab_id,
                   const asn1::s1ap::erab_level_qos_params_s&         qos_params,
-                  const asn1::unbounded_octstring<true>*             nas_pdu,
+                  srsran::const_byte_span                            nas_pdu,
                   const asn1::bounded_bitstring<1, 160, true, true>& addr,
                   uint32_t                                           gtpu_teid_out,
                   asn1::s1ap::cause_c&                               cause) override
@@ -185,7 +185,7 @@ public:
   int modify_erab(uint16_t                                   rnti,
                   uint16_t                                   erab_id,
                   const asn1::s1ap::erab_level_qos_params_s& qos_params,
-                  const asn1::unbounded_octstring<true>*     nas_pdu,
+                  srsran::const_byte_span                    nas_pdu,
                   asn1::s1ap::cause_c&                       cause) override
   {
     return SRSRAN_SUCCESS;
@@ -207,10 +207,7 @@ public:
   }
   void set_erab_status(uint16_t rnti, const asn1::s1ap::bearers_subject_to_status_transfer_list_l& erabs) override {}
 
-  int notify_ue_erab_updates(uint16_t rnti, const asn1::unbounded_octstring<true>* nas_pdu) override
-  {
-    return SRSRAN_SUCCESS;
-  }
+  int notify_ue_erab_updates(uint16_t rnti, srsran::const_byte_span nas_pdu) override { return SRSRAN_SUCCESS; }
 };
 
 } // namespace srsenb

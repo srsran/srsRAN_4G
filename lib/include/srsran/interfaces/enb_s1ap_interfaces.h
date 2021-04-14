@@ -52,12 +52,14 @@ public:
                           uint32_t                              m_tmsi,
                           uint8_t                               mmec)                     = 0;
 
-  virtual void write_pdu(uint16_t rnti, srsran::unique_byte_buffer_t pdu)                              = 0;
-  virtual bool user_exists(uint16_t rnti)                                                              = 0;
-  virtual void user_mod(uint16_t old_rnti, uint16_t new_rnti)                                          = 0;
-  virtual bool user_release(uint16_t rnti, asn1::s1ap::cause_radio_network_e cause_radio)              = 0;
-  virtual void ue_ctxt_setup_complete(uint16_t rnti, const asn1::s1ap::init_context_setup_resp_s& res) = 0;
-  virtual bool is_mme_connected()                                                                      = 0;
+  virtual void write_pdu(uint16_t rnti, srsran::unique_byte_buffer_t pdu)                 = 0;
+  virtual bool user_exists(uint16_t rnti)                                                 = 0;
+  virtual void user_mod(uint16_t old_rnti, uint16_t new_rnti)                             = 0;
+  virtual bool user_release(uint16_t rnti, asn1::s1ap::cause_radio_network_e cause_radio) = 0;
+  virtual bool is_mme_connected()                                                         = 0;
+
+  /// TS 36.413, 8.3.1 - Initial Context Setup
+  virtual void ue_ctxt_setup_complete(uint16_t rnti) = 0;
 
   /**
    * Command the s1ap to transmit a HandoverRequired message to MME.

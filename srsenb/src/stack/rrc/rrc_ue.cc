@@ -291,7 +291,7 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
       break;
     case ul_dcch_msg_type_c::c1_c_::types::ue_cap_info:
       if (handle_ue_cap_info(&ul_dcch_msg.msg.c1().ue_cap_info())) {
-        notify_s1ap_ue_ctxt_setup_complete();
+        parent->s1ap->ue_ctxt_setup_complete(rnti);
         send_connection_reconf(std::move(pdu));
         state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
       } else {
@@ -657,9 +657,9 @@ void rrc::ue::send_connection_reest_rej(procedure_result_code cause)
 /*
  * Connection Reconfiguration
  */
-void rrc::ue::send_connection_reconf(srsran::unique_byte_buffer_t           pdu,
-                                     bool                                   phy_cfg_updated,
-                                     const asn1::unbounded_octstring<true>* nas_pdu)
+void rrc::ue::send_connection_reconf(srsran::unique_byte_buffer_t pdu,
+                                     bool                         phy_cfg_updated,
+                                     srsran::const_byte_span      nas_pdu)
 {
   parent->logger.debug("RRC state %d", state);
 
@@ -699,13 +699,13 @@ void rrc::ue::send_connection_reconf(srsran::unique_byte_buffer_t           pdu,
   mac_ctrl.handle_con_reconf(recfg_r8, ue_capabilities);
 
   // Fill in NAS PDU - Only for RRC Connection Reconfiguration during E-RAB Release Command
-  if (nas_pdu != nullptr and nas_pdu->size() > 0 and !recfg_r8.ded_info_nas_list_present) {
+  if (nas_pdu.size() > 0 and !recfg_r8.ded_info_nas_list_present) {
     recfg_r8.ded_info_nas_list_present = true;
     recfg_r8.ded_info_nas_list.resize(recfg_r8.rr_cfg_ded.drb_to_release_list.size());
     // Add NAS PDU
     for (uint32_t idx = 0; idx < recfg_r8.rr_cfg_ded.drb_to_release_list.size(); idx++) {
-      recfg_r8.ded_info_nas_list[idx].resize(nas_pdu->size());
-      memcpy(recfg_r8.ded_info_nas_list[idx].data(), nas_pdu->data(), nas_pdu->size());
+      recfg_r8.ded_info_nas_list[idx].resize(nas_pdu.size());
+      memcpy(recfg_r8.ded_info_nas_list[idx].data(), nas_pdu.data(), nas_pdu.size());
     }
   }
 
@@ -934,9 +934,6 @@ void rrc::ue::handle_ue_init_ctxt_setup_req(const asn1::s1ap::init_context_setup
 
   // Send RRC security mode command
   send_security_mode_command();
-
-  // Setup E-RABs
-  setup_erabs(msg.protocol_ies.erab_to_be_setup_list_ctxt_su_req.value);
 }
 
 bool rrc::ue::handle_ue_ctxt_mod_req(const asn1::s1ap::ue_context_mod_request_s& msg)
@@ -967,23 +964,6 @@ bool rrc::ue::handle_ue_ctxt_mod_req(const asn1::s1ap::ue_context_mod_request_s&
   return true;
 }
 
-void rrc::ue::notify_s1ap_ue_ctxt_setup_complete()
-{
-  asn1::s1ap::init_context_setup_resp_s res;
-
-  res.protocol_ies.erab_setup_list_ctxt_su_res.value.resize(bearer_list.get_erabs().size());
-  uint32_t i = 0;
-  for (const auto& erab : bearer_list.get_erabs()) {
-    res.protocol_ies.erab_setup_list_ctxt_su_res.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_SETUP_ITEM_CTXT_SU_RES);
-    auto& item   = res.protocol_ies.erab_setup_list_ctxt_su_res.value[i].value.erab_setup_item_ctxt_su_res();
-    item.erab_id = erab.second.id;
-    srsran::uint32_to_uint8(erab.second.teid_in, item.gtp_teid.data());
-    i++;
-  }
-
-  parent->s1ap->ue_ctxt_setup_complete(rnti, res);
-}
-
 void rrc::ue::set_bitrates(const asn1::s1ap::ue_aggregate_maximum_bitrate_s& rates)
 {
   bitrates = rates;
@@ -1006,8 +986,11 @@ bool rrc::ue::setup_erabs(const asn1::s1ap::erab_to_be_setup_list_ctxt_su_req_l&
 
     uint32_t teid_out = 0;
     srsran::uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
-    const asn1::unbounded_octstring<true>* nas_pdu = erab.nas_pdu_present ? &erab.nas_pdu : nullptr;
-    asn1::s1ap::cause_c                    cause;
+    srsran::const_span<uint8_t> nas_pdu;
+    if (erab.nas_pdu_present) {
+      nas_pdu = erab.nas_pdu;
+    }
+    asn1::s1ap::cause_c cause;
     bearer_list.add_erab(
         erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, nas_pdu, cause);
     bearer_list.add_gtpu_bearer(erab.erab_id);
@@ -1040,7 +1023,7 @@ int rrc::ue::get_erab_addr_in(uint16_t erab_id, transp_addr_t& addr_in, uint32_t
 
 int rrc::ue::setup_erab(uint16_t                                           erab_id,
                         const asn1::s1ap::erab_level_qos_params_s&         qos_params,
-                        const asn1::unbounded_octstring<true>*             nas_pdu,
+                        srsran::const_span<uint8_t>                        nas_pdu,
                         const asn1::bounded_bitstring<1, 160, true, true>& addr,
                         uint32_t                                           gtpu_teid_out,
                         asn1::s1ap::cause_c&                               cause)
@@ -1061,7 +1044,7 @@ int rrc::ue::setup_erab(uint16_t                                           erab_
 
 int rrc::ue::modify_erab(uint16_t                                   erab_id,
                          const asn1::s1ap::erab_level_qos_params_s& qos_params,
-                         const asn1::unbounded_octstring<true>*     nas_pdu,
+                         srsran::const_span<uint8_t>                nas_pdu,
                          asn1::s1ap::cause_c&                       cause)
 {
   return bearer_list.modify_erab(erab_id, qos_params, nas_pdu, cause);

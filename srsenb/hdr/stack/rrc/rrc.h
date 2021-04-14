@@ -87,14 +87,14 @@ public:
   int      setup_erab(uint16_t                                           rnti,
                       uint16_t                                           erab_id,
                       const asn1::s1ap::erab_level_qos_params_s&         qos_params,
-                      const asn1::unbounded_octstring<true>*             nas_pdu,
+                      srsran::const_span<uint8_t>                        nas_pdu,
                       const asn1::bounded_bitstring<1, 160, true, true>& addr,
                       uint32_t                                           gtpu_teid_out,
                       asn1::s1ap::cause_c&                               cause) override;
   int      modify_erab(uint16_t                                   rnti,
                        uint16_t                                   erab_id,
                        const asn1::s1ap::erab_level_qos_params_s& qos_params,
-                       const asn1::unbounded_octstring<true>*     nas_pdu,
+                       srsran::const_span<uint8_t>                nas_pdu,
                        asn1::s1ap::cause_c&                       cause) override;
   bool     release_erabs(uint32_t rnti) override;
   int      release_erab(uint16_t rnti, uint16_t erab_id) override;
@@ -108,7 +108,7 @@ public:
                                       asn1::s1ap::cause_c& failure_cause) override;
   void     set_erab_status(uint16_t rnti, const asn1::s1ap::bearers_subject_to_status_transfer_list_l& erabs) override;
 
-  int notify_ue_erab_updates(uint16_t rnti, const asn1::unbounded_octstring<true>* nas_pdu) override;
+  int notify_ue_erab_updates(uint16_t rnti, srsran::const_byte_span nas_pdu) override;
 
   // rrc_interface_pdcp
   void write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu) override;

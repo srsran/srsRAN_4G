@@ -98,7 +98,7 @@ int test_erab_setup(srsran::log_sink_spy& spy, bool qci_exists)
     int                 ret = rrc.setup_erab(rnti,
                              erab.erab_id,
                              erab.erab_level_qos_params,
-                             &erab.nas_pdu,
+                             erab.nas_pdu,
                              erab.transport_layer_address,
                              erab.gtp_teid.to_number(),
                              cause);

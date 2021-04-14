@@ -911,7 +911,7 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
   // Check for a forced  DL EARFCN or frequency (only valid for a single cell config (Xico's favorite feature))
   if (rrc_cfg_->cell_list.size() == 1) {
     auto& cfg = rrc_cfg_->cell_list.at(0);
-    if (args_->enb.dl_earfcn > 0) {
+    if (args_->enb.dl_earfcn > 0 and args_->enb.dl_earfcn != cfg.dl_earfcn) {
       cfg.dl_earfcn = args_->enb.dl_earfcn;
       ERROR("Force DL EARFCN for cell PCI=%d to %d", cfg.pci, cfg.dl_earfcn);
     }

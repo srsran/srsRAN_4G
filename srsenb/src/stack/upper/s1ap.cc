@@ -11,7 +11,6 @@
  */
 
 #include "srsenb/hdr/stack/upper/s1ap.h"
-#include "srsenb/hdr/common/common_enb.h"
 #include "srsran/adt/scope_exit.h"
 #include "srsran/common/bcd_helpers.h"
 #include "srsran/common/enb_events.h"
@@ -90,8 +89,7 @@ bool contains_erab_id(srsran::bounded_vector<erab_item_s, ASN1_S1AP_MAXNOOF_ERAB
          }) != failed_cfg_erabs.end();
 }
 
-void sanitize_response_erab_lists(srsran::bounded_vector<erab_item_s, ASN1_S1AP_MAXNOOF_ERABS>& failed_cfg_erabs,
-                                  srsran::bounded_vector<uint16_t, ASN1_S1AP_MAXNOOF_ERABS>&    erabs)
+void sanitize_response_erab_lists(s1ap::erab_item_list& failed_cfg_erabs, s1ap::erab_id_list& erabs)
 {
   // Sort and remove duplicates
   std::sort(failed_cfg_erabs.begin(), failed_cfg_erabs.end(), &lower_obj_id<erab_item_s>);
@@ -99,6 +97,16 @@ void sanitize_response_erab_lists(srsran::bounded_vector<erab_item_s, ASN1_S1AP_
                          failed_cfg_erabs.end());
   std::sort(erabs.begin(), erabs.end());
   erabs.erase(std::unique(erabs.begin(), erabs.end()), erabs.end());
+}
+
+template <typename OutList>
+void fill_erab_failed_setup_list(OutList& output_list, const s1ap::erab_item_list& input_list)
+{
+  output_list.resize(input_list.size());
+  for (size_t i = 0; i < input_list.size(); ++i) {
+    output_list[i].load_info_obj(ASN1_S1AP_ID_ERAB_ITEM);
+    output_list[i].value.erab_item() = input_list[i];
+  }
 }
 
 /*********************************************************
@@ -443,17 +451,13 @@ void s1ap::user_mod(uint16_t old_rnti, uint16_t new_rnti)
   users.find_ue_rnti(old_rnti)->ctxt.rnti = new_rnti;
 }
 
-void s1ap::ue_ctxt_setup_complete(uint16_t rnti, const asn1::s1ap::init_context_setup_resp_s& res)
+void s1ap::ue_ctxt_setup_complete(uint16_t rnti)
 {
   ue* u = users.find_ue_rnti(rnti);
   if (u == nullptr) {
     return;
   }
-  if (res.protocol_ies.erab_setup_list_ctxt_su_res.value.size() > 0) {
-    u->send_initial_ctxt_setup_response(res);
-  } else {
-    u->send_initial_ctxt_setup_failure();
-  }
+  u->ue_ctxt_setup_complete();
 }
 
 bool s1ap::is_mme_connected()
@@ -735,6 +739,44 @@ bool s1ap::handle_initialctxtsetuprequest(const init_context_setup_request_s& ms
     return false;
   }
 
+  // Update E-RABs
+  erab_id_list   updated_erabs;
+  erab_item_list failed_cfg_erabs;
+  add_repeated_erab_ids(prot_ies.erab_to_be_setup_list_ctxt_su_req.value, failed_cfg_erabs);
+
+  for (const auto& item : msg.protocol_ies.erab_to_be_setup_list_ctxt_su_req.value) {
+    const auto& erab = item.value.erab_to_be_setup_item_ctxt_su_req();
+    if (contains_erab_id(failed_cfg_erabs, erab.erab_id)) {
+      // E-RAB is duplicate
+      continue;
+    }
+    WarnUnsupportFeature(erab.ext, "E-RABToBeSetupListBearerSUReq extensions");
+    WarnUnsupportFeature(erab.ie_exts_present, "E-RABToBeSetupListBearerSUReq extensions");
+
+    if (erab.transport_layer_address.length() > 32) {
+      logger.error("IPv6 addresses not currently supported");
+      failed_cfg_erabs.push_back(erab_item_s());
+      failed_cfg_erabs.back().erab_id                         = erab.erab_id;
+      failed_cfg_erabs.back().cause.set_radio_network().value = cause_radio_network_opts::invalid_qos_combination;
+      continue;
+    }
+
+    cause_c cause;
+    if (rrc->setup_erab(u->ctxt.rnti,
+                        erab.erab_id,
+                        erab.erab_level_qos_params,
+                        erab.nas_pdu,
+                        erab.transport_layer_address,
+                        erab.gtp_teid.to_number(),
+                        cause) == SRSRAN_SUCCESS) {
+      updated_erabs.push_back(erab.erab_id);
+    } else {
+      failed_cfg_erabs.push_back(erab_item_s());
+      failed_cfg_erabs.back().erab_id = erab.erab_id;
+      failed_cfg_erabs.back().cause   = cause;
+    }
+  }
+
   /* Ideally the check below would be "if (users[rnti].is_csfb)" */
   if (msg.protocol_ies.cs_fallback_ind_present) {
     if (msg.protocol_ies.cs_fallback_ind.value.value == cs_fallback_ind_opts::cs_fallback_required ||
@@ -747,6 +789,10 @@ bool s1ap::handle_initialctxtsetuprequest(const init_context_setup_request_s& ms
     }
   }
 
+  // E-RAB Setup Response is sent after the security cfg is complete
+  // Note: No need to notify RRC to send RRC Reconfiguration
+  sanitize_response_erab_lists(failed_cfg_erabs, updated_erabs);
+  u->set_state(s1ap_proc_id_t::init_context_setup_request, updated_erabs, failed_cfg_erabs);
   return true;
 }
 
@@ -773,8 +819,8 @@ bool s1ap::handle_erabsetuprequest(const erab_setup_request_s& msg)
     rrc->set_aggregate_max_bitrate(u->ctxt.rnti, msg.protocol_ies.ueaggregate_maximum_bitrate.value);
   }
 
-  failed_cfg_erabs.clear();
-  updated_erabs.clear();
+  erab_id_list   updated_erabs;
+  erab_item_list failed_cfg_erabs;
   add_repeated_erab_ids(msg.protocol_ies.erab_to_be_setup_list_bearer_su_req.value, failed_cfg_erabs);
 
   for (const auto& item : msg.protocol_ies.erab_to_be_setup_list_bearer_su_req.value) {
@@ -798,7 +844,7 @@ bool s1ap::handle_erabsetuprequest(const erab_setup_request_s& msg)
     if (rrc->setup_erab(u->ctxt.rnti,
                         erab.erab_id,
                         erab.erab_level_qos_params,
-                        &erab.nas_pdu,
+                        erab.nas_pdu,
                         erab.transport_layer_address,
                         erab.gtp_teid.to_number(),
                         cause) == SRSRAN_SUCCESS) {
@@ -812,7 +858,7 @@ bool s1ap::handle_erabsetuprequest(const erab_setup_request_s& msg)
 
   // Notify UE of updates
   if (not updated_erabs.empty()) {
-    rrc->notify_ue_erab_updates(u->ctxt.rnti, nullptr);
+    rrc->notify_ue_erab_updates(u->ctxt.rnti, {});
   }
 
   sanitize_response_erab_lists(failed_cfg_erabs, updated_erabs);
@@ -829,8 +875,12 @@ bool s1ap::handle_erabmodifyrequest(const erab_modify_request_s& msg)
     return false;
   }
 
-  failed_cfg_erabs.clear();
-  updated_erabs.clear();
+  if (msg.protocol_ies.ueaggregate_maximum_bitrate_present) {
+    rrc->set_aggregate_max_bitrate(u->ctxt.rnti, msg.protocol_ies.ueaggregate_maximum_bitrate.value);
+  }
+
+  erab_id_list   updated_erabs;
+  erab_item_list failed_cfg_erabs;
   add_repeated_erab_ids(msg.protocol_ies.erab_to_be_modified_list_bearer_mod_req.value, failed_cfg_erabs);
 
   for (const auto& item : msg.protocol_ies.erab_to_be_modified_list_bearer_mod_req.value) {
@@ -843,7 +893,7 @@ bool s1ap::handle_erabmodifyrequest(const erab_modify_request_s& msg)
     WarnUnsupportFeature(erab.ie_exts_present, "E-RABToBeSetupListBearerSUReq extensions");
 
     cause_c cause;
-    if (rrc->modify_erab(u->ctxt.rnti, erab.erab_id, erab.erab_level_qos_params, &erab.nas_pdu, cause) ==
+    if (rrc->modify_erab(u->ctxt.rnti, erab.erab_id, erab.erab_level_qos_params, erab.nas_pdu, cause) ==
         SRSRAN_SUCCESS) {
       updated_erabs.push_back(erab.erab_id);
     } else {
@@ -855,16 +905,12 @@ bool s1ap::handle_erabmodifyrequest(const erab_modify_request_s& msg)
 
   // Notify UE of updates
   if (not updated_erabs.empty()) {
-    rrc->notify_ue_erab_updates(u->ctxt.rnti, nullptr);
+    rrc->notify_ue_erab_updates(u->ctxt.rnti, {});
   }
 
   // send E-RAB modify response back to the mme
   sanitize_response_erab_lists(failed_cfg_erabs, updated_erabs);
-  if (not u->send_erab_modify_response(updated_erabs, failed_cfg_erabs)) {
-    logger.info("failed to send erabreleaseresponse");
-    return false;
-  }
-  return true;
+  return u->send_erab_modify_response(updated_erabs, failed_cfg_erabs);
 }
 
 /**
@@ -884,10 +930,10 @@ bool s1ap::handle_erabreleasecommand(const erab_release_cmd_s& msg)
     return false;
   }
 
-  failed_cfg_erabs.clear();
-  updated_erabs.clear();
+  erab_id_list   updated_erabs;
+  erab_item_list failed_cfg_erabs;
 
-  auto is_repeated_erab_id = [this](uint8_t erab_id) {
+  auto is_repeated_erab_id = [&updated_erabs, &failed_cfg_erabs](uint8_t erab_id) {
     return (std::count(updated_erabs.begin(), updated_erabs.end(), erab_id) > 0) or
            (std::any_of(failed_cfg_erabs.begin(), failed_cfg_erabs.end(), [erab_id](const erab_item_s& e) {
              return e.erab_id == erab_id;
@@ -912,7 +958,7 @@ bool s1ap::handle_erabreleasecommand(const erab_release_cmd_s& msg)
 
   // Notify RRC of E-RAB update. (RRC reconf message is going to be sent.
   if (not updated_erabs.empty()) {
-    rrc->notify_ue_erab_updates(u->ctxt.rnti, nullptr);
+    rrc->notify_ue_erab_updates(u->ctxt.rnti, msg.protocol_ies.nas_pdu.value);
   }
 
   // Send E-RAB release response back to the MME
@@ -970,7 +1016,7 @@ bool s1ap::handle_uectxtreleasecommand(const ue_context_release_cmd_s& msg)
 
   ue* u = nullptr;
   if (msg.protocol_ies.ue_s1ap_ids.value.type().value == ue_s1ap_ids_c::types_opts::ue_s1ap_id_pair) {
-    auto& idpair = msg.protocol_ies.ue_s1ap_ids.value.ue_s1ap_id_pair();
+    const auto& idpair = msg.protocol_ies.ue_s1ap_ids.value.ue_s1ap_id_pair();
 
     if (idpair.ext) {
       logger.warning("Not handling S1AP message extension");
@@ -1392,42 +1438,59 @@ bool s1ap::ue::send_uectxtreleasecomplete()
   return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "UEContextReleaseComplete");
 }
 
-bool s1ap::ue::send_initial_ctxt_setup_response(const asn1::s1ap::init_context_setup_resp_s& res_)
+void s1ap::ue::ue_ctxt_setup_complete()
 {
-  if (not s1ap_ptr->mme_connected) {
-    return false;
+  if (current_state != s1ap_elem_procs_o::init_msg_c::types_opts::init_context_setup_request) {
+    logger.warning("Procedure %s,rnti=0x%x - Received unexpected complete notification",
+                   s1ap_elem_procs_o::init_msg_c::types_opts{current_state}.to_string().c_str(),
+                   ctxt.rnti);
+    return;
   }
+  current_state = s1ap_elem_procs_o::init_msg_c::types_opts::nulltype;
 
   s1ap_pdu_c tx_pdu;
-  tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_INIT_CONTEXT_SETUP);
+  if (updated_erabs.empty()) {
+    // It is ICS Failure
+    tx_pdu.set_unsuccessful_outcome().load_info_obj(ASN1_S1AP_ID_INIT_CONTEXT_SETUP);
+    auto& container = tx_pdu.unsuccessful_outcome().value.init_context_setup_fail().protocol_ies;
 
-  // Copy in the provided response message
-  tx_pdu.successful_outcome().value.init_context_setup_resp() = res_;
+    container.enb_ue_s1ap_id.value = ctxt.enb_ue_s1ap_id;
+    container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id.value();
+    container.cause.value          = failed_cfg_erabs.front().cause;
+    s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "UEContextModificationFailure");
+    return;
+  }
+
+  // It is ICS Response
+  tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_INIT_CONTEXT_SETUP);
+  auto& container = tx_pdu.successful_outcome().value.init_context_setup_resp().protocol_ies;
 
   // Fill in the MME and eNB IDs
-  auto& container                = tx_pdu.successful_outcome().value.init_context_setup_resp().protocol_ies;
   container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id.value();
   container.enb_ue_s1ap_id.value = ctxt.enb_ue_s1ap_id;
 
-  // Fill in the GTP bind address for all bearers
-  for (uint32_t i = 0; i < container.erab_setup_list_ctxt_su_res.value.size(); ++i) {
-    auto& item = container.erab_setup_list_ctxt_su_res.value[i].value.erab_setup_item_ctxt_su_res();
-    item.transport_layer_address.resize(32);
-    uint8_t addr[4];
-    inet_pton(AF_INET, s1ap_ptr->args.gtp_bind_addr.c_str(), addr);
-    for (uint32_t j = 0; j < 4; ++j) {
-      item.transport_layer_address.data()[j] = addr[3 - j];
-    }
+  // Add list of E-RABs that were not setup
+  if (not failed_cfg_erabs.empty()) {
+    container.erab_failed_to_setup_list_ctxt_su_res_present = true;
+    fill_erab_failed_setup_list(container.erab_failed_to_setup_list_ctxt_su_res.value, failed_cfg_erabs);
+  }
+
+  // Add setup E-RABs
+  container.erab_setup_list_ctxt_su_res.value.resize(updated_erabs.size());
+  for (size_t i = 0; i < updated_erabs.size(); ++i) {
+    container.erab_setup_list_ctxt_su_res.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_SETUP_ITEM_CTXT_SU_RES);
+    auto& item   = container.erab_setup_list_ctxt_su_res.value[i].value.erab_setup_item_ctxt_su_res();
+    item.erab_id = updated_erabs[i];
+    get_erab_addr(item.erab_id, item.transport_layer_address, item.gtp_teid);
   }
 
   // Log event.
   event_logger::get().log_s1_ctx_create(ctxt.enb_cc_idx, ctxt.mme_ue_s1ap_id.value(), ctxt.enb_ue_s1ap_id, ctxt.rnti);
 
-  return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "InitialContextSetupResponse");
+  s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "E-RABSetupResponse");
 }
 
-bool s1ap::ue::send_erab_setup_response(srsran::const_span<uint16_t>                erabs_setup,
-                                        srsran::const_span<asn1::s1ap::erab_item_s> erabs_failed)
+bool s1ap::ue::send_erab_setup_response(const erab_id_list& erabs_setup, const erab_item_list& erabs_failed)
 {
   asn1::s1ap::s1ap_pdu_c tx_pdu;
   tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_ERAB_SETUP);
@@ -1440,11 +1503,7 @@ bool s1ap::ue::send_erab_setup_response(srsran::const_span<uint16_t>            
   // Add list of E-RABs that were not setup
   if (not erabs_failed.empty()) {
     res.protocol_ies.erab_failed_to_setup_list_bearer_su_res_present = true;
-    res.protocol_ies.erab_failed_to_setup_list_bearer_su_res.value.resize(erabs_failed.size());
-    for (size_t i = 0; i < erabs_failed.size(); ++i) {
-      res.protocol_ies.erab_failed_to_setup_list_bearer_su_res.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_ITEM);
-      res.protocol_ies.erab_failed_to_setup_list_bearer_su_res.value[i].value.erab_item() = erabs_failed[i];
-    }
+    fill_erab_failed_setup_list(res.protocol_ies.erab_failed_to_setup_list_bearer_su_res.value, erabs_failed);
   }
 
   if (not erabs_setup.empty()) {
@@ -1454,44 +1513,11 @@ bool s1ap::ue::send_erab_setup_response(srsran::const_span<uint16_t>            
       res.protocol_ies.erab_setup_list_bearer_su_res.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_SETUP_ITEM_BEARER_SU_RES);
       auto& item   = res.protocol_ies.erab_setup_list_bearer_su_res.value[i].value.erab_setup_item_bearer_su_res();
       item.erab_id = erabs_setup[i];
-      uint32_t teid_in;
-      int      ret = s1ap_ptr->rrc->get_erab_addr_in(ctxt.rnti, item.erab_id, item.transport_layer_address, teid_in);
-      srsran_expect(ret == SRSRAN_SUCCESS, "Invalid E-RAB setup");
-      item.gtp_teid.from_number(teid_in);
-    }
-  }
-
-  // Fill in the GTP bind address for all bearers
-  if (res.protocol_ies.erab_setup_list_bearer_su_res_present) {
-    for (uint32_t i = 0; i < res.protocol_ies.erab_setup_list_bearer_su_res.value.size(); ++i) {
-      auto& item = res.protocol_ies.erab_setup_list_bearer_su_res.value[i].value.erab_setup_item_bearer_su_res();
-      item.transport_layer_address.resize(32);
-      uint8_t addr[4];
-      inet_pton(AF_INET, s1ap_ptr->args.gtp_bind_addr.c_str(), addr);
-      for (uint32_t j = 0; j < 4; ++j) {
-        item.transport_layer_address.data()[j] = addr[3 - j];
-      }
+      get_erab_addr(item.erab_id, item.transport_layer_address, item.gtp_teid);
     }
   }
 
   return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "E_RABSetupResponse");
-}
-
-bool s1ap::ue::send_initial_ctxt_setup_failure()
-{
-  if (not s1ap_ptr->mme_connected) {
-    return false;
-  }
-
-  s1ap_pdu_c tx_pdu;
-  tx_pdu.set_unsuccessful_outcome().load_info_obj(ASN1_S1AP_ID_INIT_CONTEXT_SETUP);
-  auto& container = tx_pdu.unsuccessful_outcome().value.init_context_setup_fail().protocol_ies;
-
-  container.enb_ue_s1ap_id.value                  = ctxt.enb_ue_s1ap_id;
-  container.mme_ue_s1ap_id.value                  = ctxt.mme_ue_s1ap_id.value();
-  container.cause.value.set_radio_network().value = cause_radio_network_opts::unspecified;
-
-  return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "InitialContextSetupFailure");
 }
 
 bool s1ap::ue::send_uectxtmodifyresp()
@@ -1534,8 +1560,7 @@ bool s1ap::ue::send_uectxtmodifyfailure(const cause_c& cause)
  * @param erabs_failed_to_release
  * @return true if message was sent
  */
-bool s1ap::ue::send_erab_release_response(srsran::const_span<uint16_t>                erabs_released,
-                                          srsran::const_span<asn1::s1ap::erab_item_s> erabs_failed)
+bool s1ap::ue::send_erab_release_response(const erab_id_list& erabs_released, const erab_item_list& erabs_failed)
 {
   asn1::s1ap::s1ap_pdu_c tx_pdu;
   tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_ERAB_RELEASE);
@@ -1559,18 +1584,13 @@ bool s1ap::ue::send_erab_release_response(srsran::const_span<uint16_t>          
   // Fill in which E-RABs were *not* successfully released
   if (not erabs_failed.empty()) {
     container.erab_failed_to_release_list_present = true;
-    container.erab_failed_to_release_list.value.resize(erabs_failed.size());
-    for (size_t i = 0; i < erabs_failed.size(); ++i) {
-      container.erab_failed_to_release_list.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_ITEM);
-      container.erab_failed_to_release_list.value[i].value.erab_item() = erabs_failed[i];
-    }
+    fill_erab_failed_setup_list(container.erab_failed_to_release_list.value, erabs_failed);
   }
 
   return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "E-RABReleaseResponse");
 }
 
-bool s1ap::ue::send_erab_modify_response(srsran::const_span<uint16_t>    erabs_modified,
-                                         srsran::const_span<erab_item_s> erabs_failed_to_modify)
+bool s1ap::ue::send_erab_modify_response(const erab_id_list& erabs_modified, const erab_item_list& erabs_failed)
 {
   asn1::s1ap::s1ap_pdu_c tx_pdu;
   tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_ERAB_MODIFY);
@@ -1591,13 +1611,9 @@ bool s1ap::ue::send_erab_modify_response(srsran::const_span<uint16_t>    erabs_m
   }
 
   // Fill in which E-RABs were *not* successfully released
-  if (not erabs_failed_to_modify.empty()) {
+  if (not erabs_failed.empty()) {
     container.erab_failed_to_modify_list_present = true;
-    container.erab_failed_to_modify_list.value.resize(erabs_failed_to_modify.size());
-    for (uint32_t i = 0; i < container.erab_failed_to_modify_list.value.size(); i++) {
-      container.erab_failed_to_modify_list.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_ITEM);
-      container.erab_failed_to_modify_list.value[i].value.erab_item() = erabs_failed_to_modify[i];
-    }
+    fill_erab_failed_setup_list(container.erab_failed_to_modify_list.value, erabs_failed);
   }
 
   return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "E-RABModifyResponse");
@@ -1640,6 +1656,30 @@ bool s1ap::ue::send_ue_cap_info_indication(srsran::unique_byte_buffer_t ue_radio
   memcpy(container.ue_radio_cap.value.data(), ue_radio_cap->msg, ue_radio_cap->N_bytes);
 
   return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "UECapabilityInfoIndication");
+}
+
+void s1ap::ue::set_state(s1ap_proc_id_t        next_state,
+                         const erab_id_list&   erabs_updated,
+                         const erab_item_list& erabs_failed_to_modify)
+{
+  current_state = next_state;
+  updated_erabs.assign(erabs_updated.begin(), erabs_updated.end());
+  failed_cfg_erabs.assign(erabs_failed_to_modify.begin(), erabs_failed_to_modify.end());
+}
+
+void s1ap::ue::get_erab_addr(uint16_t erab_id, transp_addr_t& transp_addr, asn1::fixed_octstring<4, true>& gtpu_teid_id)
+{
+  uint32_t teidin = 0;
+  int      ret    = s1ap_ptr->rrc->get_erab_addr_in(ctxt.rnti, erab_id, transp_addr, teidin);
+  srsran_expect(ret == SRSRAN_SUCCESS, "Invalid E-RAB setup");
+  // Note: RRC does not yet update correctly gtpu transp_addr
+  transp_addr.resize(32);
+  uint8_t addr[4];
+  inet_pton(AF_INET, s1ap_ptr->args.gtp_bind_addr.c_str(), addr);
+  for (uint32_t j = 0; j < 4; ++j) {
+    transp_addr.data()[j] = addr[3 - j];
+  }
+  gtpu_teid_id.from_number(teidin);
 }
 
 /*********************

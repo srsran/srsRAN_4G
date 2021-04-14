@@ -34,14 +34,15 @@ public:
 
   virtual int  get_erab_addr_in(uint16_t rnti, uint16_t erab_id, transp_addr_t& addr_in, uint32_t& teid_in) const  = 0;
   virtual void set_aggregate_max_bitrate(uint16_t rnti, const asn1::s1ap::ue_aggregate_maximum_bitrate_s& bitrate) = 0;
+
   /**
-   * TS 36.413, 8.2.1 - Setup E-RAB
+   * TS 36.413, 8.2.1 and 8.3.1 - Setup E-RAB / Initial Context Setup
    * @return if error, cause argument is updated with cause
    */
   virtual int setup_erab(uint16_t                                   rnti,
                          uint16_t                                   erab_id,
                          const asn1::s1ap::erab_level_qos_params_s& qos_params,
-                         const asn1::unbounded_octstring<true>*     nas_pdu,
+                         srsran::const_span<uint8_t>                nas_pdu,
                          const transp_addr_t&                       addr,
                          uint32_t                                   gtpu_teid_out,
                          asn1::s1ap::cause_c&                       cause) = 0;
@@ -52,17 +53,18 @@ public:
   virtual int modify_erab(uint16_t                                   rnti,
                           uint16_t                                   erab_id,
                           const asn1::s1ap::erab_level_qos_params_s& qos_params,
-                          const asn1::unbounded_octstring<true>*     nas_pdu,
+                          srsran::const_span<uint8_t>                nas_pdu,
                           asn1::s1ap::cause_c&                       cause) = 0;
   /**
    * TS 36.413, 8.2.3 - Release E-RAB id
    * @return error if E-RAB id or rnti were not found
    */
-  virtual int  release_erab(uint16_t rnti, uint16_t erab_id)                                = 0;
+  virtual int release_erab(uint16_t rnti, uint16_t erab_id) = 0;
+
   virtual void add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& ue_paging_id) = 0;
 
-  /// Notify UE of ERAB updates (done via RRC Reconfiguration Message)
-  virtual int notify_ue_erab_updates(uint16_t rnti, const asn1::unbounded_octstring<true>* nas_pdu) = 0;
+  /// TS 36.413, 8.2.1, 8.2.2, 8.2.3 - Notify UE of ERAB updates (done via RRC Reconfiguration Message)
+  virtual int notify_ue_erab_updates(uint16_t rnti, srsran::const_span<uint8_t> nas_pdu) = 0;
 
   /**
    * Reports the reception of S1 HandoverCommand / HandoverPreparationFailure or abnormal conditions during

@@ -300,7 +300,6 @@ bool rrc::setup_ue_ctxt(uint16_t rnti, const asn1::s1ap::init_context_setup_requ
 {
   logger.info("Adding initial context for 0x%x", rnti);
   auto user_it = users.find(rnti);
-
   if (user_it == users.end()) {
     logger.warning("Unrecognised rnti: 0x%x", rnti);
     return false;
@@ -350,7 +349,7 @@ int rrc::release_erab(uint16_t rnti, uint16_t erab_id)
   return user_it->second->release_erab(erab_id);
 }
 
-int rrc::notify_ue_erab_updates(uint16_t rnti, const asn1::unbounded_octstring<true>* nas_pdu)
+int rrc::notify_ue_erab_updates(uint16_t rnti, srsran::const_byte_span nas_pdu)
 {
   auto user_it = users.find(rnti);
   if (user_it == users.end()) {
@@ -394,7 +393,7 @@ void rrc::set_aggregate_max_bitrate(uint16_t rnti, const asn1::s1ap::ue_aggregat
 int rrc::setup_erab(uint16_t                                           rnti,
                     uint16_t                                           erab_id,
                     const asn1::s1ap::erab_level_qos_params_s&         qos_params,
-                    const asn1::unbounded_octstring<true>*             nas_pdu,
+                    srsran::const_span<uint8_t>                        nas_pdu,
                     const asn1::bounded_bitstring<1, 160, true, true>& addr,
                     uint32_t                                           gtpu_teid_out,
                     asn1::s1ap::cause_c&                               cause)
@@ -412,7 +411,7 @@ int rrc::setup_erab(uint16_t                                           rnti,
 int rrc::modify_erab(uint16_t                                   rnti,
                      uint16_t                                   erab_id,
                      const asn1::s1ap::erab_level_qos_params_s& qos_params,
-                     const asn1::unbounded_octstring<true>*     nas_pdu,
+                     srsran::const_span<uint8_t>                nas_pdu,
                      asn1::s1ap::cause_c&                       cause)
 {
   logger.info("Modifying E-RAB for 0x%x. E-RAB Id %d", rnti, erab_id);

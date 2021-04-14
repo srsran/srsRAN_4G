@@ -206,7 +206,7 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
                                  const asn1::s1ap::erab_level_qos_params_s&         qos,
                                  const asn1::bounded_bitstring<1, 160, true, true>& addr,
                                  uint32_t                                           teid_out,
-                                 const asn1::unbounded_octstring<true>*             nas_pdu,
+                                 srsran::const_span<uint8_t>                        nas_pdu,
                                  asn1::s1ap::cause_c&                               cause)
 {
   if (erab_id < 5) {
@@ -266,8 +266,8 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
     return SRSRAN_ERROR;
   }
 
-  if (nas_pdu != nullptr and nas_pdu->size() > 0) {
-    erab_info_list[erab_id].assign(nas_pdu->data(), nas_pdu->data() + nas_pdu->size());
+  if (not nas_pdu.empty()) {
+    erab_info_list[erab_id].assign(nas_pdu.begin(), nas_pdu.end());
     logger->info(
         &erab_info_list[erab_id][0], erab_info_list[erab_id].size(), "setup_erab nas_pdu -> erab_info rnti 0x%x", rnti);
   }
@@ -319,7 +319,7 @@ void bearer_cfg_handler::release_erabs()
 
 int bearer_cfg_handler::modify_erab(uint8_t                                    erab_id,
                                     const asn1::s1ap::erab_level_qos_params_s& qos,
-                                    const asn1::unbounded_octstring<true>*     nas_pdu,
+                                    srsran::const_span<uint8_t>                nas_pdu,
                                     asn1::s1ap::cause_c&                       cause)
 {
   logger->info("Modifying E-RAB %d", erab_id);

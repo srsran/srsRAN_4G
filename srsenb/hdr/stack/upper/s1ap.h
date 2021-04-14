@@ -49,7 +49,12 @@ struct ue_ctxt_t {
 
 class s1ap : public s1ap_interface_rrc
 {
+  using s1ap_proc_id_t = asn1::s1ap::s1ap_elem_procs_o::init_msg_c::types_opts::options;
+
 public:
+  using erab_id_list   = srsran::bounded_vector<uint16_t, ASN1_S1AP_MAXNOOF_ERABS>;
+  using erab_item_list = srsran::bounded_vector<asn1::s1ap::erab_item_s, ASN1_S1AP_MAXNOOF_ERABS>;
+
   static const uint32_t ts1_reloc_prep_timeout_ms    = 10000;
   static const uint32_t ts1_reloc_overall_timeout_ms = 10000;
 
@@ -75,7 +80,7 @@ public:
   bool user_exists(uint16_t rnti) override;
   void user_mod(uint16_t old_rnti, uint16_t new_rnti) override;
   bool user_release(uint16_t rnti, asn1::s1ap::cause_radio_network_e cause_radio) override;
-  void ue_ctxt_setup_complete(uint16_t rnti, const asn1::s1ap::init_context_setup_resp_s& res) override;
+  void ue_ctxt_setup_complete(uint16_t rnti) override;
   bool is_mme_connected() override;
   bool send_ho_required(uint16_t                     rnti,
                         uint32_t                     target_eci,
@@ -139,10 +144,6 @@ private:
   srsran::s1ap_pcap* pcap = nullptr;
 
   asn1::s1ap::s1_setup_resp_s s1setupresponse;
-
-  // Procedure state
-  srsran::bounded_vector<uint16_t, ASN1_S1AP_MAXNOOF_ERABS>                updated_erabs;
-  srsran::bounded_vector<asn1::s1ap::erab_item_s, ASN1_S1AP_MAXNOOF_ERABS> failed_cfg_erabs;
 
   void build_tai_cgi();
   bool connect_mme();
@@ -243,18 +244,17 @@ private:
                                bool                                  has_tmsi,
                                uint32_t                              m_tmsi = 0,
                                uint8_t                               mmec   = 0);
-    bool send_initial_ctxt_setup_response(const asn1::s1ap::init_context_setup_resp_s& res_);
-    bool send_initial_ctxt_setup_failure();
-    bool send_erab_setup_response(srsran::const_span<uint16_t>                erabs_released,
-                                  srsran::const_span<asn1::s1ap::erab_item_s> erabs_failed);
-    bool send_erab_release_response(srsran::const_span<uint16_t>                erabs_released,
-                                    srsran::const_span<asn1::s1ap::erab_item_s> erabs_failed);
-    bool send_erab_modify_response(srsran::const_span<uint16_t>                erabs_modified,
-                                   srsran::const_span<asn1::s1ap::erab_item_s> erabs_failed_to_modify);
+    void ue_ctxt_setup_complete();
+    bool send_erab_setup_response(const erab_id_list& erabs_setup, const erab_item_list& erabs_failed);
+    bool send_erab_release_response(const erab_id_list& erabs_released, const erab_item_list& erabs_failed);
+    bool send_erab_modify_response(const erab_id_list& erabs_modified, const erab_item_list& erabs_failed);
     bool send_erab_release_indication(const std::vector<uint16_t>& erabs_successfully_released);
     bool send_ue_cap_info_indication(srsran::unique_byte_buffer_t ue_radio_cap);
 
     bool was_uectxtrelease_requested() const { return release_requested; }
+
+    void
+    set_state(s1ap_proc_id_t state, const erab_id_list& erabs_updated, const erab_item_list& erabs_failed_to_update);
 
     ue_ctxt_t ctxt      = {};
     uint16_t  stream_id = 1;
@@ -264,7 +264,7 @@ private:
                           srsran::plmn_id_t            target_plmn_,
                           srsran::span<uint32_t>       fwd_erabs,
                           srsran::unique_byte_buffer_t rrc_container);
-    //! TS 36.413, Section 8.4.6 - eNB Status Transfer procedure
+    void get_erab_addr(uint16_t erab_id, transp_addr_t& transp_addr, asn1::fixed_octstring<4, true>& gtpu_teid_id);
 
     // args
     s1ap*                 s1ap_ptr;
@@ -274,6 +274,11 @@ private:
     bool                 release_requested = false;
     srsran::unique_timer ts1_reloc_prep;    ///< TS1_{RELOCprep} - max time for HO preparation
     srsran::unique_timer ts1_reloc_overall; ///< TS1_{RELOCOverall}
+
+    // Procedure state
+    s1ap_proc_id_t                                                           current_state;
+    erab_id_list                                                             updated_erabs;
+    srsran::bounded_vector<asn1::s1ap::erab_item_s, ASN1_S1AP_MAXNOOF_ERABS> failed_cfg_erabs;
 
   public:
     // user procedures

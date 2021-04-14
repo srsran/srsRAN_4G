@@ -69,9 +69,9 @@ public:
   void send_connection_reject(procedure_result_code cause);
   void send_connection_release();
   void send_connection_reest_rej(procedure_result_code cause);
-  void send_connection_reconf(srsran::unique_byte_buffer_t           sdu             = {},
-                              bool                                   phy_cfg_updated = true,
-                              const asn1::unbounded_octstring<true>* nas_pdu         = nullptr);
+  void send_connection_reconf(srsran::unique_byte_buffer_t sdu             = {},
+                              bool                         phy_cfg_updated = true,
+                              srsran::const_byte_span      nas_pdu         = {});
   void send_security_mode_command();
   void send_ue_cap_enquiry();
   void send_ue_info_req();
@@ -116,16 +116,14 @@ public:
   int  release_erab(uint32_t erab_id);
   int  setup_erab(uint16_t                                           erab_id,
                   const asn1::s1ap::erab_level_qos_params_s&         qos_params,
-                  const asn1::unbounded_octstring<true>*             nas_pdu,
+                  srsran::const_span<uint8_t>                        nas_pdu,
                   const asn1::bounded_bitstring<1, 160, true, true>& addr,
                   uint32_t                                           gtpu_teid_out,
                   asn1::s1ap::cause_c&                               cause);
   int  modify_erab(uint16_t                                   erab_id,
                    const asn1::s1ap::erab_level_qos_params_s& qos_params,
-                   const asn1::unbounded_octstring<true>*     nas_pdu,
+                   srsran::const_span<uint8_t>                nas_pdu,
                    asn1::s1ap::cause_c&                       cause);
-
-  void notify_s1ap_ue_ctxt_setup_complete();
 
   // Getters for PUCCH resources
   int  get_cqi(uint16_t* pmi_idx, uint16_t* n_pucch, uint32_t ue_cc_idx);

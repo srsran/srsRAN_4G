@@ -94,7 +94,7 @@ struct rrc_tester : public rrc_dummy {
   int modify_erab(uint16_t                                   rnti,
                   uint16_t                                   erab_id,
                   const asn1::s1ap::erab_level_qos_params_s& qos_params,
-                  const asn1::unbounded_octstring<true>*     nas_pdu,
+                  srsran::const_byte_span                    nas_pdu,
                   asn1::s1ap::cause_c&                       cause) override
   {
     if (std::count(next_erabs_failed_to_modify.begin(), next_erabs_failed_to_modify.end(), erab_id) > 0) {
@@ -184,13 +184,16 @@ void add_rnti(s1ap& s1ap_obj, mme_dummy& mme)
                        0x40, 0x0a, 0x0a, 0x1f, 0x7f, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x01};
   cbref             = asn1::cbit_ref(icsresp, sizeof(icsresp));
   TESTASSERT(s1ap_pdu.unpack(cbref) == SRSRAN_SUCCESS);
-  s1ap_obj.ue_ctxt_setup_complete(0x46, s1ap_pdu.successful_outcome().value.init_context_setup_resp());
+  s1ap_obj.ue_ctxt_setup_complete(0x46);
   sdu = mme.read_msg();
   TESTASSERT(sdu->N_bytes > 0);
   cbref = asn1::cbit_ref{sdu->msg, sdu->N_bytes};
   TESTASSERT(s1ap_pdu.unpack(cbref) == SRSRAN_SUCCESS);
   TESTASSERT(s1ap_pdu.type().value == asn1::s1ap::s1ap_pdu_c::types_opts::successful_outcome);
   TESTASSERT(s1ap_pdu.successful_outcome().proc_code == ASN1_S1AP_ID_INIT_CONTEXT_SETUP);
+  const auto& resp = s1ap_pdu.successful_outcome().value.init_context_setup_resp().protocol_ies;
+  TESTASSERT(resp.erab_setup_list_ctxt_su_res.value.size() > 0);
+  TESTASSERT(not resp.erab_failed_to_setup_list_ctxt_su_res_present);
 }
 
 enum class test_event { success, wrong_erabid_mod, wrong_mme_s1ap_id, repeated_erabid_mod };

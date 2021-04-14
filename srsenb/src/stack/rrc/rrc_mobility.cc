@@ -905,7 +905,7 @@ bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&      
     srsran::uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
     asn1::s1ap::cause_c erab_cause;
     if (rrc_ue->bearer_list.add_erab(
-            erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, nullptr, erab_cause) !=
+            erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, {}, erab_cause) !=
         SRSRAN_SUCCESS) {
       erabs_failed_to_setup.emplace_back();
       erabs_failed_to_setup.back().erab_id = erab.erab_id;
