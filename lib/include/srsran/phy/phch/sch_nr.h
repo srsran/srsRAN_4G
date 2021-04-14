@@ -60,9 +60,10 @@ typedef struct SRSRAN_API {
  * @brief SCH encoder and decoder initialization arguments
  */
 typedef struct SRSRAN_API {
-  bool  disable_simd;
-  bool  decoder_use_flooded;
-  float decoder_scaling_factor;
+  bool     disable_simd;
+  bool     decoder_use_flooded;
+  float    decoder_scaling_factor;
+  uint32_t max_nof_iter; ///< Maximum number of LDPC iterations
 } srsran_sch_nr_args_t;
 
 /**

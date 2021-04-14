@@ -30,7 +30,106 @@
 #include "srsran/phy/utils/debug.h"
 #include "srsran/phy/utils/vector.h"
 
-#define MAX_ITERATIONS 10 /*!< \brief Iterations of the BP algorithm. */
+#define LDPC_DECODER_DEFAULT_MAX_NOF_ITER 10 /*!< \brief Default maximum number of iterations of the BP algorithm. */
+
+#define LDPC_DECODER_TEMPLATE(LLR_TYPE, SUFFIX)                                                                        \
+  static int decode_##SUFFIX(                                                                                          \
+      void* o, const LLR_TYPE* llrs, uint8_t* message, uint32_t cdwd_rm_length, srsran_crc_t* crc)                     \
+  {                                                                                                                    \
+    srsran_ldpc_decoder_t* q = o;                                                                                      \
+                                                                                                                       \
+    /* it must be smaller than the codeword size */                                                                    \
+    if (cdwd_rm_length > q->liftN - 2 * q->ls) {                                                                       \
+      cdwd_rm_length = q->liftN - 2 * q->ls;                                                                           \
+    }                                                                                                                  \
+    /* We need at least q->bgK + 4 variable nodes to cover the high-rate region. However,*/                            \
+    /* 2 variable nodes are systematically punctured by the encoder. */                                                \
+    if (cdwd_rm_length < (q->bgK + 2) * q->ls) {                                                                       \
+      /* ERROR("The rate-matched codeword should have a length at least equal to the high-rate region.");*/            \
+      cdwd_rm_length = (q->bgK + 2) * q->ls;                                                                           \
+      /* return -1;*/                                                                                                  \
+    }                                                                                                                  \
+    if (cdwd_rm_length % q->ls) {                                                                                      \
+      cdwd_rm_length = (cdwd_rm_length / q->ls + 1) * q->ls;                                                           \
+      /* ERROR("The rate-matched codeword length should be a multiple of the lifting size."); */                       \
+      /* return -1;*/                                                                                                  \
+    }                                                                                                                  \
+    init_ldpc_dec_##SUFFIX(q->ptr, llrs, q->ls);                                                                       \
+                                                                                                                       \
+    uint16_t* this_pcm                   = NULL;                                                                       \
+    int8_t(*these_var_indices)[MAX_CNCT] = NULL;                                                                       \
+                                                                                                                       \
+    /* When computing the number of layers, we need to recall that the standard always removes */                      \
+    /* the first two variable nodes from the final codeword.*/                                                         \
+    uint8_t n_layers = cdwd_rm_length / q->ls - q->bgK + 2;                                                            \
+                                                                                                                       \
+    for (int i_iteration = 0; i_iteration < q->max_nof_iter; i_iteration++) {                                          \
+      for (int i_layer = 0; i_layer < n_layers; i_layer++) {                                                           \
+        update_ldpc_var_to_check_##SUFFIX(q->ptr, i_layer);                                                            \
+                                                                                                                       \
+        this_pcm          = q->pcm + i_layer * q->bgN;                                                                 \
+        these_var_indices = q->var_indices + i_layer;                                                                  \
+                                                                                                                       \
+        update_ldpc_check_to_var_##SUFFIX(q->ptr, i_layer, this_pcm, these_var_indices);                               \
+                                                                                                                       \
+        update_ldpc_soft_bits_##SUFFIX(q->ptr, i_layer, these_var_indices);                                            \
+      }                                                                                                                \
+    }                                                                                                                  \
+                                                                                                                       \
+    extract_ldpc_message_##SUFFIX(q->ptr, message, q->liftK);                                                          \
+                                                                                                                       \
+    return q->max_nof_iter;                                                                                            \
+  }
+#define LDPC_DECODER_TEMPLATE_FLOOD(LLR_TYPE, SUFFIX)                                                                  \
+  static int decode_##SUFFIX(                                                                                          \
+      void* o, const LLR_TYPE* llrs, uint8_t* message, uint32_t cdwd_rm_length, srsran_crc_t* crc)                     \
+  {                                                                                                                    \
+    srsran_ldpc_decoder_t* q = o;                                                                                      \
+                                                                                                                       \
+    /* it must be smaller than the codeword size */                                                                    \
+    if (cdwd_rm_length > q->liftN - 2 * q->ls) {                                                                       \
+      cdwd_rm_length = q->liftN - 2 * q->ls;                                                                           \
+    }                                                                                                                  \
+    /* We need at least q->bgK + 4 variable nodes to cover the high-rate region. However,*/                            \
+    /* 2 variable nodes are systematically punctured by the encoder. */                                                \
+    if (cdwd_rm_length < (q->bgK + 2) * q->ls) {                                                                       \
+      /* ERROR("The rate-matched codeword should have a length at least equal to the high-rate region.");*/            \
+      cdwd_rm_length = (q->bgK + 2) * q->ls;                                                                           \
+      /* return -1;*/                                                                                                  \
+    }                                                                                                                  \
+    if (cdwd_rm_length % q->ls) {                                                                                      \
+      cdwd_rm_length = (cdwd_rm_length / q->ls + 1) * q->ls;                                                           \
+      /* ERROR("The rate-matched codeword length should be a multiple of the lifting size."); */                       \
+      /* return -1;*/                                                                                                  \
+    }                                                                                                                  \
+    init_ldpc_dec_##SUFFIX(q->ptr, llrs, q->ls);                                                                       \
+                                                                                                                       \
+    uint16_t* this_pcm                   = NULL;                                                                       \
+    int8_t(*these_var_indices)[MAX_CNCT] = NULL;                                                                       \
+                                                                                                                       \
+    /* When computing the number of layers, we need to recall that the standard always removes */                      \
+    /* the first two variable nodes from the final codeword.*/                                                         \
+    uint8_t n_layers = cdwd_rm_length / q->ls - q->bgK + 2;                                                            \
+                                                                                                                       \
+    for (int i_iteration = 0; i_iteration < 2 * q->max_nof_iter; i_iteration++) {                                      \
+      for (int i_layer = 0; i_layer < n_layers; i_layer++) {                                                           \
+        update_ldpc_var_to_check_##SUFFIX(q->ptr, i_layer);                                                            \
+      }                                                                                                                \
+                                                                                                                       \
+      for (int i_layer = 0; i_layer < n_layers; i_layer++) {                                                           \
+        this_pcm          = q->pcm + i_layer * q->bgN;                                                                 \
+        these_var_indices = q->var_indices + i_layer;                                                                  \
+                                                                                                                       \
+        update_ldpc_check_to_var_##SUFFIX(q->ptr, i_layer, this_pcm, these_var_indices);                               \
+      }                                                                                                                \
+                                                                                                                       \
+      update_ldpc_soft_bits_##SUFFIX(q->ptr, q->var_indices);                                                          \
+    }                                                                                                                  \
+                                                                                                                       \
+    extract_ldpc_message_##SUFFIX(q->ptr, message, q->liftK);                                                          \
+                                                                                                                       \
+    return q->max_nof_iter;                                                                                            \
+  }
 
 /*! Carries out the actual destruction of the memory allocated to the decoder, float-LLR case. */
 static void free_dec_f(void* o)
@@ -46,52 +145,7 @@ static void free_dec_f(void* o)
 }
 
 /*! Carries out the decoding with real-valued LLRs. */
-static int decode_f(void* o, const float* llrs, uint8_t* message, uint32_t cdwd_rm_length)
-{
-  srsran_ldpc_decoder_t* q = o;
-
-  if (cdwd_rm_length > q->liftN - 2 * q->ls) {
-    cdwd_rm_length = q->liftN - 2 * q->ls;
-  }
-  // We need at least q->bgK + 4 variable nodes to cover the high-rate region. However,
-  // 2 variable nodes are systematically punctured by the encoder.
-  if (cdwd_rm_length < (q->bgK + 2) * q->ls) {
-    // ERROR("The rate-matched codeword should have a length at least equal to the high-rate region.");
-    cdwd_rm_length = (q->bgK + 2) * q->ls;
-    // return -1;
-  }
-  if (cdwd_rm_length % q->ls) {
-    cdwd_rm_length = (cdwd_rm_length / q->ls + 1) * q->ls;
-    // ERROR("The rate-matched codeword length should be a multiple of the lifting size.");
-    // return -1;
-  }
-
-  init_ldpc_dec_f(q->ptr, llrs, q->ls);
-
-  uint16_t* this_pcm                   = NULL;
-  int8_t(*these_var_indices)[MAX_CNCT] = NULL;
-
-  // When computing the number of layers, we need to recall that the standard always removes
-  // the first two variable nodes from the final codeword.
-  uint8_t n_layers = cdwd_rm_length / q->ls - q->bgK + 2;
-
-  for (int i_iteration = 0; i_iteration < MAX_ITERATIONS; i_iteration++) {
-    for (int i_layer = 0; i_layer < n_layers; i_layer++) {
-      update_ldpc_var_to_check_f(q->ptr, i_layer);
-
-      this_pcm          = q->pcm + i_layer * q->bgN;
-      these_var_indices = q->var_indices + i_layer;
-
-      update_ldpc_check_to_var_f(q->ptr, i_layer, this_pcm, these_var_indices);
-
-      update_ldpc_soft_bits_f(q->ptr, i_layer, these_var_indices);
-    }
-  }
-
-  extract_ldpc_message_f(q->ptr, message, q->liftK);
-
-  return 0;
-}
+LDPC_DECODER_TEMPLATE(float, f)
 
 /*! Initializes the decoder to work with real valued LLRs. */
 static int init_f(srsran_ldpc_decoder_t* q)
@@ -123,53 +177,7 @@ static void free_dec_s(void* o)
 }
 
 /*! Carries out the decoding with 16-bit integer-valued LLRs. */
-static int decode_s(void* o, const int16_t* llrs, uint8_t* message, uint32_t cdwd_rm_length)
-{
-  srsran_ldpc_decoder_t* q = o;
-
-  // it must be smaller than the codeword size
-  if (cdwd_rm_length > q->liftN - 2 * q->ls) {
-    cdwd_rm_length = q->liftN - 2 * q->ls;
-  }
-  // We need at least q->bgK + 4 variable nodes to cover the high-rate region. However,
-  // 2 variable nodes are systematically punctured by the encoder.
-  if (cdwd_rm_length < (q->bgK + 2) * q->ls) {
-    // ERROR("The rate-matched codeword should have a length at least equal to the high-rate region.");
-    cdwd_rm_length = (q->bgK + 2) * q->ls;
-    // return -1;
-  }
-  if (cdwd_rm_length % q->ls) {
-    cdwd_rm_length = (cdwd_rm_length / q->ls + 1) * q->ls;
-    // ERROR("The rate-matched codeword length should be a multiple of the lifting size.");
-    // return -1;
-  }
-
-  init_ldpc_dec_s(q->ptr, llrs, q->ls);
-
-  uint16_t* this_pcm                   = NULL;
-  int8_t(*these_var_indices)[MAX_CNCT] = NULL;
-
-  // When computing the number of layers, we need to recall that the standard always removes
-  // the first two variable nodes from the final codeword.
-  uint8_t n_layers = cdwd_rm_length / q->ls - q->bgK + 2;
-
-  for (int i_iteration = 0; i_iteration < MAX_ITERATIONS; i_iteration++) {
-    for (int i_layer = 0; i_layer < n_layers; i_layer++) {
-      update_ldpc_var_to_check_s(q->ptr, i_layer);
-
-      this_pcm          = q->pcm + i_layer * q->bgN;
-      these_var_indices = q->var_indices + i_layer;
-
-      update_ldpc_check_to_var_s(q->ptr, i_layer, this_pcm, these_var_indices);
-
-      update_ldpc_soft_bits_s(q->ptr, i_layer, these_var_indices);
-    }
-  }
-
-  extract_ldpc_message_s(q->ptr, message, q->liftK);
-
-  return 0;
-}
+LDPC_DECODER_TEMPLATE(int16_t, s)
 
 /*! Initializes the decoder to work with 16-bit integer-valued LLRs. */
 static int init_s(srsran_ldpc_decoder_t* q)
@@ -201,53 +209,7 @@ static void free_dec_c(void* o)
 }
 
 /*! Carries out the decoding with 8-bit integer-valued LLRs. */
-static int decode_c(void* o, const int8_t* llrs, uint8_t* message, uint32_t cdwd_rm_length)
-{
-  srsran_ldpc_decoder_t* q = o;
-
-  // it must be smaller than the codeword size
-  if (cdwd_rm_length > q->liftN - 2 * q->ls) {
-    cdwd_rm_length = q->liftN - 2 * q->ls;
-  }
-  // We need at least q->bgK + 4 variable nodes to cover the high-rate region. However,
-  // 2 variable nodes are systematically punctured by the encoder.
-  if (cdwd_rm_length < (q->bgK + 2) * q->ls) {
-    // ERROR("The rate-matched codeword should have a length at least equal to the high-rate region.");
-    cdwd_rm_length = (q->bgK + 2) * q->ls;
-    // return -1;
-  }
-  if (cdwd_rm_length % q->ls) {
-    cdwd_rm_length = (cdwd_rm_length / q->ls + 1) * q->ls;
-    // ERROR("The rate-matched codeword length should be a multiple of the lifting size.");
-    // return -1;
-  }
-
-  init_ldpc_dec_c(q->ptr, llrs, q->ls);
-
-  uint16_t* this_pcm                   = NULL;
-  int8_t(*these_var_indices)[MAX_CNCT] = NULL;
-
-  // When computing the number of layers, we need to recall that the standard always removes
-  // the first two variable nodes from the final codeword.
-  uint8_t n_layers = cdwd_rm_length / q->ls - q->bgK + 2;
-
-  for (int i_iteration = 0; i_iteration < MAX_ITERATIONS; i_iteration++) {
-    for (int i_layer = 0; i_layer < n_layers; i_layer++) {
-      update_ldpc_var_to_check_c(q->ptr, i_layer);
-
-      this_pcm          = q->pcm + i_layer * q->bgN;
-      these_var_indices = q->var_indices + i_layer;
-
-      update_ldpc_check_to_var_c(q->ptr, i_layer, this_pcm, these_var_indices);
-
-      update_ldpc_soft_bits_c(q->ptr, i_layer, these_var_indices);
-    }
-  }
-
-  extract_ldpc_message_c(q->ptr, message, q->liftK);
-
-  return 0;
-}
+LDPC_DECODER_TEMPLATE(int8_t, c)
 
 /*! Initializes the decoder to work with 8-bit integer-valued LLRs. */
 static int init_c(srsran_ldpc_decoder_t* q)
@@ -279,53 +241,7 @@ static void free_dec_c_flood(void* o)
 }
 
 /*! Carries out the decoding with 8-bit integer-valued LLRs, flooded scheduling. */
-static int decode_c_flood(void* o, const int8_t* llrs, uint8_t* message, uint32_t cdwd_rm_length)
-{
-  srsran_ldpc_decoder_t* q = o;
-
-  // it must be smaller than the codeword size
-  if (cdwd_rm_length > q->liftN - 2 * q->ls) {
-    cdwd_rm_length = q->liftN - 2 * q->ls;
-  }
-  // We need at least q->bgK + 4 variable nodes to cover the high-rate region. However,
-  // 2 variable nodes are systematically punctured by the encoder.
-  if (cdwd_rm_length < (q->bgK + 2) * q->ls) {
-    // ERROR("The rate-matched codeword should have a length at least equal to the high-rate region.");
-    cdwd_rm_length = (q->bgK + 2) * q->ls;
-    // return -1;
-  }
-  if (cdwd_rm_length % q->ls) {
-    cdwd_rm_length = (cdwd_rm_length / q->ls + 1) * q->ls;
-    // ERROR("The rate-matched codeword length should be a multiple of the lifting size.");
-    // return -1;
-  }
-  init_ldpc_dec_c_flood(q->ptr, llrs, q->ls);
-
-  uint16_t* this_pcm                   = NULL;
-  int8_t(*these_var_indices)[MAX_CNCT] = NULL;
-
-  // When computing the number of layers, we need to recall that the standard always removes
-  // the first two variable nodes from the final codeword.
-  uint8_t n_layers = cdwd_rm_length / q->ls - q->bgK + 2;
-
-  for (int i_iteration = 0; i_iteration < 2 * MAX_ITERATIONS; i_iteration++) {
-    for (int i_layer = 0; i_layer < n_layers; i_layer++) {
-      update_ldpc_var_to_check_c_flood(q->ptr, i_layer);
-    }
-
-    for (int i_layer = 0; i_layer < n_layers; i_layer++) {
-      this_pcm          = q->pcm + i_layer * q->bgN;
-      these_var_indices = q->var_indices + i_layer;
-
-      update_ldpc_check_to_var_c_flood(q->ptr, i_layer, this_pcm, these_var_indices);
-    }
-    update_ldpc_soft_bits_c_flood(q->ptr, q->var_indices);
-  }
-
-  extract_ldpc_message_c_flood(q->ptr, message, q->liftK);
-
-  return 0;
-}
+LDPC_DECODER_TEMPLATE_FLOOD(int8_t, c_flood);
 
 /*! Initializes the decoder to work with 8-bit integer-valued LLRs. */
 static int init_c_flood(srsran_ldpc_decoder_t* q)
@@ -358,52 +274,7 @@ static void free_dec_c_avx2(void* o)
 }
 
 /*! Carries out the decoding with 8-bit integer-valued LLRs (AVX2 implementation). */
-static int decode_c_avx2(void* o, const int8_t* llrs, uint8_t* message, uint32_t cdwd_rm_length)
-{
-  srsran_ldpc_decoder_t* q = o;
-
-  // it must be smaller than the codeword size
-  if (cdwd_rm_length > q->liftN - 2 * q->ls) {
-    cdwd_rm_length = q->liftN - 2 * q->ls;
-  }
-  // We need at least q->bgK + 4 variable nodes to cover the high-rate region. However,
-  // 2 variable nodes are systematically punctured by the encoder.
-  if (cdwd_rm_length < (q->bgK + 2) * q->ls) {
-    // ERROR("The rate-matched codeword should have a length at least equal to the high-rate region.");
-    cdwd_rm_length = (q->bgK + 2) * q->ls;
-    // return -1;
-  }
-  if (cdwd_rm_length % q->ls) {
-    cdwd_rm_length = (cdwd_rm_length / q->ls + 1) * q->ls;
-    // ERROR("The rate-matched codeword length should be a multiple of the lifting size.");
-    // return -1;
-  }
-  init_ldpc_dec_c_avx2(q->ptr, llrs, q->ls);
-
-  uint16_t* this_pcm                   = NULL;
-  int8_t(*these_var_indices)[MAX_CNCT] = NULL;
-
-  // When computing the number of layers, we need to recall that the standard always removes
-  // the first two variable nodes from the final codeword.
-  uint8_t n_layers = cdwd_rm_length / q->ls - q->bgK + 2;
-
-  for (int i_iteration = 0; i_iteration < MAX_ITERATIONS; i_iteration++) {
-    for (int i_layer = 0; i_layer < n_layers; i_layer++) {
-      update_ldpc_var_to_check_c_avx2(q->ptr, i_layer);
-
-      this_pcm          = q->pcm + i_layer * q->bgN;
-      these_var_indices = q->var_indices + i_layer;
-
-      update_ldpc_check_to_var_c_avx2(q->ptr, i_layer, this_pcm, these_var_indices);
-
-      update_ldpc_soft_bits_c_avx2(q->ptr, i_layer, these_var_indices);
-    }
-  }
-
-  extract_ldpc_message_c_avx2(q->ptr, message, q->liftK);
-
-  return 0;
-}
+LDPC_DECODER_TEMPLATE(int8_t, c_avx2);
 
 /*! Initializes the decoder to work with 8-bit integer-valued LLRs (AVX2 implementation). */
 static int init_c_avx2(srsran_ldpc_decoder_t* q)
@@ -436,52 +307,7 @@ static void free_dec_c_avx2long(void* o)
 }
 
 /*! Carries out the decoding with 8-bit integer-valued LLRs (AVX2 implementation, large lifting size). */
-static int decode_c_avx2long(void* o, const int8_t* llrs, uint8_t* message, uint32_t cdwd_rm_length)
-{
-  srsran_ldpc_decoder_t* q = o;
-
-  // it must be smaller than the codeword size
-  if (cdwd_rm_length > q->liftN - 2 * q->ls) {
-    cdwd_rm_length = q->liftN - 2 * q->ls;
-  }
-  // We need at least q->bgK + 4 variable nodes to cover the high-rate region. However,
-  // 2 variable nodes are systematically punctured by the encoder.
-  if (cdwd_rm_length < (q->bgK + 2) * q->ls) {
-    // ERROR("The rate-matched codeword should have a length at least equal to the high-rate region.");
-    cdwd_rm_length = (q->bgK + 2) * q->ls;
-    // return -1;
-  }
-  if (cdwd_rm_length % q->ls) {
-    cdwd_rm_length = (cdwd_rm_length / q->ls + 1) * q->ls;
-    // ERROR("The rate-matched codeword length should be a multiple of the lifting size.");
-    // return -1;
-  }
-  init_ldpc_dec_c_avx2long(q->ptr, llrs, q->ls);
-
-  uint16_t* this_pcm                   = NULL;
-  int8_t(*these_var_indices)[MAX_CNCT] = NULL;
-
-  // When computing the number of layers, we need to recall that the standard always removes
-  // the first two variable nodes from the final codeword.
-  uint8_t n_layers = cdwd_rm_length / q->ls - q->bgK + 2;
-
-  for (int i_iteration = 0; i_iteration < MAX_ITERATIONS; i_iteration++) {
-    for (int i_layer = 0; i_layer < n_layers; i_layer++) {
-      update_ldpc_var_to_check_c_avx2long(q->ptr, i_layer);
-
-      this_pcm          = q->pcm + i_layer * q->bgN;
-      these_var_indices = q->var_indices + i_layer;
-
-      update_ldpc_check_to_var_c_avx2long(q->ptr, i_layer, this_pcm, these_var_indices);
-
-      update_ldpc_soft_bits_c_avx2long(q->ptr, i_layer, these_var_indices);
-    }
-  }
-
-  extract_ldpc_message_c_avx2long(q->ptr, message, q->liftK);
-
-  return 0;
-}
+LDPC_DECODER_TEMPLATE(int8_t, c_avx2long);
 
 /*! Initializes the decoder to work with 8-bit integer-valued LLRs (AVX2 implementation, large lifting size). */
 static int init_c_avx2long(srsran_ldpc_decoder_t* q)
@@ -514,53 +340,7 @@ static void free_dec_c_avx2_flood(void* o)
 }
 
 /*! Carries out the decoding with 8-bit integer-valued LLRs (AVX2 implementation, flooded scheduling). */
-static int decode_c_avx2_flood(void* o, const int8_t* llrs, uint8_t* message, uint32_t cdwd_rm_length)
-{
-  srsran_ldpc_decoder_t* q = o;
-
-  // it must be smaller than the codeword size
-  if (cdwd_rm_length > q->liftN - 2 * q->ls) {
-    cdwd_rm_length = q->liftN - 2 * q->ls;
-  }
-  // We need at least q->bgK + 4 variable nodes to cover the high-rate region. However,
-  // 2 variable nodes are systematically punctured by the encoder.
-  if (cdwd_rm_length < (q->bgK + 2) * q->ls) {
-    // ERROR("The rate-matched codeword should have a length at least equal to the high-rate region.");
-    cdwd_rm_length = (q->bgK + 2) * q->ls;
-    // return -1;
-  }
-  if (cdwd_rm_length % q->ls) {
-    cdwd_rm_length = (cdwd_rm_length / q->ls + 1) * q->ls;
-    // ERROR("The rate-matched codeword length should be a multiple of the lifting size.");
-    // return -1;
-  }
-  init_ldpc_dec_c_avx2_flood(q->ptr, llrs, q->ls);
-
-  uint16_t* this_pcm                   = NULL;
-  int8_t(*these_var_indices)[MAX_CNCT] = NULL;
-
-  // When computing the number of layers, we need to recall that the standard always removes
-  // the first two variable nodes from the final codeword.
-  uint8_t n_layers = cdwd_rm_length / q->ls - q->bgK + 2;
-
-  for (int i_iteration = 0; i_iteration < 2 * MAX_ITERATIONS; i_iteration++) {
-    for (int i_layer = 0; i_layer < n_layers; i_layer++) {
-      update_ldpc_var_to_check_c_avx2_flood(q->ptr, i_layer);
-    }
-
-    for (int i_layer = 0; i_layer < n_layers; i_layer++) {
-      this_pcm          = q->pcm + i_layer * q->bgN;
-      these_var_indices = q->var_indices + i_layer;
-
-      update_ldpc_check_to_var_c_avx2_flood(q->ptr, i_layer, this_pcm, these_var_indices);
-    }
-    update_ldpc_soft_bits_c_avx2_flood(q->ptr, q->var_indices);
-  }
-
-  extract_ldpc_message_c_avx2_flood(q->ptr, message, q->liftK);
-
-  return 0;
-}
+LDPC_DECODER_TEMPLATE_FLOOD(int8_t, c_avx2_flood);
 
 /*! Initializes the decoder to work with 8-bit integer-valued LLRs (AVX2 implementation, flooded scheduling). */
 static int init_c_avx2_flood(srsran_ldpc_decoder_t* q)
@@ -594,54 +374,7 @@ static void free_dec_c_avx2long_flood(void* o)
 
 /*! Carries out the decoding with 8-bit integer-valued LLRs (flooded scheduling, AVX2 implementation, large lifting
  * size). */
-static int decode_c_avx2long_flood(void* o, const int8_t* llrs, uint8_t* message, uint32_t cdwd_rm_length)
-{
-  srsran_ldpc_decoder_t* q = o;
-
-  // it must be smaller than the codeword size
-  if (cdwd_rm_length > q->liftN - 2 * q->ls) {
-    cdwd_rm_length = q->liftN - 2 * q->ls;
-  }
-  // We need at least q->bgK + 4 variable nodes to cover the high-rate region. However,
-  // 2 variable nodes are systematically punctured by the encoder.
-  if (cdwd_rm_length < (q->bgK + 2) * q->ls) {
-    // ERROR("The rate-matched codeword should have a length at least equal to the high-rate region.");
-    cdwd_rm_length = (q->bgK + 2) * q->ls;
-    // return -1;
-  }
-  if (cdwd_rm_length % q->ls) {
-    cdwd_rm_length = (cdwd_rm_length / q->ls + 1) * q->ls;
-    // ERROR("The rate-matched codeword length should be a multiple of the lifting size.");
-    // return -1;
-  }
-  init_ldpc_dec_c_avx2long_flood(q->ptr, llrs, q->ls);
-
-  uint16_t* this_pcm                   = NULL;
-  int8_t(*these_var_indices)[MAX_CNCT] = NULL;
-
-  // When computing the number of layers, we need to recall that the standard always removes
-  // the first two variable nodes from the final codeword.
-  uint8_t n_layers = cdwd_rm_length / q->ls - q->bgK + 2;
-
-  for (int i_iteration = 0; i_iteration < 2 * MAX_ITERATIONS; i_iteration++) {
-    for (int i_layer = 0; i_layer < n_layers; i_layer++) {
-      update_ldpc_var_to_check_c_avx2long_flood(q->ptr, i_layer);
-    }
-
-    for (int i_layer = 0; i_layer < n_layers; i_layer++) {
-      this_pcm          = q->pcm + i_layer * q->bgN;
-      these_var_indices = q->var_indices + i_layer;
-
-      update_ldpc_check_to_var_c_avx2long_flood(q->ptr, i_layer, this_pcm, these_var_indices);
-    }
-
-    update_ldpc_soft_bits_c_avx2long_flood(q->ptr, q->var_indices);
-  }
-
-  extract_ldpc_message_c_avx2long_flood(q->ptr, message, q->liftK);
-
-  return 0;
-}
+LDPC_DECODER_TEMPLATE_FLOOD(int8_t, c_avx2long_flood)
 
 /*! Initializes the decoder to work with 8-bit integer-valued LLRs
  * (flooded scheduling, AVX2 implementation, large lifting size). */
@@ -680,52 +413,7 @@ static void free_dec_c_avx512(void* o)
 }
 
 /*! Carries out the decoding with 8-bit integer-valued LLRs (AVX512 implementation). */
-static int decode_c_avx512(void* o, const int8_t* llrs, uint8_t* message, uint32_t cdwd_rm_length)
-{
-  srsran_ldpc_decoder_t* q = o;
-
-  // it must be smaller than the codeword size
-  if (cdwd_rm_length > q->liftN - 2 * q->ls) {
-    cdwd_rm_length = q->liftN - 2 * q->ls;
-  }
-  // We need at least q->bgK + 4 variable nodes to cover the high-rate region. However,
-  // 2 variable nodes are systematically punctured by the encoder.
-  if (cdwd_rm_length < (q->bgK + 2) * q->ls) {
-    // ERROR("The rate-matched codeword should have a length at least equal to the high-rate region.");
-    cdwd_rm_length = (q->bgK + 2) * q->ls;
-    // return -1;
-  }
-  if (cdwd_rm_length % q->ls) {
-    cdwd_rm_length = (cdwd_rm_length / q->ls + 1) * q->ls;
-    // ERROR("The rate-matched codeword length should be a multiple of the lifting size.");
-    // return -1;
-  }
-  init_ldpc_dec_c_avx512(q->ptr, llrs, q->ls);
-
-  uint16_t* this_pcm                   = NULL;
-  int8_t(*these_var_indices)[MAX_CNCT] = NULL;
-
-  // When computing the number of layers, we need to recall that the standard always removes
-  // the first two variable nodes from the final codeword.
-  uint8_t n_layers = cdwd_rm_length / q->ls - q->bgK + 2;
-
-  for (int i_iteration = 0; i_iteration < MAX_ITERATIONS; i_iteration++) {
-    for (int i_layer = 0; i_layer < n_layers; i_layer++) {
-      update_ldpc_var_to_check_c_avx512(q->ptr, i_layer);
-
-      this_pcm          = q->pcm + i_layer * q->bgN;
-      these_var_indices = q->var_indices + i_layer;
-
-      update_ldpc_check_to_var_c_avx512(q->ptr, i_layer, this_pcm, these_var_indices);
-
-      update_ldpc_soft_bits_c_avx512(q->ptr, i_layer, these_var_indices);
-    }
-  }
-
-  extract_ldpc_message_c_avx512(q->ptr, message, q->liftK);
-
-  return 0;
-}
+LDPC_DECODER_TEMPLATE(int8_t, c_avx512)
 
 /*! Initializes the decoder to work with 8-bit integer-valued LLRs (AVX512 implementation). */
 static int init_c_avx512(srsran_ldpc_decoder_t* q)
@@ -758,52 +446,7 @@ static void free_dec_c_avx512long(void* o)
 }
 
 /*! Carries out the decoding with 8-bit integer-valued LLRs (AVX512 implementation, large lifting size). */
-static int decode_c_avx512long(void* o, const int8_t* llrs, uint8_t* message, uint32_t cdwd_rm_length)
-{
-  srsran_ldpc_decoder_t* q = o;
-
-  // it must be smaller than the codeword size
-  if (cdwd_rm_length > q->liftN - 2 * q->ls) {
-    cdwd_rm_length = q->liftN - 2 * q->ls;
-  }
-  // We need at least q->bgK + 4 variable nodes to cover the high-rate region. However,
-  // 2 variable nodes are systematically punctured by the encoder.
-  if (cdwd_rm_length < (q->bgK + 2) * q->ls) {
-    // ERROR("The rate-matched codeword should have a length at least equal to the high-rate region.");
-    cdwd_rm_length = (q->bgK + 2) * q->ls;
-    // return -1;
-  }
-  if (cdwd_rm_length % q->ls) {
-    cdwd_rm_length = (cdwd_rm_length / q->ls + 1) * q->ls;
-    // ERROR("The rate-matched codeword length should be a multiple of the lifting size.");
-    // return -1;
-  }
-
-  init_ldpc_dec_c_avx512long(q->ptr, llrs, q->ls);
-
-  uint16_t* this_pcm                   = NULL;
-  int8_t(*these_var_indices)[MAX_CNCT] = NULL;
-
-  // When computing the number of layers, we need to recall that the standard always removes
-  // the first two variable nodes from the final codeword.
-  uint8_t n_layers = cdwd_rm_length / q->ls - q->bgK + 2;
-
-  for (int i_iteration = 0; i_iteration < MAX_ITERATIONS; i_iteration++) {
-    for (int i_layer = 0; i_layer < n_layers; i_layer++) {
-      update_ldpc_var_to_check_c_avx512long(q->ptr, i_layer);
-
-      this_pcm          = q->pcm + i_layer * q->bgN;
-      these_var_indices = q->var_indices + i_layer;
-
-      update_ldpc_check_to_var_c_avx512long(q->ptr, i_layer, this_pcm, these_var_indices);
-
-      update_ldpc_soft_bits_c_avx512long(q->ptr, i_layer, these_var_indices);
-    }
-  }
-  extract_ldpc_message_c_avx512long(q->ptr, message, q->liftK);
-
-  return 0;
-}
+LDPC_DECODER_TEMPLATE(int8_t, c_avx512long)
 
 /*! Initializes the decoder to work with 8-bit integer-valued LLRs (AVX512 implementation, large lifting size). */
 static int init_c_avx512long(srsran_ldpc_decoder_t* q)
@@ -837,54 +480,7 @@ static void free_dec_c_avx512long_flood(void* o)
 
 /*! Carries out the decoding with 8-bit integer-valued LLRs (flooded scheduling, AVX512 implementation, large lifting
  * size). */
-static int decode_c_avx512long_flood(void* o, const int8_t* llrs, uint8_t* message, uint32_t cdwd_rm_length)
-{
-  srsran_ldpc_decoder_t* q = o;
-
-  // it must be smaller than the codeword size
-  if (cdwd_rm_length > q->liftN - 2 * q->ls) {
-    cdwd_rm_length = q->liftN - 2 * q->ls;
-  }
-  // We need at least q->bgK + 4 variable nodes to cover the high-rate region. However,
-  // 2 variable nodes are systematically punctured by the encoder.
-  if (cdwd_rm_length < (q->bgK + 2) * q->ls) {
-    // ERROR("The rate-matched codeword should have a length at least equal to the high-rate region.");
-    cdwd_rm_length = (q->bgK + 2) * q->ls;
-    // return -1;
-  }
-  if (cdwd_rm_length % q->ls) {
-    cdwd_rm_length = (cdwd_rm_length / q->ls + 1) * q->ls;
-    // ERROR("The rate-matched codeword length should be a multiple of the lifting size.");
-    // return -1;
-  }
-  init_ldpc_dec_c_avx512long_flood(q->ptr, llrs, q->ls);
-
-  uint16_t* this_pcm                   = NULL;
-  int8_t(*these_var_indices)[MAX_CNCT] = NULL;
-
-  // When computing the number of layers, we need to recall that the standard always removes
-  // the first two variable nodes from the final codeword.
-  uint8_t n_layers = cdwd_rm_length / q->ls - q->bgK + 2;
-
-  for (int i_iteration = 0; i_iteration < 2 * MAX_ITERATIONS; i_iteration++) {
-    for (int i_layer = 0; i_layer < n_layers; i_layer++) {
-      update_ldpc_var_to_check_c_avx512long_flood(q->ptr, i_layer);
-    }
-
-    for (int i_layer = 0; i_layer < n_layers; i_layer++) {
-      this_pcm          = q->pcm + i_layer * q->bgN;
-      these_var_indices = q->var_indices + i_layer;
-
-      update_ldpc_check_to_var_c_avx512long_flood(q->ptr, i_layer, this_pcm, these_var_indices);
-    }
-
-    update_ldpc_soft_bits_c_avx512long_flood(q->ptr, q->var_indices);
-  }
-
-  extract_ldpc_message_c_avx512long_flood(q->ptr, message, q->liftK);
-
-  return 0;
-}
+LDPC_DECODER_TEMPLATE_FLOOD(int8_t, c_avx512long_flood)
 
 /*! Initializes the decoder to work with 8-bit integer-valued LLRs
  * (flooded scheduling, AVX512 implementation, large lifting size). */
@@ -905,14 +501,19 @@ static int init_c_avx512long_flood(srsran_ldpc_decoder_t* q)
 
 #endif // LV_HAVE_AVX512
 
-int srsran_ldpc_decoder_init(srsran_ldpc_decoder_t*     q,
-                             srsran_ldpc_decoder_type_t type,
-                             srsran_basegraph_t         bg,
-                             uint16_t                   ls,
-                             float                      scaling_fctr)
+int srsran_ldpc_decoder_init(srsran_ldpc_decoder_t* q, const srsran_ldpc_decoder_args_t* args)
 {
-  int ls_index = get_ls_index(ls);
+  if (q == NULL || args == NULL) {
+    return -1;
+  }
 
+  // Extract configuration arguments
+  uint16_t                   ls           = args->ls;
+  srsran_basegraph_t         bg           = args->bg;
+  float                      scaling_fctr = args->scaling_fctr;
+  srsran_ldpc_decoder_type_t type         = args->type;
+
+  int ls_index = get_ls_index(ls);
   if (ls_index == VOID_LIFTSIZE) {
     ERROR("Invalid lifting size %d", ls);
     return -1;
@@ -938,6 +539,8 @@ int srsran_ldpc_decoder_init(srsran_ldpc_decoder_t*     q,
   q->liftK = ls * q->bgK;
   q->liftM = ls * q->bgM;
   q->liftN = ls * q->bgN;
+
+  q->max_nof_iter = (args->max_nof_iter == 0) ? LDPC_DECODER_DEFAULT_MAX_NOF_ITER : args->max_nof_iter;
 
   q->pcm = srsran_vec_u16_malloc(q->bgM * q->bgN);
   if (!q->pcm) {
@@ -1017,7 +620,7 @@ void srsran_ldpc_decoder_free(srsran_ldpc_decoder_t* q)
 
 int srsran_ldpc_decoder_decode_f(srsran_ldpc_decoder_t* q, const float* llrs, uint8_t* message, uint32_t cdwd_rm_length)
 {
-  return q->decode_f(q, llrs, message, cdwd_rm_length);
+  return q->decode_f(q, llrs, message, cdwd_rm_length, NULL);
 }
 
 int srsran_ldpc_decoder_decode_s(srsran_ldpc_decoder_t* q,
@@ -1025,7 +628,7 @@ int srsran_ldpc_decoder_decode_s(srsran_ldpc_decoder_t* q,
                                  uint8_t*               message,
                                  uint32_t               cdwd_rm_length)
 {
-  return q->decode_s(q, llrs, message, cdwd_rm_length);
+  return q->decode_s(q, llrs, message, cdwd_rm_length, NULL);
 }
 
 int srsran_ldpc_decoder_decode_c(srsran_ldpc_decoder_t* q,
@@ -1033,5 +636,5 @@ int srsran_ldpc_decoder_decode_c(srsran_ldpc_decoder_t* q,
                                  uint8_t*               message,
                                  uint32_t               cdwd_rm_length)
 {
-  return q->decode_c(q, llrs, message, cdwd_rm_length);
+  return q->decode_c(q, llrs, message, cdwd_rm_length, NULL);
 }

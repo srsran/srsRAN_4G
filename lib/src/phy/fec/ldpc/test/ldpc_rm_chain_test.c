@@ -188,7 +188,7 @@ int main(int argc, char** argv)
     perror("encoder init");
     exit(-1);
   }
-#else  // no AVX2
+#else // no AVX2
   if (srsran_ldpc_encoder_init(&encoder, SRSRAN_LDPC_ENCODER_C, base_graph, lift_size) != 0) {
     perror("encoder init");
     exit(-1);
@@ -234,42 +234,53 @@ int main(int argc, char** argv)
     exit(-1);
   }
 
+  // Create LDPC configuration arguments
+  srsran_ldpc_decoder_args_t decoder_args = {};
+  decoder_args.bg                         = base_graph;
+  decoder_args.ls                         = lift_size;
+  decoder_args.scaling_fctr               = MS_SF;
+
   // create an LDPC decoder (float)
   srsran_ldpc_decoder_t decoder_f;
-  if (srsran_ldpc_decoder_init(&decoder_f, SRSRAN_LDPC_DECODER_F, base_graph, lift_size, MS_SF) != 0) {
+  decoder_args.type = SRSRAN_LDPC_DECODER_F;
+  if (srsran_ldpc_decoder_init(&decoder_f, &decoder_args) != 0) {
     perror("decoder init");
     exit(-1);
   }
   // create an LDPC decoder (16 bit)
   srsran_ldpc_decoder_t decoder_s;
-  if (srsran_ldpc_decoder_init(&decoder_s, SRSRAN_LDPC_DECODER_S, base_graph, lift_size, MS_SF) != 0) {
+  decoder_args.type = SRSRAN_LDPC_DECODER_S;
+  if (srsran_ldpc_decoder_init(&decoder_s, &decoder_args) != 0) {
     perror("decoder init (int16_t)");
     exit(-1);
   }
   // create an LDPC decoder (8 bit)
   srsran_ldpc_decoder_t decoder_c;
-  if (srsran_ldpc_decoder_init(&decoder_c, SRSRAN_LDPC_DECODER_C, base_graph, lift_size, MS_SF) != 0) {
+  decoder_args.type = SRSRAN_LDPC_DECODER_C;
+  if (srsran_ldpc_decoder_init(&decoder_c, &decoder_args) != 0) {
     perror("decoder init (int8_t)");
     exit(-1);
   }
   // create an LDPC decoder (8 bit, flooded)
   srsran_ldpc_decoder_t decoder_c_flood;
-  if (srsran_ldpc_decoder_init(&decoder_c_flood, SRSRAN_LDPC_DECODER_C_FLOOD, base_graph, lift_size, MS_SF) != 0) {
+  decoder_args.type = SRSRAN_LDPC_DECODER_C_FLOOD;
+  if (srsran_ldpc_decoder_init(&decoder_c_flood, &decoder_args) != 0) {
     perror("decoder init");
     exit(-1);
   }
 #ifdef LV_HAVE_AVX2
   // create an LDPC decoder (8 bit, AVX2 version)
   srsran_ldpc_decoder_t decoder_avx;
-  if (srsran_ldpc_decoder_init(&decoder_avx, SRSRAN_LDPC_DECODER_C_AVX2, base_graph, lift_size, MS_SF) != 0) {
+  decoder_args.type = SRSRAN_LDPC_DECODER_C_AVX2;
+  if (srsran_ldpc_decoder_init(&decoder_avx, &decoder_args) != 0) {
     perror("decoder init");
     exit(-1);
   }
 
   // create an LDPC decoder (8 bit, flooded scheduling, AVX2 version)
   srsran_ldpc_decoder_t decoder_avx_flood;
-  if (srsran_ldpc_decoder_init(&decoder_avx_flood, SRSRAN_LDPC_DECODER_C_AVX2_FLOOD, base_graph, lift_size, MS_SF) !=
-      0) {
+  decoder_args.type = SRSRAN_LDPC_DECODER_C_AVX2_FLOOD;
+  if (srsran_ldpc_decoder_init(&decoder_avx_flood, &decoder_args) != 0) {
     perror("decoder init");
     exit(-1);
   }
@@ -278,15 +289,16 @@ int main(int argc, char** argv)
 #ifdef LV_HAVE_AVX512
   // create an LDPC decoder (8 bit, AVX2 version)
   srsran_ldpc_decoder_t decoder_avx512;
-  if (srsran_ldpc_decoder_init(&decoder_avx512, SRSRAN_LDPC_DECODER_C_AVX512, base_graph, lift_size, MS_SF) != 0) {
+  decoder_args.type = SRSRAN_LDPC_DECODER_C_AVX512;
+  if (srsran_ldpc_decoder_init(&decoder_avx512, &decoder_args) != 0) {
     perror("decoder init");
     exit(-1);
   }
 
   // create an LDPC decoder (8 bit, flooded scheduling, AVX512 version)
   srsran_ldpc_decoder_t decoder_avx512_flood;
-  if (srsran_ldpc_decoder_init(
-          &decoder_avx512_flood, SRSRAN_LDPC_DECODER_C_AVX512_FLOOD, base_graph, lift_size, MS_SF) != 0) {
+  decoder_args.type = SRSRAN_LDPC_DECODER_C_AVX512_FLOOD;
+  if (srsran_ldpc_decoder_init(&decoder_avx512_flood, &decoder_args) != 0) {
     perror("decoder init");
     exit(-1);
   }

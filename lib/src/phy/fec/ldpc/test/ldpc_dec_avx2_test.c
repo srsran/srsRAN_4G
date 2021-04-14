@@ -153,9 +153,16 @@ int main(int argc, char** argv)
   srsran_ldpc_decoder_type_t dectype =
       (scheduling == 0) ? SRSRAN_LDPC_DECODER_C_AVX2 : SRSRAN_LDPC_DECODER_C_AVX2_FLOOD;
 
+  // Create LDPC configuration arguments
+  srsran_ldpc_decoder_args_t decoder_args = {};
+  decoder_args.type                       = dectype;
+  decoder_args.bg                         = base_graph;
+  decoder_args.ls                         = lift_size;
+  decoder_args.scaling_fctr               = 1.0f;
+
   // create an LDPC decoder
   srsran_ldpc_decoder_t decoder;
-  if (srsran_ldpc_decoder_init(&decoder, dectype, base_graph, lift_size, 1) != 0) {
+  if (srsran_ldpc_decoder_init(&decoder, &decoder_args) != 0) {
     perror("decoder init");
     exit(-1);
   }

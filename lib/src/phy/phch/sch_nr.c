@@ -275,24 +275,35 @@ int srsran_sch_nr_init_rx(srsran_sch_nr_t* q, const srsran_sch_nr_args_t* args)
       continue;
     }
 
-    q->decoder_bg1[ls] = calloc(1, sizeof(srsran_ldpc_decoder_t));
+    // Initialise LDPC configuration arguments
+    srsran_ldpc_decoder_args_t decoder_args = {};
+    decoder_args.type                       = decoder_type;
+    decoder_args.ls                         = ls;
+    decoder_args.scaling_fctr               = scaling_factor;
+    decoder_args.max_nof_iter               = args->max_nof_iter;
+
+    q->decoder_bg1[ls] = SRSRAN_MEM_ALLOC(srsran_ldpc_decoder_t, 1);
     if (!q->decoder_bg1[ls]) {
       ERROR("Error: calloc");
       return SRSRAN_ERROR;
     }
+    SRSRAN_MEM_ZERO(q->decoder_bg1[ls], srsran_ldpc_decoder_t, 1);
 
-    if (srsran_ldpc_decoder_init(q->decoder_bg1[ls], decoder_type, BG1, ls, scaling_factor) < SRSRAN_SUCCESS) {
+    decoder_args.bg = BG1;
+    if (srsran_ldpc_decoder_init(q->decoder_bg1[ls], &decoder_args) < SRSRAN_SUCCESS) {
       ERROR("Error: initialising BG1 LDPC decoder for ls=%d", ls);
       return SRSRAN_ERROR;
     }
 
-    q->decoder_bg2[ls] = calloc(1, sizeof(srsran_ldpc_decoder_t));
+    q->decoder_bg2[ls] = SRSRAN_MEM_ALLOC(srsran_ldpc_decoder_t, 1);
     if (!q->decoder_bg2[ls]) {
       ERROR("Error: calloc");
       return SRSRAN_ERROR;
     }
+    SRSRAN_MEM_ZERO(q->decoder_bg2[ls], srsran_ldpc_decoder_t, 1);
 
-    if (srsran_ldpc_decoder_init(q->decoder_bg2[ls], decoder_type, BG2, ls, scaling_factor) < SRSRAN_SUCCESS) {
+    decoder_args.bg = BG2;
+    if (srsran_ldpc_decoder_init(q->decoder_bg2[ls], &decoder_args) < SRSRAN_SUCCESS) {
       ERROR("Error: initialising BG2 LDPC decoder for ls=%d", ls);
       return SRSRAN_ERROR;
     }
