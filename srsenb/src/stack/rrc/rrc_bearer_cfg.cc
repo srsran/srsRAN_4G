@@ -317,21 +317,22 @@ void bearer_cfg_handler::release_erabs()
   }
 }
 
-bool bearer_cfg_handler::modify_erab(uint8_t                                    erab_id,
-                                     const asn1::s1ap::erab_level_qos_params_s& qos,
-                                     const asn1::unbounded_octstring<true>*     nas_pdu)
+int bearer_cfg_handler::modify_erab(uint8_t                                    erab_id,
+                                    const asn1::s1ap::erab_level_qos_params_s& qos,
+                                    const asn1::unbounded_octstring<true>*     nas_pdu,
+                                    asn1::s1ap::cause_c&                       cause)
 {
   logger->info("Modifying E-RAB %d", erab_id);
   std::map<uint8_t, erab_t>::iterator erab_it = erabs.find(erab_id);
   if (erab_it == erabs.end()) {
     logger->error("Could not find E-RAB to modify");
-    return false;
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::unknown_erab_id;
+    return SRSRAN_ERROR;
   }
   auto     address  = erab_it->second.address;
   uint32_t teid_out = erab_it->second.teid_out;
   release_erab(erab_id);
-  asn1::s1ap::cause_c cause;
-  return add_erab(erab_id, qos, address, teid_out, nas_pdu, cause) == SRSRAN_SUCCESS;
+  return add_erab(erab_id, qos, address, teid_out, nas_pdu, cause);
 }
 
 int bearer_cfg_handler::add_gtpu_bearer(uint32_t erab_id)

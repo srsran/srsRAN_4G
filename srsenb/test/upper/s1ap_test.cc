@@ -91,14 +91,18 @@ struct dummy_socket_manager : public srsran::socket_manager_itf {
 };
 
 struct rrc_tester : public rrc_dummy {
-  void modify_erabs(
-      uint16_t                                                                         rnti,
-      srsran::const_span<const asn1::s1ap::erab_to_be_modified_item_bearer_mod_req_s*> erabs_to_modify) override
+  int modify_erab(uint16_t                                   rnti,
+                  uint16_t                                   erab_id,
+                  const asn1::s1ap::erab_level_qos_params_s& qos_params,
+                  const asn1::unbounded_octstring<true>*     nas_pdu,
+                  asn1::s1ap::cause_c&                       cause) override
   {
-    last_erabs_modified.clear();
-    for (auto& erab : erabs_to_modify) {
-      last_erabs_modified.push_back(erab->erab_id);
+    if (std::count(next_erabs_failed_to_modify.begin(), next_erabs_failed_to_modify.end(), erab_id) > 0) {
+      cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::unknown_erab_id;
+      return SRSRAN_ERROR;
     }
+    last_erabs_modified.push_back(erab_id);
+    return SRSRAN_SUCCESS;
   }
   bool has_erab(uint16_t rnti, uint32_t erab_id) const override
   {

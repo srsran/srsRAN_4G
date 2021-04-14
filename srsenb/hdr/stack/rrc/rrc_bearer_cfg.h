@@ -87,9 +87,10 @@ public:
                 asn1::s1ap::cause_c&                               cause);
   int  release_erab(uint8_t erab_id);
   void release_erabs();
-  bool modify_erab(uint8_t                                    erab_id,
+  int  modify_erab(uint8_t                                    erab_id,
                    const asn1::s1ap::erab_level_qos_params_s& qos,
-                   const asn1::unbounded_octstring<true>*     nas_pdu);
+                   const asn1::unbounded_octstring<true>*     nas_pdu,
+                   asn1::s1ap::cause_c&                       cause);
 
   // Methods to apply bearer updates
   int                        add_gtpu_bearer(uint32_t erab_id);

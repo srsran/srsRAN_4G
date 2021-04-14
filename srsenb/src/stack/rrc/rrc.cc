@@ -392,39 +392,21 @@ bool rrc::has_erab(uint16_t rnti, uint32_t erab_id) const
   return user_it->second->has_erab(erab_id);
 }
 
-void rrc::modify_erabs(uint16_t                                                                         rnti,
-                       srsran::const_span<const asn1::s1ap::erab_to_be_modified_item_bearer_mod_req_s*> erabs_to_modify)
-{
-  logger.info("Modifying E-RABs for 0x%x", rnti);
-  auto user_it = users.find(rnti);
-
-  if (user_it == users.end()) {
-    logger.warning("Unrecognised rnti: 0x%x", rnti);
-    return;
-  }
-
-  for (const auto* erab_ptr : erabs_to_modify) {
-    // Attempt to modify E-RAB
-    bool ret = modify_ue_erab(rnti, erab_ptr->erab_id, erab_ptr->erab_level_qos_params, &erab_ptr->nas_pdu);
-    srsran_expect(ret, "modify_erabs should not called for valid E-RAB Ids");
-  }
-}
-
-bool rrc::modify_ue_erab(uint16_t                                   rnti,
-                         uint8_t                                    erab_id,
-                         const asn1::s1ap::erab_level_qos_params_s& qos_params,
-                         const asn1::unbounded_octstring<true>*     nas_pdu)
+int rrc::modify_erab(uint16_t                                   rnti,
+                     uint16_t                                   erab_id,
+                     const asn1::s1ap::erab_level_qos_params_s& qos_params,
+                     const asn1::unbounded_octstring<true>*     nas_pdu,
+                     asn1::s1ap::cause_c&                       cause)
 {
   logger.info("Modifying E-RAB for 0x%x. E-RAB Id %d", rnti, erab_id);
   auto user_it = users.find(rnti);
-
   if (user_it == users.end()) {
     logger.warning("Unrecognised rnti: 0x%x", rnti);
-    return false;
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::unknown_erab_id;
+    return SRSRAN_ERROR;
   }
 
-  bool ret = user_it->second->modify_erab(erab_id, qos_params, nas_pdu);
-  return ret;
+  return user_it->second->modify_erab(erab_id, qos_params, nas_pdu, cause);
 }
 
 /*******************************************************************************

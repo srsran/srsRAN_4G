@@ -114,9 +114,10 @@ public:
   bool setup_erabs(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e);
   bool release_erabs();
   int  release_erab(uint32_t erab_id);
-  bool modify_erab(uint16_t                                   erab_id,
+  int  modify_erab(uint16_t                                   erab_id,
                    const asn1::s1ap::erab_level_qos_params_s& qos_params,
-                   const asn1::unbounded_octstring<true>*     nas_pdu);
+                   const asn1::unbounded_octstring<true>*     nas_pdu,
+                   asn1::s1ap::cause_c&                       cause);
 
   void notify_s1ap_ue_ctxt_setup_complete();
   void notify_s1ap_ue_erab_setup_response(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e);
