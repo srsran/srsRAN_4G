@@ -128,6 +128,8 @@ typedef struct {
   uint16_t                            paging_timer;
   std::string                         apn;
   std::string                         dns;
+  std::string                         full_net_name;
+  std::string                         short_net_name;
   srsran::CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
   srsran::INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
 } nas_init_t;
@@ -264,6 +266,8 @@ private:
   uint16_t    m_tac       = 0;
   std::string m_apn;
   std::string m_dns;
+  std::string m_full_net_name;
+  std::string m_short_net_name;
 
   // Timers timeout values
   uint16_t m_t3413 = 0;
