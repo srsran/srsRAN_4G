@@ -232,9 +232,7 @@ int extract_ldpc_message_c_avx512(void* p, uint8_t* message, uint16_t liftK)
 
   int ini = 0;
   for (int i = 0; i < liftK; i = i + vp->ls) {
-    for (int k = 0; k < vp->ls; k++) {
-      message[i + k] = (vp->soft_bits.c[ini + k] < 0);
-    }
+    fec_avx512_hard_decision_c(&vp->soft_bits.c[ini], &message[i], vp->ls);
     ini = ini + SRSRAN_AVX512_B_SIZE;
   }
 
