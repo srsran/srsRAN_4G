@@ -301,14 +301,8 @@ int mac::ack_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, uint32_t 
   int nof_bytes = scheduler.dl_ack_info(tti_rx, rnti, enb_cc_idx, tb_idx, ack);
   ue_db[rnti]->metrics_tx(ack, nof_bytes);
 
-  if (ack) {
-    if (nof_bytes > 64) { // do not count RLC status messages only
-      rrc_h->set_activity_user(rnti, true);
-      logger.info("DL activity rnti=0x%x, n_bytes=%d", rnti, nof_bytes);
-    }
-  } else {
-    rrc_h->set_activity_user(rnti, false);
-  }
+  rrc_h->set_radiolink_dl_state(rnti, ack);
+
   return SRSRAN_SUCCESS;
 }
 
@@ -323,6 +317,8 @@ int mac::crc_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, uint32_t 
 
   ue_db[rnti]->set_tti(tti_rx);
   ue_db[rnti]->metrics_rx(crc, nof_bytes);
+
+  rrc_h->set_radiolink_ul_state(rnti, crc);
 
   // Scheduler uses eNB's CC mapping
   return scheduler.ul_crc_info(tti_rx, rnti, enb_cc_idx, crc);

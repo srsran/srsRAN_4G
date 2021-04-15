@@ -383,9 +383,9 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srsran::pdu_queue::channe
       // Indicate scheduler to update BSR counters
       // sched->ul_recv_len(rnti, mac_msg_ul.get()->get_sdu_lcid(), mac_msg_ul.get()->get_payload_size());
 
-      // Indicate RRC about successful activity if valid RLC message is received
-      if (mac_msg_ul.get()->get_payload_size() > 64) { // do not count RLC status messages only
-        rrc->set_activity_user(rnti, true);
+      // Indicate DRB activity in UL to RRC
+      if (mac_msg_ul.get()->get_sdu_lcid() > 2) {
+        rrc->set_activity_user(rnti);
         logger.debug("UL activity rnti=0x%x, n_bytes=%d", rnti, nof_bytes);
       }
 
@@ -517,6 +517,13 @@ void ue::allocate_sdu(srsran::sch_pdu* pdu, uint32_t lcid, uint32_t total_sdu_le
         if (n > 0) { // new SDU could be added
           sdu_len -= n;
           logger.debug("SDU:   rnti=0x%x, lcid=%d, nbytes=%d, rem_len=%d", rnti, lcid, n, sdu_len);
+
+          // Indicate DRB activity in DL to RRC
+          if (lcid > 2) {
+            rrc->set_activity_user(rnti);
+            logger.debug("DL activity rnti=0x%x, n_bytes=%d", rnti, sdu_len);
+          }
+
         } else {
           logger.debug("Could not add SDU lcid=%d nbytes=%d, space=%d", lcid, sdu_len, sdu_space);
           pdu->del_subh();

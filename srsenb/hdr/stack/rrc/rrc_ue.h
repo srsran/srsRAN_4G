@@ -42,7 +42,8 @@ public:
   void        set_activity_timeout(const activity_timeout_type_t type);
   void        set_rlf_timeout();
   void        set_activity();
-  void        mac_ko_activity();
+  void        set_radiolink_dl_state(bool crc_res);
+  void        set_radiolink_ul_state(bool crc_res);
   void        activity_timer_expired(const activity_timeout_type_t type);
   void        rlf_timer_expired();
   void        max_retx_reached();
@@ -185,7 +186,9 @@ private:
 
   const static uint32_t UE_PCELL_CC_IDX = 0;
 
-  uint32_t consecutive_kos = 0;
+  // consecutive KO counter for DL and UL
+  uint32_t consecutive_kos_dl = 0;
+  uint32_t consecutive_kos_ul = 0;
 
   ue_cell_ded_list     ue_cell_list;
   bearer_cfg_handler   bearer_list;

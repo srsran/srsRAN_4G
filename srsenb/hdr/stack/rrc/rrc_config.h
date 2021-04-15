@@ -60,6 +60,7 @@ struct rrc_cfg_t {
   cell_list_t                                                                             cell_list;
   cell_list_t                                                                             cell_list_nr;
   uint32_t                                                                                max_mac_dl_kos;
+  uint32_t                                                                                max_mac_ul_kos;
 };
 
 constexpr uint32_t UE_PCELL_CC_IDX = 0;

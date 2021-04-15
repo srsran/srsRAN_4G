@@ -214,7 +214,9 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("expert.eea_pref_list", bpo::value<string>(&args->general.eea_pref_list)->default_value("EEA0, EEA2, EEA1"), "Ordered preference list for the selection of encryption algorithm (EEA) (default: EEA0, EEA2, EEA1).")
     ("expert.eia_pref_list", bpo::value<string>(&args->general.eia_pref_list)->default_value("EIA2, EIA1, EIA0"), "Ordered preference list for the selection of integrity algorithm (EIA) (default: EIA2, EIA1, EIA0).")
     ("expert.max_nof_ues", bpo::value<uint32_t>(&args->stack.mac.max_nof_ues)->default_value(8), "Maximum number of connected UEs")
-    ("expert.max_mac_dl_kos", bpo::value<uint32_t>(&args->general.max_mac_dl_kos)->default_value(100), "Maximum number of consecutive KOs before triggering the UE's release")
+    ("expert.max_mac_dl_kos", bpo::value<uint32_t>(&args->general.max_mac_dl_kos)->default_value(100), "Maximum number of consecutive KOs in DL before triggering the UE's release")
+    ("expert.max_mac_ul_kos", bpo::value<uint32_t>(&args->general.max_mac_ul_kos)->default_value(100), "Maximum number of consecutive KOs in UL before triggering the UE's release")
+
 
     // eMBMS section
     ("embms.enable", bpo::value<bool>(&args->stack.embms.enable)->default_value(false), "Enables MBMS in the eNB")

@@ -88,15 +88,24 @@ void rrc::ue::set_activity()
 {
   // re-start activity timer with current timeout value
   activity_timer.run();
-  rlf_timer.stop();
-  consecutive_kos = 0;
   if (parent) {
     parent->logger.debug("Activity registered for rnti=0x%x (timeout_value=%dms)", rnti, activity_timer.duration());
   }
 }
 
-void rrc::ue::mac_ko_activity()
+void rrc::ue::set_radiolink_dl_state(bool crc_res)
 {
+  parent->logger.debug(
+      "Radio-Link downlink state for rnti=0x%x: crc_res=%d, consecutive_ko=%d", rnti, crc_res, consecutive_kos_dl);
+
+  // If received OK, restart counter and stop RLF timer
+  if (crc_res) {
+    consecutive_kos_dl = 0;
+    consecutive_kos_ul = 0;
+    rlf_timer.stop();
+    return;
+  }
+
   // Count KOs in MAC and trigger release if it goes above a certain value.
   // This is done to detect out-of-coverage UEs
   if (rlf_timer.is_running()) {
@@ -104,9 +113,36 @@ void rrc::ue::mac_ko_activity()
     return;
   }
 
-  consecutive_kos++;
-  if (consecutive_kos > parent->cfg.max_mac_dl_kos) {
-    parent->logger.info("Max KOs reached, triggering release rnti=0x%x", rnti);
+  consecutive_kos_dl++;
+  if (consecutive_kos_dl > parent->cfg.max_mac_dl_kos) {
+    parent->logger.info("Max KOs in DL reached, triggering release rnti=0x%x", rnti);
+    max_retx_reached();
+  }
+}
+
+void rrc::ue::set_radiolink_ul_state(bool crc_res)
+{
+  parent->logger.debug(
+      "Radio-Link uplink state for rnti=0x%x: crc_res=%d, consecutive_ko=%d", rnti, crc_res, consecutive_kos_ul);
+
+  // If received OK, restart counter and stop RLF timer
+  if (crc_res) {
+    consecutive_kos_dl = 0;
+    consecutive_kos_ul = 0;
+    rlf_timer.stop();
+    return;
+  }
+
+  // Count KOs in MAC and trigger release if it goes above a certain value.
+  // This is done to detect out-of-coverage UEs
+  if (rlf_timer.is_running()) {
+    // RLF timer already running, no need to count KOs
+    return;
+  }
+
+  consecutive_kos_ul++;
+  if (consecutive_kos_ul > parent->cfg.max_mac_ul_kos) {
+    parent->logger.info("Max KOs in UL reached, triggering release rnti=0x%x", rnti);
     max_retx_reached();
   }
 }
@@ -227,8 +263,6 @@ bool rrc::ue::is_idle()
 
 void rrc::ue::parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
-  set_activity();
-
   ul_dcch_msg_s  ul_dcch_msg;
   asn1::cbit_ref bref(pdu->msg, pdu->N_bytes);
   if (ul_dcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or
@@ -252,10 +286,12 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
     case ul_dcch_msg_type_c::c1_c_::types::rrc_conn_setup_complete:
       save_ul_message(std::move(original_pdu));
       handle_rrc_con_setup_complete(&ul_dcch_msg.msg.c1().rrc_conn_setup_complete(), std::move(pdu));
+      set_activity();
       break;
     case ul_dcch_msg_type_c::c1_c_::types::rrc_conn_reest_complete:
       save_ul_message(std::move(original_pdu));
       handle_rrc_con_reest_complete(&ul_dcch_msg.msg.c1().rrc_conn_reest_complete(), std::move(pdu));
+      set_activity();
       break;
     case ul_dcch_msg_type_c::c1_c_::types::ul_info_transfer:
       pdu->N_bytes = ul_dcch_msg.msg.c1()

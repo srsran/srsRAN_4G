@@ -90,7 +90,7 @@ void rrc::stop()
 {
   if (running) {
     running   = false;
-    rrc_pdu p = {0, LCID_EXIT, nullptr};
+    rrc_pdu p = {0, LCID_EXIT, false, nullptr};
     rx_pdu_queue.push_blocking(std::move(p));
   }
   users.clear();
@@ -126,14 +126,29 @@ uint8_t* rrc::read_pdu_bcch_dlsch(const uint8_t cc_idx, const uint32_t sib_index
   return nullptr;
 }
 
-void rrc::set_activity_user(uint16_t rnti, bool ack_info)
+void rrc::set_radiolink_dl_state(uint16_t rnti, bool crc_res)
 {
-  rrc_pdu p;
-  if (ack_info) {
-    p = {rnti, LCID_ACT_USER, nullptr};
-  } else {
-    p = {rnti, LCID_MAC_KO_USER, nullptr};
+  // embed parameters in arg value
+  rrc_pdu p = {rnti, LCID_RADLINK_DL, crc_res, nullptr};
+
+  if (not rx_pdu_queue.try_push(std::move(p))) {
+    logger.error("Failed to push UE activity command to RRC queue");
   }
+}
+
+void rrc::set_radiolink_ul_state(uint16_t rnti, bool crc_res)
+{
+  // embed parameters in arg value
+  rrc_pdu p = {rnti, LCID_RADLINK_UL, crc_res, nullptr};
+
+  if (not rx_pdu_queue.try_push(std::move(p))) {
+    logger.error("Failed to push UE activity command to RRC queue");
+  }
+}
+
+void rrc::set_activity_user(uint16_t rnti)
+{
+  rrc_pdu p = {rnti, LCID_ACT_USER, false, nullptr};
 
   if (not rx_pdu_queue.try_push(std::move(p))) {
     logger.error("Failed to push UE activity command to RRC queue");
@@ -142,7 +157,7 @@ void rrc::set_activity_user(uint16_t rnti, bool ack_info)
 
 void rrc::rem_user_thread(uint16_t rnti)
 {
-  rrc_pdu p = {rnti, LCID_REM_USER, nullptr};
+  rrc_pdu p = {rnti, LCID_REM_USER, false, nullptr};
   if (not rx_pdu_queue.try_push(std::move(p))) {
     logger.error("Failed to push UE remove command to RRC queue");
   }
@@ -155,7 +170,7 @@ uint32_t rrc::get_nof_users()
 
 void rrc::max_retx_attempted(uint16_t rnti)
 {
-  rrc_pdu p = {rnti, LCID_RTX_USER, nullptr};
+  rrc_pdu p = {rnti, LCID_RTX_USER, false, nullptr};
   if (not rx_pdu_queue.try_push(std::move(p))) {
     logger.error("Failed to push max Retx event to RRC queue");
   }
@@ -253,7 +268,7 @@ void rrc::send_rrc_connection_reject(uint16_t rnti)
 *******************************************************************************/
 void rrc::write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
-  rrc_pdu p = {rnti, lcid, std::move(pdu)};
+  rrc_pdu p = {rnti, lcid, false, std::move(pdu)};
   if (not rx_pdu_queue.try_push(std::move(p))) {
     logger.error("Failed to push Release command to RRC queue");
   }
@@ -290,7 +305,7 @@ void rrc::write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu)
 
 void rrc::release_ue(uint16_t rnti)
 {
-  rrc_pdu p = {rnti, LCID_REL_USER, nullptr};
+  rrc_pdu p = {rnti, LCID_REL_USER, false, nullptr};
   if (not rx_pdu_queue.try_push(std::move(p))) {
     logger.error("Failed to push Release command to RRC queue");
   }
@@ -1007,8 +1022,11 @@ void rrc::tti_clock()
       case LCID_ACT_USER:
         user_it->second->set_activity();
         break;
-      case LCID_MAC_KO_USER:
-        user_it->second->mac_ko_activity();
+      case LCID_RADLINK_DL:
+        user_it->second->set_radiolink_dl_state(p.arg);
+        break;
+      case LCID_RADLINK_UL:
+        user_it->second->set_radiolink_ul_state(p.arg);
         break;
       case LCID_RTX_USER:
         user_it->second->max_retx_reached();
