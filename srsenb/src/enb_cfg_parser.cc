@@ -681,6 +681,8 @@ static int parse_meas_cell_list(rrc_meas_cfg_t* meas_cfg, Setting& root)
     cell.eci      = (unsigned int)root[i]["eci"];
     cell.q_offset = 0; // LIBLTE_RRC_Q_OFFSET_RANGE_DB_0; // TODO
     parse_default_field(cell.direct_forward_path_available, root[i], "direct_forward_path_available", false);
+    parse_default_field(cell.allowed_meas_bw, root[i], "allowed_meas_bw", 6u);
+    srsran_assert(srsran::is_lte_cell_nof_prb(cell.allowed_meas_bw), "Invalid measurement Bandwidth");
   }
   return 0;
 }
@@ -749,6 +751,8 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
     parse_default_field(cell_cfg.meas_cfg.meas_gap_period, cellroot, "meas_gap_period", 0u);
     HANDLEPARSERCODE(parse_default_field(cell_cfg.target_ul_sinr_db, cellroot, "target_ul_sinr", -1));
     HANDLEPARSERCODE(parse_default_field(cell_cfg.enable_phr_handling, cellroot, "enable_phr_handling", false));
+    parse_default_field(cell_cfg.meas_cfg.allowed_meas_bw, cellroot, "allowed_meas_bw", 6u);
+    srsran_assert(srsran::is_lte_cell_nof_prb(cell_cfg.meas_cfg.allowed_meas_bw), "Invalid measurement Bandwidth");
 
     if (cellroot.exists("ho_active") and cellroot["ho_active"]) {
       HANDLEPARSERCODE(parse_meas_cell_list(&cell_cfg.meas_cfg, cellroot["meas_cell_list"]));

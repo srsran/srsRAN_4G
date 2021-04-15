@@ -20,6 +20,30 @@ namespace srsran {
 
 // Cell nof PRBs
 const std::array<uint32_t, 6> lte_cell_nof_prbs = {6, 15, 25, 50, 75, 100};
+inline uint32_t               lte_cell_nof_prb_to_index(uint32_t nof_prb)
+{
+  switch (nof_prb) {
+    case 6:
+      return 0;
+    case 15:
+      return 1;
+    case 25:
+      return 2;
+    case 50:
+      return 3;
+    case 75:
+      return 4;
+    case 100:
+      return 5;
+    default:
+      break;
+  }
+  return -1;
+}
+inline bool is_lte_cell_nof_prb(uint32_t nof_prb)
+{
+  return lte_cell_nof_prb_to_index(nof_prb) < lte_cell_nof_prbs.size();
+}
 
 // Radio Bearers
 enum class lte_srb { srb0, srb1, srb2, count };

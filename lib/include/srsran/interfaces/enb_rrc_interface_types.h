@@ -32,6 +32,7 @@ struct meas_cell_cfg_t {
   uint16_t pci;
   uint32_t eci;
   float    q_offset;
+  uint32_t allowed_meas_bw;
   bool     direct_forward_path_available;
 };
 
@@ -41,6 +42,7 @@ struct rrc_meas_cfg_t {
   std::vector<asn1::rrc::report_cfg_eutra_s> meas_reports;
   asn1::rrc::quant_cfg_eutra_s               quant_cfg;
   uint32_t                                   meas_gap_period;
+  uint32_t                                   allowed_meas_bw;
 };
 
 // Cell/Sector configuration

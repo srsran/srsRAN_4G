@@ -61,7 +61,8 @@ cell_list =
     dl_earfcn = 3350;
     //ul_earfcn = 21400;
     ho_active = false;
-    //meas_gap_period = 0;
+    //meas_gap_period = 0; // 0 (inactive), 40 or 80
+    //allowed_meas_bw = 6;
 
     // CA cells
     scell_list = (
@@ -76,6 +77,7 @@ cell_list =
         dl_earfcn = 2850;
         pci = 2;
         //direct_forward_path_available = false;
+        //allowed_meas_bw = 6;
       }
     );
 
