@@ -87,6 +87,13 @@ struct ul_harq_cfg_t {
   }
 };
 
+/// NR specific config for DL HARQ with configurable number of processes
+struct dl_harq_cfg_nr_t {
+  uint8_t nof_procs; // Number of HARQ processes used in the DL
+  dl_harq_cfg_nr_t() { reset(); }
+  void reset() { nof_procs = SRSRAN_DEFAULT_HARQ_PROC_DL_NR; }
+};
+
 struct rach_cfg_t {
   bool     enabled;
   uint32_t nof_preambles;
@@ -145,7 +152,7 @@ struct sr_cfg_item_nr_t {
 
 #define SRSRAN_MAX_MAX_NR_OF_SR_CFG_PER_CELL_GROUP (8)
 struct sr_cfg_nr_t {
-  bool enabled;
+  bool             enabled;
   uint8_t          num_items;
   sr_cfg_item_nr_t item[SRSRAN_MAX_MAX_NR_OF_SR_CFG_PER_CELL_GROUP];
 };

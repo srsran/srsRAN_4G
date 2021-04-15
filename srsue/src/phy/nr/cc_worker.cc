@@ -38,19 +38,12 @@ cc_worker::cc_worker(uint32_t cc_idx_, srslog::basic_logger& log, state* phy_sta
     ERROR("Error initiating UE DL NR");
     return;
   }
-
-  if (srsran_softbuffer_rx_init_guru(&softbuffer_rx, SRSRAN_SCH_NR_MAX_NOF_CB_LDPC, SRSRAN_LDPC_MAX_LEN_ENCODED_CB) <
-      SRSRAN_SUCCESS) {
-    ERROR("Error init soft-buffer");
-    return;
-  }
 }
 
 cc_worker::~cc_worker()
 {
   srsran_ue_dl_nr_free(&ue_dl);
   srsran_ue_ul_nr_free(&ue_ul);
-  srsran_softbuffer_rx_free(&softbuffer_rx);
   for (cf_t* p : rx_buffer) {
     if (p != nullptr) {
       free(p);
@@ -240,6 +233,23 @@ bool cc_worker::work_dl()
       return true;
     }
 
+    // Notify MAC about PDSCH grant
+    mac_interface_phy_nr::tb_action_dl_t    dl_action    = {};
+    mac_interface_phy_nr::mac_nr_grant_dl_t mac_dl_grant = {};
+    mac_dl_grant.rnti                                    = pdsch_cfg.grant.rnti;
+    mac_dl_grant.pid                                     = pdsch_cfg.grant.tb[0].pid;
+    mac_dl_grant.rv                                      = pdsch_cfg.grant.tb[0].rv;
+    mac_dl_grant.ndi                                     = pdsch_cfg.grant.tb[0].ndi;
+    mac_dl_grant.tbs                                     = pdsch_cfg.grant.tb[0].tbs / 8;
+    mac_dl_grant.tti                                     = dl_slot_cfg.idx;
+    phy->stack->new_grant_dl(0, mac_dl_grant, &dl_action);
+
+    // Early stop if MAC says it doesn't need the TB
+    if (not dl_action.tb.enabled) {
+      logger.info("Decoding not required. Skipping PDSCH");
+      return true;
+    }
+
     // Get data buffer
     srsran::unique_byte_buffer_t data = srsran::make_byte_buffer();
     if (data == nullptr) {
@@ -248,14 +258,10 @@ bool cc_worker::work_dl()
     }
     data->N_bytes = pdsch_cfg.grant.tb[0].tbs / 8U;
 
-    // Get soft-buffer from MAC
-    // ...
-    srsran_softbuffer_rx_reset(&softbuffer_rx);
-
     // Initialise PDSCH Result
     srsran_pdsch_res_nr_t pdsch_res     = {};
     pdsch_res.tb[0].payload             = data->msg;
-    pdsch_cfg.grant.tb[0].softbuffer.rx = &softbuffer_rx;
+    pdsch_cfg.grant.tb[0].softbuffer.rx = dl_action.tb.softbuffer;
 
     // Decode actual PDSCH transmission
     if (srsran_ue_dl_nr_decode_pdsch(&ue_dl, &dl_slot_cfg, &pdsch_cfg, &pdsch_res) < SRSRAN_SUCCESS) {
@@ -276,21 +282,16 @@ bool cc_worker::work_dl()
     }
 
     // Notify MAC about PDSCH decoding result
+    mac_interface_phy_nr::tb_action_dl_result_t mac_dl_result = {};
+    mac_dl_result.ack                                         = pdsch_res.tb[0].crc;
+    mac_dl_result.payload = mac_dl_result.ack ? std::move(data) : nullptr; // only pass data when successful
+    phy->stack->tb_decoded(cc_idx, mac_dl_grant, std::move(mac_dl_result));
+
+    if (pdsch_cfg.grant.rnti_type == srsran_rnti_type_ra) {
+      phy->rar_grant_tti = dl_slot_cfg.idx;
+    }
+
     if (pdsch_res.tb[0].crc) {
-      // Prepare grant
-      mac_interface_phy_nr::mac_nr_grant_dl_t mac_nr_grant = {};
-      mac_nr_grant.tb[0]                                   = std::move(data);
-      mac_nr_grant.pid                                     = pid;
-      mac_nr_grant.rnti                                    = pdsch_cfg.grant.rnti;
-      mac_nr_grant.tti                                     = dl_slot_cfg.idx;
-
-      if (pdsch_cfg.grant.rnti_type == srsran_rnti_type_ra) {
-        phy->rar_grant_tti = dl_slot_cfg.idx;
-      }
-
-      // Send data to MAC
-      phy->stack->tb_decoded(cc_idx, mac_nr_grant);
-
       // Generate DL metrics
       dl_metrics_t dl_m = {};
       dl_m.mcs          = pdsch_cfg.grant.tb[0].mcs;

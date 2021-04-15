@@ -96,7 +96,7 @@ public:
     mac.new_grant_ul(cc_idx, grant, action);
   }
 
-  void new_grant_dl(uint32_t cc_idx, mac_grant_dl_t grant, tb_action_dl_t* action) final
+  void new_grant_dl(uint32_t cc_idx, mac_grant_dl_t grant, mac_interface_phy_lte::tb_action_dl_t* action) final
   {
     mac.new_grant_dl(cc_idx, grant, action);
   }
@@ -113,7 +113,7 @@ public:
 
   void mch_decoded(uint32_t len, bool crc) final { mac.mch_decoded(len, crc); }
 
-  void new_mch_dl(const srsran_pdsch_grant_t& phy_grant, tb_action_dl_t* action) final
+  void new_mch_dl(const srsran_pdsch_grant_t& phy_grant, mac_interface_phy_lte::tb_action_dl_t* action) final
   {
     mac.new_mch_dl(phy_grant, action);
   }
@@ -124,8 +124,18 @@ public:
 
   // MAC Interface for NR PHY
   int  sf_indication(const uint32_t tti) final { return SRSRAN_SUCCESS; }
-  void tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant) final { mac_nr.tb_decoded(cc_idx, grant); }
-
+  void tb_decoded(const uint32_t                              cc_idx,
+                  const mac_nr_grant_dl_t&                    grant,
+                  mac_interface_phy_nr::tb_action_dl_result_t result) final
+  {
+    mac_nr.tb_decoded(cc_idx, grant, std::move(result));
+  }
+  void new_grant_dl(const uint32_t                        cc_idx,
+                    const mac_nr_grant_dl_t&              grant,
+                    mac_interface_phy_nr::tb_action_dl_t* action) final
+  {
+    mac_nr.new_grant_dl(cc_idx, grant, action);
+  }
   void new_grant_ul(const uint32_t                        cc_idx,
                     const mac_nr_grant_ul_t&              grant,
                     mac_interface_phy_nr::tb_action_ul_t* action) final

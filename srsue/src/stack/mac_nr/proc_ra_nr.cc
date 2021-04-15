@@ -178,7 +178,7 @@ void proc_ra_nr::ra_preamble_transmission()
 }
 
 // 5.1.4 Random Access Preamble transmission
-void proc_ra_nr::ra_response_reception(const mac_interface_phy_nr::mac_nr_grant_dl_t& grant)
+void proc_ra_nr::ra_response_reception(const mac_interface_phy_nr::tb_action_dl_result_t& tb)
 {
   if (state != WAITING_FOR_RESPONSE_RECEPTION) {
     logger.warning(
@@ -190,34 +190,32 @@ void proc_ra_nr::ra_response_reception(const mac_interface_phy_nr::mac_nr_grant_
 
   // Stop rar timer
   rar_timeout_timer.stop();
-  for (uint32_t i = 0; i < SRSRAN_MAX_CODEWORDS; ++i) {
-    if (grant.tb[i] != nullptr) {
-      srsran::mac_rar_pdu_nr pdu;
-      if (!pdu.unpack(grant.tb[i]->msg, grant.tb[i]->N_bytes)) {
-        logger.warning("Error unpacking RAR PDU (%d)", i);
-        return;
-      }
-      logger.info("%s", pdu.to_string());
+  if (tb.ack && tb.payload != nullptr) {
+    srsran::mac_rar_pdu_nr pdu;
+    if (!pdu.unpack(tb.payload->msg, tb.payload->N_bytes)) {
+      logger.warning("Error unpacking RAR PDU");
+      return;
+    }
+    logger.info("%s", pdu.to_string());
 
-      for (auto& subpdu : pdu.get_subpdus()) {
-        if (subpdu.has_rapid() && subpdu.get_rapid() == preamble_index) {
-          logger.debug("PROC RA NR: Setting UL grant and prepare Msg3");
-          temp_crnti = subpdu.get_temp_crnti();
+    for (auto& subpdu : pdu.get_subpdus()) {
+      if (subpdu.has_rapid() && subpdu.get_rapid() == preamble_index) {
+        logger.debug("PROC RA NR: Setting UL grant and prepare Msg3");
+        temp_crnti = subpdu.get_temp_crnti();
 
-          // Set Temporary-C-RNTI if provided, otherwise C-RNTI is ok
-          phy->set_ul_grant(subpdu.get_ul_grant(), temp_crnti, srsran_rnti_type_ra);
+        // Set Temporary-C-RNTI if provided, otherwise C-RNTI is ok
+        phy->set_ul_grant(subpdu.get_ul_grant(), temp_crnti, srsran_rnti_type_ra);
 
-          // reset all parameters that are used before rar
-          rar_rnti = SRSRAN_INVALID_RNTI;
-          mac.msg3_prepare();
-          current_ta = subpdu.get_ta();
+        // reset all parameters that are used before rar
+        rar_rnti = SRSRAN_INVALID_RNTI;
+        mac.msg3_prepare();
+        current_ta = subpdu.get_ta();
 
-          // Set Backoff parameter
-          if (subpdu.has_backoff()) {
-            preamble_backoff = backoff_table_nr[subpdu.get_backoff() % 16]; // TODO multiplied with SCALING_FACTOR_BI.
-          } else {
-            preamble_backoff = 0;
-          }
+        // Set Backoff parameter
+        if (subpdu.has_backoff()) {
+          preamble_backoff = backoff_table_nr[subpdu.get_backoff() % 16]; // TODO multiplied with SCALING_FACTOR_BI.
+        } else {
+          preamble_backoff = 0;
         }
       }
     }
@@ -345,11 +343,13 @@ void proc_ra_nr::prach_sent(uint32_t tti, uint32_t s_id, uint32_t t_id, uint32_t
 }
 
 // Called by PHY thread through MAC parent
-void proc_ra_nr::handle_rar_pdu(mac_interface_phy_nr::mac_nr_grant_dl_t& grant)
+void proc_ra_nr::handle_rar_pdu(mac_interface_phy_nr::tb_action_dl_result_t& result)
 {
   // Defer the handling of the grant to main stack thread in ra_response_reception
-  auto task_handler = [this](const mac_interface_phy_nr::mac_nr_grant_dl_t& t) { ra_response_reception(std::move(t)); };
-  task_queue.push(std::bind(task_handler, std::move(grant)));
+  auto task_handler = [this](const mac_interface_phy_nr::tb_action_dl_result_t& t) {
+    ra_response_reception(std::move(t));
+  };
+  task_queue.push(std::bind(task_handler, std::move(result)));
 }
 
 // Called from PHY thread, defer actions therefore.

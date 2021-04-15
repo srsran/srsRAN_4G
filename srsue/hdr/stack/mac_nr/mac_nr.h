@@ -13,16 +13,17 @@
 #ifndef SRSUE_MAC_NR_H
 #define SRSUE_MAC_NR_H
 
+#include "dl_harq_nr.h"
 #include "mac_nr_interfaces.h"
 #include "proc_bsr_nr.h"
 #include "proc_ra_nr.h"
 #include "proc_sr_nr.h"
-#include "srsran/common/block_queue.h"
 #include "srsran/common/mac_pcap.h"
 #include "srsran/interfaces/mac_interface_types.h"
 #include "srsran/interfaces/ue_nr_interfaces.h"
 #include "srsran/srslog/srslog.h"
 #include "srsue/hdr/stack/mac_common/mac_common.h"
+#include "srsue/hdr/stack/mac_nr/demux_nr.h"
 #include "srsue/hdr/stack/mac_nr/mux_nr.h"
 #include "srsue/hdr/stack/ue_stack_base.h"
 #include "ul_harq_nr.h"
@@ -44,7 +45,7 @@ public:
   mac_nr(srsran::ext_task_sched_handle task_sched_);
   ~mac_nr();
 
-  int  init(const mac_nr_args_t& args_, phy_interface_mac_nr* phy, rlc_interface_mac* rlc, rrc_interface_mac* rrc_);
+  int  init(const mac_nr_args_t& args_, phy_interface_mac_nr* phy_, rlc_interface_mac* rlc_, rrc_interface_mac* rrc_);
   void stop();
 
   void reset();
@@ -59,7 +60,8 @@ public:
   sched_rnti_t get_ul_sched_rnti_nr(const uint32_t tti);
 
   int  sf_indication(const uint32_t tti);
-  void tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant);
+  void tb_decoded(const uint32_t cc_idx, const mac_nr_grant_dl_t& grant, tb_action_dl_result_t result);
+  void new_grant_dl(const uint32_t cc_idx, const mac_nr_grant_dl_t& grant, tb_action_dl_t* action);
   void new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, tb_action_ul_t* action);
   void prach_sent(const uint32_t tti,
                   const uint32_t s_id,
@@ -111,7 +113,9 @@ public:
   static bool is_in_window(uint32_t tti, int* start, int* len);
 
 private:
-  void write_pcap(const uint32_t cc_idx, mac_nr_grant_dl_t& grant); // If PCAPs are enabled for this MAC
+  void write_pcap(const uint32_t           cc_idx,
+                  const mac_nr_grant_dl_t& grant,
+                  tb_action_dl_result_t&   tb); // If PCAPs are enabled for this MAC
   void handle_pdu(srsran::unique_byte_buffer_t pdu);
   void get_ul_data(const mac_nr_grant_ul_t& grant, srsran::byte_buffer_t* tx_pdu);
 
@@ -145,13 +149,7 @@ private:
   uint16_t c_rnti        = SRSRAN_INVALID_RNTI;
   uint64_t contention_id = 0;
 
-  srsran::block_queue<srsran::unique_byte_buffer_t>
-      pdu_queue; ///< currently only DCH PDUs supported (add BCH, PCH, etc)
-
   std::array<mac_metrics_t, SRSRAN_MAX_CARRIERS> metrics = {};
-
-  /// Rx buffer
-  srsran::mac_sch_pdu_nr rx_pdu;
 
   srsran::task_multiqueue::queue_handle stack_task_dispatch_queue;
 
@@ -160,10 +158,11 @@ private:
   proc_sr_nr  proc_sr;
   proc_bsr_nr proc_bsr;
   mux_nr      mux;
+  demux_nr    demux;
 
-  // UL HARQ
+  // DL/UL HARQ
+  dl_harq_entity_nr_vector dl_harq = {};
   ul_harq_entity_nr_vector ul_harq = {};
-  ul_harq_cfg_t            ul_harq_cfg;
 
   const uint8_t PCELL_CC_IDX = 0;
 };

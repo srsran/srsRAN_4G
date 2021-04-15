@@ -51,9 +51,6 @@ private:
   srsran_ue_ul_nr_t                   ue_ul       = {};
   srslog::basic_logger&               logger;
 
-  // Temporal attributes
-  srsran_softbuffer_rx_t softbuffer_rx = {};
-
   // Methods for DL...
   void decode_pdcch_ul();
   void decode_pdcch_dl();

@@ -34,7 +34,7 @@ ue_stack_lte::ue_stack_lte() :
   rrc_logger(srslog::fetch_basic_logger("RRC", false)),
   usim_logger(srslog::fetch_basic_logger("USIM", false)),
   nas_logger(srslog::fetch_basic_logger("NAS", false)),
-  mac_nr_logger(srslog::fetch_basic_logger("MAC-NR", false)),
+  mac_nr_logger(srslog::fetch_basic_logger("MAC-NR")),
   rrc_nr_logger(srslog::fetch_basic_logger("RRC-NR", false)),
   mac_pcap(),
   mac_nr_pcap(),
