@@ -250,7 +250,8 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg, srsr
     auto                   meas_it  = std::find_if(meas_list_cfg.begin(), meas_list_cfg.end(), same_pci);
     const enb_cell_common* c        = rrc_enb->cell_common_list->get_pci(e.pci);
     if (meas_it != meas_list_cfg.end()) {
-      meas_ev.target_eci = meas_it->eci;
+      meas_ev.target_eci      = meas_it->eci;
+      meas_ev.direct_fwd_path = meas_it->direct_forward_path_available;
     } else if (c != nullptr) {
       meas_ev.target_eci = (rrc_enb->cfg.enb_id << 8u) + c->cell_cfg.cell_id;
     } else {
@@ -281,11 +282,6 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
                                                  uint8_t  measobj_id,
                                                  bool     fwd_direct_path_available)
 {
-  if (fwd_direct_path_available) {
-    Error("Direct tunnels not supported supported");
-    return false;
-  }
-
   srsran::plmn_id_t target_plmn =
       srsran::make_plmn_id_t(rrc_enb->cfg.sib1.cell_access_related_info.plmn_id_list[0].plmn_id);
   const ue_cell_ded*     src_cell_ded = rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
@@ -392,7 +388,8 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
     fwd_erabs.push_back(erab_pair.first);
   }
 
-  return rrc_enb->s1ap->send_ho_required(rrc_ue->rnti, target_eci, target_plmn, fwd_erabs, std::move(buffer));
+  return rrc_enb->s1ap->send_ho_required(
+      rrc_ue->rnti, target_eci, target_plmn, fwd_erabs, std::move(buffer), fwd_direct_path_available);
 }
 
 /**
@@ -628,7 +625,7 @@ void rrc::ue::rrc_mobility::s1_source_ho_st::enter(rrc_mobility* f, const ho_mea
   logger.info("Starting S1 Handover of rnti=0x%x to cellid=0x%x.", rrc_ue->rnti, ev.target_eci);
   report = ev;
 
-  if (not parent_fsm()->start_ho_preparation(report.target_eci, report.meas_obj->meas_obj_id, false)) {
+  if (not parent_fsm()->start_ho_preparation(report.target_eci, report.meas_obj->meas_obj_id, ev.direct_fwd_path)) {
     trigger(srsran::failure_ev{});
   }
 }

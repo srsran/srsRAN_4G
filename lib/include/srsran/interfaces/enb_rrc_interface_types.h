@@ -32,6 +32,7 @@ struct meas_cell_cfg_t {
   uint16_t pci;
   uint32_t eci;
   float    q_offset;
+  bool     direct_forward_path_available;
 };
 
 // neigh measurement Cell info

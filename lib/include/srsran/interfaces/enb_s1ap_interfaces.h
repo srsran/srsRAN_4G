@@ -76,7 +76,8 @@ public:
                                 uint32_t                     target_eci,
                                 srsran::plmn_id_t            target_plmn,
                                 srsran::span<uint32_t>       fwd_erabs,
-                                srsran::unique_byte_buffer_t rrc_container) = 0;
+                                srsran::unique_byte_buffer_t rrc_container,
+                                bool                         has_direct_fwd_path) = 0;
 
   /**
    * Command the s1ap to transmit eNBStatusTransfer message to MME. This message passes the PDCP context of the UE

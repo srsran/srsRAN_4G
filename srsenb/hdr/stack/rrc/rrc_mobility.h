@@ -80,8 +80,9 @@ private:
 
   // events
   struct ho_meas_report_ev {
-    uint32_t                                target_eci = 0;
-    const asn1::rrc::meas_obj_to_add_mod_s* meas_obj   = nullptr;
+    uint32_t                                target_eci      = 0;
+    const asn1::rrc::meas_obj_to_add_mod_s* meas_obj        = nullptr;
+    bool                                    direct_fwd_path = false;
   };
   struct ho_req_rx_ev {
     const asn1::s1ap::ho_request_s*                                   ho_req_msg;

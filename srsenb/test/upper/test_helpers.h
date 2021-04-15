@@ -83,7 +83,8 @@ public:
                         uint32_t                     target_eci,
                         srsran::plmn_id_t            target_plmn,
                         srsran::span<uint32_t>       fwd_erabs,
-                        srsran::unique_byte_buffer_t rrc_container) final
+                        srsran::unique_byte_buffer_t rrc_container,
+                        bool                         has_direct_fwd_path) final
   {
     last_ho_required = ho_req_data{rnti, target_eci, target_plmn, std::move(rrc_container)};
     return true;

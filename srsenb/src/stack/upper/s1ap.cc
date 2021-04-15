@@ -117,14 +117,16 @@ s1ap::ue::ho_prep_proc_t::ho_prep_proc_t(s1ap::ue* ue_) : ue_ptr(ue_), s1ap_ptr(
 srsran::proc_outcome_t s1ap::ue::ho_prep_proc_t::init(uint32_t                     target_eci_,
                                                       srsran::plmn_id_t            target_plmn_,
                                                       srsran::span<uint32_t>       fwd_erabs,
-                                                      srsran::unique_byte_buffer_t rrc_container_)
+                                                      srsran::unique_byte_buffer_t rrc_container_,
+                                                      bool                         has_direct_fwd_path)
 {
   ho_cmd_msg  = nullptr;
   target_eci  = target_eci_;
   target_plmn = target_plmn_;
 
   procInfo("Sending HandoverRequired to MME id=%d", ue_ptr->ctxt.mme_ue_s1ap_id.value());
-  if (not ue_ptr->send_ho_required(target_eci, target_plmn, fwd_erabs, std::move(rrc_container_))) {
+  if (not ue_ptr->send_ho_required(
+          target_eci, target_plmn, fwd_erabs, std::move(rrc_container_), has_direct_fwd_path)) {
     procError("Failed to send HORequired to cell 0x%x", target_eci);
     return srsran::proc_outcome_t::error;
   }
@@ -1686,7 +1688,8 @@ bool s1ap::send_ho_required(uint16_t                     rnti,
                             uint32_t                     target_eci,
                             srsran::plmn_id_t            target_plmn,
                             srsran::span<uint32_t>       fwd_erabs,
-                            srsran::unique_byte_buffer_t rrc_container)
+                            srsran::unique_byte_buffer_t rrc_container,
+                            bool                         has_direct_fwd_path)
 {
   if (!mme_connected) {
     return false;
@@ -1697,7 +1700,7 @@ bool s1ap::send_ho_required(uint16_t                     rnti,
   }
 
   // launch procedure
-  if (not u->ho_prep_proc.launch(target_eci, target_plmn, fwd_erabs, std::move(rrc_container))) {
+  if (not u->ho_prep_proc.launch(target_eci, target_plmn, fwd_erabs, std::move(rrc_container), has_direct_fwd_path)) {
     logger.error("Failed to initiate an HandoverPreparation procedure for user rnti=0x%x", u->ctxt.rnti);
     return false;
   }
@@ -1945,7 +1948,8 @@ s1ap::ue::ue(s1ap* s1ap_ptr_) : s1ap_ptr(s1ap_ptr_), ho_prep_proc(this), logger(
 bool s1ap::ue::send_ho_required(uint32_t                     target_eci,
                                 srsran::plmn_id_t            target_plmn,
                                 srsran::span<uint32_t>       fwd_erabs,
-                                srsran::unique_byte_buffer_t rrc_container)
+                                srsran::unique_byte_buffer_t rrc_container,
+                                bool                         has_direct_fwd_path)
 {
   /*** Setup S1AP PDU as HandoverRequired ***/
   s1ap_pdu_c tx_pdu;
@@ -1953,11 +1957,16 @@ bool s1ap::ue::send_ho_required(uint32_t                     target_eci,
   ho_required_ies_container& container = tx_pdu.init_msg().value.ho_required().protocol_ies;
 
   /*** fill HO Required message ***/
-  container.enb_ue_s1ap_id.value                        = ctxt.enb_ue_s1ap_id;
-  container.mme_ue_s1ap_id.value                        = ctxt.mme_ue_s1ap_id.value();
-  container.direct_forwarding_path_availability_present = false;                // NOTE: X2 for fwd path not supported
+  container.enb_ue_s1ap_id.value                  = ctxt.enb_ue_s1ap_id;
+  container.mme_ue_s1ap_id.value                  = ctxt.mme_ue_s1ap_id.value();
   container.handov_type.value.value               = handov_type_opts::intralte; // NOTE: only intra-LTE HO supported
   container.cause.value.set_radio_network().value = cause_radio_network_opts::ho_desirable_for_radio_reason;
+
+  container.direct_forwarding_path_availability_present = has_direct_fwd_path;
+  if (container.direct_forwarding_path_availability_present) {
+    container.direct_forwarding_path_availability.value.value =
+        asn1::s1ap::direct_forwarding_path_availability_opts::direct_path_available;
+  }
 
   /*** set the target eNB ***/
   container.csg_id_present           = false; // NOTE: CSG/hybrid target cell not supported

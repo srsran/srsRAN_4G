@@ -86,7 +86,8 @@ public:
                         uint32_t                     target_eci,
                         srsran::plmn_id_t            target_plmn,
                         srsran::span<uint32_t>       fwd_erabs,
-                        srsran::unique_byte_buffer_t rrc_container) override;
+                        srsran::unique_byte_buffer_t rrc_container,
+                        bool                         has_direct_fwd_path) override;
   bool send_enb_status_transfer_proc(uint16_t rnti, std::vector<bearer_status_info>& bearer_status_list) override;
   bool send_ho_req_ack(const asn1::s1ap::ho_request_s&                msg,
                        uint16_t                                       rnti,
@@ -213,7 +214,8 @@ private:
       srsran::proc_outcome_t init(uint32_t                     target_eci_,
                                   srsran::plmn_id_t            target_plmn_,
                                   srsran::span<uint32_t>       fwd_erabs,
-                                  srsran::unique_byte_buffer_t rrc_container);
+                                  srsran::unique_byte_buffer_t rrc_container,
+                                  bool                         has_direct_fwd_path);
       srsran::proc_outcome_t step() { return srsran::proc_outcome_t::yield; }
       srsran::proc_outcome_t react(ts1_reloc_prep_expired e);
       srsran::proc_outcome_t react(const asn1::s1ap::ho_prep_fail_s& msg);
@@ -263,7 +265,8 @@ private:
     bool send_ho_required(uint32_t                     target_eci_,
                           srsran::plmn_id_t            target_plmn_,
                           srsran::span<uint32_t>       fwd_erabs,
-                          srsran::unique_byte_buffer_t rrc_container);
+                          srsran::unique_byte_buffer_t rrc_container,
+                          bool                         has_direct_fwd_path);
     void get_erab_addr(uint16_t erab_id, transp_addr_t& transp_addr, asn1::fixed_octstring<4, true>& gtpu_teid_id);
 
     // args
