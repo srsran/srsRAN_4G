@@ -144,7 +144,7 @@ class intrusive_double_linked_list
   public:
     using iterator_category = std::bidirectional_iterator_tag;
     using value_type        = U;
-    using difference_type   = ptrdiff_t;
+    using difference_type   = std::ptrdiff_t;
     using pointer           = U*;
     using reference         = U&;
 

@@ -40,16 +40,16 @@ public:
  * Class that manages stack timers. It allows creation of unique_timers, with different ids. Each unique_timer duration,
  * and callback can be set via the set(...) method. A timer can be started/stopped via run()/stop() methods.
  * Internal Data structures:
- * - The timer objects are stored in a deque via push_back() to keep pointer/reference consistency. The timer index
- *   in the deque matches the timer id field.
- *   This deque will only grow in size. Erased timers are just tagged in deque as empty, and can be reused for the
+ * - timer_list - std::deque that stores timer objects via push_back() to keep pointer/reference validity.
+ *   The timer index in the timer_list matches the timer object id field.
+ *   This deque will only grow in size. Erased timers are just tagged in the deque as empty, and can be reused for the
  *   creation of new timers. To avoid unnecessary runtime allocations, the user can set an initial capacity.
- * - A free_list std::vector is used as a stack (LIFO) to keep track of the empty timers and speed up timer creation.
+ * - free_list - intrusive forward linked list to keep track of the empty timers and speed up new timer creation.
  * - A large circular vector of size WHEEL_SIZE which works as a time wheel, storing and circularly indexing the
  *   currently running timers by their respective timeout value.
  *   For a number of running timers N, and uniform distribution of timeout values, the step_all() complexity
  *   should be O(N/WHEEL_SIZE). Thus, the performance should improve with a larger WHEEL_SIZE, at the expense of more
- *   wasted memory.
+ *   used memory.
  */
 class timer_handler
 {
@@ -61,7 +61,7 @@ class timer_handler
   constexpr static size_t     WHEEL_SIZE        = 1U << WHEEL_SHIFT;
   constexpr static size_t     WHEEL_MASK        = WHEEL_SIZE - 1U;
 
-  struct timer_impl : public intrusive_double_linked_list_element<> {
+  struct timer_impl : public intrusive_double_linked_list_element<>, public intrusive_forward_list_element<> {
     timer_handler& parent;
     const uint32_t id;
     tic_diff_t     duration                                          = INVALID_TIME_DIFF;
@@ -192,12 +192,14 @@ public:
   {
     time_wheel.resize(WHEEL_SIZE);
     // Pre-reserve timers
-    free_list.reserve(capacity);
     while (timer_list.size() < capacity) {
       timer_list.emplace_back(*this, timer_list.size());
-      free_list.push_back(&timer_list.back());
     }
-    std::reverse(free_list.begin(), free_list.end()); // reverse to keep clear tid allocation for tests
+    // push to free list in reverse order to keep ascending ids
+    for (auto it = timer_list.rbegin(); it != timer_list.rend(); ++it) {
+      free_list.push_front(&(*it));
+    }
+    nof_free_timers = timer_list.size();
   }
 
   void step_all()
@@ -241,7 +243,7 @@ public:
   uint32_t nof_timers() const
   {
     std::lock_guard<std::mutex> lock(mutex);
-    return timer_list.size() - free_list.size();
+    return timer_list.size() - nof_free_timers;
   }
 
   uint32_t nof_running_timers() const
@@ -269,9 +271,10 @@ private:
     std::lock_guard<std::mutex> lock(mutex);
     timer_impl*                 t;
     if (not free_list.empty()) {
-      t = free_list.back();
+      t = &free_list.front();
       srsran_assert(t->is_empty(), "Invalid timer id=%d state", t->id);
-      free_list.pop_back();
+      free_list.pop_front();
+      nof_free_timers--;
     } else {
       // Need to increase deque
       timer_list.emplace_back(*this, timer_list.size());
@@ -293,7 +296,8 @@ private:
     timer.duration = INVALID_TIME_DIFF;
     timer.timeout  = 0;
     timer.callback = srsran::move_callback<void(uint32_t)>();
-    free_list.push_back(&timer);
+    free_list.push_front(&timer);
+    nof_free_timers++;
     // leave id unchanged.
   }
 
@@ -331,10 +335,10 @@ private:
   }
 
   tic_t  cur_time            = 0;
-  size_t nof_timers_running_ = 0;
+  size_t nof_timers_running_ = 0, nof_free_timers = 0;
   // using a deque to maintain reference validity on emplace_back. Also, this deque will only grow.
   std::deque<timer_impl>                                         timer_list;
-  std::vector<timer_impl*>                                       free_list;
+  srsran::intrusive_forward_list<timer_impl>                     free_list;
   std::vector<srsran::intrusive_double_linked_list<timer_impl> > time_wheel;
   mutable std::mutex                                             mutex; // Protect priority queue
 };
