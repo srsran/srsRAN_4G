@@ -445,7 +445,7 @@ void rrc::ue::rrc_mobility::handle_ho_preparation_complete(rrc::ho_prep_result  
       rrchocmd.crit_exts.c1().type().value != ho_cmd_s::crit_exts_c_::c1_c_::types_opts::ho_cmd_r8) {
     get_logger().warning("Only handling r8 Handover Commands");
     asn1::s1ap::cause_c cause;
-    cause.set_protocol().value = asn1::s1ap::cause_protocol_opts::msg_not_compatible_with_receiver_state;
+    cause.set_protocol().value = asn1::s1ap::cause_protocol_opts::semantic_error;
     trigger(ho_cancel_ev{cause});
     return;
   }
@@ -591,7 +591,7 @@ rrc::ue::rrc_mobility::s1_source_ho_st::start_enb_status_transfer(const asn1::s1
 
   Info("PDCP Bearer list sent to S1AP to initiate the eNB Status Transfer");
   if (not rrc_enb->s1ap->send_enb_status_transfer_proc(rrc_ue->rnti, s1ap_bearers)) {
-    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::invalid_qos_combination;
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::unknown_erab_id;
     return cause;
   }
 
@@ -681,7 +681,7 @@ void rrc::ue::rrc_mobility::s1_source_ho_st::handle_ho_cmd(wait_ho_cmd& s, const
   // Send HO Command to UE
   if (not rrc_ue->send_dl_dcch(&dl_dcch_msg)) {
     asn1::s1ap::cause_c cause;
-    cause.set_protocol().value = asn1::s1ap::cause_protocol_opts::transfer_syntax_error;
+    cause.set_protocol().value = asn1::s1ap::cause_protocol_opts::unspecified;
     trigger(ho_cancel_ev{cause});
     return;
   }
@@ -768,7 +768,7 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
   srsran::unique_byte_buffer_t ho_cmd_pdu = srsran::make_byte_buffer();
   if (ho_cmd_pdu == nullptr) {
     logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
-    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::no_radio_res_available_in_target_cell;
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::unspecified;
     trigger(ho_failure_ev{cause});
     return;
   }

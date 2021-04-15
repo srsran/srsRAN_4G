@@ -1419,10 +1419,6 @@ bool s1ap::ue::send_uectxtreleaserequest(const cause_c& cause)
 
 bool s1ap::ue::send_uectxtreleasecomplete()
 {
-  if (not s1ap_ptr->mme_connected) {
-    return false;
-  }
-
   s1ap_pdu_c tx_pdu;
   tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_UE_CONTEXT_RELEASE);
   auto& container                = tx_pdu.successful_outcome().value.ue_context_release_complete().protocol_ies;
