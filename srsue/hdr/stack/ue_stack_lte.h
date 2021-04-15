@@ -181,6 +181,10 @@ private:
   srslog::basic_logger& usim_logger;
   srslog::basic_logger& nas_logger;
 
+  // UE nr stack logging
+  srslog::basic_logger& mac_nr_logger;
+  srslog::basic_logger& rrc_nr_logger;
+
   // tracing
   srsran::mac_pcap mac_pcap;
   srsran::mac_pcap mac_nr_pcap;
