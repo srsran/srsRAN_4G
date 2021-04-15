@@ -12,6 +12,7 @@
 
 #include "srsran/mac/pdu_queue.h"
 #include "srsran/common/log_helper.h"
+#include "srsran/phy/utils/debug.h"
 
 namespace srsran {
 

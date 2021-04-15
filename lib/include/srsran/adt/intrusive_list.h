@@ -13,17 +13,26 @@
 #ifndef SRSRAN_INTRUSIVE_LIST_H
 #define SRSRAN_INTRUSIVE_LIST_H
 
+#include <iterator>
 #include <type_traits>
 
 namespace srsran {
 
 struct default_intrusive_tag;
 
+/// Base class of T, where T is a node of intrusive_forward_list<T>
 template <typename Tag = default_intrusive_tag>
 struct intrusive_forward_list_element {
   intrusive_forward_list_element<Tag>* next_node = nullptr;
 };
 
+/**
+ * Forward linked list of pointers of type "T" that doesn't rely on allocations.
+ * It leverages each node's internal pointer (thus intrusive) to store the next node of the list.
+ * It supports push_front/pop_front, iteration, clear, etc.
+ * @tparam T node type. It must be a subclass of intrusive_forward_list_element<Tag>
+ * @tparam Tag useful to differentiate multiple intrusive lists in the same node
+ */
 template <typename T, typename Tag = default_intrusive_tag>
 class intrusive_forward_list
 {
@@ -37,7 +46,7 @@ class intrusive_forward_list
   public:
     using iterator_category = std::forward_iterator_tag;
     using value_type        = U;
-    using difference_type   = ptrdiff_t;
+    using difference_type   = std::ptrdiff_t;
     using pointer           = U*;
     using reference         = U&;
 
@@ -116,6 +125,12 @@ struct intrusive_double_linked_list_element {
   intrusive_double_linked_list_element<Tag>* prev_node = nullptr;
 };
 
+/**
+ * Double Linked List of pointers of type "T" that doesn't rely on allocations.
+ * Instead, it leverages T's internal pointers to store the next and previous nodes
+ * @tparam T node type. Must be a subclass of intrusive_double_linked_list_element<Tag>
+ * @tparam Tag tag of nodes. Useful to differentiate separate intrusive lists inside the same T node
+ */
 template <typename T, typename Tag = default_intrusive_tag>
 class intrusive_double_linked_list
 {
