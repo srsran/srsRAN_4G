@@ -86,11 +86,11 @@ public:
 
   state()
   {
-    carrier.id              = 500;
+    carrier.pci              = 500;
     carrier.nof_prb         = 100;
     carrier.max_mimo_layers = 1;
 
-    info_metrics.pci = carrier.id;
+    info_metrics.pci = carrier.pci;
 
     // Hard-coded values, this should be set when the measurements take place
     csi_measurements[0].K_csi_rs  = 1;

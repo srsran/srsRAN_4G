@@ -23,11 +23,13 @@
 #include <unistd.h>
 
 static srsran_carrier_nr_t carrier = {
-    0, // cell_id
-    0, // numerology
-    6, // nof_prb
-    0, // start
-    1  // max_mimo_layers
+    1,                               // pci
+    0,                               // absolute_frequency_ssb
+    0,                               // absolute_frequency_point_a
+    srsran_subcarrier_spacing_15kHz, // scs
+    6,                               // nof_prb
+    0,                               // start
+    1                                // max_mimo_layers
 };
 
 static uint32_t              starting_prb_stride    = 4;
@@ -43,7 +45,7 @@ static int test_pucch_format0(srsran_pucch_nr_t* pucch, const srsran_pucch_nr_co
   srsran_pucch_nr_resource_t resource = {};
   resource.format                     = SRSRAN_PUCCH_NR_FORMAT_0;
 
-  for (slot.idx = 0; slot.idx < SRSRAN_NSLOTS_PER_FRAME_NR(carrier.numerology); slot.idx++) {
+  for (slot.idx = 0; slot.idx < SRSRAN_NSLOTS_PER_FRAME_NR(carrier.scs); slot.idx++) {
     for (resource.starting_prb = 0; resource.starting_prb < carrier.nof_prb;
          resource.starting_prb += starting_prb_stride) {
       for (resource.nof_symbols = 1; resource.nof_symbols <= 2; resource.nof_symbols++) {
@@ -91,7 +93,7 @@ static int test_pucch_format1(srsran_pucch_nr_t*                  pucch,
   srsran_pucch_nr_resource_t resource = {};
   resource.format                     = SRSRAN_PUCCH_NR_FORMAT_1;
 
-  for (slot.idx = 0; slot.idx < SRSRAN_NSLOTS_PER_FRAME_NR(carrier.numerology); slot.idx++) {
+  for (slot.idx = 0; slot.idx < SRSRAN_NSLOTS_PER_FRAME_NR(carrier.scs); slot.idx++) {
     for (resource.starting_prb = 0; resource.starting_prb < carrier.nof_prb;
          resource.starting_prb += starting_prb_stride) {
       for (resource.nof_symbols = SRSRAN_PUCCH_NR_FORMAT1_MIN_NSYMB;
@@ -164,7 +166,7 @@ static int test_pucch_format2(srsran_pucch_nr_t*                  pucch,
   srsran_pucch_nr_resource_t resource = {};
   resource.format                     = SRSRAN_PUCCH_NR_FORMAT_2;
 
-  for (slot.idx = 0; slot.idx < SRSRAN_NSLOTS_PER_FRAME_NR(carrier.numerology); slot.idx++) {
+  for (slot.idx = 0; slot.idx < SRSRAN_NSLOTS_PER_FRAME_NR(carrier.scs); slot.idx++) {
     for (resource.nof_symbols = SRSRAN_PUCCH_NR_FORMAT2_MIN_NSYMB;
          resource.nof_symbols <= SRSRAN_PUCCH_NR_FORMAT2_MAX_NSYMB;
          resource.nof_symbols++) {
@@ -247,7 +249,7 @@ static int test_pucch_format2(srsran_pucch_nr_t*                  pucch,
 static void usage(char* prog)
 {
   printf("Usage: %s [csNnv]\n", prog);
-  printf("\t-c cell id [Default %d]\n", carrier.id);
+  printf("\t-c cell id [Default %d]\n", carrier.pci);
   printf("\t-n nof_prb [Default %d]\n", carrier.nof_prb);
   printf("\t-f format [Default %d]\n", format);
   printf("\t-s SNR in dB [Default %.2f]\n", snr_db);
@@ -260,7 +262,7 @@ static void parse_args(int argc, char** argv)
   while ((opt = getopt(argc, argv, "cnfsv")) != -1) {
     switch (opt) {
       case 'c':
-        carrier.id = (uint32_t)strtol(argv[optind], NULL, 10);
+        carrier.pci = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'n':
         carrier.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);

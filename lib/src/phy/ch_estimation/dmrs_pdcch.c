@@ -154,13 +154,13 @@ int srsran_dmrs_pdcch_put(const srsran_carrier_nr_t*   carrier,
   }
 
   // Use cell id if the DMR scrambling id is not provided by higher layers
-  uint32_t n_id = carrier->id;
+  uint32_t n_id = carrier->pci;
   if (coreset->dmrs_scrambling_id_present) {
     n_id = coreset->dmrs_scrambling_id;
   }
 
   // Bound slot index
-  uint32_t slot_idx = SRSRAN_SLOT_NR_MOD(carrier->numerology, slot_cfg->idx);
+  uint32_t slot_idx = SRSRAN_SLOT_NR_MOD(carrier->scs, slot_cfg->idx);
 
   for (uint32_t l = 0; l < coreset->duration; l++) {
     // Get Cin
@@ -350,13 +350,13 @@ int srsran_dmrs_pdcch_estimate(srsran_dmrs_pdcch_estimator_t* q,
   }
 
   // Use cell id if the DMR scrambling id is not provided by higher layers
-  uint32_t n_id = q->carrier.id;
+  uint32_t n_id = q->carrier.pci;
   if (q->coreset.dmrs_scrambling_id_present) {
     n_id = q->coreset.dmrs_scrambling_id;
   }
 
   // Bound slot index
-  uint32_t slot_idx = SRSRAN_SLOT_NR_MOD(q->carrier.numerology, slot_cfg->idx);
+  uint32_t slot_idx = SRSRAN_SLOT_NR_MOD(q->carrier.scs, slot_cfg->idx);
 
   // Extract pilots
   for (uint32_t l = 0; l < q->coreset.duration; l++) {
@@ -476,7 +476,7 @@ int srsran_dmrs_pdcch_get_measure(const srsran_dmrs_pdcch_estimator_t* q,
     // Measure CFO only from the second and third symbols
     if (l != 0) {
       // Calculates the time between the previous and the current symbol
-      float Ts = srsran_symbol_distance_s(l - 1, l, q->carrier.numerology);
+      float Ts = srsran_symbol_distance_s(l - 1, l, q->carrier.scs);
       if (isnormal(Ts)) {
         // Compute phase difference between symbols and convert to Hz
         cfo_avg_Hz += cargf(corr[l] * conjf(corr[l - 1])) / (2.0f * (float)M_PI * Ts);
@@ -495,7 +495,7 @@ int srsran_dmrs_pdcch_get_measure(const srsran_dmrs_pdcch_estimator_t* q,
     measure->cfo_hz = NAN;
   }
   measure->sync_error_us =
-      sync_err_avg / (4.0e-6f * (float)q->coreset.duration * SRSRAN_SUBC_SPACING_NR(q->carrier.numerology));
+      sync_err_avg / (4.0e-6f * (float)q->coreset.duration * SRSRAN_SUBC_SPACING_NR(q->carrier.scs));
 
   // Convert power measurements into logarithmic scale
   measure->rsrp_dBfs = srsran_convert_power_to_dB(measure->rsrp);

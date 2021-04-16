@@ -295,7 +295,7 @@ static int srsran_pdsch_nr_get(const srsran_pdsch_nr_t*     q,
 static uint32_t
 pdsch_nr_cinit(const srsran_carrier_nr_t* carrier, const srsran_sch_cfg_nr_t* cfg, uint16_t rnti, uint32_t cw_idx)
 {
-  uint32_t n_id = carrier->id;
+  uint32_t n_id = carrier->pci;
   if (cfg->scrambling_id_present && SRSRAN_RNTI_ISUSER(rnti)) {
     n_id = cfg->scambling_id;
   }

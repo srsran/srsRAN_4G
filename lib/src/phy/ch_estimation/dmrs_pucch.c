@@ -247,7 +247,7 @@ int srsran_dmrs_pucch_format1_estimate(const srsran_pucch_nr_t*            q,
 
   // Compute Time Aligment error in microseconds
   if (isnormal(ta_err)) {
-    ta_err /= 15e3f * (float)(1U << carrier->numerology); // Convert from normalized frequency to seconds
+    ta_err /= 15e3f * (float)(1U << carrier->scs); // Convert from normalized frequency to seconds
     ta_err *= 1e6f;                                       // Convert to micro-seconds
     ta_err     = roundf(ta_err * 10.0f) / 10.0f;          // Round to one tenth of micro-second
     res->ta_us = ta_err;
@@ -289,8 +289,8 @@ static uint32_t dmrs_pucch_format2_cinit(const srsran_carrier_nr_t*          car
                                          const srsran_slot_cfg_t*            slot,
                                          uint32_t                            l)
 {
-  uint64_t n    = SRSRAN_SLOT_NR_MOD(carrier->numerology, slot->idx);
-  uint64_t n_id = (cfg->scrambling_id_present) ? cfg->scambling_id : carrier->id;
+  uint64_t n    = SRSRAN_SLOT_NR_MOD(carrier->scs, slot->idx);
+  uint64_t n_id = (cfg->scrambling_id_present) ? cfg->scambling_id : carrier->pci;
 
   return SRSRAN_SEQUENCE_MOD((((SRSRAN_NSYMB_PER_SLOT_NR * n + l + 1UL) * (2UL * n_id + 1UL)) << 17UL) + 2UL * n_id);
 }
@@ -409,7 +409,7 @@ int srsran_dmrs_pucch_format2_estimate(const srsran_pucch_nr_t*            q,
 
   // Compute Time Aligment error in microseconds
   if (isnormal(ta_err)) {
-    ta_err /= 15e3f * (float)(1U << carrier->numerology) * 3; // Convert from normalized frequency to seconds
+    ta_err /= 15e3f * (float)(1U << carrier->scs) * 3; // Convert from normalized frequency to seconds
     ta_err *= 1e6f;                                           // Convert to micro-seconds
     ta_err     = roundf(ta_err * 10.0f) / 10.0f;              // Round to one tenth of micro-second
     res->ta_us = ta_err;

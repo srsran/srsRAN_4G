@@ -503,7 +503,7 @@ static uint32_t srsran_dmrs_sch_seed(const srsran_carrier_nr_t*   carrier,
   const srsran_dmrs_sch_cfg_t* dmrs_cfg = &cfg->dmrs;
 
   // Calculate scrambling IDs
-  uint32_t n_id   = carrier->id;
+  uint32_t n_id   = carrier->pci;
   uint32_t n_scid = (grant->n_scid) ? 1 : 0;
   if (!grant->n_scid && dmrs_cfg->scrambling_id0_present) {
     // n_scid = 0 and ID0 present
@@ -640,7 +640,7 @@ int srsran_dmrs_sch_put_sf(srsran_dmrs_sch_t*           q,
   // Iterate symbols
   for (uint32_t i = 0; i < nof_symbols; i++) {
     uint32_t l        = symbols[i];                                               // Symbol index inside the slot
-    uint32_t slot_idx = SRSRAN_SLOT_NR_MOD(q->carrier.numerology, slot_cfg->idx); // Slot index in the frame
+    uint32_t slot_idx = SRSRAN_SLOT_NR_MOD(q->carrier.scs, slot_cfg->idx); // Slot index in the frame
     uint32_t cinit    = srsran_dmrs_sch_seed(&q->carrier, pdsch_cfg, grant, slot_idx, l);
 
     srsran_dmrs_sch_put_symbol(q, pdsch_cfg, grant, cinit, delta, &sf_symbols[symbol_sz * l]);
@@ -771,7 +771,7 @@ int srsran_dmrs_sch_estimate(srsran_dmrs_sch_t*           q,
     uint32_t l = symbols[i]; // Symbol index inside the slot
 
     uint32_t cinit =
-        srsran_dmrs_sch_seed(&q->carrier, cfg, grant, SRSRAN_SLOT_NR_MOD(q->carrier.numerology, slot->idx), l);
+        srsran_dmrs_sch_seed(&q->carrier, cfg, grant, SRSRAN_SLOT_NR_MOD(q->carrier.scs, slot->idx), l);
 
     nof_pilots_x_symbol = srsran_dmrs_sch_get_symbol(
         q, cfg, grant, cinit, delta, &sf_symbols[symbol_sz * l], &q->pilot_estimates[nof_pilots_x_symbol * i]);
@@ -789,7 +789,7 @@ int srsran_dmrs_sch_estimate(srsran_dmrs_sch_t*           q,
     sync_err += srsran_vec_estimate_frequency(&q->pilot_estimates[nof_pilots_x_symbol * i], nof_pilots_x_symbol);
   }
   sync_err /= (float)nof_symbols;
-  chest_res->sync_error = sync_err / (dmrs_stride * SRSRAN_SUBC_SPACING_NR(q->carrier.numerology));
+  chest_res->sync_error = sync_err / (dmrs_stride * SRSRAN_SUBC_SPACING_NR(q->carrier.scs));
 
 #if DMRS_SCH_SYNC_PRECOMPENSATE
   // Pre-compensate synchronization error
@@ -828,7 +828,7 @@ int srsran_dmrs_sch_estimate(srsran_dmrs_sch_t*           q,
   // Measure CFO if more than one symbol is used
   float cfo_avg = 0.0;
   for (uint32_t i = 0; i < nof_symbols - 1; i++) {
-    float time_diff  = srsran_symbol_distance_s(symbols[i], symbols[i + 1], q->carrier.numerology);
+    float time_diff  = srsran_symbol_distance_s(symbols[i], symbols[i + 1], q->carrier.scs);
     float phase_diff = cargf(corr[i + 1] * conjf(corr[i]));
 
     if (isnormal(time_diff)) {
@@ -843,11 +843,11 @@ int srsran_dmrs_sch_estimate(srsran_dmrs_sch_t*           q,
   if (isnormal(cfo_avg)) {
     // Calculate phase of the first OFDM symbol (l = 0)
     float arg0 =
-        cargf(corr[0]) - 2.0f * M_PI * srsran_symbol_distance_s(0, symbols[0], q->carrier.numerology) * cfo_avg;
+        cargf(corr[0]) - 2.0f * M_PI * srsran_symbol_distance_s(0, symbols[0], q->carrier.scs) * cfo_avg;
 
     // Calculate CFO corrections
     for (uint32_t l = 0; l < SRSRAN_NSYMB_PER_SLOT_NR; l++) {
-      float arg         = arg0 + 2.0f * M_PI * cfo_avg * srsran_symbol_distance_s(0, l, q->carrier.numerology);
+      float arg         = arg0 + 2.0f * M_PI * cfo_avg * srsran_symbol_distance_s(0, l, q->carrier.scs);
       cfo_correction[l] = cexpf(I * arg);
     }
 

@@ -22,7 +22,7 @@ bool worker_pool::init(const phy_args_nr_t& args, phy_common* common, stack_inte
   phy_state.args  = args;
 
   // Set carrier attributes
-  phy_state.carrier.id      = 500;
+  phy_state.carrier.pci      = 500;
   phy_state.carrier.nof_prb = args.nof_prb;
 
   // Set NR arguments
@@ -72,7 +72,7 @@ sf_worker* worker_pool::wait_worker(uint32_t tti)
   sf_worker* worker = (sf_worker*)pool.wait_worker(tti);
 
   // Generate PRACH if ready
-  if (prach_buffer->is_ready_to_send(tti, phy_state.carrier.id)) {
+  if (prach_buffer->is_ready_to_send(tti, phy_state.carrier.pci)) {
     uint32_t nof_prach_sf       = 0;
     float    prach_target_power = 0.0f;
     cf_t*    prach_ptr          = prach_buffer->generate(0.0f, &nof_prach_sf, &prach_target_power);
@@ -129,7 +129,7 @@ bool worker_pool::set_config(const srsran::phy_cfg_nr_t& cfg)
   // Set PRACH hard-coded cell
   srsran_cell_t cell = {};
   cell.nof_prb       = 50;
-  cell.id            = phy_state.carrier.id;
+  cell.id            = phy_state.carrier.pci;
   if (not prach_buffer->set_cell(cell, phy_state.cfg.prach)) {
     logger.error("Error setting PRACH cell");
     return false;

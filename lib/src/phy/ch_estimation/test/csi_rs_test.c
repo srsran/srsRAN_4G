@@ -18,11 +18,13 @@
 #include <stdlib.h>
 
 static srsran_carrier_nr_t carrier = {
-    0,  // cell_id
-    0,  // numerology
-    50, // nof_prb
-    0,  // start
-    1   // max_mimo_layers
+  1,                               // pci
+  0,                               // absolute_frequency_ssb
+  0,                               // absolute_frequency_point_a
+  srsran_subcarrier_spacing_15kHz, // scs
+  50,                              // nof_prb
+  0,                               // start
+  1                                // max_mimo_layers
 };
 
 static float    snr_dB               = 20.0;
@@ -70,7 +72,7 @@ static void usage(char* prog)
 {
   printf("Usage: %s [recov]\n", prog);
   printf("\t-p nof_prb [Default %d]\n", carrier.nof_prb);
-  printf("\t-c cell_id [Default %d]\n", carrier.id);
+  printf("\t-c cell_id [Default %d]\n", carrier.pci);
   printf("\t-s SNR in dB [Default %.2f]\n", snr_dB);
   printf("\t-S Start RB index [Default %d]\n", start_rb);
   printf("\t-L Number of RB [Default %d]\n", nof_rb);
@@ -88,7 +90,7 @@ static void parse_args(int argc, char** argv)
         carrier.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'c':
-        carrier.id = (uint32_t)strtol(argv[optind], NULL, 10);
+        carrier.pci = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'o':
         power_control_offset = strtof(argv[optind], NULL);
@@ -169,7 +171,7 @@ int main(int argc, char** argv)
              resource.resource_mapping.freq_band.nof_rb <= nof_rb_end;
              resource.resource_mapping.freq_band.nof_rb += 4) {
           // Iterate for all slot numbers
-          for (slot_cfg.idx = 0; slot_cfg.idx < SRSRAN_NSLOTS_PER_FRAME_NR(carrier.numerology); slot_cfg.idx++) {
+          for (slot_cfg.idx = 0; slot_cfg.idx < SRSRAN_NSLOTS_PER_FRAME_NR(carrier.scs); slot_cfg.idx++) {
             // Steer Frequency allocation
             for (uint32_t freq_dom_alloc = 0; freq_dom_alloc < nof_freq_dom_alloc; freq_dom_alloc++) {
               for (uint32_t i = 0; i < nof_freq_dom_alloc; i++) {

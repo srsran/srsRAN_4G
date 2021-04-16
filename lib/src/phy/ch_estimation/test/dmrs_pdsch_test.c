@@ -20,12 +20,15 @@
 #include <strings.h>
 #include <unistd.h>
 
+
 static srsran_carrier_nr_t carrier = {
-    0,  // cell_id
-    0,  // numerology
-    50, // nof_prb
-    0,  // start
-    1   // max_mimo_layers
+  1,                               // pci
+  0,                               // absolute_frequency_ssb
+  0,                               // absolute_frequency_point_a
+  srsran_subcarrier_spacing_15kHz, // scs
+  50,                              // nof_prb
+  0,                               // start
+  1                                // max_mimo_layers
 };
 
 typedef struct {
@@ -130,7 +133,7 @@ static void usage(char* prog)
 
   printf("\t-r nof_prb [Default %d]\n", carrier.nof_prb);
 
-  printf("\t-c cell_id [Default %d]\n", carrier.id);
+  printf("\t-c cell_id [Default %d]\n", carrier.pci);
 
   printf("\t-v increase verbosity\n");
 }
@@ -144,7 +147,7 @@ static void parse_args(int argc, char** argv)
         carrier.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'c':
-        carrier.id = (uint32_t)strtol(argv[optind], NULL, 10);
+        carrier.pci = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
         srsran_verbose++;
@@ -218,7 +221,7 @@ static int run_test(srsran_dmrs_sch_t*           dmrs_pdsch,
   TESTASSERT(assert_cfg(pdsch_cfg, grant) == SRSRAN_SUCCESS);
 
   srsran_slot_cfg_t slot_cfg = {};
-  for (slot_cfg.idx = 0; slot_cfg.idx < SRSRAN_NSLOTS_PER_FRAME_NR(dmrs_pdsch->carrier.numerology); slot_cfg.idx++) {
+  for (slot_cfg.idx = 0; slot_cfg.idx < SRSRAN_NSLOTS_PER_FRAME_NR(dmrs_pdsch->carrier.scs); slot_cfg.idx++) {
     TESTASSERT(srsran_dmrs_sch_put_sf(dmrs_pdsch, &slot_cfg, pdsch_cfg, grant, sf_symbols) == SRSRAN_SUCCESS);
 
     TESTASSERT(srsran_dmrs_sch_estimate(dmrs_pdsch, &slot_cfg, pdsch_cfg, grant, sf_symbols, chest_res) ==

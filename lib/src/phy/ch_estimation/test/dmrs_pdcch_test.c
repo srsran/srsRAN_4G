@@ -30,7 +30,7 @@ void usage(char* prog)
   printf("\t-r nof_prb [Default %d]\n", carrier.nof_prb);
   printf("\t-e extended cyclic prefix [Default normal]\n");
 
-  printf("\t-c cell_id [Default %d]\n", carrier.id);
+  printf("\t-c cell_id [Default %d]\n", carrier.pci);
 
   printf("\t-v increase verbosity\n");
 }
@@ -44,7 +44,7 @@ static void parse_args(int argc, char** argv)
         carrier.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'c':
-        carrier.id = (uint32_t)strtol(argv[optind], NULL, 10);
+        carrier.pci = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
         srsran_verbose++;
@@ -68,7 +68,7 @@ static int run_test(srsran_dmrs_pdcch_estimator_t* estimator,
   srsran_dci_location_t dci_location = {};
   dci_location.L                     = aggregation_level;
 
-  for (slot_cfg.idx = 0; slot_cfg.idx < SRSRAN_NSLOTS_PER_FRAME_NR(carrier.numerology); slot_cfg.idx++) {
+  for (slot_cfg.idx = 0; slot_cfg.idx < SRSRAN_NSLOTS_PER_FRAME_NR(carrier.scs); slot_cfg.idx++) {
     uint32_t locations[SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR] = {};
 
     int nof_locations =

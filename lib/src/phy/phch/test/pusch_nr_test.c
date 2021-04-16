@@ -20,11 +20,13 @@
 #include <getopt.h>
 
 static srsran_carrier_nr_t carrier = {
-    1,                 // cell_id
-    0,                 // numerology
-    SRSRAN_MAX_PRB_NR, // nof_prb
-    0,                 // start
-    1                  // max_mimo_layers
+  1,                               // pci
+  0,                               // absolute_frequency_ssb
+  0,                               // absolute_frequency_point_a
+  srsran_subcarrier_spacing_15kHz, // scs
+  SRSRAN_MAX_PRB_NR,               // nof_prb
+  0,                               // start
+  1                                // max_mimo_layers
 };
 
 static uint32_t            n_prb        = 0;  // Set to 0 for steering
@@ -158,7 +160,7 @@ int main(int argc, char** argv)
   }
 
   // Use grant default A time resources with m=0
-  if (srsran_ra_ul_nr_pusch_time_resource_default_A(carrier.numerology, 0, &pusch_cfg.grant) < SRSRAN_SUCCESS) {
+  if (srsran_ra_ul_nr_pusch_time_resource_default_A(carrier.scs, 0, &pusch_cfg.grant) < SRSRAN_SUCCESS) {
     ERROR("Error loading default grant");
     goto clean_exit;
   }
