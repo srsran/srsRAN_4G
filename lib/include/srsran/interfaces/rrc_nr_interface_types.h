@@ -32,11 +32,9 @@ struct phy_cfg_nr_t {
   srsran_pdcch_cfg_nr_t          pdcch    = {};
   srsran_ue_dl_nr_harq_ack_cfg_t harq_ack = {};
   srsran_csi_hl_cfg_t            csi      = {};
-
-  phy_cfg_nr_t()
-  {
-    
-  }
+  srsran_carrier_nr_t            carrier  = {};
+  
+  phy_cfg_nr_t() {}
 
   /**
    * @param carrier

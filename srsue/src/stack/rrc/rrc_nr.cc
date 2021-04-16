@@ -722,6 +722,15 @@ bool rrc_nr::apply_csi_meas_cfg(const asn1::rrc_nr::csi_meas_cfg_s& csi_meas_cfg
 bool rrc_nr::apply_dl_common_cfg(const asn1::rrc_nr::dl_cfg_common_s& dl_cfg_common)
 {
   if (dl_cfg_common.init_dl_bwp_present) {
+    if (dl_cfg_common.freq_info_dl_present) {
+      if (make_phy_carrier_cfg(dl_cfg_common.freq_info_dl, &phy_cfg.carrier) == false) {
+        logger.warning("Warning while making carrier phy config");
+        return false;
+      }
+    } else {
+      logger.warning("Option freq_info_dl not present");
+      return false;
+    }
     if (dl_cfg_common.init_dl_bwp.pdsch_cfg_common_present) {
       if (dl_cfg_common.init_dl_bwp.pdsch_cfg_common.type() ==
           asn1::rrc_nr::setup_release_c<asn1::rrc_nr::pdsch_cfg_common_s>::types_opts::setup) {
@@ -1031,8 +1040,13 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
   if (sp_cell_cfg.recfg_with_sync_present) {
     const recfg_with_sync_s& recfg_with_sync = sp_cell_cfg.recfg_with_sync;
     mac->set_crnti(recfg_with_sync.new_ue_id);
-    // Common config
     if (recfg_with_sync.sp_cell_cfg_common_present) {
+      if (recfg_with_sync.sp_cell_cfg_common.pci_present) {
+        phy_cfg.carrier.pci = recfg_with_sync.sp_cell_cfg_common.pci;
+      } else {
+        logger.warning("Option PCI not present");
+        return false;
+      }
       if (recfg_with_sync.sp_cell_cfg_common.ul_cfg_common_present) {
         if (apply_ul_common_cfg(recfg_with_sync.sp_cell_cfg_common.ul_cfg_common) == false) {
           return false;
