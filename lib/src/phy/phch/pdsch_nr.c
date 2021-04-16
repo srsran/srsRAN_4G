@@ -617,7 +617,7 @@ uint32_t srsran_pdsch_nr_rx_info(const srsran_pdsch_nr_t*     q,
   len += pdsch_nr_grant_info(q, cfg, grant, res, &str[len], str_len - len);
 
   if (q->meas_time_en) {
-    len = srsran_print_check(str, str_len, len, " t=%dus ", q->meas_time_us);
+    len = srsran_print_check(str, str_len, len, "t_us=%d ", q->meas_time_us);
   }
 
   return len;
