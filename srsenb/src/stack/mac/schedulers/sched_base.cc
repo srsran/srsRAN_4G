@@ -25,7 +25,7 @@ RBInterval find_contiguous_interval(const RBMask& in_mask, uint32_t max_size)
 {
   RBInterval max_interv;
 
-  for (size_t n = 0; n < in_mask.size(); n++) {
+  for (size_t n = 0; n < in_mask.size();) {
     int pos = in_mask.find_lowest(n, in_mask.size(), false);
     if (pos < 0) {
       break;
@@ -40,6 +40,7 @@ RBInterval find_contiguous_interval(const RBMask& in_mask, uint32_t max_size)
     if (interv.length() > max_interv.length()) {
       max_interv = interv;
     }
+    n = interv.stop();
   }
   return max_interv;
 }
