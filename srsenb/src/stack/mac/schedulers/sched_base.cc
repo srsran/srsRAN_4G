@@ -23,22 +23,25 @@ template <typename RBMask,
               typename std::conditional<std::is_same<RBMask, prbmask_t>::value, prb_interval, rbg_interval>::type>
 RBInterval find_contiguous_interval(const RBMask& in_mask, uint32_t max_size)
 {
-  RBInterval interv, max_interv;
+  RBInterval max_interv;
 
-  for (uint32_t n = 0; n < in_mask.size() and interv.length() < max_size; n++) {
-    if (not in_mask.test(n) and interv.empty()) {
-      // new interval
-      interv.set(n, n + 1);
-    } else if (not in_mask.test(n)) {
-      // extend current interval
-      interv.resize_by(1);
-    } else if (not interv.empty()) {
-      // reset interval
-      max_interv = interv.length() > max_interv.length() ? interv : max_interv;
-      interv     = {};
+  for (size_t n = 0; n < in_mask.size(); n++) {
+    int pos = in_mask.find_lowest(n, in_mask.size(), false);
+    if (pos < 0) {
+      break;
+    }
+
+    size_t     max_pos = std::min(in_mask.size(), (size_t)pos + max_size);
+    int        pos2    = in_mask.find_lowest(pos, max_pos, true);
+    RBInterval interv(pos, pos2 < 0 ? max_pos : pos2);
+    if (interv.length() >= max_size) {
+      return interv;
+    }
+    if (interv.length() > max_interv.length()) {
+      max_interv = interv;
     }
   }
-  return interv.length() > max_interv.length() ? interv : max_interv;
+  return max_interv;
 }
 
 /****************************
