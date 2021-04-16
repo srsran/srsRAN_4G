@@ -1190,7 +1190,7 @@ uint32_t srsran_pusch_nr_tx_info(const srsran_pusch_nr_t*     q,
   }
 
   if (q->meas_time_en) {
-    len = srsran_print_check(str, str_len, len, ", t=%d us", q->meas_time_us);
+    len = srsran_print_check(str, str_len, len, " t=%d us", q->meas_time_us);
   }
 
   return len;

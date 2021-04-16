@@ -11,6 +11,7 @@
  */
 #include "srsran/phy/phch/phch_cfg_nr.h"
 #include "srsran/phy/ch_estimation/dmrs_sch.h"
+#include "srsran/phy/phch/csi.h"
 #include "srsran/phy/phch/uci_nr.h"
 
 static const char* dmrs_sch_type_to_str(srsran_dmrs_sch_type_t type)
@@ -215,6 +216,27 @@ static uint32_t phch_cfg_rvd_to_str(const srsran_re_pattern_list_t* pattern_list
   return len;
 }
 
+static uint32_t phch_cfg_uci_to_str(const srsran_sch_cfg_nr_t* sch_cfg, char* str, uint32_t str_len)
+{
+  uint32_t len = 0;
+
+  if (srsran_uci_nr_total_bits(&sch_cfg->uci) == 0) {
+    return len;
+  }
+
+  len = srsran_print_check(str, str_len, len, "  UCI:\n", sch_cfg->scaling);
+  len = srsran_print_check(str, str_len, len, "    scaling=%.2f\n", sch_cfg->scaling);
+  len = srsran_print_check(str, str_len, len, "    beta_csi_part1_offset=%.2f\n", sch_cfg->beta_csi_part1_offset);
+  len = srsran_print_check(str, str_len, len, "    beta_csi_part2_offset=%.2f\n", sch_cfg->beta_csi_part2_offset);
+  len = srsran_print_check(str, str_len, len, "    beta_harq_ack_offset=%.2f\n", sch_cfg->beta_harq_ack_offset);
+
+  len = srsran_print_check(
+      str, str_len, len, "    o_csi1=%d\n", srsran_csi_part1_nof_bits(sch_cfg->uci.csi, sch_cfg->uci.nof_csi));
+  len = srsran_print_check(str, str_len, len, "    o_ack=%d\n", sch_cfg->uci.o_ack);
+
+  return len;
+}
+
 uint32_t srsran_phch_cfg_nr_info(const srsran_sch_cfg_nr_t* sch_cfg, char* str, uint32_t str_len)
 {
   uint32_t len = 0;
@@ -236,12 +258,7 @@ uint32_t srsran_phch_cfg_nr_info(const srsran_sch_cfg_nr_t* sch_cfg, char* str, 
   len += phch_cfg_rvd_to_str(&sch_cfg->rvd_re, &str[len], str_len - len);
 
   // UCI configuration
-  if (srsran_uci_nr_total_bits(&sch_cfg->uci)) {
-    len = srsran_print_check(str, str_len, len, "  scaling=%.2f\n", sch_cfg->scaling);
-    len = srsran_print_check(str, str_len, len, "  beta_csi_part1_offset=%.2f\n", sch_cfg->beta_csi_part1_offset);
-    len = srsran_print_check(str, str_len, len, "  beta_csi_part2_offset=%.2f\n", sch_cfg->beta_csi_part2_offset);
-    len = srsran_print_check(str, str_len, len, "  beta_harq_ack_offset=%.2f\n", sch_cfg->beta_harq_ack_offset);
-  }
+  len += phch_cfg_uci_to_str(sch_cfg, &str[len], str_len - len);
 
   return len;
 }

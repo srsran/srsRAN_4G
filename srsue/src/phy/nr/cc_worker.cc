@@ -418,12 +418,18 @@ bool cc_worker::work_ul()
         srsran_phch_cfg_nr_info(&pusch_cfg, str_extra.data(), (uint32_t)str_extra.size());
         logger.info(ul_action.tb.payload->msg,
                     pusch_cfg.grant.tb[0].tbs / 8,
-                    "PUSCH: cc=%d, %s\n%s",
+                    "PUSCH: cc=%d %s tti_tx=%d\n%s",
                     cc_idx,
                     str.data(),
+                    ul_slot_cfg.idx,
                     str_extra.data());
       } else {
-        logger.info(ul_action.tb.payload->msg, pusch_cfg.grant.tb[0].tbs / 8, "PUSCH: cc=%d, %s", cc_idx, str.data());
+        logger.info(ul_action.tb.payload->msg,
+                    pusch_cfg.grant.tb[0].tbs / 8,
+                    "PUSCH: cc=%d %s tti_tx=%d",
+                    cc_idx,
+                    str.data(),
+                    ul_slot_cfg.idx);
       }
     }
 

@@ -819,7 +819,7 @@ static float ra_ul_beta_offset_ack_semistatic(const srsran_beta_offsets_t* beta_
   if (uci_cfg->o_ack > 11) {
     beta_offset_index = beta_offsets->ack_index3;
   } else if (uci_cfg->o_ack > 2) {
-    beta_offset_index = beta_offsets->ack_index1;
+    beta_offset_index = beta_offsets->ack_index2;
   }
 
   // Protect table boundary
