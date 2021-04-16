@@ -115,10 +115,11 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     ("rat.eutra.ul_freq",      bpo::value<float>(&args->phy.ul_freq)->default_value(-1),            "Uplink Frequency (if positive overrides EARFCN)")
     ("rat.eutra.nof_carriers", bpo::value<uint32_t>(&args->phy.nof_lte_carriers)->default_value(1), "Number of carriers")
     
-    ("rat.nr.dl_arfcn",     bpo::value<string>(&args->phy.dl_nr_arfcn)->default_value("634240"),  "Downlink NR-ARFCN list")
-    ("rat.nr.dl_freq",      bpo::value<double>(&args->phy.nr_freq_hz)->default_value(3513.6e6),   "NR DL frequency")
-    ("rat.nr.nof_carriers", bpo::value<uint32_t>(&args->phy.nof_nr_carriers)->default_value(0),   "Number of NR carriers")
-    ("rat.nr.nof_prb",      bpo::value<uint32_t>(&args->phy.nr_nof_prb)->default_value(52),       "NR carrier bandwidth")
+    ("rat.nr.bands",        bpo::value<string>(&args->stack.rrc_nr.supported_bands_nr_str)->default_value("78"),  "Supported NR bands")
+    ("rat.nr.dl_arfcn",     bpo::value<string>(&args->phy.dl_nr_arfcn)->default_value("634240"),                  "Downlink NR-ARFCN list")
+    ("rat.nr.dl_freq",      bpo::value<double>(&args->phy.nr_freq_hz)->default_value(3513.6e6),                   "NR DL frequency")
+    ("rat.nr.nof_carriers", bpo::value<uint32_t>(&args->phy.nof_nr_carriers)->default_value(0),                   "Number of NR carriers")
+    ("rat.nr.nof_prb",      bpo::value<uint32_t>(&args->phy.nr_nof_prb)->default_value(52),                       "NR carrier bandwidth")
 
     ("rrc.feature_group", bpo::value<uint32_t>(&args->stack.rrc.feature_group)->default_value(0xe6041000), "Hex value of the featureGroupIndicators field in the"
                                                                                            "UECapabilityInformation message. Default 0xe6041000")

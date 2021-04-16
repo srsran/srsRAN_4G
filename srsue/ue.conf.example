@@ -61,15 +61,11 @@ dl_earfcn = 3350
 # NR RAT configuration
 # 
 # Optional parameters: 
-# dl_arfcn:        Downlink NR ARFCN for EN-DC
-# dl_freq:         Override DL frequency corresponding to rat.nr.dl_arfcn
-# nof_carriers:    Number of NR carriers (must be at least 1 for DC support)
-# nof_prb:         Number of PRBs 
+# bands:           List of support NR bands seperated by a comma (default 78)
+# nof_carriers:    Number of NR carriers (must be at least 1 for NR support)
 #####################################################################
 [rat.nr]
-# dl_arfcn = 634240
-# dl_freq = 3513.6e6
-# nof_prb = 52
+# bands = 78
 # nof_carriers = 0
 
 #####################################################################

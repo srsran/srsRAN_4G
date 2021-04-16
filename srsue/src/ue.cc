@@ -255,25 +255,12 @@ int ue::parse_args(const all_args_t& args_)
 
   // populate NR DL ARFCNs
   if (args.phy.nof_nr_carriers > 0) {
-    if (not args.phy.dl_nr_arfcn.empty()) {
-      // Parse list
-      srsran::string_parse_list(args.phy.dl_nr_arfcn, ',', args.phy.dl_nr_arfcn_list);
-
+    if (not args.stack.rrc_nr.supported_bands_nr_str.empty()) {
       // Populates supported bands
-      for (uint32_t& arfcn : args.phy.dl_nr_arfcn_list) {
-        std::vector<uint32_t> bands = bands_helper.get_bands_nr(arfcn);
-        for (const auto& band : bands) {
-          // make sure we don't add duplicates
-          if (std::find(args.stack.rrc_nr.supported_bands_nr.begin(),
-                        args.stack.rrc_nr.supported_bands_nr.end(),
-                        band) == args.stack.rrc_nr.supported_bands_nr.end()) {
-            args.stack.rrc_nr.supported_bands_nr.push_back(band);
-          }
-        }
-      }
+      srsran::string_parse_list(args.stack.rrc_nr.supported_bands_nr_str, ',', args.stack.rrc_nr.supported_bands_nr);
     } else {
-      logger.error("Error: dl_nr_arfcn list is empty");
-      srsran::console("Error: dl_nr_arfcn list is empty\n");
+      logger.error("Error: rat.nr.bands list is empty");
+      srsran::console("Error: rat.nr.bands list is empty\n");
       return SRSRAN_ERROR;
     }
   }
