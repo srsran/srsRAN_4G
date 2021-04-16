@@ -185,6 +185,8 @@ void srsran_pdsch_nr_free(srsran_pdsch_nr_t* q)
   if (q->evm_buffer != NULL) {
     srsran_evm_free(q->evm_buffer);
   }
+
+  SRSRAN_MEM_ZERO(q, srsran_pdsch_nr_t, 1);
 }
 
 static inline uint32_t pdsch_nr_put_rb(cf_t* dst, cf_t* src, bool* rvd_mask)
@@ -575,7 +577,6 @@ static uint32_t pdsch_nr_grant_info(const srsran_pdsch_nr_t*     q,
                                     uint32_t                     str_len)
 {
   uint32_t len = 0;
-  len          = srsran_print_check(str, str_len, len, "rnti=0x%x ", grant->rnti);
 
   uint32_t first_prb = SRSRAN_MAX_PRB_NR;
   for (uint32_t i = 0; i < SRSRAN_MAX_PRB_NR && first_prb == SRSRAN_MAX_PRB_NR; i++) {
@@ -585,27 +586,8 @@ static uint32_t pdsch_nr_grant_info(const srsran_pdsch_nr_t*     q,
   }
 
   // Append time-domain resource mapping
-  len = srsran_print_check(str,
-                           str_len,
-                           len,
-                           "beta_dmrs=%.3f CDM-grp=%d k0=%d prb=%d:%d symb=%d:%d mapping=%s ",
-                           isnormal(grant->beta_dmrs) ? grant->beta_dmrs : 1.0f,
-                           grant->nof_dmrs_cdm_groups_without_data,
-                           grant->k,
-                           first_prb,
-                           grant->nof_prb,
-                           grant->S,
-                           grant->L,
-                           srsran_sch_mapping_type_to_str(grant->mapping));
-
-  // Skip frequency domain resources...
-  // ...
-
-  // Append spatial resources
-  len = srsran_print_check(str, str_len, len, "Nl=%d ", grant->nof_layers);
-
-  // Append scrambling ID
-  len = srsran_print_check(str, str_len, len, "n_scid=%d ", grant->n_scid);
+  len = srsran_print_check(
+      str, str_len, len, "rnti=0x%x prb=%d:%d symb=%d:%d ", grant->rnti, first_prb, grant->nof_prb, grant->S, grant->L);
 
   // Append TB info
   for (uint32_t i = 0; i < SRSRAN_MAX_TB; i++) {
@@ -633,11 +615,6 @@ uint32_t srsran_pdsch_nr_rx_info(const srsran_pdsch_nr_t*     q,
   uint32_t len = 0;
 
   len += pdsch_nr_grant_info(q, cfg, grant, res, &str[len], str_len - len);
-
-  if (cfg->rvd_re.count != 0) {
-    len = srsran_print_check(str, str_len, len, "Reserved: ");
-    len += srsran_re_pattern_list_info(&cfg->rvd_re, &str[len], str_len - len);
-  }
 
   if (q->meas_time_en) {
     len = srsran_print_check(str, str_len, len, " t=%d us", q->meas_time_us);

@@ -448,6 +448,15 @@ int main(int argc, char** argv)
           }
         }
 
+        if (srsran_verbose >= SRSRAN_VERBOSE_INFO) {
+          char str[512];
+          srsran_ue_dl_nr_pdsch_info(&ue_dl, &pdsch_cfg, &pdsch_res, str, (uint32_t)sizeof(str));
+
+          char str_extra[2048];
+          srsran_phch_cfg_nr_info(&pdsch_cfg, str_extra, (uint32_t)sizeof(str_extra));
+          INFO("PDSCH: %s\n%s", str, str_extra);
+        }
+
         INFO("n_prb=%d; mcs=%d; TBS=%d; EVM=%f; PASSED!", n_prb, mcs, pdsch_cfg.grant.tb[0].tbs, pdsch_res.evm[0]);
 
         // Count the Tx/Rx'd number of bits

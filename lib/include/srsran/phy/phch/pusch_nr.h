@@ -50,6 +50,7 @@ typedef struct SRSRAN_API {
   srsran_evm_buffer_t* evm_buffer;
   bool                 meas_time_en;
   uint32_t             meas_time_us;
+  srsran_re_pattern_t  dmrs_re_pattern;
   srsran_uci_cfg_nr_t  uci_cfg;   ///< Internal UCI bits configuration
   uint8_t*             g_ulsch;   ///< Temporal Encoded UL-SCH data
   uint8_t*             g_ack;     ///< Temporal Encoded HARQ-ACK bits

@@ -271,9 +271,21 @@ bool cc_worker::work_dl()
 
     // Logging
     if (logger.info.enabled()) {
-      std::array<char, 512> str;
-      srsran_ue_dl_nr_pdsch_info(&ue_dl, &pdsch_cfg, &pdsch_res, str.data(), str.size());
-      logger.info(pdsch_res.tb[0].payload, pdsch_cfg.grant.tb[0].tbs / 8, "PDSCH: cc=%d, %s", cc_idx, str.data());
+      str_info_t str;
+      srsran_ue_dl_nr_pdsch_info(&ue_dl, &pdsch_cfg, &pdsch_res, str.data(), (uint32_t)str.size());
+
+      if (logger.debug.enabled()) {
+        str_extra_t str_extra;
+        srsran_phch_cfg_nr_info(&pdsch_cfg, str_extra.data(), (uint32_t)str_extra.size());
+        logger.info(pdsch_res.tb[0].payload,
+                    pdsch_cfg.grant.tb[0].tbs / 8,
+                    "PDSCH: cc=%d, %s\n%s",
+                    cc_idx,
+                    str.data(),
+                    str_extra.data());
+      } else {
+        logger.info(pdsch_res.tb[0].payload, pdsch_cfg.grant.tb[0].tbs / 8, "PDSCH: cc=%d, %s", cc_idx, str.data());
+      }
     }
 
     // Enqueue PDSCH ACK information only if the RNTI is type C
@@ -398,14 +410,21 @@ bool cc_worker::work_ul()
 
     // PUSCH Logging
     if (logger.info.enabled()) {
-      std::array<char, 512> str;
+      str_info_t str;
       srsran_ue_ul_nr_pusch_info(&ue_ul, &pusch_cfg, &data.uci, str.data(), str.size());
-      logger.info(ul_action.tb.payload->msg,
-                  pusch_cfg.grant.tb[0].tbs / 8,
-                  "PUSCH: cc=%d, %s, tti_tx=%d",
-                  cc_idx,
-                  str.data(),
-                  ul_slot_cfg.idx);
+
+      if (logger.debug.enabled()) {
+        str_extra_t str_extra;
+        srsran_phch_cfg_nr_info(&pusch_cfg, str_extra.data(), (uint32_t)str_extra.size());
+        logger.info(ul_action.tb.payload->msg,
+                    pusch_cfg.grant.tb[0].tbs / 8,
+                    "PUSCH: cc=%d, %s\n%s",
+                    cc_idx,
+                    str.data(),
+                    str_extra.data());
+      } else {
+        logger.info(ul_action.tb.payload->msg, pusch_cfg.grant.tb[0].tbs / 8, "PUSCH: cc=%d, %s", cc_idx, str.data());
+      }
     }
 
     // Set metrics

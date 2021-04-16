@@ -245,4 +245,6 @@ typedef struct SRSRAN_API {
   bool                freq_hopping_enabled;
 } srsran_sch_cfg_nr_t;
 
+SRSRAN_API uint32_t srsran_phch_cfg_nr_info(const srsran_sch_cfg_nr_t* sch_cfg, char* str, uint32_t str_len);
+
 #endif // SRSRAN_PHCH_CFG_NR_H

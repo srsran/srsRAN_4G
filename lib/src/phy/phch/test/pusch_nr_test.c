@@ -340,6 +340,15 @@ int main(int argc, char** argv)
         }
       }
 
+      if (srsran_verbose >= SRSRAN_VERBOSE_INFO) {
+        char str[512];
+        srsran_pusch_nr_rx_info(&pusch_rx, &pusch_cfg, &pusch_cfg.grant, &data_rx, str, (uint32_t)sizeof(str));
+
+        char str_extra[2048];
+        srsran_phch_cfg_nr_info(&pusch_cfg, str_extra, (uint32_t)sizeof(str_extra));
+        INFO("PUSCH: %s\n%s", str, str_extra);
+      }
+
       printf("n_prb=%d; mcs=%d; TBS=%d; EVM=%f; PASSED!\n", n_prb, mcs, pusch_cfg.grant.tb[0].tbs, data_rx.evm[0]);
     }
   }
