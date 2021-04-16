@@ -31,7 +31,6 @@ typedef struct SRSRAN_API {
   double       R;        ///< Target LDPC rate
   int          rv;       ///< Redundancy version
   int          ndi;      ///< New Data Indicator
-  int          pid;      ///< HARQ Process ID
   uint32_t     nof_re;   ///< Number of available resource elements to transmit ULSCH (data) and UCI (control)
   uint32_t     nof_bits; ///< Number of available bits to send ULSCH
   uint32_t     cw_idx;

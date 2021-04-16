@@ -149,7 +149,6 @@ static uint32_t phch_cfg_tb_to_str(const srsran_sch_tb_t* tb, char* str, uint32_
   len = srsran_print_check(str, str_len, len, "      R=%.3f\n", tb->R);
   len = srsran_print_check(str, str_len, len, "      rv=%d\n", tb->rv);
   len = srsran_print_check(str, str_len, len, "      ndi=%d\n", tb->ndi);
-  len = srsran_print_check(str, str_len, len, "      pid=%d\n", tb->pid);
   len = srsran_print_check(str, str_len, len, "      nof_re=%d\n", tb->nof_re);
   len = srsran_print_check(str, str_len, len, "      nof_bits=%d\n", tb->nof_bits);
 
@@ -208,7 +207,7 @@ static uint32_t phch_cfg_rvd_to_str(const srsran_re_pattern_list_t* pattern_list
 
   len = srsran_print_check(str, str_len, len, "  Reserved:\n");
   for (uint32_t i = 0; i < pattern_list->count; i++) {
-    len = srsran_print_check(str, str_len, len, "    %d=", i);
+    len = srsran_print_check(str, str_len, len, "    %d: ", i);
     len += srsran_re_pattern_info(&pattern_list->data[i], &str[len], str_len - len);
     len = srsran_print_check(str, str_len, len, "\n");
   }

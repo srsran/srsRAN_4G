@@ -274,17 +274,24 @@ bool cc_worker::work_dl()
       str_info_t str;
       srsran_ue_dl_nr_pdsch_info(&ue_dl, &pdsch_cfg, &pdsch_res, str.data(), (uint32_t)str.size());
 
-      if (logger.debug.enabled()) {
+      if (logger.info.enabled()) {
         str_extra_t str_extra;
         srsran_sch_cfg_nr_info(&pdsch_cfg, str_extra.data(), (uint32_t)str_extra.size());
         logger.info(pdsch_res.tb[0].payload,
                     pdsch_cfg.grant.tb[0].tbs / 8,
-                    "PDSCH: cc=%d, %s\n%s",
+                    "PDSCH: cc=%d pid=%d %s\n%s",
                     cc_idx,
+                    pid,
                     str.data(),
                     str_extra.data());
       } else {
-        logger.info(pdsch_res.tb[0].payload, pdsch_cfg.grant.tb[0].tbs / 8, "PDSCH: cc=%d, %s", cc_idx, str.data());
+        logger.info(pdsch_res.tb[0].payload,
+                    pdsch_cfg.grant.tb[0].tbs / 8,
+                    "PDSCH: cc=%d pid=%d %s",
+                    pid,
+                    cc_idx,
+                    pid,
+                    str.data());
       }
     }
 
@@ -418,16 +425,18 @@ bool cc_worker::work_ul()
         srsran_sch_cfg_nr_info(&pusch_cfg, str_extra.data(), (uint32_t)str_extra.size());
         logger.info(ul_action.tb.payload->msg,
                     pusch_cfg.grant.tb[0].tbs / 8,
-                    "PUSCH: cc=%d %s tti_tx=%d\n%s",
+                    "PUSCH: cc=%d pid=%d %s tti_tx=%d\n%s",
                     cc_idx,
+                    pid,
                     str.data(),
                     ul_slot_cfg.idx,
                     str_extra.data());
       } else {
         logger.info(ul_action.tb.payload->msg,
                     pusch_cfg.grant.tb[0].tbs / 8,
-                    "PUSCH: cc=%d %s tti_tx=%d",
+                    "PUSCH: cc=%d pid=%d %s tti_tx=%d",
                     cc_idx,
+                    pid,
                     str.data(),
                     ul_slot_cfg.idx);
       }
