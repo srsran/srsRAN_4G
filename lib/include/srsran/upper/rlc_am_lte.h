@@ -47,19 +47,20 @@ struct rlc_am_pdu_segment_pool {
   struct segment_resource : public intrusive_forward_list_element<rlc_list_tag>,
                             public intrusive_forward_list_element<free_list_tag>,
                             public intrusive_double_linked_list_element<> {
-    const static uint32_t invalid_sn = std::numeric_limits<uint32_t>::max();
+    const static uint32_t invalid_rlc_sn  = std::numeric_limits<uint32_t>::max();
+    const static uint32_t invalid_pdcp_sn = std::numeric_limits<uint32_t>::max() - 1; // -1 for Status Report
 
     int      id() const;
     void     release_pdcp_sn();
     void     release_rlc_sn();
     uint32_t rlc_sn() const { return rlc_sn_; }
     uint32_t pdcp_sn() const { return pdcp_sn_; }
-    bool     empty() const { return rlc_sn_ == invalid_sn and pdcp_sn_ == invalid_sn; }
+    bool     empty() const { return rlc_sn_ == invalid_rlc_sn and pdcp_sn_ == invalid_pdcp_sn; }
 
   private:
     friend struct rlc_am_pdu_segment_pool;
-    uint32_t                 rlc_sn_     = invalid_sn;
-    uint32_t                 pdcp_sn_    = invalid_sn;
+    uint32_t                 rlc_sn_     = invalid_rlc_sn;
+    uint32_t                 pdcp_sn_    = invalid_pdcp_sn;
     rlc_am_pdu_segment_pool* parent_pool = nullptr;
   };
 
@@ -95,8 +96,8 @@ struct rlc_amd_rx_pdu_segments_t {
 /// Class that contains the parameters and state (e.g. segments) of a RLC PDU
 class rlc_amd_tx_pdu
 {
-  using list_type                  = intrusive_forward_list<rlc_am_pdu_segment>;
-  const static uint32_t invalid_sn = std::numeric_limits<uint32_t>::max();
+  using list_type                      = intrusive_forward_list<rlc_am_pdu_segment>;
+  const static uint32_t invalid_rlc_sn = std::numeric_limits<uint32_t>::max();
 
   list_type list;
 
@@ -104,7 +105,7 @@ public:
   using iterator       = typename list_type::iterator;
   using const_iterator = typename list_type::const_iterator;
 
-  const uint32_t       rlc_sn     = invalid_sn;
+  const uint32_t       rlc_sn     = invalid_rlc_sn;
   uint32_t             retx_count = 0;
   rlc_amd_pdu_header_t header;
   unique_byte_buffer_t buf;
@@ -139,12 +140,14 @@ struct rlc_sn_info_t {
 /// Class that contains the parameters and state (e.g. unACKed segments) of a PDCP PDU
 class pdcp_pdu_info
 {
-  using list_type                  = intrusive_double_linked_list<rlc_am_pdu_segment>;
-  const static uint32_t invalid_sn = std::numeric_limits<uint32_t>::max();
+  using list_type = intrusive_double_linked_list<rlc_am_pdu_segment>;
 
   list_type list; // List of unACKed RLC PDUs that contain segments that belong to the PDCP PDU.
 
 public:
+  const static uint32_t status_report_sn = std::numeric_limits<uint32_t>::max();
+  const static uint32_t invalid_pdcp_sn  = std::numeric_limits<uint32_t>::max() - 1;
+
   using iterator       = typename list_type::iterator;
   using const_iterator = typename list_type::const_iterator;
 
@@ -156,18 +159,18 @@ public:
   pdcp_pdu_info& operator=(pdcp_pdu_info&&) noexcept = default;
   ~pdcp_pdu_info() { clear(); }
 
-  uint32_t sn         = invalid_sn;
+  uint32_t sn         = invalid_pdcp_sn;
   bool     fully_txed = false; // Boolean indicating if the SDU is fully transmitted.
 
-  bool fully_acked() const { return list.empty(); }
-  bool valid() const { return sn != invalid_sn; }
+  bool fully_acked() const { return fully_txed and list.empty(); }
+  bool valid() const { return sn != invalid_pdcp_sn; }
 
   // Interface for list of unACKed RLC segments of the PDCP PDU
   void add_segment(rlc_am_pdu_segment& segment) { list.push_front(&segment); }
   void ack_segment(rlc_am_pdu_segment& segment);
   void clear()
   {
-    sn         = invalid_sn;
+    sn         = invalid_pdcp_sn;
     fully_txed = false;
     while (not list.empty()) {
       ack_segment(list.front());
@@ -220,49 +223,55 @@ public:
 
   void add_pdcp_sdu(uint32_t sn)
   {
+    srsran_expect(sn <= max_pdcp_sn or sn == status_report_sn, "Invalid PDCP SN=%d", sn);
     srsran_assert(not has_pdcp_sn(sn), "Cannot re-add same PDCP SN twice");
-    uint32_t sn_idx = get_idx(sn);
-    if (buffered_pdus[sn_idx].sn != invalid_sn) {
-      clear_pdcp_sdu(buffered_pdus[sn_idx].sn);
+    pdcp_pdu_info& pdu = get_pdu_(sn);
+    if (pdu.valid()) {
+      pdu.clear();
+      count--;
     }
-    buffered_pdus[get_idx(sn)].sn = sn;
+    pdu.sn = sn;
     count++;
   }
   void clear_pdcp_sdu(uint32_t sn)
   {
-    uint32_t sn_idx = get_idx(sn);
-    if (buffered_pdus[sn_idx].sn == invalid_sn) {
+    pdcp_pdu_info& pdu = get_pdu_(sn);
+    if (not pdu.valid()) {
       return;
     }
-    buffered_pdus[sn_idx].clear();
+    pdu.clear();
     count--;
   }
 
   pdcp_pdu_info& operator[](uint32_t sn)
   {
     srsran_expect(has_pdcp_sn(sn), "Invalid access to non-existent PDCP SN=%d", sn);
-    return buffered_pdus[get_idx(sn)];
+    return get_pdu_(sn);
   }
   bool has_pdcp_sn(uint32_t pdcp_sn) const
   {
     srsran_expect(pdcp_sn <= max_pdcp_sn or pdcp_sn == status_report_sn, "Invalid PDCP SN=%d", pdcp_sn);
-    return buffered_pdus[get_idx(pdcp_sn)].sn == pdcp_sn;
+    return get_pdu_(pdcp_sn).sn == pdcp_sn;
   }
   uint32_t nof_sdus() const { return count; }
 
 private:
   const static size_t   max_pdcp_sn      = 262143u;
-  const static size_t   max_buffer_idx   = 4096u;
-  const static uint32_t status_report_sn = std::numeric_limits<uint32_t>::max();
-  const static uint32_t invalid_sn       = std::numeric_limits<uint32_t>::max() - 1;
+  const static size_t   buffer_size      = 4096u;
+  const static uint32_t status_report_sn = pdcp_pdu_info::status_report_sn;
 
-  size_t get_idx(uint32_t sn) const
+  pdcp_pdu_info& get_pdu_(uint32_t sn)
   {
-    return (sn != status_report_sn) ? static_cast<size_t>(sn % max_buffer_idx) : max_buffer_idx;
+    return (sn == status_report_sn) ? status_report_pdu : buffered_pdus[static_cast<size_t>(sn % buffer_size)];
+  }
+  const pdcp_pdu_info& get_pdu_(uint32_t sn) const
+  {
+    return (sn == status_report_sn) ? status_report_pdu : buffered_pdus[static_cast<size_t>(sn % buffer_size)];
   }
 
-  // size equal to buffer_size + 1 (last element for Status Report)
+  // size equal to buffer_size
   std::vector<pdcp_pdu_info> buffered_pdus;
+  pdcp_pdu_info              status_report_pdu;
   uint32_t                   count = 0;
 };
 

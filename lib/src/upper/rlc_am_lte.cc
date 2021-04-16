@@ -68,7 +68,7 @@ int rlc_am_pdu_segment_pool::segment_resource::id() const
 
 void rlc_am_pdu_segment_pool::segment_resource::release_pdcp_sn()
 {
-  pdcp_sn_ = invalid_sn;
+  pdcp_sn_ = invalid_pdcp_sn;
   if (empty()) {
     parent_pool->free_list.push_front(this);
   }
@@ -76,7 +76,7 @@ void rlc_am_pdu_segment_pool::segment_resource::release_pdcp_sn()
 
 void rlc_am_pdu_segment_pool::segment_resource::release_rlc_sn()
 {
-  rlc_sn_ = invalid_sn;
+  rlc_sn_ = invalid_rlc_sn;
   if (empty()) {
     parent_pool->free_list.push_front(this);
   }
@@ -1305,7 +1305,7 @@ void rlc_am_lte::rlc_am_lte_tx::update_notification_ack_info(uint32_t rlc_sn)
     info.ack_segment(acked_segment);
 
     // Check whether the SDU was fully acked
-    if (info.fully_txed and info.fully_acked()) {
+    if (info.fully_acked()) {
       // Check if all SNs were ACK'ed
       if (not notify_info_vec.full()) {
         notify_info_vec.push_back(pdcp_sn);
@@ -2167,9 +2167,7 @@ void rlc_am_lte::rlc_am_lte_rx::debug_state()
   logger.debug("%s vr_r = %d, vr_mr = %d, vr_x = %d, vr_ms = %d, vr_h = %d", RB_NAME, vr_r, vr_mr, vr_x, vr_ms, vr_h);
 }
 
-const size_t buffered_pdcp_pdu_list::max_buffer_idx;
-
-buffered_pdcp_pdu_list::buffered_pdcp_pdu_list() : buffered_pdus(max_buffer_idx + 1)
+buffered_pdcp_pdu_list::buffered_pdcp_pdu_list() : buffered_pdus(buffered_pdcp_pdu_list::buffer_size)
 {
   clear();
 }
