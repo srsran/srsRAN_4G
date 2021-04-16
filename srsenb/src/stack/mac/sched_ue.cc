@@ -77,10 +77,12 @@ void sched_ue::set_cfg(const ue_cfg_t& cfg_)
     scell_activation_state_changed |=
         c.is_scell() and (c.cc_state() == cc_st::activating or c.cc_state() == cc_st::deactivating);
   }
-  if (prev_supported_cc_list.empty() or prev_supported_cc_list[0].enb_cc_idx != cfg.supported_cc_list[0].enb_cc_idx) {
+  bool is_handover = not prev_supported_cc_list.empty() and
+                     prev_supported_cc_list[0].enb_cc_idx != cfg.supported_cc_list[0].enb_cc_idx;
+  if (prev_supported_cc_list.empty() or is_handover) {
     logger.info("SCHED: rnti=0x%x PCell is now enb_cc_idx=%d", rnti, cfg.supported_cc_list[0].enb_cc_idx);
   }
-  if (scell_activation_state_changed) {
+  if (scell_activation_state_changed and not is_handover) {
     lch_handler.pending_ces.emplace_back(srsran::dl_sch_lcid::SCELL_ACTIVATION);
     logger.info("SCHED: Enqueueing SCell Activation CMD for rnti=0x%x", rnti);
   }
