@@ -383,16 +383,18 @@ static int uci_nr_decode_1_bit(srsran_uci_nr_t*           q,
   }
 
   // Correlate LLR
-  float corr = 0.0f;
-  float pwr  = 0.0f;
+  float    corr  = 0.0f;
+  float    pwr   = 0.0f;
+  uint32_t count = 0;
   for (uint32_t i = 0; i < E; i += Qm) {
     float t = (float)llr[i];
     corr += t;
     pwr += t * t;
+    count++;
   }
 
   // Normalise correlation
-  float norm_corr = Qm * corr / (E * sqrtf(pwr));
+  float norm_corr = fabsf(corr) / sqrtf(pwr * count);
 
   // Take decoded decision with threshold
   *decoded_ok = (norm_corr > q->one_bit_threshold);

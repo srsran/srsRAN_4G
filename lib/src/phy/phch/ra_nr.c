@@ -16,6 +16,7 @@
 #include "srsran/phy/phch/pdsch_nr.h"
 #include "srsran/phy/phch/ra_dl_nr.h"
 #include "srsran/phy/phch/ra_ul_nr.h"
+#include "srsran/phy/phch/uci_nr.h"
 #include "srsran/phy/utils/debug.h"
 
 typedef struct {
@@ -814,6 +815,10 @@ int srsran_ra_ul_dci_to_grant_nr(const srsran_carrier_nr_t*    carrier,
 static float ra_ul_beta_offset_ack_semistatic(const srsran_beta_offsets_t* beta_offsets,
                                               const srsran_uci_cfg_nr_t*   uci_cfg)
 {
+  if (isnormal(beta_offsets->fix_ack)) {
+    return beta_offsets->fix_ack;
+  }
+
   // Select Beta Offset index from the number of HARQ-ACK bits
   uint32_t beta_offset_index = beta_offsets->ack_index1;
   if (uci_cfg->o_ack > 11) {
@@ -843,6 +848,11 @@ static float ra_ul_beta_offset_csi_semistatic(const srsran_beta_offsets_t* beta_
                                               const srsran_uci_cfg_nr_t*   uci_cfg,
                                               bool                         part2)
 {
+  float fix_beta_offset = part2 ? beta_offsets->fix_csi2 : beta_offsets->fix_csi1;
+  if (isnormal(fix_beta_offset)) {
+    return fix_beta_offset;
+  }
+
   // Calculate number of CSI bits; CSI part 2 is not supported.
   uint32_t O_csi = part2 ? 0 : srsran_csi_part1_nof_bits(uci_cfg->csi, uci_cfg->nof_csi);
 
@@ -865,35 +875,162 @@ static float ra_ul_beta_offset_csi_semistatic(const srsran_beta_offsets_t* beta_
   return ra_nr_beta_offset_csi_table[beta_offset_index];
 }
 
-int srsran_ra_ul_set_grant_uci_nr(const srsran_sch_hl_cfg_nr_t* pusch_hl_cfg,
+int srsran_ra_ul_set_grant_uci_nr(const srsran_carrier_nr_t*    carrier,
+                                  const srsran_sch_hl_cfg_nr_t* pusch_hl_cfg,
                                   const srsran_uci_cfg_nr_t*    uci_cfg,
                                   srsran_sch_cfg_nr_t*          pusch_cfg)
 {
-  // Select beta offsets
-  pusch_cfg->beta_harq_ack_offset = ra_ul_beta_offset_ack_semistatic(&pusch_hl_cfg->beta_offsets, uci_cfg);
-  if (!isnormal(pusch_cfg->beta_harq_ack_offset)) {
+  if (pusch_cfg->grant.nof_prb == 0) {
+    ERROR("Invalid number of PRB (%d)", pusch_cfg->grant.nof_prb);
     return SRSRAN_ERROR;
   }
 
-  pusch_cfg->beta_csi_part1_offset = ra_ul_beta_offset_csi_semistatic(&pusch_hl_cfg->beta_offsets, uci_cfg, false);
-  if (!isnormal(pusch_cfg->beta_csi_part1_offset)) {
-    return SRSRAN_ERROR;
-  }
-
-  pusch_cfg->beta_csi_part2_offset = ra_ul_beta_offset_csi_semistatic(&pusch_hl_cfg->beta_offsets, uci_cfg, true);
-  if (!isnormal(pusch_cfg->beta_csi_part2_offset)) {
-    return SRSRAN_ERROR;
-  }
-
-  //  pusch_cfg->beta_csi_part2_offset = pusch_hl_cfg->beta_offset_csi2;
-  pusch_cfg->scaling = pusch_hl_cfg->scaling;
-  if (!isnormal(pusch_cfg->scaling)) {
-    ERROR("Invalid Scaling (%f)", pusch_cfg->scaling);
-    return SRSRAN_ERROR;
-  }
-
-  // Copy UCI configuration
+  // Initially, copy all fields
   pusch_cfg->uci = *uci_cfg;
+
+  // Reset UCI PUSCH configuration
+  SRSRAN_MEM_ZERO(&pusch_cfg->uci.pusch, srsran_uci_nr_pusch_cfg_t, 1);
+
+  // Get DMRS symbol indexes
+  uint32_t nof_dmrs_l                          = 0;
+  uint32_t dmrs_l[SRSRAN_DMRS_SCH_MAX_SYMBOLS] = {};
+  int      n = srsran_dmrs_sch_get_symbols_idx(&pusch_cfg->dmrs, &pusch_cfg->grant, dmrs_l);
+  if (n < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
+  }
+  nof_dmrs_l = (uint32_t)n;
+
+  // Find OFDM symbol index of the first OFDM symbol after the first set of consecutive OFDM symbol(s) carrying DMRS
+  // Starts at first OFDM symbol carrying DMRS
+  for (uint32_t l = dmrs_l[0], dmrs_l_idx = 0; l < pusch_cfg->grant.S + pusch_cfg->grant.L; l++) {
+    // Check if it is not carrying DMRS...
+    if (l != dmrs_l[dmrs_l_idx]) {
+      // Set value and stop iterating
+      pusch_cfg->uci.pusch.l0 = l;
+      break;
+    }
+
+    // Move to the next DMRS OFDM symbol index
+    if (dmrs_l_idx < nof_dmrs_l) {
+      dmrs_l_idx++;
+    }
+  }
+
+  // Find OFDM symbol index of the first OFDM symbol that does not carry DMRS
+  // Starts at first OFDM symbol of the PUSCH transmission
+  for (uint32_t l = pusch_cfg->grant.S, dmrs_l_idx = 0; l < pusch_cfg->grant.S + pusch_cfg->grant.L; l++) {
+    // Check if it is not carrying DMRS...
+    if (l != dmrs_l[dmrs_l_idx]) {
+      pusch_cfg->uci.pusch.l1 = l;
+      break;
+    }
+
+    // Move to the next DMRS OFDM symbol index
+    if (dmrs_l_idx < nof_dmrs_l) {
+      dmrs_l_idx++;
+    }
+  }
+
+  // Number of DMRS per PRB
+  uint32_t n_sc_dmrs = SRSRAN_DMRS_SCH_SC(pusch_cfg->grant.nof_dmrs_cdm_groups_without_data, pusch_cfg->dmrs.type);
+
+  // Set UCI RE number of candidates per OFDM symbol according to TS 38.312 6.3.2.4.2.1
+  for (uint32_t l = 0, dmrs_l_idx = 0; l < SRSRAN_NSYMB_PER_SLOT_NR; l++) {
+    // Skip if OFDM symbol is outside of the PUSCH transmission
+    if (l < pusch_cfg->grant.S || l >= (pusch_cfg->grant.S + pusch_cfg->grant.L)) {
+      pusch_cfg->uci.pusch.M_pusch_sc[l] = 0;
+      pusch_cfg->uci.pusch.M_uci_sc[l]   = 0;
+      continue;
+    }
+
+    // OFDM symbol carries DMRS
+    if (l == dmrs_l[dmrs_l_idx]) {
+      // Calculate PUSCH RE candidates
+      pusch_cfg->uci.pusch.M_pusch_sc[l] = pusch_cfg->grant.nof_prb * (SRSRAN_NRE - n_sc_dmrs);
+
+      // The Number of RE candidates for UCI are 0
+      pusch_cfg->uci.pusch.M_uci_sc[l] = 0;
+
+      // Advance DMRS symbol index
+      dmrs_l_idx++;
+
+      // Skip to next symbol
+      continue;
+    }
+
+    // Number of RE for Phase Tracking Reference Signals (PT-RS)
+    uint32_t M_ptrs_sc = 0; // Not implemented yet
+
+    // Number of RE given by the grant
+    pusch_cfg->uci.pusch.M_pusch_sc[l] = pusch_cfg->grant.nof_prb * SRSRAN_NRE;
+
+    // Calculate the number of UCI candidates
+    pusch_cfg->uci.pusch.M_uci_sc[l] = pusch_cfg->uci.pusch.M_pusch_sc[l] - M_ptrs_sc;
+  }
+
+  // Generate SCH Transport block information
+  srsran_sch_nr_tb_info_t sch_tb_info = {};
+  if (srsran_sch_nr_fill_tb_info(carrier, &pusch_cfg->sch_cfg, &pusch_cfg->grant.tb[0], &sch_tb_info) <
+      SRSRAN_SUCCESS) {
+    ERROR("Generating TB info");
+    return SRSRAN_ERROR;
+  }
+
+  // Calculate the sum of codeblock sizes
+  for (uint32_t i = 0; i < sch_tb_info.C; i++) {
+    // Accumulate codeblock size if mask is enabled
+    pusch_cfg->uci.pusch.K_sum += (sch_tb_info.mask[i]) ? sch_tb_info.Kr : 0;
+  }
+
+  // Set other PUSCH parameters
+  pusch_cfg->uci.pusch.modulation = pusch_cfg->grant.tb[0].mod;
+  pusch_cfg->uci.pusch.nof_layers = pusch_cfg->grant.nof_layers;
+  pusch_cfg->uci.pusch.R          = (float)pusch_cfg->grant.tb[0].R;
+  pusch_cfg->uci.pusch.nof_re     = pusch_cfg->grant.tb[0].nof_re;
+
+  // Select beta offsets
+  pusch_cfg->uci.pusch.beta_harq_ack_offset = ra_ul_beta_offset_ack_semistatic(&pusch_hl_cfg->beta_offsets, uci_cfg);
+  if (!isnormal(pusch_cfg->uci.pusch.beta_harq_ack_offset)) {
+    return SRSRAN_ERROR;
+  }
+
+  pusch_cfg->uci.pusch.beta_csi1_offset = ra_ul_beta_offset_csi_semistatic(&pusch_hl_cfg->beta_offsets, uci_cfg, false);
+  if (!isnormal(pusch_cfg->uci.pusch.beta_csi1_offset)) {
+    return SRSRAN_ERROR;
+  }
+
+  pusch_cfg->uci.pusch.beta_csi2_offset = ra_ul_beta_offset_csi_semistatic(&pusch_hl_cfg->beta_offsets, uci_cfg, true);
+  if (!isnormal(pusch_cfg->uci.pusch.beta_csi2_offset)) {
+    return SRSRAN_ERROR;
+  }
+
+  pusch_cfg->uci.pusch.alpha = pusch_hl_cfg->scaling;
+  if (!isnormal(pusch_cfg->uci.pusch.alpha)) {
+    ERROR("Invalid Scaling (%f)", pusch_cfg->uci.pusch.alpha);
+    return SRSRAN_ERROR;
+  }
+
+  // Calculate number of UCI encoded bits
+  int Gack = 0;
+  if (pusch_cfg->uci.o_ack > 2) {
+    Gack = srsran_uci_nr_pusch_ack_nof_bits(&pusch_cfg->uci.pusch, pusch_cfg->uci.o_ack);
+    if (Gack < SRSRAN_SUCCESS) {
+      ERROR("Error calculating Qdack");
+      return SRSRAN_ERROR;
+    }
+  }
+  int Gcsi1 = srsran_uci_nr_pusch_csi1_nof_bits(&pusch_cfg->uci);
+  if (Gcsi1 < SRSRAN_SUCCESS) {
+    ERROR("Error calculating Qdack");
+    return SRSRAN_ERROR;
+  }
+  int Gcsi2 = 0; // NOT supported
+
+  // Update Number of TB encoded bits
+  for (uint32_t i = 0; i < SRSRAN_MAX_TB; i++) {
+    pusch_cfg->grant.tb[i].nof_bits =
+        pusch_cfg->grant.tb[i].nof_re * srsran_mod_bits_x_symbol(pusch_cfg->grant.tb[i].mod) - Gack - Gcsi1 - Gcsi2;
+  }
 
   return SRSRAN_SUCCESS;
 }

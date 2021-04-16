@@ -32,8 +32,8 @@ typedef struct SRSRAN_API {
   int          rv;       ///< Redundancy version
   int          ndi;      ///< New Data Indicator
   int          pid;      ///< HARQ Process ID
-  uint32_t     nof_re;   ///< Number of available resource elements to send, known as N_RE
-  uint32_t     nof_bits; ///< Number of available bits to send, known as G
+  uint32_t     nof_re;   ///< Number of available resource elements to transmit ULSCH (data) and UCI (control)
+  uint32_t     nof_bits; ///< Number of available bits to send ULSCH
   uint32_t     cw_idx;
   bool         enabled;
 

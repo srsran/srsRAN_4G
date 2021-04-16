@@ -276,7 +276,7 @@ bool cc_worker::work_dl()
 
       if (logger.debug.enabled()) {
         str_extra_t str_extra;
-        srsran_phch_cfg_nr_info(&pdsch_cfg, str_extra.data(), (uint32_t)str_extra.size());
+        srsran_sch_cfg_nr_info(&pdsch_cfg, str_extra.data(), (uint32_t)str_extra.size());
         logger.info(pdsch_res.tb[0].payload,
                     pdsch_cfg.grant.tb[0].tbs / 8,
                     "PDSCH: cc=%d, %s\n%s",
@@ -392,7 +392,7 @@ bool cc_worker::work_ul()
     }
 
     // Set UCI configuration following procedures
-    srsran_ra_ul_set_grant_uci_nr(&phy->cfg.pusch, &uci_data.cfg, &pusch_cfg);
+    srsran_ra_ul_set_grant_uci_nr(&phy->carrier, &phy->cfg.pusch, &uci_data.cfg, &pusch_cfg);
 
     // Assigning MAC provided values to PUSCH config structs
     pusch_cfg.grant.tb[0].softbuffer.tx = ul_action.tb.softbuffer;
@@ -415,7 +415,7 @@ bool cc_worker::work_ul()
 
       if (logger.debug.enabled()) {
         str_extra_t str_extra;
-        srsran_phch_cfg_nr_info(&pusch_cfg, str_extra.data(), (uint32_t)str_extra.size());
+        srsran_sch_cfg_nr_info(&pusch_cfg, str_extra.data(), (uint32_t)str_extra.size());
         logger.info(ul_action.tb.payload->msg,
                     pusch_cfg.grant.tb[0].tbs / 8,
                     "PUSCH: cc=%d %s tti_tx=%d\n%s",

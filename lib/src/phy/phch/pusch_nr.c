@@ -328,121 +328,6 @@ pusch_nr_cinit(const srsran_carrier_nr_t* carrier, const srsran_sch_cfg_nr_t* cf
   return cinit;
 }
 
-static inline int pusch_nr_fill_uci_cfg(srsran_pusch_nr_t* q, const srsran_sch_cfg_nr_t* cfg)
-{
-  if (cfg->grant.nof_prb == 0) {
-    ERROR("Invalid number of PRB (%d)", cfg->grant.nof_prb);
-    return SRSRAN_ERROR;
-  }
-
-  // Initially, copy all fields
-  q->uci_cfg = cfg->uci;
-
-  // Reset UCI PUSCH configuration
-  SRSRAN_MEM_ZERO(&q->uci_cfg.pusch, srsran_uci_nr_pusch_cfg_t, 1);
-
-  // Get DMRS symbol indexes
-  uint32_t nof_dmrs_l                          = 0;
-  uint32_t dmrs_l[SRSRAN_DMRS_SCH_MAX_SYMBOLS] = {};
-  int      n                                   = srsran_dmrs_sch_get_symbols_idx(&cfg->dmrs, &cfg->grant, dmrs_l);
-  if (n < SRSRAN_SUCCESS) {
-    return SRSRAN_ERROR;
-  }
-  nof_dmrs_l = (uint32_t)n;
-
-  // Find OFDM symbol index of the first OFDM symbol after the first set of consecutive OFDM symbol(s) carrying DMRS
-  // Starts at first OFDM symbol carrying DMRS
-  for (uint32_t l = dmrs_l[0], dmrs_l_idx = 0; l < cfg->grant.S + cfg->grant.L; l++) {
-    // Check if it is not carrying DMRS...
-    if (l != dmrs_l[dmrs_l_idx]) {
-      // Set value and stop iterating
-      q->uci_cfg.pusch.l0 = l;
-      break;
-    }
-
-    // Move to the next DMRS OFDM symbol index
-    if (dmrs_l_idx < nof_dmrs_l) {
-      dmrs_l_idx++;
-    }
-  }
-
-  // Find OFDM symbol index of the first OFDM symbol that does not carry DMRS
-  // Starts at first OFDM symbol of the PUSCH transmission
-  for (uint32_t l = cfg->grant.S, dmrs_l_idx = 0; l < cfg->grant.S + cfg->grant.L; l++) {
-    // Check if it is not carrying DMRS...
-    if (l != dmrs_l[dmrs_l_idx]) {
-      q->uci_cfg.pusch.l1 = l;
-      break;
-    }
-
-    // Move to the next DMRS OFDM symbol index
-    if (dmrs_l_idx < nof_dmrs_l) {
-      dmrs_l_idx++;
-    }
-  }
-
-  // Number of DMRS per PRB
-  uint32_t n_sc_dmrs = SRSRAN_DMRS_SCH_SC(cfg->grant.nof_dmrs_cdm_groups_without_data, cfg->dmrs.type);
-
-  // Set UCI RE number of candidates per OFDM symbol according to TS 38.312 6.3.2.4.2.1
-  for (uint32_t l = 0, dmrs_l_idx = 0; l < SRSRAN_NSYMB_PER_SLOT_NR; l++) {
-    // Skip if OFDM symbol is outside of the PUSCH transmission
-    if (l < cfg->grant.S || l >= (cfg->grant.S + cfg->grant.L)) {
-      q->uci_cfg.pusch.M_pusch_sc[l] = 0;
-      q->uci_cfg.pusch.M_uci_sc[l]   = 0;
-      continue;
-    }
-
-    // OFDM symbol carries DMRS
-    if (l == dmrs_l[dmrs_l_idx]) {
-      // Calculate PUSCH RE candidates
-      q->uci_cfg.pusch.M_pusch_sc[l] = cfg->grant.nof_prb * (SRSRAN_NRE - n_sc_dmrs);
-
-      // The Number of RE candidates for UCI are 0
-      q->uci_cfg.pusch.M_uci_sc[l] = 0;
-
-      // Advance DMRS symbol index
-      dmrs_l_idx++;
-
-      // Skip to next symbol
-      continue;
-    }
-
-    // Number of RE for Phase Tracking Reference Signals (PT-RS)
-    uint32_t M_ptrs_sc = 0; // Not implemented yet
-
-    // Number of RE given by the grant
-    q->uci_cfg.pusch.M_pusch_sc[l] = cfg->grant.nof_prb * SRSRAN_NRE;
-
-    // Calculate the number of UCI candidates
-    q->uci_cfg.pusch.M_uci_sc[l] = q->uci_cfg.pusch.M_pusch_sc[l] - M_ptrs_sc;
-  }
-
-  // Generate SCH Transport block information
-  srsran_sch_nr_tb_info_t sch_tb_info = {};
-  if (srsran_sch_nr_fill_tb_info(&q->carrier, &cfg->sch_cfg, &cfg->grant.tb[0], &sch_tb_info) < SRSRAN_SUCCESS) {
-    ERROR("Generating TB info");
-    return SRSRAN_ERROR;
-  }
-
-  // Calculate the sum of codeblock sizes
-  for (uint32_t i = 0; i < sch_tb_info.C; i++) {
-    // Accumulate codeblock size if mask is enabled
-    q->uci_cfg.pusch.K_sum += (sch_tb_info.mask[i]) ? sch_tb_info.Kr : 0;
-  }
-
-  // Set other PUSCH parameters
-  q->uci_cfg.pusch.modulation           = cfg->grant.tb[0].mod;
-  q->uci_cfg.pusch.nof_layers           = cfg->grant.nof_layers;
-  q->uci_cfg.pusch.R                    = (float)cfg->grant.tb[0].R;
-  q->uci_cfg.pusch.alpha                = cfg->scaling;
-  q->uci_cfg.pusch.beta_harq_ack_offset = cfg->beta_harq_ack_offset;
-  q->uci_cfg.pusch.beta_csi1_offset     = cfg->beta_csi_part1_offset;
-  q->uci_cfg.pusch.nof_re               = cfg->grant.tb[0].nof_re;
-
-  return SRSRAN_SUCCESS;
-}
-
 // Implements TS 38.212 6.2.7 Data and control multiplexing (for NR-PUSCH)
 static int pusch_nr_gen_mux_uci(srsran_pusch_nr_t* q, const srsran_uci_cfg_nr_t* cfg)
 {
@@ -479,7 +364,7 @@ static int pusch_nr_gen_mux_uci(srsran_pusch_nr_t* q, const srsran_uci_cfg_nr_t*
   if (cfg->o_ack <= 2) {
     // the number of reserved resource elements for potential HARQ-ACK transmission is calculated according to Clause
     // 6.3.2.4.2.1, by setting O_ACK = 2 ;
-    G_ack_rvd = srsran_uci_nr_pusch_ack_nof_bits(&q->uci_cfg.pusch, 2);
+    G_ack_rvd = srsran_uci_nr_pusch_ack_nof_bits(&cfg->pusch, 2);
 
     // Disable non reserved HARQ-ACK bits
     G_ack = 0;
@@ -695,7 +580,7 @@ static inline int pusch_nr_encode_codeword(srsran_pusch_nr_t*           q,
   }
 
   // Encode HARQ-ACK bits
-  int E_uci_ack = srsran_uci_nr_encode_pusch_ack(&q->uci, &q->uci_cfg, uci, q->g_ack);
+  int E_uci_ack = srsran_uci_nr_encode_pusch_ack(&q->uci, &cfg->uci, uci, q->g_ack);
   if (E_uci_ack < SRSRAN_SUCCESS) {
     ERROR("Error encoding HARQ-ACK bits");
     return SRSRAN_ERROR;
@@ -703,7 +588,7 @@ static inline int pusch_nr_encode_codeword(srsran_pusch_nr_t*           q,
   q->G_ack = (uint32_t)E_uci_ack;
 
   // Encode CSI part 1
-  int E_uci_csi1 = srsran_uci_nr_encode_pusch_csi1(&q->uci, &q->uci_cfg, uci, q->g_csi1);
+  int E_uci_csi1 = srsran_uci_nr_encode_pusch_csi1(&q->uci, &cfg->uci, uci, q->g_csi1);
   if (E_uci_csi1 < SRSRAN_SUCCESS) {
     ERROR("Error encoding HARQ-ACK bits");
     return SRSRAN_ERROR;
@@ -715,7 +600,7 @@ static inline int pusch_nr_encode_codeword(srsran_pusch_nr_t*           q,
   q->G_csi2 = 0;
 
   // Generate PUSCH UCI/UL-SCH multiplexing
-  if (pusch_nr_gen_mux_uci(q, &q->uci_cfg) < SRSRAN_SUCCESS) {
+  if (pusch_nr_gen_mux_uci(q, &cfg->uci) < SRSRAN_SUCCESS) {
     ERROR("Error generating PUSCH mux tables");
     return SRSRAN_ERROR;
   }
@@ -727,7 +612,8 @@ static inline int pusch_nr_encode_codeword(srsran_pusch_nr_t*           q,
   }
 
   // Multiplex UL-SCH with UCI only if it is necessary
-  uint8_t* b = q->g_ulsch;
+  uint32_t nof_bits = tb->nof_re * srsran_mod_bits_x_symbol(tb->mod);
+  uint8_t* b        = q->g_ulsch;
   if (q->uci_mux) {
     // Change b location
     b = q->b[tb->cw_idx];
@@ -755,15 +641,15 @@ static inline int pusch_nr_encode_codeword(srsran_pusch_nr_t*           q,
 
   if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
     DEBUG("b=");
-    srsran_vec_fprint_b(stdout, b, tb->nof_bits);
+    srsran_vec_fprint_b(stdout, b, nof_bits);
   }
 
   // 7.3.1.1 Scrambling
   uint32_t cinit = pusch_nr_cinit(&q->carrier, cfg, rnti, tb->cw_idx);
-  srsran_sequence_apply_bit(b, q->b[tb->cw_idx], tb->nof_bits, cinit);
+  srsran_sequence_apply_bit(b, q->b[tb->cw_idx], nof_bits, cinit);
 
   // Special Scrambling condition
-  if (q->uci_cfg.o_ack <= 2) {
+  if (cfg->uci.o_ack <= 2) {
     for (uint32_t i = 0; i < q->G_ack; i++) {
       uint32_t idx = q->pos_ack[i];
       if (q->g_ack[i] == (uint8_t)UCI_BIT_REPETITION) {
@@ -777,7 +663,7 @@ static inline int pusch_nr_encode_codeword(srsran_pusch_nr_t*           q,
   }
 
   // 7.3.1.2 Modulation
-  srsran_mod_modulate(&q->modem_tables[tb->mod], q->b[tb->cw_idx], q->d[tb->cw_idx], tb->nof_bits);
+  srsran_mod_modulate(&q->modem_tables[tb->mod], q->b[tb->cw_idx], q->d[tb->cw_idx], nof_bits);
 
   if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
     DEBUG("d=");
@@ -795,6 +681,7 @@ int srsran_pusch_nr_encode(srsran_pusch_nr_t*            q,
 {
   // Check input pointers
   if (!q || !cfg || !grant || !data || !sf_symbols) {
+    ERROR("Invalid inputs");
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
@@ -812,12 +699,6 @@ int srsran_pusch_nr_encode(srsran_pusch_nr_t*            q,
   // Compute DMRS pattern
   if (srsran_dmrs_sch_rvd_re_pattern(&cfg->dmrs, grant, &q->dmrs_re_pattern) < SRSRAN_SUCCESS) {
     ERROR("Error computing DMRS pattern");
-    return SRSRAN_ERROR;
-  }
-
-  // Fill UCI configuration for PUSCH configuration
-  if (pusch_nr_fill_uci_cfg(q, cfg) < SRSRAN_SUCCESS) {
-    ERROR("Error filling UCI configuration for PUSCH");
     return SRSRAN_ERROR;
   }
 
@@ -895,8 +776,11 @@ static inline int pusch_nr_decode_codeword(srsran_pusch_nr_t*         q,
     srsran_vec_fprint_c(stdout, q->d[tb->cw_idx], tb->nof_re);
   }
 
+  // Total number of bits
+  uint32_t nof_bits = tb->nof_re * srsran_mod_bits_x_symbol(tb->mod);
+
   // Calculate HARQ-ACK bits
-  int n = srsran_uci_nr_pusch_ack_nof_bits(&q->uci_cfg.pusch, q->uci_cfg.o_ack);
+  int n = srsran_uci_nr_pusch_ack_nof_bits(&cfg->uci.pusch, cfg->uci.o_ack);
   if (n < SRSRAN_SUCCESS) {
     ERROR("Calculating G_ack");
     return SRSRAN_ERROR;
@@ -904,7 +788,7 @@ static inline int pusch_nr_decode_codeword(srsran_pusch_nr_t*         q,
   q->G_ack = (uint32_t)n;
 
   // Calculate CSI part 1 bits
-  n = srsran_uci_nr_pusch_csi1_nof_bits(&q->uci_cfg);
+  n = srsran_uci_nr_pusch_csi1_nof_bits(&cfg->uci);
   if (n < SRSRAN_SUCCESS) {
     ERROR("Calculating G_csi1");
     return SRSRAN_ERROR;
@@ -916,7 +800,7 @@ static inline int pusch_nr_decode_codeword(srsran_pusch_nr_t*         q,
   q->G_csi2 = 0;
 
   // Generate PUSCH UCI/UL-SCH multiplexing
-  if (pusch_nr_gen_mux_uci(q, &q->uci_cfg) < SRSRAN_SUCCESS) {
+  if (pusch_nr_gen_mux_uci(q, &cfg->uci) < SRSRAN_SUCCESS) {
     ERROR("Error generating PUSCH mux tables");
     return SRSRAN_ERROR;
   }
@@ -929,16 +813,15 @@ static inline int pusch_nr_decode_codeword(srsran_pusch_nr_t*         q,
 
   // EVM
   if (q->evm_buffer != NULL) {
-    res->evm[tb->cw_idx] =
-        srsran_evm_run_b(q->evm_buffer, &q->modem_tables[tb->mod], q->d[tb->cw_idx], llr, tb->nof_bits);
+    res->evm[tb->cw_idx] = srsran_evm_run_b(q->evm_buffer, &q->modem_tables[tb->mod], q->d[tb->cw_idx], llr, nof_bits);
   }
 
   // Descrambling
-  srsran_sequence_apply_c(llr, llr, tb->nof_bits, pusch_nr_cinit(&q->carrier, cfg, rnti, tb->cw_idx));
+  srsran_sequence_apply_c(llr, llr, nof_bits, pusch_nr_cinit(&q->carrier, cfg, rnti, tb->cw_idx));
 
   if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
     DEBUG("b=");
-    srsran_vec_fprint_bs(stdout, llr, tb->nof_bits);
+    srsran_vec_fprint_bs(stdout, llr, nof_bits);
   }
 
   // Demultiplex UCI only if necessary
@@ -948,7 +831,7 @@ static inline int pusch_nr_decode_codeword(srsran_pusch_nr_t*         q,
     for (uint32_t i = 0; i < q->G_ulsch; i++) {
       g_ulsch[i] = -llr[q->pos_ulsch[i]];
     }
-    for (uint32_t i = q->G_ulsch; i < tb->nof_bits; i++) {
+    for (uint32_t i = q->G_ulsch; i < nof_bits; i++) {
       g_ulsch[i] = 0;
     }
 
@@ -972,7 +855,7 @@ static inline int pusch_nr_decode_codeword(srsran_pusch_nr_t*         q,
 
     // Decode HARQ-ACK
     if (q->G_ack) {
-      if (srsran_uci_nr_decode_pusch_ack(&q->uci, &q->uci_cfg, g_ack, &res->uci)) {
+      if (srsran_uci_nr_decode_pusch_ack(&q->uci, &cfg->uci, g_ack, &res->uci)) {
         ERROR("Error in UCI decoding");
         return SRSRAN_ERROR;
       }
@@ -980,7 +863,7 @@ static inline int pusch_nr_decode_codeword(srsran_pusch_nr_t*         q,
 
     // Decode CSI part 1
     if (q->G_csi1) {
-      if (srsran_uci_nr_decode_pusch_csi1(&q->uci, &q->uci_cfg, g_csi1, &res->uci)) {
+      if (srsran_uci_nr_decode_pusch_csi1(&q->uci, &cfg->uci, g_csi1, &res->uci)) {
         ERROR("Error in UCI decoding");
         return SRSRAN_ERROR;
       }
@@ -992,13 +875,13 @@ static inline int pusch_nr_decode_codeword(srsran_pusch_nr_t*         q,
     // Change LLR pointer
     llr = g_ulsch;
   } else {
-    for (uint32_t i = 0; i < tb->nof_bits; i++) {
+    for (uint32_t i = 0; i < nof_bits; i++) {
       llr[i] *= -1;
     }
   }
 
   // Decode Ul-SCH
-  if (tb->nof_bits != 0) {
+  if (nof_bits != 0) {
     if (srsran_ulsch_nr_decode(&q->sch, &cfg->sch_cfg, tb, llr, &res->tb[tb->cw_idx]) < SRSRAN_SUCCESS) {
       ERROR("Error in SCH decoding");
       return SRSRAN_ERROR;
@@ -1034,12 +917,6 @@ int srsran_pusch_nr_decode(srsran_pusch_nr_t*           q,
   // Compute DMRS pattern
   if (srsran_dmrs_sch_rvd_re_pattern(&cfg->dmrs, grant, &q->dmrs_re_pattern) < SRSRAN_SUCCESS) {
     ERROR("Error computing DMRS pattern");
-    return SRSRAN_ERROR;
-  }
-
-  // Fill UCI configuration for PUSCH configuration
-  if (pusch_nr_fill_uci_cfg(q, cfg) < SRSRAN_SUCCESS) {
-    ERROR("Error filling UCI configuration for PUSCH");
     return SRSRAN_ERROR;
   }
 

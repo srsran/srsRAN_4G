@@ -453,7 +453,7 @@ int main(int argc, char** argv)
           srsran_ue_dl_nr_pdsch_info(&ue_dl, &pdsch_cfg, &pdsch_res, str, (uint32_t)sizeof(str));
 
           char str_extra[2048];
-          srsran_phch_cfg_nr_info(&pdsch_cfg, str_extra, (uint32_t)sizeof(str_extra));
+          srsran_sch_cfg_nr_info(&pdsch_cfg, str_extra, (uint32_t)sizeof(str_extra));
           INFO("PDSCH: %s\n%s", str, str_extra);
         }
 
