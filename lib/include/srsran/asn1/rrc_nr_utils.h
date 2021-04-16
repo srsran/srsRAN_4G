@@ -50,6 +50,7 @@ struct beta_offsets_s;
 struct uci_on_pusch_s;
 struct zp_csi_rs_res_s;
 struct nzp_csi_rs_res_s;
+struct pdsch_serving_cell_cfg_s;
 
 } // namespace rrc_nr
 } // namespace asn1
@@ -98,6 +99,8 @@ bool make_phy_nzp_csi_rs_resource(const asn1::rrc_nr::nzp_csi_rs_res_s & nzp_csi
 logical_channel_config_t make_mac_logical_channel_cfg_t(uint8_t lcid, const asn1::rrc_nr::lc_ch_cfg_s& asn1_type);
 rach_nr_cfg_t            make_mac_rach_cfg(const asn1::rrc_nr::rach_cfg_common_s& asn1_type);
 bool                     make_mac_phr_cfg_t(const asn1::rrc_nr::phr_cfg_s& asn1_type, phr_cfg_nr_t* phr_cfg_nr);
+bool                     make_mac_dl_harq_cfg_nr_t(const asn1::rrc_nr::pdsch_serving_cell_cfg_s& asn1_type,
+                                                   dl_harq_cfg_nr_t*                             out_dl_harq_cfg_nr);
 /***************************
  *      RLC Config
  **************************/

@@ -1140,6 +1140,23 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
       logger.warning("Option ul_cfg not present");
       return false;
     }
+
+    if (sp_cell_cfg.sp_cell_cfg_ded.pdsch_serving_cell_cfg_present) {
+      if (sp_cell_cfg.sp_cell_cfg_ded.pdsch_serving_cell_cfg.type() ==
+          setup_release_c<asn1::rrc_nr::pdsch_serving_cell_cfg_s>::types_opts::setup) {
+        dl_harq_cfg_nr_t dl_harq_cfg_nr;
+        if (make_mac_dl_harq_cfg_nr_t(sp_cell_cfg.sp_cell_cfg_ded.pdsch_serving_cell_cfg.setup(), &dl_harq_cfg_nr) ==
+            false) {
+          logger.warning("Failed to make dl_harq_cfg_nr config");
+          return false;
+        }
+        mac->set_config(dl_harq_cfg_nr);
+      }
+    } else {
+      logger.warning("Option pdsch_serving_cell_cfg not present");
+      return false;
+    }
+
     if (sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg_present) {
       if (sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.type() == setup_release_c<csi_meas_cfg_s>::types_opts::setup) {
         if (apply_csi_meas_cfg(sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup()) == false) {

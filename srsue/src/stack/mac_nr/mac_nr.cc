@@ -75,14 +75,6 @@ int mac_nr::init(const mac_nr_args_t&  args_,
     return SRSRAN_ERROR;
   }
 
-  // Set default config until RRC
-  dl_harq_cfg_nr_t harq_cfg = {};
-  harq_cfg.reset();
-  if (dl_harq.at(PCELL_CC_IDX)->set_config(harq_cfg) != SRSRAN_SUCCESS) {
-    logger.error("Couldn't configure DL HARQ entity.");
-    return SRSRAN_ERROR;
-  }
-
   started = true;
 
   return SRSRAN_SUCCESS;
@@ -409,6 +401,19 @@ int mac_nr::remove_tag_config(const uint32_t tag_id)
 int mac_nr::set_config(const srsran::phr_cfg_nr_t& phr_cfg)
 {
   logger.warning("Add phr config not supported yet");
+  return SRSRAN_SUCCESS;
+}
+
+int mac_nr::set_config(const srsran::dl_harq_cfg_nr_t& dl_hrq_cfg)
+{
+  for (const auto& cc : dl_harq) {
+    if (cc != nullptr) {
+      if (cc->set_config(dl_hrq_cfg) != SRSRAN_SUCCESS) {
+        logger.error("Couldn't configure DL HARQ entity.");
+        return SRSRAN_ERROR;
+      }
+    }
+  }
   return SRSRAN_SUCCESS;
 }
 

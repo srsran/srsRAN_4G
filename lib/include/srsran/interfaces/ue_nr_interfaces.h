@@ -149,6 +149,7 @@ public:
   virtual int  setup_lcid(const srsran::logical_channel_config_t& config) = 0;
   virtual int  set_config(const srsran::bsr_cfg_nr_t& bsr_cfg)            = 0;
   virtual int  set_config(const srsran::sr_cfg_nr_t& sr_cfg)              = 0;
+  virtual int  set_config(const srsran::dl_harq_cfg_nr_t& dl_hrq_cfg)     = 0;
   virtual void set_config(const srsran::rach_nr_cfg_t& rach_cfg)          = 0;
   virtual int  add_tag_config(const srsran::tag_cfg_nr_t& tag_cfg)        = 0;
   virtual int  set_config(const srsran::phr_cfg_nr_t& phr_cfg)            = 0;

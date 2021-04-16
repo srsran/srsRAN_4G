@@ -66,6 +66,19 @@ logical_channel_config_t make_mac_logical_channel_cfg_t(uint8_t lcid, const lc_c
   return logical_channel_config;
 }
 
+bool make_mac_dl_harq_cfg_nr_t(const pdsch_serving_cell_cfg_s& asn1_type, dl_harq_cfg_nr_t* out_dl_harq_cfg_nr)
+{
+  dl_harq_cfg_nr_t dl_harq_cfg_nr;
+  if (asn1_type.nrof_harq_processes_for_pdsch_present) {
+    dl_harq_cfg_nr.nof_procs = asn1_type.nrof_harq_processes_for_pdsch;
+  } else {
+    asn1::log_warning("Option nrof_harq_processes_for_pdsch not present");
+    return false;
+  }
+  *out_dl_harq_cfg_nr = dl_harq_cfg_nr;
+  return true;
+}
+
 bool make_mac_phr_cfg_t(const phr_cfg_s& asn1_type, phr_cfg_nr_t* phr_cfg_nr)
 {
   phr_cfg_nr->extended             = asn1_type.ext;
