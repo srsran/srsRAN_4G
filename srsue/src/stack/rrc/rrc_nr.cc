@@ -704,7 +704,7 @@ bool rrc_nr::apply_csi_meas_cfg(const asn1::rrc_nr::csi_meas_cfg_s& csi_meas_cfg
           logger.warning("Can not find p_zp_csi_rs_res in temporally stored csi_rs_zp_res");
           return false;
         }
-        phy_cfg.pdsch.nzp_csi_rs_sets[set_id].data[i] = csi_rs_nzp_res[res];
+        phy_cfg.pdsch.nzp_csi_rs_sets[set_id].data[j] = csi_rs_nzp_res[res];
         phy_cfg.pdsch.nzp_csi_rs_sets[set_id].count += 1;
       }
       if (csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list[i].trs_info_present) {
