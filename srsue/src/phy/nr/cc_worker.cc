@@ -226,18 +226,11 @@ bool cc_worker::work_dl()
   srsran_sch_cfg_nr_t            pdsch_cfg    = {};
   srsran_pdsch_ack_resource_nr_t ack_resource = {};
   if (phy->get_dl_pending_grant(dl_slot_cfg.idx, pdsch_cfg, ack_resource, pid)) {
-    // As HARQ processes are not implemented nor LDPC early-stop, retransmissions are disabled for performance reasons
-    if (pdsch_cfg.grant.tb[0].rv != 0) {
-      phy->set_pending_ack(dl_slot_cfg.idx, ack_resource, true);
-      logger.warning("PDSCH Retransmission with rv=%d not supported", pdsch_cfg.grant.tb[0].rv);
-      return true;
-    }
-
     // Notify MAC about PDSCH grant
     mac_interface_phy_nr::tb_action_dl_t    dl_action    = {};
     mac_interface_phy_nr::mac_nr_grant_dl_t mac_dl_grant = {};
     mac_dl_grant.rnti                                    = pdsch_cfg.grant.rnti;
-    mac_dl_grant.pid                                     = pdsch_cfg.grant.tb[0].pid;
+    mac_dl_grant.pid                                     = pid;
     mac_dl_grant.rv                                      = pdsch_cfg.grant.tb[0].rv;
     mac_dl_grant.ndi                                     = pdsch_cfg.grant.tb[0].ndi;
     mac_dl_grant.tbs                                     = pdsch_cfg.grant.tb[0].tbs / 8;
@@ -274,7 +267,7 @@ bool cc_worker::work_dl()
       str_info_t str;
       srsran_ue_dl_nr_pdsch_info(&ue_dl, &pdsch_cfg, &pdsch_res, str.data(), (uint32_t)str.size());
 
-      if (logger.info.enabled()) {
+      if (logger.debug.enabled()) {
         str_extra_t str_extra;
         srsran_sch_cfg_nr_info(&pdsch_cfg, str_extra.data(), (uint32_t)str_extra.size());
         logger.info(pdsch_res.tb[0].payload,
