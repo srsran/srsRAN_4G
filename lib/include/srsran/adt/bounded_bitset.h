@@ -26,6 +26,31 @@ constexpr uint32_t ceil_div(uint32_t x, uint32_t y)
   return (x + y - 1) / y;
 }
 
+template <typename Integer>
+Integer mask_trailing_ones(size_t N)
+{
+  static_assert(std::is_unsigned<Integer>::value, "T must be unsigned integer");
+  return N == 0 ? 0 : (static_cast<Integer>(-1) >> (sizeof(Integer) * 8U - N));
+}
+
+template <typename Integer>
+Integer mask_leading_ones(size_t N)
+{
+  return ~mask_trailing_ones<Integer>(8U * sizeof(Integer) - N);
+}
+
+template <typename Integer>
+Integer mask_trailing_zeros(size_t N)
+{
+  return mask_leading_ones<Integer>(8U * sizeof(Integer) - N);
+}
+
+template <typename Integer>
+Integer mask_leading_zeros(size_t N)
+{
+  return mask_trailing_ones<Integer>(8U * sizeof(Integer) - N);
+}
+
 template <size_t N, bool reversed = false>
 class bounded_bitset
 {
@@ -100,8 +125,7 @@ public:
 
   bounded_bitset<N, reversed>& fill(size_t startpos, size_t endpos, bool value = true)
   {
-    assert_within_bounds_(startpos, false);
-    assert_within_bounds_(endpos, false);
+    assert_range_bounds_(startpos, endpos);
     // NOTE: can be optimized
     if (value) {
       for (size_t i = startpos; i < endpos; ++i) {
@@ -113,6 +137,37 @@ public:
       }
     }
     return *this;
+  }
+
+  int find_first(size_t startpos, size_t endpos, bool value = true) const noexcept
+  {
+    assert_range_bounds_(startpos, endpos);
+    if (startpos == endpos) {
+      return -1;
+    }
+
+    size_t startword = startpos / bits_per_word;
+    size_t lastword  = (endpos - 1) / bits_per_word;
+
+    for (size_t i = startword; i <= lastword; ++i) {
+      word_t w = buffer[i];
+      if (not value) {
+        w = ~w;
+      }
+
+      if (i == startword) {
+        size_t offset = startpos % bits_per_word;
+        w &= mask_trailing_zeros<word_t>(offset);
+      }
+      if (i == lastword) {
+        size_t offset = (endpos - 1) % bits_per_word;
+        w &= mask_trailing_ones<word_t>(offset + 1);
+      }
+      if (w != 0) {
+        return static_cast<int>(i * bits_per_word + (bits_per_word - __builtin_clzl(w) - 1));
+      }
+    }
+    return -1;
   }
 
   bool all() const noexcept
@@ -304,6 +359,15 @@ private:
     srsran_assert(pos < size() or (not strict and pos == size()),
                   "ERROR: index=%zd is out-of-bounds for bitset of size=%zd",
                   pos,
+                  size());
+  }
+
+  void assert_range_bounds_(size_t startpos, size_t endpos) const
+  {
+    srsran_assert(startpos <= endpos and endpos <= size(),
+                  "ERROR: range [%zd, %zd) out-of-bounds for bitsize of size=%zd",
+                  startpos,
+                  endpos,
                   size());
   }
 

@@ -13,6 +13,14 @@
 #include "srsran/adt/bounded_bitset.h"
 #include "srsran/common/test_common.h"
 
+void test_bit_operations()
+{
+  TESTASSERT(0 == srsran::mask_trailing_ones<uint32_t>(0));
+  TESTASSERT(0b11 == srsran::mask_trailing_ones<uint32_t>(2));
+  TESTASSERT(0b11111111 == srsran::mask_trailing_ones<uint8_t>(8));
+  TESTASSERT(0b1111 == srsran::mask_trailing_ones<uint8_t>(4));
+}
+
 int test_zero_bitset()
 {
   srsran::bounded_bitset<25> mask;
@@ -176,14 +184,34 @@ int test_bitset_resize()
   return SRSRAN_SUCCESS;
 }
 
+void test_bitset_find()
+{
+  {
+    srsran::bounded_bitset<25> bitset(6);
+    bitset.set(2);
+    TESTASSERT(bitset.find_first(0, 6) == 2);
+    TESTASSERT(bitset.find_first(3, 6) == -1);
+    bitset.set(5);
+    TESTASSERT(bitset.find_first(3, 6) == 5);
+  }
+  {
+    srsran::bounded_bitset<100> bitset(95);
+    bitset.set(94);
+    TESTASSERT(bitset.find_first(0, 93) == -1);
+    TESTASSERT(bitset.find_first(0, bitset.size()) == 94);
+  }
+}
+
 int main()
 {
+  test_bit_operations();
   TESTASSERT(test_zero_bitset() == SRSRAN_SUCCESS);
   TESTASSERT(test_ones_bitset() == SRSRAN_SUCCESS);
   TESTASSERT(test_bitset_set() == SRSRAN_SUCCESS);
   TESTASSERT(test_bitset_bitwise_oper() == SRSRAN_SUCCESS);
   TESTASSERT(test_bitset_print() == SRSRAN_SUCCESS);
   TESTASSERT(test_bitset_resize() == SRSRAN_SUCCESS);
+  test_bitset_find();
   printf("Success\n");
   return 0;
 }
