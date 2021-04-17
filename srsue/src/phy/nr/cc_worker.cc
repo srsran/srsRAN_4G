@@ -281,7 +281,6 @@ bool cc_worker::work_dl()
         logger.info(pdsch_res.tb[0].payload,
                     pdsch_cfg.grant.tb[0].tbs / 8,
                     "PDSCH: cc=%d pid=%d %s",
-                    pid,
                     cc_idx,
                     pid,
                     str.data());
