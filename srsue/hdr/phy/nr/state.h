@@ -148,8 +148,9 @@ public:
       return false;
     }
 
-    // Load shared channel configuration
+    // Load shared channel configuration and PID
     pusch_cfg = pending_grant.sch_cfg;
+    pid       = pending_grant.pid;
 
     // Reset entry
     pending_grant.enable = false;
