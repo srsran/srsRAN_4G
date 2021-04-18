@@ -92,7 +92,7 @@ private:
 
   uint32_t                                   count = 0;
   uint32_t                                   bytes = 0;
-  uint32_t                                   fms   = 0;
+  uint32_t                                   fms   = 0; // SN of the first missing PDCP SDU
   uint32_t                                   lms   = 0;
   srsran::circular_array<sdu_data, capacity> sdus;
 };

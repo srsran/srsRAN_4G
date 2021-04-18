@@ -22,6 +22,7 @@
 #include "sched_test_common.h"
 #include "srsenb/hdr/stack/mac/sched.h"
 #include "srsran/adt/accumulators.h"
+#include "srsran/common/lte_common.h"
 #include <chrono>
 
 namespace srsenb {
@@ -35,7 +36,7 @@ struct run_params {
 };
 
 struct run_params_range {
-  std::vector<uint32_t>    nof_prbs     = {6, 15, 25, 50, 75, 100};
+  std::vector<uint32_t>    nof_prbs{srsran::lte_cell_nof_prbs.begin(), srsran::lte_cell_nof_prbs.end()};
   std::vector<uint32_t>    nof_ues      = {1, 2, 5};
   uint32_t                 nof_ttis     = 10000;
   std::vector<uint32_t>    cqi          = {5, 10, 15};

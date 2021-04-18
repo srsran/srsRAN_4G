@@ -801,91 +801,64 @@ void phy_common::update_measurements(uint32_t                 cc_idx,
 void phy_common::set_dl_metrics(uint32_t cc_idx, const dl_metrics_t& m)
 {
   std::unique_lock<std::mutex> lock(metrics_mutex);
-
-  dl_metrics_count[cc_idx]++;
-  dl_metrics[cc_idx].mcs = dl_metrics[cc_idx].mcs + (m.mcs - dl_metrics[cc_idx].mcs) / dl_metrics_count[cc_idx];
-  dl_metrics[cc_idx].turbo_iters =
-      dl_metrics[cc_idx].turbo_iters + (m.turbo_iters - dl_metrics[cc_idx].turbo_iters) / dl_metrics_count[cc_idx];
+  dl_metrics[cc_idx].set(m);
 }
 
-void phy_common::get_dl_metrics(dl_metrics_t m[SRSRAN_MAX_CARRIERS])
+void phy_common::get_dl_metrics(dl_metrics_t::array_t& m)
 {
   std::unique_lock<std::mutex> lock(metrics_mutex);
 
   for (uint32_t i = 0; i < args->nof_lte_carriers; i++) {
-    m[i]                = dl_metrics[i];
-    dl_metrics[i]       = {};
-    dl_metrics_count[i] = 0;
+    m[i] = dl_metrics[i];
+    dl_metrics[i].reset();
   }
 }
 
 void phy_common::set_ch_metrics(uint32_t cc_idx, const ch_metrics_t& m)
 {
   std::unique_lock<std::mutex> lock(metrics_mutex);
-
-  ch_metrics_count[cc_idx]++;
-  ch_metrics[cc_idx].n    = ch_metrics[cc_idx].n + (m.n - ch_metrics[cc_idx].n) / ch_metrics_count[cc_idx];
-  ch_metrics[cc_idx].rsrq = ch_metrics[cc_idx].rsrq + (m.rsrq - ch_metrics[cc_idx].rsrq) / ch_metrics_count[cc_idx];
-  ch_metrics[cc_idx].rssi = ch_metrics[cc_idx].rssi + (m.rssi - ch_metrics[cc_idx].rssi) / ch_metrics_count[cc_idx];
-  ch_metrics[cc_idx].rsrp = ch_metrics[cc_idx].rsrp + (m.rsrp - ch_metrics[cc_idx].rsrp) / ch_metrics_count[cc_idx];
-  ch_metrics[cc_idx].sinr = ch_metrics[cc_idx].sinr + (m.sinr - ch_metrics[cc_idx].sinr) / ch_metrics_count[cc_idx];
-  ch_metrics[cc_idx].sync_err =
-      ch_metrics[cc_idx].sync_err + (m.sync_err - ch_metrics[cc_idx].sync_err) / ch_metrics_count[cc_idx];
-  ch_metrics[cc_idx].pathloss =
-      ch_metrics[cc_idx].pathloss + (m.pathloss - ch_metrics[cc_idx].pathloss) / ch_metrics_count[cc_idx];
+  ch_metrics[cc_idx].set(m);
 }
 
-void phy_common::get_ch_metrics(ch_metrics_t m[SRSRAN_MAX_CARRIERS])
+void phy_common::get_ch_metrics(ch_metrics_t::array_t& m)
 {
   std::unique_lock<std::mutex> lock(metrics_mutex);
 
   for (uint32_t i = 0; i < args->nof_lte_carriers; i++) {
-    m[i]                = ch_metrics[i];
-    ch_metrics[i]       = {};
-    ch_metrics_count[i] = 0;
+    m[i] = ch_metrics[i];
+    ch_metrics[i].reset();
   }
 }
 
 void phy_common::set_ul_metrics(uint32_t cc_idx, const ul_metrics_t& m)
 {
   std::unique_lock<std::mutex> lock(metrics_mutex);
-
-  ul_metrics_count[cc_idx]++;
-  ul_metrics[cc_idx].mcs   = ul_metrics[cc_idx].mcs + (m.mcs - ul_metrics[cc_idx].mcs) / ul_metrics_count[cc_idx];
-  ul_metrics[cc_idx].power = ul_metrics[cc_idx].power + (m.power - ul_metrics[cc_idx].power) / ul_metrics_count[cc_idx];
+  ul_metrics[cc_idx].set(m);
 }
 
-void phy_common::get_ul_metrics(ul_metrics_t m[SRSRAN_MAX_CARRIERS])
+void phy_common::get_ul_metrics(ul_metrics_t::array_t& m)
 {
   std::unique_lock<std::mutex> lock(metrics_mutex);
 
   for (uint32_t i = 0; i < args->nof_lte_carriers; i++) {
-    m[i]                = ul_metrics[i];
-    ul_metrics[i]       = {};
-    ul_metrics_count[i] = 0;
+    m[i] = ul_metrics[i];
+    ul_metrics[i].reset();
   }
 }
 
 void phy_common::set_sync_metrics(const uint32_t& cc_idx, const sync_metrics_t& m)
 {
   std::unique_lock<std::mutex> lock(metrics_mutex);
-
-  sync_metrics_count[cc_idx]++;
-  sync_metrics[cc_idx].cfo = sync_metrics[cc_idx].cfo + (m.cfo - sync_metrics[cc_idx].cfo) / sync_metrics_count[cc_idx];
-  sync_metrics[cc_idx].sfo = sync_metrics[cc_idx].sfo + (m.sfo - sync_metrics[cc_idx].sfo) / sync_metrics_count[cc_idx];
-  sync_metrics[cc_idx].ta_us = m.ta_us;
-  sync_metrics[cc_idx].distance_km = m.distance_km;
-  sync_metrics[cc_idx].speed_kmph  = m.speed_kmph;
+  sync_metrics[cc_idx].set(m);
 }
 
-void phy_common::get_sync_metrics(sync_metrics_t m[SRSRAN_MAX_CARRIERS])
+void phy_common::get_sync_metrics(sync_metrics_t::array_t& m)
 {
   std::unique_lock<std::mutex> lock(metrics_mutex);
 
   for (uint32_t i = 0; i < args->nof_lte_carriers; i++) {
-    m[i]                  = sync_metrics[i];
-    sync_metrics[i]       = {};
-    sync_metrics_count[i] = 0;
+    m[i] = sync_metrics[i];
+    sync_metrics[i].reset();
   }
 }
 

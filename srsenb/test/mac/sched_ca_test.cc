@@ -22,6 +22,7 @@
 #include "sched_test_common.h"
 #include "sched_test_utils.h"
 #include "srsenb/hdr/stack/mac/sched.h"
+#include "srsran/common/lte_common.h"
 #include "srsran/mac/pdu.h"
 
 using namespace srsenb;
@@ -88,10 +89,8 @@ struct test_scell_activation_params {
 
 int test_scell_activation(uint32_t sim_number, test_scell_activation_params params)
 {
-  std::array<uint32_t, 6> prb_list{6, 15, 25, 50, 75, 100};
-
   /* Simulation Configuration Arguments */
-  uint32_t nof_prb   = prb_list[std::uniform_int_distribution<uint32_t>{0, 5}(get_rand_gen())];
+  uint32_t nof_prb   = srsran::lte_cell_nof_prbs[std::uniform_int_distribution<uint32_t>{0, 5}(get_rand_gen())];
   uint32_t nof_ccs   = 2;
   uint32_t start_tti = 0; // rand_int(0, 10240);
 

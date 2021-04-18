@@ -482,7 +482,7 @@ int cc_worker::decode_pdsch(srsran_pdsch_ack_resource_t            ack_resource,
     } else {
       dl_metrics.mcs = (ue_dl_cfg.cfg.pdsch.grant.tb[0].mcs_idx + ue_dl_cfg.cfg.pdsch.grant.tb[1].mcs_idx) / 2;
     }
-    dl_metrics.turbo_iters = pdsch_dec->avg_iterations_block / 2;
+    dl_metrics.fec_iters = pdsch_dec->avg_iterations_block / 2;
     phy->set_dl_metrics(cc_idx, dl_metrics);
 
     // Logging
@@ -516,7 +516,7 @@ int cc_worker::decode_pmch(mac_interface_phy_lte::tb_action_dl_t* action, srsran
     // Metrics
     dl_metrics_t dl_metrics = {};
     dl_metrics.mcs          = ue_dl_cfg.cfg.pdsch.grant.tb[0].mcs_idx;
-    dl_metrics.turbo_iters  = pmch_dec.avg_iterations_block / 2;
+    dl_metrics.fec_iters    = pmch_dec.avg_iterations_block / 2;
     phy->set_dl_metrics(cc_idx, dl_metrics);
 
     Info("PMCH: l_crb=%2d, tbs=%d, mcs=%d, crc=%s, snr=%.1f dB, n_iter=%.1f",

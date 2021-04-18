@@ -129,6 +129,21 @@ extern "C" {
  */
 #define SRSRAN_MAX_NOF_DL_DATA_TO_UL 8
 
+/**
+ * @brief Maximum number of HARQ processes in the DL, signaled through RRC (PDSCH-ServingCellConfig)
+ */
+#define SRSRAN_MAX_HARQ_PROC_DL_NR 16 // 3GPP TS 38.214 version 15.3.0 Sec. 5.1 or nrofHARQ-ProcessesForPDSCH
+
+/**
+ * @brief Default number of HARQ processes in the DL, if config is absent.
+ */
+#define SRSRAN_DEFAULT_HARQ_PROC_DL_NR 8
+
+/**
+ * @brief Maximum number of HARQ processes in the UL, signaled through RRC (ConfiguredGrantConfig)
+ */
+#define SRSRAN_MAX_HARQ_PROC_UL_NR 16 // 3GPP TS 38.214 version 15.3.0 Sec. 6.1
+
 typedef enum SRSRAN_API {
   srsran_coreset_mapping_type_non_interleaved = 0,
   srsran_coreset_mapping_type_interleaved,

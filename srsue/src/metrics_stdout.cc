@@ -119,7 +119,7 @@ void metrics_stdout::set_metrics_helper(const phy_metrics_t phy,
 
   cout << float_to_string(phy.dl[r].mcs, 2);
   cout << float_to_string(phy.ch[r].sinr, 2);
-  cout << float_to_string(phy.dl[r].turbo_iters, 2);
+  cout << float_to_string(phy.dl[r].fec_iters, 2);
 
   cout << float_to_eng_string((float)mac[r].rx_brate / (mac[r].nof_tti * 1e-3), 2);
   if (mac[r].rx_pkts > 0) {
@@ -185,7 +185,7 @@ void metrics_stdout::set_metrics(const ue_metrics_t& metrics, const uint32_t per
 
   for (uint32_t r = 0; r < metrics.phy_nr.nof_active_cc; r++) {
     // Assumption LTE is followed by the NR carriers.
-    cout << std::setw(2) << metrics.phy.nof_active_cc + r;
+    cout << std::setw(2) << metrics.phy_nr.nof_active_cc + r;
     set_metrics_helper(metrics.phy_nr, metrics.stack.mac_nr, metrics.stack.rrc, display_neighbours, r);
   }
 

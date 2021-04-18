@@ -187,7 +187,7 @@ static cf_t zero_mem[64 * 1024] = {};
 
 #define print_usrp_error(h)                                                                                            \
   do {                                                                                                                 \
-    ERROR("USRP reported the following error: %s", h->uhd->last_error.c_str());                                      \
+    ERROR("USRP reported the following error: %s", h->uhd->last_error.c_str());                                        \
   } while (false)
 
 static void log_overflow(rf_uhd_handler_t* h)
@@ -612,6 +612,12 @@ static int uhd_init(rf_uhd_handler_t* handler, char* args, uint32_t nof_channels
     clock_src = device_addr.pop("clock");
   }
 
+  // Select same synchronization source only if more than one channel is opened
+  std::string sync_src = "internal";
+  if (nof_channels > 1) {
+    sync_src = clock_src;
+  }
+
   // Logging level
 #ifdef UHD_LOG_INFO
   uhd::log::severity_level severity_level = uhd::log::severity_level::info;
@@ -788,7 +794,7 @@ static int uhd_init(rf_uhd_handler_t* handler, char* args, uint32_t nof_channels
   std::string sensor_name;
 
   // Set sync source
-  if (handler->uhd->set_sync_source(clock_src) != UHD_ERROR_NONE) {
+  if (handler->uhd->set_sync_source(sync_src, clock_src) != UHD_ERROR_NONE) {
     print_usrp_error(handler);
     return SRSRAN_ERROR;
   }

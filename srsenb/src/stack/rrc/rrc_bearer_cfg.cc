@@ -156,8 +156,6 @@ bool security_cfg_handler::set_security_capabilities(const asn1::s1ap::ue_securi
   }
 
   if (not integ_algo_found || not enc_algo_found) {
-    // TODO: if no security algorithm found abort radio connection and issue
-    // encryption-and-or-integrity-protection-algorithms-not-supported message
     logger.error("Did not find a matching integrity or encryption algorithm with the UE");
     return false;
   }
@@ -217,10 +215,12 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
                                  const asn1::s1ap::erab_level_qos_params_s&         qos,
                                  const asn1::bounded_bitstring<1, 160, true, true>& addr,
                                  uint32_t                                           teid_out,
-                                 const asn1::unbounded_octstring<true>*             nas_pdu)
+                                 srsran::const_span<uint8_t>                        nas_pdu,
+                                 asn1::s1ap::cause_c&                               cause)
 {
   if (erab_id < 5) {
     logger->error("ERAB id=%d is invalid", erab_id);
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::unknown_erab_id;
     return SRSRAN_ERROR;
   }
   uint8_t lcid  = erab_id - 2; // Map e.g. E-RAB 5 to LCID 3 (==DRB1)
@@ -229,10 +229,12 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
   auto qci_it = cfg->qci_cfg.find(qos.qci);
   if (qci_it == cfg->qci_cfg.end() or not qci_it->second.configured) {
     logger->error("QCI=%d not configured", qos.qci);
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::not_supported_qci_value;
     return SRSRAN_ERROR;
   }
-  if (lcid < 3 or lcid > 10) {
-    logger->error("DRB logical channel ids must be within 3 and 10");
+  if (not srsran::is_lte_drb(lcid)) {
+    logger->error("E-RAB=%d logical channel id=%d is invalid", erab_id, lcid);
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::unknown_erab_id;
     return SRSRAN_ERROR;
   }
   const rrc_cfg_qci_t& qci_cfg = qci_it->second;
@@ -244,11 +246,37 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
 
   if (addr.length() > 32) {
     logger->error("Only addresses with length <= 32 are supported");
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::invalid_qos_combination;
+    return SRSRAN_ERROR;
+  }
+  if (qos.gbr_qos_info_present and not qci_cfg.configured) {
+    logger->warning("Provided E-RAB id=%d QoS not supported", erab_id);
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::invalid_qos_combination;
+    return SRSRAN_ERROR;
+  }
+  if (qos.gbr_qos_info_present) {
+    uint64_t req_bitrate =
+        std::max(qos.gbr_qos_info.erab_guaranteed_bitrate_dl, qos.gbr_qos_info.erab_guaranteed_bitrate_ul);
+    int16_t  pbr_kbps = qci_cfg.lc_cfg.prioritised_bit_rate.to_number();
+    uint64_t pbr      = pbr_kbps < 0 ? std::numeric_limits<uint64_t>::max() : pbr_kbps * 1000u;
+    if (req_bitrate > pbr) {
+      logger->warning("Provided E-RAB id=%d QoS not supported (guaranteed bitrates)", erab_id);
+      cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::invalid_qos_combination;
+      return SRSRAN_ERROR;
+    }
+  }
+  if (qos.alloc_retention_prio.pre_emption_cap.value == asn1::s1ap::pre_emption_cap_opts::may_trigger_pre_emption and
+      qos.alloc_retention_prio.prio_level < qci_cfg.lc_cfg.prio) {
+    logger->warning("Provided E-RAB id=%d QoS not supported (priority %d < %d)",
+                    erab_id,
+                    qos.alloc_retention_prio.prio_level,
+                    qci_cfg.lc_cfg.prio);
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::invalid_qos_combination;
     return SRSRAN_ERROR;
   }
 
-  if (nas_pdu != nullptr and nas_pdu->size() > 0) {
-    erab_info_list[erab_id].assign(nas_pdu->data(), nas_pdu->data() + nas_pdu->size());
+  if (not nas_pdu.empty()) {
+    erab_info_list[erab_id].assign(nas_pdu.begin(), nas_pdu.end());
     logger->info(
         &erab_info_list[erab_id][0], erab_info_list[erab_id].size(), "setup_erab nas_pdu -> erab_info rnti 0x%x", rnti);
   }
@@ -271,12 +299,12 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
   return SRSRAN_SUCCESS;
 }
 
-bool bearer_cfg_handler::release_erab(uint8_t erab_id)
+int bearer_cfg_handler::release_erab(uint8_t erab_id)
 {
   auto it = erabs.find(erab_id);
   if (it == erabs.end()) {
     logger->warning("The user rnti=0x%x does not contain ERAB-ID=%d", rnti, erab_id);
-    return false;
+    return SRSRAN_ERROR;
   }
 
   uint8_t drb_id = erab_id - 4;
@@ -286,7 +314,7 @@ bool bearer_cfg_handler::release_erab(uint8_t erab_id)
   erabs.erase(it);
   erab_info_list.erase(erab_id);
 
-  return true;
+  return SRSRAN_SUCCESS;
 }
 
 void bearer_cfg_handler::release_erabs()
@@ -298,24 +326,25 @@ void bearer_cfg_handler::release_erabs()
   }
 }
 
-bool bearer_cfg_handler::modify_erab(uint8_t                                    erab_id,
-                                     const asn1::s1ap::erab_level_qos_params_s& qos,
-                                     const asn1::unbounded_octstring<true>*     nas_pdu)
+int bearer_cfg_handler::modify_erab(uint8_t                                    erab_id,
+                                    const asn1::s1ap::erab_level_qos_params_s& qos,
+                                    srsran::const_span<uint8_t>                nas_pdu,
+                                    asn1::s1ap::cause_c&                       cause)
 {
   logger->info("Modifying E-RAB %d", erab_id);
   std::map<uint8_t, erab_t>::iterator erab_it = erabs.find(erab_id);
   if (erab_it == erabs.end()) {
     logger->error("Could not find E-RAB to modify");
-    return false;
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::unknown_erab_id;
+    return SRSRAN_ERROR;
   }
   auto     address  = erab_it->second.address;
   uint32_t teid_out = erab_it->second.teid_out;
   release_erab(erab_id);
-  add_erab(erab_id, qos, address, teid_out, nas_pdu);
-  return true;
+  return add_erab(erab_id, qos, address, teid_out, nas_pdu, cause);
 }
 
-void bearer_cfg_handler::add_gtpu_bearer(uint32_t erab_id)
+int bearer_cfg_handler::add_gtpu_bearer(uint32_t erab_id)
 {
   auto it = erabs.find(erab_id);
   if (it != erabs.end()) {
@@ -323,10 +352,11 @@ void bearer_cfg_handler::add_gtpu_bearer(uint32_t erab_id)
         add_gtpu_bearer(erab_id, it->second.teid_out, it->second.address.to_number(), nullptr);
     if (teidin.has_value()) {
       it->second.teid_in = teidin.value();
-      return;
+      return SRSRAN_SUCCESS;
     }
   }
   logger->error("Adding erab_id=%d to GTPU", erab_id);
+  return SRSRAN_ERROR;
 }
 
 srsran::expected<uint32_t> bearer_cfg_handler::add_gtpu_bearer(uint32_t                                erab_id,

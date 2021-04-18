@@ -97,14 +97,32 @@ int test_erab_setup(srsran::log_sink_spy& spy, bool qci_exists)
   asn1::cbit_ref bref(byte_buf.msg, byte_buf.N_bytes);
 
   TESTASSERT(s1ap_pdu.unpack(bref) == asn1::SRSASN_SUCCESS);
-  rrc.setup_ue_erabs(rnti, s1ap_pdu.init_msg().value.erab_setup_request());
+  const auto& setupmsg = s1ap_pdu.init_msg().value.erab_setup_request().protocol_ies;
+  if (setupmsg.ueaggregate_maximum_bitrate_present) {
+    rrc.set_aggregate_max_bitrate(rnti, setupmsg.ueaggregate_maximum_bitrate.value);
+  }
+  for (const auto& item : setupmsg.erab_to_be_setup_list_bearer_su_req.value) {
+    const auto&         erab = item.value.erab_to_be_setup_item_bearer_su_req();
+    asn1::s1ap::cause_c cause;
+    int                 ret = rrc.setup_erab(rnti,
+                             erab.erab_id,
+                             erab.erab_level_qos_params,
+                             erab.nas_pdu,
+                             erab.transport_layer_address,
+                             erab.gtp_teid.to_number(),
+                             cause);
+    if (qci_exists) {
+      TESTASSERT(ret == SRSRAN_SUCCESS);
+      TESTASSERT(rrc.has_erab(rnti, erab.erab_id));
+    } else {
+      TESTASSERT(ret != SRSRAN_SUCCESS);
+      TESTASSERT(not rrc.has_erab(rnti, erab.erab_id));
+    }
+  }
 
   if (qci_exists) {
-    // NOTE: It does not add DRB1/ERAB-ID=5 bc that bearer already existed
-    TESTASSERT(s1ap.added_erab_ids.size() == 1);
     TESTASSERT(spy.get_error_counter() == 0);
   } else {
-    TESTASSERT(s1ap.added_erab_ids.empty());
     TESTASSERT(spy.get_error_counter() > 0);
   }
 

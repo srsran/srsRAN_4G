@@ -43,6 +43,8 @@ ue_stack_lte::ue_stack_lte() :
   rrc_logger(srslog::fetch_basic_logger("RRC", false)),
   usim_logger(srslog::fetch_basic_logger("USIM", false)),
   nas_logger(srslog::fetch_basic_logger("NAS", false)),
+  mac_nr_logger(srslog::fetch_basic_logger("MAC-NR", false)),
+  rrc_nr_logger(srslog::fetch_basic_logger("RRC-NR", false)),
   mac_pcap(),
   mac_nr_pcap(),
   usim(nullptr),
@@ -122,6 +124,11 @@ int ue_stack_lte::init(const stack_args_t& args_)
   nas_logger.set_level(srslog::str_to_basic_level(args.log.nas_level));
   nas_logger.set_hex_dump_max_size(args.log.nas_hex_limit);
 
+  mac_nr_logger.set_level(srslog::str_to_basic_level(args.log.mac_level));
+  mac_nr_logger.set_hex_dump_max_size(args.log.mac_hex_limit);
+  rrc_nr_logger.set_level(srslog::str_to_basic_level(args.log.rrc_level));
+  rrc_nr_logger.set_hex_dump_max_size(args.log.rrc_hex_limit);
+  
   // Set up pcap
   // parse pcap trace list
   std::vector<std::string> pcap_list;

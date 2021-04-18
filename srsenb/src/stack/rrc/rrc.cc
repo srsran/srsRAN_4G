@@ -99,7 +99,7 @@ void rrc::stop()
 {
   if (running) {
     running   = false;
-    rrc_pdu p = {0, LCID_EXIT, nullptr};
+    rrc_pdu p = {0, LCID_EXIT, false, nullptr};
     rx_pdu_queue.push_blocking(std::move(p));
   }
   users.clear();
@@ -135,14 +135,29 @@ uint8_t* rrc::read_pdu_bcch_dlsch(const uint8_t cc_idx, const uint32_t sib_index
   return nullptr;
 }
 
-void rrc::set_activity_user(uint16_t rnti, bool ack_info)
+void rrc::set_radiolink_dl_state(uint16_t rnti, bool crc_res)
 {
-  rrc_pdu p;
-  if (ack_info) {
-    p = {rnti, LCID_ACT_USER, nullptr};
-  } else {
-    p = {rnti, LCID_MAC_KO_USER, nullptr};
+  // embed parameters in arg value
+  rrc_pdu p = {rnti, LCID_RADLINK_DL, crc_res, nullptr};
+
+  if (not rx_pdu_queue.try_push(std::move(p))) {
+    logger.error("Failed to push UE activity command to RRC queue");
   }
+}
+
+void rrc::set_radiolink_ul_state(uint16_t rnti, bool crc_res)
+{
+  // embed parameters in arg value
+  rrc_pdu p = {rnti, LCID_RADLINK_UL, crc_res, nullptr};
+
+  if (not rx_pdu_queue.try_push(std::move(p))) {
+    logger.error("Failed to push UE activity command to RRC queue");
+  }
+}
+
+void rrc::set_activity_user(uint16_t rnti)
+{
+  rrc_pdu p = {rnti, LCID_ACT_USER, false, nullptr};
 
   if (not rx_pdu_queue.try_push(std::move(p))) {
     logger.error("Failed to push UE activity command to RRC queue");
@@ -151,7 +166,7 @@ void rrc::set_activity_user(uint16_t rnti, bool ack_info)
 
 void rrc::rem_user_thread(uint16_t rnti)
 {
-  rrc_pdu p = {rnti, LCID_REM_USER, nullptr};
+  rrc_pdu p = {rnti, LCID_REM_USER, false, nullptr};
   if (not rx_pdu_queue.try_push(std::move(p))) {
     logger.error("Failed to push UE remove command to RRC queue");
   }
@@ -164,7 +179,7 @@ uint32_t rrc::get_nof_users()
 
 void rrc::max_retx_attempted(uint16_t rnti)
 {
-  rrc_pdu p = {rnti, LCID_RTX_USER, nullptr};
+  rrc_pdu p = {rnti, LCID_RTX_USER, false, nullptr};
   if (not rx_pdu_queue.try_push(std::move(p))) {
     logger.error("Failed to push max Retx event to RRC queue");
   }
@@ -254,7 +269,7 @@ void rrc::send_rrc_connection_reject(uint16_t rnti)
   char buf[32] = {};
   sprintf(buf, "SRB0 - rnti=0x%x", rnti);
   log_rrc_message(buf, Tx, pdu.get(), dl_ccch_msg, dl_ccch_msg.msg.c1().type().to_string());
-  rlc->write_sdu(rnti, RB_ID_SRB0, std::move(pdu));
+  rlc->write_sdu(rnti, srb_to_lcid(lte_srb::srb0), std::move(pdu));
 }
 
 /*******************************************************************************
@@ -262,7 +277,7 @@ void rrc::send_rrc_connection_reject(uint16_t rnti)
 *******************************************************************************/
 void rrc::write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
-  rrc_pdu p = {rnti, lcid, std::move(pdu)};
+  rrc_pdu p = {rnti, lcid, false, std::move(pdu)};
   if (not rx_pdu_queue.try_push(std::move(p))) {
     logger.error("Failed to push Release command to RRC queue");
   }
@@ -299,7 +314,7 @@ void rrc::write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu)
 
 void rrc::release_ue(uint16_t rnti)
 {
-  rrc_pdu p = {rnti, LCID_REL_USER, nullptr};
+  rrc_pdu p = {rnti, LCID_REL_USER, false, nullptr};
   if (not rx_pdu_queue.try_push(std::move(p))) {
     logger.error("Failed to push Release command to RRC queue");
   }
@@ -309,7 +324,6 @@ bool rrc::setup_ue_ctxt(uint16_t rnti, const asn1::s1ap::init_context_setup_requ
 {
   logger.info("Adding initial context for 0x%x", rnti);
   auto user_it = users.find(rnti);
-
   if (user_it == users.end()) {
     logger.warning("Unrecognised rnti: 0x%x", rnti);
     return false;
@@ -332,27 +346,6 @@ bool rrc::modify_ue_ctxt(uint16_t rnti, const asn1::s1ap::ue_context_mod_request
   return user_it->second->handle_ue_ctxt_mod_req(msg);
 }
 
-bool rrc::setup_ue_erabs(uint16_t rnti, const asn1::s1ap::erab_setup_request_s& msg)
-{
-  logger.info("Setting up erab(s) for 0x%x", rnti);
-  auto user_it = users.find(rnti);
-
-  if (user_it == users.end()) {
-    logger.warning("Unrecognised rnti: 0x%x", rnti);
-    return false;
-  }
-
-  if (msg.protocol_ies.ueaggregate_maximum_bitrate_present) {
-    // UEAggregateMaximumBitrate
-    user_it->second->set_bitrates(msg.protocol_ies.ueaggregate_maximum_bitrate.value);
-  }
-
-  // Setup E-RABs
-  user_it->second->setup_erabs(msg.protocol_ies.erab_to_be_setup_list_bearer_su_req.value);
-
-  return true;
-}
-
 bool rrc::release_erabs(uint32_t rnti)
 {
   logger.info("Releasing E-RABs for 0x%x", rnti);
@@ -367,84 +360,93 @@ bool rrc::release_erabs(uint32_t rnti)
   return ret;
 }
 
-void rrc::release_erabs(uint32_t                              rnti,
-                        const asn1::s1ap::erab_release_cmd_s& msg,
-                        std::vector<uint16_t>*                erabs_released,
-                        std::vector<uint16_t>*                erabs_failed_to_release)
+int rrc::release_erab(uint16_t rnti, uint16_t erab_id)
 {
-  logger.info("Releasing E-RAB for 0x%x", rnti);
+  logger.info("Releasing E-RAB id=%d for 0x%x", erab_id, rnti);
   auto user_it = users.find(rnti);
 
   if (user_it == users.end()) {
     logger.warning("Unrecognised rnti: 0x%x", rnti);
-    return;
+    return SRSRAN_ERROR;
   }
 
-  for (uint32_t i = 0; i < msg.protocol_ies.erab_to_be_released_list.value.size(); i++) {
-    const asn1::s1ap::erab_item_s& erab_to_release =
-        msg.protocol_ies.erab_to_be_released_list.value[i].value.erab_item();
-    bool ret = user_it->second->release_erab(erab_to_release.erab_id);
-    if (ret) {
-      erabs_released->push_back(erab_to_release.erab_id);
-    } else {
-      erabs_failed_to_release->push_back(erab_to_release.erab_id);
-    }
+  return user_it->second->release_erab(erab_id);
+}
+
+int rrc::notify_ue_erab_updates(uint16_t rnti, srsran::const_byte_span nas_pdu)
+{
+  auto user_it = users.find(rnti);
+  if (user_it == users.end()) {
+    logger.warning("Unrecognised rnti: 0x%x", rnti);
+    return SRSRAN_ERROR;
   }
-  const asn1::unbounded_octstring<true>* nas_pdu =
-      msg.protocol_ies.nas_pdu_present ? &msg.protocol_ies.nas_pdu.value : nullptr;
   user_it->second->send_connection_reconf(nullptr, false, nas_pdu);
-
-  return;
+  return SRSRAN_SUCCESS;
 }
 
-void rrc::modify_erabs(uint16_t                                 rnti,
-                       const asn1::s1ap::erab_modify_request_s& msg,
-                       std::vector<uint16_t>*                   erabs_modified,
-                       std::vector<uint16_t>*                   erabs_failed_to_modify)
+bool rrc::has_erab(uint16_t rnti, uint32_t erab_id) const
 {
-  logger.info("Modifying E-RABs for 0x%x", rnti);
   auto user_it = users.find(rnti);
-
-  if (user_it == users.end()) {
-    logger.warning("Unrecognised rnti: 0x%x", rnti);
-    return;
-  }
-
-  // Iterate over bearers
-  for (uint32_t i = 0; i < msg.protocol_ies.erab_to_be_modified_list_bearer_mod_req.value.size(); i++) {
-    const asn1::s1ap::erab_to_be_modified_item_bearer_mod_req_s& erab_to_mod =
-        msg.protocol_ies.erab_to_be_modified_list_bearer_mod_req.value[i]
-            .value.erab_to_be_modified_item_bearer_mod_req();
-
-    uint32_t                            erab_id    = erab_to_mod.erab_id;
-    asn1::s1ap::erab_level_qos_params_s qos_params = erab_to_mod.erab_level_qos_params;
-
-    bool ret = modify_ue_erab(rnti, erab_id, qos_params, &erab_to_mod.nas_pdu);
-    if (ret) {
-      erabs_modified->push_back(erab_to_mod.erab_id);
-    } else {
-      erabs_failed_to_modify->push_back(erab_to_mod.erab_id);
-    }
-  }
-
-  return;
-}
-
-bool rrc::modify_ue_erab(uint16_t                                   rnti,
-                         uint8_t                                    erab_id,
-                         const asn1::s1ap::erab_level_qos_params_s& qos_params,
-                         const asn1::unbounded_octstring<true>*     nas_pdu)
-{
-  logger.info("Modifying E-RAB for 0x%x. E-RAB Id %d", rnti, erab_id);
-  auto user_it = users.find(rnti);
-
   if (user_it == users.end()) {
     logger.warning("Unrecognised rnti: 0x%x", rnti);
     return false;
   }
+  return user_it->second->has_erab(erab_id);
+}
 
-  bool ret = user_it->second->modify_erab(erab_id, qos_params, nas_pdu);
-  return ret;
+int rrc::get_erab_addr_in(uint16_t rnti, uint16_t erab_id, transp_addr_t& addr_in, uint32_t& teid_in) const
+{
+  auto user_it = users.find(rnti);
+  if (user_it == users.end()) {
+    logger.warning("Unrecognised rnti: 0x%x", rnti);
+    return SRSRAN_ERROR;
+  }
+  return user_it->second->get_erab_addr_in(erab_id, addr_in, teid_in);
+}
+
+void rrc::set_aggregate_max_bitrate(uint16_t rnti, const asn1::s1ap::ue_aggregate_maximum_bitrate_s& bitrate)
+{
+  auto user_it = users.find(rnti);
+  if (user_it == users.end()) {
+    logger.warning("Unrecognised rnti: 0x%x", rnti);
+    return;
+  }
+  user_it->second->set_bitrates(bitrate);
+}
+
+int rrc::setup_erab(uint16_t                                           rnti,
+                    uint16_t                                           erab_id,
+                    const asn1::s1ap::erab_level_qos_params_s&         qos_params,
+                    srsran::const_span<uint8_t>                        nas_pdu,
+                    const asn1::bounded_bitstring<1, 160, true, true>& addr,
+                    uint32_t                                           gtpu_teid_out,
+                    asn1::s1ap::cause_c&                               cause)
+{
+  logger.info("Setting up erab id=%d for 0x%x", erab_id, rnti);
+  auto user_it = users.find(rnti);
+  if (user_it == users.end()) {
+    logger.warning("Unrecognised rnti: 0x%x", rnti);
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::unknown_erab_id;
+    return SRSRAN_ERROR;
+  }
+  return user_it->second->setup_erab(erab_id, qos_params, nas_pdu, addr, gtpu_teid_out, cause);
+}
+
+int rrc::modify_erab(uint16_t                                   rnti,
+                     uint16_t                                   erab_id,
+                     const asn1::s1ap::erab_level_qos_params_s& qos_params,
+                     srsran::const_span<uint8_t>                nas_pdu,
+                     asn1::s1ap::cause_c&                       cause)
+{
+  logger.info("Modifying E-RAB for 0x%x. E-RAB Id %d", rnti, erab_id);
+  auto user_it = users.find(rnti);
+  if (user_it == users.end()) {
+    logger.warning("Unrecognised rnti: 0x%x", rnti);
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::unknown_erab_id;
+    return SRSRAN_ERROR;
+  }
+
+  return user_it->second->modify_erab(erab_id, qos_params, nas_pdu, cause);
 }
 
 /*******************************************************************************
@@ -588,11 +590,11 @@ void rrc::read_pdu_pcch(uint8_t* payload, uint32_t buffer_size)
 *******************************************************************************/
 
 void rrc::ho_preparation_complete(uint16_t                     rnti,
-                                  bool                         is_success,
+                                  ho_prep_result               result,
                                   const asn1::s1ap::ho_cmd_s&  msg,
                                   srsran::unique_byte_buffer_t rrc_container)
 {
-  users.at(rnti)->mobility_handler->handle_ho_preparation_complete(is_success, msg, std::move(rrc_container));
+  users.at(rnti)->mobility_handler->handle_ho_preparation_complete(result, msg, std::move(rrc_container));
 }
 
 void rrc::set_erab_status(uint16_t rnti, const asn1::s1ap::bearers_subject_to_status_transfer_list_l& erabs)
@@ -657,7 +659,7 @@ void rrc::parse_ul_dcch(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer
     if (user_it != users.end()) {
       user_it->second->parse_ul_dcch(lcid, std::move(pdu));
     } else {
-      logger.error("Processing %s: Unknown rnti=0x%x", srsenb::to_string((rb_id_t)lcid), rnti);
+      logger.error("Processing %s: Unknown rnti=0x%x", get_rb_name(lcid), rnti);
     }
   }
 }
@@ -1001,7 +1003,7 @@ void rrc::tti_clock()
   while (rx_pdu_queue.try_pop(p)) {
     // print Rx PDU
     if (p.pdu != nullptr) {
-      logger.info(p.pdu->msg, p.pdu->N_bytes, "Rx %s PDU", to_string((rb_id_t)p.lcid));
+      logger.info(p.pdu->msg, p.pdu->N_bytes, "Rx %s PDU", get_rb_name(p.lcid));
     }
 
     // check if user exists
@@ -1013,11 +1015,11 @@ void rrc::tti_clock()
 
     // handle queue cmd
     switch (p.lcid) {
-      case RB_ID_SRB0:
+      case srb_to_lcid(lte_srb::srb0):
         parse_ul_ccch(p.rnti, std::move(p.pdu));
         break;
-      case RB_ID_SRB1:
-      case RB_ID_SRB2:
+      case srb_to_lcid(lte_srb::srb1):
+      case srb_to_lcid(lte_srb::srb2):
         parse_ul_dcch(p.rnti, p.lcid, std::move(p.pdu));
         break;
       case LCID_REM_USER:
@@ -1029,8 +1031,11 @@ void rrc::tti_clock()
       case LCID_ACT_USER:
         user_it->second->set_activity();
         break;
-      case LCID_MAC_KO_USER:
-        user_it->second->mac_ko_activity();
+      case LCID_RADLINK_DL:
+        user_it->second->set_radiolink_dl_state(p.arg);
+        break;
+      case LCID_RADLINK_UL:
+        user_it->second->set_radiolink_ul_state(p.arg);
         break;
       case LCID_RTX_USER:
         user_it->second->max_retx_reached();

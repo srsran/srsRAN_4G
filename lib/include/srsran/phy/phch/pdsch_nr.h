@@ -46,6 +46,8 @@ typedef struct SRSRAN_API {
   srsran_sch_nr_args_t sch;
   bool                 measure_evm;
   bool                 measure_time;
+  bool                 disable_zero_re_around_dc; ///< PDSCH NR sets the LLR around the DC to zero to avoid noise
+  uint32_t             nof_zero_re_around_dc; ///< Number of RE to set to zero around DC. It uses default value if 0.
 } srsran_pdsch_nr_args_t;
 
 /**
@@ -66,15 +68,16 @@ typedef struct SRSRAN_API {
   uint32_t             meas_time_us;
   srsran_re_pattern_t  dmrs_re_pattern;
   uint32_t             nof_rvd_re;
+  uint32_t nof_zero_re_around_dc; ///< Sets a number of RE surrounding the center of the resource grid to zero. Set to 0
+                                  ///< for disabling.
 } srsran_pdsch_nr_t;
 
 /**
- *
+ * @brief Groups NR-PDSCH data for reception
  */
 typedef struct {
-  uint8_t* payload;
-  bool     crc;
-  float    evm;
+  srsran_sch_tb_res_nr_t tb[SRSRAN_MAX_TB];         ///< SCH payload
+  float                  evm[SRSRAN_MAX_CODEWORDS]; ///< EVM measurement if configured through arguments
 } srsran_pdsch_res_nr_t;
 
 SRSRAN_API int srsran_pdsch_nr_init_enb(srsran_pdsch_nr_t* q, const srsran_pdsch_nr_args_t* args);
@@ -96,7 +99,7 @@ SRSRAN_API int srsran_pdsch_nr_decode(srsran_pdsch_nr_t*           q,
                                       const srsran_sch_grant_nr_t* grant,
                                       srsran_chest_dl_res_t*       channel,
                                       cf_t*                        sf_symbols[SRSRAN_MAX_PORTS],
-                                      srsran_pdsch_res_nr_t        data[SRSRAN_MAX_TB]);
+                                      srsran_pdsch_res_nr_t*       res);
 
 SRSRAN_API uint32_t srsran_pdsch_nr_rx_info(const srsran_pdsch_nr_t*     q,
                                             const srsran_sch_cfg_nr_t*   cfg,

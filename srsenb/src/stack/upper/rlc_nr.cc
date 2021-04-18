@@ -211,7 +211,7 @@ void rlc_nr::user_interface::write_pdu_pcch(srsran::unique_byte_buffer_t sdu)
   ERROR("Error: Received PCCH from ue=%d", rnti);
 }
 
-std::string rlc_nr::user_interface::get_rb_name(uint32_t lcid)
+const char* rlc_nr::user_interface::get_rb_name(uint32_t lcid)
 {
   return srsran::to_string(static_cast<srsran::rb_id_nr_t>(lcid));
 }

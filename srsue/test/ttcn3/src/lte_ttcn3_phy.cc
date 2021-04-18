@@ -59,7 +59,7 @@ void lte_ttcn3_phy::wait_initialize() {}
 
 void lte_ttcn3_phy::start_plot() {}
 
-void lte_ttcn3_phy::get_metrics(phy_metrics_t* m) {}
+void lte_ttcn3_phy::get_metrics(const srsran::srsran_rat_t& rat, phy_metrics_t* m) {}
 
 // The interface for the SS
 void lte_ttcn3_phy::set_cell_map(const cell_list_t& cells_)

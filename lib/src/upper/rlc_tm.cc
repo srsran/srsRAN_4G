@@ -20,6 +20,7 @@
  */
 
 #include "srsran/upper/rlc_tm.h"
+#include "srsran/common/lte_common.h"
 #include "srsran/interfaces/ue_pdcp_interfaces.h"
 #include "srsran/interfaces/ue_rrc_interfaces.h"
 
@@ -91,14 +92,14 @@ void rlc_tm::write_sdu(unique_byte_buffer_t sdu)
       logger.info(msg_ptr,
                   nof_bytes,
                   "%s Tx SDU, queue size=%d, bytes=%d",
-                  rrc->get_rb_name(lcid).c_str(),
+                  rrc->get_rb_name(lcid),
                   ul_queue.size(),
                   ul_queue.size_bytes());
     } else {
       logger.warning(ret.error()->msg,
                      ret.error()->N_bytes,
                      "[Dropped SDU] %s Tx SDU, queue size=%d, bytes=%d",
-                     rrc->get_rb_name(lcid).c_str(),
+                     rrc->get_rb_name(lcid),
                      ul_queue.size(),
                      ul_queue.size_bytes());
     }
@@ -146,8 +147,7 @@ int rlc_tm::read_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   uint32_t pdu_size = ul_queue.size_tail_bytes();
   if (pdu_size > nof_bytes) {
-    logger.info(
-        "%s Tx PDU size larger than MAC opportunity (%d > %d)", rrc->get_rb_name(lcid).c_str(), pdu_size, nof_bytes);
+    logger.info("%s Tx PDU size larger than MAC opportunity (%d > %d)", rrc->get_rb_name(lcid), pdu_size, nof_bytes);
     return -1;
   }
   unique_byte_buffer_t buf;
@@ -155,12 +155,12 @@ int rlc_tm::read_pdu(uint8_t* payload, uint32_t nof_bytes)
     pdu_size = buf->N_bytes;
     memcpy(payload, buf->msg, buf->N_bytes);
     logger.debug("%s Complete SDU scheduled for tx. Stack latency: %" PRIu64 " us",
-                 rrc->get_rb_name(lcid).c_str(),
+                 rrc->get_rb_name(lcid),
                  (uint64_t)buf->get_latency_us().count());
     logger.info(payload,
                 pdu_size,
                 "%s Tx %s PDU, queue size=%d, bytes=%d",
-                rrc->get_rb_name(lcid).c_str(),
+                rrc->get_rb_name(lcid),
                 srsran::to_string(rlc_mode_t::tm).c_str(),
                 ul_queue.size(),
                 ul_queue.size_bytes());
@@ -186,7 +186,7 @@ void rlc_tm::write_pdu(uint8_t* payload, uint32_t nof_bytes)
     buf->set_timestamp();
     metrics.num_rx_pdu_bytes += nof_bytes;
     metrics.num_rx_pdus++;
-    if (rrc->get_rb_name(lcid) == "SRB0") {
+    if (srsran::srb_to_lcid(srsran::lte_srb::srb0) == lcid) {
       rrc->write_pdu(lcid, std::move(buf));
     } else {
       pdcp->write_pdu(lcid, std::move(buf));

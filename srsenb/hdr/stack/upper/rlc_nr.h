@@ -56,7 +56,7 @@ public:
   void        write_sdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t sdu);
   bool        rb_is_um(uint16_t rnti, uint32_t lcid);
   bool        sdu_queue_is_full(uint16_t rnti, uint32_t lcid);
-  std::string get_rb_name(uint32_t lcid);
+  const char* get_rb_name(uint32_t lcid);
 
   // rlc_interface_mac_nr
   int read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes);
@@ -76,7 +76,7 @@ private:
     void        write_pdu_pcch(srsran::unique_byte_buffer_t sdu);
     void        write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t sdu) {}
     void        max_retx_attempted() final;
-    std::string get_rb_name(uint32_t lcid) final;
+    const char* get_rb_name(uint32_t lcid) final;
     uint16_t    rnti;
 
     srsenb::pdcp_interface_rlc_nr* m_pdcp = nullptr;

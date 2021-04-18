@@ -1144,12 +1144,12 @@ void ttcn3_syssim::max_retx_attempted()
   logger.error("%s not implemented.", __FUNCTION__);
 }
 
-std::string ttcn3_syssim::get_rb_name(uint32_t lcid)
+const char* ttcn3_syssim::get_rb_name(uint32_t lcid)
 {
   if (lcid < rb_id_vec.size()) {
-    return rb_id_vec.at(lcid);
+    return rb_id_vec.at(lcid).c_str();
   }
-  return std::string("RB");
+  return "RB";
 };
 
 void ttcn3_syssim::write_sdu(uint32_t lcid, unique_byte_buffer_t sdu)

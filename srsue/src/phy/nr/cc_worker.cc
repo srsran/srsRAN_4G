@@ -262,12 +262,12 @@ bool cc_worker::work_dl()
     srsran_softbuffer_rx_reset(&softbuffer_rx);
 
     // Initialise PDSCH Result
-    std::array<srsran_pdsch_res_nr_t, SRSRAN_MAX_CODEWORDS> pdsch_res = {};
-    pdsch_res[0].payload                                              = data->msg;
-    pdsch_cfg.grant.tb[0].softbuffer.rx                               = &softbuffer_rx;
+    srsran_pdsch_res_nr_t pdsch_res     = {};
+    pdsch_res.tb[0].payload             = data->msg;
+    pdsch_cfg.grant.tb[0].softbuffer.rx = &softbuffer_rx;
 
     // Decode actual PDSCH transmission
-    if (srsran_ue_dl_nr_decode_pdsch(&ue_dl, &dl_slot_cfg, &pdsch_cfg, pdsch_res.data()) < SRSRAN_SUCCESS) {
+    if (srsran_ue_dl_nr_decode_pdsch(&ue_dl, &dl_slot_cfg, &pdsch_cfg, &pdsch_res) < SRSRAN_SUCCESS) {
       ERROR("Error decoding PDSCH");
       return false;
     }
@@ -275,17 +275,17 @@ bool cc_worker::work_dl()
     // Logging
     if (logger.info.enabled()) {
       std::array<char, 512> str;
-      srsran_ue_dl_nr_pdsch_info(&ue_dl, &pdsch_cfg, pdsch_res.data(), str.data(), str.size());
-      logger.info(pdsch_res[0].payload, pdsch_cfg.grant.tb[0].tbs / 8, "PDSCH: cc=%d, %s", cc_idx, str.data());
+      srsran_ue_dl_nr_pdsch_info(&ue_dl, &pdsch_cfg, &pdsch_res, str.data(), str.size());
+      logger.info(pdsch_res.tb[0].payload, pdsch_cfg.grant.tb[0].tbs / 8, "PDSCH: cc=%d, %s", cc_idx, str.data());
     }
 
     // Enqueue PDSCH ACK information only if the RNTI is type C
     if (pdsch_cfg.grant.rnti_type == srsran_rnti_type_c) {
-      phy->set_pending_ack(dl_slot_cfg.idx, ack_resource, pdsch_res[0].crc);
+      phy->set_pending_ack(dl_slot_cfg.idx, ack_resource, pdsch_res.tb[0].crc);
     }
 
     // Notify MAC about PDSCH decoding result
-    if (pdsch_res[0].crc) {
+    if (pdsch_res.tb[0].crc) {
       // Prepare grant
       mac_interface_phy_nr::mac_nr_grant_dl_t mac_nr_grant = {};
       mac_nr_grant.tb[0]                                   = std::move(data);
@@ -299,6 +299,26 @@ bool cc_worker::work_dl()
 
       // Send data to MAC
       phy->stack->tb_decoded(cc_idx, mac_nr_grant);
+
+      // Generate DL metrics
+      dl_metrics_t dl_m = {};
+      dl_m.mcs          = pdsch_cfg.grant.tb[0].mcs;
+      dl_m.fec_iters    = pdsch_res.tb[0].avg_iter;
+      dl_m.evm          = pdsch_res.evm[0];
+      phy->set_dl_metrics(dl_m);
+
+      // Generate Synch metrics
+      sync_metrics_t sync_m = {};
+      sync_m.cfo            = ue_dl.chest.cfo;
+      phy->set_sync_metrics(sync_m);
+
+      // Generate channel metrics
+      ch_metrics_t ch_m = {};
+      ch_m.n            = ue_dl.chest.noise_estimate;
+      ch_m.sinr         = ue_dl.chest.snr_db;
+      ch_m.rsrp         = ue_dl.chest.rsrp_dbm;
+      ch_m.sync_err     = ue_dl.chest.sync_error;
+      phy->set_channel_metrics(ch_m);
     }
   }
 
@@ -356,7 +376,16 @@ bool cc_worker::work_ul()
     mac_ul_grant.rnti                                    = pusch_cfg.grant.rnti;
     mac_ul_grant.tti                                     = ul_slot_cfg.idx;
     mac_ul_grant.tbs                                     = pusch_cfg.grant.tb[0].tbs / 8;
+    mac_ul_grant.ndi                                     = pusch_cfg.grant.tb[0].ndi;
+    mac_ul_grant.rv                                      = pusch_cfg.grant.tb[0].rv;
+    mac_ul_grant.is_rar_grant                            = (pusch_cfg.grant.rnti_type == srsran_rnti_type_ra);
     phy->stack->new_grant_ul(0, mac_ul_grant, &ul_action);
+
+    // Don't process further if MAC can't provide PDU
+    if (not ul_action.tb.enabled) {
+      ERROR("No MAC PDU provided by MAC");
+      return false;
+    }
 
     // Set UCI configuration following procedures
     srsran_ra_ul_set_grant_uci_nr(&phy->cfg.pusch, &uci_data.cfg, &pusch_cfg);
@@ -366,7 +395,7 @@ bool cc_worker::work_ul()
 
     // Setup data for encoding
     srsran_pusch_data_nr_t data = {};
-    data.payload                = ul_action.tb.payload->msg;
+    data.payload[0]             = ul_action.tb.payload->msg;
     data.uci                    = uci_data.value;
 
     // Encode PUSCH transmission
@@ -381,11 +410,18 @@ bool cc_worker::work_ul()
       srsran_ue_ul_nr_pusch_info(&ue_ul, &pusch_cfg, &data.uci, str.data(), str.size());
       logger.info(ul_action.tb.payload->msg,
                   pusch_cfg.grant.tb[0].tbs / 8,
-                  "PUSCH (NR): cc=%d, %s, tti_tx=%d",
+                  "PUSCH: cc=%d, %s, tti_tx=%d",
                   cc_idx,
                   str.data(),
                   ul_slot_cfg.idx);
     }
+
+    // Set metrics
+    ul_metrics_t ul_m = {};
+    ul_m.mcs          = pusch_cfg.grant.tb[0].mcs;
+    ul_m.power        = srsran_convert_power_to_dB(srsran_vec_avg_power_cf(tx_buffer[0], ue_ul.ifft.sf_sz));
+    phy->set_ul_metrics(ul_m);
+
   } else if (srsran_uci_nr_total_bits(&uci_data.cfg) > 0) {
     // Get PUCCH resource
     srsran_pucch_nr_resource_t resource = {};

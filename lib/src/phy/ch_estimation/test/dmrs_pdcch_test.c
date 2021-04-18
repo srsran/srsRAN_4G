@@ -107,7 +107,7 @@ static int run_test(srsran_dmrs_pdcch_estimator_t* estimator,
       }
       TESTASSERT(fabsf(measure.epre - 1.0f) < 1e-3f);
       TESTASSERT(fabsf(measure.rsrp - 1.0f) < 1e-3f);
-      TESTASSERT(fabsf(measure.cfo_hz) < 1e-3f);
+      TESTASSERT(coreset->duration == 1 || fabsf(measure.cfo_hz) < 1e-3f);
       TESTASSERT(fabsf(measure.sync_error_us) < 1e-3f);
 
       TESTASSERT(srsran_dmrs_pdcch_get_ce(estimator, &dci_location, ce) == SRSRAN_SUCCESS);

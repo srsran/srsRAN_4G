@@ -22,7 +22,9 @@
 #ifndef SRSUE_PROC_SR_NR_H
 #define SRSUE_PROC_SR_NR_H
 
+#include "srsue/hdr/stack/mac_nr/mac_nr_interfaces.h"
 #include "srsran/interfaces/ue_mac_interfaces.h"
+#include "srsran/interfaces/ue_nr_interfaces.h"
 #include "srsran/srslog/srslog.h"
 #include <stdint.h>
 
@@ -32,14 +34,13 @@
 namespace srsue {
 
 class proc_ra_nr;
-class phy_interface_mac_nr;
 class rrc_interface_mac;
 
 class proc_sr_nr
 {
 public:
   explicit proc_sr_nr(srslog::basic_logger& logger);
-  int32_t init(proc_ra_nr* ra_, phy_interface_mac_nr* phy_, rrc_interface_mac* rrc_);
+  int32_t init(mac_interface_sr_nr* mac_, phy_interface_mac_nr* phy_, rrc_interface_mac* rrc_);
   void    step(uint32_t tti);
   int32_t set_config(const srsran::sr_cfg_nr_t& cfg);
   void    reset();
@@ -48,11 +49,11 @@ public:
 
 private:
   int  sr_counter    = 0;
-  bool is_pending_sr = 0;
+  bool is_pending_sr = false;
 
   srsran::sr_cfg_nr_t cfg = {};
 
-  proc_ra_nr*           ra  = nullptr;
+  mac_interface_sr_nr*  mac = nullptr;
   rrc_interface_mac*    rrc = nullptr;
   phy_interface_mac_nr* phy = nullptr;
   srslog::basic_logger& logger;

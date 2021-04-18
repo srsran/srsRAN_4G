@@ -87,47 +87,47 @@ int test_lc_ch_pbr_infinity()
 {
   srsenb::lch_ue_manager lch_handler;
 
-  srsenb::sched_interface::ue_cfg_t ue_cfg        = generate_default_ue_cfg();
-  ue_cfg                                          = generate_setup_ue_cfg(ue_cfg);
-  ue_cfg.ue_bearers[srsenb::RB_ID_SRB1]           = {};
-  ue_cfg.ue_bearers[srsenb::RB_ID_SRB1].direction = sched_interface::ue_bearer_cfg_t::BOTH;
-  ue_cfg.ue_bearers[srsenb::RB_ID_DRB1]           = {};
-  ue_cfg.ue_bearers[srsenb::RB_ID_DRB1].direction = sched_interface::ue_bearer_cfg_t::BOTH;
-  ue_cfg.ue_bearers[srsenb::RB_ID_DRB1].priority  = 5;
-  ue_cfg.ue_bearers[srsenb::RB_ID_DRB2]           = {};
-  ue_cfg.ue_bearers[srsenb::RB_ID_DRB2].direction = sched_interface::ue_bearer_cfg_t::BOTH;
-  ue_cfg.ue_bearers[srsenb::RB_ID_DRB2].priority  = 3;
+  srsenb::sched_interface::ue_cfg_t ue_cfg                  = generate_default_ue_cfg();
+  ue_cfg                                                    = generate_setup_ue_cfg(ue_cfg);
+  ue_cfg.ue_bearers[srb_to_lcid((lte_srb::srb1))]           = {};
+  ue_cfg.ue_bearers[srb_to_lcid((lte_srb::srb1))].direction = sched_interface::ue_bearer_cfg_t::BOTH;
+  ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb1))]           = {};
+  ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb1))].direction = sched_interface::ue_bearer_cfg_t::BOTH;
+  ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb1))].priority  = 5;
+  ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb2))]           = {};
+  ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb2))].direction = sched_interface::ue_bearer_cfg_t::BOTH;
+  ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb2))].priority  = 3;
 
   lch_handler.set_cfg(ue_cfg);
   lch_handler.new_tti();
 
-  lch_handler.dl_buffer_state(srsenb::RB_ID_SRB1, 50000, 10000);
-  lch_handler.dl_buffer_state(srsenb::RB_ID_DRB1, 5000, 10000);
-  lch_handler.dl_buffer_state(srsenb::RB_ID_DRB2, 5000, 10000);
+  lch_handler.dl_buffer_state(srb_to_lcid(lte_srb::srb1), 50000, 10000);
+  lch_handler.dl_buffer_state(drb_to_lcid(lte_drb::drb1), 5000, 10000);
+  lch_handler.dl_buffer_state(drb_to_lcid(lte_drb::drb2), 5000, 10000);
 
   // TEST1 - retx of SRB1 is prioritized. Do not transmit other bearers until there are no SRB1 retxs
-  int nof_pending_bytes = lch_handler.get_dl_retx(srsenb::RB_ID_SRB1);
-  TESTASSERT(test_retx_until_empty(lch_handler, srsenb::RB_ID_SRB1, 500) == nof_pending_bytes);
+  int nof_pending_bytes = lch_handler.get_dl_retx(srb_to_lcid(lte_srb::srb1));
+  TESTASSERT(test_retx_until_empty(lch_handler, srb_to_lcid(lte_srb::srb1), 500) == nof_pending_bytes);
 
   // TEST2 - the DRB2 has lower prio level than SRB1, but has retxs
-  nof_pending_bytes = lch_handler.get_dl_retx(srsenb::RB_ID_DRB2);
-  TESTASSERT(test_retx_until_empty(lch_handler, srsenb::RB_ID_DRB2, 500) == nof_pending_bytes);
+  nof_pending_bytes = lch_handler.get_dl_retx(drb_to_lcid(lte_drb::drb2));
+  TESTASSERT(test_retx_until_empty(lch_handler, drb_to_lcid(lte_drb::drb2), 500) == nof_pending_bytes);
 
   // TEST3 - the DRB1 has lower prio level, but has retxs
-  nof_pending_bytes = lch_handler.get_dl_retx(srsenb::RB_ID_DRB1);
-  TESTASSERT(test_retx_until_empty(lch_handler, srsenb::RB_ID_DRB1, 500) == nof_pending_bytes);
+  nof_pending_bytes = lch_handler.get_dl_retx(drb_to_lcid(lte_drb::drb1));
+  TESTASSERT(test_retx_until_empty(lch_handler, drb_to_lcid(lte_drb::drb1), 500) == nof_pending_bytes);
 
   // TEST4 - The SRB1 newtx buffer is emptied before other bearers newtxs
-  nof_pending_bytes = lch_handler.get_dl_tx(srsenb::RB_ID_SRB1);
-  TESTASSERT(test_newtx_until_empty(lch_handler, srsenb::RB_ID_SRB1, 500) == nof_pending_bytes);
+  nof_pending_bytes = lch_handler.get_dl_tx(srb_to_lcid(lte_srb::srb1));
+  TESTASSERT(test_newtx_until_empty(lch_handler, srb_to_lcid(lte_srb::srb1), 500) == nof_pending_bytes);
 
   // TEST5 - The DRB2 newtx buffer is emptied before DRB1 newtxs
-  nof_pending_bytes = lch_handler.get_dl_tx(srsenb::RB_ID_DRB2);
-  TESTASSERT(test_newtx_until_empty(lch_handler, srsenb::RB_ID_DRB2, 500) == nof_pending_bytes);
+  nof_pending_bytes = lch_handler.get_dl_tx(drb_to_lcid(lte_drb::drb2));
+  TESTASSERT(test_newtx_until_empty(lch_handler, drb_to_lcid(lte_drb::drb2), 500) == nof_pending_bytes);
 
   // TEST6 - The DRB1 buffer is emptied
-  nof_pending_bytes = lch_handler.get_dl_tx(srsenb::RB_ID_DRB1);
-  TESTASSERT(test_newtx_until_empty(lch_handler, srsenb::RB_ID_DRB1, 500) == nof_pending_bytes);
+  nof_pending_bytes = lch_handler.get_dl_tx(drb_to_lcid(lte_drb::drb1));
+  TESTASSERT(test_newtx_until_empty(lch_handler, drb_to_lcid(lte_drb::drb1), 500) == nof_pending_bytes);
 
   return SRSRAN_SUCCESS;
 }
@@ -137,20 +137,20 @@ int test_lc_ch_pbr_finite()
   srsenb::lch_ue_manager          lch_handler;
   sched_interface::dl_sched_pdu_t pdu;
 
-  srsenb::sched_interface::ue_cfg_t ue_cfg        = generate_default_ue_cfg();
-  ue_cfg                                          = generate_setup_ue_cfg(ue_cfg);
-  ue_cfg.ue_bearers[srsenb::RB_ID_SRB1]           = {};
-  ue_cfg.ue_bearers[srsenb::RB_ID_SRB1].direction = sched_interface::ue_bearer_cfg_t::BOTH;
-  ue_cfg.ue_bearers[srsenb::RB_ID_DRB1]           = {};
-  ue_cfg.ue_bearers[srsenb::RB_ID_DRB1].direction = sched_interface::ue_bearer_cfg_t::BOTH;
-  ue_cfg.ue_bearers[srsenb::RB_ID_DRB1].pbr       = 256; // kBps
-  ue_cfg.ue_bearers[srsenb::RB_ID_DRB1].bsd       = 50;  // msec
-  ue_cfg.ue_bearers[srsenb::RB_ID_DRB1].priority  = 5;
-  ue_cfg.ue_bearers[srsenb::RB_ID_DRB2]           = {};
-  ue_cfg.ue_bearers[srsenb::RB_ID_DRB2].direction = sched_interface::ue_bearer_cfg_t::BOTH;
-  ue_cfg.ue_bearers[srsenb::RB_ID_DRB2].pbr       = 8;  // kBps
-  ue_cfg.ue_bearers[srsenb::RB_ID_DRB2].bsd       = 50; // msec
-  ue_cfg.ue_bearers[srsenb::RB_ID_DRB2].priority  = 3;
+  srsenb::sched_interface::ue_cfg_t ue_cfg                  = generate_default_ue_cfg();
+  ue_cfg                                                    = generate_setup_ue_cfg(ue_cfg);
+  ue_cfg.ue_bearers[srb_to_lcid((lte_srb::srb1))]           = {};
+  ue_cfg.ue_bearers[srb_to_lcid((lte_srb::srb1))].direction = sched_interface::ue_bearer_cfg_t::BOTH;
+  ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb1))]           = {};
+  ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb1))].direction = sched_interface::ue_bearer_cfg_t::BOTH;
+  ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb1))].pbr       = 256; // kBps
+  ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb1))].bsd       = 50;  // msec
+  ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb1))].priority  = 5;
+  ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb2))]           = {};
+  ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb2))].direction = sched_interface::ue_bearer_cfg_t::BOTH;
+  ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb2))].pbr       = 8;  // kBps
+  ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb2))].bsd       = 50; // msec
+  ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb2))].priority  = 3;
 
   lch_handler.set_cfg(ue_cfg);
   for (uint32_t i = 0; i < 50; ++i) {
@@ -158,41 +158,41 @@ int test_lc_ch_pbr_finite()
   }
   // Bj={0, infinity, 0, 12800, 400}
 
-  lch_handler.dl_buffer_state(srsenb::RB_ID_SRB1, 50000, 1000);
-  lch_handler.dl_buffer_state(srsenb::RB_ID_DRB1, 50000, 1000);
-  lch_handler.dl_buffer_state(srsenb::RB_ID_DRB2, 50000, 0);
+  lch_handler.dl_buffer_state(srb_to_lcid(lte_srb::srb1), 50000, 1000);
+  lch_handler.dl_buffer_state(drb_to_lcid(lte_drb::drb1), 50000, 1000);
+  lch_handler.dl_buffer_state(drb_to_lcid(lte_drb::drb2), 50000, 0);
 
   // TEST1 - SRB1 retxs are emptied first
-  int nof_pending_bytes = lch_handler.get_dl_retx(srsenb::RB_ID_SRB1);
-  TESTASSERT(test_retx_until_empty(lch_handler, srsenb::RB_ID_SRB1, 500) == nof_pending_bytes);
+  int nof_pending_bytes = lch_handler.get_dl_retx(srb_to_lcid(lte_srb::srb1));
+  TESTASSERT(test_retx_until_empty(lch_handler, srb_to_lcid(lte_srb::srb1), 500) == nof_pending_bytes);
 
   // TEST2 - DRB1 retxs are emptied
-  nof_pending_bytes = lch_handler.get_dl_retx(srsenb::RB_ID_DRB1);
-  TESTASSERT(test_retx_until_empty(lch_handler, srsenb::RB_ID_DRB1, 500) == nof_pending_bytes);
+  nof_pending_bytes = lch_handler.get_dl_retx(drb_to_lcid(lte_drb::drb1));
+  TESTASSERT(test_retx_until_empty(lch_handler, drb_to_lcid(lte_drb::drb1), 500) == nof_pending_bytes);
 
   // TEST3 - SRB1 newtxs are emptied (PBR==infinity)
-  nof_pending_bytes = lch_handler.get_dl_tx(srsenb::RB_ID_SRB1);
-  TESTASSERT(test_newtx_until_empty(lch_handler, srsenb::RB_ID_SRB1, 500) == nof_pending_bytes);
+  nof_pending_bytes = lch_handler.get_dl_tx(srb_to_lcid(lte_srb::srb1));
+  TESTASSERT(test_newtx_until_empty(lch_handler, srb_to_lcid(lte_srb::srb1), 500) == nof_pending_bytes);
 
   // TEST4 - DRB2 has higher priority so it gets allocated until Bj <= 0
-  TESTASSERT(test_pdu_alloc_successful(lch_handler, pdu, srsenb::RB_ID_DRB2, 200) == SRSRAN_SUCCESS);
+  TESTASSERT(test_pdu_alloc_successful(lch_handler, pdu, drb_to_lcid(lte_drb::drb2), 200) == SRSRAN_SUCCESS);
   // Bj={0, infinity, 0, 12800, 200}
-  TESTASSERT(test_pdu_alloc_successful(lch_handler, pdu, srsenb::RB_ID_DRB2, 600) == SRSRAN_SUCCESS);
+  TESTASSERT(test_pdu_alloc_successful(lch_handler, pdu, drb_to_lcid(lte_drb::drb2), 600) == SRSRAN_SUCCESS);
   // Bj={0, infinity, 0, 256000, -400}
 
   // TEST5 - DRB1 has lower prio, but DRB2 Bj <= 0.
   for (uint32_t i = 0; i < 50; ++i) {
     lch_handler.new_tti();
-    TESTASSERT(test_pdu_alloc_successful(lch_handler, pdu, srsenb::RB_ID_DRB1, 50) == SRSRAN_SUCCESS);
+    TESTASSERT(test_pdu_alloc_successful(lch_handler, pdu, drb_to_lcid(lte_drb::drb1), 50) == SRSRAN_SUCCESS);
   }
 
   // TEST6 - new tti restores DRB2 Bj>=0, and DRB2 gets allocated
   lch_handler.new_tti();
   // Bj={0, infinity, 0, 256000, 8}
-  TESTASSERT(test_pdu_alloc_successful(lch_handler, pdu, srsenb::RB_ID_DRB2, 50) == SRSRAN_SUCCESS);
+  TESTASSERT(test_pdu_alloc_successful(lch_handler, pdu, drb_to_lcid(lte_drb::drb2), 50) == SRSRAN_SUCCESS);
   // Bj={0, infinity, 0, 256000, -42}
   lch_handler.new_tti();
-  TESTASSERT(test_pdu_alloc_successful(lch_handler, pdu, srsenb::RB_ID_DRB1, 50) == SRSRAN_SUCCESS);
+  TESTASSERT(test_pdu_alloc_successful(lch_handler, pdu, drb_to_lcid(lte_drb::drb1), 50) == SRSRAN_SUCCESS);
 
   return SRSRAN_SUCCESS;
 }

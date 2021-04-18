@@ -106,8 +106,11 @@ void sf_worker::work_imp()
     tx_buffer.set(0, prach_ptr);
 
     // Notify MAC about PRACH transmission
-    phy_state->stack->prach_sent(
-        TTI_TX(tti_rx), 0, SRSRAN_SLOT_NR_MOD(phy_state->carrier.numerology, TTI_TX(tti_rx)), 0, 0);
+    phy_state->stack->prach_sent(TTI_TX(tti_rx),
+                                 srsran_prach_nr_start_symbol_fr1_unpaired(phy_state->cfg.prach.config_idx),
+                                 SRSRAN_SLOT_NR_MOD(phy_state->carrier.numerology, TTI_TX(tti_rx)),
+                                 0,
+                                 0);
 
     // Transmit NR PRACH
     phy->worker_end(this, false, tx_buffer, dummy_ts, true);

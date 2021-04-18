@@ -28,13 +28,16 @@ namespace srsue {
 
 mac_nr::mac_nr(srsran::ext_task_sched_handle task_sched_) :
   task_sched(task_sched_),
-  logger(srslog::fetch_basic_logger("MAC")),
+  logger(srslog::fetch_basic_logger("MAC-NR")),
   proc_ra(*this, logger),
   proc_sr(logger),
   proc_bsr(logger),
   mux(*this, logger),
   pcap(nullptr)
-{}
+{
+  // Create PCell HARQ entities
+  ul_harq.at(PCELL_CC_IDX) = ul_harq_entity_nr_ptr(new ul_harq_entity_nr(PCELL_CC_IDX, this, &proc_ra, &mux));
+}
 
 mac_nr::~mac_nr()
 {
@@ -56,7 +59,7 @@ int mac_nr::init(const mac_nr_args_t&  args_,
 
   // Init MAC sub procedures
   proc_ra.init(phy, &task_sched);
-  proc_sr.init(&proc_ra, phy, rrc);
+  proc_sr.init(this, phy, rrc);
 
   if (proc_bsr.init(&proc_sr, &mux, rlc, &task_sched) != SRSRAN_SUCCESS) {
     logger.error("Couldn't initialize BSR procedure.");
@@ -68,14 +71,9 @@ int mac_nr::init(const mac_nr_args_t&  args_,
     return SRSRAN_ERROR;
   }
 
-  if (srsran_softbuffer_tx_init_guru(&softbuffer_tx, SRSRAN_SCH_NR_MAX_NOF_CB_LDPC, SRSRAN_LDPC_MAX_LEN_ENCODED_CB) <
-      SRSRAN_SUCCESS) {
-    ERROR("Error init soft-buffer");
-    return SRSRAN_ERROR;
-  }
-
-  ul_harq_buffer = srsran::make_byte_buffer();
-  if (ul_harq_buffer == nullptr) {
+  // Configure PCell HARQ entities
+  if (ul_harq.at(PCELL_CC_IDX)->init() != SRSRAN_SUCCESS) {
+    logger.error("Couldn't initialize UL HARQ entity.");
     return SRSRAN_ERROR;
   }
 
@@ -94,8 +92,6 @@ void mac_nr::stop()
   if (started) {
     started = false;
   }
-
-  srsran_softbuffer_tx_free(&softbuffer_tx);
 }
 
 // Implement Section 5.9
@@ -176,9 +172,9 @@ mac_interface_phy_nr::sched_rnti_t mac_nr::get_dl_sched_rnti_nr(const uint32_t t
     return {proc_ra.get_rar_rnti(), srsran_rnti_type_ra};
   }
 
-  if (proc_ra.has_temp_rnti() && has_crnti() == false) {
-    logger.debug("SCHED: Searching temp C-RNTI=0x%x (proc_ra)", proc_ra.get_temp_rnti());
-    return {proc_ra.get_temp_rnti(), srsran_rnti_type_c};
+  if (proc_ra.has_temp_crnti() && has_crnti() == false) {
+    logger.debug("SCHED: Searching temp C-RNTI=0x%x (proc_ra)", proc_ra.get_temp_crnti());
+    return {proc_ra.get_temp_crnti(), srsran_rnti_type_c};
   }
 
   if (has_crnti()) {
@@ -198,6 +194,11 @@ bool mac_nr::has_crnti()
 uint16_t mac_nr::get_crnti()
 {
   return c_rnti;
+}
+
+uint16_t mac_nr::get_temp_crnti()
+{
+  return proc_ra.get_temp_crnti();
 }
 
 srsran::mac_sch_subpdu_nr::lcg_bsr_t mac_nr::generate_sbsr()
@@ -283,6 +284,19 @@ void mac_nr::tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant)
 
 void mac_nr::new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, tb_action_ul_t* action)
 {
+  logger.debug("new_grant_ul(): cc_idx=%d, tti=%d, rnti=%d, pid=%d, tbs=%d, ndi=%d, rv=%d, is_rar=%d",
+               cc_idx,
+               grant.tti,
+               grant.rnti,
+               grant.pid,
+               grant.tbs,
+               grant.ndi,
+               grant.rv,
+               grant.is_rar_grant);
+
+  // Clear UL action
+  *action = {};
+
   // if proc ra is in contention resolution and c_rnti == grant.c_rnti resolve contention resolution
   if (proc_ra.is_contention_resolution() && grant.rnti == c_rnti) {
     proc_ra.pdcch_to_crnti();
@@ -291,28 +305,20 @@ void mac_nr::new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant,
   // Let BSR know there is a new grant, might have to send a BSR
   proc_bsr.new_grant_ul(grant.tbs);
 
-  // TODO: add proper UL-HARQ
-  // The code below assumes a single HARQ entity, no retx, every Tx is always a new transmission
-  ul_harq_buffer = mux.get_pdu(grant.tbs);
-
-  // fill TB action (goes into UL harq eventually)
-  if (ul_harq_buffer != nullptr) {
-    action->tb.payload    = ul_harq_buffer.get(); // pass handle to PDU to PHY
-    action->tb.enabled    = true;
-    action->tb.rv         = 0;
-    action->tb.softbuffer = &softbuffer_tx;
-    srsran_softbuffer_tx_reset(&softbuffer_tx);
-  } else {
-    action->tb.enabled = false;
+  // Assert UL HARQ entity
+  if (ul_harq.at(cc_idx) == nullptr) {
+    logger.error("HARQ entity %d has not been created", cc_idx);
+    return;
   }
+
+  ul_harq.at(cc_idx)->new_grant_ul(grant, action);
+  metrics[cc_idx].tx_pkts++;
+  metrics[cc_idx].tx_brate += grant.tbs * 8;
 
   // store PCAP
-  if (pcap) {
-    pcap->write_ul_crnti_nr(ul_harq_buffer->msg, ul_harq_buffer->N_bytes, grant.rnti, grant.pid, grant.tti);
+  if (action->tb.enabled && pcap) {
+    pcap->write_ul_crnti_nr(action->tb.payload->msg, action->tb.payload->N_bytes, grant.rnti, grant.pid, grant.tti);
   }
-
-  metrics[cc_idx].tx_brate += grant.tbs * 8;
-  metrics[cc_idx].tx_pkts++;
 }
 
 void mac_nr::timer_expired(uint32_t timer_id)
@@ -343,6 +349,24 @@ int mac_nr::setup_lcid(const srsran::logical_channel_config_t& config)
   // store full config
   logical_channels.push_back(config);
 
+  return SRSRAN_SUCCESS;
+}
+
+int mac_nr::add_tag_config(const srsran::tag_cfg_nr_t& tag_cfg)
+{
+  logger.warning("Add tag config not supported yet");
+  return SRSRAN_SUCCESS;
+}
+
+int mac_nr::remove_tag_config(const uint32_t tag_id)
+{
+  logger.warning("Remove tag config not supported yet");
+  return SRSRAN_SUCCESS;
+}
+
+int mac_nr::set_config(const srsran::phr_cfg_nr_t& phr_cfg)
+{
+  logger.warning("Add phr config not supported yet");
   return SRSRAN_SUCCESS;
 }
 
@@ -432,7 +456,9 @@ void mac_nr::handle_pdu(srsran::unique_byte_buffer_t pdu)
   logger.info(pdu->msg, pdu->N_bytes, "Handling MAC PDU (%d B)", pdu->N_bytes);
 
   rx_pdu.init_rx();
-  rx_pdu.unpack(pdu->msg, pdu->N_bytes);
+  if (rx_pdu.unpack(pdu->msg, pdu->N_bytes) != SRSRAN_SUCCESS) {
+    return;
+  }
 
   for (uint32_t i = 0; i < rx_pdu.get_num_subpdus(); ++i) {
     srsran::mac_sch_subpdu_nr subpdu = rx_pdu.get_subpdu(i);

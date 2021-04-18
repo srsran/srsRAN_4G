@@ -239,7 +239,7 @@ int common_sched_tester::process_tti_events(const tti_ev& tti_ev)
       const auto& ue_sim_ctxt = user->get_ctxt();
       if (ue_ev.buffer_ev->dl_data > 0 and ue_sim_ctxt.conres_rx) {
         // If Msg4 has already been tx and there DL data to transmit
-        uint32_t lcid                = RB_ID_DRB1;
+        uint32_t lcid                = drb_to_lcid(lte_drb::drb1);
         uint32_t pending_dl_new_data = ue_db[ue_ev.rnti]->get_pending_dl_rlc_data();
         // DRB is set. Update DL buffer
         uint32_t tot_dl_data = pending_dl_new_data + ue_ev.buffer_ev->dl_data; // TODO: derive pending based on rx

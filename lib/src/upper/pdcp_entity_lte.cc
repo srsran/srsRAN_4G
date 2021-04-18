@@ -79,7 +79,7 @@ bool pdcp_entity_lte::configure(const pdcp_config_t& cnfg_)
   // Queue Helpers
   maximum_allocated_sns_window = (1u << cfg.sn_len) / 2u;
 
-  logger.info("Init %s with bearer ID: %d", rrc->get_rb_name(lcid).c_str(), cfg.bearer_id);
+  logger.info("Init %s with bearer ID: %d", rrc->get_rb_name(lcid), cfg.bearer_id);
   logger.info("SN len bits: %d, SN len bytes: %d, reordering window: %d, Maximum SN: %d, discard timer: %d ms",
               cfg.sn_len,
               cfg.hdr_len_bytes,
@@ -104,7 +104,7 @@ bool pdcp_entity_lte::configure(const pdcp_config_t& cnfg_)
 // Reestablishment procedure: 36.323 5.2
 void pdcp_entity_lte::reestablish()
 {
-  logger.info("Re-establish %s with bearer ID: %d", rrc->get_rb_name(lcid).c_str(), cfg.bearer_id);
+  logger.info("Re-establish %s with bearer ID: %d", rrc->get_rb_name(lcid), cfg.bearer_id);
   // For SRBs
   if (is_srb()) {
     st.next_pdcp_tx_sn = 0;
@@ -126,7 +126,7 @@ void pdcp_entity_lte::reestablish()
 void pdcp_entity_lte::reset()
 {
   if (active) {
-    logger.debug("Reset %s", rrc->get_rb_name(lcid).c_str());
+    logger.debug("Reset %s", rrc->get_rb_name(lcid));
   }
   active = false;
 }
@@ -135,7 +135,7 @@ void pdcp_entity_lte::reset()
 void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, int upper_sn)
 {
   if (rlc->sdu_queue_is_full(lcid)) {
-    logger.info(sdu->msg, sdu->N_bytes, "Dropping %s SDU due to full queue", rrc->get_rb_name(lcid).c_str());
+    logger.info(sdu->msg, sdu->N_bytes, "Dropping %s SDU due to full queue", rrc->get_rb_name(lcid));
     return;
   }
 
@@ -157,7 +157,7 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, int upper_sn)
   if (!rlc->rb_is_um(lcid) and is_drb()) {
     if (not store_sdu(used_sn, sdu)) {
       // Could not store the SDU, discarding
-      logger.info("Could not store SDU. Discarding %d\n", used_sn);
+      logger.warning("Could not store SDU. Discarding SN=%d", used_sn);
       return;
     }
   }
@@ -190,7 +190,7 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, int upper_sn)
   logger.info(sdu->msg,
               sdu->N_bytes,
               "TX %s PDU, SN=%d, integrity=%s, encryption=%s",
-              rrc->get_rb_name(lcid).c_str(),
+              rrc->get_rb_name(lcid),
               used_sn,
               srsran_direction_text[integrity_direction],
               srsran_direction_text[encryption_direction]);
@@ -242,7 +242,7 @@ void pdcp_entity_lte::write_pdu(unique_byte_buffer_t pdu)
   logger.info(pdu->msg,
               pdu->N_bytes,
               "%s Rx PDU SN=%d (%d B, integrity=%s, encryption=%s)",
-              rrc->get_rb_name(lcid).c_str(),
+              rrc->get_rb_name(lcid),
               sn,
               pdu->N_bytes,
               srsran_direction_text[integrity_direction],
@@ -302,7 +302,7 @@ void pdcp_entity_lte::handle_srb_pdu(srsran::unique_byte_buffer_t pdu)
     cipher_decrypt(&pdu->msg[cfg.hdr_len_bytes], pdu->N_bytes - cfg.hdr_len_bytes, count, &pdu->msg[cfg.hdr_len_bytes]);
   }
 
-  logger.debug(pdu->msg, pdu->N_bytes, "%s Rx SDU SN=%d", rrc->get_rb_name(lcid).c_str(), sn);
+  logger.debug(pdu->msg, pdu->N_bytes, "%s Rx SDU SN=%d", rrc->get_rb_name(lcid), sn);
 
   // Extract MAC
   uint8_t mac[4];
@@ -311,7 +311,7 @@ void pdcp_entity_lte::handle_srb_pdu(srsran::unique_byte_buffer_t pdu)
   // Perfrom integrity checks
   if (integrity_direction == DIRECTION_RX || integrity_direction == DIRECTION_TXRX) {
     if (not integrity_verify(pdu->msg, pdu->N_bytes, count, mac)) {
-      logger.error(pdu->msg, pdu->N_bytes, "%s Dropping PDU", rrc->get_rb_name(lcid).c_str());
+      logger.error(pdu->msg, pdu->N_bytes, "%s Dropping PDU", rrc->get_rb_name(lcid));
       return; // Discard
     }
   }
@@ -349,7 +349,7 @@ void pdcp_entity_lte::handle_um_drb_pdu(srsran::unique_byte_buffer_t pdu)
     cipher_decrypt(pdu->msg, pdu->N_bytes, count, pdu->msg);
   }
 
-  logger.debug(pdu->msg, pdu->N_bytes, "%s Rx PDU SN=%d", rrc->get_rb_name(lcid).c_str(), sn);
+  logger.debug(pdu->msg, pdu->N_bytes, "%s Rx PDU SN=%d", rrc->get_rb_name(lcid), sn);
 
   st.next_pdcp_rx_sn = sn + 1;
   if (st.next_pdcp_rx_sn > maximum_pdcp_sn) {
@@ -413,7 +413,7 @@ void pdcp_entity_lte::handle_am_drb_pdu(srsran::unique_byte_buffer_t pdu)
 
   // Decrypt
   cipher_decrypt(pdu->msg, pdu->N_bytes, count, pdu->msg);
-  logger.debug(pdu->msg, pdu->N_bytes, "%s Rx SDU SN=%d", rrc->get_rb_name(lcid).c_str(), sn);
+  logger.debug(pdu->msg, pdu->N_bytes, "%s Rx SDU SN=%d", rrc->get_rb_name(lcid), sn);
 
   // Update info on last PDU submitted to upper layers
   st.last_submitted_pdcp_rx_sn = sn;
@@ -697,7 +697,7 @@ bool pdcp_entity_lte::store_sdu(uint32_t sn, const unique_byte_buffer_t& sdu)
 // Discard Timer Callback (discardTimer)
 void pdcp_entity_lte::discard_callback::operator()(uint32_t timer_id)
 {
-  parent->logger.debug("Discard timer expired for PDU with SN = %d", discard_sn);
+  parent->logger.info("Discard timer for SN=%d expired", discard_sn);
 
   // Notify the RLC of the discard. It's the RLC to actually discard, if no segment was transmitted yet.
   parent->rlc->discard_sdu(parent->lcid, discard_sn);

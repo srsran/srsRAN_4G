@@ -90,7 +90,7 @@ private:
         std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - sleep_start);
 
     if (m) {
-      metrics_t metric;
+      metrics_t metric = {};
       m->get_metrics(&metric);
       for (uint32_t i = 0; i < listeners.size(); i++) {
         listeners[i]->set_metrics(metric, period_usec.count());

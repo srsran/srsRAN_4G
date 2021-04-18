@@ -22,6 +22,7 @@
 #include "sched_test_utils.h"
 #include "srsenb/hdr/stack/mac/sched_common.h"
 #include "srsenb/hdr/stack/mac/sched_phy_ch/sched_dci.h"
+#include "srsran/common/lte_common.h"
 #include "srsran/common/test_common.h"
 
 namespace srsenb {
@@ -187,10 +188,9 @@ int test_mcs_lookup_specific()
 /// Verify consistency of MCS,TBS computation for different permutations of banwidths, grant sizes, cqi, max_mcs
 int test_mcs_tbs_consistency_all()
 {
-  uint32_t                      prb_list[] = {6, 15, 25, 50, 75, 100};
   sched_interface::sched_args_t sched_args = {};
 
-  for (auto& nof_prb_cell : prb_list) {
+  for (auto& nof_prb_cell : srsran::lte_cell_nof_prbs) {
     sched_interface::cell_cfg_t cell_cfg    = generate_default_cell_cfg(nof_prb_cell);
     sched_cell_params_t         cell_params = {};
     cell_params.set_cfg(0, cell_cfg, sched_args);

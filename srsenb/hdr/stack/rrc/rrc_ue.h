@@ -51,7 +51,8 @@ public:
   void        set_activity_timeout(const activity_timeout_type_t type);
   void        set_rlf_timeout();
   void        set_activity();
-  void        mac_ko_activity();
+  void        set_radiolink_dl_state(bool crc_res);
+  void        set_radiolink_ul_state(bool crc_res);
   void        activity_timer_expired(const activity_timeout_type_t type);
   void        rlf_timer_expired();
   void        max_retx_reached();
@@ -78,9 +79,9 @@ public:
   void send_connection_reject(procedure_result_code cause);
   void send_connection_release();
   void send_connection_reest_rej(procedure_result_code cause);
-  void send_connection_reconf(srsran::unique_byte_buffer_t           sdu             = {},
-                              bool                                   phy_cfg_updated = true,
-                              const asn1::unbounded_octstring<true>* nas_pdu         = nullptr);
+  void send_connection_reconf(srsran::unique_byte_buffer_t sdu             = {},
+                              bool                         phy_cfg_updated = true,
+                              srsran::const_byte_span      nas_pdu         = {});
   void send_security_mode_command();
   void send_ue_cap_enquiry();
   void send_ue_info_req();
@@ -116,16 +117,23 @@ public:
 
   void set_bitrates(const asn1::s1ap::ue_aggregate_maximum_bitrate_s& rates);
 
-  bool setup_erabs(const asn1::s1ap::erab_to_be_setup_list_ctxt_su_req_l& e);
-  bool setup_erabs(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e);
-  bool release_erabs();
-  bool release_erab(uint32_t erab_id);
-  bool modify_erab(uint16_t                                   erab_id,
-                   const asn1::s1ap::erab_level_qos_params_s& qos_params,
-                   const asn1::unbounded_octstring<true>*     nas_pdu);
+  /// Helper to check UE ERABs
+  bool has_erab(uint32_t erab_id) const { return bearer_list.get_erabs().count(erab_id) > 0; }
+  int  get_erab_addr_in(uint16_t erab_id, transp_addr_t& addr_in, uint32_t& teid_in) const;
 
-  void notify_s1ap_ue_ctxt_setup_complete();
-  void notify_s1ap_ue_erab_setup_response(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e);
+  bool setup_erabs(const asn1::s1ap::erab_to_be_setup_list_ctxt_su_req_l& e);
+  bool release_erabs();
+  int  release_erab(uint32_t erab_id);
+  int  setup_erab(uint16_t                                           erab_id,
+                  const asn1::s1ap::erab_level_qos_params_s&         qos_params,
+                  srsran::const_span<uint8_t>                        nas_pdu,
+                  const asn1::bounded_bitstring<1, 160, true, true>& addr,
+                  uint32_t                                           gtpu_teid_out,
+                  asn1::s1ap::cause_c&                               cause);
+  int  modify_erab(uint16_t                                   erab_id,
+                   const asn1::s1ap::erab_level_qos_params_s& qos_params,
+                   srsran::const_span<uint8_t>                nas_pdu,
+                   asn1::s1ap::cause_c&                       cause);
 
   // Getters for PUCCH resources
   int  get_cqi(uint16_t* pmi_idx, uint16_t* n_pucch, uint32_t ue_cc_idx);
@@ -187,7 +195,9 @@ private:
 
   const static uint32_t UE_PCELL_CC_IDX = 0;
 
-  uint32_t consecutive_kos = 0;
+  // consecutive KO counter for DL and UL
+  uint32_t consecutive_kos_dl = 0;
+  uint32_t consecutive_kos_ul = 0;
 
   ue_cell_ded_list     ue_cell_list;
   bearer_cfg_handler   bearer_list;

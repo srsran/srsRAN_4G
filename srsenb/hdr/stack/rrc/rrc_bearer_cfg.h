@@ -92,15 +92,17 @@ public:
                 const asn1::s1ap::erab_level_qos_params_s&         qos,
                 const asn1::bounded_bitstring<1, 160, true, true>& addr,
                 uint32_t                                           teid_out,
-                const asn1::unbounded_octstring<true>*             nas_pdu);
-  bool release_erab(uint8_t erab_id);
+                srsran::const_span<uint8_t>                        nas_pdu,
+                asn1::s1ap::cause_c&                               cause);
+  int  release_erab(uint8_t erab_id);
   void release_erabs();
-  bool modify_erab(uint8_t                                    erab_id,
+  int  modify_erab(uint8_t                                    erab_id,
                    const asn1::s1ap::erab_level_qos_params_s& qos,
-                   const asn1::unbounded_octstring<true>*     nas_pdu);
+                   srsran::const_span<uint8_t>                nas_pdu,
+                   asn1::s1ap::cause_c&                       cause);
 
   // Methods to apply bearer updates
-  void                       add_gtpu_bearer(uint32_t erab_id);
+  int                        add_gtpu_bearer(uint32_t erab_id);
   srsran::expected<uint32_t> add_gtpu_bearer(uint32_t                                erab_id,
                                              uint32_t                                teid_out,
                                              uint32_t                                addr,

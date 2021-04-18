@@ -57,7 +57,8 @@ public:
     if (capacity_ > 0) {
       nof_buffers = (uint32_t)capacity_;
     }
-    used.reserve(nof_buffers);
+    pool.reserve(nof_buffers);
+    free_list.reserve(nof_buffers);
     pthread_mutex_init(&mutex, nullptr);
     pthread_cond_init(&cv_not_empty, nullptr);
     for (uint32_t i = 0; i < nof_buffers; i++) {
@@ -66,21 +67,16 @@ public:
         perror("Error allocating memory. Exiting...\n");
         exit(-1);
       }
-      available.push(b);
+      pool.push_back(b);
+      free_list.push_back(b);
     }
     capacity = nof_buffers;
   }
 
   ~buffer_pool()
   {
-    // this destructor assumes all buffers have been properly deallocated
-    while (available.size()) {
-      delete available.top();
-      available.pop();
-    }
-
-    for (uint32_t i = 0; i < used.size(); i++) {
-      delete used[i];
+    for (auto* p : pool) {
+      delete p;
     }
     pthread_cond_destroy(&cv_not_empty);
     pthread_mutex_destroy(&mutex);
@@ -88,11 +84,13 @@ public:
 
   void print_all_buffers()
   {
-    printf("%d buffers in queue\n", (int)used.size());
+    printf("%d buffers in queue\n", static_cast<int>(pool.size() - free_list.size()));
 #ifdef SRSRAN_BUFFER_POOL_LOG_ENABLED
     std::map<std::string, uint32_t> buffer_cnt;
-    for (uint32_t i = 0; i < used.size(); i++) {
-      buffer_cnt[strlen(used[i]->debug_name) ? used[i]->debug_name : "Undefined"]++;
+    for (uint32_t i = 0; i < pool.size(); i++) {
+      if (std::find(free_list.cbegin(), free_list.cend(), pool[i]) == free_list.cend()) {
+        buffer_cnt[strlen(used[i]->debug_name) ? pool[i]->debug_name : "Undefined"]++;
+      }
     }
     std::map<std::string, uint32_t>::iterator it;
     for (it = buffer_cnt.begin(); it != buffer_cnt.end(); it++) {
@@ -101,22 +99,21 @@ public:
 #endif
   }
 
-  uint32_t nof_available_pdus() { return available.size(); }
+  uint32_t nof_available_pdus() { return free_list.size(); }
 
-  bool is_almost_empty() { return available.size() < capacity / 20; }
+  bool is_almost_empty() { return free_list.size() < capacity / 20; }
 
   buffer_t* allocate(const char* debug_name = nullptr, bool blocking = false)
   {
     pthread_mutex_lock(&mutex);
     buffer_t* b = nullptr;
 
-    if (available.size() > 0) {
-      b = available.top();
-      used.push_back(b);
-      available.pop();
+    if (!free_list.empty()) {
+      b = free_list.back();
+      free_list.pop_back();
 
       if (is_almost_empty()) {
-        printf("Warning buffer pool capacity is %f %%\n", (float)100 * available.size() / capacity);
+        printf("Warning buffer pool capacity is %f %%\n", (float)100 * free_list.size() / capacity);
       }
 #ifdef SRSRAN_BUFFER_POOL_LOG_ENABLED
       if (debug_name) {
@@ -126,14 +123,13 @@ public:
 #endif
     } else if (blocking) {
       // blocking allocation
-      while (available.size() == 0) {
+      while (free_list.empty()) {
         pthread_cond_wait(&cv_not_empty, &mutex);
       }
 
       // retrieve the new buffer
-      b = available.top();
-      used.push_back(b);
-      available.pop();
+      b = free_list.back();
+      free_list.pop_back();
 
       // do not print any warning
     } else {
@@ -152,10 +148,8 @@ public:
   {
     bool ret = false;
     pthread_mutex_lock(&mutex);
-    typename std::vector<buffer_t*>::iterator elem = std::find(used.begin(), used.end(), b);
-    if (elem != used.end()) {
-      used.erase(elem);
-      available.push(b);
+    if (std::find(pool.cbegin(), pool.cend(), b) != pool.cend()) {
+      free_list.push_back(b);
       ret = true;
     }
     pthread_cond_signal(&cv_not_empty);
@@ -165,8 +159,8 @@ public:
 
 private:
   static const int       POOL_SIZE = 4096;
-  std::stack<buffer_t*>  available;
-  std::vector<buffer_t*> used;
+  std::vector<buffer_t*> pool;
+  std::vector<buffer_t*> free_list;
   pthread_mutex_t        mutex;
   pthread_cond_t         cv_not_empty;
   uint32_t               capacity;

@@ -34,9 +34,10 @@
 #include "sched_common_test_suite.h"
 #include "sched_test_common.h"
 #include "sched_test_utils.h"
+#include "srsran/common/lte_common.h"
 #include "srsran/common/test_common.h"
 
-using srsran::tti_point;
+namespace srsenb {
 
 uint32_t seed = std::chrono::system_clock::now().time_since_epoch().count();
 
@@ -242,7 +243,7 @@ int sched_tester::update_ue_stats()
   return SRSRAN_SUCCESS;
 }
 
-int test_scheduler_rand(sched_sim_events sim)
+int test_scheduler_rand(srsenb::sched_sim_events sim)
 {
   // Create classes
   sched_tester  tester;
@@ -273,7 +274,7 @@ sched_sim_events rand_sim_params(uint32_t nof_ttis)
   std::uniform_int_distribution<>         connection_dur_dist(min_conn_dur, max_conn_dur);
   std::uniform_int_distribution<uint32_t> dist_prb_idx(0, 5);
   uint32_t                                prb_idx = dist_prb_idx(srsenb::get_rand_gen());
-  uint32_t                                nof_prb = std::array<uint32_t, 6>({6, 15, 25, 50, 75, 100})[prb_idx];
+  uint32_t                                nof_prb = srsran::lte_cell_nof_prbs[prb_idx];
   printf("Number of PRBs is %u\n", nof_prb);
 
   sched_sim_event_generator generator;
@@ -331,11 +332,13 @@ sched_sim_events rand_sim_params(uint32_t nof_ttis)
   return sim_gen;
 }
 
+} // namespace srsenb
+
 int main()
 {
   // Setup seed
-  srsenb::set_randseed(seed);
-  printf("This is the chosen seed: %u\n", seed);
+  srsenb::set_randseed(srsenb::seed);
+  printf("This is the chosen seed: %u\n", srsenb::seed);
 
   // Setup the log spy to intercept error and warning log entries.
   if (!srslog::install_custom_sink(
@@ -359,11 +362,11 @@ int main()
 
   uint32_t N_runs = 1, nof_ttis = 10240 + 10;
 
-  sched_diagnostic_printer printer(*spy);
+  srsenb::sched_diagnostic_printer printer(*spy);
   for (uint32_t n = 0; n < N_runs; ++n) {
     printf("Sim run number: %u\n", n + 1);
-    sched_sim_events sim = rand_sim_params(nof_ttis);
-    TESTASSERT(test_scheduler_rand(std::move(sim)) == SRSRAN_SUCCESS);
+    srsenb::sched_sim_events sim = srsenb::rand_sim_params(nof_ttis);
+    TESTASSERT(srsenb::test_scheduler_rand(std::move(sim)) == SRSRAN_SUCCESS);
   }
 
   return 0;

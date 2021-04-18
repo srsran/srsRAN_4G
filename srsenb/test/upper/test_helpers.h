@@ -81,18 +81,19 @@ public:
     uint16_t                        rnti;
     std::vector<bearer_status_info> bearer_list;
   } last_enb_status = {};
-  std::vector<uint8_t> added_erab_ids;
   struct ho_req_ack {
     uint16_t                                      rnti;
     srsran::unique_byte_buffer_t                  ho_cmd_pdu;
     std::vector<asn1::s1ap::erab_admitted_item_s> admitted_bearers;
+    std::vector<asn1::s1ap::erab_item_s>          not_admitted_bearers;
   } last_ho_req_ack;
 
   bool send_ho_required(uint16_t                     rnti,
                         uint32_t                     target_eci,
                         srsran::plmn_id_t            target_plmn,
                         srsran::span<uint32_t>       fwd_erabs,
-                        srsran::unique_byte_buffer_t rrc_container) final
+                        srsran::unique_byte_buffer_t rrc_container,
+                        bool                         has_direct_fwd_path) final
   {
     last_ho_required = ho_req_data{rnti, target_eci, target_plmn, std::move(rrc_container)};
     return true;
@@ -106,20 +107,14 @@ public:
                        uint16_t                                       rnti,
                        uint32_t                                       enb_cc_idx,
                        srsran::unique_byte_buffer_t                   ho_cmd,
-                       srsran::span<asn1::s1ap::erab_admitted_item_s> admitted_bearers) override
+                       srsran::span<asn1::s1ap::erab_admitted_item_s> admitted_bearers,
+                       srsran::const_span<asn1::s1ap::erab_item_s>    not_admitted_bearers) override
   {
     last_ho_req_ack.rnti       = rnti;
     last_ho_req_ack.ho_cmd_pdu = std::move(ho_cmd);
     last_ho_req_ack.admitted_bearers.assign(admitted_bearers.begin(), admitted_bearers.end());
+    last_ho_req_ack.not_admitted_bearers.assign(not_admitted_bearers.begin(), not_admitted_bearers.end());
     return true;
-  }
-  void ue_erab_setup_complete(uint16_t rnti, const asn1::s1ap::erab_setup_resp_s& res) override
-  {
-    if (res.protocol_ies.erab_setup_list_bearer_su_res_present) {
-      for (const auto& item : res.protocol_ies.erab_setup_list_bearer_su_res.value) {
-        added_erab_ids.push_back(item.value.erab_setup_item_bearer_su_res().erab_id);
-      }
-    }
   }
   void user_mod(uint16_t old_rnti, uint16_t new_rnti) override {}
 };

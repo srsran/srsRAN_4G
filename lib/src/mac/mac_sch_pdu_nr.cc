@@ -76,7 +76,7 @@ int32_t mac_sch_subpdu_nr::read_subheader(const uint8_t* ptr)
     }
     sdu = (uint8_t*)ptr;
   } else {
-    srslog::fetch_basic_logger("MAC").warning("Invalid LCID (%d) in MAC PDU", lcid);
+    srslog::fetch_basic_logger("MAC-NR").warning("Invalid LCID (%d) in MAC PDU", lcid);
     return SRSRAN_ERROR;
   }
   return header_length;
@@ -302,14 +302,14 @@ void mac_sch_pdu_nr::pack()
   }
 }
 
-void mac_sch_pdu_nr::unpack(const uint8_t* payload, const uint32_t& len)
+int mac_sch_pdu_nr::unpack(const uint8_t* payload, const uint32_t& len)
 {
   uint32_t offset = 0;
   while (offset < len) {
     mac_sch_subpdu_nr sch_pdu(this);
     if (sch_pdu.read_subheader(payload + offset) == SRSRAN_ERROR) {
-      logger.error("Error parsing NR MAC PDU (len=%d, offset=%d)\n", len, offset);
-      return;
+      logger.error("Malformed MAC PDU (len=%d, offset=%d)\n", len, offset);
+      return SRSRAN_ERROR;
     }
     offset += sch_pdu.get_total_length();
     if (sch_pdu.get_lcid() == mac_sch_subpdu_nr::PADDING) {
@@ -321,8 +321,11 @@ void mac_sch_pdu_nr::unpack(const uint8_t* payload, const uint32_t& len)
     subpdus.push_back(sch_pdu);
   }
   if (offset != len) {
-    logger.error("Error parsing NR MAC PDU (len=%d, offset=%d)\n", len, offset);
+    logger.error("Malformed MAC PDU (len=%d, offset=%d)\n", len, offset);
+    return SRSRAN_ERROR;
   }
+
+  return SRSRAN_SUCCESS;
 }
 
 uint32_t mac_sch_pdu_nr::get_num_subpdus()

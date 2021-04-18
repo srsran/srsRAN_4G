@@ -47,7 +47,7 @@ public:
   virtual void wait_initialize() = 0;
   virtual void start_plot()      = 0;
 
-  virtual void get_metrics(phy_metrics_t* m) = 0;
+  virtual void get_metrics(const srsran::srsran_rat_t& rat, phy_metrics_t* m) = 0;
 };
 
 } // namespace srsue

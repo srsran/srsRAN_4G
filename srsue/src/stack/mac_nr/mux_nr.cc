@@ -71,14 +71,10 @@ srsran::unique_byte_buffer_t mux_nr::get_pdu(uint32_t max_pdu_len)
   tx_pdu.init_tx(phy_tx_pdu.get(), max_pdu_len, true);
 
   if (msg3_is_pending()) {
-    // If message 3 is pending pack message 3 for uplink transmission
+    // If Msg3 is pending, pack it
     // Use the CRNTI which is provided in the RRC reconfiguration (only for DC mode maybe other)
     tx_pdu.add_crnti_ce(mac.get_crnti());
-    srsran::mac_sch_subpdu_nr::lcg_bsr_t sbsr = {};
-    sbsr.lcg_id                               = 0;
-    sbsr.buffer_size                          = 1;
-    tx_pdu.add_sbsr_ce(sbsr);
-    logger.info("Generated msg3 with RNTI 0x%x", mac.get_crnti());
+    tx_pdu.add_sbsr_ce(mac.generate_sbsr());
     msg3_transmitted();
   } else {
     // Pack normal UL data PDU

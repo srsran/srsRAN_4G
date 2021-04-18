@@ -70,7 +70,7 @@ void vnf_phy_nr::start_plot() {}
 
 void vnf_phy_nr::wait_initialize() {}
 
-void vnf_phy_nr::get_metrics(phy_metrics_t* m) {}
+void vnf_phy_nr::get_metrics(const srsran::srsran_rat_t& rat, phy_metrics_t* m) {}
 
 int vnf_phy_nr::tx_request(const tx_request_t& request)
 {

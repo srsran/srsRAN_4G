@@ -57,7 +57,6 @@ private:
 
   uhd_error test_ad936x_device(uint32_t nof_channels)
   {
-
     uhd_error err = set_rx_rate(1.92e6);
     if (err != UHD_ERROR_NONE) {
       return err;
@@ -218,7 +217,6 @@ public:
       Info("The device is based on AD9361, get RX stream for checking LIBUSB_TRANSFER_ERROR");
       uint32_t ntrials = 10;
       do {
-
         // If no error getting RX stream, return
         err = test_ad936x_device(nof_channels);
         if (err == UHD_ERROR_NONE) {
@@ -277,13 +275,13 @@ public:
   {
     UHD_SAFE_C_SAVE_ERROR(this, timespec = usrp->get_time_now();)
   }
-  uhd_error set_sync_source(const std::string& source) override
+  uhd_error set_sync_source(const std::string& sync_source, const std::string& clock_source) override
   {
-    Debug("Setting PPS source to '" << source << "'");
+    Debug("Setting PPS source to '" << sync_source << "' and clock source to '" << clock_source << "'");
 #if UHD_VERSION < 3140099
-        UHD_SAFE_C_SAVE_ERROR(this, usrp->set_clock_source(source); usrp->set_time_source(source);)
+    UHD_SAFE_C_SAVE_ERROR(this, usrp->set_clock_source(clock_source); usrp->set_time_source(sync_source);)
 #else
-        UHD_SAFE_C_SAVE_ERROR(this, usrp->set_sync_source(source, source);)
+    UHD_SAFE_C_SAVE_ERROR(this, usrp->set_sync_source(clock_source, sync_source);)
 #endif
   }
   uhd_error get_gain_range(uhd::gain_range_t& tx_gain_range, uhd::gain_range_t& rx_gain_range) override

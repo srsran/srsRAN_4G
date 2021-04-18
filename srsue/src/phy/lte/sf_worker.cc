@@ -316,7 +316,7 @@ int sf_worker::read_pdsch_d(cf_t* pdsch_d)
 
 float sf_worker::get_cfo()
 {
-  sync_metrics_t sync_metrics[SRSRAN_MAX_CARRIERS] = {};
+  sync_metrics_t::array_t sync_metrics = {};
   phy->get_sync_metrics(sync_metrics);
   return sync_metrics[0].cfo;
 }

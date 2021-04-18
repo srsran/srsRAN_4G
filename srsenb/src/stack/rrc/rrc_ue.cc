@@ -97,15 +97,24 @@ void rrc::ue::set_activity()
 {
   // re-start activity timer with current timeout value
   activity_timer.run();
-  rlf_timer.stop();
-  consecutive_kos = 0;
   if (parent) {
     parent->logger.debug("Activity registered for rnti=0x%x (timeout_value=%dms)", rnti, activity_timer.duration());
   }
 }
 
-void rrc::ue::mac_ko_activity()
+void rrc::ue::set_radiolink_dl_state(bool crc_res)
 {
+  parent->logger.debug(
+      "Radio-Link downlink state for rnti=0x%x: crc_res=%d, consecutive_ko=%d", rnti, crc_res, consecutive_kos_dl);
+
+  // If received OK, restart counter and stop RLF timer
+  if (crc_res) {
+    consecutive_kos_dl = 0;
+    consecutive_kos_ul = 0;
+    rlf_timer.stop();
+    return;
+  }
+
   // Count KOs in MAC and trigger release if it goes above a certain value.
   // This is done to detect out-of-coverage UEs
   if (rlf_timer.is_running()) {
@@ -113,9 +122,36 @@ void rrc::ue::mac_ko_activity()
     return;
   }
 
-  consecutive_kos++;
-  if (consecutive_kos > parent->cfg.max_mac_dl_kos) {
-    parent->logger.info("Max KOs reached, triggering release rnti=0x%x", rnti);
+  consecutive_kos_dl++;
+  if (consecutive_kos_dl > parent->cfg.max_mac_dl_kos) {
+    parent->logger.info("Max KOs in DL reached, triggering release rnti=0x%x", rnti);
+    max_retx_reached();
+  }
+}
+
+void rrc::ue::set_radiolink_ul_state(bool crc_res)
+{
+  parent->logger.debug(
+      "Radio-Link uplink state for rnti=0x%x: crc_res=%d, consecutive_ko=%d", rnti, crc_res, consecutive_kos_ul);
+
+  // If received OK, restart counter and stop RLF timer
+  if (crc_res) {
+    consecutive_kos_dl = 0;
+    consecutive_kos_ul = 0;
+    rlf_timer.stop();
+    return;
+  }
+
+  // Count KOs in MAC and trigger release if it goes above a certain value.
+  // This is done to detect out-of-coverage UEs
+  if (rlf_timer.is_running()) {
+    // RLF timer already running, no need to count KOs
+    return;
+  }
+
+  consecutive_kos_ul++;
+  if (consecutive_kos_ul > parent->cfg.max_mac_ul_kos) {
+    parent->logger.info("Max KOs in UL reached, triggering release rnti=0x%x", rnti);
     max_retx_reached();
   }
 }
@@ -236,8 +272,6 @@ bool rrc::ue::is_idle()
 
 void rrc::ue::parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
-  set_activity();
-
   ul_dcch_msg_s  ul_dcch_msg;
   asn1::cbit_ref bref(pdu->msg, pdu->N_bytes);
   if (ul_dcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or
@@ -246,8 +280,7 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
     return;
   }
 
-  parent->log_rrc_message(
-      srsenb::to_string((rb_id_t)lcid), Rx, pdu.get(), ul_dcch_msg, ul_dcch_msg.msg.c1().type().to_string());
+  parent->log_rrc_message(get_rb_name(lcid), Rx, pdu.get(), ul_dcch_msg, ul_dcch_msg.msg.c1().type().to_string());
 
   srsran::unique_byte_buffer_t original_pdu = std::move(pdu);
   pdu                                       = srsran::make_byte_buffer();
@@ -262,10 +295,12 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
     case ul_dcch_msg_type_c::c1_c_::types::rrc_conn_setup_complete:
       save_ul_message(std::move(original_pdu));
       handle_rrc_con_setup_complete(&ul_dcch_msg.msg.c1().rrc_conn_setup_complete(), std::move(pdu));
+      set_activity();
       break;
     case ul_dcch_msg_type_c::c1_c_::types::rrc_conn_reest_complete:
       save_ul_message(std::move(original_pdu));
       handle_rrc_con_reest_complete(&ul_dcch_msg.msg.c1().rrc_conn_reest_complete(), std::move(pdu));
+      set_activity();
       break;
     case ul_dcch_msg_type_c::c1_c_::types::ul_info_transfer:
       pdu->N_bytes = ul_dcch_msg.msg.c1()
@@ -301,7 +336,7 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
       break;
     case ul_dcch_msg_type_c::c1_c_::types::ue_cap_info:
       if (handle_ue_cap_info(&ul_dcch_msg.msg.c1().ue_cap_info())) {
-        notify_s1ap_ue_ctxt_setup_complete();
+        parent->s1ap->ue_ctxt_setup_complete(rnti);
         send_connection_reconf(std::move(pdu));
         state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
       } else {
@@ -510,7 +545,9 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
                           old_rnti);
 
       // Cancel Handover in Target eNB if on-going
-      parent->users.at(old_rnti)->mobility_handler->trigger(rrc_mobility::ho_cancel_ev{});
+      asn1::s1ap::cause_c cause;
+      cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::interaction_with_other_proc;
+      parent->users.at(old_rnti)->mobility_handler->trigger(rrc_mobility::ho_cancel_ev{cause});
 
       // Recover security setup
       const enb_cell_common* pcell_cfg = get_ue_cc_cfg(UE_PCELL_CC_IDX);
@@ -621,9 +658,9 @@ void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srsr
   mac_ctrl.handle_con_reest_complete();
 
   // Activate security for SRB1
-  parent->pdcp->config_security(rnti, RB_ID_SRB1, ue_security_cfg.get_as_sec_cfg());
-  parent->pdcp->enable_integrity(rnti, RB_ID_SRB1);
-  parent->pdcp->enable_encryption(rnti, RB_ID_SRB1);
+  parent->pdcp->config_security(rnti, srb_to_lcid(lte_srb::srb1), ue_security_cfg.get_as_sec_cfg());
+  parent->pdcp->enable_integrity(rnti, srb_to_lcid(lte_srb::srb1));
+  parent->pdcp->enable_encryption(rnti, srb_to_lcid(lte_srb::srb1));
 
   // Reestablish current DRBs during ConnectionReconfiguration
   bearer_list = std::move(parent->users.at(old_reest_rnti)->bearer_list);
@@ -665,9 +702,9 @@ void rrc::ue::send_connection_reest_rej(procedure_result_code cause)
 /*
  * Connection Reconfiguration
  */
-void rrc::ue::send_connection_reconf(srsran::unique_byte_buffer_t           pdu,
-                                     bool                                   phy_cfg_updated,
-                                     const asn1::unbounded_octstring<true>* nas_pdu)
+void rrc::ue::send_connection_reconf(srsran::unique_byte_buffer_t pdu,
+                                     bool                         phy_cfg_updated,
+                                     srsran::const_byte_span      nas_pdu)
 {
   parent->logger.debug("RRC state %d", state);
 
@@ -707,13 +744,13 @@ void rrc::ue::send_connection_reconf(srsran::unique_byte_buffer_t           pdu,
   mac_ctrl.handle_con_reconf(recfg_r8, ue_capabilities);
 
   // Fill in NAS PDU - Only for RRC Connection Reconfiguration during E-RAB Release Command
-  if (nas_pdu != nullptr and nas_pdu->size() > 0 and !recfg_r8.ded_info_nas_list_present) {
+  if (nas_pdu.size() > 0 and !recfg_r8.ded_info_nas_list_present) {
     recfg_r8.ded_info_nas_list_present = true;
     recfg_r8.ded_info_nas_list.resize(recfg_r8.rr_cfg_ded.drb_to_release_list.size());
     // Add NAS PDU
     for (uint32_t idx = 0; idx < recfg_r8.rr_cfg_ded.drb_to_release_list.size(); idx++) {
-      recfg_r8.ded_info_nas_list[idx].resize(nas_pdu->size());
-      memcpy(recfg_r8.ded_info_nas_list[idx].data(), nas_pdu->data(), nas_pdu->size());
+      recfg_r8.ded_info_nas_list[idx].resize(nas_pdu.size());
+      memcpy(recfg_r8.ded_info_nas_list[idx].data(), nas_pdu.data(), nas_pdu.size());
     }
   }
 
@@ -799,8 +836,8 @@ void rrc::ue::handle_ue_info_resp(const asn1::rrc::ue_info_resp_r9_s& msg, srsra
 void rrc::ue::send_security_mode_command()
 {
   // Setup SRB1 security/integrity. Encryption is set on completion
-  parent->pdcp->config_security(rnti, RB_ID_SRB1, ue_security_cfg.get_as_sec_cfg());
-  parent->pdcp->enable_integrity(rnti, RB_ID_SRB1);
+  parent->pdcp->config_security(rnti, srb_to_lcid(lte_srb::srb1), ue_security_cfg.get_as_sec_cfg());
+  parent->pdcp->enable_integrity(rnti, srb_to_lcid(lte_srb::srb1));
 
   dl_dcch_msg_s        dl_dcch_msg;
   security_mode_cmd_s* comm = &dl_dcch_msg.msg.set_c1().set_security_mode_cmd();
@@ -816,7 +853,7 @@ void rrc::ue::handle_security_mode_complete(security_mode_complete_s* msg)
 {
   parent->logger.info("SecurityModeComplete transaction ID: %d", msg->rrc_transaction_id);
 
-  parent->pdcp->enable_encryption(rnti, RB_ID_SRB1);
+  parent->pdcp->enable_encryption(rnti, srb_to_lcid(lte_srb::srb1));
 }
 
 void rrc::ue::handle_security_mode_failure(security_mode_fail_s* msg)
@@ -924,47 +961,10 @@ void rrc::ue::send_connection_release()
 }
 
 /*
- * UE context
+ * UE Init Context Setup Request
  */
 void rrc::ue::handle_ue_init_ctxt_setup_req(const asn1::s1ap::init_context_setup_request_s& msg)
 {
-  if (msg.protocol_ies.add_cs_fallback_ind_present) {
-    parent->logger.warning("Not handling AdditionalCSFallbackIndicator");
-  }
-  if (msg.protocol_ies.csg_membership_status_present) {
-    parent->logger.warning("Not handling CSGMembershipStatus");
-  }
-  if (msg.protocol_ies.gummei_id_present) {
-    parent->logger.warning("Not handling GUMMEI_ID");
-  }
-  if (msg.protocol_ies.ho_restrict_list_present) {
-    parent->logger.warning("Not handling HandoverRestrictionList");
-  }
-  if (msg.protocol_ies.management_based_mdt_allowed_present) {
-    parent->logger.warning("Not handling ManagementBasedMDTAllowed");
-  }
-  if (msg.protocol_ies.management_based_mdtplmn_list_present) {
-    parent->logger.warning("Not handling ManagementBasedMDTPLMNList");
-  }
-  if (msg.protocol_ies.mme_ue_s1ap_id_minus2_present) {
-    parent->logger.warning("Not handling MME_UE_S1AP_ID_2");
-  }
-  if (msg.protocol_ies.registered_lai_present) {
-    parent->logger.warning("Not handling RegisteredLAI");
-  }
-  if (msg.protocol_ies.srvcc_operation_possible_present) {
-    parent->logger.warning("Not handling SRVCCOperationPossible");
-  }
-  if (msg.protocol_ies.subscriber_profile_idfor_rfp_present) {
-    parent->logger.warning("Not handling SubscriberProfileIDforRFP");
-  }
-  if (msg.protocol_ies.trace_activation_present) {
-    parent->logger.warning("Not handling TraceActivation");
-  }
-  if (msg.protocol_ies.ue_radio_cap_present) {
-    parent->logger.warning("Not handling UERadioCapability");
-  }
-
   set_bitrates(msg.protocol_ies.ueaggregate_maximum_bitrate.value);
   ue_security_cfg.set_security_capabilities(msg.protocol_ies.ue_security_cap.value);
   ue_security_cfg.set_security_key(msg.protocol_ies.security_key.value);
@@ -979,9 +979,6 @@ void rrc::ue::handle_ue_init_ctxt_setup_req(const asn1::s1ap::init_context_setup
 
   // Send RRC security mode command
   send_security_mode_command();
-
-  // Setup E-RABs
-  setup_erabs(msg.protocol_ies.erab_to_be_setup_list_ctxt_su_req.value);
 }
 
 bool rrc::ue::handle_ue_ctxt_mod_req(const asn1::s1ap::ue_context_mod_request_s& msg)
@@ -992,19 +989,6 @@ bool rrc::ue::handle_ue_ctxt_mod_req(const asn1::s1ap::ue_context_mod_request_s&
       /* Remember that we are in a CSFB right now */
       is_csfb = true;
     }
-  }
-
-  if (msg.protocol_ies.add_cs_fallback_ind_present) {
-    parent->logger.warning("Not handling AdditionalCSFallbackIndicator");
-  }
-  if (msg.protocol_ies.csg_membership_status_present) {
-    parent->logger.warning("Not handling CSGMembershipStatus");
-  }
-  if (msg.protocol_ies.registered_lai_present) {
-    parent->logger.warning("Not handling RegisteredLAI");
-  }
-  if (msg.protocol_ies.subscriber_profile_idfor_rfp_present) {
-    parent->logger.warning("Not handling SubscriberProfileIDforRFP");
   }
 
   // UEAggregateMaximumBitrate
@@ -1025,23 +1009,6 @@ bool rrc::ue::handle_ue_ctxt_mod_req(const asn1::s1ap::ue_context_mod_request_s&
   return true;
 }
 
-void rrc::ue::notify_s1ap_ue_ctxt_setup_complete()
-{
-  asn1::s1ap::init_context_setup_resp_s res;
-
-  res.protocol_ies.erab_setup_list_ctxt_su_res.value.resize(bearer_list.get_erabs().size());
-  uint32_t i = 0;
-  for (const auto& erab : bearer_list.get_erabs()) {
-    res.protocol_ies.erab_setup_list_ctxt_su_res.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_SETUP_ITEM_CTXT_SU_RES);
-    auto& item   = res.protocol_ies.erab_setup_list_ctxt_su_res.value[i].value.erab_setup_item_ctxt_su_res();
-    item.erab_id = erab.second.id;
-    srsran::uint32_to_uint8(erab.second.teid_in, item.gtp_teid.data());
-    i++;
-  }
-
-  parent->s1ap->ue_ctxt_setup_complete(rnti, res);
-}
-
 void rrc::ue::set_bitrates(const asn1::s1ap::ue_aggregate_maximum_bitrate_s& rates)
 {
   bitrates = rates;
@@ -1050,7 +1017,7 @@ void rrc::ue::set_bitrates(const asn1::s1ap::ue_aggregate_maximum_bitrate_s& rat
 bool rrc::ue::setup_erabs(const asn1::s1ap::erab_to_be_setup_list_ctxt_su_req_l& e)
 {
   for (const auto& item : e) {
-    auto& erab = item.value.erab_to_be_setup_item_ctxt_su_req();
+    const auto& erab = item.value.erab_to_be_setup_item_ctxt_su_req();
     if (erab.ext) {
       parent->logger.warning("Not handling E-RABToBeSetupListCtxtSURequest extensions");
     }
@@ -1062,40 +1029,17 @@ bool rrc::ue::setup_erabs(const asn1::s1ap::erab_to_be_setup_list_ctxt_su_req_l&
       return false;
     }
 
-    uint32_t teid_out;
+    uint32_t teid_out = 0;
     srsran::uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
-    const asn1::unbounded_octstring<true>* nas_pdu = erab.nas_pdu_present ? &erab.nas_pdu : nullptr;
-    bearer_list.add_erab(erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, nas_pdu);
-    bearer_list.add_gtpu_bearer(erab.erab_id);
-  }
-  return true;
-}
-
-bool rrc::ue::setup_erabs(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e)
-{
-  for (const auto& item : e) {
-    auto& erab = item.value.erab_to_be_setup_item_bearer_su_req();
-    if (erab.ext) {
-      parent->logger.warning("Not handling E-RABToBeSetupListBearerSUReq extensions");
+    srsran::const_span<uint8_t> nas_pdu;
+    if (erab.nas_pdu_present) {
+      nas_pdu = erab.nas_pdu;
     }
-    if (erab.ie_exts_present) {
-      parent->logger.warning("Not handling E-RABToBeSetupListBearerSUReq extensions");
-    }
-    if (erab.transport_layer_address.length() > 32) {
-      parent->logger.error("IPv6 addresses not currently supported");
-      return false;
-    }
-
-    uint32_t teid_out;
-    srsran::uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
+    asn1::s1ap::cause_c cause;
     bearer_list.add_erab(
-        erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, &erab.nas_pdu);
+        erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, nas_pdu, cause);
     bearer_list.add_gtpu_bearer(erab.erab_id);
   }
-
-  // Work in progress
-  notify_s1ap_ue_erab_setup_response(e);
-  send_connection_reconf(nullptr, false);
   return true;
 }
 
@@ -1105,49 +1049,50 @@ bool rrc::ue::release_erabs()
   return true;
 }
 
-bool rrc::ue::release_erab(uint32_t erab_id)
+int rrc::ue::release_erab(uint32_t erab_id)
 {
   return bearer_list.release_erab(erab_id);
 }
 
-bool rrc::ue::modify_erab(uint16_t                                   erab_id,
-                          const asn1::s1ap::erab_level_qos_params_s& qos_params,
-                          const asn1::unbounded_octstring<true>*     nas_pdu)
+int rrc::ue::get_erab_addr_in(uint16_t erab_id, transp_addr_t& addr_in, uint32_t& teid_in) const
 {
-  bool ret = bearer_list.modify_erab(erab_id, qos_params, nas_pdu);
-  if (ret) {
-    send_connection_reconf(nullptr, false);
+  auto it = bearer_list.get_erabs().find(erab_id);
+  if (it == bearer_list.get_erabs().end()) {
+    parent->logger.error("E-RAB id=%d for rnti=0x%x not found", erab_id, rnti);
+    return SRSRAN_ERROR;
   }
-  return ret;
+  addr_in = it->second.address;
+  teid_in = it->second.teid_in;
+  return SRSRAN_SUCCESS;
 }
 
-void rrc::ue::notify_s1ap_ue_erab_setup_response(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e)
+int rrc::ue::setup_erab(uint16_t                                           erab_id,
+                        const asn1::s1ap::erab_level_qos_params_s&         qos_params,
+                        srsran::const_span<uint8_t>                        nas_pdu,
+                        const asn1::bounded_bitstring<1, 160, true, true>& addr,
+                        uint32_t                                           gtpu_teid_out,
+                        asn1::s1ap::cause_c&                               cause)
 {
-  asn1::s1ap::erab_setup_resp_s res;
-
-  const auto& erabs = bearer_list.get_erabs();
-  for (const auto& erab : e) {
-    uint8_t id = erab.value.erab_to_be_setup_item_bearer_su_req().erab_id;
-    if (erabs.count(id)) {
-      res.protocol_ies.erab_setup_list_bearer_su_res_present = true;
-      res.protocol_ies.erab_setup_list_bearer_su_res.value.push_back({});
-      auto& item = res.protocol_ies.erab_setup_list_bearer_su_res.value.back();
-      item.load_info_obj(ASN1_S1AP_ID_ERAB_SETUP_ITEM_BEARER_SU_RES);
-      item.value.erab_setup_item_bearer_su_res().erab_id = id;
-      srsran::uint32_to_uint8(bearer_list.get_erabs().at(id).teid_in,
-                              &item.value.erab_setup_item_bearer_su_res().gtp_teid[0]);
-    } else {
-      res.protocol_ies.erab_failed_to_setup_list_bearer_su_res_present = true;
-      res.protocol_ies.erab_failed_to_setup_list_bearer_su_res.value.push_back({});
-      auto& item = res.protocol_ies.erab_failed_to_setup_list_bearer_su_res.value.back();
-      item.load_info_obj(ASN1_S1AP_ID_ERAB_ITEM);
-      item.value.erab_item().erab_id = id;
-      item.value.erab_item().cause.set_radio_network().value =
-          asn1::s1ap::cause_radio_network_opts::invalid_qos_combination;
-    }
+  if (bearer_list.get_erabs().count(erab_id) > 0) {
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::multiple_erab_id_instances;
+    return SRSRAN_ERROR;
   }
+  if (bearer_list.add_erab(erab_id, qos_params, addr, gtpu_teid_out, nas_pdu, cause) != SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
+  }
+  if (bearer_list.add_gtpu_bearer(erab_id) != SRSRAN_SUCCESS) {
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::radio_res_not_available;
+    return SRSRAN_ERROR;
+  }
+  return SRSRAN_SUCCESS;
+}
 
-  parent->s1ap->ue_erab_setup_complete(rnti, res);
+int rrc::ue::modify_erab(uint16_t                                   erab_id,
+                         const asn1::s1ap::erab_level_qos_params_s& qos_params,
+                         srsran::const_span<uint8_t>                nas_pdu,
+                         asn1::s1ap::cause_c&                       cause)
+{
+  return bearer_list.modify_erab(erab_id, qos_params, nas_pdu, cause);
 }
 
 //! Helper method to access Cell configuration based on UE Carrier Index
@@ -1210,7 +1155,7 @@ void rrc::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg, std::string* octet_str)
       *octet_str = asn1::octstring_to_string(pdu->msg, pdu->N_bytes);
     }
 
-    parent->rlc->write_sdu(rnti, RB_ID_SRB0, std::move(pdu));
+    parent->rlc->write_sdu(rnti, srb_to_lcid(lte_srb::srb0), std::move(pdu));
   } else {
     parent->logger.error("Allocating pdu");
   }
@@ -1229,14 +1174,15 @@ bool rrc::ue::send_dl_dcch(const dl_dcch_msg_s* dl_dcch_msg, srsran::unique_byte
     }
     pdu->N_bytes = (uint32_t)bref.distance_bytes();
 
-    uint32_t lcid = RB_ID_SRB1;
+    lte_srb rb = lte_srb::srb1;
     if (dl_dcch_msg->msg.c1().type() == dl_dcch_msg_type_c::c1_c_::types_opts::dl_info_transfer) {
       // send messages with NAS on SRB2 if user is fully registered (after RRC reconfig complete)
-      lcid = parent->rlc->has_bearer(rnti, RB_ID_SRB2) && state == RRC_STATE_REGISTERED ? RB_ID_SRB2 : RB_ID_SRB1;
+      rb = (parent->rlc->has_bearer(rnti, srb_to_lcid(lte_srb::srb2)) && state == RRC_STATE_REGISTERED) ? lte_srb::srb2
+                                                                                                        : lte_srb::srb1;
     }
 
     char buf[32] = {};
-    sprintf(buf, "SRB%d - rnti=0x%x", lcid, rnti);
+    sprintf(buf, "%s - rnti=0x%x", srsran::get_srb_name(rb), rnti);
     parent->log_rrc_message(buf, Tx, pdu.get(), *dl_dcch_msg, dl_dcch_msg->msg.c1().type().to_string());
 
     // Encode the pdu as an octet string if the user passed a valid pointer.
@@ -1244,7 +1190,7 @@ bool rrc::ue::send_dl_dcch(const dl_dcch_msg_s* dl_dcch_msg, srsran::unique_byte
       *octet_str = asn1::octstring_to_string(pdu->msg, pdu->N_bytes);
     }
 
-    parent->pdcp->write_sdu(rnti, lcid, std::move(pdu));
+    parent->pdcp->write_sdu(rnti, srb_to_lcid(rb), std::move(pdu));
   } else {
     parent->logger.error("Allocating pdu");
     return false;

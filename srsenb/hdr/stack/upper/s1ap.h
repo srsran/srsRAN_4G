@@ -25,6 +25,7 @@
 #include <map>
 
 #include "srsenb/hdr/common/common_enb.h"
+#include "srsran/adt/circular_map.h"
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/common.h"
 #include "srsran/common/s1ap_pcap.h"
@@ -57,7 +58,12 @@ struct ue_ctxt_t {
 
 class s1ap : public s1ap_interface_rrc
 {
+  using s1ap_proc_id_t = asn1::s1ap::s1ap_elem_procs_o::init_msg_c::types_opts::options;
+
 public:
+  using erab_id_list   = srsran::bounded_vector<uint16_t, ASN1_S1AP_MAXNOOF_ERABS>;
+  using erab_item_list = srsran::bounded_vector<asn1::s1ap::erab_item_s, ASN1_S1AP_MAXNOOF_ERABS>;
+
   static const uint32_t ts1_reloc_prep_timeout_ms    = 10000;
   static const uint32_t ts1_reloc_overall_timeout_ms = 10000;
 
@@ -83,28 +89,33 @@ public:
   bool user_exists(uint16_t rnti) override;
   void user_mod(uint16_t old_rnti, uint16_t new_rnti) override;
   bool user_release(uint16_t rnti, asn1::s1ap::cause_radio_network_e cause_radio) override;
-  void ue_ctxt_setup_complete(uint16_t rnti, const asn1::s1ap::init_context_setup_resp_s& res) override;
-  void ue_erab_setup_complete(uint16_t rnti, const asn1::s1ap::erab_setup_resp_s& res) override;
+  void ue_ctxt_setup_complete(uint16_t rnti) override;
   bool is_mme_connected() override;
   bool send_ho_required(uint16_t                     rnti,
                         uint32_t                     target_eci,
                         srsran::plmn_id_t            target_plmn,
                         srsran::span<uint32_t>       fwd_erabs,
-                        srsran::unique_byte_buffer_t rrc_container) override;
+                        srsran::unique_byte_buffer_t rrc_container,
+                        bool                         has_direct_fwd_path) override;
   bool send_enb_status_transfer_proc(uint16_t rnti, std::vector<bearer_status_info>& bearer_status_list) override;
-  bool send_ho_failure(uint32_t mme_ue_s1ap_id);
   bool send_ho_req_ack(const asn1::s1ap::ho_request_s&                msg,
                        uint16_t                                       rnti,
                        uint32_t                                       enb_cc_idx,
                        srsran::unique_byte_buffer_t                   ho_cmd,
-                       srsran::span<asn1::s1ap::erab_admitted_item_s> admitted_bearers) override;
-  void send_ho_notify(uint16_t rnti, uint64_t target_eci) override;
-  void send_ho_cancel(uint16_t rnti) override;
+                       srsran::span<asn1::s1ap::erab_admitted_item_s> admitted_bearers,
+                       srsran::const_span<asn1::s1ap::erab_item_s>    not_admitted_bearers) override;
+  void send_ho_cancel(uint16_t rnti, const asn1::s1ap::cause_c& cause) override;
   bool release_erabs(uint16_t rnti, const std::vector<uint16_t>& erabs_successfully_released) override;
   bool send_error_indication(const asn1::s1ap::cause_c& cause,
                              srsran::optional<uint32_t> enb_ue_s1ap_id = {},
                              srsran::optional<uint32_t> mme_ue_s1ap_id = {});
   bool send_ue_cap_info_indication(uint16_t rnti, srsran::unique_byte_buffer_t ue_radio_cap) override;
+
+  /// Target eNB Handover
+  /// Section 8.4.2 - Handover Resource Allocation
+  void send_ho_failure(uint32_t mme_ue_s1ap_id, const asn1::s1ap::cause_c& cause);
+  /// Section 8.4.3 - Handover Notification
+  void send_ho_notify(uint16_t rnti, uint64_t target_eci) override;
 
   // Stack interface
   bool
@@ -162,8 +173,8 @@ private:
   bool handle_uectxtreleasecommand(const asn1::s1ap::ue_context_release_cmd_s& msg);
   bool handle_s1setupfailure(const asn1::s1ap::s1_setup_fail_s& msg);
   bool handle_erabsetuprequest(const asn1::s1ap::erab_setup_request_s& msg);
-  bool handle_erabreleasecommand(const asn1::s1ap::erab_release_cmd_s& msg);
   bool handle_erabmodifyrequest(const asn1::s1ap::erab_modify_request_s& msg);
+  bool handle_erabreleasecommand(const asn1::s1ap::erab_release_cmd_s& msg);
   bool handle_uecontextmodifyrequest(const asn1::s1ap::ue_context_mod_request_s& msg);
 
   // handover
@@ -212,7 +223,8 @@ private:
       srsran::proc_outcome_t init(uint32_t                     target_eci_,
                                   srsran::plmn_id_t            target_plmn_,
                                   srsran::span<uint32_t>       fwd_erabs,
-                                  srsran::unique_byte_buffer_t rrc_container);
+                                  srsran::unique_byte_buffer_t rrc_container,
+                                  bool                         has_direct_fwd_path);
       srsran::proc_outcome_t step() { return srsran::proc_outcome_t::yield; }
       srsran::proc_outcome_t react(ts1_reloc_prep_expired e);
       srsran::proc_outcome_t react(const asn1::s1ap::ho_prep_fail_s& msg);
@@ -243,17 +255,17 @@ private:
                                bool                                  has_tmsi,
                                uint32_t                              m_tmsi = 0,
                                uint8_t                               mmec   = 0);
-    bool send_initial_ctxt_setup_response(const asn1::s1ap::init_context_setup_resp_s& res_);
-    bool send_initial_ctxt_setup_failure();
-    bool send_erab_setup_response(const asn1::s1ap::erab_setup_resp_s& res_);
-    bool send_erab_release_response(const std::vector<uint16_t>& erabs_successfully_released,
-                                    const std::vector<uint16_t>& erabs_failed_to_release);
-    bool send_erab_modify_response(const std::vector<uint16_t>& erabs_successfully_released,
-                                   const std::vector<uint16_t>& erabs_failed_to_release);
+    void ue_ctxt_setup_complete();
+    bool send_erab_setup_response(const erab_id_list& erabs_setup, const erab_item_list& erabs_failed);
+    bool send_erab_release_response(const erab_id_list& erabs_released, const erab_item_list& erabs_failed);
+    bool send_erab_modify_response(const erab_id_list& erabs_modified, const erab_item_list& erabs_failed);
     bool send_erab_release_indication(const std::vector<uint16_t>& erabs_successfully_released);
     bool send_ue_cap_info_indication(srsran::unique_byte_buffer_t ue_radio_cap);
 
     bool was_uectxtrelease_requested() const { return release_requested; }
+
+    void
+    set_state(s1ap_proc_id_t state, const erab_id_list& erabs_updated, const erab_item_list& erabs_failed_to_update);
 
     ue_ctxt_t ctxt      = {};
     uint16_t  stream_id = 1;
@@ -262,8 +274,9 @@ private:
     bool send_ho_required(uint32_t                     target_eci_,
                           srsran::plmn_id_t            target_plmn_,
                           srsran::span<uint32_t>       fwd_erabs,
-                          srsran::unique_byte_buffer_t rrc_container);
-    //! TS 36.413, Section 8.4.6 - eNB Status Transfer procedure
+                          srsran::unique_byte_buffer_t rrc_container,
+                          bool                         has_direct_fwd_path);
+    void get_erab_addr(uint16_t erab_id, transp_addr_t& transp_addr, asn1::fixed_octstring<4, true>& gtpu_teid_id);
 
     // args
     s1ap*                 s1ap_ptr;
@@ -273,6 +286,11 @@ private:
     bool                 release_requested = false;
     srsran::unique_timer ts1_reloc_prep;    ///< TS1_{RELOCprep} - max time for HO preparation
     srsran::unique_timer ts1_reloc_overall; ///< TS1_{RELOCOverall}
+
+    // Procedure state
+    s1ap_proc_id_t                                                           current_state;
+    erab_id_list                                                             updated_erabs;
+    srsran::bounded_vector<asn1::s1ap::erab_item_s, ASN1_S1AP_MAXNOOF_ERABS> failed_cfg_erabs;
 
   public:
     // user procedures

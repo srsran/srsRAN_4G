@@ -66,7 +66,7 @@ gtpu_tunnel_manager::ue_lcid_tunnel_list* gtpu_tunnel_manager::find_rnti_tunnels
 
 srsran::span<gtpu_tunnel_manager::lcid_tunnel> gtpu_tunnel_manager::find_rnti_lcid_tunnels(uint16_t rnti, uint32_t lcid)
 {
-  if (lcid < SRSENB_N_SRB or lcid >= SRSENB_N_RADIO_BEARERS) {
+  if (not is_lte_rb(lcid)) {
     logger.warning("Searching for bearer with invalid lcid=%d", lcid);
     return {};
   }
@@ -82,7 +82,7 @@ srsran::span<gtpu_tunnel_manager::lcid_tunnel> gtpu_tunnel_manager::find_rnti_lc
 
 const gtpu_tunnel* gtpu_tunnel_manager::add_tunnel(uint16_t rnti, uint32_t lcid, uint32_t teidout, uint32_t spgw_addr)
 {
-  if (lcid < SRSENB_N_SRB or lcid >= SRSENB_N_RADIO_BEARERS) {
+  if (not is_lte_rb(lcid)) {
     logger.warning("Adding TEID with invalid lcid=%d", lcid);
     return nullptr;
   }

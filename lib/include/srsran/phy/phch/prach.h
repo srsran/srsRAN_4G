@@ -125,6 +125,21 @@ typedef struct SRSRAN_API {
   uint32_t sf[5];
 } srsran_prach_sf_config_t;
 
+///@brief Maximum number of subframe number candidates for PRACH NR configuration
+#define PRACH_NR_CFG_MAX_NOF_SF 5
+
+/**
+ * @brief PRACH configuration for NR as described in TS 38.211 Tables 6.3.3.2-2, 6.3.3.2-3 and 6.3.3.2-4
+ */
+typedef struct {
+  uint32_t preamble_format;
+  uint32_t x;
+  uint32_t y;
+  uint32_t subframe_number[PRACH_NR_CFG_MAX_NOF_SF];
+  uint32_t nof_subframe_number;
+  uint32_t starting_symbol; // subframe number
+} prach_nr_config_t;
+
 typedef enum SRSRAN_API {
   SRSRAN_PRACH_SFN_EVEN = 0,
   SRSRAN_PRACH_SFN_ANY,
@@ -168,6 +183,12 @@ SRSRAN_API bool srsran_prach_tti_opportunity_config_tdd(uint32_t  config_idx,
                                                         uint32_t  tdd_ul_dl_config,
                                                         uint32_t  current_tti,
                                                         uint32_t* prach_idx);
+
+SRSRAN_API const prach_nr_config_t* srsran_prach_nr_get_cfg_fr1_unpaired(uint32_t config_idx);
+
+SRSRAN_API bool srsran_prach_nr_tti_opportunity_fr1_unpaired(uint32_t config_idx, uint32_t current_tti);
+
+SRSRAN_API uint32_t srsran_prach_nr_start_symbol_fr1_unpaired(uint32_t config_idx);
 
 SRSRAN_API uint32_t srsran_prach_f_ra_tdd(uint32_t config_idx,
                                           uint32_t tdd_ul_dl_config,

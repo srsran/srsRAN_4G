@@ -44,21 +44,6 @@ struct phy_cfg_nr_t {
 
   phy_cfg_nr_t()
   {
-    // tdd-UL-DL-ConfigurationCommon
-    //    referenceSubcarrierSpacing: kHz15 (0)
-    //    pattern1
-    //        dl-UL-TransmissionPeriodicity: ms10 (7)
-    //        nrofDownlinkSlots: 7
-    //        nrofDownlinkSymbols: 6
-    //        nrofUplinkSlots: 2
-    //        nrofUplinkSymbols: 4
-    tdd.pattern1.period_ms      = 10;
-    tdd.pattern1.nof_dl_slots   = 7;
-    tdd.pattern1.nof_dl_symbols = 6;
-    tdd.pattern1.nof_ul_slots   = 2;
-    tdd.pattern1.nof_ul_symbols = 4;
-    tdd.pattern2.period_ms      = 0;
-
     // physicalCellGroupConfig
     //    pdsch-HARQ-ACK-Codebook: dynamic (1)
     harq_ack.harq_ack_codebook = srsran_pdsch_harq_ack_codebook_dynamic;

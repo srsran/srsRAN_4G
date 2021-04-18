@@ -113,14 +113,14 @@ public:
   void write_pdu(uint16_t rnti, srsran::unique_byte_buffer_t pdu) override {}
   bool user_exists(uint16_t rnti) override { return true; }
   bool user_release(uint16_t rnti, asn1::s1ap::cause_radio_network_e cause_radio) override { return true; }
-  void ue_ctxt_setup_complete(uint16_t rnti, const asn1::s1ap::init_context_setup_resp_s& res) override {}
-  void ue_erab_setup_complete(uint16_t rnti, const asn1::s1ap::erab_setup_resp_s& res) override {}
+  void ue_ctxt_setup_complete(uint16_t rnti) override {}
   bool is_mme_connected() override { return true; }
   bool send_ho_required(uint16_t                     rnti,
                         uint32_t                     target_eci,
                         srsran::plmn_id_t            target_plmn,
                         srsran::span<uint32_t>       fwd_erabs,
-                        srsran::unique_byte_buffer_t rrc_container) override
+                        srsran::unique_byte_buffer_t rrc_container,
+                        bool                         has_direct_fwd_path) override
   {
     return true;
   }
@@ -132,13 +132,14 @@ public:
                        uint16_t                                       rnti,
                        uint32_t                                       enb_cc_idx,
                        srsran::unique_byte_buffer_t                   ho_cmd,
-                       srsran::span<asn1::s1ap::erab_admitted_item_s> admitted_bearers) override
+                       srsran::span<asn1::s1ap::erab_admitted_item_s> admitted_bearers,
+                       srsran::const_span<asn1::s1ap::erab_item_s>    not_admitted_bearers) override
   {
     return true;
   }
   void send_ho_notify(uint16_t rnti, uint64_t target_eci) override {}
 
-  void send_ho_cancel(uint16_t rnti) override {}
+  void send_ho_cancel(uint16_t rnti, const asn1::s1ap::cause_c& cause) override {}
 
   bool release_erabs(uint16_t rnti, const std::vector<uint16_t>& erabs_successfully_released) override { return true; }
   bool send_ue_cap_info_indication(uint16_t rnti, const srsran::unique_byte_buffer_t ue_radio_cap) override
@@ -176,31 +177,47 @@ public:
   void release_ue(uint16_t rnti) override {}
   bool setup_ue_ctxt(uint16_t rnti, const asn1::s1ap::init_context_setup_request_s& msg) override { return true; }
   bool modify_ue_ctxt(uint16_t rnti, const asn1::s1ap::ue_context_mod_request_s& msg) override { return true; }
-  bool setup_ue_erabs(uint16_t rnti, const asn1::s1ap::erab_setup_request_s& msg) override { return true; }
-  void modify_erabs(uint16_t                                 rnti,
-                    const asn1::s1ap::erab_modify_request_s& msg,
-                    std::vector<uint16_t>*                   erabs_modified,
-                    std::vector<uint16_t>*                   erabs_failed_to_modify) override
-  {}
+  int  get_erab_addr_in(uint16_t rnti, uint16_t erab_id, transp_addr_t& addr_in, uint32_t& teid_in) const override
+  {
+    return SRSRAN_SUCCESS;
+  }
+  void set_aggregate_max_bitrate(uint16_t rnti, const asn1::s1ap::ue_aggregate_maximum_bitrate_s& bitrate) override {}
+  int  setup_erab(uint16_t                                           rnti,
+                  uint16_t                                           erab_id,
+                  const asn1::s1ap::erab_level_qos_params_s&         qos_params,
+                  srsran::const_byte_span                            nas_pdu,
+                  const asn1::bounded_bitstring<1, 160, true, true>& addr,
+                  uint32_t                                           gtpu_teid_out,
+                  asn1::s1ap::cause_c&                               cause) override
+  {
+    return SRSRAN_SUCCESS;
+  }
+  int modify_erab(uint16_t                                   rnti,
+                  uint16_t                                   erab_id,
+                  const asn1::s1ap::erab_level_qos_params_s& qos_params,
+                  srsran::const_byte_span                    nas_pdu,
+                  asn1::s1ap::cause_c&                       cause) override
+  {
+    return SRSRAN_SUCCESS;
+  }
+  bool has_erab(uint16_t rnti, uint32_t erab_id) const override { return true; }
   bool release_erabs(uint32_t rnti) override { return true; }
-  void release_erabs(uint32_t                              rnti,
-                     const asn1::s1ap::erab_release_cmd_s& msg,
-                     std::vector<uint16_t>*                erabs_released,
-                     std::vector<uint16_t>*                erabs_failed_to_release) override
-  {}
+  int  release_erab(uint16_t rnti, uint16_t erab_id) override { return SRSRAN_SUCCESS; }
   void add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& ue_paging_id) override {}
   void ho_preparation_complete(uint16_t                     rnti,
-                               bool                         is_success,
+                               ho_prep_result               result,
                                const asn1::s1ap::ho_cmd_s&  msg,
                                srsran::unique_byte_buffer_t container) override
   {}
-  uint16_t
-  start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&                                   msg,
-                             const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container) override
+  uint16_t start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&                                   msg,
+                                      const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container,
+                                      asn1::s1ap::cause_c& failure_cause) override
   {
     return SRSRAN_INVALID_RNTI;
   }
   void set_erab_status(uint16_t rnti, const asn1::s1ap::bearers_subject_to_status_transfer_list_l& erabs) override {}
+
+  int notify_ue_erab_updates(uint16_t rnti, srsran::const_byte_span nas_pdu) override { return SRSRAN_SUCCESS; }
 };
 
 } // namespace srsenb

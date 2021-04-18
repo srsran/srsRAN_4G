@@ -21,6 +21,7 @@
 
 #include "srsenb/hdr/stack/upper/pdcp_nr.h"
 #include "lib/include/srsran/interfaces/nr_common_interface_types.h"
+#include "srsenb/hdr/common/common_enb.h"
 
 namespace srsenb {
 
@@ -181,9 +182,9 @@ void pdcp_nr::user_interface_rrc::write_pdu_pcch(srsran::unique_byte_buffer_t pd
   ERROR("Error: Received PCCH from ue=%d", rnti);
 }
 
-std::string pdcp_nr::user_interface_rrc::get_rb_name(uint32_t lcid)
+const char* pdcp_nr::user_interface_rrc::get_rb_name(uint32_t lcid)
 {
-  return srsran::to_string(static_cast<srsran::rb_id_nr_t>(lcid));
+  return srsenb::get_rb_name(lcid);
 }
 
 } // namespace srsenb

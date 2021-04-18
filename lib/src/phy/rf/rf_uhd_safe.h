@@ -152,7 +152,7 @@ public:
                           stream_cmd.stream_now = true;
                           rx_stream->issue_stream_cmd(stream_cmd);)
   }
-  virtual uhd_error set_sync_source(const std::string& source)                                         = 0;
+  virtual uhd_error set_sync_source(const std::string& sync_source, const std::string& clock_source)   = 0;
   virtual uhd_error get_gain_range(uhd::gain_range_t& tx_gain_range, uhd::gain_range_t& rx_gain_range) = 0;
   virtual uhd_error set_master_clock_rate(double rate)                                                 = 0;
   virtual uhd_error set_rx_rate(double rate)                                                           = 0;

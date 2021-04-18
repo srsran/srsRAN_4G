@@ -33,6 +33,7 @@
 
 #define PDCCH_INFO_TX(...) INFO("PDCCH Tx: " __VA_ARGS__)
 #define PDCCH_INFO_RX(...) INFO("PDCCH Rx: " __VA_ARGS__)
+#define PDCCH_DEBUG_RX(...) DEBUG("PDCCH Rx: " __VA_ARGS__)
 
 /**
  * @brief Recursive Y_p_n function
@@ -482,8 +483,8 @@ int srsran_pdcch_nr_decode(srsran_pdcch_nr_t*      q,
   }
 
   // Print channel estimates if enabled
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !handler_registered) {
-    PDCCH_INFO_RX("ce=");
+  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
+    PDCCH_DEBUG_RX("ce=");
     srsran_vec_fprint_c(stdout, ce->ce, q->M);
   }
 
@@ -491,8 +492,8 @@ int srsran_pdcch_nr_decode(srsran_pdcch_nr_t*      q,
   srsran_predecoding_single(q->symbols, ce->ce, q->symbols, NULL, q->M, 1.0f, ce->noise_var);
 
   // Print symbols if enabled
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !handler_registered) {
-    PDCCH_INFO_RX("symbols=");
+  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
+    PDCCH_DEBUG_RX("symbols=");
     srsran_vec_fprint_c(stdout, q->symbols, q->M);
   }
 
@@ -522,8 +523,8 @@ int srsran_pdcch_nr_decode(srsran_pdcch_nr_t*      q,
   }
 
   // Print d
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !handler_registered) {
-    PDCCH_INFO_RX("d=");
+  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
+    PDCCH_DEBUG_RX("d=");
     srsran_vec_fprint_bs(stdout, d, q->K);
   }
 

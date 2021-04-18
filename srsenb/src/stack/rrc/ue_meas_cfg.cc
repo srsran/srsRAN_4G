@@ -68,7 +68,7 @@ std::pair<meas_obj_t*, cells_to_add_mod_s*> find_cell(meas_obj_to_add_mod_list_l
 }
 
 /// Add EARFCN to the MeasObjToAddModList
-std::pair<bool, meas_obj_t*> add_meas_obj(meas_obj_list& list, uint32_t dl_earfcn)
+std::pair<bool, meas_obj_t*> add_meas_obj(meas_obj_list& list, uint32_t dl_earfcn, uint32_t allowed_meas_bw)
 {
   meas_obj_t* obj = find_meas_obj(list, dl_earfcn);
   if (obj != nullptr) {
@@ -79,9 +79,9 @@ std::pair<bool, meas_obj_t*> add_meas_obj(meas_obj_list& list, uint32_t dl_earfc
   new_obj.meas_obj_id                = srsran::find_rrc_obj_id_gap(list);
   asn1::rrc::meas_obj_eutra_s& eutra = new_obj.meas_obj.set_meas_obj_eutra();
   eutra.carrier_freq                 = dl_earfcn;
-  eutra.allowed_meas_bw.value        = asn1::rrc::allowed_meas_bw_e::mbw6; // TODO: What value to add here?
-  eutra.neigh_cell_cfg.from_number(1);                                     // No MBSFN subframes present in neighbors
-  eutra.offset_freq_present = false;                                       // no offset
+  asn1::number_to_enum(eutra.allowed_meas_bw, allowed_meas_bw);
+  eutra.neigh_cell_cfg.from_number(1); // No MBSFN subframes present in neighbors
+  eutra.offset_freq_present = false;   // no offset
   obj                       = srsran::add_rrc_obj(list, new_obj);
   return {true, obj};
 }
@@ -118,7 +118,7 @@ std::tuple<bool, meas_obj_t*, cells_to_add_mod_s*> add_cell_enb_cfg(meas_obj_lis
     }
   } else {
     // no measobj has been found with same earfcn, create a new one
-    auto ret2 = add_meas_obj(meas_obj_list, cellcfg.earfcn);
+    auto ret2 = add_meas_obj(meas_obj_list, cellcfg.earfcn, cellcfg.allowed_meas_bw);
     ret.first = ret2.second;
 
     new_cell.cell_idx                   = 1;
@@ -339,7 +339,8 @@ bool fill_meascfg_enb_cfg(meas_cfg_s& meascfg, const ue_cell_ded_list& ue_cell_l
     return cc1->get_dl_earfcn() < cc2->get_dl_earfcn();
   });
   for (auto* cc : sorted_ue_cells) {
-    add_meas_obj(meascfg.meas_obj_to_add_mod_list, cc->get_dl_earfcn());
+    add_meas_obj(
+        meascfg.meas_obj_to_add_mod_list, cc->get_dl_earfcn(), cc->cell_common->cell_cfg.meas_cfg.allowed_meas_bw);
   }
 
   // Inserts all cells in meas_cell_list that are not PCell or SCells

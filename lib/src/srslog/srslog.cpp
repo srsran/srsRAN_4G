@@ -37,13 +37,10 @@ static std::string remove_sharp_chars(const std::string& s)
 
 /// Generic argument function that fetches a log channel from the repository.
 template <typename... Args>
-static log_channel& fetch_log_channel_helper(const std::string& id,
-                                             Args&&... args)
+static log_channel& fetch_log_channel_helper(const std::string& id, Args&&... args)
 {
   return srslog_instance::get().get_channel_repo().emplace(
-      std::piecewise_construct,
-      std::forward_as_tuple(id),
-      std::forward_as_tuple(id, std::forward<Args>(args)...));
+      std::piecewise_construct, std::forward_as_tuple(id), std::forward_as_tuple(id, std::forward<Args>(args)...));
 }
 
 ///
@@ -60,21 +57,27 @@ log_channel& srslog::fetch_log_channel(const std::string& id)
   assert(!id.empty() && "Empty id string");
 
   std::string clean_id = remove_sharp_chars(id);
+
+  if (auto* c = find_log_channel(clean_id)) {
+    return *c;
+  }
+
   srslog_instance& instance = srslog_instance::get();
-  return fetch_log_channel_helper(
-      clean_id, instance.get_default_sink(), instance.get_backend());
+  return fetch_log_channel_helper(clean_id, instance.get_default_sink(), instance.get_backend());
 }
 
-log_channel& srslog::fetch_log_channel(const std::string& id,
-                                       sink& s,
-                                       log_channel_config config)
+log_channel& srslog::fetch_log_channel(const std::string& id, sink& s, log_channel_config config)
 {
   assert(!id.empty() && "Empty id string");
 
   std::string clean_id = remove_sharp_chars(id);
+
+  if (auto* c = find_log_channel(clean_id)) {
+    return *c;
+  }
+
   srslog_instance& instance = srslog_instance::get();
-  return fetch_log_channel_helper(
-      clean_id, s, instance.get_backend(), std::move(config));
+  return fetch_log_channel_helper(clean_id, s, instance.get_backend(), std::move(config));
 }
 
 ///
@@ -121,39 +124,45 @@ sink* srslog::find_sink(const std::string& id)
   return (ptr) ? ptr->get() : nullptr;
 }
 
-sink& srslog::fetch_stdout_sink(const std::string& id,
-                                std::unique_ptr<log_formatter> f)
+sink& srslog::fetch_stdout_sink(const std::string& id, std::unique_ptr<log_formatter> f)
 {
   assert(!id.empty() && "Empty id string");
+
+  if (auto* s = find_sink(id)) {
+    return *s;
+  }
 
   auto& s = srslog_instance::get().get_sink_repo().emplace(
       std::piecewise_construct,
       std::forward_as_tuple(id),
-      std::forward_as_tuple(
-          new stream_sink(sink_stream_type::stdout, std::move(f))));
+      std::forward_as_tuple(new stream_sink(sink_stream_type::stdout, std::move(f))));
 
   return *s;
 }
 
-sink& srslog::fetch_stderr_sink(const std::string& id,
-                                std::unique_ptr<log_formatter> f)
+sink& srslog::fetch_stderr_sink(const std::string& id, std::unique_ptr<log_formatter> f)
 {
   assert(!id.empty() && "Empty id string");
+
+  if (auto* s = find_sink(id)) {
+    return *s;
+  }
 
   auto& s = srslog_instance::get().get_sink_repo().emplace(
       std::piecewise_construct,
       std::forward_as_tuple(id),
-      std::forward_as_tuple(
-          new stream_sink(sink_stream_type::stderr, std::move(f))));
+      std::forward_as_tuple(new stream_sink(sink_stream_type::stderr, std::move(f))));
 
   return *s;
 }
 
-sink& srslog::fetch_file_sink(const std::string& path,
-                              size_t max_size,
-                              std::unique_ptr<log_formatter> f)
+sink& srslog::fetch_file_sink(const std::string& path, size_t max_size, std::unique_ptr<log_formatter> f)
 {
   assert(!path.empty() && "Empty path string");
+
+  if (auto* s = find_sink(path)) {
+    return *s;
+  }
 
   //:TODO: GCC5 or lower versions emits an error if we use the new() expression
   // directly, use redundant piecewise_construct instead.
@@ -169,9 +178,8 @@ bool srslog::install_custom_sink(const std::string& id, std::unique_ptr<sink> s)
 {
   assert(!id.empty() && "Empty path string");
 
-  sink* input_sink = s.get();
-  sink* returned_sink =
-      srslog_instance::get().get_sink_repo().emplace(id, std::move(s)).get();
+  sink* input_sink    = s.get();
+  sink* returned_sink = srslog_instance::get().get_sink_repo().emplace(id, std::move(s)).get();
 
   // Successful insertion occurs when the returned object is the same one as the
   // input object.
@@ -199,7 +207,7 @@ void srslog::flush()
   // The backend will set this shared variable when done.
   detail::shared_variable<bool> completion_flag(false);
 
-  auto sink_ptrs = instance.get_sink_repo().contents();
+  auto               sink_ptrs = instance.get_sink_repo().contents();
   std::vector<sink*> sinks;
   sinks.reserve(sink_ptrs.size());
   for (const auto& s : sink_ptrs) {
@@ -208,8 +216,8 @@ void srslog::flush()
 
   detail::log_entry cmd;
   cmd.metadata.store = nullptr;
-  cmd.flush_cmd = std::unique_ptr<detail::flush_backend_cmd>(
-      new detail::flush_backend_cmd{completion_flag, std::move(sinks)});
+  cmd.flush_cmd =
+      std::unique_ptr<detail::flush_backend_cmd>(new detail::flush_backend_cmd{completion_flag, std::move(sinks)});
 
   // Make sure the flush command gets into the backend, otherwise we will be
   // stuck waiting forever for the command to succeed.
@@ -236,12 +244,10 @@ detail::any* srslog::detail::find_logger(const std::string& id)
   return srslog_instance::get().get_logger_repo().find(id);
 }
 
-detail::any* srslog::detail::fetch_logger(const std::string& id,
-                                          detail::any&& logger)
+detail::any* srslog::detail::fetch_logger(const std::string& id, detail::any&& logger)
 {
   assert(!id.empty() && "Empty id string");
-  return &srslog_instance::get().get_logger_repo().emplace(id,
-                                                           std::move(logger));
+  return &srslog_instance::get().get_logger_repo().emplace(id, std::move(logger));
 }
 
 /// Builds a logger name out of the id and tag.
@@ -251,9 +257,7 @@ static std::string build_logger_name(const std::string& id, char tag)
 }
 
 /// Fetches a logger with all its log channels.
-static basic_logger& fetch_basic_logger_helper(const std::string& id,
-                                               sink& s,
-                                               bool should_print_context)
+static basic_logger& fetch_basic_logger_helper(const std::string& id, sink& s, bool should_print_context)
 {
   static constexpr char basic_logger_chan_tags[] = {'E', 'W', 'I', 'D'};
 
@@ -262,43 +266,48 @@ static basic_logger& fetch_basic_logger_helper(const std::string& id,
   // User created log channels cannot have ids with a # character, encode the
   // ids here with a # to ensure all channels are unique.
 
-  log_channel& error = fetch_log_channel_helper(
-      build_logger_name(id, basic_logger_chan_tags[0]),
-      s,
-      instance.get_backend(),
-      log_channel_config{id, basic_logger_chan_tags[0], should_print_context});
-  log_channel& warning = fetch_log_channel_helper(
-      build_logger_name(id, basic_logger_chan_tags[1]),
-      s,
-      instance.get_backend(),
-      log_channel_config{id, basic_logger_chan_tags[1], should_print_context});
-  log_channel& info = fetch_log_channel_helper(
-      build_logger_name(id, basic_logger_chan_tags[2]),
-      s,
-      instance.get_backend(),
-      log_channel_config{id, basic_logger_chan_tags[2], should_print_context});
-  log_channel& debug = fetch_log_channel_helper(
-      build_logger_name(id, basic_logger_chan_tags[3]),
-      s,
-      instance.get_backend(),
-      log_channel_config{id, basic_logger_chan_tags[3], should_print_context});
+  log_channel& error =
+      fetch_log_channel_helper(build_logger_name(id, basic_logger_chan_tags[0]),
+                               s,
+                               instance.get_backend(),
+                               log_channel_config{id, basic_logger_chan_tags[0], should_print_context});
+  log_channel& warning =
+      fetch_log_channel_helper(build_logger_name(id, basic_logger_chan_tags[1]),
+                               s,
+                               instance.get_backend(),
+                               log_channel_config{id, basic_logger_chan_tags[1], should_print_context});
+  log_channel& info = fetch_log_channel_helper(build_logger_name(id, basic_logger_chan_tags[2]),
+                                               s,
+                                               instance.get_backend(),
+                                               log_channel_config{id, basic_logger_chan_tags[2], should_print_context});
+  log_channel& debug =
+      fetch_log_channel_helper(build_logger_name(id, basic_logger_chan_tags[3]),
+                               s,
+                               instance.get_backend(),
+                               log_channel_config{id, basic_logger_chan_tags[3], should_print_context});
 
   return fetch_logger<basic_logger>(id, error, warning, info, debug);
 }
 
-basic_logger& srslog::fetch_basic_logger(const std::string& id,
-                                         bool should_print_context)
+basic_logger& srslog::fetch_basic_logger(const std::string& id, bool should_print_context)
 {
   assert(!id.empty() && "Empty id string");
-  return fetch_basic_logger_helper(
-      id, srslog_instance::get().get_default_sink(), should_print_context);
+
+  if (auto* logger = find_logger<basic_logger>(id)) {
+    return *logger;
+  }
+
+  return fetch_basic_logger_helper(id, srslog_instance::get().get_default_sink(), should_print_context);
 }
 
-basic_logger& srslog::fetch_basic_logger(const std::string& id,
-                                         sink& s,
-                                         bool should_print_context)
+basic_logger& srslog::fetch_basic_logger(const std::string& id, sink& s, bool should_print_context)
 {
   assert(!id.empty() && "Empty id string");
+
+  if (auto* logger = find_logger<basic_logger>(id)) {
+    return *logger;
+  }
+
   return fetch_basic_logger_helper(id, s, should_print_context);
 }
 
@@ -308,33 +317,28 @@ basic_logger& srslog::fetch_basic_logger(const std::string& id,
 
 /// Creates and registers a log channel. Returns a pointer to the newly created
 /// channel on success, otherwise nullptr.
-static log_channel* create_and_register_log_channel(const std::string& id,
-                                                    sink& s)
+static log_channel* create_and_register_log_channel(const std::string& id, sink& s)
 {
   assert(!id.empty() && "Empty id string");
 
   srslog_instance& instance = srslog_instance::get();
 
   auto& p = instance.get_channel_repo().emplace(
-      std::piecewise_construct,
-      std::forward_as_tuple(id),
-      std::forward_as_tuple(id, s, instance.get_backend()));
+      std::piecewise_construct, std::forward_as_tuple(id), std::forward_as_tuple(id, s, instance.get_backend()));
 
   return &p;
 }
 
-static log_channel* create_and_register_log_channel(const std::string& id,
-                                                    log_channel_config config,
-                                                    sink& s)
+static log_channel* create_and_register_log_channel(const std::string& id, log_channel_config config, sink& s)
 {
   assert(!id.empty() && "Empty id string");
 
   srslog_instance& instance = srslog_instance::get();
 
-  auto& p = instance.get_channel_repo().emplace(
-      std::piecewise_construct,
-      std::forward_as_tuple(id),
-      std::forward_as_tuple(id, s, instance.get_backend(), std::move(config)));
+  auto& p =
+      instance.get_channel_repo().emplace(std::piecewise_construct,
+                                          std::forward_as_tuple(id),
+                                          std::forward_as_tuple(id, s, instance.get_backend(), std::move(config)));
 
   return &p;
 }
@@ -373,16 +377,11 @@ sink* srslog::create_file_sink(const std::string& path, size_t max_size)
       .get_sink_repo()
       .emplace(std::piecewise_construct,
                std::forward_as_tuple(path),
-               std::forward_as_tuple(new file_sink(
-                   path,
-                   max_size,
-                   std::unique_ptr<log_formatter>(new text_formatter))))
+               std::forward_as_tuple(new file_sink(path, max_size, std::unique_ptr<log_formatter>(new text_formatter))))
       .get();
 }
 
-basic_logger* srslog::create_basic_logger(const std::string& id,
-                                          sink& s,
-                                          bool should_print_context)
+basic_logger* srslog::create_basic_logger(const std::string& id, sink& s, bool should_print_context)
 {
   assert(!id.empty() && "Empty id string");
 
@@ -400,24 +399,16 @@ basic_logger* srslog::create_basic_logger(const std::string& id,
   // without any id clashes.
 
   log_channel* error = create_and_register_log_channel(
-      build_logger_name(id, basic_logger_chan_tags[0]),
-      {id, basic_logger_chan_tags[0], should_print_context},
-      s);
+      build_logger_name(id, basic_logger_chan_tags[0]), {id, basic_logger_chan_tags[0], should_print_context}, s);
   assert(error && "Could not create channel");
   log_channel* warning = create_and_register_log_channel(
-      build_logger_name(id, basic_logger_chan_tags[1]),
-      {id, basic_logger_chan_tags[1], should_print_context},
-      s);
+      build_logger_name(id, basic_logger_chan_tags[1]), {id, basic_logger_chan_tags[1], should_print_context}, s);
   assert(warning && "Could not create channel");
   log_channel* info = create_and_register_log_channel(
-      build_logger_name(id, basic_logger_chan_tags[2]),
-      {id, basic_logger_chan_tags[2], should_print_context},
-      s);
+      build_logger_name(id, basic_logger_chan_tags[2]), {id, basic_logger_chan_tags[2], should_print_context}, s);
   assert(info && "Could not create channel");
   log_channel* debug = create_and_register_log_channel(
-      build_logger_name(id, basic_logger_chan_tags[3]),
-      {id, basic_logger_chan_tags[3], should_print_context},
-      s);
+      build_logger_name(id, basic_logger_chan_tags[3]), {id, basic_logger_chan_tags[3], should_print_context}, s);
   assert(debug && "Could not create channel");
 
   return create_logger<basic_logger>(id, *error, *warning, *info, *debug);

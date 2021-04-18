@@ -49,11 +49,15 @@ public:
     uint32_t                     tti;
   } mac_nr_grant_dl_t;
 
+  // UL grant as conveyed between PHY and MAC
   typedef struct {
-    uint32_t pid;
     uint16_t rnti;
     uint32_t tti;
-    uint32_t tbs; // transport block size in Bytes
+    uint8_t  pid;          // HARQ process ID
+    uint32_t tbs;          // transport block size in Bytes
+    uint8_t  ndi;          // Raw new data indicator extracted from DCI
+    uint8_t  rv;           // Redundancy Version
+    bool     is_rar_grant; // True if grant comes from RAR
   } mac_nr_grant_ul_t;
 
   /// For UL, payload buffer remains in MAC
@@ -120,6 +124,9 @@ public:
   virtual int  set_config(const srsran::bsr_cfg_nr_t& bsr_cfg)            = 0;
   virtual int  set_config(const srsran::sr_cfg_nr_t& sr_cfg)              = 0;
   virtual void set_config(const srsran::rach_nr_cfg_t& rach_cfg)          = 0;
+  virtual int  add_tag_config(const srsran::tag_cfg_nr_t& tag_cfg)        = 0;
+  virtual int  set_config(const srsran::phr_cfg_nr_t& phr_cfg)            = 0;
+  virtual int  remove_tag_config(const uint32_t tag_id)                   = 0;
 
   // RRC triggers MAC ra procedure
   virtual void start_ra_procedure() = 0;

@@ -28,7 +28,7 @@ using namespace asn1::rrc_nr;
 
 namespace srsenb {
 
-rrc_nr::rrc_nr(srsran::timer_handler* timers_) : logger(srslog::fetch_basic_logger("RRC")), timers(timers_) {}
+rrc_nr::rrc_nr(srsran::timer_handler* timers_) : logger(srslog::fetch_basic_logger("RRC-NR")), timers(timers_) {}
 
 int rrc_nr::init(const rrc_nr_cfg_t&     cfg_,
                  phy_interface_stack_nr* phy_,
@@ -324,12 +324,12 @@ void rrc_nr::handle_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer
   }
 
   if (users.count(rnti) == 1) {
-    switch (lcid) {
-      case srsenb::RB_ID_SRB0:
+    switch (static_cast<srsran::rb_id_nr_t>(lcid)) {
+      case srsran::rb_id_nr_t::NR_SRB0:
         //        parse_ul_ccch(rnti, std::move(pdu));
         break;
-      case srsenb::RB_ID_SRB1:
-      case srsenb::RB_ID_SRB2:
+      case srsran::rb_id_nr_t::NR_SRB1:
+      case srsran::rb_id_nr_t::NR_SRB2:
         //        parse_ul_dcch(p.rnti, p.lcid, std::move(p.pdu));
         break;
       default:
@@ -405,7 +405,7 @@ void rrc_nr::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
   char buf[32] = {};
   sprintf(buf, "SRB0 - rnti=0x%x", rnti);
   parent->log_rrc_message(buf, Tx, pdu.get(), *dl_ccch_msg);
-  parent->rlc->write_sdu(rnti, RB_ID_SRB0, std::move(pdu));
+  parent->rlc->write_sdu(rnti, srsran::NR_SRB0, std::move(pdu));
 }
 
 } // namespace srsenb

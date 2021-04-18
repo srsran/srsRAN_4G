@@ -339,12 +339,12 @@ void ue::start_plot()
 bool ue::get_metrics(ue_metrics_t* m)
 {
   bzero(m, sizeof(ue_metrics_t));
-  phy->get_metrics(&m->phy);
+  phy->get_metrics(srsran::srsran_rat_t::lte, &m->phy);
+  phy->get_metrics(srsran::srsran_rat_t::nr, &m->phy_nr);
   radio->get_metrics(&m->rf);
   stack->get_metrics(&m->stack);
   gw_inst->get_metrics(m->gw, m->stack.mac[0].nof_tti);
   m->sys = sys_proc.get_metrics();
-  m->phy_nr.nof_active_cc = args.phy.nof_nr_carriers; // FIXME: temporary until PHY metrics are complete
   return true;
 }
 

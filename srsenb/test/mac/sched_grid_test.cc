@@ -21,13 +21,13 @@
 
 #include "sched_test_common.h"
 #include "srsenb/hdr/stack/mac/sched_grid.h"
+#include "srsran/common/lte_common.h"
 #include "srsran/common/test_common.h"
 
 using namespace srsenb;
 const uint32_t seed = std::chrono::system_clock::now().time_since_epoch().count();
 
-const uint32_t                PCell_IDX = 0;
-const std::array<uint32_t, 6> prb_list  = {6, 15, 25, 50, 75, 100};
+const uint32_t PCell_IDX = 0;
 
 uint32_t get_aggr_level(sched_ue& sched_ue, uint32_t enb_cc_idx, const std::vector<sched_cell_params_t>& cell_params)
 {
@@ -42,7 +42,7 @@ int test_pdcch_one_ue()
   using rand_uint           = std::uniform_int_distribution<uint32_t>;
   const uint32_t ENB_CC_IDX = 0;
   // Params
-  uint32_t          nof_prb = prb_list[rand_uint{0, 5}(get_rand_gen())];
+  uint32_t          nof_prb = srsran::lte_cell_nof_prbs[rand_uint{0, 5}(get_rand_gen())];
   uint16_t          rnti    = rand_uint{70, 120}(get_rand_gen());
   srsran::tti_point start_tti{rand_uint{0, 10240}(get_rand_gen())};
   uint32_t          nof_ttis = 100;

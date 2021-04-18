@@ -39,7 +39,7 @@ namespace srsue {
 const char* rrc_nr::rrc_nr_state_text[] = {"IDLE", "CONNECTED", "CONNECTED-INACTIVE"};
 
 rrc_nr::rrc_nr(srsran::task_sched_handle task_sched_) :
-  logger(srslog::fetch_basic_logger("RRC")), task_sched(task_sched_), conn_recfg_proc(this)
+  logger(srslog::fetch_basic_logger("RRC-NR")), task_sched(task_sched_), conn_recfg_proc(this)
 {}
 
 rrc_nr::~rrc_nr() = default;
@@ -493,6 +493,7 @@ bool rrc_nr::apply_mac_cell_group(const mac_cell_group_cfg_s& mac_cell_group_cfg
         const sched_request_to_add_mod_s& asn1_cfg =
             mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list[0];
         sr_cfg_nr_t sr_cfg              = {};
+        sr_cfg.enabled                  = true;
         sr_cfg.num_items                = 1;
         sr_cfg.item[0].sched_request_id = asn1_cfg.sched_request_id;
         sr_cfg.item[0].trans_max        = asn1_cfg.sr_trans_max.to_number();
@@ -527,11 +528,40 @@ bool rrc_nr::apply_mac_cell_group(const mac_cell_group_cfg_s& mac_cell_group_cfg
     }
 
   if (mac_cell_group_cfg.tag_cfg_present) {
-    logger.warning("Not handling tag cfg in MAC cell group config");
+    if (mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list_present) {
+      for (uint32_t i = 0; i < mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list.size(); i++) {
+        tag_cfg_nr_t tag_cfg_nr     = {};
+        tag_cfg_nr.tag_id           = mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list[i].tag_id;
+        tag_cfg_nr.time_align_timer = mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list[i].time_align_timer.to_number();
+        if (mac->add_tag_config(tag_cfg_nr) != SRSRAN_SUCCESS) {
+          logger.warning("Unable to add TAG config with tag_id %d", tag_cfg_nr.tag_id);
+          return false;
+        }
+      }
+    }
+    if (mac_cell_group_cfg.tag_cfg.tag_to_release_list_present) {
+      for (uint32_t i = 0; i < mac_cell_group_cfg.tag_cfg.tag_to_release_list.size(); i++) {
+        uint32_t tag_id = mac_cell_group_cfg.tag_cfg.tag_to_release_list[i];
+        if (mac->remove_tag_config(tag_id) != SRSRAN_SUCCESS) {
+          logger.warning("Unable to release TAG config with tag_id %d", tag_id);
+          return false;
+        }
+      }
+    }
   }
 
   if (mac_cell_group_cfg.phr_cfg_present) {
-    logger.warning("Not handling phr cfg in MAC cell group config");
+    if (mac_cell_group_cfg.phr_cfg.type() == setup_release_c<asn1::rrc_nr::phr_cfg_s>::types_opts::setup) {
+      phr_cfg_nr_t phr_cfg_nr;
+      if (make_mac_phr_cfg_t(mac_cell_group_cfg.phr_cfg.setup(), &phr_cfg_nr) != true) {
+        logger.warning("Unable to build PHR config");
+        return false;
+      }
+      if (mac->set_config(phr_cfg_nr) != SRSRAN_SUCCESS) {
+        logger.warning("Unable to set PHR config");
+        return false;
+      }
+    }
   }
 
   if (mac_cell_group_cfg.skip_ul_tx_dynamic) {
@@ -674,7 +704,7 @@ bool rrc_nr::apply_dl_common_cfg(const asn1::rrc_nr::dl_cfg_common_s& dl_cfg_com
             srsran_sch_time_ra_t common_time_ra;
             if (make_phy_common_time_ra(pdsch_cfg_common.pdsch_time_domain_alloc_list[i], &common_time_ra) == true) {
               phy_cfg.pdsch.common_time_ra[i]  = common_time_ra;
-              phy_cfg.pdsch.nof_common_time_ra = i;
+              phy_cfg.pdsch.nof_common_time_ra = i + 1;
             } else {
               logger.warning("Warning while building common_time_ra structure");
               return false;
@@ -822,6 +852,21 @@ bool rrc_nr::apply_sp_cell_ded_ul_pucch(const asn1::rrc_nr::pucch_cfg_s& pucch_c
       if (make_phy_sr_resource(pucch_cfg.sched_request_res_to_add_mod_list[i], &srsran_pucch_nr_sr_resource) ==
           true) { // TODO: fix that if indexing is solved
         phy_cfg.pucch.sr_resources[res_id] = srsran_pucch_nr_sr_resource;
+
+        // Set PUCCH resource
+        if (pucch_cfg.sched_request_res_to_add_mod_list[i].res_present) {
+          uint32_t pucch_res_id = pucch_cfg.sched_request_res_to_add_mod_list[i].res;
+          if (res_list_present[res_id]) {
+            phy_cfg.pucch.sr_resources[res_id].resource = res_list[pucch_res_id];
+          } else {
+            logger.warning("Warning SR's PUCCH resource is invalid (%d)", pucch_res_id);
+            phy_cfg.pucch.sr_resources[res_id].configured = false;
+          }
+        } else {
+          logger.warning("Warning SR resource is present but no PUCCH resource is assigned to it");
+          phy_cfg.pucch.sr_resources[res_id].configured = false;
+        }
+
       } else {
         logger.warning("Warning while building srsran_pucch_nr_sr_resource structure");
         return false;

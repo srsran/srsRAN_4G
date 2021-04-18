@@ -157,7 +157,7 @@ void rlc::reestablish()
 void rlc::reestablish(uint32_t lcid)
 {
   if (valid_lcid(lcid)) {
-    logger.info("Reestablishing %s", rrc->get_rb_name(lcid).c_str());
+    logger.info("Reestablishing %s", rrc->get_rb_name(lcid));
     rlc_array.at(lcid)->reestablish();
   } else {
     logger.warning("RLC LCID %d doesn't exist.", lcid);
@@ -451,7 +451,7 @@ void rlc::add_bearer(uint32_t lcid, const rlc_config_t& cnfg)
       logger.error("Error inserting RLC entity in to array.");
       goto delete_and_exit;
     }
-    logger.info("Added radio bearer %s in %s", rrc->get_rb_name(lcid).c_str(), to_string(cnfg.rlc_mode).c_str());
+    logger.info("Added radio bearer %s in %s", rrc->get_rb_name(lcid), to_string(cnfg.rlc_mode).c_str());
     rlc_entity = NULL;
   }
 
@@ -463,7 +463,7 @@ void rlc::add_bearer(uint32_t lcid, const rlc_config_t& cnfg)
     }
   }
 
-  logger.info("Configured radio bearer %s in %s", rrc->get_rb_name(lcid).c_str(), to_string(cnfg.rlc_mode).c_str());
+  logger.info("Configured radio bearer %s in %s", rrc->get_rb_name(lcid), to_string(cnfg.rlc_mode).c_str());
 
 delete_and_exit:
   if (rlc_entity) {
@@ -510,9 +510,9 @@ void rlc::del_bearer(uint32_t lcid)
     it->second->stop();
     delete (it->second);
     rlc_array.erase(it);
-    logger.warning("Deleted RLC bearer %s", rrc->get_rb_name(lcid).c_str());
+    logger.warning("Deleted RLC bearer %s", rrc->get_rb_name(lcid));
   } else {
-    logger.error("Can't delete bearer %s. Bearer doesn't exist.", rrc->get_rb_name(lcid).c_str());
+    logger.error("Can't delete bearer %s. Bearer doesn't exist.", rrc->get_rb_name(lcid));
   }
 }
 
@@ -525,9 +525,9 @@ void rlc::del_bearer_mrb(uint32_t lcid)
     it->second->stop();
     delete (it->second);
     rlc_array_mrb.erase(it);
-    logger.warning("Deleted RLC MRB bearer %s", rrc->get_rb_name(lcid).c_str());
+    logger.warning("Deleted RLC MRB bearer %s", rrc->get_rb_name(lcid));
   } else {
-    logger.error("Can't delete bearer %s. Bearer doesn't exist.", rrc->get_rb_name(lcid).c_str());
+    logger.error("Can't delete bearer %s. Bearer doesn't exist.", rrc->get_rb_name(lcid));
   }
 }
 
@@ -554,7 +554,7 @@ void rlc::change_lcid(uint32_t old_lcid, uint32_t new_lcid)
     }
   } else {
     logger.error("Can't change LCID of bearer %s from %d to %d. Bearer doesn't exist or new LCID already occupied.",
-                 rrc->get_rb_name(old_lcid).c_str(),
+                 rrc->get_rb_name(old_lcid),
                  old_lcid,
                  new_lcid);
   }
@@ -565,26 +565,26 @@ void rlc::suspend_bearer(uint32_t lcid)
 {
   if (valid_lcid(lcid)) {
     if (rlc_array.at(lcid)->suspend()) {
-      logger.info("Suspended radio bearer %s", rrc->get_rb_name(lcid).c_str());
+      logger.info("Suspended radio bearer %s", rrc->get_rb_name(lcid));
     } else {
       logger.error("Error suspending RLC entity: bearer already suspended.");
     }
   } else {
-    logger.error("Suspending bearer: bearer %s not configured.", rrc->get_rb_name(lcid).c_str());
+    logger.error("Suspending bearer: bearer %s not configured.", rrc->get_rb_name(lcid));
   }
 }
 
 void rlc::resume_bearer(uint32_t lcid)
 {
-  logger.info("Resuming radio bearer %s", rrc->get_rb_name(lcid).c_str());
+  logger.info("Resuming radio bearer %s", rrc->get_rb_name(lcid));
   if (valid_lcid(lcid)) {
     if (rlc_array.at(lcid)->resume()) {
-      logger.info("Resumed radio bearer %s", rrc->get_rb_name(lcid).c_str());
+      logger.info("Resumed radio bearer %s", rrc->get_rb_name(lcid));
     } else {
       logger.error("Error resuming RLC entity: bearer not suspended.");
     }
   } else {
-    logger.error("Resuming bearer: bearer %s not configured.", rrc->get_rb_name(lcid).c_str());
+    logger.error("Resuming bearer: bearer %s not configured.", rrc->get_rb_name(lcid));
   }
 }
 

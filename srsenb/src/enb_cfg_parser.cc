@@ -684,15 +684,14 @@ static int parse_meas_cell_list(rrc_meas_cfg_t* meas_cfg, Setting& root)
 {
   meas_cfg->meas_cells.resize(root.getLength());
   for (uint32_t i = 0; i < meas_cfg->meas_cells.size(); ++i) {
-    meas_cfg->meas_cells[i].earfcn   = root[i]["dl_earfcn"];
-    meas_cfg->meas_cells[i].pci      = (unsigned int)root[i]["pci"] % SRSRAN_NUM_PCI;
-    meas_cfg->meas_cells[i].eci      = (unsigned int)root[i]["eci"];
-    meas_cfg->meas_cells[i].q_offset = 0; // LIBLTE_RRC_Q_OFFSET_RANGE_DB_0; // TODO
-                                          //    // TODO: TEMP
-                                          //    printf("PARSER: neighbor cell: {dl_earfcn=%d pci=%d cell_idx=0x%x}\n",
-                                          //           meas_cfg->meas_cells[i].earfcn,
-                                          //           meas_cfg->meas_cells[i].pci,
-                                          //           meas_cfg->meas_cells[i].eci);
+    auto& cell    = meas_cfg->meas_cells[i];
+    cell.earfcn   = root[i]["dl_earfcn"];
+    cell.pci      = (unsigned int)root[i]["pci"] % SRSRAN_NUM_PCI;
+    cell.eci      = (unsigned int)root[i]["eci"];
+    cell.q_offset = 0; // LIBLTE_RRC_Q_OFFSET_RANGE_DB_0; // TODO
+    parse_default_field(cell.direct_forward_path_available, root[i], "direct_forward_path_available", false);
+    parse_default_field(cell.allowed_meas_bw, root[i], "allowed_meas_bw", 6u);
+    srsran_assert(srsran::is_lte_cell_nof_prb(cell.allowed_meas_bw), "Invalid measurement Bandwidth");
   }
   return 0;
 }
@@ -761,6 +760,8 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
     parse_default_field(cell_cfg.meas_cfg.meas_gap_period, cellroot, "meas_gap_period", 0u);
     HANDLEPARSERCODE(parse_default_field(cell_cfg.target_ul_sinr_db, cellroot, "target_ul_sinr", -1));
     HANDLEPARSERCODE(parse_default_field(cell_cfg.enable_phr_handling, cellroot, "enable_phr_handling", false));
+    parse_default_field(cell_cfg.meas_cfg.allowed_meas_bw, cellroot, "allowed_meas_bw", 6u);
+    srsran_assert(srsran::is_lte_cell_nof_prb(cell_cfg.meas_cfg.allowed_meas_bw), "Invalid measurement Bandwidth");
 
     if (cellroot.exists("ho_active") and cellroot["ho_active"]) {
       HANDLEPARSERCODE(parse_meas_cell_list(&cell_cfg.meas_cfg, cellroot["meas_cell_list"]));
@@ -920,7 +921,7 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
   // Check for a forced  DL EARFCN or frequency (only valid for a single cell config (Xico's favorite feature))
   if (rrc_cfg_->cell_list.size() == 1) {
     auto& cfg = rrc_cfg_->cell_list.at(0);
-    if (args_->enb.dl_earfcn > 0) {
+    if (args_->enb.dl_earfcn > 0 and args_->enb.dl_earfcn != cfg.dl_earfcn) {
       cfg.dl_earfcn = args_->enb.dl_earfcn;
       ERROR("Force DL EARFCN for cell PCI=%d to %d", cfg.pci, cfg.dl_earfcn);
     }
@@ -1155,6 +1156,7 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
 
   // Set max number of KOs
   rrc_cfg_->max_mac_dl_kos = args_->general.max_mac_dl_kos;
+  rrc_cfg_->max_mac_ul_kos = args_->general.max_mac_ul_kos;
 
   // Set sync queue capacity to 1 for ZMQ
   if (args_->rf.device_name == "zmq") {

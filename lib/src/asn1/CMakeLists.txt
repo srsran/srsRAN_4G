@@ -58,7 +58,7 @@ INSTALL(TARGETS rrc_asn1 DESTINATION ${LIBRARY_DIR})
 
 # S1AP ASN1 lib
 add_library(s1ap_asn1 STATIC
-        s1ap.cc)
+            s1ap.cc s1ap_utils.cc)
 target_compile_options(s1ap_asn1 PRIVATE "-Os")
 target_link_libraries(s1ap_asn1 asn1_utils srsran_common)
 INSTALL(TARGETS s1ap_asn1 DESTINATION ${LIBRARY_DIR})

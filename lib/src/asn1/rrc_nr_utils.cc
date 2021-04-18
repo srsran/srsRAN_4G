@@ -75,6 +75,15 @@ logical_channel_config_t make_mac_logical_channel_cfg_t(uint8_t lcid, const lc_c
   return logical_channel_config;
 }
 
+bool make_mac_phr_cfg_t(const phr_cfg_s& asn1_type, phr_cfg_nr_t* phr_cfg_nr)
+{
+  phr_cfg_nr->extended             = asn1_type.ext;
+  phr_cfg_nr->periodic_timer       = asn1_type.phr_periodic_timer.to_number();
+  phr_cfg_nr->prohibit_timer       = asn1_type.phr_prohibit_timer.to_number();
+  phr_cfg_nr->tx_pwr_factor_change = asn1_type.phr_tx_pwr_factor_change.to_number();
+  return true;
+}
+
 rach_nr_cfg_t make_mac_rach_cfg(const rach_cfg_common_s& asn1_type)
 {
   rach_nr_cfg_t rach_nr_cfg                = {};
@@ -268,6 +277,42 @@ bool make_phy_tdd_cfg(const tdd_ul_dl_cfg_common_s& tdd_ul_dl_cfg_common,
   srsran_tdd_config_nr.pattern1.nof_ul_symbols = tdd_ul_dl_cfg_common.pattern1.nrof_ul_symbols;
   // Copy and return struct
   *in_srsran_tdd_config_nr = srsran_tdd_config_nr;
+
+  if (not tdd_ul_dl_cfg_common.pattern2_present) {
+    return true;
+  }
+
+  switch (tdd_ul_dl_cfg_common.pattern2.dl_ul_tx_periodicity) {
+    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms1:
+      srsran_tdd_config_nr.pattern2.period_ms = 1;
+      break;
+    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms2:
+      srsran_tdd_config_nr.pattern2.period_ms = 2;
+      break;
+    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms5:
+      srsran_tdd_config_nr.pattern2.period_ms = 5;
+      break;
+    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms10:
+      srsran_tdd_config_nr.pattern2.period_ms = 10;
+      break;
+
+    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms1p25:
+    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms0p5:
+    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms0p625:
+    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms2p5:
+    default:
+      asn1::log_warning("Invalid option for pattern2 dl_ul_tx_periodicity_opts %s",
+                        tdd_ul_dl_cfg_common.pattern2.dl_ul_tx_periodicity.to_string());
+      return false;
+  }
+
+  srsran_tdd_config_nr.pattern2.nof_dl_slots   = tdd_ul_dl_cfg_common.pattern2.nrof_dl_slots;
+  srsran_tdd_config_nr.pattern2.nof_dl_symbols = tdd_ul_dl_cfg_common.pattern2.nrof_dl_symbols;
+  srsran_tdd_config_nr.pattern2.nof_ul_slots   = tdd_ul_dl_cfg_common.pattern2.nrof_ul_slots;
+  srsran_tdd_config_nr.pattern2.nof_ul_symbols = tdd_ul_dl_cfg_common.pattern2.nrof_ul_symbols;
+  // Copy and return struct
+  *in_srsran_tdd_config_nr = srsran_tdd_config_nr;
+
   return true;
 }
 

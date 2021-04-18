@@ -107,6 +107,9 @@ template <typename T, typename... Args>
 inline T& fetch_logger(const std::string& id, Args&&... args)
 {
   static_assert(detail::is_logger<T>::value, "T should be a logger type");
+  if (auto *logger = find_logger<T>(id)) {
+    return *logger;
+  }
   auto logger = detail::make_any<T>(id, std::forward<Args>(args)...);
   detail::any* p = detail::fetch_logger(id, std::move(logger));
 

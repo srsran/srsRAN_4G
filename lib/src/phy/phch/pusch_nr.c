@@ -970,7 +970,7 @@ int srsran_pusch_nr_encode(srsran_pusch_nr_t*            q,
   for (uint32_t tb = 0; tb < SRSRAN_MAX_TB; tb++) {
     nof_cw += grant->tb[tb].enabled ? 1 : 0;
 
-    if (pusch_nr_encode_codeword(q, cfg, &grant->tb[tb], data[tb].payload, &data[0].uci, grant->rnti) <
+    if (pusch_nr_encode_codeword(q, cfg, &grant->tb[tb], data->payload[tb], &data[0].uci, grant->rnti) <
         SRSRAN_SUCCESS) {
       ERROR("Error encoding TB %d", tb);
       return SRSRAN_ERROR;
@@ -1073,7 +1073,8 @@ static inline int pusch_nr_decode_codeword(srsran_pusch_nr_t*         q,
 
   // EVM
   if (q->evm_buffer != NULL) {
-    res->evm = srsran_evm_run_b(q->evm_buffer, &q->modem_tables[tb->mod], q->d[tb->cw_idx], llr, tb->nof_bits);
+    res->evm[tb->cw_idx] =
+        srsran_evm_run_b(q->evm_buffer, &q->modem_tables[tb->mod], q->d[tb->cw_idx], llr, tb->nof_bits);
   }
 
   // Descrambling
@@ -1142,7 +1143,7 @@ static inline int pusch_nr_decode_codeword(srsran_pusch_nr_t*         q,
 
   // Decode Ul-SCH
   if (tb->nof_bits != 0) {
-    if (srsran_ulsch_nr_decode(&q->sch, &cfg->sch_cfg, tb, llr, res->payload, &res->crc) < SRSRAN_SUCCESS) {
+    if (srsran_ulsch_nr_decode(&q->sch, &cfg->sch_cfg, tb, llr, &res->tb[tb->cw_idx]) < SRSRAN_SUCCESS) {
       ERROR("Error in SCH decoding");
       return SRSRAN_ERROR;
     }
@@ -1240,6 +1241,7 @@ int srsran_pusch_nr_decode(srsran_pusch_nr_t*           q,
 
 static uint32_t srsran_pusch_nr_grant_info(const srsran_sch_cfg_nr_t*   cfg,
                                            const srsran_sch_grant_nr_t* grant,
+                                           const srsran_pusch_res_nr_t* res,
                                            char*                        str,
                                            uint32_t                     str_len)
 {
@@ -1276,7 +1278,7 @@ static uint32_t srsran_pusch_nr_grant_info(const srsran_sch_cfg_nr_t*   cfg,
 
   // Append TB info
   for (uint32_t i = 0; i < SRSRAN_MAX_TB; i++) {
-    len += srsran_sch_nr_tb_info(&grant->tb[i], &str[len], str_len - len);
+    len += srsran_sch_nr_tb_info(&grant->tb[i], &res->tb[i], &str[len], str_len - len);
   }
 
   return len;
@@ -1285,7 +1287,7 @@ static uint32_t srsran_pusch_nr_grant_info(const srsran_sch_cfg_nr_t*   cfg,
 uint32_t srsran_pusch_nr_rx_info(const srsran_pusch_nr_t*     q,
                                  const srsran_sch_cfg_nr_t*   cfg,
                                  const srsran_sch_grant_nr_t* grant,
-                                 const srsran_pusch_res_nr_t  res[SRSRAN_MAX_CODEWORDS],
+                                 const srsran_pusch_res_nr_t* res,
                                  char*                        str,
                                  uint32_t                     str_len)
 {
@@ -1295,12 +1297,12 @@ uint32_t srsran_pusch_nr_rx_info(const srsran_pusch_nr_t*     q,
     return 0;
   }
 
-  len += srsran_pusch_nr_grant_info(cfg, grant, &str[len], str_len - len);
+  len += srsran_pusch_nr_grant_info(cfg, grant, res, &str[len], str_len - len);
 
   if (q->evm_buffer != NULL) {
     len = srsran_print_check(str, str_len, len, ",evm={", 0);
     for (uint32_t i = 0; i < SRSRAN_MAX_CODEWORDS; i++) {
-      if (grant->tb[i].enabled && !isnan(res[i].evm)) {
+      if (grant->tb[i].enabled && !isnan(res->evm[i])) {
         len = srsran_print_check(str, str_len, len, "%.2f", res[i].evm);
         if (i < SRSRAN_MAX_CODEWORDS - 1) {
           if (grant->tb[i + 1].enabled) {
@@ -1321,7 +1323,7 @@ uint32_t srsran_pusch_nr_rx_info(const srsran_pusch_nr_t*     q,
     len = srsran_print_check(str, str_len, len, ",crc={", 0);
     for (uint32_t i = 0; i < SRSRAN_MAX_CODEWORDS; i++) {
       if (grant->tb[i].enabled) {
-        len = srsran_print_check(str, str_len, len, "%s", res[i].crc ? "OK" : "KO");
+        len = srsran_print_check(str, str_len, len, "%s", res->tb[i].crc ? "OK" : "KO");
         if (i < SRSRAN_MAX_CODEWORDS - 1) {
           if (grant->tb[i + 1].enabled) {
             len = srsran_print_check(str, str_len, len, ",", 0);
@@ -1352,7 +1354,7 @@ uint32_t srsran_pusch_nr_tx_info(const srsran_pusch_nr_t*     q,
     return 0;
   }
 
-  len += srsran_pusch_nr_grant_info(cfg, grant, &str[len], str_len - len);
+  len += srsran_pusch_nr_grant_info(cfg, grant, NULL, &str[len], str_len - len);
 
   if (uci_value != NULL) {
     srsran_uci_data_nr_t uci_data = {};

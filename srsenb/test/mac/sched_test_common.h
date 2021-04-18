@@ -43,7 +43,9 @@ struct rrc_dummy : public rrc_interface_mac {
 public:
   int      add_user(uint16_t rnti, const sched_interface::ue_cfg_t& init_ue_cfg) { return SRSRAN_SUCCESS; }
   void     upd_user(uint16_t new_rnti, uint16_t old_rnti) {}
-  void     set_activity_user(uint16_t rnti, bool ack_info) {}
+  void     set_activity_user(uint16_t rnti) {}
+  void     set_radiolink_ul_state(uint16_t rnti, bool crc_res) {}
+  void     set_radiolink_dl_state(uint16_t rnti, bool crc_res) {}
   bool     is_paging_opportunity(uint32_t tti, uint32_t* payload_len) { return false; }
   uint8_t* read_pdu_bcch_dlsch(const uint8_t enb_cc_idx, const uint32_t sib_index) { return nullptr; }
 };

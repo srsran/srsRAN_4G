@@ -23,19 +23,20 @@
 #include "srsran/common/standard_streams.h"
 #include "srsran/interfaces/ue_phy_interfaces.h"
 #include "srsran/interfaces/ue_rrc_interfaces.h"
-#include "srsue/hdr/stack/mac_nr/proc_ra_nr.h"
 
 namespace srsue {
 
 proc_sr_nr::proc_sr_nr(srslog::basic_logger& logger) : logger(logger) {}
 
-int32_t proc_sr_nr::init(proc_ra_nr* ra_, phy_interface_mac_nr* phy_, rrc_interface_mac* rrc_)
+int32_t proc_sr_nr::init(mac_interface_sr_nr* mac_, phy_interface_mac_nr* phy_, rrc_interface_mac* rrc_)
 {
   rrc        = rrc_;
-  ra         = ra_;
+  mac        = mac_;
   phy        = phy_;
-  initiated  = true;
   sr_counter = 0;
+
+  initiated = true;
+
   return SRSRAN_SUCCESS;
 }
 
@@ -66,6 +67,8 @@ int32_t proc_sr_nr::set_config(const srsran::sr_cfg_nr_t& cfg_)
 
   if (cfg_.enabled) {
     logger.info("SR:    Set sr-TransMax=%d", cfg_.item[0].trans_max);
+  } else {
+    logger.info("SR:    Disabling procedure");
   }
 
   // store config
@@ -86,10 +89,10 @@ void proc_sr_nr::step(uint32_t tti)
   }
 
   // 1> if the MAC entity has no valid PUCCH resource configured for the pending SR:
-  if (!cfg.enabled || not phy->has_valid_sr_resource(0)) {
+  if (not phy->has_valid_sr_resource(cfg.item[0].sched_request_id)) {
     // 2> initiate a Random Access procedure (see clause 5.1) on the SpCell and cancel the pending SR.
     logger.info("SR:    PUCCH not configured. Starting RA procedure");
-    ra->start_by_mac();
+    mac->start_ra();
     reset();
     return;
   }
@@ -107,7 +110,7 @@ void proc_sr_nr::step(uint32_t tti)
     // 4> clear any PUSCH resources for semi-persistent CSI reporting;
     // ... TODO
 
-    ra->start_by_mac();
+    mac->start_ra();
     reset();
   }
 }
@@ -154,10 +157,15 @@ bool proc_sr_nr::sr_opportunity(uint32_t tti, uint32_t sr_id, bool meas_gap, boo
 void proc_sr_nr::start()
 {
   if (initiated) {
-    if (!is_pending_sr) {
+    if (not is_pending_sr) {
+      logger.info("SR:    Starting procedure");
       sr_counter    = 0;
       is_pending_sr = true;
+    } else {
+      logger.debug("SR:    Already pending for Tx");
     }
+  } else {
+    logger.warning("SR:    Procedure not initiated");
   }
 }
 

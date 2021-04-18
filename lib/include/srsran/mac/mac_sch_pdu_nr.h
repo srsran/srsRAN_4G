@@ -63,7 +63,7 @@ public:
   // SDUs up to 256 B can use the short 8-bit L field
   static const int32_t MAC_SUBHEADER_LEN_THRESHOLD = 256;
 
-  mac_sch_subpdu_nr(mac_sch_pdu_nr* parent_) : parent(parent_), logger(&srslog::fetch_basic_logger("MAC")){};
+  mac_sch_subpdu_nr(mac_sch_pdu_nr* parent_) : parent(parent_), logger(&srslog::fetch_basic_logger("MAC-NR")){};
 
   nr_lcid_sch_t get_type();
   bool          is_sdu();
@@ -129,10 +129,10 @@ private:
 class mac_sch_pdu_nr
 {
 public:
-  mac_sch_pdu_nr(bool ulsch_ = false) : ulsch(ulsch_), logger(srslog::fetch_basic_logger("MAC")) {}
+  mac_sch_pdu_nr(bool ulsch_ = false) : ulsch(ulsch_), logger(srslog::fetch_basic_logger("MAC-NR")) {}
 
   void                     pack();
-  void                     unpack(const uint8_t* payload, const uint32_t& len);
+  int                      unpack(const uint8_t* payload, const uint32_t& len);
   uint32_t                 get_num_subpdus();
   const mac_sch_subpdu_nr& get_subpdu(const uint32_t& index);
   bool                     is_ulsch();

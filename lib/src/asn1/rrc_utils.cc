@@ -548,6 +548,33 @@ void set_phy_cfg_t_dedicated_cfg(phy_cfg_t* cfg, const asn1::rrc::phys_cfg_ded_s
     // TODO
   }
 
+  if (asn1_type.cqi_report_cfg_r10.is_present()) {
+    // Parse R10 periodic CQI configuration
+    cfg->dl_cfg.cqi_report.periodic_configured =
+        asn1_type.cqi_report_cfg_r10->cqi_report_periodic_r10.type() == asn1::rrc::setup_e::setup;
+    if (cfg->dl_cfg.cqi_report.periodic_configured) {
+      const auto& cqi_report_periodic = asn1_type.cqi_report_cfg_r10->cqi_report_periodic_r10.setup();
+      cfg->ul_cfg.pucch.n_pucch_2     = cqi_report_periodic.cqi_pucch_res_idx_r10;
+      cfg->ul_cfg.pucch.simul_cqi_ack = cqi_report_periodic.simul_ack_nack_and_cqi;
+      cfg->dl_cfg.cqi_report.pmi_idx  = cqi_report_periodic.cqi_pmi_cfg_idx;
+      cfg->dl_cfg.cqi_report.format_is_subband =
+          cqi_report_periodic.cqi_format_ind_periodic_r10.type().value ==
+          asn1::rrc::cqi_report_periodic_r10_c::setup_s_::cqi_format_ind_periodic_r10_c_::types::subband_cqi_r10;
+      if (cfg->dl_cfg.cqi_report.format_is_subband) {
+        cfg->dl_cfg.cqi_report.subband_size = cqi_report_periodic.cqi_format_ind_periodic_r10.subband_cqi_r10().k;
+      }
+      if (cqi_report_periodic.ri_cfg_idx_present) {
+        cfg->dl_cfg.cqi_report.ri_idx         = cqi_report_periodic.ri_cfg_idx;
+        cfg->dl_cfg.cqi_report.ri_idx_present = true;
+      } else {
+        cfg->dl_cfg.cqi_report.ri_idx_present = false;
+      }
+    } else {
+      cfg->ul_cfg.pucch.n_pucch_2     = 0;
+      cfg->ul_cfg.pucch.simul_cqi_ack = false;
+    }
+  }
+
   if (asn1_type.cqi_report_cfg_present) {
     if (asn1_type.cqi_report_cfg.cqi_report_periodic_present) {
       cfg->dl_cfg.cqi_report.periodic_configured =
