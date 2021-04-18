@@ -70,7 +70,7 @@ bool make_mac_dl_harq_cfg_nr_t(const pdsch_serving_cell_cfg_s& asn1_type, dl_har
 {
   dl_harq_cfg_nr_t dl_harq_cfg_nr;
   if (asn1_type.nrof_harq_processes_for_pdsch_present) {
-    dl_harq_cfg_nr.nof_procs = asn1_type.nrof_harq_processes_for_pdsch;
+    dl_harq_cfg_nr.nof_procs = asn1_type.nrof_harq_processes_for_pdsch.to_number();
   } else {
     asn1::log_warning("Option nrof_harq_processes_for_pdsch not present");
     return false;
