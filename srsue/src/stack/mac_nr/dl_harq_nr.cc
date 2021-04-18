@@ -77,7 +77,7 @@ void dl_harq_entity_nr::new_grant_dl(const mac_nr_grant_dl_t& grant, mac_interfa
     proc_ptr = &bcch_proc;
   } else {
     if (grant.pid >= cfg.nof_procs) {
-      logger.error("Invalid PID: %d", grant.pid);
+      logger.error("Grant for invalid HARQ PID=%d", grant.pid);
       return;
     }
     proc_ptr = harq_procs.at(grant.pid).get();
@@ -105,7 +105,7 @@ void dl_harq_entity_nr::tb_decoded(const mac_nr_grant_dl_t& grant, mac_interface
     bcch_proc.tb_decoded(grant, std::move(result));
   } else {
     if (grant.pid >= cfg.nof_procs) {
-      logger.error("Invalid PID: %d", grant.pid);
+      logger.error("Decoded TB for invalid HARQ PID=%d", grant.pid);
       return;
     }
     harq_procs.at(grant.pid)->tb_decoded(grant, std::move(result));
