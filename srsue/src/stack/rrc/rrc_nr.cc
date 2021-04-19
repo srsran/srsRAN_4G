@@ -1052,6 +1052,7 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
     if (recfg_with_sync.sp_cell_cfg_common_present) {
       if (recfg_with_sync.sp_cell_cfg_common.pci_present) {
         phy_cfg.carrier.pci = recfg_with_sync.sp_cell_cfg_common.pci;
+        phy_cfg.carrier.max_mimo_layers = 1; // TODO: flatten
       } else {
         logger.warning("Option PCI not present");
         return false;

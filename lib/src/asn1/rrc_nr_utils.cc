@@ -233,7 +233,6 @@ bool make_phy_rach_cfg(const rach_cfg_common_s& asn1_type, srsran_prach_cfg_t* p
     asn1::log_error("PRACH freq offset must be at least one");
     return false;
   }
-  prach_cfg->freq_offset--;
 
   switch (prach_cfg->root_seq_idx = asn1_type.prach_root_seq_idx.type()) {
     case rach_cfg_common_s::prach_root_seq_idx_c_::types_opts::l839:
@@ -1178,41 +1177,45 @@ bool make_phy_nzp_csi_rs_resource(const asn1::rrc_nr::nzp_csi_rs_res_s&  asn1_nz
 
 bool make_phy_carrier_cfg(const freq_info_dl_s& asn1_freq_info_dl, srsran_carrier_nr_t* out_carrier_nr)
 {
-  srsran_carrier_nr_t carrier_nr = {};
+  uint32_t absolute_frequency_ssb = 0;
   if (asn1_freq_info_dl.absolute_freq_ssb_present) {
-    carrier_nr.absolute_frequency_ssb = asn1_freq_info_dl.absolute_freq_ssb_present;
+    absolute_frequency_ssb = asn1_freq_info_dl.absolute_freq_ssb_present;
   } else {
     asn1::log_warning("Option absolute_freq_ssb not present");
     return false;
   }
-  carrier_nr.absolute_frequency_point_a = asn1_freq_info_dl.absolute_freq_point_a;
+  uint32_t absolute_frequency_point_a = asn1_freq_info_dl.absolute_freq_point_a;
   if (asn1_freq_info_dl.scs_specific_carrier_list.size() != 1) {
     asn1::log_warning("Option absolute_freq_ssb not present");
     return false;
   }
 
-  carrier_nr.nof_prb = asn1_freq_info_dl.scs_specific_carrier_list[0].carrier_bw;
-
+  uint32_t                    nof_prb = asn1_freq_info_dl.scs_specific_carrier_list[0].carrier_bw;
+  srsran_subcarrier_spacing_t scs     = srsran_subcarrier_spacing_15kHz;
   switch (asn1_freq_info_dl.scs_specific_carrier_list[0].subcarrier_spacing) {
     case subcarrier_spacing_opts::options::khz15:
-      carrier_nr.scs = srsran_subcarrier_spacing_15kHz;
+      scs = srsran_subcarrier_spacing_15kHz;
       break;
     case subcarrier_spacing_opts::options::khz30:
-      carrier_nr.scs = srsran_subcarrier_spacing_30kHz;
+      scs = srsran_subcarrier_spacing_30kHz;
       break;
     case subcarrier_spacing_opts::options::khz60:
-      carrier_nr.scs = srsran_subcarrier_spacing_60kHz;
+      scs = srsran_subcarrier_spacing_60kHz;
       break;
     case subcarrier_spacing_opts::options::khz120:
-      carrier_nr.scs = srsran_subcarrier_spacing_120kHz;
+      scs = srsran_subcarrier_spacing_120kHz;
       break;
     case subcarrier_spacing_opts::options::khz240:
-      carrier_nr.scs = srsran_subcarrier_spacing_240kHz;
+      scs = srsran_subcarrier_spacing_240kHz;
       break;
     default:
       asn1::log_warning("Not supported subcarrier spacing ");
   }
-  *out_carrier_nr = carrier_nr;
+  // As the carrier structure requires parameters from different objects, set fields separately
+  out_carrier_nr->absolute_frequency_ssb     = absolute_frequency_ssb;
+  out_carrier_nr->absolute_frequency_point_a = absolute_frequency_point_a;
+  out_carrier_nr->nof_prb                    = nof_prb;
+  out_carrier_nr->scs                        = scs;
   return true;
 }
 } // namespace srsran
