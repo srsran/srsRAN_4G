@@ -10,10 +10,10 @@
  *
  */
 
+#include "srsran/common/common_nr.h"
+#include "srsran/asn1/rrc_nr_utils.h"
 #include "srsenb/hdr/stack/rrc/rrc_nr.h"
 #include "srsenb/hdr/common/common_enb.h"
-#include "srsran/asn1/rrc_nr_utils.h"
-#include "srsran/interfaces/nr_common_interface_types.h"
 
 using namespace asn1::rrc_nr;
 
@@ -312,16 +312,16 @@ void rrc_nr::get_metrics(srsenb::rrc_metrics_t& m)
 void rrc_nr::handle_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
   if (pdu) {
-    logger.info(pdu->msg, pdu->N_bytes, "Rx %s PDU", srsran::to_string(static_cast<srsran::rb_id_nr_t>(lcid)));
+    logger.info(pdu->msg, pdu->N_bytes, "Rx %s PDU", get_rb_name(lcid));
   }
 
   if (users.count(rnti) == 1) {
-    switch (static_cast<srsran::rb_id_nr_t>(lcid)) {
-      case srsran::rb_id_nr_t::NR_SRB0:
+    switch (static_cast<srsran::nr_srb>(lcid)) {
+      case srsran::nr_srb::srb0:
         //        parse_ul_ccch(rnti, std::move(pdu));
         break;
-      case srsran::rb_id_nr_t::NR_SRB1:
-      case srsran::rb_id_nr_t::NR_SRB2:
+      case srsran::nr_srb::srb1:
+      case srsran::nr_srb::srb2:
         //        parse_ul_dcch(p.rnti, p.lcid, std::move(p.pdu));
         break;
       default:
@@ -397,7 +397,7 @@ void rrc_nr::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
   char buf[32] = {};
   sprintf(buf, "SRB0 - rnti=0x%x", rnti);
   parent->log_rrc_message(buf, Tx, pdu.get(), *dl_ccch_msg);
-  parent->rlc->write_sdu(rnti, srsran::NR_SRB0, std::move(pdu));
+  parent->rlc->write_sdu(rnti, (uint32_t)srsran::nr_srb::srb0, std::move(pdu));
 }
 
 } // namespace srsenb

@@ -89,21 +89,14 @@ void rrc_nr::get_metrics(rrc_nr_metrics_t& m) {}
 
 const char* rrc_nr::get_rb_name(uint32_t lcid)
 {
-  uint32_t offset;
-  if (lcid_rb.find(lcid) != lcid_rb.end()) {
-    // Calulate offset for rb_id table
-    if (lcid_rb[lcid].rb_type == Srb) {
-      // SRB start at 0
-      offset = NR_SRB0 + lcid_rb[lcid].rb_id;
-    } else {
-      // DRB start at 1
-      offset = NR_SRB3 + lcid_rb[lcid].rb_id;
-    }
-  } else {
-    logger.warning("Unable to find lcid: %d. Return guessed rb name.");
-    offset = lcid;
+  if (is_nr_srb(lcid)) {
+    return get_srb_name(nr_lcid_to_srb(lcid));
   }
-  return srsran::to_string((srsran::rb_id_nr_t)offset);
+  if (lcid_drb.find(lcid) != lcid_drb.end()) {
+    return get_drb_name(lcid_drb[lcid]);
+  }
+  logger.warning("Unable to find lcid: %d. Return invalid LCID");
+  return "invalid LCID";
 }
 
 // Timeout callback interface
@@ -177,27 +170,26 @@ void rrc_nr::log_rrc_message(const std::string& source,
   }
 }
 
-bool rrc_nr::add_lcid_rb(uint32_t lcid, rb_type_t rb_type, uint32_t rbid)
+bool rrc_nr::add_lcid_drb(uint32_t lcid, uint32_t drb_id)
 {
-  if (lcid_rb.find(lcid) != lcid_rb.end()) {
-    logger.error("Couldn't add RB to LCID (%d). RB %d already does exist.", lcid, rbid);
+  if (lcid_drb.find(lcid) != lcid_drb.end()) {
+    logger.error("Couldn't add DRB to LCID (%d). DRB %d already exists.", lcid, drb_id);
     return false;
   } else {
-    logger.info("Adding lcid %d and radio bearer ID %d with type %s ", lcid, rbid, (rb_type == Srb) ? "SRB" : "DRB");
-    lcid_rb[lcid].rb_id   = rbid;
-    lcid_rb[lcid].rb_type = rb_type;
+    logger.info("Adding lcid %d and radio bearer ID %d", lcid, drb_id);
+    lcid_drb[lcid] = nr_drb_id_to_drb(drb_id);
   }
   return true;
 }
 
-uint32_t rrc_nr::get_lcid_for_rbid(uint32_t rb_id)
+uint32_t rrc_nr::get_lcid_for_drbid(uint32_t drb_id)
 {
-  for (auto& rb : lcid_rb) {
-    if (rb.second.rb_id == rb_id) {
+  for (auto& rb : lcid_drb) {
+    if (rb.second == nr_drb_id_to_drb(drb_id)) {
       return rb.first;
     }
   }
-  logger.error("Couldn't find LCID for rb LCID. RB %d does exist.", rb_id);
+  logger.error("Couldn't find LCID for DRB. DRB %d does exist.", drb_id);
   return 0;
 }
 
@@ -457,10 +449,7 @@ bool rrc_nr::apply_rlc_add_mod(const rlc_bearer_cfg_s& rlc_bearer_cfg)
   if (rlc_bearer_cfg.served_radio_bearer_present == true) {
     if (rlc_bearer_cfg.served_radio_bearer.type() == rlc_bearer_cfg_s::served_radio_bearer_c_::types::drb_id) {
       drb_id = rlc_bearer_cfg.served_radio_bearer.drb_id();
-      add_lcid_rb(lc_ch_id, Drb, drb_id);
-    } else {
-      srb_id = rlc_bearer_cfg.served_radio_bearer.srb_id();
-      add_lcid_rb(lc_ch_id, Srb, srb_id);
+      add_lcid_drb(lc_ch_id, drb_id);
     }
   } else {
     logger.warning("In RLC bearer cfg does not contain served radio bearer");
@@ -1255,7 +1244,7 @@ bool rrc_nr::apply_cell_group_cfg(const cell_group_cfg_s& cell_group_cfg)
 
 bool rrc_nr::apply_drb_release(const uint8_t drb)
 {
-  uint32_t lcid = get_lcid_for_rbid(drb);
+  uint32_t lcid = get_lcid_for_drbid(drb);
   if(lcid == 0){
     logger.warning("Can not release bearer with lcid %d and drb %d", lcid, drb);
     return false;
@@ -1276,7 +1265,7 @@ bool rrc_nr::apply_drb_add_mod(const drb_to_add_mod_s& drb_cfg)
     return false;
   }
 
-  uint32_t lcid = get_lcid_for_rbid(drb_cfg.drb_id);
+  uint32_t lcid = get_lcid_for_drbid(drb_cfg.drb_id);
 
   // Setup PDCP
   if (!(drb_cfg.pdcp_cfg.drb_present == true)) {
@@ -1363,7 +1352,7 @@ bool rrc_nr::apply_security_cfg(const security_cfg_s& security_cfg)
   }
 
   // Apply security config for all known NR lcids
-  for (auto& lcid : lcid_rb) {
+  for (auto& lcid : lcid_drb) {
     pdcp->config_security(lcid.first, sec_cfg);
     pdcp->enable_encryption(lcid.first);
   }

@@ -11,8 +11,7 @@
  */
 
 #include "srsenb/hdr/stack/upper/rlc_nr.h"
-#include "srsran/interfaces/nr_common_interface_types.h"
-
+#include "srsran/common/common_nr.h"
 namespace srsenb {
 
 rlc_nr::rlc_nr(const char* logname) : logger(srslog::fetch_basic_logger(logname)) {}
@@ -46,7 +45,7 @@ void rlc_nr::add_user(uint16_t rnti)
     user_itf.parent = this;
     user_itf.m_rlc.reset(new srsran::rlc(logger.id().c_str()));
     users[rnti] = std::move(user_itf);
-    users[rnti].m_rlc->init(&users[rnti], &users[rnti], timers, (int)srsran::rb_id_nr_t::NR_SRB0);
+    users[rnti].m_rlc->init(&users[rnti], &users[rnti], timers, (int)srsran::nr_srb::srb0);
   }
 }
 
@@ -180,7 +179,7 @@ void rlc_nr::user_interface::max_retx_attempted()
 
 void rlc_nr::user_interface::write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu)
 {
-  if (lcid == (int)srsran::rb_id_nr_t::NR_SRB0) {
+  if (lcid == (int)srsran::nr_srb::srb0) {
     m_rrc->write_pdu(rnti, lcid, std::move(sdu));
   } else {
     m_pdcp->write_pdu(rnti, lcid, std::move(sdu));
@@ -204,7 +203,7 @@ void rlc_nr::user_interface::write_pdu_pcch(srsran::unique_byte_buffer_t sdu)
 
 const char* rlc_nr::user_interface::get_rb_name(uint32_t lcid)
 {
-  return srsran::to_string(static_cast<srsran::rb_id_nr_t>(lcid));
+  return m_rrc->get_rb_name(lcid);
 }
 
 void rlc_nr::user_interface::notify_delivery(uint32_t lcid, const srsran::pdcp_sn_vector_t& pdcp_sns)

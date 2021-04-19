@@ -16,12 +16,12 @@
 #include "srsran/asn1/rrc_nr.h"
 #include "srsran/asn1/rrc_nr_utils.h"
 #include "srsran/common/block_queue.h"
+#include "srsran/common/common_nr.h"
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/stack_procedure.h"
 #include "srsran/common/task_scheduler.h"
-#include "srsran/interfaces/nr_common_interface_types.h"
-#include "srsran/interfaces/ue_nr_interfaces.h"
 #include "srsran/interfaces/ue_rrc_interfaces.h"
+#include "srsran/interfaces/ue_nr_interfaces.h"
 #include "srsue/hdr/stack/upper/gw.h"
 
 namespace srsue {
@@ -175,16 +175,10 @@ private:
 
   const char* get_rb_name(uint32_t lcid) final;
 
-  typedef enum { Srb = 0, Drb } rb_type_t;
-  typedef struct {
-    uint32_t  rb_id;
-    rb_type_t rb_type;
-  } rb_t;
+  bool     add_lcid_drb(uint32_t lcid, uint32_t drb_id);
+  uint32_t get_lcid_for_drbid(uint32_t rdid);
 
-  bool     add_lcid_rb(uint32_t lcid, rb_type_t rb_type, uint32_t rbid);
-  uint32_t get_lcid_for_rbid(uint32_t rdid);
-
-  std::map<uint32_t, rb_t> lcid_rb; // Map of lcid to radio bearer (type and rb id)
+  std::map<uint32_t, srsran::nr_drb> lcid_drb; // Map of lcid to drb
 
   std::map<uint32_t, uint32_t> drb_eps_bearer_id; // Map of drb id to eps_bearer_id
 
