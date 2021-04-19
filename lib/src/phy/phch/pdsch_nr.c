@@ -458,7 +458,7 @@ static inline int pdsch_nr_decode_codeword(srsran_pdsch_nr_t*         q,
 
   // Demodulation
   int8_t* llr = (int8_t*)q->b[tb->cw_idx];
-  if (srsran_demod_soft_demodulate2_b(tb->mod, q->d[tb->cw_idx], llr, tb->nof_re)) {
+  if (srsran_demod_soft_demodulate_b(tb->mod, q->d[tb->cw_idx], llr, tb->nof_re)) {
     return SRSRAN_ERROR;
   }
 

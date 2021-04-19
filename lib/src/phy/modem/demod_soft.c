@@ -883,9 +883,6 @@ int srsran_demod_soft_demodulate(srsran_mod_t modulation, const cf_t* symbols, f
 
 int srsran_demod_soft_demodulate_s(srsran_mod_t modulation, const cf_t* symbols, short* llr, int nsymbols)
 {
-  if (symbols == NULL || llr == NULL) {
-    return SRSRAN_ERROR_INVALID_INPUTS;
-  }
   switch (modulation) {
     case SRSRAN_MOD_BPSK:
       demod_bpsk_lte_s(symbols, llr, nsymbols);
@@ -911,9 +908,6 @@ int srsran_demod_soft_demodulate_s(srsran_mod_t modulation, const cf_t* symbols,
 
 int srsran_demod_soft_demodulate_b(srsran_mod_t modulation, const cf_t* symbols, int8_t* llr, int nsymbols)
 {
-  if (symbols == NULL || llr == NULL) {
-    return SRSRAN_ERROR_INVALID_INPUTS;
-  }
   switch (modulation) {
     case SRSRAN_MOD_BPSK:
       demod_bpsk_lte_b(symbols, llr, nsymbols);
@@ -932,34 +926,17 @@ int srsran_demod_soft_demodulate_b(srsran_mod_t modulation, const cf_t* symbols,
       break;
     default:
       ERROR("Invalid modulation %d", modulation);
-      return SRSRAN_ERROR;
-  }
-  return SRSRAN_SUCCESS;
-}
-
-int srsran_demod_soft_demodulate2_b(srsran_mod_t modulation, const cf_t* symbols, int8_t* llr, int nsymbols)
-{
-  if (symbols == NULL || llr == NULL) {
-    return SRSRAN_ERROR_INVALID_INPUTS;
-  }
-  if (srsran_demod_soft_demodulate_b(modulation, symbols, llr, nsymbols) < SRSRAN_SUCCESS) {
-    return SRSRAN_ERROR;
+      return -1;
   }
 
-  // If the number of bits is 2 or less, this is unnecessary
-  if (modulation < SRSRAN_MOD_16QAM) {
-    return SRSRAN_SUCCESS;
-  }
-
-  // Iterate all symbols seeking for zero LLR
   uint32_t nof_bits_x_symbol = srsran_mod_bits_x_symbol(modulation);
   for (uint32_t i = 0; i < nsymbols; i++) {
-    if (symbols[i] == 0.0f) {
+    if (!isnormal(__real__ symbols[i]) || !isnormal(__imag__ symbols[i])) {
       for (uint32_t j = 0; j < nof_bits_x_symbol; j++) {
         llr[i * nof_bits_x_symbol + j] = 0;
       }
     }
   }
 
-  return SRSRAN_SUCCESS;
+  return 0;
 }
