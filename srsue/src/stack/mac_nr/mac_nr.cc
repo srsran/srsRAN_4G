@@ -307,13 +307,6 @@ void mac_nr::tb_decoded(const uint32_t cc_idx, const mac_nr_grant_dl_t& grant, t
 
     dl_harq.at(cc_idx)->tb_decoded(grant, std::move(result));
   }
-
-  // do metrics
-  metrics[cc_idx].rx_brate += grant.tbs * 8;
-  metrics[cc_idx].rx_pkts++;
-  if (not result.ack) {
-    metrics[cc_idx].rx_errors++;
-  }
 }
 
 void mac_nr::new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, tb_action_ul_t* action)
@@ -346,8 +339,6 @@ void mac_nr::new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant,
   }
 
   ul_harq.at(cc_idx)->new_grant_ul(grant, action);
-  metrics[cc_idx].tx_pkts++;
-  metrics[cc_idx].tx_brate += grant.tbs * 8;
 
   // store PCAP
   if (action->tb.enabled && pcap) {
@@ -472,15 +463,31 @@ void mac_nr::get_metrics(mac_metrics_t m[SRSRAN_MAX_CARRIERS])
   float dl_avg_ret       = 0;
   int   dl_avg_ret_count = 0;
 
-  for (const auto& cc : metrics) {
-    tx_pkts += cc.tx_pkts;
-    tx_errors += cc.tx_errors;
-    tx_brate += cc.tx_brate;
-    rx_pkts += cc.rx_pkts;
-    rx_errors += cc.rx_errors;
-    rx_brate += cc.rx_brate;
-    ul_buffer += cc.ul_buffer;
+  // Get metrics from HARQ entities explicitly
+  for (uint32_t i = 0; i < metrics.size(); ++i) {
+    if (dl_harq.at(i) != nullptr) {
+      dl_harq_entity_nr::dl_harq_metrics_t harq_metrics = dl_harq.at(i)->get_metrics();
+      rx_pkts += (harq_metrics.rx_ok + harq_metrics.rx_ko);
+      rx_errors += harq_metrics.rx_ko;
+      rx_brate += harq_metrics.rx_brate;
+    }
+    if (ul_harq.at(i) != nullptr) {
+      ul_harq_entity_nr::ul_harq_metrics_t harq_metrics = ul_harq.at(i)->get_metrics();
+      tx_pkts += (harq_metrics.tx_ok + harq_metrics.tx_ko);
+      tx_errors += harq_metrics.tx_ko;
+      tx_brate += harq_metrics.tx_brate;
+    }
   }
+
+  // assign accumulated metrics for PCELL carrier only
+  auto& pcell_cc     = metrics[PCELL_CC_IDX];
+  pcell_cc.tx_pkts   = tx_pkts;
+  pcell_cc.tx_errors = tx_errors;
+  pcell_cc.tx_brate  = tx_brate;
+  pcell_cc.rx_pkts   = rx_pkts;
+  pcell_cc.rx_errors = rx_errors;
+  pcell_cc.rx_brate  = rx_brate;
+  pcell_cc.ul_buffer = mac_buffer_states.get_total_buffer_size();
 
   memcpy(m, metrics.data(), sizeof(mac_metrics_t) * SRSRAN_MAX_CARRIERS);
   metrics = {};

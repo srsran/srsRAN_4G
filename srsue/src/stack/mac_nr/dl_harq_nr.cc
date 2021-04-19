@@ -76,7 +76,7 @@ void dl_harq_entity_nr::new_grant_dl(const mac_nr_grant_dl_t& grant, mac_interfa
     // Set BCCH PID for SI RNTI
     proc_ptr = &bcch_proc;
   } else {
-    if (grant.pid >= cfg.nof_procs) {
+    if (harq_procs.at(grant.pid) == nullptr) {
       logger.error("Grant for invalid HARQ PID=%d", grant.pid);
       return;
     }
@@ -104,7 +104,7 @@ void dl_harq_entity_nr::tb_decoded(const mac_nr_grant_dl_t& grant, mac_interface
   if (grant.rnti == SRSRAN_SIRNTI) {
     bcch_proc.tb_decoded(grant, std::move(result));
   } else {
-    if (grant.pid >= cfg.nof_procs) {
+    if (harq_procs.at(grant.pid) == nullptr) {
       logger.error("Decoded TB for invalid HARQ PID=%d", grant.pid);
       return;
     }
@@ -124,9 +124,11 @@ void dl_harq_entity_nr::reset()
   bcch_proc.reset();
 }
 
-float dl_harq_entity_nr::get_average_retx()
+dl_harq_entity_nr::dl_harq_metrics_t dl_harq_entity_nr::get_metrics()
 {
-  return average_retx;
+  dl_harq_metrics_t tmp = metrics;
+  metrics               = {};
+  return tmp;
 }
 
 dl_harq_entity_nr::dl_harq_process_nr::dl_harq_process_nr(dl_harq_entity_nr* parent_) :
@@ -194,6 +196,8 @@ void dl_harq_entity_nr::dl_harq_process_nr::new_grant_dl(const mac_nr_grant_dl_t
     is_first_tb = false;
   } else {
     // This is a retransmission
+    n_retx++;
+
     if (not acked) {
       // If data has not yet been successfully decoded, instruct the PHY to combine the received data
       action->tb.enabled    = true;
@@ -203,8 +207,7 @@ void dl_harq_entity_nr::dl_harq_process_nr::new_grant_dl(const mac_nr_grant_dl_t
     }
   }
 
-  // increment counter and store grant
-  n_retx++;
+  // store grant
   current_grant = grant;
 }
 
@@ -224,11 +227,13 @@ void dl_harq_entity_nr::dl_harq_process_nr::tb_decoded(const mac_nr_grant_dl_t& 
       } else {
         logger.debug("Delivering PDU=%d bytes to Dissassemble and Demux unit", grant.tbs);
         harq_entity->demux_unit->push_pdu(std::move(result.payload), grant.tti);
-
-        // Compute average number of retransmissions per packet
-        harq_entity->average_retx = SRSRAN_VEC_CMA((float)n_retx, harq_entity->average_retx, harq_entity->nof_pkts++);
       }
     }
+
+    harq_entity->metrics.rx_ok++;
+    harq_entity->metrics.rx_brate += grant.tbs * 8;
+  } else {
+    harq_entity->metrics.rx_ko++;
   }
 
   logger.info("DL %d:  %s tbs=%d, rv=%d, ack=%s, ndi=%d",
