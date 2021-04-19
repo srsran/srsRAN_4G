@@ -156,10 +156,10 @@ int rlc_um_nr::rlc_um_nr_tx::build_data_pdu(unique_byte_buffer_t pdu, uint8_t* p
   // Calculate actual header length
   uint32_t head_len = rlc_um_nr_packed_length(header);
   if (pdu_space <= head_len + 1) {
-    logger.warning("%s Cannot build a PDU - %d bytes available, %d bytes required for header",
-                   rb_name.c_str(),
-                   nof_bytes,
-                   head_len);
+    logger.info("%s Cannot build a PDU - %d bytes available, %d bytes required for header",
+                rb_name.c_str(),
+                nof_bytes,
+                head_len);
     return 0;
   }
 
@@ -287,7 +287,7 @@ void rlc_um_nr::rlc_um_nr_rx::timer_expired(uint32_t timeout_id)
   if (reassembly_timer.id() == timeout_id) {
     logger.info("%s reassembly timeout expiry - updating RX_Next_Reassembly and reassembling", rb_name.c_str());
 
-    logger.warning("Lost PDU SN: %d", RX_Next_Reassembly);
+    logger.info("Lost PDU SN=%d", RX_Next_Reassembly);
     metrics.num_lost_pdus++;
 
     if (rx_sdu != nullptr) {
@@ -341,8 +341,8 @@ unique_byte_buffer_t rlc_um_nr::rlc_um_nr_rx::rlc_um_nr_strip_pdu_header(const r
                                                                          const uint32_t                nof_bytes)
 {
   unique_byte_buffer_t sdu = make_byte_buffer();
-  if (!sdu) {
-    logger.error("Discarting packet: no space in buffer pool");
+  if (sdu == nullptr) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
     return nullptr;
   }
   memcpy(sdu->msg, payload, nof_bytes);
