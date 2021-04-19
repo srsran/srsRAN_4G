@@ -11,6 +11,7 @@
  */
 
 #include "srsran/phy/common/phy_common_nr.h"
+#include "srsran/phy/utils/vector.h"
 #include <string.h>
 
 const char* srsran_rnti_type_str(srsran_rnti_type_t rnti_type)
@@ -235,4 +236,34 @@ bool srsran_tdd_nr_is_ul(const srsran_tdd_config_nr_t* cfg, uint32_t numerology,
 
   // Check UL boundaries
   return (slot_idx_period > start_ul || (slot_idx_period == start_ul && pattern->nof_ul_symbols != 0));
+}
+
+int srsran_carrier_to_cell(const srsran_carrier_nr_t* carrier, srsran_cell_t* cell)
+{
+  // Protect memory access
+  if (carrier == NULL || cell == NULL) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+
+  // Ensure cell is initialised+
+  SRSRAN_MEM_ZERO(cell, srsran_cell_t, 1);
+
+  // Select number of PRB
+  if (carrier->nof_prb <= 25) {
+    cell->nof_prb = 25;
+  } else if (carrier->nof_prb <= 52) {
+    cell->nof_prb = 50;
+  } else if (carrier->nof_prb <= 79) {
+    cell->nof_prb = 75;
+  } else if (carrier->nof_prb <= 106) {
+    cell->nof_prb = 100;
+  } else {
+    return SRSRAN_ERROR_OUT_OF_BOUNDS;
+  }
+
+  // Set other parameters
+  cell->id        = carrier->pci;
+  cell->nof_ports = carrier->max_mimo_layers;
+
+  return SRSRAN_SUCCESS;
 }

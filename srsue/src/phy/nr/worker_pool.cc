@@ -22,12 +22,15 @@ bool worker_pool::init(const phy_args_nr_t& args, phy_common* common, stack_inte
   phy_state.args  = args;
 
   // Set carrier attributes
-  phy_state.carrier.pci      = 500;
-  phy_state.carrier.nof_prb = args.nof_prb;
+  phy_state.cfg.carrier.pci     = 500;
+  phy_state.cfg.carrier.nof_prb = args.max_nof_prb;
 
   // Set NR arguments
-  phy_state.args.nof_carriers   = args.nof_carriers;
-  phy_state.args.dl.nof_max_prb = args.nof_prb;
+  phy_state.args.nof_carriers     = args.nof_carriers;
+  phy_state.args.dl.nof_max_prb   = args.max_nof_prb;
+  phy_state.args.dl.pdsch.max_prb = args.max_nof_prb;
+  phy_state.args.ul.nof_max_prb   = args.max_nof_prb;
+  phy_state.args.ul.pusch.max_prb = args.max_nof_prb;
 
   // Skip init of workers if no NR carriers
   if (phy_state.args.nof_carriers == 0) {
@@ -43,10 +46,6 @@ bool worker_pool::init(const phy_args_nr_t& args, phy_common* common, stack_inte
     auto w = new sf_worker(common, &phy_state, log);
     pool.init_worker(i, w, prio, args.worker_cpu_mask);
     workers.push_back(std::unique_ptr<sf_worker>(w));
-
-    if (not w->set_carrier_unlocked(0, &phy_state.carrier)) {
-      return false;
-    }
   }
 
   // Set PHY loglevel
@@ -74,7 +73,7 @@ sf_worker* worker_pool::wait_worker(uint32_t tti)
   sf_worker* worker = (sf_worker*)pool.wait_worker(tti);
 
   // Generate PRACH if ready
-  if (prach_buffer->is_ready_to_send(tti, phy_state.carrier.pci)) {
+  if (prach_buffer->is_ready_to_send(tti, phy_state.cfg.carrier.pci)) {
     uint32_t nof_prach_sf       = 0;
     float    prach_target_power = 0.0f;
     cf_t*    prach_ptr          = prach_buffer->generate(0.0f, &nof_prach_sf, &prach_target_power);
@@ -128,12 +127,14 @@ bool worker_pool::set_config(const srsran::phy_cfg_nr_t& cfg)
 {
   phy_state.cfg = cfg;
 
-  // Set PRACH hard-coded cell
+  logger.error(
+      "Setting new PHY configuration ARFCN=%d, PCI=%d", cfg.carrier.absolute_frequency_point_a, cfg.carrier.pci);
+
+  // Best effort to convert NR carrier into LTE cell
   srsran_cell_t cell = {};
-  cell.nof_prb       = 50;
-  cell.id            = phy_state.carrier.pci;
-  if (not prach_buffer->set_cell(cell, phy_state.cfg.prach)) {
-    logger.error("Error setting PRACH cell");
+  int           ret  = srsran_carrier_to_cell(&phy_state.cfg.carrier, &cell);
+  if (ret < SRSRAN_SUCCESS) {
+    logger.error("Converting carrier to cell for PRACH (%d)", ret);
     return false;
   }
 
@@ -142,6 +143,21 @@ bool worker_pool::set_config(const srsran::phy_cfg_nr_t& cfg)
     if (not w->update_cfg(0)) {
       return false;
     }
+  }
+
+  // Best effort to set up NR-PRACH config reused for NR
+  srsran_prach_cfg_t prach_cfg           = cfg.prach;
+  uint32_t           lte_nr_prach_offset = (phy_state.cfg.carrier.nof_prb - cell.nof_prb) / 2;
+  if (prach_cfg.freq_offset < lte_nr_prach_offset) {
+    logger.error("prach_cfg.freq_offset=%d is not compatible with LTE", prach_cfg.freq_offset);
+    return false;
+  }
+  prach_cfg.freq_offset -= lte_nr_prach_offset;
+
+  // Set the PRACH configuration
+  if (not prach_buffer->set_cell(cell, prach_cfg)) {
+    logger.error("Error setting PRACH cell");
+    return false;
   }
 
   return true;

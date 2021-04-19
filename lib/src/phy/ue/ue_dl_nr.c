@@ -87,7 +87,7 @@ int srsran_ue_dl_nr_init(srsran_ue_dl_nr_t* q, cf_t* input[SRSRAN_MAX_PORTS], co
 
   srsran_ofdm_cfg_t fft_cfg = {};
   fft_cfg.nof_prb           = args->nof_max_prb;
-  fft_cfg.symbol_sz         = srsran_symbol_sz(args->nof_max_prb);
+  fft_cfg.symbol_sz         = srsran_min_symbol_sz_rb(args->nof_max_prb);
   fft_cfg.keep_dc           = true;
   fft_cfg.rx_window_offset  = UE_DL_NR_FFT_WINDOW_OFFSET;
 
