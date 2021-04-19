@@ -17,9 +17,6 @@
 #include "srsran/phy/mimo/precoding.h"
 #include "srsran/phy/modem/demod_soft.h"
 
-///@brief Default number of zero RE around DC
-#define PDSCH_NR_DEFAULT_NOF_ZERO_RE_AROUND_DC 3
-
 int pdsch_nr_init_common(srsran_pdsch_nr_t* q, const srsran_pdsch_nr_args_t* args)
 {
   SRSRAN_MEM_ZERO(q, srsran_pdsch_nr_t, 1);
@@ -31,14 +28,6 @@ int pdsch_nr_init_common(srsran_pdsch_nr_t* q, const srsran_pdsch_nr_args_t* arg
     }
     if (args->measure_evm) {
       srsran_modem_table_bytes(&q->modem_tables[mod]);
-    }
-  }
-
-  if (!args->disable_zero_re_around_dc) {
-    if (args->nof_zero_re_around_dc == 0) {
-      q->nof_zero_re_around_dc = PDSCH_NR_DEFAULT_NOF_ZERO_RE_AROUND_DC;
-    } else {
-      q->nof_zero_re_around_dc = args->nof_zero_re_around_dc;
     }
   }
 
@@ -250,23 +239,7 @@ static int srsran_pdsch_nr_cp(const srsran_pdsch_nr_t*     q,
       if (put) {
         count += pdsch_nr_put_rb(&sf_symbols[re_idx], &symbols[count], &rvd_mask[rb * SRSRAN_NRE]);
       } else {
-        uint32_t k_begin    = rb * SRSRAN_NRE;
-        uint32_t k_end      = (rb + 1) * SRSRAN_NRE;
-        uint32_t k_dc_begin = q->carrier.nof_prb * SRSRAN_NRE / 2 - q->nof_zero_re_around_dc / 2;
-        uint32_t k_dc_end   = q->carrier.nof_prb * SRSRAN_NRE / 2 + SRSRAN_CEIL(q->nof_zero_re_around_dc, 2);
-        if (k_begin <= k_dc_end && k_end >= k_dc_begin && q->nof_zero_re_around_dc > 0) {
-          for (uint32_t k = k_begin; k < k_end; k++) {
-            if (!rvd_mask[k]) {
-              if (k >= k_dc_begin && k < k_dc_end) {
-                symbols[count++] = 0.0f;
-              } else {
-                symbols[count++] = sf_symbols[q->carrier.nof_prb * l * SRSRAN_NRE + k];
-              }
-            }
-          }
-        } else {
-          count += pdsch_nr_get_rb(&symbols[count], &sf_symbols[re_idx], &rvd_mask[rb * SRSRAN_NRE]);
-        }
+        count += pdsch_nr_get_rb(&symbols[count], &sf_symbols[re_idx], &rvd_mask[rb * SRSRAN_NRE]);
       }
     }
   }

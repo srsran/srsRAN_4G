@@ -214,7 +214,6 @@ int main(int argc, char** argv)
   ue_dl_args.pdsch.sch.disable_simd          = false;
   ue_dl_args.pdsch.sch.decoder_use_flooded   = false;
   ue_dl_args.pdsch.measure_evm               = true;
-  ue_dl_args.pdsch.disable_zero_re_around_dc = true;
   ue_dl_args.pdcch.disable_simd              = false;
   ue_dl_args.pdcch.measure_evm               = true;
   ue_dl_args.nof_max_prb                     = carrier.nof_prb;
