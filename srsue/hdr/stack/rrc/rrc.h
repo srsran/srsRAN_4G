@@ -21,7 +21,7 @@
 #include "srsran/common/block_queue.h"
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/common.h"
-#include "srsran/common/lte_common.h"
+#include "srsran/common/common_lte.h"
 #include "srsran/common/security.h"
 #include "srsran/common/stack_procedure.h"
 #include "srsran/interfaces/ue_interfaces.h"

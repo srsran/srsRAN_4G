@@ -13,7 +13,7 @@
 #include "sched_test_common.h"
 #include "sched_test_utils.h"
 #include "srsenb/hdr/stack/mac/sched.h"
-#include "srsran/common/lte_common.h"
+#include "srsran/common/common_lte.h"
 #include "srsran/mac/pdu.h"
 
 using namespace srsenb;

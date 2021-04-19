@@ -17,7 +17,7 @@
                               INCLUDES
 *******************************************************************************/
 
-#include "srsran/common/lte_common.h"
+#include "srsran/common/common_lte.h"
 #include <stdint.h>
 
 namespace srsenb {
