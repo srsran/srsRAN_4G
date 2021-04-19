@@ -89,6 +89,7 @@ struct zerobit_counter {
   }
 };
 
+#ifdef __GNUC__ // clang and gcc
 /// Specializations for unsigned
 template <typename Integer>
 struct zerobit_counter<Integer, sizeof(unsigned)> {
@@ -101,7 +102,9 @@ struct zerobit_counter<Integer, sizeof(unsigned)> {
     return (value) ? __builtin_ctz(value) : std::numeric_limits<Integer>::digits;
   }
 };
+#endif
 
+#ifdef __GNUC__ // clang and gcc
 /// Specializations for unsigned long
 template <typename Integer>
 struct zerobit_counter<Integer, sizeof(unsigned long)> {
@@ -114,6 +117,7 @@ struct zerobit_counter<Integer, sizeof(unsigned long)> {
     return (value) ? __builtin_ctzl(value) : std::numeric_limits<Integer>::digits;
   }
 };
+#endif
 
 } // namespace detail
 
