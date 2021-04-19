@@ -148,7 +148,7 @@ imei = 353490069873319
 # RRC configuration
 #
 # ue_category:       Sets UE category (range 1-5). Default: 4
-# release:           UE Release (8 to 10)
+# release:           UE Release (8 to 15)
 # feature_group:     Hex value of the featureGroupIndicators field in the
 #                    UECapabilityInformation message. Default 0xe6041000
 # mbms_service_id:   MBMS service id for autostarting MBMS reception
@@ -157,7 +157,7 @@ imei = 353490069873319
 #####################################################################
 [rrc]
 #ue_category       = 4
-#release           = 8
+#release           = 15
 #feature_group     = 0xe6041000
 #mbms_service_id   = -1
 #mbms_service_port = 4321

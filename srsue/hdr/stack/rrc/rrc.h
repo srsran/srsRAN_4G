@@ -49,9 +49,9 @@ typedef struct {
 #define SRSRAN_UE_CATEGORY_DEFAULT "4"
 #define SRSRAN_UE_CATEGORY_MIN 1
 #define SRSRAN_UE_CATEGORY_MAX 21
-#define SRSRAN_RELEASE_DEFAULT 8
 #define SRSRAN_RELEASE_MIN 8
 #define SRSRAN_RELEASE_MAX 15
+#define SRSRAN_RELEASE_DEFAULT (SRSRAN_RELEASE_MAX)
 
 using srsran::byte_buffer_t;
 

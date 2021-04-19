@@ -126,7 +126,7 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     ("rrc.ue_category",       bpo::value<string>(&args->stack.rrc.ue_category_str)->default_value(SRSRAN_UE_CATEGORY_DEFAULT),  "UE Category (1 to 10)")
     ("rrc.ue_category_dl",    bpo::value<int>(&args->stack.rrc.ue_category_dl)->default_value(-1),  "UE Category DL v12 (valid values: 0, 4, 6, 7, 9 to 16)")
     ("rrc.ue_category_ul",    bpo::value<int>(&args->stack.rrc.ue_category_ul)->default_value(-1),  "UE Category UL v12 (valid values: 0, 3, 5, 7, 8 and 13)")
-    ("rrc.release",           bpo::value<uint32_t>(&args->stack.rrc.release)->default_value(SRSRAN_RELEASE_DEFAULT),  "UE Release (8 to 12)")
+    ("rrc.release",           bpo::value<uint32_t>(&args->stack.rrc.release)->default_value(SRSRAN_RELEASE_DEFAULT),  "UE Release (8 to 15)")
     ("rrc.mbms_service_id",   bpo::value<int32_t>(&args->stack.rrc.mbms_service_id)->default_value(-1),  "MBMS service id for autostart (-1 means disabled)")
     ("rrc.mbms_service_port", bpo::value<uint32_t>(&args->stack.rrc.mbms_service_port)->default_value(4321),  "Port of the MBMS service")
 
