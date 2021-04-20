@@ -329,7 +329,8 @@ bool sctp_init_server(unique_socket* socket, net_utils::socket_type socktype, co
 socket_manager::socket_manager() : thread("RXsockets"), socket_manager_itf(srslog::fetch_basic_logger("COMN"))
 {
   // register control pipe fd
-  srsran_assert(pipe(pipefd) != -1, "Failed to open control pipe");
+  int fd = pipe(pipefd);
+  srsran_assert(fd != -1, "Failed to open control pipe");
   start(thread_prio);
 }
 
@@ -344,7 +345,7 @@ void socket_manager::stop()
     // close thread
     {
       std::lock_guard<std::mutex> lock(socket_mutex);
-      ctrl_cmd_t                  msg{};
+      ctrl_cmd_t                  msg;
       msg.cmd = ctrl_cmd_t::cmd_id_t::EXIT;
       if (write(pipefd[1], &msg, sizeof(msg)) != sizeof(msg)) {
         rxSockError("while writing to control pipe");

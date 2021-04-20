@@ -144,9 +144,10 @@ private:
   // used to unlock select
   struct ctrl_cmd_t {
     enum class cmd_id_t { EXIT, NEW_FD, RM_FD };
-    cmd_id_t cmd                = cmd_id_t::EXIT;
-    int      new_fd             = -1;
-    bool     signal_rm_complete = false;
+    cmd_id_t cmd;
+    int      new_fd;
+    bool     signal_rm_complete;
+    ctrl_cmd_t() { bzero(this, sizeof(ctrl_cmd_t)); }
   };
   std::map<int, recv_callback_t>::iterator remove_socket_unprotected(int fd, fd_set* total_fd_set, int* max_fd);
 
