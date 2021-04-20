@@ -392,7 +392,9 @@ int timers_test6()
 }
 
 /**
- * Test if overwriting same position of the timers handler's time wheel is safe
+ * Tests specific to timer_handler wheel-based implementation:
+ * - check if timer update is safe when its new updated wheel position matches the previous wheel position
+ * - multime timers can exist in the same wheel position
  */
 int timers_test7()
 {
@@ -406,7 +408,7 @@ int timers_test7()
   timers.step_all();
   TESTASSERT(not t.is_expired() and t.is_running());
 
-  // should fall in same wheel position
+  // should fall in same wheel position as previous timer run
   t.set(1 + wheel_size);
   for (size_t i = 0; i < wheel_size; ++i) {
     timers.step_all();
@@ -414,6 +416,27 @@ int timers_test7()
   }
   timers.step_all();
   TESTASSERT(t.is_expired() and not t.is_running());
+
+  // the three timers will all fall in the same wheel position. However, only t and t3 should trigger
+  unique_timer t2 = timers.get_unique_timer();
+  unique_timer t3 = timers.get_unique_timer();
+  t.set(5);
+  t2.set(5 + wheel_size);
+  t3.set(5);
+  t.run();
+  t2.run();
+  t3.run();
+  TESTASSERT(timers.nof_running_timers() == 3 and timers.nof_timers() == 3);
+  for (size_t i = 0; i < 5; ++i) {
+    TESTASSERT(not t.is_expired() and t.is_running());
+    TESTASSERT(not t2.is_expired() and t2.is_running());
+    TESTASSERT(not t3.is_expired() and t3.is_running());
+    timers.step_all();
+  }
+  TESTASSERT(t.is_expired() and not t.is_running());
+  TESTASSERT(not t2.is_expired() and t2.is_running());
+  TESTASSERT(t3.is_expired() and not t3.is_running());
+  TESTASSERT(timers.nof_running_timers() == 1 and timers.nof_timers() == 3);
 
   return SRSRAN_SUCCESS;
 }
