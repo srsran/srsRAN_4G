@@ -56,7 +56,7 @@
 
 #else // ASSERTS_ENABLED
 
-#define srslte_assert(condition, fmt, ...)                                                                             \
+#define srsran_assert(condition, fmt, ...)                                                                             \
   do {                                                                                                                 \
   } while (0)
 
