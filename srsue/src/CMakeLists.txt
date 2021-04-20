@@ -18,7 +18,7 @@ if (RPATH)
   set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 endif (RPATH)
 
-add_executable(srsue main.cc ue.cc metrics_stdout.cc metrics_csv.cc)
+add_executable(srsue main.cc ue.cc metrics_stdout.cc metrics_csv.cc metrics_json.cc)
 
 set(SRSUE_SOURCES srsue_phy srsue_stack srsue_upper srsue_mac srsue_rrc srslog system)
 set(SRSRAN_SOURCES srsran_common srsran_mac srsran_phy srsran_radio srsran_upper rrc_asn1 srslog system)

@@ -61,6 +61,8 @@ typedef struct {
   bool        metrics_csv_append;
   int         metrics_csv_flush_period_sec;
   std::string metrics_csv_filename;
+  bool        metrics_json_enable;
+  std::string metrics_json_filename;
   bool        tracing_enable;
   std::string tracing_filename;
   std::size_t tracing_buffcapacity;

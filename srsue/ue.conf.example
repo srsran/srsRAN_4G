@@ -391,26 +391,32 @@ enable = false
 #####################################################################
 # General configuration options
 #
-# metrics_csv_enable:   Write UE metrics to CSV file.
+# metrics_csv_enable:    Write UE metrics to CSV file.
 #
-# metrics_period_secs:  Sets the period at which metrics are requested from the UE.
+# metrics_period_secs:   Sets the period at which metrics are requested from the UE.
 #
-# metrics_csv_filename: File path to use for CSV metrics.
+# metrics_csv_filename:  File path to use for CSV metrics.
 #
-# tracing_enable:       Write source code tracing information to a file.
+# tracing_enable:        Write source code tracing information to a file.
 #
-# tracing_filename:     File path to use for tracing information.
+# tracing_filename:      File path to use for tracing information.
 #
-# tracing_buffcapacity: Maximum capacity in bytes the tracing framework can store.
+# tracing_buffcapacity:  Maximum capacity in bytes the tracing framework can store.
 #
-# have_tti_time_stats:  Calculate TTI execution statistics using system clock
+# have_tti_time_stats:   Calculate TTI execution statistics using system clock
+#
+# metrics_json_enable:   Write UE metrics to JSON file.
+#
+# metrics_json_filename: File path to use for JSON metrics.
 #
 #####################################################################
 [general]
-#metrics_csv_enable   = false
-#metrics_period_secs  = 1
-#metrics_csv_filename = /tmp/ue_metrics.csv
-#have_tti_time_stats  = true
-#tracing_enable       = true
-#tracing_filename     = /tmp/ue_tracing.log
-#tracing_buffcapacity = 1000000
+#metrics_csv_enable    = false
+#metrics_period_secs   = 1
+#metrics_csv_filename  = /tmp/ue_metrics.csv
+#have_tti_time_stats   = true
+#tracing_enable        = true
+#tracing_filename      = /tmp/ue_tracing.log
+#tracing_buffcapacity  = 1000000
+#metrics_json_enable   = false
+#metrics_json_filename = /tmp/ue_metrics.json

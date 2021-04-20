@@ -20,6 +20,7 @@
 #include "srsran/srsran.h"
 #include "srsran/version.h"
 #include "srsue/hdr/metrics_csv.h"
+#include "srsue/hdr/metrics_json.h"
 #include "srsue/hdr/metrics_stdout.h"
 #include "srsue/hdr/ue.h"
 #include <boost/program_options.hpp>
@@ -429,6 +430,14 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
            bpo::value<int>(&args->general.metrics_csv_flush_period_sec)->default_value(-1),
            "Periodicity in s to flush CSV file to disk (-1 for auto)")
 
+    ("general.metrics_json_enable",
+     bpo::value<bool>(&args->general.metrics_json_enable)->default_value(false),
+     "Write UE metrics to a JSON file")
+
+    ("general.metrics_json_filename",
+     bpo::value<string>(&args->general.metrics_json_filename)->default_value("/tmp/ue_metrics.json"),
+     "Metrics JSON filename")
+
     ("general.tracing_enable",
            bpo::value<bool>(&args->general.tracing_enable)->default_value(false),
            "Events tracing")
@@ -702,6 +711,18 @@ int main(int argc, char* argv[])
     if (args.general.metrics_csv_flush_period_sec > 0) {
       metrics_file.set_flush_period((uint32_t)args.general.metrics_csv_flush_period_sec);
     }
+  }
+
+  // Set up the JSON log channel used by metrics.
+  srslog::sink& json_sink =
+      srslog::fetch_file_sink(args.general.metrics_json_filename, 0, srslog::create_json_formatter());
+  srslog::log_channel& json_channel = srslog::fetch_log_channel("JSON_channel", json_sink, {});
+  json_channel.set_enabled(args.general.metrics_json_enable);
+
+  srsue::metrics_json json_metrics(json_channel);
+  if (args.general.metrics_json_enable) {
+    metricshub.add_listener(&json_metrics);
+    json_metrics.set_ue_handle(&ue);
   }
 
   pthread_t input;
