@@ -70,6 +70,7 @@ void worker_pool::start_worker(sf_worker* w)
 
 sf_worker* worker_pool::wait_worker(uint32_t tti)
 {
+  logger.set_context(tti);
   sf_worker* worker = (sf_worker*)pool.wait_worker(tti);
 
   // Generate PRACH if ready
