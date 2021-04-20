@@ -1115,7 +1115,11 @@ bool s1ap::ue::send_initial_ctxt_setup_response(const asn1::s1ap::init_context_s
     auto& item = container.erab_setup_list_ctxt_su_res.value[i].value.erab_setup_item_ctxt_su_res();
     item.transport_layer_address.resize(32);
     uint8_t addr[4];
-    inet_pton(AF_INET, s1ap_ptr->args.gtp_bind_addr.c_str(), addr);
+    if (strlen(s1ap_ptr->args.gtp_advertise_addr.c_str()) != 0) {
+      inet_pton(AF_INET, s1ap_ptr->args.gtp_advertise_addr.c_str(), addr);
+    } else {
+      inet_pton(AF_INET, s1ap_ptr->args.gtp_bind_addr.c_str(), addr);
+    }
     for (uint32_t j = 0; j < 4; ++j) {
       item.transport_layer_address.data()[j] = addr[3 - j];
     }
@@ -1142,7 +1146,11 @@ bool s1ap::ue::send_erab_setup_response(const erab_setup_resp_s& res_)
       auto& item = res.protocol_ies.erab_setup_list_bearer_su_res.value[i].value.erab_setup_item_bearer_su_res();
       item.transport_layer_address.resize(32);
       uint8_t addr[4];
-      inet_pton(AF_INET, s1ap_ptr->args.gtp_bind_addr.c_str(), addr);
+      if (strlen(s1ap_ptr->args.gtp_advertise_addr.c_str()) != 0) {
+        inet_pton(AF_INET, s1ap_ptr->args.gtp_advertise_addr.c_str(), addr);
+      } else {
+        inet_pton(AF_INET, s1ap_ptr->args.gtp_bind_addr.c_str(), addr);
+      }
       for (uint32_t j = 0; j < 4; ++j) {
         item.transport_layer_address.data()[j] = addr[3 - j];
       }
