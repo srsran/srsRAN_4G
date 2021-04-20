@@ -127,7 +127,7 @@ bool worker_pool::set_config(const srsran::phy_cfg_nr_t& cfg)
 {
   phy_state.cfg = cfg;
 
-  logger.error(
+  logger.info(
       "Setting new PHY configuration ARFCN=%d, PCI=%d", cfg.carrier.absolute_frequency_point_a, cfg.carrier.pci);
 
   // Best effort to convert NR carrier into LTE cell
