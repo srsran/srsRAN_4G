@@ -58,7 +58,7 @@ void rrc_nr::init(phy_interface_rrc_nr*       phy_,
   args      = args_;
 
   running                = true;
-  fake_measurement_timer = task_sched.get_unique_timer();
+  sim_measurement_timer = task_sched.get_unique_timer();
 }
 
 void rrc_nr::stop()
@@ -103,22 +103,22 @@ const char* rrc_nr::get_rb_name(uint32_t lcid)
 void rrc_nr::timer_expired(uint32_t timeout_id)
 {
   logger.debug("Handling Timer Expired");
-  if (timeout_id == fake_measurement_timer.id()) {
-    logger.debug("Triggered Fake Measurement");
+  if (timeout_id == sim_measurement_timer.id()) {
+    logger.debug("Triggered simulated measurement");
 
-    phy_meas_nr_t              fake_meas = {};
+    phy_meas_nr_t              sim_meas = {};
     std::vector<phy_meas_nr_t> phy_meas_nr;
-    fake_meas.rsrp     = -60.0;
-    fake_meas.rsrq     = -60.0;
-    fake_meas.cfo_hz   = 1.0;
-    fake_meas.arfcn_nr = fake_measurement_carrier_freq_r15;
-    fake_meas.pci_nr   = 500;
-    phy_meas_nr.push_back(fake_meas);
+    sim_meas.rsrp     = -60.0;
+    sim_meas.rsrq     = -60.0;
+    sim_meas.cfo_hz   = 1.0;
+    sim_meas.arfcn_nr = sim_measurement_carrier_freq_r15;
+    sim_meas.pci_nr   = args.sim_nr_meas_pci;
+    phy_meas_nr.push_back(sim_meas);
     rrc_eutra->new_cell_meas_nr(phy_meas_nr);
 
     auto timer_expire_func = [this](uint32_t tid) { timer_expired(tid); };
-    fake_measurement_timer.set(10, timer_expire_func);
-    fake_measurement_timer.run();
+    sim_measurement_timer.set(10, timer_expire_func);
+    sim_measurement_timer.run();
   }
 }
 
@@ -405,10 +405,10 @@ void rrc_nr::get_nr_capabilities(srsran::byte_buffer_t* nr_caps_pdu)
 
 void rrc_nr::phy_meas_stop()
 {
-  // possbile race condition for fake_measurement timer, which might be set at the same moment as stopped => fix with
+  // possbile race condition for sim_measurement timer, which might be set at the same moment as stopped => fix with
   // phy integration
-  logger.debug("Stopping fake measurements");
-  fake_measurement_timer.stop();
+  logger.debug("Stopping simulated measurements");
+  sim_measurement_timer.stop();
 }
 
 void rrc_nr::phy_set_cells_to_meas(uint32_t carrier_freq_r15)
@@ -416,9 +416,9 @@ void rrc_nr::phy_set_cells_to_meas(uint32_t carrier_freq_r15)
   logger.debug("Measuring phy cell %d ", carrier_freq_r15);
   // Start timer for fake measurements
   auto timer_expire_func            = [this](uint32_t tid) { timer_expired(tid); };
-  fake_measurement_carrier_freq_r15 = carrier_freq_r15;
-  fake_measurement_timer.set(10, timer_expire_func);
-  fake_measurement_timer.run();
+  sim_measurement_carrier_freq_r15 = carrier_freq_r15;
+  sim_measurement_timer.set(10, timer_expire_func);
+  sim_measurement_timer.run();
 }
 
 bool rrc_nr::configure_sk_counter(uint16_t sk_counter)

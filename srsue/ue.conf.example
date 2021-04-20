@@ -147,13 +147,14 @@ imei = 353490069873319
 #####################################################################
 # RRC configuration
 #
-# ue_category:       Sets UE category (range 1-5). Default: 4
-# release:           UE Release (8 to 15)
-# feature_group:     Hex value of the featureGroupIndicators field in the
-#                    UECapabilityInformation message. Default 0xe6041000
-# mbms_service_id:   MBMS service id for autostarting MBMS reception
-#                    (default -1 means disabled)
-# mbms_service_port: Port of the MBMS service
+# ue_category:          Sets UE category (range 1-5). Default: 4
+# release:              UE Release (8 to 15)
+# feature_group:        Hex value of the featureGroupIndicators field in the
+#                       UECapabilityInformation message. Default 0xe6041000
+# mbms_service_id:      MBMS service id for autostarting MBMS reception
+#                       (default -1 means disabled)
+# mbms_service_port:    Port of the MBMS service
+# nr_measurement_pci:   NR PCI for the simulated NR measurement. Default: 500
 #####################################################################
 [rrc]
 #ue_category       = 4
