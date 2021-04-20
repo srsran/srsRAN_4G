@@ -183,7 +183,7 @@ template <typename R, typename... Args, size_t Capacity, bool ForbidAlloc>
 constexpr task_details::empty_table_t<R, Args...> move_callback<R(Args...), Capacity, ForbidAlloc>::empty_table;
 
 //! Generic move task
-using move_task_t = move_callback<void()>;
+using move_task_t = move_callback<void(), 64>;
 
 } // namespace srsran
 

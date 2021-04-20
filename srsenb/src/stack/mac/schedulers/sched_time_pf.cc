@@ -39,7 +39,7 @@ void sched_time_pf::new_tti(sched_ue_list& ue_db, sf_sched* tti_sched)
   for (auto& u : ue_db) {
     auto it = ue_history_db.find(u.first);
     if (it == ue_history_db.end()) {
-      it = ue_history_db.insert(std::make_pair(u.first, ue_ctxt{u.first, fairness_coeff})).first;
+      it = ue_history_db.insert(u.first, ue_ctxt{u.first, fairness_coeff}).value();
     }
     it->second.new_tti(*cc_cfg, *u.second, tti_sched);
     if (it->second.dl_newtx_h != nullptr or it->second.dl_retx_h != nullptr) {
