@@ -46,6 +46,7 @@ add_executable(bcd_helpers_test bcd_helpers_test.cc)
 target_link_libraries(bcd_helpers_test srsran_common)
 
 add_executable(stack_procedure_test stack_procedure_test.cc)
+target_link_libraries(stack_procedure_test srsran_common)
 add_test(stack_procedure_test stack_procedure_test)
 
 add_executable(queue_test multiqueue_test.cc)

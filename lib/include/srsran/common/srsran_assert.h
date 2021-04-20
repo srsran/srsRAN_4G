@@ -20,6 +20,7 @@
 
 #define srsran_terminate(fmt, ...)                                                                                     \
   std::fprintf(stderr, "%s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__);                                         \
+  srslog::flush();                                                                                                     \
   std::abort()
 
 #ifdef ASSERTS_ENABLED
@@ -60,9 +61,7 @@
   do {                                                                                                                 \
   } while (0)
 
-#define srsran_expect(condition, fmt, ...)                                                                             \
-  do {                                                                                                                 \
-  } while (0)
+#define srsran_expect(condition, fmt, ...) srsran_assert(condition, fmt, ##__VA_ARGS__)
 
 #endif
 
