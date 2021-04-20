@@ -187,7 +187,7 @@ void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_gr
         harq_entity->ra_procedure->harq_max_retx();
       }
       reset();
-    } else if (grant.rnti == harq_entity->rntis->temp_rnti && current_tx_nb) {
+    } else if (grant.rnti == harq_entity->rntis->temp_rnti && current_tx_nb && !grant.hi_value) {
       harq_entity->ra_procedure->harq_retx();
     }
   }
