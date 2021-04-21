@@ -104,7 +104,7 @@ public:
     srsran_sch_cfg_nr_t pusch_cfg = {};
     if (srsran_ra_ul_dci_to_grant_nr(&cfg.carrier, &cfg.pusch, &dci_ul, &pusch_cfg, &pusch_cfg.grant)) {
       std::array<char, 512> str;
-      srsran_dci_ul_nr_to_str(&dci_ul, str.data(), str.size());
+      srsran_dci_ul_nr_to_str(NULL, &dci_ul, str.data(), str.size());
       ERROR("Computing UL grant %s", str.data());
       return;
     }

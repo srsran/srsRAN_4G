@@ -167,12 +167,12 @@ typedef struct SRSRAN_API {
   // SI-RNTI specific fields
   uint32_t sii; ///< System information indicator
 
-  // Second TB
+  // Second TB (Optional)
   uint32_t mcs2; ///< Modulation and coding scheme for the second transport block
   uint32_t ndi2; ///< New data indicator for the second transport block
   uint32_t rv2;  ///< Redundancy version for the second transport block
 
-  // Other fields
+  // Optional fields
   uint32_t cc_id;        ///< Carrier indicator
   uint32_t bwp_id;       ///< BWP indicator
   uint32_t rm_pattern1;  ///< Rate matching pattern 1 indicator
@@ -216,7 +216,7 @@ typedef struct SRSRAN_API {
   // Random Access Response Grant
   uint32_t csi_request; ///< CSI request
 
-  // Other fields
+  // Optional fields
   uint32_t sul;         ///< Supplementary Uplink flag
   uint32_t cc_id;       ///< Carrier indicator
   uint32_t bwp_id;      ///< BWP indicator
@@ -300,20 +300,24 @@ SRSRAN_API int srsran_dci_nr_ul_unpack(const srsran_dci_nr_t* q, srsran_dci_msg_
 
 /**
  * @brief Stringifies an DL NR DCI structure
+ * @param q NR DCI object with precomputed DCI parameters
  * @param dci DL NR SCI structure to stringify
  * @param[out] str Destination string
  * @param str_len Destination string length
  * @return The number of written characters
  */
-SRSRAN_API int srsran_dci_dl_nr_to_str(const srsran_dci_dl_nr_t* dci, char* str, uint32_t str_len);
+SRSRAN_API int
+srsran_dci_dl_nr_to_str(const srsran_dci_nr_t* q, const srsran_dci_dl_nr_t* dci, char* str, uint32_t str_len);
 
 /**
  * @brief Stringifies an UL NR DCI structure
+ * @param q NR DCI object with precomputed DCI parameters
  * @param dci UL NR SCI structure to stringify
  * @param[out] str Destination string
  * @param str_len Destination string length
  * @return The number of written characters
  */
-SRSRAN_API int srsran_dci_ul_nr_to_str(const srsran_dci_ul_nr_t* dci, char* str, uint32_t str_len);
+SRSRAN_API int
+srsran_dci_ul_nr_to_str(const srsran_dci_nr_t* q, const srsran_dci_ul_nr_t* dci, char* str, uint32_t str_len);
 
 #endif // SRSRAN_DCI_NR_H

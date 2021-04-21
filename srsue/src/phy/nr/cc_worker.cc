@@ -132,7 +132,7 @@ void cc_worker::decode_pdcch_dl()
     // Log found DCI
     if (logger.info.enabled()) {
       std::array<char, 512> str;
-      srsran_dci_dl_nr_to_str(&dci_rx[i], str.data(), str.size());
+      srsran_dci_dl_nr_to_str(&ue_dl.dci, &dci_rx[i], str.data(), str.size());
       logger.info("PDCCH: cc=%d, %s", cc_idx, str.data());
     }
 
@@ -182,7 +182,7 @@ void cc_worker::decode_pdcch_ul()
     // Log found DCI
     if (logger.info.enabled()) {
       std::array<char, 512> str;
-      srsran_dci_ul_nr_to_str(&dci_rx[i], str.data(), str.size());
+      srsran_dci_ul_nr_to_str(&ue_dl.dci, &dci_rx[i], str.data(), str.size());
       logger.info("PDCCH: cc=%d, %s", cc_idx, str.data());
     }
 
