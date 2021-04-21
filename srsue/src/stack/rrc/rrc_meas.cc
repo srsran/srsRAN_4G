@@ -761,9 +761,9 @@ void rrc::rrc_meas::var_meas_cfg::report_triggers()
     logger.debug("MEAS:  Calculating reports for MeasId=%d, ObjectId=%d (Type %s), ReportId=%d (Type %s)",
                  m.first,
                  m.second.meas_obj_id,
-                 report_cfg.report_cfg.type().to_string().c_str(),
+                 report_cfg.report_cfg.type().to_string(),
                  m.second.report_cfg_id,
-                 meas_obj.meas_obj.type().to_string().c_str());
+                 meas_obj.meas_obj.type().to_string());
 
     if (meas_obj.meas_obj.type().value == meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_eutra &&
         report_cfg.report_cfg.type().value == report_cfg_to_add_mod_s::report_cfg_c_::types::report_cfg_eutra) {
@@ -775,8 +775,8 @@ void rrc::rrc_meas::var_meas_cfg::report_triggers()
           m.first, report_cfg.report_cfg.report_cfg_inter_rat(), meas_obj.meas_obj.meas_obj_nr_r15());
     } else {
       logger.error("Unsupported combination of measurement object type %s and report config type %s ",
-                   meas_obj.meas_obj.type().to_string().c_str(),
-                   report_cfg.report_cfg.type().to_string().c_str());
+                   meas_obj.meas_obj.type().to_string(),
+                   report_cfg.report_cfg.type().to_string());
     }
 
     // upon expiry of the periodical reporting timer for this measId
@@ -835,7 +835,7 @@ void rrc::rrc_meas::var_meas_cfg::eval_triggers_eutra(uint32_t            meas_i
       trigger_state[meas_id][serv_cell->get_pci()].event_condition(enter_condition, exit_condition);
 
       logger.debug("MEAS:  eventId=%s, Ms=%.2f, hyst=%.2f, Thresh=%.2f, enter_condition=%d, exit_condition=%d",
-                   event_id.type().to_string().c_str(),
+                   event_id.type().to_string(),
                    Ms,
                    hyst,
                    thresh,
@@ -846,8 +846,7 @@ void rrc::rrc_meas::var_meas_cfg::eval_triggers_eutra(uint32_t            meas_i
     } else {
       auto cells = rrc_ptr->get_cells(meas_obj.carrier_freq);
       for (auto& pci : cells) {
-        logger.debug(
-            "MEAS:  eventId=%s, pci=%d, earfcn=%d", event_id.type().to_string().c_str(), pci, meas_obj.carrier_freq);
+        logger.debug("MEAS:  eventId=%s, pci=%d, earfcn=%d", event_id.type().to_string(), pci, meas_obj.carrier_freq);
         float Ofn = offset_val(meas_obj);
         float Ocn = 0;
         // If the cell was provided by the configuration, check if it has an individual q_offset
@@ -899,14 +898,14 @@ void rrc::rrc_meas::var_meas_cfg::eval_triggers_eutra(uint32_t            meas_i
             exit_condition  = (Ms - hyst > th1) && (Mn + Ofn + Ocn + hyst < th2);
             break;
           default:
-            logger.error("Error event %s not implemented", event_id.type().to_string().c_str());
+            logger.error("Error event %s not implemented", event_id.type().to_string());
         }
 
         trigger_state[meas_id][pci].event_condition(enter_condition, exit_condition);
 
         logger.debug(
             "MEAS:  eventId=%s, pci=%d, Ms=%.2f, hyst=%.2f, Thresh=%.2f, enter_condition=%d, exit_condition=%d",
-            event_id.type().to_string().c_str(),
+            event_id.type().to_string(),
             pci,
             Ms,
             hyst,
@@ -939,8 +938,7 @@ void rrc::rrc_meas::var_meas_cfg::eval_triggers_interrat_nr(uint32_t            
     bool  exit_condition  = false;
     float Mn              = 0.0;
 
-    logger.debug(
-        "MEAS:  eventId=%s, pci=%d, earfcn=%d", event_id.type().to_string().c_str(), pci, meas_obj.carrier_freq_r15);
+    logger.debug("MEAS:  eventId=%s, pci=%d, earfcn=%d", event_id.type().to_string(), pci, meas_obj.carrier_freq_r15);
 
     if (event_id.event_b1_nr_r15().b1_thres_nr_r15.type().value == thres_nr_r15_c::types::nr_rsrp_r15) {
       Mn     = rrc_ptr->get_cell_rsrp_nr(meas_obj.carrier_freq_r15, pci);
@@ -956,7 +954,7 @@ void rrc::rrc_meas::var_meas_cfg::eval_triggers_interrat_nr(uint32_t            
     trigger_state_nr[meas_id][pci].event_condition(enter_condition, exit_condition);
 
     logger.debug("MEAS (NR):  eventId=%s, Mn=%.2f, hyst=%.2f, Thresh=%.2f, enter_condition=%d, exit_condition=%d",
-                 event_id.type().to_string().c_str(),
+                 event_id.type().to_string(),
                  Mn,
                  hyst,
                  thresh,
@@ -1003,9 +1001,9 @@ void rrc::rrc_meas::var_meas_cfg::eval_triggers()
     logger.debug("MEAS:  Calculating trigger for MeasId=%d, ObjectId=%d (Type %s), ReportId=%d (Type %s)",
                  m.first,
                  m.second.meas_obj_id,
-                 report_cfg.report_cfg.type().to_string().c_str(),
+                 report_cfg.report_cfg.type().to_string(),
                  m.second.report_cfg_id,
-                 meas_obj.meas_obj.type().to_string().c_str());
+                 meas_obj.meas_obj.type().to_string());
 
     if (meas_obj.meas_obj.type().value == meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_eutra &&
         report_cfg.report_cfg.type().value == report_cfg_to_add_mod_s::report_cfg_c_::types::report_cfg_eutra) {
@@ -1018,8 +1016,8 @@ void rrc::rrc_meas::var_meas_cfg::eval_triggers()
           m.first, report_cfg.report_cfg.report_cfg_inter_rat(), meas_obj.meas_obj.meas_obj_nr_r15());
     else {
       logger.error("Unsupported combination of measurement object type %s and report config type %s ",
-                   meas_obj.meas_obj.type().to_string().c_str(),
-                   report_cfg.report_cfg.type().to_string().c_str());
+                   meas_obj.meas_obj.type().to_string(),
+                   report_cfg.report_cfg.type().to_string());
     }
   }
 }
@@ -1337,7 +1335,7 @@ void rrc::rrc_meas::var_meas_cfg::measObject_addmod(const meas_obj_to_add_mod_li
         measObject_addmod_nr_r15(l);
         break;
       default:
-        logger.error("Unsupported measObject type: %s", l.meas_obj.type().to_string().c_str());
+        logger.error("Unsupported measObject type: %s", l.meas_obj.type().to_string());
         break;
     }
   }
@@ -1395,7 +1393,7 @@ void rrc::rrc_meas::var_meas_cfg::reportConfig_addmod_eutra(const report_cfg_to_
   logger.info("MEAS:  %s reportConfig id=%d, event-type=%s, time-to-trigger=%d ms, reportInterval=%d",
               !entry_exists ? "Added" : "Modified",
               l.report_cfg_id,
-              report_cfg.trigger_type.event().event_id.type().to_string().c_str(),
+              report_cfg.trigger_type.event().event_id.type().to_string(),
               report_cfg.trigger_type.event().time_to_trigger.to_number(),
               report_cfg.report_interv.to_number());
   if (entry_exists) {
@@ -1414,7 +1412,7 @@ void rrc::rrc_meas::var_meas_cfg::reportConfig_addmod_interrat(const report_cfg_
   logger.info("MEAS: Inter RAT %s reportConfig id=%d, event-type=%s, time-to-trigger=%d ms, reportInterval=%d",
               !entry_exists ? "Added" : "Modified",
               l.report_cfg_id,
-              report_cfg.trigger_type.event().event_id.type().to_string().c_str(),
+              report_cfg.trigger_type.event().event_id.type().to_string(),
               report_cfg.trigger_type.event().time_to_trigger.to_number(),
               report_cfg.report_interv.to_number());
   log_debug_trigger_value_interrat(report_cfg.trigger_type.event().event_id);
@@ -1432,7 +1430,7 @@ void rrc::rrc_meas::var_meas_cfg::reportConfig_addmod(const report_cfg_to_add_mo
         reportConfig_addmod_interrat(l);
         break;
       default:
-        logger.error("MEAS: Unsupported reportConfig type: %s", l.report_cfg.type().to_string().c_str());
+        logger.error("MEAS: Unsupported reportConfig type: %s", l.report_cfg.type().to_string());
         break;
     }
   }
@@ -1452,7 +1450,7 @@ void rrc::rrc_meas::var_meas_cfg::log_debug_trigger_value_interrat(
         break;
       }
       default:
-        logger.debug("MEAS:     Unsupported inter rat trigger type %s", e.type().to_string().c_str());
+        logger.debug("MEAS:     Unsupported inter rat trigger type %s", e.type().to_string());
         break;
     }
   }

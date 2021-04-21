@@ -285,7 +285,7 @@ bool apply_meas_gap_updates(const meas_gap_cfg_c& src_gaps,
           break;
         default:
           srslog::fetch_basic_logger("RRC").warning("MeasGap of type %s not supported",
-                                                    target_offset.type().to_string().c_str());
+                                                    target_offset.type().to_string());
       }
     }
   }

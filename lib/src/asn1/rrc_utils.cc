@@ -107,7 +107,7 @@ srsran_cqi_report_mode_t make_aperiodic_mode(const asn1::rrc::cqi_report_mode_ap
     case asn1::rrc::cqi_report_mode_aperiodic_e::rm10_v1310:
     case asn1::rrc::cqi_report_mode_aperiodic_e::rm11_v1310:
     case asn1::rrc::cqi_report_mode_aperiodic_e::rm32_v1250:
-      fprintf(stderr, "Aperiodic mode %s not handled\n", asn_mode.to_string().c_str());
+      fprintf(stderr, "Aperiodic mode %s not handled\n", asn_mode.to_string());
     default:
       return SRSRAN_CQI_MODE_NA;
   }
@@ -637,7 +637,7 @@ void set_phy_cfg_t_dedicated_cfg(phy_cfg_t* cfg, const asn1::rrc::phys_cfg_ded_s
     } else {
       fprintf(stderr,
               "Transmission mode (R10) %s is not supported\n",
-              asn1_type.ant_info_r10->explicit_value_r10().tx_mode_r10.to_string().c_str());
+              asn1_type.ant_info_r10->explicit_value_r10().tx_mode_r10.to_string());
     }
   } else if (asn1_type.ant_info_present &&
              asn1_type.ant_info.type() == asn1::rrc::phys_cfg_ded_s::ant_info_c_::types::explicit_value) {
@@ -648,7 +648,7 @@ void set_phy_cfg_t_dedicated_cfg(phy_cfg_t* cfg, const asn1::rrc::phys_cfg_ded_s
     } else {
       fprintf(stderr,
               "Transmission mode (R8) %s is not supported\n",
-              asn1_type.ant_info.explicit_value().tx_mode.to_string().c_str());
+              asn1_type.ant_info.explicit_value().tx_mode.to_string());
     }
   }
   if (asn1_type.sched_request_cfg_present) {
@@ -806,7 +806,7 @@ void set_phy_cfg_t_scell_config(phy_cfg_t* cfg, const asn1::rrc::scell_to_add_mo
           } else {
             fprintf(stderr,
                     "Transmission mode (R10) %s is not supported\n",
-                    non_ul_cfg->ant_info_r10.tx_mode_r10.to_string().c_str());
+                    non_ul_cfg->ant_info_r10.tx_mode_r10.to_string());
           }
         }
 

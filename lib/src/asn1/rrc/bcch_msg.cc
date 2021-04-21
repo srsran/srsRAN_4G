@@ -538,6 +538,16 @@ plmn_id_info2_r12_c& plmn_id_info2_r12_c::operator=(const plmn_id_info2_r12_c& o
 
   return *this;
 }
+uint8_t& plmn_id_info2_r12_c::set_plmn_idx_r12()
+{
+  set(types::plmn_idx_r12);
+  return c.get<uint8_t>();
+}
+plmn_id_s& plmn_id_info2_r12_c::set_plmn_id_r12()
+{
+  set(types::plmn_id_r12);
+  return c.get<plmn_id_s>();
+}
 void plmn_id_info2_r12_c::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -680,6 +690,16 @@ sys_time_info_cdma2000_s::cdma_sys_time_c_::operator=(const sys_time_info_cdma20
   }
 
   return *this;
+}
+fixed_bitstring<39>& sys_time_info_cdma2000_s::cdma_sys_time_c_::set_sync_sys_time()
+{
+  set(types::sync_sys_time);
+  return c.get<fixed_bitstring<39> >();
+}
+fixed_bitstring<49>& sys_time_info_cdma2000_s::cdma_sys_time_c_::set_async_sys_time()
+{
+  set(types::async_sys_time);
+  return c.get<fixed_bitstring<49> >();
 }
 void sys_time_info_cdma2000_s::cdma_sys_time_c_::to_json(json_writer& j) const
 {
@@ -957,6 +977,15 @@ void params_cdma2000_r11_s::to_json(json_writer& j) const
 void params_cdma2000_r11_s::sys_time_info_r11_c_::set(types::options e)
 {
   type_ = e;
+}
+sys_time_info_cdma2000_s& params_cdma2000_r11_s::sys_time_info_r11_c_::set_explicit_value()
+{
+  set(types::explicit_value);
+  return c;
+}
+void params_cdma2000_r11_s::sys_time_info_r11_c_::set_default_value()
+{
+  set(types::default_value);
 }
 void params_cdma2000_r11_s::sys_time_info_r11_c_::to_json(json_writer& j) const
 {
@@ -1395,7 +1424,7 @@ void carrier_freq_nr_r15_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string carrier_freq_nr_r15_s::subcarrier_spacing_ssb_r15_opts::to_string() const
+const char* carrier_freq_nr_r15_s::subcarrier_spacing_ssb_r15_opts::to_string() const
 {
   static const char* options[] = {"kHz15", "kHz30", "kHz120", "kHz240"};
   return convert_enum_idx(options, 4, value, "carrier_freq_nr_r15_s::subcarrier_spacing_ssb_r15_e_");
@@ -1765,7 +1794,7 @@ void eab_cfg_r11_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string eab_cfg_r11_s::eab_category_r11_opts::to_string() const
+const char* eab_cfg_r11_s::eab_category_r11_opts::to_string() const
 {
   static const char* options[] = {"a", "b", "c"};
   return convert_enum_idx(options, 3, value, "eab_cfg_r11_s::eab_category_r11_e_");
@@ -2475,7 +2504,7 @@ void mbms_carrier_type_r14_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string mbms_carrier_type_r14_s::carrier_type_r14_opts::to_string() const
+const char* mbms_carrier_type_r14_s::carrier_type_r14_opts::to_string() const
 {
   static const char* options[] = {"mbms", "fembmsMixed", "fembmsDedicated"};
   return convert_enum_idx(options, 3, value, "mbms_carrier_type_r14_s::carrier_type_r14_e_");
@@ -2656,7 +2685,7 @@ void mbsfn_area_info_r9_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string mbsfn_area_info_r9_s::non_mbsfn_region_len_opts::to_string() const
+const char* mbsfn_area_info_r9_s::non_mbsfn_region_len_opts::to_string() const
 {
   static const char* options[] = {"s1", "s2"};
   return convert_enum_idx(options, 2, value, "mbsfn_area_info_r9_s::non_mbsfn_region_len_e_");
@@ -2667,7 +2696,7 @@ uint8_t mbsfn_area_info_r9_s::non_mbsfn_region_len_opts::to_number() const
   return map_enum_number(options, 2, value, "mbsfn_area_info_r9_s::non_mbsfn_region_len_e_");
 }
 
-std::string mbsfn_area_info_r9_s::mcch_cfg_r9_s_::mcch_repeat_period_r9_opts::to_string() const
+const char* mbsfn_area_info_r9_s::mcch_cfg_r9_s_::mcch_repeat_period_r9_opts::to_string() const
 {
   static const char* options[] = {"rf32", "rf64", "rf128", "rf256"};
   return convert_enum_idx(options, 4, value, "mbsfn_area_info_r9_s::mcch_cfg_r9_s_::mcch_repeat_period_r9_e_");
@@ -2678,7 +2707,7 @@ uint16_t mbsfn_area_info_r9_s::mcch_cfg_r9_s_::mcch_repeat_period_r9_opts::to_nu
   return map_enum_number(options, 4, value, "mbsfn_area_info_r9_s::mcch_cfg_r9_s_::mcch_repeat_period_r9_e_");
 }
 
-std::string mbsfn_area_info_r9_s::mcch_cfg_r9_s_::mcch_mod_period_r9_opts::to_string() const
+const char* mbsfn_area_info_r9_s::mcch_cfg_r9_s_::mcch_mod_period_r9_opts::to_string() const
 {
   static const char* options[] = {"rf512", "rf1024"};
   return convert_enum_idx(options, 2, value, "mbsfn_area_info_r9_s::mcch_cfg_r9_s_::mcch_mod_period_r9_e_");
@@ -2689,7 +2718,7 @@ uint16_t mbsfn_area_info_r9_s::mcch_cfg_r9_s_::mcch_mod_period_r9_opts::to_numbe
   return map_enum_number(options, 2, value, "mbsfn_area_info_r9_s::mcch_cfg_r9_s_::mcch_mod_period_r9_e_");
 }
 
-std::string mbsfn_area_info_r9_s::mcch_cfg_r9_s_::sig_mcs_r9_opts::to_string() const
+const char* mbsfn_area_info_r9_s::mcch_cfg_r9_s_::sig_mcs_r9_opts::to_string() const
 {
   static const char* options[] = {"n2", "n7", "n13", "n19"};
   return convert_enum_idx(options, 4, value, "mbsfn_area_info_r9_s::mcch_cfg_r9_s_::sig_mcs_r9_e_");
@@ -2700,7 +2729,7 @@ uint8_t mbsfn_area_info_r9_s::mcch_cfg_r9_s_::sig_mcs_r9_opts::to_number() const
   return map_enum_number(options, 4, value, "mbsfn_area_info_r9_s::mcch_cfg_r9_s_::sig_mcs_r9_e_");
 }
 
-std::string mbsfn_area_info_r9_s::mcch_cfg_r14_s_::mcch_repeat_period_v1430_opts::to_string() const
+const char* mbsfn_area_info_r9_s::mcch_cfg_r14_s_::mcch_repeat_period_v1430_opts::to_string() const
 {
   static const char* options[] = {"rf1", "rf2", "rf4", "rf8", "rf16"};
   return convert_enum_idx(options, 5, value, "mbsfn_area_info_r9_s::mcch_cfg_r14_s_::mcch_repeat_period_v1430_e_");
@@ -2711,7 +2740,7 @@ uint8_t mbsfn_area_info_r9_s::mcch_cfg_r14_s_::mcch_repeat_period_v1430_opts::to
   return map_enum_number(options, 5, value, "mbsfn_area_info_r9_s::mcch_cfg_r14_s_::mcch_repeat_period_v1430_e_");
 }
 
-std::string mbsfn_area_info_r9_s::mcch_cfg_r14_s_::mcch_mod_period_v1430_opts::to_string() const
+const char* mbsfn_area_info_r9_s::mcch_cfg_r14_s_::mcch_mod_period_v1430_opts::to_string() const
 {
   static const char* options[] = {"rf1", "rf2", "rf4", "rf8", "rf16", "rf32", "rf64", "rf128", "rf256", "spare7"};
   return convert_enum_idx(options, 10, value, "mbsfn_area_info_r9_s::mcch_cfg_r14_s_::mcch_mod_period_v1430_e_");
@@ -2722,7 +2751,7 @@ uint16_t mbsfn_area_info_r9_s::mcch_cfg_r14_s_::mcch_mod_period_v1430_opts::to_n
   return map_enum_number(options, 9, value, "mbsfn_area_info_r9_s::mcch_cfg_r14_s_::mcch_mod_period_v1430_e_");
 }
 
-std::string mbsfn_area_info_r9_s::subcarrier_spacing_mbms_r14_opts::to_string() const
+const char* mbsfn_area_info_r9_s::subcarrier_spacing_mbms_r14_opts::to_string() const
 {
   static const char* options[] = {"kHz7dot5", "kHz1dot25"};
   return convert_enum_idx(options, 2, value, "mbsfn_area_info_r9_s::subcarrier_spacing_mbms_r14_e_");
@@ -2732,7 +2761,7 @@ float mbsfn_area_info_r9_s::subcarrier_spacing_mbms_r14_opts::to_number() const
   static const float options[] = {7.5, 1.25};
   return map_enum_number(options, 2, value, "mbsfn_area_info_r9_s::subcarrier_spacing_mbms_r14_e_");
 }
-std::string mbsfn_area_info_r9_s::subcarrier_spacing_mbms_r14_opts::to_number_string() const
+const char* mbsfn_area_info_r9_s::subcarrier_spacing_mbms_r14_opts::to_number_string() const
 {
   static const char* options[] = {"7.5", "1.25"};
   return convert_enum_idx(options, 2, value, "mbsfn_area_info_r9_s::subcarrier_spacing_mbms_r14_e_");
@@ -2774,7 +2803,7 @@ void resel_info_relay_r13_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string resel_info_relay_r13_s::min_hyst_r13_opts::to_string() const
+const char* resel_info_relay_r13_s::min_hyst_r13_opts::to_string() const
 {
   static const char* options[] = {"dB0", "dB3", "dB6", "dB9", "dB12", "dBinf"};
   return convert_enum_idx(options, 6, value, "resel_info_relay_r13_s::min_hyst_r13_e_");
@@ -2812,6 +2841,15 @@ void sib8_per_plmn_r11_s::to_json(json_writer& j) const
 void sib8_per_plmn_r11_s::params_cdma2000_r11_c_::set(types::options e)
 {
   type_ = e;
+}
+params_cdma2000_r11_s& sib8_per_plmn_r11_s::params_cdma2000_r11_c_::set_explicit_value()
+{
+  set(types::explicit_value);
+  return c;
+}
+void sib8_per_plmn_r11_s::params_cdma2000_r11_c_::set_default_value()
+{
+  set(types::default_value);
 }
 void sib8_per_plmn_r11_s::params_cdma2000_r11_c_::to_json(json_writer& j) const
 {
@@ -3021,7 +3059,7 @@ void uac_barr_info_set_r15_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string uac_barr_info_set_r15_s::uac_barr_factor_r15_opts::to_string() const
+const char* uac_barr_info_set_r15_s::uac_barr_factor_r15_opts::to_string() const
 {
   static const char* options[] = {
       "p00", "p05", "p10", "p15", "p20", "p25", "p30", "p40", "p50", "p60", "p70", "p75", "p80", "p85", "p90", "p95"};
@@ -3032,14 +3070,14 @@ float uac_barr_info_set_r15_s::uac_barr_factor_r15_opts::to_number() const
   static const float options[] = {0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5};
   return map_enum_number(options, 16, value, "uac_barr_info_set_r15_s::uac_barr_factor_r15_e_");
 }
-std::string uac_barr_info_set_r15_s::uac_barr_factor_r15_opts::to_number_string() const
+const char* uac_barr_info_set_r15_s::uac_barr_factor_r15_opts::to_number_string() const
 {
   static const char* options[] = {
       "0.0", "0.5", "1.0", "1.5", "2.0", "2.5", "3.0", "4.0", "5.0", "6.0", "7.0", "7.5", "8.0", "8.5", "9.0", "9.5"};
   return convert_enum_idx(options, 16, value, "uac_barr_info_set_r15_s::uac_barr_factor_r15_e_");
 }
 
-std::string uac_barr_info_set_r15_s::uac_barr_time_r15_opts::to_string() const
+const char* uac_barr_info_set_r15_s::uac_barr_time_r15_opts::to_string() const
 {
   static const char* options[] = {"s4", "s8", "s16", "s32", "s64", "s128", "s256", "s512"};
   return convert_enum_idx(options, 8, value, "uac_barr_info_set_r15_s::uac_barr_time_r15_e_");
@@ -3153,6 +3191,17 @@ uac_barr_per_plmn_r15_s::uac_ac_barr_list_type_r15_c_& uac_barr_per_plmn_r15_s::
 
   return *this;
 }
+uac_barr_per_plmn_r15_s::uac_ac_barr_list_type_r15_c_::uac_implicit_ac_barr_list_r15_l_&
+uac_barr_per_plmn_r15_s::uac_ac_barr_list_type_r15_c_::set_uac_implicit_ac_barr_list_r15()
+{
+  set(types::uac_implicit_ac_barr_list_r15);
+  return c.get<uac_implicit_ac_barr_list_r15_l_>();
+}
+uac_barr_per_cat_list_r15_l& uac_barr_per_plmn_r15_s::uac_ac_barr_list_type_r15_c_::set_uac_explicit_ac_barr_list_r15()
+{
+  set(types::uac_explicit_ac_barr_list_r15);
+  return c.get<uac_barr_per_cat_list_r15_l>();
+}
 void uac_barr_per_plmn_r15_s::uac_ac_barr_list_type_r15_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -3259,7 +3308,7 @@ void cell_resel_info_common_v1460_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string cell_resel_info_common_v1460_s::s_search_delta_p_r14_opts::to_string() const
+const char* cell_resel_info_common_v1460_s::s_search_delta_p_r14_opts::to_string() const
 {
   static const char* options[] = {"dB6", "dB9", "dB12", "dB15"};
   return convert_enum_idx(options, 4, value, "cell_resel_info_common_v1460_s::s_search_delta_p_r14_e_");
@@ -3439,7 +3488,7 @@ void mbms_notif_cfg_r9_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string mbms_notif_cfg_r9_s::notif_repeat_coeff_r9_opts::to_string() const
+const char* mbms_notif_cfg_r9_s::notif_repeat_coeff_r9_opts::to_string() const
 {
   static const char* options[] = {"n2", "n4"};
   return convert_enum_idx(options, 2, value, "mbms_notif_cfg_r9_s::notif_repeat_coeff_r9_e_");
@@ -3531,7 +3580,7 @@ void redist_serving_info_r13_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string redist_serving_info_r13_s::t360_r13_opts::to_string() const
+const char* redist_serving_info_r13_s::t360_r13_opts::to_string() const
 {
   static const char* options[] = {"min4", "min8", "min16", "min32", "infinity", "spare3", "spare2", "spare1"};
   return convert_enum_idx(options, 8, value, "redist_serving_info_r13_s::t360_r13_e_");
@@ -3571,7 +3620,7 @@ void sc_mcch_sched_info_r14_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string sc_mcch_sched_info_r14_s::on_dur_timer_scptm_r14_opts::to_string() const
+const char* sc_mcch_sched_info_r14_s::on_dur_timer_scptm_r14_opts::to_string() const
 {
   static const char* options[] = {"psf10", "psf20", "psf100", "psf300", "psf500", "psf1000", "psf1200", "psf1600"};
   return convert_enum_idx(options, 8, value, "sc_mcch_sched_info_r14_s::on_dur_timer_scptm_r14_e_");
@@ -3582,7 +3631,7 @@ uint16_t sc_mcch_sched_info_r14_s::on_dur_timer_scptm_r14_opts::to_number() cons
   return map_enum_number(options, 8, value, "sc_mcch_sched_info_r14_s::on_dur_timer_scptm_r14_e_");
 }
 
-std::string sc_mcch_sched_info_r14_s::drx_inactivity_timer_scptm_r14_opts::to_string() const
+const char* sc_mcch_sched_info_r14_s::drx_inactivity_timer_scptm_r14_opts::to_string() const
 {
   static const char* options[] = {"psf0",
                                   "psf1",
@@ -3737,6 +3786,86 @@ sc_mcch_sched_info_r14_s::sched_period_start_offset_scptm_r14_c_::operator=(
   }
 
   return *this;
+}
+uint8_t& sc_mcch_sched_info_r14_s::sched_period_start_offset_scptm_r14_c_::set_sf10()
+{
+  set(types::sf10);
+  return c.get<uint8_t>();
+}
+uint8_t& sc_mcch_sched_info_r14_s::sched_period_start_offset_scptm_r14_c_::set_sf20()
+{
+  set(types::sf20);
+  return c.get<uint8_t>();
+}
+uint8_t& sc_mcch_sched_info_r14_s::sched_period_start_offset_scptm_r14_c_::set_sf32()
+{
+  set(types::sf32);
+  return c.get<uint8_t>();
+}
+uint8_t& sc_mcch_sched_info_r14_s::sched_period_start_offset_scptm_r14_c_::set_sf40()
+{
+  set(types::sf40);
+  return c.get<uint8_t>();
+}
+uint8_t& sc_mcch_sched_info_r14_s::sched_period_start_offset_scptm_r14_c_::set_sf64()
+{
+  set(types::sf64);
+  return c.get<uint8_t>();
+}
+uint8_t& sc_mcch_sched_info_r14_s::sched_period_start_offset_scptm_r14_c_::set_sf80()
+{
+  set(types::sf80);
+  return c.get<uint8_t>();
+}
+uint8_t& sc_mcch_sched_info_r14_s::sched_period_start_offset_scptm_r14_c_::set_sf128()
+{
+  set(types::sf128);
+  return c.get<uint8_t>();
+}
+uint8_t& sc_mcch_sched_info_r14_s::sched_period_start_offset_scptm_r14_c_::set_sf160()
+{
+  set(types::sf160);
+  return c.get<uint8_t>();
+}
+uint16_t& sc_mcch_sched_info_r14_s::sched_period_start_offset_scptm_r14_c_::set_sf256()
+{
+  set(types::sf256);
+  return c.get<uint16_t>();
+}
+uint16_t& sc_mcch_sched_info_r14_s::sched_period_start_offset_scptm_r14_c_::set_sf320()
+{
+  set(types::sf320);
+  return c.get<uint16_t>();
+}
+uint16_t& sc_mcch_sched_info_r14_s::sched_period_start_offset_scptm_r14_c_::set_sf512()
+{
+  set(types::sf512);
+  return c.get<uint16_t>();
+}
+uint16_t& sc_mcch_sched_info_r14_s::sched_period_start_offset_scptm_r14_c_::set_sf640()
+{
+  set(types::sf640);
+  return c.get<uint16_t>();
+}
+uint16_t& sc_mcch_sched_info_r14_s::sched_period_start_offset_scptm_r14_c_::set_sf1024()
+{
+  set(types::sf1024);
+  return c.get<uint16_t>();
+}
+uint16_t& sc_mcch_sched_info_r14_s::sched_period_start_offset_scptm_r14_c_::set_sf2048()
+{
+  set(types::sf2048);
+  return c.get<uint16_t>();
+}
+uint16_t& sc_mcch_sched_info_r14_s::sched_period_start_offset_scptm_r14_c_::set_sf4096()
+{
+  set(types::sf4096);
+  return c.get<uint16_t>();
+}
+uint16_t& sc_mcch_sched_info_r14_s::sched_period_start_offset_scptm_r14_c_::set_sf8192()
+{
+  set(types::sf8192);
+  return c.get<uint16_t>();
 }
 void sc_mcch_sched_info_r14_s::sched_period_start_offset_scptm_r14_c_::to_json(json_writer& j) const
 {
@@ -3977,7 +4106,7 @@ void sl_disc_cfg_relay_ue_r13_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string sl_disc_cfg_relay_ue_r13_s::hyst_max_r13_opts::to_string() const
+const char* sl_disc_cfg_relay_ue_r13_s::hyst_max_r13_opts::to_string() const
 {
   static const char* options[] = {"dB0", "dB3", "dB6", "dB9", "dB12", "dBinf"};
   return convert_enum_idx(options, 6, value, "sl_disc_cfg_relay_ue_r13_s::hyst_max_r13_e_");
@@ -3988,7 +4117,7 @@ uint8_t sl_disc_cfg_relay_ue_r13_s::hyst_max_r13_opts::to_number() const
   return map_enum_number(options, 5, value, "sl_disc_cfg_relay_ue_r13_s::hyst_max_r13_e_");
 }
 
-std::string sl_disc_cfg_relay_ue_r13_s::hyst_min_r13_opts::to_string() const
+const char* sl_disc_cfg_relay_ue_r13_s::hyst_min_r13_opts::to_string() const
 {
   static const char* options[] = {"dB0", "dB3", "dB6", "dB9", "dB12"};
   return convert_enum_idx(options, 5, value, "sl_disc_cfg_relay_ue_r13_s::hyst_min_r13_e_");
@@ -4044,7 +4173,7 @@ void sl_disc_cfg_remote_ue_r13_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string sl_disc_cfg_remote_ue_r13_s::hyst_max_r13_opts::to_string() const
+const char* sl_disc_cfg_remote_ue_r13_s::hyst_max_r13_opts::to_string() const
 {
   static const char* options[] = {"dB0", "dB3", "dB6", "dB9", "dB12"};
   return convert_enum_idx(options, 5, value, "sl_disc_cfg_remote_ue_r13_s::hyst_max_r13_e_");
@@ -4056,7 +4185,7 @@ uint8_t sl_disc_cfg_remote_ue_r13_s::hyst_max_r13_opts::to_number() const
 }
 
 // UAC-AC1-SelectAssistInfo-r15 ::= ENUMERATED
-std::string uac_ac1_select_assist_info_r15_opts::to_string() const
+const char* uac_ac1_select_assist_info_r15_opts::to_string() const
 {
   static const char* options[] = {"a", "b", "c"};
   return convert_enum_idx(options, 3, value, "uac_ac1_select_assist_info_r15_e");
@@ -4260,7 +4389,7 @@ void sib_type11_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string sib_type11_s::warning_msg_segment_type_opts::to_string() const
+const char* sib_type11_s::warning_msg_segment_type_opts::to_string() const
 {
   static const char* options[] = {"notLastSegment", "lastSegment"};
   return convert_enum_idx(options, 2, value, "sib_type11_s::warning_msg_segment_type_e_");
@@ -4356,7 +4485,7 @@ void sib_type12_r9_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string sib_type12_r9_s::warning_msg_segment_type_r9_opts::to_string() const
+const char* sib_type12_r9_s::warning_msg_segment_type_r9_opts::to_string() const
 {
   static const char* options[] = {"notLastSegment", "lastSegment"};
   return convert_enum_idx(options, 2, value, "sib_type12_r9_s::warning_msg_segment_type_r9_e_");
@@ -4584,6 +4713,17 @@ sib_type14_r11_s::eab_param_r11_c_::operator=(const sib_type14_r11_s::eab_param_
 
   return *this;
 }
+eab_cfg_r11_s& sib_type14_r11_s::eab_param_r11_c_::set_eab_common_r11()
+{
+  set(types::eab_common_r11);
+  return c.get<eab_cfg_r11_s>();
+}
+sib_type14_r11_s::eab_param_r11_c_::eab_per_plmn_list_r11_l_&
+sib_type14_r11_s::eab_param_r11_c_::set_eab_per_plmn_list_r11()
+{
+  set(types::eab_per_plmn_list_r11);
+  return c.get<eab_per_plmn_list_r11_l_>();
+}
 void sib_type14_r11_s::eab_param_r11_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -4639,7 +4779,7 @@ SRSASN_CODE sib_type14_r11_s::eab_param_r11_c_::unpack(cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
-std::string sib_type14_r11_s::eab_per_rsrp_r15_opts::to_string() const
+const char* sib_type14_r11_s::eab_per_rsrp_r15_opts::to_string() const
 {
   static const char* options[] = {"thresh0", "thresh1", "thresh2", "thresh3"};
   return convert_enum_idx(options, 4, value, "sib_type14_r11_s::eab_per_rsrp_r15_e_");
@@ -5497,7 +5637,7 @@ void sib_type20_r13_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string sib_type20_r13_s::sc_mcch_repeat_period_r13_opts::to_string() const
+const char* sib_type20_r13_s::sc_mcch_repeat_period_r13_opts::to_string() const
 {
   static const char* options[] = {"rf2", "rf4", "rf8", "rf16", "rf32", "rf64", "rf128", "rf256"};
   return convert_enum_idx(options, 8, value, "sib_type20_r13_s::sc_mcch_repeat_period_r13_e_");
@@ -5508,7 +5648,7 @@ uint16_t sib_type20_r13_s::sc_mcch_repeat_period_r13_opts::to_number() const
   return map_enum_number(options, 8, value, "sib_type20_r13_s::sc_mcch_repeat_period_r13_e_");
 }
 
-std::string sib_type20_r13_s::sc_mcch_mod_period_r13_opts::to_string() const
+const char* sib_type20_r13_s::sc_mcch_mod_period_r13_opts::to_string() const
 {
   static const char* options[] = {"rf2",
                                   "rf4",
@@ -5534,7 +5674,7 @@ uint32_t sib_type20_r13_s::sc_mcch_mod_period_r13_opts::to_number() const
   return map_enum_number(options, 16, value, "sib_type20_r13_s::sc_mcch_mod_period_r13_e_");
 }
 
-std::string sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_num_repeat_sc_mcch_r14_opts::to_string() const
+const char* sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_num_repeat_sc_mcch_r14_opts::to_string() const
 {
   static const char* options[] = {"r1", "r2", "r4", "r8", "r16", "r32", "r64", "r128", "r256"};
   return convert_enum_idx(options, 9, value, "sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_num_repeat_sc_mcch_r14_e_");
@@ -5591,6 +5731,18 @@ sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_::operator=(
 
   return *this;
 }
+sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_::fdd_r14_e_&
+sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_::set_fdd_r14()
+{
+  set(types::fdd_r14);
+  return c.get<fdd_r14_e_>();
+}
+sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_::tdd_r14_e_&
+sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_::set_tdd_r14()
+{
+  set(types::tdd_r14);
+  return c.get<tdd_r14_e_>();
+}
 void sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -5641,7 +5793,7 @@ SRSASN_CODE sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_
   return SRSASN_SUCCESS;
 }
 
-std::string sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_::fdd_r14_opts::to_string() const
+const char* sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_::fdd_r14_opts::to_string() const
 {
   static const char* options[] = {"v1", "v1dot5", "v2", "v2dot5", "v4", "v5", "v8", "v10"};
   return convert_enum_idx(
@@ -5653,14 +5805,14 @@ float sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_::fdd_
   return map_enum_number(
       options, 8, value, "sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_::fdd_r14_e_");
 }
-std::string sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_::fdd_r14_opts::to_number_string() const
+const char* sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_::fdd_r14_opts::to_number_string() const
 {
   static const char* options[] = {"1", "1.5", "2", "2.5", "4", "5", "8", "10"};
   return convert_enum_idx(
       options, 8, value, "sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_::fdd_r14_e_");
 }
 
-std::string sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_::tdd_r14_opts::to_string() const
+const char* sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_::tdd_r14_opts::to_string() const
 {
   static const char* options[] = {"v1", "v2", "v4", "v5", "v8", "v10", "v20"};
   return convert_enum_idx(
@@ -5673,14 +5825,14 @@ uint8_t sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_::td
       options, 7, value, "sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_::tdd_r14_e_");
 }
 
-std::string sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_pdsch_hop_cfg_sc_mcch_r14_opts::to_string() const
+const char* sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_pdsch_hop_cfg_sc_mcch_r14_opts::to_string() const
 {
   static const char* options[] = {"off", "ce-ModeA", "ce-ModeB"};
   return convert_enum_idx(
       options, 3, value, "sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_pdsch_hop_cfg_sc_mcch_r14_e_");
 }
 
-std::string sib_type20_r13_s::br_bcch_cfg_r14_s_::sc_mcch_repeat_period_br_r14_opts::to_string() const
+const char* sib_type20_r13_s::br_bcch_cfg_r14_s_::sc_mcch_repeat_period_br_r14_opts::to_string() const
 {
   static const char* options[] = {"rf32", "rf128", "rf512", "rf1024", "rf2048", "rf4096", "rf8192", "rf16384"};
   return convert_enum_idx(options, 8, value, "sib_type20_r13_s::br_bcch_cfg_r14_s_::sc_mcch_repeat_period_br_r14_e_");
@@ -5691,7 +5843,7 @@ uint16_t sib_type20_r13_s::br_bcch_cfg_r14_s_::sc_mcch_repeat_period_br_r14_opts
   return map_enum_number(options, 8, value, "sib_type20_r13_s::br_bcch_cfg_r14_s_::sc_mcch_repeat_period_br_r14_e_");
 }
 
-std::string sib_type20_r13_s::br_bcch_cfg_r14_s_::sc_mcch_mod_period_br_r14_opts::to_string() const
+const char* sib_type20_r13_s::br_bcch_cfg_r14_s_::sc_mcch_mod_period_br_r14_opts::to_string() const
 {
   static const char* options[] = {"rf32",
                                   "rf128",
@@ -5717,7 +5869,7 @@ uint32_t sib_type20_r13_s::br_bcch_cfg_r14_s_::sc_mcch_mod_period_br_r14_opts::t
   return map_enum_number(options, 15, value, "sib_type20_r13_s::br_bcch_cfg_r14_s_::sc_mcch_mod_period_br_r14_e_");
 }
 
-std::string sib_type20_r13_s::pdsch_max_num_repeat_cemode_a_sc_mtch_r14_opts::to_string() const
+const char* sib_type20_r13_s::pdsch_max_num_repeat_cemode_a_sc_mtch_r14_opts::to_string() const
 {
   static const char* options[] = {"r16", "r32"};
   return convert_enum_idx(options, 2, value, "sib_type20_r13_s::pdsch_max_num_repeat_cemode_a_sc_mtch_r14_e_");
@@ -5728,7 +5880,7 @@ uint8_t sib_type20_r13_s::pdsch_max_num_repeat_cemode_a_sc_mtch_r14_opts::to_num
   return map_enum_number(options, 2, value, "sib_type20_r13_s::pdsch_max_num_repeat_cemode_a_sc_mtch_r14_e_");
 }
 
-std::string sib_type20_r13_s::pdsch_max_num_repeat_cemode_b_sc_mtch_r14_opts::to_string() const
+const char* sib_type20_r13_s::pdsch_max_num_repeat_cemode_b_sc_mtch_r14_opts::to_string() const
 {
   static const char* options[] = {"r192", "r256", "r384", "r512", "r768", "r1024", "r1536", "r2048"};
   return convert_enum_idx(options, 8, value, "sib_type20_r13_s::pdsch_max_num_repeat_cemode_b_sc_mtch_r14_e_");
@@ -5990,6 +6142,17 @@ sib_type25_r15_s::uac_ac1_select_assist_info_r15_c_& sib_type25_r15_s::uac_ac1_s
   }
 
   return *this;
+}
+uac_ac1_select_assist_info_r15_e& sib_type25_r15_s::uac_ac1_select_assist_info_r15_c_::set_plmn_common_r15()
+{
+  set(types::plmn_common_r15);
+  return c.get<uac_ac1_select_assist_info_r15_e>();
+}
+sib_type25_r15_s::uac_ac1_select_assist_info_r15_c_::individual_plmn_list_r15_l_&
+sib_type25_r15_s::uac_ac1_select_assist_info_r15_c_::set_individual_plmn_list_r15()
+{
+  set(types::individual_plmn_list_r15);
+  return c.get<individual_plmn_list_r15_l_>();
 }
 void sib_type25_r15_s::uac_ac1_select_assist_info_r15_c_::to_json(json_writer& j) const
 {
@@ -6618,7 +6781,7 @@ void sib_type3_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string sib_type3_s::cell_resel_info_common_s_::q_hyst_opts::to_string() const
+const char* sib_type3_s::cell_resel_info_common_s_::q_hyst_opts::to_string() const
 {
   static const char* options[] = {"dB0",
                                   "dB1",
@@ -6644,7 +6807,7 @@ uint8_t sib_type3_s::cell_resel_info_common_s_::q_hyst_opts::to_number() const
   return map_enum_number(options, 16, value, "sib_type3_s::cell_resel_info_common_s_::q_hyst_e_");
 }
 
-std::string
+const char*
 sib_type3_s::cell_resel_info_common_s_::speed_state_resel_pars_s_::q_hyst_sf_s_::sf_medium_opts::to_string() const
 {
   static const char* options[] = {"dB-6", "dB-4", "dB-2", "dB0"};
@@ -6665,7 +6828,7 @@ sib_type3_s::cell_resel_info_common_s_::speed_state_resel_pars_s_::q_hyst_sf_s_:
       "sib_type3_s::cell_resel_info_common_s_::speed_state_resel_pars_s_::q_hyst_sf_s_::sf_medium_e_");
 }
 
-std::string
+const char*
 sib_type3_s::cell_resel_info_common_s_::speed_state_resel_pars_s_::q_hyst_sf_s_::sf_high_opts::to_string() const
 {
   static const char* options[] = {"dB-6", "dB-4", "dB-2", "dB0"};
@@ -8079,6 +8242,141 @@ pos_sys_info_r15_ies_s::pos_sib_type_and_info_r15_item_c_::operator=(
 
   return *this;
 }
+sib_pos_r15_s& pos_sys_info_r15_ies_s::pos_sib_type_and_info_r15_item_c_::set_pos_sib1_minus1_r15()
+{
+  set(types::pos_sib1_minus1_r15);
+  return c.get<sib_pos_r15_s>();
+}
+sib_pos_r15_s& pos_sys_info_r15_ies_s::pos_sib_type_and_info_r15_item_c_::set_pos_sib1_minus2_r15()
+{
+  set(types::pos_sib1_minus2_r15);
+  return c.get<sib_pos_r15_s>();
+}
+sib_pos_r15_s& pos_sys_info_r15_ies_s::pos_sib_type_and_info_r15_item_c_::set_pos_sib1_minus3_r15()
+{
+  set(types::pos_sib1_minus3_r15);
+  return c.get<sib_pos_r15_s>();
+}
+sib_pos_r15_s& pos_sys_info_r15_ies_s::pos_sib_type_and_info_r15_item_c_::set_pos_sib1_minus4_r15()
+{
+  set(types::pos_sib1_minus4_r15);
+  return c.get<sib_pos_r15_s>();
+}
+sib_pos_r15_s& pos_sys_info_r15_ies_s::pos_sib_type_and_info_r15_item_c_::set_pos_sib1_minus5_r15()
+{
+  set(types::pos_sib1_minus5_r15);
+  return c.get<sib_pos_r15_s>();
+}
+sib_pos_r15_s& pos_sys_info_r15_ies_s::pos_sib_type_and_info_r15_item_c_::set_pos_sib1_minus6_r15()
+{
+  set(types::pos_sib1_minus6_r15);
+  return c.get<sib_pos_r15_s>();
+}
+sib_pos_r15_s& pos_sys_info_r15_ies_s::pos_sib_type_and_info_r15_item_c_::set_pos_sib1_minus7_r15()
+{
+  set(types::pos_sib1_minus7_r15);
+  return c.get<sib_pos_r15_s>();
+}
+sib_pos_r15_s& pos_sys_info_r15_ies_s::pos_sib_type_and_info_r15_item_c_::set_pos_sib2_minus1_r15()
+{
+  set(types::pos_sib2_minus1_r15);
+  return c.get<sib_pos_r15_s>();
+}
+sib_pos_r15_s& pos_sys_info_r15_ies_s::pos_sib_type_and_info_r15_item_c_::set_pos_sib2_minus2_r15()
+{
+  set(types::pos_sib2_minus2_r15);
+  return c.get<sib_pos_r15_s>();
+}
+sib_pos_r15_s& pos_sys_info_r15_ies_s::pos_sib_type_and_info_r15_item_c_::set_pos_sib2_minus3_r15()
+{
+  set(types::pos_sib2_minus3_r15);
+  return c.get<sib_pos_r15_s>();
+}
+sib_pos_r15_s& pos_sys_info_r15_ies_s::pos_sib_type_and_info_r15_item_c_::set_pos_sib2_minus4_r15()
+{
+  set(types::pos_sib2_minus4_r15);
+  return c.get<sib_pos_r15_s>();
+}
+sib_pos_r15_s& pos_sys_info_r15_ies_s::pos_sib_type_and_info_r15_item_c_::set_pos_sib2_minus5_r15()
+{
+  set(types::pos_sib2_minus5_r15);
+  return c.get<sib_pos_r15_s>();
+}
+sib_pos_r15_s& pos_sys_info_r15_ies_s::pos_sib_type_and_info_r15_item_c_::set_pos_sib2_minus6_r15()
+{
+  set(types::pos_sib2_minus6_r15);
+  return c.get<sib_pos_r15_s>();
+}
+sib_pos_r15_s& pos_sys_info_r15_ies_s::pos_sib_type_and_info_r15_item_c_::set_pos_sib2_minus7_r15()
+{
+  set(types::pos_sib2_minus7_r15);
+  return c.get<sib_pos_r15_s>();
+}
+sib_pos_r15_s& pos_sys_info_r15_ies_s::pos_sib_type_and_info_r15_item_c_::set_pos_sib2_minus8_r15()
+{
+  set(types::pos_sib2_minus8_r15);
+  return c.get<sib_pos_r15_s>();
+}
+sib_pos_r15_s& pos_sys_info_r15_ies_s::pos_sib_type_and_info_r15_item_c_::set_pos_sib2_minus9_r15()
+{
+  set(types::pos_sib2_minus9_r15);
+  return c.get<sib_pos_r15_s>();
+}
+sib_pos_r15_s& pos_sys_info_r15_ies_s::pos_sib_type_and_info_r15_item_c_::set_pos_sib2_minus10_r15()
+{
+  set(types::pos_sib2_minus10_r15);
+  return c.get<sib_pos_r15_s>();
+}
+sib_pos_r15_s& pos_sys_info_r15_ies_s::pos_sib_type_and_info_r15_item_c_::set_pos_sib2_minus11_r15()
+{
+  set(types::pos_sib2_minus11_r15);
+  return c.get<sib_pos_r15_s>();
+}
+sib_pos_r15_s& pos_sys_info_r15_ies_s::pos_sib_type_and_info_r15_item_c_::set_pos_sib2_minus12_r15()
+{
+  set(types::pos_sib2_minus12_r15);
+  return c.get<sib_pos_r15_s>();
+}
+sib_pos_r15_s& pos_sys_info_r15_ies_s::pos_sib_type_and_info_r15_item_c_::set_pos_sib2_minus13_r15()
+{
+  set(types::pos_sib2_minus13_r15);
+  return c.get<sib_pos_r15_s>();
+}
+sib_pos_r15_s& pos_sys_info_r15_ies_s::pos_sib_type_and_info_r15_item_c_::set_pos_sib2_minus14_r15()
+{
+  set(types::pos_sib2_minus14_r15);
+  return c.get<sib_pos_r15_s>();
+}
+sib_pos_r15_s& pos_sys_info_r15_ies_s::pos_sib_type_and_info_r15_item_c_::set_pos_sib2_minus15_r15()
+{
+  set(types::pos_sib2_minus15_r15);
+  return c.get<sib_pos_r15_s>();
+}
+sib_pos_r15_s& pos_sys_info_r15_ies_s::pos_sib_type_and_info_r15_item_c_::set_pos_sib2_minus16_r15()
+{
+  set(types::pos_sib2_minus16_r15);
+  return c.get<sib_pos_r15_s>();
+}
+sib_pos_r15_s& pos_sys_info_r15_ies_s::pos_sib_type_and_info_r15_item_c_::set_pos_sib2_minus17_r15()
+{
+  set(types::pos_sib2_minus17_r15);
+  return c.get<sib_pos_r15_s>();
+}
+sib_pos_r15_s& pos_sys_info_r15_ies_s::pos_sib_type_and_info_r15_item_c_::set_pos_sib2_minus18_r15()
+{
+  set(types::pos_sib2_minus18_r15);
+  return c.get<sib_pos_r15_s>();
+}
+sib_pos_r15_s& pos_sys_info_r15_ies_s::pos_sib_type_and_info_r15_item_c_::set_pos_sib2_minus19_r15()
+{
+  set(types::pos_sib2_minus19_r15);
+  return c.get<sib_pos_r15_s>();
+}
+sib_pos_r15_s& pos_sys_info_r15_ies_s::pos_sib_type_and_info_r15_item_c_::set_pos_sib3_minus1_r15()
+{
+  set(types::pos_sib3_minus1_r15);
+  return c.get<sib_pos_r15_s>();
+}
 void pos_sys_info_r15_ies_s::pos_sib_type_and_info_r15_item_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -8700,6 +8998,121 @@ sib_info_item_c& sib_info_item_c::operator=(const sib_info_item_c& other)
 
   return *this;
 }
+sib_type2_s& sib_info_item_c::set_sib2()
+{
+  set(types::sib2);
+  return c.get<sib_type2_s>();
+}
+sib_type3_s& sib_info_item_c::set_sib3()
+{
+  set(types::sib3);
+  return c.get<sib_type3_s>();
+}
+sib_type4_s& sib_info_item_c::set_sib4()
+{
+  set(types::sib4);
+  return c.get<sib_type4_s>();
+}
+sib_type5_s& sib_info_item_c::set_sib5()
+{
+  set(types::sib5);
+  return c.get<sib_type5_s>();
+}
+sib_type6_s& sib_info_item_c::set_sib6()
+{
+  set(types::sib6);
+  return c.get<sib_type6_s>();
+}
+sib_type7_s& sib_info_item_c::set_sib7()
+{
+  set(types::sib7);
+  return c.get<sib_type7_s>();
+}
+sib_type8_s& sib_info_item_c::set_sib8()
+{
+  set(types::sib8);
+  return c.get<sib_type8_s>();
+}
+sib_type9_s& sib_info_item_c::set_sib9()
+{
+  set(types::sib9);
+  return c.get<sib_type9_s>();
+}
+sib_type10_s& sib_info_item_c::set_sib10()
+{
+  set(types::sib10);
+  return c.get<sib_type10_s>();
+}
+sib_type11_s& sib_info_item_c::set_sib11()
+{
+  set(types::sib11);
+  return c.get<sib_type11_s>();
+}
+sib_type12_r9_s& sib_info_item_c::set_sib12_v920()
+{
+  set(types::sib12_v920);
+  return c.get<sib_type12_r9_s>();
+}
+sib_type13_r9_s& sib_info_item_c::set_sib13_v920()
+{
+  set(types::sib13_v920);
+  return c.get<sib_type13_r9_s>();
+}
+sib_type14_r11_s& sib_info_item_c::set_sib14_v1130()
+{
+  set(types::sib14_v1130);
+  return c.get<sib_type14_r11_s>();
+}
+sib_type15_r11_s& sib_info_item_c::set_sib15_v1130()
+{
+  set(types::sib15_v1130);
+  return c.get<sib_type15_r11_s>();
+}
+sib_type16_r11_s& sib_info_item_c::set_sib16_v1130()
+{
+  set(types::sib16_v1130);
+  return c.get<sib_type16_r11_s>();
+}
+sib_type17_r12_s& sib_info_item_c::set_sib17_v1250()
+{
+  set(types::sib17_v1250);
+  return c.get<sib_type17_r12_s>();
+}
+sib_type18_r12_s& sib_info_item_c::set_sib18_v1250()
+{
+  set(types::sib18_v1250);
+  return c.get<sib_type18_r12_s>();
+}
+sib_type19_r12_s& sib_info_item_c::set_sib19_v1250()
+{
+  set(types::sib19_v1250);
+  return c.get<sib_type19_r12_s>();
+}
+sib_type20_r13_s& sib_info_item_c::set_sib20_v1310()
+{
+  set(types::sib20_v1310);
+  return c.get<sib_type20_r13_s>();
+}
+sib_type21_r14_s& sib_info_item_c::set_sib21_v1430()
+{
+  set(types::sib21_v1430);
+  return c.get<sib_type21_r14_s>();
+}
+sib_type24_r15_s& sib_info_item_c::set_sib24_v1530()
+{
+  set(types::sib24_v1530);
+  return c.get<sib_type24_r15_s>();
+}
+sib_type25_r15_s& sib_info_item_c::set_sib25_v1530()
+{
+  set(types::sib25_v1530);
+  return c.get<sib_type25_r15_s>();
+}
+sib_type26_r15_s& sib_info_item_c::set_sib26_v1530()
+{
+  set(types::sib26_v1530);
+  return c.get<sib_type26_r15_s>();
+}
 void sib_info_item_c::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -9114,6 +9527,16 @@ sys_info_s::crit_exts_c_& sys_info_s::crit_exts_c_::operator=(const sys_info_s::
 
   return *this;
 }
+sys_info_r8_ies_s& sys_info_s::crit_exts_c_::set_sys_info_r8()
+{
+  set(types::sys_info_r8);
+  return c.get<sys_info_r8_ies_s>();
+}
+sys_info_s::crit_exts_c_::crit_exts_future_r15_c_& sys_info_s::crit_exts_c_::set_crit_exts_future_r15()
+{
+  set(types::crit_exts_future_r15);
+  return c.get<crit_exts_future_r15_c_>();
+}
 void sys_info_s::crit_exts_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -9170,6 +9593,15 @@ void sys_info_s::crit_exts_c_::crit_exts_future_r15_c_::set(types::options e)
 {
   type_ = e;
 }
+pos_sys_info_r15_ies_s& sys_info_s::crit_exts_c_::crit_exts_future_r15_c_::set_pos_sys_info_r15()
+{
+  set(types::pos_sys_info_r15);
+  return c;
+}
+void sys_info_s::crit_exts_c_::crit_exts_future_r15_c_::set_crit_exts_future()
+{
+  set(types::crit_exts_future);
+}
 void sys_info_s::crit_exts_c_::crit_exts_future_r15_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -9222,6 +9654,15 @@ SRSASN_CODE sys_info_s::crit_exts_c_::crit_exts_future_r15_c_::unpack(cbit_ref& 
 void bcch_dl_sch_msg_type_c::set(types::options e)
 {
   type_ = e;
+}
+bcch_dl_sch_msg_type_c::c1_c_& bcch_dl_sch_msg_type_c::set_c1()
+{
+  set(types::c1);
+  return c;
+}
+void bcch_dl_sch_msg_type_c::set_msg_class_ext()
+{
+  set(types::msg_class_ext);
 }
 void bcch_dl_sch_msg_type_c::to_json(json_writer& j) const
 {
@@ -9338,6 +9779,16 @@ bcch_dl_sch_msg_type_c::c1_c_& bcch_dl_sch_msg_type_c::c1_c_::operator=(const bc
 
   return *this;
 }
+sys_info_s& bcch_dl_sch_msg_type_c::c1_c_::set_sys_info()
+{
+  set(types::sys_info);
+  return c.get<sys_info_s>();
+}
+sib_type1_s& bcch_dl_sch_msg_type_c::c1_c_::set_sib_type1()
+{
+  set(types::sib_type1);
+  return c.get<sib_type1_s>();
+}
 void bcch_dl_sch_msg_type_c::c1_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -9423,6 +9874,15 @@ void bcch_dl_sch_msg_s::to_json(json_writer& j) const
 void bcch_dl_sch_msg_type_br_r13_c::set(types::options e)
 {
   type_ = e;
+}
+bcch_dl_sch_msg_type_br_r13_c::c1_c_& bcch_dl_sch_msg_type_br_r13_c::set_c1()
+{
+  set(types::c1);
+  return c;
+}
+void bcch_dl_sch_msg_type_br_r13_c::set_msg_class_ext()
+{
+  set(types::msg_class_ext);
 }
 void bcch_dl_sch_msg_type_br_r13_c::to_json(json_writer& j) const
 {
@@ -9540,6 +10000,16 @@ bcch_dl_sch_msg_type_br_r13_c::c1_c_::operator=(const bcch_dl_sch_msg_type_br_r1
 
   return *this;
 }
+sys_info_br_r13_s& bcch_dl_sch_msg_type_br_r13_c::c1_c_::set_sys_info_br_r13()
+{
+  set(types::sys_info_br_r13);
+  return c.get<sys_info_br_r13_s>();
+}
+sib_type1_br_r13_s& bcch_dl_sch_msg_type_br_r13_c::c1_c_::set_sib_type1_br_r13()
+{
+  set(types::sib_type1_br_r13);
+  return c.get<sib_type1_br_r13_s>();
+}
 void bcch_dl_sch_msg_type_br_r13_c::c1_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -9622,7 +10092,7 @@ void bcch_dl_sch_msg_br_s::to_json(json_writer& j) const
 }
 
 // SIB-Type-MBMS-r14 ::= ENUMERATED
-std::string sib_type_mbms_r14_opts::to_string() const
+const char* sib_type_mbms_r14_opts::to_string() const
 {
   static const char* options[] = {
       "sibType10", "sibType11", "sibType12-v920", "sibType13-v920", "sibType15-v1130", "sibType16-v1130"};
@@ -9661,7 +10131,7 @@ void sched_info_mbms_r14_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string sched_info_mbms_r14_s::si_periodicity_r14_opts::to_string() const
+const char* sched_info_mbms_r14_s::si_periodicity_r14_opts::to_string() const
 {
   static const char* options[] = {"rf16", "rf32", "rf64", "rf128", "rf256", "rf512"};
   return convert_enum_idx(options, 6, value, "sched_info_mbms_r14_s::si_periodicity_r14_e_");
@@ -9698,7 +10168,7 @@ void non_mbsfn_sf_cfg_r14_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string non_mbsfn_sf_cfg_r14_s::radio_frame_alloc_period_r14_opts::to_string() const
+const char* non_mbsfn_sf_cfg_r14_s::radio_frame_alloc_period_r14_opts::to_string() const
 {
   static const char* options[] = {"rf4", "rf8", "rf16", "rf32", "rf64", "rf128", "rf512"};
   return convert_enum_idx(options, 7, value, "non_mbsfn_sf_cfg_r14_s::radio_frame_alloc_period_r14_e_");
@@ -9825,7 +10295,7 @@ void sib_type1_mbms_r14_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string sib_type1_mbms_r14_s::si_win_len_r14_opts::to_string() const
+const char* sib_type1_mbms_r14_s::si_win_len_r14_opts::to_string() const
 {
   static const char* options[] = {"ms1", "ms2", "ms5", "ms10", "ms15", "ms20", "ms40", "ms80"};
   return convert_enum_idx(options, 8, value, "sib_type1_mbms_r14_s::si_win_len_r14_e_");
@@ -10063,7 +10533,7 @@ void inter_freq_carrier_freq_info_v9e0_s::to_json(json_writer& j) const
 }
 
 // SIB-Type-v12j0 ::= ENUMERATED
-std::string sib_type_v12j0_opts::to_string() const
+const char* sib_type_v12j0_opts::to_string() const
 {
   static const char* options[] = {"sibType19-v1250",
                                   "sibType20-v1310",

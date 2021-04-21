@@ -48,6 +48,15 @@ void sl_tx_pwr_r14_c::set(types::options e)
 {
   type_ = e;
 }
+void sl_tx_pwr_r14_c::set_minusinfinity_r14()
+{
+  set(types::minusinfinity_r14);
+}
+int8_t& sl_tx_pwr_r14_c::set_tx_pwr_r14()
+{
+  set(types::tx_pwr_r14);
+  return c;
+}
 void sl_tx_pwr_r14_c::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -235,7 +244,7 @@ void sl_pssch_tx_params_r14_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string sl_pssch_tx_params_r14_s::allowed_retx_num_pssch_r14_opts::to_string() const
+const char* sl_pssch_tx_params_r14_s::allowed_retx_num_pssch_r14_opts::to_string() const
 {
   static const char* options[] = {"n0", "n1", "both", "spare1"};
   return convert_enum_idx(options, 4, value, "sl_pssch_tx_params_r14_s::allowed_retx_num_pssch_r14_e_");
@@ -270,7 +279,7 @@ void sl_pssch_tx_params_v1530_s::to_json(json_writer& j) const
 }
 
 // SL-RestrictResourceReservationPeriod-r14 ::= ENUMERATED
-std::string sl_restrict_res_reserv_period_r14_opts::to_string() const
+const char* sl_restrict_res_reserv_period_r14_opts::to_string() const
 {
   static const char* options[] = {"v0dot2",
                                   "v0dot5",
@@ -295,21 +304,21 @@ float sl_restrict_res_reserv_period_r14_opts::to_number() const
   static const float options[] = {0.2, 0.5, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0};
   return map_enum_number(options, 12, value, "sl_restrict_res_reserv_period_r14_e");
 }
-std::string sl_restrict_res_reserv_period_r14_opts::to_number_string() const
+const char* sl_restrict_res_reserv_period_r14_opts::to_number_string() const
 {
   static const char* options[] = {"0.2", "0.5", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"};
   return convert_enum_idx(options, 16, value, "sl_restrict_res_reserv_period_r14_e");
 }
 
 // SL-TypeTxSync-r14 ::= ENUMERATED
-std::string sl_type_tx_sync_r14_opts::to_string() const
+const char* sl_type_tx_sync_r14_opts::to_string() const
 {
   static const char* options[] = {"gnss", "enb", "ue"};
   return convert_enum_idx(options, 3, value, "sl_type_tx_sync_r14_e");
 }
 
 // SL-CP-Len-r12 ::= ENUMERATED
-std::string sl_cp_len_r12_opts::to_string() const
+const char* sl_cp_len_r12_opts::to_string() const
 {
   static const char* options[] = {"normal", "extended"};
   return convert_enum_idx(options, 2, value, "sl_cp_len_r12_e");
@@ -358,6 +367,16 @@ sl_offset_ind_r12_c& sl_offset_ind_r12_c::operator=(const sl_offset_ind_r12_c& o
   }
 
   return *this;
+}
+uint16_t& sl_offset_ind_r12_c::set_small_r12()
+{
+  set(types::small_r12);
+  return c.get<uint16_t>();
+}
+uint16_t& sl_offset_ind_r12_c::set_large_r12()
+{
+  set(types::large_r12);
+  return c.get<uint16_t>();
 }
 void sl_offset_ind_r12_c::to_json(json_writer& j) const
 {
@@ -529,7 +548,7 @@ void sl_pssch_tx_cfg_r14_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string sl_pssch_tx_cfg_r14_s::thres_ue_speed_r14_opts::to_string() const
+const char* sl_pssch_tx_cfg_r14_s::thres_ue_speed_r14_opts::to_string() const
 {
   static const char* options[] = {"kmph60", "kmph80", "kmph100", "kmph120", "kmph140", "kmph160", "kmph180", "kmph200"};
   return convert_enum_idx(options, 8, value, "sl_pssch_tx_cfg_r14_s::thres_ue_speed_r14_e_");
@@ -722,6 +741,41 @@ sf_bitmap_sl_r12_c& sf_bitmap_sl_r12_c::operator=(const sf_bitmap_sl_r12_c& othe
   }
 
   return *this;
+}
+fixed_bitstring<4>& sf_bitmap_sl_r12_c::set_bs4_r12()
+{
+  set(types::bs4_r12);
+  return c.get<fixed_bitstring<4> >();
+}
+fixed_bitstring<8>& sf_bitmap_sl_r12_c::set_bs8_r12()
+{
+  set(types::bs8_r12);
+  return c.get<fixed_bitstring<8> >();
+}
+fixed_bitstring<12>& sf_bitmap_sl_r12_c::set_bs12_r12()
+{
+  set(types::bs12_r12);
+  return c.get<fixed_bitstring<12> >();
+}
+fixed_bitstring<16>& sf_bitmap_sl_r12_c::set_bs16_r12()
+{
+  set(types::bs16_r12);
+  return c.get<fixed_bitstring<16> >();
+}
+fixed_bitstring<30>& sf_bitmap_sl_r12_c::set_bs30_r12()
+{
+  set(types::bs30_r12);
+  return c.get<fixed_bitstring<30> >();
+}
+fixed_bitstring<40>& sf_bitmap_sl_r12_c::set_bs40_r12()
+{
+  set(types::bs40_r12);
+  return c.get<fixed_bitstring<40> >();
+}
+fixed_bitstring<42>& sf_bitmap_sl_r12_c::set_bs42_r12()
+{
+  set(types::bs42_r12);
+  return c.get<fixed_bitstring<42> >();
 }
 void sf_bitmap_sl_r12_c::to_json(json_writer& j) const
 {
@@ -957,6 +1011,46 @@ sf_bitmap_sl_r14_c& sf_bitmap_sl_r14_c::operator=(const sf_bitmap_sl_r14_c& othe
   }
 
   return *this;
+}
+fixed_bitstring<10>& sf_bitmap_sl_r14_c::set_bs10_r14()
+{
+  set(types::bs10_r14);
+  return c.get<fixed_bitstring<10> >();
+}
+fixed_bitstring<16>& sf_bitmap_sl_r14_c::set_bs16_r14()
+{
+  set(types::bs16_r14);
+  return c.get<fixed_bitstring<16> >();
+}
+fixed_bitstring<20>& sf_bitmap_sl_r14_c::set_bs20_r14()
+{
+  set(types::bs20_r14);
+  return c.get<fixed_bitstring<20> >();
+}
+fixed_bitstring<30>& sf_bitmap_sl_r14_c::set_bs30_r14()
+{
+  set(types::bs30_r14);
+  return c.get<fixed_bitstring<30> >();
+}
+fixed_bitstring<40>& sf_bitmap_sl_r14_c::set_bs40_r14()
+{
+  set(types::bs40_r14);
+  return c.get<fixed_bitstring<40> >();
+}
+fixed_bitstring<50>& sf_bitmap_sl_r14_c::set_bs50_r14()
+{
+  set(types::bs50_r14);
+  return c.get<fixed_bitstring<50> >();
+}
+fixed_bitstring<60>& sf_bitmap_sl_r14_c::set_bs60_r14()
+{
+  set(types::bs60_r14);
+  return c.get<fixed_bitstring<60> >();
+}
+fixed_bitstring<100>& sf_bitmap_sl_r14_c::set_bs100_r14()
+{
+  set(types::bs100_r14);
+  return c.get<fixed_bitstring<100> >();
 }
 void sf_bitmap_sl_r14_c::to_json(json_writer& j) const
 {
@@ -1303,7 +1397,7 @@ void sl_comm_res_pool_v2x_r14_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string sl_comm_res_pool_v2x_r14_s::size_subch_r14_opts::to_string() const
+const char* sl_comm_res_pool_v2x_r14_s::size_subch_r14_opts::to_string() const
 {
   static const char* options[] = {"n4",     "n5",     "n6",     "n8",      "n9",      "n10",     "n12",     "n15",
                                   "n16",    "n18",    "n20",    "n25",     "n30",     "n48",     "n50",     "n72",
@@ -1317,7 +1411,7 @@ uint8_t sl_comm_res_pool_v2x_r14_s::size_subch_r14_opts::to_number() const
   return map_enum_number(options, 19, value, "sl_comm_res_pool_v2x_r14_s::size_subch_r14_e_");
 }
 
-std::string sl_comm_res_pool_v2x_r14_s::num_subch_r14_opts::to_string() const
+const char* sl_comm_res_pool_v2x_r14_s::num_subch_r14_opts::to_string() const
 {
   static const char* options[] = {"n1", "n3", "n5", "n8", "n10", "n15", "n20", "spare1"};
   return convert_enum_idx(options, 8, value, "sl_comm_res_pool_v2x_r14_s::num_subch_r14_e_");
@@ -1524,7 +1618,7 @@ void sl_sync_cfg_nfreq_r13_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string sl_sync_cfg_nfreq_r13_s::rx_params_r13_s_::disc_sync_win_r13_opts::to_string() const
+const char* sl_sync_cfg_nfreq_r13_s::rx_params_r13_s_::disc_sync_win_r13_opts::to_string() const
 {
   static const char* options[] = {"w1", "w2"};
   return convert_enum_idx(options, 2, value, "sl_sync_cfg_nfreq_r13_s::rx_params_r13_s_::disc_sync_win_r13_e_");
@@ -1650,7 +1744,7 @@ void sl_comm_tx_pool_sensing_cfg_r14_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string sl_comm_tx_pool_sensing_cfg_r14_s::prob_res_keep_r14_opts::to_string() const
+const char* sl_comm_tx_pool_sensing_cfg_r14_s::prob_res_keep_r14_opts::to_string() const
 {
   static const char* options[] = {"v0", "v0dot2", "v0dot4", "v0dot6", "v0dot8", "spare3", "spare2", "spare1"};
   return convert_enum_idx(options, 8, value, "sl_comm_tx_pool_sensing_cfg_r14_s::prob_res_keep_r14_e_");
@@ -1660,13 +1754,13 @@ float sl_comm_tx_pool_sensing_cfg_r14_s::prob_res_keep_r14_opts::to_number() con
   static const float options[] = {0.0, 0.2, 0.4, 0.6, 0.8};
   return map_enum_number(options, 5, value, "sl_comm_tx_pool_sensing_cfg_r14_s::prob_res_keep_r14_e_");
 }
-std::string sl_comm_tx_pool_sensing_cfg_r14_s::prob_res_keep_r14_opts::to_number_string() const
+const char* sl_comm_tx_pool_sensing_cfg_r14_s::prob_res_keep_r14_opts::to_number_string() const
 {
   static const char* options[] = {"0", "0.2", "0.4", "0.6", "0.8"};
   return convert_enum_idx(options, 8, value, "sl_comm_tx_pool_sensing_cfg_r14_s::prob_res_keep_r14_e_");
 }
 
-std::string sl_comm_tx_pool_sensing_cfg_r14_s::sl_reselect_after_r14_opts::to_string() const
+const char* sl_comm_tx_pool_sensing_cfg_r14_s::sl_reselect_after_r14_opts::to_string() const
 {
   static const char* options[] = {"n1",
                                   "n2",
@@ -1876,7 +1970,7 @@ void sl_disc_res_pool_r12_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string sl_disc_res_pool_r12_s::disc_period_r12_opts::to_string() const
+const char* sl_disc_res_pool_r12_s::disc_period_r12_opts::to_string() const
 {
   static const char* options[] = {"rf32", "rf64", "rf128", "rf256", "rf512", "rf1024", "rf16-v1310", "spare"};
   return convert_enum_idx(options, 8, value, "sl_disc_res_pool_r12_s::disc_period_r12_e_");
@@ -1890,6 +1984,16 @@ uint16_t sl_disc_res_pool_r12_s::disc_period_r12_opts::to_number() const
 void sl_disc_res_pool_r12_s::tx_params_r12_s_::ue_sel_res_cfg_r12_s_::pool_sel_r12_c_::set(types::options e)
 {
   type_ = e;
+}
+sl_pool_sel_cfg_r12_s&
+sl_disc_res_pool_r12_s::tx_params_r12_s_::ue_sel_res_cfg_r12_s_::pool_sel_r12_c_::set_rsrp_based_r12()
+{
+  set(types::rsrp_based_r12);
+  return c;
+}
+void sl_disc_res_pool_r12_s::tx_params_r12_s_::ue_sel_res_cfg_r12_s_::pool_sel_r12_c_::set_random_r12()
+{
+  set(types::random_r12);
 }
 void sl_disc_res_pool_r12_s::tx_params_r12_s_::ue_sel_res_cfg_r12_s_::pool_sel_r12_c_::to_json(json_writer& j) const
 {
@@ -1939,7 +2043,7 @@ SRSASN_CODE sl_disc_res_pool_r12_s::tx_params_r12_s_::ue_sel_res_cfg_r12_s_::poo
   return SRSASN_SUCCESS;
 }
 
-std::string sl_disc_res_pool_r12_s::tx_params_r12_s_::ue_sel_res_cfg_r12_s_::tx_probability_r12_opts::to_string() const
+const char* sl_disc_res_pool_r12_s::tx_params_r12_s_::ue_sel_res_cfg_r12_s_::tx_probability_r12_opts::to_string() const
 {
   static const char* options[] = {"p25", "p50", "p75", "p100"};
   return convert_enum_idx(
@@ -1955,6 +2059,15 @@ uint8_t sl_disc_res_pool_r12_s::tx_params_r12_s_::ue_sel_res_cfg_r12_s_::tx_prob
 void sl_disc_res_pool_r12_s::disc_period_v1310_c_::set(types::options e)
 {
   type_ = e;
+}
+void sl_disc_res_pool_r12_s::disc_period_v1310_c_::set_release()
+{
+  set(types::release);
+}
+sl_disc_res_pool_r12_s::disc_period_v1310_c_::setup_e_& sl_disc_res_pool_r12_s::disc_period_v1310_c_::set_setup()
+{
+  set(types::setup);
+  return c;
 }
 void sl_disc_res_pool_r12_s::disc_period_v1310_c_::to_json(json_writer& j) const
 {
@@ -2003,7 +2116,7 @@ SRSASN_CODE sl_disc_res_pool_r12_s::disc_period_v1310_c_::unpack(cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
-std::string sl_disc_res_pool_r12_s::disc_period_v1310_c_::setup_opts::to_string() const
+const char* sl_disc_res_pool_r12_s::disc_period_v1310_c_::setup_opts::to_string() const
 {
   static const char* options[] = {"rf4", "rf6", "rf7", "rf8", "rf12", "rf14", "rf24", "rf28"};
   return convert_enum_idx(options, 8, value, "sl_disc_res_pool_r12_s::disc_period_v1310_c_::setup_e_");
@@ -2017,6 +2130,16 @@ uint8_t sl_disc_res_pool_r12_s::disc_period_v1310_c_::setup_opts::to_number() co
 void sl_disc_res_pool_r12_s::rx_params_add_neigh_freq_r13_c_::set(types::options e)
 {
   type_ = e;
+}
+void sl_disc_res_pool_r12_s::rx_params_add_neigh_freq_r13_c_::set_release()
+{
+  set(types::release);
+}
+sl_disc_res_pool_r12_s::rx_params_add_neigh_freq_r13_c_::setup_s_&
+sl_disc_res_pool_r12_s::rx_params_add_neigh_freq_r13_c_::set_setup()
+{
+  set(types::setup);
+  return c;
 }
 void sl_disc_res_pool_r12_s::rx_params_add_neigh_freq_r13_c_::to_json(json_writer& j) const
 {
@@ -2075,6 +2198,16 @@ SRSASN_CODE sl_disc_res_pool_r12_s::rx_params_add_neigh_freq_r13_c_::unpack(cbit
 void sl_disc_res_pool_r12_s::tx_params_add_neigh_freq_r13_c_::set(types::options e)
 {
   type_ = e;
+}
+void sl_disc_res_pool_r12_s::tx_params_add_neigh_freq_r13_c_::set_release()
+{
+  set(types::release);
+}
+sl_disc_res_pool_r12_s::tx_params_add_neigh_freq_r13_c_::setup_s_&
+sl_disc_res_pool_r12_s::tx_params_add_neigh_freq_r13_c_::set_setup()
+{
+  set(types::setup);
+  return c;
 }
 void sl_disc_res_pool_r12_s::tx_params_add_neigh_freq_r13_c_::to_json(json_writer& j) const
 {
@@ -2207,7 +2340,7 @@ SRSASN_CODE sl_disc_res_pool_r12_s::tx_params_add_neigh_freq_r13_c_::unpack(cbit
   return SRSASN_SUCCESS;
 }
 
-std::string
+const char*
 sl_disc_res_pool_r12_s::tx_params_add_neigh_freq_r13_c_::setup_s_::freq_info_s_::ul_bw_opts::to_string() const
 {
   static const char* options[] = {"n6", "n15", "n25", "n50", "n75", "n100"};
@@ -2224,6 +2357,16 @@ uint8_t sl_disc_res_pool_r12_s::tx_params_add_neigh_freq_r13_c_::setup_s_::freq_
 void sl_disc_res_pool_r12_s::tx_params_add_neigh_freq_v1370_c_::set(types::options e)
 {
   type_ = e;
+}
+void sl_disc_res_pool_r12_s::tx_params_add_neigh_freq_v1370_c_::set_release()
+{
+  set(types::release);
+}
+sl_disc_res_pool_r12_s::tx_params_add_neigh_freq_v1370_c_::setup_s_&
+sl_disc_res_pool_r12_s::tx_params_add_neigh_freq_v1370_c_::set_setup()
+{
+  set(types::setup);
+  return c;
 }
 void sl_disc_res_pool_r12_s::tx_params_add_neigh_freq_v1370_c_::to_json(json_writer& j) const
 {
@@ -2307,7 +2450,7 @@ void sl_zone_cfg_r14_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string sl_zone_cfg_r14_s::zone_len_r14_opts::to_string() const
+const char* sl_zone_cfg_r14_s::zone_len_r14_opts::to_string() const
 {
   static const char* options[] = {"m5", "m10", "m20", "m50", "m100", "m200", "m500", "spare1"};
   return convert_enum_idx(options, 8, value, "sl_zone_cfg_r14_s::zone_len_r14_e_");
@@ -2318,7 +2461,7 @@ uint16_t sl_zone_cfg_r14_s::zone_len_r14_opts::to_number() const
   return map_enum_number(options, 7, value, "sl_zone_cfg_r14_s::zone_len_r14_e_");
 }
 
-std::string sl_zone_cfg_r14_s::zone_width_r14_opts::to_string() const
+const char* sl_zone_cfg_r14_s::zone_width_r14_opts::to_string() const
 {
   static const char* options[] = {"m5", "m10", "m20", "m50", "m100", "m200", "m500", "spare1"};
   return convert_enum_idx(options, 8, value, "sl_zone_cfg_r14_s::zone_width_r14_e_");
@@ -2366,7 +2509,7 @@ bool pci_range_s::operator==(const pci_range_s& other) const
   return start == other.start and range_present == other.range_present and (not range_present or range == other.range);
 }
 
-std::string pci_range_s::range_opts::to_string() const
+const char* pci_range_s::range_opts::to_string() const
 {
   static const char* options[] = {"n4",
                                   "n8",
@@ -2617,7 +2760,7 @@ void sl_v2x_inter_freq_ue_cfg_r14_s::to_json(json_writer& j) const
 }
 
 // AllowedMeasBandwidth ::= ENUMERATED
-std::string allowed_meas_bw_opts::to_string() const
+const char* allowed_meas_bw_opts::to_string() const
 {
   static const char* options[] = {"mbw6", "mbw15", "mbw25", "mbw50", "mbw75", "mbw100"};
   return convert_enum_idx(options, 6, value, "allowed_meas_bw_e");
@@ -2670,7 +2813,7 @@ void cell_sel_info_nfreq_r13_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string cell_sel_info_nfreq_r13_s::q_hyst_r13_opts::to_string() const
+const char* cell_sel_info_nfreq_r13_s::q_hyst_r13_opts::to_string() const
 {
   static const char* options[] = {"dB0",
                                   "dB1",
@@ -2731,6 +2874,23 @@ void sl_allowed_carrier_freq_list_r15_s::to_json(json_writer& j) const
 void sl_disc_tx_res_inter_freq_r13_c::set(types::options e)
 {
   type_ = e;
+}
+void sl_disc_tx_res_inter_freq_r13_c::set_acquire_si_from_carrier_r13()
+{
+  set(types::acquire_si_from_carrier_r13);
+}
+sl_disc_tx_pool_list_r12_l& sl_disc_tx_res_inter_freq_r13_c::set_disc_tx_pool_common_r13()
+{
+  set(types::disc_tx_pool_common_r13);
+  return c;
+}
+void sl_disc_tx_res_inter_freq_r13_c::set_request_ded_r13()
+{
+  set(types::request_ded_r13);
+}
+void sl_disc_tx_res_inter_freq_r13_c::set_no_tx_on_carrier_r13()
+{
+  set(types::no_tx_on_carrier_r13);
 }
 void sl_disc_tx_res_inter_freq_r13_c::to_json(json_writer& j) const
 {
@@ -2888,7 +3048,7 @@ void meas_idle_carrier_eutra_r15_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string meas_idle_carrier_eutra_r15_s::report_quantities_opts::to_string() const
+const char* meas_idle_carrier_eutra_r15_s::report_quantities_opts::to_string() const
 {
   static const char* options[] = {"rsrp", "rsrq", "both"};
   return convert_enum_idx(options, 3, value, "meas_idle_carrier_eutra_r15_s::report_quantities_e_");
@@ -2944,7 +3104,7 @@ void sl_hop_cfg_comm_r12_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string sl_hop_cfg_comm_r12_s::num_subbands_r12_opts::to_string() const
+const char* sl_hop_cfg_comm_r12_s::num_subbands_r12_opts::to_string() const
 {
   static const char* options[] = {"ns1", "ns2", "ns4"};
   return convert_enum_idx(options, 3, value, "sl_hop_cfg_comm_r12_s::num_subbands_r12_e_");
@@ -3104,7 +3264,7 @@ void sl_inter_freq_info_v2x_r14_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string sl_inter_freq_info_v2x_r14_s::sl_bw_r14_opts::to_string() const
+const char* sl_inter_freq_info_v2x_r14_s::sl_bw_r14_opts::to_string() const
 {
   static const char* options[] = {"n6", "n15", "n25", "n50", "n75", "n100"};
   return convert_enum_idx(options, 6, value, "sl_inter_freq_info_v2x_r14_s::sl_bw_r14_e_");
@@ -3160,6 +3320,16 @@ sl_inter_freq_info_v2x_r14_s::add_spec_emission_v2x_r14_c_::operator=(
   }
 
   return *this;
+}
+uint8_t& sl_inter_freq_info_v2x_r14_s::add_spec_emission_v2x_r14_c_::set_add_spec_emission_r14()
+{
+  set(types::add_spec_emission_r14);
+  return c.get<uint8_t>();
+}
+uint16_t& sl_inter_freq_info_v2x_r14_s::add_spec_emission_v2x_r14_c_::set_add_spec_emission_v1440()
+{
+  set(types::add_spec_emission_v1440);
+  return c.get<uint16_t>();
 }
 void sl_inter_freq_info_v2x_r14_s::add_spec_emission_v2x_r14_c_::to_json(json_writer& j) const
 {
@@ -3258,7 +3428,7 @@ void sl_pppr_dest_carrier_freq_s::to_json(json_writer& j) const
 }
 
 // SL-PeriodComm-r12 ::= ENUMERATED
-std::string sl_period_comm_r12_opts::to_string() const
+const char* sl_period_comm_r12_opts::to_string() const
 {
   static const char* options[] = {"sf40",
                                   "sf60",
@@ -3504,7 +3674,7 @@ void sl_sync_cfg_r12_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string sl_sync_cfg_r12_s::rx_params_ncell_r12_s_::disc_sync_win_r12_opts::to_string() const
+const char* sl_sync_cfg_r12_s::rx_params_ncell_r12_s_::disc_sync_win_r12_opts::to_string() const
 {
   static const char* options[] = {"w1", "w2"};
   return convert_enum_idx(options, 2, value, "sl_sync_cfg_r12_s::rx_params_ncell_r12_s_::disc_sync_win_r12_e_");
@@ -3577,7 +3747,7 @@ bool wlan_ids_r12_s::operator==(const wlan_ids_r12_s& other) const
 }
 
 // WLAN-backhaulRate-r12 ::= ENUMERATED
-std::string wlan_backhaul_rate_r12_opts::to_string() const
+const char* wlan_backhaul_rate_r12_opts::to_string() const
 {
   static const char* options[] = {
       "r0",        "r4",        "r8",         "r16",        "r32",        "r64",         "r128",        "r256",
@@ -4380,7 +4550,7 @@ void sl_gap_pattern_r13_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string sl_gap_pattern_r13_s::gap_period_r13_opts::to_string() const
+const char* sl_gap_pattern_r13_s::gap_period_r13_opts::to_string() const
 {
   static const char* options[] = {"sf40",
                                   "sf60",

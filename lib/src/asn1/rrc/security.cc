@@ -43,7 +43,7 @@ void security_algorithm_cfg_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string security_algorithm_cfg_s::integrity_prot_algorithm_opts::to_string() const
+const char* security_algorithm_cfg_s::integrity_prot_algorithm_opts::to_string() const
 {
   static const char* options[] = {"eia0-v920", "eia1", "eia2", "eia3-v1130", "spare4", "spare3", "spare2", "spare1"};
   return convert_enum_idx(options, 8, value, "security_algorithm_cfg_s::integrity_prot_algorithm_e_");
@@ -157,6 +157,24 @@ security_cfg_ho_v1530_s::handov_type_v1530_c_::operator=(const security_cfg_ho_v
   }
 
   return *this;
+}
+security_cfg_ho_v1530_s::handov_type_v1530_c_::intra5_gc_r15_s_&
+security_cfg_ho_v1530_s::handov_type_v1530_c_::set_intra5_gc_r15()
+{
+  set(types::intra5_gc_r15);
+  return c.get<intra5_gc_r15_s_>();
+}
+security_cfg_ho_v1530_s::handov_type_v1530_c_::fivegc_to_epc_r15_s_&
+security_cfg_ho_v1530_s::handov_type_v1530_c_::set_fivegc_to_epc_r15()
+{
+  set(types::fivegc_to_epc_r15);
+  return c.get<fivegc_to_epc_r15_s_>();
+}
+security_cfg_ho_v1530_s::handov_type_v1530_c_::epc_to5_gc_r15_s_&
+security_cfg_ho_v1530_s::handov_type_v1530_c_::set_epc_to5_gc_r15()
+{
+  set(types::epc_to5_gc_r15);
+  return c.get<epc_to5_gc_r15_s_>();
 }
 void security_cfg_ho_v1530_s::handov_type_v1530_c_::to_json(json_writer& j) const
 {
@@ -353,6 +371,16 @@ security_cfg_ho_s::handov_type_c_::operator=(const security_cfg_ho_s::handov_typ
   }
 
   return *this;
+}
+security_cfg_ho_s::handov_type_c_::intra_lte_s_& security_cfg_ho_s::handov_type_c_::set_intra_lte()
+{
+  set(types::intra_lte);
+  return c.get<intra_lte_s_>();
+}
+security_cfg_ho_s::handov_type_c_::inter_rat_s_& security_cfg_ho_s::handov_type_c_::set_inter_rat()
+{
+  set(types::inter_rat);
+  return c.get<inter_rat_s_>();
 }
 void security_cfg_ho_s::handov_type_c_::to_json(json_writer& j) const
 {
@@ -552,6 +580,15 @@ void security_mode_cmd_s::crit_exts_c_::set(types::options e)
 {
   type_ = e;
 }
+security_mode_cmd_s::crit_exts_c_::c1_c_& security_mode_cmd_s::crit_exts_c_::set_c1()
+{
+  set(types::c1);
+  return c;
+}
+void security_mode_cmd_s::crit_exts_c_::set_crit_exts_future()
+{
+  set(types::crit_exts_future);
+}
 void security_mode_cmd_s::crit_exts_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -603,6 +640,23 @@ SRSASN_CODE security_mode_cmd_s::crit_exts_c_::unpack(cbit_ref& bref)
 void security_mode_cmd_s::crit_exts_c_::c1_c_::set(types::options e)
 {
   type_ = e;
+}
+security_mode_cmd_r8_ies_s& security_mode_cmd_s::crit_exts_c_::c1_c_::set_security_mode_cmd_r8()
+{
+  set(types::security_mode_cmd_r8);
+  return c;
+}
+void security_mode_cmd_s::crit_exts_c_::c1_c_::set_spare3()
+{
+  set(types::spare3);
+}
+void security_mode_cmd_s::crit_exts_c_::c1_c_::set_spare2()
+{
+  set(types::spare2);
+}
+void security_mode_cmd_s::crit_exts_c_::c1_c_::set_spare1()
+{
+  set(types::spare1);
 }
 void security_mode_cmd_s::crit_exts_c_::c1_c_::to_json(json_writer& j) const
 {
@@ -828,6 +882,15 @@ void security_mode_complete_s::crit_exts_c_::set(types::options e)
 {
   type_ = e;
 }
+security_mode_complete_r8_ies_s& security_mode_complete_s::crit_exts_c_::set_security_mode_complete_r8()
+{
+  set(types::security_mode_complete_r8);
+  return c;
+}
+void security_mode_complete_s::crit_exts_c_::set_crit_exts_future()
+{
+  set(types::crit_exts_future);
+}
 void security_mode_complete_s::crit_exts_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -903,6 +966,15 @@ void security_mode_fail_s::to_json(json_writer& j) const
 void security_mode_fail_s::crit_exts_c_::set(types::options e)
 {
   type_ = e;
+}
+security_mode_fail_r8_ies_s& security_mode_fail_s::crit_exts_c_::set_security_mode_fail_r8()
+{
+  set(types::security_mode_fail_r8);
+  return c;
+}
+void security_mode_fail_s::crit_exts_c_::set_crit_exts_future()
+{
+  set(types::crit_exts_future);
 }
 void security_mode_fail_s::crit_exts_c_::to_json(json_writer& j) const
 {

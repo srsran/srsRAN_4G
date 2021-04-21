@@ -82,9 +82,7 @@ void log_invalid_access_choice_id(uint32_t val, uint32_t choice_id);
 void log_invalid_choice_id(uint32_t val, const char* choice_type);
 void invalid_enum_number(int value, const char* name);
 void assert_choice_type(uint32_t val, uint32_t choice_id);
-void assert_choice_type(const std::string& access_type,
-                        const std::string& current_type,
-                        const std::string& choice_type);
+void assert_choice_type(const char* access_type, const char* current_type, const char* choice_type);
 
 /************************
      error handling

@@ -283,6 +283,15 @@ void scg_cfg_r12_s::crit_exts_c_::set(types::options e)
 {
   type_ = e;
 }
+scg_cfg_r12_s::crit_exts_c_::c1_c_& scg_cfg_r12_s::crit_exts_c_::set_c1()
+{
+  set(types::c1);
+  return c;
+}
+void scg_cfg_r12_s::crit_exts_c_::set_crit_exts_future()
+{
+  set(types::crit_exts_future);
+}
 void scg_cfg_r12_s::crit_exts_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -334,6 +343,39 @@ SRSASN_CODE scg_cfg_r12_s::crit_exts_c_::unpack(cbit_ref& bref)
 void scg_cfg_r12_s::crit_exts_c_::c1_c_::set(types::options e)
 {
   type_ = e;
+}
+scg_cfg_r12_ies_s& scg_cfg_r12_s::crit_exts_c_::c1_c_::set_scg_cfg_r12()
+{
+  set(types::scg_cfg_r12);
+  return c;
+}
+void scg_cfg_r12_s::crit_exts_c_::c1_c_::set_spare7()
+{
+  set(types::spare7);
+}
+void scg_cfg_r12_s::crit_exts_c_::c1_c_::set_spare6()
+{
+  set(types::spare6);
+}
+void scg_cfg_r12_s::crit_exts_c_::c1_c_::set_spare5()
+{
+  set(types::spare5);
+}
+void scg_cfg_r12_s::crit_exts_c_::c1_c_::set_spare4()
+{
+  set(types::spare4);
+}
+void scg_cfg_r12_s::crit_exts_c_::c1_c_::set_spare3()
+{
+  set(types::spare3);
+}
+void scg_cfg_r12_s::crit_exts_c_::c1_c_::set_spare2()
+{
+  set(types::spare2);
+}
+void scg_cfg_r12_s::crit_exts_c_::c1_c_::set_spare1()
+{
+  set(types::spare1);
 }
 void scg_cfg_r12_s::crit_exts_c_::c1_c_::to_json(json_writer& j) const
 {
@@ -1340,6 +1382,15 @@ void ho_cmd_s::crit_exts_c_::set(types::options e)
 {
   type_ = e;
 }
+ho_cmd_s::crit_exts_c_::c1_c_& ho_cmd_s::crit_exts_c_::set_c1()
+{
+  set(types::c1);
+  return c;
+}
+void ho_cmd_s::crit_exts_c_::set_crit_exts_future()
+{
+  set(types::crit_exts_future);
+}
 void ho_cmd_s::crit_exts_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -1391,6 +1442,39 @@ SRSASN_CODE ho_cmd_s::crit_exts_c_::unpack(cbit_ref& bref)
 void ho_cmd_s::crit_exts_c_::c1_c_::set(types::options e)
 {
   type_ = e;
+}
+ho_cmd_r8_ies_s& ho_cmd_s::crit_exts_c_::c1_c_::set_ho_cmd_r8()
+{
+  set(types::ho_cmd_r8);
+  return c;
+}
+void ho_cmd_s::crit_exts_c_::c1_c_::set_spare7()
+{
+  set(types::spare7);
+}
+void ho_cmd_s::crit_exts_c_::c1_c_::set_spare6()
+{
+  set(types::spare6);
+}
+void ho_cmd_s::crit_exts_c_::c1_c_::set_spare5()
+{
+  set(types::spare5);
+}
+void ho_cmd_s::crit_exts_c_::c1_c_::set_spare4()
+{
+  set(types::spare4);
+}
+void ho_cmd_s::crit_exts_c_::c1_c_::set_spare3()
+{
+  set(types::spare3);
+}
+void ho_cmd_s::crit_exts_c_::c1_c_::set_spare2()
+{
+  set(types::spare2);
+}
+void ho_cmd_s::crit_exts_c_::c1_c_::set_spare1()
+{
+  set(types::spare1);
 }
 void ho_cmd_s::crit_exts_c_::c1_c_::to_json(json_writer& j) const
 {
@@ -1883,7 +1967,7 @@ void ho_prep_info_v920_ies_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string ho_prep_info_v920_ies_s::ue_cfg_release_r9_opts::to_string() const
+const char* ho_prep_info_v920_ies_s::ue_cfg_release_r9_opts::to_string() const
 {
   static const char* options[] = {
       "rel9", "rel10", "rel11", "rel12", "v10j0", "v11e0", "v1280", "rel13", "rel14", "rel15"};
@@ -1986,7 +2070,7 @@ void rrm_cfg_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string rrm_cfg_s::ue_inactive_time_opts::to_string() const
+const char* rrm_cfg_s::ue_inactive_time_opts::to_string() const
 {
   static const char* options[] = {
       "s1",    "s2",       "s3",    "s5",           "s7",      "s10",   "s15",     "s20",      "s25",     "s30",
@@ -2098,6 +2182,15 @@ void ho_prep_info_s::crit_exts_c_::set(types::options e)
 {
   type_ = e;
 }
+ho_prep_info_s::crit_exts_c_::c1_c_& ho_prep_info_s::crit_exts_c_::set_c1()
+{
+  set(types::c1);
+  return c;
+}
+void ho_prep_info_s::crit_exts_c_::set_crit_exts_future()
+{
+  set(types::crit_exts_future);
+}
 void ho_prep_info_s::crit_exts_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -2149,6 +2242,39 @@ SRSASN_CODE ho_prep_info_s::crit_exts_c_::unpack(cbit_ref& bref)
 void ho_prep_info_s::crit_exts_c_::c1_c_::set(types::options e)
 {
   type_ = e;
+}
+ho_prep_info_r8_ies_s& ho_prep_info_s::crit_exts_c_::c1_c_::set_ho_prep_info_r8()
+{
+  set(types::ho_prep_info_r8);
+  return c;
+}
+void ho_prep_info_s::crit_exts_c_::c1_c_::set_spare7()
+{
+  set(types::spare7);
+}
+void ho_prep_info_s::crit_exts_c_::c1_c_::set_spare6()
+{
+  set(types::spare6);
+}
+void ho_prep_info_s::crit_exts_c_::c1_c_::set_spare5()
+{
+  set(types::spare5);
+}
+void ho_prep_info_s::crit_exts_c_::c1_c_::set_spare4()
+{
+  set(types::spare4);
+}
+void ho_prep_info_s::crit_exts_c_::c1_c_::set_spare3()
+{
+  set(types::spare3);
+}
+void ho_prep_info_s::crit_exts_c_::c1_c_::set_spare2()
+{
+  set(types::spare2);
+}
+void ho_prep_info_s::crit_exts_c_::c1_c_::set_spare1()
+{
+  set(types::spare1);
 }
 void ho_prep_info_s::crit_exts_c_::c1_c_::to_json(json_writer& j) const
 {
@@ -2598,6 +2724,15 @@ void var_meas_cfg_s::to_json(json_writer& j) const
 void var_meas_cfg_s::speed_state_pars_c_::set(types::options e)
 {
   type_ = e;
+}
+void var_meas_cfg_s::speed_state_pars_c_::set_release()
+{
+  set(types::release);
+}
+var_meas_cfg_s::speed_state_pars_c_::setup_s_& var_meas_cfg_s::speed_state_pars_c_::set_setup()
+{
+  set(types::setup);
+  return c;
 }
 void var_meas_cfg_s::speed_state_pars_c_::to_json(json_writer& j) const
 {

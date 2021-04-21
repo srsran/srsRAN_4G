@@ -242,7 +242,7 @@ struct plmn_id_info_s {
   struct cell_reserved_for_oper_opts {
     enum options { reserved, not_reserved, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<cell_reserved_for_oper_opts> cell_reserved_for_oper_e_;
 
@@ -261,9 +261,9 @@ struct alpha_r12_opts {
   enum options { al0, al04, al05, al06, al07, al08, al09, al1, nulltype } value;
   typedef float number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   float       to_number() const;
-  std::string to_number_string() const;
+  const char* to_number_string() const;
 };
 typedef enumerated<alpha_r12_opts> alpha_r12_e;
 
@@ -310,7 +310,7 @@ struct bandclass_cdma2000_opts {
   } value;
   typedef uint8_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint8_t     to_number() const;
 };
 typedef enumerated<bandclass_cdma2000_opts, true> bandclass_cdma2000_e;
@@ -318,7 +318,7 @@ typedef enumerated<bandclass_cdma2000_opts, true> bandclass_cdma2000_e;
 struct setup_opts {
   enum options { release, setup, nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<setup_opts> setup_e;
 
@@ -345,7 +345,7 @@ struct filt_coef_opts {
   } value;
   typedef uint8_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint8_t     to_number() const;
 };
 typedef enumerated<filt_coef_opts, true> filt_coef_e;
@@ -356,7 +356,7 @@ struct mbsfn_sf_cfg_s {
     enum options { n1, n2, n4, n8, n16, n32, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<radioframe_alloc_period_opts> radioframe_alloc_period_e_;
@@ -365,7 +365,7 @@ struct mbsfn_sf_cfg_s {
       enum options { one_frame, four_frames, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<types_opts> types;
@@ -403,16 +403,8 @@ struct mbsfn_sf_cfg_s {
       assert_choice_type("fourFrames", type_.to_string(), "subframeAllocation");
       return c.get<fixed_bitstring<24> >();
     }
-    fixed_bitstring<6>& set_one_frame()
-    {
-      set(types::one_frame);
-      return c.get<fixed_bitstring<6> >();
-    }
-    fixed_bitstring<24>& set_four_frames()
-    {
-      set(types::four_frames);
-      return c.get<fixed_bitstring<24> >();
-    }
+    fixed_bitstring<6>&  set_one_frame();
+    fixed_bitstring<24>& set_four_frames();
 
   private:
     types                                 type_;
@@ -441,7 +433,7 @@ struct mbsfn_sf_cfg_v1430_s {
       enum options { one_frame_v1430, four_frames_v1430, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<types_opts> types;
@@ -479,16 +471,8 @@ struct mbsfn_sf_cfg_v1430_s {
       assert_choice_type("fourFrames-v1430", type_.to_string(), "subframeAllocation-v1430");
       return c.get<fixed_bitstring<8> >();
     }
-    fixed_bitstring<2>& set_one_frame_v1430()
-    {
-      set(types::one_frame_v1430);
-      return c.get<fixed_bitstring<2> >();
-    }
-    fixed_bitstring<8>& set_four_frames_v1430()
-    {
-      set(types::four_frames_v1430);
-      return c.get<fixed_bitstring<8> >();
-    }
+    fixed_bitstring<2>& set_one_frame_v1430();
+    fixed_bitstring<8>& set_four_frames_v1430();
 
   private:
     types                                type_;
@@ -521,7 +505,7 @@ struct meas_sf_pattern_r10_c {
       enum options { sf_cfg1_minus5_r10, sf_cfg0_r10, sf_cfg6_r10, /*...*/ nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<types_opts, true> types;
@@ -569,21 +553,9 @@ struct meas_sf_pattern_r10_c {
       assert_choice_type("subframeConfig6-r10", type_.to_string(), "subframePatternTDD-r10");
       return c.get<fixed_bitstring<60> >();
     }
-    fixed_bitstring<20>& set_sf_cfg1_minus5_r10()
-    {
-      set(types::sf_cfg1_minus5_r10);
-      return c.get<fixed_bitstring<20> >();
-    }
-    fixed_bitstring<70>& set_sf_cfg0_r10()
-    {
-      set(types::sf_cfg0_r10);
-      return c.get<fixed_bitstring<70> >();
-    }
-    fixed_bitstring<60>& set_sf_cfg6_r10()
-    {
-      set(types::sf_cfg6_r10);
-      return c.get<fixed_bitstring<60> >();
-    }
+    fixed_bitstring<20>& set_sf_cfg1_minus5_r10();
+    fixed_bitstring<70>& set_sf_cfg0_r10();
+    fixed_bitstring<60>& set_sf_cfg6_r10();
 
   private:
     types                                 type_;
@@ -594,7 +566,7 @@ struct meas_sf_pattern_r10_c {
   struct types_opts {
     enum options { sf_pattern_fdd_r10, sf_pattern_tdd_r10, /*...*/ nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true> types;
 
@@ -631,16 +603,8 @@ struct meas_sf_pattern_r10_c {
     assert_choice_type("subframePatternTDD-r10", type_.to_string(), "MeasSubframePattern-r10");
     return c.get<sf_pattern_tdd_r10_c_>();
   }
-  fixed_bitstring<40>& set_sf_pattern_fdd_r10()
-  {
-    set(types::sf_pattern_fdd_r10);
-    return c.get<fixed_bitstring<40> >();
-  }
-  sf_pattern_tdd_r10_c_& set_sf_pattern_tdd_r10()
-  {
-    set(types::sf_pattern_tdd_r10);
-    return c.get<sf_pattern_tdd_r10_c_>();
-  }
+  fixed_bitstring<40>&   set_sf_pattern_fdd_r10();
+  sf_pattern_tdd_r10_c_& set_sf_pattern_tdd_r10();
 
 private:
   types                                                       type_;
@@ -653,7 +617,7 @@ struct c1_or_crit_ext_opts {
   enum options { c1, crit_exts_future, nulltype } value;
   typedef uint8_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint8_t     to_number() const;
 };
 typedef enumerated<c1_or_crit_ext_opts> c1_or_crit_ext_e;
@@ -663,7 +627,7 @@ struct ciphering_algorithm_r12_opts {
   enum options { eea0, eea1, eea2, eea3_v1130, spare4, spare3, spare2, spare1, /*...*/ nulltype } value;
   typedef uint8_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint8_t     to_number() const;
 };
 typedef enumerated<ciphering_algorithm_r12_opts, true> ciphering_algorithm_r12_e;
@@ -673,9 +637,9 @@ struct wlan_band_ind_r13_opts {
   enum options { band2dot4, band5, band60_v1430, spare5, spare4, spare3, spare2, spare1, /*...*/ nulltype } value;
   typedef float number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   float       to_number() const;
-  std::string to_number_string() const;
+  const char* to_number_string() const;
 };
 typedef enumerated<wlan_band_ind_r13_opts, true> wlan_band_ind_r13_e;
 

@@ -924,11 +924,11 @@ void rrc::send_con_restablish_request(reest_cause_e cause, uint16_t crnti, uint1
   srsran::console("RRC Connection Reestablishment to PCI=%d, EARFCN=%d (Cause: \"%s\")\n",
                   meas_cells.serving_cell().phy_cell.pci,
                   meas_cells.serving_cell().phy_cell.earfcn,
-                  cause.to_string().c_str());
+                  cause.to_string());
   logger.info("RRC Connection Reestablishment to PCI=%d, EARFCN=%d (Cause: \"%s\")",
               meas_cells.serving_cell().phy_cell.pci,
               meas_cells.serving_cell().phy_cell.earfcn,
-              cause.to_string().c_str());
+              cause.to_string());
   send_ul_ccch_msg(ul_ccch_msg);
 }
 

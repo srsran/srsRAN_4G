@@ -432,7 +432,7 @@ namespace s1ap {
 struct crit_opts {
   enum options { reject, ignore, notify, nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<crit_opts> crit_e;
 
@@ -440,7 +440,7 @@ typedef enumerated<crit_opts> crit_e;
 struct presence_opts {
   enum options { optional, conditional, mandatory, nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<presence_opts> presence_e;
 
@@ -449,7 +449,7 @@ struct private_ie_id_c {
   struct types_opts {
     enum options { local, global, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts> types;
 
@@ -471,12 +471,8 @@ struct private_ie_id_c {
     assert_choice_type("local", type_.to_string(), "PrivateIE-ID");
     return c;
   }
-  uint32_t& set_local()
-  {
-    set(types::local);
-    return c;
-  }
-  void set_global() { set(types::global); }
+  uint32_t& set_local();
+  void      set_global();
 
 private:
   types    type_;
@@ -587,7 +583,7 @@ struct s1ap_protocol_ext_empty_o {
     struct types_opts {
       enum options { nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -678,7 +674,7 @@ using alloc_and_retention_prio_ext_ies_o = s1ap_protocol_ext_empty_o;
 struct pre_emption_cap_opts {
   enum options { shall_not_trigger_pre_emption, may_trigger_pre_emption, nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<pre_emption_cap_opts> pre_emption_cap_e;
 
@@ -686,7 +682,7 @@ typedef enumerated<pre_emption_cap_opts> pre_emption_cap_e;
 struct pre_emption_vulnerability_opts {
   enum options { not_pre_emptable, pre_emptable, nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<pre_emption_vulnerability_opts> pre_emption_vulnerability_e;
 
@@ -819,7 +815,7 @@ struct area_scope_of_mdt_c {
   struct types_opts {
     enum options { cell_based, tabased, plmn_wide, /*...*/ tai_based, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true, 1> types;
 
@@ -864,22 +860,10 @@ struct area_scope_of_mdt_c {
     assert_choice_type("tAIBased", type_.to_string(), "AreaScopeOfMDT");
     return c.get<tai_based_mdt_s>();
   }
-  cell_based_mdt_s& set_cell_based()
-  {
-    set(types::cell_based);
-    return c.get<cell_based_mdt_s>();
-  }
-  ta_based_mdt_s& set_tabased()
-  {
-    set(types::tabased);
-    return c.get<ta_based_mdt_s>();
-  }
-  void             set_plmn_wide() { set(types::plmn_wide); }
-  tai_based_mdt_s& set_tai_based()
-  {
-    set(types::tai_based);
-    return c.get<tai_based_mdt_s>();
-  }
+  cell_based_mdt_s& set_cell_based();
+  ta_based_mdt_s&   set_tabased();
+  void              set_plmn_wide();
+  tai_based_mdt_s&  set_tai_based();
 
 private:
   types                                                              type_;
@@ -981,7 +965,7 @@ struct area_scope_of_qmc_c {
   struct types_opts {
     enum options { cell_based, tabased, tai_based, plmn_area_based, /*...*/ nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true> types;
 
@@ -1036,26 +1020,10 @@ struct area_scope_of_qmc_c {
     assert_choice_type("pLMNAreaBased", type_.to_string(), "AreaScopeOfQMC");
     return c.get<plmn_area_based_qmc_s>();
   }
-  cell_based_qmc_s& set_cell_based()
-  {
-    set(types::cell_based);
-    return c.get<cell_based_qmc_s>();
-  }
-  ta_based_qmc_s& set_tabased()
-  {
-    set(types::tabased);
-    return c.get<ta_based_qmc_s>();
-  }
-  tai_based_qmc_s& set_tai_based()
-  {
-    set(types::tai_based);
-    return c.get<tai_based_qmc_s>();
-  }
-  plmn_area_based_qmc_s& set_plmn_area_based()
-  {
-    set(types::plmn_area_based);
-    return c.get<plmn_area_based_qmc_s>();
-  }
+  cell_based_qmc_s&      set_cell_based();
+  ta_based_qmc_s&        set_tabased();
+  tai_based_qmc_s&       set_tai_based();
+  plmn_area_based_qmc_s& set_plmn_area_based();
 
 private:
   types                                                                                     type_;
@@ -1131,7 +1099,7 @@ struct recommended_cell_item_ies_o {
     struct types_opts {
       enum options { recommended_cell_item, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -1169,7 +1137,7 @@ using assist_data_for_recommended_cells_ext_ies_o = s1ap_protocol_ext_empty_o;
 struct next_paging_area_scope_opts {
   enum options { same, changed, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<next_paging_area_scope_opts, true> next_paging_area_scope_e;
 
@@ -1312,7 +1280,7 @@ struct bearers_subject_to_status_transfer_item_ext_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -1426,7 +1394,7 @@ struct bearers_subject_to_status_transfer_item_ies_o {
     struct types_opts {
       enum options { bearers_subject_to_status_transfer_item, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -1463,7 +1431,7 @@ using bluetooth_meas_cfg_name_list_l = bounded_array<bounded_octstring<1, 248, t
 struct bluetooth_meas_cfg_opts {
   enum options { setup, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<bluetooth_meas_cfg_opts, true> bluetooth_meas_cfg_e;
 
@@ -1477,7 +1445,7 @@ struct bluetooth_meas_cfg_s {
   struct bt_rssi_opts {
     enum options { true_value, /*...*/ nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<bt_rssi_opts, true> bt_rssi_e_;
 
@@ -1618,7 +1586,7 @@ struct broadcast_cancelled_area_list_c {
   struct types_opts {
     enum options { cell_id_cancelled, tai_cancelled, emergency_area_id_cancelled, /*...*/ nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true> types;
 
@@ -1663,21 +1631,9 @@ struct broadcast_cancelled_area_list_c {
     assert_choice_type("emergencyAreaID-Cancelled", type_.to_string(), "BroadcastCancelledAreaList");
     return c.get<emergency_area_id_cancelled_l>();
   }
-  cell_id_cancelled_l& set_cell_id_cancelled()
-  {
-    set(types::cell_id_cancelled);
-    return c.get<cell_id_cancelled_l>();
-  }
-  tai_cancelled_l& set_tai_cancelled()
-  {
-    set(types::tai_cancelled);
-    return c.get<tai_cancelled_l>();
-  }
-  emergency_area_id_cancelled_l& set_emergency_area_id_cancelled()
-  {
-    set(types::emergency_area_id_cancelled);
-    return c.get<emergency_area_id_cancelled_l>();
-  }
+  cell_id_cancelled_l&           set_cell_id_cancelled();
+  tai_cancelled_l&               set_tai_cancelled();
+  emergency_area_id_cancelled_l& set_emergency_area_id_cancelled();
 
 private:
   types                                                                                type_;
@@ -1803,7 +1759,7 @@ struct broadcast_completed_area_list_c {
   struct types_opts {
     enum options { cell_id_broadcast, tai_broadcast, emergency_area_id_broadcast, /*...*/ nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true> types;
 
@@ -1848,21 +1804,9 @@ struct broadcast_completed_area_list_c {
     assert_choice_type("emergencyAreaID-Broadcast", type_.to_string(), "BroadcastCompletedAreaList");
     return c.get<emergency_area_id_broadcast_l>();
   }
-  cell_id_broadcast_l& set_cell_id_broadcast()
-  {
-    set(types::cell_id_broadcast);
-    return c.get<cell_id_broadcast_l>();
-  }
-  tai_broadcast_l& set_tai_broadcast()
-  {
-    set(types::tai_broadcast);
-    return c.get<tai_broadcast_l>();
-  }
-  emergency_area_id_broadcast_l& set_emergency_area_id_broadcast()
-  {
-    set(types::emergency_area_id_broadcast);
-    return c.get<emergency_area_id_broadcast_l>();
-  }
+  cell_id_broadcast_l&           set_cell_id_broadcast();
+  tai_broadcast_l&               set_tai_broadcast();
+  emergency_area_id_broadcast_l& set_emergency_area_id_broadcast();
 
 private:
   types                                                                                type_;
@@ -1899,7 +1843,7 @@ struct cn_type_opts {
   enum options { five_gc_forbidden, /*...*/ epc_forbiddden, nulltype } value;
   typedef uint8_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint8_t     to_number() const;
 };
 typedef enumerated<cn_type_opts, true, 1> cn_type_e;
@@ -1956,7 +1900,7 @@ using csg_membership_info_ext_ies_o = s1ap_protocol_ext_empty_o;
 struct csg_membership_status_opts {
   enum options { member, not_member, nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<csg_membership_status_opts> csg_membership_status_e;
 
@@ -1964,7 +1908,7 @@ typedef enumerated<csg_membership_status_opts> csg_membership_status_e;
 struct cell_access_mode_opts {
   enum options { hybrid, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<cell_access_mode_opts, true> cell_access_mode_e;
 
@@ -1994,7 +1938,7 @@ struct irat_cell_id_c {
   struct types_opts {
     enum options { eutran, utran, geran, /*...*/ ehrpd, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true, 1> types;
 
@@ -2049,26 +1993,10 @@ struct irat_cell_id_c {
     assert_choice_type("eHRPD", type_.to_string(), "IRAT-Cell-ID");
     return c.get<fixed_octstring<16, true> >();
   }
-  unbounded_octstring<true>& set_eutran()
-  {
-    set(types::eutran);
-    return c.get<unbounded_octstring<true> >();
-  }
-  unbounded_octstring<true>& set_utran()
-  {
-    set(types::utran);
-    return c.get<unbounded_octstring<true> >();
-  }
-  unbounded_octstring<true>& set_geran()
-  {
-    set(types::geran);
-    return c.get<unbounded_octstring<true> >();
-  }
-  fixed_octstring<16, true>& set_ehrpd()
-  {
-    set(types::ehrpd);
-    return c.get<fixed_octstring<16, true> >();
-  }
+  unbounded_octstring<true>& set_eutran();
+  unbounded_octstring<true>& set_utran();
+  unbounded_octstring<true>& set_geran();
+  fixed_octstring<16, true>& set_ehrpd();
 
 private:
   types                                                                  type_;
@@ -2109,7 +2037,7 @@ struct cause_misc_opts {
     nulltype
   } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<cause_misc_opts, true> cause_misc_e;
 
@@ -2124,7 +2052,7 @@ struct cause_nas_opts {
     nulltype
   } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<cause_nas_opts, true, 1> cause_nas_e;
 
@@ -2142,7 +2070,7 @@ struct cause_protocol_opts {
     nulltype
   } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<cause_protocol_opts, true> cause_protocol_e;
 
@@ -2193,7 +2121,7 @@ struct cause_radio_network_opts {
     nulltype
   } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<cause_radio_network_opts, true, 4> cause_radio_network_e;
 
@@ -2201,7 +2129,7 @@ typedef enumerated<cause_radio_network_opts, true, 4> cause_radio_network_e;
 struct cause_transport_opts {
   enum options { transport_res_unavailable, unspecified, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<cause_transport_opts, true> cause_transport_e;
 
@@ -2211,7 +2139,7 @@ struct cause_c {
     enum options { radio_network, transport, nas, protocol, misc, /*...*/ nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<types_opts, true> types;
@@ -2277,31 +2205,11 @@ struct cause_c {
     assert_choice_type("misc", type_.to_string(), "Cause");
     return c.get<cause_misc_e>();
   }
-  cause_radio_network_e& set_radio_network()
-  {
-    set(types::radio_network);
-    return c.get<cause_radio_network_e>();
-  }
-  cause_transport_e& set_transport()
-  {
-    set(types::transport);
-    return c.get<cause_transport_e>();
-  }
-  cause_nas_e& set_nas()
-  {
-    set(types::nas);
-    return c.get<cause_nas_e>();
-  }
-  cause_protocol_e& set_protocol()
-  {
-    set(types::protocol);
-    return c.get<cause_protocol_e>();
-  }
-  cause_misc_e& set_misc()
-  {
-    set(types::misc);
-    return c.get<cause_misc_e>();
-  }
+  cause_radio_network_e& set_radio_network();
+  cause_transport_e&     set_transport();
+  cause_nas_e&           set_nas();
+  cause_protocol_e&      set_protocol();
+  cause_misc_e&          set_misc();
 
 private:
   types               type_;
@@ -2415,7 +2323,7 @@ struct cell_load_report_resp_c {
   struct types_opts {
     enum options { eutran, utran, geran, /*...*/ ehrpd, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true, 1> types;
 
@@ -2470,26 +2378,10 @@ struct cell_load_report_resp_c {
     assert_choice_type("eHRPD", type_.to_string(), "CellLoadReportingResponse");
     return c.get<ehrpd_sector_load_report_resp_s>();
   }
-  eutra_ncell_load_report_resp_s& set_eutran()
-  {
-    set(types::eutran);
-    return c.get<eutra_ncell_load_report_resp_s>();
-  }
-  unbounded_octstring<true>& set_utran()
-  {
-    set(types::utran);
-    return c.get<unbounded_octstring<true> >();
-  }
-  unbounded_octstring<true>& set_geran()
-  {
-    set(types::geran);
-    return c.get<unbounded_octstring<true> >();
-  }
-  ehrpd_sector_load_report_resp_s& set_ehrpd()
-  {
-    set(types::ehrpd);
-    return c.get<ehrpd_sector_load_report_resp_s>();
-  }
+  eutra_ncell_load_report_resp_s&  set_eutran();
+  unbounded_octstring<true>&       set_utran();
+  unbounded_octstring<true>&       set_geran();
+  ehrpd_sector_load_report_resp_s& set_ehrpd();
 
 private:
   types                                                                                                        type_;
@@ -2502,7 +2394,7 @@ private:
 struct notify_flag_opts {
   enum options { activ, deactiv, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<notify_flag_opts, true> notify_flag_e;
 
@@ -2538,7 +2430,7 @@ struct cell_state_ind_s {
 struct privacy_ind_opts {
   enum options { immediate_mdt, logged_mdt, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<privacy_ind_opts, true> privacy_ind_e;
 
@@ -2557,7 +2449,7 @@ struct cell_traffic_trace_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -2649,7 +2541,7 @@ struct cell_traffic_trace_s {
 struct cell_size_opts {
   enum options { verysmall, small, medium, large, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<cell_size_opts, true> cell_size_e;
 
@@ -2676,7 +2568,7 @@ struct cell_type_s {
 struct rat_type_opts {
   enum options { nbiot, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<rat_type_opts, true> rat_type_e;
 
@@ -2687,7 +2579,7 @@ struct supported_tas_item_ext_ies_o {
     struct types_opts {
       enum options { rat_type, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -2766,7 +2658,7 @@ struct gbr_qos_info_ext_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -2818,7 +2710,7 @@ struct erab_qos_params_ext_ies_o {
     struct types_opts {
       enum options { dl_packet_loss_rate, ul_packet_loss_rate, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -2919,7 +2811,7 @@ using subscription_based_ue_differentiation_info_ext_ies_o = s1ap_protocol_ext_e
 struct ce_mode_brestricted_opts {
   enum options { restricted, not_restricted, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<ce_mode_brestricted_opts, true> ce_mode_brestricted_e;
 
@@ -2977,7 +2869,7 @@ struct erab_level_qos_params_s {
 struct end_ind_opts {
   enum options { no_further_data, further_data_exists, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<end_ind_opts, true> end_ind_e;
 
@@ -2985,7 +2877,7 @@ typedef enumerated<end_ind_opts, true> end_ind_e;
 struct enhanced_coverage_restricted_opts {
   enum options { restricted, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<enhanced_coverage_restricted_opts, true> enhanced_coverage_restricted_e;
 
@@ -2996,19 +2888,19 @@ struct subscription_based_ue_differentiation_info_s {
   struct periodic_communication_ind_opts {
     enum options { periodically, ondemand, /*...*/ nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<periodic_communication_ind_opts, true> periodic_communication_ind_e_;
   struct stationary_ind_opts {
     enum options { stationary, mobile, /*...*/ nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<stationary_ind_opts, true> stationary_ind_e_;
   struct traffic_profile_opts {
     enum options { single_packet, dual_packets, multiple_packets, /*...*/ nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<traffic_profile_opts, true> traffic_profile_e_;
   struct battery_ind_opts {
@@ -3019,7 +2911,7 @@ struct subscription_based_ue_differentiation_info_s {
       /*...*/ nulltype
     } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<battery_ind_opts, true> battery_ind_e_;
 
@@ -3065,7 +2957,7 @@ struct conn_establishment_ind_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -3164,7 +3056,7 @@ struct enb_id_c {
   struct types_opts {
     enum options { macro_enb_id, home_enb_id, /*...*/ short_macro_enb_id, long_macro_enb_id, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true, 2> types;
 
@@ -3219,26 +3111,10 @@ struct enb_id_c {
     assert_choice_type("long-macroENB-ID", type_.to_string(), "ENB-ID");
     return c.get<fixed_bitstring<21, false, true> >();
   }
-  fixed_bitstring<20, false, true>& set_macro_enb_id()
-  {
-    set(types::macro_enb_id);
-    return c.get<fixed_bitstring<20, false, true> >();
-  }
-  fixed_bitstring<28, false, true>& set_home_enb_id()
-  {
-    set(types::home_enb_id);
-    return c.get<fixed_bitstring<28, false, true> >();
-  }
-  fixed_bitstring<18, false, true>& set_short_macro_enb_id()
-  {
-    set(types::short_macro_enb_id);
-    return c.get<fixed_bitstring<18, false, true> >();
-  }
-  fixed_bitstring<21, false, true>& set_long_macro_enb_id()
-  {
-    set(types::long_macro_enb_id);
-    return c.get<fixed_bitstring<21, false, true> >();
-  }
+  fixed_bitstring<20, false, true>& set_macro_enb_id();
+  fixed_bitstring<28, false, true>& set_home_enb_id();
+  fixed_bitstring<18, false, true>& set_short_macro_enb_id();
+  fixed_bitstring<21, false, true>& set_long_macro_enb_id();
 
 private:
   types                                              type_;
@@ -3252,7 +3128,7 @@ struct gnb_id_c {
   struct types_opts {
     enum options { gnb_id, /*...*/ nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true> types;
 
@@ -3355,7 +3231,7 @@ struct global_ran_node_id_c {
   struct types_opts {
     enum options { gnb, ng_enb, /*...*/ nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true> types;
 
@@ -3390,16 +3266,8 @@ struct global_ran_node_id_c {
     assert_choice_type("ng-eNB", type_.to_string(), "Global-RAN-NODE-ID");
     return c.get<ng_enb_s>();
   }
-  gnb_s& set_gnb()
-  {
-    set(types::gnb);
-    return c.get<gnb_s>();
-  }
-  ng_enb_s& set_ng_enb()
-  {
-    set(types::ng_enb);
-    return c.get<ng_enb_s>();
-  }
+  gnb_s&    set_gnb();
+  ng_enb_s& set_ng_enb();
 
 private:
   types                            type_;
@@ -3432,7 +3300,7 @@ using crit_diagnostics_ie_item_ext_ies_o = s1ap_protocol_ext_empty_o;
 struct type_of_error_opts {
   enum options { not_understood, missing, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<type_of_error_opts, true> type_of_error_e;
 
@@ -3464,7 +3332,7 @@ using crit_diagnostics_ie_list_l = dyn_array<crit_diagnostics_ie_item_s>;
 struct trigger_msg_opts {
   enum options { init_msg, successful_outcome, unsuccessfull_outcome, nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<trigger_msg_opts> trigger_msg_e;
 
@@ -3498,7 +3366,7 @@ struct deactiv_trace_ies_o {
     struct types_opts {
       enum options { mme_ue_s1ap_id, enb_ue_s1ap_id, e_utran_trace_id, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -3614,7 +3482,7 @@ struct nrrestrictin5_gs_opts {
   enum options { nrrestrictedin5_gs, /*...*/ nulltype } value;
   typedef uint8_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint8_t     to_number() const;
 };
 typedef enumerated<nrrestrictin5_gs_opts, true> nrrestrictin5_gs_e;
@@ -3623,7 +3491,7 @@ typedef enumerated<nrrestrictin5_gs_opts, true> nrrestrictin5_gs_e;
 struct nrrestrictin_ep_sas_secondary_rat_opts {
   enum options { nrrestrictedin_ep_sas_secondary_rat, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<nrrestrictin_ep_sas_secondary_rat_opts, true> nrrestrictin_ep_sas_secondary_rat_e;
 
@@ -3631,7 +3499,7 @@ typedef enumerated<nrrestrictin_ep_sas_secondary_rat_opts, true> nrrestrictin_ep
 struct unlicensed_spec_restrict_opts {
   enum options { unlicensed_restricted, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<unlicensed_spec_restrict_opts, true> unlicensed_spec_restrict_e;
 
@@ -3642,7 +3510,7 @@ using eplmns_l = bounded_array<fixed_octstring<3, true>, 15>;
 struct forbidden_inter_rats_opts {
   enum options { all, geran, utran, cdma2000, /*...*/ geranandutran, cdma2000andutran, nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<forbidden_inter_rats_opts, true, 2> forbidden_inter_rats_e;
 
@@ -3667,7 +3535,7 @@ struct ho_restrict_list_ext_ies_o {
       } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<types_opts> types;
@@ -3716,7 +3584,7 @@ using nrue_security_cap_ext_ies_o = s1ap_protocol_ext_empty_o;
 struct dlnaspdu_delivery_ack_request_opts {
   enum options { requested, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<dlnaspdu_delivery_ack_request_opts, true> dlnaspdu_delivery_ack_request_e;
 
@@ -3786,7 +3654,7 @@ struct nrue_security_cap_s {
 struct pending_data_ind_opts {
   enum options { true_value, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<pending_data_ind_opts, true> pending_data_ind_e;
 
@@ -3794,7 +3662,7 @@ typedef enumerated<pending_data_ind_opts, true> pending_data_ind_e;
 struct srvcc_operation_possible_opts {
   enum options { possible, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<srvcc_operation_possible_opts, true> srvcc_operation_possible_e;
 
@@ -3802,7 +3670,7 @@ typedef enumerated<srvcc_operation_possible_opts, true> srvcc_operation_possible
 struct ue_cap_info_request_opts {
   enum options { requested, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<ue_cap_info_request_opts, true> ue_cap_info_request_e;
 
@@ -3831,7 +3699,7 @@ struct dl_nas_transport_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -3961,7 +3829,7 @@ struct dl_non_ueassociated_lp_pa_transport_ies_o {
       enum options { routing_id, lp_pa_pdu, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<types_opts> types;
@@ -4067,7 +3935,7 @@ struct erab_data_forwarding_item_ies_o {
     struct types_opts {
       enum options { erab_data_forwarding_item, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -4096,7 +3964,7 @@ struct erab_data_forwarding_item_ies_o {
 struct cdma2000_ho_status_opts {
   enum options { hosuccess, hofail, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<cdma2000_ho_status_opts, true> cdma2000_ho_status_e;
 
@@ -4105,7 +3973,7 @@ struct cdma2000_rat_type_opts {
   enum options { hrpd, onex_rtt, /*...*/ nulltype } value;
   typedef uint8_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint8_t     to_number() const;
 };
 typedef enumerated<cdma2000_rat_type_opts, true> cdma2000_rat_type_e;
@@ -4125,7 +3993,7 @@ struct dl_s1cdma2000tunnelling_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -4208,7 +4076,7 @@ struct dl_ueassociated_lp_pa_transport_ies_o {
     struct types_opts {
       enum options { mme_ue_s1ap_id, enb_ue_s1ap_id, routing_id, lp_pa_pdu, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -4322,7 +4190,7 @@ struct erab_admitted_item_ies_o {
     struct types_opts {
       enum options { erab_admitted_item, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -4374,7 +4242,7 @@ struct erab_failed_to_resume_item_resume_req_ies_o {
     struct types_opts {
       enum options { erab_failed_to_resume_item_resume_req, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -4426,7 +4294,7 @@ struct erab_failed_to_resume_item_resume_res_ies_o {
     struct types_opts {
       enum options { erab_failed_to_resume_item_resume_res, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -4478,7 +4346,7 @@ struct erab_failedto_setup_item_ho_req_ack_ies_o {
     struct types_opts {
       enum options { erab_failedto_setup_item_ho_req_ack, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -4507,7 +4375,7 @@ struct erab_failedto_setup_item_ho_req_ack_ies_o {
 struct dl_forwarding_opts {
   enum options { dl_forwarding_proposed, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<dl_forwarding_opts, true> dl_forwarding_e;
 
@@ -4539,7 +4407,7 @@ struct erab_info_list_ies_o {
     struct types_opts {
       enum options { erab_info_list_item, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -4594,7 +4462,7 @@ struct erab_item_ies_o {
     struct types_opts {
       enum options { erab_item, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -4648,7 +4516,7 @@ struct erab_modify_item_bearer_mod_conf_ies_o {
     struct types_opts {
       enum options { erab_modify_item_bearer_mod_conf, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -4694,7 +4562,7 @@ struct erab_mod_confirm_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -4808,7 +4676,7 @@ struct erabusage_report_item_ies_o {
     struct types_opts {
       enum options { erabusage_report_item, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -4872,7 +4740,7 @@ using secondary_rat_data_usage_report_item_ext_ies_o = s1ap_protocol_ext_empty_o
 struct secondary_rat_type_opts {
   enum options { nr, /*...*/ unlicensed, nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<secondary_rat_type_opts, true, 1> secondary_rat_type_e;
 
@@ -4953,7 +4821,7 @@ struct erab_not_to_be_modified_item_bearer_mod_ind_ies_o {
     struct types_opts {
       enum options { erab_not_to_be_modified_item_bearer_mod_ind, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -4988,7 +4856,7 @@ struct erab_to_be_modified_item_bearer_mod_ind_ies_o {
     struct types_opts {
       enum options { erab_to_be_modified_item_bearer_mod_ind, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -5020,7 +4888,7 @@ struct secondary_rat_data_usage_report_item_ies_o {
     struct types_opts {
       enum options { secondary_rat_data_usage_report_item, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -5055,7 +4923,7 @@ struct user_location_info_ext_ies_o {
     struct types_opts {
       enum options { ps_cell_info, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -5135,7 +5003,7 @@ struct erab_mod_ind_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -5258,7 +5126,7 @@ struct erab_modify_item_bearer_mod_res_ies_o {
     struct types_opts {
       enum options { erab_modify_item_bearer_mod_res, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -5308,7 +5176,7 @@ struct erab_to_be_modify_item_bearer_mod_req_ext_ies_o {
     struct types_opts {
       enum options { transport_info, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -5356,7 +5224,7 @@ struct erab_to_be_modified_item_bearer_mod_req_ies_o {
     struct types_opts {
       enum options { erab_to_be_modified_item_bearer_mod_req, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -5392,7 +5260,7 @@ struct ue_aggregate_maximum_bitrates_ext_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -5436,7 +5304,7 @@ using erab_to_be_modified_list_bearer_mod_req_l =
 struct secondary_rat_data_usage_request_opts {
   enum options { requested, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<secondary_rat_data_usage_request_opts, true> secondary_rat_data_usage_request_e;
 
@@ -5486,7 +5354,7 @@ struct erab_modify_request_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -5575,7 +5443,7 @@ struct erab_modify_resp_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -5673,7 +5541,7 @@ struct erab_release_cmd_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -5760,7 +5628,7 @@ struct erab_release_ind_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -5860,7 +5728,7 @@ struct erab_release_item_bearer_rel_comp_ies_o {
     struct types_opts {
       enum options { erab_release_item_bearer_rel_comp, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -5906,7 +5774,7 @@ struct erab_release_resp_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -6023,7 +5891,7 @@ struct erab_setup_item_bearer_su_res_ies_o {
     struct types_opts {
       enum options { erab_setup_item_bearer_su_res, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -6076,7 +5944,7 @@ struct erab_setup_item_ctxt_su_res_ies_o {
     struct types_opts {
       enum options { erab_setup_item_ctxt_su_res, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -6111,7 +5979,7 @@ using erab_setup_list_ctxt_su_res_l = dyn_array<protocol_ie_single_container_s<e
 struct bearer_type_opts {
   enum options { non_ip, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<bearer_type_opts, true> bearer_type_e;
 
@@ -6122,7 +5990,7 @@ struct erab_to_be_setup_item_bearer_su_req_ext_ies_o {
     struct types_opts {
       enum options { correlation_id, sipto_correlation_id, bearer_type, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -6203,7 +6071,7 @@ struct erab_to_be_setup_item_bearer_su_req_ies_o {
     struct types_opts {
       enum options { erab_to_be_setup_item_bearer_su_req, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -6246,7 +6114,7 @@ struct erab_setup_request_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -6330,7 +6198,7 @@ struct erab_setup_resp_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -6413,7 +6281,7 @@ struct erab_to_be_setup_item_ctxt_su_req_ext_ies_o {
     struct types_opts {
       enum options { correlation_id, sipto_correlation_id, bearer_type, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -6495,7 +6363,7 @@ struct erab_to_be_setup_item_ctxt_su_req_ies_o {
     struct types_opts {
       enum options { erab_to_be_setup_item_ctxt_su_req, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -6524,7 +6392,7 @@ struct erab_to_be_setup_item_ctxt_su_req_ies_o {
 struct data_forwarding_not_possible_opts {
   enum options { data_forwarding_not_possible, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<data_forwarding_not_possible_opts, true> data_forwarding_not_possible_e;
 
@@ -6535,7 +6403,7 @@ struct erab_to_be_setup_item_ho_req_ext_ies_o {
     struct types_opts {
       enum options { data_forwarding_not_possible, bearer_type, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -6611,7 +6479,7 @@ struct erab_to_be_setup_item_ho_req_ies_o {
     struct types_opts {
       enum options { erab_to_be_setup_item_ho_req, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -6669,7 +6537,7 @@ struct erab_to_be_switched_dl_item_ies_o {
     struct types_opts {
       enum options { erab_to_be_switched_dl_item, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -6722,7 +6590,7 @@ struct erab_to_be_switched_ul_item_ies_o {
     struct types_opts {
       enum options { erab_to_be_switched_ul_item, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -6795,7 +6663,7 @@ struct enbx2_ext_tla_s {
 struct muting_availability_ind_opts {
   enum options { available, unavailable, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<muting_availability_ind_opts, true> muting_availability_ind_e;
 
@@ -6836,7 +6704,7 @@ struct rlf_report_info_s {
 struct synchronisation_status_opts {
   enum options { sync, async, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<synchronisation_status_opts, true> synchronisation_status_e;
 
@@ -6847,7 +6715,7 @@ struct time_synchronisation_info_ext_ies_o {
     struct types_opts {
       enum options { muting_availability_ind, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -6909,7 +6777,7 @@ struct muting_pattern_info_s {
     enum options { ms0, ms1280, ms2560, ms5120, ms10240, /*...*/ nulltype } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<muting_pattern_period_opts, true> muting_pattern_period_e_;
@@ -6934,7 +6802,7 @@ struct son_info_report_c {
   struct types_opts {
     enum options { rlf_report_info, /*...*/ nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true> types;
 
@@ -6977,7 +6845,7 @@ struct x2_tnl_cfg_info_ext_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -7076,7 +6944,7 @@ struct son_info_ext_ie_o {
     struct types_opts {
       enum options { son_info_report, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -7108,7 +6976,7 @@ struct son_info_reply_ext_ies_o {
     struct types_opts {
       enum options { time_synchronisation_info, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -7224,7 +7092,7 @@ struct son_info_request_opts {
   enum options { x2_tnl_cfg_info, /*...*/ time_synchronisation_info, activ_muting, deactiv_muting, nulltype } value;
   typedef uint8_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint8_t     to_number() const;
 };
 typedef enumerated<son_info_request_opts, true, 3> son_info_request_e;
@@ -7237,7 +7105,7 @@ struct en_dcson_transfer_type_c {
   struct types_opts {
     enum options { request, reply, /*...*/ nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true> types;
 
@@ -7272,16 +7140,8 @@ struct en_dcson_transfer_type_c {
     assert_choice_type("reply", type_.to_string(), "EN-DCSONTransferType");
     return c.get<en_dc_transfer_type_reply_s>();
   }
-  en_dc_transfer_type_request_s& set_request()
-  {
-    set(types::request);
-    return c.get<en_dc_transfer_type_request_s>();
-  }
-  en_dc_transfer_type_reply_s& set_reply()
-  {
-    set(types::reply);
-    return c.get<en_dc_transfer_type_reply_s>();
-  }
+  en_dc_transfer_type_request_s& set_request();
+  en_dc_transfer_type_reply_s&   set_reply();
 
 private:
   types                                                                       type_;
@@ -7295,7 +7155,7 @@ struct son_info_c {
   struct types_opts {
     enum options { son_info_request, son_info_reply, /*...*/ son_info_ext, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true, 1> types;
 
@@ -7340,21 +7200,9 @@ struct son_info_c {
     assert_choice_type("sONInformation-Extension", type_.to_string(), "SONInformation");
     return c.get<protocol_ie_single_container_s<son_info_ext_ie_o> >();
   }
-  son_info_request_e& set_son_info_request()
-  {
-    set(types::son_info_request);
-    return c.get<son_info_request_e>();
-  }
-  son_info_reply_s& set_son_info_reply()
-  {
-    set(types::son_info_reply);
-    return c.get<son_info_reply_s>();
-  }
-  protocol_ie_single_container_s<son_info_ext_ie_o>& set_son_info_ext()
-  {
-    set(types::son_info_ext);
-    return c.get<protocol_ie_single_container_s<son_info_ext_ie_o> >();
-  }
+  son_info_request_e&                                set_son_info_request();
+  son_info_reply_s&                                  set_son_info_reply();
+  protocol_ie_single_container_s<son_info_ext_ie_o>& set_son_info_ext();
 
 private:
   types                                                                                type_;
@@ -7449,7 +7297,7 @@ struct enbcp_relocation_ind_ies_o {
       enum options { enb_ue_s1ap_id, s_tmsi, eutran_cgi, tai, ul_cp_security_info, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<types_opts> types;
@@ -7532,7 +7380,7 @@ struct listening_sf_pattern_s {
     enum options { ms1280, ms2560, ms5120, ms10240, /*...*/ nulltype } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<pattern_period_opts, true> pattern_period_e_;
@@ -7589,7 +7437,7 @@ struct son_cfg_transfer_ext_ies_o {
       enum options { x2_tnl_cfg_info, synchronisation_info, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<types_opts> types;
@@ -7697,7 +7545,7 @@ struct enb_cfg_transfer_ies_o {
     struct types_opts {
       enum options { son_cfg_transfer_ect, en_dcson_cfg_transfer_ect, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -7766,7 +7614,7 @@ struct nb_io_t_default_paging_drx_opts {
   enum options { v128, v256, v512, v1024, /*...*/ nulltype } value;
   typedef uint16_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint16_t    to_number() const;
 };
 typedef enumerated<nb_io_t_default_paging_drx_opts, true> nb_io_t_default_paging_drx_e;
@@ -7776,7 +7624,7 @@ struct paging_drx_opts {
   enum options { v32, v64, v128, v256, /*...*/ nulltype } value;
   typedef uint16_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint16_t    to_number() const;
 };
 typedef enumerated<paging_drx_opts, true> paging_drx_e;
@@ -7797,7 +7645,7 @@ struct enb_cfg_upd_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -7888,7 +7736,7 @@ struct enb_cfg_upd_ack_ies_o {
     struct types_opts {
       enum options { crit_diagnostics, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -7930,7 +7778,7 @@ struct time_to_wait_opts {
   enum options { v1s, v2s, v5s, v10s, v20s, v60s, /*...*/ nulltype } value;
   typedef uint8_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint8_t     to_number() const;
 };
 typedef enumerated<time_to_wait_opts, true> time_to_wait_e;
@@ -7942,7 +7790,7 @@ struct enb_cfg_upd_fail_ies_o {
     struct types_opts {
       enum options { cause, time_to_wait, crit_diagnostics, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -8079,7 +7927,7 @@ struct rim_routing_address_c {
   struct types_opts {
     enum options { geran_cell_id, /*...*/ target_rnc_id, ehrpd_sector_id, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true, 2> types;
 
@@ -8124,21 +7972,9 @@ struct rim_routing_address_c {
     assert_choice_type("eHRPD-Sector-ID", type_.to_string(), "RIMRoutingAddress");
     return c.get<fixed_octstring<16, true> >();
   }
-  geran_cell_id_s& set_geran_cell_id()
-  {
-    set(types::geran_cell_id);
-    return c.get<geran_cell_id_s>();
-  }
-  target_rnc_id_s& set_target_rnc_id()
-  {
-    set(types::target_rnc_id);
-    return c.get<target_rnc_id_s>();
-  }
-  fixed_octstring<16, true>& set_ehrpd_sector_id()
-  {
-    set(types::ehrpd_sector_id);
-    return c.get<fixed_octstring<16, true> >();
-  }
+  geran_cell_id_s&           set_geran_cell_id();
+  target_rnc_id_s&           set_target_rnc_id();
+  fixed_octstring<16, true>& set_ehrpd_sector_id();
 
 private:
   types                                                                        type_;
@@ -8173,7 +8009,7 @@ struct inter_sys_info_transfer_type_c {
   struct types_opts {
     enum options { rim_transfer, /*...*/ nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true> types;
 
@@ -8197,7 +8033,7 @@ struct enb_direct_info_transfer_ies_o {
     struct types_opts {
       enum options { inter_sys_info_transfer_type_edt, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -8241,7 +8077,7 @@ struct enb_status_transfer_ies_o {
     struct types_opts {
       enum options { mme_ue_s1ap_id, enb_ue_s1ap_id, enb_status_transfer_transparent_container, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -8332,7 +8168,7 @@ struct error_ind_ies_o {
     struct types_opts {
       enum options { mme_ue_s1ap_id, enb_ue_s1ap_id, cause, crit_diagnostics, s_tmsi, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -8413,7 +8249,7 @@ struct nof_meas_report_levels_opts {
   enum options { rl2, rl3, rl4, rl5, rl10, /*...*/ nulltype } value;
   typedef uint8_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint8_t     to_number() const;
 };
 typedef enumerated<nof_meas_report_levels_opts, true> nof_meas_report_levels_e;
@@ -8434,7 +8270,7 @@ struct event_triggered_cell_load_report_request_s {
 struct overload_flag_opts {
   enum options { overload, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<overload_flag_opts, true> overload_flag_e;
 
@@ -8459,7 +8295,7 @@ using expected_ue_activity_behaviour_ext_ies_o = s1ap_protocol_ext_empty_o;
 struct source_of_ue_activity_behaviour_info_opts {
   enum options { subscription_info, statistics, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<source_of_ue_activity_behaviour_info_opts, true> source_of_ue_activity_behaviour_info_e;
 
@@ -8489,7 +8325,7 @@ struct expected_ho_interv_opts {
   enum options { sec15, sec30, sec60, sec90, sec120, sec180, long_time, /*...*/ nulltype } value;
   typedef uint8_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint8_t     to_number() const;
 };
 typedef enumerated<expected_ho_interv_opts, true> expected_ho_interv_e;
@@ -8535,7 +8371,7 @@ struct fail_event_report_c {
   struct types_opts {
     enum options { too_early_inter_ratho_report_from_eutran, /*...*/ nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true> types;
 
@@ -8562,7 +8398,7 @@ using gummei_list_l = dyn_array<gummei_s>;
 struct ho_report_type_opts {
   enum options { unnecessaryhotoanotherrat, /*...*/ earlyiratho, nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<ho_report_type_opts, true, 1> ho_report_type_e;
 
@@ -8570,7 +8406,7 @@ typedef enumerated<ho_report_type_opts, true, 1> ho_report_type_e;
 struct ho_type_opts {
   enum options { ltetoutran, ltetogeran, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<ho_type_opts, true> ho_type_e;
 
@@ -8598,7 +8434,7 @@ struct ho_cancel_ies_o {
     struct types_opts {
       enum options { mme_ue_s1ap_id, enb_ue_s1ap_id, cause, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -8670,7 +8506,7 @@ struct ho_cancel_ack_ies_o {
     struct types_opts {
       enum options { mme_ue_s1ap_id, enb_ue_s1ap_id, crit_diagnostics, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -8750,7 +8586,7 @@ struct handov_type_opts {
   } value;
   typedef int8_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   int8_t      to_number() const;
 };
 typedef enumerated<handov_type_opts, true, 2> handov_type_e;
@@ -8773,7 +8609,7 @@ struct ho_cmd_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -8873,7 +8709,7 @@ struct ho_fail_ies_o {
       enum options { mme_ue_s1ap_id, cause, crit_diagnostics, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<types_opts> types;
@@ -8956,7 +8792,7 @@ struct ho_notify_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -9043,7 +8879,7 @@ struct ho_prep_fail_ies_o {
     struct types_opts {
       enum options { mme_ue_s1ap_id, enb_ue_s1ap_id, cause, crit_diagnostics, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -9137,7 +8973,7 @@ struct mbsfn_result_to_log_info_s {
 struct links_to_log_opts {
   enum options { ul, dl, both_ul_and_dl, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<links_to_log_opts, true> links_to_log_e;
 
@@ -9149,7 +8985,7 @@ struct logging_dur_opts {
   enum options { m10, m20, m40, m60, m90, m120, nulltype } value;
   typedef uint8_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint8_t     to_number() const;
 };
 typedef enumerated<logging_dur_opts> logging_dur_e;
@@ -9159,7 +8995,7 @@ struct logging_interv_opts {
   enum options { ms128, ms256, ms512, ms1024, ms2048, ms3072, ms4096, ms6144, nulltype } value;
   typedef uint16_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint16_t    to_number() const;
 };
 typedef enumerated<logging_interv_opts> logging_interv_e;
@@ -9184,7 +9020,7 @@ struct m3period_opts {
   } value;
   typedef uint16_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint16_t    to_number() const;
 };
 typedef enumerated<m3period_opts, true, 7> m3period_e;
@@ -9197,7 +9033,7 @@ struct m4period_opts {
   enum options { ms1024, ms2048, ms5120, ms10240, min1, /*...*/ nulltype } value;
   typedef uint16_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint16_t    to_number() const;
 };
 typedef enumerated<m4period_opts, true> m4period_e;
@@ -9210,7 +9046,7 @@ struct m5period_opts {
   enum options { ms1024, ms2048, ms5120, ms10240, min1, /*...*/ nulltype } value;
   typedef uint16_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint16_t    to_number() const;
 };
 typedef enumerated<m5period_opts, true> m5period_e;
@@ -9223,7 +9059,7 @@ struct m6delay_thres_opts {
   enum options { ms30, ms40, ms50, ms60, ms70, ms80, ms90, ms100, ms150, ms300, ms500, ms750, /*...*/ nulltype } value;
   typedef uint16_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint16_t    to_number() const;
 };
 typedef enumerated<m6delay_thres_opts, true> m6delay_thres_e;
@@ -9233,7 +9069,7 @@ struct m6report_interv_opts {
   enum options { ms1024, ms2048, ms5120, ms10240, /*...*/ nulltype } value;
   typedef uint16_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint16_t    to_number() const;
 };
 typedef enumerated<m6report_interv_opts, true> m6report_interv_e;
@@ -9248,7 +9084,7 @@ using mbsfn_result_to_log_l = dyn_array<mbsfn_result_to_log_info_s>;
 struct wlan_meas_cfg_opts {
   enum options { setup, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<wlan_meas_cfg_opts, true> wlan_meas_cfg_e;
 
@@ -9374,7 +9210,7 @@ struct meas_thres_a2_c {
   struct types_opts {
     enum options { thres_rsrp, thres_rsrq, /*...*/ nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true> types;
 
@@ -9409,16 +9245,8 @@ struct meas_thres_a2_c {
     assert_choice_type("threshold-RSRQ", type_.to_string(), "MeasurementThresholdA2");
     return c.get<uint8_t>();
   }
-  uint8_t& set_thres_rsrp()
-  {
-    set(types::thres_rsrp);
-    return c.get<uint8_t>();
-  }
-  uint8_t& set_thres_rsrq()
-  {
-    set(types::thres_rsrq);
-    return c.get<uint8_t>();
-  }
+  uint8_t& set_thres_rsrp();
+  uint8_t& set_thres_rsrq();
 
 private:
   types               type_;
@@ -9432,7 +9260,7 @@ struct report_amount_mdt_opts {
   enum options { r1, r2, r4, r8, r16, r32, r64, rinfinity, nulltype } value;
   typedef int8_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   int8_t      to_number() const;
 };
 typedef enumerated<report_amount_mdt_opts> report_amount_mdt_e;
@@ -9457,7 +9285,7 @@ struct report_interv_mdt_opts {
   } value;
   typedef uint16_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint16_t    to_number() const;
 };
 typedef enumerated<report_interv_mdt_opts> report_interv_mdt_e;
@@ -9469,13 +9297,13 @@ struct wlan_meas_cfg_s {
   struct wlan_rssi_opts {
     enum options { true_value, /*...*/ nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<wlan_rssi_opts, true> wlan_rssi_e_;
   struct wlan_rtt_opts {
     enum options { true_value, /*...*/ nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<wlan_rtt_opts, true> wlan_rtt_e_;
 
@@ -9516,7 +9344,7 @@ struct immediate_mdt_ext_ies_o {
       } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<types_opts> types;
@@ -9579,7 +9407,7 @@ struct logged_mdt_ext_ies_o {
     struct types_opts {
       enum options { bluetooth_meas_cfg, wlan_meas_cfg, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -9635,7 +9463,7 @@ struct m1_periodic_report_s {
 struct m1_report_trigger_opts {
   enum options { periodic, a2eventtriggered, /*...*/ a2eventtriggered_periodic, nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<m1_report_trigger_opts, true, 1> m1_report_trigger_e;
 
@@ -9662,7 +9490,7 @@ struct mdt_mode_ext_ie_o {
     struct types_opts {
       enum options { logged_mbsfnmdt, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -9774,7 +9602,7 @@ using mdtplmn_list_l = bounded_array<fixed_octstring<3, true>, 16>;
 struct service_type_opts {
   enum options { qmc_for_streaming_service, qmc_for_mtsi_service, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<service_type_opts, true> service_type_e;
 
@@ -9788,7 +9616,7 @@ struct mdt_activation_opts {
     nulltype
   } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<mdt_activation_opts, true, 1> mdt_activation_e;
 
@@ -9799,7 +9627,7 @@ struct mdt_cfg_ext_ies_o {
     struct types_opts {
       enum options { sig_based_mdtplmn_list, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -9829,7 +9657,7 @@ struct mdt_mode_c {
   struct types_opts {
     enum options { immediate_mdt, logged_mdt, /*...*/ mdt_mode_ext, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true, 1> types;
 
@@ -9874,21 +9702,9 @@ struct mdt_mode_c {
     assert_choice_type("mDTMode-Extension", type_.to_string(), "MDTMode");
     return c.get<protocol_ie_single_container_s<mdt_mode_ext_ie_o> >();
   }
-  immediate_mdt_s& set_immediate_mdt()
-  {
-    set(types::immediate_mdt);
-    return c.get<immediate_mdt_s>();
-  }
-  logged_mdt_s& set_logged_mdt()
-  {
-    set(types::logged_mdt);
-    return c.get<logged_mdt_s>();
-  }
-  protocol_ie_single_container_s<mdt_mode_ext_ie_o>& set_mdt_mode_ext()
-  {
-    set(types::mdt_mode_ext);
-    return c.get<protocol_ie_single_container_s<mdt_mode_ext_ie_o> >();
-  }
+  immediate_mdt_s&                                   set_immediate_mdt();
+  logged_mdt_s&                                      set_logged_mdt();
+  protocol_ie_single_container_s<mdt_mode_ext_ie_o>& set_mdt_mode_ext();
 
 private:
   types                                                                                              type_;
@@ -9904,7 +9720,7 @@ struct ue_app_layer_meas_cfg_ext_ies_o {
     struct types_opts {
       enum options { service_type, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -9949,7 +9765,7 @@ struct mdt_cfg_s {
 struct pro_se_ueto_network_relaying_opts {
   enum options { authorized, not_authorized, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<pro_se_ueto_network_relaying_opts, true> pro_se_ueto_network_relaying_e;
 
@@ -9957,7 +9773,7 @@ typedef enumerated<pro_se_ueto_network_relaying_opts, true> pro_se_ueto_network_
 struct request_type_add_info_opts {
   enum options { include_ps_cell, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<request_type_add_info_opts, true> request_type_add_info_e;
 
@@ -9980,7 +9796,7 @@ struct ue_app_layer_meas_cfg_s {
 struct event_type_opts {
   enum options { direct, change_of_serve_cell, stop_change_of_serve_cell, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<event_type_opts, true> event_type_e;
 
@@ -9988,7 +9804,7 @@ typedef enumerated<event_type_opts, true> event_type_e;
 struct pedestrian_ue_opts {
   enum options { authorized, not_authorized, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<pedestrian_ue_opts, true> pedestrian_ue_e;
 
@@ -10000,7 +9816,7 @@ struct pro_se_authorized_ext_ies_o {
       enum options { pro_se_ueto_network_relaying, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<types_opts> types;
@@ -10030,7 +9846,7 @@ struct pro_se_authorized_ext_ies_o {
 struct pro_se_direct_communication_opts {
   enum options { authorized, not_authorized, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<pro_se_direct_communication_opts, true> pro_se_direct_communication_e;
 
@@ -10038,7 +9854,7 @@ typedef enumerated<pro_se_direct_communication_opts, true> pro_se_direct_communi
 struct pro_se_direct_discovery_opts {
   enum options { authorized, not_authorized, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<pro_se_direct_discovery_opts, true> pro_se_direct_discovery_e;
 
@@ -10046,7 +9862,7 @@ typedef enumerated<pro_se_direct_discovery_opts, true> pro_se_direct_discovery_e
 struct report_area_opts {
   enum options { ecgi, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<report_area_opts, true> report_area_e;
 
@@ -10057,7 +9873,7 @@ struct request_type_ext_ies_o {
     struct types_opts {
       enum options { request_type_add_info, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -10092,7 +9908,7 @@ struct trace_activation_ext_ies_o {
     struct types_opts {
       enum options { mdt_cfg, ue_app_layer_meas_cfg, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -10140,7 +9956,7 @@ struct trace_depth_opts {
     nulltype
   } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<trace_depth_opts, true> trace_depth_e;
 
@@ -10157,7 +9973,7 @@ using v2xservices_authorized_ext_ies_o = s1ap_protocol_ext_empty_o;
 struct vehicle_ue_opts {
   enum options { authorized, not_authorized, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<vehicle_ue_opts, true> vehicle_ue_e;
 
@@ -10165,7 +9981,7 @@ typedef enumerated<vehicle_ue_opts, true> vehicle_ue_e;
 struct aerial_uesubscription_info_opts {
   enum options { allowed, not_allowed, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<aerial_uesubscription_info_opts, true> aerial_uesubscription_info_e;
 
@@ -10173,7 +9989,7 @@ typedef enumerated<aerial_uesubscription_info_opts, true> aerial_uesubscription_
 struct management_based_mdt_allowed_opts {
   enum options { allowed, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<management_based_mdt_allowed_opts, true> management_based_mdt_allowed_e;
 
@@ -10297,7 +10113,7 @@ struct ue_sidelink_aggregate_maximum_bitrate_s {
 struct ueuser_plane_cio_tsupport_ind_opts {
   enum options { supported, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<ueuser_plane_cio_tsupport_ind_opts, true> ueuser_plane_cio_tsupport_ind_e;
 
@@ -10361,7 +10177,7 @@ struct ho_request_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -10559,7 +10375,7 @@ struct ho_request_s {
 struct ce_mode_b_support_ind_opts {
   enum options { supported, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<ce_mode_b_support_ind_opts, true> ce_mode_b_support_ind_e;
 
@@ -10581,7 +10397,7 @@ struct ho_request_ack_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -10699,7 +10515,7 @@ struct target_ng_ran_node_id_s {
 struct direct_forwarding_path_availability_opts {
   enum options { direct_path_available, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<direct_forwarding_path_availability_opts, true> direct_forwarding_path_availability_e;
 
@@ -10707,7 +10523,7 @@ typedef enumerated<direct_forwarding_path_availability_opts, true> direct_forwar
 struct ps_service_not_available_opts {
   enum options { ps_service_not_available, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<ps_service_not_available_opts, true> ps_service_not_available_e;
 
@@ -10715,7 +10531,7 @@ typedef enumerated<ps_service_not_available_opts, true> ps_service_not_available
 struct srvccho_ind_opts {
   enum options { psand_cs, csonly, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<srvccho_ind_opts, true> srvccho_ind_e;
 
@@ -10724,7 +10540,7 @@ struct target_id_c {
   struct types_opts {
     enum options { targetenb_id, target_rnc_id, cgi, /*...*/ targetg_ng_ran_node_id, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true, 1> types;
 
@@ -10779,26 +10595,10 @@ struct target_id_c {
     assert_choice_type("targetgNgRanNode-ID", type_.to_string(), "TargetID");
     return c.get<target_ng_ran_node_id_s>();
   }
-  targetenb_id_s& set_targetenb_id()
-  {
-    set(types::targetenb_id);
-    return c.get<targetenb_id_s>();
-  }
-  target_rnc_id_s& set_target_rnc_id()
-  {
-    set(types::target_rnc_id);
-    return c.get<target_rnc_id_s>();
-  }
-  cgi_s& set_cgi()
-  {
-    set(types::cgi);
-    return c.get<cgi_s>();
-  }
-  target_ng_ran_node_id_s& set_targetg_ng_ran_node_id()
-  {
-    set(types::targetg_ng_ran_node_id);
-    return c.get<target_ng_ran_node_id_s>();
-  }
+  targetenb_id_s&          set_targetenb_id();
+  target_rnc_id_s&         set_target_rnc_id();
+  cgi_s&                   set_cgi();
+  target_ng_ran_node_id_s& set_targetg_ng_ran_node_id();
 
 private:
   types                                                                            type_;
@@ -10830,7 +10630,7 @@ struct ho_required_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -10941,7 +10741,7 @@ struct mme_paging_target_c {
   struct types_opts {
     enum options { global_enb_id, tai, /*...*/ nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true> types;
 
@@ -10976,16 +10776,8 @@ struct mme_paging_target_c {
     assert_choice_type("tAI", type_.to_string(), "MMEPagingTarget");
     return c.get<tai_s>();
   }
-  global_enb_id_s& set_global_enb_id()
-  {
-    set(types::global_enb_id);
-    return c.get<global_enb_id_s>();
-  }
-  tai_s& set_tai()
-  {
-    set(types::tai);
-    return c.get<tai_s>();
-  }
+  global_enb_id_s& set_global_enb_id();
+  tai_s&           set_tai();
 
 private:
   types                                   type_;
@@ -11020,7 +10812,7 @@ struct recommended_enb_item_ies_o {
     struct types_opts {
       enum options { recommended_enb_item, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -11094,7 +10886,7 @@ struct init_context_setup_fail_ies_o {
     struct types_opts {
       enum options { mme_ue_s1ap_id, enb_ue_s1ap_id, cause, crit_diagnostics, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -11167,7 +10959,7 @@ struct init_context_setup_fail_s {
 struct add_cs_fallback_ind_opts {
   enum options { no_restrict, restrict, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<add_cs_fallback_ind_opts, true> add_cs_fallback_ind_e;
 
@@ -11175,7 +10967,7 @@ typedef enumerated<add_cs_fallback_ind_opts, true> add_cs_fallback_ind_e;
 struct cs_fallback_ind_opts {
   enum options { cs_fallback_required, /*...*/ cs_fallback_high_prio, nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<cs_fallback_ind_opts, true, 1> cs_fallback_ind_e;
 
@@ -11220,7 +11012,7 @@ struct init_context_setup_request_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -11429,7 +11221,7 @@ struct init_context_setup_resp_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -11508,7 +11300,7 @@ struct init_context_setup_resp_s {
 struct coverage_level_opts {
   enum options { extendedcoverage, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<coverage_level_opts, true> coverage_level_e;
 
@@ -11516,7 +11308,7 @@ typedef enumerated<coverage_level_opts, true> coverage_level_e;
 struct edt_session_opts {
   enum options { true_value, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<edt_session_opts, true> edt_session_e;
 
@@ -11525,7 +11317,7 @@ struct gummei_type_opts {
   enum options { native, mapped, /*...*/ mapped_from5_g, nulltype } value;
   typedef uint8_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint8_t     to_number() const;
 };
 typedef enumerated<gummei_type_opts, true, 1> gummei_type_e;
@@ -11545,7 +11337,7 @@ struct rrc_establishment_cause_opts {
     nulltype
   } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<rrc_establishment_cause_opts, true, 3> rrc_establishment_cause_e;
 
@@ -11553,7 +11345,7 @@ typedef enumerated<rrc_establishment_cause_opts, true, 3> rrc_establishment_caus
 struct relay_node_ind_opts {
   enum options { true_value, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<relay_node_ind_opts, true> relay_node_ind_e;
 
@@ -11588,7 +11380,7 @@ struct init_ue_msg_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -11772,7 +11564,7 @@ struct served_gummeis_item_ext_ies_o {
     struct types_opts {
       enum options { gummei_type, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -11833,7 +11625,7 @@ struct ue_associated_lc_s1_conn_item_res_o {
       enum options { ue_associated_lc_s1_conn_item, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<types_opts> types;
@@ -11880,7 +11672,7 @@ struct nb_io_t_paging_e_drx_cycle_opts {
   } value;
   typedef uint16_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint16_t    to_number() const;
 };
 typedef enumerated<nb_io_t_paging_e_drx_cycle_opts, true> nb_io_t_paging_e_drx_cycle_e;
@@ -11893,7 +11685,7 @@ struct nb_io_t_paging_time_win_opts {
   enum options { s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15, s16, /*...*/ nulltype } value;
   typedef uint8_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint8_t     to_number() const;
 };
 typedef enumerated<nb_io_t_paging_time_win_opts, true> nb_io_t_paging_time_win_e;
@@ -11912,7 +11704,7 @@ struct overload_action_opts {
     nulltype
   } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<overload_action_opts, true, 4> overload_action_e;
 
@@ -11937,9 +11729,9 @@ struct paging_e_drx_cycle_opts {
   } value;
   typedef float number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   float       to_number() const;
-  std::string to_number_string() const;
+  const char* to_number_string() const;
 };
 typedef enumerated<paging_e_drx_cycle_opts, true> paging_e_drx_cycle_e;
 
@@ -11951,7 +11743,7 @@ struct paging_time_win_opts {
   enum options { s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15, s16, /*...*/ nulltype } value;
   typedef uint8_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint8_t     to_number() const;
 };
 typedef enumerated<paging_time_win_opts, true> paging_time_win_e;
@@ -11960,7 +11752,7 @@ typedef enumerated<paging_time_win_opts, true> paging_time_win_e;
 struct reset_all_opts {
   enum options { reset_all, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<reset_all_opts, true> reset_all_e;
 
@@ -12004,7 +11796,7 @@ struct tai_item_ies_o {
     struct types_opts {
       enum options { tai_item, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -12057,7 +11849,7 @@ struct ue_associated_lc_s1_conn_item_res_ack_o {
       enum options { ue_associated_lc_s1_conn_item, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<types_opts> types;
@@ -12092,7 +11884,7 @@ using ue_associated_lc_s1_conn_list_res_l =
 struct cn_domain_opts {
   enum options { ps, cs, nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<cn_domain_opts> cn_domain_e;
 
@@ -12100,7 +11892,7 @@ typedef enumerated<cn_domain_opts> cn_domain_e;
 struct cdma2000_ho_required_ind_opts {
   enum options { true_value, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<cdma2000_ho_required_ind_opts, true> cdma2000_ho_required_ind_e;
 
@@ -12108,7 +11900,7 @@ typedef enumerated<cdma2000_ho_required_ind_opts, true> cdma2000_ho_required_ind
 struct concurrent_warning_msg_ind_opts {
   enum options { true_value, nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<concurrent_warning_msg_ind_opts> concurrent_warning_msg_ind_e;
 
@@ -12116,7 +11908,7 @@ typedef enumerated<concurrent_warning_msg_ind_opts> concurrent_warning_msg_ind_e
 struct gw_context_release_ind_opts {
   enum options { true_value, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<gw_context_release_ind_opts, true> gw_context_release_ind_e;
 
@@ -12124,7 +11916,7 @@ typedef enumerated<gw_context_release_ind_opts, true> gw_context_release_ind_e;
 struct ho_flag_opts {
   enum options { ho_prep, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<ho_flag_opts, true> ho_flag_e;
 
@@ -12132,7 +11924,7 @@ typedef enumerated<ho_flag_opts, true> ho_flag_e;
 struct kill_all_warning_msgs_opts {
   enum options { true_value, nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<kill_all_warning_msgs_opts> kill_all_warning_msgs_e;
 
@@ -12140,7 +11932,7 @@ typedef enumerated<kill_all_warning_msgs_opts> kill_all_warning_msgs_e;
 struct lte_m_ind_opts {
   enum options { lte_m, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<lte_m_ind_opts, true> lte_m_ind_e;
 
@@ -12148,7 +11940,7 @@ typedef enumerated<lte_m_ind_opts, true> lte_m_ind_e;
 struct mme_relay_support_ind_opts {
   enum options { true_value, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<mme_relay_support_ind_opts, true> mme_relay_support_ind_e;
 
@@ -12175,7 +11967,7 @@ struct overload_resp_c {
   struct types_opts {
     enum options { overload_action, /*...*/ nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true> types;
 
@@ -12229,7 +12021,7 @@ struct paging_prio_opts {
   } value;
   typedef uint8_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint8_t     to_number() const;
 };
 typedef enumerated<paging_prio_opts, true> paging_prio_e;
@@ -12239,7 +12031,7 @@ struct reset_type_c {
   struct types_opts {
     enum options { s1_interface, part_of_s1_interface, /*...*/ nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true> types;
 
@@ -12274,16 +12066,8 @@ struct reset_type_c {
     assert_choice_type("partOfS1-Interface", type_.to_string(), "ResetType");
     return c.get<ue_associated_lc_s1_conn_list_res_l>();
   }
-  reset_all_e& set_s1_interface()
-  {
-    set(types::s1_interface);
-    return c.get<reset_all_e>();
-  }
-  ue_associated_lc_s1_conn_list_res_l& set_part_of_s1_interface()
-  {
-    set(types::part_of_s1_interface);
-    return c.get<ue_associated_lc_s1_conn_list_res_l>();
-  }
+  reset_all_e&                         set_s1_interface();
+  ue_associated_lc_s1_conn_list_res_l& set_part_of_s1_interface();
 
 private:
   types                                                type_;
@@ -12296,7 +12080,7 @@ private:
 struct srvcc_operation_not_possible_opts {
   enum options { not_possible, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<srvcc_operation_not_possible_opts, true> srvcc_operation_not_possible_e;
 
@@ -12316,7 +12100,7 @@ using tai_list_for_restart_l = dyn_array<tai_s>;
 struct ue_retention_info_opts {
   enum options { ues_retained, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<ue_retention_info_opts, true> ue_retention_info_e;
 
@@ -12325,7 +12109,7 @@ struct ue_s1ap_ids_c {
   struct types_opts {
     enum options { ue_s1ap_id_pair, mme_ue_s1ap_id, /*...*/ nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true> types;
 
@@ -12360,16 +12144,8 @@ struct ue_s1ap_ids_c {
     assert_choice_type("mME-UE-S1AP-ID", type_.to_string(), "UE-S1AP-IDs");
     return c.get<uint64_t>();
   }
-  ue_s1ap_id_pair_s& set_ue_s1ap_id_pair()
-  {
-    set(types::ue_s1ap_id_pair);
-    return c.get<ue_s1ap_id_pair_s>();
-  }
-  uint64_t& set_mme_ue_s1ap_id()
-  {
-    set(types::mme_ue_s1ap_id);
-    return c.get<uint64_t>();
-  }
+  ue_s1ap_id_pair_s& set_ue_s1ap_id_pair();
+  uint64_t&          set_mme_ue_s1ap_id();
 
 private:
   types                              type_;
@@ -12388,7 +12164,7 @@ struct ue_paging_id_c {
   struct types_opts {
     enum options { s_tmsi, imsi, /*...*/ nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true> types;
 
@@ -12423,16 +12199,8 @@ struct ue_paging_id_c {
     assert_choice_type("iMSI", type_.to_string(), "UEPagingID");
     return c.get<bounded_octstring<3, 8, true> >();
   }
-  s_tmsi_s& set_s_tmsi()
-  {
-    set(types::s_tmsi);
-    return c.get<s_tmsi_s>();
-  }
-  bounded_octstring<3, 8, true>& set_imsi()
-  {
-    set(types::imsi);
-    return c.get<bounded_octstring<3, 8, true> >();
-  }
+  s_tmsi_s&                      set_s_tmsi();
+  bounded_octstring<3, 8, true>& set_imsi();
 
 private:
   types                                                    type_;
@@ -12445,7 +12213,7 @@ private:
 struct voice_support_match_ind_opts {
   enum options { supported, not_supported, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<voice_support_match_ind_opts, true> voice_support_match_ind_e;
 
@@ -12454,7 +12222,7 @@ struct warning_area_list_c {
   struct types_opts {
     enum options { cell_id_list, tracking_area_listfor_warning, emergency_area_id_list, /*...*/ nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true> types;
 
@@ -12499,21 +12267,9 @@ struct warning_area_list_c {
     assert_choice_type("emergencyAreaIDList", type_.to_string(), "WarningAreaList");
     return c.get<emergency_area_id_list_l>();
   }
-  ecgi_list_l& set_cell_id_list()
-  {
-    set(types::cell_id_list);
-    return c.get<ecgi_list_l>();
-  }
-  tai_listfor_warning_l& set_tracking_area_listfor_warning()
-  {
-    set(types::tracking_area_listfor_warning);
-    return c.get<tai_listfor_warning_l>();
-  }
-  emergency_area_id_list_l& set_emergency_area_id_list()
-  {
-    set(types::emergency_area_id_list);
-    return c.get<emergency_area_id_list_l>();
-  }
+  ecgi_list_l&              set_cell_id_list();
+  tai_listfor_warning_l&    set_tracking_area_listfor_warning();
+  emergency_area_id_list_l& set_emergency_area_id_list();
 
 private:
   types                                                                         type_;
@@ -12529,7 +12285,7 @@ struct kill_request_ies_o {
     struct types_opts {
       enum options { msg_id, serial_num, warning_area_list, kill_all_warning_msgs, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -12575,7 +12331,7 @@ struct kill_resp_ies_o {
     struct types_opts {
       enum options { msg_id, serial_num, broadcast_cancelled_area_list, crit_diagnostics, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -12621,7 +12377,7 @@ struct location_report_ies_o {
     struct types_opts {
       enum options { mme_ue_s1ap_id, enb_ue_s1ap_id, eutran_cgi, tai, request_type, ps_cell_info, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -12671,7 +12427,7 @@ struct location_report_ctrl_ies_o {
     struct types_opts {
       enum options { mme_ue_s1ap_id, enb_ue_s1ap_id, request_type, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -12715,7 +12471,7 @@ struct location_report_fail_ind_ies_o {
     struct types_opts {
       enum options { mme_ue_s1ap_id, enb_ue_s1ap_id, cause, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -12759,7 +12515,7 @@ struct mmecp_relocation_ind_ies_o {
     struct types_opts {
       enum options { mme_ue_s1ap_id, enb_ue_s1ap_id, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -12801,7 +12557,7 @@ struct mme_cfg_transfer_ies_o {
     struct types_opts {
       enum options { son_cfg_transfer_mct, en_dcson_cfg_transfer_mct, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -12843,7 +12599,7 @@ struct mme_cfg_upd_ack_ies_o {
     struct types_opts {
       enum options { crit_diagnostics, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -12875,7 +12631,7 @@ struct mme_cfg_upd_fail_ies_o {
     struct types_opts {
       enum options { cause, time_to_wait, crit_diagnostics, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -12920,7 +12676,7 @@ struct mme_cfg_upd_ies_o {
       enum options { mm_ename, served_gummeis, relative_mme_capacity, served_dcns, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<types_opts> types;
@@ -12967,7 +12723,7 @@ struct mme_direct_info_transfer_ies_o {
     struct types_opts {
       enum options { inter_sys_info_transfer_type_mdt, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -12999,7 +12755,7 @@ struct mme_status_transfer_ies_o {
     struct types_opts {
       enum options { mme_ue_s1ap_id, enb_ue_s1ap_id, enb_status_transfer_transparent_container, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -13043,7 +12799,7 @@ struct nas_delivery_ind_ies_o {
     struct types_opts {
       enum options { mme_ue_s1ap_id, enb_ue_s1ap_id, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -13085,7 +12841,7 @@ struct nas_non_delivery_ind_ies_o {
     struct types_opts {
       enum options { mme_ue_s1ap_id, enb_ue_s1ap_id, nas_pdu, cause, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -13132,7 +12888,7 @@ struct overload_start_ies_o {
       enum options { overload_resp, gummei_list, traffic_load_reduction_ind, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<types_opts> types;
@@ -13177,7 +12933,7 @@ struct overload_stop_ies_o {
     struct types_opts {
       enum options { gummei_list, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -13209,7 +12965,7 @@ struct pws_fail_ind_ies_o {
     struct types_opts {
       enum options { pw_sfailed_ecgi_list, global_enb_id, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -13257,7 +13013,7 @@ struct pws_restart_ind_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -13324,7 +13080,7 @@ struct paging_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -13423,7 +13179,7 @@ struct path_switch_request_ack_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -13515,7 +13271,7 @@ struct path_switch_request_fail_ies_o {
     struct types_opts {
       enum options { mme_ue_s1ap_id, enb_ue_s1ap_id, cause, crit_diagnostics, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -13578,7 +13334,7 @@ struct path_switch_request_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -13655,7 +13411,7 @@ struct s1ap_private_ies_empty_o {
     struct types_opts {
       enum options { nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -13676,7 +13432,7 @@ struct reroute_nas_request_ies_o {
     struct types_opts {
       enum options { enb_ue_s1ap_id, mme_ue_s1ap_id, s1_msg, mme_group_id, add_guti, ue_usage_type, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -13727,7 +13483,7 @@ struct reset_ack_ies_o {
       enum options { ue_associated_lc_s1_conn_list_res_ack, crit_diagnostics, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<types_opts> types;
@@ -13770,7 +13526,7 @@ struct reset_ies_o {
     struct types_opts {
       enum options { cause, reset_type, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -13812,7 +13568,7 @@ struct retrieve_ue_info_ies_o {
     struct types_opts {
       enum options { s_tmsi, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -13844,7 +13600,7 @@ struct s1_setup_fail_ies_o {
     struct types_opts {
       enum options { cause, time_to_wait, crit_diagnostics, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -13898,7 +13654,7 @@ struct s1_setup_request_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -13967,7 +13723,7 @@ struct s1_setup_resp_ies_o {
       } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<types_opts> types;
@@ -14028,7 +13784,7 @@ struct secondary_rat_data_usage_report_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -14078,7 +13834,7 @@ struct trace_fail_ind_ies_o {
     struct types_opts {
       enum options { mme_ue_s1ap_id, enb_ue_s1ap_id, e_utran_trace_id, cause, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -14124,7 +13880,7 @@ struct trace_start_ies_o {
     struct types_opts {
       enum options { mme_ue_s1ap_id, enb_ue_s1ap_id, trace_activation, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -14176,7 +13932,7 @@ struct ue_cap_info_ind_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -14226,7 +13982,7 @@ struct ue_context_mod_confirm_ies_o {
     struct types_opts {
       enum options { mme_ue_s1ap_id, enb_ue_s1ap_id, csg_membership_status, crit_diagnostics, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -14272,7 +14028,7 @@ struct ue_context_mod_fail_ies_o {
     struct types_opts {
       enum options { mme_ue_s1ap_id, enb_ue_s1ap_id, cause, crit_diagnostics, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -14318,7 +14074,7 @@ struct ue_context_mod_ind_ies_o {
     struct types_opts {
       enum options { mme_ue_s1ap_id, enb_ue_s1ap_id, csg_membership_info, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -14382,7 +14138,7 @@ struct ue_context_mod_request_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -14464,7 +14220,7 @@ struct ue_context_mod_resp_ies_o {
     struct types_opts {
       enum options { mme_ue_s1ap_id, enb_ue_s1ap_id, crit_diagnostics, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -14509,7 +14265,7 @@ struct ue_context_release_cmd_ies_o {
       enum options { ue_s1ap_ids, cause, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<types_opts> types;
@@ -14562,7 +14318,7 @@ struct ue_context_release_complete_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -14629,7 +14385,7 @@ struct ue_context_release_request_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -14677,7 +14433,7 @@ struct ue_context_resume_fail_ies_o {
     struct types_opts {
       enum options { mme_ue_s1ap_id, enb_ue_s1ap_id, cause, crit_diagnostics, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -14729,7 +14485,7 @@ struct ue_context_resume_request_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -14784,7 +14540,7 @@ struct ue_context_resume_resp_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -14847,7 +14603,7 @@ struct ue_context_suspend_request_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -14904,7 +14660,7 @@ struct ue_context_suspend_resp_ies_o {
     struct types_opts {
       enum options { mme_ue_s1ap_id, enb_ue_s1ap_id, crit_diagnostics, security_context, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -14957,7 +14713,7 @@ struct ue_info_transfer_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -15009,7 +14765,7 @@ struct ue_radio_cap_match_request_ies_o {
     struct types_opts {
       enum options { mme_ue_s1ap_id, enb_ue_s1ap_id, ue_radio_cap, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -15053,7 +14809,7 @@ struct ue_radio_cap_match_resp_ies_o {
     struct types_opts {
       enum options { mme_ue_s1ap_id, enb_ue_s1ap_id, voice_support_match_ind, crit_diagnostics, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -15110,7 +14866,7 @@ struct ul_nas_transport_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -15173,7 +14929,7 @@ struct ul_non_ueassociated_lp_pa_transport_ies_o {
       enum options { routing_id, lp_pa_pdu, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<types_opts> types;
@@ -15227,7 +14983,7 @@ struct ul_s1cdma2000tunnelling_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -15283,7 +15039,7 @@ struct ul_ueassociated_lp_pa_transport_ies_o {
     struct types_opts {
       enum options { mme_ue_s1ap_id, enb_ue_s1ap_id, routing_id, lp_pa_pdu, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -15343,7 +15099,7 @@ struct write_replace_warning_request_ies_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -15411,7 +15167,7 @@ struct write_replace_warning_resp_ies_o {
     struct types_opts {
       enum options { msg_id, serial_num, broadcast_completed_area_list, crit_diagnostics, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -17289,7 +17045,7 @@ struct s1ap_elem_procs_o {
         nulltype
       } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -17467,7 +17223,7 @@ struct s1ap_elem_procs_o {
       } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<types_opts> types;
@@ -17554,7 +17310,7 @@ struct s1ap_elem_procs_o {
       } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<types_opts> types;
@@ -17631,7 +17387,7 @@ struct last_visited_eutran_cell_info_ext_ies_o {
       enum options { time_ue_stayed_in_cell_enhanced_granularity, ho_cause, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<types_opts> types;
@@ -17705,7 +17461,7 @@ struct last_visited_geran_cell_info_c {
   struct types_opts {
     enum options { undefined, /*...*/ nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true> types;
 
@@ -17721,7 +17477,7 @@ struct last_visited_cell_item_c {
   struct types_opts {
     enum options { e_utran_cell, utran_cell, geran_cell, /*...*/ ng_ran_cell, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true, 1> types;
 
@@ -17776,26 +17532,10 @@ struct last_visited_cell_item_c {
     assert_choice_type("nG-RAN-Cell", type_.to_string(), "LastVisitedCell-Item");
     return c.get<unbounded_octstring<true> >();
   }
-  last_visited_eutran_cell_info_s& set_e_utran_cell()
-  {
-    set(types::e_utran_cell);
-    return c.get<last_visited_eutran_cell_info_s>();
-  }
-  unbounded_octstring<true>& set_utran_cell()
-  {
-    set(types::utran_cell);
-    return c.get<unbounded_octstring<true> >();
-  }
-  last_visited_geran_cell_info_c& set_geran_cell()
-  {
-    set(types::geran_cell);
-    return c.get<last_visited_geran_cell_info_c>();
-  }
-  unbounded_octstring<true>& set_ng_ran_cell()
-  {
-    set(types::ng_ran_cell);
-    return c.get<unbounded_octstring<true> >();
-  }
+  last_visited_eutran_cell_info_s& set_e_utran_cell();
+  unbounded_octstring<true>&       set_utran_cell();
+  last_visited_geran_cell_info_c&  set_geran_cell();
+  unbounded_octstring<true>&       set_ng_ran_cell();
 
 private:
   types                                                                                                        type_;
@@ -17824,7 +17564,7 @@ struct multi_cell_load_report_resp_item_c {
   struct types_opts {
     enum options { eutran_resp, utran_resp, geran_resp, /*...*/ ehrpd, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true, 1> types;
 
@@ -17879,26 +17619,10 @@ struct multi_cell_load_report_resp_item_c {
     assert_choice_type("eHRPD", type_.to_string(), "MultiCellLoadReportingResponse-Item");
     return c.get<ehrpd_multi_sector_load_report_resp_item_s>();
   }
-  eutran_resp_s& set_eutran_resp()
-  {
-    set(types::eutran_resp);
-    return c.get<eutran_resp_s>();
-  }
-  unbounded_octstring<true>& set_utran_resp()
-  {
-    set(types::utran_resp);
-    return c.get<unbounded_octstring<true> >();
-  }
-  unbounded_octstring<true>& set_geran_resp()
-  {
-    set(types::geran_resp);
-    return c.get<unbounded_octstring<true> >();
-  }
-  ehrpd_multi_sector_load_report_resp_item_s& set_ehrpd()
-  {
-    set(types::ehrpd);
-    return c.get<ehrpd_multi_sector_load_report_resp_item_s>();
-  }
+  eutran_resp_s&                              set_eutran_resp();
+  unbounded_octstring<true>&                  set_utran_resp();
+  unbounded_octstring<true>&                  set_geran_resp();
+  ehrpd_multi_sector_load_report_resp_item_s& set_ehrpd();
 
 private:
   types                                                                                                  type_;
@@ -17960,7 +17684,7 @@ struct s1ap_pdu_c {
   struct types_opts {
     enum options { init_msg, successful_outcome, unsuccessful_outcome, /*...*/ nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true> types;
 
@@ -18005,21 +17729,9 @@ struct s1ap_pdu_c {
     assert_choice_type("unsuccessfulOutcome", type_.to_string(), "S1AP-PDU");
     return c.get<unsuccessful_outcome_s>();
   }
-  init_msg_s& set_init_msg()
-  {
-    set(types::init_msg);
-    return c.get<init_msg_s>();
-  }
-  successful_outcome_s& set_successful_outcome()
-  {
-    set(types::successful_outcome);
-    return c.get<successful_outcome_s>();
-  }
-  unsuccessful_outcome_s& set_unsuccessful_outcome()
-  {
-    set(types::unsuccessful_outcome);
-    return c.get<unsuccessful_outcome_s>();
-  }
+  init_msg_s&             set_init_msg();
+  successful_outcome_s&   set_successful_outcome();
+  unsuccessful_outcome_s& set_unsuccessful_outcome();
 
 private:
   types                                                                     type_;
@@ -18032,7 +17744,7 @@ private:
 struct cell_activation_cause_opts {
   enum options { application_container_syntax_error, inconsistent_report_cell_id, unspecified, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<cell_activation_cause_opts, true> cell_activation_cause_e;
 
@@ -18040,7 +17752,7 @@ typedef enumerated<cell_activation_cause_opts, true> cell_activation_cause_e;
 struct cell_load_report_cause_opts {
   enum options { application_container_syntax_error, inconsistent_report_cell_id, unspecified, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<cell_load_report_cause_opts, true> cell_load_report_cause_e;
 
@@ -18048,7 +17760,7 @@ typedef enumerated<cell_load_report_cause_opts, true> cell_load_report_cause_e;
 struct cell_state_ind_cause_opts {
   enum options { application_container_syntax_error, inconsistent_report_cell_id, unspecified, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<cell_state_ind_cause_opts, true> cell_state_ind_cause_e;
 
@@ -18056,7 +17768,7 @@ typedef enumerated<cell_state_ind_cause_opts, true> cell_state_ind_cause_e;
 struct fail_event_report_cause_opts {
   enum options { application_container_syntax_error, inconsistent_report_cell_id, unspecified, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<fail_event_report_cause_opts, true> fail_event_report_cause_e;
 
@@ -18064,7 +17776,7 @@ typedef enumerated<fail_event_report_cause_opts, true> fail_event_report_cause_e
 struct ho_report_cause_opts {
   enum options { application_container_syntax_error, inconsistent_report_cell_id, unspecified, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<ho_report_cause_opts, true> ho_report_cause_e;
 
@@ -18083,7 +17795,7 @@ struct so_ntransfer_cause_c {
       nulltype
     } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true, 6> types;
 
@@ -18168,41 +17880,13 @@ struct so_ntransfer_cause_c {
     assert_choice_type("failureEventReporting", type_.to_string(), "SONtransferCause");
     return c.get<fail_event_report_cause_e>();
   }
-  cell_load_report_cause_e& set_cell_load_report()
-  {
-    set(types::cell_load_report);
-    return c.get<cell_load_report_cause_e>();
-  }
-  cell_load_report_cause_e& set_multi_cell_load_report()
-  {
-    set(types::multi_cell_load_report);
-    return c.get<cell_load_report_cause_e>();
-  }
-  cell_load_report_cause_e& set_event_triggered_cell_load_report()
-  {
-    set(types::event_triggered_cell_load_report);
-    return c.get<cell_load_report_cause_e>();
-  }
-  ho_report_cause_e& set_horeport()
-  {
-    set(types::horeport);
-    return c.get<ho_report_cause_e>();
-  }
-  cell_activation_cause_e& set_eutran_cell_activation()
-  {
-    set(types::eutran_cell_activation);
-    return c.get<cell_activation_cause_e>();
-  }
-  cell_state_ind_cause_e& set_energy_savings_ind()
-  {
-    set(types::energy_savings_ind);
-    return c.get<cell_state_ind_cause_e>();
-  }
-  fail_event_report_cause_e& set_fail_event_report()
-  {
-    set(types::fail_event_report);
-    return c.get<fail_event_report_cause_e>();
-  }
+  cell_load_report_cause_e&  set_cell_load_report();
+  cell_load_report_cause_e&  set_multi_cell_load_report();
+  cell_load_report_cause_e&  set_event_triggered_cell_load_report();
+  ho_report_cause_e&         set_horeport();
+  cell_activation_cause_e&   set_eutran_cell_activation();
+  cell_state_ind_cause_e&    set_energy_savings_ind();
+  fail_event_report_cause_e& set_fail_event_report();
 
 private:
   types               type_;
@@ -18226,7 +17910,7 @@ struct so_ntransfer_request_container_c {
       nulltype
     } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true, 6> types;
 
@@ -18301,37 +17985,13 @@ struct so_ntransfer_request_container_c {
     assert_choice_type("failureEventReporting", type_.to_string(), "SONtransferRequestContainer");
     return c.get<fail_event_report_c>();
   }
-  void                              set_cell_load_report() { set(types::cell_load_report); }
-  multi_cell_load_report_request_s& set_multi_cell_load_report()
-  {
-    set(types::multi_cell_load_report);
-    return c.get<multi_cell_load_report_request_s>();
-  }
-  event_triggered_cell_load_report_request_s& set_event_triggered_cell_load_report()
-  {
-    set(types::event_triggered_cell_load_report);
-    return c.get<event_triggered_cell_load_report_request_s>();
-  }
-  ho_report_s& set_horeport()
-  {
-    set(types::horeport);
-    return c.get<ho_report_s>();
-  }
-  cell_activation_request_s& set_eutran_cell_activation()
-  {
-    set(types::eutran_cell_activation);
-    return c.get<cell_activation_request_s>();
-  }
-  cell_state_ind_s& set_energy_savings_ind()
-  {
-    set(types::energy_savings_ind);
-    return c.get<cell_state_ind_s>();
-  }
-  fail_event_report_c& set_fail_event_report()
-  {
-    set(types::fail_event_report);
-    return c.get<fail_event_report_c>();
-  }
+  void                                        set_cell_load_report();
+  multi_cell_load_report_request_s&           set_multi_cell_load_report();
+  event_triggered_cell_load_report_request_s& set_event_triggered_cell_load_report();
+  ho_report_s&                                set_horeport();
+  cell_activation_request_s&                  set_eutran_cell_activation();
+  cell_state_ind_s&                           set_energy_savings_ind();
+  fail_event_report_c&                        set_fail_event_report();
 
 private:
   types type_;
@@ -18361,7 +18021,7 @@ struct so_ntransfer_resp_container_c {
       nulltype
     } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true, 6> types;
 
@@ -18416,29 +18076,13 @@ struct so_ntransfer_resp_container_c {
     assert_choice_type("eutranCellActivation", type_.to_string(), "SONtransferResponseContainer");
     return c.get<cell_activation_resp_s>();
   }
-  cell_load_report_resp_c& set_cell_load_report()
-  {
-    set(types::cell_load_report);
-    return c.get<cell_load_report_resp_c>();
-  }
-  multi_cell_load_report_resp_l& set_multi_cell_load_report()
-  {
-    set(types::multi_cell_load_report);
-    return c.get<multi_cell_load_report_resp_l>();
-  }
-  event_triggered_cell_load_report_resp_s& set_event_triggered_cell_load_report()
-  {
-    set(types::event_triggered_cell_load_report);
-    return c.get<event_triggered_cell_load_report_resp_s>();
-  }
-  void                    set_horeport() { set(types::horeport); }
-  cell_activation_resp_s& set_eutran_cell_activation()
-  {
-    set(types::eutran_cell_activation);
-    return c.get<cell_activation_resp_s>();
-  }
-  void set_energy_savings_ind() { set(types::energy_savings_ind); }
-  void set_fail_event_report() { set(types::fail_event_report); }
+  cell_load_report_resp_c&                 set_cell_load_report();
+  multi_cell_load_report_resp_l&           set_multi_cell_load_report();
+  event_triggered_cell_load_report_resp_s& set_event_triggered_cell_load_report();
+  void                                     set_horeport();
+  cell_activation_resp_s&                  set_eutran_cell_activation();
+  void                                     set_energy_savings_ind();
+  void                                     set_fail_event_report();
 
 private:
   types type_;
@@ -18455,7 +18099,7 @@ private:
 struct im_svoice_ep_sfallbackfrom5_g_opts {
   enum options { true_value, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<im_svoice_ep_sfallbackfrom5_g_opts, true> im_svoice_ep_sfallbackfrom5_g_e;
 
@@ -18474,7 +18118,7 @@ struct sourceenb_to_targetenb_transparent_container_ext_ies_o {
       } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<types_opts> types;

@@ -33,16 +33,16 @@ struct phich_cfg_s {
   struct phich_dur_opts {
     enum options { normal, extended, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<phich_dur_opts> phich_dur_e_;
   struct phich_res_opts {
     enum options { one_sixth, half, one, two, nulltype } value;
     typedef float number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     float       to_number() const;
-    std::string to_number_string() const;
+    const char* to_number_string() const;
   };
   typedef enumerated<phich_res_opts> phich_res_e_;
 
@@ -64,7 +64,7 @@ struct plmn_id_info_r15_s {
     struct types_opts {
       enum options { plmn_id_r15, plmn_idx_r15, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -99,16 +99,8 @@ struct plmn_id_info_r15_s {
       assert_choice_type("plmn-Index-r15", type_.to_string(), "plmn-Identity-5GC-r15");
       return c.get<uint8_t>();
     }
-    plmn_id_s& set_plmn_id_r15()
-    {
-      set(types::plmn_id_r15);
-      return c.get<plmn_id_s>();
-    }
-    uint8_t& set_plmn_idx_r15()
-    {
-      set(types::plmn_idx_r15);
-      return c.get<uint8_t>();
-    }
+    plmn_id_s& set_plmn_id_r15();
+    uint8_t&   set_plmn_idx_r15();
 
   private:
     types                      type_;
@@ -119,13 +111,13 @@ struct plmn_id_info_r15_s {
   struct cell_reserved_for_oper_r15_opts {
     enum options { reserved, not_reserved, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<cell_reserved_for_oper_r15_opts> cell_reserved_for_oper_r15_e_;
   struct cell_reserved_for_oper_crs_r15_opts {
     enum options { reserved, not_reserved, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<cell_reserved_for_oper_crs_r15_opts> cell_reserved_for_oper_crs_r15_e_;
 
@@ -145,7 +137,7 @@ struct cell_id_minus5_gc_r15_c {
   struct types_opts {
     enum options { cell_id_r15, cell_id_idx_r15, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts> types;
 
@@ -180,16 +172,8 @@ struct cell_id_minus5_gc_r15_c {
     assert_choice_type("cellId-Index-r15", type_.to_string(), "CellIdentity-5GC-r15");
     return c.get<uint8_t>();
   }
-  fixed_bitstring<28>& set_cell_id_r15()
-  {
-    set(types::cell_id_r15);
-    return c.get<fixed_bitstring<28> >();
-  }
-  uint8_t& set_cell_id_idx_r15()
-  {
-    set(types::cell_id_idx_r15);
-    return c.get<uint8_t>();
-  }
+  fixed_bitstring<28>& set_cell_id_r15();
+  uint8_t&             set_cell_id_idx_r15();
 
 private:
   types                                 type_;
@@ -229,7 +213,7 @@ struct tdd_cfg_s {
     enum options { sa0, sa1, sa2, sa3, sa4, sa5, sa6, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<sf_assign_opts> sf_assign_e_;
@@ -237,7 +221,7 @@ struct tdd_cfg_s {
     enum options { ssp0, ssp1, ssp2, ssp3, ssp4, ssp5, ssp6, ssp7, ssp8, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<special_sf_patterns_opts> special_sf_patterns_e_;
@@ -268,7 +252,7 @@ struct tdd_cfg_v1130_s {
     enum options { ssp7, ssp9, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<special_sf_patterns_v1130_opts> special_sf_patterns_v1130_e_;
@@ -290,7 +274,7 @@ struct prach_params_ce_r13_s {
     enum options { sf2, sf4, sf8, sf16, sf32, sf64, sf128, sf256, nulltype } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<prach_start_sf_r13_opts> prach_start_sf_r13_e_;
@@ -298,7 +282,7 @@ struct prach_params_ce_r13_s {
     enum options { n3, n4, n5, n6, n7, n8, n10, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<max_num_preamb_attempt_ce_r13_opts> max_num_preamb_attempt_ce_r13_e_;
@@ -306,7 +290,7 @@ struct prach_params_ce_r13_s {
     enum options { n1, n2, n4, n8, n16, n32, n64, n128, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<num_repeat_per_preamb_attempt_r13_opts> num_repeat_per_preamb_attempt_r13_e_;
@@ -315,14 +299,14 @@ struct prach_params_ce_r13_s {
     enum options { r1, r2, r4, r8, r16, r32, r64, r128, r256, nulltype } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<mpdcch_num_repeat_ra_r13_opts> mpdcch_num_repeat_ra_r13_e_;
   struct prach_hop_cfg_r13_opts {
     enum options { on, off, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<prach_hop_cfg_r13_opts> prach_hop_cfg_r13_e_;
 
@@ -354,7 +338,7 @@ struct rach_ce_level_info_r13_s {
     enum options { sf20, sf50, sf80, sf120, sf180, sf240, sf320, sf400, nulltype } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<ra_resp_win_size_r13_opts> ra_resp_win_size_r13_e_;
@@ -362,14 +346,14 @@ struct rach_ce_level_info_r13_s {
     enum options { sf80, sf100, sf120, sf160, sf200, sf240, sf480, sf960, nulltype } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<mac_contention_resolution_timer_r13_opts> mac_contention_resolution_timer_r13_e_;
   struct rar_hop_cfg_r13_opts {
     enum options { on, off, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<rar_hop_cfg_r13_opts> rar_hop_cfg_r13_e_;
   struct edt_params_r15_s_ {
@@ -377,7 +361,7 @@ struct rach_ce_level_info_r13_s {
       enum options { b328, b408, b504, b600, b712, b808, b936, b1000or456, nulltype } value;
       typedef uint16_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint16_t    to_number() const;
     };
     typedef enumerated<edt_tbs_r15_opts> edt_tbs_r15_e_;
@@ -385,7 +369,7 @@ struct rach_ce_level_info_r13_s {
       enum options { sf240, sf480, sf960, sf1920, sf3840, sf5760, sf7680, sf10240, nulltype } value;
       typedef uint16_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint16_t    to_number() const;
     };
     typedef enumerated<mac_contention_resolution_timer_r15_opts> mac_contention_resolution_timer_r15_e_;
@@ -420,7 +404,7 @@ struct delta_flist_pucch_s {
     enum options { delta_f_minus2, delta_f0, delta_f2, nulltype } value;
     typedef int8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     int8_t      to_number() const;
   };
   typedef enumerated<delta_f_pucch_format1_opts> delta_f_pucch_format1_e_;
@@ -428,7 +412,7 @@ struct delta_flist_pucch_s {
     enum options { delta_f1, delta_f3, delta_f5, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<delta_f_pucch_format1b_opts> delta_f_pucch_format1b_e_;
@@ -436,7 +420,7 @@ struct delta_flist_pucch_s {
     enum options { delta_f_minus2, delta_f0, delta_f1, delta_f2, nulltype } value;
     typedef int8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     int8_t      to_number() const;
   };
   typedef enumerated<delta_f_pucch_format2_opts> delta_f_pucch_format2_e_;
@@ -444,7 +428,7 @@ struct delta_flist_pucch_s {
     enum options { delta_f_minus2, delta_f0, delta_f2, nulltype } value;
     typedef int8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     int8_t      to_number() const;
   };
   typedef enumerated<delta_f_pucch_format2a_opts> delta_f_pucch_format2a_e_;
@@ -452,7 +436,7 @@ struct delta_flist_pucch_s {
     enum options { delta_f_minus2, delta_f0, delta_f2, nulltype } value;
     typedef int8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     int8_t      to_number() const;
   };
   typedef enumerated<delta_f_pucch_format2b_opts> delta_f_pucch_format2b_e_;
@@ -489,7 +473,7 @@ struct delta_flist_spucch_r15_c {
       } value;
       typedef int8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       int8_t      to_number() const;
     };
     typedef enumerated<delta_f_slot_spucch_format1_r15_opts> delta_f_slot_spucch_format1_r15_e_;
@@ -497,7 +481,7 @@ struct delta_flist_spucch_r15_c {
       enum options { delta_f1, delta_f2, delta_f3, delta_f4, delta_f5, delta_f6, delta_f7, delta_f8, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<delta_f_slot_spucch_format1a_r15_opts> delta_f_slot_spucch_format1a_r15_e_;
@@ -505,7 +489,7 @@ struct delta_flist_spucch_r15_c {
       enum options { delta_f3, delta_f4, delta_f5, delta_f6, delta_f7, delta_f8, delta_f9, delta_f10, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<delta_f_slot_spucch_format1b_r15_opts> delta_f_slot_spucch_format1b_r15_e_;
@@ -513,7 +497,7 @@ struct delta_flist_spucch_r15_c {
       enum options { delta_f4, delta_f5, delta_f6, delta_f7, delta_f8, delta_f9, delta_f10, delta_f11, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<delta_f_slot_spucch_format3_r15_opts> delta_f_slot_spucch_format3_r15_e_;
@@ -531,7 +515,7 @@ struct delta_flist_spucch_r15_c {
       } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<delta_f_slot_spucch_rm_format4_r15_opts> delta_f_slot_spucch_rm_format4_r15_e_;
@@ -549,7 +533,7 @@ struct delta_flist_spucch_r15_c {
       } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<delta_f_slot_spucch_tbcc_format4_r15_opts> delta_f_slot_spucch_tbcc_format4_r15_e_;
@@ -567,7 +551,7 @@ struct delta_flist_spucch_r15_c {
       } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<delta_f_subslot_spucch_format1and1a_r15_opts> delta_f_subslot_spucch_format1and1a_r15_e_;
@@ -585,7 +569,7 @@ struct delta_flist_spucch_r15_c {
       } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<delta_f_subslot_spucch_format1b_r15_opts> delta_f_subslot_spucch_format1b_r15_e_;
@@ -603,7 +587,7 @@ struct delta_flist_spucch_r15_c {
       } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<delta_f_subslot_spucch_rm_format4_r15_opts> delta_f_subslot_spucch_rm_format4_r15_e_;
@@ -621,7 +605,7 @@ struct delta_flist_spucch_r15_c {
       } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<delta_f_subslot_spucch_tbcc_format4_r15_opts> delta_f_subslot_spucch_tbcc_format4_r15_e_;
@@ -672,12 +656,8 @@ struct delta_flist_spucch_r15_c {
     assert_choice_type("setup", type_.to_string(), "DeltaFList-SPUCCH-r15");
     return c;
   }
-  void      set_release() { set(types::release); }
-  setup_s_& set_setup()
-  {
-    set(types::setup);
-    return c;
-  }
+  void      set_release();
+  setup_s_& set_setup();
 
 private:
   types    type_;
@@ -691,7 +671,7 @@ struct edt_prach_params_ce_r15_s {
       enum options { sf2, sf4, sf8, sf16, sf32, sf64, sf128, sf256, nulltype } value;
       typedef uint16_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint16_t    to_number() const;
     };
     typedef enumerated<prach_start_sf_r15_opts> prach_start_sf_r15_e_;
@@ -742,7 +722,7 @@ struct pwr_ramp_params_s {
     enum options { db0, db2, db4, db6, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<pwr_ramp_step_opts> pwr_ramp_step_e_;
@@ -768,7 +748,7 @@ struct pwr_ramp_params_s {
     } value;
     typedef int8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     int8_t      to_number() const;
   };
   typedef enumerated<preamb_init_rx_target_pwr_opts> preamb_init_rx_target_pwr_e_;
@@ -790,7 +770,7 @@ struct preamb_trans_max_opts {
   enum options { n3, n4, n5, n6, n7, n8, n10, n20, n50, n100, n200, nulltype } value;
   typedef uint8_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint8_t     to_number() const;
 };
 typedef enumerated<preamb_trans_max_opts> preamb_trans_max_e;
@@ -822,7 +802,7 @@ struct bcch_cfg_s {
     enum options { n2, n4, n8, n16, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<mod_period_coeff_opts> mod_period_coeff_e_;
@@ -850,7 +830,7 @@ struct freq_hop_params_r13_s {
     enum options { nb2, nb4, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<dummy_opts> dummy_e_;
@@ -859,7 +839,7 @@ struct freq_hop_params_r13_s {
       enum options { int1, int2, int4, int8, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<interv_fdd_r13_opts> interv_fdd_r13_e_;
@@ -867,14 +847,14 @@ struct freq_hop_params_r13_s {
       enum options { int1, int5, int10, int20, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<interv_tdd_r13_opts> interv_tdd_r13_e_;
     struct types_opts {
       enum options { interv_fdd_r13, interv_tdd_r13, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -909,16 +889,8 @@ struct freq_hop_params_r13_s {
       assert_choice_type("interval-TDD-r13", type_.to_string(), "dummy2");
       return c.get<interv_tdd_r13_e_>();
     }
-    interv_fdd_r13_e_& set_interv_fdd_r13()
-    {
-      set(types::interv_fdd_r13);
-      return c.get<interv_fdd_r13_e_>();
-    }
-    interv_tdd_r13_e_& set_interv_tdd_r13()
-    {
-      set(types::interv_tdd_r13);
-      return c.get<interv_tdd_r13_e_>();
-    }
+    interv_fdd_r13_e_& set_interv_fdd_r13();
+    interv_tdd_r13_e_& set_interv_tdd_r13();
 
   private:
     types               type_;
@@ -931,7 +903,7 @@ struct freq_hop_params_r13_s {
       enum options { int2, int4, int8, int16, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<interv_fdd_r13_opts> interv_fdd_r13_e_;
@@ -939,14 +911,14 @@ struct freq_hop_params_r13_s {
       enum options { int5, int10, int20, int40, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<interv_tdd_r13_opts> interv_tdd_r13_e_;
     struct types_opts {
       enum options { interv_fdd_r13, interv_tdd_r13, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -981,16 +953,8 @@ struct freq_hop_params_r13_s {
       assert_choice_type("interval-TDD-r13", type_.to_string(), "dummy3");
       return c.get<interv_tdd_r13_e_>();
     }
-    interv_fdd_r13_e_& set_interv_fdd_r13()
-    {
-      set(types::interv_fdd_r13);
-      return c.get<interv_fdd_r13_e_>();
-    }
-    interv_tdd_r13_e_& set_interv_tdd_r13()
-    {
-      set(types::interv_tdd_r13);
-      return c.get<interv_tdd_r13_e_>();
-    }
+    interv_fdd_r13_e_& set_interv_fdd_r13();
+    interv_tdd_r13_e_& set_interv_tdd_r13();
 
   private:
     types               type_;
@@ -1003,7 +967,7 @@ struct freq_hop_params_r13_s {
       enum options { int1, int2, int4, int8, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<interv_fdd_r13_opts> interv_fdd_r13_e_;
@@ -1011,14 +975,14 @@ struct freq_hop_params_r13_s {
       enum options { int1, int5, int10, int20, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<interv_tdd_r13_opts> interv_tdd_r13_e_;
     struct types_opts {
       enum options { interv_fdd_r13, interv_tdd_r13, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -1053,16 +1017,8 @@ struct freq_hop_params_r13_s {
       assert_choice_type("interval-TDD-r13", type_.to_string(), "interval-ULHoppingConfigCommonModeA-r13");
       return c.get<interv_tdd_r13_e_>();
     }
-    interv_fdd_r13_e_& set_interv_fdd_r13()
-    {
-      set(types::interv_fdd_r13);
-      return c.get<interv_fdd_r13_e_>();
-    }
-    interv_tdd_r13_e_& set_interv_tdd_r13()
-    {
-      set(types::interv_tdd_r13);
-      return c.get<interv_tdd_r13_e_>();
-    }
+    interv_fdd_r13_e_& set_interv_fdd_r13();
+    interv_tdd_r13_e_& set_interv_tdd_r13();
 
   private:
     types               type_;
@@ -1075,7 +1031,7 @@ struct freq_hop_params_r13_s {
       enum options { int2, int4, int8, int16, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<interv_fdd_r13_opts> interv_fdd_r13_e_;
@@ -1083,14 +1039,14 @@ struct freq_hop_params_r13_s {
       enum options { int5, int10, int20, int40, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<interv_tdd_r13_opts> interv_tdd_r13_e_;
     struct types_opts {
       enum options { interv_fdd_r13, interv_tdd_r13, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -1125,16 +1081,8 @@ struct freq_hop_params_r13_s {
       assert_choice_type("interval-TDD-r13", type_.to_string(), "interval-ULHoppingConfigCommonModeB-r13");
       return c.get<interv_tdd_r13_e_>();
     }
-    interv_fdd_r13_e_& set_interv_fdd_r13()
-    {
-      set(types::interv_fdd_r13);
-      return c.get<interv_fdd_r13_e_>();
-    }
-    interv_tdd_r13_e_& set_interv_tdd_r13()
-    {
-      set(types::interv_tdd_r13);
-      return c.get<interv_tdd_r13_e_>();
-    }
+    interv_fdd_r13_e_& set_interv_fdd_r13();
+    interv_tdd_r13_e_& set_interv_tdd_r13();
 
   private:
     types               type_;
@@ -1188,7 +1136,7 @@ struct pcch_cfg_s {
     enum options { rf32, rf64, rf128, rf256, nulltype } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<default_paging_cycle_opts> default_paging_cycle_e_;
@@ -1206,9 +1154,9 @@ struct pcch_cfg_s {
     } value;
     typedef float number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     float       to_number() const;
-    std::string to_number_string() const;
+    const char* to_number_string() const;
   };
   typedef enumerated<nb_opts> nb_e_;
 
@@ -1228,7 +1176,7 @@ struct pcch_cfg_v1310_s {
     enum options { r1, r2, r4, r8, r16, r32, r64, r128, r256, nulltype } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<mpdcch_num_repeat_paging_r13_opts> mpdcch_num_repeat_paging_r13_e_;
@@ -1236,7 +1184,7 @@ struct pcch_cfg_v1310_s {
     enum options { one64th_t, one128th_t, one256th_t, nulltype } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<nb_v1310_opts> nb_v1310_e_;
@@ -1272,7 +1220,7 @@ struct pdsch_cfg_common_v1310_s {
     enum options { r16, r32, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<pdsch_max_num_repeat_cemode_a_r13_opts> pdsch_max_num_repeat_cemode_a_r13_e_;
@@ -1280,7 +1228,7 @@ struct pdsch_cfg_common_v1310_s {
     enum options { r192, r256, r384, r512, r768, r1024, r1536, r2048, nulltype } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<pdsch_max_num_repeat_cemode_b_r13_opts> pdsch_max_num_repeat_cemode_b_r13_e_;
@@ -1330,23 +1278,23 @@ struct prach_cfg_sib_v1310_s {
       enum options { v1, v1dot5, v2, v2dot5, v4, v5, v8, v10, nulltype } value;
       typedef float number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       float       to_number() const;
-      std::string to_number_string() const;
+      const char* to_number_string() const;
     };
     typedef enumerated<fdd_r13_opts> fdd_r13_e_;
     struct tdd_r13_opts {
       enum options { v1, v2, v4, v5, v8, v10, v20, spare, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<tdd_r13_opts> tdd_r13_e_;
     struct types_opts {
       enum options { fdd_r13, tdd_r13, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -1381,16 +1329,8 @@ struct prach_cfg_sib_v1310_s {
       assert_choice_type("tdd-r13", type_.to_string(), "mpdcch-startSF-CSS-RA-r13");
       return c.get<tdd_r13_e_>();
     }
-    fdd_r13_e_& set_fdd_r13()
-    {
-      set(types::fdd_r13);
-      return c.get<fdd_r13_e_>();
-    }
-    tdd_r13_e_& set_tdd_r13()
-    {
-      set(types::tdd_r13);
-      return c.get<tdd_r13_e_>();
-    }
+    fdd_r13_e_& set_fdd_r13();
+    tdd_r13_e_& set_tdd_r13();
 
   private:
     types               type_;
@@ -1432,7 +1372,7 @@ struct pucch_cfg_common_s {
     enum options { ds1, ds2, ds3, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<delta_pucch_shift_opts> delta_pucch_shift_e_;
@@ -1457,7 +1397,7 @@ struct pucch_cfg_common_v1310_s {
     enum options { n1, n2, n4, n8, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<pucch_num_repeat_ce_msg4_level0_r13_opts> pucch_num_repeat_ce_msg4_level0_r13_e_;
@@ -1465,7 +1405,7 @@ struct pucch_cfg_common_v1310_s {
     enum options { n1, n2, n4, n8, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<pucch_num_repeat_ce_msg4_level1_r13_opts> pucch_num_repeat_ce_msg4_level1_r13_e_;
@@ -1473,7 +1413,7 @@ struct pucch_cfg_common_v1310_s {
     enum options { n4, n8, n16, n32, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<pucch_num_repeat_ce_msg4_level2_r13_opts> pucch_num_repeat_ce_msg4_level2_r13_e_;
@@ -1481,7 +1421,7 @@ struct pucch_cfg_common_v1310_s {
     enum options { n4, n8, n16, n32, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<pucch_num_repeat_ce_msg4_level3_r13_opts> pucch_num_repeat_ce_msg4_level3_r13_e_;
@@ -1510,7 +1450,7 @@ struct pucch_cfg_common_v1430_s {
     enum options { n64, n128, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<pucch_num_repeat_ce_msg4_level3_r14_opts> pucch_num_repeat_ce_msg4_level3_r14_e_;
@@ -1531,7 +1471,7 @@ struct pusch_cfg_common_s {
     struct hop_mode_opts {
       enum options { inter_sub_frame, intra_and_inter_sub_frame, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<hop_mode_opts> hop_mode_e_;
 
@@ -1570,7 +1510,7 @@ struct pusch_cfg_common_v1310_s {
     enum options { r8, r16, r32, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<pusch_max_num_repeat_cemode_a_r13_opts> pusch_max_num_repeat_cemode_a_r13_e_;
@@ -1578,7 +1518,7 @@ struct pusch_cfg_common_v1310_s {
     enum options { r192, r256, r384, r512, r768, r1024, r1536, r2048, nulltype } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<pusch_max_num_repeat_cemode_b_r13_opts> pusch_max_num_repeat_cemode_b_r13_e_;
@@ -1604,7 +1544,7 @@ struct rach_cfg_common_s {
       enum options { n4, n8, n12, n16, n20, n24, n28, n32, n36, n40, n44, n48, n52, n56, n60, n64, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<nof_ra_preambs_opts> nof_ra_preambs_e_;
@@ -1613,7 +1553,7 @@ struct rach_cfg_common_s {
         enum options { n4, n8, n12, n16, n20, n24, n28, n32, n36, n40, n44, n48, n52, n56, n60, nulltype } value;
         typedef uint8_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         uint8_t     to_number() const;
       };
       typedef enumerated<size_of_ra_preambs_group_a_opts> size_of_ra_preambs_group_a_e_;
@@ -1621,7 +1561,7 @@ struct rach_cfg_common_s {
         enum options { b56, b144, b208, b256, nulltype } value;
         typedef uint16_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         uint16_t    to_number() const;
       };
       typedef enumerated<msg_size_group_a_opts> msg_size_group_a_e_;
@@ -1629,7 +1569,7 @@ struct rach_cfg_common_s {
         enum options { minusinfinity, db0, db5, db8, db10, db12, db15, db18, nulltype } value;
         typedef int8_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         int8_t      to_number() const;
       };
       typedef enumerated<msg_pwr_offset_group_b_opts> msg_pwr_offset_group_b_e_;
@@ -1652,7 +1592,7 @@ struct rach_cfg_common_s {
       enum options { sf2, sf3, sf4, sf5, sf6, sf7, sf8, sf10, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<ra_resp_win_size_opts> ra_resp_win_size_e_;
@@ -1660,7 +1600,7 @@ struct rach_cfg_common_s {
       enum options { sf8, sf16, sf24, sf32, sf40, sf48, sf56, sf64, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<mac_contention_resolution_timer_opts> mac_contention_resolution_timer_e_;
@@ -1698,7 +1638,7 @@ struct rach_cfg_common_v1250_s {
       enum options { n1, n2, n3, n4, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<conn_est_fail_count_r12_opts> conn_est_fail_count_r12_e_;
@@ -1706,7 +1646,7 @@ struct rach_cfg_common_v1250_s {
       enum options { s30, s60, s120, s240, s300, s420, s600, s900, nulltype } value;
       typedef uint16_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint16_t    to_number() const;
     };
     typedef enumerated<conn_est_fail_offset_validity_r12_opts> conn_est_fail_offset_validity_r12_e_;
@@ -1733,7 +1673,7 @@ struct rss_cfg_r15_s {
     enum options { sf8, sf16, sf32, sf40, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<dur_r15_opts> dur_r15_e_;
@@ -1741,7 +1681,7 @@ struct rss_cfg_r15_s {
     enum options { ms160, ms320, ms640, ms1280, nulltype } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<periodicity_r15_opts> periodicity_r15_e_;
@@ -1749,9 +1689,9 @@ struct rss_cfg_r15_s {
     enum options { db0, db3, db4dot8, db6, nulltype } value;
     typedef float number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     float       to_number() const;
-    std::string to_number_string() const;
+    const char* to_number_string() const;
   };
   typedef enumerated<pwr_boost_r15_opts> pwr_boost_r15_e_;
 
@@ -1775,7 +1715,7 @@ struct srs_ul_cfg_common_c {
       enum options { bw0, bw1, bw2, bw3, bw4, bw5, bw6, bw7, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<srs_bw_cfg_opts> srs_bw_cfg_e_;
@@ -1801,7 +1741,7 @@ struct srs_ul_cfg_common_c {
       } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<srs_sf_cfg_opts> srs_sf_cfg_e_;
@@ -1834,12 +1774,8 @@ struct srs_ul_cfg_common_c {
     assert_choice_type("setup", type_.to_string(), "SoundingRS-UL-ConfigCommon");
     return c;
   }
-  void      set_release() { set(types::release); }
-  setup_s_& set_setup()
-  {
-    set(types::setup);
-    return c;
-  }
+  void      set_release();
+  setup_s_& set_setup();
 
 private:
   types    type_;
@@ -1851,7 +1787,7 @@ struct ul_cp_len_opts {
   enum options { len1, len2, nulltype } value;
   typedef uint8_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint8_t     to_number() const;
 };
 typedef enumerated<ul_cp_len_opts> ul_cp_len_e;
@@ -1886,7 +1822,7 @@ struct ul_pwr_ctrl_common_v1020_s {
     } value;
     typedef int8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     int8_t      to_number() const;
   };
   typedef enumerated<delta_f_pucch_format3_r10_opts> delta_f_pucch_format3_r10_e_;
@@ -1894,7 +1830,7 @@ struct ul_pwr_ctrl_common_v1020_s {
     enum options { delta_f1, delta_f2, spare2, spare1, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<delta_f_pucch_format1b_cs_r10_opts> delta_f_pucch_format1b_cs_r10_e_;
@@ -1927,7 +1863,7 @@ struct wus_cfg_r15_s {
     enum options { one32th, one16th, one8th, one4th, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<max_dur_factor_r15_opts> max_dur_factor_r15_e_;
@@ -1935,7 +1871,7 @@ struct wus_cfg_r15_s {
     enum options { n1, n2, n4, spare1, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<num_pos_r15_opts> num_pos_r15_e_;
@@ -1943,7 +1879,7 @@ struct wus_cfg_r15_s {
     enum options { n0, n2, n4, spare1, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<freq_location_r15_opts> freq_location_r15_e_;
@@ -1951,7 +1887,7 @@ struct wus_cfg_r15_s {
     enum options { ms40, ms80, ms160, ms240, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<time_offset_drx_r15_opts> time_offset_drx_r15_e_;
@@ -1959,7 +1895,7 @@ struct wus_cfg_r15_s {
     enum options { ms40, ms80, ms160, ms240, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<time_offset_e_drx_short_r15_opts> time_offset_e_drx_short_r15_e_;
@@ -1967,7 +1903,7 @@ struct wus_cfg_r15_s {
     enum options { ms1000, ms2000, nulltype } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<time_offset_e_drx_long_r15_opts> time_offset_e_drx_long_r15_e_;
@@ -1994,9 +1930,9 @@ struct wus_cfg_v1560_s {
     enum options { db0, db1dot8, db3, db4dot8, nulltype } value;
     typedef float number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     float       to_number() const;
-    std::string to_number_string() const;
+    const char* to_number_string() const;
   };
   typedef enumerated<pwr_boost_r15_opts> pwr_boost_r15_e_;
 
@@ -2062,7 +1998,7 @@ struct time_align_timer_opts {
   enum options { sf500, sf750, sf1280, sf1920, sf2560, sf5120, sf10240, infinity, nulltype } value;
   typedef int16_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   int16_t     to_number() const;
 };
 typedef enumerated<time_align_timer_opts> time_align_timer_e;
@@ -2073,7 +2009,7 @@ struct ant_info_common_s {
     enum options { an1, an2, an4, spare1, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<ant_ports_count_opts> ant_ports_count_e_;
@@ -2205,7 +2141,7 @@ struct ul_pwr_ctrl_common_scell_v1310_s {
     } value;
     typedef int8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     int8_t      to_number() const;
   };
   typedef enumerated<delta_f_pucch_format3_r12_opts> delta_f_pucch_format3_r12_e_;
@@ -2213,7 +2149,7 @@ struct ul_pwr_ctrl_common_scell_v1310_s {
     enum options { delta_f1, delta_f2, spare2, spare1, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<delta_f_pucch_format1b_cs_r12_opts> delta_f_pucch_format1b_cs_r12_e_;
@@ -2231,7 +2167,7 @@ struct ul_pwr_ctrl_common_scell_v1310_s {
     } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<delta_f_pucch_format4_r13_opts> delta_f_pucch_format4_r13_e_;
@@ -2239,7 +2175,7 @@ struct ul_pwr_ctrl_common_scell_v1310_s {
     enum options { delta_f13, delta_f12, delta_f11, delta_f10, delta_f9, delta_f8, delta_f7, spare1, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<delta_f_pucch_format5_minus13_opts> delta_f_pucch_format5_minus13_e_;
@@ -2271,7 +2207,7 @@ struct rr_cfg_common_scell_r10_s {
       enum options { n6, n15, n25, n50, n75, n100, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<dl_bw_r10_opts> dl_bw_r10_e_;
@@ -2292,7 +2228,7 @@ struct rr_cfg_common_scell_r10_s {
         enum options { n6, n15, n25, n50, n75, n100, nulltype } value;
         typedef uint8_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         uint8_t     to_number() const;
       };
       typedef enumerated<ul_bw_r10_opts> ul_bw_r10_e_;
@@ -2322,7 +2258,7 @@ struct rr_cfg_common_scell_r10_s {
         enum options { n6, n15, n25, n50, n75, n100, nulltype } value;
         typedef uint8_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         uint8_t     to_number() const;
       };
       typedef enumerated<ul_bw_r14_opts> ul_bw_r14_e_;
@@ -2350,7 +2286,7 @@ struct rr_cfg_common_scell_r10_s {
     enum options { sa2, sa4, sa5, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<harq_ref_cfg_r14_opts> harq_ref_cfg_r14_e_;
@@ -2410,7 +2346,7 @@ struct ul_pwr_ctrl_common_v1310_s {
     } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<delta_f_pucch_format4_r13_opts> delta_f_pucch_format4_r13_e_;
@@ -2418,7 +2354,7 @@ struct ul_pwr_ctrl_common_v1310_s {
     enum options { delta_f13, delta_f12, delta_f11, delta_f10, delta_f9, delta_f8, delta_f7, spare1, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<delta_f_pucch_format5_minus13_opts> delta_f_pucch_format5_minus13_e_;
@@ -2442,23 +2378,23 @@ struct prach_cfg_v1310_s {
       enum options { v1, v1dot5, v2, v2dot5, v4, v5, v8, v10, nulltype } value;
       typedef float number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       float       to_number() const;
-      std::string to_number_string() const;
+      const char* to_number_string() const;
     };
     typedef enumerated<fdd_r13_opts> fdd_r13_e_;
     struct tdd_r13_opts {
       enum options { v1, v2, v4, v5, v8, v10, v20, spare, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<tdd_r13_opts> tdd_r13_e_;
     struct types_opts {
       enum options { fdd_r13, tdd_r13, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -2493,16 +2429,8 @@ struct prach_cfg_v1310_s {
       assert_choice_type("tdd-r13", type_.to_string(), "mpdcch-startSF-CSS-RA-r13");
       return c.get<tdd_r13_e_>();
     }
-    fdd_r13_e_& set_fdd_r13()
-    {
-      set(types::fdd_r13);
-      return c.get<fdd_r13_e_>();
-    }
-    tdd_r13_e_& set_tdd_r13()
-    {
-      set(types::tdd_r13);
-      return c.get<tdd_r13_e_>();
-    }
+    fdd_r13_e_& set_fdd_r13();
+    tdd_r13_e_& set_tdd_r13();
 
   private:
     types               type_;

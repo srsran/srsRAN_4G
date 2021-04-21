@@ -641,7 +641,7 @@ bool s1ap::handle_initiatingmessage(const init_msg_s& msg)
     case s1ap_elem_procs_o::init_msg_c::types_opts::mme_status_transfer:
       return handle_mme_status_transfer(msg.value.mme_status_transfer());
     default:
-      logger.error("Unhandled initiating message: %s", msg.value.type().to_string().c_str());
+      logger.error("Unhandled initiating message: %s", msg.value.type().to_string());
   }
   return true;
 }
@@ -656,7 +656,7 @@ bool s1ap::handle_successfuloutcome(const successful_outcome_s& msg)
     case s1ap_elem_procs_o::successful_outcome_c::types_opts::ho_cancel_ack:
       return true;
     default:
-      logger.error("Unhandled successful outcome message: %s", msg.value.type().to_string().c_str());
+      logger.error("Unhandled successful outcome message: %s", msg.value.type().to_string());
   }
   return true;
 }
@@ -669,7 +669,7 @@ bool s1ap::handle_unsuccessfuloutcome(const unsuccessful_outcome_s& msg)
     case s1ap_elem_procs_o::unsuccessful_outcome_c::types_opts::ho_prep_fail:
       return handle_handover_preparation_failure(msg.value.ho_prep_fail());
     default:
-      logger.error("Unhandled unsuccessful outcome message: %s", msg.value.type().to_string().c_str());
+      logger.error("Unhandled unsuccessful outcome message: %s", msg.value.type().to_string());
   }
   return true;
 }
@@ -1436,7 +1436,7 @@ void s1ap::ue::ue_ctxt_setup_complete()
 {
   if (current_state != s1ap_elem_procs_o::init_msg_c::types_opts::init_context_setup_request) {
     logger.warning("Procedure %s,rnti=0x%x - Received unexpected complete notification",
-                   s1ap_elem_procs_o::init_msg_c::types_opts{current_state}.to_string().c_str(),
+                   s1ap_elem_procs_o::init_msg_c::types_opts{current_state}.to_string(),
                    ctxt.rnti);
     return;
   }

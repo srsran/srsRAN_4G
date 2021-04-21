@@ -346,7 +346,7 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
       handle_ue_info_resp(ul_dcch_msg.msg.c1().ue_info_resp_r9(), std::move(original_pdu));
       break;
     default:
-      parent->logger.error("Msg: %s not supported", ul_dcch_msg.msg.c1().type().to_string().c_str());
+      parent->logger.error("Msg: %s not supported", ul_dcch_msg.msg.c1().type().to_string());
       break;
   }
 }
@@ -522,7 +522,7 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
                        (uint32_t)msg->crit_exts.rrc_conn_reest_request_r8().ue_id.c_rnti.to_number(),
                        msg->crit_exts.rrc_conn_reest_request_r8().ue_id.pci,
                        (uint32_t)msg->crit_exts.rrc_conn_reest_request_r8().ue_id.short_mac_i.to_number(),
-                       msg->crit_exts.rrc_conn_reest_request_r8().reest_cause.to_string().c_str());
+                       msg->crit_exts.rrc_conn_reest_request_r8().reest_cause.to_string());
   if (is_idle()) {
     uint16_t               old_rnti = msg->crit_exts.rrc_conn_reest_request_r8().ue_id.c_rnti.to_number();
     uint16_t               old_pci  = msg->crit_exts.rrc_conn_reest_request_r8().ue_id.pci;
@@ -876,7 +876,7 @@ bool rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
   for (uint32_t i = 0; i < msg_r8->ue_cap_rat_container_list.size(); i++) {
     if (msg_r8->ue_cap_rat_container_list[i].rat_type != rat_type_e::eutra) {
       parent->logger.warning("Not handling UE capability information for RAT type %s",
-                             msg_r8->ue_cap_rat_container_list[i].rat_type.to_string().c_str());
+                             msg_r8->ue_cap_rat_container_list[i].rat_type.to_string());
       continue;
     }
     asn1::cbit_ref bref(msg_r8->ue_cap_rat_container_list[i].ue_cap_rat_container.data(),

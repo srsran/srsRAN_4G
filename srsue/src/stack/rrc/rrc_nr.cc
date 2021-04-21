@@ -57,7 +57,7 @@ void rrc_nr::init(phy_interface_rrc_nr*       phy_,
   stack     = stack_;
   args      = args_;
 
-  running                = true;
+  running               = true;
   sim_measurement_timer = task_sched.get_unique_timer();
 }
 
@@ -415,7 +415,7 @@ void rrc_nr::phy_set_cells_to_meas(uint32_t carrier_freq_r15)
 {
   logger.debug("Measuring phy cell %d ", carrier_freq_r15);
   // Start timer for fake measurements
-  auto timer_expire_func            = [this](uint32_t tid) { timer_expired(tid); };
+  auto timer_expire_func           = [this](uint32_t tid) { timer_expired(tid); };
   sim_measurement_carrier_freq_r15 = carrier_freq_r15;
   sim_measurement_timer.set(sim_measurement_timer_duration_ms, timer_expire_func);
   sim_measurement_timer.run();
@@ -1051,7 +1051,7 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
     mac->set_crnti(recfg_with_sync.new_ue_id);
     if (recfg_with_sync.sp_cell_cfg_common_present) {
       if (recfg_with_sync.sp_cell_cfg_common.pci_present) {
-        phy_cfg.carrier.pci = recfg_with_sync.sp_cell_cfg_common.pci;
+        phy_cfg.carrier.pci             = recfg_with_sync.sp_cell_cfg_common.pci;
         phy_cfg.carrier.max_mimo_layers = 1; // TODO: flatten
       } else {
         logger.warning("Option PCI not present");
@@ -1246,7 +1246,7 @@ bool rrc_nr::apply_cell_group_cfg(const cell_group_cfg_s& cell_group_cfg)
 bool rrc_nr::apply_drb_release(const uint8_t drb)
 {
   uint32_t lcid = get_lcid_for_drbid(drb);
-  if(lcid == 0){
+  if (lcid == 0) {
     logger.warning("Can not release bearer with lcid %d and drb %d", lcid, drb);
     return false;
   }
@@ -1280,7 +1280,7 @@ bool rrc_nr::apply_drb_add_mod(const drb_to_add_mod_s& drb_cfg)
   }
 
   if (!(drb_cfg.cn_assoc.type() == drb_to_add_mod_s::cn_assoc_c_::types_opts::eps_bearer_id)) {
-    logger.error("CN associtaion type not supported %s ", drb_cfg.cn_assoc.type().to_string().c_str());
+    logger.error("CN association type not supported %s ", drb_cfg.cn_assoc.type().to_string());
     return false;
   }
   uint32_t eps_bearer_id            = drb_cfg.cn_assoc.eps_bearer_id();
@@ -1434,7 +1434,7 @@ proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const reconf_initiator
       Error("Reconfiguration does not contain Secondary Cell Group Config");
       return proc_outcome_t::error;
     }
-    
+
     if (not rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group_present) {
       Error("Reconfiguration does not contain Secondary Cell Group Config");
       return proc_outcome_t::error;
@@ -1468,23 +1468,23 @@ proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const reconf_initiator
     }
   }
 
-  if(nr_radio_bearer_cfg1_r15_present){
-  cbit_ref bref1(nr_radio_bearer_cfg1_r15.data(), nr_radio_bearer_cfg1_r15.size());
+  if (nr_radio_bearer_cfg1_r15_present) {
+    cbit_ref bref1(nr_radio_bearer_cfg1_r15.data(), nr_radio_bearer_cfg1_r15.size());
 
-  err = radio_bearer_cfg.unpack(bref1);
-  if (err != asn1::SRSASN_SUCCESS) {
-    Error("Could not unpack radio bearer config.");
-    return proc_outcome_t::error;
+    err = radio_bearer_cfg.unpack(bref1);
+    if (err != asn1::SRSASN_SUCCESS) {
+      Error("Could not unpack radio bearer config.");
+      return proc_outcome_t::error;
+    }
+
+    rrc_ptr->log_rrc_message(
+        "RRC NR Reconfiguration", Rx, nr_radio_bearer_cfg1_r15, radio_bearer_cfg, "Radio Bearer Config R15");
+
+    Info("Applying Radio Bearer Cfg");
+    if (!rrc_ptr->apply_radio_bearer_cfg(radio_bearer_cfg)) {
+      return proc_outcome_t::error;
+    }
   }
-
-  rrc_ptr->log_rrc_message(
-      "RRC NR Reconfiguration", Rx, nr_radio_bearer_cfg1_r15, radio_bearer_cfg, "Radio Bearer Config R15");
-
-  Info("Applying Radio Bearer Cfg");
-  if (!rrc_ptr->apply_radio_bearer_cfg(radio_bearer_cfg)) {
-    return proc_outcome_t::error;
-  }
- }
 
   return proc_outcome_t::success;
 }

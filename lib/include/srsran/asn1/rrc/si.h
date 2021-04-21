@@ -34,7 +34,7 @@ struct mib_s {
     enum options { n6, n15, n25, n50, n75, n100, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<dl_bw_opts> dl_bw_e_;
@@ -58,7 +58,7 @@ struct gnss_id_r15_s {
   struct gnss_id_r15_opts {
     enum options { gps, sbas, qzss, galileo, glonass, bds, /*...*/ nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<gnss_id_r15_opts, true> gnss_id_r15_e_;
 
@@ -78,7 +78,7 @@ struct sbas_id_r15_s {
   struct sbas_id_r15_opts {
     enum options { waas, egnos, msas, gagan, /*...*/ nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<sbas_id_r15_opts, true> sbas_id_r15_e_;
 
@@ -128,7 +128,7 @@ struct pos_sib_type_r15_s {
       nulltype
     } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<pos_sib_type_r15_opts, true> pos_sib_type_r15_e_;
 
@@ -156,7 +156,7 @@ struct plmn_id_info_v1530_s {
   struct cell_reserved_for_oper_crs_r15_opts {
     enum options { reserved, not_reserved, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<cell_reserved_for_oper_crs_r15_opts> cell_reserved_for_oper_crs_r15_e_;
 
@@ -175,7 +175,7 @@ struct pos_sched_info_r15_s {
     enum options { rf8, rf16, rf32, rf64, rf128, rf256, rf512, nulltype } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<pos_si_periodicity_r15_opts> pos_si_periodicity_r15_e_;
@@ -196,7 +196,7 @@ struct cell_sel_info_ce_v1530_s {
     enum options { db_minus6, db_minus3, db3, db6, db9, db12, nulltype } value;
     typedef int8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     int8_t      to_number() const;
   };
   typedef enumerated<pwr_class14dbm_offset_r15_opts> pwr_class14dbm_offset_r15_e_;
@@ -234,14 +234,14 @@ struct sib_type1_v1530_ies_s {
       enum options { n6, n24, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<crs_intf_mitig_num_prbs_opts> crs_intf_mitig_num_prbs_e_;
     struct types_opts {
       enum options { crs_intf_mitig_enabled, crs_intf_mitig_num_prbs, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -263,12 +263,8 @@ struct sib_type1_v1530_ies_s {
       assert_choice_type("crs-IntfMitigNumPRBs", type_.to_string(), "crs-IntfMitigConfig-r15");
       return c;
     }
-    void                        set_crs_intf_mitig_enabled() { set(types::crs_intf_mitig_enabled); }
-    crs_intf_mitig_num_prbs_e_& set_crs_intf_mitig_num_prbs()
-    {
-      set(types::crs_intf_mitig_num_prbs);
-      return c;
-    }
+    void                        set_crs_intf_mitig_enabled();
+    crs_intf_mitig_num_prbs_e_& set_crs_intf_mitig_num_prbs();
 
   private:
     types                      type_;
@@ -277,20 +273,20 @@ struct sib_type1_v1530_ies_s {
   struct cell_barred_crs_r15_opts {
     enum options { barred, not_barred, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<cell_barred_crs_r15_opts> cell_barred_crs_r15_e_;
   struct cell_access_related_info_minus5_gc_r15_s_ {
     struct cell_barred_minus5_gc_r15_opts {
       enum options { barred, not_barred, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<cell_barred_minus5_gc_r15_opts> cell_barred_minus5_gc_r15_e_;
     struct cell_barred_minus5_gc_crs_r15_opts {
       enum options { barred, not_barred, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<cell_barred_minus5_gc_crs_r15_opts> cell_barred_minus5_gc_crs_r15_e_;
     using cell_access_related_info_list_minus5_gc_r15_l_ = dyn_array<cell_access_related_info_minus5_gc_r15_s>;
@@ -410,7 +406,7 @@ struct sched_info_br_r13_s {
     enum options { b152, b208, b256, b328, b408, b504, b600, b712, b808, b936, nulltype } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<si_tbs_r13_opts> si_tbs_r13_e_;
@@ -445,16 +441,16 @@ struct barr_per_acdc_category_r13_s {
       enum options { p00, p05, p10, p15, p20, p25, p30, p40, p50, p60, p70, p75, p80, p85, p90, p95, nulltype } value;
       typedef float number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       float       to_number() const;
-      std::string to_number_string() const;
+      const char* to_number_string() const;
     };
     typedef enumerated<ac_barr_factor_r13_opts> ac_barr_factor_r13_e_;
     struct ac_barr_time_r13_opts {
       enum options { s4, s8, s16, s32, s64, s128, s256, s512, nulltype } value;
       typedef uint16_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint16_t    to_number() const;
     };
     typedef enumerated<ac_barr_time_r13_opts> ac_barr_time_r13_e_;
@@ -500,7 +496,7 @@ struct sib_type1_v1320_ies_s {
       enum options { nb2, nb4, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<mpdcch_pdsch_hop_nb_r13_opts> mpdcch_pdsch_hop_nb_r13_e_;
@@ -509,7 +505,7 @@ struct sib_type1_v1320_ies_s {
         enum options { int1, int2, int4, int8, nulltype } value;
         typedef uint8_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         uint8_t     to_number() const;
       };
       typedef enumerated<interv_fdd_r13_opts> interv_fdd_r13_e_;
@@ -517,14 +513,14 @@ struct sib_type1_v1320_ies_s {
         enum options { int1, int5, int10, int20, nulltype } value;
         typedef uint8_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         uint8_t     to_number() const;
       };
       typedef enumerated<interv_tdd_r13_opts> interv_tdd_r13_e_;
       struct types_opts {
         enum options { interv_fdd_r13, interv_tdd_r13, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -559,16 +555,8 @@ struct sib_type1_v1320_ies_s {
         assert_choice_type("interval-TDD-r13", type_.to_string(), "interval-DLHoppingConfigCommonModeA-r13");
         return c.get<interv_tdd_r13_e_>();
       }
-      interv_fdd_r13_e_& set_interv_fdd_r13()
-      {
-        set(types::interv_fdd_r13);
-        return c.get<interv_fdd_r13_e_>();
-      }
-      interv_tdd_r13_e_& set_interv_tdd_r13()
-      {
-        set(types::interv_tdd_r13);
-        return c.get<interv_tdd_r13_e_>();
-      }
+      interv_fdd_r13_e_& set_interv_fdd_r13();
+      interv_tdd_r13_e_& set_interv_tdd_r13();
 
     private:
       types               type_;
@@ -581,7 +569,7 @@ struct sib_type1_v1320_ies_s {
         enum options { int2, int4, int8, int16, nulltype } value;
         typedef uint8_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         uint8_t     to_number() const;
       };
       typedef enumerated<interv_fdd_r13_opts> interv_fdd_r13_e_;
@@ -589,14 +577,14 @@ struct sib_type1_v1320_ies_s {
         enum options { int5, int10, int20, int40, nulltype } value;
         typedef uint8_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         uint8_t     to_number() const;
       };
       typedef enumerated<interv_tdd_r13_opts> interv_tdd_r13_e_;
       struct types_opts {
         enum options { interv_fdd_r13, interv_tdd_r13, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -631,16 +619,8 @@ struct sib_type1_v1320_ies_s {
         assert_choice_type("interval-TDD-r13", type_.to_string(), "interval-DLHoppingConfigCommonModeB-r13");
         return c.get<interv_tdd_r13_e_>();
       }
-      interv_fdd_r13_e_& set_interv_fdd_r13()
-      {
-        set(types::interv_fdd_r13);
-        return c.get<interv_fdd_r13_e_>();
-      }
-      interv_tdd_r13_e_& set_interv_tdd_r13()
-      {
-        set(types::interv_tdd_r13);
-        return c.get<interv_tdd_r13_e_>();
-      }
+      interv_fdd_r13_e_& set_interv_fdd_r13();
+      interv_tdd_r13_e_& set_interv_tdd_r13();
 
     private:
       types               type_;
@@ -678,16 +658,16 @@ struct ac_barr_cfg_s {
     enum options { p00, p05, p10, p15, p20, p25, p30, p40, p50, p60, p70, p75, p80, p85, p90, p95, nulltype } value;
     typedef float number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     float       to_number() const;
-    std::string to_number_string() const;
+    const char* to_number_string() const;
   };
   typedef enumerated<ac_barr_factor_opts> ac_barr_factor_e_;
   struct ac_barr_time_opts {
     enum options { s4, s8, s16, s32, s64, s128, s256, s512, nulltype } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<ac_barr_time_opts> ac_barr_time_e_;
@@ -723,7 +703,7 @@ struct sib_type1_v1310_ies_s {
       enum options { ms20, ms40, ms60, ms80, ms120, ms160, ms200, spare, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<si_win_len_br_r13_opts> si_win_len_br_r13_e_;
@@ -731,7 +711,7 @@ struct sib_type1_v1310_ies_s {
       enum options { every_rf, every2nd_rf, every4th_rf, every8th_rf, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<si_repeat_pattern_r13_opts> si_repeat_pattern_r13_e_;
@@ -740,7 +720,7 @@ struct sib_type1_v1310_ies_s {
         enum options { sf_pattern10_r13, sf_pattern40_r13, nulltype } value;
         typedef uint8_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         uint8_t     to_number() const;
       };
       typedef enumerated<types_opts> types;
@@ -776,16 +756,8 @@ struct sib_type1_v1310_ies_s {
         assert_choice_type("subframePattern40-r13", type_.to_string(), "fdd-DownlinkOrTddSubframeBitmapBR-r13");
         return c.get<fixed_bitstring<40> >();
       }
-      fixed_bitstring<10>& set_sf_pattern10_r13()
-      {
-        set(types::sf_pattern10_r13);
-        return c.get<fixed_bitstring<10> >();
-      }
-      fixed_bitstring<40>& set_sf_pattern40_r13()
-      {
-        set(types::sf_pattern40_r13);
-        return c.get<fixed_bitstring<40> >();
-      }
+      fixed_bitstring<10>& set_sf_pattern10_r13();
+      fixed_bitstring<40>& set_sf_pattern40_r13();
 
     private:
       types                                 type_;
@@ -796,7 +768,7 @@ struct sib_type1_v1310_ies_s {
     struct si_hop_cfg_common_r13_opts {
       enum options { on, off, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<si_hop_cfg_common_r13_opts> si_hop_cfg_common_r13_e_;
 
@@ -839,7 +811,7 @@ struct udt_restricting_r13_s {
     enum options { s4, s8, s16, s32, s64, s128, s256, s512, nulltype } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<udt_restricting_time_r13_opts> udt_restricting_time_r13_e_;
@@ -959,7 +931,7 @@ struct sib_type_opts {
   } value;
   typedef uint8_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint8_t     to_number() const;
 };
 typedef enumerated<sib_type_opts, true, 6> sib_type_e;
@@ -1036,7 +1008,7 @@ struct si_periodicity_r12_opts {
   enum options { rf8, rf16, rf32, rf64, rf128, rf256, rf512, nulltype } value;
   typedef uint16_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint16_t    to_number() const;
 };
 typedef enumerated<si_periodicity_r12_opts> si_periodicity_r12_e;
@@ -1068,7 +1040,7 @@ struct ue_timers_and_consts_s {
     enum options { ms100, ms200, ms300, ms400, ms600, ms1000, ms1500, ms2000, nulltype } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<t300_opts> t300_e_;
@@ -1076,7 +1048,7 @@ struct ue_timers_and_consts_s {
     enum options { ms100, ms200, ms300, ms400, ms600, ms1000, ms1500, ms2000, nulltype } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<t301_opts> t301_e_;
@@ -1084,7 +1056,7 @@ struct ue_timers_and_consts_s {
     enum options { ms0, ms50, ms100, ms200, ms500, ms1000, ms2000, nulltype } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<t310_opts> t310_e_;
@@ -1092,7 +1064,7 @@ struct ue_timers_and_consts_s {
     enum options { n1, n2, n3, n4, n6, n8, n10, n20, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<n310_opts> n310_e_;
@@ -1100,7 +1072,7 @@ struct ue_timers_and_consts_s {
     enum options { ms1000, ms3000, ms5000, ms10000, ms15000, ms20000, ms30000, nulltype } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<t311_opts> t311_e_;
@@ -1108,7 +1080,7 @@ struct ue_timers_and_consts_s {
     enum options { n1, n2, n3, n4, n5, n6, n8, n10, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<n311_opts> n311_e_;
@@ -1116,7 +1088,7 @@ struct ue_timers_and_consts_s {
     enum options { ms2500, ms3000, ms3500, ms4000, ms5000, ms6000, ms8000, ms10000, nulltype } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<t300_v1310_opts> t300_v1310_e_;
@@ -1124,7 +1096,7 @@ struct ue_timers_and_consts_s {
     enum options { ms2500, ms3000, ms3500, ms4000, ms5000, ms6000, ms8000, ms10000, nulltype } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<t301_v1310_opts> t301_v1310_e_;
@@ -1132,7 +1104,7 @@ struct ue_timers_and_consts_s {
     enum options { ms4000, ms6000, nulltype } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<t310_v1330_opts> t310_v1330_e_;
@@ -1140,7 +1112,7 @@ struct ue_timers_and_consts_s {
     enum options { ms4000, ms6000, ms8000, ms10000, ms15000, ms25000, ms40000, ms60000, nulltype } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<t300_r15_opts> t300_r15_e_;
@@ -1211,7 +1183,7 @@ struct sib_type2_s {
       enum options { n6, n15, n25, n50, n75, n100, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<ul_bw_opts> ul_bw_e_;
@@ -1300,13 +1272,13 @@ struct sib_type1_s {
     struct cell_barred_opts {
       enum options { barred, not_barred, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<cell_barred_opts> cell_barred_e_;
     struct intra_freq_resel_opts {
       enum options { allowed, not_allowed, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<intra_freq_resel_opts> intra_freq_resel_e_;
 
@@ -1329,7 +1301,7 @@ struct sib_type1_s {
     enum options { ms1, ms2, ms5, ms10, ms15, ms20, ms40, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<si_win_len_opts> si_win_len_e_;

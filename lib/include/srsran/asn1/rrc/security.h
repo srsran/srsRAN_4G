@@ -34,7 +34,7 @@ struct security_algorithm_cfg_s {
     enum options { eia0_v920, eia1, eia2, eia3_v1130, spare4, spare3, spare2, spare1, /*...*/ nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<integrity_prot_algorithm_opts, true> integrity_prot_algorithm_e_;
@@ -71,7 +71,7 @@ struct security_cfg_ho_v1530_s {
     struct types_opts {
       enum options { intra5_gc_r15, fivegc_to_epc_r15, epc_to5_gc_r15, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -116,21 +116,9 @@ struct security_cfg_ho_v1530_s {
       assert_choice_type("epc-To5GC-r15", type_.to_string(), "handoverType-v1530");
       return c.get<epc_to5_gc_r15_s_>();
     }
-    intra5_gc_r15_s_& set_intra5_gc_r15()
-    {
-      set(types::intra5_gc_r15);
-      return c.get<intra5_gc_r15_s_>();
-    }
-    fivegc_to_epc_r15_s_& set_fivegc_to_epc_r15()
-    {
-      set(types::fivegc_to_epc_r15);
-      return c.get<fivegc_to_epc_r15_s_>();
-    }
-    epc_to5_gc_r15_s_& set_epc_to5_gc_r15()
-    {
-      set(types::epc_to5_gc_r15);
-      return c.get<epc_to5_gc_r15_s_>();
-    }
+    intra5_gc_r15_s_&     set_intra5_gc_r15();
+    fivegc_to_epc_r15_s_& set_fivegc_to_epc_r15();
+    epc_to5_gc_r15_s_&    set_epc_to5_gc_r15();
 
   private:
     types                                                                      type_;
@@ -166,7 +154,7 @@ struct security_cfg_ho_s {
     struct types_opts {
       enum options { intra_lte, inter_rat, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -201,16 +189,8 @@ struct security_cfg_ho_s {
       assert_choice_type("interRAT", type_.to_string(), "handoverType");
       return c.get<inter_rat_s_>();
     }
-    intra_lte_s_& set_intra_lte()
-    {
-      set(types::intra_lte);
-      return c.get<intra_lte_s_>();
-    }
-    inter_rat_s_& set_inter_rat()
-    {
-      set(types::inter_rat);
-      return c.get<inter_rat_s_>();
-    }
+    intra_lte_s_& set_intra_lte();
+    inter_rat_s_& set_inter_rat();
 
   private:
     types                                       type_;
@@ -273,7 +253,7 @@ struct security_mode_cmd_s {
       struct types_opts {
         enum options { security_mode_cmd_r8, spare3, spare2, spare1, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -295,14 +275,10 @@ struct security_mode_cmd_s {
         assert_choice_type("securityModeCommand-r8", type_.to_string(), "c1");
         return c;
       }
-      security_mode_cmd_r8_ies_s& set_security_mode_cmd_r8()
-      {
-        set(types::security_mode_cmd_r8);
-        return c;
-      }
-      void set_spare3() { set(types::spare3); }
-      void set_spare2() { set(types::spare2); }
-      void set_spare1() { set(types::spare1); }
+      security_mode_cmd_r8_ies_s& set_security_mode_cmd_r8();
+      void                        set_spare3();
+      void                        set_spare2();
+      void                        set_spare1();
 
     private:
       types                      type_;
@@ -328,12 +304,8 @@ struct security_mode_cmd_s {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
       return c;
     }
-    c1_c_& set_c1()
-    {
-      set(types::c1);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    c1_c_& set_c1();
+    void   set_crit_exts_future();
 
   private:
     types type_;
@@ -402,7 +374,7 @@ struct security_mode_complete_s {
     struct types_opts {
       enum options { security_mode_complete_r8, crit_exts_future, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -424,12 +396,8 @@ struct security_mode_complete_s {
       assert_choice_type("securityModeComplete-r8", type_.to_string(), "criticalExtensions");
       return c;
     }
-    security_mode_complete_r8_ies_s& set_security_mode_complete_r8()
-    {
-      set(types::security_mode_complete_r8);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    security_mode_complete_r8_ies_s& set_security_mode_complete_r8();
+    void                             set_crit_exts_future();
 
   private:
     types                           type_;
@@ -452,7 +420,7 @@ struct security_mode_fail_s {
     struct types_opts {
       enum options { security_mode_fail_r8, crit_exts_future, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -474,12 +442,8 @@ struct security_mode_fail_s {
       assert_choice_type("securityModeFailure-r8", type_.to_string(), "criticalExtensions");
       return c;
     }
-    security_mode_fail_r8_ies_s& set_security_mode_fail_r8()
-    {
-      set(types::security_mode_fail_r8);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    security_mode_fail_r8_ies_s& set_security_mode_fail_r8();
+    void                         set_crit_exts_future();
 
   private:
     types                       type_;

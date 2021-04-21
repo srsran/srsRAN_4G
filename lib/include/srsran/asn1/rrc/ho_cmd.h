@@ -115,7 +115,7 @@ struct scg_cfg_r12_s {
       struct types_opts {
         enum options { scg_cfg_r12, spare7, spare6, spare5, spare4, spare3, spare2, spare1, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -137,18 +137,14 @@ struct scg_cfg_r12_s {
         assert_choice_type("scg-Config-r12", type_.to_string(), "c1");
         return c;
       }
-      scg_cfg_r12_ies_s& set_scg_cfg_r12()
-      {
-        set(types::scg_cfg_r12);
-        return c;
-      }
-      void set_spare7() { set(types::spare7); }
-      void set_spare6() { set(types::spare6); }
-      void set_spare5() { set(types::spare5); }
-      void set_spare4() { set(types::spare4); }
-      void set_spare3() { set(types::spare3); }
-      void set_spare2() { set(types::spare2); }
-      void set_spare1() { set(types::spare1); }
+      scg_cfg_r12_ies_s& set_scg_cfg_r12();
+      void               set_spare7();
+      void               set_spare6();
+      void               set_spare5();
+      void               set_spare4();
+      void               set_spare3();
+      void               set_spare2();
+      void               set_spare1();
 
     private:
       types             type_;
@@ -174,12 +170,8 @@ struct scg_cfg_r12_s {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
       return c;
     }
-    c1_c_& set_c1()
-    {
-      set(types::c1);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    c1_c_& set_c1();
+    void   set_crit_exts_future();
 
   private:
     types type_;
@@ -435,7 +427,7 @@ struct ho_cmd_s {
       struct types_opts {
         enum options { ho_cmd_r8, spare7, spare6, spare5, spare4, spare3, spare2, spare1, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -457,18 +449,14 @@ struct ho_cmd_s {
         assert_choice_type("handoverCommand-r8", type_.to_string(), "c1");
         return c;
       }
-      ho_cmd_r8_ies_s& set_ho_cmd_r8()
-      {
-        set(types::ho_cmd_r8);
-        return c;
-      }
-      void set_spare7() { set(types::spare7); }
-      void set_spare6() { set(types::spare6); }
-      void set_spare5() { set(types::spare5); }
-      void set_spare4() { set(types::spare4); }
-      void set_spare3() { set(types::spare3); }
-      void set_spare2() { set(types::spare2); }
-      void set_spare1() { set(types::spare1); }
+      ho_cmd_r8_ies_s& set_ho_cmd_r8();
+      void             set_spare7();
+      void             set_spare6();
+      void             set_spare5();
+      void             set_spare4();
+      void             set_spare3();
+      void             set_spare2();
+      void             set_spare1();
 
     private:
       types           type_;
@@ -494,12 +482,8 @@ struct ho_cmd_s {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
       return c;
     }
-    c1_c_& set_c1()
-    {
-      set(types::c1);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    c1_c_& set_c1();
+    void   set_crit_exts_future();
 
   private:
     types type_;
@@ -628,7 +612,7 @@ struct ho_prep_info_v920_ies_s {
   struct ue_cfg_release_r9_opts {
     enum options { rel9, rel10, rel11, rel12, v10j0, v11e0, v1280, rel13, /*...*/ rel14, rel15, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<ue_cfg_release_r9_opts, true, 2> ue_cfg_release_r9_e_;
 
@@ -715,7 +699,7 @@ struct rrm_cfg_s {
       nulltype
     } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<ue_inactive_time_opts> ue_inactive_time_e_;
 
@@ -760,7 +744,7 @@ struct ho_prep_info_s {
       struct types_opts {
         enum options { ho_prep_info_r8, spare7, spare6, spare5, spare4, spare3, spare2, spare1, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -782,18 +766,14 @@ struct ho_prep_info_s {
         assert_choice_type("handoverPreparationInformation-r8", type_.to_string(), "c1");
         return c;
       }
-      ho_prep_info_r8_ies_s& set_ho_prep_info_r8()
-      {
-        set(types::ho_prep_info_r8);
-        return c;
-      }
-      void set_spare7() { set(types::spare7); }
-      void set_spare6() { set(types::spare6); }
-      void set_spare5() { set(types::spare5); }
-      void set_spare4() { set(types::spare4); }
-      void set_spare3() { set(types::spare3); }
-      void set_spare2() { set(types::spare2); }
-      void set_spare1() { set(types::spare1); }
+      ho_prep_info_r8_ies_s& set_ho_prep_info_r8();
+      void                   set_spare7();
+      void                   set_spare6();
+      void                   set_spare5();
+      void                   set_spare4();
+      void                   set_spare3();
+      void                   set_spare2();
+      void                   set_spare1();
 
     private:
       types                 type_;
@@ -819,12 +799,8 @@ struct ho_prep_info_s {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
       return c;
     }
-    c1_c_& set_c1()
-    {
-      set(types::c1);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    c1_c_& set_c1();
+    void   set_crit_exts_future();
 
   private:
     types type_;
@@ -918,12 +894,8 @@ struct var_meas_cfg_s {
       assert_choice_type("setup", type_.to_string(), "speedStatePars");
       return c;
     }
-    void      set_release() { set(types::release); }
-    setup_s_& set_setup()
-    {
-      set(types::setup);
-      return c;
-    }
+    void      set_release();
+    setup_s_& set_setup();
 
   private:
     types    type_;

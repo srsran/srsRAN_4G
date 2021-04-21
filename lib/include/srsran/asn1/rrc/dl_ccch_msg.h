@@ -147,14 +147,14 @@ struct rrc_conn_reject_v1130_ies_s {
     struct depriorit_type_r11_opts {
       enum options { freq, e_utra, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<depriorit_type_r11_opts> depriorit_type_r11_e_;
     struct depriorit_timer_r11_opts {
       enum options { min5, min10, min15, min30, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<depriorit_timer_r11_opts> depriorit_timer_r11_e_;
@@ -239,7 +239,7 @@ struct idle_mode_mob_ctrl_info_s {
     enum options { min5, min10, min20, min30, min60, min120, min180, spare1, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<t320_opts> t320_e_;
@@ -362,7 +362,7 @@ struct redirected_carrier_info_r15_ies_c {
       nulltype
     } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts> types;
 
@@ -437,36 +437,12 @@ struct redirected_carrier_info_r15_ies_c {
     assert_choice_type("utra-TDD-r15", type_.to_string(), "RedirectedCarrierInfo-r15-IEs");
     return c.get<carrier_freq_list_utra_tdd_r10_l>();
   }
-  uint32_t& set_eutra_r15()
-  {
-    set(types::eutra_r15);
-    return c.get<uint32_t>();
-  }
-  carrier_freqs_geran_s& set_geran_r15()
-  {
-    set(types::geran_r15);
-    return c.get<carrier_freqs_geran_s>();
-  }
-  uint16_t& set_utra_fdd_r15()
-  {
-    set(types::utra_fdd_r15);
-    return c.get<uint16_t>();
-  }
-  carrier_freq_cdma2000_s& set_cdma2000_hrpd_r15()
-  {
-    set(types::cdma2000_hrpd_r15);
-    return c.get<carrier_freq_cdma2000_s>();
-  }
-  carrier_freq_cdma2000_s& set_cdma2000_minus1x_rtt_r15()
-  {
-    set(types::cdma2000_minus1x_rtt_r15);
-    return c.get<carrier_freq_cdma2000_s>();
-  }
-  carrier_freq_list_utra_tdd_r10_l& set_utra_tdd_r15()
-  {
-    set(types::utra_tdd_r15);
-    return c.get<carrier_freq_list_utra_tdd_r10_l>();
-  }
+  uint32_t&                         set_eutra_r15();
+  carrier_freqs_geran_s&            set_geran_r15();
+  uint16_t&                         set_utra_fdd_r15();
+  carrier_freq_cdma2000_s&          set_cdma2000_hrpd_r15();
+  carrier_freq_cdma2000_s&          set_cdma2000_minus1x_rtt_r15();
+  carrier_freq_list_utra_tdd_r10_l& set_utra_tdd_r15();
 
 private:
   types                                                                                             type_;
@@ -551,7 +527,7 @@ struct rrc_conn_reest_s {
       struct types_opts {
         enum options { rrc_conn_reest_r8, spare7, spare6, spare5, spare4, spare3, spare2, spare1, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -573,18 +549,14 @@ struct rrc_conn_reest_s {
         assert_choice_type("rrcConnectionReestablishment-r8", type_.to_string(), "c1");
         return c;
       }
-      rrc_conn_reest_r8_ies_s& set_rrc_conn_reest_r8()
-      {
-        set(types::rrc_conn_reest_r8);
-        return c;
-      }
-      void set_spare7() { set(types::spare7); }
-      void set_spare6() { set(types::spare6); }
-      void set_spare5() { set(types::spare5); }
-      void set_spare4() { set(types::spare4); }
-      void set_spare3() { set(types::spare3); }
-      void set_spare2() { set(types::spare2); }
-      void set_spare1() { set(types::spare1); }
+      rrc_conn_reest_r8_ies_s& set_rrc_conn_reest_r8();
+      void                     set_spare7();
+      void                     set_spare6();
+      void                     set_spare5();
+      void                     set_spare4();
+      void                     set_spare3();
+      void                     set_spare2();
+      void                     set_spare1();
 
     private:
       types                   type_;
@@ -610,12 +582,8 @@ struct rrc_conn_reest_s {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
       return c;
     }
-    c1_c_& set_c1()
-    {
-      set(types::c1);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    c1_c_& set_c1();
+    void   set_crit_exts_future();
 
   private:
     types type_;
@@ -638,7 +606,7 @@ struct rrc_conn_reest_reject_s {
     struct types_opts {
       enum options { rrc_conn_reest_reject_r8, crit_exts_future, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -660,12 +628,8 @@ struct rrc_conn_reest_reject_s {
       assert_choice_type("rrcConnectionReestablishmentReject-r8", type_.to_string(), "criticalExtensions");
       return c;
     }
-    rrc_conn_reest_reject_r8_ies_s& set_rrc_conn_reest_reject_r8()
-    {
-      set(types::rrc_conn_reest_reject_r8);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    rrc_conn_reest_reject_r8_ies_s& set_rrc_conn_reest_reject_r8();
+    void                            set_crit_exts_future();
 
   private:
     types                          type_;
@@ -688,7 +652,7 @@ struct rrc_conn_reject_s {
       struct types_opts {
         enum options { rrc_conn_reject_r8, spare3, spare2, spare1, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -710,14 +674,10 @@ struct rrc_conn_reject_s {
         assert_choice_type("rrcConnectionReject-r8", type_.to_string(), "c1");
         return c;
       }
-      rrc_conn_reject_r8_ies_s& set_rrc_conn_reject_r8()
-      {
-        set(types::rrc_conn_reject_r8);
-        return c;
-      }
-      void set_spare3() { set(types::spare3); }
-      void set_spare2() { set(types::spare2); }
-      void set_spare1() { set(types::spare1); }
+      rrc_conn_reject_r8_ies_s& set_rrc_conn_reject_r8();
+      void                      set_spare3();
+      void                      set_spare2();
+      void                      set_spare1();
 
     private:
       types                    type_;
@@ -743,12 +703,8 @@ struct rrc_conn_reject_s {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
       return c;
     }
-    c1_c_& set_c1()
-    {
-      set(types::c1);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    c1_c_& set_c1();
+    void   set_crit_exts_future();
 
   private:
     types type_;
@@ -771,7 +727,7 @@ struct rrc_conn_setup_s {
       struct types_opts {
         enum options { rrc_conn_setup_r8, spare7, spare6, spare5, spare4, spare3, spare2, spare1, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -793,18 +749,14 @@ struct rrc_conn_setup_s {
         assert_choice_type("rrcConnectionSetup-r8", type_.to_string(), "c1");
         return c;
       }
-      rrc_conn_setup_r8_ies_s& set_rrc_conn_setup_r8()
-      {
-        set(types::rrc_conn_setup_r8);
-        return c;
-      }
-      void set_spare7() { set(types::spare7); }
-      void set_spare6() { set(types::spare6); }
-      void set_spare5() { set(types::spare5); }
-      void set_spare4() { set(types::spare4); }
-      void set_spare3() { set(types::spare3); }
-      void set_spare2() { set(types::spare2); }
-      void set_spare1() { set(types::spare1); }
+      rrc_conn_setup_r8_ies_s& set_rrc_conn_setup_r8();
+      void                     set_spare7();
+      void                     set_spare6();
+      void                     set_spare5();
+      void                     set_spare4();
+      void                     set_spare3();
+      void                     set_spare2();
+      void                     set_spare1();
 
     private:
       types                   type_;
@@ -830,12 +782,8 @@ struct rrc_conn_setup_s {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
       return c;
     }
-    c1_c_& set_c1()
-    {
-      set(types::c1);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    c1_c_& set_c1();
+    void   set_crit_exts_future();
 
   private:
     types type_;
@@ -858,7 +806,7 @@ struct rrc_early_data_complete_r15_s {
     struct types_opts {
       enum options { rrc_early_data_complete_r15, crit_exts_future, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -880,12 +828,8 @@ struct rrc_early_data_complete_r15_s {
       assert_choice_type("rrcEarlyDataComplete-r15", type_.to_string(), "criticalExtensions");
       return c;
     }
-    rrc_early_data_complete_r15_ies_s& set_rrc_early_data_complete_r15()
-    {
-      set(types::rrc_early_data_complete_r15);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    rrc_early_data_complete_r15_ies_s& set_rrc_early_data_complete_r15();
+    void                               set_crit_exts_future();
 
   private:
     types                             type_;
@@ -907,7 +851,7 @@ struct dl_ccch_msg_type_c {
     struct types_opts {
       enum options { rrc_conn_reest, rrc_conn_reest_reject, rrc_conn_reject, rrc_conn_setup, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -962,26 +906,10 @@ struct dl_ccch_msg_type_c {
       assert_choice_type("rrcConnectionSetup", type_.to_string(), "c1");
       return c.get<rrc_conn_setup_s>();
     }
-    rrc_conn_reest_s& set_rrc_conn_reest()
-    {
-      set(types::rrc_conn_reest);
-      return c.get<rrc_conn_reest_s>();
-    }
-    rrc_conn_reest_reject_s& set_rrc_conn_reest_reject()
-    {
-      set(types::rrc_conn_reest_reject);
-      return c.get<rrc_conn_reest_reject_s>();
-    }
-    rrc_conn_reject_s& set_rrc_conn_reject()
-    {
-      set(types::rrc_conn_reject);
-      return c.get<rrc_conn_reject_s>();
-    }
-    rrc_conn_setup_s& set_rrc_conn_setup()
-    {
-      set(types::rrc_conn_setup);
-      return c.get<rrc_conn_setup_s>();
-    }
+    rrc_conn_reest_s&        set_rrc_conn_reest();
+    rrc_conn_reest_reject_s& set_rrc_conn_reest_reject();
+    rrc_conn_reject_s&       set_rrc_conn_reject();
+    rrc_conn_setup_s&        set_rrc_conn_setup();
 
   private:
     types                                                                                           type_;
@@ -994,7 +922,7 @@ struct dl_ccch_msg_type_c {
       struct types_opts {
         enum options { rrc_early_data_complete_r15, spare3, spare2, spare1, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -1016,14 +944,10 @@ struct dl_ccch_msg_type_c {
         assert_choice_type("rrcEarlyDataComplete-r15", type_.to_string(), "c2");
         return c;
       }
-      rrc_early_data_complete_r15_s& set_rrc_early_data_complete_r15()
-      {
-        set(types::rrc_early_data_complete_r15);
-        return c;
-      }
-      void set_spare3() { set(types::spare3); }
-      void set_spare2() { set(types::spare2); }
-      void set_spare1() { set(types::spare1); }
+      rrc_early_data_complete_r15_s& set_rrc_early_data_complete_r15();
+      void                           set_spare3();
+      void                           set_spare2();
+      void                           set_spare1();
 
     private:
       types                         type_;
@@ -1033,7 +957,7 @@ struct dl_ccch_msg_type_c {
       enum options { c2, msg_class_ext_future_r15, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<types_opts> types;
@@ -1056,12 +980,8 @@ struct dl_ccch_msg_type_c {
       assert_choice_type("c2", type_.to_string(), "messageClassExtension");
       return c;
     }
-    c2_c_& set_c2()
-    {
-      set(types::c2);
-      return c;
-    }
-    void set_msg_class_ext_future_r15() { set(types::msg_class_ext_future_r15); }
+    c2_c_& set_c2();
+    void   set_msg_class_ext_future_r15();
 
   private:
     types type_;
@@ -1071,7 +991,7 @@ struct dl_ccch_msg_type_c {
     enum options { c1, msg_class_ext, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<types_opts> types;
@@ -1107,16 +1027,8 @@ struct dl_ccch_msg_type_c {
     assert_choice_type("messageClassExtension", type_.to_string(), "DL-CCCH-MessageType");
     return c.get<msg_class_ext_c_>();
   }
-  c1_c_& set_c1()
-  {
-    set(types::c1);
-    return c.get<c1_c_>();
-  }
-  msg_class_ext_c_& set_msg_class_ext()
-  {
-    set(types::msg_class_ext);
-    return c.get<msg_class_ext_c_>();
-  }
+  c1_c_&            set_c1();
+  msg_class_ext_c_& set_msg_class_ext();
 
 private:
   types                                    type_;
