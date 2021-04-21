@@ -605,6 +605,10 @@ void ra_proc::update_rar_window(int& rar_window_start, int& rar_window_length)
 void ra_proc::harq_retx()
 {
   task_queue.push([this]() {
+    if (state != CONTENTION_RESOLUTION) {
+      rWarning("Ignore HARQ retx when not in contention resolution.");
+      return;
+    }
     rInfo("Restarting ContentionResolutionTimer=%d ms", contention_resolution_timer.duration());
     contention_resolution_timer.run();
   });
@@ -614,6 +618,10 @@ void ra_proc::harq_retx()
 void ra_proc::harq_max_retx()
 {
   task_queue.push([this]() {
+    if (state != CONTENTION_RESOLUTION) {
+      rWarning("Ignore HARQ retx when not in contention resolution.");
+      return;
+    }
     rWarning("Contention Resolution is considered not successful. Stopping PDCCH Search and going to Response Error");
     response_error();
   });
