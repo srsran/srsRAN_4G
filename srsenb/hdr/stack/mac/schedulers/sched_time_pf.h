@@ -72,8 +72,12 @@ private:
   struct ue_ul_prio_compare {
     bool operator()(const ue_ctxt* lhs, const ue_ctxt* rhs) const;
   };
-  std::priority_queue<ue_ctxt*, std::vector<ue_ctxt*>, ue_dl_prio_compare> dl_queue;
-  std::priority_queue<ue_ctxt*, std::vector<ue_ctxt*>, ue_ul_prio_compare> ul_queue;
+
+  using ue_dl_queue_t = std::priority_queue<ue_ctxt*, std::vector<ue_ctxt*>, ue_dl_prio_compare>;
+  using ue_ul_queue_t = std::priority_queue<ue_ctxt*, std::vector<ue_ctxt*>, ue_ul_prio_compare>;
+
+  ue_dl_queue_t dl_queue;
+  ue_ul_queue_t ul_queue;
 
   uint32_t try_dl_alloc(ue_ctxt& ue_ctxt, sched_ue& ue, sf_sched* tti_sched);
   uint32_t try_ul_alloc(ue_ctxt& ue_ctxt, sched_ue& ue, sf_sched* tti_sched);

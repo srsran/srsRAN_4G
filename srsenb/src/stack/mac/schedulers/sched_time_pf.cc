@@ -11,6 +11,7 @@
  */
 
 #include "srsenb/hdr/stack/mac/schedulers/sched_time_pf.h"
+#include <vector>
 
 namespace srsenb {
 
@@ -22,6 +23,14 @@ sched_time_pf::sched_time_pf(const sched_cell_params_t& cell_params_, const sche
   if (not sched_args.sched_policy_args.empty()) {
     fairness_coeff = std::stof(sched_args.sched_policy_args);
   }
+
+  std::vector<ue_ctxt *> dl_storage;
+  dl_storage.reserve(SRSENB_MAX_UES);
+  dl_queue = ue_dl_queue_t(ue_dl_prio_compare{}, std::move(dl_storage));
+
+  std::vector<ue_ctxt *> ul_storage;
+  ul_storage.reserve(SRSENB_MAX_UES);
+  ul_queue = ue_ul_queue_t(ue_ul_prio_compare{}, std::move(ul_storage));
 }
 
 void sched_time_pf::new_tti(sched_ue_list& ue_db, sf_sched* tti_sched)
