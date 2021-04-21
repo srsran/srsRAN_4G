@@ -763,7 +763,7 @@ void pdcp_entity_lte::notify_failure(const pdcp_sn_vector_t& pdcp_sns)
  ***************************************************************************/
 bool pdcp_entity_lte::check_valid_config()
 {
-  if (cfg.sn_len != PDCP_SN_LEN_5 && cfg.sn_len != PDCP_SN_LEN_7 && cfg.sn_len != PDCP_SN_LEN_12) {
+  if (cfg.sn_len != PDCP_SN_LEN_5 && cfg.sn_len != PDCP_SN_LEN_7 && cfg.sn_len != PDCP_SN_LEN_12 && cfg.sn_len != PDCP_SN_LEN_18) {
     logger.error("Trying to configure bearer with invalid SN LEN=%d", cfg.sn_len);
     return false;
   }
