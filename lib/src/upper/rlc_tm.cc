@@ -152,7 +152,7 @@ int rlc_tm::read_pdu(uint8_t* payload, uint32_t nof_bytes)
                 pdu_size,
                 "%s Tx %s PDU, queue size=%d, bytes=%d",
                 rrc->get_rb_name(lcid),
-                srsran::to_string(rlc_mode_t::tm).c_str(),
+                srsran::to_string(rlc_mode_t::tm),
                 ul_queue.size(),
                 ul_queue.size_bytes());
 

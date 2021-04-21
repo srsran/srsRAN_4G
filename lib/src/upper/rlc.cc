@@ -462,8 +462,7 @@ void rlc::add_bearer(uint32_t lcid, const rlc_config_t& cnfg)
       goto delete_and_exit;
     }
 
-    logger.info(
-        "Added %s radio bearer with LCID %d in %s", to_string(cnfg.rat), lcid, to_string(cnfg.rlc_mode).c_str());
+    logger.info("Added %s radio bearer with LCID %d in %s", to_string(cnfg.rat), lcid, to_string(cnfg.rlc_mode));
     rlc_entity = NULL;
   }
 
@@ -475,8 +474,7 @@ void rlc::add_bearer(uint32_t lcid, const rlc_config_t& cnfg)
     }
   }
 
-  logger.info(
-      "Configured %s radio bearer with LCID %d in %s", to_string(cnfg.rat), lcid, to_string(cnfg.rlc_mode).c_str());
+  logger.info("Configured %s radio bearer with LCID %d in %s", to_string(cnfg.rat), lcid, to_string(cnfg.rlc_mode));
 
 delete_and_exit:
   if (rlc_entity) {
