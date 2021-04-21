@@ -255,12 +255,12 @@ struct sib_type1_v1530_ies_s {
     // getters
     crs_intf_mitig_num_prbs_e_& crs_intf_mitig_num_prbs()
     {
-      assert_choice_type("crs-IntfMitigNumPRBs", type_.to_string(), "crs-IntfMitigConfig-r15");
+      assert_choice_type(types::crs_intf_mitig_num_prbs, type_, "crs-IntfMitigConfig-r15");
       return c;
     }
     const crs_intf_mitig_num_prbs_e_& crs_intf_mitig_num_prbs() const
     {
-      assert_choice_type("crs-IntfMitigNumPRBs", type_.to_string(), "crs-IntfMitigConfig-r15");
+      assert_choice_type(types::crs_intf_mitig_num_prbs, type_, "crs-IntfMitigConfig-r15");
       return c;
     }
     void                        set_crs_intf_mitig_enabled();
@@ -537,22 +537,22 @@ struct sib_type1_v1320_ies_s {
       // getters
       interv_fdd_r13_e_& interv_fdd_r13()
       {
-        assert_choice_type("interval-FDD-r13", type_.to_string(), "interval-DLHoppingConfigCommonModeA-r13");
+        assert_choice_type(types::interv_fdd_r13, type_, "interval-DLHoppingConfigCommonModeA-r13");
         return c.get<interv_fdd_r13_e_>();
       }
       interv_tdd_r13_e_& interv_tdd_r13()
       {
-        assert_choice_type("interval-TDD-r13", type_.to_string(), "interval-DLHoppingConfigCommonModeA-r13");
+        assert_choice_type(types::interv_tdd_r13, type_, "interval-DLHoppingConfigCommonModeA-r13");
         return c.get<interv_tdd_r13_e_>();
       }
       const interv_fdd_r13_e_& interv_fdd_r13() const
       {
-        assert_choice_type("interval-FDD-r13", type_.to_string(), "interval-DLHoppingConfigCommonModeA-r13");
+        assert_choice_type(types::interv_fdd_r13, type_, "interval-DLHoppingConfigCommonModeA-r13");
         return c.get<interv_fdd_r13_e_>();
       }
       const interv_tdd_r13_e_& interv_tdd_r13() const
       {
-        assert_choice_type("interval-TDD-r13", type_.to_string(), "interval-DLHoppingConfigCommonModeA-r13");
+        assert_choice_type(types::interv_tdd_r13, type_, "interval-DLHoppingConfigCommonModeA-r13");
         return c.get<interv_tdd_r13_e_>();
       }
       interv_fdd_r13_e_& set_interv_fdd_r13();
@@ -601,22 +601,22 @@ struct sib_type1_v1320_ies_s {
       // getters
       interv_fdd_r13_e_& interv_fdd_r13()
       {
-        assert_choice_type("interval-FDD-r13", type_.to_string(), "interval-DLHoppingConfigCommonModeB-r13");
+        assert_choice_type(types::interv_fdd_r13, type_, "interval-DLHoppingConfigCommonModeB-r13");
         return c.get<interv_fdd_r13_e_>();
       }
       interv_tdd_r13_e_& interv_tdd_r13()
       {
-        assert_choice_type("interval-TDD-r13", type_.to_string(), "interval-DLHoppingConfigCommonModeB-r13");
+        assert_choice_type(types::interv_tdd_r13, type_, "interval-DLHoppingConfigCommonModeB-r13");
         return c.get<interv_tdd_r13_e_>();
       }
       const interv_fdd_r13_e_& interv_fdd_r13() const
       {
-        assert_choice_type("interval-FDD-r13", type_.to_string(), "interval-DLHoppingConfigCommonModeB-r13");
+        assert_choice_type(types::interv_fdd_r13, type_, "interval-DLHoppingConfigCommonModeB-r13");
         return c.get<interv_fdd_r13_e_>();
       }
       const interv_tdd_r13_e_& interv_tdd_r13() const
       {
-        assert_choice_type("interval-TDD-r13", type_.to_string(), "interval-DLHoppingConfigCommonModeB-r13");
+        assert_choice_type(types::interv_tdd_r13, type_, "interval-DLHoppingConfigCommonModeB-r13");
         return c.get<interv_tdd_r13_e_>();
       }
       interv_fdd_r13_e_& set_interv_fdd_r13();
@@ -738,22 +738,22 @@ struct sib_type1_v1310_ies_s {
       // getters
       fixed_bitstring<10>& sf_pattern10_r13()
       {
-        assert_choice_type("subframePattern10-r13", type_.to_string(), "fdd-DownlinkOrTddSubframeBitmapBR-r13");
+        assert_choice_type(types::sf_pattern10_r13, type_, "fdd-DownlinkOrTddSubframeBitmapBR-r13");
         return c.get<fixed_bitstring<10> >();
       }
       fixed_bitstring<40>& sf_pattern40_r13()
       {
-        assert_choice_type("subframePattern40-r13", type_.to_string(), "fdd-DownlinkOrTddSubframeBitmapBR-r13");
+        assert_choice_type(types::sf_pattern40_r13, type_, "fdd-DownlinkOrTddSubframeBitmapBR-r13");
         return c.get<fixed_bitstring<40> >();
       }
       const fixed_bitstring<10>& sf_pattern10_r13() const
       {
-        assert_choice_type("subframePattern10-r13", type_.to_string(), "fdd-DownlinkOrTddSubframeBitmapBR-r13");
+        assert_choice_type(types::sf_pattern10_r13, type_, "fdd-DownlinkOrTddSubframeBitmapBR-r13");
         return c.get<fixed_bitstring<10> >();
       }
       const fixed_bitstring<40>& sf_pattern40_r13() const
       {
-        assert_choice_type("subframePattern40-r13", type_.to_string(), "fdd-DownlinkOrTddSubframeBitmapBR-r13");
+        assert_choice_type(types::sf_pattern40_r13, type_, "fdd-DownlinkOrTddSubframeBitmapBR-r13");
         return c.get<fixed_bitstring<40> >();
       }
       fixed_bitstring<10>& set_sf_pattern10_r13();

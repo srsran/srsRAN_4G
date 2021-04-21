@@ -189,22 +189,22 @@ struct dl_bitmap_nb_r13_c {
   // getters
   fixed_bitstring<10>& sf_pattern10_r13()
   {
-    assert_choice_type("subframePattern10-r13", type_.to_string(), "DL-Bitmap-NB-r13");
+    assert_choice_type(types::sf_pattern10_r13, type_, "DL-Bitmap-NB-r13");
     return c.get<fixed_bitstring<10> >();
   }
   fixed_bitstring<40>& sf_pattern40_r13()
   {
-    assert_choice_type("subframePattern40-r13", type_.to_string(), "DL-Bitmap-NB-r13");
+    assert_choice_type(types::sf_pattern40_r13, type_, "DL-Bitmap-NB-r13");
     return c.get<fixed_bitstring<40> >();
   }
   const fixed_bitstring<10>& sf_pattern10_r13() const
   {
-    assert_choice_type("subframePattern10-r13", type_.to_string(), "DL-Bitmap-NB-r13");
+    assert_choice_type(types::sf_pattern10_r13, type_, "DL-Bitmap-NB-r13");
     return c.get<fixed_bitstring<10> >();
   }
   const fixed_bitstring<40>& sf_pattern40_r13() const
   {
-    assert_choice_type("subframePattern40-r13", type_.to_string(), "DL-Bitmap-NB-r13");
+    assert_choice_type(types::sf_pattern40_r13, type_, "DL-Bitmap-NB-r13");
     return c.get<fixed_bitstring<40> >();
   }
   fixed_bitstring<10>& set_sf_pattern10_r13();
@@ -326,12 +326,12 @@ struct dl_carrier_cfg_ded_nb_r13_s {
     // getters
     dl_bitmap_nb_r13_c& explicit_bitmap_cfg_r13()
     {
-      assert_choice_type("explicitBitmapConfiguration-r13", type_.to_string(), "downlinkBitmapNonAnchor-r13");
+      assert_choice_type(types::explicit_bitmap_cfg_r13, type_, "downlinkBitmapNonAnchor-r13");
       return c;
     }
     const dl_bitmap_nb_r13_c& explicit_bitmap_cfg_r13() const
     {
-      assert_choice_type("explicitBitmapConfiguration-r13", type_.to_string(), "downlinkBitmapNonAnchor-r13");
+      assert_choice_type(types::explicit_bitmap_cfg_r13, type_, "downlinkBitmapNonAnchor-r13");
       return c;
     }
     void                set_use_no_bitmap_r13();
@@ -361,12 +361,12 @@ struct dl_carrier_cfg_ded_nb_r13_s {
     // getters
     dl_gap_cfg_nb_r13_s& explicit_gap_cfg_r13()
     {
-      assert_choice_type("explicitGapConfiguration-r13", type_.to_string(), "dl-GapNonAnchor-r13");
+      assert_choice_type(types::explicit_gap_cfg_r13, type_, "dl-GapNonAnchor-r13");
       return c;
     }
     const dl_gap_cfg_nb_r13_s& explicit_gap_cfg_r13() const
     {
-      assert_choice_type("explicitGapConfiguration-r13", type_.to_string(), "dl-GapNonAnchor-r13");
+      assert_choice_type(types::explicit_gap_cfg_r13, type_, "dl-GapNonAnchor-r13");
       return c;
     }
     void                 set_use_no_gap_r13();
@@ -416,22 +416,22 @@ struct dl_carrier_cfg_ded_nb_r13_s {
       // getters
       same_pci_r13_s_& same_pci_r13()
       {
-        assert_choice_type("samePCI-r13", type_.to_string(), "samePCI-Indicator-r13");
+        assert_choice_type(types::same_pci_r13, type_, "samePCI-Indicator-r13");
         return c.get<same_pci_r13_s_>();
       }
       different_pci_r13_s_& different_pci_r13()
       {
-        assert_choice_type("differentPCI-r13", type_.to_string(), "samePCI-Indicator-r13");
+        assert_choice_type(types::different_pci_r13, type_, "samePCI-Indicator-r13");
         return c.get<different_pci_r13_s_>();
       }
       const same_pci_r13_s_& same_pci_r13() const
       {
-        assert_choice_type("samePCI-r13", type_.to_string(), "samePCI-Indicator-r13");
+        assert_choice_type(types::same_pci_r13, type_, "samePCI-Indicator-r13");
         return c.get<same_pci_r13_s_>();
       }
       const different_pci_r13_s_& different_pci_r13() const
       {
-        assert_choice_type("differentPCI-r13", type_.to_string(), "samePCI-Indicator-r13");
+        assert_choice_type(types::different_pci_r13, type_, "samePCI-Indicator-r13");
         return c.get<different_pci_r13_s_>();
       }
       same_pci_r13_s_&      set_same_pci_r13();
@@ -551,12 +551,12 @@ struct pdcp_cfg_nb_r13_s {
     // getters
     rohc_s_& rohc()
     {
-      assert_choice_type("rohc", type_.to_string(), "headerCompression-r13");
+      assert_choice_type(types::rohc, type_, "headerCompression-r13");
       return c;
     }
     const rohc_s_& rohc() const
     {
-      assert_choice_type("rohc", type_.to_string(), "headerCompression-r13");
+      assert_choice_type(types::rohc, type_, "headerCompression-r13");
       return c;
     }
     void     set_not_used();
@@ -603,12 +603,12 @@ struct rlc_cfg_nb_r13_c {
   // getters
   am_s_& am()
   {
-    assert_choice_type("am", type_.to_string(), "RLC-Config-NB-r13");
+    assert_choice_type(types::am, type_, "RLC-Config-NB-r13");
     return c;
   }
   const am_s_& am() const
   {
-    assert_choice_type("am", type_.to_string(), "RLC-Config-NB-r13");
+    assert_choice_type(types::am, type_, "RLC-Config-NB-r13");
     return c;
   }
   am_s_& set_am();
@@ -657,22 +657,22 @@ struct sr_nprach_res_nb_r15_s {
     // getters
     uint8_t& nprach_fmt0_fmt1_r15()
     {
-      assert_choice_type("nprach-Fmt0Fmt1-r15", type_.to_string(), "nprach-SubCarrierIndex-r15");
+      assert_choice_type(types::nprach_fmt0_fmt1_r15, type_, "nprach-SubCarrierIndex-r15");
       return c.get<uint8_t>();
     }
     uint8_t& nprach_fmt2_r15()
     {
-      assert_choice_type("nprach-Fmt2-r15", type_.to_string(), "nprach-SubCarrierIndex-r15");
+      assert_choice_type(types::nprach_fmt2_r15, type_, "nprach-SubCarrierIndex-r15");
       return c.get<uint8_t>();
     }
     const uint8_t& nprach_fmt0_fmt1_r15() const
     {
-      assert_choice_type("nprach-Fmt0Fmt1-r15", type_.to_string(), "nprach-SubCarrierIndex-r15");
+      assert_choice_type(types::nprach_fmt0_fmt1_r15, type_, "nprach-SubCarrierIndex-r15");
       return c.get<uint8_t>();
     }
     const uint8_t& nprach_fmt2_r15() const
     {
-      assert_choice_type("nprach-Fmt2-r15", type_.to_string(), "nprach-SubCarrierIndex-r15");
+      assert_choice_type(types::nprach_fmt2_r15, type_, "nprach-SubCarrierIndex-r15");
       return c.get<uint8_t>();
     }
     uint8_t& set_nprach_fmt0_fmt1_r15();
@@ -877,12 +877,12 @@ struct drx_cfg_nb_r13_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "DRX-Config-NB-r13");
+    assert_choice_type(types::setup, type_, "DRX-Config-NB-r13");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "DRX-Config-NB-r13");
+    assert_choice_type(types::setup, type_, "DRX-Config-NB-r13");
     return c;
   }
   void      set_release();
@@ -1033,12 +1033,12 @@ struct sr_sps_bsr_cfg_nb_r15_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "SR-SPS-BSR-Config-NB-r15");
+    assert_choice_type(types::setup, type_, "SR-SPS-BSR-Config-NB-r15");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "SR-SPS-BSR-Config-NB-r15");
+    assert_choice_type(types::setup, type_, "SR-SPS-BSR-Config-NB-r15");
     return c;
   }
   void      set_release();
@@ -1069,12 +1069,12 @@ struct sr_without_harq_ack_cfg_nb_r15_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "SR-WithoutHARQ-ACK-Config-NB-r15");
+    assert_choice_type(types::setup, type_, "SR-WithoutHARQ-ACK-Config-NB-r15");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "SR-WithoutHARQ-ACK-Config-NB-r15");
+    assert_choice_type(types::setup, type_, "SR-WithoutHARQ-ACK-Config-NB-r15");
     return c;
   }
   void      set_release();
@@ -1105,12 +1105,12 @@ struct srb_to_add_mod_nb_r13_s {
     // getters
     rlc_cfg_nb_r13_c& explicit_value()
     {
-      assert_choice_type("explicitValue", type_.to_string(), "rlc-Config-r13");
+      assert_choice_type(types::explicit_value, type_, "rlc-Config-r13");
       return c;
     }
     const rlc_cfg_nb_r13_c& explicit_value() const
     {
-      assert_choice_type("explicitValue", type_.to_string(), "rlc-Config-r13");
+      assert_choice_type(types::explicit_value, type_, "rlc-Config-r13");
       return c;
     }
     rlc_cfg_nb_r13_c& set_explicit_value();
@@ -1138,12 +1138,12 @@ struct srb_to_add_mod_nb_r13_s {
     // getters
     lc_ch_cfg_nb_r13_s& explicit_value()
     {
-      assert_choice_type("explicitValue", type_.to_string(), "logicalChannelConfig-r13");
+      assert_choice_type(types::explicit_value, type_, "logicalChannelConfig-r13");
       return c;
     }
     const lc_ch_cfg_nb_r13_s& explicit_value() const
     {
-      assert_choice_type("explicitValue", type_.to_string(), "logicalChannelConfig-r13");
+      assert_choice_type(types::explicit_value, type_, "logicalChannelConfig-r13");
       return c;
     }
     lc_ch_cfg_nb_r13_s& set_explicit_value();
@@ -1219,12 +1219,12 @@ struct mac_main_cfg_nb_r13_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "logicalChannelSR-Config-r13");
+      assert_choice_type(types::setup, type_, "logicalChannelSR-Config-r13");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "logicalChannelSR-Config-r13");
+      assert_choice_type(types::setup, type_, "logicalChannelSR-Config-r13");
       return c;
     }
     void      set_release();
@@ -1250,12 +1250,12 @@ struct mac_main_cfg_nb_r13_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "dataInactivityTimerConfig-r14");
+      assert_choice_type(types::setup, type_, "dataInactivityTimerConfig-r14");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "dataInactivityTimerConfig-r14");
+      assert_choice_type(types::setup, type_, "dataInactivityTimerConfig-r14");
       return c;
     }
     void      set_release();
@@ -1428,12 +1428,12 @@ struct rlf_timers_and_consts_nb_r13_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "RLF-TimersAndConstants-NB-r13");
+    assert_choice_type(types::setup, type_, "RLF-TimersAndConstants-NB-r13");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "RLF-TimersAndConstants-NB-r13");
+    assert_choice_type(types::setup, type_, "RLF-TimersAndConstants-NB-r13");
     return c;
   }
   void      set_release();
@@ -1483,12 +1483,12 @@ struct rr_cfg_ded_nb_r13_s {
     // getters
     mac_main_cfg_nb_r13_s& explicit_value_r13()
     {
-      assert_choice_type("explicitValue-r13", type_.to_string(), "mac-MainConfig-r13");
+      assert_choice_type(types::explicit_value_r13, type_, "mac-MainConfig-r13");
       return c;
     }
     const mac_main_cfg_nb_r13_s& explicit_value_r13() const
     {
-      assert_choice_type("explicitValue-r13", type_.to_string(), "mac-MainConfig-r13");
+      assert_choice_type(types::explicit_value_r13, type_, "mac-MainConfig-r13");
       return c;
     }
     mac_main_cfg_nb_r13_s& set_explicit_value_r13();
@@ -1660,42 +1660,42 @@ struct mib_nb_s {
     // getters
     inband_same_pci_nb_r13_s& inband_same_pci_r13()
     {
-      assert_choice_type("inband-SamePCI-r13", type_.to_string(), "operationModeInfo-r13");
+      assert_choice_type(types::inband_same_pci_r13, type_, "operationModeInfo-r13");
       return c.get<inband_same_pci_nb_r13_s>();
     }
     inband_different_pci_nb_r13_s& inband_different_pci_r13()
     {
-      assert_choice_type("inband-DifferentPCI-r13", type_.to_string(), "operationModeInfo-r13");
+      assert_choice_type(types::inband_different_pci_r13, type_, "operationModeInfo-r13");
       return c.get<inband_different_pci_nb_r13_s>();
     }
     guardband_nb_r13_s& guardband_r13()
     {
-      assert_choice_type("guardband-r13", type_.to_string(), "operationModeInfo-r13");
+      assert_choice_type(types::guardband_r13, type_, "operationModeInfo-r13");
       return c.get<guardband_nb_r13_s>();
     }
     standalone_nb_r13_s& standalone_r13()
     {
-      assert_choice_type("standalone-r13", type_.to_string(), "operationModeInfo-r13");
+      assert_choice_type(types::standalone_r13, type_, "operationModeInfo-r13");
       return c.get<standalone_nb_r13_s>();
     }
     const inband_same_pci_nb_r13_s& inband_same_pci_r13() const
     {
-      assert_choice_type("inband-SamePCI-r13", type_.to_string(), "operationModeInfo-r13");
+      assert_choice_type(types::inband_same_pci_r13, type_, "operationModeInfo-r13");
       return c.get<inband_same_pci_nb_r13_s>();
     }
     const inband_different_pci_nb_r13_s& inband_different_pci_r13() const
     {
-      assert_choice_type("inband-DifferentPCI-r13", type_.to_string(), "operationModeInfo-r13");
+      assert_choice_type(types::inband_different_pci_r13, type_, "operationModeInfo-r13");
       return c.get<inband_different_pci_nb_r13_s>();
     }
     const guardband_nb_r13_s& guardband_r13() const
     {
-      assert_choice_type("guardband-r13", type_.to_string(), "operationModeInfo-r13");
+      assert_choice_type(types::guardband_r13, type_, "operationModeInfo-r13");
       return c.get<guardband_nb_r13_s>();
     }
     const standalone_nb_r13_s& standalone_r13() const
     {
-      assert_choice_type("standalone-r13", type_.to_string(), "operationModeInfo-r13");
+      assert_choice_type(types::standalone_r13, type_, "operationModeInfo-r13");
       return c.get<standalone_nb_r13_s>();
     }
     inband_same_pci_nb_r13_s&      set_inband_same_pci_r13();
@@ -1826,42 +1826,42 @@ struct guardband_tdd_nb_r15_s {
     // getters
     sib_guardband_anchor_tdd_nb_r15_s& sib_guardband_anchor_r15()
     {
-      assert_choice_type("sib-GuardbandAnchor-r15", type_.to_string(), "sib-GuardbandInfo-r15");
+      assert_choice_type(types::sib_guardband_anchor_r15, type_, "sib-GuardbandInfo-r15");
       return c.get<sib_guardband_anchor_tdd_nb_r15_s>();
     }
     sib_guardband_guardband_tdd_nb_r15_s& sib_guardband_guardband_r15()
     {
-      assert_choice_type("sib-GuardbandGuardband-r15", type_.to_string(), "sib-GuardbandInfo-r15");
+      assert_choice_type(types::sib_guardband_guardband_r15, type_, "sib-GuardbandInfo-r15");
       return c.get<sib_guardband_guardband_tdd_nb_r15_s>();
     }
     sib_guardband_inband_same_pci_tdd_nb_r15_s& sib_guardband_inband_same_pci_r15()
     {
-      assert_choice_type("sib-GuardbandInbandSamePCI-r15", type_.to_string(), "sib-GuardbandInfo-r15");
+      assert_choice_type(types::sib_guardband_inband_same_pci_r15, type_, "sib-GuardbandInfo-r15");
       return c.get<sib_guardband_inband_same_pci_tdd_nb_r15_s>();
     }
     sib_guardband_inband_diff_pci_tdd_nb_r15_s& sib_guardbandinband_diff_pci_r15()
     {
-      assert_choice_type("sib-GuardbandinbandDiffPCI-r15", type_.to_string(), "sib-GuardbandInfo-r15");
+      assert_choice_type(types::sib_guardbandinband_diff_pci_r15, type_, "sib-GuardbandInfo-r15");
       return c.get<sib_guardband_inband_diff_pci_tdd_nb_r15_s>();
     }
     const sib_guardband_anchor_tdd_nb_r15_s& sib_guardband_anchor_r15() const
     {
-      assert_choice_type("sib-GuardbandAnchor-r15", type_.to_string(), "sib-GuardbandInfo-r15");
+      assert_choice_type(types::sib_guardband_anchor_r15, type_, "sib-GuardbandInfo-r15");
       return c.get<sib_guardband_anchor_tdd_nb_r15_s>();
     }
     const sib_guardband_guardband_tdd_nb_r15_s& sib_guardband_guardband_r15() const
     {
-      assert_choice_type("sib-GuardbandGuardband-r15", type_.to_string(), "sib-GuardbandInfo-r15");
+      assert_choice_type(types::sib_guardband_guardband_r15, type_, "sib-GuardbandInfo-r15");
       return c.get<sib_guardband_guardband_tdd_nb_r15_s>();
     }
     const sib_guardband_inband_same_pci_tdd_nb_r15_s& sib_guardband_inband_same_pci_r15() const
     {
-      assert_choice_type("sib-GuardbandInbandSamePCI-r15", type_.to_string(), "sib-GuardbandInfo-r15");
+      assert_choice_type(types::sib_guardband_inband_same_pci_r15, type_, "sib-GuardbandInfo-r15");
       return c.get<sib_guardband_inband_same_pci_tdd_nb_r15_s>();
     }
     const sib_guardband_inband_diff_pci_tdd_nb_r15_s& sib_guardbandinband_diff_pci_r15() const
     {
-      assert_choice_type("sib-GuardbandinbandDiffPCI-r15", type_.to_string(), "sib-GuardbandInfo-r15");
+      assert_choice_type(types::sib_guardbandinband_diff_pci_r15, type_, "sib-GuardbandInfo-r15");
       return c.get<sib_guardband_inband_diff_pci_tdd_nb_r15_s>();
     }
     sib_guardband_anchor_tdd_nb_r15_s&          set_sib_guardband_anchor_r15();
@@ -1991,42 +1991,42 @@ struct mib_tdd_nb_r15_s {
     // getters
     inband_same_pci_tdd_nb_r15_s& inband_same_pci_r15()
     {
-      assert_choice_type("inband-SamePCI-r15", type_.to_string(), "operationModeInfo-r15");
+      assert_choice_type(types::inband_same_pci_r15, type_, "operationModeInfo-r15");
       return c.get<inband_same_pci_tdd_nb_r15_s>();
     }
     inband_different_pci_tdd_nb_r15_s& inband_different_pci_r15()
     {
-      assert_choice_type("inband-DifferentPCI-r15", type_.to_string(), "operationModeInfo-r15");
+      assert_choice_type(types::inband_different_pci_r15, type_, "operationModeInfo-r15");
       return c.get<inband_different_pci_tdd_nb_r15_s>();
     }
     guardband_tdd_nb_r15_s& guardband_r15()
     {
-      assert_choice_type("guardband-r15", type_.to_string(), "operationModeInfo-r15");
+      assert_choice_type(types::guardband_r15, type_, "operationModeInfo-r15");
       return c.get<guardband_tdd_nb_r15_s>();
     }
     standalone_tdd_nb_r15_s& standalone_r15()
     {
-      assert_choice_type("standalone-r15", type_.to_string(), "operationModeInfo-r15");
+      assert_choice_type(types::standalone_r15, type_, "operationModeInfo-r15");
       return c.get<standalone_tdd_nb_r15_s>();
     }
     const inband_same_pci_tdd_nb_r15_s& inband_same_pci_r15() const
     {
-      assert_choice_type("inband-SamePCI-r15", type_.to_string(), "operationModeInfo-r15");
+      assert_choice_type(types::inband_same_pci_r15, type_, "operationModeInfo-r15");
       return c.get<inband_same_pci_tdd_nb_r15_s>();
     }
     const inband_different_pci_tdd_nb_r15_s& inband_different_pci_r15() const
     {
-      assert_choice_type("inband-DifferentPCI-r15", type_.to_string(), "operationModeInfo-r15");
+      assert_choice_type(types::inband_different_pci_r15, type_, "operationModeInfo-r15");
       return c.get<inband_different_pci_tdd_nb_r15_s>();
     }
     const guardband_tdd_nb_r15_s& guardband_r15() const
     {
-      assert_choice_type("guardband-r15", type_.to_string(), "operationModeInfo-r15");
+      assert_choice_type(types::guardband_r15, type_, "operationModeInfo-r15");
       return c.get<guardband_tdd_nb_r15_s>();
     }
     const standalone_tdd_nb_r15_s& standalone_r15() const
     {
-      assert_choice_type("standalone-r15", type_.to_string(), "operationModeInfo-r15");
+      assert_choice_type(types::standalone_r15, type_, "operationModeInfo-r15");
       return c.get<standalone_tdd_nb_r15_s>();
     }
     inband_same_pci_tdd_nb_r15_s&      set_inband_same_pci_r15();
@@ -2884,12 +2884,12 @@ struct dl_carrier_cfg_common_nb_r14_s {
     // getters
     dl_bitmap_nb_r13_c& explicit_bitmap_cfg_r14()
     {
-      assert_choice_type("explicitBitmapConfiguration-r14", type_.to_string(), "downlinkBitmapNonAnchor-r14");
+      assert_choice_type(types::explicit_bitmap_cfg_r14, type_, "downlinkBitmapNonAnchor-r14");
       return c;
     }
     const dl_bitmap_nb_r13_c& explicit_bitmap_cfg_r14() const
     {
-      assert_choice_type("explicitBitmapConfiguration-r14", type_.to_string(), "downlinkBitmapNonAnchor-r14");
+      assert_choice_type(types::explicit_bitmap_cfg_r14, type_, "downlinkBitmapNonAnchor-r14");
       return c;
     }
     void                set_use_no_bitmap_r14();
@@ -2918,12 +2918,12 @@ struct dl_carrier_cfg_common_nb_r14_s {
     // getters
     dl_gap_cfg_nb_r13_s& explicit_gap_cfg_r14()
     {
-      assert_choice_type("explicitGapConfiguration-r14", type_.to_string(), "dl-GapNonAnchor-r14");
+      assert_choice_type(types::explicit_gap_cfg_r14, type_, "dl-GapNonAnchor-r14");
       return c;
     }
     const dl_gap_cfg_nb_r13_s& explicit_gap_cfg_r14() const
     {
-      assert_choice_type("explicitGapConfiguration-r14", type_.to_string(), "dl-GapNonAnchor-r14");
+      assert_choice_type(types::explicit_gap_cfg_r14, type_, "dl-GapNonAnchor-r14");
       return c;
     }
     void                 set_use_no_gap_r14();
@@ -2972,22 +2972,22 @@ struct dl_carrier_cfg_common_nb_r14_s {
       // getters
       same_pci_r14_s_& same_pci_r14()
       {
-        assert_choice_type("samePCI-r14", type_.to_string(), "samePCI-Indicator-r14");
+        assert_choice_type(types::same_pci_r14, type_, "samePCI-Indicator-r14");
         return c.get<same_pci_r14_s_>();
       }
       different_pci_r14_s_& different_pci_r14()
       {
-        assert_choice_type("differentPCI-r14", type_.to_string(), "samePCI-Indicator-r14");
+        assert_choice_type(types::different_pci_r14, type_, "samePCI-Indicator-r14");
         return c.get<different_pci_r14_s_>();
       }
       const same_pci_r14_s_& same_pci_r14() const
       {
-        assert_choice_type("samePCI-r14", type_.to_string(), "samePCI-Indicator-r14");
+        assert_choice_type(types::same_pci_r14, type_, "samePCI-Indicator-r14");
         return c.get<same_pci_r14_s_>();
       }
       const different_pci_r14_s_& different_pci_r14() const
       {
-        assert_choice_type("differentPCI-r14", type_.to_string(), "samePCI-Indicator-r14");
+        assert_choice_type(types::different_pci_r14, type_, "samePCI-Indicator-r14");
         return c.get<different_pci_r14_s_>();
       }
       same_pci_r14_s_&      set_same_pci_r14();
@@ -4147,162 +4147,162 @@ struct sc_mcch_sched_info_nb_r14_s {
     // getters
     uint8_t& sf10()
     {
-      assert_choice_type("sf10", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf10, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     uint8_t& sf20()
     {
-      assert_choice_type("sf20", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf20, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     uint8_t& sf32()
     {
-      assert_choice_type("sf32", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf32, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     uint8_t& sf40()
     {
-      assert_choice_type("sf40", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf40, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     uint8_t& sf64()
     {
-      assert_choice_type("sf64", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf64, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     uint8_t& sf80()
     {
-      assert_choice_type("sf80", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf80, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     uint8_t& sf128()
     {
-      assert_choice_type("sf128", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf128, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     uint8_t& sf160()
     {
-      assert_choice_type("sf160", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf160, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     uint16_t& sf256()
     {
-      assert_choice_type("sf256", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf256, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     uint16_t& sf320()
     {
-      assert_choice_type("sf320", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf320, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     uint16_t& sf512()
     {
-      assert_choice_type("sf512", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf512, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     uint16_t& sf640()
     {
-      assert_choice_type("sf640", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf640, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     uint16_t& sf1024()
     {
-      assert_choice_type("sf1024", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf1024, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     uint16_t& sf2048()
     {
-      assert_choice_type("sf2048", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf2048, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     uint16_t& sf4096()
     {
-      assert_choice_type("sf4096", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf4096, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     uint16_t& sf8192()
     {
-      assert_choice_type("sf8192", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf8192, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     const uint8_t& sf10() const
     {
-      assert_choice_type("sf10", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf10, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     const uint8_t& sf20() const
     {
-      assert_choice_type("sf20", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf20, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     const uint8_t& sf32() const
     {
-      assert_choice_type("sf32", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf32, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     const uint8_t& sf40() const
     {
-      assert_choice_type("sf40", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf40, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     const uint8_t& sf64() const
     {
-      assert_choice_type("sf64", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf64, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     const uint8_t& sf80() const
     {
-      assert_choice_type("sf80", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf80, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     const uint8_t& sf128() const
     {
-      assert_choice_type("sf128", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf128, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     const uint8_t& sf160() const
     {
-      assert_choice_type("sf160", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf160, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     const uint16_t& sf256() const
     {
-      assert_choice_type("sf256", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf256, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     const uint16_t& sf320() const
     {
-      assert_choice_type("sf320", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf320, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     const uint16_t& sf512() const
     {
-      assert_choice_type("sf512", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf512, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     const uint16_t& sf640() const
     {
-      assert_choice_type("sf640", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf640, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     const uint16_t& sf1024() const
     {
-      assert_choice_type("sf1024", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf1024, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     const uint16_t& sf2048() const
     {
-      assert_choice_type("sf2048", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf2048, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     const uint16_t& sf4096() const
     {
-      assert_choice_type("sf4096", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf4096, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     const uint16_t& sf8192() const
     {
-      assert_choice_type("sf8192", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf8192, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     uint8_t&  set_sf10();
@@ -4631,22 +4631,22 @@ struct sib_type14_nb_r13_s {
     // getters
     ab_cfg_nb_r13_s& ab_common_r13()
     {
-      assert_choice_type("ab-Common-r13", type_.to_string(), "ab-Param-r13");
+      assert_choice_type(types::ab_common_r13, type_, "ab-Param-r13");
       return c.get<ab_cfg_nb_r13_s>();
     }
     ab_per_plmn_list_r13_l_& ab_per_plmn_list_r13()
     {
-      assert_choice_type("ab-PerPLMN-List-r13", type_.to_string(), "ab-Param-r13");
+      assert_choice_type(types::ab_per_plmn_list_r13, type_, "ab-Param-r13");
       return c.get<ab_per_plmn_list_r13_l_>();
     }
     const ab_cfg_nb_r13_s& ab_common_r13() const
     {
-      assert_choice_type("ab-Common-r13", type_.to_string(), "ab-Param-r13");
+      assert_choice_type(types::ab_common_r13, type_, "ab-Param-r13");
       return c.get<ab_cfg_nb_r13_s>();
     }
     const ab_per_plmn_list_r13_l_& ab_per_plmn_list_r13() const
     {
-      assert_choice_type("ab-PerPLMN-List-r13", type_.to_string(), "ab-Param-r13");
+      assert_choice_type(types::ab_per_plmn_list_r13, type_, "ab-Param-r13");
       return c.get<ab_per_plmn_list_r13_l_>();
     }
     ab_cfg_nb_r13_s&         set_ab_common_r13();
@@ -4764,22 +4764,22 @@ struct sib_type20_nb_r14_s {
     // getters
     dl_carrier_cfg_common_nb_r14_s& dl_carrier_cfg_r14()
     {
-      assert_choice_type("dl-CarrierConfig-r14", type_.to_string(), "sc-mcch-CarrierConfig-r14");
+      assert_choice_type(types::dl_carrier_cfg_r14, type_, "sc-mcch-CarrierConfig-r14");
       return c.get<dl_carrier_cfg_common_nb_r14_s>();
     }
     uint8_t& dl_carrier_idx_r14()
     {
-      assert_choice_type("dl-CarrierIndex-r14", type_.to_string(), "sc-mcch-CarrierConfig-r14");
+      assert_choice_type(types::dl_carrier_idx_r14, type_, "sc-mcch-CarrierConfig-r14");
       return c.get<uint8_t>();
     }
     const dl_carrier_cfg_common_nb_r14_s& dl_carrier_cfg_r14() const
     {
-      assert_choice_type("dl-CarrierConfig-r14", type_.to_string(), "sc-mcch-CarrierConfig-r14");
+      assert_choice_type(types::dl_carrier_cfg_r14, type_, "sc-mcch-CarrierConfig-r14");
       return c.get<dl_carrier_cfg_common_nb_r14_s>();
     }
     const uint8_t& dl_carrier_idx_r14() const
     {
-      assert_choice_type("dl-CarrierIndex-r14", type_.to_string(), "sc-mcch-CarrierConfig-r14");
+      assert_choice_type(types::dl_carrier_idx_r14, type_, "sc-mcch-CarrierConfig-r14");
       return c.get<uint8_t>();
     }
     dl_carrier_cfg_common_nb_r14_s& set_dl_carrier_cfg_r14();
@@ -5058,102 +5058,102 @@ struct sys_info_nb_r13_ies_s {
     // getters
     sib_type2_nb_r13_s& sib2_r13()
     {
-      assert_choice_type("sib2-r13", type_.to_string(), "sib-TypeAndInfo-r13-item");
+      assert_choice_type(types::sib2_r13, type_, "sib-TypeAndInfo-r13-item");
       return c.get<sib_type2_nb_r13_s>();
     }
     sib_type3_nb_r13_s& sib3_r13()
     {
-      assert_choice_type("sib3-r13", type_.to_string(), "sib-TypeAndInfo-r13-item");
+      assert_choice_type(types::sib3_r13, type_, "sib-TypeAndInfo-r13-item");
       return c.get<sib_type3_nb_r13_s>();
     }
     sib_type4_nb_r13_s& sib4_r13()
     {
-      assert_choice_type("sib4-r13", type_.to_string(), "sib-TypeAndInfo-r13-item");
+      assert_choice_type(types::sib4_r13, type_, "sib-TypeAndInfo-r13-item");
       return c.get<sib_type4_nb_r13_s>();
     }
     sib_type5_nb_r13_s& sib5_r13()
     {
-      assert_choice_type("sib5-r13", type_.to_string(), "sib-TypeAndInfo-r13-item");
+      assert_choice_type(types::sib5_r13, type_, "sib-TypeAndInfo-r13-item");
       return c.get<sib_type5_nb_r13_s>();
     }
     sib_type14_nb_r13_s& sib14_r13()
     {
-      assert_choice_type("sib14-r13", type_.to_string(), "sib-TypeAndInfo-r13-item");
+      assert_choice_type(types::sib14_r13, type_, "sib-TypeAndInfo-r13-item");
       return c.get<sib_type14_nb_r13_s>();
     }
     sib_type16_nb_r13_s& sib16_r13()
     {
-      assert_choice_type("sib16-r13", type_.to_string(), "sib-TypeAndInfo-r13-item");
+      assert_choice_type(types::sib16_r13, type_, "sib-TypeAndInfo-r13-item");
       return c.get<sib_type16_nb_r13_s>();
     }
     sib_type15_nb_r14_s& sib15_v1430()
     {
-      assert_choice_type("sib15-v1430", type_.to_string(), "sib-TypeAndInfo-r13-item");
+      assert_choice_type(types::sib15_v1430, type_, "sib-TypeAndInfo-r13-item");
       return c.get<sib_type15_nb_r14_s>();
     }
     sib_type20_nb_r14_s& sib20_v1430()
     {
-      assert_choice_type("sib20-v1430", type_.to_string(), "sib-TypeAndInfo-r13-item");
+      assert_choice_type(types::sib20_v1430, type_, "sib-TypeAndInfo-r13-item");
       return c.get<sib_type20_nb_r14_s>();
     }
     sib_type22_nb_r14_s& sib22_v1430()
     {
-      assert_choice_type("sib22-v1430", type_.to_string(), "sib-TypeAndInfo-r13-item");
+      assert_choice_type(types::sib22_v1430, type_, "sib-TypeAndInfo-r13-item");
       return c.get<sib_type22_nb_r14_s>();
     }
     sib_type23_nb_r15_s& sib23_v1530()
     {
-      assert_choice_type("sib23-v1530", type_.to_string(), "sib-TypeAndInfo-r13-item");
+      assert_choice_type(types::sib23_v1530, type_, "sib-TypeAndInfo-r13-item");
       return c.get<sib_type23_nb_r15_s>();
     }
     const sib_type2_nb_r13_s& sib2_r13() const
     {
-      assert_choice_type("sib2-r13", type_.to_string(), "sib-TypeAndInfo-r13-item");
+      assert_choice_type(types::sib2_r13, type_, "sib-TypeAndInfo-r13-item");
       return c.get<sib_type2_nb_r13_s>();
     }
     const sib_type3_nb_r13_s& sib3_r13() const
     {
-      assert_choice_type("sib3-r13", type_.to_string(), "sib-TypeAndInfo-r13-item");
+      assert_choice_type(types::sib3_r13, type_, "sib-TypeAndInfo-r13-item");
       return c.get<sib_type3_nb_r13_s>();
     }
     const sib_type4_nb_r13_s& sib4_r13() const
     {
-      assert_choice_type("sib4-r13", type_.to_string(), "sib-TypeAndInfo-r13-item");
+      assert_choice_type(types::sib4_r13, type_, "sib-TypeAndInfo-r13-item");
       return c.get<sib_type4_nb_r13_s>();
     }
     const sib_type5_nb_r13_s& sib5_r13() const
     {
-      assert_choice_type("sib5-r13", type_.to_string(), "sib-TypeAndInfo-r13-item");
+      assert_choice_type(types::sib5_r13, type_, "sib-TypeAndInfo-r13-item");
       return c.get<sib_type5_nb_r13_s>();
     }
     const sib_type14_nb_r13_s& sib14_r13() const
     {
-      assert_choice_type("sib14-r13", type_.to_string(), "sib-TypeAndInfo-r13-item");
+      assert_choice_type(types::sib14_r13, type_, "sib-TypeAndInfo-r13-item");
       return c.get<sib_type14_nb_r13_s>();
     }
     const sib_type16_nb_r13_s& sib16_r13() const
     {
-      assert_choice_type("sib16-r13", type_.to_string(), "sib-TypeAndInfo-r13-item");
+      assert_choice_type(types::sib16_r13, type_, "sib-TypeAndInfo-r13-item");
       return c.get<sib_type16_nb_r13_s>();
     }
     const sib_type15_nb_r14_s& sib15_v1430() const
     {
-      assert_choice_type("sib15-v1430", type_.to_string(), "sib-TypeAndInfo-r13-item");
+      assert_choice_type(types::sib15_v1430, type_, "sib-TypeAndInfo-r13-item");
       return c.get<sib_type15_nb_r14_s>();
     }
     const sib_type20_nb_r14_s& sib20_v1430() const
     {
-      assert_choice_type("sib20-v1430", type_.to_string(), "sib-TypeAndInfo-r13-item");
+      assert_choice_type(types::sib20_v1430, type_, "sib-TypeAndInfo-r13-item");
       return c.get<sib_type20_nb_r14_s>();
     }
     const sib_type22_nb_r14_s& sib22_v1430() const
     {
-      assert_choice_type("sib22-v1430", type_.to_string(), "sib-TypeAndInfo-r13-item");
+      assert_choice_type(types::sib22_v1430, type_, "sib-TypeAndInfo-r13-item");
       return c.get<sib_type22_nb_r14_s>();
     }
     const sib_type23_nb_r15_s& sib23_v1530() const
     {
-      assert_choice_type("sib23-v1530", type_.to_string(), "sib-TypeAndInfo-r13-item");
+      assert_choice_type(types::sib23_v1530, type_, "sib-TypeAndInfo-r13-item");
       return c.get<sib_type23_nb_r15_s>();
     }
     sib_type2_nb_r13_s&  set_sib2_r13();
@@ -5230,12 +5230,12 @@ struct sys_info_nb_s {
     // getters
     sys_info_nb_r13_ies_s& sys_info_r13()
     {
-      assert_choice_type("systemInformation-r13", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::sys_info_r13, type_, "criticalExtensions");
       return c;
     }
     const sys_info_nb_r13_ies_s& sys_info_r13() const
     {
-      assert_choice_type("systemInformation-r13", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::sys_info_r13, type_, "criticalExtensions");
       return c;
     }
     sys_info_nb_r13_ies_s& set_sys_info_r13();
@@ -5385,22 +5385,22 @@ struct bcch_dl_sch_msg_type_nb_c {
     // getters
     sys_info_nb_s& sys_info_r13()
     {
-      assert_choice_type("systemInformation-r13", type_.to_string(), "c1");
+      assert_choice_type(types::sys_info_r13, type_, "c1");
       return c.get<sys_info_nb_s>();
     }
     sib_type1_nb_s& sib_type1_r13()
     {
-      assert_choice_type("systemInformationBlockType1-r13", type_.to_string(), "c1");
+      assert_choice_type(types::sib_type1_r13, type_, "c1");
       return c.get<sib_type1_nb_s>();
     }
     const sys_info_nb_s& sys_info_r13() const
     {
-      assert_choice_type("systemInformation-r13", type_.to_string(), "c1");
+      assert_choice_type(types::sys_info_r13, type_, "c1");
       return c.get<sys_info_nb_s>();
     }
     const sib_type1_nb_s& sib_type1_r13() const
     {
-      assert_choice_type("systemInformationBlockType1-r13", type_.to_string(), "c1");
+      assert_choice_type(types::sib_type1_r13, type_, "c1");
       return c.get<sib_type1_nb_s>();
     }
     sys_info_nb_s&  set_sys_info_r13();
@@ -5431,12 +5431,12 @@ struct bcch_dl_sch_msg_type_nb_c {
   // getters
   c1_c_& c1()
   {
-    assert_choice_type("c1", type_.to_string(), "BCCH-DL-SCH-MessageType-NB");
+    assert_choice_type(types::c1, type_, "BCCH-DL-SCH-MessageType-NB");
     return c;
   }
   const c1_c_& c1() const
   {
-    assert_choice_type("c1", type_.to_string(), "BCCH-DL-SCH-MessageType-NB");
+    assert_choice_type(types::c1, type_, "BCCH-DL-SCH-MessageType-NB");
     return c;
   }
   c1_c_& set_c1();
@@ -5613,12 +5613,12 @@ struct rrc_conn_reest_nb_s {
       // getters
       rrc_conn_reest_nb_r13_ies_s& rrc_conn_reest_r13()
       {
-        assert_choice_type("rrcConnectionReestablishment-r13", type_.to_string(), "c1");
+        assert_choice_type(types::rrc_conn_reest_r13, type_, "c1");
         return c;
       }
       const rrc_conn_reest_nb_r13_ies_s& rrc_conn_reest_r13() const
       {
-        assert_choice_type("rrcConnectionReestablishment-r13", type_.to_string(), "c1");
+        assert_choice_type(types::rrc_conn_reest_r13, type_, "c1");
         return c;
       }
       rrc_conn_reest_nb_r13_ies_s& set_rrc_conn_reest_r13();
@@ -5640,12 +5640,12 @@ struct rrc_conn_reest_nb_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     c1_c_& set_c1();
@@ -5687,12 +5687,12 @@ struct rrc_conn_reject_nb_s {
       // getters
       rrc_conn_reject_nb_r13_ies_s& rrc_conn_reject_r13()
       {
-        assert_choice_type("rrcConnectionReject-r13", type_.to_string(), "c1");
+        assert_choice_type(types::rrc_conn_reject_r13, type_, "c1");
         return c;
       }
       const rrc_conn_reject_nb_r13_ies_s& rrc_conn_reject_r13() const
       {
-        assert_choice_type("rrcConnectionReject-r13", type_.to_string(), "c1");
+        assert_choice_type(types::rrc_conn_reject_r13, type_, "c1");
         return c;
       }
       rrc_conn_reject_nb_r13_ies_s& set_rrc_conn_reject_r13();
@@ -5714,12 +5714,12 @@ struct rrc_conn_reject_nb_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     c1_c_& set_c1();
@@ -5760,12 +5760,12 @@ struct rrc_conn_setup_nb_s {
       // getters
       rrc_conn_setup_nb_r13_ies_s& rrc_conn_setup_r13()
       {
-        assert_choice_type("rrcConnectionSetup-r13", type_.to_string(), "c1");
+        assert_choice_type(types::rrc_conn_setup_r13, type_, "c1");
         return c;
       }
       const rrc_conn_setup_nb_r13_ies_s& rrc_conn_setup_r13() const
       {
-        assert_choice_type("rrcConnectionSetup-r13", type_.to_string(), "c1");
+        assert_choice_type(types::rrc_conn_setup_r13, type_, "c1");
         return c;
       }
       rrc_conn_setup_nb_r13_ies_s& set_rrc_conn_setup_r13();
@@ -5787,12 +5787,12 @@ struct rrc_conn_setup_nb_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     c1_c_& set_c1();
@@ -5833,12 +5833,12 @@ struct rrc_early_data_complete_nb_r15_s {
     // getters
     rrc_early_data_complete_nb_r15_ies_s& rrc_early_data_complete_r15()
     {
-      assert_choice_type("rrcEarlyDataComplete-r15", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_early_data_complete_r15, type_, "criticalExtensions");
       return c;
     }
     const rrc_early_data_complete_nb_r15_ies_s& rrc_early_data_complete_r15() const
     {
-      assert_choice_type("rrcEarlyDataComplete-r15", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_early_data_complete_r15, type_, "criticalExtensions");
       return c;
     }
     rrc_early_data_complete_nb_r15_ies_s& set_rrc_early_data_complete_r15();
@@ -5891,52 +5891,52 @@ struct dl_ccch_msg_type_nb_c {
     // getters
     rrc_conn_reest_nb_s& rrc_conn_reest_r13()
     {
-      assert_choice_type("rrcConnectionReestablishment-r13", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_reest_r13, type_, "c1");
       return c.get<rrc_conn_reest_nb_s>();
     }
     rrc_conn_reest_reject_s& rrc_conn_reest_reject_r13()
     {
-      assert_choice_type("rrcConnectionReestablishmentReject-r13", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_reest_reject_r13, type_, "c1");
       return c.get<rrc_conn_reest_reject_s>();
     }
     rrc_conn_reject_nb_s& rrc_conn_reject_r13()
     {
-      assert_choice_type("rrcConnectionReject-r13", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_reject_r13, type_, "c1");
       return c.get<rrc_conn_reject_nb_s>();
     }
     rrc_conn_setup_nb_s& rrc_conn_setup_r13()
     {
-      assert_choice_type("rrcConnectionSetup-r13", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_setup_r13, type_, "c1");
       return c.get<rrc_conn_setup_nb_s>();
     }
     rrc_early_data_complete_nb_r15_s& rrc_early_data_complete_r15()
     {
-      assert_choice_type("rrcEarlyDataComplete-r15", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_early_data_complete_r15, type_, "c1");
       return c.get<rrc_early_data_complete_nb_r15_s>();
     }
     const rrc_conn_reest_nb_s& rrc_conn_reest_r13() const
     {
-      assert_choice_type("rrcConnectionReestablishment-r13", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_reest_r13, type_, "c1");
       return c.get<rrc_conn_reest_nb_s>();
     }
     const rrc_conn_reest_reject_s& rrc_conn_reest_reject_r13() const
     {
-      assert_choice_type("rrcConnectionReestablishmentReject-r13", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_reest_reject_r13, type_, "c1");
       return c.get<rrc_conn_reest_reject_s>();
     }
     const rrc_conn_reject_nb_s& rrc_conn_reject_r13() const
     {
-      assert_choice_type("rrcConnectionReject-r13", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_reject_r13, type_, "c1");
       return c.get<rrc_conn_reject_nb_s>();
     }
     const rrc_conn_setup_nb_s& rrc_conn_setup_r13() const
     {
-      assert_choice_type("rrcConnectionSetup-r13", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_setup_r13, type_, "c1");
       return c.get<rrc_conn_setup_nb_s>();
     }
     const rrc_early_data_complete_nb_r15_s& rrc_early_data_complete_r15() const
     {
-      assert_choice_type("rrcEarlyDataComplete-r15", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_early_data_complete_r15, type_, "c1");
       return c.get<rrc_early_data_complete_nb_r15_s>();
     }
     rrc_conn_reest_nb_s&              set_rrc_conn_reest_r13();
@@ -5978,12 +5978,12 @@ struct dl_ccch_msg_type_nb_c {
   // getters
   c1_c_& c1()
   {
-    assert_choice_type("c1", type_.to_string(), "DL-CCCH-MessageType-NB");
+    assert_choice_type(types::c1, type_, "DL-CCCH-MessageType-NB");
     return c;
   }
   const c1_c_& c1() const
   {
-    assert_choice_type("c1", type_.to_string(), "DL-CCCH-MessageType-NB");
+    assert_choice_type(types::c1, type_, "DL-CCCH-MessageType-NB");
     return c;
   }
   c1_c_& set_c1();
@@ -6170,12 +6170,12 @@ struct dl_info_transfer_nb_s {
       // getters
       dl_info_transfer_nb_r13_ies_s& dl_info_transfer_r13()
       {
-        assert_choice_type("dlInformationTransfer-r13", type_.to_string(), "c1");
+        assert_choice_type(types::dl_info_transfer_r13, type_, "c1");
         return c;
       }
       const dl_info_transfer_nb_r13_ies_s& dl_info_transfer_r13() const
       {
-        assert_choice_type("dlInformationTransfer-r13", type_.to_string(), "c1");
+        assert_choice_type(types::dl_info_transfer_r13, type_, "c1");
         return c;
       }
       dl_info_transfer_nb_r13_ies_s& set_dl_info_transfer_r13();
@@ -6197,12 +6197,12 @@ struct dl_info_transfer_nb_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     c1_c_& set_c1();
@@ -6244,12 +6244,12 @@ struct rrc_conn_recfg_nb_s {
       // getters
       rrc_conn_recfg_nb_r13_ies_s& rrc_conn_recfg_r13()
       {
-        assert_choice_type("rrcConnectionReconfiguration-r13", type_.to_string(), "c1");
+        assert_choice_type(types::rrc_conn_recfg_r13, type_, "c1");
         return c;
       }
       const rrc_conn_recfg_nb_r13_ies_s& rrc_conn_recfg_r13() const
       {
-        assert_choice_type("rrcConnectionReconfiguration-r13", type_.to_string(), "c1");
+        assert_choice_type(types::rrc_conn_recfg_r13, type_, "c1");
         return c;
       }
       rrc_conn_recfg_nb_r13_ies_s& set_rrc_conn_recfg_r13();
@@ -6271,12 +6271,12 @@ struct rrc_conn_recfg_nb_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     c1_c_& set_c1();
@@ -6318,12 +6318,12 @@ struct rrc_conn_release_nb_s {
       // getters
       rrc_conn_release_nb_r13_ies_s& rrc_conn_release_r13()
       {
-        assert_choice_type("rrcConnectionRelease-r13", type_.to_string(), "c1");
+        assert_choice_type(types::rrc_conn_release_r13, type_, "c1");
         return c;
       }
       const rrc_conn_release_nb_r13_ies_s& rrc_conn_release_r13() const
       {
-        assert_choice_type("rrcConnectionRelease-r13", type_.to_string(), "c1");
+        assert_choice_type(types::rrc_conn_release_r13, type_, "c1");
         return c;
       }
       rrc_conn_release_nb_r13_ies_s& set_rrc_conn_release_r13();
@@ -6345,12 +6345,12 @@ struct rrc_conn_release_nb_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     c1_c_& set_c1();
@@ -6392,12 +6392,12 @@ struct rrc_conn_resume_nb_s {
       // getters
       rrc_conn_resume_nb_r13_ies_s& rrc_conn_resume_r13()
       {
-        assert_choice_type("rrcConnectionResume-r13", type_.to_string(), "c1");
+        assert_choice_type(types::rrc_conn_resume_r13, type_, "c1");
         return c;
       }
       const rrc_conn_resume_nb_r13_ies_s& rrc_conn_resume_r13() const
       {
-        assert_choice_type("rrcConnectionResume-r13", type_.to_string(), "c1");
+        assert_choice_type(types::rrc_conn_resume_r13, type_, "c1");
         return c;
       }
       rrc_conn_resume_nb_r13_ies_s& set_rrc_conn_resume_r13();
@@ -6419,12 +6419,12 @@ struct rrc_conn_resume_nb_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     c1_c_& set_c1();
@@ -6466,12 +6466,12 @@ struct ue_cap_enquiry_nb_s {
       // getters
       ue_cap_enquiry_nb_r13_ies_s& ue_cap_enquiry_r13()
       {
-        assert_choice_type("ueCapabilityEnquiry-r13", type_.to_string(), "c1");
+        assert_choice_type(types::ue_cap_enquiry_r13, type_, "c1");
         return c;
       }
       const ue_cap_enquiry_nb_r13_ies_s& ue_cap_enquiry_r13() const
       {
-        assert_choice_type("ueCapabilityEnquiry-r13", type_.to_string(), "c1");
+        assert_choice_type(types::ue_cap_enquiry_r13, type_, "c1");
         return c;
       }
       ue_cap_enquiry_nb_r13_ies_s& set_ue_cap_enquiry_r13();
@@ -6493,12 +6493,12 @@ struct ue_cap_enquiry_nb_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     c1_c_& set_c1();
@@ -6552,62 +6552,62 @@ struct dl_dcch_msg_type_nb_c {
     // getters
     dl_info_transfer_nb_s& dl_info_transfer_r13()
     {
-      assert_choice_type("dlInformationTransfer-r13", type_.to_string(), "c1");
+      assert_choice_type(types::dl_info_transfer_r13, type_, "c1");
       return c.get<dl_info_transfer_nb_s>();
     }
     rrc_conn_recfg_nb_s& rrc_conn_recfg_r13()
     {
-      assert_choice_type("rrcConnectionReconfiguration-r13", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_recfg_r13, type_, "c1");
       return c.get<rrc_conn_recfg_nb_s>();
     }
     rrc_conn_release_nb_s& rrc_conn_release_r13()
     {
-      assert_choice_type("rrcConnectionRelease-r13", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_release_r13, type_, "c1");
       return c.get<rrc_conn_release_nb_s>();
     }
     security_mode_cmd_s& security_mode_cmd_r13()
     {
-      assert_choice_type("securityModeCommand-r13", type_.to_string(), "c1");
+      assert_choice_type(types::security_mode_cmd_r13, type_, "c1");
       return c.get<security_mode_cmd_s>();
     }
     ue_cap_enquiry_nb_s& ue_cap_enquiry_r13()
     {
-      assert_choice_type("ueCapabilityEnquiry-r13", type_.to_string(), "c1");
+      assert_choice_type(types::ue_cap_enquiry_r13, type_, "c1");
       return c.get<ue_cap_enquiry_nb_s>();
     }
     rrc_conn_resume_nb_s& rrc_conn_resume_r13()
     {
-      assert_choice_type("rrcConnectionResume-r13", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_resume_r13, type_, "c1");
       return c.get<rrc_conn_resume_nb_s>();
     }
     const dl_info_transfer_nb_s& dl_info_transfer_r13() const
     {
-      assert_choice_type("dlInformationTransfer-r13", type_.to_string(), "c1");
+      assert_choice_type(types::dl_info_transfer_r13, type_, "c1");
       return c.get<dl_info_transfer_nb_s>();
     }
     const rrc_conn_recfg_nb_s& rrc_conn_recfg_r13() const
     {
-      assert_choice_type("rrcConnectionReconfiguration-r13", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_recfg_r13, type_, "c1");
       return c.get<rrc_conn_recfg_nb_s>();
     }
     const rrc_conn_release_nb_s& rrc_conn_release_r13() const
     {
-      assert_choice_type("rrcConnectionRelease-r13", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_release_r13, type_, "c1");
       return c.get<rrc_conn_release_nb_s>();
     }
     const security_mode_cmd_s& security_mode_cmd_r13() const
     {
-      assert_choice_type("securityModeCommand-r13", type_.to_string(), "c1");
+      assert_choice_type(types::security_mode_cmd_r13, type_, "c1");
       return c.get<security_mode_cmd_s>();
     }
     const ue_cap_enquiry_nb_s& ue_cap_enquiry_r13() const
     {
-      assert_choice_type("ueCapabilityEnquiry-r13", type_.to_string(), "c1");
+      assert_choice_type(types::ue_cap_enquiry_r13, type_, "c1");
       return c.get<ue_cap_enquiry_nb_s>();
     }
     const rrc_conn_resume_nb_s& rrc_conn_resume_r13() const
     {
-      assert_choice_type("rrcConnectionResume-r13", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_resume_r13, type_, "c1");
       return c.get<rrc_conn_resume_nb_s>();
     }
     dl_info_transfer_nb_s& set_dl_info_transfer_r13();
@@ -6650,12 +6650,12 @@ struct dl_dcch_msg_type_nb_c {
   // getters
   c1_c_& c1()
   {
-    assert_choice_type("c1", type_.to_string(), "DL-DCCH-MessageType-NB");
+    assert_choice_type(types::c1, type_, "DL-DCCH-MessageType-NB");
     return c;
   }
   const c1_c_& c1() const
   {
-    assert_choice_type("c1", type_.to_string(), "DL-DCCH-MessageType-NB");
+    assert_choice_type(types::c1, type_, "DL-DCCH-MessageType-NB");
     return c;
   }
   c1_c_& set_c1();
@@ -6922,12 +6922,12 @@ struct ho_prep_info_nb_s {
       // getters
       ho_prep_info_nb_ies_s& ho_prep_info_r13()
       {
-        assert_choice_type("handoverPreparationInformation-r13", type_.to_string(), "c1");
+        assert_choice_type(types::ho_prep_info_r13, type_, "c1");
         return c;
       }
       const ho_prep_info_nb_ies_s& ho_prep_info_r13() const
       {
-        assert_choice_type("handoverPreparationInformation-r13", type_.to_string(), "c1");
+        assert_choice_type(types::ho_prep_info_r13, type_, "c1");
         return c;
       }
       ho_prep_info_nb_ies_s& set_ho_prep_info_r13();
@@ -6951,12 +6951,12 @@ struct ho_prep_info_nb_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     c1_c_& set_c1();
@@ -7057,12 +7057,12 @@ struct pcch_msg_type_nb_c {
   // getters
   c1_c_& c1()
   {
-    assert_choice_type("c1", type_.to_string(), "PCCH-MessageType-NB");
+    assert_choice_type(types::c1, type_, "PCCH-MessageType-NB");
     return c;
   }
   const c1_c_& c1() const
   {
-    assert_choice_type("c1", type_.to_string(), "PCCH-MessageType-NB");
+    assert_choice_type(types::c1, type_, "PCCH-MessageType-NB");
     return c;
   }
   c1_c_& set_c1();
@@ -7127,12 +7127,12 @@ struct rrc_conn_recfg_complete_nb_s {
     // getters
     rrc_conn_recfg_complete_nb_r13_ies_s& rrc_conn_recfg_complete_r13()
     {
-      assert_choice_type("rrcConnectionReconfigurationComplete-r13", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_recfg_complete_r13, type_, "criticalExtensions");
       return c;
     }
     const rrc_conn_recfg_complete_nb_r13_ies_s& rrc_conn_recfg_complete_r13() const
     {
-      assert_choice_type("rrcConnectionReconfigurationComplete-r13", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_recfg_complete_r13, type_, "criticalExtensions");
       return c;
     }
     rrc_conn_recfg_complete_nb_r13_ies_s& set_rrc_conn_recfg_complete_r13();
@@ -7198,12 +7198,12 @@ struct rrc_conn_reest_complete_nb_s {
     // getters
     rrc_conn_reest_complete_nb_r13_ies_s& rrc_conn_reest_complete_r13()
     {
-      assert_choice_type("rrcConnectionReestablishmentComplete-r13", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_reest_complete_r13, type_, "criticalExtensions");
       return c;
     }
     const rrc_conn_reest_complete_nb_r13_ies_s& rrc_conn_reest_complete_r13() const
     {
-      assert_choice_type("rrcConnectionReestablishmentComplete-r13", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_reest_complete_r13, type_, "criticalExtensions");
       return c;
     }
     rrc_conn_reest_complete_nb_r13_ies_s& set_rrc_conn_reest_complete_r13();
@@ -7326,12 +7326,12 @@ struct rrc_conn_reest_request_nb_s {
       // getters
       rrc_conn_reest_request_nb_r14_ies_s& rrc_conn_reest_request_r14()
       {
-        assert_choice_type("rrcConnectionReestablishmentRequest-r14", type_.to_string(), "later");
+        assert_choice_type(types::rrc_conn_reest_request_r14, type_, "later");
         return c;
       }
       const rrc_conn_reest_request_nb_r14_ies_s& rrc_conn_reest_request_r14() const
       {
-        assert_choice_type("rrcConnectionReestablishmentRequest-r14", type_.to_string(), "later");
+        assert_choice_type(types::rrc_conn_reest_request_r14, type_, "later");
         return c;
       }
       rrc_conn_reest_request_nb_r14_ies_s& set_rrc_conn_reest_request_r14();
@@ -7361,22 +7361,22 @@ struct rrc_conn_reest_request_nb_s {
     // getters
     rrc_conn_reest_request_nb_r13_ies_s& rrc_conn_reest_request_r13()
     {
-      assert_choice_type("rrcConnectionReestablishmentRequest-r13", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_reest_request_r13, type_, "criticalExtensions");
       return c.get<rrc_conn_reest_request_nb_r13_ies_s>();
     }
     later_c_& later()
     {
-      assert_choice_type("later", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::later, type_, "criticalExtensions");
       return c.get<later_c_>();
     }
     const rrc_conn_reest_request_nb_r13_ies_s& rrc_conn_reest_request_r13() const
     {
-      assert_choice_type("rrcConnectionReestablishmentRequest-r13", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_reest_request_r13, type_, "criticalExtensions");
       return c.get<rrc_conn_reest_request_nb_r13_ies_s>();
     }
     const later_c_& later() const
     {
-      assert_choice_type("later", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::later, type_, "criticalExtensions");
       return c.get<later_c_>();
     }
     rrc_conn_reest_request_nb_r13_ies_s& set_rrc_conn_reest_request_r13();
@@ -7452,12 +7452,12 @@ struct rrc_conn_request_nb_s {
     // getters
     rrc_conn_request_nb_r13_ies_s& rrc_conn_request_r13()
     {
-      assert_choice_type("rrcConnectionRequest-r13", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_request_r13, type_, "criticalExtensions");
       return c;
     }
     const rrc_conn_request_nb_r13_ies_s& rrc_conn_request_r13() const
     {
-      assert_choice_type("rrcConnectionRequest-r13", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_request_r13, type_, "criticalExtensions");
       return c;
     }
     rrc_conn_request_nb_r13_ies_s& set_rrc_conn_request_r13();
@@ -7526,12 +7526,12 @@ struct rrc_conn_resume_complete_nb_s {
     // getters
     rrc_conn_resume_complete_nb_r13_ies_s& rrc_conn_resume_complete_r13()
     {
-      assert_choice_type("rrcConnectionResumeComplete-r13", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_resume_complete_r13, type_, "criticalExtensions");
       return c;
     }
     const rrc_conn_resume_complete_nb_r13_ies_s& rrc_conn_resume_complete_r13() const
     {
-      assert_choice_type("rrcConnectionResumeComplete-r13", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_resume_complete_r13, type_, "criticalExtensions");
       return c;
     }
     rrc_conn_resume_complete_nb_r13_ies_s& set_rrc_conn_resume_complete_r13();
@@ -7587,12 +7587,12 @@ struct rrc_conn_resume_request_nb_s {
     // getters
     rrc_conn_resume_request_nb_r13_ies_s& rrc_conn_resume_request_r13()
     {
-      assert_choice_type("rrcConnectionResumeRequest-r13", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_resume_request_r13, type_, "criticalExtensions");
       return c;
     }
     const rrc_conn_resume_request_nb_r13_ies_s& rrc_conn_resume_request_r13() const
     {
-      assert_choice_type("rrcConnectionResumeRequest-r13", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_resume_request_r13, type_, "criticalExtensions");
       return c;
     }
     rrc_conn_resume_request_nb_r13_ies_s& set_rrc_conn_resume_request_r13();
@@ -7679,12 +7679,12 @@ struct rrc_conn_setup_complete_nb_s {
     // getters
     rrc_conn_setup_complete_nb_r13_ies_s& rrc_conn_setup_complete_r13()
     {
-      assert_choice_type("rrcConnectionSetupComplete-r13", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_setup_complete_r13, type_, "criticalExtensions");
       return c;
     }
     const rrc_conn_setup_complete_nb_r13_ies_s& rrc_conn_setup_complete_r13() const
     {
-      assert_choice_type("rrcConnectionSetupComplete-r13", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_setup_complete_r13, type_, "criticalExtensions");
       return c;
     }
     rrc_conn_setup_complete_nb_r13_ies_s& set_rrc_conn_setup_complete_r13();
@@ -7761,12 +7761,12 @@ struct rrc_early_data_request_nb_r15_s {
     // getters
     rrc_early_data_request_nb_r15_ies_s& rrc_early_data_request_r15()
     {
-      assert_choice_type("rrcEarlyDataRequest-r15", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_early_data_request_r15, type_, "criticalExtensions");
       return c;
     }
     const rrc_early_data_request_nb_r15_ies_s& rrc_early_data_request_r15() const
     {
-      assert_choice_type("rrcEarlyDataRequest-r15", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_early_data_request_r15, type_, "criticalExtensions");
       return c;
     }
     rrc_early_data_request_nb_r15_ies_s& set_rrc_early_data_request_r15();
@@ -7845,162 +7845,162 @@ struct sc_mtch_sched_info_nb_r14_s {
     // getters
     uint8_t& sf10()
     {
-      assert_choice_type("sf10", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf10, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     uint8_t& sf20()
     {
-      assert_choice_type("sf20", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf20, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     uint8_t& sf32()
     {
-      assert_choice_type("sf32", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf32, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     uint8_t& sf40()
     {
-      assert_choice_type("sf40", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf40, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     uint8_t& sf64()
     {
-      assert_choice_type("sf64", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf64, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     uint8_t& sf80()
     {
-      assert_choice_type("sf80", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf80, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     uint8_t& sf128()
     {
-      assert_choice_type("sf128", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf128, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     uint8_t& sf160()
     {
-      assert_choice_type("sf160", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf160, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     uint16_t& sf256()
     {
-      assert_choice_type("sf256", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf256, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     uint16_t& sf320()
     {
-      assert_choice_type("sf320", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf320, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     uint16_t& sf512()
     {
-      assert_choice_type("sf512", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf512, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     uint16_t& sf640()
     {
-      assert_choice_type("sf640", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf640, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     uint16_t& sf1024()
     {
-      assert_choice_type("sf1024", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf1024, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     uint16_t& sf2048()
     {
-      assert_choice_type("sf2048", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf2048, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     uint16_t& sf4096()
     {
-      assert_choice_type("sf4096", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf4096, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     uint16_t& sf8192()
     {
-      assert_choice_type("sf8192", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf8192, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     const uint8_t& sf10() const
     {
-      assert_choice_type("sf10", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf10, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     const uint8_t& sf20() const
     {
-      assert_choice_type("sf20", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf20, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     const uint8_t& sf32() const
     {
-      assert_choice_type("sf32", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf32, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     const uint8_t& sf40() const
     {
-      assert_choice_type("sf40", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf40, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     const uint8_t& sf64() const
     {
-      assert_choice_type("sf64", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf64, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     const uint8_t& sf80() const
     {
-      assert_choice_type("sf80", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf80, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     const uint8_t& sf128() const
     {
-      assert_choice_type("sf128", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf128, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     const uint8_t& sf160() const
     {
-      assert_choice_type("sf160", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf160, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     const uint16_t& sf256() const
     {
-      assert_choice_type("sf256", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf256, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     const uint16_t& sf320() const
     {
-      assert_choice_type("sf320", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf320, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     const uint16_t& sf512() const
     {
-      assert_choice_type("sf512", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf512, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     const uint16_t& sf640() const
     {
-      assert_choice_type("sf640", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf640, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     const uint16_t& sf1024() const
     {
-      assert_choice_type("sf1024", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf1024, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     const uint16_t& sf2048() const
     {
-      assert_choice_type("sf2048", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf2048, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     const uint16_t& sf4096() const
     {
-      assert_choice_type("sf4096", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf4096, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     const uint16_t& sf8192() const
     {
-      assert_choice_type("sf8192", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf8192, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     uint8_t&  set_sf10();
@@ -8063,22 +8063,22 @@ struct sc_mtch_info_nb_r14_s {
     // getters
     dl_carrier_cfg_common_nb_r14_s& dl_carrier_cfg_r14()
     {
-      assert_choice_type("dl-CarrierConfig-r14", type_.to_string(), "sc-mtch-CarrierConfig-r14");
+      assert_choice_type(types::dl_carrier_cfg_r14, type_, "sc-mtch-CarrierConfig-r14");
       return c.get<dl_carrier_cfg_common_nb_r14_s>();
     }
     uint8_t& dl_carrier_idx_r14()
     {
-      assert_choice_type("dl-CarrierIndex-r14", type_.to_string(), "sc-mtch-CarrierConfig-r14");
+      assert_choice_type(types::dl_carrier_idx_r14, type_, "sc-mtch-CarrierConfig-r14");
       return c.get<uint8_t>();
     }
     const dl_carrier_cfg_common_nb_r14_s& dl_carrier_cfg_r14() const
     {
-      assert_choice_type("dl-CarrierConfig-r14", type_.to_string(), "sc-mtch-CarrierConfig-r14");
+      assert_choice_type(types::dl_carrier_cfg_r14, type_, "sc-mtch-CarrierConfig-r14");
       return c.get<dl_carrier_cfg_common_nb_r14_s>();
     }
     const uint8_t& dl_carrier_idx_r14() const
     {
-      assert_choice_type("dl-CarrierIndex-r14", type_.to_string(), "sc-mtch-CarrierConfig-r14");
+      assert_choice_type(types::dl_carrier_idx_r14, type_, "sc-mtch-CarrierConfig-r14");
       return c.get<uint8_t>();
     }
     dl_carrier_cfg_common_nb_r14_s& set_dl_carrier_cfg_r14();
@@ -8236,12 +8236,12 @@ struct sc_mcch_msg_type_nb_c {
   // getters
   c1_c_& c1()
   {
-    assert_choice_type("c1", type_.to_string(), "SC-MCCH-MessageType-NB");
+    assert_choice_type(types::c1, type_, "SC-MCCH-MessageType-NB");
     return c;
   }
   const c1_c_& c1() const
   {
-    assert_choice_type("c1", type_.to_string(), "SC-MCCH-MessageType-NB");
+    assert_choice_type(types::c1, type_, "SC-MCCH-MessageType-NB");
     return c;
   }
   c1_c_& set_c1();
@@ -8493,12 +8493,12 @@ struct ue_cap_info_nb_s {
     // getters
     ue_cap_info_nb_r13_ies_s& ue_cap_info_r13()
     {
-      assert_choice_type("ueCapabilityInformation-r13", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::ue_cap_info_r13, type_, "criticalExtensions");
       return c;
     }
     const ue_cap_info_nb_r13_ies_s& ue_cap_info_r13() const
     {
-      assert_choice_type("ueCapabilityInformation-r13", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::ue_cap_info_r13, type_, "criticalExtensions");
       return c;
     }
     ue_cap_info_nb_r13_ies_s& set_ue_cap_info_r13();
@@ -8552,12 +8552,12 @@ struct ue_paging_coverage_info_nb_s {
       // getters
       ue_paging_coverage_info_nb_ies_s& ue_paging_coverage_info_r13()
       {
-        assert_choice_type("uePagingCoverageInformation-r13", type_.to_string(), "c1");
+        assert_choice_type(types::ue_paging_coverage_info_r13, type_, "c1");
         return c;
       }
       const ue_paging_coverage_info_nb_ies_s& ue_paging_coverage_info_r13() const
       {
-        assert_choice_type("uePagingCoverageInformation-r13", type_.to_string(), "c1");
+        assert_choice_type(types::ue_paging_coverage_info_r13, type_, "c1");
         return c;
       }
       ue_paging_coverage_info_nb_ies_s& set_ue_paging_coverage_info_r13();
@@ -8581,12 +8581,12 @@ struct ue_paging_coverage_info_nb_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     c1_c_& set_c1();
@@ -8664,12 +8664,12 @@ struct ue_radio_access_cap_info_nb_s {
       // getters
       ue_radio_access_cap_info_nb_ies_s& ue_radio_access_cap_info_r13()
       {
-        assert_choice_type("ueRadioAccessCapabilityInformation-r13", type_.to_string(), "c1");
+        assert_choice_type(types::ue_radio_access_cap_info_r13, type_, "c1");
         return c;
       }
       const ue_radio_access_cap_info_nb_ies_s& ue_radio_access_cap_info_r13() const
       {
-        assert_choice_type("ueRadioAccessCapabilityInformation-r13", type_.to_string(), "c1");
+        assert_choice_type(types::ue_radio_access_cap_info_r13, type_, "c1");
         return c;
       }
       ue_radio_access_cap_info_nb_ies_s& set_ue_radio_access_cap_info_r13();
@@ -8693,12 +8693,12 @@ struct ue_radio_access_cap_info_nb_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     c1_c_& set_c1();
@@ -8750,12 +8750,12 @@ struct ue_radio_paging_info_nb_s {
       // getters
       ue_radio_paging_info_nb_ies_s& ue_radio_paging_info_r13()
       {
-        assert_choice_type("ueRadioPagingInformation-r13", type_.to_string(), "c1");
+        assert_choice_type(types::ue_radio_paging_info_r13, type_, "c1");
         return c;
       }
       const ue_radio_paging_info_nb_ies_s& ue_radio_paging_info_r13() const
       {
-        assert_choice_type("ueRadioPagingInformation-r13", type_.to_string(), "c1");
+        assert_choice_type(types::ue_radio_paging_info_r13, type_, "c1");
         return c;
       }
       ue_radio_paging_info_nb_ies_s& set_ue_radio_paging_info_r13();
@@ -8779,12 +8779,12 @@ struct ue_radio_paging_info_nb_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     c1_c_& set_c1();
@@ -8833,42 +8833,42 @@ struct ul_ccch_msg_type_nb_c {
     // getters
     rrc_conn_reest_request_nb_s& rrc_conn_reest_request_r13()
     {
-      assert_choice_type("rrcConnectionReestablishmentRequest-r13", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_reest_request_r13, type_, "c1");
       return c.get<rrc_conn_reest_request_nb_s>();
     }
     rrc_conn_request_nb_s& rrc_conn_request_r13()
     {
-      assert_choice_type("rrcConnectionRequest-r13", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_request_r13, type_, "c1");
       return c.get<rrc_conn_request_nb_s>();
     }
     rrc_conn_resume_request_nb_s& rrc_conn_resume_request_r13()
     {
-      assert_choice_type("rrcConnectionResumeRequest-r13", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_resume_request_r13, type_, "c1");
       return c.get<rrc_conn_resume_request_nb_s>();
     }
     rrc_early_data_request_nb_r15_s& rrc_early_data_request_r15()
     {
-      assert_choice_type("rrcEarlyDataRequest-r15", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_early_data_request_r15, type_, "c1");
       return c.get<rrc_early_data_request_nb_r15_s>();
     }
     const rrc_conn_reest_request_nb_s& rrc_conn_reest_request_r13() const
     {
-      assert_choice_type("rrcConnectionReestablishmentRequest-r13", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_reest_request_r13, type_, "c1");
       return c.get<rrc_conn_reest_request_nb_s>();
     }
     const rrc_conn_request_nb_s& rrc_conn_request_r13() const
     {
-      assert_choice_type("rrcConnectionRequest-r13", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_request_r13, type_, "c1");
       return c.get<rrc_conn_request_nb_s>();
     }
     const rrc_conn_resume_request_nb_s& rrc_conn_resume_request_r13() const
     {
-      assert_choice_type("rrcConnectionResumeRequest-r13", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_resume_request_r13, type_, "c1");
       return c.get<rrc_conn_resume_request_nb_s>();
     }
     const rrc_early_data_request_nb_r15_s& rrc_early_data_request_r15() const
     {
-      assert_choice_type("rrcEarlyDataRequest-r15", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_early_data_request_r15, type_, "c1");
       return c.get<rrc_early_data_request_nb_r15_s>();
     }
     rrc_conn_reest_request_nb_s&     set_rrc_conn_reest_request_r13();
@@ -8905,12 +8905,12 @@ struct ul_ccch_msg_type_nb_c {
   // getters
   c1_c_& c1()
   {
-    assert_choice_type("c1", type_.to_string(), "UL-CCCH-MessageType-NB");
+    assert_choice_type(types::c1, type_, "UL-CCCH-MessageType-NB");
     return c;
   }
   const c1_c_& c1() const
   {
-    assert_choice_type("c1", type_.to_string(), "UL-CCCH-MessageType-NB");
+    assert_choice_type(types::c1, type_, "UL-CCCH-MessageType-NB");
     return c;
   }
   c1_c_& set_c1();
@@ -8964,12 +8964,12 @@ struct ul_info_transfer_nb_s {
     // getters
     ul_info_transfer_nb_r13_ies_s& ul_info_transfer_r13()
     {
-      assert_choice_type("ulInformationTransfer-r13", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::ul_info_transfer_r13, type_, "criticalExtensions");
       return c;
     }
     const ul_info_transfer_nb_r13_ies_s& ul_info_transfer_r13() const
     {
-      assert_choice_type("ulInformationTransfer-r13", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::ul_info_transfer_r13, type_, "criticalExtensions");
       return c;
     }
     ul_info_transfer_nb_r13_ies_s& set_ul_info_transfer_r13();
@@ -9030,82 +9030,82 @@ struct ul_dcch_msg_type_nb_c {
     // getters
     rrc_conn_recfg_complete_nb_s& rrc_conn_recfg_complete_r13()
     {
-      assert_choice_type("rrcConnectionReconfigurationComplete-r13", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_recfg_complete_r13, type_, "c1");
       return c.get<rrc_conn_recfg_complete_nb_s>();
     }
     rrc_conn_reest_complete_nb_s& rrc_conn_reest_complete_r13()
     {
-      assert_choice_type("rrcConnectionReestablishmentComplete-r13", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_reest_complete_r13, type_, "c1");
       return c.get<rrc_conn_reest_complete_nb_s>();
     }
     rrc_conn_setup_complete_nb_s& rrc_conn_setup_complete_r13()
     {
-      assert_choice_type("rrcConnectionSetupComplete-r13", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_setup_complete_r13, type_, "c1");
       return c.get<rrc_conn_setup_complete_nb_s>();
     }
     security_mode_complete_s& security_mode_complete_r13()
     {
-      assert_choice_type("securityModeComplete-r13", type_.to_string(), "c1");
+      assert_choice_type(types::security_mode_complete_r13, type_, "c1");
       return c.get<security_mode_complete_s>();
     }
     security_mode_fail_s& security_mode_fail_r13()
     {
-      assert_choice_type("securityModeFailure-r13", type_.to_string(), "c1");
+      assert_choice_type(types::security_mode_fail_r13, type_, "c1");
       return c.get<security_mode_fail_s>();
     }
     ue_cap_info_nb_s& ue_cap_info_r13()
     {
-      assert_choice_type("ueCapabilityInformation-r13", type_.to_string(), "c1");
+      assert_choice_type(types::ue_cap_info_r13, type_, "c1");
       return c.get<ue_cap_info_nb_s>();
     }
     ul_info_transfer_nb_s& ul_info_transfer_r13()
     {
-      assert_choice_type("ulInformationTransfer-r13", type_.to_string(), "c1");
+      assert_choice_type(types::ul_info_transfer_r13, type_, "c1");
       return c.get<ul_info_transfer_nb_s>();
     }
     rrc_conn_resume_complete_nb_s& rrc_conn_resume_complete_r13()
     {
-      assert_choice_type("rrcConnectionResumeComplete-r13", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_resume_complete_r13, type_, "c1");
       return c.get<rrc_conn_resume_complete_nb_s>();
     }
     const rrc_conn_recfg_complete_nb_s& rrc_conn_recfg_complete_r13() const
     {
-      assert_choice_type("rrcConnectionReconfigurationComplete-r13", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_recfg_complete_r13, type_, "c1");
       return c.get<rrc_conn_recfg_complete_nb_s>();
     }
     const rrc_conn_reest_complete_nb_s& rrc_conn_reest_complete_r13() const
     {
-      assert_choice_type("rrcConnectionReestablishmentComplete-r13", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_reest_complete_r13, type_, "c1");
       return c.get<rrc_conn_reest_complete_nb_s>();
     }
     const rrc_conn_setup_complete_nb_s& rrc_conn_setup_complete_r13() const
     {
-      assert_choice_type("rrcConnectionSetupComplete-r13", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_setup_complete_r13, type_, "c1");
       return c.get<rrc_conn_setup_complete_nb_s>();
     }
     const security_mode_complete_s& security_mode_complete_r13() const
     {
-      assert_choice_type("securityModeComplete-r13", type_.to_string(), "c1");
+      assert_choice_type(types::security_mode_complete_r13, type_, "c1");
       return c.get<security_mode_complete_s>();
     }
     const security_mode_fail_s& security_mode_fail_r13() const
     {
-      assert_choice_type("securityModeFailure-r13", type_.to_string(), "c1");
+      assert_choice_type(types::security_mode_fail_r13, type_, "c1");
       return c.get<security_mode_fail_s>();
     }
     const ue_cap_info_nb_s& ue_cap_info_r13() const
     {
-      assert_choice_type("ueCapabilityInformation-r13", type_.to_string(), "c1");
+      assert_choice_type(types::ue_cap_info_r13, type_, "c1");
       return c.get<ue_cap_info_nb_s>();
     }
     const ul_info_transfer_nb_s& ul_info_transfer_r13() const
     {
-      assert_choice_type("ulInformationTransfer-r13", type_.to_string(), "c1");
+      assert_choice_type(types::ul_info_transfer_r13, type_, "c1");
       return c.get<ul_info_transfer_nb_s>();
     }
     const rrc_conn_resume_complete_nb_s& rrc_conn_resume_complete_r13() const
     {
-      assert_choice_type("rrcConnectionResumeComplete-r13", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_resume_complete_r13, type_, "c1");
       return c.get<rrc_conn_resume_complete_nb_s>();
     }
     rrc_conn_recfg_complete_nb_s&  set_rrc_conn_recfg_complete_r13();
@@ -9158,12 +9158,12 @@ struct ul_dcch_msg_type_nb_c {
   // getters
   c1_c_& c1()
   {
-    assert_choice_type("c1", type_.to_string(), "UL-DCCH-MessageType-NB");
+    assert_choice_type(types::c1, type_, "UL-DCCH-MessageType-NB");
     return c;
   }
   const c1_c_& c1() const
   {
-    assert_choice_type("c1", type_.to_string(), "UL-DCCH-MessageType-NB");
+    assert_choice_type(types::c1, type_, "UL-DCCH-MessageType-NB");
     return c;
   }
   c1_c_& set_c1();

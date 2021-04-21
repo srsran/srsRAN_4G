@@ -262,22 +262,22 @@ struct plmn_id_info2_r12_c {
   // getters
   uint8_t& plmn_idx_r12()
   {
-    assert_choice_type("plmn-Index-r12", type_.to_string(), "PLMN-IdentityInfo2-r12");
+    assert_choice_type(types::plmn_idx_r12, type_, "PLMN-IdentityInfo2-r12");
     return c.get<uint8_t>();
   }
   plmn_id_s& plmn_id_r12()
   {
-    assert_choice_type("plmnIdentity-r12", type_.to_string(), "PLMN-IdentityInfo2-r12");
+    assert_choice_type(types::plmn_id_r12, type_, "PLMN-IdentityInfo2-r12");
     return c.get<plmn_id_s>();
   }
   const uint8_t& plmn_idx_r12() const
   {
-    assert_choice_type("plmn-Index-r12", type_.to_string(), "PLMN-IdentityInfo2-r12");
+    assert_choice_type(types::plmn_idx_r12, type_, "PLMN-IdentityInfo2-r12");
     return c.get<uint8_t>();
   }
   const plmn_id_s& plmn_id_r12() const
   {
-    assert_choice_type("plmnIdentity-r12", type_.to_string(), "PLMN-IdentityInfo2-r12");
+    assert_choice_type(types::plmn_id_r12, type_, "PLMN-IdentityInfo2-r12");
     return c.get<plmn_id_s>();
   }
   uint8_t&   set_plmn_idx_r12();
@@ -319,22 +319,22 @@ struct sys_time_info_cdma2000_s {
     // getters
     fixed_bitstring<39>& sync_sys_time()
     {
-      assert_choice_type("synchronousSystemTime", type_.to_string(), "cdma-SystemTime");
+      assert_choice_type(types::sync_sys_time, type_, "cdma-SystemTime");
       return c.get<fixed_bitstring<39> >();
     }
     fixed_bitstring<49>& async_sys_time()
     {
-      assert_choice_type("asynchronousSystemTime", type_.to_string(), "cdma-SystemTime");
+      assert_choice_type(types::async_sys_time, type_, "cdma-SystemTime");
       return c.get<fixed_bitstring<49> >();
     }
     const fixed_bitstring<39>& sync_sys_time() const
     {
-      assert_choice_type("synchronousSystemTime", type_.to_string(), "cdma-SystemTime");
+      assert_choice_type(types::sync_sys_time, type_, "cdma-SystemTime");
       return c.get<fixed_bitstring<39> >();
     }
     const fixed_bitstring<49>& async_sys_time() const
     {
-      assert_choice_type("asynchronousSystemTime", type_.to_string(), "cdma-SystemTime");
+      assert_choice_type(types::async_sys_time, type_, "cdma-SystemTime");
       return c.get<fixed_bitstring<49> >();
     }
     fixed_bitstring<39>& set_sync_sys_time();
@@ -433,12 +433,12 @@ struct params_cdma2000_r11_s {
     // getters
     sys_time_info_cdma2000_s& explicit_value()
     {
-      assert_choice_type("explicitValue", type_.to_string(), "systemTimeInfo-r11");
+      assert_choice_type(types::explicit_value, type_, "systemTimeInfo-r11");
       return c;
     }
     const sys_time_info_cdma2000_s& explicit_value() const
     {
-      assert_choice_type("explicitValue", type_.to_string(), "systemTimeInfo-r11");
+      assert_choice_type(types::explicit_value, type_, "systemTimeInfo-r11");
       return c;
     }
     sys_time_info_cdma2000_s& set_explicit_value();
@@ -1086,12 +1086,12 @@ struct sib8_per_plmn_r11_s {
     // getters
     params_cdma2000_r11_s& explicit_value()
     {
-      assert_choice_type("explicitValue", type_.to_string(), "parametersCDMA2000-r11");
+      assert_choice_type(types::explicit_value, type_, "parametersCDMA2000-r11");
       return c;
     }
     const params_cdma2000_r11_s& explicit_value() const
     {
-      assert_choice_type("explicitValue", type_.to_string(), "parametersCDMA2000-r11");
+      assert_choice_type(types::explicit_value, type_, "parametersCDMA2000-r11");
       return c;
     }
     params_cdma2000_r11_s& set_explicit_value();
@@ -1214,22 +1214,22 @@ struct uac_barr_per_plmn_r15_s {
     // getters
     uac_implicit_ac_barr_list_r15_l_& uac_implicit_ac_barr_list_r15()
     {
-      assert_choice_type("uac-ImplicitAC-BarringList-r15", type_.to_string(), "uac-AC-BarringListType-r15");
+      assert_choice_type(types::uac_implicit_ac_barr_list_r15, type_, "uac-AC-BarringListType-r15");
       return c.get<uac_implicit_ac_barr_list_r15_l_>();
     }
     uac_barr_per_cat_list_r15_l& uac_explicit_ac_barr_list_r15()
     {
-      assert_choice_type("uac-ExplicitAC-BarringList-r15", type_.to_string(), "uac-AC-BarringListType-r15");
+      assert_choice_type(types::uac_explicit_ac_barr_list_r15, type_, "uac-AC-BarringListType-r15");
       return c.get<uac_barr_per_cat_list_r15_l>();
     }
     const uac_implicit_ac_barr_list_r15_l_& uac_implicit_ac_barr_list_r15() const
     {
-      assert_choice_type("uac-ImplicitAC-BarringList-r15", type_.to_string(), "uac-AC-BarringListType-r15");
+      assert_choice_type(types::uac_implicit_ac_barr_list_r15, type_, "uac-AC-BarringListType-r15");
       return c.get<uac_implicit_ac_barr_list_r15_l_>();
     }
     const uac_barr_per_cat_list_r15_l& uac_explicit_ac_barr_list_r15() const
     {
-      assert_choice_type("uac-ExplicitAC-BarringList-r15", type_.to_string(), "uac-AC-BarringListType-r15");
+      assert_choice_type(types::uac_explicit_ac_barr_list_r15, type_, "uac-AC-BarringListType-r15");
       return c.get<uac_barr_per_cat_list_r15_l>();
     }
     uac_implicit_ac_barr_list_r15_l_& set_uac_implicit_ac_barr_list_r15();
@@ -1554,162 +1554,162 @@ struct sc_mcch_sched_info_r14_s {
     // getters
     uint8_t& sf10()
     {
-      assert_choice_type("sf10", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf10, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     uint8_t& sf20()
     {
-      assert_choice_type("sf20", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf20, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     uint8_t& sf32()
     {
-      assert_choice_type("sf32", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf32, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     uint8_t& sf40()
     {
-      assert_choice_type("sf40", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf40, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     uint8_t& sf64()
     {
-      assert_choice_type("sf64", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf64, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     uint8_t& sf80()
     {
-      assert_choice_type("sf80", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf80, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     uint8_t& sf128()
     {
-      assert_choice_type("sf128", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf128, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     uint8_t& sf160()
     {
-      assert_choice_type("sf160", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf160, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     uint16_t& sf256()
     {
-      assert_choice_type("sf256", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf256, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     uint16_t& sf320()
     {
-      assert_choice_type("sf320", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf320, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     uint16_t& sf512()
     {
-      assert_choice_type("sf512", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf512, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     uint16_t& sf640()
     {
-      assert_choice_type("sf640", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf640, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     uint16_t& sf1024()
     {
-      assert_choice_type("sf1024", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf1024, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     uint16_t& sf2048()
     {
-      assert_choice_type("sf2048", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf2048, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     uint16_t& sf4096()
     {
-      assert_choice_type("sf4096", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf4096, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     uint16_t& sf8192()
     {
-      assert_choice_type("sf8192", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf8192, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     const uint8_t& sf10() const
     {
-      assert_choice_type("sf10", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf10, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     const uint8_t& sf20() const
     {
-      assert_choice_type("sf20", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf20, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     const uint8_t& sf32() const
     {
-      assert_choice_type("sf32", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf32, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     const uint8_t& sf40() const
     {
-      assert_choice_type("sf40", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf40, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     const uint8_t& sf64() const
     {
-      assert_choice_type("sf64", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf64, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     const uint8_t& sf80() const
     {
-      assert_choice_type("sf80", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf80, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     const uint8_t& sf128() const
     {
-      assert_choice_type("sf128", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf128, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     const uint8_t& sf160() const
     {
-      assert_choice_type("sf160", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf160, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
     const uint16_t& sf256() const
     {
-      assert_choice_type("sf256", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf256, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     const uint16_t& sf320() const
     {
-      assert_choice_type("sf320", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf320, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     const uint16_t& sf512() const
     {
-      assert_choice_type("sf512", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf512, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     const uint16_t& sf640() const
     {
-      assert_choice_type("sf640", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf640, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     const uint16_t& sf1024() const
     {
-      assert_choice_type("sf1024", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf1024, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     const uint16_t& sf2048() const
     {
-      assert_choice_type("sf2048", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf2048, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     const uint16_t& sf4096() const
     {
-      assert_choice_type("sf4096", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf4096, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     const uint16_t& sf8192() const
     {
-      assert_choice_type("sf8192", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      assert_choice_type(types::sf8192, type_, "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
     uint8_t&  set_sf10();
@@ -1990,22 +1990,22 @@ struct sib_type14_r11_s {
     // getters
     eab_cfg_r11_s& eab_common_r11()
     {
-      assert_choice_type("eab-Common-r11", type_.to_string(), "eab-Param-r11");
+      assert_choice_type(types::eab_common_r11, type_, "eab-Param-r11");
       return c.get<eab_cfg_r11_s>();
     }
     eab_per_plmn_list_r11_l_& eab_per_plmn_list_r11()
     {
-      assert_choice_type("eab-PerPLMN-List-r11", type_.to_string(), "eab-Param-r11");
+      assert_choice_type(types::eab_per_plmn_list_r11, type_, "eab-Param-r11");
       return c.get<eab_per_plmn_list_r11_l_>();
     }
     const eab_cfg_r11_s& eab_common_r11() const
     {
-      assert_choice_type("eab-Common-r11", type_.to_string(), "eab-Param-r11");
+      assert_choice_type(types::eab_common_r11, type_, "eab-Param-r11");
       return c.get<eab_cfg_r11_s>();
     }
     const eab_per_plmn_list_r11_l_& eab_per_plmn_list_r11() const
     {
-      assert_choice_type("eab-PerPLMN-List-r11", type_.to_string(), "eab-Param-r11");
+      assert_choice_type(types::eab_per_plmn_list_r11, type_, "eab-Param-r11");
       return c.get<eab_per_plmn_list_r11_l_>();
     }
     eab_cfg_r11_s&            set_eab_common_r11();
@@ -2270,22 +2270,22 @@ struct sib_type20_r13_s {
       // getters
       fdd_r14_e_& fdd_r14()
       {
-        assert_choice_type("fdd-r14", type_.to_string(), "mpdcch-StartSF-SC-MCCH-r14");
+        assert_choice_type(types::fdd_r14, type_, "mpdcch-StartSF-SC-MCCH-r14");
         return c.get<fdd_r14_e_>();
       }
       tdd_r14_e_& tdd_r14()
       {
-        assert_choice_type("tdd-r14", type_.to_string(), "mpdcch-StartSF-SC-MCCH-r14");
+        assert_choice_type(types::tdd_r14, type_, "mpdcch-StartSF-SC-MCCH-r14");
         return c.get<tdd_r14_e_>();
       }
       const fdd_r14_e_& fdd_r14() const
       {
-        assert_choice_type("fdd-r14", type_.to_string(), "mpdcch-StartSF-SC-MCCH-r14");
+        assert_choice_type(types::fdd_r14, type_, "mpdcch-StartSF-SC-MCCH-r14");
         return c.get<fdd_r14_e_>();
       }
       const tdd_r14_e_& tdd_r14() const
       {
-        assert_choice_type("tdd-r14", type_.to_string(), "mpdcch-StartSF-SC-MCCH-r14");
+        assert_choice_type(types::tdd_r14, type_, "mpdcch-StartSF-SC-MCCH-r14");
         return c.get<tdd_r14_e_>();
       }
       fdd_r14_e_& set_fdd_r14();
@@ -2449,22 +2449,22 @@ struct sib_type25_r15_s {
     // getters
     uac_ac1_select_assist_info_r15_e& plmn_common_r15()
     {
-      assert_choice_type("plmnCommon-r15", type_.to_string(), "uac-AC1-SelectAssistInfo-r15");
+      assert_choice_type(types::plmn_common_r15, type_, "uac-AC1-SelectAssistInfo-r15");
       return c.get<uac_ac1_select_assist_info_r15_e>();
     }
     individual_plmn_list_r15_l_& individual_plmn_list_r15()
     {
-      assert_choice_type("individualPLMNList-r15", type_.to_string(), "uac-AC1-SelectAssistInfo-r15");
+      assert_choice_type(types::individual_plmn_list_r15, type_, "uac-AC1-SelectAssistInfo-r15");
       return c.get<individual_plmn_list_r15_l_>();
     }
     const uac_ac1_select_assist_info_r15_e& plmn_common_r15() const
     {
-      assert_choice_type("plmnCommon-r15", type_.to_string(), "uac-AC1-SelectAssistInfo-r15");
+      assert_choice_type(types::plmn_common_r15, type_, "uac-AC1-SelectAssistInfo-r15");
       return c.get<uac_ac1_select_assist_info_r15_e>();
     }
     const individual_plmn_list_r15_l_& individual_plmn_list_r15() const
     {
-      assert_choice_type("individualPLMNList-r15", type_.to_string(), "uac-AC1-SelectAssistInfo-r15");
+      assert_choice_type(types::individual_plmn_list_r15, type_, "uac-AC1-SelectAssistInfo-r15");
       return c.get<individual_plmn_list_r15_l_>();
     }
     uac_ac1_select_assist_info_r15_e& set_plmn_common_r15();
@@ -2875,272 +2875,272 @@ struct pos_sys_info_r15_ies_s {
     // getters
     sib_pos_r15_s& pos_sib1_minus1_r15()
     {
-      assert_choice_type("posSib1-1-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib1_minus1_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     sib_pos_r15_s& pos_sib1_minus2_r15()
     {
-      assert_choice_type("posSib1-2-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib1_minus2_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     sib_pos_r15_s& pos_sib1_minus3_r15()
     {
-      assert_choice_type("posSib1-3-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib1_minus3_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     sib_pos_r15_s& pos_sib1_minus4_r15()
     {
-      assert_choice_type("posSib1-4-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib1_minus4_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     sib_pos_r15_s& pos_sib1_minus5_r15()
     {
-      assert_choice_type("posSib1-5-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib1_minus5_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     sib_pos_r15_s& pos_sib1_minus6_r15()
     {
-      assert_choice_type("posSib1-6-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib1_minus6_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     sib_pos_r15_s& pos_sib1_minus7_r15()
     {
-      assert_choice_type("posSib1-7-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib1_minus7_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     sib_pos_r15_s& pos_sib2_minus1_r15()
     {
-      assert_choice_type("posSib2-1-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus1_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     sib_pos_r15_s& pos_sib2_minus2_r15()
     {
-      assert_choice_type("posSib2-2-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus2_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     sib_pos_r15_s& pos_sib2_minus3_r15()
     {
-      assert_choice_type("posSib2-3-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus3_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     sib_pos_r15_s& pos_sib2_minus4_r15()
     {
-      assert_choice_type("posSib2-4-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus4_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     sib_pos_r15_s& pos_sib2_minus5_r15()
     {
-      assert_choice_type("posSib2-5-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus5_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     sib_pos_r15_s& pos_sib2_minus6_r15()
     {
-      assert_choice_type("posSib2-6-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus6_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     sib_pos_r15_s& pos_sib2_minus7_r15()
     {
-      assert_choice_type("posSib2-7-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus7_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     sib_pos_r15_s& pos_sib2_minus8_r15()
     {
-      assert_choice_type("posSib2-8-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus8_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     sib_pos_r15_s& pos_sib2_minus9_r15()
     {
-      assert_choice_type("posSib2-9-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus9_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     sib_pos_r15_s& pos_sib2_minus10_r15()
     {
-      assert_choice_type("posSib2-10-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus10_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     sib_pos_r15_s& pos_sib2_minus11_r15()
     {
-      assert_choice_type("posSib2-11-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus11_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     sib_pos_r15_s& pos_sib2_minus12_r15()
     {
-      assert_choice_type("posSib2-12-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus12_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     sib_pos_r15_s& pos_sib2_minus13_r15()
     {
-      assert_choice_type("posSib2-13-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus13_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     sib_pos_r15_s& pos_sib2_minus14_r15()
     {
-      assert_choice_type("posSib2-14-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus14_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     sib_pos_r15_s& pos_sib2_minus15_r15()
     {
-      assert_choice_type("posSib2-15-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus15_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     sib_pos_r15_s& pos_sib2_minus16_r15()
     {
-      assert_choice_type("posSib2-16-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus16_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     sib_pos_r15_s& pos_sib2_minus17_r15()
     {
-      assert_choice_type("posSib2-17-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus17_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     sib_pos_r15_s& pos_sib2_minus18_r15()
     {
-      assert_choice_type("posSib2-18-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus18_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     sib_pos_r15_s& pos_sib2_minus19_r15()
     {
-      assert_choice_type("posSib2-19-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus19_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     sib_pos_r15_s& pos_sib3_minus1_r15()
     {
-      assert_choice_type("posSib3-1-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib3_minus1_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     const sib_pos_r15_s& pos_sib1_minus1_r15() const
     {
-      assert_choice_type("posSib1-1-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib1_minus1_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     const sib_pos_r15_s& pos_sib1_minus2_r15() const
     {
-      assert_choice_type("posSib1-2-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib1_minus2_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     const sib_pos_r15_s& pos_sib1_minus3_r15() const
     {
-      assert_choice_type("posSib1-3-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib1_minus3_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     const sib_pos_r15_s& pos_sib1_minus4_r15() const
     {
-      assert_choice_type("posSib1-4-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib1_minus4_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     const sib_pos_r15_s& pos_sib1_minus5_r15() const
     {
-      assert_choice_type("posSib1-5-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib1_minus5_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     const sib_pos_r15_s& pos_sib1_minus6_r15() const
     {
-      assert_choice_type("posSib1-6-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib1_minus6_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     const sib_pos_r15_s& pos_sib1_minus7_r15() const
     {
-      assert_choice_type("posSib1-7-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib1_minus7_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     const sib_pos_r15_s& pos_sib2_minus1_r15() const
     {
-      assert_choice_type("posSib2-1-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus1_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     const sib_pos_r15_s& pos_sib2_minus2_r15() const
     {
-      assert_choice_type("posSib2-2-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus2_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     const sib_pos_r15_s& pos_sib2_minus3_r15() const
     {
-      assert_choice_type("posSib2-3-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus3_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     const sib_pos_r15_s& pos_sib2_minus4_r15() const
     {
-      assert_choice_type("posSib2-4-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus4_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     const sib_pos_r15_s& pos_sib2_minus5_r15() const
     {
-      assert_choice_type("posSib2-5-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus5_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     const sib_pos_r15_s& pos_sib2_minus6_r15() const
     {
-      assert_choice_type("posSib2-6-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus6_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     const sib_pos_r15_s& pos_sib2_minus7_r15() const
     {
-      assert_choice_type("posSib2-7-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus7_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     const sib_pos_r15_s& pos_sib2_minus8_r15() const
     {
-      assert_choice_type("posSib2-8-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus8_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     const sib_pos_r15_s& pos_sib2_minus9_r15() const
     {
-      assert_choice_type("posSib2-9-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus9_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     const sib_pos_r15_s& pos_sib2_minus10_r15() const
     {
-      assert_choice_type("posSib2-10-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus10_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     const sib_pos_r15_s& pos_sib2_minus11_r15() const
     {
-      assert_choice_type("posSib2-11-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus11_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     const sib_pos_r15_s& pos_sib2_minus12_r15() const
     {
-      assert_choice_type("posSib2-12-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus12_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     const sib_pos_r15_s& pos_sib2_minus13_r15() const
     {
-      assert_choice_type("posSib2-13-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus13_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     const sib_pos_r15_s& pos_sib2_minus14_r15() const
     {
-      assert_choice_type("posSib2-14-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus14_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     const sib_pos_r15_s& pos_sib2_minus15_r15() const
     {
-      assert_choice_type("posSib2-15-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus15_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     const sib_pos_r15_s& pos_sib2_minus16_r15() const
     {
-      assert_choice_type("posSib2-16-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus16_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     const sib_pos_r15_s& pos_sib2_minus17_r15() const
     {
-      assert_choice_type("posSib2-17-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus17_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     const sib_pos_r15_s& pos_sib2_minus18_r15() const
     {
-      assert_choice_type("posSib2-18-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus18_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     const sib_pos_r15_s& pos_sib2_minus19_r15() const
     {
-      assert_choice_type("posSib2-19-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib2_minus19_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     const sib_pos_r15_s& pos_sib3_minus1_r15() const
     {
-      assert_choice_type("posSib3-1-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
+      assert_choice_type(types::pos_sib3_minus1_r15, type_, "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
     sib_pos_r15_s& set_pos_sib1_minus1_r15();
@@ -3240,232 +3240,232 @@ struct sib_info_item_c {
   // getters
   sib_type2_s& sib2()
   {
-    assert_choice_type("sib2", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib2, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type2_s>();
   }
   sib_type3_s& sib3()
   {
-    assert_choice_type("sib3", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib3, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type3_s>();
   }
   sib_type4_s& sib4()
   {
-    assert_choice_type("sib4", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib4, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type4_s>();
   }
   sib_type5_s& sib5()
   {
-    assert_choice_type("sib5", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib5, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type5_s>();
   }
   sib_type6_s& sib6()
   {
-    assert_choice_type("sib6", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib6, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type6_s>();
   }
   sib_type7_s& sib7()
   {
-    assert_choice_type("sib7", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib7, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type7_s>();
   }
   sib_type8_s& sib8()
   {
-    assert_choice_type("sib8", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib8, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type8_s>();
   }
   sib_type9_s& sib9()
   {
-    assert_choice_type("sib9", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib9, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type9_s>();
   }
   sib_type10_s& sib10()
   {
-    assert_choice_type("sib10", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib10, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type10_s>();
   }
   sib_type11_s& sib11()
   {
-    assert_choice_type("sib11", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib11, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type11_s>();
   }
   sib_type12_r9_s& sib12_v920()
   {
-    assert_choice_type("sib12-v920", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib12_v920, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type12_r9_s>();
   }
   sib_type13_r9_s& sib13_v920()
   {
-    assert_choice_type("sib13-v920", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib13_v920, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type13_r9_s>();
   }
   sib_type14_r11_s& sib14_v1130()
   {
-    assert_choice_type("sib14-v1130", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib14_v1130, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type14_r11_s>();
   }
   sib_type15_r11_s& sib15_v1130()
   {
-    assert_choice_type("sib15-v1130", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib15_v1130, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type15_r11_s>();
   }
   sib_type16_r11_s& sib16_v1130()
   {
-    assert_choice_type("sib16-v1130", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib16_v1130, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type16_r11_s>();
   }
   sib_type17_r12_s& sib17_v1250()
   {
-    assert_choice_type("sib17-v1250", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib17_v1250, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type17_r12_s>();
   }
   sib_type18_r12_s& sib18_v1250()
   {
-    assert_choice_type("sib18-v1250", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib18_v1250, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type18_r12_s>();
   }
   sib_type19_r12_s& sib19_v1250()
   {
-    assert_choice_type("sib19-v1250", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib19_v1250, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type19_r12_s>();
   }
   sib_type20_r13_s& sib20_v1310()
   {
-    assert_choice_type("sib20-v1310", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib20_v1310, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type20_r13_s>();
   }
   sib_type21_r14_s& sib21_v1430()
   {
-    assert_choice_type("sib21-v1430", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib21_v1430, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type21_r14_s>();
   }
   sib_type24_r15_s& sib24_v1530()
   {
-    assert_choice_type("sib24-v1530", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib24_v1530, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type24_r15_s>();
   }
   sib_type25_r15_s& sib25_v1530()
   {
-    assert_choice_type("sib25-v1530", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib25_v1530, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type25_r15_s>();
   }
   sib_type26_r15_s& sib26_v1530()
   {
-    assert_choice_type("sib26-v1530", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib26_v1530, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type26_r15_s>();
   }
   const sib_type2_s& sib2() const
   {
-    assert_choice_type("sib2", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib2, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type2_s>();
   }
   const sib_type3_s& sib3() const
   {
-    assert_choice_type("sib3", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib3, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type3_s>();
   }
   const sib_type4_s& sib4() const
   {
-    assert_choice_type("sib4", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib4, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type4_s>();
   }
   const sib_type5_s& sib5() const
   {
-    assert_choice_type("sib5", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib5, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type5_s>();
   }
   const sib_type6_s& sib6() const
   {
-    assert_choice_type("sib6", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib6, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type6_s>();
   }
   const sib_type7_s& sib7() const
   {
-    assert_choice_type("sib7", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib7, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type7_s>();
   }
   const sib_type8_s& sib8() const
   {
-    assert_choice_type("sib8", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib8, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type8_s>();
   }
   const sib_type9_s& sib9() const
   {
-    assert_choice_type("sib9", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib9, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type9_s>();
   }
   const sib_type10_s& sib10() const
   {
-    assert_choice_type("sib10", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib10, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type10_s>();
   }
   const sib_type11_s& sib11() const
   {
-    assert_choice_type("sib11", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib11, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type11_s>();
   }
   const sib_type12_r9_s& sib12_v920() const
   {
-    assert_choice_type("sib12-v920", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib12_v920, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type12_r9_s>();
   }
   const sib_type13_r9_s& sib13_v920() const
   {
-    assert_choice_type("sib13-v920", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib13_v920, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type13_r9_s>();
   }
   const sib_type14_r11_s& sib14_v1130() const
   {
-    assert_choice_type("sib14-v1130", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib14_v1130, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type14_r11_s>();
   }
   const sib_type15_r11_s& sib15_v1130() const
   {
-    assert_choice_type("sib15-v1130", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib15_v1130, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type15_r11_s>();
   }
   const sib_type16_r11_s& sib16_v1130() const
   {
-    assert_choice_type("sib16-v1130", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib16_v1130, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type16_r11_s>();
   }
   const sib_type17_r12_s& sib17_v1250() const
   {
-    assert_choice_type("sib17-v1250", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib17_v1250, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type17_r12_s>();
   }
   const sib_type18_r12_s& sib18_v1250() const
   {
-    assert_choice_type("sib18-v1250", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib18_v1250, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type18_r12_s>();
   }
   const sib_type19_r12_s& sib19_v1250() const
   {
-    assert_choice_type("sib19-v1250", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib19_v1250, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type19_r12_s>();
   }
   const sib_type20_r13_s& sib20_v1310() const
   {
-    assert_choice_type("sib20-v1310", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib20_v1310, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type20_r13_s>();
   }
   const sib_type21_r14_s& sib21_v1430() const
   {
-    assert_choice_type("sib21-v1430", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib21_v1430, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type21_r14_s>();
   }
   const sib_type24_r15_s& sib24_v1530() const
   {
-    assert_choice_type("sib24-v1530", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib24_v1530, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type24_r15_s>();
   }
   const sib_type25_r15_s& sib25_v1530() const
   {
-    assert_choice_type("sib25-v1530", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib25_v1530, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type25_r15_s>();
   }
   const sib_type26_r15_s& sib26_v1530() const
   {
-    assert_choice_type("sib26-v1530", type_.to_string(), "sib-TypeAndInfo-item");
+    assert_choice_type(types::sib26_v1530, type_, "sib-TypeAndInfo-item");
     return c.get<sib_type26_r15_s>();
   }
   sib_type2_s&      set_sib2();
@@ -3559,12 +3559,12 @@ struct sys_info_s {
       // getters
       pos_sys_info_r15_ies_s& pos_sys_info_r15()
       {
-        assert_choice_type("posSystemInformation-r15", type_.to_string(), "criticalExtensionsFuture-r15");
+        assert_choice_type(types::pos_sys_info_r15, type_, "criticalExtensionsFuture-r15");
         return c;
       }
       const pos_sys_info_r15_ies_s& pos_sys_info_r15() const
       {
-        assert_choice_type("posSystemInformation-r15", type_.to_string(), "criticalExtensionsFuture-r15");
+        assert_choice_type(types::pos_sys_info_r15, type_, "criticalExtensionsFuture-r15");
         return c;
       }
       pos_sys_info_r15_ies_s& set_pos_sys_info_r15();
@@ -3594,22 +3594,22 @@ struct sys_info_s {
     // getters
     sys_info_r8_ies_s& sys_info_r8()
     {
-      assert_choice_type("systemInformation-r8", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::sys_info_r8, type_, "criticalExtensions");
       return c.get<sys_info_r8_ies_s>();
     }
     crit_exts_future_r15_c_& crit_exts_future_r15()
     {
-      assert_choice_type("criticalExtensionsFuture-r15", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::crit_exts_future_r15, type_, "criticalExtensions");
       return c.get<crit_exts_future_r15_c_>();
     }
     const sys_info_r8_ies_s& sys_info_r8() const
     {
-      assert_choice_type("systemInformation-r8", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::sys_info_r8, type_, "criticalExtensions");
       return c.get<sys_info_r8_ies_s>();
     }
     const crit_exts_future_r15_c_& crit_exts_future_r15() const
     {
-      assert_choice_type("criticalExtensionsFuture-r15", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::crit_exts_future_r15, type_, "criticalExtensions");
       return c.get<crit_exts_future_r15_c_>();
     }
     sys_info_r8_ies_s&       set_sys_info_r8();
@@ -3656,22 +3656,22 @@ struct bcch_dl_sch_msg_type_c {
     // getters
     sys_info_s& sys_info()
     {
-      assert_choice_type("systemInformation", type_.to_string(), "c1");
+      assert_choice_type(types::sys_info, type_, "c1");
       return c.get<sys_info_s>();
     }
     sib_type1_s& sib_type1()
     {
-      assert_choice_type("systemInformationBlockType1", type_.to_string(), "c1");
+      assert_choice_type(types::sib_type1, type_, "c1");
       return c.get<sib_type1_s>();
     }
     const sys_info_s& sys_info() const
     {
-      assert_choice_type("systemInformation", type_.to_string(), "c1");
+      assert_choice_type(types::sys_info, type_, "c1");
       return c.get<sys_info_s>();
     }
     const sib_type1_s& sib_type1() const
     {
-      assert_choice_type("systemInformationBlockType1", type_.to_string(), "c1");
+      assert_choice_type(types::sib_type1, type_, "c1");
       return c.get<sib_type1_s>();
     }
     sys_info_s&  set_sys_info();
@@ -3702,12 +3702,12 @@ struct bcch_dl_sch_msg_type_c {
   // getters
   c1_c_& c1()
   {
-    assert_choice_type("c1", type_.to_string(), "BCCH-DL-SCH-MessageType");
+    assert_choice_type(types::c1, type_, "BCCH-DL-SCH-MessageType");
     return c;
   }
   const c1_c_& c1() const
   {
-    assert_choice_type("c1", type_.to_string(), "BCCH-DL-SCH-MessageType");
+    assert_choice_type(types::c1, type_, "BCCH-DL-SCH-MessageType");
     return c;
   }
   c1_c_& set_c1();
@@ -3759,22 +3759,22 @@ struct bcch_dl_sch_msg_type_br_r13_c {
     // getters
     sys_info_br_r13_s& sys_info_br_r13()
     {
-      assert_choice_type("systemInformation-BR-r13", type_.to_string(), "c1");
+      assert_choice_type(types::sys_info_br_r13, type_, "c1");
       return c.get<sys_info_br_r13_s>();
     }
     sib_type1_br_r13_s& sib_type1_br_r13()
     {
-      assert_choice_type("systemInformationBlockType1-BR-r13", type_.to_string(), "c1");
+      assert_choice_type(types::sib_type1_br_r13, type_, "c1");
       return c.get<sib_type1_br_r13_s>();
     }
     const sys_info_br_r13_s& sys_info_br_r13() const
     {
-      assert_choice_type("systemInformation-BR-r13", type_.to_string(), "c1");
+      assert_choice_type(types::sys_info_br_r13, type_, "c1");
       return c.get<sys_info_br_r13_s>();
     }
     const sib_type1_br_r13_s& sib_type1_br_r13() const
     {
-      assert_choice_type("systemInformationBlockType1-BR-r13", type_.to_string(), "c1");
+      assert_choice_type(types::sib_type1_br_r13, type_, "c1");
       return c.get<sib_type1_br_r13_s>();
     }
     sys_info_br_r13_s&  set_sys_info_br_r13();
@@ -3805,12 +3805,12 @@ struct bcch_dl_sch_msg_type_br_r13_c {
   // getters
   c1_c_& c1()
   {
-    assert_choice_type("c1", type_.to_string(), "BCCH-DL-SCH-MessageType-BR-r13");
+    assert_choice_type(types::c1, type_, "BCCH-DL-SCH-MessageType-BR-r13");
     return c;
   }
   const c1_c_& c1() const
   {
-    assert_choice_type("c1", type_.to_string(), "BCCH-DL-SCH-MessageType-BR-r13");
+    assert_choice_type(types::c1, type_, "BCCH-DL-SCH-MessageType-BR-r13");
     return c;
   }
   c1_c_& set_c1();

@@ -63,12 +63,12 @@ struct sl_tx_pwr_r14_c {
   // getters
   int8_t& tx_pwr_r14()
   {
-    assert_choice_type("txPower-r14", type_.to_string(), "SL-TxPower-r14");
+    assert_choice_type(types::tx_pwr_r14, type_, "SL-TxPower-r14");
     return c;
   }
   const int8_t& tx_pwr_r14() const
   {
-    assert_choice_type("txPower-r14", type_.to_string(), "SL-TxPower-r14");
+    assert_choice_type(types::tx_pwr_r14, type_, "SL-TxPower-r14");
     return c;
   }
   void    set_minusinfinity_r14();
@@ -233,22 +233,22 @@ struct sl_offset_ind_r12_c {
   // getters
   uint16_t& small_r12()
   {
-    assert_choice_type("small-r12", type_.to_string(), "SL-OffsetIndicator-r12");
+    assert_choice_type(types::small_r12, type_, "SL-OffsetIndicator-r12");
     return c.get<uint16_t>();
   }
   uint16_t& large_r12()
   {
-    assert_choice_type("large-r12", type_.to_string(), "SL-OffsetIndicator-r12");
+    assert_choice_type(types::large_r12, type_, "SL-OffsetIndicator-r12");
     return c.get<uint16_t>();
   }
   const uint16_t& small_r12() const
   {
-    assert_choice_type("small-r12", type_.to_string(), "SL-OffsetIndicator-r12");
+    assert_choice_type(types::small_r12, type_, "SL-OffsetIndicator-r12");
     return c.get<uint16_t>();
   }
   const uint16_t& large_r12() const
   {
-    assert_choice_type("large-r12", type_.to_string(), "SL-OffsetIndicator-r12");
+    assert_choice_type(types::large_r12, type_, "SL-OffsetIndicator-r12");
     return c.get<uint16_t>();
   }
   uint16_t& set_small_r12();
@@ -351,72 +351,72 @@ struct sf_bitmap_sl_r12_c {
   // getters
   fixed_bitstring<4>& bs4_r12()
   {
-    assert_choice_type("bs4-r12", type_.to_string(), "SubframeBitmapSL-r12");
+    assert_choice_type(types::bs4_r12, type_, "SubframeBitmapSL-r12");
     return c.get<fixed_bitstring<4> >();
   }
   fixed_bitstring<8>& bs8_r12()
   {
-    assert_choice_type("bs8-r12", type_.to_string(), "SubframeBitmapSL-r12");
+    assert_choice_type(types::bs8_r12, type_, "SubframeBitmapSL-r12");
     return c.get<fixed_bitstring<8> >();
   }
   fixed_bitstring<12>& bs12_r12()
   {
-    assert_choice_type("bs12-r12", type_.to_string(), "SubframeBitmapSL-r12");
+    assert_choice_type(types::bs12_r12, type_, "SubframeBitmapSL-r12");
     return c.get<fixed_bitstring<12> >();
   }
   fixed_bitstring<16>& bs16_r12()
   {
-    assert_choice_type("bs16-r12", type_.to_string(), "SubframeBitmapSL-r12");
+    assert_choice_type(types::bs16_r12, type_, "SubframeBitmapSL-r12");
     return c.get<fixed_bitstring<16> >();
   }
   fixed_bitstring<30>& bs30_r12()
   {
-    assert_choice_type("bs30-r12", type_.to_string(), "SubframeBitmapSL-r12");
+    assert_choice_type(types::bs30_r12, type_, "SubframeBitmapSL-r12");
     return c.get<fixed_bitstring<30> >();
   }
   fixed_bitstring<40>& bs40_r12()
   {
-    assert_choice_type("bs40-r12", type_.to_string(), "SubframeBitmapSL-r12");
+    assert_choice_type(types::bs40_r12, type_, "SubframeBitmapSL-r12");
     return c.get<fixed_bitstring<40> >();
   }
   fixed_bitstring<42>& bs42_r12()
   {
-    assert_choice_type("bs42-r12", type_.to_string(), "SubframeBitmapSL-r12");
+    assert_choice_type(types::bs42_r12, type_, "SubframeBitmapSL-r12");
     return c.get<fixed_bitstring<42> >();
   }
   const fixed_bitstring<4>& bs4_r12() const
   {
-    assert_choice_type("bs4-r12", type_.to_string(), "SubframeBitmapSL-r12");
+    assert_choice_type(types::bs4_r12, type_, "SubframeBitmapSL-r12");
     return c.get<fixed_bitstring<4> >();
   }
   const fixed_bitstring<8>& bs8_r12() const
   {
-    assert_choice_type("bs8-r12", type_.to_string(), "SubframeBitmapSL-r12");
+    assert_choice_type(types::bs8_r12, type_, "SubframeBitmapSL-r12");
     return c.get<fixed_bitstring<8> >();
   }
   const fixed_bitstring<12>& bs12_r12() const
   {
-    assert_choice_type("bs12-r12", type_.to_string(), "SubframeBitmapSL-r12");
+    assert_choice_type(types::bs12_r12, type_, "SubframeBitmapSL-r12");
     return c.get<fixed_bitstring<12> >();
   }
   const fixed_bitstring<16>& bs16_r12() const
   {
-    assert_choice_type("bs16-r12", type_.to_string(), "SubframeBitmapSL-r12");
+    assert_choice_type(types::bs16_r12, type_, "SubframeBitmapSL-r12");
     return c.get<fixed_bitstring<16> >();
   }
   const fixed_bitstring<30>& bs30_r12() const
   {
-    assert_choice_type("bs30-r12", type_.to_string(), "SubframeBitmapSL-r12");
+    assert_choice_type(types::bs30_r12, type_, "SubframeBitmapSL-r12");
     return c.get<fixed_bitstring<30> >();
   }
   const fixed_bitstring<40>& bs40_r12() const
   {
-    assert_choice_type("bs40-r12", type_.to_string(), "SubframeBitmapSL-r12");
+    assert_choice_type(types::bs40_r12, type_, "SubframeBitmapSL-r12");
     return c.get<fixed_bitstring<40> >();
   }
   const fixed_bitstring<42>& bs42_r12() const
   {
-    assert_choice_type("bs42-r12", type_.to_string(), "SubframeBitmapSL-r12");
+    assert_choice_type(types::bs42_r12, type_, "SubframeBitmapSL-r12");
     return c.get<fixed_bitstring<42> >();
   }
   fixed_bitstring<4>&  set_bs4_r12();
@@ -458,82 +458,82 @@ struct sf_bitmap_sl_r14_c {
   // getters
   fixed_bitstring<10>& bs10_r14()
   {
-    assert_choice_type("bs10-r14", type_.to_string(), "SubframeBitmapSL-r14");
+    assert_choice_type(types::bs10_r14, type_, "SubframeBitmapSL-r14");
     return c.get<fixed_bitstring<10> >();
   }
   fixed_bitstring<16>& bs16_r14()
   {
-    assert_choice_type("bs16-r14", type_.to_string(), "SubframeBitmapSL-r14");
+    assert_choice_type(types::bs16_r14, type_, "SubframeBitmapSL-r14");
     return c.get<fixed_bitstring<16> >();
   }
   fixed_bitstring<20>& bs20_r14()
   {
-    assert_choice_type("bs20-r14", type_.to_string(), "SubframeBitmapSL-r14");
+    assert_choice_type(types::bs20_r14, type_, "SubframeBitmapSL-r14");
     return c.get<fixed_bitstring<20> >();
   }
   fixed_bitstring<30>& bs30_r14()
   {
-    assert_choice_type("bs30-r14", type_.to_string(), "SubframeBitmapSL-r14");
+    assert_choice_type(types::bs30_r14, type_, "SubframeBitmapSL-r14");
     return c.get<fixed_bitstring<30> >();
   }
   fixed_bitstring<40>& bs40_r14()
   {
-    assert_choice_type("bs40-r14", type_.to_string(), "SubframeBitmapSL-r14");
+    assert_choice_type(types::bs40_r14, type_, "SubframeBitmapSL-r14");
     return c.get<fixed_bitstring<40> >();
   }
   fixed_bitstring<50>& bs50_r14()
   {
-    assert_choice_type("bs50-r14", type_.to_string(), "SubframeBitmapSL-r14");
+    assert_choice_type(types::bs50_r14, type_, "SubframeBitmapSL-r14");
     return c.get<fixed_bitstring<50> >();
   }
   fixed_bitstring<60>& bs60_r14()
   {
-    assert_choice_type("bs60-r14", type_.to_string(), "SubframeBitmapSL-r14");
+    assert_choice_type(types::bs60_r14, type_, "SubframeBitmapSL-r14");
     return c.get<fixed_bitstring<60> >();
   }
   fixed_bitstring<100>& bs100_r14()
   {
-    assert_choice_type("bs100-r14", type_.to_string(), "SubframeBitmapSL-r14");
+    assert_choice_type(types::bs100_r14, type_, "SubframeBitmapSL-r14");
     return c.get<fixed_bitstring<100> >();
   }
   const fixed_bitstring<10>& bs10_r14() const
   {
-    assert_choice_type("bs10-r14", type_.to_string(), "SubframeBitmapSL-r14");
+    assert_choice_type(types::bs10_r14, type_, "SubframeBitmapSL-r14");
     return c.get<fixed_bitstring<10> >();
   }
   const fixed_bitstring<16>& bs16_r14() const
   {
-    assert_choice_type("bs16-r14", type_.to_string(), "SubframeBitmapSL-r14");
+    assert_choice_type(types::bs16_r14, type_, "SubframeBitmapSL-r14");
     return c.get<fixed_bitstring<16> >();
   }
   const fixed_bitstring<20>& bs20_r14() const
   {
-    assert_choice_type("bs20-r14", type_.to_string(), "SubframeBitmapSL-r14");
+    assert_choice_type(types::bs20_r14, type_, "SubframeBitmapSL-r14");
     return c.get<fixed_bitstring<20> >();
   }
   const fixed_bitstring<30>& bs30_r14() const
   {
-    assert_choice_type("bs30-r14", type_.to_string(), "SubframeBitmapSL-r14");
+    assert_choice_type(types::bs30_r14, type_, "SubframeBitmapSL-r14");
     return c.get<fixed_bitstring<30> >();
   }
   const fixed_bitstring<40>& bs40_r14() const
   {
-    assert_choice_type("bs40-r14", type_.to_string(), "SubframeBitmapSL-r14");
+    assert_choice_type(types::bs40_r14, type_, "SubframeBitmapSL-r14");
     return c.get<fixed_bitstring<40> >();
   }
   const fixed_bitstring<50>& bs50_r14() const
   {
-    assert_choice_type("bs50-r14", type_.to_string(), "SubframeBitmapSL-r14");
+    assert_choice_type(types::bs50_r14, type_, "SubframeBitmapSL-r14");
     return c.get<fixed_bitstring<50> >();
   }
   const fixed_bitstring<60>& bs60_r14() const
   {
-    assert_choice_type("bs60-r14", type_.to_string(), "SubframeBitmapSL-r14");
+    assert_choice_type(types::bs60_r14, type_, "SubframeBitmapSL-r14");
     return c.get<fixed_bitstring<60> >();
   }
   const fixed_bitstring<100>& bs100_r14() const
   {
-    assert_choice_type("bs100-r14", type_.to_string(), "SubframeBitmapSL-r14");
+    assert_choice_type(types::bs100_r14, type_, "SubframeBitmapSL-r14");
     return c.get<fixed_bitstring<100> >();
   }
   fixed_bitstring<10>&  set_bs10_r14();
@@ -834,12 +834,12 @@ struct sl_disc_res_pool_r12_s {
         // getters
         sl_pool_sel_cfg_r12_s& rsrp_based_r12()
         {
-          assert_choice_type("rsrpBased-r12", type_.to_string(), "poolSelection-r12");
+          assert_choice_type(types::rsrp_based_r12, type_, "poolSelection-r12");
           return c;
         }
         const sl_pool_sel_cfg_r12_s& rsrp_based_r12() const
         {
-          assert_choice_type("rsrpBased-r12", type_.to_string(), "poolSelection-r12");
+          assert_choice_type(types::rsrp_based_r12, type_, "poolSelection-r12");
           return c;
         }
         sl_pool_sel_cfg_r12_s& set_rsrp_based_r12();
@@ -894,12 +894,12 @@ struct sl_disc_res_pool_r12_s {
     // getters
     setup_e_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "discPeriod-v1310");
+      assert_choice_type(types::setup, type_, "discPeriod-v1310");
       return c;
     }
     const setup_e_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "discPeriod-v1310");
+      assert_choice_type(types::setup, type_, "discPeriod-v1310");
       return c;
     }
     void      set_release();
@@ -925,12 +925,12 @@ struct sl_disc_res_pool_r12_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "rxParamsAddNeighFreq-r13");
+      assert_choice_type(types::setup, type_, "rxParamsAddNeighFreq-r13");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "rxParamsAddNeighFreq-r13");
+      assert_choice_type(types::setup, type_, "rxParamsAddNeighFreq-r13");
       return c;
     }
     void      set_release();
@@ -985,12 +985,12 @@ struct sl_disc_res_pool_r12_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "txParamsAddNeighFreq-r13");
+      assert_choice_type(types::setup, type_, "txParamsAddNeighFreq-r13");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "txParamsAddNeighFreq-r13");
+      assert_choice_type(types::setup, type_, "txParamsAddNeighFreq-r13");
       return c;
     }
     void      set_release();
@@ -1021,12 +1021,12 @@ struct sl_disc_res_pool_r12_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "txParamsAddNeighFreq-v1370");
+      assert_choice_type(types::setup, type_, "txParamsAddNeighFreq-v1370");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "txParamsAddNeighFreq-v1370");
+      assert_choice_type(types::setup, type_, "txParamsAddNeighFreq-v1370");
       return c;
     }
     void      set_release();
@@ -1303,12 +1303,12 @@ struct sl_disc_tx_res_inter_freq_r13_c {
   // getters
   sl_disc_tx_pool_list_r12_l& disc_tx_pool_common_r13()
   {
-    assert_choice_type("discTxPoolCommon-r13", type_.to_string(), "SL-DiscTxResourcesInterFreq-r13");
+    assert_choice_type(types::disc_tx_pool_common_r13, type_, "SL-DiscTxResourcesInterFreq-r13");
     return c;
   }
   const sl_disc_tx_pool_list_r12_l& disc_tx_pool_common_r13() const
   {
-    assert_choice_type("discTxPoolCommon-r13", type_.to_string(), "SL-DiscTxResourcesInterFreq-r13");
+    assert_choice_type(types::disc_tx_pool_common_r13, type_, "SL-DiscTxResourcesInterFreq-r13");
     return c;
   }
   void                        set_acquire_si_from_carrier_r13();
@@ -1428,22 +1428,22 @@ struct sl_inter_freq_info_v2x_r14_s {
     // getters
     uint8_t& add_spec_emission_r14()
     {
-      assert_choice_type("additionalSpectrumEmission-r14", type_.to_string(), "additionalSpectrumEmissionV2X-r14");
+      assert_choice_type(types::add_spec_emission_r14, type_, "additionalSpectrumEmissionV2X-r14");
       return c.get<uint8_t>();
     }
     uint16_t& add_spec_emission_v1440()
     {
-      assert_choice_type("additionalSpectrumEmission-v1440", type_.to_string(), "additionalSpectrumEmissionV2X-r14");
+      assert_choice_type(types::add_spec_emission_v1440, type_, "additionalSpectrumEmissionV2X-r14");
       return c.get<uint16_t>();
     }
     const uint8_t& add_spec_emission_r14() const
     {
-      assert_choice_type("additionalSpectrumEmission-r14", type_.to_string(), "additionalSpectrumEmissionV2X-r14");
+      assert_choice_type(types::add_spec_emission_r14, type_, "additionalSpectrumEmissionV2X-r14");
       return c.get<uint8_t>();
     }
     const uint16_t& add_spec_emission_v1440() const
     {
-      assert_choice_type("additionalSpectrumEmission-v1440", type_.to_string(), "additionalSpectrumEmissionV2X-r14");
+      assert_choice_type(types::add_spec_emission_v1440, type_, "additionalSpectrumEmissionV2X-r14");
       return c.get<uint16_t>();
     }
     uint8_t&  set_add_spec_emission_r14();

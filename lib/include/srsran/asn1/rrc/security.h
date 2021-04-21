@@ -88,32 +88,32 @@ struct security_cfg_ho_v1530_s {
     // getters
     intra5_gc_r15_s_& intra5_gc_r15()
     {
-      assert_choice_type("intra5GC-r15", type_.to_string(), "handoverType-v1530");
+      assert_choice_type(types::intra5_gc_r15, type_, "handoverType-v1530");
       return c.get<intra5_gc_r15_s_>();
     }
     fivegc_to_epc_r15_s_& fivegc_to_epc_r15()
     {
-      assert_choice_type("fivegc-ToEPC-r15", type_.to_string(), "handoverType-v1530");
+      assert_choice_type(types::fivegc_to_epc_r15, type_, "handoverType-v1530");
       return c.get<fivegc_to_epc_r15_s_>();
     }
     epc_to5_gc_r15_s_& epc_to5_gc_r15()
     {
-      assert_choice_type("epc-To5GC-r15", type_.to_string(), "handoverType-v1530");
+      assert_choice_type(types::epc_to5_gc_r15, type_, "handoverType-v1530");
       return c.get<epc_to5_gc_r15_s_>();
     }
     const intra5_gc_r15_s_& intra5_gc_r15() const
     {
-      assert_choice_type("intra5GC-r15", type_.to_string(), "handoverType-v1530");
+      assert_choice_type(types::intra5_gc_r15, type_, "handoverType-v1530");
       return c.get<intra5_gc_r15_s_>();
     }
     const fivegc_to_epc_r15_s_& fivegc_to_epc_r15() const
     {
-      assert_choice_type("fivegc-ToEPC-r15", type_.to_string(), "handoverType-v1530");
+      assert_choice_type(types::fivegc_to_epc_r15, type_, "handoverType-v1530");
       return c.get<fivegc_to_epc_r15_s_>();
     }
     const epc_to5_gc_r15_s_& epc_to5_gc_r15() const
     {
-      assert_choice_type("epc-To5GC-r15", type_.to_string(), "handoverType-v1530");
+      assert_choice_type(types::epc_to5_gc_r15, type_, "handoverType-v1530");
       return c.get<epc_to5_gc_r15_s_>();
     }
     intra5_gc_r15_s_&     set_intra5_gc_r15();
@@ -171,22 +171,22 @@ struct security_cfg_ho_s {
     // getters
     intra_lte_s_& intra_lte()
     {
-      assert_choice_type("intraLTE", type_.to_string(), "handoverType");
+      assert_choice_type(types::intra_lte, type_, "handoverType");
       return c.get<intra_lte_s_>();
     }
     inter_rat_s_& inter_rat()
     {
-      assert_choice_type("interRAT", type_.to_string(), "handoverType");
+      assert_choice_type(types::inter_rat, type_, "handoverType");
       return c.get<inter_rat_s_>();
     }
     const intra_lte_s_& intra_lte() const
     {
-      assert_choice_type("intraLTE", type_.to_string(), "handoverType");
+      assert_choice_type(types::intra_lte, type_, "handoverType");
       return c.get<intra_lte_s_>();
     }
     const inter_rat_s_& inter_rat() const
     {
-      assert_choice_type("interRAT", type_.to_string(), "handoverType");
+      assert_choice_type(types::inter_rat, type_, "handoverType");
       return c.get<inter_rat_s_>();
     }
     intra_lte_s_& set_intra_lte();
@@ -267,12 +267,12 @@ struct security_mode_cmd_s {
       // getters
       security_mode_cmd_r8_ies_s& security_mode_cmd_r8()
       {
-        assert_choice_type("securityModeCommand-r8", type_.to_string(), "c1");
+        assert_choice_type(types::security_mode_cmd_r8, type_, "c1");
         return c;
       }
       const security_mode_cmd_r8_ies_s& security_mode_cmd_r8() const
       {
-        assert_choice_type("securityModeCommand-r8", type_.to_string(), "c1");
+        assert_choice_type(types::security_mode_cmd_r8, type_, "c1");
         return c;
       }
       security_mode_cmd_r8_ies_s& set_security_mode_cmd_r8();
@@ -296,12 +296,12 @@ struct security_mode_cmd_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     c1_c_& set_c1();
@@ -388,12 +388,12 @@ struct security_mode_complete_s {
     // getters
     security_mode_complete_r8_ies_s& security_mode_complete_r8()
     {
-      assert_choice_type("securityModeComplete-r8", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::security_mode_complete_r8, type_, "criticalExtensions");
       return c;
     }
     const security_mode_complete_r8_ies_s& security_mode_complete_r8() const
     {
-      assert_choice_type("securityModeComplete-r8", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::security_mode_complete_r8, type_, "criticalExtensions");
       return c;
     }
     security_mode_complete_r8_ies_s& set_security_mode_complete_r8();
@@ -434,12 +434,12 @@ struct security_mode_fail_s {
     // getters
     security_mode_fail_r8_ies_s& security_mode_fail_r8()
     {
-      assert_choice_type("securityModeFailure-r8", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::security_mode_fail_r8, type_, "criticalExtensions");
       return c;
     }
     const security_mode_fail_r8_ies_s& security_mode_fail_r8() const
     {
-      assert_choice_type("securityModeFailure-r8", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::security_mode_fail_r8, type_, "criticalExtensions");
       return c;
     }
     security_mode_fail_r8_ies_s& set_security_mode_fail_r8();

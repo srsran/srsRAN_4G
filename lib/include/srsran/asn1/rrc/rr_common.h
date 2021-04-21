@@ -81,22 +81,22 @@ struct plmn_id_info_r15_s {
     // getters
     plmn_id_s& plmn_id_r15()
     {
-      assert_choice_type("plmn-Identity-r15", type_.to_string(), "plmn-Identity-5GC-r15");
+      assert_choice_type(types::plmn_id_r15, type_, "plmn-Identity-5GC-r15");
       return c.get<plmn_id_s>();
     }
     uint8_t& plmn_idx_r15()
     {
-      assert_choice_type("plmn-Index-r15", type_.to_string(), "plmn-Identity-5GC-r15");
+      assert_choice_type(types::plmn_idx_r15, type_, "plmn-Identity-5GC-r15");
       return c.get<uint8_t>();
     }
     const plmn_id_s& plmn_id_r15() const
     {
-      assert_choice_type("plmn-Identity-r15", type_.to_string(), "plmn-Identity-5GC-r15");
+      assert_choice_type(types::plmn_id_r15, type_, "plmn-Identity-5GC-r15");
       return c.get<plmn_id_s>();
     }
     const uint8_t& plmn_idx_r15() const
     {
-      assert_choice_type("plmn-Index-r15", type_.to_string(), "plmn-Identity-5GC-r15");
+      assert_choice_type(types::plmn_idx_r15, type_, "plmn-Identity-5GC-r15");
       return c.get<uint8_t>();
     }
     plmn_id_s& set_plmn_id_r15();
@@ -154,22 +154,22 @@ struct cell_id_minus5_gc_r15_c {
   // getters
   fixed_bitstring<28>& cell_id_r15()
   {
-    assert_choice_type("cellIdentity-r15", type_.to_string(), "CellIdentity-5GC-r15");
+    assert_choice_type(types::cell_id_r15, type_, "CellIdentity-5GC-r15");
     return c.get<fixed_bitstring<28> >();
   }
   uint8_t& cell_id_idx_r15()
   {
-    assert_choice_type("cellId-Index-r15", type_.to_string(), "CellIdentity-5GC-r15");
+    assert_choice_type(types::cell_id_idx_r15, type_, "CellIdentity-5GC-r15");
     return c.get<uint8_t>();
   }
   const fixed_bitstring<28>& cell_id_r15() const
   {
-    assert_choice_type("cellIdentity-r15", type_.to_string(), "CellIdentity-5GC-r15");
+    assert_choice_type(types::cell_id_r15, type_, "CellIdentity-5GC-r15");
     return c.get<fixed_bitstring<28> >();
   }
   const uint8_t& cell_id_idx_r15() const
   {
-    assert_choice_type("cellId-Index-r15", type_.to_string(), "CellIdentity-5GC-r15");
+    assert_choice_type(types::cell_id_idx_r15, type_, "CellIdentity-5GC-r15");
     return c.get<uint8_t>();
   }
   fixed_bitstring<28>& set_cell_id_r15();
@@ -648,12 +648,12 @@ struct delta_flist_spucch_r15_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "DeltaFList-SPUCCH-r15");
+    assert_choice_type(types::setup, type_, "DeltaFList-SPUCCH-r15");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "DeltaFList-SPUCCH-r15");
+    assert_choice_type(types::setup, type_, "DeltaFList-SPUCCH-r15");
     return c;
   }
   void      set_release();
@@ -871,22 +871,22 @@ struct freq_hop_params_r13_s {
     // getters
     interv_fdd_r13_e_& interv_fdd_r13()
     {
-      assert_choice_type("interval-FDD-r13", type_.to_string(), "dummy2");
+      assert_choice_type(types::interv_fdd_r13, type_, "dummy2");
       return c.get<interv_fdd_r13_e_>();
     }
     interv_tdd_r13_e_& interv_tdd_r13()
     {
-      assert_choice_type("interval-TDD-r13", type_.to_string(), "dummy2");
+      assert_choice_type(types::interv_tdd_r13, type_, "dummy2");
       return c.get<interv_tdd_r13_e_>();
     }
     const interv_fdd_r13_e_& interv_fdd_r13() const
     {
-      assert_choice_type("interval-FDD-r13", type_.to_string(), "dummy2");
+      assert_choice_type(types::interv_fdd_r13, type_, "dummy2");
       return c.get<interv_fdd_r13_e_>();
     }
     const interv_tdd_r13_e_& interv_tdd_r13() const
     {
-      assert_choice_type("interval-TDD-r13", type_.to_string(), "dummy2");
+      assert_choice_type(types::interv_tdd_r13, type_, "dummy2");
       return c.get<interv_tdd_r13_e_>();
     }
     interv_fdd_r13_e_& set_interv_fdd_r13();
@@ -935,22 +935,22 @@ struct freq_hop_params_r13_s {
     // getters
     interv_fdd_r13_e_& interv_fdd_r13()
     {
-      assert_choice_type("interval-FDD-r13", type_.to_string(), "dummy3");
+      assert_choice_type(types::interv_fdd_r13, type_, "dummy3");
       return c.get<interv_fdd_r13_e_>();
     }
     interv_tdd_r13_e_& interv_tdd_r13()
     {
-      assert_choice_type("interval-TDD-r13", type_.to_string(), "dummy3");
+      assert_choice_type(types::interv_tdd_r13, type_, "dummy3");
       return c.get<interv_tdd_r13_e_>();
     }
     const interv_fdd_r13_e_& interv_fdd_r13() const
     {
-      assert_choice_type("interval-FDD-r13", type_.to_string(), "dummy3");
+      assert_choice_type(types::interv_fdd_r13, type_, "dummy3");
       return c.get<interv_fdd_r13_e_>();
     }
     const interv_tdd_r13_e_& interv_tdd_r13() const
     {
-      assert_choice_type("interval-TDD-r13", type_.to_string(), "dummy3");
+      assert_choice_type(types::interv_tdd_r13, type_, "dummy3");
       return c.get<interv_tdd_r13_e_>();
     }
     interv_fdd_r13_e_& set_interv_fdd_r13();
@@ -999,22 +999,22 @@ struct freq_hop_params_r13_s {
     // getters
     interv_fdd_r13_e_& interv_fdd_r13()
     {
-      assert_choice_type("interval-FDD-r13", type_.to_string(), "interval-ULHoppingConfigCommonModeA-r13");
+      assert_choice_type(types::interv_fdd_r13, type_, "interval-ULHoppingConfigCommonModeA-r13");
       return c.get<interv_fdd_r13_e_>();
     }
     interv_tdd_r13_e_& interv_tdd_r13()
     {
-      assert_choice_type("interval-TDD-r13", type_.to_string(), "interval-ULHoppingConfigCommonModeA-r13");
+      assert_choice_type(types::interv_tdd_r13, type_, "interval-ULHoppingConfigCommonModeA-r13");
       return c.get<interv_tdd_r13_e_>();
     }
     const interv_fdd_r13_e_& interv_fdd_r13() const
     {
-      assert_choice_type("interval-FDD-r13", type_.to_string(), "interval-ULHoppingConfigCommonModeA-r13");
+      assert_choice_type(types::interv_fdd_r13, type_, "interval-ULHoppingConfigCommonModeA-r13");
       return c.get<interv_fdd_r13_e_>();
     }
     const interv_tdd_r13_e_& interv_tdd_r13() const
     {
-      assert_choice_type("interval-TDD-r13", type_.to_string(), "interval-ULHoppingConfigCommonModeA-r13");
+      assert_choice_type(types::interv_tdd_r13, type_, "interval-ULHoppingConfigCommonModeA-r13");
       return c.get<interv_tdd_r13_e_>();
     }
     interv_fdd_r13_e_& set_interv_fdd_r13();
@@ -1063,22 +1063,22 @@ struct freq_hop_params_r13_s {
     // getters
     interv_fdd_r13_e_& interv_fdd_r13()
     {
-      assert_choice_type("interval-FDD-r13", type_.to_string(), "interval-ULHoppingConfigCommonModeB-r13");
+      assert_choice_type(types::interv_fdd_r13, type_, "interval-ULHoppingConfigCommonModeB-r13");
       return c.get<interv_fdd_r13_e_>();
     }
     interv_tdd_r13_e_& interv_tdd_r13()
     {
-      assert_choice_type("interval-TDD-r13", type_.to_string(), "interval-ULHoppingConfigCommonModeB-r13");
+      assert_choice_type(types::interv_tdd_r13, type_, "interval-ULHoppingConfigCommonModeB-r13");
       return c.get<interv_tdd_r13_e_>();
     }
     const interv_fdd_r13_e_& interv_fdd_r13() const
     {
-      assert_choice_type("interval-FDD-r13", type_.to_string(), "interval-ULHoppingConfigCommonModeB-r13");
+      assert_choice_type(types::interv_fdd_r13, type_, "interval-ULHoppingConfigCommonModeB-r13");
       return c.get<interv_fdd_r13_e_>();
     }
     const interv_tdd_r13_e_& interv_tdd_r13() const
     {
-      assert_choice_type("interval-TDD-r13", type_.to_string(), "interval-ULHoppingConfigCommonModeB-r13");
+      assert_choice_type(types::interv_tdd_r13, type_, "interval-ULHoppingConfigCommonModeB-r13");
       return c.get<interv_tdd_r13_e_>();
     }
     interv_fdd_r13_e_& set_interv_fdd_r13();
@@ -1311,22 +1311,22 @@ struct prach_cfg_sib_v1310_s {
     // getters
     fdd_r13_e_& fdd_r13()
     {
-      assert_choice_type("fdd-r13", type_.to_string(), "mpdcch-startSF-CSS-RA-r13");
+      assert_choice_type(types::fdd_r13, type_, "mpdcch-startSF-CSS-RA-r13");
       return c.get<fdd_r13_e_>();
     }
     tdd_r13_e_& tdd_r13()
     {
-      assert_choice_type("tdd-r13", type_.to_string(), "mpdcch-startSF-CSS-RA-r13");
+      assert_choice_type(types::tdd_r13, type_, "mpdcch-startSF-CSS-RA-r13");
       return c.get<tdd_r13_e_>();
     }
     const fdd_r13_e_& fdd_r13() const
     {
-      assert_choice_type("fdd-r13", type_.to_string(), "mpdcch-startSF-CSS-RA-r13");
+      assert_choice_type(types::fdd_r13, type_, "mpdcch-startSF-CSS-RA-r13");
       return c.get<fdd_r13_e_>();
     }
     const tdd_r13_e_& tdd_r13() const
     {
-      assert_choice_type("tdd-r13", type_.to_string(), "mpdcch-startSF-CSS-RA-r13");
+      assert_choice_type(types::tdd_r13, type_, "mpdcch-startSF-CSS-RA-r13");
       return c.get<tdd_r13_e_>();
     }
     fdd_r13_e_& set_fdd_r13();
@@ -1766,12 +1766,12 @@ struct srs_ul_cfg_common_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "SoundingRS-UL-ConfigCommon");
+    assert_choice_type(types::setup, type_, "SoundingRS-UL-ConfigCommon");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "SoundingRS-UL-ConfigCommon");
+    assert_choice_type(types::setup, type_, "SoundingRS-UL-ConfigCommon");
     return c;
   }
   void      set_release();
@@ -2411,22 +2411,22 @@ struct prach_cfg_v1310_s {
     // getters
     fdd_r13_e_& fdd_r13()
     {
-      assert_choice_type("fdd-r13", type_.to_string(), "mpdcch-startSF-CSS-RA-r13");
+      assert_choice_type(types::fdd_r13, type_, "mpdcch-startSF-CSS-RA-r13");
       return c.get<fdd_r13_e_>();
     }
     tdd_r13_e_& tdd_r13()
     {
-      assert_choice_type("tdd-r13", type_.to_string(), "mpdcch-startSF-CSS-RA-r13");
+      assert_choice_type(types::tdd_r13, type_, "mpdcch-startSF-CSS-RA-r13");
       return c.get<tdd_r13_e_>();
     }
     const fdd_r13_e_& fdd_r13() const
     {
-      assert_choice_type("fdd-r13", type_.to_string(), "mpdcch-startSF-CSS-RA-r13");
+      assert_choice_type(types::fdd_r13, type_, "mpdcch-startSF-CSS-RA-r13");
       return c.get<fdd_r13_e_>();
     }
     const tdd_r13_e_& tdd_r13() const
     {
-      assert_choice_type("tdd-r13", type_.to_string(), "mpdcch-startSF-CSS-RA-r13");
+      assert_choice_type(types::tdd_r13, type_, "mpdcch-startSF-CSS-RA-r13");
       return c.get<tdd_r13_e_>();
     }
     fdd_r13_e_& set_fdd_r13();

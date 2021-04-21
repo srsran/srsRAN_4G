@@ -102,42 +102,42 @@ struct paging_ue_id_c {
   // getters
   s_tmsi_s& s_tmsi()
   {
-    assert_choice_type("s-TMSI", type_.to_string(), "PagingUE-Identity");
+    assert_choice_type(types::s_tmsi, type_, "PagingUE-Identity");
     return c.get<s_tmsi_s>();
   }
   imsi_l& imsi()
   {
-    assert_choice_type("imsi", type_.to_string(), "PagingUE-Identity");
+    assert_choice_type(types::imsi, type_, "PagingUE-Identity");
     return c.get<imsi_l>();
   }
   fixed_bitstring<48>& ng_minus5_g_s_tmsi_r15()
   {
-    assert_choice_type("ng-5G-S-TMSI-r15", type_.to_string(), "PagingUE-Identity");
+    assert_choice_type(types::ng_minus5_g_s_tmsi_r15, type_, "PagingUE-Identity");
     return c.get<fixed_bitstring<48> >();
   }
   fixed_bitstring<40>& full_i_rnti_r15()
   {
-    assert_choice_type("fullI-RNTI-r15", type_.to_string(), "PagingUE-Identity");
+    assert_choice_type(types::full_i_rnti_r15, type_, "PagingUE-Identity");
     return c.get<fixed_bitstring<40> >();
   }
   const s_tmsi_s& s_tmsi() const
   {
-    assert_choice_type("s-TMSI", type_.to_string(), "PagingUE-Identity");
+    assert_choice_type(types::s_tmsi, type_, "PagingUE-Identity");
     return c.get<s_tmsi_s>();
   }
   const imsi_l& imsi() const
   {
-    assert_choice_type("imsi", type_.to_string(), "PagingUE-Identity");
+    assert_choice_type(types::imsi, type_, "PagingUE-Identity");
     return c.get<imsi_l>();
   }
   const fixed_bitstring<48>& ng_minus5_g_s_tmsi_r15() const
   {
-    assert_choice_type("ng-5G-S-TMSI-r15", type_.to_string(), "PagingUE-Identity");
+    assert_choice_type(types::ng_minus5_g_s_tmsi_r15, type_, "PagingUE-Identity");
     return c.get<fixed_bitstring<48> >();
   }
   const fixed_bitstring<40>& full_i_rnti_r15() const
   {
-    assert_choice_type("fullI-RNTI-r15", type_.to_string(), "PagingUE-Identity");
+    assert_choice_type(types::full_i_rnti_r15, type_, "PagingUE-Identity");
     return c.get<fixed_bitstring<40> >();
   }
   s_tmsi_s&            set_s_tmsi();
@@ -257,12 +257,12 @@ struct pcch_msg_type_c {
   // getters
   c1_c_& c1()
   {
-    assert_choice_type("c1", type_.to_string(), "PCCH-MessageType");
+    assert_choice_type(types::c1, type_, "PCCH-MessageType");
     return c;
   }
   const c1_c_& c1() const
   {
-    assert_choice_type("c1", type_.to_string(), "PCCH-MessageType");
+    assert_choice_type(types::c1, type_, "PCCH-MessageType");
     return c;
   }
   c1_c_& set_c1();
@@ -326,12 +326,12 @@ struct ue_paging_coverage_info_s {
       // getters
       ue_paging_coverage_info_r13_ies_s& ue_paging_coverage_info_r13()
       {
-        assert_choice_type("uePagingCoverageInformation-r13", type_.to_string(), "c1");
+        assert_choice_type(types::ue_paging_coverage_info_r13, type_, "c1");
         return c;
       }
       const ue_paging_coverage_info_r13_ies_s& ue_paging_coverage_info_r13() const
       {
-        assert_choice_type("uePagingCoverageInformation-r13", type_.to_string(), "c1");
+        assert_choice_type(types::ue_paging_coverage_info_r13, type_, "c1");
         return c;
       }
       ue_paging_coverage_info_r13_ies_s& set_ue_paging_coverage_info_r13();
@@ -359,12 +359,12 @@ struct ue_paging_coverage_info_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     c1_c_& set_c1();
@@ -442,12 +442,12 @@ struct ue_radio_paging_info_s {
       // getters
       ue_radio_paging_info_r12_ies_s& ue_radio_paging_info_r12()
       {
-        assert_choice_type("ueRadioPagingInformation-r12", type_.to_string(), "c1");
+        assert_choice_type(types::ue_radio_paging_info_r12, type_, "c1");
         return c;
       }
       const ue_radio_paging_info_r12_ies_s& ue_radio_paging_info_r12() const
       {
-        assert_choice_type("ueRadioPagingInformation-r12", type_.to_string(), "c1");
+        assert_choice_type(types::ue_radio_paging_info_r12, type_, "c1");
         return c;
       }
       ue_radio_paging_info_r12_ies_s& set_ue_radio_paging_info_r12();
@@ -475,12 +475,12 @@ struct ue_radio_paging_info_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     c1_c_& set_c1();

@@ -129,12 +129,12 @@ struct scg_cfg_r12_s {
       // getters
       scg_cfg_r12_ies_s& scg_cfg_r12()
       {
-        assert_choice_type("scg-Config-r12", type_.to_string(), "c1");
+        assert_choice_type(types::scg_cfg_r12, type_, "c1");
         return c;
       }
       const scg_cfg_r12_ies_s& scg_cfg_r12() const
       {
-        assert_choice_type("scg-Config-r12", type_.to_string(), "c1");
+        assert_choice_type(types::scg_cfg_r12, type_, "c1");
         return c;
       }
       scg_cfg_r12_ies_s& set_scg_cfg_r12();
@@ -162,12 +162,12 @@ struct scg_cfg_r12_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     c1_c_& set_c1();
@@ -441,12 +441,12 @@ struct ho_cmd_s {
       // getters
       ho_cmd_r8_ies_s& ho_cmd_r8()
       {
-        assert_choice_type("handoverCommand-r8", type_.to_string(), "c1");
+        assert_choice_type(types::ho_cmd_r8, type_, "c1");
         return c;
       }
       const ho_cmd_r8_ies_s& ho_cmd_r8() const
       {
-        assert_choice_type("handoverCommand-r8", type_.to_string(), "c1");
+        assert_choice_type(types::ho_cmd_r8, type_, "c1");
         return c;
       }
       ho_cmd_r8_ies_s& set_ho_cmd_r8();
@@ -474,12 +474,12 @@ struct ho_cmd_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     c1_c_& set_c1();
@@ -758,12 +758,12 @@ struct ho_prep_info_s {
       // getters
       ho_prep_info_r8_ies_s& ho_prep_info_r8()
       {
-        assert_choice_type("handoverPreparationInformation-r8", type_.to_string(), "c1");
+        assert_choice_type(types::ho_prep_info_r8, type_, "c1");
         return c;
       }
       const ho_prep_info_r8_ies_s& ho_prep_info_r8() const
       {
-        assert_choice_type("handoverPreparationInformation-r8", type_.to_string(), "c1");
+        assert_choice_type(types::ho_prep_info_r8, type_, "c1");
         return c;
       }
       ho_prep_info_r8_ies_s& set_ho_prep_info_r8();
@@ -791,12 +791,12 @@ struct ho_prep_info_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     c1_c_& set_c1();
@@ -886,12 +886,12 @@ struct var_meas_cfg_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "speedStatePars");
+      assert_choice_type(types::setup, type_, "speedStatePars");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "speedStatePars");
+      assert_choice_type(types::setup, type_, "speedStatePars");
       return c;
     }
     void      set_release();

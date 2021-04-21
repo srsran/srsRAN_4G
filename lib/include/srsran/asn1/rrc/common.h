@@ -385,22 +385,22 @@ struct mbsfn_sf_cfg_s {
     // getters
     fixed_bitstring<6>& one_frame()
     {
-      assert_choice_type("oneFrame", type_.to_string(), "subframeAllocation");
+      assert_choice_type(types::one_frame, type_, "subframeAllocation");
       return c.get<fixed_bitstring<6> >();
     }
     fixed_bitstring<24>& four_frames()
     {
-      assert_choice_type("fourFrames", type_.to_string(), "subframeAllocation");
+      assert_choice_type(types::four_frames, type_, "subframeAllocation");
       return c.get<fixed_bitstring<24> >();
     }
     const fixed_bitstring<6>& one_frame() const
     {
-      assert_choice_type("oneFrame", type_.to_string(), "subframeAllocation");
+      assert_choice_type(types::one_frame, type_, "subframeAllocation");
       return c.get<fixed_bitstring<6> >();
     }
     const fixed_bitstring<24>& four_frames() const
     {
-      assert_choice_type("fourFrames", type_.to_string(), "subframeAllocation");
+      assert_choice_type(types::four_frames, type_, "subframeAllocation");
       return c.get<fixed_bitstring<24> >();
     }
     fixed_bitstring<6>&  set_one_frame();
@@ -453,22 +453,22 @@ struct mbsfn_sf_cfg_v1430_s {
     // getters
     fixed_bitstring<2>& one_frame_v1430()
     {
-      assert_choice_type("oneFrame-v1430", type_.to_string(), "subframeAllocation-v1430");
+      assert_choice_type(types::one_frame_v1430, type_, "subframeAllocation-v1430");
       return c.get<fixed_bitstring<2> >();
     }
     fixed_bitstring<8>& four_frames_v1430()
     {
-      assert_choice_type("fourFrames-v1430", type_.to_string(), "subframeAllocation-v1430");
+      assert_choice_type(types::four_frames_v1430, type_, "subframeAllocation-v1430");
       return c.get<fixed_bitstring<8> >();
     }
     const fixed_bitstring<2>& one_frame_v1430() const
     {
-      assert_choice_type("oneFrame-v1430", type_.to_string(), "subframeAllocation-v1430");
+      assert_choice_type(types::one_frame_v1430, type_, "subframeAllocation-v1430");
       return c.get<fixed_bitstring<2> >();
     }
     const fixed_bitstring<8>& four_frames_v1430() const
     {
-      assert_choice_type("fourFrames-v1430", type_.to_string(), "subframeAllocation-v1430");
+      assert_choice_type(types::four_frames_v1430, type_, "subframeAllocation-v1430");
       return c.get<fixed_bitstring<8> >();
     }
     fixed_bitstring<2>& set_one_frame_v1430();
@@ -525,32 +525,32 @@ struct meas_sf_pattern_r10_c {
     // getters
     fixed_bitstring<20>& sf_cfg1_minus5_r10()
     {
-      assert_choice_type("subframeConfig1-5-r10", type_.to_string(), "subframePatternTDD-r10");
+      assert_choice_type(types::sf_cfg1_minus5_r10, type_, "subframePatternTDD-r10");
       return c.get<fixed_bitstring<20> >();
     }
     fixed_bitstring<70>& sf_cfg0_r10()
     {
-      assert_choice_type("subframeConfig0-r10", type_.to_string(), "subframePatternTDD-r10");
+      assert_choice_type(types::sf_cfg0_r10, type_, "subframePatternTDD-r10");
       return c.get<fixed_bitstring<70> >();
     }
     fixed_bitstring<60>& sf_cfg6_r10()
     {
-      assert_choice_type("subframeConfig6-r10", type_.to_string(), "subframePatternTDD-r10");
+      assert_choice_type(types::sf_cfg6_r10, type_, "subframePatternTDD-r10");
       return c.get<fixed_bitstring<60> >();
     }
     const fixed_bitstring<20>& sf_cfg1_minus5_r10() const
     {
-      assert_choice_type("subframeConfig1-5-r10", type_.to_string(), "subframePatternTDD-r10");
+      assert_choice_type(types::sf_cfg1_minus5_r10, type_, "subframePatternTDD-r10");
       return c.get<fixed_bitstring<20> >();
     }
     const fixed_bitstring<70>& sf_cfg0_r10() const
     {
-      assert_choice_type("subframeConfig0-r10", type_.to_string(), "subframePatternTDD-r10");
+      assert_choice_type(types::sf_cfg0_r10, type_, "subframePatternTDD-r10");
       return c.get<fixed_bitstring<70> >();
     }
     const fixed_bitstring<60>& sf_cfg6_r10() const
     {
-      assert_choice_type("subframeConfig6-r10", type_.to_string(), "subframePatternTDD-r10");
+      assert_choice_type(types::sf_cfg6_r10, type_, "subframePatternTDD-r10");
       return c.get<fixed_bitstring<60> >();
     }
     fixed_bitstring<20>& set_sf_cfg1_minus5_r10();
@@ -585,22 +585,22 @@ struct meas_sf_pattern_r10_c {
   // getters
   fixed_bitstring<40>& sf_pattern_fdd_r10()
   {
-    assert_choice_type("subframePatternFDD-r10", type_.to_string(), "MeasSubframePattern-r10");
+    assert_choice_type(types::sf_pattern_fdd_r10, type_, "MeasSubframePattern-r10");
     return c.get<fixed_bitstring<40> >();
   }
   sf_pattern_tdd_r10_c_& sf_pattern_tdd_r10()
   {
-    assert_choice_type("subframePatternTDD-r10", type_.to_string(), "MeasSubframePattern-r10");
+    assert_choice_type(types::sf_pattern_tdd_r10, type_, "MeasSubframePattern-r10");
     return c.get<sf_pattern_tdd_r10_c_>();
   }
   const fixed_bitstring<40>& sf_pattern_fdd_r10() const
   {
-    assert_choice_type("subframePatternFDD-r10", type_.to_string(), "MeasSubframePattern-r10");
+    assert_choice_type(types::sf_pattern_fdd_r10, type_, "MeasSubframePattern-r10");
     return c.get<fixed_bitstring<40> >();
   }
   const sf_pattern_tdd_r10_c_& sf_pattern_tdd_r10() const
   {
-    assert_choice_type("subframePatternTDD-r10", type_.to_string(), "MeasSubframePattern-r10");
+    assert_choice_type(types::sf_pattern_tdd_r10, type_, "MeasSubframePattern-r10");
     return c.get<sf_pattern_tdd_r10_c_>();
   }
   fixed_bitstring<40>&   set_sf_pattern_fdd_r10();

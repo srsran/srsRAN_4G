@@ -379,62 +379,62 @@ struct redirected_carrier_info_r15_ies_c {
   // getters
   uint32_t& eutra_r15()
   {
-    assert_choice_type("eutra-r15", type_.to_string(), "RedirectedCarrierInfo-r15-IEs");
+    assert_choice_type(types::eutra_r15, type_, "RedirectedCarrierInfo-r15-IEs");
     return c.get<uint32_t>();
   }
   carrier_freqs_geran_s& geran_r15()
   {
-    assert_choice_type("geran-r15", type_.to_string(), "RedirectedCarrierInfo-r15-IEs");
+    assert_choice_type(types::geran_r15, type_, "RedirectedCarrierInfo-r15-IEs");
     return c.get<carrier_freqs_geran_s>();
   }
   uint16_t& utra_fdd_r15()
   {
-    assert_choice_type("utra-FDD-r15", type_.to_string(), "RedirectedCarrierInfo-r15-IEs");
+    assert_choice_type(types::utra_fdd_r15, type_, "RedirectedCarrierInfo-r15-IEs");
     return c.get<uint16_t>();
   }
   carrier_freq_cdma2000_s& cdma2000_hrpd_r15()
   {
-    assert_choice_type("cdma2000-HRPD-r15", type_.to_string(), "RedirectedCarrierInfo-r15-IEs");
+    assert_choice_type(types::cdma2000_hrpd_r15, type_, "RedirectedCarrierInfo-r15-IEs");
     return c.get<carrier_freq_cdma2000_s>();
   }
   carrier_freq_cdma2000_s& cdma2000_minus1x_rtt_r15()
   {
-    assert_choice_type("cdma2000-1xRTT-r15", type_.to_string(), "RedirectedCarrierInfo-r15-IEs");
+    assert_choice_type(types::cdma2000_minus1x_rtt_r15, type_, "RedirectedCarrierInfo-r15-IEs");
     return c.get<carrier_freq_cdma2000_s>();
   }
   carrier_freq_list_utra_tdd_r10_l& utra_tdd_r15()
   {
-    assert_choice_type("utra-TDD-r15", type_.to_string(), "RedirectedCarrierInfo-r15-IEs");
+    assert_choice_type(types::utra_tdd_r15, type_, "RedirectedCarrierInfo-r15-IEs");
     return c.get<carrier_freq_list_utra_tdd_r10_l>();
   }
   const uint32_t& eutra_r15() const
   {
-    assert_choice_type("eutra-r15", type_.to_string(), "RedirectedCarrierInfo-r15-IEs");
+    assert_choice_type(types::eutra_r15, type_, "RedirectedCarrierInfo-r15-IEs");
     return c.get<uint32_t>();
   }
   const carrier_freqs_geran_s& geran_r15() const
   {
-    assert_choice_type("geran-r15", type_.to_string(), "RedirectedCarrierInfo-r15-IEs");
+    assert_choice_type(types::geran_r15, type_, "RedirectedCarrierInfo-r15-IEs");
     return c.get<carrier_freqs_geran_s>();
   }
   const uint16_t& utra_fdd_r15() const
   {
-    assert_choice_type("utra-FDD-r15", type_.to_string(), "RedirectedCarrierInfo-r15-IEs");
+    assert_choice_type(types::utra_fdd_r15, type_, "RedirectedCarrierInfo-r15-IEs");
     return c.get<uint16_t>();
   }
   const carrier_freq_cdma2000_s& cdma2000_hrpd_r15() const
   {
-    assert_choice_type("cdma2000-HRPD-r15", type_.to_string(), "RedirectedCarrierInfo-r15-IEs");
+    assert_choice_type(types::cdma2000_hrpd_r15, type_, "RedirectedCarrierInfo-r15-IEs");
     return c.get<carrier_freq_cdma2000_s>();
   }
   const carrier_freq_cdma2000_s& cdma2000_minus1x_rtt_r15() const
   {
-    assert_choice_type("cdma2000-1xRTT-r15", type_.to_string(), "RedirectedCarrierInfo-r15-IEs");
+    assert_choice_type(types::cdma2000_minus1x_rtt_r15, type_, "RedirectedCarrierInfo-r15-IEs");
     return c.get<carrier_freq_cdma2000_s>();
   }
   const carrier_freq_list_utra_tdd_r10_l& utra_tdd_r15() const
   {
-    assert_choice_type("utra-TDD-r15", type_.to_string(), "RedirectedCarrierInfo-r15-IEs");
+    assert_choice_type(types::utra_tdd_r15, type_, "RedirectedCarrierInfo-r15-IEs");
     return c.get<carrier_freq_list_utra_tdd_r10_l>();
   }
   uint32_t&                         set_eutra_r15();
@@ -541,12 +541,12 @@ struct rrc_conn_reest_s {
       // getters
       rrc_conn_reest_r8_ies_s& rrc_conn_reest_r8()
       {
-        assert_choice_type("rrcConnectionReestablishment-r8", type_.to_string(), "c1");
+        assert_choice_type(types::rrc_conn_reest_r8, type_, "c1");
         return c;
       }
       const rrc_conn_reest_r8_ies_s& rrc_conn_reest_r8() const
       {
-        assert_choice_type("rrcConnectionReestablishment-r8", type_.to_string(), "c1");
+        assert_choice_type(types::rrc_conn_reest_r8, type_, "c1");
         return c;
       }
       rrc_conn_reest_r8_ies_s& set_rrc_conn_reest_r8();
@@ -574,12 +574,12 @@ struct rrc_conn_reest_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     c1_c_& set_c1();
@@ -620,12 +620,12 @@ struct rrc_conn_reest_reject_s {
     // getters
     rrc_conn_reest_reject_r8_ies_s& rrc_conn_reest_reject_r8()
     {
-      assert_choice_type("rrcConnectionReestablishmentReject-r8", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_reest_reject_r8, type_, "criticalExtensions");
       return c;
     }
     const rrc_conn_reest_reject_r8_ies_s& rrc_conn_reest_reject_r8() const
     {
-      assert_choice_type("rrcConnectionReestablishmentReject-r8", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_reest_reject_r8, type_, "criticalExtensions");
       return c;
     }
     rrc_conn_reest_reject_r8_ies_s& set_rrc_conn_reest_reject_r8();
@@ -666,12 +666,12 @@ struct rrc_conn_reject_s {
       // getters
       rrc_conn_reject_r8_ies_s& rrc_conn_reject_r8()
       {
-        assert_choice_type("rrcConnectionReject-r8", type_.to_string(), "c1");
+        assert_choice_type(types::rrc_conn_reject_r8, type_, "c1");
         return c;
       }
       const rrc_conn_reject_r8_ies_s& rrc_conn_reject_r8() const
       {
-        assert_choice_type("rrcConnectionReject-r8", type_.to_string(), "c1");
+        assert_choice_type(types::rrc_conn_reject_r8, type_, "c1");
         return c;
       }
       rrc_conn_reject_r8_ies_s& set_rrc_conn_reject_r8();
@@ -695,12 +695,12 @@ struct rrc_conn_reject_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     c1_c_& set_c1();
@@ -741,12 +741,12 @@ struct rrc_conn_setup_s {
       // getters
       rrc_conn_setup_r8_ies_s& rrc_conn_setup_r8()
       {
-        assert_choice_type("rrcConnectionSetup-r8", type_.to_string(), "c1");
+        assert_choice_type(types::rrc_conn_setup_r8, type_, "c1");
         return c;
       }
       const rrc_conn_setup_r8_ies_s& rrc_conn_setup_r8() const
       {
-        assert_choice_type("rrcConnectionSetup-r8", type_.to_string(), "c1");
+        assert_choice_type(types::rrc_conn_setup_r8, type_, "c1");
         return c;
       }
       rrc_conn_setup_r8_ies_s& set_rrc_conn_setup_r8();
@@ -774,12 +774,12 @@ struct rrc_conn_setup_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     c1_c_& set_c1();
@@ -820,12 +820,12 @@ struct rrc_early_data_complete_r15_s {
     // getters
     rrc_early_data_complete_r15_ies_s& rrc_early_data_complete_r15()
     {
-      assert_choice_type("rrcEarlyDataComplete-r15", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_early_data_complete_r15, type_, "criticalExtensions");
       return c;
     }
     const rrc_early_data_complete_r15_ies_s& rrc_early_data_complete_r15() const
     {
-      assert_choice_type("rrcEarlyDataComplete-r15", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_early_data_complete_r15, type_, "criticalExtensions");
       return c;
     }
     rrc_early_data_complete_r15_ies_s& set_rrc_early_data_complete_r15();
@@ -868,42 +868,42 @@ struct dl_ccch_msg_type_c {
     // getters
     rrc_conn_reest_s& rrc_conn_reest()
     {
-      assert_choice_type("rrcConnectionReestablishment", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_reest, type_, "c1");
       return c.get<rrc_conn_reest_s>();
     }
     rrc_conn_reest_reject_s& rrc_conn_reest_reject()
     {
-      assert_choice_type("rrcConnectionReestablishmentReject", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_reest_reject, type_, "c1");
       return c.get<rrc_conn_reest_reject_s>();
     }
     rrc_conn_reject_s& rrc_conn_reject()
     {
-      assert_choice_type("rrcConnectionReject", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_reject, type_, "c1");
       return c.get<rrc_conn_reject_s>();
     }
     rrc_conn_setup_s& rrc_conn_setup()
     {
-      assert_choice_type("rrcConnectionSetup", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_setup, type_, "c1");
       return c.get<rrc_conn_setup_s>();
     }
     const rrc_conn_reest_s& rrc_conn_reest() const
     {
-      assert_choice_type("rrcConnectionReestablishment", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_reest, type_, "c1");
       return c.get<rrc_conn_reest_s>();
     }
     const rrc_conn_reest_reject_s& rrc_conn_reest_reject() const
     {
-      assert_choice_type("rrcConnectionReestablishmentReject", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_reest_reject, type_, "c1");
       return c.get<rrc_conn_reest_reject_s>();
     }
     const rrc_conn_reject_s& rrc_conn_reject() const
     {
-      assert_choice_type("rrcConnectionReject", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_reject, type_, "c1");
       return c.get<rrc_conn_reject_s>();
     }
     const rrc_conn_setup_s& rrc_conn_setup() const
     {
-      assert_choice_type("rrcConnectionSetup", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_setup, type_, "c1");
       return c.get<rrc_conn_setup_s>();
     }
     rrc_conn_reest_s&        set_rrc_conn_reest();
@@ -936,12 +936,12 @@ struct dl_ccch_msg_type_c {
       // getters
       rrc_early_data_complete_r15_s& rrc_early_data_complete_r15()
       {
-        assert_choice_type("rrcEarlyDataComplete-r15", type_.to_string(), "c2");
+        assert_choice_type(types::rrc_early_data_complete_r15, type_, "c2");
         return c;
       }
       const rrc_early_data_complete_r15_s& rrc_early_data_complete_r15() const
       {
-        assert_choice_type("rrcEarlyDataComplete-r15", type_.to_string(), "c2");
+        assert_choice_type(types::rrc_early_data_complete_r15, type_, "c2");
         return c;
       }
       rrc_early_data_complete_r15_s& set_rrc_early_data_complete_r15();
@@ -972,12 +972,12 @@ struct dl_ccch_msg_type_c {
     // getters
     c2_c_& c2()
     {
-      assert_choice_type("c2", type_.to_string(), "messageClassExtension");
+      assert_choice_type(types::c2, type_, "messageClassExtension");
       return c;
     }
     const c2_c_& c2() const
     {
-      assert_choice_type("c2", type_.to_string(), "messageClassExtension");
+      assert_choice_type(types::c2, type_, "messageClassExtension");
       return c;
     }
     c2_c_& set_c2();
@@ -1009,22 +1009,22 @@ struct dl_ccch_msg_type_c {
   // getters
   c1_c_& c1()
   {
-    assert_choice_type("c1", type_.to_string(), "DL-CCCH-MessageType");
+    assert_choice_type(types::c1, type_, "DL-CCCH-MessageType");
     return c.get<c1_c_>();
   }
   msg_class_ext_c_& msg_class_ext()
   {
-    assert_choice_type("messageClassExtension", type_.to_string(), "DL-CCCH-MessageType");
+    assert_choice_type(types::msg_class_ext, type_, "DL-CCCH-MessageType");
     return c.get<msg_class_ext_c_>();
   }
   const c1_c_& c1() const
   {
-    assert_choice_type("c1", type_.to_string(), "DL-CCCH-MessageType");
+    assert_choice_type(types::c1, type_, "DL-CCCH-MessageType");
     return c.get<c1_c_>();
   }
   const msg_class_ext_c_& msg_class_ext() const
   {
-    assert_choice_type("messageClassExtension", type_.to_string(), "DL-CCCH-MessageType");
+    assert_choice_type(types::msg_class_ext, type_, "DL-CCCH-MessageType");
     return c.get<msg_class_ext_c_>();
   }
   c1_c_&            set_c1();

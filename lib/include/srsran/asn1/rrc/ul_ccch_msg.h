@@ -86,22 +86,22 @@ struct init_ue_id_c {
   // getters
   s_tmsi_s& s_tmsi()
   {
-    assert_choice_type("s-TMSI", type_.to_string(), "InitialUE-Identity");
+    assert_choice_type(types::s_tmsi, type_, "InitialUE-Identity");
     return c.get<s_tmsi_s>();
   }
   fixed_bitstring<40>& random_value()
   {
-    assert_choice_type("randomValue", type_.to_string(), "InitialUE-Identity");
+    assert_choice_type(types::random_value, type_, "InitialUE-Identity");
     return c.get<fixed_bitstring<40> >();
   }
   const s_tmsi_s& s_tmsi() const
   {
-    assert_choice_type("s-TMSI", type_.to_string(), "InitialUE-Identity");
+    assert_choice_type(types::s_tmsi, type_, "InitialUE-Identity");
     return c.get<s_tmsi_s>();
   }
   const fixed_bitstring<40>& random_value() const
   {
-    assert_choice_type("randomValue", type_.to_string(), "InitialUE-Identity");
+    assert_choice_type(types::random_value, type_, "InitialUE-Identity");
     return c.get<fixed_bitstring<40> >();
   }
   s_tmsi_s&            set_s_tmsi();
@@ -138,22 +138,22 @@ struct init_ue_id_minus5_gc_c {
   // getters
   fixed_bitstring<40>& ng_minus5_g_s_tmsi_part1()
   {
-    assert_choice_type("ng-5G-S-TMSI-Part1", type_.to_string(), "InitialUE-Identity-5GC");
+    assert_choice_type(types::ng_minus5_g_s_tmsi_part1, type_, "InitialUE-Identity-5GC");
     return c.get<fixed_bitstring<40> >();
   }
   fixed_bitstring<40>& random_value()
   {
-    assert_choice_type("randomValue", type_.to_string(), "InitialUE-Identity-5GC");
+    assert_choice_type(types::random_value, type_, "InitialUE-Identity-5GC");
     return c.get<fixed_bitstring<40> >();
   }
   const fixed_bitstring<40>& ng_minus5_g_s_tmsi_part1() const
   {
-    assert_choice_type("ng-5G-S-TMSI-Part1", type_.to_string(), "InitialUE-Identity-5GC");
+    assert_choice_type(types::ng_minus5_g_s_tmsi_part1, type_, "InitialUE-Identity-5GC");
     return c.get<fixed_bitstring<40> >();
   }
   const fixed_bitstring<40>& random_value() const
   {
-    assert_choice_type("randomValue", type_.to_string(), "InitialUE-Identity-5GC");
+    assert_choice_type(types::random_value, type_, "InitialUE-Identity-5GC");
     return c.get<fixed_bitstring<40> >();
   }
   fixed_bitstring<40>& set_ng_minus5_g_s_tmsi_part1();
@@ -293,22 +293,22 @@ struct rrc_conn_resume_request_minus5_gc_r15_ies_s {
     // getters
     fixed_bitstring<40>& full_i_rnti_r15()
     {
-      assert_choice_type("fullI-RNTI-r15", type_.to_string(), "resumeIdentity-r15");
+      assert_choice_type(types::full_i_rnti_r15, type_, "resumeIdentity-r15");
       return c.get<fixed_bitstring<40> >();
     }
     fixed_bitstring<24>& short_i_rnti_r15()
     {
-      assert_choice_type("shortI-RNTI-r15", type_.to_string(), "resumeIdentity-r15");
+      assert_choice_type(types::short_i_rnti_r15, type_, "resumeIdentity-r15");
       return c.get<fixed_bitstring<24> >();
     }
     const fixed_bitstring<40>& full_i_rnti_r15() const
     {
-      assert_choice_type("fullI-RNTI-r15", type_.to_string(), "resumeIdentity-r15");
+      assert_choice_type(types::full_i_rnti_r15, type_, "resumeIdentity-r15");
       return c.get<fixed_bitstring<40> >();
     }
     const fixed_bitstring<24>& short_i_rnti_r15() const
     {
-      assert_choice_type("shortI-RNTI-r15", type_.to_string(), "resumeIdentity-r15");
+      assert_choice_type(types::short_i_rnti_r15, type_, "resumeIdentity-r15");
       return c.get<fixed_bitstring<24> >();
     }
     fixed_bitstring<40>& set_full_i_rnti_r15();
@@ -356,22 +356,22 @@ struct rrc_conn_resume_request_r13_ies_s {
     // getters
     fixed_bitstring<40>& resume_id_r13()
     {
-      assert_choice_type("resumeID-r13", type_.to_string(), "resumeIdentity-r13");
+      assert_choice_type(types::resume_id_r13, type_, "resumeIdentity-r13");
       return c.get<fixed_bitstring<40> >();
     }
     fixed_bitstring<24>& truncated_resume_id_r13()
     {
-      assert_choice_type("truncatedResumeID-r13", type_.to_string(), "resumeIdentity-r13");
+      assert_choice_type(types::truncated_resume_id_r13, type_, "resumeIdentity-r13");
       return c.get<fixed_bitstring<24> >();
     }
     const fixed_bitstring<40>& resume_id_r13() const
     {
-      assert_choice_type("resumeID-r13", type_.to_string(), "resumeIdentity-r13");
+      assert_choice_type(types::resume_id_r13, type_, "resumeIdentity-r13");
       return c.get<fixed_bitstring<40> >();
     }
     const fixed_bitstring<24>& truncated_resume_id_r13() const
     {
-      assert_choice_type("truncatedResumeID-r13", type_.to_string(), "resumeIdentity-r13");
+      assert_choice_type(types::truncated_resume_id_r13, type_, "resumeIdentity-r13");
       return c.get<fixed_bitstring<24> >();
     }
     fixed_bitstring<40>& set_resume_id_r13();
@@ -438,12 +438,12 @@ struct rrc_conn_reest_request_s {
     // getters
     rrc_conn_reest_request_r8_ies_s& rrc_conn_reest_request_r8()
     {
-      assert_choice_type("rrcConnectionReestablishmentRequest-r8", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_reest_request_r8, type_, "criticalExtensions");
       return c;
     }
     const rrc_conn_reest_request_r8_ies_s& rrc_conn_reest_request_r8() const
     {
-      assert_choice_type("rrcConnectionReestablishmentRequest-r8", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_reest_request_r8, type_, "criticalExtensions");
       return c;
     }
     rrc_conn_reest_request_r8_ies_s& set_rrc_conn_reest_request_r8();
@@ -486,22 +486,22 @@ struct rrc_conn_request_s {
     // getters
     rrc_conn_request_r8_ies_s& rrc_conn_request_r8()
     {
-      assert_choice_type("rrcConnectionRequest-r8", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_request_r8, type_, "criticalExtensions");
       return c.get<rrc_conn_request_r8_ies_s>();
     }
     rrc_conn_request_minus5_gc_r15_ies_s& rrc_conn_request_r15()
     {
-      assert_choice_type("rrcConnectionRequest-r15", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_request_r15, type_, "criticalExtensions");
       return c.get<rrc_conn_request_minus5_gc_r15_ies_s>();
     }
     const rrc_conn_request_r8_ies_s& rrc_conn_request_r8() const
     {
-      assert_choice_type("rrcConnectionRequest-r8", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_request_r8, type_, "criticalExtensions");
       return c.get<rrc_conn_request_r8_ies_s>();
     }
     const rrc_conn_request_minus5_gc_r15_ies_s& rrc_conn_request_r15() const
     {
-      assert_choice_type("rrcConnectionRequest-r15", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_request_r15, type_, "criticalExtensions");
       return c.get<rrc_conn_request_minus5_gc_r15_ies_s>();
     }
     rrc_conn_request_r8_ies_s&            set_rrc_conn_request_r8();
@@ -546,22 +546,22 @@ struct rrc_conn_resume_request_r13_s {
     // getters
     rrc_conn_resume_request_r13_ies_s& rrc_conn_resume_request_r13()
     {
-      assert_choice_type("rrcConnectionResumeRequest-r13", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_resume_request_r13, type_, "criticalExtensions");
       return c.get<rrc_conn_resume_request_r13_ies_s>();
     }
     rrc_conn_resume_request_minus5_gc_r15_ies_s& rrc_conn_resume_request_r15()
     {
-      assert_choice_type("rrcConnectionResumeRequest-r15", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_resume_request_r15, type_, "criticalExtensions");
       return c.get<rrc_conn_resume_request_minus5_gc_r15_ies_s>();
     }
     const rrc_conn_resume_request_r13_ies_s& rrc_conn_resume_request_r13() const
     {
-      assert_choice_type("rrcConnectionResumeRequest-r13", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_resume_request_r13, type_, "criticalExtensions");
       return c.get<rrc_conn_resume_request_r13_ies_s>();
     }
     const rrc_conn_resume_request_minus5_gc_r15_ies_s& rrc_conn_resume_request_r15() const
     {
-      assert_choice_type("rrcConnectionResumeRequest-r15", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_resume_request_r15, type_, "criticalExtensions");
       return c.get<rrc_conn_resume_request_minus5_gc_r15_ies_s>();
     }
     rrc_conn_resume_request_r13_ies_s&           set_rrc_conn_resume_request_r13();
@@ -603,12 +603,12 @@ struct rrc_early_data_request_r15_s {
     // getters
     rrc_early_data_request_r15_ies_s& rrc_early_data_request_r15()
     {
-      assert_choice_type("rrcEarlyDataRequest-r15", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_early_data_request_r15, type_, "criticalExtensions");
       return c;
     }
     const rrc_early_data_request_r15_ies_s& rrc_early_data_request_r15() const
     {
-      assert_choice_type("rrcEarlyDataRequest-r15", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_early_data_request_r15, type_, "criticalExtensions");
       return c;
     }
     rrc_early_data_request_r15_ies_s& set_rrc_early_data_request_r15();
@@ -651,22 +651,22 @@ struct ul_ccch_msg_type_c {
     // getters
     rrc_conn_reest_request_s& rrc_conn_reest_request()
     {
-      assert_choice_type("rrcConnectionReestablishmentRequest", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_reest_request, type_, "c1");
       return c.get<rrc_conn_reest_request_s>();
     }
     rrc_conn_request_s& rrc_conn_request()
     {
-      assert_choice_type("rrcConnectionRequest", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_request, type_, "c1");
       return c.get<rrc_conn_request_s>();
     }
     const rrc_conn_reest_request_s& rrc_conn_reest_request() const
     {
-      assert_choice_type("rrcConnectionReestablishmentRequest", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_reest_request, type_, "c1");
       return c.get<rrc_conn_reest_request_s>();
     }
     const rrc_conn_request_s& rrc_conn_request() const
     {
-      assert_choice_type("rrcConnectionRequest", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_request, type_, "c1");
       return c.get<rrc_conn_request_s>();
     }
     rrc_conn_reest_request_s& set_rrc_conn_reest_request();
@@ -718,12 +718,12 @@ struct ul_ccch_msg_type_c {
         // getters
         rrc_early_data_request_r15_s& rrc_early_data_request_r15()
         {
-          assert_choice_type("rrcEarlyDataRequest-r15", type_.to_string(), "c3");
+          assert_choice_type(types::rrc_early_data_request_r15, type_, "c3");
           return c;
         }
         const rrc_early_data_request_r15_s& rrc_early_data_request_r15() const
         {
-          assert_choice_type("rrcEarlyDataRequest-r15", type_.to_string(), "c3");
+          assert_choice_type(types::rrc_early_data_request_r15, type_, "c3");
           return c;
         }
         rrc_early_data_request_r15_s& set_rrc_early_data_request_r15();
@@ -754,12 +754,12 @@ struct ul_ccch_msg_type_c {
       // getters
       c3_c_& c3()
       {
-        assert_choice_type("c3", type_.to_string(), "messageClassExtensionFuture-r13");
+        assert_choice_type(types::c3, type_, "messageClassExtensionFuture-r13");
         return c;
       }
       const c3_c_& c3() const
       {
-        assert_choice_type("c3", type_.to_string(), "messageClassExtensionFuture-r13");
+        assert_choice_type(types::c3, type_, "messageClassExtensionFuture-r13");
         return c;
       }
       c3_c_& set_c3();
@@ -791,22 +791,22 @@ struct ul_ccch_msg_type_c {
     // getters
     c2_c_& c2()
     {
-      assert_choice_type("c2", type_.to_string(), "messageClassExtension");
+      assert_choice_type(types::c2, type_, "messageClassExtension");
       return c.get<c2_c_>();
     }
     msg_class_ext_future_r13_c_& msg_class_ext_future_r13()
     {
-      assert_choice_type("messageClassExtensionFuture-r13", type_.to_string(), "messageClassExtension");
+      assert_choice_type(types::msg_class_ext_future_r13, type_, "messageClassExtension");
       return c.get<msg_class_ext_future_r13_c_>();
     }
     const c2_c_& c2() const
     {
-      assert_choice_type("c2", type_.to_string(), "messageClassExtension");
+      assert_choice_type(types::c2, type_, "messageClassExtension");
       return c.get<c2_c_>();
     }
     const msg_class_ext_future_r13_c_& msg_class_ext_future_r13() const
     {
-      assert_choice_type("messageClassExtensionFuture-r13", type_.to_string(), "messageClassExtension");
+      assert_choice_type(types::msg_class_ext_future_r13, type_, "messageClassExtension");
       return c.get<msg_class_ext_future_r13_c_>();
     }
     c2_c_&                       set_c2();
@@ -840,22 +840,22 @@ struct ul_ccch_msg_type_c {
   // getters
   c1_c_& c1()
   {
-    assert_choice_type("c1", type_.to_string(), "UL-CCCH-MessageType");
+    assert_choice_type(types::c1, type_, "UL-CCCH-MessageType");
     return c.get<c1_c_>();
   }
   msg_class_ext_c_& msg_class_ext()
   {
-    assert_choice_type("messageClassExtension", type_.to_string(), "UL-CCCH-MessageType");
+    assert_choice_type(types::msg_class_ext, type_, "UL-CCCH-MessageType");
     return c.get<msg_class_ext_c_>();
   }
   const c1_c_& c1() const
   {
-    assert_choice_type("c1", type_.to_string(), "UL-CCCH-MessageType");
+    assert_choice_type(types::c1, type_, "UL-CCCH-MessageType");
     return c.get<c1_c_>();
   }
   const msg_class_ext_c_& msg_class_ext() const
   {
-    assert_choice_type("messageClassExtension", type_.to_string(), "UL-CCCH-MessageType");
+    assert_choice_type(types::msg_class_ext, type_, "UL-CCCH-MessageType");
     return c.get<msg_class_ext_c_>();
   }
   c1_c_&            set_c1();

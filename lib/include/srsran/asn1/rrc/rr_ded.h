@@ -519,12 +519,12 @@ struct lc_ch_cfg_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "allowedTTI-Lengths-r15");
+      assert_choice_type(types::setup, type_, "allowedTTI-Lengths-r15");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "allowedTTI-Lengths-r15");
+      assert_choice_type(types::setup, type_, "allowedTTI-Lengths-r15");
       return c;
     }
     void      set_release();
@@ -555,12 +555,12 @@ struct lc_ch_cfg_s {
     // getters
     setup_e_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "logicalChannelSR-Restriction-r15");
+      assert_choice_type(types::setup, type_, "logicalChannelSR-Restriction-r15");
       return c;
     }
     const setup_e_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "logicalChannelSR-Restriction-r15");
+      assert_choice_type(types::setup, type_, "logicalChannelSR-Restriction-r15");
       return c;
     }
     void      set_release();
@@ -585,12 +585,12 @@ struct lc_ch_cfg_s {
     // getters
     uint8_t& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "channelAccessPriority-r15");
+      assert_choice_type(types::setup, type_, "channelAccessPriority-r15");
       return c;
     }
     const uint8_t& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "channelAccessPriority-r15");
+      assert_choice_type(types::setup, type_, "channelAccessPriority-r15");
       return c;
     }
     void     set_release();
@@ -691,42 +691,42 @@ struct rlc_cfg_r15_s {
     // getters
     am_r15_s_& am_r15()
     {
-      assert_choice_type("am-r15", type_.to_string(), "mode-r15");
+      assert_choice_type(types::am_r15, type_, "mode-r15");
       return c.get<am_r15_s_>();
     }
     um_bi_dir_r15_s_& um_bi_dir_r15()
     {
-      assert_choice_type("um-Bi-Directional-r15", type_.to_string(), "mode-r15");
+      assert_choice_type(types::um_bi_dir_r15, type_, "mode-r15");
       return c.get<um_bi_dir_r15_s_>();
     }
     um_uni_dir_ul_r15_s_& um_uni_dir_ul_r15()
     {
-      assert_choice_type("um-Uni-Directional-UL-r15", type_.to_string(), "mode-r15");
+      assert_choice_type(types::um_uni_dir_ul_r15, type_, "mode-r15");
       return c.get<um_uni_dir_ul_r15_s_>();
     }
     um_uni_dir_dl_r15_s_& um_uni_dir_dl_r15()
     {
-      assert_choice_type("um-Uni-Directional-DL-r15", type_.to_string(), "mode-r15");
+      assert_choice_type(types::um_uni_dir_dl_r15, type_, "mode-r15");
       return c.get<um_uni_dir_dl_r15_s_>();
     }
     const am_r15_s_& am_r15() const
     {
-      assert_choice_type("am-r15", type_.to_string(), "mode-r15");
+      assert_choice_type(types::am_r15, type_, "mode-r15");
       return c.get<am_r15_s_>();
     }
     const um_bi_dir_r15_s_& um_bi_dir_r15() const
     {
-      assert_choice_type("um-Bi-Directional-r15", type_.to_string(), "mode-r15");
+      assert_choice_type(types::um_bi_dir_r15, type_, "mode-r15");
       return c.get<um_bi_dir_r15_s_>();
     }
     const um_uni_dir_ul_r15_s_& um_uni_dir_ul_r15() const
     {
-      assert_choice_type("um-Uni-Directional-UL-r15", type_.to_string(), "mode-r15");
+      assert_choice_type(types::um_uni_dir_ul_r15, type_, "mode-r15");
       return c.get<um_uni_dir_ul_r15_s_>();
     }
     const um_uni_dir_dl_r15_s_& um_uni_dir_dl_r15() const
     {
-      assert_choice_type("um-Uni-Directional-DL-r15", type_.to_string(), "mode-r15");
+      assert_choice_type(types::um_uni_dir_dl_r15, type_, "mode-r15");
       return c.get<um_uni_dir_dl_r15_s_>();
     }
     am_r15_s_&            set_am_r15();
@@ -953,12 +953,12 @@ struct pdcp_cfg_s {
     // getters
     rohc_s_& rohc()
     {
-      assert_choice_type("rohc", type_.to_string(), "headerCompression");
+      assert_choice_type(types::rohc, type_, "headerCompression");
       return c;
     }
     const rohc_s_& rohc() const
     {
-      assert_choice_type("rohc", type_.to_string(), "headerCompression");
+      assert_choice_type(types::rohc, type_, "headerCompression");
       return c;
     }
     void     set_not_used();
@@ -1051,12 +1051,12 @@ struct pdcp_cfg_s {
     // getters
     setup_e_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "ul-DataSplitThreshold-r13");
+      assert_choice_type(types::setup, type_, "ul-DataSplitThreshold-r13");
       return c;
     }
     const setup_e_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "ul-DataSplitThreshold-r13");
+      assert_choice_type(types::setup, type_, "ul-DataSplitThreshold-r13");
       return c;
     }
     void      set_release();
@@ -1171,12 +1171,12 @@ struct pdcp_cfg_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "statusFeedback-r13");
+      assert_choice_type(types::setup, type_, "statusFeedback-r13");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "statusFeedback-r13");
+      assert_choice_type(types::setup, type_, "statusFeedback-r13");
       return c;
     }
     void      set_release();
@@ -1233,12 +1233,12 @@ struct pdcp_cfg_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "ul-LWA-Config-r14");
+      assert_choice_type(types::setup, type_, "ul-LWA-Config-r14");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "ul-LWA-Config-r14");
+      assert_choice_type(types::setup, type_, "ul-LWA-Config-r14");
       return c;
     }
     void      set_release();
@@ -1280,12 +1280,12 @@ struct pdcp_cfg_s {
     // getters
     rohc_r14_s_& rohc_r14()
     {
-      assert_choice_type("rohc-r14", type_.to_string(), "uplinkOnlyHeaderCompression-r14");
+      assert_choice_type(types::rohc_r14, type_, "uplinkOnlyHeaderCompression-r14");
       return c;
     }
     const rohc_r14_s_& rohc_r14() const
     {
-      assert_choice_type("rohc-r14", type_.to_string(), "uplinkOnlyHeaderCompression-r14");
+      assert_choice_type(types::rohc_r14, type_, "uplinkOnlyHeaderCompression-r14");
       return c;
     }
     void         set_not_used_r14();
@@ -1344,12 +1344,12 @@ struct pdcp_cfg_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "pdcp-DuplicationConfig-r15");
+      assert_choice_type(types::setup, type_, "pdcp-DuplicationConfig-r15");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "pdcp-DuplicationConfig-r15");
+      assert_choice_type(types::setup, type_, "pdcp-DuplicationConfig-r15");
       return c;
     }
     void      set_release();
@@ -1424,22 +1424,22 @@ struct rlc_bearer_cfg_r15_c {
       // getters
       uint8_t& lc_ch_id_r15()
       {
-        assert_choice_type("logicalChannelIdentity-r15", type_.to_string(), "logicalChannelIdentityConfig-r15");
+        assert_choice_type(types::lc_ch_id_r15, type_, "logicalChannelIdentityConfig-r15");
         return c.get<uint8_t>();
       }
       uint8_t& lc_ch_id_ext_r15()
       {
-        assert_choice_type("logicalChannelIdentityExt-r15", type_.to_string(), "logicalChannelIdentityConfig-r15");
+        assert_choice_type(types::lc_ch_id_ext_r15, type_, "logicalChannelIdentityConfig-r15");
         return c.get<uint8_t>();
       }
       const uint8_t& lc_ch_id_r15() const
       {
-        assert_choice_type("logicalChannelIdentity-r15", type_.to_string(), "logicalChannelIdentityConfig-r15");
+        assert_choice_type(types::lc_ch_id_r15, type_, "logicalChannelIdentityConfig-r15");
         return c.get<uint8_t>();
       }
       const uint8_t& lc_ch_id_ext_r15() const
       {
-        assert_choice_type("logicalChannelIdentityExt-r15", type_.to_string(), "logicalChannelIdentityConfig-r15");
+        assert_choice_type(types::lc_ch_id_ext_r15, type_, "logicalChannelIdentityConfig-r15");
         return c.get<uint8_t>();
       }
       uint8_t& set_lc_ch_id_r15();
@@ -1473,12 +1473,12 @@ struct rlc_bearer_cfg_r15_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "RLC-BearerConfig-r15");
+    assert_choice_type(types::setup, type_, "RLC-BearerConfig-r15");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "RLC-BearerConfig-r15");
+    assert_choice_type(types::setup, type_, "RLC-BearerConfig-r15");
     return c;
   }
   void      set_release();
@@ -1527,42 +1527,42 @@ struct rlc_cfg_c {
   // getters
   am_s_& am()
   {
-    assert_choice_type("am", type_.to_string(), "RLC-Config");
+    assert_choice_type(types::am, type_, "RLC-Config");
     return c.get<am_s_>();
   }
   um_bi_dir_s_& um_bi_dir()
   {
-    assert_choice_type("um-Bi-Directional", type_.to_string(), "RLC-Config");
+    assert_choice_type(types::um_bi_dir, type_, "RLC-Config");
     return c.get<um_bi_dir_s_>();
   }
   um_uni_dir_ul_s_& um_uni_dir_ul()
   {
-    assert_choice_type("um-Uni-Directional-UL", type_.to_string(), "RLC-Config");
+    assert_choice_type(types::um_uni_dir_ul, type_, "RLC-Config");
     return c.get<um_uni_dir_ul_s_>();
   }
   um_uni_dir_dl_s_& um_uni_dir_dl()
   {
-    assert_choice_type("um-Uni-Directional-DL", type_.to_string(), "RLC-Config");
+    assert_choice_type(types::um_uni_dir_dl, type_, "RLC-Config");
     return c.get<um_uni_dir_dl_s_>();
   }
   const am_s_& am() const
   {
-    assert_choice_type("am", type_.to_string(), "RLC-Config");
+    assert_choice_type(types::am, type_, "RLC-Config");
     return c.get<am_s_>();
   }
   const um_bi_dir_s_& um_bi_dir() const
   {
-    assert_choice_type("um-Bi-Directional", type_.to_string(), "RLC-Config");
+    assert_choice_type(types::um_bi_dir, type_, "RLC-Config");
     return c.get<um_bi_dir_s_>();
   }
   const um_uni_dir_ul_s_& um_uni_dir_ul() const
   {
-    assert_choice_type("um-Uni-Directional-UL", type_.to_string(), "RLC-Config");
+    assert_choice_type(types::um_uni_dir_ul, type_, "RLC-Config");
     return c.get<um_uni_dir_ul_s_>();
   }
   const um_uni_dir_dl_s_& um_uni_dir_dl() const
   {
-    assert_choice_type("um-Uni-Directional-DL", type_.to_string(), "RLC-Config");
+    assert_choice_type(types::um_uni_dir_dl, type_, "RLC-Config");
     return c.get<um_uni_dir_dl_s_>();
   }
   am_s_&            set_am();
@@ -1624,12 +1624,12 @@ struct rlc_cfg_v1430_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "RLC-Config-v1430");
+    assert_choice_type(types::setup, type_, "RLC-Config-v1430");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "RLC-Config-v1430");
+    assert_choice_type(types::setup, type_, "RLC-Config-v1430");
     return c;
   }
   void      set_release();
@@ -1771,12 +1771,12 @@ struct sps_cfg_ul_c {
       // getters
       setup_s_& setup()
       {
-        assert_choice_type("setup", type_.to_string(), "p0-PersistentSubframeSet2-r12");
+        assert_choice_type(types::setup, type_, "p0-PersistentSubframeSet2-r12");
         return c;
       }
       const setup_s_& setup() const
       {
-        assert_choice_type("setup", type_.to_string(), "p0-PersistentSubframeSet2-r12");
+        assert_choice_type(types::setup, type_, "p0-PersistentSubframeSet2-r12");
         return c;
       }
       void      set_release();
@@ -1890,12 +1890,12 @@ struct sps_cfg_ul_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "SPS-ConfigUL");
+    assert_choice_type(types::setup, type_, "SPS-ConfigUL");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "SPS-ConfigUL");
+    assert_choice_type(types::setup, type_, "SPS-ConfigUL");
     return c;
   }
   void      set_release();
@@ -1966,12 +1966,12 @@ struct sps_cfg_ul_stti_r15_c {
       // getters
       setup_s_& setup()
       {
-        assert_choice_type("setup", type_.to_string(), "p0-PersistentSubframeSet2-r15");
+        assert_choice_type(types::setup, type_, "p0-PersistentSubframeSet2-r15");
         return c;
       }
       const setup_s_& setup() const
       {
-        assert_choice_type("setup", type_.to_string(), "p0-PersistentSubframeSet2-r15");
+        assert_choice_type(types::setup, type_, "p0-PersistentSubframeSet2-r15");
         return c;
       }
       void      set_release();
@@ -2059,12 +2059,12 @@ struct sps_cfg_ul_stti_r15_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "SPS-ConfigUL-STTI-r15");
+    assert_choice_type(types::setup, type_, "SPS-ConfigUL-STTI-r15");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "SPS-ConfigUL-STTI-r15");
+    assert_choice_type(types::setup, type_, "SPS-ConfigUL-STTI-r15");
     return c;
   }
   void      set_release();
@@ -2279,162 +2279,162 @@ struct drx_cfg_c {
       // getters
       uint8_t& sf10()
       {
-        assert_choice_type("sf10", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf10, type_, "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
       uint8_t& sf20()
       {
-        assert_choice_type("sf20", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf20, type_, "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
       uint8_t& sf32()
       {
-        assert_choice_type("sf32", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf32, type_, "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
       uint8_t& sf40()
       {
-        assert_choice_type("sf40", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf40, type_, "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
       uint8_t& sf64()
       {
-        assert_choice_type("sf64", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf64, type_, "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
       uint8_t& sf80()
       {
-        assert_choice_type("sf80", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf80, type_, "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
       uint8_t& sf128()
       {
-        assert_choice_type("sf128", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf128, type_, "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
       uint8_t& sf160()
       {
-        assert_choice_type("sf160", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf160, type_, "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
       uint16_t& sf256()
       {
-        assert_choice_type("sf256", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf256, type_, "longDRX-CycleStartOffset");
         return c.get<uint16_t>();
       }
       uint16_t& sf320()
       {
-        assert_choice_type("sf320", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf320, type_, "longDRX-CycleStartOffset");
         return c.get<uint16_t>();
       }
       uint16_t& sf512()
       {
-        assert_choice_type("sf512", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf512, type_, "longDRX-CycleStartOffset");
         return c.get<uint16_t>();
       }
       uint16_t& sf640()
       {
-        assert_choice_type("sf640", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf640, type_, "longDRX-CycleStartOffset");
         return c.get<uint16_t>();
       }
       uint16_t& sf1024()
       {
-        assert_choice_type("sf1024", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf1024, type_, "longDRX-CycleStartOffset");
         return c.get<uint16_t>();
       }
       uint16_t& sf1280()
       {
-        assert_choice_type("sf1280", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf1280, type_, "longDRX-CycleStartOffset");
         return c.get<uint16_t>();
       }
       uint16_t& sf2048()
       {
-        assert_choice_type("sf2048", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf2048, type_, "longDRX-CycleStartOffset");
         return c.get<uint16_t>();
       }
       uint16_t& sf2560()
       {
-        assert_choice_type("sf2560", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf2560, type_, "longDRX-CycleStartOffset");
         return c.get<uint16_t>();
       }
       const uint8_t& sf10() const
       {
-        assert_choice_type("sf10", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf10, type_, "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
       const uint8_t& sf20() const
       {
-        assert_choice_type("sf20", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf20, type_, "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
       const uint8_t& sf32() const
       {
-        assert_choice_type("sf32", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf32, type_, "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
       const uint8_t& sf40() const
       {
-        assert_choice_type("sf40", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf40, type_, "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
       const uint8_t& sf64() const
       {
-        assert_choice_type("sf64", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf64, type_, "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
       const uint8_t& sf80() const
       {
-        assert_choice_type("sf80", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf80, type_, "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
       const uint8_t& sf128() const
       {
-        assert_choice_type("sf128", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf128, type_, "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
       const uint8_t& sf160() const
       {
-        assert_choice_type("sf160", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf160, type_, "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
       const uint16_t& sf256() const
       {
-        assert_choice_type("sf256", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf256, type_, "longDRX-CycleStartOffset");
         return c.get<uint16_t>();
       }
       const uint16_t& sf320() const
       {
-        assert_choice_type("sf320", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf320, type_, "longDRX-CycleStartOffset");
         return c.get<uint16_t>();
       }
       const uint16_t& sf512() const
       {
-        assert_choice_type("sf512", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf512, type_, "longDRX-CycleStartOffset");
         return c.get<uint16_t>();
       }
       const uint16_t& sf640() const
       {
-        assert_choice_type("sf640", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf640, type_, "longDRX-CycleStartOffset");
         return c.get<uint16_t>();
       }
       const uint16_t& sf1024() const
       {
-        assert_choice_type("sf1024", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf1024, type_, "longDRX-CycleStartOffset");
         return c.get<uint16_t>();
       }
       const uint16_t& sf1280() const
       {
-        assert_choice_type("sf1280", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf1280, type_, "longDRX-CycleStartOffset");
         return c.get<uint16_t>();
       }
       const uint16_t& sf2048() const
       {
-        assert_choice_type("sf2048", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf2048, type_, "longDRX-CycleStartOffset");
         return c.get<uint16_t>();
       }
       const uint16_t& sf2560() const
       {
-        assert_choice_type("sf2560", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf2560, type_, "longDRX-CycleStartOffset");
         return c.get<uint16_t>();
       }
       uint8_t&  set_sf10();
@@ -2513,12 +2513,12 @@ struct drx_cfg_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "DRX-Config");
+    assert_choice_type(types::setup, type_, "DRX-Config");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "DRX-Config");
+    assert_choice_type(types::setup, type_, "DRX-Config");
     return c;
   }
   void      set_release();
@@ -2664,22 +2664,22 @@ struct drx_cfg_v1130_s {
     // getters
     uint8_t& sf60_v1130()
     {
-      assert_choice_type("sf60-v1130", type_.to_string(), "longDRX-CycleStartOffset-v1130");
+      assert_choice_type(types::sf60_v1130, type_, "longDRX-CycleStartOffset-v1130");
       return c.get<uint8_t>();
     }
     uint8_t& sf70_v1130()
     {
-      assert_choice_type("sf70-v1130", type_.to_string(), "longDRX-CycleStartOffset-v1130");
+      assert_choice_type(types::sf70_v1130, type_, "longDRX-CycleStartOffset-v1130");
       return c.get<uint8_t>();
     }
     const uint8_t& sf60_v1130() const
     {
-      assert_choice_type("sf60-v1130", type_.to_string(), "longDRX-CycleStartOffset-v1130");
+      assert_choice_type(types::sf60_v1130, type_, "longDRX-CycleStartOffset-v1130");
       return c.get<uint8_t>();
     }
     const uint8_t& sf70_v1130() const
     {
-      assert_choice_type("sf70-v1130", type_.to_string(), "longDRX-CycleStartOffset-v1130");
+      assert_choice_type(types::sf70_v1130, type_, "longDRX-CycleStartOffset-v1130");
       return c.get<uint8_t>();
     }
     uint8_t& set_sf60_v1130();
@@ -2821,12 +2821,12 @@ struct sps_cfg_dl_c {
       // getters
       setup_s_& setup()
       {
-        assert_choice_type("setup", type_.to_string(), "twoAntennaPortActivated-r10");
+        assert_choice_type(types::setup, type_, "twoAntennaPortActivated-r10");
         return c;
       }
       const setup_s_& setup() const
       {
-        assert_choice_type("setup", type_.to_string(), "twoAntennaPortActivated-r10");
+        assert_choice_type(types::setup, type_, "twoAntennaPortActivated-r10");
         return c;
       }
       void      set_release();
@@ -2867,12 +2867,12 @@ struct sps_cfg_dl_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "SPS-ConfigDL");
+    assert_choice_type(types::setup, type_, "SPS-ConfigDL");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "SPS-ConfigDL");
+    assert_choice_type(types::setup, type_, "SPS-ConfigDL");
     return c;
   }
   void      set_release();
@@ -2928,12 +2928,12 @@ struct sps_cfg_dl_stti_r15_c {
       // getters
       setup_s_& setup()
       {
-        assert_choice_type("setup", type_.to_string(), "twoAntennaPortActivated-r15");
+        assert_choice_type(types::setup, type_, "twoAntennaPortActivated-r15");
         return c;
       }
       const setup_s_& setup() const
       {
-        assert_choice_type("setup", type_.to_string(), "twoAntennaPortActivated-r15");
+        assert_choice_type(types::setup, type_, "twoAntennaPortActivated-r15");
         return c;
       }
       void      set_release();
@@ -2967,12 +2967,12 @@ struct sps_cfg_dl_stti_r15_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "SPS-ConfigDL-STTI-r15");
+    assert_choice_type(types::setup, type_, "SPS-ConfigDL-STTI-r15");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "SPS-ConfigDL-STTI-r15");
+    assert_choice_type(types::setup, type_, "SPS-ConfigDL-STTI-r15");
     return c;
   }
   void      set_release();
@@ -3029,12 +3029,12 @@ struct srb_to_add_mod_s {
     // getters
     rlc_cfg_c& explicit_value()
     {
-      assert_choice_type("explicitValue", type_.to_string(), "rlc-Config");
+      assert_choice_type(types::explicit_value, type_, "rlc-Config");
       return c;
     }
     const rlc_cfg_c& explicit_value() const
     {
-      assert_choice_type("explicitValue", type_.to_string(), "rlc-Config");
+      assert_choice_type(types::explicit_value, type_, "rlc-Config");
       return c;
     }
     rlc_cfg_c& set_explicit_value();
@@ -3064,12 +3064,12 @@ struct srb_to_add_mod_s {
     // getters
     lc_ch_cfg_s& explicit_value()
     {
-      assert_choice_type("explicitValue", type_.to_string(), "logicalChannelConfig");
+      assert_choice_type(types::explicit_value, type_, "logicalChannelConfig");
       return c;
     }
     const lc_ch_cfg_s& explicit_value() const
     {
-      assert_choice_type("explicitValue", type_.to_string(), "logicalChannelConfig");
+      assert_choice_type(types::explicit_value, type_, "logicalChannelConfig");
       return c;
     }
     lc_ch_cfg_s& set_explicit_value();
@@ -3187,12 +3187,12 @@ struct mac_main_cfg_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "phr-Config");
+      assert_choice_type(types::setup, type_, "phr-Config");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "phr-Config");
+      assert_choice_type(types::setup, type_, "phr-Config");
       return c;
     }
     void      set_release();
@@ -3242,12 +3242,12 @@ struct mac_main_cfg_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "dualConnectivityPHR");
+      assert_choice_type(types::setup, type_, "dualConnectivityPHR");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "dualConnectivityPHR");
+      assert_choice_type(types::setup, type_, "dualConnectivityPHR");
       return c;
     }
     void      set_release();
@@ -3283,12 +3283,12 @@ struct mac_main_cfg_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "logicalChannelSR-Config-r12");
+      assert_choice_type(types::setup, type_, "logicalChannelSR-Config-r12");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "logicalChannelSR-Config-r12");
+      assert_choice_type(types::setup, type_, "logicalChannelSR-Config-r12");
       return c;
     }
     void      set_release();
@@ -3322,22 +3322,22 @@ struct mac_main_cfg_s {
       // getters
       uint8_t& sf5120()
       {
-        assert_choice_type("sf5120", type_.to_string(), "setup");
+        assert_choice_type(types::sf5120, type_, "setup");
         return c.get<uint8_t>();
       }
       uint8_t& sf10240()
       {
-        assert_choice_type("sf10240", type_.to_string(), "setup");
+        assert_choice_type(types::sf10240, type_, "setup");
         return c.get<uint8_t>();
       }
       const uint8_t& sf5120() const
       {
-        assert_choice_type("sf5120", type_.to_string(), "setup");
+        assert_choice_type(types::sf5120, type_, "setup");
         return c.get<uint8_t>();
       }
       const uint8_t& sf10240() const
       {
-        assert_choice_type("sf10240", type_.to_string(), "setup");
+        assert_choice_type(types::sf10240, type_, "setup");
         return c.get<uint8_t>();
       }
       uint8_t& set_sf5120();
@@ -3361,12 +3361,12 @@ struct mac_main_cfg_s {
     // getters
     setup_c_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "eDRX-Config-CycleStartOffset-r13");
+      assert_choice_type(types::setup, type_, "eDRX-Config-CycleStartOffset-r13");
       return c;
     }
     const setup_c_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "eDRX-Config-CycleStartOffset-r13");
+      assert_choice_type(types::setup, type_, "eDRX-Config-CycleStartOffset-r13");
       return c;
     }
     void      set_release();
@@ -3389,12 +3389,12 @@ struct mac_main_cfg_s {
     // getters
     drx_cfg_r13_s& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "drx-Config-r13");
+      assert_choice_type(types::setup, type_, "drx-Config-r13");
       return c;
     }
     const drx_cfg_r13_s& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "drx-Config-r13");
+      assert_choice_type(types::setup, type_, "drx-Config-r13");
       return c;
     }
     void           set_release();
@@ -3421,12 +3421,12 @@ struct mac_main_cfg_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "skipUplinkTx-r14");
+      assert_choice_type(types::setup, type_, "skipUplinkTx-r14");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "skipUplinkTx-r14");
+      assert_choice_type(types::setup, type_, "skipUplinkTx-r14");
       return c;
     }
     void      set_release();
@@ -3452,12 +3452,12 @@ struct mac_main_cfg_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "dataInactivityTimerConfig-r14");
+      assert_choice_type(types::setup, type_, "dataInactivityTimerConfig-r14");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "dataInactivityTimerConfig-r14");
+      assert_choice_type(types::setup, type_, "dataInactivityTimerConfig-r14");
       return c;
     }
     void      set_release();
@@ -3524,12 +3524,12 @@ struct mac_main_cfg_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "shortTTI-AndSPT-r15");
+      assert_choice_type(types::setup, type_, "shortTTI-AndSPT-r15");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "shortTTI-AndSPT-r15");
+      assert_choice_type(types::setup, type_, "shortTTI-AndSPT-r15");
       return c;
     }
     void      set_release();
@@ -3594,12 +3594,12 @@ struct mac_main_cfg_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "dormantStateTimers-r15");
+      assert_choice_type(types::setup, type_, "dormantStateTimers-r15");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "dormantStateTimers-r15");
+      assert_choice_type(types::setup, type_, "dormantStateTimers-r15");
       return c;
     }
     void      set_release();
@@ -3672,12 +3672,12 @@ struct meas_sf_pattern_pcell_r10_c {
   // getters
   meas_sf_pattern_r10_c& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "MeasSubframePatternPCell-r10");
+    assert_choice_type(types::setup, type_, "MeasSubframePatternPCell-r10");
     return c;
   }
   const meas_sf_pattern_r10_c& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "MeasSubframePatternPCell-r10");
+    assert_choice_type(types::setup, type_, "MeasSubframePatternPCell-r10");
     return c;
   }
   void                   set_release();
@@ -3712,12 +3712,12 @@ struct naics_assist_info_r12_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "NAICS-AssistanceInfo-r12");
+    assert_choice_type(types::setup, type_, "NAICS-AssistanceInfo-r12");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "NAICS-AssistanceInfo-r12");
+    assert_choice_type(types::setup, type_, "NAICS-AssistanceInfo-r12");
     return c;
   }
   void      set_release();
@@ -3742,12 +3742,12 @@ struct neigh_cells_crs_info_r11_c {
   // getters
   crs_assist_info_list_r11_l& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "NeighCellsCRS-Info-r11");
+    assert_choice_type(types::setup, type_, "NeighCellsCRS-Info-r11");
     return c;
   }
   const crs_assist_info_list_r11_l& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "NeighCellsCRS-Info-r11");
+    assert_choice_type(types::setup, type_, "NeighCellsCRS-Info-r11");
     return c;
   }
   void                        set_release();
@@ -3774,12 +3774,12 @@ struct neigh_cells_crs_info_r13_c {
   // getters
   crs_assist_info_list_r13_l& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "NeighCellsCRS-Info-r13");
+    assert_choice_type(types::setup, type_, "NeighCellsCRS-Info-r13");
     return c;
   }
   const crs_assist_info_list_r13_l& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "NeighCellsCRS-Info-r13");
+    assert_choice_type(types::setup, type_, "NeighCellsCRS-Info-r13");
     return c;
   }
   void                        set_release();
@@ -3806,12 +3806,12 @@ struct neigh_cells_crs_info_r15_c {
   // getters
   crs_assist_info_list_r15_l& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "NeighCellsCRS-Info-r15");
+    assert_choice_type(types::setup, type_, "NeighCellsCRS-Info-r15");
     return c;
   }
   const crs_assist_info_list_r15_l& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "NeighCellsCRS-Info-r15");
+    assert_choice_type(types::setup, type_, "NeighCellsCRS-Info-r15");
     return c;
   }
   void                        set_release();
@@ -3867,12 +3867,12 @@ struct rlf_timers_and_consts_r13_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "RLF-TimersAndConstants-r13");
+    assert_choice_type(types::setup, type_, "RLF-TimersAndConstants-r13");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "RLF-TimersAndConstants-r13");
+    assert_choice_type(types::setup, type_, "RLF-TimersAndConstants-r13");
     return c;
   }
   void      set_release();
@@ -3948,12 +3948,12 @@ struct rlf_timers_and_consts_r9_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "RLF-TimersAndConstants-r9");
+    assert_choice_type(types::setup, type_, "RLF-TimersAndConstants-r9");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "RLF-TimersAndConstants-r9");
+    assert_choice_type(types::setup, type_, "RLF-TimersAndConstants-r9");
     return c;
   }
   void      set_release();
@@ -4060,12 +4060,12 @@ struct rr_cfg_ded_s {
     // getters
     mac_main_cfg_s& explicit_value()
     {
-      assert_choice_type("explicitValue", type_.to_string(), "mac-MainConfig");
+      assert_choice_type(types::explicit_value, type_, "mac-MainConfig");
       return c;
     }
     const mac_main_cfg_s& explicit_value() const
     {
-      assert_choice_type("explicitValue", type_.to_string(), "mac-MainConfig");
+      assert_choice_type(types::explicit_value, type_, "mac-MainConfig");
       return c;
     }
     mac_main_cfg_s& set_explicit_value();
@@ -4102,12 +4102,12 @@ struct rr_cfg_ded_s {
       // getters
       crs_intf_mitig_num_prbs_e_& crs_intf_mitig_num_prbs()
       {
-        assert_choice_type("crs-IntfMitigNumPRBs", type_.to_string(), "setup");
+        assert_choice_type(types::crs_intf_mitig_num_prbs, type_, "setup");
         return c;
       }
       const crs_intf_mitig_num_prbs_e_& crs_intf_mitig_num_prbs() const
       {
-        assert_choice_type("crs-IntfMitigNumPRBs", type_.to_string(), "setup");
+        assert_choice_type(types::crs_intf_mitig_num_prbs, type_, "setup");
         return c;
       }
       void                        set_crs_intf_mitig_enabled();
@@ -4129,12 +4129,12 @@ struct rr_cfg_ded_s {
     // getters
     setup_c_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "crs-IntfMitigConfig-r15");
+      assert_choice_type(types::setup, type_, "crs-IntfMitigConfig-r15");
       return c;
     }
     const setup_c_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "crs-IntfMitigConfig-r15");
+      assert_choice_type(types::setup, type_, "crs-IntfMitigConfig-r15");
       return c;
     }
     void      set_release();
@@ -4226,12 +4226,12 @@ struct pdcch_candidate_reductions_laa_ul_r14_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "PDCCH-CandidateReductionsLAA-UL-r14");
+    assert_choice_type(types::setup, type_, "PDCCH-CandidateReductionsLAA-UL-r14");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "PDCCH-CandidateReductionsLAA-UL-r14");
+    assert_choice_type(types::setup, type_, "PDCCH-CandidateReductionsLAA-UL-r14");
     return c;
   }
   void      set_release();
@@ -4333,12 +4333,12 @@ struct aul_cfg_r15_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "AUL-Config-r15");
+    assert_choice_type(types::setup, type_, "AUL-Config-r15");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "AUL-Config-r15");
+    assert_choice_type(types::setup, type_, "AUL-Config-r15");
     return c;
   }
   void      set_release();
@@ -4371,12 +4371,12 @@ struct cqi_report_periodic_scell_r15_c {
       // getters
       setup_s_& setup()
       {
-        assert_choice_type("setup", type_.to_string(), "csi-SubframePatternDormant-r15");
+        assert_choice_type(types::setup, type_, "csi-SubframePatternDormant-r15");
         return c;
       }
       const setup_s_& setup() const
       {
-        assert_choice_type("setup", type_.to_string(), "csi-SubframePatternDormant-r15");
+        assert_choice_type(types::setup, type_, "csi-SubframePatternDormant-r15");
         return c;
       }
       void      set_release();
@@ -4437,22 +4437,22 @@ struct cqi_report_periodic_scell_r15_c {
       // getters
       wideband_cqi_r15_s_& wideband_cqi_r15()
       {
-        assert_choice_type("widebandCQI-r15", type_.to_string(), "cqi-FormatIndicatorDormant-r15");
+        assert_choice_type(types::wideband_cqi_r15, type_, "cqi-FormatIndicatorDormant-r15");
         return c.get<wideband_cqi_r15_s_>();
       }
       subband_cqi_r15_s_& subband_cqi_r15()
       {
-        assert_choice_type("subbandCQI-r15", type_.to_string(), "cqi-FormatIndicatorDormant-r15");
+        assert_choice_type(types::subband_cqi_r15, type_, "cqi-FormatIndicatorDormant-r15");
         return c.get<subband_cqi_r15_s_>();
       }
       const wideband_cqi_r15_s_& wideband_cqi_r15() const
       {
-        assert_choice_type("widebandCQI-r15", type_.to_string(), "cqi-FormatIndicatorDormant-r15");
+        assert_choice_type(types::wideband_cqi_r15, type_, "cqi-FormatIndicatorDormant-r15");
         return c.get<wideband_cqi_r15_s_>();
       }
       const subband_cqi_r15_s_& subband_cqi_r15() const
       {
-        assert_choice_type("subbandCQI-r15", type_.to_string(), "cqi-FormatIndicatorDormant-r15");
+        assert_choice_type(types::subband_cqi_r15, type_, "cqi-FormatIndicatorDormant-r15");
         return c.get<subband_cqi_r15_s_>();
       }
       wideband_cqi_r15_s_& set_wideband_cqi_r15();
@@ -4488,12 +4488,12 @@ struct cqi_report_periodic_scell_r15_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "CQI-ReportPeriodicSCell-r15");
+    assert_choice_type(types::setup, type_, "CQI-ReportPeriodicSCell-r15");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "CQI-ReportPeriodicSCell-r15");
+    assert_choice_type(types::setup, type_, "CQI-ReportPeriodicSCell-r15");
     return c;
   }
   void      set_release();
@@ -4541,22 +4541,22 @@ struct lbt_cfg_r14_c {
   // getters
   int8_t& max_energy_detection_thres_r14()
   {
-    assert_choice_type("maxEnergyDetectionThreshold-r14", type_.to_string(), "LBT-Config-r14");
+    assert_choice_type(types::max_energy_detection_thres_r14, type_, "LBT-Config-r14");
     return c.get<int8_t>();
   }
   int8_t& energy_detection_thres_offset_r14()
   {
-    assert_choice_type("energyDetectionThresholdOffset-r14", type_.to_string(), "LBT-Config-r14");
+    assert_choice_type(types::energy_detection_thres_offset_r14, type_, "LBT-Config-r14");
     return c.get<int8_t>();
   }
   const int8_t& max_energy_detection_thres_r14() const
   {
-    assert_choice_type("maxEnergyDetectionThreshold-r14", type_.to_string(), "LBT-Config-r14");
+    assert_choice_type(types::max_energy_detection_thres_r14, type_, "LBT-Config-r14");
     return c.get<int8_t>();
   }
   const int8_t& energy_detection_thres_offset_r14() const
   {
-    assert_choice_type("energyDetectionThresholdOffset-r14", type_.to_string(), "LBT-Config-r14");
+    assert_choice_type(types::energy_detection_thres_offset_r14, type_, "LBT-Config-r14");
     return c.get<int8_t>();
   }
   int8_t& set_max_energy_detection_thres_r14();
@@ -4646,12 +4646,12 @@ struct srs_ul_cfg_ded_aperiodic_v1430_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "SoundingRS-UL-ConfigDedicatedAperiodic-v1430");
+    assert_choice_type(types::setup, type_, "SoundingRS-UL-ConfigDedicatedAperiodic-v1430");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "SoundingRS-UL-ConfigDedicatedAperiodic-v1430");
+    assert_choice_type(types::setup, type_, "SoundingRS-UL-ConfigDedicatedAperiodic-v1430");
     return c;
   }
   void      set_release();
@@ -4758,22 +4758,22 @@ struct cqi_short_cfg_scell_r15_c {
       // getters
       wideband_cqi_short_r15_s_& wideband_cqi_short_r15()
       {
-        assert_choice_type("widebandCQI-Short-r15", type_.to_string(), "cqi-FormatIndicatorShort-r15");
+        assert_choice_type(types::wideband_cqi_short_r15, type_, "cqi-FormatIndicatorShort-r15");
         return c.get<wideband_cqi_short_r15_s_>();
       }
       subband_cqi_short_r15_s_& subband_cqi_short_r15()
       {
-        assert_choice_type("subbandCQI-Short-r15", type_.to_string(), "cqi-FormatIndicatorShort-r15");
+        assert_choice_type(types::subband_cqi_short_r15, type_, "cqi-FormatIndicatorShort-r15");
         return c.get<subband_cqi_short_r15_s_>();
       }
       const wideband_cqi_short_r15_s_& wideband_cqi_short_r15() const
       {
-        assert_choice_type("widebandCQI-Short-r15", type_.to_string(), "cqi-FormatIndicatorShort-r15");
+        assert_choice_type(types::wideband_cqi_short_r15, type_, "cqi-FormatIndicatorShort-r15");
         return c.get<wideband_cqi_short_r15_s_>();
       }
       const subband_cqi_short_r15_s_& subband_cqi_short_r15() const
       {
-        assert_choice_type("subbandCQI-Short-r15", type_.to_string(), "cqi-FormatIndicatorShort-r15");
+        assert_choice_type(types::subband_cqi_short_r15, type_, "cqi-FormatIndicatorShort-r15");
         return c.get<subband_cqi_short_r15_s_>();
       }
       wideband_cqi_short_r15_s_& set_wideband_cqi_short_r15();
@@ -4807,12 +4807,12 @@ struct cqi_short_cfg_scell_r15_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "CQI-ShortConfigSCell-r15");
+    assert_choice_type(types::setup, type_, "CQI-ShortConfigSCell-r15");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "CQI-ShortConfigSCell-r15");
+    assert_choice_type(types::setup, type_, "CQI-ShortConfigSCell-r15");
     return c;
   }
   void      set_release();
@@ -4855,22 +4855,22 @@ struct cross_carrier_sched_cfg_r10_s {
     // getters
     own_r10_s_& own_r10()
     {
-      assert_choice_type("own-r10", type_.to_string(), "schedulingCellInfo-r10");
+      assert_choice_type(types::own_r10, type_, "schedulingCellInfo-r10");
       return c.get<own_r10_s_>();
     }
     other_r10_s_& other_r10()
     {
-      assert_choice_type("other-r10", type_.to_string(), "schedulingCellInfo-r10");
+      assert_choice_type(types::other_r10, type_, "schedulingCellInfo-r10");
       return c.get<other_r10_s_>();
     }
     const own_r10_s_& own_r10() const
     {
-      assert_choice_type("own-r10", type_.to_string(), "schedulingCellInfo-r10");
+      assert_choice_type(types::own_r10, type_, "schedulingCellInfo-r10");
       return c.get<own_r10_s_>();
     }
     const other_r10_s_& other_r10() const
     {
-      assert_choice_type("other-r10", type_.to_string(), "schedulingCellInfo-r10");
+      assert_choice_type(types::other_r10, type_, "schedulingCellInfo-r10");
       return c.get<other_r10_s_>();
     }
     own_r10_s_&   set_own_r10();
@@ -4927,22 +4927,22 @@ struct cross_carrier_sched_cfg_r13_s {
     // getters
     own_r13_s_& own_r13()
     {
-      assert_choice_type("own-r13", type_.to_string(), "schedulingCellInfo-r13");
+      assert_choice_type(types::own_r13, type_, "schedulingCellInfo-r13");
       return c.get<own_r13_s_>();
     }
     other_r13_s_& other_r13()
     {
-      assert_choice_type("other-r13", type_.to_string(), "schedulingCellInfo-r13");
+      assert_choice_type(types::other_r13, type_, "schedulingCellInfo-r13");
       return c.get<other_r13_s_>();
     }
     const own_r13_s_& own_r13() const
     {
-      assert_choice_type("own-r13", type_.to_string(), "schedulingCellInfo-r13");
+      assert_choice_type(types::own_r13, type_, "schedulingCellInfo-r13");
       return c.get<own_r13_s_>();
     }
     const other_r13_s_& other_r13() const
     {
-      assert_choice_type("other-r13", type_.to_string(), "schedulingCellInfo-r13");
+      assert_choice_type(types::other_r13, type_, "schedulingCellInfo-r13");
       return c.get<other_r13_s_>();
     }
     own_r13_s_&   set_own_r13();
@@ -5010,12 +5010,12 @@ struct laa_scell_cfg_v1430_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "crossCarrierSchedulingConfig-UL-r14");
+      assert_choice_type(types::setup, type_, "crossCarrierSchedulingConfig-UL-r14");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "crossCarrierSchedulingConfig-UL-r14");
+      assert_choice_type(types::setup, type_, "crossCarrierSchedulingConfig-UL-r14");
       return c;
     }
     void      set_release();
@@ -5101,12 +5101,12 @@ struct pucch_cfg_ded_v1370_s {
     // getters
     pucch_format3_conf_r13_s& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "pucch-Format-v1370");
+      assert_choice_type(types::setup, type_, "pucch-Format-v1370");
       return c;
     }
     const pucch_format3_conf_r13_s& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "pucch-Format-v1370");
+      assert_choice_type(types::setup, type_, "pucch-Format-v1370");
       return c;
     }
     void                      set_release();
@@ -5174,12 +5174,12 @@ struct pusch_cfg_ded_scell_v1530_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "uci-OnPUSCH-r15");
+      assert_choice_type(types::setup, type_, "uci-OnPUSCH-r15");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "uci-OnPUSCH-r15");
+      assert_choice_type(types::setup, type_, "uci-OnPUSCH-r15");
       return c;
     }
     void      set_release();
@@ -5234,12 +5234,12 @@ struct sched_request_cfg_scell_r13_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "SchedulingRequestConfigSCell-r13");
+    assert_choice_type(types::setup, type_, "SchedulingRequestConfigSCell-r13");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "SchedulingRequestConfigSCell-r13");
+    assert_choice_type(types::setup, type_, "SchedulingRequestConfigSCell-r13");
     return c;
   }
   void      set_release();
@@ -5303,12 +5303,12 @@ struct tpc_pdcch_cfg_scell_r13_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "TPC-PDCCH-ConfigSCell-r13");
+    assert_choice_type(types::setup, type_, "TPC-PDCCH-ConfigSCell-r13");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "TPC-PDCCH-ConfigSCell-r13");
+    assert_choice_type(types::setup, type_, "TPC-PDCCH-ConfigSCell-r13");
     return c;
   }
   void      set_release();
@@ -5455,12 +5455,12 @@ struct phys_cfg_ded_scell_r10_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "pucch-SCell");
+      assert_choice_type(types::setup, type_, "pucch-SCell");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "pucch-SCell");
+      assert_choice_type(types::setup, type_, "pucch-SCell");
       return c;
     }
     void      set_release();
@@ -5513,12 +5513,12 @@ struct phys_cfg_ded_scell_r10_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "must-Config-r14");
+      assert_choice_type(types::setup, type_, "must-Config-r14");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "must-Config-r14");
+      assert_choice_type(types::setup, type_, "must-Config-r14");
       return c;
     }
     void      set_release();
@@ -5552,22 +5552,22 @@ struct phys_cfg_ded_scell_r10_s {
       // getters
       cfi_cfg_r15_s& cfi_cfg_r15()
       {
-        assert_choice_type("cfi-Config-r15", type_.to_string(), "setup");
+        assert_choice_type(types::cfi_cfg_r15, type_, "setup");
         return c.get<cfi_cfg_r15_s>();
       }
       cfi_pattern_cfg_r15_s& cfi_pattern_cfg_r15()
       {
-        assert_choice_type("cfi-PatternConfig-r15", type_.to_string(), "setup");
+        assert_choice_type(types::cfi_pattern_cfg_r15, type_, "setup");
         return c.get<cfi_pattern_cfg_r15_s>();
       }
       const cfi_cfg_r15_s& cfi_cfg_r15() const
       {
-        assert_choice_type("cfi-Config-r15", type_.to_string(), "setup");
+        assert_choice_type(types::cfi_cfg_r15, type_, "setup");
         return c.get<cfi_cfg_r15_s>();
       }
       const cfi_pattern_cfg_r15_s& cfi_pattern_cfg_r15() const
       {
-        assert_choice_type("cfi-PatternConfig-r15", type_.to_string(), "setup");
+        assert_choice_type(types::cfi_pattern_cfg_r15, type_, "setup");
         return c.get<cfi_pattern_cfg_r15_s>();
       }
       cfi_cfg_r15_s&         set_cfi_cfg_r15();
@@ -5593,12 +5593,12 @@ struct phys_cfg_ded_scell_r10_s {
     // getters
     setup_c_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "semiStaticCFI-Config-r15");
+      assert_choice_type(types::setup, type_, "semiStaticCFI-Config-r15");
       return c;
     }
     const setup_c_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "semiStaticCFI-Config-r15");
+      assert_choice_type(types::setup, type_, "semiStaticCFI-Config-r15");
       return c;
     }
     void      set_release();
@@ -5694,12 +5694,12 @@ struct phys_cfg_ded_scell_r10_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "blindPDSCH-Repetition-Config-r15");
+      assert_choice_type(types::setup, type_, "blindPDSCH-Repetition-Config-r15");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "blindPDSCH-Repetition-Config-r15");
+      assert_choice_type(types::setup, type_, "blindPDSCH-Repetition-Config-r15");
       return c;
     }
     void      set_release();
@@ -5814,12 +5814,12 @@ struct phys_cfg_ded_scell_v1370_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "pucch-SCell-v1370");
+      assert_choice_type(types::setup, type_, "pucch-SCell-v1370");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "pucch-SCell-v1370");
+      assert_choice_type(types::setup, type_, "pucch-SCell-v1370");
       return c;
     }
     void      set_release();
@@ -5941,12 +5941,12 @@ struct pucch_cfg_ded_v13c0_s {
       // getters
       setup_s_& setup()
       {
-        assert_choice_type("setup", type_.to_string(), "n1PUCCH-AN-CS-v13c0");
+        assert_choice_type(types::setup, type_, "n1PUCCH-AN-CS-v13c0");
         return c;
       }
       const setup_s_& setup() const
       {
-        assert_choice_type("setup", type_.to_string(), "n1PUCCH-AN-CS-v13c0");
+        assert_choice_type(types::setup, type_, "n1PUCCH-AN-CS-v13c0");
         return c;
       }
       void      set_release();
@@ -5996,12 +5996,12 @@ struct drb_to_add_mod_scg_r12_s {
     // getters
     scg_r12_s_& scg_r12()
     {
-      assert_choice_type("scg-r12", type_.to_string(), "drb-Type-r12");
+      assert_choice_type(types::scg_r12, type_, "drb-Type-r12");
       return c;
     }
     const scg_r12_s_& scg_r12() const
     {
-      assert_choice_type("scg-r12", type_.to_string(), "drb-Type-r12");
+      assert_choice_type(types::scg_r12, type_, "drb-Type-r12");
       return c;
     }
     void        set_split_r12();
@@ -6120,12 +6120,12 @@ struct rlf_timers_and_consts_scg_r12_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "RLF-TimersAndConstantsSCG-r12");
+    assert_choice_type(types::setup, type_, "RLF-TimersAndConstantsSCG-r12");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "RLF-TimersAndConstantsSCG-r12");
+    assert_choice_type(types::setup, type_, "RLF-TimersAndConstantsSCG-r12");
     return c;
   }
   void      set_release();
@@ -6268,12 +6268,12 @@ struct phys_cfg_ded_scell_v13c0_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "pucch-SCell-v13c0");
+      assert_choice_type(types::setup, type_, "pucch-SCell-v13c0");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "pucch-SCell-v13c0");
+      assert_choice_type(types::setup, type_, "pucch-SCell-v13c0");
       return c;
     }
     void      set_release();

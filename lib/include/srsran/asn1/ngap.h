@@ -422,22 +422,22 @@ struct cp_transport_layer_info_c {
   // getters
   bounded_bitstring<1, 160, true, true>& endpoint_ip_address()
   {
-    assert_choice_type("endpointIPAddress", type_.to_string(), "CPTransportLayerInformation");
+    assert_choice_type(types::endpoint_ip_address, type_, "CPTransportLayerInformation");
     return c.get<bounded_bitstring<1, 160, true, true> >();
   }
   protocol_ie_single_container_s<cp_transport_layer_info_ext_ies_o>& choice_exts()
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "CPTransportLayerInformation");
+    assert_choice_type(types::choice_exts, type_, "CPTransportLayerInformation");
     return c.get<protocol_ie_single_container_s<cp_transport_layer_info_ext_ies_o> >();
   }
   const bounded_bitstring<1, 160, true, true>& endpoint_ip_address() const
   {
-    assert_choice_type("endpointIPAddress", type_.to_string(), "CPTransportLayerInformation");
+    assert_choice_type(types::endpoint_ip_address, type_, "CPTransportLayerInformation");
     return c.get<bounded_bitstring<1, 160, true, true> >();
   }
   const protocol_ie_single_container_s<cp_transport_layer_info_ext_ies_o>& choice_exts() const
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "CPTransportLayerInformation");
+    assert_choice_type(types::choice_exts, type_, "CPTransportLayerInformation");
     return c.get<protocol_ie_single_container_s<cp_transport_layer_info_ext_ies_o> >();
   }
   bounded_bitstring<1, 160, true, true>&                             set_endpoint_ip_address();
@@ -963,62 +963,62 @@ struct cause_c {
   // getters
   cause_radio_network_e& radio_network()
   {
-    assert_choice_type("radioNetwork", type_.to_string(), "Cause");
+    assert_choice_type(types::radio_network, type_, "Cause");
     return c.get<cause_radio_network_e>();
   }
   cause_transport_e& transport()
   {
-    assert_choice_type("transport", type_.to_string(), "Cause");
+    assert_choice_type(types::transport, type_, "Cause");
     return c.get<cause_transport_e>();
   }
   cause_nas_e& nas()
   {
-    assert_choice_type("nas", type_.to_string(), "Cause");
+    assert_choice_type(types::nas, type_, "Cause");
     return c.get<cause_nas_e>();
   }
   cause_protocol_e& protocol()
   {
-    assert_choice_type("protocol", type_.to_string(), "Cause");
+    assert_choice_type(types::protocol, type_, "Cause");
     return c.get<cause_protocol_e>();
   }
   cause_misc_e& misc()
   {
-    assert_choice_type("misc", type_.to_string(), "Cause");
+    assert_choice_type(types::misc, type_, "Cause");
     return c.get<cause_misc_e>();
   }
   protocol_ie_single_container_s<cause_ext_ies_o>& choice_exts()
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "Cause");
+    assert_choice_type(types::choice_exts, type_, "Cause");
     return c.get<protocol_ie_single_container_s<cause_ext_ies_o> >();
   }
   const cause_radio_network_e& radio_network() const
   {
-    assert_choice_type("radioNetwork", type_.to_string(), "Cause");
+    assert_choice_type(types::radio_network, type_, "Cause");
     return c.get<cause_radio_network_e>();
   }
   const cause_transport_e& transport() const
   {
-    assert_choice_type("transport", type_.to_string(), "Cause");
+    assert_choice_type(types::transport, type_, "Cause");
     return c.get<cause_transport_e>();
   }
   const cause_nas_e& nas() const
   {
-    assert_choice_type("nas", type_.to_string(), "Cause");
+    assert_choice_type(types::nas, type_, "Cause");
     return c.get<cause_nas_e>();
   }
   const cause_protocol_e& protocol() const
   {
-    assert_choice_type("protocol", type_.to_string(), "Cause");
+    assert_choice_type(types::protocol, type_, "Cause");
     return c.get<cause_protocol_e>();
   }
   const cause_misc_e& misc() const
   {
-    assert_choice_type("misc", type_.to_string(), "Cause");
+    assert_choice_type(types::misc, type_, "Cause");
     return c.get<cause_misc_e>();
   }
   const protocol_ie_single_container_s<cause_ext_ies_o>& choice_exts() const
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "Cause");
+    assert_choice_type(types::choice_exts, type_, "Cause");
     return c.get<protocol_ie_single_container_s<cause_ext_ies_o> >();
   }
   cause_radio_network_e&                           set_radio_network();
@@ -1303,22 +1303,22 @@ struct gnb_id_c {
   // getters
   bounded_bitstring<22, 32, false, true>& gnb_id()
   {
-    assert_choice_type("gNB-ID", type_.to_string(), "GNB-ID");
+    assert_choice_type(types::gnb_id, type_, "GNB-ID");
     return c.get<bounded_bitstring<22, 32, false, true> >();
   }
   protocol_ie_single_container_s<gnb_id_ext_ies_o>& choice_exts()
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "GNB-ID");
+    assert_choice_type(types::choice_exts, type_, "GNB-ID");
     return c.get<protocol_ie_single_container_s<gnb_id_ext_ies_o> >();
   }
   const bounded_bitstring<22, 32, false, true>& gnb_id() const
   {
-    assert_choice_type("gNB-ID", type_.to_string(), "GNB-ID");
+    assert_choice_type(types::gnb_id, type_, "GNB-ID");
     return c.get<bounded_bitstring<22, 32, false, true> >();
   }
   const protocol_ie_single_container_s<gnb_id_ext_ies_o>& choice_exts() const
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "GNB-ID");
+    assert_choice_type(types::choice_exts, type_, "GNB-ID");
     return c.get<protocol_ie_single_container_s<gnb_id_ext_ies_o> >();
   }
   bounded_bitstring<22, 32, false, true>&           set_gnb_id();
@@ -1364,22 +1364,22 @@ struct n3_iwf_id_c {
   // getters
   fixed_bitstring<16, false, true>& n3_iwf_id()
   {
-    assert_choice_type("n3IWF-ID", type_.to_string(), "N3IWF-ID");
+    assert_choice_type(types::n3_iwf_id, type_, "N3IWF-ID");
     return c.get<fixed_bitstring<16, false, true> >();
   }
   protocol_ie_single_container_s<n3_iwf_id_ext_ies_o>& choice_exts()
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "N3IWF-ID");
+    assert_choice_type(types::choice_exts, type_, "N3IWF-ID");
     return c.get<protocol_ie_single_container_s<n3_iwf_id_ext_ies_o> >();
   }
   const fixed_bitstring<16, false, true>& n3_iwf_id() const
   {
-    assert_choice_type("n3IWF-ID", type_.to_string(), "N3IWF-ID");
+    assert_choice_type(types::n3_iwf_id, type_, "N3IWF-ID");
     return c.get<fixed_bitstring<16, false, true> >();
   }
   const protocol_ie_single_container_s<n3_iwf_id_ext_ies_o>& choice_exts() const
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "N3IWF-ID");
+    assert_choice_type(types::choice_exts, type_, "N3IWF-ID");
     return c.get<protocol_ie_single_container_s<n3_iwf_id_ext_ies_o> >();
   }
   fixed_bitstring<16, false, true>&                    set_n3_iwf_id();
@@ -1414,42 +1414,42 @@ struct ng_enb_id_c {
   // getters
   fixed_bitstring<20, false, true>& macro_ng_enb_id()
   {
-    assert_choice_type("macroNgENB-ID", type_.to_string(), "NgENB-ID");
+    assert_choice_type(types::macro_ng_enb_id, type_, "NgENB-ID");
     return c.get<fixed_bitstring<20, false, true> >();
   }
   fixed_bitstring<18, false, true>& short_macro_ng_enb_id()
   {
-    assert_choice_type("shortMacroNgENB-ID", type_.to_string(), "NgENB-ID");
+    assert_choice_type(types::short_macro_ng_enb_id, type_, "NgENB-ID");
     return c.get<fixed_bitstring<18, false, true> >();
   }
   fixed_bitstring<21, false, true>& long_macro_ng_enb_id()
   {
-    assert_choice_type("longMacroNgENB-ID", type_.to_string(), "NgENB-ID");
+    assert_choice_type(types::long_macro_ng_enb_id, type_, "NgENB-ID");
     return c.get<fixed_bitstring<21, false, true> >();
   }
   protocol_ie_single_container_s<ng_enb_id_ext_ies_o>& choice_exts()
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "NgENB-ID");
+    assert_choice_type(types::choice_exts, type_, "NgENB-ID");
     return c.get<protocol_ie_single_container_s<ng_enb_id_ext_ies_o> >();
   }
   const fixed_bitstring<20, false, true>& macro_ng_enb_id() const
   {
-    assert_choice_type("macroNgENB-ID", type_.to_string(), "NgENB-ID");
+    assert_choice_type(types::macro_ng_enb_id, type_, "NgENB-ID");
     return c.get<fixed_bitstring<20, false, true> >();
   }
   const fixed_bitstring<18, false, true>& short_macro_ng_enb_id() const
   {
-    assert_choice_type("shortMacroNgENB-ID", type_.to_string(), "NgENB-ID");
+    assert_choice_type(types::short_macro_ng_enb_id, type_, "NgENB-ID");
     return c.get<fixed_bitstring<18, false, true> >();
   }
   const fixed_bitstring<21, false, true>& long_macro_ng_enb_id() const
   {
-    assert_choice_type("longMacroNgENB-ID", type_.to_string(), "NgENB-ID");
+    assert_choice_type(types::long_macro_ng_enb_id, type_, "NgENB-ID");
     return c.get<fixed_bitstring<21, false, true> >();
   }
   const protocol_ie_single_container_s<ng_enb_id_ext_ies_o>& choice_exts() const
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "NgENB-ID");
+    assert_choice_type(types::choice_exts, type_, "NgENB-ID");
     return c.get<protocol_ie_single_container_s<ng_enb_id_ext_ies_o> >();
   }
   fixed_bitstring<20, false, true>&                    set_macro_ng_enb_id();
@@ -1548,42 +1548,42 @@ struct global_ran_node_id_c {
   // getters
   global_gnb_id_s& global_gnb_id()
   {
-    assert_choice_type("globalGNB-ID", type_.to_string(), "GlobalRANNodeID");
+    assert_choice_type(types::global_gnb_id, type_, "GlobalRANNodeID");
     return c.get<global_gnb_id_s>();
   }
   global_ng_enb_id_s& global_ng_enb_id()
   {
-    assert_choice_type("globalNgENB-ID", type_.to_string(), "GlobalRANNodeID");
+    assert_choice_type(types::global_ng_enb_id, type_, "GlobalRANNodeID");
     return c.get<global_ng_enb_id_s>();
   }
   global_n3_iwf_id_s& global_n3_iwf_id()
   {
-    assert_choice_type("globalN3IWF-ID", type_.to_string(), "GlobalRANNodeID");
+    assert_choice_type(types::global_n3_iwf_id, type_, "GlobalRANNodeID");
     return c.get<global_n3_iwf_id_s>();
   }
   protocol_ie_single_container_s<global_ran_node_id_ext_ies_o>& choice_exts()
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "GlobalRANNodeID");
+    assert_choice_type(types::choice_exts, type_, "GlobalRANNodeID");
     return c.get<protocol_ie_single_container_s<global_ran_node_id_ext_ies_o> >();
   }
   const global_gnb_id_s& global_gnb_id() const
   {
-    assert_choice_type("globalGNB-ID", type_.to_string(), "GlobalRANNodeID");
+    assert_choice_type(types::global_gnb_id, type_, "GlobalRANNodeID");
     return c.get<global_gnb_id_s>();
   }
   const global_ng_enb_id_s& global_ng_enb_id() const
   {
-    assert_choice_type("globalNgENB-ID", type_.to_string(), "GlobalRANNodeID");
+    assert_choice_type(types::global_ng_enb_id, type_, "GlobalRANNodeID");
     return c.get<global_ng_enb_id_s>();
   }
   const global_n3_iwf_id_s& global_n3_iwf_id() const
   {
-    assert_choice_type("globalN3IWF-ID", type_.to_string(), "GlobalRANNodeID");
+    assert_choice_type(types::global_n3_iwf_id, type_, "GlobalRANNodeID");
     return c.get<global_n3_iwf_id_s>();
   }
   const protocol_ie_single_container_s<global_ran_node_id_ext_ies_o>& choice_exts() const
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "GlobalRANNodeID");
+    assert_choice_type(types::choice_exts, type_, "GlobalRANNodeID");
     return c.get<protocol_ie_single_container_s<global_ran_node_id_ext_ies_o> >();
   }
   global_gnb_id_s&                                              set_global_gnb_id();
@@ -1641,32 +1641,32 @@ struct amf_paging_target_c {
   // getters
   global_ran_node_id_c& global_ran_node_id()
   {
-    assert_choice_type("globalRANNodeID", type_.to_string(), "AMFPagingTarget");
+    assert_choice_type(types::global_ran_node_id, type_, "AMFPagingTarget");
     return c.get<global_ran_node_id_c>();
   }
   tai_s& tai()
   {
-    assert_choice_type("tAI", type_.to_string(), "AMFPagingTarget");
+    assert_choice_type(types::tai, type_, "AMFPagingTarget");
     return c.get<tai_s>();
   }
   protocol_ie_single_container_s<amf_paging_target_ext_ies_o>& choice_exts()
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "AMFPagingTarget");
+    assert_choice_type(types::choice_exts, type_, "AMFPagingTarget");
     return c.get<protocol_ie_single_container_s<amf_paging_target_ext_ies_o> >();
   }
   const global_ran_node_id_c& global_ran_node_id() const
   {
-    assert_choice_type("globalRANNodeID", type_.to_string(), "AMFPagingTarget");
+    assert_choice_type(types::global_ran_node_id, type_, "AMFPagingTarget");
     return c.get<global_ran_node_id_c>();
   }
   const tai_s& tai() const
   {
-    assert_choice_type("tAI", type_.to_string(), "AMFPagingTarget");
+    assert_choice_type(types::tai, type_, "AMFPagingTarget");
     return c.get<tai_s>();
   }
   const protocol_ie_single_container_s<amf_paging_target_ext_ies_o>& choice_exts() const
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "AMFPagingTarget");
+    assert_choice_type(types::choice_exts, type_, "AMFPagingTarget");
     return c.get<protocol_ie_single_container_s<amf_paging_target_ext_ies_o> >();
   }
   global_ran_node_id_c&                                        set_global_ran_node_id();
@@ -1838,22 +1838,22 @@ struct up_transport_layer_info_c {
   // getters
   gtp_tunnel_s& gtp_tunnel()
   {
-    assert_choice_type("gTPTunnel", type_.to_string(), "UPTransportLayerInformation");
+    assert_choice_type(types::gtp_tunnel, type_, "UPTransportLayerInformation");
     return c.get<gtp_tunnel_s>();
   }
   protocol_ie_single_container_s<up_transport_layer_info_ext_ies_o>& choice_exts()
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "UPTransportLayerInformation");
+    assert_choice_type(types::choice_exts, type_, "UPTransportLayerInformation");
     return c.get<protocol_ie_single_container_s<up_transport_layer_info_ext_ies_o> >();
   }
   const gtp_tunnel_s& gtp_tunnel() const
   {
-    assert_choice_type("gTPTunnel", type_.to_string(), "UPTransportLayerInformation");
+    assert_choice_type(types::gtp_tunnel, type_, "UPTransportLayerInformation");
     return c.get<gtp_tunnel_s>();
   }
   const protocol_ie_single_container_s<up_transport_layer_info_ext_ies_o>& choice_exts() const
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "UPTransportLayerInformation");
+    assert_choice_type(types::choice_exts, type_, "UPTransportLayerInformation");
     return c.get<protocol_ie_single_container_s<up_transport_layer_info_ext_ies_o> >();
   }
   gtp_tunnel_s&                                                      set_gtp_tunnel();
@@ -2024,32 +2024,32 @@ struct ngran_cgi_c {
   // getters
   nr_cgi_s& nr_cgi()
   {
-    assert_choice_type("nR-CGI", type_.to_string(), "NGRAN-CGI");
+    assert_choice_type(types::nr_cgi, type_, "NGRAN-CGI");
     return c.get<nr_cgi_s>();
   }
   eutra_cgi_s& eutra_cgi()
   {
-    assert_choice_type("eUTRA-CGI", type_.to_string(), "NGRAN-CGI");
+    assert_choice_type(types::eutra_cgi, type_, "NGRAN-CGI");
     return c.get<eutra_cgi_s>();
   }
   protocol_ie_single_container_s<ngran_cgi_ext_ies_o>& choice_exts()
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "NGRAN-CGI");
+    assert_choice_type(types::choice_exts, type_, "NGRAN-CGI");
     return c.get<protocol_ie_single_container_s<ngran_cgi_ext_ies_o> >();
   }
   const nr_cgi_s& nr_cgi() const
   {
-    assert_choice_type("nR-CGI", type_.to_string(), "NGRAN-CGI");
+    assert_choice_type(types::nr_cgi, type_, "NGRAN-CGI");
     return c.get<nr_cgi_s>();
   }
   const eutra_cgi_s& eutra_cgi() const
   {
-    assert_choice_type("eUTRA-CGI", type_.to_string(), "NGRAN-CGI");
+    assert_choice_type(types::eutra_cgi, type_, "NGRAN-CGI");
     return c.get<eutra_cgi_s>();
   }
   const protocol_ie_single_container_s<ngran_cgi_ext_ies_o>& choice_exts() const
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "NGRAN-CGI");
+    assert_choice_type(types::choice_exts, type_, "NGRAN-CGI");
     return c.get<protocol_ie_single_container_s<ngran_cgi_ext_ies_o> >();
   }
   nr_cgi_s&                                            set_nr_cgi();
@@ -2577,72 +2577,72 @@ struct broadcast_cancelled_area_list_c {
   // getters
   cell_id_cancelled_eutra_l& cell_id_cancelled_eutra()
   {
-    assert_choice_type("cellIDCancelledEUTRA", type_.to_string(), "BroadcastCancelledAreaList");
+    assert_choice_type(types::cell_id_cancelled_eutra, type_, "BroadcastCancelledAreaList");
     return c.get<cell_id_cancelled_eutra_l>();
   }
   tai_cancelled_eutra_l& tai_cancelled_eutra()
   {
-    assert_choice_type("tAICancelledEUTRA", type_.to_string(), "BroadcastCancelledAreaList");
+    assert_choice_type(types::tai_cancelled_eutra, type_, "BroadcastCancelledAreaList");
     return c.get<tai_cancelled_eutra_l>();
   }
   emergency_area_id_cancelled_eutra_l& emergency_area_id_cancelled_eutra()
   {
-    assert_choice_type("emergencyAreaIDCancelledEUTRA", type_.to_string(), "BroadcastCancelledAreaList");
+    assert_choice_type(types::emergency_area_id_cancelled_eutra, type_, "BroadcastCancelledAreaList");
     return c.get<emergency_area_id_cancelled_eutra_l>();
   }
   cell_id_cancelled_nr_l& cell_id_cancelled_nr()
   {
-    assert_choice_type("cellIDCancelledNR", type_.to_string(), "BroadcastCancelledAreaList");
+    assert_choice_type(types::cell_id_cancelled_nr, type_, "BroadcastCancelledAreaList");
     return c.get<cell_id_cancelled_nr_l>();
   }
   tai_cancelled_nr_l& tai_cancelled_nr()
   {
-    assert_choice_type("tAICancelledNR", type_.to_string(), "BroadcastCancelledAreaList");
+    assert_choice_type(types::tai_cancelled_nr, type_, "BroadcastCancelledAreaList");
     return c.get<tai_cancelled_nr_l>();
   }
   emergency_area_id_cancelled_nr_l& emergency_area_id_cancelled_nr()
   {
-    assert_choice_type("emergencyAreaIDCancelledNR", type_.to_string(), "BroadcastCancelledAreaList");
+    assert_choice_type(types::emergency_area_id_cancelled_nr, type_, "BroadcastCancelledAreaList");
     return c.get<emergency_area_id_cancelled_nr_l>();
   }
   protocol_ie_single_container_s<broadcast_cancelled_area_list_ext_ies_o>& choice_exts()
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "BroadcastCancelledAreaList");
+    assert_choice_type(types::choice_exts, type_, "BroadcastCancelledAreaList");
     return c.get<protocol_ie_single_container_s<broadcast_cancelled_area_list_ext_ies_o> >();
   }
   const cell_id_cancelled_eutra_l& cell_id_cancelled_eutra() const
   {
-    assert_choice_type("cellIDCancelledEUTRA", type_.to_string(), "BroadcastCancelledAreaList");
+    assert_choice_type(types::cell_id_cancelled_eutra, type_, "BroadcastCancelledAreaList");
     return c.get<cell_id_cancelled_eutra_l>();
   }
   const tai_cancelled_eutra_l& tai_cancelled_eutra() const
   {
-    assert_choice_type("tAICancelledEUTRA", type_.to_string(), "BroadcastCancelledAreaList");
+    assert_choice_type(types::tai_cancelled_eutra, type_, "BroadcastCancelledAreaList");
     return c.get<tai_cancelled_eutra_l>();
   }
   const emergency_area_id_cancelled_eutra_l& emergency_area_id_cancelled_eutra() const
   {
-    assert_choice_type("emergencyAreaIDCancelledEUTRA", type_.to_string(), "BroadcastCancelledAreaList");
+    assert_choice_type(types::emergency_area_id_cancelled_eutra, type_, "BroadcastCancelledAreaList");
     return c.get<emergency_area_id_cancelled_eutra_l>();
   }
   const cell_id_cancelled_nr_l& cell_id_cancelled_nr() const
   {
-    assert_choice_type("cellIDCancelledNR", type_.to_string(), "BroadcastCancelledAreaList");
+    assert_choice_type(types::cell_id_cancelled_nr, type_, "BroadcastCancelledAreaList");
     return c.get<cell_id_cancelled_nr_l>();
   }
   const tai_cancelled_nr_l& tai_cancelled_nr() const
   {
-    assert_choice_type("tAICancelledNR", type_.to_string(), "BroadcastCancelledAreaList");
+    assert_choice_type(types::tai_cancelled_nr, type_, "BroadcastCancelledAreaList");
     return c.get<tai_cancelled_nr_l>();
   }
   const emergency_area_id_cancelled_nr_l& emergency_area_id_cancelled_nr() const
   {
-    assert_choice_type("emergencyAreaIDCancelledNR", type_.to_string(), "BroadcastCancelledAreaList");
+    assert_choice_type(types::emergency_area_id_cancelled_nr, type_, "BroadcastCancelledAreaList");
     return c.get<emergency_area_id_cancelled_nr_l>();
   }
   const protocol_ie_single_container_s<broadcast_cancelled_area_list_ext_ies_o>& choice_exts() const
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "BroadcastCancelledAreaList");
+    assert_choice_type(types::choice_exts, type_, "BroadcastCancelledAreaList");
     return c.get<protocol_ie_single_container_s<broadcast_cancelled_area_list_ext_ies_o> >();
   }
   cell_id_cancelled_eutra_l&                                               set_cell_id_cancelled_eutra();
@@ -2925,72 +2925,72 @@ struct broadcast_completed_area_list_c {
   // getters
   cell_id_broadcast_eutra_l& cell_id_broadcast_eutra()
   {
-    assert_choice_type("cellIDBroadcastEUTRA", type_.to_string(), "BroadcastCompletedAreaList");
+    assert_choice_type(types::cell_id_broadcast_eutra, type_, "BroadcastCompletedAreaList");
     return c.get<cell_id_broadcast_eutra_l>();
   }
   tai_broadcast_eutra_l& tai_broadcast_eutra()
   {
-    assert_choice_type("tAIBroadcastEUTRA", type_.to_string(), "BroadcastCompletedAreaList");
+    assert_choice_type(types::tai_broadcast_eutra, type_, "BroadcastCompletedAreaList");
     return c.get<tai_broadcast_eutra_l>();
   }
   emergency_area_id_broadcast_eutra_l& emergency_area_id_broadcast_eutra()
   {
-    assert_choice_type("emergencyAreaIDBroadcastEUTRA", type_.to_string(), "BroadcastCompletedAreaList");
+    assert_choice_type(types::emergency_area_id_broadcast_eutra, type_, "BroadcastCompletedAreaList");
     return c.get<emergency_area_id_broadcast_eutra_l>();
   }
   cell_id_broadcast_nr_l& cell_id_broadcast_nr()
   {
-    assert_choice_type("cellIDBroadcastNR", type_.to_string(), "BroadcastCompletedAreaList");
+    assert_choice_type(types::cell_id_broadcast_nr, type_, "BroadcastCompletedAreaList");
     return c.get<cell_id_broadcast_nr_l>();
   }
   tai_broadcast_nr_l& tai_broadcast_nr()
   {
-    assert_choice_type("tAIBroadcastNR", type_.to_string(), "BroadcastCompletedAreaList");
+    assert_choice_type(types::tai_broadcast_nr, type_, "BroadcastCompletedAreaList");
     return c.get<tai_broadcast_nr_l>();
   }
   emergency_area_id_broadcast_nr_l& emergency_area_id_broadcast_nr()
   {
-    assert_choice_type("emergencyAreaIDBroadcastNR", type_.to_string(), "BroadcastCompletedAreaList");
+    assert_choice_type(types::emergency_area_id_broadcast_nr, type_, "BroadcastCompletedAreaList");
     return c.get<emergency_area_id_broadcast_nr_l>();
   }
   protocol_ie_single_container_s<broadcast_completed_area_list_ext_ies_o>& choice_exts()
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "BroadcastCompletedAreaList");
+    assert_choice_type(types::choice_exts, type_, "BroadcastCompletedAreaList");
     return c.get<protocol_ie_single_container_s<broadcast_completed_area_list_ext_ies_o> >();
   }
   const cell_id_broadcast_eutra_l& cell_id_broadcast_eutra() const
   {
-    assert_choice_type("cellIDBroadcastEUTRA", type_.to_string(), "BroadcastCompletedAreaList");
+    assert_choice_type(types::cell_id_broadcast_eutra, type_, "BroadcastCompletedAreaList");
     return c.get<cell_id_broadcast_eutra_l>();
   }
   const tai_broadcast_eutra_l& tai_broadcast_eutra() const
   {
-    assert_choice_type("tAIBroadcastEUTRA", type_.to_string(), "BroadcastCompletedAreaList");
+    assert_choice_type(types::tai_broadcast_eutra, type_, "BroadcastCompletedAreaList");
     return c.get<tai_broadcast_eutra_l>();
   }
   const emergency_area_id_broadcast_eutra_l& emergency_area_id_broadcast_eutra() const
   {
-    assert_choice_type("emergencyAreaIDBroadcastEUTRA", type_.to_string(), "BroadcastCompletedAreaList");
+    assert_choice_type(types::emergency_area_id_broadcast_eutra, type_, "BroadcastCompletedAreaList");
     return c.get<emergency_area_id_broadcast_eutra_l>();
   }
   const cell_id_broadcast_nr_l& cell_id_broadcast_nr() const
   {
-    assert_choice_type("cellIDBroadcastNR", type_.to_string(), "BroadcastCompletedAreaList");
+    assert_choice_type(types::cell_id_broadcast_nr, type_, "BroadcastCompletedAreaList");
     return c.get<cell_id_broadcast_nr_l>();
   }
   const tai_broadcast_nr_l& tai_broadcast_nr() const
   {
-    assert_choice_type("tAIBroadcastNR", type_.to_string(), "BroadcastCompletedAreaList");
+    assert_choice_type(types::tai_broadcast_nr, type_, "BroadcastCompletedAreaList");
     return c.get<tai_broadcast_nr_l>();
   }
   const emergency_area_id_broadcast_nr_l& emergency_area_id_broadcast_nr() const
   {
-    assert_choice_type("emergencyAreaIDBroadcastNR", type_.to_string(), "BroadcastCompletedAreaList");
+    assert_choice_type(types::emergency_area_id_broadcast_nr, type_, "BroadcastCompletedAreaList");
     return c.get<emergency_area_id_broadcast_nr_l>();
   }
   const protocol_ie_single_container_s<broadcast_completed_area_list_ext_ies_o>& choice_exts() const
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "BroadcastCompletedAreaList");
+    assert_choice_type(types::choice_exts, type_, "BroadcastCompletedAreaList");
     return c.get<protocol_ie_single_container_s<broadcast_completed_area_list_ext_ies_o> >();
   }
   cell_id_broadcast_eutra_l&                                               set_cell_id_broadcast_eutra();
@@ -3109,32 +3109,32 @@ struct cell_id_list_for_restart_c {
   // getters
   eutra_cgi_list_l& eutra_cgi_listfor_restart()
   {
-    assert_choice_type("eUTRA-CGIListforRestart", type_.to_string(), "CellIDListForRestart");
+    assert_choice_type(types::eutra_cgi_listfor_restart, type_, "CellIDListForRestart");
     return c.get<eutra_cgi_list_l>();
   }
   nr_cgi_list_l& nr_cgi_listfor_restart()
   {
-    assert_choice_type("nR-CGIListforRestart", type_.to_string(), "CellIDListForRestart");
+    assert_choice_type(types::nr_cgi_listfor_restart, type_, "CellIDListForRestart");
     return c.get<nr_cgi_list_l>();
   }
   protocol_ie_single_container_s<cell_id_list_for_restart_ext_ies_o>& choice_exts()
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "CellIDListForRestart");
+    assert_choice_type(types::choice_exts, type_, "CellIDListForRestart");
     return c.get<protocol_ie_single_container_s<cell_id_list_for_restart_ext_ies_o> >();
   }
   const eutra_cgi_list_l& eutra_cgi_listfor_restart() const
   {
-    assert_choice_type("eUTRA-CGIListforRestart", type_.to_string(), "CellIDListForRestart");
+    assert_choice_type(types::eutra_cgi_listfor_restart, type_, "CellIDListForRestart");
     return c.get<eutra_cgi_list_l>();
   }
   const nr_cgi_list_l& nr_cgi_listfor_restart() const
   {
-    assert_choice_type("nR-CGIListforRestart", type_.to_string(), "CellIDListForRestart");
+    assert_choice_type(types::nr_cgi_listfor_restart, type_, "CellIDListForRestart");
     return c.get<nr_cgi_list_l>();
   }
   const protocol_ie_single_container_s<cell_id_list_for_restart_ext_ies_o>& choice_exts() const
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "CellIDListForRestart");
+    assert_choice_type(types::choice_exts, type_, "CellIDListForRestart");
     return c.get<protocol_ie_single_container_s<cell_id_list_for_restart_ext_ies_o> >();
   }
   eutra_cgi_list_l&                                                   set_eutra_cgi_listfor_restart();
@@ -3431,22 +3431,22 @@ struct ue_id_idx_value_c {
   // getters
   fixed_bitstring<10, false, true>& idx_len10()
   {
-    assert_choice_type("indexLength10", type_.to_string(), "UEIdentityIndexValue");
+    assert_choice_type(types::idx_len10, type_, "UEIdentityIndexValue");
     return c.get<fixed_bitstring<10, false, true> >();
   }
   protocol_ie_single_container_s<ue_id_idx_value_ext_ies_o>& choice_exts()
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "UEIdentityIndexValue");
+    assert_choice_type(types::choice_exts, type_, "UEIdentityIndexValue");
     return c.get<protocol_ie_single_container_s<ue_id_idx_value_ext_ies_o> >();
   }
   const fixed_bitstring<10, false, true>& idx_len10() const
   {
-    assert_choice_type("indexLength10", type_.to_string(), "UEIdentityIndexValue");
+    assert_choice_type(types::idx_len10, type_, "UEIdentityIndexValue");
     return c.get<fixed_bitstring<10, false, true> >();
   }
   const protocol_ie_single_container_s<ue_id_idx_value_ext_ies_o>& choice_exts() const
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "UEIdentityIndexValue");
+    assert_choice_type(types::choice_exts, type_, "UEIdentityIndexValue");
     return c.get<protocol_ie_single_container_s<ue_id_idx_value_ext_ies_o> >();
   }
   fixed_bitstring<10, false, true>&                          set_idx_len10();
@@ -3548,32 +3548,32 @@ struct drb_status_dl_c {
   // getters
   drb_status_dl12_s& drb_status_dl12()
   {
-    assert_choice_type("dRBStatusDL12", type_.to_string(), "DRBStatusDL");
+    assert_choice_type(types::drb_status_dl12, type_, "DRBStatusDL");
     return c.get<drb_status_dl12_s>();
   }
   drb_status_dl18_s& drb_status_dl18()
   {
-    assert_choice_type("dRBStatusDL18", type_.to_string(), "DRBStatusDL");
+    assert_choice_type(types::drb_status_dl18, type_, "DRBStatusDL");
     return c.get<drb_status_dl18_s>();
   }
   protocol_ie_single_container_s<drb_status_dl_ext_ies_o>& choice_exts()
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "DRBStatusDL");
+    assert_choice_type(types::choice_exts, type_, "DRBStatusDL");
     return c.get<protocol_ie_single_container_s<drb_status_dl_ext_ies_o> >();
   }
   const drb_status_dl12_s& drb_status_dl12() const
   {
-    assert_choice_type("dRBStatusDL12", type_.to_string(), "DRBStatusDL");
+    assert_choice_type(types::drb_status_dl12, type_, "DRBStatusDL");
     return c.get<drb_status_dl12_s>();
   }
   const drb_status_dl18_s& drb_status_dl18() const
   {
-    assert_choice_type("dRBStatusDL18", type_.to_string(), "DRBStatusDL");
+    assert_choice_type(types::drb_status_dl18, type_, "DRBStatusDL");
     return c.get<drb_status_dl18_s>();
   }
   const protocol_ie_single_container_s<drb_status_dl_ext_ies_o>& choice_exts() const
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "DRBStatusDL");
+    assert_choice_type(types::choice_exts, type_, "DRBStatusDL");
     return c.get<protocol_ie_single_container_s<drb_status_dl_ext_ies_o> >();
   }
   drb_status_dl12_s&                                       set_drb_status_dl12();
@@ -3656,32 +3656,32 @@ struct drb_status_ul_c {
   // getters
   drb_status_ul12_s& drb_status_ul12()
   {
-    assert_choice_type("dRBStatusUL12", type_.to_string(), "DRBStatusUL");
+    assert_choice_type(types::drb_status_ul12, type_, "DRBStatusUL");
     return c.get<drb_status_ul12_s>();
   }
   drb_status_ul18_s& drb_status_ul18()
   {
-    assert_choice_type("dRBStatusUL18", type_.to_string(), "DRBStatusUL");
+    assert_choice_type(types::drb_status_ul18, type_, "DRBStatusUL");
     return c.get<drb_status_ul18_s>();
   }
   protocol_ie_single_container_s<drb_status_ul_ext_ies_o>& choice_exts()
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "DRBStatusUL");
+    assert_choice_type(types::choice_exts, type_, "DRBStatusUL");
     return c.get<protocol_ie_single_container_s<drb_status_ul_ext_ies_o> >();
   }
   const drb_status_ul12_s& drb_status_ul12() const
   {
-    assert_choice_type("dRBStatusUL12", type_.to_string(), "DRBStatusUL");
+    assert_choice_type(types::drb_status_ul12, type_, "DRBStatusUL");
     return c.get<drb_status_ul12_s>();
   }
   const drb_status_ul18_s& drb_status_ul18() const
   {
-    assert_choice_type("dRBStatusUL18", type_.to_string(), "DRBStatusUL");
+    assert_choice_type(types::drb_status_ul18, type_, "DRBStatusUL");
     return c.get<drb_status_ul18_s>();
   }
   const protocol_ie_single_container_s<drb_status_ul_ext_ies_o>& choice_exts() const
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "DRBStatusUL");
+    assert_choice_type(types::choice_exts, type_, "DRBStatusUL");
     return c.get<protocol_ie_single_container_s<drb_status_ul_ext_ies_o> >();
   }
   drb_status_ul12_s&                                       set_drb_status_ul12();
@@ -4290,32 +4290,32 @@ struct son_info_c {
   // getters
   son_info_request_e& son_info_request()
   {
-    assert_choice_type("sONInformationRequest", type_.to_string(), "SONInformation");
+    assert_choice_type(types::son_info_request, type_, "SONInformation");
     return c.get<son_info_request_e>();
   }
   son_info_reply_s& son_info_reply()
   {
-    assert_choice_type("sONInformationReply", type_.to_string(), "SONInformation");
+    assert_choice_type(types::son_info_reply, type_, "SONInformation");
     return c.get<son_info_reply_s>();
   }
   protocol_ie_single_container_s<son_info_ext_ies_o>& choice_exts()
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "SONInformation");
+    assert_choice_type(types::choice_exts, type_, "SONInformation");
     return c.get<protocol_ie_single_container_s<son_info_ext_ies_o> >();
   }
   const son_info_request_e& son_info_request() const
   {
-    assert_choice_type("sONInformationRequest", type_.to_string(), "SONInformation");
+    assert_choice_type(types::son_info_request, type_, "SONInformation");
     return c.get<son_info_request_e>();
   }
   const son_info_reply_s& son_info_reply() const
   {
-    assert_choice_type("sONInformationReply", type_.to_string(), "SONInformation");
+    assert_choice_type(types::son_info_reply, type_, "SONInformation");
     return c.get<son_info_reply_s>();
   }
   const protocol_ie_single_container_s<son_info_ext_ies_o>& choice_exts() const
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "SONInformation");
+    assert_choice_type(types::choice_exts, type_, "SONInformation");
     return c.get<protocol_ie_single_container_s<son_info_ext_ies_o> >();
   }
   son_info_request_e&                                 set_son_info_request();
@@ -5504,42 +5504,42 @@ struct user_location_info_c {
   // getters
   user_location_info_eutra_s& user_location_info_eutra()
   {
-    assert_choice_type("userLocationInformationEUTRA", type_.to_string(), "UserLocationInformation");
+    assert_choice_type(types::user_location_info_eutra, type_, "UserLocationInformation");
     return c.get<user_location_info_eutra_s>();
   }
   user_location_info_nr_s& user_location_info_nr()
   {
-    assert_choice_type("userLocationInformationNR", type_.to_string(), "UserLocationInformation");
+    assert_choice_type(types::user_location_info_nr, type_, "UserLocationInformation");
     return c.get<user_location_info_nr_s>();
   }
   user_location_info_n3_iwf_s& user_location_info_n3_iwf()
   {
-    assert_choice_type("userLocationInformationN3IWF", type_.to_string(), "UserLocationInformation");
+    assert_choice_type(types::user_location_info_n3_iwf, type_, "UserLocationInformation");
     return c.get<user_location_info_n3_iwf_s>();
   }
   protocol_ie_single_container_s<user_location_info_ext_ies_o>& choice_exts()
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "UserLocationInformation");
+    assert_choice_type(types::choice_exts, type_, "UserLocationInformation");
     return c.get<protocol_ie_single_container_s<user_location_info_ext_ies_o> >();
   }
   const user_location_info_eutra_s& user_location_info_eutra() const
   {
-    assert_choice_type("userLocationInformationEUTRA", type_.to_string(), "UserLocationInformation");
+    assert_choice_type(types::user_location_info_eutra, type_, "UserLocationInformation");
     return c.get<user_location_info_eutra_s>();
   }
   const user_location_info_nr_s& user_location_info_nr() const
   {
-    assert_choice_type("userLocationInformationNR", type_.to_string(), "UserLocationInformation");
+    assert_choice_type(types::user_location_info_nr, type_, "UserLocationInformation");
     return c.get<user_location_info_nr_s>();
   }
   const user_location_info_n3_iwf_s& user_location_info_n3_iwf() const
   {
-    assert_choice_type("userLocationInformationN3IWF", type_.to_string(), "UserLocationInformation");
+    assert_choice_type(types::user_location_info_n3_iwf, type_, "UserLocationInformation");
     return c.get<user_location_info_n3_iwf_s>();
   }
   const protocol_ie_single_container_s<user_location_info_ext_ies_o>& choice_exts() const
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "UserLocationInformation");
+    assert_choice_type(types::choice_exts, type_, "UserLocationInformation");
     return c.get<protocol_ie_single_container_s<user_location_info_ext_ies_o> >();
   }
   user_location_info_eutra_s&                                   set_user_location_info_eutra();
@@ -6405,32 +6405,32 @@ struct target_id_c {
   // getters
   target_ran_node_id_s& target_ran_node_id()
   {
-    assert_choice_type("targetRANNodeID", type_.to_string(), "TargetID");
+    assert_choice_type(types::target_ran_node_id, type_, "TargetID");
     return c.get<target_ran_node_id_s>();
   }
   targetenb_id_s& targetenb_id()
   {
-    assert_choice_type("targeteNB-ID", type_.to_string(), "TargetID");
+    assert_choice_type(types::targetenb_id, type_, "TargetID");
     return c.get<targetenb_id_s>();
   }
   protocol_ie_single_container_s<target_id_ext_ies_o>& choice_exts()
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "TargetID");
+    assert_choice_type(types::choice_exts, type_, "TargetID");
     return c.get<protocol_ie_single_container_s<target_id_ext_ies_o> >();
   }
   const target_ran_node_id_s& target_ran_node_id() const
   {
-    assert_choice_type("targetRANNodeID", type_.to_string(), "TargetID");
+    assert_choice_type(types::target_ran_node_id, type_, "TargetID");
     return c.get<target_ran_node_id_s>();
   }
   const targetenb_id_s& targetenb_id() const
   {
-    assert_choice_type("targeteNB-ID", type_.to_string(), "TargetID");
+    assert_choice_type(types::targetenb_id, type_, "TargetID");
     return c.get<targetenb_id_s>();
   }
   const protocol_ie_single_container_s<target_id_ext_ies_o>& choice_exts() const
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "TargetID");
+    assert_choice_type(types::choice_exts, type_, "TargetID");
     return c.get<protocol_ie_single_container_s<target_id_ext_ies_o> >();
   }
   target_ran_node_id_s&                                set_target_ran_node_id();
@@ -7313,22 +7313,22 @@ struct overload_resp_c {
   // getters
   overload_action_e& overload_action()
   {
-    assert_choice_type("overloadAction", type_.to_string(), "OverloadResponse");
+    assert_choice_type(types::overload_action, type_, "OverloadResponse");
     return c.get<overload_action_e>();
   }
   protocol_ie_single_container_s<overload_resp_ext_ies_o>& choice_exts()
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "OverloadResponse");
+    assert_choice_type(types::choice_exts, type_, "OverloadResponse");
     return c.get<protocol_ie_single_container_s<overload_resp_ext_ies_o> >();
   }
   const overload_action_e& overload_action() const
   {
-    assert_choice_type("overloadAction", type_.to_string(), "OverloadResponse");
+    assert_choice_type(types::overload_action, type_, "OverloadResponse");
     return c.get<overload_action_e>();
   }
   const protocol_ie_single_container_s<overload_resp_ext_ies_o>& choice_exts() const
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "OverloadResponse");
+    assert_choice_type(types::choice_exts, type_, "OverloadResponse");
     return c.get<protocol_ie_single_container_s<overload_resp_ext_ies_o> >();
   }
   overload_action_e&                                       set_overload_action();
@@ -7484,12 +7484,12 @@ struct private_ie_id_c {
   // getters
   uint32_t& local()
   {
-    assert_choice_type("local", type_.to_string(), "PrivateIE-ID");
+    assert_choice_type(types::local, type_, "PrivateIE-ID");
     return c;
   }
   const uint32_t& local() const
   {
-    assert_choice_type("local", type_.to_string(), "PrivateIE-ID");
+    assert_choice_type(types::local, type_, "PrivateIE-ID");
     return c;
   }
   uint32_t& set_local();
@@ -8137,32 +8137,32 @@ struct pws_failed_cell_id_list_c {
   // getters
   eutra_cgi_list_l& eutra_cgi_pws_failed_list()
   {
-    assert_choice_type("eUTRA-CGI-PWSFailedList", type_.to_string(), "PWSFailedCellIDList");
+    assert_choice_type(types::eutra_cgi_pws_failed_list, type_, "PWSFailedCellIDList");
     return c.get<eutra_cgi_list_l>();
   }
   nr_cgi_list_l& nr_cgi_pws_failed_list()
   {
-    assert_choice_type("nR-CGI-PWSFailedList", type_.to_string(), "PWSFailedCellIDList");
+    assert_choice_type(types::nr_cgi_pws_failed_list, type_, "PWSFailedCellIDList");
     return c.get<nr_cgi_list_l>();
   }
   protocol_ie_single_container_s<pws_failed_cell_id_list_ext_ies_o>& choice_exts()
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "PWSFailedCellIDList");
+    assert_choice_type(types::choice_exts, type_, "PWSFailedCellIDList");
     return c.get<protocol_ie_single_container_s<pws_failed_cell_id_list_ext_ies_o> >();
   }
   const eutra_cgi_list_l& eutra_cgi_pws_failed_list() const
   {
-    assert_choice_type("eUTRA-CGI-PWSFailedList", type_.to_string(), "PWSFailedCellIDList");
+    assert_choice_type(types::eutra_cgi_pws_failed_list, type_, "PWSFailedCellIDList");
     return c.get<eutra_cgi_list_l>();
   }
   const nr_cgi_list_l& nr_cgi_pws_failed_list() const
   {
-    assert_choice_type("nR-CGI-PWSFailedList", type_.to_string(), "PWSFailedCellIDList");
+    assert_choice_type(types::nr_cgi_pws_failed_list, type_, "PWSFailedCellIDList");
     return c.get<nr_cgi_list_l>();
   }
   const protocol_ie_single_container_s<pws_failed_cell_id_list_ext_ies_o>& choice_exts() const
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "PWSFailedCellIDList");
+    assert_choice_type(types::choice_exts, type_, "PWSFailedCellIDList");
     return c.get<protocol_ie_single_container_s<pws_failed_cell_id_list_ext_ies_o> >();
   }
   eutra_cgi_list_l&                                                  set_eutra_cgi_pws_failed_list();
@@ -8250,32 +8250,32 @@ struct reset_type_c {
   // getters
   reset_all_e& ng_interface()
   {
-    assert_choice_type("nG-Interface", type_.to_string(), "ResetType");
+    assert_choice_type(types::ng_interface, type_, "ResetType");
     return c.get<reset_all_e>();
   }
   ue_associated_lc_ng_conn_list_l& part_of_ng_interface()
   {
-    assert_choice_type("partOfNG-Interface", type_.to_string(), "ResetType");
+    assert_choice_type(types::part_of_ng_interface, type_, "ResetType");
     return c.get<ue_associated_lc_ng_conn_list_l>();
   }
   protocol_ie_single_container_s<reset_type_ext_ies_o>& choice_exts()
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "ResetType");
+    assert_choice_type(types::choice_exts, type_, "ResetType");
     return c.get<protocol_ie_single_container_s<reset_type_ext_ies_o> >();
   }
   const reset_all_e& ng_interface() const
   {
-    assert_choice_type("nG-Interface", type_.to_string(), "ResetType");
+    assert_choice_type(types::ng_interface, type_, "ResetType");
     return c.get<reset_all_e>();
   }
   const ue_associated_lc_ng_conn_list_l& part_of_ng_interface() const
   {
-    assert_choice_type("partOfNG-Interface", type_.to_string(), "ResetType");
+    assert_choice_type(types::part_of_ng_interface, type_, "ResetType");
     return c.get<ue_associated_lc_ng_conn_list_l>();
   }
   const protocol_ie_single_container_s<reset_type_ext_ies_o>& choice_exts() const
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "ResetType");
+    assert_choice_type(types::choice_exts, type_, "ResetType");
     return c.get<protocol_ie_single_container_s<reset_type_ext_ies_o> >();
   }
   reset_all_e&                                          set_ng_interface();
@@ -8320,32 +8320,32 @@ struct ue_ngap_ids_c {
   // getters
   ue_ngap_id_pair_s& ue_ngap_id_pair()
   {
-    assert_choice_type("uE-NGAP-ID-pair", type_.to_string(), "UE-NGAP-IDs");
+    assert_choice_type(types::ue_ngap_id_pair, type_, "UE-NGAP-IDs");
     return c.get<ue_ngap_id_pair_s>();
   }
   uint64_t& amf_ue_ngap_id()
   {
-    assert_choice_type("aMF-UE-NGAP-ID", type_.to_string(), "UE-NGAP-IDs");
+    assert_choice_type(types::amf_ue_ngap_id, type_, "UE-NGAP-IDs");
     return c.get<uint64_t>();
   }
   protocol_ie_single_container_s<ue_ngap_ids_ext_ies_o>& choice_exts()
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "UE-NGAP-IDs");
+    assert_choice_type(types::choice_exts, type_, "UE-NGAP-IDs");
     return c.get<protocol_ie_single_container_s<ue_ngap_ids_ext_ies_o> >();
   }
   const ue_ngap_id_pair_s& ue_ngap_id_pair() const
   {
-    assert_choice_type("uE-NGAP-ID-pair", type_.to_string(), "UE-NGAP-IDs");
+    assert_choice_type(types::ue_ngap_id_pair, type_, "UE-NGAP-IDs");
     return c.get<ue_ngap_id_pair_s>();
   }
   const uint64_t& amf_ue_ngap_id() const
   {
-    assert_choice_type("aMF-UE-NGAP-ID", type_.to_string(), "UE-NGAP-IDs");
+    assert_choice_type(types::amf_ue_ngap_id, type_, "UE-NGAP-IDs");
     return c.get<uint64_t>();
   }
   const protocol_ie_single_container_s<ue_ngap_ids_ext_ies_o>& choice_exts() const
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "UE-NGAP-IDs");
+    assert_choice_type(types::choice_exts, type_, "UE-NGAP-IDs");
     return c.get<protocol_ie_single_container_s<ue_ngap_ids_ext_ies_o> >();
   }
   ue_ngap_id_pair_s&                                     set_ue_ngap_id_pair();
@@ -8383,22 +8383,22 @@ struct ue_paging_id_c {
   // getters
   five_g_s_tmsi_s& five_g_s_tmsi()
   {
-    assert_choice_type("fiveG-S-TMSI", type_.to_string(), "UEPagingIdentity");
+    assert_choice_type(types::five_g_s_tmsi, type_, "UEPagingIdentity");
     return c.get<five_g_s_tmsi_s>();
   }
   protocol_ie_single_container_s<ue_paging_id_ext_ies_o>& choice_exts()
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "UEPagingIdentity");
+    assert_choice_type(types::choice_exts, type_, "UEPagingIdentity");
     return c.get<protocol_ie_single_container_s<ue_paging_id_ext_ies_o> >();
   }
   const five_g_s_tmsi_s& five_g_s_tmsi() const
   {
-    assert_choice_type("fiveG-S-TMSI", type_.to_string(), "UEPagingIdentity");
+    assert_choice_type(types::five_g_s_tmsi, type_, "UEPagingIdentity");
     return c.get<five_g_s_tmsi_s>();
   }
   const protocol_ie_single_container_s<ue_paging_id_ext_ies_o>& choice_exts() const
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "UEPagingIdentity");
+    assert_choice_type(types::choice_exts, type_, "UEPagingIdentity");
     return c.get<protocol_ie_single_container_s<ue_paging_id_ext_ies_o> >();
   }
   five_g_s_tmsi_s&                                        set_five_g_s_tmsi();
@@ -8451,52 +8451,52 @@ struct warning_area_list_c {
   // getters
   eutra_cgi_list_for_warning_l& eutra_cgi_list_for_warning()
   {
-    assert_choice_type("eUTRA-CGIListForWarning", type_.to_string(), "WarningAreaList");
+    assert_choice_type(types::eutra_cgi_list_for_warning, type_, "WarningAreaList");
     return c.get<eutra_cgi_list_for_warning_l>();
   }
   nr_cgi_list_for_warning_l& nr_cgi_list_for_warning()
   {
-    assert_choice_type("nR-CGIListForWarning", type_.to_string(), "WarningAreaList");
+    assert_choice_type(types::nr_cgi_list_for_warning, type_, "WarningAreaList");
     return c.get<nr_cgi_list_for_warning_l>();
   }
   tai_list_for_warning_l& tai_list_for_warning()
   {
-    assert_choice_type("tAIListForWarning", type_.to_string(), "WarningAreaList");
+    assert_choice_type(types::tai_list_for_warning, type_, "WarningAreaList");
     return c.get<tai_list_for_warning_l>();
   }
   emergency_area_id_list_l& emergency_area_id_list()
   {
-    assert_choice_type("emergencyAreaIDList", type_.to_string(), "WarningAreaList");
+    assert_choice_type(types::emergency_area_id_list, type_, "WarningAreaList");
     return c.get<emergency_area_id_list_l>();
   }
   protocol_ie_single_container_s<warning_area_list_ext_ies_o>& choice_exts()
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "WarningAreaList");
+    assert_choice_type(types::choice_exts, type_, "WarningAreaList");
     return c.get<protocol_ie_single_container_s<warning_area_list_ext_ies_o> >();
   }
   const eutra_cgi_list_for_warning_l& eutra_cgi_list_for_warning() const
   {
-    assert_choice_type("eUTRA-CGIListForWarning", type_.to_string(), "WarningAreaList");
+    assert_choice_type(types::eutra_cgi_list_for_warning, type_, "WarningAreaList");
     return c.get<eutra_cgi_list_for_warning_l>();
   }
   const nr_cgi_list_for_warning_l& nr_cgi_list_for_warning() const
   {
-    assert_choice_type("nR-CGIListForWarning", type_.to_string(), "WarningAreaList");
+    assert_choice_type(types::nr_cgi_list_for_warning, type_, "WarningAreaList");
     return c.get<nr_cgi_list_for_warning_l>();
   }
   const tai_list_for_warning_l& tai_list_for_warning() const
   {
-    assert_choice_type("tAIListForWarning", type_.to_string(), "WarningAreaList");
+    assert_choice_type(types::tai_list_for_warning, type_, "WarningAreaList");
     return c.get<tai_list_for_warning_l>();
   }
   const emergency_area_id_list_l& emergency_area_id_list() const
   {
-    assert_choice_type("emergencyAreaIDList", type_.to_string(), "WarningAreaList");
+    assert_choice_type(types::emergency_area_id_list, type_, "WarningAreaList");
     return c.get<emergency_area_id_list_l>();
   }
   const protocol_ie_single_container_s<warning_area_list_ext_ies_o>& choice_exts() const
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "WarningAreaList");
+    assert_choice_type(types::choice_exts, type_, "WarningAreaList");
     return c.get<protocol_ie_single_container_s<warning_area_list_ext_ies_o> >();
   }
   eutra_cgi_list_for_warning_l&                                set_eutra_cgi_list_for_warning();
@@ -13322,52 +13322,52 @@ struct last_visited_cell_info_c {
   // getters
   last_visited_ngran_cell_info_s& ngran_cell()
   {
-    assert_choice_type("nGRANCell", type_.to_string(), "LastVisitedCellInformation");
+    assert_choice_type(types::ngran_cell, type_, "LastVisitedCellInformation");
     return c.get<last_visited_ngran_cell_info_s>();
   }
   unbounded_octstring<true>& eutran_cell()
   {
-    assert_choice_type("eUTRANCell", type_.to_string(), "LastVisitedCellInformation");
+    assert_choice_type(types::eutran_cell, type_, "LastVisitedCellInformation");
     return c.get<unbounded_octstring<true> >();
   }
   unbounded_octstring<true>& utran_cell()
   {
-    assert_choice_type("uTRANCell", type_.to_string(), "LastVisitedCellInformation");
+    assert_choice_type(types::utran_cell, type_, "LastVisitedCellInformation");
     return c.get<unbounded_octstring<true> >();
   }
   unbounded_octstring<true>& geran_cell()
   {
-    assert_choice_type("gERANCell", type_.to_string(), "LastVisitedCellInformation");
+    assert_choice_type(types::geran_cell, type_, "LastVisitedCellInformation");
     return c.get<unbounded_octstring<true> >();
   }
   protocol_ie_single_container_s<last_visited_cell_info_ext_ies_o>& choice_exts()
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "LastVisitedCellInformation");
+    assert_choice_type(types::choice_exts, type_, "LastVisitedCellInformation");
     return c.get<protocol_ie_single_container_s<last_visited_cell_info_ext_ies_o> >();
   }
   const last_visited_ngran_cell_info_s& ngran_cell() const
   {
-    assert_choice_type("nGRANCell", type_.to_string(), "LastVisitedCellInformation");
+    assert_choice_type(types::ngran_cell, type_, "LastVisitedCellInformation");
     return c.get<last_visited_ngran_cell_info_s>();
   }
   const unbounded_octstring<true>& eutran_cell() const
   {
-    assert_choice_type("eUTRANCell", type_.to_string(), "LastVisitedCellInformation");
+    assert_choice_type(types::eutran_cell, type_, "LastVisitedCellInformation");
     return c.get<unbounded_octstring<true> >();
   }
   const unbounded_octstring<true>& utran_cell() const
   {
-    assert_choice_type("uTRANCell", type_.to_string(), "LastVisitedCellInformation");
+    assert_choice_type(types::utran_cell, type_, "LastVisitedCellInformation");
     return c.get<unbounded_octstring<true> >();
   }
   const unbounded_octstring<true>& geran_cell() const
   {
-    assert_choice_type("gERANCell", type_.to_string(), "LastVisitedCellInformation");
+    assert_choice_type(types::geran_cell, type_, "LastVisitedCellInformation");
     return c.get<unbounded_octstring<true> >();
   }
   const protocol_ie_single_container_s<last_visited_cell_info_ext_ies_o>& choice_exts() const
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "LastVisitedCellInformation");
+    assert_choice_type(types::choice_exts, type_, "LastVisitedCellInformation");
     return c.get<protocol_ie_single_container_s<last_visited_cell_info_ext_ies_o> >();
   }
   last_visited_ngran_cell_info_s&                                   set_ngran_cell();
@@ -13451,32 +13451,32 @@ struct ngap_pdu_c {
   // getters
   init_msg_s& init_msg()
   {
-    assert_choice_type("initiatingMessage", type_.to_string(), "NGAP-PDU");
+    assert_choice_type(types::init_msg, type_, "NGAP-PDU");
     return c.get<init_msg_s>();
   }
   successful_outcome_s& successful_outcome()
   {
-    assert_choice_type("successfulOutcome", type_.to_string(), "NGAP-PDU");
+    assert_choice_type(types::successful_outcome, type_, "NGAP-PDU");
     return c.get<successful_outcome_s>();
   }
   unsuccessful_outcome_s& unsuccessful_outcome()
   {
-    assert_choice_type("unsuccessfulOutcome", type_.to_string(), "NGAP-PDU");
+    assert_choice_type(types::unsuccessful_outcome, type_, "NGAP-PDU");
     return c.get<unsuccessful_outcome_s>();
   }
   const init_msg_s& init_msg() const
   {
-    assert_choice_type("initiatingMessage", type_.to_string(), "NGAP-PDU");
+    assert_choice_type(types::init_msg, type_, "NGAP-PDU");
     return c.get<init_msg_s>();
   }
   const successful_outcome_s& successful_outcome() const
   {
-    assert_choice_type("successfulOutcome", type_.to_string(), "NGAP-PDU");
+    assert_choice_type(types::successful_outcome, type_, "NGAP-PDU");
     return c.get<successful_outcome_s>();
   }
   const unsuccessful_outcome_s& unsuccessful_outcome() const
   {
-    assert_choice_type("unsuccessfulOutcome", type_.to_string(), "NGAP-PDU");
+    assert_choice_type(types::unsuccessful_outcome, type_, "NGAP-PDU");
     return c.get<unsuccessful_outcome_s>();
   }
   init_msg_s&             set_init_msg();
@@ -13887,32 +13887,32 @@ struct qos_characteristics_c {
   // getters
   non_dynamic5_qi_descriptor_s& non_dynamic5_qi()
   {
-    assert_choice_type("nonDynamic5QI", type_.to_string(), "QosCharacteristics");
+    assert_choice_type(types::non_dynamic5_qi, type_, "QosCharacteristics");
     return c.get<non_dynamic5_qi_descriptor_s>();
   }
   dynamic5_qi_descriptor_s& dynamic5_qi()
   {
-    assert_choice_type("dynamic5QI", type_.to_string(), "QosCharacteristics");
+    assert_choice_type(types::dynamic5_qi, type_, "QosCharacteristics");
     return c.get<dynamic5_qi_descriptor_s>();
   }
   protocol_ie_single_container_s<qos_characteristics_ext_ies_o>& choice_exts()
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "QosCharacteristics");
+    assert_choice_type(types::choice_exts, type_, "QosCharacteristics");
     return c.get<protocol_ie_single_container_s<qos_characteristics_ext_ies_o> >();
   }
   const non_dynamic5_qi_descriptor_s& non_dynamic5_qi() const
   {
-    assert_choice_type("nonDynamic5QI", type_.to_string(), "QosCharacteristics");
+    assert_choice_type(types::non_dynamic5_qi, type_, "QosCharacteristics");
     return c.get<non_dynamic5_qi_descriptor_s>();
   }
   const dynamic5_qi_descriptor_s& dynamic5_qi() const
   {
-    assert_choice_type("dynamic5QI", type_.to_string(), "QosCharacteristics");
+    assert_choice_type(types::dynamic5_qi, type_, "QosCharacteristics");
     return c.get<dynamic5_qi_descriptor_s>();
   }
   const protocol_ie_single_container_s<qos_characteristics_ext_ies_o>& choice_exts() const
   {
-    assert_choice_type("choice-Extensions", type_.to_string(), "QosCharacteristics");
+    assert_choice_type(types::choice_exts, type_, "QosCharacteristics");
     return c.get<protocol_ie_single_container_s<qos_characteristics_ext_ies_o> >();
   }
   non_dynamic5_qi_descriptor_s&                                  set_non_dynamic5_qi();

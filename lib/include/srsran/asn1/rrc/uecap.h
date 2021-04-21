@@ -212,12 +212,12 @@ struct ue_cap_enquiry_s {
       // getters
       ue_cap_enquiry_r8_ies_s& ue_cap_enquiry_r8()
       {
-        assert_choice_type("ueCapabilityEnquiry-r8", type_.to_string(), "c1");
+        assert_choice_type(types::ue_cap_enquiry_r8, type_, "c1");
         return c;
       }
       const ue_cap_enquiry_r8_ies_s& ue_cap_enquiry_r8() const
       {
-        assert_choice_type("ueCapabilityEnquiry-r8", type_.to_string(), "c1");
+        assert_choice_type(types::ue_cap_enquiry_r8, type_, "c1");
         return c;
       }
       ue_cap_enquiry_r8_ies_s& set_ue_cap_enquiry_r8();
@@ -241,12 +241,12 @@ struct ue_cap_enquiry_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     c1_c_& set_c1();
@@ -381,12 +381,12 @@ struct ue_cap_info_s {
       // getters
       ue_cap_info_r8_ies_s& ue_cap_info_r8()
       {
-        assert_choice_type("ueCapabilityInformation-r8", type_.to_string(), "c1");
+        assert_choice_type(types::ue_cap_info_r8, type_, "c1");
         return c;
       }
       const ue_cap_info_r8_ies_s& ue_cap_info_r8() const
       {
-        assert_choice_type("ueCapabilityInformation-r8", type_.to_string(), "c1");
+        assert_choice_type(types::ue_cap_info_r8, type_, "c1");
         return c;
       }
       ue_cap_info_r8_ies_s& set_ue_cap_info_r8();
@@ -414,12 +414,12 @@ struct ue_cap_info_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     c1_c_& set_c1();
@@ -694,32 +694,32 @@ struct band_combination_params_r13_s {
       // getters
       fixed_bitstring<3>& three_entries_r13()
       {
-        assert_choice_type("threeEntries-r13", type_.to_string(), "supportedCellGrouping-r13");
+        assert_choice_type(types::three_entries_r13, type_, "supportedCellGrouping-r13");
         return c.get<fixed_bitstring<3> >();
       }
       fixed_bitstring<7>& four_entries_r13()
       {
-        assert_choice_type("fourEntries-r13", type_.to_string(), "supportedCellGrouping-r13");
+        assert_choice_type(types::four_entries_r13, type_, "supportedCellGrouping-r13");
         return c.get<fixed_bitstring<7> >();
       }
       fixed_bitstring<15>& five_entries_r13()
       {
-        assert_choice_type("fiveEntries-r13", type_.to_string(), "supportedCellGrouping-r13");
+        assert_choice_type(types::five_entries_r13, type_, "supportedCellGrouping-r13");
         return c.get<fixed_bitstring<15> >();
       }
       const fixed_bitstring<3>& three_entries_r13() const
       {
-        assert_choice_type("threeEntries-r13", type_.to_string(), "supportedCellGrouping-r13");
+        assert_choice_type(types::three_entries_r13, type_, "supportedCellGrouping-r13");
         return c.get<fixed_bitstring<3> >();
       }
       const fixed_bitstring<7>& four_entries_r13() const
       {
-        assert_choice_type("fourEntries-r13", type_.to_string(), "supportedCellGrouping-r13");
+        assert_choice_type(types::four_entries_r13, type_, "supportedCellGrouping-r13");
         return c.get<fixed_bitstring<7> >();
       }
       const fixed_bitstring<15>& five_entries_r13() const
       {
-        assert_choice_type("fiveEntries-r13", type_.to_string(), "supportedCellGrouping-r13");
+        assert_choice_type(types::five_entries_r13, type_, "supportedCellGrouping-r13");
         return c.get<fixed_bitstring<15> >();
       }
       fixed_bitstring<3>&  set_three_entries_r13();
@@ -877,32 +877,32 @@ struct band_combination_params_v1250_s {
       // getters
       fixed_bitstring<3>& three_entries_r12()
       {
-        assert_choice_type("threeEntries-r12", type_.to_string(), "supportedCellGrouping-r12");
+        assert_choice_type(types::three_entries_r12, type_, "supportedCellGrouping-r12");
         return c.get<fixed_bitstring<3> >();
       }
       fixed_bitstring<7>& four_entries_r12()
       {
-        assert_choice_type("fourEntries-r12", type_.to_string(), "supportedCellGrouping-r12");
+        assert_choice_type(types::four_entries_r12, type_, "supportedCellGrouping-r12");
         return c.get<fixed_bitstring<7> >();
       }
       fixed_bitstring<15>& five_entries_r12()
       {
-        assert_choice_type("fiveEntries-r12", type_.to_string(), "supportedCellGrouping-r12");
+        assert_choice_type(types::five_entries_r12, type_, "supportedCellGrouping-r12");
         return c.get<fixed_bitstring<15> >();
       }
       const fixed_bitstring<3>& three_entries_r12() const
       {
-        assert_choice_type("threeEntries-r12", type_.to_string(), "supportedCellGrouping-r12");
+        assert_choice_type(types::three_entries_r12, type_, "supportedCellGrouping-r12");
         return c.get<fixed_bitstring<3> >();
       }
       const fixed_bitstring<7>& four_entries_r12() const
       {
-        assert_choice_type("fourEntries-r12", type_.to_string(), "supportedCellGrouping-r12");
+        assert_choice_type(types::four_entries_r12, type_, "supportedCellGrouping-r12");
         return c.get<fixed_bitstring<7> >();
       }
       const fixed_bitstring<15>& five_entries_r12() const
       {
-        assert_choice_type("fiveEntries-r12", type_.to_string(), "supportedCellGrouping-r12");
+        assert_choice_type(types::five_entries_r12, type_, "supportedCellGrouping-r12");
         return c.get<fixed_bitstring<15> >();
       }
       fixed_bitstring<3>&  set_three_entries_r12();
@@ -5193,12 +5193,12 @@ struct mbms_params_v1470_s {
     // getters
     uint8_t& explicit_value()
     {
-      assert_choice_type("explicitValue", type_.to_string(), "mbms-MaxBW-r14");
+      assert_choice_type(types::explicit_value, type_, "mbms-MaxBW-r14");
       return c;
     }
     const uint8_t& explicit_value() const
     {
-      assert_choice_type("explicitValue", type_.to_string(), "mbms-MaxBW-r14");
+      assert_choice_type(types::explicit_value, type_, "mbms-MaxBW-r14");
       return c;
     }
     void     set_implicit_value();
@@ -5688,12 +5688,12 @@ struct ue_radio_access_cap_info_s {
       // getters
       ue_radio_access_cap_info_r8_ies_s& ue_radio_access_cap_info_r8()
       {
-        assert_choice_type("ueRadioAccessCapabilityInformation-r8", type_.to_string(), "c1");
+        assert_choice_type(types::ue_radio_access_cap_info_r8, type_, "c1");
         return c;
       }
       const ue_radio_access_cap_info_r8_ies_s& ue_radio_access_cap_info_r8() const
       {
-        assert_choice_type("ueRadioAccessCapabilityInformation-r8", type_.to_string(), "c1");
+        assert_choice_type(types::ue_radio_access_cap_info_r8, type_, "c1");
         return c;
       }
       ue_radio_access_cap_info_r8_ies_s& set_ue_radio_access_cap_info_r8();
@@ -5721,12 +5721,12 @@ struct ue_radio_access_cap_info_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     c1_c_& set_c1();

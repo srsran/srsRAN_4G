@@ -1069,72 +1069,72 @@ amf_cfg_upd_ies_o::value_c& amf_cfg_upd_ies_o::value_c::operator=(const amf_cfg_
 }
 printable_string<1, 150, true, true>& amf_cfg_upd_ies_o::value_c::amf_name()
 {
-  assert_choice_type("PrintableString", type_.to_string(), "Value");
+  assert_choice_type(types::amf_name, type_, "Value");
   return c.get<printable_string<1, 150, true, true> >();
 }
 served_guami_list_l& amf_cfg_upd_ies_o::value_c::served_guami_list()
 {
-  assert_choice_type("ServedGUAMIList", type_.to_string(), "Value");
+  assert_choice_type(types::served_guami_list, type_, "Value");
   return c.get<served_guami_list_l>();
 }
 uint16_t& amf_cfg_upd_ies_o::value_c::relative_amf_capacity()
 {
-  assert_choice_type("INTEGER (0..255)", type_.to_string(), "Value");
+  assert_choice_type(types::relative_amf_capacity, type_, "Value");
   return c.get<uint16_t>();
 }
 plmn_support_list_l& amf_cfg_upd_ies_o::value_c::plmn_support_list()
 {
-  assert_choice_type("PLMNSupportList", type_.to_string(), "Value");
+  assert_choice_type(types::plmn_support_list, type_, "Value");
   return c.get<plmn_support_list_l>();
 }
 amf_tnlassoc_to_add_list_l& amf_cfg_upd_ies_o::value_c::amf_tnlassoc_to_add_list()
 {
-  assert_choice_type("AMF-TNLAssociationToAddList", type_.to_string(), "Value");
+  assert_choice_type(types::amf_tnlassoc_to_add_list, type_, "Value");
   return c.get<amf_tnlassoc_to_add_list_l>();
 }
 amf_tnlassoc_to_rem_list_l& amf_cfg_upd_ies_o::value_c::amf_tnlassoc_to_rem_list()
 {
-  assert_choice_type("AMF-TNLAssociationToRemoveList", type_.to_string(), "Value");
+  assert_choice_type(types::amf_tnlassoc_to_rem_list, type_, "Value");
   return c.get<amf_tnlassoc_to_rem_list_l>();
 }
 amf_tnlassoc_to_upd_list_l& amf_cfg_upd_ies_o::value_c::amf_tnlassoc_to_upd_list()
 {
-  assert_choice_type("AMF-TNLAssociationToUpdateList", type_.to_string(), "Value");
+  assert_choice_type(types::amf_tnlassoc_to_upd_list, type_, "Value");
   return c.get<amf_tnlassoc_to_upd_list_l>();
 }
 const printable_string<1, 150, true, true>& amf_cfg_upd_ies_o::value_c::amf_name() const
 {
-  assert_choice_type("PrintableString", type_.to_string(), "Value");
+  assert_choice_type(types::amf_name, type_, "Value");
   return c.get<printable_string<1, 150, true, true> >();
 }
 const served_guami_list_l& amf_cfg_upd_ies_o::value_c::served_guami_list() const
 {
-  assert_choice_type("ServedGUAMIList", type_.to_string(), "Value");
+  assert_choice_type(types::served_guami_list, type_, "Value");
   return c.get<served_guami_list_l>();
 }
 const uint16_t& amf_cfg_upd_ies_o::value_c::relative_amf_capacity() const
 {
-  assert_choice_type("INTEGER (0..255)", type_.to_string(), "Value");
+  assert_choice_type(types::relative_amf_capacity, type_, "Value");
   return c.get<uint16_t>();
 }
 const plmn_support_list_l& amf_cfg_upd_ies_o::value_c::plmn_support_list() const
 {
-  assert_choice_type("PLMNSupportList", type_.to_string(), "Value");
+  assert_choice_type(types::plmn_support_list, type_, "Value");
   return c.get<plmn_support_list_l>();
 }
 const amf_tnlassoc_to_add_list_l& amf_cfg_upd_ies_o::value_c::amf_tnlassoc_to_add_list() const
 {
-  assert_choice_type("AMF-TNLAssociationToAddList", type_.to_string(), "Value");
+  assert_choice_type(types::amf_tnlassoc_to_add_list, type_, "Value");
   return c.get<amf_tnlassoc_to_add_list_l>();
 }
 const amf_tnlassoc_to_rem_list_l& amf_cfg_upd_ies_o::value_c::amf_tnlassoc_to_rem_list() const
 {
-  assert_choice_type("AMF-TNLAssociationToRemoveList", type_.to_string(), "Value");
+  assert_choice_type(types::amf_tnlassoc_to_rem_list, type_, "Value");
   return c.get<amf_tnlassoc_to_rem_list_l>();
 }
 const amf_tnlassoc_to_upd_list_l& amf_cfg_upd_ies_o::value_c::amf_tnlassoc_to_upd_list() const
 {
-  assert_choice_type("AMF-TNLAssociationToUpdateList", type_.to_string(), "Value");
+  assert_choice_type(types::amf_tnlassoc_to_upd_list, type_, "Value");
   return c.get<amf_tnlassoc_to_upd_list_l>();
 }
 void amf_cfg_upd_ies_o::value_c::to_json(json_writer& j) const
@@ -2107,32 +2107,32 @@ amf_cfg_upd_ack_ies_o::value_c& amf_cfg_upd_ack_ies_o::value_c::operator=(const 
 }
 amf_tnlassoc_setup_list_l& amf_cfg_upd_ack_ies_o::value_c::amf_tnlassoc_setup_list()
 {
-  assert_choice_type("AMF-TNLAssociationSetupList", type_.to_string(), "Value");
+  assert_choice_type(types::amf_tnlassoc_setup_list, type_, "Value");
   return c.get<amf_tnlassoc_setup_list_l>();
 }
 tnlassoc_list_l& amf_cfg_upd_ack_ies_o::value_c::amf_tnlassoc_failed_to_setup_list()
 {
-  assert_choice_type("TNLAssociationList", type_.to_string(), "Value");
+  assert_choice_type(types::amf_tnlassoc_failed_to_setup_list, type_, "Value");
   return c.get<tnlassoc_list_l>();
 }
 crit_diagnostics_s& amf_cfg_upd_ack_ies_o::value_c::crit_diagnostics()
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 const amf_tnlassoc_setup_list_l& amf_cfg_upd_ack_ies_o::value_c::amf_tnlassoc_setup_list() const
 {
-  assert_choice_type("AMF-TNLAssociationSetupList", type_.to_string(), "Value");
+  assert_choice_type(types::amf_tnlassoc_setup_list, type_, "Value");
   return c.get<amf_tnlassoc_setup_list_l>();
 }
 const tnlassoc_list_l& amf_cfg_upd_ack_ies_o::value_c::amf_tnlassoc_failed_to_setup_list() const
 {
-  assert_choice_type("TNLAssociationList", type_.to_string(), "Value");
+  assert_choice_type(types::amf_tnlassoc_failed_to_setup_list, type_, "Value");
   return c.get<tnlassoc_list_l>();
 }
 const crit_diagnostics_s& amf_cfg_upd_ack_ies_o::value_c::crit_diagnostics() const
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 void amf_cfg_upd_ack_ies_o::value_c::to_json(json_writer& j) const
@@ -2464,32 +2464,32 @@ amf_cfg_upd_fail_ies_o::value_c::operator=(const amf_cfg_upd_fail_ies_o::value_c
 }
 cause_c& amf_cfg_upd_fail_ies_o::value_c::cause()
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 time_to_wait_e& amf_cfg_upd_fail_ies_o::value_c::time_to_wait()
 {
-  assert_choice_type("TimeToWait", type_.to_string(), "Value");
+  assert_choice_type(types::time_to_wait, type_, "Value");
   return c.get<time_to_wait_e>();
 }
 crit_diagnostics_s& amf_cfg_upd_fail_ies_o::value_c::crit_diagnostics()
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 const cause_c& amf_cfg_upd_fail_ies_o::value_c::cause() const
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 const time_to_wait_e& amf_cfg_upd_fail_ies_o::value_c::time_to_wait() const
 {
-  assert_choice_type("TimeToWait", type_.to_string(), "Value");
+  assert_choice_type(types::time_to_wait, type_, "Value");
   return c.get<time_to_wait_e>();
 }
 const crit_diagnostics_s& amf_cfg_upd_fail_ies_o::value_c::crit_diagnostics() const
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 void amf_cfg_upd_fail_ies_o::value_c::to_json(json_writer& j) const
@@ -6804,53 +6804,53 @@ cell_traffic_trace_ies_o::value_c::operator=(const cell_traffic_trace_ies_o::val
 }
 uint64_t& cell_traffic_trace_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& cell_traffic_trace_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 fixed_octstring<8, true>& cell_traffic_trace_ies_o::value_c::ngran_trace_id()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::ngran_trace_id, type_, "Value");
   return c.get<fixed_octstring<8, true> >();
 }
 ngran_cgi_c& cell_traffic_trace_ies_o::value_c::ngran_cgi()
 {
-  assert_choice_type("NGRAN-CGI", type_.to_string(), "Value");
+  assert_choice_type(types::ngran_cgi, type_, "Value");
   return c.get<ngran_cgi_c>();
 }
 bounded_bitstring<1, 160, true, true>& cell_traffic_trace_ies_o::value_c::trace_collection_entity_ip_address()
 {
-  assert_choice_type("BIT STRING", type_.to_string(), "Value");
+  assert_choice_type(types::trace_collection_entity_ip_address, type_, "Value");
   return c.get<bounded_bitstring<1, 160, true, true> >();
 }
 const uint64_t& cell_traffic_trace_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& cell_traffic_trace_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const fixed_octstring<8, true>& cell_traffic_trace_ies_o::value_c::ngran_trace_id() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::ngran_trace_id, type_, "Value");
   return c.get<fixed_octstring<8, true> >();
 }
 const ngran_cgi_c& cell_traffic_trace_ies_o::value_c::ngran_cgi() const
 {
-  assert_choice_type("NGRAN-CGI", type_.to_string(), "Value");
+  assert_choice_type(types::ngran_cgi, type_, "Value");
   return c.get<ngran_cgi_c>();
 }
 const bounded_bitstring<1, 160, true, true>&
 cell_traffic_trace_ies_o::value_c::trace_collection_entity_ip_address() const
 {
-  assert_choice_type("BIT STRING", type_.to_string(), "Value");
+  assert_choice_type(types::trace_collection_entity_ip_address, type_, "Value");
   return c.get<bounded_bitstring<1, 160, true, true> >();
 }
 void cell_traffic_trace_ies_o::value_c::to_json(json_writer& j) const
@@ -8382,32 +8382,32 @@ deactiv_trace_ies_o::value_c& deactiv_trace_ies_o::value_c::operator=(const deac
 }
 uint64_t& deactiv_trace_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& deactiv_trace_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 fixed_octstring<8, true>& deactiv_trace_ies_o::value_c::ngran_trace_id()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::ngran_trace_id, type_, "Value");
   return c.get<fixed_octstring<8, true> >();
 }
 const uint64_t& deactiv_trace_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& deactiv_trace_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const fixed_octstring<8, true>& deactiv_trace_ies_o::value_c::ngran_trace_id() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::ngran_trace_id, type_, "Value");
   return c.get<fixed_octstring<8, true> >();
 }
 void deactiv_trace_ies_o::value_c::to_json(json_writer& j) const
@@ -9154,92 +9154,92 @@ dl_nas_transport_ies_o::value_c::operator=(const dl_nas_transport_ies_o::value_c
 }
 uint64_t& dl_nas_transport_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& dl_nas_transport_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 printable_string<1, 150, true, true>& dl_nas_transport_ies_o::value_c::old_amf()
 {
-  assert_choice_type("PrintableString", type_.to_string(), "Value");
+  assert_choice_type(types::old_amf, type_, "Value");
   return c.get<printable_string<1, 150, true, true> >();
 }
 uint16_t& dl_nas_transport_ies_o::value_c::ran_paging_prio()
 {
-  assert_choice_type("INTEGER (1..256)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_paging_prio, type_, "Value");
   return c.get<uint16_t>();
 }
 unbounded_octstring<true>& dl_nas_transport_ies_o::value_c::nas_pdu()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::nas_pdu, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 mob_restrict_list_s& dl_nas_transport_ies_o::value_c::mob_restrict_list()
 {
-  assert_choice_type("MobilityRestrictionList", type_.to_string(), "Value");
+  assert_choice_type(types::mob_restrict_list, type_, "Value");
   return c.get<mob_restrict_list_s>();
 }
 uint16_t& dl_nas_transport_ies_o::value_c::idx_to_rfsp()
 {
-  assert_choice_type("INTEGER (1..256,...)", type_.to_string(), "Value");
+  assert_choice_type(types::idx_to_rfsp, type_, "Value");
   return c.get<uint16_t>();
 }
 ue_aggregate_maximum_bit_rate_s& dl_nas_transport_ies_o::value_c::ue_aggregate_maximum_bit_rate()
 {
-  assert_choice_type("UEAggregateMaximumBitRate", type_.to_string(), "Value");
+  assert_choice_type(types::ue_aggregate_maximum_bit_rate, type_, "Value");
   return c.get<ue_aggregate_maximum_bit_rate_s>();
 }
 allowed_nssai_l& dl_nas_transport_ies_o::value_c::allowed_nssai()
 {
-  assert_choice_type("AllowedNSSAI", type_.to_string(), "Value");
+  assert_choice_type(types::allowed_nssai, type_, "Value");
   return c.get<allowed_nssai_l>();
 }
 const uint64_t& dl_nas_transport_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& dl_nas_transport_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const printable_string<1, 150, true, true>& dl_nas_transport_ies_o::value_c::old_amf() const
 {
-  assert_choice_type("PrintableString", type_.to_string(), "Value");
+  assert_choice_type(types::old_amf, type_, "Value");
   return c.get<printable_string<1, 150, true, true> >();
 }
 const uint16_t& dl_nas_transport_ies_o::value_c::ran_paging_prio() const
 {
-  assert_choice_type("INTEGER (1..256)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_paging_prio, type_, "Value");
   return c.get<uint16_t>();
 }
 const unbounded_octstring<true>& dl_nas_transport_ies_o::value_c::nas_pdu() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::nas_pdu, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 const mob_restrict_list_s& dl_nas_transport_ies_o::value_c::mob_restrict_list() const
 {
-  assert_choice_type("MobilityRestrictionList", type_.to_string(), "Value");
+  assert_choice_type(types::mob_restrict_list, type_, "Value");
   return c.get<mob_restrict_list_s>();
 }
 const uint16_t& dl_nas_transport_ies_o::value_c::idx_to_rfsp() const
 {
-  assert_choice_type("INTEGER (1..256,...)", type_.to_string(), "Value");
+  assert_choice_type(types::idx_to_rfsp, type_, "Value");
   return c.get<uint16_t>();
 }
 const ue_aggregate_maximum_bit_rate_s& dl_nas_transport_ies_o::value_c::ue_aggregate_maximum_bit_rate() const
 {
-  assert_choice_type("UEAggregateMaximumBitRate", type_.to_string(), "Value");
+  assert_choice_type(types::ue_aggregate_maximum_bit_rate, type_, "Value");
   return c.get<ue_aggregate_maximum_bit_rate_s>();
 }
 const allowed_nssai_l& dl_nas_transport_ies_o::value_c::allowed_nssai() const
 {
-  assert_choice_type("AllowedNSSAI", type_.to_string(), "Value");
+  assert_choice_type(types::allowed_nssai, type_, "Value");
   return c.get<allowed_nssai_l>();
 }
 void dl_nas_transport_ies_o::value_c::to_json(json_writer& j) const
@@ -9686,22 +9686,22 @@ dl_non_ueassociated_nrp_pa_transport_ies_o::value_c& dl_non_ueassociated_nrp_pa_
 }
 unbounded_octstring<true>& dl_non_ueassociated_nrp_pa_transport_ies_o::value_c::routing_id()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::routing_id, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 unbounded_octstring<true>& dl_non_ueassociated_nrp_pa_transport_ies_o::value_c::nrp_pa_pdu()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::nrp_pa_pdu, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 const unbounded_octstring<true>& dl_non_ueassociated_nrp_pa_transport_ies_o::value_c::routing_id() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::routing_id, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 const unbounded_octstring<true>& dl_non_ueassociated_nrp_pa_transport_ies_o::value_c::nrp_pa_pdu() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::nrp_pa_pdu, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 void dl_non_ueassociated_nrp_pa_transport_ies_o::value_c::to_json(json_writer& j) const
@@ -10431,22 +10431,22 @@ dl_ran_cfg_transfer_ies_o::value_c::operator=(const dl_ran_cfg_transfer_ies_o::v
 }
 son_cfg_transfer_s& dl_ran_cfg_transfer_ies_o::value_c::son_cfg_transfer_dl()
 {
-  assert_choice_type("SONConfigurationTransfer", type_.to_string(), "Value");
+  assert_choice_type(types::son_cfg_transfer_dl, type_, "Value");
   return c.get<son_cfg_transfer_s>();
 }
 unbounded_octstring<true>& dl_ran_cfg_transfer_ies_o::value_c::endc_son_cfg_transfer_dl()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::endc_son_cfg_transfer_dl, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 const son_cfg_transfer_s& dl_ran_cfg_transfer_ies_o::value_c::son_cfg_transfer_dl() const
 {
-  assert_choice_type("SONConfigurationTransfer", type_.to_string(), "Value");
+  assert_choice_type(types::son_cfg_transfer_dl, type_, "Value");
   return c.get<son_cfg_transfer_s>();
 }
 const unbounded_octstring<true>& dl_ran_cfg_transfer_ies_o::value_c::endc_son_cfg_transfer_dl() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::endc_son_cfg_transfer_dl, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 void dl_ran_cfg_transfer_ies_o::value_c::to_json(json_writer& j) const
@@ -10769,34 +10769,34 @@ dl_ran_status_transfer_ies_o::value_c::operator=(const dl_ran_status_transfer_ie
 }
 uint64_t& dl_ran_status_transfer_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& dl_ran_status_transfer_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 ran_status_transfer_transparent_container_s&
 dl_ran_status_transfer_ies_o::value_c::ran_status_transfer_transparent_container()
 {
-  assert_choice_type("RANStatusTransfer-TransparentContainer", type_.to_string(), "Value");
+  assert_choice_type(types::ran_status_transfer_transparent_container, type_, "Value");
   return c.get<ran_status_transfer_transparent_container_s>();
 }
 const uint64_t& dl_ran_status_transfer_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& dl_ran_status_transfer_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const ran_status_transfer_transparent_container_s&
 dl_ran_status_transfer_ies_o::value_c::ran_status_transfer_transparent_container() const
 {
-  assert_choice_type("RANStatusTransfer-TransparentContainer", type_.to_string(), "Value");
+  assert_choice_type(types::ran_status_transfer_transparent_container, type_, "Value");
   return c.get<ran_status_transfer_transparent_container_s>();
 }
 void dl_ran_status_transfer_ies_o::value_c::to_json(json_writer& j) const
@@ -11115,42 +11115,42 @@ dl_ueassociated_nrp_pa_transport_ies_o::value_c::operator=(const dl_ueassociated
 }
 uint64_t& dl_ueassociated_nrp_pa_transport_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& dl_ueassociated_nrp_pa_transport_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 unbounded_octstring<true>& dl_ueassociated_nrp_pa_transport_ies_o::value_c::routing_id()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::routing_id, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 unbounded_octstring<true>& dl_ueassociated_nrp_pa_transport_ies_o::value_c::nrp_pa_pdu()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::nrp_pa_pdu, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 const uint64_t& dl_ueassociated_nrp_pa_transport_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& dl_ueassociated_nrp_pa_transport_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const unbounded_octstring<true>& dl_ueassociated_nrp_pa_transport_ies_o::value_c::routing_id() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::routing_id, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 const unbounded_octstring<true>& dl_ueassociated_nrp_pa_transport_ies_o::value_c::nrp_pa_pdu() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::nrp_pa_pdu, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 void dl_ueassociated_nrp_pa_transport_ies_o::value_c::to_json(json_writer& j) const
@@ -11778,42 +11778,42 @@ error_ind_ies_o::value_c& error_ind_ies_o::value_c::operator=(const error_ind_ie
 }
 uint64_t& error_ind_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& error_ind_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 cause_c& error_ind_ies_o::value_c::cause()
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 crit_diagnostics_s& error_ind_ies_o::value_c::crit_diagnostics()
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 const uint64_t& error_ind_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& error_ind_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const cause_c& error_ind_ies_o::value_c::cause() const
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 const crit_diagnostics_s& error_ind_ies_o::value_c::crit_diagnostics() const
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 void error_ind_ies_o::value_c::to_json(json_writer& j) const
@@ -12273,32 +12273,32 @@ ho_cancel_ies_o::value_c& ho_cancel_ies_o::value_c::operator=(const ho_cancel_ie
 }
 uint64_t& ho_cancel_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& ho_cancel_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 cause_c& ho_cancel_ies_o::value_c::cause()
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 const uint64_t& ho_cancel_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& ho_cancel_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const cause_c& ho_cancel_ies_o::value_c::cause() const
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 void ho_cancel_ies_o::value_c::to_json(json_writer& j) const
@@ -12594,32 +12594,32 @@ ho_cancel_ack_ies_o::value_c& ho_cancel_ack_ies_o::value_c::operator=(const ho_c
 }
 uint64_t& ho_cancel_ack_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& ho_cancel_ack_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 crit_diagnostics_s& ho_cancel_ack_ies_o::value_c::crit_diagnostics()
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 const uint64_t& ho_cancel_ack_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& ho_cancel_ack_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const crit_diagnostics_s& ho_cancel_ack_ies_o::value_c::crit_diagnostics() const
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 void ho_cancel_ack_ies_o::value_c::to_json(json_writer& j) const
@@ -13096,82 +13096,82 @@ ho_cmd_ies_o::value_c& ho_cmd_ies_o::value_c::operator=(const ho_cmd_ies_o::valu
 }
 uint64_t& ho_cmd_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& ho_cmd_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 handov_type_e& ho_cmd_ies_o::value_c::handov_type()
 {
-  assert_choice_type("HandoverType", type_.to_string(), "Value");
+  assert_choice_type(types::handov_type, type_, "Value");
   return c.get<handov_type_e>();
 }
 unbounded_octstring<true>& ho_cmd_ies_o::value_c::nas_security_params_from_ngran()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::nas_security_params_from_ngran, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 pdu_session_res_ho_list_l& ho_cmd_ies_o::value_c::pdu_session_res_ho_list()
 {
-  assert_choice_type("PDUSessionResourceHandoverList", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_ho_list, type_, "Value");
   return c.get<pdu_session_res_ho_list_l>();
 }
 pdu_session_res_to_release_list_ho_cmd_l& ho_cmd_ies_o::value_c::pdu_session_res_to_release_list_ho_cmd()
 {
-  assert_choice_type("PDUSessionResourceToReleaseListHOCmd", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_to_release_list_ho_cmd, type_, "Value");
   return c.get<pdu_session_res_to_release_list_ho_cmd_l>();
 }
 unbounded_octstring<true>& ho_cmd_ies_o::value_c::target_to_source_transparent_container()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::target_to_source_transparent_container, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 crit_diagnostics_s& ho_cmd_ies_o::value_c::crit_diagnostics()
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 const uint64_t& ho_cmd_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& ho_cmd_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const handov_type_e& ho_cmd_ies_o::value_c::handov_type() const
 {
-  assert_choice_type("HandoverType", type_.to_string(), "Value");
+  assert_choice_type(types::handov_type, type_, "Value");
   return c.get<handov_type_e>();
 }
 const unbounded_octstring<true>& ho_cmd_ies_o::value_c::nas_security_params_from_ngran() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::nas_security_params_from_ngran, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 const pdu_session_res_ho_list_l& ho_cmd_ies_o::value_c::pdu_session_res_ho_list() const
 {
-  assert_choice_type("PDUSessionResourceHandoverList", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_ho_list, type_, "Value");
   return c.get<pdu_session_res_ho_list_l>();
 }
 const pdu_session_res_to_release_list_ho_cmd_l& ho_cmd_ies_o::value_c::pdu_session_res_to_release_list_ho_cmd() const
 {
-  assert_choice_type("PDUSessionResourceToReleaseListHOCmd", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_to_release_list_ho_cmd, type_, "Value");
   return c.get<pdu_session_res_to_release_list_ho_cmd_l>();
 }
 const unbounded_octstring<true>& ho_cmd_ies_o::value_c::target_to_source_transparent_container() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::target_to_source_transparent_container, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 const crit_diagnostics_s& ho_cmd_ies_o::value_c::crit_diagnostics() const
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 void ho_cmd_ies_o::value_c::to_json(json_writer& j) const
@@ -13854,32 +13854,32 @@ ho_fail_ies_o::value_c& ho_fail_ies_o::value_c::operator=(const ho_fail_ies_o::v
 }
 uint64_t& ho_fail_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 cause_c& ho_fail_ies_o::value_c::cause()
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 crit_diagnostics_s& ho_fail_ies_o::value_c::crit_diagnostics()
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 const uint64_t& ho_fail_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const cause_c& ho_fail_ies_o::value_c::cause() const
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 const crit_diagnostics_s& ho_fail_ies_o::value_c::crit_diagnostics() const
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 void ho_fail_ies_o::value_c::to_json(json_writer& j) const
@@ -14528,32 +14528,32 @@ ho_notify_ies_o::value_c& ho_notify_ies_o::value_c::operator=(const ho_notify_ie
 }
 uint64_t& ho_notify_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& ho_notify_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 user_location_info_c& ho_notify_ies_o::value_c::user_location_info()
 {
-  assert_choice_type("UserLocationInformation", type_.to_string(), "Value");
+  assert_choice_type(types::user_location_info, type_, "Value");
   return c.get<user_location_info_c>();
 }
 const uint64_t& ho_notify_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& ho_notify_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const user_location_info_c& ho_notify_ies_o::value_c::user_location_info() const
 {
-  assert_choice_type("UserLocationInformation", type_.to_string(), "Value");
+  assert_choice_type(types::user_location_info, type_, "Value");
   return c.get<user_location_info_c>();
 }
 void ho_notify_ies_o::value_c::to_json(json_writer& j) const
@@ -14868,42 +14868,42 @@ ho_prep_fail_ies_o::value_c& ho_prep_fail_ies_o::value_c::operator=(const ho_pre
 }
 uint64_t& ho_prep_fail_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& ho_prep_fail_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 cause_c& ho_prep_fail_ies_o::value_c::cause()
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 crit_diagnostics_s& ho_prep_fail_ies_o::value_c::crit_diagnostics()
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 const uint64_t& ho_prep_fail_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& ho_prep_fail_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const cause_c& ho_prep_fail_ies_o::value_c::cause() const
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 const crit_diagnostics_s& ho_prep_fail_ies_o::value_c::crit_diagnostics() const
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 void ho_prep_fail_ies_o::value_c::to_json(json_writer& j) const
@@ -15846,193 +15846,193 @@ ho_request_ies_o::value_c& ho_request_ies_o::value_c::operator=(const ho_request
 }
 uint64_t& ho_request_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 handov_type_e& ho_request_ies_o::value_c::handov_type()
 {
-  assert_choice_type("HandoverType", type_.to_string(), "Value");
+  assert_choice_type(types::handov_type, type_, "Value");
   return c.get<handov_type_e>();
 }
 cause_c& ho_request_ies_o::value_c::cause()
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 ue_aggregate_maximum_bit_rate_s& ho_request_ies_o::value_c::ue_aggregate_maximum_bit_rate()
 {
-  assert_choice_type("UEAggregateMaximumBitRate", type_.to_string(), "Value");
+  assert_choice_type(types::ue_aggregate_maximum_bit_rate, type_, "Value");
   return c.get<ue_aggregate_maximum_bit_rate_s>();
 }
 core_network_assist_info_s& ho_request_ies_o::value_c::core_network_assist_info()
 {
-  assert_choice_type("CoreNetworkAssistanceInformation", type_.to_string(), "Value");
+  assert_choice_type(types::core_network_assist_info, type_, "Value");
   return c.get<core_network_assist_info_s>();
 }
 ue_security_cap_s& ho_request_ies_o::value_c::ue_security_cap()
 {
-  assert_choice_type("UESecurityCapabilities", type_.to_string(), "Value");
+  assert_choice_type(types::ue_security_cap, type_, "Value");
   return c.get<ue_security_cap_s>();
 }
 security_context_s& ho_request_ies_o::value_c::security_context()
 {
-  assert_choice_type("SecurityContext", type_.to_string(), "Value");
+  assert_choice_type(types::security_context, type_, "Value");
   return c.get<security_context_s>();
 }
 new_security_context_ind_e& ho_request_ies_o::value_c::new_security_context_ind()
 {
-  assert_choice_type("NewSecurityContextInd", type_.to_string(), "Value");
+  assert_choice_type(types::new_security_context_ind, type_, "Value");
   return c.get<new_security_context_ind_e>();
 }
 unbounded_octstring<true>& ho_request_ies_o::value_c::nasc()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::nasc, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 pdu_session_res_setup_list_ho_req_l& ho_request_ies_o::value_c::pdu_session_res_setup_list_ho_req()
 {
-  assert_choice_type("PDUSessionResourceSetupListHOReq", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_setup_list_ho_req, type_, "Value");
   return c.get<pdu_session_res_setup_list_ho_req_l>();
 }
 allowed_nssai_l& ho_request_ies_o::value_c::allowed_nssai()
 {
-  assert_choice_type("AllowedNSSAI", type_.to_string(), "Value");
+  assert_choice_type(types::allowed_nssai, type_, "Value");
   return c.get<allowed_nssai_l>();
 }
 trace_activation_s& ho_request_ies_o::value_c::trace_activation()
 {
-  assert_choice_type("TraceActivation", type_.to_string(), "Value");
+  assert_choice_type(types::trace_activation, type_, "Value");
   return c.get<trace_activation_s>();
 }
 fixed_bitstring<64, false, true>& ho_request_ies_o::value_c::masked_imeisv()
 {
-  assert_choice_type("BIT STRING", type_.to_string(), "Value");
+  assert_choice_type(types::masked_imeisv, type_, "Value");
   return c.get<fixed_bitstring<64, false, true> >();
 }
 unbounded_octstring<true>& ho_request_ies_o::value_c::source_to_target_transparent_container()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::source_to_target_transparent_container, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 mob_restrict_list_s& ho_request_ies_o::value_c::mob_restrict_list()
 {
-  assert_choice_type("MobilityRestrictionList", type_.to_string(), "Value");
+  assert_choice_type(types::mob_restrict_list, type_, "Value");
   return c.get<mob_restrict_list_s>();
 }
 location_report_request_type_s& ho_request_ies_o::value_c::location_report_request_type()
 {
-  assert_choice_type("LocationReportingRequestType", type_.to_string(), "Value");
+  assert_choice_type(types::location_report_request_type, type_, "Value");
   return c.get<location_report_request_type_s>();
 }
 rrc_inactive_transition_report_request_e& ho_request_ies_o::value_c::rrc_inactive_transition_report_request()
 {
-  assert_choice_type("RRCInactiveTransitionReportRequest", type_.to_string(), "Value");
+  assert_choice_type(types::rrc_inactive_transition_report_request, type_, "Value");
   return c.get<rrc_inactive_transition_report_request_e>();
 }
 guami_s& ho_request_ies_o::value_c::guami()
 {
-  assert_choice_type("GUAMI", type_.to_string(), "Value");
+  assert_choice_type(types::guami, type_, "Value");
   return c.get<guami_s>();
 }
 redirection_voice_fallback_e& ho_request_ies_o::value_c::redirection_voice_fallback()
 {
-  assert_choice_type("RedirectionVoiceFallback", type_.to_string(), "Value");
+  assert_choice_type(types::redirection_voice_fallback, type_, "Value");
   return c.get<redirection_voice_fallback_e>();
 }
 const uint64_t& ho_request_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const handov_type_e& ho_request_ies_o::value_c::handov_type() const
 {
-  assert_choice_type("HandoverType", type_.to_string(), "Value");
+  assert_choice_type(types::handov_type, type_, "Value");
   return c.get<handov_type_e>();
 }
 const cause_c& ho_request_ies_o::value_c::cause() const
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 const ue_aggregate_maximum_bit_rate_s& ho_request_ies_o::value_c::ue_aggregate_maximum_bit_rate() const
 {
-  assert_choice_type("UEAggregateMaximumBitRate", type_.to_string(), "Value");
+  assert_choice_type(types::ue_aggregate_maximum_bit_rate, type_, "Value");
   return c.get<ue_aggregate_maximum_bit_rate_s>();
 }
 const core_network_assist_info_s& ho_request_ies_o::value_c::core_network_assist_info() const
 {
-  assert_choice_type("CoreNetworkAssistanceInformation", type_.to_string(), "Value");
+  assert_choice_type(types::core_network_assist_info, type_, "Value");
   return c.get<core_network_assist_info_s>();
 }
 const ue_security_cap_s& ho_request_ies_o::value_c::ue_security_cap() const
 {
-  assert_choice_type("UESecurityCapabilities", type_.to_string(), "Value");
+  assert_choice_type(types::ue_security_cap, type_, "Value");
   return c.get<ue_security_cap_s>();
 }
 const security_context_s& ho_request_ies_o::value_c::security_context() const
 {
-  assert_choice_type("SecurityContext", type_.to_string(), "Value");
+  assert_choice_type(types::security_context, type_, "Value");
   return c.get<security_context_s>();
 }
 const new_security_context_ind_e& ho_request_ies_o::value_c::new_security_context_ind() const
 {
-  assert_choice_type("NewSecurityContextInd", type_.to_string(), "Value");
+  assert_choice_type(types::new_security_context_ind, type_, "Value");
   return c.get<new_security_context_ind_e>();
 }
 const unbounded_octstring<true>& ho_request_ies_o::value_c::nasc() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::nasc, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 const pdu_session_res_setup_list_ho_req_l& ho_request_ies_o::value_c::pdu_session_res_setup_list_ho_req() const
 {
-  assert_choice_type("PDUSessionResourceSetupListHOReq", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_setup_list_ho_req, type_, "Value");
   return c.get<pdu_session_res_setup_list_ho_req_l>();
 }
 const allowed_nssai_l& ho_request_ies_o::value_c::allowed_nssai() const
 {
-  assert_choice_type("AllowedNSSAI", type_.to_string(), "Value");
+  assert_choice_type(types::allowed_nssai, type_, "Value");
   return c.get<allowed_nssai_l>();
 }
 const trace_activation_s& ho_request_ies_o::value_c::trace_activation() const
 {
-  assert_choice_type("TraceActivation", type_.to_string(), "Value");
+  assert_choice_type(types::trace_activation, type_, "Value");
   return c.get<trace_activation_s>();
 }
 const fixed_bitstring<64, false, true>& ho_request_ies_o::value_c::masked_imeisv() const
 {
-  assert_choice_type("BIT STRING", type_.to_string(), "Value");
+  assert_choice_type(types::masked_imeisv, type_, "Value");
   return c.get<fixed_bitstring<64, false, true> >();
 }
 const unbounded_octstring<true>& ho_request_ies_o::value_c::source_to_target_transparent_container() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::source_to_target_transparent_container, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 const mob_restrict_list_s& ho_request_ies_o::value_c::mob_restrict_list() const
 {
-  assert_choice_type("MobilityRestrictionList", type_.to_string(), "Value");
+  assert_choice_type(types::mob_restrict_list, type_, "Value");
   return c.get<mob_restrict_list_s>();
 }
 const location_report_request_type_s& ho_request_ies_o::value_c::location_report_request_type() const
 {
-  assert_choice_type("LocationReportingRequestType", type_.to_string(), "Value");
+  assert_choice_type(types::location_report_request_type, type_, "Value");
   return c.get<location_report_request_type_s>();
 }
 const rrc_inactive_transition_report_request_e&
 ho_request_ies_o::value_c::rrc_inactive_transition_report_request() const
 {
-  assert_choice_type("RRCInactiveTransitionReportRequest", type_.to_string(), "Value");
+  assert_choice_type(types::rrc_inactive_transition_report_request, type_, "Value");
   return c.get<rrc_inactive_transition_report_request_e>();
 }
 const guami_s& ho_request_ies_o::value_c::guami() const
 {
-  assert_choice_type("GUAMI", type_.to_string(), "Value");
+  assert_choice_type(types::guami, type_, "Value");
   return c.get<guami_s>();
 }
 const redirection_voice_fallback_e& ho_request_ies_o::value_c::redirection_voice_fallback() const
 {
-  assert_choice_type("RedirectionVoiceFallback", type_.to_string(), "Value");
+  assert_choice_type(types::redirection_voice_fallback, type_, "Value");
   return c.get<redirection_voice_fallback_e>();
 }
 void ho_request_ies_o::value_c::to_json(json_writer& j) const
@@ -16860,64 +16860,64 @@ ho_request_ack_ies_o::value_c& ho_request_ack_ies_o::value_c::operator=(const ho
 }
 uint64_t& ho_request_ack_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& ho_request_ack_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 pdu_session_res_admitted_list_l& ho_request_ack_ies_o::value_c::pdu_session_res_admitted_list()
 {
-  assert_choice_type("PDUSessionResourceAdmittedList", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_admitted_list, type_, "Value");
   return c.get<pdu_session_res_admitted_list_l>();
 }
 pdu_session_res_failed_to_setup_list_ho_ack_l&
 ho_request_ack_ies_o::value_c::pdu_session_res_failed_to_setup_list_ho_ack()
 {
-  assert_choice_type("PDUSessionResourceFailedToSetupListHOAck", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_failed_to_setup_list_ho_ack, type_, "Value");
   return c.get<pdu_session_res_failed_to_setup_list_ho_ack_l>();
 }
 unbounded_octstring<true>& ho_request_ack_ies_o::value_c::target_to_source_transparent_container()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::target_to_source_transparent_container, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 crit_diagnostics_s& ho_request_ack_ies_o::value_c::crit_diagnostics()
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 const uint64_t& ho_request_ack_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& ho_request_ack_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const pdu_session_res_admitted_list_l& ho_request_ack_ies_o::value_c::pdu_session_res_admitted_list() const
 {
-  assert_choice_type("PDUSessionResourceAdmittedList", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_admitted_list, type_, "Value");
   return c.get<pdu_session_res_admitted_list_l>();
 }
 const pdu_session_res_failed_to_setup_list_ho_ack_l&
 ho_request_ack_ies_o::value_c::pdu_session_res_failed_to_setup_list_ho_ack() const
 {
-  assert_choice_type("PDUSessionResourceFailedToSetupListHOAck", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_failed_to_setup_list_ho_ack, type_, "Value");
   return c.get<pdu_session_res_failed_to_setup_list_ho_ack_l>();
 }
 const unbounded_octstring<true>& ho_request_ack_ies_o::value_c::target_to_source_transparent_container() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::target_to_source_transparent_container, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 const crit_diagnostics_s& ho_request_ack_ies_o::value_c::crit_diagnostics() const
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 void ho_request_ack_ies_o::value_c::to_json(json_writer& j) const
@@ -17887,82 +17887,82 @@ ho_required_ies_o::value_c& ho_required_ies_o::value_c::operator=(const ho_requi
 }
 uint64_t& ho_required_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& ho_required_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 handov_type_e& ho_required_ies_o::value_c::handov_type()
 {
-  assert_choice_type("HandoverType", type_.to_string(), "Value");
+  assert_choice_type(types::handov_type, type_, "Value");
   return c.get<handov_type_e>();
 }
 cause_c& ho_required_ies_o::value_c::cause()
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 target_id_c& ho_required_ies_o::value_c::target_id()
 {
-  assert_choice_type("TargetID", type_.to_string(), "Value");
+  assert_choice_type(types::target_id, type_, "Value");
   return c.get<target_id_c>();
 }
 direct_forwarding_path_availability_e& ho_required_ies_o::value_c::direct_forwarding_path_availability()
 {
-  assert_choice_type("DirectForwardingPathAvailability", type_.to_string(), "Value");
+  assert_choice_type(types::direct_forwarding_path_availability, type_, "Value");
   return c.get<direct_forwarding_path_availability_e>();
 }
 pdu_session_res_list_ho_rqd_l& ho_required_ies_o::value_c::pdu_session_res_list_ho_rqd()
 {
-  assert_choice_type("PDUSessionResourceListHORqd", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_list_ho_rqd, type_, "Value");
   return c.get<pdu_session_res_list_ho_rqd_l>();
 }
 unbounded_octstring<true>& ho_required_ies_o::value_c::source_to_target_transparent_container()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::source_to_target_transparent_container, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 const uint64_t& ho_required_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& ho_required_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const handov_type_e& ho_required_ies_o::value_c::handov_type() const
 {
-  assert_choice_type("HandoverType", type_.to_string(), "Value");
+  assert_choice_type(types::handov_type, type_, "Value");
   return c.get<handov_type_e>();
 }
 const cause_c& ho_required_ies_o::value_c::cause() const
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 const target_id_c& ho_required_ies_o::value_c::target_id() const
 {
-  assert_choice_type("TargetID", type_.to_string(), "Value");
+  assert_choice_type(types::target_id, type_, "Value");
   return c.get<target_id_c>();
 }
 const direct_forwarding_path_availability_e& ho_required_ies_o::value_c::direct_forwarding_path_availability() const
 {
-  assert_choice_type("DirectForwardingPathAvailability", type_.to_string(), "Value");
+  assert_choice_type(types::direct_forwarding_path_availability, type_, "Value");
   return c.get<direct_forwarding_path_availability_e>();
 }
 const pdu_session_res_list_ho_rqd_l& ho_required_ies_o::value_c::pdu_session_res_list_ho_rqd() const
 {
-  assert_choice_type("PDUSessionResourceListHORqd", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_list_ho_rqd, type_, "Value");
   return c.get<pdu_session_res_list_ho_rqd_l>();
 }
 const unbounded_octstring<true>& ho_required_ies_o::value_c::source_to_target_transparent_container() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::source_to_target_transparent_container, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 void ho_required_ies_o::value_c::to_json(json_writer& j) const
@@ -18661,54 +18661,54 @@ init_context_setup_fail_ies_o::value_c::operator=(const init_context_setup_fail_
 }
 uint64_t& init_context_setup_fail_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& init_context_setup_fail_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 pdu_session_res_failed_to_setup_list_cxt_fail_l&
 init_context_setup_fail_ies_o::value_c::pdu_session_res_failed_to_setup_list_cxt_fail()
 {
-  assert_choice_type("PDUSessionResourceFailedToSetupListCxtFail", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_failed_to_setup_list_cxt_fail, type_, "Value");
   return c.get<pdu_session_res_failed_to_setup_list_cxt_fail_l>();
 }
 cause_c& init_context_setup_fail_ies_o::value_c::cause()
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 crit_diagnostics_s& init_context_setup_fail_ies_o::value_c::crit_diagnostics()
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 const uint64_t& init_context_setup_fail_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& init_context_setup_fail_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const pdu_session_res_failed_to_setup_list_cxt_fail_l&
 init_context_setup_fail_ies_o::value_c::pdu_session_res_failed_to_setup_list_cxt_fail() const
 {
-  assert_choice_type("PDUSessionResourceFailedToSetupListCxtFail", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_failed_to_setup_list_cxt_fail, type_, "Value");
   return c.get<pdu_session_res_failed_to_setup_list_cxt_fail_l>();
 }
 const cause_c& init_context_setup_fail_ies_o::value_c::cause() const
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 const crit_diagnostics_s& init_context_setup_fail_ies_o::value_c::crit_diagnostics() const
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 void init_context_setup_fail_ies_o::value_c::to_json(json_writer& j) const
@@ -19486,205 +19486,205 @@ init_context_setup_request_ies_o::value_c::operator=(const init_context_setup_re
 }
 uint64_t& init_context_setup_request_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& init_context_setup_request_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 printable_string<1, 150, true, true>& init_context_setup_request_ies_o::value_c::old_amf()
 {
-  assert_choice_type("PrintableString", type_.to_string(), "Value");
+  assert_choice_type(types::old_amf, type_, "Value");
   return c.get<printable_string<1, 150, true, true> >();
 }
 ue_aggregate_maximum_bit_rate_s& init_context_setup_request_ies_o::value_c::ue_aggregate_maximum_bit_rate()
 {
-  assert_choice_type("UEAggregateMaximumBitRate", type_.to_string(), "Value");
+  assert_choice_type(types::ue_aggregate_maximum_bit_rate, type_, "Value");
   return c.get<ue_aggregate_maximum_bit_rate_s>();
 }
 core_network_assist_info_s& init_context_setup_request_ies_o::value_c::core_network_assist_info()
 {
-  assert_choice_type("CoreNetworkAssistanceInformation", type_.to_string(), "Value");
+  assert_choice_type(types::core_network_assist_info, type_, "Value");
   return c.get<core_network_assist_info_s>();
 }
 guami_s& init_context_setup_request_ies_o::value_c::guami()
 {
-  assert_choice_type("GUAMI", type_.to_string(), "Value");
+  assert_choice_type(types::guami, type_, "Value");
   return c.get<guami_s>();
 }
 pdu_session_res_setup_list_cxt_req_l& init_context_setup_request_ies_o::value_c::pdu_session_res_setup_list_cxt_req()
 {
-  assert_choice_type("PDUSessionResourceSetupListCxtReq", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_setup_list_cxt_req, type_, "Value");
   return c.get<pdu_session_res_setup_list_cxt_req_l>();
 }
 allowed_nssai_l& init_context_setup_request_ies_o::value_c::allowed_nssai()
 {
-  assert_choice_type("AllowedNSSAI", type_.to_string(), "Value");
+  assert_choice_type(types::allowed_nssai, type_, "Value");
   return c.get<allowed_nssai_l>();
 }
 ue_security_cap_s& init_context_setup_request_ies_o::value_c::ue_security_cap()
 {
-  assert_choice_type("UESecurityCapabilities", type_.to_string(), "Value");
+  assert_choice_type(types::ue_security_cap, type_, "Value");
   return c.get<ue_security_cap_s>();
 }
 fixed_bitstring<256, false, true>& init_context_setup_request_ies_o::value_c::security_key()
 {
-  assert_choice_type("BIT STRING", type_.to_string(), "Value");
+  assert_choice_type(types::security_key, type_, "Value");
   return c.get<fixed_bitstring<256, false, true> >();
 }
 trace_activation_s& init_context_setup_request_ies_o::value_c::trace_activation()
 {
-  assert_choice_type("TraceActivation", type_.to_string(), "Value");
+  assert_choice_type(types::trace_activation, type_, "Value");
   return c.get<trace_activation_s>();
 }
 mob_restrict_list_s& init_context_setup_request_ies_o::value_c::mob_restrict_list()
 {
-  assert_choice_type("MobilityRestrictionList", type_.to_string(), "Value");
+  assert_choice_type(types::mob_restrict_list, type_, "Value");
   return c.get<mob_restrict_list_s>();
 }
 unbounded_octstring<true>& init_context_setup_request_ies_o::value_c::ue_radio_cap()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::ue_radio_cap, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 uint16_t& init_context_setup_request_ies_o::value_c::idx_to_rfsp()
 {
-  assert_choice_type("INTEGER (1..256,...)", type_.to_string(), "Value");
+  assert_choice_type(types::idx_to_rfsp, type_, "Value");
   return c.get<uint16_t>();
 }
 fixed_bitstring<64, false, true>& init_context_setup_request_ies_o::value_c::masked_imeisv()
 {
-  assert_choice_type("BIT STRING", type_.to_string(), "Value");
+  assert_choice_type(types::masked_imeisv, type_, "Value");
   return c.get<fixed_bitstring<64, false, true> >();
 }
 unbounded_octstring<true>& init_context_setup_request_ies_o::value_c::nas_pdu()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::nas_pdu, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 emergency_fallback_ind_s& init_context_setup_request_ies_o::value_c::emergency_fallback_ind()
 {
-  assert_choice_type("EmergencyFallbackIndicator", type_.to_string(), "Value");
+  assert_choice_type(types::emergency_fallback_ind, type_, "Value");
   return c.get<emergency_fallback_ind_s>();
 }
 rrc_inactive_transition_report_request_e&
 init_context_setup_request_ies_o::value_c::rrc_inactive_transition_report_request()
 {
-  assert_choice_type("RRCInactiveTransitionReportRequest", type_.to_string(), "Value");
+  assert_choice_type(types::rrc_inactive_transition_report_request, type_, "Value");
   return c.get<rrc_inactive_transition_report_request_e>();
 }
 ue_radio_cap_for_paging_s& init_context_setup_request_ies_o::value_c::ue_radio_cap_for_paging()
 {
-  assert_choice_type("UERadioCapabilityForPaging", type_.to_string(), "Value");
+  assert_choice_type(types::ue_radio_cap_for_paging, type_, "Value");
   return c.get<ue_radio_cap_for_paging_s>();
 }
 redirection_voice_fallback_e& init_context_setup_request_ies_o::value_c::redirection_voice_fallback()
 {
-  assert_choice_type("RedirectionVoiceFallback", type_.to_string(), "Value");
+  assert_choice_type(types::redirection_voice_fallback, type_, "Value");
   return c.get<redirection_voice_fallback_e>();
 }
 const uint64_t& init_context_setup_request_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& init_context_setup_request_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const printable_string<1, 150, true, true>& init_context_setup_request_ies_o::value_c::old_amf() const
 {
-  assert_choice_type("PrintableString", type_.to_string(), "Value");
+  assert_choice_type(types::old_amf, type_, "Value");
   return c.get<printable_string<1, 150, true, true> >();
 }
 const ue_aggregate_maximum_bit_rate_s& init_context_setup_request_ies_o::value_c::ue_aggregate_maximum_bit_rate() const
 {
-  assert_choice_type("UEAggregateMaximumBitRate", type_.to_string(), "Value");
+  assert_choice_type(types::ue_aggregate_maximum_bit_rate, type_, "Value");
   return c.get<ue_aggregate_maximum_bit_rate_s>();
 }
 const core_network_assist_info_s& init_context_setup_request_ies_o::value_c::core_network_assist_info() const
 {
-  assert_choice_type("CoreNetworkAssistanceInformation", type_.to_string(), "Value");
+  assert_choice_type(types::core_network_assist_info, type_, "Value");
   return c.get<core_network_assist_info_s>();
 }
 const guami_s& init_context_setup_request_ies_o::value_c::guami() const
 {
-  assert_choice_type("GUAMI", type_.to_string(), "Value");
+  assert_choice_type(types::guami, type_, "Value");
   return c.get<guami_s>();
 }
 const pdu_session_res_setup_list_cxt_req_l&
 init_context_setup_request_ies_o::value_c::pdu_session_res_setup_list_cxt_req() const
 {
-  assert_choice_type("PDUSessionResourceSetupListCxtReq", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_setup_list_cxt_req, type_, "Value");
   return c.get<pdu_session_res_setup_list_cxt_req_l>();
 }
 const allowed_nssai_l& init_context_setup_request_ies_o::value_c::allowed_nssai() const
 {
-  assert_choice_type("AllowedNSSAI", type_.to_string(), "Value");
+  assert_choice_type(types::allowed_nssai, type_, "Value");
   return c.get<allowed_nssai_l>();
 }
 const ue_security_cap_s& init_context_setup_request_ies_o::value_c::ue_security_cap() const
 {
-  assert_choice_type("UESecurityCapabilities", type_.to_string(), "Value");
+  assert_choice_type(types::ue_security_cap, type_, "Value");
   return c.get<ue_security_cap_s>();
 }
 const fixed_bitstring<256, false, true>& init_context_setup_request_ies_o::value_c::security_key() const
 {
-  assert_choice_type("BIT STRING", type_.to_string(), "Value");
+  assert_choice_type(types::security_key, type_, "Value");
   return c.get<fixed_bitstring<256, false, true> >();
 }
 const trace_activation_s& init_context_setup_request_ies_o::value_c::trace_activation() const
 {
-  assert_choice_type("TraceActivation", type_.to_string(), "Value");
+  assert_choice_type(types::trace_activation, type_, "Value");
   return c.get<trace_activation_s>();
 }
 const mob_restrict_list_s& init_context_setup_request_ies_o::value_c::mob_restrict_list() const
 {
-  assert_choice_type("MobilityRestrictionList", type_.to_string(), "Value");
+  assert_choice_type(types::mob_restrict_list, type_, "Value");
   return c.get<mob_restrict_list_s>();
 }
 const unbounded_octstring<true>& init_context_setup_request_ies_o::value_c::ue_radio_cap() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::ue_radio_cap, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 const uint16_t& init_context_setup_request_ies_o::value_c::idx_to_rfsp() const
 {
-  assert_choice_type("INTEGER (1..256,...)", type_.to_string(), "Value");
+  assert_choice_type(types::idx_to_rfsp, type_, "Value");
   return c.get<uint16_t>();
 }
 const fixed_bitstring<64, false, true>& init_context_setup_request_ies_o::value_c::masked_imeisv() const
 {
-  assert_choice_type("BIT STRING", type_.to_string(), "Value");
+  assert_choice_type(types::masked_imeisv, type_, "Value");
   return c.get<fixed_bitstring<64, false, true> >();
 }
 const unbounded_octstring<true>& init_context_setup_request_ies_o::value_c::nas_pdu() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::nas_pdu, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 const emergency_fallback_ind_s& init_context_setup_request_ies_o::value_c::emergency_fallback_ind() const
 {
-  assert_choice_type("EmergencyFallbackIndicator", type_.to_string(), "Value");
+  assert_choice_type(types::emergency_fallback_ind, type_, "Value");
   return c.get<emergency_fallback_ind_s>();
 }
 const rrc_inactive_transition_report_request_e&
 init_context_setup_request_ies_o::value_c::rrc_inactive_transition_report_request() const
 {
-  assert_choice_type("RRCInactiveTransitionReportRequest", type_.to_string(), "Value");
+  assert_choice_type(types::rrc_inactive_transition_report_request, type_, "Value");
   return c.get<rrc_inactive_transition_report_request_e>();
 }
 const ue_radio_cap_for_paging_s& init_context_setup_request_ies_o::value_c::ue_radio_cap_for_paging() const
 {
-  assert_choice_type("UERadioCapabilityForPaging", type_.to_string(), "Value");
+  assert_choice_type(types::ue_radio_cap_for_paging, type_, "Value");
   return c.get<ue_radio_cap_for_paging_s>();
 }
 const redirection_voice_fallback_e& init_context_setup_request_ies_o::value_c::redirection_voice_fallback() const
 {
-  assert_choice_type("RedirectionVoiceFallback", type_.to_string(), "Value");
+  assert_choice_type(types::redirection_voice_fallback, type_, "Value");
   return c.get<redirection_voice_fallback_e>();
 }
 void init_context_setup_request_ies_o::value_c::to_json(json_writer& j) const
@@ -20526,55 +20526,55 @@ init_context_setup_resp_ies_o::value_c::operator=(const init_context_setup_resp_
 }
 uint64_t& init_context_setup_resp_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& init_context_setup_resp_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 pdu_session_res_setup_list_cxt_res_l& init_context_setup_resp_ies_o::value_c::pdu_session_res_setup_list_cxt_res()
 {
-  assert_choice_type("PDUSessionResourceSetupListCxtRes", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_setup_list_cxt_res, type_, "Value");
   return c.get<pdu_session_res_setup_list_cxt_res_l>();
 }
 pdu_session_res_failed_to_setup_list_cxt_res_l&
 init_context_setup_resp_ies_o::value_c::pdu_session_res_failed_to_setup_list_cxt_res()
 {
-  assert_choice_type("PDUSessionResourceFailedToSetupListCxtRes", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_failed_to_setup_list_cxt_res, type_, "Value");
   return c.get<pdu_session_res_failed_to_setup_list_cxt_res_l>();
 }
 crit_diagnostics_s& init_context_setup_resp_ies_o::value_c::crit_diagnostics()
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 const uint64_t& init_context_setup_resp_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& init_context_setup_resp_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const pdu_session_res_setup_list_cxt_res_l&
 init_context_setup_resp_ies_o::value_c::pdu_session_res_setup_list_cxt_res() const
 {
-  assert_choice_type("PDUSessionResourceSetupListCxtRes", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_setup_list_cxt_res, type_, "Value");
   return c.get<pdu_session_res_setup_list_cxt_res_l>();
 }
 const pdu_session_res_failed_to_setup_list_cxt_res_l&
 init_context_setup_resp_ies_o::value_c::pdu_session_res_failed_to_setup_list_cxt_res() const
 {
-  assert_choice_type("PDUSessionResourceFailedToSetupListCxtRes", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_failed_to_setup_list_cxt_res, type_, "Value");
   return c.get<pdu_session_res_failed_to_setup_list_cxt_res_l>();
 }
 const crit_diagnostics_s& init_context_setup_resp_ies_o::value_c::crit_diagnostics() const
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 void init_context_setup_resp_ies_o::value_c::to_json(json_writer& j) const
@@ -21052,82 +21052,82 @@ init_ue_msg_ies_o::value_c& init_ue_msg_ies_o::value_c::operator=(const init_ue_
 }
 uint64_t& init_ue_msg_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 unbounded_octstring<true>& init_ue_msg_ies_o::value_c::nas_pdu()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::nas_pdu, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 user_location_info_c& init_ue_msg_ies_o::value_c::user_location_info()
 {
-  assert_choice_type("UserLocationInformation", type_.to_string(), "Value");
+  assert_choice_type(types::user_location_info, type_, "Value");
   return c.get<user_location_info_c>();
 }
 rrcestablishment_cause_e& init_ue_msg_ies_o::value_c::rrcestablishment_cause()
 {
-  assert_choice_type("RRCEstablishmentCause", type_.to_string(), "Value");
+  assert_choice_type(types::rrcestablishment_cause, type_, "Value");
   return c.get<rrcestablishment_cause_e>();
 }
 five_g_s_tmsi_s& init_ue_msg_ies_o::value_c::five_g_s_tmsi()
 {
-  assert_choice_type("FiveG-S-TMSI", type_.to_string(), "Value");
+  assert_choice_type(types::five_g_s_tmsi, type_, "Value");
   return c.get<five_g_s_tmsi_s>();
 }
 fixed_bitstring<10, false, true>& init_ue_msg_ies_o::value_c::amf_set_id()
 {
-  assert_choice_type("BIT STRING", type_.to_string(), "Value");
+  assert_choice_type(types::amf_set_id, type_, "Value");
   return c.get<fixed_bitstring<10, false, true> >();
 }
 ue_context_request_e& init_ue_msg_ies_o::value_c::ue_context_request()
 {
-  assert_choice_type("UEContextRequest", type_.to_string(), "Value");
+  assert_choice_type(types::ue_context_request, type_, "Value");
   return c.get<ue_context_request_e>();
 }
 allowed_nssai_l& init_ue_msg_ies_o::value_c::allowed_nssai()
 {
-  assert_choice_type("AllowedNSSAI", type_.to_string(), "Value");
+  assert_choice_type(types::allowed_nssai, type_, "Value");
   return c.get<allowed_nssai_l>();
 }
 const uint64_t& init_ue_msg_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const unbounded_octstring<true>& init_ue_msg_ies_o::value_c::nas_pdu() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::nas_pdu, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 const user_location_info_c& init_ue_msg_ies_o::value_c::user_location_info() const
 {
-  assert_choice_type("UserLocationInformation", type_.to_string(), "Value");
+  assert_choice_type(types::user_location_info, type_, "Value");
   return c.get<user_location_info_c>();
 }
 const rrcestablishment_cause_e& init_ue_msg_ies_o::value_c::rrcestablishment_cause() const
 {
-  assert_choice_type("RRCEstablishmentCause", type_.to_string(), "Value");
+  assert_choice_type(types::rrcestablishment_cause, type_, "Value");
   return c.get<rrcestablishment_cause_e>();
 }
 const five_g_s_tmsi_s& init_ue_msg_ies_o::value_c::five_g_s_tmsi() const
 {
-  assert_choice_type("FiveG-S-TMSI", type_.to_string(), "Value");
+  assert_choice_type(types::five_g_s_tmsi, type_, "Value");
   return c.get<five_g_s_tmsi_s>();
 }
 const fixed_bitstring<10, false, true>& init_ue_msg_ies_o::value_c::amf_set_id() const
 {
-  assert_choice_type("BIT STRING", type_.to_string(), "Value");
+  assert_choice_type(types::amf_set_id, type_, "Value");
   return c.get<fixed_bitstring<10, false, true> >();
 }
 const ue_context_request_e& init_ue_msg_ies_o::value_c::ue_context_request() const
 {
-  assert_choice_type("UEContextRequest", type_.to_string(), "Value");
+  assert_choice_type(types::ue_context_request, type_, "Value");
   return c.get<ue_context_request_e>();
 }
 const allowed_nssai_l& init_ue_msg_ies_o::value_c::allowed_nssai() const
 {
-  assert_choice_type("AllowedNSSAI", type_.to_string(), "Value");
+  assert_choice_type(types::allowed_nssai, type_, "Value");
   return c.get<allowed_nssai_l>();
 }
 void init_ue_msg_ies_o::value_c::to_json(json_writer& j) const
@@ -24078,63 +24078,63 @@ location_report_ies_o::value_c& location_report_ies_o::value_c::operator=(const 
 }
 uint64_t& location_report_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& location_report_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 user_location_info_c& location_report_ies_o::value_c::user_location_info()
 {
-  assert_choice_type("UserLocationInformation", type_.to_string(), "Value");
+  assert_choice_type(types::user_location_info, type_, "Value");
   return c.get<user_location_info_c>();
 }
 ue_presence_in_area_of_interest_list_l& location_report_ies_o::value_c::ue_presence_in_area_of_interest_list()
 {
-  assert_choice_type("UEPresenceInAreaOfInterestList", type_.to_string(), "Value");
+  assert_choice_type(types::ue_presence_in_area_of_interest_list, type_, "Value");
   return c.get<ue_presence_in_area_of_interest_list_l>();
 }
 location_report_request_type_s& location_report_ies_o::value_c::location_report_request_type()
 {
-  assert_choice_type("LocationReportingRequestType", type_.to_string(), "Value");
+  assert_choice_type(types::location_report_request_type, type_, "Value");
   return c.get<location_report_request_type_s>();
 }
 ngran_cgi_c& location_report_ies_o::value_c::ps_cell_info()
 {
-  assert_choice_type("NGRAN-CGI", type_.to_string(), "Value");
+  assert_choice_type(types::ps_cell_info, type_, "Value");
   return c.get<ngran_cgi_c>();
 }
 const uint64_t& location_report_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& location_report_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const user_location_info_c& location_report_ies_o::value_c::user_location_info() const
 {
-  assert_choice_type("UserLocationInformation", type_.to_string(), "Value");
+  assert_choice_type(types::user_location_info, type_, "Value");
   return c.get<user_location_info_c>();
 }
 const ue_presence_in_area_of_interest_list_l&
 location_report_ies_o::value_c::ue_presence_in_area_of_interest_list() const
 {
-  assert_choice_type("UEPresenceInAreaOfInterestList", type_.to_string(), "Value");
+  assert_choice_type(types::ue_presence_in_area_of_interest_list, type_, "Value");
   return c.get<ue_presence_in_area_of_interest_list_l>();
 }
 const location_report_request_type_s& location_report_ies_o::value_c::location_report_request_type() const
 {
-  assert_choice_type("LocationReportingRequestType", type_.to_string(), "Value");
+  assert_choice_type(types::location_report_request_type, type_, "Value");
   return c.get<location_report_request_type_s>();
 }
 const ngran_cgi_c& location_report_ies_o::value_c::ps_cell_info() const
 {
-  assert_choice_type("NGRAN-CGI", type_.to_string(), "Value");
+  assert_choice_type(types::ps_cell_info, type_, "Value");
   return c.get<ngran_cgi_c>();
 }
 void location_report_ies_o::value_c::to_json(json_writer& j) const
@@ -24377,32 +24377,32 @@ location_report_ctrl_ies_o::value_c::operator=(const location_report_ctrl_ies_o:
 }
 uint64_t& location_report_ctrl_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& location_report_ctrl_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 location_report_request_type_s& location_report_ctrl_ies_o::value_c::location_report_request_type()
 {
-  assert_choice_type("LocationReportingRequestType", type_.to_string(), "Value");
+  assert_choice_type(types::location_report_request_type, type_, "Value");
   return c.get<location_report_request_type_s>();
 }
 const uint64_t& location_report_ctrl_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& location_report_ctrl_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const location_report_request_type_s& location_report_ctrl_ies_o::value_c::location_report_request_type() const
 {
-  assert_choice_type("LocationReportingRequestType", type_.to_string(), "Value");
+  assert_choice_type(types::location_report_request_type, type_, "Value");
   return c.get<location_report_request_type_s>();
 }
 void location_report_ctrl_ies_o::value_c::to_json(json_writer& j) const
@@ -24608,32 +24608,32 @@ location_report_fail_ind_ies_o::value_c::operator=(const location_report_fail_in
 }
 uint64_t& location_report_fail_ind_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& location_report_fail_ind_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 cause_c& location_report_fail_ind_ies_o::value_c::cause()
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 const uint64_t& location_report_fail_ind_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& location_report_fail_ind_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const cause_c& location_report_fail_ind_ies_o::value_c::cause() const
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 void location_report_fail_ind_ies_o::value_c::to_json(json_writer& j) const
@@ -24857,42 +24857,42 @@ nas_non_delivery_ind_ies_o::value_c::operator=(const nas_non_delivery_ind_ies_o:
 }
 uint64_t& nas_non_delivery_ind_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& nas_non_delivery_ind_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 unbounded_octstring<true>& nas_non_delivery_ind_ies_o::value_c::nas_pdu()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::nas_pdu, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 cause_c& nas_non_delivery_ind_ies_o::value_c::cause()
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 const uint64_t& nas_non_delivery_ind_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& nas_non_delivery_ind_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const unbounded_octstring<true>& nas_non_delivery_ind_ies_o::value_c::nas_pdu() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::nas_pdu, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 const cause_c& nas_non_delivery_ind_ies_o::value_c::cause() const
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 void nas_non_delivery_ind_ies_o::value_c::to_json(json_writer& j) const
@@ -25094,22 +25094,22 @@ ng_reset_ack_ies_o::value_c& ng_reset_ack_ies_o::value_c::operator=(const ng_res
 }
 ue_associated_lc_ng_conn_list_l& ng_reset_ack_ies_o::value_c::ue_associated_lc_ng_conn_list()
 {
-  assert_choice_type("UE-associatedLogicalNG-connectionList", type_.to_string(), "Value");
+  assert_choice_type(types::ue_associated_lc_ng_conn_list, type_, "Value");
   return c.get<ue_associated_lc_ng_conn_list_l>();
 }
 crit_diagnostics_s& ng_reset_ack_ies_o::value_c::crit_diagnostics()
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 const ue_associated_lc_ng_conn_list_l& ng_reset_ack_ies_o::value_c::ue_associated_lc_ng_conn_list() const
 {
-  assert_choice_type("UE-associatedLogicalNG-connectionList", type_.to_string(), "Value");
+  assert_choice_type(types::ue_associated_lc_ng_conn_list, type_, "Value");
   return c.get<ue_associated_lc_ng_conn_list_l>();
 }
 const crit_diagnostics_s& ng_reset_ack_ies_o::value_c::crit_diagnostics() const
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 void ng_reset_ack_ies_o::value_c::to_json(json_writer& j) const
@@ -25297,22 +25297,22 @@ ng_reset_ies_o::value_c& ng_reset_ies_o::value_c::operator=(const ng_reset_ies_o
 }
 cause_c& ng_reset_ies_o::value_c::cause()
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 reset_type_c& ng_reset_ies_o::value_c::reset_type()
 {
-  assert_choice_type("ResetType", type_.to_string(), "Value");
+  assert_choice_type(types::reset_type, type_, "Value");
   return c.get<reset_type_c>();
 }
 const cause_c& ng_reset_ies_o::value_c::cause() const
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 const reset_type_c& ng_reset_ies_o::value_c::reset_type() const
 {
-  assert_choice_type("ResetType", type_.to_string(), "Value");
+  assert_choice_type(types::reset_type, type_, "Value");
   return c.get<reset_type_c>();
 }
 void ng_reset_ies_o::value_c::to_json(json_writer& j) const
@@ -25512,32 +25512,32 @@ ng_setup_fail_ies_o::value_c& ng_setup_fail_ies_o::value_c::operator=(const ng_s
 }
 cause_c& ng_setup_fail_ies_o::value_c::cause()
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 time_to_wait_e& ng_setup_fail_ies_o::value_c::time_to_wait()
 {
-  assert_choice_type("TimeToWait", type_.to_string(), "Value");
+  assert_choice_type(types::time_to_wait, type_, "Value");
   return c.get<time_to_wait_e>();
 }
 crit_diagnostics_s& ng_setup_fail_ies_o::value_c::crit_diagnostics()
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 const cause_c& ng_setup_fail_ies_o::value_c::cause() const
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 const time_to_wait_e& ng_setup_fail_ies_o::value_c::time_to_wait() const
 {
-  assert_choice_type("TimeToWait", type_.to_string(), "Value");
+  assert_choice_type(types::time_to_wait, type_, "Value");
   return c.get<time_to_wait_e>();
 }
 const crit_diagnostics_s& ng_setup_fail_ies_o::value_c::crit_diagnostics() const
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 void ng_setup_fail_ies_o::value_c::to_json(json_writer& j) const
@@ -25781,52 +25781,52 @@ ng_setup_request_ies_o::value_c::operator=(const ng_setup_request_ies_o::value_c
 }
 global_ran_node_id_c& ng_setup_request_ies_o::value_c::global_ran_node_id()
 {
-  assert_choice_type("GlobalRANNodeID", type_.to_string(), "Value");
+  assert_choice_type(types::global_ran_node_id, type_, "Value");
   return c.get<global_ran_node_id_c>();
 }
 printable_string<1, 150, true, true>& ng_setup_request_ies_o::value_c::ran_node_name()
 {
-  assert_choice_type("PrintableString", type_.to_string(), "Value");
+  assert_choice_type(types::ran_node_name, type_, "Value");
   return c.get<printable_string<1, 150, true, true> >();
 }
 supported_ta_list_l& ng_setup_request_ies_o::value_c::supported_ta_list()
 {
-  assert_choice_type("SupportedTAList", type_.to_string(), "Value");
+  assert_choice_type(types::supported_ta_list, type_, "Value");
   return c.get<supported_ta_list_l>();
 }
 paging_drx_e& ng_setup_request_ies_o::value_c::default_paging_drx()
 {
-  assert_choice_type("PagingDRX", type_.to_string(), "Value");
+  assert_choice_type(types::default_paging_drx, type_, "Value");
   return c.get<paging_drx_e>();
 }
 ue_retention_info_e& ng_setup_request_ies_o::value_c::ue_retention_info()
 {
-  assert_choice_type("UERetentionInformation", type_.to_string(), "Value");
+  assert_choice_type(types::ue_retention_info, type_, "Value");
   return c.get<ue_retention_info_e>();
 }
 const global_ran_node_id_c& ng_setup_request_ies_o::value_c::global_ran_node_id() const
 {
-  assert_choice_type("GlobalRANNodeID", type_.to_string(), "Value");
+  assert_choice_type(types::global_ran_node_id, type_, "Value");
   return c.get<global_ran_node_id_c>();
 }
 const printable_string<1, 150, true, true>& ng_setup_request_ies_o::value_c::ran_node_name() const
 {
-  assert_choice_type("PrintableString", type_.to_string(), "Value");
+  assert_choice_type(types::ran_node_name, type_, "Value");
   return c.get<printable_string<1, 150, true, true> >();
 }
 const supported_ta_list_l& ng_setup_request_ies_o::value_c::supported_ta_list() const
 {
-  assert_choice_type("SupportedTAList", type_.to_string(), "Value");
+  assert_choice_type(types::supported_ta_list, type_, "Value");
   return c.get<supported_ta_list_l>();
 }
 const paging_drx_e& ng_setup_request_ies_o::value_c::default_paging_drx() const
 {
-  assert_choice_type("PagingDRX", type_.to_string(), "Value");
+  assert_choice_type(types::default_paging_drx, type_, "Value");
   return c.get<paging_drx_e>();
 }
 const ue_retention_info_e& ng_setup_request_ies_o::value_c::ue_retention_info() const
 {
-  assert_choice_type("UERetentionInformation", type_.to_string(), "Value");
+  assert_choice_type(types::ue_retention_info, type_, "Value");
   return c.get<ue_retention_info_e>();
 }
 void ng_setup_request_ies_o::value_c::to_json(json_writer& j) const
@@ -26110,62 +26110,62 @@ ng_setup_resp_ies_o::value_c& ng_setup_resp_ies_o::value_c::operator=(const ng_s
 }
 printable_string<1, 150, true, true>& ng_setup_resp_ies_o::value_c::amf_name()
 {
-  assert_choice_type("PrintableString", type_.to_string(), "Value");
+  assert_choice_type(types::amf_name, type_, "Value");
   return c.get<printable_string<1, 150, true, true> >();
 }
 served_guami_list_l& ng_setup_resp_ies_o::value_c::served_guami_list()
 {
-  assert_choice_type("ServedGUAMIList", type_.to_string(), "Value");
+  assert_choice_type(types::served_guami_list, type_, "Value");
   return c.get<served_guami_list_l>();
 }
 uint16_t& ng_setup_resp_ies_o::value_c::relative_amf_capacity()
 {
-  assert_choice_type("INTEGER (0..255)", type_.to_string(), "Value");
+  assert_choice_type(types::relative_amf_capacity, type_, "Value");
   return c.get<uint16_t>();
 }
 plmn_support_list_l& ng_setup_resp_ies_o::value_c::plmn_support_list()
 {
-  assert_choice_type("PLMNSupportList", type_.to_string(), "Value");
+  assert_choice_type(types::plmn_support_list, type_, "Value");
   return c.get<plmn_support_list_l>();
 }
 crit_diagnostics_s& ng_setup_resp_ies_o::value_c::crit_diagnostics()
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 ue_retention_info_e& ng_setup_resp_ies_o::value_c::ue_retention_info()
 {
-  assert_choice_type("UERetentionInformation", type_.to_string(), "Value");
+  assert_choice_type(types::ue_retention_info, type_, "Value");
   return c.get<ue_retention_info_e>();
 }
 const printable_string<1, 150, true, true>& ng_setup_resp_ies_o::value_c::amf_name() const
 {
-  assert_choice_type("PrintableString", type_.to_string(), "Value");
+  assert_choice_type(types::amf_name, type_, "Value");
   return c.get<printable_string<1, 150, true, true> >();
 }
 const served_guami_list_l& ng_setup_resp_ies_o::value_c::served_guami_list() const
 {
-  assert_choice_type("ServedGUAMIList", type_.to_string(), "Value");
+  assert_choice_type(types::served_guami_list, type_, "Value");
   return c.get<served_guami_list_l>();
 }
 const uint16_t& ng_setup_resp_ies_o::value_c::relative_amf_capacity() const
 {
-  assert_choice_type("INTEGER (0..255)", type_.to_string(), "Value");
+  assert_choice_type(types::relative_amf_capacity, type_, "Value");
   return c.get<uint16_t>();
 }
 const plmn_support_list_l& ng_setup_resp_ies_o::value_c::plmn_support_list() const
 {
-  assert_choice_type("PLMNSupportList", type_.to_string(), "Value");
+  assert_choice_type(types::plmn_support_list, type_, "Value");
   return c.get<plmn_support_list_l>();
 }
 const crit_diagnostics_s& ng_setup_resp_ies_o::value_c::crit_diagnostics() const
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 const ue_retention_info_e& ng_setup_resp_ies_o::value_c::ue_retention_info() const
 {
-  assert_choice_type("UERetentionInformation", type_.to_string(), "Value");
+  assert_choice_type(types::ue_retention_info, type_, "Value");
   return c.get<ue_retention_info_e>();
 }
 void ng_setup_resp_ies_o::value_c::to_json(json_writer& j) const
@@ -26421,32 +26421,32 @@ overload_start_ies_o::value_c& overload_start_ies_o::value_c::operator=(const ov
 }
 overload_resp_c& overload_start_ies_o::value_c::amf_overload_resp()
 {
-  assert_choice_type("OverloadResponse", type_.to_string(), "Value");
+  assert_choice_type(types::amf_overload_resp, type_, "Value");
   return c.get<overload_resp_c>();
 }
 uint8_t& overload_start_ies_o::value_c::amf_traffic_load_reduction_ind()
 {
-  assert_choice_type("INTEGER (1..99)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_traffic_load_reduction_ind, type_, "Value");
   return c.get<uint8_t>();
 }
 overload_start_nssai_list_l& overload_start_ies_o::value_c::overload_start_nssai_list()
 {
-  assert_choice_type("OverloadStartNSSAIList", type_.to_string(), "Value");
+  assert_choice_type(types::overload_start_nssai_list, type_, "Value");
   return c.get<overload_start_nssai_list_l>();
 }
 const overload_resp_c& overload_start_ies_o::value_c::amf_overload_resp() const
 {
-  assert_choice_type("OverloadResponse", type_.to_string(), "Value");
+  assert_choice_type(types::amf_overload_resp, type_, "Value");
   return c.get<overload_resp_c>();
 }
 const uint8_t& overload_start_ies_o::value_c::amf_traffic_load_reduction_ind() const
 {
-  assert_choice_type("INTEGER (1..99)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_traffic_load_reduction_ind, type_, "Value");
   return c.get<uint8_t>();
 }
 const overload_start_nssai_list_l& overload_start_ies_o::value_c::overload_start_nssai_list() const
 {
-  assert_choice_type("OverloadStartNSSAIList", type_.to_string(), "Value");
+  assert_choice_type(types::overload_start_nssai_list, type_, "Value");
   return c.get<overload_start_nssai_list_l>();
 }
 void overload_start_ies_o::value_c::to_json(json_writer& j) const
@@ -26701,56 +26701,56 @@ pdu_session_res_modify_confirm_ies_o::value_c::operator=(const pdu_session_res_m
 }
 uint64_t& pdu_session_res_modify_confirm_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& pdu_session_res_modify_confirm_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 pdu_session_res_modify_list_mod_cfm_l&
 pdu_session_res_modify_confirm_ies_o::value_c::pdu_session_res_modify_list_mod_cfm()
 {
-  assert_choice_type("PDUSessionResourceModifyListModCfm", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_modify_list_mod_cfm, type_, "Value");
   return c.get<pdu_session_res_modify_list_mod_cfm_l>();
 }
 pdu_session_res_failed_to_modify_list_mod_cfm_l&
 pdu_session_res_modify_confirm_ies_o::value_c::pdu_session_res_failed_to_modify_list_mod_cfm()
 {
-  assert_choice_type("PDUSessionResourceFailedToModifyListModCfm", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_failed_to_modify_list_mod_cfm, type_, "Value");
   return c.get<pdu_session_res_failed_to_modify_list_mod_cfm_l>();
 }
 crit_diagnostics_s& pdu_session_res_modify_confirm_ies_o::value_c::crit_diagnostics()
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 const uint64_t& pdu_session_res_modify_confirm_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& pdu_session_res_modify_confirm_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const pdu_session_res_modify_list_mod_cfm_l&
 pdu_session_res_modify_confirm_ies_o::value_c::pdu_session_res_modify_list_mod_cfm() const
 {
-  assert_choice_type("PDUSessionResourceModifyListModCfm", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_modify_list_mod_cfm, type_, "Value");
   return c.get<pdu_session_res_modify_list_mod_cfm_l>();
 }
 const pdu_session_res_failed_to_modify_list_mod_cfm_l&
 pdu_session_res_modify_confirm_ies_o::value_c::pdu_session_res_failed_to_modify_list_mod_cfm() const
 {
-  assert_choice_type("PDUSessionResourceFailedToModifyListModCfm", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_failed_to_modify_list_mod_cfm, type_, "Value");
   return c.get<pdu_session_res_failed_to_modify_list_mod_cfm_l>();
 }
 const crit_diagnostics_s& pdu_session_res_modify_confirm_ies_o::value_c::crit_diagnostics() const
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 void pdu_session_res_modify_confirm_ies_o::value_c::to_json(json_writer& j) const
@@ -26985,33 +26985,33 @@ pdu_session_res_modify_ind_ies_o::value_c::operator=(const pdu_session_res_modif
 }
 uint64_t& pdu_session_res_modify_ind_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& pdu_session_res_modify_ind_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 pdu_session_res_modify_list_mod_ind_l& pdu_session_res_modify_ind_ies_o::value_c::pdu_session_res_modify_list_mod_ind()
 {
-  assert_choice_type("PDUSessionResourceModifyListModInd", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_modify_list_mod_ind, type_, "Value");
   return c.get<pdu_session_res_modify_list_mod_ind_l>();
 }
 const uint64_t& pdu_session_res_modify_ind_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& pdu_session_res_modify_ind_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const pdu_session_res_modify_list_mod_ind_l&
 pdu_session_res_modify_ind_ies_o::value_c::pdu_session_res_modify_list_mod_ind() const
 {
-  assert_choice_type("PDUSessionResourceModifyListModInd", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_modify_list_mod_ind, type_, "Value");
   return c.get<pdu_session_res_modify_list_mod_ind_l>();
 }
 void pdu_session_res_modify_ind_ies_o::value_c::to_json(json_writer& j) const
@@ -27235,44 +27235,44 @@ pdu_session_res_modify_request_ies_o::value_c::operator=(const pdu_session_res_m
 }
 uint64_t& pdu_session_res_modify_request_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& pdu_session_res_modify_request_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint16_t& pdu_session_res_modify_request_ies_o::value_c::ran_paging_prio()
 {
-  assert_choice_type("INTEGER (1..256)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_paging_prio, type_, "Value");
   return c.get<uint16_t>();
 }
 pdu_session_res_modify_list_mod_req_l&
 pdu_session_res_modify_request_ies_o::value_c::pdu_session_res_modify_list_mod_req()
 {
-  assert_choice_type("PDUSessionResourceModifyListModReq", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_modify_list_mod_req, type_, "Value");
   return c.get<pdu_session_res_modify_list_mod_req_l>();
 }
 const uint64_t& pdu_session_res_modify_request_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& pdu_session_res_modify_request_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint16_t& pdu_session_res_modify_request_ies_o::value_c::ran_paging_prio() const
 {
-  assert_choice_type("INTEGER (1..256)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_paging_prio, type_, "Value");
   return c.get<uint16_t>();
 }
 const pdu_session_res_modify_list_mod_req_l&
 pdu_session_res_modify_request_ies_o::value_c::pdu_session_res_modify_list_mod_req() const
 {
-  assert_choice_type("PDUSessionResourceModifyListModReq", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_modify_list_mod_req, type_, "Value");
   return c.get<pdu_session_res_modify_list_mod_req_l>();
 }
 void pdu_session_res_modify_request_ies_o::value_c::to_json(json_writer& j) const
@@ -27549,65 +27549,65 @@ pdu_session_res_modify_resp_ies_o::value_c::operator=(const pdu_session_res_modi
 }
 uint64_t& pdu_session_res_modify_resp_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& pdu_session_res_modify_resp_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 pdu_session_res_modify_list_mod_res_l& pdu_session_res_modify_resp_ies_o::value_c::pdu_session_res_modify_list_mod_res()
 {
-  assert_choice_type("PDUSessionResourceModifyListModRes", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_modify_list_mod_res, type_, "Value");
   return c.get<pdu_session_res_modify_list_mod_res_l>();
 }
 pdu_session_res_failed_to_modify_list_mod_res_l&
 pdu_session_res_modify_resp_ies_o::value_c::pdu_session_res_failed_to_modify_list_mod_res()
 {
-  assert_choice_type("PDUSessionResourceFailedToModifyListModRes", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_failed_to_modify_list_mod_res, type_, "Value");
   return c.get<pdu_session_res_failed_to_modify_list_mod_res_l>();
 }
 user_location_info_c& pdu_session_res_modify_resp_ies_o::value_c::user_location_info()
 {
-  assert_choice_type("UserLocationInformation", type_.to_string(), "Value");
+  assert_choice_type(types::user_location_info, type_, "Value");
   return c.get<user_location_info_c>();
 }
 crit_diagnostics_s& pdu_session_res_modify_resp_ies_o::value_c::crit_diagnostics()
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 const uint64_t& pdu_session_res_modify_resp_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& pdu_session_res_modify_resp_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const pdu_session_res_modify_list_mod_res_l&
 pdu_session_res_modify_resp_ies_o::value_c::pdu_session_res_modify_list_mod_res() const
 {
-  assert_choice_type("PDUSessionResourceModifyListModRes", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_modify_list_mod_res, type_, "Value");
   return c.get<pdu_session_res_modify_list_mod_res_l>();
 }
 const pdu_session_res_failed_to_modify_list_mod_res_l&
 pdu_session_res_modify_resp_ies_o::value_c::pdu_session_res_failed_to_modify_list_mod_res() const
 {
-  assert_choice_type("PDUSessionResourceFailedToModifyListModRes", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_failed_to_modify_list_mod_res, type_, "Value");
   return c.get<pdu_session_res_failed_to_modify_list_mod_res_l>();
 }
 const user_location_info_c& pdu_session_res_modify_resp_ies_o::value_c::user_location_info() const
 {
-  assert_choice_type("UserLocationInformation", type_.to_string(), "Value");
+  assert_choice_type(types::user_location_info, type_, "Value");
   return c.get<user_location_info_c>();
 }
 const crit_diagnostics_s& pdu_session_res_modify_resp_ies_o::value_c::crit_diagnostics() const
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 void pdu_session_res_modify_resp_ies_o::value_c::to_json(json_writer& j) const
@@ -27891,53 +27891,53 @@ pdu_session_res_notify_ies_o::value_c::operator=(const pdu_session_res_notify_ie
 }
 uint64_t& pdu_session_res_notify_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& pdu_session_res_notify_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 pdu_session_res_notify_list_l& pdu_session_res_notify_ies_o::value_c::pdu_session_res_notify_list()
 {
-  assert_choice_type("PDUSessionResourceNotifyList", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_notify_list, type_, "Value");
   return c.get<pdu_session_res_notify_list_l>();
 }
 pdu_session_res_released_list_not_l& pdu_session_res_notify_ies_o::value_c::pdu_session_res_released_list_not()
 {
-  assert_choice_type("PDUSessionResourceReleasedListNot", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_released_list_not, type_, "Value");
   return c.get<pdu_session_res_released_list_not_l>();
 }
 user_location_info_c& pdu_session_res_notify_ies_o::value_c::user_location_info()
 {
-  assert_choice_type("UserLocationInformation", type_.to_string(), "Value");
+  assert_choice_type(types::user_location_info, type_, "Value");
   return c.get<user_location_info_c>();
 }
 const uint64_t& pdu_session_res_notify_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& pdu_session_res_notify_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const pdu_session_res_notify_list_l& pdu_session_res_notify_ies_o::value_c::pdu_session_res_notify_list() const
 {
-  assert_choice_type("PDUSessionResourceNotifyList", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_notify_list, type_, "Value");
   return c.get<pdu_session_res_notify_list_l>();
 }
 const pdu_session_res_released_list_not_l&
 pdu_session_res_notify_ies_o::value_c::pdu_session_res_released_list_not() const
 {
-  assert_choice_type("PDUSessionResourceReleasedListNot", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_released_list_not, type_, "Value");
   return c.get<pdu_session_res_released_list_not_l>();
 }
 const user_location_info_c& pdu_session_res_notify_ies_o::value_c::user_location_info() const
 {
-  assert_choice_type("UserLocationInformation", type_.to_string(), "Value");
+  assert_choice_type(types::user_location_info, type_, "Value");
   return c.get<user_location_info_c>();
 }
 void pdu_session_res_notify_ies_o::value_c::to_json(json_writer& j) const
@@ -28206,54 +28206,54 @@ pdu_session_res_release_cmd_ies_o::value_c::operator=(const pdu_session_res_rele
 }
 uint64_t& pdu_session_res_release_cmd_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& pdu_session_res_release_cmd_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint16_t& pdu_session_res_release_cmd_ies_o::value_c::ran_paging_prio()
 {
-  assert_choice_type("INTEGER (1..256)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_paging_prio, type_, "Value");
   return c.get<uint16_t>();
 }
 unbounded_octstring<true>& pdu_session_res_release_cmd_ies_o::value_c::nas_pdu()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::nas_pdu, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 pdu_session_res_to_release_list_rel_cmd_l&
 pdu_session_res_release_cmd_ies_o::value_c::pdu_session_res_to_release_list_rel_cmd()
 {
-  assert_choice_type("PDUSessionResourceToReleaseListRelCmd", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_to_release_list_rel_cmd, type_, "Value");
   return c.get<pdu_session_res_to_release_list_rel_cmd_l>();
 }
 const uint64_t& pdu_session_res_release_cmd_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& pdu_session_res_release_cmd_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint16_t& pdu_session_res_release_cmd_ies_o::value_c::ran_paging_prio() const
 {
-  assert_choice_type("INTEGER (1..256)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_paging_prio, type_, "Value");
   return c.get<uint16_t>();
 }
 const unbounded_octstring<true>& pdu_session_res_release_cmd_ies_o::value_c::nas_pdu() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::nas_pdu, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 const pdu_session_res_to_release_list_rel_cmd_l&
 pdu_session_res_release_cmd_ies_o::value_c::pdu_session_res_to_release_list_rel_cmd() const
 {
-  assert_choice_type("PDUSessionResourceToReleaseListRelCmd", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_to_release_list_rel_cmd, type_, "Value");
   return c.get<pdu_session_res_to_release_list_rel_cmd_l>();
 }
 void pdu_session_res_release_cmd_ies_o::value_c::to_json(json_writer& j) const
@@ -28521,54 +28521,54 @@ pdu_session_res_release_resp_ies_o::value_c::operator=(const pdu_session_res_rel
 }
 uint64_t& pdu_session_res_release_resp_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& pdu_session_res_release_resp_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 pdu_session_res_released_list_rel_res_l&
 pdu_session_res_release_resp_ies_o::value_c::pdu_session_res_released_list_rel_res()
 {
-  assert_choice_type("PDUSessionResourceReleasedListRelRes", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_released_list_rel_res, type_, "Value");
   return c.get<pdu_session_res_released_list_rel_res_l>();
 }
 user_location_info_c& pdu_session_res_release_resp_ies_o::value_c::user_location_info()
 {
-  assert_choice_type("UserLocationInformation", type_.to_string(), "Value");
+  assert_choice_type(types::user_location_info, type_, "Value");
   return c.get<user_location_info_c>();
 }
 crit_diagnostics_s& pdu_session_res_release_resp_ies_o::value_c::crit_diagnostics()
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 const uint64_t& pdu_session_res_release_resp_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& pdu_session_res_release_resp_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const pdu_session_res_released_list_rel_res_l&
 pdu_session_res_release_resp_ies_o::value_c::pdu_session_res_released_list_rel_res() const
 {
-  assert_choice_type("PDUSessionResourceReleasedListRelRes", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_released_list_rel_res, type_, "Value");
   return c.get<pdu_session_res_released_list_rel_res_l>();
 }
 const user_location_info_c& pdu_session_res_release_resp_ies_o::value_c::user_location_info() const
 {
-  assert_choice_type("UserLocationInformation", type_.to_string(), "Value");
+  assert_choice_type(types::user_location_info, type_, "Value");
   return c.get<user_location_info_c>();
 }
 const crit_diagnostics_s& pdu_session_res_release_resp_ies_o::value_c::crit_diagnostics() const
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 void pdu_session_res_release_resp_ies_o::value_c::to_json(json_writer& j) const
@@ -28853,64 +28853,64 @@ pdu_session_res_setup_request_ies_o::value_c::operator=(const pdu_session_res_se
 }
 uint64_t& pdu_session_res_setup_request_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& pdu_session_res_setup_request_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint16_t& pdu_session_res_setup_request_ies_o::value_c::ran_paging_prio()
 {
-  assert_choice_type("INTEGER (1..256)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_paging_prio, type_, "Value");
   return c.get<uint16_t>();
 }
 unbounded_octstring<true>& pdu_session_res_setup_request_ies_o::value_c::nas_pdu()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::nas_pdu, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 pdu_session_res_setup_list_su_req_l& pdu_session_res_setup_request_ies_o::value_c::pdu_session_res_setup_list_su_req()
 {
-  assert_choice_type("PDUSessionResourceSetupListSUReq", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_setup_list_su_req, type_, "Value");
   return c.get<pdu_session_res_setup_list_su_req_l>();
 }
 ue_aggregate_maximum_bit_rate_s& pdu_session_res_setup_request_ies_o::value_c::ue_aggregate_maximum_bit_rate()
 {
-  assert_choice_type("UEAggregateMaximumBitRate", type_.to_string(), "Value");
+  assert_choice_type(types::ue_aggregate_maximum_bit_rate, type_, "Value");
   return c.get<ue_aggregate_maximum_bit_rate_s>();
 }
 const uint64_t& pdu_session_res_setup_request_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& pdu_session_res_setup_request_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint16_t& pdu_session_res_setup_request_ies_o::value_c::ran_paging_prio() const
 {
-  assert_choice_type("INTEGER (1..256)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_paging_prio, type_, "Value");
   return c.get<uint16_t>();
 }
 const unbounded_octstring<true>& pdu_session_res_setup_request_ies_o::value_c::nas_pdu() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::nas_pdu, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 const pdu_session_res_setup_list_su_req_l&
 pdu_session_res_setup_request_ies_o::value_c::pdu_session_res_setup_list_su_req() const
 {
-  assert_choice_type("PDUSessionResourceSetupListSUReq", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_setup_list_su_req, type_, "Value");
   return c.get<pdu_session_res_setup_list_su_req_l>();
 }
 const ue_aggregate_maximum_bit_rate_s&
 pdu_session_res_setup_request_ies_o::value_c::ue_aggregate_maximum_bit_rate() const
 {
-  assert_choice_type("UEAggregateMaximumBitRate", type_.to_string(), "Value");
+  assert_choice_type(types::ue_aggregate_maximum_bit_rate, type_, "Value");
   return c.get<ue_aggregate_maximum_bit_rate_s>();
 }
 void pdu_session_res_setup_request_ies_o::value_c::to_json(json_writer& j) const
@@ -29189,55 +29189,55 @@ pdu_session_res_setup_resp_ies_o::value_c::operator=(const pdu_session_res_setup
 }
 uint64_t& pdu_session_res_setup_resp_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& pdu_session_res_setup_resp_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 pdu_session_res_setup_list_su_res_l& pdu_session_res_setup_resp_ies_o::value_c::pdu_session_res_setup_list_su_res()
 {
-  assert_choice_type("PDUSessionResourceSetupListSURes", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_setup_list_su_res, type_, "Value");
   return c.get<pdu_session_res_setup_list_su_res_l>();
 }
 pdu_session_res_failed_to_setup_list_su_res_l&
 pdu_session_res_setup_resp_ies_o::value_c::pdu_session_res_failed_to_setup_list_su_res()
 {
-  assert_choice_type("PDUSessionResourceFailedToSetupListSURes", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_failed_to_setup_list_su_res, type_, "Value");
   return c.get<pdu_session_res_failed_to_setup_list_su_res_l>();
 }
 crit_diagnostics_s& pdu_session_res_setup_resp_ies_o::value_c::crit_diagnostics()
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 const uint64_t& pdu_session_res_setup_resp_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& pdu_session_res_setup_resp_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const pdu_session_res_setup_list_su_res_l&
 pdu_session_res_setup_resp_ies_o::value_c::pdu_session_res_setup_list_su_res() const
 {
-  assert_choice_type("PDUSessionResourceSetupListSURes", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_setup_list_su_res, type_, "Value");
   return c.get<pdu_session_res_setup_list_su_res_l>();
 }
 const pdu_session_res_failed_to_setup_list_su_res_l&
 pdu_session_res_setup_resp_ies_o::value_c::pdu_session_res_failed_to_setup_list_su_res() const
 {
-  assert_choice_type("PDUSessionResourceFailedToSetupListSURes", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_failed_to_setup_list_su_res, type_, "Value");
   return c.get<pdu_session_res_failed_to_setup_list_su_res_l>();
 }
 const crit_diagnostics_s& pdu_session_res_setup_resp_ies_o::value_c::crit_diagnostics() const
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 void pdu_session_res_setup_resp_ies_o::value_c::to_json(json_writer& j) const
@@ -29495,42 +29495,42 @@ pws_cancel_request_ies_o::value_c::operator=(const pws_cancel_request_ies_o::val
 }
 fixed_bitstring<16, false, true>& pws_cancel_request_ies_o::value_c::msg_id()
 {
-  assert_choice_type("BIT STRING", type_.to_string(), "Value");
+  assert_choice_type(types::msg_id, type_, "Value");
   return c.get<fixed_bitstring<16, false, true> >();
 }
 fixed_bitstring<16, false, true>& pws_cancel_request_ies_o::value_c::serial_num()
 {
-  assert_choice_type("BIT STRING", type_.to_string(), "Value");
+  assert_choice_type(types::serial_num, type_, "Value");
   return c.get<fixed_bitstring<16, false, true> >();
 }
 warning_area_list_c& pws_cancel_request_ies_o::value_c::warning_area_list()
 {
-  assert_choice_type("WarningAreaList", type_.to_string(), "Value");
+  assert_choice_type(types::warning_area_list, type_, "Value");
   return c.get<warning_area_list_c>();
 }
 cancel_all_warning_msgs_e& pws_cancel_request_ies_o::value_c::cancel_all_warning_msgs()
 {
-  assert_choice_type("CancelAllWarningMessages", type_.to_string(), "Value");
+  assert_choice_type(types::cancel_all_warning_msgs, type_, "Value");
   return c.get<cancel_all_warning_msgs_e>();
 }
 const fixed_bitstring<16, false, true>& pws_cancel_request_ies_o::value_c::msg_id() const
 {
-  assert_choice_type("BIT STRING", type_.to_string(), "Value");
+  assert_choice_type(types::msg_id, type_, "Value");
   return c.get<fixed_bitstring<16, false, true> >();
 }
 const fixed_bitstring<16, false, true>& pws_cancel_request_ies_o::value_c::serial_num() const
 {
-  assert_choice_type("BIT STRING", type_.to_string(), "Value");
+  assert_choice_type(types::serial_num, type_, "Value");
   return c.get<fixed_bitstring<16, false, true> >();
 }
 const warning_area_list_c& pws_cancel_request_ies_o::value_c::warning_area_list() const
 {
-  assert_choice_type("WarningAreaList", type_.to_string(), "Value");
+  assert_choice_type(types::warning_area_list, type_, "Value");
   return c.get<warning_area_list_c>();
 }
 const cancel_all_warning_msgs_e& pws_cancel_request_ies_o::value_c::cancel_all_warning_msgs() const
 {
-  assert_choice_type("CancelAllWarningMessages", type_.to_string(), "Value");
+  assert_choice_type(types::cancel_all_warning_msgs, type_, "Value");
   return c.get<cancel_all_warning_msgs_e>();
 }
 void pws_cancel_request_ies_o::value_c::to_json(json_writer& j) const
@@ -29770,42 +29770,42 @@ pws_cancel_resp_ies_o::value_c& pws_cancel_resp_ies_o::value_c::operator=(const 
 }
 fixed_bitstring<16, false, true>& pws_cancel_resp_ies_o::value_c::msg_id()
 {
-  assert_choice_type("BIT STRING", type_.to_string(), "Value");
+  assert_choice_type(types::msg_id, type_, "Value");
   return c.get<fixed_bitstring<16, false, true> >();
 }
 fixed_bitstring<16, false, true>& pws_cancel_resp_ies_o::value_c::serial_num()
 {
-  assert_choice_type("BIT STRING", type_.to_string(), "Value");
+  assert_choice_type(types::serial_num, type_, "Value");
   return c.get<fixed_bitstring<16, false, true> >();
 }
 broadcast_cancelled_area_list_c& pws_cancel_resp_ies_o::value_c::broadcast_cancelled_area_list()
 {
-  assert_choice_type("BroadcastCancelledAreaList", type_.to_string(), "Value");
+  assert_choice_type(types::broadcast_cancelled_area_list, type_, "Value");
   return c.get<broadcast_cancelled_area_list_c>();
 }
 crit_diagnostics_s& pws_cancel_resp_ies_o::value_c::crit_diagnostics()
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 const fixed_bitstring<16, false, true>& pws_cancel_resp_ies_o::value_c::msg_id() const
 {
-  assert_choice_type("BIT STRING", type_.to_string(), "Value");
+  assert_choice_type(types::msg_id, type_, "Value");
   return c.get<fixed_bitstring<16, false, true> >();
 }
 const fixed_bitstring<16, false, true>& pws_cancel_resp_ies_o::value_c::serial_num() const
 {
-  assert_choice_type("BIT STRING", type_.to_string(), "Value");
+  assert_choice_type(types::serial_num, type_, "Value");
   return c.get<fixed_bitstring<16, false, true> >();
 }
 const broadcast_cancelled_area_list_c& pws_cancel_resp_ies_o::value_c::broadcast_cancelled_area_list() const
 {
-  assert_choice_type("BroadcastCancelledAreaList", type_.to_string(), "Value");
+  assert_choice_type(types::broadcast_cancelled_area_list, type_, "Value");
   return c.get<broadcast_cancelled_area_list_c>();
 }
 const crit_diagnostics_s& pws_cancel_resp_ies_o::value_c::crit_diagnostics() const
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 void pws_cancel_resp_ies_o::value_c::to_json(json_writer& j) const
@@ -30008,22 +30008,22 @@ pws_fail_ind_ies_o::value_c& pws_fail_ind_ies_o::value_c::operator=(const pws_fa
 }
 pws_failed_cell_id_list_c& pws_fail_ind_ies_o::value_c::pws_failed_cell_id_list()
 {
-  assert_choice_type("PWSFailedCellIDList", type_.to_string(), "Value");
+  assert_choice_type(types::pws_failed_cell_id_list, type_, "Value");
   return c.get<pws_failed_cell_id_list_c>();
 }
 global_ran_node_id_c& pws_fail_ind_ies_o::value_c::global_ran_node_id()
 {
-  assert_choice_type("GlobalRANNodeID", type_.to_string(), "Value");
+  assert_choice_type(types::global_ran_node_id, type_, "Value");
   return c.get<global_ran_node_id_c>();
 }
 const pws_failed_cell_id_list_c& pws_fail_ind_ies_o::value_c::pws_failed_cell_id_list() const
 {
-  assert_choice_type("PWSFailedCellIDList", type_.to_string(), "Value");
+  assert_choice_type(types::pws_failed_cell_id_list, type_, "Value");
   return c.get<pws_failed_cell_id_list_c>();
 }
 const global_ran_node_id_c& pws_fail_ind_ies_o::value_c::global_ran_node_id() const
 {
-  assert_choice_type("GlobalRANNodeID", type_.to_string(), "Value");
+  assert_choice_type(types::global_ran_node_id, type_, "Value");
   return c.get<global_ran_node_id_c>();
 }
 void pws_fail_ind_ies_o::value_c::to_json(json_writer& j) const
@@ -30246,42 +30246,42 @@ pws_restart_ind_ies_o::value_c& pws_restart_ind_ies_o::value_c::operator=(const 
 }
 cell_id_list_for_restart_c& pws_restart_ind_ies_o::value_c::cell_id_list_for_restart()
 {
-  assert_choice_type("CellIDListForRestart", type_.to_string(), "Value");
+  assert_choice_type(types::cell_id_list_for_restart, type_, "Value");
   return c.get<cell_id_list_for_restart_c>();
 }
 global_ran_node_id_c& pws_restart_ind_ies_o::value_c::global_ran_node_id()
 {
-  assert_choice_type("GlobalRANNodeID", type_.to_string(), "Value");
+  assert_choice_type(types::global_ran_node_id, type_, "Value");
   return c.get<global_ran_node_id_c>();
 }
 tai_list_for_restart_l& pws_restart_ind_ies_o::value_c::tai_list_for_restart()
 {
-  assert_choice_type("TAIListForRestart", type_.to_string(), "Value");
+  assert_choice_type(types::tai_list_for_restart, type_, "Value");
   return c.get<tai_list_for_restart_l>();
 }
 emergency_area_id_list_for_restart_l& pws_restart_ind_ies_o::value_c::emergency_area_id_list_for_restart()
 {
-  assert_choice_type("EmergencyAreaIDListForRestart", type_.to_string(), "Value");
+  assert_choice_type(types::emergency_area_id_list_for_restart, type_, "Value");
   return c.get<emergency_area_id_list_for_restart_l>();
 }
 const cell_id_list_for_restart_c& pws_restart_ind_ies_o::value_c::cell_id_list_for_restart() const
 {
-  assert_choice_type("CellIDListForRestart", type_.to_string(), "Value");
+  assert_choice_type(types::cell_id_list_for_restart, type_, "Value");
   return c.get<cell_id_list_for_restart_c>();
 }
 const global_ran_node_id_c& pws_restart_ind_ies_o::value_c::global_ran_node_id() const
 {
-  assert_choice_type("GlobalRANNodeID", type_.to_string(), "Value");
+  assert_choice_type(types::global_ran_node_id, type_, "Value");
   return c.get<global_ran_node_id_c>();
 }
 const tai_list_for_restart_l& pws_restart_ind_ies_o::value_c::tai_list_for_restart() const
 {
-  assert_choice_type("TAIListForRestart", type_.to_string(), "Value");
+  assert_choice_type(types::tai_list_for_restart, type_, "Value");
   return c.get<tai_list_for_restart_l>();
 }
 const emergency_area_id_list_for_restart_l& pws_restart_ind_ies_o::value_c::emergency_area_id_list_for_restart() const
 {
-  assert_choice_type("EmergencyAreaIDListForRestart", type_.to_string(), "Value");
+  assert_choice_type(types::emergency_area_id_list_for_restart, type_, "Value");
   return c.get<emergency_area_id_list_for_restart_l>();
 }
 void pws_restart_ind_ies_o::value_c::to_json(json_writer& j) const
@@ -30576,72 +30576,72 @@ paging_ies_o::value_c& paging_ies_o::value_c::operator=(const paging_ies_o::valu
 }
 ue_paging_id_c& paging_ies_o::value_c::ue_paging_id()
 {
-  assert_choice_type("UEPagingIdentity", type_.to_string(), "Value");
+  assert_choice_type(types::ue_paging_id, type_, "Value");
   return c.get<ue_paging_id_c>();
 }
 paging_drx_e& paging_ies_o::value_c::paging_drx()
 {
-  assert_choice_type("PagingDRX", type_.to_string(), "Value");
+  assert_choice_type(types::paging_drx, type_, "Value");
   return c.get<paging_drx_e>();
 }
 tai_list_for_paging_l& paging_ies_o::value_c::tai_list_for_paging()
 {
-  assert_choice_type("TAIListForPaging", type_.to_string(), "Value");
+  assert_choice_type(types::tai_list_for_paging, type_, "Value");
   return c.get<tai_list_for_paging_l>();
 }
 paging_prio_e& paging_ies_o::value_c::paging_prio()
 {
-  assert_choice_type("PagingPriority", type_.to_string(), "Value");
+  assert_choice_type(types::paging_prio, type_, "Value");
   return c.get<paging_prio_e>();
 }
 ue_radio_cap_for_paging_s& paging_ies_o::value_c::ue_radio_cap_for_paging()
 {
-  assert_choice_type("UERadioCapabilityForPaging", type_.to_string(), "Value");
+  assert_choice_type(types::ue_radio_cap_for_paging, type_, "Value");
   return c.get<ue_radio_cap_for_paging_s>();
 }
 paging_origin_e& paging_ies_o::value_c::paging_origin()
 {
-  assert_choice_type("PagingOrigin", type_.to_string(), "Value");
+  assert_choice_type(types::paging_origin, type_, "Value");
   return c.get<paging_origin_e>();
 }
 assist_data_for_paging_s& paging_ies_o::value_c::assist_data_for_paging()
 {
-  assert_choice_type("AssistanceDataForPaging", type_.to_string(), "Value");
+  assert_choice_type(types::assist_data_for_paging, type_, "Value");
   return c.get<assist_data_for_paging_s>();
 }
 const ue_paging_id_c& paging_ies_o::value_c::ue_paging_id() const
 {
-  assert_choice_type("UEPagingIdentity", type_.to_string(), "Value");
+  assert_choice_type(types::ue_paging_id, type_, "Value");
   return c.get<ue_paging_id_c>();
 }
 const paging_drx_e& paging_ies_o::value_c::paging_drx() const
 {
-  assert_choice_type("PagingDRX", type_.to_string(), "Value");
+  assert_choice_type(types::paging_drx, type_, "Value");
   return c.get<paging_drx_e>();
 }
 const tai_list_for_paging_l& paging_ies_o::value_c::tai_list_for_paging() const
 {
-  assert_choice_type("TAIListForPaging", type_.to_string(), "Value");
+  assert_choice_type(types::tai_list_for_paging, type_, "Value");
   return c.get<tai_list_for_paging_l>();
 }
 const paging_prio_e& paging_ies_o::value_c::paging_prio() const
 {
-  assert_choice_type("PagingPriority", type_.to_string(), "Value");
+  assert_choice_type(types::paging_prio, type_, "Value");
   return c.get<paging_prio_e>();
 }
 const ue_radio_cap_for_paging_s& paging_ies_o::value_c::ue_radio_cap_for_paging() const
 {
-  assert_choice_type("UERadioCapabilityForPaging", type_.to_string(), "Value");
+  assert_choice_type(types::ue_radio_cap_for_paging, type_, "Value");
   return c.get<ue_radio_cap_for_paging_s>();
 }
 const paging_origin_e& paging_ies_o::value_c::paging_origin() const
 {
-  assert_choice_type("PagingOrigin", type_.to_string(), "Value");
+  assert_choice_type(types::paging_origin, type_, "Value");
   return c.get<paging_origin_e>();
 }
 const assist_data_for_paging_s& paging_ies_o::value_c::assist_data_for_paging() const
 {
-  assert_choice_type("AssistanceDataForPaging", type_.to_string(), "Value");
+  assert_choice_type(types::assist_data_for_paging, type_, "Value");
   return c.get<assist_data_for_paging_s>();
 }
 void paging_ies_o::value_c::to_json(json_writer& j) const
@@ -31053,125 +31053,125 @@ path_switch_request_ack_ies_o::value_c::operator=(const path_switch_request_ack_
 }
 uint64_t& path_switch_request_ack_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& path_switch_request_ack_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 ue_security_cap_s& path_switch_request_ack_ies_o::value_c::ue_security_cap()
 {
-  assert_choice_type("UESecurityCapabilities", type_.to_string(), "Value");
+  assert_choice_type(types::ue_security_cap, type_, "Value");
   return c.get<ue_security_cap_s>();
 }
 security_context_s& path_switch_request_ack_ies_o::value_c::security_context()
 {
-  assert_choice_type("SecurityContext", type_.to_string(), "Value");
+  assert_choice_type(types::security_context, type_, "Value");
   return c.get<security_context_s>();
 }
 new_security_context_ind_e& path_switch_request_ack_ies_o::value_c::new_security_context_ind()
 {
-  assert_choice_type("NewSecurityContextInd", type_.to_string(), "Value");
+  assert_choice_type(types::new_security_context_ind, type_, "Value");
   return c.get<new_security_context_ind_e>();
 }
 pdu_session_res_switched_list_l& path_switch_request_ack_ies_o::value_c::pdu_session_res_switched_list()
 {
-  assert_choice_type("PDUSessionResourceSwitchedList", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_switched_list, type_, "Value");
   return c.get<pdu_session_res_switched_list_l>();
 }
 pdu_session_res_released_list_ps_ack_l& path_switch_request_ack_ies_o::value_c::pdu_session_res_released_list_ps_ack()
 {
-  assert_choice_type("PDUSessionResourceReleasedListPSAck", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_released_list_ps_ack, type_, "Value");
   return c.get<pdu_session_res_released_list_ps_ack_l>();
 }
 allowed_nssai_l& path_switch_request_ack_ies_o::value_c::allowed_nssai()
 {
-  assert_choice_type("AllowedNSSAI", type_.to_string(), "Value");
+  assert_choice_type(types::allowed_nssai, type_, "Value");
   return c.get<allowed_nssai_l>();
 }
 core_network_assist_info_s& path_switch_request_ack_ies_o::value_c::core_network_assist_info()
 {
-  assert_choice_type("CoreNetworkAssistanceInformation", type_.to_string(), "Value");
+  assert_choice_type(types::core_network_assist_info, type_, "Value");
   return c.get<core_network_assist_info_s>();
 }
 rrc_inactive_transition_report_request_e&
 path_switch_request_ack_ies_o::value_c::rrc_inactive_transition_report_request()
 {
-  assert_choice_type("RRCInactiveTransitionReportRequest", type_.to_string(), "Value");
+  assert_choice_type(types::rrc_inactive_transition_report_request, type_, "Value");
   return c.get<rrc_inactive_transition_report_request_e>();
 }
 crit_diagnostics_s& path_switch_request_ack_ies_o::value_c::crit_diagnostics()
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 redirection_voice_fallback_e& path_switch_request_ack_ies_o::value_c::redirection_voice_fallback()
 {
-  assert_choice_type("RedirectionVoiceFallback", type_.to_string(), "Value");
+  assert_choice_type(types::redirection_voice_fallback, type_, "Value");
   return c.get<redirection_voice_fallback_e>();
 }
 const uint64_t& path_switch_request_ack_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& path_switch_request_ack_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const ue_security_cap_s& path_switch_request_ack_ies_o::value_c::ue_security_cap() const
 {
-  assert_choice_type("UESecurityCapabilities", type_.to_string(), "Value");
+  assert_choice_type(types::ue_security_cap, type_, "Value");
   return c.get<ue_security_cap_s>();
 }
 const security_context_s& path_switch_request_ack_ies_o::value_c::security_context() const
 {
-  assert_choice_type("SecurityContext", type_.to_string(), "Value");
+  assert_choice_type(types::security_context, type_, "Value");
   return c.get<security_context_s>();
 }
 const new_security_context_ind_e& path_switch_request_ack_ies_o::value_c::new_security_context_ind() const
 {
-  assert_choice_type("NewSecurityContextInd", type_.to_string(), "Value");
+  assert_choice_type(types::new_security_context_ind, type_, "Value");
   return c.get<new_security_context_ind_e>();
 }
 const pdu_session_res_switched_list_l& path_switch_request_ack_ies_o::value_c::pdu_session_res_switched_list() const
 {
-  assert_choice_type("PDUSessionResourceSwitchedList", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_switched_list, type_, "Value");
   return c.get<pdu_session_res_switched_list_l>();
 }
 const pdu_session_res_released_list_ps_ack_l&
 path_switch_request_ack_ies_o::value_c::pdu_session_res_released_list_ps_ack() const
 {
-  assert_choice_type("PDUSessionResourceReleasedListPSAck", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_released_list_ps_ack, type_, "Value");
   return c.get<pdu_session_res_released_list_ps_ack_l>();
 }
 const allowed_nssai_l& path_switch_request_ack_ies_o::value_c::allowed_nssai() const
 {
-  assert_choice_type("AllowedNSSAI", type_.to_string(), "Value");
+  assert_choice_type(types::allowed_nssai, type_, "Value");
   return c.get<allowed_nssai_l>();
 }
 const core_network_assist_info_s& path_switch_request_ack_ies_o::value_c::core_network_assist_info() const
 {
-  assert_choice_type("CoreNetworkAssistanceInformation", type_.to_string(), "Value");
+  assert_choice_type(types::core_network_assist_info, type_, "Value");
   return c.get<core_network_assist_info_s>();
 }
 const rrc_inactive_transition_report_request_e&
 path_switch_request_ack_ies_o::value_c::rrc_inactive_transition_report_request() const
 {
-  assert_choice_type("RRCInactiveTransitionReportRequest", type_.to_string(), "Value");
+  assert_choice_type(types::rrc_inactive_transition_report_request, type_, "Value");
   return c.get<rrc_inactive_transition_report_request_e>();
 }
 const crit_diagnostics_s& path_switch_request_ack_ies_o::value_c::crit_diagnostics() const
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 const redirection_voice_fallback_e& path_switch_request_ack_ies_o::value_c::redirection_voice_fallback() const
 {
-  assert_choice_type("RedirectionVoiceFallback", type_.to_string(), "Value");
+  assert_choice_type(types::redirection_voice_fallback, type_, "Value");
   return c.get<redirection_voice_fallback_e>();
 }
 void path_switch_request_ack_ies_o::value_c::to_json(json_writer& j) const
@@ -31502,44 +31502,44 @@ path_switch_request_fail_ies_o::value_c::operator=(const path_switch_request_fai
 }
 uint64_t& path_switch_request_fail_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& path_switch_request_fail_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 pdu_session_res_released_list_ps_fail_l&
 path_switch_request_fail_ies_o::value_c::pdu_session_res_released_list_ps_fail()
 {
-  assert_choice_type("PDUSessionResourceReleasedListPSFail", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_released_list_ps_fail, type_, "Value");
   return c.get<pdu_session_res_released_list_ps_fail_l>();
 }
 crit_diagnostics_s& path_switch_request_fail_ies_o::value_c::crit_diagnostics()
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 const uint64_t& path_switch_request_fail_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& path_switch_request_fail_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const pdu_session_res_released_list_ps_fail_l&
 path_switch_request_fail_ies_o::value_c::pdu_session_res_released_list_ps_fail() const
 {
-  assert_choice_type("PDUSessionResourceReleasedListPSFail", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_released_list_ps_fail, type_, "Value");
   return c.get<pdu_session_res_released_list_ps_fail_l>();
 }
 const crit_diagnostics_s& path_switch_request_fail_ies_o::value_c::crit_diagnostics() const
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 void path_switch_request_fail_ies_o::value_c::to_json(json_writer& j) const
@@ -31817,65 +31817,65 @@ path_switch_request_ies_o::value_c::operator=(const path_switch_request_ies_o::v
 }
 uint64_t& path_switch_request_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& path_switch_request_ies_o::value_c::source_amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::source_amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 user_location_info_c& path_switch_request_ies_o::value_c::user_location_info()
 {
-  assert_choice_type("UserLocationInformation", type_.to_string(), "Value");
+  assert_choice_type(types::user_location_info, type_, "Value");
   return c.get<user_location_info_c>();
 }
 ue_security_cap_s& path_switch_request_ies_o::value_c::ue_security_cap()
 {
-  assert_choice_type("UESecurityCapabilities", type_.to_string(), "Value");
+  assert_choice_type(types::ue_security_cap, type_, "Value");
   return c.get<ue_security_cap_s>();
 }
 pdu_session_res_to_be_switched_dl_list_l& path_switch_request_ies_o::value_c::pdu_session_res_to_be_switched_dl_list()
 {
-  assert_choice_type("PDUSessionResourceToBeSwitchedDLList", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_to_be_switched_dl_list, type_, "Value");
   return c.get<pdu_session_res_to_be_switched_dl_list_l>();
 }
 pdu_session_res_failed_to_setup_list_ps_req_l&
 path_switch_request_ies_o::value_c::pdu_session_res_failed_to_setup_list_ps_req()
 {
-  assert_choice_type("PDUSessionResourceFailedToSetupListPSReq", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_failed_to_setup_list_ps_req, type_, "Value");
   return c.get<pdu_session_res_failed_to_setup_list_ps_req_l>();
 }
 const uint64_t& path_switch_request_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& path_switch_request_ies_o::value_c::source_amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::source_amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const user_location_info_c& path_switch_request_ies_o::value_c::user_location_info() const
 {
-  assert_choice_type("UserLocationInformation", type_.to_string(), "Value");
+  assert_choice_type(types::user_location_info, type_, "Value");
   return c.get<user_location_info_c>();
 }
 const ue_security_cap_s& path_switch_request_ies_o::value_c::ue_security_cap() const
 {
-  assert_choice_type("UESecurityCapabilities", type_.to_string(), "Value");
+  assert_choice_type(types::ue_security_cap, type_, "Value");
   return c.get<ue_security_cap_s>();
 }
 const pdu_session_res_to_be_switched_dl_list_l&
 path_switch_request_ies_o::value_c::pdu_session_res_to_be_switched_dl_list() const
 {
-  assert_choice_type("PDUSessionResourceToBeSwitchedDLList", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_to_be_switched_dl_list, type_, "Value");
   return c.get<pdu_session_res_to_be_switched_dl_list_l>();
 }
 const pdu_session_res_failed_to_setup_list_ps_req_l&
 path_switch_request_ies_o::value_c::pdu_session_res_failed_to_setup_list_ps_req() const
 {
-  assert_choice_type("PDUSessionResourceFailedToSetupListPSReq", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_failed_to_setup_list_ps_req, type_, "Value");
   return c.get<pdu_session_res_failed_to_setup_list_ps_req_l>();
 }
 void path_switch_request_ies_o::value_c::to_json(json_writer& j) const
@@ -32210,32 +32210,32 @@ ran_cfg_upd_fail_ies_o::value_c::operator=(const ran_cfg_upd_fail_ies_o::value_c
 }
 cause_c& ran_cfg_upd_fail_ies_o::value_c::cause()
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 time_to_wait_e& ran_cfg_upd_fail_ies_o::value_c::time_to_wait()
 {
-  assert_choice_type("TimeToWait", type_.to_string(), "Value");
+  assert_choice_type(types::time_to_wait, type_, "Value");
   return c.get<time_to_wait_e>();
 }
 crit_diagnostics_s& ran_cfg_upd_fail_ies_o::value_c::crit_diagnostics()
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 const cause_c& ran_cfg_upd_fail_ies_o::value_c::cause() const
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 const time_to_wait_e& ran_cfg_upd_fail_ies_o::value_c::time_to_wait() const
 {
-  assert_choice_type("TimeToWait", type_.to_string(), "Value");
+  assert_choice_type(types::time_to_wait, type_, "Value");
   return c.get<time_to_wait_e>();
 }
 const crit_diagnostics_s& ran_cfg_upd_fail_ies_o::value_c::crit_diagnostics() const
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 void ran_cfg_upd_fail_ies_o::value_c::to_json(json_writer& j) const
@@ -32463,42 +32463,42 @@ ran_cfg_upd_ies_o::value_c& ran_cfg_upd_ies_o::value_c::operator=(const ran_cfg_
 }
 printable_string<1, 150, true, true>& ran_cfg_upd_ies_o::value_c::ran_node_name()
 {
-  assert_choice_type("PrintableString", type_.to_string(), "Value");
+  assert_choice_type(types::ran_node_name, type_, "Value");
   return c.get<printable_string<1, 150, true, true> >();
 }
 supported_ta_list_l& ran_cfg_upd_ies_o::value_c::supported_ta_list()
 {
-  assert_choice_type("SupportedTAList", type_.to_string(), "Value");
+  assert_choice_type(types::supported_ta_list, type_, "Value");
   return c.get<supported_ta_list_l>();
 }
 paging_drx_e& ran_cfg_upd_ies_o::value_c::default_paging_drx()
 {
-  assert_choice_type("PagingDRX", type_.to_string(), "Value");
+  assert_choice_type(types::default_paging_drx, type_, "Value");
   return c.get<paging_drx_e>();
 }
 global_ran_node_id_c& ran_cfg_upd_ies_o::value_c::global_ran_node_id()
 {
-  assert_choice_type("GlobalRANNodeID", type_.to_string(), "Value");
+  assert_choice_type(types::global_ran_node_id, type_, "Value");
   return c.get<global_ran_node_id_c>();
 }
 const printable_string<1, 150, true, true>& ran_cfg_upd_ies_o::value_c::ran_node_name() const
 {
-  assert_choice_type("PrintableString", type_.to_string(), "Value");
+  assert_choice_type(types::ran_node_name, type_, "Value");
   return c.get<printable_string<1, 150, true, true> >();
 }
 const supported_ta_list_l& ran_cfg_upd_ies_o::value_c::supported_ta_list() const
 {
-  assert_choice_type("SupportedTAList", type_.to_string(), "Value");
+  assert_choice_type(types::supported_ta_list, type_, "Value");
   return c.get<supported_ta_list_l>();
 }
 const paging_drx_e& ran_cfg_upd_ies_o::value_c::default_paging_drx() const
 {
-  assert_choice_type("PagingDRX", type_.to_string(), "Value");
+  assert_choice_type(types::default_paging_drx, type_, "Value");
   return c.get<paging_drx_e>();
 }
 const global_ran_node_id_c& ran_cfg_upd_ies_o::value_c::global_ran_node_id() const
 {
-  assert_choice_type("GlobalRANNodeID", type_.to_string(), "Value");
+  assert_choice_type(types::global_ran_node_id, type_, "Value");
   return c.get<global_ran_node_id_c>();
 }
 void ran_cfg_upd_ies_o::value_c::to_json(json_writer& j) const
@@ -32731,42 +32731,42 @@ rrc_inactive_transition_report_ies_o::value_c::operator=(const rrc_inactive_tran
 }
 uint64_t& rrc_inactive_transition_report_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& rrc_inactive_transition_report_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 rrc_state_e& rrc_inactive_transition_report_ies_o::value_c::rrc_state()
 {
-  assert_choice_type("RRCState", type_.to_string(), "Value");
+  assert_choice_type(types::rrc_state, type_, "Value");
   return c.get<rrc_state_e>();
 }
 user_location_info_c& rrc_inactive_transition_report_ies_o::value_c::user_location_info()
 {
-  assert_choice_type("UserLocationInformation", type_.to_string(), "Value");
+  assert_choice_type(types::user_location_info, type_, "Value");
   return c.get<user_location_info_c>();
 }
 const uint64_t& rrc_inactive_transition_report_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& rrc_inactive_transition_report_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const rrc_state_e& rrc_inactive_transition_report_ies_o::value_c::rrc_state() const
 {
-  assert_choice_type("RRCState", type_.to_string(), "Value");
+  assert_choice_type(types::rrc_state, type_, "Value");
   return c.get<rrc_state_e>();
 }
 const user_location_info_c& rrc_inactive_transition_report_ies_o::value_c::user_location_info() const
 {
-  assert_choice_type("UserLocationInformation", type_.to_string(), "Value");
+  assert_choice_type(types::user_location_info, type_, "Value");
   return c.get<user_location_info_c>();
 }
 void rrc_inactive_transition_report_ies_o::value_c::to_json(json_writer& j) const
@@ -33019,52 +33019,52 @@ reroute_nas_request_ies_o::value_c::operator=(const reroute_nas_request_ies_o::v
 }
 uint64_t& reroute_nas_request_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& reroute_nas_request_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 unbounded_octstring<true>& reroute_nas_request_ies_o::value_c::ngap_msg()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::ngap_msg, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 fixed_bitstring<10, false, true>& reroute_nas_request_ies_o::value_c::amf_set_id()
 {
-  assert_choice_type("BIT STRING", type_.to_string(), "Value");
+  assert_choice_type(types::amf_set_id, type_, "Value");
   return c.get<fixed_bitstring<10, false, true> >();
 }
 allowed_nssai_l& reroute_nas_request_ies_o::value_c::allowed_nssai()
 {
-  assert_choice_type("AllowedNSSAI", type_.to_string(), "Value");
+  assert_choice_type(types::allowed_nssai, type_, "Value");
   return c.get<allowed_nssai_l>();
 }
 const uint64_t& reroute_nas_request_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& reroute_nas_request_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const unbounded_octstring<true>& reroute_nas_request_ies_o::value_c::ngap_msg() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::ngap_msg, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 const fixed_bitstring<10, false, true>& reroute_nas_request_ies_o::value_c::amf_set_id() const
 {
-  assert_choice_type("BIT STRING", type_.to_string(), "Value");
+  assert_choice_type(types::amf_set_id, type_, "Value");
   return c.get<fixed_bitstring<10, false, true> >();
 }
 const allowed_nssai_l& reroute_nas_request_ies_o::value_c::allowed_nssai() const
 {
-  assert_choice_type("AllowedNSSAI", type_.to_string(), "Value");
+  assert_choice_type(types::allowed_nssai, type_, "Value");
   return c.get<allowed_nssai_l>();
 }
 void reroute_nas_request_ies_o::value_c::to_json(json_writer& j) const
@@ -33306,44 +33306,44 @@ secondary_rat_data_usage_report_ies_o::value_c::operator=(const secondary_rat_da
 }
 uint64_t& secondary_rat_data_usage_report_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& secondary_rat_data_usage_report_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 pdu_session_res_secondary_ratusage_list_l&
 secondary_rat_data_usage_report_ies_o::value_c::pdu_session_res_secondary_ratusage_list()
 {
-  assert_choice_type("PDUSessionResourceSecondaryRATUsageList", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_secondary_ratusage_list, type_, "Value");
   return c.get<pdu_session_res_secondary_ratusage_list_l>();
 }
 ho_flag_e& secondary_rat_data_usage_report_ies_o::value_c::ho_flag()
 {
-  assert_choice_type("HandoverFlag", type_.to_string(), "Value");
+  assert_choice_type(types::ho_flag, type_, "Value");
   return c.get<ho_flag_e>();
 }
 const uint64_t& secondary_rat_data_usage_report_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& secondary_rat_data_usage_report_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const pdu_session_res_secondary_ratusage_list_l&
 secondary_rat_data_usage_report_ies_o::value_c::pdu_session_res_secondary_ratusage_list() const
 {
-  assert_choice_type("PDUSessionResourceSecondaryRATUsageList", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_secondary_ratusage_list, type_, "Value");
   return c.get<pdu_session_res_secondary_ratusage_list_l>();
 }
 const ho_flag_e& secondary_rat_data_usage_report_ies_o::value_c::ho_flag() const
 {
-  assert_choice_type("HandoverFlag", type_.to_string(), "Value");
+  assert_choice_type(types::ho_flag, type_, "Value");
   return c.get<ho_flag_e>();
 }
 void secondary_rat_data_usage_report_ies_o::value_c::to_json(json_writer& j) const
@@ -33581,42 +33581,42 @@ trace_fail_ind_ies_o::value_c& trace_fail_ind_ies_o::value_c::operator=(const tr
 }
 uint64_t& trace_fail_ind_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& trace_fail_ind_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 fixed_octstring<8, true>& trace_fail_ind_ies_o::value_c::ngran_trace_id()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::ngran_trace_id, type_, "Value");
   return c.get<fixed_octstring<8, true> >();
 }
 cause_c& trace_fail_ind_ies_o::value_c::cause()
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 const uint64_t& trace_fail_ind_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& trace_fail_ind_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const fixed_octstring<8, true>& trace_fail_ind_ies_o::value_c::ngran_trace_id() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::ngran_trace_id, type_, "Value");
   return c.get<fixed_octstring<8, true> >();
 }
 const cause_c& trace_fail_ind_ies_o::value_c::cause() const
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 void trace_fail_ind_ies_o::value_c::to_json(json_writer& j) const
@@ -33829,32 +33829,32 @@ trace_start_ies_o::value_c& trace_start_ies_o::value_c::operator=(const trace_st
 }
 uint64_t& trace_start_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& trace_start_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 trace_activation_s& trace_start_ies_o::value_c::trace_activation()
 {
-  assert_choice_type("TraceActivation", type_.to_string(), "Value");
+  assert_choice_type(types::trace_activation, type_, "Value");
   return c.get<trace_activation_s>();
 }
 const uint64_t& trace_start_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& trace_start_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const trace_activation_s& trace_start_ies_o::value_c::trace_activation() const
 {
-  assert_choice_type("TraceActivation", type_.to_string(), "Value");
+  assert_choice_type(types::trace_activation, type_, "Value");
   return c.get<trace_activation_s>();
 }
 void trace_start_ies_o::value_c::to_json(json_writer& j) const
@@ -34078,42 +34078,42 @@ ue_context_mod_fail_ies_o::value_c::operator=(const ue_context_mod_fail_ies_o::v
 }
 uint64_t& ue_context_mod_fail_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& ue_context_mod_fail_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 cause_c& ue_context_mod_fail_ies_o::value_c::cause()
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 crit_diagnostics_s& ue_context_mod_fail_ies_o::value_c::crit_diagnostics()
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 const uint64_t& ue_context_mod_fail_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& ue_context_mod_fail_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const cause_c& ue_context_mod_fail_ies_o::value_c::cause() const
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 const crit_diagnostics_s& ue_context_mod_fail_ies_o::value_c::crit_diagnostics() const
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 void ue_context_mod_fail_ies_o::value_c::to_json(json_writer& j) const
@@ -34465,114 +34465,114 @@ ue_context_mod_request_ies_o::value_c::operator=(const ue_context_mod_request_ie
 }
 uint64_t& ue_context_mod_request_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& ue_context_mod_request_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint16_t& ue_context_mod_request_ies_o::value_c::ran_paging_prio()
 {
-  assert_choice_type("INTEGER (1..256)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_paging_prio, type_, "Value");
   return c.get<uint16_t>();
 }
 fixed_bitstring<256, false, true>& ue_context_mod_request_ies_o::value_c::security_key()
 {
-  assert_choice_type("BIT STRING", type_.to_string(), "Value");
+  assert_choice_type(types::security_key, type_, "Value");
   return c.get<fixed_bitstring<256, false, true> >();
 }
 uint16_t& ue_context_mod_request_ies_o::value_c::idx_to_rfsp()
 {
-  assert_choice_type("INTEGER (1..256,...)", type_.to_string(), "Value");
+  assert_choice_type(types::idx_to_rfsp, type_, "Value");
   return c.get<uint16_t>();
 }
 ue_aggregate_maximum_bit_rate_s& ue_context_mod_request_ies_o::value_c::ue_aggregate_maximum_bit_rate()
 {
-  assert_choice_type("UEAggregateMaximumBitRate", type_.to_string(), "Value");
+  assert_choice_type(types::ue_aggregate_maximum_bit_rate, type_, "Value");
   return c.get<ue_aggregate_maximum_bit_rate_s>();
 }
 ue_security_cap_s& ue_context_mod_request_ies_o::value_c::ue_security_cap()
 {
-  assert_choice_type("UESecurityCapabilities", type_.to_string(), "Value");
+  assert_choice_type(types::ue_security_cap, type_, "Value");
   return c.get<ue_security_cap_s>();
 }
 core_network_assist_info_s& ue_context_mod_request_ies_o::value_c::core_network_assist_info()
 {
-  assert_choice_type("CoreNetworkAssistanceInformation", type_.to_string(), "Value");
+  assert_choice_type(types::core_network_assist_info, type_, "Value");
   return c.get<core_network_assist_info_s>();
 }
 emergency_fallback_ind_s& ue_context_mod_request_ies_o::value_c::emergency_fallback_ind()
 {
-  assert_choice_type("EmergencyFallbackIndicator", type_.to_string(), "Value");
+  assert_choice_type(types::emergency_fallback_ind, type_, "Value");
   return c.get<emergency_fallback_ind_s>();
 }
 uint64_t& ue_context_mod_request_ies_o::value_c::new_amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::new_amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 rrc_inactive_transition_report_request_e&
 ue_context_mod_request_ies_o::value_c::rrc_inactive_transition_report_request()
 {
-  assert_choice_type("RRCInactiveTransitionReportRequest", type_.to_string(), "Value");
+  assert_choice_type(types::rrc_inactive_transition_report_request, type_, "Value");
   return c.get<rrc_inactive_transition_report_request_e>();
 }
 const uint64_t& ue_context_mod_request_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& ue_context_mod_request_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint16_t& ue_context_mod_request_ies_o::value_c::ran_paging_prio() const
 {
-  assert_choice_type("INTEGER (1..256)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_paging_prio, type_, "Value");
   return c.get<uint16_t>();
 }
 const fixed_bitstring<256, false, true>& ue_context_mod_request_ies_o::value_c::security_key() const
 {
-  assert_choice_type("BIT STRING", type_.to_string(), "Value");
+  assert_choice_type(types::security_key, type_, "Value");
   return c.get<fixed_bitstring<256, false, true> >();
 }
 const uint16_t& ue_context_mod_request_ies_o::value_c::idx_to_rfsp() const
 {
-  assert_choice_type("INTEGER (1..256,...)", type_.to_string(), "Value");
+  assert_choice_type(types::idx_to_rfsp, type_, "Value");
   return c.get<uint16_t>();
 }
 const ue_aggregate_maximum_bit_rate_s& ue_context_mod_request_ies_o::value_c::ue_aggregate_maximum_bit_rate() const
 {
-  assert_choice_type("UEAggregateMaximumBitRate", type_.to_string(), "Value");
+  assert_choice_type(types::ue_aggregate_maximum_bit_rate, type_, "Value");
   return c.get<ue_aggregate_maximum_bit_rate_s>();
 }
 const ue_security_cap_s& ue_context_mod_request_ies_o::value_c::ue_security_cap() const
 {
-  assert_choice_type("UESecurityCapabilities", type_.to_string(), "Value");
+  assert_choice_type(types::ue_security_cap, type_, "Value");
   return c.get<ue_security_cap_s>();
 }
 const core_network_assist_info_s& ue_context_mod_request_ies_o::value_c::core_network_assist_info() const
 {
-  assert_choice_type("CoreNetworkAssistanceInformation", type_.to_string(), "Value");
+  assert_choice_type(types::core_network_assist_info, type_, "Value");
   return c.get<core_network_assist_info_s>();
 }
 const emergency_fallback_ind_s& ue_context_mod_request_ies_o::value_c::emergency_fallback_ind() const
 {
-  assert_choice_type("EmergencyFallbackIndicator", type_.to_string(), "Value");
+  assert_choice_type(types::emergency_fallback_ind, type_, "Value");
   return c.get<emergency_fallback_ind_s>();
 }
 const uint64_t& ue_context_mod_request_ies_o::value_c::new_amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::new_amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const rrc_inactive_transition_report_request_e&
 ue_context_mod_request_ies_o::value_c::rrc_inactive_transition_report_request() const
 {
-  assert_choice_type("RRCInactiveTransitionReportRequest", type_.to_string(), "Value");
+  assert_choice_type(types::rrc_inactive_transition_report_request, type_, "Value");
   return c.get<rrc_inactive_transition_report_request_e>();
 }
 void ue_context_mod_request_ies_o::value_c::to_json(json_writer& j) const
@@ -34896,52 +34896,52 @@ ue_context_mod_resp_ies_o::value_c::operator=(const ue_context_mod_resp_ies_o::v
 }
 uint64_t& ue_context_mod_resp_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& ue_context_mod_resp_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 rrc_state_e& ue_context_mod_resp_ies_o::value_c::rrc_state()
 {
-  assert_choice_type("RRCState", type_.to_string(), "Value");
+  assert_choice_type(types::rrc_state, type_, "Value");
   return c.get<rrc_state_e>();
 }
 user_location_info_c& ue_context_mod_resp_ies_o::value_c::user_location_info()
 {
-  assert_choice_type("UserLocationInformation", type_.to_string(), "Value");
+  assert_choice_type(types::user_location_info, type_, "Value");
   return c.get<user_location_info_c>();
 }
 crit_diagnostics_s& ue_context_mod_resp_ies_o::value_c::crit_diagnostics()
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 const uint64_t& ue_context_mod_resp_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& ue_context_mod_resp_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const rrc_state_e& ue_context_mod_resp_ies_o::value_c::rrc_state() const
 {
-  assert_choice_type("RRCState", type_.to_string(), "Value");
+  assert_choice_type(types::rrc_state, type_, "Value");
   return c.get<rrc_state_e>();
 }
 const user_location_info_c& ue_context_mod_resp_ies_o::value_c::user_location_info() const
 {
-  assert_choice_type("UserLocationInformation", type_.to_string(), "Value");
+  assert_choice_type(types::user_location_info, type_, "Value");
   return c.get<user_location_info_c>();
 }
 const crit_diagnostics_s& ue_context_mod_resp_ies_o::value_c::crit_diagnostics() const
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 void ue_context_mod_resp_ies_o::value_c::to_json(json_writer& j) const
@@ -35158,22 +35158,22 @@ ue_context_release_cmd_ies_o::value_c::operator=(const ue_context_release_cmd_ie
 }
 ue_ngap_ids_c& ue_context_release_cmd_ies_o::value_c::ue_ngap_ids()
 {
-  assert_choice_type("UE-NGAP-IDs", type_.to_string(), "Value");
+  assert_choice_type(types::ue_ngap_ids, type_, "Value");
   return c.get<ue_ngap_ids_c>();
 }
 cause_c& ue_context_release_cmd_ies_o::value_c::cause()
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 const ue_ngap_ids_c& ue_context_release_cmd_ies_o::value_c::ue_ngap_ids() const
 {
-  assert_choice_type("UE-NGAP-IDs", type_.to_string(), "Value");
+  assert_choice_type(types::ue_ngap_ids, type_, "Value");
   return c.get<ue_ngap_ids_c>();
 }
 const cause_c& ue_context_release_cmd_ies_o::value_c::cause() const
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 void ue_context_release_cmd_ies_o::value_c::to_json(json_writer& j) const
@@ -35427,65 +35427,65 @@ ue_context_release_complete_ies_o::value_c::operator=(const ue_context_release_c
 }
 uint64_t& ue_context_release_complete_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& ue_context_release_complete_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 user_location_info_c& ue_context_release_complete_ies_o::value_c::user_location_info()
 {
-  assert_choice_type("UserLocationInformation", type_.to_string(), "Value");
+  assert_choice_type(types::user_location_info, type_, "Value");
   return c.get<user_location_info_c>();
 }
 info_on_recommended_cells_and_ran_nodes_for_paging_s&
 ue_context_release_complete_ies_o::value_c::info_on_recommended_cells_and_ran_nodes_for_paging()
 {
-  assert_choice_type("InfoOnRecommendedCellsAndRANNodesForPaging", type_.to_string(), "Value");
+  assert_choice_type(types::info_on_recommended_cells_and_ran_nodes_for_paging, type_, "Value");
   return c.get<info_on_recommended_cells_and_ran_nodes_for_paging_s>();
 }
 pdu_session_res_list_cxt_rel_cpl_l& ue_context_release_complete_ies_o::value_c::pdu_session_res_list_cxt_rel_cpl()
 {
-  assert_choice_type("PDUSessionResourceListCxtRelCpl", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_list_cxt_rel_cpl, type_, "Value");
   return c.get<pdu_session_res_list_cxt_rel_cpl_l>();
 }
 crit_diagnostics_s& ue_context_release_complete_ies_o::value_c::crit_diagnostics()
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 const uint64_t& ue_context_release_complete_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& ue_context_release_complete_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const user_location_info_c& ue_context_release_complete_ies_o::value_c::user_location_info() const
 {
-  assert_choice_type("UserLocationInformation", type_.to_string(), "Value");
+  assert_choice_type(types::user_location_info, type_, "Value");
   return c.get<user_location_info_c>();
 }
 const info_on_recommended_cells_and_ran_nodes_for_paging_s&
 ue_context_release_complete_ies_o::value_c::info_on_recommended_cells_and_ran_nodes_for_paging() const
 {
-  assert_choice_type("InfoOnRecommendedCellsAndRANNodesForPaging", type_.to_string(), "Value");
+  assert_choice_type(types::info_on_recommended_cells_and_ran_nodes_for_paging, type_, "Value");
   return c.get<info_on_recommended_cells_and_ran_nodes_for_paging_s>();
 }
 const pdu_session_res_list_cxt_rel_cpl_l&
 ue_context_release_complete_ies_o::value_c::pdu_session_res_list_cxt_rel_cpl() const
 {
-  assert_choice_type("PDUSessionResourceListCxtRelCpl", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_list_cxt_rel_cpl, type_, "Value");
   return c.get<pdu_session_res_list_cxt_rel_cpl_l>();
 }
 const crit_diagnostics_s& ue_context_release_complete_ies_o::value_c::crit_diagnostics() const
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 void ue_context_release_complete_ies_o::value_c::to_json(json_writer& j) const
@@ -35747,43 +35747,43 @@ ue_context_release_request_ies_o::value_c::operator=(const ue_context_release_re
 }
 uint64_t& ue_context_release_request_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& ue_context_release_request_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 pdu_session_res_list_cxt_rel_req_l& ue_context_release_request_ies_o::value_c::pdu_session_res_list_cxt_rel_req()
 {
-  assert_choice_type("PDUSessionResourceListCxtRelReq", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_list_cxt_rel_req, type_, "Value");
   return c.get<pdu_session_res_list_cxt_rel_req_l>();
 }
 cause_c& ue_context_release_request_ies_o::value_c::cause()
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 const uint64_t& ue_context_release_request_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& ue_context_release_request_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const pdu_session_res_list_cxt_rel_req_l&
 ue_context_release_request_ies_o::value_c::pdu_session_res_list_cxt_rel_req() const
 {
-  assert_choice_type("PDUSessionResourceListCxtRelReq", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_res_list_cxt_rel_req, type_, "Value");
   return c.get<pdu_session_res_list_cxt_rel_req_l>();
 }
 const cause_c& ue_context_release_request_ies_o::value_c::cause() const
 {
-  assert_choice_type("Cause", type_.to_string(), "Value");
+  assert_choice_type(types::cause, type_, "Value");
   return c.get<cause_c>();
 }
 void ue_context_release_request_ies_o::value_c::to_json(json_writer& j) const
@@ -36002,32 +36002,32 @@ ue_radio_cap_check_request_ies_o::value_c::operator=(const ue_radio_cap_check_re
 }
 uint64_t& ue_radio_cap_check_request_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& ue_radio_cap_check_request_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 unbounded_octstring<true>& ue_radio_cap_check_request_ies_o::value_c::ue_radio_cap()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::ue_radio_cap, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 const uint64_t& ue_radio_cap_check_request_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& ue_radio_cap_check_request_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const unbounded_octstring<true>& ue_radio_cap_check_request_ies_o::value_c::ue_radio_cap() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::ue_radio_cap, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 void ue_radio_cap_check_request_ies_o::value_c::to_json(json_writer& j) const
@@ -36246,42 +36246,42 @@ ue_radio_cap_check_resp_ies_o::value_c::operator=(const ue_radio_cap_check_resp_
 }
 uint64_t& ue_radio_cap_check_resp_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& ue_radio_cap_check_resp_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 ims_voice_support_ind_e& ue_radio_cap_check_resp_ies_o::value_c::ims_voice_support_ind()
 {
-  assert_choice_type("IMSVoiceSupportIndicator", type_.to_string(), "Value");
+  assert_choice_type(types::ims_voice_support_ind, type_, "Value");
   return c.get<ims_voice_support_ind_e>();
 }
 crit_diagnostics_s& ue_radio_cap_check_resp_ies_o::value_c::crit_diagnostics()
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 const uint64_t& ue_radio_cap_check_resp_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& ue_radio_cap_check_resp_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const ims_voice_support_ind_e& ue_radio_cap_check_resp_ies_o::value_c::ims_voice_support_ind() const
 {
-  assert_choice_type("IMSVoiceSupportIndicator", type_.to_string(), "Value");
+  assert_choice_type(types::ims_voice_support_ind, type_, "Value");
   return c.get<ims_voice_support_ind_e>();
 }
 const crit_diagnostics_s& ue_radio_cap_check_resp_ies_o::value_c::crit_diagnostics() const
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 void ue_radio_cap_check_resp_ies_o::value_c::to_json(json_writer& j) const
@@ -36515,42 +36515,42 @@ ue_radio_cap_info_ind_ies_o::value_c::operator=(const ue_radio_cap_info_ind_ies_
 }
 uint64_t& ue_radio_cap_info_ind_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& ue_radio_cap_info_ind_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 unbounded_octstring<true>& ue_radio_cap_info_ind_ies_o::value_c::ue_radio_cap()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::ue_radio_cap, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 ue_radio_cap_for_paging_s& ue_radio_cap_info_ind_ies_o::value_c::ue_radio_cap_for_paging()
 {
-  assert_choice_type("UERadioCapabilityForPaging", type_.to_string(), "Value");
+  assert_choice_type(types::ue_radio_cap_for_paging, type_, "Value");
   return c.get<ue_radio_cap_for_paging_s>();
 }
 const uint64_t& ue_radio_cap_info_ind_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& ue_radio_cap_info_ind_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const unbounded_octstring<true>& ue_radio_cap_info_ind_ies_o::value_c::ue_radio_cap() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::ue_radio_cap, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 const ue_radio_cap_for_paging_s& ue_radio_cap_info_ind_ies_o::value_c::ue_radio_cap_for_paging() const
 {
-  assert_choice_type("UERadioCapabilityForPaging", type_.to_string(), "Value");
+  assert_choice_type(types::ue_radio_cap_for_paging, type_, "Value");
   return c.get<ue_radio_cap_for_paging_s>();
 }
 void ue_radio_cap_info_ind_ies_o::value_c::to_json(json_writer& j) const
@@ -36730,22 +36730,22 @@ uetnla_binding_release_request_ies_o::value_c::operator=(const uetnla_binding_re
 }
 uint64_t& uetnla_binding_release_request_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& uetnla_binding_release_request_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& uetnla_binding_release_request_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& uetnla_binding_release_request_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 void uetnla_binding_release_request_ies_o::value_c::to_json(json_writer& j) const
@@ -36959,42 +36959,42 @@ ul_nas_transport_ies_o::value_c::operator=(const ul_nas_transport_ies_o::value_c
 }
 uint64_t& ul_nas_transport_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& ul_nas_transport_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 unbounded_octstring<true>& ul_nas_transport_ies_o::value_c::nas_pdu()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::nas_pdu, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 user_location_info_c& ul_nas_transport_ies_o::value_c::user_location_info()
 {
-  assert_choice_type("UserLocationInformation", type_.to_string(), "Value");
+  assert_choice_type(types::user_location_info, type_, "Value");
   return c.get<user_location_info_c>();
 }
 const uint64_t& ul_nas_transport_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& ul_nas_transport_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const unbounded_octstring<true>& ul_nas_transport_ies_o::value_c::nas_pdu() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::nas_pdu, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 const user_location_info_c& ul_nas_transport_ies_o::value_c::user_location_info() const
 {
-  assert_choice_type("UserLocationInformation", type_.to_string(), "Value");
+  assert_choice_type(types::user_location_info, type_, "Value");
   return c.get<user_location_info_c>();
 }
 void ul_nas_transport_ies_o::value_c::to_json(json_writer& j) const
@@ -37200,22 +37200,22 @@ ul_non_ueassociated_nrp_pa_transport_ies_o::value_c& ul_non_ueassociated_nrp_pa_
 }
 unbounded_octstring<true>& ul_non_ueassociated_nrp_pa_transport_ies_o::value_c::routing_id()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::routing_id, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 unbounded_octstring<true>& ul_non_ueassociated_nrp_pa_transport_ies_o::value_c::nrp_pa_pdu()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::nrp_pa_pdu, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 const unbounded_octstring<true>& ul_non_ueassociated_nrp_pa_transport_ies_o::value_c::routing_id() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::routing_id, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 const unbounded_octstring<true>& ul_non_ueassociated_nrp_pa_transport_ies_o::value_c::nrp_pa_pdu() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::nrp_pa_pdu, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 void ul_non_ueassociated_nrp_pa_transport_ies_o::value_c::to_json(json_writer& j) const
@@ -37399,22 +37399,22 @@ ul_ran_cfg_transfer_ies_o::value_c::operator=(const ul_ran_cfg_transfer_ies_o::v
 }
 son_cfg_transfer_s& ul_ran_cfg_transfer_ies_o::value_c::son_cfg_transfer_ul()
 {
-  assert_choice_type("SONConfigurationTransfer", type_.to_string(), "Value");
+  assert_choice_type(types::son_cfg_transfer_ul, type_, "Value");
   return c.get<son_cfg_transfer_s>();
 }
 unbounded_octstring<true>& ul_ran_cfg_transfer_ies_o::value_c::endc_son_cfg_transfer_ul()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::endc_son_cfg_transfer_ul, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 const son_cfg_transfer_s& ul_ran_cfg_transfer_ies_o::value_c::son_cfg_transfer_ul() const
 {
-  assert_choice_type("SONConfigurationTransfer", type_.to_string(), "Value");
+  assert_choice_type(types::son_cfg_transfer_ul, type_, "Value");
   return c.get<son_cfg_transfer_s>();
 }
 const unbounded_octstring<true>& ul_ran_cfg_transfer_ies_o::value_c::endc_son_cfg_transfer_ul() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::endc_son_cfg_transfer_ul, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 void ul_ran_cfg_transfer_ies_o::value_c::to_json(json_writer& j) const
@@ -37610,34 +37610,34 @@ ul_ran_status_transfer_ies_o::value_c::operator=(const ul_ran_status_transfer_ie
 }
 uint64_t& ul_ran_status_transfer_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& ul_ran_status_transfer_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 ran_status_transfer_transparent_container_s&
 ul_ran_status_transfer_ies_o::value_c::ran_status_transfer_transparent_container()
 {
-  assert_choice_type("RANStatusTransfer-TransparentContainer", type_.to_string(), "Value");
+  assert_choice_type(types::ran_status_transfer_transparent_container, type_, "Value");
   return c.get<ran_status_transfer_transparent_container_s>();
 }
 const uint64_t& ul_ran_status_transfer_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& ul_ran_status_transfer_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const ran_status_transfer_transparent_container_s&
 ul_ran_status_transfer_ies_o::value_c::ran_status_transfer_transparent_container() const
 {
-  assert_choice_type("RANStatusTransfer-TransparentContainer", type_.to_string(), "Value");
+  assert_choice_type(types::ran_status_transfer_transparent_container, type_, "Value");
   return c.get<ran_status_transfer_transparent_container_s>();
 }
 void ul_ran_status_transfer_ies_o::value_c::to_json(json_writer& j) const
@@ -37862,42 +37862,42 @@ ul_ueassociated_nrp_pa_transport_ies_o::value_c::operator=(const ul_ueassociated
 }
 uint64_t& ul_ueassociated_nrp_pa_transport_ies_o::value_c::amf_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 uint64_t& ul_ueassociated_nrp_pa_transport_ies_o::value_c::ran_ue_ngap_id()
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 unbounded_octstring<true>& ul_ueassociated_nrp_pa_transport_ies_o::value_c::routing_id()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::routing_id, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 unbounded_octstring<true>& ul_ueassociated_nrp_pa_transport_ies_o::value_c::nrp_pa_pdu()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::nrp_pa_pdu, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 const uint64_t& ul_ueassociated_nrp_pa_transport_ies_o::value_c::amf_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..1099511627775)", type_.to_string(), "Value");
+  assert_choice_type(types::amf_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const uint64_t& ul_ueassociated_nrp_pa_transport_ies_o::value_c::ran_ue_ngap_id() const
 {
-  assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
+  assert_choice_type(types::ran_ue_ngap_id, type_, "Value");
   return c.get<uint64_t>();
 }
 const unbounded_octstring<true>& ul_ueassociated_nrp_pa_transport_ies_o::value_c::routing_id() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::routing_id, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 const unbounded_octstring<true>& ul_ueassociated_nrp_pa_transport_ies_o::value_c::nrp_pa_pdu() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::nrp_pa_pdu, type_, "Value");
   return c.get<unbounded_octstring<true> >();
 }
 void ul_ueassociated_nrp_pa_transport_ies_o::value_c::to_json(json_writer& j) const
@@ -38259,112 +38259,112 @@ write_replace_warning_request_ies_o::value_c::operator=(const write_replace_warn
 }
 fixed_bitstring<16, false, true>& write_replace_warning_request_ies_o::value_c::msg_id()
 {
-  assert_choice_type("BIT STRING", type_.to_string(), "Value");
+  assert_choice_type(types::msg_id, type_, "Value");
   return c.get<fixed_bitstring<16, false, true> >();
 }
 fixed_bitstring<16, false, true>& write_replace_warning_request_ies_o::value_c::serial_num()
 {
-  assert_choice_type("BIT STRING", type_.to_string(), "Value");
+  assert_choice_type(types::serial_num, type_, "Value");
   return c.get<fixed_bitstring<16, false, true> >();
 }
 warning_area_list_c& write_replace_warning_request_ies_o::value_c::warning_area_list()
 {
-  assert_choice_type("WarningAreaList", type_.to_string(), "Value");
+  assert_choice_type(types::warning_area_list, type_, "Value");
   return c.get<warning_area_list_c>();
 }
 uint32_t& write_replace_warning_request_ies_o::value_c::repeat_period()
 {
-  assert_choice_type("INTEGER (0..131071)", type_.to_string(), "Value");
+  assert_choice_type(types::repeat_period, type_, "Value");
   return c.get<uint32_t>();
 }
 uint32_t& write_replace_warning_request_ies_o::value_c::nof_broadcasts_requested()
 {
-  assert_choice_type("INTEGER (0..65535)", type_.to_string(), "Value");
+  assert_choice_type(types::nof_broadcasts_requested, type_, "Value");
   return c.get<uint32_t>();
 }
 fixed_octstring<2, true>& write_replace_warning_request_ies_o::value_c::warning_type()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::warning_type, type_, "Value");
   return c.get<fixed_octstring<2, true> >();
 }
 fixed_octstring<50, true>& write_replace_warning_request_ies_o::value_c::warning_security_info()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::warning_security_info, type_, "Value");
   return c.get<fixed_octstring<50, true> >();
 }
 fixed_bitstring<8, false, true>& write_replace_warning_request_ies_o::value_c::data_coding_scheme()
 {
-  assert_choice_type("BIT STRING", type_.to_string(), "Value");
+  assert_choice_type(types::data_coding_scheme, type_, "Value");
   return c.get<fixed_bitstring<8, false, true> >();
 }
 bounded_octstring<1, 9600, true>& write_replace_warning_request_ies_o::value_c::warning_msg_contents()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::warning_msg_contents, type_, "Value");
   return c.get<bounded_octstring<1, 9600, true> >();
 }
 concurrent_warning_msg_ind_e& write_replace_warning_request_ies_o::value_c::concurrent_warning_msg_ind()
 {
-  assert_choice_type("ConcurrentWarningMessageInd", type_.to_string(), "Value");
+  assert_choice_type(types::concurrent_warning_msg_ind, type_, "Value");
   return c.get<concurrent_warning_msg_ind_e>();
 }
 bounded_octstring<1, 1024, true>& write_replace_warning_request_ies_o::value_c::warning_area_coordinates()
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::warning_area_coordinates, type_, "Value");
   return c.get<bounded_octstring<1, 1024, true> >();
 }
 const fixed_bitstring<16, false, true>& write_replace_warning_request_ies_o::value_c::msg_id() const
 {
-  assert_choice_type("BIT STRING", type_.to_string(), "Value");
+  assert_choice_type(types::msg_id, type_, "Value");
   return c.get<fixed_bitstring<16, false, true> >();
 }
 const fixed_bitstring<16, false, true>& write_replace_warning_request_ies_o::value_c::serial_num() const
 {
-  assert_choice_type("BIT STRING", type_.to_string(), "Value");
+  assert_choice_type(types::serial_num, type_, "Value");
   return c.get<fixed_bitstring<16, false, true> >();
 }
 const warning_area_list_c& write_replace_warning_request_ies_o::value_c::warning_area_list() const
 {
-  assert_choice_type("WarningAreaList", type_.to_string(), "Value");
+  assert_choice_type(types::warning_area_list, type_, "Value");
   return c.get<warning_area_list_c>();
 }
 const uint32_t& write_replace_warning_request_ies_o::value_c::repeat_period() const
 {
-  assert_choice_type("INTEGER (0..131071)", type_.to_string(), "Value");
+  assert_choice_type(types::repeat_period, type_, "Value");
   return c.get<uint32_t>();
 }
 const uint32_t& write_replace_warning_request_ies_o::value_c::nof_broadcasts_requested() const
 {
-  assert_choice_type("INTEGER (0..65535)", type_.to_string(), "Value");
+  assert_choice_type(types::nof_broadcasts_requested, type_, "Value");
   return c.get<uint32_t>();
 }
 const fixed_octstring<2, true>& write_replace_warning_request_ies_o::value_c::warning_type() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::warning_type, type_, "Value");
   return c.get<fixed_octstring<2, true> >();
 }
 const fixed_octstring<50, true>& write_replace_warning_request_ies_o::value_c::warning_security_info() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::warning_security_info, type_, "Value");
   return c.get<fixed_octstring<50, true> >();
 }
 const fixed_bitstring<8, false, true>& write_replace_warning_request_ies_o::value_c::data_coding_scheme() const
 {
-  assert_choice_type("BIT STRING", type_.to_string(), "Value");
+  assert_choice_type(types::data_coding_scheme, type_, "Value");
   return c.get<fixed_bitstring<8, false, true> >();
 }
 const bounded_octstring<1, 9600, true>& write_replace_warning_request_ies_o::value_c::warning_msg_contents() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::warning_msg_contents, type_, "Value");
   return c.get<bounded_octstring<1, 9600, true> >();
 }
 const concurrent_warning_msg_ind_e& write_replace_warning_request_ies_o::value_c::concurrent_warning_msg_ind() const
 {
-  assert_choice_type("ConcurrentWarningMessageInd", type_.to_string(), "Value");
+  assert_choice_type(types::concurrent_warning_msg_ind, type_, "Value");
   return c.get<concurrent_warning_msg_ind_e>();
 }
 const bounded_octstring<1, 1024, true>& write_replace_warning_request_ies_o::value_c::warning_area_coordinates() const
 {
-  assert_choice_type("OCTET STRING", type_.to_string(), "Value");
+  assert_choice_type(types::warning_area_coordinates, type_, "Value");
   return c.get<bounded_octstring<1, 1024, true> >();
 }
 void write_replace_warning_request_ies_o::value_c::to_json(json_writer& j) const
@@ -38678,42 +38678,42 @@ write_replace_warning_resp_ies_o::value_c::operator=(const write_replace_warning
 }
 fixed_bitstring<16, false, true>& write_replace_warning_resp_ies_o::value_c::msg_id()
 {
-  assert_choice_type("BIT STRING", type_.to_string(), "Value");
+  assert_choice_type(types::msg_id, type_, "Value");
   return c.get<fixed_bitstring<16, false, true> >();
 }
 fixed_bitstring<16, false, true>& write_replace_warning_resp_ies_o::value_c::serial_num()
 {
-  assert_choice_type("BIT STRING", type_.to_string(), "Value");
+  assert_choice_type(types::serial_num, type_, "Value");
   return c.get<fixed_bitstring<16, false, true> >();
 }
 broadcast_completed_area_list_c& write_replace_warning_resp_ies_o::value_c::broadcast_completed_area_list()
 {
-  assert_choice_type("BroadcastCompletedAreaList", type_.to_string(), "Value");
+  assert_choice_type(types::broadcast_completed_area_list, type_, "Value");
   return c.get<broadcast_completed_area_list_c>();
 }
 crit_diagnostics_s& write_replace_warning_resp_ies_o::value_c::crit_diagnostics()
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 const fixed_bitstring<16, false, true>& write_replace_warning_resp_ies_o::value_c::msg_id() const
 {
-  assert_choice_type("BIT STRING", type_.to_string(), "Value");
+  assert_choice_type(types::msg_id, type_, "Value");
   return c.get<fixed_bitstring<16, false, true> >();
 }
 const fixed_bitstring<16, false, true>& write_replace_warning_resp_ies_o::value_c::serial_num() const
 {
-  assert_choice_type("BIT STRING", type_.to_string(), "Value");
+  assert_choice_type(types::serial_num, type_, "Value");
   return c.get<fixed_bitstring<16, false, true> >();
 }
 const broadcast_completed_area_list_c& write_replace_warning_resp_ies_o::value_c::broadcast_completed_area_list() const
 {
-  assert_choice_type("BroadcastCompletedAreaList", type_.to_string(), "Value");
+  assert_choice_type(types::broadcast_completed_area_list, type_, "Value");
   return c.get<broadcast_completed_area_list_c>();
 }
 const crit_diagnostics_s& write_replace_warning_resp_ies_o::value_c::crit_diagnostics() const
 {
-  assert_choice_type("CriticalityDiagnostics", type_.to_string(), "Value");
+  assert_choice_type(types::crit_diagnostics, type_, "Value");
   return c.get<crit_diagnostics_s>();
 }
 void write_replace_warning_resp_ies_o::value_c::to_json(json_writer& j) const
@@ -45975,534 +45975,534 @@ ngap_elem_procs_o::init_msg_c& ngap_elem_procs_o::init_msg_c::operator=(const ng
 }
 amf_cfg_upd_s& ngap_elem_procs_o::init_msg_c::amf_cfg_upd()
 {
-  assert_choice_type("AMFConfigurationUpdate", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::amf_cfg_upd, type_, "InitiatingMessage");
   return c.get<amf_cfg_upd_s>();
 }
 ho_cancel_s& ngap_elem_procs_o::init_msg_c::ho_cancel()
 {
-  assert_choice_type("HandoverCancel", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ho_cancel, type_, "InitiatingMessage");
   return c.get<ho_cancel_s>();
 }
 ho_required_s& ngap_elem_procs_o::init_msg_c::ho_required()
 {
-  assert_choice_type("HandoverRequired", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ho_required, type_, "InitiatingMessage");
   return c.get<ho_required_s>();
 }
 ho_request_s& ngap_elem_procs_o::init_msg_c::ho_request()
 {
-  assert_choice_type("HandoverRequest", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ho_request, type_, "InitiatingMessage");
   return c.get<ho_request_s>();
 }
 init_context_setup_request_s& ngap_elem_procs_o::init_msg_c::init_context_setup_request()
 {
-  assert_choice_type("InitialContextSetupRequest", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::init_context_setup_request, type_, "InitiatingMessage");
   return c.get<init_context_setup_request_s>();
 }
 ng_reset_s& ngap_elem_procs_o::init_msg_c::ng_reset()
 {
-  assert_choice_type("NGReset", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ng_reset, type_, "InitiatingMessage");
   return c.get<ng_reset_s>();
 }
 ng_setup_request_s& ngap_elem_procs_o::init_msg_c::ng_setup_request()
 {
-  assert_choice_type("NGSetupRequest", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ng_setup_request, type_, "InitiatingMessage");
   return c.get<ng_setup_request_s>();
 }
 path_switch_request_s& ngap_elem_procs_o::init_msg_c::path_switch_request()
 {
-  assert_choice_type("PathSwitchRequest", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::path_switch_request, type_, "InitiatingMessage");
   return c.get<path_switch_request_s>();
 }
 pdu_session_res_modify_request_s& ngap_elem_procs_o::init_msg_c::pdu_session_res_modify_request()
 {
-  assert_choice_type("PDUSessionResourceModifyRequest", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::pdu_session_res_modify_request, type_, "InitiatingMessage");
   return c.get<pdu_session_res_modify_request_s>();
 }
 pdu_session_res_modify_ind_s& ngap_elem_procs_o::init_msg_c::pdu_session_res_modify_ind()
 {
-  assert_choice_type("PDUSessionResourceModifyIndication", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::pdu_session_res_modify_ind, type_, "InitiatingMessage");
   return c.get<pdu_session_res_modify_ind_s>();
 }
 pdu_session_res_release_cmd_s& ngap_elem_procs_o::init_msg_c::pdu_session_res_release_cmd()
 {
-  assert_choice_type("PDUSessionResourceReleaseCommand", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::pdu_session_res_release_cmd, type_, "InitiatingMessage");
   return c.get<pdu_session_res_release_cmd_s>();
 }
 pdu_session_res_setup_request_s& ngap_elem_procs_o::init_msg_c::pdu_session_res_setup_request()
 {
-  assert_choice_type("PDUSessionResourceSetupRequest", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::pdu_session_res_setup_request, type_, "InitiatingMessage");
   return c.get<pdu_session_res_setup_request_s>();
 }
 pws_cancel_request_s& ngap_elem_procs_o::init_msg_c::pws_cancel_request()
 {
-  assert_choice_type("PWSCancelRequest", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::pws_cancel_request, type_, "InitiatingMessage");
   return c.get<pws_cancel_request_s>();
 }
 ran_cfg_upd_s& ngap_elem_procs_o::init_msg_c::ran_cfg_upd()
 {
-  assert_choice_type("RANConfigurationUpdate", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ran_cfg_upd, type_, "InitiatingMessage");
   return c.get<ran_cfg_upd_s>();
 }
 ue_context_mod_request_s& ngap_elem_procs_o::init_msg_c::ue_context_mod_request()
 {
-  assert_choice_type("UEContextModificationRequest", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ue_context_mod_request, type_, "InitiatingMessage");
   return c.get<ue_context_mod_request_s>();
 }
 ue_context_release_cmd_s& ngap_elem_procs_o::init_msg_c::ue_context_release_cmd()
 {
-  assert_choice_type("UEContextReleaseCommand", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ue_context_release_cmd, type_, "InitiatingMessage");
   return c.get<ue_context_release_cmd_s>();
 }
 ue_radio_cap_check_request_s& ngap_elem_procs_o::init_msg_c::ue_radio_cap_check_request()
 {
-  assert_choice_type("UERadioCapabilityCheckRequest", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ue_radio_cap_check_request, type_, "InitiatingMessage");
   return c.get<ue_radio_cap_check_request_s>();
 }
 write_replace_warning_request_s& ngap_elem_procs_o::init_msg_c::write_replace_warning_request()
 {
-  assert_choice_type("WriteReplaceWarningRequest", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::write_replace_warning_request, type_, "InitiatingMessage");
   return c.get<write_replace_warning_request_s>();
 }
 amf_status_ind_s& ngap_elem_procs_o::init_msg_c::amf_status_ind()
 {
-  assert_choice_type("AMFStatusIndication", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::amf_status_ind, type_, "InitiatingMessage");
   return c.get<amf_status_ind_s>();
 }
 cell_traffic_trace_s& ngap_elem_procs_o::init_msg_c::cell_traffic_trace()
 {
-  assert_choice_type("CellTrafficTrace", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::cell_traffic_trace, type_, "InitiatingMessage");
   return c.get<cell_traffic_trace_s>();
 }
 deactiv_trace_s& ngap_elem_procs_o::init_msg_c::deactiv_trace()
 {
-  assert_choice_type("DeactivateTrace", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::deactiv_trace, type_, "InitiatingMessage");
   return c.get<deactiv_trace_s>();
 }
 dl_nas_transport_s& ngap_elem_procs_o::init_msg_c::dl_nas_transport()
 {
-  assert_choice_type("DownlinkNASTransport", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::dl_nas_transport, type_, "InitiatingMessage");
   return c.get<dl_nas_transport_s>();
 }
 dl_non_ueassociated_nrp_pa_transport_s& ngap_elem_procs_o::init_msg_c::dl_non_ueassociated_nrp_pa_transport()
 {
-  assert_choice_type("DownlinkNonUEAssociatedNRPPaTransport", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::dl_non_ueassociated_nrp_pa_transport, type_, "InitiatingMessage");
   return c.get<dl_non_ueassociated_nrp_pa_transport_s>();
 }
 dl_ran_cfg_transfer_s& ngap_elem_procs_o::init_msg_c::dl_ran_cfg_transfer()
 {
-  assert_choice_type("DownlinkRANConfigurationTransfer", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::dl_ran_cfg_transfer, type_, "InitiatingMessage");
   return c.get<dl_ran_cfg_transfer_s>();
 }
 dl_ran_status_transfer_s& ngap_elem_procs_o::init_msg_c::dl_ran_status_transfer()
 {
-  assert_choice_type("DownlinkRANStatusTransfer", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::dl_ran_status_transfer, type_, "InitiatingMessage");
   return c.get<dl_ran_status_transfer_s>();
 }
 dl_ueassociated_nrp_pa_transport_s& ngap_elem_procs_o::init_msg_c::dl_ueassociated_nrp_pa_transport()
 {
-  assert_choice_type("DownlinkUEAssociatedNRPPaTransport", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::dl_ueassociated_nrp_pa_transport, type_, "InitiatingMessage");
   return c.get<dl_ueassociated_nrp_pa_transport_s>();
 }
 error_ind_s& ngap_elem_procs_o::init_msg_c::error_ind()
 {
-  assert_choice_type("ErrorIndication", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::error_ind, type_, "InitiatingMessage");
   return c.get<error_ind_s>();
 }
 ho_notify_s& ngap_elem_procs_o::init_msg_c::ho_notify()
 {
-  assert_choice_type("HandoverNotify", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ho_notify, type_, "InitiatingMessage");
   return c.get<ho_notify_s>();
 }
 init_ue_msg_s& ngap_elem_procs_o::init_msg_c::init_ue_msg()
 {
-  assert_choice_type("InitialUEMessage", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::init_ue_msg, type_, "InitiatingMessage");
   return c.get<init_ue_msg_s>();
 }
 location_report_s& ngap_elem_procs_o::init_msg_c::location_report()
 {
-  assert_choice_type("LocationReport", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::location_report, type_, "InitiatingMessage");
   return c.get<location_report_s>();
 }
 location_report_ctrl_s& ngap_elem_procs_o::init_msg_c::location_report_ctrl()
 {
-  assert_choice_type("LocationReportingControl", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::location_report_ctrl, type_, "InitiatingMessage");
   return c.get<location_report_ctrl_s>();
 }
 location_report_fail_ind_s& ngap_elem_procs_o::init_msg_c::location_report_fail_ind()
 {
-  assert_choice_type("LocationReportingFailureIndication", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::location_report_fail_ind, type_, "InitiatingMessage");
   return c.get<location_report_fail_ind_s>();
 }
 nas_non_delivery_ind_s& ngap_elem_procs_o::init_msg_c::nas_non_delivery_ind()
 {
-  assert_choice_type("NASNonDeliveryIndication", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::nas_non_delivery_ind, type_, "InitiatingMessage");
   return c.get<nas_non_delivery_ind_s>();
 }
 overload_start_s& ngap_elem_procs_o::init_msg_c::overload_start()
 {
-  assert_choice_type("OverloadStart", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::overload_start, type_, "InitiatingMessage");
   return c.get<overload_start_s>();
 }
 overload_stop_s& ngap_elem_procs_o::init_msg_c::overload_stop()
 {
-  assert_choice_type("OverloadStop", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::overload_stop, type_, "InitiatingMessage");
   return c.get<overload_stop_s>();
 }
 paging_s& ngap_elem_procs_o::init_msg_c::paging()
 {
-  assert_choice_type("Paging", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::paging, type_, "InitiatingMessage");
   return c.get<paging_s>();
 }
 pdu_session_res_notify_s& ngap_elem_procs_o::init_msg_c::pdu_session_res_notify()
 {
-  assert_choice_type("PDUSessionResourceNotify", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::pdu_session_res_notify, type_, "InitiatingMessage");
   return c.get<pdu_session_res_notify_s>();
 }
 private_msg_s& ngap_elem_procs_o::init_msg_c::private_msg()
 {
-  assert_choice_type("PrivateMessage", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::private_msg, type_, "InitiatingMessage");
   return c.get<private_msg_s>();
 }
 pws_fail_ind_s& ngap_elem_procs_o::init_msg_c::pws_fail_ind()
 {
-  assert_choice_type("PWSFailureIndication", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::pws_fail_ind, type_, "InitiatingMessage");
   return c.get<pws_fail_ind_s>();
 }
 pws_restart_ind_s& ngap_elem_procs_o::init_msg_c::pws_restart_ind()
 {
-  assert_choice_type("PWSRestartIndication", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::pws_restart_ind, type_, "InitiatingMessage");
   return c.get<pws_restart_ind_s>();
 }
 reroute_nas_request_s& ngap_elem_procs_o::init_msg_c::reroute_nas_request()
 {
-  assert_choice_type("RerouteNASRequest", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::reroute_nas_request, type_, "InitiatingMessage");
   return c.get<reroute_nas_request_s>();
 }
 rrc_inactive_transition_report_s& ngap_elem_procs_o::init_msg_c::rrc_inactive_transition_report()
 {
-  assert_choice_type("RRCInactiveTransitionReport", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::rrc_inactive_transition_report, type_, "InitiatingMessage");
   return c.get<rrc_inactive_transition_report_s>();
 }
 secondary_rat_data_usage_report_s& ngap_elem_procs_o::init_msg_c::secondary_rat_data_usage_report()
 {
-  assert_choice_type("SecondaryRATDataUsageReport", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::secondary_rat_data_usage_report, type_, "InitiatingMessage");
   return c.get<secondary_rat_data_usage_report_s>();
 }
 trace_fail_ind_s& ngap_elem_procs_o::init_msg_c::trace_fail_ind()
 {
-  assert_choice_type("TraceFailureIndication", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::trace_fail_ind, type_, "InitiatingMessage");
   return c.get<trace_fail_ind_s>();
 }
 trace_start_s& ngap_elem_procs_o::init_msg_c::trace_start()
 {
-  assert_choice_type("TraceStart", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::trace_start, type_, "InitiatingMessage");
   return c.get<trace_start_s>();
 }
 ue_context_release_request_s& ngap_elem_procs_o::init_msg_c::ue_context_release_request()
 {
-  assert_choice_type("UEContextReleaseRequest", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ue_context_release_request, type_, "InitiatingMessage");
   return c.get<ue_context_release_request_s>();
 }
 ue_radio_cap_info_ind_s& ngap_elem_procs_o::init_msg_c::ue_radio_cap_info_ind()
 {
-  assert_choice_type("UERadioCapabilityInfoIndication", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ue_radio_cap_info_ind, type_, "InitiatingMessage");
   return c.get<ue_radio_cap_info_ind_s>();
 }
 uetnla_binding_release_request_s& ngap_elem_procs_o::init_msg_c::uetnla_binding_release_request()
 {
-  assert_choice_type("UETNLABindingReleaseRequest", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::uetnla_binding_release_request, type_, "InitiatingMessage");
   return c.get<uetnla_binding_release_request_s>();
 }
 ul_nas_transport_s& ngap_elem_procs_o::init_msg_c::ul_nas_transport()
 {
-  assert_choice_type("UplinkNASTransport", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ul_nas_transport, type_, "InitiatingMessage");
   return c.get<ul_nas_transport_s>();
 }
 ul_non_ueassociated_nrp_pa_transport_s& ngap_elem_procs_o::init_msg_c::ul_non_ueassociated_nrp_pa_transport()
 {
-  assert_choice_type("UplinkNonUEAssociatedNRPPaTransport", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ul_non_ueassociated_nrp_pa_transport, type_, "InitiatingMessage");
   return c.get<ul_non_ueassociated_nrp_pa_transport_s>();
 }
 ul_ran_cfg_transfer_s& ngap_elem_procs_o::init_msg_c::ul_ran_cfg_transfer()
 {
-  assert_choice_type("UplinkRANConfigurationTransfer", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ul_ran_cfg_transfer, type_, "InitiatingMessage");
   return c.get<ul_ran_cfg_transfer_s>();
 }
 ul_ran_status_transfer_s& ngap_elem_procs_o::init_msg_c::ul_ran_status_transfer()
 {
-  assert_choice_type("UplinkRANStatusTransfer", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ul_ran_status_transfer, type_, "InitiatingMessage");
   return c.get<ul_ran_status_transfer_s>();
 }
 ul_ueassociated_nrp_pa_transport_s& ngap_elem_procs_o::init_msg_c::ul_ueassociated_nrp_pa_transport()
 {
-  assert_choice_type("UplinkUEAssociatedNRPPaTransport", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ul_ueassociated_nrp_pa_transport, type_, "InitiatingMessage");
   return c.get<ul_ueassociated_nrp_pa_transport_s>();
 }
 const amf_cfg_upd_s& ngap_elem_procs_o::init_msg_c::amf_cfg_upd() const
 {
-  assert_choice_type("AMFConfigurationUpdate", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::amf_cfg_upd, type_, "InitiatingMessage");
   return c.get<amf_cfg_upd_s>();
 }
 const ho_cancel_s& ngap_elem_procs_o::init_msg_c::ho_cancel() const
 {
-  assert_choice_type("HandoverCancel", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ho_cancel, type_, "InitiatingMessage");
   return c.get<ho_cancel_s>();
 }
 const ho_required_s& ngap_elem_procs_o::init_msg_c::ho_required() const
 {
-  assert_choice_type("HandoverRequired", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ho_required, type_, "InitiatingMessage");
   return c.get<ho_required_s>();
 }
 const ho_request_s& ngap_elem_procs_o::init_msg_c::ho_request() const
 {
-  assert_choice_type("HandoverRequest", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ho_request, type_, "InitiatingMessage");
   return c.get<ho_request_s>();
 }
 const init_context_setup_request_s& ngap_elem_procs_o::init_msg_c::init_context_setup_request() const
 {
-  assert_choice_type("InitialContextSetupRequest", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::init_context_setup_request, type_, "InitiatingMessage");
   return c.get<init_context_setup_request_s>();
 }
 const ng_reset_s& ngap_elem_procs_o::init_msg_c::ng_reset() const
 {
-  assert_choice_type("NGReset", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ng_reset, type_, "InitiatingMessage");
   return c.get<ng_reset_s>();
 }
 const ng_setup_request_s& ngap_elem_procs_o::init_msg_c::ng_setup_request() const
 {
-  assert_choice_type("NGSetupRequest", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ng_setup_request, type_, "InitiatingMessage");
   return c.get<ng_setup_request_s>();
 }
 const path_switch_request_s& ngap_elem_procs_o::init_msg_c::path_switch_request() const
 {
-  assert_choice_type("PathSwitchRequest", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::path_switch_request, type_, "InitiatingMessage");
   return c.get<path_switch_request_s>();
 }
 const pdu_session_res_modify_request_s& ngap_elem_procs_o::init_msg_c::pdu_session_res_modify_request() const
 {
-  assert_choice_type("PDUSessionResourceModifyRequest", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::pdu_session_res_modify_request, type_, "InitiatingMessage");
   return c.get<pdu_session_res_modify_request_s>();
 }
 const pdu_session_res_modify_ind_s& ngap_elem_procs_o::init_msg_c::pdu_session_res_modify_ind() const
 {
-  assert_choice_type("PDUSessionResourceModifyIndication", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::pdu_session_res_modify_ind, type_, "InitiatingMessage");
   return c.get<pdu_session_res_modify_ind_s>();
 }
 const pdu_session_res_release_cmd_s& ngap_elem_procs_o::init_msg_c::pdu_session_res_release_cmd() const
 {
-  assert_choice_type("PDUSessionResourceReleaseCommand", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::pdu_session_res_release_cmd, type_, "InitiatingMessage");
   return c.get<pdu_session_res_release_cmd_s>();
 }
 const pdu_session_res_setup_request_s& ngap_elem_procs_o::init_msg_c::pdu_session_res_setup_request() const
 {
-  assert_choice_type("PDUSessionResourceSetupRequest", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::pdu_session_res_setup_request, type_, "InitiatingMessage");
   return c.get<pdu_session_res_setup_request_s>();
 }
 const pws_cancel_request_s& ngap_elem_procs_o::init_msg_c::pws_cancel_request() const
 {
-  assert_choice_type("PWSCancelRequest", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::pws_cancel_request, type_, "InitiatingMessage");
   return c.get<pws_cancel_request_s>();
 }
 const ran_cfg_upd_s& ngap_elem_procs_o::init_msg_c::ran_cfg_upd() const
 {
-  assert_choice_type("RANConfigurationUpdate", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ran_cfg_upd, type_, "InitiatingMessage");
   return c.get<ran_cfg_upd_s>();
 }
 const ue_context_mod_request_s& ngap_elem_procs_o::init_msg_c::ue_context_mod_request() const
 {
-  assert_choice_type("UEContextModificationRequest", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ue_context_mod_request, type_, "InitiatingMessage");
   return c.get<ue_context_mod_request_s>();
 }
 const ue_context_release_cmd_s& ngap_elem_procs_o::init_msg_c::ue_context_release_cmd() const
 {
-  assert_choice_type("UEContextReleaseCommand", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ue_context_release_cmd, type_, "InitiatingMessage");
   return c.get<ue_context_release_cmd_s>();
 }
 const ue_radio_cap_check_request_s& ngap_elem_procs_o::init_msg_c::ue_radio_cap_check_request() const
 {
-  assert_choice_type("UERadioCapabilityCheckRequest", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ue_radio_cap_check_request, type_, "InitiatingMessage");
   return c.get<ue_radio_cap_check_request_s>();
 }
 const write_replace_warning_request_s& ngap_elem_procs_o::init_msg_c::write_replace_warning_request() const
 {
-  assert_choice_type("WriteReplaceWarningRequest", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::write_replace_warning_request, type_, "InitiatingMessage");
   return c.get<write_replace_warning_request_s>();
 }
 const amf_status_ind_s& ngap_elem_procs_o::init_msg_c::amf_status_ind() const
 {
-  assert_choice_type("AMFStatusIndication", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::amf_status_ind, type_, "InitiatingMessage");
   return c.get<amf_status_ind_s>();
 }
 const cell_traffic_trace_s& ngap_elem_procs_o::init_msg_c::cell_traffic_trace() const
 {
-  assert_choice_type("CellTrafficTrace", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::cell_traffic_trace, type_, "InitiatingMessage");
   return c.get<cell_traffic_trace_s>();
 }
 const deactiv_trace_s& ngap_elem_procs_o::init_msg_c::deactiv_trace() const
 {
-  assert_choice_type("DeactivateTrace", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::deactiv_trace, type_, "InitiatingMessage");
   return c.get<deactiv_trace_s>();
 }
 const dl_nas_transport_s& ngap_elem_procs_o::init_msg_c::dl_nas_transport() const
 {
-  assert_choice_type("DownlinkNASTransport", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::dl_nas_transport, type_, "InitiatingMessage");
   return c.get<dl_nas_transport_s>();
 }
 const dl_non_ueassociated_nrp_pa_transport_s&
 ngap_elem_procs_o::init_msg_c::dl_non_ueassociated_nrp_pa_transport() const
 {
-  assert_choice_type("DownlinkNonUEAssociatedNRPPaTransport", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::dl_non_ueassociated_nrp_pa_transport, type_, "InitiatingMessage");
   return c.get<dl_non_ueassociated_nrp_pa_transport_s>();
 }
 const dl_ran_cfg_transfer_s& ngap_elem_procs_o::init_msg_c::dl_ran_cfg_transfer() const
 {
-  assert_choice_type("DownlinkRANConfigurationTransfer", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::dl_ran_cfg_transfer, type_, "InitiatingMessage");
   return c.get<dl_ran_cfg_transfer_s>();
 }
 const dl_ran_status_transfer_s& ngap_elem_procs_o::init_msg_c::dl_ran_status_transfer() const
 {
-  assert_choice_type("DownlinkRANStatusTransfer", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::dl_ran_status_transfer, type_, "InitiatingMessage");
   return c.get<dl_ran_status_transfer_s>();
 }
 const dl_ueassociated_nrp_pa_transport_s& ngap_elem_procs_o::init_msg_c::dl_ueassociated_nrp_pa_transport() const
 {
-  assert_choice_type("DownlinkUEAssociatedNRPPaTransport", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::dl_ueassociated_nrp_pa_transport, type_, "InitiatingMessage");
   return c.get<dl_ueassociated_nrp_pa_transport_s>();
 }
 const error_ind_s& ngap_elem_procs_o::init_msg_c::error_ind() const
 {
-  assert_choice_type("ErrorIndication", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::error_ind, type_, "InitiatingMessage");
   return c.get<error_ind_s>();
 }
 const ho_notify_s& ngap_elem_procs_o::init_msg_c::ho_notify() const
 {
-  assert_choice_type("HandoverNotify", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ho_notify, type_, "InitiatingMessage");
   return c.get<ho_notify_s>();
 }
 const init_ue_msg_s& ngap_elem_procs_o::init_msg_c::init_ue_msg() const
 {
-  assert_choice_type("InitialUEMessage", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::init_ue_msg, type_, "InitiatingMessage");
   return c.get<init_ue_msg_s>();
 }
 const location_report_s& ngap_elem_procs_o::init_msg_c::location_report() const
 {
-  assert_choice_type("LocationReport", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::location_report, type_, "InitiatingMessage");
   return c.get<location_report_s>();
 }
 const location_report_ctrl_s& ngap_elem_procs_o::init_msg_c::location_report_ctrl() const
 {
-  assert_choice_type("LocationReportingControl", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::location_report_ctrl, type_, "InitiatingMessage");
   return c.get<location_report_ctrl_s>();
 }
 const location_report_fail_ind_s& ngap_elem_procs_o::init_msg_c::location_report_fail_ind() const
 {
-  assert_choice_type("LocationReportingFailureIndication", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::location_report_fail_ind, type_, "InitiatingMessage");
   return c.get<location_report_fail_ind_s>();
 }
 const nas_non_delivery_ind_s& ngap_elem_procs_o::init_msg_c::nas_non_delivery_ind() const
 {
-  assert_choice_type("NASNonDeliveryIndication", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::nas_non_delivery_ind, type_, "InitiatingMessage");
   return c.get<nas_non_delivery_ind_s>();
 }
 const overload_start_s& ngap_elem_procs_o::init_msg_c::overload_start() const
 {
-  assert_choice_type("OverloadStart", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::overload_start, type_, "InitiatingMessage");
   return c.get<overload_start_s>();
 }
 const overload_stop_s& ngap_elem_procs_o::init_msg_c::overload_stop() const
 {
-  assert_choice_type("OverloadStop", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::overload_stop, type_, "InitiatingMessage");
   return c.get<overload_stop_s>();
 }
 const paging_s& ngap_elem_procs_o::init_msg_c::paging() const
 {
-  assert_choice_type("Paging", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::paging, type_, "InitiatingMessage");
   return c.get<paging_s>();
 }
 const pdu_session_res_notify_s& ngap_elem_procs_o::init_msg_c::pdu_session_res_notify() const
 {
-  assert_choice_type("PDUSessionResourceNotify", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::pdu_session_res_notify, type_, "InitiatingMessage");
   return c.get<pdu_session_res_notify_s>();
 }
 const private_msg_s& ngap_elem_procs_o::init_msg_c::private_msg() const
 {
-  assert_choice_type("PrivateMessage", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::private_msg, type_, "InitiatingMessage");
   return c.get<private_msg_s>();
 }
 const pws_fail_ind_s& ngap_elem_procs_o::init_msg_c::pws_fail_ind() const
 {
-  assert_choice_type("PWSFailureIndication", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::pws_fail_ind, type_, "InitiatingMessage");
   return c.get<pws_fail_ind_s>();
 }
 const pws_restart_ind_s& ngap_elem_procs_o::init_msg_c::pws_restart_ind() const
 {
-  assert_choice_type("PWSRestartIndication", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::pws_restart_ind, type_, "InitiatingMessage");
   return c.get<pws_restart_ind_s>();
 }
 const reroute_nas_request_s& ngap_elem_procs_o::init_msg_c::reroute_nas_request() const
 {
-  assert_choice_type("RerouteNASRequest", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::reroute_nas_request, type_, "InitiatingMessage");
   return c.get<reroute_nas_request_s>();
 }
 const rrc_inactive_transition_report_s& ngap_elem_procs_o::init_msg_c::rrc_inactive_transition_report() const
 {
-  assert_choice_type("RRCInactiveTransitionReport", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::rrc_inactive_transition_report, type_, "InitiatingMessage");
   return c.get<rrc_inactive_transition_report_s>();
 }
 const secondary_rat_data_usage_report_s& ngap_elem_procs_o::init_msg_c::secondary_rat_data_usage_report() const
 {
-  assert_choice_type("SecondaryRATDataUsageReport", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::secondary_rat_data_usage_report, type_, "InitiatingMessage");
   return c.get<secondary_rat_data_usage_report_s>();
 }
 const trace_fail_ind_s& ngap_elem_procs_o::init_msg_c::trace_fail_ind() const
 {
-  assert_choice_type("TraceFailureIndication", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::trace_fail_ind, type_, "InitiatingMessage");
   return c.get<trace_fail_ind_s>();
 }
 const trace_start_s& ngap_elem_procs_o::init_msg_c::trace_start() const
 {
-  assert_choice_type("TraceStart", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::trace_start, type_, "InitiatingMessage");
   return c.get<trace_start_s>();
 }
 const ue_context_release_request_s& ngap_elem_procs_o::init_msg_c::ue_context_release_request() const
 {
-  assert_choice_type("UEContextReleaseRequest", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ue_context_release_request, type_, "InitiatingMessage");
   return c.get<ue_context_release_request_s>();
 }
 const ue_radio_cap_info_ind_s& ngap_elem_procs_o::init_msg_c::ue_radio_cap_info_ind() const
 {
-  assert_choice_type("UERadioCapabilityInfoIndication", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ue_radio_cap_info_ind, type_, "InitiatingMessage");
   return c.get<ue_radio_cap_info_ind_s>();
 }
 const uetnla_binding_release_request_s& ngap_elem_procs_o::init_msg_c::uetnla_binding_release_request() const
 {
-  assert_choice_type("UETNLABindingReleaseRequest", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::uetnla_binding_release_request, type_, "InitiatingMessage");
   return c.get<uetnla_binding_release_request_s>();
 }
 const ul_nas_transport_s& ngap_elem_procs_o::init_msg_c::ul_nas_transport() const
 {
-  assert_choice_type("UplinkNASTransport", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ul_nas_transport, type_, "InitiatingMessage");
   return c.get<ul_nas_transport_s>();
 }
 const ul_non_ueassociated_nrp_pa_transport_s&
 ngap_elem_procs_o::init_msg_c::ul_non_ueassociated_nrp_pa_transport() const
 {
-  assert_choice_type("UplinkNonUEAssociatedNRPPaTransport", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ul_non_ueassociated_nrp_pa_transport, type_, "InitiatingMessage");
   return c.get<ul_non_ueassociated_nrp_pa_transport_s>();
 }
 const ul_ran_cfg_transfer_s& ngap_elem_procs_o::init_msg_c::ul_ran_cfg_transfer() const
 {
-  assert_choice_type("UplinkRANConfigurationTransfer", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ul_ran_cfg_transfer, type_, "InitiatingMessage");
   return c.get<ul_ran_cfg_transfer_s>();
 }
 const ul_ran_status_transfer_s& ngap_elem_procs_o::init_msg_c::ul_ran_status_transfer() const
 {
-  assert_choice_type("UplinkRANStatusTransfer", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ul_ran_status_transfer, type_, "InitiatingMessage");
   return c.get<ul_ran_status_transfer_s>();
 }
 const ul_ueassociated_nrp_pa_transport_s& ngap_elem_procs_o::init_msg_c::ul_ueassociated_nrp_pa_transport() const
 {
-  assert_choice_type("UplinkUEAssociatedNRPPaTransport", type_.to_string(), "InitiatingMessage");
+  assert_choice_type(types::ul_ueassociated_nrp_pa_transport, type_, "InitiatingMessage");
   return c.get<ul_ueassociated_nrp_pa_transport_s>();
 }
 void ngap_elem_procs_o::init_msg_c::to_json(json_writer& j) const
@@ -47386,182 +47386,182 @@ ngap_elem_procs_o::successful_outcome_c::operator=(const ngap_elem_procs_o::succ
 }
 amf_cfg_upd_ack_s& ngap_elem_procs_o::successful_outcome_c::amf_cfg_upd_ack()
 {
-  assert_choice_type("AMFConfigurationUpdateAcknowledge", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::amf_cfg_upd_ack, type_, "SuccessfulOutcome");
   return c.get<amf_cfg_upd_ack_s>();
 }
 ho_cancel_ack_s& ngap_elem_procs_o::successful_outcome_c::ho_cancel_ack()
 {
-  assert_choice_type("HandoverCancelAcknowledge", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::ho_cancel_ack, type_, "SuccessfulOutcome");
   return c.get<ho_cancel_ack_s>();
 }
 ho_cmd_s& ngap_elem_procs_o::successful_outcome_c::ho_cmd()
 {
-  assert_choice_type("HandoverCommand", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::ho_cmd, type_, "SuccessfulOutcome");
   return c.get<ho_cmd_s>();
 }
 ho_request_ack_s& ngap_elem_procs_o::successful_outcome_c::ho_request_ack()
 {
-  assert_choice_type("HandoverRequestAcknowledge", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::ho_request_ack, type_, "SuccessfulOutcome");
   return c.get<ho_request_ack_s>();
 }
 init_context_setup_resp_s& ngap_elem_procs_o::successful_outcome_c::init_context_setup_resp()
 {
-  assert_choice_type("InitialContextSetupResponse", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::init_context_setup_resp, type_, "SuccessfulOutcome");
   return c.get<init_context_setup_resp_s>();
 }
 ng_reset_ack_s& ngap_elem_procs_o::successful_outcome_c::ng_reset_ack()
 {
-  assert_choice_type("NGResetAcknowledge", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::ng_reset_ack, type_, "SuccessfulOutcome");
   return c.get<ng_reset_ack_s>();
 }
 ng_setup_resp_s& ngap_elem_procs_o::successful_outcome_c::ng_setup_resp()
 {
-  assert_choice_type("NGSetupResponse", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::ng_setup_resp, type_, "SuccessfulOutcome");
   return c.get<ng_setup_resp_s>();
 }
 path_switch_request_ack_s& ngap_elem_procs_o::successful_outcome_c::path_switch_request_ack()
 {
-  assert_choice_type("PathSwitchRequestAcknowledge", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::path_switch_request_ack, type_, "SuccessfulOutcome");
   return c.get<path_switch_request_ack_s>();
 }
 pdu_session_res_modify_resp_s& ngap_elem_procs_o::successful_outcome_c::pdu_session_res_modify_resp()
 {
-  assert_choice_type("PDUSessionResourceModifyResponse", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::pdu_session_res_modify_resp, type_, "SuccessfulOutcome");
   return c.get<pdu_session_res_modify_resp_s>();
 }
 pdu_session_res_modify_confirm_s& ngap_elem_procs_o::successful_outcome_c::pdu_session_res_modify_confirm()
 {
-  assert_choice_type("PDUSessionResourceModifyConfirm", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::pdu_session_res_modify_confirm, type_, "SuccessfulOutcome");
   return c.get<pdu_session_res_modify_confirm_s>();
 }
 pdu_session_res_release_resp_s& ngap_elem_procs_o::successful_outcome_c::pdu_session_res_release_resp()
 {
-  assert_choice_type("PDUSessionResourceReleaseResponse", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::pdu_session_res_release_resp, type_, "SuccessfulOutcome");
   return c.get<pdu_session_res_release_resp_s>();
 }
 pdu_session_res_setup_resp_s& ngap_elem_procs_o::successful_outcome_c::pdu_session_res_setup_resp()
 {
-  assert_choice_type("PDUSessionResourceSetupResponse", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::pdu_session_res_setup_resp, type_, "SuccessfulOutcome");
   return c.get<pdu_session_res_setup_resp_s>();
 }
 pws_cancel_resp_s& ngap_elem_procs_o::successful_outcome_c::pws_cancel_resp()
 {
-  assert_choice_type("PWSCancelResponse", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::pws_cancel_resp, type_, "SuccessfulOutcome");
   return c.get<pws_cancel_resp_s>();
 }
 ran_cfg_upd_ack_s& ngap_elem_procs_o::successful_outcome_c::ran_cfg_upd_ack()
 {
-  assert_choice_type("RANConfigurationUpdateAcknowledge", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::ran_cfg_upd_ack, type_, "SuccessfulOutcome");
   return c.get<ran_cfg_upd_ack_s>();
 }
 ue_context_mod_resp_s& ngap_elem_procs_o::successful_outcome_c::ue_context_mod_resp()
 {
-  assert_choice_type("UEContextModificationResponse", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::ue_context_mod_resp, type_, "SuccessfulOutcome");
   return c.get<ue_context_mod_resp_s>();
 }
 ue_context_release_complete_s& ngap_elem_procs_o::successful_outcome_c::ue_context_release_complete()
 {
-  assert_choice_type("UEContextReleaseComplete", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::ue_context_release_complete, type_, "SuccessfulOutcome");
   return c.get<ue_context_release_complete_s>();
 }
 ue_radio_cap_check_resp_s& ngap_elem_procs_o::successful_outcome_c::ue_radio_cap_check_resp()
 {
-  assert_choice_type("UERadioCapabilityCheckResponse", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::ue_radio_cap_check_resp, type_, "SuccessfulOutcome");
   return c.get<ue_radio_cap_check_resp_s>();
 }
 write_replace_warning_resp_s& ngap_elem_procs_o::successful_outcome_c::write_replace_warning_resp()
 {
-  assert_choice_type("WriteReplaceWarningResponse", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::write_replace_warning_resp, type_, "SuccessfulOutcome");
   return c.get<write_replace_warning_resp_s>();
 }
 const amf_cfg_upd_ack_s& ngap_elem_procs_o::successful_outcome_c::amf_cfg_upd_ack() const
 {
-  assert_choice_type("AMFConfigurationUpdateAcknowledge", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::amf_cfg_upd_ack, type_, "SuccessfulOutcome");
   return c.get<amf_cfg_upd_ack_s>();
 }
 const ho_cancel_ack_s& ngap_elem_procs_o::successful_outcome_c::ho_cancel_ack() const
 {
-  assert_choice_type("HandoverCancelAcknowledge", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::ho_cancel_ack, type_, "SuccessfulOutcome");
   return c.get<ho_cancel_ack_s>();
 }
 const ho_cmd_s& ngap_elem_procs_o::successful_outcome_c::ho_cmd() const
 {
-  assert_choice_type("HandoverCommand", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::ho_cmd, type_, "SuccessfulOutcome");
   return c.get<ho_cmd_s>();
 }
 const ho_request_ack_s& ngap_elem_procs_o::successful_outcome_c::ho_request_ack() const
 {
-  assert_choice_type("HandoverRequestAcknowledge", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::ho_request_ack, type_, "SuccessfulOutcome");
   return c.get<ho_request_ack_s>();
 }
 const init_context_setup_resp_s& ngap_elem_procs_o::successful_outcome_c::init_context_setup_resp() const
 {
-  assert_choice_type("InitialContextSetupResponse", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::init_context_setup_resp, type_, "SuccessfulOutcome");
   return c.get<init_context_setup_resp_s>();
 }
 const ng_reset_ack_s& ngap_elem_procs_o::successful_outcome_c::ng_reset_ack() const
 {
-  assert_choice_type("NGResetAcknowledge", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::ng_reset_ack, type_, "SuccessfulOutcome");
   return c.get<ng_reset_ack_s>();
 }
 const ng_setup_resp_s& ngap_elem_procs_o::successful_outcome_c::ng_setup_resp() const
 {
-  assert_choice_type("NGSetupResponse", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::ng_setup_resp, type_, "SuccessfulOutcome");
   return c.get<ng_setup_resp_s>();
 }
 const path_switch_request_ack_s& ngap_elem_procs_o::successful_outcome_c::path_switch_request_ack() const
 {
-  assert_choice_type("PathSwitchRequestAcknowledge", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::path_switch_request_ack, type_, "SuccessfulOutcome");
   return c.get<path_switch_request_ack_s>();
 }
 const pdu_session_res_modify_resp_s& ngap_elem_procs_o::successful_outcome_c::pdu_session_res_modify_resp() const
 {
-  assert_choice_type("PDUSessionResourceModifyResponse", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::pdu_session_res_modify_resp, type_, "SuccessfulOutcome");
   return c.get<pdu_session_res_modify_resp_s>();
 }
 const pdu_session_res_modify_confirm_s& ngap_elem_procs_o::successful_outcome_c::pdu_session_res_modify_confirm() const
 {
-  assert_choice_type("PDUSessionResourceModifyConfirm", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::pdu_session_res_modify_confirm, type_, "SuccessfulOutcome");
   return c.get<pdu_session_res_modify_confirm_s>();
 }
 const pdu_session_res_release_resp_s& ngap_elem_procs_o::successful_outcome_c::pdu_session_res_release_resp() const
 {
-  assert_choice_type("PDUSessionResourceReleaseResponse", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::pdu_session_res_release_resp, type_, "SuccessfulOutcome");
   return c.get<pdu_session_res_release_resp_s>();
 }
 const pdu_session_res_setup_resp_s& ngap_elem_procs_o::successful_outcome_c::pdu_session_res_setup_resp() const
 {
-  assert_choice_type("PDUSessionResourceSetupResponse", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::pdu_session_res_setup_resp, type_, "SuccessfulOutcome");
   return c.get<pdu_session_res_setup_resp_s>();
 }
 const pws_cancel_resp_s& ngap_elem_procs_o::successful_outcome_c::pws_cancel_resp() const
 {
-  assert_choice_type("PWSCancelResponse", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::pws_cancel_resp, type_, "SuccessfulOutcome");
   return c.get<pws_cancel_resp_s>();
 }
 const ran_cfg_upd_ack_s& ngap_elem_procs_o::successful_outcome_c::ran_cfg_upd_ack() const
 {
-  assert_choice_type("RANConfigurationUpdateAcknowledge", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::ran_cfg_upd_ack, type_, "SuccessfulOutcome");
   return c.get<ran_cfg_upd_ack_s>();
 }
 const ue_context_mod_resp_s& ngap_elem_procs_o::successful_outcome_c::ue_context_mod_resp() const
 {
-  assert_choice_type("UEContextModificationResponse", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::ue_context_mod_resp, type_, "SuccessfulOutcome");
   return c.get<ue_context_mod_resp_s>();
 }
 const ue_context_release_complete_s& ngap_elem_procs_o::successful_outcome_c::ue_context_release_complete() const
 {
-  assert_choice_type("UEContextReleaseComplete", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::ue_context_release_complete, type_, "SuccessfulOutcome");
   return c.get<ue_context_release_complete_s>();
 }
 const ue_radio_cap_check_resp_s& ngap_elem_procs_o::successful_outcome_c::ue_radio_cap_check_resp() const
 {
-  assert_choice_type("UERadioCapabilityCheckResponse", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::ue_radio_cap_check_resp, type_, "SuccessfulOutcome");
   return c.get<ue_radio_cap_check_resp_s>();
 }
 const write_replace_warning_resp_s& ngap_elem_procs_o::successful_outcome_c::write_replace_warning_resp() const
 {
-  assert_choice_type("WriteReplaceWarningResponse", type_.to_string(), "SuccessfulOutcome");
+  assert_choice_type(types::write_replace_warning_resp, type_, "SuccessfulOutcome");
   return c.get<write_replace_warning_resp_s>();
 }
 void ngap_elem_procs_o::successful_outcome_c::to_json(json_writer& j) const
@@ -47941,82 +47941,82 @@ ngap_elem_procs_o::unsuccessful_outcome_c::operator=(const ngap_elem_procs_o::un
 }
 amf_cfg_upd_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::amf_cfg_upd_fail()
 {
-  assert_choice_type("AMFConfigurationUpdateFailure", type_.to_string(), "UnsuccessfulOutcome");
+  assert_choice_type(types::amf_cfg_upd_fail, type_, "UnsuccessfulOutcome");
   return c.get<amf_cfg_upd_fail_s>();
 }
 ho_prep_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::ho_prep_fail()
 {
-  assert_choice_type("HandoverPreparationFailure", type_.to_string(), "UnsuccessfulOutcome");
+  assert_choice_type(types::ho_prep_fail, type_, "UnsuccessfulOutcome");
   return c.get<ho_prep_fail_s>();
 }
 ho_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::ho_fail()
 {
-  assert_choice_type("HandoverFailure", type_.to_string(), "UnsuccessfulOutcome");
+  assert_choice_type(types::ho_fail, type_, "UnsuccessfulOutcome");
   return c.get<ho_fail_s>();
 }
 init_context_setup_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::init_context_setup_fail()
 {
-  assert_choice_type("InitialContextSetupFailure", type_.to_string(), "UnsuccessfulOutcome");
+  assert_choice_type(types::init_context_setup_fail, type_, "UnsuccessfulOutcome");
   return c.get<init_context_setup_fail_s>();
 }
 ng_setup_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::ng_setup_fail()
 {
-  assert_choice_type("NGSetupFailure", type_.to_string(), "UnsuccessfulOutcome");
+  assert_choice_type(types::ng_setup_fail, type_, "UnsuccessfulOutcome");
   return c.get<ng_setup_fail_s>();
 }
 path_switch_request_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::path_switch_request_fail()
 {
-  assert_choice_type("PathSwitchRequestFailure", type_.to_string(), "UnsuccessfulOutcome");
+  assert_choice_type(types::path_switch_request_fail, type_, "UnsuccessfulOutcome");
   return c.get<path_switch_request_fail_s>();
 }
 ran_cfg_upd_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::ran_cfg_upd_fail()
 {
-  assert_choice_type("RANConfigurationUpdateFailure", type_.to_string(), "UnsuccessfulOutcome");
+  assert_choice_type(types::ran_cfg_upd_fail, type_, "UnsuccessfulOutcome");
   return c.get<ran_cfg_upd_fail_s>();
 }
 ue_context_mod_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::ue_context_mod_fail()
 {
-  assert_choice_type("UEContextModificationFailure", type_.to_string(), "UnsuccessfulOutcome");
+  assert_choice_type(types::ue_context_mod_fail, type_, "UnsuccessfulOutcome");
   return c.get<ue_context_mod_fail_s>();
 }
 const amf_cfg_upd_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::amf_cfg_upd_fail() const
 {
-  assert_choice_type("AMFConfigurationUpdateFailure", type_.to_string(), "UnsuccessfulOutcome");
+  assert_choice_type(types::amf_cfg_upd_fail, type_, "UnsuccessfulOutcome");
   return c.get<amf_cfg_upd_fail_s>();
 }
 const ho_prep_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::ho_prep_fail() const
 {
-  assert_choice_type("HandoverPreparationFailure", type_.to_string(), "UnsuccessfulOutcome");
+  assert_choice_type(types::ho_prep_fail, type_, "UnsuccessfulOutcome");
   return c.get<ho_prep_fail_s>();
 }
 const ho_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::ho_fail() const
 {
-  assert_choice_type("HandoverFailure", type_.to_string(), "UnsuccessfulOutcome");
+  assert_choice_type(types::ho_fail, type_, "UnsuccessfulOutcome");
   return c.get<ho_fail_s>();
 }
 const init_context_setup_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::init_context_setup_fail() const
 {
-  assert_choice_type("InitialContextSetupFailure", type_.to_string(), "UnsuccessfulOutcome");
+  assert_choice_type(types::init_context_setup_fail, type_, "UnsuccessfulOutcome");
   return c.get<init_context_setup_fail_s>();
 }
 const ng_setup_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::ng_setup_fail() const
 {
-  assert_choice_type("NGSetupFailure", type_.to_string(), "UnsuccessfulOutcome");
+  assert_choice_type(types::ng_setup_fail, type_, "UnsuccessfulOutcome");
   return c.get<ng_setup_fail_s>();
 }
 const path_switch_request_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::path_switch_request_fail() const
 {
-  assert_choice_type("PathSwitchRequestFailure", type_.to_string(), "UnsuccessfulOutcome");
+  assert_choice_type(types::path_switch_request_fail, type_, "UnsuccessfulOutcome");
   return c.get<path_switch_request_fail_s>();
 }
 const ran_cfg_upd_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::ran_cfg_upd_fail() const
 {
-  assert_choice_type("RANConfigurationUpdateFailure", type_.to_string(), "UnsuccessfulOutcome");
+  assert_choice_type(types::ran_cfg_upd_fail, type_, "UnsuccessfulOutcome");
   return c.get<ran_cfg_upd_fail_s>();
 }
 const ue_context_mod_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::ue_context_mod_fail() const
 {
-  assert_choice_type("UEContextModificationFailure", type_.to_string(), "UnsuccessfulOutcome");
+  assert_choice_type(types::ue_context_mod_fail, type_, "UnsuccessfulOutcome");
   return c.get<ue_context_mod_fail_s>();
 }
 void ngap_elem_procs_o::unsuccessful_outcome_c::to_json(json_writer& j) const
@@ -49445,22 +49445,22 @@ pdu_session_res_modify_ind_transfer_ext_ies_o::ext_c& pdu_session_res_modify_ind
 }
 secondary_ratusage_info_s& pdu_session_res_modify_ind_transfer_ext_ies_o::ext_c::secondary_ratusage_info()
 {
-  assert_choice_type("SecondaryRATUsageInformation", type_.to_string(), "Extension");
+  assert_choice_type(types::secondary_ratusage_info, type_, "Extension");
   return c.get<secondary_ratusage_info_s>();
 }
 security_result_s& pdu_session_res_modify_ind_transfer_ext_ies_o::ext_c::security_result()
 {
-  assert_choice_type("SecurityResult", type_.to_string(), "Extension");
+  assert_choice_type(types::security_result, type_, "Extension");
   return c.get<security_result_s>();
 }
 const secondary_ratusage_info_s& pdu_session_res_modify_ind_transfer_ext_ies_o::ext_c::secondary_ratusage_info() const
 {
-  assert_choice_type("SecondaryRATUsageInformation", type_.to_string(), "Extension");
+  assert_choice_type(types::secondary_ratusage_info, type_, "Extension");
   return c.get<secondary_ratusage_info_s>();
 }
 const security_result_s& pdu_session_res_modify_ind_transfer_ext_ies_o::ext_c::security_result() const
 {
-  assert_choice_type("SecurityResult", type_.to_string(), "Extension");
+  assert_choice_type(types::security_result, type_, "Extension");
   return c.get<security_result_s>();
 }
 void pdu_session_res_modify_ind_transfer_ext_ies_o::ext_c::to_json(json_writer& j) const
@@ -50264,68 +50264,68 @@ pdu_session_res_modify_request_transfer_ies_o::value_c::operator=(
 pdu_session_aggregate_maximum_bit_rate_s&
 pdu_session_res_modify_request_transfer_ies_o::value_c::pdu_session_aggregate_maximum_bit_rate()
 {
-  assert_choice_type("PDUSessionAggregateMaximumBitRate", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_aggregate_maximum_bit_rate, type_, "Value");
   return c.get<pdu_session_aggregate_maximum_bit_rate_s>();
 }
 ul_ngu_up_tnl_modify_list_l& pdu_session_res_modify_request_transfer_ies_o::value_c::ul_ngu_up_tnl_modify_list()
 {
-  assert_choice_type("UL-NGU-UP-TNLModifyList", type_.to_string(), "Value");
+  assert_choice_type(types::ul_ngu_up_tnl_modify_list, type_, "Value");
   return c.get<ul_ngu_up_tnl_modify_list_l>();
 }
 uint16_t& pdu_session_res_modify_request_transfer_ies_o::value_c::network_instance()
 {
-  assert_choice_type("INTEGER (1..256,...)", type_.to_string(), "Value");
+  assert_choice_type(types::network_instance, type_, "Value");
   return c.get<uint16_t>();
 }
 qos_flow_add_or_modify_request_list_l&
 pdu_session_res_modify_request_transfer_ies_o::value_c::qos_flow_add_or_modify_request_list()
 {
-  assert_choice_type("QosFlowAddOrModifyRequestList", type_.to_string(), "Value");
+  assert_choice_type(types::qos_flow_add_or_modify_request_list, type_, "Value");
   return c.get<qos_flow_add_or_modify_request_list_l>();
 }
 qos_flow_list_with_cause_l& pdu_session_res_modify_request_transfer_ies_o::value_c::qos_flow_to_release_list()
 {
-  assert_choice_type("QosFlowListWithCause", type_.to_string(), "Value");
+  assert_choice_type(types::qos_flow_to_release_list, type_, "Value");
   return c.get<qos_flow_list_with_cause_l>();
 }
 up_transport_layer_info_list_l& pdu_session_res_modify_request_transfer_ies_o::value_c::add_ul_ngu_up_tnl_info()
 {
-  assert_choice_type("UPTransportLayerInformationList", type_.to_string(), "Value");
+  assert_choice_type(types::add_ul_ngu_up_tnl_info, type_, "Value");
   return c.get<up_transport_layer_info_list_l>();
 }
 const pdu_session_aggregate_maximum_bit_rate_s&
 pdu_session_res_modify_request_transfer_ies_o::value_c::pdu_session_aggregate_maximum_bit_rate() const
 {
-  assert_choice_type("PDUSessionAggregateMaximumBitRate", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_aggregate_maximum_bit_rate, type_, "Value");
   return c.get<pdu_session_aggregate_maximum_bit_rate_s>();
 }
 const ul_ngu_up_tnl_modify_list_l&
 pdu_session_res_modify_request_transfer_ies_o::value_c::ul_ngu_up_tnl_modify_list() const
 {
-  assert_choice_type("UL-NGU-UP-TNLModifyList", type_.to_string(), "Value");
+  assert_choice_type(types::ul_ngu_up_tnl_modify_list, type_, "Value");
   return c.get<ul_ngu_up_tnl_modify_list_l>();
 }
 const uint16_t& pdu_session_res_modify_request_transfer_ies_o::value_c::network_instance() const
 {
-  assert_choice_type("INTEGER (1..256,...)", type_.to_string(), "Value");
+  assert_choice_type(types::network_instance, type_, "Value");
   return c.get<uint16_t>();
 }
 const qos_flow_add_or_modify_request_list_l&
 pdu_session_res_modify_request_transfer_ies_o::value_c::qos_flow_add_or_modify_request_list() const
 {
-  assert_choice_type("QosFlowAddOrModifyRequestList", type_.to_string(), "Value");
+  assert_choice_type(types::qos_flow_add_or_modify_request_list, type_, "Value");
   return c.get<qos_flow_add_or_modify_request_list_l>();
 }
 const qos_flow_list_with_cause_l&
 pdu_session_res_modify_request_transfer_ies_o::value_c::qos_flow_to_release_list() const
 {
-  assert_choice_type("QosFlowListWithCause", type_.to_string(), "Value");
+  assert_choice_type(types::qos_flow_to_release_list, type_, "Value");
   return c.get<qos_flow_list_with_cause_l>();
 }
 const up_transport_layer_info_list_l&
 pdu_session_res_modify_request_transfer_ies_o::value_c::add_ul_ngu_up_tnl_info() const
 {
-  assert_choice_type("UPTransportLayerInformationList", type_.to_string(), "Value");
+  assert_choice_type(types::add_ul_ngu_up_tnl_info, type_, "Value");
   return c.get<up_transport_layer_info_list_l>();
 }
 void pdu_session_res_modify_request_transfer_ies_o::value_c::to_json(json_writer& j) const
@@ -51682,86 +51682,86 @@ pdu_session_res_setup_request_transfer_ies_o::value_c& pdu_session_res_setup_req
 pdu_session_aggregate_maximum_bit_rate_s&
 pdu_session_res_setup_request_transfer_ies_o::value_c::pdu_session_aggregate_maximum_bit_rate()
 {
-  assert_choice_type("PDUSessionAggregateMaximumBitRate", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_aggregate_maximum_bit_rate, type_, "Value");
   return c.get<pdu_session_aggregate_maximum_bit_rate_s>();
 }
 up_transport_layer_info_c& pdu_session_res_setup_request_transfer_ies_o::value_c::ul_ngu_up_tnl_info()
 {
-  assert_choice_type("UPTransportLayerInformation", type_.to_string(), "Value");
+  assert_choice_type(types::ul_ngu_up_tnl_info, type_, "Value");
   return c.get<up_transport_layer_info_c>();
 }
 up_transport_layer_info_list_l& pdu_session_res_setup_request_transfer_ies_o::value_c::add_ul_ngu_up_tnl_info()
 {
-  assert_choice_type("UPTransportLayerInformationList", type_.to_string(), "Value");
+  assert_choice_type(types::add_ul_ngu_up_tnl_info, type_, "Value");
   return c.get<up_transport_layer_info_list_l>();
 }
 data_forwarding_not_possible_e& pdu_session_res_setup_request_transfer_ies_o::value_c::data_forwarding_not_possible()
 {
-  assert_choice_type("DataForwardingNotPossible", type_.to_string(), "Value");
+  assert_choice_type(types::data_forwarding_not_possible, type_, "Value");
   return c.get<data_forwarding_not_possible_e>();
 }
 pdu_session_type_e& pdu_session_res_setup_request_transfer_ies_o::value_c::pdu_session_type()
 {
-  assert_choice_type("PDUSessionType", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_type, type_, "Value");
   return c.get<pdu_session_type_e>();
 }
 security_ind_s& pdu_session_res_setup_request_transfer_ies_o::value_c::security_ind()
 {
-  assert_choice_type("SecurityIndication", type_.to_string(), "Value");
+  assert_choice_type(types::security_ind, type_, "Value");
   return c.get<security_ind_s>();
 }
 uint16_t& pdu_session_res_setup_request_transfer_ies_o::value_c::network_instance()
 {
-  assert_choice_type("INTEGER (1..256,...)", type_.to_string(), "Value");
+  assert_choice_type(types::network_instance, type_, "Value");
   return c.get<uint16_t>();
 }
 qos_flow_setup_request_list_l& pdu_session_res_setup_request_transfer_ies_o::value_c::qos_flow_setup_request_list()
 {
-  assert_choice_type("QosFlowSetupRequestList", type_.to_string(), "Value");
+  assert_choice_type(types::qos_flow_setup_request_list, type_, "Value");
   return c.get<qos_flow_setup_request_list_l>();
 }
 const pdu_session_aggregate_maximum_bit_rate_s&
 pdu_session_res_setup_request_transfer_ies_o::value_c::pdu_session_aggregate_maximum_bit_rate() const
 {
-  assert_choice_type("PDUSessionAggregateMaximumBitRate", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_aggregate_maximum_bit_rate, type_, "Value");
   return c.get<pdu_session_aggregate_maximum_bit_rate_s>();
 }
 const up_transport_layer_info_c& pdu_session_res_setup_request_transfer_ies_o::value_c::ul_ngu_up_tnl_info() const
 {
-  assert_choice_type("UPTransportLayerInformation", type_.to_string(), "Value");
+  assert_choice_type(types::ul_ngu_up_tnl_info, type_, "Value");
   return c.get<up_transport_layer_info_c>();
 }
 const up_transport_layer_info_list_l&
 pdu_session_res_setup_request_transfer_ies_o::value_c::add_ul_ngu_up_tnl_info() const
 {
-  assert_choice_type("UPTransportLayerInformationList", type_.to_string(), "Value");
+  assert_choice_type(types::add_ul_ngu_up_tnl_info, type_, "Value");
   return c.get<up_transport_layer_info_list_l>();
 }
 const data_forwarding_not_possible_e&
 pdu_session_res_setup_request_transfer_ies_o::value_c::data_forwarding_not_possible() const
 {
-  assert_choice_type("DataForwardingNotPossible", type_.to_string(), "Value");
+  assert_choice_type(types::data_forwarding_not_possible, type_, "Value");
   return c.get<data_forwarding_not_possible_e>();
 }
 const pdu_session_type_e& pdu_session_res_setup_request_transfer_ies_o::value_c::pdu_session_type() const
 {
-  assert_choice_type("PDUSessionType", type_.to_string(), "Value");
+  assert_choice_type(types::pdu_session_type, type_, "Value");
   return c.get<pdu_session_type_e>();
 }
 const security_ind_s& pdu_session_res_setup_request_transfer_ies_o::value_c::security_ind() const
 {
-  assert_choice_type("SecurityIndication", type_.to_string(), "Value");
+  assert_choice_type(types::security_ind, type_, "Value");
   return c.get<security_ind_s>();
 }
 const uint16_t& pdu_session_res_setup_request_transfer_ies_o::value_c::network_instance() const
 {
-  assert_choice_type("INTEGER (1..256,...)", type_.to_string(), "Value");
+  assert_choice_type(types::network_instance, type_, "Value");
   return c.get<uint16_t>();
 }
 const qos_flow_setup_request_list_l&
 pdu_session_res_setup_request_transfer_ies_o::value_c::qos_flow_setup_request_list() const
 {
-  assert_choice_type("QosFlowSetupRequestList", type_.to_string(), "Value");
+  assert_choice_type(types::qos_flow_setup_request_list, type_, "Value");
   return c.get<qos_flow_setup_request_list_l>();
 }
 void pdu_session_res_setup_request_transfer_ies_o::value_c::to_json(json_writer& j) const
