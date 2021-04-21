@@ -383,12 +383,11 @@ void rrc::ue::handle_rrc_con_req(rrc_conn_request_s* msg)
     has_tmsi = true;
 
     // Make sure that the context does not already exist
-    for (auto ue_it = parent->users.begin(); ue_it != parent->users.end(); ue_it++) {
-      if (ue_it->first != rnti && ue_it->second->has_tmsi && ue_it->second->mmec == mmec &&
-          ue_it->second->m_tmsi == m_tmsi) {
+    for (auto& user : parent->users) {
+      if (user.first != rnti && user.second->has_tmsi && user.second->mmec == mmec && user.second->m_tmsi == m_tmsi) {
         parent->logger.info("RRC connection request: UE context already exists. M-TMSI=%d", m_tmsi);
-        parent->rem_user_thread(ue_it->first); // Simply remove the old context. No need to notify the MME, it will
-                                               // update the eNB/MME-UE S1AP Id pair.
+        parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::radio_conn_with_ue_lost);
+        parent->rem_user_thread(user.first);
         break;
       }
     }

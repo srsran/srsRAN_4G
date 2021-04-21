@@ -1396,10 +1396,6 @@ bool s1ap::ue::send_ulnastransport(srsran::unique_byte_buffer_t pdu)
 
 bool s1ap::ue::send_uectxtreleaserequest(const cause_c& cause)
 {
-  if (!s1ap_ptr->mme_connected) {
-    return false;
-  }
-
   if (not ctxt.mme_ue_s1ap_id.has_value()) {
     logger.error("Cannot send UE context release request without a MME-UE-S1AP-Id allocated.");
     return false;
