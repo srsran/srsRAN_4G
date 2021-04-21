@@ -167,6 +167,24 @@ typedef struct SRSRAN_API {
   // SI-RNTI specific fields
   uint32_t sii; ///< System information indicator
 
+  // Second TB
+  uint32_t mcs2; ///< Modulation and coding scheme for the second transport block
+  uint32_t ndi2; ///< New data indicator for the second transport block
+  uint32_t rv2;  ///< Redundancy version for the second transport block
+
+  // Other fields
+  uint32_t cc_id;        ///< Carrier indicator
+  uint32_t bwp_id;       ///< BWP indicator
+  uint32_t rm_pattern1;  ///< Rate matching pattern 1 indicator
+  uint32_t rm_pattern2;  ///< Rate matching pattern 2 indicator
+  uint32_t zp_csi_rs_id; ///< ZP-CSI-RS trigger
+  uint32_t ports;        ///< Antenna ports
+  uint32_t tci;          ///< Transmission configuration indication
+  uint32_t srs_request;  ///< SRS request
+  uint32_t cbg_info;     ///< CBG transmission information (CBGTI)
+  uint32_t cbg_flush;    ///< CBG flushing out information (CBGFI)
+  uint32_t dmrs_id;      ///< DMRS sequence initialization
+
 } srsran_dci_dl_nr_t;
 
 /**
