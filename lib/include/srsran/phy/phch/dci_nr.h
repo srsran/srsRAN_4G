@@ -196,10 +196,22 @@ typedef struct SRSRAN_API {
   uint32_t frequency_offset; ///< frequency offset
 
   // Random Access Response Grant
-  uint32_t csi_request;
+  uint32_t csi_request; ///< CSI request
 
   // Other fields
-  uint32_t sul; ///< Supplementary Uplink flag
+  uint32_t sul;         ///< Supplementary Uplink flag
+  uint32_t cc_id;       ///< Carrier indicator
+  uint32_t bwp_id;      ///< BWP indicator
+  uint32_t dai1;        ///< First DAI
+  uint32_t dai2;        ///< Second DAI
+  uint32_t srs_id;      ///< SRS resource indicator
+  uint32_t ports;       ///< Antenna ports
+  uint32_t srs_request; ///< SRS request
+  uint32_t cbg_info;    ///< CBG transmission information (CBGTI)
+  uint32_t ptrs_id;     ///< PTRS-DMRS association
+  uint32_t beta_id;     ///< beta_offset indicator
+  uint32_t dmrs_id;     ///< DMRS sequence initialization
+  uint32_t ulsch;       ///< UL-SCH indicator
 } srsran_dci_ul_nr_t;
 
 /**

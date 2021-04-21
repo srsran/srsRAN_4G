@@ -69,6 +69,21 @@ static uint32_t dci_nr_time_res_size(uint32_t nof_time_res)
   return (uint32_t)CEIL_LOG2(nof_time_res);
 }
 
+static uint32_t dci_nr_ptrs_size(const srsran_dci_cfg_nr_t* cfg)
+{
+  // 0 bit if PTRS-UplinkConfig is not configured and transform precoder is disabled, or if transform precoder is
+  // enabled, or if maxRank=1;
+  if ((!cfg->pusch_ptrs && !cfg->enable_transform_precoding) || cfg->enable_transform_precoding ||
+      cfg->nof_ul_layers <= 1) {
+    return 0;
+  }
+
+  // 2 bits otherwise, where Table 7.3.1.1.2-25 and 7.3.1.1.2-26 are used to indicate the association between
+  // PTRS port(s) and DMRS port(s) for transmission of one PT-RS port and two PT-RS ports respectively, and
+  // the DMRS ports are indicated by the Antenna ports field.
+  return 2;
+}
+
 // Determines DCI format 0_0 according to TS 38.212 clause 7.3.1.1.1
 static uint32_t dci_nr_format_0_0_sizeof(uint32_t N_UL_BWP_RB, const srsran_dci_cfg_nr_t* cfg)
 {
@@ -311,13 +326,13 @@ static uint32_t dci_nr_format_0_1_sizeof(const srsran_dci_cfg_nr_t* cfg, srsran_
   count += 1;
 
   // Carrier indicator – 0 or 3 bits
-  count += SRSRAN_MIN(cfg->carrier_indicator_size, 3);
+  count += cfg->carrier_indicator_size;
 
   // UL/SUL indicator – 0 bit for UEs not configured with supplementaryUplink ... otherwise, 1 bit
   count += cfg->enable_sul ? 1 : 0;
 
   // Bandwidth part indicator – 0, 1 or 2 bits
-  count += SRSRAN_MIN(dci_nr_bwp_id_size(cfg->nof_ul_bwp), 2);
+  count += dci_nr_bwp_id_size(cfg->nof_ul_bwp);
 
   // Frequency domain resource assignment
   count += dci_nr_freq_resource_size(cfg->pusch_alloc_type, cfg->nof_rb_groups, cfg->bwp_ul_active_bw);
@@ -398,12 +413,7 @@ static uint32_t dci_nr_format_0_1_sizeof(const srsran_dci_cfg_nr_t* cfg, srsran_
   count += cfg->pusch_nof_cbg;
 
   // PTRS-DMRS association - 0 or 2 bits
-  if ((!cfg->pusch_ptrs && !cfg->enable_transform_precoding) || cfg->enable_transform_precoding ||
-      cfg->nof_ul_layers <= 1) {
-    count += 0;
-  } else {
-    count += 3;
-  }
+  count += dci_nr_ptrs_size(cfg);
 
   // beta_offset indicator – 0 or 2 bits
   if (cfg->pusch_dynamic_betas) {
@@ -423,14 +433,249 @@ static uint32_t dci_nr_format_0_1_sizeof(const srsran_dci_cfg_nr_t* cfg, srsran_
 
 static int dci_nr_format_0_1_pack(const srsran_dci_nr_t* q, const srsran_dci_ul_nr_t* dci, srsran_dci_msg_nr_t* msg)
 {
-  // TODO!
+  const srsran_dci_cfg_nr_t* cfg       = &q->cfg;
+  srsran_rnti_type_t         rnti_type = dci->ctx.rnti_type;
+
+  if (rnti_type != srsran_rnti_type_c && rnti_type != srsran_rnti_type_cs && rnti_type != srsran_rnti_type_sp_csi &&
+      rnti_type != srsran_rnti_type_mcs_c) {
+    ERROR("Invalid RNTI (%s) for format 0_1", srsran_rnti_type_str(rnti_type));
+    return SRSRAN_ERROR;
+  }
+  uint8_t* y = msg->payload;
+
+  // Identifier for DCI formats – 1 bit
+  *(y++) = 0;
+
+  // Carrier indicator – 0 or 3 bits
+  srsran_bit_unpack(dci->cc_id, &y, SRSRAN_MIN(cfg->carrier_indicator_size, 3));
+
+  // UL/SUL indicator – 0 bit for UEs not configured with supplementaryUplink ... otherwise, 1 bit
+  srsran_bit_unpack(dci->sul, &y, cfg->enable_sul ? 1 : 0);
+
+  // Bandwidth part indicator – 0, 1 or 2 bits
+  srsran_bit_unpack(dci->bwp_id, &y, dci_nr_bwp_id_size(cfg->nof_ul_bwp));
+
+  // Frequency domain resource assignment
+  srsran_bit_unpack(dci->freq_domain_assigment,
+                    &y,
+                    dci_nr_freq_resource_size(cfg->pusch_alloc_type, cfg->nof_rb_groups, cfg->bwp_ul_active_bw));
+
+  // Time domain resource assigment - 0, 1, 2, 3, or 4 bits
+  srsran_bit_unpack(dci->time_domain_assigment, &y, dci_nr_time_res_size(cfg->nof_ul_time_res));
+
+  // Frequency hopping flag - 0 or 1 bit:
+  if (cfg->pusch_alloc_type != srsran_resource_alloc_type0 && cfg->enable_hopping) {
+    srsran_bit_unpack(dci->freq_hopping_flag, &y, 1);
+  }
+
+  // Modulation and coding scheme – 5 bits
+  srsran_bit_unpack(dci->mcs, &y, 5);
+
+  // New data indicator – 1 bit
+  srsran_bit_unpack(dci->ndi, &y, 1);
+
+  // Redundancy version – 2 bits
+  srsran_bit_unpack(dci->rv, &y, 2);
+
+  // HARQ process number – 4 bits
+  srsran_bit_unpack(dci->pid, &y, 4);
+
+  // 1st DAI - 1 or 2 bits
+  if (cfg->pusch_tx_config_codebook == srsran_pdsch_harq_ack_codebook_semi_static) {
+    srsran_bit_unpack(dci->dai1, &y, 1);
+  } else {
+    srsran_bit_unpack(dci->dai1, &y, 2);
+  }
+
+  // 2st DAI - 0 or 2 bits
+  if (cfg->dynamic_dual_harq_ack_codebook) {
+    srsran_bit_unpack(dci->dai2, &y, 1);
+  }
+
+  // TPC command for scheduled PUSCH – 2 bits
+  srsran_bit_unpack(dci->tpc, &y, 2);
+
+  // SRS resource indicator
+  uint32_t N_srs = SRSRAN_MIN(1, cfg->nof_srs);
+  if (cfg->pusch_tx_config_codebook) {
+    uint32_t N = 0;
+    for (uint32_t k = 1; k < SRSRAN_MIN(cfg->nof_ul_layers, cfg->nof_srs); k++) {
+      N += cfg->nof_srs / k;
+    }
+    srsran_bit_unpack(dci->srs_id, &y, N);
+  } else {
+    srsran_bit_unpack(dci->srs_id, &y, N_srs);
+  }
+
+  // Precoding information and number of layers
+  if (cfg->pusch_tx_config_codebook) {
+    ERROR("Not implemented");
+    return 0;
+  }
+
+  // Antenna ports
+  if (!cfg->enable_transform_precoding && !cfg->pusch_dmrs_double) {
+    srsran_bit_unpack(dci->ports, &y, 3);
+  } else {
+    ERROR("Not implemented");
+    return 0;
+  }
+
+  // SRS request - 2 bits
+  srsran_bit_unpack(dci->srs_request, &y, 2);
+
+  // CSI request - 0, 1, 2, 3, 4, 5, or 6 bits
+  srsran_bit_unpack(dci->csi_request, &y, SRSRAN_MIN(6, cfg->report_trigger_size));
+
+  // CBG transmission information - 0, 2, 4, 6, or 8 bits
+  srsran_bit_unpack(dci->cbg_info, &y, cfg->pusch_nof_cbg);
+
+  // PTRS-DMRS association - 0 or 2 bits
+  srsran_bit_unpack(dci->ptrs_id, &y, dci_nr_ptrs_size(cfg));
+
+  // beta_offset indicator – 0 or 2 bits
+  if (cfg->pusch_dynamic_betas) {
+    srsran_bit_unpack(dci->beta_id, &y, 2);
+  }
+
+  // DMRS sequence initialization - 0 or 1 bit
+  if (!cfg->enable_transform_precoding) {
+    srsran_bit_unpack(dci->dmrs_id, &y, 1);
+  }
+
+  // UL-SCH indicator – 1 bit
+  srsran_bit_unpack(dci->ulsch, &y, 1);
+
+  msg->nof_bits = srsran_dci_nr_size(q, msg->ctx.ss_type, srsran_dci_format_nr_0_1);
+  if (msg->nof_bits != y - msg->payload) {
+    ERROR("Packed bits read (%d) do NOT match payload size (%d)", msg->nof_bits, (int)(y - msg->payload));
+    return SRSRAN_ERROR;
+  }
 
   return SRSRAN_SUCCESS;
 }
 
 static int dci_nr_format_0_1_unpack(const srsran_dci_nr_t* q, srsran_dci_msg_nr_t* msg, srsran_dci_ul_nr_t* dci)
 {
-  // TODO!
+  const srsran_dci_cfg_nr_t* cfg       = &q->cfg;
+  srsran_rnti_type_t         rnti_type = dci->ctx.rnti_type;
+
+  if (rnti_type != srsran_rnti_type_c && rnti_type != srsran_rnti_type_cs && rnti_type != srsran_rnti_type_sp_csi &&
+      rnti_type != srsran_rnti_type_mcs_c) {
+    ERROR("Invalid RNTI (%s) for format 0_1", srsran_rnti_type_str(rnti_type));
+    return SRSRAN_ERROR;
+  }
+  uint8_t* y = msg->payload;
+
+  // Identifier for DCI formats – 1 bits
+  if (*(y++) != 0) {
+    ERROR("Wrond DCI format");
+    return SRSRAN_ERROR;
+  }
+
+  // Carrier indicator – 0 or 3 bits
+  dci->cc_id = srsran_bit_pack(&y, SRSRAN_MIN(cfg->carrier_indicator_size, 3));
+
+  // UL/SUL indicator – 0 bit for UEs not configured with supplementaryUplink ... otherwise, 1 bit
+  dci->sul = srsran_bit_pack(&y, cfg->enable_sul ? 1 : 0);
+
+  // Bandwidth part indicator – 0, 1 or 2 bits
+  dci->bwp_id = srsran_bit_pack(&y, dci_nr_bwp_id_size(cfg->nof_ul_bwp));
+
+  // Frequency domain resource assignment
+  dci->freq_domain_assigment =
+      srsran_bit_pack(&y, dci_nr_freq_resource_size(cfg->pusch_alloc_type, cfg->nof_rb_groups, cfg->bwp_ul_active_bw));
+
+  // Time domain resource assigment - 0, 1, 2, 3, or 4 bits
+  dci->time_domain_assigment = srsran_bit_pack(&y, dci_nr_time_res_size(cfg->nof_ul_time_res));
+
+  // Frequency hopping flag - 0 or 1 bit:
+  if (cfg->pusch_alloc_type != srsran_resource_alloc_type0 && cfg->enable_hopping) {
+    dci->freq_hopping_flag = srsran_bit_pack(&y, 1);
+  }
+
+  // Modulation and coding scheme – 5 bits
+  dci->mcs = srsran_bit_pack(&y, 5);
+
+  // New data indicator – 1 bit
+  dci->ndi = srsran_bit_pack(&y, 1);
+
+  // Redundancy version – 2 bits
+  dci->rv = srsran_bit_pack(&y, 2);
+
+  // HARQ process number – 4 bits
+  dci->pid = srsran_bit_pack(&y, 4);
+
+  // 1st DAI - 1 or 2 bits
+  if (cfg->pusch_tx_config_codebook == srsran_pdsch_harq_ack_codebook_semi_static) {
+    dci->dai1 = srsran_bit_pack(&y, 1);
+  } else {
+    dci->dai1 = srsran_bit_pack(&y, 2);
+  }
+
+  // 2st DAI - 0 or 2 bits
+  if (cfg->dynamic_dual_harq_ack_codebook) {
+    dci->dai2 = srsran_bit_pack(&y, 2);
+  }
+
+  // TPC command for scheduled PUSCH – 2 bits
+  dci->tpc = srsran_bit_pack(&y, 2);
+
+  // SRS resource indicator
+  uint32_t N_srs = SRSRAN_MIN(1, cfg->nof_srs);
+  if (cfg->pusch_tx_config_codebook) {
+    uint32_t N = 0;
+    for (uint32_t k = 1; k < SRSRAN_MIN(cfg->nof_ul_layers, cfg->nof_srs); k++) {
+      N += cfg->nof_srs / k;
+    }
+    dci->srs_id = srsran_bit_pack(&y, N);
+  } else {
+    dci->srs_id = srsran_bit_pack(&y, N_srs);
+  }
+
+  // Precoding information and number of layers
+  if (cfg->pusch_tx_config_codebook) {
+    ERROR("Not implemented");
+    return 0;
+  }
+
+  // Antenna ports
+  if (!cfg->enable_transform_precoding && !cfg->pusch_dmrs_double) {
+    dci->ports = srsran_bit_pack(&y, 3);
+  } else {
+    ERROR("Not implemented");
+    return 0;
+  }
+
+  // SRS request - 2 bits
+  dci->srs_request = srsran_bit_pack(&y, 2);
+
+  // CSI request - 0, 1, 2, 3, 4, 5, or 6 bits
+  dci->csi_request = srsran_bit_pack(&y, SRSRAN_MIN(6, cfg->report_trigger_size));
+
+  // CBG transmission information - 0, 2, 4, 6, or 8 bits
+  dci->cbg_info = srsran_bit_pack(&y, cfg->pusch_nof_cbg);
+
+  // PTRS-DMRS association - 0 or 2 bits
+  dci->ptrs_id = srsran_bit_pack(&y, dci_nr_ptrs_size(cfg));
+
+  // beta_offset indicator – 0 or 2 bits
+  if (cfg->pusch_dynamic_betas) {
+    dci->beta_id = srsran_bit_pack(&y, 2);
+  }
+
+  // DMRS sequence initialization - 0 or 1 bit
+  if (!cfg->enable_transform_precoding) {
+    dci->dmrs_id = srsran_bit_pack(&y, 1);
+  }
+
+  // UL-SCH indicator – 1 bit
+  dci->ulsch = srsran_bit_pack(&y, 1);
+
+  if (msg->nof_bits != y - msg->payload) {
+    ERROR("Unpacked bits read (%d) do NOT match payload size (%d)", msg->nof_bits, (int)(y - msg->payload));
+    return SRSRAN_ERROR;
+  }
 
   return SRSRAN_SUCCESS;
 }
