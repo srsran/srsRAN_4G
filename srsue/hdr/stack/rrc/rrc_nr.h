@@ -155,6 +155,7 @@ private:
   usim_interface_rrc_nr*      usim      = nullptr;
   stack_interface_rrc*        stack     = nullptr;
 
+  const uint32_t                      sim_measurement_timer_duration_ms = 250;
   uint32_t                            sim_measurement_carrier_freq_r15;
   srsran::timer_handler::unique_timer sim_measurement_timer;
 

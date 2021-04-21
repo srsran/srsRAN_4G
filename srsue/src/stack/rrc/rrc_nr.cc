@@ -117,7 +117,7 @@ void rrc_nr::timer_expired(uint32_t timeout_id)
     rrc_eutra->new_cell_meas_nr(phy_meas_nr);
 
     auto timer_expire_func = [this](uint32_t tid) { timer_expired(tid); };
-    sim_measurement_timer.set(10, timer_expire_func);
+    sim_measurement_timer.set(sim_measurement_timer_duration_ms, timer_expire_func);
     sim_measurement_timer.run();
   }
 }
@@ -417,7 +417,7 @@ void rrc_nr::phy_set_cells_to_meas(uint32_t carrier_freq_r15)
   // Start timer for fake measurements
   auto timer_expire_func            = [this](uint32_t tid) { timer_expired(tid); };
   sim_measurement_carrier_freq_r15 = carrier_freq_r15;
-  sim_measurement_timer.set(10, timer_expire_func);
+  sim_measurement_timer.set(sim_measurement_timer_duration_ms, timer_expire_func);
   sim_measurement_timer.run();
 }
 
