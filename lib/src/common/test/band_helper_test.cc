@@ -18,6 +18,8 @@ int bands_test_nr()
   srsran::srsran_band_helper bands;
 
   TESTASSERT(bands.nr_arfcn_to_freq(632628) == 3489.42e6);
+  TESTASSERT(bands.nr_arfcn_to_freq(633928) == 3508.92e6); // default refPointA
+  TESTASSERT(bands.nr_arfcn_to_freq(634240) == 3513.6e6);  // default ARFCN with freq divisible by 11.52 MHz
 
   const uint32_t max_valid_nr_arfcn = 3279165;
 

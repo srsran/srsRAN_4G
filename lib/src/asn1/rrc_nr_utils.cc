@@ -1182,14 +1182,12 @@ bool make_phy_carrier_cfg(const freq_info_dl_s& asn1_freq_info_dl, srsran_carrie
     asn1::log_warning("Option absolute_freq_ssb not present");
     return false;
   }
-  uint32_t absolute_frequency_point_a = asn1_freq_info_dl.absolute_freq_point_a;
   if (asn1_freq_info_dl.scs_specific_carrier_list.size() != 1) {
     asn1::log_warning("Option absolute_freq_ssb not present");
     return false;
   }
 
-  uint32_t                    nof_prb = asn1_freq_info_dl.scs_specific_carrier_list[0].carrier_bw;
-  srsran_subcarrier_spacing_t scs     = srsran_subcarrier_spacing_15kHz;
+  srsran_subcarrier_spacing_t scs = srsran_subcarrier_spacing_15kHz;
   switch (asn1_freq_info_dl.scs_specific_carrier_list[0].subcarrier_spacing) {
     case subcarrier_spacing_opts::options::khz15:
       scs = srsran_subcarrier_spacing_15kHz;
@@ -1211,8 +1209,9 @@ bool make_phy_carrier_cfg(const freq_info_dl_s& asn1_freq_info_dl, srsran_carrie
   }
   // As the carrier structure requires parameters from different objects, set fields separately
   out_carrier_nr->absolute_frequency_ssb     = absolute_frequency_ssb;
-  out_carrier_nr->absolute_frequency_point_a = absolute_frequency_point_a;
-  out_carrier_nr->nof_prb                    = nof_prb;
+  out_carrier_nr->absolute_frequency_point_a = asn1_freq_info_dl.absolute_freq_point_a;
+  out_carrier_nr->offset_to_carrier          = asn1_freq_info_dl.scs_specific_carrier_list[0].offset_to_carrier;
+  out_carrier_nr->nof_prb                    = asn1_freq_info_dl.scs_specific_carrier_list[0].carrier_bw;
   out_carrier_nr->scs                        = scs;
   return true;
 }

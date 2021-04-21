@@ -20,15 +20,15 @@
 #include <strings.h>
 #include <unistd.h>
 
-
 static srsran_carrier_nr_t carrier = {
-  1,                               // pci
-  0,                               // absolute_frequency_ssb
-  0,                               // absolute_frequency_point_a
-  srsran_subcarrier_spacing_15kHz, // scs
-  50,                              // nof_prb
-  0,                               // start
-  1                                // max_mimo_layers
+    1,                               // pci
+    0,                               // absolute_frequency_ssb
+    0,                               // absolute_frequency_point_a
+    0,                               // offset_to_carrier
+    srsran_subcarrier_spacing_15kHz, // scs
+    50,                              // nof_prb
+    0,                               // start
+    1                                // max_mimo_layers
 };
 
 typedef struct {

@@ -12,7 +12,6 @@
 
 #include "srsue/hdr/ue.h"
 #include "srsran/build_info.h"
-#include "srsran/common/band_helper.h"
 #include "srsran/common/string_helpers.h"
 #include "srsran/radio/radio.h"
 #include "srsran/radio/radio_null.h"
@@ -250,8 +249,6 @@ int ue::parse_args(const all_args_t& args_)
       args.phy.ul_earfcn_map[args.phy.dl_earfcn_list[i]] = ul_earfcn_list[i];
     }
   }
-
-  srsran_band_helper bands_helper;
 
   // populate NR DL ARFCNs
   if (args.phy.nof_nr_carriers > 0) {
