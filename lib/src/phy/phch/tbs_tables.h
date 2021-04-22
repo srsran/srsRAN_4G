@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef SRSLTE_TBS_TABLES_H_
-#define SRSLTE_TBS_TABLES_H_
+#ifndef SRSRAN_TBS_TABLES_H_
+#define SRSRAN_TBS_TABLES_H_
 
 /* Modulation and TBS index table for PDSCH from 3GPP TS 36.213 v10.3.0 table 7.1.7.1-1 */
 static const int dl_mcs_tbs_idx_table[29] = {0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  9,  10, 11, 12, 13,
@@ -35,7 +35,7 @@ static const int ul_mcs_tbs_idx_table[29] = {0,  1,  2,  3,  4,  5,  6,  7,  8, 
                                              14, 15, 16, 17, 18, 19, 19, 20, 21, 22, 23, 24, 25, 26};
 
 /* Transport Block Size from 3GPP TS 36.213 v12.13.0 table 7.1.7.2.1-1 */
-static const int tbs_table[SRSLTE_RA_NOF_TBS_IDX][110] = {
+static const int tbs_table[SRSRAN_RA_NOF_TBS_IDX][110] = {
     /* The matrix below is automatically generated from ETSI TS 136 213 V12.13.0 (2019-03) */
     {16,   32,   56,   88,   120,  152,  176,  208,  224,  256,  288,  328,  344,  376,  392,  424,  456,  488,  504,
      536,  568,  600,  616,  648,  680,  712,  744,  776,  776,  808,  840,  872,  904,  936,  968,  1000, 1032, 1032,
@@ -270,4 +270,4 @@ static const int tbs_table[SRSLTE_RA_NOF_TBS_IDX][110] = {
      81176, 81176, 81176, 81176, 84760, 84760, 84760, 87936, 87936, 87936, 90816, 90816, 90816, 93800, 93800, 93800,
      93800, 97896, 97896, 97896, 97896, 97896, 97896, 97896, 97896, 97896, 97896, 97896, 97896, 97896}};
 
-#endif /* SRSLTE_TBS_TABLES_H_ */
+#endif /* SRSRAN_TBS_TABLES_H_ */

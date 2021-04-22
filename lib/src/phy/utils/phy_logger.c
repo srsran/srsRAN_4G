@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,8 +19,8 @@
  *
  */
 
-#include "srslte/phy/utils/phy_logger.h"
-#include "srslte/srslte.h"
+#include "srsran/phy/utils/phy_logger.h"
+#include "srsran/srsran.h"
 #include <errno.h>
 #include <pthread.h>
 #include <stdarg.h>
@@ -34,14 +34,14 @@
 static phy_log_handler_t phy_log_handler;
 static void*             callback_ctx = NULL;
 
-void srslte_phy_log_register_handler(void* ctx, phy_log_handler_t handler)
+void srsran_phy_log_register_handler(void* ctx, phy_log_handler_t handler)
 {
   phy_log_handler = handler;
   callback_ctx    = ctx;
   handler_registered++;
 }
 
-void srslte_phy_log_print(phy_logger_level_t log_level, const char* format, ...)
+void srsran_phy_log_print(phy_logger_level_t log_level, const char* format, ...)
 {
   char    tmp[256];
   va_list args;

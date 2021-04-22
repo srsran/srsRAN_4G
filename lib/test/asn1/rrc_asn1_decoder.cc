@@ -1,28 +1,29 @@
-/*
-  Copyright 2013-2020 Software Radio Systems Limited
-
-  This file is part of srsLTE
-
-  srsLTE is free software: you can redistribute it and/or modify
-  it under the terms of the GNU Affero General Public License as
-  published by the Free Software Foundation, either version 3 of
-  the License, or (at your option) any later version.
-
-  srsLTE is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU Affero General Public License for more details.
-
-  A copy of the GNU Affero General Public License can be found in
-  the LICENSE file in the top-level directory of this distribution
-  and at http://www.gnu.org/licenses/.
-*/
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
+ *
+ * This file is part of srsRAN.
+ *
+ * srsRAN is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ *
+ * srsRAN is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * A copy of the GNU Affero General Public License can be found in
+ * the LICENSE file in the top-level directory of this distribution
+ * and at http://www.gnu.org/licenses/.
+ *
+ */
 
 #include <getopt.h>
 #include <iostream>
 
-#include "srslte/asn1/asn1_utils.h"
-#include "srslte/asn1/rrc_asn1.h"
+#include "srsran/asn1/asn1_utils.h"
+#include "srsran/asn1/rrc.h"
 
 using namespace std;
 
@@ -120,6 +121,13 @@ int main(int argc, char** argv)
     printf("read_size != fsize\n");
     return -1;
   }
+
+  auto& asn1_logger = srslog::fetch_basic_logger("ASN1", false);
+  asn1_logger.set_level(srslog::basic_levels::debug);
+  asn1_logger.set_hex_dump_max_size(-1);
+
+  // Start the log backend.
+  srslog::init();
 
   asn1::cbit_ref bref(rrc_msg, fsize);
   // TODO do other rrc messages and type

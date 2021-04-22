@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,10 +19,10 @@
  *
  */
 
-#include "srslte/upper/rlc_am_nr.h"
+#include "srsran/upper/rlc_am_nr.h"
 #include <sstream>
 
-namespace srslte {
+namespace srsran {
 
 /****************************************************************************
  * Header pack/unpack helper functions
@@ -203,14 +203,14 @@ uint32_t rlc_am_nr_read_status_pdu(const uint8_t*            payload,
     }
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 /**
  * Write a RLC AM NR status PDU to a PDU buffer and eets the length of the generate PDU accordingly
  * @param status_pdu The status PDU
  * @param pdu A pointer to a unique bytebuffer
- * @return SRSLTE_SUCCESS if PDU was written, SRSLTE_ERROR otherwise
+ * @return SRSRAN_SUCCESS if PDU was written, SRSRAN_ERROR otherwise
  */
 int32_t rlc_am_nr_write_status_pdu(const rlc_am_nr_status_pdu_t& status_pdu,
                                    const rlc_am_nr_sn_size_t     sn_size,
@@ -253,7 +253,7 @@ int32_t rlc_am_nr_write_status_pdu(const rlc_am_nr_status_pdu_t& status_pdu,
 
   pdu->N_bytes = ptr - pdu->msg;
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-} // namespace srslte
+} // namespace srsran

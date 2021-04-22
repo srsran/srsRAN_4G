@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -20,9 +20,7 @@
  */
 
 #include "backend_worker.h"
-#include "formatter.h"
-#include "srslte/srslog/sink.h"
-#include <cassert>
+#include "srsran/srslog/sink.h"
 
 using namespace srslog;
 
@@ -99,21 +97,29 @@ void backend_worker::process_log_entry(detail::log_entry&& entry)
     return;
   }
 
-  // Save sink pointer before moving the entry.
-  sink* s = entry.s;
+  assert(entry.format_func && "Invalid format function");
+  fmt_buffer.clear();
 
-  std::string result = format_log_entry_to_text(std::move(entry));
-  detail::memory_buffer buffer(result);
+  // Already formatted strings in the foreground are passed to the formatter as the fmtstring.
+  if (entry.metadata.small_str.size()) {
+    entry.metadata.fmtstring = entry.metadata.small_str.data();
+  }
 
-  if (auto err_str = s->write(buffer)) {
+  // Save the pointer before moving the entry.
+  auto* arg_store = entry.metadata.store;
+
+  entry.format_func(std::move(entry.metadata), fmt_buffer);
+
+  arg_pool.dealloc(arg_store);
+
+  if (auto err_str = entry.s->write({fmt_buffer.data(), fmt_buffer.size()})) {
     err_handler(err_str.get_error());
   }
 }
 
 void backend_worker::process_outstanding_entries()
 {
-  assert(!running_flag &&
-         "Cannot process outstanding entries while thread is running");
+  assert(!running_flag && "Cannot process outstanding entries while thread is running");
 
   while (true) {
     auto item = queue.timed_pop(1);

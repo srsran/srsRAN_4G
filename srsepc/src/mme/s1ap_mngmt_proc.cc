@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -21,7 +21,7 @@
 
 #include "srsepc/hdr/mme/s1ap_mngmt_proc.h"
 #include "srsepc/hdr/mme/s1ap.h"
-#include "srslte/common/bcd_helpers.h"
+#include "srsran/common/bcd_helpers.h"
 
 namespace srsepc {
 
@@ -61,7 +61,6 @@ void s1ap_mngmt_proc::cleanup(void)
 void s1ap_mngmt_proc::init(void)
 {
   m_s1ap      = s1ap::get_instance();
-  m_s1ap_log  = m_s1ap->m_s1ap_log;
   m_s1mme     = m_s1ap->get_s1_mme();
   m_s1ap_args = m_s1ap->m_s1ap_args;
 }
@@ -69,26 +68,26 @@ void s1ap_mngmt_proc::init(void)
 bool s1ap_mngmt_proc::handle_s1_setup_request(const asn1::s1ap::s1_setup_request_s& msg,
                                               struct sctp_sndrcvinfo*               enb_sri)
 {
-  srslte::console("Received S1 Setup Request.\n");
-  m_s1ap_log->info("Received S1 Setup Request.\n");
+  srsran::console("Received S1 Setup Request.\n");
+  m_logger.info("Received S1 Setup Request.");
 
   enb_ctx_t enb_ctx = {};
 
   if (!unpack_s1_setup_request(msg, &enb_ctx)) {
-    m_s1ap_log->error("Malformed S1 Setup Request\n");
+    m_logger.error("Malformed S1 Setup Request");
     return false;
   }
 
   // Store SCTP sendrecv info
   memcpy(&enb_ctx.sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
-  m_s1ap_log->debug("eNB SCTP association Id: %d\n", enb_sri->sinfo_assoc_id);
+  m_logger.debug("eNB SCTP association Id: %d", enb_sri->sinfo_assoc_id);
 
   // Log S1 Setup Request Info
   m_s1ap->print_enb_ctx_info(std::string("S1 Setup Request"), enb_ctx);
 
   // Check for TAC match
   bool tac_match = false;
-  for (uint8_t tac : enb_ctx.tacs) {
+  for (uint16_t tac : enb_ctx.tacs) {
     if (m_s1ap->get_tac() == tac) {
       tac_match = true;
       break;
@@ -97,27 +96,27 @@ bool s1ap_mngmt_proc::handle_s1_setup_request(const asn1::s1ap::s1_setup_request
 
   // Check matching PLMNs
   if (enb_ctx.plmn != m_s1ap->get_plmn()) {
-    srslte::console("Sending S1 Setup Failure - Unknown PLMN\n");
-    m_s1ap_log->warning("Sending S1 Setup Failure - Unknown PLMN\n");
+    srsran::console("Sending S1 Setup Failure - Unknown PLMN\n");
+    m_logger.warning("Sending S1 Setup Failure - Unknown PLMN");
     send_s1_setup_failure(asn1::s1ap::cause_misc_opts::unknown_plmn, enb_sri);
   } else if (!tac_match) {
-    srslte::console("Sending S1 Setup Failure - No matching TAC\n");
-    m_s1ap_log->warning("Sending S1 Setup Failure - No matching TAC\n");
+    srsran::console("Sending S1 Setup Failure - No matching TAC\n");
+    m_logger.warning("Sending S1 Setup Failure - No matching TAC");
     send_s1_setup_failure(asn1::s1ap::cause_misc_opts::unspecified, enb_sri);
   } else {
     enb_ctx_t* enb_ptr = m_s1ap->find_enb_ctx(enb_ctx.enb_id);
     if (enb_ptr != nullptr) {
       // eNB already registered
       // TODO replace enb_ctx
-      m_s1ap_log->warning("eNB Already registered\n");
+      m_logger.warning("eNB Already registered");
     } else {
       // new eNB
       m_s1ap->add_new_enb_ctx(enb_ctx, enb_sri);
     }
 
     send_s1_setup_response(m_s1ap_args, enb_sri);
-    srslte::console("Sending S1 Setup Response\n");
-    m_s1ap_log->info("Sending S1 Setup Response\n");
+    srsran::console("Sending S1 Setup Response\n");
+    m_logger.info("Sending S1 Setup Response");
   }
   return true;
 }
@@ -151,7 +150,7 @@ bool s1ap_mngmt_proc::unpack_s1_setup_request(const asn1::s1ap::s1_setup_request
   ((uint8_t*)&plmn)[3] = s1_req.global_enb_id.value.plm_nid[2];
 
   enb_ctx->plmn = ntohl(plmn);
-  srslte::s1ap_plmn_to_mccmnc(enb_ctx->plmn, &enb_ctx->mcc, &enb_ctx->mnc);
+  srsran::s1ap_plmn_to_mccmnc(enb_ctx->plmn, &enb_ctx->mcc, &enb_ctx->mnc);
 
   // SupportedTAs
   enb_ctx->nof_supported_ta = s1_req.supported_tas.value.size();
@@ -194,7 +193,7 @@ bool s1ap_mngmt_proc::send_s1_setup_failure(asn1::s1ap::cause_misc_opts::options
 
 bool s1ap_mngmt_proc::send_s1_setup_response(s1ap_args_t s1ap_args, struct sctp_sndrcvinfo* enb_sri)
 {
-  m_s1ap_log->debug("Sending S1 Setup Response\n");
+  m_logger.debug("Sending S1 Setup Response");
 
   s1ap_pdu_t tx_pdu;
   tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_S1_SETUP);
@@ -209,7 +208,7 @@ bool s1ap_mngmt_proc::send_s1_setup_response(s1ap_args_t s1ap_args, struct sctp_
   s1_resp.served_gummeis.value.resize(1); // TODO Only one served GUMMEI supported
 
   uint32_t plmn = 0;
-  srslte::s1ap_mccmnc_to_plmn(s1ap_args.mcc, s1ap_args.mnc, &plmn);
+  srsran::s1ap_mccmnc_to_plmn(s1ap_args.mcc, s1ap_args.mnc, &plmn);
   plmn = htonl(plmn);
 
   asn1::s1ap::served_gummeis_item_s& serv_gummei = s1_resp.served_gummeis.value[0];
@@ -228,9 +227,9 @@ bool s1ap_mngmt_proc::send_s1_setup_response(s1ap_args_t s1ap_args, struct sctp_
   s1_resp.relative_mme_capacity.value = 255;
 
   if (!m_s1ap->s1ap_tx_pdu(tx_pdu, enb_sri)) {
-    m_s1ap_log->error("Error sending S1 Setup Response.\n");
+    m_logger.error("Error sending S1 Setup Response.");
   } else {
-    m_s1ap_log->debug("S1 Setup Response sent\n");
+    m_logger.debug("S1 Setup Response sent");
   }
   return true;
 }

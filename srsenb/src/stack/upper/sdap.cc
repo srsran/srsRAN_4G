@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -23,7 +23,7 @@
 
 namespace srsenb {
 
-sdap::sdap() : m_log("SDAP") {}
+sdap::sdap() {}
 
 bool sdap::init(pdcp_interface_sdap_nr* pdcp_, gtpu_interface_sdap_nr* gtpu_, srsue::gw_interface_pdcp* gw_)
 {
@@ -42,7 +42,7 @@ void sdap::stop()
   }
 }
 
-void sdap::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu)
+void sdap::write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
   // for now just forwards it
   if (m_gw) {
@@ -52,7 +52,7 @@ void sdap::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t 
   }
 }
 
-void sdap::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu)
+void sdap::write_sdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
   m_pdcp->write_sdu(rnti, lcid, std::move(pdu));
 }

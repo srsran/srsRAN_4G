@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,7 +19,8 @@
  *
  */
 
-#include "srslte/common/thread_pool.h"
+#include "srsran/common/thread_pool.h"
+#include "srsran/srslog/srslog.h"
 #include <assert.h>
 #include <chrono>
 #include <stdio.h>
@@ -31,7 +32,7 @@
       printf(fmt, __VA_ARGS__);                                                                                        \
   } while (0)
 
-namespace srslte {
+namespace srsran {
 
 thread_pool::worker::worker() : thread("THREAD_POOL_WORKER") {}
 
@@ -90,21 +91,22 @@ void thread_pool::init_worker(uint32_t id, worker* obj, uint32_t prio, uint32_t 
 
 void thread_pool::stop()
 {
-  mutex_queue.lock();
+  {
+    std::lock_guard<std::mutex> lock(mutex_queue);
 
-  /* Stop any thread waiting for available worker */
-  running = false;
+    /* Stop any thread waiting for available worker */
+    running = false;
 
-  /* Now stop all workers */
-  for (uint32_t i = 0; i < nof_workers; i++) {
-    if (workers[i]) {
-      debug_thread("stop(): stopping %d\n", i);
-      status[i] = STOP;
-      cvar_worker[i].notify_all();
-      cvar_queue.notify_all();
+    /* Now stop all workers */
+    for (uint32_t i = 0; i < nof_workers; i++) {
+      if (workers[i]) {
+        debug_thread("stop(): stopping %d\n", i);
+        status[i] = STOP;
+        cvar_worker[i].notify_all();
+        cvar_queue.notify_all();
+      }
     }
   }
-  mutex_queue.unlock();
 
   for (uint32_t i = 0; i < nof_workers; i++) {
     debug_thread("stop(): waiting %d\n", i);
@@ -142,6 +144,12 @@ void thread_pool::worker::finished()
     my_parent->cvar_worker[my_id].notify_all();
     my_parent->cvar_queue.notify_all();
   }
+}
+
+bool thread_pool::worker::is_stopped() const
+{
+  std::lock_guard<std::mutex> lock(my_parent->mutex_queue);
+  return my_parent->status[my_id] == STOP;
 }
 
 bool thread_pool::find_finished_worker(uint32_t tti, uint32_t* id)
@@ -253,11 +261,11 @@ uint32_t thread_pool::get_nof_workers()
  *  once a worker is available
  *************************************************************************/
 
-task_thread_pool::task_thread_pool(uint32_t nof_workers) : running(false)
+task_thread_pool::task_thread_pool(uint32_t nof_workers, bool start_deferred, int32_t prio_, uint32_t mask_) :
+  logger(srslog::fetch_basic_logger("POOL")), pending_tasks(max_task_num), workers(std::max(1u, nof_workers))
 {
-  workers.reserve(nof_workers);
-  for (uint32_t i = 0; i < nof_workers; ++i) {
-    workers.emplace_back(this, i);
+  if (not start_deferred) {
+    start(prio_, mask_);
   }
 }
 
@@ -266,12 +274,34 @@ task_thread_pool::~task_thread_pool()
   stop();
 }
 
-void task_thread_pool::start(int32_t prio, uint32_t mask)
+void task_thread_pool::set_nof_workers(uint32_t nof_workers)
 {
   std::lock_guard<std::mutex> lock(queue_mutex);
+  if (workers.size() > nof_workers) {
+    logger.error("Reducing the number of workers dynamically not supported");
+    return;
+  }
+  uint32_t old_size = workers.size();
+  workers.resize(nof_workers);
+  if (running) {
+    for (uint32_t i = old_size; i < nof_workers; ++i) {
+      workers[i].reset(new worker_t(this, i));
+    }
+  }
+}
+
+void task_thread_pool::start(int32_t prio_, uint32_t mask_)
+{
+  std::lock_guard<std::mutex> lock(queue_mutex);
+  if (running) {
+    logger.error("Starting thread pool that has already started");
+    return;
+  }
+  prio    = prio_;
+  mask    = mask_;
   running = true;
-  for (worker_t& w : workers) {
-    w.setup(prio, mask);
+  for (uint32_t i = 0; i < workers.size(); ++i) {
+    workers[i].reset(new worker_t(this, i));
   }
 }
 
@@ -281,8 +311,8 @@ void task_thread_pool::stop()
   if (running) {
     running              = false;
     bool workers_running = false;
-    for (worker_t& w : workers) {
-      if (w.is_running()) {
+    for (std::unique_ptr<worker_t>& w : workers) {
+      if (w->is_running()) {
         workers_running = true;
         break;
       }
@@ -291,56 +321,44 @@ void task_thread_pool::stop()
     if (workers_running) {
       cv_empty.notify_all();
     }
-    for (worker_t& w : workers) {
-      w.stop();
+    for (std::unique_ptr<worker_t>& w : workers) {
+      w->stop();
     }
   }
-}
-
-void task_thread_pool::push_task(const task_t& task)
-{
-  {
-    std::lock_guard<std::mutex> lock(queue_mutex);
-    pending_tasks.push(task);
-  }
-  cv_empty.notify_one();
 }
 
 void task_thread_pool::push_task(task_t&& task)
 {
   {
     std::lock_guard<std::mutex> lock(queue_mutex);
+    if (pending_tasks.full()) {
+      logger.error("Cannot push anymore tasks into the queue, maximum size is %u", uint32_t(max_task_num));
+      return;
+    }
     pending_tasks.push(std::move(task));
   }
   cv_empty.notify_one();
 }
 
-uint32_t task_thread_pool::nof_pending_tasks()
+uint32_t task_thread_pool::nof_pending_tasks() const
 {
   std::lock_guard<std::mutex> lock(queue_mutex);
   return pending_tasks.size();
 }
 
-task_thread_pool::worker_t::worker_t(srslte::task_thread_pool* parent_, uint32_t my_id) :
-  parent(parent_),
-  thread(std::string("TASKWORKER") + std::to_string(my_id)),
-  id_(my_id)
+task_thread_pool::worker_t::worker_t(srsran::task_thread_pool* parent_, uint32_t my_id) :
+  parent(parent_), thread(std::string("TASKWORKER") + std::to_string(my_id)), id_(my_id), running(true)
 {
+  if (parent->mask == 255) {
+    start(parent->prio);
+  } else {
+    start_cpu_mask(parent->prio, parent->mask);
+  }
 }
 
 void task_thread_pool::worker_t::stop()
 {
   wait_thread_finish();
-}
-
-void task_thread_pool::worker_t::setup(int32_t prio, uint32_t mask)
-{
-  running = true;
-  if (mask == 255) {
-    start(prio);
-  } else {
-    start_cpu_mask(prio, mask);
-  }
 }
 
 bool task_thread_pool::worker_t::wait_task(task_t* task)
@@ -353,7 +371,7 @@ bool task_thread_pool::worker_t::wait_task(task_t* task)
     return false;
   }
   if (task) {
-    *task = std::move(parent->pending_tasks.front());
+    *task = std::move(parent->pending_tasks.top());
   }
   parent->pending_tasks.pop();
   return true;
@@ -364,7 +382,7 @@ void task_thread_pool::worker_t::run_thread()
   // main loop
   task_t task;
   while (wait_task(&task)) {
-    task(id());
+    task();
   }
 
   // on exit, notify pool class
@@ -372,4 +390,11 @@ void task_thread_pool::worker_t::run_thread()
   running = false;
 }
 
-} // namespace srslte
+// Global thread pool for long, low-priority tasks
+task_thread_pool& get_background_workers()
+{
+  static task_thread_pool background_workers;
+  return background_workers;
+}
+
+} // namespace srsran

@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,13 +19,13 @@
  *
  */
 
-#include "srslte/phy/utils/vector.h"
-#include <srslte/phy/channel/delay.h>
-#include <srslte/phy/utils/debug.h>
-#include <srslte/phy/utils/random.h>
+#include "srsran/phy/utils/vector.h"
+#include <srsran/phy/channel/delay.h>
+#include <srsran/phy/utils/debug.h>
+#include <srsran/phy/utils/random.h>
 #include <unistd.h>
 
-static srslte_channel_delay_t delay = {};
+static srsran_channel_delay_t delay = {};
 
 static uint32_t delay_min_us      = 10;
 static uint32_t delay_max_us      = 3333;
@@ -75,11 +75,11 @@ static void parse_args(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-  int                ret           = SRSLTE_SUCCESS;
+  int                ret           = SRSRAN_SUCCESS;
   cf_t*              input_buffer  = NULL;
   cf_t*              output_buffer = NULL;
-  srslte_timestamp_t ts            = {}; // Initialised to zero
-  srslte_random_t    random_gen    = srslte_random_init(0x1234);
+  srsran_timestamp_t ts            = {}; // Initialised to zero
+  srsran_random_t    random_gen    = srsran_random_init(0x1234);
   struct timeval     t[3]          = {};
 
   // Parse arguments
@@ -87,38 +87,38 @@ int main(int argc, char** argv)
 
   // Initialise buffers
   uint32_t size = srate_hz / 1000;
-  input_buffer  = srslte_vec_cf_malloc(size);
-  output_buffer = srslte_vec_cf_malloc(size);
+  input_buffer  = srsran_vec_cf_malloc(size);
+  output_buffer = srsran_vec_cf_malloc(size);
   if (!input_buffer || !output_buffer) {
     fprintf(stderr, "Error: Allocating memory\n");
-    ret = SRSLTE_ERROR;
+    ret = SRSRAN_ERROR;
   }
 
   // Generate random samples
-  srslte_random_uniform_complex_dist_vector(random_gen, input_buffer, size, -1.0f, +1.0f);
+  srsran_random_uniform_complex_dist_vector(random_gen, input_buffer, size, -1.0f, +1.0f);
 
   // Initialise delay channel
-  if (ret == SRSLTE_SUCCESS) {
-    ret = srslte_channel_delay_init(&delay, delay_min_us, delay_max_us, delay_period_s, delay_init_time_s, srate_hz);
+  if (ret == SRSRAN_SUCCESS) {
+    ret = srsran_channel_delay_init(&delay, delay_min_us, delay_max_us, delay_period_s, delay_init_time_s, srate_hz);
   }
 
   // Run actual test
   gettimeofday(&t[1], NULL);
-  for (int i = 0; i < sim_time_periods && ret == SRSLTE_SUCCESS; i++) {
+  for (int i = 0; i < sim_time_periods && ret == SRSRAN_SUCCESS; i++) {
     for (int j = 0; j < 1000 * delay_period_s; j++) {
       // Run delay channel
-      srslte_channel_delay_execute(&delay, input_buffer, output_buffer, size, &ts);
+      srsran_channel_delay_execute(&delay, input_buffer, output_buffer, size, &ts);
 
       // Increment timestamp 1ms
-      srslte_timestamp_add(&ts, 0, 0.001);
+      srsran_timestamp_add(&ts, 0, 0.001);
     }
   }
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
 
   // Free
-  srslte_random_free(random_gen);
-  srslte_channel_delay_free(&delay);
+  srsran_random_free(random_gen);
+  srsran_channel_delay_free(&delay);
 
   if (input_buffer) {
     free(input_buffer);
@@ -138,7 +138,7 @@ int main(int argc, char** argv)
          delay_period_s,
          srate_hz,
          sim_time_periods,
-         (ret == SRSLTE_SUCCESS) ? "Passed" : "Failed",
+         (ret == SRSRAN_SUCCESS) ? "Passed" : "Failed",
          (double)nof_samples / elapsed_us);
   exit(ret);
 }

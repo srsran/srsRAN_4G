@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -32,31 +32,31 @@
 #include <unistd.h>
 
 #include "npdsch_ue_helper.h"
-#include "srslte/phy/ch_estimation/chest_dl_nbiot.h"
-#include "srslte/phy/channel/ch_awgn.h"
-#include "srslte/phy/io/filesink.h"
-#include "srslte/phy/io/filesource.h"
-#include "srslte/phy/ue/ue_dl_nbiot.h"
-#include "srslte/phy/ue/ue_mib_nbiot.h"
-#include "srslte/phy/ue/ue_sync_nbiot.h"
-#include "srslte/phy/utils/bit.h"
+#include "srsran/phy/ch_estimation/chest_dl_nbiot.h"
+#include "srsran/phy/channel/ch_awgn.h"
+#include "srsran/phy/io/filesink.h"
+#include "srsran/phy/io/filesource.h"
+#include "srsran/phy/ue/ue_dl_nbiot.h"
+#include "srsran/phy/ue/ue_mib_nbiot.h"
+#include "srsran/phy/ue/ue_sync_nbiot.h"
+#include "srsran/phy/utils/bit.h"
 
 #undef ENABLE_AGC_DEFAULT
 
 #ifndef DISABLE_RF
-#include "srslte/phy/rf/rf.h"
-#include "srslte/phy/rf/rf_utils.h"
+#include "srsran/phy/rf/rf.h"
+#include "srsran/phy/rf/rf_utils.h"
 
 #define ENABLE_MANUAL_NSSS_SEARCH 0
 #define HAVE_PCAP 1
 
 #if HAVE_PCAP
-#include "srslte/common/pcap.h"
+#include "srsran/common/pcap.h"
 #endif
 
-cell_search_cfg_t cell_detect_config = {.max_frames_pbch      = SRSLTE_DEFAULT_MAX_FRAMES_NPBCH,
-                                        .max_frames_pss       = SRSLTE_DEFAULT_MAX_FRAMES_NPSS,
-                                        .nof_valid_pss_frames = SRSLTE_DEFAULT_NOF_VALID_NPSS_FRAMES,
+cell_search_cfg_t cell_detect_config = {.max_frames_pbch      = SRSRAN_DEFAULT_MAX_FRAMES_NPBCH,
+                                        .max_frames_pss       = SRSRAN_DEFAULT_MAX_FRAMES_NPSS,
+                                        .nof_valid_pss_frames = SRSRAN_DEFAULT_NOF_VALID_NPSS_FRAMES,
                                         .init_agc             = 0,
                                         .force_tdd            = false};
 
@@ -78,7 +78,7 @@ bool      plot_track  = true;
 #define NPSS_FIND_PLOT_WIDTH 80
 //#define CORRECT_SAMPLE_OFFSET
 
-static srslte_nbiot_si_params_t sib2_params;
+static srsran_nbiot_si_params_t sib2_params;
 
 /**********************************************************************
  *  Program arguments processing
@@ -110,8 +110,8 @@ void args_default(prog_args_t* args)
   args->disable_plots                      = false;
   args->disable_plots_except_constellation = false;
   args->nof_subframes                      = -1;
-  args->rnti                               = SRSLTE_SIRNTI;
-  args->n_id_ncell                         = SRSLTE_CELL_ID_UNKNOWN;
+  args->rnti                               = SRSRAN_SIRNTI;
+  args->n_id_ncell                         = SRSRAN_CELL_ID_UNKNOWN;
   args->is_r14                             = true;
   args->input_file_name                    = NULL;
   args->disable_cfo                        = false;
@@ -164,7 +164,7 @@ void usage(prog_args_t* args, char* prog)
   printf("\t plots are disabled. Graphics library not available\n");
 #endif // ENABLE_GUI
   printf("\t-n nof_subframes [Default %d]\n", args->nof_subframes);
-  printf("\t-v [set srslte_verbose to debug, default none]\n");
+  printf("\t-v [set srsran_verbose to debug, default none]\n");
 }
 
 void parse_args(prog_args_t* args, int argc, char** argv)
@@ -228,7 +228,7 @@ void parse_args(prog_args_t* args, int argc, char** argv)
         args->disable_plots_except_constellation = true;
         break;
       case 'v':
-        srslte_verbose++;
+        srsran_verbose++;
         break;
       default:
         usage(args, argv[0]);
@@ -242,7 +242,7 @@ void parse_args(prog_args_t* args, int argc, char** argv)
 }
 /**********************************************************************/
 
-static uint8_t rx_tb[SRSLTE_MAX_DL_BITS_CAT_NB1]; // Byte buffer for rx'ed transport blocks
+static uint8_t rx_tb[SRSRAN_MAX_DL_BITS_CAT_NB1]; // Byte buffer for rx'ed transport blocks
 
 bool go_exit = false;
 void sig_int_handler(int signo)
@@ -271,8 +271,8 @@ void pcap_pack_and_write(FILE*    pcap_file,
                                 .ueid           = 1,
                                 .isRetx         = reTX,
                                 .crcStatusOK    = crc_ok,
-                                .sysFrameNumber = (uint16_t)(tti / SRSLTE_NOF_SF_X_FRAME),
-                                .subFrameNumber = (uint16_t)(tti % SRSLTE_NOF_SF_X_FRAME),
+                                .sysFrameNumber = (uint16_t)(tti / SRSRAN_NOF_SF_X_FRAME),
+                                .subFrameNumber = (uint16_t)(tti % SRSRAN_NOF_SF_X_FRAME),
                                 .nbiotMode      = 1};
   if (pdu) {
     LTE_PCAP_MAC_WritePDU(pcap_file, &context, pdu, pdu_len_bytes);
@@ -281,25 +281,25 @@ void pcap_pack_and_write(FILE*    pcap_file,
 #endif
 
 #ifndef DISABLE_RF
-int srslte_rf_recv_wrapper(void* h, void* data, uint32_t nsamples, srslte_timestamp_t* t)
+int srsran_rf_recv_wrapper(void* h, void* data, uint32_t nsamples, srsran_timestamp_t* t)
 {
-  DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
-  return srslte_rf_recv_with_time(h, data, nsamples, true, &t->full_secs, &t->frac_secs);
+  DEBUG(" ----  Receive %d samples  ----", nsamples);
+  return srsran_rf_recv_with_time(h, data, nsamples, true, &t->full_secs, &t->frac_secs);
 }
 
-void srslte_rf_set_rx_gain_th_wrapper_(void* h, float f)
+void srsran_rf_set_rx_gain_th_wrapper_(void* h, float f)
 {
-  srslte_rf_set_rx_gain_th((srslte_rf_t*)h, f);
+  srsran_rf_set_rx_gain_th((srsran_rf_t*)h, f);
 }
 
 #endif
 
 enum receiver_state { DECODE_MIB, DECODE_SIB, DECODE_NPDSCH } state;
 
-static srslte_nbiot_cell_t cell = {};
+static srsran_nbiot_cell_t cell = {};
 
-srslte_nbiot_ue_dl_t   ue_dl;
-srslte_nbiot_ue_sync_t ue_sync;
+srsran_nbiot_ue_dl_t   ue_dl;
+srsran_nbiot_ue_sync_t ue_sync;
 prog_args_t            prog_args;
 
 bool have_sib1 = false;
@@ -326,13 +326,13 @@ int main(int argc, char** argv)
 {
   int                   ret;
   int64_t               sf_cnt;
-  srslte_ue_mib_nbiot_t ue_mib;
+  srsran_ue_mib_nbiot_t ue_mib;
 #ifndef DISABLE_RF
-  srslte_rf_t rf;
+  srsran_rf_t rf;
 #endif
   uint32_t nof_trials = 0;
   int      n;
-  uint8_t  bch_payload[SRSLTE_MIB_NB_LEN] = {};
+  uint8_t  bch_payload[SRSRAN_MIB_NB_LEN] = {};
   int      sfn_offset;
   float    cfo = 0;
 
@@ -348,41 +348,40 @@ int main(int argc, char** argv)
   sigprocmask(SIG_UNBLOCK, &sigset, NULL);
   signal(SIGINT, sig_int_handler);
 
-  cell.base.nof_prb = SRSLTE_NBIOT_DEFAULT_NUM_PRB_BASECELL;
-  cell.nbiot_prb    = SRSLTE_NBIOT_DEFAULT_PRB_OFFSET;
+  cell.base.nof_prb = SRSRAN_NBIOT_DEFAULT_NUM_PRB_BASECELL;
+  cell.nbiot_prb    = SRSRAN_NBIOT_DEFAULT_PRB_OFFSET;
   cell.n_id_ncell   = prog_args.n_id_ncell;
   cell.is_r14       = prog_args.is_r14;
 
 #ifndef DISABLE_RF
   if (!prog_args.input_file_name) {
-
     printf("Opening RF device...\n");
-    if (srslte_rf_open_devname(&rf, prog_args.rf_dev, prog_args.rf_args, 1)) {
+    if (srsran_rf_open_devname(&rf, prog_args.rf_dev, prog_args.rf_args, 1)) {
       fprintf(stderr, "Error opening rf\n");
       exit(-1);
     }
     /* Set receiver gain */
     if (prog_args.rf_gain > 0) {
-      srslte_rf_set_rx_gain(&rf, prog_args.rf_gain);
+      srsran_rf_set_rx_gain(&rf, prog_args.rf_gain);
       printf("Set RX gain: %.1f dB\n", prog_args.rf_gain);
     } else {
       printf("Starting AGC thread...\n");
-      if (srslte_rf_start_gain_thread(&rf, false)) {
+      if (srsran_rf_start_gain_thread(&rf, false)) {
         fprintf(stderr, "Error opening rf\n");
         exit(-1);
       }
-      srslte_rf_set_rx_gain(&rf, 50);
+      srsran_rf_set_rx_gain(&rf, 50);
       cell_detect_config.init_agc = 50;
     }
 
     // set transceiver frequency
-    printf("Set RX freq: %.6f MHz\n", srslte_rf_set_rx_freq(&rf, 0, prog_args.rf_freq) / 1000000);
+    printf("Set RX freq: %.6f MHz\n", srsran_rf_set_rx_freq(&rf, 0, prog_args.rf_freq) / 1000000);
 
     // set sampling frequency
-    int srate = srslte_sampling_freq_hz(cell.base.nof_prb);
+    int srate = srsran_sampling_freq_hz(cell.base.nof_prb);
     if (srate != -1) {
       printf("Setting sampling rate %.2f MHz\n", (float)srate / 1e6);
-      double srate_rf = srslte_rf_set_rx_srate(&rf, srate);
+      double srate_rf = srsran_rf_set_rx_srate(&rf, srate);
       printf("Actual sampling rate %.2f MHz\n", srate_rf / 1e6);
       // We don't check the result rate with requested rate
     } else {
@@ -391,55 +390,55 @@ int main(int argc, char** argv)
     }
 
     INFO("Stopping RF and flushing buffer...\r");
-    srslte_rf_stop_rx_stream(&rf);
+    srsran_rf_stop_rx_stream(&rf);
 
 #if ENABLE_MANUAL_NSSS_SEARCH
     // determine n_id_ncell
-    if (prog_args.n_id_ncell == SRSLTE_CELL_ID_UNKNOWN) {
-      srslte_nsss_synch_t nsss;
+    if (prog_args.n_id_ncell == SRSRAN_CELL_ID_UNKNOWN) {
+      srsran_nsss_synch_t nsss;
       float               nsss_peak_value;
       int                 input_len = srate * 10 / 1000 * 2; // capture two full frames to make sure we have one NSSS
 
-      cf_t* buffer = srslte_vec_cf_malloc(input_len * 2);
+      cf_t* buffer = srsran_vec_cf_malloc(input_len * 2);
       if (!buffer) {
         perror("malloc");
         exit(-1);
       }
 
-      if (srslte_nsss_synch_init(&nsss, input_len, srate / 15000)) {
+      if (srsran_nsss_synch_init(&nsss, input_len, srate / 15000)) {
         fprintf(stderr, "Error initializing NSSS object\n");
         exit(-1);
       }
 
-      srslte_rf_start_rx_stream(&rf, false);
-      n = srslte_rf_recv(&rf, buffer, input_len, 1);
+      srsran_rf_start_rx_stream(&rf, false);
+      n = srsran_rf_recv(&rf, buffer, input_len, 1);
       if (n != input_len) {
         fprintf(stderr, "Error receiving samples\n");
         exit(-1);
       }
-      srslte_rf_stop_rx_stream(&rf);
+      srsran_rf_stop_rx_stream(&rf);
 
       // trying to find NSSS
       printf("Detecting NSSS signal .. ");
       fflush(stdout);
       uint32_t sfn_partial;
-      srslte_nsss_sync_find(&nsss, buffer, &nsss_peak_value, (uint32_t*)&cell.n_id_ncell, &sfn_partial);
+      srsran_nsss_sync_find(&nsss, buffer, &nsss_peak_value, (uint32_t*)&cell.n_id_ncell, &sfn_partial);
       printf("done!");
-      srslte_nsss_synch_free(&nsss);
+      srsran_nsss_synch_free(&nsss);
       free(buffer);
     } else {
       cell.n_id_ncell = prog_args.n_id_ncell;
     }
     printf("\nSetting n_id_ncell to %d.\n", cell.n_id_ncell);
 #else
-    if (cell.n_id_ncell == SRSLTE_CELL_ID_UNKNOWN) {
+    if (cell.n_id_ncell == SRSRAN_CELL_ID_UNKNOWN) {
       uint32_t ntrial = 0;
       do {
         ret = rf_cell_search_nbiot(&rf, &cell_detect_config, &cell, &cfo);
-        if (ret != SRSLTE_SUCCESS) {
+        if (ret != SRSRAN_SUCCESS) {
           printf("Cell not found after %d trials. Trying again (Press Ctrl+C to exit)\n", ntrial++);
         }
-      } while (ret != SRSLTE_SUCCESS && !go_exit);
+      } while (ret != SRSRAN_SUCCESS && !go_exit);
     }
 #endif
 
@@ -455,31 +454,31 @@ int main(int argc, char** argv)
     cell.base.nof_ports = prog_args.file_nof_ports;
     cell.nof_ports      = prog_args.file_nof_ports;
 
-    if (srslte_ue_sync_nbiot_init_file(
+    if (srsran_ue_sync_nbiot_init_file(
             &ue_sync, cell, prog_args.input_file_name, prog_args.file_offset_time, prog_args.file_offset_freq)) {
       fprintf(stderr, "Error initiating ue_sync\n");
       exit(-1);
     }
   } else {
 #ifndef DISABLE_RF
-    if (srslte_ue_sync_nbiot_init(&ue_sync, cell, srslte_rf_recv_wrapper, (void*)&rf)) {
+    if (srsran_ue_sync_nbiot_init(&ue_sync, cell, srsran_rf_recv_wrapper, (void*)&rf)) {
       fprintf(stderr, "Error initiating ue_sync\n");
       exit(-1);
     }
     // reduce AGC period to every 10th frame
-    srslte_ue_sync_nbiot_set_agc_period(&ue_sync, 10);
+    srsran_ue_sync_nbiot_set_agc_period(&ue_sync, 10);
 #endif
   }
 
   // Allocate memory to fit a full frame (needed for time re-alignment)
-  cf_t* buff_ptrs[SRSLTE_MAX_PORTS] = {NULL};
-  buff_ptrs[0]                      = srslte_vec_cf_malloc(SRSLTE_SF_LEN_PRB_NBIOT * 10);
+  cf_t* buff_ptrs[SRSRAN_MAX_PORTS] = {NULL};
+  buff_ptrs[0]                      = srsran_vec_cf_malloc(SRSRAN_SF_LEN_PRB_NBIOT * 10);
 
-  if (srslte_ue_mib_nbiot_init(&ue_mib, buff_ptrs, SRSLTE_NBIOT_MAX_PRB)) {
+  if (srsran_ue_mib_nbiot_init(&ue_mib, buff_ptrs, SRSRAN_NBIOT_MAX_PRB)) {
     fprintf(stderr, "Error initaiting UE MIB decoder\n");
     exit(-1);
   }
-  if (srslte_ue_mib_nbiot_set_cell(&ue_mib, cell) != SRSLTE_SUCCESS) {
+  if (srsran_ue_mib_nbiot_set_cell(&ue_mib, cell) != SRSRAN_SUCCESS) {
     fprintf(stderr, "Error setting cell configuration in UE MIB decoder\n");
     exit(-1);
   }
@@ -495,7 +494,7 @@ int main(int argc, char** argv)
 
 #ifndef DISABLE_RF
   if (!prog_args.input_file_name) {
-    srslte_rf_start_rx_stream(&rf, false);
+    srsran_rf_start_rx_stream(&rf, false);
   }
 #endif
 
@@ -505,85 +504,84 @@ int main(int argc, char** argv)
 
 #ifndef DISABLE_RF
   if (prog_args.rf_gain < 0) {
-    srslte_ue_sync_nbiot_start_agc(&ue_sync, srslte_rf_set_rx_gain_th_wrapper_, cell_detect_config.init_agc);
+    srsran_ue_sync_nbiot_start_agc(&ue_sync, srsran_rf_set_rx_gain_th_wrapper_, cell_detect_config.init_agc);
   }
 #endif
 #ifdef PRINT_CHANGE_SCHEDULIGN
-  srslte_ra_nbiot_dl_dci_t old_dl_dci;
-  bzero(&old_dl_dci, sizeof(srslte_ra_nbiot_dl_dci_t));
+  srsran_ra_nbiot_dl_dci_t old_dl_dci;
+  bzero(&old_dl_dci, sizeof(srsran_ra_nbiot_dl_dci_t));
 #endif
 
   ue_sync.correct_cfo = !prog_args.disable_cfo;
 
   // Set initial CFO for ue_sync
-  srslte_ue_sync_nbiot_set_cfo(&ue_sync, cfo);
+  srsran_ue_sync_nbiot_set_cfo(&ue_sync, cfo);
 
-  srslte_npbch_decode_reset(&ue_mib.npbch);
+  srsran_npbch_decode_reset(&ue_mib.npbch);
 
-  INFO("\nEntering main loop...\n\n");
+  INFO("\nEntering main loop...");
   while (!go_exit && (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1)) {
-
-    ret = srslte_ue_sync_nbiot_zerocopy_multi(&ue_sync, buff_ptrs);
+    ret = srsran_ue_sync_nbiot_zerocopy_multi(&ue_sync, buff_ptrs);
     if (ret < 0) {
-      fprintf(stderr, "Error calling srslte_nbiot_ue_sync_zerocopy_multi()\n");
+      fprintf(stderr, "Error calling srsran_nbiot_ue_sync_zerocopy_multi()\n");
       break;
     }
 
 #ifdef CORRECT_SAMPLE_OFFSET
     float sample_offset =
-        (float)srslte_ue_sync_get_last_sample_offset(&ue_sync) + srslte_ue_sync_get_sfo(&ue_sync) / 1000;
-    srslte_ue_dl_set_sample_offset(&ue_dl, sample_offset);
+        (float)srsran_ue_sync_get_last_sample_offset(&ue_sync) + srsran_ue_sync_get_sfo(&ue_sync) / 1000;
+    srsran_ue_dl_set_sample_offset(&ue_dl, sample_offset);
 #endif
 
-    // srslte_ue_sync_nbiot_zerocopy_multi() returns 1 if successfully read 1 aligned subframe
+    // srsran_ue_sync_nbiot_zerocopy_multi() returns 1 if successfully read 1 aligned subframe
     if (ret == 1) {
       switch (state) {
         case DECODE_MIB:
-          if (srslte_ue_sync_nbiot_get_sfidx(&ue_sync) == 0) {
-            n = srslte_ue_mib_nbiot_decode(&ue_mib, buff_ptrs[0], bch_payload, &cell.nof_ports, &sfn_offset);
+          if (srsran_ue_sync_nbiot_get_sfidx(&ue_sync) == 0) {
+            n = srsran_ue_mib_nbiot_decode(&ue_mib, buff_ptrs[0], bch_payload, &cell.nof_ports, &sfn_offset);
             if (n < 0) {
               fprintf(stderr, "Error decoding UE MIB\n");
               exit(-1);
-            } else if (n == SRSLTE_UE_MIB_NBIOT_FOUND) {
-              printf("MIB received (CFO: %+6.2f kHz)\n", srslte_ue_sync_nbiot_get_cfo(&ue_sync) / 1000);
-              srslte_mib_nb_t mib;
-              srslte_npbch_mib_unpack(bch_payload, &mib);
+            } else if (n == SRSRAN_UE_MIB_NBIOT_FOUND) {
+              printf("MIB received (CFO: %+6.2f kHz)\n", srsran_ue_sync_nbiot_get_cfo(&ue_sync) / 1000);
+              srsran_mib_nb_t mib;
+              srsran_npbch_mib_unpack(bch_payload, &mib);
 
               // update SFN and set deployment mode
               system_frame_number = (mib.sfn + sfn_offset) % 1024;
-              cell.mode = mib.mode;
+              cell.mode           = mib.mode;
 
               // set number of ports of base cell to that of NB-IoT cell (FIXME: read eutra-NumCRS-Ports-r13)
               cell.base.nof_ports = cell.nof_ports;
 
-              if (cell.mode == SRSLTE_NBIOT_MODE_INBAND_SAME_PCI) {
+              if (cell.mode == SRSRAN_NBIOT_MODE_INBAND_SAME_PCI) {
                 cell.base.id = cell.n_id_ncell;
               }
 
-              if (SRSLTE_VERBOSE_ISINFO()) {
-                srslte_mib_nb_printf(stdout, cell, &mib);
+              if (SRSRAN_VERBOSE_ISINFO()) {
+                srsran_mib_nb_printf(stdout, cell, &mib);
               }
 
               // Initialize DL
-              if (srslte_nbiot_ue_dl_init(&ue_dl, buff_ptrs, SRSLTE_NBIOT_MAX_PRB, SRSLTE_NBIOT_NUM_RX_ANTENNAS)) {
+              if (srsran_nbiot_ue_dl_init(&ue_dl, buff_ptrs, SRSRAN_NBIOT_MAX_PRB, SRSRAN_NBIOT_NUM_RX_ANTENNAS)) {
                 fprintf(stderr, "Error initiating UE downlink processing module\n");
                 exit(-1);
               }
 
-              if (srslte_nbiot_ue_dl_set_cell(&ue_dl, cell)) {
+              if (srsran_nbiot_ue_dl_set_cell(&ue_dl, cell)) {
                 fprintf(stderr, "Configuring cell in UE DL\n");
                 exit(-1);
               }
 
               // Configure downlink receiver with the MIB params and the RNTI we use
-              srslte_nbiot_ue_dl_set_mib(&ue_dl, mib);
-              srslte_nbiot_ue_dl_set_rnti(&ue_dl, prog_args.rnti);
+              srsran_nbiot_ue_dl_set_mib(&ue_dl, mib);
+              srsran_nbiot_ue_dl_set_rnti(&ue_dl, prog_args.rnti);
 
               // Pretty-print MIB
-              srslte_bit_pack_vector(bch_payload, rx_tb, SRSLTE_MIB_NB_CRC_LEN);
+              srsran_bit_pack_vector(bch_payload, rx_tb, SRSRAN_MIB_NB_CRC_LEN);
 #ifdef ENABLE_GUI
               if (bcch_bch_to_pretty_string(
-                      rx_tb, SRSLTE_MIB_NB_CRC_LEN, mib_buffer_decode, sizeof(mib_buffer_decode))) {
+                      rx_tb, SRSRAN_MIB_NB_CRC_LEN, mib_buffer_decode, sizeof(mib_buffer_decode))) {
                 fprintf(stderr, "Error decoding MIB\n");
               }
 #endif
@@ -592,16 +590,16 @@ int main(int argc, char** argv)
               // write to PCAP
               pcap_pack_and_write(pcap_file,
                                   rx_tb,
-                                  SRSLTE_MIB_NB_CRC_LEN,
+                                  SRSRAN_MIB_NB_CRC_LEN,
                                   0,
                                   true,
-                                  system_frame_number * SRSLTE_NOF_SF_X_FRAME,
+                                  system_frame_number * SRSRAN_NOF_SF_X_FRAME,
                                   0,
                                   DIRECTION_DOWNLINK,
                                   NO_RNTI);
 #endif
               // activate SIB1 decoding
-              srslte_nbiot_ue_dl_decode_sib1(&ue_dl, system_frame_number);
+              srsran_nbiot_ue_dl_decode_sib1(&ue_dl, system_frame_number);
               state = DECODE_SIB;
             }
           }
@@ -609,16 +607,16 @@ int main(int argc, char** argv)
 
         case DECODE_SIB:
           if (!have_sib1) {
-            int dec_ret = srslte_nbiot_ue_dl_decode_npdsch(&ue_dl,
+            int dec_ret = srsran_nbiot_ue_dl_decode_npdsch(&ue_dl,
                                                            &buff_ptrs[0][prog_args.time_offset],
                                                            rx_tb,
                                                            system_frame_number,
-                                                           srslte_ue_sync_nbiot_get_sfidx(&ue_sync),
-                                                           SRSLTE_SIRNTI);
-            if (dec_ret == SRSLTE_SUCCESS) {
+                                                           srsran_ue_sync_nbiot_get_sfidx(&ue_sync),
+                                                           SRSRAN_SIRNTI);
+            if (dec_ret == SRSRAN_SUCCESS) {
               printf("SIB1 received\n");
-              srslte_sys_info_block_type_1_nb_t sib = {};
-              srslte_npdsch_sib1_unpack(rx_tb, &sib);
+              srsran_sys_info_block_type_1_nb_t sib = {};
+              srsran_npdsch_sib1_unpack(rx_tb, &sib);
               hyper_frame_number = sib.hyper_sfn;
 
               have_sib1 = true;
@@ -634,37 +632,37 @@ int main(int argc, char** argv)
               get_sib2_params(rx_tb, ue_dl.npdsch_cfg.grant.mcs[0].tbs / 8, &sib2_params);
 
               // Activate SIB2 decoding
-              srslte_nbiot_ue_dl_decode_sib(
-                  &ue_dl, hyper_frame_number, system_frame_number, SRSLTE_NBIOT_SI_TYPE_SIB2, sib2_params);
+              srsran_nbiot_ue_dl_decode_sib(
+                  &ue_dl, hyper_frame_number, system_frame_number, SRSRAN_NBIOT_SI_TYPE_SIB2, sib2_params);
 #if HAVE_PCAP
               pcap_pack_and_write(pcap_file,
                                   rx_tb,
                                   ue_dl.npdsch_cfg.grant.mcs[0].tbs / 8,
                                   0,
                                   true,
-                                  system_frame_number * 10 + srslte_ue_sync_nbiot_get_sfidx(&ue_sync),
-                                  SRSLTE_SIRNTI,
+                                  system_frame_number * 10 + srsran_ue_sync_nbiot_get_sfidx(&ue_sync),
+                                  SRSRAN_SIRNTI,
                                   DIRECTION_DOWNLINK,
                                   SI_RNTI);
 #endif
               // if SIB1 was decoded in this subframe, skip processing it further
               break;
-            } else if (dec_ret == SRSLTE_ERROR) {
+            } else if (dec_ret == SRSRAN_ERROR) {
               // reactivate SIB1 grant
-              if (srslte_nbiot_ue_dl_has_grant(&ue_dl) == false) {
-                srslte_nbiot_ue_dl_decode_sib1(&ue_dl, system_frame_number);
+              if (srsran_nbiot_ue_dl_has_grant(&ue_dl) == false) {
+                srsran_nbiot_ue_dl_decode_sib1(&ue_dl, system_frame_number);
               }
             }
-          } else if (!have_sib2 && !srslte_nbiot_ue_dl_is_sib1_sf(
-                                       &ue_dl, system_frame_number, srslte_ue_sync_nbiot_get_sfidx(&ue_sync))) {
+          } else if (!have_sib2 && !srsran_nbiot_ue_dl_is_sib1_sf(
+                                       &ue_dl, system_frame_number, srsran_ue_sync_nbiot_get_sfidx(&ue_sync))) {
             // SIB2 is transmitted over multiple subframes, so this needs to be called more than once ..
-            int dec_ret = srslte_nbiot_ue_dl_decode_npdsch(&ue_dl,
+            int dec_ret = srsran_nbiot_ue_dl_decode_npdsch(&ue_dl,
                                                            &buff_ptrs[0][prog_args.time_offset],
                                                            rx_tb,
                                                            system_frame_number,
-                                                           srslte_ue_sync_nbiot_get_sfidx(&ue_sync),
-                                                           SRSLTE_SIRNTI);
-            if (dec_ret == SRSLTE_SUCCESS) {
+                                                           srsran_ue_sync_nbiot_get_sfidx(&ue_sync),
+                                                           SRSRAN_SIRNTI);
+            if (dec_ret == SRSRAN_SUCCESS) {
               printf("SIB2 received\n");
               have_sib2 = true;
 
@@ -681,80 +679,80 @@ int main(int argc, char** argv)
                                   ue_dl.npdsch_cfg.grant.mcs[0].tbs / 8,
                                   0,
                                   true,
-                                  system_frame_number * 10 + srslte_ue_sync_nbiot_get_sfidx(&ue_sync),
-                                  SRSLTE_SIRNTI,
+                                  system_frame_number * 10 + srsran_ue_sync_nbiot_get_sfidx(&ue_sync),
+                                  SRSRAN_SIRNTI,
                                   DIRECTION_DOWNLINK,
                                   SI_RNTI);
 #endif
             } else {
               // reactivate SIB2 grant
-              if (srslte_nbiot_ue_dl_has_grant(&ue_dl) == false) {
-                srslte_nbiot_ue_dl_decode_sib(
-                    &ue_dl, hyper_frame_number, system_frame_number, SRSLTE_NBIOT_SI_TYPE_SIB2, sib2_params);
+              if (srsran_nbiot_ue_dl_has_grant(&ue_dl) == false) {
+                srsran_nbiot_ue_dl_decode_sib(
+                    &ue_dl, hyper_frame_number, system_frame_number, SRSRAN_NBIOT_SI_TYPE_SIB2, sib2_params);
               }
             }
           }
 
           if (have_sib1 && (have_sib2 || prog_args.skip_sib2)) {
-            if (prog_args.rnti == SRSLTE_SIRNTI) {
-              srslte_nbiot_ue_dl_decode_sib1(&ue_dl, system_frame_number);
+            if (prog_args.rnti == SRSRAN_SIRNTI) {
+              srsran_nbiot_ue_dl_decode_sib1(&ue_dl, system_frame_number);
             }
             state = DECODE_NPDSCH;
           }
           break;
         case DECODE_NPDSCH:
-          if (prog_args.rnti != SRSLTE_SIRNTI) {
-            if (srslte_nbiot_ue_dl_has_grant(&ue_dl)) {
+          if (prog_args.rnti != SRSRAN_SIRNTI) {
+            if (srsran_nbiot_ue_dl_has_grant(&ue_dl)) {
               // attempt to decode NPDSCH
-              n = srslte_nbiot_ue_dl_decode_npdsch(&ue_dl,
+              n = srsran_nbiot_ue_dl_decode_npdsch(&ue_dl,
                                                    &buff_ptrs[0][prog_args.time_offset],
                                                    rx_tb,
                                                    system_frame_number,
-                                                   srslte_ue_sync_nbiot_get_sfidx(&ue_sync),
+                                                   srsran_ue_sync_nbiot_get_sfidx(&ue_sync),
                                                    prog_args.rnti);
-              if (n == SRSLTE_SUCCESS) {
-                INFO("NPDSCH decoded ok.\n");
+              if (n == SRSRAN_SUCCESS) {
+                INFO("NPDSCH decoded ok.");
               }
             } else {
               // decode NPDCCH
-              srslte_dci_msg_t dci_msg;
-              n = srslte_nbiot_ue_dl_decode_npdcch(&ue_dl,
+              srsran_dci_msg_t dci_msg;
+              n = srsran_nbiot_ue_dl_decode_npdcch(&ue_dl,
                                                    &buff_ptrs[0][prog_args.time_offset],
                                                    system_frame_number,
-                                                   srslte_ue_sync_nbiot_get_sfidx(&ue_sync),
+                                                   srsran_ue_sync_nbiot_get_sfidx(&ue_sync),
                                                    prog_args.rnti,
                                                    &dci_msg);
-              if (n == SRSLTE_NBIOT_UE_DL_FOUND_DCI) {
-                INFO("DCI found for rnti=%d\n", prog_args.rnti);
+              if (n == SRSRAN_NBIOT_UE_DL_FOUND_DCI) {
+                INFO("DCI found for rnti=%d", prog_args.rnti);
                 // convert DCI to grant
-                srslte_ra_nbiot_dl_dci_t   dci_unpacked;
-                srslte_ra_nbiot_dl_grant_t grant;
-                if (srslte_nbiot_dci_msg_to_dl_grant(&dci_msg,
+                srsran_ra_nbiot_dl_dci_t   dci_unpacked;
+                srsran_ra_nbiot_dl_grant_t grant;
+                if (srsran_nbiot_dci_msg_to_dl_grant(&dci_msg,
                                                      prog_args.rnti,
                                                      &dci_unpacked,
                                                      &grant,
                                                      system_frame_number,
-                                                     srslte_ue_sync_nbiot_get_sfidx(&ue_sync),
+                                                     srsran_ue_sync_nbiot_get_sfidx(&ue_sync),
                                                      64 /* TODO: remove */,
                                                      cell.mode)) {
                   fprintf(stderr, "Error unpacking DCI\n");
-                  return SRSLTE_ERROR;
+                  return SRSRAN_ERROR;
                 }
                 // activate grant
-                srslte_nbiot_ue_dl_set_grant(&ue_dl, &grant);
+                srsran_nbiot_ue_dl_set_grant(&ue_dl, &grant);
               }
             }
           } else {
             // decode SIB1 over and over again
-            n = srslte_nbiot_ue_dl_decode_npdsch(&ue_dl,
+            n = srsran_nbiot_ue_dl_decode_npdsch(&ue_dl,
                                                  &buff_ptrs[0][prog_args.time_offset],
                                                  rx_tb,
                                                  system_frame_number,
-                                                 srslte_ue_sync_nbiot_get_sfidx(&ue_sync),
+                                                 srsran_ue_sync_nbiot_get_sfidx(&ue_sync),
                                                  prog_args.rnti);
 
 #ifdef ENABLE_GUI
-            if (n == SRSLTE_SUCCESS) {
+            if (n == SRSRAN_SUCCESS) {
               if (bcch_dl_sch_to_pretty_string(
                       rx_tb, ue_dl.npdsch_cfg.grant.mcs[0].tbs / 8, sib1_buffer_decode, sizeof(sib1_buffer_decode))) {
                 fprintf(stderr, "Error decoding SIB1\n");
@@ -763,16 +761,16 @@ int main(int argc, char** argv)
 #endif // ENABLE_GUI
 
             // reactivate SIB1 grant
-            if (srslte_nbiot_ue_dl_has_grant(&ue_dl) == false) {
-              srslte_nbiot_ue_dl_decode_sib1(&ue_dl, system_frame_number);
+            if (srsran_nbiot_ue_dl_has_grant(&ue_dl) == false) {
+              srsran_nbiot_ue_dl_decode_sib1(&ue_dl, system_frame_number);
             }
           }
 
           nof_trials++;
 
-          rsrq  = SRSLTE_VEC_EMA(srslte_chest_dl_nbiot_get_rsrq(&ue_dl.chest), rsrq, 0.1);
-          rsrp  = SRSLTE_VEC_EMA(srslte_chest_dl_nbiot_get_rsrp(&ue_dl.chest), rsrp, 0.05);
-          noise = SRSLTE_VEC_EMA(srslte_chest_dl_nbiot_get_noise_estimate(&ue_dl.chest), noise, 0.05);
+          rsrq  = SRSRAN_VEC_EMA(srsran_chest_dl_nbiot_get_rsrq(&ue_dl.chest), rsrq, 0.1);
+          rsrp  = SRSRAN_VEC_EMA(srsran_chest_dl_nbiot_get_rsrp(&ue_dl.chest), rsrp, 0.05);
+          noise = SRSRAN_VEC_EMA(srsran_chest_dl_nbiot_get_noise_estimate(&ue_dl.chest), noise, 0.05);
           nframes++;
           if (isnan(rsrq)) {
             rsrq = 0;
@@ -785,16 +783,16 @@ int main(int argc, char** argv)
           }
 
           // Plot and Printf
-          if (srslte_ue_sync_nbiot_get_sfidx(&ue_sync) == 5) {
+          if (srsran_ue_sync_nbiot_get_sfidx(&ue_sync) == 5) {
             float gain = prog_args.rf_gain;
             if (gain < 0) {
-              gain = 10 * log10(srslte_agc_get_gain(&ue_sync.agc));
+              gain = 10 * log10(srsran_agc_get_gain(&ue_sync.agc));
             }
             printf(
                 "CFO: %+6.2f kHz, RSRP: %4.1f dBm "
                 "SNR: %4.1f dB, RSRQ: %4.1f dB, "
                 "NPDCCH detected: %d, NPDSCH-BLER: %5.2f%% (%d of total %d), NPDSCH-Rate: %5.2f kbit/s\r",
-                srslte_ue_sync_nbiot_get_cfo(&ue_sync) / 1000,
+                srsran_ue_sync_nbiot_get_cfo(&ue_sync) / 1000,
                 10 * log10(rsrp),
                 10 * log10(rsrp / noise),
                 10 * log10(rsrq),
@@ -802,12 +800,12 @@ int main(int argc, char** argv)
                 (float)100 * ue_dl.pkt_errors / ue_dl.pkts_total,
                 ue_dl.pkt_errors,
                 ue_dl.pkts_total,
-                (ue_dl.bits_total / ((system_frame_number * 10 + srslte_ue_sync_nbiot_get_sfidx(&ue_sync)) / 1000.0)) /
+                (ue_dl.bits_total / ((system_frame_number * 10 + srsran_ue_sync_nbiot_get_sfidx(&ue_sync)) / 1000.0)) /
                     1000.0);
           }
           break;
       }
-      if (srslte_ue_sync_nbiot_get_sfidx(&ue_sync) == 9) {
+      if (srsran_ue_sync_nbiot_get_sfidx(&ue_sync) == 9) {
         system_frame_number++;
         if (system_frame_number == 1024) {
           system_frame_number = 0;
@@ -828,7 +826,7 @@ int main(int argc, char** argv)
 #ifdef ENABLE_GUI
       if (!prog_args.disable_plots) {
         if ((system_frame_number % 4) == 0) {
-          plot_sf_idx = srslte_ue_sync_nbiot_get_sfidx(&ue_sync);
+          plot_sf_idx = srsran_ue_sync_nbiot_get_sfidx(&ue_sync);
           plot_track  = true;
           sem_post(&plot_sem);
         }
@@ -837,12 +835,12 @@ int main(int argc, char** argv)
     } else if (ret == 0) {
       state = DECODE_MIB;
       printf("Finding PSS... Peak: %8.1f, FrameCnt: %d, State: %d\r",
-             srslte_sync_nbiot_get_peak_value(&ue_sync.sfind),
+             srsran_sync_nbiot_get_peak_value(&ue_sync.sfind),
              ue_sync.frame_total_cnt,
              ue_sync.state);
 #ifdef ENABLE_GUI
       if (!prog_args.disable_plots) {
-        plot_sf_idx = srslte_ue_sync_nbiot_get_sfidx(&ue_sync);
+        plot_sf_idx = srsran_ue_sync_nbiot_get_sfidx(&ue_sync);
         plot_track  = false;
         sem_post(&plot_sem);
       }
@@ -862,8 +860,8 @@ int main(int argc, char** argv)
     printf("dci_detected=%d\n", ue_dl.nof_detected);
   }
 
-  srslte_nbiot_ue_dl_free(&ue_dl);
-  srslte_ue_sync_nbiot_free(&ue_sync);
+  srsran_nbiot_ue_dl_free(&ue_dl);
+  srsran_ue_sync_nbiot_free(&ue_sync);
 
 #if HAVE_PCAP
   printf("Saving PCAP file\n");
@@ -872,9 +870,9 @@ int main(int argc, char** argv)
 
 #ifndef DISABLE_RF
   if (!prog_args.input_file_name) {
-    srslte_ue_mib_nbiot_free(&ue_mib);
-    srslte_rf_close(&rf);
-    for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
+    srsran_ue_mib_nbiot_free(&ue_mib);
+    srsran_rf_close(&rf);
+    for (int i = 0; i < SRSRAN_MAX_PORTS; i++) {
       if (buff_ptrs[i] != NULL)
         free(buff_ptrs[i]);
     }
@@ -892,7 +890,7 @@ int main(int argc, char** argv)
 #endif // ENABLE_GUI
 
   printf("\nBye\n");
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 /**********************************************************************
@@ -916,9 +914,9 @@ float tmp_plot2[110 * 15 * 2048];
 
 void* plot_thread_run(void* arg)
 {
-  uint32_t nof_re   = SRSLTE_SF_LEN_RE(ue_dl.cell.base.nof_prb, ue_dl.cell.base.cp);
+  uint32_t nof_re = SRSRAN_SF_LEN_RE(ue_dl.cell.base.nof_prb, ue_dl.cell.base.cp);
 #if HAVE_RSRP_PLOT
-  float    rsrp_lin = 0;
+  float rsrp_lin = 0;
 #endif
 
   sdrgui_init_title("Software Radio Systems NB-IoT Receiver");
@@ -990,9 +988,9 @@ void* plot_thread_run(void* arg)
           tmp_plot[i] = -80;
         }
       }
-      int numpoints = SRSLTE_NRE * 2;
+      int numpoints = SRSRAN_NRE * 2;
       bzero(tmp_plot2, sizeof(float) * numpoints);
-      int g = (numpoints - SRSLTE_NRE) / 2;
+      int g = (numpoints - SRSRAN_NRE) / 2;
       for (int i = 0; i < 12 * ue_dl.cell.base.nof_prb; i++) {
         tmp_plot2[g + i] = 20 * log10(cabsf(ue_dl.ce[0][i]));
         if (isinf(tmp_plot2[g + i])) {
@@ -1003,17 +1001,17 @@ void* plot_thread_run(void* arg)
 
       if (!prog_args.input_file_name) {
         if (plot_track) {
-          srslte_npss_synch_t* pss_obj = &ue_sync.strack.npss;
-          int max = srslte_vec_max_fi(pss_obj->conv_output_avg, pss_obj->frame_size + pss_obj->fft_size - 1);
-          srslte_vec_sc_prod_fff(pss_obj->conv_output_avg,
+          srsran_npss_synch_t* pss_obj = &ue_sync.strack.npss;
+          int max = srsran_vec_max_fi(pss_obj->conv_output_avg, pss_obj->frame_size + pss_obj->fft_size - 1);
+          srsran_vec_sc_prod_fff(pss_obj->conv_output_avg,
                                  1 / pss_obj->conv_output_avg[max],
                                  tmp_plot2,
                                  pss_obj->frame_size + pss_obj->fft_size - 1);
           plot_real_setNewData(&p_sync, &tmp_plot2[max - NPSS_FIND_PLOT_WIDTH / 2], NPSS_FIND_PLOT_WIDTH);
         } else {
-          int len = SRSLTE_NPSS_CORR_FILTER_LEN + ue_sync.sfind.npss.frame_size - 1;
-          int max = srslte_vec_max_fi(ue_sync.sfind.npss.conv_output_avg, len);
-          srslte_vec_sc_prod_fff(
+          int len = SRSRAN_NPSS_CORR_FILTER_LEN + ue_sync.sfind.npss.frame_size - 1;
+          int max = srsran_vec_max_fi(ue_sync.sfind.npss.conv_output_avg, len);
+          srsran_vec_sc_prod_fff(
               ue_sync.sfind.npss.conv_output_avg, 1 / ue_sync.sfind.npss.conv_output_avg[max], tmp_plot2, len);
           plot_real_setNewData(&p_sync, tmp_plot2, len);
         }
@@ -1021,7 +1019,7 @@ void* plot_thread_run(void* arg)
 
 #if HAVE_RSRP_PLOT
       // get current RSRP estimate
-      rsrp_lin                       = SRSLTE_VEC_EMA(srslte_chest_dl_nbiot_get_rsrp(&ue_dl.chest), rsrp_lin, 0.05);
+      rsrp_lin                       = SRSRAN_VEC_EMA(srsran_chest_dl_nbiot_get_rsrp(&ue_dl.chest), rsrp_lin, 0.05);
       rsrp_table[rsrp_table_index++] = 10 * log10(rsrp_lin);
       if (rsrp_table_index == rsrp_num_plot) {
         rsrp_table_index = 0;
@@ -1046,7 +1044,7 @@ void* plot_thread_run(void* arg)
       snprintf(lable_buf, LABLE_MAX_LEN, "%d", cell.n_id_ncell);
       key_value_setValueText(&id_label, lable_buf);
 
-      key_value_setValueText(&mode_label, srslte_nbiot_mode_string(cell.mode));
+      key_value_setValueText(&mode_label, srsran_nbiot_mode_string(cell.mode));
 
       snprintf(lable_buf, LABLE_MAX_LEN, "%d / %d", hyper_frame_number, system_frame_number);
       key_value_setValueText(&hfn_label, lable_buf);

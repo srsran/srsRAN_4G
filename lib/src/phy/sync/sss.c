@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -25,31 +25,30 @@
 #include <string.h>
 #include <strings.h>
 
-#include "srslte/phy/dft/dft.h"
-#include "srslte/phy/sync/sss.h"
-#include "srslte/phy/utils/convolution.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/dft/dft.h"
+#include "srsran/phy/sync/sss.h"
+#include "srsran/phy/utils/convolution.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/vector.h"
 
-void generate_sss_all_tables(srslte_sss_tables_t* tables, uint32_t N_id_2);
-void convert_tables(srslte_sss_fc_tables_t* fc_tables, srslte_sss_tables_t* in);
+void generate_sss_all_tables(srsran_sss_tables_t* tables, uint32_t N_id_2);
+void convert_tables(srsran_sss_fc_tables_t* fc_tables, srsran_sss_tables_t* in);
 void generate_N_id_1_table(uint32_t table[30][30]);
 
-int srslte_sss_init(srslte_sss_t* q, uint32_t fft_size)
+int srsran_sss_init(srsran_sss_t* q, uint32_t fft_size)
 {
-
   if (q != NULL && fft_size <= 2048) {
     uint32_t            N_id_2;
-    srslte_sss_tables_t sss_tables;
+    srsran_sss_tables_t sss_tables;
 
-    bzero(q, sizeof(srslte_sss_t));
+    bzero(q, sizeof(srsran_sss_t));
 
-    if (srslte_dft_plan(&q->dftp_input, fft_size, SRSLTE_DFT_FORWARD, SRSLTE_DFT_COMPLEX)) {
-      srslte_sss_free(q);
-      return SRSLTE_ERROR;
+    if (srsran_dft_plan(&q->dftp_input, fft_size, SRSRAN_DFT_FORWARD, SRSRAN_DFT_COMPLEX)) {
+      srsran_sss_free(q);
+      return SRSRAN_ERROR;
     }
-    srslte_dft_plan_set_mirror(&q->dftp_input, true);
-    srslte_dft_plan_set_dc(&q->dftp_input, true);
+    srsran_dft_plan_set_mirror(&q->dftp_input, true);
+    srsran_dft_plan_set_dc(&q->dftp_input, true);
 
     q->fft_size     = fft_size;
     q->max_fft_size = fft_size;
@@ -61,72 +60,72 @@ int srslte_sss_init(srslte_sss_t* q, uint32_t fft_size)
       convert_tables(&q->fc_tables[N_id_2], &sss_tables);
     }
     q->N_id_2 = 0;
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
-  return SRSLTE_ERROR_INVALID_INPUTS;
+  return SRSRAN_ERROR_INVALID_INPUTS;
 }
 
-int srslte_sss_resize(srslte_sss_t* q, uint32_t fft_size)
+int srsran_sss_resize(srsran_sss_t* q, uint32_t fft_size)
 {
   if (q != NULL && fft_size <= 2048) {
     if (fft_size > q->max_fft_size) {
-      ERROR("Error in sss_synch_resize(): fft_size must be lower than initialized\n");
-      return SRSLTE_ERROR;
+      ERROR("Error in sss_synch_resize(): fft_size must be lower than initialized");
+      return SRSRAN_ERROR;
     }
-    if (srslte_dft_replan(&q->dftp_input, fft_size)) {
-      srslte_sss_free(q);
-      return SRSLTE_ERROR;
+    if (srsran_dft_replan(&q->dftp_input, fft_size)) {
+      srsran_sss_free(q);
+      return SRSRAN_ERROR;
     }
     q->fft_size = fft_size;
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
-  return SRSLTE_ERROR_INVALID_INPUTS;
+  return SRSRAN_ERROR_INVALID_INPUTS;
 }
 
-void srslte_sss_free(srslte_sss_t* q)
+void srsran_sss_free(srsran_sss_t* q)
 {
-  srslte_dft_plan_free(&q->dftp_input);
-  bzero(q, sizeof(srslte_sss_t));
+  srsran_dft_plan_free(&q->dftp_input);
+  bzero(q, sizeof(srsran_sss_t));
 }
 
 /** Sets the N_id_2 to search for */
-int srslte_sss_set_N_id_2(srslte_sss_t* q, uint32_t N_id_2)
+int srsran_sss_set_N_id_2(srsran_sss_t* q, uint32_t N_id_2)
 {
-  if (!srslte_N_id_2_isvalid(N_id_2)) {
-    ERROR("Invalid N_id_2 %d\n", N_id_2);
-    return SRSLTE_ERROR;
+  if (!srsran_N_id_2_isvalid(N_id_2)) {
+    ERROR("Invalid N_id_2 %d", N_id_2);
+    return SRSRAN_ERROR;
   } else {
     q->N_id_2 = N_id_2;
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 }
 
 /** 36.211 10.3 section 6.11.2.2
  */
-void srslte_sss_put_slot(float* sss, cf_t* slot, uint32_t nof_prb, srslte_cp_t cp)
+void srsran_sss_put_slot(float* sss, cf_t* slot, uint32_t nof_prb, srsran_cp_t cp)
 {
   uint32_t i, k;
 
-  k = (SRSLTE_CP_NSYMB(cp) - 2) * nof_prb * SRSLTE_NRE + nof_prb * SRSLTE_NRE / 2 - 31;
+  k = (SRSRAN_CP_NSYMB(cp) - 2) * nof_prb * SRSRAN_NRE + nof_prb * SRSRAN_NRE / 2 - 31;
 
   if (k > 5) {
     memset(&slot[k - 5], 0, 5 * sizeof(cf_t));
-    for (i = 0; i < SRSLTE_SSS_LEN; i++) {
+    for (i = 0; i < SRSRAN_SSS_LEN; i++) {
       __real__ slot[k + i] = sss[i];
       __imag__ slot[k + i] = 0;
     }
-    memset(&slot[k + SRSLTE_SSS_LEN], 0, 5 * sizeof(cf_t));
+    memset(&slot[k + SRSRAN_SSS_LEN], 0, 5 * sizeof(cf_t));
   }
 }
 
 /** Sets the SSS correlation peak detection threshold */
-void srslte_sss_set_threshold(srslte_sss_t* q, float threshold)
+void srsran_sss_set_threshold(srsran_sss_t* q, float threshold)
 {
   q->corr_peak_threshold = threshold;
 }
 
 /** Returns the subframe index based on the m0 and m1 values */
-uint32_t srslte_sss_subframe(uint32_t m0, uint32_t m1)
+uint32_t srsran_sss_subframe(uint32_t m0, uint32_t m1)
 {
   if (m1 > m0) {
     return 0;
@@ -136,9 +135,9 @@ uint32_t srslte_sss_subframe(uint32_t m0, uint32_t m1)
 }
 
 /** Returns the N_id_1 value based on the m0 and m1 values */
-int srslte_sss_N_id_1(srslte_sss_t* q, uint32_t m0, uint32_t m1, float corr)
+int srsran_sss_N_id_1(srsran_sss_t* q, uint32_t m0, uint32_t m1, float corr)
 {
-  int N_id_1 = SRSLTE_ERROR;
+  int N_id_1 = SRSRAN_ERROR;
 
   // Check threshold, consider not found (error) if the correlation is not above the threshold
   if (corr > q->corr_peak_threshold) {

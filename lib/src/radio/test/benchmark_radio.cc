@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,37 +19,38 @@
  *
  */
 
+#include <pthread.h>
+#include <sys/mman.h>
 #include <unistd.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include "srslte/phy/common/timestamp.h"
+#include "srsran/phy/common/timestamp.h"
 
 #ifdef __cplusplus
 }
 //#undef I // Fix complex.h #define I nastiness when using C++
 #endif
 
-#include "srslte/phy/utils/debug.h"
-#include "srslte/radio/radio.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/radio/radio.h"
 
-using namespace srslte;
+using namespace srsran;
 
-#define SRSLTE_MAX_RADIOS 3
+#define SRSRAN_MAX_RADIOS 3
 
-static std::array<std::string, SRSLTE_MAX_RADIOS> radios_args = {};
+static std::array<std::string, SRSRAN_MAX_RADIOS> radios_args = {};
 static char                                       radio_device[64];
 
-static log_filter  log_h;
 static std::string file_pattern = "radio%d.dat";
 static double      freq         = 2630e6;
 static uint32_t    nof_radios   = 1;
 static uint32_t    nof_ports    = 1;
 static double      srate        = 1.92e6; /* Hz */
 static double      duration     = 0.01;   /* in seconds, 10 ms by default */
-static cf_t*       buffers[SRSLTE_MAX_RADIOS][SRSLTE_MAX_PORTS];
+static cf_t*       buffers[SRSRAN_MAX_RADIOS][SRSRAN_MAX_PORTS];
 static bool        tx_enable       = false;
 static bool        sim_rate_change = false;
 static bool        measure_delay   = false;
@@ -57,17 +58,19 @@ static bool        capture         = false;
 static bool        agc_enable      = true;
 static float       rf_gain         = -1.0;
 
+static pthread_t radio_thread;
+
 #ifdef ENABLE_GUI
 #include "srsgui/srsgui.h"
 #include <semaphore.h>
 static pthread_t   plot_thread;
 static sem_t       plot_sem;
 static uint32_t    plot_sf_idx                          = 0;
-static plot_real_t fft_plot[SRSLTE_MAX_RADIOS]          = {};
-static cf_t*       fft_plot_buffer[SRSLTE_MAX_CHANNELS] = {};
+static plot_real_t fft_plot[SRSRAN_MAX_RADIOS]          = {};
+static cf_t*       fft_plot_buffer[SRSRAN_MAX_CHANNELS] = {};
 static float*      fft_plot_temp                        = nullptr;
 static uint32_t    fft_plot_buffer_size;
-srslte_dft_plan_t  dft_spectrum = {};
+srsran_dft_plan_t  dft_spectrum = {};
 #endif /* ENABLE_GUI */
 
 static bool fft_plot_enable = false;
@@ -81,8 +84,8 @@ void usage(char* prog)
   printf("\t-b Arguments for second radio [Default %s]\n", radios_args[1].c_str());
   printf("\t-c Arguments for third radio [Default %s]\n", radios_args[2].c_str());
   printf("\t-d Radio device [Default %s]\n", radio_device);
-  printf("\t-r number of radios 1-%d [Default %d]\n", SRSLTE_MAX_RADIOS, nof_radios);
-  printf("\t-p number of ports 1-%d [Default %d]\n", SRSLTE_MAX_PORTS, nof_ports);
+  printf("\t-r number of radios 1-%d [Default %d]\n", SRSRAN_MAX_RADIOS, nof_radios);
+  printf("\t-p number of ports 1-%d [Default %d]\n", SRSRAN_MAX_PORTS, nof_ports);
   printf("\t-s sampling rate [Default %.0f]\n", srate);
   printf("\t-t duration in seconds [Default %.3f]\n", duration);
   printf("\t-m measure delay [Default %s]\n", (measure_delay) ? "enabled" : "disabled");
@@ -91,7 +94,7 @@ void usage(char* prog)
   printf("\t-w capture [Default %s]\n", (capture) ? "enabled" : "disabled");
   printf("\t-o Output file pattern [Default %s]\n", file_pattern.c_str());
   printf("\t-F Display spectrum [Default %s]\n", (fft_plot_enable) ? "enabled" : "disabled");
-  printf("\t-v Set srslte_verbose to info (v) or debug (vv) [Default none]\n");
+  printf("\t-v Set srsran_verbose to info (v) or debug (vv) [Default none]\n");
   printf("\t-h show this message\n");
 }
 
@@ -151,7 +154,7 @@ void parse_args(int argc, char** argv)
         fft_plot_enable ^= true;
         break;
       case 'v':
-        srslte_verbose++;
+        srsran_verbose++;
         break;
       case 'h':
       default:
@@ -161,7 +164,7 @@ void parse_args(int argc, char** argv)
   }
 }
 
-static SRSLTE_AGC_CALLBACK(set_gain_callback)
+static SRSRAN_AGC_CALLBACK(set_gain_callback)
 {
   auto r = (radio*)h;
   r->set_rx_gain_th(gain_db);
@@ -195,10 +198,10 @@ static void* plot_thread_run(void* arg)
         for (uint32_t p = 0; p < nof_ports; p++) {
           uint32_t plot_idx = r * nof_ports + p;
 
-          srslte_vec_abs_square_cf(fft_plot_buffer[plot_idx], fft_plot_temp, fft_plot_buffer_size);
+          srsran_vec_abs_square_cf(fft_plot_buffer[plot_idx], fft_plot_temp, fft_plot_buffer_size);
 
           for (uint32_t j = 0; j < fft_plot_buffer_size; j++) {
-            fft_plot_temp[j] = srslte_convert_power_to_dB(fft_plot_temp[j]);
+            fft_plot_temp[j] = srsran_convert_power_to_dB(fft_plot_temp[j]);
           }
 
           plot_real_setNewData(&fft_plot[plot_idx], fft_plot_temp, fft_plot_buffer_size);
@@ -212,7 +215,6 @@ static void* plot_thread_run(void* arg)
 
 static int init_plots(uint32_t frame_size)
 {
-
   if (sem_init(&plot_sem, 0, 0)) {
     perror("sem_init");
     exit(-1);
@@ -221,26 +223,26 @@ static int init_plots(uint32_t frame_size)
   for (uint32_t r = 0; r < nof_radios; r++) {
     for (uint32_t p = 0; p < nof_ports; p++) {
       uint32_t plot_idx         = r * nof_ports + p;
-      fft_plot_buffer[plot_idx] = srslte_vec_cf_malloc(frame_size);
+      fft_plot_buffer[plot_idx] = srsran_vec_cf_malloc(frame_size);
       if (!fft_plot_buffer[plot_idx]) {
-        ERROR("Error: Allocating buffer\n");
-        return SRSLTE_ERROR;
+        ERROR("Error: Allocating buffer");
+        return SRSRAN_ERROR;
       }
     }
   }
 
-  fft_plot_temp = srslte_vec_f_malloc(frame_size);
+  fft_plot_temp = srsran_vec_f_malloc(frame_size);
   if (!fft_plot_temp) {
-    ERROR("Error: Allocating buffer\n");
-    return SRSLTE_ERROR;
+    ERROR("Error: Allocating buffer");
+    return SRSRAN_ERROR;
   }
 
-  if (srslte_dft_plan_c(&dft_spectrum, frame_size, SRSLTE_DFT_FORWARD)) {
-    ERROR("Creating DFT spectrum plan\n");
-    return SRSLTE_ERROR;
+  if (srsran_dft_plan_c(&dft_spectrum, frame_size, SRSRAN_DFT_FORWARD)) {
+    ERROR("Creating DFT spectrum plan");
+    return SRSRAN_ERROR;
   }
 
-  srslte_dft_plan_set_mirror(&dft_spectrum, true);
+  srsran_dft_plan_set_mirror(&dft_spectrum, true);
   fft_plot_buffer_size = frame_size;
 
   pthread_attr_t     attr;
@@ -254,7 +256,7 @@ static int init_plots(uint32_t frame_size)
     exit(-1);
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 #endif /* ENABLE_GUI */
@@ -270,51 +272,50 @@ private:
   uint32_t num_failures  = 0;
 };
 
-int main(int argc, char** argv)
+static int ret = SRSRAN_ERROR;
+
+static void* radio_thread_run(void* arg)
 {
-  int                    ret                        = SRSLTE_ERROR;
-  radio*                 radio_h[SRSLTE_MAX_RADIOS] = {nullptr};
-  srslte::rf_timestamp_t ts_prev[SRSLTE_MAX_RADIOS], ts_rx[SRSLTE_MAX_RADIOS], ts_tx;
+  radio*                 radio_h[SRSRAN_MAX_RADIOS] = {nullptr};
+  srsran::rf_timestamp_t ts_prev[SRSRAN_MAX_RADIOS], ts_rx[SRSRAN_MAX_RADIOS], ts_tx;
   uint32_t               nof_gaps                    = 0;
   char                   filename[256]               = {};
-  srslte_filesink_t      filesink[SRSLTE_MAX_RADIOS] = {};
-  srslte_dft_plan_t      dft_plan = {}, idft_plan = {};
-  srslte_agc_t           agc[SRSLTE_MAX_RADIOS] = {};
+  srsran_filesink_t      filesink[SRSRAN_MAX_RADIOS] = {};
+  srsran_dft_plan_t      dft_plan = {}, idft_plan = {};
+  srsran_agc_t           agc[SRSRAN_MAX_RADIOS] = {};
   phy_dummy              phy;
-  srslte::rf_metrics_t   rf_metrics = {};
+  srsran::rf_metrics_t   rf_metrics = {};
 
-  rf_buffer_t rf_buffers[SRSLTE_MAX_RADIOS] = {};
+  rf_buffer_t rf_buffers[SRSRAN_MAX_RADIOS] = {};
 
-  float    delay_idx[SRSLTE_MAX_RADIOS] = {0};
+  float    delay_idx[SRSRAN_MAX_RADIOS] = {0};
   uint32_t delay_count                  = 0;
 
-  /* Parse args */
-  parse_args(argc, argv);
   double current_rate = srate;
 
-  uint32_t nof_samples = (uint32_t)(duration * srate);
+  uint64_t nof_samples = (uint64_t)(duration * srate);
   uint32_t frame_size  = (uint32_t)(srate / 1000.0); /* 1 ms at srate */
   uint32_t nof_frames  = (uint32_t)ceil(nof_samples / frame_size);
 
   /* Instanciate and allocate memory */
   printf("Instantiating objects and allocating memory...\n");
   for (uint32_t r = 0; r < nof_radios; r++) {
-    radio_h[r] = new radio(&log_h);
+    radio_h[r] = new radio;
     if (!radio_h[r]) {
       fprintf(stderr, "Error: Calling radio constructor\n");
       goto clean_exit;
     }
 
-    for (uint32_t p = 0; p < SRSLTE_MAX_PORTS; p++) {
+    for (uint32_t p = 0; p < SRSRAN_MAX_PORTS; p++) {
       buffers[r][p] = NULL;
     }
   }
 
   for (uint32_t r = 0; r < nof_radios; r++) {
     for (uint32_t p = 0; p < nof_ports; p++) {
-      buffers[r][p] = srslte_vec_cf_malloc(frame_size);
+      buffers[r][p] = srsran_vec_cf_malloc(frame_size);
       if (!buffers[r][p]) {
-        ERROR("Error: Allocating buffer (%d,%d)\n", r, p);
+        ERROR("Error: Allocating buffer (%d,%d)", r, p);
         goto clean_exit;
       }
     }
@@ -327,6 +328,11 @@ int main(int argc, char** argv)
   }
 #endif /* ENABLE_GUI */
 
+  // lock all memory to prevent swapping
+  if (mlockall(MCL_CURRENT | MCL_FUTURE) == -1) {
+    perror("mlockall");
+  }
+
   /* Initialise instances */
   printf("Initialising instances...\n");
   for (uint32_t r = 0; r < nof_radios; r++) {
@@ -335,9 +341,10 @@ int main(int argc, char** argv)
     radio_args.nof_carriers = 1;
     radio_args.device_args  = radios_args[r].empty() ? "auto" : radios_args[r];
     radio_args.rx_gain      = agc_enable ? -1 : rf_gain;
+    radio_args.tx_gain      = agc_enable ? -1 : rf_gain;
     radio_args.device_name  = radio_device;
 
-    if (radio_h[r]->init(radio_args, &phy) != SRSLTE_SUCCESS) {
+    if (radio_h[r]->init(radio_args, &phy) != SRSRAN_SUCCESS) {
       fprintf(stderr, "Error: Calling radio_multi constructor\n");
       goto clean_exit;
     }
@@ -346,7 +353,7 @@ int main(int argc, char** argv)
 
     // enable and init agc
     if (agc_enable) {
-      if (srslte_agc_init_uhd(&agc[r], SRSLTE_AGC_MODE_PEAK_AMPLITUDE, 0, set_gain_callback, radio_h[r])) {
+      if (srsran_agc_init_uhd(&agc[r], SRSRAN_AGC_MODE_PEAK_AMPLITUDE, 0, set_gain_callback, radio_h[r])) {
         fprintf(stderr, "Error: Initiating AGC %d\n", r);
         goto clean_exit;
       }
@@ -363,9 +370,9 @@ int main(int argc, char** argv)
   if (capture) {
     for (uint32_t r = 0; r < nof_radios; r++) {
       snprintf(filename, 256, file_pattern.c_str(), r);
-      INFO("Opening filesink %s for radio %d\n", filename, r);
-      if (srslte_filesink_init(&filesink[r], filename, SRSLTE_COMPLEX_FLOAT_BIN)) {
-        ERROR("Initiating filesink for radio %d\n", r);
+      INFO("Opening filesink %s for radio %d", filename, r);
+      if (srsran_filesink_init(&filesink[r], filename, SRSRAN_COMPLEX_FLOAT_BIN)) {
+        ERROR("Initiating filesink for radio %d", r);
         goto clean_exit;
       }
     }
@@ -374,12 +381,12 @@ int main(int argc, char** argv)
   /* If measure delay between radios */
   if (measure_delay) {
     if (nof_radios > 1) {
-      if (srslte_dft_plan_c(&dft_plan, frame_size, SRSLTE_DFT_FORWARD)) {
-        ERROR("Creating DFT plan\n");
+      if (srsran_dft_plan_c(&dft_plan, frame_size, SRSRAN_DFT_FORWARD)) {
+        ERROR("Creating DFT plan");
         goto clean_exit;
       }
-      if (srslte_dft_plan_c(&idft_plan, frame_size, SRSLTE_DFT_BACKWARD)) {
-        ERROR("Creating IDFT plan\n");
+      if (srsran_dft_plan_c(&idft_plan, frame_size, SRSRAN_DFT_BACKWARD)) {
+        ERROR("Creating IDFT plan");
         goto clean_exit;
       }
     } else {
@@ -388,11 +395,18 @@ int main(int argc, char** argv)
     }
   }
 
-  /* Receive */
-  printf("Start capturing %d frames of %d samples...\n", nof_frames, frame_size);
+  // setup thread priority
+  struct sched_param schedp;
+  memset(&schedp, 0, sizeof(schedp));
+  schedp.sched_priority = 90;
+  sched_setscheduler(0, SCHED_FIFO, &schedp);
 
-  for (int i = 0; i < SRSLTE_MAX_RADIOS; i++) {
-    for (int j = 0; j < SRSLTE_MAX_PORTS; j++) {
+  /* Receive */
+  printf(
+      "Start capturing %d sub-frames of %d samples (approx. %ds) ...\n", nof_frames, frame_size, (nof_frames / 1000));
+
+  for (int i = 0; i < SRSRAN_MAX_RADIOS; i++) {
+    for (int j = 0; j < SRSRAN_MAX_PORTS; j++) {
       rf_buffers[i].set(j, buffers[i][j]);
     }
   }
@@ -417,7 +431,7 @@ int main(int argc, char** argv)
     frame_size = (uint32_t)(current_rate / 1000.0); /* 1 ms at srate */
 
     int gap    = 0;
-    frame_size = SRSLTE_MIN(frame_size, nof_samples);
+    frame_size = SRSRAN_MIN(frame_size, nof_samples);
 
     // receive each radio
     for (uint32_t r = 0; r < nof_radios; r++) {
@@ -428,7 +442,7 @@ int main(int argc, char** argv)
     // run agc
     if (agc_enable) {
       for (uint32_t r = 0; r < nof_radios; r++) {
-        srslte_agc_process(&agc[r], buffers[r][0], frame_size);
+        srsran_agc_process(&agc[r], buffers[r][0], frame_size);
       }
     }
 
@@ -445,7 +459,7 @@ int main(int argc, char** argv)
     /* Store baseband in file */
     if (capture) {
       for (uint32_t r = 0; r < nof_radios; r++) {
-        srslte_filesink_write_multi(&filesink[r], (void**)buffers[r], frame_size, nof_ports);
+        srsran_filesink_write_multi(&filesink[r], (void**)buffers[r], frame_size, nof_ports);
       }
     }
 
@@ -456,7 +470,7 @@ int main(int argc, char** argv)
         for (uint32_t r = 0; r < nof_radios; r++) {
           for (uint32_t p = 0; p < nof_ports; p++) {
             uint32_t plot_idx = r * nof_ports + p;
-            srslte_dft_run(&dft_spectrum, buffers[r][p], fft_plot_buffer[plot_idx]);
+            srsran_dft_run(&dft_spectrum, buffers[r][p], fft_plot_buffer[plot_idx]);
           }
         }
       } else {
@@ -469,22 +483,22 @@ int main(int argc, char** argv)
     /* Compute delay between radios */
     if (measure_delay && frame_size != nof_samples) {
       for (uint32_t r = 0; r < nof_radios; r++) {
-        srslte_dft_run_c(&dft_plan, buffers[r][0], buffers[r][0]);
+        srsran_dft_run_c(&dft_plan, buffers[r][0], buffers[r][0]);
       }
 
       for (uint32_t r = 1; r < nof_radios; r++) {
         int relative_delay = 0;
 
-        srslte_vec_prod_conj_ccc(buffers[0][0], buffers[r][0], buffers[r][0], frame_size);
-        srslte_dft_run_c(&idft_plan, buffers[r][0], buffers[r][0]);
-        relative_delay = srslte_vec_max_abs_ci(buffers[r][0], frame_size);
+        srsran_vec_prod_conj_ccc(buffers[0][0], buffers[r][0], buffers[r][0], frame_size);
+        srsran_dft_run_c(&idft_plan, buffers[r][0], buffers[r][0]);
+        relative_delay = srsran_vec_max_abs_ci(buffers[r][0], frame_size);
 
         if (relative_delay > (int)frame_size / 2) {
           relative_delay -= frame_size;
         }
 
         delay_idx[r] += relative_delay;
-        INFO("Radio %d relative delay is %d sample in frame %d/%d (average %.1f)\n",
+        INFO("Radio %d relative delay is %d sample in frame %d/%d (average %.1f)",
              r,
              relative_delay,
              i + 1,
@@ -497,20 +511,20 @@ int main(int argc, char** argv)
     /* Check sample gaps */
     if (i != 0) {
       for (uint32_t r = 0; r < nof_radios; r++) {
-        srslte_timestamp_t ts_diff;
+        srsran_timestamp_t ts_diff;
 
-        srslte_timestamp_copy(&ts_diff, ts_rx[r].get_ptr(0));
-        srslte_timestamp_sub(&ts_diff, ts_prev[r].get_ptr(0)->full_secs, ts_prev[r].get_ptr(0)->frac_secs);
-        gap = (int32_t)round(srslte_timestamp_real(&ts_diff) * current_rate) - (int32_t)frame_size;
+        srsran_timestamp_copy(&ts_diff, ts_rx[r].get_ptr(0));
+        srsran_timestamp_sub(&ts_diff, ts_prev[r].get_ptr(0)->full_secs, ts_prev[r].get_ptr(0)->frac_secs);
+        gap = (int32_t)round(srsran_timestamp_real(&ts_diff) * current_rate) - (int32_t)frame_size;
 
         if (gap != 0) {
-          INFO("Timestamp gap (%d samples) detected! Frame %d/%d. ts=%.9f+%.9f=%.9f\n",
+          INFO("Timestamp gap (%d samples) detected! Frame %d/%d. ts=%.9f+%.9f=%.9f",
                gap,
                i + 1,
                nof_frames,
-               srslte_timestamp_real(ts_prev[r].get_ptr(0)),
-               srslte_timestamp_real(&ts_diff),
-               srslte_timestamp_real(ts_rx[r].get_ptr(0)));
+               srsran_timestamp_real(ts_prev[r].get_ptr(0)),
+               srsran_timestamp_real(&ts_diff),
+               srsran_timestamp_real(ts_rx[r].get_ptr(0)));
           nof_gaps++;
         }
       }
@@ -532,7 +546,9 @@ int main(int argc, char** argv)
          rf_metrics.rf_o,
          rf_metrics.rf_u);
 
-  ret = SRSLTE_SUCCESS;
+  if (nof_gaps == 0 && rf_metrics.rf_l == 0 && rf_metrics.rf_o == 0 && rf_metrics.rf_u == 0) {
+    ret = SRSRAN_SUCCESS;
+  }
 
   if (measure_delay && delay_count > 0) {
     for (uint32_t r = 1; r < nof_radios; r++) {
@@ -558,16 +574,16 @@ clean_exit:
     }
 
     if (capture) {
-      srslte_filesink_free(&filesink[r]);
+      srsran_filesink_free(&filesink[r]);
     }
   }
 
-  srslte_dft_plan_free(&dft_plan);
-  srslte_dft_plan_free(&idft_plan);
+  srsran_dft_plan_free(&dft_plan);
+  srsran_dft_plan_free(&idft_plan);
 
 #ifdef ENABLE_GUI
   pthread_join(plot_thread, NULL);
-  srslte_dft_plan_free(&dft_spectrum);
+  srsran_dft_plan_free(&dft_spectrum);
   for (uint32_t r = 0; r < nof_radios; r++) {
     for (uint32_t p = 0; p < nof_ports; p++) {
       uint32_t plot_idx = r * nof_ports + p;
@@ -586,6 +602,23 @@ clean_exit:
   } else {
     printf("Ok!\n");
   }
+
+  return nullptr;
+}
+
+int main(int argc, char** argv)
+{
+  // Parse args
+  parse_args(argc, argv);
+
+  srslog::init();
+
+  if (pthread_create(&radio_thread, NULL, radio_thread_run, NULL)) {
+    perror("pthread_create");
+    exit(-1);
+  }
+
+  pthread_join(radio_thread, NULL);
 
   return ret;
 }

@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -22,10 +22,10 @@
 #ifndef SRSUE_USIM_BASE_H
 #define SRSUE_USIM_BASE_H
 
-#include "srslte/common/common.h"
-#include "srslte/common/log.h"
-#include "srslte/common/security.h"
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srsran/common/common.h"
+#include "srsran/common/security.h"
+#include "srsran/interfaces/ue_usim_interfaces.h"
+#include "srsran/srslog/srslog.h"
 #include <string>
 
 namespace srsue {
@@ -63,12 +63,12 @@ public:
   std::string reader;
 };
 
-class usim_base : public usim_interface_nas, public usim_interface_rrc
+class usim_base : public usim_interface_nas, public usim_interface_rrc, public usim_interface_rrc_nr
 {
 public:
-  usim_base(srslte::log* log_);
+  explicit usim_base(srslog::basic_logger& logger);
   virtual ~usim_base();
-  static std::unique_ptr<usim_base> get_instance(usim_args_t* args, srslte::log* log_);
+  static std::unique_ptr<usim_base> get_instance(usim_args_t* args, srslog::basic_logger& logger);
 
   virtual int  init(usim_args_t* args) = 0;
   virtual void stop()                  = 0;
@@ -79,7 +79,7 @@ public:
 
   bool get_imsi_vec(uint8_t* imsi_, uint32_t n) final;
   bool get_imei_vec(uint8_t* imei_, uint32_t n) final;
-  bool get_home_plmn_id(srslte::plmn_id_t* home_plmn_id) final;
+  bool get_home_plmn_id(srsran::plmn_id_t* home_plmn_id) final;
 
   virtual auth_result_t generate_authentication_response(uint8_t* rand,
                                                          uint8_t* autn_enb,
@@ -92,14 +92,18 @@ public:
   void generate_nas_keys(uint8_t*                            k_asme,
                          uint8_t*                            k_nas_enc,
                          uint8_t*                            k_nas_int,
-                         srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
-                         srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo) final;
+                         srsran::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
+                         srsran::INTEGRITY_ALGORITHM_ID_ENUM integ_algo) final;
 
   // RRC interface
-  void generate_as_keys(uint8_t* k_asme, uint32_t count_ul, srslte::as_security_config_t* sec_cfg) final;
-  void generate_as_keys_ho(uint32_t pci, uint32_t earfcn, int ncc, srslte::as_security_config_t* sec_cfg) final;
-  void store_keys_before_ho(const srslte::as_security_config_t& as_ctx) final;
-  void restore_keys_from_failed_ho(srslte::as_security_config_t* as_ctx) final;
+  void generate_as_keys(uint8_t* k_asme, uint32_t count_ul, srsran::as_security_config_t* sec_cfg) final;
+  void generate_as_keys_ho(uint32_t pci, uint32_t earfcn, int ncc, srsran::as_security_config_t* sec_cfg) final;
+  void store_keys_before_ho(const srsran::as_security_config_t& as_ctx) final;
+  void restore_keys_from_failed_ho(srsran::as_security_config_t* as_ctx) final;
+
+  // NR RRC interface
+  bool generate_nr_context(uint16_t sk_counter, srsran::as_security_config_t* sec_cfg) final;
+  bool update_nr_context(srsran::as_security_config_t* sec_cfg) final;
 
   // Helpers
   std::string         get_mcc_str(const uint8_t* imsi_vec);
@@ -109,7 +113,7 @@ protected:
   bool initiated = false;
 
   // Logging
-  srslte::log* log = nullptr;
+  srslog::basic_logger& logger;
 
   // User data
   // 3GPP 33.102 v10.0.0 Annex H
@@ -128,11 +132,12 @@ protected:
   uint8_t auts[AKA_AUTS_LEN]     = {};
 
   // Current K_eNB context (K_eNB, NH and NCC)
-  srslte::k_enb_context_t k_enb_ctx = {};
+  srsran::k_enb_context_t k_enb_ctx = {};
+  srsran::k_gnb_context_t k_gnb_ctx = {};
 
   // Helpers to restore security context if HO fails
-  srslte::k_enb_context_t      old_k_enb_ctx = {};
-  srslte::as_security_config_t old_as_ctx    = {};
+  srsran::k_enb_context_t      old_k_enb_ctx = {};
+  srsran::as_security_config_t old_as_ctx    = {};
 };
 
 } // namespace srsue

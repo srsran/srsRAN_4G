@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,11 +19,8 @@
  *
  */
 
-#include <assert.h>
-#include <iostream>
-
-#include "srslte/common/log_filter.h"
 #include "srsue/hdr/stack/upper/pcsc_usim.h"
+#include <iostream>
 
 using namespace srsue;
 using namespace std;
@@ -33,37 +30,39 @@ uint8_t autn_enb[] = {0x5a, 0x17, 0x77, 0x3c, 0x62, 0x57, 0x90, 0x01, 0xcf, 0x47
 
 int main(int argc, char** argv)
 {
-  srslte::log_filter usim_log("USIM");
-  usim_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  usim_log.set_hex_limit(100000);
-  uint8_t res[16];
-  int     res_len;
-  uint8_t k_asme[32];
-  uint16  mcc = 0;
-  uint16  mnc = 0;
+  srslog::basic_logger& logger = srslog::fetch_basic_logger("USIM", false);
+  logger.set_level(srslog::basic_levels::debug);
+  logger.set_hex_dump_max_size(100000);
+  srslog::init();
+
+  uint8_t  res[16];
+  int      res_len;
+  uint8_t  k_asme[32];
+  uint16_t mcc = 0;
+  uint16_t mnc = 0;
 
   usim_args_t args;
   args.pin  = "6129";
   args.imei = "353490069873319";
 
-  srsue::pcsc_usim usim(&usim_log);
+  srsue::pcsc_usim usim(logger);
   if (usim.init(&args)) {
     printf("Error initializing PC/SC USIM.\n");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   };
 
   std::string imsi = usim.get_imsi_str();
   cout << "IMSI: " << imsi << endl;
 
-  srslte::plmn_id_t home_plmn_id = {};
+  srsran::plmn_id_t home_plmn_id = {};
   if (usim.get_home_plmn_id(&home_plmn_id) == false) {
     printf("Error reading home PLMN\n");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   cout << "Home PLMN: " << home_plmn_id.to_string() << endl;
 
   auth_result_t result = usim.generate_authentication_response(rand_enb, autn_enb, mcc, mnc, res, &res_len, k_asme);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }

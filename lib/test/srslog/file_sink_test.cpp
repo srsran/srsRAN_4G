@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -21,6 +21,7 @@
 
 #include "file_test_utils.h"
 #include "src/srslog/sinks/file_sink.h"
+#include "test_dummies.h"
 #include "testing_helpers.h"
 
 using namespace srslog;
@@ -30,7 +31,10 @@ static constexpr char log_filename[] = "file_sink_test.log";
 static bool when_data_is_written_to_file_then_contents_are_valid()
 {
   file_test_utils::scoped_file_deleter deleter(log_filename);
-  file_sink file(log_filename, 0);
+  file_sink file(
+      log_filename,
+      0,
+      std::unique_ptr<log_formatter>(new test_dummies::log_formatter_dummy));
 
   std::vector<std::string> entries;
   for (unsigned i = 0; i != 10; ++i) {
@@ -54,7 +58,10 @@ class file_sink_subclass : public file_sink
 {
 public:
   file_sink_subclass(std::string name, size_t max_size) :
-    file_sink(std::move(name), max_size)
+    file_sink(
+        std::move(name),
+        max_size,
+        std::unique_ptr<log_formatter>(new test_dummies::log_formatter_dummy))
   {}
 
   uint32_t get_num_of_files() const { return get_file_index(); }

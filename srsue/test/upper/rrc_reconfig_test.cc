@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,11 +19,11 @@
  *
  */
 
-#include "srslte/asn1/liblte_mme.h"
-#include "srslte/asn1/rrc_asn1.h"
-#include "srslte/common/log_filter.h"
+#include "srsran/asn1/liblte_mme.h"
+#include "srsran/asn1/rrc/dl_dcch_msg.h"
+#include "srsran/srslog/srslog.h"
 #include <iostream>
-#include <srslte/srslte.h>
+#include <srsran/srsran.h>
 
 #define TESTASSERT(cond)                                                                                               \
   {                                                                                                                    \
@@ -38,10 +38,6 @@ using namespace asn1::rrc;
 
 int nas_test()
 {
-  srslte::log_filter log1("NAS");
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log1.set_hex_limit(-1);
-
   uint8_t  nas_message[128] = {0x27, 0x4f, 0xab, 0xef, 0x59, 0x01, 0x07, 0x42, 0x01, 0x49, 0x06, 0x40, 0x00, 0xf1, 0x10,
                               0x31, 0x32, 0x00, 0x22, 0x52, 0x01, 0xc1, 0x05, 0x07, 0xff, 0xff, 0xff, 0xff, 0x0c, 0x0b,
                               0x76, 0x7a, 0x77, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x65, 0x74, 0x05, 0x01, 0x0e, 0x0e,
@@ -98,10 +94,6 @@ int nas_test()
 
 int meas_obj_test()
 {
-  srslte::log_filter log1("RRC");
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log1.set_hex_limit(-1);
-
   asn1::rrc::dl_dcch_msg_s dl_dcch_msg;
 
   uint8_t rrc_msg[256] = {
@@ -155,6 +147,14 @@ int meas_obj_test()
 
 int main(int argc, char** argv)
 {
+  auto& nas_logger = srslog::fetch_basic_logger("NAS", false);
+  nas_logger.set_level(srslog::basic_levels::debug);
+  nas_logger.set_hex_dump_max_size(-1);
+  auto& rrc_logger = srslog::fetch_basic_logger("RRC", false);
+  rrc_logger.set_level(srslog::basic_levels::debug);
+  rrc_logger.set_hex_dump_max_size(-1);
+  srslog::init();
+
   TESTASSERT(meas_obj_test() == 0);
   TESTASSERT(nas_test() == 0);
 }

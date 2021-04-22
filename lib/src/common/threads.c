@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -26,7 +26,7 @@
 #include <string.h>
 #include <sys/types.h>
 
-#include "srslte/common/threads.h"
+#include "srsran/common/threads.h"
 
 bool threads_new_rt(pthread_t* thread, void* (*start_routine)(void*), void* arg)
 {
@@ -68,7 +68,7 @@ bool threads_new_rt_cpu(pthread_t* thread, void* (*start_routine)(void*), void* 
     }
     if (pthread_attr_setschedparam(&attr, &param)) {
       perror("pthread_attr_setschedparam");
-      ERROR("Error not enough privileges to set Scheduling priority\n");
+      ERROR("Error not enough privileges to set Scheduling priority");
     }
     attr_enable = true;
   } else if (prio_offset == -1) {
@@ -82,14 +82,14 @@ bool threads_new_rt_cpu(pthread_t* thread, void* (*start_routine)(void*), void* 
     }
     if (pthread_attr_setschedparam(&attr, &param)) {
       perror("pthread_attr_setschedparam");
-      ERROR("Error not enough privileges to set Scheduling priority\n");
+      ERROR("Error not enough privileges to set Scheduling priority");
     }
     attr_enable = true;
   } else if (prio_offset == -2) {
 #else
   // All threads have normal priority except prio_offset=0,1,2,3,4
   if (prio_offset >= 0 && prio_offset < 5) {
-    param.sched_priority = 50 - prio_offset;
+    param.sched_priority = sched_get_priority_max(SCHED_FIFO) - prio_offset;
     if (pthread_attr_init(&attr)) {
       perror("pthread_attr_init");
     } else {

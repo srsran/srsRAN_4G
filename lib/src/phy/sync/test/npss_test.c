@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -29,20 +29,20 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "srslte/phy/sync/npss.h"
-#include "srslte/srslte.h"
+#include "srsran/phy/sync/npss.h"
+#include "srsran/srsran.h"
 
 #define OUTPUT_FILENAME "npss_test.m"
 void write_to_file();
 
 #define DUMP_SIGNALS 0
 
-int input_len = SRSLTE_SF_LEN(SRSLTE_NBIOT_FFT_SIZE);
+int input_len = SRSRAN_SF_LEN(SRSRAN_NBIOT_FFT_SIZE);
 
 void usage(char* prog)
 {
   printf("Usage: %s [cpoev]\n", prog);
-  printf("\t-v srslte_verbose\n");
+  printf("\t-v srsran_verbose\n");
 }
 
 void parse_args(int argc, char** argv)
@@ -54,7 +54,7 @@ void parse_args(int argc, char** argv)
         input_len = (int)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
-        srslte_verbose = SRSLTE_VERBOSE_DEBUG;
+        srsran_verbose = SRSRAN_VERBOSE_DEBUG;
         break;
       default:
         usage(argv[0]);
@@ -68,66 +68,66 @@ int main(int argc, char** argv)
   cf_t* fft_buffer;
   cf_t* input_buffer;
 
-  srslte_npss_synch_t syncobj;
-  srslte_ofdm_t       ifft;
+  srsran_npss_synch_t syncobj;
+  srsran_ofdm_t       ifft;
   struct timeval      t[3];
   int                 fft_size;
   int                 peak_pos;
   float               peak_value;
-  int                 ret = SRSLTE_ERROR;
+  int                 ret = SRSRAN_ERROR;
 
   parse_args(argc, argv);
 
-  if (input_len < SRSLTE_SF_LEN(SRSLTE_NBIOT_FFT_SIZE)) {
+  if (input_len < SRSRAN_SF_LEN(SRSRAN_NBIOT_FFT_SIZE)) {
     fprintf(stderr, "Input len too small (%d), must be at least one subframe\n", input_len);
     exit(-1);
   }
 
-  fft_size = srslte_symbol_sz(SRSLTE_NBIOT_DEFAULT_NUM_PRB_BASECELL);
+  fft_size = srsran_symbol_sz(SRSRAN_NBIOT_DEFAULT_NUM_PRB_BASECELL);
   if (fft_size < 0) {
-    fprintf(stderr, "Invalid nof_prb=%d\n", SRSLTE_NBIOT_DEFAULT_NUM_PRB_BASECELL);
+    fprintf(stderr, "Invalid nof_prb=%d\n", SRSRAN_NBIOT_DEFAULT_NUM_PRB_BASECELL);
     exit(-1);
   }
 
   printf("Input buffer length is %d samples\n", input_len);
-  uint32_t buffer_len = input_len + SRSLTE_NPSS_CORR_FILTER_LEN + 1;
-  fft_buffer          = srslte_vec_cf_malloc(buffer_len);
+  uint32_t buffer_len = input_len + SRSRAN_NPSS_CORR_FILTER_LEN + 1;
+  fft_buffer          = srsran_vec_cf_malloc(buffer_len);
   if (!fft_buffer) {
     perror("malloc");
     exit(-1);
   }
-  srslte_vec_cf_zero(fft_buffer, buffer_len);
+  srsran_vec_cf_zero(fft_buffer, buffer_len);
 
-  input_buffer = srslte_vec_cf_malloc(input_len);
+  input_buffer = srsran_vec_cf_malloc(input_len);
   if (!input_buffer) {
     perror("malloc");
     exit(-1);
   }
-  srslte_vec_cf_zero(input_buffer, input_len);
+  srsran_vec_cf_zero(input_buffer, input_len);
 
-  if (srslte_ofdm_tx_init(&ifft, SRSLTE_CP_NORM, input_buffer, fft_buffer, SRSLTE_NBIOT_DEFAULT_NUM_PRB_BASECELL)) {
+  if (srsran_ofdm_tx_init(&ifft, SRSRAN_CP_NORM, input_buffer, fft_buffer, SRSRAN_NBIOT_DEFAULT_NUM_PRB_BASECELL)) {
     fprintf(stderr, "Error creating iFFT object\n");
     exit(-1);
   }
-  srslte_ofdm_set_freq_shift(&ifft, -SRSLTE_NBIOT_FREQ_SHIFT_FACTOR);
+  srsran_ofdm_set_freq_shift(&ifft, -SRSRAN_NBIOT_FREQ_SHIFT_FACTOR);
 
-  if (srslte_npss_synch_init(&syncobj, input_len, fft_size)) {
+  if (srsran_npss_synch_init(&syncobj, input_len, fft_size)) {
     fprintf(stderr, "Error initializing NPSS object\n");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // generate NPSS/NSSS signals
-  _Complex float npss_signal[SRSLTE_NPSS_TOT_LEN];
-  srslte_npss_generate(npss_signal);
-  srslte_npss_put_subframe(
-      &syncobj, npss_signal, input_buffer, SRSLTE_NBIOT_DEFAULT_NUM_PRB_BASECELL, SRSLTE_NBIOT_DEFAULT_PRB_OFFSET);
+  _Complex float npss_signal[SRSRAN_NPSS_TOT_LEN];
+  srsran_npss_generate(npss_signal);
+  srsran_npss_put_subframe(
+      &syncobj, npss_signal, input_buffer, SRSRAN_NBIOT_DEFAULT_NUM_PRB_BASECELL, SRSRAN_NBIOT_DEFAULT_PRB_OFFSET);
 
   // Transform to OFDM symbols
-  srslte_ofdm_tx_sf(&ifft);
+  srsran_ofdm_tx_sf(&ifft);
 
   // look for NPSS signal
   gettimeofday(&t[1], NULL);
-  peak_pos = srslte_npss_sync_find(&syncobj, fft_buffer, &peak_value);
+  peak_pos = srsran_npss_sync_find(&syncobj, fft_buffer, &peak_value);
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
   printf("NPPS with peak=%f found at: %d (in %.0f usec)\n",
@@ -137,22 +137,21 @@ int main(int argc, char** argv)
 
   // write results to file
 #if DUMP_SIGNALS
-  srslte_vec_save_file("npss_find_conv_output_abs.bin", syncobj.conv_output_abs, buffer_len * sizeof(float));
-  srslte_vec_save_file("npss_sf_time.bin", fft_buffer, input_len * sizeof(cf_t));
-  srslte_vec_save_file("npss_corr_seq_time.bin", syncobj.npss_signal_time, SRSLTE_NPSS_CORR_FILTER_LEN * sizeof(cf_t));
+  srsran_vec_save_file("npss_find_conv_output_abs.bin", syncobj.conv_output_abs, buffer_len * sizeof(float));
+  srsran_vec_save_file("npss_sf_time.bin", fft_buffer, input_len * sizeof(cf_t));
+  srsran_vec_save_file("npss_corr_seq_time.bin", syncobj.npss_signal_time, SRSRAN_NPSS_CORR_FILTER_LEN * sizeof(cf_t));
   write_to_file();
 #endif
 
   // cleanup
-  srslte_npss_synch_free(&syncobj);
+  srsran_npss_synch_free(&syncobj);
   free(fft_buffer);
   free(input_buffer);
-  srslte_ofdm_tx_free(&ifft);
+  srsran_ofdm_tx_free(&ifft);
 
-
-  if (peak_pos == SRSLTE_NPSS_CORR_OFFSET) {
+  if (peak_pos == SRSRAN_NPSS_CORR_OFFSET) {
     printf("Ok\n");
-    ret = SRSLTE_SUCCESS;
+    ret = SRSRAN_SUCCESS;
   } else {
     printf("Failed\n");
   }
@@ -162,9 +161,9 @@ int main(int argc, char** argv)
 
 void write_to_file()
 {
-  srslte_filesink_t debug_fsink;
+  srsran_filesink_t debug_fsink;
   char              fname[] = OUTPUT_FILENAME;
-  if (srslte_filesink_init(&debug_fsink, fname, SRSLTE_TEXT)) {
+  if (srsran_filesink_init(&debug_fsink, fname, SRSRAN_TEXT)) {
     fprintf(stderr, "Error opening file %s\n", fname);
     exit(-1);
   }
@@ -175,7 +174,7 @@ void write_to_file()
   fprintf(debug_fsink.f, "pkg load signal;\n\n");
 
   // the correlation sequence
-  fprintf(debug_fsink.f, "len = %u;\n", SRSLTE_NPSS_CORR_FILTER_LEN);
+  fprintf(debug_fsink.f, "len = %u;\n", SRSRAN_NPSS_CORR_FILTER_LEN);
   fprintf(debug_fsink.f, "sig1=read_complex('npss_corr_seq_time.bin', len);\n");
   fprintf(debug_fsink.f, "figure;\n");
   fprintf(debug_fsink.f, "t=1:len;\n");
@@ -195,7 +194,7 @@ void write_to_file()
   fprintf(debug_fsink.f, "\n\n");
 
   // the correlation output
-  fprintf(debug_fsink.f, "num_samples = %u;\n", SRSLTE_NPSS_CORR_FILTER_LEN + input_len - 1);
+  fprintf(debug_fsink.f, "num_samples = %u;\n", SRSRAN_NPSS_CORR_FILTER_LEN + input_len - 1);
   fprintf(debug_fsink.f, "sig = read_real('npss_find_conv_output_abs.bin', num_samples);\n");
   fprintf(debug_fsink.f, "t=1:num_samples;\n");
   fprintf(debug_fsink.f, "\n\n");
@@ -216,6 +215,6 @@ void write_to_file()
   fprintf(debug_fsink.f, "ylabel('Correlation magnitude');\n");
   fprintf(debug_fsink.f, "\n\n");
 
-  srslte_filesink_free(&debug_fsink);
+  srsran_filesink_free(&debug_fsink);
   printf("data written to %s\n", OUTPUT_FILENAME);
 }

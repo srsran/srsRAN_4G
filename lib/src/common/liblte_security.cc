@@ -1,44 +1,25 @@
-/*******************************************************************************
-
-    Copyright 2014 Ben Wojtowicz
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Affero General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-*******************************************************************************
-
-    File: liblte_security.cc
-
-    Description: Contains all the implementations for the LTE security
-                 algorithm library.
-
-    Revision History
-    ----------    -------------    --------------------------------------------
-    08/03/2014    Ben Wojtowicz    Created file.
-    09/03/2014    Ben Wojtowicz    Added key generation and EIA2 and fixed MCC
-                                   and MNC packing.
-
-*******************************************************************************/
+/**
+ *
+ * \section COPYRIGHT
+ *
+ * Copyright 2014      Ben Wojtowicz
+ *           2016-2020 Software Radio Systems Limited
+ *
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
+ *
+ */
 
 /*******************************************************************************
                               INCLUDES
 *******************************************************************************/
 
-#include "srslte/common/liblte_security.h"
+#include "srsran/common/liblte_security.h"
 #include "math.h"
-#include "srslte/common/liblte_ssl.h"
-#include "srslte/common/s3g.h"
-#include "srslte/common/zuc.h"
+#include "srsran/common/s3g.h"
+#include "srsran/common/ssl.h"
+#include "srsran/common/zuc.h"
 
 /*******************************************************************************
                               LOCAL FUNCTION PROTOTYPES
@@ -295,6 +276,115 @@ LIBLTE_ERROR_ENUM liblte_security_generate_k_rrc(uint8*                         
   return (err);
 }
 
+LIBLTE_ERROR_ENUM liblte_security_generate_k_nr_rrc(uint8*                                      k_gnb,
+                                                    LIBLTE_SECURITY_CIPHERING_ALGORITHM_ID_ENUM enc_alg_id,
+                                                    LIBLTE_SECURITY_INTEGRITY_ALGORITHM_ID_ENUM int_alg_id,
+                                                    uint8*                                      k_rrc_enc,
+                                                    uint8*                                      k_rrc_int)
+{
+  LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
+  uint8             s[7];
+
+  if (k_gnb != NULL && k_rrc_enc != NULL && k_rrc_int != NULL) {
+    // Construct S for KRRCenc
+    s[0] = 0x69;       // FC
+    s[1] = 0x03;       // P0
+    s[2] = 0x00;       // First byte of L0
+    s[3] = 0x01;       // Second byte of L0
+    s[4] = enc_alg_id; // P1
+    s[5] = 0x00;       // First byte of L1
+    s[6] = 0x01;       // Second byte of L1
+
+    // Derive KRRCenc
+    sha256(k_gnb, 32, s, 7, k_rrc_enc, 0);
+
+    // Construct S for KRRCint
+    s[0] = 0x69;       // FC
+    s[1] = 0x04;       // P0
+    s[2] = 0x00;       // First byte of L0
+    s[3] = 0x01;       // Second byte of L0
+    s[4] = int_alg_id; // P1
+    s[5] = 0x00;       // First byte of L1
+    s[6] = 0x01;       // Second byte of L1
+
+    // Derive KRRCint
+    sha256(k_gnb, 32, s, 7, k_rrc_int, 0);
+
+    err = LIBLTE_SUCCESS;
+  }
+
+  return (err);
+}
+
+LIBLTE_ERROR_ENUM liblte_security_generate_k_nr_up(uint8*                                      k_gnb,
+                                                   LIBLTE_SECURITY_CIPHERING_ALGORITHM_ID_ENUM enc_alg_id,
+                                                   LIBLTE_SECURITY_INTEGRITY_ALGORITHM_ID_ENUM int_alg_id,
+                                                   uint8*                                      k_up_enc,
+                                                   uint8*                                      k_up_int)
+{
+  LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
+  uint8             s[7];
+
+  if (k_gnb != NULL && k_up_enc != NULL && k_up_int != NULL) {
+    // Construct S for KUPenc
+    s[0] = 0x69;       // FC
+    s[1] = 0x05;       // P0
+    s[2] = 0x00;       // First byte of L0
+    s[3] = 0x01;       // Second byte of L0
+    s[4] = enc_alg_id; // P1
+    s[5] = 0x00;       // First byte of L1
+    s[6] = 0x01;       // Second byte of L1
+
+    // Derive KUPenc
+    sha256(k_gnb, 32, s, 7, k_up_enc, 0);
+
+    // Construct S for KUPint
+    s[0] = 0x69;       // FC
+    s[1] = 0x06;       // P0
+    s[2] = 0x00;       // First byte of L0
+    s[3] = 0x01;       // Second byte of L0
+    s[4] = int_alg_id; // P1
+    s[5] = 0x00;       // First byte of L1
+    s[6] = 0x01;       // Second byte of L1
+
+    // Derive KUPint
+    sha256(k_gnb, 32, s, 7, k_up_int, 0);
+
+    err = LIBLTE_SUCCESS;
+  }
+
+  return (err);
+}
+
+/*********************************************************************
+    Name: liblte_security_generate_sk_gnb
+
+    Description: Derivation of S-KeNB or S-KgNB for dual connectivity.
+
+    Document Reference: 33.401 v10.0.0 Annex A.15
+*********************************************************************/
+
+LIBLTE_ERROR_ENUM liblte_security_generate_sk_gnb(uint8_t* k_enb, uint8_t* sk_gnb, uint16_t scg_counter)
+{
+
+  LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
+  uint8             s[5];
+
+  if (k_enb != NULL && sk_gnb != NULL) {
+    // Construct S for sk_gnb
+    s[0] = 0x1C;                      // FC
+    s[1] = (scg_counter >> 8) & 0xFF; // first byte of P0
+    s[2] = scg_counter & 0xFF;        // second byte of P0
+    s[3] = 0x00;                      // First byte of L0
+    s[4] = 0x02;                      // Second byte of L0
+
+    // Derive sk_gnb
+    sha256(k_enb, 32, s, 5, sk_gnb, 0);
+    err = LIBLTE_SUCCESS;
+  }
+
+  return (err);
+}
 /*********************************************************************
     Name: liblte_security_generate_k_up
 

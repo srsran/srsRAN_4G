@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -20,19 +20,13 @@
  */
 
 #include "srsue/hdr/stack/mac/proc_bsr.h"
-#include "srslte/common/log_helper.h"
+#include "srsran/interfaces/ue_rlc_interfaces.h"
 #include "srsue/hdr/stack/mac/mux.h"
 
 namespace srsue {
 
-bsr_proc::bsr_proc() {}
-
-void bsr_proc::init(sr_proc*                       sr_,
-                    rlc_interface_mac*             rlc_,
-                    srslte::log_ref                log_h_,
-                    srslte::ext_task_sched_handle* task_sched_)
+void bsr_proc::init(sr_proc* sr_, rlc_interface_mac* rlc_, srsran::ext_task_sched_handle* task_sched_)
 {
-  log_h      = log_h_;
   rlc        = rlc_;
   sr         = sr_;
   task_sched = task_sched_;
@@ -61,19 +55,20 @@ void bsr_proc::print_state()
   int n  = 0;
   for (auto& lcg : lcgs) {
     for (auto& iter : lcg) {
-      n = srslte_print_check(str, 128, n, "%d: %d ", iter.first, iter.second.old_buffer);
+      n = srsran_print_check(str, 128, n, "%d: %d ", iter.first, iter.second.old_buffer);
     }
   }
-  Info("BSR:   triggered_bsr_type=%s, LCID QUEUE status: %s\n", bsr_type_tostring(triggered_bsr_type), str);
+  logger.info(
+      "BSR:   triggered_bsr_type=%s, LCID QUEUE status: %s", bsr_trigger_type_tostring(triggered_bsr_type), str);
 }
 
-void bsr_proc::set_trigger(srsue::bsr_proc::triggered_bsr_type_t new_trigger)
+void bsr_proc::set_trigger(bsr_trigger_type_t new_trigger)
 {
   triggered_bsr_type = new_trigger;
 
   // Trigger SR always when Regular BSR is triggered in the current TTI. Will be cancelled if a grant is received
   if (triggered_bsr_type == REGULAR) {
-    Debug("BSR:   Triggering SR procedure\n");
+    logger.debug("BSR:   Triggering SR procedure");
     sr->start();
   }
 }
@@ -86,7 +81,7 @@ void bsr_proc::reset()
   triggered_bsr_type = NONE;
 }
 
-void bsr_proc::set_config(srslte::bsr_cfg_t& bsr_cfg_)
+void bsr_proc::set_config(srsran::bsr_cfg_t& bsr_cfg_)
 {
   std::lock_guard<std::mutex> lock(mutex);
 
@@ -94,11 +89,11 @@ void bsr_proc::set_config(srslte::bsr_cfg_t& bsr_cfg_)
 
   if (bsr_cfg_.periodic_timer > 0) {
     timer_periodic.set(bsr_cfg_.periodic_timer, [this](uint32_t tid) { timer_expired(tid); });
-    Info("BSR:   Configured timer periodic %d ms\n", bsr_cfg_.periodic_timer);
+    logger.info("BSR:   Configured timer periodic %d ms", bsr_cfg_.periodic_timer);
   }
   if (bsr_cfg_.retx_timer > 0) {
     timer_retx.set(bsr_cfg_.retx_timer, [this](uint32_t tid) { timer_expired(tid); });
-    Info("BSR:   Configured timer reTX %d ms\n", bsr_cfg_.retx_timer);
+    logger.info("BSR:   Configured timer reTX %d ms", bsr_cfg_.retx_timer);
   }
 }
 
@@ -111,16 +106,16 @@ void bsr_proc::timer_expired(uint32_t timer_id)
   if (timer_id == timer_periodic.id()) {
     if (triggered_bsr_type == NONE) {
       set_trigger(PERIODIC);
-      Debug("BSR:   Triggering Periodic BSR\n");
+      logger.debug("BSR:   Triggering Periodic BSR");
     }
     // retxBSR-Timer
   } else if (timer_id == timer_retx.id()) {
     // Enable reTx of SR only if periodic timer is not infinity
-    Debug("BSR:   Timer BSR reTX expired, periodic=%d, channel=%d\n", bsr_cfg.periodic_timer, check_any_channel());
+    logger.debug("BSR:   Timer BSR reTX expired, periodic=%d, channel=%d", bsr_cfg.periodic_timer, check_any_channel());
     // Triger Regular BSR if UE has available data for transmission on any channel
     if (check_any_channel()) {
       set_trigger(REGULAR);
-      Debug("BSR:   Triggering BSR reTX\n");
+      logger.debug("BSR:   Triggering BSR reTX");
     }
   }
 }
@@ -153,7 +148,7 @@ bool bsr_proc::check_highest_channel()
           }
         }
         if (is_max_priority) {
-          Debug("BSR:   New data for lcid=%d with maximum priority in lcg=%d\n", iter->first, i);
+          logger.debug("BSR:   New data for lcid=%d with maximum priority in lcg=%d", iter->first, i);
           return true;
         }
       }
@@ -180,7 +175,7 @@ bool bsr_proc::check_new_data()
     if (get_buffer_state_lcg(i) == 0) {
       for (std::map<uint32_t, lcid_t>::iterator iter = lcgs[i].begin(); iter != lcgs[i].end(); ++iter) {
         if (iter->second.new_buffer > 0) {
-          Debug("BSR:   New data available for lcid=%d\n", iter->first);
+          logger.debug("BSR:   New data available for lcid=%d", iter->first);
           return true;
         }
       }
@@ -230,7 +225,7 @@ bool bsr_proc::generate_bsr(bsr_t* bsr, uint32_t pdu_space)
     }
   }
 
-  if (pdu_space >= CE_SUBHEADER_LEN + ce_size(srslte::ul_sch_lcid::LONG_BSR)) {
+  if (pdu_space >= CE_SUBHEADER_LEN + ce_size(srsran::ul_sch_lcid::LONG_BSR)) {
     // we could fit a long BSR
     if (triggered_bsr_type != PADDING && nof_lcg <= 1) {
       // for Regular and periodic BSR we still send a short BSR if only one LCG has data to send
@@ -239,7 +234,7 @@ bool bsr_proc::generate_bsr(bsr_t* bsr, uint32_t pdu_space)
       bsr->format = LONG_BSR;
     }
     send_bsr = true;
-  } else if (pdu_space >= CE_SUBHEADER_LEN + ce_size(srslte::ul_sch_lcid::SHORT_BSR)) {
+  } else if (pdu_space >= CE_SUBHEADER_LEN + ce_size(srsran::ul_sch_lcid::SHORT_BSR)) {
     // we can only fit a short or truncated BSR
     if (nof_lcg > 1) {
       // send truncated BSR
@@ -260,7 +255,7 @@ bool bsr_proc::generate_bsr(bsr_t* bsr, uint32_t pdu_space)
     // Restart or Start Periodic timer every time a BSR is generated and transmitted in an UL grant
     if (timer_periodic.duration() && bsr->format != TRUNC_BSR) {
       timer_periodic.run();
-      Debug("BSR:   Started periodicBSR-Timer\n");
+      logger.debug("BSR:   Started periodicBSR-Timer");
     }
     // reset trigger to avoid another BSR in the next UL grant
     triggered_bsr_type = NONE;
@@ -277,6 +272,12 @@ bool bsr_proc::generate_bsr(bsr_t* bsr, uint32_t pdu_space)
 void bsr_proc::update_bsr_tti_end(const bsr_t* bsr)
 {
   std::lock_guard<std::mutex> lock(mutex);
+
+  // Don't handle TBSR as it would reset old state for all non-reported LCGs, which might be wrong.
+  if (bsr->format == TRUNC_BSR) {
+    return;
+  }
+
   for (uint32_t i = 0; i < NOF_LCG; i++) {
     if (bsr->buff_size[i] == 0) {
       for (std::map<uint32_t, lcid_t>::iterator iter = lcgs[i].begin(); iter != lcgs[i].end(); ++iter) {
@@ -302,26 +303,11 @@ void bsr_proc::step(uint32_t tti)
 
   // Regular BSR triggered if new data arrives or channel with high priority has new data
   if (check_new_data() || check_highest_channel()) {
-    Debug("BSR:   Triggering Regular BSR tti=%d\n", tti);
+    logger.debug("BSR:   Triggering Regular BSR tti=%d", tti);
     set_trigger(REGULAR);
   }
 
   update_old_buffer();
-}
-
-char* bsr_proc::bsr_type_tostring(triggered_bsr_type_t type)
-{
-  switch (type) {
-    case bsr_proc::NONE:
-      return (char*)"none";
-    case bsr_proc::REGULAR:
-      return (char*)"Regular";
-    case bsr_proc::PADDING:
-      return (char*)"Padding";
-    case bsr_proc::PERIODIC:
-      return (char*)"Periodic";
-  }
-  return (char*)"unknown";
 }
 
 char* bsr_proc::bsr_format_tostring(bsr_format_t format)
@@ -353,13 +339,13 @@ bool bsr_proc::need_to_send_bsr_on_ul_grant(uint32_t grant_size, uint32_t total_
   }
 
   // Cancel SR if an Uplink grant is received
-  Debug("BSR:   Cancelling SR procedure due to uplink grant\n");
+  logger.debug("BSR:   Cancelling SR procedure due to uplink grant");
   sr->reset();
 
   // Restart or Start ReTX timer upon indication of a grant
   if (timer_retx.duration()) {
     timer_retx.run();
-    Debug("BSR:   Started retxBSR-Timer\n");
+    logger.debug("BSR:   Started retxBSR-Timer");
   }
   return send_bsr;
 }
@@ -369,7 +355,7 @@ bool bsr_proc::generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t* bsr)
 {
   std::lock_guard<std::mutex> lock(mutex);
 
-  if (nof_padding_bytes >= CE_SUBHEADER_LEN + ce_size(srslte::ul_sch_lcid::SHORT_BSR)) {
+  if (nof_padding_bytes >= CE_SUBHEADER_LEN + ce_size(srsran::ul_sch_lcid::SHORT_BSR)) {
     // generate padding BSR
     set_trigger(PADDING);
     generate_bsr(bsr, nof_padding_bytes);
@@ -395,7 +381,7 @@ void bsr_proc::setup_lcid(uint32_t lcid, uint32_t new_lcg, uint32_t priority)
     lcgs[new_lcg][lcid].priority   = priority;
     lcgs[new_lcg][lcid].old_buffer = 0;
   } else {
-    Error("BSR:   Invalid lcg=%d for lcid=%d\n", new_lcg, lcid);
+    logger.error("BSR:   Invalid lcg=%d for lcid=%d", new_lcg, lcid);
   }
 }
 

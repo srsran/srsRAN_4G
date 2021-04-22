@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -29,9 +29,9 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "srslte/phy/rf/rf.h"
-#include "srslte/phy/sync/npss.h"
-#include "srslte/srslte.h"
+#include "srsran/phy/rf/rf.h"
+#include "srsran/phy/sync/npss.h"
+#include "srsran/srsran.h"
 
 #ifndef DISABLE_GRAPHICS
 void init_plots();
@@ -48,8 +48,8 @@ bool     save_frame_to_file = false;
 float    cfo_fixed          = 0.0;
 bool     has_cfo_corr       = true;
 
-srslte_nbiot_cell_t cell = {
-    .base       = {.nof_prb = 1, .cp = SRSLTE_CP_NORM, .nof_ports = 1, .id = 0},
+srsran_nbiot_cell_t cell = {
+    .base       = {.nof_prb = 1, .cp = SRSRAN_CP_NORM, .nof_ports = 1, .id = 0},
     .nbiot_prb  = 0,
     .n_id_ncell = 0,
 };
@@ -69,7 +69,7 @@ void usage(char* prog)
 #else
   printf("\t plots are disabled. Graphics library not available\n");
 #endif
-  printf("\t-v srslte_verbose\n");
+  printf("\t-v srsran_verbose\n");
 }
 
 void parse_args(int argc, char** argv)
@@ -109,7 +109,7 @@ void parse_args(int argc, char** argv)
         disable_plots = true;
         break;
       case 'v':
-        srslte_verbose++;
+        srsran_verbose++;
         break;
       default:
         usage(argv[0]);
@@ -137,9 +137,9 @@ int main(int argc, char** argv)
 {
   cf_t*               buffer;
   int                 frame_cnt, n;
-  srslte_rf_t         rf;
-  srslte_cfo_t        cfocorr;
-  srslte_npss_synch_t npss;
+  srsran_rf_t         rf;
+  srsran_cfo_t        cfocorr;
+  srsran_npss_synch_t npss;
   int32_t             flen;
   int                 peak_idx;
   float               peak_value;
@@ -165,36 +165,36 @@ int main(int argc, char** argv)
     printf("Manually compensating %.0f Hz CFO offset\n", cfo_fixed);
   }
 
-  if (srslte_cfo_init(&cfocorr, flen)) {
+  if (srsran_cfo_init(&cfocorr, flen)) {
     fprintf(stderr, "Error initiating CFO\n");
     exit(-1);
   }
-  srslte_cfo_set_tol(&cfocorr, 50.0 / (15000.0 * fft_size));
+  srsran_cfo_set_tol(&cfocorr, 50.0 / (15000.0 * fft_size));
 
   printf("Opening RF device...\n");
-  if (srslte_rf_open(&rf, rf_args)) {
+  if (srsran_rf_open(&rf, rf_args)) {
     fprintf(stderr, "Error opening rf\n");
     exit(-1);
   }
 
-  srslte_rf_set_rx_gain(&rf, rf_gain);
-  printf("Set RX rate: %.2f MHz\n", srslte_rf_set_rx_srate(&rf, srate) / 1000000);
-  printf("Set RX gain: %.1f dB\n", srslte_rf_get_rx_gain(&rf));
-  printf("Set RX freq: %.2f MHz\n", srslte_rf_set_rx_freq(&rf, 0, rf_freq) / 1000000);
+  srsran_rf_set_rx_gain(&rf, rf_gain);
+  printf("Set RX rate: %.2f MHz\n", srsran_rf_set_rx_srate(&rf, srate) / 1000000);
+  printf("Set RX gain: %.1f dB\n", srsran_rf_get_rx_gain(&rf));
+  printf("Set RX freq: %.2f MHz\n", srsran_rf_set_rx_freq(&rf, 0, rf_freq) / 1000000);
 
-  buffer = srslte_vec_cf_malloc(flen * 2);
+  buffer = srsran_vec_cf_malloc(flen * 2);
   if (!buffer) {
     perror("malloc");
     exit(-1);
   }
-  srslte_vec_cf_zero(buffer, flen * 2);
+  srsran_vec_cf_zero(buffer, flen * 2);
 
-  if (srslte_npss_synch_init(&npss, flen, fft_size)) {
+  if (srsran_npss_synch_init(&npss, flen, fft_size)) {
     fprintf(stderr, "Error initializing NPSS object\n");
     exit(-1);
   }
 
-  srslte_rf_start_rx_stream(&rf, false);
+  srsran_rf_start_rx_stream(&rf, false);
 
   nof_det = nof_nodet = nof_nopeak = nof_nopeakdet = 0;
   frame_cnt                                        = 0;
@@ -204,7 +204,7 @@ int main(int argc, char** argv)
 
   bool save_and_exit = false;
   while ((frame_cnt < nof_frames || nof_frames == -1) && !go_exit) {
-    n = srslte_rf_recv(&rf, buffer, flen - peak_offset, 1);
+    n = srsran_rf_recv(&rf, buffer, flen - peak_offset, 1);
     if (n < 0) {
       fprintf(stderr, "Error receiving samples\n");
       exit(-1);
@@ -215,22 +215,22 @@ int main(int argc, char** argv)
     if (save_frame_to_file && save_and_exit) {
       char* filename = "frame_hyp.bin";
       printf("Saving entire frame to %s\n", filename);
-      srslte_vec_save_file(filename, buffer, flen * sizeof(cf_t));
+      srsran_vec_save_file(filename, buffer, flen * sizeof(cf_t));
       go_exit = true;
     }
 
     // perform CFO correction
     if (has_cfo_corr) {
-      srslte_cfo_correct(&cfocorr, buffer, buffer, -cfo_fixed / (15000 * fft_size));
+      srsran_cfo_correct(&cfocorr, buffer, buffer, -cfo_fixed / (15000 * fft_size));
     }
 
-    peak_idx = srslte_npss_sync_find(&npss, buffer, &peak_value);
+    peak_idx = srsran_npss_sync_find(&npss, buffer, &peak_value);
     if (peak_idx < 0) {
       fprintf(stderr, "Error finding NPSS peak\n");
       exit(-1);
     }
 
-    mean_peak = SRSLTE_VEC_CMA(peak_value, mean_peak, frame_cnt);
+    mean_peak = SRSRAN_VEC_CMA(peak_value, mean_peak, frame_cnt);
 
     if (peak_value >= threshold) {
       nof_det++;
@@ -239,7 +239,7 @@ int main(int argc, char** argv)
       if (save_frame_to_file && !save_and_exit) {
         cf_t dummy[flen]; // full frame
         printf("Peak_idx at %d\n", peak_idx);
-        int num_drop = peak_idx - SRSLTE_NPSS_CORR_OFFSET + flen / 2;
+        int num_drop = peak_idx - SRSRAN_NPSS_CORR_OFFSET + flen / 2;
         printf("Dropping %d samples!\n", num_drop);
 
         if (num_drop > flen) {
@@ -247,7 +247,7 @@ int main(int argc, char** argv)
           num_drop = num_drop % flen;
         }
 
-        srslte_rf_recv(&rf, dummy, num_drop, 1);
+        srsran_rf_recv(&rf, dummy, num_drop, 1);
         save_and_exit = true;
       }
     } else {
@@ -256,19 +256,19 @@ int main(int argc, char** argv)
     printf("[%5d]: Pos: %5d, PSR: %4.1f (~%4.1f) Pdet: %4.2f, "
            "FA: %4.2f\r",
            frame_cnt,
-           (peak_value > threshold) ? (peak_idx - SRSLTE_NPSS_CORR_OFFSET - flen / 10 / 2) : 0,
+           (peak_value > threshold) ? (peak_idx - SRSRAN_NPSS_CORR_OFFSET - flen / 10 / 2) : 0,
            peak_value,
            mean_peak,
            (float)nof_det / frame_cnt,
            (float)nof_nopeakdet / frame_cnt);
 
-    if (SRSLTE_VERBOSE_ISINFO()) {
+    if (SRSRAN_VERBOSE_ISINFO()) {
       printf("\n");
     }
 
 #ifndef DISABLE_GRAPHICS
     if (!disable_plots) {
-      int len = SRSLTE_NPSS_CORR_FILTER_LEN + npss.frame_size - 1;
+      int len = SRSRAN_NPSS_CORR_FILTER_LEN + npss.frame_size - 1;
       do_plots_npss(npss.conv_output_avg, npss.conv_output_avg[peak_idx], len);
     }
 #endif
@@ -276,10 +276,10 @@ int main(int argc, char** argv)
 
   printf("NPSS detected #%d\n", nof_det);
 
-  srslte_npss_synch_free(&npss);
-  srslte_cfo_free(&cfocorr);
+  srsran_npss_synch_free(&npss);
+  srsran_cfo_free(&cfocorr);
   free(buffer);
-  srslte_rf_close(&rf);
+  srsran_rf_close(&rf);
 
   printf("Ok\n");
   exit(0);
@@ -307,7 +307,7 @@ void init_plots()
 
 void do_plots_npss(float* corr, float peak, uint32_t size)
 {
-  srslte_vec_sc_prod_fff(corr, 1. / peak, tmp, size);
+  srsran_vec_sc_prod_fff(corr, 1. / peak, tmp, size);
   plot_real_setNewData(&pssout, tmp, size);
 }
 

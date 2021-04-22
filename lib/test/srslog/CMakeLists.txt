@@ -1,14 +1,14 @@
 #
-# Copyright 2013-2020 Software Radio Systems Limited
+# Copyright 2013-2021 Software Radio Systems Limited
 #
-# This file is part of srsLTE
+# This file is part of srsRAN
 #
-# srsLTE is free software: you can redistribute it and/or modify
+# srsRAN is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of
 # the License, or (at your option) any later version.
 #
-# srsLTE is distributed in the hope that it will be useful,
+# srsRAN is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Affero General Public License for more details.
@@ -54,7 +54,16 @@ add_definitions(-DENABLE_SRSLOG_EVENT_TRACE)
 target_link_libraries(tracer_test srslog)
 add_test(tracer_test tracer_test)
 
-add_executable(formatter_test formatter_test.cpp)
-target_include_directories(formatter_test PUBLIC ../../)
-target_link_libraries(formatter_test srslog)
-add_test(formatter_test formatter_test)
+add_executable(text_formatter_test text_formatter_test.cpp)
+target_include_directories(text_formatter_test PUBLIC ../../)
+target_link_libraries(text_formatter_test srslog)
+add_test(text_formatter_test text_formatter_test)
+
+add_executable(json_formatter_test json_formatter_test.cpp)
+target_include_directories(json_formatter_test PUBLIC ../../)
+target_link_libraries(json_formatter_test srslog)
+add_test(json_formatter_test json_formatter_test)
+
+add_executable(context_test context_test.cpp)
+target_link_libraries(context_test srslog)
+add_test(context_test context_test)

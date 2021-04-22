@@ -16,8 +16,8 @@
 #include <condition_variable>
 #include <iostream>
 #include <mutex>
-#include <srslte/config.h>
-#include <srslte/phy/utils/vector.h>
+#include <srsran/config.h>
+#include <srsran/phy/utils/vector.h>
 #include <uhd/device3.hpp>
 #include <uhd/rfnoc/dma_fifo_block_ctrl.hpp>
 #include <uhd/rfnoc/duc_ch2_block_ctrl.hpp>
@@ -119,8 +119,8 @@ private:
 
     while (tx_metadata.time_spec < config.duration_s + config.init_tx_time and running) {
       cf_t v = cexp_(2.0f * M_PI * float(txd_nsamples_total % config.period_nsamples) * config.get_freq_norm());
-      srslte_vec_gen_sine(v, config.get_freq_norm(), tx_buffer[0], packet_size_nsamples);
-      srslte_vec_sc_prod_cfc(tx_buffer[0], -1, tx_buffer[1], packet_size_nsamples);
+      srsran_vec_gen_sine(v, config.get_freq_norm(), tx_buffer[0], packet_size_nsamples);
+      srsran_vec_sc_prod_cfc(tx_buffer[0], -1, tx_buffer[1], packet_size_nsamples);
 
       if (config.blocking) {
         std::unique_lock<std::mutex> lock(mutex);
@@ -183,7 +183,7 @@ private:
         // Update stats
         rxd_nsamples_total += rxd_nsamples;
         rxd_count++;
-        float avg_power = srslte_vec_avg_power_cf(rx_buffer[0], rxd_nsamples);
+        float avg_power = srsran_vec_avg_power_cf(rx_buffer[0], rxd_nsamples);
         if (std::isnan(avg_power) or avg_power > 1e-6) {
           Warning("-- RX " << rxd_count << " Received " << avg_power);
         }
@@ -224,35 +224,35 @@ public:
 
     if (rfnoc->usrp_make(hint, config.nof_channels * config.nof_radios) != UHD_ERROR_NONE) {
       Warning(rfnoc->last_error);
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
 
     if (rfnoc->set_tx_rate(config.srate_hz) != UHD_ERROR_NONE) {
       Warning(rfnoc->last_error);
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
     if (rfnoc->set_rx_rate(config.srate_hz) != UHD_ERROR_NONE) {
       Warning(rfnoc->last_error);
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
 
     size_t nof_tx_samples = 0;
     size_t nof_rx_samples = 0;
     rfnoc->get_tx_stream(nof_tx_samples);
     rfnoc->get_rx_stream(nof_rx_samples);
-    packet_size_nsamples = SRSLTE_MIN(nof_tx_samples, nof_rx_samples);
+    packet_size_nsamples = SRSRAN_MIN(nof_tx_samples, nof_rx_samples);
 
     for (size_t j = 0; j < config.nof_channels; j++) {
-      tx_buffer[j] = srslte_vec_cf_malloc(packet_size_nsamples);
-      rx_buffer[j] = srslte_vec_cf_malloc(packet_size_nsamples);
+      tx_buffer[j] = srsran_vec_cf_malloc(packet_size_nsamples);
+      rx_buffer[j] = srsran_vec_cf_malloc(packet_size_nsamples);
     }
 
     if (rfnoc->start_rx_stream(config.init_tx_time) != UHD_ERROR_NONE) {
       Warning(rfnoc->last_error);
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
 
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   int run()
@@ -276,7 +276,7 @@ public:
     Info("Rx packets: " << rxd_count);
     Info("Rx samples: " << rxd_nsamples_total);
 
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   ~rfnoc_custom_testbench_s()
@@ -296,17 +296,17 @@ static int test(const rfnoc_custom_testbench_s::config_s& config)
 {
   rfnoc_custom_testbench_s context(config);
 
-  TESTASSERT(context.init() == SRSLTE_SUCCESS);
-  TESTASSERT(context.run() == SRSLTE_SUCCESS);
+  TESTASSERT(context.init() == SRSRAN_SUCCESS);
+  TESTASSERT(context.run() == SRSRAN_SUCCESS);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 namespace bpo = boost::program_options;
 
 static int parse_args(int argc, char** argv, rfnoc_custom_testbench_s::config_s& args)
 {
-  int ret = SRSLTE_SUCCESS;
+  int ret = SRSRAN_SUCCESS;
 
   bpo::options_description options;
   bpo::options_description common("Common execution options");
@@ -332,14 +332,14 @@ static int parse_args(int argc, char** argv, rfnoc_custom_testbench_s::config_s&
     bpo::notify(vm);
   } catch (bpo::error& e) {
     std::cerr << e.what() << std::endl;
-    ret = SRSLTE_ERROR;
+    ret = SRSRAN_ERROR;
   }
 
   // help option was given or error - print usage and exit
   if (vm.count("help") || ret) {
     std::cout << "Usage: " << argv[0] << " [OPTIONS] config_file" << std::endl << std::endl;
     std::cout << options << std::endl << std::endl;
-    ret = SRSLTE_ERROR;
+    ret = SRSRAN_ERROR;
   }
 
   return ret;
@@ -349,9 +349,9 @@ int main(int argc, char* argv[])
 {
   rfnoc_custom_testbench_s::config_s config;
 
-  TESTASSERT(parse_args(argc, argv, config) == SRSLTE_SUCCESS);
+  TESTASSERT(parse_args(argc, argv, config) == SRSRAN_SUCCESS);
 
-  TESTASSERT(test(config) == SRSLTE_SUCCESS);
+  TESTASSERT(test(config) == SRSRAN_SUCCESS);
 
   return EXIT_SUCCESS;
 }

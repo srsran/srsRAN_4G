@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,12 +19,13 @@
  *
  */
 
-#define Error(fmt, ...) log_h->error(fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
-#define Info(fmt, ...) log_h->info(fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...) log_h->debug(fmt, ##__VA_ARGS__)
+#define Error(fmt, ...) logger.error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) logger.warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...) logger.info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...) logger.debug(fmt, ##__VA_ARGS__)
 
 #include "srsue/hdr/stack/mac/mux.h"
+#include "srsran/common/string_helpers.h"
 #include "srsue/hdr/stack/mac/mac.h"
 
 #include <algorithm>
@@ -32,10 +33,7 @@
 
 namespace srsue {
 
-mux::mux(srslte::log_ref log_) : pdu_msg(MAX_NOF_SUBHEADERS, log_), log_h(log_)
-{
-  msg3_flush();
-}
+mux::mux(srslog::basic_logger& logger) : logger(logger), pdu_msg(MAX_NOF_SUBHEADERS, logger) {}
 
 void mux::init(rlc_interface_mac* rlc_, bsr_interface_mux* bsr_procedure_, phr_proc* phr_procedure_)
 {
@@ -66,8 +64,8 @@ void mux::step()
     if (channel.PBR >= 0) {
       channel.Bj += channel.PBR; // PBR is in kByte/s, conversion in Byte and ms not needed
     }
-    channel.Bj = SRSLTE_MIN((uint32_t)channel.Bj, channel.bucket_size);
-    Debug("Update Bj: lcid=%d, Bj=%d\n", channel.lcid, channel.Bj);
+    channel.Bj = SRSRAN_MIN((uint32_t)channel.Bj, channel.bucket_size);
+    Debug("Update Bj: lcid=%d, Bj=%d", channel.lcid, channel.Bj);
   }
 }
 
@@ -81,91 +79,34 @@ bool mux::is_pending_any_sdu()
   return false;
 }
 
-bool mux::has_logical_channel(const uint32_t& lcid)
-{
-  for (auto& channel : logical_channels) {
-    if (channel.lcid == lcid) {
-      return true;
-    }
-  }
-  return false;
-}
-
-bool priority_compare(const logical_channel_config_t& u1, const logical_channel_config_t& u2)
-{
-  return u1.priority <= u2.priority;
-}
-
 // This is called by RRC (stack thread) during bearer addition
 void mux::setup_lcid(const logical_channel_config_t& config)
 {
   std::lock_guard<std::mutex> lock(mutex);
-
-  if (has_logical_channel(config.lcid)) {
-    // update settings
-    for (auto& channel : logical_channels) {
-      if (channel.lcid == config.lcid) {
-        channel = config;
-        break;
-      }
-    }
-    // warn user if there is another LCID with same prio
-    for (auto& channel : logical_channels) {
-      if (channel.priority == config.priority && channel.lcid != config.lcid) {
-        log_h->warning("LCID %d and %d have same priority.\n", channel.lcid, config.lcid);
-      }
-    }
-  } else {
-    // add new entry
-    logical_channels.push_back(config);
-  }
-
-  // sort according to priority (increasing is lower priority)
-  std::sort(logical_channels.begin(), logical_channels.end(), priority_compare);
+  mux_base::setup_lcid(config);
 }
 
 // mutex should be hold by caller
 void mux::print_logical_channel_state(const std::string& info)
 {
-  std::string logline = info;
-
-  for (auto& channel : logical_channels) {
-    logline += "\n";
-    logline += "- lcid=";
-    logline += std::to_string(channel.lcid);
-    logline += ", lcg=";
-    logline += std::to_string(channel.lcg);
-    logline += ", prio=";
-    logline += std::to_string(channel.priority);
-    logline += ", Bj=";
-    logline += std::to_string(channel.Bj);
-    logline += ", PBR=";
-    logline += std::to_string(channel.PBR);
-    logline += ", BSD=";
-    logline += std::to_string(channel.BSD);
-    logline += ", buffer_len=";
-    logline += std::to_string(channel.buffer_len);
-    logline += ", sched_len=";
-    logline += std::to_string(channel.sched_len);
-  }
-  log_h->debug("%s\n", logline.c_str());
+  mux_base::print_logical_channel_state(info);
 }
 
-srslte::ul_sch_lcid bsr_format_convert(bsr_proc::bsr_format_t format)
+srsran::ul_sch_lcid bsr_format_convert(bsr_proc::bsr_format_t format)
 {
   switch (format) {
     case bsr_proc::LONG_BSR:
-      return srslte::ul_sch_lcid::LONG_BSR;
+      return srsran::ul_sch_lcid::LONG_BSR;
     case bsr_proc::TRUNC_BSR:
-      return srslte::ul_sch_lcid::TRUNC_BSR;
+      return srsran::ul_sch_lcid::TRUNC_BSR;
     case bsr_proc::SHORT_BSR:
     default:
-      return srslte::ul_sch_lcid::SHORT_BSR;
+      return srsran::ul_sch_lcid::SHORT_BSR;
   }
 }
 
 // Multiplexing and logical channel priorization as defined in Section 5.4.3
-uint8_t* mux::pdu_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
+uint8_t* mux::pdu_get(srsran::byte_buffer_t* payload, uint32_t pdu_sz)
 {
   std::lock_guard<std::mutex> lock(mutex);
 
@@ -178,13 +119,13 @@ uint8_t* mux::pdu_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
     if (pending_crnti_ce) {
       if (pdu_msg.new_subh()) {
         if (!pdu_msg.get()->set_c_rnti(pending_crnti_ce)) {
-          Warning("Pending C-RNTI CE could not be inserted in MAC PDU\n");
+          Warning("Pending C-RNTI CE could not be inserted in MAC PDU");
         }
       }
     }
   } else {
     if (pending_crnti_ce) {
-      Warning("Pending C-RNTI CE was not inserted because message was for CCCH\n");
+      Warning("Pending C-RNTI CE was not inserted because message was for CCCH");
     }
   }
   pending_crnti_ce = 0;
@@ -245,7 +186,7 @@ uint8_t* mux::pdu_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
       if (sched_sdu(&channel, &sdu_space, max_sdu_sz)) {
         channel.Bj -= channel.sched_len;
         // account for (possible) subheader needed for next SDU
-        last_sdu_subheader_len = SRSLTE_MIN((uint32_t)sdu_space, sch_pdu::size_header_sdu(channel.sched_len));
+        last_sdu_subheader_len = SRSRAN_MIN((uint32_t)sdu_space, sch_pdu::size_header_sdu(channel.sched_len));
         sdu_space -= last_sdu_subheader_len;
       }
     }
@@ -272,10 +213,10 @@ uint8_t* mux::pdu_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
 
   for (auto& channel : logical_channels) {
     if (channel.sched_len != 0) {
-      allocate_sdu(channel.lcid, &pdu_msg, channel.sched_len);
+      uint32_t sdu_len = allocate_sdu(channel.lcid, &pdu_msg, channel.sched_len);
 
-      // update BSR according to allocation
-      bsr.buff_size[channel.lcg] -= channel.sched_len;
+      // update BSR according to allocation (may be smaller than sched_len)
+      bsr.buff_size[channel.lcg] -= sdu_len;
     }
   }
 
@@ -297,9 +238,11 @@ uint8_t* mux::pdu_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
   bsr_procedure->update_bsr_tti_end(&bsr);
 
   // Generate MAC PDU and save to buffer
-  uint8_t* ret = pdu_msg.write_packet(log_h);
-  Info("%s\n", pdu_msg.to_string().c_str());
-  Debug("Assembled MAC PDU msg size %d/%d bytes\n", pdu_msg.get_pdu_len() - pdu_msg.rem_size(), pdu_sz);
+  uint8_t*           ret = pdu_msg.write_packet(logger);
+  fmt::memory_buffer buffer;
+  pdu_msg.to_string(buffer);
+  Info("%s", srsran::to_c_str(buffer));
+  Debug("Assembled MAC PDU msg size %d/%d bytes", pdu_msg.get_pdu_len() - pdu_msg.rem_size(), pdu_sz);
 
   return ret;
 }
@@ -324,7 +267,7 @@ bool mux::sched_sdu(logical_channel_config_t* ch, int* sdu_space, int max_sdu_sz
 
       *sdu_space -= sched_len; // UL-SCH subheader size is accounted for in the calling function
 
-      Debug("SDU:   scheduled lcid=%d, rlc_buffer=%d, allocated=%d\n", ch->lcid, ch->buffer_len, sched_len);
+      Debug("SDU:   scheduled lcid=%d, rlc_buffer=%d, allocated=%d", ch->lcid, ch->buffer_len, sched_len);
 
       ch->buffer_len -= sched_len;
       ch->sched_len += sched_len;
@@ -334,20 +277,20 @@ bool mux::sched_sdu(logical_channel_config_t* ch, int* sdu_space, int max_sdu_sz
   return false;
 }
 
-bool mux::allocate_sdu(uint32_t lcid, srslte::sch_pdu* pdu_msg, int max_sdu_sz)
+uint32_t mux::allocate_sdu(uint32_t lcid, srsran::sch_pdu* pdu_msg, int max_sdu_sz)
 {
-  bool sdu_added    = false;
-  int  sdu_space    = max_sdu_sz;
-  int  buffer_state = rlc->get_buffer_state(lcid);
+  uint32_t total_sdu_len = 0;
+  int32_t  sdu_space     = max_sdu_sz;
+  int32_t  buffer_state  = rlc->get_buffer_state(lcid);
 
   while (buffer_state > 0 && sdu_space > 0) { // there is pending SDU to allocate
-    int requested_sdu_len = SRSLTE_MIN(buffer_state, sdu_space);
+    int requested_sdu_len = SRSRAN_MIN(buffer_state, sdu_space);
 
     if (pdu_msg->new_subh()) { // there is space for a new subheader
       int sdu_len = pdu_msg->get()->set_sdu(lcid, requested_sdu_len, rlc);
       if (sdu_len > 0) { // new SDU could be added
         Debug("SDU:   allocated lcid=%d, buffer_state=%d, request_sdu_len=%d, allocated=%d/%d, max_sdu_sz=%d, "
-              "remaining=%d\n",
+              "remaining=%d",
               lcid,
               buffer_state,
               requested_sdu_len,
@@ -356,12 +299,12 @@ bool mux::allocate_sdu(uint32_t lcid, srslte::sch_pdu* pdu_msg, int max_sdu_sz)
               max_sdu_sz,
               pdu_msg->rem_size());
         sdu_space -= sdu_len;
-        sdu_added = true;
+        total_sdu_len += sdu_len;
 
         buffer_state = rlc->get_buffer_state(lcid);
       } else {
         Debug("Couldn't allocate new SDU (buffer_state=%d, requested_sdu_len=%d, sdu_len=%d, sdu_space=%d, "
-              "remaining=%d, get_sdu_space=%d)\n",
+              "remaining=%d, get_sdu_space=%d)",
               buffer_state,
               requested_sdu_len,
               sdu_len,
@@ -373,7 +316,7 @@ bool mux::allocate_sdu(uint32_t lcid, srslte::sch_pdu* pdu_msg, int max_sdu_sz)
         break;
       }
     } else {
-      Debug("Couldn't add new MAC subheader (buffer_state=%d, requested_sdu_len=%d, sdu_space=%d, remaining=%d)\n",
+      Debug("Couldn't add new MAC subheader (buffer_state=%d, requested_sdu_len=%d, sdu_space=%d, remaining=%d)",
             buffer_state,
             requested_sdu_len,
             sdu_space,
@@ -382,14 +325,12 @@ bool mux::allocate_sdu(uint32_t lcid, srslte::sch_pdu* pdu_msg, int max_sdu_sz)
       break;
     }
   }
-  return sdu_added;
+  return total_sdu_len;
 }
 
 void mux::msg3_flush()
 {
-  if (log_h) {
-    Debug("Msg3 buffer flushed\n");
-  }
+  Debug("Msg3 buffer flushed");
   msg3_buff.clear();
   msg3_has_been_transmitted = false;
   msg3_pending              = false;
@@ -417,12 +358,12 @@ bool mux::msg3_is_empty()
 }
 
 /* Returns a pointer to the Msg3 buffer */
-uint8_t* mux::msg3_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
+uint8_t* mux::msg3_get(srsran::byte_buffer_t* payload, uint32_t pdu_sz)
 {
   if (pdu_sz < msg3_buff.get_tailroom()) {
     if (msg3_is_empty()) {
       if (!pdu_get(&msg3_buff, pdu_sz)) {
-        Error("Moving PDU from Mux unit to Msg3 buffer\n");
+        Error("Moving PDU from Mux unit to Msg3 buffer");
         return NULL;
       }
       msg3_pending = false;
@@ -431,7 +372,7 @@ uint8_t* mux::msg3_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
     msg3_has_been_transmitted = true;
     return payload->msg;
   } else {
-    Error("Msg3 size exceeds buffer\n");
+    Error("Msg3 size exceeds buffer");
     return nullptr;
   }
 }

@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -24,17 +24,19 @@
 #include "mme_gtpc.h"
 #include "nas.h"
 #include "s1ap_ctx_mngmt_proc.h"
+#include "s1ap_erab_mngmt_proc.h"
 #include "s1ap_mngmt_proc.h"
 #include "s1ap_nas_transport.h"
 #include "s1ap_paging.h"
 #include "srsepc/hdr/hss/hss.h"
-#include "srslte/asn1/gtpc.h"
-#include "srslte/asn1/liblte_mme.h"
-#include "srslte/asn1/s1ap_asn1.h"
-#include "srslte/common/common.h"
-#include "srslte/common/log.h"
-#include "srslte/common/s1ap_pcap.h"
-#include "srslte/interfaces/epc_interfaces.h"
+#include "srsran/asn1/gtpc.h"
+#include "srsran/asn1/liblte_mme.h"
+#include "srsran/asn1/s1ap.h"
+#include "srsran/common/common.h"
+#include "srsran/common/s1ap_pcap.h"
+#include "srsran/common/standard_streams.h"
+#include "srsran/interfaces/epc_interfaces.h"
+#include "srsran/srslog/srslog.h"
 #include <arpa/inet.h>
 #include <map>
 #include <netinet/sctp.h>
@@ -57,7 +59,7 @@ public:
   static void  cleanup();
 
   int  enb_listen();
-  int  init(s1ap_args_t s1ap_args, srslte::log_filter* s1ap_log, srslte::log_filter* nas_log);
+  int  init(s1ap_args_t s1ap_args);
   void stop();
 
   int get_s1_mme();
@@ -65,7 +67,7 @@ public:
   void delete_enb_ctx(int32_t assoc_id);
 
   bool s1ap_tx_pdu(const s1ap_pdu_t& pdu, struct sctp_sndrcvinfo* enb_sri);
-  void handle_s1ap_rx_pdu(srslte::byte_buffer_t* pdu, struct sctp_sndrcvinfo* enb_sri);
+  void handle_s1ap_rx_pdu(srsran::byte_buffer_t* pdu, struct sctp_sndrcvinfo* enb_sri);
   void handle_initiating_message(const asn1::s1ap::init_msg_s& msg, struct sctp_sndrcvinfo* enb_sri);
   void handle_successful_outcome(const asn1::s1ap::successful_outcome_s& msg);
 
@@ -94,14 +96,14 @@ public:
   uint32_t         allocate_m_tmsi(uint64_t imsi);
   virtual uint64_t find_imsi_from_m_tmsi(uint32_t m_tmsi);
 
-  s1ap_args_t         m_s1ap_args;
-  srslte::log_filter* m_s1ap_log;
-  srslte::log_filter* m_nas_log;
+  s1ap_args_t           m_s1ap_args;
+  srslog::basic_logger& m_logger = srslog::fetch_basic_logger("S1AP");
 
-  s1ap_mngmt_proc*     m_s1ap_mngmt_proc;
-  s1ap_nas_transport*  m_s1ap_nas_transport;
-  s1ap_ctx_mngmt_proc* m_s1ap_ctx_mngmt_proc;
-  s1ap_paging*         m_s1ap_paging;
+  s1ap_mngmt_proc*      m_s1ap_mngmt_proc;
+  s1ap_nas_transport*   m_s1ap_nas_transport;
+  s1ap_ctx_mngmt_proc*  m_s1ap_ctx_mngmt_proc;
+  s1ap_erab_mngmt_proc* m_s1ap_erab_mngmt_proc;
+  s1ap_paging*          m_s1ap_paging;
 
   std::map<uint32_t, uint64_t>   m_tmsi_to_imsi;
   std::map<uint16_t, enb_ctx_t*> m_active_enbs;
@@ -109,9 +111,18 @@ public:
   // Interfaces
   virtual bool send_initial_context_setup_request(uint64_t imsi, uint16_t erab_to_setup);
   virtual bool send_ue_context_release_command(uint32_t mme_ue_s1ap_id);
+  virtual bool send_erab_release_command(uint32_t               enb_ue_s1ap_id,
+                                         uint32_t               mme_ue_s1ap_id,
+                                         std::vector<uint16_t>  erabs_to_release,
+                                         struct sctp_sndrcvinfo enb_sri);
+  virtual bool send_erab_modify_request(uint32_t                     enb_ue_s1ap_id,
+                                        uint32_t                     mme_ue_s1ap_id,
+                                        std::map<uint16_t, uint16_t> erabs_to_be_modified,
+                                        srsran::byte_buffer_t*       nas_msg,
+                                        struct sctp_sndrcvinfo       enb_sri);
   virtual bool send_downlink_nas_transport(uint32_t               enb_ue_s1ap_id,
                                            uint32_t               mme_ue_s1ap_id,
-                                           srslte::byte_buffer_t* nas_msg,
+                                           srsran::byte_buffer_t* nas_msg,
                                            struct sctp_sndrcvinfo enb_sri);
   virtual bool send_paging(uint64_t imsi, uint16_t erab_to_setup);
 
@@ -123,8 +134,7 @@ private:
 
   static s1ap* m_instance;
 
-  uint32_t                  m_plmn;
-  srslte::byte_buffer_pool* m_pool;
+  uint32_t m_plmn;
 
   hss_interface_nas*                     m_hss;
   int                                    m_s1mme;
@@ -142,7 +152,7 @@ private:
 
   // PCAP
   bool              m_pcap_enable;
-  srslte::s1ap_pcap m_pcap;
+  srsran::s1ap_pcap m_pcap;
 };
 
 inline uint32_t s1ap::get_plmn()

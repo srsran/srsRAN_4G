@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,12 +19,12 @@
  *
  */
 
-#ifndef SRSLTE_PDCP_NR_TEST_H
-#define SRSLTE_PDCP_NR_TEST_H
+#ifndef SRSRAN_PDCP_NR_TEST_H
+#define SRSRAN_PDCP_NR_TEST_H
 
 #include "pdcp_base_test.h"
-#include "srslte/test/ue_test_interfaces.h"
-#include "srslte/upper/pdcp_entity_nr.h"
+#include "srsran/test/ue_test_interfaces.h"
+#include "srsran/upper/pdcp_entity_nr.h"
 
 struct pdcp_initial_state {
   uint32_t tx_next;
@@ -36,7 +36,7 @@ struct pdcp_initial_state {
 // Helper struct to hold a packet and the number of clock
 // ticks to run after writing the packet to test timeouts.
 struct pdcp_test_event_t {
-  srslte::unique_byte_buffer_t pkt;
+  srsran::unique_byte_buffer_t pkt;
   uint32_t                     ticks = 0;
 };
 
@@ -52,13 +52,13 @@ std::array<uint8_t, 32> k_enc = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
                                  0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x30, 0x31};
 
 // Security Configuration, common to all tests.
-srslte::as_security_config_t sec_cfg = {
+srsran::as_security_config_t sec_cfg = {
     k_int,
     k_enc,
     k_int,
     k_enc,
-    srslte::INTEGRITY_ALGORITHM_ID_128_EIA2,
-    srslte::CIPHERING_ALGORITHM_ID_128_EEA2,
+    srsran::INTEGRITY_ALGORITHM_ID_128_EIA2,
+    srsran::CIPHERING_ALGORITHM_ID_128_EEA2,
 };
 
 // Test SDUs for tx
@@ -96,15 +96,13 @@ pdcp_initial_state near_wraparound_init_state = {.tx_next  = 4294967295,
 class pdcp_nr_test_helper
 {
 public:
-  pdcp_nr_test_helper(srslte::pdcp_config_t cfg, srslte::as_security_config_t sec_cfg_, srslte::log_ref log) :
-    rlc(log),
-    rrc(log),
-    gw(log),
-    pdcp(&rlc, &rrc, &gw, &stack.task_sched, log, 0, cfg)
+  pdcp_nr_test_helper(srsran::pdcp_config_t cfg, srsran::as_security_config_t sec_cfg_, srslog::basic_logger& logger) :
+    rlc(logger), rrc(logger), gw(logger), pdcp(&rlc, &rrc, &gw, &stack.task_sched, logger, 0)
   {
+    pdcp.configure(cfg);
     pdcp.config_security(sec_cfg_);
-    pdcp.enable_integrity(srslte::DIRECTION_TXRX);
-    pdcp.enable_encryption(srslte::DIRECTION_TXRX);
+    pdcp.enable_integrity(srsran::DIRECTION_TXRX);
+    pdcp.enable_encryption(srsran::DIRECTION_TXRX);
   }
 
   void set_pdcp_initial_state(pdcp_initial_state init_state)
@@ -119,58 +117,58 @@ public:
   rrc_dummy               rrc;
   gw_dummy                gw;
   srsue::stack_test_dummy stack;
-  srslte::pdcp_entity_nr  pdcp;
+  srsran::pdcp_entity_nr  pdcp;
 };
 
 // Helper function to generate PDUs
-srslte::unique_byte_buffer_t gen_expected_pdu(const srslte::unique_byte_buffer_t& in_sdu,
+srsran::unique_byte_buffer_t gen_expected_pdu(const srsran::unique_byte_buffer_t& in_sdu,
                                               uint32_t                            count,
                                               uint8_t                             pdcp_sn_len,
-                                              srslte::as_security_config_t        sec_cfg,
-                                              srslte::byte_buffer_pool*           pool,
-                                              srslte::log_ref                     log)
+                                              srsran::as_security_config_t        sec_cfg,
+                                              srslog::basic_logger&               logger)
 {
-  srslte::pdcp_config_t cfg = {1,
-                               srslte::PDCP_RB_IS_DRB,
-                               srslte::SECURITY_DIRECTION_UPLINK,
-                               srslte::SECURITY_DIRECTION_DOWNLINK,
+  srsran::pdcp_config_t cfg = {1,
+                               srsran::PDCP_RB_IS_DRB,
+                               srsran::SECURITY_DIRECTION_UPLINK,
+                               srsran::SECURITY_DIRECTION_DOWNLINK,
                                pdcp_sn_len,
-                               srslte::pdcp_t_reordering_t::ms500,
-                               srslte::pdcp_discard_timer_t::infinity};
+                               srsran::pdcp_t_reordering_t::ms500,
+                               srsran::pdcp_discard_timer_t::infinity,
+                               false,
+                               srsran::srsran_rat_t::nr};
 
-  pdcp_nr_test_helper     pdcp_hlp(cfg, sec_cfg, log);
-  srslte::pdcp_entity_nr* pdcp = &pdcp_hlp.pdcp;
+  pdcp_nr_test_helper     pdcp_hlp(cfg, sec_cfg, logger);
+  srsran::pdcp_entity_nr* pdcp = &pdcp_hlp.pdcp;
   rlc_dummy*              rlc  = &pdcp_hlp.rlc;
 
   pdcp_initial_state init_state = {};
   init_state.tx_next            = count;
   pdcp_hlp.set_pdcp_initial_state(init_state);
 
-  srslte::unique_byte_buffer_t sdu = srslte::allocate_unique_buffer(*pool);
+  srsran::unique_byte_buffer_t sdu = srsran::make_byte_buffer();
   *sdu                             = *in_sdu;
   pdcp->write_sdu(std::move(sdu));
-  srslte::unique_byte_buffer_t out_pdu = srslte::allocate_unique_buffer(*pool);
+  srsran::unique_byte_buffer_t out_pdu = srsran::make_byte_buffer();
   rlc->get_last_sdu(out_pdu);
 
   return out_pdu;
 }
 
 // Helper function to generate vector of PDU from a vector of TX_NEXTs for generating expected pdus
-std::vector<pdcp_test_event_t> gen_expected_pdus_vector(const srslte::unique_byte_buffer_t& in_sdu,
+std::vector<pdcp_test_event_t> gen_expected_pdus_vector(const srsran::unique_byte_buffer_t& in_sdu,
                                                         const std::vector<uint32_t>&        tx_nexts,
                                                         uint8_t                             pdcp_sn_len,
-                                                        srslte::as_security_config_t        sec_cfg_,
-                                                        srslte::byte_buffer_pool*           pool,
-                                                        srslte::log_ref                     log)
+                                                        srsran::as_security_config_t        sec_cfg_,
+                                                        srslog::basic_logger&               logger)
 {
   std::vector<pdcp_test_event_t> pdu_vec;
   for (uint32_t tx_next : tx_nexts) {
     pdcp_test_event_t event;
-    event.pkt   = gen_expected_pdu(in_sdu, tx_next, pdcp_sn_len, sec_cfg_, pool, log);
+    event.pkt   = gen_expected_pdu(in_sdu, tx_next, pdcp_sn_len, sec_cfg_, logger);
     event.ticks = 0;
     pdu_vec.push_back(std::move(event));
   }
   return pdu_vec;
 }
 
-#endif // SRSLTE_PDCP_NR_TEST_H
+#endif // SRSRAN_PDCP_NR_TEST_H

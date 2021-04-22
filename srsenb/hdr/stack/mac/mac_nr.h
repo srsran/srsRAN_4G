@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -22,14 +22,13 @@
 #ifndef SRSENB_MAC_NR_H
 #define SRSENB_MAC_NR_H
 
-#include "srslte/common/block_queue.h"
-#include "srslte/common/logmap.h"
-#include "srslte/common/mac_nr_pcap.h"
-#include "srslte/mac/mac_nr_pdu.h"
+#include "srsran/common/block_queue.h"
+#include "srsran/common/mac_pcap.h"
+#include "srsran/mac/mac_sch_pdu_nr.h"
 
 #include "srsenb/hdr/stack/enb_stack_base.h"
-#include "srslte/interfaces/enb_metrics_interface.h"
-#include "srslte/interfaces/gnb_interfaces.h"
+#include "srsran/interfaces/enb_metrics_interface.h"
+#include "srsran/interfaces/gnb_interfaces.h"
 
 namespace srsenb {
 
@@ -60,7 +59,7 @@ public:
             rrc_interface_mac_nr*   rrc_);
   void stop();
 
-  void get_metrics(srsenb::mac_metrics_t* metrics);
+  void get_metrics(srsenb::mac_metrics_t& metrics);
 
   // MAC interface for RRC
   int cell_cfg(srsenb::sched_interface::cell_cfg_t* cell_cfg);
@@ -82,7 +81,7 @@ private:
                      phy_interface_stack_nr::tx_request_t&        tx_request);
 
   // PDU processing
-  int handle_pdu(srslte::unique_byte_buffer_t pdu);
+  int handle_pdu(srsran::unique_byte_buffer_t pdu);
 
   // Interaction with other components
   phy_interface_stack_nr* phy_h   = nullptr;
@@ -90,10 +89,9 @@ private:
   rlc_interface_mac_nr*   rlc_h   = nullptr;
   rrc_interface_mac_nr*   rrc_h   = nullptr;
 
-  std::unique_ptr<srslte::mac_nr_pcap> pcap = nullptr;
-  srslte::log_ref                      log_h;
-  srslte::byte_buffer_pool*            pool = nullptr;
-  mac_nr_args_t                        args = {};
+  std::unique_ptr<srsran::mac_pcap> pcap = nullptr;
+  mac_nr_args_t                     args = {};
+  srslog::basic_logger&             logger;
 
   bool started = false;
 
@@ -103,20 +101,20 @@ private:
   struct sib_info_t {
     uint32_t                     index;
     uint32_t                     periodicity;
-    srslte::unique_byte_buffer_t payload;
+    srsran::unique_byte_buffer_t payload;
   };
   std::vector<sib_info_t>      bcch_dlsch_payload;
-  srslte::unique_byte_buffer_t bcch_bch_payload = nullptr;
+  srsran::unique_byte_buffer_t bcch_bch_payload = nullptr;
 
   // UE-specific buffer
-  srslte::mac_nr_sch_pdu                    ue_tx_pdu;
-  std::vector<srslte::unique_byte_buffer_t> ue_tx_buffer;
-  srslte::block_queue<srslte::unique_byte_buffer_t>
+  srsran::mac_sch_pdu_nr                    ue_tx_pdu;
+  std::vector<srsran::unique_byte_buffer_t> ue_tx_buffer;
+  srsran::block_queue<srsran::unique_byte_buffer_t>
       ue_rx_pdu_queue; ///< currently only DCH PDUs supported (add BCH, PCH, etc)
 
-  srslte::unique_byte_buffer_t ue_rlc_buffer;
+  srsran::unique_byte_buffer_t ue_rlc_buffer;
 
-  srslte::mac_nr_sch_pdu ue_rx_pdu;
+  srsran::mac_sch_pdu_nr ue_rx_pdu;
 };
 
 } // namespace srsenb

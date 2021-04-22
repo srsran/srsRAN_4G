@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,13 +19,16 @@
  *
  */
 
-#include "srslte/common/common.h"
-#include "srslte/common/interfaces_common.h"
-#include "srslte/common/logmap.h"
-#include "srslte/common/mac_pcap.h"
-#include "srslte/common/test_common.h"
-#include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/mac/pdu.h"
+#include "srsran/common/common.h"
+#include "srsran/common/interfaces_common.h"
+#include "srsran/common/mac_pcap.h"
+#include "srsran/common/test_common.h"
+#include "srsran/mac/pdu.h"
+
+extern "C" {
+#include "srsran/phy/phch/dci.h"
+}
+
 #include <bitset>
 #include <iostream>
 #include <map>
@@ -37,9 +40,9 @@ std::random_device                     rd;
 std::mt19937                           rand_gen(rd());
 std::uniform_int_distribution<uint8_t> uniform_dist_u8(0, 255);
 
-static std::unique_ptr<srslte::mac_pcap> pcap_handle = nullptr;
+static std::unique_ptr<srsran::mac_pcap> pcap_handle = nullptr;
 
-using namespace srslte;
+using namespace srsran;
 
 #define CRNTI (0x1001)
 
@@ -56,28 +59,34 @@ uint8_t rar_pdu_tv2[] = {0x82, 0x56, 0x00, 0x00, 0x00, 0x0c, 0x10, 0x01};
 
 int mac_rar_pdu_unpack_test1()
 {
-  srslte::rar_pdu rar_pdu_msg;
+  srsran::rar_pdu rar_pdu_msg;
   rar_pdu_msg.init_rx(sizeof(rar_pdu_tv1));
   rar_pdu_msg.parse_packet(rar_pdu_tv1);
-  std::cout << rar_pdu_msg.to_string() << std::endl;
+  fmt::memory_buffer buffer;
+  rar_pdu_msg.to_string(buffer);
+  std::cout << fmt::to_string(buffer) << std::endl;
 
   TESTASSERT(not rar_pdu_msg.has_backoff());
+  TESTASSERT(rar_pdu_msg.nof_subh() == 1);
   while (rar_pdu_msg.next()) {
     TESTASSERT(rar_pdu_msg.get()->get_rapid() == RAPID_TV1);
     TESTASSERT(rar_pdu_msg.get()->get_ta_cmd() == TA_CMD_TV1);
     TESTASSERT(rar_pdu_msg.get()->get_temp_crnti() == CRNTI);
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int mac_rar_pdu_unpack_test2()
 {
-  srslte::rar_pdu rar_pdu_msg;
+  srsran::rar_pdu rar_pdu_msg;
   rar_pdu_msg.init_rx(sizeof(rar_pdu_tv2));
   rar_pdu_msg.parse_packet(rar_pdu_tv2);
-  std::cout << rar_pdu_msg.to_string() << std::endl;
+  fmt::memory_buffer buffer;
+  rar_pdu_msg.to_string(buffer);
+  std::cout << fmt::to_string(buffer) << std::endl;
 
+  TESTASSERT(rar_pdu_msg.nof_subh() == 2);
   TESTASSERT(rar_pdu_msg.has_backoff());
   TESTASSERT(rar_pdu_msg.get_backoff() == BACKOFF_IND_TV2);
   while (rar_pdu_msg.next()) {
@@ -88,19 +97,39 @@ int mac_rar_pdu_unpack_test2()
     }
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
+}
+
+// Malformed RAR PDU with two RAPIDs but incomplete content
+int mac_rar_pdu_unpack_test3()
+{
+  // The last byte of the malformed RAR PDU is byte 11 (0x1a), we need to add 3 more bytes to the array to please ASAN
+  // though
+  uint8_t rar_pdu[]   = {0xd5, 0x4e, 0x02, 0x80, 0x1a, 0x0c, 0x00, 0x47, 0x00, 0x00, 0x1a, 0xff, 0xff, 0xff};
+  uint8_t rar_pdu_len = 11;
+
+  srsran::rar_pdu rar_pdu_msg;
+  rar_pdu_msg.init_rx(rar_pdu_len); // only pass the 11 valid bytes
+  TESTASSERT(rar_pdu_msg.parse_packet(rar_pdu) != SRSRAN_SUCCESS);
+  TESTASSERT(rar_pdu_msg.nof_subh() == 0);
+
+  fmt::memory_buffer buffer;
+  rar_pdu_msg.to_string(buffer);
+  std::cout << fmt::to_string(buffer) << std::endl;
+
+  return SRSRAN_SUCCESS;
 }
 
 int mac_rar_pdu_pack_test1()
 {
   // Prepare RAR grant
   uint8_t                grant_buffer[64] = {};
-  srslte_dci_rar_grant_t rar_grant        = {};
+  srsran_dci_rar_grant_t rar_grant        = {};
   rar_grant.tpc_pusch                     = 3;
-  srslte_dci_rar_pack(&rar_grant, grant_buffer);
+  srsran_dci_rar_pack(&rar_grant, grant_buffer);
 
   // Create MAC PDU and add RAR subheader
-  srslte::rar_pdu rar_pdu;
+  srsran::rar_pdu rar_pdu;
 
   byte_buffer_t tx_buffer;
   rar_pdu.init_tx(&tx_buffer, 64);
@@ -115,19 +144,19 @@ int mac_rar_pdu_pack_test1()
   // compare with TV1
   TESTASSERT(memcmp(tx_buffer.msg, rar_pdu_tv1, sizeof(rar_pdu_tv1)) == 0);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int mac_rar_pdu_pack_test2()
 {
   // Prepare RAR grant
   uint8_t                grant_buffer[64] = {};
-  srslte_dci_rar_grant_t rar_grant        = {};
+  srsran_dci_rar_grant_t rar_grant        = {};
   rar_grant.tpc_pusch                     = 3;
-  srslte_dci_rar_pack(&rar_grant, grant_buffer);
+  srsran_dci_rar_pack(&rar_grant, grant_buffer);
 
   // Create MAC PDU and add RAR subheader
-  srslte::rar_pdu rar_pdu;
+  srsran::rar_pdu rar_pdu;
   byte_buffer_t   tx_buffer;
   rar_pdu.init_tx(&tx_buffer, 64);
   rar_pdu.set_backoff(BACKOFF_IND_TV2);
@@ -142,16 +171,16 @@ int mac_rar_pdu_pack_test2()
   // compare with TV2
   TESTASSERT(memcmp(tx_buffer.msg, rar_pdu_tv2, sizeof(rar_pdu_tv2)) == 0);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // Helper class to provide read_pdu_interface
-class rlc_dummy : public srslte::read_pdu_interface
+class rlc_dummy : public srsran::read_pdu_interface
 {
 public:
   int read_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
   {
-    uint32_t len = SRSLTE_MIN(ul_queues[lcid], nof_bytes);
+    uint32_t len = std::min(ul_queues[lcid], nof_bytes);
 
     // set payload bytes to LCID so we can check later if the scheduling was correct
     memset(payload, lcid, len);
@@ -176,15 +205,9 @@ int mac_sch_pdu_pack_test1()
   static uint8_t tv[] = {0x21, 0x08, 0x22, 0x08, 0x1f, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
                          0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x00, 0x00, 0x00, 0x00};
 
-  srslte::log_filter rlc_log("RLC");
-  rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  rlc_log.set_hex_limit(100000);
+  auto& mac_logger = srslog::fetch_basic_logger("MAC");
 
   rlc_dummy rlc;
-
-  srslte::log_ref mac_log = srslte::logmap::get("MAC");
-  mac_log->set_level(srslte::LOG_LEVEL_DEBUG);
-  mac_log->set_hex_limit(100000);
 
   // create RLC SDUs
   const uint32_t sdu_len = 8;
@@ -192,7 +215,7 @@ int mac_sch_pdu_pack_test1()
   rlc.write_sdu(2, sdu_len);
 
   const uint32_t  pdu_size = 25;
-  srslte::sch_pdu pdu(10, mac_log);
+  srsran::sch_pdu pdu(10, mac_logger);
 
   byte_buffer_t buffer;
   pdu.init_tx(&buffer, pdu_size, true);
@@ -215,11 +238,11 @@ int mac_sch_pdu_pack_test1()
   TESTASSERT(pdu.rem_size() == pdu_size - 16 - 3);
 
   // write PDU
-  TESTASSERT(pdu.write_packet(mac_log) == buffer.msg);
+  TESTASSERT(pdu.write_packet(mac_logger) == buffer.msg);
   TESTASSERT(buffer.N_bytes == pdu_size);
 
   // log
-  mac_log->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
+  mac_logger.info(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):", buffer.N_bytes);
 
 #if HAVE_PCAP
   pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1, 0);
@@ -228,7 +251,7 @@ int mac_sch_pdu_pack_test1()
   // compare with TV
   TESTASSERT(memcmp(buffer.msg, tv, sizeof(tv)) == 0);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // Basic test to pack a MAC PDU with a two SDUs of short length (i.e < 128B for short length header) and 2x single-byte
@@ -238,15 +261,9 @@ int mac_sch_pdu_pack_test2()
   static uint8_t tv[] = {0x3f, 0x3f, 0x21, 0x08, 0x02, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
                          0x01, 0x01, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02};
 
-  srslte::log_filter rlc_log("RLC");
-  rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  rlc_log.set_hex_limit(100000);
+  auto& mac_logger = srslog::fetch_basic_logger("MAC");
 
   rlc_dummy rlc;
-
-  srslte::log_ref mac_log = srslte::logmap::get("MAC");
-  mac_log->set_level(srslte::LOG_LEVEL_DEBUG);
-  mac_log->set_hex_limit(100000);
 
   // create RLC SDUs
   const uint32_t sdu_len = 8;
@@ -255,7 +272,7 @@ int mac_sch_pdu_pack_test2()
 
   const uint32_t pdu_size = 21;
 
-  srslte::sch_pdu pdu(10, mac_log);
+  srsran::sch_pdu pdu(10, mac_logger);
 
   byte_buffer_t buffer;
   pdu.init_tx(&buffer, pdu_size, true);
@@ -278,10 +295,10 @@ int mac_sch_pdu_pack_test2()
   TESTASSERT(pdu.rem_size() == pdu_size - 16 - 3);
 
   // write PDU
-  pdu.write_packet(mac_log);
+  pdu.write_packet(mac_logger);
 
   // log
-  mac_log->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
+  mac_logger.info(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):", buffer.N_bytes);
 
 #if HAVE_PCAP
   pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1, 0);
@@ -290,7 +307,7 @@ int mac_sch_pdu_pack_test2()
   // compare with TV
   TESTASSERT(memcmp(buffer.msg, tv, sizeof(tv)) == 0);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // Basic test to pack a MAC PDU with one short and one long SDU (i.e >= 128 B for 16bit length header)
@@ -306,13 +323,9 @@ int mac_sch_pdu_pack_test3()
       0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
       0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-  srslte::log_filter rlc_log("RLC");
-  rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  rlc_log.set_hex_limit(100000);
+  auto& mac_logger = srslog::fetch_basic_logger("MAC");
 
   rlc_dummy rlc;
-
-  srslte::log_ref mac_log("MAC");
 
   // create RLC SDUs
   // const uint32_t sdu_len = 130;
@@ -320,7 +333,7 @@ int mac_sch_pdu_pack_test3()
   rlc.write_sdu(2, 130);
 
   const uint32_t  pdu_size = 150;
-  srslte::sch_pdu pdu(10, srslte::log_ref{"MAC"});
+  srsran::sch_pdu pdu(10, mac_logger);
 
   byte_buffer_t buffer;
   pdu.init_tx(&buffer, pdu_size, true);
@@ -343,10 +356,10 @@ int mac_sch_pdu_pack_test3()
   TESTASSERT(pdu.rem_size() == pdu_size - 138 - 3);
 
   // write PDU
-  pdu.write_packet(srslte::log_ref{"MAC"});
+  pdu.write_packet(mac_logger);
 
   // log
-  mac_log->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
+  mac_logger.info(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):", buffer.N_bytes);
 
 #if HAVE_PCAP
   pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1, 0);
@@ -355,7 +368,7 @@ int mac_sch_pdu_pack_test3()
   // compare with TV
   TESTASSERT(memcmp(buffer.msg, tv, sizeof(tv)) == 0);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // Test for padding-only MAC PDU
@@ -363,16 +376,12 @@ int mac_sch_pdu_pack_test4()
 {
   static uint8_t tv[] = {0x1f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-  srslte::log_filter rlc_log("RLC");
-  rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  rlc_log.set_hex_limit(100000);
+  auto& mac_logger = srslog::fetch_basic_logger("MAC");
 
   rlc_dummy rlc;
 
-  srslte::log_ref mac_log("MAC");
-
   const uint32_t  pdu_size = 10;
-  srslte::sch_pdu pdu(10, srslte::log_ref{"MAC"});
+  srsran::sch_pdu pdu(10, mac_logger);
 
   byte_buffer_t buffer;
   pdu.init_tx(&buffer, pdu_size, true);
@@ -390,13 +399,13 @@ int mac_sch_pdu_pack_test4()
   pdu.del_subh();
 
   // write PDU
-  pdu.write_packet(srslte::log_ref{"MAC"});
+  pdu.write_packet(mac_logger);
 
   // make sure full PDU has been written
   TESTASSERT(buffer.N_bytes == pdu_size);
 
   // log
-  mac_log->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
+  mac_logger.info(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):", buffer.N_bytes);
 
 #if HAVE_PCAP
   pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1, 0);
@@ -405,7 +414,7 @@ int mac_sch_pdu_pack_test4()
   // compare with TV
   TESTASSERT(memcmp(buffer.msg, tv, sizeof(tv)) == 0);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // Test for max. TBS MAC PDU
@@ -413,13 +422,13 @@ int mac_sch_pdu_pack_test5()
 {
   rlc_dummy rlc;
 
-  srslte::log_ref mac_log("MAC");
+  auto& mac_logger = srslog::fetch_basic_logger("MAC");
 
   // write big SDU
   rlc.write_sdu(2, 20000);
 
-  const uint32_t  pdu_size = SRSLTE_MAX_TBSIZE_BITS / 8; // Max. DL allocation for a single TB using 256 QAM
-  srslte::sch_pdu pdu(10, srslte::log_ref{"MAC"});
+  const uint32_t  pdu_size = SRSRAN_MAX_TBSIZE_BITS / 8; // Max. DL allocation for a single TB using 256 QAM
+  srsran::sch_pdu pdu(10, mac_logger);
 
   byte_buffer_t buffer;
   pdu.init_tx(&buffer, pdu_size, true);
@@ -434,32 +443,35 @@ int mac_sch_pdu_pack_test5()
   TESTASSERT(pdu.get()->set_sdu(2, pdu_size - 1, &rlc) != 0);
 
   // write PDU
-  pdu.write_packet(srslte::log_ref{"MAC"});
+  pdu.write_packet(mac_logger);
 
   // make sure full PDU has been written
   TESTASSERT(buffer.N_bytes == pdu_size);
 
   // log
-  mac_log->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
+  mac_logger.info(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):", buffer.N_bytes);
 
 #if HAVE_PCAP
   pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1, 0);
 #endif
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // Test for Long BSR CE
 int mac_sch_pdu_pack_test6()
 {
-  srslte::log_ref mac_log("MAC");
+  auto& mac_logger = srslog::fetch_basic_logger("MAC");
 
   const uint32_t  pdu_size = 8;
-  srslte::sch_pdu pdu(10, srslte::log_ref{"MAC"});
+  srsran::sch_pdu pdu(10, mac_logger);
 
-  uint8_t tv[pdu_size] = {0x3e, 0x1f, 0x01, 0xfa, 0x7f, 0x00, 0x00, 0x00};
+  uint8_t tv[pdu_size]  = {0x3e, 0x1f, 0x86, 0x18, 0x61, 0x00, 0x00, 0x00}; // upper edge case
+  uint8_t tv2[pdu_size] = {0x3e, 0x1f, 0x04, 0x10, 0x41, 0x00, 0x00, 0x00}; // lower edge case
+  uint8_t tv3[pdu_size] = {0x3e, 0x1f, 0xf3, 0xdf, 0xbf, 0x00, 0x00, 0x00}; // max index case
 
   byte_buffer_t buffer;
+  byte_buffer_t rx_buffer;
   pdu.init_tx(&buffer, pdu_size, true);
 
   TESTASSERT(pdu.rem_size() == pdu_size);
@@ -467,37 +479,177 @@ int mac_sch_pdu_pack_test6()
   TESTASSERT(pdu.get_sdu_space() == pdu_size - 1);
   TESTASSERT(pdu.get_current_sdu_ptr() == buffer.msg);
 
-  // Try to Long BSR CE
-  uint32_t buff_size[4] = {0, 1000, 5000, 19200000};
+  // Long BSR CE
+  // 1552 B is the upper edge for BSR index 33 (1326 < BS <= 1552), which results in 0b100001 being
+  // the bit-pattern reported for each LCG
+  uint32_t buff_size_tx[4] = {1552, 1552, 1552, 1552};
   TESTASSERT(pdu.new_subh());
-  TESTASSERT(pdu.get()->set_bsr(buff_size, srslte::ul_sch_lcid::LONG_BSR));
+  TESTASSERT(pdu.get()->set_bsr(buff_size_tx, srsran::ul_sch_lcid::LONG_BSR));
 
   // write PDU
-  pdu.write_packet(srslte::log_ref{"MAC"});
+  pdu.write_packet(mac_logger);
 
   // compare with tv
   TESTASSERT(memcmp(buffer.msg, tv, buffer.N_bytes) == 0);
 
+  // unpack again
+  pdu.init_rx(sizeof(tv), true);
+  pdu.parse_packet(tv);
+
+  // check subheaders
+  TESTASSERT(pdu.nof_subh() == 2);
+
+  uint32_t buff_size_rx[4] = {};
+  while (pdu.next()) {
+    if (!pdu.get()->is_sdu() && pdu.get()->ul_sch_ce_type() == srsran::ul_sch_lcid::LONG_BSR) {
+      uint32_t buff_size_idx[4] = {};
+      uint32_t nonzero_lcg      = pdu.get()->get_bsr(buff_size_idx, buff_size_rx);
+      for (uint32_t i = 0; i < 4; i++) {
+        printf("buff_size_idx[%d]=%d buff_size_bytes=%d\n", i, buff_size_idx[i], buff_size_rx[i]);
+      }
+    }
+  }
+
+  // check received buff sizes match transmitted ones
+  for (uint32_t i = 0; i < 4; i++) {
+    TESTASSERT(buff_size_rx[i] == buff_size_tx[i]);
+  }
+  fmt::memory_buffer str_buffer;
+  pdu.to_string(str_buffer);
+  mac_logger.info("%s", fmt::to_string(str_buffer));
+
   // log
-  mac_log->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
+  mac_logger.info(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):", buffer.N_bytes);
 
 #if HAVE_PCAP
   pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1, 0);
 #endif
 
-  return SRSLTE_SUCCESS;
+  // test lower edge BSR (1 B available for each LCG)
+  pdu.init_tx(&buffer, pdu_size, true);
+  buffer.clear();
+
+  TESTASSERT(pdu.rem_size() == pdu_size);
+  TESTASSERT(pdu.get_pdu_len() == pdu_size);
+  TESTASSERT(pdu.get_sdu_space() == pdu_size - 1);
+  TESTASSERT(pdu.get_current_sdu_ptr() == buffer.msg);
+
+  // Long BSR CE
+  // 1 B is the lower edge for BSR index 1 (0 < BS <= 10) so the UE should report index 1 when there is one byte to
+  // transmit One the receive side, the eNB should extract the maximum number of bytes for this index, i.e. 10 for each
+  // LCG
+  uint32_t buff_size_tx_low_edge[4]          = {1, 1, 1, 1};
+  uint32_t buff_size_rx_expected_low_edge[4] = {10, 10, 10, 10};
+  TESTASSERT(pdu.new_subh());
+  TESTASSERT(pdu.get()->set_bsr(buff_size_tx_low_edge, srsran::ul_sch_lcid::LONG_BSR));
+
+  // write PDU
+  pdu.write_packet(mac_logger);
+  str_buffer.clear();
+  pdu.to_string(str_buffer);
+  mac_logger.info("%s", fmt::to_string(str_buffer));
+
+  TESTASSERT(memcmp(buffer.msg, tv2, buffer.N_bytes) == 0);
+
+  // log
+  mac_logger.info(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):", buffer.N_bytes);
+
+#if HAVE_PCAP
+  pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1, 0);
+#endif
+
+  // read PDU again
+  rx_buffer.clear();
+  pdu.init_rx(sizeof(tv2), true);
+  pdu.parse_packet(tv2);
+
+  // check subheaders
+  TESTASSERT(pdu.nof_subh() == 2);
+
+  uint32_t buff_size_rx_low_edge[4] = {};
+  while (pdu.next()) {
+    if (!pdu.get()->is_sdu() && pdu.get()->ul_sch_ce_type() == srsran::ul_sch_lcid::LONG_BSR) {
+      uint32_t buff_size_idx[4] = {};
+      uint32_t nonzero_lcg      = pdu.get()->get_bsr(buff_size_idx, buff_size_rx_low_edge);
+      for (uint32_t i = 0; i < 4; i++) {
+        printf("buff_size_idx[%d]=%d buff_size_bytes=%d\n", i, buff_size_idx[i], buff_size_rx_low_edge[i]);
+      }
+    }
+  }
+
+  // check received buff sizes match transmitted ones
+  for (uint32_t i = 0; i < 4; i++) {
+    TESTASSERT(buff_size_rx_low_edge[i] == buff_size_rx_expected_low_edge[i]);
+  }
+
+  // test index 62 and 63 (max value) buffer states
+  pdu.init_tx(&buffer, pdu_size, true);
+  buffer.clear();
+
+  TESTASSERT(pdu.rem_size() == pdu_size);
+  TESTASSERT(pdu.get_pdu_len() == pdu_size);
+  TESTASSERT(pdu.get_sdu_space() == pdu_size - 1);
+  TESTASSERT(pdu.get_current_sdu_ptr() == buffer.msg);
+
+  // Long BSR CE with index 60, 61, 62, and 63
+  uint32_t buff_size_max_idx[4]               = {93480, 128125, 150000, 150001};
+  uint32_t buff_size_rx_expected_max_idx[4]   = {60, 61, 62, 63};
+  uint32_t buff_size_rx_expected_max_value[4] = {109439, 128125, 150000, 150000};
+  TESTASSERT(pdu.new_subh());
+  TESTASSERT(pdu.get()->set_bsr(buff_size_max_idx, srsran::ul_sch_lcid::LONG_BSR));
+
+  // write PDU
+  pdu.write_packet(mac_logger);
+  str_buffer.clear();
+  pdu.to_string(str_buffer);
+  mac_logger.info("%s", fmt::to_string(str_buffer));
+
+  TESTASSERT(memcmp(buffer.msg, tv3, buffer.N_bytes) == 0);
+
+  // log
+  mac_logger.info(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):", buffer.N_bytes);
+
+#if HAVE_PCAP
+  pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1, 0);
+#endif
+
+  // read PDU again
+  rx_buffer.clear();
+  pdu.init_rx(sizeof(tv3), true);
+  pdu.parse_packet(tv3);
+
+  // check subheaders
+  TESTASSERT(pdu.nof_subh() == 2);
+
+  uint32_t buff_size_rx_max_idx[4] = {};
+  while (pdu.next()) {
+    if (!pdu.get()->is_sdu() && pdu.get()->ul_sch_ce_type() == srsran::ul_sch_lcid::LONG_BSR) {
+      uint32_t buff_size[4] = {};
+      uint32_t nonzero_lcg  = pdu.get()->get_bsr(buff_size_rx_max_idx, buff_size);
+      for (uint32_t i = 0; i < 4; i++) {
+        printf("buff_size_idx[%d]=%d buff_size_bytes=%d\n", i, buff_size_rx_max_idx[i], buff_size[i]);
+      }
+    }
+  }
+
+  // check received buff sizes match transmitted ones
+  for (uint32_t i = 0; i < 4; i++) {
+    TESTASSERT(buff_size_rx_max_idx[i] == buff_size_rx_expected_max_idx[i]);
+  }
+
+  return SRSRAN_SUCCESS;
 }
 
 // Test for short MAC PDU containing padding only
 int mac_sch_pdu_pack_test7()
 {
-  srslte::log_ref mac_log("MAC");
+  auto& mac_logger = srslog::fetch_basic_logger("MAC");
 
   rlc_dummy rlc;
   rlc.write_sdu(1, 8);
 
   const uint32_t  pdu_size = 2;
-  srslte::sch_pdu pdu(10, srslte::log_ref{"MAC"});
+  srsran::sch_pdu pdu(10, mac_logger);
 
   uint8_t tv[pdu_size] = {0x1f, 0x1f};
 
@@ -513,34 +665,34 @@ int mac_sch_pdu_pack_test7()
   TESTASSERT(pdu.new_subh());
 
   // adding SDU fails
-  TESTASSERT(pdu.get()->set_sdu(2, 8, &rlc) == SRSLTE_ERROR);
+  TESTASSERT(pdu.get()->set_sdu(2, 8, &rlc) == SRSRAN_ERROR);
 
   // remove subheader again
   pdu.del_subh();
 
   // write PDU
-  pdu.write_packet(srslte::log_ref{"MAC"});
+  pdu.write_packet(mac_logger);
 
   // compare with tv
   TESTASSERT(memcmp(buffer.msg, tv, buffer.N_bytes) == 0);
 
   // log
-  mac_log->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
+  mac_logger.info(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):", buffer.N_bytes);
 
 #if HAVE_PCAP
   pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1, 0);
 #endif
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // Test Packing of SCell Activation CE command
 int mac_sch_pdu_pack_test8()
 {
-  srslte::log_ref log_h{"MAC"};
+  auto& mac_logger = srslog::fetch_basic_logger("MAC");
 
   const uint32_t  pdu_size = 2;
-  srslte::sch_pdu pdu(10, log_h);
+  srsran::sch_pdu pdu(10, mac_logger);
   std::bitset<8>  cc_mask(uniform_dist_u8(rand_gen));
 
   // subheader: R|F2|E|LCID = 0|0|0|11011
@@ -548,7 +700,7 @@ int mac_sch_pdu_pack_test8()
   // ensure reserved bit
   tv[1] &= ~(0x1u);
   // limit to max carriers
-  tv[1] &= ((1u << (uint32_t)SRSLTE_MAX_CARRIERS) - 1u);
+  tv[1] &= ((1u << (uint32_t)SRSRAN_MAX_CARRIERS) - 1u);
 
   byte_buffer_t buffer;
   pdu.init_tx(&buffer, pdu_size, true);
@@ -560,38 +712,38 @@ int mac_sch_pdu_pack_test8()
 
   // Try SCell activation CE
   TESTASSERT(pdu.new_subh());
-  std::array<bool, SRSLTE_MAX_CARRIERS> cc_activ_list = {};
-  for (uint8_t i = 1; i < SRSLTE_MAX_CARRIERS; ++i) {
+  std::array<bool, SRSRAN_MAX_CARRIERS> cc_activ_list = {};
+  for (uint8_t i = 1; i < SRSRAN_MAX_CARRIERS; ++i) {
     cc_activ_list[i] = cc_mask.test(i);
   }
   TESTASSERT(pdu.get()->set_scell_activation_cmd(cc_activ_list));
 
   // write PDU
-  pdu.write_packet(log_h);
+  pdu.write_packet(mac_logger);
 
   // compare with tv
   TESTASSERT(memcmp(buffer.msg, tv, buffer.N_bytes) == 0);
 
   // log
-  log_h->info("Activation mask chosen was 0x%x", tv[1]);
-  log_h->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU with SCell Activation CE (%d B):\n", buffer.N_bytes);
+  mac_logger.info("Activation mask chosen was 0x%x", tv[1]);
+  mac_logger.info(buffer.msg, buffer.N_bytes, "MAC PDU with SCell Activation CE (%d B):", buffer.N_bytes);
 
 #if HAVE_PCAP
   pcap_handle->write_dl_crnti(tv, sizeof(tv), 0x1001, true, 1, 0);
 #endif
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // Test for Short BSR CE
 int mac_sch_pdu_pack_test9()
 {
-  srslte::log_ref mac_log("MAC");
+  auto& mac_logger = srslog::fetch_basic_logger("MAC");
 
   const uint32_t  pdu_size = 3;
-  srslte::sch_pdu pdu(10, srslte::log_ref{"MAC"});
+  srsran::sch_pdu pdu(10, mac_logger);
 
-  uint8_t tv[pdu_size] = {0x3f, 0x1d, 0x0a};
+  uint8_t tv[pdu_size] = {0x3f, 0x1d, 0x09};
 
   byte_buffer_t buffer;
   pdu.init_tx(&buffer, pdu_size, true);
@@ -604,34 +756,34 @@ int mac_sch_pdu_pack_test9()
   // Try to add short BSR CE
   uint32_t buff_size[4] = {36, 0, 0, 0};
   TESTASSERT(pdu.new_subh());
-  TESTASSERT(pdu.get()->set_bsr(buff_size, srslte::ul_sch_lcid::SHORT_BSR));
+  TESTASSERT(pdu.get()->set_bsr(buff_size, srsran::ul_sch_lcid::SHORT_BSR));
   TESTASSERT(pdu.new_subh() == false);
 
   // write PDU
-  pdu.write_packet(srslte::log_ref{"MAC"});
+  pdu.write_packet(mac_logger);
 
   // compare with tv
   TESTASSERT(memcmp(buffer.msg, tv, buffer.N_bytes) == 0);
 
   // log
-  mac_log->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
+  mac_logger.info(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):", buffer.N_bytes);
 
 #if HAVE_PCAP
   pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1, 0);
 #endif
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // Test for Short BSR CE + PHR CE
 int mac_sch_pdu_pack_test10()
 {
-  srslte::log_ref mac_log("MAC");
+  auto& mac_logger = srslog::fetch_basic_logger("MAC");
 
   const uint32_t  pdu_size = 4;
-  srslte::sch_pdu pdu(10, srslte::log_ref{"MAC"});
+  srsran::sch_pdu pdu(10, mac_logger);
 
-  uint8_t tv[pdu_size] = {0x3d, 0x1a, 0x20, 0x21};
+  uint8_t tv[pdu_size] = {0x3d, 0x1a, 0x1f, 0x21};
 
   byte_buffer_t buffer;
   pdu.init_tx(&buffer, pdu_size, true);
@@ -644,35 +796,35 @@ int mac_sch_pdu_pack_test10()
   // Try to add short BSR CE
   uint32_t buff_size[4] = {1132, 0, 0, 0};
   TESTASSERT(pdu.new_subh());
-  TESTASSERT(pdu.get()->set_bsr(buff_size, srslte::ul_sch_lcid::SHORT_BSR));
+  TESTASSERT(pdu.get()->set_bsr(buff_size, srsran::ul_sch_lcid::SHORT_BSR));
 
   // Try to add PHR CE
   TESTASSERT(pdu.new_subh());
   TESTASSERT(pdu.get()->set_phr(10.1));
 
   // write PDU
-  pdu.write_packet(srslte::log_ref{"MAC"});
+  pdu.write_packet(mac_logger);
 
   // compare with tv
   TESTASSERT(memcmp(buffer.msg, tv, buffer.N_bytes) == 0);
 
   // log
-  mac_log->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
+  mac_logger.info(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):", buffer.N_bytes);
 
 #if HAVE_PCAP
   pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1, 0);
 #endif
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // Pack test for short MAC PDU, trying to add long BSR but no space left
 int mac_sch_pdu_pack_test11()
 {
-  srslte::log_ref mac_log("MAC");
+  auto& mac_logger = srslog::fetch_basic_logger("MAC");
 
   const uint32_t  pdu_size = 3;
-  srslte::sch_pdu pdu(10, srslte::log_ref{"MAC"});
+  srsran::sch_pdu pdu(10, mac_logger);
 
   uint8_t tv[pdu_size] = {0x1f, 0x00, 0x00};
 
@@ -687,43 +839,38 @@ int mac_sch_pdu_pack_test11()
   // Try to Long BSR CE
   uint32_t buff_size[4] = {0, 1000, 5000, 19200000};
   TESTASSERT(pdu.new_subh());
-  TESTASSERT(pdu.get()->set_bsr(buff_size, srslte::ul_sch_lcid::LONG_BSR) == false);
+  TESTASSERT(pdu.get()->set_bsr(buff_size, srsran::ul_sch_lcid::LONG_BSR) == false);
 
   // Adding BSR failed, remove subheader again
   pdu.del_subh();
 
   // write PDU
-  pdu.write_packet(srslte::log_ref{"MAC"});
+  pdu.write_packet(mac_logger);
 
   // compare with tv
   TESTASSERT(memcmp(buffer.msg, tv, buffer.N_bytes) == 0);
 
   // log
-  mac_log->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
+  mac_logger.info(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):", buffer.N_bytes);
 
 #if HAVE_PCAP
   pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1, 0);
 #endif
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // Test for checking error cases
 int mac_sch_pdu_pack_error_test()
 {
-  srslte::log_filter rlc_log("RLC");
-  rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  rlc_log.set_hex_limit(100000);
-
   rlc_dummy rlc;
-
-  srslte::log_ref mac_log("MAC");
+  auto&     mac_logger = srslog::fetch_basic_logger("MAC");
 
   // create RLC SDUs
   rlc.write_sdu(1, 8);
 
   const uint32_t  pdu_size = 150;
-  srslte::sch_pdu pdu(10, srslte::log_ref{"MAC"});
+  srsran::sch_pdu pdu(10, mac_logger);
 
   byte_buffer_t buffer;
   pdu.init_tx(&buffer, pdu_size, true);
@@ -741,10 +888,10 @@ int mac_sch_pdu_pack_error_test()
   TESTASSERT(pdu.new_subh());
 
   // adding SDU fails
-  TESTASSERT(pdu.get()->set_sdu(1, 8, &rlc) == SRSLTE_ERROR);
+  TESTASSERT(pdu.get()->set_sdu(1, 8, &rlc) == SRSRAN_ERROR);
 
   // writing PDU fails
-  TESTASSERT(pdu.write_packet(srslte::log_ref{"MAC"}) == nullptr);
+  TESTASSERT(pdu.write_packet(mac_logger) == nullptr);
 
   // reset buffer
   buffer.clear();
@@ -754,16 +901,16 @@ int mac_sch_pdu_pack_error_test()
   TESTASSERT(pdu.get()->set_sdu(1, 100, &rlc) == 8); // only 8 bytes in RLC buffer
 
   // writing PDU fails
-  TESTASSERT(pdu.write_packet(srslte::log_ref{"MAC"}));
+  TESTASSERT(pdu.write_packet(mac_logger));
 
   // log
-  mac_log->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
+  mac_logger.info(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):", buffer.N_bytes);
 
 #if HAVE_PCAP
-  pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1,0);
+  pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1, 0);
 #endif
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int mac_mch_pdu_pack_test1()
@@ -771,10 +918,10 @@ int mac_mch_pdu_pack_test1()
   static uint8_t tv[] = {0x3e, 0x02, 0x20, 0x05, 0x21, 0x0a, 0x1f, 0x0f, 0xff, 0x01, 0x02, 0x03, 0x04, 0x05, 0x02,
                          0x04, 0x06, 0x08, 0x0a, 0x0c, 0x0e, 0x10, 0x12, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-  srslte::log_ref mac_log("MAC");
+  auto& mac_logger = srslog::fetch_basic_logger("MAC");
 
   const uint32_t  pdu_size = 30;
-  srslte::mch_pdu mch_pdu(10, srslte::log_ref{"MAC"});
+  srsran::mch_pdu mch_pdu(10, mac_logger);
   byte_buffer_t   buffer;
   mch_pdu.init_tx(&buffer, pdu_size, true);
 
@@ -796,13 +943,13 @@ int mac_mch_pdu_pack_test1()
   mch_pdu.get()->set_sdu(1, 10, sdu1);
 
   // write PDU
-  TESTASSERT(mch_pdu.write_packet(srslte::log_ref{"MAC"}) == buffer.msg);
+  TESTASSERT(mch_pdu.write_packet(mac_logger) == buffer.msg);
 
   // log
-  mac_log->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
+  mac_logger.info(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):", buffer.N_bytes);
 
 #if HAVE_PCAP
-  pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1,0);
+  pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1, 0);
 #endif
 
   // compare with TV
@@ -812,7 +959,7 @@ int mac_mch_pdu_pack_test1()
   pcap_handle->write_ul_crnti(tv, sizeof(tv), 0x1001, true, 1, 0);
 #endif
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // Parsing a corrupted MAC PDU and making sure the PDU is reset and not further processed
@@ -820,7 +967,7 @@ int mac_sch_pdu_unpack_test1()
 {
   static uint8_t tv[] = {0x3f, 0x3f, 0x21, 0x3f, 0x03, 0x00, 0x04, 0x00, 0x04};
 
-  srslte::sch_pdu pdu(10, srslte::log_ref{"MAC"});
+  srsran::sch_pdu pdu(10, srslog::fetch_basic_logger("MAC"));
   pdu.init_rx(sizeof(tv), false);
   pdu.parse_packet(tv);
 
@@ -829,10 +976,10 @@ int mac_sch_pdu_unpack_test1()
   TESTASSERT(pdu.next() == false);
 
 #if HAVE_PCAP
-  pcap_handle->write_ul_crnti(tv, sizeof(tv), 0x1001, true, 1,0);
+  pcap_handle->write_ul_crnti(tv, sizeof(tv), 0x1001, true, 1, 0);
 #endif
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // Parsing a (corrupted) MAC PDU that only contains padding
@@ -840,7 +987,7 @@ int mac_sch_pdu_unpack_test2()
 {
   static uint8_t tv[] = {0x3f, 0x3f};
 
-  srslte::sch_pdu pdu(20, srslte::log_ref{"MAC"});
+  srsran::sch_pdu pdu(20, srslog::fetch_basic_logger("MAC"));
   pdu.init_rx(sizeof(tv), false);
   pdu.parse_packet(tv);
 
@@ -849,10 +996,37 @@ int mac_sch_pdu_unpack_test2()
   TESTASSERT(pdu.next() == false);
 
 #if HAVE_PCAP
-  pcap_handle->write_ul_crnti(tv, sizeof(tv), 0x1001, true, 1,0);
+  pcap_handle->write_ul_crnti(tv, sizeof(tv), 0x1001, true, 1, 0);
 #endif
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
+}
+
+// Unpacking of PDU containing Timing Advance (TA) CE
+int mac_sch_pdu_unpack_test3()
+{
+  static uint8_t tv[] = {0x3d, 0x1f, 0x1f, 0x00};
+
+  srsran::sch_pdu pdu(20, srslog::fetch_basic_logger("MAC"));
+  pdu.init_rx(sizeof(tv), false);
+  pdu.parse_packet(tv);
+
+  TESTASSERT(pdu.nof_subh() == 2);
+  while (pdu.next()) {
+    if (!pdu.get()->is_sdu() && pdu.get()->dl_sch_ce_type() == srsran::dl_sch_lcid::TA_CMD) {
+      TESTASSERT(pdu.get()->get_ta_cmd() == 31);
+    }
+  }
+
+  fmt::memory_buffer buffer;
+  pdu.to_string(buffer);
+  std::cout << fmt::to_string(buffer) << std::endl;
+
+#if HAVE_PCAP
+  pcap_handle->write_dl_crnti(tv, sizeof(tv), 0x1001, true, 1, 0);
+#endif
+
+  return SRSRAN_SUCCESS;
 }
 
 int mac_slsch_pdu_unpack_test1()
@@ -864,55 +1038,55 @@ int mac_slsch_pdu_unpack_test1()
                          0x18, 0x6A, 0x07, 0x20, 0x7C, 0xE1, 0xE0, 0x04, 0x40, 0x02, 0x04, 0x80, 0x60,
                          0x2C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-  srslte::log_filter mac_log("MAC");
-  mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  mac_log.set_hex_limit(100000);
-
 #if HAVE_PCAP
   pcap_handle->write_sl_crnti(tv, sizeof(tv), CRNTI, true, 1, 0);
 #endif
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int main(int argc, char** argv)
 {
 #if HAVE_PCAP
-  pcap_handle = std::unique_ptr<srslte::mac_pcap>(new srslte::mac_pcap());
+  pcap_handle = std::unique_ptr<srsran::mac_pcap>(new srsran::mac_pcap());
   pcap_handle->open("mac_pdu_test.pcap");
 #endif
-  logmap::set_default_hex_limit(100000);
-  logmap::set_default_log_level(LOG_LEVEL_DEBUG);
+  auto& mac_logger = srslog::fetch_basic_logger("MAC", false);
+  mac_logger.set_level(srslog::basic_levels::debug);
+  mac_logger.set_hex_dump_max_size(-1);
+  auto& rlc_logger = srslog::fetch_basic_logger("RLC", false);
+  rlc_logger.set_level(srslog::basic_levels::debug);
+  rlc_logger.set_hex_dump_max_size(-1);
 
-  srslte::log_ref mac_log{"MAC"};
-  mac_log->set_level(srslte::LOG_LEVEL_DEBUG);
-  mac_log->set_hex_limit(100000);
+  srslog::init();
 
-  TESTASSERT(mac_rar_pdu_unpack_test1() == SRSLTE_SUCCESS);
-  TESTASSERT(mac_rar_pdu_unpack_test2() == SRSLTE_SUCCESS);
-  TESTASSERT(mac_rar_pdu_pack_test1() == SRSLTE_SUCCESS);
-  TESTASSERT(mac_rar_pdu_pack_test2() == SRSLTE_SUCCESS);
+  TESTASSERT(mac_rar_pdu_unpack_test1() == SRSRAN_SUCCESS);
+  TESTASSERT(mac_rar_pdu_unpack_test2() == SRSRAN_SUCCESS);
+  TESTASSERT(mac_rar_pdu_unpack_test3() == SRSRAN_SUCCESS);
+  TESTASSERT(mac_rar_pdu_pack_test1() == SRSRAN_SUCCESS);
+  TESTASSERT(mac_rar_pdu_pack_test2() == SRSRAN_SUCCESS);
 
-  TESTASSERT(mac_sch_pdu_pack_test1() == SRSLTE_SUCCESS);
-  TESTASSERT(mac_sch_pdu_pack_test2() == SRSLTE_SUCCESS);
-  TESTASSERT(mac_sch_pdu_pack_test3() == SRSLTE_SUCCESS);
-  TESTASSERT(mac_sch_pdu_pack_test4() == SRSLTE_SUCCESS);
-  TESTASSERT(mac_sch_pdu_pack_test5() == SRSLTE_SUCCESS);
-  TESTASSERT(mac_sch_pdu_pack_test6() == SRSLTE_SUCCESS);
-  TESTASSERT(mac_sch_pdu_pack_test7() == SRSLTE_SUCCESS);
-  TESTASSERT(mac_sch_pdu_pack_test8() == SRSLTE_SUCCESS);
-  TESTASSERT(mac_sch_pdu_pack_test9() == SRSLTE_SUCCESS);
-  TESTASSERT(mac_sch_pdu_pack_test10() == SRSLTE_SUCCESS);
-  TESTASSERT(mac_sch_pdu_pack_test11() == SRSLTE_SUCCESS);
+  TESTASSERT(mac_sch_pdu_pack_test1() == SRSRAN_SUCCESS);
+  TESTASSERT(mac_sch_pdu_pack_test2() == SRSRAN_SUCCESS);
+  TESTASSERT(mac_sch_pdu_pack_test3() == SRSRAN_SUCCESS);
+  TESTASSERT(mac_sch_pdu_pack_test4() == SRSRAN_SUCCESS);
+  TESTASSERT(mac_sch_pdu_pack_test5() == SRSRAN_SUCCESS);
+  TESTASSERT(mac_sch_pdu_pack_test6() == SRSRAN_SUCCESS);
+  TESTASSERT(mac_sch_pdu_pack_test7() == SRSRAN_SUCCESS);
+  TESTASSERT(mac_sch_pdu_pack_test8() == SRSRAN_SUCCESS);
+  TESTASSERT(mac_sch_pdu_pack_test9() == SRSRAN_SUCCESS);
+  TESTASSERT(mac_sch_pdu_pack_test10() == SRSRAN_SUCCESS);
+  TESTASSERT(mac_sch_pdu_pack_test11() == SRSRAN_SUCCESS);
 
-  TESTASSERT(mac_sch_pdu_pack_error_test() == SRSLTE_SUCCESS);
+  TESTASSERT(mac_sch_pdu_pack_error_test() == SRSRAN_SUCCESS);
 
-  TESTASSERT(mac_mch_pdu_pack_test1() == SRSLTE_SUCCESS);
+  TESTASSERT(mac_mch_pdu_pack_test1() == SRSRAN_SUCCESS);
 
-  TESTASSERT(mac_sch_pdu_unpack_test1() == SRSLTE_SUCCESS);
-  TESTASSERT(mac_sch_pdu_unpack_test2() == SRSLTE_SUCCESS);
+  TESTASSERT(mac_sch_pdu_unpack_test1() == SRSRAN_SUCCESS);
+  TESTASSERT(mac_sch_pdu_unpack_test2() == SRSRAN_SUCCESS);
+  TESTASSERT(mac_sch_pdu_unpack_test3() == SRSRAN_SUCCESS);
 
-  TESTASSERT(mac_slsch_pdu_unpack_test1() == SRSLTE_SUCCESS);
+  TESTASSERT(mac_slsch_pdu_unpack_test1() == SRSRAN_SUCCESS);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }

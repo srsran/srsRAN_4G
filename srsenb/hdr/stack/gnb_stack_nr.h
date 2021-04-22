@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -24,8 +24,8 @@
  * Description: L2/L3 gNB stack class.
  *****************************************************************************/
 
-#ifndef SRSLTE_GNB_STACK_NR_H
-#define SRSLTE_GNB_STACK_NR_H
+#ifndef SRSRAN_GNB_STACK_NR_H
+#define SRSRAN_GNB_STACK_NR_H
 
 #include "srsenb/hdr/stack/mac/mac_nr.h"
 #include "srsenb/hdr/stack/rrc/rrc_nr.h"
@@ -35,14 +35,12 @@
 #include "upper/s1ap.h"
 #include "upper/sdap.h"
 
-#include "srslte/common/log_filter.h"
-
 #include "enb_stack_base.h"
 #include "srsenb/hdr/enb.h"
-#include "srslte/interfaces/gnb_interfaces.h"
+#include "srsran/interfaces/gnb_interfaces.h"
 
 // This is needed for GW
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srsran/interfaces/ue_interfaces.h"
 #include "srsue/hdr/stack/upper/gw.h"
 
 namespace srsenb {
@@ -51,10 +49,10 @@ class gnb_stack_nr final : public srsenb::enb_stack_base,
                            public stack_interface_phy_nr,
                            public stack_interface_mac,
                            public srsue::stack_interface_gw,
-                           public srslte::thread
+                           public srsran::thread
 {
 public:
-  explicit gnb_stack_nr(srslte::logger* logger_);
+  explicit gnb_stack_nr();
   ~gnb_stack_nr() final;
 
   int init(const srsenb::stack_args_t& args_, const rrc_nr_cfg_t& rrc_cfg_, phy_interface_stack_nr* phy_);
@@ -65,12 +63,16 @@ public:
   std::string get_type() final;
   bool        get_metrics(srsenb::stack_metrics_t* metrics) final;
 
+  // GW srsue stack_interface_gw dummy interface
+  bool is_registered() { return true; };
+  bool start_service_request() { return true; };
+
   // PHY->MAC interface
   int sf_indication(const uint32_t tti);
   int rx_data_indication(rx_data_ind_t& grant);
 
   // Temporary GW interface
-  void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu);
+  void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu);
   bool is_lcid_enabled(uint32_t lcid);
   bool switch_on();
   void run_tti(uint32_t tti);
@@ -83,14 +85,15 @@ private:
   void run_tti_impl(uint32_t tti);
 
   // args
-  srsenb::stack_args_t    args   = {};
-  srslte::logger*         logger = nullptr;
-  phy_interface_stack_nr* phy    = nullptr;
+  srsenb::stack_args_t    args = {};
+  phy_interface_stack_nr* phy  = nullptr;
+
+  srslog::basic_logger& rlc_logger;
 
   // task scheduling
   static const int                      STACK_MAIN_THREAD_PRIO = 4;
-  srslte::task_scheduler                task_sched;
-  srslte::task_multiqueue::queue_handle sync_task_queue, ue_task_queue, gw_task_queue, mac_task_queue;
+  srsran::task_scheduler                task_sched;
+  srsran::task_multiqueue::queue_handle sync_task_queue, ue_task_queue, gw_task_queue, mac_task_queue;
 
   // derived
   std::unique_ptr<mac_nr>    m_mac;
@@ -109,4 +112,4 @@ private:
 
 } // namespace srsenb
 
-#endif // SRSLTE_GNB_STACK_NR_H
+#endif // SRSRAN_GNB_STACK_NR_H

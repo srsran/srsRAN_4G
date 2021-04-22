@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -20,28 +20,27 @@
  */
 
 #include "srsue/hdr/stack/ue_stack_nr.h"
-#include "srslte/srslte.h"
+#include "srsran/srsran.h"
 
-using namespace srslte;
+using namespace srsran;
 
 namespace srsue {
 
-ue_stack_nr::ue_stack_nr(srslte::logger* logger_) :
-  logger(logger_),
+ue_stack_nr::ue_stack_nr() :
   thread("STACK"),
-  task_sched(64, 2, 64),
-  rlc_log("RLC"),
-  pdcp_log("PDCP"),
-  pool_log("POOL")
+  task_sched(64, 64),
+  mac_logger(srslog::fetch_basic_logger("MAC-NR")),
+  rlc_logger(srslog::fetch_basic_logger("RLC-NR", false)),
+  pdcp_logger(srslog::fetch_basic_logger("PDCP-NR", false))
 {
+  get_background_workers().set_nof_workers(2);
   mac.reset(new mac_nr(&task_sched));
-  pdcp.reset(new srslte::pdcp(&task_sched, "PDCP"));
-  rlc.reset(new srslte::rlc("RLC"));
-  rrc.reset(new rrc_nr());
+  pdcp.reset(new srsran::pdcp(&task_sched, "PDCP-NR"));
+  rlc.reset(new srsran::rlc("RLC-NR"));
+  rrc.reset(new rrc_nr(&task_sched));
 
   // setup logging for pool, RLC and PDCP
-  pool_log->set_level(srslte::LOG_LEVEL_ERROR);
-  byte_buffer_pool::get_instance()->set_log(pool_log.get());
+  byte_buffer_pool::get_instance()->enable_logger(true);
 
   ue_task_queue   = task_sched.make_task_queue();
   sync_task_queue = task_sched.make_task_queue();
@@ -69,20 +68,15 @@ int ue_stack_nr::init(const stack_args_t& args_)
 {
   args = args_;
 
-  srslte::logmap::register_log(std::unique_ptr<srslte::log>{new srslte::log_filter{"MAC", logger, true}});
-
-  srslte::log_ref mac_log{"MAC"};
-  mac_log->set_level(args.log.mac_level);
-  mac_log->set_hex_limit(args.log.mac_hex_limit);
-  rlc_log->set_level(args.log.rlc_level);
-  rlc_log->set_hex_limit(args.log.rlc_hex_limit);
-  pdcp_log->set_level(args.log.pdcp_level);
-  pdcp_log->set_hex_limit(args.log.pdcp_hex_limit);
+  mac_logger.set_level(srslog::str_to_basic_level(args.log.mac_level));
+  mac_logger.set_hex_dump_max_size(args.log.mac_hex_limit);
+  rlc_logger.set_level(srslog::str_to_basic_level(args.log.rlc_level));
+  rlc_logger.set_hex_dump_max_size(args.log.rlc_hex_limit);
+  pdcp_logger.set_level(srslog::str_to_basic_level(args.log.pdcp_level));
+  pdcp_logger.set_hex_dump_max_size(args.log.pdcp_hex_limit);
 
   mac_nr_args_t mac_args = {};
-  mac_args.pcap          = args.pcap;
-  mac_args.drb_lcid      = 4;
-  mac->init(mac_args, phy, rlc.get());
+  mac->init(mac_args, phy, rlc.get(), rrc.get());
   rlc->init(pdcp.get(), rrc.get(), task_sched.get_timer_handler(), 0 /* RB_ID_SRB0 */);
   pdcp->init(rlc.get(), rrc.get(), gw);
 
@@ -92,12 +86,13 @@ int ue_stack_nr::init(const stack_args_t& args_)
   rrc_args.log_hex_limit     = args.log.rrc_hex_limit;
   rrc_args.coreless.drb_lcid = 4;
   rrc_args.coreless.ip_addr  = "192.168.1.3";
-  rrc->init(phy, mac.get(), rlc.get(), pdcp.get(), gw, task_sched.get_timer_handler(), this, rrc_args);
-
+  rrc->init(
+      phy, mac.get(), rlc.get(), pdcp.get(), gw, nullptr, nullptr, task_sched.get_timer_handler(), this, rrc_args);
+  rrc->init_core_less();
   running = true;
   start(STACK_MAIN_THREAD_PRIO);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 void ue_stack_nr::stop()
@@ -118,16 +113,14 @@ void ue_stack_nr::stop_impl()
   pdcp->stop();
   mac->stop();
 
-  if (mac_pcap != nullptr) {
-    mac_pcap.reset();
-  }
+  get_background_workers().stop();
 }
 
 bool ue_stack_nr::switch_on()
 {
   // statically setup TUN (will be done through RRC later)
   char* err_str = nullptr;
-  if (gw->setup_if_addr(4, LIBLTE_MME_PDN_TYPE_IPV4, htonl(inet_addr("192.168.1.3")), nullptr, err_str)) {
+  if (gw->setup_if_addr(5, 4, LIBLTE_MME_PDN_TYPE_IPV4, htonl(inet_addr("192.168.1.3")), nullptr, err_str)) {
     printf("Error configuring TUN interface\n");
   }
   return true;
@@ -141,7 +134,7 @@ bool ue_stack_nr::switch_off()
 bool ue_stack_nr::get_metrics(stack_metrics_t* metrics)
 {
   // mac.get_metrics(metrics->mac);
-  rlc->get_metrics(metrics->rlc);
+  rlc->get_metrics(metrics->rlc, metrics->mac[0].nof_tti);
   // rrc.get_metrics(metrics->rrc);
   return true;
 }
@@ -167,13 +160,13 @@ void ue_stack_nr::run_thread()
  * @param sdu
  * @param blocking
  */
-void ue_stack_nr::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)
+void ue_stack_nr::write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu)
 {
   if (pdcp != nullptr) {
     std::pair<bool, move_task_t> ret = gw_task_queue.try_push(std::bind(
-        [this, lcid](srslte::unique_byte_buffer_t& sdu) { pdcp->write_sdu(lcid, std::move(sdu)); }, std::move(sdu)));
+        [this, lcid](srsran::unique_byte_buffer_t& sdu) { pdcp->write_sdu(lcid, std::move(sdu)); }, std::move(sdu)));
     if (not ret.first) {
-      pdcp_log->warning("GW SDU with lcid=%d was discarded.\n", lcid);
+      pdcp_logger.warning("GW SDU with lcid=%d was discarded.", lcid);
     }
   }
 }

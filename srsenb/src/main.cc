@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -20,29 +20,30 @@
  */
 
 #include <poll.h>
-#include <pthread.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "srslte/common/common_helper.h"
-#include "srslte/common/config_file.h"
-#include "srslte/common/crash_handler.h"
-#include "srslte/common/logger_srslog_wrapper.h"
-#include "srslte/common/signal_handler.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/common/common_helper.h"
+#include "srsran/common/config_file.h"
+#include "srsran/common/crash_handler.h"
+#include "srsran/common/signal_handler.h"
+#include "srsran/srslog/event_trace.h"
+#include "srsran/srslog/srslog.h"
 
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <iostream>
 #include <memory>
-#include <srslte/common/string_helpers.h>
+#include <srsran/common/string_helpers.h>
 #include <string>
 
 #include "srsenb/hdr/enb.h"
 #include "srsenb/hdr/metrics_csv.h"
+#include "srsenb/hdr/metrics_json.h"
 #include "srsenb/hdr/metrics_stdout.h"
+#include "srsran/common/enb_events.h"
 
 using namespace std;
 using namespace srsenb;
@@ -58,6 +59,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
   string mcc;
   string mnc;
   string enb_id;
+  bool   use_standard_lte_rates = false;
 
   // Command line only options
   bpo::options_description general("General options");
@@ -137,8 +139,15 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("pcap.filename",  bpo::value<string>(&args->stack.mac_pcap.filename)->default_value("enb_mac.pcap"), "MAC layer capture filename")
     ("pcap.s1ap_enable",   bpo::value<bool>(&args->stack.s1ap_pcap.enable)->default_value(false),         "Enable S1AP packet captures for wireshark")
     ("pcap.s1ap_filename", bpo::value<string>(&args->stack.s1ap_pcap.filename)->default_value("enb_s1ap.pcap"), "S1AP layer capture filename")
+    ("pcap.mac_net_enable", bpo::value<bool>(&args->stack.mac_pcap_net.enable)->default_value(false),         "Enable MAC network captures")
+    ("pcap.bind_ip", bpo::value<string>(&args->stack.mac_pcap_net.bind_ip)->default_value("0.0.0.0"),         "Bind IP address for MAC network trace")
+    ("pcap.bind_port", bpo::value<uint16_t>(&args->stack.mac_pcap_net.bind_port)->default_value(5687),        "Bind port for MAC network trace")
+    ("pcap.client_ip", bpo::value<string>(&args->stack.mac_pcap_net.client_ip)->default_value("127.0.0.1"),     "Client IP address for MAC network trace")
+    ("pcap.client_port", bpo::value<uint16_t>(&args->stack.mac_pcap_net.client_port)->default_value(5847),    "Enable MAC network captures")
 
-    /* MCS section */
+    /* Scheduling section */
+    ("scheduler.policy", bpo::value<string>(&args->stack.mac.sched.sched_policy)->default_value("time_pf"), "DL and UL data scheduling policy (E.g. time_rr, time_pf)")
+    ("scheduler.policy_args", bpo::value<string>(&args->stack.mac.sched.sched_policy_args)->default_value("2"), "Scheduler policy-specific arguments")
     ("scheduler.pdsch_mcs", bpo::value<int>(&args->stack.mac.sched.pdsch_mcs)->default_value(-1), "Optional fixed PDSCH MCS (ignores reported CQIs if specified)")
     ("scheduler.pdsch_max_mcs", bpo::value<int>(&args->stack.mac.sched.pdsch_max_mcs)->default_value(-1), "Optional PDSCH MCS limit")
     ("scheduler.pusch_mcs", bpo::value<int>(&args->stack.mac.sched.pusch_mcs)->default_value(-1), "Optional fixed PUSCH MCS (ignores reported CQIs if specified)")
@@ -146,6 +155,8 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("scheduler.max_aggr_level", bpo::value<int>(&args->stack.mac.sched.max_aggr_level)->default_value(-1), "Optional maximum aggregation level index (l=log2(L)) ")
     ("scheduler.max_nof_ctrl_symbols", bpo::value<uint32_t>(&args->stack.mac.sched.max_nof_ctrl_symbols)->default_value(3), "Number of control symbols")
     ("scheduler.min_nof_ctrl_symbols", bpo::value<uint32_t>(&args->stack.mac.sched.min_nof_ctrl_symbols)->default_value(1), "Minimum number of control symbols")
+    ("scheduler.pucch_multiplex_enable", bpo::value<bool>(&args->stack.mac.sched.pucch_mux_enabled)->default_value(false), "Enable PUCCH multiplexing")
+
 
     /* Downlink Channel emulator section */
     ("channel.dl.enable",            bpo::value<bool>(&args->phy.dl_channel_args.enable)->default_value(false),               "Enable/Disable internal Downlink channel emulator")
@@ -194,14 +205,27 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("expert.pusch_8bit_decoder", bpo::value<bool>(&args->phy.pusch_8bit_decoder)->default_value(false), "Use 8-bit for LLR representation and turbo decoder trellis computation (Experimental)")
     ("expert.pusch_meas_evm", bpo::value<bool>(&args->phy.pusch_meas_evm)->default_value(false), "Enable/Disable PUSCH EVM measure")
     ("expert.tx_amplitude", bpo::value<float>(&args->phy.tx_amplitude)->default_value(0.6), "Transmit amplitude factor")
-    ("expert.nof_phy_threads", bpo::value<int>(&args->phy.nof_phy_threads)->default_value(3), "Number of PHY threads")
+    ("expert.nof_phy_threads", bpo::value<uint32_t>(&args->phy.nof_phy_threads)->default_value(3), "Number of PHY threads")
+    ("expert.nof_prach_threads", bpo::value<uint32_t>(&args->phy.nof_prach_threads)->default_value(1), "Number of PRACH workers per carrier. Only 1 or 0 is supported")
     ("expert.max_prach_offset_us", bpo::value<float>(&args->phy.max_prach_offset_us)->default_value(30), "Maximum allowed RACH offset (in us)")
     ("expert.equalizer_mode", bpo::value<string>(&args->phy.equalizer_mode)->default_value("mmse"), "Equalizer mode")
     ("expert.estimator_fil_w", bpo::value<float>(&args->phy.estimator_fil_w)->default_value(0.1), "Chooses the coefficients for the 3-tap channel estimator centered filter.")
+    ("expert.lte_sample_rates", bpo::value<bool>(&use_standard_lte_rates)->default_value(false), "Whether to use default LTE sample rates instead of shorter variants.")
+    ("expert.report_json_enable",  bpo::value<bool>(&args->general.report_json_enable)->default_value(false), "Write eNB report to JSON file")
+    ("expert.report_json_filename", bpo::value<string>(&args->general.report_json_filename)->default_value("/tmp/enb_report.json"), "Report JSON filename")
+    ("expert.alarms_log_enable",  bpo::value<bool>(&args->general.alarms_log_enable)->default_value(false), "Log alarms")
+    ("expert.alarms_filename", bpo::value<string>(&args->general.alarms_filename)->default_value("/tmp/enb_alarms.log"), "Alarms filename")
+    ("expert.tracing_enable",  bpo::value<bool>(&args->general.tracing_enable)->default_value(false), "Events tracing")
+    ("expert.tracing_filename", bpo::value<string>(&args->general.tracing_filename)->default_value("/tmp/enb_tracing.log"), "Tracing events filename")
+    ("expert.tracing_buffcapacity", bpo::value<std::size_t>(&args->general.tracing_buffcapacity)->default_value(1000000), "Tracing buffer capcity")
     ("expert.rrc_inactivity_timer", bpo::value<uint32_t>(&args->general.rrc_inactivity_timer)->default_value(30000), "Inactivity timer in ms.")
     ("expert.print_buffer_state", bpo::value<bool>(&args->general.print_buffer_state)->default_value(false), "Prints on the console the buffer state every 10 seconds")
     ("expert.eea_pref_list", bpo::value<string>(&args->general.eea_pref_list)->default_value("EEA0, EEA2, EEA1"), "Ordered preference list for the selection of encryption algorithm (EEA) (default: EEA0, EEA2, EEA1).")
     ("expert.eia_pref_list", bpo::value<string>(&args->general.eia_pref_list)->default_value("EIA2, EIA1, EIA0"), "Ordered preference list for the selection of integrity algorithm (EIA) (default: EIA2, EIA1, EIA0).")
+    ("expert.max_nof_ues", bpo::value<uint32_t>(&args->stack.mac.max_nof_ues)->default_value(8), "Maximum number of connected UEs")
+    ("expert.max_mac_dl_kos", bpo::value<uint32_t>(&args->general.max_mac_dl_kos)->default_value(100), "Maximum number of consecutive KOs in DL before triggering the UE's release")
+    ("expert.max_mac_ul_kos", bpo::value<uint32_t>(&args->general.max_mac_ul_kos)->default_value(100), "Maximum number of consecutive KOs in UL before triggering the UE's release")
+
 
     // eMBMS section
     ("embms.enable", bpo::value<bool>(&args->stack.embms.enable)->default_value(false), "Enables MBMS in the eNB")
@@ -259,8 +283,8 @@ void parse_args(all_args_t* args, int argc, char* argv[])
 
   // print version number and exit
   if (vm.count("version")) {
-    cout << "Version " << srslte_get_version_major() << "." << srslte_get_version_minor() << "."
-         << srslte_get_version_patch() << endl;
+    cout << "Version " << srsran_get_version_major() << "." << srsran_get_version_minor() << "."
+         << srsran_get_version_patch() << endl;
     exit(0);
   }
 
@@ -289,10 +313,10 @@ void parse_args(all_args_t* args, int argc, char* argv[])
   }
 
   // Convert MCC/MNC strings
-  if (!srslte::string_to_mcc(mcc, &args->stack.s1ap.mcc)) {
+  if (!srsran::string_to_mcc(mcc, &args->stack.s1ap.mcc)) {
     cout << "Error parsing enb.mcc:" << mcc << " - must be a 3-digit string." << endl;
   }
-  if (!srslte::string_to_mnc(mnc, &args->stack.s1ap.mnc)) {
+  if (!srsran::string_to_mnc(mnc, &args->stack.s1ap.mnc)) {
     cout << "Error parsing enb.mnc:" << mnc << " - must be a 2 or 3-digit string." << endl;
   }
 
@@ -304,6 +328,14 @@ void parse_args(all_args_t* args, int argc, char* argv[])
               args->stack.mac.sched.max_nof_ctrl_symbols);
       exit(1);
     }
+  }
+
+  // Check PRACH workers
+  if (args->phy.nof_prach_threads > 1) {
+    fprintf(stderr,
+            "nof_prach_workers = %d. Value is not supported, only 0 or 1 are allowed\n",
+            args->phy.nof_prach_threads);
+    exit(1);
   }
 
   // Convert eNB Id
@@ -396,6 +428,8 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     cout << "Failed to read DRB configuration file " << args->enb_files.drb_config << " - exiting" << endl;
     exit(1);
   }
+
+  srsran_use_standard_symbol_size(use_standard_lte_rates);
 }
 
 static bool do_metrics = false;
@@ -414,7 +448,7 @@ static void* input_loop(metrics_stdout* metrics, srsenb::enb_command_interface* 
         break;
       } else if (not input_line.empty()) {
         vector<string> cmd;
-        srslte::string_parse_list(input_line, ' ', cmd);
+        srsran::string_parse_list(input_line, ' ', cmd);
         if (cmd[0] == "t") {
           do_metrics = !do_metrics;
           if (do_metrics) {
@@ -432,8 +466,8 @@ static void* input_loop(metrics_stdout* metrics, srsenb::enb_command_interface* 
           }
 
           // Parse command arguments
-          uint32_t cell_id  = srslte::string_cast<uint32_t>(cmd[1]);
-          float    gain_db  = srslte::string_cast<float>(cmd[2]);
+          uint32_t cell_id = srsran::string_cast<uint32_t>(cmd[1]);
+          float    gain_db = srsran::string_cast<float>(cmd[2]);
 
           // Set cell gain
           control->cmd_cell_gain(cell_id, gain_db);
@@ -458,44 +492,60 @@ static size_t fixup_log_file_maxsize(int x)
 
 int main(int argc, char* argv[])
 {
-  srslte_register_signal_handler();
+  srsran_register_signal_handler();
   all_args_t                         args = {};
-  srslte::metrics_hub<enb_metrics_t> metricshub;
+  srsran::metrics_hub<enb_metrics_t> metricshub;
   metrics_stdout                     metrics_screen;
 
   cout << "---  Software Radio Systems LTE eNodeB  ---" << endl << endl;
 
-  srslte_debug_handle_crash(argc, argv);
+  srsran_debug_handle_crash(argc, argv);
   parse_args(&args, argc, argv);
 
-  // Setup logging.
-  log_sink = (args.log.filename == "stdout")
-                 ? srslog::create_stdout_sink()
-                 : srslog::create_file_sink(args.log.filename, fixup_log_file_maxsize(args.log.file_max_size));
-  if (!log_sink) {
-    return SRSLTE_ERROR;
-  }
+  // Setup the default log sink.
+  srslog::set_default_sink(
+      (args.log.filename == "stdout")
+          ? srslog::fetch_stdout_sink()
+          : srslog::fetch_file_sink(args.log.filename, fixup_log_file_maxsize(args.log.file_max_size)));
 
-  srslog::log_channel* chan = srslog::create_log_channel("main_channel", *log_sink);
-  if (!chan) {
-    return SRSLTE_ERROR;
+  // Alarms log channel creation.
+  srslog::sink&        alarm_sink     = srslog::fetch_file_sink(args.general.alarms_filename);
+  srslog::log_channel& alarms_channel = srslog::fetch_log_channel("alarms", alarm_sink, {"ALRM", '\0', false});
+  alarms_channel.set_enabled(args.general.alarms_log_enable);
+
+#ifdef ENABLE_SRSLOG_EVENT_TRACE
+  if (args.general.tracing_enable) {
+    if (!srslog::event_trace_init(args.general.tracing_filename, args.general.tracing_buffcapacity)) {
+      return SRSRAN_ERROR;
+    }
   }
-  srslte::srslog_wrapper log_wrapper(*chan);
+#endif
 
   // Start the log backend.
   srslog::init();
 
-  srslte::logmap::set_default_logger(&log_wrapper);
-  srslte::logmap::get("COMMON")->set_level(srslte::LOG_LEVEL_INFO);
-  srslte::log_args(argc, argv, "ENB");
+  srslog::fetch_basic_logger("ALL").set_level(srslog::basic_levels::warning);
+  srslog::fetch_basic_logger("POOL").set_level(srslog::basic_levels::warning);
+  srsran::log_args(argc, argv, "ENB");
 
-  srslte::check_scaling_governor(args.rf.device_name);
+  srsran::check_scaling_governor(args.rf.device_name);
+
+  // Set up the JSON log channel used by metrics and events.
+  srslog::sink& json_sink =
+      srslog::fetch_file_sink(args.general.report_json_filename, 0, srslog::create_json_formatter());
+  srslog::log_channel& json_channel = srslog::fetch_log_channel("JSON_channel", json_sink, {});
+  json_channel.set_enabled(args.general.report_json_enable);
+
+  // Configure the event logger just before starting the eNB class.
+  if (args.general.report_json_enable) {
+    event_logger::configure(json_channel);
+  }
 
   // Create eNB
-  unique_ptr<srsenb::enb> enb{new srsenb::enb};
-  if (enb->init(args, &log_wrapper) != SRSLTE_SUCCESS) {
+  unique_ptr<srsenb::enb> enb{new srsenb::enb(srslog::get_default_sink())};
+  if (enb->init(args) != SRSRAN_SUCCESS) {
     enb->stop();
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // Set metrics
@@ -507,6 +557,12 @@ int main(int argc, char* argv[])
   if (args.general.metrics_csv_enable) {
     metricshub.add_listener(&metrics_file);
     metrics_file.set_handle(enb.get());
+  }
+
+  srsenb::metrics_json json_metrics(json_channel);
+  if (args.general.report_json_enable) {
+    metricshub.add_listener(&json_metrics);
+    json_metrics.set_handle(enb.get());
   }
 
   // create input thread
@@ -533,5 +589,5 @@ int main(int argc, char* argv[])
   enb->stop();
   cout << "---  exiting  ---" << endl;
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }

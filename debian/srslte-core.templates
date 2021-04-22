@@ -1,6 +1,6 @@
-Template: srslte/install_configs_question
+Template: srsran/install_configs_question
 Type: boolean
 Default: true
 Description: Install configs?
- This installs the default srsLTE configuration files to the user's
- home directory (~/.config/srslte) but keeps any existing config files.
+ This installs the default srsRAN configuration files to the user's
+ home directory (~/.config/srsran) but keeps any existing config files.

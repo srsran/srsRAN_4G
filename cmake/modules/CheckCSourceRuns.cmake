@@ -37,8 +37,6 @@
 # (To distribute this file outside of CMake, substitute the full
 #  License text for the above reference.)
 
-
-
 macro(CHECK_C_SOURCE_RUNS SOURCE VAR)
   if(NOT DEFINED "${VAR}")
     set(MACRO_CHECK_FUNCTION_DEFINITIONS

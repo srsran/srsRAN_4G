@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,7 +19,7 @@
  *
  */
 
-#include "srslte/phy/utils/random.h"
+#include "srsran/phy/utils/random.h"
 #include <complex>
 #include <random>
 
@@ -54,12 +54,12 @@ public:
 
 extern "C" {
 
-srslte_random_t srslte_random_init(uint32_t seed)
+srsran_random_t srsran_random_init(uint32_t seed)
 {
-  return (srslte_random_t)(new random_wrap(seed));
+  return (srsran_random_t)(new random_wrap(seed));
 }
 
-int srslte_random_uniform_int_dist(srslte_random_t q, int min, int max)
+int srsran_random_uniform_int_dist(srsran_random_t q, int min, int max)
 {
   int ret = 0;
 
@@ -71,7 +71,7 @@ int srslte_random_uniform_int_dist(srslte_random_t q, int min, int max)
   return ret;
 }
 
-float srslte_random_uniform_real_dist(srslte_random_t q, float min, float max)
+float srsran_random_uniform_real_dist(srsran_random_t q, float min, float max)
 {
   float ret = NAN;
 
@@ -85,7 +85,7 @@ float srslte_random_uniform_real_dist(srslte_random_t q, float min, float max)
   return ret;
 }
 
-cf_t srslte_random_uniform_complex_dist(srslte_random_t q, float min, float max)
+cf_t srsran_random_uniform_complex_dist(srsran_random_t q, float min, float max)
 {
   cf_t ret = NAN;
 
@@ -98,14 +98,14 @@ cf_t srslte_random_uniform_complex_dist(srslte_random_t q, float min, float max)
   return ret;
 }
 
-void srslte_random_uniform_complex_dist_vector(srslte_random_t q, cf_t* vector, uint32_t nsamples, float min, float max)
+void srsran_random_uniform_complex_dist_vector(srsran_random_t q, cf_t* vector, uint32_t nsamples, float min, float max)
 {
   for (uint32_t i = 0; i < nsamples; i++) {
-    vector[i] = srslte_random_uniform_complex_dist(q, min, max);
+    vector[i] = srsran_random_uniform_complex_dist(q, min, max);
   }
 }
 
-float srslte_random_gauss_dist(srslte_random_t q, float std_dev)
+float srsran_random_gauss_dist(srsran_random_t q, float std_dev)
 {
   float ret = NAN;
 
@@ -117,12 +117,12 @@ float srslte_random_gauss_dist(srslte_random_t q, float std_dev)
   return ret;
 }
 
-bool srslte_random_bool(srslte_random_t q, float prob_true)
+bool srsran_random_bool(srsran_random_t q, float prob_true)
 {
-  return srslte_random_uniform_real_dist(q, 0, 1) < prob_true;
+  return srsran_random_uniform_real_dist(q, 0, 1) < prob_true;
 }
 
-void srslte_random_free(srslte_random_t q)
+void srsran_random_free(srsran_random_t q)
 {
   if (q) {
     delete (random_wrap*)q;

@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -20,17 +20,17 @@
  */
 
 #include <math.h>
-#include <srslte/phy/channel/delay.h>
-#include <srslte/srslte.h>
+#include <srsran/phy/channel/delay.h>
+#include <srsran/srsran.h>
 
-static inline double calculate_delay_us(srslte_channel_delay_t* q, const srslte_timestamp_t* ts)
+static inline double calculate_delay_us(srsran_channel_delay_t* q, const srsran_timestamp_t* ts)
 {
   if (q->period_s) {
     // Convert period from seconds to samples
     uint64_t period_nsamples = (uint64_t)roundf(q->period_s * q->srate_hz);
 
     // Convert timestamp to samples
-    uint64_t ts_nsamples = srslte_timestamp_uint64(ts, q->srate_hz) + (uint64_t)q->init_time_s * q->srate_hz;
+    uint64_t ts_nsamples = srsran_timestamp_uint64(ts, q->srate_hz) + (uint64_t)q->init_time_s * q->srate_hz;
 
     // Calculate time modulus in period
     uint64_t mod_t_nsamples = ts_nsamples - period_nsamples * (ts_nsamples / period_nsamples);
@@ -45,17 +45,17 @@ static inline double calculate_delay_us(srslte_channel_delay_t* q, const srslte_
   }
 }
 
-static inline uint32_t calculate_delay_nsamples(srslte_channel_delay_t* q)
+static inline uint32_t calculate_delay_nsamples(srsran_channel_delay_t* q)
 {
   return (uint32_t)round(q->delay_us * (double)q->srate_hz / 1e6);
 }
 
-static inline uint32_t ringbuffer_available_nsamples(srslte_channel_delay_t* q)
+static inline uint32_t ringbuffer_available_nsamples(srsran_channel_delay_t* q)
 {
-  return srslte_ringbuffer_status(&q->rb) / sizeof(cf_t);
+  return srsran_ringbuffer_status(&q->rb) / sizeof(cf_t);
 }
 
-int srslte_channel_delay_init(srslte_channel_delay_t* q,
+int srsran_channel_delay_init(srsran_channel_delay_t* q,
                               float                   delay_min_us,
                               float                   delay_max_us,
                               float                   period_s,
@@ -66,12 +66,12 @@ int srslte_channel_delay_init(srslte_channel_delay_t* q,
   uint32_t buff_size = (uint32_t)ceilf(delay_max_us * (float)srate_max_hz / 1e6f);
 
   // Create ring buffer
-  int ret = srslte_ringbuffer_init(&q->rb, sizeof(cf_t) * buff_size);
+  int ret = srsran_ringbuffer_init(&q->rb, sizeof(cf_t) * buff_size);
 
   // Create zero buffer
-  q->zero_buffer = srslte_vec_cf_malloc(buff_size);
+  q->zero_buffer = srsran_vec_cf_malloc(buff_size);
   if (!q->zero_buffer) {
-    ret = SRSLTE_ERROR;
+    ret = SRSRAN_ERROR;
   }
 
   // Load initial parameters
@@ -85,43 +85,43 @@ int srslte_channel_delay_init(srslte_channel_delay_t* q,
   return ret;
 }
 
-void srslte_channel_delay_update_srate(srslte_channel_delay_t* q, uint32_t srate_hz)
+void srsran_channel_delay_update_srate(srsran_channel_delay_t* q, uint32_t srate_hz)
 {
-  srslte_ringbuffer_reset(&q->rb);
+  srsran_ringbuffer_reset(&q->rb);
   q->srate_hz = srate_hz;
 }
 
-void srslte_channel_delay_free(srslte_channel_delay_t* q)
+void srsran_channel_delay_free(srsran_channel_delay_t* q)
 {
-  srslte_ringbuffer_free(&q->rb);
+  srsran_ringbuffer_free(&q->rb);
 
   if (q->zero_buffer) {
     free(q->zero_buffer);
   }
 }
 
-void srslte_channel_delay_execute(srslte_channel_delay_t*   q,
+void srsran_channel_delay_execute(srsran_channel_delay_t*   q,
                                   const cf_t*               in,
                                   cf_t*                     out,
                                   uint32_t                  len,
-                                  const srslte_timestamp_t* ts)
+                                  const srsran_timestamp_t* ts)
 {
   q->delay_us                 = calculate_delay_us(q, ts);
   q->delay_nsamples           = calculate_delay_nsamples(q);
   uint32_t available_nsamples = ringbuffer_available_nsamples(q);
-  uint32_t read_nsamples      = SRSLTE_MIN(q->delay_nsamples, len);
+  uint32_t read_nsamples      = SRSRAN_MIN(q->delay_nsamples, len);
   uint32_t copy_nsamples      = (len > read_nsamples) ? (len - read_nsamples) : 0;
 
   if (available_nsamples < q->delay_nsamples) {
     uint32_t nzeros = q->delay_nsamples - available_nsamples;
-    srslte_vec_cf_zero(q->zero_buffer, nzeros);
-    srslte_ringbuffer_write(&q->rb, q->zero_buffer, sizeof(cf_t) * nzeros);
+    srsran_vec_cf_zero(q->zero_buffer, nzeros);
+    srsran_ringbuffer_write(&q->rb, q->zero_buffer, sizeof(cf_t) * nzeros);
   } else if (available_nsamples > q->delay_nsamples) {
-    srslte_ringbuffer_read(&q->rb, q->zero_buffer, sizeof(cf_t) * (available_nsamples - q->delay_nsamples));
+    srsran_ringbuffer_read(&q->rb, q->zero_buffer, sizeof(cf_t) * (available_nsamples - q->delay_nsamples));
   }
 
   // Read buffered samples
-  srslte_ringbuffer_read(&q->rb, out, sizeof(cf_t) * read_nsamples);
+  srsran_ringbuffer_read(&q->rb, out, sizeof(cf_t) * read_nsamples);
 
   // Read other samples
   if (copy_nsamples) {
@@ -129,5 +129,5 @@ void srslte_channel_delay_execute(srslte_channel_delay_t*   q,
   }
 
   // Write new sampels
-  srslte_ringbuffer_write(&q->rb, (void*)&in[copy_nsamples], sizeof(cf_t) * read_nsamples);
+  srsran_ringbuffer_write(&q->rb, (void*)&in[copy_nsamples], sizeof(cf_t) * read_nsamples);
 }

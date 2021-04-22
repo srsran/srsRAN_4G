@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -22,11 +22,11 @@
 #ifndef SRSUE_UE_STACK_BASE_H
 #define SRSUE_UE_STACK_BASE_H
 
-#include "srslte/common/logger.h"
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srsue/hdr/stack/upper/nas_config.h"
 #include "srsue/hdr/ue_metrics_interface.h"
 
 #include "rrc/rrc.h"
+#include "rrc/rrc_nr.h"
 #include "upper/gw.h"
 #include "upper/usim.h"
 
@@ -35,9 +35,14 @@ namespace srsue {
 typedef struct {
   bool        enable;
   std::string filename;
-  bool        nas_enable;
-  std::string nas_filename;
 } pcap_args_t;
+
+typedef struct {
+  std::string enable;
+  pcap_args_t mac_pcap;
+  pcap_args_t mac_nr_pcap;
+  pcap_args_t nas_pcap;
+} pkt_trace_args_t;
 
 typedef struct {
   std::string mac_level;
@@ -61,10 +66,11 @@ typedef struct {
 
 typedef struct {
   std::string      type;
-  pcap_args_t      pcap;
+  pkt_trace_args_t pkt_trace;
   stack_log_args_t log;
   usim_args_t      usim;
   rrc_args_t       rrc;
+  rrc_nr_args_t    rrc_nr;
   std::string      ue_category_str;
   nas_args_t       nas;
   gw_args_t        gw;

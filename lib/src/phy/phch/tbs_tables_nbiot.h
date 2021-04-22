@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef SRSLTE_TBS_TABLES_NBIOT_H
-#define SRSLTE_TBS_TABLES_NBIOT_H
+#ifndef SRSRAN_TBS_TABLES_NBIOT_H
+#define SRSRAN_TBS_TABLES_NBIOT_H
 
 // Transport Block Size from 3GPP TS 36.213 v13.2.0 table 16.4.1.5.1-1
 const int tbs_table_nbiot[13][8] = {{16, 32, 56, 88, 120, 152, 208, 256},
@@ -57,4 +57,4 @@ const int tbs_table_npusch[13][8] = {{16, 32, 56, 88, 120, 152, 208, 256},
                                      {176, 376, 584, 776, 1000, 0, 0, 0},
                                      {208, 440, 680, 1000, 0, 0, 0, 0}};
 
-#endif // SRSLTE_TBS_TABLES_NBIOT_H
+#endif // SRSRAN_TBS_TABLES_NBIOT_H

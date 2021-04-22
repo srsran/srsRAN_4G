@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -27,8 +27,9 @@
 #ifndef SRSUE_TTCN3_PORT_HANDLER_H
 #define SRSUE_TTCN3_PORT_HANDLER_H
 
-#include "srslte/common/epoll_helper.h"
-#include "srslte/common/log.h"
+#include "srsran/common/epoll_helper.h"
+#include "srsran/common/standard_streams.h"
+#include "srsran/srslog/srslog.h"
 #include "ttcn3_common.h"
 #include <arpa/inet.h>
 #include <fcntl.h>
@@ -37,7 +38,9 @@
 class ttcn3_port_handler : public epoll_handler
 {
 public:
-  ttcn3_port_handler() : rx_buf(unique_byte_array_t(new byte_array_t)) {}
+  explicit ttcn3_port_handler(srslog::basic_logger& logger) :
+    logger(logger), rx_buf(unique_byte_array_t(new byte_array_t))
+  {}
   virtual ~ttcn3_port_handler() {}
 
   virtual int handle_message(const unique_byte_array_t& rx_buf, const uint32_t n) = 0;
@@ -51,9 +54,9 @@ public:
       int                    rd_sz =
           sctp_recvmsg(fd, rx_buf->begin(), RX_BUF_SIZE, (struct sockaddr*)&client_addr, &fromlen, &sri, &msg_flags);
       if (rd_sz == -1 && errno != EAGAIN) {
-        log->error("Error reading from SCTP socket: %s", strerror(errno));
+        logger.error("Error reading from SCTP socket: %s", strerror(errno));
       } else if (rd_sz == -1 && errno == EAGAIN) {
-        log->debug("Socket timeout reached");
+        logger.debug("Socket timeout reached");
       } else {
         if (msg_flags & MSG_NOTIFICATION) {
           // Received notification
@@ -65,7 +68,7 @@ public:
         }
       }
     }
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   int handle_notification(const uint8_t* payload, const uint32_t len)
@@ -74,14 +77,14 @@ public:
     uint32_t                 notif_header_size = sizeof(((union sctp_notification*)NULL)->sn_header);
     if (notif_header_size > len) {
       printf("Error: Notification msg size is smaller than notification header size!\n");
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
 
     switch (notif->sn_header.sn_type) {
       case SCTP_ASSOC_CHANGE: {
         if (sizeof(struct sctp_assoc_change) > len) {
           printf("Error notification msg size is smaller than struct sctp_assoc_change size\n");
-          return SRSLTE_ERROR;
+          return SRSRAN_ERROR;
         }
 
         const char*               state = NULL;
@@ -105,8 +108,8 @@ public:
             break;
         }
 
-        log->debug(
-            "SCTP_ASSOC_CHANGE notif: state: %s, error code: %d, out streams: %d, in streams: %d, assoc id: %d\n",
+        logger.debug(
+            "SCTP_ASSOC_CHANGE notif: state: %s, error code: %d, out streams: %d, in streams: %d, assoc id: %d",
             state,
             n->sac_error,
             n->sac_outbound_streams,
@@ -118,26 +121,26 @@ public:
       case SCTP_SHUTDOWN_EVENT: {
         if (sizeof(struct sctp_shutdown_event) > len) {
           printf("Error notification msg size is smaller than struct sctp_assoc_change size\n");
-          return SRSLTE_ERROR;
+          return SRSRAN_ERROR;
         }
         struct sctp_shutdown_event* n = &notif->sn_shutdown_event;
-        log->debug("SCTP_SHUTDOWN_EVENT notif: assoc id: %d\n", n->sse_assoc_id);
+        logger.debug("SCTP_SHUTDOWN_EVENT notif: assoc id: %d", n->sse_assoc_id);
         break;
       }
 
       default:
-        log->warning("Unhandled notification type %d\n", notif->sn_header.sn_type);
+        logger.warning("Unhandled notification type %d", notif->sn_header.sn_type);
         break;
     }
 
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   ///< Send buffer to tester
   void send(const uint8_t* buffer, const uint32_t len)
   {
     if (sendto(sock_fd, buffer, len, 0, (struct sockaddr*)&client_addr, sizeof(client_addr)) == -1) {
-      log->error("Error sending message to tester.\n");
+      logger.error("Error sending message to tester.");
     }
   }
 
@@ -147,27 +150,27 @@ public:
     int flags = fcntl(fd, F_GETFL, 0);
     if (flags == -1) {
       perror("fcntl");
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
 
     flags |= O_NONBLOCK;
     int s = fcntl(fd, F_SETFL, flags);
     if (s == -1) {
       perror("fcntl");
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
 
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   ///< Create, bind and listen on SCTP socket
   int port_listen()
   {
-    int ret = SRSLTE_ERROR;
+    int ret = SRSRAN_ERROR;
 
     sock_fd = socket(AF_INET, SOCK_SEQPACKET, IPPROTO_SCTP);
     if (sock_fd == -1) {
-      srslte::console("Could not create SCTP socket\n");
+      srsran::console("Could not create SCTP socket\n");
       return ret;
     }
 
@@ -179,8 +182,8 @@ public:
     events.sctp_association_event      = 1;
     if (setsockopt(sock_fd, IPPROTO_SCTP, SCTP_EVENTS, &events, sizeof(events))) {
       close(sock_fd);
-      srslte::console("Subscribing to sctp_data_io_events failed\n");
-      return SRSLTE_ERROR;
+      srsran::console("Subscribing to sctp_data_io_events failed\n");
+      return SRSRAN_ERROR;
     }
 
     // Port bind
@@ -194,31 +197,31 @@ public:
     ret = bind(sock_fd, (struct sockaddr*)&bind_addr, sizeof(bind_addr));
     if (ret != 0) {
       close(sock_fd);
-      log->error("Error binding SCTP socket\n");
-      srslte::console("Error binding SCTP socket\n");
-      return SRSLTE_ERROR;
+      logger.error("Error binding SCTP socket");
+      srsran::console("Error binding SCTP socket\n");
+      return SRSRAN_ERROR;
     }
 
     // Listen for connections
     ret = listen(sock_fd, SOMAXCONN);
-    if (ret != SRSLTE_SUCCESS) {
+    if (ret != SRSRAN_SUCCESS) {
       close(sock_fd);
-      log->error("Error in SCTP socket listen\n");
-      srslte::console("Error in SCTP socket listen\n");
-      return SRSLTE_ERROR;
+      logger.error("Error in SCTP socket listen");
+      srsran::console("Error in SCTP socket listen\n");
+      return SRSRAN_ERROR;
     }
 
     set_non_blocking(sock_fd);
     return sock_fd;
   }
 
-  bool                initialized = false;
-  std::string         net_ip      = "0.0.0.0";
-  uint32_t            net_port    = 0;
-  int                 sock_fd     = -1;
-  struct sockaddr     client_addr = {};
-  srslte::log*        log         = nullptr;
-  unique_byte_array_t rx_buf; ///< Receive buffer for this port
+  bool                  initialized = false;
+  std::string           net_ip      = "0.0.0.0";
+  uint32_t              net_port    = 0;
+  int                   sock_fd     = -1;
+  struct sockaddr       client_addr = {};
+  srslog::basic_logger& logger;
+  unique_byte_array_t   rx_buf; ///< Receive buffer for this port
 };
 
 #endif // SRSUE_TTCN3_PORT_HANDLER_H

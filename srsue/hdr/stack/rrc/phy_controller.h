@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,18 +19,19 @@
  *
  */
 
-#ifndef SRSLTE_PHY_CONTROLLER_H
-#define SRSLTE_PHY_CONTROLLER_H
+#ifndef SRSRAN_PHY_CONTROLLER_H
+#define SRSRAN_PHY_CONTROLLER_H
 
-#include "srslte/adt/observer.h"
-#include "srslte/common/fsm.h"
-#include "srslte/common/logmap.h"
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srsran/adt/fsm.h"
+#include "srsran/adt/observer.h"
+#include "srsran/common/task_scheduler.h"
+#include "srsran/interfaces/ue_phy_interfaces.h"
+#include "srsran/interfaces/ue_rrc_interfaces.h"
 #include <bitset>
 
 namespace srsue {
 
-class phy_controller : public srslte::fsm_t<phy_controller>
+class phy_controller : public srsran::fsm_t<phy_controller>
 {
   using cell_search_ret_t = rrc_interface_phy_lte::cell_search_ret_t;
 
@@ -55,17 +56,17 @@ public:
   struct out_sync_ev {};
 
   explicit phy_controller(phy_interface_rrc_lte*                        phy_,
-                          srslte::task_sched_handle                     task_sched_,
+                          srsran::task_sched_handle                     task_sched_,
                           std::function<void(uint32_t, uint32_t, bool)> on_cell_selection = {});
 
   // PHY procedures interfaces
-  bool start_cell_select(const phy_cell_t& phy_cell, srslte::event_observer<bool> observer = {});
-  bool start_cell_search(srslte::event_observer<cell_srch_res> observer);
+  bool start_cell_select(const phy_cell_t& phy_cell, srsran::event_observer<bool> observer = {});
+  bool start_cell_search(srsran::event_observer<cell_srch_res> observer);
   void cell_search_completed(cell_search_ret_t cs_ret, phy_cell_t found_cell);
   void cell_selection_completed(bool outcome);
   void in_sync();
   void out_sync() { trigger(out_sync_ev{}); }
-  bool set_cell_config(const srslte::phy_cfg_t& config, uint32_t cc_idx = 0);
+  bool set_cell_config(const srsran::phy_cfg_t& config, uint32_t cc_idx = 0);
   void set_phy_to_default();
   void set_phy_to_default_dedicated();
   void set_phy_to_default_pucch_srs();
@@ -76,9 +77,9 @@ public:
   bool is_in_sync() const { return is_in_state<in_sync_st>(); }
   bool is_config_pending() const { return nof_pending_configs == 0; }
 
-  srslte::span<const srslte::phy_cfg_t>   current_cell_config() const { return current_cells_cfg; }
-  srslte::span<srslte::phy_cfg_t>         current_cell_config() { return current_cells_cfg; }
-  const std::bitset<SRSLTE_MAX_CARRIERS>& current_config_scells() const { return configured_scell_mask; }
+  srsran::span<const srsran::phy_cfg_t>   current_cell_config() const { return current_cells_cfg; }
+  srsran::span<srsran::phy_cfg_t>         current_cell_config() { return current_cells_cfg; }
+  const std::bitset<SRSRAN_MAX_CARRIERS>& current_config_scells() const { return configured_scell_mask; }
 
   // FSM states
   struct unknown_st {};
@@ -96,7 +97,7 @@ public:
     void enter(phy_controller* f, const cell_sel_cmd& ev);
     void exit(phy_controller* f);
 
-    srslte::timer_handler::unique_timer wait_in_sync_timer;
+    srsran::timer_handler::unique_timer wait_in_sync_timer;
     phy_cell_t                          target_cell = {};
     cell_sel_res                        csel_res    = {};
 
@@ -119,7 +120,7 @@ public:
     // +----------------+---------------+--------------+------------------+----------------------+
     row< wait_in_sync,    in_sync_st,     in_sync_ev,    &c::set_success                         >,
     row< wait_in_sync,    unknown_st,     timeout_ev                                             >,
-    to_state<             unknown_st,     srslte::failure_ev                                     >
+    to_state<             unknown_st,     srsran::failure_ev                                     >
     // +----------------+---------------+--------------+------------------+----------------------+
     >;
     // clang-format on
@@ -130,15 +131,15 @@ public:
 
 private:
   phy_interface_rrc_lte*                             phy = nullptr;
-  srslte::task_sched_handle                          task_sched;
-  srslte::event_observer<bool>                       cell_selection_notifier;
+  srsran::task_sched_handle                          task_sched;
+  srsran::event_observer<bool>                       cell_selection_notifier;
   std::function<void(uint32_t, uint32_t, bool)>      cell_selection_always_observer;
-  srslte::event_dispatcher<cell_srch_res>            cell_search_observers;
+  srsran::event_dispatcher<cell_srch_res>            cell_search_observers;
   uint32_t                                           nof_pending_configs   = 0;
-  std::array<srslte::phy_cfg_t, SRSLTE_MAX_CARRIERS> current_cells_cfg     = {};
-  std::bitset<SRSLTE_MAX_CARRIERS>                   configured_scell_mask = {};
+  std::array<srsran::phy_cfg_t, SRSRAN_MAX_CARRIERS> current_cells_cfg     = {};
+  std::bitset<SRSRAN_MAX_CARRIERS>                   configured_scell_mask = {};
 
-  bool set_cell_config(const srslte::phy_cfg_t& cfg, uint32_t cc_idx, bool is_set);
+  bool set_cell_config(const srsran::phy_cfg_t& cfg, uint32_t cc_idx, bool is_set);
 
 protected:
   state_list<unknown_st, in_sync_st, out_sync_st, searching_cell, selecting_cell> states{this,
@@ -177,4 +178,4 @@ protected:
 
 } // namespace srsue
 
-#endif // SRSLTE_PHY_CONTROLLER_H
+#endif // SRSRAN_PHY_CONTROLLER_H

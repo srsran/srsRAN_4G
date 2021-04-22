@@ -83,11 +83,15 @@ rx_gain = 40
 #####################################################################
 # Packet capture configuration
 #
-# MAC Packets are captured to file in the compact format decoded by 
-# the Wireshark mac-lte-framed dissector and with DLT 147. 
-# To use the dissector, edit the preferences for DLT_USER to 
-# add an entry with DLT=147, Payload Protocol=mac-lte-framed.
+# MAC-layer packets are captured to file a the compact format decoded 
+# by the Wireshark. For decoding, use the UDP dissector and the UDP 
+# heuristic dissection. Edit the preferences (Edit > Preferences > 
+# Protocols > DLT_USER) for DLT_USER to add an entry for DLT=149 with 
+# Protocol=udp. Further, enable the heuristic dissection in UDP under:
+# Analyze > Enabled Protocols > MAC-LTE > mac_lte_udp and MAC-NR > mac_nr_udp
 # For more information see: https://wiki.wireshark.org/MAC-LTE
+# Configuring this Wireshark preferences is needed for decoding the MAC PCAP 
+# files as well as for the live network capture option.  
 #
 # Please note that this setting will by default only capture MAC
 # frames on dedicated channels, and not SIB.  You have to build with
@@ -104,12 +108,23 @@ rx_gain = 40
 # s1ap_enable:   Enable or disable the PCAP.
 # s1ap_filename: File name where to save the PCAP.
 #
+# mac_net_enable: Enable MAC layer packet captures sent over the network (true/false default: false)
+# bind_ip: Bind IP address for MAC network trace (default: "0.0.0.0")
+# bind_port: Bind port for MAC network trace (default: 5687)
+# client_ip: Client IP address for MAC network trace (default "127.0.0.1")
+# client_port Client IP address for MAC network trace (default: 5847)
 #####################################################################
 [pcap]
 enable = false
 filename = /tmp/enb.pcap
 s1ap_enable = false
 s1ap_filename = /tmp/enb_s1ap.pcap
+
+mac_net_enable = false
+bind_ip = 0.0.0.0
+bind_port = 5687
+client_ip = 127.0.0.1
+client_port = 5847
 
 #####################################################################
 # Log configuration
@@ -143,6 +158,7 @@ enable = false
 #####################################################################
 # Scheduler configuration options
 #
+# sched_policy:      User MAC scheduling policy (E.g. time_rr, time_pf)
 # max_aggr_level:    Optional maximum aggregation level index (l=log2(L) can be 0, 1, 2 or 3)
 # pdsch_mcs:         Optional fixed PDSCH MCS (ignores reported CQIs if specified)
 # pdsch_max_mcs:     Optional PDSCH MCS limit 
@@ -153,6 +169,8 @@ enable = false
 #
 #####################################################################
 [scheduler]
+#policy     = time_pf
+#policy_args = 2
 #max_aggr_level   = -1
 #pdsch_mcs        = -1
 #pdsch_max_mcs    = -1
@@ -160,6 +178,7 @@ enable = false
 #pusch_max_mcs    = 16
 #min_nof_ctrl_symbols = 1
 #max_nof_ctrl_symbols = 3
+#pucch_multiplex_enable = false
 
 #####################################################################
 # eMBMS configuration options
@@ -277,6 +296,9 @@ enable = false
 # metrics_period_secs:  Sets the period at which metrics are requested from the eNB. 
 # metrics_csv_enable:   Write eNB metrics to CSV file.
 # metrics_csv_filename: File path to use for CSV metrics.
+# tracing_enable:       Write source code tracing information to a file.
+# tracing_filename:     File path to use for tracing information.
+# tracing_buffcapacity: Maximum capacity in bytes the tracing framework can store.
 # pregenerate_signals:  Pregenerate uplink signals after attach. Improves CPU performance.
 # tx_amplitude:         Transmit amplitude factor (set 0-1 to reduce PAPR)
 # rrc_inactivity_timer  Inactivity timeout used to remove UE context from RRC (in milliseconds).
@@ -292,9 +314,17 @@ enable = false
 #metrics_period_secs  = 1
 #metrics_csv_enable   = false
 #metrics_csv_filename = /tmp/enb_metrics.csv
+#report_json_enable   = true
+#report_json_filename = /tmp/enb_report.json
+#alarms_log_enable    = true
+#alarms_filename      = /tmp/enb_alarms.log
+#tracing_enable       = true
+#tracing_filename     = /tmp/enb_tracing.log
+#tracing_buffcapacity = 1000000
 #pregenerate_signals  = false
 #tx_amplitude         = 0.6
 #rrc_inactivity_timer = 30000
+#max_nof_kos          = 100
 #max_prach_offset_us  = 30
 #eea_pref_list = EEA0, EEA2, EEA1
 #eia_pref_list = EIA2, EIA1, EIA0

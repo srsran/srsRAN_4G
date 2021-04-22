@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -21,260 +21,13 @@
 
 #include "srsenb/hdr/enb.h"
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
-#include "srsenb/src/enb_cfg_parser.h"
 #include "srsenb/test/common/dummy_classes.h"
-#include "srslte/asn1/rrc_asn1_utils.h"
-#include "srslte/common/test_common.h"
+#include "srsran/asn1/rrc_utils.h"
+#include "srsran/common/test_common.h"
 #include "test_helpers.h"
 #include <iostream>
-#include <srslte/common/log_filter.h>
 
-meas_cell_cfg_t generate_cell1()
-{
-  meas_cell_cfg_t cell1{};
-  cell1.earfcn   = 3400;
-  cell1.pci      = 1;
-  cell1.q_offset = 0;
-  cell1.eci      = 0x19C01;
-  return cell1;
-}
-
-report_cfg_eutra_s generate_rep1()
-{
-  report_cfg_eutra_s rep{};
-  rep.report_amount.value = report_cfg_eutra_s::report_amount_opts::r16;
-  rep.report_interv.value = report_interv_opts::ms240;
-  rep.max_report_cells    = 2;
-  rep.report_quant.value  = report_cfg_eutra_s::report_quant_opts::both;
-  rep.trigger_quant.value = report_cfg_eutra_s::trigger_quant_opts::rsrp;
-  rep.trigger_type.set_event().event_id.set_event_a3();
-  rep.trigger_type.event().time_to_trigger.value               = time_to_trigger_opts::ms100;
-  rep.trigger_type.event().hysteresis                          = 0;
-  rep.trigger_type.event().event_id.event_a3().a3_offset       = 5;
-  rep.trigger_type.event().event_id.event_a3().report_on_leave = true;
-  return rep;
-}
-
-bool is_cell_cfg_equal(const meas_cell_cfg_t& cfg, const cells_to_add_mod_s& cell)
-{
-  return cfg.pci == cell.pci and cell.cell_individual_offset.to_number() == (int8_t)round(cfg.q_offset);
-}
-
-int test_correct_insertion()
-{
-  meas_cell_cfg_t cell1 = generate_cell1(), cell2{}, cell3{}, cell4{};
-  cell2                 = cell1;
-  cell2.pci             = 2;
-  cell2.eci             = 0x19C02;
-  cell3                 = cell1;
-  cell3.earfcn          = 2850;
-  cell4                 = cell1;
-  cell4.q_offset        = 1;
-
-  report_cfg_eutra_s rep1 = generate_rep1();
-
-  // TEST 1: cell/rep insertion in empty varMeasCfg
-  {
-    var_meas_cfg_t var_cfg{};
-    auto           ret = var_cfg.add_cell_cfg(cell1);
-    TESTASSERT(std::get<0>(ret) and std::get<1>(ret) != nullptr);
-    const auto& objs = var_cfg.meas_objs();
-    TESTASSERT(objs.size() == 1 and objs[0].meas_obj_id == 1);
-    TESTASSERT(objs[0].meas_obj.type().value ==
-               asn1::rrc::meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_eutra);
-    auto& eutra = objs[0].meas_obj.meas_obj_eutra();
-    TESTASSERT(eutra.carrier_freq == cell1.earfcn);
-    TESTASSERT(eutra.cells_to_add_mod_list.size() == 1);
-    TESTASSERT(is_cell_cfg_equal(cell1, eutra.cells_to_add_mod_list[0]));
-
-    auto ret2 = var_cfg.add_report_cfg(rep1);
-    TESTASSERT(ret2->report_cfg_id == 1);
-    TESTASSERT(ret2->report_cfg.report_cfg_eutra() == rep1);
-  }
-
-  {
-    var_meas_cfg_t var_cfg{};
-    const auto&    objs = var_cfg.meas_objs();
-
-    // TEST 2: insertion of out-of-order cell ids in same earfcn
-    var_cfg.add_cell_cfg(cell2);
-    var_cfg.add_cell_cfg(cell1);
-    TESTASSERT(objs.size() == 1 and objs[0].meas_obj_id == 1);
-    auto& eutra = objs[0].meas_obj.meas_obj_eutra();
-    TESTASSERT(eutra.carrier_freq == cell1.earfcn);
-    TESTASSERT(eutra.cells_to_add_mod_list.size() == 2);
-    const cells_to_add_mod_s* cell_it = eutra.cells_to_add_mod_list.begin();
-    TESTASSERT(cell_it[0].cell_idx == 1);
-    TESTASSERT(cell_it[1].cell_idx == 2);
-    TESTASSERT(cell_it[0].pci == cell2.pci);
-    TESTASSERT(cell_it[1].pci == cell1.pci);
-
-    // TEST 3: insertion of cell in another frequency
-    auto ret1 = var_cfg.add_cell_cfg(cell3);
-    TESTASSERT(std::get<0>(ret1) and std::get<1>(ret1)->meas_obj_id == 2);
-    TESTASSERT(objs.size() == 2 and objs[1].meas_obj_id == 2);
-    const auto& eutra2 = objs[1].meas_obj.meas_obj_eutra();
-    TESTASSERT(eutra2.carrier_freq == cell3.earfcn);
-    TESTASSERT(eutra2.cells_to_add_mod_list_present and eutra2.cells_to_add_mod_list.size() == 1);
-    TESTASSERT(eutra2.cells_to_add_mod_list[0].cell_idx == 1);
-    TESTASSERT(eutra2.cells_to_add_mod_list[0].pci == cell3.pci);
-
-    // TEST 4: update of existing cell
-    auto ret2 = var_cfg.add_cell_cfg(cell4);
-    TESTASSERT(std::get<0>(ret2) and std::get<1>(ret2)->meas_obj_id == 1);
-    auto& eutra3 = objs[0].meas_obj.meas_obj_eutra();
-    TESTASSERT(objs.size() == 2 and objs[0].meas_obj_id == 1);
-    TESTASSERT(eutra3.carrier_freq == cell4.earfcn);
-    TESTASSERT(eutra3.cells_to_add_mod_list.size() == 2);
-    TESTASSERT(eutra3.cells_to_add_mod_list[1].cell_idx == 2);
-    TESTASSERT(eutra3.cells_to_add_mod_list[1].pci == cell4.pci);
-    TESTASSERT(eutra3.cells_to_add_mod_list[1].cell_individual_offset.to_number() == 1);
-  }
-
-  return 0;
-}
-
-int test_correct_meascfg_calculation()
-{
-  var_meas_cfg_t src_var{}, target_var{};
-
-  meas_cell_cfg_t cell1{}, cell2{};
-  cell1.earfcn   = 3400;
-  cell1.pci      = 1;
-  cell1.q_offset = 0;
-  cell1.eci      = 0x19C01;
-  cell2          = cell1;
-  cell2.pci      = 2;
-  cell2.eci      = 0x19C02;
-
-  report_cfg_eutra_s rep1  = generate_rep1(), rep2{}, rep3{};
-  rep2                     = rep1;
-  rep2.trigger_quant.value = report_cfg_eutra_s::trigger_quant_opts::rsrq;
-  rep3                     = rep2;
-  rep3.report_quant.value  = report_cfg_eutra_s::report_quant_opts::same_as_trigger_quant;
-
-  {
-    meas_cfg_s result_meascfg;
-
-    // TEST 1: Insertion of two cells in var_meas propagates to the resulting meas_cfg_s cellsToAddMod list
-    target_var.add_cell_cfg(cell1);
-    target_var.add_cell_cfg(cell2);
-    target_var.add_report_cfg(rep1);
-    target_var.add_report_cfg(rep2);
-    target_var.add_measid_cfg(1, 1);
-    target_var.add_measid_cfg(1, 2);
-    src_var.compute_diff_meas_cfg(target_var, &result_meascfg);
-    TESTASSERT(result_meascfg.meas_obj_to_add_mod_list_present);
-    TESTASSERT(not result_meascfg.meas_obj_to_rem_list_present);
-    TESTASSERT(result_meascfg.meas_obj_to_add_mod_list.size() == 1);
-    auto* item = &result_meascfg.meas_obj_to_add_mod_list[0];
-    TESTASSERT(item->meas_obj_id == 1 and
-               item->meas_obj.type().value == meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_eutra);
-    auto& eutra = item->meas_obj.meas_obj_eutra();
-    TESTASSERT(eutra.cells_to_add_mod_list_present and not eutra.cells_to_rem_list_present);
-    TESTASSERT(eutra.cells_to_add_mod_list.size() == 2);
-    auto* cell_item = &eutra.cells_to_add_mod_list[0];
-    TESTASSERT(is_cell_cfg_equal(cell1, *cell_item));
-    cell_item++;
-    TESTASSERT(is_cell_cfg_equal(cell2, *cell_item));
-    TESTASSERT(result_meascfg.report_cfg_to_add_mod_list_present and not result_meascfg.report_cfg_to_rem_list_present);
-    TESTASSERT(result_meascfg.report_cfg_to_add_mod_list.size() == 2);
-    TESTASSERT(result_meascfg.report_cfg_to_add_mod_list[0].report_cfg_id == 1);
-    TESTASSERT(result_meascfg.report_cfg_to_add_mod_list[0].report_cfg.report_cfg_eutra() == rep1);
-    TESTASSERT(result_meascfg.report_cfg_to_add_mod_list[1].report_cfg_id == 2);
-    TESTASSERT(result_meascfg.report_cfg_to_add_mod_list[1].report_cfg.report_cfg_eutra() == rep2);
-    TESTASSERT(result_meascfg.meas_id_to_add_mod_list_present and not result_meascfg.meas_id_to_rem_list_present);
-    TESTASSERT(result_meascfg.meas_id_to_add_mod_list.size() == 2);
-    auto* measid_item = &result_meascfg.meas_id_to_add_mod_list[0];
-    TESTASSERT(measid_item->meas_id == 1 and measid_item->meas_obj_id == 1 and measid_item->report_cfg_id == 1);
-    measid_item++;
-    TESTASSERT(measid_item->meas_id == 2 and measid_item->meas_obj_id == 1 and measid_item->report_cfg_id == 2);
-
-    // TEST 2: measConfig is empty if nothing was updated
-    src_var = target_var;
-    src_var.compute_diff_meas_cfg(target_var, &result_meascfg);
-    TESTASSERT(not result_meascfg.meas_obj_to_add_mod_list_present and not result_meascfg.meas_obj_to_rem_list_present);
-    TESTASSERT(result_meascfg.meas_obj_to_add_mod_list.size() == 0);
-    TESTASSERT(not result_meascfg.report_cfg_to_add_mod_list_present and
-               not result_meascfg.report_cfg_to_rem_list_present);
-    TESTASSERT(result_meascfg.report_cfg_to_add_mod_list.size() == 0);
-
-    // TEST 3: Cell is added to cellsToAddModList if just a field was updated
-    cell1.q_offset = 5;
-    src_var        = target_var;
-    target_var.add_cell_cfg(cell1);
-    src_var.compute_diff_meas_cfg(target_var, &result_meascfg);
-    TESTASSERT(result_meascfg.meas_obj_to_add_mod_list_present);
-    TESTASSERT(result_meascfg.meas_obj_to_add_mod_list.size() == 1);
-    item = &result_meascfg.meas_obj_to_add_mod_list[0];
-    TESTASSERT(item->meas_obj_id == 1 and
-               item->meas_obj.type().value == meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_eutra);
-    eutra = item->meas_obj.meas_obj_eutra();
-    TESTASSERT(eutra.cells_to_add_mod_list_present and not eutra.cells_to_rem_list_present);
-    TESTASSERT(eutra.cells_to_add_mod_list.size() == 1);
-    cell_item = &eutra.cells_to_add_mod_list[0];
-    TESTASSERT(is_cell_cfg_equal(cell1, *cell_item));
-
-    // TEST 4: Removal of cell/rep from target propagates to the resulting meas_cfg_s
-    src_var = target_var;
-    TESTASSERT(src_var.meas_objs().size() == 1);
-    TESTASSERT(src_var.meas_objs()[0].meas_obj.meas_obj_eutra().cells_to_add_mod_list.size() == 2);
-    target_var = {};
-    target_var.add_cell_cfg(cell2);
-    target_var.add_report_cfg(rep1);
-    target_var.add_report_cfg(rep3);
-    src_var.compute_diff_meas_cfg(target_var, &result_meascfg);
-    TESTASSERT(result_meascfg.meas_obj_to_add_mod_list_present);
-    TESTASSERT(result_meascfg.meas_obj_to_add_mod_list.size() == 1);
-    item = &result_meascfg.meas_obj_to_add_mod_list[0];
-    TESTASSERT(item->meas_obj_id == 1 and
-               item->meas_obj.type().value == meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_eutra);
-    eutra = item->meas_obj.meas_obj_eutra();
-    TESTASSERT(eutra.cells_to_add_mod_list_present and eutra.cells_to_add_mod_list.size() == 1);
-    TESTASSERT(eutra.cells_to_add_mod_list[0].pci == cell2.pci);
-    TESTASSERT(eutra.cells_to_rem_list_present and eutra.cells_to_rem_list.size() == 1);
-    TESTASSERT(eutra.cells_to_rem_list[0] == 2);
-    TESTASSERT(result_meascfg.report_cfg_to_add_mod_list_present and not result_meascfg.report_cfg_to_rem_list_present);
-    TESTASSERT(result_meascfg.report_cfg_to_add_mod_list.size() == 1);
-    TESTASSERT(result_meascfg.report_cfg_to_add_mod_list[0].report_cfg_id == 2);
-    TESTASSERT(result_meascfg.report_cfg_to_add_mod_list[0].report_cfg.report_cfg_eutra() == rep3);
-  }
-
-  {
-    // TEST: creation of a var_meas_cfg using the srsenb::rrc_cfg_t
-    rrc_cfg_t cfg;
-    cfg.enb_id           = 0x19B;
-    cfg.cell.nof_prb     = 6;
-    cfg.meas_cfg_present = true;
-    cfg.cell_list.resize(2);
-    cfg.cell_list[0].dl_earfcn = 2850;
-    cfg.cell_list[0].cell_id   = 0x01;
-    cfg.cell_list[0].scell_list.resize(1);
-    cfg.cell_list[0].scell_list[0].cell_id = 0x02;
-    cfg.cell_list[1].dl_earfcn             = 3400;
-    cfg.cell_list[1].cell_id               = 0x02;
-    cfg.sibs[1].set_sib2();
-
-    // TEST: correct construction of list of cells
-    cell_info_common_list cell_list{cfg};
-    TESTASSERT(cell_list.nof_cells() == 2);
-    TESTASSERT(cell_list.get_cc_idx(0)->scells.size() == 1);
-    TESTASSERT(cell_list.get_cc_idx(0)->scells[0] == cell_list.get_cc_idx(1));
-    TESTASSERT(cell_list.get_cc_idx(1)->scells.empty());
-
-    // measConfig only includes earfcns of active carriers for a given pcell
-    var_meas_cfg_t var_meas = var_meas_cfg_t::make(cfg, *cell_list.get_cc_idx(0));
-    TESTASSERT(var_meas.meas_objs().size() == 2);
-    TESTASSERT(var_meas.meas_objs()[0].meas_obj.meas_obj_eutra().carrier_freq == 2850);
-    TESTASSERT(var_meas.meas_objs()[1].meas_obj.meas_obj_eutra().carrier_freq == 3400);
-
-    var_meas_cfg_t var_meas2 = var_meas_cfg_t::make(cfg, *cell_list.get_cc_idx(1));
-    TESTASSERT(var_meas2.meas_objs().size() == 1);
-    TESTASSERT(var_meas2.meas_objs()[0].meas_obj.meas_obj_eutra().carrier_freq == 3400);
-  }
-
-  return SRSLTE_SUCCESS;
-}
+using namespace asn1::rrc;
 
 struct mobility_test_params {
   enum class test_event {
@@ -283,7 +36,9 @@ struct mobility_test_params {
     concurrent_ho,
     ho_prep_failure,
     duplicate_crnti_ce,
-    recover
+    recover,
+    wrong_target_cell,
+    unknown_qci,
   } fail_at;
   const char* to_string()
   {
@@ -300,6 +55,10 @@ struct mobility_test_params {
         return "fail and success";
       case test_event::duplicate_crnti_ce:
         return "duplicate CRNTI CE";
+      case test_event::wrong_target_cell:
+        return "wrong target cell";
+      case test_event::unknown_qci:
+        return "invalid QoS";
       default:
         return "none";
     }
@@ -307,16 +66,19 @@ struct mobility_test_params {
 };
 
 struct mobility_tester {
-  explicit mobility_tester(const mobility_test_params& args_) : args(args_), rrc(&task_sched)
+  explicit mobility_tester(const mobility_test_params& args_) :
+    args(args_), logger(srslog::fetch_basic_logger("RRC")), rrc(&task_sched)
   {
-    rrc_log->set_level(srslte::LOG_LEVEL_INFO);
-    rrc_log->set_hex_limit(1024);
+    logger.set_level(srslog::basic_levels::info);
+    logger.set_hex_dump_max_size(1024);
   }
   virtual int generate_rrc_cfg() = 0;
   virtual int setup_rrc() { return setup_rrc_common(); }
   int         run_preamble()
   {
-    rrc_log->set_level(srslte::LOG_LEVEL_NONE); // mute all the startup log
+    // mute all the startup log
+    logger.set_level(srslog::basic_levels::none);
+
     // add user
     sched_interface::ue_cfg_t ue_cfg{};
     ue_cfg.supported_cc_list.resize(1);
@@ -326,14 +88,14 @@ struct mobility_tester {
 
     // Do all the handshaking until the first RRC Connection Reconf
     test_helpers::bring_rrc_to_reconf_state(rrc, *task_sched.get_timer_handler(), rnti);
-    rrc_log->set_level(srslte::LOG_LEVEL_INFO);
-    return SRSLTE_SUCCESS;
+    logger.set_level(srslog::basic_levels::info);
+    return SRSRAN_SUCCESS;
   }
 
-  mobility_test_params                        args;
-  srslte::scoped_log<srslte::test_log_filter> rrc_log{"RRC"};
-  srslte::task_scheduler                      task_sched;
-  rrc_cfg_t                                   cfg;
+  mobility_test_params   args;
+  srslog::basic_logger&  logger;
+  srsran::task_scheduler task_sched;
+  rrc_cfg_t              cfg;
 
   srsenb::rrc                       rrc;
   test_dummies::mac_mobility_dummy  mac;
@@ -356,19 +118,19 @@ protected:
   int generate_rrc_cfg_common()
   {
     srsenb::all_args_t all_args;
-    TESTASSERT(test_helpers::parse_default_cfg(&cfg, all_args) == SRSLTE_SUCCESS);
+    TESTASSERT(test_helpers::parse_default_cfg(&cfg, all_args) == SRSRAN_SUCCESS);
     cfg.meas_cfg_present   = true;
     report_cfg_eutra_s rep = generate_rep1();
     cfg.cell_list[0].meas_cfg.meas_reports.push_back(rep);
     cfg.cell_list[0].meas_cfg.meas_cells.resize(1);
     cfg.cell_list[0].meas_cfg.meas_cells[0]     = generate_cell1();
     cfg.cell_list[0].meas_cfg.meas_cells[0].pci = 2;
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
   int setup_rrc_common()
   {
     rrc.init(cfg, &phy, &mac, &rlc, &pdcp, &s1ap, &gtpu);
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 };
 
@@ -376,9 +138,11 @@ struct s1ap_mobility_tester : public mobility_tester {
   explicit s1ap_mobility_tester(const mobility_test_params& args_) : mobility_tester(args_) {}
   int generate_rrc_cfg() final
   {
-    TESTASSERT(generate_rrc_cfg_common() == SRSLTE_SUCCESS);
-    cfg.cell_list[0].meas_cfg.meas_cells[0].eci = 0x19C02;
-    return SRSLTE_SUCCESS;
+    TESTASSERT(generate_rrc_cfg_common() == SRSRAN_SUCCESS);
+    cfg.cell_list[0].meas_cfg.meas_cells[0].eci    = 0x19C02;
+    cfg.cell_list[0].meas_cfg.meas_cells[0].earfcn = 2850;
+    cfg.cell_list[0].meas_cfg.meas_gap_period      = 40;
+    return SRSRAN_SUCCESS;
   }
 };
 
@@ -386,30 +150,45 @@ struct intraenb_mobility_tester : public mobility_tester {
   explicit intraenb_mobility_tester(const mobility_test_params& args_) : mobility_tester(args_) {}
   int generate_rrc_cfg() final
   {
-    TESTASSERT(generate_rrc_cfg_common() == SRSLTE_SUCCESS);
-    cfg.cell_list[0].meas_cfg.meas_cells[0].eci = 0x19B02;
+    TESTASSERT(generate_rrc_cfg_common() == SRSRAN_SUCCESS);
+    cfg.cell_list[0].meas_cfg.meas_cells[0].eci    = 0x19B02;
+    cfg.cell_list[0].meas_cfg.meas_gap_period      = 40;
+    cfg.cell_list[0].meas_cfg.meas_cells[0].earfcn = 2850;
 
-    cell_cfg_t cell2                 = cfg.cell_list[0];
-    cell2.pci                        = 2;
-    cell2.cell_id                    = 2;
-    cell2.meas_cfg.meas_cells[0].pci = 1;
-    cell2.meas_cfg.meas_cells[0].eci = 0x19B01;
+    cell_cfg_t cell2                    = cfg.cell_list[0];
+    cell2.pci                           = 2;
+    cell2.cell_id                       = 2;
+    cell2.dl_earfcn                     = 2850;
+    cell2.meas_cfg.meas_cells[0].pci    = 1;
+    cell2.meas_cfg.meas_cells[0].earfcn = 3400;
+    cell2.meas_cfg.meas_cells[0].eci    = 0x19B01;
+    cell2.meas_cfg.meas_gap_period      = 80;
     cfg.cell_list.push_back(cell2);
 
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 };
 
-int test_s1ap_mobility(mobility_test_params test_params)
+int test_s1ap_mobility(srsran::log_sink_spy& spy, mobility_test_params test_params)
 {
   printf("\n===== TEST: test_s1ap_mobility() for event %s =====\n", test_params.to_string());
-  s1ap_mobility_tester         tester{test_params};
-  srslte::unique_byte_buffer_t pdu;
+  s1ap_mobility_tester tester{test_params};
+  spy.reset_counters();
+  srsran::unique_byte_buffer_t pdu;
 
-  TESTASSERT(tester.generate_rrc_cfg() == SRSLTE_SUCCESS);
-  TESTASSERT(tester.setup_rrc() == SRSLTE_SUCCESS);
-  TESTASSERT(tester.run_preamble() == SRSLTE_SUCCESS);
+  TESTASSERT(tester.generate_rrc_cfg() == SRSRAN_SUCCESS);
+  TESTASSERT(tester.setup_rrc() == SRSRAN_SUCCESS);
+  TESTASSERT(tester.run_preamble() == SRSRAN_SUCCESS);
   test_dummies::s1ap_mobility_dummy& s1ap = tester.s1ap;
+
+  /* Receive correct measConfig */
+  dl_dcch_msg_s dl_dcch_msg;
+  TESTASSERT(test_helpers::unpack_asn1(dl_dcch_msg, srsran::make_span(tester.pdcp.last_sdu.sdu)));
+  rrc_conn_recfg_r8_ies_s& recfg_r8 = dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
+  TESTASSERT(recfg_r8.meas_cfg_present and recfg_r8.meas_cfg.meas_gap_cfg_present);
+  TESTASSERT(recfg_r8.meas_cfg.meas_gap_cfg.type().value == setup_opts::setup);
+  TESTASSERT((1 + recfg_r8.meas_cfg.meas_gap_cfg.setup().gap_offset.type().value) * 40u ==
+             tester.cfg.cell_list[0].meas_cfg.meas_gap_period);
 
   /* Receive MeasReport from UE (correct if PCI=2) */
   if (test_params.fail_at == mobility_test_params::test_event::wrong_measreport) {
@@ -425,8 +204,8 @@ int test_s1ap_mobility(mobility_test_params test_params)
   /* Test Case: the MeasReport is not valid */
   if (test_params.fail_at == mobility_test_params::test_event::wrong_measreport) {
     TESTASSERT(s1ap.last_ho_required.rrc_container == nullptr);
-    TESTASSERT(tester.rrc_log->warn_counter == 1);
-    return SRSLTE_SUCCESS;
+    TESTASSERT(spy.get_warning_counter() == 1);
+    return SRSRAN_SUCCESS;
   }
   TESTASSERT(s1ap.last_ho_required.rrc_container != nullptr);
 
@@ -438,7 +217,7 @@ int test_s1ap_mobility(mobility_test_params test_params)
     tester.rrc.write_pdu(tester.rnti, 1, std::move(pdu));
     tester.tic();
     TESTASSERT(s1ap.last_ho_required.rrc_container == nullptr);
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   /* Test Case: Check HO Required was sent to S1AP */
@@ -461,10 +240,10 @@ int test_s1ap_mobility(mobility_test_params test_params)
 
   /* Test Case: HandoverPreparation has failed */
   if (test_params.fail_at == mobility_test_params::test_event::ho_prep_failure) {
-    tester.rrc.ho_preparation_complete(tester.rnti, false, nullptr);
-    //    TESTASSERT(rrc_log->error_counter == 1);
+    tester.rrc.ho_preparation_complete(tester.rnti, rrc::ho_prep_result::failure, {}, nullptr);
+    //    TESTASSERT(spy.get_error_counter() == 1);
     TESTASSERT(not s1ap.last_enb_status.status_present);
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   /* MME returns back an HandoverCommand, S1AP unwraps the RRC container */
@@ -474,30 +253,30 @@ int test_s1ap_mobility(mobility_test_params test_params)
                                     0x86, 0x0d, 0x30, 0x00, 0x0b, 0x5a, 0x02, 0x17, 0x86, 0x00, 0x05, 0xa0, 0x20};
   test_helpers::copy_msg_to_buffer(pdu, ho_cmd_rrc_container);
   TESTASSERT(s1ap.last_enb_status.rnti != tester.rnti);
-  tester.rrc.ho_preparation_complete(tester.rnti, true, std::move(pdu));
+  tester.rrc.ho_preparation_complete(tester.rnti, rrc::ho_prep_result::success, asn1::s1ap::ho_cmd_s{}, std::move(pdu));
   TESTASSERT(s1ap.last_enb_status.status_present);
-  TESTASSERT(tester.rrc_log->error_counter == 0);
+  TESTASSERT(spy.get_error_counter() == 0);
   asn1::rrc::dl_dcch_msg_s ho_cmd;
-  TESTASSERT(test_helpers::unpack_asn1(ho_cmd, srslte::make_span(tester.pdcp.last_sdu.sdu)));
-  auto& recfg_r8 = ho_cmd.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
+  TESTASSERT(test_helpers::unpack_asn1(ho_cmd, srsran::make_span(tester.pdcp.last_sdu.sdu)));
+  recfg_r8 = ho_cmd.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
   TESTASSERT(recfg_r8.mob_ctrl_info_present);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int test_s1ap_tenb_mobility(mobility_test_params test_params)
 {
   printf("\n===== TEST: test_s1ap_tenb_mobility() for event %s =====\n", test_params.to_string());
   s1ap_mobility_tester         tester{test_params};
-  srslte::unique_byte_buffer_t pdu;
+  srsran::unique_byte_buffer_t pdu;
 
-  TESTASSERT(tester.generate_rrc_cfg() == SRSLTE_SUCCESS);
+  TESTASSERT(tester.generate_rrc_cfg() == SRSRAN_SUCCESS);
   tester.cfg.cell_list[0].meas_cfg.meas_cells[0].eci = 0x19B01;
   tester.cfg.enb_id                                  = 0x19C;
   tester.cfg.cell.id                                 = 0x02;
   tester.cfg.cell_list[0].cell_id                    = 0x02;
   tester.cfg.cell_list[0].pci                        = 2;
-  TESTASSERT(tester.setup_rrc() == SRSLTE_SUCCESS);
+  TESTASSERT(tester.setup_rrc() == SRSRAN_SUCCESS);
   security_cfg_handler sec_cfg{tester.cfg};
 
   /* TeNB receives S1AP Handover Request */
@@ -506,8 +285,22 @@ int test_s1ap_tenb_mobility(mobility_test_params test_params)
   auto& erab   = ho_req.protocol_ies.erab_to_be_setup_list_ho_req.value[0].value.erab_to_be_setup_item_ho_req();
   erab.erab_id = 5;
   erab.erab_level_qos_params.qci = 9;
+  if (test_params.fail_at == mobility_test_params::test_event::unknown_qci) {
+    erab.erab_level_qos_params.qci = 10;
+  }
+  ho_req.protocol_ies.ue_security_cap.value.integrity_protection_algorithms.set(14, true);
   asn1::s1ap::sourceenb_to_targetenb_transparent_container_s container;
   container.target_cell_id.cell_id.from_number(0x19C02);
+  if (test_params.fail_at == mobility_test_params::test_event::wrong_target_cell) {
+    container.target_cell_id.cell_id.from_number(0x19C03);
+  }
+  container.erab_info_list_present = true;
+  container.erab_info_list.resize(1);
+  container.erab_info_list[0].load_info_obj(ASN1_S1AP_ID_ERAB_INFO_LIST_ITEM);
+  container.erab_info_list[0].value.erab_info_list_item().erab_id               = 5;
+  container.erab_info_list[0].value.erab_info_list_item().dl_forwarding_present = true;
+  container.erab_info_list[0].value.erab_info_list_item().dl_forwarding.value =
+      asn1::s1ap::dl_forwarding_opts::dl_forwarding_proposed;
   uint8_t ho_prep_container[] = {
       0x0a, 0x10, 0x0b, 0x81, 0x80, 0x00, 0x01, 0x80, 0x00, 0xf3, 0x02, 0x08, 0x00, 0x00, 0x15, 0x80, 0x00, 0x14,
       0x06, 0xa4, 0x02, 0xf0, 0x04, 0x04, 0xf0, 0x00, 0x14, 0x80, 0x4a, 0x00, 0x00, 0x00, 0x02, 0x12, 0x31, 0xb6,
@@ -518,29 +311,44 @@ int test_s1ap_tenb_mobility(mobility_test_params test_params)
   // 0a100b818000018000f3020800001580001406a402f00404f00014804a000000021231b6f83ea06f05e465141d39d0544c00025400200460000000100100c000000000020500041400670dfbc46606500f00080020800c14ca2d5ce1863539800e06a4400f2278
   container.rrc_container.resize(sizeof(ho_prep_container));
   memcpy(container.rrc_container.data(), ho_prep_container, sizeof(ho_prep_container));
-  tester.rrc.start_ho_ue_resource_alloc(ho_req, container);
+  asn1::s1ap::cause_c cause;
+  int                 rnti = tester.rrc.start_ho_ue_resource_alloc(ho_req, container, cause);
+  if (test_params.fail_at == mobility_test_params::test_event::wrong_target_cell) {
+    TESTASSERT(rnti == SRSRAN_INVALID_RNTI);
+    TESTASSERT(cause.type().value == asn1::s1ap::cause_c::types_opts::radio_network);
+    TESTASSERT(cause.radio_network().value == asn1::s1ap::cause_radio_network_opts::ho_target_not_allowed);
+    TESTASSERT(tester.rrc.get_nof_users() == 0);
+    return SRSRAN_SUCCESS;
+  }
+  if (test_params.fail_at == mobility_test_params::test_event::unknown_qci) {
+    TESTASSERT(rnti == SRSRAN_INVALID_RNTI);
+    TESTASSERT(cause.type().value == asn1::s1ap::cause_c::types_opts::radio_network);
+    TESTASSERT(cause.radio_network().value == asn1::s1ap::cause_radio_network_opts::not_supported_qci_value);
+    TESTASSERT(tester.rrc.get_nof_users() == 0);
+    return SRSRAN_SUCCESS;
+  }
   tester.tic();
   TESTASSERT(tester.rrc.get_nof_users() == 1);
   TESTASSERT(tester.mac.ue_db.count(0x46));
   auto& mac_ue = tester.mac.ue_db[0x46];
   TESTASSERT(mac_ue.supported_cc_list[0].active);
   TESTASSERT(mac_ue.supported_cc_list[0].enb_cc_idx == 0);
-  TESTASSERT(mac_ue.ue_bearers[rb_id_t::RB_ID_SRB0].direction == sched_interface::ue_bearer_cfg_t::BOTH);
+  TESTASSERT(mac_ue.ue_bearers[srb_to_lcid(lte_srb::srb0)].direction == sched_interface::ue_bearer_cfg_t::BOTH);
   // Check Security Configuration
   TESTASSERT(tester.pdcp.bearers.count(0x46));
-  TESTASSERT(tester.pdcp.bearers[0x46].count(rb_id_t::RB_ID_SRB1) and
-             tester.pdcp.bearers[0x46].count(rb_id_t::RB_ID_SRB2));
-  TESTASSERT(tester.pdcp.bearers[0x46][rb_id_t::RB_ID_SRB1].enable_encryption);
-  TESTASSERT(tester.pdcp.bearers[0x46][rb_id_t::RB_ID_SRB1].enable_integrity);
+  TESTASSERT(tester.pdcp.bearers[0x46].count(srb_to_lcid(lte_srb::srb1)) and
+             tester.pdcp.bearers[0x46].count(srb_to_lcid(lte_srb::srb2)));
+  TESTASSERT(tester.pdcp.bearers[0x46][srb_to_lcid(lte_srb::srb1)].enable_encryption);
+  TESTASSERT(tester.pdcp.bearers[0x46][srb_to_lcid(lte_srb::srb1)].enable_integrity);
   sec_cfg.set_security_capabilities(ho_req.protocol_ies.ue_security_cap.value);
   sec_cfg.set_security_key(ho_req.protocol_ies.security_context.value.next_hop_param);
   sec_cfg.regenerate_keys_handover(tester.cfg.cell_list[0].pci, tester.cfg.cell_list[0].dl_earfcn);
-  srslte::as_security_config_t as_sec_cfg = sec_cfg.get_as_sec_cfg();
-  TESTASSERT(tester.pdcp.bearers[0x46][rb_id_t::RB_ID_SRB1].sec_cfg.k_rrc_int == as_sec_cfg.k_rrc_int);
-  TESTASSERT(tester.pdcp.bearers[0x46][rb_id_t::RB_ID_SRB1].sec_cfg.k_rrc_enc == as_sec_cfg.k_rrc_enc);
-  TESTASSERT(tester.pdcp.bearers[0x46][rb_id_t::RB_ID_SRB1].sec_cfg.k_up_int == as_sec_cfg.k_up_int);
-  TESTASSERT(tester.pdcp.bearers[0x46][rb_id_t::RB_ID_SRB1].sec_cfg.cipher_algo == as_sec_cfg.cipher_algo);
-  TESTASSERT(tester.pdcp.bearers[0x46][rb_id_t::RB_ID_SRB1].sec_cfg.integ_algo == as_sec_cfg.integ_algo);
+  srsran::as_security_config_t as_sec_cfg = sec_cfg.get_as_sec_cfg();
+  TESTASSERT(tester.pdcp.bearers[0x46][srb_to_lcid(lte_srb::srb1)].sec_cfg.k_rrc_int == as_sec_cfg.k_rrc_int);
+  TESTASSERT(tester.pdcp.bearers[0x46][srb_to_lcid(lte_srb::srb1)].sec_cfg.k_rrc_enc == as_sec_cfg.k_rrc_enc);
+  TESTASSERT(tester.pdcp.bearers[0x46][srb_to_lcid(lte_srb::srb1)].sec_cfg.k_up_int == as_sec_cfg.k_up_int);
+  TESTASSERT(tester.pdcp.bearers[0x46][srb_to_lcid(lte_srb::srb1)].sec_cfg.cipher_algo == as_sec_cfg.cipher_algo);
+  TESTASSERT(tester.pdcp.bearers[0x46][srb_to_lcid(lte_srb::srb1)].sec_cfg.integ_algo == as_sec_cfg.integ_algo);
 
   // Check if S1AP Handover Request ACK send is called
   TESTASSERT(tester.s1ap.last_ho_req_ack.rnti == 0x46);
@@ -584,27 +392,38 @@ int test_s1ap_tenb_mobility(mobility_test_params test_params)
 
   uint8_t recfg_complete[] = {0x10, 0x00};
   test_helpers::copy_msg_to_buffer(pdu, recfg_complete);
-  tester.rrc.write_pdu(0x46, rb_id_t::RB_ID_SRB1, std::move(pdu));
+  tester.rrc.write_pdu(0x46, srb_to_lcid(lte_srb::srb1), std::move(pdu));
   tester.tic();
-  TESTASSERT(mac_ue.ue_bearers[rb_id_t::RB_ID_SRB1].direction == sched_interface::ue_bearer_cfg_t::BOTH);
-  TESTASSERT(mac_ue.ue_bearers[rb_id_t::RB_ID_SRB2].direction == sched_interface::ue_bearer_cfg_t::BOTH);
-  TESTASSERT(mac_ue.ue_bearers[rb_id_t::RB_ID_DRB1].direction == sched_interface::ue_bearer_cfg_t::BOTH);
+  TESTASSERT(mac_ue.ue_bearers[srb_to_lcid(lte_srb::srb1)].direction == sched_interface::ue_bearer_cfg_t::BOTH);
+  TESTASSERT(mac_ue.ue_bearers[srb_to_lcid(lte_srb::srb2)].direction == sched_interface::ue_bearer_cfg_t::BOTH);
+  TESTASSERT(mac_ue.ue_bearers[drb_to_lcid(lte_drb::drb1)].direction == sched_interface::ue_bearer_cfg_t::BOTH);
   TESTASSERT(mac_ue.pucch_cfg.I_sr == recfg_r8.rr_cfg_ded.phys_cfg_ded.sched_request_cfg.setup().sr_cfg_idx);
   TESTASSERT(mac_ue.pucch_cfg.n_pucch_sr ==
              recfg_r8.rr_cfg_ded.phys_cfg_ded.sched_request_cfg.setup().sr_pucch_res_idx);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-int test_intraenb_mobility(mobility_test_params test_params)
+int test_intraenb_mobility(srsran::log_sink_spy& spy, mobility_test_params test_params)
 {
   printf("\n===== TEST: test_intraenb_mobility() for event %s =====\n", test_params.to_string());
-  intraenb_mobility_tester     tester{test_params};
-  srslte::unique_byte_buffer_t pdu;
+  intraenb_mobility_tester tester{test_params};
+  spy.reset_counters();
+  srsran::unique_byte_buffer_t pdu;
 
-  TESTASSERT(tester.generate_rrc_cfg() == SRSLTE_SUCCESS);
-  TESTASSERT(tester.setup_rrc() == SRSLTE_SUCCESS);
-  TESTASSERT(tester.run_preamble() == SRSLTE_SUCCESS);
+  TESTASSERT(tester.generate_rrc_cfg() == SRSRAN_SUCCESS);
+  TESTASSERT(tester.setup_rrc() == SRSRAN_SUCCESS);
+  TESTASSERT(tester.run_preamble() == SRSRAN_SUCCESS);
+
+  /* Receive correct measConfig */
+  dl_dcch_msg_s dl_dcch_msg;
+  TESTASSERT(test_helpers::unpack_asn1(dl_dcch_msg, srsran::make_span(tester.pdcp.last_sdu.sdu)));
+  rrc_conn_recfg_r8_ies_s& recfg_r8 = dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
+  TESTASSERT(recfg_r8.meas_cfg_present and recfg_r8.meas_cfg.meas_gap_cfg_present);
+  TESTASSERT(recfg_r8.meas_cfg.meas_gap_cfg.type().value == setup_opts::setup);
+  TESTASSERT((1 + recfg_r8.meas_cfg.meas_gap_cfg.setup().gap_offset.type().value) * 40u ==
+             tester.cfg.cell_list[0].meas_cfg.meas_gap_period);
+
   tester.pdcp.last_sdu.sdu = nullptr;
   tester.rlc.test_reset_all();
   tester.phy.phy_cfg_set = false;
@@ -623,9 +442,9 @@ int test_intraenb_mobility(mobility_test_params test_params)
 
   /* Test Case: the MeasReport is not valid */
   if (test_params.fail_at == mobility_test_params::test_event::wrong_measreport) {
-    TESTASSERT(tester.rrc_log->warn_counter == 1);
+    TESTASSERT(spy.get_warning_counter() == 1);
     TESTASSERT(tester.pdcp.last_sdu.sdu == nullptr);
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
   TESTASSERT(tester.pdcp.last_sdu.sdu != nullptr);
   TESTASSERT(tester.s1ap.last_ho_required.rrc_container == nullptr);
@@ -639,16 +458,16 @@ int test_intraenb_mobility(mobility_test_params test_params)
     tester.rrc.write_pdu(tester.rnti, 1, std::move(pdu));
     tester.tic();
     TESTASSERT(tester.pdcp.last_sdu.sdu == nullptr);
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   /* Test Case: the HandoverCommand was sent to the lower layers */
-  TESTASSERT(tester.rrc_log->error_counter == 0);
+  TESTASSERT(spy.get_error_counter() == 0);
   TESTASSERT(tester.pdcp.last_sdu.rnti == tester.rnti);
   TESTASSERT(tester.pdcp.last_sdu.lcid == 1); // SRB1
   asn1::rrc::dl_dcch_msg_s ho_cmd;
-  TESTASSERT(test_helpers::unpack_asn1(ho_cmd, srslte::make_span(tester.pdcp.last_sdu.sdu)));
-  auto& recfg_r8 = ho_cmd.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
+  TESTASSERT(test_helpers::unpack_asn1(ho_cmd, srsran::make_span(tester.pdcp.last_sdu.sdu)));
+  recfg_r8 = ho_cmd.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
   TESTASSERT(recfg_r8.mob_ctrl_info_present);
   TESTASSERT(recfg_r8.mob_ctrl_info.new_ue_id.to_number() == tester.rnti);
   TESTASSERT(recfg_r8.mob_ctrl_info.target_pci == 2);
@@ -659,6 +478,11 @@ int test_intraenb_mobility(mobility_test_params test_params)
   TESTASSERT(phy_cfg_ded.cqi_report_cfg_present);
   // PHY should not be updated until the UE handovers to the new cell
   TESTASSERT(not tester.phy.phy_cfg_set);
+  // Correct measConfig
+  TESTASSERT(recfg_r8.meas_cfg_present and recfg_r8.meas_cfg.meas_gap_cfg_present);
+  TESTASSERT(recfg_r8.meas_cfg.meas_gap_cfg.type().value == setup_opts::setup);
+  TESTASSERT((1 + recfg_r8.meas_cfg.meas_gap_cfg.setup().gap_offset.type().value) * 40u ==
+             tester.cfg.cell_list[1].meas_cfg.meas_gap_period);
 
   /* Test Case: The UE sends a C-RNTI CE. Bearers are reestablished, PHY is configured */
   tester.pdcp.last_sdu.sdu = nullptr;
@@ -681,7 +505,7 @@ int test_intraenb_mobility(mobility_test_params test_params)
   /* Test Case: Terminate first Handover. No extra messages should be sent DL. SR/CQI resources match recfg message */
   uint8_t recfg_complete[] = {0x10, 0x00};
   test_helpers::copy_msg_to_buffer(pdu, recfg_complete);
-  tester.rrc.write_pdu(tester.rnti, rb_id_t::RB_ID_SRB2, std::move(pdu));
+  tester.rrc.write_pdu(tester.rnti, srb_to_lcid(lte_srb::srb2), std::move(pdu));
   TESTASSERT(tester.pdcp.last_sdu.sdu == nullptr);
   sched_interface::ue_cfg_t& ue_cfg = tester.mac.ue_db[tester.rnti];
   TESTASSERT(ue_cfg.pucch_cfg.sr_configured);
@@ -700,18 +524,36 @@ int test_intraenb_mobility(mobility_test_params test_params)
   TESTASSERT(tester.pdcp.last_sdu.sdu != nullptr);
   TESTASSERT(tester.s1ap.last_ho_required.rrc_container == nullptr);
   TESTASSERT(not tester.s1ap.last_enb_status.status_present);
-  TESTASSERT(test_helpers::unpack_asn1(ho_cmd, srslte::make_span(tester.pdcp.last_sdu.sdu)));
+  TESTASSERT(test_helpers::unpack_asn1(ho_cmd, srsran::make_span(tester.pdcp.last_sdu.sdu)));
   recfg_r8 = ho_cmd.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
   TESTASSERT(recfg_r8.mob_ctrl_info_present);
   TESTASSERT(recfg_r8.mob_ctrl_info.new_ue_id.to_number() == tester.rnti);
   TESTASSERT(recfg_r8.mob_ctrl_info.target_pci == 1);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int main(int argc, char** argv)
 {
-  srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_INFO);
+  // Setup the log spy to intercept error and warning log entries.
+  if (!srslog::install_custom_sink(
+          srsran::log_sink_spy::name(),
+          std::unique_ptr<srsran::log_sink_spy>(new srsran::log_sink_spy(srslog::get_default_log_formatter())))) {
+    return SRSRAN_ERROR;
+  }
+
+  auto* spy = static_cast<srsran::log_sink_spy*>(srslog::find_sink(srsran::log_sink_spy::name()));
+  if (!spy) {
+    return SRSRAN_ERROR;
+  }
+  srslog::set_default_sink(*spy);
+
+  auto& logger = srslog::fetch_basic_logger("RRC", false);
+  logger.set_level(srslog::basic_levels::info);
+  logger.set_hex_dump_max_size(1024);
+
+  srslog::init();
+
   using event = mobility_test_params::test_event;
 
   if (argc < 3) {
@@ -719,24 +561,26 @@ int main(int argc, char** argv)
     return -1;
   }
   argparse::parse_args(argc, argv);
-  TESTASSERT(test_correct_insertion() == 0);
-  TESTASSERT(test_correct_meascfg_calculation() == 0);
 
-  // S1AP Handover
-  TESTASSERT(test_s1ap_mobility(mobility_test_params{event::wrong_measreport}) == 0);
-  TESTASSERT(test_s1ap_mobility(mobility_test_params{event::concurrent_ho}) == 0);
-  TESTASSERT(test_s1ap_mobility(mobility_test_params{event::ho_prep_failure}) == 0);
-  TESTASSERT(test_s1ap_mobility(mobility_test_params{event::success}) == 0);
+  // Source ENB - S1 Handover
+  TESTASSERT(test_s1ap_mobility(*spy, mobility_test_params{event::wrong_measreport}) == 0);
+  TESTASSERT(test_s1ap_mobility(*spy, mobility_test_params{event::concurrent_ho}) == 0);
+  TESTASSERT(test_s1ap_mobility(*spy, mobility_test_params{event::ho_prep_failure}) == 0);
+  TESTASSERT(test_s1ap_mobility(*spy, mobility_test_params{event::success}) == 0);
 
+  TESTASSERT(test_s1ap_tenb_mobility(mobility_test_params{event::wrong_target_cell}) == 0);
+  TESTASSERT(test_s1ap_tenb_mobility(mobility_test_params{event::unknown_qci}) == 0);
   TESTASSERT(test_s1ap_tenb_mobility(mobility_test_params{event::success}) == 0);
 
   // intraeNB Handover
-  TESTASSERT(test_intraenb_mobility(mobility_test_params{event::wrong_measreport}) == 0);
-  TESTASSERT(test_intraenb_mobility(mobility_test_params{event::concurrent_ho}) == 0);
-  TESTASSERT(test_intraenb_mobility(mobility_test_params{event::duplicate_crnti_ce}) == 0);
-  TESTASSERT(test_intraenb_mobility(mobility_test_params{event::success}) == 0);
+  TESTASSERT(test_intraenb_mobility(*spy, mobility_test_params{event::wrong_measreport}) == 0);
+  TESTASSERT(test_intraenb_mobility(*spy, mobility_test_params{event::concurrent_ho}) == 0);
+  TESTASSERT(test_intraenb_mobility(*spy, mobility_test_params{event::duplicate_crnti_ce}) == 0);
+  TESTASSERT(test_intraenb_mobility(*spy, mobility_test_params{event::success}) == 0);
+
+  srslog::flush();
 
   printf("\nSuccess\n");
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }

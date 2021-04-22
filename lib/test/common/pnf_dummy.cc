@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -27,7 +27,7 @@
 #include <signal.h>
 #include <thread>
 
-#include "srslte/common/basic_pnf.h"
+#include "srsran/common/basic_pnf.h"
 
 using namespace std;
 namespace bpo = boost::program_options;
@@ -95,12 +95,12 @@ int main(int argc, char** argv)
   pnf_args_t args;
   parse_args(&args, argc, argv);
 
-  srslte::srslte_basic_pnf pnf(args.type, args.vnf_addr, args.vnf_port, args.sf_interval, args.num_sf, args.tb_len);
+  srsran::srsran_basic_pnf pnf(args.type, args.vnf_addr, args.vnf_port, args.sf_interval, args.num_sf, args.tb_len);
 
   pnf.start();
 
   while (running) {
-    srslte::pnf_metrics_t metrics = pnf.get_metrics();
+    srsran::pnf_metrics_t metrics = pnf.get_metrics();
     printf("RTT=%d, #Error=%d, #PDUs=%d, Total TB size=%d, Rate=%.2f Mbit/s\n",
            metrics.avg_rtt_us,
            metrics.num_timing_errors,

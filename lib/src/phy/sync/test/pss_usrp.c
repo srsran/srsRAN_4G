@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -29,8 +29,8 @@
 
 #include <stdbool.h>
 
-#include "srslte/phy/rf/rf.h"
-#include "srslte/srslte.h"
+#include "srsran/phy/rf/rf.h"
+#include "srsran/srsran.h"
 
 #ifdef ENABLE_GUI
 void init_plots();
@@ -47,7 +47,7 @@ int         nof_frames  = -1;
 uint32_t    fft_size    = 64;
 float       threshold   = 0.4;
 int         N_id_2_sync = -1;
-srslte_cp_t cp          = SRSLTE_CP_NORM;
+srsran_cp_t cp          = SRSRAN_CP_NORM;
 
 void usage(char* prog)
 {
@@ -65,7 +65,7 @@ void usage(char* prog)
 #else
   printf("\t plots are disabled. Graphics library not available\n");
 #endif
-  printf("\t-v srslte_verbose\n");
+  printf("\t-v srsran_verbose\n");
 }
 
 void parse_args(int argc, char** argv)
@@ -86,7 +86,7 @@ void parse_args(int argc, char** argv)
         threshold = strtof(argv[optind], NULL);
         break;
       case 'e':
-        cp = SRSLTE_CP_EXT;
+        cp = SRSRAN_CP_EXT;
         break;
       case 'i':
         cell_id = (int)strtol(argv[optind], NULL, 10);
@@ -107,7 +107,7 @@ void parse_args(int argc, char** argv)
         disable_plots = true;
         break;
       case 'v':
-        srslte_verbose++;
+        srsran_verbose++;
         break;
       default:
         usage(argv[0]);
@@ -125,16 +125,16 @@ int main(int argc, char** argv)
 {
   cf_t*        buffer;
   int          frame_cnt, n;
-  srslte_rf_t  rf;
-  srslte_pss_t pss;
-  srslte_cfo_t cfocorr, cfocorr64;
-  srslte_sss_t sss;
+  srsran_rf_t  rf;
+  srsran_pss_t pss;
+  srsran_cfo_t cfocorr, cfocorr64;
+  srsran_sss_t sss;
   int32_t      flen;
   int          peak_idx, last_peak;
   float        peak_value;
   float        mean_peak;
   uint32_t     nof_det, nof_nodet, nof_nopeak, nof_nopeakdet;
-  cf_t         ce[SRSLTE_PSS_LEN];
+  cf_t         ce[SRSRAN_PSS_LEN];
   float        sfo = 0;
 
   parse_args(argc, argv);
@@ -155,44 +155,44 @@ int main(int argc, char** argv)
   flen = srate * 5 / 1000;
 
   printf("Opening RF device...\n");
-  if (srslte_rf_open(&rf, rf_args)) {
-    ERROR("Error opening rf\n");
+  if (srsran_rf_open(&rf, rf_args)) {
+    ERROR("Error opening rf");
     exit(-1);
   }
-  srslte_rf_set_rx_gain(&rf, rf_gain);
-  printf("Set RX rate: %.2f MHz\n", srslte_rf_set_rx_srate(&rf, srate) / 1000000);
-  printf("Set RX gain: %.1f dB\n", srslte_rf_get_rx_gain(&rf));
-  printf("Set RX freq: %.2f MHz\n", srslte_rf_set_rx_freq(&rf, 0, rf_freq) / 1000000);
+  srsran_rf_set_rx_gain(&rf, rf_gain);
+  printf("Set RX rate: %.2f MHz\n", srsran_rf_set_rx_srate(&rf, srate) / 1000000);
+  printf("Set RX gain: %.1f dB\n", srsran_rf_get_rx_gain(&rf));
+  printf("Set RX freq: %.2f MHz\n", srsran_rf_set_rx_freq(&rf, 0, rf_freq) / 1000000);
 
-  buffer = srslte_vec_cf_malloc(flen * 2);
+  buffer = srsran_vec_cf_malloc(flen * 2);
   if (!buffer) {
     perror("malloc");
     exit(-1);
   }
 
-  if (srslte_pss_init_fft(&pss, flen, fft_size)) {
-    ERROR("Error initiating PSS\n");
+  if (srsran_pss_init_fft(&pss, flen, fft_size)) {
+    ERROR("Error initiating PSS");
     exit(-1);
   }
 
-  if (srslte_pss_set_N_id_2(&pss, N_id_2_sync)) {
-    ERROR("Error setting N_id_2=%d\n", N_id_2_sync);
+  if (srsran_pss_set_N_id_2(&pss, N_id_2_sync)) {
+    ERROR("Error setting N_id_2=%d", N_id_2_sync);
     exit(-1);
   }
 
-  srslte_cfo_init(&cfocorr, flen);
-  srslte_cfo_init(&cfocorr64, flen);
+  srsran_cfo_init(&cfocorr, flen);
+  srsran_cfo_init(&cfocorr64, flen);
 
-  if (srslte_sss_init(&sss, fft_size)) {
-    ERROR("Error initializing SSS object\n");
+  if (srsran_sss_init(&sss, fft_size)) {
+    ERROR("Error initializing SSS object");
     exit(-1);
   }
 
-  srslte_sss_set_N_id_2(&sss, N_id_2);
+  srsran_sss_set_N_id_2(&sss, N_id_2);
 
   printf("N_id_2: %d\n", N_id_2);
 
-  srslte_rf_start_rx_stream(&rf, false);
+  srsran_rf_start_rx_stream(&rf, false);
 
   printf("Frame length %d samples\n", flen);
   printf("PSS detection threshold: %.2f\n", threshold);
@@ -208,8 +208,8 @@ int main(int argc, char** argv)
   uint32_t sss_error1 = 0, sss_error2 = 0, sss_error3 = 0;
   uint32_t cp_is_norm = 0;
 
-  srslte_sync_t ssync;
-  bzero(&ssync, sizeof(srslte_sync_t));
+  srsran_sync_t ssync;
+  bzero(&ssync, sizeof(srsran_sync_t));
   ssync.fft_size = fft_size;
 
   uint32_t max_peak  = 0;
@@ -220,35 +220,34 @@ int main(int argc, char** argv)
   pss.filter_pss_enable = true;
 
   while (frame_cnt < nof_frames || nof_frames == -1) {
-    n = srslte_rf_recv(&rf, buffer, flen - peak_offset, 1);
+    n = srsran_rf_recv(&rf, buffer, flen - peak_offset, 1);
     if (n < 0) {
-      ERROR("Error receiving samples\n");
+      ERROR("Error receiving samples");
       exit(-1);
     }
 
-    peak_idx = srslte_pss_find_pss(&pss, buffer, &peak_value);
+    peak_idx = srsran_pss_find_pss(&pss, buffer, &peak_value);
     if (peak_idx < 0) {
-      ERROR("Error finding PSS peak\n");
+      ERROR("Error finding PSS peak");
       exit(-1);
     }
 
-    mean_peak = SRSLTE_VEC_CMA(peak_value, mean_peak, frame_cnt);
+    mean_peak = SRSRAN_VEC_CMA(peak_value, mean_peak, frame_cnt);
 
     if (peak_value >= threshold) {
       nof_det++;
 
       if (peak_idx >= fft_size) {
-
         // Estimate CFO
-        cfo      = srslte_pss_cfo_compute(&pss, &buffer[peak_idx - fft_size]);
-        mean_cfo = SRSLTE_VEC_CMA(cfo, mean_cfo, frame_cnt);
+        cfo      = srsran_pss_cfo_compute(&pss, &buffer[peak_idx - fft_size]);
+        mean_cfo = SRSRAN_VEC_CMA(cfo, mean_cfo, frame_cnt);
 
         // Correct CFO
-        srslte_cfo_correct(&cfocorr, buffer, buffer, -mean_cfo / fft_size);
+        srsran_cfo_correct(&cfocorr, buffer, buffer, -mean_cfo / fft_size);
 
         // Estimate channel
-        if (srslte_pss_chest(&pss, &buffer[peak_idx - fft_size], ce)) {
-          ERROR("Error computing channel estimation\n");
+        if (srsran_pss_chest(&pss, &buffer[peak_idx - fft_size], ce)) {
+          ERROR("Error computing channel estimation");
           exit(-1);
         }
 
@@ -256,48 +255,47 @@ int main(int argc, char** argv)
         int sss_idx;
         if (!tdd_mode) {
           sss_idx = peak_idx - 2 * fft_size -
-                    (SRSLTE_CP_ISNORM(cp) ? SRSLTE_CP_LEN(fft_size, SRSLTE_CP_NORM_LEN)
-                                          : SRSLTE_CP_LEN(fft_size, SRSLTE_CP_EXT_LEN));
+                    (SRSRAN_CP_ISNORM(cp) ? SRSRAN_CP_LEN(fft_size, SRSRAN_CP_NORM_LEN)
+                                          : SRSRAN_CP_LEN(fft_size, SRSRAN_CP_EXT_LEN));
         } else {
           sss_idx = peak_idx - 4 * fft_size -
-                    3 * (SRSLTE_CP_ISNORM(cp) ? SRSLTE_CP_LEN(fft_size, SRSLTE_CP_NORM_LEN)
-                                              : SRSLTE_CP_LEN(fft_size, SRSLTE_CP_EXT_LEN));
+                    3 * (SRSRAN_CP_ISNORM(cp) ? SRSRAN_CP_LEN(fft_size, SRSRAN_CP_NORM_LEN)
+                                              : SRSRAN_CP_LEN(fft_size, SRSRAN_CP_EXT_LEN));
         }
         if (sss_idx >= 0 && sss_idx < flen - fft_size) {
-
           // Filter SSS
-          srslte_pss_filter(&pss, &buffer[sss_idx], &buffer[sss_idx]);
+          srsran_pss_filter(&pss, &buffer[sss_idx], &buffer[sss_idx]);
 
-          INFO("Full N_id_1: %d\n", srslte_sss_N_id_1(&sss, m0, m1, m1_value + m0_value));
-          srslte_sss_m0m1_partial(&sss, &buffer[sss_idx], 1, ce, &m0, &m0_value, &m1, &m1_value);
-          if (srslte_sss_N_id_1(&sss, m0, m1, m1_value + m0_value) != N_id_1) {
+          INFO("Full N_id_1: %d", srsran_sss_N_id_1(&sss, m0, m1, m1_value + m0_value));
+          srsran_sss_m0m1_partial(&sss, &buffer[sss_idx], 1, ce, &m0, &m0_value, &m1, &m1_value);
+          if (srsran_sss_N_id_1(&sss, m0, m1, m1_value + m0_value) != N_id_1) {
             sss_error2++;
           }
-          INFO("Partial N_id_1: %d\n", srslte_sss_N_id_1(&sss, m0, m1, m1_value + m0_value));
-          srslte_sss_m0m1_diff_coh(&sss, &buffer[sss_idx], ce, &m0, &m0_value, &m1, &m1_value);
-          if (srslte_sss_N_id_1(&sss, m0, m1, m1_value + m0_value) != N_id_1) {
+          INFO("Partial N_id_1: %d", srsran_sss_N_id_1(&sss, m0, m1, m1_value + m0_value));
+          srsran_sss_m0m1_diff_coh(&sss, &buffer[sss_idx], ce, &m0, &m0_value, &m1, &m1_value);
+          if (srsran_sss_N_id_1(&sss, m0, m1, m1_value + m0_value) != N_id_1) {
             sss_error3++;
           }
-          INFO("Diff N_id_1: %d\n", srslte_sss_N_id_1(&sss, m0, m1, m1_value + m0_value));
+          INFO("Diff N_id_1: %d", srsran_sss_N_id_1(&sss, m0, m1, m1_value + m0_value));
         }
-        srslte_sss_m0m1_partial(&sss, &buffer[sss_idx], 1, NULL, &m0, &m0_value, &m1, &m1_value);
-        if (srslte_sss_N_id_1(&sss, m0, m1, m1_value + m0_value) != N_id_1) {
+        srsran_sss_m0m1_partial(&sss, &buffer[sss_idx], 1, NULL, &m0, &m0_value, &m1, &m1_value);
+        if (srsran_sss_N_id_1(&sss, m0, m1, m1_value + m0_value) != N_id_1) {
           sss_error1++;
         }
 
         // Estimate CP
-        if (peak_idx > 2 * (fft_size + SRSLTE_CP_LEN_EXT(fft_size))) {
-          srslte_cp_t cp = srslte_sync_detect_cp(&ssync, buffer, peak_idx);
-          if (SRSLTE_CP_ISNORM(cp)) {
+        if (peak_idx > 2 * (fft_size + SRSRAN_CP_LEN_EXT(fft_size))) {
+          srsran_cp_t cp = srsran_sync_detect_cp(&ssync, buffer, peak_idx);
+          if (SRSRAN_CP_ISNORM(cp)) {
             cp_is_norm++;
           }
         }
 
       } else {
-        INFO("No space for CFO computation. Frame starts at \n");
+        INFO("No space for CFO computation. Frame starts at ");
       }
 
-      if (srslte_sss_subframe(m0, m1) == 0) {
+      if (srsran_sss_subframe(m0, m1) == 0) {
 #ifdef ENABLE_GUI
         if (!disable_plots)
           do_plots_sss(sss.corr_output_m0, sss.corr_output_m1);
@@ -333,7 +331,7 @@ int main(int argc, char** argv)
         nof_nopeak++;
       }
 
-      sfo = SRSLTE_VEC_CMA((peak_idx - last_peak) / 5e-3, sfo, frame_cnt);
+      sfo = SRSRAN_VEC_CMA((peak_idx - last_peak) / 5e-3, sfo, frame_cnt);
 
       int      frame_idx          = frame_cnt % 200;
       uint32_t peak_offset_symbol = peak_idx % fft_size;
@@ -353,7 +351,7 @@ int main(int argc, char** argv)
 
     frame_cnt++;
 
-    if (SRSLTE_VERBOSE_ISINFO()) {
+    if (SRSRAN_VERBOSE_ISINFO()) {
       printf("\n");
     }
 
@@ -366,10 +364,10 @@ int main(int argc, char** argv)
     last_peak = peak_idx;
   }
 
-  srslte_sss_free(&sss);
-  srslte_pss_free(&pss);
+  srsran_sss_free(&sss);
+  srsran_pss_free(&pss);
   free(buffer);
-  srslte_rf_close(&rf);
+  srsran_rf_close(&rf);
 
   printf("Ok\n");
   exit(0);
@@ -389,7 +387,7 @@ plot_real_t pssout;
 plot_real_t psss1;
 
 float tmp[1000000];
-cf_t  tmpce[SRSLTE_PSS_LEN];
+cf_t  tmpce[SRSRAN_PSS_LEN];
 
 void init_plots()
 {
@@ -416,15 +414,15 @@ void init_plots()
 
 void do_plots_pss(float* corr, float peak, uint32_t size)
 {
-  srslte_vec_sc_prod_fff(corr, 1. / peak, tmp, size);
+  srsran_vec_sc_prod_fff(corr, 1. / peak, tmp, size);
   plot_real_setNewData(&pssout, tmp, size);
 }
 
 void do_plots_sss(float* corr_m0, float* corr_m1)
 {
   if (m0_value > 0)
-    srslte_vec_sc_prod_fff(corr_m0, 1. / m0_value, corr_m0, SRSLTE_SSS_N);
-  plot_real_setNewData(&psss1, corr_m0, SRSLTE_SSS_N);
+    srsran_vec_sc_prod_fff(corr_m0, 1. / m0_value, corr_m0, SRSRAN_SSS_N);
+  plot_real_setNewData(&psss1, corr_m0, SRSRAN_SSS_N);
 }
 
 #endif /* ENABLE_GUI */

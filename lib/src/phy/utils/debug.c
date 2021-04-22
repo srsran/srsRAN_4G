@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,15 +19,14 @@
  *
  */
 
-#include "srslte/phy/utils/debug.h"
+#include "srsran/phy/utils/debug.h"
 #include <stdlib.h>
 
-int srslte_verbose     = 0;
+int srsran_verbose     = 0;
 int handler_registered = 0;
 
 void get_time_interval(struct timeval* tdata)
 {
-
   tdata[0].tv_sec  = tdata[2].tv_sec - tdata[1].tv_sec;
   tdata[0].tv_usec = tdata[2].tv_usec - tdata[1].tv_usec;
   if (tdata[0].tv_usec < 0) {

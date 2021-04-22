@@ -7,6 +7,7 @@
 # - init of static memory may cause an exception (cert-err58)
 # - forbidden implicit conversion from pointer/int to bool
 # - recommended auto
+# - remove llvm-specific checks (header guard style, usage of llvm namespace, restriction of libc includes, etc.)
 # Naming conventions set to snake_case
 Checks: '*,-fuchsia-*,
          -cppcoreguidelines-pro-type-vararg,-hicpp-vararg,
@@ -14,11 +15,17 @@ Checks: '*,-fuchsia-*,
          -cppcoreguidelines-pro-bounds-array-to-pointer-decay,-hicpp-no-array-decay,
          -cppcoreguidelines-pro-bounds-constant-array-index,-cppcoreguidelines-pro-type-cstyle-cast,
          -cppcoreguidelines-pro-type-union-access,
-         -modernize-use-using,
+         -cppcoreguidelines-pro-type-static-cast-downcast,
+         -modernize-use-using,-modernize-use-trailing-return-type,
          -modernize-use-auto,-hicpp-use-auto,
+         -llvmlibc-callee-namespace,-llvmlibc-implementation-in-namespace,-llvmlibc-restrict-system-libc-headers,
+         -llvm-header-guard,
          -google-runtime-references,-google-readability-casting,-google-build-using-namespace,
          google-default-arguments,-cppcoreguidelines-pro-bounds-pointer-arithmetic,
          -cert-err58-cpp,
+         -readability-function-cognitive-complexity,-readability-isolate-declaration,
+         -misc-non-private-member-variables-in-classes,-altera-struct-pack-align,-readability-uppercase-literal-suffix,
+         -cppcoreguidelines-non-private-member-variables-in-classes,
          readability-identifier-naming'
 HeaderFilterRegex: ''
 AnalyzeTemporaryDtors: false

@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,10 +19,10 @@
  *
  */
 
-#include "srslte/phy/rf/rf.h"
-#include "srslte/phy/sync/sync_nbiot.h"
-#include "srslte/phy/ue/ue_sync_nbiot.h"
-#include "srslte/srslte.h"
+#include "srsran/phy/rf/rf.h"
+#include "srsran/phy/sync/sync_nbiot.h"
+#include "srsran/phy/ue/ue_sync_nbiot.h"
+#include "srsran/srsran.h"
 #include <math.h>
 #include <signal.h>
 #include <stdio.h>
@@ -47,10 +47,10 @@ float       threshold   = 20.0;
 int         N_id_2_sync = -1;
 float       cfo_ema     = 0.2;
 float       do_cfo_corr = true;
-srslte_cp_t cp          = SRSLTE_CP_NORM;
+srsran_cp_t cp          = SRSRAN_CP_NORM;
 
-srslte_nbiot_cell_t cell = {
-    .base      = {.nof_prb = 1, .nof_ports = 1, .cp = SRSLTE_CP_NORM, .id = 0},
+srsran_nbiot_cell_t cell = {
+    .base      = {.nof_prb = 1, .nof_ports = 1, .cp = SRSRAN_CP_NORM, .id = 0},
     .nbiot_prb = 0,
 };
 
@@ -69,7 +69,7 @@ void usage(char* prog)
 #else
   printf("\t plots are disabled. Graphics library not available\n");
 #endif
-  printf("\t-v srslte_verbose\n");
+  printf("\t-v srsran_verbose\n");
 }
 
 void parse_args(int argc, char** argv)
@@ -105,7 +105,7 @@ void parse_args(int argc, char** argv)
         disable_plots = true;
         break;
       case 'v':
-        srslte_verbose++;
+        srsran_verbose++;
         break;
       default:
         usage(argv[0]);
@@ -127,10 +127,10 @@ void sig_int_handler(int signo)
   }
 }
 
-int srslte_rf_recv_wrapper_cs(void* h, void* data, uint32_t nsamples, srslte_timestamp_t* t)
+int srsran_rf_recv_wrapper_cs(void* h, void* data, uint32_t nsamples, srsran_timestamp_t* t)
 {
-  DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
-  return srslte_rf_recv(h, data, nsamples, 1);
+  DEBUG(" ----  Receive %d samples  ---- ", nsamples);
+  return srsran_rf_recv(h, data, nsamples, 1);
 }
 
 int main(int argc, char** argv)
@@ -155,56 +155,56 @@ int main(int argc, char** argv)
   printf("Frame length %d samples\n", flen);
 
   printf("Opening RF device...\n");
-  srslte_rf_t rf;
-  if (srslte_rf_open(&rf, rf_args)) {
+  srsran_rf_t rf;
+  if (srsran_rf_open(&rf, rf_args)) {
     fprintf(stderr, "Error opening rf\n");
     exit(-1);
   }
 
-  srslte_rf_set_rx_gain(&rf, rf_gain);
-  printf("Set RX rate: %.2f MHz\n", srslte_rf_set_rx_srate(&rf, srate) / 1000000);
-  printf("Set RX gain: %.1f dB\n", srslte_rf_get_rx_gain(&rf));
-  printf("Set RX freq: %.2f MHz\n", srslte_rf_set_rx_freq(&rf, 0, rf_freq) / 1000000);
+  srsran_rf_set_rx_gain(&rf, rf_gain);
+  printf("Set RX rate: %.2f MHz\n", srsran_rf_set_rx_srate(&rf, srate) / 1000000);
+  printf("Set RX gain: %.1f dB\n", srsran_rf_get_rx_gain(&rf));
+  printf("Set RX freq: %.2f MHz\n", srsran_rf_set_rx_freq(&rf, 0, rf_freq) / 1000000);
 
   // Allocate memory for rx'ing samples (1 full frame)
-  cf_t* rx_buffer[SRSLTE_MAX_PORTS] = {NULL, NULL, NULL, NULL};
-  for (uint32_t i = 0; i < SRSLTE_NBIOT_NUM_RX_ANTENNAS; i++) {
-    rx_buffer[i] = srslte_vec_cf_malloc(SRSLTE_NOF_SF_X_FRAME * SRSLTE_SF_LEN_PRB_NBIOT);
+  cf_t* rx_buffer[SRSRAN_MAX_PORTS] = {NULL, NULL, NULL, NULL};
+  for (uint32_t i = 0; i < SRSRAN_NBIOT_NUM_RX_ANTENNAS; i++) {
+    rx_buffer[i] = srsran_vec_cf_malloc(SRSRAN_NOF_SF_X_FRAME * SRSRAN_SF_LEN_PRB_NBIOT);
     if (!rx_buffer[i]) {
       perror("malloc");
       goto clean_exit;
     }
   }
 
-  srslte_nbiot_ue_sync_t ue_sync = {};
-  if (srslte_ue_sync_nbiot_init(&ue_sync, cell, srslte_rf_recv_wrapper_cs, (void*)&rf)) {
+  srsran_nbiot_ue_sync_t ue_sync = {};
+  if (srsran_ue_sync_nbiot_init(&ue_sync, cell, srsran_rf_recv_wrapper_cs, (void*)&rf)) {
     fprintf(stderr, "Error initiating ue_sync\n");
     exit(-1);
   }
 
-  srslte_ue_sync_nbiot_set_cfo_enable(&ue_sync, do_cfo_corr);
-  srslte_ue_sync_nbiot_set_cfo_ema(&ue_sync, cfo_ema);
+  srsran_ue_sync_nbiot_set_cfo_enable(&ue_sync, do_cfo_corr);
+  srsran_ue_sync_nbiot_set_cfo_ema(&ue_sync, cfo_ema);
 
-  srslte_rf_start_rx_stream(&rf, false);
+  srsran_rf_start_rx_stream(&rf, false);
 
   int frame_cnt = 0;
   printf("Trying to keep syncronized to cell for %d frames\n", nof_frames);
 
   while ((frame_cnt < nof_frames || nof_frames == -1) && !go_exit) {
-    if (srslte_ue_sync_nbiot_zerocopy_multi(&ue_sync, rx_buffer) < 0) {
-      fprintf(stderr, "Error calling srslte_nbiot_ue_sync_work()\n");
+    if (srsran_ue_sync_nbiot_zerocopy_multi(&ue_sync, rx_buffer) < 0) {
+      fprintf(stderr, "Error calling srsran_nbiot_ue_sync_work()\n");
       break;
     }
 
-    if (srslte_ue_sync_nbiot_get_sfidx(&ue_sync) == 0) {
-      printf("CFO: %+6.2f kHz\r", srslte_ue_sync_nbiot_get_cfo(&ue_sync) / 1000);
+    if (srsran_ue_sync_nbiot_get_sfidx(&ue_sync) == 0) {
+      printf("CFO: %+6.2f kHz\r", srsran_ue_sync_nbiot_get_cfo(&ue_sync) / 1000);
       frame_cnt++;
     }
 
 #ifndef DISABLE_GRAPHICS
     if (!disable_plots) {
       // get current CFO estimate
-      cfo_table[cfo_table_index++] = srslte_ue_sync_nbiot_get_cfo(&ue_sync) / 1000;
+      cfo_table[cfo_table_index++] = srsran_ue_sync_nbiot_get_cfo(&ue_sync) / 1000;
       if (cfo_table_index == cfo_num_plot) {
         do_plots_cfo(cfo_table, cfo_num_plot);
         cfo_table_index = 0;
@@ -212,19 +212,19 @@ int main(int argc, char** argv)
     }
 
     if (!disable_plots) {
-      srslte_npss_synch_t* pss_obj = ue_sync.state == SF_FIND ? &ue_sync.sfind.npss : &ue_sync.strack.npss;
-      int                  len     = SRSLTE_NPSS_CORR_FILTER_LEN + pss_obj->frame_size - 1;
-      int max = srslte_vec_max_fi(pss_obj->conv_output_avg, pss_obj->frame_size + pss_obj->fft_size - 1);
+      srsran_npss_synch_t* pss_obj = ue_sync.state == SF_FIND ? &ue_sync.sfind.npss : &ue_sync.strack.npss;
+      int                  len     = SRSRAN_NPSS_CORR_FILTER_LEN + pss_obj->frame_size - 1;
+      int max = srsran_vec_max_fi(pss_obj->conv_output_avg, pss_obj->frame_size + pss_obj->fft_size - 1);
       do_plots_npss(pss_obj->conv_output_avg, pss_obj->conv_output_avg[max], len);
     }
 #endif
   }
 
 clean_exit:
-  srslte_ue_sync_nbiot_free(&ue_sync);
-  srslte_rf_close(&rf);
+  srsran_ue_sync_nbiot_free(&ue_sync);
+  srsran_rf_close(&rf);
 
-  for (uint32_t i = 0; i < SRSLTE_MAX_PORTS; i++) {
+  for (uint32_t i = 0; i < SRSRAN_MAX_PORTS; i++) {
     if (rx_buffer[i] != NULL) {
       free(rx_buffer[i]);
     }
@@ -264,7 +264,7 @@ void init_plots()
 
 void do_plots_npss(float* corr, float peak, uint32_t size)
 {
-  srslte_vec_sc_prod_fff(corr, 1. / peak, tmp, size);
+  srsran_vec_sc_prod_fff(corr, 1. / peak, tmp, size);
   plot_real_setNewData(&npss_plot, tmp, size);
 }
 

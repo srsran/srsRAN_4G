@@ -1,14 +1,14 @@
 #
-# Copyright 2013-2020 Software Radio Systems Limited
+# Copyright 2013-2021 Software Radio Systems Limited
 #
-# This file is part of srsLTE
+# This file is part of srsRAN
 #
-# srsLTE is free software: you can redistribute it and/or modify
+# srsRAN is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of
 # the License, or (at your option) any later version.
 #
-# srsLTE is distributed in the hope that it will be useful,
+# srsRAN is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Affero General Public License for more details.
@@ -32,16 +32,14 @@ endif (RPATH)
 
 add_executable(srsue main.cc ue.cc metrics_stdout.cc metrics_csv.cc)
 
-set(SRSUE_SOURCES srsue_phy srsue_stack srsue_upper srsue_mac srsue_rrc srslog)
-set(SRSLTE_SOURCES srslte_common srslte_mac srslte_phy srslte_radio srslte_upper rrc_asn1 srslog)
+set(SRSUE_SOURCES srsue_phy srsue_stack srsue_upper srsue_mac srsue_rrc srslog system)
+set(SRSRAN_SOURCES srsran_common srsran_mac srsran_phy srsran_radio srsran_upper rrc_asn1 srslog system)
 
-if(ENABLE_5GNR)
-  set(SRSUE_SOURCES ${SRSUE_SOURCES} srsue_nr_stack srsue_rrc_nr srsue_mac_nr)
-  set(SRSLTE_SOURCES ${SRSLTE_SOURCES} rrc_nr_asn1 ngap_nr_asn1)
-endif()
+set(SRSUE_SOURCES ${SRSUE_SOURCES} srsue_nr_stack srsue_rrc_nr srsue_mac_nr)
+set(SRSRAN_SOURCES ${SRSRAN_SOURCES} rrc_nr_asn1 ngap_nr_asn1)
 
 target_link_libraries(srsue   ${SRSUE_SOURCES}
-                              ${SRSLTE_SOURCES}
+                              ${SRSRAN_SOURCES}
                               ${CMAKE_THREAD_LIBS_INIT}
                               ${Boost_LIBRARIES})
 
@@ -62,8 +60,8 @@ endif(NOT SRSGUI_FOUND)
 # Checks that ue.conf.example is valid and it does not leak memory if RF fails
 if (ZEROMQ_FOUND)
   add_test(ue_rf_failure srsue ${CMAKE_SOURCE_DIR}/srsue/ue.conf.example --rf.device_name=zmq)
-  add_test(ue_rf_failure_max_channels srsue ${CMAKE_SOURCE_DIR}/srsue/ue.conf.example --rf.device_name=zmq --rf.nof_antennas=4 --rf.nof_carriers=5)
-  add_test(ue_rf_failure_exceeds_channels srsue ${CMAKE_SOURCE_DIR}/srsue/ue.conf.example --rf.device_name=zmq --rf.nof_antennas=5 --rf.nof_carriers=5)
+  add_test(ue_rf_failure_max_channels srsue ${CMAKE_SOURCE_DIR}/srsue/ue.conf.example --rf.device_name=zmq --rf.nof_antennas=4 --rat.eutra.nof_carriers=5)
+  add_test(ue_rf_failure_exceeds_channels srsue ${CMAKE_SOURCE_DIR}/srsue/ue.conf.example --rf.device_name=zmq --rf.nof_antennas=5 --rat.eutra.nof_carriers=5)
 endif(ZEROMQ_FOUND)
 
 ########################################################################

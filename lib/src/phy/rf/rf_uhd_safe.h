@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -18,8 +18,8 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
-#ifndef SRSLTE_RF_UHD_SAFE_H
-#define SRSLTE_RF_UHD_SAFE_H
+#ifndef SRSRAN_RF_UHD_SAFE_H
+#define SRSRAN_RF_UHD_SAFE_H
 
 #include <set>
 #include <uhd/utils/log.hpp>
@@ -120,17 +120,18 @@ protected:
 public:
   std::string last_error;
 
-  virtual uhd_error usrp_make(const uhd::device_addr_t& dev_addr, uint32_t nof_channels)             = 0;
-  virtual uhd_error get_mboard_name(std::string& mboard_name)                                        = 0;
-  virtual uhd_error get_mboard_sensor_names(std::vector<std::string>& sensors)                       = 0;
-  virtual uhd_error get_rx_sensor_names(std::vector<std::string>& sensors)                           = 0;
-  virtual uhd_error get_sensor(const std::string& sensor_name, double& sensor_value)                 = 0;
-  virtual uhd_error get_sensor(const std::string& sensor_name, bool& sensor_value)                   = 0;
-  virtual uhd_error get_rx_sensor(const std::string& sensor_name, bool& sensor_value)                = 0;
-  virtual uhd_error set_time_unknown_pps(const uhd::time_spec_t& timespec)                           = 0;
-  virtual uhd_error get_time_now(uhd::time_spec_t& timespec)                                         = 0;
+  virtual uhd_error usrp_make(const uhd::device_addr_t& dev_addr, uint32_t nof_channels) = 0;
+  virtual uhd_error get_mboard_name(std::string& mboard_name)                            = 0;
+  virtual uhd_error get_mboard_sensor_names(std::vector<std::string>& sensors)           = 0;
+  virtual uhd_error get_rx_sensor_names(std::vector<std::string>& sensors)               = 0;
+  virtual uhd_error get_sensor(const std::string& sensor_name, double& sensor_value)     = 0;
+  virtual uhd_error get_sensor(const std::string& sensor_name, bool& sensor_value)       = 0;
+  virtual uhd_error get_rx_sensor(const std::string& sensor_name, bool& sensor_value)    = 0;
+  virtual uhd_error set_time_unknown_pps(const uhd::time_spec_t& timespec)               = 0;
+  virtual uhd_error get_time_now(uhd::time_spec_t& timespec)                             = 0;
   uhd_error         start_rx_stream(double delay)
   {
+    Debug("Starting Rx stream");
     uhd::time_spec_t time_spec;
     uhd_error        err = get_time_now(time_spec);
     if (err != UHD_ERROR_NONE) {
@@ -146,25 +147,25 @@ public:
   }
   uhd_error stop_rx_stream()
   {
+    Debug("Stopping Rx stream");
     UHD_SAFE_C_SAVE_ERROR(this, uhd::stream_cmd_t stream_cmd(uhd::stream_cmd_t::STREAM_MODE_STOP_CONTINUOUS);
+                          stream_cmd.stream_now = true;
                           rx_stream->issue_stream_cmd(stream_cmd);)
   }
-  virtual uhd_error set_sync_source(const std::string& source)                                         = 0;
+  virtual uhd_error set_sync_source(const std::string& sync_source, const std::string& clock_source)   = 0;
   virtual uhd_error get_gain_range(uhd::gain_range_t& tx_gain_range, uhd::gain_range_t& rx_gain_range) = 0;
   virtual uhd_error set_master_clock_rate(double rate)                                                 = 0;
   virtual uhd_error set_rx_rate(double rate)                                                           = 0;
   virtual uhd_error set_tx_rate(double rate)                                                           = 0;
   virtual uhd_error set_command_time(const uhd::time_spec_t& timespec)                                 = 0;
   virtual uhd_error get_rx_stream(size_t& max_num_samps)                                               = 0;
-  virtual uhd_error destroy_rx_stream() { UHD_SAFE_C_SAVE_ERROR(this, rx_stream = nullptr;) }
-  virtual uhd_error get_tx_stream(size_t& max_num_samps) = 0;
-  virtual uhd_error destroy_tx_stream() { UHD_SAFE_C_SAVE_ERROR(this, rx_stream = nullptr;) }
-  virtual uhd_error set_tx_gain(size_t ch, double gain)                               = 0;
-  virtual uhd_error set_rx_gain(size_t ch, double gain)                               = 0;
-  virtual uhd_error get_rx_gain(double& gain)                                         = 0;
-  virtual uhd_error get_tx_gain(double& gain)                                         = 0;
-  virtual uhd_error set_tx_freq(uint32_t ch, double target_freq, double& actual_freq) = 0;
-  virtual uhd_error set_rx_freq(uint32_t ch, double target_freq, double& actual_freq) = 0;
+  virtual uhd_error get_tx_stream(size_t& max_num_samps)                                               = 0;
+  virtual uhd_error set_tx_gain(size_t ch, double gain)                                                = 0;
+  virtual uhd_error set_rx_gain(size_t ch, double gain)                                                = 0;
+  virtual uhd_error get_rx_gain(double& gain)                                                          = 0;
+  virtual uhd_error get_tx_gain(double& gain)                                                          = 0;
+  virtual uhd_error set_tx_freq(uint32_t ch, double target_freq, double& actual_freq)                  = 0;
+  virtual uhd_error set_rx_freq(uint32_t ch, double target_freq, double& actual_freq)                  = 0;
   uhd_error         receive(void**              buffs,
                             const size_t        nsamps_per_buff,
                             uhd::rx_metadata_t& metadata,
@@ -192,4 +193,4 @@ public:
   virtual bool is_tx_ready() { return tx_stream != nullptr; }
 };
 
-#endif // SRSLTE_RF_UHD_SAFE_H
+#endif // SRSRAN_RF_UHD_SAFE_H

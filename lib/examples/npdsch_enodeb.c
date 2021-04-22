@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -30,15 +30,15 @@
 #include <sys/select.h>
 #include <unistd.h>
 
-#include "srslte/phy/ch_estimation/chest_dl_nbiot.h"
-#include "srslte/phy/channel/ch_awgn.h"
-#include "srslte/phy/io/filesink.h"
-#include "srslte/phy/io/filesource.h"
-#include "srslte/phy/sync/npss.h"
-#include "srslte/phy/sync/nsss.h"
-#include "srslte/phy/ue/ue_dl_nbiot.h"
-#include "srslte/phy/utils/bit.h"
-#include "srslte/phy/utils/random.h"
+#include "srsran/phy/ch_estimation/chest_dl_nbiot.h"
+#include "srsran/phy/channel/ch_awgn.h"
+#include "srsran/phy/io/filesink.h"
+#include "srsran/phy/io/filesource.h"
+#include "srsran/phy/sync/npss.h"
+#include "srsran/phy/sync/nsss.h"
+#include "srsran/phy/ue/ue_dl_nbiot.h"
+#include "srsran/phy/utils/bit.h"
+#include "srsran/phy/utils/random.h"
 
 #define UE_CRNTI 0x1234
 
@@ -50,20 +50,20 @@ static const uint8_t dummy_sib1_payload[] = {0x43, 0x4d, 0xd0, 0x92, 0x22, 0x06,
                                              0x02, 0x1e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 #ifndef DISABLE_RF
-#include "srslte/phy/rf/rf.h"
-static srslte_rf_t radio;
+#include "srsran/phy/rf/rf.h"
+static srsran_rf_t radio;
 #else
 #pragma message "Compiling npdsch_ue with no RF support"
 #endif
 
 static char* output_file_name = NULL;
 
-static srslte_nbiot_cell_t cell = {
-    .base       = {.nof_ports = 1, .nof_prb = SRSLTE_NBIOT_DEFAULT_NUM_PRB_BASECELL, .cp = SRSLTE_CP_NORM, .id = 0},
-    .nbiot_prb  = SRSLTE_NBIOT_DEFAULT_PRB_OFFSET,
+static srsran_nbiot_cell_t cell = {
+    .base       = {.nof_ports = 1, .nof_prb = SRSRAN_NBIOT_DEFAULT_NUM_PRB_BASECELL, .cp = SRSRAN_CP_NORM, .id = 0},
+    .nbiot_prb  = SRSRAN_NBIOT_DEFAULT_PRB_OFFSET,
     .n_id_ncell = 0,
     .nof_ports  = 1,
-    .mode       = SRSLTE_NBIOT_MODE_STANDALONE,
+    .mode       = SRSRAN_NBIOT_MODE_STANDALONE,
     .is_r14     = true};
 
 static uint32_t i_tbs_val = 1, last_i_tbs_val = 1;
@@ -76,22 +76,22 @@ static float rf_amp = 0.8, rf_gain = 70.0, rf_freq = 0;
 static float file_snr = -100.0;
 
 static bool                     null_file_sink = false;
-static srslte_random_t*         random_gen;
-static srslte_filesink_t        fsink;
-static srslte_ofdm_t            ifft;
-static srslte_npss_synch_t      npss_sync;
-static srslte_nsss_synch_t      nsss_sync;
-static srslte_npbch_t           npbch;
-static srslte_npdcch_t          npdcch;
-static srslte_npdsch_t          npdsch;
-static srslte_npdsch_cfg_t      sib1_npdsch_cfg;
-static srslte_npdsch_cfg_t      npdsch_cfg;
-static srslte_nbiot_ue_dl_t     ue_dl;
-static srslte_softbuffer_tx_t   softbuffer;
-static srslte_ra_nbiot_dl_dci_t ra_dl;
-static srslte_ra_nbiot_dl_dci_t ra_dl_sib1;
-static srslte_chest_dl_nbiot_t  ch_est;
-static srslte_mib_nb_t          mib_nb;
+static srsran_random_t*         random_gen;
+static srsran_filesink_t        fsink;
+static srsran_ofdm_t            ifft;
+static srsran_npss_synch_t      npss_sync;
+static srsran_nsss_synch_t      nsss_sync;
+static srsran_npbch_t           npbch;
+static srsran_npdcch_t          npdcch;
+static srsran_npdsch_t          npdsch;
+static srsran_npdsch_cfg_t      sib1_npdsch_cfg;
+static srsran_npdsch_cfg_t      npdsch_cfg;
+static srsran_nbiot_ue_dl_t     ue_dl;
+static srsran_softbuffer_tx_t   softbuffer;
+static srsran_ra_nbiot_dl_dci_t ra_dl;
+static srsran_ra_nbiot_dl_dci_t ra_dl_sib1;
+static srsran_chest_dl_nbiot_t  ch_est;
+static srsran_mib_nb_t          mib_nb;
 static uint32_t                 sched_info_tag =
     0; // according to Table 16.4.1.3-3 in 36.213, 0 means 4 NPDSCH repetitions with TBS 208
 
@@ -119,7 +119,7 @@ void usage(char* prog)
   printf("\t-l n_id_ncell [Default %d]\n", cell.n_id_ncell);
   printf("\t-R Is R14 cell [Default %s]\n", cell.is_r14 ? "Yes" : "No");
   printf("\t-p NB-IoT PRB id [Default %d]\n", cell.nbiot_prb);
-  printf("\t-v [set srslte_verbose to debug, default none]\n");
+  printf("\t-v [set srsran_verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char** argv)
@@ -170,7 +170,7 @@ void parse_args(int argc, char** argv)
         cell.nbiot_prb = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
-        srslte_verbose++;
+        srsran_verbose++;
         break;
       default:
         usage(argv[0]);
@@ -195,12 +195,12 @@ void parse_args(int argc, char** argv)
 void base_init()
 {
   // init memory
-  sf_buffer = srslte_vec_cf_malloc(sf_n_re);
+  sf_buffer = srsran_vec_cf_malloc(sf_n_re);
   if (!sf_buffer) {
     perror("malloc");
     exit(-1);
   }
-  output_buffer = srslte_vec_cf_malloc(sf_n_samples);
+  output_buffer = srsran_vec_cf_malloc(sf_n_samples);
   if (!output_buffer) {
     perror("malloc");
     exit(-1);
@@ -208,7 +208,7 @@ void base_init()
   // open file or USRP
   if (output_file_name) {
     if (strcmp(output_file_name, "NULL")) {
-      if (srslte_filesink_init(&fsink, output_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
+      if (srsran_filesink_init(&fsink, output_file_name, SRSRAN_COMPLEX_FLOAT_BIN)) {
         fprintf(stderr, "Error opening file %s\n", output_file_name);
         exit(-1);
       }
@@ -219,7 +219,7 @@ void base_init()
   } else {
 #ifndef DISABLE_RF
     printf("Opening RF device...\n");
-    if (srslte_rf_open(&radio, rf_args)) {
+    if (srsran_rf_open(&radio, rf_args)) {
       fprintf(stderr, "Error opening rf\n");
       exit(-1);
     }
@@ -229,72 +229,72 @@ void base_init()
 #endif
   }
 
-  if (srslte_ofdm_tx_init(&ifft, SRSLTE_CP_NORM, sf_buffer, output_buffer, cell.base.nof_prb)) {
+  if (srsran_ofdm_tx_init(&ifft, SRSRAN_CP_NORM, sf_buffer, output_buffer, cell.base.nof_prb)) {
     fprintf(stderr, "Error creating iFFT object\n");
     exit(-1);
   }
-  srslte_ofdm_set_normalize(&ifft, true);
-  srslte_ofdm_set_freq_shift(&ifft, -SRSLTE_NBIOT_FREQ_SHIFT_FACTOR);
+  srsran_ofdm_set_normalize(&ifft, true);
+  srsran_ofdm_set_freq_shift(&ifft, -SRSRAN_NBIOT_FREQ_SHIFT_FACTOR);
 
-  if (srslte_npss_synch_init(&npss_sync, sf_n_samples, srslte_symbol_sz(cell.base.nof_prb))) {
+  if (srsran_npss_synch_init(&npss_sync, sf_n_samples, srsran_symbol_sz(cell.base.nof_prb))) {
     fprintf(stderr, "Error initializing NPSS object\n");
     exit(-1);
   }
 
-  if (srslte_nsss_synch_init(&nsss_sync, sf_n_samples, srslte_symbol_sz(cell.base.nof_prb))) {
+  if (srsran_nsss_synch_init(&nsss_sync, sf_n_samples, srsran_symbol_sz(cell.base.nof_prb))) {
     fprintf(stderr, "Error initializing NSSS object\n");
     exit(-1);
   }
 
-  if (srslte_npbch_init(&npbch)) {
+  if (srsran_npbch_init(&npbch)) {
     fprintf(stderr, "Error creating NPBCH object\n");
     exit(-1);
   }
-  if (srslte_npbch_set_cell(&npbch, cell)) {
+  if (srsran_npbch_set_cell(&npbch, cell)) {
     fprintf(stderr, "Error setting cell in NPBCH object\n");
     exit(-1);
   }
 
-  if (srslte_npdcch_init(&npdcch)) {
+  if (srsran_npdcch_init(&npdcch)) {
     fprintf(stderr, "Error creating NPDCCH object\n");
     exit(-1);
   }
 
-  if (srslte_npdcch_set_cell(&npdcch, cell)) {
+  if (srsran_npdcch_set_cell(&npdcch, cell)) {
     fprintf(stderr, "Configuring cell in NPDCCH\n");
     exit(-1);
   }
 
-  if (srslte_npdsch_init(&npdsch)) {
+  if (srsran_npdsch_init(&npdsch)) {
     fprintf(stderr, "Error creating NPDSCH object\n");
     exit(-1);
   }
 
-  if (srslte_npdsch_set_cell(&npdsch, cell)) {
+  if (srsran_npdsch_set_cell(&npdsch, cell)) {
     fprintf(stderr, "Configuring cell in NPDSCH\n");
     exit(-1);
   }
-  srslte_npdsch_set_rnti(&npdsch, UE_CRNTI);
+  srsran_npdsch_set_rnti(&npdsch, UE_CRNTI);
 
-  if (srslte_softbuffer_tx_init(&softbuffer, cell.base.nof_prb)) {
+  if (srsran_softbuffer_tx_init(&softbuffer, cell.base.nof_prb)) {
     fprintf(stderr, "Error initiating soft buffer\n");
     exit(-1);
   }
 
-  random_gen = srslte_random_init(time(NULL));
+  random_gen = srsran_random_init(time(NULL));
 }
 
 void base_free()
 {
-  srslte_random_free(random_gen);
-  srslte_softbuffer_tx_free(&softbuffer);
-  srslte_npdsch_free(&npdsch);
-  srslte_npdcch_free(&npdcch);
-  srslte_npbch_free(&npbch);
-  srslte_chest_dl_nbiot_free(&ch_est);
-  srslte_npss_synch_free(&npss_sync);
-  srslte_nsss_synch_free(&nsss_sync);
-  srslte_ofdm_tx_free(&ifft);
+  srsran_random_free(random_gen);
+  srsran_softbuffer_tx_free(&softbuffer);
+  srsran_npdsch_free(&npdsch);
+  srsran_npdcch_free(&npdcch);
+  srsran_npbch_free(&npbch);
+  srsran_chest_dl_nbiot_free(&ch_est);
+  srsran_npss_synch_free(&npss_sync);
+  srsran_nsss_synch_free(&nsss_sync);
+  srsran_ofdm_tx_free(&ifft);
 
   if (sf_buffer) {
     free(sf_buffer);
@@ -304,11 +304,11 @@ void base_free()
   }
   if (output_file_name) {
     if (!null_file_sink) {
-      srslte_filesink_free(&fsink);
+      srsran_filesink_free(&fsink);
     }
   } else {
 #ifndef DISABLE_RF
-    srslte_rf_close(&radio);
+    srsran_rf_close(&radio);
 #endif
   }
 }
@@ -326,14 +326,14 @@ void sig_int_handler(int signo)
 
 static int update_radl(void)
 {
-  bzero(&ra_dl_sib1, sizeof(srslte_ra_nbiot_dl_dci_t));
+  bzero(&ra_dl_sib1, sizeof(srsran_ra_nbiot_dl_dci_t));
 
   // NB-IoT specific fields
   ra_dl_sib1.alloc.has_sib1        = true;
   ra_dl_sib1.alloc.sched_info_sib1 = mib_nb.sched_info_sib1;
   ra_dl_sib1.mcs_idx               = 1;
 
-  bzero(&ra_dl, sizeof(srslte_ra_nbiot_dl_dci_t));
+  bzero(&ra_dl, sizeof(srsran_ra_nbiot_dl_dci_t));
   ra_dl.mcs_idx = i_tbs_val;
 
   // NB-IoT specific fields
@@ -346,19 +346,19 @@ static int update_radl(void)
   ra_dl.alloc.harq_ack  = 1;
   ra_dl.alloc.i_n_start = 0;
 
-  srslte_nbiot_dl_dci_fprint(stdout, &ra_dl);
-  srslte_ra_nbiot_dl_grant_t dummy_grant;
-  srslte_ra_nbits_t          dummy_nbits;
+  srsran_nbiot_dl_dci_fprint(stdout, &ra_dl);
+  srsran_ra_nbiot_dl_grant_t dummy_grant;
+  srsran_ra_nbits_t          dummy_nbits;
 
 #define DUMMY_SFIDX 1
 #define DUMMY_SFN 0
-  srslte_ra_nbiot_dl_dci_to_grant(&ra_dl, &dummy_grant, DUMMY_SFN, DUMMY_SFIDX, DUMMY_R_MAX, false, cell.mode);
-  srslte_ra_nbiot_dl_grant_to_nbits(&dummy_grant, cell, 0, &dummy_nbits);
-  srslte_ra_nbiot_dl_grant_fprint(stdout, &dummy_grant);
+  srsran_ra_nbiot_dl_dci_to_grant(&ra_dl, &dummy_grant, DUMMY_SFN, DUMMY_SFIDX, DUMMY_R_MAX, false, cell.mode);
+  srsran_ra_nbiot_dl_grant_to_nbits(&dummy_grant, cell, 0, &dummy_nbits);
+  srsran_ra_nbiot_dl_grant_fprint(stdout, &dummy_grant);
   printf("Type new MCS index and press Enter: ");
   fflush(stdout);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 /* Read new MCS from stdin */
@@ -405,14 +405,14 @@ uint8_t data_tmp[DATA_BUFF_SZ] = {};
 int main(int argc, char** argv)
 {
   int  nf = 0, sf_idx = 0;
-  cf_t npss_signal[SRSLTE_NPSS_TOT_LEN];
-  cf_t nsss_signal[SRSLTE_NSSS_LEN * SRSLTE_NSSS_NUM_SEQ]; // for subframe 9
+  cf_t npss_signal[SRSRAN_NPSS_TOT_LEN];
+  cf_t nsss_signal[SRSRAN_NSSS_LEN * SRSRAN_NSSS_NUM_SEQ]; // for subframe 9
 
-  uint8_t bch_payload[SRSLTE_MIB_NB_LEN];
-  uint8_t sib1_nb_payload[SRSLTE_NPDSCH_MAX_TBS];
+  uint8_t bch_payload[SRSRAN_MIB_NB_LEN];
+  uint8_t sib1_nb_payload[SRSRAN_NPDSCH_MAX_TBS];
 
-  srslte_dci_msg_t      dci_msg;
-  srslte_dci_location_t locations[SRSLTE_NOF_SF_X_FRAME][30];
+  srsran_dci_msg_t      dci_msg;
+  srsran_dci_location_t locations[SRSRAN_NOF_SF_X_FRAME][30];
 
   uint32_t sfn = 0;
   uint32_t hfn = 0; // Hyper frame number is incremented when sfn wraps and is also 10bit wide
@@ -432,60 +432,60 @@ int main(int argc, char** argv)
     printf("Target SNR: %.2fdB\n", file_snr);
   }
 
-  sf_n_re      = 2 * SRSLTE_CP_NORM_NSYMB * cell.base.nof_prb * SRSLTE_NRE;
-  sf_n_samples = 2 * SRSLTE_SLOT_LEN(srslte_symbol_sz(cell.base.nof_prb));
+  sf_n_re      = 2 * SRSRAN_CP_NORM_NSYMB * cell.base.nof_prb * SRSRAN_NRE;
+  sf_n_samples = 2 * SRSRAN_SLOT_LEN(srsran_symbol_sz(cell.base.nof_prb));
 
   /* this *must* be called after setting slot_len_* */
   base_init();
 
   // buffer for outputting signal in RE representation (using sf_n_re)
-  cf_t* sf_re_symbols[SRSLTE_MAX_PORTS] = {NULL, NULL, NULL, NULL};
+  cf_t* sf_re_symbols[SRSRAN_MAX_PORTS] = {NULL, NULL, NULL, NULL};
   sf_re_symbols[0]                      = sf_buffer;
 
   // buffer for outputting actual IQ samples (using sf_n_samples)
-  cf_t* sf_symbols[SRSLTE_MAX_PORTS] = {NULL, NULL, NULL, NULL};
+  cf_t* sf_symbols[SRSRAN_MAX_PORTS] = {NULL, NULL, NULL, NULL};
   sf_symbols[0]                      = output_buffer;
 
   // construct MIB-NB
   mib_nb.sched_info_sib1 = sched_info_tag;
   mib_nb.sys_info_tag    = 0;
   mib_nb.ac_barring      = false;
-  mib_nb.mode            = SRSLTE_NBIOT_MODE_STANDALONE;
+  mib_nb.mode            = SRSRAN_NBIOT_MODE_STANDALONE;
 
   // Initialize UE DL
-  if (srslte_nbiot_ue_dl_init(&ue_dl, sf_symbols, SRSLTE_NBIOT_MAX_PRB, SRSLTE_NBIOT_NUM_RX_ANTENNAS)) {
+  if (srsran_nbiot_ue_dl_init(&ue_dl, sf_symbols, SRSRAN_NBIOT_MAX_PRB, SRSRAN_NBIOT_NUM_RX_ANTENNAS)) {
     fprintf(stderr, "Error initiating UE downlink processing module\n");
     exit(-1);
   }
 
-  if (srslte_nbiot_ue_dl_set_cell(&ue_dl, cell)) {
+  if (srsran_nbiot_ue_dl_set_cell(&ue_dl, cell)) {
     fprintf(stderr, "Setting cell in UE DL\n");
     return -1;
   }
 
-  srslte_nbiot_ue_dl_set_mib(&ue_dl, mib_nb);
+  srsran_nbiot_ue_dl_set_mib(&ue_dl, mib_nb);
 
   /* Generate NPSS/NSSS signals */
-  srslte_npss_generate(npss_signal);
-  srslte_nsss_generate(nsss_signal, cell.n_id_ncell);
+  srsran_npss_generate(npss_signal);
+  srsran_nsss_generate(nsss_signal, cell.n_id_ncell);
 
 #ifdef NPSS_DUMP
-  srslte_filesink_t debug_fsink;
+  srsran_filesink_t debug_fsink;
   char              fname[] = "npss.bin";
-  if (srslte_filesink_init(&debug_fsink, fname, SRSLTE_COMPLEX_FLOAT_BIN)) {
+  if (srsran_filesink_init(&debug_fsink, fname, SRSRAN_COMPLEX_FLOAT_BIN)) {
     fprintf(stderr, "Error opening file %s\n", fname);
     exit(-1);
   }
-  srslte_filesink_write(&debug_fsink, npss_signal, SRSLTE_NPSS_LEN * 11);
-  srslte_filesink_free(&debug_fsink);
+  srsran_filesink_write(&debug_fsink, npss_signal, SRSRAN_NPSS_LEN * 11);
+  srsran_filesink_free(&debug_fsink);
 #endif
 
   /* Generate CRS+NRS signals */
-  if (srslte_chest_dl_nbiot_init(&ch_est, SRSLTE_NBIOT_MAX_PRB)) {
+  if (srsran_chest_dl_nbiot_init(&ch_est, SRSRAN_NBIOT_MAX_PRB)) {
     fprintf(stderr, "Error initializing equalizer\n");
     exit(-1);
   }
-  if (srslte_chest_dl_nbiot_set_cell(&ch_est, cell) != SRSLTE_SUCCESS) {
+  if (srsran_chest_dl_nbiot_set_cell(&ch_est, cell) != SRSRAN_SUCCESS) {
     fprintf(stderr, "Error setting channel estimator's cell configuration\n");
     return -1;
   }
@@ -498,11 +498,10 @@ int main(int argc, char** argv)
   signal(SIGINT, sig_int_handler);
 
   if (!output_file_name) {
-
-    int srate = srslte_sampling_freq_hz(cell.base.nof_prb);
+    int srate = srsran_sampling_freq_hz(cell.base.nof_prb);
     if (srate != -1) {
       printf("Setting sampling rate %.2f MHz\n", (float)srate / 1000000);
-      float srate_rf = srslte_rf_set_tx_srate(&radio, (double)srate);
+      float srate_rf = srsran_rf_set_tx_srate(&radio, (double)srate);
       if (srate_rf != srate) {
         fprintf(stderr, "Could not set sampling rate\n");
         exit(-1);
@@ -511,9 +510,9 @@ int main(int argc, char** argv)
       fprintf(stderr, "Invalid number of PRB %d\n", cell.base.nof_prb);
       exit(-1);
     }
-    srslte_rf_set_tx_gain(&radio, rf_gain);
-    printf("Set TX gain: %.1f dB\n", srslte_rf_get_tx_gain(&radio));
-    printf("Set TX freq: %.2f MHz\n", srslte_rf_set_tx_freq(&radio, 0, rf_freq) / 1000000);
+    srsran_rf_set_tx_gain(&radio, rf_gain);
+    printf("Set TX gain: %.1f dB\n", srsran_rf_get_tx_gain(&radio));
+    printf("Set TX freq: %.2f MHz\n", srsran_rf_set_tx_freq(&radio, 0, rf_freq) / 1000000);
   }
 #endif
 
@@ -522,7 +521,7 @@ int main(int argc, char** argv)
   }
 
   /* Initiate valid DCI locations */
-  for (int i = 0; i < SRSLTE_NOF_SF_X_FRAME; i++) {
+  for (int i = 0; i < SRSRAN_NOF_SF_X_FRAME; i++) {
     locations[i][0].L    = 1; // Agg-level 2, i.e. both NCEEs used
     locations[i][0].ncce = 0;
   }
@@ -531,48 +530,48 @@ int main(int argc, char** argv)
 
   bool send_data     = false;
   bool npdsch_active = false;
-  srslte_softbuffer_tx_reset(&softbuffer);
-  bzero(&sib1_npdsch_cfg, sizeof(srslte_npdsch_cfg_t));
-  bzero(&npdsch_cfg, sizeof(srslte_npdsch_cfg_t));
+  srsran_softbuffer_tx_reset(&softbuffer);
+  bzero(&sib1_npdsch_cfg, sizeof(srsran_npdsch_cfg_t));
+  bzero(&npdsch_cfg, sizeof(srsran_npdsch_cfg_t));
 
 #ifndef DISABLE_RF
   bool start_of_burst = true;
 #endif
 
   while ((nf < nof_frames || nof_frames == -1) && !go_exit) {
-    for (sf_idx = 0; sf_idx < SRSLTE_NOF_SF_X_FRAME && (nf < nof_frames || nof_frames == -1); sf_idx++) {
-      srslte_vec_cf_zero(sf_buffer, sf_n_re);
+    for (sf_idx = 0; sf_idx < SRSRAN_NOF_SF_X_FRAME && (nf < nof_frames || nof_frames == -1); sf_idx++) {
+      srsran_vec_cf_zero(sf_buffer, sf_n_re);
 
       // Transmit NPBCH in subframe 0
       if (sf_idx == 0) {
-        if ((sfn % SRSLTE_NPBCH_NUM_FRAMES) == 0) {
-          srslte_npbch_mib_pack(hfn, sfn, mib_nb, bch_payload);
+        if ((sfn % SRSRAN_NPBCH_NUM_FRAMES) == 0) {
+          srsran_npbch_mib_pack(hfn, sfn, mib_nb, bch_payload);
         }
-        srslte_npbch_put_subframe(&npbch, bch_payload, sf_re_symbols, sfn);
-        if (SRSLTE_VERBOSE_ISDEBUG()) {
+        srsran_npbch_put_subframe(&npbch, bch_payload, sf_re_symbols, sfn);
+        if (SRSRAN_VERBOSE_ISDEBUG()) {
           printf("MIB payload: ");
-          srslte_vec_fprint_hex(stdout, bch_payload, SRSLTE_MIB_NB_LEN);
+          srsran_vec_fprint_hex(stdout, bch_payload, SRSRAN_MIB_NB_LEN);
         }
       }
 
       // Transmit NPSS, NSSS and NRS
       if (sf_idx == 5) {
         // NPSS at subframe 5
-        srslte_npss_put_subframe(&npss_sync, npss_signal, sf_buffer, cell.base.nof_prb, cell.nbiot_prb);
+        srsran_npss_put_subframe(&npss_sync, npss_signal, sf_buffer, cell.base.nof_prb, cell.nbiot_prb);
       } else if ((sfn % 2 == 0) && sf_idx == 9) {
         // NSSS in every even numbered frame at subframe 9
-        srslte_nsss_put_subframe(&nsss_sync, nsss_signal, sf_buffer, sfn, cell.base.nof_prb, cell.nbiot_prb);
+        srsran_nsss_put_subframe(&nsss_sync, nsss_signal, sf_buffer, sfn, cell.base.nof_prb, cell.nbiot_prb);
       } else {
         // NRS in all other subframes (using CSR signal intentionally)
-        // DEBUG("%d.%d: Putting %d NRS pilots\n", sfn, sf_idx, SRSLTE_REFSIGNAL_NUM_SF(1, cell.nof_ports));
-        srslte_refsignal_nrs_put_sf(cell, 0, ch_est.nrs_signal.pilots[0][sf_idx], sf_buffer);
+        // DEBUG("%d.%d: Putting %d NRS pilots", sfn, sf_idx, SRSRAN_REFSIGNAL_NUM_SF(1, cell.nof_ports));
+        srsran_refsignal_nrs_put_sf(cell, 0, ch_est.nrs_signal.pilots[0][sf_idx], sf_buffer);
       }
 
 #if HAVE_NPDSCH
       // only transmit in subframes not used for NPBCH, NPSS or NSSS and only use subframe 4 when there is no SIB1
       // transmission
       if (sf_idx != 0 && sf_idx != 5 && (!(sf_idx == 9 && sfn % 2 == 0)) &&
-          !srslte_nbiot_ue_dl_is_sib1_sf(&ue_dl, sfn, sf_idx)) {
+          !srsran_nbiot_ue_dl_is_sib1_sf(&ue_dl, sfn, sf_idx)) {
         send_data = true;
       } else {
         send_data = false;
@@ -585,44 +584,43 @@ int main(int argc, char** argv)
 
         // overwrite Hyper Frame Number (HFN), 8 MSB
         uint8_t unpacked_hfn[4 * 8];
-        srslte_bit_unpack_vector(sib1_nb_payload, unpacked_hfn, 4 * 8);
+        srsran_bit_unpack_vector(sib1_nb_payload, unpacked_hfn, 4 * 8);
         uint8_t* tmp = unpacked_hfn;
         tmp += 12;
-        srslte_bit_unpack(hfn >> 2, &tmp, 8);
+        srsran_bit_unpack(hfn >> 2, &tmp, 8);
         uint8_t packed_hfn[4];
-        srslte_bit_pack_vector(unpacked_hfn, packed_hfn, 32);
+        srsran_bit_pack_vector(unpacked_hfn, packed_hfn, 32);
         memcpy(sib1_nb_payload, packed_hfn, sizeof(packed_hfn));
 
-        if (SRSLTE_VERBOSE_ISDEBUG()) {
+        if (SRSRAN_VERBOSE_ISDEBUG()) {
           printf("SIB1-NB payload: ");
-          srslte_vec_fprint_byte(stdout, sib1_nb_payload, sizeof(dummy_sib1_payload));
+          srsran_vec_fprint_byte(stdout, sib1_nb_payload, sizeof(dummy_sib1_payload));
         }
       }
 
-      if (srslte_nbiot_ue_dl_is_sib1_sf(&ue_dl, sfn, sf_idx)) {
-        INFO("%d.%d: Transmitting SIB1-NB.\n", sfn, sf_idx);
+      if (srsran_nbiot_ue_dl_is_sib1_sf(&ue_dl, sfn, sf_idx)) {
+        INFO("%d.%d: Transmitting SIB1-NB.", sfn, sf_idx);
         assert(send_data == false);
 
         // configure DL grant for SIB1-NB transmission
         if (sib1_npdsch_cfg.sf_idx == 0) {
-          srslte_ra_nbiot_dl_grant_t grant;
-          srslte_ra_nbiot_dl_dci_to_grant(
-              &ra_dl_sib1, &grant, sfn, sf_idx, DUMMY_R_MAX, true, cell.mode);
-          if (srslte_npdsch_cfg(&sib1_npdsch_cfg, cell, &grant, sf_idx)) {
+          srsran_ra_nbiot_dl_grant_t grant;
+          srsran_ra_nbiot_dl_dci_to_grant(&ra_dl_sib1, &grant, sfn, sf_idx, DUMMY_R_MAX, true, cell.mode);
+          if (srsran_npdsch_cfg(&sib1_npdsch_cfg, cell, &grant, sf_idx)) {
             fprintf(stderr, "Error configuring NPDSCH\n");
             exit(-1);
           }
         }
 
         // Encode SIB1 content
-        if (srslte_npdsch_encode_rnti(
-                &npdsch, &sib1_npdsch_cfg, &softbuffer, sib1_nb_payload, SRSLTE_SIRNTI, sf_re_symbols)) {
+        if (srsran_npdsch_encode_rnti(
+                &npdsch, &sib1_npdsch_cfg, &softbuffer, sib1_nb_payload, SRSRAN_SIRNTI, sf_re_symbols)) {
           fprintf(stderr, "Error encoding NPDSCH\n");
           exit(-1);
         }
 
         if (sib1_npdsch_cfg.sf_idx == sib1_npdsch_cfg.grant.nof_sf) {
-          bzero(&sib1_npdsch_cfg, sizeof(srslte_npdsch_cfg_t));
+          bzero(&sib1_npdsch_cfg, sizeof(srsran_npdsch_cfg_t));
         }
       }
 
@@ -635,17 +633,17 @@ int main(int argc, char** argv)
         // always transmit NPDCCH on fixed positions if no transmission is going on
         if (sf_idx == NPDCCH_SF_IDX && !npdsch_active) {
           // Encode NPDCCH
-          INFO("Putting DCI to location: n=%d, L=%d\n", locations[sf_idx][0].ncce, locations[sf_idx][0].L);
-          srslte_dci_msg_pack_npdsch(&ra_dl, SRSLTE_DCI_FORMATN1, &dci_msg, false);
-          if (srslte_npdcch_encode(&npdcch, &dci_msg, locations[sf_idx][0], UE_CRNTI, sf_re_symbols, sf_idx)) {
+          INFO("Putting DCI to location: n=%d, L=%d", locations[sf_idx][0].ncce, locations[sf_idx][0].L);
+          srsran_dci_msg_pack_npdsch(&ra_dl, SRSRAN_DCI_FORMATN1, &dci_msg, false);
+          if (srsran_npdcch_encode(&npdcch, &dci_msg, locations[sf_idx][0], UE_CRNTI, sf_re_symbols, sf_idx)) {
             fprintf(stderr, "Error encoding DCI message\n");
             exit(-1);
           }
 
           // Configure NPDSCH accordingly
-          srslte_ra_nbiot_dl_grant_t grant;
-          srslte_ra_nbiot_dl_dci_to_grant(&ra_dl, &grant, sfn, sf_idx, DUMMY_R_MAX, false, cell.mode);
-          if (srslte_npdsch_cfg(&npdsch_cfg, cell, &grant, sf_idx)) {
+          srsran_ra_nbiot_dl_grant_t grant;
+          srsran_ra_nbiot_dl_dci_to_grant(&ra_dl, &grant, sfn, sf_idx, DUMMY_R_MAX, false, cell.mode);
+          if (srsran_npdsch_cfg(&npdsch_cfg, cell, &grant, sf_idx)) {
             fprintf(stderr, "Error configuring NPDSCH\n");
             exit(-1);
           }
@@ -654,30 +652,30 @@ int main(int argc, char** argv)
         // catch start of "user" NPDSCH
         if (!npdsch_active && (sf_idx == npdsch_cfg.grant.start_sfidx && sfn == npdsch_cfg.grant.start_sfn)) {
           // generate data only in first sf
-          INFO("%d.%d: Generating %d random bits\n", sfn, sf_idx, npdsch_cfg.grant.mcs[0].tbs);
+          INFO("%d.%d: Generating %d random bits", sfn, sf_idx, npdsch_cfg.grant.mcs[0].tbs);
           for (int i = 0; i < npdsch_cfg.grant.mcs[0].tbs / 8; i++) {
-            data[i] = srslte_random_uniform_int_dist(random_gen, 0, 255);
+            data[i] = srsran_random_uniform_int_dist(random_gen, 0, 255);
           }
-          if (SRSLTE_VERBOSE_ISDEBUG()) {
+          if (SRSRAN_VERBOSE_ISDEBUG()) {
             printf("Tx payload: ");
-            srslte_vec_fprint_b(stdout, data, npdsch_cfg.grant.mcs[0].tbs / 8);
+            srsran_vec_fprint_b(stdout, data, npdsch_cfg.grant.mcs[0].tbs / 8);
           }
           npdsch_active = true;
         }
 
         if (npdsch_active) {
-          DEBUG("Current sf_idx=%d, Encoding npdsch.sf_idx=%d start=%d, nof=%d\n",
+          DEBUG("Current sf_idx=%d, Encoding npdsch.sf_idx=%d start=%d, nof=%d",
                 sf_idx,
                 npdsch_cfg.sf_idx,
                 npdsch_cfg.grant.start_sfidx,
                 npdsch_cfg.grant.nof_sf);
           // Encode NPDSCH
-          if (srslte_npdsch_encode(&npdsch, &npdsch_cfg, &softbuffer, data, sf_re_symbols)) {
+          if (srsran_npdsch_encode(&npdsch, &npdsch_cfg, &softbuffer, data, sf_re_symbols)) {
             fprintf(stderr, "Error encoding NPDSCH\n");
             exit(-1);
           }
           if (npdsch_cfg.num_sf == npdsch_cfg.grant.nof_sf * npdsch_cfg.grant.nof_rep) {
-            INFO("Deactive current NPDSCH\n");
+            INFO("Deactive current NPDSCH");
             npdsch_active = false;
           }
         }
@@ -685,32 +683,32 @@ int main(int argc, char** argv)
 #endif
 
       /* Transform to OFDM symbols */
-      srslte_ofdm_tx_sf(&ifft);
+      srsran_ofdm_tx_sf(&ifft);
 
       if (output_file_name && file_snr != -100.0) {
         // compute average energy per symbol
-        float abs_avg = srslte_vec_avg_power_cf(output_buffer, sf_n_samples);
+        float abs_avg = srsran_vec_avg_power_cf(output_buffer, sf_n_samples);
 
         // find the noise spectral density
-        float snr_lin = srslte_convert_dB_to_power(file_snr);
+        float snr_lin = srsran_convert_dB_to_power(file_snr);
         float n0      = abs_avg / snr_lin;
         float nstd    = sqrtf(n0 / 2);
 
         // add some noise to the signal
-        srslte_ch_awgn_c(output_buffer, output_buffer, nstd, sf_n_samples);
+        srsran_ch_awgn_c(output_buffer, output_buffer, nstd, sf_n_samples);
       }
 
       /* send to file or usrp */
       if (output_file_name) {
         // write to file
         if (!null_file_sink) {
-          srslte_filesink_write(&fsink, output_buffer, sf_n_samples);
+          srsran_filesink_write(&fsink, output_buffer, sf_n_samples);
         }
         usleep(1000);
       } else {
 #ifndef DISABLE_RF
         // TODO: output scaling needed?
-        srslte_rf_send2(&radio, output_buffer, sf_n_samples, true, start_of_burst, false);
+        srsran_rf_send2(&radio, output_buffer, sf_n_samples, true, start_of_burst, false);
         start_of_burst = false;
 #endif
       }
@@ -728,5 +726,5 @@ int main(int argc, char** argv)
 
   printf("Done\n");
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }

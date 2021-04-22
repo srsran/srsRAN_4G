@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -24,9 +24,9 @@
 #include "mme_gtpc.h"
 #include "s1ap_common.h"
 #include "srsepc/hdr/hss/hss.h"
-#include "srslte/asn1/gtpc.h"
-#include "srslte/asn1/s1ap_asn1.h"
-#include "srslte/common/buffer_pool.h"
+#include "srsran/asn1/gtpc.h"
+#include "srsran/asn1/s1ap.h"
+#include "srsran/common/buffer_pool.h"
 
 namespace srsepc {
 
@@ -42,15 +42,14 @@ public:
   bool handle_uplink_nas_transport(const asn1::s1ap::ul_nas_transport_s& ul_xport, struct sctp_sndrcvinfo* enb_sri);
   bool send_downlink_nas_transport(uint32_t               enb_ue_s1ap_id,
                                    uint32_t               mme_ue_s1ap_id,
-                                   srslte::byte_buffer_t* nas_msg,
+                                   srsran::byte_buffer_t* nas_msg,
                                    struct sctp_sndrcvinfo enb_sri);
 
 private:
   s1ap_nas_transport();
   virtual ~s1ap_nas_transport();
 
-  srslte::log*              m_s1ap_log;
-  srslte::byte_buffer_pool* m_pool;
+  srslog::basic_logger& m_logger = srslog::fetch_basic_logger("S1AP");
 
   s1ap* m_s1ap;
 

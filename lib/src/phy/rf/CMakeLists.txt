@@ -1,14 +1,14 @@
 #
-# Copyright 2013-2020 Software Radio Systems Limited
+# Copyright 2013-2021 Software Radio Systems Limited
 #
-# This file is part of srsLTE
+# This file is part of srsRAN
 #
-# srsLTE is free software: you can redistribute it and/or modify
+# srsRAN is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of
 # the License, or (at your option) any later version.
 #
-# srsLTE is distributed in the hope that it will be useful,
+# srsRAN is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Affero General Public License for more details.
@@ -20,8 +20,8 @@
 
 if(RF_FOUND)
   # This library is only used by the examples 
-  add_library(srslte_rf_utils STATIC rf_utils.c)
-  target_link_libraries(srslte_rf_utils srslte_phy)
+  add_library(srsran_rf_utils STATIC rf_utils.c)
+  target_link_libraries(srsran_rf_utils srsran_phy)
 
   # Include common RF files
   set(SOURCES_RF "")
@@ -45,7 +45,7 @@ if(RF_FOUND)
 
   if (UHD_FOUND AND UHD_ENABLE_CUSTOM_RFNOC)
     add_executable(rfnoc_test rfnoc_test.cc)
-    target_link_libraries(rfnoc_test srslte_rf ${UHD_LIBRARIES} ${Boost_LIBRARIES} /usr/lib/x86_64-linux-gnu/libboost_system.so)
+    target_link_libraries(rfnoc_test srsran_rf ${UHD_LIBRARIES} ${Boost_LIBRARIES} /usr/lib/x86_64-linux-gnu/libboost_system.so)
     message(info ${Boost_LIBRARIES})
   endif (UHD_FOUND AND UHD_ENABLE_CUSTOM_RFNOC)
 
@@ -64,28 +64,28 @@ if(RF_FOUND)
     list(APPEND SOURCES_RF rf_zmq_imp.c rf_zmq_imp_tx.c rf_zmq_imp_rx.c)
   endif (ZEROMQ_FOUND)
 
-  add_library(srslte_rf SHARED ${SOURCES_RF})
-  target_link_libraries(srslte_rf srslte_rf_utils srslte_phy)
-  set_target_properties(srslte_rf PROPERTIES VERSION ${SRSLTE_VERSION_STRING} SOVERSION ${SRSLTE_SOVERSION})
+  add_library(srsran_rf SHARED ${SOURCES_RF})
+  target_link_libraries(srsran_rf srsran_rf_utils srsran_phy)
+  set_target_properties(srsran_rf PROPERTIES VERSION ${SRSRAN_VERSION_STRING} SOVERSION ${SRSRAN_SOVERSION})
   
   if (UHD_FOUND)
-    target_link_libraries(srslte_rf ${UHD_LIBRARIES})
+    target_link_libraries(srsran_rf ${UHD_LIBRARIES})
   endif (UHD_FOUND)
 
   if (BLADERF_FOUND)
-    target_link_libraries(srslte_rf ${BLADERF_LIBRARIES})
+    target_link_libraries(srsran_rf ${BLADERF_LIBRARIES})
   endif (BLADERF_FOUND)
 
   if (SOAPYSDR_FOUND AND ENABLE_SOAPYSDR)
-    target_link_libraries(srslte_rf ${SOAPYSDR_LIBRARIES})
+    target_link_libraries(srsran_rf ${SOAPYSDR_LIBRARIES})
   endif (SOAPYSDR_FOUND AND ENABLE_SOAPYSDR)
 
   if (ZEROMQ_FOUND)
-    target_link_libraries(srslte_rf ${ZEROMQ_LIBRARIES})
+    target_link_libraries(srsran_rf ${ZEROMQ_LIBRARIES})
     add_executable(rf_zmq_test rf_zmq_test.c)
-    target_link_libraries(rf_zmq_test srslte_rf)
+    target_link_libraries(rf_zmq_test srsran_rf)
     #add_test(rf_zmq_test rf_zmq_test)
   endif (ZEROMQ_FOUND)
 
-  INSTALL(TARGETS srslte_rf DESTINATION ${LIBRARY_DIR})
+  INSTALL(TARGETS srsran_rf DESTINATION ${LIBRARY_DIR})
 endif(RF_FOUND)

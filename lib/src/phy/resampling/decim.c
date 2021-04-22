@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,13 +19,13 @@
  *
  */
 
-#include "srslte/phy/resampling/decim.h"
-#include "srslte/phy/utils/debug.h"
+#include "srsran/phy/resampling/decim.h"
+#include "srsran/phy/utils/debug.h"
 #include <complex.h>
 #include <math.h>
 
 /* Performs integer linear decimation by a factor of M */
-void srslte_decim_c(cf_t* input, cf_t* output, int M, int len)
+void srsran_decim_c(cf_t* input, cf_t* output, int M, int len)
 {
   int i;
   for (i = 0; i < len / M; i++) {
@@ -34,7 +34,7 @@ void srslte_decim_c(cf_t* input, cf_t* output, int M, int len)
 }
 
 /* Performs integer linear decimation by a factor of M */
-void srslte_decim_f(float* input, float* output, int M, int len)
+void srsran_decim_f(float* input, float* output, int M, int len)
 {
   int i;
   for (i = 0; i < len / M; i++) {

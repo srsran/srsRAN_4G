@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -28,12 +28,11 @@
 #ifndef MBMS_GW_H
 #define MBMS_GW_H
 
-#include "srslte/asn1/gtpc.h"
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/log_filter.h"
-#include "srslte/common/logmap.h"
-#include "srslte/common/threads.h"
-#include "srslte/srslte.h"
+#include "srsran/asn1/gtpc.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/common/threads.h"
+#include "srsran/srslog/srslog.h"
+#include "srsran/srsran.h"
 #include <cstddef>
 
 namespace srsepc {
@@ -58,12 +57,12 @@ struct pseudo_hdr {
   uint16_t udp_len;
 };
 
-class mbms_gw : public srslte::thread
+class mbms_gw : public srsran::thread
 {
 public:
   static mbms_gw* get_instance(void);
   static void     cleanup(void);
-  int             init(mbms_gw_args_t* args, srslte::log_ref mbms_gw_log);
+  int             init(mbms_gw_args_t* args);
   void            stop();
   void            run_thread();
 
@@ -75,13 +74,12 @@ private:
 
   int      init_sgi_mb_if(mbms_gw_args_t* args);
   int      init_m1_u(mbms_gw_args_t* args);
-  void     handle_sgi_md_pdu(srslte::byte_buffer_t* msg);
+  void     handle_sgi_md_pdu(srsran::byte_buffer_t* msg);
   uint16_t in_cksum(uint16_t* iphdr, int count);
 
   /* Members */
-  bool                      m_running;
-  srslte::byte_buffer_pool* m_pool;
-  srslte::log_ref           m_mbms_gw_log;
+  bool                  m_running;
+  srslog::basic_logger& m_logger = srslog::fetch_basic_logger("MBMS");
 
   bool m_sgi_mb_up;
   int  m_sgi_mb_if;

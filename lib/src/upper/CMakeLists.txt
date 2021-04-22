@@ -1,14 +1,14 @@
 #
-# Copyright 2013-2020 Software Radio Systems Limited
+# Copyright 2013-2021 Software Radio Systems Limited
 #
-# This file is part of srsLTE
+# This file is part of srsRAN
 #
-# srsLTE is free software: you can redistribute it and/or modify
+# srsRAN is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of
 # the License, or (at your option) any later version.
 #
-# srsLTE is distributed in the hope that it will be useful,
+# srsRAN is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Affero General Public License for more details.
@@ -27,12 +27,12 @@ set(SOURCES gtpu.cc
             rlc_um_base.cc
             rlc_um_lte.cc
             rlc_am_base.cc
-            rlc_am_lte.cc)
+            rlc_am_lte.cc
+            pdcp_entity_nr.cc
+            rlc_um_nr.cc
+            rlc_am_nr.cc
+            bearer_mem_pool.cc)
 
-if (ENABLE_5GNR)
-  set(SOURCES ${SOURCES} pdcp_entity_nr.cc rlc_um_nr.cc rlc_am_nr.cc)
-endif(ENABLE_5GNR)
-
-add_library(srslte_upper STATIC ${SOURCES})
-target_link_libraries(srslte_upper srslte_common srslte_asn1)
-INSTALL(TARGETS srslte_upper DESTINATION ${LIBRARY_DIR})
+add_library(srsran_upper STATIC ${SOURCES})
+target_link_libraries(srsran_upper srsran_common srsran_asn1)
+INSTALL(TARGETS srsran_upper DESTINATION ${LIBRARY_DIR})

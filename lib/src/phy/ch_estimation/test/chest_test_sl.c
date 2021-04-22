@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -24,12 +24,12 @@
 #include <strings.h>
 #include <unistd.h>
 
-#include "srslte/phy/ch_estimation/chest_sl.h"
-#include "srslte/phy/common/phy_common_sl.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/ch_estimation/chest_sl.h"
+#include "srsran/phy/common/phy_common_sl.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/vector.h"
 
-srslte_cell_sl_t cell           = {.nof_prb = 6, .N_sl_id = 168, .tm = SRSLTE_SIDELINK_TM2, .cp = SRSLTE_CP_NORM};
+srsran_cell_sl_t cell           = {.nof_prb = 6, .N_sl_id = 168, .tm = SRSRAN_SIDELINK_TM2, .cp = SRSRAN_CP_NORM};
 bool             run_psbch_test = true;
 
 void usage(char* prog)
@@ -51,7 +51,7 @@ void parse_args(int argc, char** argv)
         cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'e':
-        cell.cp = SRSLTE_CP_EXT;
+        cell.cp = SRSRAN_CP_EXT;
         break;
       case 'c':
         cell.N_sl_id = (uint32_t)strtol(argv[optind], NULL, 10);
@@ -59,16 +59,16 @@ void parse_args(int argc, char** argv)
       case 't':
         switch (strtol(argv[optind], NULL, 10)) {
           case 1:
-            cell.tm = SRSLTE_SIDELINK_TM1;
+            cell.tm = SRSRAN_SIDELINK_TM1;
             break;
           case 2:
-            cell.tm = SRSLTE_SIDELINK_TM2;
+            cell.tm = SRSRAN_SIDELINK_TM2;
             break;
           case 3:
-            cell.tm = SRSLTE_SIDELINK_TM3;
+            cell.tm = SRSRAN_SIDELINK_TM3;
             break;
           case 4:
-            cell.tm = SRSLTE_SIDELINK_TM4;
+            cell.tm = SRSRAN_SIDELINK_TM4;
             break;
           default:
             usage(argv[0]);
@@ -76,14 +76,14 @@ void parse_args(int argc, char** argv)
         }
         break;
       case 'v':
-        srslte_verbose++;
+        srsran_verbose++;
         break;
       default:
         usage(argv[0]);
         exit(-1);
     }
   }
-  if (cell.cp == SRSLTE_CP_EXT && cell.tm >= SRSLTE_SIDELINK_TM3) {
+  if (cell.cp == SRSRAN_CP_EXT && cell.tm >= SRSRAN_SIDELINK_TM3) {
     ERROR("Selected TM does not support extended CP");
     usage(argv[0]);
     exit(-1);
@@ -94,33 +94,33 @@ int main(int argc, char** argv)
 {
   parse_args(argc, argv);
 
-  int   sf_n_re   = SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);
-  cf_t* sf_buffer = srslte_vec_cf_malloc(sf_n_re);
+  int   sf_n_re   = SRSRAN_SF_LEN_RE(cell.nof_prb, cell.cp);
+  cf_t* sf_buffer = srsran_vec_cf_malloc(sf_n_re);
   bzero(sf_buffer, sizeof(cf_t) * sf_n_re);
 
   // Variables init Rx
-  cf_t* equalized_sf_buffer = srslte_vec_cf_malloc(sf_n_re);
+  cf_t* equalized_sf_buffer = srsran_vec_cf_malloc(sf_n_re);
   bzero(equalized_sf_buffer, sizeof(cf_t) * sf_n_re);
 
-  cf_t* dmrs_received[SRSLTE_SL_MAX_DMRS_SYMB] = {NULL};
-  for (int i = 0; i < SRSLTE_SL_MAX_DMRS_SYMB; i++) {
-    dmrs_received[i] = srslte_vec_cf_malloc(SRSLTE_NRE * cell.nof_prb);
+  cf_t* dmrs_received[SRSRAN_SL_MAX_DMRS_SYMB] = {NULL};
+  for (int i = 0; i < SRSRAN_SL_MAX_DMRS_SYMB; i++) {
+    dmrs_received[i] = srsran_vec_cf_malloc(SRSRAN_NRE * cell.nof_prb);
   }
 
-  srslte_sl_comm_resource_pool_t sl_comm_resource_pool = {};
+  srsran_sl_comm_resource_pool_t sl_comm_resource_pool = {};
 
   // Variables init Tx
-  srslte_chest_sl_t q = {};
+  srsran_chest_sl_t q = {};
 
   if (run_psbch_test) {
 
     // Tx
-    srslte_chest_sl_init(&q, SRSLTE_SIDELINK_PSBCH, cell, sl_comm_resource_pool);
-    srslte_chest_sl_put_dmrs(&q, sf_buffer);
+    srsran_chest_sl_init(&q, SRSRAN_SIDELINK_PSBCH, cell, sl_comm_resource_pool);
+    srsran_chest_sl_put_dmrs(&q, sf_buffer);
 
     // Rx
-    srslte_chest_sl_ls_estimate_equalize(&q, sf_buffer, equalized_sf_buffer);
-    srslte_chest_sl_get_dmrs(&q, equalized_sf_buffer, dmrs_received);
+    srsran_chest_sl_ls_estimate_equalize(&q, sf_buffer, equalized_sf_buffer);
+    srsran_chest_sl_get_dmrs(&q, equalized_sf_buffer, dmrs_received);
 
     // Test
     // TODO: add proper test
@@ -136,7 +136,7 @@ int main(int argc, char** argv)
     printf("\n");
   }
 
-  srslte_chest_sl_free(&q);
+  srsran_chest_sl_free(&q);
 
   if (sf_buffer) {
     free(sf_buffer);
@@ -144,11 +144,11 @@ int main(int argc, char** argv)
   if (equalized_sf_buffer) {
     free(equalized_sf_buffer);
   }
-  for (int i = 0; i < SRSLTE_SL_MAX_DMRS_SYMB; i++) {
+  for (int i = 0; i < SRSRAN_SL_MAX_DMRS_SYMB; i++) {
     if (dmrs_received[i]) {
       free(dmrs_received[i]);
     }
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }

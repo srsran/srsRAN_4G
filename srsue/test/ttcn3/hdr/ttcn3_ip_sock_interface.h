@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -28,16 +28,15 @@
 class ttcn3_ip_sock_interface : public ttcn3_port_handler
 {
 public:
-  ttcn3_ip_sock_interface()  = default;
+  explicit ttcn3_ip_sock_interface(srslog::basic_logger& logger) : ttcn3_port_handler(logger) {}
   ~ttcn3_ip_sock_interface() = default;
 
-  int init(srslte::log* log_, std::string net_ip_, uint32_t net_port_)
+  int init(std::string net_ip_, uint32_t net_port_)
   {
     net_ip      = net_ip_;
     net_port    = net_port_;
-    log         = log_;
     initialized = true;
-    log->debug("Initialized.\n");
+    logger.debug("Initialized.");
     return port_listen();
   }
 
@@ -45,29 +44,29 @@ private:
   ///< Main message handler
   int handle_message(const unique_byte_array_t& rx_buf, const uint32_t n)
   {
-    log->debug("Received %d B from remote.\n", n);
+    logger.debug("Received %d B from remote.", n);
 
     Document document;
     if (document.Parse((char*)rx_buf->begin()).HasParseError() || document.IsObject() == false) {
-      log->error_hex(rx_buf->begin(), n, "Error parsing incoming data.\n");
-      return SRSLTE_ERROR;
+      logger.error(rx_buf->begin(), n, "Error parsing incoming data.");
+      return SRSRAN_ERROR;
     }
 
     // Pretty-print
     StringBuffer               buffer;
     PrettyWriter<StringBuffer> writer(buffer);
     document.Accept(writer);
-    log->info("Received %d bytes\n%s\n", n, (char*)buffer.GetString());
+    logger.info("Received %d bytes\n%s", n, (char*)buffer.GetString());
 
     // Get message
     if (document.HasMember("CTRL")) {
-      log->info("Received CTRL command.\n");
+      logger.info("Received CTRL command.");
       handle_ctrl(document);
     } else {
-      log->error("Received unknown request.\n");
+      logger.error("Received unknown request.");
     }
 
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   void handle_ctrl(Document& document)
@@ -111,7 +110,7 @@ private:
 
     // Send response
     if (resp.length() > 0) {
-      log->info("Sending %s to tester (%zd B)\n", resp.c_str(), resp.length());
+      logger.info("Sending %s to tester (%zd B)", resp.c_str(), resp.length());
       send((const uint8_t*)resp.c_str(), resp.length());
     }
   }

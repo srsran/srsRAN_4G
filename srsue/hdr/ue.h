@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -33,10 +33,10 @@
 #include <string>
 
 #include "phy/ue_phy_base.h"
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/log_filter.h"
-#include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/radio/radio.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/radio/radio.h"
+#include "srsran/srslog/srslog.h"
+#include "srsran/system/sys_metrics_processor.h"
 #include "stack/ue_stack_base.h"
 
 #include "ue_metrics_interface.h"
@@ -70,10 +70,13 @@ typedef struct {
   bool        metrics_csv_append;
   int         metrics_csv_flush_period_sec;
   std::string metrics_csv_filename;
+  bool        tracing_enable;
+  std::string tracing_filename;
+  std::size_t tracing_buffcapacity;
 } general_args_t;
 
 typedef struct {
-  srslte::rf_args_t rf;
+  srsran::rf_args_t rf;
   trace_args_t      trace;
   log_args_t        log;
   gui_args_t        gui;
@@ -95,7 +98,7 @@ public:
   ue();
   ~ue();
 
-  int  init(const all_args_t& args_, srslte::logger* logger_);
+  int  init(const all_args_t& args_);
   void stop();
   bool switch_on();
   bool switch_off();
@@ -109,16 +112,17 @@ public:
 private:
   // UE consists of a radio, a PHY and a stack element
   std::unique_ptr<ue_phy_base>        phy;
-  std::unique_ptr<srslte::radio_base> radio;
+  std::unique_ptr<srsran::radio_base> radio;
   std::unique_ptr<ue_stack_base>      stack;
   std::unique_ptr<gw>                 gw_inst;
 
   // Generic logger members
-  srslte::logger*    logger = nullptr;
-  srslte::log_filter log; // Own logger for UE
+  srslog::basic_logger& logger;
 
-  all_args_t                args;
-  srslte::byte_buffer_pool* pool = nullptr;
+  // System metrics processor.
+  srsran::sys_metrics_processor sys_proc;
+
+  all_args_t args;
 
   // Helper functions
   int parse_args(const all_args_t& args); // parse and validate arguments

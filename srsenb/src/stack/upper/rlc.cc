@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -20,23 +20,22 @@
  */
 
 #include "srsenb/hdr/stack/upper/rlc.h"
-#include "srsenb/hdr/stack/upper/common_enb.h"
+#include "srsenb/hdr/common/common_enb.h"
+#include "srsran/interfaces/enb_mac_interfaces.h"
+#include "srsran/interfaces/enb_pdcp_interfaces.h"
+#include "srsran/interfaces/enb_rrc_interfaces.h"
 
 namespace srsenb {
 
 void rlc::init(pdcp_interface_rlc*    pdcp_,
                rrc_interface_rlc*     rrc_,
                mac_interface_rlc*     mac_,
-               srslte::timer_handler* timers_,
-               srslte::log_ref        log_h_)
+               srsran::timer_handler* timers_)
 {
   pdcp   = pdcp_;
   rrc    = rrc_;
-  log_h  = log_h_;
   mac    = mac_;
   timers = timers_;
-
-  pool = srslte::byte_buffer_pool::get_instance();
 
   pthread_rwlock_init(&rwlock, nullptr);
 }
@@ -52,15 +51,25 @@ void rlc::stop()
   pthread_rwlock_destroy(&rwlock);
 }
 
+void rlc::get_metrics(rlc_metrics_t& m, const uint32_t nof_tti)
+{
+  m.ues.resize(users.size());
+  size_t count = 0;
+  for (auto& user : users) {
+    user.second.rlc->get_metrics(m.ues[count], nof_tti);
+    count++;
+  }
+}
+
 void rlc::add_user(uint16_t rnti)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti) == 0) {
-    std::unique_ptr<srslte::rlc> obj(new srslte::rlc(log_h->get_service_name().c_str()));
+    auto obj = make_rnti_obj<srsran::rlc>(rnti, logger.id().c_str());
     obj->init(&users[rnti],
               &users[rnti],
               timers,
-              RB_ID_SRB0,
+              srb_to_lcid(lte_srb::srb0),
               [rnti, this](uint32_t lcid, uint32_t tx_queue, uint32_t retx_queue) {
                 update_bsr(rnti, lcid, tx_queue, retx_queue);
               });
@@ -80,7 +89,7 @@ void rlc::rem_user(uint16_t rnti)
     users[rnti].rlc->stop();
     users.erase(rnti);
   } else {
-    log_h->error("Removing rnti=0x%x. Already removed\n", rnti);
+    logger.error("Removing rnti=0x%x. Already removed", rnti);
   }
   pthread_rwlock_unlock(&rwlock);
 }
@@ -90,17 +99,17 @@ void rlc::clear_buffer(uint16_t rnti)
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti)) {
     users[rnti].rlc->empty_queue();
-    for (int i = 0; i < SRSLTE_N_RADIO_BEARERS; i++) {
+    for (int i = 0; i < SRSRAN_N_RADIO_BEARERS; i++) {
       if (users[rnti].rlc->has_bearer(i)) {
         mac->rlc_buffer_state(rnti, i, 0, 0);
       }
     }
-    log_h->info("Cleared buffer rnti=0x%x\n", rnti);
+    logger.info("Cleared buffer rnti=0x%x", rnti);
   }
   pthread_rwlock_unlock(&rwlock);
 }
 
-void rlc::add_bearer(uint16_t rnti, uint32_t lcid, srslte::rlc_config_t cnfg)
+void rlc::add_bearer(uint16_t rnti, uint32_t lcid, srsran::rlc_config_t cnfg)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti)) {
@@ -175,7 +184,7 @@ void rlc::reestablish(uint16_t rnti)
 // This function is called by UE RLC instance every time the tx/retx buffers are updated
 void rlc::update_bsr(uint32_t rnti, uint32_t lcid, uint32_t tx_queue, uint32_t retx_queue)
 {
-  log_h->debug("Buffer state: rnti=0x%x, lcid=%d, tx_queue=%d\n", rnti, lcid, tx_queue);
+  logger.debug("Buffer state: rnti=0x%x, lcid=%d, tx_queue=%d", rnti, lcid, tx_queue);
   mac->rlc_buffer_state(rnti, lcid, tx_queue, retx_queue);
 }
 
@@ -190,13 +199,13 @@ int rlc::read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_b
 
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti)) {
-    if (rnti != SRSLTE_MRNTI) {
+    if (rnti != SRSRAN_MRNTI) {
       ret = users[rnti].rlc->read_pdu(lcid, payload, nof_bytes);
     } else {
       ret = users[rnti].rlc->read_pdu_mch(lcid, payload, nof_bytes);
     }
   } else {
-    ret = SRSLTE_ERROR;
+    ret = SRSRAN_ERROR;
   }
   pthread_rwlock_unlock(&rwlock);
   return ret;
@@ -211,11 +220,11 @@ void rlc::write_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof
   pthread_rwlock_unlock(&rwlock);
 }
 
-void rlc::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu)
+void rlc::write_sdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t sdu)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti)) {
-    if (rnti != SRSLTE_MRNTI) {
+    if (rnti != SRSRAN_MRNTI) {
       users[rnti].rlc->write_sdu(lcid, std::move(sdu));
     } else {
       users[rnti].rlc->write_sdu_mch(lcid, std::move(sdu));
@@ -260,33 +269,43 @@ void rlc::user_interface::max_retx_attempted()
   rrc->max_retx_attempted(rnti);
 }
 
-void rlc::user_interface::write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)
+void rlc::user_interface::write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu)
 {
-  if (lcid == RB_ID_SRB0) {
+  if (lcid == srb_to_lcid(lte_srb::srb0)) {
     rrc->write_pdu(rnti, lcid, std::move(sdu));
   } else {
     pdcp->write_pdu(rnti, lcid, std::move(sdu));
   }
 }
 
-void rlc::user_interface::write_pdu_bcch_bch(srslte::unique_byte_buffer_t sdu)
+void rlc::user_interface::notify_delivery(uint32_t lcid, const srsran::pdcp_sn_vector_t& pdcp_sns)
 {
-  ERROR("Error: Received BCCH from ue=%d\n", rnti);
+  pdcp->notify_delivery(rnti, lcid, pdcp_sns);
 }
 
-void rlc::user_interface::write_pdu_bcch_dlsch(srslte::unique_byte_buffer_t sdu)
+void rlc::user_interface::notify_failure(uint32_t lcid, const srsran::pdcp_sn_vector_t& pdcp_sns)
 {
-  ERROR("Error: Received BCCH from ue=%d\n", rnti);
+  pdcp->notify_failure(rnti, lcid, pdcp_sns);
 }
 
-void rlc::user_interface::write_pdu_pcch(srslte::unique_byte_buffer_t sdu)
+void rlc::user_interface::write_pdu_bcch_bch(srsran::unique_byte_buffer_t sdu)
 {
-  ERROR("Error: Received PCCH from ue=%d\n", rnti);
+  ERROR("Error: Received BCCH from ue=%d", rnti);
 }
 
-std::string rlc::user_interface::get_rb_name(uint32_t lcid)
+void rlc::user_interface::write_pdu_bcch_dlsch(srsran::unique_byte_buffer_t sdu)
 {
-  return to_string((rb_id_t)lcid);
+  ERROR("Error: Received BCCH from ue=%d", rnti);
+}
+
+void rlc::user_interface::write_pdu_pcch(srsran::unique_byte_buffer_t sdu)
+{
+  ERROR("Error: Received PCCH from ue=%d", rnti);
+}
+
+const char* rlc::user_interface::get_rb_name(uint32_t lcid)
+{
+  return srsenb::get_rb_name(lcid);
 }
 
 } // namespace srsenb

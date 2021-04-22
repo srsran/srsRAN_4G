@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -32,18 +32,18 @@
 
 #endif /* LV_HAVE_SSE */
 
-#include "srslte/phy/utils/bit.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/utils/bit.h"
+#include "srsran/phy/utils/vector.h"
 
-void srslte_bit_interleaver_init(srslte_bit_interleaver_t* q, uint16_t* interleaver, uint32_t nof_bits)
+void srsran_bit_interleaver_init(srsran_bit_interleaver_t* q, uint16_t* interleaver, uint32_t nof_bits)
 {
   static const uint8_t mask[] = {0x80, 0x40, 0x20, 0x10, 0x8, 0x4, 0x2, 0x1};
 
-  bzero(q, sizeof(srslte_bit_interleaver_t));
+  bzero(q, sizeof(srsran_bit_interleaver_t));
 
-  q->interleaver = srslte_vec_u16_malloc(nof_bits);
-  q->byte_idx    = srslte_vec_u16_malloc(nof_bits);
-  q->bit_mask    = srslte_vec_u8_malloc(nof_bits);
+  q->interleaver = srsran_vec_u16_malloc(nof_bits);
+  q->byte_idx    = srsran_vec_u16_malloc(nof_bits);
+  q->bit_mask    = srsran_vec_u8_malloc(nof_bits);
   q->nof_bits    = nof_bits;
 
   for (int i = 0; i < nof_bits; i++) {
@@ -54,7 +54,7 @@ void srslte_bit_interleaver_init(srslte_bit_interleaver_t* q, uint16_t* interlea
   }
 }
 
-void srslte_bit_interleaver_free(srslte_bit_interleaver_t* q)
+void srsran_bit_interleaver_free(srsran_bit_interleaver_t* q)
 {
   if (q->interleaver) {
     free(q->interleaver);
@@ -68,10 +68,10 @@ void srslte_bit_interleaver_free(srslte_bit_interleaver_t* q)
     free(q->bit_mask);
   }
 
-  bzero(q, sizeof(srslte_bit_interleaver_t));
+  bzero(q, sizeof(srsran_bit_interleaver_t));
 }
 
-void srslte_bit_interleaver_run(srslte_bit_interleaver_t* q, uint8_t* input, uint8_t* output, uint16_t w_offset)
+void srsran_bit_interleaver_run(srsran_bit_interleaver_t* q, uint8_t* input, uint8_t* output, uint16_t w_offset)
 {
   static const uint8_t mask[]     = {0x80, 0x40, 0x20, 0x10, 0x8, 0x4, 0x2, 0x1};
   uint16_t*            byte_idx   = q->byte_idx;
@@ -199,12 +199,12 @@ void srslte_bit_interleaver_run(srslte_bit_interleaver_t* q, uint8_t* input, uin
 #endif
 }
 
-void srslte_bit_interleave_i(uint8_t* input, uint8_t* output, uint32_t* interleaver, uint32_t nof_bits)
+void srsran_bit_interleave_i(uint8_t* input, uint8_t* output, uint32_t* interleaver, uint32_t nof_bits)
 {
-  srslte_bit_interleave_i_w_offset(input, output, interleaver, nof_bits, 0);
+  srsran_bit_interleave_i_w_offset(input, output, interleaver, nof_bits, 0);
 }
 
-void srslte_bit_interleave_i_w_offset(uint8_t*  input,
+void srsran_bit_interleave_i_w_offset(uint8_t*  input,
                                       uint8_t*  output,
                                       uint32_t* interleaver,
                                       uint32_t  nof_bits,
@@ -359,12 +359,12 @@ void srslte_bit_interleave_i_w_offset(uint8_t*  input,
   }
 }
 
-void srslte_bit_interleave(uint8_t* input, uint8_t* output, uint16_t* interleaver, uint32_t nof_bits)
+void srsran_bit_interleave(uint8_t* input, uint8_t* output, uint16_t* interleaver, uint32_t nof_bits)
 {
-  srslte_bit_interleave_w_offset(input, output, interleaver, nof_bits, 0);
+  srsran_bit_interleave_w_offset(input, output, interleaver, nof_bits, 0);
 }
 
-void srslte_bit_interleave_w_offset(uint8_t*  input,
+void srsran_bit_interleave_w_offset(uint8_t*  input,
                                     uint8_t*  output,
                                     uint16_t* interleaver,
                                     uint32_t  nof_bits,
@@ -682,7 +682,7 @@ bitarray_copy(const unsigned char* src_org, int src_offset, int src_len, unsigne
  * @param src_offset Input array read offset in bits
  * @param nof_bits Number of bits to copy
  */
-void srslte_bit_copy(uint8_t* dst, uint32_t dst_offset, uint8_t* src, uint32_t src_offset, uint32_t nof_bits)
+void srsran_bit_copy(uint8_t* dst, uint32_t dst_offset, uint8_t* src, uint32_t src_offset, uint32_t nof_bits)
 {
   static const uint8_t mask_dst[] = {0x00, 0x80, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc, 0xfe, 0xff};
   if ((dst_offset % 8) == 0 && (src_offset % 8) == 0) {
@@ -697,19 +697,19 @@ void srslte_bit_copy(uint8_t* dst, uint32_t dst_offset, uint8_t* src, uint32_t s
   }
 }
 
-void srslte_bit_unpack_vector(uint8_t* packed, uint8_t* unpacked, int nof_bits)
+void srsran_bit_unpack_vector(const uint8_t* packed, uint8_t* unpacked, int nof_bits)
 {
   uint32_t i, nbytes;
   nbytes = nof_bits / 8;
   for (i = 0; i < nbytes; i++) {
-    srslte_bit_unpack(packed[i], &unpacked, 8);
+    srsran_bit_unpack(packed[i], &unpacked, 8);
   }
   if (nof_bits % 8) {
-    srslte_bit_unpack(packed[i] >> (8 - nof_bits % 8), &unpacked, nof_bits % 8);
+    srsran_bit_unpack(packed[i] >> (8 - nof_bits % 8), &unpacked, nof_bits % 8);
   }
 }
 
-void srslte_bit_unpack_l(uint64_t value, uint8_t** bits, int nof_bits)
+void srsran_bit_unpack_l(uint64_t value, uint8_t** bits, int nof_bits)
 {
   int i;
 
@@ -726,7 +726,7 @@ void srslte_bit_unpack_l(uint64_t value, uint8_t** bits, int nof_bits)
  * @param[in] nof_bits Number of bits to unpack
  * @param[out] bits Points to buffer pointer. The buffer pointer will be advanced by nof_bits
  */
-void srslte_bit_unpack(uint32_t value, uint8_t** bits, int nof_bits)
+void srsran_bit_unpack(uint32_t value, uint8_t** bits, int nof_bits)
 {
   int i;
 
@@ -736,7 +736,7 @@ void srslte_bit_unpack(uint32_t value, uint8_t** bits, int nof_bits)
   *bits += nof_bits;
 }
 
-void srslte_bit_pack_vector(uint8_t* unpacked, uint8_t* packed, int nof_bits)
+void srsran_bit_pack_vector(uint8_t* unpacked, uint8_t* packed, int nof_bits)
 {
   uint32_t i, nbytes;
   nbytes = nof_bits / 8;
@@ -755,17 +755,17 @@ void srslte_bit_pack_vector(uint8_t* unpacked, uint8_t* packed, int nof_bits)
   }
 #else  /* LV_HAVE_SSE */
   for (i = 0; i < nbytes; i++) {
-    packed[i] = srslte_bit_pack(&unpacked, 8);
+    packed[i] = srsran_bit_pack(&unpacked, 8);
   }
 #endif /* LV_HAVE_SSE */
 
   if (nof_bits % 8) {
-    packed[i] = srslte_bit_pack(&unpacked, nof_bits % 8);
+    packed[i] = srsran_bit_pack(&unpacked, nof_bits % 8);
     packed[i] <<= 8 - (nof_bits % 8);
   }
 }
 
-uint32_t srslte_bit_pack(uint8_t** bits, int nof_bits)
+uint32_t srsran_bit_pack(uint8_t** bits, int nof_bits)
 {
   int      i;
   uint32_t value = 0;
@@ -777,7 +777,7 @@ uint32_t srslte_bit_pack(uint8_t** bits, int nof_bits)
   return value;
 }
 
-uint64_t srslte_bit_pack_l(uint8_t** bits, int nof_bits)
+uint64_t srsran_bit_pack_l(uint8_t** bits, int nof_bits)
 {
   int      i;
   uint64_t value = 0;
@@ -789,7 +789,7 @@ uint64_t srslte_bit_pack_l(uint8_t** bits, int nof_bits)
   return value;
 }
 
-void srslte_bit_fprint(FILE* stream, uint8_t* bits, int nof_bits)
+void srsran_bit_fprint(FILE* stream, uint8_t* bits, int nof_bits)
 {
   int i;
 
@@ -800,7 +800,7 @@ void srslte_bit_fprint(FILE* stream, uint8_t* bits, int nof_bits)
   fprintf(stream, "%d]\n", bits[i]);
 }
 
-uint32_t srslte_bit_diff(const uint8_t* x, const uint8_t* y, int nbits)
+uint32_t srsran_bit_diff(const uint8_t* x, const uint8_t* y, int nbits)
 {
   uint32_t errors = 0;
   for (int i = 0; i < nbits; i++) {
@@ -812,7 +812,7 @@ uint32_t srslte_bit_diff(const uint8_t* x, const uint8_t* y, int nbits)
 }
 
 // Counts the number of ones in a word. K&R book exercise 2.9
-uint32_t srslte_bit_count(uint32_t n)
+uint32_t srsran_bit_count(uint32_t n)
 {
   int c;
   for (c = 0; n; c++)

@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -21,10 +21,9 @@
 #ifndef SRSUE_INTRA_MEASURE_H
 #define SRSUE_INTRA_MEASURE_H
 
-#include <srslte/common/log.h>
-#include <srslte/common/threads.h>
-#include <srslte/common/tti_sync_cv.h>
-#include <srslte/srslte.h>
+#include <srsran/common/threads.h>
+#include <srsran/common/tti_sync_cv.h>
+#include <srsran/srsran.h>
 
 #include "scell_recv.h"
 
@@ -32,7 +31,7 @@ namespace srsue {
 namespace scell {
 
 // Class to perform intra-frequency measurements
-class intra_measure : public srslte::thread
+class intra_measure : public srsran::thread
 {
   /*
    * The intra-cell measurment has 5 different states:
@@ -40,7 +39,8 @@ class intra_measure : public srslte::thread
    *          except quit can transition to idle.
    *  - wait: waits for at least intra_freq_meas_period_ms since last receive start and goes to receive.
    *  - receive: captures base-band samples for intra_freq_meas_len_ms and goes to measure.
-   *  - measure: enables the inner thread to start the measuring function and goes to wait.
+   *  - measure: enables the inner thread to start the measuring function. The asynchronous buffer will transition to
+   *             wait as soon as it has read the data from the buffer.
    *  - quit: stops the inner thread and quits. Transition from any state measure state.
    *
    * FSM abstraction:
@@ -49,7 +49,7 @@ class intra_measure : public srslte::thread
    *  | Idle | --------------------->| Wait |------------------------------>| Receive |
    *  +------+                       +------+                               +---------+
    *     ^                              ^                                        |          stop  +------+
-   *     |                              |                                        |          ----->| Quit |
+   *     |                  Read buffer |                                        |          ----->| Quit |
    *   init                        +---------+    intra_freq_meas_len_ms         |                +------+
    * meas_stop                     | Measure |<----------------------------------+
    *                               +---------+
@@ -59,14 +59,14 @@ public:
   class meas_itf
   {
   public:
-    virtual void cell_meas_reset(uint32_t cc_idx)                                                           = 0;
-    virtual void new_cell_meas(uint32_t cc_idx, const std::vector<rrc_interface_phy_lte::phy_meas_t>& meas) = 0;
+    virtual void cell_meas_reset(uint32_t cc_idx)                                    = 0;
+    virtual void new_cell_meas(uint32_t cc_idx, const std::vector<phy_meas_t>& meas) = 0;
   };
 
   /**
    * Constructor
    */
-  intra_measure();
+  intra_measure(srslog::basic_logger& logger);
 
   /**
    * Destructor
@@ -77,9 +77,8 @@ public:
    * Initiation function, necessary to configure main parameters
    * @param common SRSUE phy_common instance pointer for providing intra_freq_meas_len_ms and intra_freq_meas_period_ms
    * @param rrc SRSUE PHY->RRC interface for supplying the RRC with the measurements
-   * @param log_h Physical layer Logging filter pointer
    */
-  void init(uint32_t cc_idx, phy_common* common, meas_itf* new_cell_itf, srslte::log* log_h);
+  void init(uint32_t cc_idx, phy_common* common, meas_itf* new_cell_itf);
 
   /**
    * Stops the operation of this component
@@ -87,11 +86,11 @@ public:
   void stop();
 
   /**
-   * Sets the primmary cell, configures the cell bandwidth and sampling rate
+   * Sets the primary cell, configures the cell bandwidth and sampling rate
    * @param earfcn Frequency the component is receiving base-band from. Used only for reporting the EARFCN to the RRC
    * @param cell Actual cell configuration
    */
-  void set_primary_cell(uint32_t earfcn, srslte_cell_t cell);
+  void set_primary_cell(uint32_t earfcn, srsran_cell_t cell);
 
   /**
    * Sets receiver gain offset to convert estimated dBFs to dBm in RSRP
@@ -125,11 +124,12 @@ public:
   uint32_t get_earfcn() { return current_earfcn; };
 
   /**
-   * Synchronous wait mechanism, used for testing purposes, it waits for the inner thread to return a measurement.
+   * Synchronous wait mechanism, blocks the writer thread while it is in measure state. If the asynchonous thread is too
+   * slow, use this method for stalling the writing thread and wait the asynchronous thread to clear the buffer.
    */
   void wait_meas()
   { // Only used by scell_search_test
-    meas_sync.wait();
+    state.wait_change(internal_state::measure);
   }
 
 private:
@@ -173,12 +173,14 @@ private:
     }
 
     /**
-     * Waits for a state transition change, used for blocking the inner thread
+     * Waits for a state transition to a state different than the provided, used for blocking the inner thread
      */
-    void wait_change()
+    void wait_change(state_t s)
     {
       std::unique_lock<std::mutex> lock(mutex);
-      cvar.wait(lock);
+      while (state == s) {
+        cvar.wait(lock);
+      }
     }
   };
 
@@ -198,27 +200,25 @@ private:
   ///< Internal Thread priority, low by default
   const static int INTRA_FREQ_MEAS_PRIO = DEFAULT_PRIORITY + 5;
 
-  scell_recv             scell                     = {};
-  meas_itf*              new_cell_itf              = nullptr;
-  srslte::log*           log_h                     = nullptr;
-  uint32_t               cc_idx                    = 0;
-  uint32_t               current_earfcn            = 0;
-  uint32_t               current_sflen             = 0;
-  srslte_cell_t          serving_cell              = {};
-  std::set<uint32_t>     active_pci                = {};
-  std::mutex             active_pci_mutex          = {};
-  uint32_t               last_measure_tti          = 0;
-  uint32_t               intra_freq_meas_len_ms    = 20;
-  uint32_t               intra_freq_meas_period_ms = 200;
-  uint32_t               rx_gain_offset_db         = 0;
-  srslte::tti_sync_cv    meas_sync; // Only used by scell_search_test
+  scell_recv            scell;
+  meas_itf*             new_cell_itf = nullptr;
+  srslog::basic_logger& logger;
+  uint32_t              cc_idx                    = 0;
+  uint32_t              current_earfcn            = 0;
+  uint32_t              current_sflen             = 0;
+  srsran_cell_t         serving_cell              = {};
+  std::set<uint32_t>    active_pci                = {};
+  std::mutex            active_pci_mutex          = {};
+  uint32_t              last_measure_tti          = 0;
+  uint32_t              intra_freq_meas_len_ms    = 20;
+  uint32_t              intra_freq_meas_period_ms = 200;
+  uint32_t              rx_gain_offset_db         = 0;
 
   cf_t* search_buffer = nullptr;
 
-  uint32_t            receive_cnt = 0;
-  srslte_ringbuffer_t ring_buffer = {};
+  srsran_ringbuffer_t ring_buffer = {};
 
-  srslte_refsignal_dl_sync_t refsignal_dl_sync = {};
+  srsran_refsignal_dl_sync_t refsignal_dl_sync = {};
 };
 
 } // namespace scell

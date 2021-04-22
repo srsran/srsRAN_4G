@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -25,34 +25,34 @@
 #include <strings.h>
 #include <unistd.h>
 
-#include "srslte/srslte.h"
+#include "srsran/srsran.h"
 
 char* input_file_name = NULL;
 
-srslte_cell_t cell = {
+srsran_cell_t cell = {
     6,                 // nof_prb
     2,                 // nof_ports
     150,               // cell_id
-    SRSLTE_CP_NORM,    // cyclic prefix
-    SRSLTE_PHICH_NORM, // PHICH length
-    SRSLTE_PHICH_R_1,  // PHICH resources
-    SRSLTE_FDD,
+    SRSRAN_CP_NORM,    // cyclic prefix
+    SRSRAN_PHICH_NORM, // PHICH length
+    SRSRAN_PHICH_R_1,  // PHICH resources
+    SRSRAN_FDD,
 
 };
 
 int nof_frames = 1;
 
-uint8_t bch_payload_file[SRSLTE_BCH_PAYLOAD_LEN] = {0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1,
+uint8_t bch_payload_file[SRSRAN_BCH_PAYLOAD_LEN] = {0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1,
                                                     1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-#define FLEN (10 * SRSLTE_SF_LEN(srslte_symbol_sz(cell.nof_prb)))
+#define FLEN (10 * SRSRAN_SF_LEN(srsran_symbol_sz(cell.nof_prb)))
 
-srslte_filesource_t   fsrc;
-cf_t *                input_buffer, *fft_buffer[SRSLTE_MAX_CODEWORDS];
-srslte_pbch_t         pbch;
-srslte_ofdm_t         fft;
-srslte_chest_dl_t     chest;
-srslte_chest_dl_res_t chest_res;
+srsran_filesource_t   fsrc;
+cf_t *                input_buffer, *fft_buffer[SRSRAN_MAX_CODEWORDS];
+srsran_pbch_t         pbch;
+srsran_ofdm_t         fft;
+srsran_chest_dl_t     chest;
+srsran_chest_dl_res_t chest_res;
 
 void usage(char* prog)
 {
@@ -61,7 +61,7 @@ void usage(char* prog)
   printf("\t-p nof_prb [Default %d]\n", cell.nof_prb);
   printf("\t-e Set extended prefix [Default Normal]\n");
   printf("\t-n nof_frames [Default %d]\n", nof_frames);
-  printf("\t-v [set srslte_verbose to debug, default none]\n");
+  printf("\t-v [set srsran_verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char** argv)
@@ -83,10 +83,10 @@ void parse_args(int argc, char** argv)
         nof_frames = (int)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
-        srslte_verbose++;
+        srsran_verbose++;
         break;
       case 'e':
-        cell.cp = SRSLTE_CP_EXT;
+        cell.cp = SRSRAN_CP_EXT;
         break;
       default:
         usage(argv[0]);
@@ -101,78 +101,77 @@ void parse_args(int argc, char** argv)
 
 int base_init()
 {
-
-  if (srslte_filesource_init(&fsrc, input_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
-    ERROR("Error opening file %s\n", input_file_name);
+  if (srsran_filesource_init(&fsrc, input_file_name, SRSRAN_COMPLEX_FLOAT_BIN)) {
+    ERROR("Error opening file %s", input_file_name);
     exit(-1);
   }
 
-  input_buffer = srslte_vec_cf_malloc(FLEN);
+  input_buffer = srsran_vec_cf_malloc(FLEN);
   if (!input_buffer) {
     perror("malloc");
     exit(-1);
   }
 
-  fft_buffer[0] = srslte_vec_cf_malloc(SRSLTE_NOF_RE(cell));
+  fft_buffer[0] = srsran_vec_cf_malloc(SRSRAN_NOF_RE(cell));
   if (!fft_buffer[0]) {
     perror("malloc");
     return -1;
   }
 
-  if (!srslte_cell_isvalid(&cell)) {
-    ERROR("Invalid cell properties\n");
+  if (!srsran_cell_isvalid(&cell)) {
+    ERROR("Invalid cell properties");
     return -1;
   }
 
-  if (srslte_chest_dl_init(&chest, cell.nof_prb, 1)) {
-    ERROR("Error initializing equalizer\n");
+  if (srsran_chest_dl_init(&chest, cell.nof_prb, 1)) {
+    ERROR("Error initializing equalizer");
     return -1;
   }
-  if (srslte_chest_dl_res_init(&chest_res, cell.nof_prb)) {
-    ERROR("Error initializing equalizer\n");
+  if (srsran_chest_dl_res_init(&chest_res, cell.nof_prb)) {
+    ERROR("Error initializing equalizer");
     return -1;
   }
-  if (srslte_chest_dl_set_cell(&chest, cell)) {
-    ERROR("Error initializing equalizer\n");
-    return -1;
-  }
-
-  if (srslte_ofdm_rx_init(&fft, cell.cp, input_buffer, fft_buffer[0], cell.nof_prb)) {
-    ERROR("Error initializing FFT\n");
+  if (srsran_chest_dl_set_cell(&chest, cell)) {
+    ERROR("Error initializing equalizer");
     return -1;
   }
 
-  if (srslte_pbch_init(&pbch)) {
-    ERROR("Error initiating PBCH\n");
-    return -1;
-  }
-  if (srslte_pbch_set_cell(&pbch, cell)) {
-    ERROR("Error initiating PBCH\n");
+  if (srsran_ofdm_rx_init(&fft, cell.cp, input_buffer, fft_buffer[0], cell.nof_prb)) {
+    ERROR("Error initializing FFT");
     return -1;
   }
 
-  DEBUG("Memory init OK\n");
+  if (srsran_pbch_init(&pbch)) {
+    ERROR("Error initiating PBCH");
+    return -1;
+  }
+  if (srsran_pbch_set_cell(&pbch, cell)) {
+    ERROR("Error initiating PBCH");
+    return -1;
+  }
+
+  DEBUG("Memory init OK");
   return 0;
 }
 
 void base_free()
 {
-  srslte_filesource_free(&fsrc);
+  srsran_filesource_free(&fsrc);
 
   free(input_buffer);
   free(fft_buffer[0]);
 
-  srslte_filesource_free(&fsrc);
-  srslte_chest_dl_res_free(&chest_res);
-  srslte_chest_dl_free(&chest);
-  srslte_ofdm_rx_free(&fft);
+  srsran_filesource_free(&fsrc);
+  srsran_chest_dl_res_free(&chest_res);
+  srsran_chest_dl_free(&chest);
+  srsran_ofdm_rx_free(&fft);
 
-  srslte_pbch_free(&pbch);
+  srsran_pbch_free(&pbch);
 }
 
 int main(int argc, char** argv)
 {
-  uint8_t  bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
+  uint8_t  bch_payload[SRSRAN_BCH_PAYLOAD_LEN];
   int      n;
   uint32_t nof_tx_ports;
   int      sfn_offset;
@@ -185,7 +184,7 @@ int main(int argc, char** argv)
   parse_args(argc, argv);
 
   if (base_init()) {
-    ERROR("Error initializing receiver\n");
+    ERROR("Error initializing receiver");
     exit(-1);
   }
 
@@ -193,32 +192,32 @@ int main(int argc, char** argv)
   int nof_decoded_mibs = 0;
   int nread            = 0;
   do {
-    nread = srslte_filesource_read(&fsrc, input_buffer, FLEN);
+    nread = srsran_filesource_read(&fsrc, input_buffer, FLEN);
 
     if (nread > 0) {
       // process 1st subframe only
-      srslte_ofdm_rx_sf(&fft);
+      srsran_ofdm_rx_sf(&fft);
 
-      srslte_dl_sf_cfg_t dl_sf;
+      srsran_dl_sf_cfg_t dl_sf;
       ZERO_OBJECT(dl_sf);
 
       /* Get channel estimates for each port */
-      srslte_chest_dl_estimate(&chest, &dl_sf, fft_buffer, &chest_res);
+      srsran_chest_dl_estimate(&chest, &dl_sf, fft_buffer, &chest_res);
 
-      INFO("Decoding PBCH\n");
+      INFO("Decoding PBCH");
 
-      srslte_pbch_decode_reset(&pbch);
-      n = srslte_pbch_decode(&pbch, &chest_res, fft_buffer, bch_payload, &nof_tx_ports, &sfn_offset);
+      srsran_pbch_decode_reset(&pbch);
+      n = srsran_pbch_decode(&pbch, &chest_res, fft_buffer, bch_payload, &nof_tx_ports, &sfn_offset);
 
       if (n == 1) {
         nof_decoded_mibs++;
       } else if (n < 0) {
-        ERROR("Error decoding PBCH\n");
+        ERROR("Error decoding PBCH");
         exit(-1);
       }
       frame_cnt++;
     } else if (nread < 0) {
-      ERROR("Error reading from file\n");
+      ERROR("Error reading from file");
       exit(-1);
     }
   } while (nread > 0 && frame_cnt < nof_frames);
@@ -231,8 +230,8 @@ int main(int argc, char** argv)
       exit(-1);
     } else {
       printf("MIB decoded OK. Nof ports: %d. SFN offset: %d Payload: ", nof_tx_ports, sfn_offset);
-      srslte_vec_fprint_hex(stdout, bch_payload, SRSLTE_BCH_PAYLOAD_LEN);
-      if (nof_tx_ports == 2 && sfn_offset == 0 && !memcmp(bch_payload, bch_payload_file, SRSLTE_BCH_PAYLOAD_LEN)) {
+      srsran_vec_fprint_hex(stdout, bch_payload, SRSRAN_BCH_PAYLOAD_LEN);
+      if (nof_tx_ports == 2 && sfn_offset == 0 && !memcmp(bch_payload, bch_payload_file, SRSRAN_BCH_PAYLOAD_LEN)) {
         printf("This is the signal.1.92M.dat file\n");
         exit(0);
       } else {

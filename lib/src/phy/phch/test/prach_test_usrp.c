@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -21,15 +21,15 @@
 
 #include <complex.h>
 #include <math.h>
-#include <srslte/common/test_common.h>
+#include <srsran/common/test_common.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
 
-#include "srslte/phy/rf/rf.h"
-#include "srslte/srslte.h"
+#include "srsran/phy/rf/rf.h"
+#include "srsran/srsran.h"
 
 #define MAX_LEN 70176
 
@@ -53,11 +53,11 @@ static const uint32_t tx_delay_ms      = 4;
 
 // RF parameters
 static float uhd_rx_gain = 40, uhd_tx_gain = 60, uhd_freq = 2.4e9;
-static char* uhd_args = "";
+static char* uhd_args    = "";
 static char* device_name = "";
 
-// SRSLTE Verbose
-SRSLTE_API extern int srslte_verbose;
+// SRSRAN Verbose
+SRSRAN_API extern int srsran_verbose;
 
 void usage(char* prog)
 {
@@ -77,7 +77,7 @@ void usage(char* prog)
   printf("  -t Time advance (us) [Default %.1f us]\n", timeadv);
   printf("  -z Zero correlation zone config [Default %d]\n", zero_corr_zone);
   printf("  -o Save transmitted PRACH in file [Default no]\n");
-  printf("  -v [set srslte_verbose to info, debug, default none]\n");
+  printf("  -v [set srsran_verbose to info, debug, default none]\n");
   printf("\n");
   printf("Device arguments for:\n");
   printf("  X300: type=x300,addr=192.168.40.2,send_frame_size=2000,recv_frame_size=2000\n");
@@ -127,8 +127,8 @@ void parse_args(int argc, char** argv)
         break;
       case 'p':
         nof_prb = (int)strtol(argv[optind], NULL, 10);
-        if (!srslte_nofprb_isvalid(nof_prb)) {
-          ERROR("Invalid number of UL RB %d\n", nof_prb);
+        if (!srsran_nofprb_isvalid(nof_prb)) {
+          ERROR("Invalid number of UL RB %d", nof_prb);
           exit(-1);
         }
         break;
@@ -145,7 +145,7 @@ void parse_args(int argc, char** argv)
         seq_idx = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
-        srslte_verbose++;
+        srsran_verbose++;
         break;
       case 'z':
         zero_corr_zone = (uint32_t)strtol(argv[optind], NULL, 10);
@@ -157,23 +157,22 @@ void parse_args(int argc, char** argv)
   }
 }
 
-void rf_msg_callback(void* arg, srslte_rf_error_t error)
+void rf_msg_callback(void* arg, srsran_rf_error_t error)
 {
   switch (error.type) {
-
-    case SRSLTE_RF_ERROR_LATE:
+    case SRSRAN_RF_ERROR_LATE:
       printf("L");
       break;
-    case SRSLTE_RF_ERROR_UNDERFLOW:
+    case SRSRAN_RF_ERROR_UNDERFLOW:
       printf("U");
       break;
-    case SRSLTE_RF_ERROR_OVERFLOW:
+    case SRSRAN_RF_ERROR_OVERFLOW:
       printf("O");
       break;
-    case SRSLTE_RF_ERROR_RX:
+    case SRSRAN_RF_ERROR_RX:
       printf("R");
       break;
-    case SRSLTE_RF_ERROR_OTHER:
+    case SRSRAN_RF_ERROR_OTHER:
       printf("X");
       break;
   }
@@ -183,24 +182,24 @@ int main(int argc, char** argv)
 {
   parse_args(argc, argv);
 
-  srslte_prach_t prach = {};
-  int            srate = srslte_sampling_freq_hz(nof_prb);
+  srsran_prach_t prach = {};
+  int            srate = srsran_sampling_freq_hz(nof_prb);
   uint32_t       flen  = srate / 1000;
 
   // Allocate buffers
-  cf_t* preamble = srslte_vec_cf_malloc(MAX_LEN);
-  cf_t* zeros    = srslte_vec_cf_malloc(flen);
-  cf_t* buffer   = srslte_vec_cf_malloc(flen * nof_frames);
+  cf_t* preamble = srsran_vec_cf_malloc(MAX_LEN);
+  cf_t* zeros    = srsran_vec_cf_malloc(flen);
+  cf_t* buffer   = srsran_vec_cf_malloc(flen * nof_frames);
 
   if (!preamble || !zeros || !buffer) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
-  srslte_vec_cf_zero(preamble, MAX_LEN);
-  srslte_vec_cf_zero(zeros, flen);
-  srslte_vec_cf_zero(buffer, flen * nof_frames);
+  srsran_vec_cf_zero(preamble, MAX_LEN);
+  srsran_vec_cf_zero(zeros, flen);
+  srsran_vec_cf_zero(buffer, flen * nof_frames);
 
-  srslte_prach_cfg_t prach_cfg = {};
+  srsran_prach_cfg_t prach_cfg = {};
   prach_cfg.config_idx         = preamble_format;
   prach_cfg.hs_flag            = high_speed_flag;
   prach_cfg.freq_offset        = 0;
@@ -208,23 +207,23 @@ int main(int argc, char** argv)
   prach_cfg.zero_corr_zone     = zero_corr_zone;
   prach_cfg.num_ra_preambles   = num_ra_preambles;
 
-  if (srslte_prach_init(&prach, srslte_symbol_sz(nof_prb))) {
-    return SRSLTE_ERROR;
+  if (srsran_prach_init(&prach, srsran_symbol_sz(nof_prb))) {
+    return SRSRAN_ERROR;
   }
 
-  if (srslte_prach_set_cfg(&prach, &prach_cfg, nof_prb)) {
-    ERROR("Error initiating PRACH object\n");
-    return SRSLTE_ERROR;
+  if (srsran_prach_set_cfg(&prach, &prach_cfg, nof_prb)) {
+    ERROR("Error initiating PRACH object");
+    return SRSRAN_ERROR;
   }
 
   printf("Generating PRACH\n");
-  srslte_prach_gen(&prach, seq_idx, frequency_offset, preamble);
+  srsran_prach_gen(&prach, seq_idx, frequency_offset, preamble);
 
   // Send through UHD
-  srslte_rf_t rf;
+  srsran_rf_t rf;
   printf("Opening RF device...\n");
-  if (srslte_rf_open_devname(&rf, device_name, uhd_args, 1)) {
-    ERROR("Error opening &uhd\n");
+  if (srsran_rf_open_devname(&rf, device_name, uhd_args, 1)) {
+    ERROR("Error opening &uhd");
     exit(-1);
   }
   printf("Test summary:\n");
@@ -237,27 +236,27 @@ int main(int argc, char** argv)
   printf("   Continuous Tx: %s\n", continous_tx ? "true" : "false");
   printf("\n");
 
-  srslte_rf_set_rx_gain(&rf, uhd_rx_gain);
-  srslte_rf_set_tx_gain(&rf, uhd_tx_gain);
-  srslte_rf_set_rx_freq(&rf, 0, uhd_freq);
-  srslte_rf_set_tx_freq(&rf, 0, uhd_freq);
+  srsran_rf_set_rx_gain(&rf, uhd_rx_gain);
+  srsran_rf_set_tx_gain(&rf, uhd_tx_gain);
+  srsran_rf_set_rx_freq(&rf, 0, uhd_freq);
+  srsran_rf_set_tx_freq(&rf, 0, uhd_freq);
 
   printf("Setting sampling rate %.2f MHz\n", (float)srate / 1000000);
-  int srate_rf = (int)srslte_rf_set_rx_srate(&rf, (double)srate);
+  int srate_rf = (int)srsran_rf_set_rx_srate(&rf, (double)srate);
   if (srate_rf != srate) {
-    ERROR("Could not set sampling rate\n");
+    ERROR("Could not set sampling rate");
     exit(-1);
   }
-  srslte_rf_set_tx_srate(&rf, (double)srate);
+  srsran_rf_set_tx_srate(&rf, (double)srate);
   sleep(1);
 
-  srslte_timestamp_t tstamp;
+  srsran_timestamp_t tstamp;
 
   // Register error handler
-  srslte_rf_register_error_handler(&rf, rf_msg_callback, NULL);
+  srsran_rf_register_error_handler(&rf, rf_msg_callback, NULL);
 
   // Start streaming
-  srslte_rf_start_rx_stream(&rf, false);
+  srsran_rf_start_rx_stream(&rf, false);
 
   // Print Table legend
   printf("%8s; %5s; %5s; %5s; %6s; %5s; %9s;\n", "Time", "i", "count", "index", "usec", "samp", "Norm Peak");
@@ -280,16 +279,16 @@ int main(int argc, char** argv)
 
     // For a the number of frames
     for (uint32_t nframe = 0; nframe < nof_frames; nframe++) {
-      INFO("Rep %d. Receiving frame %d\n", rep, nframe);
-      srslte_rf_recv_with_time(&rf, &buffer[flen * nframe], flen, true, &tstamp.full_secs, &tstamp.frac_secs);
+      INFO("Rep %d. Receiving frame %d", rep, nframe);
+      srsran_rf_recv_with_time(&rf, &buffer[flen * nframe], flen, true, &tstamp.full_secs, &tstamp.frac_secs);
 
-      srslte_timestamp_add(&tstamp, 0, tx_delay_ms * 1e-3 - timeadv * 1e-6);
+      srsran_timestamp_add(&tstamp, 0, tx_delay_ms * 1e-3 - timeadv * 1e-6);
       if (nframe == 10 - tx_delay_ms) {
-        srslte_rf_send_timed2(&rf, preamble, flen, tstamp.full_secs, tstamp.frac_secs, false, !continous_tx);
-        INFO("Rep %d. Transmitting PRACH\n", rep);
+        srsran_rf_send_timed2(&rf, preamble, flen, tstamp.full_secs, tstamp.frac_secs, false, !continous_tx);
+        INFO("Rep %d. Transmitting PRACH", rep);
       } else if (nframe == 10 - tx_delay_ms - 1 || continous_tx) {
-        srslte_rf_send_timed2(&rf, zeros, flen, tstamp.full_secs, tstamp.frac_secs, is_start_of_burst, false);
-        INFO("Rep %d. Transmitting Zeros\n", rep);
+        srsran_rf_send_timed2(&rf, zeros, flen, tstamp.full_secs, tstamp.frac_secs, is_start_of_burst, false);
+        INFO("Rep %d. Transmitting Zeros", rep);
         is_start_of_burst = false;
       }
     }
@@ -299,7 +298,7 @@ int main(int argc, char** argv)
     float    offsets[1024]     = {};
     float    peak_to_avg[1024] = {};
     uint32_t nof_detected      = 0;
-    if (srslte_prach_detect_offset(&prach,
+    if (srsran_prach_detect_offset(&prach,
                                    frequency_offset,
                                    &buffer[flen * 10 + prach.N_cp],
                                    flen,
@@ -311,9 +310,9 @@ int main(int argc, char** argv)
     }
 
     // Prompt detected PRACH
-    INFO("Rep %d. Nof detected PRACHs: %d\n", rep, nof_detected);
+    INFO("Rep %d. Nof detected PRACHs: %d", rep, nof_detected);
     for (int i = 0; i < nof_detected; i++) {
-      INFO("%d/%d index=%d, offset=%.2f us (%d samples)\n",
+      INFO("%d/%d index=%d, offset=%.2f us (%d samples)",
            i,
            nof_detected,
            indices[i],
@@ -329,13 +328,13 @@ int main(int argc, char** argv)
              peak_to_avg[i]);
 
       // Update stats
-      delay_us_min = SRSLTE_MIN(delay_us_min, offsets[i] * 1e6);
-      delay_us_max = SRSLTE_MAX(delay_us_max, offsets[i] * 1e6);
-      delay_us_avg = SRSLTE_VEC_CMA(offsets[i] * 1e6, delay_us_avg, count);
+      delay_us_min = SRSRAN_MIN(delay_us_min, offsets[i] * 1e6);
+      delay_us_max = SRSRAN_MAX(delay_us_max, offsets[i] * 1e6);
+      delay_us_avg = SRSRAN_VEC_CMA(offsets[i] * 1e6, delay_us_avg, count);
 
-      peak_min = SRSLTE_MIN(peak_min, peak_to_avg[i]);
-      peak_max = SRSLTE_MAX(peak_max, peak_to_avg[i]);
-      peak_avg = SRSLTE_VEC_CMA(peak_to_avg[i], peak_avg, count);
+      peak_min = SRSRAN_MIN(peak_min, peak_to_avg[i]);
+      peak_max = SRSRAN_MAX(peak_max, peak_to_avg[i]);
+      peak_avg = SRSRAN_VEC_CMA(peak_to_avg[i], peak_avg, count);
 
       count++;
     }
@@ -343,7 +342,7 @@ int main(int argc, char** argv)
 
   // End burst
   if (continous_tx) {
-    srslte_rf_send_timed2(&rf, zeros, 0, tstamp.full_secs, tstamp.frac_secs, false, true);
+    srsran_rf_send_timed2(&rf, zeros, 0, tstamp.full_secs, tstamp.frac_secs, false, true);
   }
 
   // Print statistics
@@ -360,14 +359,14 @@ int main(int argc, char** argv)
   // Save in file if filename is not empty
   if (output_filename) {
     // Save generated PRACH signal
-    srslte_vec_save_file("generated", preamble, (prach.N_seq + prach.N_cp) * sizeof(cf_t));
+    srsran_vec_save_file("generated", preamble, (prach.N_seq + prach.N_cp) * sizeof(cf_t));
 
     // Save last received buffer
-    srslte_vec_save_file(output_filename, buffer, 11 * flen * (uint32_t)sizeof(cf_t));
+    srsran_vec_save_file(output_filename, buffer, 11 * flen * (uint32_t)sizeof(cf_t));
   }
 
-  srslte_rf_close(&rf);
-  srslte_prach_free(&prach);
+  srsran_rf_close(&rf);
+  srsran_prach_free(&prach);
 
   TESTASSERT(count == nof_repetitions);
   TESTASSERT(delay_us_max - delay_us_min < 0.5);

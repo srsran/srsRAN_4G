@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,9 +19,9 @@
  *
  */
 
-#include "srslte/phy/resampling/resampler.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/resampling/resampler.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/vector.h"
 #include <getopt.h>
 #include <stdlib.h>
 #include <sys/time.h>
@@ -63,30 +63,30 @@ static void parse_args(int argc, char** argv)
 int main(int argc, char** argv)
 {
   struct timeval         t[3]   = {};
-  srslte_resampler_fft_t interp = {};
-  srslte_resampler_fft_t decim  = {};
+  srsran_resampler_fft_t interp = {};
+  srsran_resampler_fft_t decim  = {};
 
   parse_args(argc, argv);
 
-  cf_t* src          = srslte_vec_cf_malloc(buffer_size);
-  cf_t* interpolated = srslte_vec_cf_malloc(buffer_size * factor);
-  cf_t* decimated    = srslte_vec_cf_malloc(buffer_size);
+  cf_t* src          = srsran_vec_cf_malloc(buffer_size);
+  cf_t* interpolated = srsran_vec_cf_malloc(buffer_size * factor);
+  cf_t* decimated    = srsran_vec_cf_malloc(buffer_size);
 
-  if (srslte_resampler_fft_init(&interp, SRSLTE_RESAMPLER_MODE_INTERPOLATE, factor)) {
-    return SRSLTE_ERROR;
+  if (srsran_resampler_fft_init(&interp, SRSRAN_RESAMPLER_MODE_INTERPOLATE, factor)) {
+    return SRSRAN_ERROR;
   }
 
-  if (srslte_resampler_fft_init(&decim, SRSLTE_RESAMPLER_MODE_DECIMATE, factor)) {
-    return SRSLTE_ERROR;
+  if (srsran_resampler_fft_init(&decim, SRSRAN_RESAMPLER_MODE_DECIMATE, factor)) {
+    return SRSRAN_ERROR;
   }
 
-  srslte_vec_cf_zero(src, buffer_size);
-  srslte_vec_gen_sine(1.0f, 0.01f, src, buffer_size / 10);
+  srsran_vec_cf_zero(src, buffer_size);
+  srsran_vec_gen_sine(1.0f, 0.01f, src, buffer_size / 10);
 
   gettimeofday(&t[1], NULL);
   for (uint32_t r = 0; r < repetitions; r++) {
-    srslte_resampler_fft_run(&interp, src, interpolated, buffer_size);
-    srslte_resampler_fft_run(&decim, interpolated, decimated, buffer_size * factor);
+    srsran_resampler_fft_run(&interp, src, interpolated, buffer_size);
+    srsran_resampler_fft_run(&decim, interpolated, decimated, buffer_size * factor);
   }
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
@@ -94,25 +94,25 @@ int main(int argc, char** argv)
   printf("Done %.1f Msps\n", factor * buffer_size * repetitions / (double)duration_us);
 
   //  printf("interp=");
-  //  srslte_vec_fprint_c(stdout, interpolated, buffer_size * factor);
+  //  srsran_vec_fprint_c(stdout, interpolated, buffer_size * factor);
 
   // Check error
-  uint32_t delay    = srslte_resampler_fft_get_delay(&decim) * 2;
+  uint32_t delay    = srsran_resampler_fft_get_delay(&decim) * 2;
   uint32_t nsamples = buffer_size - delay;
-  srslte_vec_sub_ccc(src, &decimated[delay], interpolated, nsamples);
-  float mse = sqrtf(srslte_vec_avg_power_cf(interpolated, nsamples));
+  srsran_vec_sub_ccc(src, &decimated[delay], interpolated, nsamples);
+  float mse = sqrtf(srsran_vec_avg_power_cf(interpolated, nsamples));
   printf("MSE: %f\n", mse);
 
   //  printf("src=");
-  //  srslte_vec_fprint_c(stdout, src, nsamples);
+  //  srsran_vec_fprint_c(stdout, src, nsamples);
   //  printf("decim=");
-  //  srslte_vec_fprint_c(stdout, &decimated[delay], nsamples);
+  //  srsran_vec_fprint_c(stdout, &decimated[delay], nsamples);
 
-  srslte_resampler_fft_free(&interp);
-  srslte_resampler_fft_free(&decim);
+  srsran_resampler_fft_free(&interp);
+  srsran_resampler_fft_free(&decim);
   free(src);
   free(interpolated);
   free(decimated);
 
-  return (mse < 0.1f) ? SRSLTE_SUCCESS : SRSLTE_ERROR;
+  return (mse < 0.1f) ? SRSRAN_SUCCESS : SRSRAN_ERROR;
 }

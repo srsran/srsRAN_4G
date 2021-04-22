@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -20,7 +20,12 @@
  */
 
 #include "srsue/hdr/stack/upper/tft_packet_filter.h"
-#include "srslte/upper/ipv6.h"
+#include "srsran/upper/ipv6.h"
+
+extern "C" {
+#include "srsran/config.h"
+}
+
 #include <linux/ip.h>
 #include <linux/tcp.h>
 #include <linux/udp.h>
@@ -30,15 +35,15 @@ namespace srsue {
 tft_packet_filter_t::tft_packet_filter_t(uint8_t                                eps_bearer_id_,
                                          uint8_t                                lcid_,
                                          const LIBLTE_MME_PACKET_FILTER_STRUCT& tft,
-                                         srslte::log*                           log_) :
+                                         srslog::basic_logger&                  logger) :
   eps_bearer_id(eps_bearer_id_),
   lcid(lcid_),
   id(tft.id),
   eval_precedence(tft.eval_precedence),
   active_filters(0),
-  log(log_)
+  logger(logger)
 {
-  int idx = 0;
+  int      idx             = 0;
   uint32_t length_in_bytes = 0;
   uint32_t remaining_bits  = 0;
   while (idx < tft.filter_size) {
@@ -169,7 +174,7 @@ tft_packet_filter_t::tft_packet_filter_t(uint8_t                                
         break;
 
       default:
-        log->error("ERROR: wrong type: 0x%02x\n", filter_type);
+        logger.error("ERROR: wrong type: 0x%02x", filter_type);
         return;
     }
   }
@@ -188,7 +193,7 @@ bool inline tft_packet_filter_t::filter_contains(uint16_t filtertype)
  *
  * Note: 'active_filters' is a bitmask; bits set to '1' represent active filter components.
  */
-bool tft_packet_filter_t::match(const srslte::unique_byte_buffer_t& pdu)
+bool tft_packet_filter_t::match(const srsran::unique_byte_buffer_t& pdu)
 {
   uint16_t ip_flags = IPV4_REMOTE_ADDR_FLAG | IPV4_LOCAL_ADDR_FLAG | IPV6_REMOTE_ADDR_FLAG |
                       IPV6_REMOTE_ADDR_LENGTH_FLAG | IPV6_LOCAL_ADDR_LENGTH_FLAG;
@@ -223,7 +228,7 @@ bool tft_packet_filter_t::match(const srslte::unique_byte_buffer_t& pdu)
   return true;
 }
 
-bool tft_packet_filter_t::match_ip(const srslte::unique_byte_buffer_t& pdu)
+bool tft_packet_filter_t::match_ip(const srsran::unique_byte_buffer_t& pdu)
 {
   struct iphdr*   ip_pkt  = (struct iphdr*)pdu->msg;
   struct ipv6hdr* ip6_pkt = (struct ipv6hdr*)pdu->msg;
@@ -246,7 +251,7 @@ bool tft_packet_filter_t::match_ip(const srslte::unique_byte_buffer_t& pdu)
     if (filter_contains(IPV6_REMOTE_ADDR_FLAG | IPV6_REMOTE_ADDR_LENGTH_FLAG)) {
       bool match = true;
       for (int i = 0; i < ipv6_remote_addr_length; i++) {
-        match &= ((ipv6_remote_addr[i] ^ ip6_pkt->daddr.__in6_u.__u6_addr8[i]) & ipv6_remote_addr_mask[i]) == 0;
+        match &= ((ipv6_remote_addr[i] ^ ip6_pkt->daddr.in6_u.u6_addr8[i]) & ipv6_remote_addr_mask[i]) == 0;
         if (!match) {
           return false;
         }
@@ -260,7 +265,7 @@ bool tft_packet_filter_t::match_ip(const srslte::unique_byte_buffer_t& pdu)
   return true;
 }
 
-bool tft_packet_filter_t::match_protocol(const srslte::unique_byte_buffer_t& pdu)
+bool tft_packet_filter_t::match_protocol(const srsran::unique_byte_buffer_t& pdu)
 {
   struct iphdr*   ip_pkt  = (struct iphdr*)pdu->msg;
   struct ipv6hdr* ip6_pkt = (struct ipv6hdr*)pdu->msg;
@@ -282,7 +287,7 @@ bool tft_packet_filter_t::match_protocol(const srslte::unique_byte_buffer_t& pdu
   return true;
 }
 
-bool tft_packet_filter_t::match_type_of_service(const srslte::unique_byte_buffer_t& pdu)
+bool tft_packet_filter_t::match_type_of_service(const srsran::unique_byte_buffer_t& pdu)
 {
   struct iphdr* ip_pkt = (struct iphdr*)pdu->msg;
 
@@ -298,7 +303,7 @@ bool tft_packet_filter_t::match_type_of_service(const srslte::unique_byte_buffer
   return true;
 }
 
-bool tft_packet_filter_t::match_flow_label(const srslte::unique_byte_buffer_t& pdu)
+bool tft_packet_filter_t::match_flow_label(const srsran::unique_byte_buffer_t& pdu)
 {
   struct ipv6hdr* ip6_pkt = (struct ipv6hdr*)pdu->msg;
 
@@ -311,7 +316,7 @@ bool tft_packet_filter_t::match_flow_label(const srslte::unique_byte_buffer_t& p
   return true;
 }
 
-bool tft_packet_filter_t::match_port(const srslte::unique_byte_buffer_t& pdu)
+bool tft_packet_filter_t::match_port(const srsran::unique_byte_buffer_t& pdu)
 {
   struct iphdr*   ip_pkt  = (struct iphdr*)pdu->msg;
   struct ipv6hdr* ip6_pkt = (struct ipv6hdr*)pdu->msg;
@@ -384,7 +389,7 @@ bool tft_packet_filter_t::match_port(const srslte::unique_byte_buffer_t& pdu)
   return true;
 }
 
-uint8_t tft_pdu_matcher::check_tft_filter_match(const srslte::unique_byte_buffer_t& pdu)
+uint8_t tft_pdu_matcher::check_tft_filter_match(const srsran::unique_byte_buffer_t& pdu)
 {
   std::lock_guard<std::mutex> lock(tft_mutex);
   uint8_t                     lcid = default_lcid;
@@ -392,7 +397,7 @@ uint8_t tft_pdu_matcher::check_tft_filter_match(const srslte::unique_byte_buffer
     bool match = filter_pair.second.match(pdu);
     if (match) {
       lcid = filter_pair.second.lcid;
-      log->debug("Found filter match -- EPS bearer Id %d, LCID %d\n", filter_pair.second.eps_bearer_id, lcid);
+      logger.debug("Found filter match -- EPS bearer Id %d, LCID %d", filter_pair.second.eps_bearer_id, lcid);
       break;
     }
   }
@@ -407,20 +412,20 @@ int tft_pdu_matcher::apply_traffic_flow_template(const uint8_t&                 
   switch (tft->tft_op_code) {
     case LIBLTE_MME_TFT_OPERATION_CODE_CREATE_NEW_TFT:
       for (int i = 0; i < tft->packet_filter_list_size; i++) {
-        log->info("New packet filter for TFT\n");
-        tft_packet_filter_t filter(erab_id, lcid, tft->packet_filter_list[i], log);
+        logger.info("New packet filter for TFT");
+        tft_packet_filter_t filter(erab_id, lcid, tft->packet_filter_list[i], logger);
         auto                it = tft_filter_map.insert(std::make_pair(filter.eval_precedence, filter));
         if (it.second == false) {
-          log->error("Error inserting TFT Packet Filter\n");
-          return SRSLTE_ERROR_CANT_START;
+          logger.error("Error inserting TFT Packet Filter");
+          return SRSRAN_ERROR_CANT_START;
         }
       }
       break;
     default:
-      log->error("Unhandled TFT OP code\n");
-      return SRSLTE_ERROR_CANT_START;
+      logger.error("Unhandled TFT OP code");
+      return SRSRAN_ERROR_CANT_START;
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 void tft_pdu_matcher::set_default_lcid(const uint8_t lcid)

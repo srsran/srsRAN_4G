@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,11 +19,11 @@
  *
  */
 
-#include "srslte/phy/phch/ra_nbiot.h"
-#include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/utils/bit.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/phch/ra_nbiot.h"
+#include "srsran/phy/common/phy_common.h"
+#include "srsran/phy/utils/bit.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/vector.h"
 #include "tbs_tables_nbiot.h"
 #include <assert.h>
 #include <math.h>
@@ -70,22 +70,22 @@ const int first_frame_sib1[3][4] = {{0, 16, 32, 48}, {0, 16, -1, -1}, {0, 1, -1,
 const int i_mcs_to_i_tbs_npusch[11] = {0, 2, 1, 3, 4, 5, 6, 7, 8, 9, 10};
 
 /// ACK/NACH resource computation TS 36.213 Section 16.4.2, for 15kHz and 3.75kHz
-const int ack_nack_resource_field_to_sc[SRSLTE_NPUSCH_SC_SPACING_NITEMS][16] = {
+const int ack_nack_resource_field_to_sc[SRSRAN_NPUSCH_SC_SPACING_NITEMS][16] = {
     {0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3},
     {38, 39, 40, 41, 42, 43, 44, 45, 38, 39, 40, 41, 42, 43, 44, 45}};
 
-const int ack_nack_resource_field_to_k0[SRSLTE_NPUSCH_SC_SPACING_NITEMS][16] = {
+const int ack_nack_resource_field_to_k0[SRSRAN_NPUSCH_SC_SPACING_NITEMS][16] = {
     {13, 13, 13, 13, 15, 15, 15, 15, 17, 17, 17, 17, 18, 18, 18, 18},
     {13, 13, 13, 13, 13, 13, 13, 13, 21, 21, 21, 21, 21, 21, 21, 21}};
 
 /// Calculate the number of resource elements per subframe that carry data
-uint32_t srslte_ra_nbiot_dl_grant_nof_re(srslte_nbiot_cell_t cell, uint32_t l_start)
+uint32_t srsran_ra_nbiot_dl_grant_nof_re(srsran_nbiot_cell_t cell, uint32_t l_start)
 {
   /// start with one full PRB
-  uint32_t re = SRSLTE_CP_NORM_SF_NSYMB * SRSLTE_NRE;
+  uint32_t re = SRSRAN_CP_NORM_SF_NSYMB * SRSRAN_NRE;
 
   /// remove lstart number of symbols
-  re -= l_start * SRSLTE_NRE;
+  re -= l_start * SRSRAN_NRE;
 
   /// remove NRS
   switch (cell.nof_ports) {
@@ -99,7 +99,7 @@ uint32_t srslte_ra_nbiot_dl_grant_nof_re(srslte_nbiot_cell_t cell, uint32_t l_st
   }
 
   /// remove CRS for inband deployments
-  if (cell.mode <= SRSLTE_NBIOT_MODE_INBAND_DIFFERENT_PCI) {
+  if (cell.mode <= SRSRAN_NBIOT_MODE_INBAND_DIFFERENT_PCI) {
     switch (cell.base.nof_ports) {
       case 1:
       case 2:
@@ -116,30 +116,30 @@ uint32_t srslte_ra_nbiot_dl_grant_nof_re(srslte_nbiot_cell_t cell, uint32_t l_st
   return re;
 }
 
-void srslte_ra_nbiot_dl_grant_to_nbits(srslte_ra_nbiot_dl_grant_t* grant,
-                                       srslte_nbiot_cell_t         cell,
+void srsran_ra_nbiot_dl_grant_to_nbits(srsran_ra_nbiot_dl_grant_t* grant,
+                                       srsran_nbiot_cell_t         cell,
                                        uint32_t                    sf_idx,
-                                       srslte_ra_nbits_t*          nbits)
+                                       srsran_ra_nbits_t*          nbits)
 {
   /// Compute number of RE
   nbits->lstart   = grant->l_start;
-  nbits->nof_re   = srslte_ra_nbiot_dl_grant_nof_re(cell, grant->l_start);
-  nbits->nof_symb = 2 * SRSLTE_CP_NSYMB(cell.base.cp) - nbits->lstart;
+  nbits->nof_re   = srsran_ra_nbiot_dl_grant_nof_re(cell, grant->l_start);
+  nbits->nof_symb = 2 * SRSRAN_CP_NSYMB(cell.base.cp) - nbits->lstart;
   nbits->nof_bits = nbits->nof_re * grant->Qm;
 }
 
 /// Transport block size determination 16.4.1.5 in 36.213 v13.2.0
-static int nbiot_dl_dci_to_grant_mcs(srslte_ra_nbiot_dl_dci_t* dci, srslte_ra_nbiot_dl_grant_t* grant)
+static int nbiot_dl_dci_to_grant_mcs(srsran_ra_nbiot_dl_dci_t* dci, srsran_ra_nbiot_dl_grant_t* grant)
 {
   int      tbs   = -1;
   uint32_t i_tbs = 0, i_sf = 0;
 
-  grant->mcs[0].mod = SRSLTE_MOD_QPSK;
+  grant->mcs[0].mod = SRSRAN_MOD_QPSK;
 
   // limit config values in DCI
-  dci->alloc.sched_info_sib1 = SRSLTE_MIN(dci->alloc.sched_info_sib1, MAX_I_TBS_VAL_SIB);
-  dci->mcs_idx               = SRSLTE_MIN(dci->mcs_idx, MAX_I_TBS_VAL);
-  dci->alloc.i_sf            = SRSLTE_MIN(dci->alloc.i_sf, MAX_I_SF_VAL);
+  dci->alloc.sched_info_sib1 = SRSRAN_MIN(dci->alloc.sched_info_sib1, MAX_I_TBS_VAL_SIB);
+  dci->mcs_idx               = SRSRAN_MIN(dci->mcs_idx, MAX_I_TBS_VAL);
+  dci->alloc.i_sf            = SRSRAN_MIN(dci->alloc.i_sf, MAX_I_SF_VAL);
 
   if (dci->alloc.has_sib1) {
     i_tbs = dci->alloc.sched_info_sib1;
@@ -151,31 +151,31 @@ static int nbiot_dl_dci_to_grant_mcs(srslte_ra_nbiot_dl_dci_t* dci, srslte_ra_nb
   }
 
   if (tbs <= 0) {
-    INFO("Unsupported resource allocation specified: i_tbs=%d [0,12], i_sf=%d [0,7]\n", i_tbs, i_sf);
-    return SRSLTE_ERROR;
+    INFO("Unsupported resource allocation specified: i_tbs=%d [0,12], i_sf=%d [0,7]", i_tbs, i_sf);
+    return SRSRAN_ERROR;
   } else {
     grant->mcs[0].tbs = (uint32_t)tbs;
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 }
 
-int srslte_ra_n_rep_from_dci(srslte_ra_nbiot_dl_dci_t* dci)
+int srsran_ra_n_rep_from_dci(srsran_ra_nbiot_dl_dci_t* dci)
 {
   return (dci->alloc.has_sib1 ? n_rep_table_sib1[dci->alloc.sched_info_sib1] : n_rep_table[dci->alloc.i_rep]);
 }
 
-int srslte_ra_n_rep_sib1_nb(srslte_mib_nb_t* mib)
+int srsran_ra_n_rep_sib1_nb(srsran_mib_nb_t* mib)
 {
   return n_rep_table_sib1[mib->sched_info_sib1];
 }
 
-int srslte_ra_nbiot_get_sib1_tbs(srslte_mib_nb_t* mib)
+int srsran_ra_nbiot_get_sib1_tbs(srsran_mib_nb_t* mib)
 {
-  uint32_t i_tbs = SRSLTE_MIN(mib->sched_info_sib1, MAX_I_TBS_VAL_SIB);
+  uint32_t i_tbs = SRSRAN_MIN(mib->sched_info_sib1, MAX_I_TBS_VAL_SIB);
   return tbs_table_nbiot_sib1[i_tbs];
 }
 
-int srslte_ra_nbiot_get_npdsch_tbs(uint32_t i_tbs, uint32_t i_sf)
+int srsran_ra_nbiot_get_npdsch_tbs(uint32_t i_tbs, uint32_t i_sf)
 {
   if (i_tbs <= 12 && i_sf <= 7) {
     return tbs_table_nbiot[i_tbs][i_sf];
@@ -184,7 +184,7 @@ int srslte_ra_nbiot_get_npdsch_tbs(uint32_t i_tbs, uint32_t i_sf)
   }
 }
 
-int srslte_ra_nbiot_get_npusch_tbs(uint32_t i_tbs, uint32_t i_ru)
+int srsran_ra_nbiot_get_npusch_tbs(uint32_t i_tbs, uint32_t i_ru)
 {
   if (i_tbs <= 12 && i_ru <= 7) {
     return tbs_table_npusch[i_tbs][i_ru];
@@ -193,9 +193,9 @@ int srslte_ra_nbiot_get_npusch_tbs(uint32_t i_tbs, uint32_t i_ru)
   }
 }
 
-uint32_t srslte_ra_n_rep_sib1_nb_idx(srslte_mib_nb_t* mib)
+uint32_t srsran_ra_n_rep_sib1_nb_idx(srsran_mib_nb_t* mib)
 {
-  switch (srslte_ra_n_rep_sib1_nb(mib)) {
+  switch (srsran_ra_n_rep_sib1_nb(mib)) {
     case 4:
       return 0;
     case 8:
@@ -207,18 +207,18 @@ uint32_t srslte_ra_n_rep_sib1_nb_idx(srslte_mib_nb_t* mib)
   }
 }
 
-int srslte_ra_nbiot_get_starting_sib1_frame(uint32_t cell_id, srslte_mib_nb_t* mib)
+int srsran_ra_nbiot_get_starting_sib1_frame(uint32_t cell_id, srsran_mib_nb_t* mib)
 {
-  return first_frame_sib1[srslte_ra_n_rep_sib1_nb_idx(mib)][cell_id % (srslte_ra_n_rep_sib1_nb(mib) == 4 ? 4 : 2)];
+  return first_frame_sib1[srsran_ra_n_rep_sib1_nb_idx(mib)][cell_id % (srsran_ra_n_rep_sib1_nb(mib) == 4 ? 4 : 2)];
 }
 
-int srslte_ra_nbiot_sib1_start(uint32_t n_id_ncell, srslte_mib_nb_t* mib)
+int srsran_ra_nbiot_sib1_start(uint32_t n_id_ncell, srsran_mib_nb_t* mib)
 {
-  return ((srslte_ra_n_rep_sib1_nb(mib) == 16 && n_id_ncell % 2 == 1) ? 1 : 0);
+  return ((srsran_ra_n_rep_sib1_nb(mib) == 16 && n_id_ncell % 2 == 1) ? 1 : 0);
 }
 
 /// Section 16.4.1 in 36.213 v13.3.0
-int srslte_ra_k0_from_dci(srslte_ra_nbiot_dl_dci_t* dci, uint32_t r_max)
+int srsran_ra_k0_from_dci(srsran_ra_nbiot_dl_dci_t* dci, uint32_t r_max)
 {
   if (dci->dci_is_n2) {
     return 0;
@@ -231,7 +231,7 @@ int srslte_ra_k0_from_dci(srslte_ra_nbiot_dl_dci_t* dci, uint32_t r_max)
   }
 }
 
-int srslte_ra_n_sf_from_dci(srslte_ra_nbiot_dl_dci_t* dci)
+int srsran_ra_n_sf_from_dci(srsran_ra_nbiot_dl_dci_t* dci)
 {
   if (dci->alloc.i_sf < 6) {
     return dci->alloc.i_sf + 1;
@@ -246,53 +246,53 @@ int srslte_ra_n_sf_from_dci(srslte_ra_nbiot_dl_dci_t* dci)
 
 /// According to TS 36.211 Sec 10.2.6 before obtaining operationModeInfo,
 /// only sf_idx 0, 4 and 9 if no NSSS is sent carry NRS
-bool srslte_ra_nbiot_dl_has_ref_signal(uint32_t tti)
+bool srsran_ra_nbiot_dl_has_ref_signal(uint32_t tti)
 {
   return (tti % 10 == 0 || tti % 10 == 4 || (tti % 10 == 9 && (tti / 10 % 2 != 0)));
 }
 
 /// According to TS 36.211 Sec 10.2.6 in opMode standalone and guardband,
 /// only sf_idx 0, 1, 3, 4, and 9 if no NSSS is sent carry NRS
-bool srslte_ra_nbiot_dl_has_ref_signal_standalone(uint32_t tti)
+bool srsran_ra_nbiot_dl_has_ref_signal_standalone(uint32_t tti)
 {
   return (tti % 10 == 0 || tti % 10 == 1 || tti % 10 == 3 || tti % 10 == 4 || (tti % 10 == 9 && (tti / 10 % 2 != 0)));
 }
 
 /// According to TS 36.211 Sec 10.2.6 before optaining operationModeInfo
 /// Only sf_idx 0, 4 and 9 if no NSSS is sent carry NRS
-bool srslte_ra_nbiot_dl_has_ref_signal_inband(uint32_t tti)
+bool srsran_ra_nbiot_dl_has_ref_signal_inband(uint32_t tti)
 {
-  return srslte_ra_nbiot_dl_has_ref_signal(tti);
+  return srsran_ra_nbiot_dl_has_ref_signal(tti);
 }
 
 /// Valid NB-IoT DL subframes are subframes that DON'T carry:
 ///  - NPBCH (subframe 0)
 ///  - NPSS (subframe 5)
 ///  - NSSS (subframe 9 in all even frames)
-bool srslte_ra_nbiot_is_valid_dl_sf(uint32_t tti)
+bool srsran_ra_nbiot_is_valid_dl_sf(uint32_t tti)
 {
   return !(tti % 10 == 0 || tti % 10 == 5 || (tti % 10 == 9 && ((tti / 10) % 2 == 0)));
 }
 
-int srslte_ra_nbiot_dl_dci_to_grant(srslte_ra_nbiot_dl_dci_t*   dci,
-                                    srslte_ra_nbiot_dl_grant_t* grant,
+int srsran_ra_nbiot_dl_dci_to_grant(srsran_ra_nbiot_dl_dci_t*   dci,
+                                    srsran_ra_nbiot_dl_grant_t* grant,
                                     uint32_t                    sfn,
                                     uint32_t                    sf_idx,
                                     uint32_t                    r_max,
                                     bool                        is_prescheduled,
-                                    srslte_nbiot_mode_t         mode)
+                                    srsran_nbiot_mode_t         mode)
 {
   if (!nbiot_dl_dci_to_grant_mcs(dci, grant)) {
     /// Fill rest of grant structure
     grant->mcs[0].mcs_idx    = dci->mcs_idx;
-    grant->Qm                = srslte_mod_bits_x_symbol(grant->mcs[0].mod);
-    grant->k0                = srslte_ra_k0_from_dci(dci, r_max);
-    grant->nof_sf            = dci->alloc.has_sib1 ? 8 : srslte_ra_n_sf_from_dci(dci);
-    grant->nof_rep           = srslte_ra_n_rep_from_dci(dci);
+    grant->Qm                = srsran_mod_bits_x_symbol(grant->mcs[0].mod);
+    grant->k0                = srsran_ra_k0_from_dci(dci, r_max);
+    grant->nof_sf            = dci->alloc.has_sib1 ? 8 : srsran_ra_n_sf_from_dci(dci);
+    grant->nof_rep           = srsran_ra_n_rep_from_dci(dci);
     grant->has_sib1          = dci->alloc.has_sib1;
     grant->ack_nack_resource = dci->alloc.harq_ack;
 
-    if (mode == SRSLTE_NBIOT_MODE_INBAND_SAME_PCI || mode == SRSLTE_NBIOT_MODE_INBAND_DIFFERENT_PCI) {
+    if (mode == SRSRAN_NBIOT_MODE_INBAND_SAME_PCI || mode == SRSRAN_NBIOT_MODE_INBAND_DIFFERENT_PCI) {
       grant->l_start = dci->alloc.has_sib1 ? 3 : EUTRA_CONTROL_REGION_SIZE;
     } else {
       grant->l_start = 0;
@@ -304,36 +304,36 @@ int srslte_ra_nbiot_dl_dci_to_grant(srslte_ra_nbiot_dl_dci_t*   dci,
     uint32_t tx_tti = (rx_tti + offset + grant->k0) % 10240;
 
     /// make sure tx_tti is a valid DL sf
-    while (!srslte_ra_nbiot_is_valid_dl_sf(tx_tti)) {
+    while (!srsran_ra_nbiot_is_valid_dl_sf(tx_tti)) {
       tx_tti = (tx_tti + 1) % 10240;
     }
     grant->start_hfn   = 0; // not handling HFN
     grant->start_sfn   = tx_tti / 10;
     grant->start_sfidx = tx_tti % 10;
   } else {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-void srslte_nbiot_dl_dci_fprint(FILE* f, srslte_ra_nbiot_dl_dci_t* dci)
+void srsran_nbiot_dl_dci_fprint(FILE* f, srsran_ra_nbiot_dl_dci_t* dci)
 {
   fprintf(f, "NB-IoT DL DCI:\n");
   fprintf(f, " - Format flag:\t\t\t\t%d\n", dci->format);
   fprintf(f, "   + FormatN%d DCI:\t\t\t%s\n", dci->format ? 1 : 0, dci->format ? "Downlink" : "Uplink");
   fprintf(f, " - PDCCH Order:\t\t\t\t%d\n", dci->alloc.is_ra);
-  fprintf(f, " - Scheduling delay:\t\t\t%d (%d subframes)\n", dci->alloc.i_delay, srslte_ra_k0_from_dci(dci, 64));
+  fprintf(f, " - Scheduling delay:\t\t\t%d (%d subframes)\n", dci->alloc.i_delay, srsran_ra_k0_from_dci(dci, 64));
   fprintf(f, " - Resource assignment:\t\t\t%d\n", dci->alloc.i_sf);
-  fprintf(f, "   + Number of subframes:\t\t%d\n", srslte_ra_n_sf_from_dci(dci));
+  fprintf(f, "   + Number of subframes:\t\t%d\n", srsran_ra_n_sf_from_dci(dci));
   fprintf(f, " - Modulation and coding scheme index:\t%d\n", dci->mcs_idx);
   fprintf(f, " - Repetition number:\t\t\t%d\n", dci->alloc.i_rep);
-  fprintf(f, "   + Number of repetitions:\t\t%d\n", srslte_ra_n_rep_from_dci(dci));
+  fprintf(f, "   + Number of repetitions:\t\t%d\n", srsran_ra_n_rep_from_dci(dci));
   fprintf(f, " - New data indicator:\t\t\t%d\n", dci->ndi);
   fprintf(f, " - HARQ-ACK resource:\t\t\t%d\n", dci->alloc.harq_ack);
   fprintf(f, " - DCI subframe repetition number:\t%d\n", dci->alloc.dci_sf_rep_num);
 }
 
-void srslte_ra_npusch_fprint(FILE* f, srslte_ra_nbiot_ul_dci_t* dci)
+void srsran_ra_npusch_fprint(FILE* f, srsran_ra_nbiot_ul_dci_t* dci)
 {
   fprintf(f, "NB-IoT UL DCI:\n");
   fprintf(f, " - Format flag:\t\t\t\t%d\n", dci->format);
@@ -347,7 +347,7 @@ void srslte_ra_npusch_fprint(FILE* f, srslte_ra_nbiot_ul_dci_t* dci)
   fprintf(f, " - DCI subframe repetition number:\t%d\n", dci->dci_sf_rep_num);
 }
 
-void srslte_ra_nbiot_dl_grant_fprint(FILE* f, srslte_ra_nbiot_dl_grant_t* grant)
+void srsran_ra_nbiot_dl_grant_fprint(FILE* f, srsran_ra_nbiot_dl_grant_t* grant)
 {
   fprintf(f, "DL grant config:\n");
   fprintf(f, " - Number of subframes:\t\t\t%d\n", grant->nof_sf);
@@ -355,33 +355,33 @@ void srslte_ra_nbiot_dl_grant_fprint(FILE* f, srslte_ra_nbiot_dl_grant_t* grant)
   fprintf(f, " - Total number of subframes:\t\t%d\n", grant->nof_sf * grant->nof_rep);
   fprintf(f, " - Starting SFN:\t\t\t%d\n", grant->start_sfn);
   fprintf(f, " - Starting SF index:\t\t\t%d\n", grant->start_sfidx);
-  fprintf(f, " - Modulation type:\t\t\t%s\n", srslte_mod_string(grant->mcs[0].mod));
+  fprintf(f, " - Modulation type:\t\t\t%s\n", srsran_mod_string(grant->mcs[0].mod));
   fprintf(f, " - Transport block size:\t\t%d\n", grant->mcs[0].tbs);
 }
 
-void srslte_ra_nbiot_ul_grant_fprint(FILE* f, srslte_ra_nbiot_ul_grant_t* grant)
+void srsran_ra_nbiot_ul_grant_fprint(FILE* f, srsran_ra_nbiot_ul_grant_t* grant)
 {
   fprintf(f, "UL grant config:\n");
-  fprintf(f, " - NPUSCH format:\t\t%s\n", srslte_npusch_format_text[grant->format]);
+  fprintf(f, " - NPUSCH format:\t\t%s\n", srsran_npusch_format_text[grant->format]);
   fprintf(f, " - Delay:\t\t\t%d subframes\n", grant->k0);
   fprintf(f, " - Tx TTI:\t\t\t%d\n", grant->tx_tti);
-  fprintf(f, " - Subcarriers:\t\t\t%d (%s)\n", grant->nof_sc, srslte_npusch_sc_spacing_text[grant->sc_spacing]);
+  fprintf(f, " - Subcarriers:\t\t\t%d (%s)\n", grant->nof_sc, srsran_npusch_sc_spacing_text[grant->sc_spacing]);
   fprintf(f, " - Number of slots:\t\t%d\n", grant->nof_slots);
   fprintf(f, " - Number of resource units:\t%d\n", grant->nof_ru);
   fprintf(f, " - Number of repetitions:\t%d\n", grant->nof_rep);
-  fprintf(f, " - Modulation type:\t\t%s\n", srslte_mod_string(grant->mcs.mod));
+  fprintf(f, " - Modulation type:\t\t%s\n", srsran_mod_string(grant->mcs.mod));
   fprintf(f, " - Transport block size:\t%d\n", grant->mcs.tbs);
 }
 
 /// UL RA for Msg3, i.e. RAR grant
-int srslte_ra_nbiot_ul_rar_dci_to_grant(srslte_ra_nbiot_ul_dci_t*   dci,
-                                        srslte_ra_nbiot_ul_grant_t* grant,
+int srsran_ra_nbiot_ul_rar_dci_to_grant(srsran_ra_nbiot_ul_dci_t*   dci,
+                                        srsran_ra_nbiot_ul_grant_t* grant,
                                         uint32_t                    rx_tti)
 {
   /// use DCI to fill default UL grant values
-  if (srslte_ra_nbiot_ul_dci_to_grant(dci, grant, rx_tti, SRSLTE_NPUSCH_SC_SPACING_15000)) {
+  if (srsran_ra_nbiot_ul_dci_to_grant(dci, grant, rx_tti, SRSRAN_NPUSCH_SC_SPACING_15000)) {
     fprintf(stderr, "Error while reading UL DCI for RAR grant.\n");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   /// now update all RAR specific fields
@@ -403,34 +403,34 @@ int srslte_ra_nbiot_ul_rar_dci_to_grant(srslte_ra_nbiot_ul_dci_t*   dci,
       break;
     default:
       fprintf(stderr, "Invalid i_mcs value in UL DCI for RAR grant.\n");
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
   }
 
   /// set modulation
   grant->mcs.tbs = 88;
-  if (grant->sc_spacing == SRSLTE_NPUSCH_SC_SPACING_15000 && dci->i_sc > 11) {
-    grant->mcs.mod = SRSLTE_MOD_QPSK;
+  if (grant->sc_spacing == SRSRAN_NPUSCH_SC_SPACING_15000 && dci->i_sc > 11) {
+    grant->mcs.mod = SRSRAN_MOD_QPSK;
   } else if (dci->i_sc <= 11) {
-    // TODO: Use SRSLTE_MOD_PI2_BPSK and SRSLTE_MOD_PI4_QPSK
-    grant->mcs.mod = (dci->i_mcs == 0) ? SRSLTE_MOD_BPSK : SRSLTE_MOD_QPSK;
+    // TODO: Use SRSRAN_MOD_PI2_BPSK and SRSRAN_MOD_PI4_QPSK
+    grant->mcs.mod = (dci->i_mcs == 0) ? SRSRAN_MOD_BPSK : SRSRAN_MOD_QPSK;
   }
   return 0;
 }
 
 /// Fill a grant for NPUSCH without UL-SCH data but for UL control information
-void srslte_ra_nbiot_ul_get_uci_grant(srslte_ra_nbiot_ul_grant_t* grant,
+void srsran_ra_nbiot_ul_get_uci_grant(srsran_ra_nbiot_ul_grant_t* grant,
                                       const uint8_t               resource_field,
                                       const uint32_t              tti)
 {
-  bzero(grant, sizeof(srslte_ra_nbiot_ul_grant_t));
-  grant->format          = SRSLTE_NPUSCH_FORMAT2;
-  grant->sc_spacing      = SRSLTE_NPUSCH_SC_SPACING_15000;
+  bzero(grant, sizeof(srsran_ra_nbiot_ul_grant_t));
+  grant->format          = SRSRAN_NPUSCH_FORMAT2;
+  grant->sc_spacing      = SRSRAN_NPUSCH_SC_SPACING_15000;
   grant->sc_alloc_set[0] = ack_nack_resource_field_to_sc[grant->sc_spacing][resource_field];
   grant->nof_sc          = 1;
   grant->k0              = ack_nack_resource_field_to_k0[grant->sc_spacing][resource_field];
   grant->tx_tti          = (tti + grant->k0) % 10240;
   grant->mcs.mcs_idx     = 1;
-  grant->mcs.mod         = SRSLTE_MOD_BPSK;
+  grant->mcs.mod         = SRSRAN_MOD_BPSK;
   grant->mcs.tbs         = 16;
   grant->Qm              = 1;
   grant->nof_ru          = 1;
@@ -440,14 +440,14 @@ void srslte_ra_nbiot_ul_get_uci_grant(srslte_ra_nbiot_ul_grant_t* grant,
 }
 
 /// Transport block size determination 16.5.1.2 in 36.213 v13.2.0
-int srslte_ra_nbiot_ul_dci_to_grant(srslte_ra_nbiot_ul_dci_t*   dci,
-                                    srslte_ra_nbiot_ul_grant_t* grant,
+int srsran_ra_nbiot_ul_dci_to_grant(srsran_ra_nbiot_ul_dci_t*   dci,
+                                    srsran_ra_nbiot_ul_grant_t* grant,
                                     uint32_t                    rx_tti,
-                                    srslte_npusch_sc_spacing_t  spacing)
+                                    srsran_npusch_sc_spacing_t  spacing)
 {
-  bzero(grant, sizeof(srslte_ra_nbiot_ul_grant_t));
-  grant->format     = SRSLTE_NPUSCH_FORMAT1;
-  grant->sc_spacing = SRSLTE_NPUSCH_SC_SPACING_15000;
+  bzero(grant, sizeof(srsran_ra_nbiot_ul_grant_t));
+  grant->format     = SRSRAN_NPUSCH_FORMAT1;
+  grant->sc_spacing = SRSRAN_NPUSCH_SC_SPACING_15000;
 
   int      tbs   = -1;
   uint32_t i_tbs = 0;
@@ -459,18 +459,18 @@ int srslte_ra_nbiot_ul_dci_to_grant(srslte_ra_nbiot_ul_dci_t*   dci,
     grant->nof_sc          = 1;
   } else {
     printf("UL i_sc > 11 not implemented yet!\n");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   grant->nof_ru  = n_ru_table_npusch[dci->i_ru];
   grant->nof_rep = n_rep_table_npusch[dci->i_rep];
   if (grant->nof_rep != 1) {
     printf("NPUSCH repetitions are currently not supported!\n");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   /// Compute number of slots according to Table Table 10.1.2.3-1 in 36.211
   switch (grant->format) {
-    case SRSLTE_NPUSCH_FORMAT1:
+    case SRSRAN_NPUSCH_FORMAT1:
       if (grant->nof_sc == 1) {
         grant->nof_slots = 16;
       } else if (grant->nof_sc == 3) {
@@ -480,15 +480,15 @@ int srslte_ra_nbiot_ul_dci_to_grant(srslte_ra_nbiot_ul_dci_t*   dci,
       } else if (grant->nof_sc == 12) {
         grant->nof_slots = 2;
       } else {
-        DEBUG("Unsupported value for N_sc_RU=%d\n", grant->nof_sc);
+        DEBUG("Unsupported value for N_sc_RU=%d", grant->nof_sc);
       }
       break;
-    case SRSLTE_NPUSCH_FORMAT2:
+    case SRSRAN_NPUSCH_FORMAT2:
       grant->nof_slots = 4;
       break;
     default:
       fprintf(stderr, "Invalid NPUSCH format.\n");
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
   }
   grant->nof_slots *= grant->nof_ru;
 
@@ -520,20 +520,20 @@ int srslte_ra_nbiot_ul_dci_to_grant(srslte_ra_nbiot_ul_dci_t*   dci,
   /// set fixed values
   grant->sc_spacing  = spacing;
   grant->mcs.mcs_idx = dci->i_mcs;
-  grant->mcs.mod     = (grant->Qm == 1) ? SRSLTE_MOD_BPSK : SRSLTE_MOD_QPSK;
+  grant->mcs.mod     = (grant->Qm == 1) ? SRSRAN_MOD_BPSK : SRSRAN_MOD_QPSK;
 
   if (tbs < 0) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   } else {
     grant->mcs.tbs = (uint32_t)tbs;
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 }
 
-void srslte_ra_nbiot_ul_grant_to_nbits(srslte_ra_nbiot_ul_grant_t* grant, srslte_ra_nbits_t* nbits)
+void srsran_ra_nbiot_ul_grant_to_nbits(srsran_ra_nbiot_ul_grant_t* grant, srsran_ra_nbits_t* nbits)
 {
   /// set DMRS symbols according to TS 36.211 v13.3 Table 10.1.4.2-1
-  int num_dmrs_syms = (grant->format == SRSLTE_NPUSCH_FORMAT1) ? 1 : 3;
+  int num_dmrs_syms = (grant->format == SRSRAN_NPUSCH_FORMAT1) ? 1 : 3;
 
   /// computer number of RUs
   nbits->nof_symb = 7;
@@ -543,7 +543,7 @@ void srslte_ra_nbiot_ul_grant_to_nbits(srslte_ra_nbiot_ul_grant_t* grant, srslte
   nbits->nof_bits = nbits->nof_re * grant->Qm;
 }
 
-float srslte_ra_nbiot_get_delta_f(srslte_npusch_sc_spacing_t spacing)
+float srsran_ra_nbiot_get_delta_f(srsran_npusch_sc_spacing_t spacing)
 {
-  return ((spacing == SRSLTE_NPUSCH_SC_SPACING_15000) ? 15000 : 3750);
+  return ((spacing == SRSRAN_NPUSCH_SC_SPACING_15000) ? 15000 : 3750);
 }

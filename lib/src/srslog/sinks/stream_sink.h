@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -22,9 +22,7 @@
 #ifndef SRSLOG_STREAM_SINK_H
 #define SRSLOG_STREAM_SINK_H
 
-#include "srslte/srslog/sink.h"
-#include <cassert>
-#include <cstdio>
+#include "srsran/srslog/sink.h"
 
 namespace srslog {
 
@@ -35,7 +33,8 @@ enum class sink_stream_type { stdout, stderr };
 class stream_sink : public sink
 {
 public:
-  explicit stream_sink(sink_stream_type s) :
+  stream_sink(sink_stream_type s, std::unique_ptr<log_formatter> f) :
+    sink(std::move(f)),
     handle((s == sink_stream_type::stdout) ? stdout : stderr)
   {}
 

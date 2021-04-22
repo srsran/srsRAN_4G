@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,7 +19,8 @@
  *
  */
 
-#include "srslte/srslog/srslog.h"
+#include "srsran/srslog/srslog.h"
+#include "formatters/json_formatter.h"
 #include "sinks/file_sink.h"
 #include "srslog_instance.h"
 
@@ -55,7 +56,12 @@ log_channel& srslog::fetch_log_channel(const std::string& id)
 {
   assert(!id.empty() && "Empty id string");
 
-  std::string      clean_id = remove_sharp_chars(id);
+  std::string clean_id = remove_sharp_chars(id);
+
+  if (auto* c = find_log_channel(clean_id)) {
+    return *c;
+  }
+
   srslog_instance& instance = srslog_instance::get();
   return fetch_log_channel_helper(clean_id, instance.get_default_sink(), instance.get_backend());
 }
@@ -64,9 +70,38 @@ log_channel& srslog::fetch_log_channel(const std::string& id, sink& s, log_chann
 {
   assert(!id.empty() && "Empty id string");
 
-  std::string      clean_id = remove_sharp_chars(id);
+  std::string clean_id = remove_sharp_chars(id);
+
+  if (auto* c = find_log_channel(clean_id)) {
+    return *c;
+  }
+
   srslog_instance& instance = srslog_instance::get();
   return fetch_log_channel_helper(clean_id, s, instance.get_backend(), std::move(config));
+}
+
+///
+/// Formatter management functions.
+///
+
+void srslog::set_default_log_formatter(std::unique_ptr<log_formatter> f)
+{
+  srslog_instance::get().set_default_formatter(std::move(f));
+}
+
+std::unique_ptr<log_formatter> srslog::get_default_log_formatter()
+{
+  return srslog_instance::get().get_default_formatter();
+}
+
+std::unique_ptr<log_formatter> srslog::create_text_formatter()
+{
+  return std::unique_ptr<log_formatter>(new text_formatter);
+}
+
+std::unique_ptr<log_formatter> srslog::create_json_formatter()
+{
+  return std::unique_ptr<log_formatter>(new json_formatter);
 }
 
 ///
@@ -85,29 +120,70 @@ sink& srslog::get_default_sink()
 
 sink* srslog::find_sink(const std::string& id)
 {
-  return srslog_instance::get().get_sink_repo().find(id);
+  auto ptr = srslog_instance::get().get_sink_repo().find(id);
+  return (ptr) ? ptr->get() : nullptr;
 }
 
-sink& srslog::fetch_stdout_sink()
+sink& srslog::fetch_stdout_sink(const std::string& id, std::unique_ptr<log_formatter> f)
 {
-  return srslog_instance::get().get_sink_repo().get_stdout_sink();
+  assert(!id.empty() && "Empty id string");
+
+  if (auto* s = find_sink(id)) {
+    return *s;
+  }
+
+  auto& s = srslog_instance::get().get_sink_repo().emplace(
+      std::piecewise_construct,
+      std::forward_as_tuple(id),
+      std::forward_as_tuple(new stream_sink(sink_stream_type::stdout, std::move(f))));
+
+  return *s;
 }
 
-sink& srslog::fetch_stderr_sink()
+sink& srslog::fetch_stderr_sink(const std::string& id, std::unique_ptr<log_formatter> f)
 {
-  return srslog_instance::get().get_sink_repo().get_stderr_sink();
+  assert(!id.empty() && "Empty id string");
+
+  if (auto* s = find_sink(id)) {
+    return *s;
+  }
+
+  auto& s = srslog_instance::get().get_sink_repo().emplace(
+      std::piecewise_construct,
+      std::forward_as_tuple(id),
+      std::forward_as_tuple(new stream_sink(sink_stream_type::stderr, std::move(f))));
+
+  return *s;
 }
 
-sink& srslog::fetch_file_sink(const std::string& path, size_t max_size)
+sink& srslog::fetch_file_sink(const std::string& path, size_t max_size, std::unique_ptr<log_formatter> f)
 {
   assert(!path.empty() && "Empty path string");
 
-  std::string clean_path = remove_sharp_chars(path);
-  //:TODO: GCC5 or lower versions emits an error if we use the new() expression directly, use redundant
-  // piecewise_construct instead.
-  return srslog_instance::get().get_sink_repo().fetch_sink(std::piecewise_construct,
-                                                           std::forward_as_tuple(clean_path),
-                                                           std::forward_as_tuple(new file_sink(clean_path, max_size)));
+  if (auto* s = find_sink(path)) {
+    return *s;
+  }
+
+  //:TODO: GCC5 or lower versions emits an error if we use the new() expression
+  // directly, use redundant piecewise_construct instead.
+  auto& s = srslog_instance::get().get_sink_repo().emplace(
+      std::piecewise_construct,
+      std::forward_as_tuple(path),
+      std::forward_as_tuple(new file_sink(path, max_size, std::move(f))));
+
+  return *s;
+}
+
+bool srslog::install_custom_sink(const std::string& id, std::unique_ptr<sink> s)
+{
+  assert(!id.empty() && "Empty path string");
+
+  sink* input_sink    = s.get();
+  sink* returned_sink = srslog_instance::get().get_sink_repo().emplace(id, std::move(s)).get();
+
+  // Successful insertion occurs when the returned object is the same one as the
+  // input object.
+  return input_sink == returned_sink;
 }
 
 ///
@@ -131,11 +207,22 @@ void srslog::flush()
   // The backend will set this shared variable when done.
   detail::shared_variable<bool> completion_flag(false);
 
-  detail::log_entry cmd;
-  cmd.flush_cmd = std::unique_ptr<detail::flush_backend_cmd>(
-      new detail::flush_backend_cmd{completion_flag, instance.get_sink_repo().contents()});
+  auto               sink_ptrs = instance.get_sink_repo().contents();
+  std::vector<sink*> sinks;
+  sinks.reserve(sink_ptrs.size());
+  for (const auto& s : sink_ptrs) {
+    sinks.push_back(s->get());
+  }
 
-  instance.get_backend().push(std::move(cmd));
+  detail::log_entry cmd;
+  cmd.metadata.store = nullptr;
+  cmd.flush_cmd =
+      std::unique_ptr<detail::flush_backend_cmd>(new detail::flush_backend_cmd{completion_flag, std::move(sinks)});
+
+  // Make sure the flush command gets into the backend, otherwise we will be
+  // stuck waiting forever for the command to succeed.
+  while (!instance.get_backend().push(std::move(cmd))) {
+  }
 
   // Block the caller thread until we are signaled that the flush is completed.
   while (!completion_flag) {
@@ -205,12 +292,22 @@ static basic_logger& fetch_basic_logger_helper(const std::string& id, sink& s, b
 basic_logger& srslog::fetch_basic_logger(const std::string& id, bool should_print_context)
 {
   assert(!id.empty() && "Empty id string");
+
+  if (auto* logger = find_logger<basic_logger>(id)) {
+    return *logger;
+  }
+
   return fetch_basic_logger_helper(id, srslog_instance::get().get_default_sink(), should_print_context);
 }
 
 basic_logger& srslog::fetch_basic_logger(const std::string& id, sink& s, bool should_print_context)
 {
   assert(!id.empty() && "Empty id string");
+
+  if (auto* logger = find_logger<basic_logger>(id)) {
+    return *logger;
+  }
+
   return fetch_basic_logger_helper(id, s, should_print_context);
 }
 
@@ -264,20 +361,24 @@ log_channel* srslog::create_log_channel(const std::string& id, sink& s)
 
 sink* srslog::create_stdout_sink(const std::string& name)
 {
-  return &srslog_instance::get().get_sink_repo().get_stdout_sink();
+  return srslog_instance::get().get_sink_repo().find("stdout")->get();
 }
 
 sink* srslog::create_stderr_sink(const std::string& name)
 {
-  return &srslog_instance::get().get_sink_repo().get_stderr_sink();
+  return srslog_instance::get().get_sink_repo().find("stderr")->get();
 }
 
 sink* srslog::create_file_sink(const std::string& path, size_t max_size)
 {
-  //:TODO: GCC5 or lower versions emits an error if we use the new() expression directly, use redundant
-  // piecewise_construct instead.
-  return &srslog_instance::get().get_sink_repo().fetch_sink(
-      std::piecewise_construct, std::forward_as_tuple(path), std::forward_as_tuple(new file_sink(path, max_size)));
+  //:TODO: GCC5 or lower versions emits an error if we use the new() expression
+  // directly, use redundant piecewise_construct instead.
+  return srslog_instance::get()
+      .get_sink_repo()
+      .emplace(std::piecewise_construct,
+               std::forward_as_tuple(path),
+               std::forward_as_tuple(new file_sink(path, max_size, std::unique_ptr<log_formatter>(new text_formatter))))
+      .get();
 }
 
 basic_logger* srslog::create_basic_logger(const std::string& id, sink& s, bool should_print_context)

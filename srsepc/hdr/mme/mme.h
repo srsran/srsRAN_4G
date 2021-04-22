@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -29,10 +29,9 @@
 #define SRSEPC_MME_H
 
 #include "s1ap.h"
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/log.h"
-#include "srslte/common/log_filter.h"
-#include "srslte/common/threads.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/common/standard_streams.h"
+#include "srsran/common/threads.h"
 #include <cstddef>
 
 namespace srsepc {
@@ -49,16 +48,13 @@ typedef struct {
   enum nas_timer_type type;
 } mme_timer_t;
 
-class mme : public srslte::thread, public mme_interface_nas
+class mme : public srsran::thread, public mme_interface_nas
 {
 public:
   static mme* get_instance(void);
   static void cleanup(void);
 
-  int  init(mme_args_t*         args,
-            srslte::log_filter* nas_log,
-            srslte::log_filter* s1ap_log,
-            srslte::log_filter* mme_gtpc_log);
+  int  init(mme_args_t* args);
   void stop();
   int  get_s1_mme();
   void run_thread();
@@ -75,9 +71,8 @@ private:
   s1ap*       m_s1ap;
   mme_gtpc*   m_mme_gtpc;
 
-  bool                      m_running;
-  srslte::byte_buffer_pool* m_pool;
-  fd_set                    m_set;
+  bool   m_running;
+  fd_set m_set;
 
   // Timer map
   std::vector<mme_timer_t> timers;
@@ -86,9 +81,7 @@ private:
   void handle_timer_expire(int timer_fd);
 
   // Logs
-  srslte::log_filter* m_nas_log;
-  srslte::log_filter* m_s1ap_log;
-  srslte::log_filter* m_mme_gtpc_log;
+  srslog::basic_logger& m_s1ap_logger = srslog::fetch_basic_logger("S1AP");
 };
 
 } // namespace srsepc

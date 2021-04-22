@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -31,12 +31,12 @@
 #include <stdint.h>
 #include <string>
 
-#include "srslte/common/metrics_hub.h"
+#include "srsran/common/metrics_hub.h"
 #include "ue_metrics_interface.h"
 
 namespace srsue {
 
-class metrics_stdout : public srslte::metrics_listener<ue_metrics_t>
+class metrics_stdout : public srsran::metrics_listener<ue_metrics_t>
 {
 public:
   metrics_stdout(){};
@@ -47,9 +47,15 @@ public:
   void stop(){};
 
 private:
-  std::string float_to_string(float f, int digits);
-  std::string float_to_eng_string(float f, int digits);
-  void        print_table(const bool display_neighbours);
+  static const bool FORCE_NEIGHBOUR_CELL = false; // Set to true for printing always neighbour cells
+  void              set_metrics_helper(const phy_metrics_t phy,
+                                       const mac_metrics_t mac[SRSRAN_MAX_CARRIERS],
+                                       const rrc_metrics_t rrc,
+                                       bool                display_neighbours,
+                                       const uint32_t      r);
+  std::string       float_to_string(float f, int digits);
+  std::string       float_to_eng_string(float f, int digits);
+  void              print_table(const bool display_neighbours);
 
   bool                  do_print             = false;
   bool                  table_has_neighbours = false; ///< state of last table head

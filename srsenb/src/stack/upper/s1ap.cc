@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -20,32 +20,42 @@
  */
 
 #include "srsenb/hdr/stack/upper/s1ap.h"
-#include "srsenb/hdr/stack/upper/common_enb.h"
-#include "srslte/adt/scope_exit.h"
-#include "srslte/common/bcd_helpers.h"
-#include "srslte/common/int_helpers.h"
-#include "srslte/common/logmap.h"
+#include "srsran/adt/scope_exit.h"
+#include "srsran/common/bcd_helpers.h"
+#include "srsran/common/enb_events.h"
+#include "srsran/common/int_helpers.h"
+#include "srsran/common/standard_streams.h"
+#include "srsran/interfaces/enb_rrc_interfaces.h"
 
 #include <arpa/inet.h> //for inet_ntop()
 #include <inttypes.h>
 #include <netinet/in.h>
 #include <netinet/sctp.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
-#include <unistd.h> //for close(), sleep()
 
-using srslte::s1ap_mccmnc_to_plmn;
-using srslte::uint32_to_uint8;
+using srsran::s1ap_mccmnc_to_plmn;
+using srsran::uint32_to_uint8;
 
-#define procError(fmt, ...) s1ap_ptr->s1ap_log->error("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
-#define procWarning(fmt, ...) s1ap_ptr->s1ap_log->warning("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
-#define procInfo(fmt, ...) s1ap_ptr->s1ap_log->info("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
+#define procError(fmt, ...) s1ap_ptr->logger.error("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
+#define procWarning(fmt, ...) s1ap_ptr->logger.warning("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
+#define procInfo(fmt, ...) s1ap_ptr->logger.info("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
+
+#define WarnUnsupportFeature(cond, featurename)                                                                        \
+  do {                                                                                                                 \
+    if (cond) {                                                                                                        \
+      logger.warning("Not handling feature - %s", featurename);                                                        \
+    }                                                                                                                  \
+  } while (0)
 
 using namespace asn1::s1ap;
 
 namespace srsenb {
+
+/*************************
+ *    Helper Functions
+ ************************/
 
 asn1::bounded_bitstring<1, 160, true, true> addr_to_asn1(const char* addr_str)
 {
@@ -58,51 +68,105 @@ asn1::bounded_bitstring<1, 160, true, true> addr_to_asn1(const char* addr_str)
   return transport_layer_addr;
 }
 
+/// Helper to add ERAB items that are duplicates in the received S1AP message
+template <typename List>
+void add_repeated_erab_ids(const List&                                                   list,
+                           srsran::bounded_vector<erab_item_s, ASN1_S1AP_MAXNOOF_ERABS>& failed_cfg_erabs)
+{
+  for (auto it = list.begin(); it != list.end(); ++it) {
+    for (auto it2 = it + 1; it2 != list.end(); ++it2) {
+      if (equal_obj_id(*it, *it2)) {
+        failed_cfg_erabs.push_back(erab_item_s());
+        failed_cfg_erabs.back().erab_id                         = get_obj_id(*it);
+        failed_cfg_erabs.back().cause.set_radio_network().value = cause_radio_network_opts::multiple_erab_id_instances;
+      }
+    }
+  }
+
+  // Sort and remove duplications
+  std::sort(failed_cfg_erabs.begin(), failed_cfg_erabs.end(), &lower_obj_id<erab_item_s>);
+  failed_cfg_erabs.erase(std::unique(failed_cfg_erabs.begin(), failed_cfg_erabs.end(), &equal_obj_id<erab_item_s>),
+                         failed_cfg_erabs.end());
+}
+
+bool contains_erab_id(srsran::bounded_vector<erab_item_s, ASN1_S1AP_MAXNOOF_ERABS>& failed_cfg_erabs, uint16_t erab_id)
+{
+  erab_item_s dummy;
+  dummy.erab_id = erab_id;
+  return std::find_if(failed_cfg_erabs.begin(), failed_cfg_erabs.end(), [erab_id](const erab_item_s& e) {
+           return e.erab_id == erab_id;
+         }) != failed_cfg_erabs.end();
+}
+
+void sanitize_response_erab_lists(s1ap::erab_item_list& failed_cfg_erabs, s1ap::erab_id_list& erabs)
+{
+  // Sort and remove duplicates
+  std::sort(failed_cfg_erabs.begin(), failed_cfg_erabs.end(), &lower_obj_id<erab_item_s>);
+  failed_cfg_erabs.erase(std::unique(failed_cfg_erabs.begin(), failed_cfg_erabs.end(), &equal_obj_id<erab_item_s>),
+                         failed_cfg_erabs.end());
+  std::sort(erabs.begin(), erabs.end());
+  erabs.erase(std::unique(erabs.begin(), erabs.end()), erabs.end());
+}
+
+template <typename OutList>
+void fill_erab_failed_setup_list(OutList& output_list, const s1ap::erab_item_list& input_list)
+{
+  output_list.resize(input_list.size());
+  for (size_t i = 0; i < input_list.size(); ++i) {
+    output_list[i].load_info_obj(ASN1_S1AP_ID_ERAB_ITEM);
+    output_list[i].value.erab_item() = input_list[i];
+  }
+}
+
 /*********************************************************
  * TS 36.413 - Section 8.4.1 - "Handover Preparation"
  *********************************************************/
 s1ap::ue::ho_prep_proc_t::ho_prep_proc_t(s1ap::ue* ue_) : ue_ptr(ue_), s1ap_ptr(ue_->s1ap_ptr) {}
 
-srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::init(uint32_t                     target_eci_,
-                                                      srslte::plmn_id_t            target_plmn_,
-                                                      srslte::unique_byte_buffer_t rrc_container_)
+srsran::proc_outcome_t s1ap::ue::ho_prep_proc_t::init(uint32_t                     target_eci_,
+                                                      srsran::plmn_id_t            target_plmn_,
+                                                      srsran::span<uint32_t>       fwd_erabs,
+                                                      srsran::unique_byte_buffer_t rrc_container_,
+                                                      bool                         has_direct_fwd_path)
 {
+  ho_cmd_msg  = nullptr;
   target_eci  = target_eci_;
   target_plmn = target_plmn_;
 
-  procInfo("Sending HandoverRequired to MME id=%d\n", ue_ptr->ctxt.mme_ue_s1ap_id);
-  if (not ue_ptr->send_ho_required(target_eci, target_plmn, std::move(rrc_container_))) {
-    procError("Failed to send HORequired to cell 0x%x\n", target_eci);
-    return srslte::proc_outcome_t::error;
+  procInfo("Sending HandoverRequired to MME id=%d", ue_ptr->ctxt.mme_ue_s1ap_id.value());
+  if (not ue_ptr->send_ho_required(
+          target_eci, target_plmn, fwd_erabs, std::move(rrc_container_), has_direct_fwd_path)) {
+    procError("Failed to send HORequired to cell 0x%x", target_eci);
+    return srsran::proc_outcome_t::error;
   }
 
   // Start HO preparation timer
   ue_ptr->ts1_reloc_prep.run();
 
-  return srslte::proc_outcome_t::yield;
+  return srsran::proc_outcome_t::yield;
 }
-srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(ts1_reloc_prep_expired e)
+srsran::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(ts1_reloc_prep_expired e)
 {
   // do nothing for now
-  procError("timer TS1Relocprep has expired.\n");
-  return srslte::proc_outcome_t::error;
+  procError("timer TS1Relocprep has expired.");
+  return srsran::proc_outcome_t::error;
 }
-srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(const ho_prep_fail_s& msg)
+srsran::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(const ho_prep_fail_s& msg)
 {
   ue_ptr->ts1_reloc_prep.stop();
 
   std::string cause = s1ap_ptr->get_cause(msg.protocol_ies.cause.value);
-  procError("HO preparation Failure. Cause: %s\n", cause.c_str());
-  srslte::console("HO preparation Failure. Cause: %s\n", cause.c_str());
+  procError("HO preparation Failure. Cause: %s", cause.c_str());
+  srsran::console("HO preparation Failure. Cause: %s\n", cause.c_str());
 
-  return srslte::proc_outcome_t::error;
+  return srsran::proc_outcome_t::error;
 }
 
 /**
  * TS 36.413 - Section 8.4.1.2 - HandoverPreparation Successful Operation
  * Description: MME returns back an HandoverCommand to the SeNB
  */
-srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(const asn1::s1ap::ho_cmd_s& msg)
+srsran::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(const asn1::s1ap::ho_cmd_s& msg)
 {
   // update timers
   ue_ptr->ts1_reloc_prep.stop();
@@ -112,19 +176,7 @@ srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(const asn1::s1ap::ho_cmd_
   if (msg.ext or msg.protocol_ies.target_to_source_transparent_container_secondary_present or
       msg.protocol_ies.handov_type.value.value != handov_type_opts::intralte or
       msg.protocol_ies.crit_diagnostics_present or msg.protocol_ies.nas_security_paramsfrom_e_utran_present) {
-    procWarning("Not handling HandoverCommand extensions and non-intraLTE params\n");
-  }
-
-  // Check for E-RABs that could not be admitted in the target
-  if (msg.protocol_ies.erab_to_release_list_ho_cmd_present) {
-    procWarning("Not handling E-RABtoReleaseList\n");
-    // TODO
-  }
-
-  // Check for E-RABs subject to being forwarded
-  if (msg.protocol_ies.erab_subjectto_data_forwarding_list_present) {
-    procWarning("Not handling E-RABSubjecttoDataForwardingList\n");
-    // TODO
+    procWarning("Not handling HandoverCommand extensions and non-intraLTE params");
   }
 
   // In case of intra-system Handover, Target to Source Transparent Container IE shall be encoded as
@@ -133,32 +185,37 @@ srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(const asn1::s1ap::ho_cmd_
                       msg.protocol_ies.target_to_source_transparent_container.value.size());
   asn1::s1ap::targetenb_to_sourceenb_transparent_container_s container;
   if (container.unpack(bref) != asn1::SRSASN_SUCCESS) {
-    procError("Failed to decode TargeteNBToSourceeNBTransparentContainer\n");
-    return srslte::proc_outcome_t::error;
+    procError("Failed to decode TargeteNBToSourceeNBTransparentContainer");
+    return srsran::proc_outcome_t::error;
   }
   if (container.ie_exts_present or container.ext) {
-    procWarning("Not handling extensions\n");
+    procWarning("Not handling extensions");
   }
 
   // Create a unique buffer out of transparent container to pass to RRC
-  rrc_container = srslte::allocate_unique_buffer(*s1ap_ptr->pool, false);
+  rrc_container = srsran::make_byte_buffer();
   if (rrc_container == nullptr) {
-    procError("Fatal Error: Couldn't allocate buffer.\n");
-    return srslte::proc_outcome_t::error;
+    procError("Fatal Error: Couldn't allocate buffer.");
+    return srsran::proc_outcome_t::error;
   }
   memcpy(rrc_container->msg, container.rrc_container.data(), container.rrc_container.size());
   rrc_container->N_bytes = container.rrc_container.size();
+  ho_cmd_msg             = &msg;
 
-  return srslte::proc_outcome_t::success;
+  return srsran::proc_outcome_t::success;
 }
 
-void s1ap::ue::ho_prep_proc_t::then(const srslte::proc_state_t& result)
+void s1ap::ue::ho_prep_proc_t::then(const srsran::proc_state_t& result)
 {
   if (result.is_error()) {
-    s1ap_ptr->rrc->ho_preparation_complete(ue_ptr->ctxt.rnti, false, {});
+    rrc_interface_s1ap::ho_prep_result ho_prep_result = ue_ptr->ts1_reloc_prep.is_expired()
+                                                            ? rrc_interface_s1ap::ho_prep_result::timeout
+                                                            : rrc_interface_s1ap::ho_prep_result::failure;
+    s1ap_ptr->rrc->ho_preparation_complete(ue_ptr->ctxt.rnti, ho_prep_result, *ho_cmd_msg, {});
   } else {
-    s1ap_ptr->rrc->ho_preparation_complete(ue_ptr->ctxt.rnti, true, std::move(rrc_container));
-    procInfo("Completed with success\n");
+    s1ap_ptr->rrc->ho_preparation_complete(
+        ue_ptr->ctxt.rnti, rrc_interface_s1ap::ho_prep_result::success, *ho_cmd_msg, std::move(rrc_container));
+    procInfo("Completed with success");
   }
 }
 
@@ -166,64 +223,66 @@ void s1ap::ue::ho_prep_proc_t::then(const srslte::proc_state_t& result)
  *                     MME Connection
  *********************************************************/
 
-srslte::proc_outcome_t s1ap::s1_setup_proc_t::init()
+srsran::proc_outcome_t s1ap::s1_setup_proc_t::init()
 {
-  procInfo("Starting new MME connection.\n");
-
+  procInfo("Starting new MME connection.");
   return start_mme_connection();
 }
 
-srslte::proc_outcome_t s1ap::s1_setup_proc_t::start_mme_connection()
+srsran::proc_outcome_t s1ap::s1_setup_proc_t::start_mme_connection()
 {
   if (not s1ap_ptr->running) {
-    procInfo("S1AP is not running anymore.\n");
-    return srslte::proc_outcome_t::error;
+    procInfo("S1AP is not running anymore.");
+    return srsran::proc_outcome_t::error;
   }
   if (s1ap_ptr->mme_connected) {
-    procInfo("eNB S1AP is already connected to MME\n");
-    return srslte::proc_outcome_t::success;
+    procInfo("eNB S1AP is already connected to MME");
+    return srsran::proc_outcome_t::success;
   }
 
   if (not s1ap_ptr->connect_mme()) {
-    procInfo("Failed to initiate SCTP socket. Attempting reconnection in %d seconds\n",
-             s1ap_ptr->mme_connect_timer.duration() / 1000);
-    srslte::console("Failed to initiate SCTP socket. Attempting reconnection in %d seconds\n",
-                       s1ap_ptr->mme_connect_timer.duration() / 1000);
-    s1ap_ptr->mme_connect_timer.run();
-    return srslte::proc_outcome_t::error;
+    procInfo("Could not connect to MME");
+    return srsran::proc_outcome_t::error;
   }
 
   if (not s1ap_ptr->setup_s1()) {
-    procError("S1 setup failed. Exiting...\n");
-    srslte::console("S1 setup failed\n");
+    procError("S1 setup failed. Exiting...");
+    srsran::console("S1 setup failed\n");
     s1ap_ptr->running = false;
-    return srslte::proc_outcome_t::error;
+    return srsran::proc_outcome_t::error;
   }
 
   s1ap_ptr->s1setup_timeout.run();
-  procInfo("S1SetupRequest sent. Waiting for response...\n");
-  return srslte::proc_outcome_t::yield;
+  procInfo("S1SetupRequest sent. Waiting for response...");
+  return srsran::proc_outcome_t::yield;
 }
 
-srslte::proc_outcome_t s1ap::s1_setup_proc_t::react(const srsenb::s1ap::s1_setup_proc_t::s1setupresult& event)
+srsran::proc_outcome_t s1ap::s1_setup_proc_t::react(const srsenb::s1ap::s1_setup_proc_t::s1setupresult& event)
 {
   if (s1ap_ptr->s1setup_timeout.is_running()) {
     s1ap_ptr->s1setup_timeout.stop();
   }
   if (event.success) {
-    procInfo("S1Setup procedure completed successfully\n");
-    return srslte::proc_outcome_t::success;
+    procInfo("S1Setup procedure completed successfully");
+    return srsran::proc_outcome_t::success;
   }
-  procError("S1Setup failed. Exiting...\n");
-  srslte::console("S1setup failed\n");
-  return srslte::proc_outcome_t::error;
+  procError("S1Setup failed.");
+  srsran::console("S1setup failed\n");
+  return srsran::proc_outcome_t::error;
 }
 
-void s1ap::s1_setup_proc_t::then(const srslte::proc_state_t& result) const
+void s1ap::s1_setup_proc_t::then(const srsran::proc_state_t& result) const
 {
   if (result.is_error()) {
-    s1ap_ptr->s1ap_socket.reset();
-    procInfo("S1AP socket closed.\n");
+    procInfo("Failed to initiate S1 connection. Attempting reconnection in %d seconds",
+             s1ap_ptr->mme_connect_timer.duration() / 1000);
+    srsran::console("Failed to initiate S1 connection. Attempting reconnection in %d seconds\n",
+                    s1ap_ptr->mme_connect_timer.duration() / 1000);
+    s1ap_ptr->rx_socket_handler->remove_socket(s1ap_ptr->mme_socket.get_socket());
+    s1ap_ptr->mme_socket.close();
+    procInfo("S1AP socket closed.");
+    s1ap_ptr->mme_connect_timer.run();
+    // Try again with in 10 seconds
   }
 }
 
@@ -231,24 +290,28 @@ void s1ap::s1_setup_proc_t::then(const srslte::proc_state_t& result) const
  *                     S1AP class
  *********************************************************/
 
-s1ap::s1ap(srslte::task_sched_handle task_sched_) : s1setup_proc(this), task_sched(task_sched_) {}
-
-int s1ap::init(s1ap_args_t args_, rrc_interface_s1ap* rrc_, srsenb::stack_interface_s1ap_lte* stack_)
+s1ap::s1ap(srsran::task_sched_handle   task_sched_,
+           srslog::basic_logger&       logger,
+           srsran::socket_manager_itf* rx_socket_handler_) :
+  s1setup_proc(this), logger(logger), task_sched(task_sched_), rx_socket_handler(rx_socket_handler_)
 {
-  rrc      = rrc_;
-  args     = args_;
-  s1ap_log = srslte::logmap::get("S1AP");
-  stack    = stack_;
-  pool     = srslte::byte_buffer_pool::get_instance();
+  mme_task_queue = task_sched.make_task_queue();
+}
+
+int s1ap::init(s1ap_args_t args_, rrc_interface_s1ap* rrc_)
+{
+  rrc  = rrc_;
+  args = args_;
 
   build_tai_cgi();
 
   // Setup MME reconnection timer
   mme_connect_timer    = task_sched.get_unique_timer();
   auto mme_connect_run = [this](uint32_t tid) {
-    if (not s1setup_proc.launch()) {
-      s1ap_log->error("Failed to initiate S1Setup procedure.\n");
+    if (s1setup_proc.is_busy()) {
+      logger.error("Failed to initiate S1Setup procedure.");
     }
+    s1setup_proc.launch();
   };
   mme_connect_timer.set(10000, mme_connect_run);
   // Setup S1Setup timeout
@@ -264,16 +327,16 @@ int s1ap::init(s1ap_args_t args_, rrc_interface_s1ap* rrc_, srsenb::stack_interf
   running = true;
   // starting MME connection
   if (not s1setup_proc.launch()) {
-    s1ap_log->error("Failed to initiate S1Setup procedure.\n");
+    logger.error("Failed to initiate S1Setup procedure.");
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 void s1ap::stop()
 {
   running = false;
-  s1ap_socket.reset();
+  mme_socket.close();
 }
 
 void s1ap::get_metrics(s1ap_metrics_t& m)
@@ -309,41 +372,47 @@ void s1ap::build_tai_cgi()
 /*******************************************************************************
 /* RRC interface
 ********************************************************************************/
-void s1ap::initial_ue(uint16_t rnti, asn1::s1ap::rrc_establishment_cause_e cause, srslte::unique_byte_buffer_t pdu)
+void s1ap::initial_ue(uint16_t                              rnti,
+                      uint32_t                              enb_cc_idx,
+                      asn1::s1ap::rrc_establishment_cause_e cause,
+                      srsran::unique_byte_buffer_t          pdu)
 {
   std::unique_ptr<ue> ue_ptr{new ue{this}};
-  ue_ptr->ctxt.rnti = rnti;
-  ue* u             = users.add_user(std::move(ue_ptr));
+  ue_ptr->ctxt.rnti       = rnti;
+  ue_ptr->ctxt.enb_cc_idx = enb_cc_idx;
+  ue* u                   = users.add_user(std::move(ue_ptr));
   if (u == nullptr) {
-    s1ap_log->error("Failed to add rnti=0x%x\n", rnti);
+    logger.error("Failed to add rnti=0x%x", rnti);
     return;
   }
   u->send_initialuemessage(cause, std::move(pdu), false);
 }
 
 void s1ap::initial_ue(uint16_t                              rnti,
+                      uint32_t                              enb_cc_idx,
                       asn1::s1ap::rrc_establishment_cause_e cause,
-                      srslte::unique_byte_buffer_t          pdu,
+                      srsran::unique_byte_buffer_t          pdu,
                       uint32_t                              m_tmsi,
                       uint8_t                               mmec)
 {
   std::unique_ptr<ue> ue_ptr{new ue{this}};
-  ue_ptr->ctxt.rnti = rnti;
-  ue* u             = users.add_user(std::move(ue_ptr));
+  ue_ptr->ctxt.rnti       = rnti;
+  ue_ptr->ctxt.enb_cc_idx = enb_cc_idx;
+  ue* u                   = users.add_user(std::move(ue_ptr));
   if (u == nullptr) {
-    s1ap_log->error("Failed to add rnti=0x%x\n", rnti);
+    logger.error("Failed to add rnti=0x%x", rnti);
     return;
   }
   u->send_initialuemessage(cause, std::move(pdu), true, m_tmsi, mmec);
 }
 
-void s1ap::write_pdu(uint16_t rnti, srslte::unique_byte_buffer_t pdu)
+void s1ap::write_pdu(uint16_t rnti, srsran::unique_byte_buffer_t pdu)
 {
-  s1ap_log->info_hex(pdu->msg, pdu->N_bytes, "Received RRC SDU");
+  logger.info(pdu->msg, pdu->N_bytes, "Received RRC SDU");
 
   ue* u = users.find_ue_rnti(rnti);
   if (u == nullptr) {
-    s1ap_log->info("The rnti=0x%x does not exist\n", rnti);
+    logger.info("The rnti=0x%x does not exist", rnti);
     return;
   }
   u->send_ulnastransport(std::move(pdu));
@@ -351,7 +420,7 @@ void s1ap::write_pdu(uint16_t rnti, srslte::unique_byte_buffer_t pdu)
 
 bool s1ap::user_release(uint16_t rnti, asn1::s1ap::cause_radio_network_e cause_radio)
 {
-  s1ap_log->info("User inactivity - RNTI:0x%x\n", rnti);
+  logger.info("User inactivity - RNTI:0x%x", rnti);
 
   ue* u = users.find_ue_rnti(rnti);
   if (u == nullptr) {
@@ -359,16 +428,16 @@ bool s1ap::user_release(uint16_t rnti, asn1::s1ap::cause_radio_network_e cause_r
   }
 
   if (u->was_uectxtrelease_requested()) {
-    s1ap_log->warning("UE context for RNTI:0x%x is in zombie state. Releasing...\n", rnti);
+    logger.warning("UE context for RNTI:0x%x is in zombie state. Releasing...", rnti);
     users.erase(u);
-    rrc->release_complete(rnti);
+    rrc->release_ue(rnti);
     return false;
   }
 
   cause_c cause;
   cause.set_radio_network().value = cause_radio.value;
 
-  if (u->ctxt.mme_ue_s1ap_id_present) {
+  if (u->ctxt.mme_ue_s1ap_id.has_value()) {
     return u->send_uectxtreleaserequest(cause);
   }
   return true;
@@ -381,45 +450,26 @@ bool s1ap::user_exists(uint16_t rnti)
 
 void s1ap::user_mod(uint16_t old_rnti, uint16_t new_rnti)
 {
-  s1ap_log->info("Modifying user context. Old rnti: 0x%x, new rnti: 0x%x\n", old_rnti, new_rnti);
+  logger.info("Modifying user context. Old rnti: 0x%x, new rnti: 0x%x", old_rnti, new_rnti);
   if (not user_exists(old_rnti)) {
-    s1ap_log->error("Old rnti does not exist, aborting.\n");
+    logger.error("Old rnti does not exist, aborting.");
     return;
   }
   if (user_exists(new_rnti)) {
-    s1ap_log->error("New rnti already exists, aborting.\n");
+    logger.error("New rnti already exists, aborting.");
     return;
   }
   users.find_ue_rnti(old_rnti)->ctxt.rnti = new_rnti;
 }
 
-void s1ap::ue_ctxt_setup_complete(uint16_t rnti, const asn1::s1ap::init_context_setup_resp_s& res)
+void s1ap::ue_ctxt_setup_complete(uint16_t rnti)
 {
   ue* u = users.find_ue_rnti(rnti);
   if (u == nullptr) {
     return;
   }
-  if (res.protocol_ies.erab_setup_list_ctxt_su_res.value.size() > 0) {
-    u->send_initial_ctxt_setup_response(res);
-  } else {
-    u->send_initial_ctxt_setup_failure();
-  }
+  u->ue_ctxt_setup_complete();
 }
-
-void s1ap::ue_erab_setup_complete(uint16_t rnti, const asn1::s1ap::erab_setup_resp_s& res)
-{
-  ue* u = users.find_ue_rnti(rnti);
-  if (u == nullptr) {
-    s1ap_log->error("rnti 0x%x not found\n", rnti);
-    return;
-  }
-  u->send_erab_setup_response(res);
-}
-
-// void ue_capabilities(uint16_t rnti, LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT *caps)
-//{
-
-//}
 
 bool s1ap::is_mme_connected()
 {
@@ -432,23 +482,31 @@ bool s1ap::is_mme_connected()
 
 bool s1ap::connect_mme()
 {
-  s1ap_log->info("Connecting to MME %s:%d\n", args.mme_addr.c_str(), MME_PORT);
+  using namespace srsran::net_utils;
+  logger.info("Connecting to MME %s:%d", args.mme_addr.c_str(), int(MME_PORT));
 
   // Init SCTP socket and bind it
-  if (not srslte::net_utils::sctp_init_client(
-          &s1ap_socket, srslte::net_utils::socket_type::seqpacket, args.s1c_bind_addr.c_str())) {
+  if (not sctp_init_client(&mme_socket, socket_type::seqpacket, args.s1c_bind_addr.c_str())) {
     return false;
   }
+  logger.info("SCTP socket opened. fd=%d", mme_socket.fd());
 
   // Connect to the MME address
-  if (not s1ap_socket.connect_to(args.mme_addr.c_str(), MME_PORT, &mme_addr)) {
+  if (not mme_socket.connect_to(args.mme_addr.c_str(), MME_PORT, &mme_addr)) {
     return false;
   }
+  logger.info("SCTP socket connected with MME. fd=%d", mme_socket.fd());
 
-  // Assign a handler to rx MME packets (going to run in a different thread)
-  stack->add_mme_socket(s1ap_socket.fd());
+  // Assign a handler to rx MME packets
+  auto rx_callback =
+      [this](srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags) {
+        // Defer the handling of MME packet to eNB stack main thread
+        handle_mme_rx_msg(std::move(pdu), from, sri, flags);
+      };
+  rx_socket_handler->add_socket_handler(mme_socket.fd(),
+                                        srsran::make_sctp_sdu_handler(logger, mme_task_queue, rx_callback));
 
-  s1ap_log->info("SCTP socket established with MME\n");
+  logger.info("SCTP socket established with MME");
   return true;
 }
 
@@ -492,7 +550,7 @@ bool s1ap::setup_s1()
 /* S1AP message handlers
 ********************************************************************************/
 
-bool s1ap::handle_mme_rx_msg(srslte::unique_byte_buffer_t pdu,
+bool s1ap::handle_mme_rx_msg(srsran::unique_byte_buffer_t pdu,
                              const sockaddr_in&           from,
                              const sctp_sndrcvinfo&       sri,
                              int                          flags)
@@ -501,32 +559,40 @@ bool s1ap::handle_mme_rx_msg(srslte::unique_byte_buffer_t pdu,
   if (flags & MSG_NOTIFICATION) {
     // Received notification
     union sctp_notification* notification = (union sctp_notification*)pdu->msg;
-    s1ap_log->debug("SCTP Notification %d\n", notification->sn_header.sn_type);
+    logger.debug("SCTP Notification %d", notification->sn_header.sn_type);
     if (notification->sn_header.sn_type == SCTP_SHUTDOWN_EVENT) {
-      s1ap_log->info("SCTP Association Shutdown. Association: %d\n", sri.sinfo_assoc_id);
-      srslte::console("SCTP Association Shutdown. Association: %d\n", sri.sinfo_assoc_id);
-      s1ap_socket.reset();
+      logger.info("SCTP Association Shutdown. Association: %d", sri.sinfo_assoc_id);
+      srsran::console("SCTP Association Shutdown. Association: %d\n", sri.sinfo_assoc_id);
+      rx_socket_handler->remove_socket(mme_socket.get_socket());
+      mme_socket.close();
+    } else if (notification->sn_header.sn_type == SCTP_PEER_ADDR_CHANGE &&
+               notification->sn_paddr_change.spc_state == SCTP_ADDR_UNREACHABLE) {
+      logger.info("SCTP peer addres unreachable. Association: %d", sri.sinfo_assoc_id);
+      srsran::console("SCTP peer address unreachable. Association: %d\n", sri.sinfo_assoc_id);
+      rx_socket_handler->remove_socket(mme_socket.get_socket());
+      mme_socket.close();
     }
   } else if (pdu->N_bytes == 0) {
-    s1ap_log->error("SCTP return 0 bytes. Closing socket\n");
-    s1ap_socket.reset();
+    logger.error("SCTP return 0 bytes. Closing socket");
+    mme_socket.close();
   }
 
   // Restart MME connection procedure if we lost connection
-  if (not s1ap_socket.is_init()) {
+  if (not mme_socket.is_open()) {
     mme_connected = false;
-    if (not s1setup_proc.launch()) {
-      s1ap_log->error("Failed to initiate MME connection procedure.\n");
+    if (s1setup_proc.is_busy()) {
+      logger.error("Failed to initiate MME connection procedure, as it is already running.");
+      return false;
     }
+    s1setup_proc.launch();
     return false;
   }
 
-  s1ap_log->info_hex(pdu->msg, pdu->N_bytes, "Received S1AP PDU");
   handle_s1ap_rx_pdu(pdu.get());
   return true;
 }
 
-bool s1ap::handle_s1ap_rx_pdu(srslte::byte_buffer_t* pdu)
+bool s1ap::handle_s1ap_rx_pdu(srsran::byte_buffer_t* pdu)
 {
   // Save message to PCAP
   if (pcap != nullptr) {
@@ -537,9 +603,13 @@ bool s1ap::handle_s1ap_rx_pdu(srslte::byte_buffer_t* pdu)
   asn1::cbit_ref bref(pdu->msg, pdu->N_bytes);
 
   if (rx_pdu.unpack(bref) != asn1::SRSASN_SUCCESS) {
-    s1ap_log->error("Failed to unpack received PDU\n");
+    logger.error(pdu->msg, pdu->N_bytes, "Failed to unpack received PDU");
+    cause_c cause;
+    cause.set_protocol().value = cause_protocol_opts::transfer_syntax_error;
+    send_error_indication(cause);
     return false;
   }
+  log_s1ap_msg(rx_pdu, srsran::make_span(*pdu), true);
 
   switch (rx_pdu.type().value) {
     case s1ap_pdu_c::types_opts::init_msg:
@@ -549,7 +619,7 @@ bool s1ap::handle_s1ap_rx_pdu(srslte::byte_buffer_t* pdu)
     case s1ap_pdu_c::types_opts::unsuccessful_outcome:
       return handle_unsuccessfuloutcome(rx_pdu.unsuccessful_outcome());
     default:
-      s1ap_log->error("Unhandled PDU type %d\n", rx_pdu.type().value);
+      logger.error("Unhandled PDU type %d", rx_pdu.type().value);
       return false;
   }
 
@@ -569,14 +639,18 @@ bool s1ap::handle_initiatingmessage(const init_msg_s& msg)
       return handle_paging(msg.value.paging());
     case s1ap_elem_procs_o::init_msg_c::types_opts::erab_setup_request:
       return handle_erabsetuprequest(msg.value.erab_setup_request());
+    case s1ap_elem_procs_o::init_msg_c::types_opts::erab_release_cmd:
+      return handle_erabreleasecommand(msg.value.erab_release_cmd());
+    case s1ap_elem_procs_o::init_msg_c::types_opts::erab_modify_request:
+      return handle_erabmodifyrequest(msg.value.erab_modify_request());
     case s1ap_elem_procs_o::init_msg_c::types_opts::ue_context_mod_request:
       return handle_uecontextmodifyrequest(msg.value.ue_context_mod_request());
     case s1ap_elem_procs_o::init_msg_c::types_opts::ho_request:
-      return handle_ho_request(msg.value.ho_request());
+      return handle_handover_request(msg.value.ho_request());
     case s1ap_elem_procs_o::init_msg_c::types_opts::mme_status_transfer:
       return handle_mme_status_transfer(msg.value.mme_status_transfer());
     default:
-      s1ap_log->error("Unhandled initiating message: %s\n", msg.value.type().to_string().c_str());
+      logger.error("Unhandled initiating message: %s", msg.value.type().to_string().c_str());
   }
   return true;
 }
@@ -587,12 +661,11 @@ bool s1ap::handle_successfuloutcome(const successful_outcome_s& msg)
     case s1ap_elem_procs_o::successful_outcome_c::types_opts::s1_setup_resp:
       return handle_s1setupresponse(msg.value.s1_setup_resp());
     case s1ap_elem_procs_o::successful_outcome_c::types_opts::ho_cmd:
-      return handle_s1hocommand(msg.value.ho_cmd());
+      return handle_handover_command(msg.value.ho_cmd());
     case s1ap_elem_procs_o::successful_outcome_c::types_opts::ho_cancel_ack:
-      s1ap_log->info("Received %s\n", msg.value.type().to_string().c_str());
       return true;
     default:
-      s1ap_log->error("Unhandled successful outcome message: %s\n", msg.value.type().to_string().c_str());
+      logger.error("Unhandled successful outcome message: %s", msg.value.type().to_string().c_str());
   }
   return true;
 }
@@ -603,16 +676,15 @@ bool s1ap::handle_unsuccessfuloutcome(const unsuccessful_outcome_s& msg)
     case s1ap_elem_procs_o::unsuccessful_outcome_c::types_opts::s1_setup_fail:
       return handle_s1setupfailure(msg.value.s1_setup_fail());
     case s1ap_elem_procs_o::unsuccessful_outcome_c::types_opts::ho_prep_fail:
-      return handle_hopreparationfailure(msg.value.ho_prep_fail());
+      return handle_handover_preparation_failure(msg.value.ho_prep_fail());
     default:
-      s1ap_log->error("Unhandled unsuccessful outcome message: %s\n", msg.value.type().to_string().c_str());
+      logger.error("Unhandled unsuccessful outcome message: %s", msg.value.type().to_string().c_str());
   }
   return true;
 }
 
 bool s1ap::handle_s1setupresponse(const asn1::s1ap::s1_setup_resp_s& msg)
 {
-  s1ap_log->info("Received S1SetupResponse\n");
   s1setupresponse = msg;
   mme_connected   = true;
   s1_setup_proc_t::s1setupresult res;
@@ -623,25 +695,25 @@ bool s1ap::handle_s1setupresponse(const asn1::s1ap::s1_setup_resp_s& msg)
 
 bool s1ap::handle_dlnastransport(const dl_nas_transport_s& msg)
 {
-  s1ap_log->info("Received DownlinkNASTransport\n");
   if (msg.ext) {
-    s1ap_log->warning("Not handling S1AP message extension\n");
+    logger.warning("Not handling S1AP message extension");
   }
-  ue* u = find_s1apmsg_user(msg.protocol_ies.enb_ue_s1ap_id.value.value, msg.protocol_ies.mme_ue_s1ap_id.value.value);
+  ue* u =
+      handle_s1apmsg_ue_id(msg.protocol_ies.enb_ue_s1ap_id.value.value, msg.protocol_ies.mme_ue_s1ap_id.value.value);
   if (u == nullptr) {
     return false;
   }
 
   if (msg.protocol_ies.ho_restrict_list_present) {
-    s1ap_log->warning("Not handling HandoverRestrictionList\n");
+    logger.warning("Not handling HandoverRestrictionList");
   }
   if (msg.protocol_ies.subscriber_profile_idfor_rfp_present) {
-    s1ap_log->warning("Not handling SubscriberProfileIDforRFP\n");
+    logger.warning("Not handling SubscriberProfileIDforRFP");
   }
 
-  srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool);
+  srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
   if (pdu == nullptr) {
-    s1ap_log->error("Fatal Error: Couldn't allocate buffer in s1ap::run_thread().\n");
+    logger.error("Fatal Error: Couldn't allocate buffer in s1ap::run_thread().");
     return false;
   }
   memcpy(pdu->msg, msg.protocol_ies.nas_pdu.value.data(), msg.protocol_ies.nas_pdu.value.size());
@@ -652,11 +724,23 @@ bool s1ap::handle_dlnastransport(const dl_nas_transport_s& msg)
 
 bool s1ap::handle_initialctxtsetuprequest(const init_context_setup_request_s& msg)
 {
-  s1ap_log->info("Received InitialContextSetupRequest\n");
-  if (msg.ext) {
-    s1ap_log->warning("Not handling S1AP message extension\n");
-  }
-  ue* u = find_s1apmsg_user(msg.protocol_ies.enb_ue_s1ap_id.value.value, msg.protocol_ies.mme_ue_s1ap_id.value.value);
+  const auto& prot_ies = msg.protocol_ies;
+  WarnUnsupportFeature(msg.ext, "message extension");
+  WarnUnsupportFeature(prot_ies.add_cs_fallback_ind_present, "AdditionalCSFallbackIndicator");
+  WarnUnsupportFeature(prot_ies.csg_membership_status_present, "CSGMembershipStatus");
+  WarnUnsupportFeature(prot_ies.gummei_id_present, "GUMMEI_ID");
+  WarnUnsupportFeature(prot_ies.ho_restrict_list_present, "HandoverRestrictionList");
+  WarnUnsupportFeature(prot_ies.management_based_mdt_allowed_present, "ManagementBasedMDTAllowed");
+  WarnUnsupportFeature(prot_ies.management_based_mdtplmn_list_present, "ManagementBasedMDTPLMNList");
+  WarnUnsupportFeature(prot_ies.mme_ue_s1ap_id_minus2_present, "MME_UE_S1AP_ID_2");
+  WarnUnsupportFeature(prot_ies.registered_lai_present, "RegisteredLAI");
+  WarnUnsupportFeature(prot_ies.srvcc_operation_possible_present, "SRVCCOperationPossible");
+  WarnUnsupportFeature(prot_ies.subscriber_profile_idfor_rfp_present, "SubscriberProfileIDforRFP");
+  WarnUnsupportFeature(prot_ies.trace_activation_present, "TraceActivation");
+  WarnUnsupportFeature(prot_ies.ue_radio_cap_present, "UERadioCapability");
+
+  ue* u =
+      handle_s1apmsg_ue_id(msg.protocol_ies.enb_ue_s1ap_id.value.value, msg.protocol_ies.mme_ue_s1ap_id.value.value);
   if (u == nullptr) {
     return false;
   }
@@ -666,6 +750,44 @@ bool s1ap::handle_initialctxtsetuprequest(const init_context_setup_request_s& ms
     return false;
   }
 
+  // Update E-RABs
+  erab_id_list   updated_erabs;
+  erab_item_list failed_cfg_erabs;
+  add_repeated_erab_ids(prot_ies.erab_to_be_setup_list_ctxt_su_req.value, failed_cfg_erabs);
+
+  for (const auto& item : msg.protocol_ies.erab_to_be_setup_list_ctxt_su_req.value) {
+    const auto& erab = item.value.erab_to_be_setup_item_ctxt_su_req();
+    if (contains_erab_id(failed_cfg_erabs, erab.erab_id)) {
+      // E-RAB is duplicate
+      continue;
+    }
+    WarnUnsupportFeature(erab.ext, "E-RABToBeSetupListBearerSUReq extensions");
+    WarnUnsupportFeature(erab.ie_exts_present, "E-RABToBeSetupListBearerSUReq extensions");
+
+    if (erab.transport_layer_address.length() > 32) {
+      logger.error("IPv6 addresses not currently supported");
+      failed_cfg_erabs.push_back(erab_item_s());
+      failed_cfg_erabs.back().erab_id                         = erab.erab_id;
+      failed_cfg_erabs.back().cause.set_radio_network().value = cause_radio_network_opts::invalid_qos_combination;
+      continue;
+    }
+
+    cause_c cause;
+    if (rrc->setup_erab(u->ctxt.rnti,
+                        erab.erab_id,
+                        erab.erab_level_qos_params,
+                        erab.nas_pdu,
+                        erab.transport_layer_address,
+                        erab.gtp_teid.to_number(),
+                        cause) == SRSRAN_SUCCESS) {
+      updated_erabs.push_back(erab.erab_id);
+    } else {
+      failed_cfg_erabs.push_back(erab_item_s());
+      failed_cfg_erabs.back().erab_id = erab.erab_id;
+      failed_cfg_erabs.back().cause   = cause;
+    }
+  }
+
   /* Ideally the check below would be "if (users[rnti].is_csfb)" */
   if (msg.protocol_ies.cs_fallback_ind_present) {
     if (msg.protocol_ies.cs_fallback_ind.value.value == cs_fallback_ind_opts::cs_fallback_required ||
@@ -673,20 +795,22 @@ bool s1ap::handle_initialctxtsetuprequest(const init_context_setup_request_s& ms
       // Send RRC Release (cs-fallback-triggered) to MME
       cause_c cause;
       cause.set_radio_network().value = cause_radio_network_opts::cs_fallback_triggered;
-
       /* TODO: This should normally probably only be sent after the SecurityMode procedure has completed! */
       u->send_uectxtreleaserequest(cause);
     }
   }
 
+  // E-RAB Setup Response is sent after the security cfg is complete
+  // Note: No need to notify RRC to send RRC Reconfiguration
+  sanitize_response_erab_lists(failed_cfg_erabs, updated_erabs);
+  u->set_state(s1ap_proc_id_t::init_context_setup_request, updated_erabs, failed_cfg_erabs);
   return true;
 }
 
 bool s1ap::handle_paging(const asn1::s1ap::paging_s& msg)
 {
-  if (msg.ext) {
-    s1ap_log->warning("Not handling S1AP message extension\n");
-  }
+  WarnUnsupportFeature(msg.ext, "S1AP message extension");
+
   uint32_t ueid = msg.protocol_ies.ue_id_idx_value.value.to_number();
   rrc->add_paging_id(ueid, msg.protocol_ies.ue_paging_id.value);
   return true;
@@ -694,23 +818,180 @@ bool s1ap::handle_paging(const asn1::s1ap::paging_s& msg)
 
 bool s1ap::handle_erabsetuprequest(const erab_setup_request_s& msg)
 {
-  s1ap_log->info("Received ERABSetupRequest\n");
-  if (msg.ext) {
-    s1ap_log->warning("Not handling S1AP message extension\n");
-  }
-  ue* u = find_s1apmsg_user(msg.protocol_ies.enb_ue_s1ap_id.value.value, msg.protocol_ies.mme_ue_s1ap_id.value.value);
+  WarnUnsupportFeature(msg.ext, "S1AP message extension");
+
+  ue* u =
+      handle_s1apmsg_ue_id(msg.protocol_ies.enb_ue_s1ap_id.value.value, msg.protocol_ies.mme_ue_s1ap_id.value.value);
   if (u == nullptr) {
     return false;
   }
 
-  // Setup UE ctxt in RRC
-  return rrc->setup_ue_erabs(u->ctxt.rnti, msg);
+  if (msg.protocol_ies.ueaggregate_maximum_bitrate_present) {
+    rrc->set_aggregate_max_bitrate(u->ctxt.rnti, msg.protocol_ies.ueaggregate_maximum_bitrate.value);
+  }
+
+  erab_id_list   updated_erabs;
+  erab_item_list failed_cfg_erabs;
+  add_repeated_erab_ids(msg.protocol_ies.erab_to_be_setup_list_bearer_su_req.value, failed_cfg_erabs);
+
+  for (const auto& item : msg.protocol_ies.erab_to_be_setup_list_bearer_su_req.value) {
+    const auto& erab = item.value.erab_to_be_setup_item_bearer_su_req();
+    if (contains_erab_id(failed_cfg_erabs, erab.erab_id)) {
+      // E-RAB is duplicate
+      continue;
+    }
+    WarnUnsupportFeature(erab.ext, "E-RABToBeSetupListBearerSUReq extensions");
+    WarnUnsupportFeature(erab.ie_exts_present, "E-RABToBeSetupListBearerSUReq extensions");
+
+    if (erab.transport_layer_address.length() > 32) {
+      logger.error("IPv6 addresses not currently supported");
+      failed_cfg_erabs.push_back(erab_item_s());
+      failed_cfg_erabs.back().erab_id                         = erab.erab_id;
+      failed_cfg_erabs.back().cause.set_radio_network().value = cause_radio_network_opts::invalid_qos_combination;
+      continue;
+    }
+
+    cause_c cause;
+    if (rrc->setup_erab(u->ctxt.rnti,
+                        erab.erab_id,
+                        erab.erab_level_qos_params,
+                        erab.nas_pdu,
+                        erab.transport_layer_address,
+                        erab.gtp_teid.to_number(),
+                        cause) == SRSRAN_SUCCESS) {
+      updated_erabs.push_back(erab.erab_id);
+    } else {
+      failed_cfg_erabs.push_back(erab_item_s());
+      failed_cfg_erabs.back().erab_id = erab.erab_id;
+      failed_cfg_erabs.back().cause   = cause;
+    }
+  }
+
+  // Notify UE of updates
+  if (not updated_erabs.empty()) {
+    rrc->notify_ue_erab_updates(u->ctxt.rnti, {});
+  }
+
+  sanitize_response_erab_lists(failed_cfg_erabs, updated_erabs);
+  return u->send_erab_setup_response(updated_erabs, failed_cfg_erabs);
+}
+
+bool s1ap::handle_erabmodifyrequest(const erab_modify_request_s& msg)
+{
+  WarnUnsupportFeature(msg.ext, "S1AP message extension");
+
+  ue* u =
+      handle_s1apmsg_ue_id(msg.protocol_ies.enb_ue_s1ap_id.value.value, msg.protocol_ies.mme_ue_s1ap_id.value.value);
+  if (u == nullptr) {
+    return false;
+  }
+
+  if (msg.protocol_ies.ueaggregate_maximum_bitrate_present) {
+    rrc->set_aggregate_max_bitrate(u->ctxt.rnti, msg.protocol_ies.ueaggregate_maximum_bitrate.value);
+  }
+
+  erab_id_list   updated_erabs;
+  erab_item_list failed_cfg_erabs;
+  add_repeated_erab_ids(msg.protocol_ies.erab_to_be_modified_list_bearer_mod_req.value, failed_cfg_erabs);
+
+  for (const auto& item : msg.protocol_ies.erab_to_be_modified_list_bearer_mod_req.value) {
+    const auto& erab = item.value.erab_to_be_modified_item_bearer_mod_req();
+    if (contains_erab_id(failed_cfg_erabs, erab.erab_id)) {
+      // E-RAB is duplicate
+      continue;
+    }
+    WarnUnsupportFeature(erab.ext, "E-RABToBeSetupListBearerSUReq extensions");
+    WarnUnsupportFeature(erab.ie_exts_present, "E-RABToBeSetupListBearerSUReq extensions");
+
+    cause_c cause;
+    if (rrc->modify_erab(u->ctxt.rnti, erab.erab_id, erab.erab_level_qos_params, erab.nas_pdu, cause) ==
+        SRSRAN_SUCCESS) {
+      updated_erabs.push_back(erab.erab_id);
+    } else {
+      failed_cfg_erabs.push_back(erab_item_s());
+      failed_cfg_erabs.back().erab_id = erab.erab_id;
+      failed_cfg_erabs.back().cause   = cause;
+    }
+  }
+
+  // Notify UE of updates
+  if (not updated_erabs.empty()) {
+    rrc->notify_ue_erab_updates(u->ctxt.rnti, {});
+  }
+
+  // send E-RAB modify response back to the mme
+  sanitize_response_erab_lists(failed_cfg_erabs, updated_erabs);
+  return u->send_erab_modify_response(updated_erabs, failed_cfg_erabs);
+}
+
+/**
+ * @brief eNB handles MME's message "E-RAB RELEASE COMMAND"
+ *        @remark TS 36.413, Section 8.2.3.2 - E-RAB Release - MME initiated (successful operation)
+ * @param erabs_successfully_released
+ * @param erabs_failed_to_release
+ * @return true if message was sent
+ */
+bool s1ap::handle_erabreleasecommand(const erab_release_cmd_s& msg)
+{
+  WarnUnsupportFeature(msg.ext, "S1AP message extension");
+
+  ue* u =
+      handle_s1apmsg_ue_id(msg.protocol_ies.enb_ue_s1ap_id.value.value, msg.protocol_ies.mme_ue_s1ap_id.value.value);
+  if (u == nullptr) {
+    return false;
+  }
+
+  erab_id_list   updated_erabs;
+  erab_item_list failed_cfg_erabs;
+
+  auto is_repeated_erab_id = [&updated_erabs, &failed_cfg_erabs](uint8_t erab_id) {
+    return (std::count(updated_erabs.begin(), updated_erabs.end(), erab_id) > 0) or
+           (std::any_of(failed_cfg_erabs.begin(), failed_cfg_erabs.end(), [erab_id](const erab_item_s& e) {
+             return e.erab_id == erab_id;
+           }));
+  };
+  for (const auto& item : msg.protocol_ies.erab_to_be_released_list.value) {
+    const auto& erab = item.value.erab_item();
+
+    if (is_repeated_erab_id(erab.erab_id)) {
+      // TS 36.413, 8.2.3.3 - ignore the duplication of E-RAB ID IEs
+      continue;
+    }
+
+    if (rrc->release_erab(u->ctxt.rnti, erab.erab_id) == SRSRAN_SUCCESS) {
+      updated_erabs.push_back(erab.erab_id);
+    } else {
+      failed_cfg_erabs.push_back(erab_item_s());
+      failed_cfg_erabs.back().erab_id                         = erab.erab_id;
+      failed_cfg_erabs.back().cause.set_radio_network().value = cause_radio_network_opts::unknown_erab_id;
+    }
+  }
+
+  // Notify RRC of E-RAB update. (RRC reconf message is going to be sent.
+  if (not updated_erabs.empty()) {
+    rrc->notify_ue_erab_updates(u->ctxt.rnti, msg.protocol_ies.nas_pdu.value);
+  }
+
+  // Send E-RAB release response back to the MME
+  sanitize_response_erab_lists(failed_cfg_erabs, updated_erabs);
+  if (not u->send_erab_release_response(updated_erabs, failed_cfg_erabs)) {
+    logger.info("Failed to send ERABReleaseResponse");
+    return false;
+  }
+
+  return true;
 }
 
 bool s1ap::handle_uecontextmodifyrequest(const ue_context_mod_request_s& msg)
 {
-  s1ap_log->info("Received UeContextModificationRequest\n");
-  ue* u = find_s1apmsg_user(msg.protocol_ies.enb_ue_s1ap_id.value.value, msg.protocol_ies.mme_ue_s1ap_id.value.value);
+  WarnUnsupportFeature(msg.ext, "S1AP message extension");
+  WarnUnsupportFeature(msg.protocol_ies.add_cs_fallback_ind_present, "AdditionalCSFallbackIndicator");
+  WarnUnsupportFeature(msg.protocol_ies.csg_membership_status_present, "CSGMembershipStatus");
+  WarnUnsupportFeature(msg.protocol_ies.registered_lai_present, "RegisteredLAI");
+  WarnUnsupportFeature(msg.protocol_ies.subscriber_profile_idfor_rfp_present, "SubscriberProfileIDforRFP");
+
+  ue* u =
+      handle_s1apmsg_ue_id(msg.protocol_ies.enb_ue_s1ap_id.value.value, msg.protocol_ies.mme_ue_s1ap_id.value.value);
   if (u == nullptr) {
     return false;
   }
@@ -742,22 +1023,19 @@ bool s1ap::handle_uecontextmodifyrequest(const ue_context_mod_request_s& msg)
 
 bool s1ap::handle_uectxtreleasecommand(const ue_context_release_cmd_s& msg)
 {
-  s1ap_log->info("Received UEContextReleaseCommand\n");
-  if (msg.ext) {
-    s1ap_log->warning("Not handling S1AP message extension\n");
-  }
+  WarnUnsupportFeature(msg.ext, "S1AP message extension");
 
   ue* u = nullptr;
   if (msg.protocol_ies.ue_s1ap_ids.value.type().value == ue_s1ap_ids_c::types_opts::ue_s1ap_id_pair) {
-    auto& idpair = msg.protocol_ies.ue_s1ap_ids.value.ue_s1ap_id_pair();
+    const auto& idpair = msg.protocol_ies.ue_s1ap_ids.value.ue_s1ap_id_pair();
 
     if (idpair.ext) {
-      s1ap_log->warning("Not handling S1AP message extension\n");
+      logger.warning("Not handling S1AP message extension");
     }
     if (idpair.ie_exts_present) {
-      s1ap_log->warning("Not handling S1AP message iE_Extensions\n");
+      logger.warning("Not handling S1AP message iE_Extensions");
     }
-    u = find_s1apmsg_user(idpair.enb_ue_s1ap_id, idpair.mme_ue_s1ap_id);
+    u = handle_s1apmsg_ue_id(idpair.enb_ue_s1ap_id, idpair.mme_ue_s1ap_id);
     if (u == nullptr) {
       return false;
     }
@@ -765,7 +1043,7 @@ bool s1ap::handle_uectxtreleasecommand(const ue_context_release_cmd_s& msg)
     uint32_t mme_ue_id = msg.protocol_ies.ue_s1ap_ids.value.mme_ue_s1ap_id();
     u                  = users.find_ue_mmeid(mme_ue_id);
     if (u == nullptr) {
-      s1ap_log->warning("UE for mme_ue_s1ap_id:%d not found - discarding message\n", mme_ue_id);
+      logger.warning("UE for mme_ue_s1ap_id:%d not found - discarding message", mme_ue_id);
       return false;
     }
   }
@@ -774,23 +1052,23 @@ bool s1ap::handle_uectxtreleasecommand(const ue_context_release_cmd_s& msg)
   rrc->release_erabs(rnti);
   u->send_uectxtreleasecomplete();
   users.erase(u);
-  s1ap_log->info("UE context for RNTI:0x%x released\n", rnti);
-  rrc->release_complete(rnti);
+  logger.info("UE context for RNTI:0x%x released", rnti);
+  rrc->release_ue(rnti);
   return true;
 }
 
 bool s1ap::handle_s1setupfailure(const asn1::s1ap::s1_setup_fail_s& msg)
 {
   std::string cause = get_cause(msg.protocol_ies.cause.value);
-  s1ap_log->error("S1 Setup Failure. Cause: %s\n", cause.c_str());
-  srslte::console("S1 Setup Failure. Cause: %s\n", cause.c_str());
+  logger.error("S1 Setup Failure. Cause: %s", cause.c_str());
+  srsran::console("S1 Setup Failure. Cause: %s\n", cause.c_str());
   return true;
 }
 
-bool s1ap::handle_hopreparationfailure(const ho_prep_fail_s& msg)
+bool s1ap::handle_handover_preparation_failure(const ho_prep_fail_s& msg)
 {
-  s1ap_log->info("Received HO Preparation Failure\n");
-  ue* u = find_s1apmsg_user(msg.protocol_ies.enb_ue_s1ap_id.value.value, msg.protocol_ies.mme_ue_s1ap_id.value.value);
+  ue* u =
+      handle_s1apmsg_ue_id(msg.protocol_ies.enb_ue_s1ap_id.value.value, msg.protocol_ies.mme_ue_s1ap_id.value.value);
   if (u == nullptr) {
     return false;
   }
@@ -798,10 +1076,10 @@ bool s1ap::handle_hopreparationfailure(const ho_prep_fail_s& msg)
   return true;
 }
 
-bool s1ap::handle_s1hocommand(const asn1::s1ap::ho_cmd_s& msg)
+bool s1ap::handle_handover_command(const asn1::s1ap::ho_cmd_s& msg)
 {
-  s1ap_log->info("Received S1 HO Command\n");
-  ue* u = find_s1apmsg_user(msg.protocol_ies.enb_ue_s1ap_id.value.value, msg.protocol_ies.mme_ue_s1ap_id.value.value);
+  ue* u =
+      handle_s1apmsg_ue_id(msg.protocol_ies.enb_ue_s1ap_id.value.value, msg.protocol_ies.mme_ue_s1ap_id.value.value);
   if (u == nullptr) {
     return false;
   }
@@ -813,56 +1091,59 @@ bool s1ap::handle_s1hocommand(const asn1::s1ap::ho_cmd_s& msg)
  * TS 36.413 - Section 8.4.2 - "Handover Resource Allocation"
  *************************************************************/
 
-bool s1ap::handle_ho_request(const asn1::s1ap::ho_request_s& msg)
+bool s1ap::handle_handover_request(const asn1::s1ap::ho_request_s& msg)
 {
-  uint16_t rnti = SRSLTE_INVALID_RNTI;
+  uint16_t            rnti           = SRSRAN_INVALID_RNTI;
+  uint32_t            mme_ue_s1ap_id = msg.protocol_ies.mme_ue_s1ap_id.value.value;
+  asn1::s1ap::cause_c cause;
+  cause.set_misc().value = cause_misc_opts::unspecified;
 
-  s1ap_log->info("Received S1 HO Request\n");
-  srslte::console("Received S1 HO Request\n");
+  if (msg.ext or msg.protocol_ies.ho_restrict_list_present) {
+    logger.warning("Not handling S1AP Handover Request extensions or Handover Restriction List");
+  }
 
-  auto on_scope_exit = srslte::make_scope_exit([this, &rnti, msg]() {
-    // If rnti is not allocated successfully, remove from s1ap and send handover failure
-    if (rnti == SRSLTE_INVALID_RNTI) {
-      send_ho_failure(msg.protocol_ies.mme_ue_s1ap_id.value.value);
-    }
-  });
-
-  if (msg.ext or msg.protocol_ies.ho_restrict_list_present or
-      msg.protocol_ies.handov_type.value.value != handov_type_opts::intralte) {
-    s1ap_log->error("Not handling S1AP non-intra LTE handovers and extensions\n");
+  if (msg.protocol_ies.handov_type.value.value != handov_type_opts::intralte) {
+    logger.error("Not handling S1AP non-intra LTE handovers");
+    cause.set_radio_network().value = cause_radio_network_opts::interrat_redirection;
+    send_ho_failure(mme_ue_s1ap_id, cause);
     return false;
   }
 
   // Confirm the UE does not exist in TeNB
   if (users.find_ue_mmeid(msg.protocol_ies.mme_ue_s1ap_id.value.value) != nullptr) {
-    s1ap_log->error("The provided MME_UE_S1AP_ID=%" PRIu64 " is already connected to the cell\n",
-                    msg.protocol_ies.mme_ue_s1ap_id.value.value);
+    logger.error("The provided MME_UE_S1AP_ID=%" PRIu64 " is already connected to the cell",
+                 msg.protocol_ies.mme_ue_s1ap_id.value.value);
+    cause.set_radio_network().value = cause_radio_network_opts::unknown_mme_ue_s1ap_id;
+    send_ho_failure(mme_ue_s1ap_id, cause);
     return false;
   }
 
   // Create user ctxt object and associated MME context
   std::unique_ptr<ue> ue_ptr{new ue{this}};
-  ue_ptr->ctxt.mme_ue_s1ap_id_present = true;
-  ue_ptr->ctxt.mme_ue_s1ap_id         = msg.protocol_ies.mme_ue_s1ap_id.value.value;
-  if (users.add_user(std::move(ue_ptr)) == nullptr) {
-    return false;
-  }
+  ue_ptr->ctxt.mme_ue_s1ap_id = msg.protocol_ies.mme_ue_s1ap_id.value.value;
+  srsran_assert(users.add_user(std::move(ue_ptr)) != nullptr, "Unexpected failure to create S1AP UE");
 
   // Unpack Transparent Container
   sourceenb_to_targetenb_transparent_container_s container;
   asn1::cbit_ref bref{msg.protocol_ies.source_to_target_transparent_container.value.data(),
                       msg.protocol_ies.source_to_target_transparent_container.value.size()};
   if (container.unpack(bref) != asn1::SRSASN_SUCCESS) {
-    s1ap_log->error("Failed to unpack SourceToTargetTransparentContainer\n");
+    logger.warning("Failed to unpack SourceToTargetTransparentContainer");
+    cause.set_protocol().value = cause_protocol_opts::transfer_syntax_error;
+    send_ho_failure(mme_ue_s1ap_id, cause);
     return false;
   }
 
   // Handle Handover Resource Allocation
-  rnti = rrc->start_ho_ue_resource_alloc(msg, container);
-  return rnti != SRSLTE_INVALID_RNTI;
+  rnti = rrc->start_ho_ue_resource_alloc(msg, container, cause);
+  if (rnti == SRSRAN_INVALID_RNTI) {
+    send_ho_failure(mme_ue_s1ap_id, cause);
+    return false;
+  }
+  return true;
 }
 
-bool s1ap::send_ho_failure(uint32_t mme_ue_s1ap_id)
+void s1ap::send_ho_failure(uint32_t mme_ue_s1ap_id, const asn1::s1ap::cause_c& cause)
 {
   // Remove created s1ap user
   ue* u = users.find_ue_mmeid(mme_ue_s1ap_id);
@@ -875,42 +1156,62 @@ bool s1ap::send_ho_failure(uint32_t mme_ue_s1ap_id)
   ho_fail_ies_container& container = tx_pdu.unsuccessful_outcome().value.ho_fail().protocol_ies;
 
   container.mme_ue_s1ap_id.value = mme_ue_s1ap_id;
-  // TODO: Setup cause
-  container.cause.value.set_radio_network().value = cause_radio_network_opts::ho_target_not_allowed;
+  container.cause.value          = cause;
 
-  return sctp_send_s1ap_pdu(tx_pdu, SRSLTE_INVALID_RNTI, "HandoverFailure");
+  sctp_send_s1ap_pdu(tx_pdu, SRSRAN_INVALID_RNTI, "HandoverFailure");
 }
 
-bool s1ap::send_ho_req_ack(const asn1::s1ap::ho_request_s&               msg,
-                           uint16_t                                      rnti,
-                           srslte::unique_byte_buffer_t                  ho_cmd,
-                           srslte::span<asn1::fixed_octstring<4, true> > admitted_bearers)
+bool s1ap::send_ho_req_ack(const asn1::s1ap::ho_request_s&                msg,
+                           uint16_t                                       rnti,
+                           uint32_t                                       enb_cc_idx,
+                           srsran::unique_byte_buffer_t                   ho_cmd,
+                           srsran::span<asn1::s1ap::erab_admitted_item_s> admitted_bearers,
+                           srsran::const_span<asn1::s1ap::erab_item_s>    not_admitted_bearers)
 {
   s1ap_pdu_c tx_pdu;
   tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_HO_RES_ALLOC);
   ho_request_ack_ies_container& container = tx_pdu.successful_outcome().value.ho_request_ack().protocol_ies;
 
-  ue* ue_ptr        = users.find_ue_mmeid(msg.protocol_ies.mme_ue_s1ap_id.value.value);
-  ue_ptr->ctxt.rnti = rnti;
+  ue* ue_ptr              = users.find_ue_mmeid(msg.protocol_ies.mme_ue_s1ap_id.value.value);
+  ue_ptr->ctxt.rnti       = rnti;
+  ue_ptr->ctxt.enb_cc_idx = enb_cc_idx;
 
   container.mme_ue_s1ap_id.value = msg.protocol_ies.mme_ue_s1ap_id.value.value;
   container.enb_ue_s1ap_id.value = ue_ptr->ctxt.enb_ue_s1ap_id;
 
-  // TODO: Add admitted E-RABs
-  for (uint32_t i = 0; i < msg.protocol_ies.erab_to_be_setup_list_ho_req.value.size(); ++i) {
-    const auto&                           erab      = msg.protocol_ies.erab_to_be_setup_list_ho_req.value[i];
-    const erab_to_be_setup_item_ho_req_s& erabsetup = erab.value.erab_to_be_setup_item_ho_req();
-    container.erab_admitted_list.value.push_back({});
-    container.erab_admitted_list.value.back().load_info_obj(ASN1_S1AP_ID_ERAB_ADMITTED_ITEM);
-    auto& c                   = container.erab_admitted_list.value.back().value.erab_admitted_item();
-    c.erab_id                 = erabsetup.erab_id;
-    c.gtp_teid                = admitted_bearers[i];
+  // Add admitted E-RABs
+  container.erab_admitted_list.value.resize(admitted_bearers.size());
+  for (size_t i = 0; i < admitted_bearers.size(); ++i) {
+    container.erab_admitted_list.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_ADMITTED_ITEM);
+    auto& c                   = container.erab_admitted_list.value[i].value.erab_admitted_item();
+    c                         = admitted_bearers[i];
     c.transport_layer_address = addr_to_asn1(args.gtp_bind_addr.c_str());
-    //    c.dl_transport_layer_address_present = true;
-    //    c.dl_transport_layer_address         = c.transport_layer_address;
-    //    c.ul_transport_layer_address_present = true;
-    //    c.ul_transport_layer_address         = c.transport_layer_address;
+
+    // If E-RAB is proposed for forward tunneling
+    if (c.dl_g_tp_teid_present) {
+      c.dl_transport_layer_address_present = true;
+      c.dl_transport_layer_address         = c.transport_layer_address;
+    }
+    if (c.ul_gtp_teid_present) {
+      c.ul_transport_layer_address_present = true;
+      c.ul_transport_layer_address         = c.transport_layer_address;
+    }
   }
+
+  // Add failed to Setup E-RABs
+  if (not not_admitted_bearers.empty()) {
+    container.erab_failed_to_setup_list_ho_req_ack_present = true;
+    container.erab_failed_to_setup_list_ho_req_ack.value.resize(not_admitted_bearers.size());
+    for (size_t i = 0; i < not_admitted_bearers.size(); ++i) {
+      container.erab_failed_to_setup_list_ho_req_ack.value[i].load_info_obj(
+          ASN1_S1AP_ID_ERAB_FAILEDTO_SETUP_ITEM_HO_REQ_ACK);
+      auto& erab = container.erab_failed_to_setup_list_ho_req_ack.value[i].value.erab_failedto_setup_item_ho_req_ack();
+      erab.erab_id = not_admitted_bearers[i].erab_id;
+      erab.cause   = not_admitted_bearers[i].cause;
+    }
+  }
+
+  // Pack transparent container
   asn1::s1ap::targetenb_to_sourceenb_transparent_container_s transparent_container;
   transparent_container.rrc_container.resize(ho_cmd->N_bytes);
   memcpy(transparent_container.rrc_container.data(), ho_cmd->msg, ho_cmd->N_bytes);
@@ -918,7 +1219,7 @@ bool s1ap::send_ho_req_ack(const asn1::s1ap::ho_request_s&               msg,
   auto&         pdu = ho_cmd; // reuse pdu
   asn1::bit_ref bref{pdu->msg, pdu->get_tailroom()};
   if (transparent_container.pack(bref) != asn1::SRSASN_SUCCESS) {
-    s1ap_log->error("Failed to pack TargeteNBToSourceeNBTransparentContainer\n");
+    logger.error("Failed to pack TargeteNBToSourceeNBTransparentContainer");
     return false;
   }
   container.target_to_source_transparent_container.value.resize(bref.distance_bytes());
@@ -929,10 +1230,8 @@ bool s1ap::send_ho_req_ack(const asn1::s1ap::ho_request_s&               msg,
 
 bool s1ap::handle_mme_status_transfer(const asn1::s1ap::mme_status_transfer_s& msg)
 {
-  s1ap_log->info("Received S1 MMEStatusTransfer\n");
-  srslte::console("Received S1 MMEStatusTransfer\n");
-
-  ue* u = find_s1apmsg_user(msg.protocol_ies.enb_ue_s1ap_id.value.value, msg.protocol_ies.mme_ue_s1ap_id.value.value);
+  ue* u =
+      handle_s1apmsg_ue_id(msg.protocol_ies.enb_ue_s1ap_id.value.value, msg.protocol_ies.mme_ue_s1ap_id.value.value);
   if (u == nullptr) {
     return false;
   }
@@ -955,7 +1254,7 @@ void s1ap::send_ho_notify(uint16_t rnti, uint64_t target_eci)
   tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_HO_NOTIF);
   ho_notify_ies_container& container = tx_pdu.init_msg().value.ho_notify().protocol_ies;
 
-  container.mme_ue_s1ap_id.value = user_ptr->ctxt.mme_ue_s1ap_id;
+  container.mme_ue_s1ap_id.value = user_ptr->ctxt.mme_ue_s1ap_id.value();
   container.enb_ue_s1ap_id.value = user_ptr->ctxt.enb_ue_s1ap_id;
 
   container.eutran_cgi.value = eutran_cgi;
@@ -965,10 +1264,11 @@ void s1ap::send_ho_notify(uint16_t rnti, uint64_t target_eci)
   sctp_send_s1ap_pdu(tx_pdu, rnti, "HandoverNotify");
 }
 
-void s1ap::send_ho_cancel(uint16_t rnti)
+void s1ap::send_ho_cancel(uint16_t rnti, const asn1::s1ap::cause_c& cause)
 {
   ue* user_ptr = users.find_ue_rnti(rnti);
   if (user_ptr == nullptr) {
+    logger.warning("Canceling handover for non-existent rnti=0x%x", rnti);
     return;
   }
 
@@ -977,11 +1277,61 @@ void s1ap::send_ho_cancel(uint16_t rnti)
   tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_HO_CANCEL);
   ho_cancel_ies_container& container = tx_pdu.init_msg().value.ho_cancel().protocol_ies;
 
-  container.mme_ue_s1ap_id.value                  = user_ptr->ctxt.mme_ue_s1ap_id;
-  container.enb_ue_s1ap_id.value                  = user_ptr->ctxt.enb_ue_s1ap_id;
-  container.cause.value.set_radio_network().value = cause_radio_network_opts::ho_cancelled;
+  container.mme_ue_s1ap_id.value = user_ptr->ctxt.mme_ue_s1ap_id.value();
+  container.enb_ue_s1ap_id.value = user_ptr->ctxt.enb_ue_s1ap_id;
+  container.cause.value          = cause;
 
   sctp_send_s1ap_pdu(tx_pdu, rnti, "HandoverCancel");
+}
+
+bool s1ap::release_erabs(uint16_t rnti, const std::vector<uint16_t>& erabs_successfully_released)
+{
+  ue* user_ptr = users.find_ue_rnti(rnti);
+  if (user_ptr == nullptr) {
+    return false;
+  }
+  return user_ptr->send_erab_release_indication(erabs_successfully_released);
+}
+
+bool s1ap::send_ue_cap_info_indication(uint16_t rnti, srsran::unique_byte_buffer_t ue_radio_cap)
+{
+  ue* user_ptr = users.find_ue_rnti(rnti);
+  if (user_ptr == nullptr) {
+    return false;
+  }
+  return user_ptr->send_ue_cap_info_indication(std::move(ue_radio_cap));
+}
+
+bool s1ap::send_error_indication(const asn1::s1ap::cause_c& cause,
+                                 srsran::optional<uint32_t> enb_ue_s1ap_id,
+                                 srsran::optional<uint32_t> mme_ue_s1ap_id)
+{
+  if (not mme_connected) {
+    return false;
+  }
+
+  s1ap_pdu_c tx_pdu;
+  tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_ERROR_IND);
+  auto& container = tx_pdu.init_msg().value.error_ind().protocol_ies;
+
+  uint16_t rnti                    = SRSRAN_INVALID_RNTI;
+  container.enb_ue_s1ap_id_present = enb_ue_s1ap_id.has_value();
+  if (enb_ue_s1ap_id.has_value()) {
+    container.enb_ue_s1ap_id.value = enb_ue_s1ap_id.value();
+    ue* user_ptr                   = users.find_ue_enbid(enb_ue_s1ap_id.value());
+    rnti                           = user_ptr != nullptr ? user_ptr->ctxt.rnti : SRSRAN_INVALID_RNTI;
+  }
+  container.mme_ue_s1ap_id_present = mme_ue_s1ap_id.has_value();
+  if (mme_ue_s1ap_id.has_value()) {
+    container.mme_ue_s1ap_id.value = mme_ue_s1ap_id.value();
+  }
+
+  container.s_tmsi_present = false;
+
+  container.cause_present = true;
+  container.cause.value   = cause;
+
+  return sctp_send_s1ap_pdu(tx_pdu, rnti, "Error Indication");
 }
 
 /*******************************************************************************
@@ -989,7 +1339,7 @@ void s1ap::send_ho_cancel(uint16_t rnti)
 ********************************************************************************/
 
 bool s1ap::ue::send_initialuemessage(asn1::s1ap::rrc_establishment_cause_e cause,
-                                     srslte::unique_byte_buffer_t          pdu,
+                                     srsran::unique_byte_buffer_t          pdu,
                                      bool                                  has_tmsi,
                                      uint32_t                              m_tmsi,
                                      uint8_t                               mmec)
@@ -1028,7 +1378,7 @@ bool s1ap::ue::send_initialuemessage(asn1::s1ap::rrc_establishment_cause_e cause
   return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "InitialUEMessage");
 }
 
-bool s1ap::ue::send_ulnastransport(srslte::unique_byte_buffer_t pdu)
+bool s1ap::ue::send_ulnastransport(srsran::unique_byte_buffer_t pdu)
 {
   if (not s1ap_ptr->mme_connected) {
     return false;
@@ -1037,7 +1387,7 @@ bool s1ap::ue::send_ulnastransport(srslte::unique_byte_buffer_t pdu)
   s1ap_pdu_c tx_pdu;
   tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_UL_NAS_TRANSPORT);
   asn1::s1ap::ul_nas_transport_ies_container& container = tx_pdu.init_msg().value.ul_nas_transport().protocol_ies;
-  container.mme_ue_s1ap_id.value                        = ctxt.mme_ue_s1ap_id;
+  container.mme_ue_s1ap_id.value                        = ctxt.mme_ue_s1ap_id.value();
   container.enb_ue_s1ap_id.value                        = ctxt.enb_ue_s1ap_id;
 
   // NAS PDU
@@ -1059,8 +1409,8 @@ bool s1ap::ue::send_uectxtreleaserequest(const cause_c& cause)
     return false;
   }
 
-  if (!ctxt.mme_ue_s1ap_id_present) {
-    s1ap_log->error("Cannot send UE context release request without a MME-UE-S1AP-Id allocated.\n");
+  if (not ctxt.mme_ue_s1ap_id.has_value()) {
+    logger.error("Cannot send UE context release request without a MME-UE-S1AP-Id allocated.");
     return false;
   }
 
@@ -1069,7 +1419,7 @@ bool s1ap::ue::send_uectxtreleaserequest(const cause_c& cause)
   tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_UE_CONTEXT_RELEASE_REQUEST);
   ue_context_release_request_ies_container& container =
       tx_pdu.init_msg().value.ue_context_release_request().protocol_ies;
-  container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id;
+  container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id.value();
   container.enb_ue_s1ap_id.value = ctxt.enb_ue_s1ap_id;
 
   // Cause
@@ -1080,97 +1430,101 @@ bool s1ap::ue::send_uectxtreleaserequest(const cause_c& cause)
 
 bool s1ap::ue::send_uectxtreleasecomplete()
 {
-  if (not s1ap_ptr->mme_connected) {
-    return false;
-  }
-
   s1ap_pdu_c tx_pdu;
   tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_UE_CONTEXT_RELEASE);
   auto& container                = tx_pdu.successful_outcome().value.ue_context_release_complete().protocol_ies;
   container.enb_ue_s1ap_id.value = ctxt.enb_ue_s1ap_id;
-  container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id;
+  container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id.value();
+
+  // Stop TS1 Reloc Overall
+  ts1_reloc_overall.stop();
+
+  // Log event.
+  event_logger::get().log_s1_ctx_delete(ctxt.enb_cc_idx, ctxt.mme_ue_s1ap_id.value(), ctxt.enb_ue_s1ap_id, ctxt.rnti);
 
   return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "UEContextReleaseComplete");
 }
 
-bool s1ap::ue::send_initial_ctxt_setup_response(const asn1::s1ap::init_context_setup_resp_s& res_)
+void s1ap::ue::ue_ctxt_setup_complete()
 {
-  if (not s1ap_ptr->mme_connected) {
-    return false;
+  if (current_state != s1ap_elem_procs_o::init_msg_c::types_opts::init_context_setup_request) {
+    logger.warning("Procedure %s,rnti=0x%x - Received unexpected complete notification",
+                   s1ap_elem_procs_o::init_msg_c::types_opts{current_state}.to_string().c_str(),
+                   ctxt.rnti);
+    return;
   }
+  current_state = s1ap_elem_procs_o::init_msg_c::types_opts::nulltype;
 
   s1ap_pdu_c tx_pdu;
-  tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_INIT_CONTEXT_SETUP);
+  if (updated_erabs.empty()) {
+    // It is ICS Failure
+    tx_pdu.set_unsuccessful_outcome().load_info_obj(ASN1_S1AP_ID_INIT_CONTEXT_SETUP);
+    auto& container = tx_pdu.unsuccessful_outcome().value.init_context_setup_fail().protocol_ies;
 
-  // Copy in the provided response message
-  tx_pdu.successful_outcome().value.init_context_setup_resp() = res_;
+    container.enb_ue_s1ap_id.value = ctxt.enb_ue_s1ap_id;
+    container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id.value();
+    container.cause.value          = failed_cfg_erabs.front().cause;
+    s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "UEContextModificationFailure");
+    return;
+  }
+
+  // It is ICS Response
+  tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_INIT_CONTEXT_SETUP);
+  auto& container = tx_pdu.successful_outcome().value.init_context_setup_resp().protocol_ies;
 
   // Fill in the MME and eNB IDs
-  auto& container                = tx_pdu.successful_outcome().value.init_context_setup_resp().protocol_ies;
-  container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id;
+  container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id.value();
   container.enb_ue_s1ap_id.value = ctxt.enb_ue_s1ap_id;
 
-  // Fill in the GTP bind address for all bearers
-  for (uint32_t i = 0; i < container.erab_setup_list_ctxt_su_res.value.size(); ++i) {
-    auto& item = container.erab_setup_list_ctxt_su_res.value[i].value.erab_setup_item_ctxt_su_res();
-    item.transport_layer_address.resize(32);
-    uint8_t addr[4];
-    inet_pton(AF_INET, s1ap_ptr->args.gtp_bind_addr.c_str(), addr);
-    for (uint32_t j = 0; j < 4; ++j) {
-      item.transport_layer_address.data()[j] = addr[3 - j];
-    }
+  // Add list of E-RABs that were not setup
+  if (not failed_cfg_erabs.empty()) {
+    container.erab_failed_to_setup_list_ctxt_su_res_present = true;
+    fill_erab_failed_setup_list(container.erab_failed_to_setup_list_ctxt_su_res.value, failed_cfg_erabs);
   }
 
-  return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "InitialContextSetupResponse");
+  // Add setup E-RABs
+  container.erab_setup_list_ctxt_su_res.value.resize(updated_erabs.size());
+  for (size_t i = 0; i < updated_erabs.size(); ++i) {
+    container.erab_setup_list_ctxt_su_res.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_SETUP_ITEM_CTXT_SU_RES);
+    auto& item   = container.erab_setup_list_ctxt_su_res.value[i].value.erab_setup_item_ctxt_su_res();
+    item.erab_id = updated_erabs[i];
+    get_erab_addr(item.erab_id, item.transport_layer_address, item.gtp_teid);
+  }
+
+  // Log event.
+  event_logger::get().log_s1_ctx_create(ctxt.enb_cc_idx, ctxt.mme_ue_s1ap_id.value(), ctxt.enb_ue_s1ap_id, ctxt.rnti);
+
+  s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "E-RABSetupResponse");
 }
 
-bool s1ap::ue::send_erab_setup_response(const erab_setup_resp_s& res_)
+bool s1ap::ue::send_erab_setup_response(const erab_id_list& erabs_setup, const erab_item_list& erabs_failed)
 {
-  if (not s1ap_ptr->mme_connected) {
-    return false;
-  }
-
   asn1::s1ap::s1ap_pdu_c tx_pdu;
   tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_ERAB_SETUP);
   erab_setup_resp_s& res = tx_pdu.successful_outcome().value.erab_setup_resp();
 
-  res = res_;
+  // Fill in the MME and eNB IDs
+  res.protocol_ies.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id.value();
+  res.protocol_ies.enb_ue_s1ap_id.value = ctxt.enb_ue_s1ap_id;
 
-  // Fill in the GTP bind address for all bearers
-  if (res.protocol_ies.erab_setup_list_bearer_su_res_present) {
-    for (uint32_t i = 0; i < res.protocol_ies.erab_setup_list_bearer_su_res.value.size(); ++i) {
-      auto& item = res.protocol_ies.erab_setup_list_bearer_su_res.value[i].value.erab_setup_item_bearer_su_res();
-      item.transport_layer_address.resize(32);
-      uint8_t addr[4];
-      inet_pton(AF_INET, s1ap_ptr->args.gtp_bind_addr.c_str(), addr);
-      for (uint32_t j = 0; j < 4; ++j) {
-        item.transport_layer_address.data()[j] = addr[3 - j];
-      }
+  // Add list of E-RABs that were not setup
+  if (not erabs_failed.empty()) {
+    res.protocol_ies.erab_failed_to_setup_list_bearer_su_res_present = true;
+    fill_erab_failed_setup_list(res.protocol_ies.erab_failed_to_setup_list_bearer_su_res.value, erabs_failed);
+  }
+
+  if (not erabs_setup.empty()) {
+    res.protocol_ies.erab_setup_list_bearer_su_res_present = true;
+    res.protocol_ies.erab_setup_list_bearer_su_res.value.resize(erabs_setup.size());
+    for (size_t i = 0; i < erabs_setup.size(); ++i) {
+      res.protocol_ies.erab_setup_list_bearer_su_res.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_SETUP_ITEM_BEARER_SU_RES);
+      auto& item   = res.protocol_ies.erab_setup_list_bearer_su_res.value[i].value.erab_setup_item_bearer_su_res();
+      item.erab_id = erabs_setup[i];
+      get_erab_addr(item.erab_id, item.transport_layer_address, item.gtp_teid);
     }
   }
 
-  // Fill in the MME and eNB IDs
-  res.protocol_ies.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id;
-  res.protocol_ies.enb_ue_s1ap_id.value = ctxt.enb_ue_s1ap_id;
-
   return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "E_RABSetupResponse");
-}
-
-bool s1ap::ue::send_initial_ctxt_setup_failure()
-{
-  if (not s1ap_ptr->mme_connected) {
-    return false;
-  }
-
-  s1ap_pdu_c tx_pdu;
-  tx_pdu.set_unsuccessful_outcome().load_info_obj(ASN1_S1AP_ID_INIT_CONTEXT_SETUP);
-  auto& container = tx_pdu.unsuccessful_outcome().value.init_context_setup_fail().protocol_ies;
-
-  container.enb_ue_s1ap_id.value                  = ctxt.enb_ue_s1ap_id;
-  container.mme_ue_s1ap_id.value                  = ctxt.mme_ue_s1ap_id;
-  container.cause.value.set_radio_network().value = cause_radio_network_opts::unspecified;
-
-  return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "InitialContextSetupFailure");
 }
 
 bool s1ap::ue::send_uectxtmodifyresp()
@@ -1184,7 +1538,7 @@ bool s1ap::ue::send_uectxtmodifyresp()
   auto& container = tx_pdu.successful_outcome().value.ue_context_mod_resp().protocol_ies;
 
   container.enb_ue_s1ap_id.value = ctxt.enb_ue_s1ap_id;
-  container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id;
+  container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id.value();
 
   return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "UEContextModificationResponse");
 }
@@ -1200,10 +1554,139 @@ bool s1ap::ue::send_uectxtmodifyfailure(const cause_c& cause)
   auto& container = tx_pdu.unsuccessful_outcome().value.ue_context_mod_fail().protocol_ies;
 
   container.enb_ue_s1ap_id.value = ctxt.enb_ue_s1ap_id;
-  container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id;
+  container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id.value();
   container.cause.value          = cause;
 
   return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "UEContextModificationFailure");
+}
+
+/**
+ * @brief eNB sends MME to "E-RAB RELEASE RESPONSE"
+ *        @remark TS 36.413, Section 8.2.3.2 - E-RAB Release - MME initiated (successful operation)
+ * @param erabs_successfully_released
+ * @param erabs_failed_to_release
+ * @return true if message was sent
+ */
+bool s1ap::ue::send_erab_release_response(const erab_id_list& erabs_released, const erab_item_list& erabs_failed)
+{
+  asn1::s1ap::s1ap_pdu_c tx_pdu;
+  tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_ERAB_RELEASE);
+
+  auto& container                = tx_pdu.successful_outcome().value.erab_release_resp().protocol_ies;
+  container.enb_ue_s1ap_id.value = ctxt.enb_ue_s1ap_id;
+  container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id.value();
+
+  // Fill in which E-RABs were successfully released
+  if (not erabs_released.empty()) {
+    container.erab_release_list_bearer_rel_comp_present = true;
+    container.erab_release_list_bearer_rel_comp.value.resize(erabs_released.size());
+    for (size_t i = 0; i < erabs_released.size(); ++i) {
+      container.erab_release_list_bearer_rel_comp.value[i].load_info_obj(
+          ASN1_S1AP_ID_ERAB_RELEASE_ITEM_BEARER_REL_COMP);
+      container.erab_release_list_bearer_rel_comp.value[i].value.erab_release_item_bearer_rel_comp().erab_id =
+          erabs_released[i];
+    }
+  }
+
+  // Fill in which E-RABs were *not* successfully released
+  if (not erabs_failed.empty()) {
+    container.erab_failed_to_release_list_present = true;
+    fill_erab_failed_setup_list(container.erab_failed_to_release_list.value, erabs_failed);
+  }
+
+  return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "E-RABReleaseResponse");
+}
+
+bool s1ap::ue::send_erab_modify_response(const erab_id_list& erabs_modified, const erab_item_list& erabs_failed)
+{
+  asn1::s1ap::s1ap_pdu_c tx_pdu;
+  tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_ERAB_MODIFY);
+
+  auto& container                = tx_pdu.successful_outcome().value.erab_modify_resp().protocol_ies;
+  container.enb_ue_s1ap_id.value = ctxt.enb_ue_s1ap_id;
+  container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id.value();
+
+  // Fill in which E-RABs were successfully released
+  if (not erabs_modified.empty()) {
+    container.erab_modify_list_bearer_mod_res_present = true;
+    container.erab_modify_list_bearer_mod_res.value.resize(erabs_modified.size());
+    for (uint32_t i = 0; i < container.erab_modify_list_bearer_mod_res.value.size(); i++) {
+      container.erab_modify_list_bearer_mod_res.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_MODIFY_ITEM_BEARER_MOD_RES);
+      container.erab_modify_list_bearer_mod_res.value[i].value.erab_modify_item_bearer_mod_res().erab_id =
+          erabs_modified[i];
+    }
+  }
+
+  // Fill in which E-RABs were *not* successfully released
+  if (not erabs_failed.empty()) {
+    container.erab_failed_to_modify_list_present = true;
+    fill_erab_failed_setup_list(container.erab_failed_to_modify_list.value, erabs_failed);
+  }
+
+  return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "E-RABModifyResponse");
+}
+
+bool s1ap::ue::send_erab_release_indication(const std::vector<uint16_t>& erabs_successfully_released)
+{
+  if (not erabs_successfully_released.empty()) {
+    logger.error("Failed to initiate E-RAB RELEASE INDICATION procedure for user rnti=0x%x", ctxt.rnti);
+    return false;
+  }
+
+  asn1::s1ap::s1ap_pdu_c tx_pdu;
+  tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_ERAB_RELEASE_IND);
+  erab_release_ind_ies_container& container = tx_pdu.init_msg().value.erab_release_ind().protocol_ies;
+
+  container.enb_ue_s1ap_id.value = ctxt.enb_ue_s1ap_id;
+  container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id.value();
+
+  // Fill in which E-RABs were successfully released
+  container.erab_released_list.value.resize(erabs_successfully_released.size());
+  for (size_t i = 0; i < container.erab_released_list.value.size(); ++i) {
+    container.erab_released_list.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_ITEM);
+    container.erab_released_list.value[i].value.erab_item().erab_id = erabs_successfully_released[i];
+  }
+
+  return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "E-RABReleaseIndication");
+}
+
+bool s1ap::ue::send_ue_cap_info_indication(srsran::unique_byte_buffer_t ue_radio_cap)
+{
+  asn1::s1ap::s1ap_pdu_c tx_pdu;
+  tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_UE_CAP_INFO_IND);
+  ue_cap_info_ind_ies_container& container = tx_pdu.init_msg().value.ue_cap_info_ind().protocol_ies;
+
+  container.enb_ue_s1ap_id.value = ctxt.enb_ue_s1ap_id;
+  container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id.value();
+
+  container.ue_radio_cap.value.resize(ue_radio_cap->N_bytes);
+  memcpy(container.ue_radio_cap.value.data(), ue_radio_cap->msg, ue_radio_cap->N_bytes);
+
+  return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "UECapabilityInfoIndication");
+}
+
+void s1ap::ue::set_state(s1ap_proc_id_t        next_state,
+                         const erab_id_list&   erabs_updated,
+                         const erab_item_list& erabs_failed_to_modify)
+{
+  current_state = next_state;
+  updated_erabs.assign(erabs_updated.begin(), erabs_updated.end());
+  failed_cfg_erabs.assign(erabs_failed_to_modify.begin(), erabs_failed_to_modify.end());
+}
+
+void s1ap::ue::get_erab_addr(uint16_t erab_id, transp_addr_t& transp_addr, asn1::fixed_octstring<4, true>& gtpu_teid_id)
+{
+  uint32_t teidin = 0;
+  int      ret    = s1ap_ptr->rrc->get_erab_addr_in(ctxt.rnti, erab_id, transp_addr, teidin);
+  srsran_expect(ret == SRSRAN_SUCCESS, "Invalid E-RAB setup");
+  // Note: RRC does not yet update correctly gtpu transp_addr
+  transp_addr.resize(32);
+  uint8_t addr[4];
+  inet_pton(AF_INET, s1ap_ptr->args.gtp_bind_addr.c_str(), addr);
+  for (uint32_t j = 0; j < 4; ++j) {
+    transp_addr.data()[j] = addr[3 - j];
+  }
+  gtpu_teid_id.from_number(teidin);
 }
 
 /*********************
@@ -1212,8 +1695,10 @@ bool s1ap::ue::send_uectxtmodifyfailure(const cause_c& cause)
 
 bool s1ap::send_ho_required(uint16_t                     rnti,
                             uint32_t                     target_eci,
-                            srslte::plmn_id_t            target_plmn,
-                            srslte::unique_byte_buffer_t rrc_container)
+                            srsran::plmn_id_t            target_plmn,
+                            srsran::span<uint32_t>       fwd_erabs,
+                            srsran::unique_byte_buffer_t rrc_container,
+                            bool                         has_direct_fwd_path)
 {
   if (!mme_connected) {
     return false;
@@ -1224,8 +1709,8 @@ bool s1ap::send_ho_required(uint16_t                     rnti,
   }
 
   // launch procedure
-  if (not u->ho_prep_proc.launch(target_eci, target_plmn, std::move(rrc_container))) {
-    s1ap_log->error("Failed to initiate an HandoverPreparation procedure for user rnti=0x%x\n", u->ctxt.rnti);
+  if (not u->ho_prep_proc.launch(target_eci, target_plmn, fwd_erabs, std::move(rrc_container), has_direct_fwd_path)) {
+    logger.error("Failed to initiate an HandoverPreparation procedure for user rnti=0x%x", u->ctxt.rnti);
     return false;
   }
   return true;
@@ -1244,45 +1729,13 @@ bool s1ap::send_enb_status_transfer_proc(uint16_t rnti, std::vector<bearer_statu
   return u->send_enb_status_transfer_proc(bearer_status_list);
 }
 
-// bool s1ap::send_ue_capabilities(uint16_t rnti, LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT *caps)
-//{
-//  srslte::byte_buffer_t msg;
-
-//  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
-//  tx_pdu.ext          = false;
-//  tx_pdu.choice_type  = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
-
-//  LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *init = &tx_pdu.choice.initiatingMessage;
-//  init->procedureCode = LIBLTE_S1AP_PROC_ID_UPLINKNASTRANSPORT;
-//  init->choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_UECAPABILITYINFOINDICATION;
-
-//  LIBLTE_S1AP_MESSAGE_UECAPABILITYINFOINDICATION_STRUCT *caps = &init->choice.UECapabilityInfoIndication;
-//  caps->ext                           = false;
-//  caps->mme_ue_s1ap_id.mme_ue_s1ap_id = ue_ctxt_map[rnti]->mme_ue_s1ap_id;
-//  caps->enb_ue_s1ap_id.ENB_UE_S1AP_ID = ue_ctxt_map[rnti]->enb_ue_s1ap_id;
-//  // TODO: caps->UERadioCapability.
-
-//  liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT*)&msg);
-//  s1ap_log->info_hex(msg.msg, msg.N_bytes, "Sending UERadioCapabilityInfo for RNTI:0x%x", rnti);
-
-//  ssize_t n_sent = sctp_sendmsg(socket_fd, msg.msg, msg.N_bytes,
-//                                (struct sockaddr*)&mme_addr, sizeof(struct sockaddr_in),
-//                                htonl(PPID), 0, ue_ctxt_map[rnti]->stream_id, 0, 0);
-//  if(n_sent == -1) {
-//    s1ap_log->error("Failed to send UplinkNASTransport for RNTI:0x%x\n", rnti);
-//    return false;
-//  }
-
-//  return true;
-//}
-
 /*********************************************************
  *              s1ap::user_list class
  *********************************************************/
 
 s1ap::ue* s1ap::user_list::find_ue_rnti(uint16_t rnti)
 {
-  if (rnti == SRSLTE_INVALID_RNTI) {
+  if (rnti == SRSRAN_INVALID_RNTI) {
     return nullptr;
   }
   auto it = std::find_if(
@@ -1299,7 +1752,7 @@ s1ap::ue* s1ap::user_list::find_ue_enbid(uint32_t enbid)
 s1ap::ue* s1ap::user_list::find_ue_mmeid(uint32_t mmeid)
 {
   auto it = std::find_if(users.begin(), users.end(), [mmeid](const user_list::pair_type& v) {
-    return v.second->ctxt.mme_ue_s1ap_id_present and v.second->ctxt.mme_ue_s1ap_id == mmeid;
+    return v.second->ctxt.mme_ue_s1ap_id == mmeid;
   });
   return it != users.end() ? it->second.get() : nullptr;
 }
@@ -1311,19 +1764,18 @@ s1ap::ue* s1ap::user_list::find_ue_mmeid(uint32_t mmeid)
  */
 s1ap::ue* s1ap::user_list::add_user(std::unique_ptr<s1ap::ue> user)
 {
+  static srslog::basic_logger& logger = srslog::fetch_basic_logger("S1AP");
   // Check for ID repetitions
   if (find_ue_rnti(user->ctxt.rnti) != nullptr) {
-    srslte::logmap::get("S1AP")->error("The user to be added with rnti=0x%x already exists\n", user->ctxt.rnti);
+    logger.error("The user to be added with rnti=0x%x already exists", user->ctxt.rnti);
     return nullptr;
   }
   if (find_ue_enbid(user->ctxt.enb_ue_s1ap_id) != nullptr) {
-    srslte::logmap::get("S1AP")->error("The user to be added with enb id=%d already exists\n",
-                                       user->ctxt.enb_ue_s1ap_id);
+    logger.error("The user to be added with enb id=%d already exists", user->ctxt.enb_ue_s1ap_id);
     return nullptr;
   }
-  if (find_ue_mmeid(user->ctxt.mme_ue_s1ap_id) != nullptr) {
-    srslte::logmap::get("S1AP")->error("The user to be added with mme id=%d already exists\n",
-                                       user->ctxt.mme_ue_s1ap_id);
+  if (user->ctxt.mme_ue_s1ap_id.has_value() and find_ue_mmeid(user->ctxt.mme_ue_s1ap_id.value()) != nullptr) {
+    logger.error("The user to be added with mme id=%d already exists", user->ctxt.mme_ue_s1ap_id.value());
     return nullptr;
   }
   auto p = users.insert(std::make_pair(user->ctxt.enb_ue_s1ap_id, std::move(user)));
@@ -1332,9 +1784,10 @@ s1ap::ue* s1ap::user_list::add_user(std::unique_ptr<s1ap::ue> user)
 
 void s1ap::user_list::erase(ue* ue_ptr)
 {
-  auto it = users.find(ue_ptr->ctxt.enb_ue_s1ap_id);
+  static srslog::basic_logger& logger = srslog::fetch_basic_logger("S1AP");
+  auto                         it     = users.find(ue_ptr->ctxt.enb_ue_s1ap_id);
   if (it == users.end()) {
-    srslte::logmap::get("S1AP")->error("User to be erased does not exist\n");
+    logger.error("User to be erased does not exist");
     return;
   }
   users.erase(it);
@@ -1346,9 +1799,14 @@ void s1ap::user_list::erase(ue* ue_ptr)
 
 bool s1ap::sctp_send_s1ap_pdu(const asn1::s1ap::s1ap_pdu_c& tx_pdu, uint32_t rnti, const char* procedure_name)
 {
-  srslte::unique_byte_buffer_t buf = srslte::allocate_unique_buffer(*pool, false);
+  if (not mme_connected and rnti != SRSRAN_INVALID_RNTI) {
+    logger.error("Aborting %s for rnti=0x%x. Cause: MME is not connected.", procedure_name, rnti);
+    return false;
+  }
+
+  srsran::unique_byte_buffer_t buf = srsran::make_byte_buffer();
   if (buf == nullptr) {
-    s1ap_log->error("Fatal Error: Couldn't allocate buffer for %s.\n", procedure_name);
+    logger.error("Fatal Error: Couldn't allocate buffer for %s.", procedure_name);
     return false;
   }
   asn1::bit_ref bref(buf->msg, buf->get_tailroom());
@@ -1360,14 +1818,14 @@ bool s1ap::sctp_send_s1ap_pdu(const asn1::s1ap::s1ap_pdu_c& tx_pdu, uint32_t rnt
     pcap->write_s1ap(buf->msg, buf->N_bytes);
   }
 
-  if (rnti != SRSLTE_INVALID_RNTI) {
-    s1ap_log->info_hex(buf->msg, buf->N_bytes, "Sending %s for rnti=0x%x", procedure_name, rnti);
+  if (rnti != SRSRAN_INVALID_RNTI) {
+    logger.info(buf->msg, buf->N_bytes, "Tx S1AP SDU, %s, rnti=0x%x", procedure_name, rnti);
   } else {
-    s1ap_log->info_hex(buf->msg, buf->N_bytes, "Sending %s to MME", procedure_name);
+    logger.info(buf->msg, buf->N_bytes, "Tx S1AP SDU, %s", procedure_name);
   }
-  uint16_t streamid = rnti == SRSLTE_INVALID_RNTI ? NONUE_STREAM_ID : users.find_ue_rnti(rnti)->stream_id;
+  uint16_t streamid = rnti == SRSRAN_INVALID_RNTI ? NONUE_STREAM_ID : users.find_ue_rnti(rnti)->stream_id;
 
-  ssize_t n_sent = sctp_sendmsg(s1ap_socket.fd(),
+  ssize_t n_sent = sctp_sendmsg(mme_socket.fd(),
                                 buf->msg,
                                 buf->N_bytes,
                                 (struct sockaddr*)&mme_addr,
@@ -1378,10 +1836,10 @@ bool s1ap::sctp_send_s1ap_pdu(const asn1::s1ap::s1ap_pdu_c& tx_pdu, uint32_t rnt
                                 0,
                                 0);
   if (n_sent == -1) {
-    if (rnti > 0) {
-      s1ap_log->error("Failed to send %s for rnti=0x%x\n", procedure_name, rnti);
+    if (rnti != SRSRAN_INVALID_RNTI) {
+      logger.error("Error: Failure at Tx S1AP SDU, %s, rnti=0x%x", procedure_name, rnti);
     } else {
-      s1ap_log->error("Failed to send %s\n", procedure_name);
+      logger.error("Error: Failure at Tx S1AP SDU, %s", procedure_name);
     }
     return false;
   }
@@ -1394,19 +1852,52 @@ bool s1ap::sctp_send_s1ap_pdu(const asn1::s1ap::s1ap_pdu_c& tx_pdu, uint32_t rnt
  * @param mme_id mme_ue_s1ap_id value stored in S1AP message
  * @return pointer to user if it has been found
  */
-s1ap::ue* s1ap::find_s1apmsg_user(uint32_t enb_id, uint32_t mme_id)
+s1ap::ue* s1ap::handle_s1apmsg_ue_id(uint32_t enb_id, uint32_t mme_id)
 {
-  ue* user_ptr = users.find_ue_enbid(enb_id);
-  if (user_ptr == nullptr) {
-    s1ap_log->warning("enb_ue_s1ap_id=%d not found - discarding message\n", enb_id);
-    return nullptr;
+  ue*     user_ptr     = users.find_ue_enbid(enb_id);
+  ue*     user_mme_ptr = nullptr;
+  cause_c cause;
+  if (user_ptr != nullptr) {
+    if (user_ptr->ctxt.mme_ue_s1ap_id == mme_id) {
+      // No ID inconsistency found
+      return user_ptr;
+    }
+
+    user_mme_ptr = users.find_ue_mmeid(mme_id);
+    if (not user_ptr->ctxt.mme_ue_s1ap_id.has_value() and user_mme_ptr == nullptr) {
+      // First "returned message", no inconsistency found (see 36.413, Section 10.6)
+      user_ptr->ctxt.mme_ue_s1ap_id = mme_id;
+      return user_ptr;
+    }
+
+    // TS 36.413, Sec. 10.6 - If a node receives a first returned message that includes a remote AP ID (...)
+
+    logger.warning("MME UE S1AP ID=%d not found - discarding message", mme_id);
+    cause.set_radio_network().value = user_mme_ptr != nullptr ? cause_radio_network_opts::unknown_mme_ue_s1ap_id
+                                                              : cause_radio_network_opts::unknown_pair_ue_s1ap_id;
+  } else {
+    // TS 36.413, Sec. 10.6 - If a node receives a message (other than the first or first returned messages) that
+    // includes AP ID(s) identifying (...)
+    user_mme_ptr = users.find_ue_mmeid(mme_id);
+
+    logger.warning("ENB UE S1AP ID=%d not found - discarding message", enb_id);
+    cause.set_radio_network().value = user_mme_ptr != nullptr ? cause_radio_network_opts::unknown_enb_ue_s1ap_id
+                                                              : cause_radio_network_opts::unknown_pair_ue_s1ap_id;
   }
-  if (user_ptr->ctxt.mme_ue_s1ap_id_present and user_ptr->ctxt.mme_ue_s1ap_id != mme_id) {
-    s1ap_log->warning("MME_UE_S1AP_ID has changed - old:%d, new:%d\n", user_ptr->ctxt.mme_ue_s1ap_id, mme_id);
+
+  // the node shall initiate an Error Indication procedure with inclusion of the received AP ID(s) from the peer node
+  // and an appropriate cause value.
+  send_error_indication(cause, enb_id, mme_id);
+
+  // Both nodes shall initiate a local release of any established UE-associated logical connection (for the same S1
+  // interface) having the erroneous AP ID(s) as local or remote identifier.
+  if (user_ptr != nullptr) {
+    rrc->release_ue(user_ptr->ctxt.rnti);
   }
-  user_ptr->ctxt.mme_ue_s1ap_id_present = true;
-  user_ptr->ctxt.mme_ue_s1ap_id         = mme_id;
-  return user_ptr;
+  if (user_mme_ptr != nullptr and user_mme_ptr != user_ptr) {
+    rrc->release_ue(user_mme_ptr->ctxt.rnti);
+  }
+  return nullptr;
 }
 
 std::string s1ap::get_cause(const cause_c& c)
@@ -1436,7 +1927,7 @@ std::string s1ap::get_cause(const cause_c& c)
   return cause;
 }
 
-void s1ap::start_pcap(srslte::s1ap_pcap* pcap_)
+void s1ap::start_pcap(srsran::s1ap_pcap* pcap_)
 {
   pcap = pcap_;
 }
@@ -1444,7 +1935,7 @@ void s1ap::start_pcap(srslte::s1ap_pcap* pcap_)
 /*               s1ap::ue Class
 ********************************************************************************/
 
-s1ap::ue::ue(s1ap* s1ap_ptr_) : s1ap_ptr(s1ap_ptr_), s1ap_log(s1ap_ptr_->s1ap_log), ho_prep_proc(this)
+s1ap::ue::ue(s1ap* s1ap_ptr_) : s1ap_ptr(s1ap_ptr_), ho_prep_proc(this), logger(s1ap_ptr->logger)
 {
   ctxt.enb_ue_s1ap_id = s1ap_ptr->next_enb_ue_s1ap_id++;
   gettimeofday(&ctxt.init_timestamp, nullptr);
@@ -1456,12 +1947,18 @@ s1ap::ue::ue(s1ap* s1ap_ptr_) : s1ap_ptr(s1ap_ptr_), s1ap_log(s1ap_ptr_->s1ap_lo
   ts1_reloc_prep.set(ts1_reloc_prep_timeout_ms,
                      [this](uint32_t tid) { ho_prep_proc.trigger(ho_prep_proc_t::ts1_reloc_prep_expired{}); });
   ts1_reloc_overall = s1ap_ptr->task_sched.get_unique_timer();
-  ts1_reloc_overall.set(ts1_reloc_overall_timeout_ms, [](uint32_t tid) { /* TODO */ });
+  ts1_reloc_overall.set(ts1_reloc_overall_timeout_ms, [this](uint32_t tid) {
+    //> If the UE Context Release procedure is not initiated towards the eNB before the expiry of the timer
+    //  TS1RELOCOverall, the eNB shall request the MME to release the UE context.
+    s1ap_ptr->user_release(ctxt.rnti, asn1::s1ap::cause_radio_network_opts::ts1relocoverall_expiry);
+  });
 }
 
 bool s1ap::ue::send_ho_required(uint32_t                     target_eci,
-                                srslte::plmn_id_t            target_plmn,
-                                srslte::unique_byte_buffer_t rrc_container)
+                                srsran::plmn_id_t            target_plmn,
+                                srsran::span<uint32_t>       fwd_erabs,
+                                srsran::unique_byte_buffer_t rrc_container,
+                                bool                         has_direct_fwd_path)
 {
   /*** Setup S1AP PDU as HandoverRequired ***/
   s1ap_pdu_c tx_pdu;
@@ -1469,12 +1966,16 @@ bool s1ap::ue::send_ho_required(uint32_t                     target_eci,
   ho_required_ies_container& container = tx_pdu.init_msg().value.ho_required().protocol_ies;
 
   /*** fill HO Required message ***/
-  container.enb_ue_s1ap_id.value                        = ctxt.enb_ue_s1ap_id;
-  container.mme_ue_s1ap_id.value                        = ctxt.mme_ue_s1ap_id;
-  container.direct_forwarding_path_availability_present = false;                // NOTE: X2 for fwd path not supported
+  container.enb_ue_s1ap_id.value                  = ctxt.enb_ue_s1ap_id;
+  container.mme_ue_s1ap_id.value                  = ctxt.mme_ue_s1ap_id.value();
   container.handov_type.value.value               = handov_type_opts::intralte; // NOTE: only intra-LTE HO supported
-  container.cause.value.set_radio_network().value = cause_radio_network_opts::unspecified;
-  // LIBLTE_S1AP_CAUSERADIONETWORK_S1_INTRA_SYSTEM_HANDOVER_TRIGGERED;
+  container.cause.value.set_radio_network().value = cause_radio_network_opts::ho_desirable_for_radio_reason;
+
+  container.direct_forwarding_path_availability_present = has_direct_fwd_path;
+  if (container.direct_forwarding_path_availability_present) {
+    container.direct_forwarding_path_availability.value.value =
+        asn1::s1ap::direct_forwarding_path_availability_opts::direct_path_available;
+  }
 
   /*** set the target eNB ***/
   container.csg_id_present           = false; // NOTE: CSG/hybrid target cell not supported
@@ -1490,13 +1991,22 @@ bool s1ap::ue::send_ho_required(uint32_t                     target_eci,
   // NOTE: Only HO to different Macro eNB is supported.
   auto& macroenb = targetenb.global_enb_id.enb_id.set_macro_enb_id();
   target_plmn.to_s1ap_plmn_bytes(targetenb.global_enb_id.plm_nid.data());
-  macroenb.from_number(target_eci >> 8u);
+  macroenb.from_number(target_eci >> 8U);
 
   /*** fill the transparent container ***/
   container.source_to_target_transparent_container_secondary_present = false;
   sourceenb_to_targetenb_transparent_container_s transparent_cntr;
-  transparent_cntr.erab_info_list_present               = false; // TODO: CHECK
   transparent_cntr.subscriber_profile_idfor_rfp_present = false; // TODO: CHECK
+
+  transparent_cntr.erab_info_list_present = true;
+  transparent_cntr.erab_info_list.resize(fwd_erabs.size());
+  for (uint32_t i = 0; i < fwd_erabs.size(); ++i) {
+    transparent_cntr.erab_info_list[i].load_info_obj(ASN1_S1AP_ID_ERAB_INFO_LIST_ITEM);
+    transparent_cntr.erab_info_list[i].value.erab_info_list_item().erab_id               = fwd_erabs[i];
+    transparent_cntr.erab_info_list[i].value.erab_info_list_item().dl_forwarding_present = true;
+    transparent_cntr.erab_info_list[i].value.erab_info_list_item().dl_forwarding.value =
+        dl_forwarding_opts::dl_forwarding_proposed;
+  }
   // - set target cell ID
   target_plmn.to_s1ap_plmn_bytes(transparent_cntr.target_cell_id.plm_nid.data());
   transparent_cntr.target_cell_id.cell_id.from_number(target_eci); // [ENBID|CELLID|0]
@@ -1519,17 +2029,22 @@ bool s1ap::ue::send_ho_required(uint32_t                     target_eci,
   transparent_cntr.rrc_container.resize(rrc_container->N_bytes);
   memcpy(transparent_cntr.rrc_container.data(), rrc_container->msg, rrc_container->N_bytes);
 
-  /*** pack Transparent Container into HORequired message ***/
-  uint8_t       buffer[4096];
-  asn1::bit_ref bref(buffer, sizeof(buffer));
+  // pack Transparent Container into HORequired message
+  srsran::unique_byte_buffer_t buffer = srsran::make_byte_buffer();
+  if (buffer == nullptr) {
+    logger.error("Failed to allocate buffer for HORequired message packing");
+    return false;
+  }
+  asn1::bit_ref bref(buffer->msg, buffer->get_tailroom());
   if (transparent_cntr.pack(bref) != asn1::SRSASN_SUCCESS) {
-    s1ap_log->error("Failed to pack transparent container of HO Required message\n");
+    logger.error("Failed to pack transparent container of HO Required message");
     return false;
   }
   container.source_to_target_transparent_container.value.resize(bref.distance_bytes());
-  memcpy(container.source_to_target_transparent_container.value.data(), buffer, bref.distance_bytes());
+  memcpy(container.source_to_target_transparent_container.value.data(), buffer->msg, bref.distance_bytes());
 
-  return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "HORequired");
+  // Send to HandoverRequired message to MME
+  return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "Handover Required");
 }
 
 bool s1ap::ue::send_enb_status_transfer_proc(std::vector<bearer_status_info>& bearer_status_list)
@@ -1543,7 +2058,7 @@ bool s1ap::ue::send_enb_status_transfer_proc(std::vector<bearer_status_info>& be
   enb_status_transfer_ies_container& container = tx_pdu.init_msg().value.enb_status_transfer().protocol_ies;
 
   container.enb_ue_s1ap_id.value = ctxt.enb_ue_s1ap_id;
-  container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id;
+  container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id.value();
 
   /* Create StatusTransfer transparent container with all the bearer ctxt to transfer */
   auto& list = container.enb_status_transfer_transparent_container.value.bearers_subject_to_status_transfer_list;
@@ -1562,10 +2077,32 @@ bool s1ap::ue::send_enb_status_transfer_proc(std::vector<bearer_status_info>& be
 
     //    asn1::json_writer jw;
     //    asn1bearer.to_json(jw);
-    //    printf("Bearer to add %s\n", jw.to_string().c_str());
+    //    printf("Bearer to add %s", jw.to_string().c_str());
   }
 
   return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "ENBStatusTransfer");
+}
+
+void s1ap::log_s1ap_msg(const asn1::s1ap::s1ap_pdu_c& msg, srsran::const_span<uint8_t> sdu, bool is_rx)
+{
+  std::string msg_type;
+
+  switch (msg.type().value) {
+    case s1ap_pdu_c::types_opts::init_msg:
+      msg_type = msg.init_msg().value.type().to_string();
+      break;
+    case s1ap_pdu_c::types_opts::successful_outcome:
+      msg_type = msg.successful_outcome().value.type().to_string();
+      break;
+    case s1ap_pdu_c::types_opts::unsuccessful_outcome:
+      msg_type = msg.unsuccessful_outcome().value.type().to_string();
+      break;
+    default:
+      logger.warning("Unrecognized S1AP message type\n");
+      return;
+  }
+
+  logger.info(sdu.data(), sdu.size(), "%s S1AP SDU - %s", is_rx ? "Rx" : "Tx", msg_type.c_str());
 }
 
 } // namespace srsenb

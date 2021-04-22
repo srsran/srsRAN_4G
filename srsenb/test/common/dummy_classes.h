@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -22,7 +22,14 @@
 #ifndef SRSENB_DUMMY_CLASSES_H
 #define SRSENB_DUMMY_CLASSES_H
 
-#include "srslte/interfaces/enb_interfaces.h"
+#include "srsran/interfaces/enb_gtpu_interfaces.h"
+#include "srsran/interfaces/enb_interfaces.h"
+#include "srsran/interfaces/enb_mac_interfaces.h"
+#include "srsran/interfaces/enb_pdcp_interfaces.h"
+#include "srsran/interfaces/enb_phy_interfaces.h"
+#include "srsran/interfaces/enb_rlc_interfaces.h"
+#include "srsran/interfaces/enb_rrc_interfaces.h"
+#include "srsran/interfaces/enb_s1ap_interfaces.h"
 
 namespace srsenb {
 
@@ -37,7 +44,11 @@ public:
   int  bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg) override { return 0; }
   int  bearer_ue_rem(uint16_t rnti, uint32_t lc_id) override { return 0; }
   void phy_config_enabled(uint16_t rnti, bool enabled) override {}
-  void write_mcch(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s* mcch) override
+  void write_mcch(const srsran::sib2_mbms_t* sib2_,
+                  const srsran::sib13_t*     sib13_,
+                  const srsran::mcch_msg_t*  mcch_,
+                  const uint8_t*             mcch_payload,
+                  const uint8_t              mcch_payload_length) override
   {}
   uint16_t reserve_new_crnti(const sched_interface::ue_cfg_t& ue_cfg) override { return last_rnti++; }
 
@@ -50,55 +61,66 @@ public:
   void clear_buffer(uint16_t rnti) override {}
   void add_user(uint16_t rnti) override {}
   void rem_user(uint16_t rnti) override {}
-  void add_bearer(uint16_t rnti, uint32_t lcid, srslte::rlc_config_t cnfg) override {}
+  void add_bearer(uint16_t rnti, uint32_t lcid, srsran::rlc_config_t cnfg) override {}
   void add_bearer_mrb(uint16_t rnti, uint32_t lcid) override {}
   void del_bearer(uint16_t rnti, uint32_t lcid) override {}
-  void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu) override {}
+  void write_sdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t sdu) override {}
   bool has_bearer(uint16_t rnti, uint32_t lcid) override { return false; }
   bool suspend_bearer(uint16_t rnti, uint32_t lcid) override { return true; }
   bool resume_bearer(uint16_t rnti, uint32_t lcid) override { return true; }
   void reestablish(uint16_t rnti) override {}
 };
 
-class pdcp_dummy : public pdcp_interface_rrc
+class pdcp_dummy : public pdcp_interface_rrc, public pdcp_interface_gtpu
 {
 public:
   void reset(uint16_t rnti) override {}
   void add_user(uint16_t rnti) override {}
   void rem_user(uint16_t rnti) override {}
-  void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu) override {}
-  void add_bearer(uint16_t rnti, uint32_t lcid, srslte::pdcp_config_t cnfg) override {}
+  void write_sdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t sdu, int pdcp_sn) override {}
+  void add_bearer(uint16_t rnti, uint32_t lcid, srsran::pdcp_config_t cnfg) override {}
   void del_bearer(uint16_t rnti, uint32_t lcid) override {}
-  void config_security(uint16_t rnti, uint32_t lcid, srslte::as_security_config_t sec_cfg_) override {}
+  void config_security(uint16_t rnti, uint32_t lcid, srsran::as_security_config_t sec_cfg_) override {}
   void enable_integrity(uint16_t rnti, uint32_t lcid) override {}
   void enable_encryption(uint16_t rnti, uint32_t lcid) override {}
-  bool get_bearer_state(uint16_t rnti, uint32_t lcid, srslte::pdcp_lte_state_t* state) override { return true; }
-  bool set_bearer_state(uint16_t rnti, uint32_t lcid, const srslte::pdcp_lte_state_t& state) override { return true; }
+  bool get_bearer_state(uint16_t rnti, uint32_t lcid, srsran::pdcp_lte_state_t* state) override { return true; }
+  bool set_bearer_state(uint16_t rnti, uint32_t lcid, const srsran::pdcp_lte_state_t& state) override { return true; }
   void reestablish(uint16_t rnti) override {}
+  void send_status_report(uint16_t rnti) override {}
+  void send_status_report(uint16_t rnti, uint32_t lcid) override {}
+  std::map<uint32_t, srsran::unique_byte_buffer_t> get_buffered_pdus(uint16_t rnti, uint32_t lcid) override
+  {
+    return {};
+  }
 };
 
 class s1ap_dummy : public s1ap_interface_rrc
 {
 public:
-  void initial_ue(uint16_t rnti, asn1::s1ap::rrc_establishment_cause_e cause, srslte::unique_byte_buffer_t pdu) override
+  void initial_ue(uint16_t                              rnti,
+                  uint32_t                              enb_cc_idx,
+                  asn1::s1ap::rrc_establishment_cause_e cause,
+                  srsran::unique_byte_buffer_t          pdu) override
   {}
   void initial_ue(uint16_t                              rnti,
+                  uint32_t                              enb_cc_idx,
                   asn1::s1ap::rrc_establishment_cause_e cause,
-                  srslte::unique_byte_buffer_t          pdu,
+                  srsran::unique_byte_buffer_t          pdu,
                   uint32_t                              m_tmsi,
                   uint8_t                               mmec) override
   {}
 
-  void write_pdu(uint16_t rnti, srslte::unique_byte_buffer_t pdu) override {}
+  void write_pdu(uint16_t rnti, srsran::unique_byte_buffer_t pdu) override {}
   bool user_exists(uint16_t rnti) override { return true; }
   bool user_release(uint16_t rnti, asn1::s1ap::cause_radio_network_e cause_radio) override { return true; }
-  void ue_ctxt_setup_complete(uint16_t rnti, const asn1::s1ap::init_context_setup_resp_s& res) override {}
-  void ue_erab_setup_complete(uint16_t rnti, const asn1::s1ap::erab_setup_resp_s& res) override {}
+  void ue_ctxt_setup_complete(uint16_t rnti) override {}
   bool is_mme_connected() override { return true; }
   bool send_ho_required(uint16_t                     rnti,
                         uint32_t                     target_eci,
-                        srslte::plmn_id_t            target_plmn,
-                        srslte::unique_byte_buffer_t rrc_container) override
+                        srsran::plmn_id_t            target_plmn,
+                        srsran::span<uint32_t>       fwd_erabs,
+                        srsran::unique_byte_buffer_t rrc_container,
+                        bool                         has_direct_fwd_path) override
   {
     return true;
   }
@@ -106,36 +128,96 @@ public:
   {
     return true;
   }
-  bool send_ho_req_ack(const asn1::s1ap::ho_request_s&               msg,
-                       uint16_t                                      rnti,
-                       srslte::unique_byte_buffer_t                  ho_cmd,
-                       srslte::span<asn1::fixed_octstring<4, true> > admitted_bearers) override
+  bool send_ho_req_ack(const asn1::s1ap::ho_request_s&                msg,
+                       uint16_t                                       rnti,
+                       uint32_t                                       enb_cc_idx,
+                       srsran::unique_byte_buffer_t                   ho_cmd,
+                       srsran::span<asn1::s1ap::erab_admitted_item_s> admitted_bearers,
+                       srsran::const_span<asn1::s1ap::erab_item_s>    not_admitted_bearers) override
   {
     return true;
   }
   void send_ho_notify(uint16_t rnti, uint64_t target_eci) override {}
 
-  void send_ho_cancel(uint16_t rnti) override {}
+  void send_ho_cancel(uint16_t rnti, const asn1::s1ap::cause_c& cause) override {}
+
+  bool release_erabs(uint16_t rnti, const std::vector<uint16_t>& erabs_successfully_released) override { return true; }
+  bool send_ue_cap_info_indication(uint16_t rnti, const srsran::unique_byte_buffer_t ue_radio_cap) override
+  {
+    return true;
+  }
 };
 
 class phy_dummy : public phy_interface_rrc_lte
 {
 public:
-  void configure_mbsfn(asn1::rrc::sib_type2_s*      sib2,
-                       asn1::rrc::sib_type13_r9_s*  sib13,
-                       const asn1::rrc::mcch_msg_s& mcch) override
-  {}
+  void configure_mbsfn(srsran::sib2_mbms_t* sib2, srsran::sib13_t* sib13, const srsran::mcch_msg_t& mcch) override {}
   void set_config(uint16_t rnti, const phy_rrc_cfg_list_t& dedicated_list) override {}
   void complete_config(uint16_t rnti) override{};
 };
 
-class gtpu_dummy : public gtpu_interface_rrc
+class gtpu_dummy : public srsenb::gtpu_interface_rrc
 {
 public:
-  uint32_t add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out) override { return 0; }
-  void     rem_bearer(uint16_t rnti, uint32_t lcid) override {}
-  void     mod_bearer_rnti(uint16_t old_rnti, uint16_t new_rnti) override {}
-  void     rem_user(uint16_t rnti) override {}
+  srsran::expected<uint32_t>
+  add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out, const bearer_props* props) override
+  {
+    return 1;
+  }
+  void set_tunnel_status(uint32_t teidin, bool dl_active) override {}
+  void rem_bearer(uint16_t rnti, uint32_t lcid) override {}
+  void mod_bearer_rnti(uint16_t old_rnti, uint16_t new_rnti) override {}
+  void rem_user(uint16_t rnti) override {}
+};
+
+class rrc_dummy : public rrc_interface_s1ap
+{
+public:
+  void write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu) override {}
+  void release_ue(uint16_t rnti) override {}
+  bool setup_ue_ctxt(uint16_t rnti, const asn1::s1ap::init_context_setup_request_s& msg) override { return true; }
+  bool modify_ue_ctxt(uint16_t rnti, const asn1::s1ap::ue_context_mod_request_s& msg) override { return true; }
+  int  get_erab_addr_in(uint16_t rnti, uint16_t erab_id, transp_addr_t& addr_in, uint32_t& teid_in) const override
+  {
+    return SRSRAN_SUCCESS;
+  }
+  void set_aggregate_max_bitrate(uint16_t rnti, const asn1::s1ap::ue_aggregate_maximum_bitrate_s& bitrate) override {}
+  int  setup_erab(uint16_t                                           rnti,
+                  uint16_t                                           erab_id,
+                  const asn1::s1ap::erab_level_qos_params_s&         qos_params,
+                  srsran::const_byte_span                            nas_pdu,
+                  const asn1::bounded_bitstring<1, 160, true, true>& addr,
+                  uint32_t                                           gtpu_teid_out,
+                  asn1::s1ap::cause_c&                               cause) override
+  {
+    return SRSRAN_SUCCESS;
+  }
+  int modify_erab(uint16_t                                   rnti,
+                  uint16_t                                   erab_id,
+                  const asn1::s1ap::erab_level_qos_params_s& qos_params,
+                  srsran::const_byte_span                    nas_pdu,
+                  asn1::s1ap::cause_c&                       cause) override
+  {
+    return SRSRAN_SUCCESS;
+  }
+  bool has_erab(uint16_t rnti, uint32_t erab_id) const override { return true; }
+  bool release_erabs(uint32_t rnti) override { return true; }
+  int  release_erab(uint16_t rnti, uint16_t erab_id) override { return SRSRAN_SUCCESS; }
+  void add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& ue_paging_id) override {}
+  void ho_preparation_complete(uint16_t                     rnti,
+                               ho_prep_result               result,
+                               const asn1::s1ap::ho_cmd_s&  msg,
+                               srsran::unique_byte_buffer_t container) override
+  {}
+  uint16_t start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&                                   msg,
+                                      const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container,
+                                      asn1::s1ap::cause_c& failure_cause) override
+  {
+    return SRSRAN_INVALID_RNTI;
+  }
+  void set_erab_status(uint16_t rnti, const asn1::s1ap::bearers_subject_to_status_transfer_list_l& erabs) override {}
+
+  int notify_ue_erab_updates(uint16_t rnti, srsran::const_byte_span nas_pdu) override { return SRSRAN_SUCCESS; }
 };
 
 } // namespace srsenb

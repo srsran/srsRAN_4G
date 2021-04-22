@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -22,9 +22,9 @@
 #define SRSEPC_S1AP_MNGMT_PROC_H
 
 #include "s1ap_common.h"
-#include "srslte/asn1/s1ap_asn1.h"
-#include "srslte/common/common.h"
-#include "srslte/common/log_filter.h"
+#include "srsran/asn1/s1ap.h"
+#include "srsran/common/common.h"
+#include "srsran/srslog/srslog.h"
 
 namespace srsepc {
 
@@ -50,8 +50,8 @@ private:
   s1ap_mngmt_proc();
   virtual ~s1ap_mngmt_proc();
 
-  s1ap*               m_s1ap;
-  srslte::log_filter* m_s1ap_log;
+  s1ap*                 m_s1ap;
+  srslog::basic_logger& m_logger = srslog::fetch_basic_logger("S1AP");
 
   int         m_s1mme;
   s1ap_args_t m_s1ap_args;

@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -22,35 +22,34 @@
 #include "srsenb/hdr/stack/rrc/rrc.h"
 #include "srsenb/hdr/stack/rrc/rrc_cell_cfg.h"
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
-#include "srslte/asn1/asn1_utils.h"
-#include "srslte/asn1/rrc_asn1_utils.h"
-#include "srslte/common/bcd_helpers.h"
-#include "srslte/common/int_helpers.h"
-#include "srslte/interfaces/sched_interface.h"
-#include "srslte/srslte.h"
+#include "srsran/asn1/asn1_utils.h"
+#include "srsran/asn1/rrc_utils.h"
+#include "srsran/common/bcd_helpers.h"
+#include "srsran/common/standard_streams.h"
+#include "srsran/interfaces/enb_mac_interfaces.h"
+#include "srsran/interfaces/enb_pdcp_interfaces.h"
+#include "srsran/interfaces/enb_rlc_interfaces.h"
+#include "srsran/interfaces/sched_interface.h"
 
-using srslte::byte_buffer_t;
-using srslte::uint32_to_uint8;
-using srslte::uint8_to_uint32;
+using srsran::byte_buffer_t;
 
 using namespace asn1::rrc;
 
 namespace srsenb {
 
-rrc::rrc(srslte::task_sched_handle task_sched_) : rrc_log("RRC"), task_sched(task_sched_)
-{
-  pending_paging.clear();
-}
+rrc::rrc(srsran::task_sched_handle task_sched_) :
+  logger(srslog::fetch_basic_logger("RRC")), task_sched(task_sched_), rx_pdu_queue(64)
+{}
 
 rrc::~rrc() {}
 
-void rrc::init(const rrc_cfg_t&       cfg_,
-               phy_interface_rrc_lte* phy_,
-               mac_interface_rrc*     mac_,
-               rlc_interface_rrc*     rlc_,
-               pdcp_interface_rrc*    pdcp_,
-               s1ap_interface_rrc*    s1ap_,
-               gtpu_interface_rrc*    gtpu_)
+int32_t rrc::init(const rrc_cfg_t&       cfg_,
+                  phy_interface_rrc_lte* phy_,
+                  mac_interface_rrc*     mac_,
+                  rlc_interface_rrc*     rlc_,
+                  pdcp_interface_rrc*    pdcp_,
+                  s1ap_interface_rrc*    s1ap_,
+                  gtpu_interface_rrc*    gtpu_)
 {
   phy  = phy_;
   mac  = mac_;
@@ -59,45 +58,49 @@ void rrc::init(const rrc_cfg_t&       cfg_,
   gtpu = gtpu_;
   s1ap = s1ap_;
 
-  pool = srslte::byte_buffer_pool::get_instance();
-
   cfg = cfg_;
 
   if (cfg.sibs[12].type() == asn1::rrc::sys_info_r8_ies_s::sib_type_and_info_item_c_::types::sib13_v920 &&
       cfg.enable_mbsfn) {
-    configure_mbsfn_sibs(&cfg.sibs[1].sib2(), &cfg.sibs[12].sib13_v920());
+    configure_mbsfn_sibs();
   }
 
-  pucch_res_list.reset(new freq_res_common_list{cfg});
+  cell_res_list.reset(new freq_res_common_list{cfg});
 
   // Loads the PRACH root sequence
   cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.root_seq_idx = cfg.cell_list[0].root_seq_idx;
 
-  nof_si_messages = generate_sibs();
+  if (generate_sibs() != SRSRAN_SUCCESS) {
+    logger.error("Couldn't generate SIBs.");
+    return false;
+  }
   config_mac();
 
   // Check valid inactivity timeout config
   uint32_t t310 = cfg.sibs[1].sib2().ue_timers_and_consts.t310.to_number();
   uint32_t t311 = cfg.sibs[1].sib2().ue_timers_and_consts.t311.to_number();
   uint32_t n310 = cfg.sibs[1].sib2().ue_timers_and_consts.n310.to_number();
-  rrc_log->info("T310 %d, T311 %d, N310 %d \n", t310, t311, n310);
+  logger.info("T310 %d, T311 %d, N310 %d", t310, t311, n310);
   if (cfg.inactivity_timeout_ms < t310 + t311 + n310) {
-    srslte::console("\nWarning: Inactivity timeout is smaller than the sum of t310, t311 and n310.\n"
-                       "This may break the UE's re-establishment procedure.\n");
-    rrc_log->warning("Inactivity timeout is smaller than the sum of t310, t311 and n310. This may break the UE's "
-                     "re-establishment procedure.\n");
+    srsran::console("\nWarning: Inactivity timeout is smaller than the sum of t310, t311 and n310.\n"
+                    "This may break the UE's re-establishment procedure.\n");
+    logger.warning("Inactivity timeout is smaller than the sum of t310, t311 and n310. This may break the UE's "
+                   "re-establishment procedure.");
   }
-  rrc_log->info("Inactivity timeout: %d ms\n", cfg.inactivity_timeout_ms);
+  logger.info("Inactivity timeout: %d ms", cfg.inactivity_timeout_ms);
+  logger.info("Max consecutive MAC KOs: %d", cfg.max_mac_dl_kos);
 
   running = true;
+
+  return SRSRAN_SUCCESS;
 }
 
 void rrc::stop()
 {
   if (running) {
     running   = false;
-    rrc_pdu p = {0, LCID_EXIT, nullptr};
-    rx_pdu_queue.push(std::move(p));
+    rrc_pdu p = {0, LCID_EXIT, false, nullptr};
+    rx_pdu_queue.push_blocking(std::move(p));
   }
   users.clear();
 }
@@ -109,10 +112,10 @@ void rrc::stop()
 void rrc::get_metrics(rrc_metrics_t& m)
 {
   if (running) {
-    m.n_ues = 0;
-    for (auto iter = users.begin(); m.n_ues < ENB_METRICS_MAX_USERS && iter != users.end(); ++iter) {
-      ue* u                  = iter->second.get();
-      m.ues[m.n_ues++].state = u->get_state();
+    m.ues.resize(users.size());
+    size_t count = 0;
+    for (auto& ue : users) {
+      ue.second->get_metrics(m.ues[count++]);
     }
   }
 }
@@ -132,16 +135,41 @@ uint8_t* rrc::read_pdu_bcch_dlsch(const uint8_t cc_idx, const uint32_t sib_index
   return nullptr;
 }
 
+void rrc::set_radiolink_dl_state(uint16_t rnti, bool crc_res)
+{
+  // embed parameters in arg value
+  rrc_pdu p = {rnti, LCID_RADLINK_DL, crc_res, nullptr};
+
+  if (not rx_pdu_queue.try_push(std::move(p))) {
+    logger.error("Failed to push UE activity command to RRC queue");
+  }
+}
+
+void rrc::set_radiolink_ul_state(uint16_t rnti, bool crc_res)
+{
+  // embed parameters in arg value
+  rrc_pdu p = {rnti, LCID_RADLINK_UL, crc_res, nullptr};
+
+  if (not rx_pdu_queue.try_push(std::move(p))) {
+    logger.error("Failed to push UE activity command to RRC queue");
+  }
+}
+
 void rrc::set_activity_user(uint16_t rnti)
 {
-  rrc_pdu p = {rnti, LCID_ACT_USER, nullptr};
-  rx_pdu_queue.push(std::move(p));
+  rrc_pdu p = {rnti, LCID_ACT_USER, false, nullptr};
+
+  if (not rx_pdu_queue.try_push(std::move(p))) {
+    logger.error("Failed to push UE activity command to RRC queue");
+  }
 }
 
 void rrc::rem_user_thread(uint16_t rnti)
 {
-  rrc_pdu p = {rnti, LCID_REM_USER, nullptr};
-  rx_pdu_queue.push(std::move(p));
+  rrc_pdu p = {rnti, LCID_REM_USER, false, nullptr};
+  if (not rx_pdu_queue.try_push(std::move(p))) {
+    logger.error("Failed to push UE remove command to RRC queue");
+  }
 }
 
 uint32_t rrc::get_nof_users()
@@ -149,43 +177,47 @@ uint32_t rrc::get_nof_users()
   return users.size();
 }
 
-void rrc::max_retx_attempted(uint16_t rnti) {}
+void rrc::max_retx_attempted(uint16_t rnti)
+{
+  rrc_pdu p = {rnti, LCID_RTX_USER, false, nullptr};
+  if (not rx_pdu_queue.try_push(std::move(p))) {
+    logger.error("Failed to push max Retx event to RRC queue");
+  }
+}
 
 // This function is called from PRACH worker (can wait)
-void rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
+int rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
 {
   auto user_it = users.find(rnti);
   if (user_it == users.end()) {
-    bool rnti_added = true;
-    if (rnti != SRSLTE_MRNTI) {
+    if (rnti != SRSRAN_MRNTI) {
       // only non-eMBMS RNTIs are present in user map
-      auto p     = users.insert(std::make_pair(rnti, std::unique_ptr<ue>(new ue{this, rnti, sched_ue_cfg})));
-      rnti_added = p.second and p.first->second->is_allocated();
+      unique_rnti_ptr<ue> u = make_rnti_obj<ue>(rnti, this, rnti, sched_ue_cfg);
+      if (u->init() != SRSRAN_SUCCESS) {
+        logger.error("Adding user rnti=0x%x - Failed to allocate user resources", rnti);
+        return SRSRAN_ERROR;
+      }
+      users.insert(std::make_pair(rnti, std::move(u)));
     }
-    if (rnti_added) {
-      rlc->add_user(rnti);
-      pdcp->add_user(rnti);
-      rrc_log->info("Added new user rnti=0x%x\n", rnti);
-    } else {
-      mac->bearer_ue_rem(rnti, 0);
-      rrc_log->error("Adding user rnti=0x%x - Failed to allocate user resources\n", rnti);
-    }
+    rlc->add_user(rnti);
+    pdcp->add_user(rnti);
+    logger.info("Added new user rnti=0x%x", rnti);
   } else {
-    rrc_log->error("Adding user rnti=0x%x (already exists)\n", rnti);
+    logger.error("Adding user rnti=0x%x (already exists)", rnti);
   }
 
-  if (rnti == SRSLTE_MRNTI) {
-    uint32_t teid_in = 1;
+  if (rnti == SRSRAN_MRNTI) {
     for (auto& mbms_item : mcch.msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[0].mbms_session_info_list_r9) {
       uint32_t lcid = mbms_item.lc_ch_id_r9;
 
       // adding UE object to MAC for MRNTI without scheduling configuration (broadcast not part of regular scheduling)
-      mac->ue_cfg(SRSLTE_MRNTI, NULL);
-      rlc->add_bearer_mrb(SRSLTE_MRNTI, lcid);
-      pdcp->add_bearer(SRSLTE_MRNTI, lcid, srslte::make_drb_pdcp_config_t(1, false));
-      teid_in = gtpu->add_bearer(SRSLTE_MRNTI, lcid, 1, 1);
+      mac->ue_cfg(SRSRAN_MRNTI, NULL);
+      rlc->add_bearer_mrb(SRSRAN_MRNTI, lcid);
+      pdcp->add_bearer(SRSRAN_MRNTI, lcid, srsran::make_drb_pdcp_config_t(1, false));
+      gtpu->add_bearer(SRSRAN_MRNTI, lcid, 1, 1);
     }
   }
+  return SRSRAN_SUCCESS;
 }
 
 /* Function called by MAC after the reception of a C-RNTI CE indicating that the UE still has a
@@ -198,31 +230,63 @@ void rrc::upd_user(uint16_t new_rnti, uint16_t old_rnti)
 
   // Send Reconfiguration to old_rnti if is RRC_CONNECT or RRC Release if already released here
   auto old_it = users.find(old_rnti);
-  if (old_it != users.end()) {
-    auto ue_ptr = old_it->second.get();
-    if (ue_ptr->mobility_handler->is_ho_running()) {
-      ue_ptr->mobility_handler->trigger(ue::rrc_mobility::user_crnti_upd_ev{old_rnti, new_rnti});
-    } else if (ue_ptr->is_connected()) {
-      old_it->second->send_connection_reconf_upd(srslte::allocate_unique_buffer(*pool));
-    } else {
-      old_it->second->send_connection_reject();
+  if (old_it == users.end()) {
+    send_rrc_connection_reject(old_rnti);
+    return;
+  }
+  ue* ue_ptr = old_it->second.get();
+
+  if (ue_ptr->mobility_handler->is_ho_running()) {
+    ue_ptr->mobility_handler->trigger(ue::rrc_mobility::user_crnti_upd_ev{old_rnti, new_rnti});
+  } else {
+    logger.info("Resuming rnti=0x%x RRC connection due to received C-RNTI CE from rnti=0x%x.", old_rnti, new_rnti);
+    if (ue_ptr->is_connected()) {
+      // Send a new RRC Reconfiguration to overlay previous
+      old_it->second->send_connection_reconf();
     }
   }
+}
+
+// Note: this method is not part of UE methods, because the UE context may not exist anymore when reject is sent
+void rrc::send_rrc_connection_reject(uint16_t rnti)
+{
+  dl_ccch_msg_s dl_ccch_msg;
+  dl_ccch_msg.msg.set_c1().set_rrc_conn_reject().crit_exts.set_c1().set_rrc_conn_reject_r8().wait_time = 10;
+
+  // Allocate a new PDU buffer, pack the message and send to PDCP
+  srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  if (pdu == nullptr) {
+    logger.error("Allocating pdu");
+    return;
+  }
+  asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
+  if (dl_ccch_msg.pack(bref) != asn1::SRSASN_SUCCESS) {
+    logger.error(pdu->msg, bref.distance_bytes(), "Failed to pack DL-CCCH-Msg:");
+    return;
+  }
+  pdu->N_bytes = bref.distance_bytes();
+
+  char buf[32] = {};
+  sprintf(buf, "SRB0 - rnti=0x%x", rnti);
+  log_rrc_message(buf, Tx, pdu.get(), dl_ccch_msg, dl_ccch_msg.msg.c1().type().to_string());
+  rlc->write_sdu(rnti, srb_to_lcid(lte_srb::srb0), std::move(pdu));
 }
 
 /*******************************************************************************
   PDCP interface
 *******************************************************************************/
-void rrc::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu)
+void rrc::write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
-  rrc_pdu p = {rnti, lcid, std::move(pdu)};
-  rx_pdu_queue.push(std::move(p));
+  rrc_pdu p = {rnti, lcid, false, std::move(pdu)};
+  if (not rx_pdu_queue.try_push(std::move(p))) {
+    logger.error("Failed to push Release command to RRC queue");
+  }
 }
 
 /*******************************************************************************
   S1AP interface
 *******************************************************************************/
-void rrc::write_dl_info(uint16_t rnti, srslte::unique_byte_buffer_t sdu)
+void rrc::write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu)
 {
   dl_dcch_msg_s dl_dcch_msg;
   dl_dcch_msg.msg.set_c1();
@@ -244,23 +308,24 @@ void rrc::write_dl_info(uint16_t rnti, srslte::unique_byte_buffer_t sdu)
 
     user_it->second->send_dl_dcch(&dl_dcch_msg, std::move(sdu));
   } else {
-    rrc_log->error("Rx SDU for unknown rnti=0x%x\n", rnti);
+    logger.error("Rx SDU for unknown rnti=0x%x", rnti);
   }
 }
 
-void rrc::release_complete(uint16_t rnti)
+void rrc::release_ue(uint16_t rnti)
 {
-  rrc_pdu p = {rnti, LCID_REL_USER, nullptr};
-  rx_pdu_queue.push(std::move(p));
+  rrc_pdu p = {rnti, LCID_REL_USER, false, nullptr};
+  if (not rx_pdu_queue.try_push(std::move(p))) {
+    logger.error("Failed to push Release command to RRC queue");
+  }
 }
 
 bool rrc::setup_ue_ctxt(uint16_t rnti, const asn1::s1ap::init_context_setup_request_s& msg)
 {
-  rrc_log->info("Adding initial context for 0x%x\n", rnti);
+  logger.info("Adding initial context for 0x%x", rnti);
   auto user_it = users.find(rnti);
-
   if (user_it == users.end()) {
-    rrc_log->warning("Unrecognised rnti: 0x%x\n", rnti);
+    logger.warning("Unrecognised rnti: 0x%x", rnti);
     return false;
   }
 
@@ -270,50 +335,118 @@ bool rrc::setup_ue_ctxt(uint16_t rnti, const asn1::s1ap::init_context_setup_requ
 
 bool rrc::modify_ue_ctxt(uint16_t rnti, const asn1::s1ap::ue_context_mod_request_s& msg)
 {
-  rrc_log->info("Modifying context for 0x%x\n", rnti);
+  logger.info("Modifying context for 0x%x", rnti);
   auto user_it = users.find(rnti);
 
   if (user_it == users.end()) {
-    rrc_log->warning("Unrecognised rnti: 0x%x\n", rnti);
+    logger.warning("Unrecognised rnti: 0x%x", rnti);
     return false;
   }
 
   return user_it->second->handle_ue_ctxt_mod_req(msg);
 }
 
-bool rrc::setup_ue_erabs(uint16_t rnti, const asn1::s1ap::erab_setup_request_s& msg)
-{
-  rrc_log->info("Setting up erab(s) for 0x%x\n", rnti);
-  auto user_it = users.find(rnti);
-
-  if (user_it == users.end()) {
-    rrc_log->warning("Unrecognised rnti: 0x%x\n", rnti);
-    return false;
-  }
-
-  if (msg.protocol_ies.ueaggregate_maximum_bitrate_present) {
-    // UEAggregateMaximumBitrate
-    user_it->second->set_bitrates(msg.protocol_ies.ueaggregate_maximum_bitrate.value);
-  }
-
-  // Setup E-RABs
-  user_it->second->setup_erabs(msg.protocol_ies.erab_to_be_setup_list_bearer_su_req.value);
-
-  return true;
-}
-
 bool rrc::release_erabs(uint32_t rnti)
 {
-  rrc_log->info("Releasing E-RABs for 0x%x\n", rnti);
+  logger.info("Releasing E-RABs for 0x%x", rnti);
   auto user_it = users.find(rnti);
 
   if (user_it == users.end()) {
-    rrc_log->warning("Unrecognised rnti: 0x%x\n", rnti);
+    logger.warning("Unrecognised rnti: 0x%x", rnti);
     return false;
   }
 
   bool ret = user_it->second->release_erabs();
   return ret;
+}
+
+int rrc::release_erab(uint16_t rnti, uint16_t erab_id)
+{
+  logger.info("Releasing E-RAB id=%d for 0x%x", erab_id, rnti);
+  auto user_it = users.find(rnti);
+
+  if (user_it == users.end()) {
+    logger.warning("Unrecognised rnti: 0x%x", rnti);
+    return SRSRAN_ERROR;
+  }
+
+  return user_it->second->release_erab(erab_id);
+}
+
+int rrc::notify_ue_erab_updates(uint16_t rnti, srsran::const_byte_span nas_pdu)
+{
+  auto user_it = users.find(rnti);
+  if (user_it == users.end()) {
+    logger.warning("Unrecognised rnti: 0x%x", rnti);
+    return SRSRAN_ERROR;
+  }
+  user_it->second->send_connection_reconf(nullptr, false, nas_pdu);
+  return SRSRAN_SUCCESS;
+}
+
+bool rrc::has_erab(uint16_t rnti, uint32_t erab_id) const
+{
+  auto user_it = users.find(rnti);
+  if (user_it == users.end()) {
+    logger.warning("Unrecognised rnti: 0x%x", rnti);
+    return false;
+  }
+  return user_it->second->has_erab(erab_id);
+}
+
+int rrc::get_erab_addr_in(uint16_t rnti, uint16_t erab_id, transp_addr_t& addr_in, uint32_t& teid_in) const
+{
+  auto user_it = users.find(rnti);
+  if (user_it == users.end()) {
+    logger.warning("Unrecognised rnti: 0x%x", rnti);
+    return SRSRAN_ERROR;
+  }
+  return user_it->second->get_erab_addr_in(erab_id, addr_in, teid_in);
+}
+
+void rrc::set_aggregate_max_bitrate(uint16_t rnti, const asn1::s1ap::ue_aggregate_maximum_bitrate_s& bitrate)
+{
+  auto user_it = users.find(rnti);
+  if (user_it == users.end()) {
+    logger.warning("Unrecognised rnti: 0x%x", rnti);
+    return;
+  }
+  user_it->second->set_bitrates(bitrate);
+}
+
+int rrc::setup_erab(uint16_t                                           rnti,
+                    uint16_t                                           erab_id,
+                    const asn1::s1ap::erab_level_qos_params_s&         qos_params,
+                    srsran::const_span<uint8_t>                        nas_pdu,
+                    const asn1::bounded_bitstring<1, 160, true, true>& addr,
+                    uint32_t                                           gtpu_teid_out,
+                    asn1::s1ap::cause_c&                               cause)
+{
+  logger.info("Setting up erab id=%d for 0x%x", erab_id, rnti);
+  auto user_it = users.find(rnti);
+  if (user_it == users.end()) {
+    logger.warning("Unrecognised rnti: 0x%x", rnti);
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::unknown_erab_id;
+    return SRSRAN_ERROR;
+  }
+  return user_it->second->setup_erab(erab_id, qos_params, nas_pdu, addr, gtpu_teid_out, cause);
+}
+
+int rrc::modify_erab(uint16_t                                   rnti,
+                     uint16_t                                   erab_id,
+                     const asn1::s1ap::erab_level_qos_params_s& qos_params,
+                     srsran::const_span<uint8_t>                nas_pdu,
+                     asn1::s1ap::cause_c&                       cause)
+{
+  logger.info("Modifying E-RAB for 0x%x. E-RAB Id %d", rnti, erab_id);
+  auto user_it = users.find(rnti);
+  if (user_it == users.end()) {
+    logger.warning("Unrecognised rnti: 0x%x", rnti);
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::unknown_erab_id;
+    return SRSRAN_ERROR;
+  }
+
+  return user_it->second->modify_erab(erab_id, qos_params, nas_pdu, cause);
 }
 
 /*******************************************************************************
@@ -326,7 +459,7 @@ void rrc::add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& ue_pagi
 {
   std::lock_guard<std::mutex> lock(paging_mutex);
   if (pending_paging.count(ueid) > 0) {
-    rrc_log->warning("Received Paging for UEID=%d but not yet transmitted\n", ueid);
+    logger.warning("Received Paging for UEID=%d but not yet transmitted", ueid);
     return;
   }
 
@@ -335,7 +468,7 @@ void rrc::add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& ue_pagi
     paging_elem.ue_id.set_imsi();
     paging_elem.ue_id.imsi().resize(ue_paging_id.imsi().size());
     memcpy(paging_elem.ue_id.imsi().data(), ue_paging_id.imsi().data(), ue_paging_id.imsi().size());
-    srslte::console("Warning IMSI paging not tested\n");
+    srsran::console("Warning IMSI paging not tested\n");
   } else {
     paging_elem.ue_id.set_s_tmsi();
     paging_elem.ue_id.s_tmsi().mmec.from_number(ue_paging_id.s_tmsi().mmec[0]);
@@ -358,7 +491,7 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t* payload_len)
 
   if (tti == paging_tti) {
     *payload_len = byte_buf_paging.N_bytes;
-    rrc_log->debug("Sending paging to extra carriers. Payload len=%d, TTI=%d\n", *payload_len, tti);
+    logger.debug("Sending paging to extra carriers. Payload len=%d, TTI=%d", *payload_len, tti);
     return true;
   } else {
     paging_tti = INVALID_TTI;
@@ -400,7 +533,7 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t* payload_len)
 
       int sf_idx = sf_pattern[i_s % 4][(Ns - 1) % 4];
       if (sf_idx < 0) {
-        rrc_log->error("SF pattern is N/A for Ns=%d, i_s=%d, imsi_decimal=%d\n", Ns, i_s, ueid);
+        logger.error("SF pattern is N/A for Ns=%d, i_s=%d, imsi_decimal=%d", Ns, i_s, ueid);
         continue;
       }
 
@@ -409,7 +542,7 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t* payload_len)
         paging_rec->paging_record_list.push_back(u);
         ue_to_remove.push_back(ueid);
         n++;
-        rrc_log->info("Assembled paging for ue_id=%d, tti=%d\n", ueid, tti);
+        logger.info("Assembled paging for ue_id=%d, tti=%d", ueid, tti);
       }
     }
 
@@ -422,7 +555,7 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t* payload_len)
     byte_buf_paging.clear();
     asn1::bit_ref bref(byte_buf_paging.msg, byte_buf_paging.get_tailroom());
     if (pcch_msg.pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
-      rrc_log->error("Failed to pack PCCH\n");
+      logger.error("Failed to pack PCCH");
       return false;
     }
     byte_buf_paging.N_bytes = (uint32_t)bref.distance_bytes();
@@ -431,10 +564,10 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t* payload_len)
     if (payload_len) {
       *payload_len = byte_buf_paging.N_bytes;
     }
-    rrc_log->info("Assembling PCCH payload with %d UE identities, payload_len=%d bytes, nbits=%d\n",
-                  paging_rec->paging_record_list.size(),
-                  byte_buf_paging.N_bytes,
-                  N_bits);
+    logger.info("Assembling PCCH payload with %d UE identities, payload_len=%d bytes, nbits=%d",
+                paging_rec->paging_record_list.size(),
+                byte_buf_paging.N_bytes,
+                N_bits);
     log_rrc_message("PCCH-Message", Tx, &byte_buf_paging, pcch_msg, pcch_msg.msg.c1().type().to_string());
 
     paging_tti = tti; // Store paging tti for other carriers
@@ -456,16 +589,19 @@ void rrc::read_pdu_pcch(uint8_t* payload, uint32_t buffer_size)
   Handover functions
 *******************************************************************************/
 
-void rrc::ho_preparation_complete(uint16_t rnti, bool is_success, srslte::unique_byte_buffer_t rrc_container)
+void rrc::ho_preparation_complete(uint16_t                     rnti,
+                                  ho_prep_result               result,
+                                  const asn1::s1ap::ho_cmd_s&  msg,
+                                  srsran::unique_byte_buffer_t rrc_container)
 {
-  users.at(rnti)->mobility_handler->handle_ho_preparation_complete(is_success, std::move(rrc_container));
+  users.at(rnti)->mobility_handler->handle_ho_preparation_complete(result, msg, std::move(rrc_container));
 }
 
 void rrc::set_erab_status(uint16_t rnti, const asn1::s1ap::bearers_subject_to_status_transfer_list_l& erabs)
 {
   auto ue_it = users.find(rnti);
   if (ue_it == users.end()) {
-    rrc_log->warning("rnti=0x%x does not exist\n", rnti);
+    logger.warning("rnti=0x%x does not exist", rnti);
     return;
   }
   ue_it->second->mobility_handler->trigger(erabs);
@@ -477,14 +613,14 @@ void rrc::set_erab_status(uint16_t rnti, const asn1::s1ap::bearers_subject_to_st
   from either a public function or the internal thread
 *******************************************************************************/
 
-void rrc::parse_ul_ccch(uint16_t rnti, srslte::unique_byte_buffer_t pdu)
+void rrc::parse_ul_ccch(uint16_t rnti, srsran::unique_byte_buffer_t pdu)
 {
   if (pdu) {
     ul_ccch_msg_s  ul_ccch_msg;
     asn1::cbit_ref bref(pdu->msg, pdu->N_bytes);
     if (ul_ccch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or
         ul_ccch_msg.msg.type().value != ul_ccch_msg_type_c::types_opts::c1) {
-      rrc_log->error("Failed to unpack UL-CCCH message\n");
+      logger.error("Failed to unpack UL-CCCH message");
       return;
     }
 
@@ -494,34 +630,36 @@ void rrc::parse_ul_ccch(uint16_t rnti, srslte::unique_byte_buffer_t pdu)
     switch (ul_ccch_msg.msg.c1().type().value) {
       case ul_ccch_msg_type_c::c1_c_::types::rrc_conn_request:
         if (user_it != users.end()) {
+          user_it->second->save_ul_message(std::move(pdu));
           user_it->second->handle_rrc_con_req(&ul_ccch_msg.msg.c1().rrc_conn_request());
         } else {
-          rrc_log->error("Received ConnectionSetup for rnti=0x%x without context\n", rnti);
+          logger.error("Received ConnectionSetup for rnti=0x%x without context", rnti);
         }
         break;
       case ul_ccch_msg_type_c::c1_c_::types::rrc_conn_reest_request:
         if (user_it != users.end()) {
+          user_it->second->save_ul_message(std::move(pdu));
           user_it->second->handle_rrc_con_reest_req(&ul_ccch_msg.msg.c1().rrc_conn_reest_request());
         } else {
-          rrc_log->error("Received ConnectionReestablishment for rnti=0x%x without context.\n", rnti);
+          logger.error("Received ConnectionReestablishment for rnti=0x%x without context.", rnti);
         }
         break;
       default:
-        rrc_log->error("UL CCCH message not recognised\n");
+        logger.error("UL CCCH message not recognised");
         break;
     }
   }
 }
 
 ///< User mutex must be hold by caller
-void rrc::parse_ul_dcch(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu)
+void rrc::parse_ul_dcch(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
   if (pdu) {
     auto user_it = users.find(rnti);
     if (user_it != users.end()) {
       user_it->second->parse_ul_dcch(lcid, std::move(pdu));
     } else {
-      rrc_log->error("Processing %s: Unknown rnti=0x%x\n", srsenb::to_string((rb_id_t)lcid), rnti);
+      logger.error("Processing %s: Unknown rnti=0x%x", get_rb_name(lcid), rnti);
     }
   }
 }
@@ -529,10 +667,10 @@ void rrc::parse_ul_dcch(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer
 ///< User mutex must be hold by caller
 void rrc::process_release_complete(uint16_t rnti)
 {
-  rrc_log->info("Received Release Complete rnti=0x%x\n", rnti);
+  logger.info("Received Release Complete rnti=0x%x", rnti);
   auto user_it = users.find(rnti);
   if (user_it == users.end()) {
-    rrc_log->error("Received ReleaseComplete for unknown rnti=0x%x\n", rnti);
+    logger.error("Received ReleaseComplete for unknown rnti=0x%x", rnti);
     return;
   }
   ue* u = user_it->second.get();
@@ -551,8 +689,8 @@ void rrc::rem_user(uint16_t rnti)
 {
   auto user_it = users.find(rnti);
   if (user_it != users.end()) {
-    srslte::console("Disconnecting rnti=0x%x.\n", rnti);
-    rrc_log->info("Disconnecting rnti=0x%x.\n", rnti);
+    srsran::console("Disconnecting rnti=0x%x.\n", rnti);
+    logger.info("Disconnecting rnti=0x%x.", rnti);
 
     /* First remove MAC and GTPU to stop processing DL/UL traffic for this user
      */
@@ -564,9 +702,9 @@ void rrc::rem_user(uint16_t rnti)
     pdcp->rem_user(rnti);
 
     users.erase(rnti);
-    rrc_log->info("Removed user rnti=0x%x\n", rnti);
+    logger.info("Removed user rnti=0x%x", rnti);
   } else {
-    rrc_log->error("Removing user rnti=0x%x (does not exist)\n", rnti);
+    logger.error("Removing user rnti=0x%x (does not exist)", rnti);
   }
 }
 
@@ -595,12 +733,19 @@ void rrc::config_mac()
     item.si_window_ms        = cfg.sib1.si_win_len.to_number();
     item.prach_rar_window =
         cfg.sibs[1].sib2().rr_cfg_common.rach_cfg_common.ra_supervision_info.ra_resp_win_size.to_number();
-    item.prach_freq_offset = cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.prach_cfg_info.prach_freq_offset;
-    item.maxharq_msg3tx    = cfg.sibs[1].sib2().rr_cfg_common.rach_cfg_common.max_harq_msg3_tx;
-    item.initial_dl_cqi    = cfg.cell_list[ccidx].initial_dl_cqi;
+    item.prach_freq_offset   = cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.prach_cfg_info.prach_freq_offset;
+    item.maxharq_msg3tx      = cfg.sibs[1].sib2().rr_cfg_common.rach_cfg_common.max_harq_msg3_tx;
+    item.enable_64qam        = cfg.sibs[1].sib2().rr_cfg_common.pusch_cfg_common.pusch_cfg_basic.enable64_qam;
+    item.initial_dl_cqi      = cfg.cell_list[ccidx].initial_dl_cqi;
+    item.target_ul_sinr      = cfg.cell_list[ccidx].target_ul_sinr_db;
+    item.enable_phr_handling = cfg.cell_list[ccidx].enable_phr_handling;
+    item.delta_pucch_shift   = cfg.sibs[1].sib2().rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
+    item.ncs_an              = cfg.sibs[1].sib2().rr_cfg_common.pucch_cfg_common.ncs_an;
+    item.n1pucch_an          = cfg.sibs[1].sib2().rr_cfg_common.pucch_cfg_common.n1_pucch_an;
+    item.nrb_cqi             = cfg.sibs[1].sib2().rr_cfg_common.pucch_cfg_common.nrb_cqi;
 
-    item.nrb_pucch = SRSLTE_MAX(cfg.sr_cfg.nof_prb, cfg.cqi_cfg.nof_prb);
-    rrc_log->info("Allocating %d PRBs for PUCCH\n", item.nrb_pucch);
+    item.nrb_pucch = SRSRAN_MAX(cfg.sr_cfg.nof_prb, cfg.cqi_cfg.nof_prb);
+    logger.info("Allocating %d PRBs for PUCCH", item.nrb_pucch);
 
     // Copy base cell configuration
     item.cell = cfg.cell;
@@ -614,7 +759,7 @@ void rrc::config_mac()
         return e.cell_id == scellitem.cell_id;
       });
       if (it == cfg.cell_list.end()) {
-        rrc_log->warning("Secondary cell 0x%x not configured\n", scellitem.cell_id);
+        logger.warning("Secondary cell 0x%x not configured", scellitem.cell_id);
         continue;
       }
       sched_interface::cell_cfg_t::scell_cfg_t scellcfg;
@@ -635,7 +780,9 @@ void rrc::config_mac()
  * Before packing the message, it patches the cell specific params of
  * the SIB, including the cellId and the PRACH config index.
  *
- * @return The number of SIBs messages per CC
+ * The number of generates SIB messages is stored in the class member nof_si_messages
+ *
+ * @return SRSRAN_SUCCESS on success, SRSRAN_ERROR on failure
  */
 uint32_t rrc::generate_sibs()
 {
@@ -644,11 +791,11 @@ uint32_t rrc::generate_sibs()
   sched_info_list_l& sched_info   = cfg.sib1.sched_info_list;
 
   // Store configs,SIBs in common cell ctxt list
-  cell_common_list.reset(new cell_info_common_list{cfg});
+  cell_common_list.reset(new enb_cell_common_list{cfg});
 
   // generate and pack into SIB buffers
   for (uint32_t cc_idx = 0; cc_idx < cfg.cell_list.size(); cc_idx++) {
-    cell_info_common* cell_ctxt = cell_common_list->get_cc_idx(cc_idx);
+    enb_cell_common* cell_ctxt = cell_common_list->get_cc_idx(cc_idx);
     // msg is array of SI messages, each SI message msg[i] may contain multiple SIBs
     // all SIBs in a SI message msg[i] share the same periodicity
     asn1::dyn_array<bcch_dl_sch_msg_s> msg(nof_messages + 1);
@@ -679,10 +826,15 @@ uint32_t rrc::generate_sibs()
 
     // Pack payload for all messages
     for (uint32_t msg_index = 0; msg_index < nof_messages; msg_index++) {
-      srslte::unique_byte_buffer_t sib_buffer = srslte::allocate_unique_buffer(*pool);
-      asn1::bit_ref                bref(sib_buffer->msg, sib_buffer->get_tailroom());
+      srsran::unique_byte_buffer_t sib_buffer = srsran::make_byte_buffer();
+      if (sib_buffer == nullptr) {
+        logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+        return SRSRAN_ERROR;
+      }
+      asn1::bit_ref bref(sib_buffer->msg, sib_buffer->get_tailroom());
       if (msg[msg_index].pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
-        rrc_log->error("Failed to pack SIB message %d\n", msg_index);
+        logger.error("Failed to pack SIB message %d", msg_index);
+        return SRSRAN_ERROR;
       }
       sib_buffer->N_bytes = bref.distance_bytes();
       cell_ctxt->sib_buffer.push_back(std::move(sib_buffer));
@@ -698,12 +850,94 @@ uint32_t rrc::generate_sibs()
     }
   }
 
-  return nof_messages;
+  nof_si_messages = nof_messages;
+
+  return SRSRAN_SUCCESS;
 }
 
-void rrc::configure_mbsfn_sibs(sib_type2_s* sib2_, sib_type13_r9_s* sib13_)
+void rrc::configure_mbsfn_sibs()
 {
-  // Temp assignment of MCCH, this will eventually come from a cfg file
+  // populate struct with sib2 values needed in PHY/MAC
+  srsran::sib2_mbms_t sibs2;
+  sibs2.mbsfn_sf_cfg_list_present = cfg.sibs[1].sib2().mbsfn_sf_cfg_list_present;
+  sibs2.nof_mbsfn_sf_cfg          = cfg.sibs[1].sib2().mbsfn_sf_cfg_list.size();
+  for (int i = 0; i < sibs2.nof_mbsfn_sf_cfg; i++) {
+    sibs2.mbsfn_sf_cfg_list[i].nof_alloc_subfrs = srsran::mbsfn_sf_cfg_t::sf_alloc_type_t::one_frame;
+    sibs2.mbsfn_sf_cfg_list[i].radioframe_alloc_offset =
+        cfg.sibs[1].sib2().mbsfn_sf_cfg_list[i].radioframe_alloc_offset;
+    sibs2.mbsfn_sf_cfg_list[i].radioframe_alloc_period =
+        (srsran::mbsfn_sf_cfg_t::alloc_period_t)cfg.sibs[1].sib2().mbsfn_sf_cfg_list[i].radioframe_alloc_period.value;
+    sibs2.mbsfn_sf_cfg_list[i].sf_alloc =
+        (uint32_t)cfg.sibs[1].sib2().mbsfn_sf_cfg_list[i].sf_alloc.one_frame().to_number();
+  }
+  // populate struct with sib13 values needed for PHY/MAC
+  srsran::sib13_t sibs13;
+  sibs13.notif_cfg.notif_offset = cfg.sibs[12].sib13_v920().notif_cfg_r9.notif_offset_r9;
+  sibs13.notif_cfg.notif_repeat_coeff =
+      (srsran::mbms_notif_cfg_t::coeff_t)cfg.sibs[12].sib13_v920().notif_cfg_r9.notif_repeat_coeff_r9.value;
+  sibs13.notif_cfg.notif_sf_idx = cfg.sibs[12].sib13_v920().notif_cfg_r9.notif_sf_idx_r9;
+  sibs13.nof_mbsfn_area_info    = cfg.sibs[12].sib13_v920().mbsfn_area_info_list_r9.size();
+  for (uint32_t i = 0; i < sibs13.nof_mbsfn_area_info; i++) {
+    sibs13.mbsfn_area_info_list[i].mbsfn_area_id =
+        cfg.sibs[12].sib13_v920().mbsfn_area_info_list_r9[i].mbsfn_area_id_r9;
+    sibs13.mbsfn_area_info_list[i].notif_ind        = cfg.sibs[12].sib13_v920().mbsfn_area_info_list_r9[i].notif_ind_r9;
+    sibs13.mbsfn_area_info_list[i].mcch_cfg.sig_mcs = (srsran::mbsfn_area_info_t::mcch_cfg_t::sig_mcs_t)cfg.sibs[12]
+                                                          .sib13_v920()
+                                                          .mbsfn_area_info_list_r9[i]
+                                                          .mcch_cfg_r9.sig_mcs_r9.value;
+    sibs13.mbsfn_area_info_list[i].mcch_cfg.sf_alloc_info =
+        cfg.sibs[12].sib13_v920().mbsfn_area_info_list_r9[i].mcch_cfg_r9.sf_alloc_info_r9.to_number();
+    sibs13.mbsfn_area_info_list[i].mcch_cfg.mcch_repeat_period =
+        (srsran::mbsfn_area_info_t::mcch_cfg_t::repeat_period_t)cfg.sibs[12]
+            .sib13_v920()
+            .mbsfn_area_info_list_r9[i]
+            .mcch_cfg_r9.mcch_repeat_period_r9.value;
+    sibs13.mbsfn_area_info_list[i].mcch_cfg.mcch_offset =
+        cfg.sibs[12].sib13_v920().mbsfn_area_info_list_r9[i].mcch_cfg_r9.mcch_offset_r9;
+    sibs13.mbsfn_area_info_list[i].mcch_cfg.mcch_mod_period =
+        (srsran::mbsfn_area_info_t::mcch_cfg_t::mod_period_t)cfg.sibs[12]
+            .sib13_v920()
+            .mbsfn_area_info_list_r9[i]
+            .mcch_cfg_r9.mcch_mod_period_r9.value;
+    sibs13.mbsfn_area_info_list[i].non_mbsfn_region_len = (srsran::mbsfn_area_info_t::region_len_t)cfg.sibs[12]
+                                                              .sib13_v920()
+                                                              .mbsfn_area_info_list_r9[i]
+                                                              .non_mbsfn_region_len.value;
+    sibs13.mbsfn_area_info_list[i].notif_ind = cfg.sibs[12].sib13_v920().mbsfn_area_info_list_r9[i].notif_ind_r9;
+  }
+
+  // pack MCCH for transmission and pass relevant MCCH values to PHY/MAC
+  pack_mcch();
+  srsran::mcch_msg_t mcch_t;
+  mcch_t.common_sf_alloc_period         = srsran::mcch_msg_t::common_sf_alloc_period_t::rf64;
+  mcch_t.nof_common_sf_alloc            = 1;
+  srsran::mbsfn_sf_cfg_t sf_alloc_item  = mcch_t.common_sf_alloc[0];
+  sf_alloc_item.radioframe_alloc_offset = 0;
+  sf_alloc_item.radioframe_alloc_period = srsran::mbsfn_sf_cfg_t::alloc_period_t::n1;
+  sf_alloc_item.sf_alloc                = 63;
+  mcch_t.nof_pmch_info                  = 1;
+  srsran::pmch_info_t* pmch_item        = &mcch_t.pmch_info_list[0];
+
+  pmch_item->nof_mbms_session_info              = 1;
+  pmch_item->mbms_session_info_list[0].lc_ch_id = 1;
+  if (pmch_item->nof_mbms_session_info > 1) {
+    pmch_item->mbms_session_info_list[1].lc_ch_id = 2;
+  }
+  uint16_t mbms_mcs = cfg.mbms_mcs;
+  if (mbms_mcs > 28) {
+    mbms_mcs = 28; // TS 36.213, Table 8.6.1-1
+    logger.warning("PMCH data MCS too high, setting it to 28");
+  }
+  logger.debug("PMCH data MCS=%d", mbms_mcs);
+  pmch_item->data_mcs         = mbms_mcs;
+  pmch_item->mch_sched_period = srsran::pmch_info_t::mch_sched_period_t::rf64;
+  pmch_item->sf_alloc_end     = 64 * 6;
+  phy->configure_mbsfn(&sibs2, &sibs13, mcch_t);
+  mac->write_mcch(&sibs2, &sibs13, &mcch_t, mcch_payload_buffer, current_mcch_length);
+}
+
+int rrc::pack_mcch()
+{
   mcch.msg.set_c1();
   mbsfn_area_cfg_r9_s& area_cfg_r9      = mcch.msg.c1().mbsfn_area_cfg_r9();
   area_cfg_r9.common_sf_alloc_period_r9 = mbsfn_area_cfg_r9_s::common_sf_alloc_period_r9_e_::rf64;
@@ -721,9 +955,9 @@ void rrc::configure_mbsfn_sibs(sib_type2_s* sib2_, sib_type13_r9_s* sib13_)
   pmch_item->mbms_session_info_list_r9[0].session_id_r9_present = true;
   pmch_item->mbms_session_info_list_r9[0].session_id_r9[0]      = 0;
   pmch_item->mbms_session_info_list_r9[0].tmgi_r9.plmn_id_r9.set_explicit_value_r9();
-  srslte::plmn_id_t plmn_obj;
+  srsran::plmn_id_t plmn_obj;
   plmn_obj.from_string("00003");
-  srslte::to_asn1(&pmch_item->mbms_session_info_list_r9[0].tmgi_r9.plmn_id_r9.explicit_value_r9(), plmn_obj);
+  srsran::to_asn1(&pmch_item->mbms_session_info_list_r9[0].tmgi_r9.plmn_id_r9.explicit_value_r9(), plmn_obj);
   uint8_t byte[] = {0x0, 0x0, 0x0};
   memcpy(&pmch_item->mbms_session_info_list_r9[0].tmgi_r9.service_id_r9[0], &byte[0], 3);
 
@@ -742,16 +976,20 @@ void rrc::configure_mbsfn_sibs(sib_type2_s* sib2_, sib_type13_r9_s* sib13_)
   uint16_t mbms_mcs = cfg.mbms_mcs;
   if (mbms_mcs > 28) {
     mbms_mcs = 28; // TS 36.213, Table 8.6.1-1
-    rrc_log->warning("PMCH data MCS too high, setting it to 28\n");
+    logger.warning("PMCH data MCS too high, setting it to 28");
   }
 
-  rrc_log->debug("PMCH data MCS=%d\n", mbms_mcs);
+  logger.debug("PMCH data MCS=%d", mbms_mcs);
   pmch_item->pmch_cfg_r9.data_mcs_r9         = mbms_mcs;
   pmch_item->pmch_cfg_r9.mch_sched_period_r9 = pmch_cfg_r9_s::mch_sched_period_r9_e_::rf64;
   pmch_item->pmch_cfg_r9.sf_alloc_end_r9     = 64 * 6;
 
-  phy->configure_mbsfn(sib2_, sib13_, mcch);
-  mac->write_mcch(sib2_, sib13_, &mcch);
+  const int     rlc_header_len = 1;
+  asn1::bit_ref bref(&mcch_payload_buffer[rlc_header_len], sizeof(mcch_payload_buffer) - rlc_header_len);
+  mcch.pack(bref);
+  current_mcch_length = bref.distance_bytes(&mcch_payload_buffer[1]);
+  current_mcch_length = current_mcch_length + rlc_header_len;
+  return current_mcch_length;
 }
 
 /*******************************************************************************
@@ -762,26 +1000,26 @@ void rrc::tti_clock()
 {
   // pop cmds from queue
   rrc_pdu p;
-  while (rx_pdu_queue.try_pop(&p)) {
+  while (rx_pdu_queue.try_pop(p)) {
     // print Rx PDU
     if (p.pdu != nullptr) {
-      rrc_log->info_hex(p.pdu->msg, p.pdu->N_bytes, "Rx %s PDU", to_string((rb_id_t)p.lcid));
+      logger.info(p.pdu->msg, p.pdu->N_bytes, "Rx %s PDU", get_rb_name(p.lcid));
     }
 
     // check if user exists
     auto user_it = users.find(p.rnti);
     if (user_it == users.end()) {
-      rrc_log->warning("Discarding PDU for removed rnti=0x%x\n", p.rnti);
+      logger.warning("Discarding PDU for removed rnti=0x%x", p.rnti);
       continue;
     }
 
     // handle queue cmd
     switch (p.lcid) {
-      case RB_ID_SRB0:
+      case srb_to_lcid(lte_srb::srb0):
         parse_ul_ccch(p.rnti, std::move(p.pdu));
         break;
-      case RB_ID_SRB1:
-      case RB_ID_SRB2:
+      case srb_to_lcid(lte_srb::srb1):
+      case srb_to_lcid(lte_srb::srb2):
         parse_ul_dcch(p.rnti, p.lcid, std::move(p.pdu));
         break;
       case LCID_REM_USER:
@@ -793,11 +1031,20 @@ void rrc::tti_clock()
       case LCID_ACT_USER:
         user_it->second->set_activity();
         break;
+      case LCID_RADLINK_DL:
+        user_it->second->set_radiolink_dl_state(p.arg);
+        break;
+      case LCID_RADLINK_UL:
+        user_it->second->set_radiolink_ul_state(p.arg);
+        break;
+      case LCID_RTX_USER:
+        user_it->second->max_retx_reached();
+        break;
       case LCID_EXIT:
-        rrc_log->info("Exiting thread\n");
+        logger.info("Exiting thread");
         break;
       default:
-        rrc_log->error("Rx PDU with invalid bearer id: %d", p.lcid);
+        logger.error("Rx PDU with invalid bearer id: %d", p.lcid);
         break;
     }
   }

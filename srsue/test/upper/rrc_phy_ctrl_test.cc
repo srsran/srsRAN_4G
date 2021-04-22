@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,13 +19,11 @@
  *
  */
 
-#include "srslte/common/test_common.h"
-#include "srslte/test/ue_test_interfaces.h"
+#include "srsran/common/test_common.h"
+#include "srsran/test/ue_test_interfaces.h"
 #include "srsue/hdr/stack/rrc/phy_controller.h"
 
 namespace srsue {
-
-srslte::log_ref test_log{"TEST"};
 
 struct cell_search_result_test {
   cell_search_result_test(phy_controller* phy_ctrl_) : phy_ctrl(phy_ctrl_) {}
@@ -36,8 +34,8 @@ struct cell_search_result_test {
     result         = result_;
 
     if (phy_ctrl->current_state_name() == "searching_cell" or phy_ctrl->is_trigger_locked()) {
-      phy_ctrl->get_log()->error(
-          "When caller is signalled with cell search result, cell search state cannot be active\n");
+      phy_ctrl->get_logger().error(
+          "When caller is signalled with cell search result, cell search state cannot be active");
       exit(1);
     }
   }
@@ -54,16 +52,16 @@ struct cell_select_result_test {
   {
     result = result_ ? 1 : 0;
     if (phy_ctrl->current_state_name() == "selecting_cell" or phy_ctrl->is_trigger_locked()) {
-      phy_ctrl->get_log()->error(
-          "When caller is signalled with cell select result, cell select state cannot be active\n");
+      phy_ctrl->get_logger().error(
+          "When caller is signalled with cell select result, cell select state cannot be active");
       exit(1);
     }
 
     // start a new cell selection right away
     if (counter++ < 1) {
       phy_cell_t new_cell = {};
-      new_cell.pci    = 3;
-      new_cell.earfcn = 3400;
+      new_cell.pci        = 3;
+      new_cell.earfcn     = 3400;
       phy_ctrl->start_cell_select(new_cell, *this);
     }
   }
@@ -74,7 +72,7 @@ struct cell_select_result_test {
 
 int test_phy_ctrl_fsm()
 {
-  srslte::task_scheduler  task_sched;
+  srsran::task_scheduler  task_sched;
   phy_dummy_interface     phy;
   phy_controller          phy_ctrl{&phy, &task_sched};
   cell_search_result_test csearch_tester{&phy_ctrl};
@@ -170,7 +168,7 @@ int test_phy_ctrl_fsm()
 
   phy_ctrl.start_cell_select(found_cell, csel_tester);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 class phy_test_dummy : public phy_dummy_interface
@@ -184,7 +182,7 @@ public:
 /// TEST: Check if controller handles the case when PHY fails to init cell selection
 int test_phy_cell_select_init_error_handling()
 {
-  srslte::task_scheduler task_sched;
+  srsran::task_scheduler task_sched;
   phy_test_dummy         phy;
   phy_controller         phy_ctrl{&phy, &task_sched};
   phy_cell_t             found_cell{};
@@ -202,9 +200,15 @@ int test_phy_cell_select_init_error_handling()
 
 int main()
 {
-  srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_INFO);
+  auto& test_logger = srslog::fetch_basic_logger("TEST", false);
+  test_logger.set_level(srslog::basic_levels::info);
+  test_logger.set_hex_dump_max_size(-1);
+  auto& RRC_logger = srslog::fetch_basic_logger("RRC", false);
+  RRC_logger.set_level(srslog::basic_levels::info);
+  RRC_logger.set_hex_dump_max_size(-1);
+  srslog::init();
 
-  TESTASSERT(srsue::test_phy_ctrl_fsm() == SRSLTE_SUCCESS);
-  TESTASSERT(srsue::test_phy_cell_select_init_error_handling() == SRSLTE_SUCCESS);
-  srsue::test_log->info("Finished RRC PHY controller test successfully\n");
+  TESTASSERT(srsue::test_phy_ctrl_fsm() == SRSRAN_SUCCESS);
+  TESTASSERT(srsue::test_phy_cell_select_init_error_handling() == SRSRAN_SUCCESS);
+  test_logger.info("Finished RRC PHY controller test successfully");
 }

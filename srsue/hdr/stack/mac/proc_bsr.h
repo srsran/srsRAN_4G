@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -26,13 +26,15 @@
 #include <stdint.h>
 
 #include "proc_sr.h"
-#include "srslte/common/logmap.h"
-#include "srslte/common/timers.h"
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srsran/common/task_scheduler.h"
+#include "srsran/srslog/srslog.h"
+#include "srsue/hdr/stack/mac_common/mac_common.h"
 
 /* Buffer status report procedure */
 
 namespace srsue {
+
+class rlc_interface_mac;
 
 // BSR interface for MUX
 class bsr_interface_mux
@@ -55,15 +57,14 @@ public:
   virtual void update_bsr_tti_end(const bsr_t* bsr) = 0;
 };
 
-class bsr_proc : public srslte::timer_callback, public bsr_interface_mux
+class bsr_proc : public srsran::timer_callback, public bsr_interface_mux
 {
 public:
-  bsr_proc();
-  void
-       init(sr_proc* sr_proc, rlc_interface_mac* rlc, srslte::log_ref log_h, srslte::ext_task_sched_handle* task_sched_);
+  explicit bsr_proc(srslog::basic_logger& logger) : logger(logger) {}
+  void init(sr_proc* sr_proc, rlc_interface_mac* rlc, srsran::ext_task_sched_handle* task_sched_);
   void step(uint32_t tti);
   void reset();
-  void set_config(srslte::bsr_cfg_t& bsr_cfg);
+  void set_config(srsran::bsr_cfg_t& bsr_cfg);
 
   void     setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority);
   void     timer_expired(uint32_t timer_id);
@@ -77,12 +78,12 @@ private:
 
   std::mutex mutex;
 
-  srslte::ext_task_sched_handle* task_sched = nullptr;
-  srslte::log_ref                log_h;
+  srsran::ext_task_sched_handle* task_sched = nullptr;
+  srslog::basic_logger&          logger;
   rlc_interface_mac*             rlc = nullptr;
   sr_proc*                       sr  = nullptr;
 
-  srslte::bsr_cfg_t bsr_cfg;
+  srsran::bsr_cfg_t bsr_cfg;
 
   bool initiated = false;
 
@@ -96,12 +97,14 @@ private:
 
   std::map<uint32_t, lcid_t> lcgs[NOF_LCG]; // groups LCID in LCG
 
+  mac_buffer_states_t old_buffer_state;
+
   uint32_t find_max_priority_lcg_with_data();
-  typedef enum { NONE, REGULAR, PADDING, PERIODIC } triggered_bsr_type_t;
-  triggered_bsr_type_t triggered_bsr_type = NONE;
+
+  bsr_trigger_type_t triggered_bsr_type = NONE;
 
   void     print_state();
-  void     set_trigger(triggered_bsr_type_t new_trigger);
+  void     set_trigger(bsr_trigger_type_t new_trigger);
   void     update_new_data();
   void     update_old_buffer();
   bool     check_highest_channel();
@@ -109,12 +112,12 @@ private:
   bool     check_any_channel();
   uint32_t get_buffer_state_lcg(uint32_t lcg);
   bool     generate_bsr(bsr_t* bsr, uint32_t nof_padding_bytes);
-  char*    bsr_type_tostring(triggered_bsr_type_t type);
+  char*    bsr_type_tostring(bsr_trigger_type_t type);
   char*    bsr_format_tostring(bsr_format_t format);
 
-  srslte::timer_handler::unique_timer timer_periodic;
-  srslte::timer_handler::unique_timer timer_retx;
-  srslte::timer_handler::unique_timer timer_queue_status_print;
+  srsran::timer_handler::unique_timer timer_periodic;
+  srsran::timer_handler::unique_timer timer_retx;
+  srsran::timer_handler::unique_timer timer_queue_status_print;
 };
 
 } // namespace srsue

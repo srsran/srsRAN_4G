@@ -1,14 +1,14 @@
 #
-# Copyright 2013-2020 Software Radio Systems Limited
+# Copyright 2013-2021 Software Radio Systems Limited
 #
-# This file is part of srsLTE
+# This file is part of srsRAN
 #
-# srsLTE is free software: you can redistribute it and/or modify
+# srsRAN is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of
 # the License, or (at your option) any later version.
 #
-# srsLTE is distributed in the hope that it will be useful,
+# srsRAN is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Affero General Public License for more details.
@@ -23,7 +23,7 @@
 ########################################################################
 
 add_executable(modem_test modem_test.c)
-target_link_libraries(modem_test srslte_phy)
+target_link_libraries(modem_test srsran_phy)
 
 add_test(modem_bpsk modem_test -n 1024 -m 1) 
 add_test(modem_qpsk modem_test -n 1024 -m 2)
@@ -38,7 +38,7 @@ add_test(modem_qam64_soft modem_test -n 1008 -m 6)
 add_test(modem_qam256_soft modem_test -n 1024 -m 8)
  
 add_executable(soft_demod_test soft_demod_test.c)
-target_link_libraries(soft_demod_test srslte_phy)
+target_link_libraries(soft_demod_test srsran_phy)
 
  
 

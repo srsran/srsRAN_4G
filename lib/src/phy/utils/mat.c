@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -22,28 +22,28 @@
 #include <complex.h>
 #include <math.h>
 #include <memory.h>
-#include <srslte/phy/utils/vector.h>
-#include <srslte/phy/utils/vector_simd.h>
+#include <srsran/phy/utils/vector.h>
+#include <srsran/phy/utils/vector_simd.h>
 #include <stdlib.h>
 
-#include "srslte/phy/utils/mat.h"
+#include "srsran/phy/utils/mat.h"
 
 /* Generic implementation for complex reciprocal */
-inline cf_t srslte_mat_cf_recip_gen(cf_t a)
+inline cf_t srsran_mat_cf_recip_gen(cf_t a)
 {
   return conjf(a) / (crealf(a) * crealf(a) + cimagf(a) * cimagf(a));
 }
 
 /* Generic implementation for 2x2 determinant */
-inline cf_t srslte_mat_2x2_det_gen(cf_t a00, cf_t a01, cf_t a10, cf_t a11)
+inline cf_t srsran_mat_2x2_det_gen(cf_t a00, cf_t a01, cf_t a10, cf_t a11)
 {
   return a00 * a11 - a01 * a10;
 }
 
 /* 2x2 Matrix inversion, generic implementation */
-inline void srslte_mat_2x2_inv_gen(cf_t a00, cf_t a01, cf_t a10, cf_t a11, cf_t* r00, cf_t* r01, cf_t* r10, cf_t* r11)
+inline void srsran_mat_2x2_inv_gen(cf_t a00, cf_t a01, cf_t a10, cf_t a11, cf_t* r00, cf_t* r01, cf_t* r10, cf_t* r11)
 {
-  cf_t div = srslte_mat_cf_recip_gen(srslte_mat_2x2_det_gen(a00, a01, a10, a11));
+  cf_t div = srsran_mat_cf_recip_gen(srsran_mat_2x2_det_gen(a00, a01, a10, a11));
   *r00     = a11 * div;
   *r01     = -a01 * div;
   *r10     = -a10 * div;
@@ -52,15 +52,15 @@ inline void srslte_mat_2x2_inv_gen(cf_t a00, cf_t a01, cf_t a10, cf_t a11, cf_t*
 
 /* Generic implementation for Zero Forcing (ZF) solver */
 inline void
-srslte_mat_2x2_zf_gen(cf_t y0, cf_t y1, cf_t h00, cf_t h01, cf_t h10, cf_t h11, cf_t* x0, cf_t* x1, float norm)
+srsran_mat_2x2_zf_gen(cf_t y0, cf_t y1, cf_t h00, cf_t h01, cf_t h10, cf_t h11, cf_t* x0, cf_t* x1, float norm)
 {
-  cf_t _norm = srslte_mat_cf_recip_gen(srslte_mat_2x2_det_gen(h00, h01, h10, h11)) * norm;
+  cf_t _norm = srsran_mat_cf_recip_gen(srsran_mat_2x2_det_gen(h00, h01, h10, h11)) * norm;
   *x0        = (y0 * h11 - h01 * y1) * _norm;
   *x1        = (y1 * h00 - h10 * y0) * _norm;
 }
 
 /* Generic implementation for Minimum Mean Squared Error (MMSE) solver */
-inline void srslte_mat_2x2_mmse_csi_gen(cf_t   y0,
+inline void srsran_mat_2x2_mmse_csi_gen(cf_t   y0,
                                         cf_t   y1,
                                         cf_t   h00,
                                         cf_t   h01,
@@ -84,7 +84,7 @@ inline void srslte_mat_2x2_mmse_csi_gen(cf_t   y0,
   cf_t a01       = _h00 * h01 + _h10 * h11;
   cf_t a10       = _h01 * h00 + _h11 * h10;
   cf_t a11       = _h01 * h01 + _h11 * h11 + noise_estimate;
-  cf_t a_det_rcp = srslte_mat_cf_recip_gen(srslte_mat_2x2_det_gen(a00, a01, a10, a11));
+  cf_t a_det_rcp = srsran_mat_cf_recip_gen(srsran_mat_2x2_det_gen(a00, a01, a10, a11));
 
   /* 2. B = inv(H' x H + No) = inv(A) */
   cf_t _norm = norm * a_det_rcp;
@@ -109,7 +109,7 @@ inline void srslte_mat_2x2_mmse_csi_gen(cf_t   y0,
 }
 
 /* Generic implementation for Minimum Mean Squared Error (MMSE) solver */
-void srslte_mat_2x2_mmse_gen(cf_t  y0,
+void srsran_mat_2x2_mmse_gen(cf_t  y0,
                              cf_t  y1,
                              cf_t  h00,
                              cf_t  h01,
@@ -121,10 +121,10 @@ void srslte_mat_2x2_mmse_gen(cf_t  y0,
                              float norm)
 {
   float csi0, csi1;
-  srslte_mat_2x2_mmse_csi_gen(y0, y1, h00, h01, h10, h11, x0, x1, &csi0, &csi1, noise_estimate, norm);
+  srsran_mat_2x2_mmse_csi_gen(y0, y1, h00, h01, h10, h11, x0, x1, &csi0, &csi1, noise_estimate, norm);
 }
 
-int srslte_mat_2x2_cn(cf_t h00, cf_t h01, cf_t h10, cf_t h11, float* cn)
+int srsran_mat_2x2_cn(cf_t h00, cf_t h01, cf_t h10, cf_t h11, float* cn)
 {
   // 1. A = H * H' (A = A')
   float a00 =
@@ -144,25 +144,25 @@ int srslte_mat_2x2_cn(cf_t h00, cf_t h01, cf_t h10, cf_t h11, float* cn)
 
   // 4. Make sure NAN or INF are not propagated
   if (isnan(xmin) || isinf(xmin) || isnan(xmax) || isinf(xmax)) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // 5. Bound xmin and xmax
-  xmin = SRSLTE_MAX(xmin, 1e-9f);
-  xmax = SRSLTE_MIN(xmax, 1e+9f);
+  xmin = SRSRAN_MAX(xmin, 1e-9f);
+  xmax = SRSRAN_MIN(xmax, 1e+9f);
 
   // 6. κ = sqrt(λ_max / λ_min)
   if (cn != NULL) {
     *cn = 10.0f * log10f(xmax / xmin);
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 #ifdef LV_HAVE_SSE
 #include <smmintrin.h>
 
 /* SSE implementation for complex reciprocal */
-inline __m128 srslte_mat_cf_recip_sse(__m128 a)
+inline __m128 srsran_mat_cf_recip_sse(__m128 a)
 {
   __m128 conj  = _MM_CONJ_PS(a);
   __m128 sqabs = _mm_mul_ps(a, a);
@@ -174,13 +174,13 @@ inline __m128 srslte_mat_cf_recip_sse(__m128 a)
 }
 
 /* SSE implementation for 2x2 determinant */
-inline __m128 srslte_mat_2x2_det_sse(__m128 a00, __m128 a01, __m128 a10, __m128 a11)
+inline __m128 srsran_mat_2x2_det_sse(__m128 a00, __m128 a01, __m128 a10, __m128 a11)
 {
   return _mm_sub_ps(_MM_PROD_PS(a00, a11), _MM_PROD_PS(a01, a10));
 }
 
 /* SSE implementation for Zero Forcing (ZF) solver */
-inline void srslte_mat_2x2_zf_sse(__m128  y0,
+inline void srsran_mat_2x2_zf_sse(__m128  y0,
                                   __m128  y1,
                                   __m128  h00,
                                   __m128  h01,
@@ -194,14 +194,14 @@ inline void srslte_mat_2x2_zf_sse(__m128  y0,
   __m128 detmult2 = _MM_PROD_PS(h01, h10);
 
   __m128 det    = _mm_sub_ps(detmult1, detmult2);
-  __m128 detrec = _mm_mul_ps(srslte_mat_cf_recip_sse(det), _mm_set1_ps(norm));
+  __m128 detrec = _mm_mul_ps(srsran_mat_cf_recip_sse(det), _mm_set1_ps(norm));
 
   *x0 = _MM_PROD_PS(_mm_sub_ps(_MM_PROD_PS(h11, y0), _MM_PROD_PS(h01, y1)), detrec);
   *x1 = _MM_PROD_PS(_mm_sub_ps(_MM_PROD_PS(h00, y1), _MM_PROD_PS(h10, y0)), detrec);
 }
 
 /* SSE implementation for Minimum Mean Squared Error (MMSE) solver */
-inline void srslte_mat_2x2_mmse_sse(__m128  y0,
+inline void srsran_mat_2x2_mmse_sse(__m128  y0,
                                     __m128  y1,
                                     __m128  h00,
                                     __m128  h01,
@@ -232,7 +232,7 @@ inline void srslte_mat_2x2_mmse_sse(__m128  y0,
   __m128 b01 = _mm_xor_ps(a01, _mm_set1_ps(-0.0f));
   __m128 b10 = _mm_xor_ps(a10, _mm_set1_ps(-0.0f));
   __m128 b11 = a00;
-  _norm      = _mm_mul_ps(_norm, srslte_mat_cf_recip_sse(srslte_mat_2x2_det_sse(a00, a01, a10, a11)));
+  _norm      = _mm_mul_ps(_norm, srsran_mat_cf_recip_sse(srsran_mat_2x2_det_sse(a00, a01, a10, a11)));
 
   /* 3. W = inv(H' x H + No) x H' = B x H' */
   __m128 w00 = _mm_add_ps(_MM_PROD_PS(b00, _h00), _MM_PROD_PS(b01, _h01));
@@ -249,10 +249,10 @@ inline void srslte_mat_2x2_mmse_sse(__m128  y0,
 
 #ifdef LV_HAVE_AVX
 #include <immintrin.h>
-#include <srslte/phy/utils/vector.h>
+#include <srsran/phy/utils/vector.h>
 
 /* AVX implementation for complex reciprocal */
-inline __m256 srslte_mat_cf_recip_avx(__m256 a)
+inline __m256 srsran_mat_cf_recip_avx(__m256 a)
 {
   __m256 conj  = _MM256_CONJ_PS(a);
   __m256 sqabs = _mm256_mul_ps(a, a);
@@ -264,7 +264,7 @@ inline __m256 srslte_mat_cf_recip_avx(__m256 a)
 }
 
 /* AVX implementation for 2x2 determinant */
-inline __m256 srslte_mat_2x2_det_avx(__m256 a00, __m256 a01, __m256 a10, __m256 a11)
+inline __m256 srsran_mat_2x2_det_avx(__m256 a00, __m256 a01, __m256 a10, __m256 a11)
 {
 #ifdef LV_HAVE_FMA
   return _MM256_PROD_SUB_PS(a00, a11, _MM256_PROD_PS(a01, a10));
@@ -274,7 +274,7 @@ inline __m256 srslte_mat_2x2_det_avx(__m256 a00, __m256 a01, __m256 a10, __m256 
 }
 
 /* AVX implementation for Zero Forcing (ZF) solver */
-inline void srslte_mat_2x2_zf_avx(__m256  y0,
+inline void srsran_mat_2x2_zf_avx(__m256  y0,
                                   __m256  y1,
                                   __m256  h00,
                                   __m256  h01,
@@ -284,9 +284,8 @@ inline void srslte_mat_2x2_zf_avx(__m256  y0,
                                   __m256* x1,
                                   float   norm)
 {
-
-  __m256 det    = srslte_mat_2x2_det_avx(h00, h01, h10, h11);
-  __m256 detrec = _mm256_mul_ps(srslte_mat_cf_recip_avx(det), _mm256_set1_ps(norm));
+  __m256 det    = srsran_mat_2x2_det_avx(h00, h01, h10, h11);
+  __m256 detrec = _mm256_mul_ps(srsran_mat_cf_recip_avx(det), _mm256_set1_ps(norm));
 
 #ifdef LV_HAVE_FMA
   *x0 = _MM256_PROD_PS(_MM256_PROD_SUB_PS(h11, y0, _MM256_PROD_PS(h01, y1)), detrec);
@@ -298,7 +297,7 @@ inline void srslte_mat_2x2_zf_avx(__m256  y0,
 }
 
 /* AVX implementation for Minimum Mean Squared Error (MMSE) solver */
-inline void srslte_mat_2x2_mmse_avx(__m256  y0,
+inline void srsran_mat_2x2_mmse_avx(__m256  y0,
                                     __m256  y1,
                                     __m256  h00,
                                     __m256  h01,
@@ -337,7 +336,7 @@ inline void srslte_mat_2x2_mmse_avx(__m256  y0,
   __m256 b01 = _mm256_xor_ps(a01, _mm256_set1_ps(-0.0f));
   __m256 b10 = _mm256_xor_ps(a10, _mm256_set1_ps(-0.0f));
   __m256 b11 = a00;
-  _norm      = _mm256_mul_ps(_norm, srslte_mat_cf_recip_avx(srslte_mat_2x2_det_avx(a00, a01, a10, a11)));
+  _norm      = _mm256_mul_ps(_norm, srsran_mat_cf_recip_avx(srsran_mat_2x2_det_avx(a00, a01, a10, a11)));
 
   /* 3. W = inv(H' x H + No) x H' = B x H' */
 #ifdef LV_HAVE_FMA
@@ -364,27 +363,27 @@ inline void srslte_mat_2x2_mmse_avx(__m256  y0,
 
 #endif /* LV_HAVE_AVX */
 
-int srslte_matrix_NxN_inv_init(srslte_matrix_NxN_inv_t* q, uint32_t N)
+int srsran_matrix_NxN_inv_init(srsran_matrix_NxN_inv_t* q, uint32_t N)
 {
-  int ret = SRSLTE_SUCCESS;
+  int ret = SRSRAN_SUCCESS;
 
   if (q && N) {
     // Set all to zero
-    bzero(q, sizeof(srslte_matrix_NxN_inv_t));
+    bzero(q, sizeof(srsran_matrix_NxN_inv_t));
 
     q->N = N;
 
-    q->row_buffer = srslte_vec_cf_malloc(N * 2);
+    q->row_buffer = srsran_vec_cf_malloc(N * 2);
     if (!q->row_buffer) {
       perror("malloc");
-      ret = SRSLTE_ERROR;
+      ret = SRSRAN_ERROR;
     }
 
     if (!ret) {
-      q->matrix = srslte_vec_cf_malloc(N * N * 2);
+      q->matrix = srsran_vec_cf_malloc(N * N * 2);
       if (!q->matrix) {
         perror("malloc");
-        ret = SRSLTE_ERROR;
+        ret = SRSRAN_ERROR;
       }
     }
   }
@@ -392,26 +391,26 @@ int srslte_matrix_NxN_inv_init(srslte_matrix_NxN_inv_t* q, uint32_t N)
   return ret;
 }
 
-static inline void srslte_vec_sc_prod_ccc_simd_inline(const cf_t* x, const cf_t h, cf_t* z, const int len)
+static inline void srsran_vec_sc_prod_ccc_simd_inline(const cf_t* x, const cf_t h, cf_t* z, const int len)
 {
   int i = 0;
 
-#if SRSLTE_SIMD_F_SIZE
+#if SRSRAN_SIMD_F_SIZE
 
 #ifdef HAVE_NEON
-  i = srslte_vec_sc_prod_ccc_simd2(x, h, z, len);
+  i = srsran_vec_sc_prod_ccc_simd2(x, h, z, len);
 #else
-  const simd_f_t hre = srslte_simd_f_set1(__real__ h);
-  const simd_f_t him = srslte_simd_f_set1(__imag__ h);
+  const simd_f_t hre = srsran_simd_f_set1(__real__ h);
+  const simd_f_t him = srsran_simd_f_set1(__imag__ h);
 
-  for (; i < len - SRSLTE_SIMD_F_SIZE / 2 + 1; i += SRSLTE_SIMD_F_SIZE / 2) {
-    simd_f_t temp = srslte_simd_f_load((float*)&x[i]);
+  for (; i < len - SRSRAN_SIMD_F_SIZE / 2 + 1; i += SRSRAN_SIMD_F_SIZE / 2) {
+    simd_f_t temp = srsran_simd_f_load((float*)&x[i]);
 
-    simd_f_t m1 = srslte_simd_f_mul(hre, temp);
-    simd_f_t sw = srslte_simd_f_swap(temp);
-    simd_f_t m2 = srslte_simd_f_mul(him, sw);
-    simd_f_t r  = srslte_simd_f_addsub(m1, m2);
-    srslte_simd_f_store((float*)&z[i], r);
+    simd_f_t m1 = srsran_simd_f_mul(hre, temp);
+    simd_f_t sw = srsran_simd_f_swap(temp);
+    simd_f_t m2 = srsran_simd_f_mul(him, sw);
+    simd_f_t r  = srsran_simd_f_addsub(m1, m2);
+    srsran_simd_f_store((float*)&z[i], r);
   }
 
 #endif
@@ -422,19 +421,19 @@ static inline void srslte_vec_sc_prod_ccc_simd_inline(const cf_t* x, const cf_t 
   }
 }
 
-static inline void srslte_vec_sub_fff_simd_inline(const float* x, const float* y, float* z, const int len)
+static inline void srsran_vec_sub_fff_simd_inline(const float* x, const float* y, float* z, const int len)
 {
   int i = 0;
 
-#if SRSLTE_SIMD_F_SIZE
+#if SRSRAN_SIMD_F_SIZE
 
-  for (; i < len - SRSLTE_SIMD_F_SIZE + 1; i += SRSLTE_SIMD_F_SIZE) {
-    simd_f_t a = srslte_simd_f_loadu(&x[i]);
-    simd_f_t b = srslte_simd_f_loadu(&y[i]);
+  for (; i < len - SRSRAN_SIMD_F_SIZE + 1; i += SRSRAN_SIMD_F_SIZE) {
+    simd_f_t a = srsran_simd_f_loadu(&x[i]);
+    simd_f_t b = srsran_simd_f_loadu(&y[i]);
 
-    simd_f_t r = srslte_simd_f_sub(a, b);
+    simd_f_t r = srsran_simd_f_sub(a, b);
 
-    srslte_simd_f_storeu(&z[i], r);
+    srsran_simd_f_storeu(&z[i], r);
   }
 #endif
 
@@ -443,9 +442,9 @@ static inline void srslte_vec_sub_fff_simd_inline(const float* x, const float* y
   }
 }
 
-static inline void srslte_vec_sub_ccc_simd_inline(const cf_t* x, const cf_t* y, cf_t* z, const int len)
+static inline void srsran_vec_sub_ccc_simd_inline(const cf_t* x, const cf_t* y, cf_t* z, const int len)
 {
-  srslte_vec_sub_fff_simd_inline((float*)x, (float*)y, (float*)z, 2 * len);
+  srsran_vec_sub_fff_simd_inline((float*)x, (float*)y, (float*)z, 2 * len);
 }
 
 static inline cf_t reciprocal(cf_t x)
@@ -466,7 +465,7 @@ static inline float _cabs2(cf_t x)
   return __real__ x * __real__ x + __imag__ x * __imag__ x;
 }
 
-void srslte_matrix_NxN_inv_run(srslte_matrix_NxN_inv_t* q, cf_t* in, cf_t* out)
+void srsran_matrix_NxN_inv_run(srsran_matrix_NxN_inv_t* q, cf_t* in, cf_t* out)
 {
   if (q && in && out) {
     int   N = q->N;
@@ -513,35 +512,35 @@ void srslte_matrix_NxN_inv_run(srslte_matrix_NxN_inv_t* q, cf_t* in, cf_t* out)
 
       tmp_src_ptr = &q->matrix[N * 2 * row_i]; // Select row
       cf_t b      = tmp_src_ptr[col_i];
-      srslte_vec_sc_prod_ccc_simd_inline(tmp_src_ptr, reciprocal(b), tmp_src_ptr, 2 * N);
+      srsran_vec_sc_prod_ccc_simd_inline(tmp_src_ptr, reciprocal(b), tmp_src_ptr, 2 * N);
 
       for (int j = 0; j < N - i - 1; j++) {
         cf_t a = q->matrix[N * (2 * j + 1) - 1 - i];
 
         if (a != 0.0f && b != 0.0f) {
           tmp_dst_ptr = &q->matrix[N * 2 * j];
-          srslte_vec_sc_prod_ccc_simd_inline(tmp_dst_ptr, reciprocal(a), tmp_dst_ptr, 2 * N);
-          srslte_vec_sub_ccc_simd_inline(tmp_dst_ptr, tmp_src_ptr, tmp_dst_ptr, 2 * N);
+          srsran_vec_sc_prod_ccc_simd_inline(tmp_dst_ptr, reciprocal(a), tmp_dst_ptr, 2 * N);
+          srsran_vec_sub_ccc_simd_inline(tmp_dst_ptr, tmp_src_ptr, tmp_dst_ptr, 2 * N);
         }
       }
     }
-    srslte_vec_sc_prod_ccc_simd_inline(q->matrix, reciprocal(q->matrix[0]), q->matrix, 2 * N);
+    srsran_vec_sc_prod_ccc_simd_inline(q->matrix, reciprocal(q->matrix[0]), q->matrix, 2 * N);
 
     // 2) Backward elimination
     for (int i = 0; i < N - 1; i++) {
       tmp_src_ptr = &q->matrix[N * 2 * i];
       cf_t b      = tmp_src_ptr[i];
-      srslte_vec_sc_prod_ccc_simd_inline(tmp_src_ptr, reciprocal(b), tmp_src_ptr, 2 * N);
+      srsran_vec_sc_prod_ccc_simd_inline(tmp_src_ptr, reciprocal(b), tmp_src_ptr, 2 * N);
 
       for (int j = N - 1; j > i; j--) {
         cf_t a = q->matrix[N * 2 * j + i];
 
         tmp_dst_ptr = &q->matrix[N * 2 * j];
-        srslte_vec_sc_prod_ccc_simd_inline(tmp_dst_ptr, reciprocal(a), tmp_dst_ptr, 2 * N);
-        srslte_vec_sub_ccc_simd_inline(tmp_dst_ptr, tmp_src_ptr, tmp_dst_ptr, 2 * N);
+        srsran_vec_sc_prod_ccc_simd_inline(tmp_dst_ptr, reciprocal(a), tmp_dst_ptr, 2 * N);
+        srsran_vec_sub_ccc_simd_inline(tmp_dst_ptr, tmp_src_ptr, tmp_dst_ptr, 2 * N);
       }
     }
-    srslte_vec_sc_prod_ccc_simd_inline(&q->matrix[2 * N * (N - 1)],
+    srsran_vec_sc_prod_ccc_simd_inline(&q->matrix[2 * N * (N - 1)],
                                        reciprocal(q->matrix[2 * N * (N - 1) + N - 1]),
                                        &q->matrix[2 * N * (N - 1)],
                                        2 * N);
@@ -589,7 +588,7 @@ void srslte_matrix_NxN_inv_run(srslte_matrix_NxN_inv_t* q, cf_t* in, cf_t* out)
   }
 }
 
-void srslte_matrix_NxN_inv_free(srslte_matrix_NxN_inv_t* q)
+void srsran_matrix_NxN_inv_free(srsran_matrix_NxN_inv_t* q)
 {
   if (q) {
 
@@ -602,6 +601,6 @@ void srslte_matrix_NxN_inv_free(srslte_matrix_NxN_inv_t* q)
     }
 
     // Default all to zero
-    bzero(q, sizeof(srslte_matrix_NxN_inv_t));
+    bzero(q, sizeof(srsran_matrix_NxN_inv_t));
   }
 }

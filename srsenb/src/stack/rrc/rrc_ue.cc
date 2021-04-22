@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -22,8 +22,15 @@
 #include "srsenb/hdr/stack/rrc/rrc_ue.h"
 #include "srsenb/hdr/stack/rrc/mac_controller.h"
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
-#include "srslte/asn1/rrc_asn1_utils.h"
-#include "srslte/common/int_helpers.h"
+#include "srsenb/hdr/stack/rrc/ue_rr_cfg.h"
+#include "srsran/adt/pool/mem_pool.h"
+#include "srsran/asn1/rrc_utils.h"
+#include "srsran/common/enb_events.h"
+#include "srsran/common/int_helpers.h"
+#include "srsran/common/standard_streams.h"
+#include "srsran/interfaces/enb_pdcp_interfaces.h"
+#include "srsran/interfaces/enb_rlc_interfaces.h"
+#include "srsran/interfaces/enb_s1ap_interfaces.h"
 
 using namespace asn1::rrc;
 
@@ -39,63 +46,192 @@ namespace srsenb {
 rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sched_ue_cfg) :
   parent(outer_rrc),
   rnti(rnti_),
-  pool(srslte::byte_buffer_pool::get_instance()),
   phy_rrc_dedicated_list(sched_ue_cfg.supported_cc_list.size()),
-  cell_ded_list(parent->cfg, *outer_rrc->pucch_res_list, *outer_rrc->cell_common_list),
-  bearer_list(rnti_, parent->cfg),
-  ue_security_cfg(parent->cfg)
-{
-  mac_ctrl.reset(new mac_controller{this, sched_ue_cfg});
+  ue_cell_list(parent->cfg, *outer_rrc->cell_res_list, *outer_rrc->cell_common_list),
+  bearer_list(rnti_, parent->cfg, outer_rrc->gtpu),
+  ue_security_cfg(parent->cfg),
+  mac_ctrl(rnti, ue_cell_list, bearer_list, parent->cfg, parent->mac, *parent->cell_common_list, sched_ue_cfg)
+{}
 
+rrc::ue::~ue() {}
+
+int rrc::ue::init()
+{
   // Allocate cell and PUCCH resources
-  if (cell_ded_list.add_cell(sched_ue_cfg.supported_cc_list[0].enb_cc_idx) == nullptr) {
-    return;
+  if (ue_cell_list.add_cell(mac_ctrl.get_ue_sched_cfg().supported_cc_list[0].enb_cc_idx) == nullptr) {
+    return SRSRAN_ERROR;
   }
 
   // Configure
   apply_setup_phy_common(parent->cfg.sibs[1].sib2().rr_cfg_common, true);
 
-  activity_timer = outer_rrc->task_sched.get_unique_timer();
+  rlf_timer      = parent->task_sched.get_unique_timer();
+  activity_timer = parent->task_sched.get_unique_timer();
   set_activity_timeout(MSG3_RX_TIMEOUT); // next UE response is Msg3
+  set_rlf_timeout();
 
-  mobility_handler.reset(new rrc_mobility(this));
+  mobility_handler = make_rnti_obj<rrc_mobility>(rnti, this);
+  return SRSRAN_SUCCESS;
 }
-
-rrc::ue::~ue() {}
 
 rrc_state_t rrc::ue::get_state()
 {
   return state;
 }
 
+void rrc::ue::get_metrics(rrc_ue_metrics_t& ue_metrics) const
+{
+  ue_metrics.state      = state;
+  const auto& drb_list  = bearer_list.get_established_drbs();
+  const auto& erab_list = bearer_list.get_erabs();
+  ue_metrics.drb_qci_map.reserve(drb_list.size());
+  for (size_t i = 0; i < drb_list.size(); ++i) {
+    auto erab_it = erab_list.find(drb_list[i].eps_bearer_id);
+    if (erab_it != erab_list.end()) {
+      ue_metrics.drb_qci_map.push_back(std::make_pair(drb_list[i].lc_ch_id, erab_it->second.qos_params.qci));
+    }
+  }
+}
+
 void rrc::ue::set_activity()
 {
   // re-start activity timer with current timeout value
   activity_timer.run();
-
-  if (parent && parent->rrc_log) {
-    parent->rrc_log->debug("Activity registered for rnti=0x%x (timeout_value=%dms)\n", rnti, activity_timer.duration());
+  if (parent) {
+    parent->logger.debug("Activity registered for rnti=0x%x (timeout_value=%dms)", rnti, activity_timer.duration());
   }
 }
 
-void rrc::ue::activity_timer_expired()
+void rrc::ue::set_radiolink_dl_state(bool crc_res)
 {
+  parent->logger.debug(
+      "Radio-Link downlink state for rnti=0x%x: crc_res=%d, consecutive_ko=%d", rnti, crc_res, consecutive_kos_dl);
+
+  // If received OK, restart counter and stop RLF timer
+  if (crc_res) {
+    consecutive_kos_dl = 0;
+    consecutive_kos_ul = 0;
+    rlf_timer.stop();
+    return;
+  }
+
+  // Count KOs in MAC and trigger release if it goes above a certain value.
+  // This is done to detect out-of-coverage UEs
+  if (rlf_timer.is_running()) {
+    // RLF timer already running, no need to count KOs
+    return;
+  }
+
+  consecutive_kos_dl++;
+  if (consecutive_kos_dl > parent->cfg.max_mac_dl_kos) {
+    parent->logger.info("Max KOs in DL reached, triggering release rnti=0x%x", rnti);
+    max_retx_reached();
+  }
+}
+
+void rrc::ue::set_radiolink_ul_state(bool crc_res)
+{
+  parent->logger.debug(
+      "Radio-Link uplink state for rnti=0x%x: crc_res=%d, consecutive_ko=%d", rnti, crc_res, consecutive_kos_ul);
+
+  // If received OK, restart counter and stop RLF timer
+  if (crc_res) {
+    consecutive_kos_dl = 0;
+    consecutive_kos_ul = 0;
+    rlf_timer.stop();
+    return;
+  }
+
+  // Count KOs in MAC and trigger release if it goes above a certain value.
+  // This is done to detect out-of-coverage UEs
+  if (rlf_timer.is_running()) {
+    // RLF timer already running, no need to count KOs
+    return;
+  }
+
+  consecutive_kos_ul++;
+  if (consecutive_kos_ul > parent->cfg.max_mac_ul_kos) {
+    parent->logger.info("Max KOs in UL reached, triggering release rnti=0x%x", rnti);
+    max_retx_reached();
+  }
+}
+
+void rrc::ue::activity_timer_expired(const activity_timeout_type_t type)
+{
+  rlf_timer.stop();
   if (parent) {
-    if (parent->rrc_log) {
-      parent->rrc_log->warning(
-          "Activity timer for rnti=0x%x expired after %d ms\n", rnti, activity_timer.time_elapsed());
-    }
+    parent->logger.info("Activity timer for rnti=0x%x expired after %d ms", rnti, activity_timer.time_elapsed());
 
     if (parent->s1ap->user_exists(rnti)) {
-      parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::user_inactivity);
+      if (type == UE_INACTIVITY_TIMEOUT) {
+        parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::user_inactivity);
+        con_release_result = procedure_result_code::activity_timeout;
+      } else if (type == MSG3_RX_TIMEOUT) {
+        // MSG3 timeout, no need to notify S1AP, just remove UE
+        parent->rem_user_thread(rnti);
+        con_release_result = procedure_result_code::msg3_timeout;
+      } else {
+        // Unhandled activity timeout, just remove UE and log an error
+        parent->rem_user_thread(rnti);
+        con_release_result = procedure_result_code::activity_timeout;
+        parent->logger.error(
+            "Unhandled reason for activity timer expiration. rnti=0x%x, cause %d", rnti, static_cast<unsigned>(type));
+      }
     } else {
-      if (rnti != SRSLTE_MRNTI) {
+      if (rnti != SRSRAN_MRNTI) {
         parent->rem_user_thread(rnti);
       }
     }
   }
 
   state = RRC_STATE_RELEASE_REQUEST;
+}
+
+void rrc::ue::rlf_timer_expired()
+{
+  activity_timer.stop();
+  if (parent) {
+    parent->logger.info("RLF timer for rnti=0x%x expired after %d ms", rnti, rlf_timer.time_elapsed());
+
+    if (parent->s1ap->user_exists(rnti)) {
+      parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::radio_conn_with_ue_lost);
+      con_release_result = procedure_result_code::radio_conn_with_ue_lost;
+    } else {
+      if (rnti != SRSRAN_MRNTI) {
+        parent->rem_user(rnti);
+      }
+    }
+  }
+
+  state = RRC_STATE_RELEASE_REQUEST;
+}
+
+void rrc::ue::max_retx_reached()
+{
+  if (parent) {
+    parent->logger.info("Max retx reached for rnti=0x%x", rnti);
+
+    // Give UE time to start re-establishment
+    rlf_timer.run();
+
+    mac_ctrl.handle_max_retx();
+  }
+}
+
+void rrc::ue::set_rlf_timeout()
+{
+  uint32_t deadline_s  = 0;
+  uint32_t deadline_ms = 0;
+
+  deadline_ms = static_cast<uint32_t>((get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.ue_timers_and_consts.t310.to_number()) +
+                                      (get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.ue_timers_and_consts.t311.to_number()) +
+                                      (get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.ue_timers_and_consts.n310.to_number()));
+  deadline_s  = deadline_ms / 1000;
+  deadline_ms = deadline_ms % 1000;
+
+  uint32_t deadline = deadline_s * 1e3 + deadline_ms;
+  rlf_timer.set(deadline, [this](uint32_t tid) { rlf_timer_expired(); });
+  parent->logger.info("Setting RLF timer for rnti=0x%x to %dms", rnti, deadline);
 }
 
 void rrc::ue::set_activity_timeout(const activity_timeout_type_t type)
@@ -114,12 +250,12 @@ void rrc::ue::set_activity_timeout(const activity_timeout_type_t type)
       deadline_ms = parent->cfg.inactivity_timeout_ms % 1000;
       break;
     default:
-      parent->rrc_log->error("Unknown timeout type %d", type);
+      parent->logger.error("Unknown timeout type %d", type);
   }
 
   uint32_t deadline = deadline_s * 1e3 + deadline_ms;
-  activity_timer.set(deadline, [this](uint32_t tid) { activity_timer_expired(); });
-  parent->rrc_log->debug("Setting timer for %s for rnti=0x%x to %dms\n", to_string(type).c_str(), rnti, deadline);
+  activity_timer.set(deadline, [this, type](uint32_t tid) { activity_timer_expired(type); });
+  parent->logger.debug("Setting timer for %s for rnti=0x%x to %dms", to_string(type).c_str(), rnti, deadline);
 
   set_activity();
 }
@@ -134,32 +270,37 @@ bool rrc::ue::is_idle()
   return state == RRC_STATE_IDLE;
 }
 
-void rrc::ue::parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
+void rrc::ue::parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
-  set_activity();
-
   ul_dcch_msg_s  ul_dcch_msg;
   asn1::cbit_ref bref(pdu->msg, pdu->N_bytes);
   if (ul_dcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or
       ul_dcch_msg.msg.type().value != ul_dcch_msg_type_c::types_opts::c1) {
-    parent->rrc_log->error("Failed to unpack UL-DCCH message\n");
+    parent->logger.error("Failed to unpack UL-DCCH message");
     return;
   }
 
-  parent->log_rrc_message(
-      srsenb::to_string((rb_id_t)lcid), Rx, pdu.get(), ul_dcch_msg, ul_dcch_msg.msg.c1().type().to_string());
+  parent->log_rrc_message(get_rb_name(lcid), Rx, pdu.get(), ul_dcch_msg, ul_dcch_msg.msg.c1().type().to_string());
 
-  // reuse PDU
-  pdu->clear(); // TODO: name collision with byte_buffer reset
+  srsran::unique_byte_buffer_t original_pdu = std::move(pdu);
+  pdu                                       = srsran::make_byte_buffer();
+  if (pdu == nullptr) {
+    parent->logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return;
+  }
 
   transaction_id = 0;
 
   switch (ul_dcch_msg.msg.c1().type()) {
     case ul_dcch_msg_type_c::c1_c_::types::rrc_conn_setup_complete:
+      save_ul_message(std::move(original_pdu));
       handle_rrc_con_setup_complete(&ul_dcch_msg.msg.c1().rrc_conn_setup_complete(), std::move(pdu));
+      set_activity();
       break;
     case ul_dcch_msg_type_c::c1_c_::types::rrc_conn_reest_complete:
+      save_ul_message(std::move(original_pdu));
       handle_rrc_con_reest_complete(&ul_dcch_msg.msg.c1().rrc_conn_reest_complete(), std::move(pdu));
+      set_activity();
       break;
     case ul_dcch_msg_type_c::c1_c_::types::ul_info_transfer:
       pdu->N_bytes = ul_dcch_msg.msg.c1()
@@ -179,8 +320,9 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
       parent->s1ap->write_pdu(rnti, std::move(pdu));
       break;
     case ul_dcch_msg_type_c::c1_c_::types::rrc_conn_recfg_complete:
+      save_ul_message(std::move(original_pdu));
       handle_rrc_reconf_complete(&ul_dcch_msg.msg.c1().rrc_conn_recfg_complete(), std::move(pdu));
-      srslte::console("User 0x%x connected\n", rnti);
+      srsran::console("User 0x%x connected\n", rnti);
       state = RRC_STATE_REGISTERED;
       set_activity_timeout(UE_INACTIVITY_TIMEOUT);
       break;
@@ -194,31 +336,34 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
       break;
     case ul_dcch_msg_type_c::c1_c_::types::ue_cap_info:
       if (handle_ue_cap_info(&ul_dcch_msg.msg.c1().ue_cap_info())) {
-        notify_s1ap_ue_ctxt_setup_complete();
+        parent->s1ap->ue_ctxt_setup_complete(rnti);
         send_connection_reconf(std::move(pdu));
         state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
       } else {
-        send_connection_reject();
+        send_connection_reject(procedure_result_code::none);
         state = RRC_STATE_IDLE;
       }
       break;
     case ul_dcch_msg_type_c::c1_c_::types::meas_report:
       if (mobility_handler != nullptr) {
-        mobility_handler->handle_ue_meas_report(ul_dcch_msg.msg.c1().meas_report());
+        mobility_handler->handle_ue_meas_report(ul_dcch_msg.msg.c1().meas_report(), std::move(original_pdu));
       } else {
-        parent->rrc_log->warning("Received MeasReport but no mobility configuration is available\n");
+        parent->logger.warning("Received MeasReport but no mobility configuration is available");
       }
       break;
+    case ul_dcch_msg_type_c::c1_c_::types::ue_info_resp_r9:
+      handle_ue_info_resp(ul_dcch_msg.msg.c1().ue_info_resp_r9(), std::move(original_pdu));
+      break;
     default:
-      parent->rrc_log->error("Msg: %s not supported\n", ul_dcch_msg.msg.c1().type().to_string().c_str());
+      parent->logger.error("Msg: %s not supported", ul_dcch_msg.msg.c1().type().to_string().c_str());
       break;
   }
 }
 
 std::string rrc::ue::to_string(const activity_timeout_type_t& type)
 {
-  constexpr static const char* options[] = {"Msg3 reception", "UE response reception", "UE inactivity"};
-  return srslte::enum_to_text(options, (uint32_t)activity_timeout_type_t::nulltype, (uint32_t)type);
+  constexpr static const char* options[] = {"Msg3 reception", "UE inactivity", "UE reestablishment"};
+  return srsran::enum_to_text(options, (uint32_t)activity_timeout_type_t::nulltype, (uint32_t)type);
 }
 
 /*
@@ -226,9 +371,16 @@ std::string rrc::ue::to_string(const activity_timeout_type_t& type)
  */
 void rrc::ue::handle_rrc_con_req(rrc_conn_request_s* msg)
 {
+  // Log event.
+  event_logger::get().log_rrc_event(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                    asn1::octstring_to_string(last_ul_msg->msg, last_ul_msg->N_bytes),
+                                    static_cast<unsigned>(rrc_event_type::con_request),
+                                    static_cast<unsigned>(procedure_result_code::none),
+                                    rnti);
+
   if (not parent->s1ap->is_mme_connected()) {
-    parent->rrc_log->error("MME isn't connected. Sending Connection Reject\n");
-    send_connection_reject();
+    parent->logger.error("MME isn't connected. Sending Connection Reject");
+    send_connection_reject(procedure_result_code::error_mme_not_connected);
     return;
   }
 
@@ -238,7 +390,19 @@ void rrc::ue::handle_rrc_con_req(rrc_conn_request_s* msg)
     mmec     = (uint8_t)msg_r8->ue_id.s_tmsi().mmec.to_number();
     m_tmsi   = (uint32_t)msg_r8->ue_id.s_tmsi().m_tmsi.to_number();
     has_tmsi = true;
+
+    // Make sure that the context does not already exist
+    for (auto ue_it = parent->users.begin(); ue_it != parent->users.end(); ue_it++) {
+      if (ue_it->first != rnti && ue_it->second->has_tmsi && ue_it->second->mmec == mmec &&
+          ue_it->second->m_tmsi == m_tmsi) {
+        parent->logger.info("RRC connection request: UE context already exists. M-TMSI=%d", m_tmsi);
+        parent->rem_user_thread(ue_it->first); // Simply remove the old context. No need to notify the MME, it will
+                                               // update the eNB/MME-UE S1AP Id pair.
+        break;
+      }
+    }
   }
+
   establishment_cause = msg_r8->establishment_cause;
   send_connection_setup();
   state = RRC_STATE_WAIT_FOR_CON_SETUP_COMPLETE;
@@ -248,41 +412,54 @@ void rrc::ue::handle_rrc_con_req(rrc_conn_request_s* msg)
 
 void rrc::ue::send_connection_setup()
 {
-  // (Re-)Establish SRB1
-  bearer_list.add_srb(1);
-
   dl_ccch_msg_s dl_ccch_msg;
   dl_ccch_msg.msg.set_c1();
 
-  dl_ccch_msg.msg.c1().set_rrc_conn_setup();
-  dl_ccch_msg.msg.c1().rrc_conn_setup().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
-  rrc_conn_setup_r8_ies_s& setup  = dl_ccch_msg.msg.c1().rrc_conn_setup().crit_exts.set_c1().set_rrc_conn_setup_r8();
-  rr_cfg_ded_s*            rr_cfg = &setup.rr_cfg_ded;
+  rrc_conn_setup_s& rrc_setup       = dl_ccch_msg.msg.c1().set_rrc_conn_setup();
+  rrc_setup.rrc_transaction_id      = (uint8_t)((transaction_id++) % 4);
+  rrc_conn_setup_r8_ies_s& setup_r8 = rrc_setup.crit_exts.set_c1().set_rrc_conn_setup_r8();
+  rr_cfg_ded_s&            rr_cfg   = setup_r8.rr_cfg_ded;
 
   // Fill RR config dedicated
-  fill_rrc_setup_rr_config_dedicated(rr_cfg);
-  phys_cfg_ded_s* phy_cfg = &rr_cfg->phys_cfg_ded;
+  fill_rr_cfg_ded_setup(rr_cfg, parent->cfg, ue_cell_list);
 
   // Apply ConnectionSetup Configuration to MAC scheduler
-  mac_ctrl->handle_con_setup(setup);
+  mac_ctrl.handle_con_setup(setup_r8);
 
   // Add SRBs/DRBs, and configure RLC+PDCP
-  apply_pdcp_srb_updates();
-  apply_pdcp_drb_updates();
-  apply_rlc_rb_updates();
+  apply_pdcp_srb_updates(setup_r8.rr_cfg_ded);
+  apply_pdcp_drb_updates(setup_r8.rr_cfg_ded);
+  apply_rlc_rb_updates(setup_r8.rr_cfg_ded);
 
   // Configure PHY layer
-  apply_setup_phy_config_dedicated(*phy_cfg); // It assumes SCell has not been set before
+  apply_setup_phy_config_dedicated(rr_cfg.phys_cfg_ded); // It assumes SCell has not been set before
 
-  send_dl_ccch(&dl_ccch_msg);
+  std::string octet_str;
+  send_dl_ccch(&dl_ccch_msg, &octet_str);
+
+  // Log event.
+  event_logger::get().log_rrc_event(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                    octet_str,
+                                    static_cast<unsigned>(rrc_event_type::con_setup),
+                                    static_cast<unsigned>(procedure_result_code::none),
+                                    rnti);
+
+  apply_rr_cfg_ded_diff(current_ue_cfg.rr_cfg, rr_cfg);
 }
 
-void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srslte::unique_byte_buffer_t pdu)
+void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srsran::unique_byte_buffer_t pdu)
 {
+  // Log event.
+  event_logger::get().log_rrc_event(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                    asn1::octstring_to_string(last_ul_msg->msg, last_ul_msg->N_bytes),
+                                    static_cast<unsigned>(rrc_event_type::con_setup_complete),
+                                    static_cast<unsigned>(procedure_result_code::none),
+                                    rnti);
+
   // Inform PHY about the configuration completion
   parent->phy->complete_config(rnti);
 
-  parent->rrc_log->info("RRCConnectionSetupComplete transaction ID: %d\n", msg->rrc_transaction_id);
+  parent->logger.info("RRCConnectionSetupComplete transaction ID: %d", msg->rrc_transaction_id);
   rrc_conn_setup_complete_r8_ies_s* msg_r8 = &msg->crit_exts.c1().rrc_conn_setup_complete_r8();
 
   // TODO: msg->selected_plmn_id - used to select PLMN from SIB1 list
@@ -291,29 +468,47 @@ void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srsl
   pdu->N_bytes = msg_r8->ded_info_nas.size();
   memcpy(pdu->msg, msg_r8->ded_info_nas.data(), pdu->N_bytes);
 
-  // Flag completion of RadioResource Configuration
-  bearer_list.rr_ded_cfg_complete();
-
   // Signal MAC scheduler that configuration was successful
-  mac_ctrl->handle_con_setup_complete();
+  mac_ctrl.handle_con_setup_complete();
 
   asn1::s1ap::rrc_establishment_cause_e s1ap_cause;
   s1ap_cause.value = (asn1::s1ap::rrc_establishment_cause_opts::options)establishment_cause.value;
+
+  uint32_t enb_cc_idx = ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx;
   if (has_tmsi) {
-    parent->s1ap->initial_ue(rnti, s1ap_cause, std::move(pdu), m_tmsi, mmec);
+    parent->s1ap->initial_ue(rnti, enb_cc_idx, s1ap_cause, std::move(pdu), m_tmsi, mmec);
   } else {
-    parent->s1ap->initial_ue(rnti, s1ap_cause, std::move(pdu));
+    parent->s1ap->initial_ue(rnti, enb_cc_idx, s1ap_cause, std::move(pdu));
   }
   state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
+
+  // 2> if the UE has radio link failure or handover failure information available
+  if (msg->crit_exts.type().value == c1_or_crit_ext_opts::c1 and
+      msg->crit_exts.c1().type().value ==
+          rrc_conn_setup_complete_s::crit_exts_c_::c1_c_::types_opts::rrc_conn_setup_complete_r8) {
+    const auto& complete_r8 = msg->crit_exts.c1().rrc_conn_setup_complete_r8();
+    if (complete_r8.non_crit_ext.non_crit_ext.rlf_info_available_r10_present) {
+      rlf_info_pending = true;
+    }
+  }
 }
 
-void rrc::ue::send_connection_reject()
+void rrc::ue::send_connection_reject(procedure_result_code cause)
 {
-  mac_ctrl->handle_con_reject();
+  mac_ctrl.handle_con_reject();
 
   dl_ccch_msg_s dl_ccch_msg;
   dl_ccch_msg.msg.set_c1().set_rrc_conn_reject().crit_exts.set_c1().set_rrc_conn_reject_r8().wait_time = 10;
-  send_dl_ccch(&dl_ccch_msg);
+
+  std::string octet_str;
+  send_dl_ccch(&dl_ccch_msg, &octet_str);
+
+  // Log event.
+  event_logger::get().log_rrc_event(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                    octet_str,
+                                    static_cast<unsigned>(rrc_event_type::con_reject),
+                                    static_cast<unsigned>(cause),
+                                    rnti);
 }
 
 /*
@@ -321,116 +516,136 @@ void rrc::ue::send_connection_reject()
  */
 void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
 {
+  // Log event.
+  event_logger::get().log_rrc_event(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                    asn1::octstring_to_string(last_ul_msg->msg, last_ul_msg->N_bytes),
+                                    static_cast<unsigned>(rrc_event_type::con_reest_req),
+                                    static_cast<unsigned>(procedure_result_code::none),
+                                    rnti);
+
   if (not parent->s1ap->is_mme_connected()) {
-    parent->rrc_log->error("MME isn't connected. Sending Connection Reject\n");
-    send_connection_reject();
+    parent->logger.error("MME isn't connected. Sending Connection Reject");
+    send_connection_reject(procedure_result_code::error_mme_not_connected);
     return;
   }
-  parent->rrc_log->debug("rnti=0x%x, phyid=0x%x, smac=0x%x, cause=%s\n",
-                         (uint32_t)msg->crit_exts.rrc_conn_reest_request_r8().ue_id.c_rnti.to_number(),
-                         msg->crit_exts.rrc_conn_reest_request_r8().ue_id.pci,
-                         (uint32_t)msg->crit_exts.rrc_conn_reest_request_r8().ue_id.short_mac_i.to_number(),
-                         msg->crit_exts.rrc_conn_reest_request_r8().reest_cause.to_string().c_str());
+  parent->logger.debug("rnti=0x%x, phyid=0x%x, smac=0x%x, cause=%s",
+                       (uint32_t)msg->crit_exts.rrc_conn_reest_request_r8().ue_id.c_rnti.to_number(),
+                       msg->crit_exts.rrc_conn_reest_request_r8().ue_id.pci,
+                       (uint32_t)msg->crit_exts.rrc_conn_reest_request_r8().ue_id.short_mac_i.to_number(),
+                       msg->crit_exts.rrc_conn_reest_request_r8().reest_cause.to_string().c_str());
   if (is_idle()) {
-    uint16_t                old_rnti = msg->crit_exts.rrc_conn_reest_request_r8().ue_id.c_rnti.to_number();
-    uint16_t                old_pci  = msg->crit_exts.rrc_conn_reest_request_r8().ue_id.pci;
-    const cell_info_common* old_cell = parent->cell_common_list->get_pci(old_pci);
-    auto                    ue_it    = parent->users.find(old_rnti);
+    uint16_t               old_rnti = msg->crit_exts.rrc_conn_reest_request_r8().ue_id.c_rnti.to_number();
+    uint16_t               old_pci  = msg->crit_exts.rrc_conn_reest_request_r8().ue_id.pci;
+    const enb_cell_common* old_cell = parent->cell_common_list->get_pci(old_pci);
+    auto                   ue_it    = parent->users.find(old_rnti);
     // Reject unrecognized rntis, and PCIs that do not belong to eNB
     if (ue_it != parent->users.end() and old_cell != nullptr and
-        ue_it->second->cell_ded_list.get_enb_cc_idx(old_cell->enb_cc_idx) != nullptr) {
-      parent->rrc_log->info("ConnectionReestablishmentRequest for rnti=0x%x. Sending Connection Reestablishment\n",
-                            old_rnti);
-      send_connection_reest(parent->users[old_rnti]->ue_security_cfg.get_ncc());
+        ue_it->second->ue_cell_list.get_enb_cc_idx(old_cell->enb_cc_idx) != nullptr) {
+      parent->logger.info("ConnectionReestablishmentRequest for rnti=0x%x. Sending Connection Reestablishment",
+                          old_rnti);
 
       // Cancel Handover in Target eNB if on-going
-      parent->users[old_rnti]->mobility_handler->trigger(rrc_mobility::ho_cancel_ev{});
+      asn1::s1ap::cause_c cause;
+      cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::interaction_with_other_proc;
+      parent->users.at(old_rnti)->mobility_handler->trigger(rrc_mobility::ho_cancel_ev{cause});
 
-      // Setup security
-      const cell_info_common* pcell_cfg = get_ue_cc_cfg(UE_PCELL_CC_IDX);
-      ue_security_cfg                   = parent->users[old_rnti]->ue_security_cfg;
+      // Recover security setup
+      const enb_cell_common* pcell_cfg = get_ue_cc_cfg(UE_PCELL_CC_IDX);
+      ue_security_cfg                  = parent->users.at(old_rnti)->ue_security_cfg;
       ue_security_cfg.regenerate_keys_handover(pcell_cfg->cell_cfg.pci, pcell_cfg->cell_cfg.dl_earfcn);
 
+      // send reestablishment and restore bearer configuration
+      send_connection_reest(parent->users.at(old_rnti)->ue_security_cfg.get_ncc());
+
       // Get PDCP entity state (required when using RLC AM)
-      for (const auto& erab_pair : parent->users[old_rnti]->bearer_list.get_erabs()) {
+      for (const auto& erab_pair : parent->users.at(old_rnti)->bearer_list.get_erabs()) {
         uint16_t lcid              = erab_pair.second.id - 2;
         old_reest_pdcp_state[lcid] = {};
         parent->pdcp->get_bearer_state(old_rnti, lcid, &old_reest_pdcp_state[lcid]);
 
-        parent->rrc_log->debug("Getting PDCP state for E-RAB with LCID %d\n", lcid);
-        parent->rrc_log->debug("Got PDCP state: TX HFN %d, NEXT_PDCP_TX_SN %d, RX_HFN %d, NEXT_PDCP_RX_SN %d, "
-                               "LAST_SUBMITTED_PDCP_RX_SN %d\n",
-                               old_reest_pdcp_state[lcid].tx_hfn,
-                               old_reest_pdcp_state[lcid].next_pdcp_tx_sn,
-                               old_reest_pdcp_state[lcid].rx_hfn,
-                               old_reest_pdcp_state[lcid].next_pdcp_rx_sn,
-                               old_reest_pdcp_state[lcid].last_submitted_pdcp_rx_sn);
+        parent->logger.debug("Getting PDCP state for E-RAB with LCID %d", lcid);
+        parent->logger.debug("Got PDCP state: TX HFN %d, NEXT_PDCP_TX_SN %d, RX_HFN %d, NEXT_PDCP_RX_SN %d, "
+                             "LAST_SUBMITTED_PDCP_RX_SN %d",
+                             old_reest_pdcp_state[lcid].tx_hfn,
+                             old_reest_pdcp_state[lcid].next_pdcp_tx_sn,
+                             old_reest_pdcp_state[lcid].rx_hfn,
+                             old_reest_pdcp_state[lcid].next_pdcp_rx_sn,
+                             old_reest_pdcp_state[lcid].last_submitted_pdcp_rx_sn);
       }
-      // Apply PDCP configuration to SRB1
-      apply_pdcp_srb_updates();
 
       // Make sure UE capabilities are copied over to new RNTI
-      eutra_capabilities          = parent->users[old_rnti]->eutra_capabilities;
-      eutra_capabilities_unpacked = parent->users[old_rnti]->eutra_capabilities_unpacked;
-      ue_capabilities             = parent->users[old_rnti]->ue_capabilities;
-      if (parent->rrc_log->get_level() == srslte::LOG_LEVEL_DEBUG) {
+      eutra_capabilities          = parent->users.at(old_rnti)->eutra_capabilities;
+      eutra_capabilities_unpacked = parent->users.at(old_rnti)->eutra_capabilities_unpacked;
+      ue_capabilities             = parent->users.at(old_rnti)->ue_capabilities;
+      if (parent->logger.debug.enabled()) {
         asn1::json_writer js{};
         eutra_capabilities.to_json(js);
-        parent->rrc_log->debug_long("rnti=0x%x EUTRA capabilities: %s\n", rnti, js.to_string().c_str());
+        parent->logger.debug("rnti=0x%x EUTRA capabilities: %s", rnti, js.to_string().c_str());
       }
 
       old_reest_rnti = old_rnti;
       state          = RRC_STATE_WAIT_FOR_CON_REEST_COMPLETE;
       set_activity_timeout(UE_INACTIVITY_TIMEOUT);
     } else {
-      parent->rrc_log->error("Received ConnectionReestablishment for rnti=0x%x without context\n", old_rnti);
-      send_connection_reest_rej();
+      parent->logger.error("Received ConnectionReestablishment for rnti=0x%x without context", old_rnti);
+      send_connection_reest_rej(procedure_result_code::error_unknown_rnti);
     }
   } else {
-    parent->rrc_log->error("Received ReestablishmentRequest from an rnti=0x%x not in IDLE\n", rnti);
+    parent->logger.error("Received ReestablishmentRequest from an rnti=0x%x not in IDLE", rnti);
   }
 }
 
 void rrc::ue::send_connection_reest(uint8_t ncc)
 {
-  // Re-Establish SRB1
-  bearer_list.add_srb(1);
-
   dl_ccch_msg_s dl_ccch_msg;
-  dl_ccch_msg.msg.set_c1();
-
-  dl_ccch_msg.msg.c1().set_rrc_conn_reest();
-  dl_ccch_msg.msg.c1().rrc_conn_reest().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
-  rrc_conn_reest_r8_ies_s& reest  = dl_ccch_msg.msg.c1().rrc_conn_reest().crit_exts.set_c1().set_rrc_conn_reest_r8();
-  rr_cfg_ded_s*            rr_cfg = &reest.rr_cfg_ded;
+  auto&         reest               = dl_ccch_msg.msg.set_c1().set_rrc_conn_reest();
+  reest.rrc_transaction_id          = (uint8_t)((transaction_id++) % 4);
+  rrc_conn_reest_r8_ies_s& reest_r8 = reest.crit_exts.set_c1().set_rrc_conn_reest_r8();
+  rr_cfg_ded_s&            rr_cfg   = reest_r8.rr_cfg_ded;
 
   // Fill RR config dedicated
-  fill_rrc_setup_rr_config_dedicated(rr_cfg);
-  phys_cfg_ded_s* phy_cfg = &rr_cfg->phys_cfg_ded;
+  fill_rr_cfg_ded_setup(rr_cfg, parent->cfg, ue_cell_list);
 
   // Set NCC
-  reest.next_hop_chaining_count = ncc;
+  reest_r8.next_hop_chaining_count = ncc;
 
   // Apply ConnectionReest Configuration to MAC scheduler
-  mac_ctrl->handle_con_reest(reest);
+  mac_ctrl.handle_con_reest(reest_r8);
 
   // Add SRBs/DRBs, and configure RLC+PDCP
-  apply_pdcp_srb_updates();
-  apply_pdcp_drb_updates();
-  apply_rlc_rb_updates();
+  apply_pdcp_srb_updates(rr_cfg);
+  apply_pdcp_drb_updates(rr_cfg);
+  apply_rlc_rb_updates(rr_cfg);
 
   // Configure PHY layer
-  apply_setup_phy_config_dedicated(*phy_cfg); // It assumes SCell has not been set before
+  apply_setup_phy_config_dedicated(rr_cfg.phys_cfg_ded); // It assumes SCell has not been set before
 
-  send_dl_ccch(&dl_ccch_msg);
+  std::string octet_str;
+  send_dl_ccch(&dl_ccch_msg, &octet_str);
+
+  apply_rr_cfg_ded_diff(current_ue_cfg.rr_cfg, rr_cfg);
+
+  // Log event.
+  event_logger::get().log_rrc_event(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                    octet_str,
+                                    static_cast<unsigned>(rrc_event_type::con_reest),
+                                    static_cast<unsigned>(procedure_result_code::none),
+                                    rnti);
 }
 
-void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srslte::unique_byte_buffer_t pdu)
+void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srsran::unique_byte_buffer_t pdu)
 {
+  // Log event.
+  event_logger::get().log_rrc_event(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                    asn1::octstring_to_string(last_ul_msg->msg, last_ul_msg->N_bytes),
+                                    static_cast<unsigned>(rrc_event_type::con_reest_complete),
+                                    static_cast<unsigned>(procedure_result_code::none),
+                                    rnti);
+
   // Inform PHY about the configuration completion
   parent->phy->complete_config(rnti);
 
-  parent->rrc_log->info("RRCConnectionReestablishComplete transaction ID: %d\n", msg->rrc_transaction_id);
+  parent->logger.info("RRCConnectionReestablishComplete transaction ID: %d", msg->rrc_transaction_id);
 
   // TODO: msg->selected_plmn_id - used to select PLMN from SIB1 list
   // TODO: if(msg->registered_mme_present) - the indicated MME should be used from a pool
@@ -439,253 +654,179 @@ void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srsl
   parent->gtpu->mod_bearer_rnti(old_reest_rnti, rnti);
   parent->s1ap->user_mod(old_reest_rnti, rnti);
 
-  // Flag completion of RadioResource Configuration
-  bearer_list.rr_ded_cfg_complete();
-
   // Signal MAC scheduler that configuration was successful
-  mac_ctrl->handle_con_reest_complete();
+  mac_ctrl.handle_con_reest_complete();
 
   // Activate security for SRB1
-  parent->pdcp->config_security(rnti, RB_ID_SRB1, ue_security_cfg.get_as_sec_cfg());
-  parent->pdcp->enable_integrity(rnti, RB_ID_SRB1);
-  parent->pdcp->enable_encryption(rnti, RB_ID_SRB1);
+  parent->pdcp->config_security(rnti, srb_to_lcid(lte_srb::srb1), ue_security_cfg.get_as_sec_cfg());
+  parent->pdcp->enable_integrity(rnti, srb_to_lcid(lte_srb::srb1));
+  parent->pdcp->enable_encryption(rnti, srb_to_lcid(lte_srb::srb1));
 
   // Reestablish current DRBs during ConnectionReconfiguration
-  for (const auto& erab_pair : parent->users[old_reest_rnti]->bearer_list.get_erabs()) {
-    const bearer_cfg_handler::erab_t& erab = erab_pair.second;
-    bearer_list.add_erab(erab.id, erab.qos_params, erab.address, erab.teid_out, nullptr);
-  }
+  bearer_list = std::move(parent->users.at(old_reest_rnti)->bearer_list);
 
   // remove old RNTI
   parent->rem_user_thread(old_reest_rnti);
 
   state = RRC_STATE_REESTABLISHMENT_COMPLETE;
+
+  // 2> if the UE has radio link failure or handover failure information available
+  if (msg->crit_exts.type().value == rrc_conn_reest_complete_s::crit_exts_c_::types_opts::rrc_conn_reest_complete_r8) {
+    const auto& complete_r8 = msg->crit_exts.rrc_conn_reest_complete_r8();
+    if (complete_r8.non_crit_ext.rlf_info_available_r9_present) {
+      rlf_info_pending = true;
+    }
+  }
+
   send_connection_reconf(std::move(pdu));
 }
 
-void rrc::ue::send_connection_reest_rej()
+void rrc::ue::send_connection_reest_rej(procedure_result_code cause)
 {
-  mac_ctrl->handle_con_reject();
+  mac_ctrl.handle_con_reject();
 
   dl_ccch_msg_s dl_ccch_msg;
   dl_ccch_msg.msg.set_c1().set_rrc_conn_reest_reject().crit_exts.set_rrc_conn_reest_reject_r8();
-  send_dl_ccch(&dl_ccch_msg);
+
+  std::string octet_str;
+  send_dl_ccch(&dl_ccch_msg, &octet_str);
+
+  // Log event.
+  event_logger::get().log_rrc_event(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                    octet_str,
+                                    static_cast<unsigned>(rrc_event_type::con_reest_reject),
+                                    static_cast<unsigned>(cause),
+                                    rnti);
 }
 
 /*
  * Connection Reconfiguration
  */
-void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
+void rrc::ue::send_connection_reconf(srsran::unique_byte_buffer_t pdu,
+                                     bool                         phy_cfg_updated,
+                                     srsran::const_byte_span      nas_pdu)
 {
-  // Setup SRB2
-  bearer_list.add_srb(2);
+  parent->logger.debug("RRC state %d", state);
 
-  // Add re-establish DRBs
-  parent->rrc_log->debug("RRC state %d\n", state);
-  dl_dcch_msg_s dl_dcch_msg;
-  dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg().crit_exts.set_c1().set_rrc_conn_recfg_r8();
-  dl_dcch_msg.msg.c1().rrc_conn_recfg().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
+  update_scells();
 
-  rrc_conn_recfg_r8_ies_s* conn_reconf = &dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
+  /* Create RRCConnectionReconfiguration ASN1 message */
+  dl_dcch_msg_s     dl_dcch_msg;
+  rrc_conn_recfg_s& rrc_conn_recfg  = dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg();
+  rrc_conn_recfg.rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
+  rrc_conn_recfg_r8_ies_s& recfg_r8 = rrc_conn_recfg.crit_exts.set_c1().set_rrc_conn_recfg_r8();
 
-  // Add DRBs/SRBs
-  conn_reconf->rr_cfg_ded_present = bearer_list.fill_rr_cfg_ded(conn_reconf->rr_cfg_ded);
+  // Fill RR Config Ded and SCells
+  apply_reconf_updates(
+      recfg_r8, current_ue_cfg, parent->cfg, ue_cell_list, bearer_list, ue_capabilities, phy_cfg_updated);
 
-  conn_reconf->rr_cfg_ded.phys_cfg_ded_present = true;
-  phys_cfg_ded_s* phy_cfg                      = &conn_reconf->rr_cfg_ded.phys_cfg_ded;
-
-  // Configure PHY layer
-  phy_cfg->ant_info_present              = true;
-  phy_cfg->ant_info.set_explicit_value() = parent->cfg.antenna_info;
-  phy_cfg->cqi_report_cfg_present        = true;
-  if (parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC) {
-    phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic_present = true;
-    if (phy_cfg->ant_info_present and
-        phy_cfg->ant_info.explicit_value().tx_mode.value == ant_info_ded_s::tx_mode_e_::tm4) {
-      phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic = cqi_report_mode_aperiodic_e::rm31;
-    } else {
-      phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic = cqi_report_mode_aperiodic_e::rm30;
-    }
-  } else {
-    phy_cfg->cqi_report_cfg.cqi_report_periodic_present = true;
-    auto& cqi_rep                                       = phy_cfg->cqi_report_cfg.cqi_report_periodic.set_setup();
-    get_cqi(&cqi_rep.cqi_pmi_cfg_idx, &cqi_rep.cqi_pucch_res_idx, UE_PCELL_CC_IDX);
-    cqi_rep.cqi_format_ind_periodic.set(
-        cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types::wideband_cqi);
-    cqi_rep.simul_ack_nack_and_cqi = parent->cfg.cqi_cfg.simultaneousAckCQI;
-    if (phy_cfg->ant_info_present and
-        ((phy_cfg->ant_info.explicit_value().tx_mode == ant_info_ded_s::tx_mode_e_::tm3) ||
-         (phy_cfg->ant_info.explicit_value().tx_mode == ant_info_ded_s::tx_mode_e_::tm4))) {
-      uint16_t ri_idx = 0;
-      if (get_ri(parent->cfg.cqi_cfg.m_ri, &ri_idx) == SRSLTE_SUCCESS) {
-        phy_cfg->cqi_report_cfg.cqi_report_periodic.set_setup();
-        phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx_present = true;
-        phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx         = ri_idx;
-      } else {
-        srslte::console("\nWarning: Configured wrong M_ri parameter.\n\n");
-      }
-    } else {
-      phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx_present = false;
-    }
-  }
-  phy_cfg->cqi_report_cfg.nom_pdsch_rs_epre_offset = 0;
-  // PDSCH
-  phy_cfg->pdsch_cfg_ded_present = true;
-  phy_cfg->pdsch_cfg_ded.p_a     = parent->cfg.pdsch_cfg;
-  // 256-QAM
-  if (ue_capabilities.support_dl_256qam) {
-    phy_cfg->ext = true;
-    phy_cfg->cqi_report_cfg_pcell_v1250.set_present(true);
-    phy_cfg->cqi_report_cfg_pcell_v1250->alt_cqi_table_r12_present = true;
-    phy_cfg->cqi_report_cfg_pcell_v1250->alt_cqi_table_r12.value =
-        cqi_report_cfg_v1250_s::alt_cqi_table_r12_opts::all_sfs;
+  // Add measConfig
+  if (mobility_handler != nullptr) {
+    mobility_handler->fill_conn_recfg_no_ho_cmd(&recfg_r8);
   }
 
-  // Add SCells
-  if (fill_scell_to_addmod_list(conn_reconf) != SRSLTE_SUCCESS) {
-    parent->rrc_log->warning("Could not create configuration for Scell\n");
+  // if no updates were detected, skip rrc reconfiguration
+  if (not(recfg_r8.rr_cfg_ded_present or recfg_r8.meas_cfg_present or recfg_r8.mob_ctrl_info_present or
+          recfg_r8.ded_info_nas_list_present or recfg_r8.security_cfg_ho_present or recfg_r8.non_crit_ext_present)) {
     return;
   }
 
-  apply_reconf_phy_config(*conn_reconf, true);
+  /* Apply updates present in RRCConnectionReconfiguration to lower layers */
+  // apply PHY config
+  apply_reconf_phy_config(recfg_r8, true);
 
   // setup SRB2/DRBs in PDCP and RLC
-  apply_pdcp_srb_updates();
-  apply_pdcp_drb_updates();
-  apply_rlc_rb_updates();
+  apply_rlc_rb_updates(recfg_r8.rr_cfg_ded);
+  apply_pdcp_srb_updates(recfg_r8.rr_cfg_ded);
+  apply_pdcp_drb_updates(recfg_r8.rr_cfg_ded);
 
-  // Add pending NAS info
-  bearer_list.fill_pending_nas_info(conn_reconf);
+  // UE MAC scheduler updates
+  mac_ctrl.handle_con_reconf(recfg_r8, ue_capabilities);
 
-  if (mobility_handler != nullptr) {
-    mobility_handler->fill_conn_recfg_no_ho_cmd(conn_reconf);
-  }
-  last_rrc_conn_recfg = dl_dcch_msg.msg.c1().rrc_conn_recfg();
-
-  // Apply Reconf Msg configuration to MAC scheduler
-  mac_ctrl->handle_con_reconf(*conn_reconf);
-
-  // If reconf due to reestablishment, recover PDCP state
-  if (state == RRC_STATE_REESTABLISHMENT_COMPLETE) {
-    for (const auto& erab_pair : bearer_list.get_erabs()) {
-      uint16_t lcid  = erab_pair.second.id - 2;
-      bool     is_am = parent->cfg.qci_cfg[erab_pair.second.qos_params.qci].rlc_cfg.type().value ==
-                   asn1::rrc::rlc_cfg_c::types_opts::am;
-      if (is_am) {
-        parent->rrc_log->debug("Set PDCP state: TX HFN %d, NEXT_PDCP_TX_SN %d, RX_HFN %d, NEXT_PDCP_RX_SN %d, "
-                               "LAST_SUBMITTED_PDCP_RX_SN %d\n",
-                               old_reest_pdcp_state[lcid].tx_hfn,
-                               old_reest_pdcp_state[lcid].next_pdcp_tx_sn,
-                               old_reest_pdcp_state[lcid].rx_hfn,
-                               old_reest_pdcp_state[lcid].next_pdcp_rx_sn,
-                               old_reest_pdcp_state[lcid].last_submitted_pdcp_rx_sn);
-        parent->pdcp->set_bearer_state(rnti, lcid, old_reest_pdcp_state[lcid]);
-      }
+  // Fill in NAS PDU - Only for RRC Connection Reconfiguration during E-RAB Release Command
+  if (nas_pdu.size() > 0 and !recfg_r8.ded_info_nas_list_present) {
+    recfg_r8.ded_info_nas_list_present = true;
+    recfg_r8.ded_info_nas_list.resize(recfg_r8.rr_cfg_ded.drb_to_release_list.size());
+    // Add NAS PDU
+    for (uint32_t idx = 0; idx < recfg_r8.rr_cfg_ded.drb_to_release_list.size(); idx++) {
+      recfg_r8.ded_info_nas_list[idx].resize(nas_pdu.size());
+      memcpy(recfg_r8.ded_info_nas_list[idx].data(), nas_pdu.data(), nas_pdu.size());
     }
   }
 
   // Reuse same PDU
-  pdu->clear();
+  if (pdu != nullptr) {
+    pdu->clear();
+  }
 
-  send_dl_dcch(&dl_dcch_msg, std::move(pdu));
+  // send DL-DCCH message to lower layers
+  std::string octet_str;
+  send_dl_dcch(&dl_dcch_msg, std::move(pdu), &octet_str);
+
+  // Log event.
+  event_logger::get().log_rrc_event(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                    octet_str,
+                                    static_cast<unsigned>(rrc_event_type::con_reconf),
+                                    static_cast<unsigned>(procedure_result_code::none),
+                                    rnti);
 
   state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
 }
 
-void rrc::ue::send_connection_reconf_upd(srslte::unique_byte_buffer_t pdu)
-{
-  dl_dcch_msg_s     dl_dcch_msg;
-  rrc_conn_recfg_s* rrc_conn_recfg     = &dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg();
-  rrc_conn_recfg->rrc_transaction_id   = (uint8_t)((transaction_id++) % 4);
-  rrc_conn_recfg_r8_ies_s& reconfig_r8 = rrc_conn_recfg->crit_exts.set_c1().set_rrc_conn_recfg_r8();
-
-  reconfig_r8.rr_cfg_ded_present = true;
-  rr_cfg_ded_s* rr_cfg           = &reconfig_r8.rr_cfg_ded;
-
-  rr_cfg->phys_cfg_ded_present       = true;
-  phys_cfg_ded_s* phy_cfg            = &rr_cfg->phys_cfg_ded;
-  phy_cfg->sched_request_cfg_present = true;
-  phy_cfg->sched_request_cfg.set_setup();
-  phy_cfg->sched_request_cfg.setup().dsr_trans_max = parent->cfg.sr_cfg.dsr_max;
-
-  phy_cfg->cqi_report_cfg_present = true;
-  if (cell_ded_list.nof_cells() > 0) {
-    phy_cfg->cqi_report_cfg.cqi_report_periodic_present = true;
-    phy_cfg->cqi_report_cfg.cqi_report_periodic.set_setup().cqi_format_ind_periodic.set(
-        cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types::wideband_cqi);
-    get_cqi(&phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pmi_cfg_idx,
-            &phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pucch_res_idx,
-            UE_PCELL_CC_IDX);
-    phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().simul_ack_nack_and_cqi = parent->cfg.cqi_cfg.simultaneousAckCQI;
-    if (parent->cfg.antenna_info.tx_mode == ant_info_ded_s::tx_mode_e_::tm3 ||
-        parent->cfg.antenna_info.tx_mode == ant_info_ded_s::tx_mode_e_::tm4) {
-      phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx_present = true;
-      phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx = 483; /* TODO: HARDCODED! Add to UL scheduler */
-    } else {
-      phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx_present = false;
-    }
-  } else {
-    phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic_present = true;
-    if (phy_cfg->ant_info_present && parent->cfg.antenna_info.tx_mode == ant_info_ded_s::tx_mode_e_::tm4) {
-      phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic = cqi_report_mode_aperiodic_e::rm31;
-    } else {
-      phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic = cqi_report_mode_aperiodic_e::rm30;
-    }
-  }
-  apply_reconf_phy_config(reconfig_r8, true);
-
-  phy_cfg->sched_request_cfg.setup().sr_cfg_idx       = cell_ded_list.get_sr_res()->sr_I;
-  phy_cfg->sched_request_cfg.setup().sr_pucch_res_idx = cell_ded_list.get_sr_res()->sr_N_pucch;
-
-  // Apply Reconf Msg configuration to MAC scheduler
-  mac_ctrl->handle_con_reconf(reconfig_r8);
-
-  pdu->clear();
-
-  send_dl_dcch(&dl_dcch_msg, std::move(pdu));
-
-  state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
-}
-
-void rrc::ue::send_connection_reconf_new_bearer()
-{
-  dl_dcch_msg_s dl_dcch_msg;
-  dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg().crit_exts.set_c1().set_rrc_conn_recfg_r8();
-  dl_dcch_msg.msg.c1().rrc_conn_recfg().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
-  rrc_conn_recfg_r8_ies_s* conn_reconf = &dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
-
-  conn_reconf->rr_cfg_ded_present = bearer_list.fill_rr_cfg_ded(conn_reconf->rr_cfg_ded);
-
-  // Setup new bearer
-  apply_pdcp_srb_updates();
-  apply_pdcp_drb_updates();
-  apply_rlc_rb_updates();
-  // Add pending NAS info
-  bearer_list.fill_pending_nas_info(conn_reconf);
-
-  if (conn_reconf->rr_cfg_ded_present or conn_reconf->ded_info_nas_list_present) {
-    send_dl_dcch(&dl_dcch_msg);
-  }
-}
-
-void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte::unique_byte_buffer_t pdu)
+void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srsran::unique_byte_buffer_t pdu)
 {
   // Inform PHY about the configuration completion
   parent->phy->complete_config(rnti);
 
-  if (last_rrc_conn_recfg.rrc_transaction_id == msg->rrc_transaction_id) {
-    // Flag completion of RadioResource Configuration
-    bearer_list.rr_ded_cfg_complete();
+  if (transaction_id != msg->rrc_transaction_id) {
+    parent->logger.error(
+        "Expected RRCReconfigurationComplete with transaction ID: %d, got %d", transaction_id, msg->rrc_transaction_id);
+    return;
+  }
 
-    // Activate SCells and bearers in the MAC scheduler that were advertised in the RRC Reconf message
-    mac_ctrl->handle_con_reconf_complete();
+  // Log event.
+  event_logger::get().log_rrc_event(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                    asn1::octstring_to_string(last_ul_msg->msg, last_ul_msg->N_bytes),
+                                    static_cast<unsigned>(rrc_event_type::con_reconf_complete),
+                                    static_cast<unsigned>(procedure_result_code::none),
+                                    rnti);
 
-    // If performing handover, signal its completion
-    mobility_handler->trigger(*msg);
-  } else {
-    parent->rrc_log->error("Expected RRCReconfigurationComplete with transaction ID: %d, got %d\n",
-                           last_rrc_conn_recfg.rrc_transaction_id,
-                           msg->rrc_transaction_id);
+  // Activate SCells and bearers in the MAC scheduler that were advertised in the RRC Reconf message
+  mac_ctrl.handle_con_reconf_complete();
+
+  // If performing handover, signal its completion
+  mobility_handler->trigger(*msg);
+
+  // 2> if the UE has radio link failure or handover failure information available
+  const auto& complete_r8 = msg->crit_exts.rrc_conn_recfg_complete_r8();
+  if (complete_r8.non_crit_ext.non_crit_ext.rlf_info_available_r10_present or rlf_info_pending) {
+    rlf_info_pending = false;
+    send_ue_info_req();
+  }
+}
+
+void rrc::ue::send_ue_info_req()
+{
+  dl_dcch_msg_s msg;
+  auto&         req_r9      = msg.msg.set_c1().set_ue_info_request_r9();
+  req_r9.rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
+
+  auto& req              = req_r9.crit_exts.set_c1().set_ue_info_request_r9();
+  req.rlf_report_req_r9  = true;
+  req.rach_report_req_r9 = true;
+
+  send_dl_dcch(&msg);
+}
+
+void rrc::ue::handle_ue_info_resp(const asn1::rrc::ue_info_resp_r9_s& msg, srsran::unique_byte_buffer_t pdu)
+{
+  auto& resp_r9 = msg.crit_exts.c1().ue_info_resp_r9();
+  if (resp_r9.rlf_report_r9_present) {
+    std::string msg_str = asn1::octstring_to_string(pdu->msg, pdu->N_bytes);
+    event_logger::get().log_rlf(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx, msg_str, rnti);
+  }
+  if (resp_r9.rach_report_r9_present) {
+    // TODO: Handle RACH-Report
   }
 }
 
@@ -695,8 +836,8 @@ void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte:
 void rrc::ue::send_security_mode_command()
 {
   // Setup SRB1 security/integrity. Encryption is set on completion
-  parent->pdcp->config_security(rnti, RB_ID_SRB1, ue_security_cfg.get_as_sec_cfg());
-  parent->pdcp->enable_integrity(rnti, RB_ID_SRB1);
+  parent->pdcp->config_security(rnti, srb_to_lcid(lte_srb::srb1), ue_security_cfg.get_as_sec_cfg());
+  parent->pdcp->enable_integrity(rnti, srb_to_lcid(lte_srb::srb1));
 
   dl_dcch_msg_s        dl_dcch_msg;
   security_mode_cmd_s* comm = &dl_dcch_msg.msg.set_c1().set_security_mode_cmd();
@@ -710,14 +851,14 @@ void rrc::ue::send_security_mode_command()
 
 void rrc::ue::handle_security_mode_complete(security_mode_complete_s* msg)
 {
-  parent->rrc_log->info("SecurityModeComplete transaction ID: %d\n", msg->rrc_transaction_id);
+  parent->logger.info("SecurityModeComplete transaction ID: %d", msg->rrc_transaction_id);
 
-  parent->pdcp->enable_encryption(rnti, RB_ID_SRB1);
+  parent->pdcp->enable_encryption(rnti, srb_to_lcid(lte_srb::srb1));
 }
 
 void rrc::ue::handle_security_mode_failure(security_mode_fail_s* msg)
 {
-  parent->rrc_log->info("SecurityModeFailure transaction ID: %d\n", msg->rrc_transaction_id);
+  parent->logger.info("SecurityModeFailure transaction ID: %d", msg->rrc_transaction_id);
 }
 
 /*
@@ -739,38 +880,51 @@ void rrc::ue::send_ue_cap_enquiry()
 
 bool rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
 {
-  parent->rrc_log->info("UECapabilityInformation transaction ID: %d\n", msg->rrc_transaction_id);
+  parent->logger.info("UECapabilityInformation transaction ID: %d", msg->rrc_transaction_id);
   ue_cap_info_r8_ies_s* msg_r8 = &msg->crit_exts.c1().ue_cap_info_r8();
 
   for (uint32_t i = 0; i < msg_r8->ue_cap_rat_container_list.size(); i++) {
     if (msg_r8->ue_cap_rat_container_list[i].rat_type != rat_type_e::eutra) {
-      parent->rrc_log->warning("Not handling UE capability information for RAT type %s\n",
-                               msg_r8->ue_cap_rat_container_list[i].rat_type.to_string().c_str());
-    } else {
-      asn1::cbit_ref bref(msg_r8->ue_cap_rat_container_list[0].ue_cap_rat_container.data(),
-                          msg_r8->ue_cap_rat_container_list[0].ue_cap_rat_container.size());
-      if (eutra_capabilities.unpack(bref) != asn1::SRSASN_SUCCESS) {
-        parent->rrc_log->error("Failed to unpack EUTRA capabilities message\n");
-        return false;
-      }
-      if (parent->rrc_log->get_level() == srslte::LOG_LEVEL_DEBUG) {
-        asn1::json_writer js{};
-        eutra_capabilities.to_json(js);
-        parent->rrc_log->debug_long("rnti=0x%x EUTRA capabilities: %s\n", rnti, js.to_string().c_str());
-      }
-      eutra_capabilities_unpacked = true;
-      ue_capabilities             = srslte::make_rrc_ue_capabilities(eutra_capabilities);
-
-      parent->rrc_log->info("UE rnti: 0x%x category: %d\n", rnti, eutra_capabilities.ue_category);
+      parent->logger.warning("Not handling UE capability information for RAT type %s",
+                             msg_r8->ue_cap_rat_container_list[i].rat_type.to_string().c_str());
+      continue;
     }
+    asn1::cbit_ref bref(msg_r8->ue_cap_rat_container_list[i].ue_cap_rat_container.data(),
+                        msg_r8->ue_cap_rat_container_list[i].ue_cap_rat_container.size());
+    if (eutra_capabilities.unpack(bref) != asn1::SRSASN_SUCCESS) {
+      parent->logger.error("Failed to unpack EUTRA capabilities message");
+      return false;
+    }
+    if (parent->logger.debug.enabled()) {
+      asn1::json_writer js{};
+      eutra_capabilities.to_json(js);
+      parent->logger.debug("rnti=0x%x EUTRA capabilities: %s", rnti, js.to_string().c_str());
+    }
+    eutra_capabilities_unpacked = true;
+    ue_capabilities             = srsran::make_rrc_ue_capabilities(eutra_capabilities);
+
+    parent->logger.info("UE rnti: 0x%x category: %d", rnti, eutra_capabilities.ue_category);
+  }
+
+  if (eutra_capabilities_unpacked) {
+    srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+    if (pdu == nullptr) {
+      parent->logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+      return false;
+    }
+    asn1::bit_ref bref2{pdu->msg, pdu->get_tailroom()};
+    msg->pack(bref2);
+    asn1::rrc::ue_radio_access_cap_info_s ue_rat_caps;
+    auto& dest = ue_rat_caps.crit_exts.set_c1().set_ue_radio_access_cap_info_r8().ue_radio_access_cap_info;
+    dest.resize(bref2.distance_bytes());
+    memcpy(dest.data(), pdu->msg, bref2.distance_bytes());
+    bref2 = asn1::bit_ref{pdu->msg, pdu->get_tailroom()};
+    ue_rat_caps.pack(bref2);
+    pdu->N_bytes = bref2.distance_bytes();
+    parent->s1ap->send_ue_cap_info_indication(rnti, std::move(pdu));
   }
 
   return true;
-
-  // TODO: Add liblte_rrc support for unpacking UE cap info and repacking into
-  //       inter-node UERadioAccessCapabilityInformation (36.331 v10.0.0 Section 10.2.2).
-  //       This is then passed to S1AP for transfer to EPC.
-  // parent->s1ap->ue_capabilities(rnti, &eutra_capabilities);
 }
 
 /*
@@ -793,51 +947,24 @@ void rrc::ue::send_connection_release()
     }
   }
 
-  send_dl_dcch(&dl_dcch_msg);
+  std::string octet_str;
+  send_dl_dcch(&dl_dcch_msg, nullptr, &octet_str);
+
+  // Log rrc release event.
+  event_logger::get().log_rrc_event(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                    octet_str,
+                                    static_cast<unsigned>(rrc_event_type::con_release),
+                                    static_cast<unsigned>(con_release_result),
+                                    rnti);
+  // Restore release result.
+  con_release_result = procedure_result_code::none;
 }
 
 /*
- * UE context
+ * UE Init Context Setup Request
  */
 void rrc::ue::handle_ue_init_ctxt_setup_req(const asn1::s1ap::init_context_setup_request_s& msg)
 {
-  if (msg.protocol_ies.add_cs_fallback_ind_present) {
-    parent->rrc_log->warning("Not handling AdditionalCSFallbackIndicator\n");
-  }
-  if (msg.protocol_ies.csg_membership_status_present) {
-    parent->rrc_log->warning("Not handling CSGMembershipStatus\n");
-  }
-  if (msg.protocol_ies.gummei_id_present) {
-    parent->rrc_log->warning("Not handling GUMMEI_ID\n");
-  }
-  if (msg.protocol_ies.ho_restrict_list_present) {
-    parent->rrc_log->warning("Not handling HandoverRestrictionList\n");
-  }
-  if (msg.protocol_ies.management_based_mdt_allowed_present) {
-    parent->rrc_log->warning("Not handling ManagementBasedMDTAllowed\n");
-  }
-  if (msg.protocol_ies.management_based_mdtplmn_list_present) {
-    parent->rrc_log->warning("Not handling ManagementBasedMDTPLMNList\n");
-  }
-  if (msg.protocol_ies.mme_ue_s1ap_id_minus2_present) {
-    parent->rrc_log->warning("Not handling MME_UE_S1AP_ID_2\n");
-  }
-  if (msg.protocol_ies.registered_lai_present) {
-    parent->rrc_log->warning("Not handling RegisteredLAI\n");
-  }
-  if (msg.protocol_ies.srvcc_operation_possible_present) {
-    parent->rrc_log->warning("Not handling SRVCCOperationPossible\n");
-  }
-  if (msg.protocol_ies.subscriber_profile_idfor_rfp_present) {
-    parent->rrc_log->warning("Not handling SubscriberProfileIDforRFP\n");
-  }
-  if (msg.protocol_ies.trace_activation_present) {
-    parent->rrc_log->warning("Not handling TraceActivation\n");
-  }
-  if (msg.protocol_ies.ue_radio_cap_present) {
-    parent->rrc_log->warning("Not handling UERadioCapability\n");
-  }
-
   set_bitrates(msg.protocol_ies.ueaggregate_maximum_bitrate.value);
   ue_security_cfg.set_security_capabilities(msg.protocol_ies.ue_security_cap.value);
   ue_security_cfg.set_security_key(msg.protocol_ies.security_key.value);
@@ -852,9 +979,6 @@ void rrc::ue::handle_ue_init_ctxt_setup_req(const asn1::s1ap::init_context_setup
 
   // Send RRC security mode command
   send_security_mode_command();
-
-  // Setup E-RABs
-  setup_erabs(msg.protocol_ies.erab_to_be_setup_list_ctxt_su_req.value);
 }
 
 bool rrc::ue::handle_ue_ctxt_mod_req(const asn1::s1ap::ue_context_mod_request_s& msg)
@@ -865,19 +989,6 @@ bool rrc::ue::handle_ue_ctxt_mod_req(const asn1::s1ap::ue_context_mod_request_s&
       /* Remember that we are in a CSFB right now */
       is_csfb = true;
     }
-  }
-
-  if (msg.protocol_ies.add_cs_fallback_ind_present) {
-    parent->rrc_log->warning("Not handling AdditionalCSFallbackIndicator\n");
-  }
-  if (msg.protocol_ies.csg_membership_status_present) {
-    parent->rrc_log->warning("Not handling CSGMembershipStatus\n");
-  }
-  if (msg.protocol_ies.registered_lai_present) {
-    parent->rrc_log->warning("Not handling RegisteredLAI\n");
-  }
-  if (msg.protocol_ies.subscriber_profile_idfor_rfp_present) {
-    parent->rrc_log->warning("Not handling SubscriberProfileIDforRFP\n");
   }
 
   // UEAggregateMaximumBitrate
@@ -898,23 +1009,6 @@ bool rrc::ue::handle_ue_ctxt_mod_req(const asn1::s1ap::ue_context_mod_request_s&
   return true;
 }
 
-void rrc::ue::notify_s1ap_ue_ctxt_setup_complete()
-{
-  asn1::s1ap::init_context_setup_resp_s res;
-
-  res.protocol_ies.erab_setup_list_ctxt_su_res.value.resize(bearer_list.get_erabs().size());
-  uint32_t i = 0;
-  for (const auto& erab : bearer_list.get_erabs()) {
-    res.protocol_ies.erab_setup_list_ctxt_su_res.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_SETUP_ITEM_CTXT_SU_RES);
-    auto& item   = res.protocol_ies.erab_setup_list_ctxt_su_res.value[i].value.erab_setup_item_ctxt_su_res();
-    item.erab_id = erab.second.id;
-    srslte::uint32_to_uint8(erab.second.teid_in, item.gtp_teid.data());
-    i++;
-  }
-
-  parent->s1ap->ue_ctxt_setup_complete(rnti, res);
-}
-
 void rrc::ue::set_bitrates(const asn1::s1ap::ue_aggregate_maximum_bitrate_s& rates)
 {
   bitrates = rates;
@@ -923,52 +1017,29 @@ void rrc::ue::set_bitrates(const asn1::s1ap::ue_aggregate_maximum_bitrate_s& rat
 bool rrc::ue::setup_erabs(const asn1::s1ap::erab_to_be_setup_list_ctxt_su_req_l& e)
 {
   for (const auto& item : e) {
-    auto& erab = item.value.erab_to_be_setup_item_ctxt_su_req();
+    const auto& erab = item.value.erab_to_be_setup_item_ctxt_su_req();
     if (erab.ext) {
-      parent->rrc_log->warning("Not handling E-RABToBeSetupListCtxtSURequest extensions\n");
+      parent->logger.warning("Not handling E-RABToBeSetupListCtxtSURequest extensions");
     }
     if (erab.ie_exts_present) {
-      parent->rrc_log->warning("Not handling E-RABToBeSetupListCtxtSURequest extensions\n");
+      parent->logger.warning("Not handling E-RABToBeSetupListCtxtSURequest extensions");
     }
     if (erab.transport_layer_address.length() > 32) {
-      parent->rrc_log->error("IPv6 addresses not currently supported\n");
+      parent->logger.error("IPv6 addresses not currently supported");
       return false;
     }
 
-    uint32_t teid_out;
-    srslte::uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
-    const asn1::unbounded_octstring<true>* nas_pdu = erab.nas_pdu_present ? &erab.nas_pdu : nullptr;
-    bearer_list.add_erab(erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, nas_pdu);
-    bearer_list.add_gtpu_bearer(parent->gtpu, erab.erab_id);
-  }
-  return true;
-}
-
-bool rrc::ue::setup_erabs(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e)
-{
-  for (const auto& item : e) {
-    auto& erab = item.value.erab_to_be_setup_item_bearer_su_req();
-    if (erab.ext) {
-      parent->rrc_log->warning("Not handling E-RABToBeSetupListBearerSUReq extensions\n");
+    uint32_t teid_out = 0;
+    srsran::uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
+    srsran::const_span<uint8_t> nas_pdu;
+    if (erab.nas_pdu_present) {
+      nas_pdu = erab.nas_pdu;
     }
-    if (erab.ie_exts_present) {
-      parent->rrc_log->warning("Not handling E-RABToBeSetupListBearerSUReq extensions\n");
-    }
-    if (erab.transport_layer_address.length() > 32) {
-      parent->rrc_log->error("IPv6 addresses not currently supported\n");
-      return false;
-    }
-
-    uint32_t teid_out;
-    srslte::uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
+    asn1::s1ap::cause_c cause;
     bearer_list.add_erab(
-        erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, &erab.nas_pdu);
-    bearer_list.add_gtpu_bearer(parent->gtpu, erab.erab_id);
+        erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, nas_pdu, cause);
+    bearer_list.add_gtpu_bearer(erab.erab_id);
   }
-
-  // Work in progress
-  notify_s1ap_ue_erab_setup_response(e);
-  send_connection_reconf_new_bearer();
   return true;
 }
 
@@ -978,51 +1049,70 @@ bool rrc::ue::release_erabs()
   return true;
 }
 
-void rrc::ue::notify_s1ap_ue_erab_setup_response(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e)
+int rrc::ue::release_erab(uint32_t erab_id)
 {
-  asn1::s1ap::erab_setup_resp_s res;
+  return bearer_list.release_erab(erab_id);
+}
 
-  const auto& erabs = bearer_list.get_erabs();
-  for (const auto& erab : e) {
-    uint8_t id = erab.value.erab_to_be_setup_item_bearer_su_req().erab_id;
-    if (erabs.count(id)) {
-      res.protocol_ies.erab_setup_list_bearer_su_res_present = true;
-      res.protocol_ies.erab_setup_list_bearer_su_res.value.push_back({});
-      auto& item = res.protocol_ies.erab_setup_list_bearer_su_res.value.back();
-      item.load_info_obj(ASN1_S1AP_ID_ERAB_SETUP_ITEM_BEARER_SU_RES);
-      item.value.erab_setup_item_bearer_su_res().erab_id = id;
-      srslte::uint32_to_uint8(bearer_list.get_erabs().at(id).teid_in,
-                              &item.value.erab_setup_item_bearer_su_res().gtp_teid[0]);
-    } else {
-      res.protocol_ies.erab_failed_to_setup_list_bearer_su_res_present = true;
-      res.protocol_ies.erab_failed_to_setup_list_bearer_su_res.value.push_back({});
-      auto& item                     = res.protocol_ies.erab_failed_to_setup_list_bearer_su_res.value.back();
-      item.value.erab_item().erab_id = id;
-      item.value.erab_item().cause.set_radio_network().value =
-          asn1::s1ap::cause_radio_network_opts::invalid_qos_combination;
-    }
+int rrc::ue::get_erab_addr_in(uint16_t erab_id, transp_addr_t& addr_in, uint32_t& teid_in) const
+{
+  auto it = bearer_list.get_erabs().find(erab_id);
+  if (it == bearer_list.get_erabs().end()) {
+    parent->logger.error("E-RAB id=%d for rnti=0x%x not found", erab_id, rnti);
+    return SRSRAN_ERROR;
   }
+  addr_in = it->second.address;
+  teid_in = it->second.teid_in;
+  return SRSRAN_SUCCESS;
+}
 
-  parent->s1ap->ue_erab_setup_complete(rnti, res);
+int rrc::ue::setup_erab(uint16_t                                           erab_id,
+                        const asn1::s1ap::erab_level_qos_params_s&         qos_params,
+                        srsran::const_span<uint8_t>                        nas_pdu,
+                        const asn1::bounded_bitstring<1, 160, true, true>& addr,
+                        uint32_t                                           gtpu_teid_out,
+                        asn1::s1ap::cause_c&                               cause)
+{
+  if (bearer_list.get_erabs().count(erab_id) > 0) {
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::multiple_erab_id_instances;
+    return SRSRAN_ERROR;
+  }
+  if (bearer_list.add_erab(erab_id, qos_params, addr, gtpu_teid_out, nas_pdu, cause) != SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
+  }
+  if (bearer_list.add_gtpu_bearer(erab_id) != SRSRAN_SUCCESS) {
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::radio_res_not_available;
+    return SRSRAN_ERROR;
+  }
+  return SRSRAN_SUCCESS;
+}
+
+int rrc::ue::modify_erab(uint16_t                                   erab_id,
+                         const asn1::s1ap::erab_level_qos_params_s& qos_params,
+                         srsran::const_span<uint8_t>                nas_pdu,
+                         asn1::s1ap::cause_c&                       cause)
+{
+  return bearer_list.modify_erab(erab_id, qos_params, nas_pdu, cause);
 }
 
 //! Helper method to access Cell configuration based on UE Carrier Index
-cell_info_common* rrc::ue::get_ue_cc_cfg(uint32_t ue_cc_idx)
+enb_cell_common* rrc::ue::get_ue_cc_cfg(uint32_t ue_cc_idx)
 {
-  if (ue_cc_idx >= cell_ded_list.nof_cells()) {
+  if (ue_cc_idx >= ue_cell_list.nof_cells()) {
     return nullptr;
   }
-  uint32_t enb_cc_idx = cell_ded_list.get_ue_cc_idx(ue_cc_idx)->cell_common->enb_cc_idx;
+  uint32_t enb_cc_idx = ue_cell_list.get_ue_cc_idx(ue_cc_idx)->cell_common->enb_cc_idx;
   return parent->cell_common_list->get_cc_idx(enb_cc_idx);
 }
 
-//! Method to fill SCellToAddModList for SCell info
-int rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_reconf)
+void rrc::ue::update_scells()
 {
-  // check whether we have SCells configured
-  const cell_info_common* pcell_cfg = get_ue_cc_cfg(UE_PCELL_CC_IDX);
-  if (pcell_cfg->cell_cfg.scell_list.empty()) {
-    return SRSLTE_SUCCESS;
+  const ue_cell_ded*     pcell     = ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
+  const enb_cell_common* pcell_cfg = pcell->cell_common;
+
+  if (ue_cell_list.nof_cells() == pcell_cfg->scells.size() + 1) {
+    // SCells already added
+    return;
   }
 
   // Check whether UE supports CA
@@ -1031,267 +1121,27 @@ int rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_
       not eutra_capabilities.non_crit_ext.non_crit_ext.non_crit_ext.rf_params_v1020_present or
       eutra_capabilities.non_crit_ext.non_crit_ext.non_crit_ext.rf_params_v1020.supported_band_combination_r10.size() ==
           0) {
-    parent->rrc_log->info("UE doesn't support CA. Skipping SCell activation\n");
-    return SRSLTE_SUCCESS;
+    parent->logger.info("UE doesn't support CA. Skipping SCell activation");
+    return;
   }
 
-  // Allocate CQI + PUCCH for SCells.
-  for (const scell_cfg_t& scell_cfg : pcell_cfg->cell_cfg.scell_list) {
-    uint32_t cell_id = scell_cfg.cell_id;
-    cell_ded_list.add_cell(parent->cell_common_list->get_cell_id(cell_id)->enb_cc_idx);
-  }
-  if (cell_ded_list.nof_cells() == 1) {
-    // No SCell could be allocated. Fallback to single cell mode.
-    return SRSLTE_SUCCESS;
+  for (const enb_cell_common* scell : pcell_cfg->scells) {
+    ue_cell_list.add_cell(scell->enb_cc_idx);
   }
 
-  parent->rrc_log->info("SCells activated for rnti=0x%x\n", rnti);
-
-  conn_reconf->non_crit_ext_present                                                     = true;
-  conn_reconf->non_crit_ext.non_crit_ext_present                                        = true;
-  conn_reconf->non_crit_ext.non_crit_ext.non_crit_ext_present                           = true;
-  conn_reconf->non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10_present = true;
-  auto& list = conn_reconf->non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10;
-
-  // Add all SCells configured+allocated for the current PCell
-  phy_rrc_dedicated_list.resize(cell_ded_list.nof_cells());
-  for (auto& p : cell_ded_list) {
-    if (p.ue_cc_idx == UE_PCELL_CC_IDX) {
-      continue;
-    }
-    uint32_t                scell_idx = p.ue_cc_idx;
-    const cell_info_common* cc_cfg    = p.cell_common;
-    const sib_type1_s&      cell_sib1 = cc_cfg->sib1;
-    const sib_type2_s&      cell_sib2 = cc_cfg->sib2;
-
-    scell_to_add_mod_r10_s cell;
-    cell.scell_idx_r10                        = scell_idx;
-    cell.cell_identif_r10_present             = true;
-    cell.cell_identif_r10.pci_r10             = cc_cfg->cell_cfg.pci;
-    cell.cell_identif_r10.dl_carrier_freq_r10 = cc_cfg->cell_cfg.dl_earfcn;
-    cell.rr_cfg_common_scell_r10_present      = true;
-    // RadioResourceConfigCommon
-    const rr_cfg_common_sib_s& cc_cfg_sib = cell_sib2.rr_cfg_common;
-    auto&                      nonul_cfg  = cell.rr_cfg_common_scell_r10.non_ul_cfg_r10;
-    asn1::number_to_enum(nonul_cfg.dl_bw_r10, parent->cfg.cell.nof_prb);
-    nonul_cfg.ant_info_common_r10.ant_ports_count.value = ant_info_common_s::ant_ports_count_opts::an1;
-    nonul_cfg.phich_cfg_r10                             = cc_cfg->mib.phich_cfg;
-    nonul_cfg.pdsch_cfg_common_r10                      = cc_cfg_sib.pdsch_cfg_common;
-    // RadioResourceConfigCommonSCell-r10::ul-Configuration-r10
-    cell.rr_cfg_common_scell_r10.ul_cfg_r10_present          = true;
-    auto& ul_cfg                                             = cell.rr_cfg_common_scell_r10.ul_cfg_r10;
-    ul_cfg.ul_freq_info_r10.ul_carrier_freq_r10_present      = true;
-    ul_cfg.ul_freq_info_r10.ul_carrier_freq_r10              = cc_cfg->cell_cfg.ul_earfcn;
-    ul_cfg.p_max_r10_present                                 = cell_sib1.p_max_present;
-    ul_cfg.p_max_r10                                         = cell_sib1.p_max;
-    ul_cfg.ul_freq_info_r10.add_spec_emission_scell_r10      = 1;
-    ul_cfg.ul_pwr_ctrl_common_scell_r10.p0_nominal_pusch_r10 = cc_cfg_sib.ul_pwr_ctrl_common.p0_nominal_pusch;
-    ul_cfg.ul_pwr_ctrl_common_scell_r10.alpha_r10.value      = cc_cfg_sib.ul_pwr_ctrl_common.alpha;
-    ul_cfg.srs_ul_cfg_common_r10                             = cc_cfg_sib.srs_ul_cfg_common;
-    ul_cfg.ul_cp_len_r10.value                               = cc_cfg_sib.ul_cp_len.value;
-    ul_cfg.pusch_cfg_common_r10                              = cc_cfg_sib.pusch_cfg_common;
-    // RadioResourceConfigDedicatedSCell-r10
-    cell.rr_cfg_ded_scell_r10_present                                       = true;
-    cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10_present                = true;
-    cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.non_ul_cfg_r10_present = true;
-    auto& nonul_cfg_ded                = cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.non_ul_cfg_r10;
-    nonul_cfg_ded.ant_info_r10_present = true;
-    asn1::number_to_enum(nonul_cfg_ded.ant_info_r10.tx_mode_r10, parent->cfg.cell.nof_ports);
-    nonul_cfg_ded.ant_info_r10.ue_tx_ant_sel.set(setup_opts::release);
-    nonul_cfg_ded.cross_carrier_sched_cfg_r10_present                                            = true;
-    nonul_cfg_ded.cross_carrier_sched_cfg_r10.sched_cell_info_r10.set_own_r10().cif_presence_r10 = false;
-    nonul_cfg_ded.pdsch_cfg_ded_r10_present                                                      = true;
-    nonul_cfg_ded.pdsch_cfg_ded_r10.p_a.value                           = parent->cfg.pdsch_cfg.value;
-    cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.ul_cfg_r10_present = true;
-    auto& ul_cfg_ded                                  = cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.ul_cfg_r10;
-    ul_cfg_ded.ant_info_ul_r10_present                = true;
-    ul_cfg_ded.ant_info_ul_r10.tx_mode_ul_r10_present = true;
-    asn1::number_to_enum(ul_cfg_ded.ant_info_ul_r10.tx_mode_ul_r10, parent->cfg.cell.nof_ports);
-    ul_cfg_ded.pusch_cfg_ded_scell_r10_present           = true;
-    ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10_present         = true;
-    ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.p0_ue_pusch_r10 = 0;
-    ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.delta_mcs_enabled_r10.value =
-        ul_pwr_ctrl_ded_scell_r10_s::delta_mcs_enabled_r10_opts::en0;
-    ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.accumulation_enabled_r10   = true;
-    ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.psrs_offset_ap_r10_present = true;
-    ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.psrs_offset_ap_r10         = 3;
-    ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.pathloss_ref_linking_r10.value =
-        ul_pwr_ctrl_ded_scell_r10_s::pathloss_ref_linking_r10_opts::scell;
-    ul_cfg_ded.cqi_report_cfg_scell_r10_present                               = true;
-    ul_cfg_ded.cqi_report_cfg_scell_r10.nom_pdsch_rs_epre_offset_r10          = 0;
-    ul_cfg_ded.cqi_report_cfg_scell_r10.cqi_report_periodic_scell_r10_present = true;
-    if (ue_capabilities.support_dl_256qam) {
-      cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.ext = true;
-      cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.cqi_report_cfg_scell_v1250.set_present(true);
-      cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.cqi_report_cfg_scell_v1250->alt_cqi_table_r12_present = true;
-      cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.cqi_report_cfg_scell_v1250->alt_cqi_table_r12.value =
-          cqi_report_cfg_v1250_s::alt_cqi_table_r12_opts::all_sfs;
-    }
-
-    // Get CQI allocation for secondary cell
-    auto& cqi_setup = ul_cfg_ded.cqi_report_cfg_scell_r10.cqi_report_periodic_scell_r10.set_setup();
-    get_cqi(&cqi_setup.cqi_pmi_cfg_idx, &cqi_setup.cqi_pucch_res_idx_r10, scell_idx);
-
-    cqi_setup.cqi_format_ind_periodic_r10.set_wideband_cqi_r10();
-    cqi_setup.simul_ack_nack_and_cqi = parent->cfg.cqi_cfg.simultaneousAckCQI;
-#if SRS_ENABLED
-    ul_cfg_ded.srs_ul_cfg_ded_r10_present                  = true;
-    auto& srs_setup                                        = ul_cfg_ded.srs_ul_cfg_ded_r10.set_setup();
-    srs_setup.srs_bw.value                                 = srs_ul_cfg_ded_c::setup_s_::srs_bw_opts::bw0;
-    srs_setup.srs_hop_bw.value                             = srs_ul_cfg_ded_c::setup_s_::srs_hop_bw_opts::hbw0;
-    srs_setup.freq_domain_position                         = 0;
-    srs_setup.dur                                          = true;
-    srs_setup.srs_cfg_idx                                  = 167;
-    srs_setup.tx_comb                                      = 0;
-    srs_setup.cyclic_shift.value                           = srs_ul_cfg_ded_c::setup_s_::cyclic_shift_opts::cs0;
-    ul_cfg_ded.srs_ul_cfg_ded_v1020_present                = true;
-    ul_cfg_ded.srs_ul_cfg_ded_v1020.srs_ant_port_r10.value = srs_ant_port_opts::an1;
-    ul_cfg_ded.srs_ul_cfg_ded_aperiodic_r10_present        = true;
-    ul_cfg_ded.srs_ul_cfg_ded_aperiodic_r10.set(setup_opts::release);
-#endif // SRS_ENABLED
-    list.push_back(cell);
-
-    // Create new PHY configuration structure for this SCell
-    phy_interface_rrc_lte::phy_rrc_cfg_t scell_phy_rrc_ded = {};
-    srslte::set_phy_cfg_t_scell_config(&scell_phy_rrc_ded.phy_cfg, cell);
-    scell_phy_rrc_ded.configured = true;
-
-    // Set PUSCH dedicated configuration following 3GPP TS 36.331 R 10 Section 6.3.2 Radio resource control information
-    // elements - PUSCH-Config
-    //   One value applies for all serving cells with an uplink (the associated functionality is common i.e. not
-    //   performed independently for each cell).
-    scell_phy_rrc_ded.phy_cfg.ul_cfg.pusch.uci_offset = phy_rrc_dedicated_list[0].phy_cfg.ul_cfg.pusch.uci_offset;
-
-    // Get corresponding eNB CC index
-    scell_phy_rrc_ded.enb_cc_idx = cc_cfg->enb_cc_idx;
-
-    // Append to PHY RRC config dedicated which will be applied further down
-    phy_rrc_dedicated_list[scell_idx] = scell_phy_rrc_ded;
-  }
-
-  // Set DL HARQ Feedback mode
-  conn_reconf->rr_cfg_ded.phys_cfg_ded.pucch_cfg_ded_v1020.set_present(true);
-  conn_reconf->rr_cfg_ded.phys_cfg_ded.pucch_cfg_ded_v1020->pucch_format_r10_present = true;
-  conn_reconf->rr_cfg_ded.phys_cfg_ded.ext                                           = true;
-  auto pucch_format_r10                      = conn_reconf->rr_cfg_ded.phys_cfg_ded.pucch_cfg_ded_v1020.get();
-  pucch_format_r10->pucch_format_r10_present = true;
-  if (cell_ded_list.nof_cells() <= 2) {
-    // Use PUCCH format 1b with channel selection for 2 serving cells
-    auto& ch_sel_r10                      = pucch_format_r10->pucch_format_r10.set_ch_sel_r10();
-    ch_sel_r10.n1_pucch_an_cs_r10_present = true;
-    ch_sel_r10.n1_pucch_an_cs_r10.set_setup();
-    n1_pucch_an_cs_r10_l item0(4);
-    // TODO: should we use a different n1PUCCH-AN-CS-List configuration?
-    for (auto& it : item0) {
-      it = cell_ded_list.is_pucch_cs_allocated() ? *cell_ded_list.get_n_pucch_cs() : 0;
-    }
-    ch_sel_r10.n1_pucch_an_cs_r10.setup().n1_pucch_an_cs_list_r10.push_back(item0);
-  } else {
-    // Use PUCCH format 3 for more than 2 serving cells
-    auto& format3_r10                        = pucch_format_r10->pucch_format_r10.set_format3_r10();
-    format3_r10.n3_pucch_an_list_r13_present = true;
-    format3_r10.n3_pucch_an_list_r13.resize(4);
-    for (auto& it : format3_r10.n3_pucch_an_list_r13) {
-      // Hard-coded resource, only one user is supported
-      it = 0;
-    }
-  }
-  return SRSLTE_SUCCESS;
-}
-
-/********************** Handover **************************/
-
-void rrc::ue::handle_ho_preparation_complete(bool is_success, srslte::unique_byte_buffer_t container)
-{
-  mobility_handler->handle_ho_preparation_complete(is_success, std::move(container));
+  parent->logger.info("SCells activated for rnti=0x%x", rnti);
 }
 
 /********************** HELPERS ***************************/
 
-// Helper method to fill in rr_config_dedicated
-void rrc::ue::fill_rrc_setup_rr_config_dedicated(asn1::rrc::rr_cfg_ded_s* rr_cfg)
-{
-  // Fill drbsToAddModList/srbsToAddModList/drbsToReleaseList
-  bearer_list.fill_rr_cfg_ded(*rr_cfg);
-
-  // Fill mac-MainConfig
-  rr_cfg->mac_main_cfg_present  = true;
-  mac_main_cfg_s* mac_cfg       = &rr_cfg->mac_main_cfg.set_explicit_value();
-  mac_cfg->ul_sch_cfg_present   = true;
-  mac_cfg->ul_sch_cfg           = parent->cfg.mac_cnfg.ul_sch_cfg;
-  mac_cfg->phr_cfg_present      = true;
-  mac_cfg->phr_cfg              = parent->cfg.mac_cnfg.phr_cfg;
-  mac_cfg->time_align_timer_ded = parent->cfg.mac_cnfg.time_align_timer_ded;
-
-  // Fill physicalConfigDedicated
-  rr_cfg->phys_cfg_ded_present       = true;
-  phys_cfg_ded_s* phy_cfg            = &rr_cfg->phys_cfg_ded;
-  phy_cfg->pusch_cfg_ded_present     = true;
-  phy_cfg->pusch_cfg_ded             = parent->cfg.pusch_cfg;
-  phy_cfg->sched_request_cfg_present = true;
-  phy_cfg->sched_request_cfg.set_setup();
-  phy_cfg->sched_request_cfg.setup().dsr_trans_max = parent->cfg.sr_cfg.dsr_max;
-
-  // set default antenna config
-  phy_cfg->ant_info_present = true;
-  phy_cfg->ant_info.set_explicit_value();
-  if (parent->cfg.cell.nof_ports == 1) {
-    phy_cfg->ant_info.explicit_value().tx_mode.value = ant_info_ded_s::tx_mode_e_::tm1;
-  } else {
-    phy_cfg->ant_info.explicit_value().tx_mode.value = ant_info_ded_s::tx_mode_e_::tm2;
-  }
-  phy_cfg->ant_info.explicit_value().ue_tx_ant_sel.set(setup_e::release);
-
-  phy_cfg->sched_request_cfg.setup().sr_cfg_idx       = (uint8_t)cell_ded_list.get_sr_res()->sr_I;
-  phy_cfg->sched_request_cfg.setup().sr_pucch_res_idx = (uint16_t)cell_ded_list.get_sr_res()->sr_N_pucch;
-
-  // Power control
-  phy_cfg->ul_pwr_ctrl_ded_present              = true;
-  phy_cfg->ul_pwr_ctrl_ded.p0_ue_pusch          = 0;
-  phy_cfg->ul_pwr_ctrl_ded.delta_mcs_enabled    = ul_pwr_ctrl_ded_s::delta_mcs_enabled_e_::en0;
-  phy_cfg->ul_pwr_ctrl_ded.accumulation_enabled = true;
-  phy_cfg->ul_pwr_ctrl_ded.p0_ue_pucch          = 0;
-  phy_cfg->ul_pwr_ctrl_ded.psrs_offset          = 3;
-
-  // PDSCH
-  phy_cfg->pdsch_cfg_ded_present = true;
-  phy_cfg->pdsch_cfg_ded.p_a     = parent->cfg.pdsch_cfg;
-
-  // PUCCH
-  phy_cfg->pucch_cfg_ded_present = true;
-  phy_cfg->pucch_cfg_ded.ack_nack_repeat.set(pucch_cfg_ded_s::ack_nack_repeat_c_::types::release);
-
-  phy_cfg->cqi_report_cfg_present = true;
-  if (parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC) {
-    phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic_present = true;
-    phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic         = cqi_report_mode_aperiodic_e::rm30;
-  } else {
-    phy_cfg->cqi_report_cfg.cqi_report_periodic_present = true;
-    phy_cfg->cqi_report_cfg.cqi_report_periodic.set_setup();
-    phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_format_ind_periodic.set(
-        cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types::wideband_cqi);
-    phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().simul_ack_nack_and_cqi = parent->cfg.cqi_cfg.simultaneousAckCQI;
-    if (get_cqi(&phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pmi_cfg_idx,
-                &phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pucch_res_idx,
-                UE_PCELL_CC_IDX)) {
-      parent->rrc_log->error("Allocating CQI resources for rnti=%d\n", rnti);
-      return;
-    }
-  }
-  phy_cfg->cqi_report_cfg.nom_pdsch_rs_epre_offset = 0;
-
-  rr_cfg->rlf_timers_and_consts_r9.set_present(false);
-  rr_cfg->sps_cfg_present = false;
-}
-
-void rrc::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
+void rrc::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg, std::string* octet_str)
 {
   // Allocate a new PDU buffer, pack the message and send to PDCP
-  srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool);
+  srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
   if (pdu) {
     asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
     if (dl_ccch_msg->pack(bref) != asn1::SRSASN_SUCCESS) {
-      parent->rrc_log->error_hex(pdu->msg, pdu->N_bytes, "Failed to pack DL-CCCH-Msg:\n");
+      parent->logger.error(pdu->msg, pdu->N_bytes, "Failed to pack DL-CCCH-Msg:");
       return;
     }
     pdu->N_bytes = (uint32_t)bref.distance_bytes();
@@ -1299,36 +1149,50 @@ void rrc::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
     char buf[32] = {};
     sprintf(buf, "SRB0 - rnti=0x%x", rnti);
     parent->log_rrc_message(buf, Tx, pdu.get(), *dl_ccch_msg, dl_ccch_msg->msg.c1().type().to_string());
-    parent->rlc->write_sdu(rnti, RB_ID_SRB0, std::move(pdu));
+
+    // Encode the pdu as an octet string if the user passed a valid pointer.
+    if (octet_str) {
+      *octet_str = asn1::octstring_to_string(pdu->msg, pdu->N_bytes);
+    }
+
+    parent->rlc->write_sdu(rnti, srb_to_lcid(lte_srb::srb0), std::move(pdu));
   } else {
-    parent->rrc_log->error("Allocating pdu\n");
+    parent->logger.error("Allocating pdu");
   }
 }
 
-bool rrc::ue::send_dl_dcch(const dl_dcch_msg_s* dl_dcch_msg, srslte::unique_byte_buffer_t pdu)
+bool rrc::ue::send_dl_dcch(const dl_dcch_msg_s* dl_dcch_msg, srsran::unique_byte_buffer_t pdu, std::string* octet_str)
 {
   if (!pdu) {
-    pdu = srslte::allocate_unique_buffer(*pool);
+    pdu = srsran::make_byte_buffer();
   }
   if (pdu) {
     asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
     if (dl_dcch_msg->pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
-      parent->rrc_log->error("Failed to encode DL-DCCH-Msg\n");
+      parent->logger.error("Failed to encode DL-DCCH-Msg");
       return false;
     }
     pdu->N_bytes = (uint32_t)bref.distance_bytes();
 
-    // send on SRB2 if user is fully registered (after RRC reconfig complete)
-    uint32_t lcid =
-        parent->rlc->has_bearer(rnti, RB_ID_SRB2) && state == RRC_STATE_REGISTERED ? RB_ID_SRB2 : RB_ID_SRB1;
+    lte_srb rb = lte_srb::srb1;
+    if (dl_dcch_msg->msg.c1().type() == dl_dcch_msg_type_c::c1_c_::types_opts::dl_info_transfer) {
+      // send messages with NAS on SRB2 if user is fully registered (after RRC reconfig complete)
+      rb = (parent->rlc->has_bearer(rnti, srb_to_lcid(lte_srb::srb2)) && state == RRC_STATE_REGISTERED) ? lte_srb::srb2
+                                                                                                        : lte_srb::srb1;
+    }
 
     char buf[32] = {};
-    sprintf(buf, "SRB%d - rnti=0x%x", lcid, rnti);
+    sprintf(buf, "%s - rnti=0x%x", srsran::get_srb_name(rb), rnti);
     parent->log_rrc_message(buf, Tx, pdu.get(), *dl_dcch_msg, dl_dcch_msg->msg.c1().type().to_string());
 
-    parent->pdcp->write_sdu(rnti, lcid, std::move(pdu));
+    // Encode the pdu as an octet string if the user passed a valid pointer.
+    if (octet_str) {
+      *octet_str = asn1::octstring_to_string(pdu->msg, pdu->N_bytes);
+    }
+
+    parent->pdcp->write_sdu(rnti, srb_to_lcid(rb), std::move(pdu));
   } else {
-    parent->rrc_log->error("Allocating pdu\n");
+    parent->logger.error("Allocating pdu");
     return false;
   }
   return true;
@@ -1368,7 +1232,7 @@ void rrc::ue::apply_setup_phy_config_dedicated(const asn1::rrc::phys_cfg_ded_s& 
   }
 
   // Load PCell dedicated configuration
-  srslte::set_phy_cfg_t_dedicated_cfg(&phy_rrc_dedicated_list[0].phy_cfg, phys_cfg_ded);
+  srsran::set_phy_cfg_t_dedicated_cfg(&phy_rrc_dedicated_list[0].phy_cfg, phys_cfg_ded);
 
   // Deactivates eNb/Cells for this UE
   for (uint32_t cc = 1; cc < phy_rrc_dedicated_list.size(); cc++) {
@@ -1393,7 +1257,11 @@ void rrc::ue::apply_reconf_phy_config(const rrc_conn_recfg_r8_ies_s& reconfig_r8
     auto& rr_cfg_ded = reconfig_r8.rr_cfg_ded;
     if (rr_cfg_ded.phys_cfg_ded_present) {
       auto& phys_cfg_ded = rr_cfg_ded.phys_cfg_ded;
-      srslte::set_phy_cfg_t_dedicated_cfg(&phy_rrc_dedicated_list[0].phy_cfg, phys_cfg_ded);
+      srsran::set_phy_cfg_t_dedicated_cfg(&phy_rrc_dedicated_list[0].phy_cfg, phys_cfg_ded);
+      srsran::set_phy_cfg_t_enable_64qam(
+          &phy_rrc_dedicated_list[0].phy_cfg,
+          ue_capabilities.support_ul_64qam and
+              parent->cfg.sibs[1].sib2().rr_cfg_common.pusch_cfg_common.pusch_cfg_basic.enable64_qam);
     }
   }
 
@@ -1407,7 +1275,32 @@ void rrc::ue::apply_reconf_phy_config(const rrc_conn_recfg_r8_ies_s& reconfig_r8
 
         // Handle Add/Modify SCell list
         if (reconfig_r1020.scell_to_add_mod_list_r10_present) {
-          // This is already applied when packing the SCell list
+          auto& list = reconfig_r1020.scell_to_add_mod_list_r10;
+          phy_rrc_dedicated_list.resize(ue_cell_list.nof_cells());
+          for (const scell_to_add_mod_r10_s& scell : list) {
+            ue_cell_ded* ue_cc = ue_cell_list.get_ue_cc_idx(scell.scell_idx_r10);
+            // Create new PHY configuration structure for this SCell
+            phy_interface_rrc_lte::phy_rrc_cfg_t scell_phy_rrc_ded = {};
+            srsran::set_phy_cfg_t_scell_config(&scell_phy_rrc_ded.phy_cfg, scell);
+            scell_phy_rrc_ded.configured = true;
+
+            // Set PUSCH dedicated configuration following 3GPP TS 36.331 R 10 Section 6.3.2 Radio resource control
+            // information elements - PUSCH-Config
+            //   One value applies for all serving cells with an uplink (the associated functionality is common i.e. not
+            //   performed independently for each cell).
+            scell_phy_rrc_ded.phy_cfg.ul_cfg.pusch.uci_offset =
+                phy_rrc_dedicated_list[0].phy_cfg.ul_cfg.pusch.uci_offset;
+
+            // Get corresponding eNB CC index
+            scell_phy_rrc_ded.enb_cc_idx = ue_cc->cell_common->enb_cc_idx;
+
+            // Append to PHY RRC config dedicated which will be applied further down
+            phy_rrc_dedicated_list[scell.scell_idx_r10] = scell_phy_rrc_ded;
+            srsran::set_phy_cfg_t_enable_64qam(
+                &phy_rrc_dedicated_list[scell.scell_idx_r10].phy_cfg,
+                ue_capabilities.support_ul_64qam and
+                    parent->cfg.sibs[1].sib2().rr_cfg_common.pusch_cfg_common.pusch_cfg_basic.enable64_qam);
+          }
         }
       }
     }
@@ -1419,12 +1312,12 @@ void rrc::ue::apply_reconf_phy_config(const rrc_conn_recfg_r8_ies_s& reconfig_r8
   }
 }
 
-void rrc::ue::apply_pdcp_srb_updates()
+void rrc::ue::apply_pdcp_srb_updates(const rr_cfg_ded_s& pending_rr_cfg)
 {
-  for (const srb_to_add_mod_s& srb : bearer_list.get_pending_addmod_srbs()) {
-    parent->pdcp->add_bearer(rnti, srb.srb_id, srslte::make_srb_pdcp_config_t(srb.srb_id, false));
+  for (const srb_to_add_mod_s& srb : pending_rr_cfg.srb_to_add_mod_list) {
+    parent->pdcp->add_bearer(rnti, srb.srb_id, srsran::make_srb_pdcp_config_t(srb.srb_id, false));
 
-    // For SRB2, enable security/encryption/integrity
+    // enable security config
     if (ue_security_cfg.is_as_sec_cfg_valid()) {
       parent->pdcp->config_security(rnti, srb.srb_id, ue_security_cfg.get_as_sec_cfg());
       parent->pdcp->enable_integrity(rnti, srb.srb_id);
@@ -1433,18 +1326,18 @@ void rrc::ue::apply_pdcp_srb_updates()
   }
 }
 
-void rrc::ue::apply_pdcp_drb_updates()
+void rrc::ue::apply_pdcp_drb_updates(const rr_cfg_ded_s& pending_rr_cfg)
 {
-  for (uint8_t drb_id : bearer_list.get_pending_rem_drbs()) {
+  for (uint8_t drb_id : pending_rr_cfg.drb_to_release_list) {
     parent->pdcp->del_bearer(rnti, drb_id + 2);
   }
-  for (const drb_to_add_mod_s& drb : bearer_list.get_pending_addmod_drbs()) {
+  for (const drb_to_add_mod_s& drb : pending_rr_cfg.drb_to_add_mod_list) {
     // Configure DRB1 in PDCP
     if (drb.pdcp_cfg_present) {
-      srslte::pdcp_config_t pdcp_cnfg_drb = srslte::make_drb_pdcp_config_t(drb.drb_id, false, drb.pdcp_cfg);
+      srsran::pdcp_config_t pdcp_cnfg_drb = srsran::make_drb_pdcp_config_t(drb.drb_id, false, drb.pdcp_cfg);
       parent->pdcp->add_bearer(rnti, drb.lc_ch_id, pdcp_cnfg_drb);
     } else {
-      srslte::pdcp_config_t pdcp_cnfg_drb = srslte::make_drb_pdcp_config_t(drb.drb_id, false);
+      srsran::pdcp_config_t pdcp_cnfg_drb = srsran::make_drb_pdcp_config_t(drb.drb_id, false);
       parent->pdcp->add_bearer(rnti, drb.lc_ch_id, pdcp_cnfg_drb);
     }
 
@@ -1454,45 +1347,70 @@ void rrc::ue::apply_pdcp_drb_updates()
       parent->pdcp->enable_encryption(rnti, drb.lc_ch_id);
     }
   }
+
+  // If reconf due to reestablishment, recover PDCP state
+  if (state == RRC_STATE_REESTABLISHMENT_COMPLETE) {
+    for (const auto& erab_pair : bearer_list.get_erabs()) {
+      uint16_t lcid  = erab_pair.second.id - 2;
+      bool     is_am = parent->cfg.qci_cfg[erab_pair.second.qos_params.qci].rlc_cfg.type().value ==
+                   asn1::rrc::rlc_cfg_c::types_opts::am;
+      if (is_am) {
+        parent->logger.debug("Set PDCP state: TX HFN %d, NEXT_PDCP_TX_SN %d, RX_HFN %d, NEXT_PDCP_RX_SN %d, "
+                             "LAST_SUBMITTED_PDCP_RX_SN %d",
+                             old_reest_pdcp_state[lcid].tx_hfn,
+                             old_reest_pdcp_state[lcid].next_pdcp_tx_sn,
+                             old_reest_pdcp_state[lcid].rx_hfn,
+                             old_reest_pdcp_state[lcid].next_pdcp_rx_sn,
+                             old_reest_pdcp_state[lcid].last_submitted_pdcp_rx_sn);
+        parent->pdcp->set_bearer_state(rnti, lcid, old_reest_pdcp_state[lcid]);
+        parent->pdcp->set_bearer_state(rnti, lcid, old_reest_pdcp_state[lcid]);
+        if (parent->cfg.qci_cfg[erab_pair.second.qos_params.qci].pdcp_cfg.rlc_am.status_report_required) {
+          parent->pdcp->send_status_report(rnti, lcid);
+        }
+      }
+    }
+  }
 }
 
-void rrc::ue::apply_rlc_rb_updates()
+void rrc::ue::apply_rlc_rb_updates(const rr_cfg_ded_s& pending_rr_cfg)
 {
-  for (const srb_to_add_mod_s& srb : bearer_list.get_pending_addmod_srbs()) {
-    parent->rlc->add_bearer(rnti, srb.srb_id, srslte::rlc_config_t::srb_config(srb.srb_id));
+  for (const srb_to_add_mod_s& srb : pending_rr_cfg.srb_to_add_mod_list) {
+    parent->rlc->add_bearer(rnti, srb.srb_id, srsran::rlc_config_t::srb_config(srb.srb_id));
   }
-  if (bearer_list.get_pending_rem_drbs().size() > 0) {
-    parent->rrc_log->error("Removing DRBs not currently supported\n");
-  }
-  for (const drb_to_add_mod_s& drb : bearer_list.get_pending_addmod_drbs()) {
-    if (not drb.rlc_cfg_present) {
-      parent->rrc_log->warning("Default RLC DRB config not supported\n");
+  if (pending_rr_cfg.drb_to_release_list.size() > 0) {
+    for (uint8_t drb_id : pending_rr_cfg.drb_to_release_list) {
+      parent->rlc->del_bearer(rnti, drb_id + 2);
     }
-    parent->rlc->add_bearer(rnti, drb.lc_ch_id, srslte::make_rlc_config_t(drb.rlc_cfg));
+  }
+  for (const drb_to_add_mod_s& drb : pending_rr_cfg.drb_to_add_mod_list) {
+    if (not drb.rlc_cfg_present) {
+      parent->logger.warning("Default RLC DRB config not supported");
+    }
+    parent->rlc->add_bearer(rnti, drb.lc_ch_id, srsran::make_rlc_config_t(drb.rlc_cfg));
   }
 }
 
 int rrc::ue::get_cqi(uint16_t* pmi_idx, uint16_t* n_pucch, uint32_t ue_cc_idx)
 {
-  cell_ctxt_dedicated* c = cell_ded_list.get_ue_cc_idx(ue_cc_idx);
+  ue_cell_ded* c = ue_cell_list.get_ue_cc_idx(ue_cc_idx);
   if (c != nullptr and c->cqi_res_present) {
     *pmi_idx = c->cqi_res.pmi_idx;
     *n_pucch = c->cqi_res.pucch_res;
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   } else {
-    parent->rrc_log->error("CQI resources for ue_cc_idx=%d have not been allocated\n", ue_cc_idx);
-    return SRSLTE_ERROR;
+    parent->logger.error("CQI resources for ue_cc_idx=%d have not been allocated", ue_cc_idx);
+    return SRSRAN_ERROR;
   }
 }
 
 bool rrc::ue::is_allocated() const
 {
-  return cell_ded_list.is_allocated();
+  return ue_cell_list.is_allocated();
 }
 
 int rrc::ue::get_ri(uint32_t m_ri, uint16_t* ri_idx)
 {
-  int32_t ret = SRSLTE_SUCCESS;
+  int32_t ret = SRSRAN_SUCCESS;
 
   uint32_t I_ri        = 0;
   int32_t  N_offset_ri = 0; // Naivest approach: overlap RI with PMI
@@ -1519,7 +1437,7 @@ int rrc::ue::get_ri(uint32_t m_ri, uint16_t* ri_idx)
       I_ri = 805 - N_offset_ri;
       break;
     default:
-      parent->rrc_log->error("Allocating RI: invalid m_ri=%d\n", m_ri);
+      parent->logger.error("Allocating RI: invalid m_ri=%d", m_ri);
   }
 
   // If ri_dix is available, copy

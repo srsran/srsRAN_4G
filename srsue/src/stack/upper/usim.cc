@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -20,14 +20,15 @@
  */
 
 #include "srsue/hdr/stack/upper/usim.h"
-#include "srslte/common/bcd_helpers.h"
+#include "srsran/common/bcd_helpers.h"
+#include "srsran/common/standard_streams.h"
 #include <sstream>
 
-using namespace srslte;
+using namespace srsran;
 
 namespace srsue {
 
-usim::usim(srslte::log* log_) : usim_base(log_) {}
+usim::usim(srslog::basic_logger& logger) : usim_base(logger) {}
 
 int usim::init(usim_args_t* args)
 {
@@ -45,8 +46,8 @@ int usim::init(usim_args_t* args)
   if (32 == args->k.length()) {
     str_to_hex(args->k, k);
   } else {
-    log->error("Invalid length for K: %zu should be %d\n", args->k.length(), 32);
-    srslte::console("Invalid length for K: %zu should be %d\n", args->k.length(), 32);
+    logger.error("Invalid length for K: %zu should be %d", args->k.length(), 32);
+    srsran::console("Invalid length for K: %zu should be %d\n", args->k.length(), 32);
   }
 
   if (auth_algo == auth_algo_milenage) {
@@ -55,15 +56,15 @@ int usim::init(usim_args_t* args)
         str_to_hex(args->op, op);
         compute_opc(k, op, opc);
       } else {
-        log->error("Invalid length for OP: %zu should be %d\n", args->op.length(), 32);
-        srslte::console("Invalid length for OP: %zu should be %d\n", args->op.length(), 32);
+        logger.error("Invalid length for OP: %zu should be %d", args->op.length(), 32);
+        srsran::console("Invalid length for OP: %zu should be %d\n", args->op.length(), 32);
       }
     } else {
       if (32 == args->opc.length()) {
         str_to_hex(args->opc, opc);
       } else {
-        log->error("Invalid length for OPc: %zu should be %d\n", args->opc.length(), 32);
-        srslte::console("Invalid length for OPc: %zu should be %d\n", args->opc.length(), 32);
+        logger.error("Invalid length for OPc: %zu should be %d", args->opc.length(), 32);
+        srsran::console("Invalid length for OPc: %zu should be %d\n", args->opc.length(), 32);
       }
     }
   }
@@ -75,8 +76,8 @@ int usim::init(usim_args_t* args)
       imsi += imsi_c[i] - '0';
     }
   } else {
-    log->error("Invalid length for IMSI: %zu should be %d\n", args->imsi.length(), 15);
-    srslte::console("Invalid length for IMSI: %zu should be %d\n", args->imsi.length(), 15);
+    logger.error("Invalid length for IMSI: %zu should be %d", args->imsi.length(), 15);
+    srsran::console("Invalid length for IMSI: %zu should be %d\n", args->imsi.length(), 15);
   }
 
   if (15 == args->imei.length()) {
@@ -86,13 +87,13 @@ int usim::init(usim_args_t* args)
       imei += imei_c[i] - '0';
     }
   } else {
-    log->error("Invalid length for IMEI: %zu should be %d\n", args->imei.length(), 15);
-    srslte::console("Invalid length for IMEI: %zu should be %d\n", args->imei.length(), 15);
+    logger.error("Invalid length for IMEI: %zu should be %d", args->imei.length(), 15);
+    srsran::console("Invalid length for IMEI: %zu should be %d\n", args->imei.length(), 15);
   }
 
   initiated = true;
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 void usim::stop() {}

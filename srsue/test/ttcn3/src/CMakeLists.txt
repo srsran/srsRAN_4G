@@ -1,14 +1,14 @@
 #
-# Copyright 2013-2020 Software Radio Systems Limited
+# Copyright 2013-2021 Software Radio Systems Limited
 #
-# This file is part of srsLTE
+# This file is part of srsRAN
 #
-# srsLTE is free software: you can redistribute it and/or modify
+# srsRAN is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of
 # the License, or (at your option) any later version.
 #
-# srsLTE is distributed in the hope that it will be useful,
+# srsRAN is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Affero General Public License for more details.
@@ -20,18 +20,25 @@
 
 set(SOURCES ttcn3_ue.cc ttcn3_syssim.cc)
 add_executable(ttcn3_dut ttcn3_dut.cc lte_ttcn3_phy.cc ${SOURCES})
-target_link_libraries(ttcn3_dut srsue_stack
-                                srsue_upper
-                                srsue_rrc
-                                srslte_upper
-                                srslte_common
-                                srslte_mac
-                                srslte_phy
-                                srslte_radio
-                                srslte_upper
-                                srsue_phy
-                                srsue_mac
-                                rrc_asn1
-                                sctp
-                                ${Boost_LIBRARIES})
+
+set(LINK_LIBRARIES srsue_stack
+                    srsue_upper
+                    srsue_rrc
+                    srsran_upper
+                    srsran_common
+                    srsran_mac
+                    srsran_mac
+                    srsran_phy
+                    srsran_radio
+                    srsran_upper
+                    srsue_phy
+                    srsue_mac
+                    srsue_mac_nr
+                    rrc_asn1
+                    rrc_nr_asn1
+                    sctp
+${Boost_LIBRARIES})
+
+target_link_libraries(ttcn3_dut ${LINK_LIBRARIES})
+
 include_directories(${PROJECT_SOURCE_DIR}/srsue/test/ttcn3/hdr)

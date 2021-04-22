@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,12 +19,12 @@
  *
  */
 
-#include "srslte/phy/channel/fading.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/channel/fading.h"
+#include "srsran/phy/utils/vector.h"
 #include <complex.h>
 #include <math.h>
 #include <memory.h>
-#include <srslte/phy/utils/debug.h>
+#include <srsran/phy/utils/debug.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
@@ -36,7 +36,7 @@
 static bool enable_gui = false;
 #endif /* ENABLE_GUI */
 
-static srslte_channel_fading_t channel_fading;
+static srsran_channel_fading_t channel_fading;
 
 static char     default_model[] = "epa5";
 static uint32_t duration_ms     = 1000;
@@ -89,7 +89,7 @@ static void parse_args(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-  int            ret           = SRSLTE_ERROR;
+  int            ret           = SRSRAN_ERROR;
   cf_t*          input_buffer  = NULL;
   cf_t*          output_buffer = NULL;
   struct timeval t[3]          = {};
@@ -97,15 +97,15 @@ int main(int argc, char** argv)
 
   parse_args(argc, argv);
 
-  srslte_dft_plan_t ifft;
-  srslte_dft_plan_c(&ifft, srate / 1000, SRSLTE_DFT_BACKWARD);
+  srsran_dft_plan_t ifft;
+  srsran_dft_plan_c(&ifft, srate / 1000, SRSRAN_DFT_BACKWARD);
 
 #ifdef ENABLE_GUI
   plot_real_t plot_fft = NULL;
   plot_real_t plot_h   = NULL;
   plot_real_t plot_imp = NULL;
 
-  srslte_dft_plan_t fft        = {};
+  srsran_dft_plan_t fft        = {};
   cf_t*             fft_buffer = NULL;
   float*            fft_mag    = NULL;
   float*            imp        = NULL;
@@ -129,21 +129,21 @@ int main(int argc, char** argv)
     plot_real_setYAxisScale(&plot_imp, 0, 5);
     plot_real_addToWindowGrid(&plot_imp, (char*)"fading", 0, 2);
 
-    srslte_dft_plan_c(&fft, srate / 1000, SRSLTE_DFT_FORWARD);
+    srsran_dft_plan_c(&fft, srate / 1000, SRSRAN_DFT_FORWARD);
 
-    fft_buffer = srslte_vec_cf_malloc(srate / 1000);
+    fft_buffer = srsran_vec_cf_malloc(srate / 1000);
     if (!fft_buffer) {
       fprintf(stderr, "Error: malloc\n");
       goto clean_exit;
     }
 
-    fft_mag = srslte_vec_f_malloc(srate / 1000);
+    fft_mag = srsran_vec_f_malloc(srate / 1000);
     if (!fft_mag) {
       fprintf(stderr, "Error: malloc\n");
       goto clean_exit;
     }
 
-    imp = srslte_vec_f_malloc(srate / 1000);
+    imp = srsran_vec_f_malloc(srate / 1000);
     if (!imp) {
       fprintf(stderr, "Error: malloc\n");
       goto clean_exit;
@@ -152,29 +152,29 @@ int main(int argc, char** argv)
 #endif /* ENABLE_GUI */
 
   // Initialise channel
-  if (srslte_channel_fading_init(&channel_fading, srate, model, 0x12345678)) {
+  if (srsran_channel_fading_init(&channel_fading, srate, model, 0x12345678)) {
     fprintf(stderr, "Error: initialising fading channel. model=%s, srate=%d\n", model, srate);
     goto clean_exit;
   }
 
   // Allocate buffers
-  input_buffer = srslte_vec_cf_malloc(srate / 1000);
+  input_buffer = srsran_vec_cf_malloc(srate / 1000);
   if (!input_buffer) {
     fprintf(stderr, "Error: allocating input buffer\n");
     goto clean_exit;
   }
 
 #if INPUT_TYPE == 0
-  srslte_vec_cf_zero(input_buffer, srate / 1000);
+  srsran_vec_cf_zero(input_buffer, srate / 1000);
   input_buffer[0] = 1;
 #else
   for (int i = 0; i < srate / 1000; i++) {
     input_buffer[i] = cexpf(_Complex_I * ((double)rand() / (double)RAND_MAX) * M_PI / 2.0) / ((double)srate / 1000.0);
   }
-  srslte_dft_run_c(&ifft, input_buffer, input_buffer);
+  srsran_dft_run_c(&ifft, input_buffer, input_buffer);
 #endif
 
-  output_buffer = srslte_vec_cf_malloc(srate / 1000);
+  output_buffer = srsran_vec_cf_malloc(srate / 1000);
   if (!output_buffer) {
     fprintf(stderr, "Error: allocating output buffer\n");
     goto clean_exit;
@@ -187,22 +187,22 @@ int main(int argc, char** argv)
 
   for (int i = 0; i < duration_ms; i++) {
     gettimeofday(&t[1], NULL);
-    srslte_channel_fading_execute(&channel_fading, input_buffer, output_buffer, srate / 1000, (double)i / 1000.0);
+    srsran_channel_fading_execute(&channel_fading, input_buffer, output_buffer, srate / 1000, (double)i / 1000.0);
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
     time_usec += (uint64_t)(t->tv_sec * 1e6 + t->tv_usec);
 
 #ifdef ENABLE_GUI
     if (enable_gui) {
-      srslte_dft_run_c_zerocopy(&fft, output_buffer, fft_buffer);
-      srslte_vec_prod_conj_ccc(fft_buffer, fft_buffer, fft_buffer, srate / 1000);
+      srsran_dft_run_c_zerocopy(&fft, output_buffer, fft_buffer);
+      srsran_vec_prod_conj_ccc(fft_buffer, fft_buffer, fft_buffer, srate / 1000);
       for (int j = 0; j < srate / 1000; j++) {
-        fft_mag[j] = srslte_convert_power_to_dB(__real__ fft_buffer[j]);
+        fft_mag[j] = srsran_convert_power_to_dB(__real__ fft_buffer[j]);
       }
       plot_real_setNewData(&plot_fft, fft_mag, srate / 1000);
 
       for (int j = 0; j < channel_fading.N; j++) {
-        fft_mag[j] = srslte_convert_amplitude_to_dB(cabsf(channel_fading.h_freq[j]));
+        fft_mag[j] = srsran_convert_amplitude_to_dB(cabsf(channel_fading.h_freq[j]));
       }
       plot_real_setNewData(&plot_h, fft_mag, channel_fading.N);
 
@@ -216,7 +216,7 @@ int main(int argc, char** argv)
 #endif /* ENABLE_GUI */
   }
 
-  ret = SRSLTE_SUCCESS;
+  ret = SRSRAN_SUCCESS;
 
 clean_exit:
   if (ret) {
@@ -225,7 +225,7 @@ clean_exit:
     printf("Ok ... %.1f MSps\n", duration_ms * (srate / 1000.0) / (double)time_usec);
   }
 
-  srslte_dft_plan_free(&ifft);
+  srsran_dft_plan_free(&ifft);
 
 #ifdef ENABLE_GUI
   if (enable_gui) {
@@ -239,7 +239,7 @@ clean_exit:
     if (fft_buffer) {
       free(fft_buffer);
     }
-    srslte_dft_plan_free(&fft);
+    srsran_dft_plan_free(&fft);
   }
 #endif /* ENABLE_GUI */
   if (input_buffer) {
@@ -248,6 +248,6 @@ clean_exit:
   if (output_buffer) {
     free(output_buffer);
   }
-  srslte_channel_fading_free(&channel_fading);
+  srsran_channel_fading_free(&channel_fading);
   return ret;
 }

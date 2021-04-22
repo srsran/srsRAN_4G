@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -24,8 +24,9 @@
 #include <stdlib.h>
 #include <sys/time.h>
 
-#include "srslte/common/security.h"
-#include "srslte/srslte.h"
+#include "srsran/common/security.h"
+#include "srsran/common/test_common.h"
+#include "srsran/srsran.h"
 
 /*
  * Tests
@@ -34,7 +35,7 @@
  *
  */
 
-void test_set_1()
+int test_set_1()
 {
   uint8_t  key[]     = {0x2b, 0xd6, 0x45, 0x9f, 0x82, 0xc5, 0xb3, 0x00, 0x95, 0x2c, 0x49, 0x10, 0x48, 0x81, 0xff, 0x48};
   uint32_t count     = 0x38a6f056;
@@ -47,14 +48,15 @@ void test_set_1()
   uint8_t mac[4];
 
   // gen mac
-  srslte::security_128_eia1(key, count, bearer, direction, msg, len_bytes, mac);
+  srsran::security_128_eia1(key, count, bearer, direction, msg, len_bytes, mac);
 
   for (int i = 0; i < 4; i++) {
-    assert(mac[i] == mt[i]);
+    TESTASSERT(mac[i] == mt[i]);
   }
+  return SRSRAN_SUCCESS;
 }
 
-void test_set_4()
+int test_set_4()
 {
   uint8_t  key[]     = {0x83, 0xfd, 0x23, 0xa2, 0x44, 0xa7, 0x4c, 0xf3, 0x58, 0xda, 0x30, 0x19, 0xf1, 0x72, 0x26, 0x35};
   uint32_t count     = 0x36af6144;
@@ -72,14 +74,15 @@ void test_set_4()
   uint8_t mac[4];
 
   // gen mac
-  srslte::security_128_eia1(key, count, bearer, direction, msg, len_bytes, mac);
+  srsran::security_128_eia1(key, count, bearer, direction, msg, len_bytes, mac);
 
   for (int i = 0; i < 4; i++) {
-    assert(mac[i] == mt[i]);
+    TESTASSERT(mac[i] == mt[i]);
   }
+  return SRSRAN_SUCCESS;
 }
 
-void test_set_7()
+int test_set_7()
 {
   uint8_t  key[]     = {0xb3, 0x12, 0x0f, 0xfd, 0xb2, 0xcf, 0x6a, 0xf4, 0xe7, 0x3e, 0xaf, 0x2e, 0xf4, 0xeb, 0xec, 0x69};
   uint32_t count     = 0x296f393c;
@@ -203,11 +206,12 @@ void test_set_7()
   uint8_t mac[4];
 
   // gen mac
-  srslte::security_128_eia1(key, count, bearer, direction, msg, len_bytes, mac);
+  srsran::security_128_eia1(key, count, bearer, direction, msg, len_bytes, mac);
 
   for (int i = 0; i < 4; i++) {
-    assert(mac[i] == mt[i]);
+    TESTASSERT(mac[i] == mt[i]);
   }
+  return SRSRAN_SUCCESS;
 }
 /*
  * Functions
@@ -215,7 +219,8 @@ void test_set_7()
 
 int main(int argc, char* argv[])
 {
-  test_set_1();
-  test_set_4();
-  test_set_7();
+  TESTASSERT(test_set_1() == SRSRAN_SUCCESS);
+  TESTASSERT(test_set_4() == SRSRAN_SUCCESS);
+  TESTASSERT(test_set_7() == SRSRAN_SUCCESS);
+  return SRSRAN_SUCCESS;
 }

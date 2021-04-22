@@ -1,14 +1,14 @@
 #
-# Copyright 2013-2020 Software Radio Systems Limited
+# Copyright 2013-2021 Software Radio Systems Limited
 #
-# This file is part of srsLTE
+# This file is part of srsRAN
 #
-# srsLTE is free software: you can redistribute it and/or modify
+# srsRAN is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of
 # the License, or (at your option) any later version.
 #
-# srsLTE is distributed in the hope that it will be useful,
+# srsRAN is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Affero General Public License for more details.
@@ -23,7 +23,7 @@
 ########################################################################
 
 add_executable(dft_test dft_test.c)
-target_link_libraries(dft_test srslte_phy)
+target_link_libraries(dft_test srsran_phy)
 
 add_test(dft_test dft_test)
 add_test(dft_reverse dft_test -b) # Backwards first
@@ -38,20 +38,29 @@ add_test(dft_odd_dc dft_test -N 255 -b -d) # Odd-length, backwards first, handle
 ########################################################################
 
 add_executable(algebra_test mat_test.c)
-target_link_libraries(algebra_test srslte_phy)
+target_link_libraries(algebra_test srsran_phy)
 
 add_test(algebra_2x2_zf_solver_test algebra_test -z)
 add_test(algebra_2x2_mmse_solver_test algebra_test -m)
 
 add_executable(vector_test vector_test.c)
-target_link_libraries(vector_test srslte_phy)
+target_link_libraries(vector_test srsran_phy)
 add_test(vector_test vector_test)
 
 
 ########################################################################
+# Ring-Buffer TEST
+########################################################################
 
 add_executable(ringbuffer_test ring_buffer_test.c)
-target_link_libraries(ringbuffer_test srslte_phy)
+target_link_libraries(ringbuffer_test srsran_phy)
 
 add_test(ringbuffer_tester ringbuffer_test)
+
 ########################################################################
+# RE-Pattern TEST
+########################################################################
+add_executable(re_pattern_test re_pattern_test.c)
+target_link_libraries(re_pattern_test srsran_phy)
+
+add_test(re_pattern_test re_pattern_test)

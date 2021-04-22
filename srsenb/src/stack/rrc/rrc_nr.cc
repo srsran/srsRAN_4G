@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,28 +19,24 @@
  *
  */
 
+#include "srsran/common/common_nr.h"
+#include "srsran/asn1/rrc_nr_utils.h"
 #include "srsenb/hdr/stack/rrc/rrc_nr.h"
-#include "srsenb/hdr/stack/upper/common_enb.h"
-#include "srslte/asn1/rrc_nr_asn1_utils.h"
-#include "srslte/interfaces/nr_common_interface_types.h"
+#include "srsenb/hdr/common/common_enb.h"
 
 using namespace asn1::rrc_nr;
 
 namespace srsenb {
 
-rrc_nr::rrc_nr(srslte::timer_handler* timers_) :
-  m_log("RRC"),
-  pool(srslte::byte_buffer_pool::get_instance()),
-  timers(timers_)
-{}
+rrc_nr::rrc_nr(srsran::timer_handler* timers_) : logger(srslog::fetch_basic_logger("RRC-NR")), timers(timers_) {}
 
-void rrc_nr::init(const rrc_nr_cfg_t&     cfg_,
-                  phy_interface_stack_nr* phy_,
-                  mac_interface_rrc_nr*   mac_,
-                  rlc_interface_rrc_nr*   rlc_,
-                  pdcp_interface_rrc_nr*  pdcp_,
-                  ngap_interface_rrc_nr*  ngap_,
-                  gtpu_interface_rrc_nr*  gtpu_)
+int rrc_nr::init(const rrc_nr_cfg_t&     cfg_,
+                 phy_interface_stack_nr* phy_,
+                 mac_interface_rrc_nr*   mac_,
+                 rlc_interface_rrc_nr*   rlc_,
+                 pdcp_interface_rrc_nr*  pdcp_,
+                 ngap_interface_rrc_nr*  ngap_,
+                 gtpu_interface_rrc_nr*  gtpu_)
 {
   phy  = phy_;
   mac  = mac_;
@@ -53,32 +49,40 @@ void rrc_nr::init(const rrc_nr_cfg_t&     cfg_,
   cfg = update_default_cfg(cfg_);
 
   // config logging
-  m_log->set_level(cfg.log_level);
-  m_log->set_hex_limit(cfg.log_hex_limit);
+  logger.set_level(srslog::str_to_basic_level(cfg.log_level));
+  logger.set_hex_dump_max_size(cfg.log_hex_limit);
 
   // derived
   slot_dur_ms = 1;
 
-  nof_si_messages = generate_sibs();
+  if (generate_sibs() != SRSRAN_SUCCESS) {
+    logger.error("Couldn't generate SIB messages.");
+    return SRSRAN_ERROR;
+  }
+
   config_mac();
 
   // add dummy user
-  m_log->info("Creating dummy DRB for RNTI=%d on LCID=%d\n", cfg.coreless.rnti, cfg.coreless.drb_lcid);
+  logger.info("Creating dummy DRB for RNTI=%d on LCID=%d", cfg.coreless.rnti, cfg.coreless.drb_lcid);
   add_user(cfg.coreless.rnti);
-  srslte::rlc_config_t rlc_cnfg = srslte::rlc_config_t::default_rlc_um_nr_config(6);
+  srsran::rlc_config_t rlc_cnfg = srsran::rlc_config_t::default_rlc_um_nr_config(6);
   rlc->add_bearer(cfg.coreless.rnti, cfg.coreless.drb_lcid, rlc_cnfg);
-  srslte::pdcp_config_t pdcp_cnfg{cfg.coreless.drb_lcid,
-                                  srslte::PDCP_RB_IS_DRB,
-                                  srslte::SECURITY_DIRECTION_DOWNLINK,
-                                  srslte::SECURITY_DIRECTION_UPLINK,
-                                  srslte::PDCP_SN_LEN_18,
-                                  srslte::pdcp_t_reordering_t::ms500,
-                                  srslte::pdcp_discard_timer_t::infinity};
+  srsran::pdcp_config_t pdcp_cnfg{cfg.coreless.drb_lcid,
+                                  srsran::PDCP_RB_IS_DRB,
+                                  srsran::SECURITY_DIRECTION_DOWNLINK,
+                                  srsran::SECURITY_DIRECTION_UPLINK,
+                                  srsran::PDCP_SN_LEN_18,
+                                  srsran::pdcp_t_reordering_t::ms500,
+                                  srsran::pdcp_discard_timer_t::infinity,
+                                  false, 
+                                  srsran::srsran_rat_t::nr};
   pdcp->add_bearer(cfg.coreless.rnti, cfg.coreless.drb_lcid, pdcp_cnfg);
 
-  m_log->info("Started\n");
+  logger.info("Started");
 
   running = true;
+
+  return SRSRAN_SUCCESS;
 }
 
 void rrc_nr::stop()
@@ -92,26 +96,26 @@ void rrc_nr::stop()
 template <class T>
 void rrc_nr::log_rrc_message(const std::string&           source,
                              const direction_t            dir,
-                             const srslte::byte_buffer_t* pdu,
+                             const srsran::byte_buffer_t* pdu,
                              const T&                     msg)
 {
-  if (m_log->get_level() == srslte::LOG_LEVEL_INFO) {
-    m_log->info("%s - %s %s (%d B)\n",
+  if (logger.debug.enabled()) {
+    asn1::json_writer json_writer;
+    msg.to_json(json_writer);
+    logger.debug(pdu->msg,
+                 pdu->N_bytes,
+                 "%s - %s %s (%d B)",
+                 source.c_str(),
+                 dir == Tx ? "Tx" : "Rx",
+                 msg.msg.c1().type().to_string().c_str(),
+                 pdu->N_bytes);
+    logger.debug("Content:\n%s", json_writer.to_string().c_str());
+  } else if (logger.info.enabled()) {
+    logger.info("%s - %s %s (%d B)",
                 source.c_str(),
                 dir == Tx ? "Tx" : "Rx",
                 msg.msg.c1().type().to_string().c_str(),
                 pdu->N_bytes);
-  } else if (m_log->get_level() >= srslte::LOG_LEVEL_DEBUG) {
-    asn1::json_writer json_writer;
-    msg.to_json(json_writer);
-    m_log->debug_hex(pdu->msg,
-                     pdu->N_bytes,
-                     "%s - %s %s (%d B)\n",
-                     source.c_str(),
-                     dir == Tx ? "Tx" : "Rx",
-                     msg.msg.c1().type().to_string().c_str(),
-                     pdu->N_bytes);
-    m_log->debug("Content:\n%s\n", json_writer.to_string().c_str());
   }
 }
 
@@ -133,17 +137,17 @@ rrc_nr_cfg_t rrc_nr::update_default_cfg(const rrc_nr_cfg_t& current)
   cfg_default.cell.nof_prb         = 25;
   cfg_default.cell.nof_ports       = 1;
   cfg_default.cell.id              = 0;
-  cfg_default.cell.cp              = SRSLTE_CP_NORM;
-  cfg_default.cell.frame_type      = SRSLTE_FDD;
-  cfg_default.cell.phich_length    = SRSLTE_PHICH_NORM;
-  cfg_default.cell.phich_resources = SRSLTE_PHICH_R_1;
+  cfg_default.cell.cp              = SRSRAN_CP_NORM;
+  cfg_default.cell.frame_type      = SRSRAN_FDD;
+  cfg_default.cell.phich_length    = SRSRAN_PHICH_NORM;
+  cfg_default.cell.phich_resources = SRSRAN_PHICH_R_1;
 
   // Fill SIB1
   cfg_default.sib1.cell_access_related_info.plmn_id_list.resize(1);
   cfg_default.sib1.cell_access_related_info.plmn_id_list[0].plmn_id_list.resize(1);
-  srslte::plmn_id_t plmn;
+  srsran::plmn_id_t plmn;
   plmn.from_string("90170");
-  srslte::to_asn1(&cfg_default.sib1.cell_access_related_info.plmn_id_list[0].plmn_id_list[0], plmn);
+  srsran::to_asn1(&cfg_default.sib1.cell_access_related_info.plmn_id_list[0].plmn_id_list[0], plmn);
   cfg_default.sib1.cell_access_related_info.plmn_id_list[0].cell_id.from_number(1);
   cfg_default.sib1.cell_access_related_info.plmn_id_list[0].cell_reserved_for_oper.value =
       plmn_id_info_s::cell_reserved_for_oper_opts::not_reserved;
@@ -182,9 +186,9 @@ void rrc_nr::add_user(uint16_t rnti)
     users.insert(std::make_pair(rnti, std::unique_ptr<ue>(new ue(this, rnti))));
     rlc->add_user(rnti);
     pdcp->add_user(rnti);
-    m_log->info("Added new user rnti=0x%x\n", rnti);
+    logger.info("Added new user rnti=0x%x", rnti);
   } else {
-    m_log->error("Adding user rnti=0x%x (already exists)\n", rnti);
+    logger.error("Adding user rnti=0x%x (already exists)", rnti);
   }
 }
 
@@ -200,8 +204,8 @@ void rrc_nr::config_mac()
   }
 
   // PUCCH width
-  sched_cfg.nrb_pucch = SRSLTE_MAX(cfg.sr_cfg.nof_prb, cfg.cqi_cfg.nof_prb);
-  m_log->info("Allocating %d PRBs for PUCCH\n", sched_cfg.nrb_pucch);
+  sched_cfg.nrb_pucch = SRSRAN_MAX(cfg.sr_cfg.nof_prb, cfg.cqi_cfg.nof_prb);
+  logger.info("Allocating %d PRBs for PUCCH", sched_cfg.nrb_pucch);
 
   // Copy Cell configuration
   sched_cfg.cell = cfg.cell;
@@ -210,18 +214,22 @@ void rrc_nr::config_mac()
   mac->cell_cfg(&sched_cfg);
 }
 
-uint32_t rrc_nr::generate_sibs()
+int32_t rrc_nr::generate_sibs()
 {
   // MIB packing
   bcch_bch_msg_s mib_msg;
   mib_s&         mib = mib_msg.msg.set_mib();
   mib                = cfg.mib;
   {
-    srslte::unique_byte_buffer_t mib_buf = srslte::allocate_unique_buffer(*pool);
-    asn1::bit_ref                bref(mib_buf->msg, mib_buf->get_tailroom());
+    srsran::unique_byte_buffer_t mib_buf = srsran::make_byte_buffer();
+    if (mib_buf == nullptr) {
+      logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+      return SRSRAN_ERROR;
+    }
+    asn1::bit_ref bref(mib_buf->msg, mib_buf->get_tailroom());
     mib_msg.pack(bref);
     mib_buf->N_bytes = bref.distance_bytes();
-    m_log->debug_hex(mib_buf->msg, mib_buf->N_bytes, "MIB payload (%d B)\n", mib_buf->N_bytes);
+    logger.debug(mib_buf->msg, mib_buf->N_bytes, "MIB payload (%d B)", mib_buf->N_bytes);
     mib_buffer = std::move(mib_buf);
   }
 
@@ -240,8 +248,8 @@ uint32_t rrc_nr::generate_sibs()
   for (uint32_t sched_info_elem = 0; sched_info_elem < nof_messages; sched_info_elem++) {
     uint32_t msg_index = sched_info_elem + 1; // first msg is SIB1, therefore start with second
 
-    msg[msg_index].msg.set_c1().set_sys_info().crit_exts.set_sys_info_r15();
-    auto& sib_list = msg[msg_index].msg.c1().sys_info().crit_exts.sys_info_r15().sib_type_and_info;
+    msg[msg_index].msg.set_c1().set_sys_info().crit_exts.set_sys_info();
+    auto& sib_list = msg[msg_index].msg.c1().sys_info().crit_exts.sys_info().sib_type_and_info;
 
     for (uint32_t mapping = 0; mapping < sched_info[sched_info_elem].sib_map_info.size(); ++mapping) {
       uint32_t sibidx = sched_info[sched_info_elem].sib_map_info[mapping].type; // SIB2 == 0
@@ -251,8 +259,12 @@ uint32_t rrc_nr::generate_sibs()
 
   // Pack payload for all messages
   for (uint32_t msg_index = 0; msg_index < nof_messages + 1; msg_index++) {
-    srslte::unique_byte_buffer_t sib = srslte::allocate_unique_buffer(*pool);
-    asn1::bit_ref                bref(sib->msg, sib->get_tailroom());
+    srsran::unique_byte_buffer_t sib = srsran::make_byte_buffer();
+    if (sib == nullptr) {
+      logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+      return SRSRAN_ERROR;
+    }
+    asn1::bit_ref bref(sib->msg, sib->get_tailroom());
     msg[msg_index].pack(bref);
     sib->N_bytes = bref.distance_bytes();
     sib_buffer.push_back(std::move(sib));
@@ -261,42 +273,44 @@ uint32_t rrc_nr::generate_sibs()
     log_rrc_message("SIB payload", Tx, sib_buffer.back().get(), msg[msg_index]);
   }
 
-  return sib_buffer.size() - 1;
+  nof_si_messages = sib_buffer.size() - 1;
+
+  return SRSRAN_SUCCESS;
 }
 
 /*******************************************************************************
   MAC interface
 *******************************************************************************/
 
-int rrc_nr::read_pdu_bcch_bch(const uint32_t tti, srslte::unique_byte_buffer_t& buffer)
+int rrc_nr::read_pdu_bcch_bch(const uint32_t tti, srsran::unique_byte_buffer_t& buffer)
 {
   if (mib_buffer == nullptr || buffer->get_tailroom() < mib_buffer->N_bytes) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   memcpy(buffer->msg, mib_buffer->msg, mib_buffer->N_bytes);
   buffer->N_bytes = mib_buffer->N_bytes;
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-int rrc_nr::read_pdu_bcch_dlsch(uint32_t sib_index, srslte::unique_byte_buffer_t& buffer)
+int rrc_nr::read_pdu_bcch_dlsch(uint32_t sib_index, srsran::unique_byte_buffer_t& buffer)
 {
   if (sib_index >= sib_buffer.size()) {
-    m_log->error("SIB %d is not a configured SIB.\n", sib_index);
-    return SRSLTE_ERROR;
+    logger.error("SIB %d is not a configured SIB.", sib_index);
+    return SRSRAN_ERROR;
   }
 
   if (buffer->get_tailroom() < sib_buffer[sib_index]->N_bytes) {
-    m_log->error("Not enough space to fit SIB %d into buffer (%d < %d)\n",
+    logger.error("Not enough space to fit SIB %d into buffer (%d < %d)",
                  sib_index,
                  buffer->get_tailroom(),
                  sib_buffer[sib_index]->N_bytes);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   memcpy(buffer->msg, sib_buffer[sib_index]->msg, sib_buffer[sib_index]->N_bytes);
   buffer->N_bytes = sib_buffer[sib_index]->N_bytes;
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 void rrc_nr::get_metrics(srsenb::rrc_metrics_t& m)
@@ -304,34 +318,34 @@ void rrc_nr::get_metrics(srsenb::rrc_metrics_t& m)
   // return metrics
 }
 
-void rrc_nr::handle_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu)
+void rrc_nr::handle_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
   if (pdu) {
-    m_log->info_hex(pdu->msg, pdu->N_bytes, "Rx %s PDU", srslte::to_string(static_cast<srslte::rb_id_nr_t>(lcid)));
+    logger.info(pdu->msg, pdu->N_bytes, "Rx %s PDU", get_rb_name(lcid));
   }
 
   if (users.count(rnti) == 1) {
-    switch (lcid) {
-      case srsenb::RB_ID_SRB0:
+    switch (static_cast<srsran::nr_srb>(lcid)) {
+      case srsran::nr_srb::srb0:
         //        parse_ul_ccch(rnti, std::move(pdu));
         break;
-      case srsenb::RB_ID_SRB1:
-      case srsenb::RB_ID_SRB2:
+      case srsran::nr_srb::srb1:
+      case srsran::nr_srb::srb2:
         //        parse_ul_dcch(p.rnti, p.lcid, std::move(p.pdu));
         break;
       default:
-        m_log->error("Rx PDU with invalid bearer id: %d", lcid);
+        logger.error("Rx PDU with invalid bearer id: %d", lcid);
         break;
     }
   } else {
-    m_log->warning("Discarding PDU for removed rnti=0x%x\n", rnti);
+    logger.warning("Discarding PDU for removed rnti=0x%x", rnti);
   }
 }
 
 /*******************************************************************************
   PDCP interface
 *******************************************************************************/
-void rrc_nr::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu)
+void rrc_nr::write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
   handle_pdu(rnti, lcid, std::move(pdu));
 }
@@ -344,8 +358,6 @@ void rrc_nr::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_
 *******************************************************************************/
 rrc_nr::ue::ue(rrc_nr* parent_, uint16_t rnti_) : parent(parent_), rnti(rnti_)
 {
-  pool = srslte::byte_buffer_pool::get_instance();
-
   // setup periodic RRCSetup send
   rrc_setup_periodic_timer = parent->timers->get_unique_timer();
   rrc_setup_periodic_timer.set(5000, [this](uint32_t tid) {
@@ -381,20 +393,20 @@ void rrc_nr::ue::send_connection_setup()
 void rrc_nr::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
 {
   // Allocate a new PDU buffer, pack the message and send to PDCP
-  srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool);
+  srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
   if (pdu == nullptr) {
-    parent->m_log->error("Allocating pdu\n");
+    parent->logger.error("Allocating pdu");
   }
   asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
   if (dl_ccch_msg->pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
-    parent->m_log->error("Failed to pack DL-CCCH message. Discarding msg.\n");
+    parent->logger.error("Failed to pack DL-CCCH message. Discarding msg.");
   }
-  pdu->N_bytes = 1u + (uint32_t)bref.distance_bytes(pdu->msg);
+  pdu->N_bytes = bref.distance_bytes();
 
   char buf[32] = {};
   sprintf(buf, "SRB0 - rnti=0x%x", rnti);
   parent->log_rrc_message(buf, Tx, pdu.get(), *dl_ccch_msg);
-  parent->rlc->write_sdu(rnti, RB_ID_SRB0, std::move(pdu));
+  parent->rlc->write_sdu(rnti, (uint32_t)srsran::nr_srb::srb0, std::move(pdu));
 }
 
 } // namespace srsenb

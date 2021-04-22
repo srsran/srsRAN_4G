@@ -5,15 +5,10 @@
 #####################################################################
 # RF configuration
 #
-# dl_earfcn: Downlink EARFCN code.
 # freq_offset: Uplink and Downlink optional frequency offset (in Hz)
 # tx_gain: Transmit gain (dB). 
 # rx_gain: Optional receive gain (dB). If disabled, AGC if enabled
 #
-# Optional parameters: 
-# dl_freq:            Override DL frequency corresponding to dl_earfcn
-# ul_freq:            Override UL frequency corresponding to dl_earfcn
-# nof_carriers:       Number of carriers
 # nof_antennas:       Number of antennas per carrier (all carriers have the same number of antennas)
 # device_name:        Device driver family. Supported options: "auto" (uses first found), "UHD" or "bladeRF" 
 # device_args:        Arguments for the device driver. Options are "auto" or any string. 
@@ -28,12 +23,10 @@
 #                     Default is auto (yes for UHD, no for rest)
 #####################################################################
 [rf]
-dl_earfcn = 3350
 freq_offset = 0
 tx_gain = 80
 #rx_gain = 40
 
-#nof_carriers = 1
 #nof_antennas = 1
 
 # For best performance in 2x2 MIMO and >= 15 MHz use the following device_args settings:
@@ -51,27 +44,55 @@ tx_gain = 80
 #device_args = tx_port=tcp://*:2001,rx_port=tcp://localhost:2000,id=ue,base_srate=23.04e6
 
 #####################################################################
+# EUTRA RAT configuration
+# 
+# dl_earfcn:   Downlink EARFCN list.
+#
+# Optional parameters: 
+# dl_freq:            Override DL frequency corresponding to dl_earfcn
+# ul_freq:            Override UL frequency corresponding to dl_earfcn
+# nof_carriers:       Number of carriers
+#####################################################################
+[rat.eutra]
+dl_earfcn = 3350
+#nof_carriers = 1
+
+#####################################################################
+# NR RAT configuration
+# 
+# Optional parameters: 
+# bands:           List of support NR bands seperated by a comma (default 78)
+# nof_carriers:    Number of NR carriers (must be at least 1 for NR support)
+#####################################################################
+[rat.nr]
+# bands = 78
+# nof_carriers = 0
+
+#####################################################################
 # Packet capture configuration
 #
-# Packet capture is supported at both MAC and NAS layers.
-# MAC-layer packets are captured to file in the compact format
-# decoded by the Wireshark mac-lte-framed dissector.
-# To use this dissector, edit the preferences for DLT_USER to
-# add an entry with DLT=147, Payload Protocol=mac-lte-framed.
+# Packet capture is supported at the MAC, MAC_NR, and NAS layer. 
+# MAC-layer packets are captured to file a the compact format decoded 
+# by the Wireshark. For decoding, use the UDP dissector and the UDP 
+# heuristic dissection. Edit the preferences (Edit > Preferences > 
+# Protocols > DLT_USER) for DLT_USER to add an entry for DLT=149 with 
+# Protocol=udp. Further, enable the heuristic dissection in UDP under:
+# Analyze > Enabled Protocols > MAC-LTE > mac_lte_udp and MAC-NR > mac_nr_udp
 # For more information see: https://wiki.wireshark.org/MAC-LTE
-# NAS-layer packets are dissected with DLT=148, and
-# Payload Protocol = nas-eps.
+# Using the same filename for mac_filename and mac_nr_filename writes both
+# MAC-LTE and MAC-NR to the same file allowing a better analysis. 
+# NAS-layer packets are dissected with DLT=148, and Protocol = nas-eps.
 #
-# enable:       Enable MAC layer packet captures (true/false)
-# filename:     File path to use for MAC packet captures
-# nas_enable:   Enable NAS layer packet captures (true/false)
-# nas_filename: File path to use for NAS packet captures
+# enable:            Enable packet captures of layers (mac/mac_nr/nas/none) multiple option list 
+# mac_filename:      File path to use for MAC packet capture
+# mac_nr_filename:   File path to use for MAC NR packet capture
+# nas_filename:      File path to use for NAS packet capture
 #####################################################################
 [pcap]
-enable = false
-filename = /tmp/ue.pcap
-nas_enable = false
-nas_filename = /tmp/nas.pcap
+enable = none
+mac_filename = /tmp/ue_mac.pcap
+mac_nr_filename = /tmp/ue_mac_nr.pcap
+nas_filename = /tmp/ue_nas.pcap
 
 #####################################################################
 # Log configuration
@@ -127,7 +148,7 @@ imei = 353490069873319
 # RRC configuration
 #
 # ue_category:       Sets UE category (range 1-5). Default: 4
-# release:           UE Release (8 to 10)
+# release:           UE Release (8 to 15)
 # feature_group:     Hex value of the featureGroupIndicators field in the
 #                    UECapabilityInformation message. Default 0xe6041000
 # mbms_service_id:   MBMS service id for autostarting MBMS reception
@@ -136,7 +157,7 @@ imei = 353490069873319
 #####################################################################
 [rrc]
 #ue_category       = 4
-#release           = 8
+#release           = 15
 #feature_group     = 0xe6041000
 #mbms_service_id   = -1
 #mbms_service_port = 4321
@@ -374,11 +395,20 @@ enable = false
 #
 # metrics_csv_filename: File path to use for CSV metrics.
 #
+# tracing_enable:       Write source code tracing information to a file.
+#
+# tracing_filename:     File path to use for tracing information.
+#
+# tracing_buffcapacity: Maximum capacity in bytes the tracing framework can store.
+#
 # have_tti_time_stats:  Calculate TTI execution statistics using system clock
 #
 #####################################################################
 [general]
-#metrics_csv_enable  = false
-#metrics_period_secs = 1
+#metrics_csv_enable   = false
+#metrics_period_secs  = 1
 #metrics_csv_filename = /tmp/ue_metrics.csv
-#have_tti_time_stats = true
+#have_tti_time_stats  = true
+#tracing_enable       = true
+#tracing_filename     = /tmp/ue_tracing.log
+#tracing_buffcapacity = 1000000

@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -21,17 +21,18 @@
 
 #include <sstream>
 
-#include "srslte/common/bcd_helpers.h"
+#include "srsran/common/bcd_helpers.h"
+#include "srsran/common/standard_streams.h"
 #include "srsue/hdr/stack/upper/pcsc_usim.h"
 #include "string.h"
 
 #define CHECK_SIM_PIN 0
 
-using namespace srslte;
+using namespace srsran;
 
 namespace srsue {
 
-pcsc_usim::pcsc_usim(srslte::log* log_) : usim_base(log_)
+pcsc_usim::pcsc_usim(srslog::basic_logger& logger) : usim_base(logger), sc(logger)
 {
   bzero(ck, CK_LEN);
   bzero(ik, IK_LEN);
@@ -48,9 +49,9 @@ pcsc_usim::~pcsc_usim()
 
 int pcsc_usim::init(usim_args_t* args)
 {
-  int ret = SRSLTE_ERROR;
+  int ret = SRSRAN_ERROR;
 
-  if (sc.init(args, log) != SRSLTE_SUCCESS) {
+  if (sc.init(args) != SRSRAN_SUCCESS) {
     return ret;
   }
 
@@ -58,7 +59,7 @@ int pcsc_usim::init(usim_args_t* args)
   char   tmp[15];
   size_t tmp_len = 15; // set to max IMSI length
   if (sc.get_imsi(tmp, &tmp_len)) {
-    log->error("Error reading IMSI from SIM.\n");
+    logger.error("Error reading IMSI from SIM.");
     return ret;
   }
   imsi_str.assign(tmp, tmp_len);
@@ -72,8 +73,8 @@ int pcsc_usim::init(usim_args_t* args)
       imsi += imsi_c[i] - '0';
     }
   } else {
-    log->error("Invalid length for IMSI: %zu should be %d\n", imsi_str.length(), 15);
-    srslte::console("Invalid length for IMSI: %zu should be %d\n", imsi_str.length(), 15);
+    logger.error("Invalid length for IMSI: %zu should be %d", imsi_str.length(), 15);
+    srsran::console("Invalid length for IMSI: %zu should be %d\n", imsi_str.length(), 15);
     return ret;
   }
 
@@ -86,13 +87,13 @@ int pcsc_usim::init(usim_args_t* args)
       imei += imei_c[i] - '0';
     }
   } else {
-    log->error("Invalid length for IMEI: %zu should be %d\n", args->imei.length(), 15);
-    srslte::console("Invalid length for IMEI: %zu should be %d\n", args->imei.length(), 15);
+    logger.error("Invalid length for IMEI: %zu should be %d", args->imei.length(), 15);
+    srsran::console("Invalid length for IMEI: %zu should be %d\n", args->imei.length(), 15);
     return ret;
   }
 
   initiated = true;
-  ret       = SRSLTE_SUCCESS;
+  ret       = SRSRAN_SUCCESS;
 
   return ret;
 }
@@ -113,26 +114,26 @@ auth_result_t pcsc_usim::generate_authentication_response(uint8_t* rand,
 {
   auth_result_t ret = AUTH_FAILED;
   if (!initiated) {
-    ERROR("USIM not initiated!\n");
+    ERROR("USIM not initiated!");
     return ret;
   }
 
   // Use RAND and AUTN to compute RES, CK, IK using SIM card
   switch (sc.umts_auth(rand, autn_enb, res, res_len, ik, ck, auts)) {
     case 0:
-      log->info("SCARD: USIM authentication successful.\n");
+      logger.info("SCARD: USIM authentication successful.");
       break;
     case -1:
-      log->error("SCARD: Failure during USIM UMTS authentication\n");
+      logger.error("SCARD: Failure during USIM UMTS authentication");
       return ret;
     case -2:
-      log->info("SCARD: USIM synchronization failure, AUTS generated\n");
-      log->debug_hex(auts, AKA_AUTS_LEN, "AUTS\n");
+      logger.info("SCARD: USIM synchronization failure, AUTS generated");
+      logger.debug(auts, AKA_AUTS_LEN, "AUTS");
       memcpy(res, auts, AKA_AUTS_LEN);
       *res_len = AKA_AUTS_LEN;
       return AUTH_SYNCH_FAILURE;
     default:
-      log->warning("SCARD: Unknown USIM failure.\n");
+      logger.warning("SCARD: Unknown USIM failure.");
       return ret;
   }
 
@@ -146,13 +147,13 @@ auth_result_t pcsc_usim::generate_authentication_response(uint8_t* rand,
   }
 
   // Generate K_asme
-  log->debug_hex(ck, CK_LEN, "CK:\n");
-  log->debug_hex(ik, IK_LEN, "IK:\n");
-  log->debug_hex(ak, AK_LEN, "AK:\n");
-  log->debug_hex(sqn, SQN_LEN, "SQN:\n");
-  log->debug("mcc=%d, mnc=%d\n", mcc, mnc);
+  logger.debug(ck, CK_LEN, "CK:");
+  logger.debug(ik, IK_LEN, "IK:");
+  logger.debug(ak, AK_LEN, "AK:");
+  logger.debug(sqn, SQN_LEN, "SQN:");
+  logger.debug("mcc=%d, mnc=%d", mcc, mnc);
   security_generate_k_asme(ck, ik, ak, sqn, mcc, mnc, k_asme);
-  log->info_hex(k_asme, KEY_LEN, "K_ASME:\n");
+  logger.info(k_asme, KEY_LEN, "K_ASME:");
 
   ret = AUTH_OK;
 
@@ -177,49 +178,48 @@ std::string pcsc_usim::get_mnc_str(const uint8_t* imsi_vec, std::string mcc_str)
  ********************************/
 
 // return 0 if initialization was successfull, -1 otherwies
-int pcsc_usim::scard::init(usim_args_t* args, srslte::log* log_)
+int pcsc_usim::scard::init(usim_args_t* args)
 {
-  int  ret_value    = SRSLTE_ERROR;
+  int  ret_value    = SRSRAN_ERROR;
   uint pos          = 0; // SC reader
   bool reader_found = false;
   // int transaction = 1;
   size_t blen;
-  log = log_;
 
   long ret;
   ret = SCardEstablishContext(SCARD_SCOPE_SYSTEM, NULL, NULL, &scard_context);
   if (ret != SCARD_S_SUCCESS) {
-    log->error("SCardEstablishContext(): %s\n", pcsc_stringify_error(ret));
+    logger.error("SCardEstablishContext(): %s", pcsc_stringify_error(ret));
     return ret_value;
   }
 
   unsigned long len = 0;
   ret               = SCardListReaders(scard_context, NULL, NULL, &len);
   if (ret != SCARD_S_SUCCESS) {
-    log->error("SCardListReaders(): %s\n", pcsc_stringify_error(ret));
+    logger.error("SCardListReaders(): %s", pcsc_stringify_error(ret));
     return ret_value;
   }
 
   char* readers = (char*)malloc(len);
   if (readers == NULL) {
-    log->error("Malloc failed\n");
+    logger.error("Malloc failed");
     return ret_value;
   }
 
   ret = SCardListReaders(scard_context, NULL, readers, &len);
   if (ret != SCARD_S_SUCCESS) {
-    log->error("SCardListReaders() 2: %s\n", pcsc_stringify_error(ret));
+    logger.error("SCardListReaders() 2: %s", pcsc_stringify_error(ret));
     goto clean_exit;
   }
   if (len < 3) {
-    log->info("No smart card readers available.\n");
+    logger.info("No smart card readers available.");
     return ret_value;
   }
 
   /* readers: NULL-separated list of reader names, and terminating NULL */
   pos = 0;
   while (pos < len - 1) {
-    log->info("Available Card Reader: %s\n", &readers[pos]);
+    logger.info("Available Card Reader: %s", &readers[pos]);
     while (readers[pos] != '\0' && pos < len) {
       pos++;
     }
@@ -232,7 +232,7 @@ int pcsc_usim::scard::init(usim_args_t* args, srslte::log* log_)
   // If no reader specified, test all available readers for SIM cards. Otherwise consider specified reader only.
   if (args->reader.length() == 0) {
     while (pos < len && !reader_found) {
-      log->info("Trying Card Reader: %s\n", &readers[pos]);
+      logger.info("Trying Card Reader: %s", &readers[pos]);
       // Connect to card
       ret = SCardConnect(scard_context,
                          &readers[pos],
@@ -244,11 +244,11 @@ int pcsc_usim::scard::init(usim_args_t* args, srslte::log* log_)
         reader_found = true;
       } else {
         if (ret == (long)SCARD_E_NO_SMARTCARD) {
-          log->error("No smart card inserted.\n");
+          logger.error("No smart card inserted.");
         } else {
-          log->error("%s\n", pcsc_stringify_error(ret));
+          logger.error("%s", pcsc_stringify_error(ret));
         }
-        log->info("Failed to use Card Reader: %s\n", &readers[pos]);
+        logger.info("Failed to use Card Reader: %s", &readers[pos]);
 
         // proceed to next reader
         while (pos < len && readers[pos] != '\0') {
@@ -262,7 +262,7 @@ int pcsc_usim::scard::init(usim_args_t* args, srslte::log* log_)
     while (pos < len && !reader_found) {
       if (strcmp(&readers[pos], args->reader.c_str()) == 0) {
         reader_found = true;
-        log->info("Card Reader found: %s\n", args->reader.c_str());
+        logger.info("Card Reader found: %s", args->reader.c_str());
       } else {
         // next reader
         while (pos < len && readers[pos] != '\0') {
@@ -272,7 +272,7 @@ int pcsc_usim::scard::init(usim_args_t* args, srslte::log* log_)
       }
     }
     if (!reader_found) {
-      log->error("Cannot find reader: %s\n", args->reader.c_str());
+      logger.error("Cannot find reader: %s", args->reader.c_str());
     } else {
       ret = SCardConnect(scard_context,
                          &readers[pos],
@@ -284,12 +284,12 @@ int pcsc_usim::scard::init(usim_args_t* args, srslte::log* log_)
         // successfully connected to card
       } else {
         if (ret == (long)SCARD_E_NO_SMARTCARD) {
-          log->error("No smart card inserted.\n");
+          logger.error("No smart card inserted.");
         } else {
-          log->error("%s\n", pcsc_stringify_error(ret));
+          logger.error("%s", pcsc_stringify_error(ret));
         }
 
-        log->info("Failed to use Card Reader: %s\n", args->reader.c_str());
+        logger.info("Failed to use Card Reader: %s", args->reader.c_str());
       }
     }
   }
@@ -297,14 +297,14 @@ int pcsc_usim::scard::init(usim_args_t* args, srslte::log* log_)
   free(readers);
   readers = NULL;
 
-  log->info("Card=0x%x active_protocol=%lu (%s)\n",
-            (unsigned int)scard_handle,
-            (unsigned long)scard_protocol,
-            scard_protocol == SCARD_PROTOCOL_T0 ? "T0" : "T1");
+  logger.info("Card=0x%x active_protocol=%lu (%s)",
+              (unsigned int)scard_handle,
+              (unsigned long)scard_protocol,
+              scard_protocol == SCARD_PROTOCOL_T0 ? "T0" : "T1");
 
   ret = SCardBeginTransaction(scard_handle);
   if (ret != SCARD_S_SUCCESS) {
-    log->error("%s\n", pcsc_stringify_error(ret));
+    logger.error("%s", pcsc_stringify_error(ret));
     goto clean_exit;
   }
 
@@ -312,23 +312,23 @@ int pcsc_usim::scard::init(usim_args_t* args, srslte::log* log_)
   unsigned char buf[100];
   blen = sizeof(buf);
   if (_select_file(SCARD_FILE_MF, buf, &blen, SCARD_USIM, NULL, 0)) {
-    log->info("USIM is not supported. Trying to use GSM SIM");
+    logger.info("USIM is not supported. Trying to use GSM SIM");
     sim_type = SCARD_GSM_SIM;
   } else {
-    log->info("USIM is supported\n");
+    logger.info("USIM is supported");
     sim_type = SCARD_USIM;
   }
 
   if (sim_type == SCARD_GSM_SIM) {
     blen = sizeof(buf);
     if (select_file(SCARD_FILE_MF, buf, &blen)) {
-      log->debug("SCARD: Failed to read MF\n");
+      logger.debug("SCARD: Failed to read MF");
       goto clean_exit;
     }
 
     blen = sizeof(buf);
     if (select_file(SCARD_FILE_GSM_DF, buf, &blen)) {
-      log->debug("SCARD: Failed to read GSM DF\n");
+      logger.debug("SCARD: Failed to read GSM DF");
       goto clean_exit;
     }
   } else {
@@ -337,19 +337,19 @@ int pcsc_usim::scard::init(usim_args_t* args, srslte::log* log_)
 
     aid_len = get_aid(aid, sizeof(aid));
     if (aid_len < 0) {
-      log->debug("SCARD: Failed to find AID for 3G USIM app - try to use standard 3G RID\n");
+      logger.debug("SCARD: Failed to find AID for 3G USIM app - try to use standard 3G RID");
       memcpy(aid, "\xa0\x00\x00\x00\x87", 5);
       aid_len = 5;
     }
 
-    log->debug_hex(aid, aid_len, "SCARD: 3G USIM AID\n");
+    logger.debug(aid, aid_len, "SCARD: 3G USIM AID");
 
     /* Select based on AID = 3G RID from EF_DIR. This is usually
      * starting with A0 00 00 00 87. */
     blen = sizeof(buf);
     if (_select_file(0, buf, &blen, sim_type, aid, aid_len)) {
-      log->error("SCARD: Failed to read 3G USIM app\n");
-      log->error_hex(aid, aid_len, "SCARD: 3G USIM AID\n");
+      logger.error("SCARD: Failed to read 3G USIM app");
+      logger.error(aid, aid_len, "SCARD: 3G USIM AID");
       goto clean_exit;
     }
   }
@@ -358,11 +358,11 @@ int pcsc_usim::scard::init(usim_args_t* args, srslte::log* log_)
   // Verify whether CHV1 (PIN1) is needed to access the card.
   ret = pin_needed(buf, blen);
   if (ret < 0) {
-    log->debug("SCARD: Failed to determine whether PIN is needed\n");
+    logger.debug("SCARD: Failed to determine whether PIN is needed");
     goto clean_exit;
   }
   if (ret) {
-    log->debug("PIN1 needed for SIM access (retry counter=%d)\n", get_pin_retry_counter());
+    logger.debug("PIN1 needed for SIM access (retry counter=%d)", get_pin_retry_counter());
     pin1_needed = true;
   } else {
     pin1_needed = false;
@@ -370,7 +370,7 @@ int pcsc_usim::scard::init(usim_args_t* args, srslte::log* log_)
 
   // stop before pin retry counter reaches zero
   if (pin1_needed && get_pin_retry_counter() <= 1) {
-    log->error("PIN1 needed for SIM access (retry counter=%d), emergency stop.\n", get_pin_retry_counter());
+    logger.error("PIN1 needed for SIM access (retry counter=%d), emergency stop.", get_pin_retry_counter());
     goto clean_exit;
   }
 
@@ -379,7 +379,7 @@ int pcsc_usim::scard::init(usim_args_t* args, srslte::log* log_)
     // verify PIN
     ret = verify_pin(args->pin.c_str());
     if (ret != SCARD_S_SUCCESS) {
-      log->debug("SCARD: Could not verify PIN\n");
+      logger.debug("SCARD: Could not verify PIN");
       goto clean_exit;
     }
   }
@@ -389,11 +389,11 @@ int pcsc_usim::scard::init(usim_args_t* args, srslte::log* log_)
 
   ret = SCardEndTransaction(scard_handle, SCARD_LEAVE_CARD);
   if (ret != SCARD_S_SUCCESS) {
-    log->debug("SCARD: Could not end transaction: 0x%x\n", (unsigned int)ret);
+    logger.debug("SCARD: Could not end transaction: 0x%x", (unsigned int)ret);
     goto clean_exit;
   }
 
-  ret_value = SRSLTE_SUCCESS;
+  ret_value = SRSRAN_SUCCESS;
 
 clean_exit:
   if (readers) {
@@ -423,9 +423,9 @@ int pcsc_usim::scard::_select_file(unsigned short file_id,
     get_resp[0] = USIM_CLA;
   }
 
-  log->debug("SCARD: select file %04x\n", file_id);
+  logger.debug("SCARD: select file %04x", file_id);
   if (aid) {
-    log->debug_hex(aid, aidlen, "SCARD: select file by AID");
+    logger.debug(aid, aidlen, "SCARD: select file by AID");
     if (5 + aidlen > sizeof(cmd))
       return -1;
     cmd[2] = 0x04;   /* Select by AID */
@@ -440,34 +440,34 @@ int pcsc_usim::scard::_select_file(unsigned short file_id,
   len = sizeof(resp);
   ret = transmit(cmd, cmdlen, resp, &len);
   if (ret != SCARD_S_SUCCESS) {
-    log->error("SCARD: SCardTransmit failed %s\n", pcsc_stringify_error(ret));
+    logger.error("SCARD: SCardTransmit failed %s", pcsc_stringify_error(ret));
     return -1;
   }
 
   if (len != 2) {
-    log->error("SCARD: unexpected resp len %d (expected 2)\n", (int)len);
+    logger.error("SCARD: unexpected resp len %d (expected 2)", (int)len);
     return -1;
   }
 
   if (resp[0] == 0x98 && resp[1] == 0x04) {
     /* Security status not satisfied (PIN_WLAN) */
-    log->warning("SCARD: Security status not satisfied.\n");
+    logger.warning("SCARD: Security status not satisfied.");
     return -1;
   }
 
   if (resp[0] == 0x6e) {
-    log->debug("SCARD: used CLA not supported.\n");
+    logger.debug("SCARD: used CLA not supported.");
     return -1;
   }
 
   if (resp[0] != 0x6c && resp[0] != 0x9f && resp[0] != 0x61) {
-    log->warning("SCARD: unexpected response 0x%02x (expected 0x61, 0x6c, or 0x9f)\n", resp[0]);
+    logger.warning("SCARD: unexpected response 0x%02x (expected 0x61, 0x6c, or 0x9f)", resp[0]);
     return -1;
   }
 
   /* Normal ending of command; resp[1] bytes available */
   get_resp[4] = resp[1];
-  log->debug("SCARD: trying to get response (%d bytes)\n", resp[1]);
+  logger.debug("SCARD: trying to get response (%d bytes)", resp[1]);
 
   rlen = *buf_len;
   ret  = transmit(get_resp, sizeof(get_resp), buf, &rlen);
@@ -476,7 +476,7 @@ int pcsc_usim::scard::_select_file(unsigned short file_id,
     return 0;
   }
 
-  log->warning("SCARD: SCardTransmit err=0x%lx\n", ret);
+  logger.warning("SCARD: SCardTransmit err=0x%lx", ret);
   return -1;
 }
 
@@ -490,7 +490,7 @@ long pcsc_usim::scard::transmit(unsigned char* _send, size_t send_len, unsigned 
   long          ret;
   unsigned long rlen;
 
-  log->debug_hex(_send, send_len, "SCARD: scard_transmit: send\n");
+  logger.debug(_send, send_len, "SCARD: scard_transmit: send");
   rlen      = *recv_len;
   ret       = SCardTransmit(scard_handle,
                       scard_protocol == SCARD_PROTOCOL_T1 ? SCARD_PCI_T1 : SCARD_PCI_T0,
@@ -501,9 +501,9 @@ long pcsc_usim::scard::transmit(unsigned char* _send, size_t send_len, unsigned 
                       &rlen);
   *recv_len = rlen;
   if (ret == SCARD_S_SUCCESS) {
-    log->debug_hex(_recv, rlen, "SCARD: SCardTransmit: recv\n");
+    logger.debug(_recv, rlen, "SCARD: SCardTransmit: recv");
   } else {
-    log->error("SCARD: SCardTransmit failed %s\n", pcsc_stringify_error(ret));
+    logger.error("SCARD: SCardTransmit failed %s", pcsc_stringify_error(ret));
   }
   return ret;
 }
@@ -538,7 +538,7 @@ int pcsc_usim::scard::get_pin_retry_counter()
   size_t        len;
   uint16_t      val;
 
-  log->info("SCARD: fetching PIN retry counter\n");
+  logger.info("SCARD: fetching PIN retry counter");
 
   if (sim_type == SCARD_USIM)
     cmd[0] = USIM_CLA;
@@ -550,20 +550,20 @@ int pcsc_usim::scard::get_pin_retry_counter()
     return -2;
 
   if (len != 2) {
-    log->error("SCARD: failed to fetch PIN retry counter\n");
+    logger.error("SCARD: failed to fetch PIN retry counter");
     return -1;
   }
 
   val = to_uint16(resp);
   if (val == 0x63c0 || val == 0x6983) {
-    log->debug("SCARD: PIN has been blocked\n");
+    logger.debug("SCARD: PIN has been blocked");
     return 0;
   }
 
   if (val >= 0x63c0 && val <= 0x63cf)
     return val & 0x000f;
 
-  log->info("SCARD: Unexpected PIN retry counter response value 0x%x\n", val);
+  logger.info("SCARD: Unexpected PIN retry counter response value 0x%x", val);
   return 0;
 }
 
@@ -586,64 +586,64 @@ int pcsc_usim::scard::get_aid(unsigned char* aid, size_t maxlen)
   aid_pos = &buf[4];
   blen    = sizeof(buf);
   if (select_file(SCARD_FILE_EF_DIR, buf, &blen)) {
-    log->debug("SCARD: Failed to read EF_DIR\n");
+    logger.debug("SCARD: Failed to read EF_DIR");
     return -1;
   }
-  log->debug_hex(buf, blen, "SCARD: EF_DIR select\n");
+  logger.debug(buf, blen, "SCARD: EF_DIR select");
 
   for (rec = 1; rec < 10; rec++) {
     rlen = get_record_len(rec, SIM_RECORD_MODE_ABSOLUTE);
     if (rlen < 0) {
-      log->debug("SCARD: Failed to get EF_DIR record length\n");
+      logger.debug("SCARD: Failed to get EF_DIR record length");
       return -1;
     }
     blen = sizeof(buf);
     if (rlen > (int)blen) {
-      log->debug("SCARD: Too long EF_DIR record\n");
+      logger.debug("SCARD: Too long EF_DIR record");
       return -1;
     }
     if (read_record(buf, rlen, rec, SIM_RECORD_MODE_ABSOLUTE) < 0) {
-      log->debug("SCARD: Failed to read EF_DIR record %d", rec);
+      logger.debug("SCARD: Failed to read EF_DIR record %d", rec);
       return -1;
     }
-    log->debug_hex(buf, rlen, "SCARD: EF_DIR record\n");
+    logger.debug(buf, rlen, "SCARD: EF_DIR record");
 
     if (efdir->appl_template_tag != 0x61) {
-      log->debug("SCARD: Unexpected application template tag 0x%x", efdir->appl_template_tag);
+      logger.debug("SCARD: Unexpected application template tag 0x%x", efdir->appl_template_tag);
       continue;
     }
 
     if (efdir->appl_template_len > rlen - 2) {
-      log->debug("SCARD: Too long application template (len=%d rlen=%d)", efdir->appl_template_len, rlen);
+      logger.debug("SCARD: Too long application template (len=%d rlen=%d)", efdir->appl_template_len, rlen);
       continue;
     }
 
     if (efdir->appl_id_tag != 0x4f) {
-      log->debug("SCARD: Unexpected application identifier tag 0x%x", efdir->appl_id_tag);
+      logger.debug("SCARD: Unexpected application identifier tag 0x%x", efdir->appl_id_tag);
       continue;
     }
 
     aid_len = efdir->aid_len;
     if (aid_len < 1 || aid_len > 16) {
-      log->debug("SCARD: Invalid AID length %u\n", aid_len);
+      logger.debug("SCARD: Invalid AID length %u", aid_len);
       continue;
     }
 
-    log->debug_hex(aid_pos, aid_len, "SCARD: AID from EF_DIR record\n");
+    logger.debug(aid_pos, aid_len, "SCARD: AID from EF_DIR record");
 
     if (efdir->appl_code[0] == 0x10 && efdir->appl_code[1] == 0x02) {
-      log->debug("SCARD: 3G USIM app found from EF_DIR record %d\n", rec);
+      logger.debug("SCARD: 3G USIM app found from EF_DIR record %d", rec);
       break;
     }
   }
 
   if (rec >= 10) {
-    log->debug("SCARD: 3G USIM app not found from EF_DIR records\n");
+    logger.debug("SCARD: 3G USIM app not found from EF_DIR records");
     return -1;
   }
 
   if (aid_len > maxlen) {
-    log->debug("SCARD: Too long AID\n");
+    logger.debug("SCARD: Too long AID");
     return -1;
   }
 
@@ -668,14 +668,14 @@ int pcsc_usim::scard::get_record_len(unsigned char recnum, unsigned char mode)
   blen = sizeof(buf);
   ret  = transmit(cmd, sizeof(cmd), buf, &blen);
   if (ret != SCARD_S_SUCCESS) {
-    log->debug("SCARD: failed to determine file length for record %d\n", recnum);
+    logger.debug("SCARD: failed to determine file length for record %d", recnum);
     return -1;
   }
 
-  log->debug_hex(buf, blen, "SCARD: file length determination response\n");
+  logger.debug(buf, blen, "SCARD: file length determination response");
 
   if (blen < 2 || (buf[0] != 0x6c && buf[0] != 0x67)) {
-    log->error("SCARD: unexpected response to file length determination\n");
+    logger.error("SCARD: unexpected response to file length determination");
     return -1;
   }
 
@@ -705,13 +705,13 @@ int pcsc_usim::scard::read_record(unsigned char* data, size_t len, unsigned char
     return -2;
   }
   if (blen != len + 2) {
-    log->debug("SCARD: record read returned unexpected length %ld (expected %ld)\n", (long)blen, (long)len + 2);
+    logger.debug("SCARD: record read returned unexpected length %ld (expected %ld)", (long)blen, (long)len + 2);
     free(buf);
     return -3;
   }
 
   if (buf[len] != 0x90 || buf[len + 1] != 0x00) {
-    log->debug("SCARD: record read returned unexpected status %02x %02x (expected 90 00)\n", buf[len], buf[len + 1]);
+    logger.debug("SCARD: record read returned unexpected status %02x %02x (expected 90 00)", buf[len], buf[len + 1]);
     free(buf);
     return -4;
   }
@@ -742,12 +742,12 @@ int pcsc_usim::scard::get_imsi(char* imsi, size_t* len)
   size_t        blen, imsilen, i;
   char*         pos;
 
-  log->debug("SCARD: reading IMSI from (GSM) EF-IMSI\n");
+  logger.debug("SCARD: reading IMSI from (GSM) EF-IMSI");
   blen = sizeof(buf);
   if (select_file(SCARD_FILE_GSM_EF_IMSI, buf, &blen))
     return -1;
   if (blen < 4) {
-    log->warning("SCARD: too short (GSM) EF-IMSI header (len=%ld)\n", (long)blen);
+    logger.warning("SCARD: too short (GSM) EF-IMSI header (len=%ld)", (long)blen);
     return -2;
   }
 
@@ -760,12 +760,12 @@ int pcsc_usim::scard::get_imsi(char* imsi, size_t* len)
     blen = file_size;
   }
   if (blen < 2 || blen > sizeof(buf)) {
-    log->debug("SCARD: invalid IMSI file length=%ld\n", (long)blen);
+    logger.debug("SCARD: invalid IMSI file length=%ld", (long)blen);
     return -3;
   }
 
   imsilen = (blen - 2) * 2 + 1;
-  log->debug("SCARD: IMSI file length=%ld imsilen=%ld\n", (long)blen, (long)imsilen);
+  logger.debug("SCARD: IMSI file length=%ld imsilen=%ld", (long)blen, (long)imsilen);
   if (imsilen > *len) {
     *len = imsilen;
     return -4;
@@ -817,13 +817,13 @@ int pcsc_usim::scard::read_file(unsigned char* data, size_t len)
     return -2;
   }
   if (blen != len + 2) {
-    log->error("SCARD: file read returned unexpected length %ld (expected %ld)\n", (long)blen, (long)len + 2);
+    logger.error("SCARD: file read returned unexpected length %ld (expected %ld)", (long)blen, (long)len + 2);
     free(buf);
     return -3;
   }
 
   if (buf[len] != 0x90 || buf[len + 1] != 0x00) {
-    log->error("SCARD: file read returned unexpected status %02x %02x (expected 90 00)\n", buf[len], buf[len + 1]);
+    logger.error("SCARD: file read returned unexpected status %02x %02x (expected 90 00)", buf[len], buf[len + 1]);
     free(buf);
     return -4;
   }
@@ -846,7 +846,7 @@ int pcsc_usim::scard::parse_fsp_templ(unsigned char* buf, size_t buf_len, int* p
   pos = buf;
   end = pos + buf_len;
   if (*pos != USIM_FSP_TEMPL_TAG) {
-    log->error("SCARD: file header did not start with FSP template tag\n");
+    logger.error("SCARD: file header did not start with FSP template tag");
     return -1;
   }
   pos++;
@@ -855,14 +855,14 @@ int pcsc_usim::scard::parse_fsp_templ(unsigned char* buf, size_t buf_len, int* p
   if (pos[0] < end - pos)
     end = pos + 1 + pos[0];
   pos++;
-  log->debug_hex(pos, end - pos, "SCARD: file header FSP template\n");
+  logger.debug(pos, end - pos, "SCARD: file header FSP template");
 
   while (end - pos >= 2) {
     unsigned char type, len;
 
     type = pos[0];
     len  = pos[1];
-    log->debug("SCARD: file header TLV 0x%02x len=%d\n", type, len);
+    logger.debug("SCARD: file header TLV 0x%02x len=%d", type, len);
     pos += 2;
 
     if (len > (unsigned int)(end - pos))
@@ -870,51 +870,51 @@ int pcsc_usim::scard::parse_fsp_templ(unsigned char* buf, size_t buf_len, int* p
 
     switch (type) {
       case USIM_TLV_FILE_DESC:
-        log->debug_hex(pos, len, "SCARD: File Descriptor TLV\n");
+        logger.debug(pos, len, "SCARD: File Descriptor TLV");
         break;
       case USIM_TLV_FILE_ID:
-        log->debug_hex(pos, len, "SCARD: File Identifier TLV\n");
+        logger.debug(pos, len, "SCARD: File Identifier TLV");
         break;
       case USIM_TLV_DF_NAME:
-        log->debug_hex(pos, len, "SCARD: DF name (AID) TLV\n");
+        logger.debug(pos, len, "SCARD: DF name (AID) TLV");
         break;
       case USIM_TLV_PROPR_INFO:
-        log->debug_hex(pos, len, "SCARD: Proprietary information TLV\n");
+        logger.debug(pos, len, "SCARD: Proprietary information TLV");
         break;
       case USIM_TLV_LIFE_CYCLE_STATUS:
-        log->debug_hex(pos, len, "SCARD: Life Cycle Status Integer TLV\n");
+        logger.debug(pos, len, "SCARD: Life Cycle Status Integer TLV");
         break;
       case USIM_TLV_FILE_SIZE:
-        log->debug_hex(pos, len, "SCARD: File size TLV\n");
+        logger.debug(pos, len, "SCARD: File size TLV");
         if ((len == 1 || len == 2) && file_len) {
           if (len == 1) {
             *file_len = (int)pos[0];
           } else {
             *file_len = to_uint16(pos);
           }
-          log->debug("SCARD: file_size=%d\n", *file_len);
+          logger.debug("SCARD: file_size=%d", *file_len);
         }
         break;
       case USIM_TLV_TOTAL_FILE_SIZE:
-        log->debug_hex(pos, len, "SCARD: Total file size TLV\n");
+        logger.debug(pos, len, "SCARD: Total file size TLV");
         break;
       case USIM_TLV_PIN_STATUS_TEMPLATE:
-        log->debug_hex(pos, len, "SCARD: PIN Status Template DO TLV\n");
+        logger.debug(pos, len, "SCARD: PIN Status Template DO TLV");
         if (len >= 2 && pos[0] == USIM_PS_DO_TAG && pos[1] >= 1 && ps_do) {
-          log->debug("SCARD: PS_DO=0x%02x\n", pos[2]);
+          logger.debug("SCARD: PS_DO=0x%02x", pos[2]);
           *ps_do = (int)pos[2];
         }
         break;
       case USIM_TLV_SHORT_FILE_ID:
-        log->debug_hex(pos, len, "SCARD: Short File Identifier (SFI) TLV\n");
+        logger.debug(pos, len, "SCARD: Short File Identifier (SFI) TLV");
         break;
       case USIM_TLV_SECURITY_ATTR_8B:
       case USIM_TLV_SECURITY_ATTR_8C:
       case USIM_TLV_SECURITY_ATTR_AB:
-        log->debug_hex(pos, len, "SCARD: Security attribute TLV\n");
+        logger.debug(pos, len, "SCARD: Security attribute TLV");
         break;
       default:
-        log->debug_hex(pos, len, "SCARD: Unrecognized TLV\n");
+        logger.debug(pos, len, "SCARD: Unrecognized TLV");
         break;
     }
 
@@ -936,16 +936,16 @@ void pcsc_usim::scard::deinit()
 {
   long ret;
 
-  log->debug("SCARD: deinitializing smart card interface\n");
+  logger.debug("SCARD: deinitializing smart card interface");
 
   ret = SCardDisconnect(scard_handle, SCARD_UNPOWER_CARD);
   if (ret != SCARD_S_SUCCESS) {
-    log->debug("SCARD: Failed to disconnect smart card (err=%ld)\n", ret);
+    logger.debug("SCARD: Failed to disconnect smart card (err=%ld)", ret);
   }
 
   ret = SCardReleaseContext(scard_context);
   if (ret != SCARD_S_SUCCESS) {
-    log->debug("Failed to release smart card context (err=%ld)\n", ret);
+    logger.debug("Failed to release smart card context (err=%ld)", ret);
   }
 }
 
@@ -965,12 +965,12 @@ int pcsc_usim::scard::get_mnc_len()
   size_t        blen;
   int           file_size;
 
-  log->debug("SCARD: reading MNC len from (GSM) EF-AD\n");
+  logger.debug("SCARD: reading MNC len from (GSM) EF-AD");
   blen = sizeof(buf);
   if (select_file(SCARD_FILE_GSM_EF_AD, buf, &blen))
     return -1;
   if (blen < 4) {
-    log->debug("SCARD: too short (GSM) EF-AD header (len=%ld)\n", (long)blen);
+    logger.debug("SCARD: too short (GSM) EF-AD header (len=%ld)", (long)blen);
     return -2;
   }
 
@@ -981,11 +981,11 @@ int pcsc_usim::scard::get_mnc_len()
       return -3;
   }
   if (file_size == 3) {
-    log->debug("SCARD: MNC length not available\n");
+    logger.debug("SCARD: MNC length not available");
     return -7;
   }
   if (file_size < 4 || file_size > (int)sizeof(buf)) {
-    log->debug("SCARD: invalid file length=%ld\n", (long)file_size);
+    logger.debug("SCARD: invalid file length=%ld", (long)file_size);
     return -4;
   }
 
@@ -993,10 +993,10 @@ int pcsc_usim::scard::get_mnc_len()
     return -5;
   buf[3] = buf[3] & 0x0f; /* upper nibble reserved for future use  */
   if (buf[3] < 2 || buf[3] > 3) {
-    log->debug("SCARD: invalid MNC length=%ld\n", (long)buf[3]);
+    logger.debug("SCARD: invalid MNC length=%ld", (long)buf[3]);
     return -6;
   }
-  log->debug("SCARD: MNC length=%ld\n", (long)buf[3]);
+  logger.debug("SCARD: MNC length=%ld", (long)buf[3]);
   return buf[3];
 }
 
@@ -1035,12 +1035,12 @@ int pcsc_usim::scard::umts_auth(const unsigned char* _rand,
   long          ret;
 
   if (sim_type == SCARD_GSM_SIM) {
-    log->debug("SCARD: Non-USIM card - cannot do UMTS auth\n");
+    logger.debug("SCARD: Non-USIM card - cannot do UMTS auth");
     return -1;
   }
 
-  log->debug_hex(_rand, AKA_RAND_LEN, "SCARD: UMTS auth - RAND\n");
-  log->debug_hex(autn, AKA_AUTN_LEN, "SCARD: UMTS auth - AUTN\n");
+  logger.debug(_rand, AKA_RAND_LEN, "SCARD: UMTS auth - RAND");
+  logger.debug(autn, AKA_AUTN_LEN, "SCARD: UMTS auth - AUTN");
   cmd[5] = AKA_RAND_LEN;
   memcpy(cmd + 6, _rand, AKA_RAND_LEN);
   cmd[6 + AKA_RAND_LEN] = AKA_AUTN_LEN;
@@ -1052,17 +1052,17 @@ int pcsc_usim::scard::umts_auth(const unsigned char* _rand,
     return -1;
 
   if (len <= sizeof(resp))
-    log->debug_hex(resp, len, "SCARD: UMTS alg response\n");
+    logger.debug(resp, len, "SCARD: UMTS alg response");
 
   if (len == 2 && resp[0] == 0x98 && resp[1] == 0x62) {
     // Authentication error, application specific
-    log->warning("SCARD: UMTS auth failed - MAC != XMAC\n");
+    logger.warning("SCARD: UMTS auth failed - MAC != XMAC");
     return -1;
   }
 
   if (len != 2 || resp[0] != 0x61) {
-    log->warning(
-        "SCARD: unexpected response for UMTS auth request (len=%ld resp=%02x %02x)\n", (long)len, resp[0], resp[1]);
+    logger.warning(
+        "SCARD: unexpected response for UMTS auth request (len=%ld resp=%02x %02x)", (long)len, resp[0], resp[1]);
     return -1;
   }
   get_resp[4] = resp[1];
@@ -1072,11 +1072,11 @@ int pcsc_usim::scard::umts_auth(const unsigned char* _rand,
   if (ret != SCARD_S_SUCCESS || len > sizeof(buf))
     return -1;
 
-  log->debug_hex(buf, len, "SCARD: UMTS get response result\n");
+  logger.debug(buf, len, "SCARD: UMTS get response result");
   if (len >= 2 + AKA_AUTS_LEN && buf[0] == 0xdc && buf[1] == AKA_AUTS_LEN) {
-    log->debug("SCARD: UMTS Synchronization-Failure\n");
+    logger.debug("SCARD: UMTS Synchronization-Failure");
     memcpy(auts, buf + 2, AKA_AUTS_LEN);
-    log->debug_hex(auts, AKA_AUTS_LEN, "SCARD: AUTS\n");
+    logger.debug(auts, AKA_AUTS_LEN, "SCARD: AUTS");
     *res_len = AKA_AUTS_LEN;
     return -2;
   }
@@ -1087,42 +1087,42 @@ int pcsc_usim::scard::umts_auth(const unsigned char* _rand,
 
     /* RES */
     if (pos[0] > RES_MAX_LEN || pos[0] > end - pos) {
-      log->debug("SCARD: Invalid RES\n");
+      logger.debug("SCARD: Invalid RES");
       return -1;
     }
     *res_len = *pos++;
     memcpy(res, pos, *res_len);
     pos += *res_len;
-    log->debug_hex(res, *res_len, "SCARD: RES\n");
+    logger.debug(res, *res_len, "SCARD: RES");
 
     /* CK */
     if (pos[0] != CK_LEN || CK_LEN > end - pos) {
-      log->debug("SCARD: Invalid CK\n");
+      logger.debug("SCARD: Invalid CK");
       return -1;
     }
     pos++;
     memcpy(ck, pos, CK_LEN);
     pos += CK_LEN;
-    log->debug_hex(ck, CK_LEN, "SCARD: CK\n");
+    logger.debug(ck, CK_LEN, "SCARD: CK");
 
     /* IK */
     if (pos[0] != IK_LEN || IK_LEN > end - pos) {
-      log->debug("SCARD: Invalid IK\n");
+      logger.debug("SCARD: Invalid IK");
       return -1;
     }
     pos++;
     memcpy(ik, pos, IK_LEN);
     pos += IK_LEN;
-    log->debug_hex(ik, IK_LEN, "SCARD: IK\n");
+    logger.debug(ik, IK_LEN, "SCARD: IK");
 
     if (end > pos) {
-      log->debug_hex(pos, end - pos, "SCARD: Ignore extra data in end\n");
+      logger.debug(pos, end - pos, "SCARD: Ignore extra data in end");
     }
 
     return 0;
   }
 
-  log->debug("SCARD: Unrecognized response\n");
+  logger.debug("SCARD: Unrecognized response");
   return -1;
 }
 
@@ -1133,7 +1133,7 @@ int pcsc_usim::scard::verify_pin(const char* pin)
   unsigned char cmd[5 + 8] = {SIM_CMD_VERIFY_CHV1};
   size_t        len;
 
-  log->debug("SCARD: verifying PIN\n");
+  logger.debug("SCARD: verifying PIN");
 
   if (pin == NULL || strlen(pin) > 8)
     return -1;
@@ -1149,11 +1149,11 @@ int pcsc_usim::scard::verify_pin(const char* pin)
     return -2;
 
   if (len != 2 || resp[0] != 0x90 || resp[1] != 0x00) {
-    log->debug("SCARD: PIN verification failed\n");
+    logger.debug("SCARD: PIN verification failed");
     return -1;
   }
 
-  log->debug("SCARD: PIN verified successfully\n");
+  logger.debug("SCARD: PIN verified successfully");
   return SCARD_S_SUCCESS;
 }
 

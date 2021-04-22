@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -22,10 +22,9 @@
 #ifndef SRSUE_PACKET_FILTER_H
 #define SRSUE_PACKET_FILTER_H
 
-#include "srslte/asn1/liblte_mme.h"
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/log.h"
-#include "srslte/common/log_filter.h"
+#include "srsran/asn1/liblte_mme.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/srslog/srslog.h"
 #include <mutex>
 
 namespace srsue {
@@ -71,42 +70,42 @@ public:
   tft_packet_filter_t(uint8_t                                eps_bearer_id_,
                       uint8_t                                lcid_,
                       const LIBLTE_MME_PACKET_FILTER_STRUCT& tft_,
-                      srslte::log*                           log_);
-  bool match(const srslte::unique_byte_buffer_t& pdu);
+                      srslog::basic_logger&                  logger);
+  bool match(const srsran::unique_byte_buffer_t& pdu);
   bool filter_contains(uint16_t filtertype);
 
-  uint8_t  eps_bearer_id {};
-  uint8_t  lcid = {};
-  uint8_t  id = {};
-  uint8_t  eval_precedence = {};
-  uint32_t active_filters = {};
-  uint32_t ipv4_remote_addr = {};
-  uint32_t ipv4_remote_addr_mask = {};
-  uint32_t ipv4_local_addr = {};
-  uint32_t ipv4_local_addr_mask = {};
-  uint8_t  ipv6_remote_addr[16] = {};
+  uint8_t  eps_bearer_id{};
+  uint8_t  lcid                      = {};
+  uint8_t  id                        = {};
+  uint8_t  eval_precedence           = {};
+  uint32_t active_filters            = {};
+  uint32_t ipv4_remote_addr          = {};
+  uint32_t ipv4_remote_addr_mask     = {};
+  uint32_t ipv4_local_addr           = {};
+  uint32_t ipv4_local_addr_mask      = {};
+  uint8_t  ipv6_remote_addr[16]      = {};
   uint8_t  ipv6_remote_addr_mask[16] = {};
-  uint8_t  ipv6_remote_addr_length = {};
-  uint8_t  ipv6_local_addr[16] = {};
-  uint8_t  ipv6_local_addr_mask[16] = {};
-  uint8_t  ipv6_local_addr_length = {};
-  uint8_t  protocol_id = {};
-  uint16_t single_local_port = {};
-  uint16_t local_port_range[2] = {};
-  uint16_t single_remote_port = {};
-  uint16_t remote_port_range[2] = {};
-  uint32_t security_parameter_index = {};
-  uint8_t  type_of_service = {};
-  uint8_t  type_of_service_mask = {};
-  uint8_t  flow_label[3] = {};
+  uint8_t  ipv6_remote_addr_length   = {};
+  uint8_t  ipv6_local_addr[16]       = {};
+  uint8_t  ipv6_local_addr_mask[16]  = {};
+  uint8_t  ipv6_local_addr_length    = {};
+  uint8_t  protocol_id               = {};
+  uint16_t single_local_port         = {};
+  uint16_t local_port_range[2]       = {};
+  uint16_t single_remote_port        = {};
+  uint16_t remote_port_range[2]      = {};
+  uint32_t security_parameter_index  = {};
+  uint8_t  type_of_service           = {};
+  uint8_t  type_of_service_mask      = {};
+  uint8_t  flow_label[3]             = {};
 
-  srslte::log* log;
+  srslog::basic_logger& logger;
 
-  bool match_ip(const srslte::unique_byte_buffer_t& pdu);
-  bool match_protocol(const srslte::unique_byte_buffer_t& pdu);
-  bool match_type_of_service(const srslte::unique_byte_buffer_t& pdu);
-  bool match_flow_label(const srslte::unique_byte_buffer_t& pdu);
-  bool match_port(const srslte::unique_byte_buffer_t& pdu);
+  bool match_ip(const srsran::unique_byte_buffer_t& pdu);
+  bool match_protocol(const srsran::unique_byte_buffer_t& pdu);
+  bool match_type_of_service(const srsran::unique_byte_buffer_t& pdu);
+  bool match_flow_label(const srsran::unique_byte_buffer_t& pdu);
+  bool match_port(const srsran::unique_byte_buffer_t& pdu);
 };
 
 /**
@@ -115,17 +114,17 @@ public:
 class tft_pdu_matcher
 {
 public:
-  tft_pdu_matcher(srslte::log_filter* log_) : log(log_){};
+  explicit tft_pdu_matcher(srslog::basic_logger& logger) : logger(logger) {}
   ~tft_pdu_matcher(){};
 
   void    set_default_lcid(const uint8_t lcid);
-  uint8_t check_tft_filter_match(const srslte::unique_byte_buffer_t& pdu);
+  uint8_t check_tft_filter_match(const srsran::unique_byte_buffer_t& pdu);
   int     apply_traffic_flow_template(const uint8_t&                                 erab_id,
                                       const uint8_t&                                 lcid,
                                       const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft);
 
 private:
-  srslte::log_filter*                             log          = nullptr;
+  srslog::basic_logger&                           logger;
   uint8_t                                         default_lcid = 0;
   std::mutex                                      tft_mutex;
   typedef std::map<uint16_t, tft_packet_filter_t> tft_filter_map_t;

@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -24,32 +24,28 @@
  * Description: L2/L3 LTE eNB stack class.
  *****************************************************************************/
 
-#ifndef SRSLTE_ENB_STACK_LTE_H
-#define SRSLTE_ENB_STACK_LTE_H
+#ifndef SRSRAN_ENB_STACK_LTE_H
+#define SRSRAN_ENB_STACK_LTE_H
 
 #include "mac/mac.h"
 #include "rrc/rrc.h"
-#include "srslte/common/task_scheduler.h"
+#include "srsran/common/task_scheduler.h"
 #include "upper/gtpu.h"
 #include "upper/pdcp.h"
 #include "upper/rlc.h"
 #include "upper/s1ap.h"
 
 #include "enb_stack_base.h"
-#include "srsenb/hdr/enb.h"
-#include "srslte/interfaces/enb_interfaces.h"
-#include "srslte/interfaces/enb_rrc_interface_types.h"
+#include "srsran/common/mac_pcap_net.h"
+#include "srsran/interfaces/enb_interfaces.h"
+#include "srsran/srslog/srslog.h"
 
 namespace srsenb {
 
-class enb_stack_lte final : public enb_stack_base,
-                            public stack_interface_phy_lte,
-                            public stack_interface_s1ap_lte,
-                            public stack_interface_gtpu_lte,
-                            public srslte::thread
+class enb_stack_lte final : public enb_stack_base, public stack_interface_phy_lte, public srsran::thread
 {
 public:
-  enb_stack_lte(srslte::logger* logger_);
+  enb_stack_lte(srslog::sink& log_sink);
   ~enb_stack_lte() final;
 
   // eNB stack base interface
@@ -77,9 +73,9 @@ public:
   {
     return mac.cqi_info(tti, rnti, cc_idx, cqi_value);
   }
-  int snr_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, float snr_db) final
+  int snr_info(uint32_t tti_rx, uint16_t rnti, uint32_t cc_idx, float snr_db, ul_channel_t ch) final
   {
-    return mac.snr_info(tti, rnti, cc_idx, snr_db);
+    return mac.snr_info(tti_rx, rnti, cc_idx, snr_db, ch);
   }
   int ta_info(uint32_t tti, uint16_t rnti, float ta_us) override { return mac.ta_info(tti, rnti, ta_us); }
   int ack_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack) final
@@ -89,6 +85,10 @@ public:
   int crc_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t nof_bytes, bool crc_res) final
   {
     return mac.crc_info(tti, rnti, enb_cc_idx, nof_bytes, crc_res);
+  }
+  int push_pdu(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t nof_bytes, bool crc_res) final
+  {
+    return mac.push_pdu(tti, rnti, enb_cc_idx, nof_bytes, crc_res);
   }
   int get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res) final { return mac.get_dl_sched(tti, dl_sched_res); }
   int get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res) final
@@ -102,54 +102,42 @@ public:
   }
   void tti_clock() override;
 
-  /* STACK-S1AP interface*/
-  void add_mme_socket(int fd) override;
-  void remove_mme_socket(int fd) override;
-  void add_gtpu_s1u_socket_handler(int fd) override;
-  void add_gtpu_m1u_socket_handler(int fd) override;
-
 private:
   static const int STACK_MAIN_THREAD_PRIO = 4;
   // thread loop
   void run_thread() override;
   void stop_impl();
   void tti_clock_impl();
-  void handle_mme_rx_packet(srslte::unique_byte_buffer_t pdu,
-                            const sockaddr_in&           from,
-                            const sctp_sndrcvinfo&       sri,
-                            int                          flags);
 
   // args
   stack_args_t args    = {};
   rrc_cfg_t    rrc_cfg = {};
 
+  srsran::socket_manager rx_sockets;
+
+  srslog::basic_logger& mac_logger;
+  srslog::basic_logger& rlc_logger;
+  srslog::basic_logger& pdcp_logger;
+  srslog::basic_logger& rrc_logger;
+  srslog::basic_logger& s1ap_logger;
+  srslog::basic_logger& gtpu_logger;
+  srslog::basic_logger& stack_logger;
+
+  // PCAP and trace option
+  srsran::mac_pcap     mac_pcap;
+  srsran::mac_pcap_net mac_pcap_net;
+  srsran::s1ap_pcap    s1ap_pcap;
+
   // task handling
-  srslte::task_scheduler    task_sched;
-  srslte::task_queue_handle enb_task_queue, gtpu_task_queue, mme_task_queue, sync_task_queue;
+  srsran::task_scheduler    task_sched;
+  srsran::task_queue_handle enb_task_queue, gtpu_task_queue, mme_task_queue, sync_task_queue;
 
-  // components that layers depend on (need to be destroyed after layers)
-  std::unique_ptr<srslte::rx_multisocket_handler> rx_sockets;
-
-  srsenb::mac       mac;
-  srslte::mac_pcap  mac_pcap;
-  srsenb::rlc       rlc;
-  srsenb::pdcp      pdcp;
-  srsenb::rrc       rrc;
-  srsenb::gtpu      gtpu;
-  srsenb::s1ap      s1ap;
-  srslte::s1ap_pcap s1ap_pcap;
-
-  srslte::logger*           logger = nullptr;
-  srslte::byte_buffer_pool* pool   = nullptr;
-
-  // Radio and PHY log are in enb.cc
-  srslte::log_ref mac_log{"MAC"};
-  srslte::log_ref rlc_log{"RLC"};
-  srslte::log_ref pdcp_log{"PDCP"};
-  srslte::log_ref rrc_log{"RRC"};
-  srslte::log_ref s1ap_log{"S1AP"};
-  srslte::log_ref gtpu_log{"GTPU"};
-  srslte::log_ref stack_log{"STCK"};
+  srsenb::mac  mac;
+  srsenb::rlc  rlc;
+  srsenb::pdcp pdcp;
+  srsenb::rrc  rrc;
+  srsenb::gtpu gtpu;
+  srsenb::s1ap s1ap;
 
   // RAT-specific interfaces
   phy_interface_stack_lte* phy = nullptr;
@@ -157,9 +145,9 @@ private:
   // state
   bool started = false;
 
-  srslte::block_queue<stack_metrics_t> pending_stack_metrics;
+  srsran::dyn_blocking_queue<stack_metrics_t> pending_stack_metrics;
 };
 
 } // namespace srsenb
 
-#endif // SRSLTE_ENB_STACK_LTE_H
+#endif // SRSRAN_ENB_STACK_LTE_H

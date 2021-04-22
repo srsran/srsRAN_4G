@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -21,35 +21,35 @@
 #include "srsue/hdr/phy/scell/intra_measure.h"
 
 #define Error(fmt, ...)                                                                                                \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->error(fmt, ##__VA_ARGS__)
+  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
+  logger.error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...)                                                                                              \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->warning(fmt, ##__VA_ARGS__)
+  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
+  logger.warning(fmt, ##__VA_ARGS__)
 #define Info(fmt, ...)                                                                                                 \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->info(fmt, ##__VA_ARGS__)
+  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
+  logger.info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)                                                                                                \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->debug(fmt, ##__VA_ARGS__)
+  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
+  logger.debug(fmt, ##__VA_ARGS__)
 
 namespace srsue {
 namespace scell {
 
-intra_measure::intra_measure() : scell(), thread("SYNC_INTRA_MEASURE") {}
+intra_measure::intra_measure(srslog::basic_logger& logger) : scell(logger), logger(logger), thread("SYNC_INTRA_MEASURE")
+{}
 
 intra_measure::~intra_measure()
 {
-  srslte_ringbuffer_free(&ring_buffer);
+  srsran_ringbuffer_free(&ring_buffer);
   scell.deinit();
   free(search_buffer);
 }
 
-void intra_measure::init(uint32_t cc_idx_, phy_common* common, meas_itf* new_cell_itf_, srslte::log* log_h_)
+void intra_measure::init(uint32_t cc_idx_, phy_common* common, meas_itf* new_cell_itf_)
 {
   cc_idx       = cc_idx_;
   new_cell_itf = new_cell_itf_;
-  log_h        = log_h_;
 
   if (common) {
     intra_freq_meas_len_ms    = common->args->intra_freq_meas_len_ms;
@@ -58,14 +58,16 @@ void intra_measure::init(uint32_t cc_idx_, phy_common* common, meas_itf* new_cel
   }
 
   // Initialise Reference signal measurement
-  srslte_refsignal_dl_sync_init(&refsignal_dl_sync);
+  srsran_refsignal_dl_sync_init(&refsignal_dl_sync);
 
   // Start scell
-  scell.init(log_h, intra_freq_meas_len_ms);
+  scell.init(intra_freq_meas_len_ms);
 
-  search_buffer = srslte_vec_cf_malloc(intra_freq_meas_len_ms * SRSLTE_SF_LEN_PRB(SRSLTE_MAX_PRB));
+  search_buffer = srsran_vec_cf_malloc(intra_freq_meas_len_ms * SRSRAN_SF_LEN_PRB(SRSRAN_MAX_PRB));
 
-  if (srslte_ringbuffer_init(&ring_buffer, sizeof(cf_t) * intra_freq_meas_len_ms * SRSLTE_SF_LEN_PRB(SRSLTE_MAX_PRB))) {
+  // Initialise buffer for the maximum number of PRB
+  uint32_t max_required_bytes = (uint32_t)sizeof(cf_t) * intra_freq_meas_len_ms * SRSRAN_SF_LEN_PRB(SRSRAN_MAX_PRB);
+  if (srsran_ringbuffer_init(&ring_buffer, max_required_bytes)) {
     return;
   }
 
@@ -75,16 +77,21 @@ void intra_measure::init(uint32_t cc_idx_, phy_common* common, meas_itf* new_cel
 
 void intra_measure::stop()
 {
+  // Notify quit to asynchronous thread. If it is measuring, it will first finish the measure, report to stack and
+  // then it will finish
   state.set_state(internal_state::quit);
-  srslte_ringbuffer_stop(&ring_buffer);
+
+  // Wait for the asynchronous thread to finish
   wait_thread_finish();
-  srslte_refsignal_dl_sync_free(&refsignal_dl_sync);
+
+  srsran_ringbuffer_stop(&ring_buffer);
+  srsran_refsignal_dl_sync_free(&refsignal_dl_sync);
 }
 
-void intra_measure::set_primary_cell(uint32_t earfcn, srslte_cell_t cell)
+void intra_measure::set_primary_cell(uint32_t earfcn, srsran_cell_t cell)
 {
   current_earfcn = earfcn;
-  current_sflen  = (uint32_t)SRSLTE_SF_LEN_PRB(cell.nof_prb);
+  current_sflen  = (uint32_t)SRSRAN_SF_LEN_PRB(cell.nof_prb);
   serving_cell   = cell;
 }
 
@@ -95,12 +102,10 @@ void intra_measure::set_rx_gain_offset(float rx_gain_offset_db_)
 
 void intra_measure::meas_stop()
 {
+  // Transition state to idle
+  // Ring-buffer shall not be reset, it will automatically be reset as soon as the FSM transitions to receive
   state.set_state(internal_state::idle);
-  receive_cnt = 0;
-  srslte_ringbuffer_reset(&ring_buffer);
-  if (log_h) {
-    log_h->info("INTRA: Disabled neighbour cell search for EARFCN %d\n", get_earfcn());
-  }
+  Info("INTRA: Disabled neighbour cell search for EARFCN %d", get_earfcn());
 }
 
 void intra_measure::set_cells_to_meas(const std::set<uint32_t>& pci)
@@ -109,12 +114,14 @@ void intra_measure::set_cells_to_meas(const std::set<uint32_t>& pci)
   active_pci = pci;
   active_pci_mutex.unlock();
   state.set_state(internal_state::receive);
-  log_h->info("INTRA: Received list of %zd neighbour cells to measure in EARFCN %d.\n", pci.size(), current_earfcn);
+  logger.info("INTRA: Received list of %zd neighbour cells to measure in EARFCN %d.", pci.size(), current_earfcn);
 }
 
 void intra_measure::write(uint32_t tti, cf_t* data, uint32_t nsamples)
 {
-  uint32_t elapsed_tti = ((tti + 10240) - last_measure_tti) % 10240;
+  int      nbytes          = (int)(nsamples * sizeof(cf_t));
+  int      required_nbytes = (int)(intra_freq_meas_len_ms * current_sflen * sizeof(cf_t));
+  uint32_t elapsed_tti     = TTI_SUB(tti, last_measure_tti);
 
   switch (state.get_state()) {
 
@@ -126,19 +133,23 @@ void intra_measure::write(uint32_t tti, cf_t* data, uint32_t nsamples)
     case internal_state::wait:
       if (elapsed_tti >= intra_freq_meas_period_ms) {
         state.set_state(internal_state::receive);
-        receive_cnt      = 0;
         last_measure_tti = tti;
-        srslte_ringbuffer_reset(&ring_buffer);
+        srsran_ringbuffer_reset(&ring_buffer);
       }
       break;
     case internal_state::receive:
-      if (srslte_ringbuffer_write(&ring_buffer, data, nsamples * sizeof(cf_t)) < (int)(nsamples * sizeof(cf_t))) {
-        Warning("Error writing to ringbuffer\n");
-        state.set_state(internal_state::idle);
+      // As nbytes might not match the sub-frame size, make sure that buffer does not overflow
+      nbytes = SRSRAN_MIN(srsran_ringbuffer_space(&ring_buffer), nbytes);
+
+      // Try writing in the buffer
+      if (srsran_ringbuffer_write(&ring_buffer, data, nbytes) < nbytes) {
+        Warning("INTRA: Error writing to ringbuffer (EARFCN=%d)", current_earfcn);
+
+        // Transition to wait, so it can keep receiving without stopping the component operation
+        state.set_state(internal_state::wait);
       } else {
-        receive_cnt++;
-        if (receive_cnt == intra_freq_meas_len_ms) {
-          // Buffer ready for measuring, start
+        // As soon as there are enough samples in the buffer, transition to measure
+        if (srsran_ringbuffer_status(&ring_buffer) >= required_nbytes) {
           state.set_state(internal_state::measure);
         }
       }
@@ -156,7 +167,7 @@ void intra_measure::measure_proc()
   active_pci_mutex.unlock();
 
   // Read data from buffer and find cells in it
-  srslte_ringbuffer_read(&ring_buffer, search_buffer, intra_freq_meas_len_ms * current_sflen * sizeof(cf_t));
+  srsran_ringbuffer_read(&ring_buffer, search_buffer, (int)intra_freq_meas_len_ms * current_sflen * sizeof(cf_t));
 
   // Go to receive before finishing, so new samples can be enqueued before the thread finishes
   if (state.get_state() == internal_state::measure) {
@@ -168,38 +179,38 @@ void intra_measure::measure_proc()
   std::set<uint32_t> detected_cells = scell.find_cells(search_buffer, serving_cell, intra_freq_meas_len_ms);
 
   // Add detected cells to the list of cells to measure
-  for (auto& c : detected_cells) {
+  for (const uint32_t& c : detected_cells) {
     cells_to_measure.insert(c);
   }
 
   // Initialise empty neighbour cell list
-  std::vector<rrc_interface_phy_lte::phy_meas_t> neighbour_cells = {};
+  std::vector<phy_meas_t> neighbour_cells = {};
 
   new_cell_itf->cell_meas_reset(cc_idx);
 
   // Use Cell Reference signal to measure cells in the time domain for all known active PCI
-  for (auto id : cells_to_measure) {
+  for (const uint32_t& id : cells_to_measure) {
     // Do not measure serving cell here since it's measured by workers
     if (id == serving_cell.id) {
       continue;
     }
-    srslte_cell_t cell = serving_cell;
+    srsran_cell_t cell = serving_cell;
     cell.id            = id;
 
-    srslte_refsignal_dl_sync_set_cell(&refsignal_dl_sync, cell);
-    srslte_refsignal_dl_sync_run(&refsignal_dl_sync, search_buffer, intra_freq_meas_len_ms * current_sflen);
+    srsran_refsignal_dl_sync_set_cell(&refsignal_dl_sync, cell);
+    srsran_refsignal_dl_sync_run(&refsignal_dl_sync, search_buffer, intra_freq_meas_len_ms * current_sflen);
 
     if (refsignal_dl_sync.found) {
-      rrc_interface_phy_lte::phy_meas_t m = {};
-      m.pci                               = cell.id;
-      m.earfcn                            = current_earfcn;
-      m.rsrp                              = refsignal_dl_sync.rsrp_dBfs - rx_gain_offset_db;
-      m.rsrq                              = refsignal_dl_sync.rsrq_dB;
-      m.cfo_hz                            = refsignal_dl_sync.cfo_Hz;
+      phy_meas_t m = {};
+      m.pci        = cell.id;
+      m.earfcn     = current_earfcn;
+      m.rsrp       = refsignal_dl_sync.rsrp_dBfs - rx_gain_offset_db;
+      m.rsrq       = refsignal_dl_sync.rsrq_dB;
+      m.cfo_hz     = refsignal_dl_sync.cfo_Hz;
       neighbour_cells.push_back(m);
 
       Info("INTRA: Found neighbour cell: EARFCN=%d, PCI=%03d, RSRP=%5.1f dBm, RSRQ=%5.1f, peak_idx=%5d, "
-           "CFO=%+.1fHz\n",
+           "CFO=%+.1fHz",
            m.earfcn,
            m.pci,
            m.rsrp,
@@ -213,9 +224,6 @@ void intra_measure::measure_proc()
   if (not neighbour_cells.empty()) {
     new_cell_itf->new_cell_meas(cc_idx, neighbour_cells);
   }
-
-  // Inform that measurement has finished
-  meas_sync.increase();
 }
 
 void intra_measure::run_thread()
@@ -223,13 +231,15 @@ void intra_measure::run_thread()
   bool quit = false;
 
   do {
-    switch (state.get_state()) {
+    // Get state
+    internal_state::state_t s = state.get_state();
+    switch (s) {
 
       case internal_state::idle:
       case internal_state::wait:
       case internal_state::receive:
-        // Wait for a state change
-        state.wait_change();
+        // Wait for a different state
+        state.wait_change(s);
         break;
       case internal_state::measure:
         // Run the measurement process

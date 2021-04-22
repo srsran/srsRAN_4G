@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,84 +19,97 @@
  *
  */
 
-#include <assert.h>
-#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <strings.h>
 
-#include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/fec/rm_turbo.h"
-#include "srslte/phy/fec/softbuffer.h"
-#include "srslte/phy/fec/turbodecoder_gen.h"
-#include "srslte/phy/phch/ra.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/common/phy_common.h"
+#include "srsran/phy/fec/softbuffer.h"
+#include "srsran/phy/fec/turbo/turbodecoder_gen.h"
+#include "srsran/phy/phch/ra.h"
+#include "srsran/phy/utils/vector.h"
 
-#define MAX_PDSCH_RE(cp) (2 * SRSLTE_CP_NSYMB(cp) * 12)
+#define MAX_PDSCH_RE(cp) (2 * SRSRAN_CP_NSYMB(cp) * 12)
 
-int srslte_softbuffer_rx_init(srslte_softbuffer_rx_t* q, uint32_t nof_prb)
+int srsran_softbuffer_rx_init(srsran_softbuffer_rx_t* q, uint32_t nof_prb)
 {
-  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+  int ret = srsran_ra_tbs_from_idx(SRSRAN_RA_NOF_TBS_IDX - 1, nof_prb);
 
-  if (q != NULL) {
-    bzero(q, sizeof(srslte_softbuffer_rx_t));
+  if (ret == SRSRAN_ERROR) {
+    return SRSRAN_ERROR;
+  }
+  uint32_t max_cb      = (uint32_t)ret / (SRSRAN_TCOD_MAX_LEN_CB - 24) + 1;
+  uint32_t max_cb_size = SOFTBUFFER_SIZE;
 
-    ret = srslte_ra_tbs_from_idx(SRSLTE_RA_NOF_TBS_IDX - 1, nof_prb);
-    if (ret != SRSLTE_ERROR) {
-      q->max_cb = (uint32_t)ret / (SRSLTE_TCOD_MAX_LEN_CB - 24) + 1;
-      ret       = SRSLTE_ERROR;
+  return srsran_softbuffer_rx_init_guru(q, max_cb, max_cb_size);
+}
 
-      q->buffer_f = srslte_vec_malloc(sizeof(int16_t*) * q->max_cb);
-      if (!q->buffer_f) {
-        perror("malloc");
-        goto clean_exit;
-      }
+int srsran_softbuffer_rx_init_guru(srsran_softbuffer_rx_t* q, uint32_t max_cb, uint32_t max_cb_size)
+{
+  int ret = SRSRAN_ERROR;
 
-      q->data = srslte_vec_malloc(sizeof(uint8_t*) * q->max_cb);
-      if (!q->data) {
-        perror("malloc");
-        goto clean_exit;
-      }
+  // Protect pointer
+  if (!q) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
 
-      q->cb_crc = srslte_vec_malloc(sizeof(bool) * q->max_cb);
-      if (!q->cb_crc) {
-        perror("malloc");
-        goto clean_exit;
-      }
-      bzero(q->cb_crc, sizeof(bool) * q->max_cb);
+  // Initialise object
+  SRSRAN_MEM_ZERO(q, srsran_softbuffer_rx_t, 1);
 
-      // TODO: Use HARQ buffer limitation based on UE category
-      for (uint32_t i = 0; i < q->max_cb; i++) {
-        q->buffer_f[i] = srslte_vec_i16_malloc(SOFTBUFFER_SIZE);
-        if (!q->buffer_f[i]) {
-          perror("malloc");
-          goto clean_exit;
-        }
+  // Set internal attributes
+  q->max_cb      = max_cb;
+  q->max_cb_size = max_cb_size;
 
-        q->data[i] = srslte_vec_u8_malloc(6144 / 8);
-        if (!q->data[i]) {
-          perror("malloc");
-          goto clean_exit;
-        }
-      }
-      // srslte_softbuffer_rx_reset(q);
-      ret = SRSLTE_SUCCESS;
+  q->buffer_f = SRSRAN_MEM_ALLOC(int16_t*, q->max_cb);
+  if (!q->buffer_f) {
+    perror("malloc");
+    goto clean_exit;
+  }
+  SRSRAN_MEM_ZERO(q->buffer_f, int16_t*, q->max_cb);
+
+  q->data = SRSRAN_MEM_ALLOC(uint8_t*, q->max_cb);
+  if (!q->data) {
+    perror("malloc");
+    goto clean_exit;
+  }
+  SRSRAN_MEM_ZERO(q->data, uint8_t*, q->max_cb);
+
+  q->cb_crc = SRSRAN_MEM_ALLOC(bool, q->max_cb);
+  if (!q->cb_crc) {
+    perror("malloc");
+    goto clean_exit;
+  }
+
+  for (uint32_t i = 0; i < q->max_cb; i++) {
+    q->buffer_f[i] = srsran_vec_i16_malloc(q->max_cb_size);
+    if (!q->buffer_f[i]) {
+      perror("malloc");
+      goto clean_exit;
+    }
+
+    q->data[i] = srsran_vec_u8_malloc(q->max_cb_size / 8);
+    if (!q->data[i]) {
+      perror("malloc");
+      goto clean_exit;
     }
   }
 
+  srsran_softbuffer_rx_reset(q);
+
+  // Consider success
+  ret = SRSRAN_SUCCESS;
+
 clean_exit:
-  if (ret != SRSLTE_SUCCESS) {
-    srslte_softbuffer_rx_free(q);
+  if (ret) {
+    srsran_softbuffer_rx_free(q);
   }
 
   return ret;
 }
 
-void srslte_softbuffer_rx_free(srslte_softbuffer_rx_t* q)
+void srsran_softbuffer_rx_free(srsran_softbuffer_rx_t* q)
 {
   if (q) {
     if (q->buffer_f) {
@@ -118,22 +131,23 @@ void srslte_softbuffer_rx_free(srslte_softbuffer_rx_t* q)
     if (q->cb_crc) {
       free(q->cb_crc);
     }
-    bzero(q, sizeof(srslte_softbuffer_rx_t));
+
+    SRSRAN_MEM_ZERO(q, srsran_softbuffer_rx_t, 1);
   }
 }
 
-void srslte_softbuffer_rx_reset_tbs(srslte_softbuffer_rx_t* q, uint32_t tbs)
+void srsran_softbuffer_rx_reset_tbs(srsran_softbuffer_rx_t* q, uint32_t tbs)
 {
-  uint32_t nof_cb = (tbs + 24) / (SRSLTE_TCOD_MAX_LEN_CB - 24) + 1;
-  srslte_softbuffer_rx_reset_cb(q, nof_cb);
+  uint32_t nof_cb = (tbs + 24) / (SRSRAN_TCOD_MAX_LEN_CB - 24) + 1;
+  srsran_softbuffer_rx_reset_cb(q, SRSRAN_MIN(nof_cb, q->max_cb));
 }
 
-void srslte_softbuffer_rx_reset(srslte_softbuffer_rx_t* q)
+void srsran_softbuffer_rx_reset(srsran_softbuffer_rx_t* q)
 {
-  srslte_softbuffer_rx_reset_cb(q, q->max_cb);
+  srsran_softbuffer_rx_reset_cb(q, q->max_cb);
 }
 
-void srslte_softbuffer_rx_reset_cb(srslte_softbuffer_rx_t* q, uint32_t nof_cb)
+void srsran_softbuffer_rx_reset_cb(srsran_softbuffer_rx_t* q, uint32_t nof_cb)
 {
   if (q->buffer_f) {
     if (nof_cb > q->max_cb) {
@@ -141,52 +155,67 @@ void srslte_softbuffer_rx_reset_cb(srslte_softbuffer_rx_t* q, uint32_t nof_cb)
     }
     for (uint32_t i = 0; i < nof_cb; i++) {
       if (q->buffer_f[i]) {
-        bzero(q->buffer_f[i], SOFTBUFFER_SIZE * sizeof(int16_t));
+        srsran_vec_i16_zero(q->buffer_f[i], q->max_cb_size);
       }
       if (q->data[i]) {
-        bzero(q->data[i], sizeof(uint8_t) * 6144 / 8);
+        srsran_vec_u8_zero(q->data[i], q->max_cb_size / 8);
       }
     }
   }
   if (q->cb_crc) {
-    bzero(q->cb_crc, sizeof(bool) * q->max_cb);
+    SRSRAN_MEM_ZERO(q->cb_crc, bool, q->max_cb);
   }
   q->tb_crc = false;
 }
 
-int srslte_softbuffer_tx_init(srslte_softbuffer_tx_t* q, uint32_t nof_prb)
+int srsran_softbuffer_tx_init(srsran_softbuffer_tx_t* q, uint32_t nof_prb)
 {
-  int ret = SRSLTE_ERROR_INVALID_INPUTS;
-
-  if (q != NULL) {
-    bzero(q, sizeof(srslte_softbuffer_tx_t));
-
-    ret = srslte_ra_tbs_from_idx(SRSLTE_RA_NOF_TBS_IDX - 1, nof_prb);
-    if (ret != SRSLTE_ERROR) {
-      q->max_cb = (uint32_t)ret / (SRSLTE_TCOD_MAX_LEN_CB - 24) + 1;
-
-      q->buffer_b = srslte_vec_malloc(sizeof(uint8_t*) * q->max_cb);
-      if (!q->buffer_b) {
-        perror("malloc");
-        return SRSLTE_ERROR;
-      }
-
-      // TODO: Use HARQ buffer limitation based on UE category
-      for (uint32_t i = 0; i < q->max_cb; i++) {
-        q->buffer_b[i] = srslte_vec_u8_malloc(SOFTBUFFER_SIZE);
-        if (!q->buffer_b[i]) {
-          perror("malloc");
-          return SRSLTE_ERROR;
-        }
-      }
-      srslte_softbuffer_tx_reset(q);
-      ret = SRSLTE_SUCCESS;
-    }
+  int ret = srsran_ra_tbs_from_idx(SRSRAN_RA_NOF_TBS_IDX - 1, nof_prb);
+  if (ret == SRSRAN_ERROR) {
+    return SRSRAN_ERROR;
   }
-  return ret;
+  uint32_t max_cb      = (uint32_t)ret / (SRSRAN_TCOD_MAX_LEN_CB - 24) + 1;
+  uint32_t max_cb_size = SOFTBUFFER_SIZE;
+
+  return srsran_softbuffer_tx_init_guru(q, max_cb, max_cb_size);
 }
 
-void srslte_softbuffer_tx_free(srslte_softbuffer_tx_t* q)
+int srsran_softbuffer_tx_init_guru(srsran_softbuffer_tx_t* q, uint32_t max_cb, uint32_t max_cb_size)
+{
+  // Protect pointer
+  if (!q) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+
+  // Initialise object
+  SRSRAN_MEM_ZERO(q, srsran_softbuffer_tx_t, 1);
+
+  // Set internal attributes
+  q->max_cb      = max_cb;
+  q->max_cb_size = max_cb_size;
+
+  q->buffer_b = SRSRAN_MEM_ALLOC(uint8_t*, q->max_cb);
+  if (!q->buffer_b) {
+    perror("malloc");
+    return SRSRAN_ERROR;
+  }
+  SRSRAN_MEM_ZERO(q->buffer_b, uint8_t*, q->max_cb);
+
+  // TODO: Use HARQ buffer limitation based on UE category
+  for (uint32_t i = 0; i < q->max_cb; i++) {
+    q->buffer_b[i] = srsran_vec_u8_malloc(q->max_cb_size);
+    if (!q->buffer_b[i]) {
+      perror("malloc");
+      return SRSRAN_ERROR;
+    }
+  }
+
+  srsran_softbuffer_tx_reset(q);
+
+  return SRSRAN_SUCCESS;
+}
+
+void srsran_softbuffer_tx_free(srsran_softbuffer_tx_t* q)
 {
   if (q) {
     if (q->buffer_b) {
@@ -197,31 +226,30 @@ void srslte_softbuffer_tx_free(srslte_softbuffer_tx_t* q)
       }
       free(q->buffer_b);
     }
-    bzero(q, sizeof(srslte_softbuffer_tx_t));
+    SRSRAN_MEM_ZERO(q, srsran_softbuffer_tx_t, 1);
   }
 }
 
-void srslte_softbuffer_tx_reset_tbs(srslte_softbuffer_tx_t* q, uint32_t tbs)
+void srsran_softbuffer_tx_reset_tbs(srsran_softbuffer_tx_t* q, uint32_t tbs)
 {
-  uint32_t nof_cb = (tbs + 24) / (SRSLTE_TCOD_MAX_LEN_CB - 24) + 1;
-  srslte_softbuffer_tx_reset_cb(q, nof_cb);
+  uint32_t nof_cb = (tbs + 24) / (SRSRAN_TCOD_MAX_LEN_CB - 24) + 1;
+  srsran_softbuffer_tx_reset_cb(q, nof_cb);
 }
 
-void srslte_softbuffer_tx_reset(srslte_softbuffer_tx_t* q)
+void srsran_softbuffer_tx_reset(srsran_softbuffer_tx_t* q)
 {
-  srslte_softbuffer_tx_reset_cb(q, q->max_cb);
+  srsran_softbuffer_tx_reset_cb(q, q->max_cb);
 }
 
-void srslte_softbuffer_tx_reset_cb(srslte_softbuffer_tx_t* q, uint32_t nof_cb)
+void srsran_softbuffer_tx_reset_cb(srsran_softbuffer_tx_t* q, uint32_t nof_cb)
 {
-  int i;
   if (q->buffer_b) {
     if (nof_cb > q->max_cb) {
       nof_cb = q->max_cb;
     }
-    for (i = 0; i < nof_cb; i++) {
+    for (uint32_t i = 0; i < nof_cb; i++) {
       if (q->buffer_b[i]) {
-        bzero(q->buffer_b[i], sizeof(uint8_t) * SOFTBUFFER_SIZE);
+        srsran_vec_u8_zero(q->buffer_b[i], q->max_cb_size);
       }
     }
   }

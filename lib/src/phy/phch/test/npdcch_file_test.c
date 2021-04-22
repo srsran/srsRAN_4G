@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,43 +19,43 @@
  *
  */
 
-#include "srslte/phy/ch_estimation/chest_dl_nbiot.h"
-#include "srslte/phy/dft/ofdm.h"
-#include "srslte/phy/io/filesource.h"
-#include "srslte/phy/phch/dci_nbiot.h"
-#include "srslte/phy/phch/npdcch.h"
-#include "srslte/phy/phch/ra_nbiot.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/ch_estimation/chest_dl_nbiot.h"
+#include "srsran/phy/dft/ofdm.h"
+#include "srsran/phy/io/filesource.h"
+#include "srsran/phy/phch/dci_nbiot.h"
+#include "srsran/phy/phch/npdcch.h"
+#include "srsran/phy/phch/ra_nbiot.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/vector.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
 #include <unistd.h>
 
 char*                 input_file_name = NULL;
-srslte_dci_format_t   dci_format      = SRSLTE_DCI_FORMATN0;
+srsran_dci_format_t   dci_format      = SRSRAN_DCI_FORMATN0;
 uint16_t              rnti            = 0;
 uint32_t              tti             = 0;
 int                   nof_frames      = 1;
-srslte_dci_location_t dci_location    = {};
+srsran_dci_location_t dci_location    = {};
 
-srslte_nbiot_cell_t cell = {.base       = {.nof_prb = 1, .nof_ports = 1, .cp = SRSLTE_CP_NORM, .id = 0},
+srsran_nbiot_cell_t cell = {.base       = {.nof_prb = 1, .nof_ports = 1, .cp = SRSRAN_CP_NORM, .id = 0},
                             .nbiot_prb  = 0,
                             .n_id_ncell = 0,
                             .nof_ports  = 1,
-                            .mode       = SRSLTE_NBIOT_MODE_STANDALONE};
+                            .mode       = SRSRAN_NBIOT_MODE_STANDALONE};
 
 void usage(char* prog)
 {
   printf("Usage: %s [cprndv] -i input_file\n", prog);
   printf("\t-c cell id [Default %d]\n", cell.base.id);
   printf("\t-p cell.nof_ports [Default %d]\n", cell.base.nof_ports);
-  printf("\t-o DCI Format [Default %s]\n", srslte_dci_format_string(dci_format));
+  printf("\t-o DCI Format [Default %s]\n", srsran_dci_format_string(dci_format));
   printf("\t-L DCI location L value [Default %d]\n", dci_location.L);
   printf("\t-l DCI location ncee value [Default %d]\n", dci_location.ncce);
   printf("\t-r rnti [Default %d]\n", rnti);
   printf("\t-t tti [Default %d]\n", tti);
-  printf("\t-v [set srslte_verbose to debug, default none]\n");
+  printf("\t-v [set srsran_verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char** argv)
@@ -82,9 +82,9 @@ void parse_args(int argc, char** argv)
         rnti = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'o':
-        dci_format = srslte_dci_format_from_string(argv[optind]);
-        if (dci_format == SRSLTE_DCI_NOF_FORMATS) {
-          ERROR("Error unsupported format %s\n", argv[optind]);
+        dci_format = srsran_dci_format_from_string(argv[optind]);
+        if (dci_format == SRSRAN_DCI_NOF_FORMATS) {
+          ERROR("Error unsupported format %s", argv[optind]);
           exit(-1);
         }
         break;
@@ -92,7 +92,7 @@ void parse_args(int argc, char** argv)
         tti = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
-        srslte_verbose++;
+        srsran_verbose++;
         break;
       default:
         usage(argv[0]);
@@ -107,13 +107,13 @@ void parse_args(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-  cf_t *                  input_buffer = NULL, *fft_buffer = NULL, *ce[SRSLTE_MAX_PORTS] = {NULL};
-  srslte_filesource_t     fsrc;
-  srslte_chest_dl_nbiot_t chest;
-  srslte_ofdm_t           fft;
-  srslte_npdcch_t         npdcch           = {};
-  srslte_dci_msg_t        dci_rx           = {};
-  int                     ret              = SRSLTE_ERROR;
+  cf_t *                  input_buffer = NULL, *fft_buffer = NULL, *ce[SRSRAN_MAX_PORTS] = {NULL};
+  srsran_filesource_t     fsrc;
+  srsran_chest_dl_nbiot_t chest;
+  srsran_ofdm_t           fft;
+  srsran_npdcch_t         npdcch           = {};
+  srsran_dci_msg_t        dci_rx           = {};
+  int                     ret              = SRSRAN_ERROR;
   int                     frame_cnt        = 0;
   int                     nof_decoded_dcis = 0;
   int                     nread            = 0;
@@ -121,11 +121,11 @@ int main(int argc, char** argv)
   parse_args(argc, argv);
 
   // we need to allocate RE's for a full 6 PRB cell
-  int nof_re = 6 * SRSLTE_SF_LEN_RE(cell.base.nof_prb, cell.base.cp);
+  int nof_re = 6 * SRSRAN_SF_LEN_RE(cell.base.nof_prb, cell.base.cp);
 
   // init memory
-  for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
-    ce[i] = srslte_vec_cf_malloc(nof_re);
+  for (int i = 0; i < SRSRAN_MAX_PORTS; i++) {
+    ce[i] = srsran_vec_cf_malloc(nof_re);
     if (!ce[i]) {
       perror("malloc");
       goto quit;
@@ -135,69 +135,69 @@ int main(int argc, char** argv)
     }
   }
 
-  if (srslte_filesource_init(&fsrc, input_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
+  if (srsran_filesource_init(&fsrc, input_file_name, SRSRAN_COMPLEX_FLOAT_BIN)) {
     fprintf(stderr, "Error opening file %s\n", input_file_name);
     goto quit;
   }
 
-  uint32_t sf_len = SRSLTE_SF_LEN(srslte_symbol_sz(cell.base.nof_prb));
+  uint32_t sf_len = SRSRAN_SF_LEN(srsran_symbol_sz(cell.base.nof_prb));
 
-  input_buffer = srslte_vec_cf_malloc(sf_len);
+  input_buffer = srsran_vec_cf_malloc(sf_len);
   if (!input_buffer) {
     perror("malloc");
     goto quit;
   }
 
-  fft_buffer = srslte_vec_cf_malloc(sf_len);
+  fft_buffer = srsran_vec_cf_malloc(sf_len);
   if (!fft_buffer) {
     perror("malloc");
     goto quit;
   }
 
-  if (srslte_chest_dl_nbiot_init(&chest, SRSLTE_NBIOT_MAX_PRB)) {
+  if (srsran_chest_dl_nbiot_init(&chest, SRSRAN_NBIOT_MAX_PRB)) {
     fprintf(stderr, "Error initializing equalizer\n");
     goto quit;
   }
-  if (srslte_chest_dl_nbiot_set_cell(&chest, cell) != SRSLTE_SUCCESS) {
+  if (srsran_chest_dl_nbiot_set_cell(&chest, cell) != SRSRAN_SUCCESS) {
     fprintf(stderr, "Error setting equalizer cell configuration\n");
     goto quit;
   }
 
-  if (srslte_ofdm_rx_init(&fft, cell.base.cp, input_buffer, fft_buffer, cell.base.nof_prb)) {
+  if (srsran_ofdm_rx_init(&fft, cell.base.cp, input_buffer, fft_buffer, cell.base.nof_prb)) {
     fprintf(stderr, "Error initializing FFT\n");
     goto quit;
   }
-  srslte_ofdm_set_freq_shift(&fft, SRSLTE_NBIOT_FREQ_SHIFT_FACTOR);
+  srsran_ofdm_set_freq_shift(&fft, SRSRAN_NBIOT_FREQ_SHIFT_FACTOR);
 
-  if (srslte_npdcch_init(&npdcch)) {
+  if (srsran_npdcch_init(&npdcch)) {
     fprintf(stderr, "Error creating NPDCCH object\n");
     goto quit;
   }
 
-  if (srslte_npdcch_set_cell(&npdcch, cell)) {
+  if (srsran_npdcch_set_cell(&npdcch, cell)) {
     fprintf(stderr, "Error configuring NPDCCH object\n");
     goto quit;
   }
 
   do {
-    nread = srslte_filesource_read(&fsrc, input_buffer, sf_len);
+    nread = srsran_filesource_read(&fsrc, input_buffer, sf_len);
 
     if (nread == sf_len) {
       // Run FFT and estimate channel
-      srslte_ofdm_rx_sf(&fft);
+      srsran_ofdm_rx_sf(&fft);
 
-      INFO("%d.%d: Estimating channel.\n", frame_cnt, tti % 10);
-      srslte_chest_dl_nbiot_estimate(&chest, fft_buffer, ce, tti % 10);
+      INFO("%d.%d: Estimating channel.", frame_cnt, tti % 10);
+      srsran_chest_dl_nbiot_estimate(&chest, fft_buffer, ce, tti % 10);
 
       // Extract LLR
-      float noise_est = srslte_chest_dl_nbiot_get_noise_estimate(&chest);
-      if (srslte_npdcch_extract_llr(&npdcch, fft_buffer, ce, noise_est, tti % 10)) {
+      float noise_est = srsran_chest_dl_nbiot_get_noise_estimate(&chest);
+      if (srsran_npdcch_extract_llr(&npdcch, fft_buffer, ce, noise_est, tti % 10)) {
         fprintf(stderr, "Error extracting LLRs\n");
         goto quit;
       }
 
       uint16_t crc_rem = 0;
-      if (srslte_npdcch_decode_msg(&npdcch, &dci_rx, &dci_location, dci_format, &crc_rem)) {
+      if (srsran_npdcch_decode_msg(&npdcch, &dci_rx, &dci_location, dci_format, &crc_rem)) {
         fprintf(stderr, "Error decoding DCI message\n");
         goto quit;
       }
@@ -205,20 +205,20 @@ int main(int argc, char** argv)
         printf("Received invalid DCI CRC 0x%x\n", crc_rem);
         goto quit;
       } else {
-        if (dci_format == SRSLTE_DCI_FORMATN0) {
+        if (dci_format == SRSRAN_DCI_FORMATN0) {
           // process as UL grant
-          srslte_ra_nbiot_ul_dci_t   dci_unpacked;
-          srslte_ra_nbiot_ul_grant_t grant;
+          srsran_ra_nbiot_ul_dci_t   dci_unpacked;
+          srsran_ra_nbiot_ul_grant_t grant;
           // Creates the UL NPUSCH resource allocation grant from a DCI format N0 message
-          if (srslte_nbiot_dci_msg_to_ul_grant(&dci_rx, &dci_unpacked, &grant, tti, SRSLTE_NPUSCH_SC_SPACING_15000)) {
+          if (srsran_nbiot_dci_msg_to_ul_grant(&dci_rx, &dci_unpacked, &grant, tti, SRSRAN_NPUSCH_SC_SPACING_15000)) {
             fprintf(stderr, "Error unpacking DCI\n");
             goto quit;
           }
         } else {
           // process as DL grant
-          srslte_ra_nbiot_dl_dci_t   dci_unpacked;
-          srslte_ra_nbiot_dl_grant_t grant;
-          if (srslte_nbiot_dci_msg_to_dl_grant(
+          srsran_ra_nbiot_dl_dci_t   dci_unpacked;
+          srsran_ra_nbiot_dl_grant_t grant;
+          if (srsran_nbiot_dci_msg_to_dl_grant(
                   &dci_rx, rnti, &dci_unpacked, &grant, tti / 10, tti % 10, 64 /* TODO: remove */, cell.mode)) {
             fprintf(stderr, "Error unpacking DCI\n");
             goto quit;
@@ -237,21 +237,21 @@ int main(int argc, char** argv)
   } while (nread > 0 && frame_cnt < nof_frames);
 
 quit:
-  srslte_npdcch_free(&npdcch);
-  srslte_filesource_free(&fsrc);
+  srsran_npdcch_free(&npdcch);
+  srsran_filesource_free(&fsrc);
   free(input_buffer);
   free(fft_buffer);
-  srslte_chest_dl_nbiot_free(&chest);
-  srslte_ofdm_rx_free(&fft);
+  srsran_chest_dl_nbiot_free(&chest);
+  srsran_ofdm_rx_free(&fft);
 
-  for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
+  for (int i = 0; i < SRSRAN_MAX_PORTS; i++) {
     if (ce[i]) {
       free(ce[i]);
     }
   }
   if (nof_decoded_dcis > 0) {
     printf("Ok\n");
-    ret = SRSLTE_SUCCESS;
+    ret = SRSRAN_SUCCESS;
   } else {
     printf("Error\n");
   }

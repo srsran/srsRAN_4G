@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -24,12 +24,12 @@
 #include <strings.h>
 #include <unistd.h>
 
-#include "srslte/phy/phch/pscch.h"
-#include "srslte/phy/phch/sci.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/phch/pscch.h"
+#include "srsran/phy/phch/sci.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/vector.h"
 
-srslte_cell_sl_t cell = {.nof_prb = 6, .N_sl_id = 168, .tm = SRSLTE_SIDELINK_TM2, .cp = SRSLTE_CP_NORM};
+srsran_cell_sl_t cell = {.nof_prb = 6, .N_sl_id = 168, .tm = SRSRAN_SIDELINK_TM2, .cp = SRSRAN_CP_NORM};
 
 uint32_t prb_start_idx = 0;
 
@@ -39,7 +39,7 @@ void usage(char* prog)
   printf("\t-p nof_prb [Default %d]\n", cell.nof_prb);
   printf("\t-c N_sl_id [Default %d]\n", cell.N_sl_id);
   printf("\t-t Sidelink transmission mode {1,2,3,4} [Default %d]\n", (cell.tm + 1));
-  printf("\t-v [set srslte_verbose to debug, default none]\n");
+  printf("\t-v [set srsran_verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char** argv)
@@ -56,16 +56,16 @@ void parse_args(int argc, char** argv)
       case 't':
         switch (strtol(argv[optind], NULL, 10)) {
           case 1:
-            cell.tm = SRSLTE_SIDELINK_TM1;
+            cell.tm = SRSRAN_SIDELINK_TM1;
             break;
           case 2:
-            cell.tm = SRSLTE_SIDELINK_TM2;
+            cell.tm = SRSRAN_SIDELINK_TM2;
             break;
           case 3:
-            cell.tm = SRSLTE_SIDELINK_TM3;
+            cell.tm = SRSRAN_SIDELINK_TM3;
             break;
           case 4:
-            cell.tm = SRSLTE_SIDELINK_TM4;
+            cell.tm = SRSRAN_SIDELINK_TM4;
             break;
           default:
             usage(argv[0]);
@@ -74,14 +74,14 @@ void parse_args(int argc, char** argv)
         }
         break;
       case 'v':
-        srslte_verbose++;
+        srsran_verbose++;
         break;
       default:
         usage(argv[0]);
         exit(-1);
     }
   }
-  if (cell.cp == SRSLTE_CP_EXT && cell.tm >= SRSLTE_SIDELINK_TM3) {
+  if (cell.cp == SRSRAN_CP_EXT && cell.tm >= SRSRAN_SIDELINK_TM3) {
     ERROR("Selected TM does not support extended CP");
     usage(argv[0]);
     exit(-1);
@@ -90,89 +90,89 @@ void parse_args(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-  int ret = SRSLTE_ERROR;
+  int ret = SRSRAN_ERROR;
 
   parse_args(argc, argv);
 
-  srslte_sl_comm_resource_pool_t sl_comm_resource_pool;
-  if (srslte_sl_comm_resource_pool_get_default_config(&sl_comm_resource_pool, cell) != SRSLTE_SUCCESS) {
-    ERROR("Error initializing sl_comm_resource_pool\n");
-    return SRSLTE_ERROR;
+  srsran_sl_comm_resource_pool_t sl_comm_resource_pool;
+  if (srsran_sl_comm_resource_pool_get_default_config(&sl_comm_resource_pool, cell) != SRSRAN_SUCCESS) {
+    ERROR("Error initializing sl_comm_resource_pool");
+    return SRSRAN_ERROR;
   }
 
-  char sci_msg[SRSLTE_SCI_MSG_MAX_LEN] = {};
+  char sci_msg[SRSRAN_SCI_MSG_MAX_LEN] = {};
 
-  uint32_t sf_n_re   = SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);
-  cf_t*    sf_buffer = srslte_vec_cf_malloc(sf_n_re);
+  uint32_t sf_n_re   = SRSRAN_SF_LEN_RE(cell.nof_prb, cell.cp);
+  cf_t*    sf_buffer = srsran_vec_cf_malloc(sf_n_re);
 
   // SCI
-  srslte_sci_t sci;
-  srslte_sci_init(&sci, cell, sl_comm_resource_pool);
+  srsran_sci_t sci;
+  srsran_sci_init(&sci, cell, sl_comm_resource_pool);
   sci.mcs_idx = 2;
 
   // PSCCH
-  srslte_pscch_t pscch;
-  if (srslte_pscch_init(&pscch, SRSLTE_MAX_PRB) != SRSLTE_SUCCESS) {
-    ERROR("Error in PSCCH init\n");
-    return SRSLTE_ERROR;
+  srsran_pscch_t pscch;
+  if (srsran_pscch_init(&pscch, SRSRAN_MAX_PRB) != SRSRAN_SUCCESS) {
+    ERROR("Error in PSCCH init");
+    return SRSRAN_ERROR;
   }
 
-  if (srslte_pscch_set_cell(&pscch, cell) != SRSLTE_SUCCESS) {
-    ERROR("Error in PSCCH init\n");
-    return SRSLTE_ERROR;
+  if (srsran_pscch_set_cell(&pscch, cell) != SRSRAN_SUCCESS) {
+    ERROR("Error in PSCCH init");
+    return SRSRAN_ERROR;
   }
 
   // SCI message bits
-  uint8_t sci_tx[SRSLTE_SCI_MAX_LEN] = {};
-  if (sci.format == SRSLTE_SCI_FORMAT0) {
-    if (srslte_sci_format0_pack(&sci, sci_tx) != SRSLTE_SUCCESS) {
+  uint8_t sci_tx[SRSRAN_SCI_MAX_LEN] = {};
+  if (sci.format == SRSRAN_SCI_FORMAT0) {
+    if (srsran_sci_format0_pack(&sci, sci_tx) != SRSRAN_SUCCESS) {
       printf("Error packing sci format 0\n");
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
-  } else if (sci.format == SRSLTE_SCI_FORMAT1) {
-    if (srslte_sci_format1_pack(&sci, sci_tx) != SRSLTE_SUCCESS) {
+  } else if (sci.format == SRSRAN_SCI_FORMAT1) {
+    if (srsran_sci_format1_pack(&sci, sci_tx) != SRSRAN_SUCCESS) {
       printf("Error packing sci format 1\n");
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
   }
 
   printf("Tx payload: ");
-  srslte_vec_fprint_hex(stdout, sci_tx, sci.sci_len);
+  srsran_vec_fprint_hex(stdout, sci_tx, sci.sci_len);
 
   // Put SCI into PSCCH
-  srslte_pscch_encode(&pscch, sci_tx, sf_buffer, prb_start_idx);
+  srsran_pscch_encode(&pscch, sci_tx, sf_buffer, prb_start_idx);
 
   // Prepare Rx buffer
-  uint8_t sci_rx[SRSLTE_SCI_MAX_LEN] = {};
+  uint8_t sci_rx[SRSRAN_SCI_MAX_LEN] = {};
 
   // Decode PSCCH
-  if (srslte_pscch_decode(&pscch, sf_buffer, sci_rx, prb_start_idx) == SRSLTE_SUCCESS) {
+  if (srsran_pscch_decode(&pscch, sf_buffer, sci_rx, prb_start_idx) == SRSRAN_SUCCESS) {
     printf("Rx payload: ");
-    srslte_vec_fprint_hex(stdout, sci_rx, sci.sci_len);
+    srsran_vec_fprint_hex(stdout, sci_rx, sci.sci_len);
 
     uint32_t riv_txed = sci.riv;
-    if (sci.format == SRSLTE_SCI_FORMAT0) {
-      if (srslte_sci_format0_unpack(&sci, sci_rx) != SRSLTE_SUCCESS) {
+    if (sci.format == SRSRAN_SCI_FORMAT0) {
+      if (srsran_sci_format0_unpack(&sci, sci_rx) != SRSRAN_SUCCESS) {
         printf("Error unpacking sci format 0\n");
-        return SRSLTE_ERROR;
+        return SRSRAN_ERROR;
       }
-    } else if (sci.format == SRSLTE_SCI_FORMAT1) {
-      if (srslte_sci_format1_unpack(&sci, sci_rx) != SRSLTE_SUCCESS) {
+    } else if (sci.format == SRSRAN_SCI_FORMAT1) {
+      if (srsran_sci_format1_unpack(&sci, sci_rx) != SRSRAN_SUCCESS) {
         printf("Error unpacking sci format 1\n");
-        return SRSLTE_ERROR;
+        return SRSRAN_ERROR;
       }
     }
 
-    srslte_sci_info(&sci, sci_msg, sizeof(sci_msg));
+    srsran_sci_info(&sci, sci_msg, sizeof(sci_msg));
     fprintf(stdout, "%s", sci_msg);
     if (sci.riv == riv_txed) {
-      ret = SRSLTE_SUCCESS;
+      ret = SRSRAN_SUCCESS;
     }
   }
 
   free(sf_buffer);
-  srslte_sci_free(&sci);
-  srslte_pscch_free(&pscch);
+  srsran_sci_free(&sci);
+  srsran_pscch_free(&pscch);
 
   return ret;
 }

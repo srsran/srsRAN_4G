@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -25,7 +25,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#include "srslte/srslte.h"
+#include "srsran/srsran.h"
 
 char* input_file_name;
 char* output_file_name = "abs_corr.txt";
@@ -47,7 +47,7 @@ void usage(char* prog)
   printf("\t-N out_N_id_2 [Default %d]\n", out_N_id_2);
   printf("\t-f force_N_id_2 [Default %d]\n", force_N_id_2);
   printf("\t-c force_cfo [Default disabled]\n");
-  printf("\t-v srslte_verbose\n");
+  printf("\t-v srsran_verbose\n");
 }
 
 void parse_args(int argc, char** argv)
@@ -83,7 +83,7 @@ void parse_args(int argc, char** argv)
         force_cfo = strtof(argv[optind], NULL);
         break;
       case 'v':
-        srslte_verbose++;
+        srsran_verbose++;
         break;
       default:
         usage(argv[0]);
@@ -98,11 +98,11 @@ void parse_args(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-  srslte_filesource_t fsrc;
-  srslte_filesink_t   fsink;
-  srslte_pss_t        pss[3]; // One for each N_id_2
-  srslte_sss_t        sss[3]; // One for each N_id_2
-  srslte_cfo_t        cfocorr;
+  srsran_filesource_t fsrc;
+  srsran_filesink_t   fsink;
+  srsran_pss_t        pss[3]; // One for each N_id_2
+  srsran_sss_t        sss[3]; // One for each N_id_2
+  srsran_cfo_t        cfocorr;
   int                 peak_pos[3];
   float*              cfo;
   float               peak_value[3];
@@ -126,33 +126,33 @@ int main(int argc, char** argv)
   printf("Initializing...");
   fflush(stdout);
 
-  if (srslte_filesource_init(&fsrc, input_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
-    ERROR("Error opening file %s\n", input_file_name);
+  if (srsran_filesource_init(&fsrc, input_file_name, SRSRAN_COMPLEX_FLOAT_BIN)) {
+    ERROR("Error opening file %s", input_file_name);
     exit(-1);
   }
-  if (srslte_filesink_init(&fsink, output_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
-    ERROR("Error opening file %s\n", output_file_name);
+  if (srsran_filesink_init(&fsink, output_file_name, SRSRAN_COMPLEX_FLOAT_BIN)) {
+    ERROR("Error opening file %s", output_file_name);
     exit(-1);
   }
 
-  input = srslte_vec_cf_malloc(frame_length);
+  input = srsran_vec_cf_malloc(frame_length);
   if (!input) {
     perror("malloc");
     exit(-1);
   }
-  cfo = srslte_vec_f_malloc(nof_frames);
+  cfo = srsran_vec_f_malloc(nof_frames);
   if (!cfo) {
     perror("malloc");
     exit(-1);
   }
-  exec_time = srslte_vec_i32_malloc(nof_frames);
+  exec_time = srsran_vec_i32_malloc(nof_frames);
   if (!exec_time) {
     perror("malloc");
     exit(-1);
   }
 
-  if (srslte_cfo_init(&cfocorr, frame_length)) {
-    ERROR("Error initiating CFO\n");
+  if (srsran_cfo_init(&cfocorr, frame_length)) {
+    ERROR("Error initiating CFO");
     return -1;
   }
 
@@ -162,20 +162,20 @@ int main(int argc, char** argv)
    * a) requries more memory but has less latency and is paralellizable.
    */
   for (N_id_2 = 0; N_id_2 < 3; N_id_2++) {
-    if (srslte_pss_init_fft(&pss[N_id_2], frame_length, symbol_sz)) {
-      ERROR("Error initializing PSS object\n");
+    if (srsran_pss_init_fft(&pss[N_id_2], frame_length, symbol_sz)) {
+      ERROR("Error initializing PSS object");
       exit(-1);
     }
-    if (srslte_pss_set_N_id_2(&pss[N_id_2], N_id_2)) {
-      ERROR("Error initializing N_id_2\n");
+    if (srsran_pss_set_N_id_2(&pss[N_id_2], N_id_2)) {
+      ERROR("Error initializing N_id_2");
       exit(-1);
     }
-    if (srslte_sss_init(&sss[N_id_2], symbol_sz)) {
-      ERROR("Error initializing SSS object\n");
+    if (srsran_sss_init(&sss[N_id_2], symbol_sz)) {
+      ERROR("Error initializing SSS object");
       exit(-1);
     }
-    if (srslte_sss_set_N_id_2(&sss[N_id_2], N_id_2)) {
-      ERROR("Error initializing N_id_2\n");
+    if (srsran_sss_set_N_id_2(&sss[N_id_2], N_id_2)) {
+      ERROR("Error initializing N_id_2");
       exit(-1);
     }
   }
@@ -188,19 +188,18 @@ int main(int argc, char** argv)
 
   /* read all file or nof_frames */
   frame_cnt = 0;
-  while (frame_length == srslte_filesource_read(&fsrc, input, frame_length) && frame_cnt < nof_frames) {
-
+  while (frame_length == srsran_filesource_read(&fsrc, input, frame_length) && frame_cnt < nof_frames) {
     gettimeofday(&tdata[1], NULL);
     if (force_cfo != CFO_AUTO) {
-      srslte_cfo_correct(&cfocorr, input, input, force_cfo / 128);
+      srsran_cfo_correct(&cfocorr, input, input, force_cfo / 128);
     }
 
     if (force_N_id_2 != -1) {
       N_id_2           = force_N_id_2;
-      peak_pos[N_id_2] = srslte_pss_find_pss(&pss[N_id_2], input, &peak_value[N_id_2]);
+      peak_pos[N_id_2] = srsran_pss_find_pss(&pss[N_id_2], input, &peak_value[N_id_2]);
     } else {
       for (N_id_2 = 0; N_id_2 < 3; N_id_2++) {
-        peak_pos[N_id_2] = srslte_pss_find_pss(&pss[N_id_2], input, &peak_value[N_id_2]);
+        peak_pos[N_id_2] = srsran_pss_find_pss(&pss[N_id_2], input, &peak_value[N_id_2]);
       }
       float max_value = -99999;
       N_id_2          = -1;
@@ -215,17 +214,16 @@ int main(int argc, char** argv)
 
     /* If peak detected */
     if (peak_value[N_id_2] > corr_peak_threshold) {
-
-      sss_idx = peak_pos[N_id_2] - 2 * (symbol_sz + SRSLTE_CP_LEN(symbol_sz, SRSLTE_CP_NORM_LEN));
+      sss_idx = peak_pos[N_id_2] - 2 * (symbol_sz + SRSRAN_CP_LEN(symbol_sz, SRSRAN_CP_NORM_LEN));
       if (sss_idx >= 0) {
-        srslte_sss_m0m1_diff(&sss[N_id_2], &input[sss_idx], &m0, &m0_value, &m1, &m1_value);
+        srsran_sss_m0m1_diff(&sss[N_id_2], &input[sss_idx], &m0, &m0_value, &m1, &m1_value);
 
-        cfo[frame_cnt] = srslte_pss_cfo_compute(&pss[N_id_2], &input[peak_pos[N_id_2] - 128]);
+        cfo[frame_cnt] = srsran_pss_cfo_compute(&pss[N_id_2], &input[peak_pos[N_id_2] - 128]);
         printf("\t%d\t%d\t%d\t%d\t%.3f\t\t%3d\t%d\t%d\t%.3f\n",
                frame_cnt,
                N_id_2,
-               srslte_sss_N_id_1(&sss[N_id_2], m0, m1, m1_value + m0_value),
-               srslte_sss_subframe(m0, m1),
+               srsran_sss_N_id_1(&sss[N_id_2], m0, m1, m1_value + m0_value),
+               srsran_sss_subframe(m0, m1),
                peak_value[N_id_2],
                peak_pos[N_id_2],
                m0,
@@ -258,12 +256,12 @@ int main(int argc, char** argv)
   printf("Average CFO: %.3f\n", cfo_mean);
 
   for (N_id_2 = 0; N_id_2 < 3; N_id_2++) {
-    srslte_pss_free(&pss[N_id_2]);
-    srslte_sss_free(&sss[N_id_2]);
+    srsran_pss_free(&pss[N_id_2]);
+    srsran_sss_free(&sss[N_id_2]);
   }
 
-  srslte_filesource_free(&fsrc);
-  srslte_filesink_free(&fsink);
+  srsran_filesource_free(&fsrc);
+  srsran_filesink_free(&fsink);
 
   free(input);
   free(cfo);

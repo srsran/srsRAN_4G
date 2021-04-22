@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,8 +19,7 @@
  *
  */
 
-#include "srslte/common/log_filter.h"
-#include "srslte/upper/rlc.h"
+#include "srsran/upper/rlc.h"
 #include <iostream>
 
 #define TESTASSERT(cond)                                                                                               \
@@ -34,7 +33,7 @@
 #define MAX_NBUFS 100
 #define NBUFS 5
 
-using namespace srslte;
+using namespace srsran;
 
 class rlc_tester : public srsue::pdcp_interface_rlc, public srsue::rrc_interface_rlc
 {
@@ -55,14 +54,16 @@ public:
     }
     sdus[n_sdus++] = std::move(sdu);
   }
+  void notify_delivery(uint32_t lcid, const srsran::pdcp_sn_vector_t& pdcp_sn) {}
+  void notify_failure(uint32_t lcid, const srsran::pdcp_sn_vector_t& pdcp_sn) {}
   void write_pdu_bcch_bch(unique_byte_buffer_t sdu) {}
   void write_pdu_bcch_dlsch(unique_byte_buffer_t sdu) {}
   void write_pdu_pcch(unique_byte_buffer_t sdu) {}
-  void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu) { sdus[n_sdus++] = std::move(sdu); }
+  void write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t sdu) { sdus[n_sdus++] = std::move(sdu); }
 
   // RRC interface
   void        max_retx_attempted() {}
-  std::string get_rb_name(uint32_t lcid) { return std::string("TestRB"); }
+  const char* get_rb_name(uint32_t lcid) { return "TestRB"; }
   void        set_expected_sdu_len(uint32_t len) { expected_sdu_len = len; }
 
   unique_byte_buffer_t sdus[MAX_NBUFS];
@@ -72,19 +73,20 @@ public:
 
 int meas_obj_test()
 {
-  srslte::log_ref log1("RLC_1");
-  srslte::log_ref log2("RLC_2");
-  log1->set_level(srslte::LOG_LEVEL_DEBUG);
-  log2->set_level(srslte::LOG_LEVEL_DEBUG);
-  log1->set_hex_limit(-1);
-  log2->set_hex_limit(-1);
+  auto& logger_rlc1 = srslog::fetch_basic_logger("RLC_1", false);
+  logger_rlc1.set_level(srslog::basic_levels::debug);
+  logger_rlc1.set_hex_dump_max_size(-1);
+  auto& logger_rlc2 = srslog::fetch_basic_logger("RLC_2", false);
+  logger_rlc2.set_level(srslog::basic_levels::debug);
+  logger_rlc2.set_hex_dump_max_size(-1);
+
   rlc_tester            tester;
-  srslte::timer_handler timers(1);
+  srsran::timer_handler timers(1);
 
   int len = 0;
 
-  rlc rlc1(log1->get_service_name().c_str());
-  rlc rlc2(log2->get_service_name().c_str());
+  rlc rlc1(logger_rlc1.id().c_str());
+  rlc rlc2(logger_rlc2.id().c_str());
 
   rlc1.init(&tester, &tester, &timers, 0);
   rlc2.init(&tester, &tester, &timers, 0);
@@ -109,7 +111,7 @@ int meas_obj_test()
 
   // Push 5 SDUs into RLC1
   for (int i = 0; i < NBUFS; i++) {
-    sdu_bufs[i]          = srslte::allocate_unique_buffer(*pool, true);
+    sdu_bufs[i]          = srsran::make_byte_buffer();
     *sdu_bufs[i]->msg    = i; // Write the index into the buffer
     sdu_bufs[i]->N_bytes = 1; // Give each buffer a size of 1 byte
     rlc1.write_sdu(lcid, std::move(sdu_bufs[i]));
@@ -124,7 +126,7 @@ int meas_obj_test()
 
   // Push again 5 SDUs, SN should start from 0
   for (int i = 0; i < NBUFS; i++) {
-    sdu_bufs[i]          = srslte::allocate_unique_buffer(*pool, true);
+    sdu_bufs[i]          = srsran::make_byte_buffer();
     *sdu_bufs[i]->msg    = i; // Write the index into the buffer
     sdu_bufs[i]->N_bytes = 1; // Give each buffer a size of 1 byte
     rlc1.write_sdu(lcid, std::move(sdu_bufs[i]));
@@ -203,6 +205,8 @@ int meas_obj_test()
 
 int main(int argc, char** argv)
 {
+  srslog::init();
+
   if (meas_obj_test()) {
     return -1;
   }

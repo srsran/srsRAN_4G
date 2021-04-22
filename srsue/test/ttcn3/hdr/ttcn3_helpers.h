@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -29,8 +29,8 @@
 
 #include "rapidjson/document.h"     // rapidjson's DOM-style API
 #include "rapidjson/prettywriter.h" // for stringify JSON
-#include "srslte/asn1/asn1_utils.h"
-#include "srslte/common/common.h"
+#include "srsran/asn1/asn1_utils.h"
+#include "srsran/common/byte_buffer.h"
 #include <algorithm>
 #include <assert.h>
 #include <bitset>
@@ -40,7 +40,7 @@
 
 using namespace std;
 using namespace rapidjson;
-using namespace srslte;
+using namespace srsran;
 
 class ttcn3_helpers
 {
@@ -390,7 +390,6 @@ public:
         document["Common"]["TimingInfo"].HasMember("SubFrame") &&
         document["Common"]["TimingInfo"]["SubFrame"].HasMember("SFN") &&
         document["Common"]["TimingInfo"]["SubFrame"]["SFN"].HasMember("Number")) {
-
       timing.tti = document["Common"]["TimingInfo"]["SubFrame"]["SFN"]["Number"].GetInt() * 10;
 
       // check SF index only
@@ -418,7 +417,7 @@ public:
   }
 
   static std::string
-  get_rrc_pdu_ind_for_pdu(uint32_t tti, uint32_t lcid, const std::string cell_, srslte::unique_byte_buffer_t pdubuf)
+  get_rrc_pdu_ind_for_pdu(uint32_t tti, uint32_t lcid, const std::string cell_, srsran::unique_byte_buffer_t pdubuf)
   {
     Document resp;
     resp.SetObject();
@@ -489,7 +488,7 @@ public:
   }
 
   static std::string
-  get_drb_common_ind_for_pdu(uint32_t tti, uint32_t lcid, const std::string cell_, srslte::unique_byte_buffer_t drbpdu)
+  get_drb_common_ind_for_pdu(uint32_t tti, uint32_t lcid, const std::string cell_, srsran::unique_byte_buffer_t drbpdu)
   {
     Document resp;
     resp.SetObject();

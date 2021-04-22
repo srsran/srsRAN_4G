@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -20,14 +20,13 @@
  */
 
 #include "rlc_test_common.h"
-#include "srslte/common/log_filter.h"
-#include "srslte/config.h"
-#include "srslte/upper/rlc.h"
-#include "srslte/upper/rlc_um_nr.h"
+#include "srsran/config.h"
+#include "srsran/interfaces/ue_pdcp_interfaces.h"
+#include "srsran/upper/rlc.h"
+#include "srsran/upper/rlc_um_nr.h"
 
 #include <array>
 #include <iostream>
-#include <memory>
 #include <vector>
 
 #define TESTASSERT(cond)                                                                                               \
@@ -42,12 +41,12 @@
 #define PCAP_CRNTI (0x1001)
 #define PCAP_TTI (666)
 
-using namespace srslte;
+using namespace srsran;
 
 #if PCAP
-#include "srslte/common/mac_nr_pcap.h"
-#include "srslte/mac/mac_nr_pdu.h"
-static std::unique_ptr<srslte::mac_nr_pcap> pcap_handle = nullptr;
+#include "srsran/common/mac_nr_pcap.h"
+#include "srsran/mac/mac_nr_pdu.h"
+static std::unique_ptr<srsran::mac_nr_pcap> pcap_handle = nullptr;
 #endif
 
 int write_pdu_to_pcap(const uint32_t lcid, const uint8_t* payload, const uint32_t len)
@@ -55,21 +54,21 @@ int write_pdu_to_pcap(const uint32_t lcid, const uint8_t* payload, const uint32_
 #if PCAP
   if (pcap_handle) {
     byte_buffer_t          tx_buffer;
-    srslte::mac_nr_sch_pdu tx_pdu;
+    srsran::mac_nr_sch_pdu tx_pdu;
     tx_pdu.init_tx(&tx_buffer, len + 10);
     tx_pdu.add_sdu(lcid, payload, len);
     tx_pdu.pack();
     pcap_handle->write_dl_crnti(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 #endif
-  return SRSLTE_ERROR;
+  return SRSRAN_ERROR;
 }
 
 template <std::size_t N>
-srslte::byte_buffer_t make_pdu_and_log(const std::array<uint8_t, N>& tv)
+srsran::byte_buffer_t make_pdu_and_log(const std::array<uint8_t, N>& tv)
 {
-  srslte::byte_buffer_t pdu;
+  srsran::byte_buffer_t pdu;
   memcpy(pdu.msg, tv.data(), tv.size());
   pdu.N_bytes = tv.size();
   write_pdu_to_pcap(4, tv.data(), tv.size());
@@ -81,17 +80,17 @@ class rlc_um_nr_test_context1
 {
 public:
   rlc_um_nr_test_context1() :
-    log1("RLC_UM_1"),
-    log2("RLC_UM_2"),
+    logger1(srslog::fetch_basic_logger("RLC_UM_1", false)),
+    logger2(srslog::fetch_basic_logger("RLC_UM_2", false)),
     timers(16),
-    rlc1(log1, 3, &tester, &tester, &timers),
-    rlc2(log2, 3, &tester, &tester, &timers)
+    rlc1(logger1, 3, &tester, &tester, &timers),
+    rlc2(logger2, 3, &tester, &tester, &timers)
   {
     // setup logging
-    log1->set_level(srslte::LOG_LEVEL_DEBUG);
-    log2->set_level(srslte::LOG_LEVEL_DEBUG);
-    log1->set_hex_limit(-1);
-    log2->set_hex_limit(-1);
+    logger1.set_level(srslog::basic_levels::debug);
+    logger1.set_hex_dump_max_size(-1);
+    logger2.set_level(srslog::basic_levels::debug);
+    logger2.set_hex_dump_max_size(-1);
 
     // configure RLC entities
     rlc_config_t cnfg = rlc_config_t::default_rlc_um_nr_config(6);
@@ -105,8 +104,9 @@ public:
     tester.set_expected_sdu_len(1);
   }
 
-  srslte::log_ref       log1, log2;
-  srslte::timer_handler timers;
+  srslog::basic_logger& logger1;
+  srslog::basic_logger& logger2;
+  srsran::timer_handler timers;
   rlc_um_tester         tester;
   rlc_um_nr             rlc1, rlc2;
 };
@@ -122,7 +122,7 @@ int rlc_um_nr_test1()
   byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[num_sdus];
   for (uint32_t i = 0; i < num_sdus; i++) {
-    sdu_bufs[i]          = srslte::allocate_unique_buffer(*pool, true);
+    sdu_bufs[i]          = srsran::make_byte_buffer();
     *sdu_bufs[i]->msg    = i; // Write the index into the buffer
     sdu_bufs[i]->N_bytes = 1; // Give each buffer a size of 1 byte
     ctxt.rlc1.write_sdu(std::move(sdu_bufs[i]));
@@ -133,7 +133,7 @@ int rlc_um_nr_test1()
   // Read 5 PDUs from RLC1 (1 byte each)
   unique_byte_buffer_t pdu_bufs[num_pdus];
   for (uint32_t i = 0; i < num_pdus; i++) {
-    pdu_bufs[i]          = srslte::allocate_unique_buffer(*pool, true);
+    pdu_bufs[i]          = srsran::make_byte_buffer();
     int len              = ctxt.rlc1.read_pdu(pdu_bufs[i]->msg, 4); // 3 bytes for header + payload
     pdu_bufs[i]->N_bytes = len;
 
@@ -156,7 +156,7 @@ int rlc_um_nr_test1()
     TESTASSERT(*(ctxt.tester.sdus[i]->msg) == i);
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // Basic test for SDU segmentation
@@ -173,7 +173,7 @@ int rlc_um_nr_test2(bool reverse_rx = false)
   byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[num_sdus];
   for (uint32_t i = 0; i < num_sdus; i++) {
-    sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
+    sdu_bufs[i] = srsran::make_byte_buffer();
     // Write the index into the buffer
     for (uint32_t k = 0; k < sdu_size; ++k) {
       sdu_bufs[i]->msg[k] = i;
@@ -187,11 +187,11 @@ int rlc_um_nr_test2(bool reverse_rx = false)
 
   // Read PDUs from RLC1 with grant of 25 Bytes each
   const uint32_t       max_num_pdus = 10;
-  uint32               num_pdus     = 0;
+  uint32_t             num_pdus     = 0;
   unique_byte_buffer_t pdu_bufs[max_num_pdus];
 
   while (ctxt.rlc1.get_buffer_state() != 0 && num_pdus < max_num_pdus) {
-    pdu_bufs[num_pdus]          = srslte::allocate_unique_buffer(*pool, true);
+    pdu_bufs[num_pdus]          = srsran::make_byte_buffer();
     int len                     = ctxt.rlc1.read_pdu(pdu_bufs[num_pdus]->msg, 25); // 3 bytes for header + payload
     pdu_bufs[num_pdus]->N_bytes = len;
 
@@ -224,7 +224,7 @@ int rlc_um_nr_test2(bool reverse_rx = false)
     TESTASSERT(*(ctxt.tester.sdus[i]->msg) == i);
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // Test reception of segmented RLC PDUs (two different SDUs with same PDU segmentation)
@@ -241,7 +241,7 @@ int rlc_um_nr_test4()
   byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[num_sdus];
   for (uint32_t i = 0; i < num_sdus; i++) {
-    sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
+    sdu_bufs[i] = srsran::make_byte_buffer();
     // Write the index into the buffer
     for (uint32_t k = 0; k < sdu_size; ++k) {
       sdu_bufs[i]->msg[k] = i;
@@ -256,11 +256,11 @@ int rlc_um_nr_test4()
 
   // Read PDUs from RLC1 with grant of 25 Bytes each
   const uint32_t       max_num_pdus = 20;
-  uint32               num_pdus     = 0;
+  uint32_t             num_pdus     = 0;
   unique_byte_buffer_t pdu_bufs[max_num_pdus];
 
   while (ctxt.rlc1.get_buffer_state() != 0 && num_pdus < max_num_pdus) {
-    pdu_bufs[num_pdus]          = srslte::allocate_unique_buffer(*pool, true);
+    pdu_bufs[num_pdus]          = srsran::make_byte_buffer();
     int len                     = ctxt.rlc1.read_pdu(pdu_bufs[num_pdus]->msg, 25); // 3 bytes for header + payload
     pdu_bufs[num_pdus]->N_bytes = len;
     num_pdus++;
@@ -300,7 +300,7 @@ int rlc_um_nr_test4()
     }
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // Handling of re-transmitted segments (e.g. after PHY retransmission)
@@ -317,7 +317,7 @@ int rlc_um_nr_test5(const uint32_t last_sn)
   byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[num_sdus];
   for (uint32_t i = 0; i < num_sdus; i++) {
-    sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
+    sdu_bufs[i] = srsran::make_byte_buffer();
     // Write the index into the buffer
     for (uint32_t k = 0; k < sdu_size; ++k) {
       sdu_bufs[i]->msg[k] = i;
@@ -331,11 +331,11 @@ int rlc_um_nr_test5(const uint32_t last_sn)
 
   // Read PDUs from RLC1 with grant of 25 Bytes each
   const uint32_t       max_num_pdus = 10;
-  uint32               num_pdus     = 0;
+  uint32_t             num_pdus     = 0;
   unique_byte_buffer_t pdu_bufs[max_num_pdus];
 
   while (ctxt.rlc1.get_buffer_state() != 0 && num_pdus < max_num_pdus) {
-    pdu_bufs[num_pdus]          = srslte::allocate_unique_buffer(*pool, true);
+    pdu_bufs[num_pdus]          = srsran::make_byte_buffer();
     int len                     = ctxt.rlc1.read_pdu(pdu_bufs[num_pdus]->msg, 25); // 3 bytes for header + payload
     pdu_bufs[num_pdus]->N_bytes = len;
 
@@ -367,7 +367,7 @@ int rlc_um_nr_test5(const uint32_t last_sn)
     TESTASSERT(*(ctxt.tester.sdus[i]->msg) == i);
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // Test of wrap-around of reassembly window
@@ -384,7 +384,7 @@ int rlc_um_nr_test6()
   byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[num_sdus];
   for (uint32_t i = 0; i < num_sdus; i++) {
-    sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
+    sdu_bufs[i] = srsran::make_byte_buffer();
     // Write the index into the buffer
     for (uint32_t k = 0; k < sdu_size; ++k) {
       sdu_bufs[i]->msg[k] = i;
@@ -398,11 +398,11 @@ int rlc_um_nr_test6()
 
   // Read PDUs from RLC1 with grant of 8 Bytes each
   const uint32_t       max_num_pdus = num_sdus * 2; // we need 2 PDUs for each SDU
-  uint32               num_pdus     = 0;
+  uint32_t             num_pdus     = 0;
   unique_byte_buffer_t pdu_bufs[max_num_pdus];
 
   while (ctxt.rlc1.get_buffer_state() != 0 && num_pdus < max_num_pdus) {
-    pdu_bufs[num_pdus]          = srslte::allocate_unique_buffer(*pool, true);
+    pdu_bufs[num_pdus]          = srsran::make_byte_buffer();
     int len                     = ctxt.rlc1.read_pdu(pdu_bufs[num_pdus]->msg, 8); // 3 bytes for header + payload
     pdu_bufs[num_pdus]->N_bytes = len;
 
@@ -427,7 +427,7 @@ int rlc_um_nr_test6()
     TESTASSERT(*(ctxt.tester.sdus[i]->msg) == i);
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // Segment loss received too many new PDUs (lost PDU outside of reassembly window)
@@ -444,7 +444,7 @@ int rlc_um_nr_test7()
   byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[num_sdus];
   for (uint32_t i = 0; i < num_sdus; i++) {
-    sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
+    sdu_bufs[i] = srsran::make_byte_buffer();
     // Write the index into the buffer
     for (uint32_t k = 0; k < sdu_size; ++k) {
       sdu_bufs[i]->msg[k] = i;
@@ -458,11 +458,11 @@ int rlc_um_nr_test7()
 
   // Read PDUs from RLC1 with grant of 8 Bytes each
   const uint32_t       max_num_pdus = num_sdus * 2; // we need 2 PDUs for each SDU
-  uint32               num_pdus     = 0;
+  uint32_t             num_pdus     = 0;
   unique_byte_buffer_t pdu_bufs[max_num_pdus];
 
   while (ctxt.rlc1.get_buffer_state() != 0 && num_pdus < max_num_pdus) {
-    pdu_bufs[num_pdus]          = srslte::allocate_unique_buffer(*pool, true);
+    pdu_bufs[num_pdus]          = srsran::make_byte_buffer();
     int len                     = ctxt.rlc1.read_pdu(pdu_bufs[num_pdus]->msg, 8); // 3 bytes for header + payload
     pdu_bufs[num_pdus]->N_bytes = len;
 
@@ -491,7 +491,7 @@ int rlc_um_nr_test7()
   rlc_bearer_metrics_t rlc2_metrics = ctxt.rlc2.get_metrics();
   TESTASSERT(rlc2_metrics.num_lost_pdus == 1);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // Segment loss and expiry of reassembly timer
@@ -508,7 +508,7 @@ int rlc_um_nr_test8()
   byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[num_sdus];
   for (uint32_t i = 0; i < num_sdus; i++) {
-    sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
+    sdu_bufs[i] = srsran::make_byte_buffer();
     // Write the index into the buffer
     for (uint32_t k = 0; k < sdu_size; ++k) {
       sdu_bufs[i]->msg[k] = i;
@@ -522,11 +522,11 @@ int rlc_um_nr_test8()
 
   // Read PDUs from RLC1 with grant of 8 Bytes each
   const uint32_t       max_num_pdus = 20 * 2; // we need 2 PDUs for each SDU
-  uint32               num_pdus     = 0;
+  uint32_t             num_pdus     = 0;
   unique_byte_buffer_t pdu_bufs[max_num_pdus];
 
   while (ctxt.rlc1.get_buffer_state() != 0 && num_pdus < max_num_pdus) {
-    pdu_bufs[num_pdus]          = srslte::allocate_unique_buffer(*pool, true);
+    pdu_bufs[num_pdus]          = srsran::make_byte_buffer();
     int len                     = ctxt.rlc1.read_pdu(pdu_bufs[num_pdus]->msg, 8); // 3 bytes for header + payload
     pdu_bufs[num_pdus]->N_bytes = len;
 
@@ -560,60 +560,60 @@ int rlc_um_nr_test8()
   rlc_bearer_metrics_t rlc2_metrics = ctxt.rlc2.get_metrics();
   TESTASSERT(rlc2_metrics.num_lost_pdus == 1);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int main(int argc, char** argv)
 {
 #if PCAP
-  pcap_handle = std::unique_ptr<srslte::mac_nr_pcap>(new srslte::mac_nr_pcap());
+  pcap_handle = std::unique_ptr<srsran::mac_nr_pcap>(new srsran::mac_nr_pcap());
   pcap_handle->open("rlc_um_nr_test.pcap");
 #endif
 
+  srslog::init();
+
   if (rlc_um_nr_test1()) {
     fprintf(stderr, "rlc_um_nr_test1() failed.\n");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   if (rlc_um_nr_test2()) {
     fprintf(stderr, "rlc_um_nr_test2() failed.\n");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // same like above but PDUs delivered in reverse order
   if (rlc_um_nr_test2(true)) {
     fprintf(stderr, "rlc_um_nr_test2(true) failed.\n");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   if (rlc_um_nr_test4()) {
     fprintf(stderr, "rlc_um_nr_test4() failed.\n");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   for (uint32_t i = 0; i < 5; ++i) {
     if (rlc_um_nr_test5(i)) {
       fprintf(stderr, "rlc_um_nr_test5() for i=%d failed.\n", i);
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
   }
 
   if (rlc_um_nr_test6()) {
     fprintf(stderr, "rlc_um_nr_test6() failed.\n");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   if (rlc_um_nr_test7()) {
     fprintf(stderr, "rlc_um_nr_test7() failed.\n");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   if (rlc_um_nr_test8()) {
     fprintf(stderr, "rlc_um_nr_test8() failed.\n");
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
-  byte_buffer_pool::get_instance()->cleanup();
-
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }

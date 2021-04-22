@@ -1,18 +1,18 @@
 #!/bin/bash
 
 #
-# Copyright 2013-2020 Software Radio Systems Limited
+# Copyright 2013-2021 Software Radio Systems Limited
 #
-# This file is part of srsLTE
+# This file is part of srsRAN
 #
-# srsLTE is free software: you can redistribute it and/or modify
+# srsRAN is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of
 # the License, or (at your option) any later version.
 #
-# srsLTE is distributed in the hope that it will be useful,
+# srsRAN is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Affero General Public License for more details.
 #
 # A copy of the GNU Affero General Public License can be found in
@@ -25,7 +25,7 @@ enb_pid=0
 ue_pid=0
 
 print_use(){
-  echo "Please call script with srsLTE build path as first argument and number of PRBs as second (number of component carrier is optional)"
+  echo "Please call script with srsRAN build path as first argument and number of PRBs as second (number of component carrier is optional)"
   echo "E.g. ./run_lte.sh [build_path] [nof_prb] [num_cc]"
   exit -1
 }
@@ -57,9 +57,9 @@ kill_lte(){
     kill -9 $epc_pid
   fi
 
-  if [ -f ./srsLTE.backtrace.crash ]; then
+  if [ -f ./srsRAN.backtrace.crash ]; then
     echo "Rename backtrace"
-    mv ./srsLTE.backtrace.crash srsLTE.backtrace.log
+    mv ./srsRAN.backtrace.crash srsRAN.backtrace.log
   fi
 
   # Delete netns

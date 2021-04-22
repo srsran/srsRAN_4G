@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,7 +19,7 @@
  *
  */
 
-#include "srslte/srslte.h"
+#include "srsran/srsran.h"
 #include <assert.h>
 #include <math.h>
 #include <stdbool.h>
@@ -30,28 +30,28 @@
 #include <strings.h>
 
 #include "prb_dl.h"
-#include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/phch/pbch.h"
-#include "srslte/phy/utils/bit.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/common/phy_common.h"
+#include "srsran/phy/phch/pbch.h"
+#include "srsran/phy/utils/bit.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/vector.h"
 
 #define PBCH_RE_CP_NORM 240
 #define PBCH_RE_CP_EXT 216
 
-const uint8_t srslte_crc_mask[4][16] = {{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+const uint8_t srsran_crc_mask[4][16] = {{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
                                         {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
                                         {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
                                         {0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1}};
 
-bool srslte_pbch_exists(int nframe, int nslot)
+bool srsran_pbch_exists(int nframe, int nslot)
 {
   return (!(nframe % 5) && nslot == 1);
 }
 
 cf_t* offset_original;
 
-int srslte_pbch_cp(cf_t* input, cf_t* output, srslte_cell_t cell, bool put)
+int srsran_pbch_cp(cf_t* input, cf_t* output, srsran_cell_t cell, bool put)
 {
   int   i;
   cf_t* ptr;
@@ -60,37 +60,37 @@ int srslte_pbch_cp(cf_t* input, cf_t* output, srslte_cell_t cell, bool put)
 
   if (put) {
     ptr = input;
-    output += cell.nof_prb * SRSLTE_NRE / 2 - 36;
+    output += cell.nof_prb * SRSRAN_NRE / 2 - 36;
   } else {
     ptr = output;
-    input += cell.nof_prb * SRSLTE_NRE / 2 - 36;
+    input += cell.nof_prb * SRSRAN_NRE / 2 - 36;
   }
 
   /* symbol 0 & 1 */
   for (i = 0; i < 2; i++) {
     prb_cp_ref(&input, &output, cell.id % 3, 4, 4 * 6, put);
     if (put) {
-      output += cell.nof_prb * SRSLTE_NRE - 2 * 36 + (cell.id % 3 == 2 ? 1 : 0);
+      output += cell.nof_prb * SRSRAN_NRE - 2 * 36 + (cell.id % 3 == 2 ? 1 : 0);
     } else {
-      input += cell.nof_prb * SRSLTE_NRE - 2 * 36 + (cell.id % 3 == 2 ? 1 : 0);
+      input += cell.nof_prb * SRSRAN_NRE - 2 * 36 + (cell.id % 3 == 2 ? 1 : 0);
     }
   }
   /* symbols 2 & 3 */
-  if (SRSLTE_CP_ISNORM(cell.cp)) {
+  if (SRSRAN_CP_ISNORM(cell.cp)) {
     for (i = 0; i < 2; i++) {
       prb_cp(&input, &output, 6);
       if (put) {
-        output += cell.nof_prb * SRSLTE_NRE - 2 * 36;
+        output += cell.nof_prb * SRSRAN_NRE - 2 * 36;
       } else {
-        input += cell.nof_prb * SRSLTE_NRE - 2 * 36;
+        input += cell.nof_prb * SRSRAN_NRE - 2 * 36;
       }
     }
   } else {
     prb_cp(&input, &output, 6);
     if (put) {
-      output += cell.nof_prb * SRSLTE_NRE - 2 * 36;
+      output += cell.nof_prb * SRSRAN_NRE - 2 * 36;
     } else {
-      input += cell.nof_prb * SRSLTE_NRE - 2 * 36;
+      input += cell.nof_prb * SRSRAN_NRE - 2 * 36;
     }
     prb_cp_ref(&input, &output, cell.id % 3, 4, 4 * 6, put);
   }
@@ -112,9 +112,9 @@ int srslte_pbch_cp(cf_t* input, cf_t* output, srslte_cell_t cell, bool put)
  * @param[out] slot1_data Complex symbol buffer for slot1
  * @param[in] cell Cell configuration
  */
-int srslte_pbch_put(cf_t* pbch, cf_t* slot1_data, srslte_cell_t cell)
+int srsran_pbch_put(cf_t* pbch, cf_t* slot1_data, srsran_cell_t cell)
 {
-  return srslte_pbch_cp(pbch, slot1_data, cell, true);
+  return srsran_pbch_cp(pbch, slot1_data, cell, true);
 }
 
 /**
@@ -128,32 +128,32 @@ int srslte_pbch_put(cf_t* pbch, cf_t* slot1_data, srslte_cell_t cell)
  * @param[out] pbch Extracted complex PBCH symbols
  * @param[in] cell Cell configuration
  */
-int srslte_pbch_get(cf_t* slot1_data, cf_t* pbch, srslte_cell_t cell)
+int srsran_pbch_get(cf_t* slot1_data, cf_t* pbch, srsran_cell_t cell)
 {
-  return srslte_pbch_cp(slot1_data, pbch, cell, false);
+  return srsran_pbch_cp(slot1_data, pbch, cell, false);
 }
 
 /** Initializes the PBCH transmitter and receiver.
  * At the receiver, the field nof_ports in the cell structure indicates the
  * maximum number of BS transmitter ports to look for.
  */
-int srslte_pbch_init(srslte_pbch_t* q)
+int srsran_pbch_init(srsran_pbch_t* q)
 {
-  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSRAN_ERROR_INVALID_INPUTS;
 
   if (q != NULL) {
-    ret = SRSLTE_ERROR;
+    ret = SRSRAN_ERROR;
 
-    bzero(q, sizeof(srslte_pbch_t));
+    bzero(q, sizeof(srsran_pbch_t));
 
-    if (srslte_modem_table_lte(&q->mod, SRSLTE_MOD_QPSK)) {
+    if (srsran_modem_table_lte(&q->mod, SRSRAN_MOD_QPSK)) {
       goto clean;
     }
     int poly[3] = {0x6D, 0x4F, 0x57};
-    if (srslte_viterbi_init(&q->decoder, SRSLTE_VITERBI_37, poly, 40, true)) {
+    if (srsran_viterbi_init(&q->decoder, SRSRAN_VITERBI_37, poly, 40, true)) {
       goto clean;
     }
-    if (srslte_crc_init(&q->crc, SRSLTE_LTE_CRC16, 16)) {
+    if (srsran_crc_init(&q->crc, SRSRAN_LTE_CRC16, 16)) {
       goto clean;
     }
     q->encoder.K           = 7;
@@ -163,54 +163,54 @@ int srslte_pbch_init(srslte_pbch_t* q)
 
     q->nof_symbols = PBCH_RE_CP_NORM;
 
-    q->d = srslte_vec_cf_malloc(q->nof_symbols);
+    q->d = srsran_vec_cf_malloc(q->nof_symbols);
     if (!q->d) {
       goto clean;
     }
     int i;
-    for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
-      q->ce[i] = srslte_vec_cf_malloc(q->nof_symbols);
+    for (i = 0; i < SRSRAN_MAX_PORTS; i++) {
+      q->ce[i] = srsran_vec_cf_malloc(q->nof_symbols);
       if (!q->ce[i]) {
         goto clean;
       }
-      q->x[i] = srslte_vec_cf_malloc(q->nof_symbols);
+      q->x[i] = srsran_vec_cf_malloc(q->nof_symbols);
       if (!q->x[i]) {
         goto clean;
       }
-      q->symbols[i] = srslte_vec_cf_malloc(q->nof_symbols);
+      q->symbols[i] = srsran_vec_cf_malloc(q->nof_symbols);
       if (!q->symbols[i]) {
         goto clean;
       }
     }
-    q->llr = srslte_vec_f_malloc(q->nof_symbols * 4 * 2);
+    q->llr = srsran_vec_f_malloc(q->nof_symbols * 4 * 2);
     if (!q->llr) {
       goto clean;
     }
-    q->temp = srslte_vec_f_malloc(q->nof_symbols * 4 * 2);
+    q->temp = srsran_vec_f_malloc(q->nof_symbols * 4 * 2);
     if (!q->temp) {
       goto clean;
     }
-    q->rm_b = srslte_vec_u8_malloc(q->nof_symbols * 4 * 2);
+    q->rm_b = srsran_vec_u8_malloc(q->nof_symbols * 4 * 2);
     if (!q->rm_b) {
       goto clean;
     }
 
-    ret = SRSLTE_SUCCESS;
+    ret = SRSRAN_SUCCESS;
   }
 clean:
-  if (ret == SRSLTE_ERROR) {
-    srslte_pbch_free(q);
+  if (ret == SRSRAN_ERROR) {
+    srsran_pbch_free(q);
   }
   return ret;
 }
 
-void srslte_pbch_free(srslte_pbch_t* q)
+void srsran_pbch_free(srsran_pbch_t* q)
 {
-  srslte_sequence_free(&q->seq);
-  srslte_modem_table_free(&q->mod);
-  srslte_viterbi_free(&q->decoder);
+  srsran_sequence_free(&q->seq);
+  srsran_modem_table_free(&q->mod);
+  srsran_viterbi_free(&q->decoder);
   int i;
-  for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
+  for (i = 0; i < SRSRAN_MAX_PORTS; i++) {
     if (q->ce[i]) {
       free(q->ce[i]);
     }
@@ -233,30 +233,30 @@ void srslte_pbch_free(srslte_pbch_t* q)
   if (q->d) {
     free(q->d);
   }
-  bzero(q, sizeof(srslte_pbch_t));
+  bzero(q, sizeof(srsran_pbch_t));
 }
 
-int srslte_pbch_set_cell(srslte_pbch_t* q, srslte_cell_t cell)
+int srsran_pbch_set_cell(srsran_pbch_t* q, srsran_cell_t cell)
 {
-  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSRAN_ERROR_INVALID_INPUTS;
 
-  if (q != NULL && srslte_cell_isvalid(&cell)) {
+  if (q != NULL && srsran_cell_isvalid(&cell)) {
     if (cell.nof_ports == 0) {
       q->search_all_ports = true;
-      cell.nof_ports      = SRSLTE_MAX_PORTS;
+      cell.nof_ports      = SRSRAN_MAX_PORTS;
     } else {
       q->search_all_ports = false;
     }
 
     if (q->cell.id != cell.id || q->cell.nof_prb == 0) {
       q->cell = cell;
-      if (srslte_sequence_pbch(&q->seq, q->cell.cp, q->cell.id)) {
-        return SRSLTE_ERROR;
+      if (srsran_sequence_pbch(&q->seq, q->cell.cp, q->cell.id)) {
+        return SRSRAN_ERROR;
       }
     }
-    q->nof_symbols = (SRSLTE_CP_ISNORM(q->cell.cp)) ? PBCH_RE_CP_NORM : PBCH_RE_CP_EXT;
+    q->nof_symbols = (SRSRAN_CP_ISNORM(q->cell.cp)) ? PBCH_RE_CP_NORM : PBCH_RE_CP_EXT;
 
-    ret = SRSLTE_SUCCESS;
+    ret = SRSRAN_SUCCESS;
   }
   return ret;
 }
@@ -268,11 +268,11 @@ int srslte_pbch_set_cell(srslte_pbch_t* q, srslte_cell_t cell)
  * @param[out] sfn System frame number
  * @param[out] cell MIB information about PHICH and system bandwidth will be saved here
  */
-void srslte_pbch_mib_unpack(uint8_t* msg, srslte_cell_t* cell, uint32_t* sfn)
+void srsran_pbch_mib_unpack(uint8_t* msg, srsran_cell_t* cell, uint32_t* sfn)
 {
   int phich_res;
 
-  uint32_t bw_idx = srslte_bit_pack(&msg, 3);
+  uint32_t bw_idx = srsran_bit_pack(&msg, 3);
   switch (bw_idx) {
     case 0:
       cell->nof_prb = 6;
@@ -285,29 +285,29 @@ void srslte_pbch_mib_unpack(uint8_t* msg, srslte_cell_t* cell, uint32_t* sfn)
       break;
   }
   if (*msg) {
-    cell->phich_length = SRSLTE_PHICH_EXT;
+    cell->phich_length = SRSRAN_PHICH_EXT;
   } else {
-    cell->phich_length = SRSLTE_PHICH_NORM;
+    cell->phich_length = SRSRAN_PHICH_NORM;
   }
   msg++;
 
-  phich_res = srslte_bit_pack(&msg, 2);
+  phich_res = srsran_bit_pack(&msg, 2);
   switch (phich_res) {
     case 0:
-      cell->phich_resources = SRSLTE_PHICH_R_1_6;
+      cell->phich_resources = SRSRAN_PHICH_R_1_6;
       break;
     case 1:
-      cell->phich_resources = SRSLTE_PHICH_R_1_2;
+      cell->phich_resources = SRSRAN_PHICH_R_1_2;
       break;
     case 2:
-      cell->phich_resources = SRSLTE_PHICH_R_1;
+      cell->phich_resources = SRSRAN_PHICH_R_1;
       break;
     case 3:
-      cell->phich_resources = SRSLTE_PHICH_R_2;
+      cell->phich_resources = SRSRAN_PHICH_R_2;
       break;
   }
   if (sfn) {
-    *sfn = srslte_bit_pack(&msg, 8) << 2;
+    *sfn = srsran_bit_pack(&msg, 8) << 2;
   }
 }
 
@@ -318,7 +318,7 @@ void srslte_pbch_mib_unpack(uint8_t* msg, srslte_cell_t* cell, uint32_t* sfn)
  * @param[in] sfn System frame number
  * @param[in] cell Cell configuration to be encoded in MIB
  */
-void srslte_pbch_mib_pack(srslte_cell_t* cell, uint32_t sfn, uint8_t* payload)
+void srsran_pbch_mib_pack(srsran_cell_t* cell, uint32_t sfn, uint8_t* payload)
 {
   int bw, phich_res = 0;
 
@@ -333,39 +333,39 @@ void srslte_pbch_mib_pack(srslte_cell_t* cell, uint32_t sfn, uint8_t* payload)
   } else {
     bw = 1 + cell->nof_prb / 25;
   }
-  srslte_bit_unpack(bw, &msg, 3);
+  srsran_bit_unpack(bw, &msg, 3);
 
-  *msg = cell->phich_length == SRSLTE_PHICH_EXT;
+  *msg = cell->phich_length == SRSRAN_PHICH_EXT;
   msg++;
 
   switch (cell->phich_resources) {
-    case SRSLTE_PHICH_R_1_6:
+    case SRSRAN_PHICH_R_1_6:
       phich_res = 0;
       break;
-    case SRSLTE_PHICH_R_1_2:
+    case SRSRAN_PHICH_R_1_2:
       phich_res = 1;
       break;
-    case SRSLTE_PHICH_R_1:
+    case SRSRAN_PHICH_R_1:
       phich_res = 2;
       break;
-    case SRSLTE_PHICH_R_2:
+    case SRSRAN_PHICH_R_2:
       phich_res = 3;
       break;
   }
-  srslte_bit_unpack(phich_res, &msg, 2);
-  srslte_bit_unpack(sfn >> 2, &msg, 8);
+  srsran_bit_unpack(phich_res, &msg, 2);
+  srsran_bit_unpack(sfn >> 2, &msg, 8);
 }
 
-void srslte_pbch_decode_reset(srslte_pbch_t* q)
+void srsran_pbch_decode_reset(srsran_pbch_t* q)
 {
   q->frame_idx = 0;
 }
 
-void srslte_crc_set_mask(uint8_t* data, int nof_ports)
+void srsran_crc_set_mask(uint8_t* data, int nof_ports)
 {
   int i;
   for (i = 0; i < 16; i++) {
-    data[SRSLTE_BCH_PAYLOAD_LEN + i] = (data[SRSLTE_BCH_PAYLOAD_LEN + i] + srslte_crc_mask[nof_ports - 1][i]) % 2;
+    data[SRSRAN_BCH_PAYLOAD_LEN + i] = (data[SRSRAN_BCH_PAYLOAD_LEN + i] + srsran_crc_mask[nof_ports - 1][i]) % 2;
   }
 }
 
@@ -375,60 +375,60 @@ void srslte_crc_set_mask(uint8_t* data, int nof_ports)
  *
  * Returns 0 if the data is correct, -1 otherwise
  */
-uint32_t srslte_pbch_crc_check(srslte_pbch_t* q, uint8_t* bits, uint32_t nof_ports)
+uint32_t srsran_pbch_crc_check(srsran_pbch_t* q, uint8_t* bits, uint32_t nof_ports)
 {
-  uint8_t data[SRSLTE_BCH_PAYLOADCRC_LEN];
-  memcpy(data, bits, SRSLTE_BCH_PAYLOADCRC_LEN * sizeof(uint8_t));
-  srslte_crc_set_mask(data, nof_ports);
-  int ret = srslte_crc_checksum(&q->crc, data, SRSLTE_BCH_PAYLOADCRC_LEN);
+  uint8_t data[SRSRAN_BCH_PAYLOADCRC_LEN];
+  memcpy(data, bits, SRSRAN_BCH_PAYLOADCRC_LEN * sizeof(uint8_t));
+  srsran_crc_set_mask(data, nof_ports);
+  int ret = srsran_crc_checksum(&q->crc, data, SRSRAN_BCH_PAYLOADCRC_LEN);
   if (ret == 0) {
     uint32_t chkzeros = 0;
-    for (int i = 0; i < SRSLTE_BCH_PAYLOAD_LEN; i++) {
+    for (int i = 0; i < SRSRAN_BCH_PAYLOAD_LEN; i++) {
       chkzeros += data[i];
     }
     if (chkzeros) {
       return 0;
     } else {
-      return SRSLTE_ERROR;
+      return SRSRAN_ERROR;
     }
   } else {
     return ret;
   }
 }
 
-int decode_frame(srslte_pbch_t* q, uint32_t src, uint32_t dst, uint32_t n, uint32_t nof_bits, uint32_t nof_ports)
+int decode_frame(srsran_pbch_t* q, uint32_t src, uint32_t dst, uint32_t n, uint32_t nof_bits, uint32_t nof_ports)
 {
   int j;
 
   if (dst + n <= 4 && src + n <= 4) {
-    srslte_vec_f_copy(&q->temp[dst * nof_bits], &q->llr[src * nof_bits], n * nof_bits);
+    srsran_vec_f_copy(&q->temp[dst * nof_bits], &q->llr[src * nof_bits], n * nof_bits);
 
     /* descramble */
-    srslte_scrambling_f_offset(&q->seq, &q->temp[dst * nof_bits], dst * nof_bits, n * nof_bits);
+    srsran_scrambling_f_offset(&q->seq, &q->temp[dst * nof_bits], dst * nof_bits, n * nof_bits);
 
     for (j = 0; j < dst * nof_bits; j++) {
-      q->temp[j] = SRSLTE_RX_NULL;
+      q->temp[j] = SRSRAN_RX_NULL;
     }
     for (j = (dst + n) * nof_bits; j < 4 * nof_bits; j++) {
-      q->temp[j] = SRSLTE_RX_NULL;
+      q->temp[j] = SRSRAN_RX_NULL;
     }
 
     /* unrate matching */
-    srslte_rm_conv_rx(q->temp, 4 * nof_bits, q->rm_f, SRSLTE_BCH_ENCODED_LEN);
+    srsran_rm_conv_rx(q->temp, 4 * nof_bits, q->rm_f, SRSRAN_BCH_ENCODED_LEN);
 
     /* Normalize LLR */
-    srslte_vec_sc_prod_fff(q->rm_f, 1.0 / ((float)2 * n), q->rm_f, SRSLTE_BCH_ENCODED_LEN);
+    srsran_vec_sc_prod_fff(q->rm_f, 1.0 / ((float)2 * n), q->rm_f, SRSRAN_BCH_ENCODED_LEN);
 
     /* decode */
-    srslte_viterbi_decode_f(&q->decoder, q->rm_f, q->data, SRSLTE_BCH_PAYLOADCRC_LEN);
+    srsran_viterbi_decode_f(&q->decoder, q->rm_f, q->data, SRSRAN_BCH_PAYLOADCRC_LEN);
 
-    if (!srslte_pbch_crc_check(q, q->data, nof_ports)) {
+    if (!srsran_pbch_crc_check(q, q->data, nof_ports)) {
       return 1;
     } else {
-      return SRSLTE_SUCCESS;
+      return SRSRAN_SUCCESS;
     }
   } else {
-    ERROR("Error in PBCH decoder: Invalid frame pointers dst=%d, src=%d, n=%d\n", src, dst, n);
+    ERROR("Error in PBCH decoder: Invalid frame pointers dst=%d, src=%d, n=%d", src, dst, n);
     return -1;
   }
 }
@@ -441,10 +441,10 @@ int decode_frame(srslte_pbch_t* q, uint32_t src, uint32_t dst, uint32_t n, uint3
  *
  * Returns 1 if successfully decoded MIB, 0 if not and -1 on error
  */
-int srslte_pbch_decode(srslte_pbch_t*         q,
-                       srslte_chest_dl_res_t* channel,
-                       cf_t*                  sf_symbols[SRSLTE_MAX_PORTS],
-                       uint8_t                bch_payload[SRSLTE_BCH_PAYLOAD_LEN],
+int srsran_pbch_decode(srsran_pbch_t*         q,
+                       srsran_chest_dl_res_t* channel,
+                       cf_t*                  sf_symbols[SRSRAN_MAX_PORTS],
+                       uint8_t                bch_payload[SRSRAN_BCH_PAYLOAD_LEN],
                        uint32_t*              nof_tx_ports,
                        int*                   sfn_offset)
 {
@@ -452,37 +452,37 @@ int srslte_pbch_decode(srslte_pbch_t*         q,
   uint32_t nant;
   int      i;
   int      nof_bits;
-  cf_t*    x[SRSLTE_MAX_LAYERS];
+  cf_t*    x[SRSRAN_MAX_LAYERS];
 
-  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSRAN_ERROR_INVALID_INPUTS;
 
   if (q != NULL && sf_symbols != NULL) {
-    cf_t* slot1_symbols = &sf_symbols[0][SRSLTE_SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)];
+    cf_t* slot1_symbols = &sf_symbols[0][SRSRAN_SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)];
 
-    cf_t* ce_slot1[SRSLTE_MAX_PORTS];
-    for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
-      ce_slot1[i] = &channel->ce[i][0][SRSLTE_SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)];
+    cf_t* ce_slot1[SRSRAN_MAX_PORTS];
+    for (int i = 0; i < SRSRAN_MAX_PORTS; i++) {
+      ce_slot1[i] = &channel->ce[i][0][SRSRAN_SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)];
     }
 
     /* Set pointers for layermapping & precoding */
     nof_bits = 2 * q->nof_symbols;
 
     /* number of layers equals number of ports */
-    for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
+    for (i = 0; i < SRSRAN_MAX_PORTS; i++) {
       x[i] = q->x[i];
     }
 
     /* extract symbols */
-    if (q->nof_symbols != srslte_pbch_get(slot1_symbols, q->symbols[0], q->cell)) {
-      ERROR("There was an error getting the PBCH symbols\n");
-      return SRSLTE_ERROR;
+    if (q->nof_symbols != srsran_pbch_get(slot1_symbols, q->symbols[0], q->cell)) {
+      ERROR("There was an error getting the PBCH symbols");
+      return SRSRAN_ERROR;
     }
 
     /* extract channel estimates */
     for (i = 0; i < q->cell.nof_ports; i++) {
-      if (q->nof_symbols != srslte_pbch_get(ce_slot1[i], q->ce[i], q->cell)) {
-        ERROR("There was an error getting the PBCH symbols\n");
-        return SRSLTE_ERROR;
+      if (q->nof_symbols != srsran_pbch_get(ce_slot1[i], q->ce[i], q->cell)) {
+        ERROR("There was an error getting the PBCH symbols");
+        return SRSRAN_ERROR;
       }
     }
 
@@ -500,19 +500,19 @@ int srslte_pbch_decode(srslte_pbch_t*         q,
 
     do {
       if (nant != 3) {
-        DEBUG("Trying %d TX antennas with %d frames\n", nant, frame_idx);
+        DEBUG("Trying %d TX antennas with %d frames", nant, frame_idx);
 
         /* in control channels, only diversity is supported */
         if (nant == 1) {
           /* no need for layer demapping */
-          srslte_predecoding_single(q->symbols[0], q->ce[0], q->d, NULL, q->nof_symbols, 1.0f, channel->noise_estimate);
+          srsran_predecoding_single(q->symbols[0], q->ce[0], q->d, NULL, q->nof_symbols, 1.0f, channel->noise_estimate);
         } else {
-          srslte_predecoding_diversity(q->symbols[0], q->ce, x, nant, q->nof_symbols, 1.0f);
-          srslte_layerdemap_diversity(x, q->d, nant, q->nof_symbols / nant);
+          srsran_predecoding_diversity(q->symbols[0], q->ce, x, nant, q->nof_symbols, 1.0f);
+          srsran_layerdemap_diversity(x, q->d, nant, q->nof_symbols / nant);
         }
 
         /* demodulate symbols */
-        srslte_demod_soft_demodulate(SRSLTE_MOD_QPSK, q->d, &q->llr[nof_bits * (frame_idx - 1)], q->nof_symbols);
+        srsran_demod_soft_demodulate(SRSRAN_MOD_QPSK, q->d, &q->llr[nof_bits * (frame_idx - 1)], q->nof_symbols);
 
         /* We don't know where the 40 ms begin, so we try all combinations. E.g. if we received
          * 4 frames, try 1,2,3,4 individually, 12, 23, 34 in pairs, 123, 234 and finally 1234.
@@ -530,14 +530,14 @@ int srslte_pbch_decode(srslte_pbch_t*         q,
                   *nof_tx_ports = nant;
                 }
                 if (bch_payload) {
-                  memcpy(bch_payload, q->data, sizeof(uint8_t) * SRSLTE_BCH_PAYLOAD_LEN);
+                  memcpy(bch_payload, q->data, sizeof(uint8_t) * SRSRAN_BCH_PAYLOAD_LEN);
                 }
-                INFO("Decoded PBCH: src=%d, dst=%d, nb=%d, sfn_offset=%d\n",
+                INFO("Decoded PBCH: src=%d, dst=%d, nb=%d, sfn_offset=%d",
                      src,
                      dst,
                      nb + 1,
                      (int)dst - src + frame_idx - 1);
-                srslte_pbch_decode_reset(q);
+                srsran_pbch_decode_reset(q);
                 return 1;
               }
             }
@@ -558,14 +558,14 @@ int srslte_pbch_decode(srslte_pbch_t*         q,
 
 /** Converts the MIB message to symbols mapped to SLOT #1 ready for transmission
  */
-int srslte_pbch_encode(srslte_pbch_t* q,
-                       uint8_t        bch_payload[SRSLTE_BCH_PAYLOAD_LEN],
-                       cf_t*          sf_symbols[SRSLTE_MAX_PORTS],
+int srsran_pbch_encode(srsran_pbch_t* q,
+                       uint8_t        bch_payload[SRSRAN_BCH_PAYLOAD_LEN],
+                       cf_t*          sf_symbols[SRSRAN_MAX_PORTS],
                        uint32_t       frame_idx)
 {
   int   i;
   int   nof_bits;
-  cf_t* x[SRSLTE_MAX_LAYERS];
+  cf_t* x[SRSRAN_MAX_LAYERS];
 
   if (q != NULL && bch_payload != NULL) {
     /* Set pointers for layermapping & precoding */
@@ -575,37 +575,37 @@ int srslte_pbch_encode(srslte_pbch_t* q,
     for (i = 0; i < q->cell.nof_ports; i++) {
       x[i] = q->x[i];
     }
-    memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (SRSLTE_MAX_LAYERS - q->cell.nof_ports));
+    memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (SRSRAN_MAX_LAYERS - q->cell.nof_ports));
 
     frame_idx = frame_idx % 4;
 
-    memcpy(q->data, bch_payload, sizeof(uint8_t) * SRSLTE_BCH_PAYLOAD_LEN);
+    memcpy(q->data, bch_payload, sizeof(uint8_t) * SRSRAN_BCH_PAYLOAD_LEN);
 
     /* encode & modulate */
-    srslte_crc_attach(&q->crc, q->data, SRSLTE_BCH_PAYLOAD_LEN);
-    srslte_crc_set_mask(q->data, q->cell.nof_ports);
+    srsran_crc_attach(&q->crc, q->data, SRSRAN_BCH_PAYLOAD_LEN);
+    srsran_crc_set_mask(q->data, q->cell.nof_ports);
 
-    srslte_convcoder_encode(&q->encoder, q->data, q->data_enc, SRSLTE_BCH_PAYLOADCRC_LEN);
+    srsran_convcoder_encode(&q->encoder, q->data, q->data_enc, SRSRAN_BCH_PAYLOADCRC_LEN);
 
-    srslte_rm_conv_tx(q->data_enc, SRSLTE_BCH_ENCODED_LEN, q->rm_b, 4 * nof_bits);
+    srsran_rm_conv_tx(q->data_enc, SRSRAN_BCH_ENCODED_LEN, q->rm_b, 4 * nof_bits);
 
-    srslte_scrambling_b_offset(&q->seq, &q->rm_b[frame_idx * nof_bits], frame_idx * nof_bits, nof_bits);
-    srslte_mod_modulate(&q->mod, &q->rm_b[frame_idx * nof_bits], q->d, nof_bits);
+    srsran_scrambling_b_offset(&q->seq, &q->rm_b[frame_idx * nof_bits], frame_idx * nof_bits, nof_bits);
+    srsran_mod_modulate(&q->mod, &q->rm_b[frame_idx * nof_bits], q->d, nof_bits);
 
     /* layer mapping & precoding */
     if (q->cell.nof_ports > 1) {
-      srslte_layermap_diversity(q->d, x, q->cell.nof_ports, q->nof_symbols);
-      srslte_precoding_diversity(x, q->symbols, q->cell.nof_ports, q->nof_symbols / q->cell.nof_ports, 1.0f);
+      srsran_layermap_diversity(q->d, x, q->cell.nof_ports, q->nof_symbols);
+      srsran_precoding_diversity(x, q->symbols, q->cell.nof_ports, q->nof_symbols / q->cell.nof_ports, 1.0f);
     } else {
       memcpy(q->symbols[0], q->d, q->nof_symbols * sizeof(cf_t));
     }
 
     /* mapping to resource elements */
     for (i = 0; i < q->cell.nof_ports; i++) {
-      srslte_pbch_put(q->symbols[i], &sf_symbols[i][SRSLTE_SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)], q->cell);
+      srsran_pbch_put(q->symbols[i], &sf_symbols[i][SRSRAN_SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)], q->cell);
     }
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   } else {
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 }

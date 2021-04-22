@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,9 +19,10 @@
  *
  */
 
-#include "srslte/common/security.h"
-#include "srslte/common/liblte_security.h"
-#include "srslte/common/s3g.h"
+#include "srsran/common/security.h"
+#include "srsran/common/liblte_security.h"
+#include "srsran/common/s3g.h"
+#include "srsran/config.h"
 
 #ifdef HAVE_MBEDTLS
 #include "mbedtls/md5.h"
@@ -30,7 +31,7 @@
 #include "polarssl/md5.h"
 #endif
 
-namespace srslte {
+namespace srsran {
 
 /******************************************************************************
  * Key Generation
@@ -101,6 +102,37 @@ uint8_t security_generate_k_up(uint8_t*                    k_enb,
                                        k_up_int);
 }
 
+uint8_t security_generate_k_nr_rrc(uint8_t*                    k_gnb,
+                                   CIPHERING_ALGORITHM_ID_ENUM enc_alg_id,
+                                   INTEGRITY_ALGORITHM_ID_ENUM int_alg_id,
+                                   uint8_t*                    k_rrc_enc,
+                                   uint8_t*                    k_rrc_int)
+{
+  return liblte_security_generate_k_nr_rrc(k_gnb,
+                                           (LIBLTE_SECURITY_CIPHERING_ALGORITHM_ID_ENUM)enc_alg_id,
+                                           (LIBLTE_SECURITY_INTEGRITY_ALGORITHM_ID_ENUM)int_alg_id,
+                                           k_rrc_enc,
+                                           k_rrc_int);
+}
+
+uint8_t security_generate_k_nr_up(uint8_t*                    k_gnb,
+                                  CIPHERING_ALGORITHM_ID_ENUM enc_alg_id,
+                                  INTEGRITY_ALGORITHM_ID_ENUM int_alg_id,
+                                  uint8_t*                    k_up_enc,
+                                  uint8_t*                    k_up_int)
+{
+  return liblte_security_generate_k_nr_up(k_gnb,
+                                          (LIBLTE_SECURITY_CIPHERING_ALGORITHM_ID_ENUM)enc_alg_id,
+                                          (LIBLTE_SECURITY_INTEGRITY_ALGORITHM_ID_ENUM)int_alg_id,
+                                          k_up_enc,
+                                          k_up_int);
+}
+
+uint8_t security_generate_sk_gnb(uint8_t* k_enb, uint8_t* sk_gnb, uint16_t scg_count)
+{
+  return liblte_security_generate_sk_gnb(k_enb, sk_gnb, scg_count);
+}
+
 /******************************************************************************
  * Integrity Protection
  *****************************************************************************/
@@ -147,7 +179,7 @@ uint8_t security_md5(const uint8_t* input, size_t len, uint8_t* output)
 #ifdef HAVE_POLARSSL
   md5(input, len, output);
 #endif
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 /******************************************************************************
@@ -219,4 +251,4 @@ uint8_t security_milenage_f5_star(uint8_t* k, uint8_t* op, uint8_t* rand, uint8_
   return liblte_security_milenage_f5_star(k, op, rand, ak);
 }
 
-} // namespace srslte
+} // namespace srsran

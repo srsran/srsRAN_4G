@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,26 +19,15 @@
  *
  */
 
-#include "srslte/srslog/event_trace.h"
-#include "srslte/srslog/log_channel.h"
-#include "srslte/srslog/sink.h"
+#include "srsran/srslog/event_trace.h"
+#include "srsran/srslog/log_channel.h"
+#include "test_dummies.h"
 #include "testing_helpers.h"
+#include <thread>
 
 using namespace srslog;
 
 namespace {
-
-/// A Dummy implementation of a sink.
-class sink_dummy : public sink
-{
-public:
-  detail::error_string write(detail::memory_buffer buffer) override
-  {
-    return {};
-  }
-
-  detail::error_string flush() override { return {}; }
-};
 
 /// A Spy implementation of a log backend. Tests can query if the push method
 /// has been invoked.
@@ -47,11 +36,13 @@ class backend_spy : public detail::log_backend
 public:
   void start() override {}
 
-  void push(detail::log_entry&& entry) override
+  bool push(detail::log_entry&& entry) override
   {
-    std::string result = fmt::vsprintf(entry.fmtstring, std::move(entry.store));
     ++count;
+    return true;
   }
+
+  fmt::dynamic_format_arg_store<fmt::printf_context>* alloc_arg_store() override { return &store; }
 
   bool is_running() const override { return true; }
 
@@ -60,13 +51,13 @@ public:
   unsigned push_invocation_count() const { return count; }
 
 private:
-  unsigned count = 0;
+  unsigned                                           count = 0;
+  fmt::dynamic_format_arg_store<fmt::printf_context> store;
 };
 
 } // namespace
 
-static bool
-when_tracing_with_duration_event_then_two_events_are_generated(backend_spy& spy)
+static bool when_tracing_with_duration_event_then_two_events_are_generated(backend_spy& spy)
 {
   trace_duration_begin("a", "b");
   ASSERT_EQ(spy.push_invocation_count(), 1);
@@ -77,8 +68,7 @@ when_tracing_with_duration_event_then_two_events_are_generated(backend_spy& spy)
   return true;
 }
 
-static bool
-when_tracing_with_complete_event_then_one_event_is_generated(backend_spy& spy)
+static bool when_tracing_with_complete_event_then_one_event_is_generated(backend_spy& spy)
 {
   {
     trace_complete_event("a", "b");
@@ -88,20 +78,43 @@ when_tracing_with_complete_event_then_one_event_is_generated(backend_spy& spy)
   return true;
 }
 
+static bool when_tracing_with_under_threshold_complete_event_then_no_event_is_generated(backend_spy& spy)
+{
+  {
+    trace_threshold_complete_event("a", "b", std::chrono::microseconds(100000));
+  }
+  ASSERT_EQ(spy.push_invocation_count(), 0);
+
+  return true;
+}
+
+static bool when_tracing_with_above_threshold_complete_event_then_one_event_is_generated(backend_spy& spy)
+{
+  {
+    trace_threshold_complete_event("a", "b", std::chrono::microseconds(10));
+    std::this_thread::sleep_for(std::chrono::microseconds(1000));
+  }
+  ASSERT_EQ(spy.push_invocation_count(), 1);
+
+  return true;
+}
+
 int main()
 {
-  sink_dummy s;
-  backend_spy backend;
-  log_channel c("test", s, backend);
+  test_dummies::sink_dummy s;
+  backend_spy              backend;
+  log_channel              c("test", s, backend);
 
   // Inject our spy into the framework.
   event_trace_init(c);
 
-  TEST_FUNCTION(when_tracing_with_duration_event_then_two_events_are_generated,
-                backend);
+  TEST_FUNCTION(when_tracing_with_duration_event_then_two_events_are_generated, backend);
   backend.reset();
-  TEST_FUNCTION(when_tracing_with_complete_event_then_one_event_is_generated,
-                backend);
+  TEST_FUNCTION(when_tracing_with_complete_event_then_one_event_is_generated, backend);
+  backend.reset();
+  TEST_FUNCTION(when_tracing_with_under_threshold_complete_event_then_no_event_is_generated, backend);
+  backend.reset();
+  TEST_FUNCTION(when_tracing_with_above_threshold_complete_event_then_one_event_is_generated, backend);
 
   return 0;
 }

@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -22,10 +22,10 @@
 #ifndef SRSEPC_S1AP_COMMON_H
 #define SRSEPC_S1AP_COMMON_H
 
-#include "srslte/asn1/gtpc_ies.h"
-#include "srslte/asn1/liblte_mme.h"
-#include "srslte/asn1/s1ap_asn1.h"
-#include "srslte/common/security.h"
+#include "srsran/asn1/gtpc_ies.h"
+#include "srsran/asn1/liblte_mme.h"
+#include "srsran/asn1/s1ap.h"
+#include "srsran/common/security.h"
 #include <netinet/sctp.h>
 #include <string.h>
 
@@ -47,8 +47,8 @@ typedef struct {
   std::string                         mme_apn;
   bool                                pcap_enable;
   std::string                         pcap_filename;
-  srslte::CIPHERING_ALGORITHM_ID_ENUM encryption_algo;
-  srslte::INTEGRITY_ALGORITHM_ID_ENUM integrity_algo;
+  srsran::CIPHERING_ALGORITHM_ID_ENUM encryption_algo;
+  srsran::INTEGRITY_ALGORITHM_ID_ENUM integrity_algo;
 } s1ap_args_t;
 
 typedef struct {

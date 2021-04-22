@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,27 +19,27 @@
  *
  */
 
+#include "srsran/interfaces/phy_interface_types.h"
+#include "srsran/srslog/srslog.h"
+#include "srsue/hdr/phy/scell/intra_measure.h"
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <iostream>
 #include <map>
 #include <memory>
-#include <srslte/common/string_helpers.h>
-#include <srslte/phy/channel/channel.h>
-#include <srslte/phy/utils/random.h>
-#include <srslte/srslte.h>
-#include <srsue/hdr/phy/scell/intra_measure.h>
+#include <srsran/common/string_helpers.h>
+#include <srsran/phy/utils/random.h>
 #include <vector>
 
 // Common execution parameters
 static uint32_t          duration_execution_s;
-static srslte_cell_t     cell_base = {.nof_prb         = 6,
+static srsran_cell_t     cell_base = {.nof_prb         = 6,
                                   .nof_ports       = 1,
                                   .id              = 0,
-                                  .cp              = SRSLTE_CP_NORM,
-                                  .phich_length    = SRSLTE_PHICH_NORM,
-                                  .phich_resources = SRSLTE_PHICH_R_1_6,
-                                  .frame_type      = SRSLTE_FDD};
+                                  .cp              = SRSRAN_CP_NORM,
+                                  .phich_length    = SRSRAN_PHICH_NORM,
+                                  .phich_resources = SRSRAN_PHICH_R_1_6,
+                                  .frame_type      = SRSRAN_FDD};
 static std::string       intra_meas_log_level;
 static std::string       active_cell_list;
 static std::string       simulation_cell_list;
@@ -65,7 +65,7 @@ static std::string channel_log_level;
 // Simulation Serving cell PDSCH parameters
 static bool        serving_cell_pdsch_enable;
 static uint16_t    serving_cell_pdsch_rnti;
-static srslte_tm_t serving_cell_pdsch_tm;
+static srsran_tm_t serving_cell_pdsch_tm;
 static uint16_t    serving_cell_pdsch_mcs;
 
 // Parsed PCI lists
@@ -88,7 +88,7 @@ unsigned int reverse(unsigned int x)
 uint32_t prbset_to_bitmask()
 {
   uint32_t mask = 0;
-  auto     nb   = (uint32_t)ceilf((float)cell_base.nof_prb / srslte_ra_type0_P(cell_base.nof_prb));
+  auto     nb   = (uint32_t)ceilf((float)cell_base.nof_prb / srsran_ra_type0_P(cell_base.nof_prb));
   for (uint32_t i = 0; i < nb; i++) {
     if (i >= prbset_orig && i < prbset_orig + prbset_num) {
       mask = mask | ((uint32_t)0x1 << i);
@@ -101,115 +101,109 @@ uint32_t prbset_to_bitmask()
 class test_enb
 {
 private:
-  srslte_enb_dl_t     enb_dl;
-  srslte::channel_ptr channel;
-  cf_t*               signal_buffer[SRSLTE_MAX_PORTS] = {};
-  srslte::log_filter  channel_log;
+  srsran_enb_dl_t       enb_dl;
+  srsran::channel_ptr   channel;
+  cf_t*                 signal_buffer[SRSRAN_MAX_PORTS] = {};
+  srslog::basic_logger& logger;
 
 public:
-  test_enb(const srslte_cell_t& cell, const srslte::channel::args_t& channel_args) :
-    enb_dl(), channel_log("Channel pci=" + std::to_string(cell.id))
+  test_enb(const srsran_cell_t& cell, const srsran::channel::args_t& channel_args) :
+    enb_dl(), logger(srslog::fetch_basic_logger("Channel pci=" + std::to_string(cell.id)))
   {
-    channel_log.set_level(channel_log_level);
+    logger.set_level(srslog::str_to_basic_level(channel_log_level));
 
-    channel = srslte::channel_ptr(new srslte::channel(channel_args, cell_base.nof_ports));
-    channel->set_srate(srslte_sampling_freq_hz(cell.nof_prb));
-    channel->set_logger(&channel_log);
+    channel = srsran::channel_ptr(new srsran::channel(channel_args, cell_base.nof_ports, logger));
+    channel->set_srate(srsran_sampling_freq_hz(cell.nof_prb));
 
     // Allocate buffer for eNb
     for (uint32_t i = 0; i < cell_base.nof_ports; i++) {
-      signal_buffer[i] = srslte_vec_cf_malloc(SRSLTE_SF_LEN_PRB(cell_base.nof_prb));
+      signal_buffer[i] = srsran_vec_cf_malloc(SRSRAN_SF_LEN_PRB(cell_base.nof_prb));
       if (!signal_buffer[i]) {
-        ERROR("Error allocating buffer\n");
+        ERROR("Error allocating buffer");
       }
     }
 
-    if (srslte_enb_dl_init(&enb_dl, signal_buffer, cell.nof_prb)) {
-      ERROR("Error initiating eNb downlink\n");
+    if (srsran_enb_dl_init(&enb_dl, signal_buffer, cell.nof_prb)) {
+      ERROR("Error initiating eNb downlink");
     }
 
-    if (srslte_enb_dl_set_cell(&enb_dl, cell)) {
-      ERROR("Error setting eNb DL cell\n");
-    }
-
-    if (srslte_enb_dl_add_rnti(&enb_dl, serving_cell_pdsch_rnti)) {
-      ERROR("Error adding RNTI\n");
+    if (srsran_enb_dl_set_cell(&enb_dl, cell)) {
+      ERROR("Error setting eNb DL cell");
     }
   }
 
-  int work(srslte_dl_sf_cfg_t*           dl_sf,
-           srslte_dci_cfg_t*             dci_cfg,
-           srslte_dci_dl_t*              dci,
-           srslte_softbuffer_tx_t**      softbuffer_tx,
+  int work(srsran_dl_sf_cfg_t*           dl_sf,
+           srsran_dci_cfg_t*             dci_cfg,
+           srsran_dci_dl_t*              dci,
+           srsran_softbuffer_tx_t**      softbuffer_tx,
            uint8_t**                     data_tx,
            cf_t*                         baseband_buffer,
-           const srslte::rf_timestamp_t& ts)
+           const srsran::rf_timestamp_t& ts)
   {
+    int      ret    = SRSRAN_SUCCESS;
+    uint32_t sf_len = SRSRAN_SF_LEN_PRB(enb_dl.cell.nof_prb);
 
-    int      ret    = SRSLTE_SUCCESS;
-    uint32_t sf_len = SRSLTE_SF_LEN_PRB(enb_dl.cell.nof_prb);
-
-    srslte_enb_dl_put_base(&enb_dl, dl_sf);
+    srsran_enb_dl_put_base(&enb_dl, dl_sf);
 
     // Put PDSCH only if it is required
     if (dci && dci_cfg && softbuffer_tx && data_tx) {
-      if (srslte_enb_dl_put_pdcch_dl(&enb_dl, dci_cfg, dci)) {
-        ERROR("Error putting PDCCH sf_idx=%d\n", dl_sf->tti);
-        ret = SRSLTE_ERROR;
+      if (srsran_enb_dl_put_pdcch_dl(&enb_dl, dci_cfg, dci)) {
+        ERROR("Error putting PDCCH sf_idx=%d", dl_sf->tti);
+        ret = SRSRAN_ERROR;
       }
 
       // Create pdsch config
-      srslte_pdsch_cfg_t pdsch_cfg;
-      if (srslte_ra_dl_dci_to_grant(&enb_dl.cell, dl_sf, serving_cell_pdsch_tm, false, dci, &pdsch_cfg.grant)) {
-        ERROR("Computing DL grant sf_idx=%d\n", dl_sf->tti);
-        ret = SRSLTE_ERROR;
+      srsran_pdsch_cfg_t pdsch_cfg;
+      if (srsran_ra_dl_dci_to_grant(&enb_dl.cell, dl_sf, serving_cell_pdsch_tm, false, dci, &pdsch_cfg.grant)) {
+        ERROR("Computing DL grant sf_idx=%d", dl_sf->tti);
+        ret = SRSRAN_ERROR;
       }
       char str[512];
-      srslte_dci_dl_info(dci, str, 512);
-      INFO("eNb PDCCH: rnti=0x%x, %s\n", serving_cell_pdsch_rnti, str);
+      srsran_dci_dl_info(dci, str, 512);
+      INFO("eNb PDCCH: rnti=0x%x, %s", serving_cell_pdsch_rnti, str);
 
-      for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+      for (uint32_t i = 0; i < SRSRAN_MAX_CODEWORDS; i++) {
         pdsch_cfg.softbuffers.tx[i] = softbuffer_tx[i];
       }
 
       // Enable power allocation
       pdsch_cfg.power_scale  = true;
       pdsch_cfg.p_a          = 0.0f;                                         // 0 dB
-      pdsch_cfg.p_b          = (serving_cell_pdsch_tm > SRSLTE_TM1) ? 1 : 0; // 0 dB
+      pdsch_cfg.p_b          = (serving_cell_pdsch_tm > SRSRAN_TM1) ? 1 : 0; // 0 dB
       pdsch_cfg.rnti         = serving_cell_pdsch_rnti;
       pdsch_cfg.meas_time_en = false;
 
-      if (srslte_enb_dl_put_pdsch(&enb_dl, &pdsch_cfg, data_tx) < 0) {
-        ERROR("Error putting PDSCH sf_idx=%d\n", dl_sf->tti);
-        ret = SRSLTE_ERROR;
+      if (srsran_enb_dl_put_pdsch(&enb_dl, &pdsch_cfg, data_tx) < 0) {
+        ERROR("Error putting PDSCH sf_idx=%d", dl_sf->tti);
+        ret = SRSRAN_ERROR;
       }
-      srslte_pdsch_tx_info(&pdsch_cfg, str, 512);
-      INFO("eNb PDSCH: rnti=0x%x, %s\n", serving_cell_pdsch_rnti, str);
+      srsran_pdsch_tx_info(&pdsch_cfg, str, 512);
+      INFO("eNb PDSCH: rnti=0x%x, %s", serving_cell_pdsch_rnti, str);
     }
 
-    srslte_enb_dl_gen_signal(&enb_dl);
+    srsran_enb_dl_gen_signal(&enb_dl);
 
     // Apply channel
     channel->run(signal_buffer, signal_buffer, sf_len, ts.get(0));
 
     // Combine Tx ports
     for (uint32_t i = 1; i < enb_dl.cell.nof_ports; i++) {
-      srslte_vec_sum_ccc(signal_buffer[0], signal_buffer[i], signal_buffer[0], sf_len);
+      srsran_vec_sum_ccc(signal_buffer[0], signal_buffer[i], signal_buffer[0], sf_len);
     }
 
-    // Undo srslte_enb_dl_gen_signal scaling
+    // Undo srsran_enb_dl_gen_signal scaling
     float scale = sqrtf(cell_base.nof_prb) / 0.05f / enb_dl.ifft->cfg.symbol_sz;
 
     // Apply Neighbour cell attenuation
     if (enb_dl.cell.id != *pcis_to_simulate.begin()) {
-      scale *= srslte_convert_dB_to_amplitude(-ncell_attenuation_dB);
+      scale *= srsran_convert_dB_to_amplitude(-ncell_attenuation_dB);
     }
 
     // Scale signal
-    srslte_vec_sc_prod_cfc(signal_buffer[0], scale, signal_buffer[0], sf_len);
+    srsran_vec_sc_prod_cfc(signal_buffer[0], scale, signal_buffer[0], sf_len);
 
     // Add signal to baseband buffer
-    srslte_vec_sum_ccc(signal_buffer[0], baseband_buffer, baseband_buffer, sf_len);
+    srsran_vec_sum_ccc(signal_buffer[0], baseband_buffer, baseband_buffer, sf_len);
 
     return ret;
   }
@@ -223,7 +217,7 @@ public:
       }
     }
 
-    srslte_enb_dl_free(&enb_dl);
+    srsran_enb_dl_free(&enb_dl);
   }
 };
 
@@ -243,7 +237,7 @@ public:
   std::map<uint32_t, cell_meas_t> cells;
 
   void cell_meas_reset(uint32_t cc_idx) override {}
-  void new_cell_meas(uint32_t cc_idx, const std::vector<srsue::rrc_interface_phy_lte::phy_meas_t>& meas) override
+  void new_cell_meas(uint32_t cc_idx, const std::vector<srsue::phy_meas_t>& meas) override
   {
     for (auto& m : meas) {
       uint32_t pci = m.pci;
@@ -256,12 +250,12 @@ public:
         cells[pci].rsrq_avg = m.rsrq;
         cells[pci].count    = 1;
       } else {
-        cells[pci].rsrp_min = SRSLTE_MIN(cells[pci].rsrp_min, m.rsrp);
-        cells[pci].rsrp_max = SRSLTE_MAX(cells[pci].rsrp_max, m.rsrp);
+        cells[pci].rsrp_min = SRSRAN_MIN(cells[pci].rsrp_min, m.rsrp);
+        cells[pci].rsrp_max = SRSRAN_MAX(cells[pci].rsrp_max, m.rsrp);
         cells[pci].rsrp_avg = (m.rsrp + cells[pci].rsrp_avg * cells[pci].count) / (cells[pci].count + 1);
 
-        cells[pci].rsrq_min = SRSLTE_MIN(cells[pci].rsrq_min, m.rsrq);
-        cells[pci].rsrq_max = SRSLTE_MAX(cells[pci].rsrq_max, m.rsrq);
+        cells[pci].rsrq_min = SRSRAN_MIN(cells[pci].rsrq_min, m.rsrq);
+        cells[pci].rsrq_max = SRSRAN_MAX(cells[pci].rsrq_max, m.rsrq);
         cells[pci].rsrq_avg = (m.rsrq + cells[pci].rsrq_avg * cells[pci].count) / (cells[pci].count + 1);
         cells[pci].count++;
       }
@@ -313,7 +307,7 @@ namespace bpo = boost::program_options;
 
 int parse_args(int argc, char** argv)
 {
-  int ret = SRSLTE_SUCCESS;
+  int ret = SRSRAN_SUCCESS;
 
   bpo::options_description options;
   bpo::options_description common("Common execution options");
@@ -328,7 +322,7 @@ int parse_args(int argc, char** argv)
       ("intra_meas_log_level",      bpo::value<std::string>(&intra_meas_log_level)->default_value("none"),         "Intra measurement log level (none, warning, info, debug)")
       ("intra_freq_meas_len_ms",    bpo::value<uint32_t>(&phy_args.intra_freq_meas_len_ms)->default_value(20),     "Intra measurement measurement length")
       ("intra_freq_meas_period_ms", bpo::value<uint32_t>(&phy_args.intra_freq_meas_period_ms)->default_value(200), "Intra measurement measurement period")
-      ("phy_lib_log_level",         bpo::value<int>(&phy_lib_log_level)->default_value(SRSLTE_VERBOSE_NONE),       "Phy lib log level (0: none, 1: info, 2: debug)")
+      ("phy_lib_log_level",         bpo::value<int>(&phy_lib_log_level)->default_value(SRSRAN_VERBOSE_NONE),       "Phy lib log level (0: none, 1: info, 2: debug)")
       ("active_cell_list",          bpo::value<std::string>(&active_cell_list)->default_value("10,17,24,31,38,45,52"),    "Comma separated neighbour PCI cell list")
       ;
 
@@ -352,7 +346,7 @@ int parse_args(int argc, char** argv)
       ("channel.log_level",         bpo::value<std::string>(&channel_log_level)->default_value("info"),            "Channel simulator logging level")
       ("serving_cell_pdsch_enable", bpo::value<bool>(&serving_cell_pdsch_enable)->default_value(true),             "Enable simulated PDSCH in serving cell")
       ("serving_cell_pdsch_rnti",   bpo::value<uint16_t >(&serving_cell_pdsch_rnti)->default_value(0x1234),        "Simulated PDSCH RNTI")
-      ("serving_cell_pdsch_tm",     bpo::value<int>((int*) &serving_cell_pdsch_tm)->default_value(SRSLTE_TM1),     "Simulated Transmission mode 0: TM1, 1: TM2, 2: TM3, 3: TM4")
+      ("serving_cell_pdsch_tm",     bpo::value<int>((int*) &serving_cell_pdsch_tm)->default_value(SRSRAN_TM1),     "Simulated Transmission mode 0: TM1, 1: TM2, 2: TM3, 3: TM4")
       ("serving_cell_pdsch_mcs",    bpo::value<uint16_t >(&serving_cell_pdsch_mcs)->default_value(20),             "Simulated PDSCH MCS")
       ;
 
@@ -367,14 +361,14 @@ int parse_args(int argc, char** argv)
     bpo::notify(vm);
   } catch (bpo::error& e) {
     std::cerr << e.what() << std::endl;
-    ret = SRSLTE_ERROR;
+    ret = SRSRAN_ERROR;
   }
 
   // help option was given or error - print usage and exit
   if (vm.count("help") || ret) {
     std::cout << "Usage: " << argv[0] << " [OPTIONS] config_file" << std::endl << std::endl;
     std::cout << options << std::endl << std::endl;
-    ret = SRSLTE_ERROR;
+    ret = SRSRAN_ERROR;
   }
 
   return ret;
@@ -390,12 +384,11 @@ static void pci_list_parse_helper(std::string& list_str, std::set<uint32_t>& lis
   } else if (list_str == "none") {
     // Do nothing
   } else if (not list_str.empty()) {
-
     // Remove spaces from neightbour cell list
-    list_str = srslte::string_remove_char(list_str, ' ');
+    list_str = srsran::string_remove_char(list_str, ' ');
 
     // Add cell to known cells
-    srslte::string_parse_list(list_str, ',', list);
+    srsran::string_parse_list(list_str, ',', list);
   }
 }
 
@@ -405,25 +398,26 @@ int main(int argc, char** argv)
 
   // Parse args
   if (parse_args(argc, argv)) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // Common for simulation and over-the-air
-  cf_t*                       baseband_buffer = srslte_vec_cf_malloc(SRSLTE_SF_LEN_MAX);
-  srslte::rf_timestamp_t      ts              = {};
-  srsue::scell::intra_measure intra_measure;
-  srslte::log_filter          logger("intra_measure");
+  srslog::basic_logger& logger = srslog::fetch_basic_logger("intra_measure");
+  srslog::init();
+
+  cf_t*                       baseband_buffer = srsran_vec_cf_malloc(SRSRAN_SF_LEN_MAX);
+  srsran::rf_timestamp_t      ts              = {};
+  srsue::scell::intra_measure intra_measure(logger);
   meas_itf_listener           rrc;
-  srsue::phy_common           common;
+  srsue::phy_common           common(logger);
 
   // Simulation only
   std::vector<std::unique_ptr<test_enb> > test_enb_v;
-  uint8_t*                                data_tx[SRSLTE_MAX_TB]       = {};
-  srslte_softbuffer_tx_t*                 softbuffer_tx[SRSLTE_MAX_TB] = {};
+  uint8_t*                                data_tx[SRSRAN_MAX_TB]       = {};
+  srsran_softbuffer_tx_t*                 softbuffer_tx[SRSRAN_MAX_TB] = {};
 
   // Over-the-air only
-  std::unique_ptr<srslte::radio>      radio     = nullptr;
-  std::unique_ptr<srslte::log_filter> radio_log = nullptr;
+  std::unique_ptr<srsran::radio> radio = nullptr;
 
   // Set Receiver args
   common.args                           = &phy_args;
@@ -447,32 +441,32 @@ int main(int argc, char** argv)
   phy_args.rx_gain_offset               = rx_gain + 62.0f;
 
   // Set phy-lib logging level
-  srslte_verbose = phy_lib_log_level;
+  srsran_verbose = phy_lib_log_level;
 
   // Allocate PDSCH data and tx-soft-buffers only if pdsch is enabled and radio is not available
-  for (int i = 0; i < SRSLTE_MAX_TB && serving_cell_pdsch_enable && radio == nullptr; i++) {
-    srslte_random_t random_gen = srslte_random_init(serving_cell_pdsch_rnti);
+  for (int i = 0; i < SRSRAN_MAX_TB && serving_cell_pdsch_enable && radio == nullptr; i++) {
+    srsran_random_t random_gen = srsran_random_init(serving_cell_pdsch_rnti);
 
     const size_t nof_bytes = (6144 * 16 * 3 / 8);
-    softbuffer_tx[i]       = (srslte_softbuffer_tx_t*)calloc(sizeof(srslte_softbuffer_tx_t), 1);
+    softbuffer_tx[i]       = (srsran_softbuffer_tx_t*)calloc(sizeof(srsran_softbuffer_tx_t), 1);
     if (!softbuffer_tx[i]) {
-      ERROR("Error allocating softbuffer_tx\n");
+      ERROR("Error allocating softbuffer_tx");
     }
 
-    if (srslte_softbuffer_tx_init(softbuffer_tx[i], cell_base.nof_prb)) {
-      ERROR("Error initiating softbuffer_tx\n");
+    if (srsran_softbuffer_tx_init(softbuffer_tx[i], cell_base.nof_prb)) {
+      ERROR("Error initiating softbuffer_tx");
     }
 
-    data_tx[i] = srslte_vec_u8_malloc(nof_bytes);
+    data_tx[i] = srsran_vec_u8_malloc(nof_bytes);
     if (!data_tx[i]) {
-      ERROR("Error allocating data tx\n");
+      ERROR("Error allocating data tx");
     } else {
       for (uint32_t j = 0; j < nof_bytes; j++) {
-        data_tx[i][j] = (uint8_t)srslte_random_uniform_int_dist(random_gen, 0, 255);
+        data_tx[i][j] = (uint8_t)srsran_random_uniform_int_dist(random_gen, 0, 255);
       }
     }
 
-    srslte_random_free(random_gen);
+    srsran_random_free(random_gen);
   }
 
   pci_list_parse_helper(active_cell_list, pcis_to_meas);
@@ -482,21 +476,21 @@ int main(int argc, char** argv)
   uint32_t serving_cell_id = *pcis_to_simulate.begin();
   cell_base.id             = serving_cell_id;
 
-  logger.set_level(intra_meas_log_level);
+  logger.set_level(srslog::str_to_basic_level(intra_meas_log_level));
 
-  intra_measure.init(0, &common, &rrc, &logger);
-  intra_measure.set_primary_cell(SRSLTE_MAX(earfcn_dl, 0), cell_base);
+  intra_measure.init(0, &common, &rrc);
+  intra_measure.set_primary_cell(SRSRAN_MAX(earfcn_dl, 0), cell_base);
 
   if (earfcn_dl >= 0) {
     // Create radio log
-    radio_log = std::unique_ptr<srslte::log_filter>(new srslte::log_filter("Radio"));
-    radio_log->set_level(radio_log_level);
+    auto& radio_logger = srslog::fetch_basic_logger("RF", false);
+    radio_logger.set_level(srslog::str_to_basic_level(radio_log_level));
 
     // Create radio
-    radio = std::unique_ptr<srslte::radio>(new srslte::radio(radio_log.get()));
+    radio = std::unique_ptr<srsran::radio>(new srsran::radio);
 
     // Init radio
-    srslte::rf_args_t radio_args = {};
+    srsran::rf_args_t radio_args = {};
     radio_args.device_args       = radio_device_args;
     radio_args.device_name       = radio_device_name;
     radio_args.nof_carriers      = 1;
@@ -504,10 +498,10 @@ int main(int argc, char** argv)
     radio->init(radio_args, nullptr);
 
     // Set sampling rate
-    radio->set_rx_srate(srslte_sampling_freq_hz(cell_base.nof_prb));
+    radio->set_rx_srate(srsran_sampling_freq_hz(cell_base.nof_prb));
 
     // Set frequency
-    radio->set_rx_freq(0, srslte_band_fd(earfcn_dl) * 1e6);
+    radio->set_rx_freq(0, srsran_band_fd(earfcn_dl) * 1e6);
 
   } else {
     // Create test eNb's if radio is not available
@@ -515,23 +509,23 @@ int main(int argc, char** argv)
     float channel_delay_us    = 0;
     for (const auto& pci : pcis_to_simulate) {
       // Initialise cell
-      srslte_cell_t cell = cell_base;
+      srsran_cell_t cell = cell_base;
       cell.id            = pci;
 
       // Initialise channel and push back
-      srslte::channel::args_t channel_args;
+      srsran::channel::args_t channel_args;
       channel_args.enable                 = (channel_period_s != 0);
       channel_args.hst_enable             = std::isnormal(channel_hst_fd_hz);
-      channel_args.hst_init_time_s   = channel_init_time_s;
+      channel_args.hst_init_time_s        = channel_init_time_s;
       channel_args.hst_period_s           = (float)channel_period_s;
       channel_args.hst_fd_hz              = channel_hst_fd_hz;
       channel_args.delay_enable           = std::isnormal(channel_delay_max_us);
       channel_args.delay_min_us           = channel_delay_us;
       channel_args.delay_max_us           = channel_delay_us;
-      channel_args.delay_period_s         = (uint32)channel_period_s;
+      channel_args.delay_period_s         = (uint32_t)channel_period_s;
       channel_args.delay_init_time_s      = channel_init_time_s;
       channel_args.awgn_enable            = std::isnormal(channel_snr_db) and (pci == *pcis_to_simulate.begin());
-      channel_args.awgn_signal_power_dBfs = srslte_enb_dl_get_maximum_signal_power_dBfs(cell.nof_prb);
+      channel_args.awgn_signal_power_dBfs = srsran_enb_dl_get_maximum_signal_power_dBfs(cell.nof_prb);
       channel_args.awgn_snr_dB            = channel_snr_db;
       test_enb_v.push_back(std::unique_ptr<test_enb>(new test_enb(cell, channel_args)));
 
@@ -552,17 +546,17 @@ int main(int argc, char** argv)
 
   // Run loop
   for (uint32_t sf_idx = 0; sf_idx < duration_execution_s * 1000; sf_idx++) {
-    srslte_dl_sf_cfg_t sf_cfg_dl = {};
+    srsran_dl_sf_cfg_t sf_cfg_dl = {};
     sf_cfg_dl.tti                = sf_idx % 10240;
     sf_cfg_dl.cfi                = cfi;
-    sf_cfg_dl.sf_type            = SRSLTE_SF_NORM;
+    sf_cfg_dl.sf_type            = SRSRAN_SF_NORM;
 
     // Clean buffer
-    srslte_vec_cf_zero(baseband_buffer, SRSLTE_SF_LEN_MAX);
+    srsran_vec_cf_zero(baseband_buffer, SRSRAN_SF_LEN_MAX);
 
     if (radio) {
       // Receive radio
-      srslte::rf_buffer_t radio_buffer(baseband_buffer, SRSLTE_SF_LEN_PRB(cell_base.nof_prb));
+      srsran::rf_buffer_t radio_buffer(baseband_buffer, SRSRAN_SF_LEN_PRB(cell_base.nof_prb));
       radio->rx_now(radio_buffer, ts);
     } else {
       // Run eNb simulator
@@ -574,8 +568,8 @@ int main(int argc, char** argv)
           put_pdsch = false;
 
           // DCI Configuration
-          srslte_dci_dl_t  dci;
-          srslte_dci_cfg_t dci_cfg;
+          srsran_dci_dl_t  dci;
+          srsran_dci_cfg_t dci_cfg;
           dci_cfg.srs_request_enabled          = false;
           dci_cfg.ra_format_enabled            = false;
           dci_cfg.multiple_csi_request_enabled = false;
@@ -600,60 +594,56 @@ int main(int argc, char** argv)
           dci_cfg.cif_enabled     = false;
 
           // Set PRB Allocation type
-          dci.alloc_type              = SRSLTE_RA_ALLOC_TYPE0;
-          prbset_num                  = (int)ceilf((float)cell_base.nof_prb / srslte_ra_type0_P(cell_base.nof_prb));
+          dci.alloc_type              = SRSRAN_RA_ALLOC_TYPE0;
+          prbset_num                  = (int)ceilf((float)cell_base.nof_prb / srsran_ra_type0_P(cell_base.nof_prb));
           last_prbset_num             = prbset_num;
           dci.type0_alloc.rbg_bitmask = prbset_to_bitmask();
           dci.location.L              = 0;
           dci.location.ncce           = 0;
 
           // Set TB
-          if (serving_cell_pdsch_tm < SRSLTE_TM3) {
-            dci.format        = SRSLTE_DCI_FORMAT1;
+          if (serving_cell_pdsch_tm < SRSRAN_TM3) {
+            dci.format        = SRSRAN_DCI_FORMAT1;
             dci.tb[0].mcs_idx = serving_cell_pdsch_mcs;
             dci.tb[0].rv      = 0;
             dci.tb[0].ndi     = false;
             dci.tb[0].cw_idx  = 0;
             dci.tb[1].mcs_idx = 0;
             dci.tb[1].rv      = 1;
-          } else if (serving_cell_pdsch_tm == SRSLTE_TM3) {
-            dci.format = SRSLTE_DCI_FORMAT2A;
-            for (uint32_t i = 0; i < SRSLTE_MAX_TB; i++) {
+          } else if (serving_cell_pdsch_tm == SRSRAN_TM3) {
+            dci.format = SRSRAN_DCI_FORMAT2A;
+            for (uint32_t i = 0; i < SRSRAN_MAX_TB; i++) {
               dci.tb[i].mcs_idx = serving_cell_pdsch_mcs;
               dci.tb[i].rv      = 0;
               dci.tb[i].ndi     = false;
               dci.tb[i].cw_idx  = i;
             }
-          } else if (serving_cell_pdsch_tm == SRSLTE_TM4) {
-            dci.format = SRSLTE_DCI_FORMAT2;
+          } else if (serving_cell_pdsch_tm == SRSRAN_TM4) {
+            dci.format = SRSRAN_DCI_FORMAT2;
             dci.pinfo  = 0;
-            for (uint32_t i = 0; i < SRSLTE_MAX_TB; i++) {
+            for (uint32_t i = 0; i < SRSRAN_MAX_TB; i++) {
               dci.tb[i].mcs_idx = serving_cell_pdsch_mcs;
               dci.tb[i].rv      = 0;
               dci.tb[i].ndi     = false;
               dci.tb[i].cw_idx  = i;
             }
           } else {
-            ERROR("Wrong transmission mode (%d)\n", serving_cell_pdsch_tm);
+            ERROR("Wrong transmission mode (%d)", serving_cell_pdsch_tm);
           }
           enb->work(&sf_cfg_dl, &dci_cfg, &dci, softbuffer_tx, data_tx, baseband_buffer, ts);
         } else {
           enb->work(&sf_cfg_dl, nullptr, nullptr, nullptr, nullptr, baseband_buffer, ts);
         }
       }
-      // If it is time for a measurement, wait previous to finish
-      if (sf_idx > phy_args.intra_freq_meas_period_ms) {
-        if (sf_idx % phy_args.intra_freq_meas_period_ms == 0) {
-          intra_measure.wait_meas();
-        }
-      }
+      // if it measuring, wait for avoiding overflowing
+      intra_measure.wait_meas();
     }
 
     // Increase Time counter
     ts.add(0.001);
 
     // Give data to intra measure component
-    intra_measure.write(sf_idx % 10240, baseband_buffer, SRSLTE_SF_LEN_PRB(cell_base.nof_prb));
+    intra_measure.write(sf_idx % 10240, baseband_buffer, SRSRAN_SF_LEN_PRB(cell_base.nof_prb));
     if (sf_idx % 1000 == 0) {
       printf("Done %.1f%%\n", (double)sf_idx * 100.0 / ((double)duration_execution_s * 1000.0));
     }
@@ -664,10 +654,10 @@ int main(int argc, char** argv)
     intra_measure.wait_meas();
   }
 
-  // Stop
+  // Stop, it will block until the asynchronous thread quits
   intra_measure.stop();
 
-  ret = rrc.print_stats() ? SRSLTE_SUCCESS : SRSLTE_ERROR;
+  ret = rrc.print_stats() ? SRSRAN_SUCCESS : SRSRAN_ERROR;
 
   if (radio) {
     radio->stop();
@@ -684,10 +674,12 @@ int main(int argc, char** argv)
   }
   for (auto& sb : softbuffer_tx) {
     if (sb) {
-      srslte_softbuffer_tx_free(sb);
+      srsran_softbuffer_tx_free(sb);
       free(sb);
     }
   }
+
+  srslog::flush();
 
   if (ret && radio == nullptr) {
     printf("Error\n");

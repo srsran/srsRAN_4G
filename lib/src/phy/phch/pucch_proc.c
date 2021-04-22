@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,10 +19,10 @@
  *
  */
 
-#include <srslte/phy/phch/pucch_proc.h>
-#include <srslte/phy/utils/debug.h>
+#include <srsran/phy/phch/pucch_proc.h>
+#include <srsran/phy/utils/debug.h>
 
-static bool pucch_proc_tx_sr(const srslte_uci_cfg_t* uci_cfg, const srslte_uci_value_t* uci_value)
+static bool pucch_proc_tx_sr(const srsran_uci_cfg_t* uci_cfg, const srsran_uci_value_t* uci_value)
 {
   // Check SR transmission
   if (uci_value) {
@@ -33,87 +33,87 @@ static bool pucch_proc_tx_sr(const srslte_uci_cfg_t* uci_cfg, const srslte_uci_v
   return uci_cfg->is_scheduling_request_tti;
 }
 
-srslte_pucch_format_t srslte_pucch_proc_select_format(const srslte_cell_t*      cell,
-                                                      const srslte_pucch_cfg_t* cfg,
-                                                      const srslte_uci_cfg_t*   uci_cfg,
-                                                      const srslte_uci_value_t* uci_value)
+srsran_pucch_format_t srsran_pucch_proc_select_format(const srsran_cell_t*      cell,
+                                                      const srsran_pucch_cfg_t* cfg,
+                                                      const srsran_uci_cfg_t*   uci_cfg,
+                                                      const srsran_uci_value_t* uci_value)
 {
-  srslte_pucch_format_t format    = SRSLTE_PUCCH_FORMAT_ERROR;
-  uint32_t              total_ack = srslte_uci_cfg_total_ack(uci_cfg);
+  srsran_pucch_format_t format    = SRSRAN_PUCCH_FORMAT_ERROR;
+  uint32_t              total_ack = srsran_uci_cfg_total_ack(uci_cfg);
 
   // No CQI data
   if (!uci_cfg->cqi.data_enable && uci_cfg->cqi.ri_len == 0) {
-    if (cfg->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3 &&
+    if (cfg->ack_nack_feedback_mode == SRSRAN_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3 &&
         total_ack > uci_cfg->ack[0].nof_acks) {
-      format = SRSLTE_PUCCH_FORMAT_3;
+      format = SRSRAN_PUCCH_FORMAT_3;
     }
     // 1-bit ACK + optional SR
     else if (total_ack == 1) {
-      format = SRSLTE_PUCCH_FORMAT_1A;
+      format = SRSRAN_PUCCH_FORMAT_1A;
     }
     // 2-bit ACK + optional SR
     else if (total_ack >= 2 && total_ack <= 4) {
-      format = SRSLTE_PUCCH_FORMAT_1B; // with channel selection if > 2
+      format = SRSRAN_PUCCH_FORMAT_1B; // with channel selection if > 2
     }
     // If UCI value is provided, use SR signal only, otherwise SR request opportunity
     else if (pucch_proc_tx_sr(uci_cfg, uci_value)) {
-      format = SRSLTE_PUCCH_FORMAT_1;
+      format = SRSRAN_PUCCH_FORMAT_1;
     } else {
-      ERROR("Error selecting PUCCH format: Unsupported number of ACK bits %d\n", total_ack);
+      ERROR("Error selecting PUCCH format: Unsupported number of ACK bits %d", total_ack);
     }
   }
   // CQI data
   else {
     // CQI and no ack
     if (total_ack == 0) {
-      format = SRSLTE_PUCCH_FORMAT_2;
+      format = SRSRAN_PUCCH_FORMAT_2;
     }
     // CQI + 1-bit ACK
-    else if (total_ack == 1 && SRSLTE_CP_ISNORM(cell->cp)) {
-      format = SRSLTE_PUCCH_FORMAT_2A;
+    else if (total_ack == 1 && SRSRAN_CP_ISNORM(cell->cp)) {
+      format = SRSRAN_PUCCH_FORMAT_2A;
     }
     // CQI + 2-bit ACK
     else if (total_ack == 2) {
-      format = SRSLTE_PUCCH_FORMAT_2B;
+      format = SRSRAN_PUCCH_FORMAT_2B;
     }
     // CQI + 1-bit ACK + extended cyclic prefix
-    else if (total_ack == 1 && SRSLTE_CP_ISEXT(cell->cp)) {
-      format = SRSLTE_PUCCH_FORMAT_2B;
+    else if (total_ack == 1 && SRSRAN_CP_ISEXT(cell->cp)) {
+      format = SRSRAN_PUCCH_FORMAT_2B;
     }
   }
-  if (format == SRSLTE_PUCCH_FORMAT_ERROR) {
-    ERROR("Returned Error while selecting PUCCH format\n");
+  if (format == SRSRAN_PUCCH_FORMAT_ERROR) {
+    ERROR("Returned Error while selecting PUCCH format");
   }
 
   return format;
 }
 
-static int pucch_cs_resources(const srslte_pucch_cfg_t* cfg,
-                              const srslte_uci_cfg_t*   uci_cfg,
-                              uint32_t                  n_pucch_i[SRSLTE_PUCCH_MAX_ALLOC])
+static int pucch_cs_resources(const srsran_pucch_cfg_t* cfg,
+                              const srsran_uci_cfg_t*   uci_cfg,
+                              uint32_t                  n_pucch_i[SRSRAN_PUCCH_MAX_ALLOC])
 {
   // Check inputs
   if (!cfg || !uci_cfg || !n_pucch_i) {
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
   // Determine up to 4 PUCCH resources n_pucch_j associated with HARQ-ACK(j)
   int k = 0;
-  for (int i = 0; i < SRSLTE_PUCCH_CS_MAX_CARRIERS && k < SRSLTE_PUCCH_CS_MAX_ACK; i++) {
+  for (int i = 0; i < SRSRAN_PUCCH_CS_MAX_CARRIERS && k < SRSRAN_PUCCH_CS_MAX_ACK; i++) {
     if (uci_cfg->ack[i].grant_cc_idx == 0) {
       // - for a PDSCH transmission indicated by the detection of a corresponding PDCCH in subframe n − 4 on the primary
       //   cell, or for a PDCCH indicating downlink SPS release (defined in subclause 9.2) in subframe n − 4 on the
       //   primary cell, the PUCCH resource is n_pucch_i = n_cce + N_pucch_1, and for transmission mode that supports up
       //   to two transport blocks, the PUCCH resource n_pucch_i+1 = n_cce + N_pucch_1 + 1
-      for (uint32_t j = 0; j < uci_cfg->ack[i].nof_acks && k < SRSLTE_PUCCH_CS_MAX_ACK; j++) {
+      for (uint32_t j = 0; j < uci_cfg->ack[i].nof_acks && k < SRSRAN_PUCCH_CS_MAX_ACK; j++) {
         n_pucch_i[k++] = uci_cfg->ack[i].ncce[0] + cfg->N_pucch_1 + j;
       }
     } else if (i == 0) {
       // - for a PDSCH transmission on the primary cell where there is not a corresponding PDCCH detected in subframe
       //   n − 4 , the value of n_pucch_i is determined according to higher layer configuration and Table 9.2-2. For
       //   transmission mode that supports up to two transport blocks, the PUCCH resource n_pucch_i+1 = n_pucch_i + 1
-      for (uint32_t j = 0; j < uci_cfg->ack[i].nof_acks && k < SRSLTE_PUCCH_CS_MAX_ACK; j++) {
-        n_pucch_i[k++] = cfg->n1_pucch_an_cs[uci_cfg->ack[i].tpc_for_pucch % SRSLTE_PUCCH_SIZE_AN_CS][0] + j;
+      for (uint32_t j = 0; j < uci_cfg->ack[i].nof_acks && k < SRSRAN_PUCCH_CS_MAX_ACK; j++) {
+        n_pucch_i[k++] = cfg->n1_pucch_an_cs[uci_cfg->ack[i].tpc_for_pucch % SRSRAN_PUCCH_SIZE_AN_CS][0] + j;
       }
     } else {
       // - for a PDSCH transmission indicated by the detection of a corresponding PDCCH in subframe n − 4 on the
@@ -124,9 +124,9 @@ static int pucch_cs_resources(const srslte_pucch_cfg_t* cfg,
       //   10.1.2.2.1-2. For a UE configured for a transmission mode that supports up to two transport blocks a PUCCH
       //   resource value in Table 10.1.2.2.1-2 maps to two PUCCH resources (n_pucch_i, n_pucch_i + 1), otherwise the
       //   PUCCH resource value maps to a single PUCCH resource n_pucch_i.
-      for (uint32_t j = 0; j < uci_cfg->ack[i].nof_acks && k < SRSLTE_PUCCH_CS_MAX_ACK; j++) {
+      for (uint32_t j = 0; j < uci_cfg->ack[i].nof_acks && k < SRSRAN_PUCCH_CS_MAX_ACK; j++) {
         n_pucch_i[k++] =
-            cfg->n1_pucch_an_cs[uci_cfg->ack[i].tpc_for_pucch % SRSLTE_PUCCH_SIZE_AN_CS][j % SRSLTE_PUCCH_NOF_AN_CS];
+            cfg->n1_pucch_an_cs[uci_cfg->ack[i].tpc_for_pucch % SRSRAN_PUCCH_SIZE_AN_CS][j % SRSRAN_PUCCH_NOF_AN_CS];
       }
     }
   }
@@ -138,28 +138,28 @@ static int pucch_cs_resources(const srslte_pucch_cfg_t* cfg,
   do {                                                                                                                 \
     if (j == J && b[0] == B0 && b[1] == B1) {                                                                          \
       uint8_t pos[] = {__VA_ARGS__};                                                                                   \
-      for (uint32_t i = 0; i < sizeof(pos) && pos[i] < SRSLTE_PUCCH_CS_MAX_ACK; i++) {                                 \
+      for (uint32_t i = 0; i < sizeof(pos) && pos[i] < SRSRAN_PUCCH_CS_MAX_ACK; i++) {                                 \
         uci_value[pos[i]] = 1;                                                                                         \
       }                                                                                                                \
-      ret = SRSLTE_SUCCESS;                                                                                            \
+      ret = SRSRAN_SUCCESS;                                                                                            \
     }                                                                                                                  \
   } while (false)
 
-static int puccch_cs_get_ack_a2(uint32_t j, const uint8_t b[2], uint8_t uci_value[SRSLTE_UCI_MAX_ACK_BITS])
+static int puccch_cs_get_ack_a2(uint32_t j, const uint8_t b[2], uint8_t uci_value[SRSRAN_UCI_MAX_ACK_BITS])
 {
-  int ret = SRSLTE_ERROR;
+  int ret = SRSRAN_ERROR;
 
   PUCCH_CS_SET_ACK(1, 1, 1, 0, 1);
   PUCCH_CS_SET_ACK(0, 1, 1, 0);
   PUCCH_CS_SET_ACK(1, 0, 0, 1);
-  PUCCH_CS_SET_ACK(1, 0, 0, SRSLTE_PUCCH_CS_MAX_ACK);
+  PUCCH_CS_SET_ACK(1, 0, 0, SRSRAN_PUCCH_CS_MAX_ACK);
 
   return ret;
 }
 
-static int puccch_cs_get_ack_a3(uint32_t j, const uint8_t b[2], uint8_t uci_value[SRSLTE_UCI_MAX_ACK_BITS])
+static int puccch_cs_get_ack_a3(uint32_t j, const uint8_t b[2], uint8_t uci_value[SRSRAN_UCI_MAX_ACK_BITS])
 {
-  int ret = SRSLTE_ERROR;
+  int ret = SRSRAN_ERROR;
 
   PUCCH_CS_SET_ACK(1, 1, 1, 0, 1, 2);
   PUCCH_CS_SET_ACK(1, 1, 0, 0, 2);
@@ -168,14 +168,14 @@ static int puccch_cs_get_ack_a3(uint32_t j, const uint8_t b[2], uint8_t uci_valu
   PUCCH_CS_SET_ACK(0, 1, 1, 0, 1);
   PUCCH_CS_SET_ACK(0, 1, 0, 0);
   PUCCH_CS_SET_ACK(0, 0, 1, 1);
-  PUCCH_CS_SET_ACK(1, 0, 0, SRSLTE_PUCCH_CS_MAX_ACK);
+  PUCCH_CS_SET_ACK(1, 0, 0, SRSRAN_PUCCH_CS_MAX_ACK);
 
   return ret;
 }
 
-static int puccch_cs_get_ack_a4(uint32_t j, const uint8_t b[2], uint8_t uci_value[SRSLTE_UCI_MAX_ACK_BITS])
+static int puccch_cs_get_ack_a4(uint32_t j, const uint8_t b[2], uint8_t uci_value[SRSRAN_UCI_MAX_ACK_BITS])
 {
-  int ret = SRSLTE_ERROR;
+  int ret = SRSRAN_ERROR;
 
   PUCCH_CS_SET_ACK(1, 1, 1, 0, 1, 2, 3);
   PUCCH_CS_SET_ACK(2, 0, 1, 0, 2, 3);
@@ -192,24 +192,24 @@ static int puccch_cs_get_ack_a4(uint32_t j, const uint8_t b[2], uint8_t uci_valu
   PUCCH_CS_SET_ACK(0, 1, 1, 0, 1);
   PUCCH_CS_SET_ACK(0, 1, 0, 0);
   PUCCH_CS_SET_ACK(0, 0, 1, 1);
-  PUCCH_CS_SET_ACK(0, 0, 0, SRSLTE_PUCCH_CS_MAX_ACK);
+  PUCCH_CS_SET_ACK(0, 0, 0, SRSRAN_PUCCH_CS_MAX_ACK);
 
   return ret;
 }
 
-int srslte_pucch_cs_get_ack(const srslte_pucch_cfg_t* cfg,
-                            const srslte_uci_cfg_t*   uci_cfg,
+int srsran_pucch_cs_get_ack(const srsran_pucch_cfg_t* cfg,
+                            const srsran_uci_cfg_t*   uci_cfg,
                             uint32_t                  j,
                             const uint8_t             b[2],
-                            srslte_uci_value_t*       uci_value)
+                            srsran_uci_value_t*       uci_value)
 {
-  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSRAN_ERROR_INVALID_INPUTS;
 
   if (cfg && uci_cfg && uci_value) {
     // Set bits to 0 by default
-    memset(uci_value->ack.ack_value, 0, SRSLTE_UCI_MAX_ACK_BITS);
+    memset(uci_value->ack.ack_value, 0, SRSRAN_UCI_MAX_ACK_BITS);
 
-    uint32_t nof_ack = srslte_uci_cfg_total_ack(uci_cfg);
+    uint32_t nof_ack = srsran_uci_cfg_total_ack(uci_cfg);
     switch (nof_ack) {
       case 2:
         // A = 2
@@ -225,20 +225,20 @@ int srslte_pucch_cs_get_ack(const srslte_pucch_cfg_t* cfg,
         break;
       default:
         // Unhandled case
-        ERROR("Unexpected number of ACK (%d)\n", nof_ack);
-        ret = SRSLTE_ERROR;
+        ERROR("Unexpected number of ACK (%d)", nof_ack);
+        ret = SRSRAN_ERROR;
     }
   }
 
   return ret;
 }
 
-static int pucch_f3_resources(const srslte_pucch_cfg_t* cfg, const srslte_uci_cfg_t* uci_cfg, uint32_t* n_pucch_3)
+static int pucch_f3_resources(const srsran_pucch_cfg_t* cfg, const srsran_uci_cfg_t* uci_cfg, uint32_t* n_pucch_3)
 {
-  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSRAN_ERROR_INVALID_INPUTS;
 
   if (cfg && uci_cfg && n_pucch_3) {
-    n_pucch_3[0] = cfg->n3_pucch_an_list[uci_cfg->ack[0].tpc_for_pucch % SRSLTE_PUCCH_SIZE_AN_CS];
+    n_pucch_3[0] = cfg->n3_pucch_an_list[uci_cfg->ack[0].tpc_for_pucch % SRSRAN_PUCCH_SIZE_AN_CS];
     ret          = 1;
   }
 
@@ -250,7 +250,7 @@ static uint32_t get_Np(uint32_t p, uint32_t nof_prb)
   if (p == 0) {
     return 0;
   } else {
-    return nof_prb * (SRSLTE_NRE * p - 4) / 36;
+    return nof_prb * (SRSRAN_NRE * p - 4) / 36;
   }
 }
 
@@ -265,16 +265,16 @@ static uint32_t n_pucch_i_tdd(uint32_t ncce, uint32_t N_pucch_1, uint32_t nof_pr
       return npucch;
     }
   }
-  ERROR("Could not find Np value for ncce=%d\n", ncce);
+  ERROR("Could not find Np value for ncce=%d", ncce);
   return 0;
 }
 
-static int pucch_tdd_resources(const srslte_cell_t*      cell,
-                               const srslte_pucch_cfg_t* cfg,
-                               const srslte_uci_cfg_t*   uci_cfg,
-                               uint32_t                  n_pucch_tdd[SRSLTE_PUCCH_MAX_ALLOC])
+static int pucch_tdd_resources(const srsran_cell_t*      cell,
+                               const srsran_pucch_cfg_t* cfg,
+                               const srsran_uci_cfg_t*   uci_cfg,
+                               uint32_t                  n_pucch_tdd[SRSRAN_PUCCH_MAX_ALLOC])
 {
-  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSRAN_ERROR_INVALID_INPUTS;
 
   for (uint32_t i = 0; i < uci_cfg->ack[0].tdd_ack_M; i++) {
     n_pucch_tdd[i] =
@@ -284,42 +284,42 @@ static int pucch_tdd_resources(const srslte_cell_t*      cell,
   return ret;
 }
 
-int srslte_pucch_proc_get_resources(const srslte_cell_t*      cell,
-                                    const srslte_pucch_cfg_t* cfg,
-                                    const srslte_uci_cfg_t*   uci_cfg,
-                                    const srslte_uci_value_t* uci_value,
+int srsran_pucch_proc_get_resources(const srsran_cell_t*      cell,
+                                    const srsran_pucch_cfg_t* cfg,
+                                    const srsran_uci_cfg_t*   uci_cfg,
+                                    const srsran_uci_value_t* uci_value,
                                     uint32_t*                 n_pucch_i)
 {
   if (!cfg || !cell || !uci_cfg || !n_pucch_i) {
-    ERROR("pucch_resource_selection(): Invalid parameters\n");
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    ERROR("pucch_resource_selection(): Invalid parameters");
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
-  uint32_t total_nof_ack = srslte_uci_cfg_total_ack(uci_cfg);
+  uint32_t total_nof_ack = srsran_uci_cfg_total_ack(uci_cfg);
 
   // Available scheduling request and PUCCH format is not PUCCH3
-  if (pucch_proc_tx_sr(uci_cfg, uci_value) && cfg->format != SRSLTE_PUCCH_FORMAT_3) {
+  if (pucch_proc_tx_sr(uci_cfg, uci_value) && cfg->format != SRSRAN_PUCCH_FORMAT_3) {
     n_pucch_i[0] = cfg->n_pucch_sr;
     return 1;
   }
 
   // PUCCH formats 1, 1A and 1B (normal anb channel selection modes)
-  if (cfg->format < SRSLTE_PUCCH_FORMAT_2) {
+  if (cfg->format < SRSRAN_PUCCH_FORMAT_2) {
     if (cfg->sps_enabled) {
       n_pucch_i[0] = cfg->n_pucch_1[uci_cfg->ack[0].tpc_for_pucch % 4];
       return 1;
     }
 
-    if (cell->frame_type == SRSLTE_TDD) {
+    if (cell->frame_type == SRSRAN_TDD) {
       return pucch_tdd_resources(cell, cfg, uci_cfg, n_pucch_i);
     }
 
-    if (cfg->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS) {
+    if (cfg->ack_nack_feedback_mode == SRSRAN_PUCCH_ACK_NACK_FEEDBACK_MODE_CS) {
       return pucch_cs_resources(cfg, uci_cfg, n_pucch_i);
     }
 
-    if (cfg->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_NORMAL ||
-        (cfg->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3 &&
+    if (cfg->ack_nack_feedback_mode == SRSRAN_PUCCH_ACK_NACK_FEEDBACK_MODE_NORMAL ||
+        (cfg->ack_nack_feedback_mode == SRSRAN_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3 &&
          total_nof_ack == uci_cfg->ack[0].nof_acks)) {
       // If normal or feedback mode PUCCH3 with only data in PCell
       n_pucch_i[0] = uci_cfg->ack[0].ncce[0] + cfg->N_pucch_1;
@@ -327,12 +327,12 @@ int srslte_pucch_proc_get_resources(const srslte_cell_t*      cell,
     }
 
     // Otherwise an error shall be prompt
-    ERROR("Unhandled PUCCH format mode %s\n", srslte_ack_nack_feedback_mode_string(cfg->ack_nack_feedback_mode));
-    return SRSLTE_ERROR;
+    ERROR("Unhandled PUCCH format mode %s", srsran_ack_nack_feedback_mode_string(cfg->ack_nack_feedback_mode));
+    return SRSRAN_ERROR;
   }
 
   // PUCCH format 3
-  if (cfg->format == SRSLTE_PUCCH_FORMAT_3) {
+  if (cfg->format == SRSRAN_PUCCH_FORMAT_3) {
     return pucch_f3_resources(cfg, uci_cfg, n_pucch_i);
   }
 
@@ -342,15 +342,15 @@ int srslte_pucch_proc_get_resources(const srslte_cell_t*      cell,
 }
 
 // Selection of n_pucch for PUCCH Format 1a and 1b with channel selection for 1 and 2 CC
-static uint32_t get_npucch_cs(const srslte_pucch_cfg_t* cfg,
-                              const srslte_uci_cfg_t*   uci_cfg,
-                              const uint32_t            n_pucch_i[SRSLTE_PUCCH_MAX_ALLOC],
-                              uint8_t                   b[SRSLTE_UCI_MAX_ACK_BITS])
+static uint32_t get_npucch_cs(const srsran_pucch_cfg_t* cfg,
+                              const srsran_uci_cfg_t*   uci_cfg,
+                              const uint32_t            n_pucch_i[SRSRAN_PUCCH_MAX_ALLOC],
+                              uint8_t                   b[SRSRAN_UCI_MAX_ACK_BITS])
 {
   uint32_t n_pucch = 0;
 
   // Do resource selection and bit mapping according to tables 10.1.2.2.1-3, 10.1.2.2.1-4 and 10.1.2.2.1-5
-  uint32_t nof_ack = srslte_uci_cfg_total_ack(uci_cfg);
+  uint32_t nof_ack = srsran_uci_cfg_total_ack(uci_cfg);
   switch (nof_ack) {
     case 1:
       // 1-bit is Format1A always
@@ -430,7 +430,7 @@ static uint32_t get_npucch_cs(const srslte_pucch_cfg_t* cfg,
       }
       break;
     default:
-      ERROR("Too many (%d) ACK for this CS mode\n", srslte_uci_cfg_total_ack(uci_cfg));
+      ERROR("Too many (%d) ACK for this CS mode", srsran_uci_cfg_total_ack(uci_cfg));
   }
 
   return n_pucch;
@@ -456,7 +456,7 @@ static void set_b01(uint8_t* b, uint8_t x)
       b[1] = 1;
       break;
     default:
-      ERROR("Unhandled case (%d)\n", x);
+      ERROR("Unhandled case (%d)", x);
   }
 }
 
@@ -467,7 +467,7 @@ static void set_b01(uint8_t* b, uint8_t x)
 
 // n_pucch and b0b1 selection for TDD, tables 10.1-2, 10.1-3 and 10.1-4
 static uint32_t
-get_npucch_tdd(const uint32_t n_pucch[4], const srslte_uci_cfg_t* uci_cfg, uint8_t b[SRSLTE_UCI_MAX_ACK_BITS])
+get_npucch_tdd(const uint32_t n_pucch[4], const srsran_uci_cfg_t* uci_cfg, uint8_t b[SRSRAN_UCI_MAX_ACK_BITS])
 {
   switch (uci_cfg->ack[0].nof_acks) {
     case 1:
@@ -586,17 +586,17 @@ get_npucch_tdd(const uint32_t n_pucch[4], const srslte_uci_cfg_t* uci_cfg, uint8
   return 0;
 }
 
-uint32_t srslte_pucch_proc_get_npucch(const srslte_cell_t*      cell,
-                                      const srslte_pucch_cfg_t* cfg,
-                                      const srslte_uci_cfg_t*   uci_cfg,
-                                      const srslte_uci_value_t* uci_value,
-                                      uint8_t                   b[SRSLTE_UCI_MAX_ACK_BITS])
+uint32_t srsran_pucch_proc_get_npucch(const srsran_cell_t*      cell,
+                                      const srsran_pucch_cfg_t* cfg,
+                                      const srsran_uci_cfg_t*   uci_cfg,
+                                      const srsran_uci_value_t* uci_value,
+                                      uint8_t                   b[SRSRAN_UCI_MAX_ACK_BITS])
 {
-  uint32_t n_pucch_i[SRSLTE_PUCCH_MAX_ALLOC] = {};
-  int      nof_resources = srslte_pucch_proc_get_resources(cell, cfg, uci_cfg, uci_value, n_pucch_i);
+  uint32_t n_pucch_i[SRSRAN_PUCCH_MAX_ALLOC] = {};
+  int      nof_resources = srsran_pucch_proc_get_resources(cell, cfg, uci_cfg, uci_value, n_pucch_i);
 
   // Copy original bits in b
-  memcpy(b, uci_value->ack.ack_value, SRSLTE_UCI_MAX_ACK_BITS);
+  memcpy(b, uci_value->ack.ack_value, SRSRAN_UCI_MAX_ACK_BITS);
 
   // If error occurred, return 0
   if (nof_resources < 1) {
@@ -609,12 +609,12 @@ uint32_t srslte_pucch_proc_get_npucch(const srslte_cell_t*      cell,
   }
 
   // Select TDD resource
-  if (cell->frame_type == SRSLTE_TDD) {
+  if (cell->frame_type == SRSRAN_TDD) {
     return get_npucch_tdd(n_pucch_i, uci_cfg, b);
   }
 
   // Select Channel Selection resource
-  if (cfg->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS) {
+  if (cfg->ack_nack_feedback_mode == SRSRAN_PUCCH_ACK_NACK_FEEDBACK_MODE_CS) {
     return get_npucch_cs(cfg, uci_cfg, n_pucch_i, b);
   }
 

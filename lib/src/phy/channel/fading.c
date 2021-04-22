@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,9 +19,9 @@
  *
  */
 
-#include "srslte/phy/channel/fading.h"
-#include "srslte/phy/utils/random.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/channel/fading.h"
+#include "srsran/phy/utils/random.h"
+#include "srsran/phy/utils/vector.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,45 +32,45 @@
  */
 const static uint32_t nof_taps[4] = {1, 7, 9, 9};
 
-const static float excess_tap_delay_ns[4][SRSLTE_CHANNEL_FADING_MAXTAPS] = {
+const static float excess_tap_delay_ns[4][SRSRAN_CHANNEL_FADING_MAXTAPS] = {
     /* None */ {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN},
     /* EPA  */ {0, 30, 70, 90, 110, 190, 410, NAN, NAN},
     /* EVA  */ {0, 30, 150, 310, 370, 710, 1090, 1730, 2510},
     /* ETU  */ {0, 50, 120, 200, 230, 500, 1600, 2300, 5000}};
 
-const static float relative_power_db[4][SRSLTE_CHANNEL_FADING_MAXTAPS] = {
+const static float relative_power_db[4][SRSRAN_CHANNEL_FADING_MAXTAPS] = {
     /* None */ {+0.0f, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN},
     /* EPA  */ {+0.0f, -1.0f, -2.0f, -3.0f, -8.0f, -17.2f, -20.8f, NAN, NAN},
     /* EVA  */ {+0.0f, -1.5f, -1.4f, -3.6f, -0.6f, -9.1f, -7.0f, -12.0f, -16.9f},
     /* ETU  */ {-1.0f, -1.0f, -1.0f, +0.0f, +0.0f, +0.0f, -3.0f, -5.0f, -7.0f},
 };
 
-static inline int parse_model(srslte_channel_fading_t* q, const char* str)
+static inline int parse_model(srsran_channel_fading_t* q, const char* str)
 {
-  int      ret    = SRSLTE_SUCCESS;
+  int      ret    = SRSRAN_SUCCESS;
   uint32_t offset = 3;
 
   if (strncmp("none", str, 4) == 0) {
-    q->model = srslte_channel_fading_model_none;
+    q->model = srsran_channel_fading_model_none;
     offset   = 4;
   } else if (strncmp("epa", str, 3) == 0) {
-    q->model = srslte_channel_fading_model_epa;
+    q->model = srsran_channel_fading_model_epa;
   } else if (strncmp("eva", str, 3) == 0) {
-    q->model = srslte_channel_fading_model_eva;
+    q->model = srsran_channel_fading_model_eva;
   } else if (strncmp("etu", str, 3) == 0) {
-    q->model = srslte_channel_fading_model_etu;
+    q->model = srsran_channel_fading_model_etu;
   } else {
-    ret = SRSLTE_ERROR;
+    ret = SRSRAN_ERROR;
   }
 
-  if (ret == SRSLTE_SUCCESS) {
+  if (ret == SRSRAN_SUCCESS) {
     if (strlen(str) > offset) {
       q->doppler = (float)strtod(&str[offset], NULL);
       if (isnan(q->doppler) || isinf(q->doppler)) {
         q->doppler = 0.0f;
       }
     } else {
-      ret = SRSLTE_ERROR;
+      ret = SRSRAN_ERROR;
     }
   }
 
@@ -108,10 +108,10 @@ static inline __m128 _cosine(float* table, __m128 arg)
 #endif /*LV_HAVE_SSE*/
 
 static inline cf_t
-get_doppler_dispersion(srslte_channel_fading_t* q, float t, float F_d, float* alpha, float* a, float* b)
+get_doppler_dispersion(srsran_channel_fading_t* q, float t, float F_d, float* alpha, float* a, float* b)
 {
 #ifdef LV_HAVE_SSE
-  const float recN   = 1.0f / sqrtf(SRSLTE_CHANNEL_FADING_NTERMS);
+  const float recN   = 1.0f / sqrtf(SRSRAN_CHANNEL_FADING_NTERMS);
   cf_t        ret    = 0;
   __m128      _reacc = _mm_setzero_ps();
   __m128      _imacc = _mm_setzero_ps();
@@ -119,7 +119,7 @@ get_doppler_dispersion(srslte_channel_fading_t* q, float t, float F_d, float* al
   __m128      _t     = _mm_set1_ps(t);
   __m128      _arg_  = (_mm_mul_ps(_arg, _t));
 
-  for (int i = 0; i < SRSLTE_CHANNEL_FADING_NTERMS; i += 4) {
+  for (int i = 0; i < SRSRAN_CHANNEL_FADING_NTERMS; i += 4) {
     __m128 _alpha = _mm_loadu_ps(&alpha[i]);
     __m128 _a     = _mm_loadu_ps(&a[i]);
     __m128 _b     = _mm_loadu_ps(&b[i]);
@@ -140,10 +140,10 @@ get_doppler_dispersion(srslte_channel_fading_t* q, float t, float F_d, float* al
   return ret * recN;
 
 #else
-  const float recN = 1.0f / sqrtf(SRSLTE_CHANNEL_FADING_NTERMS);
+  const float recN = 1.0f / sqrtf(SRSRAN_CHANNEL_FADING_NTERMS);
   cf_t        r    = 0;
 
-  for (uint32_t i = 0; i < SRSLTE_CHANNEL_FADING_NTERMS; i++) {
+  for (uint32_t i = 0; i < SRSRAN_CHANNEL_FADING_NTERMS; i++) {
     float arg = (float)M_PI * F_d * cosf(alpha[i]) * t;
     __real__ r += cosf(arg + a[i]);
     __imag__ r += sinf(arg + b[i]);
@@ -155,14 +155,14 @@ get_doppler_dispersion(srslte_channel_fading_t* q, float t, float F_d, float* al
 
 static inline void generate_tap(float delay_ns, float power_db, float srate, cf_t* buf, uint32_t N, uint32_t path_delay)
 {
-  float amplitude = srslte_convert_dB_to_power(power_db);
+  float amplitude = srsran_convert_dB_to_power(power_db);
   float O         = (delay_ns * 1e-9f * srate + path_delay) / (float)N;
   cf_t  a0        = amplitude / N;
 
-  srslte_vec_gen_sine(a0, -O, buf, N);
+  srsran_vec_gen_sine(a0, -O, buf, N);
 }
 
-static inline void generate_taps(srslte_channel_fading_t* q, float time)
+static inline void generate_taps(srsran_channel_fading_t* q, float time)
 {
   // Generate taps
   for (int i = 0; i < nof_taps[q->model]; i++) {
@@ -171,53 +171,53 @@ static inline void generate_taps(srslte_channel_fading_t* q, float time)
 
     if (i) {
       // Copy tap frequency response
-      srslte_vec_sc_prod_ccc(q->h_tap[i], a, q->temp, q->N);
+      srsran_vec_sc_prod_ccc(q->h_tap[i], a, q->temp, q->N);
 
       // Add to frequency response, shifts FFT at same time
-      srslte_vec_sum_ccc(q->h_freq, &q->temp[q->N / 2], q->h_freq, q->N / 2);
-      srslte_vec_sum_ccc(&q->h_freq[q->N / 2], q->temp, &q->h_freq[q->N / 2], q->N / 2);
+      srsran_vec_sum_ccc(q->h_freq, &q->temp[q->N / 2], q->h_freq, q->N / 2);
+      srsran_vec_sum_ccc(&q->h_freq[q->N / 2], q->temp, &q->h_freq[q->N / 2], q->N / 2);
     } else {
       // Copy tap frequency response
-      srslte_vec_sc_prod_ccc(&q->h_tap[i][q->N / 2], a, q->h_freq, q->N / 2);
-      srslte_vec_sc_prod_ccc(&q->h_tap[i][0], a, &q->h_freq[q->N / 2], q->N / 2);
+      srsran_vec_sc_prod_ccc(&q->h_tap[i][q->N / 2], a, q->h_freq, q->N / 2);
+      srsran_vec_sc_prod_ccc(&q->h_tap[i][0], a, &q->h_freq[q->N / 2], q->N / 2);
     }
   }
   // at this stage, q->h_freq should contain the frequency response
 }
 
-static inline void filter_segment(srslte_channel_fading_t* q, const cf_t* input, cf_t* output, uint32_t nsamples)
+static inline void filter_segment(srsran_channel_fading_t* q, const cf_t* input, cf_t* output, uint32_t nsamples)
 {
   // Fill Input vector
-  srslte_vec_cf_copy(q->temp, input, nsamples);
-  srslte_vec_cf_zero(&q->temp[nsamples], q->N - nsamples);
+  srsran_vec_cf_copy(q->temp, input, nsamples);
+  srsran_vec_cf_zero(&q->temp[nsamples], q->N - nsamples);
 
   // Do FFT
-  srslte_dft_run_c_zerocopy(&q->fft, q->temp, q->y_freq);
+  srsran_dft_run_c_zerocopy(&q->fft, q->temp, q->y_freq);
 
   // Apply channel
-  srslte_vec_prod_ccc(q->y_freq, q->h_freq, q->y_freq, q->N);
+  srsran_vec_prod_ccc(q->y_freq, q->h_freq, q->y_freq, q->N);
 
   // Do iFFT
-  srslte_dft_run_c_zerocopy(&q->ifft, q->y_freq, q->temp);
+  srsran_dft_run_c_zerocopy(&q->ifft, q->y_freq, q->temp);
 
   // Add state
-  srslte_vec_sum_ccc(q->temp, q->state, q->temp, q->state_len);
+  srsran_vec_sum_ccc(q->temp, q->state, q->temp, q->state_len);
 
   // Copy the first nsamples into the output
-  srslte_vec_cf_copy(output, q->temp, nsamples);
+  srsran_vec_cf_copy(output, q->temp, nsamples);
 
   // Copy the rest of the samples into the state
   q->state_len = q->N - nsamples;
-  srslte_vec_cf_copy(q->state, &q->temp[nsamples], q->state_len);
+  srsran_vec_cf_copy(q->state, &q->temp[nsamples], q->state_len);
 }
 
-int srslte_channel_fading_init(srslte_channel_fading_t* q, double srate, const char* model, uint32_t seed)
+int srsran_channel_fading_init(srsran_channel_fading_t* q, double srate, const char* model, uint32_t seed)
 {
-  int ret = SRSLTE_ERROR;
+  int ret = SRSRAN_ERROR;
 
   if (q) {
     // Parse model
-    if (parse_model(q, model) != SRSLTE_SUCCESS) {
+    if (parse_model(q, model) != SRSRAN_SUCCESS) {
       fprintf(stderr, "Error: invalid channel model '%s'\n", model);
       goto clean_exit;
     }
@@ -228,24 +228,24 @@ int srslte_channel_fading_init(srslte_channel_fading_t* q, double srate, const c
     // Populate internal parameters
     uint32_t fft_min_pow =
         (uint32_t)round(log2(excess_tap_delay_ns[q->model][nof_taps[q->model] - 1] * 1e-9 * srate)) + 3;
-    q->N          = SRSLTE_MAX(1U << fft_min_pow, (uint32_t)(srate / (15e3f * 4.0f)));
+    q->N          = SRSRAN_MAX(1U << fft_min_pow, (uint32_t)(srate / (15e3f * 4.0f)));
     q->path_delay = q->N / 4;
     q->state_len  = 0;
 
     // Initialise random number
-    srslte_random_t* random = srslte_random_init(seed);
+    srsran_random_t* random = srsran_random_init(seed);
 
     // Initialise values for each tap
     for (uint32_t i = 0; i < nof_taps[q->model]; i++) {
       // Random Jakes model Coeffients
-      for (uint32_t j = 0; (float)j < SRSLTE_CHANNEL_FADING_NTERMS; j++) {
-        q->coeff_a[i][j]     = srslte_random_uniform_real_dist(random, 0, 2.0f * (float)M_PI);
-        q->coeff_b[i][j]     = srslte_random_uniform_real_dist(random, 0, 2.0f * (float)M_PI);
+      for (uint32_t j = 0; (float)j < SRSRAN_CHANNEL_FADING_NTERMS; j++) {
+        q->coeff_a[i][j]     = srsran_random_uniform_real_dist(random, 0, 2.0f * (float)M_PI);
+        q->coeff_b[i][j]     = srsran_random_uniform_real_dist(random, 0, 2.0f * (float)M_PI);
         q->coeff_alpha[i][j] = ((float)M_PI * ((float)i - (float)0.5f)) / (2.0f * nof_taps[q->model]);
       }
 
       // Allocate tap frequency response
-      q->h_tap[i] = srslte_vec_cf_malloc(q->N);
+      q->h_tap[i] = srsran_vec_cf_malloc(q->N);
 
       // Generate tap frequency response
       generate_tap(
@@ -258,58 +258,58 @@ int srslte_channel_fading_init(srslte_channel_fading_t* q, double srate, const c
     }
 
     // Free random
-    srslte_random_free(random);
+    srsran_random_free(random);
 
     // Plan FFT
-    if (srslte_dft_plan_c(&q->fft, q->N, SRSLTE_DFT_FORWARD) != SRSLTE_SUCCESS) {
+    if (srsran_dft_plan_c(&q->fft, q->N, SRSRAN_DFT_FORWARD) != SRSRAN_SUCCESS) {
       fprintf(stderr, "Error: planning fft\n");
       goto clean_exit;
     }
 
     // Plan iFFT
-    if (srslte_dft_plan_c(&q->ifft, q->N, SRSLTE_DFT_BACKWARD) != SRSLTE_SUCCESS) {
+    if (srsran_dft_plan_c(&q->ifft, q->N, SRSRAN_DFT_BACKWARD) != SRSRAN_SUCCESS) {
       fprintf(stderr, "Error: planning ifft\n");
       goto clean_exit;
     }
 
     // Allocate memory
-    q->temp = srslte_vec_cf_malloc(q->N);
+    q->temp = srsran_vec_cf_malloc(q->N);
     if (!q->temp) {
       fprintf(stderr, "Error: allocating h_freq\n");
       goto clean_exit;
     }
 
-    q->h_freq = srslte_vec_cf_malloc(q->N);
+    q->h_freq = srsran_vec_cf_malloc(q->N);
     if (!q->h_freq) {
       fprintf(stderr, "Error: allocating h_freq\n");
       goto clean_exit;
     }
 
-    q->y_freq = srslte_vec_cf_malloc(q->N);
+    q->y_freq = srsran_vec_cf_malloc(q->N);
     if (!q->y_freq) {
       fprintf(stderr, "Error: allocating y_freq\n");
       goto clean_exit;
     }
 
-    q->state = srslte_vec_cf_malloc(q->N);
+    q->state = srsran_vec_cf_malloc(q->N);
     if (!q->state) {
       fprintf(stderr, "Error: allocating y_freq\n");
       goto clean_exit;
     }
-    srslte_vec_cf_zero(q->state, q->N);
+    srsran_vec_cf_zero(q->state, q->N);
   }
 
-  ret = SRSLTE_SUCCESS;
+  ret = SRSRAN_SUCCESS;
 
 clean_exit:
   return ret;
 }
 
-void srslte_channel_fading_free(srslte_channel_fading_t* q)
+void srsran_channel_fading_free(srsran_channel_fading_t* q)
 {
   if (q) {
-    srslte_dft_plan_free(&q->fft);
-    srslte_dft_plan_free(&q->ifft);
+    srsran_dft_plan_free(&q->fft);
+    srsran_dft_plan_free(&q->ifft);
 
     if (q->temp) {
       free(q->temp);
@@ -335,7 +335,7 @@ void srslte_channel_fading_free(srslte_channel_fading_t* q)
   }
 }
 
-double srslte_channel_fading_execute(srslte_channel_fading_t* q,
+double srsran_channel_fading_execute(srsran_channel_fading_t* q,
                                      const cf_t*              in,
                                      cf_t*                    out,
                                      uint32_t                 nsamples,
@@ -349,7 +349,7 @@ double srslte_channel_fading_execute(srslte_channel_fading_t* q,
       generate_taps(q, (float)init_time);
 
       // Do not process more than N/2 samples
-      uint32_t n = SRSLTE_MIN(q->N / 2, nsamples - counter);
+      uint32_t n = SRSRAN_MIN(q->N / 2, nsamples - counter);
 
       // Execute
       filter_segment(q, &in[counter], &out[counter], n);

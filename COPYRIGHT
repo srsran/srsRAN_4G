@@ -1,9 +1,9 @@
 Files: *
-Copyright: 2013-2020, Software Radio Systems Limited.
-License: AGPL-3+
+Copyright: 2013-2021, Software Radio Systems Limited.
+License:
 
 
-The following files are used within srsLTE:
+The following files are used within srsRAN:
 
 Files:  lib/src/phy/fec/viterbi37_port.c
         lib/src/phy/fec/viterbi37_sse.c
@@ -19,33 +19,37 @@ Files:  srsue/src/upper/pcsc_usim.cc
 Copyright: 2002-2014, Jouni Malinen <j@w1.fi>
 License: BSD-3-clause
 
-Files:  lib/include/srslte/asn1/liblte_common.h
-        lib/include/srslte/asn1/liblte_mme.h
-        lib/include/srslte/common/liblte_security.h
+Files:  lib/include/srsran/asn1/liblte_common.h
+        lib/include/srsran/asn1/liblte_mme.h
+        lib/include/srsran/common/liblte_security.h
         lib/src/asn1/liblte_common.cc
         lib/src/asn1/liblte_mme.cc
         lib/src/common/liblte_security.cc
 Copyright: 2012-2014 Ben Wojtowicz
 License: AGPL-3+
 
-Files:  lib/include/srslte/srslog/bundled/fmt/chrono.h
-        lib/include/srslte/srslog/bundled/fmt/color.h
-        lib/include/srslte/srslog/bundled/fmt/compile.h
-        lib/include/srslte/srslog/bundled/fmt/core.h
-        lib/include/srslte/srslog/bundled/fmt/format.h
-        lib/include/srslte/srslog/bundled/fmt/format-inl.h
-        lib/include/srslte/srslog/bundled/fmt/LICENSE.rst
-        lib/include/srslte/srslog/bundled/fmt/locale.h
-        lib/include/srslte/srslog/bundled/fmt/os.h
-        lib/include/srslte/srslog/bundled/fmt/ostream.h
-        lib/include/srslte/srslog/bundled/fmt/posix.h
-        lib/include/srslte/srslog/bundled/fmt/printf.h
-        lib/include/srslte/srslog/bundled/fmt/ranges.h
+Files:  lib/include/srsran/srslog/bundled/fmt/chrono.h
+        lib/include/srsran/srslog/bundled/fmt/color.h
+        lib/include/srsran/srslog/bundled/fmt/compile.h
+        lib/include/srsran/srslog/bundled/fmt/core.h
+        lib/include/srsran/srslog/bundled/fmt/format.h
+        lib/include/srsran/srslog/bundled/fmt/format-inl.h
+        lib/include/srsran/srslog/bundled/fmt/LICENSE.rst
+        lib/include/srsran/srslog/bundled/fmt/locale.h
+        lib/include/srsran/srslog/bundled/fmt/os.h
+        lib/include/srsran/srslog/bundled/fmt/ostream.h
+        lib/include/srsran/srslog/bundled/fmt/posix.h
+        lib/include/srsran/srslog/bundled/fmt/printf.h
+        lib/include/srsran/srslog/bundled/fmt/ranges.h
         lib/src/srslog/bundled/fmt/format.cc
         lib/src/srslog/bundled/fmt/os.cc
 Copyright: 2012-2020, Victor Zverovich
 License: MIT
 
+Files:  lib/include/srsran/common/backward.hpp
+        cmake/modules/FindBackward.cmake
+Copyright: 2013, Google Inc.
+License: MIT
 
 License: AGPL-3+
   This program is free software: you can redistribute it and/or modify
@@ -59,7 +63,7 @@ License: AGPL-3+
   GNU Affero General Public License for more details.
   .
   On Debian systems, the complete text of the AGPL 3 can be found in
-  /usr/share/doc/srslte/LICENSE
+  /usr/share/doc/srsran/LICENSE
 
 
 License: LGPL-2.1

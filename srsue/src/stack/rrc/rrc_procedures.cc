@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -20,21 +20,24 @@
  */
 
 #include "srsue/hdr/stack/rrc/rrc_procedures.h"
-#include "srslte/common/security.h"
-#include "srslte/common/standard_streams.h"
-#include "srslte/common/tti_point.h"
+#include "srsran/common/security.h"
+#include "srsran/common/standard_streams.h"
+#include "srsran/common/tti_point.h"
+#include "srsran/interfaces/ue_pdcp_interfaces.h"
+#include "srsran/interfaces/ue_rlc_interfaces.h"
+#include "srsran/interfaces/ue_usim_interfaces.h"
 #include "srsue/hdr/stack/rrc/rrc_meas.h"
 #include <inttypes.h> // for printing uint64_t
 
-#define Error(fmt, ...) rrc_ptr->rrc_log->error("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
-#define Warning(fmt, ...) rrc_ptr->rrc_log->warning("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
-#define Info(fmt, ...) rrc_ptr->rrc_log->info("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
-#define Debug(fmt, ...) rrc_ptr->rrc_log->debug("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
+#define Error(fmt, ...) rrc_ptr->logger.error("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
+#define Warning(fmt, ...) rrc_ptr->logger.warning("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
+#define Info(fmt, ...) rrc_ptr->logger.info("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
+#define Debug(fmt, ...) rrc_ptr->logger.debug("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
 
 namespace srsue {
 
-using srslte::proc_outcome_t;
-using srslte::tti_point;
+using srsran::proc_outcome_t;
+using srsran::tti_point;
 
 /**************************************
  *       Cell Search Procedure
@@ -45,10 +48,10 @@ rrc::cell_search_proc::cell_search_proc(rrc* parent_) : rrc_ptr(parent_) {}
 /* Searches for a cell in the current frequency and retrieves SIB1 if not retrieved yet */
 proc_outcome_t rrc::cell_search_proc::init()
 {
-  Info("Starting...\n");
+  Info("Starting...");
   state = state_t::phy_cell_search;
   if (not rrc_ptr->phy_ctrl->start_cell_search(rrc_ptr->cell_searcher)) {
-    Warning("Failed to initiate Cell Search.\n");
+    Warning("Failed to initiate Cell Search.");
     return proc_outcome_t::error;
   }
   return proc_outcome_t::yield;
@@ -77,22 +80,22 @@ proc_outcome_t rrc::cell_search_proc::step_si_acquire()
   }
   // SI Acquire has completed
   if (si_acquire_fut.is_error()) {
-    Error("Failed SI acquire for SIB0\n");
+    Error("Failed SI acquire for SIB0");
     search_result.cs_ret.found = cell_search_ret_t::CELL_NOT_FOUND;
     return proc_outcome_t::success;
   }
-  Info("Completed successfully\n");
+  Info("Completed successfully");
   return proc_outcome_t::success;
 }
 
 proc_outcome_t rrc::cell_search_proc::handle_cell_found(const phy_cell_t& new_cell)
 {
-  Info("Cell found in this frequency. Setting new serving cell EARFCN=%d PCI=%d ...\n", new_cell.earfcn, new_cell.pci);
+  Info("Cell found in this frequency. Setting new serving cell EARFCN=%d PCI=%d ...", new_cell.earfcn, new_cell.pci);
 
   // Create a cell with NaN RSRP. Will be updated by new_phy_meas() during SIB search.
   if (not rrc_ptr->meas_cells.add_meas_cell(
-          unique_cell_t(new meas_cell(new_cell, rrc_ptr->task_sched.get_unique_timer())))) {
-    Error("Could not add new found cell\n");
+          unique_cell_t(new meas_cell_eutra(new_cell, rrc_ptr->task_sched.get_unique_timer())))) {
+    Error("Could not add new found cell");
     return proc_outcome_t::error;
   }
 
@@ -101,7 +104,7 @@ proc_outcome_t rrc::cell_search_proc::handle_cell_found(const phy_cell_t& new_ce
   // set new serving cell in PHY
   state = state_t::phy_cell_select;
   if (not rrc_ptr->phy_ctrl->start_cell_select(rrc_ptr->meas_cells.serving_cell().phy_cell, rrc_ptr->cell_searcher)) {
-    Error("Couldn't start phy cell selection\n");
+    Error("Couldn't start phy cell selection");
     return proc_outcome_t::error;
   }
   return proc_outcome_t::yield;
@@ -114,14 +117,14 @@ proc_outcome_t rrc::cell_search_proc::step_wait_measurement()
   }
 
   if (rrc_ptr->meas_cells.serving_cell().has_sib1()) {
-    Info("Cell has SIB1\n");
+    Info("Cell has SIB1");
     return proc_outcome_t::success;
   }
 
-  Info("Cell has no SIB1. Obtaining SIB1...\n");
+  Info("Cell has no SIB1. Obtaining SIB1...");
   if (not rrc_ptr->si_acquirer.launch(&si_acquire_fut, 0)) {
     // disallow concurrent si_acquire
-    Error("SI Acquire is already running...\n");
+    Error("SI Acquire is already running...");
     return proc_outcome_t::error;
   }
   state = state_t::si_acquire;
@@ -131,24 +134,24 @@ proc_outcome_t rrc::cell_search_proc::step_wait_measurement()
 proc_outcome_t rrc::cell_search_proc::react(const bool& cs_ret)
 {
   if (state != state_t::phy_cell_select) {
-    Warning("Received unexpected cell search result\n");
+    Warning("Received unexpected cell search result");
     return proc_outcome_t::yield;
   }
 
   if (not cs_ret) {
-    Error("Couldn't select new serving cell\n");
+    Error("Couldn't select new serving cell");
     search_result.cs_ret.found = cell_search_ret_t::CELL_NOT_FOUND;
     return proc_outcome_t::success;
   }
 
   if (not rrc_ptr->phy->cell_is_camping()) {
-    Warning("Could not camp on found cell.\n");
+    Warning("Could not camp on found cell.");
     search_result.cs_ret.found = cell_search_ret_t::CELL_NOT_FOUND;
     return proc_outcome_t::success;
   }
 
   if (not std::isnormal(rrc_ptr->meas_cells.serving_cell().get_rsrp())) {
-    Info("No valid measurement found for the serving cell. Wait for valid measurement...\n");
+    Info("No valid measurement found for the serving cell. Wait for valid measurement...");
   }
   state = state_t::wait_measurement;
   return proc_outcome_t::yield;
@@ -157,7 +160,7 @@ proc_outcome_t rrc::cell_search_proc::react(const bool& cs_ret)
 proc_outcome_t rrc::cell_search_proc::react(const phy_controller::cell_srch_res& event)
 {
   if (state != state_t::phy_cell_search) {
-    Error("Received unexpected cell search result\n");
+    Error("Received unexpected cell search result");
     return proc_outcome_t::error;
   }
   search_result = event;
@@ -245,7 +248,7 @@ compute_si_window(uint32_t tti, uint32_t sib_index, uint32_t n, uint32_t T, cons
 
 rrc::si_acquire_proc::si_acquire_proc(rrc* parent_) :
   rrc_ptr(parent_),
-  log_h(srslte::logmap::get("RRC")),
+  logger(srslog::fetch_basic_logger("RRC")),
   si_acq_timeout(rrc_ptr->task_sched.get_unique_timer()),
   si_acq_retry_timer(rrc_ptr->task_sched.get_unique_timer())
 {
@@ -261,22 +264,22 @@ proc_outcome_t rrc::si_acquire_proc::init(uint32_t sib_index_)
 {
   // make sure we dont already have the SIB of interest
   if (rrc_ptr->meas_cells.serving_cell().has_sib(sib_index_)) {
-    Info("The UE has already acquired SIB%d\n", sib_index + 1);
+    Info("The UE has already acquired SIB%d", sib_index + 1);
     return proc_outcome_t::success;
   }
-  Info("Starting SI Acquisition procedure for SIB%d\n", sib_index_ + 1);
+  Info("Starting SI Acquisition procedure for SIB%d", sib_index_ + 1);
 
   // make sure SIB1 is captured before other SIBs
   sib_index = sib_index_;
   if (sib_index > 0 and not rrc_ptr->meas_cells.serving_cell().has_sib1()) {
-    Error("Trying to acquire SIB%d but SIB1 not received yet\n", sib_index + 1);
+    Error("Trying to acquire SIB%d but SIB1 not received yet", sib_index + 1);
     return proc_outcome_t::error;
   }
 
   // compute the si-Periodicity and schedInfoList index
   auto ret = compute_si_periodicity_and_idx(sib_index, rrc_ptr->meas_cells.serving_cell().sib1ptr());
   if (ret.second < 0) {
-    Info("Could not find SIB%d scheduling in SIB1\n", sib_index + 1);
+    Info("Could not find SIB%d scheduling in SIB1", sib_index + 1);
     return proc_outcome_t::error;
   }
   period      = ret.first;  // si-Periodicity
@@ -291,16 +294,16 @@ proc_outcome_t rrc::si_acquire_proc::init(uint32_t sib_index_)
   return proc_outcome_t::yield;
 }
 
-void rrc::si_acquire_proc::then(const srslte::proc_state_t& result)
+void rrc::si_acquire_proc::then(const srsran::proc_state_t& result)
 {
   // make sure timers are stopped
   si_acq_retry_timer.stop();
   si_acq_timeout.stop();
 
   if (result.is_success()) {
-    Info("SIB%d acquired successfully\n", sib_index + 1);
+    Info("SIB%d acquired successfully", sib_index + 1);
   } else {
-    Error("Failed to acquire SIB%d\n", sib_index + 1);
+    Error("Failed to acquire SIB%d", sib_index + 1);
   }
 }
 
@@ -314,7 +317,7 @@ void rrc::si_acquire_proc::start_si_acquire()
       compute_si_window(tti.to_uint(), sib_index, sched_index, period, rrc_ptr->meas_cells.serving_cell().sib1ptr());
   tti_point si_win_start = tti_point{ret.first};
   if (si_win_start < tti) {
-    Error("The SI Window start was incorrectly calculated. si_win_start=%d, tti=%d\n",
+    Error("The SI Window start was incorrectly calculated. si_win_start=%d, tti=%d",
           si_win_start.to_uint(),
           tti.to_uint());
     return;
@@ -329,7 +332,7 @@ void rrc::si_acquire_proc::start_si_acquire()
   si_acq_retry_timer.set(tics_until_si_retry);
   si_acq_retry_timer.run();
 
-  Info("Instructed MAC to search for SIB%d, win_start=%d, win_len=%d, period=%d, sched_index=%d\n",
+  Info("Instructed MAC to search for SIB%d, win_start=%d, win_len=%d, period=%d, sched_index=%d",
        sib_index + 1,
        si_win_start.to_uint(),
        si_win_len,
@@ -350,16 +353,16 @@ proc_outcome_t rrc::si_acquire_proc::react(si_acq_timer_expired ev)
 
   // retry si acquire
   if (ev.timer_id == si_acq_retry_timer.id()) {
-    Info("SI Acquire Retry Timeout for SIB%d\n", sib_index + 1);
+    Info("SI Acquire Retry Timeout for SIB%d", sib_index + 1);
     start_si_acquire();
     return proc_outcome_t::yield;
   }
 
   // timeout. SI acquire failed
   if (ev.timer_id == si_acq_timeout.id()) {
-    Error("Timeout while acquiring SIB%d\n", sib_index + 1);
+    Error("Timeout while acquiring SIB%d", sib_index + 1);
   } else {
-    Error("Unrecognized timer id\n");
+    Error("Unrecognized timer id");
   }
   return proc_outcome_t::error;
 }
@@ -369,8 +372,7 @@ proc_outcome_t rrc::si_acquire_proc::react(si_acq_timer_expired ev)
  *************************************/
 
 rrc::serving_cell_config_proc::serving_cell_config_proc(rrc* parent_) :
-  rrc_ptr(parent_),
-  log_h(srslte::logmap::get("RRC"))
+  rrc_ptr(parent_), logger(srslog::fetch_basic_logger("RRC"))
 {}
 
 /*
@@ -383,10 +385,10 @@ proc_outcome_t rrc::serving_cell_config_proc::init(const std::vector<uint32_t>& 
   std::sort(required_sibs.begin(), required_sibs.end());
   required_sibs.erase(std::unique(required_sibs.begin(), required_sibs.end()), required_sibs.end());
 
-  Info("Starting a Serving Cell Configuration Procedure\n");
+  Info("Starting a Serving Cell Configuration Procedure");
 
   if (not rrc_ptr->phy->cell_is_camping()) {
-    Error("Trying to configure Cell while not camping on it\n");
+    Error("Trying to configure Cell while not camping on it");
     return proc_outcome_t::error;
   }
 
@@ -396,16 +398,16 @@ proc_outcome_t rrc::serving_cell_config_proc::init(const std::vector<uint32_t>& 
   return launch_sib_acquire();
 }
 
-srslte::proc_outcome_t rrc::serving_cell_config_proc::launch_sib_acquire()
+srsran::proc_outcome_t rrc::serving_cell_config_proc::launch_sib_acquire()
 {
   // Obtain the SIBs if not available or apply the configuration if available
   for (; req_idx < required_sibs.size(); req_idx++) {
     uint32_t required_sib = required_sibs[req_idx];
     if (not rrc_ptr->meas_cells.serving_cell().has_sib(required_sib)) {
       if (required_sib < 2 or rrc_ptr->meas_cells.serving_cell().is_sib_scheduled(required_sib)) {
-        Info("Cell has no SIB%d. Obtaining SIB%d\n", required_sib + 1, required_sib + 1);
+        Info("Cell has no SIB%d. Obtaining SIB%d", required_sib + 1, required_sib + 1);
         if (not rrc_ptr->si_acquirer.launch(&si_acquire_fut, required_sib)) {
-          Error("SI Acquire is already running...\n");
+          Error("SI Acquire is already running...");
           return proc_outcome_t::error;
         }
         // wait for si acquire to finish
@@ -414,7 +416,7 @@ srslte::proc_outcome_t rrc::serving_cell_config_proc::launch_sib_acquire()
       // SIB is not scheduled in SchedInfoList. Skipping it...
     } else {
       // UE had SIB already. Handle its SIB
-      Info("Cell has SIB%d\n", required_sib + 1);
+      Info("Cell has SIB%d", required_sib + 1);
       switch (required_sib) {
         case 1:
           rrc_ptr->handle_sib2();
@@ -428,7 +430,7 @@ srslte::proc_outcome_t rrc::serving_cell_config_proc::launch_sib_acquire()
     }
   }
 
-  Info("Serving Cell Configuration Procedure has finished successfully\n");
+  Info("Serving Cell Configuration Procedure has finished successfully");
   return proc_outcome_t::success;
 }
 
@@ -440,7 +442,7 @@ proc_outcome_t rrc::serving_cell_config_proc::step()
   uint32_t required_sib = required_sibs[req_idx];
   if (si_acquire_fut.is_error() or not rrc_ptr->meas_cells.serving_cell().has_sib(required_sib)) {
     if (required_sib < 2) {
-      log_h->warning("Serving Cell Configuration has failed\n");
+      logger.warning("Serving Cell Configuration has failed");
       return proc_outcome_t::error;
     }
   }
@@ -505,37 +507,35 @@ proc_outcome_t rrc::cell_selection_proc::init(std::vector<uint32_t> required_sib
   required_sibs.insert(required_sibs.end(), mandatory_sibs.begin(), mandatory_sibs.end());
   init_serv_cell = meas_cells->serving_cell().phy_cell;
 
-  // Check if there are sronger neighbors in same EARFCN
+  // Check if there are stronger neighbors in any EARFCN
   const sib_type3_s* sib3      = meas_cells->serving_cell().sib3ptr();
-  uint32_t           threshold = sib3 != nullptr ? sib3->cell_resel_serving_freq_info.thresh_serving_low * 2 : 5;
-  bool               stronger_neigh_in_earfcn =
-      std::any_of(meas_cells->begin(), meas_cells->end(), [this, threshold](const unique_cell_t& c) {
-        return meas_cells->serving_cell().get_earfcn() == c->get_earfcn() and std::isnormal(c->get_rsrp()) and
-               meas_cells->serving_cell().get_rsrp() + threshold < c->get_rsrp();
-      });
+  uint32_t           threshold = sib3 != nullptr ? sib3->cell_resel_serving_freq_info.thresh_serving_low * 2 : 3;
+  bool stronger_neigh = std::any_of(meas_cells->begin(), meas_cells->end(), [this, threshold](const unique_cell_t& c) {
+    return std::isnormal(c->get_rsrp()) and meas_cells->serving_cell().get_rsrp() + threshold < c->get_rsrp();
+  });
 
   // Skip cell selection if serving cell is suitable and there are no stronger neighbours in same earfcn
-  if (is_serv_cell_suitable() and not stronger_neigh_in_earfcn) {
-    Debug("Skipping cell selection procedure as there are no stronger neighbours in same EARFCN.\n");
+  if (is_serv_cell_suitable() and not stronger_neigh) {
+    Debug("Skipping cell selection procedure as there are no stronger neighbours in same EARFCN.");
     return set_proc_complete();
   }
 
-  Info("Starting...\n");
-  Info("Current neighbor cells: [%s]\n", meas_cells->print_neighbour_cells().c_str());
-  Info("Current PHY state: %s\n", rrc_ptr->phy_ctrl->is_in_sync() ? "in-sync" : "out-of-sync");
+  Info("Starting...");
+  Info("Current neighbor cells: [%s]", meas_cells->print_neighbour_cells().c_str());
+  Info("Current PHY state: %s", rrc_ptr->phy_ctrl->is_in_sync() ? "in-sync" : "out-of-sync");
   if (meas_cells->serving_cell().has_sib3()) {
-    Info("Cell selection criteria: Qrxlevmin=%f, Qrxlevminoffset=%f\n",
+    Info("Cell selection criteria: Qrxlevmin=%f, Qrxlevminoffset=%f",
          rrc_ptr->cell_resel_cfg.Qrxlevmin,
          rrc_ptr->cell_resel_cfg.Qrxlevminoffset);
   } else {
-    Info("Cell selection criteria: not available\n");
+    Info("Cell selection criteria: not available");
   }
-  Info("Current serving cell: %s\n", meas_cells->serving_cell().to_string().c_str());
+  Info("Current serving cell: %s", meas_cells->serving_cell().to_string().c_str());
 
   neigh_index                = 0;
   cs_result                  = cs_result_t::no_cell;
   discard_serving            = false;
-  serv_cell_select_attempted = stronger_neigh_in_earfcn;
+  serv_cell_select_attempted = stronger_neigh;
   cell_search_called         = false;
   state                      = search_state_t::cell_selection;
   return start_next_cell_selection();
@@ -563,7 +563,7 @@ proc_outcome_t rrc::cell_selection_proc::start_next_cell_selection()
   // If serving is not available, use the stored information (known neighbours) to find the strongest
   // cell that meets the selection criteria.
   for (; neigh_index < meas_cells->nof_neighbours(); ++neigh_index) {
-    const meas_cell& neigh_cell = meas_cells->at(neigh_index);
+    const meas_cell_eutra& neigh_cell = meas_cells->at(neigh_index);
 
     /*TODO: CHECK that PLMN matches. Currently we don't receive SIB1 of neighbour cells
      * meas_cells[i]->plmn_equals(selected_plmn_id) && */
@@ -575,7 +575,7 @@ proc_outcome_t rrc::cell_selection_proc::start_next_cell_selection()
 
   // If any of the known cells meets the selection criteria or could not be selected, search again.
   if (not cell_search_called) {
-    Info("Could not select any known cell. Searching new cells\n");
+    Info("Could not select any known cell. Searching new cells");
     state              = search_state_t::cell_search;
     cell_search_called = true;
     if (not rrc_ptr->cell_searcher.launch(&cell_search_fut)) {
@@ -589,7 +589,7 @@ proc_outcome_t rrc::cell_selection_proc::start_next_cell_selection()
 proc_outcome_t rrc::cell_selection_proc::react(const bool& cell_selection_result)
 {
   if (state != search_state_t::cell_selection) {
-    Warning("Unexpected cell selection event received\n");
+    Warning("Unexpected cell selection event received");
     return proc_outcome_t::yield;
   }
 
@@ -603,18 +603,18 @@ proc_outcome_t rrc::cell_selection_proc::react(const bool& cell_selection_result
     }
   }
 
-  Info("Cell selection criteria not passed.\n");
+  Info("Cell selection criteria not passed.");
 
   discard_serving = not is_same_cell(init_serv_cell, meas_cells->serving_cell());
   return start_next_cell_selection();
 }
 
-srslte::proc_outcome_t rrc::cell_selection_proc::start_phy_cell_selection(const meas_cell& cell)
+srsran::proc_outcome_t rrc::cell_selection_proc::start_phy_cell_selection(const meas_cell_eutra& cell)
 {
   if (not is_same_cell(cell, meas_cells->serving_cell())) {
     rrc_ptr->set_serving_cell(cell.phy_cell, discard_serving);
     discard_serving = false;
-    Info("Set serving cell: %s\n", meas_cells->serving_cell().to_string().c_str());
+    Info("Set serving cell: %s", meas_cells->serving_cell().to_string().c_str());
   } else {
     // in case the cell had already been selected
     if (is_serv_cell_suitable()) {
@@ -627,18 +627,18 @@ srslte::proc_outcome_t rrc::cell_selection_proc::start_phy_cell_selection(const 
 
   state = search_state_t::cell_selection;
   if (not rrc_ptr->phy_ctrl->start_cell_select(meas_cells->serving_cell().phy_cell, rrc_ptr->cell_selector)) {
-    Error("Failed to launch PHY Cell Selection\n");
+    Error("Failed to launch PHY Cell Selection");
     return set_proc_complete();
   }
   return proc_outcome_t::yield;
 }
 
-srslte::proc_outcome_t rrc::cell_selection_proc::start_sib_acquisition()
+srsran::proc_outcome_t rrc::cell_selection_proc::start_sib_acquisition()
 {
-  Info("PHY is camping on serving cell, but SIBs need to be acquired\n");
+  Info("PHY is camping on serving cell, but SIBs need to be acquired");
   state = search_state_t::cell_config;
   if (not rrc_ptr->serv_cell_cfg.launch(&serv_cell_cfg_fut, required_sibs)) {
-    Warning("Failed to launch %s procedure\n", rrc_ptr->serv_cell_cfg.get()->name());
+    Warning("Failed to launch %s procedure", rrc_ptr->serv_cell_cfg.get()->name());
     return set_proc_complete();
   }
   return proc_outcome_t::yield;
@@ -665,7 +665,7 @@ proc_outcome_t rrc::cell_selection_proc::step_cell_config()
   if (is_serv_cell_suitable()) {
     return set_proc_complete();
   }
-  Error("Failed to configure serving cell\n");
+  Error("Failed to configure serving cell");
   return start_next_cell_selection();
 }
 
@@ -686,30 +686,32 @@ proc_outcome_t rrc::cell_selection_proc::step()
   return proc_outcome_t::error;
 }
 
-void rrc::cell_selection_proc::then(const srslte::proc_result_t<cs_result_t>& proc_result) const
+void rrc::cell_selection_proc::then(const srsran::proc_result_t<cs_result_t>& proc_result) const
 {
-  Info("Completed with %s.\n", proc_result.is_success() ? "success" : "failure");
+  Info("Completed with %s.", proc_result.is_success() ? "success" : "failure");
   // Inform Connection Request Procedure
-  if (rrc_ptr->conn_req_proc.is_busy()) {
-    rrc_ptr->conn_req_proc.trigger(proc_result);
-  } else if (rrc_ptr->connection_reest.is_busy()) {
-    rrc_ptr->connection_reest.trigger(proc_result);
-  }
+  rrc_ptr->task_sched.defer_task([this, proc_result]() {
+    if (rrc_ptr->conn_req_proc.is_busy()) {
+      rrc_ptr->conn_req_proc.trigger(proc_result);
+    } else if (rrc_ptr->connection_reest.is_busy()) {
+      rrc_ptr->connection_reest.trigger(proc_result);
+    }
+  });
 }
 
 /**************************************
  *       PLMN search Procedure
  *************************************/
 
-rrc::plmn_search_proc::plmn_search_proc(rrc* parent_) : rrc_ptr(parent_), log_h(srslte::logmap::get("RRC")) {}
+rrc::plmn_search_proc::plmn_search_proc(rrc* parent_) : rrc_ptr(parent_), logger(srslog::fetch_basic_logger("RRC")) {}
 
 proc_outcome_t rrc::plmn_search_proc::init()
 {
-  Info("Starting PLMN search\n");
+  Info("Starting PLMN search");
   nof_plmns       = 0;
   cell_search_fut = rrc_ptr->cell_searcher.get_future();
   if (not rrc_ptr->cell_searcher.launch(&cell_search_fut)) {
-    Error("Failed due to fail to init cell search...\n");
+    Error("Failed due to fail to init cell search...");
     return proc_outcome_t::error;
   }
   return step();
@@ -729,7 +731,7 @@ proc_outcome_t rrc::plmn_search_proc::step()
   if (cell_search_fut.is_error() or cell_search_fut.value()->found == cell_search_ret_t::ERROR) {
     // stop search
     nof_plmns = -1;
-    Error("Failed due to failed cell search sub-procedure\n");
+    Error("Failed due to failed cell search sub-procedure");
     return proc_outcome_t::error;
   }
 
@@ -737,26 +739,26 @@ proc_outcome_t rrc::plmn_search_proc::step()
     if (rrc_ptr->meas_cells.serving_cell().has_sib1()) {
       // Save PLMN and TAC to NAS
       for (uint32_t i = 0; i < rrc_ptr->meas_cells.serving_cell().nof_plmns(); i++) {
-        if (nof_plmns < MAX_FOUND_PLMNS) {
+        if (nof_plmns < nas_interface_rrc::MAX_FOUND_PLMNS) {
           found_plmns[nof_plmns].plmn_id = rrc_ptr->meas_cells.serving_cell().get_plmn(i);
           found_plmns[nof_plmns].tac     = rrc_ptr->meas_cells.serving_cell().get_tac();
           nof_plmns++;
         } else {
-          Error("No more space for plmns (%d)\n", nof_plmns);
+          Error("No more space for plmns (%d)", nof_plmns);
         }
       }
     } else {
-      Error("SIB1 not acquired\n");
+      Error("SIB1 not acquired");
     }
   }
 
   if (cell_search_fut.value()->last_freq == cell_search_ret_t::NO_MORE_FREQS) {
-    Info("completed PLMN search\n");
+    Info("completed PLMN search");
     return proc_outcome_t::success;
   }
 
   if (not rrc_ptr->cell_searcher.launch(&cell_search_fut)) {
-    Error("Failed due to fail to init cell search...\n");
+    Error("Failed due to fail to init cell search...");
     return proc_outcome_t::error;
   }
 
@@ -764,14 +766,14 @@ proc_outcome_t rrc::plmn_search_proc::step()
   return step();
 }
 
-void rrc::plmn_search_proc::then(const srslte::proc_state_t& result) const
+void rrc::plmn_search_proc::then(const srsran::proc_state_t& result) const
 {
   // on cleanup, call plmn_search_completed
   if (result.is_success()) {
-    Info("completed with success\n");
+    Info("completed with success");
     rrc_ptr->nas->plmn_search_completed(found_plmns, nof_plmns);
   } else {
-    Error("PLMN Search completed with an error\n");
+    Error("PLMN Search completed with an error");
     rrc_ptr->nas->plmn_search_completed(nullptr, -1);
   }
 }
@@ -781,33 +783,32 @@ void rrc::plmn_search_proc::then(const srslte::proc_state_t& result) const
  *************************************/
 
 rrc::connection_request_proc::connection_request_proc(rrc* parent_) :
-  rrc_ptr(parent_),
-  log_h(srslte::logmap::get("RRC"))
+  rrc_ptr(parent_), logger(srslog::fetch_basic_logger("RRC"))
 {}
 
-proc_outcome_t rrc::connection_request_proc::init(srslte::establishment_cause_t cause_,
-                                                  srslte::unique_byte_buffer_t  dedicated_info_nas_)
+proc_outcome_t rrc::connection_request_proc::init(srsran::establishment_cause_t cause_,
+                                                  srsran::unique_byte_buffer_t  dedicated_info_nas_)
 {
   cause              = cause_;
   dedicated_info_nas = std::move(dedicated_info_nas_);
 
   if (!rrc_ptr->plmn_is_selected) {
-    Error("Trying to connect but PLMN not selected.\n");
+    Error("Trying to connect but PLMN not selected.");
     return proc_outcome_t::error;
   }
 
   if (rrc_ptr->state != RRC_STATE_IDLE) {
-    log_h->warning("Requested RRC connection establishment while not in IDLE\n");
+    logger.warning("Requested RRC connection establishment while not in IDLE");
     return proc_outcome_t::error;
   }
 
   if (rrc_ptr->t302.is_running()) {
-    Info("Requested RRC connection establishment while T302 is running\n");
-    rrc_ptr->nas->set_barring(srslte::barring_t::mo_data);
+    Info("Requested RRC connection establishment while T302 is running");
+    rrc_ptr->nas->set_barring(srsran::barring_t::mo_data);
     return proc_outcome_t::error;
   }
 
-  Info("Initiation of Connection establishment procedure\n");
+  Info("Initiation of Connection establishment procedure");
 
   cs_ret = cs_result_t::no_cell;
 
@@ -815,12 +816,12 @@ proc_outcome_t rrc::connection_request_proc::init(srslte::establishment_cause_t 
   if (rrc_ptr->cell_selector.is_idle()) {
     // No one is running cell selection
     if (not rrc_ptr->cell_selector.launch()) {
-      Error("Failed to initiate cell selection procedure...\n");
+      Error("Failed to initiate cell selection procedure...");
       return proc_outcome_t::error;
     }
     rrc_ptr->callback_list.add_proc(rrc_ptr->cell_selector);
   } else {
-    Info("Cell selection proc already on-going. Wait for its result\n");
+    Info("Cell selection proc already on-going. Wait for its result");
   }
   return proc_outcome_t::yield;
 }
@@ -830,12 +831,14 @@ proc_outcome_t rrc::connection_request_proc::step()
   if (state == state_t::cell_selection) {
     // NOTE: cell selection will signal back with an event trigger
     return proc_outcome_t::yield;
-  } else if (state == state_t::config_serving_cell) {
+  }
+
+  if (state == state_t::config_serving_cell) {
     if (rrc_ptr->serv_cell_cfg.run()) {
       return proc_outcome_t::yield;
     }
     if (serv_cfg_fut.is_error()) {
-      Error("Configuring serving cell\n");
+      Error("Configuring serving cell");
       return proc_outcome_t::error;
     }
 
@@ -847,17 +850,17 @@ proc_outcome_t rrc::connection_request_proc::step()
     // Save dedicatedInfoNAS SDU, if needed
     if (dedicated_info_nas.get()) {
       if (rrc_ptr->dedicated_info_nas.get()) {
-        Warning("Received a new dedicatedInfoNAS SDU but there was one still in queue. Removing it.\n");
+        Warning("Received a new dedicatedInfoNAS SDU but there was one still in queue. Removing it.");
         rrc_ptr->dedicated_info_nas.reset();
       }
 
-      Debug("Updating dedicatedInfoNAS in RRC\n");
+      Debug("Updating dedicatedInfoNAS in RRC");
       rrc_ptr->dedicated_info_nas = std::move(dedicated_info_nas);
     } else {
-      Debug("dedicatedInfoNAS has already been provided to RRC.\n");
+      Debug("dedicatedInfoNAS has already been provided to RRC.");
     }
 
-    Info("Waiting for RRCConnectionSetup/Reject or expiry\n");
+    Info("Waiting for RRCConnectionSetup/Reject or expiry");
     state = state_t::wait_t300;
     return step();
 
@@ -872,13 +875,13 @@ proc_outcome_t rrc::connection_request_proc::step()
       return proc_outcome_t::success;
     } else if (rrc_ptr->t300.is_expired()) {
       // T300 is expired: 5.3.3.6
-      Warning("Timer T300 expired: ConnectionRequest timed out\n");
+      Warning("Timer T300 expired: ConnectionRequest timed out");
       rrc_ptr->mac->reset();
       rrc_ptr->set_mac_default();
       rrc_ptr->rlc->reestablish();
     } else {
       // T300 is stopped but RRC not Connected is because received Reject: Section 5.3.3.8
-      Warning("Timer T300 stopped: Received ConnectionReject\n");
+      Warning("Timer T300 stopped: Received ConnectionReject");
       rrc_ptr->mac->reset();
       rrc_ptr->set_mac_default();
     }
@@ -887,19 +890,19 @@ proc_outcome_t rrc::connection_request_proc::step()
   return proc_outcome_t::error;
 }
 
-void rrc::connection_request_proc::then(const srslte::proc_state_t& result)
+void rrc::connection_request_proc::then(const srsran::proc_state_t& result)
 {
   if (result.is_error()) {
-    log_h->warning("Could not establish connection. Deallocating dedicatedInfoNAS PDU\n");
+    logger.warning("Could not establish connection. Deallocating dedicatedInfoNAS PDU");
     dedicated_info_nas.reset();
     rrc_ptr->dedicated_info_nas.reset();
   } else {
-    Info("Finished connection request procedure successfully.\n");
+    Info("Finished connection request procedure successfully.");
   }
   rrc_ptr->nas->connection_request_completed(result.is_success());
 }
 
-srslte::proc_outcome_t rrc::connection_request_proc::react(const cell_selection_proc::cell_selection_complete_ev& e)
+srsran::proc_outcome_t rrc::connection_request_proc::react(const cell_selection_proc::cell_selection_complete_ev& e)
 {
   if (state != state_t::cell_selection) {
     // ignore if we are not expecting an cell selection result
@@ -911,7 +914,6 @@ srslte::proc_outcome_t rrc::connection_request_proc::react(const cell_selection_
   cs_ret = *e.value();
   // .. and SI acquisition
   if (rrc_ptr->phy->cell_is_camping()) {
-
     // Set default configurations
     rrc_ptr->set_phy_default();
     rrc_ptr->set_mac_default();
@@ -919,23 +921,23 @@ srslte::proc_outcome_t rrc::connection_request_proc::react(const cell_selection_
     // CCCH configuration applied already at start
     // timeAlignmentCommon applied in configure_serving_cell
 
-    Info("Configuring serving cell...\n");
+    Info("Configuring serving cell...");
     state = state_t::config_serving_cell;
     if (not rrc_ptr->serv_cell_cfg.launch(&serv_cfg_fut, rrc_ptr->ue_required_sibs)) {
-      Error("Attach request failed to configure serving cell...\n");
+      Error("Attach request failed to configure serving cell...");
       return proc_outcome_t::error;
     }
     return step();
   } else {
     switch (cs_ret) {
       case cs_result_t::same_cell:
-        log_h->warning("Did not reselect cell but serving cell is out-of-sync.\n");
+        logger.warning("Did not reselect cell but serving cell is out-of-sync.");
         break;
       case cs_result_t::changed_cell:
-        log_h->warning("Selected a new cell but could not camp on. Setting out-of-sync.\n");
+        logger.warning("Selected a new cell but could not camp on. Setting out-of-sync.");
         break;
       default:
-        log_h->warning("Could not find any suitable cell to connect\n");
+        logger.warning("Could not find any suitable cell to connect");
     }
     return proc_outcome_t::error;
   }
@@ -948,14 +950,14 @@ srslte::proc_outcome_t rrc::connection_request_proc::react(const cell_selection_
 // Handle RRC Reconfiguration without MobilityInformation Section 5.3.5.3
 rrc::connection_reconf_no_ho_proc::connection_reconf_no_ho_proc(srsue::rrc* parent_) : rrc_ptr(parent_) {}
 
-srslte::proc_outcome_t rrc::connection_reconf_no_ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& recfg_)
+srsran::proc_outcome_t rrc::connection_reconf_no_ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& recfg_)
 {
-  Info("Starting...\n");
+  Info("Starting...");
   rx_recfg = recfg_.crit_exts.c1().rrc_conn_recfg_r8();
 
   // If first message after reestablishment, resume SRB2 and all DRB
   if (rrc_ptr->reestablishment_successful) {
-    for (int i = 2; i < SRSLTE_N_RADIO_BEARERS; i++) {
+    for (int i = 2; i < SRSRAN_N_RADIO_BEARERS; i++) {
       if (rrc_ptr->rlc->has_bearer(i)) {
         rrc_ptr->rlc->resume_bearer(i);
       }
@@ -966,11 +968,10 @@ srslte::proc_outcome_t rrc::connection_reconf_no_ho_proc::init(const asn1::rrc::
   if (rrc_ptr->reestablishment_successful) {
     // Reestablish PDCP and RLC for SRB2 and all DRB
     // TODO: Which is the maximum LCID?
-    rrc_ptr->reestablishment_successful = false;
-    for (int i = 2; i < SRSLTE_N_RADIO_BEARERS; i++) {
+    for (int i = 2; i < SRSRAN_N_RADIO_BEARERS; i++) {
       if (rrc_ptr->rlc->has_bearer(i)) {
-        rrc_ptr->pdcp->reestablish(i);
         rrc_ptr->rlc->reestablish(i);
+        rrc_ptr->pdcp->reestablish(i);
       }
     }
   }
@@ -982,12 +983,30 @@ srslte::proc_outcome_t rrc::connection_reconf_no_ho_proc::init(const asn1::rrc::
     }
   }
 
-  // Apply Scell RR configurations (call is non-blocking). Make a copy since can be changed inside apply_scell_config()
-  // Note that apply_scell_config() calls set_scell() and set_config() which run in the background.
+  if (rrc_ptr->reestablishment_successful) {
+    // Send status report if necessary.
+    rrc_ptr->reestablishment_successful = false;
+    for (int i = 2; i < SRSRAN_N_RADIO_BEARERS; i++) {
+      if (rrc_ptr->rlc->has_bearer(i)) {
+        rrc_ptr->pdcp->send_status_report(i);
+      }
+    }
+  }
+
+  // Apply Scell RR configurations (call is non-blocking). Make a copy since can be changed inside
+  // apply_scell_config() Note that apply_scell_config() calls set_scell() and set_config() which run in the
+  // background.
   rrc_ptr->apply_scell_config(&rx_recfg, true);
 
   if (!rrc_ptr->measurements->parse_meas_config(
           &rx_recfg, rrc_ptr->reestablishment_successful, rrc_ptr->connection_reest.get()->get_source_earfcn())) {
+    return proc_outcome_t::error;
+  }
+
+  // Apply NR config
+  bool rtn = rrc_ptr->nr_reconfiguration_proc(rx_recfg, &has_5g_nr_reconfig);
+  if (rtn == false && has_5g_nr_reconfig == true) {
+    rrc_ptr->logger.error("Unable to launch NR RRC Reconfiguration procedure");
     return proc_outcome_t::error;
   }
 
@@ -998,10 +1017,10 @@ srslte::proc_outcome_t rrc::connection_reconf_no_ho_proc::init(const asn1::rrc::
   return proc_outcome_t::yield;
 }
 
-srslte::proc_outcome_t rrc::connection_reconf_no_ho_proc::react(const bool& config_complete)
+srsran::proc_outcome_t rrc::connection_reconf_no_ho_proc::react(const bool& config_complete)
 {
   if (not config_complete) {
-    rrc_ptr->rrc_log->error("Failed to config PHY\n");
+    rrc_ptr->logger.error("Reconfiguration Failed");
     return proc_outcome_t::error;
   }
 
@@ -1010,17 +1029,26 @@ srslte::proc_outcome_t rrc::connection_reconf_no_ho_proc::react(const bool& conf
     return proc_outcome_t::yield;
   }
 
-  rrc_ptr->send_rrc_con_reconfig_complete();
+  // in case there is rrc_nr to configure, wait for rrc nr configuration
+  if (has_5g_nr_reconfig == true && rrc_ptr->rrc_nr->is_config_pending()) {
+    return proc_outcome_t::yield;
+  }
 
-  srslte::unique_byte_buffer_t nas_pdu;
+  if (has_5g_nr_reconfig == true) {
+    rrc_ptr->send_rrc_con_reconfig_complete(true);
+  } else {
+    rrc_ptr->send_rrc_con_reconfig_complete();
+  }
+
+  srsran::unique_byte_buffer_t nas_pdu;
   for (auto& pdu : rx_recfg.ded_info_nas_list) {
-    nas_pdu = srslte::allocate_unique_buffer(*rrc_ptr->pool);
-    if (nas_pdu.get()) {
+    nas_pdu = srsran::make_byte_buffer();
+    if (nas_pdu != nullptr) {
       memcpy(nas_pdu->msg, pdu.data(), pdu.size());
       nas_pdu->N_bytes = pdu.size();
-      rrc_ptr->nas->write_pdu(RB_ID_SRB1, std::move(nas_pdu));
+      rrc_ptr->nas->write_pdu(srsran::srb_to_lcid(srsran::lte_srb::srb1), std::move(nas_pdu));
     } else {
-      rrc_ptr->rrc_log->error("Fatal Error: Couldn't allocate PDU in %s.\n", __FUNCTION__);
+      rrc_ptr->logger.error("Couldn't allocate PDU in %s.", __FUNCTION__);
       return proc_outcome_t::error;
     }
   }
@@ -1028,10 +1056,13 @@ srslte::proc_outcome_t rrc::connection_reconf_no_ho_proc::react(const bool& conf
   return proc_outcome_t::success;
 }
 
-void rrc::connection_reconf_no_ho_proc::then(const srslte::proc_state_t& result)
+void rrc::connection_reconf_no_ho_proc::then(const srsran::proc_state_t& result)
 {
+  // Reset 5G NR reconfig variable
+  has_5g_nr_reconfig = false;
+
   if (result.is_success()) {
-    rrc_ptr->rrc_log->info("Finished %s successfully\n", name());
+    rrc_ptr->logger.info("Finished %s successfully", name());
     return;
   }
 
@@ -1043,7 +1074,9 @@ void rrc::connection_reconf_no_ho_proc::then(const srslte::proc_state_t& result)
  *     Process PCCH procedure
  *************************************/
 
-rrc::process_pcch_proc::process_pcch_proc(srsue::rrc* parent_) : rrc_ptr(parent_), log_h(srslte::logmap::get("RRC")) {}
+rrc::process_pcch_proc::process_pcch_proc(srsue::rrc* parent_) :
+  rrc_ptr(parent_), logger(srslog::fetch_basic_logger("RRC"))
+{}
 
 proc_outcome_t rrc::process_pcch_proc::init(const asn1::rrc::paging_s& paging_)
 {
@@ -1051,7 +1084,7 @@ proc_outcome_t rrc::process_pcch_proc::init(const asn1::rrc::paging_s& paging_)
 
   paging_idx = 0;
   state      = state_t::next_record;
-  Info("starting...\n");
+  Info("starting...");
   return step();
 }
 
@@ -1059,41 +1092,41 @@ proc_outcome_t rrc::process_pcch_proc::step()
 {
   if (state == state_t::next_record) {
     for (; paging_idx < paging.paging_record_list.size(); ++paging_idx) {
-      srslte::s_tmsi_t s_tmsi_paged = srslte::make_s_tmsi_t(paging.paging_record_list[paging_idx].ue_id.s_tmsi());
-      Info("Received paging (%d/%d) for UE %" PRIu64 ":%" PRIu64 "\n",
+      srsran::s_tmsi_t s_tmsi_paged = srsran::make_s_tmsi_t(paging.paging_record_list[paging_idx].ue_id.s_tmsi());
+      Info("Received paging (%d/%d) for UE %" PRIu64 ":%" PRIu64 "",
            paging_idx + 1,
            paging.paging_record_list.size(),
            paging.paging_record_list[paging_idx].ue_id.s_tmsi().mmec.to_number(),
            paging.paging_record_list[paging_idx].ue_id.s_tmsi().m_tmsi.to_number());
       if (rrc_ptr->ue_identity == s_tmsi_paged) {
         if (RRC_STATE_IDLE == rrc_ptr->state) {
-          Info("S-TMSI match in paging message\n");
-          srslte::console("S-TMSI match in paging message\n");
+          Info("S-TMSI match in paging message");
+          srsran::console("S-TMSI match in paging message\n");
           if (not rrc_ptr->nas->paging(&s_tmsi_paged)) {
-            Error("Unable to start NAS paging proc\n");
+            Error("Unable to start NAS paging proc");
             return proc_outcome_t::error;
           }
           state = state_t::nas_paging;
           return step();
         } else {
-          Warning("Received paging while in CONNECT\n");
+          Warning("Received paging while in CONNECT");
         }
       } else {
-        Info("Received paging for unknown identity\n");
+        Info("Received paging for unknown identity");
       }
     }
     if (paging.sys_info_mod_present) {
-      Info("Received System Information notification update request.\n");
+      Info("Received System Information notification update request.");
       // invalidate and then update all SIBs of serving cell
       rrc_ptr->meas_cells.serving_cell().reset_sibs();
 
       // create a serving cell config procedure and push it to callback list
       if (not rrc_ptr->serv_cell_cfg.launch(&serv_cfg_fut, rrc_ptr->ue_required_sibs)) {
-        Error("Failed to initiate a serving cell configuration procedure\n");
+        Error("Failed to initiate a serving cell configuration procedure");
         return proc_outcome_t::error;
       }
     } else {
-      Info("Completed successfully\n");
+      Info("Completed successfully");
       return proc_outcome_t::success;
     }
     state = state_t::serv_cell_cfg;
@@ -1106,10 +1139,10 @@ proc_outcome_t rrc::process_pcch_proc::step()
       return proc_outcome_t::yield;
     }
     if (serv_cfg_fut.is_success()) {
-      Info("All SIBs of serving cell obtained successfully\n");
+      Info("All SIBs of serving cell obtained successfully");
       return proc_outcome_t::success;
     } else {
-      Error("While obtaining SIBs of serving cell\n");
+      Error("While obtaining SIBs of serving cell");
       return proc_outcome_t::error;
     }
   }
@@ -1119,16 +1152,16 @@ proc_outcome_t rrc::process_pcch_proc::step()
 proc_outcome_t rrc::process_pcch_proc::react(paging_complete e)
 {
   if (state != state_t::nas_paging) {
-    Warning("Received an unexpected paging complete\n");
+    Warning("Received an unexpected paging complete");
     return proc_outcome_t::yield;
   }
   if (not e.outcome) {
-    Info("NAS Paging has failed\n");
+    Info("NAS Paging has failed");
     return proc_outcome_t::error;
   }
   paging_idx++;
   state = state_t::next_record;
-  Info("Received paging complete event\n");
+  Info("Received paging complete event");
   return step();
 }
 
@@ -1144,41 +1177,42 @@ rrc::go_idle_proc::go_idle_proc(srsue::rrc* rrc_) : rrc_ptr(rrc_)
 
 proc_outcome_t rrc::go_idle_proc::init()
 {
-  Info("Starting...\n");
+  Info("Starting...");
   rlc_flush_timer.run();
   // Do not call step() directly. Instead we defer for one TTI to avoid double-locking the RLC mutex
   return proc_outcome_t::yield;
 }
 
-srslte::proc_outcome_t rrc::go_idle_proc::react(bool timeout)
+srsran::proc_outcome_t rrc::go_idle_proc::react(bool timeout)
 {
   rrc_ptr->leave_connected();
-  Info("Left connected state\n");
+  Info("Left connected state");
   return proc_outcome_t::success;
 }
 
 proc_outcome_t rrc::go_idle_proc::step()
 {
   if (rrc_ptr->state == RRC_STATE_IDLE) {
-    Info("Interrupting as RRC has already became IDLE\n");
+    Info("Interrupting as RRC has already became IDLE");
     return proc_outcome_t::success;
   }
 
   // wait for RLC of SRB1 and SRB2 to be flushed
   if (rrc_ptr->srbs_flushed()) {
     rrc_ptr->leave_connected();
-    Info("Left connected state\n");
+    Info("Left connected state");
     return proc_outcome_t::success;
   } else {
-    Debug("Postponing transition to RRC IDLE (%d ms < %d ms)\n", rlc_flush_timer.time_elapsed(), rlc_flush_timeout_ms);
+    Debug(
+        "Postponing transition to RRC IDLE (%d ms < %d ms)", rlc_flush_timer.time_elapsed(), int(rlc_flush_timeout_ms));
   }
   return proc_outcome_t::yield;
 }
 
-void rrc::go_idle_proc::then(const srslte::proc_state_t& result)
+void rrc::go_idle_proc::then(const srsran::proc_state_t& result)
 {
-  if (rrc_ptr->nas->is_attached() and not rrc_ptr->cell_reselector.launch()) {
-    rrc_ptr->rrc_log->error("Failed to initiate a Cell Reselection procedure...\n");
+  if (rrc_ptr->nas->is_registered() and not rrc_ptr->cell_reselector.launch()) {
+    rrc_ptr->logger.error("Failed to initiate a Cell Reselection procedure...");
     return;
   }
   rrc_ptr->callback_list.add_proc(rrc_ptr->cell_reselector);
@@ -1194,7 +1228,7 @@ rrc::cell_reselection_proc::cell_reselection_proc(srsue::rrc* rrc_) : rrc_ptr(rr
   reselection_timer = rrc_ptr->task_sched.get_unique_timer();
   reselection_timer.set(cell_reselection_periodicity_ms, [this](uint32_t tid) {
     if (not rrc_ptr->cell_reselector.launch()) {
-      rrc_ptr->rrc_log->error("Failed to initiate a Cell Reselection procedure...\n");
+      rrc_ptr->logger.error("Failed to initiate a Cell Reselection procedure...");
       return;
     }
     rrc_ptr->callback_list.add_proc(rrc_ptr->cell_reselector);
@@ -1203,9 +1237,9 @@ rrc::cell_reselection_proc::cell_reselection_proc(srsue::rrc* rrc_) : rrc_ptr(rr
 
 proc_outcome_t rrc::cell_reselection_proc::init()
 {
-  Info("Starting...\n");
+  Info("Starting...");
   if (not rrc_ptr->cell_selector.launch(&cell_selection_fut)) {
-    Error("Failed to initiate a Cell Selection procedure...\n");
+    Error("Failed to initiate a Cell Selection procedure...");
     return proc_outcome_t::error;
   }
 
@@ -1215,39 +1249,39 @@ proc_outcome_t rrc::cell_reselection_proc::init()
 proc_outcome_t rrc::cell_reselection_proc::step()
 {
   if (rrc_ptr->cell_selector.run()) {
-    return srslte::proc_outcome_t::yield;
+    return srsran::proc_outcome_t::yield;
   }
   if (cell_selection_fut.is_error()) {
-    Error("Error while selecting a cell\n");
-    return srslte::proc_outcome_t::error;
+    Error("Error while selecting a cell");
+    return srsran::proc_outcome_t::error;
   }
   cell_sel_result = *cell_selection_fut.value();
 
-  Info("Cell Selection completed. Handling its result...\n");
+  Info("Cell Selection completed. Handling its result...");
   switch (cell_sel_result) {
     case cs_result_t::changed_cell:
       if (rrc_ptr->state == rrc_state_t::RRC_STATE_IDLE) {
-        Info("New cell has been selected, start receiving PCCH\n");
+        Info("New cell has been selected, start receiving PCCH");
         rrc_ptr->mac->pcch_start_rx();
       }
       break;
     case cs_result_t::no_cell:
-      Warning("Could not find any cell to camp on\n");
+      Warning("Could not find any cell to camp on");
       break;
     case cs_result_t::same_cell:
       if (!rrc_ptr->phy->cell_is_camping()) {
-        Warning("Did not reselect cell but serving cell is out-of-sync.\n");
+        Warning("Did not reselect cell but serving cell is out-of-sync.");
       }
       break;
   }
-  Info("Finished successfully\n");
-  return srslte::proc_outcome_t::success;
+  Info("Finished successfully");
+  return srsran::proc_outcome_t::success;
 }
 
-void rrc::cell_reselection_proc::then(const srslte::proc_state_t& result)
+void rrc::cell_reselection_proc::then(const srsran::proc_state_t& result)
 {
   // Schedule cell reselection periodically, while rrc is idle
-  if (not rrc_ptr->is_connected() and rrc_ptr->nas->is_attached()) {
+  if (not rrc_ptr->is_connected() and rrc_ptr->nas->is_registered()) {
     if (cell_sel_result == cs_result_t::changed_cell) {
       // TS 36.304 5.2.4.6 - Intra-frequency and equal priority inter-frequency Cell Reselection criteria
       // the UE shall reselect a new cell if more than 1 second has elapsed since the UE camped
@@ -1260,6 +1294,12 @@ void rrc::cell_reselection_proc::then(const srslte::proc_state_t& result)
       rrc_ptr->phy->set_cells_to_meas(rrc_ptr->meas_cells.serving_cell().get_earfcn(), pci);
     } else {
       reselection_timer.set(cell_reselection_periodicity_ms);
+    }
+
+    // starts listening to paging (PCCH) if necessary
+    // TODO: make sure PCCH is enabled in all possible idle cases.
+    if (rrc_ptr->phy_ctrl->is_in_sync() and rrc_ptr->state == RRC_STATE_IDLE) {
+      rrc_ptr->mac->pcch_start_rx();
     }
 
     reselection_timer.run();
@@ -1282,8 +1322,8 @@ proc_outcome_t rrc::connection_reest_proc::init(asn1::rrc::reest_cause_e cause)
 
   // 5.3.7.1 - Conditions for Reestablishment procedure
   if (not rrc_ptr->security_is_activated or rrc_ptr->state != RRC_STATE_CONNECTED or
-      uernti.crnti == SRSLTE_INVALID_RNTI) {
-    Warning("Conditions are NOT met to start procedure.\n");
+      uernti.crnti == SRSRAN_INVALID_RNTI) {
+    Warning("Conditions are NOT met to start procedure.");
     return proc_outcome_t::error;
   }
 
@@ -1300,7 +1340,7 @@ proc_outcome_t rrc::connection_reest_proc::init(asn1::rrc::reest_cause_e cause)
   }
   reest_cellid = rrc_ptr->meas_cells.find_cell(reest_source_freq, reest_source_pci)->get_cell_id();
 
-  Info("Starting... cause: \"%s\", UE context: {C-RNTI=0x%x, PCI=%d, CELL ID=%d}\n",
+  Info("Starting... cause: \"%s\", UE context: {C-RNTI=0x%x, PCI=%d, CELL ID=%d}",
        reest_cause == asn1::rrc::reest_cause_opts::recfg_fail
            ? "Reconfiguration failure"
            : cause == asn1::rrc::reest_cause_opts::ho_fail ? "Handover failure" : "Other failure",
@@ -1317,7 +1357,7 @@ proc_outcome_t rrc::connection_reest_proc::init(asn1::rrc::reest_cause_e cause)
   rrc_ptr->t311.run();
 
   // 1> Suspend all RB except SRB0;
-  for (int i = 1; i < SRSLTE_N_RADIO_BEARERS; i++) {
+  for (int i = 1; i < SRSRAN_N_RADIO_BEARERS; i++) {
     if (rrc_ptr->rlc->has_bearer(i)) {
       rrc_ptr->rlc->suspend_bearer(i);
     }
@@ -1328,7 +1368,7 @@ proc_outcome_t rrc::connection_reest_proc::init(asn1::rrc::reest_cause_e cause)
 
   // configure lower layers to consider the SCell(s), if configured, to be in deactivated state;
   if (nof_scells_active > 0) {
-    rrc_ptr->phy->set_activation_deactivation_scell(0);
+    rrc_ptr->phy->deactivate_scells();
   }
 
   // 1> apply the default physical channel configuration as specified in 9.2.4;
@@ -1352,20 +1392,20 @@ bool rrc::connection_reest_proc::passes_cell_criteria() const
 }
 
 // 5.3.7.3 - Actions following cell selection while T311 is running
-srslte::proc_outcome_t rrc::connection_reest_proc::cell_criteria()
+srsran::proc_outcome_t rrc::connection_reest_proc::cell_criteria()
 {
   if (not passes_cell_criteria()) {
-    Info("Selected Serving cell does not pass criteria. Re-launching re-selection procedure\n");
+    Info("Selected Serving cell does not pass criteria. Re-launching re-selection procedure");
     return start_cell_selection();
   }
 
   // Upon selecting a suitable E-UTRA cell, the UE shall:
-  Info("Cell Selection criteria passed after %dms. Sending RRC Connection Reestablishment Request\n",
+  Info("Cell Selection criteria passed after %dms. Sending RRC Connection Reestablishment Request",
        rrc_ptr->t311.time_elapsed());
 
   // Note: Not explicitly defined in the specs, but UE should apply SIB1 and SIB2 configuration in order to attempt
   // a PRACH to a different cell
-  Info("Applying SIB2 configuration\n");
+  Info("Applying SIB2 configuration");
   rrc_ptr->handle_sib2();
 
   // 1> stop timer T311;
@@ -1384,12 +1424,12 @@ srslte::proc_outcome_t rrc::connection_reest_proc::cell_criteria()
   return proc_outcome_t::yield;
 }
 
-srslte::proc_outcome_t rrc::connection_reest_proc::start_cell_selection()
+srsran::proc_outcome_t rrc::connection_reest_proc::start_cell_selection()
 {
   // Launch cell reselection
   state = state_t::wait_cell_selection;
   if (not rrc_ptr->cell_selector.launch(std::vector<uint32_t>{0, 1, 2})) {
-    Error("Failed to initiate a Cell re-selection procedure...\n");
+    Error("Failed to initiate a Cell re-selection procedure...");
     // Wait for T311 to expire
     return proc_outcome_t::yield;
   }
@@ -1397,18 +1437,18 @@ srslte::proc_outcome_t rrc::connection_reest_proc::start_cell_selection()
   return proc_outcome_t::yield;
 }
 
-srslte::proc_outcome_t
+srsran::proc_outcome_t
 rrc::connection_reest_proc::react(const cell_selection_proc::cell_selection_complete_ev& cell_selected_ev)
 {
   if (state != state_t::wait_cell_selection) {
-    Warning("Received unexpected \"%s\" completion signal\n", rrc_ptr->cell_selector.get()->name());
+    Warning("Received unexpected \"%s\" completion signal", rrc_ptr->cell_selector.get()->name());
     return proc_outcome_t::yield;
   }
 
   // Relaunch cell selection if there is still time
   if (cell_selected_ev.is_error() or not rrc_ptr->phy_ctrl->is_in_sync()) {
     // Out-of-sync, relaunch reselection
-    Info("Serving cell is out-of-sync, re-launching re-selection procedure. T311: %d/%d ms\n",
+    Info("Serving cell is out-of-sync, re-launching re-selection procedure. T311: %d/%d ms",
          rrc_ptr->t311.time_elapsed(),
          rrc_ptr->t311.duration());
     return start_cell_selection();
@@ -1417,18 +1457,18 @@ rrc::connection_reest_proc::react(const cell_selection_proc::cell_selection_comp
   // SIBs should be available
   if (not rrc_ptr->meas_cells.serving_cell().has_sib1() or not rrc_ptr->meas_cells.serving_cell().has_sib2() or
       not rrc_ptr->meas_cells.serving_cell().has_sib3()) {
-    Warning("SIBs missing (%d, %d, %d) after cell selection procedure\n",
+    Warning("SIBs missing (%d, %d, %d) after cell selection procedure",
             rrc_ptr->meas_cells.serving_cell().has_sib1(),
             rrc_ptr->meas_cells.serving_cell().has_sib2(),
             rrc_ptr->meas_cells.serving_cell().has_sib3());
     return proc_outcome_t::yield; // wait for t311 expiry
   }
-
+  Info("Apply Cell Criteria");
   return cell_criteria();
 }
 
 // 5.3.7.5 - Reception of the RRCConnectionReestablishment by the UE
-srslte::proc_outcome_t rrc::connection_reest_proc::react(const asn1::rrc::rrc_conn_reest_s& reest_msg)
+srsran::proc_outcome_t rrc::connection_reest_proc::react(const asn1::rrc::rrc_conn_reest_s& reest_msg)
 {
   // 1> stop timer T301;
   rrc_ptr->t301.stop();
@@ -1474,24 +1514,24 @@ srslte::proc_outcome_t rrc::connection_reest_proc::react(const asn1::rrc::rrc_co
   //    procedure ends;
   rrc_ptr->send_con_restablish_complete();
 
-  Info("Finished successfully\n");
+  Info("Finished successfully");
   return proc_outcome_t::success;
 }
 
 // 5.3.7.7 - T301 expiry or selected cell no longer suitable
-srslte::proc_outcome_t rrc::connection_reest_proc::react(const t301_expiry& ev)
+srsran::proc_outcome_t rrc::connection_reest_proc::react(const t301_expiry& ev)
 {
-  Info("Timer T301 expired: Going to RRC IDLE\n");
-  srslte::console("Timer T301 expired: Going to RRC IDLE\n");
+  Info("Timer T301 expired: Going to RRC IDLE");
+  srsran::console("Timer T301 expired: Going to RRC IDLE\n");
   rrc_ptr->start_go_idle();
 
   return proc_outcome_t::error;
 }
-srslte::proc_outcome_t rrc::connection_reest_proc::step()
+srsran::proc_outcome_t rrc::connection_reest_proc::step()
 {
   if (rrc_ptr->t301.is_running() and not passes_cell_criteria()) {
-    Info("Selected cell no longer suitable: Going to RRC IDLE\n");
-    srslte::console("Selected cell no longer suitable: Going to RRC IDLE\n");
+    Info("Selected cell no longer suitable: Going to RRC IDLE");
+    srsran::console("Selected cell no longer suitable: Going to RRC IDLE\n");
     rrc_ptr->start_go_idle();
     return proc_outcome_t::error;
   }
@@ -1499,20 +1539,20 @@ srslte::proc_outcome_t rrc::connection_reest_proc::step()
 }
 
 // 5.3.7.8 - Reception of RRCConnectionReestablishmentReject by the UE
-srslte::proc_outcome_t rrc::connection_reest_proc::react(const asn1::rrc::rrc_conn_reest_reject_s& reject_msg)
+srsran::proc_outcome_t rrc::connection_reest_proc::react(const asn1::rrc::rrc_conn_reest_reject_s& reject_msg)
 {
-  srslte::console("Reestablishment Reject. Going to RRC IDLE\n");
-  Info("Reestablishment Reject. Going to RRC IDLE\n");
+  srsran::console("Reestablishment Reject. Going to RRC IDLE\n");
+  Info("Reestablishment Reject. Going to RRC IDLE");
   rrc_ptr->t301.stop();
   rrc_ptr->start_go_idle();
   return proc_outcome_t::error;
 }
 
 // 5.3.7.6 - T311 expiry
-srslte::proc_outcome_t rrc::connection_reest_proc::react(const t311_expiry& ev)
+srsran::proc_outcome_t rrc::connection_reest_proc::react(const t311_expiry& ev)
 {
   // Abort procedure if T311 expires
-  Info("T311 expired during cell configuration. Going to RRC IDLE\n");
+  Info("T311 expired during cell configuration. Going to RRC IDLE");
   rrc_ptr->start_go_idle();
   return proc_outcome_t::error;
 }
@@ -1536,15 +1576,15 @@ rrc::ho_proc::ho_proc(srsue::rrc* rrc_) : rrc_ptr(rrc_) {}
  * will not run other functions between the steps, like SR, PRACH, etc.
  *
  */
-srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc_reconf)
+srsran::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc_reconf)
 {
-  Info("Starting...\n");
+  Info("Starting...");
   recfg_r8                                      = rrc_reconf.crit_exts.c1().rrc_conn_recfg_r8();
   asn1::rrc::mob_ctrl_info_s* mob_ctrl_info     = &recfg_r8.mob_ctrl_info;
   size_t                      nof_scells_active = rrc_ptr->phy_ctrl->current_config_scells().count();
 
-  Info("Received HO command to target PCell=%d\n", mob_ctrl_info->target_pci);
-  srslte::console("Received HO command to target PCell=%d, NCC=%d\n",
+  Info("Received HO command to target PCell=%d", mob_ctrl_info->target_pci);
+  srsran::console("Received HO command to target PCell=%d, NCC=%d\n",
                   mob_ctrl_info->target_pci,
                   recfg_r8.security_cfg_ho.handov_type.intra_lte().next_hop_chaining_count);
 
@@ -1552,12 +1592,12 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
                                                                  : rrc_ptr->meas_cells.serving_cell().get_earfcn();
 
   // Target cell shall be either serving cell (intra-cell HO) or neighbour cell
-  meas_cell* cell_to_ho = rrc_ptr->meas_cells.find_cell(target_earfcn, mob_ctrl_info->target_pci);
+  meas_cell_eutra* cell_to_ho = rrc_ptr->meas_cells.find_cell(target_earfcn, mob_ctrl_info->target_pci);
   if (cell_to_ho != nullptr) {
     target_cell = cell_to_ho->phy_cell;
   } else {
-    srslte::console("Received HO command to unknown PCI=%d\n", mob_ctrl_info->target_pci);
-    Error("Could not find target cell earfcn=%d, pci=%d\n",
+    srsran::console("Received HO command to unknown PCI=%d\n", mob_ctrl_info->target_pci);
+    Error("Could not find target cell earfcn=%d, pci=%d",
           rrc_ptr->meas_cells.serving_cell().get_earfcn(),
           mob_ctrl_info->target_pci);
     rrc_ptr->con_reconfig_failed();
@@ -1577,9 +1617,9 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
 
   // starting at start synchronising to the DL of the target PCell
   rrc_ptr->set_serving_cell(target_cell, false);
-  Info("Starting cell selection of target cell PCI=%d EARFCN=%d\n", target_cell.pci, target_cell.earfcn);
+  Info("Starting cell selection of target cell PCI=%d EARFCN=%d", target_cell.pci, target_cell.earfcn);
   if (not rrc_ptr->phy_ctrl->start_cell_select(target_cell)) {
-    Error("Failed to launch the selection of target cell PCI=%d EARFCN=%d\n", target_cell.pci, target_cell.earfcn);
+    Error("Failed to launch the selection of target cell PCI=%d EARFCN=%d", target_cell.pci, target_cell.earfcn);
     return proc_outcome_t::yield; // wait t304 expiry
   }
 
@@ -1587,12 +1627,12 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
   rrc_ptr->mac->reset();
 
   // Reestablish PDCP/RLC
-  rrc_ptr->pdcp->reestablish();
   rrc_ptr->rlc->reestablish();
+  rrc_ptr->pdcp->reestablish();
 
   // configure lower layers to consider the SCell(s), if configured, to be in deactivated state;
   if (nof_scells_active > 0) {
-    rrc_ptr->phy->set_activation_deactivation_scell(0);
+    rrc_ptr->phy->deactivate_scells();
   }
 
   // apply the value of the newUE-Identity as the C-RNTI;
@@ -1600,7 +1640,7 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
 
   // perform radio configuration when fullConfig is enabled
   if (recfg_r8.non_crit_ext.non_crit_ext.full_cfg_r9_present) {
-    Error("fullConfig section was present but is not supported. Ignoring it.\n");
+    Error("fullConfig section was present but is not supported. Ignoring it.");
   }
 
   // configure lower layers in accordance with the received radioResourceConfigCommon
@@ -1610,7 +1650,7 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
   // configure lower layers in accordance with any additional fields, not covered in the previous, if included in the
   // received mobilityControlInfo
   if (recfg_r8.mob_ctrl_info.rach_cfg_ded_present) {
-    Info("Configuring RACH dedicated configuration with preamble_idx=%d, mask_idx=%d\n",
+    Info("Configuring RACH dedicated configuration with preamble_idx=%d, mask_idx=%d",
          recfg_r8.mob_ctrl_info.rach_cfg_ded.ra_preamb_idx,
          recfg_r8.mob_ctrl_info.rach_cfg_ded.ra_prach_mask_idx);
     rrc_ptr->mac->set_rach_ded_cfg(recfg_r8.mob_ctrl_info.rach_cfg_ded.ra_preamb_idx,
@@ -1635,12 +1675,12 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
     }
     if (sec_intralte.security_algorithm_cfg_present) {
       rrc_ptr->sec_cfg.cipher_algo =
-          (srslte::CIPHERING_ALGORITHM_ID_ENUM)sec_intralte.security_algorithm_cfg.ciphering_algorithm.to_number();
+          (srsran::CIPHERING_ALGORITHM_ID_ENUM)sec_intralte.security_algorithm_cfg.ciphering_algorithm.to_number();
       rrc_ptr->sec_cfg.integ_algo =
-          (srslte::INTEGRITY_ALGORITHM_ID_ENUM)sec_intralte.security_algorithm_cfg.integrity_prot_algorithm.to_number();
-      Info("Changed Ciphering to %s and Integrity to %s\n",
-           srslte::ciphering_algorithm_id_text[rrc_ptr->sec_cfg.cipher_algo],
-           srslte::integrity_algorithm_id_text[rrc_ptr->sec_cfg.integ_algo]);
+          (srsran::INTEGRITY_ALGORITHM_ID_ENUM)sec_intralte.security_algorithm_cfg.integrity_prot_algorithm.to_number();
+      Info("Changed Ciphering to %s and Integrity to %s",
+           srsran::ciphering_algorithm_id_text[rrc_ptr->sec_cfg.cipher_algo],
+           srsran::integrity_algorithm_id_text[rrc_ptr->sec_cfg.integ_algo]);
     }
   }
 
@@ -1653,7 +1693,7 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
 
   // if the RRCConnectionReconfiguration message includes the measConfig:
   if (not rrc_ptr->measurements->parse_meas_config(&recfg_r8, true, ho_src_cell.earfcn)) {
-    Error("Parsing measurementConfig. TODO: Send ReconfigurationReject\n");
+    Error("Parsing measurementConfig. TODO: Send ReconfigurationReject");
     return proc_outcome_t::yield; // wait for t304 expiry
   }
 
@@ -1663,14 +1703,17 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
   // SCell addition/removal can take some time to compute. Enqueue in a background task and do it in the end.
   rrc_ptr->apply_scell_config(&recfg_r8, false);
 
-  Info("Finished HO configuration. Waiting PHY to synchronize with target cell\n");
+  // Send PDCP status report if configured
+  rrc_ptr->pdcp->send_status_report();
+
+  Info("Finished HO configuration. Waiting PHY to synchronize with target cell");
 
   return proc_outcome_t::yield;
 }
 
-srslte::proc_outcome_t rrc::ho_proc::react(t304_expiry ev)
+srsran::proc_outcome_t rrc::ho_proc::react(t304_expiry ev)
 {
-  Info("HO preparation timed out. Reverting RRC security config from source cell.\n");
+  Info("HO preparation timed out. Reverting RRC security config from source cell.");
 
   // revert security settings from source cell for reestablishment according to Sec 5.3.7.4
   rrc_ptr->usim->restore_keys_from_failed_ho(&rrc_ptr->sec_cfg);
@@ -1680,10 +1723,10 @@ srslte::proc_outcome_t rrc::ho_proc::react(t304_expiry ev)
   return proc_outcome_t::error;
 }
 
-srslte::proc_outcome_t rrc::ho_proc::react(ra_completed_ev ev)
+srsran::proc_outcome_t rrc::ho_proc::react(ra_completed_ev ev)
 {
   if (ev.success) {
-    Info("Random Access completed. Applying final configuration and finishing procedure\n");
+    Info("Random Access completed. Applying final configuration and finishing procedure");
 
     // TS 36.331, sec. 5.3.5.4, last "1>"
     rrc_ptr->t304.stop();
@@ -1696,10 +1739,10 @@ srslte::proc_outcome_t rrc::ho_proc::react(ra_completed_ev ev)
   return proc_outcome_t::yield;
 }
 
-void rrc::ho_proc::then(const srslte::proc_state_t& result)
+void rrc::ho_proc::then(const srsran::proc_state_t& result)
 {
-  Info("HO to PCI=%d, EARFCN=%d %ssuccessful\n", target_cell.pci, target_cell.earfcn, result.is_success() ? "" : "un");
-  srslte::console("HO %ssuccessful\n", result.is_success() ? "" : "un");
+  Info("HO to PCI=%d, EARFCN=%d %ssuccessful", target_cell.pci, target_cell.earfcn, result.is_success() ? "" : "un");
+  srsran::console("HO %ssuccessful\n", result.is_success() ? "" : "un");
 
   rrc_ptr->t304.stop();
 }

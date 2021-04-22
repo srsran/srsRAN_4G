@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,12 +19,12 @@
  *
  */
 
-#include <srslte/common/logger_srslog_wrapper.h>
-#include <srslte/common/test_common.h>
-#include <srslte/common/threads.h>
-#include <srslte/phy/utils/random.h>
-#include <srslte/srslog/srslog.h>
-#include <srslte/srslte.h>
+#include <srsran/common/test_common.h>
+#include <srsran/common/threads.h>
+#include <srsran/interfaces/ue_interfaces.h>
+#include <srsran/phy/utils/random.h>
+#include <srsran/srslog/srslog.h>
+#include <srsran/srsran.h>
 #include <srsue/hdr/phy/phy.h>
 
 #define CALLBACK(NAME, ...)                                                                                            \
@@ -45,7 +45,7 @@ public:                                                                         
       expired = (cvar.wait_until(lock, expire_time) == std::cv_status::timeout);                                       \
     }                                                                                                                  \
     if (expired) {                                                                                                     \
-      log_h.debug("Expired " #NAME " waiting\n");                                                                      \
+      logger.debug("Expired " #NAME " waiting");                                                                       \
     }                                                                                                                  \
     return received_##NAME;                                                                                            \
   }                                                                                                                    \
@@ -57,18 +57,18 @@ private:                                                                        
   {                                                                                                                    \
     std::unique_lock<std::mutex> lock(mutex);                                                                          \
     cvar.notify_all();                                                                                                 \
-    log_h.debug(#NAME " received\n");                                                                                  \
+    logger.debug(#NAME " received");                                                                                   \
     received_##NAME = true;                                                                                            \
   }
 
-class phy_test_bench : public srslte::thread
+class phy_test_bench : public srsran::thread
 {
 private:
   // Dummy classes
   class dummy_stack final : public srsue::stack_interface_phy_lte
   {
   private:
-    srslte::log_filter      log_h;
+    srslog::basic_logger&   logger;
     uint16_t                rnti = 0x3c;
     std::mutex              mutex;
     std::condition_variable cvar;
@@ -86,18 +86,17 @@ private:
 
   public:
     // Local test access methods
-    explicit dummy_stack(srslte::logger& logger) : log_h("stack", &logger) {}
+    dummy_stack() : logger(srslog::fetch_basic_logger("stack", false)) {}
     void set_rnti(uint16_t rnti_) { rnti = rnti_; }
-    void set_loglevel(std::string& str) { log_h.set_level(str); }
+    void set_loglevel(std::string& str) { logger.set_level(srslog::str_to_basic_level(str)); }
 
     void in_sync() override { notify_in_sync(); }
     void out_of_sync() override { notify_out_of_sync(); }
-    void new_cell_meas(const std::vector<phy_meas_t>& meas) override
+    void new_cell_meas(const std::vector<srsue::phy_meas_t>& meas) override
     {
       for (auto& m : meas) {
         notify_new_phy_meas();
-        log_h.info(
-            "New measurement earfcn=%d; pci=%d; rsrp=%+.1fdBm; rsrq=%+.1fdB;\n", m.earfcn, m.pci, m.rsrp, m.rsrq);
+        logger.info("New measurement earfcn=%d; pci=%d; rsrp=%+.1fdBm; rsrq=%+.1fdB;", m.earfcn, m.pci, m.rsrp, m.rsrq);
       }
     }
     uint16_t get_dl_sched_rnti(uint32_t tti) override { return rnti; }
@@ -113,12 +112,12 @@ private:
     void tb_decoded(uint32_t cc_idx, mac_grant_dl_t grant, bool* ack) override {}
     void bch_decoded_ok(uint32_t cc_idx, uint8_t* payload, uint32_t len) override {}
     void mch_decoded(uint32_t len, bool crc) override {}
-    void new_mch_dl(const srslte_pdsch_grant_t& phy_grant, tb_action_dl_t* action) override {}
+    void new_mch_dl(const srsran_pdsch_grant_t& phy_grant, tb_action_dl_t* action) override {}
     void set_mbsfn_config(uint32_t nof_mbsfn_services) override {}
     void run_tti(const uint32_t tti, const uint32_t tti_jump) override
     {
       notify_run_tti();
-      log_h.debug("Run TTI %d\n", tti);
+      logger.debug("Run TTI %d", tti);
     }
 
     void cell_search_complete(cell_search_ret_t ret, srsue::phy_cell_t found_cell) override
@@ -148,11 +147,11 @@ private:
     bool              last_cell_select = false, last_config = false, last_scell = false;
   };
 
-  class dummy_radio : public srslte::radio_interface_phy
+  class dummy_radio : public srsran::radio_interface_phy
   {
   private:
-    srslte::log_filter               log_h;
-    std::vector<srslte_ringbuffer_t> ring_buffers;
+    srslog::basic_logger&            logger;
+    std::vector<srsran_ringbuffer_t> ring_buffers;
     float                            base_srate   = 0.0f;
     float                            tx_srate     = 0.0f;
     float                            rx_srate     = 0.0f;
@@ -163,8 +162,8 @@ private:
     uint64_t                         rx_timestamp = 0;
     std::mutex                       mutex;
     std::condition_variable          cvar;
-    srslte_rf_info_t                 rf_info    = {};
-    srslte::rf_timestamp_t           tx_last_tx = {};
+    srsran_rf_info_t                 rf_info    = {};
+    srsran::rf_timestamp_t           tx_last_tx = {};
     uint32_t                         count_late = 0;
 
     CALLBACK(rx_now)
@@ -172,20 +171,18 @@ private:
     CALLBACK(late)
 
   public:
-    dummy_radio(srslte::logger& logger, uint32_t nof_channels, float base_srate_) :
-      log_h("radio", &logger),
-      ring_buffers(nof_channels),
-      base_srate(base_srate_)
+    dummy_radio(uint32_t nof_channels, float base_srate_) :
+      logger(srslog::fetch_basic_logger("radio", false)), ring_buffers(nof_channels), base_srate(base_srate_)
     {
       // Create Ring buffers
       for (auto& rb : ring_buffers) {
-        if (srslte_ringbuffer_init(&rb, (uint32_t)sizeof(cf_t) * SRSLTE_SF_LEN_MAX * SRSLTE_NOF_SF_X_FRAME)) {
+        if (srsran_ringbuffer_init(&rb, (uint32_t)sizeof(cf_t) * SRSRAN_SF_LEN_MAX * SRSRAN_NOF_SF_X_FRAME)) {
           perror("init softbuffer");
         }
       }
 
       // Create temporal buffer
-      temp_buffer = srslte_vec_cf_malloc(SRSLTE_SF_LEN_MAX * SRSLTE_NOF_SF_X_FRAME);
+      temp_buffer = srsran_vec_cf_malloc(SRSRAN_SF_LEN_MAX * SRSRAN_NOF_SF_X_FRAME);
       if (!temp_buffer) {
         perror("malloc");
       }
@@ -200,31 +197,31 @@ private:
     ~dummy_radio()
     {
       for (auto& rb : ring_buffers) {
-        srslte_ringbuffer_free(&rb);
+        srsran_ringbuffer_free(&rb);
       }
       if (temp_buffer) {
         free(temp_buffer);
       }
     }
 
-    void set_loglevel(std::string& str) { log_h.set_level(str); }
+    void set_loglevel(std::string& str) { logger.set_level(srslog::str_to_basic_level(str)); }
 
     void write_ring_buffers(cf_t** buffer, uint32_t nsamples)
     {
       for (uint32_t i = 0; i < ring_buffers.size(); i++) {
-        int ret = SRSLTE_SUCCESS;
+        int ret = SRSRAN_SUCCESS;
         do {
-          if (ret != SRSLTE_SUCCESS) {
-            log_h.error("Ring buffer write failed (full). Trying again.\n");
+          if (ret != SRSRAN_SUCCESS) {
+            logger.error("Ring buffer write failed (full). Trying again.");
           }
-          ret = srslte_ringbuffer_write_timed(&ring_buffers[i], buffer[i], (uint32_t)sizeof(cf_t) * nsamples, 1000);
-        } while (ret == SRSLTE_ERROR_TIMEOUT);
+          ret = srsran_ringbuffer_write_timed(&ring_buffers[i], buffer[i], (uint32_t)sizeof(cf_t) * nsamples, 1000);
+        } while (ret == SRSRAN_ERROR_TIMEOUT);
       }
     }
 
     uint32_t get_count_late() { return count_late; }
 
-    bool tx(srslte::rf_buffer_interface& buffer, const srslte::rf_timestamp_interface& tx_time) override
+    bool tx(srsran::rf_buffer_interface& buffer, const srsran::rf_timestamp_interface& tx_time) override
     {
       bool ret = true;
       notify_tx();
@@ -233,7 +230,7 @@ private:
       if (!std::isnormal(tx_srate)) {
         count_late++;
       }
-      if (srslte_timestamp_compare(&tx_time.get(0), tx_last_tx.get_ptr(0)) < 0) {
+      if (srsran_timestamp_compare(&tx_time.get(0), tx_last_tx.get_ptr(0)) < 0) {
         ret = false;
       }
 
@@ -246,7 +243,7 @@ private:
     }
     void release_freq(const uint32_t& carrier_idx) override{};
     void tx_end() override {}
-    bool rx_now(srslte::rf_buffer_interface& buffer, srslte::rf_timestamp_interface& rxd_time) override
+    bool rx_now(srsran::rf_buffer_interface& buffer, srsran::rf_timestamp_interface& rxd_time) override
     {
       notify_rx_now();
 
@@ -257,11 +254,11 @@ private:
         cf_t* buf_ptr = ((buffer.get(i) != nullptr) && (base_srate == rx_srate)) ? buffer.get(i) : temp_buffer;
 
         // Read base srate samples
-        int ret = srslte_ringbuffer_read(&ring_buffers[i], buf_ptr, (uint32_t)sizeof(cf_t) * base_nsamples);
+        int ret = srsran_ringbuffer_read(&ring_buffers[i], buf_ptr, (uint32_t)sizeof(cf_t) * base_nsamples);
         if (ret < 0) {
-          log_h.error("Reading ring buffer\n");
+          logger.error("Reading ring buffer");
         } else {
-          log_h.debug("-- %d samples read from ring buffer\n", base_nsamples);
+          logger.debug("-- %d samples read from ring buffer", base_nsamples);
         }
 
         // Only if baseband buffer is provided
@@ -289,7 +286,7 @@ private:
       }
 
       // Set Rx timestamp
-      srslte_timestamp_init_uint64(rxd_time.get_ptr(0), rx_timestamp, (double)base_srate);
+      srsran_timestamp_init_uint64(rxd_time.get_ptr(0), rx_timestamp, (double)base_srate);
 
       // Update timestamp
       rx_timestamp += base_nsamples;
@@ -300,60 +297,60 @@ private:
     {
       std::unique_lock<std::mutex> lock(mutex);
       tx_freq = (float)freq;
-      log_h.info("Set Tx freq to %+.0f MHz.\n", freq * 1.0e-6);
+      logger.info("Set Tx freq to %+.0f MHz.", freq * 1.0e-6);
     }
     void set_rx_freq(const uint32_t& channel_idx, const double& freq) override
     {
       std::unique_lock<std::mutex> lock(mutex);
       rx_freq = (float)freq;
-      log_h.info("Set Rx freq to %+.0f MHz.\n", freq * 1.0e-6);
+      logger.info("Set Rx freq to %+.0f MHz.", freq * 1.0e-6);
     }
     void set_rx_gain_th(const float& gain) override
     {
       std::unique_lock<std::mutex> lock(mutex);
-      rx_gain = srslte_convert_dB_to_amplitude(gain);
-      log_h.info("Set Rx gain-th to %+.1f dB (%.6f).\n", gain, rx_gain);
+      rx_gain = srsran_convert_dB_to_amplitude(gain);
+      logger.info("Set Rx gain-th to %+.1f dB (%.6f).", gain, rx_gain);
     }
     void set_tx_gain(const float& gain) override
     {
       std::unique_lock<std::mutex> lock(mutex);
-      rx_gain = srslte_convert_dB_to_amplitude(gain);
-      log_h.info("Set Tx gain to %+.1f dB (%.6f).\n", gain, rx_gain);
+      rx_gain = srsran_convert_dB_to_amplitude(gain);
+      logger.info("Set Tx gain to %+.1f dB (%.6f).", gain, rx_gain);
     }
     void set_rx_gain(const float& gain) override
     {
       std::unique_lock<std::mutex> lock(mutex);
-      rx_gain = srslte_convert_dB_to_amplitude(gain);
-      log_h.info("Set Rx gain to %+.1f dB (%.6f).\n", gain, rx_gain);
+      rx_gain = srsran_convert_dB_to_amplitude(gain);
+      logger.info("Set Rx gain to %+.1f dB (%.6f).", gain, rx_gain);
     }
     void set_tx_srate(const double& srate) override
     {
       std::unique_lock<std::mutex> lock(mutex);
       tx_srate = (float)srate;
-      log_h.info("Set Tx sampling rate to %+.3f MHz.\n", srate * 1.0e-6);
+      logger.info("Set Tx sampling rate to %+.3f MHz.", srate * 1.0e-6);
     }
     void set_rx_srate(const double& srate) override
     {
       std::unique_lock<std::mutex> lock(mutex);
       rx_srate = (float)srate;
-      log_h.info("Set Rx sampling rate to %+.3f MHz.\n", srate * 1.0e-6);
+      logger.info("Set Rx sampling rate to %+.3f MHz.", srate * 1.0e-6);
     }
     void  set_channel_rx_offset(uint32_t ch, int32_t offset_samples) override{};
     float get_rx_gain() override
     {
       std::unique_lock<std::mutex> lock(mutex);
-      return srslte_convert_amplitude_to_dB(rx_gain);
+      return srsran_convert_amplitude_to_dB(rx_gain);
     }
     double            get_freq_offset() override { return 0; }
     bool              is_continuous_tx() override { return false; }
     bool              get_is_start_of_burst() override { return false; }
     bool              is_init() override { return false; }
     void              reset() override {}
-    srslte_rf_info_t* get_info() override { return &rf_info; }
+    srsran_rf_info_t* get_info() override { return &rf_info; }
   };
 
   // Common instances
-  srslte::log_filter log_h;
+  srslog::basic_logger& logger;
 
   // Dummy instances
   dummy_stack stack;
@@ -363,9 +360,9 @@ private:
   std::unique_ptr<srsue::phy> phy;
 
   // eNb
-  srslte_enb_dl_t    enb_dl                          = {};
-  cf_t*              enb_dl_buffer[SRSLTE_MAX_PORTS] = {};
-  srslte_dl_sf_cfg_t dl_sf_cfg                       = {};
+  srsran_enb_dl_t    enb_dl                          = {};
+  cf_t*              enb_dl_buffer[SRSRAN_MAX_PORTS] = {};
+  srsran_dl_sf_cfg_t dl_sf_cfg                       = {};
   uint64_t           sfn                             = 0; // System Frame Number
   uint32_t           sf_len                          = 0;
 
@@ -375,30 +372,29 @@ private:
   std::condition_variable cvar;
 
 public:
-  phy_test_bench(const srsue::phy_args_t& phy_args, const srslte_cell_t& cell, srslte::logger& logger_) :
-    stack(logger_),
-    radio(logger_, cell.nof_ports, srslte_sampling_freq_hz(cell.nof_prb)),
+  phy_test_bench(const srsue::phy_args_t& phy_args, const srsran_cell_t& cell) :
+    radio(cell.nof_ports, srsran_sampling_freq_hz(cell.nof_prb)),
     thread("phy_test_bench"),
-    log_h("test bench")
+    logger(srslog::fetch_basic_logger("test bench", false))
   {
     // Deduce physical attributes
-    sf_len = SRSLTE_SF_LEN_PRB(cell.nof_prb);
+    sf_len = SRSRAN_SF_LEN_PRB(cell.nof_prb);
 
     // Initialise UE
-    phy = std::unique_ptr<srsue::phy>(new srsue::phy(&logger_));
+    phy = std::unique_ptr<srsue::phy>(new srsue::phy);
     phy->init(phy_args, &stack, &radio);
 
     // Initialise DL baseband buffers
     for (uint32_t i = 0; i < cell.nof_ports; i++) {
-      enb_dl_buffer[i] = srslte_vec_cf_malloc(sf_len);
+      enb_dl_buffer[i] = srsran_vec_cf_malloc(sf_len);
       if (!enb_dl_buffer[i]) {
         perror("malloc");
       }
     }
 
     // Initialise eNb DL
-    srslte_enb_dl_init(&enb_dl, enb_dl_buffer, SRSLTE_MAX_PRB);
-    srslte_enb_dl_set_cell(&enb_dl, cell);
+    srsran_enb_dl_init(&enb_dl, enb_dl_buffer, SRSRAN_MAX_PRB);
+    srsran_enb_dl_set_cell(&enb_dl, cell);
 
     // Wait PHY init to end
     phy->wait_initialize();
@@ -407,7 +403,7 @@ public:
   ~phy_test_bench()
   {
     // Free eNb DL object
-    srslte_enb_dl_free(&enb_dl);
+    srsran_enb_dl_free(&enb_dl);
 
     // Free buffers
     for (auto& buf : enb_dl_buffer) {
@@ -423,11 +419,8 @@ public:
   srsue::phy_interface_rrc_lte* get_phy_interface_rrc() { return phy.get(); }
   srsue::phy_interface_mac_lte* get_phy_interface_mac() { return phy.get(); }
 
-  void configure_dedicated(uint16_t rnti, srslte::phy_cfg_t& phy_cfg)
+  void configure_dedicated(uint16_t rnti, srsran::phy_cfg_t& phy_cfg)
   {
-    // set RNTI
-    phy->set_crnti(rnti);
-
     // Set PHY configuration
     phy->set_config(phy_cfg, 0);
   }
@@ -438,13 +431,13 @@ public:
 
     // Free run DL
     do {
-      log_h.debug("-- generating DL baseband SFN=%" PRId64 " TTI=%d;\n", sfn, dl_sf_cfg.tti);
+      logger.debug("-- generating DL baseband SFN=%" PRId64 " TTI=%d;", sfn, dl_sf_cfg.tti);
 
       // Create empty resource grid with basic signals
-      srslte_enb_dl_put_base(&enb_dl, &dl_sf_cfg);
+      srsran_enb_dl_put_base(&enb_dl, &dl_sf_cfg);
 
       // Generate signal and transmit
-      srslte_enb_dl_gen_signal(&enb_dl);
+      srsran_enb_dl_gen_signal(&enb_dl);
 
       // Write baseband to radio
       radio.write_ring_buffers(enb_dl_buffer, sf_len);
@@ -488,7 +481,7 @@ public:
 
   void set_loglevel(std::string str)
   {
-    log_h.set_level(str);
+    logger.set_level(srslog::str_to_basic_level(str));
     radio.set_loglevel(str);
     stack.set_loglevel(str);
   }
@@ -496,40 +489,28 @@ public:
 
 int main(int argc, char** argv)
 {
-  int            ret             = SRSLTE_SUCCESS;
+  int            ret             = SRSRAN_SUCCESS;
   const uint32_t default_timeout = 60000; // 1 minute
 
   // Define Cell
-  srslte_cell_t cell = {.nof_prb         = 6,
+  srsran_cell_t cell = {.nof_prb         = 6,
                         .nof_ports       = 4,
                         .id              = 1,
-                        .cp              = SRSLTE_CP_NORM,
-                        .phich_length    = SRSLTE_PHICH_NORM,
-                        .phich_resources = SRSLTE_PHICH_R_1,
-                        .frame_type      = SRSLTE_FDD};
+                        .cp              = SRSRAN_CP_NORM,
+                        .phich_length    = SRSRAN_PHICH_NORM,
+                        .phich_resources = SRSRAN_PHICH_R_1,
+                        .frame_type      = SRSRAN_FDD};
   // Define PHY arguments
   srsue::phy_args_t phy_args = {};
 
   // Set custom test cell and arguments here
   phy_args.log.phy_level = "info";
 
-  // Setup logging.
-  srslog::sink* log_sink = srslog::create_stdout_sink();
-  if (!log_sink) {
-    return SRSLTE_ERROR;
-  }
-  srslog::log_channel* chan = srslog::create_log_channel("main_channel", *log_sink);
-  if (!chan) {
-    return SRSLTE_ERROR;
-  }
-  srslte::srslog_wrapper log_wrapper(*chan);
-
   // Start the log backend.
   srslog::init();
 
   // Create test bench
-  std::unique_ptr<phy_test_bench> phy_test =
-      std::unique_ptr<phy_test_bench>(new phy_test_bench(phy_args, cell, log_wrapper));
+  std::unique_ptr<phy_test_bench> phy_test = std::unique_ptr<phy_test_bench>(new phy_test_bench(phy_args, cell));
   phy_test->set_loglevel("info");
 
   // Start test bench
@@ -549,7 +530,7 @@ int main(int argc, char** argv)
   TESTASSERT(phy_test->get_stack()->wait_new_phy_meas(default_timeout));
 
   // 3. Transmit PRACH
-  srslte::phy_cfg_t phy_cfg = {};
+  srsran::phy_cfg_t phy_cfg = {};
   phy_cfg.set_defaults();
   phy_test->get_phy_interface_rrc()->set_config(phy_cfg, 0);
   TESTASSERT(phy_test->get_stack()->wait_config(default_timeout));
@@ -561,7 +542,7 @@ int main(int argc, char** argv)
   uint16_t rnti = 0x3c;
   phy_cfg       = {};
   phy_cfg.set_defaults();
-  phy_cfg.dl_cfg.cqi_report.periodic_mode       = SRSLTE_CQI_MODE_12;
+  phy_cfg.dl_cfg.cqi_report.periodic_mode       = SRSRAN_CQI_MODE_12;
   phy_cfg.dl_cfg.cqi_report.periodic_configured = true;
   phy_cfg.dl_cfg.cqi_report.pmi_idx             = 0;
   phy_cfg.ul_cfg.pucch.n_pucch_2                = 0;

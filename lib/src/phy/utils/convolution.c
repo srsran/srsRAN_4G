@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,53 +19,53 @@
  *
  */
 
-#include "srslte/srslte.h"
 #include <stdlib.h>
 #include <string.h>
 
-#include "srslte/phy/dft/dft.h"
-#include "srslte/phy/utils/convolution.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/dft/dft.h"
+#include "srsran/phy/utils/convolution.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/vector.h"
 
-int srslte_conv_fft_cc_init(srslte_conv_fft_cc_t* q, uint32_t input_len, uint32_t filter_len)
+int srsran_conv_fft_cc_init(srsran_conv_fft_cc_t* q, uint32_t input_len, uint32_t filter_len)
 {
-  bzero(q, sizeof(srslte_conv_fft_cc_t));
+  bzero(q, sizeof(srsran_conv_fft_cc_t));
 
   q->input_len      = input_len;
   q->filter_len     = filter_len;
   q->output_len     = input_len + filter_len;
   q->max_filter_len = filter_len;
   q->max_input_len  = input_len;
-  q->input_fft      = srslte_vec_cf_malloc(q->output_len);
-  q->filter_fft     = srslte_vec_cf_malloc(q->output_len);
-  q->output_fft     = srslte_vec_cf_malloc(q->output_len);
+  q->input_fft      = srsran_vec_cf_malloc(q->output_len);
+  q->filter_fft     = srsran_vec_cf_malloc(q->output_len);
+  q->output_fft     = srsran_vec_cf_malloc(q->output_len);
 
   if (!q->input_fft || !q->filter_fft || !q->output_fft) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
-  if (srslte_dft_plan(&q->input_plan, q->output_len, SRSLTE_DFT_FORWARD, SRSLTE_DFT_COMPLEX)) {
-    ERROR("Error initiating input plan\n");
-    return SRSLTE_ERROR;
+  if (srsran_dft_plan(&q->input_plan, q->output_len, SRSRAN_DFT_FORWARD, SRSRAN_DFT_COMPLEX)) {
+    ERROR("Error initiating input plan");
+    return SRSRAN_ERROR;
   }
-  if (srslte_dft_plan(&q->filter_plan, q->output_len, SRSLTE_DFT_FORWARD, SRSLTE_DFT_COMPLEX)) {
-    ERROR("Error initiating filter plan\n");
-    return SRSLTE_ERROR;
+  if (srsran_dft_plan(&q->filter_plan, q->output_len, SRSRAN_DFT_FORWARD, SRSRAN_DFT_COMPLEX)) {
+    ERROR("Error initiating filter plan");
+    return SRSRAN_ERROR;
   }
-  if (srslte_dft_plan(&q->output_plan, q->output_len, SRSLTE_DFT_BACKWARD, SRSLTE_DFT_COMPLEX)) {
-    ERROR("Error initiating output plan\n");
-    return SRSLTE_ERROR;
+  if (srsran_dft_plan(&q->output_plan, q->output_len, SRSRAN_DFT_BACKWARD, SRSRAN_DFT_COMPLEX)) {
+    ERROR("Error initiating output plan");
+    return SRSRAN_ERROR;
   }
-  srslte_dft_plan_set_norm(&q->input_plan, true);
-  srslte_dft_plan_set_norm(&q->filter_plan, true);
-  srslte_dft_plan_set_norm(&q->output_plan, false);
+  srsran_dft_plan_set_norm(&q->input_plan, true);
+  srsran_dft_plan_set_norm(&q->filter_plan, true);
+  srsran_dft_plan_set_norm(&q->output_plan, false);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-int srslte_conv_fft_cc_replan(srslte_conv_fft_cc_t* q, uint32_t input_len, uint32_t filter_len)
+int srsran_conv_fft_cc_replan(srsran_conv_fft_cc_t* q, uint32_t input_len, uint32_t filter_len)
 {
   if (input_len > q->max_input_len || filter_len > q->max_filter_len) {
-    ERROR("Error in conv_fft_cc_replan(): input_len and filter_len must be lower than initialized\n");
+    ERROR("Error in conv_fft_cc_replan(): input_len and filter_len must be lower than initialized");
     return -1;
   }
 
@@ -74,24 +74,24 @@ int srslte_conv_fft_cc_replan(srslte_conv_fft_cc_t* q, uint32_t input_len, uint3
   q->output_len = input_len + filter_len;
 
   if (!q->input_fft || !q->filter_fft || !q->output_fft) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
-  if (srslte_dft_replan(&q->input_plan, q->output_len)) {
-    ERROR("Error initiating input plan\n");
-    return SRSLTE_ERROR;
+  if (srsran_dft_replan(&q->input_plan, q->output_len)) {
+    ERROR("Error initiating input plan");
+    return SRSRAN_ERROR;
   }
-  if (srslte_dft_replan(&q->filter_plan, q->output_len)) {
-    ERROR("Error initiating filter plan\n");
-    return SRSLTE_ERROR;
+  if (srsran_dft_replan(&q->filter_plan, q->output_len)) {
+    ERROR("Error initiating filter plan");
+    return SRSRAN_ERROR;
   }
-  if (srslte_dft_replan(&q->output_plan, q->output_len)) {
-    ERROR("Error initiating output plan\n");
-    return SRSLTE_ERROR;
+  if (srsran_dft_replan(&q->output_plan, q->output_len)) {
+    ERROR("Error initiating output plan");
+    return SRSRAN_ERROR;
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-void srslte_conv_fft_cc_free(srslte_conv_fft_cc_t* q)
+void srsran_conv_fft_cc_free(srsran_conv_fft_cc_t* q)
 {
   if (q->input_fft) {
     free(q->input_fft);
@@ -103,55 +103,54 @@ void srslte_conv_fft_cc_free(srslte_conv_fft_cc_t* q)
     free(q->output_fft);
   }
 
-  srslte_dft_plan_free(&q->input_plan);
-  srslte_dft_plan_free(&q->filter_plan);
-  srslte_dft_plan_free(&q->output_plan);
+  srsran_dft_plan_free(&q->input_plan);
+  srsran_dft_plan_free(&q->filter_plan);
+  srsran_dft_plan_free(&q->output_plan);
 
-  bzero(q, sizeof(srslte_conv_fft_cc_t));
+  bzero(q, sizeof(srsran_conv_fft_cc_t));
 }
 
-uint32_t srslte_conv_fft_cc_run_opt(srslte_conv_fft_cc_t* q, const cf_t* input, const cf_t* filter_freq, cf_t* output)
+uint32_t srsran_conv_fft_cc_run_opt(srsran_conv_fft_cc_t* q, const cf_t* input, const cf_t* filter_freq, cf_t* output)
 {
-  srslte_dft_run_c(&q->input_plan, input, q->input_fft);
-  srslte_vec_prod_ccc(q->input_fft, filter_freq, q->output_fft, q->output_len);
-  srslte_dft_run_c(&q->output_plan, q->output_fft, output);
+  srsran_dft_run_c(&q->input_plan, input, q->input_fft);
+  srsran_vec_prod_ccc(q->input_fft, filter_freq, q->output_fft, q->output_len);
+  srsran_dft_run_c(&q->output_plan, q->output_fft, output);
 
   return (q->output_len - 1); // divide output length by dec factor
 }
 
-uint32_t srslte_conv_fft_cc_run(srslte_conv_fft_cc_t* q, const cf_t* input, const cf_t* filter, cf_t* output)
+uint32_t srsran_conv_fft_cc_run(srsran_conv_fft_cc_t* q, const cf_t* input, const cf_t* filter, cf_t* output)
 {
+  srsran_dft_run_c(&q->filter_plan, filter, q->filter_fft);
 
-  srslte_dft_run_c(&q->filter_plan, filter, q->filter_fft);
-
-  return srslte_conv_fft_cc_run_opt(q, input, q->filter_fft, output);
+  return srsran_conv_fft_cc_run_opt(q, input, q->filter_fft, output);
 }
 
-uint32_t srslte_corr_fft_cc_run_opt(srslte_conv_fft_cc_t* q, cf_t* input, cf_t* filter, cf_t* output)
+uint32_t srsran_corr_fft_cc_run_opt(srsran_conv_fft_cc_t* q, cf_t* input, cf_t* filter, cf_t* output)
 {
-  srslte_dft_run_c(&q->input_plan, input, q->input_fft);
-  srslte_vec_prod_conj_ccc(q->input_fft, q->filter_fft, q->output_fft, q->output_len);
-  srslte_dft_run_c(&q->output_plan, q->output_fft, output);
+  srsran_dft_run_c(&q->input_plan, input, q->input_fft);
+  srsran_vec_prod_conj_ccc(q->input_fft, q->filter_fft, q->output_fft, q->output_len);
+  srsran_dft_run_c(&q->output_plan, q->output_fft, output);
   return (q->output_len - 1);
 }
 
-uint32_t srslte_corr_fft_cc_run(srslte_conv_fft_cc_t* q, cf_t* input, cf_t* filter, cf_t* output)
+uint32_t srsran_corr_fft_cc_run(srsran_conv_fft_cc_t* q, cf_t* input, cf_t* filter, cf_t* output)
 {
-  srslte_dft_run_c(&q->filter_plan, filter, q->filter_fft);
-  return srslte_corr_fft_cc_run_opt(q, input, q->filter_fft, output);
+  srsran_dft_run_c(&q->filter_plan, filter, q->filter_fft);
+  return srsran_corr_fft_cc_run_opt(q, input, q->filter_fft, output);
 }
 
-uint32_t srslte_conv_cc(const cf_t* input, const cf_t* filter, cf_t* output, uint32_t input_len, uint32_t filter_len)
+uint32_t srsran_conv_cc(const cf_t* input, const cf_t* filter, cf_t* output, uint32_t input_len, uint32_t filter_len)
 {
   uint32_t i;
   uint32_t M = filter_len;
   uint32_t N = input_len;
 
   for (i = 0; i < M; i++) {
-    output[i] = srslte_vec_dot_prod_ccc(&input[i], &filter[i], i);
+    output[i] = srsran_vec_dot_prod_ccc(&input[i], &filter[i], i);
   }
   for (; i < M + N - 1; i++) {
-    output[i] = srslte_vec_dot_prod_ccc(&input[i - M], filter, M);
+    output[i] = srsran_vec_dot_prod_ccc(&input[i - M], filter, M);
   }
   return M + N - 1;
 }
@@ -159,20 +158,20 @@ uint32_t srslte_conv_cc(const cf_t* input, const cf_t* filter, cf_t* output, uin
 /* Centered convolution. Returns the same number of input elements. Equivalent to conv(x,h,'same') in matlab.
  * y(n)=sum_i x(n+i-M/2)*h(i) for n=1..N with N input samples and M filter len
  */
-uint32_t srslte_conv_same_cc(cf_t* input, cf_t* filter, cf_t* output, uint32_t input_len, uint32_t filter_len)
+uint32_t srsran_conv_same_cc(cf_t* input, cf_t* filter, cf_t* output, uint32_t input_len, uint32_t filter_len)
 {
   uint32_t i;
   uint32_t M = filter_len;
   uint32_t N = input_len;
 
   for (i = 0; i < M / 2; i++) {
-    output[i] = srslte_vec_dot_prod_ccc(&input[i], &filter[M / 2 - i], M - M / 2 + i);
+    output[i] = srsran_vec_dot_prod_ccc(&input[i], &filter[M / 2 - i], M - M / 2 + i);
   }
   for (; i < N - M / 2; i++) {
-    output[i] = srslte_vec_dot_prod_ccc(&input[i - M / 2], filter, M);
+    output[i] = srsran_vec_dot_prod_ccc(&input[i - M / 2], filter, M);
   }
   for (; i < N; i++) {
-    output[i] = srslte_vec_dot_prod_ccc(&input[i - M / 2], filter, N - i + M / 2);
+    output[i] = srsran_vec_dot_prod_ccc(&input[i - M / 2], filter, N - i + M / 2);
   }
   return N;
 }
@@ -180,7 +179,7 @@ uint32_t srslte_conv_same_cc(cf_t* input, cf_t* filter, cf_t* output, uint32_t i
 #define conv_same_extrapolates_extremes
 
 #ifdef conv_same_extrapolates_extremes
-uint32_t srslte_conv_same_cf(cf_t* input, float* filter, cf_t* output, uint32_t input_len, uint32_t filter_len)
+uint32_t srsran_conv_same_cf(cf_t* input, float* filter, cf_t* output, uint32_t input_len, uint32_t filter_len)
 {
   uint32_t i;
   uint32_t M = filter_len;
@@ -205,34 +204,34 @@ uint32_t srslte_conv_same_cf(cf_t* input, float* filter, cf_t* output, uint32_t 
   }
 
   for (i = 0; i < M / 2; i++) {
-    output[i] = srslte_vec_dot_prod_cfc(&first[i], filter, M);
+    output[i] = srsran_vec_dot_prod_cfc(&first[i], filter, M);
   }
 
   for (; i < N - M / 2; i++) {
-    output[i] = srslte_vec_dot_prod_cfc(&input[i - M / 2], filter, M);
+    output[i] = srsran_vec_dot_prod_cfc(&input[i - M / 2], filter, M);
   }
   int j = 0;
   for (; i < N; i++) {
-    output[i] = srslte_vec_dot_prod_cfc(&last[j++], filter, M);
+    output[i] = srsran_vec_dot_prod_cfc(&last[j++], filter, M);
   }
   return N;
 }
 #else
 
-uint32_t srslte_conv_same_cf(cf_t* input, float* filter, cf_t* output, uint32_t input_len, uint32_t filter_len)
+uint32_t srsran_conv_same_cf(cf_t* input, float* filter, cf_t* output, uint32_t input_len, uint32_t filter_len)
 {
   uint32_t i;
   uint32_t M = filter_len;
   uint32_t N = input_len;
 
   for (i = 0; i < M / 2; i++) {
-    output[i] = srslte_vec_dot_prod_cfc(&input[i], &filter[M / 2 - i], M - M / 2 + i);
+    output[i] = srsran_vec_dot_prod_cfc(&input[i], &filter[M / 2 - i], M - M / 2 + i);
   }
   for (; i < N - M / 2; i++) {
-    output[i] = srslte_vec_dot_prod_cfc(&input[i - M / 2], filter, M);
+    output[i] = srsran_vec_dot_prod_cfc(&input[i - M / 2], filter, M);
   }
   for (; i < N; i++) {
-    output[i] = srslte_vec_dot_prod_cfc(&input[i - M / 2], filter, N - i + M / 2);
+    output[i] = srsran_vec_dot_prod_cfc(&input[i - M / 2], filter, N - i + M / 2);
   }
   return N;
 }

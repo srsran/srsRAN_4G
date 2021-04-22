@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -23,8 +23,7 @@
 #define SRSLOG_FILE_SINK_H
 
 #include "file_utils.h"
-#include "srslte/srslog/sink.h"
-#include <cassert>
+#include "srsran/srslog/sink.h"
 
 namespace srslog {
 
@@ -34,15 +33,16 @@ namespace srslog {
 class file_sink : public sink
 {
 public:
-  file_sink(std::string name, size_t max_size) :
-    base_filename(std::move(name)),
-    max_size((max_size == 0) ? 0 : std::max<size_t>(max_size, 4 * 1024))
+  file_sink(std::string name,
+            size_t max_size,
+            std::unique_ptr<log_formatter> f) :
+    sink(std::move(f)),
+    max_size((max_size == 0) ? 0 : std::max<size_t>(max_size, 4 * 1024)),
+    base_filename(std::move(name))
   {}
 
   file_sink(const file_sink& other) = delete;
   file_sink& operator=(const file_sink& other) = delete;
-
-  ~file_sink() override { handler.close(); }
 
   detail::error_string write(detail::memory_buffer buffer) override
   {

@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -28,11 +28,11 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#include "srslte/phy/rf/rf_utils.h"
-#include "srslte/phy/ue/ue_cell_search_nbiot.h"
+#include "srsran/phy/rf/rf_utils.h"
+#include "srsran/phy/ue/ue_cell_search_nbiot.h"
 
 #ifndef DISABLE_RF
-#include "srslte/phy/rf/rf.h"
+#include "srsran/phy/rf/rf.h"
 #endif
 
 #define MHZ 1000000
@@ -49,14 +49,14 @@ double raster_offset[NUM_RASTER_OFFSET] = {0.0, 2500.0, -2500.0, 7500.0, -7500.0
 int band         = -1;
 int earfcn_start = -1, earfcn_end = -1;
 
-cell_search_cfg_t cell_detect_config = {.max_frames_pbch      = SRSLTE_DEFAULT_MAX_FRAMES_NPBCH,
-                                        .max_frames_pss       = SRSLTE_DEFAULT_MAX_FRAMES_NPSS,
-                                        .nof_valid_pss_frames = SRSLTE_DEFAULT_NOF_VALID_NPSS_FRAMES,
+cell_search_cfg_t cell_detect_config = {.max_frames_pbch      = SRSRAN_DEFAULT_MAX_FRAMES_NPBCH,
+                                        .max_frames_pss       = SRSRAN_DEFAULT_MAX_FRAMES_NPSS,
+                                        .nof_valid_pss_frames = SRSRAN_DEFAULT_NOF_VALID_NPSS_FRAMES,
                                         .init_agc             = 0.0,
                                         .force_tdd            = false};
 
 struct cells {
-  srslte_nbiot_cell_t cell;
+  srsran_nbiot_cell_t cell;
   float               freq;
   int                 dl_earfcn;
   float               power;
@@ -76,7 +76,7 @@ void usage(char* prog)
   printf("\t-e earfcn_end [Default All]\n");
   printf("\t-r Also scan frequencies with raster offset [Default %s]\n", scan_raster_offset ? "Yes" : "No");
   printf("\t-n nof_frames_total [Default 100]\n");
-  printf("\t-v [set srslte_verbose to debug, default none]\n");
+  printf("\t-v [set srsran_verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char** argv)
@@ -106,7 +106,7 @@ void parse_args(int argc, char** argv)
         scan_raster_offset = true;
         break;
       case 'v':
-        srslte_verbose++;
+        srsran_verbose++;
         break;
       default:
         usage(argv[0]);
@@ -119,14 +119,14 @@ void parse_args(int argc, char** argv)
   }
 }
 
-int srslte_rf_recv_wrapper(void* h, cf_t* data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t* t)
+int srsran_rf_recv_wrapper(void* h, cf_t* data[SRSRAN_MAX_PORTS], uint32_t nsamples, srsran_timestamp_t* t)
 {
-  DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
-  void* ptr[SRSLTE_MAX_PORTS];
-  for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
+  DEBUG(" ----  Receive %d samples  ----", nsamples);
+  void* ptr[SRSRAN_MAX_PORTS];
+  for (int i = 0; i < SRSRAN_MAX_PORTS; i++) {
     ptr[i] = data[i];
   }
-  return srslte_rf_recv_with_time_multi(h, ptr, nsamples, true, NULL, NULL);
+  return srsran_rf_recv_with_time_multi(h, ptr, nsamples, true, NULL, NULL);
 }
 
 bool go_exit = false;
@@ -139,44 +139,44 @@ void sig_int_handler(int signo)
   }
 }
 
-static SRSLTE_AGC_CALLBACK(srslte_rf_set_rx_gain_wrapper)
+static SRSRAN_AGC_CALLBACK(srsran_rf_set_rx_gain_wrapper)
 {
-  srslte_rf_set_rx_gain((srslte_rf_t*)h, gain_db);
+  srsran_rf_set_rx_gain((srsran_rf_t*)h, gain_db);
 }
 
 int main(int argc, char** argv)
 {
   int                                 n;
-  srslte_rf_t                         rf;
-  srslte_ue_cellsearch_nbiot_t        cs;
-  srslte_nbiot_ue_cellsearch_result_t found_cells[3];
+  srsran_rf_t                         rf;
+  srsran_ue_cellsearch_nbiot_t        cs;
+  srsran_nbiot_ue_cellsearch_result_t found_cells[3];
   int                                 nof_freqs;
-  srslte_earfcn_t                     channels[MAX_EARFCN];
+  srsran_earfcn_t                     channels[MAX_EARFCN];
   uint32_t                            freq;
   uint32_t                            n_found_cells = 0;
 
   parse_args(argc, argv);
 
   printf("Opening RF device...\n");
-  if (srslte_rf_open(&rf, rf_args)) {
+  if (srsran_rf_open(&rf, rf_args)) {
     fprintf(stderr, "Error opening rf\n");
     exit(-1);
   }
   if (!cell_detect_config.init_agc) {
-    srslte_rf_set_rx_gain(&rf, rf_gain);
+    srsran_rf_set_rx_gain(&rf, rf_gain);
   } else {
     printf("Starting AGC thread...\n");
-    if (srslte_rf_start_gain_thread(&rf, false)) {
+    if (srsran_rf_start_gain_thread(&rf, false)) {
       fprintf(stderr, "Error opening rf\n");
       exit(-1);
     }
-    srslte_rf_set_rx_gain(&rf, 50);
+    srsran_rf_set_rx_gain(&rf, 50);
   }
 
   // Supress RF messages
-  srslte_rf_suppress_stdout(&rf);
+  srsran_rf_suppress_stdout(&rf);
 
-  nof_freqs = srslte_band_get_fd_band(band, channels, earfcn_start, earfcn_end, MAX_EARFCN);
+  nof_freqs = srsran_band_get_fd_band(band, channels, earfcn_start, earfcn_end, MAX_EARFCN);
   if (nof_freqs < 0) {
     fprintf(stderr, "Error getting EARFCN list\n");
     exit(-1);
@@ -192,47 +192,47 @@ int main(int argc, char** argv)
     for (int i = 0; i < (scan_raster_offset ? NUM_RASTER_OFFSET : 1); i++) {
       // set rf_freq
       double rf_freq = channels[freq].fd * MHZ + raster_offset[i];
-      srslte_rf_set_rx_freq(&rf, 0, rf_freq);
-      INFO("Set rf_freq to %.3f Hz\n", rf_freq);
+      srsran_rf_set_rx_freq(&rf, 0, rf_freq);
+      INFO("Set rf_freq to %.3f Hz", rf_freq);
 
       printf("[%3d/%d]: EARFCN %d, %.2f MHz looking for NPSS.\n", freq, nof_freqs, channels[freq].id, rf_freq / 1e6);
       fflush(stdout);
 
-      if (SRSLTE_VERBOSE_ISINFO()) {
+      if (SRSRAN_VERBOSE_ISINFO()) {
         printf("\n");
       }
 
-      bzero(found_cells, 3 * sizeof(srslte_nbiot_ue_cellsearch_result_t));
+      bzero(found_cells, 3 * sizeof(srsran_nbiot_ue_cellsearch_result_t));
 
-      if (srslte_ue_cellsearch_nbiot_init(&cs, cell_detect_config.max_frames_pss, srslte_rf_recv_wrapper, (void*)&rf)) {
+      if (srsran_ue_cellsearch_nbiot_init(&cs, cell_detect_config.max_frames_pss, srsran_rf_recv_wrapper, (void*)&rf)) {
         fprintf(stderr, "Error initiating UE cell detect\n");
         exit(-1);
       }
 
       if (cell_detect_config.max_frames_pss) {
-        srslte_ue_cellsearch_nbiot_set_nof_valid_frames(&cs, cell_detect_config.nof_valid_pss_frames);
+        srsran_ue_cellsearch_nbiot_set_nof_valid_frames(&cs, cell_detect_config.nof_valid_pss_frames);
       }
       if (cell_detect_config.init_agc) {
-        srslte_ue_sync_nbiot_start_agc(&cs.ue_sync, srslte_rf_set_rx_gain_wrapper, cell_detect_config.init_agc);
+        srsran_ue_sync_nbiot_start_agc(&cs.ue_sync, srsran_rf_set_rx_gain_wrapper, cell_detect_config.init_agc);
       }
 
-      INFO("Setting sampling frequency %.2f MHz for NPSS search\n", SRSLTE_CS_SAMP_FREQ / 1000000);
-      srslte_rf_set_rx_srate(&rf, SRSLTE_CS_SAMP_FREQ);
-      INFO("Starting receiver...\n");
-      srslte_rf_start_rx_stream(&rf, false);
+      INFO("Setting sampling frequency %.2f MHz for NPSS search", SRSRAN_CS_SAMP_FREQ / 1000000);
+      srsran_rf_set_rx_srate(&rf, SRSRAN_CS_SAMP_FREQ);
+      INFO("Starting receiver...");
+      srsran_rf_start_rx_stream(&rf, false);
 
-      n = srslte_ue_cellsearch_nbiot_scan(&cs);
-      if (n == SRSLTE_SUCCESS) {
-        srslte_rf_stop_rx_stream(&rf);
-        n = srslte_ue_cellsearch_nbiot_detect(&cs, found_cells);
-        if (n == SRSLTE_SUCCESS) {
-          srslte_nbiot_cell_t cell;
+      n = srsran_ue_cellsearch_nbiot_scan(&cs);
+      if (n == SRSRAN_SUCCESS) {
+        srsran_rf_stop_rx_stream(&rf);
+        n = srsran_ue_cellsearch_nbiot_detect(&cs, found_cells);
+        if (n == SRSRAN_SUCCESS) {
+          srsran_nbiot_cell_t cell;
           cell.n_id_ncell = found_cells[0].n_id_ncell;
-          cell.base.cp    = SRSLTE_CP_NORM;
+          cell.base.cp    = SRSRAN_CP_NORM;
 
           // TODO: add MIB decoding
           printf("Found CELL ID %d.\n", cell.n_id_ncell);
-          memcpy(&results[n_found_cells].cell, &cell, sizeof(srslte_nbiot_cell_t));
+          memcpy(&results[n_found_cells].cell, &cell, sizeof(srsran_nbiot_cell_t));
           results[n_found_cells].freq      = channels[freq].fd;
           results[n_found_cells].dl_earfcn = channels[freq].id;
           results[n_found_cells].power     = found_cells[0].peak;
@@ -241,7 +241,7 @@ int main(int argc, char** argv)
           printf("Cell found but couldn't detect ID.\n");
         }
       }
-      srslte_ue_cellsearch_nbiot_free(&cs);
+      srsran_ue_cellsearch_nbiot_free(&cs);
     }
   }
 
@@ -256,6 +256,6 @@ int main(int argc, char** argv)
 
   printf("\nBye\n");
 
-  srslte_rf_close(&rf);
+  srsran_rf_close(&rf);
   exit(0);
 }

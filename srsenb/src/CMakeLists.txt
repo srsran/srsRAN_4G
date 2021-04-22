@@ -1,14 +1,14 @@
 #
-# Copyright 2013-2020 Software Radio Systems Limited
+# Copyright 2013-2021 Software Radio Systems Limited
 #
-# This file is part of srsLTE
+# This file is part of srsRAN
 #
-# srsLTE is free software: you can redistribute it and/or modify
+# srsRAN is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of
 # the License, or (at your option) any later version.
 #
-# srsLTE is distributed in the hope that it will be useful,
+# srsRAN is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Affero General Public License for more details.
@@ -18,6 +18,7 @@
 # and at http://www.gnu.org/licenses/.
 #
 
+add_subdirectory(common)
 add_subdirectory(phy)
 add_subdirectory(stack)
 
@@ -35,20 +36,18 @@ endif (RPATH)
 add_library(enb_cfg_parser STATIC parser.cc enb_cfg_parser.cc)
 target_link_libraries(enb_cfg_parser ${LIBCONFIGPP_LIBRARIES})
 
-add_executable(srsenb main.cc enb.cc metrics_stdout.cc metrics_csv.cc)
+add_executable(srsenb main.cc enb.cc metrics_stdout.cc metrics_csv.cc metrics_json.cc)
 
-set(SRSENB_SOURCES srsenb_phy srsenb_stack srsenb_upper srsenb_mac srsenb_rrc srslog)
-set(SRSLTE_SOURCES srslte_common srslte_mac srslte_phy srslte_upper srslte_radio rrc_asn1 s1ap_asn1 enb_cfg_parser srslog)
+set(SRSENB_SOURCES srsenb_phy srsenb_stack srsenb_common srsenb_upper srsenb_mac srsenb_rrc srslog system)
+set(SRSRAN_SOURCES srsran_common srsran_mac srsran_phy srsran_upper srsran_radio rrc_asn1 s1ap_asn1 enb_cfg_parser srslog system)
 
-if(ENABLE_5GNR)
-  set(SRSENB_SOURCES ${SRSENB_SOURCES} srsgnb_phy srsgnb_stack srsgnb_upper srsgnb_mac srsgnb_rrc)
-  set(SRSLTE_SOURCES ${SRSLTE_SOURCES} rrc_nr_asn1 ngap_nr_asn1)
-endif()
+set(SRSENB_SOURCES ${SRSENB_SOURCES} srsgnb_phy srsgnb_stack srsgnb_upper srsgnb_mac srsgnb_rrc)
+set(SRSRAN_SOURCES ${SRSRAN_SOURCES} rrc_nr_asn1 ngap_nr_asn1)
 
 target_link_libraries(srsenb  ${SRSENB_SOURCES}
-                              ${SRSLTE_SOURCES}
+                              ${SRSRAN_SOURCES}
                               ${CMAKE_THREAD_LIBS_INIT}
-                              ${Boost_LIBRARIES} 
+                              ${Boost_LIBRARIES}
                               ${SEC_LIBRARIES}
                               ${LIBCONFIGPP_LIBRARIES}
                               ${SCTP_LIBRARIES})

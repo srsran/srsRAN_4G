@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -22,10 +22,10 @@
 #ifndef SRSUE_PRACH_H
 #define SRSUE_PRACH_H
 
-#include "srslte/common/log.h"
-#include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/radio/radio.h"
-#include "srslte/srslte.h"
+#include "srsran/interfaces/ue_phy_interfaces.h"
+#include "srsran/radio/radio.h"
+#include "srsran/srslog/srslog.h"
+#include "srsran/srsran.h"
 #include <bitset>
 
 namespace srsue {
@@ -33,13 +33,12 @@ namespace srsue {
 class prach
 {
 public:
-  prach() = default;
+  prach(srslog::basic_logger& logger) : logger(logger) {}
   ~prach() { stop(); }
 
-  void  init(uint32_t max_prb, srslte::log* log_h);
+  void  init(uint32_t max_prb);
   void  stop();
-  bool  set_cell(srslte_cell_t cell, srslte_prach_cfg_t prach_cfg);
-  void  reset_cfg();
+  bool  set_cell(srsran_cell_t cell, srsran_prach_cfg_t prach_cfg);
   bool  prepare_to_send(uint32_t preamble_idx, int allowed_subframe = -1, float target_power_dbm = -1);
   bool  is_ready_to_send(uint32_t current_tti, uint32_t current_pci);
   bool  is_pending() const;
@@ -65,11 +64,11 @@ private:
   static constexpr unsigned max_fs        = 12;
   static constexpr unsigned max_preambles = 64;
 
-  srslte::log*                                         log_h            = nullptr;
-  srslte_prach_t                                       prach_obj        = {};
-  srslte_cell_t                                        cell             = {};
-  srslte_cfo_t                                         cfo_h            = {};
-  srslte_prach_cfg_t                                   cfg              = {};
+  srslog::basic_logger&                                logger;
+  srsran_prach_t                                       prach_obj        = {};
+  srsran_cell_t                                        cell             = {};
+  srsran_cfo_t                                         cfo_h            = {};
+  srsran_prach_cfg_t                                   cfg              = {};
   std::array<std::array<cf_t*, max_preambles>, max_fs> buffer           = {};
   cf_t*                                                signal_buffer    = nullptr;
   int                                                  preamble_idx     = -1;

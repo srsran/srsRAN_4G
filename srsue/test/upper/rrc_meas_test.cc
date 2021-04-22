@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,14 +19,14 @@
  *
  */
 
-#include "srslte/asn1/rrc_asn1.h"
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/log_filter.h"
-#include "srslte/common/test_common.h"
-#include "srslte/test/ue_test_interfaces.h"
-#include "srslte/upper/pdcp.h"
+#include "srsran/asn1/rrc/meascfg.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/common/test_common.h"
+#include "srsran/test/ue_test_interfaces.h"
+#include "srsran/upper/pdcp.h"
 #include "srsue/hdr/stack/rrc/rrc.h"
 #include "srsue/hdr/stack/rrc/rrc_meas.h"
+#include "srsue/hdr/stack/rrc/rrc_nr.h"
 #include "srsue/hdr/stack/upper/nas.h"
 #include <iostream>
 
@@ -43,15 +43,15 @@ public:
   }
 
   // Not implemented methods
-  bool set_config(srslte::phy_cfg_t config, uint32_t cc_idx) override { return true; }
-  bool set_scell(srslte_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn) override { return true; }
-  void set_config_tdd(srslte_tdd_config_t& tdd_config) override {}
-  void set_config_mbsfn_sib2(srslte::mbsfn_sf_cfg_t* cfg_list, uint32_t nof_cfgs) override {}
-  void set_config_mbsfn_sib13(const srslte::sib13_t& sib13) override {}
-  void set_config_mbsfn_mcch(const srslte::mcch_msg_t& mcch) override {}
+  bool set_config(srsran::phy_cfg_t config, uint32_t cc_idx) override { return true; }
+  bool set_scell(srsran_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn) override { return true; }
+  void set_config_tdd(srsran_tdd_config_t& tdd_config) override {}
+  void set_config_mbsfn_sib2(srsran::mbsfn_sf_cfg_t* cfg_list, uint32_t nof_cfgs) override {}
+  void set_config_mbsfn_sib13(const srsran::sib13_t& sib13) override {}
+  void set_config_mbsfn_mcch(const srsran::mcch_msg_t& mcch) override {}
   bool cell_search() override { return true; }
   bool cell_is_camping() override { return true; }
-  void set_activation_deactivation_scell(uint32_t cmd) override {}
+  void deactivate_scells() override {}
   bool cell_select(phy_cell_t cell) override
   {
     last_selected_cell = cell;
@@ -110,10 +110,10 @@ private:
 class mac_test : public srsue::mac_interface_rrc
 {
 public:
-  srslte::task_sched_handle task_sched;
+  srsran::task_sched_handle task_sched;
   rrc*                      rrc_ptr;
 
-  mac_test(rrc* rrc_, srslte::task_sched_handle task_sched_) : rrc_ptr(rrc_), task_sched(task_sched_) {}
+  mac_test(rrc* rrc_, srsran::task_sched_handle task_sched_) : rrc_ptr(rrc_), task_sched(task_sched_) {}
 
   int get_dlsch_with_sib1(bcch_dl_sch_msg_s& dlsch_msg)
   {
@@ -134,7 +134,7 @@ public:
   void bcch_start_rx(int si_window_start, int si_window_length) override
   {
     task_sched.defer_task([this]() {
-      srslte::unique_byte_buffer_t pdu;
+      srsran::unique_byte_buffer_t pdu;
       for (uint32_t i = 0; i < 2; ++i) {
         bcch_dl_sch_msg_s dlsch_msg;
         if (i == 0) {
@@ -143,7 +143,10 @@ public:
           get_dlsch_with_sys_info(dlsch_msg);
         }
 
-        pdu = srslte::allocate_unique_buffer(*srslte::byte_buffer_pool::get_instance());
+        pdu = srsran::make_byte_buffer();
+        if (pdu == nullptr) {
+          return;
+        }
         asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
         dlsch_msg.pack(bref);
         pdu->N_bytes = bref.distance_bytes();
@@ -158,8 +161,8 @@ public:
 
   void mch_start_rx(uint32_t lcid) override {}
 
-  void set_config(srslte::mac_cfg_t& mac_cfg) override {}
-  void set_config(srslte::sr_cfg_t& sr_cfg) override {}
+  void set_config(srsran::mac_cfg_t& mac_cfg) override {}
+  void set_config(srsran::sr_cfg_t& sr_cfg) override {}
   void set_rach_ded_cfg(uint32_t preamble_index, uint32_t prach_mask) override {}
 
   void get_rntis(ue_rnti_t* rntis) override {}
@@ -170,18 +173,39 @@ public:
   void reset() override {}
 };
 
+class rrc_nr_test final : public srsue::rrc_nr_interface_rrc
+{
+public:
+  ~rrc_nr_test() = default;
+  void get_eutra_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps) override{};
+  void get_nr_capabilities(srsran::byte_buffer_t* nr_cap) override{};
+  void phy_set_cells_to_meas(uint32_t carrier_freq_r15) override{};
+  void phy_meas_stop() override{};
+  bool rrc_reconfiguration(bool                endc_release_and_add_r15,
+                           bool                nr_secondary_cell_group_cfg_r15_present,
+                           asn1::dyn_octstring nr_secondary_cell_group_cfg_r15,
+                           bool                sk_counter_r15_present,
+                           uint32_t            sk_counter_r15,
+                           bool                nr_radio_bearer_cfg1_r15_present,
+                           asn1::dyn_octstring nr_radio_bearer_cfg1_r15) override
+  {
+    return false;
+  };
+  bool is_config_pending() override { return false; };
+};
+
 class nas_test : public srsue::nas
 {
 public:
-  nas_test(srslte::task_sched_handle t) : srsue::nas(t) {}
-  bool is_attached() override { return false; }
+  nas_test(srsran::task_sched_handle t) : srsue::nas(t) {}
+  bool is_registered() override { return false; }
 };
 
-class pdcp_test : public srslte::pdcp
+class pdcp_test : public srsran::pdcp
 {
 public:
-  pdcp_test(const char* logname, srslte::task_sched_handle t) : srslte::pdcp(t, logname) {}
-  void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu) override
+  pdcp_test(const char* logname, srsran::task_sched_handle t) : srsran::pdcp(t, logname) {}
+  void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu, int sn = -1) override
   {
     ul_dcch_msg_s  ul_dcch_msg;
     asn1::cbit_ref bref(sdu->msg, sdu->N_bytes);
@@ -235,16 +259,17 @@ class rrc_test : public rrc
   stack_test_dummy* stack = nullptr;
 
 public:
-  rrc_test(srslte::log_ref log_, stack_test_dummy* stack_) :
-    rrc(stack_, &stack_->task_sched),
-    stack(stack_),
-    mactest(this, &stack_->task_sched)
+  rrc_test(const std::string& log_name, stack_test_dummy* stack_) :
+    rrc(stack_, &stack_->task_sched), stack(stack_), mactest(this, &stack_->task_sched)
   {
-    pool     = srslte::byte_buffer_pool::get_instance();
-    nastest  = std::unique_ptr<nas_test>(new nas_test(&stack->task_sched));
-    pdcptest = std::unique_ptr<pdcp_test>(new pdcp_test(log_->get_service_name().c_str(), &stack->task_sched));
+    nastest   = std::unique_ptr<nas_test>(new nas_test(&stack->task_sched));
+    pdcptest  = std::unique_ptr<pdcp_test>(new pdcp_test(log_name.c_str(), &stack->task_sched));
+    rrcnrtest = std::unique_ptr<rrc_nr_test>(new rrc_nr_test());
   }
-  void init() { rrc::init(&phytest, &mactest, nullptr, pdcptest.get(), nastest.get(), nullptr, nullptr, {}); }
+  void init()
+  {
+    rrc::init(&phytest, &mactest, nullptr, pdcptest.get(), nastest.get(), nullptr, nullptr, rrcnrtest.get(), {});
+  }
 
   void run_tti(uint32_t tti_)
   {
@@ -285,7 +310,10 @@ public:
 
   void send_ccch_msg(dl_ccch_msg_s& dl_ccch_msg)
   {
-    srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
+    srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+    if (pdu == nullptr) {
+      return;
+    }
 
     asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
     dl_ccch_msg.pack(bref);
@@ -297,8 +325,10 @@ public:
 
   void send_dcch_msg(dl_dcch_msg_s& dl_dcch_msg)
   {
-    srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
-    ;
+    srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+    if (pdu == nullptr) {
+      return;
+    }
     asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
     dl_dcch_msg.pack(bref);
     bref.align_bytes_zero();
@@ -318,13 +348,25 @@ public:
 
   void add_neighbour_cell(uint32_t pci, uint32_t earfcn, float rsrp = 0)
   {
-    std::vector<rrc_interface_phy_lte::phy_meas_t> phy_meas = {};
-    rrc_interface_phy_lte::phy_meas_t              meas     = {};
-    meas.pci                                                = pci;
-    meas.earfcn                                             = earfcn;
-    meas.rsrp                                               = rsrp;
+    std::vector<phy_meas_t> phy_meas = {};
+    phy_meas_t              meas     = {};
+    meas.pci                         = pci;
+    meas.earfcn                      = earfcn;
+    meas.rsrp                        = rsrp;
     phy_meas.push_back(meas); // neighbour cell
     new_cell_meas(phy_meas);
+    run_tti(1);
+  }
+
+  void add_neighbour_cell_nr(uint32_t pci, uint32_t earfcn, float rsrp = 0)
+  {
+    std::vector<phy_meas_nr_t> phy_meas = {};
+    phy_meas_nr_t              meas     = {};
+    meas.pci_nr                         = pci;
+    meas.arfcn_nr                       = earfcn;
+    meas.rsrp                           = rsrp;
+    phy_meas.push_back(meas); // neighbour cell
+    new_cell_meas_nr(phy_meas);
     run_tti(1);
   }
 
@@ -338,21 +380,15 @@ public:
   mac_test mactest;
 
 private:
-  std::unique_ptr<pdcp_test> pdcptest;
-  std::unique_ptr<nas_test>  nastest;
-  uint32_t                   tti  = 0;
-  srslte::byte_buffer_pool*  pool = nullptr;
+  std::unique_ptr<pdcp_test>   pdcptest;
+  std::unique_ptr<nas_test>    nastest;
+  std::unique_ptr<rrc_nr_test> rrcnrtest;
+  uint32_t                     tti = 0;
 };
 
 // Test Cell select
 int cell_select_test()
 {
-  srslte::log_ref log1("RRC_MEAS"), rrc_log("RRC");
-  log1->set_level(srslte::LOG_LEVEL_DEBUG);
-  log1->set_hex_limit(-1);
-  rrc_log->set_level(srslte::LOG_LEVEL_DEBUG);
-  rrc_log->set_hex_limit(-1);
-
   printf("==========================================================\n");
   printf("======            Cell Select Testing      ===============\n");
   printf("==========================================================\n");
@@ -361,7 +397,7 @@ int cell_select_test()
     // CHECK: The starting serving cell pci=2 is the weakest, and cell selection procedure chooses pci=1
     // CHECK: phy cell selection is successful, and rrc remains in pci=1
     stack_test_dummy stack;
-    rrc_test         rrctest(log1, &stack);
+    rrc_test         rrctest(srslog::fetch_basic_logger("RRC_MEAS").id(), &stack);
     rrctest.init();
     rrctest.connect();
 
@@ -378,7 +414,7 @@ int cell_select_test()
     TESTASSERT(!rrctest.has_neighbour_cell(2, 2));
 
     // Start cell selection procedure. The RRC will start with strongest cell
-    TESTASSERT(rrctest.start_cell_select() == SRSLTE_SUCCESS);
+    TESTASSERT(rrctest.start_cell_select() == SRSRAN_SUCCESS);
     stack.run_pending_tasks();
     TESTASSERT(rrctest.phytest.last_selected_cell.earfcn == 2);
     TESTASSERT(rrctest.phytest.last_selected_cell.pci == 2);
@@ -392,7 +428,7 @@ int cell_select_test()
     // for pci=1.
     // CHECK: Cell selection fails in the phy, and rrc moves to pci=2
     stack_test_dummy stack;
-    rrc_test         rrctest(log1, &stack);
+    rrc_test         rrctest(srslog::fetch_basic_logger("RRC_MEAS").id(), &stack);
     rrctest.init();
     rrctest.connect();
 
@@ -405,7 +441,7 @@ int cell_select_test()
     TESTASSERT(rrctest.has_neighbour_cell(2, 3));
 
     // Start cell selection procedure. The RRC will start with strongest cell
-    TESTASSERT(rrctest.start_cell_select() == SRSLTE_SUCCESS);
+    TESTASSERT(rrctest.start_cell_select() == SRSRAN_SUCCESS);
     TESTASSERT(rrctest.phytest.last_selected_cell.earfcn == 1);
     TESTASSERT(rrctest.phytest.last_selected_cell.pci == 1);
     stack.run_pending_tasks();
@@ -430,7 +466,7 @@ int cell_select_test()
     cell_search_cell.pci                                      = 5;
     cell_search_cell.earfcn                                   = 5;
     cell_search_ret.found = srsue::rrc_interface_phy_lte::cell_search_ret_t::CELL_FOUND;
-    TESTASSERT(rrctest.start_cell_select() == SRSLTE_SUCCESS);
+    TESTASSERT(rrctest.start_cell_select() == SRSRAN_SUCCESS);
     rrctest.cell_select_complete(false); // it will fail to select pci=2
     stack.run_pending_tasks();
     rrctest.cell_select_complete(false); // it will fail to select pci=3
@@ -446,22 +482,20 @@ int cell_select_test()
     TESTASSERT(rrctest.is_serving_cell(5, 5));
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 // Tests the measObject configuration and the successful activation of PHY cells to search for
 int meas_obj_test()
 {
-  srslte::log_ref log1("RRC_MEAS");
-  log1->set_level(srslte::LOG_LEVEL_DEBUG);
-  log1->set_hex_limit(-1);
+  auto& rrc_meas_logger = srslog::fetch_basic_logger("RRC_MEAS");
 
   printf("==========================================================\n");
   printf("======    Object Configuration Testing    ===============\n");
   printf("==========================================================\n");
 
   stack_test_dummy stack;
-  rrc_test         rrctest(log1, &stack);
+  rrc_test         rrctest(rrc_meas_logger.id(), &stack);
   rrctest.init();
   rrctest.connect();
 
@@ -472,7 +506,7 @@ int meas_obj_test()
   rrc_conn_recfg.meas_cfg_present        = true;
   meas_cfg_s& meas_cfg                   = rrc_conn_recfg.meas_cfg;
 
-  log1->info("Test1: Remove non-existing measObject, reportConfig and measId\n");
+  rrc_meas_logger.info("Test1: Remove non-existing measObject, reportConfig and measId");
   meas_cfg = {};
   meas_cfg.meas_id_to_rem_list.push_back(3);
   meas_cfg.meas_obj_to_rem_list.push_back(3);
@@ -484,7 +518,7 @@ int meas_obj_test()
   TESTASSERT(rrctest.send_meas_cfg(rrc_conn_recfg));
   TESTASSERT(rrctest.phytest.meas_nof_freqs() == 0);
 
-  log1->info("Test2: Add measId pointing to non-existing measObject or reportConfig\n");
+  rrc_meas_logger.info("Test2: Add measId pointing to non-existing measObject or reportConfig");
   meas_cfg               = {};
   meas_id_to_add_mod_s m = {};
   m.meas_obj_id          = 1;
@@ -497,7 +531,7 @@ int meas_obj_test()
   TESTASSERT(rrctest.send_meas_cfg(rrc_conn_recfg));
   TESTASSERT(rrctest.phytest.meas_nof_freqs() == 0);
 
-  log1->info("Test3: Add meaObject and report of unsupported type. Setup a supported report for later use\n");
+  rrc_meas_logger.info("Test3: Add meaObject and report of unsupported type. Setup a supported report for later use");
   meas_cfg                  = {};
   meas_obj_to_add_mod_s obj = {};
   obj.meas_obj.set_meas_obj_utra();
@@ -526,7 +560,7 @@ int meas_obj_test()
   TESTASSERT(rrctest.send_meas_cfg(rrc_conn_recfg));
   TESTASSERT(rrctest.phytest.meas_nof_freqs() == 0);
 
-  log1->info("Test4: Add 2 measObjects and 2 measId both pointing to the same measObject \n");
+  rrc_meas_logger.info("Test4: Add 2 measObjects and 2 measId both pointing to the same measObject ");
   meas_cfg = {};
   for (int i = 0; i < 2; i++) {
     m               = {};
@@ -562,7 +596,7 @@ int meas_obj_test()
   TESTASSERT(rrctest.phytest.meas_freq_started(100));
   TESTASSERT(rrctest.phytest.meas_nof_cells(100) == 0);
 
-  log1->info("Test5: Add existing objects and measId. Now add measId for 2nd cell\n");
+  rrc_meas_logger.info("Test5: Add existing objects and measId. Now add measId for 2nd cell");
   meas_cfg        = {};
   m               = {};
   m.meas_obj_id   = 2; // same object
@@ -593,7 +627,7 @@ int meas_obj_test()
   }
 
   // Reconfigure 2nd object only, we should see 8 cells now
-  log1->info("Test6: Add 1 cell to 1st object. Mixed add/mod and removal command.\n");
+  rrc_meas_logger.info("Test6: Add 1 cell to 1st object. Mixed add/mod and removal command.");
   meas_cfg                                  = {};
   meas_cfg.meas_obj_to_add_mod_list_present = true;
 
@@ -647,8 +681,8 @@ int meas_obj_test()
   TESTASSERT(rrctest.phytest.meas_cell_started(2, 23));  // was added
   TESTASSERT(rrctest.phytest.meas_cell_started(2, 24));  // was added
 
-  log1->info("Test7: PHY finds new neighbours in frequency 1 and 2, check RRC instructs to search them\n");
-  std::vector<rrc_interface_phy_lte::phy_meas_t> phy_meas = {};
+  rrc_meas_logger.info("Test7: PHY finds new neighbours in frequency 1 and 2, check RRC instructs to search them");
+  std::vector<phy_meas_t> phy_meas = {};
   phy_meas.push_back({0, 0, 0.0f, 1, 31});
   phy_meas.push_back({-1, 0, 0.0f, 1, 32});
   phy_meas.push_back({-2, 0, 0.0f, 1, 33});
@@ -683,13 +717,13 @@ int meas_obj_test()
   TESTASSERT(rrctest.phytest.meas_cell_started(2, 24));  // was added
   TESTASSERT(rrctest.phytest.meas_cell_started(2, 31));
 
-  log1->info("Test8: Simulate a Release (reset() call) make sure resets correctly\n");
+  rrc_meas_logger.info("Test8: Simulate a Release (reset() call) make sure resets correctly");
   rrctest.init();
   rrctest.run_tti(1);
   rrctest.connect();
   rrctest.run_tti(1);
 
-  log1->info("Test9: Config removal\n");
+  rrc_meas_logger.info("Test9: Config removal");
   meas_cfg = {};
   meas_cfg.meas_obj_to_rem_list.push_back(1);
   meas_cfg.meas_obj_to_rem_list.push_back(2);
@@ -771,7 +805,7 @@ void send_report(rrc_test&                   rrctest,
                  const std::vector<uint32_t> earfcn,
                  const std::vector<uint32_t> pci)
 {
-  std::vector<rrc_interface_phy_lte::phy_meas_t> phy_meas = {};
+  std::vector<phy_meas_t> phy_meas = {};
   for (uint32_t i = 0; i < pci.size(); i++) {
     float r = rsrp[0];
     if (rsrp.size() == pci.size()) {
@@ -876,19 +910,14 @@ int a1event_report_test(uint32_t                             a1_rsrp_th,
                         report_cfg_eutra_s::report_amount_e_ report_amount,
                         report_interv_e                      report_interv)
 {
-
-  srslte::log_ref log1("RRC_MEAS"), rrc_log("RRC");
-  log1->set_level(srslte::LOG_LEVEL_DEBUG);
-  log1->set_hex_limit(-1);
-  rrc_log->set_level(srslte::LOG_LEVEL_DEBUG);
-  rrc_log->set_hex_limit(-1);
+  auto& rrc_meas_logger = srslog::fetch_basic_logger("RRC_MEAS");
 
   printf("==========================================================\n");
   printf("============       Report Testing  A1      ===============\n");
   printf("==========================================================\n");
 
   stack_test_dummy stack;
-  rrc_test         rrctest(log1, &stack);
+  rrc_test         rrctest(rrc_meas_logger.id(), &stack);
   rrctest.init();
   rrctest.connect();
 
@@ -913,20 +942,20 @@ int a1event_report_test(uint32_t                             a1_rsrp_th,
 
   // Entering condition during half timeToTrigger, should not trigger measurement
   for (int i = 0; i < ttt_iters / 2; i++) {
-    log1->info("Report %d/%d enter condition is true\n", i, ttt_iters / 2);
+    rrc_meas_logger.info("Report %d/%d enter condition is true", i, ttt_iters / 2);
     enter_condition(rrctest, event_id, hyst, 0, {1, 2});
     // Check doesn't generate measurement report
     TESTASSERT(!rrctest.get_meas_res(meas_res));
   }
 
-  log1->info("Report leaving enter condition\n");
+  rrc_meas_logger.info("Report leaving enter condition");
   // Not satisfy entering condition for 1 TTI
   middle_condition(rrctest, event_id, hyst, 0, {1});
   TESTASSERT(!rrctest.get_meas_res(meas_res));
 
   // Should go again all timeToTrigger, should not trigger measurement until end
   for (int i = 0; i < ttt_iters; i++) {
-    log1->info("Report %d/%d enter condition is true\n", i, ttt_iters);
+    rrc_meas_logger.info("Report %d/%d enter condition is true", i, ttt_iters);
     enter_condition(rrctest, event_id, hyst, 0, {1, 2});
     if (i < ttt_iters - 1) {
       // Check doesn't generate measurement report
@@ -946,14 +975,14 @@ int a1event_report_test(uint32_t                             a1_rsrp_th,
     // Trigger again entering condition for the same cell it shouldn't trigger a new report, just keep sending the
     // periodic reports without restarting counter
     for (int i = 0; i < ttt_iters; i++) {
-      log1->info("Report %d/%d enter condition is true\n", i, ttt_iters);
+      rrc_meas_logger.info("Report %d/%d enter condition is true", i, ttt_iters);
       enter_condition(rrctest, event_id, hyst, 0, {1});
     }
     // Do not expect report if timer not expired
     TESTASSERT(!rrctest.get_meas_res(meas_res));
     // Wait to generate all reports
     for (int i = 0; i < report_amount.to_number() - 1; i++) {
-      log1->info("Testing report %d/%d\n", i, report_amount.to_number());
+      rrc_meas_logger.info("Testing report %d/%d", i, report_amount.to_number());
       int interval = report_interv.to_number();
       if (i == 0) {
         // already stepped these iterations
@@ -964,7 +993,7 @@ int a1event_report_test(uint32_t                             a1_rsrp_th,
           // Exit the enter condition in the last one, should still send the last report
           middle_condition(rrctest, event_id, hyst, 0, {1});
         } else {
-          log1->info("Stepping timer %d/%d\n", j, interval);
+          rrc_meas_logger.info("Stepping timer %d/%d", j, interval);
           rrctest.run_tti(1);
         }
         if (j < interval - 1) {
@@ -983,7 +1012,7 @@ int a1event_report_test(uint32_t                             a1_rsrp_th,
     }
     // Trigger again condition
     for (int i = 0; i < ttt_iters; i++) {
-      log1->info("Report %d/%d enter condition is true\n", i, ttt_iters);
+      rrc_meas_logger.info("Report %d/%d enter condition is true", i, ttt_iters);
       enter_condition(rrctest, event_id, hyst, 0, {1});
     }
     // Do not expect report
@@ -991,14 +1020,14 @@ int a1event_report_test(uint32_t                             a1_rsrp_th,
 
     // Leaving condition for timeToTrigger
     for (int i = 0; i < ttt_iters; i++) {
-      log1->info("Report %d/%d leaving condition is true\n", i, ttt_iters);
+      rrc_meas_logger.info("Report %d/%d leaving condition is true", i, ttt_iters);
       exit_condition(rrctest, event_id, hyst, 0, {1});
       // Check doesn't generate measurement report
       TESTASSERT(!rrctest.get_meas_res(meas_res));
     }
     // Trigger again condition
     for (int i = 0; i < ttt_iters; i++) {
-      log1->info("Report %d/%d enter condition is true\n", i, ttt_iters);
+      rrc_meas_logger.info("Report %d/%d enter condition is true", i, ttt_iters);
       enter_condition(rrctest, event_id, hyst, 0, {1});
     }
     // Expect report
@@ -1012,19 +1041,14 @@ int a1event_report_test(uint32_t                             a1_rsrp_th,
 // Test A3-event reporting and management of report amount and interval
 int a3event_report_test(uint32_t a3_offset, uint32_t hyst, bool report_on_leave)
 {
-
-  srslte::log_ref log1("RRC_MEAS"), rrc_log("RRC");
-  log1->set_level(srslte::LOG_LEVEL_DEBUG);
-  log1->set_hex_limit(-1);
-  rrc_log->set_level(srslte::LOG_LEVEL_DEBUG);
-  rrc_log->set_hex_limit(-1);
+  auto& rrc_meas_logger = srslog::fetch_basic_logger("RRC_MEAS");
 
   printf("==========================================================\n");
   printf("============       Report Testing A3       ===============\n");
   printf("==========================================================\n");
 
   stack_test_dummy stack;
-  rrc_test         rrctest(log1, &stack);
+  rrc_test         rrctest(rrc_meas_logger.id(), &stack);
   rrctest.init();
   rrctest.connect();
 
@@ -1050,14 +1074,14 @@ int a3event_report_test(uint32_t a3_offset, uint32_t hyst, bool report_on_leave)
 
   meas_results_s meas_res = {};
 
-  log1->info("Test no-enter condition and no trigger report \n");
+  rrc_meas_logger.info("Test no-enter condition and no trigger report ");
   no_condition(rrctest, {0}, {1});
   TESTASSERT(!rrctest.get_meas_res(meas_res));
 
   no_condition(rrctest, {0, 1}, {1, 0});
   TESTASSERT(!rrctest.get_meas_res(meas_res));
 
-  log1->info("Test enter condition triggers report. 1 neighbour cell in enter + 1 in exit \n");
+  rrc_meas_logger.info("Test enter condition triggers report. 1 neighbour cell in enter + 1 in exit ");
   float              offset = 0.5 * event_id.event_a3().a3_offset;
   std::vector<float> rsrp   = {};
   rsrp.push_back(-60 + offset + 0.5 * hyst + (float)1e-2);
@@ -1076,11 +1100,11 @@ int a3event_report_test(uint32_t a3_offset, uint32_t hyst, bool report_on_leave)
              81 + (hyst + a3_offset) / 2);
 
   // Next iteration in entering state does not trigger another report
-  log1->info("Test enter condition for the same cell does not trigger report\n");
+  rrc_meas_logger.info("Test enter condition for the same cell does not trigger report");
   rrctest.run_tti(1);
   TESTASSERT(!rrctest.get_meas_res(meas_res));
 
-  log1->info("Test enter condition for different earfcn triggers report\n");
+  rrc_meas_logger.info("Test enter condition for different earfcn triggers report");
   enter_condition(rrctest, event_id, hyst, 2, {1, 3});
   TESTASSERT(rrctest.get_meas_res(meas_res));
   TESTASSERT(meas_res.meas_id == 2);
@@ -1093,7 +1117,7 @@ int a3event_report_test(uint32_t a3_offset, uint32_t hyst, bool report_on_leave)
              81 + (hyst + a3_offset) / 2);
 
   // if a new cell enters conditions then expect another report
-  log1->info("Test a new cell enter condition triggers report\n");
+  rrc_meas_logger.info("Test a new cell enter condition triggers report");
   enter_condition(rrctest, event_id, hyst, 1, {1, 3});
   TESTASSERT(rrctest.get_meas_res(meas_res));
   TESTASSERT(meas_res.meas_id == 1);
@@ -1107,14 +1131,14 @@ int a3event_report_test(uint32_t a3_offset, uint32_t hyst, bool report_on_leave)
              81 + (hyst + a3_offset) / 2);
 
   // cell pci=0 exists condition
-  log1->info("Test exit condition\n");
+  rrc_meas_logger.info("Test exit condition");
   exit_condition(rrctest, event_id, hyst, 1, {1, 0});
   if (report_on_leave) {
     TESTASSERT(rrctest.get_meas_res(meas_res));
   }
 
   // 2 enters again, now expect report again
-  log1->info("Test trigger again the cell that exited\n");
+  rrc_meas_logger.info("Test trigger again the cell that exited");
   enter_condition(rrctest, event_id, hyst, 1, {1, 0});
   TESTASSERT(rrctest.get_meas_res(meas_res));
   TESTASSERT(meas_res.meas_id == 1);
@@ -1124,25 +1148,130 @@ int a3event_report_test(uint32_t a3_offset, uint32_t hyst, bool report_on_leave)
   TESTASSERT(meas_res.meas_result_neigh_cells.meas_result_list_eutra()[0].meas_result.rsrp_result ==
              81 + (hyst + a3_offset) / 2);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
+}
+
+// Minimal testcase for testing inter rat reporting with nr
+int meas_obj_inter_rat_nr_test()
+{
+  printf("==========================================================\n");
+  printf("======    NR Inter Rat Configuration Testing    ==========\n");
+  printf("==========================================================\n");
+
+  stack_test_dummy stack;
+  rrc_test         rrctest(srslog::fetch_basic_logger("RRC_MEAS").id(), &stack);
+  rrctest.init();
+  rrctest.connect();
+
+  rrc_conn_recfg_r8_ies_s rrc_conn_recfg = {};
+  rrc_conn_recfg.meas_cfg_present        = true;
+  meas_cfg_s& meas_cfg                   = rrc_conn_recfg.meas_cfg;
+
+  meas_obj_to_add_mod_s obj = {};
+
+  obj.meas_obj_id = 2;
+  obj.meas_obj.set_meas_obj_nr_r15();
+  obj.meas_obj.meas_obj_nr_r15().ext              = true;
+  obj.meas_obj.meas_obj_nr_r15().carrier_freq_r15 = 631680;
+  obj.meas_obj.meas_obj_nr_r15().rs_cfg_ssb_r15.meas_timing_cfg_r15.periodicity_and_offset_r15.set_sf20_r15();
+  obj.meas_obj.meas_obj_nr_r15().rs_cfg_ssb_r15.meas_timing_cfg_r15.ssb_dur_r15 =
+      asn1::rrc::mtc_ssb_nr_r15_s::ssb_dur_r15_opts::options::sf1;
+  obj.meas_obj.meas_obj_nr_r15().rs_cfg_ssb_r15.subcarrier_spacing_ssb_r15 =
+      asn1::rrc::rs_cfg_ssb_nr_r15_s::subcarrier_spacing_ssb_r15_opts::options::khz30;
+  obj.meas_obj.meas_obj_nr_r15().quant_cfg_set_r15 = 1;
+  obj.meas_obj.meas_obj_nr_r15().band_nr_r15.reset(new asn1::rrc::meas_obj_nr_r15_s::band_nr_r15_c_{});
+  obj.meas_obj.meas_obj_nr_r15().band_nr_r15->set_setup() = 78;
+
+  meas_cfg.meas_obj_to_add_mod_list.push_back(obj);
+
+  obj             = {};
+  obj.meas_obj_id = 1;
+  obj.meas_obj.set_meas_obj_eutra();
+  obj.meas_obj.meas_obj_eutra().carrier_freq       = 300;
+  obj.meas_obj.meas_obj_eutra().allowed_meas_bw    = asn1::rrc::allowed_meas_bw_opts::options::mbw100;
+  obj.meas_obj.meas_obj_eutra().presence_ant_port1 = true;
+  obj.meas_obj.meas_obj_eutra().neigh_cell_cfg.from_number(01);
+
+  meas_cfg.meas_obj_to_add_mod_list.push_back(obj);
+  meas_cfg.meas_obj_to_add_mod_list_present = true;
+
+  report_cfg_to_add_mod_s rep = {};
+  rep.report_cfg_id           = 1;
+  rep.report_cfg.set_report_cfg_inter_rat();
+  rep.report_cfg.report_cfg_inter_rat().ext = true;
+  rep.report_cfg.report_cfg_inter_rat().trigger_type.set_event();
+  rep.report_cfg.report_cfg_inter_rat().trigger_type.event().event_id.set_event_b1_nr_r15();
+  rep.report_cfg.report_cfg_inter_rat()
+      .trigger_type.event()
+      .event_id.event_b1_nr_r15()
+      .b1_thres_nr_r15.set_nr_rsrp_r15();
+  rep.report_cfg.report_cfg_inter_rat().trigger_type.event().event_id.event_b1_nr_r15().b1_thres_nr_r15.nr_rsrp_r15() =
+      56;
+  rep.report_cfg.report_cfg_inter_rat().trigger_type.event().event_id.event_b1_nr_r15().report_on_leave_r15 = true;
+  rep.report_cfg.report_cfg_inter_rat().trigger_type.event().hysteresis                                     = 0;
+  rep.report_cfg.report_cfg_inter_rat().trigger_type.event().time_to_trigger =
+      asn1::rrc::time_to_trigger_opts::options::ms100;
+  rep.report_cfg.report_cfg_inter_rat().max_report_cells = 8;
+  rep.report_cfg.report_cfg_inter_rat().report_interv    = asn1::rrc::report_interv_opts::options::ms120;
+  rep.report_cfg.report_cfg_inter_rat().report_amount    = asn1::rrc::report_cfg_inter_rat_s::report_amount_opts::r1;
+  rep.report_cfg.report_cfg_inter_rat().report_quant_cell_nr_r15.reset(new asn1::rrc::report_quant_nr_r15_s{});
+  rep.report_cfg.report_cfg_inter_rat().report_quant_cell_nr_r15->ss_rsrp = true;
+  rep.report_cfg.report_cfg_inter_rat().report_quant_cell_nr_r15->ss_rsrq = true;
+  rep.report_cfg.report_cfg_inter_rat().report_quant_cell_nr_r15->ss_sinr = true;
+
+  meas_cfg.report_cfg_to_add_mod_list.push_back(rep);
+  meas_cfg.report_cfg_to_add_mod_list_present = true;
+
+  meas_cfg.meas_id_to_add_mod_list_present = true;
+  meas_id_to_add_mod_s meas                = {};
+  meas.meas_id                             = 1;
+  meas.meas_obj_id                         = 2;
+  meas.report_cfg_id                       = 1;
+  meas_cfg.meas_id_to_add_mod_list.push_back(meas);
+
+  // Just test it doesn't crash
+  TESTASSERT(rrctest.send_meas_cfg(rrc_conn_recfg));
+  TESTASSERT(rrctest.phytest.meas_nof_freqs() == 0);
+
+  rrctest.add_neighbour_cell(2, 300, 2.0);
+  rrctest.set_serving_cell(2, 300);
+  rrctest.add_neighbour_cell_nr(500, 631680, -60.0);
+  int ttt_iters = 100 + 1; // 100 ms
+
+  for (int i = 0; i < ttt_iters; i++) {
+    srslog::fetch_basic_logger("RRC_MEAS").info("Report %d/%d enter condition is true", i, ttt_iters);
+    rrctest.add_neighbour_cell_nr(500, 631680, -60.0);
+  }
+
+  return SRSRAN_SUCCESS;
 }
 
 int main(int argc, char** argv)
 {
-  TESTASSERT(cell_select_test() == SRSLTE_SUCCESS);
-  TESTASSERT(meas_obj_test() == SRSLTE_SUCCESS);
+  auto& rrc_meas_logger = srslog::fetch_basic_logger("RRC_MEAS", false);
+  rrc_meas_logger.set_level(srslog::basic_levels::debug);
+  rrc_meas_logger.set_hex_dump_max_size(-1);
+  auto& rrc_logger = srslog::fetch_basic_logger("RRC", false);
+  rrc_logger.set_level(srslog::basic_levels::debug);
+  rrc_logger.set_hex_dump_max_size(-1);
+
+  srslog::init();
+
+  TESTASSERT(cell_select_test() == SRSRAN_SUCCESS);
+  TESTASSERT(meas_obj_test() == SRSRAN_SUCCESS);
+  TESTASSERT(meas_obj_inter_rat_nr_test() == SRSRAN_SUCCESS);
   TESTASSERT(
       a1event_report_test(
           30, time_to_trigger_opts::ms40, 3, report_cfg_eutra_s::report_amount_opts::r1, report_interv_opts::ms120) ==
-      SRSLTE_SUCCESS);
+      SRSRAN_SUCCESS);
   TESTASSERT(
       a1event_report_test(
           30, time_to_trigger_opts::ms0, 3, report_cfg_eutra_s::report_amount_opts::r1, report_interv_opts::ms120) ==
-      SRSLTE_SUCCESS);
+      SRSRAN_SUCCESS);
   TESTASSERT(
       a1event_report_test(
           30, time_to_trigger_opts::ms40, 3, report_cfg_eutra_s::report_amount_opts::r8, report_interv_opts::ms120) ==
-      SRSLTE_SUCCESS);
-  TESTASSERT(a3event_report_test(6, 3, true) == SRSLTE_SUCCESS);
-  return SRSLTE_SUCCESS;
+      SRSRAN_SUCCESS);
+  TESTASSERT(a3event_report_test(6, 3, true) == SRSRAN_SUCCESS);
+  return SRSRAN_SUCCESS;
 }

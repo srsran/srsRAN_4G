@@ -1,25 +1,26 @@
-/*
-Copyright 2013-2017 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
+ *
+ * This file is part of srsRAN.
+ *
+ * srsRAN is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ *
+ * srsRAN is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * A copy of the GNU Affero General Public License can be found in
+ * the LICENSE file in the top-level directory of this distribution
+ * and at http://www.gnu.org/licenses/.
+ *
+ */
 
-This file is part of srsASN1
-
-srsASN1 is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as
-published by the Free Software Foundation, either version 3 of
-the License, or (at your option) any later version.
-
-srsASN1 is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Affero General Public License for more details.
-
-A copy of the GNU Affero General Public License can be found in
-the LICENSE file in the top-level directory of this distribution
-and at http://www.gnu.org/licenses/.
-*/
-
-#include "srslte/asn1/asn1_utils.h"
-#include "srslte/common/test_common.h"
+#include "srsran/asn1/asn1_utils.h"
+#include "srsran/common/test_common.h"
 #include <cmath>
 #include <numeric>
 #include <random>
@@ -29,6 +30,8 @@ using namespace asn1;
 
 std::random_device rd;
 std::mt19937       g(rd());
+
+srsran::log_sink_spy* test_spy = nullptr;
 
 int test_arrays()
 {
@@ -375,7 +378,7 @@ int test_bitstring()
   //  printf("%s==%s\n", dyn_bstr1.to_string().c_str(), dyn_bstr2.to_string().c_str());
 
   // disable temporarily the prints to check failures
-  //  srslte::nullsink_log null_log("NULL");
+  //  srsran::nullsink_log null_log("NULL");
   //  bit_ref bref3(&buffer[0], sizeof(buffer));
   //  TESTASSERT(dyn_bstr1.pack(bref3, false, 5, 10)==SRSASN_ERROR_ENCODE_FAIL);
 
@@ -594,13 +597,14 @@ int test_enum()
   TESTASSERT(e == e2);
 
   // Test fail path
-  srslte::scoped_log<srslte::nullsink_log> null_log("ASN1");
+  TESTASSERT(test_spy->get_error_counter() == 0 and test_spy->get_warning_counter() == 0);
   bref  = bit_ref(&buffer[0], sizeof(buffer));
   bref2 = cbit_ref(&buffer[0], sizeof(buffer));
   e     = EnumTest::nulltype;
   TESTASSERT(pack_enum(bref, e) == SRSASN_ERROR_ENCODE_FAIL);
   buffer[0] = 255;
   TESTASSERT(unpack_enum(e, bref2) == SRSASN_ERROR_DECODE_FAIL);
+  TESTASSERT(test_spy->get_error_counter() == 2 and test_spy->get_warning_counter() == 0);
 
   return 0;
 }
@@ -630,9 +634,45 @@ int test_json_writer()
   return 0;
 }
 
+int test_big_integers()
+{
+  integer<uint64_t, 0, 4294967295, false, true> big_integer = 3172073535;
+
+  uint8_t mem_chunk[128];
+  bit_ref bref(&mem_chunk[0], sizeof(mem_chunk));
+  TESTASSERT(big_integer.pack(bref) == 0);
+
+  uint8_t bytes[] = {0xC0, 0xBD, 0x12, 0x00, 0x3F};
+  TESTASSERT(memcmp(bytes, mem_chunk, sizeof(bytes)) == 0);
+
+  integer<uint64_t, 0, 4294967295, false, true> big_integer2;
+  cbit_ref                                      cbref(mem_chunk, sizeof(mem_chunk));
+  TESTASSERT(big_integer2.unpack(cbref) == 0);
+  TESTASSERT(big_integer == big_integer2);
+
+  return 0;
+}
+
 int main()
 {
-  srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_DEBUG);
+  // Setup the log spy to intercept error and warning log entries.
+  if (!srslog::install_custom_sink(
+          srsran::log_sink_spy::name(),
+          std::unique_ptr<srsran::log_sink_spy>(new srsran::log_sink_spy(srslog::get_default_log_formatter())))) {
+    return SRSRAN_ERROR;
+  }
+  test_spy = static_cast<srsran::log_sink_spy*>(srslog::find_sink(srsran::log_sink_spy::name()));
+  if (!test_spy) {
+    return SRSRAN_ERROR;
+  }
+
+  auto& asn1_logger = srslog::fetch_basic_logger("ASN1", *test_spy, false);
+  asn1_logger.set_level(srslog::basic_levels::debug);
+  asn1_logger.set_hex_dump_max_size(-1);
+
+  // Start the log backend.
+  srslog::init();
+
   TESTASSERT(test_arrays() == 0);
   TESTASSERT(test_bit_ref() == 0);
   TESTASSERT(test_oct_string() == 0);
@@ -640,6 +680,10 @@ int main()
   TESTASSERT(test_seq_of() == 0);
   TESTASSERT(test_copy_ptr() == 0);
   TESTASSERT(test_enum() == 0);
+  TESTASSERT(test_big_integers() == 0);
   //  TESTASSERT(test_json_writer()==0);
+
+  srslog::flush();
+
   printf("Success\n");
 }

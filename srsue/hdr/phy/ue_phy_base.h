@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -27,8 +27,7 @@
 #ifndef SRSUE_UE_PHY_BASE_H
 #define SRSUE_UE_PHY_BASE_H
 
-#include "srslte/common/logger.h"
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srsran/interfaces/ue_phy_interfaces.h"
 #include "srsue/hdr/phy/phy_metrics.h"
 
 namespace srsue {
@@ -48,7 +47,7 @@ public:
   virtual void wait_initialize() = 0;
   virtual void start_plot()      = 0;
 
-  virtual void get_metrics(phy_metrics_t* m) = 0;
+  virtual void get_metrics(const srsran::srsran_rat_t& rat, phy_metrics_t* m) = 0;
 };
 
 } // namespace srsue

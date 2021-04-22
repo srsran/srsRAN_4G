@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -22,40 +22,41 @@
 #ifndef SRSUE_TTCN3_SRB_INTERFACE_H
 #define SRSUE_TTCN3_SRB_INTERFACE_H
 
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/common.h"
-#include "srslte/mac/pdu.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/common/common.h"
+#include "srsran/mac/pdu.h"
 #include "ttcn3_interfaces.h"
 #include "ttcn3_port_handler.h"
-#include <srslte/interfaces/ue_interfaces.h>
+#include <srsran/interfaces/ue_interfaces.h>
 
-using namespace srslte;
+using namespace srsran;
 
 // The SRB interface
 class ttcn3_srb_interface : public ttcn3_port_handler
 {
 public:
-  ttcn3_srb_interface() : pool(byte_buffer_pool::get_instance()) {}
+  explicit ttcn3_srb_interface(srslog::basic_logger& logger) :
+    ttcn3_port_handler(logger), pool(byte_buffer_pool::get_instance())
+  {}
   ~ttcn3_srb_interface() = default;
 
-  int init(ss_srb_interface* syssim_, srslte::log* log_, std::string net_ip_, uint32_t net_port_)
+  int init(ss_srb_interface* syssim_, std::string net_ip_, uint32_t net_port_)
   {
-    syssim   = syssim_;
-    log      = log_;
-    net_ip   = net_ip_;
-    net_port = net_port_;
+    syssim      = syssim_;
+    net_ip      = net_ip_;
+    net_port    = net_port_;
     initialized = true;
-    log->debug("Initialized.\n");
+    logger.debug("Initialized.");
     return port_listen();
   }
 
   void tx(const uint8_t* buffer, uint32_t len)
   {
     if (initialized) {
-      log->info_hex(buffer, len, "Sending %d B to Titan\n", len);
+      logger.info(buffer, len, "Sending %d B to Titan", len);
       send(buffer, len);
     } else {
-      log->error("Trying to transmit but port not connected.\n");
+      logger.error("Trying to transmit but port not connected.");
     }
   }
 
@@ -63,7 +64,7 @@ private:
   ///< Main message handler
   int handle_message(const unique_byte_array_t& rx_buf, const uint32_t n)
   {
-    log->debug_hex(rx_buf->begin(), n, "Received %d B from remote.\n", n);
+    logger.debug(rx_buf->begin(), n, "Received %d B from remote.", n);
 
     // Chop incoming msg, first two bytes are length of the JSON
     // (see IPL4_EUTRA_SYSTEM_Definitions.ttcn
@@ -75,15 +76,15 @@ private:
 
     Document document;
     if (document.Parse((char*)&rx_buf->at(2)).HasParseError() || document.IsObject() == false) {
-      log->error_hex((uint8*)&rx_buf->at(2), json_len, "Error parsing incoming data.\n");
-      return SRSLTE_ERROR;
+      logger.error((uint8_t*)&rx_buf->at(2), json_len, "Error parsing incoming data.");
+      return SRSRAN_ERROR;
     }
 
     // Pretty-print
     StringBuffer               buffer;
     PrettyWriter<StringBuffer> writer(buffer);
     document.Accept(writer);
-    log->info("Received JSON with %d B\n%s\n", json_len, (char*)buffer.GetString());
+    logger.info("Received JSON with %d B\n%s", json_len, (char*)buffer.GetString());
 
     // check for common
     assert(document.HasMember("Common"));
@@ -101,21 +102,26 @@ private:
     } else if (rrcpdu.HasMember("Dcch")) {
       rx_buf_offset += 2;
       uint32_t lcid = document["Common"]["RoutingInfo"]["RadioBearerId"]["Srb"].GetInt();
-      handle_dcch_pdu(document, lcid, &rx_buf->at(rx_buf_offset), n - rx_buf_offset, ttcn3_helpers::get_follow_on_flag(document));
+      handle_dcch_pdu(
+          document, lcid, &rx_buf->at(rx_buf_offset), n - rx_buf_offset, ttcn3_helpers::get_follow_on_flag(document));
     } else {
-      log->error("Received unknown request.\n");
+      logger.error("Received unknown request.");
     }
 
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   // Todo: move to SYSSIM
   void handle_ccch_pdu(Document& document, const uint8_t* payload, const uint16_t len)
   {
-    log->info_hex(payload, len, "Received CCCH RRC PDU\n");
+    logger.info(payload, len, "Received CCCH RRC PDU");
 
     // pack into byte buffer
-    unique_byte_buffer_t pdu = pool_allocate_blocking;
+    unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+    if (pdu == nullptr) {
+      logger.error("Couldn't allocate buffer in %s().", __FUNCTION__);
+      return;
+    }
     pdu->N_bytes             = len;
     memcpy(pdu->msg, payload, pdu->N_bytes);
 
@@ -132,10 +138,14 @@ private:
   void
   handle_dcch_pdu(Document& document, const uint16_t lcid, const uint8_t* payload, const uint16_t len, bool follow_on)
   {
-    log->info_hex(payload, len, "Received DCCH RRC PDU (lcid=%d)\n", lcid);
+    logger.info(payload, len, "Received DCCH RRC PDU (lcid=%d)", lcid);
 
     // pack into byte buffer
-    unique_byte_buffer_t pdu = pool_allocate_blocking;
+    unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+    if (pdu == nullptr) {
+      logger.error("Couldn't allocate buffer in %s().", __FUNCTION__);
+      return;
+    }
     pdu->N_bytes             = len;
     memcpy(pdu->msg, payload, pdu->N_bytes);
 
@@ -161,9 +171,6 @@ private:
 
   ss_srb_interface* syssim = nullptr;
   byte_buffer_pool* pool   = nullptr;
-
-  // struct sctp_sndrcvinfo sri = {};
-  // struct sockaddr_in client_addr;
 };
 
 #endif // SRSUE_TTCN3_SRB_INTERFACE_H

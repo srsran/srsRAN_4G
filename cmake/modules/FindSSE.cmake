@@ -1,3 +1,23 @@
+#
+# Copyright 2013-2021 Software Radio Systems Limited
+#
+# This file is part of srsRAN
+#
+# srsRAN is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of
+# the License, or (at your option) any later version.
+#
+# srsRAN is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Affero General Public License for more details.
+#
+# A copy of the GNU Affero General Public License can be found in
+# the LICENSE file in the top-level directory of this distribution
+# and at http://www.gnu.org/licenses/.
+#
+
 #if (NOT CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|^i[3,9]86$")
 #   return()
 #endif()
@@ -168,6 +188,20 @@ if (ENABLE_SSE)
         if (HAVE_AVX512)
             message(STATUS "AVX512 is enabled - target CPU must support it")
         endif()
+    elseif (${GCC_ARCH} MATCHES "native" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+        # When GCC flag -march=native and the CPU supports AVX512 (skylake-avx512 architecture), GCC uses AVX512 instructions
+        # automatically, independently of the rest of flags.
+
+        # Get the CPU architecture
+        execute_process(COMMAND ${CMAKE_C_COMPILER} -march=native -Q --help=target
+                OUTPUT_VARIABLE DETECT_SKYLAKE_AVX512)
+
+        # Check if the native architecture matches with skylake-avx512
+        if (${DETECT_SKYLAKE_AVX512} MATCHES "march=.*skylake-avx512")
+            # Force skylake architecture without AVX512
+            set(GCC_ARCH "skylake")
+            message(STATUS "This is a skylake-avx512 CPU, as AVX512 was disabled the architecture will be set to skylake")
+        endif ()
     endif()
 
 

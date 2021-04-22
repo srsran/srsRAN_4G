@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,12 +19,12 @@
  *
  */
 
-#include "srslte/phy/utils/filter.h"
-#define SRSLTE_NUM_FILTERS 8
-#define SRSLTE_MAX_FILTER_SIZE 11
+#include "srsran/phy/utils/filter.h"
+#define SRSRAN_NUM_FILTERS 8
+#define SRSRAN_MAX_FILTER_SIZE 11
 
 // clang-format off
-float srslte_filt_decim2[SRSLTE_NUM_FILTERS][SRSLTE_MAX_FILTER_SIZE] = 
+float srsran_filt_decim2[SRSRAN_NUM_FILTERS][SRSRAN_MAX_FILTER_SIZE] = 
 {
     {0.0167364016736,   0.48326359832636,   0.48326359832636,   0.01673640167364,0,0,0,0,0,0,0},
     {0.000000000000000,   0.203712369200737,   0.592575261598526,   0.203712369200737,   0.000000000000000,0,0,0,0,0,0},
@@ -36,7 +36,7 @@ float srslte_filt_decim2[SRSLTE_NUM_FILTERS][SRSLTE_MAX_FILTER_SIZE] =
     {0.005060317124845,  -0.000000000000000,  -0.041942879431345,   0.000000000000000,  0.288484826302638, 0.496795472007725,   0.288484826302638,   0.000000000000000,  -0.041942879431345,  -0.000000000000000,  0.005060317124845}
   };
 
-float srslte_filt_decim3[SRSLTE_NUM_FILTERS][SRSLTE_MAX_FILTER_SIZE] = 
+float srsran_filt_decim3[SRSRAN_NUM_FILTERS][SRSRAN_MAX_FILTER_SIZE] = 
 {
     {0.032388663967611,   0.467611336032389,   0.467611336032389,   0.032388663967611,0,0,0,0,0,0,0},
     {0.016883339167609,  0.227925078762723, 0.510383164139335, 0.227925078762723, 0.016883339167609,0,0,0,0,0,0},
@@ -49,7 +49,7 @@ float srslte_filt_decim3[SRSLTE_NUM_FILTERS][SRSLTE_MAX_FILTER_SIZE] =
     
 };
 
-float srslte_filt_decim4[SRSLTE_NUM_FILTERS][SRSLTE_MAX_FILTER_SIZE]  = 
+float srsran_filt_decim4[SRSRAN_NUM_FILTERS][SRSRAN_MAX_FILTER_SIZE]  = 
 {
     { 0.038579006748772,   0.461420993251228,   0.461420993251228,   0.038579006748772,0,0,0,0,0,0,0},
     {0.024553834015017,   0.234389464237986,   0.482113403493995,   0.234389464237986,   0.024553834015017,0,0,0,0,0,0},
@@ -62,25 +62,25 @@ float srslte_filt_decim4[SRSLTE_NUM_FILTERS][SRSLTE_MAX_FILTER_SIZE]  =
 };
 
 // clang-format on
-void srslte_filt_decim_cc_init(srslte_filt_cc_t* q, int factor, int order)
+void srsran_filt_decim_cc_init(srsran_filt_cc_t* q, int factor, int order)
 {
   q->factor       = factor;
   q->num_taps     = order + 1;
   q->is_decimator = true;
-  q->taps         = srslte_vec_f_malloc(q->num_taps);
+  q->taps         = srsran_vec_f_malloc(q->num_taps);
 
   switch (q->factor) {
     case 2:
       for (int i = 0; i < (q->num_taps); i++)
-        q->taps[i] = srslte_filt_decim2[(q->num_taps) - 4][i];
+        q->taps[i] = srsran_filt_decim2[(q->num_taps) - 4][i];
       break;
     case 3:
       for (int i = 0; i < (q->num_taps); i++)
-        q->taps[i] = srslte_filt_decim3[(q->num_taps) - 4][i];
+        q->taps[i] = srsran_filt_decim3[(q->num_taps) - 4][i];
       break;
     case 4:
       for (int i = 0; i < (q->num_taps); i++)
-        q->taps[i] = srslte_filt_decim4[(q->num_taps) - 4][i];
+        q->taps[i] = srsran_filt_decim4[(q->num_taps) - 4][i];
       break;
     default:
 
@@ -92,23 +92,23 @@ void srslte_filt_decim_cc_init(srslte_filt_cc_t* q, int factor, int order)
   }
 }
 
-void srslte_filt_decim_cc_free(srslte_filt_cc_t* q)
+void srsran_filt_decim_cc_free(srsran_filt_cc_t* q)
 {
   free(q->taps);
 }
 
-void srslte_filt_decim_cc_execute(srslte_filt_cc_t* q, cf_t* input, cf_t* downsampled_input, cf_t* output, int size)
+void srsran_filt_decim_cc_execute(srsran_filt_cc_t* q, cf_t* input, cf_t* downsampled_input, cf_t* output, int size)
 {
   // we assume that "downsampled_input" made size (input/2 + order) so as to have prepended zeros //
-  srslte_downsample_cc(input, downsampled_input + (q->num_taps - 1), q->factor, size);
+  srsran_downsample_cc(input, downsampled_input + (q->num_taps - 1), q->factor, size);
 
   for (int i = 0; i < size / q->factor; i++) {
-    output[i] = srslte_vec_dot_prod_cfc(&(downsampled_input[i]), q->taps, q->num_taps);
+    output[i] = srsran_vec_dot_prod_cfc(&(downsampled_input[i]), q->taps, q->num_taps);
   }
 }
 
 /* Performs integer linear downsamling by a factor of M */
-void srslte_downsample_cc(cf_t* input, cf_t* output, int M, int size)
+void srsran_downsample_cc(cf_t* input, cf_t* output, int M, int size)
 {
   int i;
   for (i = 0; i < size / M; i++) {

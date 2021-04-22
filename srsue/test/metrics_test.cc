@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,8 +19,8 @@
  *
  */
 
-#include "srslte/common/metrics_hub.h"
-#include "srslte/srslte.h"
+#include "srsran/common/metrics_hub.h"
+#include "srsran/srsran.h"
 #include "srsue/hdr/metrics_csv.h"
 #include "srsue/hdr/metrics_stdout.h"
 #include "srsue/hdr/ue_metrics_interface.h"
@@ -54,6 +54,7 @@ public:
     m->stack.mac[0].rx_brate  = 200;
     m->stack.mac[0].nof_tti   = 1;
 
+    m->phy.info[1].pci        = UINT32_MAX;
     m->stack.mac[1].rx_pkts   = 100;
     m->stack.mac[1].rx_errors = 100;
     m->stack.mac[1].rx_brate  = 150;
@@ -61,12 +62,20 @@ public:
 
     // random neighbour cells
     if (rand() % 2 == 0) {
-      rrc_interface_phy_lte::phy_meas_t neighbor = {};
-      neighbor.pci                               = 8;
-      neighbor.rsrp                              = -33;
+      phy_meas_t neighbor = {};
+      neighbor.pci        = 8;
+      neighbor.rsrp       = -33;
       m->stack.rrc.neighbour_cells.push_back(neighbor);
       m->stack.rrc.neighbour_cells.push_back(neighbor); // need to add twice since we use CA
     }
+
+    m->phy.nof_active_cc         = 1;
+    m->phy.ch[0].rsrp            = -10.0f;
+    m->phy.ch[0].pathloss        = 32;
+    m->stack.mac_nr[0].rx_pkts   = 100;
+    m->stack.mac_nr[0].rx_errors = 2;
+    m->stack.mac_nr[0].rx_brate  = 223;
+    m->stack.mac_nr[0].nof_tti   = 1;
 
     m->stack.rrc.state = (rand() % 2 == 0) ? RRC_STATE_CONNECTED : RRC_STATE_IDLE;
 
@@ -122,7 +131,7 @@ int main(int argc, char** argv)
   metrics_file.set_ue_handle(&ue);
 
   // create metrics hub and register metrics for stdout
-  srslte::metrics_hub<ue_metrics_t> metricshub;
+  srsran::metrics_hub<ue_metrics_t> metricshub;
   metricshub.init(&ue, period);
   metricshub.add_listener(&metrics_screen);
   metricshub.add_listener(&metrics_file);

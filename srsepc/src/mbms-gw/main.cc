@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -20,9 +20,8 @@
  */
 
 #include "srsepc/hdr/mbms-gw/mbms-gw.h"
-#include "srslte/common/config_file.h"
-#include "srslte/common/logger_srslog_wrapper.h"
-#include "srslte/srslog/srslog.h"
+#include "srsran/common/config_file.h"
+#include "srsran/srslog/srslog.h"
 #include <boost/program_options.hpp>
 #include <iostream>
 #include <signal.h>
@@ -51,24 +50,6 @@ typedef struct {
   log_args_t     log_args;
 } all_args_t;
 
-srslte::LOG_LEVEL_ENUM level(std::string l)
-{
-  std::transform(l.begin(), l.end(), l.begin(), ::toupper);
-  if ("NONE" == l) {
-    return srslte::LOG_LEVEL_NONE;
-  } else if ("ERROR" == l) {
-    return srslte::LOG_LEVEL_ERROR;
-  } else if ("WARNING" == l) {
-    return srslte::LOG_LEVEL_WARNING;
-  } else if ("INFO" == l) {
-    return srslte::LOG_LEVEL_INFO;
-  } else if ("DEBUG" == l) {
-    return srslte::LOG_LEVEL_DEBUG;
-  } else {
-    return srslte::LOG_LEVEL_NONE;
-  }
-}
-
 /**********************************************************************
  *  Program arguments processing
  ***********************************************************************/
@@ -76,7 +57,6 @@ string config_file;
 
 void parse_args(all_args_t* args, int argc, char* argv[])
 {
-
   string mbms_gw_name;
   string mbms_gw_sgi_mb_if_name;
   string mbms_gw_sgi_mb_if_addr;
@@ -198,29 +178,28 @@ int main(int argc, char* argv[])
   srslog::sink* log_sink = (args.log_args.filename == "stdout") ? srslog::create_stdout_sink()
                                                                 : srslog::create_file_sink(args.log_args.filename);
   if (!log_sink) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
   srslog::log_channel* chan = srslog::create_log_channel("main_channel", *log_sink);
   if (!chan) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
-  srslte::srslog_wrapper log_wrapper(*chan);
+  srslog::set_default_sink(*log_sink);
 
   // Start the log backend.
   srslog::init();
 
   if (args.log_args.filename != "stdout") {
-    log_wrapper.log_char("\n---  Software Radio Systems MBMS log ---\n\n");
+    auto& mbms_gw_logger = srslog::fetch_basic_logger("MBMS GW", false);
+    mbms_gw_logger.info("\n---  Software Radio Systems MBMS log ---\n\n");
   }
 
-  srslte::logmap::set_default_logger(&log_wrapper);
-
-  srslte::log_ref mbms_gw_log{"MBMS"};
-  mbms_gw_log->set_level(level(args.log_args.mbms_gw_level));
-  mbms_gw_log->set_hex_limit(args.log_args.mbms_gw_hex_limit);
+  auto& mbms_gw_logger = srslog::fetch_basic_logger("MBMS", false);
+  mbms_gw_logger.set_level(srslog::str_to_basic_level(args.log_args.mbms_gw_level));
+  mbms_gw_logger.set_hex_dump_max_size(args.log_args.mbms_gw_hex_limit);
 
   mbms_gw* mbms_gw = mbms_gw::get_instance();
-  if (mbms_gw->init(&args.mbms_gw_args, mbms_gw_log)) {
+  if (mbms_gw->init(&args.mbms_gw_args)) {
     cout << "Error initializing MBMS-GW" << endl;
     exit(1);
   }

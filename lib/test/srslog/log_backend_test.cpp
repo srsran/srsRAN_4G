@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -20,7 +20,7 @@
  */
 
 #include "src/srslog/log_backend_impl.h"
-#include "srslte/srslog/sink.h"
+#include "test_dummies.h"
 #include "testing_helpers.h"
 
 using namespace srslog;
@@ -55,6 +55,8 @@ namespace {
 class sink_spy : public sink
 {
 public:
+  sink_spy() : sink(std::unique_ptr<log_formatter>(new test_dummies::log_formatter_dummy)) {}
+
   detail::error_string write(detail::memory_buffer buffer) override
   {
     ++count;
@@ -69,35 +71,37 @@ public:
   const std::string& received_buffer() const { return str; }
 
 private:
-  unsigned count = 0;
+  unsigned    count = 0;
   std::string str;
 };
 
 } // namespace
 
-static bool when_backend_is_not_started_then_pushed_log_entries_are_ignored()
-{
-  sink_spy spy;
-  log_backend_impl backend;
-
-  detail::log_entry entry = {&spy};
-  backend.push(std::move(entry));
-
-  ASSERT_EQ(spy.write_invocation_count(), 0);
-
-  return true;
-}
-
 /// Builds a basic log entry.
-static detail::log_entry build_log_entry(sink* s)
+static detail::log_entry build_log_entry(sink* s, fmt::dynamic_format_arg_store<fmt::printf_context>* store)
 {
   using tp_ty = std::chrono::time_point<std::chrono::high_resolution_clock>;
   tp_ty tp;
 
-  fmt::dynamic_format_arg_store<fmt::printf_context> store;
-  store.push_back(88);
+  if (store) {
+    store->push_back(88);
+  }
 
-  return {s, tp, {0, false}, "Text %d", std::move(store), "", '\0'};
+  return {s,
+          [](detail::log_entry_metadata&& metadata, fmt::memory_buffer& buffer) {},
+          {tp, {0, false}, "Text %d", store, "", '\0', small_str_buffer()}};
+}
+
+static bool when_backend_is_not_started_then_pushed_log_entries_are_ignored()
+{
+  sink_spy         spy;
+  log_backend_impl backend;
+
+  backend.push(build_log_entry(&spy, backend.alloc_arg_store()));
+
+  ASSERT_EQ(spy.write_invocation_count(), 0);
+
+  return true;
 }
 
 static bool when_backend_is_started_then_pushed_log_entries_are_sent_to_sink()
@@ -107,13 +111,32 @@ static bool when_backend_is_started_then_pushed_log_entries_are_sent_to_sink()
   log_backend_impl backend;
   backend.start();
 
-  backend.push(build_log_entry(&spy));
+  backend.push(build_log_entry(&spy, backend.alloc_arg_store()));
 
   // Stop the backend to ensure the entry has been processed.
   backend.stop();
 
   ASSERT_EQ(spy.write_invocation_count(), 1);
-  ASSERT_NE(spy.received_buffer().find("Text 88"), std::string::npos);
+
+  return true;
+}
+
+static bool when_backend_is_started_then_backend_invokes_format_func()
+{
+  test_dummies::sink_dummy s;
+
+  log_backend_impl backend;
+  backend.start();
+
+  auto     entry    = build_log_entry(&s, backend.alloc_arg_store());
+  unsigned counter  = 0;
+  entry.format_func = [&counter](detail::log_entry_metadata&& metadata, fmt::memory_buffer& buffer) { ++counter; };
+  backend.push(std::move(entry));
+
+  // Stop the backend to ensure the entry has been processed.
+  backend.stop();
+
+  ASSERT_EQ(counter, 1);
 
   return true;
 }
@@ -126,12 +149,11 @@ namespace {
 class sink_error_stub : public sink
 {
 public:
-  explicit sink_error_stub(std::string err) : err(std::move(err)) {}
+  explicit sink_error_stub(std::string err) :
+    sink(std::unique_ptr<log_formatter>(new test_dummies::log_formatter_dummy)), err(std::move(err))
+  {}
 
-  detail::error_string write(detail::memory_buffer buffer) override
-  {
-    return err;
-  }
+  detail::error_string write(detail::memory_buffer buffer) override { return err; }
 
   detail::error_string flush() override { return err; }
 
@@ -143,11 +165,11 @@ private:
 
 static bool when_sink_write_fails_then_error_handler_is_invoked()
 {
-  std::string error_str("error");
+  std::string     error_str("error");
   sink_error_stub s(error_str);
 
-  bool valid_err = false;
-  unsigned count = 0;
+  bool     valid_err = false;
+  unsigned count     = 0;
   // valid_err checks that the input error matches the expected string.
   // The count variable counts the number of calls.
   auto handler = [&count, &valid_err, error_str](const std::string& error) {
@@ -159,7 +181,7 @@ static bool when_sink_write_fails_then_error_handler_is_invoked()
   backend.set_error_handler(handler);
   backend.start();
 
-  backend.push(build_log_entry(&s));
+  backend.push(build_log_entry(&s, backend.alloc_arg_store()));
 
   // Stop the backend to ensure the entry has been processed.
   backend.stop();
@@ -184,7 +206,7 @@ static bool when_handler_is_set_after_start_then_handler_is_not_used()
   backend.start();
   backend.set_error_handler(handler);
 
-  backend.push(build_log_entry(&s));
+  backend.push(build_log_entry(&s, backend.alloc_arg_store()));
 
   // Stop the backend to ensure the entry has been processed.
   backend.stop();
@@ -203,7 +225,7 @@ static bool when_empty_handler_is_used_then_backend_does_not_crash()
   backend.set_error_handler({});
   backend.start();
 
-  backend.push(build_log_entry(&s));
+  backend.push(build_log_entry(&s, backend.alloc_arg_store()));
 
   // Stop the backend to ensure the entry has been processed.
   backend.stop();
@@ -214,12 +236,10 @@ static bool when_empty_handler_is_used_then_backend_does_not_crash()
 int main()
 {
   TEST_FUNCTION(when_backend_is_started_then_is_started_returns_true);
-  TEST_FUNCTION(
-      when_backend_is_started_and_stopped_then_is_started_returns_false);
-  TEST_FUNCTION(
-      when_backend_is_not_started_then_pushed_log_entries_are_ignored);
-  TEST_FUNCTION(
-      when_backend_is_started_then_pushed_log_entries_are_sent_to_sink);
+  TEST_FUNCTION(when_backend_is_started_and_stopped_then_is_started_returns_false);
+  TEST_FUNCTION(when_backend_is_not_started_then_pushed_log_entries_are_ignored);
+  TEST_FUNCTION(when_backend_is_started_then_pushed_log_entries_are_sent_to_sink);
+  TEST_FUNCTION(when_backend_is_started_then_backend_invokes_format_func);
   TEST_FUNCTION(when_sink_write_fails_then_error_handler_is_invoked);
   TEST_FUNCTION(when_handler_is_set_after_start_then_handler_is_not_used);
   TEST_FUNCTION(when_empty_handler_is_used_then_backend_does_not_crash);

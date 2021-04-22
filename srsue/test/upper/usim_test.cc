@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,10 +19,8 @@
  *
  */
 
-#include "srslte/common/log_filter.h"
+#include "srsran/common/test_common.h"
 #include "srsue/hdr/stack/upper/usim.h"
-#include <assert.h>
-#include <iostream>
 
 using namespace srsue;
 
@@ -54,18 +52,23 @@ AUTN    : d7.44.51.9b.25.aa.80.00.84.ba.37.b0.f6.73.4d.d1.
 KASME   : a8.27.57.5e.ea.1a.10.17.3a.a1.bf.ce.4b.0c.21.85.e0.51.ef.bd.91.7f.fe.f5.1f.74.29.61.f9.03.7a.35.
 */
 
-uint8_t rand_enb[] = {0x88, 0x38, 0xc3, 0x55, 0xc8, 0x78, 0xaa, 0x57, 0x21, 0x49, 0xfe, 0x69, 0xdb, 0x68, 0x6b, 0x5a};
-uint8_t autn_enb[] = {0xd7, 0x44, 0x51, 0x9b, 0x25, 0xaa, 0x80, 0x00, 0x84, 0xba, 0x37, 0xb0, 0xf6, 0x73, 0x4d, 0xd1};
+static uint8_t rand_enb[] =
+    {0x88, 0x38, 0xc3, 0x55, 0xc8, 0x78, 0xaa, 0x57, 0x21, 0x49, 0xfe, 0x69, 0xdb, 0x68, 0x6b, 0x5a};
+static uint8_t autn_enb[] =
+    {0xd7, 0x44, 0x51, 0x9b, 0x25, 0xaa, 0x80, 0x00, 0x84, 0xba, 0x37, 0xb0, 0xf6, 0x73, 0x4d, 0xd1};
 
-uint16 mcc = 208;
-uint16 mnc = 93;
+static constexpr uint16_t mcc = 208;
+static constexpr uint16_t mnc = 93;
 
 int main(int argc, char** argv)
 {
-  srslte::log_filter usim_log("USIM");
-  uint8_t            res[16];
-  int                res_len;
-  uint8_t            k_asme[32];
+  auto& logger = srslog::fetch_basic_logger("USIM", false);
+  // Start the log backend.
+  srslog::init();
+
+  uint8_t res[16];
+  int     res_len;
+  uint8_t k_asme[32];
 
   usim_args_t args;
   args.algo     = "milenage";
@@ -75,8 +78,8 @@ int main(int argc, char** argv)
   args.using_op = true;
   args.op       = "11111111111111111111111111111111";
 
-  srsue::usim usim(&usim_log);
+  srsue::usim usim(logger);
   usim.init(&args);
 
-  assert(usim.generate_authentication_response(rand_enb, autn_enb, mcc, mnc, res, &res_len, k_asme) == AUTH_OK);
+  TESTASSERT(usim.generate_authentication_response(rand_enb, autn_enb, mcc, mnc, res, &res_len, k_asme) == AUTH_OK);
 }

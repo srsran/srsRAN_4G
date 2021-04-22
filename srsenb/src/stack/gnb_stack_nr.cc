@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -20,16 +20,16 @@
  */
 
 #include "srsenb/hdr/stack/gnb_stack_nr.h"
-#include "srslte/srslte.h"
-#include <srslte/interfaces/enb_metrics_interface.h>
+#include "srsran/srsran.h"
+#include <srsran/interfaces/enb_metrics_interface.h>
 
 namespace srsenb {
 
-gnb_stack_nr::gnb_stack_nr(srslte::logger* logger_) : logger(logger_), task_sched{512, 1, 128}, thread("gNB")
+gnb_stack_nr::gnb_stack_nr() : task_sched{512, 128}, thread("gNB"), rlc_logger(srslog::fetch_basic_logger("RLC-NR"))
 {
   m_mac.reset(new mac_nr());
-  m_rlc.reset(new rlc_nr("RLC"));
-  m_pdcp.reset(new pdcp_nr(&task_sched, "PDCP"));
+  m_rlc.reset(new rlc_nr("RLC-NR"));
+  m_pdcp.reset(new pdcp_nr(&task_sched, "PDCP-NR"));
   m_rrc.reset(new rrc_nr(task_sched.get_timer_handler()));
   m_sdap.reset(new sdap());
   m_gw.reset(new srsue::gw());
@@ -55,9 +55,9 @@ int gnb_stack_nr::init(const srsenb::stack_args_t& args_, const rrc_nr_cfg_t& rr
 {
   phy = phy_;
   if (init(args_, rrc_cfg_)) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int gnb_stack_nr::init(const srsenb::stack_args_t& args_, const rrc_nr_cfg_t& rrc_cfg_)
@@ -77,11 +77,10 @@ int gnb_stack_nr::init(const srsenb::stack_args_t& args_, const rrc_nr_cfg_t& rr
   mac_args.sched         = args.mac.sched;
   mac_args.tb_size       = args.mac.nr_tb_size;
   mac_args.rnti          = args.coreless.rnti;
-  mac_args.drb_lcid      = args.coreless.drb_lcid;
   m_mac->init(mac_args, phy, this, m_rlc.get(), m_rrc.get());
 
-  srslte::logmap::get("RLC")->set_level(args.log.rlc_level);
-  srslte::logmap::get("RLC")->set_hex_limit(args.log.rlc_hex_limit);
+  rlc_logger.set_level(srslog::str_to_basic_level(args.log.rlc_level));
+  rlc_logger.set_hex_dump_max_size(args.log.rlc_hex_limit);
   m_rlc->init(m_pdcp.get(), m_rrc.get(), m_mac.get(), task_sched.get_timer_handler());
 
   pdcp_nr_args_t pdcp_args = {};
@@ -93,9 +92,10 @@ int gnb_stack_nr::init(const srsenb::stack_args_t& args_, const rrc_nr_cfg_t& rr
 
   m_sdap->init(m_pdcp.get(), nullptr, m_gw.get());
 
-  m_gw->init(args.coreless.gw_args, logger, this);
+  m_gw->init(args.coreless.gw_args, this);
   char* err_str = nullptr;
-  if (m_gw->setup_if_addr(args.coreless.drb_lcid,
+  if (m_gw->setup_if_addr(5,
+                          args.coreless.drb_lcid,
                           LIBLTE_MME_PDN_TYPE_IPV4,
                           htonl(inet_addr(args.coreless.ip_addr.c_str())),
                           nullptr,
@@ -112,7 +112,7 @@ int gnb_stack_nr::init(const srsenb::stack_args_t& args_, const rrc_nr_cfg_t& rr
 
   start(STACK_MAIN_THREAD_PRIO);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 void gnb_stack_nr::stop()
@@ -124,6 +124,7 @@ void gnb_stack_nr::stop()
     m_pdcp->stop();
     m_mac->stop();
 
+    srsran::get_background_workers().stop();
     running = false;
   }
 }
@@ -182,7 +183,7 @@ int gnb_stack_nr::rx_data_indication(rx_data_ind_t& grant)
 }
 
 // Temporary GW interface
-void gnb_stack_nr::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)
+void gnb_stack_nr::write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu)
 {
   m_pdcp->write_sdu(args.coreless.rnti, lcid, std::move(sdu));
 }

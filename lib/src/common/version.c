@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,27 +19,27 @@
  *
  */
 
-#include "srslte/version.h"
+#include "srsran/version.h"
 
-char* srslte_get_version()
+char* srsran_get_version()
 {
-  return SRSLTE_VERSION_STRING;
-}
-
-int srslte_get_version_major()
-{
-  return SRSLTE_VERSION_MAJOR;
-}
-int srslte_get_version_minor()
-{
-  return SRSLTE_VERSION_MINOR;
-}
-int srslte_get_version_patch()
-{
-  return SRSLTE_VERSION_PATCH;
+  return SRSRAN_VERSION_STRING;
 }
 
-int srslte_check_version(int major, int minor, int patch)
+int srsran_get_version_major()
 {
-  return (SRSLTE_VERSION >= SRSLTE_VERSION_ENCODE(major, minor, patch));
+  return SRSRAN_VERSION_MAJOR;
+}
+int srsran_get_version_minor()
+{
+  return SRSRAN_VERSION_MINOR;
+}
+int srsran_get_version_patch()
+{
+  return SRSRAN_VERSION_PATCH;
+}
+
+int srsran_check_version(int major, int minor, int patch)
+{
+  return (SRSRAN_VERSION >= SRSRAN_VERSION_ENCODE(major, minor, patch));
 }

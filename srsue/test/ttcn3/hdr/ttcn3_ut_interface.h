@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -24,8 +24,7 @@
 
 #include "rapidjson/document.h"
 #include "rapidjson/prettywriter.h"
-#include "srslte/common/log.h"
-#include "srslte/common/netsource_handler.h"
+#include "srsran/common/netsource_handler.h"
 #include "ttcn3_interfaces.h"
 
 using namespace rapidjson;
@@ -34,13 +33,12 @@ using namespace rapidjson;
 class ttcn3_ut_interface : public ttcn3_port_handler
 {
 public:
-  ttcn3_ut_interface() {}
+  explicit ttcn3_ut_interface(srslog::basic_logger& logger) : ttcn3_port_handler(logger) {}
   ~ttcn3_ut_interface(){};
 
-  int init(ss_ut_interface* syssim_, srslte::log* log_, std::string net_ip_, uint32_t net_port_)
+  int init(ss_ut_interface* syssim_, std::string net_ip_, uint32_t net_port_)
   {
     syssim      = syssim_;
-    log         = log_;
     net_ip      = net_ip_;
     net_port    = net_port_;
     initialized = true;
@@ -54,15 +52,15 @@ private:
   {
     Document document;
     if (document.Parse((char*)rx_buf->begin()).HasParseError() || document.IsObject() == false) {
-      log->error_hex(rx_buf->begin(), n, "Error parsing incoming data.\n");
-      return SRSLTE_ERROR;
+      logger.error(rx_buf->begin(), n, "Error parsing incoming data.");
+      return SRSRAN_ERROR;
     }
 
     // Pretty-print
     StringBuffer               buffer;
     PrettyWriter<StringBuffer> writer(buffer);
     document.Accept(writer);
-    log->info("Received %d bytes\n%s\n", n, (char*)buffer.GetString());
+    logger.info("Received %d bytes\n%s.", n, (char*)buffer.GetString());
 
     // check for command
     assert(document.HasMember("Cmd"));
@@ -86,33 +84,33 @@ private:
       assert(document.HasMember("CnfRequired"));
 
       if (strcmp(mmi_cmd.GetString(), "POWER_OFF") == 0) {
-        log->info("Received POWER_OFF command.\n");
+        logger.info("Received POWER_OFF command.");
         handle_power_off(document);
       } else if (strcmp(mmi_cmd.GetString(), "SWITCH_ON") == 0) {
-        log->info("Received SWITCH_ON command.\n");
+        logger.info("Received SWITCH_ON command.");
         syssim->switch_on_ue();
       } else if (strcmp(mmi_cmd.GetString(), "SWITCH_OFF") == 0) {
-        log->info("Received SWITCH_OFF command.\n");
+        logger.info("Received SWITCH_OFF command.");
         syssim->switch_off_ue();
       } else {
-        log->error("Received unknown command: %s\n", mmi_cmd.GetString());
+        logger.error("Received unknown command: %s", mmi_cmd.GetString());
       }
     } else if (a.HasMember("AT")) {
       handle_at_command(document);
     } else if (a.HasMember("TC_START")) {
-      log->info("Received TC_START command.\n");
+      logger.info("Received TC_START command.");
       const Value& cmd = a["TC_START"];
       assert(cmd.HasMember("Name"));
       const Value& tc_name = cmd["Name"];
       syssim->tc_start(tc_name.GetString());
     } else if (a.HasMember("TC_END")) {
-      log->info("Received TC_END command.\n");
+      logger.info("Received TC_END command.");
       syssim->tc_end();
     } else {
-      log->error("Unknown command type.\n");
+      logger.error("Unknown command type.");
     }
 
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   void handle_power_off(Document& document)
@@ -129,7 +127,7 @@ private:
     Writer<StringBuffer> writer(buffer);
     resp.Accept(writer);
 
-    log->info("Sending %s to tester (%zd B)\n", buffer.GetString(), buffer.GetSize());
+    logger.info("Sending %s to tester (%zd B)", buffer.GetString(), buffer.GetSize());
     send((const uint8_t*)buffer.GetString(), buffer.GetSize());
   }
 
@@ -140,13 +138,13 @@ private:
 
     // turn off data services
     if (std::string(at.GetString()) == "AT+CGATT=0<CR>") {
-      log->info("Disabling data services\n");
+      logger.info("Disabling data services");
       syssim->disable_data();
     } else if (std::string(at.GetString()) == "AT+CGATT=1<CR>") {
-      log->info("Enabling data services\n");
+      logger.info("Enabling data services");
       syssim->enable_data();
     } else {
-      log->error("Not handling AT command %s\n", at.GetString());
+      logger.error("Not handling AT command %s", at.GetString());
     }
   }
 

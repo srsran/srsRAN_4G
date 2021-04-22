@@ -1,14 +1,14 @@
 #
-# Copyright 2013-2020 Software Radio Systems Limited
+# Copyright 2013-2021 Software Radio Systems Limited
 #
-# This file is part of srsLTE
+# This file is part of srsRAN
 #
-# srsLTE is free software: you can redistribute it and/or modify
+# srsRAN is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of
 # the License, or (at your option) any later version.
 #
-# srsLTE is distributed in the hope that it will be useful,
+# srsRAN is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Affero General Public License for more details.
@@ -18,6 +18,7 @@
 # and at http://www.gnu.org/licenses/.
 #
 
+add_subdirectory(mac_common)
 add_subdirectory(mac)
 add_subdirectory(rrc)
 add_subdirectory(upper)
@@ -25,7 +26,6 @@ add_subdirectory(upper)
 set(SOURCES ue_stack_lte.cc)
 add_library(srsue_stack STATIC ${SOURCES})
 
-if(ENABLE_5GNR)
-    set(SOURCES ue_stack_nr.cc)
-    add_library(srsue_nr_stack STATIC ${SOURCES})
-endif()
+add_subdirectory(mac_nr)
+set(SOURCES ue_stack_nr.cc)
+add_library(srsue_nr_stack STATIC ${SOURCES})

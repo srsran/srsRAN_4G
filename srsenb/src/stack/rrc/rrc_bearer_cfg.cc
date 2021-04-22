@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -20,9 +20,9 @@
  */
 
 #include "srsenb/hdr/stack/rrc/rrc_bearer_cfg.h"
-#include "srsenb/hdr/stack/upper/common_enb.h"
-#include "srslte/asn1/rrc_asn1_utils.h"
-#include "srslte/rrc/rrc_cfg_utils.h"
+#include "srsenb/hdr/common/common_enb.h"
+#include "srsran/asn1/rrc_utils.h"
+#include "srsran/rrc/rrc_cfg_utils.h"
 
 namespace srsenb {
 
@@ -58,45 +58,45 @@ bool security_cfg_handler::set_security_capabilities(const asn1::s1ap::ue_securi
   for (auto& cipher_item : cfg->eea_preference_list) {
     auto& v = security_capabilities.encryption_algorithms;
     switch (cipher_item) {
-      case srslte::CIPHERING_ALGORITHM_ID_EEA0:
+      case srsran::CIPHERING_ALGORITHM_ID_EEA0:
         // “all bits equal to 0” – UE supports no other algorithm than EEA0,
         // specification does not cover the case in which EEA0 is supported with other algorithms
         // just assume that EEA0 is always supported even this can not be explicity signaled by S1AP
-        sec_cfg.cipher_algo = srslte::CIPHERING_ALGORITHM_ID_EEA0;
+        sec_cfg.cipher_algo = srsran::CIPHERING_ALGORITHM_ID_EEA0;
         enc_algo_found      = true;
-        log_h->info("Selected EEA0 as RRC encryption algorithm\n");
+        logger.info("Selected EEA0 as RRC encryption algorithm");
         break;
-      case srslte::CIPHERING_ALGORITHM_ID_128_EEA1:
+      case srsran::CIPHERING_ALGORITHM_ID_128_EEA1:
         // “first bit” – 128-EEA1,
-        if (v.get(v.length() - srslte::CIPHERING_ALGORITHM_ID_128_EEA1)) {
-          sec_cfg.cipher_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA1;
+        if (v.get(v.length() - srsran::CIPHERING_ALGORITHM_ID_128_EEA1)) {
+          sec_cfg.cipher_algo = srsran::CIPHERING_ALGORITHM_ID_128_EEA1;
           enc_algo_found      = true;
-          log_h->info("Selected EEA1 as RRC encryption algorithm\n");
+          logger.info("Selected EEA1 as RRC encryption algorithm");
           break;
         } else {
-          log_h->info("Failed to selected EEA1 as RRC encryption algorithm, due to unsupported algorithm\n");
+          logger.info("Failed to selected EEA1 as RRC encryption algorithm, due to unsupported algorithm");
         }
         break;
-      case srslte::CIPHERING_ALGORITHM_ID_128_EEA2:
+      case srsran::CIPHERING_ALGORITHM_ID_128_EEA2:
         // “second bit” – 128-EEA2,
-        if (v.get(v.length() - srslte::CIPHERING_ALGORITHM_ID_128_EEA2)) {
-          sec_cfg.cipher_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA2;
+        if (v.get(v.length() - srsran::CIPHERING_ALGORITHM_ID_128_EEA2)) {
+          sec_cfg.cipher_algo = srsran::CIPHERING_ALGORITHM_ID_128_EEA2;
           enc_algo_found      = true;
-          log_h->info("Selected EEA2 as RRC encryption algorithm\n");
+          logger.info("Selected EEA2 as RRC encryption algorithm");
           break;
         } else {
-          log_h->info("Failed to selected EEA2 as RRC encryption algorithm, due to unsupported algorithm\n");
+          logger.info("Failed to selected EEA2 as RRC encryption algorithm, due to unsupported algorithm");
         }
         break;
-      case srslte::CIPHERING_ALGORITHM_ID_128_EEA3:
+      case srsran::CIPHERING_ALGORITHM_ID_128_EEA3:
         // “third bit” – 128-EEA3,
-        if (v.get(v.length() - srslte::CIPHERING_ALGORITHM_ID_128_EEA3)) {
-          sec_cfg.cipher_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA3;
+        if (v.get(v.length() - srsran::CIPHERING_ALGORITHM_ID_128_EEA3)) {
+          sec_cfg.cipher_algo = srsran::CIPHERING_ALGORITHM_ID_128_EEA3;
           enc_algo_found      = true;
-          log_h->info("Selected EEA3 as RRC encryption algorithm\n");
+          logger.info("Selected EEA3 as RRC encryption algorithm");
           break;
         } else {
-          log_h->info("Failed to selected EEA2 as RRC encryption algorithm, due to unsupported algorithm\n");
+          logger.info("Failed to selected EEA2 as RRC encryption algorithm, due to unsupported algorithm");
         }
         break;
       default:
@@ -111,38 +111,38 @@ bool security_cfg_handler::set_security_capabilities(const asn1::s1ap::ue_securi
   for (auto& eia_enum : cfg->eia_preference_list) {
     auto& v = security_capabilities.integrity_protection_algorithms;
     switch (eia_enum) {
-      case srslte::INTEGRITY_ALGORITHM_ID_EIA0:
+      case srsran::INTEGRITY_ALGORITHM_ID_EIA0:
         // Null integrity is not supported
-        log_h->info("Skipping EIA0 as RRC integrity algorithm. Null integrity is not supported.\n");
+        logger.info("Skipping EIA0 as RRC integrity algorithm. Null integrity is not supported.");
         break;
-      case srslte::INTEGRITY_ALGORITHM_ID_128_EIA1:
+      case srsran::INTEGRITY_ALGORITHM_ID_128_EIA1:
         // “first bit” – 128-EIA1,
-        if (v.get(v.length() - srslte::INTEGRITY_ALGORITHM_ID_128_EIA1)) {
-          sec_cfg.integ_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA1;
+        if (v.get(v.length() - srsran::INTEGRITY_ALGORITHM_ID_128_EIA1)) {
+          sec_cfg.integ_algo = srsran::INTEGRITY_ALGORITHM_ID_128_EIA1;
           integ_algo_found   = true;
-          log_h->info("Selected EIA1 as RRC integrity algorithm.\n");
+          logger.info("Selected EIA1 as RRC integrity algorithm.");
         } else {
-          log_h->info("Failed to selected EIA1 as RRC encryption algorithm, due to unsupported algorithm\n");
+          logger.info("Failed to selected EIA1 as RRC encryption algorithm, due to unsupported algorithm");
         }
         break;
-      case srslte::INTEGRITY_ALGORITHM_ID_128_EIA2:
+      case srsran::INTEGRITY_ALGORITHM_ID_128_EIA2:
         // “second bit” – 128-EIA2,
-        if (v.get(v.length() - srslte::INTEGRITY_ALGORITHM_ID_128_EIA2)) {
-          sec_cfg.integ_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA2;
+        if (v.get(v.length() - srsran::INTEGRITY_ALGORITHM_ID_128_EIA2)) {
+          sec_cfg.integ_algo = srsran::INTEGRITY_ALGORITHM_ID_128_EIA2;
           integ_algo_found   = true;
-          log_h->info("Selected EIA2 as RRC integrity algorithm.\n");
+          logger.info("Selected EIA2 as RRC integrity algorithm.");
         } else {
-          log_h->info("Failed to selected EIA2 as RRC encryption algorithm, due to unsupported algorithm\n");
+          logger.info("Failed to selected EIA2 as RRC encryption algorithm, due to unsupported algorithm");
         }
         break;
-      case srslte::INTEGRITY_ALGORITHM_ID_128_EIA3:
+      case srsran::INTEGRITY_ALGORITHM_ID_128_EIA3:
         // “third bit” – 128-EIA3,
-        if (v.get(v.length() - srslte::INTEGRITY_ALGORITHM_ID_128_EIA3)) {
-          sec_cfg.integ_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA3;
+        if (v.get(v.length() - srsran::INTEGRITY_ALGORITHM_ID_128_EIA3)) {
+          sec_cfg.integ_algo = srsran::INTEGRITY_ALGORITHM_ID_128_EIA3;
           integ_algo_found   = true;
-          log_h->info("Selected EIA3 as RRC integrity algorithm.\n");
+          logger.info("Selected EIA3 as RRC integrity algorithm.");
         } else {
-          log_h->info("Failed to selected EIA3 as RRC encryption algorithm, due to unsupported algorithm\n");
+          logger.info("Failed to selected EIA3 as RRC encryption algorithm, due to unsupported algorithm");
         }
         break;
       default:
@@ -156,9 +156,7 @@ bool security_cfg_handler::set_security_capabilities(const asn1::s1ap::ue_securi
   }
 
   if (not integ_algo_found || not enc_algo_found) {
-    // TODO: if no security algorithm found abort radio connection and issue
-    // encryption-and-or-integrity-protection-algorithms-not-supported message
-    log_h->error("Did not find a matching integrity or encryption algorithm with the UE\n");
+    logger.error("Did not find a matching integrity or encryption algorithm with the UE");
     return false;
   }
   return true;
@@ -170,7 +168,7 @@ void security_cfg_handler::set_security_key(const asn1::fixed_bitstring<256, fal
   for (uint32_t i = 0; i < key.nof_octets(); ++i) {
     k_enb[i] = key.data()[key.nof_octets() - 1 - i];
   }
-  log_h->info_hex(k_enb, 32, "Key eNodeB (k_enb)");
+  logger.info(k_enb, 32, "Key eNodeB (k_enb)");
 
   generate_as_keys();
 }
@@ -178,26 +176,26 @@ void security_cfg_handler::set_security_key(const asn1::fixed_bitstring<256, fal
 void security_cfg_handler::generate_as_keys()
 {
   // Generate K_rrc_enc and K_rrc_int
-  srslte::security_generate_k_rrc(
+  srsran::security_generate_k_rrc(
       k_enb, sec_cfg.cipher_algo, sec_cfg.integ_algo, sec_cfg.k_rrc_enc.data(), sec_cfg.k_rrc_int.data());
 
   // Generate K_up_enc and K_up_int
   security_generate_k_up(
       k_enb, sec_cfg.cipher_algo, sec_cfg.integ_algo, sec_cfg.k_up_enc.data(), sec_cfg.k_up_int.data());
 
-  log_h->info_hex(k_enb, 32, "K_eNB (k_enb)");
-  log_h->info_hex(sec_cfg.k_rrc_enc.data(), 32, "RRC Encryption Key (k_rrc_enc)");
-  log_h->info_hex(sec_cfg.k_rrc_int.data(), 32, "RRC Integrity Key (k_rrc_int)");
-  log_h->info_hex(sec_cfg.k_up_enc.data(), 32, "UP Encryption Key (k_up_enc)");
+  logger.info(k_enb, 32, "K_eNB (k_enb)");
+  logger.info(sec_cfg.k_rrc_enc.data(), 32, "RRC Encryption Key (k_rrc_enc)");
+  logger.info(sec_cfg.k_rrc_int.data(), 32, "RRC Integrity Key (k_rrc_int)");
+  logger.info(sec_cfg.k_up_enc.data(), 32, "UP Encryption Key (k_up_enc)");
 }
 
 void security_cfg_handler::regenerate_keys_handover(uint32_t new_pci, uint32_t new_dl_earfcn)
 {
-  log_h->info("Regenerating KeNB with PCI=0x%02x, DL-EARFCN=%d\n", new_pci, new_dl_earfcn);
-  log_h->info_hex(k_enb, 32, "Old K_eNB (k_enb)");
+  logger.info("Regenerating KeNB with PCI=0x%02x, DL-EARFCN=%d", new_pci, new_dl_earfcn);
+  logger.info(k_enb, 32, "Old K_eNB (k_enb)");
   // Generate K_enb*
   uint8_t k_enb_star[32];
-  srslte::security_generate_k_enb_star(k_enb, new_pci, new_dl_earfcn, k_enb_star);
+  srsran::security_generate_k_enb_star(k_enb, new_pci, new_dl_earfcn, k_enb_star);
 
   // K_enb becomes K_enb*
   memcpy(k_enb, k_enb_star, 32);
@@ -209,44 +207,37 @@ void security_cfg_handler::regenerate_keys_handover(uint32_t new_pci, uint32_t n
  *      Bearer Handler
  ****************************/
 
-bearer_cfg_handler::bearer_cfg_handler(uint16_t rnti_, const rrc_cfg_t& cfg_) : rnti(rnti_), cfg(&cfg_) {}
-
-void bearer_cfg_handler::add_srb(uint8_t srb_id)
-{
-  if (srb_id > 2 or srb_id == 0) {
-    log_h->error("Invalid SRB id=%d\n", srb_id);
-    return;
-  }
-
-  // Set SRBtoAddMod
-  auto srb_it               = srslte::add_rrc_obj_id(srbs_to_add, srb_id);
-  srb_it->lc_ch_cfg_present = true;
-  srb_it->lc_ch_cfg.set(srb_to_add_mod_s::lc_ch_cfg_c_::types_opts::default_value);
-  srb_it->rlc_cfg_present = true;
-  srb_it->rlc_cfg.set(srb_to_add_mod_s::rlc_cfg_c_::types_opts::default_value);
-}
+bearer_cfg_handler::bearer_cfg_handler(uint16_t rnti_, const rrc_cfg_t& cfg_, gtpu_interface_rrc* gtpu_) :
+  rnti(rnti_), cfg(&cfg_), gtpu(gtpu_), logger(&srslog::fetch_basic_logger("RRC"))
+{}
 
 int bearer_cfg_handler::add_erab(uint8_t                                            erab_id,
                                  const asn1::s1ap::erab_level_qos_params_s&         qos,
                                  const asn1::bounded_bitstring<1, 160, true, true>& addr,
                                  uint32_t                                           teid_out,
-                                 const asn1::unbounded_octstring<true>*             nas_pdu)
+                                 srsran::const_span<uint8_t>                        nas_pdu,
+                                 asn1::s1ap::cause_c&                               cause)
 {
   if (erab_id < 5) {
-    log_h->error("ERAB id=%d is invalid\n", erab_id);
-    return SRSLTE_ERROR;
+    logger->error("ERAB id=%d is invalid", erab_id);
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::unknown_erab_id;
+    return SRSRAN_ERROR;
   }
   uint8_t lcid  = erab_id - 2; // Map e.g. E-RAB 5 to LCID 3 (==DRB1)
   uint8_t drbid = erab_id - 4;
 
-  if (qos.qci >= MAX_NOF_QCI) {
-    log_h->error("Invalid QCI=%d for ERAB_id=%d, DRB_id=%d\n", qos.qci, erab_id, drbid);
-    return SRSLTE_ERROR;
+  auto qci_it = cfg->qci_cfg.find(qos.qci);
+  if (qci_it == cfg->qci_cfg.end() or not qci_it->second.configured) {
+    logger->error("QCI=%d not configured", qos.qci);
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::not_supported_qci_value;
+    return SRSRAN_ERROR;
   }
-  if (not cfg->qci_cfg[qos.qci].configured) {
-    log_h->error("QCI=%d not configured\n", qos.qci);
-    return SRSLTE_ERROR;
+  if (not srsran::is_lte_drb(lcid)) {
+    logger->error("E-RAB=%d logical channel id=%d is invalid", erab_id, lcid);
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::unknown_erab_id;
+    return SRSRAN_ERROR;
   }
+  const rrc_cfg_qci_t& qci_cfg = qci_it->second;
 
   erabs[erab_id].id         = erab_id;
   erabs[erab_id].qos_params = qos;
@@ -254,18 +245,44 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
   erabs[erab_id].teid_out   = teid_out;
 
   if (addr.length() > 32) {
-    log_h->error("Only addresses with length <= 32 are supported\n");
-    return SRSLTE_ERROR;
+    logger->error("Only addresses with length <= 32 are supported");
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::invalid_qos_combination;
+    return SRSRAN_ERROR;
+  }
+  if (qos.gbr_qos_info_present and not qci_cfg.configured) {
+    logger->warning("Provided E-RAB id=%d QoS not supported", erab_id);
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::invalid_qos_combination;
+    return SRSRAN_ERROR;
+  }
+  if (qos.gbr_qos_info_present) {
+    uint64_t req_bitrate =
+        std::max(qos.gbr_qos_info.erab_guaranteed_bitrate_dl, qos.gbr_qos_info.erab_guaranteed_bitrate_ul);
+    int16_t  pbr_kbps = qci_cfg.lc_cfg.prioritised_bit_rate.to_number();
+    uint64_t pbr      = pbr_kbps < 0 ? std::numeric_limits<uint64_t>::max() : pbr_kbps * 1000u;
+    if (req_bitrate > pbr) {
+      logger->warning("Provided E-RAB id=%d QoS not supported (guaranteed bitrates)", erab_id);
+      cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::invalid_qos_combination;
+      return SRSRAN_ERROR;
+    }
+  }
+  if (qos.alloc_retention_prio.pre_emption_cap.value == asn1::s1ap::pre_emption_cap_opts::may_trigger_pre_emption and
+      qos.alloc_retention_prio.prio_level < qci_cfg.lc_cfg.prio) {
+    logger->warning("Provided E-RAB id=%d QoS not supported (priority %d < %d)",
+                    erab_id,
+                    qos.alloc_retention_prio.prio_level,
+                    qci_cfg.lc_cfg.prio);
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::invalid_qos_combination;
+    return SRSRAN_ERROR;
   }
 
-  if (nas_pdu != nullptr and nas_pdu->size() > 0) {
-    erab_info_list[erab_id].assign(nas_pdu->data(), nas_pdu->data() + nas_pdu->size());
-    log_h->info_hex(
+  if (not nas_pdu.empty()) {
+    erab_info_list[erab_id].assign(nas_pdu.begin(), nas_pdu.end());
+    logger->info(
         &erab_info_list[erab_id][0], erab_info_list[erab_id].size(), "setup_erab nas_pdu -> erab_info rnti 0x%x", rnti);
   }
 
   // Set DRBtoAddMod
-  auto drb_it                                              = srslte::add_rrc_obj_id(drbs_to_add, drbid);
+  auto drb_it                                              = srsran::add_rrc_obj_id(current_drbs, drbid);
   drb_it->lc_ch_id_present                                 = true;
   drb_it->lc_ch_id                                         = (uint8_t)lcid;
   drb_it->eps_bearer_id_present                            = true;
@@ -273,28 +290,31 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
   drb_it->lc_ch_cfg_present                                = true;
   drb_it->lc_ch_cfg.ul_specific_params_present             = true;
   drb_it->lc_ch_cfg.ul_specific_params.lc_ch_group_present = true;
-  drb_it->lc_ch_cfg.ul_specific_params                     = cfg->qci_cfg[qos.qci].lc_cfg;
+  drb_it->lc_ch_cfg.ul_specific_params                     = qci_cfg.lc_cfg;
   drb_it->pdcp_cfg_present                                 = true;
-  drb_it->pdcp_cfg                                         = cfg->qci_cfg[qos.qci].pdcp_cfg;
+  drb_it->pdcp_cfg                                         = qci_cfg.pdcp_cfg;
   drb_it->rlc_cfg_present                                  = true;
-  drb_it->rlc_cfg                                          = cfg->qci_cfg[qos.qci].rlc_cfg;
+  drb_it->rlc_cfg                                          = qci_cfg.rlc_cfg;
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-void bearer_cfg_handler::release_erab(uint8_t erab_id)
+int bearer_cfg_handler::release_erab(uint8_t erab_id)
 {
   auto it = erabs.find(erab_id);
   if (it == erabs.end()) {
-    log_h->warning("The user rnti=0x%x does not contain ERAB-ID=%d\n", rnti, erab_id);
-    return;
+    logger->warning("The user rnti=0x%x does not contain ERAB-ID=%d", rnti, erab_id);
+    return SRSRAN_ERROR;
   }
 
   uint8_t drb_id = erab_id - 4;
-  drbs_to_release.push_back(drb_id);
+
+  srsran::rem_rrc_obj_id(current_drbs, drb_id);
 
   erabs.erase(it);
   erab_info_list.erase(erab_id);
+
+  return SRSRAN_SUCCESS;
 }
 
 void bearer_cfg_handler::release_erabs()
@@ -306,47 +326,73 @@ void bearer_cfg_handler::release_erabs()
   }
 }
 
-void bearer_cfg_handler::reest_bearers()
+int bearer_cfg_handler::modify_erab(uint8_t                                    erab_id,
+                                    const asn1::s1ap::erab_level_qos_params_s& qos,
+                                    srsran::const_span<uint8_t>                nas_pdu,
+                                    asn1::s1ap::cause_c&                       cause)
 {
-  // Re-add all SRBs/DRBs
-  srbs_to_add = current_srbs;
-  drbs_to_add = current_drbs;
+  logger->info("Modifying E-RAB %d", erab_id);
+  std::map<uint8_t, erab_t>::iterator erab_it = erabs.find(erab_id);
+  if (erab_it == erabs.end()) {
+    logger->error("Could not find E-RAB to modify");
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::unknown_erab_id;
+    return SRSRAN_ERROR;
+  }
+  auto     address  = erab_it->second.address;
+  uint32_t teid_out = erab_it->second.teid_out;
+  release_erab(erab_id);
+  return add_erab(erab_id, qos, address, teid_out, nas_pdu, cause);
 }
 
-void bearer_cfg_handler::rr_ded_cfg_complete()
-{
-  // Apply changes in internal bearer_handler DRB/SRBtoAddModLists
-  srslte::apply_addmodlist_diff(current_srbs, srbs_to_add, current_srbs);
-  srslte::apply_addmodremlist_diff(current_drbs, drbs_to_add, drbs_to_release, current_drbs);
-
-  // Reset DRBs/SRBs to Add/mod/release
-  srbs_to_add = {};
-  drbs_to_add = {};
-  drbs_to_release.resize(0);
-}
-
-bool bearer_cfg_handler::fill_rr_cfg_ded(asn1::rrc::rr_cfg_ded_s& msg)
-{
-  // Add altered bearers to message
-  msg.srb_to_add_mod_list_present = srbs_to_add.size() > 0;
-  msg.srb_to_add_mod_list         = srbs_to_add;
-  msg.drb_to_add_mod_list_present = drbs_to_add.size() > 0;
-  msg.drb_to_add_mod_list         = drbs_to_add;
-  msg.drb_to_release_list_present = drbs_to_release.size() > 0;
-  msg.drb_to_release_list         = drbs_to_release;
-  return msg.srb_to_add_mod_list_present or msg.drb_to_add_mod_list_present or msg.drb_to_release_list_present;
-}
-
-void bearer_cfg_handler::add_gtpu_bearer(srsenb::gtpu_interface_rrc* gtpu, uint32_t erab_id)
+int bearer_cfg_handler::add_gtpu_bearer(uint32_t erab_id)
 {
   auto it = erabs.find(erab_id);
   if (it != erabs.end()) {
-    erab_t& erab = it->second;
-    // Initialize ERAB in GTPU right-away. DRBs are only created during RRC setup/reconf
-    uint32_t addr_ = erab.address.to_number();
-    erab.teid_in   = gtpu->add_bearer(rnti, erab.id - 2, addr_, erab.teid_out);
+    srsran::expected<uint32_t> teidin =
+        add_gtpu_bearer(erab_id, it->second.teid_out, it->second.address.to_number(), nullptr);
+    if (teidin.has_value()) {
+      it->second.teid_in = teidin.value();
+      return SRSRAN_SUCCESS;
+    }
+  }
+  logger->error("Adding erab_id=%d to GTPU", erab_id);
+  return SRSRAN_ERROR;
+}
+
+srsran::expected<uint32_t> bearer_cfg_handler::add_gtpu_bearer(uint32_t                                erab_id,
+                                                               uint32_t                                teid_out,
+                                                               uint32_t                                addr,
+                                                               const gtpu_interface_rrc::bearer_props* props)
+{
+  auto it = erabs.find(erab_id);
+  if (it == erabs.end()) {
+    logger->error("Adding erab_id=%d to GTPU", erab_id);
+    return srsran::default_error_t();
+  }
+
+  // Initialize ERAB tunnel in GTPU right-away. DRBs are only created during RRC setup/reconf
+  erab_t&             erab = it->second;
+  erab_t::gtpu_tunnel bearer;
+  bearer.teid_out                   = teid_out;
+  bearer.addr                       = addr;
+  srsran::expected<uint32_t> teidin = gtpu->add_bearer(rnti, erab.id - 2, addr, teid_out, props);
+  if (teidin.is_error()) {
+    logger->error("Adding erab_id=%d to GTPU", erab_id);
+    return srsran::default_error_t();
+  }
+  bearer.teid_in = teidin.value();
+  erab.tunnels.push_back(bearer);
+  return teidin;
+}
+
+void bearer_cfg_handler::rem_gtpu_bearer(uint32_t erab_id)
+{
+  auto it = erabs.find(erab_id);
+  if (it != erabs.end()) {
+    // Map e.g. E-RAB 5 to LCID 3 (==DRB1)
+    gtpu->rem_bearer(rnti, erab_id - 2);
   } else {
-    log_h->error("Adding erab_id=%d to GTPU\n", erab_id);
+    logger->error("Removing erab_id=%d to GTPU\n", erab_id);
   }
 }
 
@@ -368,12 +414,12 @@ void bearer_cfg_handler::fill_pending_nas_info(asn1::rrc::rrc_conn_recfg_r8_ies_
       auto    it      = erab_info_list.find(erab_id);
       if (it != erab_info_list.end()) {
         const std::vector<uint8_t>& erab_info = it->second;
-        log_h->info_hex(&erab_info[0], erab_info.size(), "connection_reconf erab_info -> nas_info rnti 0x%x\n", rnti);
+        logger->info(&erab_info[0], erab_info.size(), "connection_reconf erab_info -> nas_info rnti 0x%x", rnti);
         msg->ded_info_nas_list[idx].resize(erab_info.size());
         memcpy(msg->ded_info_nas_list[idx].data(), &erab_info[0], erab_info.size());
         erab_info_list.erase(it);
       } else {
-        log_h->debug("Not adding NAS message to connection reconfiguration. E-RAB id %d\n", erab_id);
+        logger->debug("Not adding NAS message to connection reconfiguration. E-RAB id %d", erab_id);
       }
       idx++;
     }

@@ -1,3 +1,23 @@
+#
+# Copyright 2013-2021 Software Radio Systems Limited
+#
+# This file is part of srsRAN
+#
+# srsRAN is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of
+# the License, or (at your option) any later version.
+#
+# srsRAN is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Affero General Public License for more details.
+#
+# A copy of the GNU Affero General Public License can be found in
+# the LICENSE file in the top-level directory of this distribution
+# and at http://www.gnu.org/licenses/.
+#
+
 INCLUDE(FindPkgConfig)
 #PKG_CHECK_MODULES(UHD uhd)
 IF(NOT UHD_FOUND)
@@ -44,7 +64,7 @@ IF(UHD_FOUND)
   set(CMAKE_REQUIRED_FLAGS "${CMAKE_CXX_FLAGS} -L${UHD_LIBRARY_DIR}")
   set(CMAKE_REQUIRED_LIBRARIES uhd boost_program_options boost_system)
 
-  # Checks whether the UHD driver supports X300 reset from srsLTE. This functionality requires changing the function
+  # Checks whether the UHD driver supports X300 reset from srsRAN. This functionality requires changing the function
   # `x300_make_ctrl_iface_enet` visibility in the file `uhd/host/lib/usrp/x300_fw_ctrl.cpp`. This can be accomplished
   # adding the following line:
   #   `UHD_API wb_iface::sptr x300_make_ctrl_iface_enet(uhd::transport::udp_simple::sptr udp, bool enable_errors);`

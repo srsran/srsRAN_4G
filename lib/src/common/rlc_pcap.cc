@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -19,12 +19,12 @@
  *
  */
 
-#include "srslte/common/rlc_pcap.h"
-#include "srslte/common/pcap.h"
-#include "srslte/srslte.h"
+#include "srsran/common/rlc_pcap.h"
+#include "srsran/common/pcap.h"
+#include "srsran/srsran.h"
 #include <stdint.h>
 
-namespace srslte {
+namespace srsran {
 
 void rlc_pcap::enable(bool en)
 {
@@ -103,4 +103,4 @@ void rlc_pcap::write_ul_ccch(uint8_t* pdu, uint32_t pdu_len_bytes)
   pack_and_write(pdu, pdu_len_bytes, mode, DIRECTION_UPLINK, priority, sn_length, ue_id, CHANNEL_TYPE_CCCH, channel_id);
 }
 
-} // namespace srslte
+} // namespace srsran

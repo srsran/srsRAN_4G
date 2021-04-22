@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -31,8 +31,8 @@
 
 #include <stdbool.h>
 
-#include "srslte/phy/rf/rf.h"
-#include "srslte/srslte.h"
+#include "srsran/phy/rf/rf.h"
+#include "srsran/srsran.h"
 
 static bool           keep_running    = true;
 static uint32_t       nof_rx_antennas = 1;
@@ -96,19 +96,19 @@ int main(int argc, char** argv)
 
   // Initializes ZMQ
   if (init_zmq()) {
-    ERROR("Initializing ZMQ\n");
+    ERROR("Initializing ZMQ");
     exit(-1);
   }
 
   if (init_radio(&buflen)) {
-    ERROR("Initializing Radio\n");
+    ERROR("Initializing Radio");
     exit(-1);
   }
 
   // Initializes memory for input buffer
   bzero(buffer, sizeof(void*) * max_rx_antennas);
   for (int i = 0; i < nof_rx_antennas; i++) {
-    buffer[i] = srslte_vec_cf_malloc(buflen);
+    buffer[i] = srsran_vec_cf_malloc(buflen);
     if (!buffer[i]) {
       perror("malloc");
       exit(-1);
@@ -120,10 +120,10 @@ int main(int argc, char** argv)
   while (keep_running) {
     n = rx_radio(buffer, buflen);
     if (n < 0) {
-      ERROR("Error receiving samples\n");
+      ERROR("Error receiving samples");
       exit(-1);
     }
-    if (srslte_verbose == SRSLTE_VERBOSE_INFO) {
+    if (srsran_verbose == SRSRAN_VERBOSE_INFO) {
       printf("Received %d samples from radio\n", n);
     }
 
@@ -136,7 +136,7 @@ int main(int argc, char** argv)
         print_cnt = 0;
       }
     } else {
-      if (srslte_verbose == SRSLTE_VERBOSE_INFO) {
+      if (srsran_verbose == SRSRAN_VERBOSE_INFO) {
         printf("Transmitted %d bytes to ZMQ\n", n);
       }
     }
@@ -154,29 +154,29 @@ int main(int argc, char** argv)
   exit(0);
 }
 
-/* Example function to initialize the Radio frontend. In this case, we use srsLTE RF API to open a device,
+/* Example function to initialize the Radio frontend. In this case, we use srsRAN RF API to open a device,
  * which automatically picks UHD, bladeRF, limeSDR, etc.
  */
-static srslte_rf_t radio   = {};
+static srsran_rf_t radio   = {};
 static char*       rf_args = "fastpath";
 static float       rf_gain = 40.0, rf_freq = -1.0, rf_rate = 11.52e6;
 static uint32_t    rf_recv_frame_size_ms = 1;
 static int         init_radio(uint32_t* buffer_len)
 {
-  // Uses srsLTE RF API to open a device, could use other code here
+  // Uses srsRAN RF API to open a device, could use other code here
   printf("Opening RF device...\n");
-  if (srslte_rf_open_multi(&radio, rf_args, nof_rx_antennas)) {
-    ERROR("Error opening rf\n");
+  if (srsran_rf_open_multi(&radio, rf_args, nof_rx_antennas)) {
+    ERROR("Error opening rf");
     return -1;
   }
-  srslte_rf_set_rx_gain(&radio, rf_gain);
-  srslte_rf_set_rx_freq(&radio, nof_rx_antennas, rf_freq);
+  srsran_rf_set_rx_gain(&radio, rf_gain);
+  srsran_rf_set_rx_freq(&radio, nof_rx_antennas, rf_freq);
 
   printf("Set RX freq: %.2f MHz\n", rf_freq / 1000000);
   printf("Set RX gain: %.2f dB\n", rf_gain);
-  float srate = srslte_rf_set_rx_srate(&radio, rf_rate);
+  float srate = srsran_rf_set_rx_srate(&radio, rf_rate);
   if (srate != rf_rate) {
-    ERROR("Error setting samplign frequency %.2f MHz\n", rf_rate * 1e-6);
+    ERROR("Error setting samplign frequency %.2f MHz", rf_rate * 1e-6);
     return -1;
   }
 
@@ -185,20 +185,20 @@ static int         init_radio(uint32_t* buffer_len)
   }
 
   printf("Set RX rate: %.2f MHz\n", srate * 1e-6);
-  srslte_rf_start_rx_stream(&radio, false);
+  srsran_rf_start_rx_stream(&radio, false);
   return 0;
 }
 
-/* Example implementation to receive from Radio frontend. In this case we use srsLTE
+/* Example implementation to receive from Radio frontend. In this case we use srsRAN
  */
 static int rx_radio(void** buffer, uint32_t buf_len)
 {
-  return srslte_rf_recv_with_time_multi(&radio, buffer, buf_len, true, NULL, NULL);
+  return srsran_rf_recv_with_time_multi(&radio, buffer, buf_len, true, NULL, NULL);
 }
 
 static void close_radio()
 {
-  srslte_rf_close(&radio);
+  srsran_rf_close(&radio);
 }
 
 static void int_handler(int dummy)
@@ -215,7 +215,7 @@ static void usage(char* prog)
   printf("\t-m RF receive frame size in ms [Default %d ms]\n", rf_recv_frame_size_ms);
   printf("\t-A Number of antennas [Max %d, Default %d]\n", max_rx_antennas, nof_rx_antennas);
   printf("\t-z ZMQ args [Default %s]\n", zmq_args);
-  printf("\t-v srslte_verbose\n");
+  printf("\t-v srsran_verbose\n");
 }
 
 static void parse_args(int argc, char** argv)
@@ -239,7 +239,7 @@ static void parse_args(int argc, char** argv)
         rf_freq = strtof(argv[optind], NULL);
         break;
       case 'v':
-        srslte_verbose++;
+        srsran_verbose++;
         break;
       case 'z':
         zmq_args = argv[optind];

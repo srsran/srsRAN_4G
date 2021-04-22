@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -20,25 +20,25 @@
  */
 
 #include <complex.h>
-#include <srslte/phy/utils/random.h>
+#include <srsran/phy/utils/random.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
 #include <unistd.h>
 
-#include "srslte/phy/utils/mat.h"
-#include "srslte/phy/utils/vector.h"
-#include "srslte/phy/utils/vector_simd.h"
+#include "srsran/phy/utils/mat.h"
+#include "srsran/phy/utils/vector.h"
+#include "srsran/phy/utils/vector_simd.h"
 static bool            inverter    = false;
 static bool            zf_solver   = false;
 static bool            mmse_solver = false;
 static bool            verbose     = false;
-static srslte_random_t random_gen = NULL;
+static srsran_random_t random_gen  = NULL;
 
 #define MAXIMUM_ERROR (1e-6f)
-#define RANDOM_F() srslte_random_uniform_real_dist(random_gen, -1.0f, +1.0f)
-#define RANDOM_CF() srslte_random_uniform_complex_dist(random_gen, -1.0f, +1.0f)
+#define RANDOM_F() srsran_random_uniform_real_dist(random_gen, -1.0f, +1.0f)
+#define RANDOM_CF() srsran_random_uniform_complex_dist(random_gen, -1.0f, +1.0f)
 
 double elapsed_us(struct timeval* ts_start, struct timeval* ts_end)
 {
@@ -118,7 +118,7 @@ static bool test_zf_solver_gen(void)
   cf_t y0      = x0_gold * h00 + x1_gold * h01;
   cf_t y1      = x0_gold * h10 + x1_gold * h11;
 
-  srslte_mat_2x2_zf_gen(y0, y1, h00, h01, h10, h11, &x0, &x1, 1.0f);
+  srsran_mat_2x2_zf_gen(y0, y1, h00, h01, h10, h11, &x0, &x1, 1.0f);
 
   cf_error0 = x0 - x0_gold;
   cf_error1 = x1 - x1_gold;
@@ -142,7 +142,7 @@ static bool test_mmse_solver_gen(void)
   cf_t y0      = x0_gold * h00 + x1_gold * h01;
   cf_t y1      = x0_gold * h10 + x1_gold * h11;
 
-  srslte_mat_2x2_mmse_gen(y0, y1, h00, h01, h10, h11, &x0, &x1, 0.0f, 1.0f);
+  srsran_mat_2x2_mmse_gen(y0, y1, h00, h01, h10, h11, &x0, &x1, 0.0f, 1.0f);
 
   cf_error0 = x0 - x0_gold;
   cf_error1 = x1 - x1_gold;
@@ -152,7 +152,7 @@ static bool test_mmse_solver_gen(void)
   return (error < MAXIMUM_ERROR);
 }
 
-#if SRSLTE_SIMD_CF_SIZE != 0
+#if SRSRAN_SIMD_CF_SIZE != 0
 
 static bool test_zf_solver_simd(void)
 {
@@ -168,23 +168,23 @@ static bool test_zf_solver_simd(void)
   cf_t y0_1      = x0_gold_1 * h00_1 + x1_gold_1 * h01_1;
   cf_t y1_1      = x0_gold_1 * h10_1 + x1_gold_1 * h11_1;
 
-  simd_cf_t _y0 = srslte_simd_cf_set1(y0_1);
-  simd_cf_t _y1 = srslte_simd_cf_set1(y1_1);
+  simd_cf_t _y0 = srsran_simd_cf_set1(y0_1);
+  simd_cf_t _y1 = srsran_simd_cf_set1(y1_1);
 
-  simd_cf_t _h00 = srslte_simd_cf_set1(h00_1);
-  simd_cf_t _h01 = srslte_simd_cf_set1(h01_1);
-  simd_cf_t _h10 = srslte_simd_cf_set1(h10_1);
-  simd_cf_t _h11 = srslte_simd_cf_set1(h11_1);
+  simd_cf_t _h00 = srsran_simd_cf_set1(h00_1);
+  simd_cf_t _h01 = srsran_simd_cf_set1(h01_1);
+  simd_cf_t _h10 = srsran_simd_cf_set1(h10_1);
+  simd_cf_t _h11 = srsran_simd_cf_set1(h11_1);
 
   simd_cf_t _x0, _x1;
 
-  srslte_mat_2x2_zf_simd(_y0, _y1, _h00, _h01, _h10, _h11, &_x0, &_x1, 1.0f);
+  srsran_mat_2x2_zf_simd(_y0, _y1, _h00, _h01, _h10, _h11, &_x0, &_x1, 1.0f);
 
-  srslte_simd_aligned cf_t x0[SRSLTE_SIMD_CF_SIZE];
-  srslte_simd_aligned cf_t x1[SRSLTE_SIMD_CF_SIZE];
+  srsran_simd_aligned cf_t x0[SRSRAN_SIMD_CF_SIZE];
+  srsran_simd_aligned cf_t x1[SRSRAN_SIMD_CF_SIZE];
 
-  srslte_simd_cfi_store(x0, _x0);
-  srslte_simd_cfi_store(x1, _x1);
+  srsran_simd_cfi_store(x0, _x0);
+  srsran_simd_cfi_store(x1, _x1);
 
   cf_error0 = x0[1] - x0_gold_1;
   cf_error1 = x1[1] - x1_gold_1;
@@ -199,16 +199,16 @@ static bool test_mmse_solver_simd(void)
   cf_t  cf_error0, cf_error1;
   float error = 0.0f;
 
-  cf_t x0_gold[SRSLTE_SIMD_CF_SIZE];
-  cf_t x1_gold[SRSLTE_SIMD_CF_SIZE];
-  cf_t h00[SRSLTE_SIMD_CF_SIZE];
-  cf_t h01[SRSLTE_SIMD_CF_SIZE];
-  cf_t h10[SRSLTE_SIMD_CF_SIZE];
-  cf_t h11[SRSLTE_SIMD_CF_SIZE];
-  cf_t y0[SRSLTE_SIMD_CF_SIZE];
-  cf_t y1[SRSLTE_SIMD_CF_SIZE];
+  cf_t x0_gold[SRSRAN_SIMD_CF_SIZE];
+  cf_t x1_gold[SRSRAN_SIMD_CF_SIZE];
+  cf_t h00[SRSRAN_SIMD_CF_SIZE];
+  cf_t h01[SRSRAN_SIMD_CF_SIZE];
+  cf_t h10[SRSRAN_SIMD_CF_SIZE];
+  cf_t h11[SRSRAN_SIMD_CF_SIZE];
+  cf_t y0[SRSRAN_SIMD_CF_SIZE];
+  cf_t y1[SRSRAN_SIMD_CF_SIZE];
 
-  for (int i = 0; i < SRSLTE_SIMD_CF_SIZE; i++) {
+  for (int i = 0; i < SRSRAN_SIMD_CF_SIZE; i++) {
     x0_gold[i] = RANDOM_CF();
     x1_gold[i] = RANDOM_CF();
     h00[i]     = RANDOM_CF();
@@ -219,23 +219,23 @@ static bool test_mmse_solver_simd(void)
     y1[i]      = x0_gold[i] * h10[i] + x1_gold[i] * h11[i];
   }
 
-  simd_cf_t _y0 = srslte_simd_cfi_loadu(y0);
-  simd_cf_t _y1 = srslte_simd_cfi_loadu(y1);
+  simd_cf_t _y0 = srsran_simd_cfi_loadu(y0);
+  simd_cf_t _y1 = srsran_simd_cfi_loadu(y1);
 
-  simd_cf_t _h00 = srslte_simd_cfi_loadu(h00);
-  simd_cf_t _h01 = srslte_simd_cfi_loadu(h01);
-  simd_cf_t _h10 = srslte_simd_cfi_loadu(h10);
-  simd_cf_t _h11 = srslte_simd_cfi_loadu(h11);
+  simd_cf_t _h00 = srsran_simd_cfi_loadu(h00);
+  simd_cf_t _h01 = srsran_simd_cfi_loadu(h01);
+  simd_cf_t _h10 = srsran_simd_cfi_loadu(h10);
+  simd_cf_t _h11 = srsran_simd_cfi_loadu(h11);
 
   simd_cf_t _x0, _x1;
 
-  srslte_mat_2x2_mmse_simd(_y0, _y1, _h00, _h01, _h10, _h11, &_x0, &_x1, 0.0f, 1.0f);
+  srsran_mat_2x2_mmse_simd(_y0, _y1, _h00, _h01, _h10, _h11, &_x0, &_x1, 0.0f, 1.0f);
 
-  srslte_simd_aligned cf_t x0[SRSLTE_SIMD_CF_SIZE];
-  srslte_simd_aligned cf_t x1[SRSLTE_SIMD_CF_SIZE];
+  srsran_simd_aligned cf_t x0[SRSRAN_SIMD_CF_SIZE];
+  srsran_simd_aligned cf_t x1[SRSRAN_SIMD_CF_SIZE];
 
-  srslte_simd_cfi_store(x0, _x0);
-  srslte_simd_cfi_store(x1, _x1);
+  srsran_simd_cfi_store(x0, _x0);
+  srsran_simd_cfi_store(x1, _x1);
 
   cf_error0 = x0[1] - x0_gold[1];
   cf_error1 = x1[1] - x1_gold[1];
@@ -248,7 +248,7 @@ static bool test_mmse_solver_simd(void)
   return (error < MAXIMUM_ERROR);
 }
 
-#endif /* SRSLTE_SIMD_CF_SIZE != 0 */
+#endif /* SRSRAN_SIMD_CF_SIZE != 0 */
 
 static bool test_vec_dot_prod_ccc(void)
 {
@@ -261,7 +261,7 @@ static bool test_vec_dot_prod_ccc(void)
     b[i] = RANDOM_CF();
   }
 
-  res = srslte_vec_dot_prod_ccc(a, b, 14);
+  res = srsran_vec_dot_prod_ccc(a, b, 14);
 
   for (int i = 0; i < 14; i++) {
     gold += a[i] * b[i];
@@ -276,19 +276,19 @@ bool test_matrix_inv(void)
   __attribute__((aligned(256))) cf_t x[N * N];
   __attribute__((aligned(256))) cf_t y[N * N];
 
-  srslte_matrix_NxN_inv_t matrix_nxn_inv = {};
+  srsran_matrix_NxN_inv_t matrix_nxn_inv = {};
 
-  srslte_matrix_NxN_inv_init(&matrix_nxn_inv, N);
+  srsran_matrix_NxN_inv_init(&matrix_nxn_inv, N);
 
   for (int i = 0; i < N; i++) {
     for (int j = 0; j < N; j++) {
-      x[i * N + j] = srslte_random_uniform_complex_dist(random_gen, -1.0f, +1.0f);
+      x[i * N + j] = srsran_random_uniform_complex_dist(random_gen, -1.0f, +1.0f);
     }
   }
 
-  srslte_matrix_NxN_inv_run(&matrix_nxn_inv, x, y);
+  srsran_matrix_NxN_inv_run(&matrix_nxn_inv, x, y);
 
-  srslte_matrix_NxN_inv_free(&matrix_nxn_inv);
+  srsran_matrix_NxN_inv_free(&matrix_nxn_inv);
 
   return true;
 }
@@ -296,26 +296,26 @@ bool test_matrix_inv(void)
 int main(int argc, char** argv)
 {
   bool passed = true;
-  int  ret    = SRSLTE_SUCCESS;
+  int  ret    = SRSRAN_SUCCESS;
 
   parse_args(argc, argv);
 
-  random_gen = srslte_random_init(0);
+  random_gen = srsran_random_init(0);
 
   if (zf_solver) {
     RUN_TEST(test_zf_solver_gen);
 
-#if SRSLTE_SIMD_CF_SIZE != 0
+#if SRSRAN_SIMD_CF_SIZE != 0
     RUN_TEST(test_zf_solver_simd);
-#endif /* SRSLTE_SIMD_CF_SIZE != 0*/
+#endif /* SRSRAN_SIMD_CF_SIZE != 0*/
   }
 
   if (mmse_solver) {
     RUN_TEST(test_mmse_solver_gen);
 
-#if SRSLTE_SIMD_CF_SIZE != 0
+#if SRSRAN_SIMD_CF_SIZE != 0
     RUN_TEST(test_mmse_solver_simd);
-#endif /* SRSLTE_SIMD_CF_SIZE != 0*/
+#endif /* SRSRAN_SIMD_CF_SIZE != 0*/
   }
 
   if (inverter) {
@@ -326,10 +326,10 @@ int main(int argc, char** argv)
 
   printf("%s!\n", (passed) ? "Ok" : "Failed");
 
-  srslte_random_free(random_gen);
+  srsran_random_free(random_gen);
 
   if (!passed) {
-    ret = SRSLTE_ERROR;
+    ret = SRSRAN_ERROR;
   }
 
   return ret;

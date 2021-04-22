@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -29,7 +29,7 @@ namespace srsue {
 #define SUITABLE_NEIGHBOR_INTRAFREQ_RS_EPRE (-91)
 #define DEFAULT_RSRQ (-3.0)
 
-lte_ttcn3_phy::lte_ttcn3_phy(srslte::logger* logger_) : logger(logger_) {}
+lte_ttcn3_phy::lte_ttcn3_phy() : logger(srslog::fetch_basic_logger("PHY")) {}
 
 int lte_ttcn3_phy::init(const phy_args_t& args_, stack_interface_phy_lte* stack_, syssim_interface_phy* syssim_)
 {
@@ -39,7 +39,7 @@ int lte_ttcn3_phy::init(const phy_args_t& args_, stack_interface_phy_lte* stack_
   return init(args_);
 }
 
-int lte_ttcn3_phy::init(const phy_args_t& args_, stack_interface_phy_lte* stack_, srslte::radio_interface_phy* radio_)
+int lte_ttcn3_phy::init(const phy_args_t& args_, stack_interface_phy_lte* stack_, srsran::radio_interface_phy* radio_)
 {
   return init(args_);
 }
@@ -47,10 +47,10 @@ int lte_ttcn3_phy::init(const phy_args_t& args_, stack_interface_phy_lte* stack_
 // ue_phy_base interface
 int lte_ttcn3_phy::init(const phy_args_t& args_)
 {
-  log.init("PHY ", logger, true);
-  log.set_level(args_.log.phy_level);
+  logger.set_level(srslog::str_to_basic_level(args_.log.phy_level));
+  logger.set_hex_dump_max_size(-1);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 void lte_ttcn3_phy::stop(){};
@@ -59,7 +59,7 @@ void lte_ttcn3_phy::wait_initialize() {}
 
 void lte_ttcn3_phy::start_plot() {}
 
-void lte_ttcn3_phy::get_metrics(phy_metrics_t* m) {}
+void lte_ttcn3_phy::get_metrics(const srsran::srsran_rat_t& rat, phy_metrics_t* m) {}
 
 // The interface for the SS
 void lte_ttcn3_phy::set_cell_map(const cell_list_t& cells_)
@@ -68,28 +68,33 @@ void lte_ttcn3_phy::set_cell_map(const cell_list_t& cells_)
   cells = cells_;
 }
 
-void lte_ttcn3_phy::set_config_tdd(srslte_tdd_config_t& tdd_config) {}
+void lte_ttcn3_phy::set_config_tdd(srsran_tdd_config_t& tdd_config) {}
 
 void lte_ttcn3_phy::enable_pregen_signals(bool enable)
 {
-  log.debug("%s not implemented.\n", __FUNCTION__);
+  logger.debug("%s not implemented.", __FUNCTION__);
 }
 
-void lte_ttcn3_phy::set_activation_deactivation_scell(uint32_t cmd)
+void lte_ttcn3_phy::deactivate_scells()
 {
-  log.debug("%s not implemented.\n", __FUNCTION__);
+  logger.debug("%s not implemented.", __FUNCTION__);
 }
 
-bool lte_ttcn3_phy::set_config(srslte::phy_cfg_t config, uint32_t cc_idx_)
+void lte_ttcn3_phy::set_activation_deactivation_scell(uint32_t cmd, uint32_t tti)
 {
-  log.debug("%s not implemented.\n", __FUNCTION__);
+  logger.debug("%s not implemented.", __FUNCTION__);
+}
+
+bool lte_ttcn3_phy::set_config(srsran::phy_cfg_t config, uint32_t cc_idx_)
+{
+  logger.debug("%s not implemented.", __FUNCTION__);
   task_sched.defer_task([this]() { stack->set_config_complete(true); });
   return true;
 }
 
-bool lte_ttcn3_phy::set_scell(srslte_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn)
+bool lte_ttcn3_phy::set_scell(srsran_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn)
 {
-  log.debug("%s not implemented.\n", __FUNCTION__);
+  logger.debug("%s not implemented.", __FUNCTION__);
   task_sched.defer_task([this]() { stack->set_scell_complete(true); });
   return true;
 }
@@ -106,7 +111,7 @@ bool lte_ttcn3_phy::cell_search()
 {
   std::lock_guard<std::mutex> lock(mutex);
 
-  log.info("Running cell search in PHY\n");
+  logger.info("Running cell search in PHY");
 
   rrc_interface_phy_lte::cell_search_ret_t ret = {};
   ret.found                                    = rrc_interface_phy_lte::cell_search_ret_t::CELL_NOT_FOUND;
@@ -115,10 +120,10 @@ bool lte_ttcn3_phy::cell_search()
   if (not cells.empty() && cell_idx < cells.size()) {
     // only find suitable cells
     if (cells[cell_idx].power >= SUITABLE_CELL_RS_EPRE) {
-      log.info("Found Cell: EARFCN=%d CellId=%d power=%.2f\n",
-               cells[cell_idx].earfcn,
-               cells[cell_idx].info.id,
-               cells[cell_idx].power);
+      logger.info("Found Cell: EARFCN=%d CellId=%d power=%.2f",
+                  cells[cell_idx].earfcn,
+                  cells[cell_idx].info.id,
+                  cells[cell_idx].power);
       found_cell.earfcn = cells[cell_idx].earfcn;
       found_cell.pci    = cells[cell_idx].info.id;
       ret.found         = rrc_interface_phy_lte::cell_search_ret_t::CELL_FOUND;
@@ -136,7 +141,7 @@ bool lte_ttcn3_phy::cell_search()
       cell_idx      = 0;
     }
   } else {
-    log.warning("No cells configured yet.\n");
+    logger.warning("No cells configured yet.");
   }
 
   stack->cell_search_complete(ret, found_cell);
@@ -153,10 +158,10 @@ bool lte_ttcn3_phy::cell_select(phy_cell_t rrc_cell)
         pcell     = cell;
         pcell_set = true;
         syssim->select_cell(pcell.info);
-        log.info("Select PCell with %.2f on PCI=%d on EARFCN=%d.\n", cell.power, rrc_cell.pci, rrc_cell.earfcn);
+        logger.info("Select PCell with %.2f on PCI=%d on EARFCN=%d.", cell.power, rrc_cell.pci, rrc_cell.earfcn);
       } else {
         pcell_set = false;
-        log.error("Power of selected cell too low (%.2f < %.2f)\n", cell.power, SUITABLE_CELL_RS_EPRE);
+        logger.error("Power of selected cell too low (%.2f < %.2f)", cell.power, SUITABLE_CELL_RS_EPRE);
       }
 
       stack->cell_select_complete(pcell_set);
@@ -164,14 +169,14 @@ bool lte_ttcn3_phy::cell_select(phy_cell_t rrc_cell)
     }
   }
 
-  log.error("Couldn't find RRC cell with PCI=%d on EARFCN=%d in cell map.\n", rrc_cell.pci, rrc_cell.earfcn);
+  logger.error("Couldn't find RRC cell with PCI=%d on EARFCN=%d in cell map.", rrc_cell.pci, rrc_cell.earfcn);
   return false;
 }
 
 bool lte_ttcn3_phy::cell_is_camping()
 {
   if (pcell_set) {
-    log.info("pcell.power=%2.f\n", pcell.power);
+    logger.info("pcell.power=%2.f", pcell.power);
     return (pcell.power >= SUITABLE_CELL_RS_EPRE);
   }
   return false;
@@ -182,7 +187,7 @@ bool lte_ttcn3_phy::cell_is_camping()
 void lte_ttcn3_phy::prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm, float ta_base_sec)
 {
   std::lock_guard<std::mutex> lock(mutex);
-  log.info("Sending PRACH with preamble %d on PCID=%d\n", preamble_idx, pcell.info.id);
+  logger.info("Sending PRACH with preamble %d on PCID=%d", preamble_idx, pcell.info.id);
   prach_tti_tx = current_tti;
   ra_trans_cnt++;
 
@@ -219,28 +224,22 @@ int lte_ttcn3_phy::sr_last_tx_tti()
 
 // The RAT-agnostic interface for MAC
 
-/* Sets a C-RNTI allowing the PHY to pregenerate signals if necessary */
-void lte_ttcn3_phy::set_crnti(uint16_t rnti)
-{
-  log.debug("Set Temp-RNTI=%d, pregen not used\n", rnti);
-}
-
 /* Time advance commands */
-void lte_ttcn3_phy::set_timeadv_rar(uint32_t ta_cmd)
+void lte_ttcn3_phy::set_timeadv_rar(uint32_t tti, uint32_t ta_cmd)
 {
-  log.debug("%s not implemented.\n", __FUNCTION__);
+  logger.debug("%s not implemented.", __FUNCTION__);
 }
 
-void lte_ttcn3_phy::set_timeadv(uint32_t ta_cmd)
+void lte_ttcn3_phy::set_timeadv(uint32_t tti, uint32_t ta_cmd)
 {
-  log.debug("%s not implemented.\n", __FUNCTION__);
+  logger.debug("%s not implemented.", __FUNCTION__);
 }
 
 // Sets RAR grant payload
-void lte_ttcn3_phy::set_rar_grant(uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN], uint16_t rnti)
+void lte_ttcn3_phy::set_rar_grant(uint8_t grant_payload[SRSRAN_RAR_GRANT_LEN], uint16_t rnti)
 {
   // Empty, SYSSIM knows when to provide UL grant for Msg3
-  log.debug("%s not implemented.\n", __FUNCTION__);
+  logger.debug("%s not implemented.", __FUNCTION__);
 }
 
 // Called from the SYSSIM to configure the current TTI
@@ -260,13 +259,13 @@ uint32_t lte_ttcn3_phy::get_current_tti()
 
 float lte_ttcn3_phy::get_phr()
 {
-  log.debug("%s not implemented.\n", __FUNCTION__);
+  logger.debug("%s not implemented.", __FUNCTION__);
   return 0.1;
 }
 
 float lte_ttcn3_phy::get_pathloss_db()
 {
-  log.debug("%s not implemented.\n", __FUNCTION__);
+  logger.debug("%s not implemented.", __FUNCTION__);
   return 85.0;
 }
 
@@ -293,7 +292,7 @@ void lte_ttcn3_phy::new_tb(const srsue::mac_interface_phy_lte::mac_grant_dl_t dl
   std::lock_guard<std::mutex> lock(mutex);
 
   if (data == nullptr) {
-    log.error("Invalid data buffer passed\n");
+    logger.error("Invalid data buffer passed");
     return;
   }
 
@@ -302,18 +301,18 @@ void lte_ttcn3_phy::new_tb(const srsue::mac_interface_phy_lte::mac_grant_dl_t dl
 
   stack->new_grant_dl(cc_idx, dl_grant, &dl_action);
 
-  bool dl_ack[SRSLTE_MAX_CODEWORDS] = {};
+  bool dl_ack[SRSRAN_MAX_CODEWORDS] = {};
 
   if (dl_action.tb[0].enabled && dl_action.tb[0].payload != nullptr) {
-    log.info_hex(data,
-                 dl_grant.tb[0].tbs,
-                 "TB received rnti=%d, tti=%d, n_bytes=%d\n",
-                 dl_grant.rnti,
-                 current_tti,
-                 dl_grant.tb[0].tbs);
+    logger.info(data,
+                dl_grant.tb[0].tbs,
+                "TB received rnti=%d, tti=%d, n_bytes=%d",
+                dl_grant.rnti,
+                current_tti,
+                dl_grant.tb[0].tbs);
 
     if (dl_action.generate_ack) {
-      log.debug("Calling generate ACK callback\n");
+      logger.debug("Calling generate ACK callback");
       // action.generate_ack_callback(action.generate_ack_callback_arg);
     }
     memcpy(dl_action.tb->payload, data, dl_grant.tb[0].tbs);
@@ -321,9 +320,9 @@ void lte_ttcn3_phy::new_tb(const srsue::mac_interface_phy_lte::mac_grant_dl_t dl
     // ACK first TB and pass up
     dl_ack[0] = true;
 
-    log.info("TB processed correctly\n");
+    logger.info("TB processed correctly");
   } else {
-    log.error("Couldn't get buffer for TB\n");
+    logger.error("Couldn't get buffer for TB");
   }
 
   stack->tb_decoded(cc_idx, dl_grant, dl_ack);
@@ -331,33 +330,33 @@ void lte_ttcn3_phy::new_tb(const srsue::mac_interface_phy_lte::mac_grant_dl_t dl
 
 void lte_ttcn3_phy::radio_overflow()
 {
-  log.debug("%s not implemented.\n", __FUNCTION__);
+  logger.debug("%s not implemented.", __FUNCTION__);
 }
 
 void lte_ttcn3_phy::radio_failure()
 {
-  log.debug("%s not implemented.\n", __FUNCTION__);
+  logger.debug("%s not implemented.", __FUNCTION__);
 }
 
 // Calling function set_tti() is holding mutex
 void lte_ttcn3_phy::run_tti()
 {
   // send report for all cells stronger than non-suitable cell RS
-  std::vector<rrc_interface_phy_lte::phy_meas_t> phy_meas;
+  std::vector<phy_meas_t> phy_meas;
   for (auto& cell : cells) {
     if (cell.power >= NON_SUITABLE_CELL_RS_EPRE) {
-      rrc_interface_phy_lte::phy_meas_t m = {};
-      m.pci                               = cell.info.id;
-      m.earfcn                            = cell.earfcn;
-      m.rsrp                              = cell.power;
-      m.rsrq                              = DEFAULT_RSRQ;
+      phy_meas_t m = {};
+      m.pci        = cell.info.id;
+      m.earfcn     = cell.earfcn;
+      m.rsrp       = cell.power;
+      m.rsrq       = DEFAULT_RSRQ;
 
       // Measurement for PCell needs to have EARFCN set to 0
       if (pcell_set && m.earfcn == pcell.earfcn && m.pci == pcell.info.id) {
-        log.debug("Creating Pcell measurement for PCI=%d, EARFCN=%d with RSRP=%.2f\n", m.pci, m.earfcn, m.rsrp);
+        logger.debug("Creating Pcell measurement for PCI=%d, EARFCN=%d with RSRP=%.2f", m.pci, m.earfcn, m.rsrp);
         m.earfcn = 0;
       } else {
-        log.debug("Create cell measurement for PCI=%d, EARFCN=%d with RSRP=%.2f\n", m.pci, m.earfcn, m.rsrp);
+        logger.debug("Create cell measurement for PCI=%d, EARFCN=%d with RSRP=%.2f", m.pci, m.earfcn, m.rsrp);
       }
       phy_meas.push_back(m);
     }
@@ -373,10 +372,10 @@ void lte_ttcn3_phy::run_tti()
       if (cell.info.id == pcell.info.id) {
         // consider Pcell in-sync until reaching threshold
         if (cell.power >= NON_SUITABLE_CELL_RS_EPRE) {
-          log.debug("PCell id=%d power=%.2f -> sync\n", pcell.info.id, cell.power);
+          logger.debug("PCell id=%d power=%.2f -> sync", pcell.info.id, cell.power);
           stack->in_sync();
         } else {
-          log.debug("PCell id=%d power=%.2f -> out of sync\n", pcell.info.id, cell.power);
+          logger.debug("PCell id=%d power=%.2f -> out of sync", pcell.info.id, cell.power);
           stack->out_of_sync();
         }
         break; // make sure to call stack only once
@@ -384,7 +383,7 @@ void lte_ttcn3_phy::run_tti()
     }
   }
 
-  log.step(current_tti);
+  logger.set_context(current_tti);
 
   // Check for SR
   if (sr_pending) {
@@ -398,7 +397,7 @@ void lte_ttcn3_phy::run_tti()
 
 void lte_ttcn3_phy::set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci)
 {
-  log.debug("%s not implemented.\n", __FUNCTION__);
+  logger.debug("%s not implemented.", __FUNCTION__);
 }
 
 } // namespace srsue

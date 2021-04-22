@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -27,8 +27,8 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "srslte/phy/dft/dft.h"
-#include "srslte/phy/utils/vector.h"
+#include "srsran/phy/dft/dft.h"
+#include "srsran/phy/utils/vector.h"
 
 uint32_t N       = 256;
 bool forward = true;
@@ -87,36 +87,36 @@ int test_dft(cf_t* in)
 {
   int res = 0;
 
-  srslte_dft_plan_t plan;
+  srsran_dft_plan_t plan;
   if (forward) {
-    srslte_dft_plan(&plan, N, SRSLTE_DFT_FORWARD, SRSLTE_DFT_COMPLEX);
+    srsran_dft_plan(&plan, N, SRSRAN_DFT_FORWARD, SRSRAN_DFT_COMPLEX);
   } else {
-    srslte_dft_plan(&plan, N, SRSLTE_DFT_BACKWARD, SRSLTE_DFT_COMPLEX);
+    srsran_dft_plan(&plan, N, SRSRAN_DFT_BACKWARD, SRSRAN_DFT_COMPLEX);
   }
-  srslte_dft_plan_set_mirror(&plan, mirror);
-  srslte_dft_plan_set_norm(&plan, norm);
-  srslte_dft_plan_set_dc(&plan, dc);
+  srsran_dft_plan_set_mirror(&plan, mirror);
+  srsran_dft_plan_set_norm(&plan, norm);
+  srsran_dft_plan_set_dc(&plan, dc);
 
-  cf_t* out1 = srslte_vec_cf_malloc(N);
-  cf_t* out2 = srslte_vec_cf_malloc(N);
-  srslte_vec_cf_zero(out1, N);
-  srslte_vec_cf_zero(out2, N);
+  cf_t* out1 = srsran_vec_cf_malloc(N);
+  cf_t* out2 = srsran_vec_cf_malloc(N);
+  srsran_vec_cf_zero(out1, N);
+  srsran_vec_cf_zero(out2, N);
 
   print(in, N);
-  srslte_dft_run(&plan, in, out1);
+  srsran_dft_run(&plan, in, out1);
   print(out1, N);
 
-  srslte_dft_plan_t plan_rev;
+  srsran_dft_plan_t plan_rev;
   if (!forward) {
-    srslte_dft_plan(&plan_rev, N, SRSLTE_DFT_FORWARD, SRSLTE_DFT_COMPLEX);
+    srsran_dft_plan(&plan_rev, N, SRSRAN_DFT_FORWARD, SRSRAN_DFT_COMPLEX);
   } else {
-    srslte_dft_plan(&plan_rev, N, SRSLTE_DFT_BACKWARD, SRSLTE_DFT_COMPLEX);
+    srsran_dft_plan(&plan_rev, N, SRSRAN_DFT_BACKWARD, SRSRAN_DFT_COMPLEX);
   }
-  srslte_dft_plan_set_mirror(&plan_rev, mirror);
-  srslte_dft_plan_set_norm(&plan_rev, norm);
-  srslte_dft_plan_set_dc(&plan_rev, dc);
+  srsran_dft_plan_set_mirror(&plan_rev, mirror);
+  srsran_dft_plan_set_norm(&plan_rev, norm);
+  srsran_dft_plan_set_dc(&plan_rev, dc);
 
-  srslte_dft_run(&plan_rev, out1, out2);
+  srsran_dft_run(&plan_rev, out1, out2);
   print(out2, N);
 
   if (!norm) {
@@ -131,8 +131,8 @@ int test_dft(cf_t* in)
       res = -1;
   }
 
-  srslte_dft_plan_free(&plan);
-  srslte_dft_plan_free(&plan_rev);
+  srsran_dft_plan_free(&plan);
+  srsran_dft_plan_free(&plan_rev);
   free(out1);
   free(out2);
 
@@ -142,8 +142,8 @@ int test_dft(cf_t* in)
 int main(int argc, char** argv)
 {
   parse_args(argc, argv);
-  cf_t* in = srslte_vec_cf_malloc(N);
-  srslte_vec_cf_zero(in, N);
+  cf_t* in = srsran_vec_cf_malloc(N);
+  srsran_vec_cf_zero(in, N);
   for (int i = 1; i < N - 1; i++) {
     float re = 100 * rand() / (float)RAND_MAX;
     float im = 100 * rand() / (float)RAND_MAX;

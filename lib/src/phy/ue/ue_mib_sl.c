@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -18,23 +18,23 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
-#include <srslte/config.h>
-#include <srslte/phy/utils/bit.h>
-#include <srslte/phy/utils/vector.h>
+#include <srsran/config.h>
+#include <srsran/phy/utils/bit.h>
+#include <srsran/phy/utils/vector.h>
 #include <stdlib.h>
 #include <strings.h>
 
-#include <srslte/phy/ue/ue_mib_sl.h>
-#include <srslte/phy/utils/debug.h>
+#include <srsran/phy/ue/ue_mib_sl.h>
+#include <srsran/phy/utils/debug.h>
 
-int srslte_ue_mib_sl_set(srslte_ue_mib_sl_t* q,
-                          uint32_t            nof_prb,
-                          uint32_t            tdd_config,
-                          uint32_t            direct_frame_number,
-                          uint32_t            direct_subframe_number,
-                          bool                in_coverage)
+int srsran_ue_mib_sl_set(srsran_ue_mib_sl_t* q,
+                         uint32_t            nof_prb,
+                         uint32_t            tdd_config,
+                         uint32_t            direct_frame_number,
+                         uint32_t            direct_subframe_number,
+                         bool                in_coverage)
 {
-  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSRAN_ERROR_INVALID_INPUTS;
   if (q != NULL) {
 
     switch (nof_prb) {
@@ -58,41 +58,41 @@ int srslte_ue_mib_sl_set(srslte_ue_mib_sl_t* q,
         break;
       default:
         printf("Invalid bandwidth\n");
-        return SRSLTE_ERROR;
+        return SRSRAN_ERROR;
     }
     q->tdd_config_sl_r12          = tdd_config;
     q->direct_frame_number_r12    = direct_frame_number;
     q->direct_subframe_number_r12 = direct_subframe_number;
     q->in_coverage_r12            = in_coverage;
 
-    ret = SRSLTE_SUCCESS;
+    ret = SRSRAN_SUCCESS;
   }
 
   return ret;
 }
 
-void srslte_ue_mib_sl_pack(srslte_ue_mib_sl_t *q, uint8_t *msg)
+void srsran_ue_mib_sl_pack(srsran_ue_mib_sl_t* q, uint8_t* msg)
 {
-  bzero(msg, sizeof(uint8_t) * SRSLTE_MIB_SL_MAX_LEN);
-  srslte_bit_unpack(q->sl_bandwidth_r12, &msg, 3);
-  srslte_bit_unpack(q->tdd_config_sl_r12, &msg, 3);
-  srslte_bit_unpack(q->direct_frame_number_r12, &msg, 10);
-  srslte_bit_unpack(q->direct_subframe_number_r12, &msg, 4);
-  srslte_bit_unpack((uint32_t)q->in_coverage_r12, &msg, 1);
+  bzero(msg, sizeof(uint8_t) * SRSRAN_MIB_SL_MAX_LEN);
+  srsran_bit_unpack(q->sl_bandwidth_r12, &msg, 3);
+  srsran_bit_unpack(q->tdd_config_sl_r12, &msg, 3);
+  srsran_bit_unpack(q->direct_frame_number_r12, &msg, 10);
+  srsran_bit_unpack(q->direct_subframe_number_r12, &msg, 4);
+  srsran_bit_unpack((uint32_t)q->in_coverage_r12, &msg, 1);
 }
 
-void srlste_ue_mib_sl_unpack(srslte_ue_mib_sl_t *q, uint8_t *msg)
+void srlste_ue_mib_sl_unpack(srsran_ue_mib_sl_t* q, uint8_t* msg)
 {
-  q->sl_bandwidth_r12           = srslte_bit_pack(&msg, 3);
-  q->tdd_config_sl_r12          = srslte_bit_pack(&msg, 3);
-  q->direct_frame_number_r12    = srslte_bit_pack(&msg, 10);
-  q->direct_subframe_number_r12 = srslte_bit_pack(&msg, 4);
-  q->in_coverage_r12            = (bool)srslte_bit_pack(&msg, 1);
+  q->sl_bandwidth_r12           = srsran_bit_pack(&msg, 3);
+  q->tdd_config_sl_r12          = srsran_bit_pack(&msg, 3);
+  q->direct_frame_number_r12    = srsran_bit_pack(&msg, 10);
+  q->direct_subframe_number_r12 = srsran_bit_pack(&msg, 4);
+  q->in_coverage_r12            = (bool)srsran_bit_pack(&msg, 1);
 }
 
-void srslte_ue_mib_sl_free(srslte_ue_mib_sl_t* q)
+void srsran_ue_mib_sl_free(srsran_ue_mib_sl_t* q)
 {
   if (q != NULL) {
-    bzero(q, sizeof(srslte_ue_mib_sl_t));
+    bzero(q, sizeof(srsran_ue_mib_sl_t));
   }
 }

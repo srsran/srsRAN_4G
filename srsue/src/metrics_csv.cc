@@ -1,14 +1,14 @@
-/*
- * Copyright 2013-2020 Software Radio Systems Limited
+/**
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * This file is part of srsRAN.
  *
- * srsLTE is free software: you can redistribute it and/or modify
+ * srsRAN is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsLTE is distributed in the hope that it will be useful,
+ * srsRAN is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -74,6 +74,108 @@ void metrics_csv::stop()
   }
 }
 
+void metrics_csv::set_metrics_helper(const srsran::rf_metrics_t  rf,
+                                     const srsran::sys_metrics_t sys,
+                                     const phy_metrics_t         phy,
+                                     const mac_metrics_t         mac[SRSRAN_MAX_CARRIERS],
+                                     const rrc_metrics_t         rrc,
+                                     const uint32_t              cc,
+                                     const uint32_t              r)
+{
+  if (not file.is_open()) {
+    return;
+  }
+
+  file << time_ms << ";";
+
+  // CC and PCI
+  file << cc << ";";
+  file << phy.info[r].dl_earfcn << ";";
+  file << phy.info[r].pci << ";";
+
+  // Print PHY metrics for first CC
+  file << float_to_string(phy.ch[r].rsrp, 2);
+  file << float_to_string(phy.ch[r].pathloss, 2);
+  file << float_to_string(phy.sync[r].cfo, 2);
+
+  // Find strongest neighbour for this EARFCN (cells are ordered)
+  bool has_neighbour = false;
+  for (auto& c : rrc.neighbour_cells) {
+    if (c.earfcn == phy.info[r].dl_earfcn && c.pci != phy.info[r].pci) {
+      file << c.pci << ";";
+      file << float_to_string(c.rsrp, 2);
+      file << float_to_string(c.cfo_hz, 2);
+      has_neighbour = true;
+      break;
+    }
+  }
+  if (!has_neighbour) {
+    file << "n/a;";
+    file << "n/a;";
+    file << "n/a;";
+  }
+
+  file << float_to_string(phy.dl[r].mcs, 2);
+  file << float_to_string(phy.ch[r].sinr, 2);
+  file << float_to_string(phy.dl[r].fec_iters, 2);
+
+  if (mac[r].rx_brate > 0) {
+    file << float_to_string(mac[r].rx_brate / (mac[r].nof_tti * 1e-3), 2);
+  } else {
+    file << float_to_string(0, 2);
+  }
+
+  int rx_pkts   = mac[r].rx_pkts;
+  int rx_errors = mac[r].rx_errors;
+  if (rx_pkts > 0) {
+    file << float_to_string((float)100 * rx_errors / rx_pkts, 1);
+  } else {
+    file << float_to_string(0, 2);
+  }
+
+  file << float_to_string(phy.sync[r].ta_us, 2);
+  file << float_to_string(phy.sync[r].distance_km, 2);
+  file << float_to_string(phy.sync[r].speed_kmph, 2);
+  file << float_to_string(phy.ul[r].mcs, 2);
+  file << float_to_string((float)mac[r].ul_buffer, 2);
+
+  if (mac[r].tx_brate > 0) {
+    file << float_to_string(mac[r].tx_brate / (mac[r].nof_tti * 1e-3), 2);
+  } else {
+    file << float_to_string(0, 2);
+  }
+
+  // Sum UL BLER for all CCs
+  int tx_pkts   = mac[r].tx_pkts;
+  int tx_errors = mac[r].tx_errors;
+  if (tx_pkts > 0) {
+    file << float_to_string((float)100 * tx_errors / tx_pkts, 1);
+  } else {
+    file << float_to_string(0, 2);
+  }
+
+  file << float_to_string(rf.rf_o, 2);
+  file << float_to_string(rf.rf_u, 2);
+  file << float_to_string(rf.rf_l, 2);
+  file << (rrc.state == RRC_STATE_CONNECTED ? "1.0" : "0.0") << ";";
+
+  // Write system metrics.
+  const srsran::sys_metrics_t& m = sys;
+  file << float_to_string(m.process_realmem, 2);
+  file << std::to_string(m.process_realmem_kB) << ";";
+  file << std::to_string(m.process_virtualmem_kB) << ";";
+  file << float_to_string(m.system_mem, 2);
+  file << float_to_string(m.process_cpu_usage, 2);
+  file << std::to_string(m.thread_count) << ";";
+
+  // Write the cpu metrics.
+  for (uint32_t i = 0, e = m.cpu_count, last_cpu_index = e - 1; i != e; ++i) {
+    file << float_to_string(m.cpu_load[i], 2, (i != last_cpu_index));
+  }
+
+  file << "\n";
+}
+
 void metrics_csv::set_metrics(const ue_metrics_t& metrics, const uint32_t period_usec)
 {
   std::unique_lock<std::mutex> lock(mutex);
@@ -83,84 +185,35 @@ void metrics_csv::set_metrics(const ue_metrics_t& metrics, const uint32_t period
   if (file.is_open() && ue != NULL) {
     if (n_reports == 0 && !file_exists) {
       file << "time;cc;earfcn;pci;rsrp;pl;cfo;pci_neigh;rsrp_neigh;cfo_neigh;dl_mcs;dl_snr;dl_turbo;dl_brate;dl_bler;"
-              "ul_ta;ul_mcs;ul_buff;ul_brate;ul_"
+              "ul_ta;distance_km;speed_kmph;ul_mcs;ul_buff;ul_brate;ul_"
               "bler;"
               "rf_o;rf_"
-              "u;rf_l;is_attached\n";
+              "u;rf_l;is_attached;"
+              "proc_rmem;proc_rmem_kB;proc_vmem_kB;sys_mem;sys_load;thread_count";
+
+      // Add the cores.
+      for (uint32_t i = 0, e = metrics.sys.cpu_count; i != e; ++i) {
+        file << ";cpu_" << std::to_string(i);
+      }
+
+      // Add the new line.
+      file << "\n";
     }
 
+    // Metrics for LTE carrier
     for (uint32_t r = 0; r < metrics.phy.nof_active_cc; r++) {
-      file << time_ms << ";";
+      set_metrics_helper(metrics.rf, metrics.sys, metrics.phy, metrics.stack.mac, metrics.stack.rrc, r, r);
+    }
 
-      // CC and PCI
-      file << r << ";";
-      file << metrics.phy.info[r].dl_earfcn << ";";
-      file << metrics.phy.info[r].pci << ";";
-
-      // Print PHY metrics for first CC
-      file << float_to_string(metrics.phy.ch[r].rsrp, 2);
-      file << float_to_string(metrics.phy.ch[r].pathloss, 2);
-      file << float_to_string(metrics.phy.sync[r].cfo, 2);
-
-      // Find strongest neighbour for this EARFCN (cells are ordered)
-      bool has_neighbour = false;
-      for (auto& c : metrics.stack.rrc.neighbour_cells) {
-        if (c.earfcn == metrics.phy.info[r].dl_earfcn && c.pci != metrics.phy.info[r].pci) {
-          file << c.pci << ";";
-          file << float_to_string(c.rsrp, 2);
-          file << float_to_string(c.cfo_hz, 2);
-          has_neighbour = true;
-          break;
-        }
-      }
-      if (!has_neighbour) {
-        file << "n/a;";
-        file << "n/a;";
-        file << "n/a;";
-      }
-
-      file << float_to_string(metrics.phy.dl[r].mcs, 2);
-      file << float_to_string(metrics.phy.ch[r].sinr, 2);
-      file << float_to_string(metrics.phy.dl[r].turbo_iters, 2);
-
-      if (metrics.stack.mac[r].rx_brate > 0) {
-        file << float_to_string(metrics.stack.mac[r].rx_brate / (metrics.stack.mac[r].nof_tti * 1e-3), 2);
-      } else {
-        file << float_to_string(0, 2);
-      }
-
-      int rx_pkts   = metrics.stack.mac[r].rx_pkts;
-      int rx_errors = metrics.stack.mac[r].rx_errors;
-      if (rx_pkts > 0) {
-        file << float_to_string((float)100 * rx_errors / rx_pkts, 1);
-      } else {
-        file << float_to_string(0, 2);
-      }
-
-      file << float_to_string(metrics.phy.sync[r].ta_us, 2);
-      file << float_to_string(metrics.phy.ul[r].mcs, 2);
-      file << float_to_string((float)metrics.stack.mac[r].ul_buffer, 2);
-
-      if (metrics.stack.mac[r].tx_brate > 0) {
-        file << float_to_string(metrics.stack.mac[r].tx_brate / (metrics.stack.mac[r].nof_tti * 1e-3), 2);
-      } else {
-        file << float_to_string(0, 2);
-      }
-
-      // Sum UL BLER for all CCs
-      int tx_pkts   = metrics.stack.mac[r].tx_pkts;
-      int tx_errors = metrics.stack.mac[r].tx_errors;
-      if (tx_pkts > 0) {
-        file << float_to_string((float)100 * tx_errors / tx_pkts, 1);
-      } else {
-        file << float_to_string(0, 2);
-      }
-
-      file << float_to_string(metrics.rf.rf_o, 2);
-      file << float_to_string(metrics.rf.rf_u, 2);
-      file << float_to_string(metrics.rf.rf_l, 2);
-      file << (metrics.stack.rrc.state == RRC_STATE_CONNECTED ? "1.0" : "0.0");
-      file << "\n";
+    // Metrics for NR carrier
+    for (uint32_t r = 0; r < metrics.phy_nr.nof_active_cc; r++) {
+      set_metrics_helper(metrics.rf,
+                         metrics.sys,
+                         metrics.phy_nr,
+                         metrics.stack.mac_nr,
+                         metrics.stack.rrc,
+                         metrics.phy.nof_active_cc + r, // NR carrier offset
+                         r);
     }
 
     n_reports++;
