@@ -196,31 +196,94 @@ int srsran_ra_ul_nr_time(const srsran_sch_hl_cfg_nr_t*    cfg,
   return SRSRAN_SUCCESS;
 }
 
-int srsran_ra_ul_nr_nof_dmrs_cdm_groups_without_data_format_0_0(const srsran_sch_cfg_nr_t* cfg,
-                                                                srsran_sch_grant_nr_t*     grant)
+int srsran_ra_ul_nr_nof_front_load_symbols(const srsran_sch_hl_cfg_nr_t* cfg,
+                                           const srsran_dci_ul_nr_t*     dci,
+                                           srsran_dmrs_sch_len_t*        dmrs_duration)
 {
-  if (cfg == NULL || grant == NULL) {
+  if (cfg == NULL || dci == NULL || dmrs_duration == NULL) {
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
-  /* According to TS 38.214 V15.10.0 6.2.2 UE DM-RS transmission procedure:
-   * For PUSCH scheduled by DCI format 0_0 or by activation DCI format 0_0 with CRC scrambled by CS-RNTI, the UE
-   * shall assume the number of DM-RS CDM groups without data is 1 which corresponds to CDM group 0 for the case of
-   * PUSCH with allocation duration of 2 or less OFDM symbols with transform precoding disabled, the UE shall assume
-   * that the number of DM-RS CDM groups without data is 3 which corresponds to CDM group {0,1,2} for the case of PUSCH
-   * scheduled by activation DCI format 0_0 and the dmrs-Type in cg-DMRS-Configuration equal to 'type2' and the PUSCH
-   * allocation duration being more than 2 OFDM symbols, and the UE shall assume that the number of DM-RS CDM groups
-   * without data is 2 which corresponds to CDM group {0,1} for all other cases.
-   */
-  if (grant->L <= 2 && !cfg->enable_transform_precoder) {
-    grant->nof_dmrs_cdm_groups_without_data = 1;
-    //  } else if (grant->L > 2 && cfg->dmrs_cg.type == srsran_dmrs_sch_type_2){
-    //    grant->nof_dmrs_cdm_groups_without_data = 3;
-  } else {
-    grant->nof_dmrs_cdm_groups_without_data = 2;
+  // Table 7.3.1.1.2-6: Antenna port(s), transform precoder is enabled, dmrs-Type=1, maxLength=1
+  // Table 7.3.1.1.2-8: Antenna port(s), transform precoder is disabled, dmrs-Type=1, maxLength=1, rank=1
+  // Table 7.3.1.1.2-9: Antenna port(s), transform precoder is disabled, dmrs-Type=1, maxLength=1, rank=2
+  // Table 7.3.1.1.2-10: Antenna port(s), transform precoder is disabled, dmrs-Type=1, maxLength=1, rank=3
+  // Table 7.3.1.1.2-11: Antenna port(s), transform precoder is disabled, dmrs-Type=1, maxLength=1, rank=4
+  // Table 7.3.1.1.2-16: Antenna port(s), transform precoder is disabled, dmrs-Type=2, maxLength=1, rank=1
+  // Table 7.3.1.1.2-17: Antenna port(s), transform precoder is disabled, dmrs-Type=2, maxLength=1, rank=2
+  // Table 7.3.1.1.2-18: Antenna port(s), transform precoder is disabled, dmrs-Type=2, maxLength=1, rank=3
+  // Table 7.3.1.1.2-19: Antenna port(s), transform precoder is disabled, dmrs-Type=2, maxLength=1, rank=4
+  if (cfg->dmrs_max_length == srsran_dmrs_sch_len_1) {
+    *dmrs_duration = srsran_dmrs_sch_len_1;
+    return SRSRAN_SUCCESS;
   }
 
-  return SRSRAN_SUCCESS;
+  // Other tables are not implemented
+  ERROR("Unhandled case");
+  return SRSRAN_ERROR;
+}
+
+int srsran_ra_ul_nr_nof_dmrs_cdm_groups_without_data(const srsran_sch_hl_cfg_nr_t* cfg,
+                                                     const srsran_dci_ul_nr_t*     dci,
+                                                     uint32_t                      L)
+{
+  if (cfg == NULL || dci == NULL || L == 0) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+  uint32_t rank = 1; // No other supported
+
+  // According to TS 38.214 V15.10.0 6.2.2 UE DM-RS transmission procedure:
+  switch (dci->ctx.format) {
+    case srsran_dci_format_nr_0_0:
+      // For PUSCH scheduled by DCI format 0_0 or by activation DCI format 0_0 with CRC scrambled by CS-RNTI, the UE
+      // shall assume the number of DM-RS CDM groups without data is 1 which corresponds to CDM group 0 for the case of
+      // PUSCH with allocation duration of 2 or less OFDM symbols with transform precoding disabled, the UE shall assume
+      // that the number of DM-RS CDM groups without data is 3 which corresponds to CDM group {0,1,2} for the case of
+      // PUSCH scheduled by activation DCI format 0_0 and the dmrs-Type in cg-DMRS-Configuration equal to 'type2' and
+      // the PUSCH allocation duration being more than 2 OFDM symbols, and the UE shall assume that the number of DM-RS
+      // CDM groups without data is 2 which corresponds to CDM group {0,1} for all other cases.
+      if (L <= 2 && !cfg->enable_transform_precoder) {
+        return 1;
+      } else if (L > 2 && cfg->dmrs_type == srsran_dmrs_sch_type_2 && dci->ctx.format == srsran_dci_format_nr_cg) {
+        return 3;
+      } else {
+        return 2;
+      }
+      return SRSRAN_SUCCESS;
+    case srsran_dci_format_nr_0_1:
+      // For PUSCH scheduled by DCI format 0_1, by activation DCI format 0_1 with CRC scrambled by CS-RNTI, or
+      // configured by configured grant Type 1 configuration, the UE shall assume the DM-RS CDM groups indicated in
+      // Tables 7.3.1.1.2-6 to 7.3.1.1.2-23 of Clause 7.3.1.1 of [5, TS38.212] are not used for data transmission, where
+      // "1", "2" and "3" for the number of DM-RS CDM group(s) correspond to CDM group 0, {0,1}, {0,1,2}, respectively.
+
+      // Table 7.3.1.1.2-6: Antenna port(s), transform precoder is enabled, dmrs-Type=1, maxLength=1
+      if (cfg->enable_transform_precoder && cfg->dmrs_type == srsran_dmrs_sch_type_1 &&
+          cfg->dmrs_max_length == srsran_dmrs_sch_len_1 && rank == 1) {
+        return 2;
+      }
+
+      // Table 7.3.1.1.2-8: Antenna port(s), transform precoder is disabled, dmrs-Type=1, maxLength=1, rank= 1
+      if (!cfg->enable_transform_precoder && cfg->dmrs_type == srsran_dmrs_sch_type_1 &&
+          cfg->dmrs_max_length == srsran_dmrs_sch_len_1 && rank == 1) {
+        if (dci->ports < 2) {
+          return 1;
+        }
+
+        if (dci->ports < 6) {
+          return 2;
+        }
+
+        ERROR("Invalid ports (%d)", dci->ports);
+        return SRSRAN_ERROR;
+      }
+
+      ERROR("Unhandled configuration");
+      return SRSRAN_ERROR;
+    default:
+      ERROR("Invalid UL DCI format %s", srsran_dci_format_nr_string(dci->ctx.format));
+  }
+
+  return SRSRAN_ERROR;
 }
 
 #define RA_UL_PUCCH_CODE_RATE_N 8
@@ -374,13 +437,35 @@ int srsran_ra_ul_nr_freq(const srsran_carrier_nr_t*    carrier,
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
-  // RA scheme
-  if (dci_ul->ctx.format == srsran_dci_format_nr_0_0 || dci_ul->ctx.format == srsran_dci_format_nr_rar) {
-    // when the scheduling grant is received with DCI format 1_0 , then downlink resource allocation type 1 is used.
+  // TS 38.213 PUSCH scheduled by RAR UL grant
+  if (dci_ul->ctx.format == srsran_dci_format_nr_rar) {
     return ra_helper_freq_type1(carrier->nof_prb, dci_ul->freq_domain_assigment, grant);
   }
 
-  ERROR("Unhandled DCI Format %s", srsran_dci_format_nr_string(dci_ul->ctx.format));
+  // The UE shall assume that when the scheduling PDCCH is received with DCI format 0_0, then uplink resource
+  // allocation type 1 is used.
+  if (dci_ul->ctx.format == srsran_dci_format_nr_0_0) {
+    return ra_helper_freq_type1(carrier->nof_prb, dci_ul->freq_domain_assigment, grant);
+  }
+
+  // If the scheduling DCI is configured to indicate the uplink resource allocation type as part of the Frequency domain
+  // resource assignment field by setting a higher layer parameter resourceAllocation in pusch-Config to 'dynamicSwitch'
+  if (cfg->alloc == srsran_resource_alloc_dynamic) {
+    ERROR("Unsupported dynamic resource allocation");
+    return SRSRAN_ERROR;
+  }
+
+  // Otherwise the UE shall use the uplink frequency resource allocation type as defined by the higher layer parameter
+  // resourceAllocation.
+  if (cfg->alloc == srsran_resource_alloc_type1) {
+    return ra_helper_freq_type1(carrier->nof_prb, dci_ul->freq_domain_assigment, grant);
+  }
+
+  if (cfg->alloc == srsran_resource_alloc_type0) {
+    return ra_helper_freq_type0(carrier, cfg, dci_ul->freq_domain_assigment, grant);
+  }
+
+  ERROR("Unhandled case");
   return SRSRAN_ERROR;
 }
 

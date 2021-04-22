@@ -62,17 +62,32 @@ SRSRAN_API int srsran_ra_dl_nr_time(const srsran_sch_hl_cfg_nr_t*    cfg,
  */
 SRSRAN_API int
 srsran_ra_dl_nr_time_default_A(uint32_t m, srsran_dmrs_sch_typeA_pos_t dmrs_typeA_pos, srsran_sch_grant_nr_t* grant);
+
 /**
- * @brief Calculates the number of PDSCH-DMRS CDM groups without data for DCI format 1_0
+ * @brief Calculates the number of front load symbols
  *
- * @remark Defined by TS 38.214 V15.10.0 5.1.6.1.3 CSI-RS for mobility
- *
- * @param cfg PDSCH-DMRS NR configuration by upper layers
- * @param[out] grant Provides grant pointer to fill
- * @return Returns SRSRAN_SUCCESS if the provided data is valid, otherwise it returns SRSRAN_ERROR code
+ * @param cfg PDSCH NR configuration by upper layers
+ * @param dci Provides PDSCH NR DCI
+ * @param[out] dmrs_duration
+ * @return SRSRAN_SUCCESS if provided arguments are valid, SRSRAN_ERROR code otherwise
  */
-SRSRAN_API int srsran_ra_dl_nr_nof_dmrs_cdm_groups_without_data_format_1_0(const srsran_dmrs_sch_cfg_t* cfg,
-                                                                           srsran_sch_grant_nr_t*       grant);
+SRSRAN_API int srsran_ra_dl_nr_nof_front_load_symbols(const srsran_sch_hl_cfg_nr_t* cfg,
+                                                      const srsran_dci_dl_nr_t*     dci,
+                                                      srsran_dmrs_sch_len_t*        dmrs_duration);
+
+/**
+ * @brief Calculates the number of DMRS CDM groups without data
+ *
+ * @remark Defined by TS 38.214 V15.10.0 5.1.6.2 DM-RS reception procedure
+ *
+ * @param cfg PDSCH NR configuration by upper layers
+ * @param dci Provides PUSCH NR DCI
+ * @return The number of DMRS CDM groups without data if the provided data is valid, otherwise it returns SRSRAN_ERROR
+ * code
+ */
+SRSRAN_API int srsran_ra_dl_nr_nof_dmrs_cdm_groups_without_data(const srsran_sch_hl_cfg_nr_t* cfg,
+                                                                const srsran_dci_dl_nr_t*     dci,
+                                                                uint32_t                      L);
 
 /**
  * @brief Calculates the PDSCH frequency resource allocation and stores it in the provided PDSCH NR grant.

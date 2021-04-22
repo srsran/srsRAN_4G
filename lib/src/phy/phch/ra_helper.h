@@ -14,7 +14,51 @@
 #define SRSRAN_RA_HELPER_H
 
 #include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/vector.h"
 #include <stdint.h>
+
+/* RBG size for type0 scheduling as in table 5.1.2.2.1-1 of 36.214 */
+static uint32_t ra_helper_type0_P(uint32_t bwp_size, bool config_is_1)
+{
+  if (bwp_size <= 36) {
+    return config_is_1 ? 2 : 4;
+  } else if (bwp_size <= 72) {
+    return config_is_1 ? 4 : 8;
+  } else if (bwp_size <= 144) {
+    return config_is_1 ? 8 : 16;
+  } else {
+    return 16;
+  }
+}
+
+static int ra_helper_freq_type0(const srsran_carrier_nr_t*    carrier,
+                                const srsran_sch_hl_cfg_nr_t* cfg,
+                                uint32_t                      riv,
+                                srsran_sch_grant_nr_t*        grant)
+{
+  uint32_t P = ra_helper_type0_P(carrier->nof_prb, cfg->rbg_size_cfg_1);
+
+  uint32_t N_rbg      = (int)ceilf((float)(carrier->nof_prb + (carrier->start % P)) / P);
+  uint32_t rbg_offset = 0;
+  for (uint32_t i = 0; i < N_rbg; i++) {
+    uint32_t rbg_size = P;
+    if (i == 0) {
+      rbg_size -= (carrier->start % P);
+    } else if ((i == N_rbg - 1) && ((carrier->nof_prb + carrier->start) % P) > 0) {
+      rbg_size = (carrier->nof_prb + carrier->start) % P;
+    }
+    if (riv & (1 << (N_rbg - i - 1))) {
+      for (uint32_t j = 0; j < rbg_size; j++) {
+        if (rbg_offset + j < carrier->nof_prb) {
+          grant->prb_idx[rbg_offset + j] = true;
+          grant->nof_prb++;
+        }
+      }
+    }
+    rbg_offset += rbg_size;
+  }
+  return 0;
+}
 
 static inline void ra_helper_compute_s_and_l(uint32_t N, uint32_t v, uint32_t* S, uint32_t* L)
 {

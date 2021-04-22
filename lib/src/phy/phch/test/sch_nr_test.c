@@ -179,12 +179,7 @@ int main(int argc, char** argv)
         for (uint32_t n = 0; n < SRSRAN_MAX_PRB_NR; n++) {
           pdsch_cfg.grant.prb_idx[n] = (n < n_prb);
         }
-
-        if (srsran_ra_dl_nr_nof_dmrs_cdm_groups_without_data_format_1_0(&pdsch_cfg.dmrs, &pdsch_cfg.grant) <
-            SRSRAN_SUCCESS) {
-          ERROR("Error calculating number of DMRS CDM groups");
-          goto clean_exit;
-        }
+        pdsch_cfg.grant.nof_dmrs_cdm_groups_without_data = 1; // No need for MIMO
 
         srsran_sch_tb_t tb = {};
         tb.rv              = rv;

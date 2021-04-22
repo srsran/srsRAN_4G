@@ -160,15 +160,11 @@ int main(int argc, char** argv)
     goto clean_exit;
   }
 
-  // Load number of DMRS CDM groups without data
-  if (srsran_ra_dl_nr_nof_dmrs_cdm_groups_without_data_format_1_0(&pdsch_cfg.dmrs, &pdsch_cfg.grant) < SRSRAN_SUCCESS) {
-    ERROR("Error loading number of DMRS CDM groups without data");
-    goto clean_exit;
-  }
-
-  pdsch_cfg.grant.nof_layers = carrier.max_mimo_layers;
-  pdsch_cfg.grant.dci_format = srsran_dci_format_nr_1_0;
-  pdsch_cfg.grant.rnti       = rnti;
+  // Set PDSCH grant without considering any procedure
+  pdsch_cfg.grant.nof_dmrs_cdm_groups_without_data = 1; // No need for MIMO
+  pdsch_cfg.grant.nof_layers                       = carrier.max_mimo_layers;
+  pdsch_cfg.grant.dci_format                       = srsran_dci_format_nr_1_0;
+  pdsch_cfg.grant.rnti                             = rnti;
 
   uint32_t n_prb_start = 1;
   uint32_t n_prb_end   = carrier.nof_prb + 1;
