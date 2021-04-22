@@ -102,7 +102,7 @@ public:
                        asn1::s1ap::cause_c&                       cause) override;
   bool     release_erabs(uint32_t rnti) override;
   int      release_erab(uint16_t rnti, uint16_t erab_id) override;
-  void     add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& UEPagingID) override;
+  void     add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& ue_paging_id) override;
   void     ho_preparation_complete(uint16_t                     rnti,
                                    rrc::ho_prep_result          result,
                                    const asn1::s1ap::ho_cmd_s&  msg,
@@ -180,11 +180,9 @@ private:
   void parse_ul_ccch(uint16_t rnti, srsran::unique_byte_buffer_t pdu);
   void send_rrc_connection_reject(uint16_t rnti);
 
-  uint32_t              paging_tti = INVALID_TTI;
-  srsran::byte_buffer_t byte_buf_paging;
-  const static int      mcch_payload_len                      = 3000;
-  int                   current_mcch_length                   = 0;
-  uint8_t               mcch_payload_buffer[mcch_payload_len] = {};
+  const static int mcch_payload_len                      = 3000;
+  int              current_mcch_length                   = 0;
+  uint8_t          mcch_payload_buffer[mcch_payload_len] = {};
   typedef struct {
     uint16_t                     rnti;
     uint32_t                     lcid;
