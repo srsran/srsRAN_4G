@@ -155,6 +155,7 @@ imei = 353490069873319
 #                       (default -1 means disabled)
 # mbms_service_port:    Port of the MBMS service
 # nr_measurement_pci:   NR PCI for the simulated NR measurement. Default: 500
+# nr_short_sn_support:  Announce PDCP short SN support. Default: true
 #####################################################################
 [rrc]
 #ue_category       = 4
