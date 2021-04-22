@@ -1185,7 +1185,11 @@ bool s1ap::send_ho_req_ack(const asn1::s1ap::ho_request_s&                msg,
     container.erab_admitted_list.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_ADMITTED_ITEM);
     auto& c                   = container.erab_admitted_list.value[i].value.erab_admitted_item();
     c                         = admitted_bearers[i];
-    c.transport_layer_address = addr_to_asn1(args.gtp_bind_addr.c_str());
+    if (!args.gtp_advertise_addr.empty()) {
+      c.transport_layer_address = addr_to_asn1(args.gtp_advertise_addr.c_str());
+    } else {
+      c.transport_layer_address = addr_to_asn1(args.gtp_bind_addr.c_str());
+    }
 
     // If E-RAB is proposed for forward tunneling
     if (c.dl_g_tp_teid_present) {
@@ -1682,7 +1686,11 @@ void s1ap::ue::get_erab_addr(uint16_t erab_id, transp_addr_t& transp_addr, asn1:
   // Note: RRC does not yet update correctly gtpu transp_addr
   transp_addr.resize(32);
   uint8_t addr[4];
-  inet_pton(AF_INET, s1ap_ptr->args.gtp_bind_addr.c_str(), addr);
+  if (!s1ap_ptr->args.gtp_advertise_addr.empty()) {
+    inet_pton(AF_INET, s1ap_ptr->args.gtp_advertise_addr.c_str(), addr);
+  } else {
+    inet_pton(AF_INET, s1ap_ptr->args.gtp_bind_addr.c_str(), addr);
+  }
   for (uint32_t j = 0; j < 4; ++j) {
     transp_addr.data()[j] = addr[3 - j];
   }

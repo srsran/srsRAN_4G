@@ -5,15 +5,16 @@
 #####################################################################
 # eNB configuration
 #
-# enb_id:         20-bit eNB identifier.
-# mcc:            Mobile Country Code
-# mnc:            Mobile Network Code
-# mme_addr:       IP address of MME for S1 connnection
-# gtp_bind_addr:  Local IP address to bind for GTP connection
-# s1c_bind_addr:  Local IP address to bind for S1AP connection
-# n_prb:          Number of Physical Resource Blocks (6,15,25,50,75,100)
-# tm:             Transmission mode 1-4 (TM1 default)
-# nof_ports:      Number of Tx ports (1 port default, set to 2 for TM2/3/4)
+# enb_id:               20-bit eNB identifier.
+# mcc:                  Mobile Country Code
+# mnc:                  Mobile Network Code
+# mme_addr:             IP address of MME for S1 connnection
+# gtp_bind_addr:        Local IP address to bind for GTP connection
+# gtp_advertise_addr:   IP address of eNB to advertise for DL GTP-U Traffic
+# s1c_bind_addr:        Local IP address to bind for S1AP connection
+# n_prb:                Number of Physical Resource Blocks (6,15,25,50,75,100)
+# tm:                   Transmission mode 1-4 (TM1 default)
+# nof_ports:            Number of Tx ports (1 port default, set to 2 for TM2/3/4)
 #
 #####################################################################
 [enb]
