@@ -143,8 +143,9 @@ void cc_worker::decode_pdcch_dl()
   if (logger.debug.enabled()) {
     for (uint32_t i = 0; i < ue_dl.pdcch_info_count; i++) {
       const srsran_ue_dl_nr_pdcch_info_t* info = &ue_dl.pdcch_info[i];
-      logger.debug("PDCCH: rnti=0x%x, crst_id=%d, ss_type=%d, ncce=%d, al=%d, EPRE=%+.2f, RSRP=%+.2f, corr=%.3f; "
+      logger.debug("PDCCH: dci=%s, rnti=%x, crst_id=%d, ss_type=%d, ncce=%d, al=%d, EPRE=%+.2f, RSRP=%+.2f, corr=%.3f; "
                    "nof_bits=%d; crc=%s;",
+                   srsran_dci_format_nr_string(info->dci_ctx.format),
                    info->dci_ctx.rnti,
                    info->dci_ctx.coreset_id,
                    info->dci_ctx.ss_type,
