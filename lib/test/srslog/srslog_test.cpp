@@ -19,11 +19,9 @@ using namespace srslog;
 static constexpr char test_id1[] = "Test1";
 static constexpr char test_id2[] = "Test2";
 
-//:TODO: older compilers may not have defined this C++11 trait.
-#if (defined(__clang__) && (__clang_major__ >= 5)) ||                          \
-    (defined(__GNUG__) && (__GNUC__ >= 5))
-static_assert(std::is_trivially_copyable<detail::memory_buffer>::value,
-              "Expected to be trivially copyable");
+//: TODO: older compilers may not have defined this C++11 trait.
+#if (defined(__clang__) && (__clang_major__ >= 5)) || (defined(__GNUG__) && (__GNUC__ >= 5))
+static_assert(std::is_trivially_copyable<detail::memory_buffer>::value, "Expected to be trivially copyable");
 #endif
 
 static bool when_srslog_is_created_then_stdout_and_stderr_sinks_exist()
@@ -82,8 +80,7 @@ static bool when_non_existent_id_is_passed_then_nothing_is_found()
   return true;
 }
 
-static bool
-when_id_with_sharps_is_passed_then_channel_is_fetched_with_clean_id()
+static bool when_id_with_sharps_is_passed_then_channel_is_fetched_with_clean_id()
 {
   log_channel& channel1 = fetch_log_channel("a1#a");
   log_channel& channel2 = fetch_log_channel("a2#a", fetch_stdout_sink(), {});
@@ -105,19 +102,18 @@ static bool when_channel_already_exists_then_fetch_returns_channel()
   return true;
 }
 
-static constexpr char logger_id[] = "TestLogger";
+static constexpr char logger_id[]        = "TestLogger";
 static constexpr char basic_logger_id1[] = "BasicTestLogger";
 static constexpr char basic_logger_id2[] = "BasicTestLogger2";
 
 static bool when_fetching_logger_then_logger_instance_is_returned()
 {
-  log_channel& error = fetch_log_channel("logger.error");
+  log_channel& error   = fetch_log_channel("logger.error");
   log_channel& warning = fetch_log_channel("logger.warning");
-  log_channel& info = fetch_log_channel("logger.info");
-  log_channel& debug = fetch_log_channel("logger.debug");
+  log_channel& info    = fetch_log_channel("logger.info");
+  log_channel& debug   = fetch_log_channel("logger.debug");
 
-  auto& logger =
-      fetch_logger<basic_logger>(logger_id, error, warning, info, debug);
+  auto& logger = fetch_logger<basic_logger>(logger_id, error, warning, info, debug);
 
   ASSERT_EQ(logger.id(), logger_id);
 
@@ -127,8 +123,7 @@ static bool when_fetching_logger_then_logger_instance_is_returned()
 static bool when_fetching_basic_logger_then_basic_logger_instance_is_returned()
 {
   basic_logger& logger1 = fetch_basic_logger(basic_logger_id1);
-  basic_logger& logger2 =
-      fetch_basic_logger(basic_logger_id2, fetch_stdout_sink());
+  basic_logger& logger2 = fetch_basic_logger(basic_logger_id2, fetch_stdout_sink());
 
   ASSERT_EQ(logger1.id(), basic_logger_id1);
   ASSERT_EQ(logger2.id(), basic_logger_id2);
@@ -205,8 +200,7 @@ static bool when_invalid_id_is_passed_then_no_sink_is_found()
   return true;
 }
 
-static bool
-when_setting_stderr_as_default_then_get_default_returns_stderr_sink()
+static bool when_setting_stderr_as_default_then_get_default_returns_stderr_sink()
 {
   set_default_sink(fetch_stderr_sink());
   sink& default_sink = get_default_sink();
@@ -216,8 +210,7 @@ when_setting_stderr_as_default_then_get_default_returns_stderr_sink()
   return true;
 }
 
-static bool
-when_creating_non_default_stdout_and_stderr_sinks_then_they_are_created()
+static bool when_creating_non_default_stdout_and_stderr_sinks_then_they_are_created()
 {
   auto& out1 = fetch_stdout_sink("stdout1");
   auto& err1 = fetch_stderr_sink("stderr1");
@@ -233,7 +226,7 @@ static constexpr char custom_sink_name[] = "custom_sink";
 static bool when_setting_custom_sink_first_time_then_insertion_succeeds()
 {
   std::unique_ptr<sink> custom(new test_dummies::sink_dummy);
-  sink* s = custom.get();
+  sink*                 s = custom.get();
 
   bool ret = install_custom_sink(custom_sink_name, std::move(custom));
   ASSERT_EQ(ret, true);
@@ -248,7 +241,7 @@ static bool when_setting_custom_sink_first_time_then_insertion_succeeds()
 static bool when_setting_custom_sink_twice_then_insertion_fails()
 {
   std::unique_ptr<sink> custom(new test_dummies::sink_dummy);
-  sink* s = custom.get();
+  sink*                 s = custom.get();
 
   bool ret = install_custom_sink(custom_sink_name, std::move(custom));
   ASSERT_EQ(ret, false);
@@ -260,11 +253,9 @@ static bool when_setting_custom_sink_twice_then_insertion_fails()
   return true;
 }
 
-static bool
-when_default_formatter_is_installed_then_getter_returns_same_formatter()
+static bool when_default_formatter_is_installed_then_getter_returns_same_formatter()
 {
-  auto f =
-      std::unique_ptr<log_formatter>(new test_dummies::log_formatter_dummy);
+  auto f = std::unique_ptr<log_formatter>(new test_dummies::log_formatter_dummy);
   set_default_log_formatter(std::move(f));
 
   // Dummy formatter does not implement the clone method, thus the unique
@@ -278,35 +269,27 @@ when_default_formatter_is_installed_then_getter_returns_same_formatter()
 int main()
 {
   TEST_FUNCTION(when_srslog_is_created_then_stdout_and_stderr_sinks_exist);
-  TEST_FUNCTION(
-      when_no_installed_default_formatter_then_a_formatter_is_returned);
+  TEST_FUNCTION(when_no_installed_default_formatter_then_a_formatter_is_returned);
   TEST_FUNCTION(when_no_installed_default_sink_then_stdout_sink_is_used);
   TEST_FUNCTION(when_fetching_channel_then_channel_instance_is_returned);
   TEST_FUNCTION(when_valid_id_is_passed_then_channel_is_found);
   TEST_FUNCTION(when_non_existent_id_is_passed_then_nothing_is_found);
-  TEST_FUNCTION(
-      when_id_with_sharps_is_passed_then_channel_is_fetched_with_clean_id);
+  TEST_FUNCTION(when_id_with_sharps_is_passed_then_channel_is_fetched_with_clean_id);
   TEST_FUNCTION(when_channel_already_exists_then_fetch_returns_channel);
   TEST_FUNCTION(when_fetching_logger_then_logger_instance_is_returned);
-  TEST_FUNCTION(
-      when_fetching_basic_logger_then_basic_logger_instance_is_returned);
+  TEST_FUNCTION(when_fetching_basic_logger_then_basic_logger_instance_is_returned);
   TEST_FUNCTION(when_valid_id_and_type_is_passed_then_logger_is_found);
   TEST_FUNCTION(when_basic_logger_already_exists_then_fetch_returns_logger);
-  TEST_FUNCTION(
-      when_invalid_id_with_valid_type_is_passed_then_no_logger_is_found);
+  TEST_FUNCTION(when_invalid_id_with_valid_type_is_passed_then_no_logger_is_found);
   TEST_FUNCTION(when_invalid_id_and_type_is_passed_then_no_logger_is_found);
-  TEST_FUNCTION(
-      when_valid_id_with_invalid_type_is_passed_then_no_logger_is_found);
+  TEST_FUNCTION(when_valid_id_with_invalid_type_is_passed_then_no_logger_is_found);
   TEST_FUNCTION(when_file_sink_is_fetched_then_sink_instance_is_returned);
   TEST_FUNCTION(when_invalid_id_is_passed_then_no_sink_is_found);
-  TEST_FUNCTION(
-      when_setting_stderr_as_default_then_get_default_returns_stderr_sink);
-  TEST_FUNCTION(
-      when_creating_non_default_stdout_and_stderr_sinks_then_they_are_created);
+  TEST_FUNCTION(when_setting_stderr_as_default_then_get_default_returns_stderr_sink);
+  TEST_FUNCTION(when_creating_non_default_stdout_and_stderr_sinks_then_they_are_created);
   TEST_FUNCTION(when_setting_custom_sink_first_time_then_insertion_succeeds);
   TEST_FUNCTION(when_setting_custom_sink_twice_then_insertion_fails);
-  TEST_FUNCTION(
-      when_default_formatter_is_installed_then_getter_returns_same_formatter);
+  TEST_FUNCTION(when_default_formatter_is_installed_then_getter_returns_same_formatter);
 
   return 0;
 }

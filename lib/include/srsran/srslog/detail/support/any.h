@@ -30,7 +30,7 @@ struct in_place_type_t {
 template <typename T>
 struct is_in_place_type_t : std::false_type {};
 template <typename T>
-struct is_in_place_type_t<in_place_type_t<T>> : std::true_type {};
+struct is_in_place_type_t<in_place_type_t<T> > : std::true_type {};
 
 /// This is a very minimalist and non compliant implementation of std::any which
 /// is included in C++17.
@@ -39,7 +39,7 @@ struct is_in_place_type_t<in_place_type_t<T>> : std::true_type {};
 class any
 {
 public:
-  //:TODO: Clang 3.8 does not compile when default constructing a const object
+  //: TODO: Clang 3.8 does not compile when default constructing a const object
   // due to DR253. Declare the defaulted constructor out of the class.
   any();
 
@@ -54,15 +54,12 @@ public:
   ///   b) is move constructible.
   ///   c) is not an specialization of in_place_type_t.
   /// Otherwise the rest of special member functions are considered.
-  template <
-      typename T,
-      typename std::enable_if<
-          !std::is_same<typename std::decay<T>::type, any>{} &&
-              std::is_move_constructible<typename std::decay<T>::type>{} &&
-              !is_in_place_type_t<typename std::decay<T>::type>{},
-          int>::type = 0>
-  explicit any(T&& t) :
-    storage(new storage_impl<typename std::decay<T>::type>(std::forward<T>(t)))
+  template <typename T,
+            typename std::enable_if<!std::is_same<typename std::decay<T>::type, any>{} &&
+                                        std::is_move_constructible<typename std::decay<T>::type>{} &&
+                                        !is_in_place_type_t<typename std::decay<T>::type>{},
+                                    int>::type = 0>
+  explicit any(T&& t) : storage(new storage_impl<typename std::decay<T>::type>(std::forward<T>(t)))
   {}
 
   /// Constructs an object of type decayed T directly into the internal storage
@@ -73,12 +70,9 @@ public:
   /// Otherwise the rest of special member functions are considered.
   template <typename T,
             typename... Args,
-            typename std::enable_if<
-                std::is_constructible<typename std::decay<T>::type, Args...>{},
-                int>::type = 0>
+            typename std::enable_if<std::is_constructible<typename std::decay<T>::type, Args...>{}, int>::type = 0>
   explicit any(in_place_type_t<T>, Args&&... args) :
-    storage(new storage_impl<typename std::decay<T>::type>(
-        std::forward<Args>(args)...))
+    storage(new storage_impl<typename std::decay<T>::type>(std::forward<Args>(args)...))
   {}
 
   any(any&& other) : storage(std::move(other.storage)) {}
@@ -140,7 +134,7 @@ private:
   std::unique_ptr<type_interface> storage;
 };
 
-//:TODO: declared out of line, see TODO above.
+//: TODO: declared out of line, see TODO above.
 inline any::any() = default;
 
 /// Constructs an any object containing an object of type T, passing the
@@ -160,8 +154,7 @@ inline T* any_cast(any* operand)
   if (!operand || !operand->storage)
     return nullptr;
 
-  using U =
-      typename std::remove_cv<typename std::remove_reference<T>::type>::type;
+  using U = typename std::remove_cv<typename std::remove_reference<T>::type>::type;
   if (operand->storage->type() != &any::type_tag<U>::tag)
     return nullptr;
 
@@ -177,8 +170,7 @@ inline const T* any_cast(const any* operand)
   if (!operand || !operand->storage)
     return nullptr;
 
-  using U =
-      typename std::remove_cv<typename std::remove_reference<T>::type>::type;
+  using U = typename std::remove_cv<typename std::remove_reference<T>::type>::type;
   if (operand->storage->type() != &any::type_tag<U>::tag)
     return nullptr;
 

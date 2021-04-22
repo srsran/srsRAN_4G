@@ -24,7 +24,7 @@ using small_str_buffer = fmt::basic_memory_buffer<char, 64>;
 namespace detail {
 
 /// This structure gives the user a way to log generic information as a context.
-//:TODO: legacy struct, will get replaced by the new context framework.
+//: TODO: legacy struct, will get replaced by the new context framework.
 struct log_context {
   /// Generic context value.
   uint32_t value;

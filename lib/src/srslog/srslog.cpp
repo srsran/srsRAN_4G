@@ -155,7 +155,7 @@ sink& srslog::fetch_file_sink(const std::string& path, size_t max_size, std::uni
     return *s;
   }
 
-  //:TODO: GCC5 or lower versions emits an error if we use the new() expression
+  //: TODO: GCC5 or lower versions emits an error if we use the new() expression
   // directly, use redundant piecewise_construct instead.
   auto& s = srslog_instance::get().get_sink_repo().emplace(
       std::piecewise_construct,
@@ -362,7 +362,7 @@ sink* srslog::create_stderr_sink(const std::string& name)
 
 sink* srslog::create_file_sink(const std::string& path, size_t max_size)
 {
-  //:TODO: GCC5 or lower versions emits an error if we use the new() expression
+  //: TODO: GCC5 or lower versions emits an error if we use the new() expression
   // directly, use redundant piecewise_construct instead.
   return srslog_instance::get()
       .get_sink_repo()

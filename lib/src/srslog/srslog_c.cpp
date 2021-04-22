@@ -56,8 +56,7 @@ srslog_log_channel* srslog_find_log_channel(const char* id)
   return c_cast<srslog_log_channel>(find_log_channel(id));
 }
 
-void srslog_set_log_channel_enabled(srslog_log_channel* channel,
-                                    srslog_bool enabled)
+void srslog_set_log_channel_enabled(srslog_log_channel* channel, srslog_bool enabled)
 {
   assert(channel && "Expected a valid channel");
   c_cast<log_channel>(channel)->set_enabled(enabled);

@@ -39,7 +39,7 @@ void srslog::event_trace_init()
   static constexpr char default_file_name[] = "event_trace.log";
 
   // Create the default event trace channel.
-  //:TODO: handle name reservation.
+  //: TODO: handle name reservation.
   sink* s = create_file_sink(default_file_name);
   assert(s && "Default event file sink is reserved");
   tracer = create_log_channel("event_trace_channel", *s);

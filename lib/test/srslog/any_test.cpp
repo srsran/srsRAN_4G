@@ -49,7 +49,7 @@ struct movable_object {
 static bool when_constructed_with_lvalue_then_any_has_value()
 {
   copyable_object value(5);
-  detail::any a(value);
+  detail::any     a(value);
 
   ASSERT_EQ(a.has_value(), true);
 
@@ -65,7 +65,7 @@ static bool when_constructed_with_lvalue_then_any_has_value()
 static bool when_constructed_with_rvalue_then_any_has_value()
 {
   movable_object value(5);
-  detail::any a(std::move(value));
+  detail::any    a(std::move(value));
 
   ASSERT_EQ(a.has_value(), true);
 
@@ -80,8 +80,8 @@ static bool when_constructed_with_rvalue_then_any_has_value()
 
 static bool when_constructed_with_make_any_then_any_has_int()
 {
-  int value = 5;
-  auto a = detail::make_any<int>(value);
+  int  value = 5;
+  auto a     = detail::make_any<int>(value);
 
   ASSERT_EQ(a.has_value(), true);
 
@@ -96,7 +96,7 @@ static bool when_constructed_with_make_any_then_any_has_int()
 
 static bool when_move_constructing_from_any_then_contents_are_transferred()
 {
-  int value = 5;
+  int         value = 5;
   detail::any a(value);
 
   detail::any b(std::move(a));
@@ -114,7 +114,7 @@ static bool when_move_constructing_from_any_then_contents_are_transferred()
 
 static bool when_move_assigning_from_any_then_contents_are_transferred()
 {
-  int value = 5;
+  int         value = 5;
   detail::any a(value);
 
   detail::any b(3.0);
@@ -143,9 +143,9 @@ static bool when_any_is_reset_then_value_is_lost()
 
 static bool when_swapping_any_then_values_are_exchanged()
 {
-  int i = 5;
+  int         i = 5;
   detail::any a(i);
-  double d = 3.14;
+  double      d = 3.14;
   detail::any b(d);
 
   swap(a, b);
@@ -158,7 +158,7 @@ static bool when_swapping_any_then_values_are_exchanged()
 
 static bool when_null_is_passed_to_any_cast_then_null_is_returned()
 {
-  detail::any* p = nullptr;
+  detail::any*       p  = nullptr;
   const detail::any* cp = nullptr;
   ASSERT_EQ(detail::any_cast<int>(p), nullptr);
   ASSERT_EQ(detail::any_cast<int>(cp), nullptr);
@@ -168,7 +168,7 @@ static bool when_null_is_passed_to_any_cast_then_null_is_returned()
 
 static bool when_empty_any_is_passed_to_any_cast_then_null_is_returned()
 {
-  detail::any a;
+  detail::any       a;
   const detail::any b;
   ASSERT_EQ(detail::any_cast<int>(&a), nullptr);
   ASSERT_EQ(detail::any_cast<int>(&b), nullptr);

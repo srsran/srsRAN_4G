@@ -31,8 +31,7 @@ inline std::string format_error(const std::string& error, int error_code)
 }
 
 /// Splits the specified path into a filename and its extension (if present).
-inline std::pair<std::string, std::string>
-split_filename_extension(const std::string& filename)
+inline std::pair<std::string, std::string> split_filename_extension(const std::string& filename)
 {
   // Search for the last dot.
   auto dot_pos = filename.find_last_of('.');
@@ -41,8 +40,7 @@ split_filename_extension(const std::string& filename)
   //   a) No dot found: my_file
   //   b) Dot found at the beginning: .my_file
   //   c) Dot found at the end: my_file.
-  if (dot_pos == std::string::npos || dot_pos == 0 ||
-      dot_pos == filename.size() - 1) {
+  if (dot_pos == std::string::npos || dot_pos == 0 || dot_pos == filename.size() - 1) {
     return {filename, ""};
   }
 
@@ -61,8 +59,7 @@ split_filename_extension(const std::string& filename)
 }
 
 /// Builds a file name formatting the input base name and file index.
-inline std::string build_filename_with_index(const std::string& basename,
-                                             size_t index)
+inline std::string build_filename_with_index(const std::string& basename, size_t index)
 {
   if (index == 0) {
     return basename;
@@ -77,7 +74,7 @@ inline std::string build_filename_with_index(const std::string& basename,
 class file
 {
   std::string path;
-  std::FILE* handle = nullptr;
+  std::FILE*  handle = nullptr;
 
 public:
   ~file() { close(); }
@@ -101,19 +98,15 @@ public:
       return {};
     }
 
-    return format_error(
-        fmt::format("Unable to create log file \"{}\"", new_path), errno);
+    return format_error(fmt::format("Unable to create log file \"{}\"", new_path), errno);
   }
 
   /// Writes the provided memory buffer into an open file, otherwise does
   /// nothing.
   detail::error_string write(detail::memory_buffer buffer)
   {
-    if (handle &&
-        std::fwrite(buffer.data(), sizeof(char), buffer.size(), handle) !=
-            buffer.size()) {
-      auto err_str = format_error(
-          fmt::format("Unable to write log file \"{}\"", path), errno);
+    if (handle && std::fwrite(buffer.data(), sizeof(char), buffer.size(), handle) != buffer.size()) {
+      auto err_str = format_error(fmt::format("Unable to write log file \"{}\"", path), errno);
       close();
       return err_str;
     }
@@ -125,9 +118,7 @@ public:
   detail::error_string flush()
   {
     if (handle && ::fflush(handle) == EOF) {
-      auto err_str = format_error(
-          fmt::format("Error encountered while flushing log file \"{}\"", path),
-          errno);
+      auto err_str = format_error(fmt::format("Error encountered while flushing log file \"{}\"", path), errno);
       close();
       return err_str;
     }

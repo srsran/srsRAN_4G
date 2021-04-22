@@ -28,8 +28,7 @@ template <std::size_t...>
 struct index_sequence {};
 
 template <std::size_t N, std::size_t... Next>
-struct index_sequence_helper
-  : public index_sequence_helper<N - 1U, N - 1U, Next...> {};
+struct index_sequence_helper : public index_sequence_helper<N - 1U, N - 1U, Next...> {};
 
 template <std::size_t... Next>
 struct index_sequence_helper<0U, Next...> {
@@ -47,20 +46,19 @@ template <typename T, typename Tuple>
 struct tuple_index;
 
 template <typename T, typename... Ts>
-struct tuple_index<T, std::tuple<T, Ts...>> {
+struct tuple_index<T, std::tuple<T, Ts...> > {
   static constexpr std::size_t value = 0;
 };
 
 template <typename T, typename U, typename... Ts>
-struct tuple_index<T, std::tuple<U, Ts...>> {
-  static constexpr std::size_t value =
-      1 + tuple_index<T, std::tuple<Ts...>>::value;
+struct tuple_index<T, std::tuple<U, Ts...> > {
+  static constexpr std::size_t value = 1 + tuple_index<T, std::tuple<Ts...> >::value;
 };
 
 template <typename T, typename... Ts>
 constexpr std::size_t get_type_index_in_tuple()
 {
-  return tuple_index<T, std::tuple<Ts...>>::value;
+  return tuple_index<T, std::tuple<Ts...> >::value;
 }
 
 } // namespace detail

@@ -25,8 +25,7 @@ class stream_sink : public sink
 {
 public:
   stream_sink(sink_stream_type s, std::unique_ptr<log_formatter> f) :
-    sink(std::move(f)),
-    handle((s == sink_stream_type::stdout) ? stdout : stderr)
+    sink(std::move(f)), handle((s == sink_stream_type::stdout) ? stdout : stderr)
   {}
 
   stream_sink(const stream_sink& other) = delete;
