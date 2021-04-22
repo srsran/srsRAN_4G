@@ -25,22 +25,23 @@ typedef struct {
   uint32_t                  L;
 } ue_ra_time_resource_t;
 
-static const ue_ra_time_resource_t ue_ul_default_A_lut[16] = {{srsran_sch_mapping_type_A, 0, 0, 14},
-                                                              {srsran_sch_mapping_type_A, 0, 0, 12},
-                                                              {srsran_sch_mapping_type_A, 0, 0, 10},
-                                                              {srsran_sch_mapping_type_B, 0, 2, 10},
-                                                              {srsran_sch_mapping_type_B, 0, 4, 10},
-                                                              {srsran_sch_mapping_type_B, 0, 4, 8},
-                                                              {srsran_sch_mapping_type_B, 0, 4, 6},
-                                                              {srsran_sch_mapping_type_A, 1, 0, 14},
-                                                              {srsran_sch_mapping_type_A, 1, 0, 12},
-                                                              {srsran_sch_mapping_type_A, 1, 0, 10},
-                                                              {srsran_sch_mapping_type_A, 2, 0, 14},
-                                                              {srsran_sch_mapping_type_A, 2, 0, 12},
-                                                              {srsran_sch_mapping_type_A, 2, 0, 10},
-                                                              {srsran_sch_mapping_type_B, 0, 8, 6},
-                                                              {srsran_sch_mapping_type_A, 3, 0, 14},
-                                                              {srsran_sch_mapping_type_A, 3, 0, 10}};
+static const ue_ra_time_resource_t ue_ul_default_A_lut[SRSRAN_MAX_NOF_TIME_RA] = {
+    {srsran_sch_mapping_type_A, 0, 0, 14},
+    {srsran_sch_mapping_type_A, 0, 0, 12},
+    {srsran_sch_mapping_type_A, 0, 0, 10},
+    {srsran_sch_mapping_type_B, 0, 2, 10},
+    {srsran_sch_mapping_type_B, 0, 4, 10},
+    {srsran_sch_mapping_type_B, 0, 4, 8},
+    {srsran_sch_mapping_type_B, 0, 4, 6},
+    {srsran_sch_mapping_type_A, 1, 0, 14},
+    {srsran_sch_mapping_type_A, 1, 0, 12},
+    {srsran_sch_mapping_type_A, 1, 0, 10},
+    {srsran_sch_mapping_type_A, 2, 0, 14},
+    {srsran_sch_mapping_type_A, 2, 0, 12},
+    {srsran_sch_mapping_type_A, 2, 0, 10},
+    {srsran_sch_mapping_type_B, 0, 8, 6},
+    {srsran_sch_mapping_type_A, 3, 0, 14},
+    {srsran_sch_mapping_type_A, 3, 0, 10}};
 
 int srsran_ra_ul_nr_pusch_time_resource_default_A(uint32_t scs_cfg, uint32_t m, srsran_sch_grant_nr_t* grant)
 {
@@ -55,7 +56,7 @@ int srsran_ra_ul_nr_pusch_time_resource_default_A(uint32_t scs_cfg, uint32_t m, 
     return SRSRAN_ERROR;
   }
 
-  if (m >= 16) {
+  if (m >= SRSRAN_MAX_NOF_TIME_RA) {
     ERROR("m (%d) is out-of-range", m);
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
