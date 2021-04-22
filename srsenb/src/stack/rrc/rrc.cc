@@ -13,6 +13,7 @@
 #include "srsenb/hdr/stack/rrc/rrc.h"
 #include "srsenb/hdr/stack/rrc/rrc_cell_cfg.h"
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
+#include "srsenb/hdr/stack/rrc/rrc_paging.h"
 #include "srsran/asn1/asn1_utils.h"
 #include "srsran/asn1/rrc_utils.h"
 #include "srsran/common/bcd_helpers.h"
@@ -80,6 +81,9 @@ int32_t rrc::init(const rrc_cfg_t&       cfg_,
   }
   logger.info("Inactivity timeout: %d ms", cfg.inactivity_timeout_ms);
   logger.info("Max consecutive MAC KOs: %d", cfg.max_mac_dl_kos);
+
+  pending_paging.reset(new paging_manager(cfg.sibs[1].sib2().rr_cfg_common.pcch_cfg.default_paging_cycle.to_number(),
+                                          cfg.sibs[1].sib2().rr_cfg_common.pcch_cfg.nb.to_number()));
 
   running = true;
 
@@ -448,132 +452,39 @@ int rrc::modify_erab(uint16_t                                   rnti,
 
 void rrc::add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& ue_paging_id)
 {
-  std::lock_guard<std::mutex> lock(paging_mutex);
-  if (pending_paging.count(ueid) > 0) {
-    logger.warning("Received Paging for UEID=%d but not yet transmitted", ueid);
-    return;
-  }
-
-  paging_record_s paging_elem;
   if (ue_paging_id.type().value == asn1::s1ap::ue_paging_id_c::types_opts::imsi) {
-    paging_elem.ue_id.set_imsi();
-    paging_elem.ue_id.imsi().resize(ue_paging_id.imsi().size());
-    memcpy(paging_elem.ue_id.imsi().data(), ue_paging_id.imsi().data(), ue_paging_id.imsi().size());
-    srsran::console("Warning IMSI paging not tested\n");
+    pending_paging->add_imsi_paging(ueid, ue_paging_id.imsi());
   } else {
-    paging_elem.ue_id.set_s_tmsi();
-    paging_elem.ue_id.s_tmsi().mmec.from_number(ue_paging_id.s_tmsi().mmec[0]);
-    uint32_t m_tmsi     = 0;
-    uint32_t nof_octets = ue_paging_id.s_tmsi().m_tmsi.size();
-    for (uint32_t i = 0; i < nof_octets; i++) {
-      m_tmsi |= ue_paging_id.s_tmsi().m_tmsi[i] << (8u * (nof_octets - i - 1u));
-    }
-    paging_elem.ue_id.s_tmsi().m_tmsi.from_number(m_tmsi);
+    pending_paging->add_tmsi_paging(ueid, ue_paging_id.s_tmsi().mmec[0], ue_paging_id.s_tmsi().m_tmsi);
   }
-  paging_elem.cn_domain = paging_record_s::cn_domain_e_::ps;
-
-  pending_paging.insert(std::make_pair(ueid, paging_elem));
 }
 
-// Described in Section 7 of 36.304
 bool rrc::is_paging_opportunity(uint32_t tti, uint32_t* payload_len)
 {
-  constexpr static int sf_pattern[4][4] = {{9, 4, -1, 0}, {-1, 9, -1, 4}, {-1, -1, -1, 5}, {-1, -1, -1, 9}};
-
-  if (tti == paging_tti) {
-    *payload_len = byte_buf_paging.N_bytes;
-    logger.debug("Sending paging to extra carriers. Payload len=%d, TTI=%d", *payload_len, tti);
-    return true;
-  } else {
-    paging_tti = INVALID_TTI;
-  }
-
-  if (pending_paging.empty()) {
-    return false;
-  }
-
-  asn1::rrc::pcch_msg_s pcch_msg;
-  pcch_msg.msg.set_c1();
-  paging_s* paging_rec = &pcch_msg.msg.c1().paging();
-
-  // Default paging cycle, should get DRX from user
-  uint32_t T  = cfg.sibs[1].sib2().rr_cfg_common.pcch_cfg.default_paging_cycle.to_number();
-  uint32_t Nb = T * cfg.sibs[1].sib2().rr_cfg_common.pcch_cfg.nb.to_number();
-
-  uint32_t N   = T < Nb ? T : Nb;
-  uint32_t Ns  = Nb / T > 1 ? Nb / T : 1;
-  uint32_t sfn = tti / 10;
-
-  std::vector<uint32_t> ue_to_remove;
-
-  {
-    std::lock_guard<std::mutex> lock(paging_mutex);
-
-    int n = 0;
-    for (auto& item : pending_paging) {
-      if (n >= ASN1_RRC_MAX_PAGE_REC) {
-        break;
-      }
-      const asn1::rrc::paging_record_s& u    = item.second;
-      uint32_t                          ueid = ((uint32_t)item.first) % 1024;
-      uint32_t                          i_s  = (ueid / N) % Ns;
-
-      if ((sfn % T) != (T / N) * (ueid % N)) {
-        continue;
-      }
-
-      int sf_idx = sf_pattern[i_s % 4][(Ns - 1) % 4];
-      if (sf_idx < 0) {
-        logger.error("SF pattern is N/A for Ns=%d, i_s=%d, imsi_decimal=%d", Ns, i_s, ueid);
-        continue;
-      }
-
-      if ((uint32_t)sf_idx == (tti % 10)) {
-        paging_rec->paging_record_list_present = true;
-        paging_rec->paging_record_list.push_back(u);
-        ue_to_remove.push_back(ueid);
-        n++;
-        logger.info("Assembled paging for ue_id=%d, tti=%d", ueid, tti);
-      }
-    }
-
-    for (unsigned int i : ue_to_remove) {
-      pending_paging.erase(i);
-    }
-  }
-
-  if (paging_rec->paging_record_list.size() > 0) {
-    byte_buf_paging.clear();
-    asn1::bit_ref bref(byte_buf_paging.msg, byte_buf_paging.get_tailroom());
-    if (pcch_msg.pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
-      logger.error("Failed to pack PCCH");
-      return false;
-    }
-    byte_buf_paging.N_bytes = (uint32_t)bref.distance_bytes();
-    uint32_t N_bits         = (uint32_t)bref.distance();
-
-    if (payload_len) {
-      *payload_len = byte_buf_paging.N_bytes;
-    }
-    logger.info("Assembling PCCH payload with %d UE identities, payload_len=%d bytes, nbits=%d",
-                paging_rec->paging_record_list.size(),
-                byte_buf_paging.N_bytes,
-                N_bits);
-    log_rrc_message("PCCH-Message", Tx, &byte_buf_paging, pcch_msg, pcch_msg.msg.c1().type().to_string());
-
-    paging_tti = tti; // Store paging tti for other carriers
-    return true;
-  }
-
-  return false;
+  *payload_len = pending_paging->pending_pcch_bytes(tti_point(tti));
+  return *payload_len > 0;
 }
 
-void rrc::read_pdu_pcch(uint8_t* payload, uint32_t buffer_size)
+void rrc::read_pdu_pcch(uint32_t tti_tx_dl, uint8_t* payload, uint32_t buffer_size)
 {
-  std::lock_guard<std::mutex> lock(paging_mutex);
-  if (byte_buf_paging.N_bytes <= buffer_size) {
-    memcpy(payload, byte_buf_paging.msg, byte_buf_paging.N_bytes);
-  }
+  auto read_func = [this, payload, buffer_size](srsran::const_byte_span pdu, const pcch_msg_s& msg, bool first_tx) {
+    // copy PCCH pdu to buffer
+    if (pdu.size() > buffer_size) {
+      logger.warning("byte buffer with size=%zd is too small to fit pcch msg with size=%zd", buffer_size, pdu.size());
+      return false;
+    }
+    std::copy(pdu.begin(), pdu.end(), payload);
+
+    if (first_tx) {
+      logger.info("Assembling PCCH payload with %d UE identities, payload_len=%d bytes",
+                  msg.msg.c1().paging().paging_record_list.size(),
+                  pdu.size());
+      log_rrc_message("PCCH-Message", Tx, pdu, msg, msg.msg.c1().type().to_string());
+    }
+    return true;
+  };
+
+  pending_paging->read_pdu_pcch(tti_point(tti_tx_dl), read_func);
 }
 
 /*******************************************************************************

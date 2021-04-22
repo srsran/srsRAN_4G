@@ -26,8 +26,6 @@ public:
    * Segmentation happens in this function. RLC PDU is stored in payload. */
   virtual int read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes) = 0;
 
-  virtual void read_pdu_pcch(uint8_t* payload, uint32_t buffer_size) = 0;
-
   /* MAC calls RLC to push an RLC PDU. This function is called from an independent MAC thread.
    * PDU gets placed into the buffer and higher layer thread gets notified. */
   virtual void write_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes) = 0;

@@ -36,6 +36,8 @@ class rlc_interface_rrc;
 class mac_interface_rrc;
 class phy_interface_rrc_lte;
 
+class paging_manager;
+
 static const char rrc_state_text[RRC_STATE_N_ITEMS][100] = {"IDLE",
                                                             "WAIT FOR CON SETUP COMPLETE",
                                                             "WAIT FOR SECURITY MODE COMPLETE",
@@ -75,7 +77,7 @@ public:
   uint8_t* read_pdu_bcch_dlsch(const uint8_t cc_idx, const uint32_t sib_index) override;
 
   // rrc_interface_rlc
-  void read_pdu_pcch(uint8_t* payload, uint32_t buffer_size) override;
+  void read_pdu_pcch(uint32_t tti_tx_dl, uint8_t* payload, uint32_t buffer_size) override;
   void max_retx_attempted(uint16_t rnti) override;
 
   // rrc_interface_s1ap
@@ -163,9 +165,9 @@ private:
   std::unique_ptr<enb_cell_common_list> cell_common_list;
 
   // state
-  std::unique_ptr<freq_res_common_list>          cell_res_list;
-  std::map<uint16_t, unique_rnti_ptr<ue> >       users; // NOTE: has to have fixed addr
-  std::map<uint32_t, asn1::rrc::paging_record_s> pending_paging;
+  std::unique_ptr<freq_res_common_list>    cell_res_list;
+  std::map<uint16_t, unique_rnti_ptr<ue> > users; // NOTE: has to have fixed addr
+  std::unique_ptr<paging_manager>          pending_paging;
 
   void     process_release_complete(uint16_t rnti);
   void     rem_user(uint16_t rnti);
@@ -190,13 +192,13 @@ private:
     srsran::unique_byte_buffer_t pdu;
   } rrc_pdu;
 
-  const static uint32_t LCID_EXIT        = 0xffff0000;
-  const static uint32_t LCID_REM_USER    = 0xffff0001;
-  const static uint32_t LCID_REL_USER    = 0xffff0002;
-  const static uint32_t LCID_ACT_USER    = 0xffff0004;
-  const static uint32_t LCID_RTX_USER    = 0xffff0005;
-  const static uint32_t LCID_RADLINK_DL  = 0xffff0006;
-  const static uint32_t LCID_RADLINK_UL  = 0xffff0007;
+  const static uint32_t LCID_EXIT       = 0xffff0000;
+  const static uint32_t LCID_REM_USER   = 0xffff0001;
+  const static uint32_t LCID_REL_USER   = 0xffff0002;
+  const static uint32_t LCID_ACT_USER   = 0xffff0004;
+  const static uint32_t LCID_RTX_USER   = 0xffff0005;
+  const static uint32_t LCID_RADLINK_DL = 0xffff0006;
+  const static uint32_t LCID_RADLINK_UL = 0xffff0007;
 
   bool                                running = false;
   srsran::dyn_blocking_queue<rrc_pdu> rx_pdu_queue;
@@ -208,8 +210,6 @@ private:
   asn1::rrc::sib_type7_s sib7;
 
   void rem_user_thread(uint16_t rnti);
-
-  std::mutex paging_mutex;
 };
 
 } // namespace srsenb
