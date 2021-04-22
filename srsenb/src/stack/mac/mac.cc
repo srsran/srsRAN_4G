@@ -331,10 +331,10 @@ int mac::push_pdu(uint32_t tti_rx,
                   tti_rx,
                   nof_bytes,
                   (int)pdu->size());
-    auto process_pdu_task = [this, rnti, ul_nof_prbs](srsran::unique_byte_buffer_t& pdu) {
+    auto process_pdu_task = [this, rnti, enb_cc_idx, ul_nof_prbs](srsran::unique_byte_buffer_t& pdu) {
       srsran::rwlock_read_guard lock(rwlock);
       if (check_ue_active(rnti)) {
-        ue_db[rnti]->process_pdu(std::move(pdu), ul_nof_prbs);
+        ue_db[rnti]->process_pdu(std::move(pdu), enb_cc_idx, ul_nof_prbs);
       } else {
         logger.debug("Discarding PDU rnti=0x%x", rnti);
       }

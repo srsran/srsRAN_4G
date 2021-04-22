@@ -123,7 +123,7 @@ void demux::push_pdu(uint8_t* buff, uint32_t nof_bytes, uint32_t tti)
   // Process Real-Time PDUs
   process_sch_pdu_rt(buff, nof_bytes, tti);
 
-  return pdus.push(buff, nof_bytes, srsran::pdu_queue::DCH);
+  return pdus.push(buff, nof_bytes, 0, srsran::pdu_queue::DCH);
 }
 
 /* Demultiplexing of MAC PDU associated with SI-RNTI. The PDU passes through
@@ -147,7 +147,7 @@ bool demux::process_pdus()
   return pdus.process_pdus();
 }
 
-void demux::process_pdu(uint8_t* mac_pdu, uint32_t nof_bytes, srsran::pdu_queue::channel_t channel, int ul_nof_prbs)
+void demux::process_pdu(uint8_t* mac_pdu, uint32_t nof_bytes, uint32_t cc_idx, srsran::pdu_queue::channel_t channel, int ul_nof_prbs)
 {
   Debug("Processing MAC PDU channel %d", channel);
   switch (channel) {

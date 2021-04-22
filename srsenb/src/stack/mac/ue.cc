@@ -287,7 +287,7 @@ uint32_t ue::set_ta(int ta_)
   return nof_cmd;
 }
 
-void ue::process_pdu(srsran::unique_byte_buffer_t pdu, uint32_t grant_nof_prbs)
+void ue::process_pdu(srsran::unique_byte_buffer_t pdu, uint32_t ue_cc_idx, uint32_t grant_nof_prbs)
 {
   // Unpack ULSCH MAC PDU
   mac_msg_ul.init_rx(pdu->size(), true);
@@ -300,11 +300,11 @@ void ue::process_pdu(srsran::unique_byte_buffer_t pdu, uint32_t grant_nof_prbs)
   }
 
   if (pcap != nullptr) {
-    pcap->write_ul_crnti(pdu->data(), pdu->size(), rnti, true, last_tti, UL_CC_IDX);
+    pcap->write_ul_crnti(pdu->data(), pdu->size(), rnti, true, last_tti, ue_cc_idx);
   }
 
   if (pcap_net != nullptr) {
-    pcap_net->write_ul_crnti(pdu->data(), pdu->size(), rnti, true, last_tti, UL_CC_IDX);
+    pcap_net->write_ul_crnti(pdu->data(), pdu->size(), rnti, true, last_tti, ue_cc_idx);
   }
 
   uint32_t lcid_most_data = 0;

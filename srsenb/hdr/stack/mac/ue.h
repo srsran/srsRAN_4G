@@ -160,7 +160,7 @@ public:
   srsran_softbuffer_rx_t* get_rx_softbuffer(uint32_t enb_cc_idx, uint32_t tti);
 
   uint8_t*                     request_buffer(uint32_t tti, uint32_t enb_cc_idx, uint32_t len);
-  void                         process_pdu(srsran::unique_byte_buffer_t pdu, uint32_t grant_nof_prbs);
+  void                         process_pdu(srsran::unique_byte_buffer_t pdu, uint32_t ue_cc_idx, uint32_t grant_nof_prbs);
   srsran::unique_byte_buffer_t release_pdu(uint32_t tti, uint32_t enb_cc_idx);
   void                         clear_old_buffers(uint32_t tti);
 
