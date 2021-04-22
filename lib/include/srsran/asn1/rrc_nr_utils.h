@@ -45,6 +45,8 @@ struct pusch_time_domain_res_alloc_s;
 struct pucch_format_cfg_s;
 struct pucch_res_s;
 struct sched_request_res_cfg_s;
+struct pusch_cfg_s;
+struct pdsch_cfg_s;
 struct dmrs_ul_cfg_s;
 struct beta_offsets_s;
 struct uci_on_pusch_s;
@@ -87,14 +89,20 @@ bool make_phy_res_config(const asn1::rrc_nr::pucch_res_s& pucch_res,
                          srsran_pucch_nr_resource_t*      srsran_pucch_nr_resource);
 bool make_phy_sr_resource(const asn1::rrc_nr::sched_request_res_cfg_s& sched_request_res_cfg,
                           srsran_pucch_nr_sr_resource_t*               srsran_pucch_nr_sr_resource);
+bool make_phy_pusch_alloc_type(const asn1::rrc_nr::pusch_cfg_s& pusch_cfg,
+                               srsran_resource_alloc_t*         in_srsran_resource_alloc);
+bool make_phy_pdsch_alloc_type(const asn1::rrc_nr::pdsch_cfg_s& pdsch_cfg,
+                               srsran_resource_alloc_t*         in_srsran_resource_alloc);
 bool make_phy_dmrs_additional_pos(const asn1::rrc_nr::dmrs_ul_cfg_s& dmrs_ul_cfg,
                                   srsran_dmrs_sch_add_pos_t*         srsran_dmrs_sch_add_pos);
 bool make_phy_beta_offsets(const asn1::rrc_nr::beta_offsets_s& beta_offsets,
                            srsran_beta_offsets_t*              srsran_beta_offsets);
 bool make_phy_pusch_scaling(const asn1::rrc_nr::uci_on_pusch_s& uci_on_pusch, float* scaling);
-bool make_phy_zp_csi_rs_resource(const asn1::rrc_nr::zp_csi_rs_res_s & zp_csi_rs_res, srsran_csi_rs_zp_resource_t* zp_csi_rs_resource);
-bool make_phy_nzp_csi_rs_resource(const asn1::rrc_nr::nzp_csi_rs_res_s & nzp_csi_rs_res, srsran_csi_rs_nzp_resource_t* csi_rs_nzp_resource);
-bool make_phy_carrier_cfg(const asn1::rrc_nr::freq_info_dl_s &freq_info_dl, srsran_carrier_nr_t* carrier_nr);
+bool make_phy_zp_csi_rs_resource(const asn1::rrc_nr::zp_csi_rs_res_s& zp_csi_rs_res,
+                                 srsran_csi_rs_zp_resource_t*         zp_csi_rs_resource);
+bool make_phy_nzp_csi_rs_resource(const asn1::rrc_nr::nzp_csi_rs_res_s& nzp_csi_rs_res,
+                                  srsran_csi_rs_nzp_resource_t*         csi_rs_nzp_resource);
+bool make_phy_carrier_cfg(const asn1::rrc_nr::freq_info_dl_s& freq_info_dl, srsran_carrier_nr_t* carrier_nr);
 /***************************
  *      MAC Config
  **************************/

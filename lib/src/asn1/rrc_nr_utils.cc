@@ -783,6 +783,52 @@ bool make_phy_sr_resource(const sched_request_res_cfg_s& sched_request_res_cfg,
   return true;
 }
 
+bool make_phy_pusch_alloc_type(const asn1::rrc_nr::pusch_cfg_s& pusch_cfg,
+                               srsran_resource_alloc_t*         in_srsran_resource_alloc)
+{
+  srsran_resource_alloc_t srsran_resource_alloc = {};
+
+  switch (pusch_cfg.res_alloc) {
+    case asn1::rrc_nr::pusch_cfg_s::res_alloc_e_::res_alloc_type0:
+      srsran_resource_alloc = srsran_resource_alloc_type0;
+      break;
+    case asn1::rrc_nr::pusch_cfg_s::res_alloc_e_::res_alloc_type1:
+      srsran_resource_alloc = srsran_resource_alloc_type1;
+      break;
+    case asn1::rrc_nr::pusch_cfg_s::res_alloc_e_::dynamic_switch:
+      srsran_resource_alloc = srsran_resource_alloc_dynamic;
+      break;
+    default:
+      asn1::log_warning("Invalid option for pusch::resource_alloc %s", pusch_cfg.res_alloc.to_string());
+      return false;
+  }
+  *in_srsran_resource_alloc = srsran_resource_alloc;
+  return true;
+}
+
+bool make_phy_pdsch_alloc_type(const asn1::rrc_nr::pdsch_cfg_s& pdsch_cfg,
+                               srsran_resource_alloc_t*         in_srsran_resource_alloc)
+{
+  srsran_resource_alloc_t srsran_resource_alloc = {};
+
+  switch (pdsch_cfg.res_alloc) {
+    case asn1::rrc_nr::pdsch_cfg_s::res_alloc_e_::res_alloc_type0:
+      srsran_resource_alloc = srsran_resource_alloc_type0;
+      break;
+    case asn1::rrc_nr::pdsch_cfg_s::res_alloc_e_::res_alloc_type1:
+      srsran_resource_alloc = srsran_resource_alloc_type1;
+      break;
+    case asn1::rrc_nr::pdsch_cfg_s::res_alloc_e_::dynamic_switch:
+      srsran_resource_alloc = srsran_resource_alloc_dynamic;
+      break;
+    default:
+      asn1::log_warning("Invalid option for pusch::resource_alloc %s", pdsch_cfg.res_alloc.to_string());
+      return false;
+  }
+  *in_srsran_resource_alloc = srsran_resource_alloc;
+  return true;
+}
+
 bool make_phy_dmrs_additional_pos(const dmrs_ul_cfg_s&       dmrs_ul_cfg,
                                   srsran_dmrs_sch_add_pos_t* in_srsran_dmrs_sch_add_pos)
 {
