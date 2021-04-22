@@ -40,10 +40,15 @@ public:
     }
   }
 
+  /// add new IMSI paging record
   bool add_imsi_paging(uint32_t ueid, srsran::const_byte_span imsi);
+
+  /// add new TMSI paging record
   bool add_tmsi_paging(uint32_t ueid, uint8_t mmec, srsran::const_byte_span m_tmsi);
 
+  /// Get how many bytes are required to fit the pending PCCH message.
   size_t pending_pcch_bytes(tti_point tti_tx_dl);
+
   /**
    * Invoke "callable" for PCCH indexed by tti_tx_dl in a mutexed context.
    * Callable signature is bool(const_byte_span pdu, const pcch_msg& msg, bool is_first_tx)
@@ -68,12 +73,32 @@ private:
       pdu.reset();
     }
   };
+  const static size_t nof_paging_subframes = 4;
 
   bool       add_paging_record(uint32_t ueid, const asn1::rrc::paging_record_s& paging_record);
-  pcch_info& get_pcch_info(tti_point tti_tx_dl) { return pending_paging[tti_tx_dl.sfn() % T][tti_tx_dl.sf_idx()]; }
+  pcch_info& get_pcch_info(tti_point tti_tx_dl)
+  {
+    return pending_paging[tti_tx_dl.sfn() % T][get_sf_idx_key(tti_tx_dl.sf_idx())];
+  }
   const pcch_info& get_pcch_info(tti_point tti_tx_dl) const
   {
-    return pending_paging[tti_tx_dl.sfn() % T][tti_tx_dl.sf_idx()];
+    return pending_paging[tti_tx_dl.sfn() % T][get_sf_idx_key(tti_tx_dl.sf_idx())];
+  }
+  static int get_sf_idx_key(uint32_t sf_idx)
+  {
+    switch (sf_idx) {
+      case 0:
+        return 0;
+      case 4:
+        return 1;
+      case 5:
+        return 2;
+      case 9:
+        return 3;
+      default:
+        break;
+    }
+    return -1;
   }
 
   // args
@@ -83,8 +108,8 @@ private:
   uint32_t              Ns;
   srslog::basic_logger& logger;
 
-  mutable std::array<std::mutex, SRSRAN_NOF_SF_X_FRAME>      sf_idx_mutex;
-  std::vector<std::array<pcch_info, SRSRAN_NOF_SF_X_FRAME> > pending_paging;
+  mutable std::array<std::mutex, nof_paging_subframes>      sf_idx_mutex;
+  std::vector<std::array<pcch_info, nof_paging_subframes> > pending_paging;
 };
 
 bool paging_manager::add_imsi_paging(uint32_t ueid, srsran::const_byte_span imsi)
@@ -124,10 +149,10 @@ bool paging_manager::add_paging_record(uint32_t ueid, const asn1::rrc::paging_re
   }
 
   size_t     sfn_cycle_idx = (T / N) * (ueid % N);
-  pcch_info& pending_pcch  = pending_paging[sfn_cycle_idx][sf_idx];
+  pcch_info& pending_pcch  = pending_paging[sfn_cycle_idx][get_sf_idx_key(sf_idx)];
   auto&      record_list   = pending_pcch.pcch_msg.msg.c1().paging().paging_record_list;
 
-  std::lock_guard<std::mutex> lock(sf_idx_mutex[sf_idx]);
+  std::lock_guard<std::mutex> lock(sf_idx_mutex[get_sf_idx_key(sf_idx)]);
 
   if (record_list.size() >= ASN1_RRC_MAX_PAGE_REC) {
     logger.warning("Failed to add new paging record for ueid=%d. Cause: no paging record space left.", ueid);
@@ -157,7 +182,13 @@ bool paging_manager::add_paging_record(uint32_t ueid, const asn1::rrc::paging_re
 
 size_t paging_manager::pending_pcch_bytes(tti_point tti_tx_dl)
 {
-  std::lock_guard<std::mutex> lock(sf_idx_mutex[tti_tx_dl.sf_idx()]);
+  int sf_key = get_sf_idx_key(tti_tx_dl.sf_idx());
+  if (sf_key < 0) {
+    // tti_tx_dl is not in a paging subframe
+    return 0;
+  }
+
+  std::lock_guard<std::mutex> lock(sf_idx_mutex[sf_key]);
 
   // clear old PCCH that has been transmitted at this point
   pcch_info& old_pcch = get_pcch_info(tti_tx_dl - SRSRAN_NOF_SF_X_FRAME);
@@ -175,9 +206,15 @@ size_t paging_manager::pending_pcch_bytes(tti_point tti_tx_dl)
 template <typename Callable>
 bool paging_manager::read_pdu_pcch(tti_point tti_tx_dl, const Callable& func)
 {
+  int sf_key = get_sf_idx_key(tti_tx_dl.sf_idx());
+  if (sf_key < 0) {
+    logger.warning("%s was called for tti=%d, which is not a paging subframe index", __FUNCTION__, tti_tx_dl.to_uint());
+    return false;
+  }
+
   pcch_info& pending_pcch = get_pcch_info(tti_tx_dl);
 
-  std::lock_guard<std::mutex> lock(sf_idx_mutex[tti_tx_dl.sf_idx()]);
+  std::lock_guard<std::mutex> lock(sf_idx_mutex[get_sf_idx_key(tti_tx_dl.sf_idx())]);
 
   if (pending_pcch.empty()) {
     logger.warning("read_pdu_pdcch(...) called for tti=%d, but there is no pending pcch message", tti_tx_dl.to_uint());
