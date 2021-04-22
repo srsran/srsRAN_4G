@@ -55,7 +55,6 @@ public:
 
 private:
   struct pcch_info {
-    mutable std::mutex           mutex;
     tti_point                    tti_tx_dl;
     asn1::rrc::pcch_msg_s        pcch_msg;
     srsran::unique_byte_buffer_t pdu;
@@ -76,7 +75,6 @@ private:
   {
     return pending_paging[tti_tx_dl.sfn() % T][tti_tx_dl.sf_idx()];
   }
-  void clear_pcch_info(tti_point tti);
 
   // args
   uint32_t              T;
@@ -85,16 +83,9 @@ private:
   uint32_t              Ns;
   srslog::basic_logger& logger;
 
+  mutable std::array<std::mutex, SRSRAN_NOF_SF_X_FRAME>      sf_idx_mutex;
   std::vector<std::array<pcch_info, SRSRAN_NOF_SF_X_FRAME> > pending_paging;
 };
-
-void paging_manager::clear_pcch_info(tti_point tti)
-{
-  pcch_info& pcch = get_pcch_info(tti);
-
-  std::lock_guard<std::mutex> lock(pcch.mutex);
-  pcch.clear();
-}
 
 bool paging_manager::add_imsi_paging(uint32_t ueid, srsran::const_byte_span imsi)
 {
@@ -136,7 +127,7 @@ bool paging_manager::add_paging_record(uint32_t ueid, const asn1::rrc::paging_re
   pcch_info& pending_pcch  = pending_paging[sfn_cycle_idx][sf_idx];
   auto&      record_list   = pending_pcch.pcch_msg.msg.c1().paging().paging_record_list;
 
-  std::lock_guard<std::mutex> lock(pending_pcch.mutex);
+  std::lock_guard<std::mutex> lock(sf_idx_mutex[sf_idx]);
 
   if (record_list.size() >= ASN1_RRC_MAX_PAGE_REC) {
     logger.warning("Failed to add new paging record for ueid=%d. Cause: no paging record space left.", ueid);
@@ -166,12 +157,15 @@ bool paging_manager::add_paging_record(uint32_t ueid, const asn1::rrc::paging_re
 
 size_t paging_manager::pending_pcch_bytes(tti_point tti_tx_dl)
 {
+  std::lock_guard<std::mutex> lock(sf_idx_mutex[tti_tx_dl.sf_idx()]);
+
   // clear old PCCH that has been transmitted at this point
-  clear_pcch_info(tti_tx_dl - SRSRAN_NOF_SF_X_FRAME);
+  pcch_info& old_pcch = get_pcch_info(tti_tx_dl - SRSRAN_NOF_SF_X_FRAME);
+  if (not old_pcch.empty()) {
+    old_pcch.clear();
+  }
 
   const pcch_info& pending_pcch = get_pcch_info(tti_tx_dl);
-
-  std::lock_guard<std::mutex> lock(pending_pcch.mutex);
   if (pending_pcch.empty()) {
     return 0;
   }
@@ -179,11 +173,11 @@ size_t paging_manager::pending_pcch_bytes(tti_point tti_tx_dl)
 }
 
 template <typename Callable>
-bool paging_manager::read_pdu_pcch(tti_point tti_tx_dl, const Callable& callable)
+bool paging_manager::read_pdu_pcch(tti_point tti_tx_dl, const Callable& func)
 {
   pcch_info& pending_pcch = get_pcch_info(tti_tx_dl);
 
-  std::lock_guard<std::mutex> lock(pending_pcch.mutex);
+  std::lock_guard<std::mutex> lock(sf_idx_mutex[tti_tx_dl.sf_idx()]);
 
   if (pending_pcch.empty()) {
     logger.warning("read_pdu_pdcch(...) called for tti=%d, but there is no pending pcch message", tti_tx_dl.to_uint());
@@ -191,7 +185,7 @@ bool paging_manager::read_pdu_pcch(tti_point tti_tx_dl, const Callable& callable
   }
 
   // Call callable for existing PCCH pdu
-  if (callable(*pending_pcch.pdu, pending_pcch.pcch_msg, pending_pcch.tti_tx_dl.is_valid())) {
+  if (func(*pending_pcch.pdu, pending_pcch.pcch_msg, pending_pcch.tti_tx_dl.is_valid())) {
     pending_pcch.tti_tx_dl = tti_tx_dl;
     return true;
   }
