@@ -33,9 +33,11 @@ mac_nr::mac_nr(srsran::ext_task_sched_handle task_sched_) :
   proc_sr(logger),
   proc_bsr(logger),
   mux(*this, logger),
+  demux(logger),
   pcap(nullptr)
 {
   // Create PCell HARQ entities
+  dl_harq.at(PCELL_CC_IDX) = dl_harq_entity_nr_ptr(new dl_harq_entity_nr(PCELL_CC_IDX, this, &demux));
   ul_harq.at(PCELL_CC_IDX) = ul_harq_entity_nr_ptr(new ul_harq_entity_nr(PCELL_CC_IDX, this, &proc_ra, &mux));
 }
 
@@ -68,6 +70,11 @@ int mac_nr::init(const mac_nr_args_t&  args_,
 
   if (mux.init(rlc) != SRSRAN_SUCCESS) {
     logger.error("Couldn't initialize mux unit.");
+    return SRSRAN_ERROR;
+  }
+
+  if (demux.init(rlc) != SRSRAN_SUCCESS) {
+    logger.error("Couldn't initialize demux unit.");
     return SRSRAN_ERROR;
   }
 
@@ -107,6 +114,8 @@ void mac_nr::run_tti(const uint32_t tti)
     return;
   }
 
+  logger.set_context(tti);
+
   // Step all procedures
   logger.debug("Running MAC tti=%d", tti);
 
@@ -115,6 +124,9 @@ void mac_nr::run_tti(const uint32_t tti)
 
   proc_bsr.step(tti, mac_buffer_states);
   proc_sr.step(tti);
+
+  // process received PDUs
+  stack_task_dispatch_queue.push([this]() { process_pdus(); });
 }
 
 void mac_nr::update_buffer_states()
@@ -237,49 +249,80 @@ bool mac_nr::sr_opportunity(uint32_t tti, uint32_t sr_id, bool meas_gap, bool ul
 }
 
 // This function handles all PCAP writing for a decoded DL TB
-void mac_nr::write_pcap(const uint32_t cc_idx, mac_nr_grant_dl_t& grant)
+void mac_nr::write_pcap(const uint32_t cc_idx, const mac_nr_grant_dl_t& grant, tb_action_dl_result_t& tb)
 {
   if (pcap) {
-    for (uint32_t i = 0; i < SRSRAN_MAX_CODEWORDS; ++i) {
-      if (grant.tb[i] != nullptr) {
-        if (proc_ra.has_rar_rnti() && grant.rnti == proc_ra.get_rar_rnti()) {
-          pcap->write_dl_ra_rnti_nr(grant.tb[i]->msg, grant.tb[i]->N_bytes, grant.rnti, true, grant.tti);
-        } else if (grant.rnti == SRSRAN_PRNTI) {
-          pcap->write_dl_pch_nr(grant.tb[i]->msg, grant.tb[i]->N_bytes, grant.rnti, true, grant.tti);
-        } else {
-          pcap->write_dl_crnti_nr(grant.tb[i]->msg, grant.tb[i]->N_bytes, grant.rnti, true, grant.tti);
-        }
+    if (tb.ack && tb.payload != nullptr) {
+      if (proc_ra.has_rar_rnti() && grant.rnti == proc_ra.get_rar_rnti()) {
+        pcap->write_dl_ra_rnti_nr(tb.payload->msg, tb.payload->N_bytes, grant.rnti, true, grant.tti);
+      } else if (grant.rnti == SRSRAN_PRNTI) {
+        pcap->write_dl_pch_nr(tb.payload->msg, tb.payload->N_bytes, grant.rnti, true, grant.tti);
+      } else {
+        pcap->write_dl_crnti_nr(tb.payload->msg, tb.payload->N_bytes, grant.rnti, true, grant.tti);
       }
     }
   }
 }
 
 /**
- * \brief Called from PHY after decoding a TB
+ * \brief Called from PHY after decoding PDCCH for DL reception
  *
- * The TB can directly be used
- *
- * @param cc_idx
- * @param grant structure
+ * @param cc_idx  The CC index
+ * @param grant   The DL grant
+ * @param action  The DL action to be filled by MAC
  */
-void mac_nr::tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant)
+void mac_nr::new_grant_dl(const uint32_t cc_idx, const mac_nr_grant_dl_t& grant, tb_action_dl_t* action)
 {
-  write_pcap(cc_idx, grant);
-  // handle PDU
-  if (proc_ra.has_rar_rnti() && grant.rnti == proc_ra.get_rar_rnti()) {
-    proc_ra.handle_rar_pdu(grant);
-  } else {
-    // Push DL PDUs to queue for background processing
-    for (uint32_t i = 0; i < SRSRAN_MAX_CODEWORDS; ++i) {
-      if (grant.tb[i] != nullptr) {
-        metrics[cc_idx].rx_pkts++;
-        metrics[cc_idx].rx_brate += grant.tb[i]->N_bytes * 8;
-        pdu_queue.push(std::move(grant.tb[i]));
-      }
-    }
+  logger.debug("new_grant_dl(): cc_idx=%d, tti=%d, rnti=%d, pid=%d, tbs=%d, ndi=%d, rv=%d",
+               cc_idx,
+               grant.tti,
+               grant.rnti,
+               grant.pid,
+               grant.tbs,
+               grant.ndi,
+               grant.rv);
+
+  // Assert HARQ entity
+  if (dl_harq.at(cc_idx) == nullptr) {
+    logger.error("HARQ entity %d has not been created", cc_idx);
+    return;
   }
 
-  stack_task_dispatch_queue.push([this]() { process_pdus(); });
+  dl_harq.at(cc_idx)->new_grant_dl(grant, action);
+}
+
+void mac_nr::tb_decoded(const uint32_t cc_idx, const mac_nr_grant_dl_t& grant, tb_action_dl_result_t result)
+{
+  logger.debug("tb_decoded(): cc_idx=%d, tti=%d, rnti=%d, pid=%d, tbs=%d, ndi=%d, rv=%d, result=%s",
+               cc_idx,
+               grant.tti,
+               grant.rnti,
+               grant.pid,
+               grant.tbs,
+               grant.ndi,
+               grant.rv,
+               result.ack ? "OK" : "KO");
+
+  write_pcap(cc_idx, grant, result);
+
+  if (proc_ra.has_rar_rnti() && grant.rnti == proc_ra.get_rar_rnti()) {
+    proc_ra.handle_rar_pdu(result);
+  } else {
+    // Assert HARQ entity
+    if (dl_harq.at(cc_idx) == nullptr) {
+      logger.error("HARQ entity %d has not been created", cc_idx);
+      return;
+    }
+
+    dl_harq.at(cc_idx)->tb_decoded(grant, std::move(result));
+  }
+
+  // do metrics
+  metrics[cc_idx].rx_brate += grant.tbs * 8;
+  metrics[cc_idx].rx_pkts++;
+  if (not result.ack) {
+    metrics[cc_idx].rx_errors++;
+  }
 }
 
 void mac_nr::new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, tb_action_ul_t* action)
@@ -354,19 +397,32 @@ int mac_nr::setup_lcid(const srsran::logical_channel_config_t& config)
 
 int mac_nr::add_tag_config(const srsran::tag_cfg_nr_t& tag_cfg)
 {
-  logger.warning("Add tag config not supported yet");
+  logger.info("Add tag config not supported yet");
   return SRSRAN_SUCCESS;
 }
 
 int mac_nr::remove_tag_config(const uint32_t tag_id)
 {
-  logger.warning("Remove tag config not supported yet");
+  logger.info("Remove tag config not supported yet");
   return SRSRAN_SUCCESS;
 }
 
 int mac_nr::set_config(const srsran::phr_cfg_nr_t& phr_cfg)
 {
-  logger.warning("Add phr config not supported yet");
+  logger.info("Add phr config not supported yet");
+  return SRSRAN_SUCCESS;
+}
+
+int mac_nr::set_config(const srsran::dl_harq_cfg_nr_t& dl_hrq_cfg)
+{
+  for (const auto& cc : dl_harq) {
+    if (cc != nullptr) {
+      if (cc->set_config(dl_hrq_cfg) != SRSRAN_SUCCESS) {
+        logger.error("Couldn't configure DL HARQ entity.");
+        return SRSRAN_ERROR;
+      }
+    }
+  }
   return SRSRAN_SUCCESS;
 }
 
@@ -404,7 +460,7 @@ bool mac_nr::set_crnti(const uint16_t c_rnti_)
 
 void mac_nr::start_ra_procedure()
 {
-  stack_task_dispatch_queue.push([this]() {proc_ra.start_by_rrc();});
+  stack_task_dispatch_queue.push([this]() { proc_ra.start_by_rrc(); });
 }
 
 bool mac_nr::is_valid_crnti(const uint16_t crnti)
@@ -444,48 +500,7 @@ void mac_nr::get_metrics(mac_metrics_t m[SRSRAN_MAX_CARRIERS])
  */
 void mac_nr::process_pdus()
 {
-  while (started and not pdu_queue.empty()) {
-    srsran::unique_byte_buffer_t pdu = pdu_queue.wait_pop();
-    // TODO: delegate to demux class
-    handle_pdu(std::move(pdu));
-  }
-}
-
-void mac_nr::handle_pdu(srsran::unique_byte_buffer_t pdu)
-{
-  logger.info(pdu->msg, pdu->N_bytes, "Handling MAC PDU (%d B)", pdu->N_bytes);
-
-  rx_pdu.init_rx();
-  if (rx_pdu.unpack(pdu->msg, pdu->N_bytes) != SRSRAN_SUCCESS) {
-    return;
-  }
-
-  for (uint32_t i = 0; i < rx_pdu.get_num_subpdus(); ++i) {
-    srsran::mac_sch_subpdu_nr subpdu = rx_pdu.get_subpdu(i);
-    logger.info("Handling subPDU %d/%d: rnti=0x%x lcid=%d, sdu_len=%d",
-                i + 1,
-                rx_pdu.get_num_subpdus(),
-                subpdu.get_c_rnti(),
-                subpdu.get_lcid(),
-                subpdu.get_sdu_length());
-
-    // Handle Timing Advance CE
-    switch (subpdu.get_lcid()) {
-      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::DRX_CMD:
-        logger.info("DRX CE not implemented.");
-        break;
-      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::TA_CMD:
-        logger.info("Timing Advance CE not implemented.");
-        break;
-      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CON_RES_ID:
-        logger.info("Contention Resolution CE not implemented.");
-        break;
-      default:
-        if (subpdu.is_sdu()) {
-          rlc->write_pdu(subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());
-        }
-    }
-  }
+  demux.process_pdus();
 }
 
 uint64_t mac_nr::get_contention_id()

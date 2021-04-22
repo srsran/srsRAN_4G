@@ -29,12 +29,13 @@
 #include <getopt.h>
 
 static srsran_carrier_nr_t carrier = {
-    501, // cell_id
-    0,   // numerology
-    52,  // nof_prb
-    0,   // start
-    1    // max_mimo_layers
-
+  501,                               // pci
+  0,                               // absolute_frequency_ssb
+  0,                               // absolute_frequency_point_a
+  srsran_subcarrier_spacing_15kHz, // scs
+  52,                              // nof_prb
+  0,                               // start
+  1                                // max_mimo_layers
 };
 
 static uint32_t            n_prb     = 0;  // Set to 0 for steering
@@ -222,7 +223,6 @@ int main(int argc, char** argv)
   ue_dl_args.pdsch.sch.disable_simd          = false;
   ue_dl_args.pdsch.sch.decoder_use_flooded   = false;
   ue_dl_args.pdsch.measure_evm               = true;
-  ue_dl_args.pdsch.disable_zero_re_around_dc = true;
   ue_dl_args.pdcch.disable_simd              = false;
   ue_dl_args.pdcch.measure_evm               = true;
   ue_dl_args.nof_max_prb                     = carrier.nof_prb;
@@ -384,7 +384,7 @@ int main(int argc, char** argv)
                                                                search_space,
                                                                pdsch_cfg.grant.rnti,
                                                                L,
-                                                               SRSRAN_SLOT_NR_MOD(carrier.numerology, slot.idx),
+                                                               SRSRAN_SLOT_NR_MOD(carrier.scs, slot.idx),
                                                                ncce_candidates);
         if (nof_candidates < SRSRAN_SUCCESS) {
           ERROR("Error getting PDCCH candidates");
@@ -416,7 +416,7 @@ int main(int argc, char** argv)
         // Emulate channel CFO
         if (isnormal(cfo_hz) && ue_dl.fft[0].cfg.symbol_sz > 0) {
           srsran_vec_apply_cfo(buffer_ue[0],
-                               cfo_hz / (ue_dl.fft[0].cfg.symbol_sz * SRSRAN_SUBC_SPACING_NR(carrier.numerology)),
+                               cfo_hz / (ue_dl.fft[0].cfg.symbol_sz * SRSRAN_SUBC_SPACING_NR(carrier.scs)),
                                buffer_ue[0],
                                sf_len);
         }
@@ -455,6 +455,15 @@ int main(int argc, char** argv)
             srsran_vec_fprint_byte(stdout, data_rx[0], pdsch_cfg.grant.tb[0].tbs / 8);
             goto clean_exit;
           }
+        }
+
+        if (srsran_verbose >= SRSRAN_VERBOSE_INFO) {
+          char str[512];
+          srsran_ue_dl_nr_pdsch_info(&ue_dl, &pdsch_cfg, &pdsch_res, str, (uint32_t)sizeof(str));
+
+          char str_extra[2048];
+          srsran_sch_cfg_nr_info(&pdsch_cfg, str_extra, (uint32_t)sizeof(str_extra));
+          INFO("PDSCH: %s\n%s", str, str_extra);
         }
 
         INFO("n_prb=%d; mcs=%d; TBS=%d; EVM=%f; PASSED!", n_prb, mcs, pdsch_cfg.grant.tb[0].tbs, pdsch_res.evm[0]);

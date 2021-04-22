@@ -29,13 +29,13 @@
 #ifndef SRSRAN_THREAD_POOL_H
 #define SRSRAN_THREAD_POOL_H
 
+#include "srsran/adt/circular_buffer.h"
 #include "srsran/adt/move_callback.h"
 #include "srsran/srslog/srslog.h"
 #include <condition_variable>
 #include <functional>
 #include <memory>
 #include <mutex>
-#include <queue>
 #include <stack>
 #include <stdint.h>
 #include <string>
@@ -98,7 +98,9 @@ private:
 
 class task_thread_pool
 {
-  using task_t = srsran::move_callback<void(), default_move_callback_buffer_size, true>;
+  using task_t                             = srsran::move_callback<void(), default_move_callback_buffer_size, true>;
+  static constexpr uint32_t max_task_shift = 14;
+  static constexpr uint32_t max_task_num   = 1u << max_task_shift;
 
 public:
   task_thread_pool(uint32_t nof_workers = 1, bool start_deferred = false, int32_t prio_ = -1, uint32_t mask_ = 255);
@@ -139,7 +141,7 @@ private:
   uint32_t              mask = 255;
   srslog::basic_logger& logger;
 
-  std::queue<task_t>                      pending_tasks;
+  srsran::dyn_circular_buffer<task_t>     pending_tasks;
   std::vector<std::unique_ptr<worker_t> > workers;
   mutable std::mutex                      queue_mutex;
   std::condition_variable                 cv_empty;

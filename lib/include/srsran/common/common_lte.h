@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef SRSRAN_LTE_COMMON_H
-#define SRSRAN_LTE_COMMON_H
+#ifndef SRSRAN_COMMON_LTE_H
+#define SRSRAN_COMMON_LTE_H
 
 #include <array>
 #include <cstdint>
@@ -97,4 +97,4 @@ inline const char* get_drb_name(lte_drb drb_id)
 
 } // namespace srsran
 
-#endif // SRSRAN_LTE_COMMON_H
+#endif // SRSRAN_COMMON_LTE_H

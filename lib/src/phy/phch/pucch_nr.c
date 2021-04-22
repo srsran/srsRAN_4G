@@ -37,7 +37,7 @@ int srsran_pucch_nr_group_sequence(const srsran_carrier_nr_t*          carrier,
 {
   uint32_t f_gh = 0;
   uint32_t f_ss = 0;
-  uint32_t n_id = cfg->hopping_id_present ? cfg->hopping_id : carrier->id;
+  uint32_t n_id = cfg->hopping_id_present ? cfg->hopping_id : carrier->pci;
 
   switch (cfg->group_hopping) {
     case SRSRAN_PUCCH_NR_GROUP_HOPPING_NEITHER:
@@ -80,13 +80,13 @@ int srsran_pucch_nr_alpha_idx(const srsran_carrier_nr_t*          carrier,
   }
 
   // Compute number of slot
-  uint32_t n_slot = SRSRAN_SLOT_NR_MOD(carrier->numerology, slot->idx);
+  uint32_t n_slot = SRSRAN_SLOT_NR_MOD(carrier->scs, slot->idx);
 
   // Generate pseudo-random sequence
-  uint32_t cinit = cfg->hopping_id_present ? cfg->hopping_id : carrier->id;
+  uint32_t cinit = cfg->hopping_id_present ? cfg->hopping_id : carrier->pci;
   uint8_t  cs[SRSRAN_NSYMB_PER_SLOT_NR * SRSRAN_NSLOTS_PER_FRAME_NR(SRSRAN_NR_MAX_NUMEROLOGY) * 8U] = {};
   srsran_sequence_apply_bit(
-      cs, cs, SRSRAN_NSYMB_PER_SLOT_NR * SRSRAN_NSLOTS_PER_FRAME_NR(carrier->numerology) * 8, cinit);
+      cs, cs, SRSRAN_NSYMB_PER_SLOT_NR * SRSRAN_NSLOTS_PER_FRAME_NR(carrier->scs) * 8, cinit);
 
   // Create n_cs parameter
   uint32_t n_cs = 0;
@@ -545,7 +545,7 @@ static uint32_t pucch_nr_format2_cinit(const srsran_carrier_nr_t*          carri
                                        const srsran_pucch_nr_common_cfg_t* pucch_cfg,
                                        const srsran_uci_cfg_nr_t*          uci_cfg)
 {
-  uint32_t n_id = (pucch_cfg->scrambling_id_present) ? pucch_cfg->scrambling_id_present : carrier->id;
+  uint32_t n_id = (pucch_cfg->scrambling_id_present) ? pucch_cfg->scrambling_id_present : carrier->pci;
 
   return ((uint32_t)uci_cfg->pucch.rnti << 15U) + n_id;
 }

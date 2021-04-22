@@ -40,7 +40,8 @@ int test_rx(std::vector<pdcp_test_event_t>      events,
                                   pdcp_sn_len,
                                   srsran::pdcp_t_reordering_t::ms500,
                                   srsran::pdcp_discard_timer_t::infinity,
-                                  false};
+                                  false,
+                                  srsran::srsran_rat_t::lte};
 
   pdcp_lte_test_helper     pdcp_hlp_rx(cfg_rx, sec_cfg, logger);
   srsran::pdcp_entity_lte* pdcp_rx = &pdcp_hlp_rx.pdcp;

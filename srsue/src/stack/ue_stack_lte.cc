@@ -43,7 +43,7 @@ ue_stack_lte::ue_stack_lte() :
   rrc_logger(srslog::fetch_basic_logger("RRC", false)),
   usim_logger(srslog::fetch_basic_logger("USIM", false)),
   nas_logger(srslog::fetch_basic_logger("NAS", false)),
-  mac_nr_logger(srslog::fetch_basic_logger("MAC-NR", false)),
+  mac_nr_logger(srslog::fetch_basic_logger("MAC-NR")),
   rrc_nr_logger(srslog::fetch_basic_logger("RRC-NR", false)),
   mac_pcap(),
   mac_nr_pcap(),
@@ -210,8 +210,8 @@ int ue_stack_lte::init(const stack_args_t& args_)
   sync_task_queue = task_sched.make_task_queue(args.sync_queue_size);
 
   mac.init(phy, &rlc, &rrc);
-  rlc.init(&pdcp, &rrc, task_sched.get_timer_handler(), 0 /* RB_ID_SRB0 */);
-  pdcp.init(&rlc, &rrc, gw);
+  rlc.init(&pdcp, &rrc, &rrc_nr, task_sched.get_timer_handler(), 0 /* RB_ID_SRB0 */);
+  pdcp.init(&rlc, &rrc, &rrc_nr, gw);
   nas.init(usim.get(), &rrc, gw, args.nas);
 
   mac_nr_args_t mac_nr_args = {};

@@ -262,7 +262,7 @@ uint32_t thread_pool::get_nof_workers()
  *************************************************************************/
 
 task_thread_pool::task_thread_pool(uint32_t nof_workers, bool start_deferred, int32_t prio_, uint32_t mask_) :
-  logger(srslog::fetch_basic_logger("POOL")), workers(std::max(1u, nof_workers))
+  logger(srslog::fetch_basic_logger("POOL")), pending_tasks(max_task_num), workers(std::max(1u, nof_workers))
 {
   if (not start_deferred) {
     start(prio_, mask_);
@@ -331,6 +331,10 @@ void task_thread_pool::push_task(task_t&& task)
 {
   {
     std::lock_guard<std::mutex> lock(queue_mutex);
+    if (pending_tasks.full()) {
+      logger.error("Cannot push anymore tasks into the queue, maximum size is %u", uint32_t(max_task_num));
+      return;
+    }
     pending_tasks.push(std::move(task));
   }
   cv_empty.notify_one();
@@ -367,7 +371,7 @@ bool task_thread_pool::worker_t::wait_task(task_t* task)
     return false;
   }
   if (task) {
-    *task = std::move(parent->pending_tasks.front());
+    *task = std::move(parent->pending_tasks.top());
   }
   parent->pending_tasks.pop();
   return true;

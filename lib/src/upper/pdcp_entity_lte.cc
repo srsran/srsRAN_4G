@@ -728,7 +728,7 @@ void pdcp_entity_lte::notify_delivery(const pdcp_sn_vector_t& pdcp_sns)
     }
     // Find undelivered PDU info
     if (not undelivered_sdus->has_sdu(sn)) {
-      logger.warning("Could not find PDU for delivery notification. Notified SN=%d", sn);
+      logger.info("Could not find PDU for delivery notification. Notified SN=%d", sn);
     } else {
       // Metrics
       auto& sdu = (*undelivered_sdus)[sn];

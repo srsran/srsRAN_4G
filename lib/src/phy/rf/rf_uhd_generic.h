@@ -33,6 +33,7 @@ private:
   uhd::stream_args_t              stream_args                  = {};
   double                          lo_freq_tx_hz                = 0.0;
   double                          lo_freq_rx_hz                = 0.0;
+  double                          lo_freq_offset_hz            = 0.0;
 
   uhd_error usrp_make_internal(const uhd::device_addr_t& dev_addr) override
   {
@@ -168,6 +169,20 @@ public:
     if (dev_addr.has_key("lo_freq_rx_hz")) {
       lo_freq_rx_hz = dev_addr.cast("lo_freq_rx_hz", lo_freq_rx_hz);
       dev_addr.pop("lo_freq_rx_hz");
+    }
+
+    // LO Frequency offset automatic
+    if (dev_addr.has_key("lo_freq_offset_hz")) {
+      lo_freq_offset_hz = dev_addr.cast("lo_freq_offset_hz", lo_freq_offset_hz);
+      dev_addr.pop("lo_freq_offset_hz");
+
+      if (std::isnormal(lo_freq_tx_hz)) {
+        Warning("'lo_freq_offset_hz' overrides 'lo_freq_tx_hz' (" << lo_freq_tx_hz / 1e6 << " MHz)");
+      }
+
+      if (std::isnormal(lo_freq_rx_hz)) {
+        Warning("'lo_freq_offset_hz' overrides 'lo_freq_rx_hz' (" << lo_freq_rx_hz / 1e6 << " MHz)");
+      }
     }
 
     // Make USRP
@@ -348,6 +363,10 @@ public:
     // Create Tune request
     uhd::tune_request_t tune_request(target_freq);
 
+    if (std::isnormal(lo_freq_offset_hz)) {
+      lo_freq_tx_hz = target_freq + lo_freq_offset_hz;
+    }
+
     // If the LO frequency is defined, force a LO frequency and use the
     if (std::isnormal(lo_freq_tx_hz)) {
       tune_request.rf_freq         = lo_freq_tx_hz;
@@ -364,6 +383,10 @@ public:
 
     // Create Tune request
     uhd::tune_request_t tune_request(target_freq);
+
+    if (std::isnormal(lo_freq_offset_hz)) {
+      lo_freq_rx_hz = target_freq + lo_freq_offset_hz;
+    }
 
     // If the LO frequency is defined, force a LO frequency and use the
     if (std::isnormal(lo_freq_rx_hz)) {

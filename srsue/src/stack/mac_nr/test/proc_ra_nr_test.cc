@@ -81,7 +81,7 @@ public:
   void rrc_ra_problem() { logger.warning("Dummy MAC RRC ra problem"); }
 
 private:
-  uint16_t             crnti = SRSRAN_INVALID_RNTI;
+  uint16_t              crnti = SRSRAN_INVALID_RNTI;
   srslog::basic_logger& logger;
 };
 
@@ -133,12 +133,13 @@ int proc_ra_normal_test()
   mac_interface_phy_nr::mac_nr_grant_dl_t grant;
   grant.rnti               = 0x16;
   grant.tti                = rach_cfg.ra_responseWindow + tti_start + 3;
-  grant.pid                = 0x0123;
+  grant.pid                                                    = 0x0;
   uint8_t mac_dl_rar_pdu[] = {0x40, 0x06, 0x68, 0x03, 0x21, 0x46, 0x46, 0x02, 0x00, 0x00, 0x00};
-  grant.tb[0]              = srsran::make_byte_buffer();
-  TESTASSERT(grant.tb[0] != nullptr);
-  grant.tb[0].get()->append_bytes(mac_dl_rar_pdu, sizeof(mac_dl_rar_pdu));
-  proc_ra_nr.handle_rar_pdu(grant);
+  mac_interface_phy_nr::tb_action_dl_result_t result           = {};
+  result.payload                                               = srsran::make_byte_buffer();
+  TESTASSERT(result.payload != nullptr);
+  result.payload.get()->append_bytes(mac_dl_rar_pdu, sizeof(mac_dl_rar_pdu));
+  proc_ra_nr.handle_rar_pdu(result);
 
   task_sched.tic();
   task_sched.run_pending_tasks();

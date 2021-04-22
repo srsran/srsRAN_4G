@@ -75,6 +75,19 @@ logical_channel_config_t make_mac_logical_channel_cfg_t(uint8_t lcid, const lc_c
   return logical_channel_config;
 }
 
+bool make_mac_dl_harq_cfg_nr_t(const pdsch_serving_cell_cfg_s& asn1_type, dl_harq_cfg_nr_t* out_dl_harq_cfg_nr)
+{
+  dl_harq_cfg_nr_t dl_harq_cfg_nr;
+  if (asn1_type.nrof_harq_processes_for_pdsch_present) {
+    dl_harq_cfg_nr.nof_procs = asn1_type.nrof_harq_processes_for_pdsch.to_number();
+  } else {
+    asn1::log_warning("Option nrof_harq_processes_for_pdsch not present");
+    return false;
+  }
+  *out_dl_harq_cfg_nr = dl_harq_cfg_nr;
+  return true;
+}
+
 bool make_mac_phr_cfg_t(const phr_cfg_s& asn1_type, phr_cfg_nr_t* phr_cfg_nr)
 {
   phr_cfg_nr->extended             = asn1_type.ext;
@@ -208,7 +221,8 @@ srsran::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue
                     sn_len,
                     t_reordering,
                     discard_timer,
-                    false);
+                    false,
+                    srsran_rat_t::nr);
   return cfg;
 }
 
@@ -319,7 +333,7 @@ bool make_phy_tdd_cfg(const tdd_ul_dl_cfg_common_s& tdd_ul_dl_cfg_common,
 bool make_phy_harq_ack_cfg(const phys_cell_group_cfg_s&    phys_cell_group_cfg,
                            srsran_ue_dl_nr_harq_ack_cfg_t* in_srsran_ue_dl_nr_harq_ack_cfg)
 {
-  srsran_ue_dl_nr_harq_ack_cfg_t srsran_ue_dl_nr_harq_ack_cfg;
+  srsran_ue_dl_nr_harq_ack_cfg_t srsran_ue_dl_nr_harq_ack_cfg = {};
   switch (phys_cell_group_cfg.pdsch_harq_ack_codebook) {
     case phys_cell_group_cfg_s::pdsch_harq_ack_codebook_opts::dynamic_value:
       srsran_ue_dl_nr_harq_ack_cfg.harq_ack_codebook = srsran_pdsch_harq_ack_codebook_dynamic;
@@ -573,8 +587,7 @@ bool make_phy_csi_report(const csi_report_cfg_s&     csi_report_cfg,
 bool make_phy_coreset_cfg(const ctrl_res_set_s& ctrl_res_set, srsran_coreset_t* in_srsran_coreset)
 {
   srsran_coreset_t srsran_coreset = {};
-  srsran_coreset.coreset_id       = ctrl_res_set.ctrl_res_set_id;
-
+  srsran_coreset.id       = ctrl_res_set.ctrl_res_set_id;
   switch (ctrl_res_set.precoder_granularity) {
     case ctrl_res_set_s::precoder_granularity_opts::same_as_reg_bundle:
       srsran_coreset.precoder_granularity = srsran_coreset_precoder_granularity_reg_bundle;
@@ -585,6 +598,18 @@ bool make_phy_coreset_cfg(const ctrl_res_set_s& ctrl_res_set, srsran_coreset_t* 
       asn1::log_warning("Invalid option for precoder_granularity %s", ctrl_res_set.precoder_granularity.to_string());
       return false;
   };
+
+  switch (ctrl_res_set.cce_reg_map_type.type()) {
+    case ctrl_res_set_s::cce_reg_map_type_c_::types_opts::options::interleaved:
+      srsran_coreset.mapping_type = srsran_coreset_mapping_type_interleaved;
+      break;
+    case ctrl_res_set_s::cce_reg_map_type_c_::types_opts::options::non_interleaved:
+      srsran_coreset.mapping_type = srsran_coreset_mapping_type_non_interleaved;
+      break;
+    default:
+      asn1::log_warning("Invalid option for cce_reg_map_type: %s", ctrl_res_set.cce_reg_map_type.type().to_string());
+      return false;
+  }
   srsran_coreset.duration = ctrl_res_set.dur;
   for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
     srsran_coreset.freq_resources[i] = ctrl_res_set.freq_domain_res.get(SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE - 1 - i);
@@ -837,6 +862,368 @@ bool make_phy_pusch_scaling(const uci_on_pusch_s& uci_on_pusch, float* in_scalin
   return true;
 }
 
+bool make_phy_zp_csi_rs_resource(const asn1::rrc_nr::zp_csi_rs_res_s& zp_csi_rs_res,
+                                 srsran_csi_rs_zp_resource_t*         out_zp_csi_rs_resource)
+{
+  srsran_csi_rs_zp_resource_t zp_csi_rs_resource;
+  zp_csi_rs_resource.id = zp_csi_rs_res.zp_csi_rs_res_id;
+  switch (zp_csi_rs_res.res_map.freq_domain_alloc.type()) {
+    case csi_rs_res_map_s::freq_domain_alloc_c_::types_opts::options::row1:
+      zp_csi_rs_resource.resource_mapping.row = srsran_csi_rs_resource_mapping_row_1;
+      for (uint32_t i = 0; i < zp_csi_rs_res.res_map.freq_domain_alloc.row1().length(); i++) {
+        zp_csi_rs_resource.resource_mapping.frequency_domain_alloc[i] =
+            zp_csi_rs_res.res_map.freq_domain_alloc.row1().get(zp_csi_rs_res.res_map.freq_domain_alloc.row1().length() -
+                                                               1 - i);
+      }
+      break;
+    case csi_rs_res_map_s::freq_domain_alloc_c_::types_opts::options::row2:
+      zp_csi_rs_resource.resource_mapping.row = srsran_csi_rs_resource_mapping_row_2;
+      for (uint32_t i = 0; i < zp_csi_rs_res.res_map.freq_domain_alloc.row2().length(); i++) {
+        zp_csi_rs_resource.resource_mapping.frequency_domain_alloc[i] =
+            zp_csi_rs_res.res_map.freq_domain_alloc.row2().get(zp_csi_rs_res.res_map.freq_domain_alloc.row2().length() -
+                                                               1 - i);
+      }
+      break;
+    case csi_rs_res_map_s::freq_domain_alloc_c_::types_opts::options::row4:
+      zp_csi_rs_resource.resource_mapping.row = srsran_csi_rs_resource_mapping_row_4;
+      for (uint32_t i = 0; i < zp_csi_rs_res.res_map.freq_domain_alloc.row4().length(); i++) {
+        zp_csi_rs_resource.resource_mapping.frequency_domain_alloc[i] =
+            zp_csi_rs_res.res_map.freq_domain_alloc.row4().get(zp_csi_rs_res.res_map.freq_domain_alloc.row4().length() -
+                                                               1 - i);
+      }
+      break;
+    case csi_rs_res_map_s::freq_domain_alloc_c_::types_opts::options::other:
+      zp_csi_rs_resource.resource_mapping.row = srsran_csi_rs_resource_mapping_row_other;
+      break;
+    default:
+      asn1::log_warning("Invalid option for freq_domain_alloc %s",
+                        zp_csi_rs_res.res_map.freq_domain_alloc.type().to_string());
+      return false;
+  }
+  zp_csi_rs_resource.resource_mapping.nof_ports        = zp_csi_rs_res.res_map.nrof_ports.to_number();
+  zp_csi_rs_resource.resource_mapping.first_symbol_idx = zp_csi_rs_res.res_map.first_ofdm_symbol_in_time_domain;
+
+  switch (zp_csi_rs_res.res_map.cdm_type) {
+    case csi_rs_res_map_s::cdm_type_opts::options::no_cdm:
+      zp_csi_rs_resource.resource_mapping.cdm = srsran_csi_rs_cdm_t::srsran_csi_rs_cdm_nocdm;
+      break;
+    case csi_rs_res_map_s::cdm_type_opts::options::fd_cdm2:
+      zp_csi_rs_resource.resource_mapping.cdm = srsran_csi_rs_cdm_t::srsran_csi_rs_cdm_fd_cdm2;
+      break;
+    case csi_rs_res_map_s::cdm_type_opts::options::cdm4_fd2_td2:
+      zp_csi_rs_resource.resource_mapping.cdm = srsran_csi_rs_cdm_t::srsran_csi_rs_cdm_cdm4_fd2_td2;
+      break;
+    case csi_rs_res_map_s::cdm_type_opts::options::cdm8_fd2_td4:
+      zp_csi_rs_resource.resource_mapping.cdm = srsran_csi_rs_cdm_t::srsran_csi_rs_cdm_cdm8_fd2_td4;
+      break;
+    default:
+      asn1::log_warning("Invalid option for cdm_type %s", zp_csi_rs_res.res_map.cdm_type.to_string());
+      return false;
+  }
+
+  switch (zp_csi_rs_res.res_map.density.type()) {
+    case csi_rs_res_map_s::density_c_::types_opts::options::dot5:
+      switch (zp_csi_rs_res.res_map.density.dot5()) {
+        case csi_rs_res_map_s::density_c_::dot5_opts::options::even_prbs:
+          zp_csi_rs_resource.resource_mapping.density = srsran_csi_rs_resource_mapping_density_dot5_even;
+          break;
+        case csi_rs_res_map_s::density_c_::dot5_opts::options::odd_prbs:
+          zp_csi_rs_resource.resource_mapping.density = srsran_csi_rs_resource_mapping_density_dot5_odd;
+          break;
+        default:
+          asn1::log_warning("Invalid option for dot5 %s", zp_csi_rs_res.res_map.density.dot5().to_string());
+          return false;
+      }
+      break;
+    case csi_rs_res_map_s::density_c_::types_opts::options::one:
+      zp_csi_rs_resource.resource_mapping.density = srsran_csi_rs_resource_mapping_density_one;
+      break;
+    case csi_rs_res_map_s::density_c_::types_opts::options::three:
+      zp_csi_rs_resource.resource_mapping.density = srsran_csi_rs_resource_mapping_density_three;
+      break;
+    case csi_rs_res_map_s::density_c_::types_opts::options::spare:
+      zp_csi_rs_resource.resource_mapping.density = srsran_csi_rs_resource_mapping_density_spare;
+      break;
+    default:
+      asn1::log_warning("Invalid option for density %s", zp_csi_rs_res.res_map.density.type().to_string());
+      return false;
+  }
+  zp_csi_rs_resource.resource_mapping.freq_band.nof_rb   = zp_csi_rs_res.res_map.freq_band.nrof_rbs;
+  zp_csi_rs_resource.resource_mapping.freq_band.start_rb = zp_csi_rs_res.res_map.freq_band.start_rb;
+  if(zp_csi_rs_res.periodicity_and_offset_present){
+    switch (zp_csi_rs_res.periodicity_and_offset.type())
+    {
+    case csi_res_periodicity_and_offset_c::types_opts::options::slots4:
+      zp_csi_rs_resource.periodicity.period = 4;
+      zp_csi_rs_resource.periodicity.offset = zp_csi_rs_res.periodicity_and_offset.slots4();
+      break; 
+    case csi_res_periodicity_and_offset_c::types_opts::options::slots5:
+      zp_csi_rs_resource.periodicity.period = 5;
+      zp_csi_rs_resource.periodicity.offset = zp_csi_rs_res.periodicity_and_offset.slots5();
+      break; 
+    case csi_res_periodicity_and_offset_c::types_opts::options::slots8:
+      zp_csi_rs_resource.periodicity.period = 8;
+      zp_csi_rs_resource.periodicity.offset = zp_csi_rs_res.periodicity_and_offset.slots8();
+      break; 
+    case csi_res_periodicity_and_offset_c::types_opts::options::slots10:
+      zp_csi_rs_resource.periodicity.period = 10;
+      zp_csi_rs_resource.periodicity.offset = zp_csi_rs_res.periodicity_and_offset.slots10();
+      break; 
+    case csi_res_periodicity_and_offset_c::types_opts::options::slots16:
+      zp_csi_rs_resource.periodicity.period = 16;
+      zp_csi_rs_resource.periodicity.offset = zp_csi_rs_res.periodicity_and_offset.slots16();
+      break; 
+    case csi_res_periodicity_and_offset_c::types_opts::options::slots20:
+      zp_csi_rs_resource.periodicity.period = 20;
+      zp_csi_rs_resource.periodicity.offset = zp_csi_rs_res.periodicity_and_offset.slots20();
+      break; 
+    case csi_res_periodicity_and_offset_c::types_opts::options::slots32:
+      zp_csi_rs_resource.periodicity.period = 32;
+      zp_csi_rs_resource.periodicity.offset = zp_csi_rs_res.periodicity_and_offset.slots32();
+      break; 
+    case csi_res_periodicity_and_offset_c::types_opts::options::slots40:
+      zp_csi_rs_resource.periodicity.period = 40;
+      zp_csi_rs_resource.periodicity.offset = zp_csi_rs_res.periodicity_and_offset.slots40();
+      break; 
+    case csi_res_periodicity_and_offset_c::types_opts::options::slots64:
+      zp_csi_rs_resource.periodicity.period = 64;
+      zp_csi_rs_resource.periodicity.offset = zp_csi_rs_res.periodicity_and_offset.slots64();
+      break; 
+    case csi_res_periodicity_and_offset_c::types_opts::options::slots80:
+      zp_csi_rs_resource.periodicity.period = 80;
+      zp_csi_rs_resource.periodicity.offset = zp_csi_rs_res.periodicity_and_offset.slots80();
+      break; 
+    case csi_res_periodicity_and_offset_c::types_opts::options::slots160:
+      zp_csi_rs_resource.periodicity.period = 160;
+      zp_csi_rs_resource.periodicity.offset = zp_csi_rs_res.periodicity_and_offset.slots160();
+      break; 
+    case csi_res_periodicity_and_offset_c::types_opts::options::slots320:
+      zp_csi_rs_resource.periodicity.period = 320;
+      zp_csi_rs_resource.periodicity.offset = zp_csi_rs_res.periodicity_and_offset.slots320();
+      break; 
+    case csi_res_periodicity_and_offset_c::types_opts::options::slots640:
+      zp_csi_rs_resource.periodicity.period = 640;
+      zp_csi_rs_resource.periodicity.offset = zp_csi_rs_res.periodicity_and_offset.slots640();
+      break;
+    default:
+      asn1::log_warning("Invalid option for periodicity_and_offset %s",
+                        zp_csi_rs_res.periodicity_and_offset.type().to_string());
+      return false;
+    }
+  } else {
+     asn1::log_warning("Option periodicity_and_offset not present");
+     return false;
+  }
+ 
+  *out_zp_csi_rs_resource = zp_csi_rs_resource;
+  return true;
+}
+
+bool make_phy_nzp_csi_rs_resource(const asn1::rrc_nr::nzp_csi_rs_res_s&  asn1_nzp_csi_rs_res,
+                                  srsran_csi_rs_nzp_resource_t*          out_csi_rs_nzp_resource)
+{
+  srsran_csi_rs_nzp_resource_t csi_rs_nzp_resource;
+  csi_rs_nzp_resource.id = asn1_nzp_csi_rs_res.nzp_csi_rs_res_id;
+  switch (asn1_nzp_csi_rs_res.res_map.freq_domain_alloc.type()) {
+    case csi_rs_res_map_s::freq_domain_alloc_c_::types_opts::options::row1:
+      csi_rs_nzp_resource.resource_mapping.row = srsran_csi_rs_resource_mapping_row_1;
+      for (uint32_t i = 0; i < asn1_nzp_csi_rs_res.res_map.freq_domain_alloc.row1().length(); i++) {
+        csi_rs_nzp_resource.resource_mapping.frequency_domain_alloc[i] =
+            asn1_nzp_csi_rs_res.res_map.freq_domain_alloc.row1().get(asn1_nzp_csi_rs_res.res_map.freq_domain_alloc.row1().length() -
+                                                               1 - i);
+      }
+      break;
+    case csi_rs_res_map_s::freq_domain_alloc_c_::types_opts::options::row2:
+      csi_rs_nzp_resource.resource_mapping.row = srsran_csi_rs_resource_mapping_row_2;
+      for (uint32_t i = 0; i < asn1_nzp_csi_rs_res.res_map.freq_domain_alloc.row2().length(); i++) {
+        csi_rs_nzp_resource.resource_mapping.frequency_domain_alloc[i] =
+            asn1_nzp_csi_rs_res.res_map.freq_domain_alloc.row2().get(asn1_nzp_csi_rs_res.res_map.freq_domain_alloc.row2().length() -
+                                                               1 - i);
+      }
+      break;
+    case csi_rs_res_map_s::freq_domain_alloc_c_::types_opts::options::row4:
+      csi_rs_nzp_resource.resource_mapping.row = srsran_csi_rs_resource_mapping_row_4;
+      for (uint32_t i = 0; i < asn1_nzp_csi_rs_res.res_map.freq_domain_alloc.row4().length(); i++) {
+        csi_rs_nzp_resource.resource_mapping.frequency_domain_alloc[i] =
+            asn1_nzp_csi_rs_res.res_map.freq_domain_alloc.row4().get(asn1_nzp_csi_rs_res.res_map.freq_domain_alloc.row4().length() -
+                                                               1 - i);
+      }
+      break;
+    case csi_rs_res_map_s::freq_domain_alloc_c_::types_opts::options::other:
+      csi_rs_nzp_resource.resource_mapping.row = srsran_csi_rs_resource_mapping_row_other;
+      break;
+    default:
+      asn1::log_warning("Invalid option for freq_domain_alloc %s",
+                        asn1_nzp_csi_rs_res.res_map.freq_domain_alloc.type().to_string());
+      return false;
+  }
+
+  csi_rs_nzp_resource.resource_mapping.nof_ports        = asn1_nzp_csi_rs_res.res_map.nrof_ports.to_number();
+  csi_rs_nzp_resource.resource_mapping.first_symbol_idx = asn1_nzp_csi_rs_res.res_map.first_ofdm_symbol_in_time_domain;
+
+  switch (asn1_nzp_csi_rs_res.res_map.cdm_type) {
+    case csi_rs_res_map_s::cdm_type_opts::options::no_cdm:
+      csi_rs_nzp_resource.resource_mapping.cdm = srsran_csi_rs_cdm_t::srsran_csi_rs_cdm_nocdm;
+      break;
+    case csi_rs_res_map_s::cdm_type_opts::options::fd_cdm2:
+      csi_rs_nzp_resource.resource_mapping.cdm = srsran_csi_rs_cdm_t::srsran_csi_rs_cdm_fd_cdm2;
+      break;
+    case csi_rs_res_map_s::cdm_type_opts::options::cdm4_fd2_td2:
+      csi_rs_nzp_resource.resource_mapping.cdm = srsran_csi_rs_cdm_t::srsran_csi_rs_cdm_cdm4_fd2_td2;
+      break;
+    case csi_rs_res_map_s::cdm_type_opts::options::cdm8_fd2_td4:
+      csi_rs_nzp_resource.resource_mapping.cdm = srsran_csi_rs_cdm_t::srsran_csi_rs_cdm_cdm8_fd2_td4;
+      break;
+    default:
+      asn1::log_warning("Invalid option for cdm_type %s", asn1_nzp_csi_rs_res.res_map.cdm_type.to_string());
+      return false;
+  }
+
+  switch (asn1_nzp_csi_rs_res.res_map.density.type()) {
+    case csi_rs_res_map_s::density_c_::types_opts::options::dot5:
+      switch (asn1_nzp_csi_rs_res.res_map.density.dot5()) {
+        case csi_rs_res_map_s::density_c_::dot5_opts::options::even_prbs:
+          csi_rs_nzp_resource.resource_mapping.density = srsran_csi_rs_resource_mapping_density_dot5_even;
+          break;
+        case csi_rs_res_map_s::density_c_::dot5_opts::options::odd_prbs:
+          csi_rs_nzp_resource.resource_mapping.density = srsran_csi_rs_resource_mapping_density_dot5_odd;
+          break;
+        default:
+          asn1::log_warning("Invalid option for dot5 %s", asn1_nzp_csi_rs_res.res_map.density.dot5().to_string());
+          return false;
+      }
+      break;
+    case csi_rs_res_map_s::density_c_::types_opts::options::one:
+      csi_rs_nzp_resource.resource_mapping.density = srsran_csi_rs_resource_mapping_density_one;
+      break;
+    case csi_rs_res_map_s::density_c_::types_opts::options::three:
+      csi_rs_nzp_resource.resource_mapping.density = srsran_csi_rs_resource_mapping_density_three;
+      break;
+    case csi_rs_res_map_s::density_c_::types_opts::options::spare:
+      csi_rs_nzp_resource.resource_mapping.density = srsran_csi_rs_resource_mapping_density_spare;
+      break;
+    default:
+      asn1::log_warning("Invalid option for density %s", asn1_nzp_csi_rs_res.res_map.density.type().to_string());
+      return false;
+  }
+  csi_rs_nzp_resource.resource_mapping.freq_band.nof_rb   = asn1_nzp_csi_rs_res.res_map.freq_band.nrof_rbs;
+  csi_rs_nzp_resource.resource_mapping.freq_band.start_rb = asn1_nzp_csi_rs_res.res_map.freq_band.start_rb;
+
+  csi_rs_nzp_resource.power_control_offset = asn1_nzp_csi_rs_res.pwr_ctrl_offset;
+  if (asn1_nzp_csi_rs_res.pwr_ctrl_offset_ss_present) {
+    csi_rs_nzp_resource.power_control_offset_ss = asn1_nzp_csi_rs_res.pwr_ctrl_offset_ss.to_number();
+  }
+
+  if(asn1_nzp_csi_rs_res.periodicity_and_offset_present){
+    switch (asn1_nzp_csi_rs_res.periodicity_and_offset.type())
+    {
+    case csi_res_periodicity_and_offset_c::types_opts::options::slots4:
+      csi_rs_nzp_resource.periodicity.period = 4;
+      csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res.periodicity_and_offset.slots4();
+      break; 
+    case csi_res_periodicity_and_offset_c::types_opts::options::slots5:
+      csi_rs_nzp_resource.periodicity.period = 5;
+      csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res.periodicity_and_offset.slots5();
+      break; 
+    case csi_res_periodicity_and_offset_c::types_opts::options::slots8:
+      csi_rs_nzp_resource.periodicity.period = 8;
+      csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res.periodicity_and_offset.slots8();
+      break; 
+    case csi_res_periodicity_and_offset_c::types_opts::options::slots10:
+      csi_rs_nzp_resource.periodicity.period = 10;
+      csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res.periodicity_and_offset.slots10();
+      break; 
+    case csi_res_periodicity_and_offset_c::types_opts::options::slots16:
+      csi_rs_nzp_resource.periodicity.period = 16;
+      csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res.periodicity_and_offset.slots16();
+      break; 
+    case csi_res_periodicity_and_offset_c::types_opts::options::slots20:
+      csi_rs_nzp_resource.periodicity.period = 20;
+      csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res.periodicity_and_offset.slots20();
+      break; 
+    case csi_res_periodicity_and_offset_c::types_opts::options::slots32:
+      csi_rs_nzp_resource.periodicity.period = 32;
+      csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res.periodicity_and_offset.slots32();
+      break; 
+    case csi_res_periodicity_and_offset_c::types_opts::options::slots40:
+      csi_rs_nzp_resource.periodicity.period = 40;
+      csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res.periodicity_and_offset.slots40();
+      break;
+    case csi_res_periodicity_and_offset_c::types_opts::options::slots64:
+      csi_rs_nzp_resource.periodicity.period = 64;
+      csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res.periodicity_and_offset.slots64();
+      break; 
+    case csi_res_periodicity_and_offset_c::types_opts::options::slots80:
+      csi_rs_nzp_resource.periodicity.period = 80;
+      csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res.periodicity_and_offset.slots80();
+      break; 
+    case csi_res_periodicity_and_offset_c::types_opts::options::slots160:
+      csi_rs_nzp_resource.periodicity.period = 160;
+      csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res.periodicity_and_offset.slots160();
+      break; 
+    case csi_res_periodicity_and_offset_c::types_opts::options::slots320:
+      csi_rs_nzp_resource.periodicity.period = 320;
+      csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res.periodicity_and_offset.slots320();
+      break; 
+    case csi_res_periodicity_and_offset_c::types_opts::options::slots640:
+      csi_rs_nzp_resource.periodicity.period = 640;
+      csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res.periodicity_and_offset.slots640();
+      break;
+    default:
+      asn1::log_warning("Invalid option for periodicity_and_offset %s",
+                        asn1_nzp_csi_rs_res.periodicity_and_offset.type().to_string());
+      return false;
+    }
+  } else {
+     asn1::log_warning("Option periodicity_and_offset not present");
+     return false;
+  }
+
+  csi_rs_nzp_resource.scrambling_id = asn1_nzp_csi_rs_res.scrambling_id;
+
+  *out_csi_rs_nzp_resource = csi_rs_nzp_resource;
+  return true;
+}
+
+bool make_phy_carrier_cfg(const freq_info_dl_s& asn1_freq_info_dl, srsran_carrier_nr_t* out_carrier_nr)
+{
+  srsran_carrier_nr_t carrier_nr = {};
+  if (asn1_freq_info_dl.absolute_freq_ssb_present) {
+    carrier_nr.absolute_frequency_ssb = asn1_freq_info_dl.absolute_freq_ssb_present;
+  } else {
+    asn1::log_warning("Option absolute_freq_ssb not present");
+    return false;
+  }
+  carrier_nr.absolute_frequency_point_a = asn1_freq_info_dl.absolute_freq_point_a;
+  if (asn1_freq_info_dl.scs_specific_carrier_list.size() != 1) {
+    asn1::log_warning("Option absolute_freq_ssb not present");
+    return false;
+  }
+
+  carrier_nr.nof_prb = asn1_freq_info_dl.scs_specific_carrier_list[0].carrier_bw;
+
+  switch (asn1_freq_info_dl.scs_specific_carrier_list[0].subcarrier_spacing) {
+    case subcarrier_spacing_opts::options::khz15:
+      carrier_nr.scs = srsran_subcarrier_spacing_15kHz;
+      break;
+    case subcarrier_spacing_opts::options::khz30:
+      carrier_nr.scs = srsran_subcarrier_spacing_30kHz;
+      break;
+    case subcarrier_spacing_opts::options::khz60:
+      carrier_nr.scs = srsran_subcarrier_spacing_60kHz;
+      break;
+    case subcarrier_spacing_opts::options::khz120:
+      carrier_nr.scs = srsran_subcarrier_spacing_120kHz;
+      break;
+    case subcarrier_spacing_opts::options::khz240:
+      carrier_nr.scs = srsran_subcarrier_spacing_240kHz;
+      break;
+    default:
+      asn1::log_warning("Not supported subcarrier spacing ");
+  }
+  *out_carrier_nr = carrier_nr;
+  return true;
+}
 } // namespace srsran
 
 namespace srsenb {

@@ -1011,7 +1011,7 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
     phy_cell_cfg_nr_t phy_cell_cfg       = {};
     phy_cell_cfg.carrier.max_mimo_layers = cell_cfg_.nof_ports;
     phy_cell_cfg.carrier.nof_prb         = cell_cfg_.nof_prb;
-    phy_cell_cfg.carrier.id              = cfg.pci;
+    phy_cell_cfg.carrier.pci             = cfg.pci;
     phy_cell_cfg.cell_id                 = cfg.cell_id;
     phy_cell_cfg.root_seq_idx            = cfg.root_seq_idx;
     phy_cell_cfg.rf_port                 = cfg.rf_port;

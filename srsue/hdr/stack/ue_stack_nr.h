@@ -89,7 +89,14 @@ public:
     run_tti(tti);
     return SRSRAN_SUCCESS;
   }
-  void tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant) final { mac->tb_decoded(cc_idx, grant); }
+  void tb_decoded(const uint32_t cc_idx, const mac_nr_grant_dl_t& grant, tb_action_dl_result_t result) final
+  {
+    mac->tb_decoded(cc_idx, grant, std::move(result));
+  }
+  void new_grant_dl(const uint32_t cc_idx, const mac_nr_grant_dl_t& grant, tb_action_dl_t* action) final
+  {
+    mac->new_grant_dl(cc_idx, grant, action);
+  }
   void new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, tb_action_ul_t* action) final
   {
     mac->new_grant_ul(cc_idx, grant, action);

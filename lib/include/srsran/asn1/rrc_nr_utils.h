@@ -57,6 +57,10 @@ struct sched_request_res_cfg_s;
 struct dmrs_ul_cfg_s;
 struct beta_offsets_s;
 struct uci_on_pusch_s;
+struct zp_csi_rs_res_s;
+struct nzp_csi_rs_res_s;
+struct pdsch_serving_cell_cfg_s;
+struct freq_info_dl_s;
 
 } // namespace rrc_nr
 } // namespace asn1
@@ -97,12 +101,17 @@ bool make_phy_dmrs_additional_pos(const asn1::rrc_nr::dmrs_ul_cfg_s& dmrs_ul_cfg
 bool make_phy_beta_offsets(const asn1::rrc_nr::beta_offsets_s& beta_offsets,
                            srsran_beta_offsets_t*              srsran_beta_offsets);
 bool make_phy_pusch_scaling(const asn1::rrc_nr::uci_on_pusch_s& uci_on_pusch, float* scaling);
+bool make_phy_zp_csi_rs_resource(const asn1::rrc_nr::zp_csi_rs_res_s & zp_csi_rs_res, srsran_csi_rs_zp_resource_t* zp_csi_rs_resource);
+bool make_phy_nzp_csi_rs_resource(const asn1::rrc_nr::nzp_csi_rs_res_s & nzp_csi_rs_res, srsran_csi_rs_nzp_resource_t* csi_rs_nzp_resource);
+bool make_phy_carrier_cfg(const asn1::rrc_nr::freq_info_dl_s &freq_info_dl, srsran_carrier_nr_t* carrier_nr);
 /***************************
  *      MAC Config
  **************************/
 logical_channel_config_t make_mac_logical_channel_cfg_t(uint8_t lcid, const asn1::rrc_nr::lc_ch_cfg_s& asn1_type);
 rach_nr_cfg_t            make_mac_rach_cfg(const asn1::rrc_nr::rach_cfg_common_s& asn1_type);
 bool                     make_mac_phr_cfg_t(const asn1::rrc_nr::phr_cfg_s& asn1_type, phr_cfg_nr_t* phr_cfg_nr);
+bool                     make_mac_dl_harq_cfg_nr_t(const asn1::rrc_nr::pdsch_serving_cell_cfg_s& asn1_type,
+                                                   dl_harq_cfg_nr_t*                             out_dl_harq_cfg_nr);
 /***************************
  *      RLC Config
  **************************/

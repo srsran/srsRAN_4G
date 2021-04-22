@@ -1,6 +1,18 @@
 Change Log for Releases
 =======================
 
+## 21.04
+  * Rename project from srsLTE to srsRAN
+  * Add initial 5G NSA support to srsUE (including x86-optimized FEC and PHY layer)
+  * Add PDCP discard support
+  * Add UL power control, measurement gaps and a new proportional fair scheduler to srsENB
+  * Extend GTP-U tunneling to support tunnel forwarding over S1
+  * Optimize many data structures, remove dynamic memory allocations in data plane
+  * Improved S1AP error handling and enhanced event reporting
+  * Update ASN.1 packing/unpacking, RRC to Rel 15.11, S1AP to Rel 16.1
+  * Update PCAP writer to use UDP framing
+  * Other bug-fixes and improved stability and performance in all parts
+
 ## 20.10.1
   * Fix bug in srsENB that effectively disabled UL HARQ
 

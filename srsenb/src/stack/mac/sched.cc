@@ -277,15 +277,15 @@ std::array<int, SRSRAN_MAX_CARRIERS> sched::get_enb_ue_cc_map(uint16_t rnti)
 
 std::array<bool, SRSRAN_MAX_CARRIERS> sched::get_scell_activation_mask(uint16_t rnti)
 {
-  std::array<int, SRSRAN_MAX_CARRIERS>  enb_ue_cc_map = get_enb_ue_cc_map(rnti);
-  std::array<bool, SRSRAN_MAX_CARRIERS> scell_mask    = {};
-  for (int ue_cc : enb_ue_cc_map) {
-    if (ue_cc <= 0) {
-      // inactive or PCell
-      continue;
+  std::array<bool, SRSRAN_MAX_CARRIERS> scell_mask = {};
+  ue_db_access_locked(rnti, [this, &scell_mask](sched_ue& ue) {
+    for (size_t enb_cc_idx = 0; enb_cc_idx < carrier_schedulers.size(); ++enb_cc_idx) {
+      const sched_ue_cell* cc_ue = ue.find_ue_carrier(enb_cc_idx);
+      if (cc_ue != nullptr and (cc_ue->cc_state() == cc_st::active or cc_ue->cc_state() == cc_st::activating)) {
+        scell_mask[cc_ue->get_ue_cc_idx()] = true;
+      }
     }
-    scell_mask[ue_cc] = true;
-  }
+  });
   return scell_mask;
 }
 

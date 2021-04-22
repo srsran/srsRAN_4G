@@ -48,6 +48,10 @@ public:
   int read_pdsch_d(cf_t* pdsch_d);
 
 private:
+  // PHY lib temporal logger types
+  typedef std::array<char, 512>  str_info_t;
+  typedef std::array<char, 2048> str_extra_t;
+
   bool                                configured  = false;
   srsran_slot_cfg_t                   dl_slot_cfg = {};
   srsran_slot_cfg_t                   ul_slot_cfg = {};
@@ -60,10 +64,7 @@ private:
   srsran_ue_ul_nr_t                   ue_ul       = {};
   srslog::basic_logger&               logger;
 
-  // Temporal attributes
-  srsran_softbuffer_rx_t softbuffer_rx = {};
-
-  // Methods for DL...
+  // Methods for DCI blind search
   void decode_pdcch_ul();
   void decode_pdcch_dl();
 };

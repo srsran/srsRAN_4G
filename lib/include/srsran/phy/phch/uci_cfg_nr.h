@@ -71,6 +71,7 @@ typedef struct {
   float        alpha;                                ///< Higher layer parameter scaling
   float        beta_harq_ack_offset;
   float        beta_csi1_offset;
+  float        beta_csi2_offset;
   uint32_t     nof_re;
   bool         csi_part2_present;
 } srsran_uci_nr_pusch_cfg_t;

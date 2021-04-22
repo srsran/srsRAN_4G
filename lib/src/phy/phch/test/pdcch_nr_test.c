@@ -25,11 +25,13 @@
 #include <getopt.h>
 
 static srsran_carrier_nr_t carrier = {
-    0,  // cell_id
-    0,  // numerology
-    50, // nof_prb
-    0,  // start
-    1   // max_mimo_layers
+    1,                               // pci
+    0,                               // absolute_frequency_ssb
+    0,                               // absolute_frequency_point_a
+    srsran_subcarrier_spacing_15kHz, // scs
+    50,                              // nof_prb
+    0,                               // start
+    1                                // max_mimo_layers
 };
 
 static uint16_t rnti       = 0x1234;
@@ -194,7 +196,7 @@ int main(int argc, char** argv)
            aggregation_level++) {
         uint32_t L = 1U << aggregation_level;
 
-        for (uint32_t slot_idx = 0; slot_idx < SRSRAN_NSLOTS_PER_FRAME_NR(carrier.numerology); slot_idx++) {
+        for (uint32_t slot_idx = 0; slot_idx < SRSRAN_NSLOTS_PER_FRAME_NR(carrier.scs); slot_idx++) {
           uint32_t dci_locations[SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR] = {};
 
           // Calculate candidate locations

@@ -382,7 +382,7 @@ static int ue_dl_nr_find_dci_ss(srsran_ue_dl_nr_t*           q,
       // Calculate possible PDCCH DCI candidates
       uint32_t candidates[SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR] = {};
       int      nof_candidates                                        = srsran_pdcch_nr_locations_coreset(
-          coreset, search_space, rnti, L, SRSRAN_SLOT_NR_MOD(q->carrier.numerology, slot_cfg->idx), candidates);
+          coreset, search_space, rnti, L, SRSRAN_SLOT_NR_MOD(q->carrier.scs, slot_cfg->idx), candidates);
       if (nof_candidates < SRSRAN_SUCCESS) {
         ERROR("Error calculating DCI candidate location");
         return SRSRAN_ERROR;

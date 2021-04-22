@@ -20,7 +20,7 @@
  */
 
 #include "srsran/upper/rlc_tm.h"
-#include "srsran/common/lte_common.h"
+#include "srsran/common/common_lte.h"
 #include "srsran/interfaces/ue_pdcp_interfaces.h"
 #include "srsran/interfaces/ue_rrc_interfaces.h"
 

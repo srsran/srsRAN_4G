@@ -33,7 +33,8 @@ int test_tx_status_report(const srsran::pdcp_lte_state_t& init_state, srslog::ba
                                   srsran::PDCP_SN_LEN_12,
                                   srsran::pdcp_t_reordering_t::ms500,
                                   srsran::pdcp_discard_timer_t::ms500,
-                                  true};
+                                  true,
+                                  srsran::srsran_rat_t::lte};
 
   srsran::pdcp_config_t cfg_rx = {1,
                                   srsran::PDCP_RB_IS_DRB,
@@ -42,7 +43,8 @@ int test_tx_status_report(const srsran::pdcp_lte_state_t& init_state, srslog::ba
                                   srsran::PDCP_SN_LEN_12,
                                   srsran::pdcp_t_reordering_t::ms500,
                                   srsran::pdcp_discard_timer_t::ms500,
-                                  true};
+                                  true,
+                                  srsran::srsran_rat_t::lte};
 
   // Setup TX
   pdcp_lte_test_helper     pdcp_hlp_tx(cfg_tx, sec_cfg, logger);
@@ -137,7 +139,8 @@ int test_tx_wraparound_status_report(const srsran::pdcp_lte_state_t& init_state,
                                   srsran::PDCP_SN_LEN_12,
                                   srsran::pdcp_t_reordering_t::ms500,
                                   srsran::pdcp_discard_timer_t::ms500,
-                                  true};
+                                  true,
+                                  srsran::srsran_rat_t::lte};
 
   srsran::pdcp_config_t cfg_rx = {1,
                                   srsran::PDCP_RB_IS_DRB,
@@ -146,7 +149,8 @@ int test_tx_wraparound_status_report(const srsran::pdcp_lte_state_t& init_state,
                                   srsran::PDCP_SN_LEN_12,
                                   srsran::pdcp_t_reordering_t::ms500,
                                   srsran::pdcp_discard_timer_t::ms500,
-                                  true};
+                                  true,
+                                  srsran::srsran_rat_t::lte};
 
   // Setup TX
   pdcp_lte_test_helper     pdcp_hlp_tx(cfg_tx, sec_cfg, logger);
@@ -249,7 +253,8 @@ int test_rx_status_report(const srsran::pdcp_lte_state_t& init_state, srslog::ba
                                srsran::PDCP_SN_LEN_12,
                                srsran::pdcp_t_reordering_t::ms500,
                                srsran::pdcp_discard_timer_t::ms500,
-                               true};
+                               true,
+                               srsran::srsran_rat_t::lte};
 
   pdcp_lte_test_helper     pdcp_hlp(cfg, sec_cfg, logger);
   srsran::pdcp_entity_lte* pdcp  = &pdcp_hlp.pdcp;

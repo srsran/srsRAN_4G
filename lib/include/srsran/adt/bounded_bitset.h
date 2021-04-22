@@ -35,6 +35,116 @@ constexpr uint32_t ceil_div(uint32_t x, uint32_t y)
   return (x + y - 1) / y;
 }
 
+template <typename Integer>
+Integer mask_msb_zeros(size_t N)
+{
+  static_assert(std::is_unsigned<Integer>::value, "T must be unsigned integer");
+  return (N == 0) ? static_cast<Integer>(-1) : (N == sizeof(Integer) * 8U) ? 0 : (static_cast<Integer>(-1) >> (N));
+}
+
+template <typename Integer>
+Integer mask_lsb_ones(size_t N)
+{
+  return mask_msb_zeros<Integer>(sizeof(Integer) * 8U - N);
+}
+
+template <typename Integer>
+Integer mask_msb_ones(size_t N)
+{
+  return ~mask_msb_zeros<Integer>(N);
+}
+
+template <typename Integer>
+Integer mask_lsb_zeros(size_t N)
+{
+  return ~mask_lsb_ones<Integer>(N);
+}
+
+namespace detail {
+
+template <typename Integer, size_t SizeOf>
+struct zerobit_counter {
+  static Integer msb_count(Integer value)
+  {
+    if (value == 0) {
+      return std::numeric_limits<Integer>::digits;
+    }
+    Integer ret = 0;
+    for (Integer shift = std::numeric_limits<Integer>::digits >> 1; shift != 0; shift >>= 1) {
+      Integer tmp = value >> shift;
+      if (tmp != 0) {
+        value = tmp;
+      } else {
+        ret |= shift;
+      }
+    }
+    return ret;
+  }
+  static Integer lsb_count(Integer value)
+  {
+    if (value == 0) {
+      return std::numeric_limits<Integer>::digits;
+    }
+    Integer ret = 0;
+    for (Integer shift = std::numeric_limits<Integer>::digits >> 1, mask = std::numeric_limits<Integer>::max() >> shift;
+         shift != 0;
+         shift >>= 1, mask >>= shift) {
+      if ((value & mask) == 0) {
+        value >>= shift;
+        ret |= shift;
+      }
+    }
+    return ret;
+  }
+};
+
+#ifdef __GNUC__ // clang and gcc
+/// Specializations for unsigned
+template <typename Integer>
+struct zerobit_counter<Integer, sizeof(unsigned)> {
+  static Integer msb_count(Integer value)
+  {
+    return (value) ? __builtin_clz(value) : std::numeric_limits<Integer>::digits;
+  }
+  static Integer lsb_count(Integer value)
+  {
+    return (value) ? __builtin_ctz(value) : std::numeric_limits<Integer>::digits;
+  }
+};
+#endif
+
+#ifdef __GNUC__ // clang and gcc
+/// Specializations for unsigned long
+template <typename Integer>
+struct zerobit_counter<Integer, sizeof(unsigned long)> {
+  static Integer msb_count(Integer value)
+  {
+    return (value) ? __builtin_clzl(value) : std::numeric_limits<Integer>::digits;
+  }
+  static Integer lsb_count(Integer value)
+  {
+    return (value) ? __builtin_ctzl(value) : std::numeric_limits<Integer>::digits;
+  }
+};
+#endif
+
+} // namespace detail
+
+/// uses lsb as zero position
+template <typename Integer>
+Integer find_first_msb_one(Integer value)
+{
+  return (value) ? (sizeof(Integer) * 8U - 1 - detail::zerobit_counter<Integer, sizeof(Integer)>::msb_count(value))
+                 : std::numeric_limits<Integer>::digits;
+}
+
+/// uses lsb as zero position
+template <typename Integer>
+Integer find_first_lsb_one(Integer value)
+{
+  return detail::zerobit_counter<Integer, sizeof(Integer)>::lsb_count(value);
+}
+
 template <size_t N, bool reversed = false>
 class bounded_bitset
 {
@@ -109,8 +219,7 @@ public:
 
   bounded_bitset<N, reversed>& fill(size_t startpos, size_t endpos, bool value = true)
   {
-    assert_within_bounds_(startpos, false);
-    assert_within_bounds_(endpos, false);
+    assert_range_bounds_(startpos, endpos);
     // NOTE: can be optimized
     if (value) {
       for (size_t i = startpos; i < endpos; ++i) {
@@ -122,6 +231,19 @@ public:
       }
     }
     return *this;
+  }
+
+  int find_lowest(size_t startpos, size_t endpos, bool value = true) const noexcept
+  {
+    assert_range_bounds_(startpos, endpos);
+    if (startpos == endpos) {
+      return -1;
+    }
+
+    if (not reversed) {
+      return find_first_(startpos, endpos, value);
+    }
+    return find_first_reversed_(startpos, endpos, value);
   }
 
   bool all() const noexcept
@@ -282,33 +404,35 @@ private:
     }
   }
 
-  bool test_(size_t pos) const noexcept
+  size_t get_bitidx_(size_t bitpos) const noexcept { return reversed ? size() - 1 - bitpos : bitpos; }
+
+  bool test_(size_t bitpos) const noexcept
   {
-    pos = reversed ? size() - 1 - pos : pos;
-    return ((get_word_(pos) & maskbit(pos)) != static_cast<word_t>(0));
+    bitpos = get_bitidx_(bitpos);
+    return ((get_word_(bitpos) & maskbit(bitpos)) != static_cast<word_t>(0));
   }
 
-  void set_(size_t pos) noexcept
+  void set_(size_t bitpos) noexcept
   {
-    pos = reversed ? size() - 1 - pos : pos;
-    get_word_(pos) |= maskbit(pos);
+    bitpos = get_bitidx_(bitpos);
+    get_word_(bitpos) |= maskbit(bitpos);
   }
 
-  void reset_(size_t pos) noexcept
+  void reset_(size_t bitpos) noexcept
   {
-    pos = reversed ? size() - 1 - pos : pos;
-    get_word_(pos) &= ~(maskbit(pos));
+    bitpos = get_bitidx_(bitpos);
+    get_word_(bitpos) &= ~(maskbit(bitpos));
   }
 
   size_t nof_words_() const noexcept { return size() > 0 ? (size() - 1) / bits_per_word + 1 : 0; }
 
-  word_t& get_word_(size_t pos) noexcept { return buffer[pos / bits_per_word]; }
+  word_t& get_word_(size_t bitidx) noexcept { return buffer[bitidx / bits_per_word]; }
 
-  const word_t& get_word_(size_t pos) const { return buffer[pos / bits_per_word]; }
+  const word_t& get_word_(size_t bitidx) const { return buffer[bitidx / bits_per_word]; }
 
   size_t word_idx_(size_t pos) const { return pos / bits_per_word; }
 
-  void assert_within_bounds_(size_t pos, bool strict) const
+  void assert_within_bounds_(size_t pos, bool strict) const noexcept
   {
     srsran_assert(pos < size() or (not strict and pos == size()),
                   "ERROR: index=%zd is out-of-bounds for bitset of size=%zd",
@@ -316,9 +440,98 @@ private:
                   size());
   }
 
-  static word_t maskbit(size_t pos) { return (static_cast<word_t>(1)) << (pos % bits_per_word); }
+  void assert_range_bounds_(size_t startpos, size_t endpos) const noexcept
+  {
+    srsran_assert(startpos <= endpos and endpos <= size(),
+                  "ERROR: range [%zd, %zd) out-of-bounds for bitsize of size=%zd",
+                  startpos,
+                  endpos,
+                  size());
+  }
 
-  static size_t max_nof_words_() { return (N - 1) / bits_per_word + 1; }
+  static word_t maskbit(size_t pos) noexcept { return (static_cast<word_t>(1)) << (pos % bits_per_word); }
+
+  static size_t max_nof_words_() noexcept { return (N - 1) / bits_per_word + 1; }
+
+  int find_last_(size_t startpos, size_t endpos, bool value) const noexcept
+  {
+    size_t startword = startpos / bits_per_word;
+    size_t lastword  = (endpos - 1) / bits_per_word;
+
+    for (size_t i = lastword; i != startpos - 1; --i) {
+      word_t w = buffer[i];
+      if (not value) {
+        w = ~w;
+      }
+
+      if (i == startword) {
+        size_t offset = startpos % bits_per_word;
+        w &= (reversed) ? mask_msb_zeros<word_t>(offset) : mask_lsb_zeros<word_t>(offset);
+      }
+      if (i == lastword) {
+        size_t offset = (endpos - 1) % bits_per_word;
+        w &= (reversed) ? mask_msb_ones<word_t>(offset + 1) : mask_lsb_ones<word_t>(offset + 1);
+      }
+      if (w != 0) {
+        return static_cast<int>(i * bits_per_word + find_first_msb_one(w));
+      }
+    }
+    return -1;
+  }
+
+  int find_first_(size_t startpos, size_t endpos, bool value) const noexcept
+  {
+    size_t startword = startpos / bits_per_word;
+    size_t lastword  = (endpos - 1) / bits_per_word;
+
+    for (size_t i = startword; i <= lastword; ++i) {
+      word_t w = buffer[i];
+      if (not value) {
+        w = ~w;
+      }
+
+      if (i == startword) {
+        size_t offset = startpos % bits_per_word;
+        w &= mask_lsb_zeros<word_t>(offset);
+      }
+      if (i == lastword) {
+        size_t offset = (endpos - 1) % bits_per_word;
+        w &= mask_lsb_ones<word_t>(offset + 1);
+      }
+      if (w != 0) {
+        return static_cast<int>(i * bits_per_word + find_first_lsb_one(w));
+      }
+    }
+    return -1;
+  }
+
+  int find_first_reversed_(size_t startpos, size_t endpos, bool value) const noexcept
+  {
+    size_t startbitpos = get_bitidx_(startpos), lastbitpos = get_bitidx_(endpos - 1);
+    size_t startword = startbitpos / bits_per_word;
+    size_t lastword  = lastbitpos / bits_per_word;
+
+    for (size_t i = startword; i != lastword - 1; --i) {
+      word_t w = buffer[i];
+      if (not value) {
+        w = ~w;
+      }
+
+      if (i == startword) {
+        size_t offset = startbitpos % bits_per_word;
+        w &= mask_lsb_ones<word_t>(offset + 1);
+      }
+      if (i == lastword) {
+        size_t offset = lastbitpos % bits_per_word;
+        w &= mask_lsb_zeros<word_t>(offset);
+      }
+      if (w != 0) {
+        word_t pos = find_first_msb_one(w);
+        return static_cast<int>(size() - 1 - (pos + i * bits_per_word));
+      }
+    }
+    return -1;
+  }
 };
 
 template <size_t N, bool reversed>

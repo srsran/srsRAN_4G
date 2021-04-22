@@ -56,6 +56,16 @@ rlc::~rlc()
 
 void rlc::init(srsue::pdcp_interface_rlc* pdcp_,
                srsue::rrc_interface_rlc*  rrc_,
+               srsue::rrc_interface_rlc*  rrc_nr_,
+               srsran::timer_handler*     timers_,
+               uint32_t                   lcid_)
+{
+  init(pdcp_, rrc_, timers_, lcid_);
+  rrc_nr = rrc_nr_;
+}
+
+void rlc::init(srsue::pdcp_interface_rlc* pdcp_,
+               srsue::rrc_interface_rlc*  rrc_,
                srsran::timer_handler*     timers_,
                uint32_t                   lcid_)
 {
@@ -157,7 +167,7 @@ void rlc::reestablish()
 void rlc::reestablish(uint32_t lcid)
 {
   if (valid_lcid(lcid)) {
-    logger.info("Reestablishing %s", rrc->get_rb_name(lcid));
+    logger.info("Reestablishing LCID %d", lcid);
     rlc_array.at(lcid)->reestablish();
   } else {
     logger.warning("RLC LCID %d doesn't exist.", lcid);
@@ -404,6 +414,12 @@ void rlc::add_bearer(uint32_t lcid, const rlc_config_t& cnfg)
 
   rlc_common* rlc_entity = nullptr;
 
+  // Check this for later rrc_nr pointer access
+  if (cnfg.rat == srsran::srsran_rat_t::nr && rrc_nr == nullptr) {
+    logger.error("Cannot add/modify RLC entity - missing rrc_nr parent pointer for rat type nr");
+    return;
+  }
+
   if (cnfg.rlc_mode != rlc_mode_t::tm and rlc_array.find(lcid) != rlc_array.end()) {
     if (rlc_array[lcid]->get_mode() != cnfg.rlc_mode) {
       logger.info("Switching RLC entity type. Recreating it.");
@@ -412,46 +428,51 @@ void rlc::add_bearer(uint32_t lcid, const rlc_config_t& cnfg)
   }
 
   if (not valid_lcid(lcid)) {
-    if (cnfg.rat == srsran_rat_t::lte) {
-      switch (cnfg.rlc_mode) {
-        case rlc_mode_t::tm:
-          rlc_entity = new rlc_tm(logger, lcid, pdcp, rrc);
-          break;
-        case rlc_mode_t::am:
-          rlc_entity = new rlc_am_lte(logger, lcid, pdcp, rrc, timers);
-          break;
-        case rlc_mode_t::um:
-          rlc_entity = new rlc_um_lte(logger, lcid, pdcp, rrc, timers);
-          break;
-        default:
-          logger.error("Cannot add RLC entity - invalid mode");
-          return;
-      }
-      if (rlc_entity != nullptr) {
-        rlc_entity->set_bsr_callback(bsr_callback);
-      }
-    } else if (cnfg.rat == srsran_rat_t::nr) {
-      switch (cnfg.rlc_mode) {
-        case rlc_mode_t::tm:
-          rlc_entity = new rlc_tm(logger, lcid, pdcp, rrc);
-          break;
-        case rlc_mode_t::um:
-          rlc_entity = new rlc_um_nr(logger, lcid, pdcp, rrc, timers);
-          break;
-        default:
-          logger.error("Cannot add RLC entity - invalid mode");
-          return;
-      }
-    } else {
-      logger.error("RAT not supported");
-      return;
+    switch (cnfg.rat) {
+      case srsran_rat_t::lte:
+        switch (cnfg.rlc_mode) {
+          case rlc_mode_t::tm:
+            rlc_entity = new rlc_tm(logger, lcid, pdcp, rrc);
+            break;
+          case rlc_mode_t::am:
+            rlc_entity = new rlc_am_lte(logger, lcid, pdcp, rrc, timers);
+            break;
+          case rlc_mode_t::um:
+            rlc_entity = new rlc_um_lte(logger, lcid, pdcp, rrc, timers);
+            break;
+          default:
+            logger.error("Cannot add RLC entity - invalid mode");
+            return;
+        }
+        if (rlc_entity != nullptr) {
+          rlc_entity->set_bsr_callback(bsr_callback);
+        }
+        break;
+      case srsran_rat_t::nr:
+        switch (cnfg.rlc_mode) {
+          case rlc_mode_t::tm:
+            rlc_entity = new rlc_tm(logger, lcid, pdcp, rrc_nr);
+            break;
+          case rlc_mode_t::um:
+            rlc_entity = new rlc_um_nr(logger, lcid, pdcp, rrc_nr, timers);
+            break;
+          default:
+            logger.error("Cannot add RLC entity - invalid mode");
+            return;
+        }
+        break;
+      default:
+        logger.error("RAT not supported");
+        return;
     }
 
     if (not rlc_array.insert(rlc_map_pair_t(lcid, rlc_entity)).second) {
       logger.error("Error inserting RLC entity in to array.");
       goto delete_and_exit;
     }
-    logger.info("Added radio bearer %s in %s", rrc->get_rb_name(lcid), to_string(cnfg.rlc_mode).c_str());
+
+    logger.info(
+        "Added %s radio bearer with LCID %d in %s", to_string(cnfg.rat), lcid, to_string(cnfg.rlc_mode).c_str());
     rlc_entity = NULL;
   }
 
@@ -463,7 +484,8 @@ void rlc::add_bearer(uint32_t lcid, const rlc_config_t& cnfg)
     }
   }
 
-  logger.info("Configured radio bearer %s in %s", rrc->get_rb_name(lcid), to_string(cnfg.rlc_mode).c_str());
+  logger.info(
+      "Configured %s radio bearer with LCID %d in %s", to_string(cnfg.rat), lcid, to_string(cnfg.rlc_mode).c_str());
 
 delete_and_exit:
   if (rlc_entity) {
@@ -510,9 +532,9 @@ void rlc::del_bearer(uint32_t lcid)
     it->second->stop();
     delete (it->second);
     rlc_array.erase(it);
-    logger.warning("Deleted RLC bearer %s", rrc->get_rb_name(lcid));
+    logger.info("Deleted RLC bearer with LCID %d", lcid);
   } else {
-    logger.error("Can't delete bearer %s. Bearer doesn't exist.", rrc->get_rb_name(lcid));
+    logger.error("Can't delete bearer with LCID %d. Bearer doesn't exist.", lcid);
   }
 }
 
@@ -525,9 +547,9 @@ void rlc::del_bearer_mrb(uint32_t lcid)
     it->second->stop();
     delete (it->second);
     rlc_array_mrb.erase(it);
-    logger.warning("Deleted RLC MRB bearer %s", rrc->get_rb_name(lcid));
+    logger.warning("Deleted RLC MRB bearer with LCID %d", lcid);
   } else {
-    logger.error("Can't delete bearer %s. Bearer doesn't exist.", rrc->get_rb_name(lcid));
+    logger.error("Can't delete bearer with LCID %d. Bearer doesn't exist.", lcid);
   }
 }
 
@@ -553,8 +575,7 @@ void rlc::change_lcid(uint32_t old_lcid, uint32_t new_lcid)
       logger.error("Error during LCID change of RLC bearer from %d to %d", old_lcid, new_lcid);
     }
   } else {
-    logger.error("Can't change LCID of bearer %s from %d to %d. Bearer doesn't exist or new LCID already occupied.",
-                 rrc->get_rb_name(old_lcid),
+    logger.error("Can't change LCID of bearer LCID %d to %d. Bearer doesn't exist or new LCID already occupied.",
                  old_lcid,
                  new_lcid);
   }
@@ -565,26 +586,26 @@ void rlc::suspend_bearer(uint32_t lcid)
 {
   if (valid_lcid(lcid)) {
     if (rlc_array.at(lcid)->suspend()) {
-      logger.info("Suspended radio bearer %s", rrc->get_rb_name(lcid));
+      logger.info("Suspended radio bearer with LCID %d", lcid);
     } else {
       logger.error("Error suspending RLC entity: bearer already suspended.");
     }
   } else {
-    logger.error("Suspending bearer: bearer %s not configured.", rrc->get_rb_name(lcid));
+    logger.error("Suspending bearer: bearer with LCID %d not configured.", lcid);
   }
 }
 
 void rlc::resume_bearer(uint32_t lcid)
 {
-  logger.info("Resuming radio bearer %s", rrc->get_rb_name(lcid));
+  logger.info("Resuming radio LCID %d", lcid);
   if (valid_lcid(lcid)) {
     if (rlc_array.at(lcid)->resume()) {
-      logger.info("Resumed radio bearer %s", rrc->get_rb_name(lcid));
+      logger.info("Resumed radio LCID %d", lcid);
     } else {
       logger.error("Error resuming RLC entity: bearer not suspended.");
     }
   } else {
-    logger.error("Resuming bearer: bearer %s not configured.", rrc->get_rb_name(lcid));
+    logger.error("Resuming bearer: bearer with LCID %d not configured.", lcid);
   }
 }
 

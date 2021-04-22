@@ -86,6 +86,16 @@ public:
   virtual uint16_t get_csrnti() = 0;
 };
 
+/**
+ * @brief Interface from HARQ class to demux class
+ */
+class demux_interface_harq_nr
+{
+public:
+  /// Inform demux unit about a newly decoded TB.
+  virtual void push_pdu(srsran::unique_byte_buffer_t pdu, uint32_t tti) = 0;
+};
+
 } // namespace srsue
 
 #endif // SRSUE_MAC_NR_INTERFACES_H

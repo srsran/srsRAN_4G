@@ -22,6 +22,39 @@
 #include "srsran/adt/bounded_bitset.h"
 #include "srsran/common/test_common.h"
 
+void test_bit_operations()
+{
+  TESTASSERT(0 == srsran::mask_lsb_ones<uint8_t>(0));
+  TESTASSERT(0 == srsran::mask_msb_ones<uint8_t>(0));
+  TESTASSERT(0 == srsran::mask_lsb_ones<uint32_t>(0));
+  TESTASSERT(0 == srsran::mask_msb_ones<uint32_t>(0));
+  TESTASSERT(0b11111111 == srsran::mask_lsb_zeros<uint8_t>(0));
+  TESTASSERT(0b11111111 == srsran::mask_msb_zeros<uint8_t>(0));
+  TESTASSERT((uint32_t)-1 == srsran::mask_lsb_zeros<uint32_t>(0));
+  TESTASSERT((uint32_t)-1 == srsran::mask_msb_zeros<uint32_t>(0));
+
+  TESTASSERT(0b11 == srsran::mask_lsb_ones<uint8_t>(2));
+  TESTASSERT(0b11000000 == srsran::mask_msb_ones<uint8_t>(2));
+  TESTASSERT(0b11111100 == srsran::mask_lsb_zeros<uint8_t>(2));
+  TESTASSERT(0b00111111 == srsran::mask_msb_zeros<uint8_t>(2));
+
+  TESTASSERT(0b11111111 == srsran::mask_lsb_ones<uint8_t>(8));
+  TESTASSERT(0b1111 == srsran::mask_lsb_ones<uint8_t>(4));
+
+  TESTASSERT(srsran::find_first_lsb_one<uint8_t>(0) == std::numeric_limits<uint8_t>::digits);
+  TESTASSERT(srsran::find_first_msb_one<uint8_t>(0) == std::numeric_limits<uint8_t>::digits);
+  TESTASSERT(srsran::find_first_lsb_one<uint8_t>(1) == 0);
+  TESTASSERT(srsran::find_first_msb_one<uint8_t>(1) == 0);
+  TESTASSERT(srsran::find_first_lsb_one<uint8_t>(0b11) == 0);
+  TESTASSERT(srsran::find_first_lsb_one<uint8_t>(0b10) == 1);
+  TESTASSERT(srsran::find_first_msb_one<uint8_t>(0b11) == 1);
+  TESTASSERT(srsran::find_first_msb_one<uint8_t>(0b10) == 1);
+  TESTASSERT(srsran::find_first_lsb_one<uint32_t>(0b11) == 0);
+  TESTASSERT(srsran::find_first_lsb_one<uint32_t>(0b10) == 1);
+  TESTASSERT(srsran::find_first_msb_one<uint32_t>(0b11) == 1);
+  TESTASSERT(srsran::find_first_msb_one<uint32_t>(0b10) == 1);
+}
+
 int test_zero_bitset()
 {
   srsran::bounded_bitset<25> mask;
@@ -185,14 +218,77 @@ int test_bitset_resize()
   return SRSRAN_SUCCESS;
 }
 
+template <bool reversed>
+void test_bitset_find()
+{
+  {
+    srsran::bounded_bitset<25, reversed> bitset(6);
+
+    // 0b000000
+    TESTASSERT(bitset.find_lowest(0, bitset.size(), false) == 0);
+    TESTASSERT(bitset.find_lowest(0, bitset.size(), true) == -1);
+
+    // 0b000100
+    bitset.set(2);
+    TESTASSERT(bitset.find_lowest(0, 6) == 2);
+    TESTASSERT(bitset.find_lowest(0, 6, false) == 0);
+    TESTASSERT(bitset.find_lowest(3, 6) == -1);
+    TESTASSERT(bitset.find_lowest(3, 6, false) == 3);
+
+    // 0b000101
+    bitset.set(0);
+    TESTASSERT(bitset.find_lowest(0, 6) == 0);
+    TESTASSERT(bitset.find_lowest(0, 6, false) == 1);
+    TESTASSERT(bitset.find_lowest(3, 6) == -1);
+    TESTASSERT(bitset.find_lowest(3, 6, false) == 3);
+
+    // 0b100101
+    bitset.set(5);
+    TESTASSERT(bitset.find_lowest(0, 6) == 0);
+    TESTASSERT(bitset.find_lowest(0, 6, false) == 1);
+    TESTASSERT(bitset.find_lowest(3, 6) == 5);
+
+    // 0b111111
+    bitset.fill(0, 6);
+    TESTASSERT(bitset.find_lowest(0, 6) == 0);
+    TESTASSERT(bitset.find_lowest(0, 6, false) == -1);
+    TESTASSERT(bitset.find_lowest(3, 6, false) == -1);
+  }
+  {
+    srsran::bounded_bitset<100, reversed> bitset(95);
+
+    // 0b0...0
+    TESTASSERT(bitset.find_lowest(0, bitset.size()) == -1);
+
+    // 0b1000...
+    bitset.set(94);
+    TESTASSERT(bitset.find_lowest(0, 93) == -1);
+    TESTASSERT(bitset.find_lowest(0, bitset.size()) == 94);
+
+    // 0b1000...010
+    bitset.set(1);
+    TESTASSERT(bitset.find_lowest(0, bitset.size()) == 1);
+    TESTASSERT(bitset.find_lowest(1, bitset.size()) == 1);
+    TESTASSERT(bitset.find_lowest(2, bitset.size()) == 94);
+
+    // 0b11..11
+    bitset.fill(0, bitset.size());
+    TESTASSERT(bitset.find_lowest(0, bitset.size()) == 0);
+    TESTASSERT(bitset.find_lowest(5, bitset.size()) == 5);
+  }
+}
+
 int main()
 {
+  test_bit_operations();
   TESTASSERT(test_zero_bitset() == SRSRAN_SUCCESS);
   TESTASSERT(test_ones_bitset() == SRSRAN_SUCCESS);
   TESTASSERT(test_bitset_set() == SRSRAN_SUCCESS);
   TESTASSERT(test_bitset_bitwise_oper() == SRSRAN_SUCCESS);
   TESTASSERT(test_bitset_print() == SRSRAN_SUCCESS);
   TESTASSERT(test_bitset_resize() == SRSRAN_SUCCESS);
+  test_bitset_find<false>();
+  test_bitset_find<true>();
   printf("Success\n");
   return 0;
 }

@@ -42,12 +42,30 @@ public:
 class mac_interface_phy_nr
 {
 public:
+  /// For DL, PDU buffer is allocated and passed to MAC in tb_decoded()
   typedef struct {
-    srsran::unique_byte_buffer_t tb[SRSRAN_MAX_TB];
-    uint32_t                     pid;
+    bool                    enabled;    /// Whether or not PHY should attempt to decode PDSCH
+    srsran_softbuffer_rx_t* softbuffer; /// Pointer to softbuffer to use
+  } tb_dl_t;
+
+  /// Struct provided by MAC with all necessary information for PHY
+  typedef struct {
+    tb_dl_t tb; // only single TB in DL
+  } tb_action_dl_t;
+
+  typedef struct {
     uint16_t                     rnti;
     uint32_t                     tti;
+    uint8_t                      pid; // HARQ process ID
+    uint8_t                      rv;  // Redundancy Version
+    uint8_t                      ndi; // Raw new data indicator extracted from DCI
+    uint32_t                     tbs; // Transport block size in Bytes
   } mac_nr_grant_dl_t;
+
+  typedef struct {
+    srsran::unique_byte_buffer_t payload; // TB when decoded successfully, nullptr otherwise
+    bool                         ack;     // HARQ information
+  } tb_action_dl_result_t;
 
   // UL grant as conveyed between PHY and MAC
   typedef struct {
@@ -83,8 +101,25 @@ public:
   virtual sched_rnti_t get_dl_sched_rnti_nr(const uint32_t tti) = 0;
   virtual sched_rnti_t get_ul_sched_rnti_nr(const uint32_t tti) = 0;
 
-  /// Indicate succussfully received TB to MAC. The TB buffer is allocated in the PHY and handed as unique_ptr to MAC
-  virtual void tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant) = 0;
+  /**
+   * @brief Indicate reception of DL grant to MAC
+   *
+   * The TB buffer is allocated in the PHY and handed as unique_ptr to MAC.
+   *
+   * @param cc_idx The carrier index on which the grant has been received
+   * @param grant  Reference to the grant
+   * @param action Pointer to the TB action to be filled by MAC
+   */
+  virtual void new_grant_dl(const uint32_t cc_idx, const mac_nr_grant_dl_t& grant, tb_action_dl_t* action) = 0;
+
+  /**
+   * Indicate decoding of PDSCH
+   *
+   * @param cc_idx The index of the carrier for which the PDSCH has been decoded
+   * @param grant  The original DL grant
+   * @param result Payload (if any) and ack information
+   */
+  virtual void tb_decoded(const uint32_t cc_idx, const mac_nr_grant_dl_t& grant, tb_action_dl_result_t result) = 0;
 
   /**
    * @brief Indicate reception of UL grant to MAC
@@ -123,6 +158,7 @@ public:
   virtual int  setup_lcid(const srsran::logical_channel_config_t& config) = 0;
   virtual int  set_config(const srsran::bsr_cfg_nr_t& bsr_cfg)            = 0;
   virtual int  set_config(const srsran::sr_cfg_nr_t& sr_cfg)              = 0;
+  virtual int  set_config(const srsran::dl_harq_cfg_nr_t& dl_hrq_cfg)     = 0;
   virtual void set_config(const srsran::rach_nr_cfg_t& rach_cfg)          = 0;
   virtual int  add_tag_config(const srsran::tag_cfg_nr_t& tag_cfg)        = 0;
   virtual int  set_config(const srsran::phr_cfg_nr_t& phr_cfg)            = 0;

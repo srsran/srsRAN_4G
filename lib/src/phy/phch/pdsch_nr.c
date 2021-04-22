@@ -26,9 +26,6 @@
 #include "srsran/phy/mimo/precoding.h"
 #include "srsran/phy/modem/demod_soft.h"
 
-///@brief Default number of zero RE around DC
-#define PDSCH_NR_DEFAULT_NOF_ZERO_RE_AROUND_DC 3
-
 int pdsch_nr_init_common(srsran_pdsch_nr_t* q, const srsran_pdsch_nr_args_t* args)
 {
   SRSRAN_MEM_ZERO(q, srsran_pdsch_nr_t, 1);
@@ -40,14 +37,6 @@ int pdsch_nr_init_common(srsran_pdsch_nr_t* q, const srsran_pdsch_nr_args_t* arg
     }
     if (args->measure_evm) {
       srsran_modem_table_bytes(&q->modem_tables[mod]);
-    }
-  }
-
-  if (!args->disable_zero_re_around_dc) {
-    if (args->nof_zero_re_around_dc == 0) {
-      q->nof_zero_re_around_dc = PDSCH_NR_DEFAULT_NOF_ZERO_RE_AROUND_DC;
-    } else {
-      q->nof_zero_re_around_dc = args->nof_zero_re_around_dc;
     }
   }
 
@@ -194,6 +183,8 @@ void srsran_pdsch_nr_free(srsran_pdsch_nr_t* q)
   if (q->evm_buffer != NULL) {
     srsran_evm_free(q->evm_buffer);
   }
+
+  SRSRAN_MEM_ZERO(q, srsran_pdsch_nr_t, 1);
 }
 
 static inline uint32_t pdsch_nr_put_rb(cf_t* dst, cf_t* src, bool* rvd_mask)
@@ -257,23 +248,7 @@ static int srsran_pdsch_nr_cp(const srsran_pdsch_nr_t*     q,
       if (put) {
         count += pdsch_nr_put_rb(&sf_symbols[re_idx], &symbols[count], &rvd_mask[rb * SRSRAN_NRE]);
       } else {
-        uint32_t k_begin    = rb * SRSRAN_NRE;
-        uint32_t k_end      = (rb + 1) * SRSRAN_NRE;
-        uint32_t k_dc_begin = q->carrier.nof_prb * SRSRAN_NRE / 2 - q->nof_zero_re_around_dc / 2;
-        uint32_t k_dc_end   = q->carrier.nof_prb * SRSRAN_NRE / 2 + SRSRAN_CEIL(q->nof_zero_re_around_dc, 2);
-        if (k_begin <= k_dc_end && k_end >= k_dc_begin && q->nof_zero_re_around_dc > 0) {
-          for (uint32_t k = k_begin; k < k_end; k++) {
-            if (!rvd_mask[k]) {
-              if (k >= k_dc_begin && k < k_dc_end) {
-                symbols[count++] = 0.0f;
-              } else {
-                symbols[count++] = sf_symbols[q->carrier.nof_prb * l * SRSRAN_NRE + k];
-              }
-            }
-          }
-        } else {
-          count += pdsch_nr_get_rb(&symbols[count], &sf_symbols[re_idx], &rvd_mask[rb * SRSRAN_NRE]);
-        }
+        count += pdsch_nr_get_rb(&symbols[count], &sf_symbols[re_idx], &rvd_mask[rb * SRSRAN_NRE]);
       }
     }
   }
@@ -302,7 +277,7 @@ static int srsran_pdsch_nr_get(const srsran_pdsch_nr_t*     q,
 static uint32_t
 pdsch_nr_cinit(const srsran_carrier_nr_t* carrier, const srsran_sch_cfg_nr_t* cfg, uint16_t rnti, uint32_t cw_idx)
 {
-  uint32_t n_id = carrier->id;
+  uint32_t n_id = carrier->pci;
   if (cfg->scrambling_id_present && SRSRAN_RNTI_ISUSER(rnti)) {
     n_id = cfg->scambling_id;
   }
@@ -465,7 +440,7 @@ static inline int pdsch_nr_decode_codeword(srsran_pdsch_nr_t*         q,
 
   // Demodulation
   int8_t* llr = (int8_t*)q->b[tb->cw_idx];
-  if (srsran_demod_soft_demodulate2_b(tb->mod, q->d[tb->cw_idx], llr, tb->nof_re)) {
+  if (srsran_demod_soft_demodulate_b(tb->mod, q->d[tb->cw_idx], llr, tb->nof_re)) {
     return SRSRAN_ERROR;
   }
 
@@ -584,7 +559,6 @@ static uint32_t pdsch_nr_grant_info(const srsran_pdsch_nr_t*     q,
                                     uint32_t                     str_len)
 {
   uint32_t len = 0;
-  len          = srsran_print_check(str, str_len, len, "rnti=0x%x ", grant->rnti);
 
   uint32_t first_prb = SRSRAN_MAX_PRB_NR;
   for (uint32_t i = 0; i < SRSRAN_MAX_PRB_NR && first_prb == SRSRAN_MAX_PRB_NR; i++) {
@@ -594,27 +568,8 @@ static uint32_t pdsch_nr_grant_info(const srsran_pdsch_nr_t*     q,
   }
 
   // Append time-domain resource mapping
-  len = srsran_print_check(str,
-                           str_len,
-                           len,
-                           "beta_dmrs=%.3f CDM-grp=%d k0=%d prb=%d:%d symb=%d:%d mapping=%s ",
-                           isnormal(grant->beta_dmrs) ? grant->beta_dmrs : 1.0f,
-                           grant->nof_dmrs_cdm_groups_without_data,
-                           grant->k,
-                           first_prb,
-                           grant->nof_prb,
-                           grant->S,
-                           grant->L,
-                           srsran_sch_mapping_type_to_str(grant->mapping));
-
-  // Skip frequency domain resources...
-  // ...
-
-  // Append spatial resources
-  len = srsran_print_check(str, str_len, len, "Nl=%d ", grant->nof_layers);
-
-  // Append scrambling ID
-  len = srsran_print_check(str, str_len, len, "n_scid=%d ", grant->n_scid);
+  len = srsran_print_check(
+      str, str_len, len, "rnti=0x%x prb=%d:%d symb=%d:%d ", grant->rnti, first_prb, grant->nof_prb, grant->S, grant->L);
 
   // Append TB info
   for (uint32_t i = 0; i < SRSRAN_MAX_TB; i++) {
@@ -643,13 +598,8 @@ uint32_t srsran_pdsch_nr_rx_info(const srsran_pdsch_nr_t*     q,
 
   len += pdsch_nr_grant_info(q, cfg, grant, res, &str[len], str_len - len);
 
-  if (cfg->rvd_re.count != 0) {
-    len = srsran_print_check(str, str_len, len, "Reserved: ");
-    len += srsran_re_pattern_list_info(&cfg->rvd_re, &str[len], str_len - len);
-  }
-
   if (q->meas_time_en) {
-    len = srsran_print_check(str, str_len, len, " t=%d us", q->meas_time_us);
+    len = srsran_print_check(str, str_len, len, "t_us=%d ", q->meas_time_us);
   }
 
   return len;

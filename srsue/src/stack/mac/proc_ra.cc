@@ -120,10 +120,6 @@ void ra_proc::read_params()
     maskIndex     = 0; // same
   }
 
-  if (rach_cfg.nof_groupA_preambles == 0) {
-    rach_cfg.nof_groupA_preambles = rach_cfg.nof_preambles;
-  }
-
   phy_interface_mac_lte::prach_info_t prach_info = phy_h->prach_get_info();
   delta_preamble_db                              = delta_preamble_db_table[prach_info.preamble_format % 5];
 
@@ -240,31 +236,43 @@ void ra_proc::initialization()
 void ra_proc::resource_selection()
 {
   ra_group_t sel_group;
+  uint32_t   nof_groupB_preambles = rach_cfg.nof_preambles - rach_cfg.nof_groupA_preambles;
 
-  uint32_t nof_groupB_preambles = 0;
-  if (rach_cfg.nof_groupA_preambles > 0) {
-    nof_groupB_preambles = rach_cfg.nof_preambles - rach_cfg.nof_groupA_preambles;
-  }
-
+  // If ra-PreambleIndex (Random Access Preamble) and ra-PRACH-MaskIndex (PRACH Mask Index) have been
+  // explicitly signalled and ra-PreambleIndex is not 000000:
   if (preambleIndex > 0) {
-    // Preamble is chosen by Higher layers (ie Network)
+    // the Random Access Preamble and the PRACH Mask Index are those explicitly signalled.
     sel_maskIndex = maskIndex;
     sel_preamble  = (uint32_t)preambleIndex;
   } else {
-    // Preamble is chosen by MAC UE
+    // else the Random Access Preamble shall be selected by the UE as follows:
     if (!mux_unit->msg3_is_transmitted()) {
-      if (nof_groupB_preambles &&
+      // If Msg3 has not yet been transmitted, the UE shall:
+      //   if Random Access Preambles group B exists and if the potential message size (data available for transmission
+      //   plus MAC header and, where required, MAC control elements) is greater than messageSizeGroupA and if the
+      //   pathloss is less than P CMAX – preambleInitialReceivedTargetPower – deltaPreambleMsg3 –
+      //   messagePowerOffsetGroupB, then:
+      if (nof_groupB_preambles > 0 &&
           new_ra_msg_len > rach_cfg.messageSizeGroupA) { // Check also pathloss (Pcmax,deltaPreamble and powerOffset)
+        // select the Random Access Preambles group B;
         sel_group = RA_GROUP_B;
       } else {
+        // else:
+        //   select the Random Access Preambles group A.
         sel_group = RA_GROUP_A;
       }
       last_msg3_group = sel_group;
     } else {
+      // else, if Msg3 is being retransmitted, the UE shall:
+      // select the same group of Random Access Preambles as was used for the preamble transmission attempt
+      // corresponding to the first transmission of Msg3.
       sel_group = last_msg3_group;
     }
+
+    // randomly select a Random Access Preamble within the selected group. The random function shall be such
+    // that each of the allowed selections can be chosen with equal probability;
     if (sel_group == RA_GROUP_A) {
-      if (rach_cfg.nof_groupA_preambles) {
+      if (rach_cfg.nof_groupA_preambles > 0) {
         // randomly choose preamble from [0 nof_groupA_preambles)
         sel_preamble = rand() % rach_cfg.nof_groupA_preambles;
       } else {
@@ -282,6 +290,8 @@ void ra_proc::resource_selection()
         return;
       }
     }
+
+    // set PRACH Mask Index to 0.
     sel_maskIndex = 0;
   }
 

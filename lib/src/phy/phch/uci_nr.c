@@ -392,16 +392,18 @@ static int uci_nr_decode_1_bit(srsran_uci_nr_t*           q,
   }
 
   // Correlate LLR
-  float corr = 0.0f;
-  float pwr  = 0.0f;
+  float    corr  = 0.0f;
+  float    pwr   = 0.0f;
+  uint32_t count = 0;
   for (uint32_t i = 0; i < E; i += Qm) {
     float t = (float)llr[i];
     corr += t;
     pwr += t * t;
+    count++;
   }
 
   // Normalise correlation
-  float norm_corr = Qm * corr / (E * sqrtf(pwr));
+  float norm_corr = fabsf(corr) / sqrtf(pwr * count);
 
   // Take decoded decision with threshold
   *decoded_ok = (norm_corr > q->one_bit_threshold);
@@ -995,9 +997,9 @@ uint32_t srsran_uci_nr_info(const srsran_uci_data_nr_t* uci_data, char* str, uin
   uint32_t len = 0;
 
   if (uci_data->cfg.o_ack > 0) {
-    char str2[10];
-    srsran_vec_sprint_bin(str2, 10, uci_data->value.ack, uci_data->cfg.o_ack);
-    len = srsran_print_check(str, str_len, len, ", ack=%s", str2);
+    char str_ack[10];
+    srsran_vec_sprint_bin(str_ack, (uint32_t)sizeof(str_ack), uci_data->value.ack, uci_data->cfg.o_ack);
+    len = srsran_print_check(str, str_len, len, "ack=%s ", str_ack);
   }
 
   if (uci_data->cfg.nof_csi > 0) {
@@ -1005,7 +1007,7 @@ uint32_t srsran_uci_nr_info(const srsran_uci_data_nr_t* uci_data, char* str, uin
   }
 
   if (uci_data->cfg.o_sr > 0) {
-    len = srsran_print_check(str, str_len, len, ", sr=%d", uci_data->value.sr);
+    len = srsran_print_check(str, str_len, len, "sr=%d ", uci_data->value.sr);
   }
 
   return len;

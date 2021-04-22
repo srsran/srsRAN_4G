@@ -20,7 +20,6 @@
  */
 
 #include "srsenb/hdr/stack/upper/pdcp_nr.h"
-#include "lib/include/srsran/interfaces/nr_common_interface_types.h"
 #include "srsenb/hdr/common/common_enb.h"
 
 namespace srsenb {

@@ -9,7 +9,7 @@ srsRAN is a 4G/5G software radio suite developed by SRS (www.softwareradiosystem
 See the srsRAN project pages (www.srsran.com) for documentation, guides and project news.
 
 It includes:
-  * srsUE - a complete SDR LTE UE application featuring all layers from PHY to IP
+  * srsUE - a complete SDR 4G/5G UE application featuring all layers from PHY to IP
   * srsENB - a complete SDR LTE eNodeB application 
   * srsEPC - a light-weight LTE core network implementation with MME, HSS and S/P-GW
   * a highly modular set of common libraries for PHY, MAC, RLC, PDCP, RRC, NAS, S1AP and GW layers. 
@@ -58,7 +58,8 @@ srsENB Features
 ---------------
 
  * FDD configuration
- * Round Robin MAC scheduler with FAPI-like C++ API
+ * IntraENB- and InterENB (S1) mobility support
+ * Proportional-fair and Round Robin MAC scheduler with FAPI-like C++ API
  * SR support
  * Periodic and Aperiodic CQI feedback support
  * Standard S1AP and GTP-U interfaces to the Core Network

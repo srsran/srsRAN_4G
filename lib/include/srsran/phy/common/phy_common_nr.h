@@ -270,13 +270,28 @@ typedef enum SRSRAN_API {
 } srsran_resource_alloc_t;
 
 /**
+ * @brief Subcarrier spacing 15 or 30 kHz <6GHz and 60 or 120 kHz >6GHz
+ * @remark Described in TS 38.331 V15.10.0 subcarrier spacing
+ */
+
+typedef enum SRSRAN_API {
+  srsran_subcarrier_spacing_15kHz = 0,
+  srsran_subcarrier_spacing_30kHz,
+  srsran_subcarrier_spacing_60kHz,
+  srsran_subcarrier_spacing_120kHz,
+  srsran_subcarrier_spacing_240kHz,
+} srsran_subcarrier_spacing_t;
+
+/**
  * @brief NR carrier parameters. It is a combination of fixed cell and bandwidth-part (BWP)
  */
 typedef struct SRSRAN_API {
-  uint32_t id;
-  uint32_t numerology;
-  uint32_t nof_prb;
-  uint32_t start;
+  uint32_t                    pci;
+  uint32_t                    absolute_frequency_ssb;
+  uint32_t                    absolute_frequency_point_a;
+  srsran_subcarrier_spacing_t scs;
+  uint32_t                    nof_prb;
+  uint32_t                    start;
   uint32_t max_mimo_layers; ///< @brief DL: Indicates the maximum number of MIMO layers to be used for PDSCH in all BWPs
                             ///< of this serving cell. (see TS 38.212 [17], clause 5.4.2.1). UL: Indicates the maximum
                             ///< MIMO layer to be used for PUSCH in all BWPs of the normal UL of this serving cell (see
@@ -319,7 +334,6 @@ typedef struct SRSRAN_API {
  */
 typedef struct SRSRAN_API {
   uint32_t                      id;
-  uint32_t                      coreset_id;
   srsran_coreset_mapping_type_t mapping_type;
   uint32_t                      duration;
   bool                          freq_resources[SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE];

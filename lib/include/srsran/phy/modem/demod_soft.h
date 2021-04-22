@@ -42,14 +42,4 @@ SRSRAN_API int srsran_demod_soft_demodulate_s(srsran_mod_t modulation, const cf_
 
 SRSRAN_API int srsran_demod_soft_demodulate_b(srsran_mod_t modulation, const cf_t* symbols, int8_t* llr, int nsymbols);
 
-/**
- * @brief Soft-demodulates complex symbols into 8-bit LLR. It forces zero symbols produce zero LLRs.
- * @param modulation Modulation
- * @param symbols Complex symbols
- * @param llr 8-bit LLRs
- * @param nsymbols Number of symbols
- * @return SRSLTE_SUCCESS if the provided pointers are valid, SRSLTE_ERROR code otherwise
- */
-SRSRAN_API int srsran_demod_soft_demodulate2_b(srsran_mod_t modulation, const cf_t* symbols, int8_t* llr, int nsymbols);
-
 #endif // SRSRAN_DEMOD_SOFT_H

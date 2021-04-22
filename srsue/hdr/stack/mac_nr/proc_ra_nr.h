@@ -52,7 +52,7 @@ public:
 
   // PHY interfaces
   void prach_sent(uint32_t tti, uint32_t s_id, uint32_t t_id, uint32_t f_id, uint32_t ul_carrier_id);
-  void handle_rar_pdu(mac_interface_phy_nr::mac_nr_grant_dl_t& grant);
+  void handle_rar_pdu(mac_interface_phy_nr::tb_action_dl_result_t& grant);
   void pdcch_to_crnti();
 
   void start_by_rrc();
@@ -113,7 +113,7 @@ private:
   void ra_procedure_initialization();
   void ra_resource_selection();
   void ra_preamble_transmission();
-  void ra_response_reception(const mac_interface_phy_nr::mac_nr_grant_dl_t& grant);
+  void ra_response_reception(const mac_interface_phy_nr::tb_action_dl_result_t& tb);
   void ra_contention_resolution();
   void ra_contention_resolution(uint64_t rx_contention_id);
   void ra_completion(); 

@@ -88,19 +88,32 @@ void rrc_nr::init_core_less()
                                   srsran::PDCP_SN_LEN_18,
                                   srsran::pdcp_t_reordering_t::ms500,
                                   srsran::pdcp_discard_timer_t::ms100,
-                                  false};
+                                  false,
+                                  srsran_rat_t::nr};
 
   pdcp->add_bearer(args.coreless.drb_lcid, pdcp_cnfg);
   return;
 }
 void rrc_nr::get_metrics(rrc_nr_metrics_t& m) {}
 
+const char* rrc_nr::get_rb_name(uint32_t lcid)
+{
+  if (is_nr_srb(lcid)) {
+    return get_srb_name(nr_lcid_to_srb(lcid));
+  }
+  if (lcid_drb.find(lcid) != lcid_drb.end()) {
+    return get_drb_name(lcid_drb[lcid]);
+  }
+  logger.warning("Unable to find lcid: %d. Return invalid LCID");
+  return "invalid LCID";
+}
+
 // Timeout callback interface
 void rrc_nr::timer_expired(uint32_t timeout_id)
 {
-  logger.debug("[NR] Handling Timer Expired");
+  logger.debug("Handling Timer Expired");
   if (timeout_id == fake_measurement_timer.id()) {
-    logger.debug("[NR] Triggered Fake Measurement");
+    logger.debug("Triggered Fake Measurement");
 
     phy_meas_nr_t              fake_meas = {};
     std::vector<phy_meas_nr_t> phy_meas_nr;
@@ -166,27 +179,26 @@ void rrc_nr::log_rrc_message(const std::string& source,
   }
 }
 
-bool rrc_nr::add_lcid_rb(uint32_t lcid, rb_type_t rb_type, uint32_t rbid)
+bool rrc_nr::add_lcid_drb(uint32_t lcid, uint32_t drb_id)
 {
-  if (lcid_rb.find(lcid) != lcid_rb.end()) {
-    logger.error("Couldn't add RB to LCID. RB %d does exist.", rbid);
+  if (lcid_drb.find(lcid) != lcid_drb.end()) {
+    logger.error("Couldn't add DRB to LCID (%d). DRB %d already exists.", lcid, drb_id);
     return false;
   } else {
-    logger.info("Adding lcid %d and radio bearer ID %d with type %s ", lcid, rbid, (rb_type == Srb) ? "SRB" : "DRB");
-    lcid_rb[lcid].rb_id   = rbid;
-    lcid_rb[lcid].rb_type = rb_type;
+    logger.info("Adding lcid %d and radio bearer ID %d", lcid, drb_id);
+    lcid_drb[lcid] = nr_drb_id_to_drb(drb_id);
   }
   return true;
 }
 
-uint32_t rrc_nr::get_lcid_for_rbid(uint32_t rb_id)
+uint32_t rrc_nr::get_lcid_for_drbid(uint32_t drb_id)
 {
-  for (auto& rb : lcid_rb) {
-    if (rb.second.rb_id == rb_id) {
+  for (auto& rb : lcid_drb) {
+    if (rb.second == nr_drb_id_to_drb(drb_id)) {
       return rb.first;
     }
   }
-  logger.error("Couldn't find LCID for rb LCID. RB %d does exist.", rb_id);
+  logger.error("Couldn't find LCID for DRB. DRB %d does exist.", drb_id);
   return 0;
 }
 
@@ -404,13 +416,13 @@ void rrc_nr::phy_meas_stop()
 {
   // possbile race condition for fake_measurement timer, which might be set at the same moment as stopped => fix with
   // phy integration
-  logger.debug("[NR] Stopping fake measurements");
+  logger.debug("Stopping fake measurements");
   fake_measurement_timer.stop();
 }
 
 void rrc_nr::phy_set_cells_to_meas(uint32_t carrier_freq_r15)
 {
-  logger.debug("[NR] Measuring phy cell %d ", carrier_freq_r15);
+  logger.debug("Measuring phy cell %d ", carrier_freq_r15);
   // Start timer for fake measurements
   auto timer_expire_func            = [this](uint32_t tid) { timer_expired(tid); };
   fake_measurement_carrier_freq_r15 = carrier_freq_r15;
@@ -420,7 +432,7 @@ void rrc_nr::phy_set_cells_to_meas(uint32_t carrier_freq_r15)
 
 bool rrc_nr::configure_sk_counter(uint16_t sk_counter)
 {
-  logger.info("[NR] Configure new SK counter %d. Update Key for secondary gnb", sk_counter);
+  logger.info("Configure new SK counter %d. Update Key for secondary gnb", sk_counter);
   if (usim->generate_nr_context(sk_counter, &sec_cfg) == false) {
     return false;
   }
@@ -446,10 +458,7 @@ bool rrc_nr::apply_rlc_add_mod(const rlc_bearer_cfg_s& rlc_bearer_cfg)
   if (rlc_bearer_cfg.served_radio_bearer_present == true) {
     if (rlc_bearer_cfg.served_radio_bearer.type() == rlc_bearer_cfg_s::served_radio_bearer_c_::types::drb_id) {
       drb_id = rlc_bearer_cfg.served_radio_bearer.drb_id();
-      add_lcid_rb(lc_ch_id, Drb, drb_id);
-    } else {
-      srb_id = rlc_bearer_cfg.served_radio_bearer.srb_id();
-      add_lcid_rb(lc_ch_id, Srb, srb_id);
+      add_lcid_drb(lc_ch_id, drb_id);
     }
   } else {
     logger.warning("In RLC bearer cfg does not contain served radio bearer");
@@ -587,11 +596,61 @@ bool rrc_nr::apply_sp_cell_init_dl_pdcch(const asn1::rrc_nr::pdcch_cfg_s& pdcch_
     logger.warning("Option search_spaces_to_add_mod_list not present");
     return false;
   }
+  if (pdcch_cfg.ctrl_res_set_to_add_mod_list_present) {
+    for (uint32_t i = 0; i < pdcch_cfg.ctrl_res_set_to_add_mod_list.size(); i++) {
+      srsran_coreset_t coreset;
+      if (make_phy_coreset_cfg(pdcch_cfg.ctrl_res_set_to_add_mod_list[i], &coreset) == true) {
+        phy_cfg.pdcch.coreset[coreset.id]         = coreset;
+        phy_cfg.pdcch.coreset_present[coreset.id] = true;
+      } else {
+        logger.warning("Warning while building coreset structure");
+        return false;
+      }
+    }
+  } else {
+    logger.warning("Option ctrl_res_set_to_add_mod_list not present");
+  }
   return true;
 }
 
 bool rrc_nr::apply_sp_cell_init_dl_pdsch(const asn1::rrc_nr::pdsch_cfg_s& pdsch_cfg)
 {
+  if (pdsch_cfg.zp_csi_rs_res_to_add_mod_list_present) {
+    for (uint32_t i = 0; i < pdsch_cfg.zp_csi_rs_res_to_add_mod_list.size(); i++) {
+      srsran_csi_rs_zp_resource_t zp_csi_rs_resource;
+      if (make_phy_zp_csi_rs_resource(pdsch_cfg.zp_csi_rs_res_to_add_mod_list[i], &zp_csi_rs_resource) == true) {
+        // temporally store csi_rs_zp_res
+        csi_rs_zp_res[zp_csi_rs_resource.id] = zp_csi_rs_resource;
+      } else {
+        logger.warning("Warning while building zp_csi_rs resource");
+        return false;
+      }
+    }
+  } else {
+    logger.warning("Option zp_csi_rs_res_to_add_mod_list not present");
+    return false;
+  }
+
+  if (pdsch_cfg.p_zp_csi_rs_res_set_present) {
+    if (pdsch_cfg.p_zp_csi_rs_res_set.type() == setup_release_c<zp_csi_rs_res_set_s>::types_opts::setup) {
+      for (uint32_t i = 0; i < pdsch_cfg.p_zp_csi_rs_res_set.setup().zp_csi_rs_res_id_list.size(); i++) {
+        uint8_t res = pdsch_cfg.p_zp_csi_rs_res_set.setup().zp_csi_rs_res_id_list[i];
+        // use temporally stored values to assign
+        if (csi_rs_zp_res.find(res) == csi_rs_zp_res.end()) {
+          logger.warning("Can not find p_zp_csi_rs_res in temporally stored csi_rs_zp_res");
+          return false;
+        }
+        phy_cfg.pdsch.p_zp_csi_rs_set.data[i] = csi_rs_zp_res[res];
+        phy_cfg.pdsch.p_zp_csi_rs_set.count += 1;
+      }
+    } else {
+      logger.warning("Option p_zp_csi_rs_res_set not of type setup");
+      return false;
+    }
+  } else {
+    logger.warning("Option p_zp_csi_rs_res_set not present");
+    return false;
+  }
   return true;
 }
 
@@ -636,12 +695,60 @@ bool rrc_nr::apply_csi_meas_cfg(const asn1::rrc_nr::csi_meas_cfg_s& csi_meas_cfg
     logger.warning("Option csi_report_cfg_to_add_mod_list not present");
     return false;
   }
+
+  if (csi_meas_cfg.nzp_csi_rs_res_to_add_mod_list_present) {
+    for (uint32_t i = 0; i < csi_meas_cfg.nzp_csi_rs_res_to_add_mod_list.size(); i++) {
+      srsran_csi_rs_nzp_resource_t csi_rs_nzp_resource;
+      if (make_phy_nzp_csi_rs_resource(csi_meas_cfg.nzp_csi_rs_res_to_add_mod_list[i], &csi_rs_nzp_resource) == true) {
+        // temporally store csi_rs_zp_res
+        csi_rs_nzp_res[csi_rs_nzp_resource.id] = csi_rs_nzp_resource;
+      } else {
+        logger.warning("Warning while building phy_nzp_csi_rs resource");
+        return false;
+      }
+    }
+  } else {
+    logger.warning("Option nzp_csi_rs_res_to_add_mod_list not present");
+    return false;
+  }
+
+  if (csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list_present) {
+    for (uint32_t i = 0; i < csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list.size(); i++) {
+      uint8_t set_id = csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list[i].nzp_csi_res_set_id;
+      for (uint32_t j = 0; j < csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list[i].nzp_csi_rs_res.size(); j++) {
+        uint8_t res = csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list[i].nzp_csi_rs_res[j];
+        // use temporally stored values to assign
+        if (csi_rs_nzp_res.find(res) == csi_rs_nzp_res.end()) {
+          logger.warning("Can not find p_zp_csi_rs_res in temporally stored csi_rs_zp_res");
+          return false;
+        }
+        phy_cfg.pdsch.nzp_csi_rs_sets[set_id].data[j] = csi_rs_nzp_res[res];
+        phy_cfg.pdsch.nzp_csi_rs_sets[set_id].count += 1;
+      }
+      if (csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list[i].trs_info_present) {
+        phy_cfg.pdsch.nzp_csi_rs_sets[set_id].trs_info = true;
+      }
+    }
+  } else {
+    logger.warning("Option p_zp_csi_rs_res_set not present");
+    return false;
+  }
+
   return true;
 }
 
 bool rrc_nr::apply_dl_common_cfg(const asn1::rrc_nr::dl_cfg_common_s& dl_cfg_common)
 {
   if (dl_cfg_common.init_dl_bwp_present) {
+    if (dl_cfg_common.freq_info_dl_present) {
+      if (make_phy_carrier_cfg(dl_cfg_common.freq_info_dl, &phy_cfg.carrier) == false) {
+        logger.warning("Warning while making carrier phy config");
+        return false;
+      }
+    } else {
+      logger.warning("Option freq_info_dl not present");
+      return false;
+    }
     if (dl_cfg_common.init_dl_bwp.pdsch_cfg_common_present) {
       if (dl_cfg_common.init_dl_bwp.pdsch_cfg_common.type() ==
           asn1::rrc_nr::setup_release_c<asn1::rrc_nr::pdsch_cfg_common_s>::types_opts::setup) {
@@ -649,8 +756,8 @@ bool rrc_nr::apply_dl_common_cfg(const asn1::rrc_nr::dl_cfg_common_s& dl_cfg_com
         if (pdcch_cfg_common.common_ctrl_res_set_present) {
           srsran_coreset_t coreset;
           if (make_phy_coreset_cfg(pdcch_cfg_common.common_ctrl_res_set, &coreset) == true) {
-            phy_cfg.pdcch.coreset[coreset.coreset_id]         = coreset;
-            phy_cfg.pdcch.coreset_present[coreset.coreset_id] = true;
+            phy_cfg.pdcch.coreset[coreset.id]         = coreset;
+            phy_cfg.pdcch.coreset_present[coreset.id] = true;
           } else {
             logger.warning("Warning while building coreset structure");
             return false;
@@ -951,8 +1058,13 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
   if (sp_cell_cfg.recfg_with_sync_present) {
     const recfg_with_sync_s& recfg_with_sync = sp_cell_cfg.recfg_with_sync;
     mac->set_crnti(recfg_with_sync.new_ue_id);
-    // Common config
     if (recfg_with_sync.sp_cell_cfg_common_present) {
+      if (recfg_with_sync.sp_cell_cfg_common.pci_present) {
+        phy_cfg.carrier.pci = recfg_with_sync.sp_cell_cfg_common.pci;
+      } else {
+        logger.warning("Option PCI not present");
+        return false;
+      }
       if (recfg_with_sync.sp_cell_cfg_common.ul_cfg_common_present) {
         if (apply_ul_common_cfg(recfg_with_sync.sp_cell_cfg_common.ul_cfg_common) == false) {
           return false;
@@ -1060,6 +1172,23 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
       logger.warning("Option ul_cfg not present");
       return false;
     }
+
+    if (sp_cell_cfg.sp_cell_cfg_ded.pdsch_serving_cell_cfg_present) {
+      if (sp_cell_cfg.sp_cell_cfg_ded.pdsch_serving_cell_cfg.type() ==
+          setup_release_c<asn1::rrc_nr::pdsch_serving_cell_cfg_s>::types_opts::setup) {
+        dl_harq_cfg_nr_t dl_harq_cfg_nr;
+        if (make_mac_dl_harq_cfg_nr_t(sp_cell_cfg.sp_cell_cfg_ded.pdsch_serving_cell_cfg.setup(), &dl_harq_cfg_nr) ==
+            false) {
+          logger.warning("Failed to make dl_harq_cfg_nr config");
+          return false;
+        }
+        mac->set_config(dl_harq_cfg_nr);
+      }
+    } else {
+      logger.warning("Option pdsch_serving_cell_cfg not present");
+      return false;
+    }
+
     if (sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg_present) {
       if (sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.type() == setup_release_c<csi_meas_cfg_s>::types_opts::setup) {
         if (apply_csi_meas_cfg(sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup()) == false) {
@@ -1124,7 +1253,7 @@ bool rrc_nr::apply_cell_group_cfg(const cell_group_cfg_s& cell_group_cfg)
 
 bool rrc_nr::apply_drb_release(const uint8_t drb)
 {
-  uint32_t lcid = get_lcid_for_rbid(drb);
+  uint32_t lcid = get_lcid_for_drbid(drb);
   if(lcid == 0){
     logger.warning("Can not release bearer with lcid %d and drb %d", lcid, drb);
     return false;
@@ -1145,7 +1274,7 @@ bool rrc_nr::apply_drb_add_mod(const drb_to_add_mod_s& drb_cfg)
     return false;
   }
 
-  uint32_t lcid = get_lcid_for_rbid(drb_cfg.drb_id);
+  uint32_t lcid = get_lcid_for_drbid(drb_cfg.drb_id);
 
   // Setup PDCP
   if (!(drb_cfg.pdcp_cfg.drb_present == true)) {
@@ -1232,7 +1361,7 @@ bool rrc_nr::apply_security_cfg(const security_cfg_s& security_cfg)
   }
 
   // Apply security config for all known NR lcids
-  for (auto& lcid : lcid_rb) {
+  for (auto& lcid : lcid_drb) {
     pdcp->config_security(lcid.first, sec_cfg);
     pdcp->enable_encryption(lcid.first);
   }

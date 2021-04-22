@@ -173,6 +173,11 @@ typedef struct {
   uint32_t csi1_index2; ///< Use for more than 11 CSI bits. Set to 13 if absent.
   uint32_t csi2_index1; ///< Use for up to 11 CSI bits. Set to 13 if absent.
   uint32_t csi2_index2; ///< Use for more than 11 CSI bits. Set to 13 if absent.
+
+  /// Fix values for testing purposes
+  float fix_ack; ///< Set to a non-zero value for fixing a beta offset value
+  float fix_csi1;
+  float fix_csi2;
 } srsran_beta_offsets_t;
 
 /**
@@ -247,11 +252,11 @@ typedef struct SRSRAN_API {
   /// PUSCH only parameters
   srsran_uci_cfg_nr_t uci; ///< Uplink Control Information configuration
   bool                enable_transform_precoder;
-  float               beta_harq_ack_offset;
-  float               beta_csi_part1_offset;
-  float               beta_csi_part2_offset;
-  float               scaling;
   bool                freq_hopping_enabled;
 } srsran_sch_cfg_nr_t;
+
+SRSRAN_API uint32_t srsran_sch_cfg_nr_nof_re(const srsran_sch_cfg_nr_t* sch_cfg);
+
+SRSRAN_API uint32_t srsran_sch_cfg_nr_info(const srsran_sch_cfg_nr_t* sch_cfg, char* str, uint32_t str_len);
 
 #endif // SRSRAN_PHCH_CFG_NR_H

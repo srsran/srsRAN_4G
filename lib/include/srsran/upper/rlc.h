@@ -48,6 +48,13 @@ public:
             srsue::rrc_interface_rlc*  rrc_,
             srsran::timer_handler*     timers_,
             uint32_t                   lcid_);
+
+  void init(srsue::pdcp_interface_rlc* pdcp_,
+            srsue::rrc_interface_rlc*  rrc_,
+            srsue::rrc_interface_rlc*  rrc_nr_,
+            srsran::timer_handler*     timers_,
+            uint32_t                   lcid_);
+            
   void init(srsue::pdcp_interface_rlc* pdcp_,
             srsue::rrc_interface_rlc*  rrc_,
             srsran::timer_handler*     timers_,
@@ -96,10 +103,11 @@ public:
 private:
   void reset_metrics();
 
-  byte_buffer_pool*          pool = nullptr;
   srslog::basic_logger&      logger;
+  byte_buffer_pool*          pool   = nullptr;
   srsue::pdcp_interface_rlc* pdcp   = nullptr;
   srsue::rrc_interface_rlc*  rrc    = nullptr;
+  srsue::rrc_interface_rlc*  rrc_nr = nullptr;
   srsran::timer_handler*     timers = nullptr;
 
   typedef std::map<uint16_t, rlc_common*>  rlc_map_t;

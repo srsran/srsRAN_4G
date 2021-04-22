@@ -47,19 +47,12 @@ cc_worker::cc_worker(uint32_t cc_idx_, srslog::basic_logger& log, state* phy_sta
     ERROR("Error initiating UE DL NR");
     return;
   }
-
-  if (srsran_softbuffer_rx_init_guru(&softbuffer_rx, SRSRAN_SCH_NR_MAX_NOF_CB_LDPC, SRSRAN_LDPC_MAX_LEN_ENCODED_CB) <
-      SRSRAN_SUCCESS) {
-    ERROR("Error init soft-buffer");
-    return;
-  }
 }
 
 cc_worker::~cc_worker()
 {
   srsran_ue_dl_nr_free(&ue_dl);
   srsran_ue_ul_nr_free(&ue_ul);
-  srsran_softbuffer_rx_free(&softbuffer_rx);
   for (cf_t* p : rx_buffer) {
     if (p != nullptr) {
       free(p);
@@ -242,10 +235,20 @@ bool cc_worker::work_dl()
   srsran_sch_cfg_nr_t            pdsch_cfg    = {};
   srsran_pdsch_ack_resource_nr_t ack_resource = {};
   if (phy->get_dl_pending_grant(dl_slot_cfg.idx, pdsch_cfg, ack_resource, pid)) {
-    // As HARQ processes are not implemented nor LDPC early-stop, retransmissions are disabled for performance reasons
-    if (pdsch_cfg.grant.tb[0].rv != 0) {
-      phy->set_pending_ack(dl_slot_cfg.idx, ack_resource, true);
-      logger.warning("PDSCH Retransmission with rv=%d not supported", pdsch_cfg.grant.tb[0].rv);
+    // Notify MAC about PDSCH grant
+    mac_interface_phy_nr::tb_action_dl_t    dl_action    = {};
+    mac_interface_phy_nr::mac_nr_grant_dl_t mac_dl_grant = {};
+    mac_dl_grant.rnti                                    = pdsch_cfg.grant.rnti;
+    mac_dl_grant.pid                                     = pid;
+    mac_dl_grant.rv                                      = pdsch_cfg.grant.tb[0].rv;
+    mac_dl_grant.ndi                                     = pdsch_cfg.grant.tb[0].ndi;
+    mac_dl_grant.tbs                                     = pdsch_cfg.grant.tb[0].tbs / 8;
+    mac_dl_grant.tti                                     = dl_slot_cfg.idx;
+    phy->stack->new_grant_dl(0, mac_dl_grant, &dl_action);
+
+    // Early stop if MAC says it doesn't need the TB
+    if (not dl_action.tb.enabled) {
+      logger.info("Decoding not required. Skipping PDSCH");
       return true;
     }
 
@@ -257,14 +260,10 @@ bool cc_worker::work_dl()
     }
     data->N_bytes = pdsch_cfg.grant.tb[0].tbs / 8U;
 
-    // Get soft-buffer from MAC
-    // ...
-    srsran_softbuffer_rx_reset(&softbuffer_rx);
-
     // Initialise PDSCH Result
     srsran_pdsch_res_nr_t pdsch_res     = {};
     pdsch_res.tb[0].payload             = data->msg;
-    pdsch_cfg.grant.tb[0].softbuffer.rx = &softbuffer_rx;
+    pdsch_cfg.grant.tb[0].softbuffer.rx = dl_action.tb.softbuffer;
 
     // Decode actual PDSCH transmission
     if (srsran_ue_dl_nr_decode_pdsch(&ue_dl, &dl_slot_cfg, &pdsch_cfg, &pdsch_res) < SRSRAN_SUCCESS) {
@@ -274,9 +273,27 @@ bool cc_worker::work_dl()
 
     // Logging
     if (logger.info.enabled()) {
-      std::array<char, 512> str;
-      srsran_ue_dl_nr_pdsch_info(&ue_dl, &pdsch_cfg, &pdsch_res, str.data(), str.size());
-      logger.info(pdsch_res.tb[0].payload, pdsch_cfg.grant.tb[0].tbs / 8, "PDSCH: cc=%d, %s", cc_idx, str.data());
+      str_info_t str;
+      srsran_ue_dl_nr_pdsch_info(&ue_dl, &pdsch_cfg, &pdsch_res, str.data(), (uint32_t)str.size());
+
+      if (logger.debug.enabled()) {
+        str_extra_t str_extra;
+        srsran_sch_cfg_nr_info(&pdsch_cfg, str_extra.data(), (uint32_t)str_extra.size());
+        logger.info(pdsch_res.tb[0].payload,
+                    pdsch_cfg.grant.tb[0].tbs / 8,
+                    "PDSCH: cc=%d pid=%d %s\n%s",
+                    cc_idx,
+                    pid,
+                    str.data(),
+                    str_extra.data());
+      } else {
+        logger.info(pdsch_res.tb[0].payload,
+                    pdsch_cfg.grant.tb[0].tbs / 8,
+                    "PDSCH: cc=%d pid=%d %s",
+                    cc_idx,
+                    pid,
+                    str.data());
+      }
     }
 
     // Enqueue PDSCH ACK information only if the RNTI is type C
@@ -285,21 +302,16 @@ bool cc_worker::work_dl()
     }
 
     // Notify MAC about PDSCH decoding result
+    mac_interface_phy_nr::tb_action_dl_result_t mac_dl_result = {};
+    mac_dl_result.ack                                         = pdsch_res.tb[0].crc;
+    mac_dl_result.payload = mac_dl_result.ack ? std::move(data) : nullptr; // only pass data when successful
+    phy->stack->tb_decoded(cc_idx, mac_dl_grant, std::move(mac_dl_result));
+
+    if (pdsch_cfg.grant.rnti_type == srsran_rnti_type_ra) {
+      phy->rar_grant_tti = dl_slot_cfg.idx;
+    }
+
     if (pdsch_res.tb[0].crc) {
-      // Prepare grant
-      mac_interface_phy_nr::mac_nr_grant_dl_t mac_nr_grant = {};
-      mac_nr_grant.tb[0]                                   = std::move(data);
-      mac_nr_grant.pid                                     = pid;
-      mac_nr_grant.rnti                                    = pdsch_cfg.grant.rnti;
-      mac_nr_grant.tti                                     = dl_slot_cfg.idx;
-
-      if (pdsch_cfg.grant.rnti_type == srsran_rnti_type_ra) {
-        phy->rar_grant_tti = dl_slot_cfg.idx;
-      }
-
-      // Send data to MAC
-      phy->stack->tb_decoded(cc_idx, mac_nr_grant);
-
       // Generate DL metrics
       dl_metrics_t dl_m = {};
       dl_m.mcs          = pdsch_cfg.grant.tb[0].mcs;
@@ -388,7 +400,7 @@ bool cc_worker::work_ul()
     }
 
     // Set UCI configuration following procedures
-    srsran_ra_ul_set_grant_uci_nr(&phy->cfg.pusch, &uci_data.cfg, &pusch_cfg);
+    srsran_ra_ul_set_grant_uci_nr(&phy->carrier, &phy->cfg.pusch, &uci_data.cfg, &pusch_cfg);
 
     // Assigning MAC provided values to PUSCH config structs
     pusch_cfg.grant.tb[0].softbuffer.tx = ul_action.tb.softbuffer;
@@ -406,14 +418,29 @@ bool cc_worker::work_ul()
 
     // PUSCH Logging
     if (logger.info.enabled()) {
-      std::array<char, 512> str;
+      str_info_t str;
       srsran_ue_ul_nr_pusch_info(&ue_ul, &pusch_cfg, &data.uci, str.data(), str.size());
-      logger.info(ul_action.tb.payload->msg,
-                  pusch_cfg.grant.tb[0].tbs / 8,
-                  "PUSCH: cc=%d, %s, tti_tx=%d",
-                  cc_idx,
-                  str.data(),
-                  ul_slot_cfg.idx);
+
+      if (logger.debug.enabled()) {
+        str_extra_t str_extra;
+        srsran_sch_cfg_nr_info(&pusch_cfg, str_extra.data(), (uint32_t)str_extra.size());
+        logger.info(ul_action.tb.payload->msg,
+                    pusch_cfg.grant.tb[0].tbs / 8,
+                    "PUSCH: cc=%d pid=%d %s tti_tx=%d\n%s",
+                    cc_idx,
+                    pid,
+                    str.data(),
+                    ul_slot_cfg.idx,
+                    str_extra.data());
+      } else {
+        logger.info(ul_action.tb.payload->msg,
+                    pusch_cfg.grant.tb[0].tbs / 8,
+                    "PUSCH: cc=%d pid=%d %s tti_tx=%d",
+                    cc_idx,
+                    pid,
+                    str.data(),
+                    ul_slot_cfg.idx);
+      }
     }
 
     // Set metrics

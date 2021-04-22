@@ -336,7 +336,7 @@ static uint32_t pdcch_nr_c_init(const srsran_pdcch_nr_t* q, const srsran_dci_msg
 {
   uint32_t n_id = (dci_msg->ctx.ss_type == srsran_search_space_type_ue && q->coreset.dmrs_scrambling_id_present)
                       ? q->coreset.dmrs_scrambling_id
-                      : q->carrier.id;
+                      : q->carrier.pci;
   uint32_t n_rnti = (dci_msg->ctx.ss_type == srsran_search_space_type_ue && q->coreset.dmrs_scrambling_id_present)
                         ? dci_msg->ctx.rnti
                         : 0U;

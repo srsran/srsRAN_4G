@@ -316,11 +316,11 @@ uint32_t srsran_csi_str(const srsran_csi_report_cfg_t*   report_cfg,
   for (uint32_t i = 0; i < nof_reports; i++) {
     if (report_cfg[i].freq_cfg == SRSRAN_CSI_REPORT_FREQ_WIDEBAND &&
         report_cfg[i].quantity == SRSRAN_CSI_REPORT_QUANTITY_CRI_RI_PMI_CQI) {
-      len = srsran_print_check(str, str_len, len, ", cqi=%d", report_value[i].wideband_cri_ri_pmi_cqi.cqi);
+      len = srsran_print_check(str, str_len, len, "cqi=%d ", report_value[i].wideband_cri_ri_pmi_cqi.cqi);
     } else if (report_cfg[i].quantity == SRSRAN_CSI_REPORT_QUANTITY_NONE) {
       char tmp[20] = {};
       srsran_vec_sprint_bin(tmp, sizeof(tmp), report_value[i].none, report_cfg->K_csi_rs);
-      len = srsran_print_check(str, str_len, len, ", csi=%s", tmp);
+      len = srsran_print_check(str, str_len, len, "csi=%s ", tmp);
     }
   }
   return len;

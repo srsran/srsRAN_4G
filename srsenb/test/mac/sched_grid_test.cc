@@ -21,7 +21,7 @@
 
 #include "sched_test_common.h"
 #include "srsenb/hdr/stack/mac/sched_grid.h"
-#include "srsran/common/lte_common.h"
+#include "srsran/common/common_lte.h"
 #include "srsran/common/test_common.h"
 
 using namespace srsenb;

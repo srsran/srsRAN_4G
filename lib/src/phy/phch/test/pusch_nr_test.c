@@ -29,11 +29,13 @@
 #include <getopt.h>
 
 static srsran_carrier_nr_t carrier = {
-    1,                 // cell_id
-    0,                 // numerology
-    SRSRAN_MAX_PRB_NR, // nof_prb
-    0,                 // start
-    1                  // max_mimo_layers
+  1,                               // pci
+  0,                               // absolute_frequency_ssb
+  0,                               // absolute_frequency_point_a
+  srsran_subcarrier_spacing_15kHz, // scs
+  SRSRAN_MAX_PRB_NR,               // nof_prb
+  0,                               // start
+  1                                // max_mimo_layers
 };
 
 static uint32_t            n_prb        = 0;  // Set to 0 for steering
@@ -167,7 +169,7 @@ int main(int argc, char** argv)
   }
 
   // Use grant default A time resources with m=0
-  if (srsran_ra_ul_nr_pusch_time_resource_default_A(carrier.numerology, 0, &pusch_cfg.grant) < SRSRAN_SUCCESS) {
+  if (srsran_ra_ul_nr_pusch_time_resource_default_A(carrier.scs, 0, &pusch_cfg.grant) < SRSRAN_SUCCESS) {
     ERROR("Error loading default grant");
     goto clean_exit;
   }
@@ -196,9 +198,11 @@ int main(int argc, char** argv)
     mcs_end   = SRSRAN_MIN(mcs + 1, mcs_end);
   }
 
-  pusch_cfg.scaling               = 0.5f;
-  pusch_cfg.beta_harq_ack_offset  = 2.0f;
-  pusch_cfg.beta_csi_part1_offset = 2.0f;
+  srsran_sch_hl_cfg_nr_t sch_hl_cfg = {};
+  sch_hl_cfg.scaling                = 1.0f;
+  sch_hl_cfg.beta_offsets.fix_ack   = 12.625f;
+  sch_hl_cfg.beta_offsets.fix_csi1  = 2.25f;
+  sch_hl_cfg.beta_offsets.fix_csi2  = 2.25f;
 
   if (srsran_chest_dl_res_init(&chest, carrier.nof_prb) < SRSRAN_SUCCESS) {
     ERROR("Initiating chest");
@@ -252,6 +256,11 @@ int main(int argc, char** argv)
         }
 
         data_rx.uci.csi[0].none = csi_report_rx;
+      }
+
+      if (srsran_ra_ul_set_grant_uci_nr(&carrier, &sch_hl_cfg, &pusch_cfg.uci, &pusch_cfg) < SRSRAN_SUCCESS) {
+        ERROR("Setting UCI");
+        goto clean_exit;
       }
 
       if (srsran_pusch_nr_encode(&pusch_tx, &pusch_cfg, &pusch_cfg.grant, &data_tx, sf_symbols) < SRSRAN_SUCCESS) {
@@ -347,6 +356,15 @@ int main(int argc, char** argv)
           srsran_vec_fprint_byte(stdout, data_rx.uci.csi[0].none, nof_csi_bits);
           goto clean_exit;
         }
+      }
+
+      if (srsran_verbose >= SRSRAN_VERBOSE_INFO) {
+        char str[512];
+        srsran_pusch_nr_rx_info(&pusch_rx, &pusch_cfg, &pusch_cfg.grant, &data_rx, str, (uint32_t)sizeof(str));
+
+        char str_extra[2048];
+        srsran_sch_cfg_nr_info(&pusch_cfg, str_extra, (uint32_t)sizeof(str_extra));
+        INFO("PUSCH: %s\n%s", str, str_extra);
       }
 
       printf("n_prb=%d; mcs=%d; TBS=%d; EVM=%f; PASSED!\n", n_prb, mcs, pusch_cfg.grant.tb[0].tbs, data_rx.evm[0]);

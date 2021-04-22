@@ -743,15 +743,12 @@ int srsran_sch_nr_tb_info(const srsran_sch_tb_t* tb, const srsran_sch_tb_res_nr_
     len = srsran_print_check(str,
                              str_len,
                              len,
-                             "CW%d: mod=%s Nl=%d tbs=%d R=%.3f rv=%d Nre=%d Nbit=%d ",
+                             "CW%d: mod=%s tbs=%d R=%.3f rv=%d ",
                              tb->cw_idx,
                              srsran_mod_string(tb->mod),
-                             tb->N_L,
                              tb->tbs / 8,
                              tb->R,
-                             tb->rv,
-                             tb->nof_re,
-                             tb->nof_bits);
+                             tb->rv);
 
     if (res != NULL) {
       len = srsran_print_check(str, str_len, len, "CRC=%s iter=%.1f ", res->crc ? "OK" : "KO", res->avg_iter);

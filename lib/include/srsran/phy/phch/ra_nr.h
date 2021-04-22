@@ -137,12 +137,14 @@ SRSRAN_API int srsran_ra_ul_dci_to_grant_nr(const srsran_carrier_nr_t*    carrie
  *
  * @remark Implement procedure described in TS 38.213 9.3 UCI reporting in physical uplink shared channel
  *
+ * @param carrier Carrier information struct
  * @param pusch_hl_cfg PUSCH configuration provided by higher layers
  * @param uci_cfg Uplink Control Information configuration for this PUSCH transmission
  * @param pusch_cfg PUSCH configuration after applying the procedure
  * @return SRSRAN_SUCCESS if the procedure is successful, SRSRAN_ERROR code otherwise
  */
-SRSRAN_API int srsran_ra_ul_set_grant_uci_nr(const srsran_sch_hl_cfg_nr_t* pusch_hl_cfg,
+SRSRAN_API int srsran_ra_ul_set_grant_uci_nr(const srsran_carrier_nr_t*    carrier,
+                                             const srsran_sch_hl_cfg_nr_t* pusch_hl_cfg,
                                              const srsran_uci_cfg_nr_t*    uci_cfg,
                                              srsran_sch_cfg_nr_t*          pusch_cfg);
 

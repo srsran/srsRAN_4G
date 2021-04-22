@@ -69,7 +69,7 @@ void ul_harq_entity_nr::new_grant_ul(const mac_interface_phy_nr::mac_nr_grant_ul
                                      mac_interface_phy_nr::tb_action_ul_t*          action)
 {
   if (grant.pid >= harq_procs.size()) {
-    logger.error("Invalid PID: %d", grant.pid);
+    logger.error("UL grant for invalid HARQ PID=%d", grant.pid);
     return;
   }
 
@@ -108,7 +108,7 @@ void ul_harq_entity_nr::new_grant_ul(const mac_interface_phy_nr::mac_nr_grant_ul
 int ul_harq_entity_nr::get_current_tbs(uint32_t pid)
 {
   if (pid >= harq_procs.size()) {
-    logger.error("Invalid PID: %d", pid);
+    logger.error("Invalid HARQ PID=%d", pid);
     return 0;
   }
   return harq_procs.at(pid).get_current_tbs();

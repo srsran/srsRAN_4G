@@ -216,7 +216,8 @@ srsran::pdcp_config_t make_srb_pdcp_config_t(const uint8_t bearer_id, bool is_ue
                     PDCP_SN_LEN_5,
                     pdcp_t_reordering_t::ms500,
                     pdcp_discard_timer_t::infinity,
-                    false);
+                    false,
+                    srsran_rat_t::lte);
   return cfg;
 }
 
@@ -229,7 +230,8 @@ srsran::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue
                     PDCP_SN_LEN_12,
                     pdcp_t_reordering_t::ms500,
                     pdcp_discard_timer_t::infinity,
-                    false);
+                    false,
+                    srsran_rat_t::lte);
   return cfg;
 }
 
@@ -334,7 +336,8 @@ srsran::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue
                     sn_len,
                     t_reordering,
                     discard_timer,
-                    status_report_required);
+                    status_report_required,
+                    srsran_rat_t::lte);
   return cfg;
 }
 
@@ -388,7 +391,9 @@ void set_mac_cfg_t_rach_cfg_common(mac_cfg_t* cfg, const asn1::rrc::rach_cfg_com
     cfg->rach_cfg.messagePowerOffsetGroupB =
         asn1_type.preamb_info.preambs_group_a_cfg.msg_pwr_offset_group_b.to_number();
   } else {
-    cfg->rach_cfg.nof_groupA_preambles = 0;
+    // If the field is not signalled, the size of the random access preambles group A [6] is equal to
+    // numberOfRA-Preambles
+    cfg->rach_cfg.nof_groupA_preambles = cfg->rach_cfg.nof_preambles;
   }
 
   // Power ramping

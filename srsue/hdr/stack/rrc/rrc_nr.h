@@ -25,12 +25,12 @@
 #include "srsran/asn1/rrc_nr.h"
 #include "srsran/asn1/rrc_nr_utils.h"
 #include "srsran/common/block_queue.h"
+#include "srsran/common/common_nr.h"
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/stack_procedure.h"
 #include "srsran/common/task_scheduler.h"
-#include "srsran/interfaces/nr_common_interface_types.h"
-#include "srsran/interfaces/ue_nr_interfaces.h"
 #include "srsran/interfaces/ue_rrc_interfaces.h"
+#include "srsran/interfaces/ue_nr_interfaces.h"
 #include "srsue/hdr/stack/upper/gw.h"
 
 namespace srsue {
@@ -49,6 +49,7 @@ struct core_less_args_t {
 
 struct rrc_nr_args_t {
   core_less_args_t      coreless;
+  std::string           supported_bands_nr_str;
   std::vector<uint32_t> supported_bands_nr;
   std::vector<uint32_t> supported_bands_eutra;
   std::string           log_level;
@@ -181,24 +182,20 @@ private:
   // RRC constants and timers
   srsran::timer_handler* timers = nullptr;
 
-  const char* get_rb_name(uint32_t lcid) final { return srsran::to_string((srsran::rb_id_nr_t)lcid); }
+  const char* get_rb_name(uint32_t lcid) final;
 
-  typedef enum { Srb = 0, Drb } rb_type_t;
-  typedef struct {
-    uint32_t  rb_id;
-    rb_type_t rb_type;
-  } rb_t;
+  bool     add_lcid_drb(uint32_t lcid, uint32_t drb_id);
+  uint32_t get_lcid_for_drbid(uint32_t rdid);
 
-  bool     add_lcid_rb(uint32_t lcid, rb_type_t rb_type, uint32_t rbid);
-  uint32_t get_lcid_for_rbid(uint32_t rdid);
-
-  std::map<uint32_t, rb_t> lcid_rb; // Map of lcid to radio bearer (type and rb id)
+  std::map<uint32_t, srsran::nr_drb> lcid_drb; // Map of lcid to drb
 
   std::map<uint32_t, uint32_t> drb_eps_bearer_id; // Map of drb id to eps_bearer_id
 
   // temporary maps for building the pucch nr resources
-  std::map<uint32_t, srsran_pucch_nr_resource_t> res_list;
-  std::map<uint32_t, bool>                       res_list_present;
+  std::map<uint32_t, srsran_pucch_nr_resource_t>   res_list;
+  std::map<uint32_t, bool>                         res_list_present;
+  std::map<uint32_t, srsran_csi_rs_zp_resource_t>  csi_rs_zp_res;
+  std::map<uint32_t, srsran_csi_rs_nzp_resource_t> csi_rs_nzp_res;
 
   bool apply_cell_group_cfg(const asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg);
   bool apply_radio_bearer_cfg(const asn1::rrc_nr::radio_bearer_cfg_s& radio_bearer_cfg);

@@ -46,8 +46,6 @@ typedef struct SRSRAN_API {
   srsran_sch_nr_args_t sch;
   bool                 measure_evm;
   bool                 measure_time;
-  bool                 disable_zero_re_around_dc; ///< PDSCH NR sets the LLR around the DC to zero to avoid noise
-  uint32_t             nof_zero_re_around_dc; ///< Number of RE to set to zero around DC. It uses default value if 0.
 } srsran_pdsch_nr_args_t;
 
 /**
@@ -68,8 +66,6 @@ typedef struct SRSRAN_API {
   uint32_t             meas_time_us;
   srsran_re_pattern_t  dmrs_re_pattern;
   uint32_t             nof_rvd_re;
-  uint32_t nof_zero_re_around_dc; ///< Sets a number of RE surrounding the center of the resource grid to zero. Set to 0
-                                  ///< for disabling.
 } srsran_pdsch_nr_t;
 
 /**

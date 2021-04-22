@@ -113,10 +113,18 @@ typedef struct {
 class rlc_amd_pdu_header_t
 {
 public:
-  rlc_amd_pdu_header_t() {}
-
+  rlc_amd_pdu_header_t() = default;
   rlc_amd_pdu_header_t(const rlc_amd_pdu_header_t& h) { copy(h); }
+  rlc_amd_pdu_header_t(rlc_amd_pdu_header_t&& h) noexcept { copy(h); }
   rlc_amd_pdu_header_t& operator=(const rlc_amd_pdu_header_t& h)
+  {
+    if (this == &h) {
+      return *this;
+    }
+    copy(h);
+    return *this;
+  }
+  rlc_amd_pdu_header_t& operator=(rlc_amd_pdu_header_t&& h) noexcept
   {
     copy(h);
     return *this;

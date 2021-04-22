@@ -22,7 +22,7 @@
 #include "sched_test_common.h"
 #include "srsenb/hdr/stack/mac/sched.h"
 #include "srsran/adt/accumulators.h"
-#include "srsran/common/lte_common.h"
+#include "srsran/common/common_lte.h"
 #include <chrono>
 
 namespace srsenb {

@@ -34,7 +34,7 @@
 #include "sched_common_test_suite.h"
 #include "sched_test_common.h"
 #include "sched_test_utils.h"
-#include "srsran/common/lte_common.h"
+#include "srsran/common/common_lte.h"
 #include "srsran/common/test_common.h"
 
 namespace srsenb {

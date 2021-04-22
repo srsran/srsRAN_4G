@@ -160,7 +160,8 @@ protected:
                        PDCP_SN_LEN_12,
                        pdcp_t_reordering_t::ms500,
                        pdcp_discard_timer_t::infinity,
-                       false};
+                       false,
+                       srsran_rat_t::lte};
 
   srsran::as_security_config_t sec_cfg = {};
 

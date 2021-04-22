@@ -844,8 +844,8 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
           logger.error("Failed to allocate GTPU TEID for E-RAB id=%d", fwd_erab.erab_id);
           not_admitted_erabs.emplace_back();
           not_admitted_erabs.back().erab_id = erab.second.id;
-          not_admitted_erabs.back().cause.set_radio_network().value =
-              asn1::s1ap::cause_radio_network_opts::no_radio_res_available_in_target_cell;
+          not_admitted_erabs.back().cause.set_transport().value =
+              asn1::s1ap::cause_transport_opts::transport_res_unavailable;
           admitted_erabs.pop_back();
           continue;
         }
@@ -921,8 +921,8 @@ bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&      
     if (rrc_ue->bearer_list.add_gtpu_bearer(erab.erab_id) != SRSRAN_SUCCESS) {
       erabs_failed_to_setup.emplace_back();
       erabs_failed_to_setup.back().erab_id = erab.erab_id;
-      erabs_failed_to_setup.back().cause.set_radio_network().value =
-          asn1::s1ap::cause_radio_network_opts::no_radio_res_available_in_target_cell;
+      erabs_failed_to_setup.back().cause.set_transport().value =
+          asn1::s1ap::cause_transport_opts::transport_res_unavailable;
       continue;
     }
   }

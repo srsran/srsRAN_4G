@@ -35,6 +35,10 @@ class pdcp : public srsue::pdcp_interface_rlc, public srsue::pdcp_interface_rrc
 public:
   pdcp(srsran::task_sched_handle task_sched_, const char* logname);
   virtual ~pdcp();
+  void init(srsue::rlc_interface_pdcp* rlc_,
+            srsue::rrc_interface_pdcp* rrc_,
+            srsue::rrc_interface_pdcp* rrc_nr_,
+            srsue::gw_interface_pdcp*  gw_);
   void init(srsue::rlc_interface_pdcp* rlc_, srsue::rrc_interface_pdcp* rrc_, srsue::gw_interface_pdcp* gw_);
   void stop();
 
@@ -78,9 +82,10 @@ public:
   void reset_metrics();
 
 private:
-  srsue::rlc_interface_pdcp* rlc = nullptr;
-  srsue::rrc_interface_pdcp* rrc = nullptr;
-  srsue::gw_interface_pdcp*  gw  = nullptr;
+  srsue::rlc_interface_pdcp* rlc    = nullptr;
+  srsue::rrc_interface_pdcp* rrc    = nullptr;
+  srsue::rrc_interface_pdcp* rrc_nr = nullptr;
+  srsue::gw_interface_pdcp*  gw     = nullptr;
   srsran::task_sched_handle  task_sched;
   srslog::basic_logger&      logger;
 
