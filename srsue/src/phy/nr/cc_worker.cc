@@ -353,8 +353,10 @@ bool cc_worker::work_ul()
     }
   }
 
-  // Add SR to UCI data if available
-  phy->get_pending_sr(ul_slot_cfg.idx, uci_data);
+  // Add SR to UCI data only if there is no UL grant!
+  if (!has_ul_ack) {
+    phy->get_pending_sr(ul_slot_cfg.idx, uci_data);
+  }
 
   // Add CSI reports to UCI data if available
   phy->get_periodic_csi(ul_slot_cfg.idx, uci_data);
