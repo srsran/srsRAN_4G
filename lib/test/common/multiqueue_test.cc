@@ -12,19 +12,12 @@
 
 #include "srsran/adt/move_callback.h"
 #include "srsran/common/multiqueue.h"
+#include "srsran/common/test_common.h"
 #include "srsran/common/thread_pool.h"
 #include <iostream>
 #include <map>
 #include <thread>
 #include <unistd.h>
-
-#define TESTASSERT(cond)                                                                                               \
-  {                                                                                                                    \
-    if (!(cond)) {                                                                                                     \
-      std::cout << "[" << __FUNCTION__ << "][Line " << __LINE__ << "]: FAIL at " << (#cond) << std::endl;              \
-      return -1;                                                                                                       \
-    }                                                                                                                  \
-  }
 
 using namespace srsran;
 
@@ -35,79 +28,80 @@ int test_multiqueue()
   int number = 2;
 
   multiqueue_handler<int> multiqueue;
-  TESTASSERT(multiqueue.nof_queues() == 0)
+  TESTASSERT(multiqueue.nof_queues() == 0);
 
   // test push/pop and size for one queue
-  int qid1 = multiqueue.add_queue();
-  TESTASSERT(qid1 == 0 and multiqueue.is_queue_active(qid1))
-  TESTASSERT(multiqueue.size(qid1) == 0 and multiqueue.empty(qid1))
-  TESTASSERT(multiqueue.nof_queues() == 1)
-  TESTASSERT(multiqueue.try_push(qid1, 5).first)
-  TESTASSERT(multiqueue.try_push(qid1, number))
-  TESTASSERT(multiqueue.size(qid1) == 2 and not multiqueue.empty(qid1))
-  TESTASSERT(multiqueue.wait_pop(&number) == qid1)
-  TESTASSERT(number == 5)
-  TESTASSERT(multiqueue.wait_pop(&number) == qid1)
-  TESTASSERT(number == 2 and multiqueue.empty(qid1) and multiqueue.size(qid1) == 0)
+  queue_handle<int> qid1 = multiqueue.add_queue();
+  TESTASSERT(qid1.active());
+  TESTASSERT(qid1.size() == 0 and qid1.empty());
+  TESTASSERT(multiqueue.nof_queues() == 1);
+  TESTASSERT(qid1.try_push(5).has_value());
+  TESTASSERT(qid1.try_push(number));
+  TESTASSERT(qid1.size() == 2 and not qid1.empty());
+  TESTASSERT(multiqueue.wait_pop(&number));
+  TESTASSERT(number == 5);
+  TESTASSERT(multiqueue.wait_pop(&number));
+  TESTASSERT(number == 2 and qid1.empty());
 
   // test push/pop and size for two queues
-  int qid2 = multiqueue.add_queue();
-  TESTASSERT(qid2 == 1)
-  TESTASSERT(multiqueue.nof_queues() == 2 and multiqueue.is_queue_active(qid1))
-  TESTASSERT(multiqueue.try_push(qid2, 3).first)
-  TESTASSERT(multiqueue.size(qid2) == 1 and not multiqueue.empty(qid2))
-  TESTASSERT(multiqueue.empty(qid1) and multiqueue.size(qid1) == 0)
+  queue_handle<int> qid2 = multiqueue.add_queue();
+  TESTASSERT(qid2.active());
+  TESTASSERT(multiqueue.nof_queues() == 2 and qid1.active());
+  TESTASSERT(qid2.try_push(3).has_value());
+  TESTASSERT(qid2.size() == 1 and not qid2.empty());
+  TESTASSERT(qid1.empty());
 
   // check if erasing a queue breaks anything
-  multiqueue.erase_queue(qid1);
-  TESTASSERT(multiqueue.nof_queues() == 1 and not multiqueue.is_queue_active(qid1))
+  qid1.reset();
+  TESTASSERT(multiqueue.nof_queues() == 1 and not qid1.active());
   qid1 = multiqueue.add_queue();
-  TESTASSERT(qid1 == 0)
-  TESTASSERT(multiqueue.empty(qid1) and multiqueue.is_queue_active(qid1))
+  TESTASSERT(qid1.empty() and qid1.active());
+  TESTASSERT(qid2.size() == 1 and not qid2.empty());
   multiqueue.wait_pop(&number);
 
   // check round-robin
   for (int i = 0; i < 10; ++i) {
-    TESTASSERT(multiqueue.try_push(qid1, i))
+    TESTASSERT(qid1.try_push(i));
   }
   for (int i = 20; i < 35; ++i) {
-    TESTASSERT(multiqueue.try_push(qid2, i))
+    TESTASSERT(qid2.try_push(i));
   }
-  TESTASSERT(multiqueue.size(qid1) == 10)
-  TESTASSERT(multiqueue.size(qid2) == 15)
-  TESTASSERT(multiqueue.wait_pop(&number) == qid1 and number == 0)
-  TESTASSERT(multiqueue.wait_pop(&number) == qid2 and number == 20)
-  TESTASSERT(multiqueue.wait_pop(&number) == qid1 and number == 1)
-  TESTASSERT(multiqueue.wait_pop(&number) == qid2 and number == 21)
-  TESTASSERT(multiqueue.size(qid1) == 8)
-  TESTASSERT(multiqueue.size(qid2) == 13)
+  TESTASSERT(qid1.size() == 10);
+  TESTASSERT(qid2.size() == 15);
+  TESTASSERT(multiqueue.wait_pop(&number) and number == 0);
+  TESTASSERT(multiqueue.wait_pop(&number) and number == 20);
+  TESTASSERT(multiqueue.wait_pop(&number) and number == 1);
+  TESTASSERT(multiqueue.wait_pop(&number) and number == 21);
+  TESTASSERT(qid1.size() == 8);
+  TESTASSERT(qid2.size() == 13);
   for (int i = 0; i < 8 * 2; ++i) {
     multiqueue.wait_pop(&number);
   }
-  TESTASSERT(multiqueue.size(qid1) == 0)
-  TESTASSERT(multiqueue.size(qid2) == 5)
-  TESTASSERT(multiqueue.wait_pop(&number) == qid2 and number == 30)
+  TESTASSERT(qid1.size() == 0);
+  TESTASSERT(qid2.size() == 5);
+  TESTASSERT(multiqueue.wait_pop(&number) and number == 30);
 
   // remove existing queues
-  multiqueue.erase_queue(qid1);
-  multiqueue.erase_queue(qid2);
-  TESTASSERT(multiqueue.nof_queues() == 0)
+  qid1.reset();
+  qid2.reset();
+  TESTASSERT(multiqueue.nof_queues() == 0);
 
   // check that adding a queue of different capacity works
   {
-    int qid1 = multiqueue.add_queue();
-    int qid2 = multiqueue.add_queue();
+    qid1 = multiqueue.add_queue();
+    qid2 = multiqueue.add_queue();
 
     // remove first queue again
-    multiqueue.erase_queue(qid1);
-    TESTASSERT(multiqueue.nof_queues() == 1)
+    qid1.reset();
+    TESTASSERT(multiqueue.nof_queues() == 1);
 
     // add queue with non-default capacity
-    int qid3 = multiqueue.add_queue(10);
+    auto qid3 = multiqueue.add_queue(10);
+    TESTASSERT(qid3.capacity() == 10);
 
     // make sure neither a new queue index is returned
-    TESTASSERT(qid1 != qid3)
-    TESTASSERT(qid2 != qid3)
+    TESTASSERT(qid1 != qid3);
+    TESTASSERT(qid2 != qid3);
   }
 
   std::cout << "outcome: Success\n";
@@ -122,10 +116,10 @@ int test_multiqueue_threading()
 
   int                     capacity = 4, number = 0, start_number = 2, nof_pushes = capacity + 1;
   multiqueue_handler<int> multiqueue(capacity);
-  int                     qid1 = multiqueue.add_queue();
-  auto push_blocking_func      = [&multiqueue](int qid, int start_value, int nof_pushes, bool* is_running) {
+  auto                    qid1 = multiqueue.add_queue();
+  auto push_blocking_func      = [](queue_handle<int>* qid, int start_value, int nof_pushes, bool* is_running) {
     for (int i = 0; i < nof_pushes; ++i) {
-      multiqueue.push(qid, start_value + i);
+      qid->push(start_value + i);
       std::cout << "t1: pushed item " << i << std::endl;
     }
     std::cout << "t1: pushed all items\n";
@@ -133,17 +127,17 @@ int test_multiqueue_threading()
   };
 
   bool        t1_running = true;
-  std::thread t1(push_blocking_func, qid1, start_number, nof_pushes, &t1_running);
+  std::thread t1(push_blocking_func, &qid1, start_number, nof_pushes, &t1_running);
 
   // Wait for queue to fill
-  while ((int)multiqueue.size(qid1) != capacity) {
+  while ((int)qid1.size() != capacity) {
     usleep(1000);
-    TESTASSERT(t1_running)
+    TESTASSERT(t1_running);
   }
 
   for (int i = 0; i < nof_pushes; ++i) {
-    TESTASSERT(multiqueue.wait_pop(&number) == qid1)
-    TESTASSERT(number == start_number + i)
+    TESTASSERT(multiqueue.wait_pop(&number));
+    TESTASSERT(number == start_number + i);
     std::cout << "main: popped item " << i << "\n";
   }
   std::cout << "main: popped all items\n";
@@ -152,7 +146,7 @@ int test_multiqueue_threading()
   while (t1_running) {
     usleep(1000);
   }
-  TESTASSERT(multiqueue.size(qid1) == 0)
+  TESTASSERT(qid1.size() == 0);
 
   multiqueue.reset();
   t1.join();
@@ -170,22 +164,22 @@ int test_multiqueue_threading2()
 
   int                     capacity = 4, start_number = 2, nof_pushes = capacity + 1;
   multiqueue_handler<int> multiqueue(capacity);
-  int                     qid1 = multiqueue.add_queue();
-  auto push_blocking_func      = [&multiqueue](int qid, int start_value, int nof_pushes, bool* is_running) {
+  auto                    qid1 = multiqueue.add_queue();
+  auto push_blocking_func      = [](queue_handle<int>* qid, int start_value, int nof_pushes, bool* is_running) {
     for (int i = 0; i < nof_pushes; ++i) {
-      multiqueue.push(qid, start_value + i);
+      qid->push(start_value + i);
     }
     std::cout << "t1: pushed all items\n";
     *is_running = false;
   };
 
   bool        t1_running = true;
-  std::thread t1(push_blocking_func, qid1, start_number, nof_pushes, &t1_running);
+  std::thread t1(push_blocking_func, &qid1, start_number, nof_pushes, &t1_running);
 
   // Wait for queue to fill
-  while ((int)multiqueue.size(qid1) != capacity) {
+  while ((int)qid1.size() != capacity) {
     usleep(1000);
-    TESTASSERT(t1_running)
+    TESTASSERT(t1_running);
   }
 
   multiqueue.reset();
@@ -204,23 +198,25 @@ int test_multiqueue_threading3()
 
   int                     capacity = 4;
   multiqueue_handler<int> multiqueue(capacity);
-  int                     qid1              = multiqueue.add_queue();
-  auto                    pop_blocking_func = [&multiqueue](int qid, bool* success) {
-    int number = 0;
-    int id     = multiqueue.wait_pop(&number);
-    *success   = id < 0;
+  auto                    qid1              = multiqueue.add_queue();
+  auto                    pop_blocking_func = [&multiqueue](bool* success) {
+    int  number = 0;
+    bool ret    = multiqueue.wait_pop(&number);
+    *success    = not ret;
   };
 
   bool        t1_success = false;
-  std::thread t1(pop_blocking_func, qid1, &t1_success);
+  std::thread t1(pop_blocking_func, &t1_success);
 
-  TESTASSERT(not t1_success)
+  TESTASSERT(not t1_success);
   usleep(1000);
-  TESTASSERT(not t1_success)
-  TESTASSERT((int)multiqueue.size(qid1) == 0)
+  TESTASSERT(not t1_success);
+  TESTASSERT((int)qid1.size() == 0);
 
   // Should be able to unlock all
   multiqueue.reset();
+  TESTASSERT(multiqueue.nof_queues() == 0);
+  TESTASSERT(not qid1.active());
   t1.join();
   TESTASSERT(t1_success);
 

@@ -218,7 +218,7 @@ bool enb_stack_lte::get_metrics(stack_metrics_t* metrics)
     }
   });
 
-  if (ret.first) {
+  if (ret.has_value()) {
     // wait for result
     *metrics = pending_stack_metrics.pop_blocking();
     return true;

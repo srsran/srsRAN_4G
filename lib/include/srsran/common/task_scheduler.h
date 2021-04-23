@@ -26,7 +26,7 @@ public:
   explicit task_scheduler(uint32_t default_extern_tasks_size = 512, uint32_t nof_timers_prealloc = 100) :
     external_tasks{default_extern_tasks_size}, timers{nof_timers_prealloc}
   {
-    background_queue_id = external_tasks.add_queue();
+    background_queue = external_tasks.add_queue();
   }
   task_scheduler(const task_scheduler&) = delete;
   task_scheduler(task_scheduler&&)      = delete;
@@ -38,8 +38,8 @@ public:
   srsran::unique_timer get_unique_timer() { return timers.get_unique_timer(); }
 
   //! Creates new queue for tasks coming from external thread
-  srsran::task_queue_handle make_task_queue() { return external_tasks.get_queue_handler(); }
-  srsran::task_queue_handle make_task_queue(uint32_t qsize) { return external_tasks.get_queue_handler(qsize); }
+  srsran::task_queue_handle make_task_queue() { return external_tasks.add_queue(); }
+  srsran::task_queue_handle make_task_queue(uint32_t qsize) { return external_tasks.add_queue(qsize); }
 
   //! Delays a task processing by duration_ms
   template <typename F>
@@ -55,7 +55,7 @@ public:
   void notify_background_task_result(srsran::move_task_t task)
   {
     // run the notification in next tic
-    external_tasks.push(background_queue_id, std::move(task));
+    background_queue.push(std::move(task));
   }
 
   //! Updates timers, and run any pending internal tasks.
@@ -67,7 +67,7 @@ public:
   bool run_next_task()
   {
     srsran::move_task_t task{};
-    if (external_tasks.wait_pop(&task) >= 0) {
+    if (external_tasks.wait_pop(&task)) {
       task();
       run_all_internal_tasks();
       return true;
@@ -81,7 +81,7 @@ public:
   {
     run_all_internal_tasks();
     srsran::move_task_t task{};
-    while (external_tasks.try_pop(&task) >= 0) {
+    while (external_tasks.try_pop(&task)) {
       task();
       run_all_internal_tasks();
     }
@@ -101,9 +101,9 @@ private:
     }
   }
 
-  int                     background_queue_id = -1; ///< Queue for handling the outcomes of tasks run in the background
-  srsran::task_multiqueue external_tasks;
-  srsran::timer_handler   timers;
+  srsran::task_multiqueue         external_tasks;
+  srsran::task_queue_handle       background_queue; ///< Queue for handling the outcomes of tasks run in the background
+  srsran::timer_handler           timers;
   std::deque<srsran::move_task_t> internal_tasks; ///< enqueues stack tasks from within main thread. Avoids locking
 };
 

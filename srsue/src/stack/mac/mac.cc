@@ -338,7 +338,7 @@ void mac::bch_decoded_ok(uint32_t cc_idx, uint8_t* payload, uint32_t len)
     buf->set_timestamp();
     auto p = stack_task_dispatch_queue.try_push(std::bind(
         [this](srsran::unique_byte_buffer_t& buf) { rlc_h->write_pdu_bcch_bch(std::move(buf)); }, std::move(buf)));
-    if (not p.first) {
+    if (p.is_error()) {
       Warning("Failed to dispatch rlc::write_pdu_bcch_bch task to stack");
     }
   } else {
@@ -399,7 +399,7 @@ void mac::tb_decoded(uint32_t cc_idx, mac_grant_dl_t grant, bool ack[SRSRAN_MAX_
 
       auto ret = stack_task_dispatch_queue.try_push(std::bind(
           [this](srsran::unique_byte_buffer_t& pdu) { rlc_h->write_pdu_pcch(std::move(pdu)); }, std::move(pdu)));
-      if (not ret.first) {
+      if (ret.is_error()) {
         Warning("Failed to dispatch rlc::write_pdu_pcch task to stack");
       }
     } else {
@@ -477,7 +477,7 @@ void mac::process_pdus()
       have_data = demux_unit.process_pdus();
     }
   });
-  if (not ret.first) {
+  if (ret.is_error()) {
     Warning("Failed to dispatch mac::%s task to stack thread", __func__);
   }
 }

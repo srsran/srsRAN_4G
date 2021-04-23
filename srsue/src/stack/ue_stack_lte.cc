@@ -119,7 +119,7 @@ int ue_stack_lte::init(const stack_args_t& args_)
   mac_nr_logger.set_hex_dump_max_size(args.log.mac_hex_limit);
   rrc_nr_logger.set_level(srslog::str_to_basic_level(args.log.rrc_level));
   rrc_nr_logger.set_hex_dump_max_size(args.log.rrc_hex_limit);
-  
+
   // Set up pcap
   // parse pcap trace list
   std::vector<std::string> pcap_list;
@@ -341,7 +341,7 @@ void ue_stack_lte::run_thread()
 void ue_stack_lte::write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu)
 {
   auto task = [this, lcid](srsran::unique_byte_buffer_t& sdu) { pdcp.write_sdu(lcid, std::move(sdu)); };
-  bool ret  = gw_queue_id.try_push(std::bind(task, std::move(sdu))).first;
+  bool ret  = gw_queue_id.try_push(std::bind(task, std::move(sdu))).has_value();
   if (not ret) {
     pdcp_logger.info("GW SDU with lcid=%d was discarded.", lcid);
     ul_dropped_sdus++;
