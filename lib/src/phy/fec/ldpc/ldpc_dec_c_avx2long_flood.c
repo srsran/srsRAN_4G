@@ -147,7 +147,7 @@ void* create_ldpc_dec_c_avx2long_flood(uint8_t bgN, uint8_t bgM, uint16_t ls, fl
     return NULL;
   }
 
-  if ((vp->check_to_var = srsran_vec_malloc((hrr + 1) * bgM * n_subnodes * sizeof(__m256i))) == NULL) {
+  if ((vp->check_to_var = srsran_vec_malloc((long)(hrr + 1) * bgM * n_subnodes * sizeof(__m256i))) == NULL) {
     free(vp->soft_bits);
     free(vp->llrs);
     free(vp);
@@ -205,7 +205,7 @@ void* create_ldpc_dec_c_avx2long_flood(uint8_t bgN, uint8_t bgM, uint16_t ls, fl
     return NULL;
   }
 
-  if ((vp->rotated_v2c = srsran_vec_malloc((hrr + 1) * n_subnodes * sizeof(__m256i))) == NULL) {
+  if ((vp->rotated_v2c = srsran_vec_malloc((long)(hrr + 1) * n_subnodes * sizeof(__m256i))) == NULL) {
     free(vp->min_ix_epi8);
     free(vp->prod_v2c_epi8);
     free(vp->mins_v2c_epi8);
