@@ -47,6 +47,7 @@ struct pucch_res_s;
 struct sched_request_res_cfg_s;
 struct pusch_cfg_s;
 struct pdsch_cfg_s;
+struct dmrs_dl_cfg_s;
 struct dmrs_ul_cfg_s;
 struct beta_offsets_s;
 struct uci_on_pusch_s;
@@ -93,8 +94,10 @@ bool make_phy_pusch_alloc_type(const asn1::rrc_nr::pusch_cfg_s& pusch_cfg,
                                srsran_resource_alloc_t*         in_srsran_resource_alloc);
 bool make_phy_pdsch_alloc_type(const asn1::rrc_nr::pdsch_cfg_s& pdsch_cfg,
                                srsran_resource_alloc_t*         in_srsran_resource_alloc);
-bool make_phy_dmrs_additional_pos(const asn1::rrc_nr::dmrs_ul_cfg_s& dmrs_ul_cfg,
-                                  srsran_dmrs_sch_add_pos_t*         srsran_dmrs_sch_add_pos);
+bool make_phy_dmrs_dl_additional_pos(const asn1::rrc_nr::dmrs_dl_cfg_s& dmrs_dl_cfg,
+                                     srsran_dmrs_sch_add_pos_t*         in_srsran_dmrs_sch_add_pos);
+bool make_phy_dmrs_ul_additional_pos(const asn1::rrc_nr::dmrs_ul_cfg_s& dmrs_ul_cfg,
+                                     srsran_dmrs_sch_add_pos_t*         srsran_dmrs_sch_add_pos);
 bool make_phy_beta_offsets(const asn1::rrc_nr::beta_offsets_s& beta_offsets,
                            srsran_beta_offsets_t*              srsran_beta_offsets);
 bool make_phy_pusch_scaling(const asn1::rrc_nr::uci_on_pusch_s& uci_on_pusch, float* scaling);

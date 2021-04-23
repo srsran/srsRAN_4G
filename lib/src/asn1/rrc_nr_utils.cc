@@ -829,8 +829,34 @@ bool make_phy_pdsch_alloc_type(const asn1::rrc_nr::pdsch_cfg_s& pdsch_cfg,
   return true;
 }
 
-bool make_phy_dmrs_additional_pos(const dmrs_ul_cfg_s&       dmrs_ul_cfg,
-                                  srsran_dmrs_sch_add_pos_t* in_srsran_dmrs_sch_add_pos)
+bool make_phy_dmrs_dl_additional_pos(const dmrs_dl_cfg_s&       dmrs_dl_cfg,
+                                     srsran_dmrs_sch_add_pos_t* in_srsran_dmrs_sch_add_pos)
+{
+  srsran_dmrs_sch_add_pos_t srsran_dmrs_sch_add_pos = {};
+  if (not dmrs_dl_cfg.dmrs_add_position_present) {
+    asn1::log_warning("dmrs_add_position option not present");
+  }
+
+  switch (dmrs_dl_cfg.dmrs_add_position) {
+    case dmrs_dl_cfg_s::dmrs_add_position_opts::pos0:
+      srsran_dmrs_sch_add_pos = srsran_dmrs_sch_add_pos_0;
+      break;
+    case dmrs_dl_cfg_s::dmrs_add_position_opts::pos1:
+      srsran_dmrs_sch_add_pos = srsran_dmrs_sch_add_pos_1;
+      break;
+    case dmrs_dl_cfg_s::dmrs_add_position_opts::pos3:
+      srsran_dmrs_sch_add_pos = srsran_dmrs_sch_add_pos_3;
+      break;
+    default:
+      asn1::log_warning("Invalid option for dmrs_add_position %s", dmrs_dl_cfg.dmrs_add_position.to_string());
+      return false;
+  }
+  *in_srsran_dmrs_sch_add_pos = srsran_dmrs_sch_add_pos;
+  return true;
+}
+
+bool make_phy_dmrs_ul_additional_pos(const dmrs_ul_cfg_s&       dmrs_ul_cfg,
+                                     srsran_dmrs_sch_add_pos_t* in_srsran_dmrs_sch_add_pos)
 {
   srsran_dmrs_sch_add_pos_t srsran_dmrs_sch_add_pos = {};
   if (not dmrs_ul_cfg.dmrs_add_position_present) {

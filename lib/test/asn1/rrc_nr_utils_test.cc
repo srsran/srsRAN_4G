@@ -486,7 +486,7 @@ int make_phy_dmrs_additional_pos_test()
   dmrs_ul_cfg.dmrs_add_position_present = true;
   dmrs_ul_cfg.dmrs_add_position         = dmrs_ul_cfg_s::dmrs_add_position_opts::pos1;
   srsran_dmrs_sch_add_pos_t srsran_dmrs_sch_add_pos;
-  TESTASSERT(make_phy_dmrs_additional_pos(dmrs_ul_cfg, &srsran_dmrs_sch_add_pos) == true);
+  TESTASSERT(make_phy_dmrs_ul_additional_pos(dmrs_ul_cfg, &srsran_dmrs_sch_add_pos) == true);
 
   TESTASSERT(srsran_dmrs_sch_add_pos == srsran_dmrs_sch_add_pos_1);
 
