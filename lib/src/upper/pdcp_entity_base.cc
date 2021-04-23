@@ -23,7 +23,7 @@ pdcp_entity_base::pdcp_entity_base(task_sched_handle task_sched_, srslog::basic_
 
 pdcp_entity_base::~pdcp_entity_base() {}
 
-void pdcp_entity_base::config_security(as_security_config_t sec_cfg_)
+void pdcp_entity_base::config_security(const as_security_config_t& sec_cfg_)
 {
   sec_cfg = sec_cfg_;
 
