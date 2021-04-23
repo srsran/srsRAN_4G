@@ -30,22 +30,25 @@ static srsran_carrier_nr_t carrier = {
     1                                // max_mimo_layers
 };
 
-static uint32_t            n_prb     = 0;  // Set to 0 for steering
-static uint32_t            mcs       = 30; // Set to 30 for steering
-static srsran_sch_cfg_nr_t pdsch_cfg = {};
-static uint32_t            nof_slots = 10;
-static uint32_t            rv_idx    = 0;
-static uint32_t            delay_n   = 4;      // Integer delay
-static float               cfo_hz    = 100.0f; // CFO Hz
+static uint32_t                  n_prb        = 0;  // Set to 0 for steering
+static uint32_t                  mcs          = 30; // Set to 30 for steering
+static srsran_sch_cfg_nr_t       pdsch_cfg    = {};
+static uint32_t                  nof_slots    = 10;
+static uint32_t                  rv_idx       = 0;
+static uint32_t                  delay_n      = 0;    // Integer delay
+static float                     cfo_hz       = 0.0f; // CFO Hz
+static srsran_dmrs_sch_type_t    dmrs_type    = srsran_dmrs_sch_type_1;
+static srsran_dmrs_sch_add_pos_t dmrs_add_pos = srsran_dmrs_sch_add_pos_2;
 
 static void usage(char* prog)
 {
-  printf("Usage: %s [pTL] \n", prog);
+  printf("Usage: %s [rRPdpmnTLDCv] \n", prog);
   printf("\t-P Number of BWP (Carrier) PRB [Default %d]\n", carrier.nof_prb);
   printf("\t-p Number of grant PRB, set to 0 for steering [Default %d]\n", n_prb);
   printf("\t-n Number of slots to simulate [Default %d]\n", nof_slots);
   printf("\t-m MCS PRB, set to >28 for steering [Default %d]\n", mcs);
   printf("\t-r Redundancy version, set to >28 for steering [Default %d]\n", mcs);
+  printf("\t-d DMRS configuration [type 1-2] [add_pos 2-3] [CDM groups 1-3] [Default %d]\n", mcs);
   printf("\t-T Provide MCS table (64qam, 256qam, 64qamLowSE) [Default %s]\n",
          srsran_mcs_table_to_str(pdsch_cfg.sch_cfg.mcs_table));
   printf("\t-R Reserve RE: [rb_begin] [rb_end] [rb_stride] [sc_mask] [symbol_mask]\n");
@@ -58,7 +61,7 @@ static void usage(char* prog)
 static int parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "rRPpmnTLDCv")) != -1) {
+  while ((opt = getopt(argc, argv, "rRPdpmnTLDCv")) != -1) {
     switch (opt) {
       case 'P':
         carrier.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
@@ -74,6 +77,30 @@ static int parse_args(int argc, char** argv)
         break;
       case 'r':
         rv_idx = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'd':
+        switch (strtol(argv[optind++], NULL, 10)) {
+          case 1:
+            dmrs_type = srsran_dmrs_sch_type_1;
+            break;
+          case 2:
+            dmrs_type = srsran_dmrs_sch_type_2;
+            break;
+        }
+        switch (strtol(argv[optind], NULL, 10)) {
+          case 0:
+            dmrs_add_pos = srsran_dmrs_sch_add_pos_0;
+            break;
+          case 1:
+            dmrs_add_pos = srsran_dmrs_sch_add_pos_1;
+            break;
+          case 2:
+            dmrs_add_pos = srsran_dmrs_sch_add_pos_2;
+            break;
+          case 3:
+            dmrs_add_pos = srsran_dmrs_sch_add_pos_3;
+            break;
+        }
         break;
       case 'T':
         pdsch_cfg.sch_cfg.mcs_table = srsran_mcs_table_from_str(argv[optind]);
@@ -202,7 +229,12 @@ int main(int argc, char** argv)
   cf_t*    buffer_gnb[SRSRAN_MAX_PORTS]  = {};
   cf_t*    buffer_ue[SRSRAN_MAX_PORTS]   = {};
 
-  uint32_t sf_len = SRSRAN_SF_LEN_PRB(carrier.nof_prb);
+  // Set default PDSCH configuration
+  if (parse_args(argc, argv) < SRSRAN_SUCCESS) {
+    goto clean_exit;
+  }
+
+  uint32_t sf_len = SRSRAN_SF_LEN_PRB_NR(carrier.nof_prb);
   buffer_gnb[0]   = srsran_vec_cf_malloc(sf_len);
   buffer_ue[0]    = srsran_vec_cf_malloc(sf_len);
   if (buffer_gnb[0] == NULL || buffer_ue[0] == NULL) {
@@ -210,14 +242,14 @@ int main(int argc, char** argv)
     goto clean_exit;
   }
 
-  srsran_ue_dl_nr_args_t ue_dl_args          = {};
-  ue_dl_args.nof_rx_antennas                 = 1;
-  ue_dl_args.pdsch.sch.disable_simd          = false;
-  ue_dl_args.pdsch.sch.decoder_use_flooded   = false;
-  ue_dl_args.pdsch.measure_evm               = true;
-  ue_dl_args.pdcch.disable_simd              = false;
-  ue_dl_args.pdcch.measure_evm               = true;
-  ue_dl_args.nof_max_prb                     = carrier.nof_prb;
+  srsran_ue_dl_nr_args_t ue_dl_args        = {};
+  ue_dl_args.nof_rx_antennas               = 1;
+  ue_dl_args.pdsch.sch.disable_simd        = false;
+  ue_dl_args.pdsch.sch.decoder_use_flooded = false;
+  ue_dl_args.pdsch.measure_evm             = true;
+  ue_dl_args.pdcch.disable_simd            = false;
+  ue_dl_args.pdcch.measure_evm             = true;
+  ue_dl_args.nof_max_prb                   = carrier.nof_prb;
 
   srsran_enb_dl_nr_args_t enb_dl_args = {};
   enb_dl_args.nof_tx_antennas         = 1;
@@ -225,18 +257,12 @@ int main(int argc, char** argv)
   enb_dl_args.pdcch.disable_simd      = false;
   enb_dl_args.nof_max_prb             = carrier.nof_prb;
 
-  // Set default PDSCH configuration
-  pdsch_cfg.sch_cfg.mcs_table = srsran_mcs_table_64qam;
-  if (parse_args(argc, argv) < SRSRAN_SUCCESS) {
-    goto clean_exit;
-  }
-
   srsran_pdcch_cfg_nr_t pdcch_cfg = {};
 
   // Configure CORESET
   srsran_coreset_t* coreset    = &pdcch_cfg.coreset[1];
   pdcch_cfg.coreset_present[1] = true;
-  coreset->duration            = 2;
+  coreset->duration            = 1;
   for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
     coreset->freq_resources[i] = i < carrier.nof_prb / 6;
   }
@@ -315,11 +341,11 @@ int main(int argc, char** argv)
   }
 
   // Use grant default A time resources with m=0
-  pdsch_cfg.dmrs.typeA_pos = srsran_dmrs_sch_typeA_pos_2;
-  if (srsran_ra_dl_nr_time_default_A(0, pdsch_cfg.dmrs.typeA_pos, &pdsch_cfg.grant) < SRSRAN_SUCCESS) {
-    ERROR("Error loading default grant");
-    goto clean_exit;
-  }
+  pdsch_cfg.dmrs.type                              = dmrs_type;
+  pdsch_cfg.dmrs.typeA_pos                         = srsran_dmrs_sch_typeA_pos_2;
+  pdsch_cfg.dmrs.additional_pos                    = dmrs_add_pos;
+  pdsch_cfg.grant.S                                = 1;
+  pdsch_cfg.grant.L                                = 13;
   pdsch_cfg.grant.nof_layers                       = carrier.max_mimo_layers;
   pdsch_cfg.grant.dci_format                       = srsran_dci_format_nr_1_0;
   pdsch_cfg.grant.nof_dmrs_cdm_groups_without_data = 1;
@@ -371,12 +397,8 @@ int main(int argc, char** argv)
         // Compute PDCCH candidate locations
         uint32_t L                                                          = 1;
         uint32_t ncce_candidates[SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR] = {};
-        int      nof_candidates                                             = srsran_pdcch_nr_locations_coreset(coreset,
-                                                               search_space,
-                                                               pdsch_cfg.grant.rnti,
-                                                               L,
-                                                               SRSRAN_SLOT_NR_MOD(carrier.scs, slot.idx),
-                                                               ncce_candidates);
+        int      nof_candidates                                             = srsran_pdcch_nr_locations_coreset(
+            coreset, search_space, pdsch_cfg.grant.rnti, L, SRSRAN_SLOT_NR_MOD(carrier.scs, slot.idx), ncce_candidates);
         if (nof_candidates < SRSRAN_SUCCESS) {
           ERROR("Error getting PDCCH candidates");
           goto clean_exit;
