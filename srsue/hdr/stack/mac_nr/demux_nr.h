@@ -10,8 +10,8 @@
  *
  */
 
-#ifndef SRSLTE_DEMUX_NR_H
-#define SRSLTE_DEMUX_NR_H
+#ifndef SRSRAN_DEMUX_NR_H
+#define SRSRAN_DEMUX_NR_H
 
 #include "mac_nr_interfaces.h"
 #include "srsran/common/block_queue.h"
@@ -57,4 +57,4 @@ private:
 
 } // namespace srsue
 
-#endif // SRSLTE_DEMUX_NR_H
+#endif // SRSRAN_DEMUX_NR_H
