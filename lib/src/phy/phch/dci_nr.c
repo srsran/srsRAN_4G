@@ -665,16 +665,6 @@ dci_nr_format_0_1_to_str(const srsran_dci_nr_t* q, const srsran_dci_ul_nr_t* dci
   uint32_t                   len = 0;
   const srsran_dci_cfg_nr_t* cfg = &q->cfg;
 
-  // Print format
-  len = srsran_print_check(str,
-                           str_len,
-                           len,
-                           "rnti=%04x L=%d cce=%d dci=%s ",
-                           dci->ctx.rnti,
-                           dci->ctx.location.L,
-                           dci->ctx.location.ncce,
-                           srsran_dci_format_nr_string(dci->ctx.format));
-
   // Carrier indicator – 0 or 3 bits
   if (cfg->carrier_indicator_size) {
     len = srsran_print_check(str, str_len, len, "cc=%d ", dci->cc_id);
@@ -1093,10 +1083,6 @@ static int dci_nr_format_1_0_to_str(const srsran_dci_dl_nr_t* dci, char* str, ui
 {
   uint32_t           len       = 0;
   srsran_rnti_type_t rnti_type = dci->ctx.rnti_type;
-
-  // Print format
-  len = srsran_print_check(
-      str, str_len, len, "rnti=%04x L=%d cce=%d dci=1_0 ", dci->ctx.rnti, dci->ctx.location.L, dci->ctx.location.ncce);
 
   if (rnti_type == srsran_rnti_type_p) {
     len = srsran_print_check(str, str_len, len, "smi=%d sm=%d ", dci->smi, dci->sm);
@@ -1554,10 +1540,6 @@ dci_nr_format_1_1_to_str(const srsran_dci_nr_t* q, const srsran_dci_dl_nr_t* dci
   uint32_t                   len = 0;
   const srsran_dci_cfg_nr_t* cfg = &q->cfg;
 
-  // Print format
-  len = srsran_print_check(
-      str, str_len, len, "rnti=%04x L=%d cce=%d dci=0_0 ", dci->ctx.rnti, dci->ctx.location.L, dci->ctx.location.ncce);
-
   // Carrier indicator – 0 or 3 bits
   if (cfg->carrier_indicator_size > 0) {
     len = srsran_print_check(str, str_len, len, "cc=%d ", dci->cc_id);
@@ -1569,11 +1551,11 @@ dci_nr_format_1_1_to_str(const srsran_dci_nr_t* q, const srsran_dci_dl_nr_t* dci
   }
 
   // Frequency domain resource assignment
-  len = srsran_print_check(str, str_len, len, "f_alloc=%d ", dci->freq_domain_assigment);
+  len = srsran_print_check(str, str_len, len, "f_alloc=0x%x ", dci->freq_domain_assigment);
 
   // Time domain resource assignment – 0, 1, 2, 3, or 4 bits
   if (cfg->nof_dl_time_res > 0) {
-    len = srsran_print_check(str, str_len, len, "t_alloc=%d ", dci->time_domain_assigment);
+    len = srsran_print_check(str, str_len, len, "t_alloc=0x%x ", dci->time_domain_assigment);
   }
 
   // VRB-to-PRB mapping – 0 or 1
@@ -1876,9 +1858,6 @@ static int dci_nr_rar_to_str(const srsran_dci_ul_nr_t* dci, char* str, uint32_t 
 {
   uint32_t len = 0;
 
-  // Print format
-  len = srsran_print_check(str, str_len, len, "rnti=%04x dci=rar ", dci->ctx.rnti);
-
   // Frequency hopping flag
   len = srsran_print_check(str, str_len, len, "hop=%d ", dci->freq_hopping_flag);
 
@@ -1976,15 +1955,16 @@ int srsran_dci_nr_ul_unpack(const srsran_dci_nr_t* q, srsran_dci_msg_nr_t* msg, 
 
 int srsran_dci_ctx_to_str(const srsran_dci_ctx_t* ctx, char* str, uint32_t str_len)
 {
-  // Print format
-  return srsran_print_check(str,
-                            str_len,
-                            0,
-                            "rnti=%04x L=%d cce=%d dci=%s ",
-                            ctx->rnti,
-                            ctx->location.L,
-                            ctx->location.ncce,
-                            srsran_dci_format_nr_string(ctx->format));
+  uint32_t len = 0;
+
+  // Print base
+  len = srsran_print_check(str, str_len, len, "rnti=%04x dci=%s ", ctx->rnti, srsran_dci_format_nr_string(ctx->format));
+
+  if (ctx->format != srsran_dci_format_nr_rar) {
+    len = srsran_print_check(str, str_len, len, "L=%d cce=%d ", ctx->location.L, ctx->location.ncce);
+  }
+
+  return len;
 }
 
 int srsran_dci_ul_nr_to_str(const srsran_dci_nr_t* q, const srsran_dci_ul_nr_t* dci, char* str, uint32_t str_len)
