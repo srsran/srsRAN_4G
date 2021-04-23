@@ -76,11 +76,11 @@ void metrics_stdout::print_table(const bool display_neighbours)
   n_reports            = 0;
 }
 
-void metrics_stdout::set_metrics_helper(const phy_metrics_t phy,
-                                        const mac_metrics_t mac[SRSRAN_MAX_CARRIERS],
-                                        const rrc_metrics_t rrc,
-                                        bool                display_neighbours,
-                                        const uint32_t      r)
+void metrics_stdout::set_metrics_helper(const phy_metrics_t& phy,
+                                        const mac_metrics_t  mac[SRSRAN_MAX_CARRIERS],
+                                        const rrc_metrics_t& rrc,
+                                        bool                 display_neighbours,
+                                        const uint32_t       r)
 {
   if (phy.info[r].pci != UINT32_MAX) {
     cout << std::setw(4) << phy.info[r].pci << std::setw(0);

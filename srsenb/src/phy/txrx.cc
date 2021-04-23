@@ -34,7 +34,7 @@ using namespace std;
 
 namespace srsenb {
 
-txrx::txrx(srslog::basic_logger& logger) : thread("TXRX"), logger(logger)
+txrx::txrx(srslog::basic_logger& logger) : thread("TXRX"), logger(logger), running(false)
 {
   /* Do nothing */
 }

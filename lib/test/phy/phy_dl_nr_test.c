@@ -266,7 +266,6 @@ int main(int argc, char** argv)
   if (srsran_ue_dl_nr_set_carrier(&ue_dl, &carrier)) {
     ERROR("Error setting SCH NR carrier");
     goto clean_exit;
-    goto clean_exit;
   }
 
   srsran_dci_cfg_nr_t dci_cfg = {};

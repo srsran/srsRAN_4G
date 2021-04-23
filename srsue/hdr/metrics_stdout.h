@@ -39,11 +39,11 @@ public:
 
 private:
   static const bool FORCE_NEIGHBOUR_CELL = false; // Set to true for printing always neighbour cells
-  void              set_metrics_helper(const phy_metrics_t phy,
-                                       const mac_metrics_t mac[SRSRAN_MAX_CARRIERS],
-                                       const rrc_metrics_t rrc,
-                                       bool                display_neighbours,
-                                       const uint32_t      r);
+  void              set_metrics_helper(const phy_metrics_t& phy,
+                                       const mac_metrics_t  mac[SRSRAN_MAX_CARRIERS],
+                                       const rrc_metrics_t& rrc,
+                                       bool                 display_neighbours,
+                                       const uint32_t       r);
   std::string       float_to_string(float f, int digits);
   std::string       float_to_eng_string(float f, int digits);
   void              print_table(const bool display_neighbours);

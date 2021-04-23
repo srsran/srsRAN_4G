@@ -1400,7 +1400,7 @@ void rrc_nr::cell_search_completed(const rrc_interface_phy_lte::cell_search_ret_
 {}
 
 /* Procedures */
-rrc_nr::connection_reconf_no_ho_proc::connection_reconf_no_ho_proc(rrc_nr* parent_) : rrc_ptr(parent_) {}
+rrc_nr::connection_reconf_no_ho_proc::connection_reconf_no_ho_proc(rrc_nr* parent_) : rrc_ptr(parent_), initiator(nr) {}
 
 proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const reconf_initiator_t initiator_,
                                                           const bool               endc_release_and_add_r15,

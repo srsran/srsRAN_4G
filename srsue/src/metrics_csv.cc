@@ -65,13 +65,13 @@ void metrics_csv::stop()
   }
 }
 
-void metrics_csv::set_metrics_helper(const srsran::rf_metrics_t  rf,
-                                     const srsran::sys_metrics_t sys,
-                                     const phy_metrics_t         phy,
-                                     const mac_metrics_t         mac[SRSRAN_MAX_CARRIERS],
-                                     const rrc_metrics_t         rrc,
-                                     const uint32_t              cc,
-                                     const uint32_t              r)
+void metrics_csv::set_metrics_helper(const srsran::rf_metrics_t&  rf,
+                                     const srsran::sys_metrics_t& sys,
+                                     const phy_metrics_t&         phy,
+                                     const mac_metrics_t          mac[SRSRAN_MAX_CARRIERS],
+                                     const rrc_metrics_t&         rrc,
+                                     const uint32_t               cc,
+                                     const uint32_t               r)
 {
   if (not file.is_open()) {
     return;

@@ -111,7 +111,9 @@ ul_harq_entity_nr::ul_harq_metrics_t ul_harq_entity_nr::get_metrics()
   return tmp;
 }
 
-ul_harq_entity_nr::ul_harq_process_nr::ul_harq_process_nr() : logger(srslog::fetch_basic_logger("MAC")) {}
+ul_harq_entity_nr::ul_harq_process_nr::ul_harq_process_nr() :
+  logger(srslog::fetch_basic_logger("MAC")), softbuffer({0, 0, nullptr})
+{}
 
 ul_harq_entity_nr::ul_harq_process_nr::~ul_harq_process_nr()
 {

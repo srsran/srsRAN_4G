@@ -34,7 +34,8 @@ class stack_interface_phy_lte;
 class prach_worker : srsran::thread
 {
 public:
-  prach_worker(uint32_t cc_idx_, srslog::basic_logger& logger) : buffer_pool(8), thread("PRACH_WORKER"), logger(logger)
+  prach_worker(uint32_t cc_idx_, srslog::basic_logger& logger) :
+    buffer_pool(8), thread("PRACH_WORKER"), logger(logger), running(false)
   {
     cc_idx = cc_idx_;
   }
