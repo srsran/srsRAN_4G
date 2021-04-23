@@ -324,7 +324,9 @@ uint32_t proc_bsr_nr::find_max_priority_lcg_with_data()
  */
 uint8_t proc_bsr_nr::buff_size_bytes_to_field(uint32_t buffer_size, bsr_format_nr_t format)
 {
+  // early exit
   if (buffer_size == 0) {
+    return 0;
   }
 
   switch (format) {

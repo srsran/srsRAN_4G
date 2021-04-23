@@ -172,7 +172,7 @@ void ul_harq_entity_nr::ul_harq_process_nr::new_grant_ul(const mac_interface_phy
   if (nof_retx >= max_retx) {
     logger.info("UL %d:  Maximum number of ReTX reached (%d). Discarding TB.", pid, max_retx);
     if (grant.rnti == harq_entity->mac->get_temp_crnti()) {
-      // FIXME: signal maxRetx to RA?
+      // TODO: signal maxRetx to RA?
       // harq_entity->ra_proc->harq_max_retx();
     }
     reset();

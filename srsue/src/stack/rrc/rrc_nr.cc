@@ -879,6 +879,7 @@ bool rrc_nr::apply_ul_common_cfg(const asn1::rrc_nr::ul_cfg_common_s& ul_cfg_com
     }
     if (ul_cfg_common.init_ul_bwp.pucch_cfg_common_present) {
       if (ul_cfg_common.init_ul_bwp.pucch_cfg_common.type() == setup_release_c<pucch_cfg_common_s>::types_opts::setup) {
+        logger.info("PUCCH cfg commont setup not handled");
       } else {
         logger.warning("Option pucch_cfg_common not of type setup");
         return false;

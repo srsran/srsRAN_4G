@@ -139,7 +139,7 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
 
   // Extract RCVD_SN from header
   uint32_t rcvd_sn = read_data_header(pdu);
-  discard_data_header(pdu); // FIXME Check wheather the header is part of integrity check.
+  discard_data_header(pdu); // TODO: Check wheather the header is part of integrity check.
 
   // Extract MAC
   uint8_t mac[4];

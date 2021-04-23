@@ -193,7 +193,7 @@ private:
           std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - tti_start_time)
               .count();
 
-      // FIXME: add averaging
+      // TODO: add averaging
       metrics.avg_rtt_us = rtt;
     }
   };
