@@ -72,7 +72,8 @@ class multiqueue_handler
       if (val == active_) {
         return;
       }
-      active_ = val;
+      active_                = val;
+      consumer_notify_needed = true;
 
       if (not active_) {
         buffer.clear();
@@ -112,10 +113,12 @@ class multiqueue_handler
     {
       std::unique_lock<std::mutex> lock(q_mutex);
       if (buffer.empty()) {
+        consumer_notify_needed = true;
         return false;
       }
       obj = std::move(buffer.top());
       buffer.pop();
+      consumer_notify_needed = false;
       if (nof_waiting > 0) {
         lock.unlock();
         cv_full.notify_one();
@@ -141,7 +144,14 @@ class multiqueue_handler
         }
         buffer.push(std::forward<T>(*o));
       }
-      parent->cv_empty.notify_one();
+      if (consumer_notify_needed) {
+        // Note: The consumer thread only needs to be notified and awaken when queues transition from empty to non-empty
+        //       To ensure that the consumer noticed that the queue was empty before a push, we store the last
+        //       try_pop() return in a member variable.
+        //       Doing this reduces the contention of multiple producers for the same condition variable
+        parent->cv_empty.notify_one();
+        consumer_notify_needed = false;
+      }
       return true;
     }
 
@@ -150,8 +160,9 @@ class multiqueue_handler
     mutable std::mutex                 q_mutex;
     srsran::dyn_circular_buffer<myobj> buffer;
     std::condition_variable            cv_full, cv_exit;
-    bool                               active_     = true;
-    int                                nof_waiting = 0;
+    bool                               active_                = true;
+    bool                               consumer_notify_needed = true;
+    int                                nof_waiting            = 0;
   };
 
 public:
