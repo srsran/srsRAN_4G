@@ -255,7 +255,7 @@ int srsran_ra_dl_nr_nof_dmrs_cdm_groups_without_data(const srsran_sch_hl_cfg_nr_
         return 2;
       }
       return SRSRAN_SUCCESS;
-    case srsran_dci_format_nr_0_1:
+    case srsran_dci_format_nr_1_1:
       // When receiving PDSCH scheduled by DCI format 1_1, the UE shall assume that the CDM groups indicated in the
       // configured index from Tables 7.3.1.2.2-1, 7.3.1.2.2-2, 7.3.1.2.2-3, 7.3.1.2.2-4 of [5, TS. 38.212] contain
       // potential co- scheduled downlink DM-RS and are not used for data transmission, where "1", "2" and "3" for the
@@ -288,17 +288,34 @@ int srsran_ra_dl_nr_freq(const srsran_carrier_nr_t*    carrier,
                          const srsran_dci_dl_nr_t*     dci_dl,
                          srsran_sch_grant_nr_t*        grant)
 {
-  if (cfg == NULL || grant == NULL || dci_dl == NULL) {
+  if (carrier == NULL || cfg == NULL || grant == NULL || dci_dl == NULL) {
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
-  // RA scheme
+  // The UE shall assume that when the scheduling grant is received with DCI format 1_0 , then downlink resource
+  // allocation type 1 is used.
   if (dci_dl->ctx.format == srsran_dci_format_nr_1_0) {
-    // when the scheduling grant is received with DCI format 1_0 , then downlink resource allocation type 1 is used.
     return ra_helper_freq_type1(carrier->nof_prb, dci_dl->freq_domain_assigment, grant);
   }
 
-  ra_helper_freq_type0(carrier, cfg, dci_dl->freq_domain_assigment, grant);
-  ERROR("Only DCI Format 1_0 is supported");
+  // If the scheduling DCI is configured to indicate the downlink resource allocation type as part of the Frequency
+  // domain resource assignment field by setting a higher layer parameter resourceAllocation in pdsch-Config to
+  // 'dynamicswitch', the UE shall use downlink resource allocation type 0 or type 1 as defined by this DCI field.
+  if (cfg->alloc == srsran_resource_alloc_dynamic) {
+    ERROR("Unsupported dynamic resource allocation");
+    return SRSRAN_ERROR;
+  }
+
+  // Otherwise the UE shall use the downlink frequency resource allocation type as defined by the higher layer parameter
+  // resourceAllocation.
+  if (cfg->alloc == srsran_resource_alloc_type1) {
+    return ra_helper_freq_type1(carrier->nof_prb, dci_dl->freq_domain_assigment, grant);
+  }
+
+  if (cfg->alloc == srsran_resource_alloc_type0) {
+    return ra_helper_freq_type0(carrier, cfg, dci_dl->freq_domain_assigment, grant);
+  }
+
+  ERROR("Unhandled case");
   return SRSRAN_ERROR;
 }

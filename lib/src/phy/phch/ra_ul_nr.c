@@ -235,6 +235,7 @@ int srsran_ra_ul_nr_nof_dmrs_cdm_groups_without_data(const srsran_sch_hl_cfg_nr_
   // According to TS 38.214 V15.10.0 6.2.2 UE DM-RS transmission procedure:
   switch (dci->ctx.format) {
     case srsran_dci_format_nr_0_0:
+    case srsran_dci_format_nr_rar:
       // For PUSCH scheduled by DCI format 0_0 or by activation DCI format 0_0 with CRC scrambled by CS-RNTI, the UE
       // shall assume the number of DM-RS CDM groups without data is 1 which corresponds to CDM group 0 for the case of
       // PUSCH with allocation duration of 2 or less OFDM symbols with transform precoding disabled, the UE shall assume
@@ -433,7 +434,7 @@ int srsran_ra_ul_nr_freq(const srsran_carrier_nr_t*    carrier,
                          const srsran_dci_ul_nr_t*     dci_ul,
                          srsran_sch_grant_nr_t*        grant)
 {
-  if (cfg == NULL || grant == NULL || dci_ul == NULL) {
+  if (carrier == NULL || cfg == NULL || grant == NULL || dci_ul == NULL) {
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
