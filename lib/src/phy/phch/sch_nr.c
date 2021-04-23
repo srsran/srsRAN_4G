@@ -111,12 +111,13 @@ int srsran_sch_nr_fill_tb_info(const srsran_carrier_nr_t* carrier,
   cfg->Nl   = tb->N_L;
 
   // Calculate Nref
-  uint32_t N_re_lbrm = 156 * sch_nr_n_prb_lbrm(carrier->nof_prb);
-  double   TCR_lbrm  = 948.0 / 1024.0;
-  uint32_t Qm_lbrm   = (sch_cfg->mcs_table == srsran_mcs_table_256qam) ? 8 : 6;
-  uint32_t TBS_LRBM  = srsran_ra_nr_tbs(N_re_lbrm, 1.0, TCR_lbrm, Qm_lbrm, carrier->max_mimo_layers);
-  double   R         = 2.0 / 3.0;
-  cfg->Nref          = ceil(TBS_LRBM / (cbsegm.C * R));
+  uint32_t N_re_lbrm       = SRSRAN_MAX_NRE_NR * sch_nr_n_prb_lbrm(carrier->nof_prb);
+  double   TCR_lbrm        = 948.0 / 1024.0;
+  uint32_t Qm_lbrm         = (sch_cfg->mcs_table == srsran_mcs_table_256qam) ? 8 : 6;
+  uint32_t max_mimo_layers = SRSRAN_MAX(carrier->max_mimo_layers, 4);
+  uint32_t TBS_LRBM        = srsran_ra_nr_tbs(N_re_lbrm, 1.0, TCR_lbrm, Qm_lbrm, max_mimo_layers);
+  double   R               = 2.0 / 3.0;
+  cfg->Nref                = (uint32_t)ceil((double)TBS_LRBM / (double)(cbsegm.C * R));
 
   // Calculate number of code blocks after applying CBGTI... not implemented, activate all CB
   for (uint32_t r = 0; r < cbsegm.C; r++) {
@@ -605,18 +606,37 @@ static int sch_nr_decode(srsran_sch_nr_t*        q,
       crc = &q->crc_cb;
     }
 
-    // Decode
-    int n_iter = srsran_ldpc_decoder_decode_crc_c(decoder, rm_buffer, q->temp_cb, n_llr, crc);
-    if (n_iter < SRSRAN_SUCCESS) {
+    // Decode. if CRC=KO, then ret=0
+    int ret = srsran_ldpc_decoder_decode_crc_c(decoder, rm_buffer, q->temp_cb, n_llr, crc);
+    if (ret < SRSRAN_SUCCESS) {
       ERROR("Error decoding CB");
       return SRSRAN_ERROR;
     }
-    nof_iter_sum += ((n_iter == 0) ? decoder->max_nof_iter : (uint32_t)n_iter);
 
-    // Compute CB CRC only if LDPC decoder reached the end
-    uint32_t cb_len              = cfg.Kp - cfg.L_cb;
-    tb->softbuffer.rx->cb_crc[r] = (n_iter != 0);
-    SCH_INFO_RX("CB %d/%d CRC=%s", r, cfg.C, tb->softbuffer.rx->cb_crc[r] ? "OK" : "KO");
+    // Compute number of iterations
+    uint32_t n_iter_cb = (ret == 0) ? decoder->max_nof_iter : (uint32_t)ret;
+    nof_iter_sum += n_iter_cb;
+
+    // Check if CB is all zeros
+    uint32_t cb_len    = cfg.Kp - cfg.L_cb;
+    bool     all_zeros = true;
+    for (uint32_t i = 0; i < cb_len && all_zeros; i++) {
+      all_zeros = (q->temp_cb[i] == 0);
+    }
+
+    tb->softbuffer.rx->cb_crc[r] = (ret != 0) && (!all_zeros);
+    SCH_INFO_RX("CB %d/%d iter=%d CRC=%s all_zeros=%s",
+                r,
+                cfg.C,
+                n_iter_cb,
+                tb->softbuffer.rx->cb_crc[r] ? "OK" : "KO",
+                all_zeros ? "yes" : "no");
+
+    // CB Debug trace
+    if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
+      DEBUG("CB %d/%d:", r, cfg.C);
+      srsran_vec_fprint_hex(stdout, q->temp_cb, cb_len);
+    }
 
     // Pack and count CRC OK only if CRC is match
     if (tb->softbuffer.rx->cb_crc[r]) {
@@ -626,6 +646,14 @@ static int sch_nr_decode(srsran_sch_nr_t*        q,
 
     input_ptr += E;
   }
+
+  // Set average number of iterations
+  if (cfg.C > 0) {
+    res->avg_iter = (float)nof_iter_sum / (float)cfg.C;
+  } else {
+    res->avg_iter = NAN;
+  }
+
 
   // Not all CB are decoded, skip TB union and CRC check
   if (cb_ok != cfg.C) {
@@ -647,12 +675,6 @@ static int sch_nr_decode(srsran_sch_nr_t*        q,
     srsran_vec_u8_copy(output_ptr, tb->softbuffer.rx->data[r], cb_len / 8);
     output_ptr += cb_len / 8;
 
-    // CB Debug trace
-    if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
-      DEBUG("CB %d/%d:", r, cfg.C);
-      srsran_vec_fprint_byte(stdout, tb->softbuffer.rx->data[r], cb_len / 8);
-    }
-
     // Compute TB CRC for last block
     if (cfg.C > 1 && r == cfg.C - 1) {
       uint8_t  tb_crc_unpacked[24] = {};
@@ -662,28 +684,14 @@ static int sch_nr_decode(srsran_sch_nr_t*        q,
     }
   }
 
-  // Check if TB is all zeros
-  bool all_zeros = true;
-  for (uint32_t i = 0; i < tb->tbs / 8 && all_zeros; i++) {
-    all_zeros = (res->payload[i] == 0);
-  }
-
   // Calculate TB CRC from packed data
   if (cfg.C == 1) {
-    res->crc = !all_zeros;
     SCH_INFO_RX("TB: TBS=%d; CRC=%s", tb->tbs, tb->softbuffer.rx->cb_crc[0] ? "OK" : "KO");
   } else {
     // More than one
     uint32_t checksum1 = srsran_crc_checksum_byte(crc_tb, res->payload, tb->tbs);
-    res->crc           = (checksum1 == checksum2 && !all_zeros);
+    res->crc           = (checksum1 == checksum2);
     SCH_INFO_RX("TB: TBS=%d; CRC={%06x, %06x}", tb->tbs, checksum1, checksum2);
-  }
-
-  // Set average number of iterations
-  if (cfg.C > 0) {
-    res->avg_iter = (float)nof_iter_sum / (float)cfg.C;
-  } else {
-    res->avg_iter = NAN;
   }
 
   if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
