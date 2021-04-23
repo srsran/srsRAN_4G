@@ -208,9 +208,9 @@ public:
   explicit multiqueue_handler(uint32_t default_capacity_ = MULTIQUEUE_DEFAULT_CAPACITY) :
     default_capacity(default_capacity_)
   {}
-  ~multiqueue_handler() { reset(); }
+  ~multiqueue_handler() { stop(); }
 
-  void reset()
+  void stop()
   {
     std::unique_lock<std::mutex> lock(mutex);
     running = false;
@@ -222,8 +222,10 @@ public:
       cv_empty.notify_one();
       cv_exit.wait(lock);
     }
-    // queue destructor ensures that the pushing threads have been notified of the queue deactivation in a blocking way
-    queues.clear();
+    for (auto& q : queues) {
+      // ensure the queues are finished being deactivated
+      q.deactivate_blocking();
+    }
   }
 
   /**

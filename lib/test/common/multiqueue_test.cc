@@ -148,7 +148,7 @@ int test_multiqueue_threading()
   }
   TESTASSERT(qid1.size() == 0);
 
-  multiqueue.reset();
+  multiqueue.stop();
   t1.join();
 
   std::cout << "outcome: Success\n";
@@ -182,7 +182,7 @@ int test_multiqueue_threading2()
     TESTASSERT(t1_running);
   }
 
-  multiqueue.reset();
+  multiqueue.stop();
   t1.join();
 
   std::cout << "outcome: Success\n";
@@ -214,7 +214,60 @@ int test_multiqueue_threading3()
   TESTASSERT((int)qid1.size() == 0);
 
   // Should be able to unlock all
-  multiqueue.reset();
+  multiqueue.stop();
+  TESTASSERT(multiqueue.nof_queues() == 0);
+  TESTASSERT(not qid1.active());
+  t1.join();
+  TESTASSERT(t1_success);
+
+  std::cout << "outcome: Success\n";
+  std::cout << "===================================================\n";
+
+  return 0;
+}
+
+int test_multiqueue_threading4()
+{
+  std::cout << "\n===== TEST multiqueue threading test 4: start =====\n";
+  // Description: the consumer will block on popping, but the pushing from different producers
+  //              should be sufficient to awake it when necessary
+
+  int                     capacity = 4;
+  multiqueue_handler<int> multiqueue(capacity);
+  auto                    qid1              = multiqueue.add_queue();
+  auto                    qid2              = multiqueue.add_queue();
+  auto                    qid3              = multiqueue.add_queue();
+  auto                    qid4              = multiqueue.add_queue();
+  auto                    pop_blocking_func = [&multiqueue](bool* success) {
+    int number = 0, count = 0;
+    while (multiqueue.wait_pop(&number)) {
+      TESTASSERT(number == count++);
+    }
+    *success = true;
+  };
+
+  bool        t1_success = false;
+  std::thread t1(pop_blocking_func, &t1_success);
+
+  for (int i = 0; i < 1000; ++i) {
+    switch (i % 3) {
+      case 0:
+        qid1.push(i);
+        break;
+      case 1:
+        qid2.push(i);
+        break;
+      case 2:
+        qid4.push(i);
+        break;
+      default:
+        break;
+    }
+    usleep(10);
+  }
+
+  // Should be able to unlock all
+  multiqueue.stop();
   TESTASSERT(multiqueue.nof_queues() == 0);
   TESTASSERT(not qid1.active());
   t1.join();
@@ -417,6 +470,7 @@ int main()
   TESTASSERT(test_multiqueue_threading() == 0);
   TESTASSERT(test_multiqueue_threading2() == 0);
   TESTASSERT(test_multiqueue_threading3() == 0);
+  TESTASSERT(test_multiqueue_threading4() == 0);
 
   TESTASSERT(test_task_thread_pool() == 0);
   TESTASSERT(test_task_thread_pool2() == 0);

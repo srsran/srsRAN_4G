@@ -121,7 +121,7 @@ private:
 
   // task handling
   srsran::task_scheduler    task_sched;
-  srsran::task_queue_handle enb_task_queue, gtpu_task_queue, mme_task_queue, sync_task_queue;
+  srsran::task_queue_handle enb_task_queue, sync_task_queue;
 
   srsenb::mac  mac;
   srsenb::rlc  rlc;

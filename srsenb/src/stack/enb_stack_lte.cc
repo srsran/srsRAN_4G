@@ -41,9 +41,7 @@ enb_stack_lte::enb_stack_lte(srslog::sink& log_sink) :
   pending_stack_metrics(64)
 {
   get_background_workers().set_nof_workers(2);
-  enb_task_queue  = task_sched.make_task_queue();
-  mme_task_queue  = task_sched.make_task_queue();
-  gtpu_task_queue = task_sched.make_task_queue();
+  enb_task_queue = task_sched.make_task_queue();
   // sync_queue is added in init()
 }
 

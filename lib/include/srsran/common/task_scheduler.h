@@ -33,7 +33,7 @@ public:
   task_scheduler& operator=(const task_scheduler&) = delete;
   task_scheduler& operator=(task_scheduler&&) = delete;
 
-  void stop() { external_tasks.reset(); }
+  void stop() { external_tasks.stop(); }
 
   srsran::unique_timer get_unique_timer() { return timers.get_unique_timer(); }
 
