@@ -542,10 +542,11 @@ public:
     std::swap(base_t::buffer, other.buffer);
   }
 
-  void set_size(size_t size)
+  void set_size(size_t sz)
   {
-    srsran_assert(base_t::empty(), "Dynamic resizes not supported when circular buffer is not empty");
-    base_t::buffer.resize(size);
+    srsran_assert(base_t::empty() or sz == base_t::size(),
+                  "Dynamic resizes not supported when circular buffer is not empty");
+    base_t::buffer.resize(sz);
   }
 };
 

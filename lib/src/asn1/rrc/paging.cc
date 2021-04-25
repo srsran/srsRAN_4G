@@ -250,6 +250,26 @@ paging_ue_id_c& paging_ue_id_c::operator=(const paging_ue_id_c& other)
 
   return *this;
 }
+s_tmsi_s& paging_ue_id_c::set_s_tmsi()
+{
+  set(types::s_tmsi);
+  return c.get<s_tmsi_s>();
+}
+imsi_l& paging_ue_id_c::set_imsi()
+{
+  set(types::imsi);
+  return c.get<imsi_l>();
+}
+fixed_bitstring<48>& paging_ue_id_c::set_ng_minus5_g_s_tmsi_r15()
+{
+  set(types::ng_minus5_g_s_tmsi_r15);
+  return c.get<fixed_bitstring<48> >();
+}
+fixed_bitstring<40>& paging_ue_id_c::set_full_i_rnti_r15()
+{
+  set(types::full_i_rnti_r15);
+  return c.get<fixed_bitstring<40> >();
+}
 void paging_ue_id_c::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -389,7 +409,7 @@ void paging_record_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string paging_record_s::cn_domain_opts::to_string() const
+const char* paging_record_s::cn_domain_opts::to_string() const
 {
   static const char* options[] = {"ps", "cs"};
   return convert_enum_idx(options, 2, value, "paging_record_s::cn_domain_e_");
@@ -497,6 +517,15 @@ void paging_s::to_json(json_writer& j) const
 void pcch_msg_type_c::set(types::options e)
 {
   type_ = e;
+}
+pcch_msg_type_c::c1_c_& pcch_msg_type_c::set_c1()
+{
+  set(types::c1);
+  return c;
+}
+void pcch_msg_type_c::set_msg_class_ext()
+{
+  set(types::msg_class_ext);
 }
 void pcch_msg_type_c::to_json(json_writer& j) const
 {
@@ -655,6 +684,15 @@ void ue_paging_coverage_info_s::crit_exts_c_::set(types::options e)
 {
   type_ = e;
 }
+ue_paging_coverage_info_s::crit_exts_c_::c1_c_& ue_paging_coverage_info_s::crit_exts_c_::set_c1()
+{
+  set(types::c1);
+  return c;
+}
+void ue_paging_coverage_info_s::crit_exts_c_::set_crit_exts_future()
+{
+  set(types::crit_exts_future);
+}
 void ue_paging_coverage_info_s::crit_exts_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -706,6 +744,39 @@ SRSASN_CODE ue_paging_coverage_info_s::crit_exts_c_::unpack(cbit_ref& bref)
 void ue_paging_coverage_info_s::crit_exts_c_::c1_c_::set(types::options e)
 {
   type_ = e;
+}
+ue_paging_coverage_info_r13_ies_s& ue_paging_coverage_info_s::crit_exts_c_::c1_c_::set_ue_paging_coverage_info_r13()
+{
+  set(types::ue_paging_coverage_info_r13);
+  return c;
+}
+void ue_paging_coverage_info_s::crit_exts_c_::c1_c_::set_spare7()
+{
+  set(types::spare7);
+}
+void ue_paging_coverage_info_s::crit_exts_c_::c1_c_::set_spare6()
+{
+  set(types::spare6);
+}
+void ue_paging_coverage_info_s::crit_exts_c_::c1_c_::set_spare5()
+{
+  set(types::spare5);
+}
+void ue_paging_coverage_info_s::crit_exts_c_::c1_c_::set_spare4()
+{
+  set(types::spare4);
+}
+void ue_paging_coverage_info_s::crit_exts_c_::c1_c_::set_spare3()
+{
+  set(types::spare3);
+}
+void ue_paging_coverage_info_s::crit_exts_c_::c1_c_::set_spare2()
+{
+  set(types::spare2);
+}
+void ue_paging_coverage_info_s::crit_exts_c_::c1_c_::set_spare1()
+{
+  set(types::spare1);
 }
 void ue_paging_coverage_info_s::crit_exts_c_::c1_c_::to_json(json_writer& j) const
 {
@@ -893,6 +964,15 @@ void ue_radio_paging_info_s::crit_exts_c_::set(types::options e)
 {
   type_ = e;
 }
+ue_radio_paging_info_s::crit_exts_c_::c1_c_& ue_radio_paging_info_s::crit_exts_c_::set_c1()
+{
+  set(types::c1);
+  return c;
+}
+void ue_radio_paging_info_s::crit_exts_c_::set_crit_exts_future()
+{
+  set(types::crit_exts_future);
+}
 void ue_radio_paging_info_s::crit_exts_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -944,6 +1024,39 @@ SRSASN_CODE ue_radio_paging_info_s::crit_exts_c_::unpack(cbit_ref& bref)
 void ue_radio_paging_info_s::crit_exts_c_::c1_c_::set(types::options e)
 {
   type_ = e;
+}
+ue_radio_paging_info_r12_ies_s& ue_radio_paging_info_s::crit_exts_c_::c1_c_::set_ue_radio_paging_info_r12()
+{
+  set(types::ue_radio_paging_info_r12);
+  return c;
+}
+void ue_radio_paging_info_s::crit_exts_c_::c1_c_::set_spare7()
+{
+  set(types::spare7);
+}
+void ue_radio_paging_info_s::crit_exts_c_::c1_c_::set_spare6()
+{
+  set(types::spare6);
+}
+void ue_radio_paging_info_s::crit_exts_c_::c1_c_::set_spare5()
+{
+  set(types::spare5);
+}
+void ue_radio_paging_info_s::crit_exts_c_::c1_c_::set_spare4()
+{
+  set(types::spare4);
+}
+void ue_radio_paging_info_s::crit_exts_c_::c1_c_::set_spare3()
+{
+  set(types::spare3);
+}
+void ue_radio_paging_info_s::crit_exts_c_::c1_c_::set_spare2()
+{
+  set(types::spare2);
+}
+void ue_radio_paging_info_s::crit_exts_c_::c1_c_::set_spare1()
+{
+  set(types::spare1);
 }
 void ue_radio_paging_info_s::crit_exts_c_::c1_c_::to_json(json_writer& j) const
 {

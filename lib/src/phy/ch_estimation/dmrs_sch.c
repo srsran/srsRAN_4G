@@ -48,6 +48,11 @@
  */
 #define DMRS_SCH_SMOOTH_FILTER_STDDEV 2
 
+/**
+ * @brief Default number of PRB at initialization
+ */
+#define DMRS_SCH_MAX_NOF_PRB 106
+
 int srsran_dmrs_sch_cfg_to_str(const srsran_dmrs_sch_cfg_t* cfg, char* msg, uint32_t max_len)
 {
   int type           = (int)cfg->type + 1;
@@ -526,6 +531,58 @@ static uint32_t srsran_dmrs_sch_seed(const srsran_carrier_nr_t*   carrier,
                              (2UL * n_id + n_scid));
 }
 
+static int dmrs_sch_alloc(srsran_dmrs_sch_t* q, uint32_t max_nof_prb)
+{
+  bool max_nof_prb_changed = q->max_nof_prb < max_nof_prb;
+
+  // Update maximum number of PRB
+  q->max_nof_prb = max_nof_prb;
+
+  // Resize/allocate temp for gNb and UE
+  if (max_nof_prb_changed) {
+    if (q->temp) {
+      free(q->temp);
+    }
+
+    q->temp = srsran_vec_cf_malloc(max_nof_prb * SRSRAN_NRE);
+    if (!q->temp) {
+      ERROR("malloc");
+      return SRSRAN_ERROR;
+    }
+  }
+
+  // If it is not UE, quit now
+  if (!q->is_rx) {
+    return SRSRAN_SUCCESS;
+  }
+
+  if (max_nof_prb_changed) {
+    // Resize interpolator only if the number of PRB has increased
+    srsran_interp_linear_free(&q->interpolator_type1);
+    srsran_interp_linear_free(&q->interpolator_type2);
+
+    if (srsran_interp_linear_init(&q->interpolator_type1, max_nof_prb * SRSRAN_NRE / 2, 2) != SRSRAN_SUCCESS) {
+      return SRSRAN_ERROR;
+    }
+    if (srsran_interp_linear_init(&q->interpolator_type2, max_nof_prb * SRSRAN_NRE / 3, 6) != SRSRAN_SUCCESS) {
+      return SRSRAN_ERROR;
+    }
+
+    if (q->pilot_estimates) {
+      free(q->pilot_estimates);
+    }
+
+    // The maximum number of pilots is for Type 1
+    q->pilot_estimates = srsran_vec_cf_malloc(SRSRAN_DMRS_SCH_MAX_SYMBOLS * max_nof_prb * SRSRAN_NRE / 2);
+    if (!q->pilot_estimates) {
+      ERROR("malloc");
+      return SRSRAN_ERROR;
+    }
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
 int srsran_dmrs_sch_init(srsran_dmrs_sch_t* q, bool is_rx)
 {
   if (q == NULL) {
@@ -547,6 +604,10 @@ int srsran_dmrs_sch_init(srsran_dmrs_sch_t* q, bool is_rx)
     srsran_chest_set_smooth_filter_gauss(q->filter, DMRS_SCH_SMOOTH_FILTER_LEN - 1, 2);
   }
 #endif // DMRS_SCH_SMOOTH_FILTER_LEN
+
+  if (dmrs_sch_alloc(q, DMRS_SCH_MAX_NOF_PRB) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
+  }
 
   return SRSRAN_SUCCESS;
 }
@@ -574,52 +635,11 @@ void srsran_dmrs_sch_free(srsran_dmrs_sch_t* q)
 
 int srsran_dmrs_sch_set_carrier(srsran_dmrs_sch_t* q, const srsran_carrier_nr_t* carrier)
 {
-  bool max_nof_prb_changed = q->max_nof_prb < carrier->nof_prb;
+  // Set carrier
+  q->carrier = *carrier;
 
-  // Set carrier and update maximum number of PRB
-  q->carrier     = *carrier;
-  q->max_nof_prb = SRSRAN_MAX(q->max_nof_prb, carrier->nof_prb);
-
-  // Resize/allocate temp for gNb and UE
-  if (max_nof_prb_changed) {
-    if (q->temp) {
-      free(q->temp);
-    }
-
-    q->temp = srsran_vec_cf_malloc(q->max_nof_prb * SRSRAN_NRE);
-    if (!q->temp) {
-      ERROR("malloc");
-      return SRSRAN_ERROR;
-    }
-  }
-
-  // If it is not UE, quit now
-  if (!q->is_rx) {
-    return SRSRAN_SUCCESS;
-  }
-
-  if (max_nof_prb_changed) {
-    // Resize interpolator only if the number of PRB has increased
-    srsran_interp_linear_free(&q->interpolator_type1);
-    srsran_interp_linear_free(&q->interpolator_type2);
-
-    if (srsran_interp_linear_init(&q->interpolator_type1, carrier->nof_prb * SRSRAN_NRE / 2, 2) != SRSRAN_SUCCESS) {
-      return SRSRAN_ERROR;
-    }
-    if (srsran_interp_linear_init(&q->interpolator_type2, carrier->nof_prb * SRSRAN_NRE / 3, 6) != SRSRAN_SUCCESS) {
-      return SRSRAN_ERROR;
-    }
-
-    if (q->pilot_estimates) {
-      free(q->pilot_estimates);
-    }
-
-    // The maximum number of pilots is for Type 1
-    q->pilot_estimates = srsran_vec_cf_malloc(SRSRAN_DMRS_SCH_MAX_SYMBOLS * q->max_nof_prb * SRSRAN_NRE / 2);
-    if (!q->pilot_estimates) {
-      ERROR("malloc");
-      return SRSRAN_ERROR;
-    }
+  if (dmrs_sch_alloc(q, carrier->nof_prb) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
   }
 
   return SRSRAN_SUCCESS;
@@ -648,7 +668,7 @@ int srsran_dmrs_sch_put_sf(srsran_dmrs_sch_t*           q,
 
   // Iterate symbols
   for (uint32_t i = 0; i < nof_symbols; i++) {
-    uint32_t l        = symbols[i];                                               // Symbol index inside the slot
+    uint32_t l        = symbols[i];                                        // Symbol index inside the slot
     uint32_t slot_idx = SRSRAN_SLOT_NR_MOD(q->carrier.scs, slot_cfg->idx); // Slot index in the frame
     uint32_t cinit    = srsran_dmrs_sch_seed(&q->carrier, pdsch_cfg, grant, slot_idx, l);
 
@@ -779,8 +799,7 @@ int srsran_dmrs_sch_estimate(srsran_dmrs_sch_t*           q,
   for (uint32_t i = 0; i < nof_symbols; i++) {
     uint32_t l = symbols[i]; // Symbol index inside the slot
 
-    uint32_t cinit =
-        srsran_dmrs_sch_seed(&q->carrier, cfg, grant, SRSRAN_SLOT_NR_MOD(q->carrier.scs, slot->idx), l);
+    uint32_t cinit = srsran_dmrs_sch_seed(&q->carrier, cfg, grant, SRSRAN_SLOT_NR_MOD(q->carrier.scs, slot->idx), l);
 
     nof_pilots_x_symbol = srsran_dmrs_sch_get_symbol(
         q, cfg, grant, cinit, delta, &sf_symbols[symbol_sz * l], &q->pilot_estimates[nof_pilots_x_symbol * i]);
@@ -851,8 +870,7 @@ int srsran_dmrs_sch_estimate(srsran_dmrs_sch_t*           q,
   cf_t cfo_correction[SRSRAN_NSYMB_PER_SLOT_NR] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
   if (isnormal(cfo_avg)) {
     // Calculate phase of the first OFDM symbol (l = 0)
-    float arg0 =
-        cargf(corr[0]) - 2.0f * M_PI * srsran_symbol_distance_s(0, symbols[0], q->carrier.scs) * cfo_avg;
+    float arg0 = cargf(corr[0]) - 2.0f * M_PI * srsran_symbol_distance_s(0, symbols[0], q->carrier.scs) * cfo_avg;
 
     // Calculate CFO corrections
     for (uint32_t l = 0; l < SRSRAN_NSYMB_PER_SLOT_NR; l++) {

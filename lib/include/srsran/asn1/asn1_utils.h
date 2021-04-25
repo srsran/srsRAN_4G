@@ -22,6 +22,7 @@
 #ifndef SRSASN_COMMON_UTILS_H
 #define SRSASN_COMMON_UTILS_H
 
+#include "srsran/common/srsran_assert.h"
 #include "srsran/srslog/srslog.h"
 #include <algorithm>
 #include <array>
@@ -91,9 +92,16 @@ void log_invalid_access_choice_id(uint32_t val, uint32_t choice_id);
 void log_invalid_choice_id(uint32_t val, const char* choice_type);
 void invalid_enum_number(int value, const char* name);
 void assert_choice_type(uint32_t val, uint32_t choice_id);
-void assert_choice_type(const std::string& access_type,
-                        const std::string& current_type,
-                        const std::string& choice_type);
+template <typename Enumerated>
+void assert_choice_type(typename Enumerated::options access_type, Enumerated& current_type, const char* choice_type)
+{
+  if (srsran_unlikely(current_type.value != access_type)) {
+    log_error("Invalid field access for choice type \"%s\" (\"%s\"!=\"%s\")",
+              choice_type,
+              Enumerated(access_type).to_string(),
+              current_type.to_string());
+  }
+}
 
 /************************
      error handling

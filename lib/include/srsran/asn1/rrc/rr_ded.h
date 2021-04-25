@@ -77,7 +77,7 @@ struct poll_byte_r14_opts {
   } value;
   typedef uint16_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint16_t    to_number() const;
 };
 typedef enumerated<poll_byte_r14_opts> poll_byte_r14_e;
@@ -105,7 +105,7 @@ struct poll_pdu_r15_opts {
   } value;
   typedef int16_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   int16_t     to_number() const;
 };
 typedef enumerated<poll_pdu_r15_opts> poll_pdu_r15_e;
@@ -115,7 +115,7 @@ struct sn_field_len_opts {
   enum options { size5, size10, nulltype } value;
   typedef uint8_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint8_t     to_number() const;
 };
 typedef enumerated<sn_field_len_opts> sn_field_len_e;
@@ -125,7 +125,7 @@ struct sn_field_len_r15_opts {
   enum options { size5, size10, size16_r15, nulltype } value;
   typedef uint8_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint8_t     to_number() const;
 };
 typedef enumerated<sn_field_len_r15_opts> sn_field_len_r15_e;
@@ -201,7 +201,7 @@ struct t_poll_retx_opts {
   } value;
   typedef uint16_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint16_t    to_number() const;
 };
 typedef enumerated<t_poll_retx_opts> t_poll_retx_e;
@@ -245,7 +245,7 @@ struct t_reordering_opts {
   } value;
   typedef uint16_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint16_t    to_number() const;
 };
 typedef enumerated<t_reordering_opts> t_reordering_e;
@@ -321,7 +321,7 @@ struct t_status_prohibit_opts {
   } value;
   typedef uint16_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint16_t    to_number() const;
 };
 typedef enumerated<t_status_prohibit_opts> t_status_prohibit_e;
@@ -376,7 +376,7 @@ struct poll_byte_opts {
   } value;
   typedef int16_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   int16_t     to_number() const;
 };
 typedef enumerated<poll_byte_opts> poll_byte_e;
@@ -386,7 +386,7 @@ struct poll_pdu_opts {
   enum options { p4, p8, p16, p32, p64, p128, p256, pinfinity, nulltype } value;
   typedef int16_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   int16_t     to_number() const;
 };
 typedef enumerated<poll_pdu_opts> poll_pdu_e;
@@ -397,7 +397,7 @@ struct ul_am_rlc_r15_s {
     enum options { t1, t2, t3, t4, t6, t8, t16, t32, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<max_retx_thres_r15_opts> max_retx_thres_r15_e_;
@@ -480,7 +480,7 @@ struct lc_ch_cfg_s {
       } value;
       typedef int16_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       int16_t     to_number() const;
     };
     typedef enumerated<prioritised_bit_rate_opts> prioritised_bit_rate_e_;
@@ -488,7 +488,7 @@ struct lc_ch_cfg_s {
       enum options { ms50, ms100, ms150, ms300, ms500, ms1000, spare2, spare1, nulltype } value;
       typedef uint16_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint16_t    to_number() const;
     };
     typedef enumerated<bucket_size_dur_opts> bucket_size_dur_e_;
@@ -504,9 +504,9 @@ struct lc_ch_cfg_s {
     enum options { s0, s0dot4, s0dot8, s1dot6, s3, s6, s12, s30, nulltype } value;
     typedef float number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     float       to_number() const;
-    std::string to_number_string() const;
+    const char* to_number_string() const;
   };
   typedef enumerated<bit_rate_query_prohibit_timer_r14_opts> bit_rate_query_prohibit_timer_r14_e_;
   struct allowed_tti_lens_r15_c_ {
@@ -528,20 +528,16 @@ struct lc_ch_cfg_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "allowedTTI-Lengths-r15");
+      assert_choice_type(types::setup, type_, "allowedTTI-Lengths-r15");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "allowedTTI-Lengths-r15");
+      assert_choice_type(types::setup, type_, "allowedTTI-Lengths-r15");
       return c;
     }
-    void      set_release() { set(types::release); }
-    setup_s_& set_setup()
-    {
-      set(types::setup);
-      return c;
-    }
+    void      set_release();
+    setup_s_& set_setup();
 
   private:
     types    type_;
@@ -551,7 +547,7 @@ struct lc_ch_cfg_s {
     struct setup_opts {
       enum options { spucch, pucch, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<setup_opts> setup_e_;
     using types = setup_e;
@@ -568,20 +564,16 @@ struct lc_ch_cfg_s {
     // getters
     setup_e_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "logicalChannelSR-Restriction-r15");
+      assert_choice_type(types::setup, type_, "logicalChannelSR-Restriction-r15");
       return c;
     }
     const setup_e_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "logicalChannelSR-Restriction-r15");
+      assert_choice_type(types::setup, type_, "logicalChannelSR-Restriction-r15");
       return c;
     }
-    void      set_release() { set(types::release); }
-    setup_e_& set_setup()
-    {
-      set(types::setup);
-      return c;
-    }
+    void      set_release();
+    setup_e_& set_setup();
 
   private:
     types    type_;
@@ -602,20 +594,16 @@ struct lc_ch_cfg_s {
     // getters
     uint8_t& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "channelAccessPriority-r15");
+      assert_choice_type(types::setup, type_, "channelAccessPriority-r15");
       return c;
     }
     const uint8_t& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "channelAccessPriority-r15");
+      assert_choice_type(types::setup, type_, "channelAccessPriority-r15");
       return c;
     }
-    void     set_release() { set(types::release); }
-    uint8_t& set_setup()
-    {
-      set(types::setup);
-      return c;
-    }
+    void     set_release();
+    uint8_t& set_setup();
 
   private:
     types   type_;
@@ -657,9 +645,9 @@ struct p_a_opts {
   enum options { db_minus6, db_minus4dot77, db_minus3, db_minus1dot77, db0, db1, db2, db3, nulltype } value;
   typedef float number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   float       to_number() const;
-  std::string to_number_string() const;
+  const char* to_number_string() const;
 };
 typedef enumerated<p_a_opts> p_a_e;
 
@@ -668,7 +656,7 @@ struct poll_pdu_v1310_opts {
   enum options { p512, p1024, p2048, p4096, p6144, p8192, p12288, p16384, nulltype } value;
   typedef uint16_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint16_t    to_number() const;
 };
 typedef enumerated<poll_pdu_v1310_opts> poll_pdu_v1310_e;
@@ -693,7 +681,7 @@ struct rlc_cfg_r15_s {
     struct types_opts {
       enum options { am_r15, um_bi_dir_r15, um_uni_dir_ul_r15, um_uni_dir_dl_r15, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -712,64 +700,48 @@ struct rlc_cfg_r15_s {
     // getters
     am_r15_s_& am_r15()
     {
-      assert_choice_type("am-r15", type_.to_string(), "mode-r15");
+      assert_choice_type(types::am_r15, type_, "mode-r15");
       return c.get<am_r15_s_>();
     }
     um_bi_dir_r15_s_& um_bi_dir_r15()
     {
-      assert_choice_type("um-Bi-Directional-r15", type_.to_string(), "mode-r15");
+      assert_choice_type(types::um_bi_dir_r15, type_, "mode-r15");
       return c.get<um_bi_dir_r15_s_>();
     }
     um_uni_dir_ul_r15_s_& um_uni_dir_ul_r15()
     {
-      assert_choice_type("um-Uni-Directional-UL-r15", type_.to_string(), "mode-r15");
+      assert_choice_type(types::um_uni_dir_ul_r15, type_, "mode-r15");
       return c.get<um_uni_dir_ul_r15_s_>();
     }
     um_uni_dir_dl_r15_s_& um_uni_dir_dl_r15()
     {
-      assert_choice_type("um-Uni-Directional-DL-r15", type_.to_string(), "mode-r15");
+      assert_choice_type(types::um_uni_dir_dl_r15, type_, "mode-r15");
       return c.get<um_uni_dir_dl_r15_s_>();
     }
     const am_r15_s_& am_r15() const
     {
-      assert_choice_type("am-r15", type_.to_string(), "mode-r15");
+      assert_choice_type(types::am_r15, type_, "mode-r15");
       return c.get<am_r15_s_>();
     }
     const um_bi_dir_r15_s_& um_bi_dir_r15() const
     {
-      assert_choice_type("um-Bi-Directional-r15", type_.to_string(), "mode-r15");
+      assert_choice_type(types::um_bi_dir_r15, type_, "mode-r15");
       return c.get<um_bi_dir_r15_s_>();
     }
     const um_uni_dir_ul_r15_s_& um_uni_dir_ul_r15() const
     {
-      assert_choice_type("um-Uni-Directional-UL-r15", type_.to_string(), "mode-r15");
+      assert_choice_type(types::um_uni_dir_ul_r15, type_, "mode-r15");
       return c.get<um_uni_dir_ul_r15_s_>();
     }
     const um_uni_dir_dl_r15_s_& um_uni_dir_dl_r15() const
     {
-      assert_choice_type("um-Uni-Directional-DL-r15", type_.to_string(), "mode-r15");
+      assert_choice_type(types::um_uni_dir_dl_r15, type_, "mode-r15");
       return c.get<um_uni_dir_dl_r15_s_>();
     }
-    am_r15_s_& set_am_r15()
-    {
-      set(types::am_r15);
-      return c.get<am_r15_s_>();
-    }
-    um_bi_dir_r15_s_& set_um_bi_dir_r15()
-    {
-      set(types::um_bi_dir_r15);
-      return c.get<um_bi_dir_r15_s_>();
-    }
-    um_uni_dir_ul_r15_s_& set_um_uni_dir_ul_r15()
-    {
-      set(types::um_uni_dir_ul_r15);
-      return c.get<um_uni_dir_ul_r15_s_>();
-    }
-    um_uni_dir_dl_r15_s_& set_um_uni_dir_dl_r15()
-    {
-      set(types::um_uni_dir_dl_r15);
-      return c.get<um_uni_dir_dl_r15_s_>();
-    }
+    am_r15_s_&            set_am_r15();
+    um_bi_dir_r15_s_&     set_um_bi_dir_r15();
+    um_uni_dir_ul_r15_s_& set_um_uni_dir_ul_r15();
+    um_uni_dir_dl_r15_s_& set_um_uni_dir_dl_r15();
 
   private:
     types                                                                                    type_;
@@ -799,7 +771,7 @@ struct ul_am_rlc_s {
     enum options { t1, t2, t3, t4, t6, t8, t16, t32, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<max_retx_thres_opts> max_retx_thres_e_;
@@ -824,7 +796,7 @@ struct crs_assist_info_r11_s {
     enum options { an1, an2, an4, spare1, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<ant_ports_count_r11_opts> ant_ports_count_r11_e_;
@@ -850,7 +822,7 @@ struct crs_assist_info_r13_s {
     enum options { an1, an2, an4, spare1, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<ant_ports_count_r13_opts> ant_ports_count_r13_e_;
@@ -898,7 +870,7 @@ struct neigh_cells_info_r12_s {
     enum options { n1, n2, n4, spare, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<crs_ports_count_r12_opts> crs_ports_count_r12_e_;
@@ -930,7 +902,7 @@ struct pdcp_cfg_s {
     enum options { ms50, ms100, ms150, ms300, ms500, ms750, ms1500, infinity, nulltype } value;
     typedef int16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     int16_t     to_number() const;
   };
   typedef enumerated<discard_timer_opts> discard_timer_e_;
@@ -942,7 +914,7 @@ struct pdcp_cfg_s {
       enum options { len7bits, len12bits, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<pdcp_sn_size_opts> pdcp_sn_size_e_;
@@ -974,7 +946,7 @@ struct pdcp_cfg_s {
     struct types_opts {
       enum options { not_used, rohc, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -990,20 +962,16 @@ struct pdcp_cfg_s {
     // getters
     rohc_s_& rohc()
     {
-      assert_choice_type("rohc", type_.to_string(), "headerCompression");
+      assert_choice_type(types::rohc, type_, "headerCompression");
       return c;
     }
     const rohc_s_& rohc() const
     {
-      assert_choice_type("rohc", type_.to_string(), "headerCompression");
+      assert_choice_type(types::rohc, type_, "headerCompression");
       return c;
     }
-    void     set_not_used() { set(types::not_used); }
-    rohc_s_& set_rohc()
-    {
-      set(types::rohc);
-      return c;
-    }
+    void     set_not_used();
+    rohc_s_& set_rohc();
 
   private:
     types   type_;
@@ -1047,7 +1015,7 @@ struct pdcp_cfg_s {
     } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<t_reordering_r12_opts> t_reordering_r12_e_;
@@ -1074,7 +1042,7 @@ struct pdcp_cfg_s {
       } value;
       typedef uint32_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint32_t    to_number() const;
     };
     typedef enumerated<setup_opts> setup_e_;
@@ -1092,20 +1060,16 @@ struct pdcp_cfg_s {
     // getters
     setup_e_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "ul-DataSplitThreshold-r13");
+      assert_choice_type(types::setup, type_, "ul-DataSplitThreshold-r13");
       return c;
     }
     const setup_e_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "ul-DataSplitThreshold-r13");
+      assert_choice_type(types::setup, type_, "ul-DataSplitThreshold-r13");
       return c;
     }
-    void      set_release() { set(types::release); }
-    setup_e_& set_setup()
-    {
-      set(types::setup);
-      return c;
-    }
+    void      set_release();
+    setup_e_& set_setup();
 
   private:
     types    type_;
@@ -1117,7 +1081,7 @@ struct pdcp_cfg_s {
         enum options { type1, type2, nulltype } value;
         typedef uint8_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         uint8_t     to_number() const;
       };
       typedef enumerated<status_pdu_type_for_polling_r13_opts> status_pdu_type_for_polling_r13_e_;
@@ -1148,7 +1112,7 @@ struct pdcp_cfg_s {
         } value;
         typedef uint16_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         uint16_t    to_number() const;
       };
       typedef enumerated<status_pdu_periodicity_type1_r13_opts> status_pdu_periodicity_type1_r13_e_;
@@ -1179,7 +1143,7 @@ struct pdcp_cfg_s {
         } value;
         typedef uint16_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         uint16_t    to_number() const;
       };
       typedef enumerated<status_pdu_periodicity_type2_r13_opts> status_pdu_periodicity_type2_r13_e_;
@@ -1187,7 +1151,7 @@ struct pdcp_cfg_s {
         enum options { ms1, ms2, ms5, ms10, ms25, ms50, ms100, ms250, ms500, ms2500, ms5000, ms25000, nulltype } value;
         typedef uint16_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         uint16_t    to_number() const;
       };
       typedef enumerated<status_pdu_periodicity_offset_r13_opts> status_pdu_periodicity_offset_r13_e_;
@@ -1216,20 +1180,16 @@ struct pdcp_cfg_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "statusFeedback-r13");
+      assert_choice_type(types::setup, type_, "statusFeedback-r13");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "statusFeedback-r13");
+      assert_choice_type(types::setup, type_, "statusFeedback-r13");
       return c;
     }
-    void      set_release() { set(types::release); }
-    setup_s_& set_setup()
-    {
-      set(types::setup);
-      return c;
-    }
+    void      set_release();
+    setup_s_& set_setup();
 
   private:
     types    type_;
@@ -1258,7 +1218,7 @@ struct pdcp_cfg_s {
         } value;
         typedef uint32_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         uint32_t    to_number() const;
       };
       typedef enumerated<ul_lwa_data_split_thres_r14_opts> ul_lwa_data_split_thres_r14_e_;
@@ -1282,20 +1242,16 @@ struct pdcp_cfg_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "ul-LWA-Config-r14");
+      assert_choice_type(types::setup, type_, "ul-LWA-Config-r14");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "ul-LWA-Config-r14");
+      assert_choice_type(types::setup, type_, "ul-LWA-Config-r14");
       return c;
     }
-    void      set_release() { set(types::release); }
-    setup_s_& set_setup()
-    {
-      set(types::setup);
-      return c;
-    }
+    void      set_release();
+    setup_s_& set_setup();
 
   private:
     types    type_;
@@ -1317,7 +1273,7 @@ struct pdcp_cfg_s {
     struct types_opts {
       enum options { not_used_r14, rohc_r14, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -1333,20 +1289,16 @@ struct pdcp_cfg_s {
     // getters
     rohc_r14_s_& rohc_r14()
     {
-      assert_choice_type("rohc-r14", type_.to_string(), "uplinkOnlyHeaderCompression-r14");
+      assert_choice_type(types::rohc_r14, type_, "uplinkOnlyHeaderCompression-r14");
       return c;
     }
     const rohc_r14_s_& rohc_r14() const
     {
-      assert_choice_type("rohc-r14", type_.to_string(), "uplinkOnlyHeaderCompression-r14");
+      assert_choice_type(types::rohc_r14, type_, "uplinkOnlyHeaderCompression-r14");
       return c;
     }
-    void         set_not_used_r14() { set(types::not_used_r14); }
-    rohc_r14_s_& set_rohc_r14()
-    {
-      set(types::rohc_r14);
-      return c;
-    }
+    void         set_not_used_r14();
+    rohc_r14_s_& set_rohc_r14();
 
   private:
     types       type_;
@@ -1357,14 +1309,14 @@ struct pdcp_cfg_s {
       enum options { kbyte2, kbyte4, kbyte8, spare1, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<buffer_size_r15_opts> buffer_size_r15_e_;
     struct dictionary_r15_opts {
       enum options { sip_sdp, operator_value, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<dictionary_r15_opts> dictionary_r15_e_;
 
@@ -1380,7 +1332,7 @@ struct pdcp_cfg_s {
       struct pdcp_dupl_r15_opts {
         enum options { cfgured, activ, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<pdcp_dupl_r15_opts> pdcp_dupl_r15_e_;
 
@@ -1401,20 +1353,16 @@ struct pdcp_cfg_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "pdcp-DuplicationConfig-r15");
+      assert_choice_type(types::setup, type_, "pdcp-DuplicationConfig-r15");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "pdcp-DuplicationConfig-r15");
+      assert_choice_type(types::setup, type_, "pdcp-DuplicationConfig-r15");
       return c;
     }
-    void      set_release() { set(types::release); }
-    setup_s_& set_setup()
-    {
-      set(types::setup);
-      return c;
-    }
+    void      set_release();
+    setup_s_& set_setup();
 
   private:
     types    type_;
@@ -1466,7 +1414,7 @@ struct rlc_bearer_cfg_r15_c {
       struct types_opts {
         enum options { lc_ch_id_r15, lc_ch_id_ext_r15, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -1485,34 +1433,26 @@ struct rlc_bearer_cfg_r15_c {
       // getters
       uint8_t& lc_ch_id_r15()
       {
-        assert_choice_type("logicalChannelIdentity-r15", type_.to_string(), "logicalChannelIdentityConfig-r15");
+        assert_choice_type(types::lc_ch_id_r15, type_, "logicalChannelIdentityConfig-r15");
         return c.get<uint8_t>();
       }
       uint8_t& lc_ch_id_ext_r15()
       {
-        assert_choice_type("logicalChannelIdentityExt-r15", type_.to_string(), "logicalChannelIdentityConfig-r15");
+        assert_choice_type(types::lc_ch_id_ext_r15, type_, "logicalChannelIdentityConfig-r15");
         return c.get<uint8_t>();
       }
       const uint8_t& lc_ch_id_r15() const
       {
-        assert_choice_type("logicalChannelIdentity-r15", type_.to_string(), "logicalChannelIdentityConfig-r15");
+        assert_choice_type(types::lc_ch_id_r15, type_, "logicalChannelIdentityConfig-r15");
         return c.get<uint8_t>();
       }
       const uint8_t& lc_ch_id_ext_r15() const
       {
-        assert_choice_type("logicalChannelIdentityExt-r15", type_.to_string(), "logicalChannelIdentityConfig-r15");
+        assert_choice_type(types::lc_ch_id_ext_r15, type_, "logicalChannelIdentityConfig-r15");
         return c.get<uint8_t>();
       }
-      uint8_t& set_lc_ch_id_r15()
-      {
-        set(types::lc_ch_id_r15);
-        return c.get<uint8_t>();
-      }
-      uint8_t& set_lc_ch_id_ext_r15()
-      {
-        set(types::lc_ch_id_ext_r15);
-        return c.get<uint8_t>();
-      }
+      uint8_t& set_lc_ch_id_r15();
+      uint8_t& set_lc_ch_id_ext_r15();
 
     private:
       types               type_;
@@ -1542,20 +1482,16 @@ struct rlc_bearer_cfg_r15_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "RLC-BearerConfig-r15");
+    assert_choice_type(types::setup, type_, "RLC-BearerConfig-r15");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "RLC-BearerConfig-r15");
+    assert_choice_type(types::setup, type_, "RLC-BearerConfig-r15");
     return c;
   }
-  void      set_release() { set(types::release); }
-  setup_s_& set_setup()
-  {
-    set(types::setup);
-    return c;
-  }
+  void      set_release();
+  setup_s_& set_setup();
 
 private:
   types    type_;
@@ -1581,7 +1517,7 @@ struct rlc_cfg_c {
   struct types_opts {
     enum options { am, um_bi_dir, um_uni_dir_ul, um_uni_dir_dl, /*...*/ nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true> types;
 
@@ -1600,64 +1536,48 @@ struct rlc_cfg_c {
   // getters
   am_s_& am()
   {
-    assert_choice_type("am", type_.to_string(), "RLC-Config");
+    assert_choice_type(types::am, type_, "RLC-Config");
     return c.get<am_s_>();
   }
   um_bi_dir_s_& um_bi_dir()
   {
-    assert_choice_type("um-Bi-Directional", type_.to_string(), "RLC-Config");
+    assert_choice_type(types::um_bi_dir, type_, "RLC-Config");
     return c.get<um_bi_dir_s_>();
   }
   um_uni_dir_ul_s_& um_uni_dir_ul()
   {
-    assert_choice_type("um-Uni-Directional-UL", type_.to_string(), "RLC-Config");
+    assert_choice_type(types::um_uni_dir_ul, type_, "RLC-Config");
     return c.get<um_uni_dir_ul_s_>();
   }
   um_uni_dir_dl_s_& um_uni_dir_dl()
   {
-    assert_choice_type("um-Uni-Directional-DL", type_.to_string(), "RLC-Config");
+    assert_choice_type(types::um_uni_dir_dl, type_, "RLC-Config");
     return c.get<um_uni_dir_dl_s_>();
   }
   const am_s_& am() const
   {
-    assert_choice_type("am", type_.to_string(), "RLC-Config");
+    assert_choice_type(types::am, type_, "RLC-Config");
     return c.get<am_s_>();
   }
   const um_bi_dir_s_& um_bi_dir() const
   {
-    assert_choice_type("um-Bi-Directional", type_.to_string(), "RLC-Config");
+    assert_choice_type(types::um_bi_dir, type_, "RLC-Config");
     return c.get<um_bi_dir_s_>();
   }
   const um_uni_dir_ul_s_& um_uni_dir_ul() const
   {
-    assert_choice_type("um-Uni-Directional-UL", type_.to_string(), "RLC-Config");
+    assert_choice_type(types::um_uni_dir_ul, type_, "RLC-Config");
     return c.get<um_uni_dir_ul_s_>();
   }
   const um_uni_dir_dl_s_& um_uni_dir_dl() const
   {
-    assert_choice_type("um-Uni-Directional-DL", type_.to_string(), "RLC-Config");
+    assert_choice_type(types::um_uni_dir_dl, type_, "RLC-Config");
     return c.get<um_uni_dir_dl_s_>();
   }
-  am_s_& set_am()
-  {
-    set(types::am);
-    return c.get<am_s_>();
-  }
-  um_bi_dir_s_& set_um_bi_dir()
-  {
-    set(types::um_bi_dir);
-    return c.get<um_bi_dir_s_>();
-  }
-  um_uni_dir_ul_s_& set_um_uni_dir_ul()
-  {
-    set(types::um_uni_dir_ul);
-    return c.get<um_uni_dir_ul_s_>();
-  }
-  um_uni_dir_dl_s_& set_um_uni_dir_dl()
-  {
-    set(types::um_uni_dir_dl);
-    return c.get<um_uni_dir_dl_s_>();
-  }
+  am_s_&            set_am();
+  um_bi_dir_s_&     set_um_bi_dir();
+  um_uni_dir_ul_s_& set_um_uni_dir_ul();
+  um_uni_dir_dl_s_& set_um_uni_dir_dl();
 
 private:
   types                                                                    type_;
@@ -1713,20 +1633,16 @@ struct rlc_cfg_v1430_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "RLC-Config-v1430");
+    assert_choice_type(types::setup, type_, "RLC-Config-v1430");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "RLC-Config-v1430");
+    assert_choice_type(types::setup, type_, "RLC-Config-v1430");
     return c;
   }
-  void      set_release() { set(types::release); }
-  setup_s_& set_setup()
-  {
-    set(types::setup);
-    return c;
-  }
+  void      set_release();
+  setup_s_& set_setup();
 
 private:
   types    type_;
@@ -1758,8 +1674,8 @@ struct rlc_cfg_v1530_c {
   bool        operator==(const rlc_cfg_v1530_c& other) const;
   bool        operator!=(const rlc_cfg_v1530_c& other) const { return not(*this == other); }
   // getters
-  void set_release() { set(types::release); }
-  void set_setup() { set(types::setup); }
+  void set_release();
+  void set_setup();
 
 private:
   types type_;
@@ -1789,7 +1705,7 @@ struct sps_cfg_sl_r14_s {
     } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<semi_persist_sched_interv_sl_r14_opts> semi_persist_sched_interv_sl_r14_e_;
@@ -1829,7 +1745,7 @@ struct sps_cfg_ul_c {
       } value;
       typedef uint16_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint16_t    to_number() const;
     };
     typedef enumerated<semi_persist_sched_interv_ul_opts> semi_persist_sched_interv_ul_e_;
@@ -1837,7 +1753,7 @@ struct sps_cfg_ul_c {
       enum options { e2, e3, e4, e8, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<implicit_release_after_opts> implicit_release_after_e_;
@@ -1864,20 +1780,16 @@ struct sps_cfg_ul_c {
       // getters
       setup_s_& setup()
       {
-        assert_choice_type("setup", type_.to_string(), "p0-PersistentSubframeSet2-r12");
+        assert_choice_type(types::setup, type_, "p0-PersistentSubframeSet2-r12");
         return c;
       }
       const setup_s_& setup() const
       {
-        assert_choice_type("setup", type_.to_string(), "p0-PersistentSubframeSet2-r12");
+        assert_choice_type(types::setup, type_, "p0-PersistentSubframeSet2-r12");
         return c;
       }
-      void      set_release() { set(types::release); }
-      setup_s_& set_setup()
-      {
-        set(types::setup);
-        return c;
-      }
+      void      set_release();
+      setup_s_& set_setup();
 
     private:
       types    type_;
@@ -1905,7 +1817,7 @@ struct sps_cfg_ul_c {
       } value;
       typedef uint16_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint16_t    to_number() const;
     };
     typedef enumerated<semi_persist_sched_interv_ul_v1430_opts> semi_persist_sched_interv_ul_v1430_e_;
@@ -1913,7 +1825,7 @@ struct sps_cfg_ul_c {
       enum options { cs0, cs1, cs2, cs3, cs4, cs5, cs6, cs7, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<cyclic_shift_sps_r15_opts> cyclic_shift_sps_r15_e_;
@@ -1921,7 +1833,7 @@ struct sps_cfg_ul_c {
       enum options { ulrvseq1, ulrvseq2, ulrvseq3, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<rv_sps_ul_repeats_r15_opts> rv_sps_ul_repeats_r15_e_;
@@ -1929,7 +1841,7 @@ struct sps_cfg_ul_c {
       enum options { n2, n3, n4, n6, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<total_num_pusch_sps_ul_repeats_r15_opts> total_num_pusch_sps_ul_repeats_r15_e_;
@@ -1987,20 +1899,16 @@ struct sps_cfg_ul_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "SPS-ConfigUL");
+    assert_choice_type(types::setup, type_, "SPS-ConfigUL");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "SPS-ConfigUL");
+    assert_choice_type(types::setup, type_, "SPS-ConfigUL");
     return c;
   }
-  void      set_release() { set(types::release); }
-  setup_s_& set_setup()
-  {
-    set(types::setup);
-    return c;
-  }
+  void      set_release();
+  setup_s_& set_setup();
 
 private:
   types    type_;
@@ -2032,7 +1940,7 @@ struct sps_cfg_ul_stti_r15_c {
       } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<semi_persist_sched_interv_ul_stti_r15_opts> semi_persist_sched_interv_ul_stti_r15_e_;
@@ -2040,7 +1948,7 @@ struct sps_cfg_ul_stti_r15_c {
       enum options { e2, e3, e4, e8, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<implicit_release_after_opts> implicit_release_after_e_;
@@ -2067,20 +1975,16 @@ struct sps_cfg_ul_stti_r15_c {
       // getters
       setup_s_& setup()
       {
-        assert_choice_type("setup", type_.to_string(), "p0-PersistentSubframeSet2-r15");
+        assert_choice_type(types::setup, type_, "p0-PersistentSubframeSet2-r15");
         return c;
       }
       const setup_s_& setup() const
       {
-        assert_choice_type("setup", type_.to_string(), "p0-PersistentSubframeSet2-r15");
+        assert_choice_type(types::setup, type_, "p0-PersistentSubframeSet2-r15");
         return c;
       }
-      void      set_release() { set(types::release); }
-      setup_s_& set_setup()
-      {
-        set(types::setup);
-        return c;
-      }
+      void      set_release();
+      setup_s_& set_setup();
 
     private:
       types    type_;
@@ -2090,7 +1994,7 @@ struct sps_cfg_ul_stti_r15_c {
       enum options { cs0, cs1, cs2, cs3, cs4, cs5, cs6, cs7, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<cyclic_shift_sps_s_tti_r15_opts> cyclic_shift_sps_s_tti_r15_e_;
@@ -2098,7 +2002,7 @@ struct sps_cfg_ul_stti_r15_c {
       enum options { ulrvseq1, ulrvseq2, ulrvseq3, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<rv_sps_stti_ul_repeats_r15_opts> rv_sps_stti_ul_repeats_r15_e_;
@@ -2106,7 +2010,7 @@ struct sps_cfg_ul_stti_r15_c {
       enum options { n6, n12, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<tbs_scaling_factor_subslot_sps_ul_repeats_r15_opts>
@@ -2115,7 +2019,7 @@ struct sps_cfg_ul_stti_r15_c {
       enum options { n2, n3, n4, n6, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<total_num_pusch_sps_stti_ul_repeats_r15_opts> total_num_pusch_sps_stti_ul_repeats_r15_e_;
@@ -2164,20 +2068,16 @@ struct sps_cfg_ul_stti_r15_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "SPS-ConfigUL-STTI-r15");
+    assert_choice_type(types::setup, type_, "SPS-ConfigUL-STTI-r15");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "SPS-ConfigUL-STTI-r15");
+    assert_choice_type(types::setup, type_, "SPS-ConfigUL-STTI-r15");
     return c;
   }
-  void      set_release() { set(types::release); }
-  setup_s_& set_setup()
-  {
-    set(types::setup);
-    return c;
-  }
+  void      set_release();
+  setup_s_& set_setup();
 
 private:
   types    type_;
@@ -2211,13 +2111,13 @@ struct drb_to_add_mod_s {
   struct drb_type_lwip_r13_opts {
     enum options { lwip, lwip_dl_only, lwip_ul_only, eutran, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<drb_type_lwip_r13_opts> drb_type_lwip_r13_e_;
   struct lwa_wlan_ac_r14_opts {
     enum options { ac_bk, ac_be, ac_vi, ac_vo, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<lwa_wlan_ac_r14_opts> lwa_wlan_ac_r14_e_;
 
@@ -2293,7 +2193,7 @@ struct drx_cfg_c {
       } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<on_dur_timer_opts> on_dur_timer_e_;
@@ -2335,7 +2235,7 @@ struct drx_cfg_c {
       } value;
       typedef uint16_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint16_t    to_number() const;
     };
     typedef enumerated<drx_inactivity_timer_opts> drx_inactivity_timer_e_;
@@ -2343,7 +2243,7 @@ struct drx_cfg_c {
       enum options { psf1, psf2, psf4, psf6, psf8, psf16, psf24, psf33, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<drx_retx_timer_opts> drx_retx_timer_e_;
@@ -2370,7 +2270,7 @@ struct drx_cfg_c {
         } value;
         typedef uint16_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         uint16_t    to_number() const;
       };
       typedef enumerated<types_opts> types;
@@ -2388,244 +2288,180 @@ struct drx_cfg_c {
       // getters
       uint8_t& sf10()
       {
-        assert_choice_type("sf10", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf10, type_, "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
       uint8_t& sf20()
       {
-        assert_choice_type("sf20", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf20, type_, "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
       uint8_t& sf32()
       {
-        assert_choice_type("sf32", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf32, type_, "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
       uint8_t& sf40()
       {
-        assert_choice_type("sf40", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf40, type_, "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
       uint8_t& sf64()
       {
-        assert_choice_type("sf64", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf64, type_, "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
       uint8_t& sf80()
       {
-        assert_choice_type("sf80", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf80, type_, "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
       uint8_t& sf128()
       {
-        assert_choice_type("sf128", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf128, type_, "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
       uint8_t& sf160()
       {
-        assert_choice_type("sf160", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf160, type_, "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
       uint16_t& sf256()
       {
-        assert_choice_type("sf256", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf256, type_, "longDRX-CycleStartOffset");
         return c.get<uint16_t>();
       }
       uint16_t& sf320()
       {
-        assert_choice_type("sf320", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf320, type_, "longDRX-CycleStartOffset");
         return c.get<uint16_t>();
       }
       uint16_t& sf512()
       {
-        assert_choice_type("sf512", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf512, type_, "longDRX-CycleStartOffset");
         return c.get<uint16_t>();
       }
       uint16_t& sf640()
       {
-        assert_choice_type("sf640", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf640, type_, "longDRX-CycleStartOffset");
         return c.get<uint16_t>();
       }
       uint16_t& sf1024()
       {
-        assert_choice_type("sf1024", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf1024, type_, "longDRX-CycleStartOffset");
         return c.get<uint16_t>();
       }
       uint16_t& sf1280()
       {
-        assert_choice_type("sf1280", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf1280, type_, "longDRX-CycleStartOffset");
         return c.get<uint16_t>();
       }
       uint16_t& sf2048()
       {
-        assert_choice_type("sf2048", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf2048, type_, "longDRX-CycleStartOffset");
         return c.get<uint16_t>();
       }
       uint16_t& sf2560()
       {
-        assert_choice_type("sf2560", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf2560, type_, "longDRX-CycleStartOffset");
         return c.get<uint16_t>();
       }
       const uint8_t& sf10() const
       {
-        assert_choice_type("sf10", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf10, type_, "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
       const uint8_t& sf20() const
       {
-        assert_choice_type("sf20", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf20, type_, "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
       const uint8_t& sf32() const
       {
-        assert_choice_type("sf32", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf32, type_, "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
       const uint8_t& sf40() const
       {
-        assert_choice_type("sf40", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf40, type_, "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
       const uint8_t& sf64() const
       {
-        assert_choice_type("sf64", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf64, type_, "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
       const uint8_t& sf80() const
       {
-        assert_choice_type("sf80", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf80, type_, "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
       const uint8_t& sf128() const
       {
-        assert_choice_type("sf128", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf128, type_, "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
       const uint8_t& sf160() const
       {
-        assert_choice_type("sf160", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf160, type_, "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
       const uint16_t& sf256() const
       {
-        assert_choice_type("sf256", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf256, type_, "longDRX-CycleStartOffset");
         return c.get<uint16_t>();
       }
       const uint16_t& sf320() const
       {
-        assert_choice_type("sf320", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf320, type_, "longDRX-CycleStartOffset");
         return c.get<uint16_t>();
       }
       const uint16_t& sf512() const
       {
-        assert_choice_type("sf512", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf512, type_, "longDRX-CycleStartOffset");
         return c.get<uint16_t>();
       }
       const uint16_t& sf640() const
       {
-        assert_choice_type("sf640", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf640, type_, "longDRX-CycleStartOffset");
         return c.get<uint16_t>();
       }
       const uint16_t& sf1024() const
       {
-        assert_choice_type("sf1024", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf1024, type_, "longDRX-CycleStartOffset");
         return c.get<uint16_t>();
       }
       const uint16_t& sf1280() const
       {
-        assert_choice_type("sf1280", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf1280, type_, "longDRX-CycleStartOffset");
         return c.get<uint16_t>();
       }
       const uint16_t& sf2048() const
       {
-        assert_choice_type("sf2048", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf2048, type_, "longDRX-CycleStartOffset");
         return c.get<uint16_t>();
       }
       const uint16_t& sf2560() const
       {
-        assert_choice_type("sf2560", type_.to_string(), "longDRX-CycleStartOffset");
+        assert_choice_type(types::sf2560, type_, "longDRX-CycleStartOffset");
         return c.get<uint16_t>();
       }
-      uint8_t& set_sf10()
-      {
-        set(types::sf10);
-        return c.get<uint8_t>();
-      }
-      uint8_t& set_sf20()
-      {
-        set(types::sf20);
-        return c.get<uint8_t>();
-      }
-      uint8_t& set_sf32()
-      {
-        set(types::sf32);
-        return c.get<uint8_t>();
-      }
-      uint8_t& set_sf40()
-      {
-        set(types::sf40);
-        return c.get<uint8_t>();
-      }
-      uint8_t& set_sf64()
-      {
-        set(types::sf64);
-        return c.get<uint8_t>();
-      }
-      uint8_t& set_sf80()
-      {
-        set(types::sf80);
-        return c.get<uint8_t>();
-      }
-      uint8_t& set_sf128()
-      {
-        set(types::sf128);
-        return c.get<uint8_t>();
-      }
-      uint8_t& set_sf160()
-      {
-        set(types::sf160);
-        return c.get<uint8_t>();
-      }
-      uint16_t& set_sf256()
-      {
-        set(types::sf256);
-        return c.get<uint16_t>();
-      }
-      uint16_t& set_sf320()
-      {
-        set(types::sf320);
-        return c.get<uint16_t>();
-      }
-      uint16_t& set_sf512()
-      {
-        set(types::sf512);
-        return c.get<uint16_t>();
-      }
-      uint16_t& set_sf640()
-      {
-        set(types::sf640);
-        return c.get<uint16_t>();
-      }
-      uint16_t& set_sf1024()
-      {
-        set(types::sf1024);
-        return c.get<uint16_t>();
-      }
-      uint16_t& set_sf1280()
-      {
-        set(types::sf1280);
-        return c.get<uint16_t>();
-      }
-      uint16_t& set_sf2048()
-      {
-        set(types::sf2048);
-        return c.get<uint16_t>();
-      }
-      uint16_t& set_sf2560()
-      {
-        set(types::sf2560);
-        return c.get<uint16_t>();
-      }
+      uint8_t&  set_sf10();
+      uint8_t&  set_sf20();
+      uint8_t&  set_sf32();
+      uint8_t&  set_sf40();
+      uint8_t&  set_sf64();
+      uint8_t&  set_sf80();
+      uint8_t&  set_sf128();
+      uint8_t&  set_sf160();
+      uint16_t& set_sf256();
+      uint16_t& set_sf320();
+      uint16_t& set_sf512();
+      uint16_t& set_sf640();
+      uint16_t& set_sf1024();
+      uint16_t& set_sf1280();
+      uint16_t& set_sf2048();
+      uint16_t& set_sf2560();
 
     private:
       types               type_;
@@ -2656,7 +2492,7 @@ struct drx_cfg_c {
         } value;
         typedef uint16_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         uint16_t    to_number() const;
       };
       typedef enumerated<short_drx_cycle_opts> short_drx_cycle_e_;
@@ -2686,20 +2522,16 @@ struct drx_cfg_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "DRX-Config");
+    assert_choice_type(types::setup, type_, "DRX-Config");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "DRX-Config");
+    assert_choice_type(types::setup, type_, "DRX-Config");
     return c;
   }
-  void      set_release() { set(types::release); }
-  setup_s_& set_setup()
-  {
-    set(types::setup);
-    return c;
-  }
+  void      set_release();
+  setup_s_& set_setup();
 
 private:
   types    type_;
@@ -2712,7 +2544,7 @@ struct drx_cfg_r13_s {
     enum options { psf300, psf400, psf500, psf600, psf800, psf1000, psf1200, psf1600, nulltype } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<on_dur_timer_v1310_opts> on_dur_timer_v1310_e_;
@@ -2720,7 +2552,7 @@ struct drx_cfg_r13_s {
     enum options { psf40, psf64, psf80, psf96, psf112, psf128, psf160, psf320, nulltype } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<drx_retx_timer_v1310_opts> drx_retx_timer_v1310_e_;
@@ -2747,7 +2579,7 @@ struct drx_cfg_r13_s {
     } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<drx_ul_retx_timer_r13_opts> drx_ul_retx_timer_r13_e_;
@@ -2772,7 +2604,7 @@ struct drx_cfg_r15_s {
     enum options { tti10, tti20, tti40, tti64, tti80, tti96, tti112, tti128, tti160, tti320, nulltype } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<drx_retx_timer_short_tti_r15_opts> drx_retx_timer_short_tti_r15_e_;
@@ -2799,7 +2631,7 @@ struct drx_cfg_r15_s {
     } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<drx_ul_retx_timer_short_tti_r15_opts> drx_ul_retx_timer_short_tti_r15_e_;
@@ -2823,7 +2655,7 @@ struct drx_cfg_v1130_s {
       enum options { sf60_v1130, sf70_v1130, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<types_opts> types;
@@ -2841,34 +2673,26 @@ struct drx_cfg_v1130_s {
     // getters
     uint8_t& sf60_v1130()
     {
-      assert_choice_type("sf60-v1130", type_.to_string(), "longDRX-CycleStartOffset-v1130");
+      assert_choice_type(types::sf60_v1130, type_, "longDRX-CycleStartOffset-v1130");
       return c.get<uint8_t>();
     }
     uint8_t& sf70_v1130()
     {
-      assert_choice_type("sf70-v1130", type_.to_string(), "longDRX-CycleStartOffset-v1130");
+      assert_choice_type(types::sf70_v1130, type_, "longDRX-CycleStartOffset-v1130");
       return c.get<uint8_t>();
     }
     const uint8_t& sf60_v1130() const
     {
-      assert_choice_type("sf60-v1130", type_.to_string(), "longDRX-CycleStartOffset-v1130");
+      assert_choice_type(types::sf60_v1130, type_, "longDRX-CycleStartOffset-v1130");
       return c.get<uint8_t>();
     }
     const uint8_t& sf70_v1130() const
     {
-      assert_choice_type("sf70-v1130", type_.to_string(), "longDRX-CycleStartOffset-v1130");
+      assert_choice_type(types::sf70_v1130, type_, "longDRX-CycleStartOffset-v1130");
       return c.get<uint8_t>();
     }
-    uint8_t& set_sf60_v1130()
-    {
-      set(types::sf60_v1130);
-      return c.get<uint8_t>();
-    }
-    uint8_t& set_sf70_v1130()
-    {
-      set(types::sf70_v1130);
-      return c.get<uint8_t>();
-    }
+    uint8_t& set_sf60_v1130();
+    uint8_t& set_sf70_v1130();
 
   private:
     types               type_;
@@ -2910,7 +2734,7 @@ struct data_inactivity_timer_r14_opts {
   enum options { s1, s2, s3, s5, s7, s10, s15, s20, s40, s50, s60, s80, s100, s120, s150, s180, nulltype } value;
   typedef uint8_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint8_t     to_number() const;
 };
 typedef enumerated<data_inactivity_timer_r14_opts> data_inactivity_timer_r14_e;
@@ -2944,7 +2768,7 @@ struct periodic_bsr_timer_r12_opts {
   } value;
   typedef int16_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   int16_t     to_number() const;
 };
 typedef enumerated<periodic_bsr_timer_r12_opts> periodic_bsr_timer_r12_e;
@@ -2954,7 +2778,7 @@ struct retx_bsr_timer_r12_opts {
   enum options { sf320, sf640, sf1280, sf2560, sf5120, sf10240, spare2, spare1, nulltype } value;
   typedef uint16_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint16_t    to_number() const;
 };
 typedef enumerated<retx_bsr_timer_r12_opts> retx_bsr_timer_r12_e;
@@ -2984,7 +2808,7 @@ struct sps_cfg_dl_c {
       } value;
       typedef uint16_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint16_t    to_number() const;
     };
     typedef enumerated<semi_persist_sched_interv_dl_opts> semi_persist_sched_interv_dl_e_;
@@ -3006,20 +2830,16 @@ struct sps_cfg_dl_c {
       // getters
       setup_s_& setup()
       {
-        assert_choice_type("setup", type_.to_string(), "twoAntennaPortActivated-r10");
+        assert_choice_type(types::setup, type_, "twoAntennaPortActivated-r10");
         return c;
       }
       const setup_s_& setup() const
       {
-        assert_choice_type("setup", type_.to_string(), "twoAntennaPortActivated-r10");
+        assert_choice_type(types::setup, type_, "twoAntennaPortActivated-r10");
         return c;
       }
-      void      set_release() { set(types::release); }
-      setup_s_& set_setup()
-      {
-        set(types::setup);
-        return c;
-      }
+      void      set_release();
+      setup_s_& set_setup();
 
     private:
       types    type_;
@@ -3056,20 +2876,16 @@ struct sps_cfg_dl_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "SPS-ConfigDL");
+    assert_choice_type(types::setup, type_, "SPS-ConfigDL");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "SPS-ConfigDL");
+    assert_choice_type(types::setup, type_, "SPS-ConfigDL");
     return c;
   }
-  void      set_release() { set(types::release); }
-  setup_s_& set_setup()
-  {
-    set(types::setup);
-    return c;
-  }
+  void      set_release();
+  setup_s_& set_setup();
 
 private:
   types    type_;
@@ -3101,7 +2917,7 @@ struct sps_cfg_dl_stti_r15_c {
       } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<semi_persist_sched_interv_dl_stti_r15_opts> semi_persist_sched_interv_dl_stti_r15_e_;
@@ -3121,20 +2937,16 @@ struct sps_cfg_dl_stti_r15_c {
       // getters
       setup_s_& setup()
       {
-        assert_choice_type("setup", type_.to_string(), "twoAntennaPortActivated-r15");
+        assert_choice_type(types::setup, type_, "twoAntennaPortActivated-r15");
         return c;
       }
       const setup_s_& setup() const
       {
-        assert_choice_type("setup", type_.to_string(), "twoAntennaPortActivated-r15");
+        assert_choice_type(types::setup, type_, "twoAntennaPortActivated-r15");
         return c;
       }
-      void      set_release() { set(types::release); }
-      setup_s_& set_setup()
-      {
-        set(types::setup);
-        return c;
-      }
+      void      set_release();
+      setup_s_& set_setup();
 
     private:
       types    type_;
@@ -3164,20 +2976,16 @@ struct sps_cfg_dl_stti_r15_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "SPS-ConfigDL-STTI-r15");
+    assert_choice_type(types::setup, type_, "SPS-ConfigDL-STTI-r15");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "SPS-ConfigDL-STTI-r15");
+    assert_choice_type(types::setup, type_, "SPS-ConfigDL-STTI-r15");
     return c;
   }
-  void      set_release() { set(types::release); }
-  setup_s_& set_setup()
-  {
-    set(types::setup);
-    return c;
-  }
+  void      set_release();
+  setup_s_& set_setup();
 
 private:
   types    type_;
@@ -3214,7 +3022,7 @@ struct srb_to_add_mod_s {
     struct types_opts {
       enum options { explicit_value, default_value, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -3230,20 +3038,16 @@ struct srb_to_add_mod_s {
     // getters
     rlc_cfg_c& explicit_value()
     {
-      assert_choice_type("explicitValue", type_.to_string(), "rlc-Config");
+      assert_choice_type(types::explicit_value, type_, "rlc-Config");
       return c;
     }
     const rlc_cfg_c& explicit_value() const
     {
-      assert_choice_type("explicitValue", type_.to_string(), "rlc-Config");
+      assert_choice_type(types::explicit_value, type_, "rlc-Config");
       return c;
     }
-    rlc_cfg_c& set_explicit_value()
-    {
-      set(types::explicit_value);
-      return c;
-    }
-    void set_default_value() { set(types::default_value); }
+    rlc_cfg_c& set_explicit_value();
+    void       set_default_value();
 
   private:
     types     type_;
@@ -3253,7 +3057,7 @@ struct srb_to_add_mod_s {
     struct types_opts {
       enum options { explicit_value, default_value, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -3269,20 +3073,16 @@ struct srb_to_add_mod_s {
     // getters
     lc_ch_cfg_s& explicit_value()
     {
-      assert_choice_type("explicitValue", type_.to_string(), "logicalChannelConfig");
+      assert_choice_type(types::explicit_value, type_, "logicalChannelConfig");
       return c;
     }
     const lc_ch_cfg_s& explicit_value() const
     {
-      assert_choice_type("explicitValue", type_.to_string(), "logicalChannelConfig");
+      assert_choice_type(types::explicit_value, type_, "logicalChannelConfig");
       return c;
     }
-    lc_ch_cfg_s& set_explicit_value()
-    {
-      set(types::explicit_value);
-      return c;
-    }
-    void set_default_value() { set(types::default_value); }
+    lc_ch_cfg_s& set_explicit_value();
+    void         set_default_value();
 
   private:
     types       type_;
@@ -3339,7 +3139,7 @@ struct mac_main_cfg_s {
       enum options { n1, n2, n3, n4, n5, n6, n7, n8, n10, n12, n16, n20, n24, n28, spare2, spare1, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<max_harq_tx_opts> max_harq_tx_e_;
@@ -3358,7 +3158,7 @@ struct mac_main_cfg_s {
         enum options { sf10, sf20, sf50, sf100, sf200, sf500, sf1000, infinity, nulltype } value;
         typedef int16_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         int16_t     to_number() const;
       };
       typedef enumerated<periodic_phr_timer_opts> periodic_phr_timer_e_;
@@ -3366,7 +3166,7 @@ struct mac_main_cfg_s {
         enum options { sf0, sf10, sf20, sf50, sf100, sf200, sf500, sf1000, nulltype } value;
         typedef uint16_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         uint16_t    to_number() const;
       };
       typedef enumerated<prohibit_phr_timer_opts> prohibit_phr_timer_e_;
@@ -3374,7 +3174,7 @@ struct mac_main_cfg_s {
         enum options { db1, db3, db6, infinity, nulltype } value;
         typedef int8_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         int8_t      to_number() const;
       };
       typedef enumerated<dl_pathloss_change_opts> dl_pathloss_change_e_;
@@ -3396,20 +3196,16 @@ struct mac_main_cfg_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "phr-Config");
+      assert_choice_type(types::setup, type_, "phr-Config");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "phr-Config");
+      assert_choice_type(types::setup, type_, "phr-Config");
       return c;
     }
-    void      set_release() { set(types::release); }
-    setup_s_& set_setup()
-    {
-      set(types::setup);
-      return c;
-    }
+    void      set_release();
+    setup_s_& set_setup();
 
   private:
     types    type_;
@@ -3420,7 +3216,7 @@ struct mac_main_cfg_s {
       enum options { rf2, rf4, rf8, rf16, rf32, rf64, rf128, spare, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<scell_deactivation_timer_r10_opts> scell_deactivation_timer_r10_e_;
@@ -3436,7 +3232,7 @@ struct mac_main_cfg_s {
       struct phr_mode_other_cg_r12_opts {
         enum options { real, virtual_value, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<phr_mode_other_cg_r12_opts> phr_mode_other_cg_r12_e_;
 
@@ -3455,20 +3251,16 @@ struct mac_main_cfg_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "dualConnectivityPHR");
+      assert_choice_type(types::setup, type_, "dualConnectivityPHR");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "dualConnectivityPHR");
+      assert_choice_type(types::setup, type_, "dualConnectivityPHR");
       return c;
     }
-    void      set_release() { set(types::release); }
-    setup_s_& set_setup()
-    {
-      set(types::setup);
-      return c;
-    }
+    void      set_release();
+    setup_s_& set_setup();
 
   private:
     types    type_;
@@ -3480,7 +3272,7 @@ struct mac_main_cfg_s {
         enum options { sf20, sf40, sf64, sf128, sf512, sf1024, sf2560, spare1, nulltype } value;
         typedef uint16_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         uint16_t    to_number() const;
       };
       typedef enumerated<lc_ch_sr_prohibit_timer_r12_opts> lc_ch_sr_prohibit_timer_r12_e_;
@@ -3500,20 +3292,16 @@ struct mac_main_cfg_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "logicalChannelSR-Config-r12");
+      assert_choice_type(types::setup, type_, "logicalChannelSR-Config-r12");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "logicalChannelSR-Config-r12");
+      assert_choice_type(types::setup, type_, "logicalChannelSR-Config-r12");
       return c;
     }
-    void      set_release() { set(types::release); }
-    setup_s_& set_setup()
-    {
-      set(types::setup);
-      return c;
-    }
+    void      set_release();
+    setup_s_& set_setup();
 
   private:
     types    type_;
@@ -3525,7 +3313,7 @@ struct mac_main_cfg_s {
         enum options { sf5120, sf10240, nulltype } value;
         typedef uint16_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         uint16_t    to_number() const;
       };
       typedef enumerated<types_opts> types;
@@ -3543,34 +3331,26 @@ struct mac_main_cfg_s {
       // getters
       uint8_t& sf5120()
       {
-        assert_choice_type("sf5120", type_.to_string(), "setup");
+        assert_choice_type(types::sf5120, type_, "setup");
         return c.get<uint8_t>();
       }
       uint8_t& sf10240()
       {
-        assert_choice_type("sf10240", type_.to_string(), "setup");
+        assert_choice_type(types::sf10240, type_, "setup");
         return c.get<uint8_t>();
       }
       const uint8_t& sf5120() const
       {
-        assert_choice_type("sf5120", type_.to_string(), "setup");
+        assert_choice_type(types::sf5120, type_, "setup");
         return c.get<uint8_t>();
       }
       const uint8_t& sf10240() const
       {
-        assert_choice_type("sf10240", type_.to_string(), "setup");
+        assert_choice_type(types::sf10240, type_, "setup");
         return c.get<uint8_t>();
       }
-      uint8_t& set_sf5120()
-      {
-        set(types::sf5120);
-        return c.get<uint8_t>();
-      }
-      uint8_t& set_sf10240()
-      {
-        set(types::sf10240);
-        return c.get<uint8_t>();
-      }
+      uint8_t& set_sf5120();
+      uint8_t& set_sf10240();
 
     private:
       types               type_;
@@ -3590,20 +3370,16 @@ struct mac_main_cfg_s {
     // getters
     setup_c_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "eDRX-Config-CycleStartOffset-r13");
+      assert_choice_type(types::setup, type_, "eDRX-Config-CycleStartOffset-r13");
       return c;
     }
     const setup_c_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "eDRX-Config-CycleStartOffset-r13");
+      assert_choice_type(types::setup, type_, "eDRX-Config-CycleStartOffset-r13");
       return c;
     }
-    void      set_release() { set(types::release); }
-    setup_c_& set_setup()
-    {
-      set(types::setup);
-      return c;
-    }
+    void      set_release();
+    setup_c_& set_setup();
 
   private:
     types    type_;
@@ -3622,20 +3398,16 @@ struct mac_main_cfg_s {
     // getters
     drx_cfg_r13_s& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "drx-Config-r13");
+      assert_choice_type(types::setup, type_, "drx-Config-r13");
       return c;
     }
     const drx_cfg_r13_s& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "drx-Config-r13");
+      assert_choice_type(types::setup, type_, "drx-Config-r13");
       return c;
     }
-    void           set_release() { set(types::release); }
-    drx_cfg_r13_s& set_setup()
-    {
-      set(types::setup);
-      return c;
-    }
+    void           set_release();
+    drx_cfg_r13_s& set_setup();
 
   private:
     types         type_;
@@ -3658,20 +3430,16 @@ struct mac_main_cfg_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "skipUplinkTx-r14");
+      assert_choice_type(types::setup, type_, "skipUplinkTx-r14");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "skipUplinkTx-r14");
+      assert_choice_type(types::setup, type_, "skipUplinkTx-r14");
       return c;
     }
-    void      set_release() { set(types::release); }
-    setup_s_& set_setup()
-    {
-      set(types::setup);
-      return c;
-    }
+    void      set_release();
+    setup_s_& set_setup();
 
   private:
     types    type_;
@@ -3693,20 +3461,16 @@ struct mac_main_cfg_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "dataInactivityTimerConfig-r14");
+      assert_choice_type(types::setup, type_, "dataInactivityTimerConfig-r14");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "dataInactivityTimerConfig-r14");
+      assert_choice_type(types::setup, type_, "dataInactivityTimerConfig-r14");
       return c;
     }
-    void      set_release() { set(types::release); }
-    setup_s_& set_setup()
-    {
-      set(types::setup);
-      return c;
-    }
+    void      set_release();
+    setup_s_& set_setup();
 
   private:
     types    type_;
@@ -3736,14 +3500,14 @@ struct mac_main_cfg_s {
         } value;
         typedef int16_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         int16_t     to_number() const;
       };
       typedef enumerated<periodic_bsr_timer_r15_opts> periodic_bsr_timer_r15_e_;
       struct proc_timeline_r15_opts {
         enum options { nplus4set1, nplus6set1, nplus6set2, nplus8set2, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<proc_timeline_r15_opts> proc_timeline_r15_e_;
 
@@ -3769,20 +3533,16 @@ struct mac_main_cfg_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "shortTTI-AndSPT-r15");
+      assert_choice_type(types::setup, type_, "shortTTI-AndSPT-r15");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "shortTTI-AndSPT-r15");
+      assert_choice_type(types::setup, type_, "shortTTI-AndSPT-r15");
       return c;
     }
-    void      set_release() { set(types::release); }
-    setup_s_& set_setup()
-    {
-      set(types::setup);
-      return c;
-    }
+    void      set_release();
+    setup_s_& set_setup();
 
   private:
     types    type_;
@@ -3794,7 +3554,7 @@ struct mac_main_cfg_s {
         enum options { rf2, rf4, rf8, rf16, rf32, rf64, rf128, spare, nulltype } value;
         typedef uint8_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         uint8_t     to_number() const;
       };
       typedef enumerated<scell_hibernation_timer_r15_opts> scell_hibernation_timer_r15_e_;
@@ -3820,7 +3580,7 @@ struct mac_main_cfg_s {
         } value;
         typedef uint16_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         uint16_t    to_number() const;
       };
       typedef enumerated<dormant_scell_deactivation_timer_r15_opts> dormant_scell_deactivation_timer_r15_e_;
@@ -3843,20 +3603,16 @@ struct mac_main_cfg_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "dormantStateTimers-r15");
+      assert_choice_type(types::setup, type_, "dormantStateTimers-r15");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "dormantStateTimers-r15");
+      assert_choice_type(types::setup, type_, "dormantStateTimers-r15");
       return c;
     }
-    void      set_release() { set(types::release); }
-    setup_s_& set_setup()
-    {
-      set(types::setup);
-      return c;
-    }
+    void      set_release();
+    setup_s_& set_setup();
 
   private:
     types    type_;
@@ -3925,20 +3681,16 @@ struct meas_sf_pattern_pcell_r10_c {
   // getters
   meas_sf_pattern_r10_c& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "MeasSubframePatternPCell-r10");
+    assert_choice_type(types::setup, type_, "MeasSubframePatternPCell-r10");
     return c;
   }
   const meas_sf_pattern_r10_c& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "MeasSubframePatternPCell-r10");
+    assert_choice_type(types::setup, type_, "MeasSubframePatternPCell-r10");
     return c;
   }
-  void                   set_release() { set(types::release); }
-  meas_sf_pattern_r10_c& set_setup()
-  {
-    set(types::setup);
-    return c;
-  }
+  void                   set_release();
+  meas_sf_pattern_r10_c& set_setup();
 
 private:
   types                 type_;
@@ -3969,20 +3721,16 @@ struct naics_assist_info_r12_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "NAICS-AssistanceInfo-r12");
+    assert_choice_type(types::setup, type_, "NAICS-AssistanceInfo-r12");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "NAICS-AssistanceInfo-r12");
+    assert_choice_type(types::setup, type_, "NAICS-AssistanceInfo-r12");
     return c;
   }
-  void      set_release() { set(types::release); }
-  setup_s_& set_setup()
-  {
-    set(types::setup);
-    return c;
-  }
+  void      set_release();
+  setup_s_& set_setup();
 
 private:
   types    type_;
@@ -4003,20 +3751,16 @@ struct neigh_cells_crs_info_r11_c {
   // getters
   crs_assist_info_list_r11_l& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "NeighCellsCRS-Info-r11");
+    assert_choice_type(types::setup, type_, "NeighCellsCRS-Info-r11");
     return c;
   }
   const crs_assist_info_list_r11_l& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "NeighCellsCRS-Info-r11");
+    assert_choice_type(types::setup, type_, "NeighCellsCRS-Info-r11");
     return c;
   }
-  void                        set_release() { set(types::release); }
-  crs_assist_info_list_r11_l& set_setup()
-  {
-    set(types::setup);
-    return c;
-  }
+  void                        set_release();
+  crs_assist_info_list_r11_l& set_setup();
 
 private:
   types                      type_;
@@ -4039,20 +3783,16 @@ struct neigh_cells_crs_info_r13_c {
   // getters
   crs_assist_info_list_r13_l& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "NeighCellsCRS-Info-r13");
+    assert_choice_type(types::setup, type_, "NeighCellsCRS-Info-r13");
     return c;
   }
   const crs_assist_info_list_r13_l& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "NeighCellsCRS-Info-r13");
+    assert_choice_type(types::setup, type_, "NeighCellsCRS-Info-r13");
     return c;
   }
-  void                        set_release() { set(types::release); }
-  crs_assist_info_list_r13_l& set_setup()
-  {
-    set(types::setup);
-    return c;
-  }
+  void                        set_release();
+  crs_assist_info_list_r13_l& set_setup();
 
 private:
   types                      type_;
@@ -4075,20 +3815,16 @@ struct neigh_cells_crs_info_r15_c {
   // getters
   crs_assist_info_list_r15_l& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "NeighCellsCRS-Info-r15");
+    assert_choice_type(types::setup, type_, "NeighCellsCRS-Info-r15");
     return c;
   }
   const crs_assist_info_list_r15_l& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "NeighCellsCRS-Info-r15");
+    assert_choice_type(types::setup, type_, "NeighCellsCRS-Info-r15");
     return c;
   }
-  void                        set_release() { set(types::release); }
-  crs_assist_info_list_r15_l& set_setup()
-  {
-    set(types::setup);
-    return c;
-  }
+  void                        set_release();
+  crs_assist_info_list_r15_l& set_setup();
 
 private:
   types                      type_;
@@ -4102,7 +3838,7 @@ struct rlf_timers_and_consts_r13_c {
       enum options { ms2500, ms3000, ms3500, ms4000, ms5000, ms6000, ms8000, ms10000, nulltype } value;
       typedef uint16_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint16_t    to_number() const;
     };
     typedef enumerated<t301_v1310_opts> t301_v1310_e_;
@@ -4110,7 +3846,7 @@ struct rlf_timers_and_consts_r13_c {
       enum options { ms4000, ms6000, nulltype } value;
       typedef uint16_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint16_t    to_number() const;
     };
     typedef enumerated<t310_v1330_opts> t310_v1330_e_;
@@ -4140,20 +3876,16 @@ struct rlf_timers_and_consts_r13_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "RLF-TimersAndConstants-r13");
+    assert_choice_type(types::setup, type_, "RLF-TimersAndConstants-r13");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "RLF-TimersAndConstants-r13");
+    assert_choice_type(types::setup, type_, "RLF-TimersAndConstants-r13");
     return c;
   }
-  void      set_release() { set(types::release); }
-  setup_s_& set_setup()
-  {
-    set(types::setup);
-    return c;
-  }
+  void      set_release();
+  setup_s_& set_setup();
 
 private:
   types    type_;
@@ -4167,7 +3899,7 @@ struct rlf_timers_and_consts_r9_c {
       enum options { ms100, ms200, ms300, ms400, ms600, ms1000, ms1500, ms2000, nulltype } value;
       typedef uint16_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint16_t    to_number() const;
     };
     typedef enumerated<t301_r9_opts> t301_r9_e_;
@@ -4175,7 +3907,7 @@ struct rlf_timers_and_consts_r9_c {
       enum options { ms0, ms50, ms100, ms200, ms500, ms1000, ms2000, nulltype } value;
       typedef uint16_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint16_t    to_number() const;
     };
     typedef enumerated<t310_r9_opts> t310_r9_e_;
@@ -4183,7 +3915,7 @@ struct rlf_timers_and_consts_r9_c {
       enum options { n1, n2, n3, n4, n6, n8, n10, n20, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<n310_r9_opts> n310_r9_e_;
@@ -4191,7 +3923,7 @@ struct rlf_timers_and_consts_r9_c {
       enum options { ms1000, ms3000, ms5000, ms10000, ms15000, ms20000, ms30000, nulltype } value;
       typedef uint16_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint16_t    to_number() const;
     };
     typedef enumerated<t311_r9_opts> t311_r9_e_;
@@ -4199,7 +3931,7 @@ struct rlf_timers_and_consts_r9_c {
       enum options { n1, n2, n3, n4, n5, n6, n8, n10, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<n311_r9_opts> n311_r9_e_;
@@ -4225,20 +3957,16 @@ struct rlf_timers_and_consts_r9_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "RLF-TimersAndConstants-r9");
+    assert_choice_type(types::setup, type_, "RLF-TimersAndConstants-r9");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "RLF-TimersAndConstants-r9");
+    assert_choice_type(types::setup, type_, "RLF-TimersAndConstants-r9");
     return c;
   }
-  void      set_release() { set(types::release); }
-  setup_s_& set_setup()
-  {
-    set(types::setup);
-    return c;
-  }
+  void      set_release();
+  setup_s_& set_setup();
 
 private:
   types    type_;
@@ -4327,7 +4055,7 @@ struct rr_cfg_ded_s {
     struct types_opts {
       enum options { explicit_value, default_value, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -4341,20 +4069,16 @@ struct rr_cfg_ded_s {
     // getters
     mac_main_cfg_s& explicit_value()
     {
-      assert_choice_type("explicitValue", type_.to_string(), "mac-MainConfig");
+      assert_choice_type(types::explicit_value, type_, "mac-MainConfig");
       return c;
     }
     const mac_main_cfg_s& explicit_value() const
     {
-      assert_choice_type("explicitValue", type_.to_string(), "mac-MainConfig");
+      assert_choice_type(types::explicit_value, type_, "mac-MainConfig");
       return c;
     }
-    mac_main_cfg_s& set_explicit_value()
-    {
-      set(types::explicit_value);
-      return c;
-    }
-    void set_default_value() { set(types::default_value); }
+    mac_main_cfg_s& set_explicit_value();
+    void            set_default_value();
 
   private:
     types          type_;
@@ -4366,14 +4090,14 @@ struct rr_cfg_ded_s {
         enum options { n6, n24, nulltype } value;
         typedef uint8_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         uint8_t     to_number() const;
       };
       typedef enumerated<crs_intf_mitig_num_prbs_opts> crs_intf_mitig_num_prbs_e_;
       struct types_opts {
         enum options { crs_intf_mitig_enabled, crs_intf_mitig_num_prbs, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -4387,20 +4111,16 @@ struct rr_cfg_ded_s {
       // getters
       crs_intf_mitig_num_prbs_e_& crs_intf_mitig_num_prbs()
       {
-        assert_choice_type("crs-IntfMitigNumPRBs", type_.to_string(), "setup");
+        assert_choice_type(types::crs_intf_mitig_num_prbs, type_, "setup");
         return c;
       }
       const crs_intf_mitig_num_prbs_e_& crs_intf_mitig_num_prbs() const
       {
-        assert_choice_type("crs-IntfMitigNumPRBs", type_.to_string(), "setup");
+        assert_choice_type(types::crs_intf_mitig_num_prbs, type_, "setup");
         return c;
       }
-      void                        set_crs_intf_mitig_enabled() { set(types::crs_intf_mitig_enabled); }
-      crs_intf_mitig_num_prbs_e_& set_crs_intf_mitig_num_prbs()
-      {
-        set(types::crs_intf_mitig_num_prbs);
-        return c;
-      }
+      void                        set_crs_intf_mitig_enabled();
+      crs_intf_mitig_num_prbs_e_& set_crs_intf_mitig_num_prbs();
 
     private:
       types                      type_;
@@ -4418,20 +4138,16 @@ struct rr_cfg_ded_s {
     // getters
     setup_c_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "crs-IntfMitigConfig-r15");
+      assert_choice_type(types::setup, type_, "crs-IntfMitigConfig-r15");
       return c;
     }
     const setup_c_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "crs-IntfMitigConfig-r15");
+      assert_choice_type(types::setup, type_, "crs-IntfMitigConfig-r15");
       return c;
     }
-    void      set_release() { set(types::release); }
-    setup_c_& set_setup()
-    {
-      set(types::setup);
-      return c;
-    }
+    void      set_release();
+    setup_c_& set_setup();
 
   private:
     types    type_;
@@ -4491,7 +4207,7 @@ struct pdcch_candidate_reduction_value_r14_opts {
   enum options { n0, n50, n100, n150, nulltype } value;
   typedef uint8_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint8_t     to_number() const;
 };
 typedef enumerated<pdcch_candidate_reduction_value_r14_opts> pdcch_candidate_reduction_value_r14_e;
@@ -4519,20 +4235,16 @@ struct pdcch_candidate_reductions_laa_ul_r14_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "PDCCH-CandidateReductionsLAA-UL-r14");
+    assert_choice_type(types::setup, type_, "PDCCH-CandidateReductionsLAA-UL-r14");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "PDCCH-CandidateReductionsLAA-UL-r14");
+    assert_choice_type(types::setup, type_, "PDCCH-CandidateReductionsLAA-UL-r14");
     return c;
   }
-  void      set_release() { set(types::release); }
-  setup_s_& set_setup()
-  {
-    set(types::setup);
-    return c;
-  }
+  void      set_release();
+  setup_s_& set_setup();
 
 private:
   types    type_;
@@ -4546,7 +4258,7 @@ struct aul_cfg_r15_c {
       enum options { tm1, tm2, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<tx_mode_ul_aul_r15_opts> tx_mode_ul_aul_r15_e_;
@@ -4554,7 +4266,7 @@ struct aul_cfg_r15_c {
       enum options { o34, o43, o52, o61, oos1, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<aul_start_partial_bw_inside_mcot_r15_opts> aul_start_partial_bw_inside_mcot_r15_e_;
@@ -4562,7 +4274,7 @@ struct aul_cfg_r15_c {
       enum options { o16, o25, o34, o43, o52, o61, oos1, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<aul_start_partial_bw_outside_mcot_r15_opts> aul_start_partial_bw_outside_mcot_r15_e_;
@@ -4589,7 +4301,7 @@ struct aul_cfg_r15_c {
       } value;
       typedef uint16_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint16_t    to_number() const;
     };
     typedef enumerated<aul_retx_timer_r15_opts> aul_retx_timer_r15_e_;
@@ -4597,7 +4309,7 @@ struct aul_cfg_r15_c {
       enum options { n0, n5, n10, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<contention_win_size_timer_r15_opts> contention_win_size_timer_r15_e_;
@@ -4630,20 +4342,16 @@ struct aul_cfg_r15_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "AUL-Config-r15");
+    assert_choice_type(types::setup, type_, "AUL-Config-r15");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "AUL-Config-r15");
+    assert_choice_type(types::setup, type_, "AUL-Config-r15");
     return c;
   }
-  void      set_release() { set(types::release); }
-  setup_s_& set_setup()
-  {
-    set(types::setup);
-    return c;
-  }
+  void      set_release();
+  setup_s_& set_setup();
 
 private:
   types    type_;
@@ -4672,20 +4380,16 @@ struct cqi_report_periodic_scell_r15_c {
       // getters
       setup_s_& setup()
       {
-        assert_choice_type("setup", type_.to_string(), "csi-SubframePatternDormant-r15");
+        assert_choice_type(types::setup, type_, "csi-SubframePatternDormant-r15");
         return c;
       }
       const setup_s_& setup() const
       {
-        assert_choice_type("setup", type_.to_string(), "csi-SubframePatternDormant-r15");
+        assert_choice_type(types::setup, type_, "csi-SubframePatternDormant-r15");
         return c;
       }
-      void      set_release() { set(types::release); }
-      setup_s_& set_setup()
-      {
-        set(types::setup);
-        return c;
-      }
+      void      set_release();
+      setup_s_& set_setup();
 
     private:
       types    type_;
@@ -4697,7 +4401,7 @@ struct cqi_report_periodic_scell_r15_c {
           enum options { submode1, submode2, nulltype } value;
           typedef uint8_t number_type;
 
-          std::string to_string() const;
+          const char* to_string() const;
           uint8_t     to_number() const;
         };
         typedef enumerated<csi_report_mode_r15_opts> csi_report_mode_r15_e_;
@@ -4711,7 +4415,7 @@ struct cqi_report_periodic_scell_r15_c {
           enum options { n2, n4, nulltype } value;
           typedef uint8_t number_type;
 
-          std::string to_string() const;
+          const char* to_string() const;
           uint8_t     to_number() const;
         };
         typedef enumerated<periodicity_factor_r15_opts> periodicity_factor_r15_e_;
@@ -4723,7 +4427,7 @@ struct cqi_report_periodic_scell_r15_c {
       struct types_opts {
         enum options { wideband_cqi_r15, subband_cqi_r15, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -4742,34 +4446,26 @@ struct cqi_report_periodic_scell_r15_c {
       // getters
       wideband_cqi_r15_s_& wideband_cqi_r15()
       {
-        assert_choice_type("widebandCQI-r15", type_.to_string(), "cqi-FormatIndicatorDormant-r15");
+        assert_choice_type(types::wideband_cqi_r15, type_, "cqi-FormatIndicatorDormant-r15");
         return c.get<wideband_cqi_r15_s_>();
       }
       subband_cqi_r15_s_& subband_cqi_r15()
       {
-        assert_choice_type("subbandCQI-r15", type_.to_string(), "cqi-FormatIndicatorDormant-r15");
+        assert_choice_type(types::subband_cqi_r15, type_, "cqi-FormatIndicatorDormant-r15");
         return c.get<subband_cqi_r15_s_>();
       }
       const wideband_cqi_r15_s_& wideband_cqi_r15() const
       {
-        assert_choice_type("widebandCQI-r15", type_.to_string(), "cqi-FormatIndicatorDormant-r15");
+        assert_choice_type(types::wideband_cqi_r15, type_, "cqi-FormatIndicatorDormant-r15");
         return c.get<wideband_cqi_r15_s_>();
       }
       const subband_cqi_r15_s_& subband_cqi_r15() const
       {
-        assert_choice_type("subbandCQI-r15", type_.to_string(), "cqi-FormatIndicatorDormant-r15");
+        assert_choice_type(types::subband_cqi_r15, type_, "cqi-FormatIndicatorDormant-r15");
         return c.get<subband_cqi_r15_s_>();
       }
-      wideband_cqi_r15_s_& set_wideband_cqi_r15()
-      {
-        set(types::wideband_cqi_r15);
-        return c.get<wideband_cqi_r15_s_>();
-      }
-      subband_cqi_r15_s_& set_subband_cqi_r15()
-      {
-        set(types::subband_cqi_r15);
-        return c.get<subband_cqi_r15_s_>();
-      }
+      wideband_cqi_r15_s_& set_wideband_cqi_r15();
+      subband_cqi_r15_s_&  set_subband_cqi_r15();
 
     private:
       types                                                    type_;
@@ -4801,20 +4497,16 @@ struct cqi_report_periodic_scell_r15_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "CQI-ReportPeriodicSCell-r15");
+    assert_choice_type(types::setup, type_, "CQI-ReportPeriodicSCell-r15");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "CQI-ReportPeriodicSCell-r15");
+    assert_choice_type(types::setup, type_, "CQI-ReportPeriodicSCell-r15");
     return c;
   }
-  void      set_release() { set(types::release); }
-  setup_s_& set_setup()
-  {
-    set(types::setup);
-    return c;
-  }
+  void      set_release();
+  setup_s_& set_setup();
 
 private:
   types    type_;
@@ -4839,7 +4531,7 @@ struct lbt_cfg_r14_c {
   struct types_opts {
     enum options { max_energy_detection_thres_r14, energy_detection_thres_offset_r14, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts> types;
 
@@ -4858,34 +4550,26 @@ struct lbt_cfg_r14_c {
   // getters
   int8_t& max_energy_detection_thres_r14()
   {
-    assert_choice_type("maxEnergyDetectionThreshold-r14", type_.to_string(), "LBT-Config-r14");
+    assert_choice_type(types::max_energy_detection_thres_r14, type_, "LBT-Config-r14");
     return c.get<int8_t>();
   }
   int8_t& energy_detection_thres_offset_r14()
   {
-    assert_choice_type("energyDetectionThresholdOffset-r14", type_.to_string(), "LBT-Config-r14");
+    assert_choice_type(types::energy_detection_thres_offset_r14, type_, "LBT-Config-r14");
     return c.get<int8_t>();
   }
   const int8_t& max_energy_detection_thres_r14() const
   {
-    assert_choice_type("maxEnergyDetectionThreshold-r14", type_.to_string(), "LBT-Config-r14");
+    assert_choice_type(types::max_energy_detection_thres_r14, type_, "LBT-Config-r14");
     return c.get<int8_t>();
   }
   const int8_t& energy_detection_thres_offset_r14() const
   {
-    assert_choice_type("energyDetectionThresholdOffset-r14", type_.to_string(), "LBT-Config-r14");
+    assert_choice_type(types::energy_detection_thres_offset_r14, type_, "LBT-Config-r14");
     return c.get<int8_t>();
   }
-  int8_t& set_max_energy_detection_thres_r14()
-  {
-    set(types::max_energy_detection_thres_r14);
-    return c.get<int8_t>();
-  }
-  int8_t& set_energy_detection_thres_offset_r14()
-  {
-    set(types::energy_detection_thres_offset_r14);
-    return c.get<int8_t>();
-  }
+  int8_t& set_max_energy_detection_thres_r14();
+  int8_t& set_energy_detection_thres_offset_r14();
 
 private:
   types               type_;
@@ -4900,7 +4584,7 @@ struct pdcch_cfg_laa_r14_s {
     enum options { sf2, sf3, sf4, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<max_nof_sched_sfs_format0_b_r14_opts> max_nof_sched_sfs_format0_b_r14_e_;
@@ -4908,7 +4592,7 @@ struct pdcch_cfg_laa_r14_s {
     enum options { sf2, sf3, sf4, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<max_nof_sched_sfs_format4_b_r14_opts> max_nof_sched_sfs_format4_b_r14_e_;
@@ -4971,20 +4655,16 @@ struct srs_ul_cfg_ded_aperiodic_v1430_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "SoundingRS-UL-ConfigDedicatedAperiodic-v1430");
+    assert_choice_type(types::setup, type_, "SoundingRS-UL-ConfigDedicatedAperiodic-v1430");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "SoundingRS-UL-ConfigDedicatedAperiodic-v1430");
+    assert_choice_type(types::setup, type_, "SoundingRS-UL-ConfigDedicatedAperiodic-v1430");
     return c;
   }
-  void      set_release() { set(types::release); }
-  setup_s_& set_setup()
-  {
-    set(types::setup);
-    return c;
-  }
+  void      set_release();
+  setup_s_& set_setup();
 
 private:
   types    type_;
@@ -5014,7 +4694,7 @@ struct cqi_report_cfg_scell_r15_s {
     enum options { all_sfs, csi_sf_set1, csi_sf_set2, spare1, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<alt_cqi_table_minus1024_qam_r15_opts> alt_cqi_table_minus1024_qam_r15_e_;
@@ -5042,7 +4722,7 @@ struct cqi_short_cfg_scell_r15_c {
           enum options { submode1, submode2, nulltype } value;
           typedef uint8_t number_type;
 
-          std::string to_string() const;
+          const char* to_string() const;
           uint8_t     to_number() const;
         };
         typedef enumerated<csi_report_mode_short_r15_opts> csi_report_mode_short_r15_e_;
@@ -5056,7 +4736,7 @@ struct cqi_short_cfg_scell_r15_c {
           enum options { n2, n4, nulltype } value;
           typedef uint8_t number_type;
 
-          std::string to_string() const;
+          const char* to_string() const;
           uint8_t     to_number() const;
         };
         typedef enumerated<periodicity_factor_r15_opts> periodicity_factor_r15_e_;
@@ -5068,7 +4748,7 @@ struct cqi_short_cfg_scell_r15_c {
       struct types_opts {
         enum options { wideband_cqi_short_r15, subband_cqi_short_r15, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -5087,34 +4767,26 @@ struct cqi_short_cfg_scell_r15_c {
       // getters
       wideband_cqi_short_r15_s_& wideband_cqi_short_r15()
       {
-        assert_choice_type("widebandCQI-Short-r15", type_.to_string(), "cqi-FormatIndicatorShort-r15");
+        assert_choice_type(types::wideband_cqi_short_r15, type_, "cqi-FormatIndicatorShort-r15");
         return c.get<wideband_cqi_short_r15_s_>();
       }
       subband_cqi_short_r15_s_& subband_cqi_short_r15()
       {
-        assert_choice_type("subbandCQI-Short-r15", type_.to_string(), "cqi-FormatIndicatorShort-r15");
+        assert_choice_type(types::subband_cqi_short_r15, type_, "cqi-FormatIndicatorShort-r15");
         return c.get<subband_cqi_short_r15_s_>();
       }
       const wideband_cqi_short_r15_s_& wideband_cqi_short_r15() const
       {
-        assert_choice_type("widebandCQI-Short-r15", type_.to_string(), "cqi-FormatIndicatorShort-r15");
+        assert_choice_type(types::wideband_cqi_short_r15, type_, "cqi-FormatIndicatorShort-r15");
         return c.get<wideband_cqi_short_r15_s_>();
       }
       const subband_cqi_short_r15_s_& subband_cqi_short_r15() const
       {
-        assert_choice_type("subbandCQI-Short-r15", type_.to_string(), "cqi-FormatIndicatorShort-r15");
+        assert_choice_type(types::subband_cqi_short_r15, type_, "cqi-FormatIndicatorShort-r15");
         return c.get<subband_cqi_short_r15_s_>();
       }
-      wideband_cqi_short_r15_s_& set_wideband_cqi_short_r15()
-      {
-        set(types::wideband_cqi_short_r15);
-        return c.get<wideband_cqi_short_r15_s_>();
-      }
-      subband_cqi_short_r15_s_& set_subband_cqi_short_r15()
-      {
-        set(types::subband_cqi_short_r15);
-        return c.get<subband_cqi_short_r15_s_>();
-      }
+      wideband_cqi_short_r15_s_& set_wideband_cqi_short_r15();
+      subband_cqi_short_r15_s_&  set_subband_cqi_short_r15();
 
     private:
       types                                                                type_;
@@ -5144,20 +4816,16 @@ struct cqi_short_cfg_scell_r15_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "CQI-ShortConfigSCell-r15");
+    assert_choice_type(types::setup, type_, "CQI-ShortConfigSCell-r15");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "CQI-ShortConfigSCell-r15");
+    assert_choice_type(types::setup, type_, "CQI-ShortConfigSCell-r15");
     return c;
   }
-  void      set_release() { set(types::release); }
-  setup_s_& set_setup()
-  {
-    set(types::setup);
-    return c;
-  }
+  void      set_release();
+  setup_s_& set_setup();
 
 private:
   types    type_;
@@ -5177,7 +4845,7 @@ struct cross_carrier_sched_cfg_r10_s {
     struct types_opts {
       enum options { own_r10, other_r10, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -5196,34 +4864,26 @@ struct cross_carrier_sched_cfg_r10_s {
     // getters
     own_r10_s_& own_r10()
     {
-      assert_choice_type("own-r10", type_.to_string(), "schedulingCellInfo-r10");
+      assert_choice_type(types::own_r10, type_, "schedulingCellInfo-r10");
       return c.get<own_r10_s_>();
     }
     other_r10_s_& other_r10()
     {
-      assert_choice_type("other-r10", type_.to_string(), "schedulingCellInfo-r10");
+      assert_choice_type(types::other_r10, type_, "schedulingCellInfo-r10");
       return c.get<other_r10_s_>();
     }
     const own_r10_s_& own_r10() const
     {
-      assert_choice_type("own-r10", type_.to_string(), "schedulingCellInfo-r10");
+      assert_choice_type(types::own_r10, type_, "schedulingCellInfo-r10");
       return c.get<own_r10_s_>();
     }
     const other_r10_s_& other_r10() const
     {
-      assert_choice_type("other-r10", type_.to_string(), "schedulingCellInfo-r10");
+      assert_choice_type(types::other_r10, type_, "schedulingCellInfo-r10");
       return c.get<other_r10_s_>();
     }
-    own_r10_s_& set_own_r10()
-    {
-      set(types::own_r10);
-      return c.get<own_r10_s_>();
-    }
-    other_r10_s_& set_other_r10()
-    {
-      set(types::other_r10);
-      return c.get<other_r10_s_>();
-    }
+    own_r10_s_&   set_own_r10();
+    other_r10_s_& set_other_r10();
 
   private:
     types                                     type_;
@@ -5257,7 +4917,7 @@ struct cross_carrier_sched_cfg_r13_s {
     struct types_opts {
       enum options { own_r13, other_r13, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -5276,34 +4936,26 @@ struct cross_carrier_sched_cfg_r13_s {
     // getters
     own_r13_s_& own_r13()
     {
-      assert_choice_type("own-r13", type_.to_string(), "schedulingCellInfo-r13");
+      assert_choice_type(types::own_r13, type_, "schedulingCellInfo-r13");
       return c.get<own_r13_s_>();
     }
     other_r13_s_& other_r13()
     {
-      assert_choice_type("other-r13", type_.to_string(), "schedulingCellInfo-r13");
+      assert_choice_type(types::other_r13, type_, "schedulingCellInfo-r13");
       return c.get<other_r13_s_>();
     }
     const own_r13_s_& own_r13() const
     {
-      assert_choice_type("own-r13", type_.to_string(), "schedulingCellInfo-r13");
+      assert_choice_type(types::own_r13, type_, "schedulingCellInfo-r13");
       return c.get<own_r13_s_>();
     }
     const other_r13_s_& other_r13() const
     {
-      assert_choice_type("other-r13", type_.to_string(), "schedulingCellInfo-r13");
+      assert_choice_type(types::other_r13, type_, "schedulingCellInfo-r13");
       return c.get<other_r13_s_>();
     }
-    own_r13_s_& set_own_r13()
-    {
-      set(types::own_r13);
-      return c.get<own_r13_s_>();
-    }
-    other_r13_s_& set_other_r13()
-    {
-      set(types::other_r13);
-      return c.get<other_r13_s_>();
-    }
+    own_r13_s_&   set_own_r13();
+    other_r13_s_& set_other_r13();
 
   private:
     types                                     type_;
@@ -5329,9 +4981,9 @@ struct laa_scell_cfg_r13_s {
     enum options { s0, s07, nulltype } value;
     typedef float number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     float       to_number() const;
-    std::string to_number_string() const;
+    const char* to_number_string() const;
   };
   typedef enumerated<sf_start_position_r13_opts> sf_start_position_r13_e_;
 
@@ -5367,20 +5019,16 @@ struct laa_scell_cfg_v1430_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "crossCarrierSchedulingConfig-UL-r14");
+      assert_choice_type(types::setup, type_, "crossCarrierSchedulingConfig-UL-r14");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "crossCarrierSchedulingConfig-UL-r14");
+      assert_choice_type(types::setup, type_, "crossCarrierSchedulingConfig-UL-r14");
       return c;
     }
-    void      set_release() { set(types::release); }
-    setup_s_& set_setup()
-    {
-      set(types::setup);
-      return c;
-    }
+    void      set_release();
+    setup_s_& set_setup();
 
   private:
     types    type_;
@@ -5462,20 +5110,16 @@ struct pucch_cfg_ded_v1370_s {
     // getters
     pucch_format3_conf_r13_s& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "pucch-Format-v1370");
+      assert_choice_type(types::setup, type_, "pucch-Format-v1370");
       return c;
     }
     const pucch_format3_conf_r13_s& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "pucch-Format-v1370");
+      assert_choice_type(types::setup, type_, "pucch-Format-v1370");
       return c;
     }
-    void                      set_release() { set(types::release); }
-    pucch_format3_conf_r13_s& set_setup()
-    {
-      set(types::setup);
-      return c;
-    }
+    void                      set_release();
+    pucch_format3_conf_r13_s& set_setup();
 
   private:
     types                    type_;
@@ -5539,20 +5183,16 @@ struct pusch_cfg_ded_scell_v1530_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "uci-OnPUSCH-r15");
+      assert_choice_type(types::setup, type_, "uci-OnPUSCH-r15");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "uci-OnPUSCH-r15");
+      assert_choice_type(types::setup, type_, "uci-OnPUSCH-r15");
       return c;
     }
-    void      set_release() { set(types::release); }
-    setup_s_& set_setup()
-    {
-      set(types::setup);
-      return c;
-    }
+    void      set_release();
+    setup_s_& set_setup();
 
   private:
     types    type_;
@@ -5577,7 +5217,7 @@ struct sched_request_cfg_scell_r13_c {
       enum options { n4, n8, n16, n32, n64, spare3, spare2, spare1, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<dsr_trans_max_r13_opts> dsr_trans_max_r13_e_;
@@ -5603,20 +5243,16 @@ struct sched_request_cfg_scell_r13_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "SchedulingRequestConfigSCell-r13");
+    assert_choice_type(types::setup, type_, "SchedulingRequestConfigSCell-r13");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "SchedulingRequestConfigSCell-r13");
+    assert_choice_type(types::setup, type_, "SchedulingRequestConfigSCell-r13");
     return c;
   }
-  void      set_release() { set(types::release); }
-  setup_s_& set_setup()
-  {
-    set(types::setup);
-    return c;
-  }
+  void      set_release();
+  setup_s_& set_setup();
 
 private:
   types    type_;
@@ -5676,20 +5312,16 @@ struct tpc_pdcch_cfg_scell_r13_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "TPC-PDCCH-ConfigSCell-r13");
+    assert_choice_type(types::setup, type_, "TPC-PDCCH-ConfigSCell-r13");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "TPC-PDCCH-ConfigSCell-r13");
+    assert_choice_type(types::setup, type_, "TPC-PDCCH-ConfigSCell-r13");
     return c;
   }
-  void      set_release() { set(types::release); }
-  setup_s_& set_setup()
-  {
-    set(types::setup);
-    return c;
-  }
+  void      set_release();
+  setup_s_& set_setup();
 
 private:
   types    type_;
@@ -5718,14 +5350,14 @@ struct ul_pwr_ctrl_ded_scell_r10_s {
     enum options { en0, en1, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<delta_mcs_enabled_r10_opts> delta_mcs_enabled_r10_e_;
   struct pathloss_ref_linking_r10_opts {
     enum options { pcell, scell, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<pathloss_ref_linking_r10_opts> pathloss_ref_linking_r10_e_;
 
@@ -5832,20 +5464,16 @@ struct phys_cfg_ded_scell_r10_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "pucch-SCell");
+      assert_choice_type(types::setup, type_, "pucch-SCell");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "pucch-SCell");
+      assert_choice_type(types::setup, type_, "pucch-SCell");
       return c;
     }
-    void      set_release() { set(types::release); }
-    setup_s_& set_setup()
-    {
-      set(types::setup);
-      return c;
-    }
+    void      set_release();
+    setup_s_& set_setup();
 
   private:
     types    type_;
@@ -5861,7 +5489,7 @@ struct phys_cfg_ded_scell_r10_s {
         enum options { l1, l3, nulltype } value;
         typedef uint8_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         uint8_t     to_number() const;
       };
       typedef enumerated<k_max_r14_opts> k_max_r14_e_;
@@ -5869,9 +5497,9 @@ struct phys_cfg_ded_scell_r10_s {
         enum options { db_minus6, db_minus4dot77, db_minus3, db_minus1dot77, db0, db1, db2, db3, nulltype } value;
         typedef float number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         float       to_number() const;
-        std::string to_number_string() const;
+        const char* to_number_string() const;
       };
       typedef enumerated<p_a_must_r14_opts> p_a_must_r14_e_;
 
@@ -5894,20 +5522,16 @@ struct phys_cfg_ded_scell_r10_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "must-Config-r14");
+      assert_choice_type(types::setup, type_, "must-Config-r14");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "must-Config-r14");
+      assert_choice_type(types::setup, type_, "must-Config-r14");
       return c;
     }
-    void      set_release() { set(types::release); }
-    setup_s_& set_setup()
-    {
-      set(types::setup);
-      return c;
-    }
+    void      set_release();
+    setup_s_& set_setup();
 
   private:
     types    type_;
@@ -5918,7 +5542,7 @@ struct phys_cfg_ded_scell_r10_s {
       struct types_opts {
         enum options { cfi_cfg_r15, cfi_pattern_cfg_r15, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -5937,34 +5561,26 @@ struct phys_cfg_ded_scell_r10_s {
       // getters
       cfi_cfg_r15_s& cfi_cfg_r15()
       {
-        assert_choice_type("cfi-Config-r15", type_.to_string(), "setup");
+        assert_choice_type(types::cfi_cfg_r15, type_, "setup");
         return c.get<cfi_cfg_r15_s>();
       }
       cfi_pattern_cfg_r15_s& cfi_pattern_cfg_r15()
       {
-        assert_choice_type("cfi-PatternConfig-r15", type_.to_string(), "setup");
+        assert_choice_type(types::cfi_pattern_cfg_r15, type_, "setup");
         return c.get<cfi_pattern_cfg_r15_s>();
       }
       const cfi_cfg_r15_s& cfi_cfg_r15() const
       {
-        assert_choice_type("cfi-Config-r15", type_.to_string(), "setup");
+        assert_choice_type(types::cfi_cfg_r15, type_, "setup");
         return c.get<cfi_cfg_r15_s>();
       }
       const cfi_pattern_cfg_r15_s& cfi_pattern_cfg_r15() const
       {
-        assert_choice_type("cfi-PatternConfig-r15", type_.to_string(), "setup");
+        assert_choice_type(types::cfi_pattern_cfg_r15, type_, "setup");
         return c.get<cfi_pattern_cfg_r15_s>();
       }
-      cfi_cfg_r15_s& set_cfi_cfg_r15()
-      {
-        set(types::cfi_cfg_r15);
-        return c.get<cfi_cfg_r15_s>();
-      }
-      cfi_pattern_cfg_r15_s& set_cfi_pattern_cfg_r15()
-      {
-        set(types::cfi_pattern_cfg_r15);
-        return c.get<cfi_pattern_cfg_r15_s>();
-      }
+      cfi_cfg_r15_s&         set_cfi_cfg_r15();
+      cfi_pattern_cfg_r15_s& set_cfi_pattern_cfg_r15();
 
     private:
       types                                                 type_;
@@ -5986,20 +5602,16 @@ struct phys_cfg_ded_scell_r10_s {
     // getters
     setup_c_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "semiStaticCFI-Config-r15");
+      assert_choice_type(types::setup, type_, "semiStaticCFI-Config-r15");
       return c;
     }
     const setup_c_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "semiStaticCFI-Config-r15");
+      assert_choice_type(types::setup, type_, "semiStaticCFI-Config-r15");
       return c;
     }
-    void      set_release() { set(types::release); }
-    setup_c_& set_setup()
-    {
-      set(types::setup);
-      return c;
-    }
+    void      set_release();
+    setup_c_& set_setup();
 
   private:
     types    type_;
@@ -6011,7 +5623,7 @@ struct phys_cfg_ded_scell_r10_s {
         enum options { n4, n6, nulltype } value;
         typedef uint8_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         uint8_t     to_number() const;
       };
       typedef enumerated<max_num_sf_pdsch_repeats_r15_opts> max_num_sf_pdsch_repeats_r15_e_;
@@ -6019,7 +5631,7 @@ struct phys_cfg_ded_scell_r10_s {
         enum options { n4, n6, nulltype } value;
         typedef uint8_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         uint8_t     to_number() const;
       };
       typedef enumerated<max_num_slot_subslot_pdsch_repeats_r15_opts> max_num_slot_subslot_pdsch_repeats_r15_e_;
@@ -6027,7 +5639,7 @@ struct phys_cfg_ded_scell_r10_s {
         enum options { dlrvseq1, dlrvseq2, nulltype } value;
         typedef uint8_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         uint8_t     to_number() const;
       };
       typedef enumerated<rv_sf_pdsch_repeats_r15_opts> rv_sf_pdsch_repeats_r15_e_;
@@ -6035,7 +5647,7 @@ struct phys_cfg_ded_scell_r10_s {
         enum options { dlrvseq1, dlrvseq2, nulltype } value;
         typedef uint8_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         uint8_t     to_number() const;
       };
       typedef enumerated<rv_slotsublot_pdsch_repeats_r15_opts> rv_slotsublot_pdsch_repeats_r15_e_;
@@ -6043,7 +5655,7 @@ struct phys_cfg_ded_scell_r10_s {
         enum options { n0, n1, nulltype } value;
         typedef uint8_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         uint8_t     to_number() const;
       };
       typedef enumerated<mcs_restrict_sf_pdsch_repeats_r15_opts> mcs_restrict_sf_pdsch_repeats_r15_e_;
@@ -6051,7 +5663,7 @@ struct phys_cfg_ded_scell_r10_s {
         enum options { n0, n1, nulltype } value;
         typedef uint8_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         uint8_t     to_number() const;
       };
       typedef enumerated<mcs_restrict_slot_subslot_pdsch_repeats_r15_opts>
@@ -6091,20 +5703,16 @@ struct phys_cfg_ded_scell_r10_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "blindPDSCH-Repetition-Config-r15");
+      assert_choice_type(types::setup, type_, "blindPDSCH-Repetition-Config-r15");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "blindPDSCH-Repetition-Config-r15");
+      assert_choice_type(types::setup, type_, "blindPDSCH-Repetition-Config-r15");
       return c;
     }
-    void      set_release() { set(types::release); }
-    setup_s_& set_setup()
-    {
-      set(types::setup);
-      return c;
-    }
+    void      set_release();
+    setup_s_& set_setup();
 
   private:
     types    type_;
@@ -6215,20 +5823,16 @@ struct phys_cfg_ded_scell_v1370_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "pucch-SCell-v1370");
+      assert_choice_type(types::setup, type_, "pucch-SCell-v1370");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "pucch-SCell-v1370");
+      assert_choice_type(types::setup, type_, "pucch-SCell-v1370");
       return c;
     }
-    void      set_release() { set(types::release); }
-    setup_s_& set_setup()
-    {
-      set(types::setup);
-      return c;
-    }
+    void      set_release();
+    setup_s_& set_setup();
 
   private:
     types    type_;
@@ -6252,7 +5856,7 @@ struct ant_info_ded_v10i0_s {
     enum options { two_layers, four_layers, eight_layers, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<max_layers_mimo_r10_opts> max_layers_mimo_r10_e_;
@@ -6346,20 +5950,16 @@ struct pucch_cfg_ded_v13c0_s {
       // getters
       setup_s_& setup()
       {
-        assert_choice_type("setup", type_.to_string(), "n1PUCCH-AN-CS-v13c0");
+        assert_choice_type(types::setup, type_, "n1PUCCH-AN-CS-v13c0");
         return c;
       }
       const setup_s_& setup() const
       {
-        assert_choice_type("setup", type_.to_string(), "n1PUCCH-AN-CS-v13c0");
+        assert_choice_type(types::setup, type_, "n1PUCCH-AN-CS-v13c0");
         return c;
       }
-      void      set_release() { set(types::release); }
-      setup_s_& set_setup()
-      {
-        set(types::setup);
-        return c;
-      }
+      void      set_release();
+      setup_s_& set_setup();
 
     private:
       types    type_;
@@ -6391,7 +5991,7 @@ struct drb_to_add_mod_scg_r12_s {
     struct types_opts {
       enum options { split_r12, scg_r12, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -6405,20 +6005,16 @@ struct drb_to_add_mod_scg_r12_s {
     // getters
     scg_r12_s_& scg_r12()
     {
-      assert_choice_type("scg-r12", type_.to_string(), "drb-Type-r12");
+      assert_choice_type(types::scg_r12, type_, "drb-Type-r12");
       return c;
     }
     const scg_r12_s_& scg_r12() const
     {
-      assert_choice_type("scg-r12", type_.to_string(), "drb-Type-r12");
+      assert_choice_type(types::scg_r12, type_, "drb-Type-r12");
       return c;
     }
-    void        set_split_r12() { set(types::split_r12); }
-    scg_r12_s_& set_scg_r12()
-    {
-      set(types::scg_r12);
-      return c;
-    }
+    void        set_split_r12();
+    scg_r12_s_& set_scg_r12();
 
   private:
     types      type_;
@@ -6493,7 +6089,7 @@ struct rlf_timers_and_consts_scg_r12_c {
       enum options { ms0, ms50, ms100, ms200, ms500, ms1000, ms2000, nulltype } value;
       typedef uint16_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint16_t    to_number() const;
     };
     typedef enumerated<t313_r12_opts> t313_r12_e_;
@@ -6501,7 +6097,7 @@ struct rlf_timers_and_consts_scg_r12_c {
       enum options { n1, n2, n3, n4, n6, n8, n10, n20, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<n313_r12_opts> n313_r12_e_;
@@ -6509,7 +6105,7 @@ struct rlf_timers_and_consts_scg_r12_c {
       enum options { n1, n2, n3, n4, n5, n6, n8, n10, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<n314_r12_opts> n314_r12_e_;
@@ -6533,20 +6129,16 @@ struct rlf_timers_and_consts_scg_r12_c {
   // getters
   setup_s_& setup()
   {
-    assert_choice_type("setup", type_.to_string(), "RLF-TimersAndConstantsSCG-r12");
+    assert_choice_type(types::setup, type_, "RLF-TimersAndConstantsSCG-r12");
     return c;
   }
   const setup_s_& setup() const
   {
-    assert_choice_type("setup", type_.to_string(), "RLF-TimersAndConstantsSCG-r12");
+    assert_choice_type(types::setup, type_, "RLF-TimersAndConstantsSCG-r12");
     return c;
   }
-  void      set_release() { set(types::release); }
-  setup_s_& set_setup()
-  {
-    set(types::setup);
-    return c;
-  }
+  void      set_release();
+  setup_s_& set_setup();
 
 private:
   types    type_;
@@ -6562,7 +6154,7 @@ struct scell_to_add_mod_r10_s {
   struct scell_state_r15_opts {
     enum options { activ, dormant, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<scell_state_r15_opts> scell_state_r15_e_;
 
@@ -6612,7 +6204,7 @@ struct scell_to_add_mod_ext_v1430_s {
   struct scell_state_r15_opts {
     enum options { activ, dormant, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<scell_state_r15_opts> scell_state_r15_e_;
 
@@ -6685,20 +6277,16 @@ struct phys_cfg_ded_scell_v13c0_s {
     // getters
     setup_s_& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "pucch-SCell-v13c0");
+      assert_choice_type(types::setup, type_, "pucch-SCell-v13c0");
       return c;
     }
     const setup_s_& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "pucch-SCell-v13c0");
+      assert_choice_type(types::setup, type_, "pucch-SCell-v13c0");
       return c;
     }
-    void      set_release() { set(types::release); }
-    setup_s_& set_setup()
-    {
-      set(types::setup);
-      return c;
-    }
+    void      set_release();
+    setup_s_& set_setup();
 
   private:
     types    type_;

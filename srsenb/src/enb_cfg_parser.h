@@ -303,9 +303,9 @@ bool parse_enum_by_number_str(EnumType& enum_val, const char* name, Setting& roo
     bool found = asn1::number_string_to_enum(enum_val, val);
     if (not found) {
       fprintf(stderr, "PARSER ERROR: Invalid option: \"%s\" for field \"%s\"\n", val.c_str(), name);
-      fprintf(stderr, "Valid options:  \"%s\"", EnumType((typename EnumType::options)0).to_number_string().c_str());
+      fprintf(stderr, "Valid options:  \"%s\"", EnumType((typename EnumType::options)0).to_number_string());
       for (uint32_t i = 1; i < EnumType::nof_types; i++) {
-        fprintf(stderr, ", \"%s\"", EnumType((typename EnumType::options)i).to_number_string().c_str());
+        fprintf(stderr, ", \"%s\"", EnumType((typename EnumType::options)i).to_number_string());
       }
       fprintf(stderr, "\n");
       return false;
@@ -323,9 +323,9 @@ bool parse_enum_by_str(EnumType& enum_val, const char* name, Setting& root)
     bool found = asn1_parsers::nowhitespace_string_to_enum(enum_val, val);
     if (not found) {
       fprintf(stderr, "PARSER ERROR: Invalid option: \"%s\" for field \"%s\"\n", val.c_str(), name);
-      fprintf(stderr, "Valid options:  \"%s\"", EnumType((typename EnumType::options)0).to_string().c_str());
+      fprintf(stderr, "Valid options:  \"%s\"", EnumType((typename EnumType::options)0).to_string());
       for (uint32_t i = 1; i < EnumType::nof_types; i++) {
-        fprintf(stderr, ", \"%s\"", EnumType((typename EnumType::options)i).to_string().c_str());
+        fprintf(stderr, ", \"%s\"", EnumType((typename EnumType::options)i).to_string());
       }
       fprintf(stderr, "\n");
       return false;

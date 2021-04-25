@@ -86,7 +86,7 @@ static bool when_context_is_built_then_metric_units_are_valid()
 
 static bool when_metric_is_set_through_context_then_value_is_stored()
 {
-  ctx_t ctx = build_context();
+  ctx_t ctx   = build_context();
   float value = 10;
 
   ctx.get<myset1>().write<snr_t>(value);
@@ -106,7 +106,7 @@ using ctx2_t = srslog::build_context_type<vector_metrics>;
 static bool when_context_with_list_is_set_value_is_retrieved_correctly()
 {
   ctx2_t ctx("test");
-  float val = 2;
+  float  val = 2;
 
   ctx.get<vector_metrics>().emplace_back();
   ctx.at<vector_metrics>(0).write<m1_t>(val);

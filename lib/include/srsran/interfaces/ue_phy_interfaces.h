@@ -62,7 +62,7 @@ struct phy_args_t {
 
   uint32_t    nof_lte_carriers             = 1;
   uint32_t    nof_nr_carriers              = 0;
-  uint32_t    nr_nof_prb                   = 50;
+  uint32_t    nr_max_nof_prb               = 106;
   double      nr_freq_hz                   = 2630e6;
   uint32_t    nof_rx_ant                   = 1;
   std::string equalizer_mode               = "mmse";

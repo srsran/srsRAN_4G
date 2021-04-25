@@ -41,18 +41,8 @@ void invalid_enum_number(int value, const char* name)
 
 void assert_choice_type(uint32_t val, uint32_t choice_id)
 {
-  if (val != choice_id) {
+  if (srsran_unlikely(val != choice_id)) {
     log_invalid_access_choice_id(val, choice_id);
-  }
-}
-
-void assert_choice_type(const std::string& access_type, const std::string& current_type, const std::string& choice_type)
-{
-  if (access_type != current_type) {
-    log_error("Invalid field access for choice type \"%s\" (\"%s\"!=\"%s\")",
-              choice_type.c_str(),
-              access_type.c_str(),
-              current_type.c_str());
   }
 }
 

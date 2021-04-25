@@ -21,9 +21,9 @@
 
 #include "srsenb/hdr/stack/mac/sched_helpers.h"
 #include "srsran/common/standard_streams.h"
+#include "srsran/common/string_helpers.h"
 #include "srsran/mac/pdu.h"
 #include "srsran/srslog/bundled/fmt/format.h"
-
 #include <array>
 
 #define Debug(fmt, ...) get_mac_logger().debug(fmt, ##__VA_ARGS__)
@@ -134,9 +134,9 @@ void log_dl_cc_results(srslog::basic_logger& logger, uint32_t enb_cc_idx, const 
   }
   if (strbuf.size() != 0) {
     if (logger.debug.enabled()) {
-      logger.debug("SCHED: DL MAC PDU payload cc=%d:\n%s", enb_cc_idx, fmt::to_string(strbuf).c_str());
+      logger.debug("SCHED: DL MAC PDU payload cc=%d:\n%s", enb_cc_idx, srsran::to_c_str(strbuf));
     } else {
-      logger.info("SCHED: DL MAC CEs cc=%d: %s", enb_cc_idx, fmt::to_string(strbuf).c_str());
+      logger.info("SCHED: DL MAC CEs cc=%d: %s", enb_cc_idx, srsran::to_c_str(strbuf));
     }
   }
 }
@@ -146,7 +146,7 @@ void log_phich_cc_results(srslog::basic_logger&                  logger,
                           const sched_interface::ul_sched_res_t& result)
 {
   using phich_t = sched_interface::ul_sched_phich_t;
-  if (!logger.info.enabled()) {
+  if (!logger.debug.enabled()) {
     return;
   }
   custom_mem_buffer strbuf;
@@ -157,7 +157,7 @@ void log_phich_cc_results(srslog::basic_logger&                  logger,
     fmt::format_to(strbuf, "{}rnti=0x{:0x}, val={}", prefix, phich.rnti, val);
   }
   if (strbuf.size() != 0) {
-    logger.debug("SCHED: Allocated PHICHs, cc=%d: [%s]", enb_cc_idx, fmt::to_string(strbuf).c_str());
+    logger.debug("SCHED: Allocated PHICHs, cc=%d: [%s]", enb_cc_idx, srsran::to_c_str(strbuf));
   }
 }
 

@@ -42,13 +42,13 @@ struct phy_cfg_nr_t {
   srsran_ue_dl_nr_harq_ack_cfg_t harq_ack = {};
   srsran_csi_hl_cfg_t            csi      = {};
   srsran_carrier_nr_t            carrier  = {};
-  
+
   phy_cfg_nr_t() {}
 
   /**
    * @param carrier
    */
-  srsran_dci_cfg_nr_t get_dci_cfg(const srsran_carrier_nr_t& carrier) const
+  srsran_dci_cfg_nr_t get_dci_cfg() const
   {
     srsran_dci_cfg_nr_t dci_cfg = {};
 

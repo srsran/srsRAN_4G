@@ -274,8 +274,8 @@ void s1ap::handle_initiating_message(const asn1::s1ap::init_msg_s& msg, struct s
       m_logger.info("Ignoring UE capability Info Indication.");
       break;
     default:
-      m_logger.error("Unhandled S1AP initiating message: %s", msg.value.type().to_string().c_str());
-      srsran::console("Unhandled S1APinitiating message: %s\n", msg.value.type().to_string().c_str());
+      m_logger.error("Unhandled S1AP initiating message: %s", msg.value.type().to_string());
+      srsran::console("Unhandled S1APinitiating message: %s\n", msg.value.type().to_string());
   }
 }
 
@@ -293,7 +293,7 @@ void s1ap::handle_successful_outcome(const asn1::s1ap::successful_outcome_s& msg
       m_s1ap_ctx_mngmt_proc->handle_ue_context_release_complete(msg.value.ue_context_release_complete());
       break;
     default:
-      m_logger.error("Unhandled successful outcome message: %s", msg.value.type().to_string().c_str());
+      m_logger.error("Unhandled successful outcome message: %s", msg.value.type().to_string());
   }
 }
 
@@ -585,7 +585,7 @@ void s1ap::print_enb_ctx_info(const std::string& prefix, const enb_ctx_t& enb_ct
       srsran::console("%s - TAC %d, B-PLMN 0x%x\n", prefix.c_str(), enb_ctx.tacs[i], enb_ctx.bplmns[i][j]);
     }
   }
-  srsran::console("%s - Paging DRX %s\n", prefix.c_str(), enb_ctx.drx.to_string().c_str());
+  srsran::console("%s - Paging DRX %s\n", prefix.c_str(), enb_ctx.drx.to_string());
   return;
 }
 

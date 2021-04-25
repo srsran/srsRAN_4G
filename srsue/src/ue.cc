@@ -102,7 +102,7 @@ int ue::init(const all_args_t& args_)
     }
 
     srsue::phy_args_nr_t phy_args_nr = {};
-    phy_args_nr.nof_prb              = args.phy.nr_nof_prb;
+    phy_args_nr.max_nof_prb          = args.phy.nr_max_nof_prb;
     phy_args_nr.nof_carriers         = args.phy.nof_nr_carriers;
     phy_args_nr.nof_phy_threads      = args.phy.nof_phy_threads;
     phy_args_nr.worker_cpu_mask      = args.phy.worker_cpu_mask;
@@ -218,8 +218,8 @@ int ue::parse_args(const all_args_t& args_)
   }
 
   // replicate some RF parameter to make them available to PHY
-  args.phy.nof_rx_ant  = args.rf.nof_antennas;
-  args.phy.agc_enable  = args.rf.rx_gain < 0.0f;
+  args.phy.nof_rx_ant = args.rf.nof_antennas;
+  args.phy.agc_enable = args.rf.rx_gain < 0.0f;
 
   // populate DL EARFCN list
   if (not args.phy.dl_earfcn.empty()) {

@@ -30,7 +30,7 @@ using namespace asn1::rrc;
  ******************************************************************************/
 
 // CA-BandwidthClass-r10 ::= ENUMERATED
-std::string ca_bw_class_r10_opts::to_string() const
+const char* ca_bw_class_r10_opts::to_string() const
 {
   static const char* options[] = {"a", "b", "c", "d", "e", "f"};
   return convert_enum_idx(options, 6, value, "ca_bw_class_r10_e");
@@ -355,7 +355,7 @@ void ue_cap_enquiry_v1310_ies_s::to_json(json_writer& j) const
 }
 
 // RAT-Type ::= ENUMERATED
-std::string rat_type_opts::to_string() const
+const char* rat_type_opts::to_string() const
 {
   static const char* options[] = {
       "eutra", "utra", "geran-cs", "geran-ps", "cdma2000-1XRTT", "nr", "eutra-nr", "spare1"};
@@ -524,6 +524,15 @@ void ue_cap_enquiry_s::crit_exts_c_::set(types::options e)
 {
   type_ = e;
 }
+ue_cap_enquiry_s::crit_exts_c_::c1_c_& ue_cap_enquiry_s::crit_exts_c_::set_c1()
+{
+  set(types::c1);
+  return c;
+}
+void ue_cap_enquiry_s::crit_exts_c_::set_crit_exts_future()
+{
+  set(types::crit_exts_future);
+}
 void ue_cap_enquiry_s::crit_exts_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -575,6 +584,23 @@ SRSASN_CODE ue_cap_enquiry_s::crit_exts_c_::unpack(cbit_ref& bref)
 void ue_cap_enquiry_s::crit_exts_c_::c1_c_::set(types::options e)
 {
   type_ = e;
+}
+ue_cap_enquiry_r8_ies_s& ue_cap_enquiry_s::crit_exts_c_::c1_c_::set_ue_cap_enquiry_r8()
+{
+  set(types::ue_cap_enquiry_r8);
+  return c;
+}
+void ue_cap_enquiry_s::crit_exts_c_::c1_c_::set_spare3()
+{
+  set(types::spare3);
+}
+void ue_cap_enquiry_s::crit_exts_c_::c1_c_::set_spare2()
+{
+  set(types::spare2);
+}
+void ue_cap_enquiry_s::crit_exts_c_::c1_c_::set_spare1()
+{
+  set(types::spare1);
 }
 void ue_cap_enquiry_s::crit_exts_c_::c1_c_::to_json(json_writer& j) const
 {
@@ -750,7 +776,7 @@ void ue_radio_paging_info_r12_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string ue_radio_paging_info_r12_s::wake_up_signal_min_gap_e_drx_r15_opts::to_string() const
+const char* ue_radio_paging_info_r12_s::wake_up_signal_min_gap_e_drx_r15_opts::to_string() const
 {
   static const char* options[] = {"ms40", "ms240", "ms1000", "ms2000"};
   return convert_enum_idx(options, 4, value, "ue_radio_paging_info_r12_s::wake_up_signal_min_gap_e_drx_r15_e_");
@@ -761,7 +787,7 @@ uint16_t ue_radio_paging_info_r12_s::wake_up_signal_min_gap_e_drx_r15_opts::to_n
   return map_enum_number(options, 4, value, "ue_radio_paging_info_r12_s::wake_up_signal_min_gap_e_drx_r15_e_");
 }
 
-std::string ue_radio_paging_info_r12_s::wake_up_signal_min_gap_e_drx_tdd_r15_opts::to_string() const
+const char* ue_radio_paging_info_r12_s::wake_up_signal_min_gap_e_drx_tdd_r15_opts::to_string() const
 {
   static const char* options[] = {"ms40", "ms240", "ms1000", "ms2000"};
   return convert_enum_idx(options, 4, value, "ue_radio_paging_info_r12_s::wake_up_signal_min_gap_e_drx_tdd_r15_e_");
@@ -941,6 +967,15 @@ void ue_cap_info_s::crit_exts_c_::set(types::options e)
 {
   type_ = e;
 }
+ue_cap_info_s::crit_exts_c_::c1_c_& ue_cap_info_s::crit_exts_c_::set_c1()
+{
+  set(types::c1);
+  return c;
+}
+void ue_cap_info_s::crit_exts_c_::set_crit_exts_future()
+{
+  set(types::crit_exts_future);
+}
 void ue_cap_info_s::crit_exts_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -992,6 +1027,39 @@ SRSASN_CODE ue_cap_info_s::crit_exts_c_::unpack(cbit_ref& bref)
 void ue_cap_info_s::crit_exts_c_::c1_c_::set(types::options e)
 {
   type_ = e;
+}
+ue_cap_info_r8_ies_s& ue_cap_info_s::crit_exts_c_::c1_c_::set_ue_cap_info_r8()
+{
+  set(types::ue_cap_info_r8);
+  return c;
+}
+void ue_cap_info_s::crit_exts_c_::c1_c_::set_spare7()
+{
+  set(types::spare7);
+}
+void ue_cap_info_s::crit_exts_c_::c1_c_::set_spare6()
+{
+  set(types::spare6);
+}
+void ue_cap_info_s::crit_exts_c_::c1_c_::set_spare5()
+{
+  set(types::spare5);
+}
+void ue_cap_info_s::crit_exts_c_::c1_c_::set_spare4()
+{
+  set(types::spare4);
+}
+void ue_cap_info_s::crit_exts_c_::c1_c_::set_spare3()
+{
+  set(types::spare3);
+}
+void ue_cap_info_s::crit_exts_c_::c1_c_::set_spare2()
+{
+  set(types::spare2);
+}
+void ue_cap_info_s::crit_exts_c_::c1_c_::set_spare1()
+{
+  set(types::spare1);
 }
 void ue_cap_info_s::crit_exts_c_::c1_c_::to_json(json_writer& j) const
 {
@@ -1159,7 +1227,7 @@ void band_info_eutra_s::to_json(json_writer& j) const
 }
 
 // MIMO-CapabilityDL-r10 ::= ENUMERATED
-std::string mimo_cap_dl_r10_opts::to_string() const
+const char* mimo_cap_dl_r10_opts::to_string() const
 {
   static const char* options[] = {"twoLayers", "fourLayers", "eightLayers"};
   return convert_enum_idx(options, 3, value, "mimo_cap_dl_r10_e");
@@ -1171,7 +1239,7 @@ uint8_t mimo_cap_dl_r10_opts::to_number() const
 }
 
 // MIMO-CapabilityUL-r10 ::= ENUMERATED
-std::string mimo_cap_ul_r10_opts::to_string() const
+const char* mimo_cap_ul_r10_opts::to_string() const
 {
   static const char* options[] = {"twoLayers", "fourLayers"};
   return convert_enum_idx(options, 2, value, "mimo_cap_ul_r10_e");
@@ -1363,7 +1431,7 @@ void band_params_r11_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string band_params_r11_s::supported_csi_proc_r11_opts::to_string() const
+const char* band_params_r11_s::supported_csi_proc_r11_opts::to_string() const
 {
   static const char* options[] = {"n1", "n3", "n4"};
   return convert_enum_idx(options, 3, value, "band_params_r11_s::supported_csi_proc_r11_e_");
@@ -1473,7 +1541,7 @@ void intra_band_contiguous_cc_info_r12_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string intra_band_contiguous_cc_info_r12_s::supported_csi_proc_r12_opts::to_string() const
+const char* intra_band_contiguous_cc_info_r12_s::supported_csi_proc_r12_opts::to_string() const
 {
   static const char* options[] = {"n1", "n3", "n4"};
   return convert_enum_idx(options, 3, value, "intra_band_contiguous_cc_info_r12_s::supported_csi_proc_r12_e_");
@@ -1586,7 +1654,7 @@ void band_params_r13_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string band_params_r13_s::supported_csi_proc_r13_opts::to_string() const
+const char* band_params_r13_s::supported_csi_proc_r13_opts::to_string() const
 {
   static const char* options[] = {"n1", "n3", "n4"};
   return convert_enum_idx(options, 3, value, "band_params_r13_s::supported_csi_proc_r13_e_");
@@ -1785,6 +1853,24 @@ band_combination_params_r13_s::dc_support_r13_s_::supported_cell_grouping_r13_c_
 
   return *this;
 }
+fixed_bitstring<3>&
+band_combination_params_r13_s::dc_support_r13_s_::supported_cell_grouping_r13_c_::set_three_entries_r13()
+{
+  set(types::three_entries_r13);
+  return c.get<fixed_bitstring<3> >();
+}
+fixed_bitstring<7>&
+band_combination_params_r13_s::dc_support_r13_s_::supported_cell_grouping_r13_c_::set_four_entries_r13()
+{
+  set(types::four_entries_r13);
+  return c.get<fixed_bitstring<7> >();
+}
+fixed_bitstring<15>&
+band_combination_params_r13_s::dc_support_r13_s_::supported_cell_grouping_r13_c_::set_five_entries_r13()
+{
+  set(types::five_entries_r13);
+  return c.get<fixed_bitstring<15> >();
+}
 void band_combination_params_r13_s::dc_support_r13_s_::supported_cell_grouping_r13_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -1976,7 +2062,7 @@ void band_params_v1130_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string band_params_v1130_s::supported_csi_proc_r11_opts::to_string() const
+const char* band_params_v1130_s::supported_csi_proc_r11_opts::to_string() const
 {
   static const char* options[] = {"n1", "n3", "n4"};
   return convert_enum_idx(options, 3, value, "band_params_v1130_s::supported_csi_proc_r11_e_");
@@ -2188,6 +2274,24 @@ band_combination_params_v1250_s::dc_support_r12_s_::supported_cell_grouping_r12_
   }
 
   return *this;
+}
+fixed_bitstring<3>&
+band_combination_params_v1250_s::dc_support_r12_s_::supported_cell_grouping_r12_c_::set_three_entries_r12()
+{
+  set(types::three_entries_r12);
+  return c.get<fixed_bitstring<3> >();
+}
+fixed_bitstring<7>&
+band_combination_params_v1250_s::dc_support_r12_s_::supported_cell_grouping_r12_c_::set_four_entries_r12()
+{
+  set(types::four_entries_r12);
+  return c.get<fixed_bitstring<7> >();
+}
+fixed_bitstring<15>&
+band_combination_params_v1250_s::dc_support_r12_s_::supported_cell_grouping_r12_c_::set_five_entries_r12()
+{
+  set(types::five_entries_r12);
+  return c.get<fixed_bitstring<15> >();
 }
 void band_combination_params_v1250_s::dc_support_r12_s_::supported_cell_grouping_r12_c_::to_json(json_writer& j) const
 {
@@ -2745,7 +2849,7 @@ void srs_cap_per_band_pair_r14_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string srs_cap_per_band_pair_r14_s::retuning_info_s_::rf_retuning_time_dl_r14_opts::to_string() const
+const char* srs_cap_per_band_pair_r14_s::retuning_info_s_::rf_retuning_time_dl_r14_opts::to_string() const
 {
   static const char* options[] = {"n0",
                                   "n0dot5",
@@ -2772,7 +2876,7 @@ float srs_cap_per_band_pair_r14_s::retuning_info_s_::rf_retuning_time_dl_r14_opt
   return map_enum_number(
       options, 15, value, "srs_cap_per_band_pair_r14_s::retuning_info_s_::rf_retuning_time_dl_r14_e_");
 }
-std::string srs_cap_per_band_pair_r14_s::retuning_info_s_::rf_retuning_time_dl_r14_opts::to_number_string() const
+const char* srs_cap_per_band_pair_r14_s::retuning_info_s_::rf_retuning_time_dl_r14_opts::to_number_string() const
 {
   static const char* options[] = {
       "0", "0.5", "1", "1.5", "2", "2.5", "3", "3.5", "4", "4.5", "5", "5.5", "6", "6.5", "7"};
@@ -2780,7 +2884,7 @@ std::string srs_cap_per_band_pair_r14_s::retuning_info_s_::rf_retuning_time_dl_r
       options, 16, value, "srs_cap_per_band_pair_r14_s::retuning_info_s_::rf_retuning_time_dl_r14_e_");
 }
 
-std::string srs_cap_per_band_pair_r14_s::retuning_info_s_::rf_retuning_time_ul_r14_opts::to_string() const
+const char* srs_cap_per_band_pair_r14_s::retuning_info_s_::rf_retuning_time_ul_r14_opts::to_string() const
 {
   static const char* options[] = {"n0",
                                   "n0dot5",
@@ -2807,7 +2911,7 @@ float srs_cap_per_band_pair_r14_s::retuning_info_s_::rf_retuning_time_ul_r14_opt
   return map_enum_number(
       options, 15, value, "srs_cap_per_band_pair_r14_s::retuning_info_s_::rf_retuning_time_ul_r14_e_");
 }
-std::string srs_cap_per_band_pair_r14_s::retuning_info_s_::rf_retuning_time_ul_r14_opts::to_number_string() const
+const char* srs_cap_per_band_pair_r14_s::retuning_info_s_::rf_retuning_time_ul_r14_opts::to_number_string() const
 {
   static const char* options[] = {
       "0", "0.5", "1", "1.5", "2", "2.5", "3", "3.5", "4", "4.5", "5", "5.5", "6", "6.5", "7"};
@@ -3096,7 +3200,7 @@ void mimo_ca_params_per_bo_bc_per_tm_v1470_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string mimo_ca_params_per_bo_bc_per_tm_v1470_s::csi_report_advanced_max_ports_r14_opts::to_string() const
+const char* mimo_ca_params_per_bo_bc_per_tm_v1470_s::csi_report_advanced_max_ports_r14_opts::to_string() const
 {
   static const char* options[] = {"n8", "n12", "n16", "n20", "n24", "n28"};
   return convert_enum_idx(
@@ -3645,7 +3749,7 @@ void stti_spt_band_params_r15_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string stti_spt_band_params_r15_s::stti_supported_csi_proc_r15_opts::to_string() const
+const char* stti_spt_band_params_r15_s::stti_supported_csi_proc_r15_opts::to_string() const
 {
   static const char* options[] = {"n1", "n3", "n4"};
   return convert_enum_idx(options, 3, value, "stti_spt_band_params_r15_s::stti_supported_csi_proc_r15_e_");
@@ -3835,7 +3939,7 @@ void band_combination_params_ext_r10_s::to_json(json_writer& j) const
 }
 
 // V2X-BandwidthClass-r14 ::= ENUMERATED
-std::string v2x_bw_class_r14_opts::to_string() const
+const char* v2x_bw_class_r14_opts::to_string() const
 {
   static const char* options[] = {"a", "b", "c", "d", "e", "f", "c1-v1530"};
   return convert_enum_idx(options, 7, value, "v2x_bw_class_r14_e");
@@ -3962,7 +4066,7 @@ void feature_set_dl_per_cc_r15_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string feature_set_dl_per_cc_r15_s::supported_csi_proc_r15_opts::to_string() const
+const char* feature_set_dl_per_cc_r15_s::supported_csi_proc_r15_opts::to_string() const
 {
   static const char* options[] = {"n1", "n3", "n4"};
   return convert_enum_idx(options, 3, value, "feature_set_dl_per_cc_r15_s::supported_csi_proc_r15_e_");
@@ -4345,13 +4449,13 @@ void irat_params_cdma2000_minus1_xrtt_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string irat_params_cdma2000_minus1_xrtt_s::tx_cfg1_xrtt_opts::to_string() const
+const char* irat_params_cdma2000_minus1_xrtt_s::tx_cfg1_xrtt_opts::to_string() const
 {
   static const char* options[] = {"single", "dual"};
   return convert_enum_idx(options, 2, value, "irat_params_cdma2000_minus1_xrtt_s::tx_cfg1_xrtt_e_");
 }
 
-std::string irat_params_cdma2000_minus1_xrtt_s::rx_cfg1_xrtt_opts::to_string() const
+const char* irat_params_cdma2000_minus1_xrtt_s::rx_cfg1_xrtt_opts::to_string() const
 {
   static const char* options[] = {"single", "dual"};
   return convert_enum_idx(options, 2, value, "irat_params_cdma2000_minus1_xrtt_s::rx_cfg1_xrtt_e_");
@@ -4387,20 +4491,20 @@ void irat_params_cdma2000_hrpd_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string irat_params_cdma2000_hrpd_s::tx_cfg_hrpd_opts::to_string() const
+const char* irat_params_cdma2000_hrpd_s::tx_cfg_hrpd_opts::to_string() const
 {
   static const char* options[] = {"single", "dual"};
   return convert_enum_idx(options, 2, value, "irat_params_cdma2000_hrpd_s::tx_cfg_hrpd_e_");
 }
 
-std::string irat_params_cdma2000_hrpd_s::rx_cfg_hrpd_opts::to_string() const
+const char* irat_params_cdma2000_hrpd_s::rx_cfg_hrpd_opts::to_string() const
 {
   static const char* options[] = {"single", "dual"};
   return convert_enum_idx(options, 2, value, "irat_params_cdma2000_hrpd_s::rx_cfg_hrpd_e_");
 }
 
 // SupportedBandGERAN ::= ENUMERATED
-std::string supported_band_geran_opts::to_string() const
+const char* supported_band_geran_opts::to_string() const
 {
   static const char* options[] = {"gsm450",
                                   "gsm480",
@@ -4602,7 +4706,7 @@ void irat_params_nr_v1540_s::to_json(json_writer& j) const
 }
 
 // SupportedBandUTRA-FDD ::= ENUMERATED
-std::string supported_band_utra_fdd_opts::to_string() const
+const char* supported_band_utra_fdd_opts::to_string() const
 {
   static const char* options[] = {"bandI",        "bandII",        "bandIII",        "bandIV",       "bandV",
                                   "bandVI",       "bandVII",       "bandVIII",       "bandIX",       "bandX",
@@ -4639,7 +4743,7 @@ void irat_params_utra_fdd_s::to_json(json_writer& j) const
 }
 
 // SupportedBandUTRA-TDD128 ::= ENUMERATED
-std::string supported_band_utra_tdd128_opts::to_string() const
+const char* supported_band_utra_tdd128_opts::to_string() const
 {
   static const char* options[] = {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p"};
   return convert_enum_idx(options, 16, value, "supported_band_utra_tdd128_e");
@@ -4670,7 +4774,7 @@ void irat_params_utra_tdd128_s::to_json(json_writer& j) const
 }
 
 // SupportedBandUTRA-TDD384 ::= ENUMERATED
-std::string supported_band_utra_tdd384_opts::to_string() const
+const char* supported_band_utra_tdd384_opts::to_string() const
 {
   static const char* options[] = {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p"};
   return convert_enum_idx(options, 16, value, "supported_band_utra_tdd384_e");
@@ -4701,7 +4805,7 @@ void irat_params_utra_tdd384_s::to_json(json_writer& j) const
 }
 
 // SupportedBandUTRA-TDD768 ::= ENUMERATED
-std::string supported_band_utra_tdd768_opts::to_string() const
+const char* supported_band_utra_tdd768_opts::to_string() const
 {
   static const char* options[] = {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p"};
   return convert_enum_idx(options, 16, value, "supported_band_utra_tdd768_e");
@@ -4766,7 +4870,7 @@ void irat_params_wlan_r13_s::to_json(json_writer& j) const
 }
 
 // ProcessingTimelineSet-r15 ::= ENUMERATED
-std::string processing_timeline_set_r15_opts::to_string() const
+const char* processing_timeline_set_r15_opts::to_string() const
 {
   static const char* options[] = {"set1", "set2"};
   return convert_enum_idx(options, 2, value, "processing_timeline_set_r15_e");
@@ -5153,7 +5257,7 @@ void mimo_ue_params_per_tm_v1430_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string mimo_ue_params_per_tm_v1430_s::nzp_csi_rs_aperiodic_info_r14_s_::nmax_res_r14_opts::to_string() const
+const char* mimo_ue_params_per_tm_v1430_s::nzp_csi_rs_aperiodic_info_r14_s_::nmax_res_r14_opts::to_string() const
 {
   static const char* options[] = {"ffs1", "ffs2", "ffs3", "ffs4"};
   return convert_enum_idx(
@@ -5166,7 +5270,7 @@ uint8_t mimo_ue_params_per_tm_v1430_s::nzp_csi_rs_aperiodic_info_r14_s_::nmax_re
       options, 4, value, "mimo_ue_params_per_tm_v1430_s::nzp_csi_rs_aperiodic_info_r14_s_::nmax_res_r14_e_");
 }
 
-std::string mimo_ue_params_per_tm_v1430_s::nzp_csi_rs_periodic_info_r14_s_::nmax_res_r14_opts::to_string() const
+const char* mimo_ue_params_per_tm_v1430_s::nzp_csi_rs_periodic_info_r14_s_::nmax_res_r14_opts::to_string() const
 {
   static const char* options[] = {"ffs1", "ffs2", "ffs3", "ffs4"};
   return convert_enum_idx(
@@ -5252,7 +5356,7 @@ void mimo_ue_params_per_tm_v1470_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string mimo_ue_params_per_tm_v1470_s::csi_report_advanced_max_ports_r14_opts::to_string() const
+const char* mimo_ue_params_per_tm_v1470_s::csi_report_advanced_max_ports_r14_opts::to_string() const
 {
   static const char* options[] = {"n8", "n12", "n16", "n20", "n24", "n28"};
   return convert_enum_idx(options, 6, value, "mimo_ue_params_per_tm_v1470_s::csi_report_advanced_max_ports_r14_e_");
@@ -5361,7 +5465,7 @@ void naics_cap_entry_r12_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string naics_cap_entry_r12_s::nof_aggregated_prb_r12_opts::to_string() const
+const char* naics_cap_entry_r12_s::nof_aggregated_prb_r12_opts::to_string() const
 {
   static const char* options[] = {"n50",
                                   "n75",
@@ -5489,7 +5593,7 @@ void pdcp_params_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string pdcp_params_s::max_num_rohc_context_sessions_opts::to_string() const
+const char* pdcp_params_s::max_num_rohc_context_sessions_opts::to_string() const
 {
   static const char* options[] = {"cs2",
                                   "cs4",
@@ -5676,7 +5780,7 @@ void pdcp_params_nr_r15_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string pdcp_params_nr_r15_s::rohc_context_max_sessions_r15_opts::to_string() const
+const char* pdcp_params_nr_r15_s::rohc_context_max_sessions_r15_opts::to_string() const
 {
   static const char* options[] = {"cs2",
                                   "cs4",
@@ -6090,7 +6194,7 @@ void phy_layer_params_v1430_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string phy_layer_params_v1430_s::ce_pdsch_pusch_max_bw_r14_opts::to_string() const
+const char* phy_layer_params_v1430_s::ce_pdsch_pusch_max_bw_r14_opts::to_string() const
 {
   static const char* options[] = {"bw5", "bw20"};
   return convert_enum_idx(options, 2, value, "phy_layer_params_v1430_s::ce_pdsch_pusch_max_bw_r14_e_");
@@ -6101,7 +6205,7 @@ uint8_t phy_layer_params_v1430_s::ce_pdsch_pusch_max_bw_r14_opts::to_number() co
   return map_enum_number(options, 2, value, "phy_layer_params_v1430_s::ce_pdsch_pusch_max_bw_r14_e_");
 }
 
-std::string phy_layer_params_v1430_s::ce_retuning_symbols_r14_opts::to_string() const
+const char* phy_layer_params_v1430_s::ce_retuning_symbols_r14_opts::to_string() const
 {
   static const char* options[] = {"n0", "n1"};
   return convert_enum_idx(options, 2, value, "phy_layer_params_v1430_s::ce_retuning_symbols_r14_e_");
@@ -6646,7 +6750,7 @@ void phy_layer_params_v1530_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string phy_layer_params_v1530_s::stti_spt_cap_r15_s_::max_layers_slot_or_subslot_pusch_r15_opts::to_string() const
+const char* phy_layer_params_v1530_s::stti_spt_cap_r15_s_::max_layers_slot_or_subslot_pusch_r15_opts::to_string() const
 {
   static const char* options[] = {"oneLayer", "twoLayers", "fourLayers"};
   return convert_enum_idx(
@@ -6659,7 +6763,7 @@ uint8_t phy_layer_params_v1530_s::stti_spt_cap_r15_s_::max_layers_slot_or_subslo
       options, 3, value, "phy_layer_params_v1530_s::stti_spt_cap_r15_s_::max_layers_slot_or_subslot_pusch_r15_e_");
 }
 
-std::string phy_layer_params_v1530_s::stti_spt_cap_r15_s_::sps_stti_r15_opts::to_string() const
+const char* phy_layer_params_v1530_s::stti_spt_cap_r15_s_::sps_stti_r15_opts::to_string() const
 {
   static const char* options[] = {"slot", "subslot", "slotAndSubslot"};
   return convert_enum_idx(options, 3, value, "phy_layer_params_v1530_s::stti_spt_cap_r15_s_::sps_stti_r15_e_");
@@ -7268,7 +7372,7 @@ void supported_band_eutra_v1320_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string supported_band_eutra_v1320_s::ue_pwr_class_n_r13_opts::to_string() const
+const char* supported_band_eutra_v1320_s::ue_pwr_class_n_r13_opts::to_string() const
 {
   static const char* options[] = {"class1", "class2", "class4"};
   return convert_enum_idx(options, 3, value, "supported_band_eutra_v1320_s::ue_pwr_class_n_r13_e_");
@@ -8039,7 +8143,7 @@ void sl_params_r12_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string sl_params_r12_s::disc_supported_proc_r12_opts::to_string() const
+const char* sl_params_r12_s::disc_supported_proc_r12_opts::to_string() const
 {
   static const char* options[] = {"n50", "n400"};
   return convert_enum_idx(options, 2, value, "sl_params_r12_s::disc_supported_proc_r12_e_");
@@ -8300,7 +8404,7 @@ void sl_params_v1530_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string sl_params_v1530_s::slss_supported_tx_freq_r15_opts::to_string() const
+const char* sl_params_v1530_s::slss_supported_tx_freq_r15_opts::to_string() const
 {
   static const char* options[] = {"single", "multiple"};
   return convert_enum_idx(options, 2, value, "sl_params_v1530_s::slss_supported_tx_freq_r15_e_");
@@ -8568,7 +8672,7 @@ void rf_params_v1570_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string rf_params_v1570_s::dl_minus1024_qam_scaling_factor_r15_opts::to_string() const
+const char* rf_params_v1570_s::dl_minus1024_qam_scaling_factor_r15_opts::to_string() const
 {
   static const char* options[] = {"v1", "v1dot2", "v1dot25"};
   return convert_enum_idx(options, 3, value, "rf_params_v1570_s::dl_minus1024_qam_scaling_factor_r15_e_");
@@ -8578,7 +8682,7 @@ float rf_params_v1570_s::dl_minus1024_qam_scaling_factor_r15_opts::to_number() c
   static const float options[] = {1.0, 1.2, 1.25};
   return map_enum_number(options, 3, value, "rf_params_v1570_s::dl_minus1024_qam_scaling_factor_r15_e_");
 }
-std::string rf_params_v1570_s::dl_minus1024_qam_scaling_factor_r15_opts::to_number_string() const
+const char* rf_params_v1570_s::dl_minus1024_qam_scaling_factor_r15_opts::to_number_string() const
 {
   static const char* options[] = {"1", "1.2", "1.25"};
   return convert_enum_idx(options, 3, value, "rf_params_v1570_s::dl_minus1024_qam_scaling_factor_r15_e_");
@@ -10173,7 +10277,7 @@ void laa_params_v1430_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string laa_params_v1430_s::two_step_sched_timing_info_r14_opts::to_string() const
+const char* laa_params_v1430_s::two_step_sched_timing_info_r14_opts::to_string() const
 {
   static const char* options[] = {"nPlus1", "nPlus2", "nPlus3"};
   return convert_enum_idx(options, 3, value, "laa_params_v1430_s::two_step_sched_timing_info_r14_e_");
@@ -10477,7 +10581,7 @@ void pdcp_params_v1430_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string pdcp_params_v1430_s::max_num_rohc_context_sessions_r14_opts::to_string() const
+const char* pdcp_params_v1430_s::max_num_rohc_context_sessions_r14_opts::to_string() const
 {
   static const char* options[] = {"cs2",
                                   "cs4",
@@ -10899,7 +11003,7 @@ void ue_eutra_cap_v1430_ies_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string ue_eutra_cap_v1430_ies_s::ue_category_ul_v1430_opts::to_string() const
+const char* ue_eutra_cap_v1430_ies_s::ue_category_ul_v1430_opts::to_string() const
 {
   static const char* options[] = {"n16", "n17", "n18", "n19", "n20", "m2"};
   return convert_enum_idx(options, 6, value, "ue_eutra_cap_v1430_ies_s::ue_category_ul_v1430_e_");
@@ -12083,7 +12187,7 @@ void ue_eutra_cap_v1310_ies_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string ue_eutra_cap_v1310_ies_s::ue_category_dl_v1310_opts::to_string() const
+const char* ue_eutra_cap_v1310_ies_s::ue_category_dl_v1310_opts::to_string() const
 {
   static const char* options[] = {"n17", "m1"};
   return convert_enum_idx(options, 2, value, "ue_eutra_cap_v1310_ies_s::ue_category_dl_v1310_e_");
@@ -12094,7 +12198,7 @@ uint8_t ue_eutra_cap_v1310_ies_s::ue_category_dl_v1310_opts::to_number() const
   return map_enum_number(options, 2, value, "ue_eutra_cap_v1310_ies_s::ue_category_dl_v1310_e_");
 }
 
-std::string ue_eutra_cap_v1310_ies_s::ue_category_ul_v1310_opts::to_string() const
+const char* ue_eutra_cap_v1310_ies_s::ue_category_ul_v1310_opts::to_string() const
 {
   static const char* options[] = {"n14", "m1"};
   return convert_enum_idx(options, 2, value, "ue_eutra_cap_v1310_ies_s::ue_category_ul_v1310_e_");
@@ -13898,7 +14002,7 @@ void ue_eutra_cap_v940_ies_s::to_json(json_writer& j) const
 }
 
 // AccessStratumRelease ::= ENUMERATED
-std::string access_stratum_release_opts::to_string() const
+const char* access_stratum_release_opts::to_string() const
 {
   static const char* options[] = {"rel8", "rel9", "rel10", "rel11", "rel12", "rel13", "rel14", "rel15"};
   return convert_enum_idx(options, 8, value, "access_stratum_release_e");
@@ -14272,6 +14376,15 @@ void mbms_params_v1470_s::mbms_max_bw_r14_c_::set(types::options e)
 {
   type_ = e;
 }
+void mbms_params_v1470_s::mbms_max_bw_r14_c_::set_implicit_value()
+{
+  set(types::implicit_value);
+}
+uint8_t& mbms_params_v1470_s::mbms_max_bw_r14_c_::set_explicit_value()
+{
+  set(types::explicit_value);
+  return c;
+}
 void mbms_params_v1470_s::mbms_max_bw_r14_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -14319,7 +14432,7 @@ SRSASN_CODE mbms_params_v1470_s::mbms_max_bw_r14_c_::unpack(cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
-std::string mbms_params_v1470_s::mbms_scaling_factor1dot25_r14_opts::to_string() const
+const char* mbms_params_v1470_s::mbms_scaling_factor1dot25_r14_opts::to_string() const
 {
   static const char* options[] = {"n3", "n6", "n9", "n12"};
   return convert_enum_idx(options, 4, value, "mbms_params_v1470_s::mbms_scaling_factor1dot25_r14_e_");
@@ -14330,7 +14443,7 @@ uint8_t mbms_params_v1470_s::mbms_scaling_factor1dot25_r14_opts::to_number() con
   return map_enum_number(options, 4, value, "mbms_params_v1470_s::mbms_scaling_factor1dot25_r14_e_");
 }
 
-std::string mbms_params_v1470_s::mbms_scaling_factor7dot5_r14_opts::to_string() const
+const char* mbms_params_v1470_s::mbms_scaling_factor7dot5_r14_opts::to_string() const
 {
   static const char* options[] = {"n1", "n2", "n3", "n4"};
   return convert_enum_idx(options, 4, value, "mbms_params_v1470_s::mbms_scaling_factor7dot5_r14_e_");
@@ -15703,6 +15816,15 @@ void ue_radio_access_cap_info_s::crit_exts_c_::set(types::options e)
 {
   type_ = e;
 }
+ue_radio_access_cap_info_s::crit_exts_c_::c1_c_& ue_radio_access_cap_info_s::crit_exts_c_::set_c1()
+{
+  set(types::c1);
+  return c;
+}
+void ue_radio_access_cap_info_s::crit_exts_c_::set_crit_exts_future()
+{
+  set(types::crit_exts_future);
+}
 void ue_radio_access_cap_info_s::crit_exts_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -15754,6 +15876,39 @@ SRSASN_CODE ue_radio_access_cap_info_s::crit_exts_c_::unpack(cbit_ref& bref)
 void ue_radio_access_cap_info_s::crit_exts_c_::c1_c_::set(types::options e)
 {
   type_ = e;
+}
+ue_radio_access_cap_info_r8_ies_s& ue_radio_access_cap_info_s::crit_exts_c_::c1_c_::set_ue_radio_access_cap_info_r8()
+{
+  set(types::ue_radio_access_cap_info_r8);
+  return c;
+}
+void ue_radio_access_cap_info_s::crit_exts_c_::c1_c_::set_spare7()
+{
+  set(types::spare7);
+}
+void ue_radio_access_cap_info_s::crit_exts_c_::c1_c_::set_spare6()
+{
+  set(types::spare6);
+}
+void ue_radio_access_cap_info_s::crit_exts_c_::c1_c_::set_spare5()
+{
+  set(types::spare5);
+}
+void ue_radio_access_cap_info_s::crit_exts_c_::c1_c_::set_spare4()
+{
+  set(types::spare4);
+}
+void ue_radio_access_cap_info_s::crit_exts_c_::c1_c_::set_spare3()
+{
+  set(types::spare3);
+}
+void ue_radio_access_cap_info_s::crit_exts_c_::c1_c_::set_spare2()
+{
+  set(types::spare2);
+}
+void ue_radio_access_cap_info_s::crit_exts_c_::c1_c_::set_spare1()
+{
+  set(types::spare1);
 }
 void ue_radio_access_cap_info_s::crit_exts_c_::c1_c_::to_json(json_writer& j) const
 {

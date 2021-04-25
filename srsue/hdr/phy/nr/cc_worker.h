@@ -34,7 +34,6 @@ public:
   cc_worker(uint32_t cc_idx, srslog::basic_logger& log, state* phy_state_);
   ~cc_worker();
 
-  bool set_carrier(const srsran_carrier_nr_t* carrier);
   bool update_cfg();
   void set_tti(uint32_t tti);
 

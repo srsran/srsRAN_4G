@@ -41,7 +41,7 @@ namespace rrc {
 struct ca_bw_class_r10_opts {
   enum options { a, b, c, d, e, f, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<ca_bw_class_r10_opts, true> ca_bw_class_r10_e;
 
@@ -151,7 +151,7 @@ struct rat_type_opts {
   enum options { eutra, utra, geran_cs, geran_ps, cdma2000_minus1_xrtt, nr, eutra_nr, spare1, /*...*/ nulltype } value;
   typedef uint16_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint16_t    to_number() const;
 };
 typedef enumerated<rat_type_opts, true> rat_type_e;
@@ -207,7 +207,7 @@ struct ue_cap_enquiry_s {
       struct types_opts {
         enum options { ue_cap_enquiry_r8, spare3, spare2, spare1, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -221,22 +221,18 @@ struct ue_cap_enquiry_s {
       // getters
       ue_cap_enquiry_r8_ies_s& ue_cap_enquiry_r8()
       {
-        assert_choice_type("ueCapabilityEnquiry-r8", type_.to_string(), "c1");
+        assert_choice_type(types::ue_cap_enquiry_r8, type_, "c1");
         return c;
       }
       const ue_cap_enquiry_r8_ies_s& ue_cap_enquiry_r8() const
       {
-        assert_choice_type("ueCapabilityEnquiry-r8", type_.to_string(), "c1");
+        assert_choice_type(types::ue_cap_enquiry_r8, type_, "c1");
         return c;
       }
-      ue_cap_enquiry_r8_ies_s& set_ue_cap_enquiry_r8()
-      {
-        set(types::ue_cap_enquiry_r8);
-        return c;
-      }
-      void set_spare3() { set(types::spare3); }
-      void set_spare2() { set(types::spare2); }
-      void set_spare1() { set(types::spare1); }
+      ue_cap_enquiry_r8_ies_s& set_ue_cap_enquiry_r8();
+      void                     set_spare3();
+      void                     set_spare2();
+      void                     set_spare1();
 
     private:
       types                   type_;
@@ -254,20 +250,16 @@ struct ue_cap_enquiry_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
-    c1_c_& set_c1()
-    {
-      set(types::c1);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    c1_c_& set_c1();
+    void   set_crit_exts_future();
 
   private:
     types type_;
@@ -290,7 +282,7 @@ struct ue_radio_paging_info_r12_s {
     enum options { ms40, ms240, ms1000, ms2000, nulltype } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<wake_up_signal_min_gap_e_drx_r15_opts> wake_up_signal_min_gap_e_drx_r15_e_;
@@ -298,7 +290,7 @@ struct ue_radio_paging_info_r12_s {
     enum options { ms40, ms240, ms1000, ms2000, nulltype } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<wake_up_signal_min_gap_e_drx_tdd_r15_opts> wake_up_signal_min_gap_e_drx_tdd_r15_e_;
@@ -384,7 +376,7 @@ struct ue_cap_info_s {
       struct types_opts {
         enum options { ue_cap_info_r8, spare7, spare6, spare5, spare4, spare3, spare2, spare1, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -398,26 +390,22 @@ struct ue_cap_info_s {
       // getters
       ue_cap_info_r8_ies_s& ue_cap_info_r8()
       {
-        assert_choice_type("ueCapabilityInformation-r8", type_.to_string(), "c1");
+        assert_choice_type(types::ue_cap_info_r8, type_, "c1");
         return c;
       }
       const ue_cap_info_r8_ies_s& ue_cap_info_r8() const
       {
-        assert_choice_type("ueCapabilityInformation-r8", type_.to_string(), "c1");
+        assert_choice_type(types::ue_cap_info_r8, type_, "c1");
         return c;
       }
-      ue_cap_info_r8_ies_s& set_ue_cap_info_r8()
-      {
-        set(types::ue_cap_info_r8);
-        return c;
-      }
-      void set_spare7() { set(types::spare7); }
-      void set_spare6() { set(types::spare6); }
-      void set_spare5() { set(types::spare5); }
-      void set_spare4() { set(types::spare4); }
-      void set_spare3() { set(types::spare3); }
-      void set_spare2() { set(types::spare2); }
-      void set_spare1() { set(types::spare1); }
+      ue_cap_info_r8_ies_s& set_ue_cap_info_r8();
+      void                  set_spare7();
+      void                  set_spare6();
+      void                  set_spare5();
+      void                  set_spare4();
+      void                  set_spare3();
+      void                  set_spare2();
+      void                  set_spare1();
 
     private:
       types                type_;
@@ -435,20 +423,16 @@ struct ue_cap_info_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
-    c1_c_& set_c1()
-    {
-      set(types::c1);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    c1_c_& set_c1();
+    void   set_crit_exts_future();
 
   private:
     types type_;
@@ -511,7 +495,7 @@ struct mimo_cap_dl_r10_opts {
   enum options { two_layers, four_layers, eight_layers, nulltype } value;
   typedef uint8_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint8_t     to_number() const;
 };
 typedef enumerated<mimo_cap_dl_r10_opts> mimo_cap_dl_r10_e;
@@ -521,7 +505,7 @@ struct mimo_cap_ul_r10_opts {
   enum options { two_layers, four_layers, nulltype } value;
   typedef uint8_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint8_t     to_number() const;
 };
 typedef enumerated<mimo_cap_ul_r10_opts> mimo_cap_ul_r10_e;
@@ -579,7 +563,7 @@ struct band_params_r11_s {
     enum options { n1, n3, n4, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<supported_csi_proc_r11_opts> supported_csi_proc_r11_e_;
@@ -625,7 +609,7 @@ struct intra_band_contiguous_cc_info_r12_s {
     enum options { n1, n3, n4, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<supported_csi_proc_r12_opts> supported_csi_proc_r12_e_;
@@ -672,7 +656,7 @@ struct band_params_r13_s {
     enum options { n1, n3, n4, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<supported_csi_proc_r13_opts> supported_csi_proc_r13_e_;
@@ -701,7 +685,7 @@ struct band_combination_params_r13_s {
         enum options { three_entries_r13, four_entries_r13, five_entries_r13, nulltype } value;
         typedef uint8_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         uint8_t     to_number() const;
       };
       typedef enumerated<types_opts> types;
@@ -719,49 +703,37 @@ struct band_combination_params_r13_s {
       // getters
       fixed_bitstring<3>& three_entries_r13()
       {
-        assert_choice_type("threeEntries-r13", type_.to_string(), "supportedCellGrouping-r13");
+        assert_choice_type(types::three_entries_r13, type_, "supportedCellGrouping-r13");
         return c.get<fixed_bitstring<3> >();
       }
       fixed_bitstring<7>& four_entries_r13()
       {
-        assert_choice_type("fourEntries-r13", type_.to_string(), "supportedCellGrouping-r13");
+        assert_choice_type(types::four_entries_r13, type_, "supportedCellGrouping-r13");
         return c.get<fixed_bitstring<7> >();
       }
       fixed_bitstring<15>& five_entries_r13()
       {
-        assert_choice_type("fiveEntries-r13", type_.to_string(), "supportedCellGrouping-r13");
+        assert_choice_type(types::five_entries_r13, type_, "supportedCellGrouping-r13");
         return c.get<fixed_bitstring<15> >();
       }
       const fixed_bitstring<3>& three_entries_r13() const
       {
-        assert_choice_type("threeEntries-r13", type_.to_string(), "supportedCellGrouping-r13");
+        assert_choice_type(types::three_entries_r13, type_, "supportedCellGrouping-r13");
         return c.get<fixed_bitstring<3> >();
       }
       const fixed_bitstring<7>& four_entries_r13() const
       {
-        assert_choice_type("fourEntries-r13", type_.to_string(), "supportedCellGrouping-r13");
+        assert_choice_type(types::four_entries_r13, type_, "supportedCellGrouping-r13");
         return c.get<fixed_bitstring<7> >();
       }
       const fixed_bitstring<15>& five_entries_r13() const
       {
-        assert_choice_type("fiveEntries-r13", type_.to_string(), "supportedCellGrouping-r13");
+        assert_choice_type(types::five_entries_r13, type_, "supportedCellGrouping-r13");
         return c.get<fixed_bitstring<15> >();
       }
-      fixed_bitstring<3>& set_three_entries_r13()
-      {
-        set(types::three_entries_r13);
-        return c.get<fixed_bitstring<3> >();
-      }
-      fixed_bitstring<7>& set_four_entries_r13()
-      {
-        set(types::four_entries_r13);
-        return c.get<fixed_bitstring<7> >();
-      }
-      fixed_bitstring<15>& set_five_entries_r13()
-      {
-        set(types::five_entries_r13);
-        return c.get<fixed_bitstring<15> >();
-      }
+      fixed_bitstring<3>&  set_three_entries_r13();
+      fixed_bitstring<7>&  set_four_entries_r13();
+      fixed_bitstring<15>& set_five_entries_r13();
 
     private:
       types                                 type_;
@@ -856,7 +828,7 @@ struct band_params_v1130_s {
     enum options { n1, n3, n4, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<supported_csi_proc_r11_opts> supported_csi_proc_r11_e_;
@@ -896,7 +868,7 @@ struct band_combination_params_v1250_s {
         enum options { three_entries_r12, four_entries_r12, five_entries_r12, nulltype } value;
         typedef uint8_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         uint8_t     to_number() const;
       };
       typedef enumerated<types_opts> types;
@@ -914,49 +886,37 @@ struct band_combination_params_v1250_s {
       // getters
       fixed_bitstring<3>& three_entries_r12()
       {
-        assert_choice_type("threeEntries-r12", type_.to_string(), "supportedCellGrouping-r12");
+        assert_choice_type(types::three_entries_r12, type_, "supportedCellGrouping-r12");
         return c.get<fixed_bitstring<3> >();
       }
       fixed_bitstring<7>& four_entries_r12()
       {
-        assert_choice_type("fourEntries-r12", type_.to_string(), "supportedCellGrouping-r12");
+        assert_choice_type(types::four_entries_r12, type_, "supportedCellGrouping-r12");
         return c.get<fixed_bitstring<7> >();
       }
       fixed_bitstring<15>& five_entries_r12()
       {
-        assert_choice_type("fiveEntries-r12", type_.to_string(), "supportedCellGrouping-r12");
+        assert_choice_type(types::five_entries_r12, type_, "supportedCellGrouping-r12");
         return c.get<fixed_bitstring<15> >();
       }
       const fixed_bitstring<3>& three_entries_r12() const
       {
-        assert_choice_type("threeEntries-r12", type_.to_string(), "supportedCellGrouping-r12");
+        assert_choice_type(types::three_entries_r12, type_, "supportedCellGrouping-r12");
         return c.get<fixed_bitstring<3> >();
       }
       const fixed_bitstring<7>& four_entries_r12() const
       {
-        assert_choice_type("fourEntries-r12", type_.to_string(), "supportedCellGrouping-r12");
+        assert_choice_type(types::four_entries_r12, type_, "supportedCellGrouping-r12");
         return c.get<fixed_bitstring<7> >();
       }
       const fixed_bitstring<15>& five_entries_r12() const
       {
-        assert_choice_type("fiveEntries-r12", type_.to_string(), "supportedCellGrouping-r12");
+        assert_choice_type(types::five_entries_r12, type_, "supportedCellGrouping-r12");
         return c.get<fixed_bitstring<15> >();
       }
-      fixed_bitstring<3>& set_three_entries_r12()
-      {
-        set(types::three_entries_r12);
-        return c.get<fixed_bitstring<3> >();
-      }
-      fixed_bitstring<7>& set_four_entries_r12()
-      {
-        set(types::four_entries_r12);
-        return c.get<fixed_bitstring<7> >();
-      }
-      fixed_bitstring<15>& set_five_entries_r12()
-      {
-        set(types::five_entries_r12);
-        return c.get<fixed_bitstring<15> >();
-      }
+      fixed_bitstring<3>&  set_three_entries_r12();
+      fixed_bitstring<7>&  set_four_entries_r12();
+      fixed_bitstring<15>& set_five_entries_r12();
 
     private:
       types                                 type_;
@@ -1183,9 +1143,9 @@ struct srs_cap_per_band_pair_r14_s {
       } value;
       typedef float number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       float       to_number() const;
-      std::string to_number_string() const;
+      const char* to_number_string() const;
     };
     typedef enumerated<rf_retuning_time_dl_r14_opts> rf_retuning_time_dl_r14_e_;
     struct rf_retuning_time_ul_r14_opts {
@@ -1210,9 +1170,9 @@ struct srs_cap_per_band_pair_r14_s {
       } value;
       typedef float number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       float       to_number() const;
-      std::string to_number_string() const;
+      const char* to_number_string() const;
     };
     typedef enumerated<rf_retuning_time_ul_r14_opts> rf_retuning_time_ul_r14_e_;
 
@@ -1325,7 +1285,7 @@ struct mimo_ca_params_per_bo_bc_per_tm_v1470_s {
     enum options { n8, n12, n16, n20, n24, n28, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<csi_report_advanced_max_ports_r14_opts> csi_report_advanced_max_ports_r14_e_;
@@ -1490,7 +1450,7 @@ struct stti_spt_band_params_r15_s {
     enum options { n1, n3, n4, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<stti_supported_csi_proc_r15_opts> stti_supported_csi_proc_r15_e_;
@@ -1588,7 +1548,7 @@ struct v2x_bw_class_r14_opts {
   enum options { a, b, c, d, e, f, /*...*/ c1_v1530, nulltype } value;
   typedef uint8_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint8_t     to_number() const;
 };
 typedef enumerated<v2x_bw_class_r14_opts, true, 1> v2x_bw_class_r14_e;
@@ -1625,7 +1585,7 @@ struct feature_set_dl_per_cc_r15_s {
     enum options { n1, n3, n4, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<supported_csi_proc_r15_opts> supported_csi_proc_r15_e_;
@@ -1761,13 +1721,13 @@ struct irat_params_cdma2000_minus1_xrtt_s {
   struct tx_cfg1_xrtt_opts {
     enum options { single, dual, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<tx_cfg1_xrtt_opts> tx_cfg1_xrtt_e_;
   struct rx_cfg1_xrtt_opts {
     enum options { single, dual, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<rx_cfg1_xrtt_opts> rx_cfg1_xrtt_e_;
 
@@ -1790,13 +1750,13 @@ struct irat_params_cdma2000_hrpd_s {
   struct tx_cfg_hrpd_opts {
     enum options { single, dual, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<tx_cfg_hrpd_opts> tx_cfg_hrpd_e_;
   struct rx_cfg_hrpd_opts {
     enum options { single, dual, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<rx_cfg_hrpd_opts> rx_cfg_hrpd_e_;
 
@@ -1834,7 +1794,7 @@ struct supported_band_geran_opts {
     nulltype
   } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<supported_band_geran_opts, true> supported_band_geran_e;
 
@@ -1939,7 +1899,7 @@ struct supported_band_utra_fdd_opts {
     nulltype
   } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<supported_band_utra_fdd_opts, true, 16> supported_band_utra_fdd_e;
 
@@ -1960,7 +1920,7 @@ struct irat_params_utra_fdd_s {
 struct supported_band_utra_tdd128_opts {
   enum options { a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<supported_band_utra_tdd128_opts, true> supported_band_utra_tdd128_e;
 
@@ -1981,7 +1941,7 @@ struct irat_params_utra_tdd128_s {
 struct supported_band_utra_tdd384_opts {
   enum options { a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<supported_band_utra_tdd384_opts, true> supported_band_utra_tdd384_e;
 
@@ -2002,7 +1962,7 @@ struct irat_params_utra_tdd384_s {
 struct supported_band_utra_tdd768_opts {
   enum options { a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, /*...*/ nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<supported_band_utra_tdd768_opts, true> supported_band_utra_tdd768_e;
 
@@ -2038,7 +1998,7 @@ struct processing_timeline_set_r15_opts {
   enum options { set1, set2, nulltype } value;
   typedef uint8_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint8_t     to_number() const;
 };
 typedef enumerated<processing_timeline_set_r15_opts> processing_timeline_set_r15_e;
@@ -2132,7 +2092,7 @@ struct mimo_ue_params_per_tm_v1430_s {
       enum options { ffs1, ffs2, ffs3, ffs4, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<nmax_res_r14_opts> nmax_res_r14_e_;
@@ -2146,7 +2106,7 @@ struct mimo_ue_params_per_tm_v1430_s {
       enum options { ffs1, ffs2, ffs3, ffs4, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<nmax_res_r14_opts> nmax_res_r14_e_;
@@ -2194,7 +2154,7 @@ struct mimo_ue_params_per_tm_v1470_s {
     enum options { n8, n12, n16, n20, n24, n28, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<csi_report_advanced_max_ports_r14_opts> csi_report_advanced_max_ports_r14_e_;
@@ -2264,7 +2224,7 @@ struct naics_cap_entry_r12_s {
     } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<nof_aggregated_prb_r12_opts> nof_aggregated_prb_r12_e_;
@@ -2339,7 +2299,7 @@ struct pdcp_params_s {
     } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<max_num_rohc_context_sessions_opts> max_num_rohc_context_sessions_e_;
@@ -2416,7 +2376,7 @@ struct pdcp_params_nr_r15_s {
     } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<rohc_context_max_sessions_r15_opts> rohc_context_max_sessions_r15_e_;
@@ -2523,7 +2483,7 @@ struct phy_layer_params_v1430_s {
     enum options { bw5, bw20, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<ce_pdsch_pusch_max_bw_r14_opts> ce_pdsch_pusch_max_bw_r14_e_;
@@ -2531,7 +2491,7 @@ struct phy_layer_params_v1430_s {
     enum options { n0, n1, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<ce_retuning_symbols_r14_opts> ce_retuning_symbols_r14_e_;
@@ -2583,14 +2543,14 @@ struct phy_layer_params_v1530_s {
       enum options { one_layer, two_layers, four_layers, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<max_layers_slot_or_subslot_pusch_r15_opts> max_layers_slot_or_subslot_pusch_r15_e_;
     struct sps_stti_r15_opts {
       enum options { slot, subslot, slot_and_subslot, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<sps_stti_r15_opts> sps_stti_r15_e_;
 
@@ -2930,7 +2890,7 @@ struct supported_band_eutra_v1320_s {
     enum options { class1, class2, class4, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<ue_pwr_class_n_r13_opts> ue_pwr_class_n_r13_e_;
@@ -3207,7 +3167,7 @@ struct sl_params_r12_s {
     enum options { n50, n400, nulltype } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<disc_supported_proc_r12_opts> disc_supported_proc_r12_e_;
@@ -3302,7 +3262,7 @@ struct sl_params_v1530_s {
   struct slss_supported_tx_freq_r15_opts {
     enum options { single, multiple, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<slss_supported_tx_freq_r15_opts> slss_supported_tx_freq_r15_e_;
 
@@ -3416,9 +3376,9 @@ struct rf_params_v1570_s {
     enum options { v1, v1dot2, v1dot25, nulltype } value;
     typedef float number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     float       to_number() const;
-    std::string to_number_string() const;
+    const char* to_number_string() const;
   };
   typedef enumerated<dl_minus1024_qam_scaling_factor_r15_opts> dl_minus1024_qam_scaling_factor_r15_e_;
 
@@ -3918,7 +3878,7 @@ struct laa_params_v1430_s {
     enum options { nplus1, nplus2, nplus3, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<two_step_sched_timing_info_r14_opts> two_step_sched_timing_info_r14_e_;
@@ -4055,7 +4015,7 @@ struct pdcp_params_v1430_s {
     } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<max_num_rohc_context_sessions_r14_opts> max_num_rohc_context_sessions_r14_e_;
@@ -4133,7 +4093,7 @@ struct ue_eutra_cap_v1430_ies_s {
     enum options { n16, n17, n18, n19, n20, m2, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<ue_category_ul_v1430_opts> ue_category_ul_v1430_e_;
@@ -4505,7 +4465,7 @@ struct ue_eutra_cap_v1310_ies_s {
     enum options { n17, m1, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<ue_category_dl_v1310_opts> ue_category_dl_v1310_e_;
@@ -4513,7 +4473,7 @@ struct ue_eutra_cap_v1310_ies_s {
     enum options { n14, m1, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<ue_category_ul_v1310_opts> ue_category_ul_v1310_e_;
@@ -5125,7 +5085,7 @@ struct access_stratum_release_opts {
   enum options { rel8, rel9, rel10, rel11, rel12, rel13, rel14, rel15, /*...*/ nulltype } value;
   typedef uint8_t number_type;
 
-  std::string to_string() const;
+  const char* to_string() const;
   uint8_t     to_number() const;
 };
 typedef enumerated<access_stratum_release_opts, true> access_stratum_release_e;
@@ -5228,7 +5188,7 @@ struct mbms_params_v1470_s {
     struct types_opts {
       enum options { implicit_value, explicit_value, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -5242,20 +5202,16 @@ struct mbms_params_v1470_s {
     // getters
     uint8_t& explicit_value()
     {
-      assert_choice_type("explicitValue", type_.to_string(), "mbms-MaxBW-r14");
+      assert_choice_type(types::explicit_value, type_, "mbms-MaxBW-r14");
       return c;
     }
     const uint8_t& explicit_value() const
     {
-      assert_choice_type("explicitValue", type_.to_string(), "mbms-MaxBW-r14");
+      assert_choice_type(types::explicit_value, type_, "mbms-MaxBW-r14");
       return c;
     }
-    void     set_implicit_value() { set(types::implicit_value); }
-    uint8_t& set_explicit_value()
-    {
-      set(types::explicit_value);
-      return c;
-    }
+    void     set_implicit_value();
+    uint8_t& set_explicit_value();
 
   private:
     types   type_;
@@ -5265,7 +5221,7 @@ struct mbms_params_v1470_s {
     enum options { n3, n6, n9, n12, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<mbms_scaling_factor1dot25_r14_opts> mbms_scaling_factor1dot25_r14_e_;
@@ -5273,7 +5229,7 @@ struct mbms_params_v1470_s {
     enum options { n1, n2, n3, n4, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<mbms_scaling_factor7dot5_r14_opts> mbms_scaling_factor7dot5_r14_e_;
@@ -5727,7 +5683,7 @@ struct ue_radio_access_cap_info_s {
           nulltype
         } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -5741,26 +5697,22 @@ struct ue_radio_access_cap_info_s {
       // getters
       ue_radio_access_cap_info_r8_ies_s& ue_radio_access_cap_info_r8()
       {
-        assert_choice_type("ueRadioAccessCapabilityInformation-r8", type_.to_string(), "c1");
+        assert_choice_type(types::ue_radio_access_cap_info_r8, type_, "c1");
         return c;
       }
       const ue_radio_access_cap_info_r8_ies_s& ue_radio_access_cap_info_r8() const
       {
-        assert_choice_type("ueRadioAccessCapabilityInformation-r8", type_.to_string(), "c1");
+        assert_choice_type(types::ue_radio_access_cap_info_r8, type_, "c1");
         return c;
       }
-      ue_radio_access_cap_info_r8_ies_s& set_ue_radio_access_cap_info_r8()
-      {
-        set(types::ue_radio_access_cap_info_r8);
-        return c;
-      }
-      void set_spare7() { set(types::spare7); }
-      void set_spare6() { set(types::spare6); }
-      void set_spare5() { set(types::spare5); }
-      void set_spare4() { set(types::spare4); }
-      void set_spare3() { set(types::spare3); }
-      void set_spare2() { set(types::spare2); }
-      void set_spare1() { set(types::spare1); }
+      ue_radio_access_cap_info_r8_ies_s& set_ue_radio_access_cap_info_r8();
+      void                               set_spare7();
+      void                               set_spare6();
+      void                               set_spare5();
+      void                               set_spare4();
+      void                               set_spare3();
+      void                               set_spare2();
+      void                               set_spare1();
 
     private:
       types                             type_;
@@ -5778,20 +5730,16 @@ struct ue_radio_access_cap_info_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
-    c1_c_& set_c1()
-    {
-      set(types::c1);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    c1_c_& set_c1();
+    void   set_crit_exts_future();
 
   private:
     types type_;

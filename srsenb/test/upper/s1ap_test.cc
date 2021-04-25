@@ -37,7 +37,8 @@ struct mme_dummy {
       TESTASSERT(bind_addr(fd, mme_sockaddr));
     }
 
-    srsran_assert(listen(fd, SOMAXCONN) == 0, "Failed to listen to incoming SCTP connections");
+    int success = listen(fd, SOMAXCONN);
+    srsran_assert(success == 0, "Failed to listen to incoming SCTP connections");
   }
 
   ~mme_dummy()

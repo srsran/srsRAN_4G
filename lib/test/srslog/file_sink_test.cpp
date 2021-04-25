@@ -31,10 +31,7 @@ static constexpr char log_filename[] = "file_sink_test.log";
 static bool when_data_is_written_to_file_then_contents_are_valid()
 {
   file_test_utils::scoped_file_deleter deleter(log_filename);
-  file_sink file(
-      log_filename,
-      0,
-      std::unique_ptr<log_formatter>(new test_dummies::log_formatter_dummy));
+  file_sink file(log_filename, 0, std::unique_ptr<log_formatter>(new test_dummies::log_formatter_dummy));
 
   std::vector<std::string> entries;
   for (unsigned i = 0; i != 10; ++i) {
@@ -46,8 +43,7 @@ static bool when_data_is_written_to_file_then_contents_are_valid()
   file.flush();
 
   ASSERT_EQ(file_test_utils::file_exists(log_filename), true);
-  ASSERT_EQ(file_test_utils::compare_file_contents(log_filename, entries),
-            true);
+  ASSERT_EQ(file_test_utils::compare_file_contents(log_filename, entries), true);
 
   return true;
 }
@@ -58,10 +54,7 @@ class file_sink_subclass : public file_sink
 {
 public:
   file_sink_subclass(std::string name, size_t max_size) :
-    file_sink(
-        std::move(name),
-        max_size,
-        std::unique_ptr<log_formatter>(new test_dummies::log_formatter_dummy))
+    file_sink(std::move(name), max_size, std::unique_ptr<log_formatter>(new test_dummies::log_formatter_dummy))
   {}
 
   uint32_t get_num_of_files() const { return get_file_index(); }
@@ -69,14 +62,10 @@ public:
 
 static bool when_data_written_exceeds_size_threshold_then_new_file_is_created()
 {
-  std::string filename0 =
-      file_utils::build_filename_with_index(log_filename, 0);
-  std::string filename1 =
-      file_utils::build_filename_with_index(log_filename, 1);
-  std::string filename2 =
-      file_utils::build_filename_with_index(log_filename, 2);
-  file_test_utils::scoped_file_deleter deleter = {
-      filename0, filename1, filename2};
+  std::string                          filename0 = file_utils::build_filename_with_index(log_filename, 0);
+  std::string                          filename1 = file_utils::build_filename_with_index(log_filename, 1);
+  std::string                          filename2 = file_utils::build_filename_with_index(log_filename, 2);
+  file_test_utils::scoped_file_deleter deleter   = {filename0, filename1, filename2};
 
   file_sink_subclass file(log_filename, 5001);
 
@@ -121,8 +110,7 @@ static bool when_data_written_exceeds_size_threshold_then_new_file_is_created()
 int main()
 {
   TEST_FUNCTION(when_data_is_written_to_file_then_contents_are_valid);
-  TEST_FUNCTION(
-      when_data_written_exceeds_size_threshold_then_new_file_is_created);
+  TEST_FUNCTION(when_data_written_exceeds_size_threshold_then_new_file_is_created);
 
   return 0;
 }

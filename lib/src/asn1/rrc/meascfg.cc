@@ -30,7 +30,7 @@ using namespace asn1::rrc;
  ******************************************************************************/
 
 // Q-OffsetRange ::= ENUMERATED
-std::string q_offset_range_opts::to_string() const
+const char* q_offset_range_opts::to_string() const
 {
   static const char* options[] = {"dB-24", "dB-22", "dB-20", "dB-18", "dB-16", "dB-14", "dB-12", "dB-10",
                                   "dB-8",  "dB-6",  "dB-5",  "dB-4",  "dB-3",  "dB-2",  "dB-1",  "dB0",
@@ -68,7 +68,7 @@ void speed_state_scale_factors_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string speed_state_scale_factors_s::sf_medium_opts::to_string() const
+const char* speed_state_scale_factors_s::sf_medium_opts::to_string() const
 {
   static const char* options[] = {"oDot25", "oDot5", "oDot75", "lDot0"};
   return convert_enum_idx(options, 4, value, "speed_state_scale_factors_s::sf_medium_e_");
@@ -78,13 +78,13 @@ float speed_state_scale_factors_s::sf_medium_opts::to_number() const
   static const float options[] = {0.25, 0.5, 0.75, 1.0};
   return map_enum_number(options, 4, value, "speed_state_scale_factors_s::sf_medium_e_");
 }
-std::string speed_state_scale_factors_s::sf_medium_opts::to_number_string() const
+const char* speed_state_scale_factors_s::sf_medium_opts::to_number_string() const
 {
   static const char* options[] = {"0.25", "0.5", "0.75", "1.0"};
   return convert_enum_idx(options, 4, value, "speed_state_scale_factors_s::sf_medium_e_");
 }
 
-std::string speed_state_scale_factors_s::sf_high_opts::to_string() const
+const char* speed_state_scale_factors_s::sf_high_opts::to_string() const
 {
   static const char* options[] = {"oDot25", "oDot5", "oDot75", "lDot0"};
   return convert_enum_idx(options, 4, value, "speed_state_scale_factors_s::sf_high_e_");
@@ -94,14 +94,14 @@ float speed_state_scale_factors_s::sf_high_opts::to_number() const
   static const float options[] = {0.25, 0.5, 0.75, 1.0};
   return map_enum_number(options, 4, value, "speed_state_scale_factors_s::sf_high_e_");
 }
-std::string speed_state_scale_factors_s::sf_high_opts::to_number_string() const
+const char* speed_state_scale_factors_s::sf_high_opts::to_number_string() const
 {
   static const char* options[] = {"0.25", "0.5", "0.75", "1.0"};
   return convert_enum_idx(options, 4, value, "speed_state_scale_factors_s::sf_high_e_");
 }
 
 // BandIndicatorGERAN ::= ENUMERATED
-std::string band_ind_geran_opts::to_string() const
+const char* band_ind_geran_opts::to_string() const
 {
   static const char* options[] = {"dcs1800", "pcs1900"};
   return convert_enum_idx(options, 2, value, "band_ind_geran_e");
@@ -271,6 +271,22 @@ carrier_freqs_geran_s::following_arfcns_c_::operator=(const carrier_freqs_geran_
 
   return *this;
 }
+explicit_list_of_arfcns_l& carrier_freqs_geran_s::following_arfcns_c_::set_explicit_list_of_arfcns()
+{
+  set(types::explicit_list_of_arfcns);
+  return c.get<explicit_list_of_arfcns_l>();
+}
+carrier_freqs_geran_s::following_arfcns_c_::equally_spaced_arfcns_s_&
+carrier_freqs_geran_s::following_arfcns_c_::set_equally_spaced_arfcns()
+{
+  set(types::equally_spaced_arfcns);
+  return c.get<equally_spaced_arfcns_s_>();
+}
+bounded_octstring<1, 16>& carrier_freqs_geran_s::following_arfcns_c_::set_variable_bit_map_of_arfcns()
+{
+  set(types::variable_bit_map_of_arfcns);
+  return c.get<bounded_octstring<1, 16> >();
+}
 void carrier_freqs_geran_s::following_arfcns_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -364,7 +380,7 @@ bool carrier_freqs_geran_s::following_arfcns_c_::operator==(const following_arfc
 }
 
 // CellReselectionSubPriority-r13 ::= ENUMERATED
-std::string cell_resel_sub_prio_r13_opts::to_string() const
+const char* cell_resel_sub_prio_r13_opts::to_string() const
 {
   static const char* options[] = {"oDot2", "oDot4", "oDot6", "oDot8"};
   return convert_enum_idx(options, 4, value, "cell_resel_sub_prio_r13_e");
@@ -374,7 +390,7 @@ float cell_resel_sub_prio_r13_opts::to_number() const
   static const float options[] = {0.2, 0.4, 0.6, 0.8};
   return map_enum_number(options, 4, value, "cell_resel_sub_prio_r13_e");
 }
-std::string cell_resel_sub_prio_r13_opts::to_number_string() const
+const char* cell_resel_sub_prio_r13_opts::to_number_string() const
 {
   static const char* options[] = {"0.2", "0.4", "0.6", "0.8"};
   return convert_enum_idx(options, 4, value, "cell_resel_sub_prio_r13_e");
@@ -476,6 +492,36 @@ mtc_ssb_nr_r15_s::periodicity_and_offset_r15_c_::operator=(const mtc_ssb_nr_r15_
   }
 
   return *this;
+}
+uint8_t& mtc_ssb_nr_r15_s::periodicity_and_offset_r15_c_::set_sf5_r15()
+{
+  set(types::sf5_r15);
+  return c.get<uint8_t>();
+}
+uint8_t& mtc_ssb_nr_r15_s::periodicity_and_offset_r15_c_::set_sf10_r15()
+{
+  set(types::sf10_r15);
+  return c.get<uint8_t>();
+}
+uint8_t& mtc_ssb_nr_r15_s::periodicity_and_offset_r15_c_::set_sf20_r15()
+{
+  set(types::sf20_r15);
+  return c.get<uint8_t>();
+}
+uint8_t& mtc_ssb_nr_r15_s::periodicity_and_offset_r15_c_::set_sf40_r15()
+{
+  set(types::sf40_r15);
+  return c.get<uint8_t>();
+}
+uint8_t& mtc_ssb_nr_r15_s::periodicity_and_offset_r15_c_::set_sf80_r15()
+{
+  set(types::sf80_r15);
+  return c.get<uint8_t>();
+}
+uint8_t& mtc_ssb_nr_r15_s::periodicity_and_offset_r15_c_::set_sf160_r15()
+{
+  set(types::sf160_r15);
+  return c.get<uint8_t>();
 }
 void mtc_ssb_nr_r15_s::periodicity_and_offset_r15_c_::to_json(json_writer& j) const
 {
@@ -586,7 +632,7 @@ bool mtc_ssb_nr_r15_s::periodicity_and_offset_r15_c_::operator==(const periodici
   return true;
 }
 
-std::string mtc_ssb_nr_r15_s::ssb_dur_r15_opts::to_string() const
+const char* mtc_ssb_nr_r15_s::ssb_dur_r15_opts::to_string() const
 {
   static const char* options[] = {"sf1", "sf2", "sf3", "sf4", "sf5"};
   return convert_enum_idx(options, 5, value, "mtc_ssb_nr_r15_s::ssb_dur_r15_e_");
@@ -703,6 +749,21 @@ ssb_to_measure_r15_c& ssb_to_measure_r15_c::operator=(const ssb_to_measure_r15_c
   }
 
   return *this;
+}
+fixed_bitstring<4>& ssb_to_measure_r15_c::set_short_bitmap_r15()
+{
+  set(types::short_bitmap_r15);
+  return c.get<fixed_bitstring<4> >();
+}
+fixed_bitstring<8>& ssb_to_measure_r15_c::set_medium_bitmap_r15()
+{
+  set(types::medium_bitmap_r15);
+  return c.get<fixed_bitstring<8> >();
+}
+fixed_bitstring<64>& ssb_to_measure_r15_c::set_long_bitmap_r15()
+{
+  set(types::long_bitmap_r15);
+  return c.get<fixed_bitstring<64> >();
 }
 void ssb_to_measure_r15_c::to_json(json_writer& j) const
 {
@@ -870,7 +931,7 @@ void mob_state_params_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string mob_state_params_s::t_eval_opts::to_string() const
+const char* mob_state_params_s::t_eval_opts::to_string() const
 {
   static const char* options[] = {"s30", "s60", "s120", "s180", "s240", "spare3", "spare2", "spare1"};
   return convert_enum_idx(options, 8, value, "mob_state_params_s::t_eval_e_");
@@ -881,7 +942,7 @@ uint8_t mob_state_params_s::t_eval_opts::to_number() const
   return map_enum_number(options, 5, value, "mob_state_params_s::t_eval_e_");
 }
 
-std::string mob_state_params_s::t_hyst_normal_opts::to_string() const
+const char* mob_state_params_s::t_hyst_normal_opts::to_string() const
 {
   static const char* options[] = {"s30", "s60", "s120", "s180", "s240", "spare3", "spare2", "spare1"};
   return convert_enum_idx(options, 8, value, "mob_state_params_s::t_hyst_normal_e_");
@@ -1227,6 +1288,15 @@ void bt_name_list_cfg_r15_c::set(types::options e)
 {
   type_ = e;
 }
+void bt_name_list_cfg_r15_c::set_release()
+{
+  set(types::release);
+}
+bt_name_list_r15_l& bt_name_list_cfg_r15_c::set_setup()
+{
+  set(types::setup);
+  return c;
+}
 void bt_name_list_cfg_r15_c::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -1283,7 +1353,7 @@ bool bt_name_list_cfg_r15_c::operator==(const bt_name_list_cfg_r15_c& other) con
 }
 
 // CDMA2000-Type ::= ENUMERATED
-std::string cdma2000_type_opts::to_string() const
+const char* cdma2000_type_opts::to_string() const
 {
   static const char* options[] = {"type1XRTT", "typeHRPD"};
   return convert_enum_idx(options, 2, value, "cdma2000_type_e");
@@ -1334,7 +1404,7 @@ bool csg_allowed_report_cells_r9_s::operator==(const csg_allowed_report_cells_r9
 }
 
 // MeasCycleSCell-r10 ::= ENUMERATED
-std::string meas_cycle_scell_r10_opts::to_string() const
+const char* meas_cycle_scell_r10_opts::to_string() const
 {
   static const char* options[] = {"sf160", "sf256", "sf320", "sf512", "sf640", "sf1024", "sf1280", "spare1"};
   return convert_enum_idx(options, 8, value, "meas_cycle_scell_r10_e");
@@ -1349,6 +1419,15 @@ uint16_t meas_cycle_scell_r10_opts::to_number() const
 void meas_ds_cfg_r12_c::set(types::options e)
 {
   type_ = e;
+}
+void meas_ds_cfg_r12_c::set_release()
+{
+  set(types::release);
+}
+meas_ds_cfg_r12_c::setup_s_& meas_ds_cfg_r12_c::set_setup()
+{
+  set(types::setup);
+  return c;
 }
 void meas_ds_cfg_r12_c::to_json(json_writer& j) const
 {
@@ -1501,6 +1580,21 @@ meas_ds_cfg_r12_c::setup_s_::dmtc_period_offset_r12_c_::operator=(
 
   return *this;
 }
+uint8_t& meas_ds_cfg_r12_c::setup_s_::dmtc_period_offset_r12_c_::set_ms40_r12()
+{
+  set(types::ms40_r12);
+  return c.get<uint8_t>();
+}
+uint8_t& meas_ds_cfg_r12_c::setup_s_::dmtc_period_offset_r12_c_::set_ms80_r12()
+{
+  set(types::ms80_r12);
+  return c.get<uint8_t>();
+}
+uint8_t& meas_ds_cfg_r12_c::setup_s_::dmtc_period_offset_r12_c_::set_ms160_r12()
+{
+  set(types::ms160_r12);
+  return c.get<uint8_t>();
+}
 void meas_ds_cfg_r12_c::setup_s_::dmtc_period_offset_r12_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -1622,6 +1716,16 @@ meas_ds_cfg_r12_c::setup_s_::ds_occasion_dur_r12_c_& meas_ds_cfg_r12_c::setup_s_
 
   return *this;
 }
+uint8_t& meas_ds_cfg_r12_c::setup_s_::ds_occasion_dur_r12_c_::set_dur_fdd_r12()
+{
+  set(types::dur_fdd_r12);
+  return c.get<uint8_t>();
+}
+uint8_t& meas_ds_cfg_r12_c::setup_s_::ds_occasion_dur_r12_c_::set_dur_tdd_r12()
+{
+  set(types::dur_tdd_r12);
+  return c.get<uint8_t>();
+}
 void meas_ds_cfg_r12_c::setup_s_::ds_occasion_dur_r12_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -1691,6 +1795,15 @@ bool meas_ds_cfg_r12_c::setup_s_::ds_occasion_dur_r12_c_::operator==(const ds_oc
 void meas_gap_cfg_c::set(types::options e)
 {
   type_ = e;
+}
+void meas_gap_cfg_c::set_release()
+{
+  set(types::release);
+}
+meas_gap_cfg_c::setup_s_& meas_gap_cfg_c::set_setup()
+{
+  set(types::setup);
+  return c;
 }
 void meas_gap_cfg_c::to_json(json_writer& j) const
 {
@@ -1894,6 +2007,106 @@ meas_gap_cfg_c::setup_s_::gap_offset_c_::operator=(const meas_gap_cfg_c::setup_s
   }
 
   return *this;
+}
+uint8_t& meas_gap_cfg_c::setup_s_::gap_offset_c_::set_gp0()
+{
+  set(types::gp0);
+  return c.get<uint8_t>();
+}
+uint8_t& meas_gap_cfg_c::setup_s_::gap_offset_c_::set_gp1()
+{
+  set(types::gp1);
+  return c.get<uint8_t>();
+}
+uint8_t& meas_gap_cfg_c::setup_s_::gap_offset_c_::set_gp2_r14()
+{
+  set(types::gp2_r14);
+  return c.get<uint8_t>();
+}
+uint8_t& meas_gap_cfg_c::setup_s_::gap_offset_c_::set_gp3_r14()
+{
+  set(types::gp3_r14);
+  return c.get<uint8_t>();
+}
+uint8_t& meas_gap_cfg_c::setup_s_::gap_offset_c_::set_gp_ncsg0_r14()
+{
+  set(types::gp_ncsg0_r14);
+  return c.get<uint8_t>();
+}
+uint8_t& meas_gap_cfg_c::setup_s_::gap_offset_c_::set_gp_ncsg1_r14()
+{
+  set(types::gp_ncsg1_r14);
+  return c.get<uint8_t>();
+}
+uint8_t& meas_gap_cfg_c::setup_s_::gap_offset_c_::set_gp_ncsg2_r14()
+{
+  set(types::gp_ncsg2_r14);
+  return c.get<uint8_t>();
+}
+uint8_t& meas_gap_cfg_c::setup_s_::gap_offset_c_::set_gp_ncsg3_r14()
+{
+  set(types::gp_ncsg3_r14);
+  return c.get<uint8_t>();
+}
+uint16_t& meas_gap_cfg_c::setup_s_::gap_offset_c_::set_gp_non_uniform1_r14()
+{
+  set(types::gp_non_uniform1_r14);
+  return c.get<uint16_t>();
+}
+uint16_t& meas_gap_cfg_c::setup_s_::gap_offset_c_::set_gp_non_uniform2_r14()
+{
+  set(types::gp_non_uniform2_r14);
+  return c.get<uint16_t>();
+}
+uint16_t& meas_gap_cfg_c::setup_s_::gap_offset_c_::set_gp_non_uniform3_r14()
+{
+  set(types::gp_non_uniform3_r14);
+  return c.get<uint16_t>();
+}
+uint16_t& meas_gap_cfg_c::setup_s_::gap_offset_c_::set_gp_non_uniform4_r14()
+{
+  set(types::gp_non_uniform4_r14);
+  return c.get<uint16_t>();
+}
+uint8_t& meas_gap_cfg_c::setup_s_::gap_offset_c_::set_gp4_r15()
+{
+  set(types::gp4_r15);
+  return c.get<uint8_t>();
+}
+uint8_t& meas_gap_cfg_c::setup_s_::gap_offset_c_::set_gp5_r15()
+{
+  set(types::gp5_r15);
+  return c.get<uint8_t>();
+}
+uint8_t& meas_gap_cfg_c::setup_s_::gap_offset_c_::set_gp6_r15()
+{
+  set(types::gp6_r15);
+  return c.get<uint8_t>();
+}
+uint8_t& meas_gap_cfg_c::setup_s_::gap_offset_c_::set_gp7_r15()
+{
+  set(types::gp7_r15);
+  return c.get<uint8_t>();
+}
+uint8_t& meas_gap_cfg_c::setup_s_::gap_offset_c_::set_gp8_r15()
+{
+  set(types::gp8_r15);
+  return c.get<uint8_t>();
+}
+uint8_t& meas_gap_cfg_c::setup_s_::gap_offset_c_::set_gp9_r15()
+{
+  set(types::gp9_r15);
+  return c.get<uint8_t>();
+}
+uint8_t& meas_gap_cfg_c::setup_s_::gap_offset_c_::set_gp10_r15()
+{
+  set(types::gp10_r15);
+  return c.get<uint8_t>();
+}
+uint8_t& meas_gap_cfg_c::setup_s_::gap_offset_c_::set_gp11_r15()
+{
+  set(types::gp11_r15);
+  return c.get<uint8_t>();
 }
 void meas_gap_cfg_c::setup_s_::gap_offset_c_::to_json(json_writer& j) const
 {
@@ -2213,7 +2426,7 @@ bool meas_sensing_cfg_r15_s::operator==(const meas_sensing_cfg_r15_s& other) con
          sensing_resel_counter_r15 == other.sensing_resel_counter_r15 and sensing_prio_r15 == other.sensing_prio_r15;
 }
 
-std::string meas_sensing_cfg_r15_s::sensing_periodicity_r15_opts::to_string() const
+const char* meas_sensing_cfg_r15_s::sensing_periodicity_r15_opts::to_string() const
 {
   static const char* options[] = {
       "ms20", "ms50", "ms100", "ms200", "ms300", "ms400", "ms500", "ms600", "ms700", "ms800", "ms900", "ms1000"};
@@ -2229,6 +2442,15 @@ uint16_t meas_sensing_cfg_r15_s::sensing_periodicity_r15_opts::to_number() const
 void meas_sf_pattern_cfg_neigh_r10_c::set(types::options e)
 {
   type_ = e;
+}
+void meas_sf_pattern_cfg_neigh_r10_c::set_release()
+{
+  set(types::release);
+}
+meas_sf_pattern_cfg_neigh_r10_c::setup_s_& meas_sf_pattern_cfg_neigh_r10_c::set_setup()
+{
+  set(types::setup);
+  return c;
 }
 void meas_sf_pattern_cfg_neigh_r10_c::to_json(json_writer& j) const
 {
@@ -2396,6 +2618,15 @@ void rmtc_cfg_r13_c::set(types::options e)
 {
   type_ = e;
 }
+void rmtc_cfg_r13_c::set_release()
+{
+  set(types::release);
+}
+rmtc_cfg_r13_c::setup_s_& rmtc_cfg_r13_c::set_setup()
+{
+  set(types::setup);
+  return c;
+}
 void rmtc_cfg_r13_c::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -2469,7 +2700,7 @@ bool rmtc_cfg_r13_c::operator==(const rmtc_cfg_r13_c& other) const
          c.meas_dur_r13 == other.c.meas_dur_r13;
 }
 
-std::string rmtc_cfg_r13_c::setup_s_::rmtc_period_r13_opts::to_string() const
+const char* rmtc_cfg_r13_c::setup_s_::rmtc_period_r13_opts::to_string() const
 {
   static const char* options[] = {"ms40", "ms80", "ms160", "ms320", "ms640"};
   return convert_enum_idx(options, 5, value, "rmtc_cfg_r13_c::setup_s_::rmtc_period_r13_e_");
@@ -2480,7 +2711,7 @@ uint16_t rmtc_cfg_r13_c::setup_s_::rmtc_period_r13_opts::to_number() const
   return map_enum_number(options, 5, value, "rmtc_cfg_r13_c::setup_s_::rmtc_period_r13_e_");
 }
 
-std::string rmtc_cfg_r13_c::setup_s_::meas_dur_r13_opts::to_string() const
+const char* rmtc_cfg_r13_c::setup_s_::meas_dur_r13_opts::to_string() const
 {
   static const char* options[] = {"sym1", "sym14", "sym28", "sym42", "sym70"};
   return convert_enum_idx(options, 5, value, "rmtc_cfg_r13_c::setup_s_::meas_dur_r13_e_");
@@ -2559,7 +2790,7 @@ bool rs_cfg_ssb_nr_r15_s::operator==(const rs_cfg_ssb_nr_r15_s& other) const
                       (not ssb_to_measure_r15.is_present() or *ssb_to_measure_r15 == *other.ssb_to_measure_r15)));
 }
 
-std::string rs_cfg_ssb_nr_r15_s::subcarrier_spacing_ssb_r15_opts::to_string() const
+const char* rs_cfg_ssb_nr_r15_s::subcarrier_spacing_ssb_r15_opts::to_string() const
 {
   static const char* options[] = {"kHz15", "kHz30", "kHz120", "kHz240"};
   return convert_enum_idx(options, 4, value, "rs_cfg_ssb_nr_r15_s::subcarrier_spacing_ssb_r15_e_");
@@ -2573,6 +2804,15 @@ uint8_t rs_cfg_ssb_nr_r15_s::subcarrier_spacing_ssb_r15_opts::to_number() const
 void rs_cfg_ssb_nr_r15_s::ssb_to_measure_r15_c_::set(types::options e)
 {
   type_ = e;
+}
+void rs_cfg_ssb_nr_r15_s::ssb_to_measure_r15_c_::set_release()
+{
+  set(types::release);
+}
+ssb_to_measure_r15_c& rs_cfg_ssb_nr_r15_s::ssb_to_measure_r15_c_::set_setup()
+{
+  set(types::setup);
+  return c;
 }
 void rs_cfg_ssb_nr_r15_s::ssb_to_measure_r15_c_::to_json(json_writer& j) const
 {
@@ -2631,6 +2871,15 @@ void rsrq_range_cfg_r12_c::set(types::options e)
 {
   type_ = e;
 }
+void rsrq_range_cfg_r12_c::set_release()
+{
+  set(types::release);
+}
+int8_t& rsrq_range_cfg_r12_c::set_setup()
+{
+  set(types::setup);
+  return c;
+}
 void rsrq_range_cfg_r12_c::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -2683,7 +2932,7 @@ bool rsrq_range_cfg_r12_c::operator==(const rsrq_range_cfg_r12_c& other) const
 }
 
 // ReportInterval ::= ENUMERATED
-std::string report_interv_opts::to_string() const
+const char* report_interv_opts::to_string() const
 {
   static const char* options[] = {"ms120",
                                   "ms240",
@@ -2848,6 +3097,16 @@ thres_eutra_c& thres_eutra_c::operator=(const thres_eutra_c& other)
 
   return *this;
 }
+uint8_t& thres_eutra_c::set_thres_rsrp()
+{
+  set(types::thres_rsrp);
+  return c.get<uint8_t>();
+}
+uint8_t& thres_eutra_c::set_thres_rsrq()
+{
+  set(types::thres_rsrq);
+  return c.get<uint8_t>();
+}
 void thres_eutra_c::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -2962,6 +3221,21 @@ thres_nr_r15_c& thres_nr_r15_c::operator=(const thres_nr_r15_c& other)
   }
 
   return *this;
+}
+uint8_t& thres_nr_r15_c::set_nr_rsrp_r15()
+{
+  set(types::nr_rsrp_r15);
+  return c.get<uint8_t>();
+}
+uint8_t& thres_nr_r15_c::set_nr_rsrq_r15()
+{
+  set(types::nr_rsrq_r15);
+  return c.get<uint8_t>();
+}
+uint8_t& thres_nr_r15_c::set_nr_sinr_r15()
+{
+  set(types::nr_sinr_r15);
+  return c.get<uint8_t>();
 }
 void thres_nr_r15_c::to_json(json_writer& j) const
 {
@@ -3083,6 +3357,16 @@ thres_utra_c& thres_utra_c::operator=(const thres_utra_c& other)
 
   return *this;
 }
+int8_t& thres_utra_c::set_utra_rscp()
+{
+  set(types::utra_rscp);
+  return c.get<int8_t>();
+}
+uint8_t& thres_utra_c::set_utra_ec_n0()
+{
+  set(types::utra_ec_n0);
+  return c.get<uint8_t>();
+}
 void thres_utra_c::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -3149,7 +3433,7 @@ bool thres_utra_c::operator==(const thres_utra_c& other) const
 }
 
 // TimeToTrigger ::= ENUMERATED
-std::string time_to_trigger_opts::to_string() const
+const char* time_to_trigger_opts::to_string() const
 {
   static const char* options[] = {"ms0",
                                   "ms40",
@@ -3179,6 +3463,15 @@ uint16_t time_to_trigger_opts::to_number() const
 void ul_delay_cfg_r13_c::set(types::options e)
 {
   type_ = e;
+}
+void ul_delay_cfg_r13_c::set_release()
+{
+  set(types::release);
+}
+ul_delay_cfg_r13_c::setup_s_& ul_delay_cfg_r13_c::set_setup()
+{
+  set(types::setup);
+  return c;
 }
 void ul_delay_cfg_r13_c::to_json(json_writer& j) const
 {
@@ -3234,7 +3527,7 @@ bool ul_delay_cfg_r13_c::operator==(const ul_delay_cfg_r13_c& other) const
   return type() == other.type() and c.delay_thres_r13 == other.c.delay_thres_r13;
 }
 
-std::string ul_delay_cfg_r13_c::setup_s_::delay_thres_r13_opts::to_string() const
+const char* ul_delay_cfg_r13_c::setup_s_::delay_thres_r13_opts::to_string() const
 {
   static const char* options[] = {"ms30",
                                   "ms40",
@@ -3327,7 +3620,7 @@ bool wlan_carrier_info_r13_s::operator==(const wlan_carrier_info_r13_s& other) c
          (not ch_nums_r13_present or ch_nums_r13 == other.ch_nums_r13);
 }
 
-std::string wlan_carrier_info_r13_s::country_code_r13_opts::to_string() const
+const char* wlan_carrier_info_r13_s::country_code_r13_opts::to_string() const
 {
   static const char* options[] = {"unitedStates", "europe", "japan", "global"};
   return convert_enum_idx(options, 4, value, "wlan_carrier_info_r13_s::country_code_r13_e_");
@@ -3337,6 +3630,15 @@ std::string wlan_carrier_info_r13_s::country_code_r13_opts::to_string() const
 void wlan_name_list_cfg_r15_c::set(types::options e)
 {
   type_ = e;
+}
+void wlan_name_list_cfg_r15_c::set_release()
+{
+  set(types::release);
+}
+wlan_name_list_r15_l& wlan_name_list_cfg_r15_c::set_setup()
+{
+  set(types::setup);
+  return c;
 }
 void wlan_name_list_cfg_r15_c::to_json(json_writer& j) const
 {
@@ -4005,6 +4307,15 @@ void meas_obj_eutra_s::t312_r12_c_::set(types::options e)
 {
   type_ = e;
 }
+void meas_obj_eutra_s::t312_r12_c_::set_release()
+{
+  set(types::release);
+}
+meas_obj_eutra_s::t312_r12_c_::setup_e_& meas_obj_eutra_s::t312_r12_c_::set_setup()
+{
+  set(types::setup);
+  return c;
+}
 void meas_obj_eutra_s::t312_r12_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -4056,7 +4367,7 @@ bool meas_obj_eutra_s::t312_r12_c_::operator==(const t312_r12_c_& other) const
   return type() == other.type() and c == other.c;
 }
 
-std::string meas_obj_eutra_s::t312_r12_c_::setup_opts::to_string() const
+const char* meas_obj_eutra_s::t312_r12_c_::setup_opts::to_string() const
 {
   static const char* options[] = {"ms0", "ms50", "ms100", "ms200", "ms300", "ms400", "ms500", "ms1000"};
   return convert_enum_idx(options, 8, value, "meas_obj_eutra_s::t312_r12_c_::setup_e_");
@@ -4375,6 +4686,15 @@ void meas_obj_nr_r15_s::band_nr_r15_c_::set(types::options e)
 {
   type_ = e;
 }
+void meas_obj_nr_r15_s::band_nr_r15_c_::set_release()
+{
+  set(types::release);
+}
+uint16_t& meas_obj_nr_r15_s::band_nr_r15_c_::set_setup()
+{
+  set(types::setup);
+  return c;
+}
 void meas_obj_nr_r15_s::band_nr_r15_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -4643,6 +4963,16 @@ meas_obj_utra_s::cells_to_add_mod_list_c_::operator=(const meas_obj_utra_s::cell
 
   return *this;
 }
+cells_to_add_mod_list_utra_fdd_l& meas_obj_utra_s::cells_to_add_mod_list_c_::set_cells_to_add_mod_list_utra_fdd()
+{
+  set(types::cells_to_add_mod_list_utra_fdd);
+  return c.get<cells_to_add_mod_list_utra_fdd_l>();
+}
+cells_to_add_mod_list_utra_tdd_l& meas_obj_utra_s::cells_to_add_mod_list_c_::set_cells_to_add_mod_list_utra_tdd()
+{
+  set(types::cells_to_add_mod_list_utra_tdd);
+  return c.get<cells_to_add_mod_list_utra_tdd_l>();
+}
 void meas_obj_utra_s::cells_to_add_mod_list_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -4760,6 +5090,16 @@ meas_obj_utra_s::cell_for_which_to_report_cgi_c_& meas_obj_utra_s::cell_for_whic
   }
 
   return *this;
+}
+uint16_t& meas_obj_utra_s::cell_for_which_to_report_cgi_c_::set_utra_fdd()
+{
+  set(types::utra_fdd);
+  return c.get<uint16_t>();
+}
+uint8_t& meas_obj_utra_s::cell_for_which_to_report_cgi_c_::set_utra_tdd()
+{
+  set(types::utra_tdd);
+  return c.get<uint8_t>();
 }
 void meas_obj_utra_s::cell_for_which_to_report_cgi_c_::to_json(json_writer& j) const
 {
@@ -4965,6 +5305,18 @@ meas_obj_wlan_r13_s::carrier_freq_r13_c_::operator=(const meas_obj_wlan_r13_s::c
   }
 
   return *this;
+}
+meas_obj_wlan_r13_s::carrier_freq_r13_c_::band_ind_list_wlan_r13_l_&
+meas_obj_wlan_r13_s::carrier_freq_r13_c_::set_band_ind_list_wlan_r13()
+{
+  set(types::band_ind_list_wlan_r13);
+  return c.get<band_ind_list_wlan_r13_l_>();
+}
+meas_obj_wlan_r13_s::carrier_freq_r13_c_::carrier_info_list_wlan_r13_l_&
+meas_obj_wlan_r13_s::carrier_freq_r13_c_::set_carrier_info_list_wlan_r13()
+{
+  set(types::carrier_info_list_wlan_r13);
+  return c.get<carrier_info_list_wlan_r13_l_>();
 }
 void meas_obj_wlan_r13_s::carrier_freq_r13_c_::to_json(json_writer& j) const
 {
@@ -5296,6 +5648,66 @@ eutra_event_s::event_id_c_& eutra_event_s::event_id_c_::operator=(const eutra_ev
   }
 
   return *this;
+}
+eutra_event_s::event_id_c_::event_a1_s_& eutra_event_s::event_id_c_::set_event_a1()
+{
+  set(types::event_a1);
+  return c.get<event_a1_s_>();
+}
+eutra_event_s::event_id_c_::event_a2_s_& eutra_event_s::event_id_c_::set_event_a2()
+{
+  set(types::event_a2);
+  return c.get<event_a2_s_>();
+}
+eutra_event_s::event_id_c_::event_a3_s_& eutra_event_s::event_id_c_::set_event_a3()
+{
+  set(types::event_a3);
+  return c.get<event_a3_s_>();
+}
+eutra_event_s::event_id_c_::event_a4_s_& eutra_event_s::event_id_c_::set_event_a4()
+{
+  set(types::event_a4);
+  return c.get<event_a4_s_>();
+}
+eutra_event_s::event_id_c_::event_a5_s_& eutra_event_s::event_id_c_::set_event_a5()
+{
+  set(types::event_a5);
+  return c.get<event_a5_s_>();
+}
+eutra_event_s::event_id_c_::event_a6_r10_s_& eutra_event_s::event_id_c_::set_event_a6_r10()
+{
+  set(types::event_a6_r10);
+  return c.get<event_a6_r10_s_>();
+}
+eutra_event_s::event_id_c_::event_c1_r12_s_& eutra_event_s::event_id_c_::set_event_c1_r12()
+{
+  set(types::event_c1_r12);
+  return c.get<event_c1_r12_s_>();
+}
+eutra_event_s::event_id_c_::event_c2_r12_s_& eutra_event_s::event_id_c_::set_event_c2_r12()
+{
+  set(types::event_c2_r12);
+  return c.get<event_c2_r12_s_>();
+}
+eutra_event_s::event_id_c_::event_v1_r14_s_& eutra_event_s::event_id_c_::set_event_v1_r14()
+{
+  set(types::event_v1_r14);
+  return c.get<event_v1_r14_s_>();
+}
+eutra_event_s::event_id_c_::event_v2_r14_s_& eutra_event_s::event_id_c_::set_event_v2_r14()
+{
+  set(types::event_v2_r14);
+  return c.get<event_v2_r14_s_>();
+}
+eutra_event_s::event_id_c_::event_h1_r15_s_& eutra_event_s::event_id_c_::set_event_h1_r15()
+{
+  set(types::event_h1_r15);
+  return c.get<event_h1_r15_s_>();
+}
+eutra_event_s::event_id_c_::event_h2_r15_s_& eutra_event_s::event_id_c_::set_event_h2_r15()
+{
+  set(types::event_h2_r15);
+  return c.get<event_h2_r15_s_>();
 }
 void eutra_event_s::event_id_c_::to_json(json_writer& j) const
 {
@@ -6097,6 +6509,16 @@ report_cfg_eutra_s::trigger_type_c_::operator=(const report_cfg_eutra_s::trigger
 
   return *this;
 }
+report_cfg_eutra_s::trigger_type_c_::event_s_& report_cfg_eutra_s::trigger_type_c_::set_event()
+{
+  set(types::event);
+  return c.get<event_s_>();
+}
+report_cfg_eutra_s::trigger_type_c_::periodical_s_& report_cfg_eutra_s::trigger_type_c_::set_periodical()
+{
+  set(types::periodical);
+  return c.get<periodical_s_>();
+}
 void report_cfg_eutra_s::trigger_type_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -6166,25 +6588,25 @@ bool report_cfg_eutra_s::trigger_type_c_::operator==(const trigger_type_c_& othe
   return true;
 }
 
-std::string report_cfg_eutra_s::trigger_type_c_::periodical_s_::purpose_opts::to_string() const
+const char* report_cfg_eutra_s::trigger_type_c_::periodical_s_::purpose_opts::to_string() const
 {
   static const char* options[] = {"reportStrongestCells", "reportCGI"};
   return convert_enum_idx(options, 2, value, "report_cfg_eutra_s::trigger_type_c_::periodical_s_::purpose_e_");
 }
 
-std::string report_cfg_eutra_s::trigger_quant_opts::to_string() const
+const char* report_cfg_eutra_s::trigger_quant_opts::to_string() const
 {
   static const char* options[] = {"rsrp", "rsrq"};
   return convert_enum_idx(options, 2, value, "report_cfg_eutra_s::trigger_quant_e_");
 }
 
-std::string report_cfg_eutra_s::report_quant_opts::to_string() const
+const char* report_cfg_eutra_s::report_quant_opts::to_string() const
 {
   static const char* options[] = {"sameAsTriggerQuantity", "both"};
   return convert_enum_idx(options, 2, value, "report_cfg_eutra_s::report_quant_e_");
 }
 
-std::string report_cfg_eutra_s::report_amount_opts::to_string() const
+const char* report_cfg_eutra_s::report_amount_opts::to_string() const
 {
   static const char* options[] = {"r1", "r2", "r4", "r8", "r16", "r32", "r64", "infinity"};
   return convert_enum_idx(options, 8, value, "report_cfg_eutra_s::report_amount_e_");
@@ -6198,6 +6620,15 @@ int8_t report_cfg_eutra_s::report_amount_opts::to_number() const
 void report_cfg_eutra_s::alt_time_to_trigger_r12_c_::set(types::options e)
 {
   type_ = e;
+}
+void report_cfg_eutra_s::alt_time_to_trigger_r12_c_::set_release()
+{
+  set(types::release);
+}
+time_to_trigger_e& report_cfg_eutra_s::alt_time_to_trigger_r12_c_::set_setup()
+{
+  set(types::setup);
+  return c;
 }
 void report_cfg_eutra_s::alt_time_to_trigger_r12_c_::to_json(json_writer& j) const
 {
@@ -6253,6 +6684,15 @@ bool report_cfg_eutra_s::alt_time_to_trigger_r12_c_::operator==(const alt_time_t
 void report_cfg_eutra_s::rs_sinr_cfg_r13_c_::set(types::options e)
 {
   type_ = e;
+}
+void report_cfg_eutra_s::rs_sinr_cfg_r13_c_::set_release()
+{
+  set(types::release);
+}
+report_cfg_eutra_s::rs_sinr_cfg_r13_c_::setup_s_& report_cfg_eutra_s::rs_sinr_cfg_r13_c_::set_setup()
+{
+  set(types::setup);
+  return c;
 }
 void report_cfg_eutra_s::rs_sinr_cfg_r13_c_::to_json(json_writer& j) const
 {
@@ -6340,13 +6780,13 @@ bool report_cfg_eutra_s::rs_sinr_cfg_r13_c_::operator==(const rs_sinr_cfg_r13_c_
          c.report_quant_v1310 == other.c.report_quant_v1310;
 }
 
-std::string report_cfg_eutra_s::rs_sinr_cfg_r13_c_::setup_s_::report_quant_v1310_opts::to_string() const
+const char* report_cfg_eutra_s::rs_sinr_cfg_r13_c_::setup_s_::report_quant_v1310_opts::to_string() const
 {
   static const char* options[] = {"rsrpANDsinr", "rsrqANDsinr", "all"};
   return convert_enum_idx(options, 3, value, "report_cfg_eutra_s::rs_sinr_cfg_r13_c_::setup_s_::report_quant_v1310_e_");
 }
 
-std::string report_cfg_eutra_s::purpose_v1430_opts::to_string() const
+const char* report_cfg_eutra_s::purpose_v1430_opts::to_string() const
 {
   static const char* options[] = {"reportLocation", "sidelink", "spare2", "spare1"};
   return convert_enum_idx(options, 4, value, "report_cfg_eutra_s::purpose_v1430_e_");
@@ -6680,6 +7120,16 @@ report_cfg_inter_rat_s::trigger_type_c_::operator=(const report_cfg_inter_rat_s:
 
   return *this;
 }
+report_cfg_inter_rat_s::trigger_type_c_::event_s_& report_cfg_inter_rat_s::trigger_type_c_::set_event()
+{
+  set(types::event);
+  return c.get<event_s_>();
+}
+report_cfg_inter_rat_s::trigger_type_c_::periodical_s_& report_cfg_inter_rat_s::trigger_type_c_::set_periodical()
+{
+  set(types::periodical);
+  return c.get<periodical_s_>();
+}
 void report_cfg_inter_rat_s::trigger_type_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -6889,6 +7339,48 @@ report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::operator=(
   }
 
   return *this;
+}
+report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::event_b1_s_&
+report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::set_event_b1()
+{
+  set(types::event_b1);
+  return c.get<event_b1_s_>();
+}
+report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::event_b2_s_&
+report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::set_event_b2()
+{
+  set(types::event_b2);
+  return c.get<event_b2_s_>();
+}
+report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::event_w1_r13_s_&
+report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::set_event_w1_r13()
+{
+  set(types::event_w1_r13);
+  return c.get<event_w1_r13_s_>();
+}
+report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::event_w2_r13_s_&
+report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::set_event_w2_r13()
+{
+  set(types::event_w2_r13);
+  return c.get<event_w2_r13_s_>();
+}
+report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::event_w3_r13_s_&
+report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::set_event_w3_r13()
+{
+  set(types::event_w3_r13);
+  return c.get<event_w3_r13_s_>();
+}
+report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::event_b1_nr_r15_s_&
+report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::set_event_b1_nr_r15()
+{
+  set(types::event_b1_nr_r15);
+  return c.get<event_b1_nr_r15_s_>();
+}
+report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::event_b2_nr_r15_s_&
+report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::set_event_b2_nr_r15()
+{
+  set(types::event_b2_nr_r15);
+  return c.get<event_b2_nr_r15_s_>();
 }
 void report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::to_json(json_writer& j) const
 {
@@ -7144,6 +7636,23 @@ report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::event_b1_s_::b1_
 
   return *this;
 }
+thres_utra_c&
+report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::event_b1_s_::b1_thres_c_::set_b1_thres_utra()
+{
+  set(types::b1_thres_utra);
+  return c.get<thres_utra_c>();
+}
+uint8_t& report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::event_b1_s_::b1_thres_c_::set_b1_thres_geran()
+{
+  set(types::b1_thres_geran);
+  return c.get<uint8_t>();
+}
+uint8_t&
+report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::event_b1_s_::b1_thres_c_::set_b1_thres_cdma2000()
+{
+  set(types::b1_thres_cdma2000);
+  return c.get<uint8_t>();
+}
 void report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::event_b1_s_::b1_thres_c_::to_json(
     json_writer& j) const
 {
@@ -7305,6 +7814,24 @@ report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::event_b2_s_::b2_
 
   return *this;
 }
+thres_utra_c&
+report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::event_b2_s_::b2_thres2_c_::set_b2_thres2_utra()
+{
+  set(types::b2_thres2_utra);
+  return c.get<thres_utra_c>();
+}
+uint8_t&
+report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::event_b2_s_::b2_thres2_c_::set_b2_thres2_geran()
+{
+  set(types::b2_thres2_geran);
+  return c.get<uint8_t>();
+}
+uint8_t&
+report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::event_b2_s_::b2_thres2_c_::set_b2_thres2_cdma2000()
+{
+  set(types::b2_thres2_cdma2000);
+  return c.get<uint8_t>();
+}
 void report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::event_b2_s_::b2_thres2_c_::to_json(
     json_writer& j) const
 {
@@ -7389,13 +7916,13 @@ bool report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::event_b2_s_
   return true;
 }
 
-std::string report_cfg_inter_rat_s::trigger_type_c_::periodical_s_::purpose_opts::to_string() const
+const char* report_cfg_inter_rat_s::trigger_type_c_::periodical_s_::purpose_opts::to_string() const
 {
   static const char* options[] = {"reportStrongestCells", "reportStrongestCellsForSON", "reportCGI"};
   return convert_enum_idx(options, 3, value, "report_cfg_inter_rat_s::trigger_type_c_::periodical_s_::purpose_e_");
 }
 
-std::string report_cfg_inter_rat_s::report_amount_opts::to_string() const
+const char* report_cfg_inter_rat_s::report_amount_opts::to_string() const
 {
   static const char* options[] = {"r1", "r2", "r4", "r8", "r16", "r32", "r64", "infinity"};
   return convert_enum_idx(options, 8, value, "report_cfg_inter_rat_s::report_amount_e_");
@@ -7409,6 +7936,15 @@ int8_t report_cfg_inter_rat_s::report_amount_opts::to_number() const
 void report_cfg_inter_rat_s::b2_thres1_v1250_c_::set(types::options e)
 {
   type_ = e;
+}
+void report_cfg_inter_rat_s::b2_thres1_v1250_c_::set_release()
+{
+  set(types::release);
+}
+int8_t& report_cfg_inter_rat_s::b2_thres1_v1250_c_::set_setup()
+{
+  set(types::setup);
+  return c;
 }
 void report_cfg_inter_rat_s::b2_thres1_v1250_c_::to_json(json_writer& j) const
 {
@@ -7461,7 +7997,7 @@ bool report_cfg_inter_rat_s::b2_thres1_v1250_c_::operator==(const b2_thres1_v125
   return type() == other.type() and c == other.c;
 }
 
-std::string report_cfg_inter_rat_s::report_sftd_meas_r15_opts::to_string() const
+const char* report_cfg_inter_rat_s::report_sftd_meas_r15_opts::to_string() const
 {
   static const char* options[] = {"pSCell", "neighborCells"};
   return convert_enum_idx(options, 2, value, "report_cfg_inter_rat_s::report_sftd_meas_r15_e_");
@@ -7696,6 +8232,36 @@ meas_obj_to_add_mod_s::meas_obj_c_::operator=(const meas_obj_to_add_mod_s::meas_
   }
 
   return *this;
+}
+meas_obj_eutra_s& meas_obj_to_add_mod_s::meas_obj_c_::set_meas_obj_eutra()
+{
+  set(types::meas_obj_eutra);
+  return c.get<meas_obj_eutra_s>();
+}
+meas_obj_utra_s& meas_obj_to_add_mod_s::meas_obj_c_::set_meas_obj_utra()
+{
+  set(types::meas_obj_utra);
+  return c.get<meas_obj_utra_s>();
+}
+meas_obj_geran_s& meas_obj_to_add_mod_s::meas_obj_c_::set_meas_obj_geran()
+{
+  set(types::meas_obj_geran);
+  return c.get<meas_obj_geran_s>();
+}
+meas_obj_cdma2000_s& meas_obj_to_add_mod_s::meas_obj_c_::set_meas_obj_cdma2000()
+{
+  set(types::meas_obj_cdma2000);
+  return c.get<meas_obj_cdma2000_s>();
+}
+meas_obj_wlan_r13_s& meas_obj_to_add_mod_s::meas_obj_c_::set_meas_obj_wlan_r13()
+{
+  set(types::meas_obj_wlan_r13);
+  return c.get<meas_obj_wlan_r13_s>();
+}
+meas_obj_nr_r15_s& meas_obj_to_add_mod_s::meas_obj_c_::set_meas_obj_nr_r15()
+{
+  set(types::meas_obj_nr_r15);
+  return c.get<meas_obj_nr_r15_s>();
 }
 void meas_obj_to_add_mod_s::meas_obj_c_::to_json(json_writer& j) const
 {
@@ -7988,6 +8554,36 @@ meas_obj_to_add_mod_ext_r13_s::meas_obj_r13_c_::operator=(const meas_obj_to_add_
 
   return *this;
 }
+meas_obj_eutra_s& meas_obj_to_add_mod_ext_r13_s::meas_obj_r13_c_::set_meas_obj_eutra_r13()
+{
+  set(types::meas_obj_eutra_r13);
+  return c.get<meas_obj_eutra_s>();
+}
+meas_obj_utra_s& meas_obj_to_add_mod_ext_r13_s::meas_obj_r13_c_::set_meas_obj_utra_r13()
+{
+  set(types::meas_obj_utra_r13);
+  return c.get<meas_obj_utra_s>();
+}
+meas_obj_geran_s& meas_obj_to_add_mod_ext_r13_s::meas_obj_r13_c_::set_meas_obj_geran_r13()
+{
+  set(types::meas_obj_geran_r13);
+  return c.get<meas_obj_geran_s>();
+}
+meas_obj_cdma2000_s& meas_obj_to_add_mod_ext_r13_s::meas_obj_r13_c_::set_meas_obj_cdma2000_r13()
+{
+  set(types::meas_obj_cdma2000_r13);
+  return c.get<meas_obj_cdma2000_s>();
+}
+meas_obj_wlan_r13_s& meas_obj_to_add_mod_ext_r13_s::meas_obj_r13_c_::set_meas_obj_wlan_v1320()
+{
+  set(types::meas_obj_wlan_v1320);
+  return c.get<meas_obj_wlan_r13_s>();
+}
+meas_obj_nr_r15_s& meas_obj_to_add_mod_ext_r13_s::meas_obj_r13_c_::set_meas_obj_nr_r15()
+{
+  set(types::meas_obj_nr_r15);
+  return c.get<meas_obj_nr_r15_s>();
+}
 void meas_obj_to_add_mod_ext_r13_s::meas_obj_r13_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -8108,7 +8704,7 @@ bool quant_cfg_cdma2000_s::operator==(const quant_cfg_cdma2000_s& other) const
   return meas_quant_cdma2000 == other.meas_quant_cdma2000;
 }
 
-std::string quant_cfg_cdma2000_s::meas_quant_cdma2000_opts::to_string() const
+const char* quant_cfg_cdma2000_s::meas_quant_cdma2000_opts::to_string() const
 {
   static const char* options[] = {"pilotStrength", "pilotPnPhaseAndPilotStrength"};
   return convert_enum_idx(options, 2, value, "quant_cfg_cdma2000_s::meas_quant_cdma2000_e_");
@@ -8306,7 +8902,7 @@ bool quant_cfg_utra_s::operator==(const quant_cfg_utra_s& other) const
          (not filt_coef_present or filt_coef == other.filt_coef);
 }
 
-std::string quant_cfg_utra_s::meas_quant_utra_fdd_opts::to_string() const
+const char* quant_cfg_utra_s::meas_quant_utra_fdd_opts::to_string() const
 {
   static const char* options[] = {"cpich-RSCP", "cpich-EcN0"};
   return convert_enum_idx(options, 2, value, "quant_cfg_utra_s::meas_quant_utra_fdd_e_");
@@ -8487,6 +9083,16 @@ report_cfg_to_add_mod_s::report_cfg_c_::operator=(const report_cfg_to_add_mod_s:
 
   return *this;
 }
+report_cfg_eutra_s& report_cfg_to_add_mod_s::report_cfg_c_::set_report_cfg_eutra()
+{
+  set(types::report_cfg_eutra);
+  return c.get<report_cfg_eutra_s>();
+}
+report_cfg_inter_rat_s& report_cfg_to_add_mod_s::report_cfg_c_::set_report_cfg_inter_rat()
+{
+  set(types::report_cfg_inter_rat);
+  return c.get<report_cfg_inter_rat_s>();
+}
 void report_cfg_to_add_mod_s::report_cfg_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -8558,6 +9164,15 @@ bool report_cfg_to_add_mod_s::report_cfg_c_::operator==(const report_cfg_c_& oth
 void meas_gap_cfg_dense_prs_r15_c::set(types::options e)
 {
   type_ = e;
+}
+void meas_gap_cfg_dense_prs_r15_c::set_release()
+{
+  set(types::release);
+}
+meas_gap_cfg_dense_prs_r15_c::setup_s_& meas_gap_cfg_dense_prs_r15_c::set_setup()
+{
+  set(types::setup);
+  return c;
 }
 void meas_gap_cfg_dense_prs_r15_c::to_json(json_writer& j) const
 {
@@ -8769,6 +9384,111 @@ meas_gap_cfg_dense_prs_r15_c::setup_s_::gap_offset_dense_prs_r15_c_::operator=(
   }
 
   return *this;
+}
+uint8_t& meas_gap_cfg_dense_prs_r15_c::setup_s_::gap_offset_dense_prs_r15_c_::set_rstd0_r15()
+{
+  set(types::rstd0_r15);
+  return c.get<uint8_t>();
+}
+uint8_t& meas_gap_cfg_dense_prs_r15_c::setup_s_::gap_offset_dense_prs_r15_c_::set_rstd1_r15()
+{
+  set(types::rstd1_r15);
+  return c.get<uint8_t>();
+}
+uint16_t& meas_gap_cfg_dense_prs_r15_c::setup_s_::gap_offset_dense_prs_r15_c_::set_rstd2_r15()
+{
+  set(types::rstd2_r15);
+  return c.get<uint16_t>();
+}
+uint16_t& meas_gap_cfg_dense_prs_r15_c::setup_s_::gap_offset_dense_prs_r15_c_::set_rstd3_r15()
+{
+  set(types::rstd3_r15);
+  return c.get<uint16_t>();
+}
+uint16_t& meas_gap_cfg_dense_prs_r15_c::setup_s_::gap_offset_dense_prs_r15_c_::set_rstd4_r15()
+{
+  set(types::rstd4_r15);
+  return c.get<uint16_t>();
+}
+uint8_t& meas_gap_cfg_dense_prs_r15_c::setup_s_::gap_offset_dense_prs_r15_c_::set_rstd5_r15()
+{
+  set(types::rstd5_r15);
+  return c.get<uint8_t>();
+}
+uint16_t& meas_gap_cfg_dense_prs_r15_c::setup_s_::gap_offset_dense_prs_r15_c_::set_rstd6_r15()
+{
+  set(types::rstd6_r15);
+  return c.get<uint16_t>();
+}
+uint16_t& meas_gap_cfg_dense_prs_r15_c::setup_s_::gap_offset_dense_prs_r15_c_::set_rstd7_r15()
+{
+  set(types::rstd7_r15);
+  return c.get<uint16_t>();
+}
+uint16_t& meas_gap_cfg_dense_prs_r15_c::setup_s_::gap_offset_dense_prs_r15_c_::set_rstd8_r15()
+{
+  set(types::rstd8_r15);
+  return c.get<uint16_t>();
+}
+uint16_t& meas_gap_cfg_dense_prs_r15_c::setup_s_::gap_offset_dense_prs_r15_c_::set_rstd9_r15()
+{
+  set(types::rstd9_r15);
+  return c.get<uint16_t>();
+}
+uint16_t& meas_gap_cfg_dense_prs_r15_c::setup_s_::gap_offset_dense_prs_r15_c_::set_rstd10_r15()
+{
+  set(types::rstd10_r15);
+  return c.get<uint16_t>();
+}
+uint16_t& meas_gap_cfg_dense_prs_r15_c::setup_s_::gap_offset_dense_prs_r15_c_::set_rstd11_r15()
+{
+  set(types::rstd11_r15);
+  return c.get<uint16_t>();
+}
+uint16_t& meas_gap_cfg_dense_prs_r15_c::setup_s_::gap_offset_dense_prs_r15_c_::set_rstd12_r15()
+{
+  set(types::rstd12_r15);
+  return c.get<uint16_t>();
+}
+uint16_t& meas_gap_cfg_dense_prs_r15_c::setup_s_::gap_offset_dense_prs_r15_c_::set_rstd13_r15()
+{
+  set(types::rstd13_r15);
+  return c.get<uint16_t>();
+}
+uint16_t& meas_gap_cfg_dense_prs_r15_c::setup_s_::gap_offset_dense_prs_r15_c_::set_rstd14_r15()
+{
+  set(types::rstd14_r15);
+  return c.get<uint16_t>();
+}
+uint16_t& meas_gap_cfg_dense_prs_r15_c::setup_s_::gap_offset_dense_prs_r15_c_::set_rstd15_r15()
+{
+  set(types::rstd15_r15);
+  return c.get<uint16_t>();
+}
+uint16_t& meas_gap_cfg_dense_prs_r15_c::setup_s_::gap_offset_dense_prs_r15_c_::set_rstd16_r15()
+{
+  set(types::rstd16_r15);
+  return c.get<uint16_t>();
+}
+uint16_t& meas_gap_cfg_dense_prs_r15_c::setup_s_::gap_offset_dense_prs_r15_c_::set_rstd17_r15()
+{
+  set(types::rstd17_r15);
+  return c.get<uint16_t>();
+}
+uint16_t& meas_gap_cfg_dense_prs_r15_c::setup_s_::gap_offset_dense_prs_r15_c_::set_rstd18_r15()
+{
+  set(types::rstd18_r15);
+  return c.get<uint16_t>();
+}
+uint16_t& meas_gap_cfg_dense_prs_r15_c::setup_s_::gap_offset_dense_prs_r15_c_::set_rstd19_r15()
+{
+  set(types::rstd19_r15);
+  return c.get<uint16_t>();
+}
+uint16_t& meas_gap_cfg_dense_prs_r15_c::setup_s_::gap_offset_dense_prs_r15_c_::set_rstd20_r15()
+{
+  set(types::rstd20_r15);
+  return c.get<uint16_t>();
 }
 void meas_gap_cfg_dense_prs_r15_c::setup_s_::gap_offset_dense_prs_r15_c_::to_json(json_writer& j) const
 {
@@ -8996,6 +9716,15 @@ void meas_gap_cfg_per_cc_list_r14_c::set(types::options e)
 {
   type_ = e;
 }
+void meas_gap_cfg_per_cc_list_r14_c::set_release()
+{
+  set(types::release);
+}
+meas_gap_cfg_per_cc_list_r14_c::setup_s_& meas_gap_cfg_per_cc_list_r14_c::set_setup()
+{
+  set(types::setup);
+  return c;
+}
 void meas_gap_cfg_per_cc_list_r14_c::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -9078,6 +9807,15 @@ void meas_gap_sharing_cfg_r14_c::set(types::options e)
 {
   type_ = e;
 }
+void meas_gap_sharing_cfg_r14_c::set_release()
+{
+  set(types::release);
+}
+meas_gap_sharing_cfg_r14_c::setup_s_& meas_gap_sharing_cfg_r14_c::set_setup()
+{
+  set(types::setup);
+  return c;
+}
 void meas_gap_sharing_cfg_r14_c::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -9128,7 +9866,7 @@ SRSASN_CODE meas_gap_sharing_cfg_r14_c::unpack(cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
-std::string meas_gap_sharing_cfg_r14_c::setup_s_::meas_gap_sharing_scheme_r14_opts::to_string() const
+const char* meas_gap_sharing_cfg_r14_c::setup_s_::meas_gap_sharing_scheme_r14_opts::to_string() const
 {
   static const char* options[] = {"scheme00", "scheme01", "scheme10", "scheme11"};
   return convert_enum_idx(options, 4, value, "meas_gap_sharing_cfg_r14_c::setup_s_::meas_gap_sharing_scheme_r14_e_");
@@ -9138,14 +9876,14 @@ float meas_gap_sharing_cfg_r14_c::setup_s_::meas_gap_sharing_scheme_r14_opts::to
   static const float options[] = {0.0, 0.1, 1.0, 1.1};
   return map_enum_number(options, 4, value, "meas_gap_sharing_cfg_r14_c::setup_s_::meas_gap_sharing_scheme_r14_e_");
 }
-std::string meas_gap_sharing_cfg_r14_c::setup_s_::meas_gap_sharing_scheme_r14_opts::to_number_string() const
+const char* meas_gap_sharing_cfg_r14_c::setup_s_::meas_gap_sharing_scheme_r14_opts::to_number_string() const
 {
   static const char* options[] = {"0.0", "0.1", "1.0", "1.1"};
   return convert_enum_idx(options, 4, value, "meas_gap_sharing_cfg_r14_c::setup_s_::meas_gap_sharing_scheme_r14_e_");
 }
 
 // MeasScaleFactor-r12 ::= ENUMERATED
-std::string meas_scale_factor_r12_opts::to_string() const
+const char* meas_scale_factor_r12_opts::to_string() const
 {
   static const char* options[] = {"sf-EUTRA-cf1", "sf-EUTRA-cf2"};
   return convert_enum_idx(options, 2, value, "meas_scale_factor_r12_e");
@@ -9494,6 +10232,28 @@ rach_skip_r14_s::target_ta_r14_c_::operator=(const rach_skip_r14_s::target_ta_r1
 
   return *this;
 }
+void rach_skip_r14_s::target_ta_r14_c_::set_ta0_r14()
+{
+  set(types::ta0_r14);
+}
+void rach_skip_r14_s::target_ta_r14_c_::set_mcg_ptag_r14()
+{
+  set(types::mcg_ptag_r14);
+}
+void rach_skip_r14_s::target_ta_r14_c_::set_scg_ptag_r14()
+{
+  set(types::scg_ptag_r14);
+}
+uint8_t& rach_skip_r14_s::target_ta_r14_c_::set_mcg_stag_r14()
+{
+  set(types::mcg_stag_r14);
+  return c.get<uint8_t>();
+}
+uint8_t& rach_skip_r14_s::target_ta_r14_c_::set_scg_stag_r14()
+{
+  set(types::scg_stag_r14);
+  return c.get<uint8_t>();
+}
 void rach_skip_r14_s::target_ta_r14_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -9562,7 +10322,7 @@ SRSASN_CODE rach_skip_r14_s::target_ta_r14_c_::unpack(cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
-std::string rach_skip_r14_s::ul_cfg_info_r14_s_::ul_sched_interv_r14_opts::to_string() const
+const char* rach_skip_r14_s::ul_cfg_info_r14_s_::ul_sched_interv_r14_opts::to_string() const
 {
   static const char* options[] = {"sf2", "sf5", "sf10"};
   return convert_enum_idx(options, 3, value, "rach_skip_r14_s::ul_cfg_info_r14_s_::ul_sched_interv_r14_e_");
@@ -10064,6 +10824,15 @@ void meas_cfg_s::speed_state_pars_c_::set(types::options e)
 {
   type_ = e;
 }
+void meas_cfg_s::speed_state_pars_c_::set_release()
+{
+  set(types::release);
+}
+meas_cfg_s::speed_state_pars_c_::setup_s_& meas_cfg_s::speed_state_pars_c_::set_setup()
+{
+  set(types::setup);
+  return c;
+}
 void meas_cfg_s::speed_state_pars_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -10123,6 +10892,15 @@ void meas_cfg_s::meas_scale_factor_r12_c_::set(types::options e)
 {
   type_ = e;
 }
+void meas_cfg_s::meas_scale_factor_r12_c_::set_release()
+{
+  set(types::release);
+}
+meas_scale_factor_r12_e& meas_cfg_s::meas_scale_factor_r12_c_::set_setup()
+{
+  set(types::setup);
+  return c;
+}
 void meas_cfg_s::meas_scale_factor_r12_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -10173,6 +10951,15 @@ SRSASN_CODE meas_cfg_s::meas_scale_factor_r12_c_::unpack(cbit_ref& bref)
 void meas_cfg_s::height_thresh_ref_r15_c_::set(types::options e)
 {
   type_ = e;
+}
+void meas_cfg_s::height_thresh_ref_r15_c_::set_release()
+{
+  set(types::release);
+}
+uint8_t& meas_cfg_s::height_thresh_ref_r15_c_::set_setup()
+{
+  set(types::setup);
+  return c;
 }
 void meas_cfg_s::height_thresh_ref_r15_c_::to_json(json_writer& j) const
 {
@@ -10357,7 +11144,7 @@ void carrier_bw_eutra_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string carrier_bw_eutra_s::dl_bw_opts::to_string() const
+const char* carrier_bw_eutra_s::dl_bw_opts::to_string() const
 {
   static const char* options[] = {"n6",
                                   "n15",
@@ -10383,7 +11170,7 @@ uint8_t carrier_bw_eutra_s::dl_bw_opts::to_number() const
   return map_enum_number(options, 6, value, "carrier_bw_eutra_s::dl_bw_e_");
 }
 
-std::string carrier_bw_eutra_s::ul_bw_opts::to_string() const
+const char* carrier_bw_eutra_s::ul_bw_opts::to_string() const
 {
   static const char* options[] = {"n6",
                                   "n15",
@@ -10772,7 +11559,7 @@ void mob_ctrl_info_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string mob_ctrl_info_s::t304_opts::to_string() const
+const char* mob_ctrl_info_s::t304_opts::to_string() const
 {
   static const char* options[] = {"ms50", "ms100", "ms150", "ms200", "ms500", "ms1000", "ms2000", "ms10000-v1310"};
   return convert_enum_idx(options, 8, value, "mob_ctrl_info_s::t304_e_");
@@ -10783,7 +11570,7 @@ uint16_t mob_ctrl_info_s::t304_opts::to_number() const
   return map_enum_number(options, 8, value, "mob_ctrl_info_s::t304_e_");
 }
 
-std::string mob_ctrl_info_s::ho_without_wt_change_r14_opts::to_string() const
+const char* mob_ctrl_info_s::ho_without_wt_change_r14_opts::to_string() const
 {
   static const char* options[] = {"keepLWA-Config", "sendEndMarker"};
   return convert_enum_idx(options, 2, value, "mob_ctrl_info_s::ho_without_wt_change_r14_e_");
@@ -10880,6 +11667,16 @@ cell_global_id_cdma2000_c& cell_global_id_cdma2000_c::operator=(const cell_globa
   }
 
   return *this;
+}
+fixed_bitstring<47>& cell_global_id_cdma2000_c::set_cell_global_id1_xrtt()
+{
+  set(types::cell_global_id1_xrtt);
+  return c.get<fixed_bitstring<47> >();
+}
+fixed_bitstring<128>& cell_global_id_cdma2000_c::set_cell_global_id_hrpd()
+{
+  set(types::cell_global_id_hrpd);
+  return c.get<fixed_bitstring<128> >();
 }
 void cell_global_id_cdma2000_c::to_json(json_writer& j) const
 {
@@ -11520,6 +12317,16 @@ meas_result_utra_s::pci_c_& meas_result_utra_s::pci_c_::operator=(const meas_res
 
   return *this;
 }
+uint16_t& meas_result_utra_s::pci_c_::set_fdd()
+{
+  set(types::fdd);
+  return c.get<uint16_t>();
+}
+uint8_t& meas_result_utra_s::pci_c_::set_tdd()
+{
+  set(types::tdd);
+  return c.get<uint8_t>();
+}
 void meas_result_utra_s::pci_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -11872,6 +12679,42 @@ location_info_r10_s::location_coordinates_r10_c_& location_info_r10_s::location_
 
   return *this;
 }
+dyn_octstring& location_info_r10_s::location_coordinates_r10_c_::set_ellipsoid_point_r10()
+{
+  set(types::ellipsoid_point_r10);
+  return c.get<dyn_octstring>();
+}
+dyn_octstring& location_info_r10_s::location_coordinates_r10_c_::set_ellipsoid_point_with_altitude_r10()
+{
+  set(types::ellipsoid_point_with_altitude_r10);
+  return c.get<dyn_octstring>();
+}
+dyn_octstring& location_info_r10_s::location_coordinates_r10_c_::set_ellipsoid_point_with_uncertainty_circle_r11()
+{
+  set(types::ellipsoid_point_with_uncertainty_circle_r11);
+  return c.get<dyn_octstring>();
+}
+dyn_octstring& location_info_r10_s::location_coordinates_r10_c_::set_ellipsoid_point_with_uncertainty_ellipse_r11()
+{
+  set(types::ellipsoid_point_with_uncertainty_ellipse_r11);
+  return c.get<dyn_octstring>();
+}
+dyn_octstring&
+location_info_r10_s::location_coordinates_r10_c_::set_ellipsoid_point_with_altitude_and_uncertainty_ellipsoid_r11()
+{
+  set(types::ellipsoid_point_with_altitude_and_uncertainty_ellipsoid_r11);
+  return c.get<dyn_octstring>();
+}
+dyn_octstring& location_info_r10_s::location_coordinates_r10_c_::set_ellipsoid_arc_r11()
+{
+  set(types::ellipsoid_arc_r11);
+  return c.get<dyn_octstring>();
+}
+dyn_octstring& location_info_r10_s::location_coordinates_r10_c_::set_polygon_r11()
+{
+  set(types::polygon_r11);
+  return c.get<dyn_octstring>();
+}
 void location_info_r10_s::location_coordinates_r10_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -12045,6 +12888,16 @@ location_info_r10_s::vertical_velocity_info_r15_c_& location_info_r10_s::vertica
   }
 
   return *this;
+}
+dyn_octstring& location_info_r10_s::vertical_velocity_info_r15_c_::set_vertical_velocity_r15()
+{
+  set(types::vertical_velocity_r15);
+  return c.get<dyn_octstring>();
+}
+dyn_octstring& location_info_r10_s::vertical_velocity_info_r15_c_::set_vertical_velocity_and_uncertainty_r15()
+{
+  set(types::vertical_velocity_and_uncertainty_r15);
+  return c.get<dyn_octstring>();
 }
 void location_info_r10_s::vertical_velocity_info_r15_c_::to_json(json_writer& j) const
 {
@@ -12350,7 +13203,7 @@ void wlan_rtt_r15_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string wlan_rtt_r15_s::rtt_units_r15_opts::to_string() const
+const char* wlan_rtt_r15_s::rtt_units_r15_opts::to_string() const
 {
   static const char* options[] = {
       "microseconds", "hundredsofnanoseconds", "tensofnanoseconds", "nanoseconds", "tenthsofnanoseconds"};
@@ -13805,7 +14658,7 @@ void ul_pdcp_delay_result_r13_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string ul_pdcp_delay_result_r13_s::qci_id_r13_opts::to_string() const
+const char* ul_pdcp_delay_result_r13_s::qci_id_r13_opts::to_string() const
 {
   static const char* options[] = {"qci1", "qci2", "qci3", "qci4", "spare4", "spare3", "spare2", "spare1"};
   return convert_enum_idx(options, 8, value, "ul_pdcp_delay_result_r13_s::qci_id_r13_e_");
@@ -14481,6 +15334,31 @@ meas_results_s::meas_result_neigh_cells_c_::operator=(const meas_results_s::meas
 
   return *this;
 }
+meas_result_list_eutra_l& meas_results_s::meas_result_neigh_cells_c_::set_meas_result_list_eutra()
+{
+  set(types::meas_result_list_eutra);
+  return c.get<meas_result_list_eutra_l>();
+}
+meas_result_list_utra_l& meas_results_s::meas_result_neigh_cells_c_::set_meas_result_list_utra()
+{
+  set(types::meas_result_list_utra);
+  return c.get<meas_result_list_utra_l>();
+}
+meas_result_list_geran_l& meas_results_s::meas_result_neigh_cells_c_::set_meas_result_list_geran()
+{
+  set(types::meas_result_list_geran);
+  return c.get<meas_result_list_geran_l>();
+}
+meas_results_cdma2000_s& meas_results_s::meas_result_neigh_cells_c_::set_meas_results_cdma2000()
+{
+  set(types::meas_results_cdma2000);
+  return c.get<meas_results_cdma2000_s>();
+}
+meas_result_cell_list_nr_r15_l& meas_results_s::meas_result_neigh_cells_c_::set_meas_result_neigh_cell_list_nr_r15()
+{
+  set(types::meas_result_neigh_cell_list_nr_r15);
+  return c.get<meas_result_cell_list_nr_r15_l>();
+}
 void meas_results_s::meas_result_neigh_cells_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -14674,6 +15552,15 @@ void meas_report_s::crit_exts_c_::set(types::options e)
 {
   type_ = e;
 }
+meas_report_s::crit_exts_c_::c1_c_& meas_report_s::crit_exts_c_::set_c1()
+{
+  set(types::c1);
+  return c;
+}
+void meas_report_s::crit_exts_c_::set_crit_exts_future()
+{
+  set(types::crit_exts_future);
+}
 void meas_report_s::crit_exts_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -14725,6 +15612,39 @@ SRSASN_CODE meas_report_s::crit_exts_c_::unpack(cbit_ref& bref)
 void meas_report_s::crit_exts_c_::c1_c_::set(types::options e)
 {
   type_ = e;
+}
+meas_report_r8_ies_s& meas_report_s::crit_exts_c_::c1_c_::set_meas_report_r8()
+{
+  set(types::meas_report_r8);
+  return c;
+}
+void meas_report_s::crit_exts_c_::c1_c_::set_spare7()
+{
+  set(types::spare7);
+}
+void meas_report_s::crit_exts_c_::c1_c_::set_spare6()
+{
+  set(types::spare6);
+}
+void meas_report_s::crit_exts_c_::c1_c_::set_spare5()
+{
+  set(types::spare5);
+}
+void meas_report_s::crit_exts_c_::c1_c_::set_spare4()
+{
+  set(types::spare4);
+}
+void meas_report_s::crit_exts_c_::c1_c_::set_spare3()
+{
+  set(types::spare3);
+}
+void meas_report_s::crit_exts_c_::c1_c_::set_spare2()
+{
+  set(types::spare2);
+}
+void meas_report_s::crit_exts_c_::c1_c_::set_spare1()
+{
+  set(types::spare1);
 }
 void meas_report_s::crit_exts_c_::c1_c_::to_json(json_writer& j) const
 {

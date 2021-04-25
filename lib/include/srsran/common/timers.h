@@ -274,6 +274,9 @@ public:
     timer.run();
   }
 
+  // useful for testing
+  static size_t get_wheel_size() { return WHEEL_SIZE; }
+
 private:
   timer_impl& alloc_timer()
   {
@@ -315,7 +318,8 @@ private:
     uint32_t timeout       = cur_time + timer.duration;
     size_t   new_wheel_pos = timeout & WHEEL_MASK;
     if (timer.is_running() and (timer.timeout & WHEEL_MASK) == new_wheel_pos) {
-      // If no change in timer wheel position
+      // If no change in timer wheel position. Just update absolute timeout
+      timer.timeout = timeout;
       return;
     }
 

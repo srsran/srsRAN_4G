@@ -54,7 +54,7 @@ typedef struct SRSRAN_API {
   /// Common Formats 0_1 and 1_1
   uint32_t                   carrier_indicator_size; ///< Defined in TS 38.213 clause 10.1
   srsran_harq_ack_codebook_t harq_ack_codebok;       ///< PDSCH HARQ-ACK codebook mode
-  uint32_t                   nof_rb_groups;          ///< Defined in TS 38.214 clause 6.1.2.2.1
+  uint32_t                   nof_rb_groups;          ///< For allocation type 0, defined in TS 38.214 clause 6.1.2.2.1
 
   /// Format 0_1 specific configuration (for PUSCH only)
   uint32_t nof_ul_bwp;          ///< Number of UL BWPs excluding the initial UL BWP, mentioned in the TS as N_BWP_RRC
@@ -65,7 +65,7 @@ typedef struct SRSRAN_API {
   uint32_t report_trigger_size; ///< determined by reportTriggerSize
   bool     enable_transform_precoding;      ///< Set to true if PUSCH transform precoding is enabled
   bool     dynamic_dual_harq_ack_codebook;  ///< Set to true if HARQ-ACK codebook is set to dynamic with 2 sub-codebooks
-  bool     pusch_tx_config_codebook;        ///< Set to true if PUSCH txConfig is set to codebook
+  bool     pusch_tx_config_non_codebook;    ///< Set to true if PUSCH txConfig is set to non-codebook
   bool     pusch_dmrs_type2;                ///< Set to true if PUSCH DMRS are type 2
   bool     pusch_dmrs_double;               ///< Set to true if PUSCH DMRS are 2 symbol long
   bool     pusch_ptrs;                      ///< Set to true if PT-RS are enabled for PUSCH transmission
@@ -73,22 +73,22 @@ typedef struct SRSRAN_API {
   srsran_resource_alloc_t pusch_alloc_type; ///< PUSCH resource allocation type
 
   /// Format 1_1 specific configuration (for PDSCH only)
-  uint32_t nof_dl_bwp; ///< Number of DL BWPs excluding the initial UL BWP, mentioned in the TS as N_BWP_RRC
-  srsran_resource_alloc_t pdsch_alloc_type;       ///< PDSCH resource allocation type, set to 0 for default
-  uint32_t                nof_dl_time_res;        ///< Number of dedicated PDSCH time domain resource assigment
-  uint32_t                nof_aperiodic_zp;       ///< Number of aperiodic ZP CSI-RS resource sets configured
-  bool                    pdsch_inter_prb_to_prb; ///< Set to true if interleaved VRB to PRB mapping is enabled
-  bool                    pdsch_rm_pattern1;      ///< Set to true if rateMatchPatternGroup1 is configured
-  bool                    pdsch_rm_pattern2;      ///< Set to true if rateMatchPatternGroup2 is configured
-  bool                    pdsch_2cw;         ///< Set to true if maxNrofCodeWordsScheduledByDCI is set to 2 in any BWP
-  uint32_t                pdsch_nof_cbg;     ///< determined by maxCodeBlockGroupsPerTransportBlock for PDSCH
-  bool                    multiple_scell;    ///< Set to true if configured with multiple serving cell
-  bool                    nof_dl_to_ul_ack;  ///< Number of entries in the dl-DataToUL-ACK
-  bool                    pdsch_dmrs_type2;  ///< Set to true if PDSCH DMRS are type 2
-  bool                    pdsch_dmrs_double; ///< Set to true if PDSCH DMRS are 2 symbol long
-  bool                    pdsch_tci;         ///< Set to true if tci-PresentInDCI is enabled
-  bool                    pdsch_cbg_flush;   ///< Set to true if codeBlockGroupFlushIndicator is true
-  bool                    pdsch_dynamic_bundling; ///< Set to true if prb-BundlingType is set to dynamicBundling
+  uint32_t nof_dl_bwp;             ///< Number of DL BWPs excluding the initial UL BWP, mentioned in the TS as N_BWP_RRC
+  uint32_t nof_dl_time_res;        ///< Number of dedicated PDSCH time domain resource assigment
+  uint32_t nof_aperiodic_zp;       ///< Number of aperiodic ZP CSI-RS resource sets configured
+  uint32_t pdsch_nof_cbg;          ///< determined by maxCodeBlockGroupsPerTransportBlock for PDSCH
+  uint32_t nof_dl_to_ul_ack;       ///< Number of entries in the dl-DataToUL-ACK
+  bool     pdsch_inter_prb_to_prb; ///< Set to true if interleaved VRB to PRB mapping is enabled
+  bool     pdsch_rm_pattern1;      ///< Set to true if rateMatchPatternGroup1 is configured
+  bool     pdsch_rm_pattern2;      ///< Set to true if rateMatchPatternGroup2 is configured
+  bool     pdsch_2cw;              ///< Set to true if maxNrofCodeWordsScheduledByDCI is set to 2 in any BWP
+  bool     multiple_scell;         ///< Set to true if configured with multiple serving cell
+  bool     pdsch_dmrs_type2;       ///< Set to true if PDSCH DMRS are type 2
+  bool     pdsch_dmrs_double;      ///< Set to true if PDSCH DMRS are 2 symbol long
+  bool     pdsch_tci;              ///< Set to true if tci-PresentInDCI is enabled
+  bool     pdsch_cbg_flush;        ///< Set to true if codeBlockGroupFlushIndicator is true
+  bool     pdsch_dynamic_bundling; ///< Set to true if prb-BundlingType is set to dynamicBundling
+  srsran_resource_alloc_t pdsch_alloc_type; ///< PDSCH resource allocation type, set to 0 for default
 
 } srsran_dci_cfg_nr_t;
 
@@ -121,20 +121,12 @@ typedef struct SRSRAN_API {
  * @brief Describes the NR DCI search context
  */
 typedef struct SRSRAN_API {
-  srsran_dci_location_t      location;           ///< DCI location
-  srsran_search_space_type_t ss_type;            ///< Search space type
-  uint32_t                   coreset_id;         ///< CORESET identifier
-  srsran_rnti_type_t         rnti_type;          ///< RNTI type
-  srsran_dci_format_nr_t     format;             ///< DCI format
-  uint16_t                   rnti;               ///< UE temporal RNTI
-  uint32_t                   coreset0_bw;        ///< CORESET0 DL bandwidth, set to 0 if not present
-  uint32_t                   bwp_dl_initial_bw;  ///< Initial DL/UL BWP bandwidth
-  uint32_t                   bwp_dl_active_bw;   ///< Active DL/UL BWP bandwidth in PRB
-  uint32_t                   bwp_ul_initial_bw;  ///< Initial UL BWP bandwidth
-  uint32_t                   bwp_ul_active_bw;   ///< Active UL BWP bandwidth in PRB
-  bool                       monitor_common_0_0; ///< Set to true if Format 0_0 is monitored in common SS
-  bool                       enable_sul;         ///< Set to true if supplementary uplink is configured
-  bool                       enable_hopping;     ///< Set to true if frequency hopping is enabled
+  srsran_dci_location_t      location;   ///< DCI location
+  srsran_search_space_type_t ss_type;    ///< Search space type
+  uint32_t                   coreset_id; ///< CORESET identifier
+  srsran_rnti_type_t         rnti_type;  ///< RNTI type
+  srsran_dci_format_nr_t     format;     ///< DCI format
+  uint16_t                   rnti;       ///< UE temporal RNTI
 } srsran_dci_ctx_t;
 
 /**
@@ -176,6 +168,24 @@ typedef struct SRSRAN_API {
   // SI-RNTI specific fields
   uint32_t sii; ///< System information indicator
 
+  // Second TB (Optional)
+  uint32_t mcs2; ///< Modulation and coding scheme for the second transport block
+  uint32_t ndi2; ///< New data indicator for the second transport block
+  uint32_t rv2;  ///< Redundancy version for the second transport block
+
+  // Optional fields
+  uint32_t cc_id;        ///< Carrier indicator
+  uint32_t bwp_id;       ///< BWP indicator
+  uint32_t rm_pattern1;  ///< Rate matching pattern 1 indicator
+  uint32_t rm_pattern2;  ///< Rate matching pattern 2 indicator
+  uint32_t zp_csi_rs_id; ///< ZP-CSI-RS trigger
+  uint32_t ports;        ///< Antenna ports
+  uint32_t tci;          ///< Transmission configuration indication
+  uint32_t srs_request;  ///< SRS request
+  uint32_t cbg_info;     ///< CBG transmission information (CBGTI)
+  uint32_t cbg_flush;    ///< CBG flushing out information (CBGFI)
+  uint32_t dmrs_id;      ///< DMRS sequence initialization
+
 } srsran_dci_dl_nr_t;
 
 /**
@@ -195,20 +205,30 @@ typedef struct SRSRAN_API {
   uint32_t reserved;              ///< Reserved bits
 
   // C-RNTI or CS-RNTI or MCS-C-RNTI
-  uint32_t ndi;            ///< New data indicator
-  uint32_t pid;            ///< HARQ process number
-  uint32_t tpc;            ///< TPC command for scheduled PUCCH
-  uint32_t pucch_resource; ///< PUCCH resource indicator
-  uint32_t harq_feedback;  ///< PDSCH-to-HARQ_feedback timing indicator
+  uint32_t ndi; ///< New data indicator
+  uint32_t pid; ///< HARQ process number
+  uint32_t tpc; ///< TPC command for scheduled PUCCH
 
   // Frequency hopping
   uint32_t frequency_offset; ///< frequency offset
 
   // Random Access Response Grant
-  uint32_t csi_request;
+  uint32_t csi_request; ///< CSI request
 
-  // Other fields
-  uint32_t sul; ///< Supplementary Uplink flag
+  // Optional fields
+  uint32_t sul;         ///< Supplementary Uplink flag
+  uint32_t cc_id;       ///< Carrier indicator
+  uint32_t bwp_id;      ///< BWP indicator
+  uint32_t dai1;        ///< First DAI
+  uint32_t dai2;        ///< Second DAI
+  uint32_t srs_id;      ///< SRS resource indicator
+  uint32_t ports;       ///< Antenna ports
+  uint32_t srs_request; ///< SRS request
+  uint32_t cbg_info;    ///< CBG transmission information (CBGTI)
+  uint32_t ptrs_id;     ///< PTRS-DMRS association
+  uint32_t beta_id;     ///< beta_offset indicator
+  uint32_t dmrs_id;     ///< DMRS sequence initialization
+  uint32_t ulsch;       ///< UL-SCH indicator
 } srsran_dci_ul_nr_t;
 
 /**
@@ -278,21 +298,34 @@ SRSRAN_API int srsran_dci_nr_ul_pack(const srsran_dci_nr_t* q, const srsran_dci_
 SRSRAN_API int srsran_dci_nr_ul_unpack(const srsran_dci_nr_t* q, srsran_dci_msg_nr_t* msg, srsran_dci_ul_nr_t* dci);
 
 /**
- * @brief Stringifies an DL NR DCI structure
+ * @brief Stringifies an NR DCI conxtext
+ * @param ctx Provides NR DCI context
+ * @param[out] str Destination string
+ * @param str_len Destination string length
+ * @return The number of written characters
+ */
+SRSRAN_API int srsran_dci_ctx_to_str(const srsran_dci_ctx_t* ctx, char* str, uint32_t str_len);
+
+/**
+ * @brief Stringifies a DL NR DCI structure
+ * @param q NR DCI object with precomputed DCI parameters
  * @param dci DL NR SCI structure to stringify
  * @param[out] str Destination string
  * @param str_len Destination string length
  * @return The number of written characters
  */
-SRSRAN_API int srsran_dci_dl_nr_to_str(const srsran_dci_dl_nr_t* dci, char* str, uint32_t str_len);
+SRSRAN_API int
+srsran_dci_dl_nr_to_str(const srsran_dci_nr_t* q, const srsran_dci_dl_nr_t* dci, char* str, uint32_t str_len);
 
 /**
  * @brief Stringifies an UL NR DCI structure
+ * @param q NR DCI object with precomputed DCI parameters
  * @param dci UL NR SCI structure to stringify
  * @param[out] str Destination string
  * @param str_len Destination string length
  * @return The number of written characters
  */
-SRSRAN_API int srsran_dci_ul_nr_to_str(const srsran_dci_ul_nr_t* dci, char* str, uint32_t str_len);
+SRSRAN_API int
+srsran_dci_ul_nr_to_str(const srsran_dci_nr_t* q, const srsran_dci_ul_nr_t* dci, char* str, uint32_t str_len);
 
 #endif // SRSRAN_DCI_NR_H

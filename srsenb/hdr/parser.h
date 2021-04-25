@@ -74,7 +74,6 @@ public:
     {
       std::string val;
       if (root.exists(name)) {
-
         if (enabled_value) {
           *enabled_value = true;
         }
@@ -142,7 +141,6 @@ public:
     {
       S val;
       if (root.exists(name)) {
-
         if (enabled_value) {
           *enabled_value = true;
         }
@@ -423,9 +421,9 @@ int str_to_enum(EnumType& enum_val, Setting& root)
   bool        found = nowhitespace_string_to_enum(enum_val, val);
   if (not found) {
     fprintf(stderr, "PARSER ERROR: Invalid option: \"%s\" for asn1 enum type\n", val.c_str());
-    fprintf(stderr, "Valid options:  \"%s\"", EnumType((typename EnumType::options)0).to_string().c_str());
+    fprintf(stderr, "Valid options:  \"%s\"", EnumType((typename EnumType::options)0).to_string());
     for (uint32_t i = 1; i < EnumType::nof_types; i++) {
-      fprintf(stderr, ", \"%s\"", EnumType((typename EnumType::options)i).to_string().c_str());
+      fprintf(stderr, ", \"%s\"", EnumType((typename EnumType::options)i).to_string());
     }
     fprintf(stderr, "\n");
   }

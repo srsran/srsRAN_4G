@@ -290,7 +290,7 @@ typedef struct SRSRAN_API {
   uint32_t                    absolute_frequency_ssb;
   uint32_t                    absolute_frequency_point_a;
   srsran_subcarrier_spacing_t scs;
-  uint32_t                    nof_prb;
+  uint32_t                    nof_prb; ///< @brief See TS 38.101-1 Table 5.3.2-1 for more details
   uint32_t                    start;
   uint32_t max_mimo_layers; ///< @brief DL: Indicates the maximum number of MIMO layers to be used for PDSCH in all BWPs
                             ///< of this serving cell. (see TS 38.212 [17], clause 5.4.2.1). UL: Indicates the maximum
@@ -474,6 +474,8 @@ SRSRAN_API bool srsran_tdd_nr_is_dl(const srsran_tdd_config_nr_t* cfg, uint32_t 
  * @return true if the provided slot index is configured for Uplink
  */
 SRSRAN_API bool srsran_tdd_nr_is_ul(const srsran_tdd_config_nr_t* cfg, uint32_t numerology, uint32_t slot_idx);
+
+SRSRAN_API int srsran_carrier_to_cell(const srsran_carrier_nr_t* carrier, srsran_cell_t* cell);
 
 #ifdef __cplusplus
 }

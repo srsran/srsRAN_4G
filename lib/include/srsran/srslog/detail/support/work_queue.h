@@ -30,7 +30,7 @@ namespace srslog {
 
 namespace detail {
 
-//:TODO: this is a temp work queue.
+//: TODO: this is a temp work queue.
 
 /// Thread safe generic data type work queue.
 template <typename T, size_t capacity = SRSLOG_QUEUE_CAPACITY>

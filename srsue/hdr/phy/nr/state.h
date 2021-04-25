@@ -57,6 +57,7 @@ private:
   srsran::circular_array<srsran_pdsch_ack_nr_t, TTIMOD_SZ> pending_ack = {};
   mutable std::mutex                                       pending_ack_mutex;
 
+  /// Metrics section
   info_metrics_t     info_metrics = {};
   sync_metrics_t     sync_metrics = {};
   ch_metrics_t       ch_metrics   = {};
@@ -79,8 +80,7 @@ private:
   }
 
 public:
-  mac_interface_phy_nr* stack   = nullptr;
-  srsran_carrier_nr_t   carrier = {};
+  mac_interface_phy_nr* stack = nullptr;
 
   /// Physical layer user configuration
   phy_args_nr_t args = {};
@@ -95,12 +95,6 @@ public:
 
   state()
   {
-    carrier.pci              = 500;
-    carrier.nof_prb         = 100;
-    carrier.max_mimo_layers = 1;
-
-    info_metrics.pci = carrier.pci;
-
     // Hard-coded values, this should be set when the measurements take place
     csi_measurements[0].K_csi_rs  = 1;
     csi_measurements[0].nof_ports = 1;
@@ -117,9 +111,9 @@ public:
   {
     // Convert UL DCI to grant
     srsran_sch_cfg_nr_t pusch_cfg = {};
-    if (srsran_ra_ul_dci_to_grant_nr(&carrier, &cfg.pusch, &dci_ul, &pusch_cfg, &pusch_cfg.grant)) {
+    if (srsran_ra_ul_dci_to_grant_nr(&cfg.carrier, &cfg.pusch, &dci_ul, &pusch_cfg, &pusch_cfg.grant)) {
       std::array<char, 512> str;
-      srsran_dci_ul_nr_to_str(&dci_ul, str.data(), str.size());
+      srsran_dci_ul_nr_to_str(NULL, &dci_ul, str.data(), str.size());
       ERROR("Computing UL grant %s", str.data());
       return;
     }
@@ -176,7 +170,7 @@ public:
   {
     // Convert DL DCI to grant
     srsran_sch_cfg_nr_t pdsch_cfg = {};
-    if (srsran_ra_dl_dci_to_grant_nr(&carrier, &slot, &cfg.pdsch, &dci_dl, &pdsch_cfg, &pdsch_cfg.grant)) {
+    if (srsran_ra_dl_dci_to_grant_nr(&cfg.carrier, &slot, &cfg.pdsch, &dci_dl, &pdsch_cfg, &pdsch_cfg.grant)) {
       ERROR("Computing UL grant");
       return;
     }
