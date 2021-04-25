@@ -70,6 +70,7 @@ class multiqueue_handler
     {
       std::unique_lock<std::mutex> lock(q_mutex);
       if (val == active_) {
+        // no-op
         return;
       }
       active_                = val;
@@ -78,6 +79,7 @@ class multiqueue_handler
       if (not active_) {
         buffer.clear();
         lock.unlock();
+        // unlock blocked pushing threads
         cv_full.notify_all();
       }
     }
@@ -130,27 +132,26 @@ class multiqueue_handler
     template <typename T>
     bool push_(T* o, bool blocking) noexcept
     {
-      {
-        std::unique_lock<std::mutex> lock(q_mutex);
-        while (active_ and blocking and buffer.full()) {
-          nof_waiting++;
-          cv_full.wait(lock);
-          nof_waiting--;
-        }
-        if (not active_) {
-          lock.unlock();
-          cv_exit.notify_one();
-          return false;
-        }
-        buffer.push(std::forward<T>(*o));
+      std::unique_lock<std::mutex> lock(q_mutex);
+      while (active_ and blocking and buffer.full()) {
+        nof_waiting++;
+        cv_full.wait(lock);
+        nof_waiting--;
       }
+      if (not active_) {
+        lock.unlock();
+        cv_exit.notify_one();
+        return false;
+      }
+      buffer.push(std::forward<T>(*o));
       if (consumer_notify_needed) {
         // Note: The consumer thread only needs to be notified and awaken when queues transition from empty to non-empty
         //       To ensure that the consumer noticed that the queue was empty before a push, we store the last
         //       try_pop() return in a member variable.
         //       Doing this reduces the contention of multiple producers for the same condition variable
-        parent->cv_empty.notify_one();
         consumer_notify_needed = false;
+        lock.unlock();
+        parent->signal_pushed_data();
       }
       return true;
     }
@@ -218,7 +219,8 @@ public:
       // signal deactivation to pushing threads in a non-blocking way
       q.set_active(false);
     }
-    while (wait_pop_state) {
+    while (wait_state) {
+      pushed_data = true;
       cv_empty.notify_one();
       cv_exit.wait(lock);
     }
@@ -277,13 +279,14 @@ public:
       if (round_robin_pop_(value)) {
         return true;
       }
-      wait_pop_state = true;
-      cv_empty.wait(lock);
-      wait_pop_state = false;
+      pushed_data = false;
+      wait_state  = true;
+      while (not pushed_data) {
+        cv_empty.wait(lock);
+      }
+      wait_state = false;
     }
-    if (not running) {
-      cv_exit.notify_one();
-    }
+    cv_exit.notify_one();
     return false;
   }
 
@@ -310,11 +313,23 @@ private:
     }
     return false;
   }
+  /// Called by the producer threads to signal the consumer to unlock in wait_pop
+  void signal_pushed_data()
+  {
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      if (pushed_data) {
+        return;
+      }
+      pushed_data = true;
+    }
+    cv_empty.notify_one();
+  }
 
   mutable std::mutex          mutex;
   std::condition_variable     cv_empty, cv_exit;
   uint32_t                    spin_idx = 0;
-  bool                        running = true, wait_pop_state = false;
+  bool                        running = true, pushed_data = false, wait_state = false;
   std::deque<input_port_impl> queues;
   uint32_t                    default_capacity = 0;
 };

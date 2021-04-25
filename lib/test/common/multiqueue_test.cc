@@ -16,6 +16,7 @@
 #include "srsran/common/thread_pool.h"
 #include <iostream>
 #include <map>
+#include <random>
 #include <thread>
 #include <unistd.h>
 
@@ -234,14 +235,17 @@ int test_multiqueue_threading4()
 
   int                     capacity = 4;
   multiqueue_handler<int> multiqueue(capacity);
-  auto                    qid1              = multiqueue.add_queue();
-  auto                    qid2              = multiqueue.add_queue();
-  auto                    qid3              = multiqueue.add_queue();
-  auto                    qid4              = multiqueue.add_queue();
-  auto                    pop_blocking_func = [&multiqueue](bool* success) {
-    int number = 0, count = 0;
+  auto                    qid1 = multiqueue.add_queue();
+  auto                    qid2 = multiqueue.add_queue();
+  auto                    qid3 = multiqueue.add_queue();
+  auto                    qid4 = multiqueue.add_queue();
+  std::mutex              mutex;
+  int                     last_number;
+  auto                    pop_blocking_func = [&multiqueue, &last_number, &mutex](bool* success) {
+    int number = 0;
     while (multiqueue.wait_pop(&number)) {
-      TESTASSERT(number == count++);
+      std::lock_guard<std::mutex> lock(mutex);
+      last_number = std::max(last_number, number);
     }
     *success = true;
   };
@@ -249,8 +253,12 @@ int test_multiqueue_threading4()
   bool        t1_success = false;
   std::thread t1(pop_blocking_func, &t1_success);
 
-  for (int i = 0; i < 1000; ++i) {
-    switch (i % 3) {
+  std::random_device              rd;
+  std::mt19937                    gen(rd());
+  std::uniform_int_distribution<> dist{0, 2};
+  for (int i = 0; i < 10000; ++i) {
+    int qidx = dist(gen);
+    switch (qidx) {
       case 0:
         qid1.push(i);
         break;
@@ -263,7 +271,17 @@ int test_multiqueue_threading4()
       default:
         break;
     }
-    usleep(10);
+    if (i % 20 == 0) {
+      int                          count = 0;
+      std::unique_lock<std::mutex> lock(mutex);
+      while (last_number != i) {
+        lock.unlock();
+        usleep(100);
+        count++;
+        TESTASSERT(count < 100000);
+        lock.lock();
+      }
+    }
   }
 
   // Should be able to unlock all
