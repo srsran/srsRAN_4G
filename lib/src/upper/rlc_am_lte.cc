@@ -530,16 +530,13 @@ void rlc_am_lte::rlc_am_lte_tx::discard_sdu(uint32_t discard_sn)
     return false;
   });
 
-  if (discarded) {
-    // remove also from undelivered SDUs queue
-    logger.info("Discarding SDU with PDCP_SN=%d", discard_sn);
-    if (not undelivered_sdu_info_queue.has_pdcp_sn(discard_sn)) {
-      logger.info("PDCP SDU info does not exists for discarded SDU. PDCP_SN=%d", discard_sn);
-    } else {
-      undelivered_sdu_info_queue.clear_pdcp_sdu(discard_sn);
-    }
+  logger.info("%s PDU with PDCP_SN=%d", discarded ? "Discarding" : "Couldn't discard", discard_sn);
+
+  // always try remove from undelivered SDUs queue
+  if (not undelivered_sdu_info_queue.has_pdcp_sn(discard_sn)) {
+    logger.info("PDCP SDU info does not exists for discarded SDU. PDCP_SN=%d", discard_sn);
   } else {
-    logger.info("Could not find SDU to discard. PDCP_SN=%d", discard_sn);
+    undelivered_sdu_info_queue.clear_pdcp_sdu(discard_sn);
   }
 }
 
