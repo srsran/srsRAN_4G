@@ -286,7 +286,7 @@ public:
   using iterator       = T*;
   using const_iterator = const T*;
 
-  explicit bounded_array(uint32_t size_ = 0) : current_size(size_) {}
+  explicit bounded_array(uint32_t size_ = 0) : data_(), current_size(size_) {}
   static uint32_t capacity() { return MAX_N; }
   uint32_t        size() const { return current_size; }
   T&              operator[](uint32_t idx) { return data_[idx]; }
@@ -314,7 +314,7 @@ public:
   const_iterator end() const { return &data_[size()]; }
 
 private:
-  T        data_[MAX_N] = {};
+  T        data_[MAX_N];
   uint32_t current_size;
 };
 
