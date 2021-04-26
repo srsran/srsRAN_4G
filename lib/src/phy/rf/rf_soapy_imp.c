@@ -302,7 +302,7 @@ int rf_soapy_open_multi(char* args, void** h, uint32_t num_requested_channels)
   }
 
   // With the Lime we are better off using LTE sample rates
-  if (strstr(devname, "Lime") != NULL && srsran_symbol_size_is_standard() == false) {
+  if (strstr(devname, "lime") != NULL && srsran_symbol_size_is_standard() == false) {
     printf("\033[0;31mConsider using LTE sample rates for better RF performance.\nEither compile with "
            "\'-DUSE_LTE_RATES=True\' or start srsENB or srsUE with \'--expert.lte_sample_rates=true\'\033[0m\n");
   }
