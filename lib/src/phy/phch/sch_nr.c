@@ -687,6 +687,7 @@ static int sch_nr_decode(srsran_sch_nr_t*        q,
   // Calculate TB CRC from packed data
   if (cfg.C == 1) {
     SCH_INFO_RX("TB: TBS=%d; CRC=%s", tb->tbs, tb->softbuffer.rx->cb_crc[0] ? "OK" : "KO");
+    res->crc = true;
   } else {
     // More than one
     uint32_t checksum1 = srsran_crc_checksum_byte(crc_tb, res->payload, tb->tbs);
