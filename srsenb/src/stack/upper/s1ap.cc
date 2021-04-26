@@ -1163,7 +1163,11 @@ bool s1ap::send_ho_req_ack(const asn1::s1ap::ho_request_s&                msg,
   tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_HO_RES_ALLOC);
   ho_request_ack_ies_container& container = tx_pdu.successful_outcome().value.ho_request_ack().protocol_ies;
 
-  ue* ue_ptr              = users.find_ue_mmeid(msg.protocol_ies.mme_ue_s1ap_id.value.value);
+  ue* ue_ptr = users.find_ue_mmeid(msg.protocol_ies.mme_ue_s1ap_id.value.value);
+  if (ue_ptr == nullptr) {
+    logger.error("The MME-S1AP-UE-ID=%ld is not valid", msg.protocol_ies.mme_ue_s1ap_id.value.value);
+    return false;
+  }
   ue_ptr->ctxt.rnti       = rnti;
   ue_ptr->ctxt.enb_cc_idx = enb_cc_idx;
 
@@ -1174,8 +1178,8 @@ bool s1ap::send_ho_req_ack(const asn1::s1ap::ho_request_s&                msg,
   container.erab_admitted_list.value.resize(admitted_bearers.size());
   for (size_t i = 0; i < admitted_bearers.size(); ++i) {
     container.erab_admitted_list.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_ADMITTED_ITEM);
-    auto& c                   = container.erab_admitted_list.value[i].value.erab_admitted_item();
-    c                         = admitted_bearers[i];
+    auto& c = container.erab_admitted_list.value[i].value.erab_admitted_item();
+    c       = admitted_bearers[i];
     if (!args.gtp_advertise_addr.empty()) {
       c.transport_layer_address = addr_to_asn1(args.gtp_advertise_addr.c_str());
     } else {

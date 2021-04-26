@@ -279,7 +279,7 @@ private:
     srsran::unique_timer ts1_reloc_overall; ///< TS1_{RELOCOverall}
 
     // Procedure state
-    s1ap_proc_id_t                                                           current_state;
+    s1ap_proc_id_t                                                           current_state = s1ap_proc_id_t::nulltype;
     erab_id_list                                                             updated_erabs;
     srsran::bounded_vector<asn1::s1ap::erab_item_s, ASN1_S1AP_MAXNOOF_ERABS> failed_cfg_erabs;
 

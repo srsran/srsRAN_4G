@@ -314,7 +314,7 @@ public:
   const_iterator end() const { return &data_[size()]; }
 
 private:
-  T        data_[MAX_N];
+  T        data_[MAX_N] = {};
   uint32_t current_size;
 };
 
