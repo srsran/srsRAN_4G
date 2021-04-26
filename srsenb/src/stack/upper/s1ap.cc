@@ -418,7 +418,7 @@ bool s1ap::user_release(uint16_t rnti, asn1::s1ap::cause_radio_network_e cause_r
     return false;
   }
 
-  if (u->was_uectxtrelease_requested()) {
+  if (u->was_uectxtrelease_requested() or not u->ctxt.mme_ue_s1ap_id.has_value()) {
     logger.warning("UE context for RNTI:0x%x is in zombie state. Releasing...", rnti);
     users.erase(u);
     rrc->release_ue(rnti);
@@ -428,10 +428,7 @@ bool s1ap::user_release(uint16_t rnti, asn1::s1ap::cause_radio_network_e cause_r
   cause_c cause;
   cause.set_radio_network().value = cause_radio.value;
 
-  if (u->ctxt.mme_ue_s1ap_id.has_value()) {
-    return u->send_uectxtreleaserequest(cause);
-  }
-  return true;
+  return u->send_uectxtreleaserequest(cause);
 }
 
 bool s1ap::user_exists(uint16_t rnti)
