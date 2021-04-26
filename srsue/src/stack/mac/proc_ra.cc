@@ -169,7 +169,7 @@ void ra_proc::state_response_reception(uint32_t tti)
   if (!rar_received) {
     uint32_t interval = srsran_tti_interval(tti, ra_tti + 3 + rach_cfg.responseWindowSize - 1);
     if (interval > 0 && interval < 100) {
-      logger.error("RA response not received within the response window");
+      logger.warning("RA response not received within the response window");
       response_error();
     }
   }
