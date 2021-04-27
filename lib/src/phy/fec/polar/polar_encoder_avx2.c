@@ -120,7 +120,6 @@ static inline void srsran_vec_polar_encoder_32_avx2(const uint8_t* x, uint8_t* z
  */
 static inline void srsran_vec_xor_bbb_avx2(const uint8_t* x, const uint8_t* y, uint8_t* z, uint16_t len)
 {
-
   for (int i = 0; i < len; i += SRSRAN_AVX2_B_SIZE) {
     __m256i simd_x = _mm256_loadu_si256((__m256i*)&x[i]);
     __m256i simd_y = _mm256_loadu_si256((__m256i*)&y[i]);
@@ -133,18 +132,17 @@ static inline void srsran_vec_xor_bbb_avx2(const uint8_t* x, const uint8_t* y, u
 
 int polar_encoder_encode_avx2(void* p, const uint8_t* input, uint8_t* output, const uint8_t code_size_log)
 {
-
   struct pAVX2* q = p;
+
+  if (q == NULL) {
+    return -1;
+  }
 
   uint8_t* tmp = q->tmp;
 
   uint8_t* x = NULL;
   uint8_t* y = NULL;
   uint8_t* z = NULL;
-
-  if (q == NULL) {
-    return -1;
-  }
 
   // load data
   uint32_t code_size = 1U << code_size_log;

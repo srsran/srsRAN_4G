@@ -128,107 +128,63 @@ void* create_ldpc_dec_c_avx2long_flood(uint8_t bgN, uint8_t bgM, uint16_t ls, fl
   uint8_t  bgK = bgN - bgM;
   uint16_t hrr = bgK + 4;
 
-  if ((vp = srsran_vec_malloc(sizeof(struct ldpc_regs_c_avx2long_flood))) == NULL) {
+  if ((vp = SRSRAN_MEM_ALLOC(struct ldpc_regs_c_avx2long_flood, 1)) == NULL) {
     return NULL;
   }
+  SRSRAN_MEM_ZERO(vp, struct ldpc_regs_c_avx2long_flood, 1);
 
   // compute number of subnodes
   int left_out   = ls % SRSRAN_AVX2_B_SIZE;
   int n_subnodes = ls / SRSRAN_AVX2_B_SIZE + (left_out > 0);
 
-  if ((vp->llrs = srsran_vec_malloc(bgN * n_subnodes * sizeof(__m256i))) == NULL) {
-    free(vp);
+  if ((vp->llrs = SRSRAN_MEM_ALLOC(__m256i, bgN * n_subnodes)) == NULL) {
+    delete_ldpc_dec_c_avx2long_flood(vp);
     return NULL;
   }
 
-  if ((vp->soft_bits = srsran_vec_malloc(bgN * n_subnodes * sizeof(bg_node_t))) == NULL) {
-    free(vp->llrs);
-    free(vp);
+  if ((vp->soft_bits = SRSRAN_MEM_ALLOC(bg_node_t, bgN * n_subnodes)) == NULL) {
+    delete_ldpc_dec_c_avx2long_flood(vp);
     return NULL;
   }
 
-  if ((vp->check_to_var = srsran_vec_malloc((long)(hrr + 1) * bgM * n_subnodes * sizeof(__m256i))) == NULL) {
-    free(vp->soft_bits);
-    free(vp->llrs);
-    free(vp);
+  if ((vp->check_to_var = SRSRAN_MEM_ALLOC(__m256i, (hrr + 1) * (uint32_t)bgM * n_subnodes)) == NULL) {
+    delete_ldpc_dec_c_avx2long_flood(vp);
     return NULL;
   }
 
-  if ((vp->var_to_check_to_free = srsran_vec_malloc(((hrr + 1) * bgM * n_subnodes + 2) * sizeof(__m256i))) == NULL) {
-    free(vp->check_to_var);
-    free(vp->soft_bits);
-    free(vp->llrs);
-    free(vp);
+  if ((vp->var_to_check_to_free = SRSRAN_MEM_ALLOC(__m256i, (hrr + 1) * (uint32_t)bgM * n_subnodes + 2)) == NULL) {
+    delete_ldpc_dec_c_avx2long_flood(vp);
     return NULL;
   }
   vp->var_to_check = &vp->var_to_check_to_free[1];
 
-  if ((vp->minp_v2c_epi8 = srsran_vec_malloc(n_subnodes * sizeof(__m256i))) == NULL) {
-    free(vp->var_to_check_to_free);
-    free(vp->check_to_var);
-    free(vp->soft_bits);
-    free(vp->llrs);
-    free(vp);
+  if ((vp->minp_v2c_epi8 = SRSRAN_MEM_ALLOC(__m256i, n_subnodes)) == NULL) {
+    delete_ldpc_dec_c_avx2long_flood(vp);
     return NULL;
   }
 
-  if ((vp->mins_v2c_epi8 = srsran_vec_malloc(n_subnodes * sizeof(__m256i))) == NULL) {
-    free(vp->minp_v2c_epi8);
-    free(vp->var_to_check_to_free);
-    free(vp->check_to_var);
-    free(vp->soft_bits);
-    free(vp->llrs);
-    free(vp);
+  if ((vp->mins_v2c_epi8 = SRSRAN_MEM_ALLOC(__m256i, n_subnodes)) == NULL) {
+    delete_ldpc_dec_c_avx2long_flood(vp);
     return NULL;
   }
 
-  if ((vp->prod_v2c_epi8 = srsran_vec_malloc(n_subnodes * sizeof(__m256i))) == NULL) {
-    free(vp->mins_v2c_epi8);
-    free(vp->minp_v2c_epi8);
-    free(vp->var_to_check_to_free);
-    free(vp->check_to_var);
-    free(vp->soft_bits);
-    free(vp->llrs);
-    free(vp);
+  if ((vp->prod_v2c_epi8 = SRSRAN_MEM_ALLOC(__m256i, n_subnodes)) == NULL) {
+    delete_ldpc_dec_c_avx2long_flood(vp);
     return NULL;
   }
 
-  if ((vp->min_ix_epi8 = srsran_vec_malloc(n_subnodes * sizeof(__m256i))) == NULL) {
-    free(vp->prod_v2c_epi8);
-    free(vp->mins_v2c_epi8);
-    free(vp->minp_v2c_epi8);
-    free(vp->var_to_check_to_free);
-    free(vp->check_to_var);
-    free(vp->soft_bits);
-    free(vp->llrs);
-    free(vp);
+  if ((vp->min_ix_epi8 = SRSRAN_MEM_ALLOC(__m256i, n_subnodes)) == NULL) {
+    delete_ldpc_dec_c_avx2long_flood(vp);
     return NULL;
   }
 
-  if ((vp->rotated_v2c = srsran_vec_malloc((long)(hrr + 1) * n_subnodes * sizeof(__m256i))) == NULL) {
-    free(vp->min_ix_epi8);
-    free(vp->prod_v2c_epi8);
-    free(vp->mins_v2c_epi8);
-    free(vp->minp_v2c_epi8);
-    free(vp->var_to_check_to_free);
-    free(vp->check_to_var);
-    free(vp->soft_bits);
-    free(vp->llrs);
-    free(vp);
+  if ((vp->rotated_v2c = SRSRAN_MEM_ALLOC(__m256i, (hrr + 1) * (uint32_t)n_subnodes)) == NULL) {
+    delete_ldpc_dec_c_avx2long_flood(vp);
     return NULL;
   }
 
-  if ((vp->this_c2v_epi8_to_free = srsran_vec_malloc((n_subnodes + 2) * sizeof(__m256i))) == NULL) {
-    free(vp->rotated_v2c);
-    free(vp->min_ix_epi8);
-    free(vp->prod_v2c_epi8);
-    free(vp->mins_v2c_epi8);
-    free(vp->minp_v2c_epi8);
-    free(vp->var_to_check_to_free);
-    free(vp->check_to_var);
-    free(vp->soft_bits);
-    free(vp->llrs);
-    free(vp);
+  if ((vp->this_c2v_epi8_to_free = SRSRAN_MEM_ALLOC(__m256i, n_subnodes + 2)) == NULL) {
+    delete_ldpc_dec_c_avx2long_flood(vp);
     return NULL;
   }
   vp->this_c2v_epi8 = &vp->this_c2v_epi8_to_free[1];
@@ -250,19 +206,40 @@ void delete_ldpc_dec_c_avx2long_flood(void* p)
 {
   struct ldpc_regs_c_avx2long_flood* vp = p;
 
-  if (vp != NULL) {
-    free(vp->this_c2v_epi8_to_free);
-    free(vp->rotated_v2c);
-    free(vp->min_ix_epi8);
-    free(vp->prod_v2c_epi8);
-    free(vp->mins_v2c_epi8);
-    free(vp->minp_v2c_epi8);
-    free(vp->var_to_check_to_free);
-    free(vp->check_to_var);
-    free(vp->soft_bits);
-    free(vp->llrs);
-    free(vp);
+  if (vp == NULL) {
+    return;
   }
+  if (vp->this_c2v_epi8_to_free) {
+    free(vp->this_c2v_epi8_to_free);
+  }
+  if (vp->rotated_v2c) {
+    free(vp->rotated_v2c);
+  }
+  if (vp->min_ix_epi8) {
+    free(vp->min_ix_epi8);
+  }
+  if (vp->prod_v2c_epi8) {
+    free(vp->prod_v2c_epi8);
+  }
+  if (vp->mins_v2c_epi8) {
+    free(vp->mins_v2c_epi8);
+  }
+  if (vp->minp_v2c_epi8) {
+    free(vp->minp_v2c_epi8);
+  }
+  if (vp->var_to_check_to_free) {
+    free(vp->var_to_check_to_free);
+  }
+  if (vp->check_to_var) {
+    free(vp->check_to_var);
+  }
+  if (vp->soft_bits) {
+    free(vp->soft_bits);
+  }
+  if (vp->llrs) {
+    free(vp->llrs);
+  }
+  free(vp);
 }
 
 int init_ldpc_dec_c_avx2long_flood(void* p, const int8_t* llrs, uint16_t ls)
@@ -293,8 +270,8 @@ int init_ldpc_dec_c_avx2long_flood(void* p, const int8_t* llrs, uint16_t ls)
     bzero((int8_t*)(vp->llrs + i * vp->n_subnodes + j - 1) + k, (SRSRAN_AVX2_B_SIZE - k) * sizeof(int8_t));
   }
 
-  bzero(vp->check_to_var, (vp->hrr + 1) * vp->bgM * vp->n_subnodes * sizeof(__m256i));
-  bzero(vp->var_to_check, (vp->hrr + 1) * vp->bgM * vp->n_subnodes * sizeof(__m256i));
+  SRSRAN_MEM_ZERO(vp->check_to_var, __m256i, (vp->hrr + 1) * (uint32_t)vp->bgM * (uint32_t)vp->n_subnodes);
+  SRSRAN_MEM_ZERO(vp->var_to_check, __m256i, (vp->hrr + 1) * (uint32_t)vp->bgM * (uint32_t)vp->n_subnodes);
   return 0;
 }
 
@@ -387,7 +364,7 @@ int update_ldpc_check_to_var_c_avx2long_flood(void*           p,
       vp->mins_v2c_epi8[j] = _mm256_blendv_epi8(vp->mins_v2c_epi8[j], help_min_epi8, mask_min_epi8);
     }
 
-    current_var_index = (*these_var_indices)[i + 1];
+    current_var_index = (*these_var_indices)[(i + 1) % MAX_CNCT];
   }
 
   __m256i* this_check_to_var = vp->check_to_var + i_layer * (vp->hrr + 1) * vp->n_subnodes;
@@ -419,7 +396,7 @@ int update_ldpc_check_to_var_c_avx2long_flood(void*           p,
     // rotating right LS - shift positions is the same as rotating left shift positions
     rotate_node_right(vp->this_c2v_epi8, this_check_to_var + i_v2c_base, vp->ls - shift, vp->ls, vp->n_subnodes);
 
-    current_var_index = (*these_var_indices)[i + 1];
+    current_var_index = (*these_var_indices)[(i + 1) % MAX_CNCT];
   }
 
   return 0;

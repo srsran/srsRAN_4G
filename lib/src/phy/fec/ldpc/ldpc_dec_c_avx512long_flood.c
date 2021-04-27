@@ -293,8 +293,8 @@ int init_ldpc_dec_c_avx512long_flood(void* p, const int8_t* llrs, uint16_t ls)
     bzero((int8_t*)(vp->llrs + i * vp->n_subnodes + j - 1) + k, (SRSRAN_AVX512_B_SIZE - k) * sizeof(int8_t));
   }
 
-  bzero(vp->check_to_var, (vp->hrr + 1) * vp->bgM * vp->n_subnodes * sizeof(__m512i));
-  bzero(vp->var_to_check, (vp->hrr + 1) * vp->bgM * vp->n_subnodes * sizeof(__m512i));
+  SRSRAN_MEM_ZERO(vp->check_to_var, __m512i, (vp->hrr + 1) * (uint32_t)vp->bgM * (uint32_t)vp->n_subnodes);
+  SRSRAN_MEM_ZERO(vp->var_to_check, __m512i, (vp->hrr + 1) * (uint32_t)vp->bgM * (uint32_t)vp->n_subnodes);
   return 0;
 }
 
@@ -384,7 +384,7 @@ int update_ldpc_check_to_var_c_avx512long_flood(void*           p,
       vp->mins_v2c_epi8[j] = _mm512_mask_blend_epi8(mask_min_epi8, vp->mins_v2c_epi8[j], help_min_epi8);
     }
 
-    current_var_index = (*these_var_indices)[i + 1];
+    current_var_index = (*these_var_indices)[(i + 1) % MAX_CNCT];
   }
 
   __m512i* this_check_to_var = vp->check_to_var + i_layer * (vp->hrr + 1) * vp->n_subnodes;
@@ -418,7 +418,7 @@ int update_ldpc_check_to_var_c_avx512long_flood(void*           p,
     // rotating right LS - shift positions is the same as rotating left shift positions
     rotate_node_right((uint8_t*)vp->this_c2v_epi8, this_check_to_var + i_v2c_base, (vp->ls - shift) % vp->ls, vp->ls);
 
-    current_var_index = (*these_var_indices)[i + 1];
+    current_var_index = (*these_var_indices)[(i + 1) % MAX_CNCT];
   }
 
   return 0;

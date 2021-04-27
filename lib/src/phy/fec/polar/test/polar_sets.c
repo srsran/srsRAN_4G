@@ -42,6 +42,16 @@ void srsran_polar_code_sets_free(srsran_polar_sets_t* c)
   }
 }
 
+#define SAFE_READ(PTR, SIZE, N, FILE)                                                                                  \
+  do {                                                                                                                 \
+    size_t nbytes = SIZE * N;                                                                                          \
+    if (nbytes != fread(PTR, SIZE, N, FILE)) {                                                                         \
+      perror("read");                                                                                                  \
+      fclose(FILE);                                                                                                    \
+      exit(1);                                                                                                         \
+    }                                                                                                                  \
+  } while (false)
+
 int srsran_polar_code_sets_read(srsran_polar_sets_t* c,
                                 const uint16_t       message_size,
                                 const uint8_t        code_size_log,
@@ -100,10 +110,10 @@ int srsran_polar_code_sets_read(srsran_polar_sets_t* c,
     exit(1);
   }
 
-  fread(c->info_set, sizeof(uint16_t), c->info_set_size, fptr);
-  fread(c->message_set, sizeof(uint16_t), c->message_set_size, fptr);
-  fread(c->parity_set, sizeof(uint16_t), c->parity_set_size, fptr);
-  fread(c->frozen_set, sizeof(uint16_t), c->frozen_set_size, fptr);
+  SAFE_READ(c->info_set, sizeof(uint16_t), c->info_set_size, fptr);
+  SAFE_READ(c->message_set, sizeof(uint16_t), c->message_set_size, fptr);
+  SAFE_READ(c->parity_set, sizeof(uint16_t), c->parity_set_size, fptr);
+  SAFE_READ(c->frozen_set, sizeof(uint16_t), c->frozen_set_size, fptr);
 
   fclose(fptr);
   return 0;

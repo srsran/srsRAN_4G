@@ -25,6 +25,7 @@
 #include "polar_decoder_ssc_c_avx2.h"
 #include "../utils_avx2.h"
 #include "polar_decoder_vector_avx2.h"
+#include "srsran/phy/fec/polar/polar_code.h"
 #include "srsran/phy/fec/polar/polar_encoder.h"
 #include "srsran/phy/utils/vector.h"
 
@@ -42,13 +43,13 @@ struct StateAVX2 {
  * \brief Describes an SSC polar decoder (8-bit version).
  */
 struct pSSC_c_avx2 {
-  int8_t**                llr0;          /*!< \brief Pointers to the upper half of LLRs values at all stages. */
-  int8_t**                llr1;          /*!< \brief Pointers to the lower half of LLRs values at all stages. */
-  uint8_t*                est_bit;       /*!< \brief Pointers to the temporary estimated bits. */
-  struct Params*          param;         /*!< \brief Pointer to a Params structure. */
-  struct StateAVX2*       state;         /*!< \brief Pointer to a State. */
-  void*                   tmp_node_type; /*!< \brief Pointer to a Tmp_node_type. */
-  srsran_polar_encoder_t* enc;           /*!< \brief Pointer to a srsran_polar_encoder_t. */
+  int8_t*                 llr0[NMAX_LOG + 1]; /*!< \brief Pointers to the upper half of LLRs values at all stages. */
+  int8_t*                 llr1[NMAX_LOG + 1]; /*!< \brief Pointers to the lower half of LLRs values at all stages. */
+  uint8_t*                est_bit;            /*!< \brief Pointers to the temporary estimated bits. */
+  struct Params*          param;              /*!< \brief Pointer to a Params structure. */
+  struct StateAVX2*       state;              /*!< \brief Pointer to a State. */
+  void*                   tmp_node_type;      /*!< \brief Pointer to a Tmp_node_type. */
+  srsran_polar_encoder_t* enc;                /*!< \brief Pointer to a srsran_polar_encoder_t. */
   void (*f)(const int8_t* x, const int8_t* y, int8_t* z, const uint16_t len); /*!< \brief Pointer to the function-f. */
   void (*g)(const uint8_t* b,
             const int8_t*  x,
@@ -99,12 +100,6 @@ void delete_polar_decoder_ssc_c_avx2(void* p)
   if (p != NULL) {
     if (pp->llr0[0]) {
       free(pp->llr0[0]); // remove LLR buffer.
-    }
-    if (pp->llr0) {
-      free(pp->llr0);
-    }
-    if (pp->llr1) {
-      free(pp->llr1);
     }
     if (pp->param) {
       if (pp->param->node_type[0]) {
@@ -190,10 +185,6 @@ void* create_polar_decoder_ssc_c_avx2(const uint8_t nMax)
   int est_bit_size = pp->param->code_stage_size[nMax] + SRSRAN_AVX2_B_SIZE;
 
   pp->est_bit = srsran_vec_u8_malloc(est_bit_size); // every 32 chars are aligned
-
-  // allocate memory for LLR pointers.
-  pp->llr0 = malloc((nMax + 1) * sizeof(int8_t*));
-  pp->llr1 = malloc((nMax + 1) * sizeof(int8_t*));
 
   // LLR MEMORY NOT ALIGNED FOR LLR_BUFFERS_SIZE < SRSRAN_SIMB_LLR_ALIGNED
 
@@ -303,7 +294,6 @@ int init_polar_decoder_ssc_c_avx2(void*           p,
 
 int polar_decoder_ssc_c_avx2(void* p, uint8_t* data_decoded)
 {
-
   if (p == NULL) {
     return -1;
   }
@@ -322,7 +312,6 @@ int polar_decoder_ssc_c_avx2(void* p, uint8_t* data_decoded)
 
 static void simplified_node(struct pSSC_c_avx2* p)
 {
-
   struct pSSC_c_avx2* pp = p;
 
   pp->state->stage--; // to child node.
@@ -336,7 +325,6 @@ static void simplified_node(struct pSSC_c_avx2* p)
   uint16_t stage_half_size = 0;
 
   switch (pp->param->node_type[stage][bit_pos]) {
-
     case RATE_1:
       pp->hard_bit(pp->llr0[stage], pp->est_bit + pp->state->bit_pos, stage_size);
 

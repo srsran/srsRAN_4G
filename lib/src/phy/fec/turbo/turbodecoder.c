@@ -452,7 +452,7 @@ static void tdec_iteration_8(srsran_tdec_t* h, int8_t* input)
   if (h->dec_type == SRSRAN_TDEC_AUTO) {
     h->current_llr_type  = SRSRAN_TDEC_8;
     h->current_dec       = tdec_sb_idx_8(h->current_long_cb);
-    h->current_inter_idx = interleaver_idx(h->nof_blocks8[h->current_dec]);
+    h->current_inter_idx = interleaver_idx(h->nof_blocks8[h->current_dec % SRSRAN_TDEC_NOF_AUTO_MODES_8]);
 
     // If long_cb is not multiple of any 8-bit decoder, use a 16-bit decoder and do type conversion
     if (h->current_dec >= 10) {

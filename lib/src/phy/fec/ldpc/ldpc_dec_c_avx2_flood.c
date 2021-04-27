@@ -47,8 +47,8 @@
  * \brief Represents a node of the base factor graph.
  */
 typedef union bg_node_t {
-  int8_t  c[SRSRAN_AVX2_B_SIZE]; /*!< Each base node may contain up to \ref SRSRAN_AVX2_B_SIZE lifted nodes. */
-  __m256i v;                     /*!< All the lifted nodes of the current base node as a 256-bit line. */
+  int8_t*  c; /*!< Each base node may contain up to \ref SRSRAN_AVX2_B_SIZE lifted nodes. */
+  __m256i* v; /*!< All the lifted nodes of the current base node as a 256-bit line. */
 } bg_node_t;
 
 /*!
@@ -63,11 +63,11 @@ static const int8_t infinity7 = (1U << 6U) - 1;
 struct ldpc_regs_c_avx2_flood {
   __m256i scaling_fctr; /*!< \brief Scaling factor for the normalized min-sum decoding algorithm. */
 
-  bg_node_t* soft_bits;    /*!< \brief A-posteriori log-likelihood ratios. */
-  __m256i*   llrs;         /*!< \brief A-priori log-likelihood ratios. */
-  __m256i*   check_to_var; /*!< \brief Check-to-variable messages. */
-  __m256i*   var_to_check; /*!< \brief Variable-to-check messages. */
-  __m256i*   rotated_v2c;  /*!< \brief To store a rotated version of the variable-to-check messages. */
+  bg_node_t soft_bits;    /*!< \brief A-posteriori log-likelihood ratios. */
+  __m256i*  llrs;         /*!< \brief A-priori log-likelihood ratios. */
+  __m256i*  check_to_var; /*!< \brief Check-to-variable messages. */
+  __m256i*  var_to_check; /*!< \brief Variable-to-check messages. */
+  __m256i*  rotated_v2c;  /*!< \brief To store a rotated version of the variable-to-check messages. */
 
   uint16_t ls;  /*!< \brief Lifting size. */
   uint8_t  hrr; /*!< \brief Number of variable nodes in the high-rate region (before lifting). */
@@ -146,42 +146,34 @@ void* create_ldpc_dec_c_avx2_flood(uint8_t bgN, uint8_t bgM, uint16_t ls, float 
   uint8_t  bgK = bgN - bgM;
   uint16_t hrr = bgK + 4;
 
-  if ((vp = srsran_vec_malloc(sizeof(struct ldpc_regs_c_avx2_flood))) == NULL) {
+  if ((vp = SRSRAN_MEM_ALLOC(struct ldpc_regs_c_avx2_flood, 1)) == NULL) {
+    return NULL;
+  }
+  SRSRAN_MEM_ZERO(vp, struct ldpc_regs_c_avx2_flood, 1);
+
+  if ((vp->llrs = SRSRAN_MEM_ALLOC(__m256i, bgN)) == NULL) {
+    delete_ldpc_dec_c_avx2_flood(vp);
     return NULL;
   }
 
-  if ((vp->llrs = srsran_vec_malloc(bgN * sizeof(__m256i))) == NULL) {
-    free(vp);
+  if ((vp->soft_bits.v = SRSRAN_MEM_ALLOC(__m256i, bgN)) == NULL) {
+    delete_ldpc_dec_c_avx2_flood(vp);
     return NULL;
   }
 
-  if ((vp->soft_bits = srsran_vec_malloc(bgN * sizeof(bg_node_t))) == NULL) {
-    free(vp->llrs);
-    free(vp);
+  uint32_t sz = (uint32_t)(hrr + 1) * (uint32_t)bgM;
+  if ((vp->check_to_var = SRSRAN_MEM_ALLOC(__m256i, sz)) == NULL) {
+    delete_ldpc_dec_c_avx2_flood(vp);
     return NULL;
   }
 
-  if ((vp->check_to_var = srsran_vec_malloc((hrr + 1) * bgM * sizeof(__m256i))) == NULL) {
-    free(vp->soft_bits);
-    free(vp->llrs);
-    free(vp);
+  if ((vp->var_to_check = SRSRAN_MEM_ALLOC(__m256i, sz)) == NULL) {
+    delete_ldpc_dec_c_avx2_flood(vp);
     return NULL;
   }
 
-  if ((vp->var_to_check = srsran_vec_malloc((hrr + 1) * bgM * sizeof(__m256i))) == NULL) {
-    free(vp->check_to_var);
-    free(vp->soft_bits);
-    free(vp->llrs);
-    free(vp);
-    return NULL;
-  }
-
-  if ((vp->rotated_v2c = srsran_vec_malloc((hrr + 1) * sizeof(__m256i))) == NULL) {
-    free(vp->var_to_check);
-    free(vp->check_to_var);
-    free(vp->soft_bits);
-    free(vp->llrs);
-    free(vp);
+  if ((vp->rotated_v2c = SRSRAN_MEM_ALLOC(__m256i, hrr + 1)) == NULL) {
+    delete_ldpc_dec_c_avx2_flood(vp);
     return NULL;
   }
 
@@ -200,14 +192,25 @@ void delete_ldpc_dec_c_avx2_flood(void* p)
 {
   struct ldpc_regs_c_avx2_flood* vp = p;
 
-  if (vp != NULL) {
-    free(vp->rotated_v2c);
-    free(vp->var_to_check);
-    free(vp->check_to_var);
-    free(vp->soft_bits);
-    free(vp->llrs);
-    free(vp);
+  if (vp == NULL) {
+    return;
   }
+  if (vp->rotated_v2c) {
+    free(vp->rotated_v2c);
+  }
+  if (vp->var_to_check) {
+    free(vp->var_to_check);
+  }
+  if (vp->check_to_var) {
+    free(vp->check_to_var);
+  }
+  if (vp->soft_bits.v) {
+    free(vp->soft_bits.v);
+  }
+  if (vp->llrs) {
+    free(vp->llrs);
+  }
+  free(vp);
 }
 
 int init_ldpc_dec_c_avx2_flood(void* p, const int8_t* llrs, uint16_t ls)
@@ -221,20 +224,20 @@ int init_ldpc_dec_c_avx2_flood(void* p, const int8_t* llrs, uint16_t ls)
   }
 
   // the first 2 x LS bits of the codeword are not sent
-  vp->soft_bits[0].v = _mm256_set1_epi8(0);
-  vp->soft_bits[1].v = _mm256_set1_epi8(0);
+  vp->soft_bits.v[0] = _mm256_set1_epi8(0);
+  vp->soft_bits.v[1] = _mm256_set1_epi8(0);
   vp->llrs[0]        = _mm256_set1_epi8(0);
   vp->llrs[1]        = _mm256_set1_epi8(0);
   for (i = 2; i < vp->bgN; i++) {
     for (j = 0; j < ls; j++) {
-      vp->soft_bits[i].c[j] = llrs[(i - 2) * ls + j];
+      vp->soft_bits.c[i * SRSRAN_AVX2_B_SIZE + j] = llrs[(i - 2) * ls + j];
     }
-    bzero(&(vp->soft_bits[i].c[ls]), (SRSRAN_AVX2_B_SIZE - ls) * sizeof(int8_t));
-    vp->llrs[i] = vp->soft_bits[i].v;
+    srsran_vec_i8_zero(&(vp->soft_bits.c[i * SRSRAN_AVX2_B_SIZE + ls]), SRSRAN_AVX2_B_SIZE - ls);
+    vp->llrs[i] = vp->soft_bits.v[i];
   }
 
-  bzero(vp->check_to_var, (vp->hrr + 1) * vp->bgM * sizeof(__m256i));
-  bzero(vp->var_to_check, (vp->hrr + 1) * vp->bgM * sizeof(__m256i));
+  SRSRAN_MEM_ZERO(vp->check_to_var, __m256i, (vp->hrr + 1) * (uint32_t)vp->bgM);
+  SRSRAN_MEM_ZERO(vp->var_to_check, __m256i, (vp->hrr + 1) * (uint32_t)vp->bgM);
   return 0;
 }
 
@@ -250,11 +253,11 @@ int update_ldpc_var_to_check_c_avx2_flood(void* p, int i_layer)
   __m256i* this_var_to_check = vp->var_to_check + i_layer * (vp->hrr + 1);
 
   // Update the high-rate region.
-  inner_var_to_check_c_avx2(&(vp->soft_bits[0].v), this_check_to_var, this_var_to_check, infinity7, vp->hrr);
+  inner_var_to_check_c_avx2(&(vp->soft_bits.v[0]), this_check_to_var, this_var_to_check, infinity7, vp->hrr);
 
   if (i_layer >= 4) {
     // Update the extension region.
-    inner_var_to_check_c_avx2(&(vp->soft_bits[0].v) + vp->hrr + i_layer - 4,
+    inner_var_to_check_c_avx2(&(vp->soft_bits.v[0]) + vp->hrr + i_layer - 4,
                               this_check_to_var + vp->hrr,
                               this_var_to_check + vp->hrr,
                               infinity7,
@@ -319,7 +322,7 @@ int update_ldpc_check_to_var_c_avx2_flood(void*           p,
     mask_min_epi8 = _mm256_cmpgt_epi8(mins_v2c_epi8, this_abs_v2c_epi8);
     mins_v2c_epi8 = _mm256_blendv_epi8(mins_v2c_epi8, help_min_epi8, mask_min_epi8);
 
-    current_var_index = (*these_var_indices)[i + 1];
+    current_var_index = (*these_var_indices)[(i + 1) % MAX_CNCT];
   }
 
   __m256i* this_check_to_var = vp->check_to_var + i_layer * (vp->hrr + 1);
@@ -348,7 +351,7 @@ int update_ldpc_check_to_var_c_avx2_flood(void*           p,
 
     this_check_to_var[i_v2c_base] = rotate_node_left(this_c2v_epi8, shift, vp->ls);
 
-    current_var_index = (*these_var_indices)[i + 1];
+    current_var_index = (*these_var_indices)[(i + 1) % MAX_CNCT];
   }
 
   return 0;
@@ -372,7 +375,7 @@ int update_ldpc_soft_bits_c_avx2_flood(void* p, const int8_t (*these_var_indices
   __m256i mask_epi8;
 
   for (i = 0; i < vp->bgN; i++) {
-    vp->soft_bits[i].v = vp->llrs[i];
+    vp->soft_bits.v[i] = vp->llrs[i];
   }
 
   for (i_layer = 0; i_layer < vp->bgM; i_layer++) {
@@ -382,7 +385,7 @@ int update_ldpc_soft_bits_c_avx2_flood(void* p, const int8_t (*these_var_indices
     for (i = 0; (current_var_index != -1) && (i < MAX_CNCT); i++) {
       i_bit_tmp_base = (current_var_index <= vp->hrr) ? current_var_index : vp->hrr;
 
-      tmp_epi8 = _mm256_adds_epi8(this_check_to_var[i_bit_tmp_base], vp->soft_bits[current_var_index].v);
+      tmp_epi8 = _mm256_adds_epi8(this_check_to_var[i_bit_tmp_base], vp->soft_bits.v[current_var_index]);
 
       // tmp = (tmp > infty7) : infty8 ? tmp
       mask_epi8 = _mm256_cmpgt_epi8(tmp_epi8, infty7_epi8);
@@ -390,7 +393,7 @@ int update_ldpc_soft_bits_c_avx2_flood(void* p, const int8_t (*these_var_indices
 
       // tmp = (tmp < -infty7) : -infty8 ? tmp
       mask_epi8                          = _mm256_cmpgt_epi8(neg_infty7_epi8, tmp_epi8);
-      vp->soft_bits[current_var_index].v = _mm256_blendv_epi8(tmp_epi8, neg_infty8_epi8, mask_epi8);
+      vp->soft_bits.v[current_var_index] = _mm256_blendv_epi8(tmp_epi8, neg_infty8_epi8, mask_epi8);
 
       current_var_index = these_var_indices[i_layer][i + 1];
     }
@@ -411,7 +414,7 @@ int extract_ldpc_message_c_avx2_flood(void* p, uint8_t* message, uint16_t liftK)
 
   for (int i = 0; i < liftK / vp->ls; i++) {
     for (j = 0; j < vp->ls; j++) {
-      message[i * vp->ls + j] = (vp->soft_bits[i].c[j] < 0);
+      message[i * vp->ls + j] = (vp->soft_bits.c[i * SRSRAN_AVX2_B_SIZE + j] < 0);
     }
   }
 

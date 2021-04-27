@@ -359,7 +359,7 @@ int update_ldpc_check_to_var_c_avx2long(void*           p,
       vp->mins_v2c_epi8[j] = _mm256_blendv_epi8(vp->mins_v2c_epi8[j], help_min_epi8, mask_min_epi8);
     }
 
-    current_var_index = (*these_var_indices)[i + 1];
+    current_var_index = (*these_var_indices)[(i + 1) % MAX_CNCT];
   }
 
   __m256i* this_check_to_var = vp->check_to_var + i_layer * (vp->hrr + 1) * vp->n_subnodes;
@@ -394,7 +394,7 @@ int update_ldpc_check_to_var_c_avx2long(void*           p,
     // rotating right LS - shift positions is the same as rotating left shift positions
     rotate_node_right(vp->this_c2v_epi8, this_check_to_var + i_v2c_base, vp->ls - shift, vp->ls, vp->n_subnodes);
 
-    current_var_index = (*these_var_indices)[i + 1];
+    current_var_index = (*these_var_indices)[(i + 1) % MAX_CNCT];
   }
 
   return 0;
@@ -436,7 +436,7 @@ int update_ldpc_soft_bits_c_avx2long(void* p, int i_layer, const int8_t (*these_
       vp->soft_bits[current_var_index_subnode + j].v = _mm256_blendv_epi8(tmp_epi8, neg_infty8_epi8, mask_epi8);
     }
 
-    current_var_index = (*these_var_indices)[i + 1];
+    current_var_index = (*these_var_indices)[(i + 1) % MAX_CNCT];
   }
 
   return 0;
