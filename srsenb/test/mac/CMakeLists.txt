@@ -66,3 +66,7 @@ add_test(sched_ue_cell_test sched_ue_cell_test)
 add_executable(sched_benchmark_test sched_benchmark.cc)
 target_link_libraries(sched_benchmark_test srsran_common srsenb_mac srsran_mac sched_test_common)
 add_test(sched_benchmark_test sched_benchmark_test)
+
+add_executable(sched_cqi_test sched_cqi_test.cc)
+target_link_libraries(sched_cqi_test srsran_common srsenb_mac srsran_mac sched_test_common)
+add_test(sched_cqi_test sched_cqi_test)
