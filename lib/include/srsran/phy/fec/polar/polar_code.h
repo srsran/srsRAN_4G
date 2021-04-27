@@ -47,7 +47,7 @@ static const uint16_t NMAX = 1024;
 /*!
  * \brief Base 2 logarithm of maximum codeword length
  */
-static const uint16_t NMAX_LOG = 10;
+#define NMAX_LOG 10U
 
 /*!
  * \brief \f$log_2(EMAX)\f$
