@@ -98,7 +98,7 @@ int main(int argc, char** argv)
 
   // SCI
   srsran_sci_t sci;
-  srsran_sci_init(&sci, cell, sl_comm_resource_pool);
+  srsran_sci_init(&sci, &cell, &sl_comm_resource_pool);
   sci.mcs_idx = 2;
 
   // PSCCH

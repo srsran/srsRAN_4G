@@ -72,6 +72,7 @@ int main(int argc, char** argv)
   int                   nof_re;
   cf_t*                 sf_symbols[SRSRAN_MAX_PORTS];
   uint32_t              nof_rx_ports;
+  srsran_random_t       random_gen = srsran_random_init(0x1234);
 
   parse_args(argc, argv);
 
@@ -100,9 +101,8 @@ int main(int argc, char** argv)
     exit(-1);
   }
 
-  srand(time(NULL));
   for (i = 0; i < SRSRAN_BCH_PAYLOAD_LEN; i++) {
-    bch_payload_tx[i] = rand() % 2;
+    bch_payload_tx[i] = (uint8_t)srsran_random_uniform_int_dist(random_gen, 0, 1);
   }
 
   srsran_pbch_encode(&pbch, bch_payload_tx, sf_symbols, 0);
@@ -127,6 +127,7 @@ int main(int argc, char** argv)
   }
 
   srsran_chest_dl_res_free(&chest_dl_res);
+  srsran_random_free(random_gen);
 
   printf("Tx ports: %d - Rx ports: %d\n", cell.nof_ports, nof_rx_ports);
   printf("Tx payload: ");

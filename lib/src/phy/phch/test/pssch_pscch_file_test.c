@@ -151,7 +151,10 @@ int base_init()
   }
   srsran_vec_cf_zero(input_buffer, sf_n_samples);
 
-  srsran_sci_init(&sci, cell, sl_comm_resource_pool);
+  if (srsran_sci_init(&sci, &cell, &sl_comm_resource_pool) < SRSRAN_SUCCESS) {
+    ERROR("Error in SCI init");
+    return SRSRAN_ERROR;
+  }
 
   if (srsran_pscch_init(&pscch, SRSRAN_MAX_PRB) != SRSRAN_SUCCESS) {
     ERROR("Error in PSCCH init");
@@ -168,7 +171,7 @@ int base_init()
     return SRSRAN_ERROR;
   }
 
-  if (srsran_pssch_init(&pssch, cell, sl_comm_resource_pool) != SRSRAN_SUCCESS) {
+  if (srsran_pssch_init(&pssch, &cell, &sl_comm_resource_pool) != SRSRAN_SUCCESS) {
     ERROR("Error initializing PSSCH");
     return SRSRAN_ERROR;
   }

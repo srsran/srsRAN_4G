@@ -15,7 +15,9 @@
 #include "srsran/phy/phch/sci.h"
 #include "srsran/phy/utils/bit.h"
 
-int srsran_sci_init(srsran_sci_t* q, srsran_cell_sl_t cell, srsran_sl_comm_resource_pool_t sl_comm_resource_pool)
+int srsran_sci_init(srsran_sci_t*                         q,
+                    const srsran_cell_sl_t*               cell,
+                    const srsran_sl_comm_resource_pool_t* sl_comm_resource_pool)
 {
   int ret = SRSRAN_ERROR_INVALID_INPUTS;
   if (q != NULL) {
@@ -23,18 +25,18 @@ int srsran_sci_init(srsran_sci_t* q, srsran_cell_sl_t cell, srsran_sl_comm_resou
 
     bzero(q, sizeof(srsran_sci_t));
 
-    q->nof_prb = cell.nof_prb;
-    q->tm      = cell.tm;
+    q->nof_prb = cell->nof_prb;
+    q->tm      = cell->tm;
 
-    if (cell.tm == SRSRAN_SIDELINK_TM1 || cell.tm == SRSRAN_SIDELINK_TM2) {
+    if (cell->tm == SRSRAN_SIDELINK_TM1 || cell->tm == SRSRAN_SIDELINK_TM2) {
       q->format  = SRSRAN_SCI_FORMAT0;
-      q->sci_len = srsran_sci_format0_sizeof(cell.nof_prb);
+      q->sci_len = srsran_sci_format0_sizeof(cell->nof_prb);
 
-    } else if (cell.tm == SRSRAN_SIDELINK_TM3 || cell.tm == SRSRAN_SIDELINK_TM4) {
+    } else if (cell->tm == SRSRAN_SIDELINK_TM3 || cell->tm == SRSRAN_SIDELINK_TM4) {
       q->format           = SRSRAN_SCI_FORMAT1;
       q->sci_len          = SRSRAN_SCI_TM34_LEN;
-      q->size_sub_channel = sl_comm_resource_pool.size_sub_channel;
-      q->num_sub_channel  = sl_comm_resource_pool.num_sub_channel;
+      q->size_sub_channel = sl_comm_resource_pool->size_sub_channel;
+      q->num_sub_channel  = sl_comm_resource_pool->num_sub_channel;
 
     } else {
       return SRSRAN_ERROR;

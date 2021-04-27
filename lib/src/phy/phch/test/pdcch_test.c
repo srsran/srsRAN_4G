@@ -164,6 +164,7 @@ int main(int argc, char** argv)
   int                   nof_dcis;
 
   bzero(&testcases, sizeof(testcase_dci_t) * 10);
+  srsran_random_t random_gen = srsran_random_init(0x1234);
 
   int ret = -1;
 
@@ -224,14 +225,14 @@ int main(int argc, char** argv)
   dci.type0_alloc.rbg_bitmask = 0x5;
   dci.cif_present             = dci_cfg.cif_enabled;
   if (dci_cfg.cif_enabled) {
-    dci.cif = (uint32_t)(random() & 0x7);
+    dci.cif = (uint32_t)srsran_random_uniform_int_dist(random_gen, 0, 7);
   }
 
   /* Format 1 Test case */
   if (cell.nof_ports == 1) {
     testcases[nof_dcis].dci_format = SRSRAN_DCI_FORMAT1;
     if (dci_cfg.cif_enabled) {
-      dci.cif = (uint32_t)(random() & 0x7);
+      dci.cif = (uint32_t)srsran_random_uniform_int_dist(random_gen, 0, 7);
     }
     testcases[nof_dcis].ra_dl_tx = dci;
     nof_dcis++;
@@ -240,7 +241,7 @@ int main(int argc, char** argv)
     dci.tb[0].mcs_idx              = 15;
     testcases[nof_dcis].dci_format = SRSRAN_DCI_FORMAT1;
     if (dci_cfg.cif_enabled) {
-      dci.cif = (uint32_t)(random() & 0x7);
+      dci.cif = (uint32_t)srsran_random_uniform_int_dist(random_gen, 0, 7);
     }
     testcases[nof_dcis].ra_dl_tx = dci;
     nof_dcis++;
@@ -253,7 +254,7 @@ int main(int argc, char** argv)
     dci.tb[1].ndi                  = true;
     testcases[nof_dcis].dci_format = SRSRAN_DCI_FORMAT2A;
     if (dci_cfg.cif_enabled) {
-      dci.cif = (uint32_t)(random() & 0x7);
+      dci.cif = (uint32_t)srsran_random_uniform_int_dist(random_gen, 0, 7);
     }
     testcases[nof_dcis].ra_dl_tx = dci;
     nof_dcis++;
@@ -266,14 +267,11 @@ int main(int argc, char** argv)
     dci.tb[1].ndi                  = false;
     testcases[nof_dcis].dci_format = SRSRAN_DCI_FORMAT2;
     if (dci_cfg.cif_enabled) {
-      dci.cif = (uint32_t)(random() & 0x7);
+      dci.cif = (uint32_t)srsran_random_uniform_int_dist(random_gen, 0, 7);
     }
     testcases[nof_dcis].ra_dl_tx = dci;
     nof_dcis++;
   }
-
-  srsran_dci_cfg_t dci_cfg;
-  ZERO_OBJECT(dci_cfg);
 
   srsran_dl_sf_cfg_t dl_sf;
   ZERO_OBJECT(dl_sf);
@@ -391,6 +389,7 @@ quit:
   srsran_pdcch_free(&pdcch_rx);
   srsran_chest_dl_res_free(&chest_dl_res);
   srsran_regs_free(&regs);
+  srsran_random_free(random_gen);
 
   for (i = 0; i < SRSRAN_MAX_PORTS; i++) {
     free(slot_symbols[i]);

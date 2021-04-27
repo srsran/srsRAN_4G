@@ -162,9 +162,9 @@ static ra_nr_table_t ra_nr_select_table_pusch_noprecoding(srsran_mcs_table_t    
   // - the UE is configured with MCS-C-RNTI, and
   // - the PUSCH is scheduled by a PDCCH with
   // - CRC scrambled by MCS-C-RNTI,
-  if (mcs_c_rnti && dci_format != srsran_dci_format_nr_rar && rnti_type == srsran_rnti_type_mcs_c) {
-    return ra_nr_table_3;
-  }
+  //  if (mcs_c_rnti && dci_format != srsran_dci_format_nr_rar && rnti_type == srsran_rnti_type_mcs_c) {
+  //    return ra_nr_table_3;
+  //  }
 
   // - mcs-Table in configuredGrantConfig is set to 'qam256',
   //   - if PUSCH is scheduled by a PDCCH with CRC scrambled by CS-RNTI or
@@ -192,7 +192,6 @@ static ra_nr_table_t ra_nr_select_table_pdsch(srsran_mcs_table_t         mcs_tab
 {
   // Non-implemented parameters
   bool               sps_config_mcs_table_present = false;
-  srsran_mcs_table_t sps_config_mcs_table         = srsran_mcs_table_64qam;
   bool               is_pdcch_sps                 = false;
 
   // - the higher layer parameter mcs-Table given by PDSCH-Config is set to 'qam256', and
@@ -224,10 +223,10 @@ static ra_nr_table_t ra_nr_select_table_pdsch(srsran_mcs_table_t         mcs_tab
   // - the UE is configured with the higher layer parameter mcs-Table given by SPS-Config set to 'qam64LowSE'
   //   - if the PDSCH is scheduled by a PDCCH with CRC scrambled by CS-RNTI or
   //   - if the PDSCH is scheduled without corresponding PDCCH transmission using SPS-Config,
-  if (sps_config_mcs_table_present && sps_config_mcs_table == srsran_mcs_table_qam64LowSE &&
-      (rnti_type == srsran_rnti_type_cs || is_pdcch_sps)) {
-    return ra_nr_table_3;
-  }
+  //  if (sps_config_mcs_table_present && sps_config_mcs_table == srsran_mcs_table_qam64LowSE &&
+  //      (rnti_type == srsran_rnti_type_cs || is_pdcch_sps)) {
+  //    return ra_nr_table_3;
+  //  }
 
   // else
   return ra_nr_table_1;

@@ -21,23 +21,25 @@
 #include "srsran/phy/utils/debug.h"
 #include "srsran/phy/utils/vector.h"
 
-int srsran_pssch_init(srsran_pssch_t* q, srsran_cell_sl_t cell, srsran_sl_comm_resource_pool_t sl_comm_resource_pool)
+int srsran_pssch_init(srsran_pssch_t*                       q,
+                      const srsran_cell_sl_t*               cell,
+                      const srsran_sl_comm_resource_pool_t* sl_comm_resource_pool)
 {
-  if (q == NULL) {
+  if (q == NULL || cell == NULL || sl_comm_resource_pool == NULL) {
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
-  q->cell                  = cell;
-  q->sl_comm_resource_pool = sl_comm_resource_pool;
+  q->cell                  = *cell;
+  q->sl_comm_resource_pool = *sl_comm_resource_pool;
 
-  if (cell.tm == SRSRAN_SIDELINK_TM1 || cell.tm == SRSRAN_SIDELINK_TM2) {
-    if (cell.cp == SRSRAN_CP_NORM) {
+  if (cell->tm == SRSRAN_SIDELINK_TM1 || cell->tm == SRSRAN_SIDELINK_TM2) {
+    if (cell->cp == SRSRAN_CP_NORM) {
       q->nof_data_symbols = SRSRAN_PSSCH_TM12_NUM_DATA_SYMBOLS;
     } else {
       q->nof_data_symbols = SRSRAN_PSSCH_TM12_NUM_DATA_SYMBOLS_CP_EXT;
     }
-  } else if (cell.tm == SRSRAN_SIDELINK_TM3 || cell.tm == SRSRAN_SIDELINK_TM4) {
-    if (cell.cp == SRSRAN_CP_NORM) {
+  } else if (cell->tm == SRSRAN_SIDELINK_TM3 || cell->tm == SRSRAN_SIDELINK_TM4) {
+    if (cell->cp == SRSRAN_CP_NORM) {
       q->nof_data_symbols = SRSRAN_PSSCH_TM34_NUM_DATA_SYMBOLS;
     } else {
       ERROR("Invalid CP for PSSCH, SL TM 3/4");

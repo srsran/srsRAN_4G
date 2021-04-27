@@ -48,6 +48,8 @@ uint16_t rnti       = 1234;
 uint16_t i_tbs_val  = 0;
 char*    input_file = NULL;
 
+static srsran_random_t random_gen = NULL;
+
 void usage(char* prog)
 {
   printf("Usage: %s [fmMlsrRFpnv] \n", prog);
@@ -163,7 +165,7 @@ int get_ref_res(srsran_nbiot_cell_t cell, int32_t* re_with_refs)
   return num_ref;
 }
 
-int extract_re(srsran_nbiot_cell_t cell, uint32_t l_start, uint32_t expected_nof_re)
+int extract_re(srsran_nbiot_cell_t cell, uint32_t l_start, uint32_t expected_nof_re2)
 {
   srsran_npdsch_t npdsch;
   bzero(&npdsch, sizeof(srsran_npdsch_t));
@@ -197,8 +199,8 @@ int extract_re(srsran_nbiot_cell_t cell, uint32_t l_start, uint32_t expected_nof
 #endif
 
   // check number of extracted REs
-  if (nof_ext_syms != expected_nof_re) {
-    printf("RE extraction failed (expected %d, but got %d)!\n", expected_nof_re, nof_ext_syms);
+  if (nof_ext_syms != expected_nof_re2) {
+    printf("RE extraction failed (expected %d, but got %d)!\n", expected_nof_re2, nof_ext_syms);
     return SRSRAN_ERROR;
   }
 
@@ -234,7 +236,9 @@ int re_extract_test(int argc, char** argv)
   // Standalone mode with l_start=0 gives the maximum number of REs
   cell.mode           = mode;
   cell.base.nof_prb   = 1;
-  cell.base.id        = (mode == SRSRAN_NBIOT_MODE_INBAND_SAME_PCI) ? n_id_ncell : rand() % SRSRAN_NUM_PCI;
+  cell.base.id        = (mode == SRSRAN_NBIOT_MODE_INBAND_SAME_PCI)
+                     ? n_id_ncell
+                     : srsran_random_uniform_int_dist(random_gen, 0, SRSRAN_NUM_PCI - 1);
   cell.n_id_ncell     = n_id_ncell;
   cell.nof_ports      = nof_ports_nbiot;
   cell.base.nof_ports = nof_ports_lte;
@@ -379,9 +383,8 @@ int coding_test(int argc, char** argv)
   }
 
   // generate random data
-  srand(time(NULL));
   for (int i = 0; i < grant.mcs[0].tbs / 8; i++) {
-    data[i] = rand() % 256;
+    data[i] = (uint8_t)srsran_random_uniform_int_dist(random_gen, 0, 255);
   }
 
   if (!input_file) {
@@ -463,8 +466,8 @@ quit:
 
 int main(int argc, char** argv)
 {
-  int ret = SRSRAN_ERROR;
-
+  int ret    = SRSRAN_ERROR;
+  random_gen = srsran_random_init(0x1234);
   if (re_extract_test(argc, argv) != SRSRAN_SUCCESS) {
     printf("Resource element extraction test failed!\n");
     return ret;

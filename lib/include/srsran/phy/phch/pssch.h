@@ -106,8 +106,9 @@ typedef struct SRSRAN_API {
 
 } srsran_pssch_t;
 
-SRSRAN_API int
-                srsran_pssch_init(srsran_pssch_t* q, srsran_cell_sl_t cell, srsran_sl_comm_resource_pool_t sl_comm_resource_pool);
+SRSRAN_API int  srsran_pssch_init(srsran_pssch_t*                       q,
+                                  const srsran_cell_sl_t*               cell,
+                                  const srsran_sl_comm_resource_pool_t* sl_comm_resource_pool);
 SRSRAN_API int  srsran_pssch_set_cfg(srsran_pssch_t* q, srsran_pssch_cfg_t pssch_cfg);
 SRSRAN_API int  srsran_pssch_encode(srsran_pssch_t* q, uint8_t* input, uint32_t input_len, cf_t* sf_buffer);
 SRSRAN_API int  srsran_pssch_decode(srsran_pssch_t* q, cf_t* equalized_sf_syms, uint8_t* output, uint32_t output_len);

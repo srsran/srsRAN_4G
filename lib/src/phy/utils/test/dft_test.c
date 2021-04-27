@@ -10,6 +10,7 @@
  *
  */
 
+#include "srsran/phy/utils/random.h"
 #include <complex.h>
 #include <math.h>
 #include <stdio.h>
@@ -22,10 +23,10 @@
 #include "srsran/phy/utils/vector.h"
 
 uint32_t N       = 256;
-bool forward = true;
-bool mirror  = false;
-bool norm    = false;
-bool dc      = false;
+bool     forward = true;
+bool     mirror  = false;
+bool     norm    = false;
+bool     dc      = false;
 
 void usage(char* prog)
 {
@@ -132,19 +133,17 @@ int test_dft(cf_t* in)
 
 int main(int argc, char** argv)
 {
+  srsran_random_t random_gen = srsran_random_init(0x1234);
   parse_args(argc, argv);
   cf_t* in = srsran_vec_cf_malloc(N);
-  srsran_vec_cf_zero(in, N);
-  for (int i = 1; i < N - 1; i++) {
-    float re = 100 * rand() / (float)RAND_MAX;
-    float im = 100 * rand() / (float)RAND_MAX;
-    in[i]    = re + im * I;
-  }
+  in[0]    = 0.0f;
+  srsran_random_uniform_complex_dist_vector(random_gen, &in[1], N - 1, -1, 1);
 
   if (test_dft(in) != 0)
     return -1;
 
   free(in);
+  srsran_random_free(random_gen);
   printf("Done\n");
   exit(0);
 }
