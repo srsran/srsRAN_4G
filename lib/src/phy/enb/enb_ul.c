@@ -235,10 +235,26 @@ int srsran_enb_ul_get_pucch(srsran_enb_ul_t*    q,
 
   // If we are looking for SR and ACK at the same time and ret=0, means there is no SR.
   // try again to decode ACK only
-  if (cfg->uci_cfg.is_scheduling_request_tti && srsran_uci_cfg_total_ack(&cfg->uci_cfg) && !res->detected) {
+  if (cfg->uci_cfg.is_scheduling_request_tti && srsran_uci_cfg_total_ack(&cfg->uci_cfg)) {
+    // Disable SR
     cfg->uci_cfg.is_scheduling_request_tti = false;
-    if (get_pucch(q, ul_sf, cfg, res)) {
+
+    // Init PUCCH result without SR
+    srsran_pucch_res_t res_no_sr = {};
+
+    // Actual decode without SR
+    if (get_pucch(q, ul_sf, cfg, &res_no_sr)) {
       return SRSRAN_ERROR;
+    }
+
+    // Override PUCCH result if PUCCH without SR was detected, and
+    // - no PUCCH with SR was detected; or
+    // - PUCCH without SR has better correlation
+    if (res_no_sr.detected && (!res->detected || res_no_sr.correlation > res->correlation)) {
+      *res = res_no_sr;
+    } else {
+      // If the PUCCH decode result is not overridden, flag SR
+      cfg->uci_cfg.is_scheduling_request_tti = true;
     }
   }
 
