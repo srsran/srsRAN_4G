@@ -287,24 +287,14 @@ int rf_soapy_open_multi(char* args, void** h, uint32_t num_requested_channels)
     SoapySDRKwargsList_clear(soapy_args, length);
     return SRSRAN_ERROR;
   }
-  char* devname = DEVNAME_NONE;
+
+  // Print connected devices
   for (size_t i = 0; i < length; i++) {
     printf("Soapy has found device #%d: ", (int)i);
     for (size_t j = 0; j < soapy_args[i].size; j++) {
       printf("%s=%s, ", soapy_args[i].keys[j], soapy_args[i].vals[j]);
-      if (!strcmp(soapy_args[i].keys[j], "name") && !strcmp(soapy_args[i].vals[j], "LimeSDR-USB")) {
-        devname = DEVNAME_LIME;
-      } else if (!strcmp(soapy_args[i].keys[j], "name") && !strcmp(soapy_args[i].vals[j], "LimeSDR Mini")) {
-        devname = DEVNAME_LIME_MINI;
-      }
     }
     printf("\n");
-  }
-
-  // With the Lime we are better off using LTE sample rates
-  if (strstr(devname, "lime") != NULL && srsran_symbol_size_is_standard() == false) {
-    printf("\033[0;31mConsider using LTE sample rates for better RF performance.\nEither compile with "
-           "\'-DUSE_LTE_RATES=True\' or start srsENB or srsUE with \'--expert.lte_sample_rates=true\'\033[0m\n");
   }
 
   // Select Soapy device by id
@@ -329,6 +319,14 @@ int rf_soapy_open_multi(char* args, void** h, uint32_t num_requested_channels)
   dev_id = SRSRAN_MIN(dev_id, length - 1);
   printf("Selecting Soapy device: %d\n", dev_id);
 
+  // With the Lime we are better off using LTE sample rates
+  const char* devname = SoapySDRKwargs_get(&soapy_args[dev_id], "name");
+  if (devname != NULL && strstr(devname, "Lime") != NULL && srsran_symbol_size_is_standard() == false) {
+    printf("\033[0;31mDetected LimeSDR. Consider using LTE rates for better RF performance.\nEither compile with "
+           "\'-DUSE_LTE_RATES=True\' or start srsENB/srsUE with \'--expert.lte_sample_rates=true\'\033[0m\n");
+  }
+
+  // Now make the device
   SoapySDRDevice* sdr = SoapySDRDevice_make(&(soapy_args[dev_id]));
   if (sdr == NULL) {
     printf("Failed to create Soapy object\n");
@@ -343,7 +341,7 @@ int rf_soapy_open_multi(char* args, void** h, uint32_t num_requested_channels)
   handler->device           = sdr;
   handler->tx_stream_active = false;
   handler->rx_stream_active = false;
-  handler->devname          = devname;
+  handler->devname          = DEVNAME_SOAPY;
 
   // create stream args from device args
   SoapySDRKwargs stream_args = {};

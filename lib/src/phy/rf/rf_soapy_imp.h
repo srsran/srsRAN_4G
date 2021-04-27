@@ -17,9 +17,7 @@
 #include "srsran/phy/rf/rf.h"
 #include <stdbool.h>
 #include <stdint.h>
-#define DEVNAME_NONE "none"
-#define DEVNAME_LIME "lime"
-#define DEVNAME_LIME_MINI "lime_mini"
+#define DEVNAME_SOAPY "soapy"
 
 SRSRAN_API int rf_soapy_open(char* args, void** handler);
 
