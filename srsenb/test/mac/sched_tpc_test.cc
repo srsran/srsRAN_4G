@@ -26,7 +26,7 @@ int test_finite_target_snr()
   const uint32_t nof_prbs   = 50;
   const int      target_snr = 15;
 
-  tpc tpcfsm(nof_prbs, 15, true);
+  tpc tpcfsm(nof_prbs, 15, 15, true);
 
   // TEST: While no SNR info is provided, no TPC commands are sent
   for (uint32_t i = 0; i < 100; ++i) {
@@ -73,7 +73,7 @@ int test_undefined_target_snr()
 {
   const uint32_t nof_prbs = 50;
 
-  tpc tpcfsm(nof_prbs, -1, true);
+  tpc tpcfsm(nof_prbs, -1, -1, true);
   TESTASSERT(tpcfsm.max_ul_prbs() == 50);
 
   // TEST: While the PHR is not updated, a limited number of TPC commands should be sent

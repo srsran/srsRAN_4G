@@ -65,9 +65,12 @@ public:
     cell_cfg_sib_t sibs[MAX_SIBS];
     uint32_t       si_window_ms;
 
+    /* pucch configuration */
+    float target_pucch_ul_sinr;
+
     /* pusch configuration */
     srsran_pusch_hopping_cfg_t pusch_hopping_cfg;
-    float                      target_ul_sinr;
+    float                      target_pusch_ul_sinr;
     bool                       enable_phr_handling;
     bool                       enable_64qam;
 
