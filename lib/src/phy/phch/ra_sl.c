@@ -43,7 +43,7 @@ int srsran_pscch_resources(uint32_t  prb_num,
     }
   }
 
-  if (L == 0) {
+  if (L < 2) {
     // ERROR("Invalid PSCCH subframe bitmap");
     return SRSRAN_ERROR;
   }
@@ -121,7 +121,7 @@ int srsran_ra_sl_pssch_allowed_sf(uint32_t pssch_sf_idx, uint32_t trp_idx, uint3
 
 int srsran_sci_generate_trp_idx(uint32_t duplex_mode, uint32_t tdd_config, uint32_t k_TRP)
 {
-  int retval = SRSRAN_ERROR;
+  int            retval = SRSRAN_ERROR;
   struct timeval tv;
   gettimeofday(&tv, NULL);
   srsran_random_t random = srsran_random_init(tv.tv_usec);
@@ -190,8 +190,7 @@ int srsran_sci_generate_trp_idx(uint32_t duplex_mode, uint32_t tdd_config, uint3
         retval = srsran_sl_N_TRP_6_k_6[srsran_random_uniform_int_dist(random, 0, sizeof(srsran_sl_N_TRP_6_k_6) - 1)];
         break;
     }
-  }
-  else {
+  } else {
     retval = SRSRAN_SUCCESS;
   }
 

@@ -424,6 +424,11 @@ static uint32_t Q_prime_ri_ack(srsran_pusch_cfg_t* cfg, uint32_t O, uint32_t O_c
     }
   }
 
+  if (K == 0) {
+    ERROR("K is zero!");
+    return 0;
+  }
+
   uint32_t x = (uint32_t)ceilf((float)O * cfg->grant.L_prb * SRSRAN_NRE * cfg->grant.nof_symb * beta / K);
 
   uint32_t Q_prime = SRSRAN_MIN(x, 4 * cfg->grant.L_prb * SRSRAN_NRE);

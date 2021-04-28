@@ -215,6 +215,18 @@ int srsran_csi_part1_nof_bits(const srsran_csi_report_cfg_t* report_list, uint32
   return (int)count;
 }
 
+int srsran_csi_part2_nof_bits(const srsran_csi_report_cfg_t* report_list, uint32_t nof_reports)
+{
+  uint32_t count = 0;
+
+  // Check input pointer
+  if (report_list == NULL) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+
+  return (int)count;
+}
+
 bool srsran_csi_has_part2(const srsran_csi_report_cfg_t* report_list, uint32_t nof_reports)
 {
   if (report_list == NULL || nof_reports == 0) {

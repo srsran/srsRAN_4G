@@ -1636,12 +1636,12 @@ uint32_t srsran_dci_dl_info(const srsran_dci_dl_t* dci_dl, char* info_str, uint3
 
   n = srsran_print_check(info_str, len, n, ", pid=%d", dci_dl->pid);
 
-  n = srsran_print_check(info_str, len, n, ", mcs={", 0);
+  n = srsran_print_check(info_str, len, n, ", mcs={");
   n = print_multi(info_str, n, len, dci_dl, 0);
-  n = srsran_print_check(info_str, len, n, "}", 0);
-  n = srsran_print_check(info_str, len, n, ", ndi={", 0);
+  n = srsran_print_check(info_str, len, n, "}");
+  n = srsran_print_check(info_str, len, n, ", ndi={");
   n = print_multi(info_str, n, len, dci_dl, 2);
-  n = srsran_print_check(info_str, len, n, "}", 0);
+  n = srsran_print_check(info_str, len, n, "}");
 
   if (dci_dl->format == SRSRAN_DCI_FORMAT1 || dci_dl->format == SRSRAN_DCI_FORMAT1A ||
       dci_dl->format == SRSRAN_DCI_FORMAT1B || dci_dl->format == SRSRAN_DCI_FORMAT2 ||

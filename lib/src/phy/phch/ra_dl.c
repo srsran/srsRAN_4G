@@ -702,15 +702,15 @@ uint32_t srsran_ra_dl_info(srsran_pdsch_grant_t* grant, char* info_str, uint32_t
 
   n = srsran_print_check(info_str, len, n, ", nof_prb=%d, nof_re=%d", grant->nof_prb, grant->nof_re);
 
-  n = srsran_print_check(info_str, len, n, ", tbs={", 0);
+  n = srsran_print_check(info_str, len, n, ", tbs={");
   n = print_multi(info_str, n, len, grant, 1);
-  n = srsran_print_check(info_str, len, n, "}", 0);
-  n = srsran_print_check(info_str, len, n, ", mod={", 0);
+  n = srsran_print_check(info_str, len, n, "}");
+  n = srsran_print_check(info_str, len, n, ", mod={");
   n = print_multi(info_str, n, len, grant, 2);
-  n = srsran_print_check(info_str, len, n, "}", 0);
-  n = srsran_print_check(info_str, len, n, ", rv={", 0);
+  n = srsran_print_check(info_str, len, n, "}");
+  n = srsran_print_check(info_str, len, n, ", rv={");
   n = print_multi(info_str, n, len, grant, 0);
-  n = srsran_print_check(info_str, len, n, "}", 0);
+  n = srsran_print_check(info_str, len, n, "}");
 
   if (grant->tx_scheme != SRSRAN_TXSCHEME_PORT0) {
     n = srsran_print_check(info_str,

@@ -451,6 +451,11 @@ static int encode_signal_format3(srsran_pucch_t*     q,
   uint32_t N_sf_0 = get_N_sf(cfg->format, 0, sf->shortened);
   uint32_t N_sf_1 = get_N_sf(cfg->format, 1, sf->shortened);
 
+  if (N_sf_1 == 0) {
+    ERROR("Invalid N_sf_1");
+    return SRSRAN_ERROR;
+  }
+
   uint32_t n_oc_0 = cfg->n_pucch % N_sf_1;
   uint32_t n_oc_1 = (N_sf_1 == 5) ? ((3 * cfg->n_pucch) % N_sf_1) : (n_oc_0 % N_sf_1);
 
@@ -497,6 +502,11 @@ static int decode_signal_format3(srsran_pucch_t*     q,
 {
   uint32_t N_sf_0 = get_N_sf(cfg->format, 0, sf->shortened);
   uint32_t N_sf_1 = get_N_sf(cfg->format, 1, sf->shortened);
+
+  if (N_sf_1 == 0) {
+    ERROR("Invalid N_sf_1");
+    return SRSRAN_ERROR;
+  }
 
   uint32_t n_oc_0 = cfg->n_pucch % N_sf_1;
   uint32_t n_oc_1 = (N_sf_1 == 5) ? ((3 * cfg->n_pucch) % N_sf_1) : (n_oc_0 % N_sf_1);

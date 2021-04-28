@@ -249,7 +249,12 @@ static int encode_tb_off(srsran_sch_t*           q,
 
     if (cb_segm->C > softbuffer->max_cb) {
       ERROR("Error number of CB to encode (%d) exceeds soft buffer size (%d CBs)", cb_segm->C, softbuffer->max_cb);
-      return -1;
+      return SRSRAN_ERROR;
+    }
+
+    if (Qm == 0) {
+      ERROR("Invalid Qm");
+      return SRSRAN_ERROR;
     }
 
     uint32_t Gp = nof_e_bits / Qm;
@@ -499,7 +504,7 @@ static int decode_tb(srsran_sch_t*           q,
                      int16_t*                e_bits,
                      uint8_t*                data)
 {
-  if (q != NULL && data != NULL && softbuffer != NULL && e_bits != NULL && cb_segm != NULL) {
+  if (q != NULL && data != NULL && softbuffer != NULL && e_bits != NULL && cb_segm != NULL && Qm != 0) {
     if (cb_segm->tbs == 0 || cb_segm->C == 0) {
       return SRSRAN_SUCCESS;
     }
@@ -547,11 +552,12 @@ static int decode_tb(srsran_sch_t*           q,
       return SRSRAN_ERROR;
     }
   } else {
-    ERROR("Missing inputs: data=%d, softbuffer=%d, e_bits=%d, cb_segm=%d",
+    ERROR("Missing inputs: data=%d, softbuffer=%d, e_bits=%d, cb_segm=%d Qm=%d",
           data != 0,
           softbuffer != 0,
           e_bits != 0,
-          cb_segm != 0);
+          cb_segm != 0,
+          Qm);
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 }
@@ -1018,6 +1024,11 @@ static int uci_decode_ri_ack(srsran_sch_t*       q,
   uint32_t nb_q = cfg->grant.tb.nof_bits;
   uint32_t Qm   = srsran_mod_bits_x_symbol(cfg->grant.tb.mod);
 
+  if (Qm == 0) {
+    ERROR("Invalid modulation %s", srsran_mod_string(cfg->grant.tb.mod));
+    return SRSRAN_ERROR;
+  }
+
   // If there is RI and CQI, assume RI = 1 for the purpose of RI/ACK decoding (3GPP 36.212 Clause 5.2.4.1. )
   if (cfg->uci_cfg.cqi.data_enable) {
     if (cfg->uci_cfg.cqi.type == SRSRAN_CQI_TYPE_SUBBAND_HL && cfg->uci_cfg.cqi.ri_len) {
@@ -1031,7 +1042,12 @@ static int uci_decode_ri_ack(srsran_sch_t*       q,
   if (srsran_uci_cfg_total_ack(&cfg->uci_cfg) > 0) {
     float beta = get_beta_harq_offset(cfg->uci_offset.I_offset_ack);
     if (cfg->grant.tb.tbs == 0) {
-      beta /= get_beta_cqi_offset(cfg->uci_offset.I_offset_cqi);
+      float beta_cqi = get_beta_cqi_offset(cfg->uci_offset.I_offset_cqi);
+      if (!isnormal(beta_cqi)) {
+        ERROR("Invalid beta_cqi (%d, %f)", cfg->uci_offset.I_offset_cqi, beta_cqi);
+        return SRSRAN_ERROR;
+      }
+      beta /= beta_cqi;
     }
     ret = srsran_uci_decode_ack_ri(cfg,
                                    q_bits,
@@ -1059,7 +1075,12 @@ static int uci_decode_ri_ack(srsran_sch_t*       q,
   if (cfg->uci_cfg.cqi.ri_len > 0) {
     float beta = get_beta_ri_offset(cfg->uci_offset.I_offset_ri);
     if (cfg->grant.tb.tbs == 0) {
-      beta /= get_beta_cqi_offset(cfg->uci_offset.I_offset_cqi);
+      float beta_cqi = get_beta_cqi_offset(cfg->uci_offset.I_offset_cqi);
+      if (!isnormal(beta_cqi)) {
+        ERROR("Invalid beta_cqi (%d, %f)", cfg->uci_offset.I_offset_cqi, beta_cqi);
+        return SRSRAN_ERROR;
+      }
+      beta /= beta_cqi;
     }
     ret = srsran_uci_decode_ack_ri(cfg,
                                    q_bits,

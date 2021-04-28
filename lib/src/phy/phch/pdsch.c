@@ -513,25 +513,9 @@ static float apply_power_allocation(srsran_pdsch_t* q, srsran_pdsch_cfg_t* cfg, 
 
 static void csi_correction(srsran_pdsch_t* q, srsran_pdsch_cfg_t* cfg, uint32_t codeword_idx, uint32_t tb_idx, void* e)
 {
-  uint32_t qm = 0;
-  switch (cfg->grant.tb[tb_idx].mod) {
-    case SRSRAN_MOD_BPSK:
-      qm = 1;
-      break;
-    case SRSRAN_MOD_QPSK:
-      qm = 2;
-      break;
-    case SRSRAN_MOD_16QAM:
-      qm = 4;
-      break;
-    case SRSRAN_MOD_64QAM:
-      qm = 6;
-      break;
-    case SRSRAN_MOD_256QAM:
-      qm = 8;
-      break;
-    default:
-      ERROR("No modulation");
+  uint32_t qm = srsran_mod_bits_x_symbol(cfg->grant.tb[tb_idx].mod);
+  if (qm == 0) {
+    return;
   }
 
   const uint32_t csi_max_idx = srsran_vec_max_fi(q->csi[codeword_idx], cfg->grant.tb[tb_idx].nof_bits / qm);
@@ -1180,18 +1164,18 @@ uint32_t srsran_pdsch_grant_rx_info(srsran_pdsch_grant_t* grant,
 {
   uint32_t len = srsran_ra_dl_info(grant, str, str_len);
 
-  len = srsran_print_check(str, str_len, len, ", crc={", 0);
+  len = srsran_print_check(str, str_len, len, ", crc={");
   for (uint32_t i = 0; i < SRSRAN_MAX_CODEWORDS; i++) {
     if (grant->tb[i].enabled) {
       len = srsran_print_check(str, str_len, len, "%s", res[i].crc ? "OK" : "KO");
       if (i < SRSRAN_MAX_CODEWORDS - 1) {
         if (grant->tb[i + 1].enabled) {
-          len = srsran_print_check(str, str_len, len, "/", 0);
+          len = srsran_print_check(str, str_len, len, "/");
         }
       }
     }
   }
-  len = srsran_print_check(str, str_len, len, "}", 0);
+  len = srsran_print_check(str, str_len, len, "}");
 
   // Average iterations between nof TB and divide by 2 to get full decoder iterations
   len = srsran_print_check(
@@ -1207,7 +1191,7 @@ srsran_pdsch_rx_info(srsran_pdsch_cfg_t* cfg, srsran_pdsch_res_t res[SRSRAN_MAX_
   len += srsran_pdsch_grant_rx_info(&cfg->grant, res, &str[len], str_len - len);
 
   if (cfg->meas_evm_en) {
-    len = srsran_print_check(str, str_len, len, ", evm={", 0);
+    len = srsran_print_check(str, str_len, len, ", evm={");
     for (uint32_t i = 0; i < SRSRAN_MAX_CODEWORDS; i++) {
       if (cfg->grant.tb[i].enabled && !isnan(res[i].evm)) {
         len = srsran_print_check(str, str_len, len, "%.2f", res[i].evm);
@@ -1218,7 +1202,7 @@ srsran_pdsch_rx_info(srsran_pdsch_cfg_t* cfg, srsran_pdsch_res_t res[SRSRAN_MAX_
         }
       }
     }
-    len = srsran_print_check(str, str_len, len, "}", 0);
+    len = srsran_print_check(str, str_len, len, "}");
   }
 
   if (cfg->meas_time_en) {

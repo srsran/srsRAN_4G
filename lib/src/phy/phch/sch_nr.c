@@ -680,7 +680,11 @@ static int sch_nr_decode(srsran_sch_nr_t*        q,
   }
 
   // Set average number of iterations
-  res->avg_iter = (float)nof_iter_sum / (float)cfg.C;
+  if (cfg.C > 0) {
+    res->avg_iter = (float)nof_iter_sum / (float)cfg.C;
+  } else {
+    res->avg_iter = NAN;
+  }
 
   if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
     DEBUG("Decode: ");
