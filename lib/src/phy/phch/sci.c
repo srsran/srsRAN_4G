@@ -20,7 +20,7 @@ int srsran_sci_init(srsran_sci_t*                         q,
                     const srsran_sl_comm_resource_pool_t* sl_comm_resource_pool)
 {
   int ret = SRSRAN_ERROR_INVALID_INPUTS;
-  if (q != NULL) {
+  if (q != NULL && cell != NULL && sl_comm_resource_pool != NULL) {
     ret = SRSRAN_ERROR;
 
     bzero(q, sizeof(srsran_sci_t));
