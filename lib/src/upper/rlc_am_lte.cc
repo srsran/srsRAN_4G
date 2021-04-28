@@ -530,6 +530,7 @@ void rlc_am_lte::rlc_am_lte_tx::discard_sdu(uint32_t discard_sn)
     return false;
   });
 
+  // Discard fails when the PDCP PDU is already in Tx window.
   logger.info("%s PDU with PDCP_SN=%d", discarded ? "Discarding" : "Couldn't discard", discard_sn);
 
   // always try remove from undelivered SDUs queue
@@ -1295,8 +1296,12 @@ void rlc_am_lte::rlc_am_lte_tx::update_notification_ack_info(uint32_t rlc_sn)
   auto& acked_pdu = tx_window[rlc_sn];
   // Iterate over all PDCP SNs of the same RLC PDU that were TX'ed
   for (rlc_am_pdu_segment& acked_segment : acked_pdu) {
-    uint32_t       pdcp_sn = acked_segment.pdcp_sn();
-    pdcp_pdu_info& info    = undelivered_sdu_info_queue[pdcp_sn];
+    uint32_t pdcp_sn = acked_segment.pdcp_sn();
+    if (pdcp_sn == rlc_am_pdu_segment::invalid_pdcp_sn) {
+      logger.debug("ACKed segment in RLC_SN=%d already discarded in PDCP. No need to notify the PDCP.", rlc_sn);
+      continue;
+    }
+    pdcp_pdu_info& info = undelivered_sdu_info_queue[pdcp_sn];
 
     // Remove RLC SN from PDCP PDU undelivered list
     info.ack_segment(acked_segment);
