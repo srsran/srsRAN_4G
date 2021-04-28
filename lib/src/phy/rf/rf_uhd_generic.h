@@ -213,9 +213,13 @@ public:
       stream_args.channels[i] = i;
     }
 
-    if (not usrp->get_device()->get_tree()->exists(TREE_DBOARD_RX_FRONTEND_NAME)) {
+    // Try to get dboard name from property tree
+    uhd::property_tree::sptr tree = usrp->get_device()->get_tree();
+    if (tree == nullptr || not tree->exists(TREE_DBOARD_RX_FRONTEND_NAME)) {
+      // Couldn't find dboard name in property tree
       return err;
     }
+
     std::string dboard_name = usrp->get_device()->get_tree()->access<std::string>(TREE_DBOARD_RX_FRONTEND_NAME).get();
 
     // Detect if it a AD9361 based device
