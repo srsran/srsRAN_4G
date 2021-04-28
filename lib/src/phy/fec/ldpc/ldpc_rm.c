@@ -134,6 +134,12 @@ static int init_rm(srsran_ldpc_rm_t*  p,
     return -1;
   }
 
+  // Protect zero modulo
+  if (mod_order == 0) {
+    ERROR("Invalid modulation order");
+    return -1;
+  }
+
   // check out_len is multiple of mod_order
   if ((E % mod_order) != 0) { // N can only be a multiple of either BASEN[0] or BASEN[1], but not both
     ERROR("Wrong RM codeword length (E) = %d. It must be a multiple of modulation order = %d", E, mod_order);

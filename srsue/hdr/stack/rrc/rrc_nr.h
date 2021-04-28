@@ -49,6 +49,8 @@ struct core_less_args_t {
 
 struct rrc_nr_args_t {
   core_less_args_t      coreless;
+  uint32_t              sim_nr_meas_pci;
+  bool                  pdcp_short_sn_support;
   std::string           supported_bands_nr_str;
   std::vector<uint32_t> supported_bands_nr;
   std::vector<uint32_t> supported_bands_eutra;
@@ -163,8 +165,9 @@ private:
   usim_interface_rrc_nr*      usim      = nullptr;
   stack_interface_rrc*        stack     = nullptr;
 
-  uint32_t                            fake_measurement_carrier_freq_r15;
-  srsran::timer_handler::unique_timer fake_measurement_timer;
+  const uint32_t                      sim_measurement_timer_duration_ms = 250;
+  uint32_t                            sim_measurement_carrier_freq_r15;
+  srsran::timer_handler::unique_timer sim_measurement_timer;
 
   /// RRC states (3GPP 38.331 v15.5.1 Sec 4.2.1)
   enum rrc_nr_state_t {

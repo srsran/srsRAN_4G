@@ -120,7 +120,6 @@ int main(int argc, char** argv)
   short*          llr_s;
   uint8_t*        llr_c;
   uint8_t *       data_tx, *data_rx, *data_rx_bytes, *symbols;
-  uint32_t        i, j;
   float           var[SNR_POINTS];
   uint32_t        snr_points;
   uint32_t        errors = 0;
@@ -140,7 +139,11 @@ int main(int argc, char** argv)
   if (test_known_data) {
     frame_length = KNOWN_DATA_LEN;
   } else {
-    frame_length = srsran_cbsegm_cbsize(srsran_cbsegm_cbindex(frame_length));
+    int n = srsran_cbsegm_cbsize(srsran_cbsegm_cbindex(frame_length));
+    if (n < SRSRAN_SUCCESS) {
+      return SRSRAN_ERROR;
+    }
+    frame_length = (uint32_t)n;
   }
 
   coded_length = 3 * (frame_length) + SRSRAN_TCOD_TOTALTAIL;
@@ -209,7 +212,7 @@ int main(int argc, char** argv)
   ebno_inc = (SNR_MAX - SNR_MIN) / SNR_POINTS;
   if (ebno_db == 100.0) {
     snr_points = SNR_POINTS;
-    for (i = 0; i < snr_points; i++) {
+    for (uint32_t i = 0; i < snr_points; i++) {
       ebno_db = SNR_MIN + i * ebno_inc;
       esno_db = ebno_db + srsran_convert_power_to_dB(1.0f / 3.0f);
       var[i]  = srsran_convert_dB_to_amplitude(-esno_db);
@@ -219,13 +222,13 @@ int main(int argc, char** argv)
     var[0]     = srsran_convert_dB_to_amplitude(-esno_db);
     snr_points = 1;
   }
-  for (i = 0; i < snr_points; i++) {
+  for (uint32_t i = 0; i < snr_points; i++) {
     mean_usec = 0;
     errors    = 0;
     frame_cnt = 0;
     while (frame_cnt < nof_frames) {
       /* generate data_tx */
-      for (j = 0; j < frame_length; j++) {
+      for (uint32_t j = 0; j < frame_length; j++) {
         if (test_known_data) {
           data_tx[j] = known_data[j];
         } else {
@@ -235,19 +238,19 @@ int main(int argc, char** argv)
 
       /* coded BER */
       if (test_known_data) {
-        for (j = 0; j < coded_length; j++) {
+        for (uint32_t j = 0; j < coded_length; j++) {
           symbols[j] = known_data_encoded[j];
         }
       } else {
         srsran_tcod_encode(&tcod, data_tx, symbols, frame_length);
       }
 
-      for (j = 0; j < coded_length; j++) {
+      for (uint32_t j = 0; j < coded_length; j++) {
         llr[j] = symbols[j] ? 1 : -1;
       }
       srsran_ch_awgn_f(llr, llr, var[i], coded_length);
 
-      for (j = 0; j < coded_length; j++) {
+      for (uint32_t j = 0; j < coded_length; j++) {
         llr_s[j] = (int16_t)(100 * llr[j]);
       }
 

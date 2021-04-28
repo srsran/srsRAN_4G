@@ -76,6 +76,15 @@ public:
     return srsran::to_c_str(buffer);
   }
 
+  uint32_t get_total_buffer_size()
+  {
+    uint32_t buffer_size = 0;
+    for (const auto& lcg : lcid_buffer_size) {
+      buffer_size += lcg.second;
+    }
+    return buffer_size;
+  }
+
   std::map<uint32_t, uint32_t> lcid_buffer_size;         // Buffer size entry for each LCID
   std::map<uint32_t, uint32_t> lcg_buffer_size;          // Entry for each LCG (sum of LCIDs of that LCG)
   uint32_t                     nof_lcids_with_data = 0;  // Is incremented when a LCID is found with data to transmit

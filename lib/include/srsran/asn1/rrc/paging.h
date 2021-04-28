@@ -93,7 +93,7 @@ struct paging_ue_id_c {
     enum options { s_tmsi, imsi, /*...*/ ng_minus5_g_s_tmsi_r15, full_i_rnti_r15, nulltype } value;
     typedef int8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     int8_t      to_number() const;
   };
   typedef enumerated<types_opts, true, 2> types;
@@ -111,64 +111,48 @@ struct paging_ue_id_c {
   // getters
   s_tmsi_s& s_tmsi()
   {
-    assert_choice_type("s-TMSI", type_.to_string(), "PagingUE-Identity");
+    assert_choice_type(types::s_tmsi, type_, "PagingUE-Identity");
     return c.get<s_tmsi_s>();
   }
   imsi_l& imsi()
   {
-    assert_choice_type("imsi", type_.to_string(), "PagingUE-Identity");
+    assert_choice_type(types::imsi, type_, "PagingUE-Identity");
     return c.get<imsi_l>();
   }
   fixed_bitstring<48>& ng_minus5_g_s_tmsi_r15()
   {
-    assert_choice_type("ng-5G-S-TMSI-r15", type_.to_string(), "PagingUE-Identity");
+    assert_choice_type(types::ng_minus5_g_s_tmsi_r15, type_, "PagingUE-Identity");
     return c.get<fixed_bitstring<48> >();
   }
   fixed_bitstring<40>& full_i_rnti_r15()
   {
-    assert_choice_type("fullI-RNTI-r15", type_.to_string(), "PagingUE-Identity");
+    assert_choice_type(types::full_i_rnti_r15, type_, "PagingUE-Identity");
     return c.get<fixed_bitstring<40> >();
   }
   const s_tmsi_s& s_tmsi() const
   {
-    assert_choice_type("s-TMSI", type_.to_string(), "PagingUE-Identity");
+    assert_choice_type(types::s_tmsi, type_, "PagingUE-Identity");
     return c.get<s_tmsi_s>();
   }
   const imsi_l& imsi() const
   {
-    assert_choice_type("imsi", type_.to_string(), "PagingUE-Identity");
+    assert_choice_type(types::imsi, type_, "PagingUE-Identity");
     return c.get<imsi_l>();
   }
   const fixed_bitstring<48>& ng_minus5_g_s_tmsi_r15() const
   {
-    assert_choice_type("ng-5G-S-TMSI-r15", type_.to_string(), "PagingUE-Identity");
+    assert_choice_type(types::ng_minus5_g_s_tmsi_r15, type_, "PagingUE-Identity");
     return c.get<fixed_bitstring<48> >();
   }
   const fixed_bitstring<40>& full_i_rnti_r15() const
   {
-    assert_choice_type("fullI-RNTI-r15", type_.to_string(), "PagingUE-Identity");
+    assert_choice_type(types::full_i_rnti_r15, type_, "PagingUE-Identity");
     return c.get<fixed_bitstring<40> >();
   }
-  s_tmsi_s& set_s_tmsi()
-  {
-    set(types::s_tmsi);
-    return c.get<s_tmsi_s>();
-  }
-  imsi_l& set_imsi()
-  {
-    set(types::imsi);
-    return c.get<imsi_l>();
-  }
-  fixed_bitstring<48>& set_ng_minus5_g_s_tmsi_r15()
-  {
-    set(types::ng_minus5_g_s_tmsi_r15);
-    return c.get<fixed_bitstring<48> >();
-  }
-  fixed_bitstring<40>& set_full_i_rnti_r15()
-  {
-    set(types::full_i_rnti_r15);
-    return c.get<fixed_bitstring<40> >();
-  }
+  s_tmsi_s&            set_s_tmsi();
+  imsi_l&              set_imsi();
+  fixed_bitstring<48>& set_ng_minus5_g_s_tmsi_r15();
+  fixed_bitstring<40>& set_full_i_rnti_r15();
 
 private:
   types                                                  type_;
@@ -194,7 +178,7 @@ struct paging_record_s {
   struct cn_domain_opts {
     enum options { ps, cs, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<cn_domain_opts> cn_domain_e_;
 
@@ -247,7 +231,7 @@ struct pcch_msg_type_c {
     struct types_opts {
       enum options { paging, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -267,7 +251,7 @@ struct pcch_msg_type_c {
     enum options { c1, msg_class_ext, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<types_opts> types;
@@ -282,20 +266,16 @@ struct pcch_msg_type_c {
   // getters
   c1_c_& c1()
   {
-    assert_choice_type("c1", type_.to_string(), "PCCH-MessageType");
+    assert_choice_type(types::c1, type_, "PCCH-MessageType");
     return c;
   }
   const c1_c_& c1() const
   {
-    assert_choice_type("c1", type_.to_string(), "PCCH-MessageType");
+    assert_choice_type(types::c1, type_, "PCCH-MessageType");
     return c;
   }
-  c1_c_& set_c1()
-  {
-    set(types::c1);
-    return c;
-  }
-  void set_msg_class_ext() { set(types::msg_class_ext); }
+  c1_c_& set_c1();
+  void   set_msg_class_ext();
 
 private:
   types type_;
@@ -341,7 +321,7 @@ struct ue_paging_coverage_info_s {
           nulltype
         } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -355,26 +335,22 @@ struct ue_paging_coverage_info_s {
       // getters
       ue_paging_coverage_info_r13_ies_s& ue_paging_coverage_info_r13()
       {
-        assert_choice_type("uePagingCoverageInformation-r13", type_.to_string(), "c1");
+        assert_choice_type(types::ue_paging_coverage_info_r13, type_, "c1");
         return c;
       }
       const ue_paging_coverage_info_r13_ies_s& ue_paging_coverage_info_r13() const
       {
-        assert_choice_type("uePagingCoverageInformation-r13", type_.to_string(), "c1");
+        assert_choice_type(types::ue_paging_coverage_info_r13, type_, "c1");
         return c;
       }
-      ue_paging_coverage_info_r13_ies_s& set_ue_paging_coverage_info_r13()
-      {
-        set(types::ue_paging_coverage_info_r13);
-        return c;
-      }
-      void set_spare7() { set(types::spare7); }
-      void set_spare6() { set(types::spare6); }
-      void set_spare5() { set(types::spare5); }
-      void set_spare4() { set(types::spare4); }
-      void set_spare3() { set(types::spare3); }
-      void set_spare2() { set(types::spare2); }
-      void set_spare1() { set(types::spare1); }
+      ue_paging_coverage_info_r13_ies_s& set_ue_paging_coverage_info_r13();
+      void                               set_spare7();
+      void                               set_spare6();
+      void                               set_spare5();
+      void                               set_spare4();
+      void                               set_spare3();
+      void                               set_spare2();
+      void                               set_spare1();
 
     private:
       types                             type_;
@@ -392,20 +368,16 @@ struct ue_paging_coverage_info_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
-    c1_c_& set_c1()
-    {
-      set(types::c1);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    c1_c_& set_c1();
+    void   set_crit_exts_future();
 
   private:
     types type_;
@@ -465,7 +437,7 @@ struct ue_radio_paging_info_s {
           nulltype
         } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -479,26 +451,22 @@ struct ue_radio_paging_info_s {
       // getters
       ue_radio_paging_info_r12_ies_s& ue_radio_paging_info_r12()
       {
-        assert_choice_type("ueRadioPagingInformation-r12", type_.to_string(), "c1");
+        assert_choice_type(types::ue_radio_paging_info_r12, type_, "c1");
         return c;
       }
       const ue_radio_paging_info_r12_ies_s& ue_radio_paging_info_r12() const
       {
-        assert_choice_type("ueRadioPagingInformation-r12", type_.to_string(), "c1");
+        assert_choice_type(types::ue_radio_paging_info_r12, type_, "c1");
         return c;
       }
-      ue_radio_paging_info_r12_ies_s& set_ue_radio_paging_info_r12()
-      {
-        set(types::ue_radio_paging_info_r12);
-        return c;
-      }
-      void set_spare7() { set(types::spare7); }
-      void set_spare6() { set(types::spare6); }
-      void set_spare5() { set(types::spare5); }
-      void set_spare4() { set(types::spare4); }
-      void set_spare3() { set(types::spare3); }
-      void set_spare2() { set(types::spare2); }
-      void set_spare1() { set(types::spare1); }
+      ue_radio_paging_info_r12_ies_s& set_ue_radio_paging_info_r12();
+      void                            set_spare7();
+      void                            set_spare6();
+      void                            set_spare5();
+      void                            set_spare4();
+      void                            set_spare3();
+      void                            set_spare2();
+      void                            set_spare1();
 
     private:
       types                          type_;
@@ -516,20 +484,16 @@ struct ue_radio_paging_info_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
-    c1_c_& set_c1()
-    {
-      set(types::c1);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    c1_c_& set_c1();
+    void   set_crit_exts_future();
 
   private:
     types type_;

@@ -104,7 +104,7 @@ void get_examples(uint8_t* messages, //
   sprintf(cstr, "ls%dcwds", lift_size);
   do {
     do {
-      tmp[0] = fgetc(ex_file);
+      tmp[0] = (char)fgetc(ex_file);
     } while (tmp[0] != 'l');
     fscanf(ex_file, "%[^\n]", tmp + 1);
     fgetc(ex_file); // discard newline

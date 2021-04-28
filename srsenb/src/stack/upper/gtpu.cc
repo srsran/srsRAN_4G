@@ -768,8 +768,7 @@ bool gtpu::send_end_marker(uint32_t teidin)
   servaddr.sin_addr.s_addr    = htonl(tx_tun->spgw_addr);
   servaddr.sin_port           = htons(GTPU_PORT);
 
-  sendto(fd, pdu->msg, pdu->N_bytes, MSG_EOR, (struct sockaddr*)&servaddr, sizeof(struct sockaddr_in));
-  return true;
+  return sendto(fd, pdu->msg, pdu->N_bytes, MSG_EOR, (struct sockaddr*)&servaddr, sizeof(struct sockaddr_in)) > 0;
 }
 
 /****************************************************************************

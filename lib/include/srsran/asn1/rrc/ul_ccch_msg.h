@@ -51,7 +51,7 @@ struct establishment_cause_opts {
     nulltype
   } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<establishment_cause_opts> establishment_cause_e;
 
@@ -69,7 +69,7 @@ struct establishment_cause_minus5_gc_opts {
     nulltype
   } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<establishment_cause_minus5_gc_opts> establishment_cause_minus5_gc_e;
 
@@ -78,7 +78,7 @@ struct init_ue_id_c {
   struct types_opts {
     enum options { s_tmsi, random_value, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts> types;
 
@@ -95,34 +95,26 @@ struct init_ue_id_c {
   // getters
   s_tmsi_s& s_tmsi()
   {
-    assert_choice_type("s-TMSI", type_.to_string(), "InitialUE-Identity");
+    assert_choice_type(types::s_tmsi, type_, "InitialUE-Identity");
     return c.get<s_tmsi_s>();
   }
   fixed_bitstring<40>& random_value()
   {
-    assert_choice_type("randomValue", type_.to_string(), "InitialUE-Identity");
+    assert_choice_type(types::random_value, type_, "InitialUE-Identity");
     return c.get<fixed_bitstring<40> >();
   }
   const s_tmsi_s& s_tmsi() const
   {
-    assert_choice_type("s-TMSI", type_.to_string(), "InitialUE-Identity");
+    assert_choice_type(types::s_tmsi, type_, "InitialUE-Identity");
     return c.get<s_tmsi_s>();
   }
   const fixed_bitstring<40>& random_value() const
   {
-    assert_choice_type("randomValue", type_.to_string(), "InitialUE-Identity");
+    assert_choice_type(types::random_value, type_, "InitialUE-Identity");
     return c.get<fixed_bitstring<40> >();
   }
-  s_tmsi_s& set_s_tmsi()
-  {
-    set(types::s_tmsi);
-    return c.get<s_tmsi_s>();
-  }
-  fixed_bitstring<40>& set_random_value()
-  {
-    set(types::random_value);
-    return c.get<fixed_bitstring<40> >();
-  }
+  s_tmsi_s&            set_s_tmsi();
+  fixed_bitstring<40>& set_random_value();
 
 private:
   types                                          type_;
@@ -137,7 +129,7 @@ struct init_ue_id_minus5_gc_c {
     enum options { ng_minus5_g_s_tmsi_part1, random_value, nulltype } value;
     typedef int8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     int8_t      to_number() const;
   };
   typedef enumerated<types_opts> types;
@@ -155,34 +147,26 @@ struct init_ue_id_minus5_gc_c {
   // getters
   fixed_bitstring<40>& ng_minus5_g_s_tmsi_part1()
   {
-    assert_choice_type("ng-5G-S-TMSI-Part1", type_.to_string(), "InitialUE-Identity-5GC");
+    assert_choice_type(types::ng_minus5_g_s_tmsi_part1, type_, "InitialUE-Identity-5GC");
     return c.get<fixed_bitstring<40> >();
   }
   fixed_bitstring<40>& random_value()
   {
-    assert_choice_type("randomValue", type_.to_string(), "InitialUE-Identity-5GC");
+    assert_choice_type(types::random_value, type_, "InitialUE-Identity-5GC");
     return c.get<fixed_bitstring<40> >();
   }
   const fixed_bitstring<40>& ng_minus5_g_s_tmsi_part1() const
   {
-    assert_choice_type("ng-5G-S-TMSI-Part1", type_.to_string(), "InitialUE-Identity-5GC");
+    assert_choice_type(types::ng_minus5_g_s_tmsi_part1, type_, "InitialUE-Identity-5GC");
     return c.get<fixed_bitstring<40> >();
   }
   const fixed_bitstring<40>& random_value() const
   {
-    assert_choice_type("randomValue", type_.to_string(), "InitialUE-Identity-5GC");
+    assert_choice_type(types::random_value, type_, "InitialUE-Identity-5GC");
     return c.get<fixed_bitstring<40> >();
   }
-  fixed_bitstring<40>& set_ng_minus5_g_s_tmsi_part1()
-  {
-    set(types::ng_minus5_g_s_tmsi_part1);
-    return c.get<fixed_bitstring<40> >();
-  }
-  fixed_bitstring<40>& set_random_value()
-  {
-    set(types::random_value);
-    return c.get<fixed_bitstring<40> >();
-  }
+  fixed_bitstring<40>& set_ng_minus5_g_s_tmsi_part1();
+  fixed_bitstring<40>& set_random_value();
 
 private:
   types                                 type_;
@@ -219,7 +203,7 @@ struct reestab_ue_id_s {
 struct reest_cause_opts {
   enum options { recfg_fail, ho_fail, other_fail, spare1, nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<reest_cause_opts> reest_cause_e;
 
@@ -237,7 +221,7 @@ struct resume_cause_opts {
     nulltype
   } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<resume_cause_opts> resume_cause_e;
 
@@ -255,7 +239,7 @@ struct resume_cause_r15_opts {
     nulltype
   } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<resume_cause_r15_opts> resume_cause_r15_e;
 
@@ -301,7 +285,7 @@ struct rrc_conn_resume_request_minus5_gc_r15_ies_s {
     struct types_opts {
       enum options { full_i_rnti_r15, short_i_rnti_r15, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -318,34 +302,26 @@ struct rrc_conn_resume_request_minus5_gc_r15_ies_s {
     // getters
     fixed_bitstring<40>& full_i_rnti_r15()
     {
-      assert_choice_type("fullI-RNTI-r15", type_.to_string(), "resumeIdentity-r15");
+      assert_choice_type(types::full_i_rnti_r15, type_, "resumeIdentity-r15");
       return c.get<fixed_bitstring<40> >();
     }
     fixed_bitstring<24>& short_i_rnti_r15()
     {
-      assert_choice_type("shortI-RNTI-r15", type_.to_string(), "resumeIdentity-r15");
+      assert_choice_type(types::short_i_rnti_r15, type_, "resumeIdentity-r15");
       return c.get<fixed_bitstring<24> >();
     }
     const fixed_bitstring<40>& full_i_rnti_r15() const
     {
-      assert_choice_type("fullI-RNTI-r15", type_.to_string(), "resumeIdentity-r15");
+      assert_choice_type(types::full_i_rnti_r15, type_, "resumeIdentity-r15");
       return c.get<fixed_bitstring<40> >();
     }
     const fixed_bitstring<24>& short_i_rnti_r15() const
     {
-      assert_choice_type("shortI-RNTI-r15", type_.to_string(), "resumeIdentity-r15");
+      assert_choice_type(types::short_i_rnti_r15, type_, "resumeIdentity-r15");
       return c.get<fixed_bitstring<24> >();
     }
-    fixed_bitstring<40>& set_full_i_rnti_r15()
-    {
-      set(types::full_i_rnti_r15);
-      return c.get<fixed_bitstring<40> >();
-    }
-    fixed_bitstring<24>& set_short_i_rnti_r15()
-    {
-      set(types::short_i_rnti_r15);
-      return c.get<fixed_bitstring<24> >();
-    }
+    fixed_bitstring<40>& set_full_i_rnti_r15();
+    fixed_bitstring<24>& set_short_i_rnti_r15();
 
   private:
     types                                 type_;
@@ -372,7 +348,7 @@ struct rrc_conn_resume_request_r13_ies_s {
     struct types_opts {
       enum options { resume_id_r13, truncated_resume_id_r13, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -389,34 +365,26 @@ struct rrc_conn_resume_request_r13_ies_s {
     // getters
     fixed_bitstring<40>& resume_id_r13()
     {
-      assert_choice_type("resumeID-r13", type_.to_string(), "resumeIdentity-r13");
+      assert_choice_type(types::resume_id_r13, type_, "resumeIdentity-r13");
       return c.get<fixed_bitstring<40> >();
     }
     fixed_bitstring<24>& truncated_resume_id_r13()
     {
-      assert_choice_type("truncatedResumeID-r13", type_.to_string(), "resumeIdentity-r13");
+      assert_choice_type(types::truncated_resume_id_r13, type_, "resumeIdentity-r13");
       return c.get<fixed_bitstring<24> >();
     }
     const fixed_bitstring<40>& resume_id_r13() const
     {
-      assert_choice_type("resumeID-r13", type_.to_string(), "resumeIdentity-r13");
+      assert_choice_type(types::resume_id_r13, type_, "resumeIdentity-r13");
       return c.get<fixed_bitstring<40> >();
     }
     const fixed_bitstring<24>& truncated_resume_id_r13() const
     {
-      assert_choice_type("truncatedResumeID-r13", type_.to_string(), "resumeIdentity-r13");
+      assert_choice_type(types::truncated_resume_id_r13, type_, "resumeIdentity-r13");
       return c.get<fixed_bitstring<24> >();
     }
-    fixed_bitstring<40>& set_resume_id_r13()
-    {
-      set(types::resume_id_r13);
-      return c.get<fixed_bitstring<40> >();
-    }
-    fixed_bitstring<24>& set_truncated_resume_id_r13()
-    {
-      set(types::truncated_resume_id_r13);
-      return c.get<fixed_bitstring<24> >();
-    }
+    fixed_bitstring<40>& set_resume_id_r13();
+    fixed_bitstring<24>& set_truncated_resume_id_r13();
 
   private:
     types                                 type_;
@@ -442,7 +410,7 @@ struct rrc_early_data_request_r15_ies_s {
   struct establishment_cause_r15_opts {
     enum options { mo_data, delay_tolerant_access, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<establishment_cause_r15_opts> establishment_cause_r15_e_;
 
@@ -465,7 +433,7 @@ struct rrc_conn_reest_request_s {
     struct types_opts {
       enum options { rrc_conn_reest_request_r8, crit_exts_future, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -479,20 +447,16 @@ struct rrc_conn_reest_request_s {
     // getters
     rrc_conn_reest_request_r8_ies_s& rrc_conn_reest_request_r8()
     {
-      assert_choice_type("rrcConnectionReestablishmentRequest-r8", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_reest_request_r8, type_, "criticalExtensions");
       return c;
     }
     const rrc_conn_reest_request_r8_ies_s& rrc_conn_reest_request_r8() const
     {
-      assert_choice_type("rrcConnectionReestablishmentRequest-r8", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_reest_request_r8, type_, "criticalExtensions");
       return c;
     }
-    rrc_conn_reest_request_r8_ies_s& set_rrc_conn_reest_request_r8()
-    {
-      set(types::rrc_conn_reest_request_r8);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    rrc_conn_reest_request_r8_ies_s& set_rrc_conn_reest_request_r8();
+    void                             set_crit_exts_future();
 
   private:
     types                           type_;
@@ -514,7 +478,7 @@ struct rrc_conn_request_s {
     struct types_opts {
       enum options { rrc_conn_request_r8, rrc_conn_request_r15, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -531,34 +495,26 @@ struct rrc_conn_request_s {
     // getters
     rrc_conn_request_r8_ies_s& rrc_conn_request_r8()
     {
-      assert_choice_type("rrcConnectionRequest-r8", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_request_r8, type_, "criticalExtensions");
       return c.get<rrc_conn_request_r8_ies_s>();
     }
     rrc_conn_request_minus5_gc_r15_ies_s& rrc_conn_request_r15()
     {
-      assert_choice_type("rrcConnectionRequest-r15", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_request_r15, type_, "criticalExtensions");
       return c.get<rrc_conn_request_minus5_gc_r15_ies_s>();
     }
     const rrc_conn_request_r8_ies_s& rrc_conn_request_r8() const
     {
-      assert_choice_type("rrcConnectionRequest-r8", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_request_r8, type_, "criticalExtensions");
       return c.get<rrc_conn_request_r8_ies_s>();
     }
     const rrc_conn_request_minus5_gc_r15_ies_s& rrc_conn_request_r15() const
     {
-      assert_choice_type("rrcConnectionRequest-r15", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_request_r15, type_, "criticalExtensions");
       return c.get<rrc_conn_request_minus5_gc_r15_ies_s>();
     }
-    rrc_conn_request_r8_ies_s& set_rrc_conn_request_r8()
-    {
-      set(types::rrc_conn_request_r8);
-      return c.get<rrc_conn_request_r8_ies_s>();
-    }
-    rrc_conn_request_minus5_gc_r15_ies_s& set_rrc_conn_request_r15()
-    {
-      set(types::rrc_conn_request_r15);
-      return c.get<rrc_conn_request_minus5_gc_r15_ies_s>();
-    }
+    rrc_conn_request_r8_ies_s&            set_rrc_conn_request_r8();
+    rrc_conn_request_minus5_gc_r15_ies_s& set_rrc_conn_request_r15();
 
   private:
     types                                                                            type_;
@@ -582,7 +538,7 @@ struct rrc_conn_resume_request_r13_s {
     struct types_opts {
       enum options { rrc_conn_resume_request_r13, rrc_conn_resume_request_r15, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -599,34 +555,26 @@ struct rrc_conn_resume_request_r13_s {
     // getters
     rrc_conn_resume_request_r13_ies_s& rrc_conn_resume_request_r13()
     {
-      assert_choice_type("rrcConnectionResumeRequest-r13", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_resume_request_r13, type_, "criticalExtensions");
       return c.get<rrc_conn_resume_request_r13_ies_s>();
     }
     rrc_conn_resume_request_minus5_gc_r15_ies_s& rrc_conn_resume_request_r15()
     {
-      assert_choice_type("rrcConnectionResumeRequest-r15", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_resume_request_r15, type_, "criticalExtensions");
       return c.get<rrc_conn_resume_request_minus5_gc_r15_ies_s>();
     }
     const rrc_conn_resume_request_r13_ies_s& rrc_conn_resume_request_r13() const
     {
-      assert_choice_type("rrcConnectionResumeRequest-r13", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_resume_request_r13, type_, "criticalExtensions");
       return c.get<rrc_conn_resume_request_r13_ies_s>();
     }
     const rrc_conn_resume_request_minus5_gc_r15_ies_s& rrc_conn_resume_request_r15() const
     {
-      assert_choice_type("rrcConnectionResumeRequest-r15", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_resume_request_r15, type_, "criticalExtensions");
       return c.get<rrc_conn_resume_request_minus5_gc_r15_ies_s>();
     }
-    rrc_conn_resume_request_r13_ies_s& set_rrc_conn_resume_request_r13()
-    {
-      set(types::rrc_conn_resume_request_r13);
-      return c.get<rrc_conn_resume_request_r13_ies_s>();
-    }
-    rrc_conn_resume_request_minus5_gc_r15_ies_s& set_rrc_conn_resume_request_r15()
-    {
-      set(types::rrc_conn_resume_request_r15);
-      return c.get<rrc_conn_resume_request_minus5_gc_r15_ies_s>();
-    }
+    rrc_conn_resume_request_r13_ies_s&           set_rrc_conn_resume_request_r13();
+    rrc_conn_resume_request_minus5_gc_r15_ies_s& set_rrc_conn_resume_request_r15();
 
   private:
     types                                                                                           type_;
@@ -650,7 +598,7 @@ struct rrc_early_data_request_r15_s {
     struct types_opts {
       enum options { rrc_early_data_request_r15, crit_exts_future, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -664,20 +612,16 @@ struct rrc_early_data_request_r15_s {
     // getters
     rrc_early_data_request_r15_ies_s& rrc_early_data_request_r15()
     {
-      assert_choice_type("rrcEarlyDataRequest-r15", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_early_data_request_r15, type_, "criticalExtensions");
       return c;
     }
     const rrc_early_data_request_r15_ies_s& rrc_early_data_request_r15() const
     {
-      assert_choice_type("rrcEarlyDataRequest-r15", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_early_data_request_r15, type_, "criticalExtensions");
       return c;
     }
-    rrc_early_data_request_r15_ies_s& set_rrc_early_data_request_r15()
-    {
-      set(types::rrc_early_data_request_r15);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    rrc_early_data_request_r15_ies_s& set_rrc_early_data_request_r15();
+    void                              set_crit_exts_future();
 
   private:
     types                            type_;
@@ -699,7 +643,7 @@ struct ul_ccch_msg_type_c {
     struct types_opts {
       enum options { rrc_conn_reest_request, rrc_conn_request, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -716,34 +660,26 @@ struct ul_ccch_msg_type_c {
     // getters
     rrc_conn_reest_request_s& rrc_conn_reest_request()
     {
-      assert_choice_type("rrcConnectionReestablishmentRequest", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_reest_request, type_, "c1");
       return c.get<rrc_conn_reest_request_s>();
     }
     rrc_conn_request_s& rrc_conn_request()
     {
-      assert_choice_type("rrcConnectionRequest", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_request, type_, "c1");
       return c.get<rrc_conn_request_s>();
     }
     const rrc_conn_reest_request_s& rrc_conn_reest_request() const
     {
-      assert_choice_type("rrcConnectionReestablishmentRequest", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_reest_request, type_, "c1");
       return c.get<rrc_conn_reest_request_s>();
     }
     const rrc_conn_request_s& rrc_conn_request() const
     {
-      assert_choice_type("rrcConnectionRequest", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_request, type_, "c1");
       return c.get<rrc_conn_request_s>();
     }
-    rrc_conn_reest_request_s& set_rrc_conn_reest_request()
-    {
-      set(types::rrc_conn_reest_request);
-      return c.get<rrc_conn_reest_request_s>();
-    }
-    rrc_conn_request_s& set_rrc_conn_request()
-    {
-      set(types::rrc_conn_request);
-      return c.get<rrc_conn_request_s>();
-    }
+    rrc_conn_reest_request_s& set_rrc_conn_reest_request();
+    rrc_conn_request_s&       set_rrc_conn_request();
 
   private:
     types                                                         type_;
@@ -756,7 +692,7 @@ struct ul_ccch_msg_type_c {
       struct types_opts {
         enum options { rrc_conn_resume_request_r13, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -777,7 +713,7 @@ struct ul_ccch_msg_type_c {
         struct types_opts {
           enum options { rrc_early_data_request_r15, spare3, spare2, spare1, nulltype } value;
 
-          std::string to_string() const;
+          const char* to_string() const;
         };
         typedef enumerated<types_opts> types;
 
@@ -791,22 +727,18 @@ struct ul_ccch_msg_type_c {
         // getters
         rrc_early_data_request_r15_s& rrc_early_data_request_r15()
         {
-          assert_choice_type("rrcEarlyDataRequest-r15", type_.to_string(), "c3");
+          assert_choice_type(types::rrc_early_data_request_r15, type_, "c3");
           return c;
         }
         const rrc_early_data_request_r15_s& rrc_early_data_request_r15() const
         {
-          assert_choice_type("rrcEarlyDataRequest-r15", type_.to_string(), "c3");
+          assert_choice_type(types::rrc_early_data_request_r15, type_, "c3");
           return c;
         }
-        rrc_early_data_request_r15_s& set_rrc_early_data_request_r15()
-        {
-          set(types::rrc_early_data_request_r15);
-          return c;
-        }
-        void set_spare3() { set(types::spare3); }
-        void set_spare2() { set(types::spare2); }
-        void set_spare1() { set(types::spare1); }
+        rrc_early_data_request_r15_s& set_rrc_early_data_request_r15();
+        void                          set_spare3();
+        void                          set_spare2();
+        void                          set_spare1();
 
       private:
         types                        type_;
@@ -816,7 +748,7 @@ struct ul_ccch_msg_type_c {
         enum options { c3, msg_class_ext_future_r15, nulltype } value;
         typedef uint8_t number_type;
 
-        std::string to_string() const;
+        const char* to_string() const;
         uint8_t     to_number() const;
       };
       typedef enumerated<types_opts> types;
@@ -831,20 +763,16 @@ struct ul_ccch_msg_type_c {
       // getters
       c3_c_& c3()
       {
-        assert_choice_type("c3", type_.to_string(), "messageClassExtensionFuture-r13");
+        assert_choice_type(types::c3, type_, "messageClassExtensionFuture-r13");
         return c;
       }
       const c3_c_& c3() const
       {
-        assert_choice_type("c3", type_.to_string(), "messageClassExtensionFuture-r13");
+        assert_choice_type(types::c3, type_, "messageClassExtensionFuture-r13");
         return c;
       }
-      c3_c_& set_c3()
-      {
-        set(types::c3);
-        return c;
-      }
-      void set_msg_class_ext_future_r15() { set(types::msg_class_ext_future_r15); }
+      c3_c_& set_c3();
+      void   set_msg_class_ext_future_r15();
 
     private:
       types type_;
@@ -854,7 +782,7 @@ struct ul_ccch_msg_type_c {
       enum options { c2, msg_class_ext_future_r13, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<types_opts> types;
@@ -872,34 +800,26 @@ struct ul_ccch_msg_type_c {
     // getters
     c2_c_& c2()
     {
-      assert_choice_type("c2", type_.to_string(), "messageClassExtension");
+      assert_choice_type(types::c2, type_, "messageClassExtension");
       return c.get<c2_c_>();
     }
     msg_class_ext_future_r13_c_& msg_class_ext_future_r13()
     {
-      assert_choice_type("messageClassExtensionFuture-r13", type_.to_string(), "messageClassExtension");
+      assert_choice_type(types::msg_class_ext_future_r13, type_, "messageClassExtension");
       return c.get<msg_class_ext_future_r13_c_>();
     }
     const c2_c_& c2() const
     {
-      assert_choice_type("c2", type_.to_string(), "messageClassExtension");
+      assert_choice_type(types::c2, type_, "messageClassExtension");
       return c.get<c2_c_>();
     }
     const msg_class_ext_future_r13_c_& msg_class_ext_future_r13() const
     {
-      assert_choice_type("messageClassExtensionFuture-r13", type_.to_string(), "messageClassExtension");
+      assert_choice_type(types::msg_class_ext_future_r13, type_, "messageClassExtension");
       return c.get<msg_class_ext_future_r13_c_>();
     }
-    c2_c_& set_c2()
-    {
-      set(types::c2);
-      return c.get<c2_c_>();
-    }
-    msg_class_ext_future_r13_c_& set_msg_class_ext_future_r13()
-    {
-      set(types::msg_class_ext_future_r13);
-      return c.get<msg_class_ext_future_r13_c_>();
-    }
+    c2_c_&                       set_c2();
+    msg_class_ext_future_r13_c_& set_msg_class_ext_future_r13();
 
   private:
     types                                               type_;
@@ -911,7 +831,7 @@ struct ul_ccch_msg_type_c {
     enum options { c1, msg_class_ext, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<types_opts> types;
@@ -929,34 +849,26 @@ struct ul_ccch_msg_type_c {
   // getters
   c1_c_& c1()
   {
-    assert_choice_type("c1", type_.to_string(), "UL-CCCH-MessageType");
+    assert_choice_type(types::c1, type_, "UL-CCCH-MessageType");
     return c.get<c1_c_>();
   }
   msg_class_ext_c_& msg_class_ext()
   {
-    assert_choice_type("messageClassExtension", type_.to_string(), "UL-CCCH-MessageType");
+    assert_choice_type(types::msg_class_ext, type_, "UL-CCCH-MessageType");
     return c.get<msg_class_ext_c_>();
   }
   const c1_c_& c1() const
   {
-    assert_choice_type("c1", type_.to_string(), "UL-CCCH-MessageType");
+    assert_choice_type(types::c1, type_, "UL-CCCH-MessageType");
     return c.get<c1_c_>();
   }
   const msg_class_ext_c_& msg_class_ext() const
   {
-    assert_choice_type("messageClassExtension", type_.to_string(), "UL-CCCH-MessageType");
+    assert_choice_type(types::msg_class_ext, type_, "UL-CCCH-MessageType");
     return c.get<msg_class_ext_c_>();
   }
-  c1_c_& set_c1()
-  {
-    set(types::c1);
-    return c.get<c1_c_>();
-  }
-  msg_class_ext_c_& set_msg_class_ext()
-  {
-    set(types::msg_class_ext);
-    return c.get<msg_class_ext_c_>();
-  }
+  c1_c_&            set_c1();
+  msg_class_ext_c_& set_msg_class_ext();
 
 private:
   types                                    type_;

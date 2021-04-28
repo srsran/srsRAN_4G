@@ -30,7 +30,7 @@ using namespace asn1::rrc;
  ******************************************************************************/
 
 // EstablishmentCause ::= ENUMERATED
-std::string establishment_cause_opts::to_string() const
+const char* establishment_cause_opts::to_string() const
 {
   static const char* options[] = {"emergency",
                                   "highPriorityAccess",
@@ -44,7 +44,7 @@ std::string establishment_cause_opts::to_string() const
 }
 
 // EstablishmentCause-5GC ::= ENUMERATED
-std::string establishment_cause_minus5_gc_opts::to_string() const
+const char* establishment_cause_minus5_gc_opts::to_string() const
 {
   static const char* options[] = {
       "emergency", "highPriorityAccess", "mt-Access", "mo-Signalling", "mo-Data", "mo-VoiceCall", "spare2", "spare1"};
@@ -118,6 +118,16 @@ init_ue_id_c& init_ue_id_c::operator=(const init_ue_id_c& other)
   }
 
   return *this;
+}
+s_tmsi_s& init_ue_id_c::set_s_tmsi()
+{
+  set(types::s_tmsi);
+  return c.get<s_tmsi_s>();
+}
+fixed_bitstring<40>& init_ue_id_c::set_random_value()
+{
+  set(types::random_value);
+  return c.get<fixed_bitstring<40> >();
 }
 void init_ue_id_c::to_json(json_writer& j) const
 {
@@ -238,6 +248,16 @@ init_ue_id_minus5_gc_c& init_ue_id_minus5_gc_c::operator=(const init_ue_id_minus
 
   return *this;
 }
+fixed_bitstring<40>& init_ue_id_minus5_gc_c::set_ng_minus5_g_s_tmsi_part1()
+{
+  set(types::ng_minus5_g_s_tmsi_part1);
+  return c.get<fixed_bitstring<40> >();
+}
+fixed_bitstring<40>& init_ue_id_minus5_gc_c::set_random_value()
+{
+  set(types::random_value);
+  return c.get<fixed_bitstring<40> >();
+}
 void init_ue_id_minus5_gc_c::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -352,14 +372,14 @@ void reestab_ue_id_s::to_json(json_writer& j) const
 }
 
 // ReestablishmentCause ::= ENUMERATED
-std::string reest_cause_opts::to_string() const
+const char* reest_cause_opts::to_string() const
 {
   static const char* options[] = {"reconfigurationFailure", "handoverFailure", "otherFailure", "spare1"};
   return convert_enum_idx(options, 4, value, "reest_cause_e");
 }
 
 // ResumeCause ::= ENUMERATED
-std::string resume_cause_opts::to_string() const
+const char* resume_cause_opts::to_string() const
 {
   static const char* options[] = {"emergency",
                                   "highPriorityAccess",
@@ -373,7 +393,7 @@ std::string resume_cause_opts::to_string() const
 }
 
 // ResumeCause-r15 ::= ENUMERATED
-std::string resume_cause_r15_opts::to_string() const
+const char* resume_cause_r15_opts::to_string() const
 {
   static const char* options[] = {"emergency",
                                   "highPriorityAccess",
@@ -567,6 +587,16 @@ rrc_conn_resume_request_minus5_gc_r15_ies_s::resume_id_r15_c_::operator=(
 
   return *this;
 }
+fixed_bitstring<40>& rrc_conn_resume_request_minus5_gc_r15_ies_s::resume_id_r15_c_::set_full_i_rnti_r15()
+{
+  set(types::full_i_rnti_r15);
+  return c.get<fixed_bitstring<40> >();
+}
+fixed_bitstring<24>& rrc_conn_resume_request_minus5_gc_r15_ies_s::resume_id_r15_c_::set_short_i_rnti_r15()
+{
+  set(types::short_i_rnti_r15);
+  return c.get<fixed_bitstring<24> >();
+}
 void rrc_conn_resume_request_minus5_gc_r15_ies_s::resume_id_r15_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -716,6 +746,16 @@ rrc_conn_resume_request_r13_ies_s::resume_id_r13_c_& rrc_conn_resume_request_r13
 
   return *this;
 }
+fixed_bitstring<40>& rrc_conn_resume_request_r13_ies_s::resume_id_r13_c_::set_resume_id_r13()
+{
+  set(types::resume_id_r13);
+  return c.get<fixed_bitstring<40> >();
+}
+fixed_bitstring<24>& rrc_conn_resume_request_r13_ies_s::resume_id_r13_c_::set_truncated_resume_id_r13()
+{
+  set(types::truncated_resume_id_r13);
+  return c.get<fixed_bitstring<24> >();
+}
 void rrc_conn_resume_request_r13_ies_s::resume_id_r13_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -807,7 +847,7 @@ void rrc_early_data_request_r15_ies_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string rrc_early_data_request_r15_ies_s::establishment_cause_r15_opts::to_string() const
+const char* rrc_early_data_request_r15_ies_s::establishment_cause_r15_opts::to_string() const
 {
   static const char* options[] = {"mo-Data", "delayTolerantAccess"};
   return convert_enum_idx(options, 2, value, "rrc_early_data_request_r15_ies_s::establishment_cause_r15_e_");
@@ -837,6 +877,15 @@ void rrc_conn_reest_request_s::to_json(json_writer& j) const
 void rrc_conn_reest_request_s::crit_exts_c_::set(types::options e)
 {
   type_ = e;
+}
+rrc_conn_reest_request_r8_ies_s& rrc_conn_reest_request_s::crit_exts_c_::set_rrc_conn_reest_request_r8()
+{
+  set(types::rrc_conn_reest_request_r8);
+  return c;
+}
+void rrc_conn_reest_request_s::crit_exts_c_::set_crit_exts_future()
+{
+  set(types::crit_exts_future);
 }
 void rrc_conn_reest_request_s::crit_exts_c_::to_json(json_writer& j) const
 {
@@ -974,6 +1023,16 @@ rrc_conn_request_s::crit_exts_c_::operator=(const rrc_conn_request_s::crit_exts_
   }
 
   return *this;
+}
+rrc_conn_request_r8_ies_s& rrc_conn_request_s::crit_exts_c_::set_rrc_conn_request_r8()
+{
+  set(types::rrc_conn_request_r8);
+  return c.get<rrc_conn_request_r8_ies_s>();
+}
+rrc_conn_request_minus5_gc_r15_ies_s& rrc_conn_request_s::crit_exts_c_::set_rrc_conn_request_r15()
+{
+  set(types::rrc_conn_request_r15);
+  return c.get<rrc_conn_request_minus5_gc_r15_ies_s>();
 }
 void rrc_conn_request_s::crit_exts_c_::to_json(json_writer& j) const
 {
@@ -1116,6 +1175,17 @@ rrc_conn_resume_request_r13_s::crit_exts_c_::operator=(const rrc_conn_resume_req
 
   return *this;
 }
+rrc_conn_resume_request_r13_ies_s& rrc_conn_resume_request_r13_s::crit_exts_c_::set_rrc_conn_resume_request_r13()
+{
+  set(types::rrc_conn_resume_request_r13);
+  return c.get<rrc_conn_resume_request_r13_ies_s>();
+}
+rrc_conn_resume_request_minus5_gc_r15_ies_s&
+rrc_conn_resume_request_r13_s::crit_exts_c_::set_rrc_conn_resume_request_r15()
+{
+  set(types::rrc_conn_resume_request_r15);
+  return c.get<rrc_conn_resume_request_minus5_gc_r15_ies_s>();
+}
 void rrc_conn_resume_request_r13_s::crit_exts_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -1192,6 +1262,15 @@ void rrc_early_data_request_r15_s::to_json(json_writer& j) const
 void rrc_early_data_request_r15_s::crit_exts_c_::set(types::options e)
 {
   type_ = e;
+}
+rrc_early_data_request_r15_ies_s& rrc_early_data_request_r15_s::crit_exts_c_::set_rrc_early_data_request_r15()
+{
+  set(types::rrc_early_data_request_r15);
+  return c;
+}
+void rrc_early_data_request_r15_s::crit_exts_c_::set_crit_exts_future()
+{
+  set(types::crit_exts_future);
 }
 void rrc_early_data_request_r15_s::crit_exts_c_::to_json(json_writer& j) const
 {
@@ -1308,6 +1387,16 @@ ul_ccch_msg_type_c& ul_ccch_msg_type_c::operator=(const ul_ccch_msg_type_c& othe
   }
 
   return *this;
+}
+ul_ccch_msg_type_c::c1_c_& ul_ccch_msg_type_c::set_c1()
+{
+  set(types::c1);
+  return c.get<c1_c_>();
+}
+ul_ccch_msg_type_c::msg_class_ext_c_& ul_ccch_msg_type_c::set_msg_class_ext()
+{
+  set(types::msg_class_ext);
+  return c.get<msg_class_ext_c_>();
 }
 void ul_ccch_msg_type_c::to_json(json_writer& j) const
 {
@@ -1427,6 +1516,16 @@ ul_ccch_msg_type_c::c1_c_& ul_ccch_msg_type_c::c1_c_::operator=(const ul_ccch_ms
   }
 
   return *this;
+}
+rrc_conn_reest_request_s& ul_ccch_msg_type_c::c1_c_::set_rrc_conn_reest_request()
+{
+  set(types::rrc_conn_reest_request);
+  return c.get<rrc_conn_reest_request_s>();
+}
+rrc_conn_request_s& ul_ccch_msg_type_c::c1_c_::set_rrc_conn_request()
+{
+  set(types::rrc_conn_request);
+  return c.get<rrc_conn_request_s>();
 }
 void ul_ccch_msg_type_c::c1_c_::to_json(json_writer& j) const
 {
@@ -1548,6 +1647,17 @@ ul_ccch_msg_type_c::msg_class_ext_c_::operator=(const ul_ccch_msg_type_c::msg_cl
 
   return *this;
 }
+ul_ccch_msg_type_c::msg_class_ext_c_::c2_c_& ul_ccch_msg_type_c::msg_class_ext_c_::set_c2()
+{
+  set(types::c2);
+  return c.get<c2_c_>();
+}
+ul_ccch_msg_type_c::msg_class_ext_c_::msg_class_ext_future_r13_c_&
+ul_ccch_msg_type_c::msg_class_ext_c_::set_msg_class_ext_future_r13()
+{
+  set(types::msg_class_ext_future_r13);
+  return c.get<msg_class_ext_future_r13_c_>();
+}
 void ul_ccch_msg_type_c::msg_class_ext_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -1622,6 +1732,16 @@ void ul_ccch_msg_type_c::msg_class_ext_c_::msg_class_ext_future_r13_c_::set(type
 {
   type_ = e;
 }
+ul_ccch_msg_type_c::msg_class_ext_c_::msg_class_ext_future_r13_c_::c3_c_&
+ul_ccch_msg_type_c::msg_class_ext_c_::msg_class_ext_future_r13_c_::set_c3()
+{
+  set(types::c3);
+  return c;
+}
+void ul_ccch_msg_type_c::msg_class_ext_c_::msg_class_ext_future_r13_c_::set_msg_class_ext_future_r15()
+{
+  set(types::msg_class_ext_future_r15);
+}
 void ul_ccch_msg_type_c::msg_class_ext_c_::msg_class_ext_future_r13_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -1673,6 +1793,24 @@ SRSASN_CODE ul_ccch_msg_type_c::msg_class_ext_c_::msg_class_ext_future_r13_c_::u
 void ul_ccch_msg_type_c::msg_class_ext_c_::msg_class_ext_future_r13_c_::c3_c_::set(types::options e)
 {
   type_ = e;
+}
+rrc_early_data_request_r15_s&
+ul_ccch_msg_type_c::msg_class_ext_c_::msg_class_ext_future_r13_c_::c3_c_::set_rrc_early_data_request_r15()
+{
+  set(types::rrc_early_data_request_r15);
+  return c;
+}
+void ul_ccch_msg_type_c::msg_class_ext_c_::msg_class_ext_future_r13_c_::c3_c_::set_spare3()
+{
+  set(types::spare3);
+}
+void ul_ccch_msg_type_c::msg_class_ext_c_::msg_class_ext_future_r13_c_::c3_c_::set_spare2()
+{
+  set(types::spare2);
+}
+void ul_ccch_msg_type_c::msg_class_ext_c_::msg_class_ext_future_r13_c_::c3_c_::set_spare1()
+{
+  set(types::spare1);
 }
 void ul_ccch_msg_type_c::msg_class_ext_c_::msg_class_ext_future_r13_c_::c3_c_::to_json(json_writer& j) const
 {

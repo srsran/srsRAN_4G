@@ -427,7 +427,7 @@ bool s1ap::user_release(uint16_t rnti, asn1::s1ap::cause_radio_network_e cause_r
     return false;
   }
 
-  if (u->was_uectxtrelease_requested()) {
+  if (u->was_uectxtrelease_requested() or not u->ctxt.mme_ue_s1ap_id.has_value()) {
     logger.warning("UE context for RNTI:0x%x is in zombie state. Releasing...", rnti);
     users.erase(u);
     rrc->release_ue(rnti);
@@ -437,10 +437,7 @@ bool s1ap::user_release(uint16_t rnti, asn1::s1ap::cause_radio_network_e cause_r
   cause_c cause;
   cause.set_radio_network().value = cause_radio.value;
 
-  if (u->ctxt.mme_ue_s1ap_id.has_value()) {
-    return u->send_uectxtreleaserequest(cause);
-  }
-  return true;
+  return u->send_uectxtreleaserequest(cause);
 }
 
 bool s1ap::user_exists(uint16_t rnti)
@@ -650,7 +647,7 @@ bool s1ap::handle_initiatingmessage(const init_msg_s& msg)
     case s1ap_elem_procs_o::init_msg_c::types_opts::mme_status_transfer:
       return handle_mme_status_transfer(msg.value.mme_status_transfer());
     default:
-      logger.error("Unhandled initiating message: %s", msg.value.type().to_string().c_str());
+      logger.error("Unhandled initiating message: %s", msg.value.type().to_string());
   }
   return true;
 }
@@ -665,7 +662,7 @@ bool s1ap::handle_successfuloutcome(const successful_outcome_s& msg)
     case s1ap_elem_procs_o::successful_outcome_c::types_opts::ho_cancel_ack:
       return true;
     default:
-      logger.error("Unhandled successful outcome message: %s", msg.value.type().to_string().c_str());
+      logger.error("Unhandled successful outcome message: %s", msg.value.type().to_string());
   }
   return true;
 }
@@ -678,7 +675,7 @@ bool s1ap::handle_unsuccessfuloutcome(const unsuccessful_outcome_s& msg)
     case s1ap_elem_procs_o::unsuccessful_outcome_c::types_opts::ho_prep_fail:
       return handle_handover_preparation_failure(msg.value.ho_prep_fail());
     default:
-      logger.error("Unhandled unsuccessful outcome message: %s", msg.value.type().to_string().c_str());
+      logger.error("Unhandled unsuccessful outcome message: %s", msg.value.type().to_string());
   }
   return true;
 }
@@ -1172,7 +1169,11 @@ bool s1ap::send_ho_req_ack(const asn1::s1ap::ho_request_s&                msg,
   tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_HO_RES_ALLOC);
   ho_request_ack_ies_container& container = tx_pdu.successful_outcome().value.ho_request_ack().protocol_ies;
 
-  ue* ue_ptr              = users.find_ue_mmeid(msg.protocol_ies.mme_ue_s1ap_id.value.value);
+  ue* ue_ptr = users.find_ue_mmeid(msg.protocol_ies.mme_ue_s1ap_id.value.value);
+  if (ue_ptr == nullptr) {
+    logger.error("The MME-S1AP-UE-ID=%ld is not valid", msg.protocol_ies.mme_ue_s1ap_id.value.value);
+    return false;
+  }
   ue_ptr->ctxt.rnti       = rnti;
   ue_ptr->ctxt.enb_cc_idx = enb_cc_idx;
 
@@ -1183,9 +1184,13 @@ bool s1ap::send_ho_req_ack(const asn1::s1ap::ho_request_s&                msg,
   container.erab_admitted_list.value.resize(admitted_bearers.size());
   for (size_t i = 0; i < admitted_bearers.size(); ++i) {
     container.erab_admitted_list.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_ADMITTED_ITEM);
-    auto& c                   = container.erab_admitted_list.value[i].value.erab_admitted_item();
-    c                         = admitted_bearers[i];
-    c.transport_layer_address = addr_to_asn1(args.gtp_bind_addr.c_str());
+    auto& c = container.erab_admitted_list.value[i].value.erab_admitted_item();
+    c       = admitted_bearers[i];
+    if (!args.gtp_advertise_addr.empty()) {
+      c.transport_layer_address = addr_to_asn1(args.gtp_advertise_addr.c_str());
+    } else {
+      c.transport_layer_address = addr_to_asn1(args.gtp_bind_addr.c_str());
+    }
 
     // If E-RAB is proposed for forward tunneling
     if (c.dl_g_tp_teid_present) {
@@ -1405,10 +1410,6 @@ bool s1ap::ue::send_ulnastransport(srsran::unique_byte_buffer_t pdu)
 
 bool s1ap::ue::send_uectxtreleaserequest(const cause_c& cause)
 {
-  if (!s1ap_ptr->mme_connected) {
-    return false;
-  }
-
   if (not ctxt.mme_ue_s1ap_id.has_value()) {
     logger.error("Cannot send UE context release request without a MME-UE-S1AP-Id allocated.");
     return false;
@@ -1449,7 +1450,7 @@ void s1ap::ue::ue_ctxt_setup_complete()
 {
   if (current_state != s1ap_elem_procs_o::init_msg_c::types_opts::init_context_setup_request) {
     logger.warning("Procedure %s,rnti=0x%x - Received unexpected complete notification",
-                   s1ap_elem_procs_o::init_msg_c::types_opts{current_state}.to_string().c_str(),
+                   s1ap_elem_procs_o::init_msg_c::types_opts{current_state}.to_string(),
                    ctxt.rnti);
     return;
   }
@@ -1682,7 +1683,11 @@ void s1ap::ue::get_erab_addr(uint16_t erab_id, transp_addr_t& transp_addr, asn1:
   // Note: RRC does not yet update correctly gtpu transp_addr
   transp_addr.resize(32);
   uint8_t addr[4];
-  inet_pton(AF_INET, s1ap_ptr->args.gtp_bind_addr.c_str(), addr);
+  if (!s1ap_ptr->args.gtp_advertise_addr.empty()) {
+    inet_pton(AF_INET, s1ap_ptr->args.gtp_advertise_addr.c_str(), addr);
+  } else {
+    inet_pton(AF_INET, s1ap_ptr->args.gtp_bind_addr.c_str(), addr);
+  }
   for (uint32_t j = 0; j < 4; ++j) {
     transp_addr.data()[j] = addr[3 - j];
   }

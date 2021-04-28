@@ -325,6 +325,7 @@ int main()
   TESTASSERT(test_cell_group_config() == SRSRAN_SUCCESS);
 
   srslog::flush();
+
   printf("Success\n");
   return 0;
 }

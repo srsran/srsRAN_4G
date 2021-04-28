@@ -28,7 +28,7 @@ namespace srslog {
 
 namespace detail {
 
-//:TODO: these are temp helpers that will be replaced by std utils.
+//: TODO: these are temp helpers that will be replaced by std utils.
 
 /// Abstraction of a pthread mutex.
 class mutex
@@ -50,7 +50,7 @@ public:
   bool try_lock() { return (::pthread_mutex_trylock(&m) == 0); }
 
   /// Accessor to the raw mutex structure.
-  pthread_mutex_t* raw() { return &m; }
+  pthread_mutex_t*       raw() { return &m; }
   const pthread_mutex_t* raw() const { return &m; }
 
 private:
@@ -75,7 +75,7 @@ public:
 template <typename T>
 class shared_variable
 {
-  T value;
+  T             value;
   mutable mutex m;
 
 public:
@@ -127,10 +127,7 @@ public:
 
   /// Blocks the calling thread on this condition variable up to the specified
   /// timeout. Returns true on timeout expiration, otherwise false.
-  bool wait(timespec ts)
-  {
-    return (::pthread_cond_timedwait(&cond_var, m.raw(), &ts) == ETIMEDOUT);
-  }
+  bool wait(timespec ts) { return (::pthread_cond_timedwait(&cond_var, m.raw(), &ts) == ETIMEDOUT); }
 
   /// Builds an absolute time timespec structure adding the specified time out
   /// in ms.
@@ -150,7 +147,7 @@ public:
   }
 
 private:
-  mutable mutex m;
+  mutable mutex  m;
   pthread_cond_t cond_var;
 };
 
@@ -161,11 +158,7 @@ class cond_var_scoped_lock
   condition_variable& cond_var;
 
 public:
-  explicit cond_var_scoped_lock(condition_variable& cond_var) :
-    cond_var(cond_var)
-  {
-    cond_var.lock();
-  }
+  explicit cond_var_scoped_lock(condition_variable& cond_var) : cond_var(cond_var) { cond_var.lock(); }
 
   cond_var_scoped_lock(const cond_var_scoped_lock&) = delete;
   cond_var_scoped_lock& operator=(const cond_var_scoped_lock&) = delete;

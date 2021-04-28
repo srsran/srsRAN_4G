@@ -66,8 +66,8 @@ public:
   pdcp_entity_base(pdcp_entity_base&&) = default;
   virtual ~pdcp_entity_base();
   virtual bool configure(const pdcp_config_t& cnfg_) = 0;
-  virtual void reset()       = 0;
-  virtual void reestablish() = 0;
+  virtual void reset()                               = 0;
+  virtual void reestablish()                         = 0;
 
   bool is_active() { return active; }
   bool is_srb() { return cfg.rb_type == PDCP_RB_IS_SRB; }
@@ -115,7 +115,7 @@ public:
     }
   }
 
-  void config_security(as_security_config_t sec_cfg_);
+  void config_security(const as_security_config_t& sec_cfg_);
 
   // GW/SDAP/RRC interface
   virtual void write_sdu(unique_byte_buffer_t sdu, int sn = -1) = 0;

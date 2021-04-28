@@ -145,7 +145,7 @@ int load_avx2long(void* p, const uint8_t* input, const uint8_t msg_len, const ui
     ini = ini + node_size;
   }
 
-  bzero(vp->codeword + msg_len * vp->n_subnodes, (cdwd_len - msg_len) * vp->n_subnodes * sizeof(__m256i));
+  SRSRAN_MEM_ZERO(vp->codeword + msg_len * vp->n_subnodes, bg_node_t, (cdwd_len - msg_len) * (uint32_t)vp->n_subnodes);
 
   return 0;
 }
@@ -212,8 +212,8 @@ void preprocess_systematic_bits_avx2long(srsran_ldpc_encoder_t* q)
 
   int       N   = q->bgN;
   int       K   = q->bgK;
-  int       M   = q->bgM;
   int       ls  = q->ls;
+  uint32_t  M   = q->bgM;
   uint16_t* pcm = q->pcm;
 
   int       k          = 0;
@@ -223,7 +223,7 @@ void preprocess_systematic_bits_avx2long(srsran_ldpc_encoder_t* q)
 
   __m256i tmp_epi8;
 
-  bzero(vp->aux, M * vp->n_subnodes * sizeof(__m256i));
+  SRSRAN_MEM_ZERO(vp->aux, __m256i, M * vp->n_subnodes);
 
   // split the input message into K chunks of ls bits each and, for all chunks
   for (k = 0; k < K; k++) {

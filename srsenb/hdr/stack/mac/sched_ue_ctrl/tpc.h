@@ -44,15 +44,23 @@ public:
   static constexpr uint32_t PUSCH_CODE = 0, PUCCH_CODE = 1;
   static constexpr int      PHR_NEG_NOF_PRB = 1;
 
-  explicit tpc(uint32_t cell_nof_prb, float target_snr_dB_ = -1.0, bool phr_handling_flag_ = false) :
+  explicit tpc(uint32_t cell_nof_prb,
+               float    target_pucch_snr_dB_ = -1.0,
+               float    target_pusch_sn_dB_  = -1.0,
+               bool     phr_handling_flag_   = false) :
     nof_prb(cell_nof_prb),
-    target_snr_dB(target_snr_dB_),
-    snr_estim_list({ul_ch_snr_estim{target_snr_dB_}, ul_ch_snr_estim{target_snr_dB_}}),
+    target_pucch_snr_dB(target_pucch_snr_dB_),
+    target_pusch_snr_dB(target_pusch_sn_dB_),
+    snr_estim_list({ul_ch_snr_estim{target_pusch_snr_dB}, ul_ch_snr_estim{target_pucch_snr_dB}}),
     phr_handling_flag(phr_handling_flag_)
   {
     max_prbs_cached = nof_prb;
   }
-  void set_cfg(float target_snr_dB_) { target_snr_dB = target_snr_dB_; }
+  void set_cfg(float target_pusch_snr_dB_, float target_pucch_snr_dB_)
+  {
+    target_pucch_snr_dB = target_pucch_snr_dB_;
+    target_pusch_snr_dB = target_pusch_snr_dB_;
+  }
 
   void set_snr(float snr, uint32_t ul_ch_code)
   {
@@ -81,7 +89,9 @@ public:
 
   void new_tti()
   {
-    for (auto& ch_snr : snr_estim_list) {
+    for (size_t chidx = 0; chidx < 2; ++chidx) {
+      float target_snr_dB = chidx == PUSCH_CODE ? target_pusch_snr_dB : target_pucch_snr_dB;
+      auto& ch_snr        = snr_estim_list[chidx];
       if (target_snr_dB < 0) {
         ch_snr.pending_delta = 0;
         continue;
@@ -139,7 +149,8 @@ private:
   }
   uint8_t enconde_tpc(uint32_t cc)
   {
-    auto& ch_snr = snr_estim_list[cc];
+    float target_snr_dB = cc == PUSCH_CODE ? target_pusch_snr_dB : target_pucch_snr_dB;
+    auto& ch_snr        = snr_estim_list[cc];
     assert(ch_snr.pending_delta == 0); // ensure called once per {cc,tti}
     if (target_snr_dB < 0) {
       // undefined target SINR case. Increase Tx power once per PHR, considering the number of allocable PRBs remains
@@ -167,7 +178,7 @@ private:
   }
 
   uint32_t nof_prb;
-  float    target_snr_dB;
+  float    target_pucch_snr_dB, target_pusch_snr_dB;
   bool     phr_handling_flag;
 
   // PHR-related variables

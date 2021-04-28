@@ -61,7 +61,7 @@ bool rlc_um_lte::configure(const rlc_config_t& cnfg_)
 
   logger.info("%s configured in %s: t_reordering=%d ms, rx_sn_field_length=%u bits, tx_sn_field_length=%u bits",
               rb_name.c_str(),
-              srsran::to_string(cnfg_.rlc_mode).c_str(),
+              srsran::to_string(cnfg_.rlc_mode),
               cfg.um.t_reordering,
               srsran::to_number(cfg.um.rx_sn_field_length),
               srsran::to_number(cfg.um.tx_sn_field_length));

@@ -549,7 +549,7 @@ public:
     Value sfdata(kObjectType);
     sfdata.AddMember("PduSduList", pdusdulist, resp.GetAllocator());
 
-    // FIXME: Get real no. of TTIs for transmission
+    // TODO: Get real no. of TTIs for transmission
     sfdata.AddMember("NoOfTTIs", 1, resp.GetAllocator());
 
     Value uplane(kObjectType);

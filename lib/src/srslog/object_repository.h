@@ -35,7 +35,7 @@ namespace srslog {
 template <typename K, typename V>
 class object_repository
 {
-  mutable detail::mutex m;
+  mutable detail::mutex    m;
   std::unordered_map<K, V> repo;
 
 public:
@@ -44,7 +44,7 @@ public:
   V* insert(const K& key, V&& value)
   {
     detail::scoped_lock lock(m);
-    const auto& insertion = repo.emplace(key, std::move(value));
+    const auto&         insertion = repo.emplace(key, std::move(value));
     if (!insertion.second)
       return nullptr;
     return &insertion.first->second;
@@ -57,7 +57,7 @@ public:
   V& emplace(Args&&... args)
   {
     detail::scoped_lock lock(m);
-    auto insertion = repo.emplace(std::forward<Args>(args)...);
+    auto                insertion = repo.emplace(std::forward<Args>(args)...);
     return insertion.first->second;
   }
 
@@ -66,13 +66,13 @@ public:
   V* find(const K& key)
   {
     detail::scoped_lock lock(m);
-    auto it = repo.find(key);
+    auto                it = repo.find(key);
     return (it != repo.end()) ? &it->second : nullptr;
   }
   const V* find(const K& key) const
   {
     detail::scoped_lock lock(m);
-    const auto it = repo.find(key);
+    const auto          it = repo.find(key);
     return (it != repo.cend()) ? &it->second : nullptr;
   }
 

@@ -43,7 +43,6 @@ public:
   sf_worker(phy_common* phy, state* phy_state_, srslog::basic_logger& logger);
   ~sf_worker() = default;
 
-  bool set_carrier_unlocked(uint32_t cc_idx, const srsran_carrier_nr_t* carrier_);
   bool update_cfg(uint32_t cc_idx);
 
   /* Functions used by main PHY thread */

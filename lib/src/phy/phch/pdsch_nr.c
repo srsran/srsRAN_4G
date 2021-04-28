@@ -26,6 +26,33 @@
 #include "srsran/phy/mimo/precoding.h"
 #include "srsran/phy/modem/demod_soft.h"
 
+static int pdsch_nr_alloc(srsran_pdsch_nr_t* q, uint32_t max_mimo_layers, uint32_t max_prb)
+{
+  // Reallocate symbols if necessary
+  if (q->max_layers < max_mimo_layers || q->max_prb < max_prb) {
+    q->max_layers = max_mimo_layers;
+    q->max_prb    = max_prb;
+
+    // Free current allocations
+    for (uint32_t i = 0; i < SRSRAN_MAX_LAYERS_NR; i++) {
+      if (q->x[i] != NULL) {
+        free(q->x[i]);
+      }
+    }
+
+    // Allocate for new sizes
+    for (uint32_t i = 0; i < q->max_layers; i++) {
+      q->x[i] = srsran_vec_cf_malloc(SRSRAN_SLOT_LEN_RE_NR(q->max_prb));
+      if (q->x[i] == NULL) {
+        ERROR("Malloc");
+        return SRSRAN_ERROR;
+      }
+    }
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
 int pdsch_nr_init_common(srsran_pdsch_nr_t* q, const srsran_pdsch_nr_args_t* args)
 {
   SRSRAN_MEM_ZERO(q, srsran_pdsch_nr_t, 1);
@@ -38,6 +65,10 @@ int pdsch_nr_init_common(srsran_pdsch_nr_t* q, const srsran_pdsch_nr_args_t* arg
     if (args->measure_evm) {
       srsran_modem_table_bytes(&q->modem_tables[mod]);
     }
+  }
+
+  if (pdsch_nr_alloc(q, args->max_layers, args->max_prb) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
   }
 
   return SRSRAN_SUCCESS;
@@ -94,26 +125,8 @@ int srsran_pdsch_nr_set_carrier(srsran_pdsch_nr_t* q, const srsran_carrier_nr_t*
   // Set carrier
   q->carrier = *carrier;
 
-  // Reallocate symbols if necessary
-  if (q->max_layers < carrier->max_mimo_layers || q->max_prb < carrier->nof_prb) {
-    q->max_layers = carrier->max_mimo_layers;
-    q->max_prb    = carrier->nof_prb;
-
-    // Free current allocations
-    for (uint32_t i = 0; i < SRSRAN_MAX_LAYERS_NR; i++) {
-      if (q->x[i] != NULL) {
-        free(q->x[i]);
-      }
-    }
-
-    // Allocate for new sizes
-    for (uint32_t i = 0; i < q->max_layers; i++) {
-      q->x[i] = srsran_vec_cf_malloc(SRSRAN_SLOT_LEN_RE_NR(q->max_prb));
-      if (q->x[i] == NULL) {
-        ERROR("Malloc");
-        return SRSRAN_ERROR;
-      }
-    }
+  if (pdsch_nr_alloc(q, carrier->max_mimo_layers, carrier->nof_prb) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
   }
 
   // Allocate code words according to table 7.3.1.3-1
@@ -578,8 +591,6 @@ static uint32_t pdsch_nr_grant_info(const srsran_pdsch_nr_t*     q,
     if (res != NULL) {
       if (grant->tb[i].enabled && !isnan(res->evm[i])) {
         len = srsran_print_check(str, str_len, len, "evm=%.2f ", res->evm[i]);
-        if (i < SRSRAN_MAX_CODEWORDS - 1) {
-        }
       }
     }
   }

@@ -40,6 +40,8 @@ typedef struct SRSRAN_API {
   srsran_uci_nr_args_t uci;
   bool                 measure_evm;
   bool                 measure_time;
+  uint32_t             max_layers;
+  uint32_t             max_prb;
 } srsran_pusch_nr_args_t;
 
 /**

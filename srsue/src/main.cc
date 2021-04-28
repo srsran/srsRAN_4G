@@ -125,19 +125,19 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     ("rat.eutra.nof_carriers", bpo::value<uint32_t>(&args->phy.nof_lte_carriers)->default_value(1), "Number of carriers")
     
     ("rat.nr.bands",        bpo::value<string>(&args->stack.rrc_nr.supported_bands_nr_str)->default_value("78"),  "Supported NR bands")
-    ("rat.nr.dl_arfcn",     bpo::value<string>(&args->phy.dl_nr_arfcn)->default_value("634240"),                  "Downlink NR-ARFCN list")
-    ("rat.nr.dl_freq",      bpo::value<double>(&args->phy.nr_freq_hz)->default_value(3513.6e6),                   "NR DL frequency")
     ("rat.nr.nof_carriers", bpo::value<uint32_t>(&args->phy.nof_nr_carriers)->default_value(0),                   "Number of NR carriers")
-    ("rat.nr.nof_prb",      bpo::value<uint32_t>(&args->phy.nr_nof_prb)->default_value(52),                       "NR carrier bandwidth")
+    ("rat.nr.max_nof_prb",  bpo::value<uint32_t>(&args->phy.nr_max_nof_prb)->default_value(106),                  "Maximum NR carrier bandwidth in PRB")
 
-    ("rrc.feature_group", bpo::value<uint32_t>(&args->stack.rrc.feature_group)->default_value(0xe6041000), "Hex value of the featureGroupIndicators field in the"
-                                                                                           "UECapabilityInformation message. Default 0xe6041000")
-    ("rrc.ue_category",       bpo::value<string>(&args->stack.rrc.ue_category_str)->default_value(SRSRAN_UE_CATEGORY_DEFAULT),  "UE Category (1 to 10)")
-    ("rrc.ue_category_dl",    bpo::value<int>(&args->stack.rrc.ue_category_dl)->default_value(-1),  "UE Category DL v12 (valid values: 0, 4, 6, 7, 9 to 16)")
-    ("rrc.ue_category_ul",    bpo::value<int>(&args->stack.rrc.ue_category_ul)->default_value(-1),  "UE Category UL v12 (valid values: 0, 3, 5, 7, 8 and 13)")
-    ("rrc.release",           bpo::value<uint32_t>(&args->stack.rrc.release)->default_value(SRSRAN_RELEASE_DEFAULT),  "UE Release (8 to 15)")
-    ("rrc.mbms_service_id",   bpo::value<int32_t>(&args->stack.rrc.mbms_service_id)->default_value(-1),  "MBMS service id for autostart (-1 means disabled)")
-    ("rrc.mbms_service_port", bpo::value<uint32_t>(&args->stack.rrc.mbms_service_port)->default_value(4321),  "Port of the MBMS service")
+    ("rrc.feature_group", bpo::value<uint32_t>(&args->stack.rrc.feature_group)->default_value(0xe6041000),                       "Hex value of the featureGroupIndicators field in the"
+                                                                                                                                 "UECapabilityInformation message. Default 0xe6041000")
+    ("rrc.ue_category",         bpo::value<string>(&args->stack.rrc.ue_category_str)->default_value(SRSRAN_UE_CATEGORY_DEFAULT),  "UE Category (1 to 10)")
+    ("rrc.ue_category_dl",      bpo::value<int>(&args->stack.rrc.ue_category_dl)->default_value(-1),                              "UE Category DL v12 (valid values: 0, 4, 6, 7, 9 to 16)")
+    ("rrc.ue_category_ul",      bpo::value<int>(&args->stack.rrc.ue_category_ul)->default_value(-1),                              "UE Category UL v12 (valid values: 0, 3, 5, 7, 8 and 13)")
+    ("rrc.release",             bpo::value<uint32_t>(&args->stack.rrc.release)->default_value(SRSRAN_RELEASE_DEFAULT),            "UE Release (8 to 15)")
+    ("rrc.mbms_service_id",     bpo::value<int32_t>(&args->stack.rrc.mbms_service_id)->default_value(-1),                         "MBMS service id for autostart (-1 means disabled)")
+    ("rrc.mbms_service_port",   bpo::value<uint32_t>(&args->stack.rrc.mbms_service_port)->default_value(4321),                    "Port of the MBMS service")
+    ("rrc.nr_measurement_pci",  bpo::value<uint32_t>(&args->stack.rrc_nr.sim_nr_meas_pci)->default_value(500),                    "NR PCI for the simulated NR measurement")
+    ("rrc.nr_short_sn_support", bpo::value<bool>(&args->stack.rrc_nr.pdcp_short_sn_support)->default_value(true),                 "Announce PDCP short SN support")
 
     ("nas.apn",               bpo::value<string>(&args->stack.nas.apn_name)->default_value(""),          "Set Access Point Name (APN) for data services")
     ("nas.apn_protocol",      bpo::value<string>(&args->stack.nas.apn_protocol)->default_value(""),  "Set Access Point Name (APN) protocol for data services")
@@ -402,6 +402,10 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     ("expert.lte_sample_rates",
      bpo::value<bool>(&use_standard_lte_rates)->default_value(false),
      "Whether to use default LTE sample rates instead of shorter variants.")
+
+    ("phy.force_N_id_2",
+     bpo::value<int>(&args->phy.force_N_id_2)->default_value(-1),
+     "Force using a specific PSS (set to -1 to allow all PSSs).")
 
     // UE simulation args
     ("sim.airplane_t_on_ms",

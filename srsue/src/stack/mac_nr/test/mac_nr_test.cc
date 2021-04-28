@@ -125,10 +125,12 @@ public:
   {
     logger.debug(payload, nof_bytes, "Received %d B on LCID %d", nof_bytes, lcid);
     received_bytes += nof_bytes;
+    received_pdus++;
   }
 
   void     write_sdu(uint32_t lcid, uint32_t nof_bytes) { ul_queues[lcid] += nof_bytes; }
   uint32_t get_received_bytes() { return received_bytes; }
+  uint32_t get_received_pdus() { return received_pdus; }
 
   void disable_read() { read_enable = false; }
   void set_read_len(uint32_t len) { read_len = len; }
@@ -143,8 +145,9 @@ public:
 private:
   bool                  read_enable = true;
   int32_t               read_len    = -1; // read all
-  uint32_t              read_min    = 0;  // minimum "grant size" for read_pdu() to return data
-  uint32_t              received_bytes;
+  uint32_t              read_min       = 0;  // minimum "grant size" for read_pdu() to return data
+  uint32_t              received_bytes = 0;
+  uint32_t              received_pdus  = 0;
   srslog::basic_logger& logger = srslog::fetch_basic_logger("RLC");
   // UL queues where key is LCID and value the queue length
   std::map<uint32_t, uint32_t> ul_queues;
@@ -285,6 +288,12 @@ int mac_nr_ul_logical_channel_prioritization_test1()
     TESTASSERT(memcmp(ul_action.tb.payload->msg, tv, sizeof(tv)) == 0);
   }
 
+  // Check UL metrics
+  mac_metrics_t metrics[SRSRAN_MAX_CARRIERS] = {};
+  mac.get_metrics(metrics);
+  TESTASSERT(metrics[0].tx_pkts == 1);
+  TESTASSERT(metrics[0].tx_errors == 0);
+
   stack.run_tti(0);
 
   // create new grant that indicates/requests a retx of the previous PDU
@@ -314,6 +323,11 @@ int mac_nr_ul_logical_channel_prioritization_test1()
 
     TESTASSERT(memcmp(ul_action.tb.payload->msg, tv, sizeof(tv)) == 0);
   }
+
+  // Verify we account the retx
+  mac.get_metrics(metrics);
+  TESTASSERT(metrics[0].tx_pkts == 1);
+  TESTASSERT(metrics[0].tx_errors == 1);
 
   // make sure MAC PDU thread picks up before stopping
   stack.run_tti(0);
@@ -576,6 +590,115 @@ int mac_nr_ul_periodic_bsr_test()
   return SRSRAN_SUCCESS;
 }
 
+// Basic DL test with retransmitted PDSCH
+int mac_nr_dl_retx_test()
+{
+  // Dummy DL-SCH PDU
+  const uint8_t tv[] = {0x04, 0x0a, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04,
+                        0x04, 0x04, 0x3f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+  // dummy layers
+  dummy_phy   phy;
+  rlc_dummy   rlc;
+  rrc_dummy   rrc;
+  stack_dummy stack;
+
+  // the actual MAC
+  mac_nr mac(&stack.task_sched);
+
+  mac_nr_args_t args = {};
+  mac.init(args, &phy, &rlc, &rrc);
+
+  srsran::dl_harq_cfg_nr_t harq_cfg;
+  TESTASSERT(mac.set_config(harq_cfg) == SRSRAN_SUCCESS);
+
+  stack.init(&mac, &phy);
+  const uint16_t crnti = 0x1001;
+  mac.set_crnti(crnti);
+
+  // generate config (default DRB1 config for EN-DC)
+  std::vector<srsran::logical_channel_config_t> lcids;
+  srsran::logical_channel_config_t              config = {};
+  config.lcid                                          = 4;
+  config.lcg                                           = 6;
+  config.PBR                                           = 0;
+  config.BSD                                           = 1000; // 1000ms
+  config.priority                                      = 11;
+  lcids.push_back(config);
+
+  // setup LCIDs in MAC
+  for (auto& channel : lcids) {
+    mac.setup_lcid(channel);
+  }
+
+  // create DL grant for MAC
+  {
+    mac_interface_phy_nr::mac_nr_grant_dl_t mac_grant = {};
+    mac_grant.rnti                                    = crnti;
+    mac_grant.tbs                                     = sizeof(tv);
+    int cc_idx                                        = 0;
+
+    mac_interface_phy_nr::tb_action_dl_t dl_action; // don't initialize on purpose
+
+    // Send grant to MAC and get action for this TB
+    mac.new_grant_dl(cc_idx, mac_grant, &dl_action);
+
+    TESTASSERT(dl_action.tb.enabled == true);
+    TESTASSERT(dl_action.tb.softbuffer != nullptr);
+
+    // prepare action result
+    mac_interface_phy_nr::tb_action_dl_result_t dl_result = {};
+    dl_result.ack                                         = true;
+    dl_result.payload                                     = srsran::make_byte_buffer();
+    TESTASSERT(dl_result.payload != nullptr);
+    memcpy(dl_result.payload->msg, tv, sizeof(tv));
+    dl_result.payload->N_bytes = sizeof(tv);
+
+    // pass all to MAC
+    mac.tb_decoded(cc_idx, mac_grant, std::move(dl_result));
+  }
+
+  // let stack run to process received PDUs
+  stack.run_tti(0);
+  TESTASSERT(rlc.get_received_pdus() == 1);
+
+  // create same grant and pass to MAC to indicate DL retx
+  {
+    mac_interface_phy_nr::mac_nr_grant_dl_t mac_grant = {};
+    mac_grant.rnti                                    = crnti;
+    mac_grant.tbs                                     = sizeof(tv);
+    int cc_idx                                        = 0;
+
+    mac_interface_phy_nr::tb_action_dl_t dl_action;
+
+    // Send grant to MAC and get action for this TB
+    mac.new_grant_dl(cc_idx, mac_grant, &dl_action);
+
+    // MAC should instruct PHY to *not* decode PDSCH
+    TESTASSERT(dl_action.tb.enabled == false);
+    TESTASSERT(dl_action.tb.softbuffer == nullptr);
+
+    // prepare action result
+    mac_interface_phy_nr::tb_action_dl_result_t dl_result = {};
+    dl_result.ack                                         = false;
+
+    // still pass negative result to MAC (needed for metrics)
+    mac.tb_decoded(cc_idx, mac_grant, std::move(dl_result));
+  }
+
+  // run stack again
+  stack.run_tti(0);
+  TESTASSERT(rlc.get_received_pdus() == 1);
+
+  // check metrics
+  mac_metrics_t metrics[SRSRAN_MAX_CARRIERS] = {};
+  mac.get_metrics(metrics);
+  TESTASSERT(metrics[0].rx_pkts == 2);
+  TESTASSERT(metrics[0].rx_errors == 1);
+
+  return SRSRAN_SUCCESS;
+}
+
 int main()
 {
 #if HAVE_PCAP
@@ -592,6 +715,7 @@ int main()
   TESTASSERT(mac_nr_ul_logical_channel_prioritization_test1() == SRSRAN_SUCCESS);
   TESTASSERT(mac_nr_ul_logical_channel_prioritization_test2() == SRSRAN_SUCCESS);
   TESTASSERT(mac_nr_ul_periodic_bsr_test() == SRSRAN_SUCCESS);
+  TESTASSERT(mac_nr_dl_retx_test() == SRSRAN_SUCCESS);
 
   return SRSRAN_SUCCESS;
 }

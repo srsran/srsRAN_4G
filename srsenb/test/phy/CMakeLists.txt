@@ -59,7 +59,7 @@ add_lte_test(enb_phy_test_tm3 enb_phy_test --duration=${ENB_PHY_TEST_DURATION} -
 add_lte_test(enb_phy_test_tm4 enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --cell.nof_prb=100 --tm=4)
 
 # Five carrier aggregation using PUCCH3:
-#  - 6 eNb cell/carrier
+#  - 5 eNb cell/carrier
 #  - Transmission Mode 1
 #  - 5 Aggregated carriers
 #  - 6 PRB
@@ -67,7 +67,7 @@ add_lte_test(enb_phy_test_tm4 enb_phy_test --duration=${ENB_PHY_TEST_DURATION} -
 add_lte_test(enb_phy_test_tm1_ca_pucch3 enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --nof_enb_cells=5 --ue_cell_list=3,4,0,1,2 --ack_mode=pucch3 --cell.nof_prb=6 --tm=1)
 
 # Five carrier aggregation using PUCCH3:
-#  - 6 eNb cell/carrier
+#  - 5 eNb cell/carrier
 #  - Transmission Mode 4
 #  - 5 Aggregated carriers
 #  - 6 PRB
@@ -75,7 +75,7 @@ add_lte_test(enb_phy_test_tm1_ca_pucch3 enb_phy_test --duration=${ENB_PHY_TEST_D
 add_lte_test(enb_phy_test_tm4_ca_pucch3 enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --nof_enb_cells=5 --ue_cell_list=0,4,3,1,2 --ack_mode=pucch3 --cell.nof_prb=6 --tm=4)
 
 # Two carrier aggregation using Channel Selection:
-#  - 6 eNb cell/carrier
+#  - 5 eNb cell/carrier
 #  - Transmission Mode 1
 #  - 2 Aggregated carriers
 #  - 6 PRB
@@ -83,12 +83,12 @@ add_lte_test(enb_phy_test_tm4_ca_pucch3 enb_phy_test --duration=${ENB_PHY_TEST_D
 add_lte_test(enb_phy_test_tm1_ca_cs enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --nof_enb_cells=5 --ue_cell_list=4,3 --ack_mode=cs --cell.nof_prb=6 --tm=1)
 
 # Two carrier aggregation using Channel Selection:
-#  - 6 eNb cell/carrier
+#  - 5 eNb cell/carrier
 #  - Transmission Mode 4
 #  - 2 Aggregated carriers
 #  - 6 PRB
 #  - PUCCH format 1b with Channel selection ACK/NACK feedback mode
-add_lte_test(enb_phy_test_tm4_ca_cs enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --nof_enb_cells=5 --ue_cell_list=0,4 --ack_mode=cs --cell.nof_prb=6 --tm=4)
+add_lte_test(enb_phy_test_tm4_ca_cs enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --nof_enb_cells=5 --ue_cell_list=1,4 --ack_mode=cs --cell.nof_prb=6 --tm=4)
 
 # Two carrier aggregation using Channel Selection and HO:
 #  - 3 eNb cell/carrier
@@ -97,3 +97,6 @@ add_lte_test(enb_phy_test_tm4_ca_cs enb_phy_test --duration=${ENB_PHY_TEST_DURAT
 #  - 100 PRB
 #  - PUCCH format 1b with Channel selection ACK/NACK feedback mode
 add_lte_test(enb_phy_test_tm1_ca_cs_ho enb_phy_test --duration=1000 --nof_enb_cells=3 --ue_cell_list=2,0 --ack_mode=cs --cell.nof_prb=100 --tm=1 --rotation=100)
+
+# 6 Carrier eNb shall end in error without breaking the PHY
+add_lte_test(enb_phy_test_exceed_nof_carriers enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --nof_enb_cells=6 --ue_cell_list=1,5 --ack_mode=cs --cell.nof_prb=6 --tm=4)

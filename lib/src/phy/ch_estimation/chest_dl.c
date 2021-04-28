@@ -474,24 +474,42 @@ static void interpolate_pilots(srsran_chest_dl_t*     q,
                                     (fidx_offset) ? 1 : 2);
       }
     } else {
-      if (cfg->estimator_alg == SRSRAN_ESTIMATOR_ALG_AVERAGE && nsymbols > 1) {
-        fidx_offset = q->cell.id % 3;
-        srsran_interp_linear_offset(
-            &q->srsran_interp_lin_3, pilot_estimates, ce, fidx_offset, SRSRAN_NRE / 4 - fidx_offset);
+      if (cfg->estimator_alg == SRSRAN_ESTIMATOR_ALG_AVERAGE) {
+        if (nsymbols > 1) {
+          fidx_offset = q->cell.id % 3;
+          srsran_interp_linear_offset(
+              &q->srsran_interp_lin_3, pilot_estimates, ce, fidx_offset, SRSRAN_NRE / 4 - fidx_offset);
+        } else {
+          fidx_offset = srsran_refsignal_cs_fidx(q->cell, l, port_id, 0);
+          srsran_interp_linear_offset(&q->srsran_interp_lin,
+                                      &pilot_estimates[2 * q->cell.nof_prb * l],
+                                      ce,
+                                      fidx_offset,
+                                      SRSRAN_NRE / 2 - fidx_offset);
+        }
       } else {
-        fidx_offset = srsran_refsignal_cs_fidx(q->cell, l, port_id, 0);
-        srsran_interp_linear_offset(
-            &q->srsran_interp_lin,
-            &pilot_estimates[2 * q->cell.nof_prb * l],
-            &ce[srsran_refsignal_cs_nsymbol(l, q->cell.cp, port_id) * q->cell.nof_prb * SRSRAN_NRE],
-            fidx_offset,
-            SRSRAN_NRE / 2 - fidx_offset);
+        if (nsymbols < 2) {
+          fidx_offset = srsran_refsignal_cs_fidx(q->cell, l, port_id, 0);
+          srsran_interp_linear_offset(&q->srsran_interp_lin,
+                                      &pilot_estimates[2 * q->cell.nof_prb * l],
+                                      ce,
+                                      fidx_offset,
+                                      SRSRAN_NRE / 2 - fidx_offset);
+        } else {
+          fidx_offset = srsran_refsignal_cs_fidx(q->cell, l, port_id, 0);
+          srsran_interp_linear_offset(
+              &q->srsran_interp_lin,
+              &pilot_estimates[2 * q->cell.nof_prb * l],
+              &ce[srsran_refsignal_cs_nsymbol(l, q->cell.cp, port_id) * q->cell.nof_prb * SRSRAN_NRE],
+              fidx_offset,
+              SRSRAN_NRE / 2 - fidx_offset);
+        }
       }
     }
   }
 
   /* Now interpolate in the time domain between symbols */
-  if (sf->sf_type == SRSRAN_SF_NORM && (cfg->estimator_alg == SRSRAN_ESTIMATOR_ALG_AVERAGE || nsymbols < 3)) {
+  if (sf->sf_type == SRSRAN_SF_NORM && (cfg->estimator_alg == SRSRAN_ESTIMATOR_ALG_AVERAGE || nsymbols < 2)) {
     // If we average per subframe, just copy the estimates in the time domain
     for (uint32_t l = 1; l < 2 * SRSRAN_CP_NSYMB(q->cell.cp); l++) {
       memcpy(&ce[l * SRSRAN_NRE * q->cell.nof_prb], ce, sizeof(cf_t) * SRSRAN_NRE * q->cell.nof_prb);
@@ -504,7 +522,7 @@ static void interpolate_pilots(srsran_chest_dl_t*     q,
       srsran_interp_linear_vector2(&q->srsran_interp_linvec, &cesymb(6), &cesymb(10), &cesymb(10), &cesymb(11), 4, 1);
     } else {
       if (SRSRAN_CP_ISNORM(q->cell.cp)) {
-        if (port_id <= 2) {
+        if (port_id < 2) {
           srsran_interp_linear_vector(&q->srsran_interp_linvec, &cesymb(0), &cesymb(4), &cesymb(1), 4, 3);
           srsran_interp_linear_vector(&q->srsran_interp_linvec, &cesymb(4), &cesymb(7), &cesymb(5), 3, 2);
           if (nsymbols == 4) {
@@ -521,7 +539,7 @@ static void interpolate_pilots(srsran_chest_dl_t*     q,
           srsran_interp_linear_vector(&q->srsran_interp_linvec, &cesymb(1), &cesymb(8), &cesymb(9), 7, 5);
         }
       } else {
-        if (port_id <= 2) {
+        if (port_id < 2) {
           // TODO: TDD and extended cyclic prefix
           srsran_interp_linear_vector(&q->srsran_interp_linvec, &cesymb(0), &cesymb(3), &cesymb(1), 3, 2);
           srsran_interp_linear_vector(&q->srsran_interp_linvec, &cesymb(3), &cesymb(6), &cesymb(4), 3, 2);

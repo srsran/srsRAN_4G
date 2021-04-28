@@ -94,14 +94,14 @@ void plmn_id_info_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-std::string plmn_id_info_s::cell_reserved_for_oper_opts::to_string() const
+const char* plmn_id_info_s::cell_reserved_for_oper_opts::to_string() const
 {
   static const char* options[] = {"reserved", "notReserved"};
   return convert_enum_idx(options, 2, value, "plmn_id_info_s::cell_reserved_for_oper_e_");
 }
 
 // Alpha-r12 ::= ENUMERATED
-std::string alpha_r12_opts::to_string() const
+const char* alpha_r12_opts::to_string() const
 {
   static const char* options[] = {"al0", "al04", "al05", "al06", "al07", "al08", "al09", "al1"};
   return convert_enum_idx(options, 8, value, "alpha_r12_e");
@@ -111,14 +111,14 @@ float alpha_r12_opts::to_number() const
   static const float options[] = {0.0, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
   return map_enum_number(options, 8, value, "alpha_r12_e");
 }
-std::string alpha_r12_opts::to_number_string() const
+const char* alpha_r12_opts::to_number_string() const
 {
   static const char* options[] = {"0", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "1"};
   return convert_enum_idx(options, 8, value, "alpha_r12_e");
 }
 
 // BandclassCDMA2000 ::= ENUMERATED
-std::string bandclass_cdma2000_opts::to_string() const
+const char* bandclass_cdma2000_opts::to_string() const
 {
   static const char* options[] = {"bc0",       "bc1",     "bc2",    "bc3",    "bc4",       "bc5",       "bc6",
                                   "bc7",       "bc8",     "bc9",    "bc10",   "bc11",      "bc12",      "bc13",
@@ -134,7 +134,7 @@ uint8_t bandclass_cdma2000_opts::to_number() const
 }
 
 // FilterCoefficient ::= ENUMERATED
-std::string filt_coef_opts::to_string() const
+const char* filt_coef_opts::to_string() const
 {
   static const char* options[] = {"fc0",
                                   "fc1",
@@ -192,7 +192,7 @@ bool mbsfn_sf_cfg_s::operator==(const mbsfn_sf_cfg_s& other) const
          radioframe_alloc_offset == other.radioframe_alloc_offset and sf_alloc == other.sf_alloc;
 }
 
-std::string mbsfn_sf_cfg_s::radioframe_alloc_period_opts::to_string() const
+const char* mbsfn_sf_cfg_s::radioframe_alloc_period_opts::to_string() const
 {
   static const char* options[] = {"n1", "n2", "n4", "n8", "n16", "n32"};
   return convert_enum_idx(options, 6, value, "mbsfn_sf_cfg_s::radioframe_alloc_period_e_");
@@ -269,6 +269,16 @@ mbsfn_sf_cfg_s::sf_alloc_c_& mbsfn_sf_cfg_s::sf_alloc_c_::operator=(const mbsfn_
   }
 
   return *this;
+}
+fixed_bitstring<6>& mbsfn_sf_cfg_s::sf_alloc_c_::set_one_frame()
+{
+  set(types::one_frame);
+  return c.get<fixed_bitstring<6> >();
+}
+fixed_bitstring<24>& mbsfn_sf_cfg_s::sf_alloc_c_::set_four_frames()
+{
+  set(types::four_frames);
+  return c.get<fixed_bitstring<24> >();
 }
 void mbsfn_sf_cfg_s::sf_alloc_c_::to_json(json_writer& j) const
 {
@@ -428,6 +438,16 @@ mbsfn_sf_cfg_v1430_s::sf_alloc_v1430_c_::operator=(const mbsfn_sf_cfg_v1430_s::s
 
   return *this;
 }
+fixed_bitstring<2>& mbsfn_sf_cfg_v1430_s::sf_alloc_v1430_c_::set_one_frame_v1430()
+{
+  set(types::one_frame_v1430);
+  return c.get<fixed_bitstring<2> >();
+}
+fixed_bitstring<8>& mbsfn_sf_cfg_v1430_s::sf_alloc_v1430_c_::set_four_frames_v1430()
+{
+  set(types::four_frames_v1430);
+  return c.get<fixed_bitstring<8> >();
+}
 void mbsfn_sf_cfg_v1430_s::sf_alloc_v1430_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -560,6 +580,16 @@ meas_sf_pattern_r10_c& meas_sf_pattern_r10_c::operator=(const meas_sf_pattern_r1
   }
 
   return *this;
+}
+fixed_bitstring<40>& meas_sf_pattern_r10_c::set_sf_pattern_fdd_r10()
+{
+  set(types::sf_pattern_fdd_r10);
+  return c.get<fixed_bitstring<40> >();
+}
+meas_sf_pattern_r10_c::sf_pattern_tdd_r10_c_& meas_sf_pattern_r10_c::set_sf_pattern_tdd_r10()
+{
+  set(types::sf_pattern_tdd_r10);
+  return c.get<sf_pattern_tdd_r10_c_>();
 }
 void meas_sf_pattern_r10_c::to_json(json_writer& j) const
 {
@@ -708,6 +738,21 @@ meas_sf_pattern_r10_c::sf_pattern_tdd_r10_c_::operator=(const meas_sf_pattern_r1
 
   return *this;
 }
+fixed_bitstring<20>& meas_sf_pattern_r10_c::sf_pattern_tdd_r10_c_::set_sf_cfg1_minus5_r10()
+{
+  set(types::sf_cfg1_minus5_r10);
+  return c.get<fixed_bitstring<20> >();
+}
+fixed_bitstring<70>& meas_sf_pattern_r10_c::sf_pattern_tdd_r10_c_::set_sf_cfg0_r10()
+{
+  set(types::sf_cfg0_r10);
+  return c.get<fixed_bitstring<70> >();
+}
+fixed_bitstring<60>& meas_sf_pattern_r10_c::sf_pattern_tdd_r10_c_::set_sf_cfg6_r10()
+{
+  set(types::sf_cfg6_r10);
+  return c.get<fixed_bitstring<60> >();
+}
 void meas_sf_pattern_r10_c::sf_pattern_tdd_r10_c_::to_json(json_writer& j) const
 {
   j.start_obj();
@@ -785,7 +830,7 @@ bool meas_sf_pattern_r10_c::sf_pattern_tdd_r10_c_::operator==(const sf_pattern_t
 }
 
 // CipheringAlgorithm-r12 ::= ENUMERATED
-std::string ciphering_algorithm_r12_opts::to_string() const
+const char* ciphering_algorithm_r12_opts::to_string() const
 {
   static const char* options[] = {"eea0", "eea1", "eea2", "eea3-v1130", "spare4", "spare3", "spare2", "spare1"};
   return convert_enum_idx(options, 8, value, "ciphering_algorithm_r12_e");
@@ -797,7 +842,7 @@ uint8_t ciphering_algorithm_r12_opts::to_number() const
 }
 
 // WLAN-BandIndicator-r13 ::= ENUMERATED
-std::string wlan_band_ind_r13_opts::to_string() const
+const char* wlan_band_ind_r13_opts::to_string() const
 {
   static const char* options[] = {
       "band2dot4", "band5", "band60-v1430", "spare5", "spare4", "spare3", "spare2", "spare1"};
@@ -808,7 +853,7 @@ float wlan_band_ind_r13_opts::to_number() const
   static const float options[] = {2.4, 5.0, 60.0};
   return map_enum_number(options, 3, value, "wlan_band_ind_r13_e");
 }
-std::string wlan_band_ind_r13_opts::to_number_string() const
+const char* wlan_band_ind_r13_opts::to_number_string() const
 {
   static const char* options[] = {"2.4", "5", "60"};
   return convert_enum_idx(options, 8, value, "wlan_band_ind_r13_e");

@@ -101,7 +101,7 @@ struct zerobit_counter {
 #ifdef __GNUC__ // clang and gcc
 /// Specializations for unsigned
 template <typename Integer>
-struct zerobit_counter<Integer, sizeof(unsigned)> {
+struct zerobit_counter<Integer, 4> {
   static Integer msb_count(Integer value)
   {
     return (value) ? __builtin_clz(value) : std::numeric_limits<Integer>::digits;
@@ -111,19 +111,17 @@ struct zerobit_counter<Integer, sizeof(unsigned)> {
     return (value) ? __builtin_ctz(value) : std::numeric_limits<Integer>::digits;
   }
 };
-#endif
 
-#ifdef __GNUC__ // clang and gcc
-/// Specializations for unsigned long
+/// Specializations for unsigned long long
 template <typename Integer>
-struct zerobit_counter<Integer, sizeof(unsigned long)> {
+struct zerobit_counter<Integer, 8> {
   static Integer msb_count(Integer value)
   {
-    return (value) ? __builtin_clzl(value) : std::numeric_limits<Integer>::digits;
+    return (value) ? __builtin_clzll(value) : std::numeric_limits<Integer>::digits;
   }
   static Integer lsb_count(Integer value)
   {
-    return (value) ? __builtin_ctzl(value) : std::numeric_limits<Integer>::digits;
+    return (value) ? __builtin_ctzll(value) : std::numeric_limits<Integer>::digits;
   }
 };
 #endif

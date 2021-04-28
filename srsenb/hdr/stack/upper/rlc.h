@@ -48,7 +48,7 @@ class rlc : public rlc_interface_mac, public rlc_interface_rrc, public rlc_inter
 public:
   explicit rlc(srslog::basic_logger& logger) : logger(logger) {}
   void
-       init(pdcp_interface_rlc* pdcp_, rrc_interface_rlc* rrc_, mac_interface_rlc* mac_, srsran::timer_handler* timers_);
+  init(pdcp_interface_rlc* pdcp_, rrc_interface_rlc* rrc_, mac_interface_rlc* mac_, srsran::timer_handler* timers_);
   void stop();
   void get_metrics(rlc_metrics_t& m, const uint32_t nof_tti);
 
@@ -104,11 +104,11 @@ private:
   std::map<uint32_t, user_interface> users;
   std::vector<mch_service_t>         mch_services;
 
-  mac_interface_rlc*     mac;
-  pdcp_interface_rlc*    pdcp;
-  rrc_interface_rlc*     rrc;
+  mac_interface_rlc*     mac  = nullptr;
+  pdcp_interface_rlc*    pdcp = nullptr;
+  rrc_interface_rlc*     rrc  = nullptr;
   srslog::basic_logger&  logger;
-  srsran::timer_handler* timers;
+  srsran::timer_handler* timers = nullptr;
 };
 
 } // namespace srsenb

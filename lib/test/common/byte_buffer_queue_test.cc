@@ -31,53 +31,56 @@ typedef struct {
   byte_buffer_queue* q;
 } args_t;
 
-void* write_thread(void* a)
+void write_thread(byte_buffer_queue* q)
 {
-  args_t* args = (args_t*)a;
+  unique_byte_buffer_t b;
   for (uint32_t i = 0; i < NMSGS; i++) {
-    unique_byte_buffer_t b = srsran::make_byte_buffer();
-    if (b == nullptr) {
-      return nullptr;
-    }
+    do {
+      b = srsran::make_byte_buffer();
+      if (b == nullptr) {
+        // wait until pool is not depleted
+        std::this_thread::yield();
+      }
+    } while (b == nullptr);
     memcpy(b->msg, &i, 4);
     b->N_bytes = 4;
-    args->q->write(std::move(b));
+    q->write(std::move(b));
   }
-  return NULL;
 }
 
-int main(int argc, char** argv)
+int test_concurrent_writeread()
 {
-  bool                 result;
   byte_buffer_queue    q;
   unique_byte_buffer_t b;
-  pthread_t            thread;
-  args_t               args;
-  u_int32_t            r;
+  int                  result = 0;
 
-  result = true;
-  args.q = &q;
-
-  pthread_create(&thread, NULL, &write_thread, &args);
+  std::thread t([&q]() { write_thread(&q); });
 
   for (uint32_t i = 0; i < NMSGS; i++) {
-    b = q.read();
+    b          = q.read();
+    uint32_t r = 0;
     memcpy(&r, b->msg, 4);
-    if (r != i)
-      result = false;
+    if (r != i) {
+      result = -1;
+      break;
+    }
   }
 
-  pthread_join(thread, NULL);
+  t.join();
 
   if (q.size() != 0 || q.size_bytes() != 0) {
-    result = false;
+    result = -1;
   }
 
-  if (result) {
+  if (result == 0) {
     printf("Passed\n");
-    exit(0);
   } else {
     printf("Failed\n;");
-    exit(1);
   }
+  return result;
+}
+
+int main()
+{
+  return test_concurrent_writeread();
 }

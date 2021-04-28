@@ -65,28 +65,19 @@ cc_worker::~cc_worker()
   }
 }
 
-bool cc_worker::set_carrier(const srsran_carrier_nr_t* carrier)
-{
-  if (srsran_ue_dl_nr_set_carrier(&ue_dl, carrier) < SRSRAN_SUCCESS) {
-    ERROR("Error setting carrier");
-    return false;
-  }
-
-  if (srsran_ue_ul_nr_set_carrier(&ue_ul, carrier) < SRSRAN_SUCCESS) {
-    ERROR("Error setting carrier");
-    return false;
-  }
-
-  // Set default PDSCH config
-  phy->cfg.pdsch.rbg_size_cfg_1 = false;
-
-  return true;
-}
-
 bool cc_worker::update_cfg()
 {
-  srsran_dci_cfg_nr_t dci_cfg = phy->cfg.get_dci_cfg(phy->carrier);
+  if (srsran_ue_dl_nr_set_carrier(&ue_dl, &phy->cfg.carrier) < SRSRAN_SUCCESS) {
+    ERROR("Error setting carrier");
+    return false;
+  }
 
+  if (srsran_ue_ul_nr_set_carrier(&ue_ul, &phy->cfg.carrier) < SRSRAN_SUCCESS) {
+    ERROR("Error setting carrier");
+    return false;
+  }
+
+  srsran_dci_cfg_nr_t dci_cfg = phy->cfg.get_dci_cfg();
   if (srsran_ue_dl_nr_set_pdcch_config(&ue_dl, &phy->cfg.pdcch, &dci_cfg) < SRSRAN_SUCCESS) {
     logger.error("Error setting NR PDCCH configuration");
     return false;
@@ -150,7 +141,7 @@ void cc_worker::decode_pdcch_dl()
     // Log found DCI
     if (logger.info.enabled()) {
       std::array<char, 512> str;
-      srsran_dci_dl_nr_to_str(&dci_rx[i], str.data(), str.size());
+      srsran_dci_dl_nr_to_str(&ue_dl.dci, &dci_rx[i], str.data(), str.size());
       logger.info("PDCCH: cc=%d, %s", cc_idx, str.data());
     }
 
@@ -200,7 +191,7 @@ void cc_worker::decode_pdcch_ul()
     // Log found DCI
     if (logger.info.enabled()) {
       std::array<char, 512> str;
-      srsran_dci_ul_nr_to_str(&dci_rx[i], str.data(), str.size());
+      srsran_dci_ul_nr_to_str(&ue_dl.dci, &dci_rx[i], str.data(), str.size());
       logger.info("PDCCH: cc=%d, %s", cc_idx, str.data());
     }
 
@@ -287,12 +278,8 @@ bool cc_worker::work_dl()
                     str.data(),
                     str_extra.data());
       } else {
-        logger.info(pdsch_res.tb[0].payload,
-                    pdsch_cfg.grant.tb[0].tbs / 8,
-                    "PDSCH: cc=%d pid=%d %s",
-                    cc_idx,
-                    pid,
-                    str.data());
+        logger.info(
+            pdsch_res.tb[0].payload, pdsch_cfg.grant.tb[0].tbs / 8, "PDSCH: cc=%d pid=%d %s", cc_idx, pid, str.data());
       }
     }
 
@@ -400,7 +387,7 @@ bool cc_worker::work_ul()
     }
 
     // Set UCI configuration following procedures
-    srsran_ra_ul_set_grant_uci_nr(&phy->carrier, &phy->cfg.pusch, &uci_data.cfg, &pusch_cfg);
+    srsran_ra_ul_set_grant_uci_nr(&phy->cfg.carrier, &phy->cfg.pusch, &uci_data.cfg, &pusch_cfg);
 
     // Assigning MAC provided values to PUSCH config structs
     pusch_cfg.grant.tb[0].softbuffer.tx = ul_action.tb.softbuffer;

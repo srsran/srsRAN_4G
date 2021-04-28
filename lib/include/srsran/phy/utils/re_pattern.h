@@ -88,7 +88,7 @@ SRSRAN_API int srsran_re_pattern_merge(srsran_re_pattern_list_t* list, const srs
  * @brief Checks collision between a RE pattern list and a RE pattern
  * @param list Provides pattern list
  * @param p Provides a pattern
- * @return SRSLTE_SUCCESS if no collision is detected, SRSLTE_ERROR code otherwise
+ * @return SRSRAN_SUCCESS if no collision is detected, SRSRAN_ERROR code otherwise
  */
 SRSRAN_API int srsran_re_pattern_check_collision(const srsran_re_pattern_list_t* list, const srsran_re_pattern_t* p);
 

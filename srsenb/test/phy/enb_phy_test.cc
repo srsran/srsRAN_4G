@@ -1180,8 +1180,8 @@ public:
 
 private:
   // Test constants
-  static const uint32_t delta_pucch = 2;
-  static const uint32_t N_pucch_1   = 2;
+  static const uint32_t delta_pucch = 1;
+  static const uint32_t N_pucch_1   = 12;
 
   // Private classes
   unique_dummy_radio_t  radio;
@@ -1237,6 +1237,12 @@ public:
     phy_cfg.prach_cnfg.prach_cfg_info.prach_freq_offset = 2;
     phy_cfg.prach_cnfg.prach_cfg_info.zero_correlation_zone_cfg = 5;
 
+    /// eNb PHY initialisation instance
+    enb_phy = unique_srsenb_phy_t(new srsenb::phy(log_sink));
+  }
+
+  int init()
+  {
     // Create base UE dedicated configuration
     srsran::phy_cfg_t dedicated = {};
 
@@ -1302,11 +1308,10 @@ public:
     stack = unique_dummy_stack_t(new dummy_stack(phy_cfg, phy_rrc_cfg, args.log_level, args.rnti));
     stack->set_active_cell_list(args.ue_cell_list);
 
-    /// eNb PHY initialisation instance
-    enb_phy = unique_srsenb_phy_t(new srsenb::phy(log_sink));
-
     /// Initiate eNb PHY with the given RNTI
-    enb_phy->init(phy_args, phy_cfg, radio.get(), stack.get());
+    if (enb_phy->init(phy_args, phy_cfg, radio.get(), stack.get()) < 0) {
+      return SRSRAN_ERROR;
+    }
     enb_phy->set_config(args.rnti, phy_rrc_cfg);
     enb_phy->complete_config(args.rnti);
     enb_phy->set_activation_deactivation_scell(args.rnti, activation);
@@ -1316,6 +1321,8 @@ public:
 
     /// Configure UE with initial configuration
     ue_phy->reconfigure(phy_rrc_cfg);
+
+    return SRSRAN_SUCCESS;
   }
 
   void stop()
@@ -1466,6 +1473,14 @@ int main(int argc, char** argv)
 
   // Create Test Bench
   unique_phy_test_bench test_bench = unique_phy_test_bench(new phy_test_bench(test_args, srslog::get_default_sink()));
+  int                   err_code   = test_bench->init();
+  bool                  valid_cfg  = test_args.nof_enb_cells <= SRSRAN_MAX_CARRIERS;
+  if (not valid_cfg) {
+    // Verify that phy returns with an error if provided an invalid configuration
+    TESTASSERT(err_code != SRSRAN_SUCCESS);
+    return 0;
+  }
+  TESTASSERT(err_code == SRSRAN_SUCCESS);
 
   // Run Simulation
   for (uint32_t i = 0; i < test_args.duration; i++) {

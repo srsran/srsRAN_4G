@@ -45,15 +45,6 @@ sf_worker::sf_worker(phy_common* phy_, state* phy_state_, srslog::basic_logger& 
   }
 }
 
-bool sf_worker::set_carrier_unlocked(uint32_t cc_idx, const srsran_carrier_nr_t* carrier_)
-{
-  if (cc_idx >= cc_workers.size()) {
-    return false;
-  }
-
-  return cc_workers.at(cc_idx)->set_carrier(carrier_);
-}
-
 bool sf_worker::update_cfg(uint32_t cc_idx)
 {
   if (cc_idx >= cc_workers.size()) {
@@ -108,7 +99,7 @@ void sf_worker::work_imp()
     // Notify MAC about PRACH transmission
     phy_state->stack->prach_sent(TTI_TX(tti_rx),
                                  srsran_prach_nr_start_symbol_fr1_unpaired(phy_state->cfg.prach.config_idx),
-                                 SRSRAN_SLOT_NR_MOD(phy_state->carrier.scs, TTI_TX(tti_rx)),
+                                 SRSRAN_SLOT_NR_MOD(phy_state->cfg.carrier.scs, TTI_TX(tti_rx)),
                                  0,
                                  0);
 

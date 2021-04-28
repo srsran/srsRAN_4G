@@ -56,8 +56,7 @@ inline bool file_exists(const std::string& path)
 
 /// Reads the contents of the file specified in path and returns true if they
 /// match with the data in entries, otherwise returns false.
-inline bool compare_file_contents(const std::string& path,
-                                  const std::vector<std::string>& entries)
+inline bool compare_file_contents(const std::string& path, const std::vector<std::string>& entries)
 {
   std::ifstream file(path, std::ios::binary);
   if (!file.is_open()) {

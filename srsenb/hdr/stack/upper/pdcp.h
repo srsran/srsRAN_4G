@@ -124,9 +124,9 @@ private:
 
   std::map<uint32_t, user_interface> users;
 
-  rlc_interface_pdcp*       rlc;
-  rrc_interface_pdcp*       rrc;
-  gtpu_interface_pdcp*      gtpu;
+  rlc_interface_pdcp*       rlc  = nullptr;
+  rrc_interface_pdcp*       rrc  = nullptr;
+  gtpu_interface_pdcp*      gtpu = nullptr;
   srsran::task_sched_handle task_sched;
   srslog::basic_logger&     logger;
 };

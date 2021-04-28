@@ -33,16 +33,12 @@ namespace detail {
 class memory_buffer
 {
   const char* const buffer;
-  const size_t length;
+  const size_t      length;
 
 public:
-  memory_buffer(const char* buffer, size_t length) :
-    buffer(buffer), length(length)
-  {}
+  memory_buffer(const char* buffer, size_t length) : buffer(buffer), length(length) {}
 
-  explicit memory_buffer(const std::string& s) :
-    buffer(s.data()), length(s.size())
-  {}
+  explicit memory_buffer(const std::string& s) : buffer(s.data()), length(s.size()) {}
 
   /// Returns a pointer to the start of the memory block.
   const char* data() const { return buffer; }

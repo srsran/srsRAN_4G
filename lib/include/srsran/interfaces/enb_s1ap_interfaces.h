@@ -35,6 +35,7 @@ struct s1ap_args_t {
   uint16_t    mnc;     // BCD-coded with 0xF filler
   std::string mme_addr;
   std::string gtp_bind_addr;
+  std::string gtp_advertise_addr;
   std::string s1c_bind_addr;
   std::string enb_name;
 };

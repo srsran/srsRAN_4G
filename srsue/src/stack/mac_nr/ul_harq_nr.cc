@@ -98,7 +98,6 @@ void ul_harq_entity_nr::new_grant_ul(const mac_interface_phy_nr::mac_nr_grant_ul
     logger.warning("Ignoring grant for CS-RNTI=0x%x", grant.rnti);
   } else {
     logger.warning("Received grant for unknown rnti=0x%x", grant.rnti);
-    printf("Received grant for unknown rnti=0x%x\n", grant.rnti);
   }
 
   srsran_expect(action->tb.enabled ? action->tb.payload != nullptr : true,
@@ -114,12 +113,16 @@ int ul_harq_entity_nr::get_current_tbs(uint32_t pid)
   return harq_procs.at(pid).get_current_tbs();
 }
 
-float ul_harq_entity_nr::get_average_retx()
+ul_harq_entity_nr::ul_harq_metrics_t ul_harq_entity_nr::get_metrics()
 {
-  return average_retx;
+  ul_harq_entity_nr::ul_harq_metrics_t tmp = metrics;
+  metrics                                  = {};
+  return tmp;
 }
 
-ul_harq_entity_nr::ul_harq_process_nr::ul_harq_process_nr() : logger(srslog::fetch_basic_logger("MAC")) {}
+ul_harq_entity_nr::ul_harq_process_nr::ul_harq_process_nr() :
+  logger(srslog::fetch_basic_logger("MAC")), softbuffer({0, 0, nullptr})
+{}
 
 ul_harq_entity_nr::ul_harq_process_nr::~ul_harq_process_nr()
 {
@@ -178,7 +181,7 @@ void ul_harq_entity_nr::ul_harq_process_nr::new_grant_ul(const mac_interface_phy
   if (nof_retx >= max_retx) {
     logger.info("UL %d:  Maximum number of ReTX reached (%d). Discarding TB.", pid, max_retx);
     if (grant.rnti == harq_entity->mac->get_temp_crnti()) {
-      // FIXME: signal maxRetx to RA?
+      // TODO: signal maxRetx to RA?
       // harq_entity->ra_proc->harq_max_retx();
     }
     reset();
@@ -235,10 +238,8 @@ int ul_harq_entity_nr::ul_harq_process_nr::get_current_tbs()
 void ul_harq_entity_nr::ul_harq_process_nr::generate_new_tx(const mac_interface_phy_nr::mac_nr_grant_ul_t& grant,
                                                             mac_interface_phy_nr::tb_action_ul_t*          action)
 {
-  // Compute average number of retransmissions per packet considering previous packet
-  harq_entity->average_retx = SRSRAN_VEC_CMA((float)nof_retx, harq_entity->average_retx, harq_entity->nof_pkts++);
-  current_grant             = grant;
-  nof_retx                  = 0;
+  current_grant = grant;
+  nof_retx      = 0;
 
   logger.info("UL %d:  New TX%s, rv=%d, tbs=%d",
               pid,
@@ -247,6 +248,8 @@ void ul_harq_entity_nr::ul_harq_process_nr::generate_new_tx(const mac_interface_
               grant.tbs);
 
   generate_tx(action);
+
+  harq_entity->metrics.tx_ok++;
 }
 
 // Retransmission (Section 5.4.2.2)
@@ -259,12 +262,16 @@ void ul_harq_entity_nr::ul_harq_process_nr::generate_retx(const mac_interface_ph
   current_grant = grant;
 
   generate_tx(action);
+
+  // increment Tx error count
+  harq_entity->metrics.tx_ko++;
 }
 
 // Transmission of pending frame (Section 5.4.2.2)
 void ul_harq_entity_nr::ul_harq_process_nr::generate_tx(mac_interface_phy_nr::tb_action_ul_t* action)
 {
   nof_retx++;
+  harq_entity->metrics.tx_brate += current_grant.tbs * 8;
 
   action->tb.rv         = current_grant.rv;
   action->tb.enabled    = true;

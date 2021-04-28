@@ -34,6 +34,7 @@ int timers_test1()
   uint32_t      dur = 5;
 
   {
+    // TEST: default ctor places unique_timer in correct state
     timer_handler::unique_timer t = timers.get_unique_timer();
     TESTASSERT(not t.is_running() and not t.is_expired());
     TESTASSERT(t.id() == 0);
@@ -112,7 +113,6 @@ int timers_test1()
     timers.step_all();
     TESTASSERT(t.is_expired() and t2.is_expired() and t3.is_expired());
     TESTASSERT(first_id == 1);
-    printf("Last timer id=%d\n", last_id);
     TESTASSERT(last_id == 2);
   }
   // TEST: timer dtor is called and removes "timer" from "timers"
@@ -121,13 +121,13 @@ int timers_test1()
   return SRSRAN_SUCCESS;
 }
 
+/**
+ * Description:
+ * - calling stop() early, forbids the timer from getting expired
+ * - calling stop() after timer has expired should be a noop
+ */
 int timers_test2()
 {
-  /**
-   * Description:
-   * - calling stop() early, forbids the timer from getting expired
-   * - calling stop() after timer has expired should be a noop
-   */
   timer_handler timers;
   uint32_t      duration = 2;
 
@@ -156,12 +156,12 @@ int timers_test2()
   return SRSRAN_SUCCESS;
 }
 
+/**
+ * Description:
+ * - setting a new duration while the timer is already running should not stop timer, and should extend timeout
+ */
 int timers_test3()
 {
-  /**
-   * Description:
-   * - setting a new duration while the timer is already running should not stop timer, and should extend timeout
-   */
   timer_handler timers;
   uint32_t      duration = 5;
 
@@ -182,7 +182,7 @@ int timers_test3()
     TESTASSERT(utimer.is_running());
   }
   timers.step_all();
-  TESTASSERT(not utimer.is_running());
+  TESTASSERT(not utimer.is_running() and utimer.is_expired());
 
   return SRSRAN_SUCCESS;
 }
@@ -400,6 +400,56 @@ int timers_test6()
   return SRSRAN_SUCCESS;
 }
 
+/**
+ * Tests specific to timer_handler wheel-based implementation:
+ * - check if timer update is safe when its new updated wheel position matches the previous wheel position
+ * - multime timers can exist in the same wheel position
+ */
+int timers_test7()
+{
+  timer_handler timers;
+  size_t        wheel_size = timer_handler::get_wheel_size();
+
+  unique_timer t = timers.get_unique_timer();
+  t.set(2);
+  t.run();
+
+  timers.step_all();
+  TESTASSERT(not t.is_expired() and t.is_running());
+
+  // should fall in same wheel position as previous timer run
+  t.set(1 + wheel_size);
+  for (size_t i = 0; i < wheel_size; ++i) {
+    timers.step_all();
+    TESTASSERT(not t.is_expired() and t.is_running());
+  }
+  timers.step_all();
+  TESTASSERT(t.is_expired() and not t.is_running());
+
+  // the three timers will all fall in the same wheel position. However, only t and t3 should trigger
+  unique_timer t2 = timers.get_unique_timer();
+  unique_timer t3 = timers.get_unique_timer();
+  t.set(5);
+  t2.set(5 + wheel_size);
+  t3.set(5);
+  t.run();
+  t2.run();
+  t3.run();
+  TESTASSERT(timers.nof_running_timers() == 3 and timers.nof_timers() == 3);
+  for (size_t i = 0; i < 5; ++i) {
+    TESTASSERT(not t.is_expired() and t.is_running());
+    TESTASSERT(not t2.is_expired() and t2.is_running());
+    TESTASSERT(not t3.is_expired() and t3.is_running());
+    timers.step_all();
+  }
+  TESTASSERT(t.is_expired() and not t.is_running());
+  TESTASSERT(not t2.is_expired() and t2.is_running());
+  TESTASSERT(t3.is_expired() and not t3.is_running());
+  TESTASSERT(timers.nof_running_timers() == 1 and timers.nof_timers() == 3);
+
+  return SRSRAN_SUCCESS;
+}
+
 int main()
 {
   TESTASSERT(timers_test1() == SRSRAN_SUCCESS);
@@ -408,6 +458,7 @@ int main()
   TESTASSERT(timers_test4() == SRSRAN_SUCCESS);
   TESTASSERT(timers_test5() == SRSRAN_SUCCESS);
   TESTASSERT(timers_test6() == SRSRAN_SUCCESS);
+  TESTASSERT(timers_test7() == SRSRAN_SUCCESS);
   printf("Success\n");
   return 0;
 }

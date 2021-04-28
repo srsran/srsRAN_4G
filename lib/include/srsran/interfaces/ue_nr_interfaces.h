@@ -54,12 +54,12 @@ public:
   } tb_action_dl_t;
 
   typedef struct {
-    uint16_t                     rnti;
-    uint32_t                     tti;
-    uint8_t                      pid; // HARQ process ID
-    uint8_t                      rv;  // Redundancy Version
-    uint8_t                      ndi; // Raw new data indicator extracted from DCI
-    uint32_t                     tbs; // Transport block size in Bytes
+    uint16_t rnti;
+    uint32_t tti;
+    uint8_t  pid; // HARQ process ID
+    uint8_t  rv;  // Redundancy Version
+    uint8_t  ndi; // Raw new data indicator extracted from DCI
+    uint32_t tbs; // Transport block size in Bytes
   } mac_nr_grant_dl_t;
 
   typedef struct {
@@ -91,7 +91,7 @@ public:
     tb_ul_t tb; // only single TB in UL
   } tb_action_ul_t;
 
-  virtual int sf_indication(const uint32_t tti) = 0; ///< FIXME: rename to slot indication
+  virtual int sf_indication(const uint32_t tti) = 0; ///< TODO: rename to slot indication
 
   // Query the MAC for the current RNTI to look for
   struct sched_rnti_t {
@@ -176,7 +176,7 @@ public:
 
 struct phy_args_nr_t {
   uint32_t               nof_carriers     = 1;
-  uint32_t               nof_prb          = 52;
+  uint32_t               max_nof_prb      = 106;
   uint32_t               nof_phy_threads  = 3;
   uint32_t               worker_cpu_mask  = 0;
   srsran::phy_log_args_t log              = {};
@@ -188,11 +188,16 @@ struct phy_args_nr_t {
   phy_args_nr_t()
   {
     dl.nof_rx_antennas        = 1;
-    dl.nof_max_prb            = 100;
+    dl.nof_max_prb            = 106;
+    dl.pdsch.max_prb          = 106;
+    dl.pdsch.max_layers       = 1;
     dl.pdsch.measure_evm      = true;
     dl.pdsch.measure_time     = true;
     dl.pdsch.sch.disable_simd = false;
-    ul.nof_max_prb            = 100;
+    dl.pdsch.sch.max_nof_iter = 10;
+    ul.nof_max_prb            = 106;
+    ul.pusch.max_prb          = 106;
+    ul.pusch.max_layers       = 1;
     ul.pusch.measure_time     = true;
     ul.pusch.sch.disable_simd = false;
 

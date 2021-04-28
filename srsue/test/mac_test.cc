@@ -259,7 +259,7 @@ public:
       ul_mac_grant.tb.ndi          = ul_ndi;
       ul_mac_grant.tb.ndi_present  = ack;
     } else {
-      ul_mac_grant.hi_value        = true;
+      ul_mac_grant.hi_value        = false; // PHICH with hi=0 to request retx
       ul_mac_grant.phich_available = true;
       ul_mac_grant.tb.ndi          = ul_ndi;
       ul_mac_grant.tb.ndi_present  = true;

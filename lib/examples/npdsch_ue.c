@@ -551,7 +551,7 @@ int main(int argc, char** argv)
               system_frame_number = (mib.sfn + sfn_offset) % 1024;
               cell.mode           = mib.mode;
 
-              // set number of ports of base cell to that of NB-IoT cell (FIXME: read eutra-NumCRS-Ports-r13)
+              // set number of ports of base cell to that of NB-IoT cell (TODO: read eutra-NumCRS-Ports-r13)
               cell.base.nof_ports = cell.nof_ports;
 
               if (cell.mode == SRSRAN_NBIOT_MODE_INBAND_SAME_PCI) {

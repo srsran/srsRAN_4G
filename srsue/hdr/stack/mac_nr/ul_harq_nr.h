@@ -46,8 +46,15 @@ public:
   /***************** PHY->MAC interface for UL processes **************************/
   void new_grant_ul(const mac_interface_phy_nr::mac_nr_grant_ul_t& grant, mac_interface_phy_nr::tb_action_ul_t* action);
 
-  int   get_current_tbs(uint32_t pid);
-  float get_average_retx();
+  int get_current_tbs(uint32_t pid);
+
+  // HARQ specific metrics interface that is combined for all processees
+  struct ul_harq_metrics_t {
+    uint32_t tx_ok;
+    uint32_t tx_ko;
+    uint32_t tx_brate;
+  };
+  ul_harq_metrics_t get_metrics();
 
 private:
   class ul_harq_process_nr
@@ -104,9 +111,7 @@ private:
   srslog::basic_logger&  logger;
 
   srsran::ul_harq_cfg_t harq_cfg = {};
-
-  float    average_retx = 0.0;
-  uint64_t nof_pkts     = 0;
+  ul_harq_metrics_t     metrics  = {};
 };
 
 typedef std::unique_ptr<ul_harq_entity_nr>                     ul_harq_entity_nr_ptr;

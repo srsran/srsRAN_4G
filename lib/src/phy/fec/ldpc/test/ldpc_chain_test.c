@@ -651,11 +651,23 @@ int main(int argc, char** argv)
 
 void print_decoder(char* title, int n_batches, int n_errors, double elapsed_time)
 {
+  double wer = NAN;
+  if (n_batches != 0 && batch_size != 0) {
+    wer = (double)n_errors / n_batches / batch_size;
+  }
   printf("\n**** %s ****", title);
-  printf("\nEstimated word error rate:\n  %e (%d errors)\n", (double)n_errors / n_batches / batch_size, n_errors);
+  printf("\nEstimated word error rate:\n  %e (%d errors)\n", wer, n_errors);
 
+  double w_rate = NAN;
+  double k_rate = NAN;
+  double n_rate = NAN;
+  if (elapsed_time != 0) {
+    w_rate = n_batches * batch_size / elapsed_time;
+    k_rate = n_batches * batch_size * finalK / elapsed_time;
+    n_rate = n_batches * batch_size * finalN / elapsed_time;
+  }
   printf("Estimated throughput decoder:\n  %e word/s\n  %e bit/s (information)\n  %e bit/s (encoded)\n",
-         n_batches * batch_size / elapsed_time,
-         n_batches * batch_size * finalK / elapsed_time,
-         n_batches * batch_size * finalN / elapsed_time);
+         w_rate,
+         k_rate,
+         n_rate);
 }

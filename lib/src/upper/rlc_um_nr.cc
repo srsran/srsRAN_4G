@@ -60,7 +60,7 @@ bool rlc_um_nr::configure(const rlc_config_t& cnfg_)
 
   logger.info("%s configured in %s: sn_field_length=%u bits",
               rb_name.c_str(),
-              srsran::to_string(cnfg_.rlc_mode).c_str(),
+              srsran::to_string(cnfg_.rlc_mode),
               srsran::to_number(cfg.um_nr.sn_field_length));
 
   rx_enabled = true;

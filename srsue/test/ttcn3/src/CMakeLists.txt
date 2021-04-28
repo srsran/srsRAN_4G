@@ -24,9 +24,9 @@ add_executable(ttcn3_dut ttcn3_dut.cc lte_ttcn3_phy.cc ${SOURCES})
 set(LINK_LIBRARIES srsue_stack
                     srsue_upper
                     srsue_rrc
+                    srsue_rrc_nr
                     srsran_upper
                     srsran_common
-                    srsran_mac
                     srsran_mac
                     srsran_phy
                     srsran_radio
@@ -37,7 +37,7 @@ set(LINK_LIBRARIES srsue_stack
                     rrc_asn1
                     rrc_nr_asn1
                     sctp
-${Boost_LIBRARIES})
+                    ${Boost_LIBRARIES})
 
 target_link_libraries(ttcn3_dut ${LINK_LIBRARIES})
 

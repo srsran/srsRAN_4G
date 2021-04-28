@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef SRSLTE_DL_HARQ_NR_H
-#define SRSLTE_DL_HARQ_NR_H
+#ifndef SRSRAN_DL_HARQ_NR_H
+#define SRSRAN_DL_HARQ_NR_H
 
 #include "srsran/interfaces/mac_interface_types.h"
 #include "srsran/interfaces/ue_nr_interfaces.h"
@@ -59,6 +59,14 @@ public:
 
   float get_average_retx();
 
+  // DL HARQ metrics combined for all processes
+  struct dl_harq_metrics_t {
+    uint32_t rx_ok;
+    uint32_t rx_ko;
+    uint32_t rx_brate;
+  };
+  dl_harq_metrics_t get_metrics();
+
 private:
   class dl_harq_process_nr
   {
@@ -96,12 +104,9 @@ private:
   demux_interface_harq_nr*                                                    demux_unit = nullptr;
   srslog::basic_logger&                                                       logger;
   uint16_t                                                                    last_temporal_crnti = SRSRAN_INVALID_RNTI;
-
-  float    average_retx = 0.0;
-  uint64_t nof_pkts     = 0;
-  uint8_t  cc_idx       = 0;
-
-  pthread_rwlock_t rwlock;
+  dl_harq_metrics_t                                                           metrics             = {};
+  uint8_t                                                                     cc_idx              = 0;
+  pthread_rwlock_t                                                            rwlock;
 };
 
 typedef std::unique_ptr<dl_harq_entity_nr>                     dl_harq_entity_nr_ptr;
@@ -109,4 +114,4 @@ typedef std::array<dl_harq_entity_nr_ptr, SRSRAN_MAX_CARRIERS> dl_harq_entity_nr
 
 } // namespace srsue
 
-#endif // SRSLTE_DL_HARQ_NR_H
+#endif // SRSRAN_DL_HARQ_NR_H

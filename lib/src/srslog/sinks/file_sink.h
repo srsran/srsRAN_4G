@@ -33,9 +33,7 @@ namespace srslog {
 class file_sink : public sink
 {
 public:
-  file_sink(std::string name,
-            size_t max_size,
-            std::unique_ptr<log_formatter> f) :
+  file_sink(std::string name, size_t max_size, std::unique_ptr<log_formatter> f) :
     sink(std::move(f)),
     max_size((max_size == 0) ? 0 : std::max<size_t>(max_size, 4 * 1024)),
     base_filename(std::move(name))
@@ -81,8 +79,7 @@ private:
   /// Creates a new file and increments the file index counter.
   detail::error_string create_file()
   {
-    return handler.create(
-        file_utils::build_filename_with_index(base_filename, file_index++));
+    return handler.create(file_utils::build_filename_with_index(base_filename, file_index++));
   }
 
   /// Handles the file rotation feature when it is activated.
@@ -99,11 +96,11 @@ private:
   }
 
 private:
-  const size_t max_size;
+  const size_t      max_size;
   const std::string base_filename;
-  file_utils::file handler;
-  size_t current_size = 0;
-  uint32_t file_index = 0;
+  file_utils::file  handler;
+  size_t            current_size = 0;
+  uint32_t          file_index   = 0;
 };
 
 } // namespace srslog

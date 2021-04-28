@@ -19,10 +19,10 @@
  *
  */
 
-#include "srsran/common/common_nr.h"
-#include "srsran/asn1/rrc_nr_utils.h"
 #include "srsenb/hdr/stack/rrc/rrc_nr.h"
 #include "srsenb/hdr/common/common_enb.h"
+#include "srsran/asn1/rrc_nr_utils.h"
+#include "srsran/common/common_nr.h"
 
 using namespace asn1::rrc_nr;
 
@@ -45,7 +45,7 @@ int rrc_nr::init(const rrc_nr_cfg_t&     cfg_,
   gtpu = gtpu_;
   ngap = ngap_;
 
-  // FIXME: overwriting because we are not passing config right now
+  // TODO: overwriting because we are not passing config right now
   cfg = update_default_cfg(cfg_);
 
   // config logging
@@ -74,7 +74,7 @@ int rrc_nr::init(const rrc_nr_cfg_t&     cfg_,
                                   srsran::PDCP_SN_LEN_18,
                                   srsran::pdcp_t_reordering_t::ms500,
                                   srsran::pdcp_discard_timer_t::infinity,
-                                  false, 
+                                  false,
                                   srsran::srsran_rat_t::nr};
   pdcp->add_bearer(cfg.coreless.rnti, cfg.coreless.drb_lcid, pdcp_cnfg);
 
@@ -107,15 +107,12 @@ void rrc_nr::log_rrc_message(const std::string&           source,
                  "%s - %s %s (%d B)",
                  source.c_str(),
                  dir == Tx ? "Tx" : "Rx",
-                 msg.msg.c1().type().to_string().c_str(),
+                 msg.msg.c1().type().to_string(),
                  pdu->N_bytes);
     logger.debug("Content:\n%s", json_writer.to_string().c_str());
   } else if (logger.info.enabled()) {
-    logger.info("%s - %s %s (%d B)",
-                source.c_str(),
-                dir == Tx ? "Tx" : "Rx",
-                msg.msg.c1().type().to_string().c_str(),
-                pdu->N_bytes);
+    logger.info(
+        "%s - %s %s (%d B)", source.c_str(), dir == Tx ? "Tx" : "Rx", msg.msg.c1().type().to_string(), pdu->N_bytes);
   }
 }
 
@@ -170,7 +167,7 @@ rrc_nr_cfg_t rrc_nr::update_default_cfg(const rrc_nr_cfg_t& current)
   cfg_default.nof_sibs                     = 1;
   sib2_s& sib2                             = cfg_default.sibs[0].set_sib2();
   sib2.cell_resel_info_common.q_hyst.value = sib2_s::cell_resel_info_common_s_::q_hyst_opts::db5;
-  // FIXME: Fill SIB2 values
+  // TODO: Fill SIB2 values
 
   // set loglevel
   cfg_default.log_level     = "debug";

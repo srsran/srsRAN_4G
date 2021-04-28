@@ -14,9 +14,9 @@
 # mme_bind_addr:    IP bind addr to listen for eNB S1-MME connnections
 # dns_addr:         DNS server address for the UEs
 # encryption_algo:  Preferred encryption algorithm for NAS layer 
-#                   (default: EEA0, support: EEA1, EEA2)
+#                   (supported: EEA0 (default), EEA1, EEA2, EEA3)
 # integrity_algo:   Preferred integrity protection algorithm for NAS 
-#                   (default: EIA1, support: EIA1, EIA2 (EIA0 not support)
+#                   (supported: EIA0 (rejected by most UEs), EIA1 (default), EIA2, EIA3
 # paging_timer:     Value of paging timer in seconds (T3413)
 #
 #####################################################################

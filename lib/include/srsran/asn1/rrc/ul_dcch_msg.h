@@ -46,7 +46,7 @@ struct tmgi_r9_s {
     struct types_opts {
       enum options { plmn_idx_r9, explicit_value_r9, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -63,34 +63,26 @@ struct tmgi_r9_s {
     // getters
     uint8_t& plmn_idx_r9()
     {
-      assert_choice_type("plmn-Index-r9", type_.to_string(), "plmn-Id-r9");
+      assert_choice_type(types::plmn_idx_r9, type_, "plmn-Id-r9");
       return c.get<uint8_t>();
     }
     plmn_id_s& explicit_value_r9()
     {
-      assert_choice_type("explicitValue-r9", type_.to_string(), "plmn-Id-r9");
+      assert_choice_type(types::explicit_value_r9, type_, "plmn-Id-r9");
       return c.get<plmn_id_s>();
     }
     const uint8_t& plmn_idx_r9() const
     {
-      assert_choice_type("plmn-Index-r9", type_.to_string(), "plmn-Id-r9");
+      assert_choice_type(types::plmn_idx_r9, type_, "plmn-Id-r9");
       return c.get<uint8_t>();
     }
     const plmn_id_s& explicit_value_r9() const
     {
-      assert_choice_type("explicitValue-r9", type_.to_string(), "plmn-Id-r9");
+      assert_choice_type(types::explicit_value_r9, type_, "plmn-Id-r9");
       return c.get<plmn_id_s>();
     }
-    uint8_t& set_plmn_idx_r9()
-    {
-      set(types::plmn_idx_r9);
-      return c.get<uint8_t>();
-    }
-    plmn_id_s& set_explicit_value_r9()
-    {
-      set(types::explicit_value_r9);
-      return c.get<plmn_id_s>();
-    }
+    uint8_t&   set_plmn_idx_r9();
+    plmn_id_s& set_explicit_value_r9();
 
   private:
     types                      type_;
@@ -134,7 +126,7 @@ struct rrc_conn_setup_complete_v1540_ies_s {
   struct guami_type_r15_opts {
     enum options { native, mapped, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<guami_type_r15_opts> guami_type_r15_e_;
 
@@ -167,7 +159,7 @@ struct s_nssai_r15_c {
   struct types_opts {
     enum options { sst, sst_sd, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts> types;
 
@@ -184,34 +176,26 @@ struct s_nssai_r15_c {
   // getters
   fixed_bitstring<8>& sst()
   {
-    assert_choice_type("sst", type_.to_string(), "S-NSSAI-r15");
+    assert_choice_type(types::sst, type_, "S-NSSAI-r15");
     return c.get<fixed_bitstring<8> >();
   }
   fixed_bitstring<32>& sst_sd()
   {
-    assert_choice_type("sst-SD", type_.to_string(), "S-NSSAI-r15");
+    assert_choice_type(types::sst_sd, type_, "S-NSSAI-r15");
     return c.get<fixed_bitstring<32> >();
   }
   const fixed_bitstring<8>& sst() const
   {
-    assert_choice_type("sst", type_.to_string(), "S-NSSAI-r15");
+    assert_choice_type(types::sst, type_, "S-NSSAI-r15");
     return c.get<fixed_bitstring<8> >();
   }
   const fixed_bitstring<32>& sst_sd() const
   {
-    assert_choice_type("sst-SD", type_.to_string(), "S-NSSAI-r15");
+    assert_choice_type(types::sst_sd, type_, "S-NSSAI-r15");
     return c.get<fixed_bitstring<32> >();
   }
-  fixed_bitstring<8>& set_sst()
-  {
-    set(types::sst);
-    return c.get<fixed_bitstring<8> >();
-  }
-  fixed_bitstring<32>& set_sst_sd()
-  {
-    set(types::sst_sd);
-    return c.get<fixed_bitstring<32> >();
-  }
+  fixed_bitstring<8>&  set_sst();
+  fixed_bitstring<32>& set_sst_sd();
 
 private:
   types                                 type_;
@@ -230,7 +214,7 @@ struct rrc_conn_setup_complete_v1530_ies_s {
     struct types_opts {
       enum options { ng_minus5_g_s_tmsi_r15, ng_minus5_g_s_tmsi_part2_r15, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -247,34 +231,26 @@ struct rrc_conn_setup_complete_v1530_ies_s {
     // getters
     fixed_bitstring<48>& ng_minus5_g_s_tmsi_r15()
     {
-      assert_choice_type("ng-5G-S-TMSI-r15", type_.to_string(), "ng-5G-S-TMSI-Bits-r15");
+      assert_choice_type(types::ng_minus5_g_s_tmsi_r15, type_, "ng-5G-S-TMSI-Bits-r15");
       return c.get<fixed_bitstring<48> >();
     }
     fixed_bitstring<8>& ng_minus5_g_s_tmsi_part2_r15()
     {
-      assert_choice_type("ng-5G-S-TMSI-Part2-r15", type_.to_string(), "ng-5G-S-TMSI-Bits-r15");
+      assert_choice_type(types::ng_minus5_g_s_tmsi_part2_r15, type_, "ng-5G-S-TMSI-Bits-r15");
       return c.get<fixed_bitstring<8> >();
     }
     const fixed_bitstring<48>& ng_minus5_g_s_tmsi_r15() const
     {
-      assert_choice_type("ng-5G-S-TMSI-r15", type_.to_string(), "ng-5G-S-TMSI-Bits-r15");
+      assert_choice_type(types::ng_minus5_g_s_tmsi_r15, type_, "ng-5G-S-TMSI-Bits-r15");
       return c.get<fixed_bitstring<48> >();
     }
     const fixed_bitstring<8>& ng_minus5_g_s_tmsi_part2_r15() const
     {
-      assert_choice_type("ng-5G-S-TMSI-Part2-r15", type_.to_string(), "ng-5G-S-TMSI-Bits-r15");
+      assert_choice_type(types::ng_minus5_g_s_tmsi_part2_r15, type_, "ng-5G-S-TMSI-Bits-r15");
       return c.get<fixed_bitstring<8> >();
     }
-    fixed_bitstring<48>& set_ng_minus5_g_s_tmsi_r15()
-    {
-      set(types::ng_minus5_g_s_tmsi_r15);
-      return c.get<fixed_bitstring<48> >();
-    }
-    fixed_bitstring<8>& set_ng_minus5_g_s_tmsi_part2_r15()
-    {
-      set(types::ng_minus5_g_s_tmsi_part2_r15);
-      return c.get<fixed_bitstring<8> >();
-    }
+    fixed_bitstring<48>& set_ng_minus5_g_s_tmsi_r15();
+    fixed_bitstring<8>&  set_ng_minus5_g_s_tmsi_part2_r15();
 
   private:
     types                                 type_;
@@ -320,7 +296,7 @@ struct meas_result_idle_r15_s {
     struct types_opts {
       enum options { meas_result_idle_list_eutra_r15, /*...*/ nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts, true> types;
 
@@ -355,7 +331,7 @@ struct per_cc_gap_ind_r14_s {
   struct gap_ind_r14_opts {
     enum options { gap, ncsg, nogap_no_ncsg, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<gap_ind_r14_opts> gap_ind_r14_e_;
 
@@ -420,7 +396,7 @@ struct visited_cell_info_r12_s {
     struct types_opts {
       enum options { cell_global_id_r12, pci_arfcn_r12, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -437,34 +413,26 @@ struct visited_cell_info_r12_s {
     // getters
     cell_global_id_eutra_s& cell_global_id_r12()
     {
-      assert_choice_type("cellGlobalId-r12", type_.to_string(), "visitedCellId-r12");
+      assert_choice_type(types::cell_global_id_r12, type_, "visitedCellId-r12");
       return c.get<cell_global_id_eutra_s>();
     }
     pci_arfcn_r12_s_& pci_arfcn_r12()
     {
-      assert_choice_type("pci-arfcn-r12", type_.to_string(), "visitedCellId-r12");
+      assert_choice_type(types::pci_arfcn_r12, type_, "visitedCellId-r12");
       return c.get<pci_arfcn_r12_s_>();
     }
     const cell_global_id_eutra_s& cell_global_id_r12() const
     {
-      assert_choice_type("cellGlobalId-r12", type_.to_string(), "visitedCellId-r12");
+      assert_choice_type(types::cell_global_id_r12, type_, "visitedCellId-r12");
       return c.get<cell_global_id_eutra_s>();
     }
     const pci_arfcn_r12_s_& pci_arfcn_r12() const
     {
-      assert_choice_type("pci-arfcn-r12", type_.to_string(), "visitedCellId-r12");
+      assert_choice_type(types::pci_arfcn_r12, type_, "visitedCellId-r12");
       return c.get<pci_arfcn_r12_s_>();
     }
-    cell_global_id_eutra_s& set_cell_global_id_r12()
-    {
-      set(types::cell_global_id_r12);
-      return c.get<cell_global_id_eutra_s>();
-    }
-    pci_arfcn_r12_s_& set_pci_arfcn_r12()
-    {
-      set(types::pci_arfcn_r12);
-      return c.get<pci_arfcn_r12_s_>();
-    }
+    cell_global_id_eutra_s& set_cell_global_id_r12();
+    pci_arfcn_r12_s_&       set_pci_arfcn_r12();
 
   private:
     types                                                     type_;
@@ -503,7 +471,7 @@ struct affected_carrier_freq_comb_info_mrdc_r15_s {
   struct interference_direction_mrdc_r15_opts {
     enum options { eutra_nr, nr, other, eutra_nr_other, nr_other, spare3, spare2, spare1, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<interference_direction_mrdc_r15_opts> interference_direction_mrdc_r15_e_;
   struct affected_carrier_freq_comb_mrdc_r15_s_ {
@@ -795,7 +763,7 @@ struct rrc_conn_setup_complete_v1250_ies_s {
   struct mob_state_r12_opts {
     enum options { normal, medium, high, spare, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<mob_state_r12_opts> mob_state_r12_e_;
 
@@ -863,7 +831,7 @@ struct idc_sf_pattern_r11_c {
       enum options { sf_cfg0_r11, sf_cfg1_minus5_r11, sf_cfg6_r11, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<types_opts> types;
@@ -881,49 +849,37 @@ struct idc_sf_pattern_r11_c {
     // getters
     fixed_bitstring<70>& sf_cfg0_r11()
     {
-      assert_choice_type("subframeConfig0-r11", type_.to_string(), "subframePatternTDD-r11");
+      assert_choice_type(types::sf_cfg0_r11, type_, "subframePatternTDD-r11");
       return c.get<fixed_bitstring<70> >();
     }
     fixed_bitstring<10>& sf_cfg1_minus5_r11()
     {
-      assert_choice_type("subframeConfig1-5-r11", type_.to_string(), "subframePatternTDD-r11");
+      assert_choice_type(types::sf_cfg1_minus5_r11, type_, "subframePatternTDD-r11");
       return c.get<fixed_bitstring<10> >();
     }
     fixed_bitstring<60>& sf_cfg6_r11()
     {
-      assert_choice_type("subframeConfig6-r11", type_.to_string(), "subframePatternTDD-r11");
+      assert_choice_type(types::sf_cfg6_r11, type_, "subframePatternTDD-r11");
       return c.get<fixed_bitstring<60> >();
     }
     const fixed_bitstring<70>& sf_cfg0_r11() const
     {
-      assert_choice_type("subframeConfig0-r11", type_.to_string(), "subframePatternTDD-r11");
+      assert_choice_type(types::sf_cfg0_r11, type_, "subframePatternTDD-r11");
       return c.get<fixed_bitstring<70> >();
     }
     const fixed_bitstring<10>& sf_cfg1_minus5_r11() const
     {
-      assert_choice_type("subframeConfig1-5-r11", type_.to_string(), "subframePatternTDD-r11");
+      assert_choice_type(types::sf_cfg1_minus5_r11, type_, "subframePatternTDD-r11");
       return c.get<fixed_bitstring<10> >();
     }
     const fixed_bitstring<60>& sf_cfg6_r11() const
     {
-      assert_choice_type("subframeConfig6-r11", type_.to_string(), "subframePatternTDD-r11");
+      assert_choice_type(types::sf_cfg6_r11, type_, "subframePatternTDD-r11");
       return c.get<fixed_bitstring<60> >();
     }
-    fixed_bitstring<70>& set_sf_cfg0_r11()
-    {
-      set(types::sf_cfg0_r11);
-      return c.get<fixed_bitstring<70> >();
-    }
-    fixed_bitstring<10>& set_sf_cfg1_minus5_r11()
-    {
-      set(types::sf_cfg1_minus5_r11);
-      return c.get<fixed_bitstring<10> >();
-    }
-    fixed_bitstring<60>& set_sf_cfg6_r11()
-    {
-      set(types::sf_cfg6_r11);
-      return c.get<fixed_bitstring<60> >();
-    }
+    fixed_bitstring<70>& set_sf_cfg0_r11();
+    fixed_bitstring<10>& set_sf_cfg1_minus5_r11();
+    fixed_bitstring<60>& set_sf_cfg6_r11();
 
   private:
     types                                 type_;
@@ -934,7 +890,7 @@ struct idc_sf_pattern_r11_c {
   struct types_opts {
     enum options { sf_pattern_fdd_r11, sf_pattern_tdd_r11, /*...*/ nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true> types;
 
@@ -951,34 +907,26 @@ struct idc_sf_pattern_r11_c {
   // getters
   fixed_bitstring<4>& sf_pattern_fdd_r11()
   {
-    assert_choice_type("subframePatternFDD-r11", type_.to_string(), "IDC-SubframePattern-r11");
+    assert_choice_type(types::sf_pattern_fdd_r11, type_, "IDC-SubframePattern-r11");
     return c.get<fixed_bitstring<4> >();
   }
   sf_pattern_tdd_r11_c_& sf_pattern_tdd_r11()
   {
-    assert_choice_type("subframePatternTDD-r11", type_.to_string(), "IDC-SubframePattern-r11");
+    assert_choice_type(types::sf_pattern_tdd_r11, type_, "IDC-SubframePattern-r11");
     return c.get<sf_pattern_tdd_r11_c_>();
   }
   const fixed_bitstring<4>& sf_pattern_fdd_r11() const
   {
-    assert_choice_type("subframePatternFDD-r11", type_.to_string(), "IDC-SubframePattern-r11");
+    assert_choice_type(types::sf_pattern_fdd_r11, type_, "IDC-SubframePattern-r11");
     return c.get<fixed_bitstring<4> >();
   }
   const sf_pattern_tdd_r11_c_& sf_pattern_tdd_r11() const
   {
-    assert_choice_type("subframePatternTDD-r11", type_.to_string(), "IDC-SubframePattern-r11");
+    assert_choice_type(types::sf_pattern_tdd_r11, type_, "IDC-SubframePattern-r11");
     return c.get<sf_pattern_tdd_r11_c_>();
   }
-  fixed_bitstring<4>& set_sf_pattern_fdd_r11()
-  {
-    set(types::sf_pattern_fdd_r11);
-    return c.get<fixed_bitstring<4> >();
-  }
-  sf_pattern_tdd_r11_c_& set_sf_pattern_tdd_r11()
-  {
-    set(types::sf_pattern_tdd_r11);
-    return c.get<sf_pattern_tdd_r11_c_>();
-  }
+  fixed_bitstring<4>&    set_sf_pattern_fdd_r11();
+  sf_pattern_tdd_r11_c_& set_sf_pattern_tdd_r11();
 
 private:
   types                                                      type_;
@@ -1005,16 +953,16 @@ struct mbms_rom_info_r15_s {
     enum options { khz15, khz7dot5, khz1dot25, nulltype } value;
     typedef float number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     float       to_number() const;
-    std::string to_number_string() const;
+    const char* to_number_string() const;
   };
   typedef enumerated<mbms_rom_subcarrier_spacing_r15_opts> mbms_rom_subcarrier_spacing_r15_e_;
   struct mbms_bw_r15_opts {
     enum options { n6, n15, n25, n50, n75, n100, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<mbms_bw_r15_opts> mbms_bw_r15_e_;
@@ -1143,7 +1091,7 @@ struct sl_disc_sys_info_report_r13_s {
       } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<q_hyst_r13_opts> q_hyst_r13_e_;
@@ -1158,7 +1106,7 @@ struct sl_disc_sys_info_report_r13_s {
       enum options { n6, n15, n25, n50, n75, n100, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<ul_bw_r13_opts> ul_bw_r13_e_;
@@ -1261,7 +1209,7 @@ struct traffic_pattern_info_r14_s {
     enum options { sf20, sf50, sf100, sf200, sf300, sf400, sf500, sf600, sf700, sf800, sf900, sf1000, nulltype } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<traffic_periodicity_r14_opts> traffic_periodicity_r14_e_;
@@ -1316,7 +1264,7 @@ struct affected_carrier_freq_r11_s {
   struct interference_direction_r11_opts {
     enum options { eutra, other, both, spare, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<interference_direction_r11_opts> interference_direction_r11_e_;
 
@@ -1339,18 +1287,18 @@ struct bw_pref_r14_s {
     enum options { mhz1dot4, mhz5, mhz20, nulltype } value;
     typedef float number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     float       to_number() const;
-    std::string to_number_string() const;
+    const char* to_number_string() const;
   };
   typedef enumerated<dl_pref_r14_opts> dl_pref_r14_e_;
   struct ul_pref_r14_opts {
     enum options { mhz1dot4, mhz5, nulltype } value;
     typedef float number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     float       to_number() const;
-    std::string to_number_string() const;
+    const char* to_number_string() const;
   };
   typedef enumerated<ul_pref_r14_opts> ul_pref_r14_e_;
 
@@ -1415,7 +1363,7 @@ struct delay_budget_report_r14_c {
     } value;
     typedef int16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     int16_t     to_number() const;
   };
   typedef enumerated<type1_opts> type1_e_;
@@ -1442,7 +1390,7 @@ struct delay_budget_report_r14_c {
     } value;
     typedef int16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     int16_t     to_number() const;
   };
   typedef enumerated<type2_opts> type2_e_;
@@ -1450,7 +1398,7 @@ struct delay_budget_report_r14_c {
     enum options { type1, type2, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<types_opts> types;
@@ -1468,34 +1416,26 @@ struct delay_budget_report_r14_c {
   // getters
   type1_e_& type1()
   {
-    assert_choice_type("type1", type_.to_string(), "DelayBudgetReport-r14");
+    assert_choice_type(types::type1, type_, "DelayBudgetReport-r14");
     return c.get<type1_e_>();
   }
   type2_e_& type2()
   {
-    assert_choice_type("type2", type_.to_string(), "DelayBudgetReport-r14");
+    assert_choice_type(types::type2, type_, "DelayBudgetReport-r14");
     return c.get<type2_e_>();
   }
   const type1_e_& type1() const
   {
-    assert_choice_type("type1", type_.to_string(), "DelayBudgetReport-r14");
+    assert_choice_type(types::type1, type_, "DelayBudgetReport-r14");
     return c.get<type1_e_>();
   }
   const type2_e_& type2() const
   {
-    assert_choice_type("type2", type_.to_string(), "DelayBudgetReport-r14");
+    assert_choice_type(types::type2, type_, "DelayBudgetReport-r14");
     return c.get<type2_e_>();
   }
-  type1_e_& set_type1()
-  {
-    set(types::type1);
-    return c.get<type1_e_>();
-  }
-  type2_e_& set_type2()
-  {
-    set(types::type2);
-    return c.get<type2_e_>();
-  }
+  type1_e_& set_type1();
+  type2_e_& set_type2();
 
 private:
   types               type_;
@@ -1574,13 +1514,13 @@ struct rrc_conn_setup_complete_v1020_ies_s {
   struct gummei_type_r10_opts {
     enum options { native, mapped, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<gummei_type_r10_opts> gummei_type_r10_e_;
   struct rn_sf_cfg_req_r10_opts {
     enum options { required, not_required, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<rn_sf_cfg_req_r10_opts> rn_sf_cfg_req_r10_e_;
 
@@ -1630,7 +1570,7 @@ struct rstd_inter_freq_info_r10_s {
       } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<types_opts> types;
@@ -1648,319 +1588,235 @@ struct rstd_inter_freq_info_r10_s {
     // getters
     uint8_t& rstd0_r15()
     {
-      assert_choice_type("rstd0-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd0_r15, type_, "measPRS-Offset-r15");
       return c.get<uint8_t>();
     }
     uint8_t& rstd1_r15()
     {
-      assert_choice_type("rstd1-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd1_r15, type_, "measPRS-Offset-r15");
       return c.get<uint8_t>();
     }
     uint16_t& rstd2_r15()
     {
-      assert_choice_type("rstd2-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd2_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     uint16_t& rstd3_r15()
     {
-      assert_choice_type("rstd3-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd3_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     uint16_t& rstd4_r15()
     {
-      assert_choice_type("rstd4-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd4_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     uint8_t& rstd5_r15()
     {
-      assert_choice_type("rstd5-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd5_r15, type_, "measPRS-Offset-r15");
       return c.get<uint8_t>();
     }
     uint16_t& rstd6_r15()
     {
-      assert_choice_type("rstd6-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd6_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     uint16_t& rstd7_r15()
     {
-      assert_choice_type("rstd7-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd7_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     uint16_t& rstd8_r15()
     {
-      assert_choice_type("rstd8-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd8_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     uint16_t& rstd9_r15()
     {
-      assert_choice_type("rstd9-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd9_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     uint16_t& rstd10_r15()
     {
-      assert_choice_type("rstd10-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd10_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     uint16_t& rstd11_r15()
     {
-      assert_choice_type("rstd11-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd11_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     uint16_t& rstd12_r15()
     {
-      assert_choice_type("rstd12-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd12_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     uint16_t& rstd13_r15()
     {
-      assert_choice_type("rstd13-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd13_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     uint16_t& rstd14_r15()
     {
-      assert_choice_type("rstd14-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd14_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     uint16_t& rstd15_r15()
     {
-      assert_choice_type("rstd15-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd15_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     uint16_t& rstd16_r15()
     {
-      assert_choice_type("rstd16-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd16_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     uint16_t& rstd17_r15()
     {
-      assert_choice_type("rstd17-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd17_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     uint16_t& rstd18_r15()
     {
-      assert_choice_type("rstd18-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd18_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     uint16_t& rstd19_r15()
     {
-      assert_choice_type("rstd19-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd19_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     uint16_t& rstd20_r15()
     {
-      assert_choice_type("rstd20-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd20_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     const uint8_t& rstd0_r15() const
     {
-      assert_choice_type("rstd0-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd0_r15, type_, "measPRS-Offset-r15");
       return c.get<uint8_t>();
     }
     const uint8_t& rstd1_r15() const
     {
-      assert_choice_type("rstd1-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd1_r15, type_, "measPRS-Offset-r15");
       return c.get<uint8_t>();
     }
     const uint16_t& rstd2_r15() const
     {
-      assert_choice_type("rstd2-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd2_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     const uint16_t& rstd3_r15() const
     {
-      assert_choice_type("rstd3-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd3_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     const uint16_t& rstd4_r15() const
     {
-      assert_choice_type("rstd4-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd4_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     const uint8_t& rstd5_r15() const
     {
-      assert_choice_type("rstd5-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd5_r15, type_, "measPRS-Offset-r15");
       return c.get<uint8_t>();
     }
     const uint16_t& rstd6_r15() const
     {
-      assert_choice_type("rstd6-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd6_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     const uint16_t& rstd7_r15() const
     {
-      assert_choice_type("rstd7-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd7_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     const uint16_t& rstd8_r15() const
     {
-      assert_choice_type("rstd8-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd8_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     const uint16_t& rstd9_r15() const
     {
-      assert_choice_type("rstd9-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd9_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     const uint16_t& rstd10_r15() const
     {
-      assert_choice_type("rstd10-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd10_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     const uint16_t& rstd11_r15() const
     {
-      assert_choice_type("rstd11-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd11_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     const uint16_t& rstd12_r15() const
     {
-      assert_choice_type("rstd12-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd12_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     const uint16_t& rstd13_r15() const
     {
-      assert_choice_type("rstd13-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd13_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     const uint16_t& rstd14_r15() const
     {
-      assert_choice_type("rstd14-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd14_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     const uint16_t& rstd15_r15() const
     {
-      assert_choice_type("rstd15-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd15_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     const uint16_t& rstd16_r15() const
     {
-      assert_choice_type("rstd16-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd16_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     const uint16_t& rstd17_r15() const
     {
-      assert_choice_type("rstd17-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd17_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     const uint16_t& rstd18_r15() const
     {
-      assert_choice_type("rstd18-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd18_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     const uint16_t& rstd19_r15() const
     {
-      assert_choice_type("rstd19-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd19_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
     const uint16_t& rstd20_r15() const
     {
-      assert_choice_type("rstd20-r15", type_.to_string(), "measPRS-Offset-r15");
+      assert_choice_type(types::rstd20_r15, type_, "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
-    uint8_t& set_rstd0_r15()
-    {
-      set(types::rstd0_r15);
-      return c.get<uint8_t>();
-    }
-    uint8_t& set_rstd1_r15()
-    {
-      set(types::rstd1_r15);
-      return c.get<uint8_t>();
-    }
-    uint16_t& set_rstd2_r15()
-    {
-      set(types::rstd2_r15);
-      return c.get<uint16_t>();
-    }
-    uint16_t& set_rstd3_r15()
-    {
-      set(types::rstd3_r15);
-      return c.get<uint16_t>();
-    }
-    uint16_t& set_rstd4_r15()
-    {
-      set(types::rstd4_r15);
-      return c.get<uint16_t>();
-    }
-    uint8_t& set_rstd5_r15()
-    {
-      set(types::rstd5_r15);
-      return c.get<uint8_t>();
-    }
-    uint16_t& set_rstd6_r15()
-    {
-      set(types::rstd6_r15);
-      return c.get<uint16_t>();
-    }
-    uint16_t& set_rstd7_r15()
-    {
-      set(types::rstd7_r15);
-      return c.get<uint16_t>();
-    }
-    uint16_t& set_rstd8_r15()
-    {
-      set(types::rstd8_r15);
-      return c.get<uint16_t>();
-    }
-    uint16_t& set_rstd9_r15()
-    {
-      set(types::rstd9_r15);
-      return c.get<uint16_t>();
-    }
-    uint16_t& set_rstd10_r15()
-    {
-      set(types::rstd10_r15);
-      return c.get<uint16_t>();
-    }
-    uint16_t& set_rstd11_r15()
-    {
-      set(types::rstd11_r15);
-      return c.get<uint16_t>();
-    }
-    uint16_t& set_rstd12_r15()
-    {
-      set(types::rstd12_r15);
-      return c.get<uint16_t>();
-    }
-    uint16_t& set_rstd13_r15()
-    {
-      set(types::rstd13_r15);
-      return c.get<uint16_t>();
-    }
-    uint16_t& set_rstd14_r15()
-    {
-      set(types::rstd14_r15);
-      return c.get<uint16_t>();
-    }
-    uint16_t& set_rstd15_r15()
-    {
-      set(types::rstd15_r15);
-      return c.get<uint16_t>();
-    }
-    uint16_t& set_rstd16_r15()
-    {
-      set(types::rstd16_r15);
-      return c.get<uint16_t>();
-    }
-    uint16_t& set_rstd17_r15()
-    {
-      set(types::rstd17_r15);
-      return c.get<uint16_t>();
-    }
-    uint16_t& set_rstd18_r15()
-    {
-      set(types::rstd18_r15);
-      return c.get<uint16_t>();
-    }
-    uint16_t& set_rstd19_r15()
-    {
-      set(types::rstd19_r15);
-      return c.get<uint16_t>();
-    }
-    uint16_t& set_rstd20_r15()
-    {
-      set(types::rstd20_r15);
-      return c.get<uint16_t>();
-    }
+    uint8_t&  set_rstd0_r15();
+    uint8_t&  set_rstd1_r15();
+    uint16_t& set_rstd2_r15();
+    uint16_t& set_rstd3_r15();
+    uint16_t& set_rstd4_r15();
+    uint8_t&  set_rstd5_r15();
+    uint16_t& set_rstd6_r15();
+    uint16_t& set_rstd7_r15();
+    uint16_t& set_rstd8_r15();
+    uint16_t& set_rstd9_r15();
+    uint16_t& set_rstd10_r15();
+    uint16_t& set_rstd11_r15();
+    uint16_t& set_rstd12_r15();
+    uint16_t& set_rstd13_r15();
+    uint16_t& set_rstd14_r15();
+    uint16_t& set_rstd15_r15();
+    uint16_t& set_rstd16_r15();
+    uint16_t& set_rstd17_r15();
+    uint16_t& set_rstd18_r15();
+    uint16_t& set_rstd19_r15();
+    uint16_t& set_rstd20_r15();
 
   private:
     types               type_;
@@ -2056,7 +1912,7 @@ struct ue_info_resp_v1020_ies_s {
 struct wlan_status_v1430_opts {
   enum options { suspended, resumed, nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<wlan_status_v1430_opts> wlan_status_v1430_e;
 
@@ -2111,7 +1967,7 @@ struct fail_report_scg_nr_r15_s {
     } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<fail_type_r15_opts> fail_type_r15_e_;
@@ -2137,7 +1993,7 @@ struct fail_report_scg_r12_s {
     enum options { t313_expiry, random_access_problem, rlc_max_num_retx, scg_change_fail, nulltype } value;
     typedef uint16_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint16_t    to_number() const;
   };
   typedef enumerated<fail_type_r12_opts> fail_type_r12_e_;
@@ -2243,7 +2099,7 @@ struct rlf_report_r9_s {
     struct types_opts {
       enum options { cell_global_id_r10, pci_arfcn_r10, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -2260,34 +2116,26 @@ struct rlf_report_r9_s {
     // getters
     cell_global_id_eutra_s& cell_global_id_r10()
     {
-      assert_choice_type("cellGlobalId-r10", type_.to_string(), "failedPCellId-r10");
+      assert_choice_type(types::cell_global_id_r10, type_, "failedPCellId-r10");
       return c.get<cell_global_id_eutra_s>();
     }
     pci_arfcn_r10_s_& pci_arfcn_r10()
     {
-      assert_choice_type("pci-arfcn-r10", type_.to_string(), "failedPCellId-r10");
+      assert_choice_type(types::pci_arfcn_r10, type_, "failedPCellId-r10");
       return c.get<pci_arfcn_r10_s_>();
     }
     const cell_global_id_eutra_s& cell_global_id_r10() const
     {
-      assert_choice_type("cellGlobalId-r10", type_.to_string(), "failedPCellId-r10");
+      assert_choice_type(types::cell_global_id_r10, type_, "failedPCellId-r10");
       return c.get<cell_global_id_eutra_s>();
     }
     const pci_arfcn_r10_s_& pci_arfcn_r10() const
     {
-      assert_choice_type("pci-arfcn-r10", type_.to_string(), "failedPCellId-r10");
+      assert_choice_type(types::pci_arfcn_r10, type_, "failedPCellId-r10");
       return c.get<pci_arfcn_r10_s_>();
     }
-    cell_global_id_eutra_s& set_cell_global_id_r10()
-    {
-      set(types::cell_global_id_r10);
-      return c.get<cell_global_id_eutra_s>();
-    }
-    pci_arfcn_r10_s_& set_pci_arfcn_r10()
-    {
-      set(types::pci_arfcn_r10);
-      return c.get<pci_arfcn_r10_s_>();
-    }
+    cell_global_id_eutra_s& set_cell_global_id_r10();
+    pci_arfcn_r10_s_&       set_pci_arfcn_r10();
 
   private:
     types                                                     type_;
@@ -2298,7 +2146,7 @@ struct rlf_report_r9_s {
   struct conn_fail_type_r10_opts {
     enum options { rlf, hof, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<conn_fail_type_r10_opts> conn_fail_type_r10_e_;
   struct failed_pcell_id_v1090_s_ {
@@ -2309,7 +2157,7 @@ struct rlf_report_r9_s {
       enum options { t310_expiry, random_access_problem, rlc_max_num_retx, t312_expiry_r12, nulltype } value;
       typedef uint16_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint16_t    to_number() const;
     };
     typedef enumerated<rlf_cause_r11_opts> rlf_cause_r11_e_;
@@ -2324,7 +2172,7 @@ struct rlf_report_r9_s {
       struct types_opts {
         enum options { fdd_r11, tdd_r11, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -2341,34 +2189,26 @@ struct rlf_report_r9_s {
       // getters
       uint16_t& fdd_r11()
       {
-        assert_choice_type("fdd-r11", type_.to_string(), "physCellId-r11");
+        assert_choice_type(types::fdd_r11, type_, "physCellId-r11");
         return c.get<uint16_t>();
       }
       uint8_t& tdd_r11()
       {
-        assert_choice_type("tdd-r11", type_.to_string(), "physCellId-r11");
+        assert_choice_type(types::tdd_r11, type_, "physCellId-r11");
         return c.get<uint8_t>();
       }
       const uint16_t& fdd_r11() const
       {
-        assert_choice_type("fdd-r11", type_.to_string(), "physCellId-r11");
+        assert_choice_type(types::fdd_r11, type_, "physCellId-r11");
         return c.get<uint16_t>();
       }
       const uint8_t& tdd_r11() const
       {
-        assert_choice_type("tdd-r11", type_.to_string(), "physCellId-r11");
+        assert_choice_type(types::tdd_r11, type_, "physCellId-r11");
         return c.get<uint8_t>();
       }
-      uint16_t& set_fdd_r11()
-      {
-        set(types::fdd_r11);
-        return c.get<uint16_t>();
-      }
-      uint8_t& set_tdd_r11()
-      {
-        set(types::tdd_r11);
-        return c.get<uint8_t>();
-      }
+      uint16_t& set_fdd_r11();
+      uint8_t&  set_tdd_r11();
 
     private:
       types               type_;
@@ -2388,7 +2228,7 @@ struct rlf_report_r9_s {
       struct types_opts {
         enum options { fdd_r11, tdd_r11, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -2405,34 +2245,26 @@ struct rlf_report_r9_s {
       // getters
       uint16_t& fdd_r11()
       {
-        assert_choice_type("fdd-r11", type_.to_string(), "physCellId-r11");
+        assert_choice_type(types::fdd_r11, type_, "physCellId-r11");
         return c.get<uint16_t>();
       }
       uint8_t& tdd_r11()
       {
-        assert_choice_type("tdd-r11", type_.to_string(), "physCellId-r11");
+        assert_choice_type(types::tdd_r11, type_, "physCellId-r11");
         return c.get<uint8_t>();
       }
       const uint16_t& fdd_r11() const
       {
-        assert_choice_type("fdd-r11", type_.to_string(), "physCellId-r11");
+        assert_choice_type(types::fdd_r11, type_, "physCellId-r11");
         return c.get<uint16_t>();
       }
       const uint8_t& tdd_r11() const
       {
-        assert_choice_type("tdd-r11", type_.to_string(), "physCellId-r11");
+        assert_choice_type(types::tdd_r11, type_, "physCellId-r11");
         return c.get<uint8_t>();
       }
-      uint16_t& set_fdd_r11()
-      {
-        set(types::fdd_r11);
-        return c.get<uint16_t>();
-      }
-      uint8_t& set_tdd_r11()
-      {
-        set(types::tdd_r11);
-        return c.get<uint8_t>();
-      }
+      uint16_t& set_fdd_r11();
+      uint8_t&  set_tdd_r11();
 
     private:
       types               type_;
@@ -2589,7 +2421,7 @@ struct sidelink_ue_info_v1310_ies_s {
     struct ue_type_r13_opts {
       enum options { relay_ue, remote_ue, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<ue_type_r13_opts> ue_type_r13_e_;
 
@@ -2638,7 +2470,7 @@ struct tdm_assist_info_r11_c {
       enum options { sf40, sf64, sf80, sf128, sf160, sf256, spare2, spare1, nulltype } value;
       typedef uint16_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint16_t    to_number() const;
     };
     typedef enumerated<drx_cycle_len_r11_opts> drx_cycle_len_r11_e_;
@@ -2646,7 +2478,7 @@ struct tdm_assist_info_r11_c {
       enum options { sf20, sf30, sf40, sf60, sf80, sf100, spare2, spare1, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<drx_active_time_r11_opts> drx_active_time_r11_e_;
@@ -2660,7 +2492,7 @@ struct tdm_assist_info_r11_c {
   struct types_opts {
     enum options { drx_assist_info_r11, idc_sf_pattern_list_r11, /*...*/ nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<types_opts, true> types;
 
@@ -2677,34 +2509,26 @@ struct tdm_assist_info_r11_c {
   // getters
   drx_assist_info_r11_s_& drx_assist_info_r11()
   {
-    assert_choice_type("drx-AssistanceInfo-r11", type_.to_string(), "TDM-AssistanceInfo-r11");
+    assert_choice_type(types::drx_assist_info_r11, type_, "TDM-AssistanceInfo-r11");
     return c.get<drx_assist_info_r11_s_>();
   }
   idc_sf_pattern_list_r11_l& idc_sf_pattern_list_r11()
   {
-    assert_choice_type("idc-SubframePatternList-r11", type_.to_string(), "TDM-AssistanceInfo-r11");
+    assert_choice_type(types::idc_sf_pattern_list_r11, type_, "TDM-AssistanceInfo-r11");
     return c.get<idc_sf_pattern_list_r11_l>();
   }
   const drx_assist_info_r11_s_& drx_assist_info_r11() const
   {
-    assert_choice_type("drx-AssistanceInfo-r11", type_.to_string(), "TDM-AssistanceInfo-r11");
+    assert_choice_type(types::drx_assist_info_r11, type_, "TDM-AssistanceInfo-r11");
     return c.get<drx_assist_info_r11_s_>();
   }
   const idc_sf_pattern_list_r11_l& idc_sf_pattern_list_r11() const
   {
-    assert_choice_type("idc-SubframePatternList-r11", type_.to_string(), "TDM-AssistanceInfo-r11");
+    assert_choice_type(types::idc_sf_pattern_list_r11, type_, "TDM-AssistanceInfo-r11");
     return c.get<idc_sf_pattern_list_r11_l>();
   }
-  drx_assist_info_r11_s_& set_drx_assist_info_r11()
-  {
-    set(types::drx_assist_info_r11);
-    return c.get<drx_assist_info_r11_s_>();
-  }
-  idc_sf_pattern_list_r11_l& set_idc_sf_pattern_list_r11()
-  {
-    set(types::idc_sf_pattern_list_r11);
-    return c.get<idc_sf_pattern_list_r11_l>();
-  }
+  drx_assist_info_r11_s_&    set_drx_assist_info_r11();
+  idc_sf_pattern_list_r11_l& set_idc_sf_pattern_list_r11();
 
 private:
   types                                                              type_;
@@ -2725,14 +2549,14 @@ struct ueassist_info_v1430_ies_s {
     struct rlm_event_r14_opts {
       enum options { early_out_of_sync, early_in_sync, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<rlm_event_r14_opts> rlm_event_r14_e_;
     struct excess_rep_mpdcch_r14_opts {
       enum options { excess_rep1, excess_rep2, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<excess_rep_mpdcch_r14_opts> excess_rep_mpdcch_r14_e_;
@@ -2802,7 +2626,7 @@ struct ul_info_transfer_v8a0_ies_s {
 struct wlan_status_r13_opts {
   enum options { successful_assoc, fail_wlan_radio_link, fail_wlan_unavailable, fail_timeout, nulltype } value;
 
-  std::string to_string() const;
+  const char* to_string() const;
 };
 typedef enumerated<wlan_status_r13_opts> wlan_status_r13_e;
 
@@ -2846,7 +2670,7 @@ struct failed_lc_ch_info_r15_s {
     struct cell_group_ind_r15_opts {
       enum options { mn, sn, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<cell_group_ind_r15_opts> cell_group_ind_r15_e_;
 
@@ -2860,7 +2684,7 @@ struct failed_lc_ch_info_r15_s {
   struct fail_type_opts {
     enum options { dupl, spare3, spare2, spare1, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<fail_type_opts> fail_type_e_;
 
@@ -2900,7 +2724,7 @@ struct inter_freq_rstd_meas_ind_r10_ies_s {
     struct types_opts {
       enum options { start, stop, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -2914,20 +2738,16 @@ struct inter_freq_rstd_meas_ind_r10_ies_s {
     // getters
     start_s_& start()
     {
-      assert_choice_type("start", type_.to_string(), "rstd-InterFreqIndication-r10");
+      assert_choice_type(types::start, type_, "rstd-InterFreqIndication-r10");
       return c;
     }
     const start_s_& start() const
     {
-      assert_choice_type("start", type_.to_string(), "rstd-InterFreqIndication-r10");
+      assert_choice_type(types::start, type_, "rstd-InterFreqIndication-r10");
       return c;
     }
-    start_s_& set_start()
-    {
-      set(types::start);
-      return c;
-    }
-    void set_stop() { set(types::stop); }
+    start_s_& set_start();
+    void      set_stop();
 
   private:
     types    type_;
@@ -2983,7 +2803,7 @@ struct meas_report_app_layer_r15_ies_s {
   struct service_type_r15_opts {
     enum options { qoe, qoemtsi, spare6, spare5, spare4, spare3, spare2, spare1, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<service_type_r15_opts> service_type_r15_e_;
 
@@ -3006,7 +2826,7 @@ struct proximity_ind_r9_ies_s {
   struct type_r9_opts {
     enum options { entering, leaving, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<type_r9_opts> type_r9_e_;
   struct carrier_freq_r9_c_ {
@@ -3014,7 +2834,7 @@ struct proximity_ind_r9_ies_s {
       enum options { eutra_r9, utra_r9, /*...*/ eutra2_v9e0, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<types_opts, true, 1> types;
@@ -3032,49 +2852,37 @@ struct proximity_ind_r9_ies_s {
     // getters
     uint32_t& eutra_r9()
     {
-      assert_choice_type("eutra-r9", type_.to_string(), "carrierFreq-r9");
+      assert_choice_type(types::eutra_r9, type_, "carrierFreq-r9");
       return c.get<uint32_t>();
     }
     uint16_t& utra_r9()
     {
-      assert_choice_type("utra-r9", type_.to_string(), "carrierFreq-r9");
+      assert_choice_type(types::utra_r9, type_, "carrierFreq-r9");
       return c.get<uint16_t>();
     }
     uint32_t& eutra2_v9e0()
     {
-      assert_choice_type("eutra2-v9e0", type_.to_string(), "carrierFreq-r9");
+      assert_choice_type(types::eutra2_v9e0, type_, "carrierFreq-r9");
       return c.get<uint32_t>();
     }
     const uint32_t& eutra_r9() const
     {
-      assert_choice_type("eutra-r9", type_.to_string(), "carrierFreq-r9");
+      assert_choice_type(types::eutra_r9, type_, "carrierFreq-r9");
       return c.get<uint32_t>();
     }
     const uint16_t& utra_r9() const
     {
-      assert_choice_type("utra-r9", type_.to_string(), "carrierFreq-r9");
+      assert_choice_type(types::utra_r9, type_, "carrierFreq-r9");
       return c.get<uint16_t>();
     }
     const uint32_t& eutra2_v9e0() const
     {
-      assert_choice_type("eutra2-v9e0", type_.to_string(), "carrierFreq-r9");
+      assert_choice_type(types::eutra2_v9e0, type_, "carrierFreq-r9");
       return c.get<uint32_t>();
     }
-    uint32_t& set_eutra_r9()
-    {
-      set(types::eutra_r9);
-      return c.get<uint32_t>();
-    }
-    uint16_t& set_utra_r9()
-    {
-      set(types::utra_r9);
-      return c.get<uint16_t>();
-    }
-    uint32_t& set_eutra2_v9e0()
-    {
-      set(types::eutra2_v9e0);
-      return c.get<uint32_t>();
-    }
+    uint32_t& set_eutra_r9();
+    uint16_t& set_utra_r9();
+    uint32_t& set_eutra2_v9e0();
 
   private:
     types               type_;
@@ -3134,7 +2942,7 @@ struct rrc_conn_resume_complete_r13_ies_s {
   struct mob_state_r13_opts {
     enum options { normal, medium, high, spare, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<mob_state_r13_opts> mob_state_r13_e_;
 
@@ -3227,7 +3035,7 @@ struct ueassist_info_r11_ies_s {
   struct pwr_pref_ind_r11_opts {
     enum options { normal, low_pwr_consumption, nulltype } value;
 
-    std::string to_string() const;
+    const char* to_string() const;
   };
   typedef enumerated<pwr_pref_ind_r11_opts> pwr_pref_ind_r11_e_;
 
@@ -3287,7 +3095,7 @@ struct ul_info_transfer_r8_ies_s {
     struct types_opts {
       enum options { ded_info_nas, ded_info_cdma2000_minus1_xrtt, ded_info_cdma2000_hrpd, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -3304,49 +3112,37 @@ struct ul_info_transfer_r8_ies_s {
     // getters
     dyn_octstring& ded_info_nas()
     {
-      assert_choice_type("dedicatedInfoNAS", type_.to_string(), "dedicatedInfoType");
+      assert_choice_type(types::ded_info_nas, type_, "dedicatedInfoType");
       return c.get<dyn_octstring>();
     }
     dyn_octstring& ded_info_cdma2000_minus1_xrtt()
     {
-      assert_choice_type("dedicatedInfoCDMA2000-1XRTT", type_.to_string(), "dedicatedInfoType");
+      assert_choice_type(types::ded_info_cdma2000_minus1_xrtt, type_, "dedicatedInfoType");
       return c.get<dyn_octstring>();
     }
     dyn_octstring& ded_info_cdma2000_hrpd()
     {
-      assert_choice_type("dedicatedInfoCDMA2000-HRPD", type_.to_string(), "dedicatedInfoType");
+      assert_choice_type(types::ded_info_cdma2000_hrpd, type_, "dedicatedInfoType");
       return c.get<dyn_octstring>();
     }
     const dyn_octstring& ded_info_nas() const
     {
-      assert_choice_type("dedicatedInfoNAS", type_.to_string(), "dedicatedInfoType");
+      assert_choice_type(types::ded_info_nas, type_, "dedicatedInfoType");
       return c.get<dyn_octstring>();
     }
     const dyn_octstring& ded_info_cdma2000_minus1_xrtt() const
     {
-      assert_choice_type("dedicatedInfoCDMA2000-1XRTT", type_.to_string(), "dedicatedInfoType");
+      assert_choice_type(types::ded_info_cdma2000_minus1_xrtt, type_, "dedicatedInfoType");
       return c.get<dyn_octstring>();
     }
     const dyn_octstring& ded_info_cdma2000_hrpd() const
     {
-      assert_choice_type("dedicatedInfoCDMA2000-HRPD", type_.to_string(), "dedicatedInfoType");
+      assert_choice_type(types::ded_info_cdma2000_hrpd, type_, "dedicatedInfoType");
       return c.get<dyn_octstring>();
     }
-    dyn_octstring& set_ded_info_nas()
-    {
-      set(types::ded_info_nas);
-      return c.get<dyn_octstring>();
-    }
-    dyn_octstring& set_ded_info_cdma2000_minus1_xrtt()
-    {
-      set(types::ded_info_cdma2000_minus1_xrtt);
-      return c.get<dyn_octstring>();
-    }
-    dyn_octstring& set_ded_info_cdma2000_hrpd()
-    {
-      set(types::ded_info_cdma2000_hrpd);
-      return c.get<dyn_octstring>();
-    }
+    dyn_octstring& set_ded_info_nas();
+    dyn_octstring& set_ded_info_cdma2000_minus1_xrtt();
+    dyn_octstring& set_ded_info_cdma2000_hrpd();
 
   private:
     types                          type_;
@@ -3401,7 +3197,7 @@ struct csfb_params_request_cdma2000_s {
       enum options { csfb_params_request_cdma2000_r8, crit_exts_future, nulltype } value;
       typedef uint16_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint16_t    to_number() const;
     };
     typedef enumerated<types_opts> types;
@@ -3416,20 +3212,16 @@ struct csfb_params_request_cdma2000_s {
     // getters
     csfb_params_request_cdma2000_r8_ies_s& csfb_params_request_cdma2000_r8()
     {
-      assert_choice_type("csfbParametersRequestCDMA2000-r8", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::csfb_params_request_cdma2000_r8, type_, "criticalExtensions");
       return c;
     }
     const csfb_params_request_cdma2000_r8_ies_s& csfb_params_request_cdma2000_r8() const
     {
-      assert_choice_type("csfbParametersRequestCDMA2000-r8", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::csfb_params_request_cdma2000_r8, type_, "criticalExtensions");
       return c;
     }
-    csfb_params_request_cdma2000_r8_ies_s& set_csfb_params_request_cdma2000_r8()
-    {
-      set(types::csfb_params_request_cdma2000_r8);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    csfb_params_request_cdma2000_r8_ies_s& set_csfb_params_request_cdma2000_r8();
+    void                                   set_crit_exts_future();
 
   private:
     types                                 type_;
@@ -3451,7 +3243,7 @@ struct counter_check_resp_s {
     struct types_opts {
       enum options { counter_check_resp_r8, crit_exts_future, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -3465,20 +3257,16 @@ struct counter_check_resp_s {
     // getters
     counter_check_resp_r8_ies_s& counter_check_resp_r8()
     {
-      assert_choice_type("counterCheckResponse-r8", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::counter_check_resp_r8, type_, "criticalExtensions");
       return c;
     }
     const counter_check_resp_r8_ies_s& counter_check_resp_r8() const
     {
-      assert_choice_type("counterCheckResponse-r8", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::counter_check_resp_r8, type_, "criticalExtensions");
       return c;
     }
-    counter_check_resp_r8_ies_s& set_counter_check_resp_r8()
-    {
-      set(types::counter_check_resp_r8);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    counter_check_resp_r8_ies_s& set_counter_check_resp_r8();
+    void                         set_crit_exts_future();
 
   private:
     types                       type_;
@@ -3513,7 +3301,7 @@ struct in_dev_coex_ind_r11_s {
       struct types_opts {
         enum options { in_dev_coex_ind_r11, spare3, spare2, spare1, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -3527,22 +3315,18 @@ struct in_dev_coex_ind_r11_s {
       // getters
       in_dev_coex_ind_r11_ies_s& in_dev_coex_ind_r11()
       {
-        assert_choice_type("inDeviceCoexIndication-r11", type_.to_string(), "c1");
+        assert_choice_type(types::in_dev_coex_ind_r11, type_, "c1");
         return c;
       }
       const in_dev_coex_ind_r11_ies_s& in_dev_coex_ind_r11() const
       {
-        assert_choice_type("inDeviceCoexIndication-r11", type_.to_string(), "c1");
+        assert_choice_type(types::in_dev_coex_ind_r11, type_, "c1");
         return c;
       }
-      in_dev_coex_ind_r11_ies_s& set_in_dev_coex_ind_r11()
-      {
-        set(types::in_dev_coex_ind_r11);
-        return c;
-      }
-      void set_spare3() { set(types::spare3); }
-      void set_spare2() { set(types::spare2); }
-      void set_spare1() { set(types::spare1); }
+      in_dev_coex_ind_r11_ies_s& set_in_dev_coex_ind_r11();
+      void                       set_spare3();
+      void                       set_spare2();
+      void                       set_spare1();
 
     private:
       types                     type_;
@@ -3560,20 +3344,16 @@ struct in_dev_coex_ind_r11_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
-    c1_c_& set_c1()
-    {
-      set(types::c1);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    c1_c_& set_c1();
+    void   set_crit_exts_future();
 
   private:
     types type_;
@@ -3596,7 +3376,7 @@ struct inter_freq_rstd_meas_ind_r10_s {
       struct types_opts {
         enum options { inter_freq_rstd_meas_ind_r10, spare3, spare2, spare1, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -3610,22 +3390,18 @@ struct inter_freq_rstd_meas_ind_r10_s {
       // getters
       inter_freq_rstd_meas_ind_r10_ies_s& inter_freq_rstd_meas_ind_r10()
       {
-        assert_choice_type("interFreqRSTDMeasurementIndication-r10", type_.to_string(), "c1");
+        assert_choice_type(types::inter_freq_rstd_meas_ind_r10, type_, "c1");
         return c;
       }
       const inter_freq_rstd_meas_ind_r10_ies_s& inter_freq_rstd_meas_ind_r10() const
       {
-        assert_choice_type("interFreqRSTDMeasurementIndication-r10", type_.to_string(), "c1");
+        assert_choice_type(types::inter_freq_rstd_meas_ind_r10, type_, "c1");
         return c;
       }
-      inter_freq_rstd_meas_ind_r10_ies_s& set_inter_freq_rstd_meas_ind_r10()
-      {
-        set(types::inter_freq_rstd_meas_ind_r10);
-        return c;
-      }
-      void set_spare3() { set(types::spare3); }
-      void set_spare2() { set(types::spare2); }
-      void set_spare1() { set(types::spare1); }
+      inter_freq_rstd_meas_ind_r10_ies_s& set_inter_freq_rstd_meas_ind_r10();
+      void                                set_spare3();
+      void                                set_spare2();
+      void                                set_spare1();
 
     private:
       types                              type_;
@@ -3643,20 +3419,16 @@ struct inter_freq_rstd_meas_ind_r10_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
-    c1_c_& set_c1()
-    {
-      set(types::c1);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    c1_c_& set_c1();
+    void   set_crit_exts_future();
 
   private:
     types type_;
@@ -3679,7 +3451,7 @@ struct mbms_count_resp_r10_s {
       struct types_opts {
         enum options { count_resp_r10, spare3, spare2, spare1, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -3693,22 +3465,18 @@ struct mbms_count_resp_r10_s {
       // getters
       mbms_count_resp_r10_ies_s& count_resp_r10()
       {
-        assert_choice_type("countingResponse-r10", type_.to_string(), "c1");
+        assert_choice_type(types::count_resp_r10, type_, "c1");
         return c;
       }
       const mbms_count_resp_r10_ies_s& count_resp_r10() const
       {
-        assert_choice_type("countingResponse-r10", type_.to_string(), "c1");
+        assert_choice_type(types::count_resp_r10, type_, "c1");
         return c;
       }
-      mbms_count_resp_r10_ies_s& set_count_resp_r10()
-      {
-        set(types::count_resp_r10);
-        return c;
-      }
-      void set_spare3() { set(types::spare3); }
-      void set_spare2() { set(types::spare2); }
-      void set_spare1() { set(types::spare1); }
+      mbms_count_resp_r10_ies_s& set_count_resp_r10();
+      void                       set_spare3();
+      void                       set_spare2();
+      void                       set_spare1();
 
     private:
       types                     type_;
@@ -3726,20 +3494,16 @@ struct mbms_count_resp_r10_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
-    c1_c_& set_c1()
-    {
-      set(types::c1);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    c1_c_& set_c1();
+    void   set_crit_exts_future();
 
   private:
     types type_;
@@ -3762,7 +3526,7 @@ struct mbms_interest_ind_r11_s {
       struct types_opts {
         enum options { interest_ind_r11, spare3, spare2, spare1, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -3776,22 +3540,18 @@ struct mbms_interest_ind_r11_s {
       // getters
       mbms_interest_ind_r11_ies_s& interest_ind_r11()
       {
-        assert_choice_type("interestIndication-r11", type_.to_string(), "c1");
+        assert_choice_type(types::interest_ind_r11, type_, "c1");
         return c;
       }
       const mbms_interest_ind_r11_ies_s& interest_ind_r11() const
       {
-        assert_choice_type("interestIndication-r11", type_.to_string(), "c1");
+        assert_choice_type(types::interest_ind_r11, type_, "c1");
         return c;
       }
-      mbms_interest_ind_r11_ies_s& set_interest_ind_r11()
-      {
-        set(types::interest_ind_r11);
-        return c;
-      }
-      void set_spare3() { set(types::spare3); }
-      void set_spare2() { set(types::spare2); }
-      void set_spare1() { set(types::spare1); }
+      mbms_interest_ind_r11_ies_s& set_interest_ind_r11();
+      void                         set_spare3();
+      void                         set_spare2();
+      void                         set_spare1();
 
     private:
       types                       type_;
@@ -3809,20 +3569,16 @@ struct mbms_interest_ind_r11_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
-    c1_c_& set_c1()
-    {
-      set(types::c1);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    c1_c_& set_c1();
+    void   set_crit_exts_future();
 
   private:
     types type_;
@@ -3844,7 +3600,7 @@ struct meas_report_app_layer_r15_s {
     struct types_opts {
       enum options { meas_report_app_layer_r15, crit_exts_future, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -3858,20 +3614,16 @@ struct meas_report_app_layer_r15_s {
     // getters
     meas_report_app_layer_r15_ies_s& meas_report_app_layer_r15()
     {
-      assert_choice_type("measReportAppLayer-r15", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::meas_report_app_layer_r15, type_, "criticalExtensions");
       return c;
     }
     const meas_report_app_layer_r15_ies_s& meas_report_app_layer_r15() const
     {
-      assert_choice_type("measReportAppLayer-r15", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::meas_report_app_layer_r15, type_, "criticalExtensions");
       return c;
     }
-    meas_report_app_layer_r15_ies_s& set_meas_report_app_layer_r15()
-    {
-      set(types::meas_report_app_layer_r15);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    meas_report_app_layer_r15_ies_s& set_meas_report_app_layer_r15();
+    void                             set_crit_exts_future();
 
   private:
     types                           type_;
@@ -3894,7 +3646,7 @@ struct proximity_ind_r9_s {
       struct types_opts {
         enum options { proximity_ind_r9, spare3, spare2, spare1, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -3908,22 +3660,18 @@ struct proximity_ind_r9_s {
       // getters
       proximity_ind_r9_ies_s& proximity_ind_r9()
       {
-        assert_choice_type("proximityIndication-r9", type_.to_string(), "c1");
+        assert_choice_type(types::proximity_ind_r9, type_, "c1");
         return c;
       }
       const proximity_ind_r9_ies_s& proximity_ind_r9() const
       {
-        assert_choice_type("proximityIndication-r9", type_.to_string(), "c1");
+        assert_choice_type(types::proximity_ind_r9, type_, "c1");
         return c;
       }
-      proximity_ind_r9_ies_s& set_proximity_ind_r9()
-      {
-        set(types::proximity_ind_r9);
-        return c;
-      }
-      void set_spare3() { set(types::spare3); }
-      void set_spare2() { set(types::spare2); }
-      void set_spare1() { set(types::spare1); }
+      proximity_ind_r9_ies_s& set_proximity_ind_r9();
+      void                    set_spare3();
+      void                    set_spare2();
+      void                    set_spare1();
 
     private:
       types                  type_;
@@ -3941,20 +3689,16 @@ struct proximity_ind_r9_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
-    c1_c_& set_c1()
-    {
-      set(types::c1);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    c1_c_& set_c1();
+    void   set_crit_exts_future();
 
   private:
     types type_;
@@ -3977,7 +3721,7 @@ struct rn_recfg_complete_r10_s {
       struct types_opts {
         enum options { rn_recfg_complete_r10, spare3, spare2, spare1, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -3991,22 +3735,18 @@ struct rn_recfg_complete_r10_s {
       // getters
       rn_recfg_complete_r10_ies_s& rn_recfg_complete_r10()
       {
-        assert_choice_type("rnReconfigurationComplete-r10", type_.to_string(), "c1");
+        assert_choice_type(types::rn_recfg_complete_r10, type_, "c1");
         return c;
       }
       const rn_recfg_complete_r10_ies_s& rn_recfg_complete_r10() const
       {
-        assert_choice_type("rnReconfigurationComplete-r10", type_.to_string(), "c1");
+        assert_choice_type(types::rn_recfg_complete_r10, type_, "c1");
         return c;
       }
-      rn_recfg_complete_r10_ies_s& set_rn_recfg_complete_r10()
-      {
-        set(types::rn_recfg_complete_r10);
-        return c;
-      }
-      void set_spare3() { set(types::spare3); }
-      void set_spare2() { set(types::spare2); }
-      void set_spare1() { set(types::spare1); }
+      rn_recfg_complete_r10_ies_s& set_rn_recfg_complete_r10();
+      void                         set_spare3();
+      void                         set_spare2();
+      void                         set_spare1();
 
     private:
       types                       type_;
@@ -4024,20 +3764,16 @@ struct rn_recfg_complete_r10_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
-    c1_c_& set_c1()
-    {
-      set(types::c1);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    c1_c_& set_c1();
+    void   set_crit_exts_future();
 
   private:
     types type_;
@@ -4060,7 +3796,7 @@ struct rrc_conn_recfg_complete_s {
     struct types_opts {
       enum options { rrc_conn_recfg_complete_r8, crit_exts_future, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -4074,20 +3810,16 @@ struct rrc_conn_recfg_complete_s {
     // getters
     rrc_conn_recfg_complete_r8_ies_s& rrc_conn_recfg_complete_r8()
     {
-      assert_choice_type("rrcConnectionReconfigurationComplete-r8", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_recfg_complete_r8, type_, "criticalExtensions");
       return c;
     }
     const rrc_conn_recfg_complete_r8_ies_s& rrc_conn_recfg_complete_r8() const
     {
-      assert_choice_type("rrcConnectionReconfigurationComplete-r8", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_recfg_complete_r8, type_, "criticalExtensions");
       return c;
     }
-    rrc_conn_recfg_complete_r8_ies_s& set_rrc_conn_recfg_complete_r8()
-    {
-      set(types::rrc_conn_recfg_complete_r8);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    rrc_conn_recfg_complete_r8_ies_s& set_rrc_conn_recfg_complete_r8();
+    void                              set_crit_exts_future();
 
   private:
     types                            type_;
@@ -4110,7 +3842,7 @@ struct rrc_conn_reest_complete_s {
     struct types_opts {
       enum options { rrc_conn_reest_complete_r8, crit_exts_future, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -4124,20 +3856,16 @@ struct rrc_conn_reest_complete_s {
     // getters
     rrc_conn_reest_complete_r8_ies_s& rrc_conn_reest_complete_r8()
     {
-      assert_choice_type("rrcConnectionReestablishmentComplete-r8", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_reest_complete_r8, type_, "criticalExtensions");
       return c;
     }
     const rrc_conn_reest_complete_r8_ies_s& rrc_conn_reest_complete_r8() const
     {
-      assert_choice_type("rrcConnectionReestablishmentComplete-r8", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_reest_complete_r8, type_, "criticalExtensions");
       return c;
     }
-    rrc_conn_reest_complete_r8_ies_s& set_rrc_conn_reest_complete_r8()
-    {
-      set(types::rrc_conn_reest_complete_r8);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    rrc_conn_reest_complete_r8_ies_s& set_rrc_conn_reest_complete_r8();
+    void                              set_crit_exts_future();
 
   private:
     types                            type_;
@@ -4160,7 +3888,7 @@ struct rrc_conn_resume_complete_r13_s {
     struct types_opts {
       enum options { rrc_conn_resume_complete_r13, crit_exts_future, nulltype } value;
 
-      std::string to_string() const;
+      const char* to_string() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -4174,20 +3902,16 @@ struct rrc_conn_resume_complete_r13_s {
     // getters
     rrc_conn_resume_complete_r13_ies_s& rrc_conn_resume_complete_r13()
     {
-      assert_choice_type("rrcConnectionResumeComplete-r13", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_resume_complete_r13, type_, "criticalExtensions");
       return c;
     }
     const rrc_conn_resume_complete_r13_ies_s& rrc_conn_resume_complete_r13() const
     {
-      assert_choice_type("rrcConnectionResumeComplete-r13", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::rrc_conn_resume_complete_r13, type_, "criticalExtensions");
       return c;
     }
-    rrc_conn_resume_complete_r13_ies_s& set_rrc_conn_resume_complete_r13()
-    {
-      set(types::rrc_conn_resume_complete_r13);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    rrc_conn_resume_complete_r13_ies_s& set_rrc_conn_resume_complete_r13();
+    void                                set_crit_exts_future();
 
   private:
     types                              type_;
@@ -4211,7 +3935,7 @@ struct rrc_conn_setup_complete_s {
       struct types_opts {
         enum options { rrc_conn_setup_complete_r8, spare3, spare2, spare1, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -4225,22 +3949,18 @@ struct rrc_conn_setup_complete_s {
       // getters
       rrc_conn_setup_complete_r8_ies_s& rrc_conn_setup_complete_r8()
       {
-        assert_choice_type("rrcConnectionSetupComplete-r8", type_.to_string(), "c1");
+        assert_choice_type(types::rrc_conn_setup_complete_r8, type_, "c1");
         return c;
       }
       const rrc_conn_setup_complete_r8_ies_s& rrc_conn_setup_complete_r8() const
       {
-        assert_choice_type("rrcConnectionSetupComplete-r8", type_.to_string(), "c1");
+        assert_choice_type(types::rrc_conn_setup_complete_r8, type_, "c1");
         return c;
       }
-      rrc_conn_setup_complete_r8_ies_s& set_rrc_conn_setup_complete_r8()
-      {
-        set(types::rrc_conn_setup_complete_r8);
-        return c;
-      }
-      void set_spare3() { set(types::spare3); }
-      void set_spare2() { set(types::spare2); }
-      void set_spare1() { set(types::spare1); }
+      rrc_conn_setup_complete_r8_ies_s& set_rrc_conn_setup_complete_r8();
+      void                              set_spare3();
+      void                              set_spare2();
+      void                              set_spare1();
 
     private:
       types                            type_;
@@ -4258,20 +3978,16 @@ struct rrc_conn_setup_complete_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
-    c1_c_& set_c1()
-    {
-      set(types::c1);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    c1_c_& set_c1();
+    void   set_crit_exts_future();
 
   private:
     types type_;
@@ -4295,7 +4011,7 @@ struct scg_fail_info_r12_s {
       struct types_opts {
         enum options { scg_fail_info_r12, spare3, spare2, spare1, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -4309,22 +4025,18 @@ struct scg_fail_info_r12_s {
       // getters
       scg_fail_info_r12_ies_s& scg_fail_info_r12()
       {
-        assert_choice_type("scgFailureInformation-r12", type_.to_string(), "c1");
+        assert_choice_type(types::scg_fail_info_r12, type_, "c1");
         return c;
       }
       const scg_fail_info_r12_ies_s& scg_fail_info_r12() const
       {
-        assert_choice_type("scgFailureInformation-r12", type_.to_string(), "c1");
+        assert_choice_type(types::scg_fail_info_r12, type_, "c1");
         return c;
       }
-      scg_fail_info_r12_ies_s& set_scg_fail_info_r12()
-      {
-        set(types::scg_fail_info_r12);
-        return c;
-      }
-      void set_spare3() { set(types::spare3); }
-      void set_spare2() { set(types::spare2); }
-      void set_spare1() { set(types::spare1); }
+      scg_fail_info_r12_ies_s& set_scg_fail_info_r12();
+      void                     set_spare3();
+      void                     set_spare2();
+      void                     set_spare1();
 
     private:
       types                   type_;
@@ -4342,20 +4054,16 @@ struct scg_fail_info_r12_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
-    c1_c_& set_c1()
-    {
-      set(types::c1);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    c1_c_& set_c1();
+    void   set_crit_exts_future();
 
   private:
     types type_;
@@ -4378,7 +4086,7 @@ struct scg_fail_info_nr_r15_s {
       struct types_opts {
         enum options { scg_fail_info_nr_r15, spare3, spare2, spare1, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -4392,22 +4100,18 @@ struct scg_fail_info_nr_r15_s {
       // getters
       scg_fail_info_nr_r15_ies_s& scg_fail_info_nr_r15()
       {
-        assert_choice_type("scgFailureInformationNR-r15", type_.to_string(), "c1");
+        assert_choice_type(types::scg_fail_info_nr_r15, type_, "c1");
         return c;
       }
       const scg_fail_info_nr_r15_ies_s& scg_fail_info_nr_r15() const
       {
-        assert_choice_type("scgFailureInformationNR-r15", type_.to_string(), "c1");
+        assert_choice_type(types::scg_fail_info_nr_r15, type_, "c1");
         return c;
       }
-      scg_fail_info_nr_r15_ies_s& set_scg_fail_info_nr_r15()
-      {
-        set(types::scg_fail_info_nr_r15);
-        return c;
-      }
-      void set_spare3() { set(types::spare3); }
-      void set_spare2() { set(types::spare2); }
-      void set_spare1() { set(types::spare1); }
+      scg_fail_info_nr_r15_ies_s& set_scg_fail_info_nr_r15();
+      void                        set_spare3();
+      void                        set_spare2();
+      void                        set_spare1();
 
     private:
       types                      type_;
@@ -4425,20 +4129,16 @@ struct scg_fail_info_nr_r15_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
-    c1_c_& set_c1()
-    {
-      set(types::c1);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    c1_c_& set_c1();
+    void   set_crit_exts_future();
 
   private:
     types type_;
@@ -4461,7 +4161,7 @@ struct sidelink_ue_info_r12_s {
       struct types_opts {
         enum options { sidelink_ue_info_r12, spare3, spare2, spare1, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -4475,22 +4175,18 @@ struct sidelink_ue_info_r12_s {
       // getters
       sidelink_ue_info_r12_ies_s& sidelink_ue_info_r12()
       {
-        assert_choice_type("sidelinkUEInformation-r12", type_.to_string(), "c1");
+        assert_choice_type(types::sidelink_ue_info_r12, type_, "c1");
         return c;
       }
       const sidelink_ue_info_r12_ies_s& sidelink_ue_info_r12() const
       {
-        assert_choice_type("sidelinkUEInformation-r12", type_.to_string(), "c1");
+        assert_choice_type(types::sidelink_ue_info_r12, type_, "c1");
         return c;
       }
-      sidelink_ue_info_r12_ies_s& set_sidelink_ue_info_r12()
-      {
-        set(types::sidelink_ue_info_r12);
-        return c;
-      }
-      void set_spare3() { set(types::spare3); }
-      void set_spare2() { set(types::spare2); }
-      void set_spare1() { set(types::spare1); }
+      sidelink_ue_info_r12_ies_s& set_sidelink_ue_info_r12();
+      void                        set_spare3();
+      void                        set_spare2();
+      void                        set_spare1();
 
     private:
       types                      type_;
@@ -4508,20 +4204,16 @@ struct sidelink_ue_info_r12_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
-    c1_c_& set_c1()
-    {
-      set(types::c1);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    c1_c_& set_c1();
+    void   set_crit_exts_future();
 
   private:
     types type_;
@@ -4544,7 +4236,7 @@ struct ueassist_info_r11_s {
       struct types_opts {
         enum options { ue_assist_info_r11, spare3, spare2, spare1, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -4558,22 +4250,18 @@ struct ueassist_info_r11_s {
       // getters
       ueassist_info_r11_ies_s& ue_assist_info_r11()
       {
-        assert_choice_type("ueAssistanceInformation-r11", type_.to_string(), "c1");
+        assert_choice_type(types::ue_assist_info_r11, type_, "c1");
         return c;
       }
       const ueassist_info_r11_ies_s& ue_assist_info_r11() const
       {
-        assert_choice_type("ueAssistanceInformation-r11", type_.to_string(), "c1");
+        assert_choice_type(types::ue_assist_info_r11, type_, "c1");
         return c;
       }
-      ueassist_info_r11_ies_s& set_ue_assist_info_r11()
-      {
-        set(types::ue_assist_info_r11);
-        return c;
-      }
-      void set_spare3() { set(types::spare3); }
-      void set_spare2() { set(types::spare2); }
-      void set_spare1() { set(types::spare1); }
+      ueassist_info_r11_ies_s& set_ue_assist_info_r11();
+      void                     set_spare3();
+      void                     set_spare2();
+      void                     set_spare1();
 
     private:
       types                   type_;
@@ -4591,20 +4279,16 @@ struct ueassist_info_r11_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
-    c1_c_& set_c1()
-    {
-      set(types::c1);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    c1_c_& set_c1();
+    void   set_crit_exts_future();
 
   private:
     types type_;
@@ -4627,7 +4311,7 @@ struct ue_info_resp_r9_s {
       struct types_opts {
         enum options { ue_info_resp_r9, spare3, spare2, spare1, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -4641,22 +4325,18 @@ struct ue_info_resp_r9_s {
       // getters
       ue_info_resp_r9_ies_s& ue_info_resp_r9()
       {
-        assert_choice_type("ueInformationResponse-r9", type_.to_string(), "c1");
+        assert_choice_type(types::ue_info_resp_r9, type_, "c1");
         return c;
       }
       const ue_info_resp_r9_ies_s& ue_info_resp_r9() const
       {
-        assert_choice_type("ueInformationResponse-r9", type_.to_string(), "c1");
+        assert_choice_type(types::ue_info_resp_r9, type_, "c1");
         return c;
       }
-      ue_info_resp_r9_ies_s& set_ue_info_resp_r9()
-      {
-        set(types::ue_info_resp_r9);
-        return c;
-      }
-      void set_spare3() { set(types::spare3); }
-      void set_spare2() { set(types::spare2); }
-      void set_spare1() { set(types::spare1); }
+      ue_info_resp_r9_ies_s& set_ue_info_resp_r9();
+      void                   set_spare3();
+      void                   set_spare2();
+      void                   set_spare1();
 
     private:
       types                 type_;
@@ -4674,20 +4354,16 @@ struct ue_info_resp_r9_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
-    c1_c_& set_c1()
-    {
-      set(types::c1);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    c1_c_& set_c1();
+    void   set_crit_exts_future();
 
   private:
     types type_;
@@ -4711,7 +4387,7 @@ struct ul_ho_prep_transfer_s {
       struct types_opts {
         enum options { ul_ho_prep_transfer_r8, spare3, spare2, spare1, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -4725,22 +4401,18 @@ struct ul_ho_prep_transfer_s {
       // getters
       ul_ho_prep_transfer_r8_ies_s& ul_ho_prep_transfer_r8()
       {
-        assert_choice_type("ulHandoverPreparationTransfer-r8", type_.to_string(), "c1");
+        assert_choice_type(types::ul_ho_prep_transfer_r8, type_, "c1");
         return c;
       }
       const ul_ho_prep_transfer_r8_ies_s& ul_ho_prep_transfer_r8() const
       {
-        assert_choice_type("ulHandoverPreparationTransfer-r8", type_.to_string(), "c1");
+        assert_choice_type(types::ul_ho_prep_transfer_r8, type_, "c1");
         return c;
       }
-      ul_ho_prep_transfer_r8_ies_s& set_ul_ho_prep_transfer_r8()
-      {
-        set(types::ul_ho_prep_transfer_r8);
-        return c;
-      }
-      void set_spare3() { set(types::spare3); }
-      void set_spare2() { set(types::spare2); }
-      void set_spare1() { set(types::spare1); }
+      ul_ho_prep_transfer_r8_ies_s& set_ul_ho_prep_transfer_r8();
+      void                          set_spare3();
+      void                          set_spare2();
+      void                          set_spare1();
 
     private:
       types                        type_;
@@ -4758,20 +4430,16 @@ struct ul_ho_prep_transfer_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
-    c1_c_& set_c1()
-    {
-      set(types::c1);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    c1_c_& set_c1();
+    void   set_crit_exts_future();
 
   private:
     types type_;
@@ -4794,7 +4462,7 @@ struct ul_info_transfer_s {
       struct types_opts {
         enum options { ul_info_transfer_r8, spare3, spare2, spare1, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -4808,22 +4476,18 @@ struct ul_info_transfer_s {
       // getters
       ul_info_transfer_r8_ies_s& ul_info_transfer_r8()
       {
-        assert_choice_type("ulInformationTransfer-r8", type_.to_string(), "c1");
+        assert_choice_type(types::ul_info_transfer_r8, type_, "c1");
         return c;
       }
       const ul_info_transfer_r8_ies_s& ul_info_transfer_r8() const
       {
-        assert_choice_type("ulInformationTransfer-r8", type_.to_string(), "c1");
+        assert_choice_type(types::ul_info_transfer_r8, type_, "c1");
         return c;
       }
-      ul_info_transfer_r8_ies_s& set_ul_info_transfer_r8()
-      {
-        set(types::ul_info_transfer_r8);
-        return c;
-      }
-      void set_spare3() { set(types::spare3); }
-      void set_spare2() { set(types::spare2); }
-      void set_spare1() { set(types::spare1); }
+      ul_info_transfer_r8_ies_s& set_ul_info_transfer_r8();
+      void                       set_spare3();
+      void                       set_spare2();
+      void                       set_spare1();
 
     private:
       types                     type_;
@@ -4841,20 +4505,16 @@ struct ul_info_transfer_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
-    c1_c_& set_c1()
-    {
-      set(types::c1);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    c1_c_& set_c1();
+    void   set_crit_exts_future();
 
   private:
     types type_;
@@ -4877,7 +4537,7 @@ struct ul_info_transfer_mrdc_r15_s {
       struct types_opts {
         enum options { ul_info_transfer_mrdc_r15, spare3, spare2, spare1, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -4891,22 +4551,18 @@ struct ul_info_transfer_mrdc_r15_s {
       // getters
       ul_info_transfer_mrdc_r15_ies_s& ul_info_transfer_mrdc_r15()
       {
-        assert_choice_type("ulInformationTransferMRDC-r15", type_.to_string(), "c1");
+        assert_choice_type(types::ul_info_transfer_mrdc_r15, type_, "c1");
         return c;
       }
       const ul_info_transfer_mrdc_r15_ies_s& ul_info_transfer_mrdc_r15() const
       {
-        assert_choice_type("ulInformationTransferMRDC-r15", type_.to_string(), "c1");
+        assert_choice_type(types::ul_info_transfer_mrdc_r15, type_, "c1");
         return c;
       }
-      ul_info_transfer_mrdc_r15_ies_s& set_ul_info_transfer_mrdc_r15()
-      {
-        set(types::ul_info_transfer_mrdc_r15);
-        return c;
-      }
-      void set_spare3() { set(types::spare3); }
-      void set_spare2() { set(types::spare2); }
-      void set_spare1() { set(types::spare1); }
+      ul_info_transfer_mrdc_r15_ies_s& set_ul_info_transfer_mrdc_r15();
+      void                             set_spare3();
+      void                             set_spare2();
+      void                             set_spare1();
 
     private:
       types                           type_;
@@ -4924,20 +4580,16 @@ struct ul_info_transfer_mrdc_r15_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
-    c1_c_& set_c1()
-    {
-      set(types::c1);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    c1_c_& set_c1();
+    void   set_crit_exts_future();
 
   private:
     types type_;
@@ -4960,7 +4612,7 @@ struct wlan_conn_status_report_r13_s {
       struct types_opts {
         enum options { wlan_conn_status_report_r13, spare3, spare2, spare1, nulltype } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -4974,22 +4626,18 @@ struct wlan_conn_status_report_r13_s {
       // getters
       wlan_conn_status_report_r13_ies_s& wlan_conn_status_report_r13()
       {
-        assert_choice_type("wlanConnectionStatusReport-r13", type_.to_string(), "c1");
+        assert_choice_type(types::wlan_conn_status_report_r13, type_, "c1");
         return c;
       }
       const wlan_conn_status_report_r13_ies_s& wlan_conn_status_report_r13() const
       {
-        assert_choice_type("wlanConnectionStatusReport-r13", type_.to_string(), "c1");
+        assert_choice_type(types::wlan_conn_status_report_r13, type_, "c1");
         return c;
       }
-      wlan_conn_status_report_r13_ies_s& set_wlan_conn_status_report_r13()
-      {
-        set(types::wlan_conn_status_report_r13);
-        return c;
-      }
-      void set_spare3() { set(types::spare3); }
-      void set_spare2() { set(types::spare2); }
-      void set_spare1() { set(types::spare1); }
+      wlan_conn_status_report_r13_ies_s& set_wlan_conn_status_report_r13();
+      void                               set_spare3();
+      void                               set_spare2();
+      void                               set_spare1();
 
     private:
       types                             type_;
@@ -5007,20 +4655,16 @@ struct wlan_conn_status_report_r13_s {
     // getters
     c1_c_& c1()
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
     const c1_c_& c1() const
     {
-      assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      assert_choice_type(types::c1, type_, "criticalExtensions");
       return c;
     }
-    c1_c_& set_c1()
-    {
-      set(types::c1);
-      return c;
-    }
-    void set_crit_exts_future() { set(types::crit_exts_future); }
+    c1_c_& set_c1();
+    void   set_crit_exts_future();
 
   private:
     types type_;
@@ -5061,7 +4705,7 @@ struct ul_dcch_msg_type_c {
       } value;
       typedef uint16_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint16_t    to_number() const;
     };
     typedef enumerated<types_opts> types;
@@ -5079,244 +4723,180 @@ struct ul_dcch_msg_type_c {
     // getters
     csfb_params_request_cdma2000_s& csfb_params_request_cdma2000()
     {
-      assert_choice_type("csfbParametersRequestCDMA2000", type_.to_string(), "c1");
+      assert_choice_type(types::csfb_params_request_cdma2000, type_, "c1");
       return c.get<csfb_params_request_cdma2000_s>();
     }
     meas_report_s& meas_report()
     {
-      assert_choice_type("measurementReport", type_.to_string(), "c1");
+      assert_choice_type(types::meas_report, type_, "c1");
       return c.get<meas_report_s>();
     }
     rrc_conn_recfg_complete_s& rrc_conn_recfg_complete()
     {
-      assert_choice_type("rrcConnectionReconfigurationComplete", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_recfg_complete, type_, "c1");
       return c.get<rrc_conn_recfg_complete_s>();
     }
     rrc_conn_reest_complete_s& rrc_conn_reest_complete()
     {
-      assert_choice_type("rrcConnectionReestablishmentComplete", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_reest_complete, type_, "c1");
       return c.get<rrc_conn_reest_complete_s>();
     }
     rrc_conn_setup_complete_s& rrc_conn_setup_complete()
     {
-      assert_choice_type("rrcConnectionSetupComplete", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_setup_complete, type_, "c1");
       return c.get<rrc_conn_setup_complete_s>();
     }
     security_mode_complete_s& security_mode_complete()
     {
-      assert_choice_type("securityModeComplete", type_.to_string(), "c1");
+      assert_choice_type(types::security_mode_complete, type_, "c1");
       return c.get<security_mode_complete_s>();
     }
     security_mode_fail_s& security_mode_fail()
     {
-      assert_choice_type("securityModeFailure", type_.to_string(), "c1");
+      assert_choice_type(types::security_mode_fail, type_, "c1");
       return c.get<security_mode_fail_s>();
     }
     ue_cap_info_s& ue_cap_info()
     {
-      assert_choice_type("ueCapabilityInformation", type_.to_string(), "c1");
+      assert_choice_type(types::ue_cap_info, type_, "c1");
       return c.get<ue_cap_info_s>();
     }
     ul_ho_prep_transfer_s& ul_ho_prep_transfer()
     {
-      assert_choice_type("ulHandoverPreparationTransfer", type_.to_string(), "c1");
+      assert_choice_type(types::ul_ho_prep_transfer, type_, "c1");
       return c.get<ul_ho_prep_transfer_s>();
     }
     ul_info_transfer_s& ul_info_transfer()
     {
-      assert_choice_type("ulInformationTransfer", type_.to_string(), "c1");
+      assert_choice_type(types::ul_info_transfer, type_, "c1");
       return c.get<ul_info_transfer_s>();
     }
     counter_check_resp_s& counter_check_resp()
     {
-      assert_choice_type("counterCheckResponse", type_.to_string(), "c1");
+      assert_choice_type(types::counter_check_resp, type_, "c1");
       return c.get<counter_check_resp_s>();
     }
     ue_info_resp_r9_s& ue_info_resp_r9()
     {
-      assert_choice_type("ueInformationResponse-r9", type_.to_string(), "c1");
+      assert_choice_type(types::ue_info_resp_r9, type_, "c1");
       return c.get<ue_info_resp_r9_s>();
     }
     proximity_ind_r9_s& proximity_ind_r9()
     {
-      assert_choice_type("proximityIndication-r9", type_.to_string(), "c1");
+      assert_choice_type(types::proximity_ind_r9, type_, "c1");
       return c.get<proximity_ind_r9_s>();
     }
     rn_recfg_complete_r10_s& rn_recfg_complete_r10()
     {
-      assert_choice_type("rnReconfigurationComplete-r10", type_.to_string(), "c1");
+      assert_choice_type(types::rn_recfg_complete_r10, type_, "c1");
       return c.get<rn_recfg_complete_r10_s>();
     }
     mbms_count_resp_r10_s& mbms_count_resp_r10()
     {
-      assert_choice_type("mbmsCountingResponse-r10", type_.to_string(), "c1");
+      assert_choice_type(types::mbms_count_resp_r10, type_, "c1");
       return c.get<mbms_count_resp_r10_s>();
     }
     inter_freq_rstd_meas_ind_r10_s& inter_freq_rstd_meas_ind_r10()
     {
-      assert_choice_type("interFreqRSTDMeasurementIndication-r10", type_.to_string(), "c1");
+      assert_choice_type(types::inter_freq_rstd_meas_ind_r10, type_, "c1");
       return c.get<inter_freq_rstd_meas_ind_r10_s>();
     }
     const csfb_params_request_cdma2000_s& csfb_params_request_cdma2000() const
     {
-      assert_choice_type("csfbParametersRequestCDMA2000", type_.to_string(), "c1");
+      assert_choice_type(types::csfb_params_request_cdma2000, type_, "c1");
       return c.get<csfb_params_request_cdma2000_s>();
     }
     const meas_report_s& meas_report() const
     {
-      assert_choice_type("measurementReport", type_.to_string(), "c1");
+      assert_choice_type(types::meas_report, type_, "c1");
       return c.get<meas_report_s>();
     }
     const rrc_conn_recfg_complete_s& rrc_conn_recfg_complete() const
     {
-      assert_choice_type("rrcConnectionReconfigurationComplete", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_recfg_complete, type_, "c1");
       return c.get<rrc_conn_recfg_complete_s>();
     }
     const rrc_conn_reest_complete_s& rrc_conn_reest_complete() const
     {
-      assert_choice_type("rrcConnectionReestablishmentComplete", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_reest_complete, type_, "c1");
       return c.get<rrc_conn_reest_complete_s>();
     }
     const rrc_conn_setup_complete_s& rrc_conn_setup_complete() const
     {
-      assert_choice_type("rrcConnectionSetupComplete", type_.to_string(), "c1");
+      assert_choice_type(types::rrc_conn_setup_complete, type_, "c1");
       return c.get<rrc_conn_setup_complete_s>();
     }
     const security_mode_complete_s& security_mode_complete() const
     {
-      assert_choice_type("securityModeComplete", type_.to_string(), "c1");
+      assert_choice_type(types::security_mode_complete, type_, "c1");
       return c.get<security_mode_complete_s>();
     }
     const security_mode_fail_s& security_mode_fail() const
     {
-      assert_choice_type("securityModeFailure", type_.to_string(), "c1");
+      assert_choice_type(types::security_mode_fail, type_, "c1");
       return c.get<security_mode_fail_s>();
     }
     const ue_cap_info_s& ue_cap_info() const
     {
-      assert_choice_type("ueCapabilityInformation", type_.to_string(), "c1");
+      assert_choice_type(types::ue_cap_info, type_, "c1");
       return c.get<ue_cap_info_s>();
     }
     const ul_ho_prep_transfer_s& ul_ho_prep_transfer() const
     {
-      assert_choice_type("ulHandoverPreparationTransfer", type_.to_string(), "c1");
+      assert_choice_type(types::ul_ho_prep_transfer, type_, "c1");
       return c.get<ul_ho_prep_transfer_s>();
     }
     const ul_info_transfer_s& ul_info_transfer() const
     {
-      assert_choice_type("ulInformationTransfer", type_.to_string(), "c1");
+      assert_choice_type(types::ul_info_transfer, type_, "c1");
       return c.get<ul_info_transfer_s>();
     }
     const counter_check_resp_s& counter_check_resp() const
     {
-      assert_choice_type("counterCheckResponse", type_.to_string(), "c1");
+      assert_choice_type(types::counter_check_resp, type_, "c1");
       return c.get<counter_check_resp_s>();
     }
     const ue_info_resp_r9_s& ue_info_resp_r9() const
     {
-      assert_choice_type("ueInformationResponse-r9", type_.to_string(), "c1");
+      assert_choice_type(types::ue_info_resp_r9, type_, "c1");
       return c.get<ue_info_resp_r9_s>();
     }
     const proximity_ind_r9_s& proximity_ind_r9() const
     {
-      assert_choice_type("proximityIndication-r9", type_.to_string(), "c1");
+      assert_choice_type(types::proximity_ind_r9, type_, "c1");
       return c.get<proximity_ind_r9_s>();
     }
     const rn_recfg_complete_r10_s& rn_recfg_complete_r10() const
     {
-      assert_choice_type("rnReconfigurationComplete-r10", type_.to_string(), "c1");
+      assert_choice_type(types::rn_recfg_complete_r10, type_, "c1");
       return c.get<rn_recfg_complete_r10_s>();
     }
     const mbms_count_resp_r10_s& mbms_count_resp_r10() const
     {
-      assert_choice_type("mbmsCountingResponse-r10", type_.to_string(), "c1");
+      assert_choice_type(types::mbms_count_resp_r10, type_, "c1");
       return c.get<mbms_count_resp_r10_s>();
     }
     const inter_freq_rstd_meas_ind_r10_s& inter_freq_rstd_meas_ind_r10() const
     {
-      assert_choice_type("interFreqRSTDMeasurementIndication-r10", type_.to_string(), "c1");
+      assert_choice_type(types::inter_freq_rstd_meas_ind_r10, type_, "c1");
       return c.get<inter_freq_rstd_meas_ind_r10_s>();
     }
-    csfb_params_request_cdma2000_s& set_csfb_params_request_cdma2000()
-    {
-      set(types::csfb_params_request_cdma2000);
-      return c.get<csfb_params_request_cdma2000_s>();
-    }
-    meas_report_s& set_meas_report()
-    {
-      set(types::meas_report);
-      return c.get<meas_report_s>();
-    }
-    rrc_conn_recfg_complete_s& set_rrc_conn_recfg_complete()
-    {
-      set(types::rrc_conn_recfg_complete);
-      return c.get<rrc_conn_recfg_complete_s>();
-    }
-    rrc_conn_reest_complete_s& set_rrc_conn_reest_complete()
-    {
-      set(types::rrc_conn_reest_complete);
-      return c.get<rrc_conn_reest_complete_s>();
-    }
-    rrc_conn_setup_complete_s& set_rrc_conn_setup_complete()
-    {
-      set(types::rrc_conn_setup_complete);
-      return c.get<rrc_conn_setup_complete_s>();
-    }
-    security_mode_complete_s& set_security_mode_complete()
-    {
-      set(types::security_mode_complete);
-      return c.get<security_mode_complete_s>();
-    }
-    security_mode_fail_s& set_security_mode_fail()
-    {
-      set(types::security_mode_fail);
-      return c.get<security_mode_fail_s>();
-    }
-    ue_cap_info_s& set_ue_cap_info()
-    {
-      set(types::ue_cap_info);
-      return c.get<ue_cap_info_s>();
-    }
-    ul_ho_prep_transfer_s& set_ul_ho_prep_transfer()
-    {
-      set(types::ul_ho_prep_transfer);
-      return c.get<ul_ho_prep_transfer_s>();
-    }
-    ul_info_transfer_s& set_ul_info_transfer()
-    {
-      set(types::ul_info_transfer);
-      return c.get<ul_info_transfer_s>();
-    }
-    counter_check_resp_s& set_counter_check_resp()
-    {
-      set(types::counter_check_resp);
-      return c.get<counter_check_resp_s>();
-    }
-    ue_info_resp_r9_s& set_ue_info_resp_r9()
-    {
-      set(types::ue_info_resp_r9);
-      return c.get<ue_info_resp_r9_s>();
-    }
-    proximity_ind_r9_s& set_proximity_ind_r9()
-    {
-      set(types::proximity_ind_r9);
-      return c.get<proximity_ind_r9_s>();
-    }
-    rn_recfg_complete_r10_s& set_rn_recfg_complete_r10()
-    {
-      set(types::rn_recfg_complete_r10);
-      return c.get<rn_recfg_complete_r10_s>();
-    }
-    mbms_count_resp_r10_s& set_mbms_count_resp_r10()
-    {
-      set(types::mbms_count_resp_r10);
-      return c.get<mbms_count_resp_r10_s>();
-    }
-    inter_freq_rstd_meas_ind_r10_s& set_inter_freq_rstd_meas_ind_r10()
-    {
-      set(types::inter_freq_rstd_meas_ind_r10);
-      return c.get<inter_freq_rstd_meas_ind_r10_s>();
-    }
+    csfb_params_request_cdma2000_s& set_csfb_params_request_cdma2000();
+    meas_report_s&                  set_meas_report();
+    rrc_conn_recfg_complete_s&      set_rrc_conn_recfg_complete();
+    rrc_conn_reest_complete_s&      set_rrc_conn_reest_complete();
+    rrc_conn_setup_complete_s&      set_rrc_conn_setup_complete();
+    security_mode_complete_s&       set_security_mode_complete();
+    security_mode_fail_s&           set_security_mode_fail();
+    ue_cap_info_s&                  set_ue_cap_info();
+    ul_ho_prep_transfer_s&          set_ul_ho_prep_transfer();
+    ul_info_transfer_s&             set_ul_info_transfer();
+    counter_check_resp_s&           set_counter_check_resp();
+    ue_info_resp_r9_s&              set_ue_info_resp_r9();
+    proximity_ind_r9_s&             set_proximity_ind_r9();
+    rn_recfg_complete_r10_s&        set_rn_recfg_complete_r10();
+    mbms_count_resp_r10_s&          set_mbms_count_resp_r10();
+    inter_freq_rstd_meas_ind_r10_s& set_inter_freq_rstd_meas_ind_r10();
 
   private:
     types type_;
@@ -5363,7 +4943,7 @@ struct ul_dcch_msg_type_c {
           nulltype
         } value;
 
-        std::string to_string() const;
+        const char* to_string() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -5380,174 +4960,130 @@ struct ul_dcch_msg_type_c {
       // getters
       ueassist_info_r11_s& ue_assist_info_r11()
       {
-        assert_choice_type("ueAssistanceInformation-r11", type_.to_string(), "c2");
+        assert_choice_type(types::ue_assist_info_r11, type_, "c2");
         return c.get<ueassist_info_r11_s>();
       }
       in_dev_coex_ind_r11_s& in_dev_coex_ind_r11()
       {
-        assert_choice_type("inDeviceCoexIndication-r11", type_.to_string(), "c2");
+        assert_choice_type(types::in_dev_coex_ind_r11, type_, "c2");
         return c.get<in_dev_coex_ind_r11_s>();
       }
       mbms_interest_ind_r11_s& mbms_interest_ind_r11()
       {
-        assert_choice_type("mbmsInterestIndication-r11", type_.to_string(), "c2");
+        assert_choice_type(types::mbms_interest_ind_r11, type_, "c2");
         return c.get<mbms_interest_ind_r11_s>();
       }
       scg_fail_info_r12_s& scg_fail_info_r12()
       {
-        assert_choice_type("scgFailureInformation-r12", type_.to_string(), "c2");
+        assert_choice_type(types::scg_fail_info_r12, type_, "c2");
         return c.get<scg_fail_info_r12_s>();
       }
       sidelink_ue_info_r12_s& sidelink_ue_info_r12()
       {
-        assert_choice_type("sidelinkUEInformation-r12", type_.to_string(), "c2");
+        assert_choice_type(types::sidelink_ue_info_r12, type_, "c2");
         return c.get<sidelink_ue_info_r12_s>();
       }
       wlan_conn_status_report_r13_s& wlan_conn_status_report_r13()
       {
-        assert_choice_type("wlanConnectionStatusReport-r13", type_.to_string(), "c2");
+        assert_choice_type(types::wlan_conn_status_report_r13, type_, "c2");
         return c.get<wlan_conn_status_report_r13_s>();
       }
       rrc_conn_resume_complete_r13_s& rrc_conn_resume_complete_r13()
       {
-        assert_choice_type("rrcConnectionResumeComplete-r13", type_.to_string(), "c2");
+        assert_choice_type(types::rrc_conn_resume_complete_r13, type_, "c2");
         return c.get<rrc_conn_resume_complete_r13_s>();
       }
       ul_info_transfer_mrdc_r15_s& ul_info_transfer_mrdc_r15()
       {
-        assert_choice_type("ulInformationTransferMRDC-r15", type_.to_string(), "c2");
+        assert_choice_type(types::ul_info_transfer_mrdc_r15, type_, "c2");
         return c.get<ul_info_transfer_mrdc_r15_s>();
       }
       scg_fail_info_nr_r15_s& scg_fail_info_nr_r15()
       {
-        assert_choice_type("scgFailureInformationNR-r15", type_.to_string(), "c2");
+        assert_choice_type(types::scg_fail_info_nr_r15, type_, "c2");
         return c.get<scg_fail_info_nr_r15_s>();
       }
       meas_report_app_layer_r15_s& meas_report_app_layer_r15()
       {
-        assert_choice_type("measReportAppLayer-r15", type_.to_string(), "c2");
+        assert_choice_type(types::meas_report_app_layer_r15, type_, "c2");
         return c.get<meas_report_app_layer_r15_s>();
       }
       fail_info_r15_s& fail_info_r15()
       {
-        assert_choice_type("failureInformation-r15", type_.to_string(), "c2");
+        assert_choice_type(types::fail_info_r15, type_, "c2");
         return c.get<fail_info_r15_s>();
       }
       const ueassist_info_r11_s& ue_assist_info_r11() const
       {
-        assert_choice_type("ueAssistanceInformation-r11", type_.to_string(), "c2");
+        assert_choice_type(types::ue_assist_info_r11, type_, "c2");
         return c.get<ueassist_info_r11_s>();
       }
       const in_dev_coex_ind_r11_s& in_dev_coex_ind_r11() const
       {
-        assert_choice_type("inDeviceCoexIndication-r11", type_.to_string(), "c2");
+        assert_choice_type(types::in_dev_coex_ind_r11, type_, "c2");
         return c.get<in_dev_coex_ind_r11_s>();
       }
       const mbms_interest_ind_r11_s& mbms_interest_ind_r11() const
       {
-        assert_choice_type("mbmsInterestIndication-r11", type_.to_string(), "c2");
+        assert_choice_type(types::mbms_interest_ind_r11, type_, "c2");
         return c.get<mbms_interest_ind_r11_s>();
       }
       const scg_fail_info_r12_s& scg_fail_info_r12() const
       {
-        assert_choice_type("scgFailureInformation-r12", type_.to_string(), "c2");
+        assert_choice_type(types::scg_fail_info_r12, type_, "c2");
         return c.get<scg_fail_info_r12_s>();
       }
       const sidelink_ue_info_r12_s& sidelink_ue_info_r12() const
       {
-        assert_choice_type("sidelinkUEInformation-r12", type_.to_string(), "c2");
+        assert_choice_type(types::sidelink_ue_info_r12, type_, "c2");
         return c.get<sidelink_ue_info_r12_s>();
       }
       const wlan_conn_status_report_r13_s& wlan_conn_status_report_r13() const
       {
-        assert_choice_type("wlanConnectionStatusReport-r13", type_.to_string(), "c2");
+        assert_choice_type(types::wlan_conn_status_report_r13, type_, "c2");
         return c.get<wlan_conn_status_report_r13_s>();
       }
       const rrc_conn_resume_complete_r13_s& rrc_conn_resume_complete_r13() const
       {
-        assert_choice_type("rrcConnectionResumeComplete-r13", type_.to_string(), "c2");
+        assert_choice_type(types::rrc_conn_resume_complete_r13, type_, "c2");
         return c.get<rrc_conn_resume_complete_r13_s>();
       }
       const ul_info_transfer_mrdc_r15_s& ul_info_transfer_mrdc_r15() const
       {
-        assert_choice_type("ulInformationTransferMRDC-r15", type_.to_string(), "c2");
+        assert_choice_type(types::ul_info_transfer_mrdc_r15, type_, "c2");
         return c.get<ul_info_transfer_mrdc_r15_s>();
       }
       const scg_fail_info_nr_r15_s& scg_fail_info_nr_r15() const
       {
-        assert_choice_type("scgFailureInformationNR-r15", type_.to_string(), "c2");
+        assert_choice_type(types::scg_fail_info_nr_r15, type_, "c2");
         return c.get<scg_fail_info_nr_r15_s>();
       }
       const meas_report_app_layer_r15_s& meas_report_app_layer_r15() const
       {
-        assert_choice_type("measReportAppLayer-r15", type_.to_string(), "c2");
+        assert_choice_type(types::meas_report_app_layer_r15, type_, "c2");
         return c.get<meas_report_app_layer_r15_s>();
       }
       const fail_info_r15_s& fail_info_r15() const
       {
-        assert_choice_type("failureInformation-r15", type_.to_string(), "c2");
+        assert_choice_type(types::fail_info_r15, type_, "c2");
         return c.get<fail_info_r15_s>();
       }
-      ueassist_info_r11_s& set_ue_assist_info_r11()
-      {
-        set(types::ue_assist_info_r11);
-        return c.get<ueassist_info_r11_s>();
-      }
-      in_dev_coex_ind_r11_s& set_in_dev_coex_ind_r11()
-      {
-        set(types::in_dev_coex_ind_r11);
-        return c.get<in_dev_coex_ind_r11_s>();
-      }
-      mbms_interest_ind_r11_s& set_mbms_interest_ind_r11()
-      {
-        set(types::mbms_interest_ind_r11);
-        return c.get<mbms_interest_ind_r11_s>();
-      }
-      scg_fail_info_r12_s& set_scg_fail_info_r12()
-      {
-        set(types::scg_fail_info_r12);
-        return c.get<scg_fail_info_r12_s>();
-      }
-      sidelink_ue_info_r12_s& set_sidelink_ue_info_r12()
-      {
-        set(types::sidelink_ue_info_r12);
-        return c.get<sidelink_ue_info_r12_s>();
-      }
-      wlan_conn_status_report_r13_s& set_wlan_conn_status_report_r13()
-      {
-        set(types::wlan_conn_status_report_r13);
-        return c.get<wlan_conn_status_report_r13_s>();
-      }
-      rrc_conn_resume_complete_r13_s& set_rrc_conn_resume_complete_r13()
-      {
-        set(types::rrc_conn_resume_complete_r13);
-        return c.get<rrc_conn_resume_complete_r13_s>();
-      }
-      ul_info_transfer_mrdc_r15_s& set_ul_info_transfer_mrdc_r15()
-      {
-        set(types::ul_info_transfer_mrdc_r15);
-        return c.get<ul_info_transfer_mrdc_r15_s>();
-      }
-      scg_fail_info_nr_r15_s& set_scg_fail_info_nr_r15()
-      {
-        set(types::scg_fail_info_nr_r15);
-        return c.get<scg_fail_info_nr_r15_s>();
-      }
-      meas_report_app_layer_r15_s& set_meas_report_app_layer_r15()
-      {
-        set(types::meas_report_app_layer_r15);
-        return c.get<meas_report_app_layer_r15_s>();
-      }
-      fail_info_r15_s& set_fail_info_r15()
-      {
-        set(types::fail_info_r15);
-        return c.get<fail_info_r15_s>();
-      }
-      void set_spare5() { set(types::spare5); }
-      void set_spare4() { set(types::spare4); }
-      void set_spare3() { set(types::spare3); }
-      void set_spare2() { set(types::spare2); }
-      void set_spare1() { set(types::spare1); }
+      ueassist_info_r11_s&            set_ue_assist_info_r11();
+      in_dev_coex_ind_r11_s&          set_in_dev_coex_ind_r11();
+      mbms_interest_ind_r11_s&        set_mbms_interest_ind_r11();
+      scg_fail_info_r12_s&            set_scg_fail_info_r12();
+      sidelink_ue_info_r12_s&         set_sidelink_ue_info_r12();
+      wlan_conn_status_report_r13_s&  set_wlan_conn_status_report_r13();
+      rrc_conn_resume_complete_r13_s& set_rrc_conn_resume_complete_r13();
+      ul_info_transfer_mrdc_r15_s&    set_ul_info_transfer_mrdc_r15();
+      scg_fail_info_nr_r15_s&         set_scg_fail_info_nr_r15();
+      meas_report_app_layer_r15_s&    set_meas_report_app_layer_r15();
+      fail_info_r15_s&                set_fail_info_r15();
+      void                            set_spare5();
+      void                            set_spare4();
+      void                            set_spare3();
+      void                            set_spare2();
+      void                            set_spare1();
 
     private:
       types type_;
@@ -5570,7 +5106,7 @@ struct ul_dcch_msg_type_c {
       enum options { c2, msg_class_ext_future_r11, nulltype } value;
       typedef uint8_t number_type;
 
-      std::string to_string() const;
+      const char* to_string() const;
       uint8_t     to_number() const;
     };
     typedef enumerated<types_opts> types;
@@ -5585,20 +5121,16 @@ struct ul_dcch_msg_type_c {
     // getters
     c2_c_& c2()
     {
-      assert_choice_type("c2", type_.to_string(), "messageClassExtension");
+      assert_choice_type(types::c2, type_, "messageClassExtension");
       return c;
     }
     const c2_c_& c2() const
     {
-      assert_choice_type("c2", type_.to_string(), "messageClassExtension");
+      assert_choice_type(types::c2, type_, "messageClassExtension");
       return c;
     }
-    c2_c_& set_c2()
-    {
-      set(types::c2);
-      return c;
-    }
-    void set_msg_class_ext_future_r11() { set(types::msg_class_ext_future_r11); }
+    c2_c_& set_c2();
+    void   set_msg_class_ext_future_r11();
 
   private:
     types type_;
@@ -5608,7 +5140,7 @@ struct ul_dcch_msg_type_c {
     enum options { c1, msg_class_ext, nulltype } value;
     typedef uint8_t number_type;
 
-    std::string to_string() const;
+    const char* to_string() const;
     uint8_t     to_number() const;
   };
   typedef enumerated<types_opts> types;
@@ -5626,34 +5158,26 @@ struct ul_dcch_msg_type_c {
   // getters
   c1_c_& c1()
   {
-    assert_choice_type("c1", type_.to_string(), "UL-DCCH-MessageType");
+    assert_choice_type(types::c1, type_, "UL-DCCH-MessageType");
     return c.get<c1_c_>();
   }
   msg_class_ext_c_& msg_class_ext()
   {
-    assert_choice_type("messageClassExtension", type_.to_string(), "UL-DCCH-MessageType");
+    assert_choice_type(types::msg_class_ext, type_, "UL-DCCH-MessageType");
     return c.get<msg_class_ext_c_>();
   }
   const c1_c_& c1() const
   {
-    assert_choice_type("c1", type_.to_string(), "UL-DCCH-MessageType");
+    assert_choice_type(types::c1, type_, "UL-DCCH-MessageType");
     return c.get<c1_c_>();
   }
   const msg_class_ext_c_& msg_class_ext() const
   {
-    assert_choice_type("messageClassExtension", type_.to_string(), "UL-DCCH-MessageType");
+    assert_choice_type(types::msg_class_ext, type_, "UL-DCCH-MessageType");
     return c.get<msg_class_ext_c_>();
   }
-  c1_c_& set_c1()
-  {
-    set(types::c1);
-    return c.get<c1_c_>();
-  }
-  msg_class_ext_c_& set_msg_class_ext()
-  {
-    set(types::msg_class_ext);
-    return c.get<msg_class_ext_c_>();
-  }
+  c1_c_&            set_c1();
+  msg_class_ext_c_& set_msg_class_ext();
 
 private:
   types                                    type_;

@@ -66,8 +66,8 @@ void rrc_nr::init(phy_interface_rrc_nr*       phy_,
   stack     = stack_;
   args      = args_;
 
-  running                = true;
-  fake_measurement_timer = task_sched.get_unique_timer();
+  running               = true;
+  sim_measurement_timer = task_sched.get_unique_timer();
 }
 
 void rrc_nr::stop()
@@ -112,22 +112,22 @@ const char* rrc_nr::get_rb_name(uint32_t lcid)
 void rrc_nr::timer_expired(uint32_t timeout_id)
 {
   logger.debug("Handling Timer Expired");
-  if (timeout_id == fake_measurement_timer.id()) {
-    logger.debug("Triggered Fake Measurement");
+  if (timeout_id == sim_measurement_timer.id()) {
+    logger.debug("Triggered simulated measurement");
 
-    phy_meas_nr_t              fake_meas = {};
+    phy_meas_nr_t              sim_meas = {};
     std::vector<phy_meas_nr_t> phy_meas_nr;
-    fake_meas.rsrp     = -60.0;
-    fake_meas.rsrq     = -60.0;
-    fake_meas.cfo_hz   = 1.0;
-    fake_meas.arfcn_nr = fake_measurement_carrier_freq_r15;
-    fake_meas.pci_nr   = 500;
-    phy_meas_nr.push_back(fake_meas);
+    sim_meas.rsrp     = -60.0;
+    sim_meas.rsrq     = -60.0;
+    sim_meas.cfo_hz   = 1.0;
+    sim_meas.arfcn_nr = sim_measurement_carrier_freq_r15;
+    sim_meas.pci_nr   = args.sim_nr_meas_pci;
+    phy_meas_nr.push_back(sim_meas);
     rrc_eutra->new_cell_meas_nr(phy_meas_nr);
 
     auto timer_expire_func = [this](uint32_t tid) { timer_expired(tid); };
-    fake_measurement_timer.set(10, timer_expire_func);
-    fake_measurement_timer.run();
+    sim_measurement_timer.set(sim_measurement_timer_duration_ms, timer_expire_func);
+    sim_measurement_timer.run();
   }
 }
 
@@ -388,7 +388,7 @@ void rrc_nr::get_nr_capabilities(srsran::byte_buffer_t* nr_caps_pdu)
   nr_cap.rlc_params_present                  = true;
   nr_cap.rlc_params.um_with_short_sn_present = true;
   nr_cap.rlc_params.um_with_long_sn_present  = true;
-  nr_cap.pdcp_params.short_sn_present        = true;
+  nr_cap.pdcp_params.short_sn_present        = args.pdcp_short_sn_support;
 
   // Pack nr_caps
   asn1::bit_ref bref(nr_caps_pdu->msg, nr_caps_pdu->get_tailroom());
@@ -414,20 +414,20 @@ void rrc_nr::get_nr_capabilities(srsran::byte_buffer_t* nr_caps_pdu)
 
 void rrc_nr::phy_meas_stop()
 {
-  // possbile race condition for fake_measurement timer, which might be set at the same moment as stopped => fix with
+  // possbile race condition for sim_measurement timer, which might be set at the same moment as stopped => fix with
   // phy integration
-  logger.debug("Stopping fake measurements");
-  fake_measurement_timer.stop();
+  logger.debug("Stopping simulated measurements");
+  sim_measurement_timer.stop();
 }
 
 void rrc_nr::phy_set_cells_to_meas(uint32_t carrier_freq_r15)
 {
   logger.debug("Measuring phy cell %d ", carrier_freq_r15);
   // Start timer for fake measurements
-  auto timer_expire_func            = [this](uint32_t tid) { timer_expired(tid); };
-  fake_measurement_carrier_freq_r15 = carrier_freq_r15;
-  fake_measurement_timer.set(10, timer_expire_func);
-  fake_measurement_timer.run();
+  auto timer_expire_func           = [this](uint32_t tid) { timer_expired(tid); };
+  sim_measurement_carrier_freq_r15 = carrier_freq_r15;
+  sim_measurement_timer.set(sim_measurement_timer_duration_ms, timer_expire_func);
+  sim_measurement_timer.run();
 }
 
 bool rrc_nr::configure_sk_counter(uint16_t sk_counter)
@@ -888,6 +888,7 @@ bool rrc_nr::apply_ul_common_cfg(const asn1::rrc_nr::ul_cfg_common_s& ul_cfg_com
     }
     if (ul_cfg_common.init_ul_bwp.pucch_cfg_common_present) {
       if (ul_cfg_common.init_ul_bwp.pucch_cfg_common.type() == setup_release_c<pucch_cfg_common_s>::types_opts::setup) {
+        logger.info("PUCCH cfg commont setup not handled");
       } else {
         logger.warning("Option pucch_cfg_common not of type setup");
         return false;
@@ -1060,7 +1061,8 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
     mac->set_crnti(recfg_with_sync.new_ue_id);
     if (recfg_with_sync.sp_cell_cfg_common_present) {
       if (recfg_with_sync.sp_cell_cfg_common.pci_present) {
-        phy_cfg.carrier.pci = recfg_with_sync.sp_cell_cfg_common.pci;
+        phy_cfg.carrier.pci             = recfg_with_sync.sp_cell_cfg_common.pci;
+        phy_cfg.carrier.max_mimo_layers = 1; // TODO: flatten
       } else {
         logger.warning("Option PCI not present");
         return false;
@@ -1254,7 +1256,7 @@ bool rrc_nr::apply_cell_group_cfg(const cell_group_cfg_s& cell_group_cfg)
 bool rrc_nr::apply_drb_release(const uint8_t drb)
 {
   uint32_t lcid = get_lcid_for_drbid(drb);
-  if(lcid == 0){
+  if (lcid == 0) {
     logger.warning("Can not release bearer with lcid %d and drb %d", lcid, drb);
     return false;
   }
@@ -1288,7 +1290,7 @@ bool rrc_nr::apply_drb_add_mod(const drb_to_add_mod_s& drb_cfg)
   }
 
   if (!(drb_cfg.cn_assoc.type() == drb_to_add_mod_s::cn_assoc_c_::types_opts::eps_bearer_id)) {
-    logger.error("CN associtaion type not supported %s ", drb_cfg.cn_assoc.type().to_string().c_str());
+    logger.error("CN association type not supported %s ", drb_cfg.cn_assoc.type().to_string());
     return false;
   }
   uint32_t eps_bearer_id            = drb_cfg.cn_assoc.eps_bearer_id();
@@ -1408,7 +1410,7 @@ void rrc_nr::cell_search_completed(const rrc_interface_phy_lte::cell_search_ret_
 {}
 
 /* Procedures */
-rrc_nr::connection_reconf_no_ho_proc::connection_reconf_no_ho_proc(rrc_nr* parent_) : rrc_ptr(parent_) {}
+rrc_nr::connection_reconf_no_ho_proc::connection_reconf_no_ho_proc(rrc_nr* parent_) : rrc_ptr(parent_), initiator(nr) {}
 
 proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const reconf_initiator_t initiator_,
                                                           const bool               endc_release_and_add_r15,
@@ -1442,7 +1444,7 @@ proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const reconf_initiator
       Error("Reconfiguration does not contain Secondary Cell Group Config");
       return proc_outcome_t::error;
     }
-    
+
     if (not rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group_present) {
       Error("Reconfiguration does not contain Secondary Cell Group Config");
       return proc_outcome_t::error;
@@ -1476,23 +1478,23 @@ proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const reconf_initiator
     }
   }
 
-  if(nr_radio_bearer_cfg1_r15_present){
-  cbit_ref bref1(nr_radio_bearer_cfg1_r15.data(), nr_radio_bearer_cfg1_r15.size());
+  if (nr_radio_bearer_cfg1_r15_present) {
+    cbit_ref bref1(nr_radio_bearer_cfg1_r15.data(), nr_radio_bearer_cfg1_r15.size());
 
-  err = radio_bearer_cfg.unpack(bref1);
-  if (err != asn1::SRSASN_SUCCESS) {
-    Error("Could not unpack radio bearer config.");
-    return proc_outcome_t::error;
+    err = radio_bearer_cfg.unpack(bref1);
+    if (err != asn1::SRSASN_SUCCESS) {
+      Error("Could not unpack radio bearer config.");
+      return proc_outcome_t::error;
+    }
+
+    rrc_ptr->log_rrc_message(
+        "RRC NR Reconfiguration", Rx, nr_radio_bearer_cfg1_r15, radio_bearer_cfg, "Radio Bearer Config R15");
+
+    Info("Applying Radio Bearer Cfg");
+    if (!rrc_ptr->apply_radio_bearer_cfg(radio_bearer_cfg)) {
+      return proc_outcome_t::error;
+    }
   }
-
-  rrc_ptr->log_rrc_message(
-      "RRC NR Reconfiguration", Rx, nr_radio_bearer_cfg1_r15, radio_bearer_cfg, "Radio Bearer Config R15");
-
-  Info("Applying Radio Bearer Cfg");
-  if (!rrc_ptr->apply_radio_bearer_cfg(radio_bearer_cfg)) {
-    return proc_outcome_t::error;
-  }
- }
 
   return proc_outcome_t::success;
 }

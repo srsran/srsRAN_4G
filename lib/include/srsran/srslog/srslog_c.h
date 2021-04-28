@@ -35,9 +35,9 @@ extern "C" {
 /**
  * Common types.
  */
-typedef int srslog_bool;
-typedef struct srslog_opaque_sink srslog_sink;
-typedef struct srslog_opaque_log_channel srslog_log_channel;
+typedef int                               srslog_bool;
+typedef struct srslog_opaque_sink         srslog_sink;
+typedef struct srslog_opaque_log_channel  srslog_log_channel;
 typedef struct srslog_opaque_basic_logger srslog_logger;
 
 /**
@@ -75,8 +75,7 @@ srslog_log_channel* srslog_find_log_channel(const char* id);
 /**
  * Controls whether the specified channel accepts incoming log entries.
  */
-void srslog_set_log_channel_enabled(srslog_log_channel* channel,
-                                    srslog_bool enabled);
+void srslog_set_log_channel_enabled(srslog_log_channel* channel, srslog_bool enabled);
 
 /**
  * Returns 1 if the specified channel is accepting incoming log entries,

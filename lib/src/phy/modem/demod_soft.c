@@ -54,42 +54,43 @@ inline static uint8x16_t v_load_s8(int i15,
 
 #define int8x16_to_8x8x2(v) ((int8x8x2_t){{vget_low_s8(v), vget_high_s8(v)}})
 
-inline static void vshuff_s32_even(int32x4_t a, int imm, int32x4_t* res)
-{
-  *res = vsetq_lane_s32(vgetq_lane_s32((a), ((imm) >> 2) & 0x3), *res, 1);
-  *res = vsetq_lane_s32(vgetq_lane_s32((a), ((imm) >> 6) & 0x3), *res, 3);
-}
-inline static void vshuff_s32_odd(int32x4_t a, int imm, int32x4_t* res)
-{
-  *res = vsetq_lane_s32(vgetq_lane_s32((a), (imm)&0x3), *res, 0);
-  *res = vsetq_lane_s32(vgetq_lane_s32((a), ((imm) >> 4) & 0x3), *res, 2);
-}
+#define vshuff_s32_even(a, imm, res)                                                                                   \
+  do {                                                                                                                 \
+    *res = vsetq_lane_s32(vgetq_lane_s32((a), ((imm) >> 2) & 0x3), *res, 1);                                           \
+    *res = vsetq_lane_s32(vgetq_lane_s32((a), ((imm) >> 6) & 0x3), *res, 3);                                           \
+  } while (0)
 
-inline static void vshuff_s32_idx(int32x4_t a, int imm, int32x4_t* res, int idx)
-{
-  *res = vsetq_lane_s32(vgetq_lane_s32((a), ((imm) >> idx * 2) & 0x3), *res, idx);
-}
+#define vshuff_s32_odd(a, imm, res)                                                                                    \
+  do {                                                                                                                 \
+    *res = vsetq_lane_s32(vgetq_lane_s32((a), (imm)&0x3), *res, 0);                                                    \
+    *res = vsetq_lane_s32(vgetq_lane_s32((a), ((imm) >> 4) & 0x3), *res, 2);                                           \
+  } while (0)
 
-inline static void vshuff_s16_idx(int16x8_t a, int imm, int16x8_t* res, int idx)
-{
-  *res = vsetq_lane_s16(vgetq_lane_s16((a), ((imm) >> (idx * 4)) & 0xF), *res, idx);
-}
+#define vshuff_s32_idx(a, imm, res, idx)                                                                               \
+  do {                                                                                                                 \
+    *res = vsetq_lane_s32(vgetq_lane_s32((a), ((imm) >> idx * 2) & 0x3), *res, idx);                                   \
+  } while (0)
 
-inline static void vshuff_s16_even(int16x8_t a, int imm, int16x8_t* res)
-{
-  *res = vsetq_lane_s16(vgetq_lane_s16((a), ((imm) >> 4) & 0xF), *res, 1);
-  *res = vsetq_lane_s16(vgetq_lane_s16((a), ((imm) >> 12) & 0xF), *res, 3);
-  *res = vsetq_lane_s16(vgetq_lane_s16((a), ((imm) >> 20) & 0xF), *res, 5);
-  *res = vsetq_lane_s16(vgetq_lane_s16((a), ((imm) >> 28) & 0xF), *res, 7);
-}
+#define vshuff_s16_idx(a, imm, res, idx)                                                                               \
+  do {                                                                                                                 \
+    *res = vsetq_lane_s16(vgetq_lane_s16((a), ((imm) >> (idx * 4)) & 0xF), *res, idx);                                 \
+  } while (0)
 
-inline static void vshuff_s16_odd(int16x8_t a, int imm, int16x8_t* res)
-{
-  *res = vsetq_lane_s16(vgetq_lane_s16((a), ((imm)) & 0xF), *res, 0);
-  *res = vsetq_lane_s16(vgetq_lane_s16((a), ((imm) >> 8) & 0xF), *res, 2);
-  *res = vsetq_lane_s16(vgetq_lane_s16((a), ((imm) >> 16) & 0xF), *res, 4);
-  *res = vsetq_lane_s16(vgetq_lane_s16((a), ((imm) >> 24) & 0xF), *res, 6);
-}
+#define vshuff_s16_even(a, imm, res)                                                                                   \
+  do {                                                                                                                 \
+    *res = vsetq_lane_s16(vgetq_lane_s16((a), ((imm) >> 4) & 0xF), *res, 1);                                           \
+    *res = vsetq_lane_s16(vgetq_lane_s16((a), ((imm) >> 12) & 0xF), *res, 3);                                          \
+    *res = vsetq_lane_s16(vgetq_lane_s16((a), ((imm) >> 20) & 0xF), *res, 5);                                          \
+    *res = vsetq_lane_s16(vgetq_lane_s16((a), ((imm) >> 28) & 0xF), *res, 7);                                          \
+  } while (0)
+
+#define vshuff_s16_odd(a, imm, res)                                                                                    \
+  do {                                                                                                                 \
+    *res = vsetq_lane_s16(vgetq_lane_s16((a), ((imm)) & 0xF), *res, 0);                                                \
+    *res = vsetq_lane_s16(vgetq_lane_s16((a), ((imm) >> 8) & 0xF), *res, 2);                                           \
+    *res = vsetq_lane_s16(vgetq_lane_s16((a), ((imm) >> 16) & 0xF), *res, 4);                                          \
+    *res = vsetq_lane_s16(vgetq_lane_s16((a), ((imm) >> 24) & 0xF), *res, 6);                                          \
+  } while (0)
 
 #endif
 

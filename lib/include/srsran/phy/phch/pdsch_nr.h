@@ -46,6 +46,8 @@ typedef struct SRSRAN_API {
   srsran_sch_nr_args_t sch;
   bool                 measure_evm;
   bool                 measure_time;
+  uint32_t             max_prb;
+  uint32_t             max_layers;
 } srsran_pdsch_nr_args_t;
 
 /**

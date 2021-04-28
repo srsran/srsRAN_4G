@@ -56,7 +56,7 @@ target_link_libraries(rrc_cell_test srsue_rrc srsue_upper srsran_upper srsran_ph
 add_test(rrc_cell_test rrc_cell_test)
 
 add_executable(ue_rrc_nr_test ue_rrc_nr_test.cc)
-target_link_libraries(ue_rrc_nr_test srsue_rrc srsue_upper srsran_upper srsran_phy rrc_asn1 rrc_nr_asn1)
+target_link_libraries(ue_rrc_nr_test srsue_rrc_nr srsue_upper srsran_common srsran_upper srsran_phy rrc_asn1 rrc_nr_asn1)
 
 ########################################################################
 # Option to run command after build (useful for remote builds)

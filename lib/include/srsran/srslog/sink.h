@@ -42,7 +42,7 @@ public:
   virtual ~sink() = default;
 
   /// Returns the formatter used by this sink.
-  log_formatter& get_formatter() { return *formatter; }
+  log_formatter&       get_formatter() { return *formatter; }
   const log_formatter& get_formatter() const { return *formatter; }
 
   /// Writes the provided memory buffer into the sink.

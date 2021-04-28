@@ -773,7 +773,7 @@ bool cc_worker::encode_uplink(mac_interface_phy_lte::tb_action_ul_t* action, srs
   }
 
   // Store metrics
-  if (action->tb.enabled) {
+  if (action && action->tb.enabled) {
     ul_metrics_t ul_metrics = {};
     ul_metrics.mcs          = ue_ul_cfg.ul_cfg.pusch.grant.tb.mcs_idx;
     ul_metrics.power        = 0;

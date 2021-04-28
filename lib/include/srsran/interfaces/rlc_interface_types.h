@@ -31,7 +31,7 @@
 namespace srsran {
 
 enum class rlc_mode_t { tm, um, am, nulltype };
-inline std::string to_string(const rlc_mode_t& mode, bool long_txt = true)
+inline const char* to_string(const rlc_mode_t& mode, bool long_txt = true)
 {
   constexpr static const char* long_options[]  = {"Transparent Mode", "Unacknowledged Mode", "Acknowledged Mode"};
   constexpr static const char* short_options[] = {"TM", "UM", "AM"};

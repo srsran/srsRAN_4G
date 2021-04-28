@@ -60,6 +60,10 @@ public:
   void reset();
 
 private:
+  static const uint32_t PRACH_SEND_CALLBACK_TIMEOUT =
+      16 * 10; ///< Limited from frame system number opportunity period in TS 38.211 tables 6.3.3.2-2, 6.3.3.2-3
+               ///< and 6.3.3.2-4
+
   mac_interface_proc_ra_nr&             mac;
   srslog::basic_logger&                 logger;
   phy_interface_mac_nr*                 phy        = nullptr;

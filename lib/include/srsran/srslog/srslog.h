@@ -48,8 +48,7 @@ log_channel& fetch_log_channel(const std::string& id);
 /// Returns an instance of a log_channel with the specified id that writes to
 /// the specified sink.
 /// NOTE: Any '#' characters in the id will get removed.
-log_channel&
-fetch_log_channel(const std::string& id, sink& s, log_channel_config config);
+log_channel& fetch_log_channel(const std::string& id, sink& s, log_channel_config config);
 
 /// Creates a new log channel instance with the specified id string and sink,
 /// then registers it in the log channel repository so that it can be later
@@ -89,16 +88,13 @@ inline T* find_logger(const std::string& id)
 /// specified id string. All logger channels will write into the default sink.
 /// The context value of the logger can be printed on each log entry by setting
 /// to true the should_print_context argument.
-basic_logger& fetch_basic_logger(const std::string& id,
-                                 bool should_print_context = true);
+basic_logger& fetch_basic_logger(const std::string& id, bool should_print_context = true);
 
 /// Returns an instance of a basic logger (see basic_logger type) with the
 /// specified id string. All logger channels will write into the specified sink.
 /// The context value of the logger can be printed on each log entry by setting
 /// to true the should_print_context argument.
-basic_logger& fetch_basic_logger(const std::string& id,
-                                 sink& s,
-                                 bool should_print_context = true);
+basic_logger& fetch_basic_logger(const std::string& id, sink& s, bool should_print_context = true);
 
 /// Returns a logger instance with the specified id string, type and channel
 /// references.
@@ -107,11 +103,11 @@ template <typename T, typename... Args>
 inline T& fetch_logger(const std::string& id, Args&&... args)
 {
   static_assert(detail::is_logger<T>::value, "T should be a logger type");
-  if (auto *logger = find_logger<T>(id)) {
+  if (auto* logger = find_logger<T>(id)) {
     return *logger;
   }
-  auto logger = detail::make_any<T>(id, std::forward<Args>(args)...);
-  detail::any* p = detail::fetch_logger(id, std::move(logger));
+  auto         logger = detail::make_any<T>(id, std::forward<Args>(args)...);
+  detail::any* p      = detail::fetch_logger(id, std::move(logger));
 
   return *detail::any_cast<T>(p);
 }
@@ -124,9 +120,7 @@ inline T& fetch_logger(const std::string& id, Args&&... args)
 /// the specified sink. Returns a pointer to the newly created logger, otherwise
 /// when a logger is already registered with the same id it returns nullptr.
 /// NOTE: Deprecated, use fetch_basic_logger instead.
-basic_logger* create_basic_logger(const std::string& id,
-                                  sink& s,
-                                  bool should_print_context = true);
+basic_logger* create_basic_logger(const std::string& id, sink& s, bool should_print_context = true);
 
 /// Creates a new logger instance with the specified id string, type and channel
 /// references, registering it into the logger repository so that it can be
@@ -139,8 +133,8 @@ template <typename T, typename... Args>
 inline T* create_logger(const std::string& id, Args&&... args)
 {
   static_assert(detail::is_logger<T>::value, "T should be a logger type");
-  auto logger = detail::make_any<T>(id, std::forward<Args>(args)...);
-  detail::any* p = detail::fetch_logger(id, std::move(logger));
+  auto         logger = detail::make_any<T>(id, std::forward<Args>(args)...);
+  detail::any* p      = detail::fetch_logger(id, std::move(logger));
 
   return detail::any_cast<T>(p);
 }
@@ -181,26 +175,23 @@ sink* find_sink(const std::string& id);
 /// Returns an instance of a sink that writes to the stdout stream. You may use
 /// different ids if you need to create multiple stdout sinks with different
 /// formatters.
-sink& fetch_stdout_sink(
-    const std::string& id = "stdout",
-    std::unique_ptr<log_formatter> f = get_default_log_formatter());
+sink& fetch_stdout_sink(const std::string&             id = "stdout",
+                        std::unique_ptr<log_formatter> f  = get_default_log_formatter());
 
 /// Returns an instance of a sink that writes to the stderr stream. You may use
 /// different ids if you need to create multiple stderr sinks with different
 /// formatters.
-sink& fetch_stderr_sink(
-    const std::string& id = "stderr",
-    std::unique_ptr<log_formatter> f = get_default_log_formatter());
+sink& fetch_stderr_sink(const std::string&             id = "stderr",
+                        std::unique_ptr<log_formatter> f  = get_default_log_formatter());
 
 /// Returns an instance of a sink that writes into a file in the specified path.
 /// Specifying a max_size value different to zero will make the sink create a
 /// new file each time the current file exceeds this value. The units of
 /// max_size are bytes.
 /// NOTE: Any '#' characters in the path will get removed.
-sink& fetch_file_sink(
-    const std::string& path,
-    size_t max_size = 0,
-    std::unique_ptr<log_formatter> f = get_default_log_formatter());
+sink& fetch_file_sink(const std::string&             path,
+                      size_t                         max_size = 0,
+                      std::unique_ptr<log_formatter> f        = get_default_log_formatter());
 
 /// Installs a custom user defined sink in the framework getting associated to
 /// the specified id. Returns true on success, otherwise false.
