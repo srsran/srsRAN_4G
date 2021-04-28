@@ -183,6 +183,10 @@ void srsran_psss_put_sf_buffer(cf_t* psss_signal, cf_t* sf_buffer, uint32_t nof_
  */
 int srsran_psss_find(srsran_psss_t* q, cf_t* input, uint32_t nof_prb, srsran_cp_t cp)
 {
+  if (q == NULL || input == NULL) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+
   // One array for each N_id_2
   float    corr_peak_value[2] = {};
   uint32_t corr_peak_pos[2]   = {};

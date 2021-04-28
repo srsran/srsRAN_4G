@@ -10,6 +10,7 @@
  *
  */
 
+#include "srsran/phy/utils/debug.h"
 #include "srsran/phy/utils/random.h"
 #include <complex.h>
 #include <math.h>
@@ -79,20 +80,26 @@ int test_dft(cf_t* in)
 {
   int res = 0;
 
-  srsran_dft_plan_t plan;
-  if (forward) {
-    srsran_dft_plan(&plan, N, SRSRAN_DFT_FORWARD, SRSRAN_DFT_COMPLEX);
-  } else {
-    srsran_dft_plan(&plan, N, SRSRAN_DFT_BACKWARD, SRSRAN_DFT_COMPLEX);
-  }
-  srsran_dft_plan_set_mirror(&plan, mirror);
-  srsran_dft_plan_set_norm(&plan, norm);
-  srsran_dft_plan_set_dc(&plan, dc);
-
   cf_t* out1 = srsran_vec_cf_malloc(N);
   cf_t* out2 = srsran_vec_cf_malloc(N);
   srsran_vec_cf_zero(out1, N);
   srsran_vec_cf_zero(out2, N);
+
+  srsran_dft_plan_t plan = {};
+  if (forward) {
+    if (srsran_dft_plan(&plan, N, SRSRAN_DFT_FORWARD, SRSRAN_DFT_COMPLEX) != SRSRAN_SUCCESS) {
+      ERROR("Error in DFT plan");
+      goto clean_exit;
+    }
+  } else {
+    if (srsran_dft_plan(&plan, N, SRSRAN_DFT_BACKWARD, SRSRAN_DFT_COMPLEX) != SRSRAN_SUCCESS) {
+      ERROR("Error in DFT plan");
+      goto clean_exit;
+    }
+  }
+  srsran_dft_plan_set_mirror(&plan, mirror);
+  srsran_dft_plan_set_norm(&plan, norm);
+  srsran_dft_plan_set_dc(&plan, dc);
 
   print(in, N);
   srsran_dft_run(&plan, in, out1);
@@ -100,9 +107,15 @@ int test_dft(cf_t* in)
 
   srsran_dft_plan_t plan_rev;
   if (!forward) {
-    srsran_dft_plan(&plan_rev, N, SRSRAN_DFT_FORWARD, SRSRAN_DFT_COMPLEX);
+    if (srsran_dft_plan(&plan_rev, N, SRSRAN_DFT_FORWARD, SRSRAN_DFT_COMPLEX) != SRSRAN_SUCCESS) {
+      ERROR("Error in DFT plan");
+      goto clean_exit;
+    }
   } else {
-    srsran_dft_plan(&plan_rev, N, SRSRAN_DFT_BACKWARD, SRSRAN_DFT_COMPLEX);
+    if (srsran_dft_plan(&plan_rev, N, SRSRAN_DFT_BACKWARD, SRSRAN_DFT_COMPLEX) != SRSRAN_SUCCESS) {
+      ERROR("Error in DFT plan");
+      goto clean_exit;
+    }
   }
   srsran_dft_plan_set_mirror(&plan_rev, mirror);
   srsran_dft_plan_set_norm(&plan_rev, norm);
@@ -123,6 +136,7 @@ int test_dft(cf_t* in)
       res = -1;
   }
 
+clean_exit:
   srsran_dft_plan_free(&plan);
   srsran_dft_plan_free(&plan_rev);
   free(out1);

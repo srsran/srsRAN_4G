@@ -125,7 +125,8 @@ int fdd_tests(uint32_t max_cc)
                   for (uint32_t i = 0; i < nof_cc; i++) {
                     TESTASSERT(uci_data.cfg.ack[i].ncce[0] == i + 1);
                     for (uint32_t j = 0; j < uci_data.cfg.ack[i].nof_acks; j++) {
-                      TESTASSERT(uci_data.value.ack.ack_value[k++]);
+                      TESTASSERT(uci_data.value.ack.ack_value[k]);
+                      k++;
                     }
                   }
                   TESTASSERT(k == srsran_uci_cfg_total_ack(&uci_data.cfg));
@@ -143,7 +144,6 @@ int fdd_tests(uint32_t max_cc)
 
 int main(int argc, char** argv)
 {
-
   // Test only until Format1B - CS
   TESTASSERT(fdd_tests(2) == 0);
 

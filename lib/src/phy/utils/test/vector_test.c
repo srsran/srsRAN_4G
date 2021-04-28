@@ -124,7 +124,15 @@ TEST(
 
         for (int i = 0; i < block_size; i++) { gold += x[i] * y[i]; }
 
-    mse = (gold - z) / abs(gold);
+    // Check...
+    float abs_gold = abs(gold);
+    if (isnormal(abs_gold)) {
+      // Protected zero division
+      mse = (gold - z) / abs_gold;
+    } else {
+      // Flag error
+      mse = MAX_MSE;
+    }
 
     free(x);
     free(y);)
