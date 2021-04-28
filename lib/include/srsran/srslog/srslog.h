@@ -223,7 +223,7 @@ sink* create_stderr_sink(const std::string& name = "stderr");
 /// This function initializes the logging framework. It must be called before
 /// any log entry is generated.
 /// NOTE: Calling this function more than once has no side effects.
-void init();
+void init(backend_priority priority = backend_priority::normal);
 
 /// Flushes the contents of all the registered sinks. The caller thread will
 /// block until the operation is completed.

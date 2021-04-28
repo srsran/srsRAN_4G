@@ -14,6 +14,7 @@
 #define SRSLOG_DETAIL_LOG_BACKEND_H
 
 #include "srsran/srslog/bundled/fmt/printf.h"
+#include "srsran/srslog/shared_types.h"
 
 namespace srslog {
 
@@ -31,7 +32,7 @@ public:
 
   /// Starts the processing of incoming log entries.
   /// NOTE: Calling this function more than once has no side effects.
-  virtual void start() = 0;
+  virtual void start(backend_priority priority = backend_priority::normal) = 0;
 
   /// Allocates a dyn_arg_store and returns a pointer to it on success, otherwise returns nullptr.
   virtual fmt::dynamic_format_arg_store<fmt::printf_context>* alloc_arg_store() = 0;

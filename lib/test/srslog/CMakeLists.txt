@@ -6,6 +6,9 @@
 # the distribution.
 #
 
+add_executable(srslog_frontend_latency benchmarks/frontend_latency.cpp)
+target_link_libraries(srslog_frontend_latency srslog)
+
 add_executable(srslog_test srslog_test.cpp)
 target_link_libraries(srslog_test srslog)
 add_test(srslog_test srslog_test)
