@@ -62,7 +62,9 @@ cell_list =
     //ul_earfcn = 21400;
     ho_active = false;
     //meas_gap_period = 0; // 0 (inactive), 40 or 80
-    //allowed_meas_bw = 6;
+    // target_pusch_sinr = -1;
+    // target_pucch_sinr = -1;
+    // allowed_meas_bw = 6;
 
     // CA cells
     scell_list = (

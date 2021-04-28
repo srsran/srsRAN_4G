@@ -87,6 +87,8 @@ void parse_args(all_args_t* args, int argc, char* argv[])
   string   sgi_if_addr;
   string   sgi_if_name;
   string   dns_addr;
+  string   full_net_name;
+  string   short_net_name;
   string   hss_db_file;
   string   hss_auth_algo;
   string   log_filename;
@@ -110,6 +112,8 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("mme.mnc",             bpo::value<string>(&mnc)->default_value("01"),                   "Mobile Network Code")
     ("mme.mme_bind_addr",   bpo::value<string>(&mme_bind_addr)->default_value("127.0.0.1"),  "IP address of MME for S1 connection")
     ("mme.dns_addr",        bpo::value<string>(&dns_addr)->default_value("8.8.8.8"),         "IP address of the DNS server for the UEs")
+    ("mme.full_net_name",   bpo::value<string>(&full_net_name)->default_value("Software Radio Systems RAN"), "Full name of the network")
+    ("mme.short_net_name",  bpo::value<string>(&short_net_name)->default_value("srsRAN"),    "Short name of the network")
     ("mme.apn",             bpo::value<string>(&mme_apn)->default_value(""),                 "Set Access Point Name (APN) for data services")
     ("mme.encryption_algo", bpo::value<string>(&encryption_algo)->default_value("EEA0"),     "Set preferred encryption algorithm for NAS layer ")
     ("mme.integrity_algo",  bpo::value<string>(&integrity_algo)->default_value("EIA1"),      "Set preferred integrity protection algorithm for NAS")
@@ -269,6 +273,8 @@ void parse_args(all_args_t* args, int argc, char* argv[])
   args->mme_args.s1ap_args.mme_bind_addr = mme_bind_addr;
   args->mme_args.s1ap_args.mme_name      = mme_name;
   args->mme_args.s1ap_args.dns_addr      = dns_addr;
+  args->mme_args.s1ap_args.full_net_name  = full_net_name;
+  args->mme_args.s1ap_args.short_net_name = short_net_name;
   args->mme_args.s1ap_args.mme_apn       = mme_apn;
   args->mme_args.s1ap_args.paging_timer  = paging_timer;
   args->spgw_args.gtpu_bind_addr         = spgw_bind_addr;

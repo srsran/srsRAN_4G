@@ -129,7 +129,9 @@ int open_socket(net_utils::addr_family ip_type, net_utils::socket_type socket_ty
     evnts.sctp_address_event          = 1;
     if (setsockopt(fd, IPPROTO_SCTP, SCTP_EVENTS, &evnts, sizeof(evnts)) != 0) {
       srslog::fetch_basic_logger(LOGSERVICE).error("Failed to subscribe to SCTP_SHUTDOWN event: %s", strerror(errno));
-      perror("Could not regiester socket to SCTP events\n");
+      perror("Could not register socket to SCTP events\n");
+      close(fd);
+      return -1;
     }
 
     /*
@@ -143,6 +145,7 @@ int open_socket(net_utils::addr_family ip_type, net_utils::socket_type socket_ty
     rto_opts.srto_assoc_id = 0;
     if (getsockopt(fd, SOL_SCTP, SCTP_RTOINFO, &rto_opts, &rto_sz) < 0) {
       printf("Error getting RTO_INFO sockopts\n");
+      close(fd);
       return -1;
     }
 
@@ -158,6 +161,7 @@ int open_socket(net_utils::addr_family ip_type, net_utils::socket_type socket_ty
 
     if (setsockopt(fd, SOL_SCTP, SCTP_RTOINFO, &rto_opts, rto_sz) < 0) {
       perror("Error setting RTO_INFO sockopts\n");
+      close(fd);
       return -1;
     }
 
@@ -166,6 +170,8 @@ int open_socket(net_utils::addr_family ip_type, net_utils::socket_type socket_ty
     socklen_t    init_sz = sizeof(sctp_initmsg);
     if (getsockopt(fd, SOL_SCTP, SCTP_INITMSG, &init_opts, &init_sz) < 0) {
       printf("Error getting sockopts\n");
+      close(fd);
+      return -1;
     }
 
     init_opts.sinit_max_attempts   = 3;
@@ -177,6 +183,7 @@ int open_socket(net_utils::addr_family ip_type, net_utils::socket_type socket_ty
                init_opts.sinit_max_init_timeo);
     if (setsockopt(fd, SOL_SCTP, SCTP_INITMSG, &init_opts, init_sz) < 0) {
       perror("Error setting SCTP_INITMSG sockopts\n");
+      close(fd);
       return -1;
     }
   }

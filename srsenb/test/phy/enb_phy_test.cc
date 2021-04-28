@@ -1180,8 +1180,8 @@ public:
 
 private:
   // Test constants
-  static const uint32_t delta_pucch = 2;
-  static const uint32_t N_pucch_1   = 2;
+  static const uint32_t delta_pucch = 1;
+  static const uint32_t N_pucch_1   = 12;
 
   // Private classes
   unique_dummy_radio_t  radio;

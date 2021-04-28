@@ -338,7 +338,7 @@ void phy_common::set_ul_pending_grant(srsran_dl_sf_cfg_t* sf, uint32_t cc_idx, s
     pending_grant.enable = true;
     Debug("Set ul pending grant for sf->tti=%d current_tti=%d, pid=%d", tti_pusch_gr(sf), sf->tti, pid);
   } else {
-    Warning("set_ul_pending_grant: sf->tti=%d, cc=%d already in use", sf->tti, cc_idx);
+    Info("set_ul_pending_grant: sf->tti=%d, cc=%d already in use", sf->tti, cc_idx);
   }
 }
 

@@ -269,7 +269,7 @@ int srsran_basic_vnf::dl_config_request(const srsenb::phy_interface_stack_nr::dl
   dl_conf.header.msg_len               = sizeof(dl_conf) - sizeof(basic_vnf_api::msg_header_t);
 
   dl_conf.t1      = last_sf_indication_time; // play back the time
-  dl_conf.t2      = 0xaa;                    // FIXME: add timestamp
+  dl_conf.t2      = 0xaa;                    // TODO: add timestamp
   dl_conf.tti     = request.tti;
   dl_conf.beam_id = request.beam_id;
 

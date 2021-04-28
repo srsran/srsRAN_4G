@@ -70,7 +70,11 @@ int main(int argc, char** argv)
 
   uint32_t st = 0, end = 187;
   if (long_cb) {
-    st  = srsran_cbsegm_cbindex(long_cb);
+    int n = srsran_cbsegm_cbindex(long_cb);
+    if (n < SRSRAN_SUCCESS) {
+      return SRSRAN_ERROR;
+    }
+    st  = (uint32_t)n;
     end = st;
   }
 

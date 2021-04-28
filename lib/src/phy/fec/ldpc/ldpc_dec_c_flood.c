@@ -190,15 +190,15 @@ int init_ldpc_dec_c_flood(void* p, const int8_t* llrs, uint16_t ls)
     return -1;
   }
 
-  bzero(vp->llrs, skip * sizeof(int8_t));
-  bzero(vp->soft_bits, skip * sizeof(int8_t));
+  srsran_vec_i8_zero(vp->llrs, skip);
+  srsran_vec_i8_zero(vp->soft_bits, skip);
   for (i = skip; i < vp->liftN; i++) {
     vp->llrs[i]      = llrs[i - skip];
     vp->soft_bits[i] = llrs[i - skip];
   }
 
-  bzero(vp->check_to_var, (vp->hrrN + vp->ls) * vp->bgM * sizeof(int8_t));
-  bzero(vp->var_to_check, (vp->hrrN + vp->ls) * vp->bgM * sizeof(int8_t));
+  srsran_vec_i8_zero(vp->check_to_var, (vp->hrrN + vp->ls) * (uint32_t)vp->bgM);
+  srsran_vec_i8_zero(vp->var_to_check, (vp->hrrN + vp->ls) * (uint32_t)vp->bgM);
   return 0;
 }
 
@@ -276,7 +276,7 @@ int update_ldpc_check_to_var_c_flood(void*           p,
 
       vp->prod_v2c[index] *= (this_var_to_check[i_v2c] >= 0) ? 1 : -1;
     }
-    current_var_index = (*these_var_indices)[i + 1];
+    current_var_index = (*these_var_indices)[(i + 1) % MAX_CNCT];
   }
 
   int8_t* this_check_to_var = vp->check_to_var + i_layer * (vp->hrrN + vp->ls);
@@ -295,7 +295,7 @@ int update_ldpc_check_to_var_c_flood(void*           p,
 
       this_check_to_var[i_v2c] *= vp->prod_v2c[index] * ((this_var_to_check[i_v2c] >= 0) ? 1 : -1);
     }
-    current_var_index = (*these_var_indices)[i + 1];
+    current_var_index = (*these_var_indices)[(i + 1) % MAX_CNCT];
   }
 
   return 0;

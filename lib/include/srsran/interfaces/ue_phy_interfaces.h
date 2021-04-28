@@ -44,9 +44,7 @@ struct phy_args_t {
   std::vector<uint32_t> dl_earfcn_list = {3400}; // vectorized version of dl_earfcn that gets populated during init
   std::map<uint32_t, uint32_t> ul_earfcn_map;    // Map linking DL EARFCN and UL EARFCN
 
-  std::string           dl_nr_arfcn      = "632628"; // comma-separated list of DL NR ARFCNs
-  std::vector<uint32_t> dl_nr_arfcn_list = {
-      632628}; // vectorized version of dl_nr_arfcn that gets populated during init
+  int force_N_id_2 = -1; // Cell identity within the identity group (PSS) to filter.
 
   float dl_freq = -1.0f;
   float ul_freq = -1.0f;
@@ -63,7 +61,6 @@ struct phy_args_t {
   uint32_t    nof_lte_carriers             = 1;
   uint32_t    nof_nr_carriers              = 0;
   uint32_t    nr_max_nof_prb               = 106;
-  double      nr_freq_hz                   = 2630e6;
   uint32_t    nof_rx_ant                   = 1;
   std::string equalizer_mode               = "mmse";
   int         cqi_max                      = 15;

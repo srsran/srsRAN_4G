@@ -253,7 +253,7 @@ int main(int argc, char** argv)
   if (!prog_args.input_file_name) {
     printf("Opening RF device...\n");
 
-    if (srsran_rf_open_multi(&radio, prog_args.rf_args, prog_args.nof_rx_antennas)) {
+    if (srsran_rf_open_devname(&radio, prog_args.rf_dev, prog_args.rf_args, prog_args.nof_rx_antennas)) {
       ERROR("Error opening rf");
       exit(-1);
     }

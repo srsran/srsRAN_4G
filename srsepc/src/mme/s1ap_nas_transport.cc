@@ -75,6 +75,8 @@ void s1ap_nas_transport::init()
   m_nas_init.tac          = m_s1ap->m_s1ap_args.tac;
   m_nas_init.apn          = m_s1ap->m_s1ap_args.mme_apn;
   m_nas_init.dns          = m_s1ap->m_s1ap_args.dns_addr;
+  m_nas_init.full_net_name  = m_s1ap->m_s1ap_args.full_net_name;
+  m_nas_init.short_net_name = m_s1ap->m_s1ap_args.short_net_name;
   m_nas_init.paging_timer = m_s1ap->m_s1ap_args.paging_timer;
   m_nas_init.integ_algo   = m_s1ap->m_s1ap_args.integrity_algo;
   m_nas_init.cipher_algo  = m_s1ap->m_s1ap_args.encryption_algo;

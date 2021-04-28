@@ -45,7 +45,7 @@ int rrc_nr::init(const rrc_nr_cfg_t&     cfg_,
   gtpu = gtpu_;
   ngap = ngap_;
 
-  // FIXME: overwriting because we are not passing config right now
+  // TODO: overwriting because we are not passing config right now
   cfg = update_default_cfg(cfg_);
 
   // config logging
@@ -167,7 +167,7 @@ rrc_nr_cfg_t rrc_nr::update_default_cfg(const rrc_nr_cfg_t& current)
   cfg_default.nof_sibs                     = 1;
   sib2_s& sib2                             = cfg_default.sibs[0].set_sib2();
   sib2.cell_resel_info_common.q_hyst.value = sib2_s::cell_resel_info_common_s_::q_hyst_opts::db5;
-  // FIXME: Fill SIB2 values
+  // TODO: Fill SIB2 values
 
   // set loglevel
   cfg_default.log_level     = "debug";

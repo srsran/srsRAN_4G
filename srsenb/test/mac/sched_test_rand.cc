@@ -280,7 +280,8 @@ sched_sim_events rand_sim_params(uint32_t nof_ttis)
   sched_sim_event_generator generator;
 
   sim_gen.sim_args.cell_cfg                             = {generate_default_cell_cfg(nof_prb)};
-  sim_gen.sim_args.cell_cfg[0].target_ul_sinr           = pick_random_uniform({10, 15, 20, -1});
+  sim_gen.sim_args.cell_cfg[0].target_pucch_ul_sinr     = pick_random_uniform({10, 15, 20, -1});
+  sim_gen.sim_args.cell_cfg[0].target_pusch_ul_sinr     = pick_random_uniform({10, 15, 20, -1});
   sim_gen.sim_args.cell_cfg[0].enable_phr_handling      = false;
   sim_gen.sim_args.default_ue_sim_cfg.ue_cfg            = generate_default_ue_cfg();
   sim_gen.sim_args.default_ue_sim_cfg.periodic_cqi      = true;

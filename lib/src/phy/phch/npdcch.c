@@ -283,12 +283,13 @@ int srsran_npdcch_decode_msg(srsran_npdcch_t*       q,
     } else {
       DEBUG("Skipping DCI:  nCCE=%d, L=%d, msg_len=%d, mean=%f", location->ncce, location->L, nof_bits, mean);
     }
+    q->num_decoded_symbols = num_decoded_symbols;
+
     ret = SRSRAN_SUCCESS;
   } else {
     fprintf(stderr, "Invalid parameters, location=%d,%d\n", location->ncce, location->L);
   }
 
-  q->num_decoded_symbols = num_decoded_symbols;
   return ret;
 }
 

@@ -194,8 +194,13 @@ int srsran_pdcch_nr_init_tx(srsran_pdcch_nr_t* q, const srsran_pdcch_nr_args_t* 
   }
   q->is_tx = true;
 
-  srsran_polar_encoder_type_t encoder_type =
-      (args->disable_simd) ? SRSRAN_POLAR_ENCODER_PIPELINED : SRSRAN_POLAR_ENCODER_AVX2;
+  srsran_polar_encoder_type_t encoder_type = SRSRAN_POLAR_ENCODER_PIPELINED;
+
+#ifdef LV_HAVE_AVX2
+  if (!args->disable_simd) {
+    encoder_type = SRSRAN_POLAR_ENCODER_AVX2;
+  }
+#endif // LV_HAVE_AVX2
 
   if (srsran_polar_encoder_init(&q->encoder, encoder_type, NMAX_LOG) < SRSRAN_SUCCESS) {
     return SRSRAN_ERROR;
@@ -214,8 +219,13 @@ int srsran_pdcch_nr_init_rx(srsran_pdcch_nr_t* q, const srsran_pdcch_nr_args_t* 
     return SRSRAN_ERROR;
   }
 
-  srsran_polar_decoder_type_t decoder_type =
-      (args->disable_simd) ? SRSRAN_POLAR_DECODER_SSC_C : SRSRAN_POLAR_DECODER_SSC_C_AVX2;
+  srsran_polar_decoder_type_t decoder_type = SRSRAN_POLAR_DECODER_SSC_C;
+
+#ifdef LV_HAVE_AVX2
+  if (!args->disable_simd) {
+    decoder_type = SRSRAN_POLAR_DECODER_SSC_C_AVX2;
+  }
+#endif // LV_HAVE_AVX2
 
   if (srsran_polar_decoder_init(&q->decoder, decoder_type, NMAX_LOG) < SRSRAN_SUCCESS) {
     return SRSRAN_ERROR;
@@ -334,9 +344,9 @@ static uint32_t pdcch_nr_cp(const srsran_pdcch_nr_t*     q,
 
 static uint32_t pdcch_nr_c_init(const srsran_pdcch_nr_t* q, const srsran_dci_msg_nr_t* dci_msg)
 {
-  uint32_t n_id = (dci_msg->ctx.ss_type == srsran_search_space_type_ue && q->coreset.dmrs_scrambling_id_present)
-                      ? q->coreset.dmrs_scrambling_id
-                      : q->carrier.pci;
+  uint32_t n_id   = (dci_msg->ctx.ss_type == srsran_search_space_type_ue && q->coreset.dmrs_scrambling_id_present)
+                        ? q->coreset.dmrs_scrambling_id
+                        : q->carrier.pci;
   uint32_t n_rnti = (dci_msg->ctx.ss_type == srsran_search_space_type_ue && q->coreset.dmrs_scrambling_id_present)
                         ? dci_msg->ctx.rnti
                         : 0U;

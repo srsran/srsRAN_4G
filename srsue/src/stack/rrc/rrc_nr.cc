@@ -388,7 +388,7 @@ void rrc_nr::get_nr_capabilities(srsran::byte_buffer_t* nr_caps_pdu)
   nr_cap.rlc_params_present                  = true;
   nr_cap.rlc_params.um_with_short_sn_present = true;
   nr_cap.rlc_params.um_with_long_sn_present  = true;
-  nr_cap.pdcp_params.short_sn_present        = true;
+  nr_cap.pdcp_params.short_sn_present        = args.pdcp_short_sn_support;
 
   // Pack nr_caps
   asn1::bit_ref bref(nr_caps_pdu->msg, nr_caps_pdu->get_tailroom());
@@ -888,6 +888,7 @@ bool rrc_nr::apply_ul_common_cfg(const asn1::rrc_nr::ul_cfg_common_s& ul_cfg_com
     }
     if (ul_cfg_common.init_ul_bwp.pucch_cfg_common_present) {
       if (ul_cfg_common.init_ul_bwp.pucch_cfg_common.type() == setup_release_c<pucch_cfg_common_s>::types_opts::setup) {
+        logger.info("PUCCH cfg commont setup not handled");
       } else {
         logger.warning("Option pucch_cfg_common not of type setup");
         return false;
@@ -1409,7 +1410,7 @@ void rrc_nr::cell_search_completed(const rrc_interface_phy_lte::cell_search_ret_
 {}
 
 /* Procedures */
-rrc_nr::connection_reconf_no_ho_proc::connection_reconf_no_ho_proc(rrc_nr* parent_) : rrc_ptr(parent_) {}
+rrc_nr::connection_reconf_no_ho_proc::connection_reconf_no_ho_proc(rrc_nr* parent_) : rrc_ptr(parent_), initiator(nr) {}
 
 proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const reconf_initiator_t initiator_,
                                                           const bool               endc_release_and_add_r15,

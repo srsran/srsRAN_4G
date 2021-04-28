@@ -237,7 +237,7 @@ typedef struct SRSRAN_API {
  * @remark Implemented according TS 38.212 section 7.3.1.0 DCI size alignment
  * @param[in,out] dci DCI object
  * @param[in] cfg NR-DCI configuration
- * @return SRSLTE_SUCCESS if the configuration is valid, SRSLTE_ERROR code otherwise
+ * @return SRSRAN_SUCCESS if the configuration is valid, SRSRAN_ERROR code otherwise
  */
 SRSRAN_API int srsran_dci_nr_set_cfg(srsran_dci_nr_t* dci, const srsran_dci_cfg_nr_t* cfg);
 
@@ -266,7 +266,7 @@ SRSRAN_API bool srsran_dci_nr_valid_direction(const srsran_dci_msg_nr_t* dci);
  * @param q NR DCI object with precomputed DCI parameters
  * @param dci DL NR DCI to pack (serialize)
  * @param[out] msg Resultant packed DCI message
- * @return SRSLTE_SUCCESS if provided arguments are valid, SRSLTE_ERROR code otherwise
+ * @return SRSRAN_SUCCESS if provided arguments are valid, SRSRAN_ERROR code otherwise
  */
 SRSRAN_API int srsran_dci_nr_dl_pack(const srsran_dci_nr_t* q, const srsran_dci_dl_nr_t* dci, srsran_dci_msg_nr_t* msg);
 
@@ -275,7 +275,7 @@ SRSRAN_API int srsran_dci_nr_dl_pack(const srsran_dci_nr_t* q, const srsran_dci_
  * @param q NR DCI object with precomputed DCI parameters
  * @param msg  DCI message to unpack (deserialize)
  * @param[out] dci Resultant unpacked DL DCI
- * @return SRSLTE_SUCCESS if provided arguments are valid, SRSLTE_ERROR code otherwise
+ * @return SRSRAN_SUCCESS if provided arguments are valid, SRSRAN_ERROR code otherwise
  */
 SRSRAN_API int srsran_dci_nr_dl_unpack(const srsran_dci_nr_t* q, srsran_dci_msg_nr_t* msg, srsran_dci_dl_nr_t* dci);
 
@@ -284,7 +284,7 @@ SRSRAN_API int srsran_dci_nr_dl_unpack(const srsran_dci_nr_t* q, srsran_dci_msg_
  * @param q NR DCI object with precomputed DCI parameters
  * @param dci UL NR DCI to pack (serialize)
  * @param[out] msg resultant DCI message
- * @return SRSLTE_SUCCESS if provided arguments are valid, SRSLTE_ERROR code otherwise
+ * @return SRSRAN_SUCCESS if provided arguments are valid, SRSRAN_ERROR code otherwise
  */
 SRSRAN_API int srsran_dci_nr_ul_pack(const srsran_dci_nr_t* q, const srsran_dci_ul_nr_t* dci, srsran_dci_msg_nr_t* msg);
 
@@ -293,7 +293,7 @@ SRSRAN_API int srsran_dci_nr_ul_pack(const srsran_dci_nr_t* q, const srsran_dci_
  * @param q NR DCI object with precomputed DCI parameters
  * @param msg  DCI message to unpack (deserialize)
  * @param[out] dci Resultant unpacked UL DCI
- * @return SRSLTE_SUCCESS if provided arguments are valid, SRSLTE_ERROR code otherwise
+ * @return SRSRAN_SUCCESS if provided arguments are valid, SRSRAN_ERROR code otherwise
  */
 SRSRAN_API int srsran_dci_nr_ul_unpack(const srsran_dci_nr_t* q, srsran_dci_msg_nr_t* msg, srsran_dci_ul_nr_t* dci);
 

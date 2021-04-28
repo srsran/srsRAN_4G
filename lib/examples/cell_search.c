@@ -65,11 +65,13 @@ struct cells results[1024];
 
 float rf_gain = 70.0;
 char* rf_args = "";
+char* rf_dev  = "";
 
 void usage(char* prog)
 {
   printf("Usage: %s [agsendtvb] -b band\n", prog);
   printf("\t-a RF args [Default %s]\n", rf_args);
+  printf("\t-d RF devicename [Default %s]\n", rf_dev);
   printf("\t-g RF gain [Default %.2f dB]\n", rf_gain);
   printf("\t-s earfcn_start [Default All]\n");
   printf("\t-e earfcn_end [Default All]\n");
@@ -87,6 +89,9 @@ void parse_args(int argc, char** argv)
         break;
       case 'b':
         band = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'd':
+        rf_dev = argv[optind];
         break;
       case 's':
         earfcn_start = (int)strtol(argv[optind], NULL, 10);
@@ -151,7 +156,8 @@ int main(int argc, char** argv)
   parse_args(argc, argv);
 
   printf("Opening RF device...\n");
-  if (srsran_rf_open(&rf, rf_args)) {
+
+  if (srsran_rf_open_devname(&rf, rf_dev, rf_args, 1)) {
     ERROR("Error opening rf");
     exit(-1);
   }

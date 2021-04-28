@@ -164,7 +164,7 @@ public:
   const uint8_t* data() const { return msg; }
   uint32_t       size() const { return N_bytes; }
   iterator       begin() { return msg; }
-  const iterator begin() const { return msg; }
+  const_iterator begin() const { return msg; }
   iterator       end() { return msg + N_bytes; }
   const_iterator end() const { return msg + N_bytes; }
 

@@ -29,13 +29,14 @@
 #include <getopt.h>
 
 static srsran_carrier_nr_t carrier = {
-  1,                               // pci
-  0,                               // absolute_frequency_ssb
-  0,                               // absolute_frequency_point_a
-  srsran_subcarrier_spacing_15kHz, // scs
-  SRSRAN_MAX_PRB_NR,               // nof_prb
-  0,                               // start
-  1                                // max_mimo_layers
+    1,                               // pci
+    0,                               // absolute_frequency_ssb
+    0,                               // absolute_frequency_point_a
+    0,                               // offset_to_carrier
+    srsran_subcarrier_spacing_15kHz, // scs
+    SRSRAN_MAX_PRB_NR,               // nof_prb
+    0,                               // start
+    1                                // max_mimo_layers
 };
 
 static uint32_t            n_prb        = 0;  // Set to 0 for steering

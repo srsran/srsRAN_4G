@@ -22,6 +22,7 @@
 #include <string>
 #include <sys/mman.h>
 
+#include "srsran/common/band_helper.h"
 #include "srsran/common/standard_streams.h"
 #include "srsran/srsran.h"
 #include "srsue/hdr/phy/phy.h"
@@ -643,6 +644,22 @@ void phy::set_earfcn(std::vector<uint32_t> earfcns)
 
 bool phy::set_config(const srsran::phy_cfg_nr_t& cfg)
 {
+  // Derive actual RF frequencies for NR carrier
+  double abs_freq_point_a_freq = srsran::srsran_band_helper().nr_arfcn_to_freq(cfg.carrier.absolute_frequency_point_a);
+
+  // for FR1 unit of resources blocks for freq calc is always 180kHz regardless for actual SCS of carrier
+  // TODO: add offset_to_carrier
+  double carrier_center_freq =
+      abs_freq_point_a_freq +
+      (cfg.carrier.nof_prb / 2 * SRSRAN_SUBC_SPACING_NR(srsran_subcarrier_spacing_t::srsran_subcarrier_spacing_15kHz) *
+       SRSRAN_NRE);
+
+  for (uint32_t i = 0; i < common.args->nof_nr_carriers; i++) {
+    logger_phy.info("Tuning channel %d to %.2f GHz", i + common.args->nof_lte_carriers, carrier_center_freq / 1e6);
+    radio->set_rx_freq(i + common.args->nof_lte_carriers, carrier_center_freq);
+    radio->set_tx_freq(i + common.args->nof_lte_carriers, carrier_center_freq);
+  }
+
   return nr_workers.set_config(cfg);
 }
 

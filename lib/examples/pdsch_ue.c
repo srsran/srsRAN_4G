@@ -374,7 +374,6 @@ srsran_ue_sync_t   ue_sync;
 prog_args_t        prog_args;
 
 uint32_t pkt_errors = 0, pkt_total = 0, nof_detected = 0, pmch_pkt_errors = 0, pmch_pkt_total = 0, nof_trials = 0;
-double   evm = 0.0;
 
 srsran_netsink_t net_sink, net_sink_signal;
 /* Useful macros for printing lines which will disappear */

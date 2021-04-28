@@ -46,22 +46,25 @@
  * - BURST: A burst has started
  * - END_OF_BURST: An underflow, overflow or late has been detected, the next transmission shall be aborted and an end
  *                 of burst will be send in the next transmission;
+ * - WAIT_EOB_ACK: Waits for either an end of burst ACK event or a transmission after EOB_ACK_TIMEOUT_S the
+ *                 Late/Underflow occurred.
  * - START_BURST: The next transmission will be flagged as start of burst.
  *
- *   +-------+ L/O/U detected +--------------+   EoB Sent   +-------------+
- *   | Burst |--------------->| End-of-burst |------------->| Start burst |<---  Initial state
- *   +-------+   |            +--------------+         ^    +-------------+
- *      ^        |                                     |           |
- *      |        |               Burst ACK             |           |
- *      |        +-------------------------------------+           |
- *      |                                                          |
- *      |               Start of burst is transmitted              |
- *      +----------------------------------------------------------+
+ *   +-------+ L/O/U detected +--------------+   EoB Sent  +--------------+  EOB ACK Rx +-------------+
+ *   | Burst |--------------->| End-of-burst |------------>| Wait EOB ACK |------------>| Start burst |<-- Initial state
+ *   +-------+                +--------------+             +--------------+             +-------------+
+ *      ^                                                         |                            |
+ *      |                                                         | New Transmission           | New Transmission
+ *      |                                                         | (TS timed out)             |
+ *      |                                                         |                            |
+ *      |               Start of burst is transmitted             |                            |
+ *      +---------------------------------------------------------+----------------------------+
  */
 typedef enum {
   RF_UHD_IMP_TX_STATE_START_BURST = 0,
   RF_UHD_IMP_TX_STATE_BURST,
   RF_UHD_IMP_TX_STATE_END_OF_BURST,
+  RF_UHD_IMP_TX_STATE_WAIT_EOB_ACK ///< Wait for enb-of-burst ACK
 } rf_uhd_imp_underflow_state_t;
 
 /**
@@ -76,6 +79,11 @@ const std::set<std::string> RF_UHD_IMP_PROHIBITED_STREAM_REMAKE = {DEVNAME_X300,
                                                                    DEVNAME_N300,
                                                                    DEVNAME_E3X0,
                                                                    DEVNAME_B200};
+
+/**
+ * List of devices that do NOT support end of burst flushing
+ */
+const std::set<std::string> RF_UHD_IMP_PROHIBITED_EOB_FLUSH = {DEVNAME_X300, DEVNAME_N300};
 
 /**
  * List of devices that do NOT require/support to restart streaming after rate changes/timeouts
@@ -119,6 +127,11 @@ static const std::chrono::milliseconds RF_UHD_IMP_ASYNCH_MSG_SLEEP_MS = std::chr
  */
 static const uint32_t RF_UHD_IMP_MAX_RX_TRIALS = 100;
 
+/**
+ * Timeout for end of burst ack.
+ */
+static const double RF_UHD_IMP_WAIT_EOB_ACK_TIMEOUT_S = 2.0;
+
 struct rf_uhd_handler_t {
   size_t id;
 
@@ -139,6 +152,7 @@ struct rf_uhd_handler_t {
   srsran_rf_error_handler_t    uhd_error_handler     = nullptr;
   void*                        uhd_error_handler_arg = nullptr;
   rf_uhd_imp_underflow_state_t tx_state              = RF_UHD_IMP_TX_STATE_START_BURST;
+  uhd::time_spec_t             eob_ack_timeout       = {}; //< Set when a Underflow/Late happens
 
   double current_master_clock = 0.0;
 
@@ -250,8 +264,10 @@ static void log_rx_error(rf_uhd_handler_t* h)
 #if HAVE_ASYNC_THREAD
 static void* async_thread(void* h)
 {
-  rf_uhd_handler_t*     handler = (rf_uhd_handler_t*)h;
-  uhd::async_metadata_t md;
+  rf_uhd_handler_t*     handler           = (rf_uhd_handler_t*)h;
+  uhd::async_metadata_t md                = {};
+  uhd::time_spec_t      last_underflow_ts = {};
+  uhd::time_spec_t      last_late_ts      = {};
 
   while (handler->async_thread_running) {
     std::unique_lock<std::mutex> lock(handler->async_mutex);
@@ -273,12 +289,20 @@ static void* async_thread(void* h)
         const uhd::async_metadata_t::event_code_t& event_code = md.event_code;
         if (event_code == uhd::async_metadata_t::EVENT_CODE_UNDERFLOW ||
             event_code == uhd::async_metadata_t::EVENT_CODE_UNDERFLOW_IN_PACKET) {
-          log_underflow(handler);
+          if (md.time_spec != last_underflow_ts) {
+            last_underflow_ts        = md.time_spec;
+            handler->eob_ack_timeout = md.time_spec + RF_UHD_IMP_WAIT_EOB_ACK_TIMEOUT_S;
+            log_underflow(handler);
+          }
         } else if (event_code == uhd::async_metadata_t::EVENT_CODE_TIME_ERROR) {
-          log_late(handler, false);
+          if (md.time_spec != last_late_ts) {
+            last_late_ts             = md.time_spec;
+            handler->eob_ack_timeout = md.time_spec + RF_UHD_IMP_WAIT_EOB_ACK_TIMEOUT_S;
+            log_late(handler, false);
+          }
         } else if (event_code == uhd::async_metadata_t::EVENT_CODE_BURST_ACK) {
           // Makes sure next block will be start of burst
-          if (handler->tx_state == RF_UHD_IMP_TX_STATE_BURST) {
+          if (handler->tx_state == RF_UHD_IMP_TX_STATE_WAIT_EOB_ACK) {
             handler->tx_state = RF_UHD_IMP_TX_STATE_START_BURST;
           }
         } else {
@@ -979,8 +1003,8 @@ static inline int rf_uhd_imp_end_burst(rf_uhd_handler_t* handler)
     return SRSRAN_ERROR;
   }
 
-  // Update TX state
-  handler->tx_state = RF_UHD_IMP_TX_STATE_START_BURST;
+  // Update TX state to wait for end of burst ACK
+  handler->tx_state = RF_UHD_IMP_TX_STATE_WAIT_EOB_ACK;
 
   return SRSRAN_SUCCESS;
 }
@@ -1296,7 +1320,7 @@ int rf_uhd_recv_with_time_multi(void*    h,
   }
 
   // Receive stream in multiple blocks
-  while (rxd_samples_total < nsamples && trials < RF_UHD_IMP_MAX_RX_TRIALS) {
+  while (rxd_samples_total < nsamples and trials < RF_UHD_IMP_MAX_RX_TRIALS) {
     void* buffs_ptr[SRSRAN_MAX_CHANNELS] = {};
     for (uint32_t i = 0; i < handler->nof_rx_channels; i++) {
       cf_t* data_c = (cf_t*)data[i];
@@ -1389,36 +1413,14 @@ int rf_uhd_send_timed_multi(void*  h,
   std::unique_lock<std::mutex> lock(handler->tx_mutex);
   uhd::tx_metadata_t           md;
   void*                        buffs_ptr[SRSRAN_MAX_CHANNELS] = {};
-  size_t                       txd_samples                    = 0;
-  int                          n                              = 0;
+  int                          n                              = 0; //< Counts transmitted samples
 
   // Check Tx stream has been created
   if (not handler->uhd->is_tx_ready()) {
     return SRSRAN_ERROR;
   }
 
-  // Run Underflow recovery state machine
-  switch (handler->tx_state) {
-    case RF_UHD_IMP_TX_STATE_BURST:
-      // Normal case, do nothing
-      break;
-    case RF_UHD_IMP_TX_STATE_END_OF_BURST:
-      // Send end of burst and ignore transmission
-      if (rf_uhd_imp_end_burst(handler) != SRSRAN_SUCCESS) {
-        return SRSRAN_ERROR;
-      }
-
-      // Flush receiver
-      rf_uhd_flush_buffer(h);
-
-      return SRSRAN_ERROR;
-    case RF_UHD_IMP_TX_STATE_START_BURST:
-      // Set tart of burst to false if recovering from the Underflow
-      is_start_of_burst = true;
-      handler->tx_state = RF_UHD_IMP_TX_STATE_BURST;
-      break;
-  }
-
+  // Set Tx timestamp
   if (not has_time_spec) {
     // If it the beginning of a burst, set timestamp
     if (is_start_of_burst) {
@@ -1450,15 +1452,40 @@ int rf_uhd_send_timed_multi(void*  h,
   do {
     size_t tx_samples = handler->tx_nof_samples;
 
-    // Set start of burst. Time spec only for the first packet in the burst
-    md.start_of_burst = is_start_of_burst;
+    // If an Underflow or a Late has been detected, end the burst immediately
+    if (handler->tx_state == RF_UHD_IMP_TX_STATE_END_OF_BURST) {
+      // Send end of burst and ignore transmission
+      if (rf_uhd_imp_end_burst(handler) != SRSRAN_SUCCESS) {
+        return SRSRAN_ERROR;
+      }
 
-    // some devices don't like timestamps in each call
+      // Flush receiver only if allowed
+      if (RF_UHD_IMP_PROHIBITED_EOB_FLUSH.count(handler->devname) == 0) {
+        rf_uhd_flush_buffer(h);
+      }
+
+      return SRSRAN_ERROR;
+    }
+
+    // If the state is waiting for EOB ACK and the metadata of the current packet has passed the timeout, then start the
+    // burst
+    if (handler->tx_state == RF_UHD_IMP_TX_STATE_WAIT_EOB_ACK and md.time_spec >= handler->eob_ack_timeout) {
+      Info("Tx while waiting for EOB, timed out... " << md.time_spec.get_real_secs()
+                                                     << " >= " << handler->eob_ack_timeout.get_real_secs()
+                                                     << ". Starting new burst...");
+      handler->tx_state = RF_UHD_IMP_TX_STATE_START_BURST;
+    }
+
+    // Set start of burst, ignore function argument and set the flag based on the current Tx state
+    md.start_of_burst = (handler->tx_state == RF_UHD_IMP_TX_STATE_START_BURST);
+
+    // Time spec only for the first packet in the burst, some devices are not capable of handling like timestamps for
+    // each baseband packet
     if (RF_UHD_IMP_TIMESPEC_AT_BURST_START_ONLY.count(handler->devname) == 0) {
-      md.has_time_spec = is_start_of_burst or has_time_spec;
+      md.has_time_spec = md.start_of_burst or has_time_spec;
     } else {
       // only set time for start
-      md.has_time_spec = is_start_of_burst and has_time_spec;
+      md.has_time_spec = md.start_of_burst and has_time_spec;
     }
 
     // middle packets are never end of burst, last one as defined
@@ -1469,20 +1496,35 @@ int rf_uhd_send_timed_multi(void*  h,
       md.end_of_burst = is_end_of_burst;
     }
 
+    // Update data pointers
     for (int i = 0; i < SRSRAN_MAX_CHANNELS; i++) {
       void* buff   = (void*)&data_c[i][n];
       buffs_ptr[i] = buff;
     }
 
-    if (handler->uhd->send(buffs_ptr, tx_samples, md, RF_UHD_IMP_TRX_TIMEOUT_S, txd_samples) != UHD_ERROR_NONE) {
-      print_usrp_error(handler);
-      return SRSRAN_ERROR;
+    size_t txd_samples = tx_samples; //< Stores the number of transmitted samples in this packet
+
+    // Skip baseband packet transmission if it is waiting for the enb of burst ACK
+    if (handler->tx_state != RF_UHD_IMP_TX_STATE_WAIT_EOB_ACK) {
+      // Actual transmission
+      if (handler->uhd->send(buffs_ptr, tx_samples, md, RF_UHD_IMP_TRX_TIMEOUT_S, txd_samples) != UHD_ERROR_NONE) {
+        print_usrp_error(handler);
+        return SRSRAN_ERROR;
+      }
+
+      // Tx state is now in burst
+      if (md.start_of_burst) {
+        handler->tx_state = RF_UHD_IMP_TX_STATE_BURST;
+      }
+    } else {
+      Debug("Tx while waiting for EOB, aborting block... " << md.time_spec.get_real_secs() << " < "
+                                                           << handler->eob_ack_timeout.get_real_secs());
     }
 
-    // Next packets are not start of burst
-    is_start_of_burst = false;
+    // Increase the metadata transmit time
     md.time_spec += txd_samples / handler->tx_rate;
 
+    // Increase number of transmitted samples
     n += txd_samples;
   } while (n < nsamples);
 

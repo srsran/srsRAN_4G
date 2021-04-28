@@ -156,8 +156,8 @@ int init_ldpc_dec_f(void* p, const float* llrs, uint16_t ls)
     vp->soft_bits[i] = llrs[i - skip];
   }
 
-  bzero(vp->check_to_var, (vp->hrrN + vp->ls) * vp->bgM * sizeof(float));
-  bzero(vp->var_to_check, (vp->hrrN + vp->ls) * sizeof(float));
+  srsran_vec_f_zero(vp->check_to_var, (vp->hrrN + vp->ls) * (uint32_t)vp->bgM);
+  srsran_vec_f_zero(vp->var_to_check, vp->hrrN + vp->ls);
   return 0;
 }
 
@@ -232,7 +232,7 @@ int update_ldpc_check_to_var_f(void*           p,
       vp->prod_v2c[index] *= (vp->var_to_check[i_v2c] >= 0) ? 1 : -1;
     }
 
-    current_var_index = (*these_var_indices)[i + 1];
+    current_var_index = (*these_var_indices)[(i + 1) % MAX_CNCT];
   }
 
   float* this_check_to_var = vp->check_to_var + i_layer * (vp->hrrN + vp->ls);
@@ -251,7 +251,7 @@ int update_ldpc_check_to_var_f(void*           p,
 
       this_check_to_var[i_v2c] *= (float)vp->prod_v2c[index] * ((vp->var_to_check[i_v2c] >= 0) ? 1.F : -1.F);
     }
-    current_var_index = (*these_var_indices)[i + 1];
+    current_var_index = (*these_var_indices)[(i + 1) % MAX_CNCT];
   }
 
   return 0;
@@ -280,7 +280,7 @@ int update_ldpc_soft_bits_f(void* p, int i_layer, const int8_t (*these_var_indic
 
       vp->soft_bits[i_bit] = this_check_to_var[i_bit_tmp] + this_var_to_check[i_bit_tmp];
     }
-    current_var_index = (*these_var_indices)[i + 1];
+    current_var_index = (*these_var_indices)[(i + 1) % MAX_CNCT];
   }
 
   return 0;

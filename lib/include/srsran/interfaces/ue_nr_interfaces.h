@@ -91,7 +91,7 @@ public:
     tb_ul_t tb; // only single TB in UL
   } tb_action_ul_t;
 
-  virtual int sf_indication(const uint32_t tti) = 0; ///< FIXME: rename to slot indication
+  virtual int sf_indication(const uint32_t tti) = 0; ///< TODO: rename to slot indication
 
   // Query the MAC for the current RNTI to look for
   struct sched_rnti_t {

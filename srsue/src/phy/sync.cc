@@ -90,7 +90,7 @@ void sync::init(srsran::radio_interface_phy* _radio,
   }
 
   // Initialize cell searcher
-  search_p.init(sf_buffer, nof_rf_channels, this);
+  search_p.init(sf_buffer, nof_rf_channels, this, worker_com->args->force_N_id_2);
 
   // Initialize SFN synchronizer, it uses only pcell buffer
   sfn_p.init(&ue_sync, worker_com->args, sf_buffer, sf_buffer.size());
@@ -869,11 +869,6 @@ bool sync::set_frequency()
     // Logical channel is 0
     radio_h->set_rx_freq(0, set_dl_freq);
     radio_h->set_tx_freq(0, set_ul_freq);
-
-    for (uint32_t i = 0; i < worker_com->args->nof_nr_carriers; i++) {
-      radio_h->set_rx_freq(i + worker_com->args->nof_lte_carriers, worker_com->args->nr_freq_hz);
-      radio_h->set_tx_freq(i + worker_com->args->nof_lte_carriers, worker_com->args->nr_freq_hz);
-    }
 
     ul_dl_factor = (float)(set_ul_freq / set_dl_freq);
 

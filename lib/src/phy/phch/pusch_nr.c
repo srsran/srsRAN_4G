@@ -1027,8 +1027,6 @@ static uint32_t pusch_nr_grant_info(const srsran_pusch_nr_t*     q,
     if (res != NULL) {
       if (grant->tb[i].enabled && !isnan(res->evm[i])) {
         len = srsran_print_check(str, str_len, len, "evm=%.2f ", res->evm[i]);
-        if (i < SRSRAN_MAX_CODEWORDS - 1) {
-        }
       }
     }
   }

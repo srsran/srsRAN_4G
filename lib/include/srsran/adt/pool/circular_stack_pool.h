@@ -59,7 +59,7 @@ public:
   {
     for (mem_block_elem_t& elem : pools) {
       std::unique_lock<std::mutex> lock(elem.mutex);
-      srsran_assert(elem.count == 0, "There are missing deallocations for stack id=%zd", elem.key);
+      srsran_expect(elem.count == 0, "There are missing deallocations for stack id=%zd", elem.key);
       if (elem.alloc.is_init()) {
         void* ptr = elem.alloc.memblock_ptr();
         elem.alloc.clear();

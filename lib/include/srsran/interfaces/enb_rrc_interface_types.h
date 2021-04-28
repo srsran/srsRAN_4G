@@ -65,7 +65,8 @@ struct cell_cfg_t {
   double                   dl_freq_hz;
   uint32_t                 ul_earfcn;
   double                   ul_freq_hz;
-  int                      target_ul_sinr_db;
+  int                      target_pucch_sinr_db;
+  int                      target_pusch_sinr_db;
   uint32_t                 initial_dl_cqi;
   bool                     enable_phr_handling;
   std::vector<scell_cfg_t> scell_list;

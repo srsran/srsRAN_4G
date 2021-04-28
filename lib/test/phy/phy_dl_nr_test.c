@@ -29,13 +29,14 @@
 #include <getopt.h>
 
 static srsran_carrier_nr_t carrier = {
-  501,                               // pci
-  0,                               // absolute_frequency_ssb
-  0,                               // absolute_frequency_point_a
-  srsran_subcarrier_spacing_15kHz, // scs
-  52,                              // nof_prb
-  0,                               // start
-  1                                // max_mimo_layers
+    501,                             // pci
+    0,                               // absolute_frequency_ssb
+    0,                               // absolute_frequency_point_a
+    0,                               // offset_to_carrier
+    srsran_subcarrier_spacing_15kHz, // scs
+    52,                              // nof_prb
+    0,                               // start
+    1                                // max_mimo_layers
 };
 
 static uint32_t            n_prb     = 0;  // Set to 0 for steering
@@ -274,7 +275,6 @@ int main(int argc, char** argv)
 
   if (srsran_ue_dl_nr_set_carrier(&ue_dl, &carrier)) {
     ERROR("Error setting SCH NR carrier");
-    goto clean_exit;
     goto clean_exit;
   }
 

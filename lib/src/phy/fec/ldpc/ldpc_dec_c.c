@@ -93,7 +93,7 @@ void* create_ldpc_dec_c(uint8_t bgN, uint8_t bgM, uint16_t ls, float scaling_fct
   uint16_t liftN = bgN * ls;
   uint16_t hrrN  = (bgK + 4) * ls;
 
-  if ((vp = malloc(sizeof(struct ldpc_regs_c))) == NULL) {
+  if ((vp = SRSRAN_MEM_ALLOC(struct ldpc_regs_c, 1)) == NULL) {
     return NULL;
   }
 
@@ -177,13 +177,13 @@ int init_ldpc_dec_c(void* p, const int8_t* llrs, uint16_t ls)
     return -1;
   }
 
-  bzero(vp->soft_bits, skip * sizeof(int8_t));
+  srsran_vec_i8_zero(vp->soft_bits, skip);
   for (i = skip; i < vp->liftN; i++) {
     vp->soft_bits[i] = llrs[i - skip];
   }
 
-  bzero(vp->check_to_var, (vp->hrrN + vp->ls) * vp->bgM * sizeof(int8_t));
-  bzero(vp->var_to_check, (vp->hrrN + vp->ls) * sizeof(int8_t));
+  srsran_vec_i8_zero(vp->check_to_var, (vp->hrrN + vp->ls) * (uint32_t)vp->bgM);
+  srsran_vec_i8_zero(vp->var_to_check, vp->hrrN + vp->ls);
   return 0;
 }
 
@@ -258,7 +258,7 @@ int update_ldpc_check_to_var_c(void*           p,
 
       vp->prod_v2c[index] *= (vp->var_to_check[i_v2c] >= 0) ? 1 : -1;
     }
-    current_var_index = (*these_var_indices)[i + 1];
+    current_var_index = (*these_var_indices)[(i + 1) % MAX_CNCT];
   }
 
   int8_t* this_check_to_var = vp->check_to_var + i_layer * (vp->hrrN + vp->ls);
@@ -277,7 +277,7 @@ int update_ldpc_check_to_var_c(void*           p,
 
       this_check_to_var[i_v2c] *= vp->prod_v2c[index] * ((vp->var_to_check[i_v2c] >= 0) ? 1 : -1);
     }
-    current_var_index = (*these_var_indices)[i + 1];
+    current_var_index = (*these_var_indices)[(i + 1) % MAX_CNCT];
   }
 
   return 0;
@@ -314,7 +314,7 @@ int update_ldpc_soft_bits_c(void* p, int i_layer, const int8_t (*these_var_indic
       }
       vp->soft_bits[i_bit] = (int8_t)tmp;
     }
-    current_var_index = (*these_var_indices)[i + 1];
+    current_var_index = (*these_var_indices)[(i + 1) % MAX_CNCT];
   }
 
   return 0;

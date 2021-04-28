@@ -139,8 +139,12 @@ int phy::init(const phy_args_t&            args,
   parse_common_config(cfg);
 
   // Add workers to workers pool and start threads
-  lte_workers.init(args, &workers_common, log_sink, WORKERS_THREAD_PRIO);
-  nr_workers.init(args, &workers_common, log_sink, WORKERS_THREAD_PRIO);
+  if (not cfg.phy_cell_cfg.empty()) {
+    lte_workers.init(args, &workers_common, log_sink, WORKERS_THREAD_PRIO);
+  }
+  if (not cfg.phy_cell_cfg_nr.empty()) {
+    nr_workers.init(args, &workers_common, log_sink, WORKERS_THREAD_PRIO);
+  }
 
   // For each carrier, initialise PRACH worker
   for (uint32_t cc = 0; cc < cfg.phy_cell_cfg.size(); cc++) {
