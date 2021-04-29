@@ -43,7 +43,8 @@ private:
                                        const mac_metrics_t  mac[SRSRAN_MAX_CARRIERS],
                                        const rrc_metrics_t& rrc,
                                        bool                 display_neighbours,
-                                       const uint32_t       r);
+                                       const uint32_t       r,
+                                       bool                 is_nr);
   std::string       float_to_string(float f, int digits);
   std::string       float_to_eng_string(float f, int digits);
   void              print_table(const bool display_neighbours);

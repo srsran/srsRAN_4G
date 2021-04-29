@@ -64,13 +64,11 @@ void metrics_stdout::toggle_print(bool b)
 void metrics_stdout::print_table(const bool display_neighbours)
 {
   if (display_neighbours) {
-    cout << "--------Signal-------------Neighbour--DL-------------------------------------UL----------------------"
-         << endl;
-    cout << "cc pci  rsrp    pl    cfo  pci  rsrp  mcs   snr turbo  brate   bler   ta_us  mcs   buff  brate   bler"
-         << endl;
+    fmt::print("---------Signal----------|-Neighbour-|-----------------DL-----------------|-----------UL-----------\n");
+    fmt::print("rat  pci  rsrp  pl   cfo | pci  rsrp | mcs  snr  iter  brate  bler  ta_us | mcs   buff  brate  bler\n");
   } else {
-    cout << "--------Signal--------------DL-------------------------------------UL----------------------" << endl;
-    cout << "cc pci  rsrp    pl    cfo   mcs   snr turbo  brate   bler   ta_us  mcs   buff  brate   bler" << endl;
+    fmt::print("---------Signal----------|-----------------DL-----------------|-----------UL-----------\n");
+    fmt::print("rat  pci  rsrp  pl   cfo | mcs  snr  iter  brate  bler  ta_us | mcs   buff  brate  bler\n");
   }
   table_has_neighbours = display_neighbours;
   n_reports            = 0;
@@ -80,56 +78,66 @@ void metrics_stdout::set_metrics_helper(const phy_metrics_t& phy,
                                         const mac_metrics_t  mac[SRSRAN_MAX_CARRIERS],
                                         const rrc_metrics_t& rrc,
                                         bool                 display_neighbours,
-                                        const uint32_t       r)
+                                        const uint32_t       r,
+                                        bool                 is_nr)
 {
+  fmt::print("{:>3.3}", is_nr ? "nr" : "lte");
+
   if (phy.info[r].pci != UINT32_MAX) {
-    cout << std::setw(4) << phy.info[r].pci << std::setw(0);
+    fmt::print("  {:>3}", phy.info[r].pci);
   } else {
-    cout << " n/a";
+    fmt::print("  {:>3.3}", "n/a");
   }
-  cout << float_to_string(phy.ch[r].rsrp, 2);
-  cout << float_to_string(phy.ch[r].pathloss, 2);
-  cout << float_to_eng_string(phy.sync[r].cfo, 2);
+
+  fmt::print("  {:>4}", int(phy.ch[r].rsrp));
+  fmt::print("  {:>2}", int(phy.ch[r].pathloss));
+  fmt::print(" {:>5.5}", float_to_eng_string(phy.sync[r].cfo, 2));
 
   // Find strongest neighbour for this EARFCN (cells are ordered)
   if (display_neighbours) {
     bool has_neighbour = false;
+    fmt::print(" |");
     for (auto& c : rrc.neighbour_cells) {
       if (c.earfcn == phy.info[r].dl_earfcn && c.pci != phy.info[r].pci) {
-        cout << std::setw(4) << c.pci << std::setw(0);
-        cout << float_to_string(c.rsrp, 2);
+        fmt::print(" {:>3}", c.pci);
+        fmt::print("  {:>4}", int(c.rsrp));
         has_neighbour = true;
         break;
       }
     }
     if (!has_neighbour) {
-      cout << "  n/a";
-      cout << "  n/a";
+      fmt::print(" {:>3.3}", "n/a");
+      fmt::print("  {:>4.4}", "n/a");
     }
   }
 
-  cout << float_to_string(phy.dl[r].mcs, 2);
-  cout << float_to_string(phy.ch[r].sinr, 2);
-  cout << float_to_string(phy.dl[r].fec_iters, 2);
+  fmt::print(" |");
 
-  cout << float_to_eng_string((float)mac[r].rx_brate / (mac[r].nof_tti * 1e-3), 2);
+  fmt::print("  {:>2}", int(phy.dl[r].mcs));
+  fmt::print("  {:>3}", int(phy.ch[r].sinr));
+  fmt::print("  {:>4.1f}", phy.dl[r].fec_iters);
+
+  fmt::print(" {:>6.6}", float_to_eng_string((float)mac[r].rx_brate / (mac[r].nof_tti * 1e-3), 2));
   if (mac[r].rx_pkts > 0) {
-    cout << float_to_string((float)100 * mac[r].rx_errors / mac[r].rx_pkts, 1) << "%";
+    fmt::print("  {:>3}%", int((float)100 * mac[r].rx_errors / mac[r].rx_pkts));
   } else {
-    cout << float_to_string(0, 1) << "%";
+    fmt::print("  {:>3}%", 0);
   }
 
-  cout << float_to_string(phy.sync[r].ta_us, 2);
+  fmt::print("   {:>4.1f}", phy.sync[r].ta_us);
 
-  cout << float_to_string(phy.ul[r].mcs, 2);
-  cout << float_to_eng_string((float)mac[r].ul_buffer, 2);
-  cout << float_to_eng_string((float)mac[r].tx_brate / (mac[r].nof_tti * 1e-3), 2);
+  fmt::print(" |");
+
+  fmt::print("  {:>2}", int(phy.ul[r].mcs));
+  fmt::print(" {:>6.6}", float_to_eng_string((float)mac[r].ul_buffer, 2));
+  fmt::print(" {:>6.6}", float_to_eng_string((float)mac[r].tx_brate / (mac[r].nof_tti * 1e-3), 2));
+
   if (mac[r].tx_pkts > 0) {
-    cout << float_to_string((float)100 * mac[r].tx_errors / mac[r].tx_pkts, 1) << "%";
+    fmt::print("  {:>3}%", int((float)100 * mac[r].tx_errors / mac[r].tx_pkts));
   } else {
-    cout << float_to_string(0, 1) << "%";
+    fmt::print("  {:>3}%", 0);
   }
-  cout << endl;
+  fmt::print("\n");
 }
 
 void metrics_stdout::set_metrics(const ue_metrics_t& metrics, const uint32_t period_usec)
@@ -140,7 +148,7 @@ void metrics_stdout::set_metrics(const ue_metrics_t& metrics, const uint32_t per
 
   // always print RF error
   if (metrics.rf.rf_error) {
-    printf("RF status: O=%d, U=%d, L=%d\n", metrics.rf.rf_o, metrics.rf.rf_u, metrics.rf.rf_l);
+    fmt::print("RF status: O={}, U={}, L={}\n", metrics.rf.rf_o, metrics.rf.rf_u, metrics.rf.rf_l);
   }
 
   if (!do_print) {
@@ -148,7 +156,7 @@ void metrics_stdout::set_metrics(const ue_metrics_t& metrics, const uint32_t per
   }
 
   if (metrics.stack.rrc.state != RRC_STATE_CONNECTED) {
-    cout << "--- disconnected ---" << endl;
+    fmt::print("--- disconnected ---\n");
     return;
   }
 
@@ -170,18 +178,16 @@ void metrics_stdout::set_metrics(const ue_metrics_t& metrics, const uint32_t per
   }
 
   for (uint32_t r = 0; r < metrics.phy.nof_active_cc; r++) {
-    cout << std::setw(2) << r;
-    set_metrics_helper(metrics.phy, metrics.stack.mac, metrics.stack.rrc, display_neighbours, r);
+    set_metrics_helper(metrics.phy, metrics.stack.mac, metrics.stack.rrc, display_neighbours, r, false);
   }
 
   for (uint32_t r = 0; r < metrics.phy_nr.nof_active_cc; r++) {
     // Assumption LTE is followed by the NR carriers.
-    cout << std::setw(2) << metrics.phy_nr.nof_active_cc + r;
-    set_metrics_helper(metrics.phy_nr, metrics.stack.mac_nr, metrics.stack.rrc, display_neighbours, r);
+    set_metrics_helper(metrics.phy_nr, metrics.stack.mac_nr, metrics.stack.rrc, display_neighbours, r, true);
   }
 
   if (metrics.rf.rf_error) {
-    printf("RF status: O=%d, U=%d, L=%d\n", metrics.rf.rf_o, metrics.rf.rf_u, metrics.rf.rf_l);
+    fmt::print("RF status: O={}, U={}, L={}\n", metrics.rf.rf_o, metrics.rf.rf_u, metrics.rf.rf_l);
   }
 }
 
@@ -190,7 +196,7 @@ std::string metrics_stdout::float_to_string(float f, int digits)
   std::ostringstream os;
   const int          precision =
       SRSRAN_MIN((int)((f == 0.0f || f == 100.0f) ? digits - 1 : digits - log10f(fabsf(f)) - 2 * FLT_EPSILON), 3);
-  os << std::setw(6) << std::fixed << std::setprecision(precision) << f;
+  os << std::fixed << std::setprecision(precision) << f;
   return os.str();
 }
 
@@ -213,7 +219,7 @@ std::string metrics_stdout::float_to_eng_string(float f, int digits)
   if (degree != 0) {
     return float_to_string(scaled, digits) + factor;
   } else {
-    return " " + float_to_string(scaled, digits) + factor;
+    return float_to_string(scaled, digits) + factor;
   }
 }
 
