@@ -60,7 +60,7 @@ int srsran_ra_ul_nr_pusch_time_resource_default_A(uint32_t scs_cfg, uint32_t m, 
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
-  if (scs_cfg > 4) {
+  if (scs_cfg >= 4) {
     ERROR("Invalid numerology (%d)", scs_cfg);
     return SRSRAN_ERROR;
   }

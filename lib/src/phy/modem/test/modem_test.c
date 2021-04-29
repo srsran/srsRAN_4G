@@ -90,6 +90,7 @@ int main(int argc, char** argv)
   uint8_t *            input, *input_bytes, *output;
   cf_t *               symbols, *symbols_bytes;
   float*               llr;
+  srsran_random_t      random_gen = srsran_random_init(0x1234);
 
   parse_args(argc, argv);
 
@@ -142,14 +143,14 @@ int main(int argc, char** argv)
 
   /* generate random data */
   for (i = 0; i < num_bits; i++) {
-    input[i] = rand() % 2;
+    input[i] = (uint8_t)srsran_random_uniform_int_dist(random_gen, 0, 1);
   }
 
   /* modulate */
   struct timeval t[3];
   gettimeofday(&t[1], NULL);
   int ntrials = 100;
-  for (int i = 0; i < ntrials; i++) {
+  for (int j = 0; j < ntrials; j++) {
     srsran_mod_modulate(&mod, input, symbols, num_bits);
   }
   gettimeofday(&t[2], NULL);
@@ -160,16 +161,16 @@ int main(int argc, char** argv)
   /* Test packed implementation */
   srsran_bit_pack_vector(input, input_bytes, num_bits);
   gettimeofday(&t[1], NULL);
-  for (int i = 0; i < ntrials; i++) {
+  for (int j = 0; j < ntrials; j++) {
     srsran_mod_modulate_bytes(&mod, input_bytes, symbols_bytes, num_bits);
   }
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
 
   printf("Byte: %ld us\n", t[0].tv_usec);
-  for (int i = 0; i < num_bits / mod.nbits_x_symbol; i++) {
-    if (symbols[i] != symbols_bytes[i]) {
-      printf("error in symbol %d\n", i);
+  for (int j = 0; i < num_bits / mod.nbits_x_symbol; j++) {
+    if (symbols[j] != symbols_bytes[j]) {
+      printf("error in symbol %d\n", j);
       exit(-1);
     }
   }
@@ -200,7 +201,7 @@ int main(int argc, char** argv)
   free(output);
   free(input);
   free(input_bytes);
-
+  srsran_random_free(random_gen);
   srsran_modem_table_free(&mod);
 
   exit(ret);

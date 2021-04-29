@@ -85,8 +85,7 @@ int srsran_pucch_nr_alpha_idx(const srsran_carrier_nr_t*          carrier,
   // Generate pseudo-random sequence
   uint32_t cinit = cfg->hopping_id_present ? cfg->hopping_id : carrier->pci;
   uint8_t  cs[SRSRAN_NSYMB_PER_SLOT_NR * SRSRAN_NSLOTS_PER_FRAME_NR(SRSRAN_NR_MAX_NUMEROLOGY) * 8U] = {};
-  srsran_sequence_apply_bit(
-      cs, cs, SRSRAN_NSYMB_PER_SLOT_NR * SRSRAN_NSLOTS_PER_FRAME_NR(carrier->scs) * 8, cinit);
+  srsran_sequence_apply_bit(cs, cs, SRSRAN_NSYMB_PER_SLOT_NR * SRSRAN_NSLOTS_PER_FRAME_NR(carrier->scs) * 8, cinit);
 
   // Create n_cs parameter
   uint32_t n_cs = 0;
@@ -400,11 +399,11 @@ int srsran_pucch_nr_format1_encode(const srsran_pucch_nr_t*            q,
   }
 
   // Modulate d
-  cf_t d = 0;
+  cf_t d[1] = {};
   if (nof_bits == 1) {
-    srsran_mod_modulate(&q->bpsk, b, &d, nof_bits);
+    srsran_mod_modulate(&q->bpsk, b, d, 1);
   } else {
-    srsran_mod_modulate(&q->qpsk, b, &d, nof_bits);
+    srsran_mod_modulate(&q->qpsk, b, d, 2);
   }
 
   // Get group sequence
@@ -439,7 +438,7 @@ int srsran_pucch_nr_format1_encode(const srsran_pucch_nr_t*            q,
 
     // Compute y = d(0) * r_uv
     cf_t y[SRSRAN_NRE];
-    srsran_vec_sc_prod_ccc(r_uv, d, y, SRSRAN_NRE);
+    srsran_vec_sc_prod_ccc(r_uv, d[0], y, SRSRAN_NRE);
 
     // Get w_i_m
     cf_t w_i_m = srsran_pucch_nr_format1_w(q, n_pucch, resource->time_domain_occ, m);
@@ -564,7 +563,12 @@ static int pucch_nr_format2_encode(srsran_pucch_nr_t*                  q,
   }
 
   // Calculate number of encoded symbols
-  uint32_t E = srsran_uci_nr_pucch_format_2_3_4_E(resource);
+  int e = srsran_uci_nr_pucch_format_2_3_4_E(resource);
+  if (e < SRSRAN_SUCCESS) {
+    ERROR("Error selecting E");
+    return SRSRAN_ERROR;
+  }
+  uint32_t E = (uint32_t)e;
 
   // 6.3.2.5.1 Scrambling
   uint32_t cinit = pucch_nr_format2_cinit(carrier, cfg, uci_cfg);

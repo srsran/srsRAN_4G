@@ -1106,12 +1106,12 @@ int srsran_uci_nr_decode_pusch_ack(srsran_uci_nr_t*           q,
                                    int8_t*                    llr,
                                    srsran_uci_value_nr_t*     value)
 {
-  int A = cfg->o_ack;
-
   // Check inputs
   if (q == NULL || cfg == NULL || llr == NULL || value == NULL) {
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
+
+  int A = cfg->o_ack;
 
   // 6.3.2.1 UCI bit sequence generation
   // 6.3.2.1.1 HARQ-ACK

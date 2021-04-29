@@ -39,6 +39,11 @@ extern "C" {
  */
 #define SRSRAN_SLOT_LEN_RE_NR(nof_prb) (nof_prb * SRSRAN_NRE * SRSRAN_NSYMB_PER_SLOT_NR)
 
+/**
+ * @brief Minimum subframe length in samples for a given number of PRB
+ */
+#define SRSRAN_SF_LEN_PRB_NR(nof_prb) (srsran_min_symbol_sz_rb(nof_prb) * 15)
+
 #define SRSRAN_SLOT_MAX_LEN_RE_NR (SRSRAN_SLOT_LEN_RE_NR(SRSRAN_MAX_PRB_NR))
 #define SRSRAN_SLOT_MAX_NOF_BITS_NR (SRSRAN_SLOT_MAX_LEN_RE_NR * SRSRAN_MAX_QM)
 #define SRSRAN_MAX_LAYERS_NR 8

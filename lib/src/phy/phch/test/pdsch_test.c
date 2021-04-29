@@ -203,6 +203,7 @@ int main(int argc, char** argv)
   srsran_chest_dl_t       chest;
   srsran_chest_dl_res_t   chest_res;
   srsran_pdsch_res_t      pdsch_res[SRSRAN_MAX_CODEWORDS];
+  srsran_random_t         random_gen = srsran_random_init(0x1234);
 
   /* Initialise to zeros */
   ZERO_OBJECT(softbuffers_tx);
@@ -395,7 +396,7 @@ int main(int argc, char** argv)
     for (int tb = 0; tb < SRSRAN_MAX_CODEWORDS; tb++) {
       if (pdsch_cfg.grant.tb[tb].enabled) {
         for (int byte = 0; byte < pdsch_cfg.grant.tb[tb].tbs / 8; byte++) {
-          data_tx[tb][byte] = (uint8_t)(rand() % 256);
+          data_tx[tb][byte] = (uint8_t)srsran_random_uniform_int_dist(random_gen, 0, 255);
         }
       }
     }
@@ -575,6 +576,7 @@ quit:
       free(rx_slot_symbols[i]);
     }
   }
+  srsran_random_free(random_gen);
   if (ret) {
     printf("Error\n");
   } else {

@@ -323,7 +323,7 @@ int main(int argc, char** argv)
 
   // SCI
   srsran_sci_t sci;
-  srsran_sci_init(&sci, cell_sl, sl_comm_resource_pool);
+  srsran_sci_init(&sci, &cell_sl, &sl_comm_resource_pool);
   uint8_t sci_rx[SRSRAN_SCI_MAX_LEN]      = {};
   char    sci_msg[SRSRAN_SCI_MSG_MAX_LEN] = {};
 
@@ -346,7 +346,7 @@ int main(int argc, char** argv)
     return SRSRAN_ERROR;
   }
 
-  if (srsran_pssch_init(&pssch, cell_sl, sl_comm_resource_pool) != SRSRAN_SUCCESS) {
+  if (srsran_pssch_init(&pssch, &cell_sl, &sl_comm_resource_pool) != SRSRAN_SUCCESS) {
     ERROR("Error initializing PSSCH");
     return SRSRAN_ERROR;
   }

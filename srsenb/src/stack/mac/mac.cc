@@ -283,11 +283,13 @@ int mac::cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg_)
 void mac::get_metrics(mac_metrics_t& metrics)
 {
   srsran::rwlock_read_guard lock(rwlock);
-  int                       cnt = 0;
-  metrics.ues.resize(ue_db.size());
+  metrics.ues.reserve(ue_db.size());
   for (auto& u : ue_db) {
-    u.second->metrics_read(&metrics.ues[cnt]);
-    cnt++;
+    if (not scheduler.ue_exists(u.first)) {
+      continue;
+    }
+    metrics.ues.emplace_back();
+    u.second->metrics_read(&metrics.ues.back());
   }
   metrics.cc_rach_counter = detected_rachs;
 }

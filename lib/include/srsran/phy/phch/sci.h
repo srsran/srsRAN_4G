@@ -98,8 +98,9 @@ typedef struct SRSRAN_API {
 
 } srsran_sci_t;
 
-SRSRAN_API int
-                srsran_sci_init(srsran_sci_t* q, srsran_cell_sl_t cell, srsran_sl_comm_resource_pool_t sl_comm_resource_pool);
+SRSRAN_API int  srsran_sci_init(srsran_sci_t*                         q,
+                                const srsran_cell_sl_t*               cell,
+                                const srsran_sl_comm_resource_pool_t* sl_comm_resource_pool);
 SRSRAN_API int  srsran_sci_format0_pack(srsran_sci_t* q, uint8_t* output);
 SRSRAN_API int  srsran_sci_format1_pack(srsran_sci_t* q, uint8_t* output);
 SRSRAN_API int  srsran_sci_format0_unpack(srsran_sci_t* q, uint8_t* input);

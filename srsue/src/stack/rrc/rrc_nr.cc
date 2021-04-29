@@ -615,6 +615,31 @@ bool rrc_nr::apply_sp_cell_init_dl_pdcch(const asn1::rrc_nr::pdcch_cfg_s& pdcch_
 
 bool rrc_nr::apply_sp_cell_init_dl_pdsch(const asn1::rrc_nr::pdsch_cfg_s& pdsch_cfg)
 {
+  if (pdsch_cfg.dmrs_dl_for_pdsch_map_type_a_present) {
+    if (pdsch_cfg.dmrs_dl_for_pdsch_map_type_a.type() == setup_release_c<dmrs_dl_cfg_s>::types_opts::setup) {
+      srsran_dmrs_sch_add_pos_t srsran_dmrs_sch_add_pos;
+      if (make_phy_dmrs_dl_additional_pos(pdsch_cfg.dmrs_dl_for_pdsch_map_type_a.setup(), &srsran_dmrs_sch_add_pos) ==
+          true) {
+        phy_cfg.pdsch.dmrs_typeA.additional_pos = srsran_dmrs_sch_add_pos;
+        phy_cfg.pdsch.dmrs_typeA.present        = true;
+      } else {
+        logger.warning("Warning while build srsran_dmrs_sch_add_pos structure");
+        return false;
+      }
+    } else {
+      logger.warning("Option dmrs_dl_for_pdsch_map_type_a not of type setup");
+      return false;
+    }
+  } else {
+    logger.warning("Option dmrs_dl_for_pdsch_map_type_a not present");
+    return false;
+  }
+
+  srsran_resource_alloc_t resource_alloc;
+  if (make_phy_pdsch_alloc_type(pdsch_cfg, &resource_alloc) == true) {
+    phy_cfg.pdsch.alloc = resource_alloc;
+  }
+
   if (pdsch_cfg.zp_csi_rs_res_to_add_mod_list_present) {
     for (uint32_t i = 0; i < pdsch_cfg.zp_csi_rs_res_to_add_mod_list.size(); i++) {
       srsran_csi_rs_zp_resource_t zp_csi_rs_resource;
@@ -1000,10 +1025,15 @@ bool rrc_nr::apply_sp_cell_ded_ul_pucch(const asn1::rrc_nr::pucch_cfg_s& pucch_c
 
 bool rrc_nr::apply_sp_cell_ded_ul_pusch(const asn1::rrc_nr::pusch_cfg_s& pusch_cfg)
 {
+  srsran_resource_alloc_t resource_alloc;
+  if (make_phy_pusch_alloc_type(pusch_cfg, &resource_alloc) == true) {
+    phy_cfg.pusch.alloc = resource_alloc;
+  }
+
   if (pusch_cfg.dmrs_ul_for_pusch_map_type_a_present) {
     if (pusch_cfg.dmrs_ul_for_pusch_map_type_a.type() == setup_release_c<dmrs_ul_cfg_s>::types_opts::setup) {
       srsran_dmrs_sch_add_pos_t srsran_dmrs_sch_add_pos;
-      if (make_phy_dmrs_additional_pos(pusch_cfg.dmrs_ul_for_pusch_map_type_a.setup(), &srsran_dmrs_sch_add_pos) ==
+      if (make_phy_dmrs_ul_additional_pos(pusch_cfg.dmrs_ul_for_pusch_map_type_a.setup(), &srsran_dmrs_sch_add_pos) ==
           true) {
         phy_cfg.pusch.dmrs_typeA.additional_pos = srsran_dmrs_sch_add_pos;
         phy_cfg.pusch.dmrs_typeA.present        = true;

@@ -98,15 +98,16 @@ void parse_args(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-  srsran_phich_t phich;
-  srsran_regs_t  regs;
-  int            i, j;
-  int            nof_re;
-  cf_t*          slot_symbols[SRSRAN_MAX_PORTS];
-  uint8_t        ack[50][SRSRAN_PHICH_NORM_NSEQUENCES];
-  uint32_t       nsf;
-  int            cid, max_cid;
-  uint32_t       ngroup, nseq, max_nseq;
+  srsran_phich_t  phich;
+  srsran_regs_t   regs;
+  int             i, j;
+  int             nof_re;
+  cf_t*           slot_symbols[SRSRAN_MAX_PORTS];
+  uint8_t         ack[50][SRSRAN_PHICH_NORM_NSEQUENCES];
+  uint32_t        nsf;
+  int             cid, max_cid;
+  uint32_t        ngroup, nseq, max_nseq;
+  srsran_random_t random_gen = srsran_random_init(0x1234);
 
   parse_args(argc, argv);
 
@@ -170,7 +171,7 @@ int main(int argc, char** argv)
           resource.ngroup = ngroup;
           resource.nseq   = nseq;
 
-          ack[ngroup][nseq] = rand() % 2;
+          ack[ngroup][nseq] = (uint8_t)srsran_random_uniform_int_dist(random_gen, 0, 1);
 
           srsran_phich_encode(&phich, &dl_sf, resource, ack[ngroup][nseq], slot_symbols);
         }
@@ -216,7 +217,7 @@ int main(int argc, char** argv)
     cid++;
   }
   srsran_phich_free(&phich);
-
+  srsran_random_free(random_gen);
   srsran_chest_dl_res_free(&chest_res);
 
   for (i = 0; i < SRSRAN_MAX_PORTS; i++) {

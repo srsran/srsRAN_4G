@@ -1317,7 +1317,7 @@ private:
   bit_ref brefstart;
   //  bit_ref  bref0;
   bit_ref* bref_tracker;
-  uint8_t  buffer[1024];
+  uint8_t  buffer[2048];
   bool     align;
 };
 

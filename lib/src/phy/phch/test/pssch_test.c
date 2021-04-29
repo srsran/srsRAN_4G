@@ -92,7 +92,7 @@ int main(int argc, char** argv)
   }
 
   srsran_pssch_t pssch = {};
-  if (srsran_pssch_init(&pssch, cell, sl_comm_resource_pool) != SRSRAN_SUCCESS) {
+  if (srsran_pssch_init(&pssch, &cell, &sl_comm_resource_pool) != SRSRAN_SUCCESS) {
     ERROR("Error initializing PSSCH");
     return SRSRAN_ERROR;
   }

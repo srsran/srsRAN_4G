@@ -488,7 +488,7 @@ int srsran_pdsch_nr_decode(srsran_pdsch_nr_t*           q,
                            const srsran_sch_grant_nr_t* grant,
                            srsran_chest_dl_res_t*       channel,
                            cf_t*                        sf_symbols[SRSRAN_MAX_PORTS],
-                           srsran_pdsch_res_nr_t        data[SRSRAN_MAX_TB])
+                           srsran_pdsch_res_nr_t*       data)
 {
   // Check input pointers
   if (!q || !cfg || !grant || !data || !sf_symbols) {
@@ -547,9 +547,7 @@ int srsran_pdsch_nr_decode(srsran_pdsch_nr_t*           q,
 
   // SCH decode
   for (uint32_t tb = 0; tb < SRSRAN_MAX_TB; tb++) {
-    nof_cw += grant->tb[tb].enabled ? 1 : 0;
-
-    if (pdsch_nr_decode_codeword(q, cfg, &grant->tb[tb], &data[tb], grant->rnti) < SRSRAN_SUCCESS) {
+    if (pdsch_nr_decode_codeword(q, cfg, &grant->tb[tb], data, grant->rnti) < SRSRAN_SUCCESS) {
       ERROR("Error encoding TB %d", tb);
       return SRSRAN_ERROR;
     }

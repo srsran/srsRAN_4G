@@ -114,8 +114,11 @@ int main(int argc, char** argv)
     goto clean_exit;
   }
 
-  srsran_sch_nr_args_t args = {};
-  args.disable_simd         = false;
+  srsran_sch_nr_args_t args   = {};
+  args.disable_simd           = false;
+  args.decoder_use_flooded    = false;
+  args.decoder_scaling_factor = 0.8;
+  args.max_nof_iter           = 20;
   if (srsran_sch_nr_init_tx(&sch_nr_tx, &args) < SRSRAN_SUCCESS) {
     ERROR("Error initiating SCH NR for Tx");
     goto clean_exit;
@@ -152,10 +155,9 @@ int main(int argc, char** argv)
   }
 
   // Use grant default A time resources with m=0
-  if (srsran_ra_dl_nr_time_default_A(0, pdsch_cfg.dmrs.typeA_pos, &pdsch_cfg.grant) < SRSRAN_SUCCESS) {
-    ERROR("Error loading default grant");
-    goto clean_exit;
-  }
+  pdsch_cfg.grant.S          = 1;
+  pdsch_cfg.grant.L          = 13;
+  pdsch_cfg.grant.k          = 0;
   pdsch_cfg.grant.nof_layers = carrier.max_mimo_layers;
   pdsch_cfg.grant.dci_format = srsran_dci_format_nr_1_0;
 

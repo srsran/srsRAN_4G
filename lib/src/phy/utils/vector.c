@@ -430,12 +430,22 @@ void srsran_vec_save_file(char* filename, const void* buffer, const uint32_t len
   }
 }
 
+#define SAFE_READ(PTR, SIZE, N, FILE)                                                                                  \
+  do {                                                                                                                 \
+    size_t nbytes = SIZE * N;                                                                                          \
+    if (nbytes != fread(PTR, SIZE, N, FILE)) {                                                                         \
+      perror("read");                                                                                                  \
+      fclose(FILE);                                                                                                    \
+      exit(1);                                                                                                         \
+    }                                                                                                                  \
+  } while (false)
+
 void srsran_vec_load_file(char* filename, void* buffer, const uint32_t len)
 {
   FILE* f;
   f = fopen(filename, "r");
   if (f) {
-    fread(buffer, len, 1, f);
+    SAFE_READ(buffer, len, 1, f);
     fclose(f);
   } else {
     perror("fopen");

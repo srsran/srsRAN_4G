@@ -47,6 +47,14 @@ SRSRAN_API int srsran_csi_generate_reports(const srsran_csi_hl_cfg_t*      cfg,
 SRSRAN_API int srsran_csi_part1_nof_bits(const srsran_csi_report_cfg_t* report_list, uint32_t nof_reports);
 
 /**
+ * @brief Compute number of CSI bits necessary to transmit all the CSI part 2 reports for a PUCCH transmission
+ * @param report_list Provides the CSI report list
+ * @param nof_reports Number of CSI reports in the list
+ * @return The number of bits if the provided list is valid, SRSRAN_ERROR code otherwise
+ */
+SRSRAN_API int srsran_csi_part2_nof_bits(const srsran_csi_report_cfg_t* report_list, uint32_t nof_reports);
+
+/**
  * @brief Checks if the report list contains part 2 CSI report
  * @param report_list Report list
  * @param nof_reports Number of reports in the list

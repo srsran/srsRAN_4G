@@ -30,29 +30,6 @@
 
 #ifdef HAVE_NEONv8
 #include <arm_neon.h>
-inline static uint8x16_t v_load_s8(int i15,
-                                   int i14,
-                                   int i13,
-                                   int i12,
-                                   int i11,
-                                   int i10,
-                                   int i9,
-                                   int i8,
-                                   int i7,
-                                   int i6,
-                                   int i5,
-                                   int i4,
-                                   int i3,
-                                   int i2,
-                                   int i1,
-                                   int i0)
-{
-  uint8_t __attribute__((aligned(16)))
-  data[16] = {i0, i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11, i12, i13, i14, i15};
-  return vld1q_u8(data);
-}
-
-#define int8x16_to_8x8x2(v) ((int8x8x2_t){{vget_low_s8(v), vget_high_s8(v)}})
 
 #define vshuff_s32_even(a, imm, res)                                                                                   \
   do {                                                                                                                 \

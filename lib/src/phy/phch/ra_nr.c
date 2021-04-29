@@ -134,7 +134,7 @@ static const float ra_nr_beta_offset_ack_table[RA_NR_BETA_OFFSET_HARQACK_SIZE] =
 /**
  * TS 38.213 V15.10.0 Table 9.3-2: Mapping of beta_offset values for CSI and the index signalled by higher layers
  */
-static const float ra_nr_beta_offset_csi_table[RA_NR_BETA_OFFSET_HARQACK_SIZE] = {
+static const float ra_nr_beta_offset_csi_table[RA_NR_BETA_OFFSET_CSI_SIZE] = {
     1.125f, 1.250f, 1.375f, 1.625f, 1.750f,  2.000f,  2.250f,  2.500f,  2.875f, 3.125f, 3.500f,
     4.000f, 5.000f, 6.250f, 8.000f, 10.000f, 12.625f, 15.875f, 20.000f, NAN,    NAN,    NAN,
     NAN,    NAN,    NAN,    NAN,    NAN,     NAN,     NAN,     NAN,     NAN,    NAN};
@@ -147,8 +147,7 @@ static ra_nr_table_t ra_nr_select_table_pusch_noprecoding(srsran_mcs_table_t    
                                                           srsran_rnti_type_t         rnti_type)
 {
   // Non-implemented parameters
-  bool               mcs_c_rnti             = false;
-  srsran_mcs_table_t configured_grant_table = srsran_mcs_table_64qam;
+  bool mcs_c_rnti = false;
 
   // - if mcs-Table in pusch-Config is set to 'qam256', and
   // - PUSCH is scheduled by a PDCCH with DCI format 0_1 with
@@ -171,25 +170,25 @@ static ra_nr_table_t ra_nr_select_table_pusch_noprecoding(srsran_mcs_table_t    
   // - the UE is configured with MCS-C-RNTI, and
   // - the PUSCH is scheduled by a PDCCH with
   // - CRC scrambled by MCS-C-RNTI,
-  if (mcs_c_rnti && dci_format != srsran_dci_format_nr_rar && rnti_type == srsran_rnti_type_mcs_c) {
-    return ra_nr_table_3;
-  }
+  //  if (mcs_c_rnti && dci_format != srsran_dci_format_nr_rar && rnti_type == srsran_rnti_type_mcs_c) {
+  //    return ra_nr_table_3;
+  //  }
 
   // - mcs-Table in configuredGrantConfig is set to 'qam256',
   //   - if PUSCH is scheduled by a PDCCH with CRC scrambled by CS-RNTI or
   //   - if PUSCH is transmitted with configured grant
-  if (configured_grant_table == srsran_mcs_table_256qam &&
-      (rnti_type == srsran_rnti_type_cs || dci_format == srsran_dci_format_nr_cg)) {
-    return ra_nr_table_2;
-  }
+  //  if (configured_grant_table == srsran_mcs_table_256qam &&
+  //      (rnti_type == srsran_rnti_type_cs || dci_format == srsran_dci_format_nr_cg)) {
+  //    return ra_nr_table_2;
+  //  }
 
   // - mcs-Table in configuredGrantConfig is set to 'qam64LowSE'
   //   - if PUSCH is scheduled by a PDCCH with CRC scrambled by CS-RNTI or
   //   - if PUSCH is transmitted with configured grant,
-  if (configured_grant_table == srsran_mcs_table_qam64LowSE &&
-      (rnti_type == srsran_rnti_type_cs || dci_format == srsran_dci_format_nr_cg)) {
-    return ra_nr_table_3;
-  }
+  //  if (configured_grant_table == srsran_mcs_table_qam64LowSE &&
+  //      (rnti_type == srsran_rnti_type_cs || dci_format == srsran_dci_format_nr_cg)) {
+  //    return ra_nr_table_3;
+  //  }
 
   return ra_nr_table_1;
 }
@@ -200,9 +199,8 @@ static ra_nr_table_t ra_nr_select_table_pdsch(srsran_mcs_table_t         mcs_tab
                                               srsran_rnti_type_t         rnti_type)
 {
   // Non-implemented parameters
-  bool               sps_config_mcs_table_present = false;
-  srsran_mcs_table_t sps_config_mcs_table         = srsran_mcs_table_64qam;
-  bool               is_pdcch_sps                 = false;
+  bool sps_config_mcs_table_present = false;
+  bool is_pdcch_sps                 = false;
 
   // - the higher layer parameter mcs-Table given by PDSCH-Config is set to 'qam256', and
   // - the PDSCH is scheduled by a PDCCH with DCI format 1_1 with
@@ -233,10 +231,10 @@ static ra_nr_table_t ra_nr_select_table_pdsch(srsran_mcs_table_t         mcs_tab
   // - the UE is configured with the higher layer parameter mcs-Table given by SPS-Config set to 'qam64LowSE'
   //   - if the PDSCH is scheduled by a PDCCH with CRC scrambled by CS-RNTI or
   //   - if the PDSCH is scheduled without corresponding PDCCH transmission using SPS-Config,
-  if (sps_config_mcs_table_present && sps_config_mcs_table == srsran_mcs_table_qam64LowSE &&
-      (rnti_type == srsran_rnti_type_cs || is_pdcch_sps)) {
-    return ra_nr_table_3;
-  }
+  //  if (sps_config_mcs_table_present && sps_config_mcs_table == srsran_mcs_table_qam64LowSE &&
+  //      (rnti_type == srsran_rnti_type_cs || is_pdcch_sps)) {
+  //    return ra_nr_table_3;
+  //  }
 
   // else
   return ra_nr_table_1;
@@ -470,8 +468,6 @@ int srsran_ra_nr_fill_tb(const srsran_sch_cfg_nr_t*   pdsch_cfg,
                          uint32_t                     mcs_idx,
                          srsran_sch_tb_t*             tb)
 {
-  uint32_t cw_idx = 0;
-
   // Get target Rate
   double R = srsran_ra_nr_R_from_mcs(
       pdsch_cfg->sch_cfg.mcs_table, grant->dci_format, grant->dci_search_space, grant->rnti_type, mcs_idx);
@@ -515,11 +511,10 @@ int srsran_ra_nr_fill_tb(const srsran_sch_cfg_nr_t*   pdsch_cfg,
     return SRSRAN_ERROR;
   }
 
-  // Calculate number of layers accordingly
+  // Calculate number of layers accordingly, assumes first codeword only
   uint32_t nof_cw         = grant->nof_layers < 5 ? 1 : 2;
   uint32_t nof_layers_cw1 = grant->nof_layers / nof_cw;
-  uint32_t nof_layers_cw2 = grant->nof_layers - nof_layers_cw1;
-  tb->N_L                 = (cw_idx == 0) ? nof_layers_cw1 : nof_layers_cw2;
+  tb->N_L                 = nof_layers_cw1;
 
   // Check DMRS and CSI-RS collision according to TS 38.211 7.4.1.5.3 Mapping to physical resources
   // If there was a collision, the number of RE in the grant would be wrong
@@ -835,7 +830,7 @@ static float ra_ul_beta_offset_ack_semistatic(const srsran_beta_offsets_t* beta_
   }
 
   // Protect table boundary
-  if (beta_offset_index > RA_NR_BETA_OFFSET_HARQACK_SIZE) {
+  if (beta_offset_index >= RA_NR_BETA_OFFSET_HARQACK_SIZE) {
     ERROR("Beta offset index for HARQ-ACK (%d) for O_ack=%d exceeds table size (%d)",
           beta_offset_index,
           uci_cfg->o_ack,
@@ -860,8 +855,15 @@ static float ra_ul_beta_offset_csi_semistatic(const srsran_beta_offsets_t* beta_
     return fix_beta_offset;
   }
 
+  int O_csi1 = srsran_csi_part1_nof_bits(uci_cfg->csi, uci_cfg->nof_csi);
+  int O_csi2 = srsran_csi_part2_nof_bits(uci_cfg->csi, uci_cfg->nof_csi);
+  if (O_csi1 < SRSRAN_SUCCESS || O_csi2 < SRSRAN_SUCCESS) {
+    ERROR("Invalid O_csi1 (%d) or O_csi2(%d)", O_csi1, O_csi2);
+    return NAN;
+  }
+
   // Calculate number of CSI bits; CSI part 2 is not supported.
-  uint32_t O_csi = part2 ? 0 : srsran_csi_part1_nof_bits(uci_cfg->csi, uci_cfg->nof_csi);
+  uint32_t O_csi = (uint32_t)(part2 ? O_csi2 : O_csi1);
 
   // Select Beta Offset index from the number of HARQ-ACK bits
   uint32_t beta_offset_index = part2 ? beta_offsets->csi2_index1 : beta_offsets->csi1_index1;
@@ -870,7 +872,7 @@ static float ra_ul_beta_offset_csi_semistatic(const srsran_beta_offsets_t* beta_
   }
 
   // Protect table boundary
-  if (beta_offset_index > RA_NR_BETA_OFFSET_CSI_SIZE) {
+  if (beta_offset_index >= RA_NR_BETA_OFFSET_CSI_SIZE) {
     ERROR("Beta offset index for CSI (%d) for O_csi=%d exceeds table size (%d)",
           beta_offset_index,
           O_csi,

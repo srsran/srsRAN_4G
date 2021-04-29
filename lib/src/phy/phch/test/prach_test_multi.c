@@ -152,11 +152,10 @@ void stagger_prach_powers(srsran_prach_t* prach,
 int main(int argc, char** argv)
 {
   parse_args(argc, argv);
-  srsran_prach_t prach;
-
-  bool high_speed_flag = false;
-  srand(0);
-  cf_t preamble[MAX_LEN];
+  srsran_prach_t  prach;
+  srsran_random_t random_gen      = srsran_random_init(0x1234);
+  bool            high_speed_flag = false;
+  cf_t            preamble[MAX_LEN];
   memset(preamble, 0, sizeof(cf_t) * MAX_LEN);
   cf_t preamble_sum[MAX_LEN];
   memset(preamble_sum, 0, sizeof(cf_t) * MAX_LEN);
@@ -191,7 +190,7 @@ int main(int argc, char** argv)
     printf("limiting number of preambles to 6\n");
     if (test_offset_calculation) {
       for (int i = 0; i < 6; i++) {
-        offsets[i] = (rand() % 50);
+        offsets[i] = srsran_random_uniform_int_dist(random_gen, 0, 49);
       }
     }
   }
@@ -261,6 +260,7 @@ int main(int argc, char** argv)
   }
 
   srsran_prach_free(&prach);
+  srsran_random_free(random_gen);
   printf("Done\n");
   exit(0);
 }

@@ -412,7 +412,7 @@ int srsran_pdcch_decode_msg(srsran_pdcch_t* q, srsran_dl_sf_cfg_t* sf, srsran_dc
         INFO("Skipping DCI:  nCCE=%d, L=%d, msg_len=%d, mean=%f", msg->location.ncce, msg->location.L, nof_bits, mean);
       }
     }
-  } else {
+  } else if (msg != NULL) {
     ERROR("Invalid parameters, location=%d,%d", msg->location.ncce, msg->location.L);
   }
   return ret;
