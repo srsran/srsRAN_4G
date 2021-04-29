@@ -24,12 +24,12 @@ namespace srsenb {
 class sched_cqi
 {
 public:
-  sched_cqi(uint32_t cell_nof_prb_, uint32_t K_) :
+  sched_cqi(uint32_t cell_nof_prb_, uint32_t K_, float alpha = 0.1) :
     cell_nof_prb(cell_nof_prb_),
     cell_nof_rbg(cell_nof_prb_to_rbg(cell_nof_prb_)),
     K(K_),
-    wb_cqi_avg(0.01),
-    bp_list(nof_bandwidth_parts(cell_nof_prb_)),
+    wb_cqi_avg(alpha),
+    bp_list(nof_bandwidth_parts(cell_nof_prb_), bandwidth_part_context(alpha)),
     subband_cqi(srsran_cqi_hl_get_no_subbands(cell_nof_prb), 0)
   {
     srsran_assert(K <= 4, "K=%d outside of {0, 4}", K);
@@ -57,8 +57,12 @@ public:
     }
   }
 
+  /// Get average CQI in given RBG interval
   int get_rbg_grant_avg_cqi(rbg_interval interv) const
   {
+    if (not subband_cqi_enabled()) {
+      return static_cast<int>(wb_cqi_avg.value());
+    }
     float cqi = 0;
     for (uint32_t rbg = interv.start(); rbg < interv.stop(); ++rbg) {
       cqi += subband_cqi[rbg_to_sb_index(rbg)];
@@ -66,8 +70,12 @@ public:
     return static_cast<int>(cqi / interv.length());
   }
 
+  /// Get average CQI in given RBG mask
   int get_rbg_grant_avg_cqi(const rbgmask_t& mask) const
   {
+    if (not subband_cqi_enabled()) {
+      return static_cast<int>(wb_cqi_avg.value());
+    }
     float cqi = 0;
     for (int rbg = mask.find_lowest(0, mask.size()); rbg != -1; rbg = mask.find_lowest(rbg + 1, mask.size())) {
       cqi += subband_cqi[rbg_to_sb_index(rbg)];
@@ -75,11 +83,30 @@ public:
     return static_cast<int>(cqi / mask.count());
   }
 
+  /// Get CQI-optimal RBG mask
+  rbgmask_t get_optim_rbg_mask(uint32_t req_rbgs) const
+  {
+    req_rbgs = std::min(req_rbgs, cell_nof_rbg);
+    rbgmask_t mask(cell_nof_rbg);
+    if (not subband_cqi_enabled()) {
+      mask.fill(0, req_rbgs);
+      return mask;
+    }
+    srsran::bounded_vector<float, max_nof_subbands> sorted_cqis = subband_cqi;
+    std::partial_sort(sorted_cqis.begin(), sorted_cqis.begin() + req_rbgs, sorted_cqis.end());
+    for (uint32_t i = 0; i < req_rbgs; ++i) {
+      mask.set(i);
+    }
+    return mask;
+  }
+
   /// TS 36.321, 7.2.2 - Parameter N
   uint32_t nof_subbands() const { return subband_cqi.size(); }
 
   /// TS 36.321, 7.2.2 - Parameter J
   uint32_t nof_bandwidth_parts() const { return bp_list.size(); }
+
+  bool subband_cqi_enabled() const { return K > 0; }
 
 private:
   static const uint32_t max_subband_size    = 8;
@@ -116,7 +143,7 @@ private:
     uint32_t                              last_cqi_subband_idx;
     srsran::exp_average_fast_start<float> cqi_val;
 
-    explicit bandwidth_part_context() : cqi_val(0), last_cqi_subband_idx(max_nof_subbands) {}
+    explicit bandwidth_part_context(float alpha) : cqi_val(alpha), last_cqi_subband_idx(max_nof_subbands) {}
   };
 
   tti_point                             last_wb_tti;
