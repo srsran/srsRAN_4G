@@ -61,14 +61,28 @@ void metrics_stdout::toggle_print(bool b)
   do_print = b;
 }
 
-void metrics_stdout::print_table(const bool display_neighbours)
+void metrics_stdout::print_table(const bool display_neighbours, const bool is_nr)
 {
-  if (display_neighbours) {
-    fmt::print("---------Signal----------|-Neighbour-|-----------------DL-----------------|-----------UL-----------\n");
-    fmt::print("rat  pci  rsrp  pl   cfo | pci  rsrp | mcs  snr  iter  brate  bler  ta_us | mcs   buff  brate  bler\n");
+  if (is_nr) {
+    if (display_neighbours) {
+      fmt::print(
+          "---------Signal----------|-Neighbour-|-----------------DL-----------------|-----------UL-----------\n");
+      fmt::print(
+          "rat  pci  rsrp  pl   cfo | pci  rsrp | mcs  snr  iter  brate  bler  ta_us | mcs   buff  brate  bler\n");
+    } else {
+      fmt::print("---------Signal----------|-----------------DL-----------------|-----------UL-----------\n");
+      fmt::print("rat  pci  rsrp  pl   cfo | mcs  snr  iter  brate  bler  ta_us | mcs   buff  brate  bler\n");
+    }
   } else {
-    fmt::print("---------Signal----------|-----------------DL-----------------|-----------UL-----------\n");
-    fmt::print("rat  pci  rsrp  pl   cfo | mcs  snr  iter  brate  bler  ta_us | mcs   buff  brate  bler\n");
+    if (display_neighbours) {
+      fmt::print(
+          "---------Signal----------|-Neighbour-|-----------------DL-----------------|-----------UL-----------\n");
+      fmt::print(
+          " cc  pci  rsrp  pl   cfo | pci  rsrp | mcs  snr  iter  brate  bler  ta_us | mcs   buff  brate  bler\n");
+    } else {
+      fmt::print("---------Signal----------|-----------------DL-----------------|-----------UL-----------\n");
+      fmt::print(" cc  pci  rsrp  pl   cfo | mcs  snr  iter  brate  bler  ta_us | mcs   buff  brate  bler\n");
+    }
   }
   table_has_neighbours = display_neighbours;
   n_reports            = 0;
@@ -79,9 +93,14 @@ void metrics_stdout::set_metrics_helper(const phy_metrics_t& phy,
                                         const rrc_metrics_t& rrc,
                                         bool                 display_neighbours,
                                         const uint32_t       r,
-                                        bool                 is_nr)
+                                        bool                 is_carrier_nr,
+                                        bool                 print_carrier_num)
 {
-  fmt::print("{:>3.3}", is_nr ? "nr" : "lte");
+  if (print_carrier_num) {
+    fmt::print("{:>3}", r);
+  } else {
+    fmt::print("{:>3.3}", (is_carrier_nr) ? "nr" : "lte");
+  }
 
   if (phy.info[r].pci != UINT32_MAX) {
     fmt::print("  {:>3}", phy.info[r].pci);
@@ -167,23 +186,25 @@ void metrics_stdout::set_metrics(const ue_metrics_t& metrics, const uint32_t per
     display_neighbours |= metrics.stack.rrc.neighbour_cells.size() > 0;
   }
 
+  bool is_nr = metrics.phy_nr.nof_active_cc > 0;
+
   // print table header every 10 reports
   if (++n_reports > 10) {
-    print_table(display_neighbours);
+    print_table(display_neighbours, is_nr);
   }
 
   // also print table header if neighbours are added/removed in between
   if (display_neighbours != table_has_neighbours) {
-    print_table(display_neighbours);
+    print_table(display_neighbours, is_nr);
   }
 
   for (uint32_t r = 0; r < metrics.phy.nof_active_cc; r++) {
-    set_metrics_helper(metrics.phy, metrics.stack.mac, metrics.stack.rrc, display_neighbours, r, false);
+    set_metrics_helper(metrics.phy, metrics.stack.mac, metrics.stack.rrc, display_neighbours, r, false, !is_nr);
   }
 
   for (uint32_t r = 0; r < metrics.phy_nr.nof_active_cc; r++) {
     // Assumption LTE is followed by the NR carriers.
-    set_metrics_helper(metrics.phy_nr, metrics.stack.mac_nr, metrics.stack.rrc, display_neighbours, r, true);
+    set_metrics_helper(metrics.phy_nr, metrics.stack.mac_nr, metrics.stack.rrc, display_neighbours, r, true, !is_nr);
   }
 
   if (metrics.rf.rf_error) {

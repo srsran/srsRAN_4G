@@ -44,10 +44,11 @@ private:
                                        const rrc_metrics_t& rrc,
                                        bool                 display_neighbours,
                                        const uint32_t       r,
-                                       bool                 is_nr);
+                                       bool                 is_carrier_nr,
+                                       bool                 print_carrier_num);
   std::string       float_to_string(float f, int digits);
   std::string       float_to_eng_string(float f, int digits);
-  void              print_table(const bool display_neighbours);
+  void              print_table(const bool display_neighbours, const bool is_nr);
 
   bool                  do_print             = false;
   bool                  table_has_neighbours = false; ///< state of last table head
