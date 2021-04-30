@@ -16,6 +16,7 @@
 #include "srsran/common/liblte_security.h"
 #include <cmath>
 #include <inttypes.h> // for printing uint64_t
+#include <random>
 
 namespace srsepc {
 
@@ -53,7 +54,11 @@ int s1ap::init(const s1ap_args_t& s1ap_args)
 {
   m_s1ap_args = s1ap_args;
   srsran::s1ap_mccmnc_to_plmn(s1ap_args.mcc, s1ap_args.mnc, &m_plmn);
-  m_next_m_tmsi = rand();
+
+  std::random_device                      rd;
+  std::mt19937                            generator(rd());
+  std::uniform_int_distribution<uint32_t> distr(0, std::numeric_limits<uint32_t>::max());
+  m_next_m_tmsi = distr(generator);
 
   // Get pointer to the HSS
   m_hss = hss::get_instance();
