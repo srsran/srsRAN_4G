@@ -105,6 +105,8 @@ bool security_cfg_handler::set_security_capabilities(const asn1::s1ap::ue_securi
       case srsran::INTEGRITY_ALGORITHM_ID_EIA0:
         // Null integrity is not supported
         logger.info("Skipping EIA0 as RRC integrity algorithm. Null integrity is not supported.");
+        sec_cfg.integ_algo = srsran::INTEGRITY_ALGORITHM_ID_EIA0;
+        integ_algo_found   = true;
         break;
       case srsran::INTEGRITY_ALGORITHM_ID_128_EIA1:
         // “first bit” – 128-EIA1,
