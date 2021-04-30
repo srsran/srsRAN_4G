@@ -87,6 +87,8 @@ uint16_t compute_mac_i(uint16_t                            crnti,
 
   // Compute MAC-I
   switch (integ_algo) {
+    case srsran::INTEGRITY_ALGORITHM_ID_EIA0:
+      return 0;
     case srsran::INTEGRITY_ALGORITHM_ID_128_EIA1:
       srsran::security_128_eia1(&k_rrc_int[16],
                                 0xffffffff, // 32-bit all to ones
