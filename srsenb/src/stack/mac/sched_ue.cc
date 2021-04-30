@@ -302,8 +302,10 @@ void sched_ue::set_ul_snr(tti_point tti_rx, uint32_t enb_cc_idx, float snr, uint
 {
   if (cells[enb_cc_idx].cc_state() != cc_st::idle) {
     cells[enb_cc_idx].tpc_fsm.set_snr(snr, ul_ch_code);
-    cells[enb_cc_idx].ul_cqi        = srsran_cqi_from_snr(snr);
-    cells[enb_cc_idx].ul_cqi_tti_rx = tti_rx;
+    if (ul_ch_code == tpc::PUSCH_CODE) {
+      cells[enb_cc_idx].ul_cqi        = srsran_cqi_from_snr(snr);
+      cells[enb_cc_idx].ul_cqi_tti_rx = tti_rx;
+    }
   } else {
     logger.warning("Received SNR info for invalid cell index %d", enb_cc_idx);
   }
