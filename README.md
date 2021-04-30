@@ -3,7 +3,7 @@ srsRAN
 
 [![Build Status](https://travis-ci.com/srsran/srsRAN.svg?branch=master)](https://travis-ci.com/srsran/srsRAN)
 [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/srsran/srsRAN.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/srsran/srsRAN/context:cpp)
-[![Coverity](https://scan.coverity.com/projects/10045/badge.svg)](https://scan.coverity.com/projects/srslte)
+[![Coverity](https://scan.coverity.com/projects/23048/badge.svg)](https://scan.coverity.com/projects/srsran_agpl)
 
 srsRAN is a 4G/5G software radio suite developed by [SRS](http://www.srs.io).
 
