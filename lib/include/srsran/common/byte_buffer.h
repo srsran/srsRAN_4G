@@ -19,6 +19,7 @@
 #include <cstdint>
 
 //#define SRSRAN_BUFFER_POOL_LOG_ENABLED
+#define SRSRAN_BUFFER_POOL_LOG_NAME_LEN 128
 
 namespace srsran {
 

@@ -80,7 +80,7 @@ public:
     std::map<std::string, uint32_t> buffer_cnt;
     for (uint32_t i = 0; i < pool.size(); i++) {
       if (std::find(free_list.cbegin(), free_list.cend(), pool[i]) == free_list.cend()) {
-        buffer_cnt[strlen(used[i]->debug_name) ? pool[i]->debug_name : "Undefined"]++;
+        buffer_cnt[strlen(pool[i]->debug_name) ? pool[i]->debug_name : "Undefined"]++;
       }
     }
     std::map<std::string, uint32_t>::iterator it;
