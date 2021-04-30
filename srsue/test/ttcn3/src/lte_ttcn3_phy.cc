@@ -85,7 +85,7 @@ void lte_ttcn3_phy::set_activation_deactivation_scell(uint32_t cmd, uint32_t tti
   logger.debug("%s not implemented.", __FUNCTION__);
 }
 
-bool lte_ttcn3_phy::set_config(srsran::phy_cfg_t config, uint32_t cc_idx_)
+bool lte_ttcn3_phy::set_config(const srsran::phy_cfg_t& config, uint32_t cc_idx_)
 {
   logger.debug("%s not implemented.", __FUNCTION__);
   task_sched.defer_task([this]() { stack->set_config_complete(true); });

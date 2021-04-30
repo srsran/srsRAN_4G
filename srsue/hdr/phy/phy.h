@@ -116,7 +116,7 @@ public:
   // Sets the new PHY configuration for the given CC. The configuration is applied in the background. The notify()
   // function will be called when the reconfiguration is completed. Unless the PRACH configuration has changed, the
   // reconfiguration will not take more than 3 ms
-  bool set_config(srsran::phy_cfg_t config, uint32_t cc_idx) final;
+  bool set_config(const srsran::phy_cfg_t& config, uint32_t cc_idx) final;
 
   // Adds or modifies the cell configuration for a given CC. If the EARFCN has changed w.r.t. the previous value, or if
   // the cell is new, this function might take a few hundred ms to complete, depending on the radio

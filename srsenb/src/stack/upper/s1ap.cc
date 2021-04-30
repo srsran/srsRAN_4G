@@ -298,7 +298,7 @@ s1ap::s1ap(srsran::task_sched_handle   task_sched_,
   mme_task_queue = task_sched.make_task_queue();
 }
 
-int s1ap::init(s1ap_args_t args_, rrc_interface_s1ap* rrc_)
+int s1ap::init(const s1ap_args_t& args_, rrc_interface_s1ap* rrc_)
 {
   rrc  = rrc_;
   args = args_;

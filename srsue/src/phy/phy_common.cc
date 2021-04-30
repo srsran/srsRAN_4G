@@ -624,12 +624,12 @@ void phy_common::update_cfo_measurement(uint32_t cc_idx, float cfo_hz)
   avg_cfo_hz[cc_idx] = SRSRAN_VEC_EMA(cfo_hz, avg_cfo_hz[cc_idx], args->snr_ema_coeff);
 }
 
-void phy_common::update_measurements(uint32_t                 cc_idx,
-                                     srsran_chest_dl_res_t    chest_res,
-                                     srsran_dl_sf_cfg_t       sf_cfg_dl,
-                                     float                    tx_crs_power,
-                                     std::vector<phy_meas_t>& serving_cells,
-                                     cf_t*                    rssi_power_buffer)
+void phy_common::update_measurements(uint32_t                     cc_idx,
+                                     const srsran_chest_dl_res_t& chest_res,
+                                     srsran_dl_sf_cfg_t           sf_cfg_dl,
+                                     float                        tx_crs_power,
+                                     std::vector<phy_meas_t>&     serving_cells,
+                                     cf_t*                        rssi_power_buffer)
 {
   bool insync = true;
   {

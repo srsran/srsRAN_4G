@@ -37,8 +37,8 @@ public:
   virtual void add_bearer(uint32_t lcid, srsran::pdcp_config_t cnfg)                                                = 0;
   virtual void del_bearer(uint32_t lcid)                                                                            = 0;
   virtual void change_lcid(uint32_t old_lcid, uint32_t new_lcid)                                                    = 0;
-  virtual void config_security(uint32_t lcid, srsran::as_security_config_t sec_cfg)                                 = 0;
-  virtual void config_security_all(srsran::as_security_config_t sec_cfg)                                            = 0;
+  virtual void config_security(uint32_t lcid, const srsran::as_security_config_t& sec_cfg)                          = 0;
+  virtual void config_security_all(const srsran::as_security_config_t& sec_cfg)                                     = 0;
   virtual void enable_integrity(uint32_t lcid, srsran::srsran_direction_t direction)                                = 0;
   virtual void enable_encryption(uint32_t                   lcid,
                                  srsran::srsran_direction_t direction = srsran::srsran_direction_t::DIRECTION_TXRX) = 0;

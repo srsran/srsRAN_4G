@@ -67,7 +67,7 @@ public:
   void enable_pregen_signals(bool enable) override;
   void deactivate_scells() override;
   void set_activation_deactivation_scell(uint32_t cmd, uint32_t tti) override;
-  bool set_config(srsran::phy_cfg_t config, uint32_t cc_idx = 0) override;
+  bool set_config(const srsran::phy_cfg_t& config, uint32_t cc_idx = 0) override;
   bool set_scell(srsran_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn) override;
   void set_config_tdd(srsran_tdd_config_t& tdd_config) override;
   void set_config_mbsfn_sib2(srsran::mbsfn_sf_cfg_t* cfg_list, uint32_t nof_cfgs) override{};

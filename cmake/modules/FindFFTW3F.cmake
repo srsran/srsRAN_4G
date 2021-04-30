@@ -25,7 +25,7 @@
 #  FFTW3F_LIBRARIES - The libraries needed to use fftw3f
 #  FFTW3F_DEFINITIONS - Compiler switches required for using fftw3f
 
-find_package(PkgConfig)
+find_package(PkgConfig REQUIRED)
 pkg_check_modules(PC_FFTW3F "fftw3f >= 3.0")
 set(FFTW3F_DEFINITIONS ${PC_FFTW3F_CFLAGS_OTHER})
 
@@ -58,7 +58,6 @@ message(STATUS "FFTW3F INCLUDE DIRS: " ${FFTW3F_INCLUDE_DIRS})
 include(FindPackageHandleStandardArgs)
 # handle the QUIETLY and REQUIRED arguments and set FFTW3F_FOUND to TRUE
 # if all listed variables are TRUE
-find_package_handle_standard_args(fftw3f  DEFAULT_MSG
-                                  FFTW3F_LIBRARY FFTW3F_INCLUDE_DIR)
+find_package_handle_standard_args(FFTW3F DEFAULT_MSG FFTW3F_LIBRARY FFTW3F_INCLUDE_DIR)
 
 mark_as_advanced(FFTW3F_INCLUDE_DIR FFTW3F_STATIC_LIBRARY FFTW3F_LIBRARY )

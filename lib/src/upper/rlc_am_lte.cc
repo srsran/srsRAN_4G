@@ -370,6 +370,9 @@ void rlc_am_lte::rlc_am_lte_tx::empty_queue()
   }
 
   // deallocate SDU that is currently processed
+  if (tx_sdu != nullptr) {
+    undelivered_sdu_info_queue.clear_pdcp_sdu(tx_sdu->md.pdcp_sn);
+  }
   tx_sdu.reset();
 }
 
@@ -513,15 +516,6 @@ int rlc_am_lte::rlc_am_lte_tx::write_sdu(unique_byte_buffer_t sdu)
     return SRSRAN_ERROR;
   }
 
-  if (undelivered_sdu_info_queue.has_pdcp_sn(sdu_pdcp_sn)) {
-    logger.warning("PDCP_SN=%d already marked as undelivered", sdu_pdcp_sn);
-    return SRSRAN_ERROR;
-  }
-
-  // Store SDU info
-  logger.debug("Marking PDCP_SN=%d as undelivered (queue_len=%ld)", sdu_pdcp_sn, undelivered_sdu_info_queue.nof_sdus());
-
-  undelivered_sdu_info_queue.add_pdcp_sdu(sdu_pdcp_sn);
   return SRSRAN_SUCCESS;
 }
 
@@ -541,13 +535,6 @@ void rlc_am_lte::rlc_am_lte_tx::discard_sdu(uint32_t discard_sn)
 
   // Discard fails when the PDCP PDU is already in Tx window.
   logger.info("%s PDU with PDCP_SN=%d", discarded ? "Discarding" : "Couldn't discard", discard_sn);
-
-  // always try remove from undelivered SDUs queue
-  if (not undelivered_sdu_info_queue.has_pdcp_sn(discard_sn)) {
-    logger.info("PDCP SDU info does not exists for discarded SDU. PDCP_SN=%d", discard_sn);
-  } else {
-    undelivered_sdu_info_queue.clear_pdcp_sdu(discard_sn);
-  }
 }
 
 bool rlc_am_lte::rlc_am_lte_tx::sdu_queue_is_full()
@@ -1084,13 +1071,23 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
     do {
       tx_sdu = tx_sdu_queue.read();
     } while (tx_sdu == nullptr && tx_sdu_queue.size() != 0);
-
     if (tx_sdu == nullptr) {
       if (header.N_li > 0) {
         header.N_li--;
       }
       break;
     }
+
+    // store sdu info
+    if (undelivered_sdu_info_queue.has_pdcp_sn(tx_sdu->md.pdcp_sn)) {
+      logger.warning("PDCP_SN=%d already marked as undelivered", tx_sdu->md.pdcp_sn);
+    } else {
+      logger.debug("marking pdcp_sn=%d as undelivered (queue_len=%ld)",
+                   tx_sdu->md.pdcp_sn,
+                   undelivered_sdu_info_queue.nof_sdus());
+      undelivered_sdu_info_queue.add_pdcp_sdu(tx_sdu->md.pdcp_sn);
+    }
+    pdcp_pdu_info& pdcp_pdu = undelivered_sdu_info_queue[tx_sdu->md.pdcp_sn];
 
     to_move = ((pdu_space - head_len) >= tx_sdu->N_bytes) ? tx_sdu->N_bytes : pdu_space - head_len;
     memcpy(pdu_ptr, tx_sdu->msg, to_move);
@@ -1099,15 +1096,9 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
     pdu->N_bytes += to_move;
     tx_sdu->N_bytes -= to_move;
     tx_sdu->msg += to_move;
-    if (undelivered_sdu_info_queue.has_pdcp_sn(tx_sdu->md.pdcp_sn)) {
-      pdcp_pdu_info& pdcp_pdu = undelivered_sdu_info_queue[tx_sdu->md.pdcp_sn];
-      segment_pool.make_segment(tx_pdu, pdcp_pdu);
-      if (tx_sdu->N_bytes == 0) {
-        pdcp_pdu.fully_txed = true;
-      }
-    } else {
-      // PDCP SNs for the RLC SDU has been removed from the queue
-      logger.warning("Couldn't find PDCP_SN=%d in SDU info queue.", tx_sdu->md.pdcp_sn);
+    segment_pool.make_segment(tx_pdu, pdcp_pdu);
+    if (tx_sdu->N_bytes == 0) {
+      pdcp_pdu.fully_txed = true;
     }
 
     if (tx_sdu->N_bytes == 0) {

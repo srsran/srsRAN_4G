@@ -187,7 +187,7 @@ const char* gtpc_msg_type_to_str(uint8_t type)
   return "GTPC_MSG_TYPE_INVALID";
 }
 
-int gtpc_pack_create_session_request(struct gtpc_create_session_request* cs_req, srsran::byte_buffer_t)
+int gtpc_pack_create_session_request(struct gtpc_create_session_request* cs_req, srsran::byte_buffer_t&)
 {
   // TODO
   return 0;

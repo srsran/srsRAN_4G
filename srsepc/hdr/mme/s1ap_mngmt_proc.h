@@ -44,7 +44,7 @@ public:
   // Packing/unpacking helper functions
   bool unpack_s1_setup_request(const asn1::s1ap::s1_setup_request_s& msg, enb_ctx_t* enb_ctx);
   bool send_s1_setup_failure(asn1::s1ap::cause_misc_opts::options cause, struct sctp_sndrcvinfo* enb_sri);
-  bool send_s1_setup_response(s1ap_args_t s1ap_args, struct sctp_sndrcvinfo* enb_sri);
+  bool send_s1_setup_response(const s1ap_args_t& s1ap_args, struct sctp_sndrcvinfo* enb_sri);
 
 private:
   s1ap_mngmt_proc();

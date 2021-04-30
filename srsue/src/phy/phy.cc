@@ -438,7 +438,7 @@ void phy::enable_pregen_signals(bool enable)
   }
 }
 
-bool phy::set_config(srsran::phy_cfg_t config_, uint32_t cc_idx)
+bool phy::set_config(const srsran::phy_cfg_t& config_, uint32_t cc_idx)
 {
   if (!is_initiated()) {
     fprintf(stderr, "Error calling set_config(): PHY not initialized\n");

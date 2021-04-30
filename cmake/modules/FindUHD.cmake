@@ -18,7 +18,8 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-INCLUDE(FindPkgConfig)
+FIND_PACKAGE(PkgConfig REQUIRED)
+
 #PKG_CHECK_MODULES(UHD uhd)
 IF(NOT UHD_FOUND)
 

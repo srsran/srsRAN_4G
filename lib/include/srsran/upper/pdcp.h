@@ -55,8 +55,8 @@ public:
   void add_bearer_mrb(uint32_t lcid, pdcp_config_t cnfg);
   void del_bearer(uint32_t lcid) override;
   void change_lcid(uint32_t old_lcid, uint32_t new_lcid) override;
-  void config_security(uint32_t lcid, as_security_config_t sec_cfg) override;
-  void config_security_all(as_security_config_t sec_cfg) override;
+  void config_security(uint32_t lcid, const as_security_config_t& sec_cfg) override;
+  void config_security_all(const as_security_config_t& sec_cfg) override;
   void enable_integrity(uint32_t lcid, srsran_direction_t direction) override;
   void enable_encryption(uint32_t lcid, srsran_direction_t direction) override;
   void enable_security_timed(uint32_t lcid, srsran_direction_t direction, uint32_t sn);

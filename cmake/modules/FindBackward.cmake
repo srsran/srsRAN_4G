@@ -76,8 +76,7 @@ if (STACK_WALKING_LIBUNWIND)
 
 		set(LIBUNWIND_INCLUDE_DIRS ${LIBUNWIND_INCLUDE_DIR})
 		set(LIBDWARF_LIBRARIES ${LIBUNWIND_LIBRARY})
-		find_package_handle_standard_args(libunwind DEFAULT_MSG
-			LIBUNWIND_LIBRARY LIBUNWIND_INCLUDE_DIR)
+		find_package_handle_standard_args(libunwind DEFAULT_MSG LIBUNWIND_LIBRARY LIBUNWIND_INCLUDE_DIR)
 		mark_as_advanced(LIBUNWIND_INCLUDE_DIR LIBUNWIND_LIBRARY)
 		list(APPEND _BACKWARD_LIBRARIES ${LIBUNWIND_LIBRARY})
 	endif()
@@ -87,14 +86,17 @@ if (STACK_WALKING_LIBUNWIND)
 	set(STACK_WALKING_BACKTRACE FALSE)	
 endif()
 
-if (${STACK_DETAILS_AUTO_DETECT})
+if (STACK_DETAILS_AUTO_DETECT)
+	if(NOT CMAKE_VERSION VERSION_LESS 3.17)
+		set(_name_mismatched_arg NAME_MISMATCHED)
+	endif()
 	# find libdw
 	find_path(LIBDW_INCLUDE_DIR NAMES "elfutils/libdw.h" "elfutils/libdwfl.h")
 	find_library(LIBDW_LIBRARY dw)
 	set(LIBDW_INCLUDE_DIRS ${LIBDW_INCLUDE_DIR} )
 	set(LIBDW_LIBRARIES ${LIBDW_LIBRARY} )
-	find_package_handle_standard_args(libdw DEFAULT_MSG
-		LIBDW_LIBRARY LIBDW_INCLUDE_DIR)
+	find_package_handle_standard_args(libdw REQUIRED_VARS
+		LIBDW_LIBRARY LIBDW_INCLUDE_DIR ${_name_mismatched_arg})
 	mark_as_advanced(LIBDW_INCLUDE_DIR LIBDW_LIBRARY)
 
 	# find libbfd
@@ -104,12 +106,11 @@ if (${STACK_DETAILS_AUTO_DETECT})
 	find_library(LIBDL_LIBRARY dl)
 	set(LIBBFD_INCLUDE_DIRS ${LIBBFD_INCLUDE_DIR} ${LIBDL_INCLUDE_DIR})
 	set(LIBBFD_LIBRARIES ${LIBBFD_LIBRARY} ${LIBDL_LIBRARY})
-	find_package_handle_standard_args(libbfd DEFAULT_MSG
+	find_package_handle_standard_args(libbfd REQUIRED_VARS
 		LIBBFD_LIBRARY LIBBFD_INCLUDE_DIR
-		LIBDL_LIBRARY LIBDL_INCLUDE_DIR)
+		LIBDL_LIBRARY LIBDL_INCLUDE_DIR ${_name_mismatched_arg})
 	mark_as_advanced(LIBBFD_INCLUDE_DIR LIBBFD_LIBRARY
 		LIBDL_INCLUDE_DIR LIBDL_LIBRARY)
-
 	# find libdwarf
 	find_path(LIBDWARF_INCLUDE_DIR NAMES "libdwarf.h" PATH_SUFFIXES libdwarf)
 	find_path(LIBELF_INCLUDE_DIR NAMES "libelf.h")
@@ -119,14 +120,14 @@ if (${STACK_DETAILS_AUTO_DETECT})
 	find_library(LIBDL_LIBRARY dl)
 	set(LIBDWARF_INCLUDE_DIRS ${LIBDWARF_INCLUDE_DIR} ${LIBELF_INCLUDE_DIR} ${LIBDL_INCLUDE_DIR})
 	set(LIBDWARF_LIBRARIES ${LIBDWARF_LIBRARY} ${LIBELF_LIBRARY} ${LIBDL_LIBRARY})
-	find_package_handle_standard_args(libdwarf DEFAULT_MSG
+	find_package_handle_standard_args(libdwarf REQUIRED_VARS
 		LIBDWARF_LIBRARY LIBDWARF_INCLUDE_DIR
 		LIBELF_LIBRARY LIBELF_INCLUDE_DIR
-		LIBDL_LIBRARY LIBDL_INCLUDE_DIR)
+		LIBDL_LIBRARY LIBDL_INCLUDE_DIR ${_name_mismatched_arg})
 	mark_as_advanced(LIBDWARF_INCLUDE_DIR LIBDWARF_LIBRARY
 		LIBELF_INCLUDE_DIR LIBELF_LIBRARY
 		LIBDL_INCLUDE_DIR LIBDL_LIBRARY)
-
+		
 	if (LIBDW_FOUND)
 		LIST(APPEND _BACKWARD_INCLUDE_DIRS ${LIBDW_INCLUDE_DIRS})
 		LIST(APPEND _BACKWARD_LIBRARIES ${LIBDW_LIBRARIES})
@@ -178,7 +179,7 @@ endif()
 
 macro(map_definitions var_prefix define_prefix)
 	foreach(def ${ARGN})
-		if (${${var_prefix}${def}})
+		if (${var_prefix}${def})
 			LIST(APPEND _BACKWARD_DEFINITIONS "${define_prefix}${def}=1")
 		else()
 			LIST(APPEND _BACKWARD_DEFINITIONS "${define_prefix}${def}=0")
@@ -201,8 +202,7 @@ if(DEFINED _BACKWARD_LIBRARIES)
 endif()
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(Backward
-    REQUIRED_VARS ${FIND_PACKAGE_REQUIRED_VARS}
+find_package_handle_standard_args(Backward REQUIRED_VARS ${FIND_PACKAGE_REQUIRED_VARS}
 )
 list(APPEND _BACKWARD_INCLUDE_DIRS ${BACKWARD_INCLUDE_DIR})
 

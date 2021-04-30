@@ -139,6 +139,12 @@ bool worker_pool::set_config(const srsran::phy_cfg_nr_t& cfg)
   logger.info(
       "Setting new PHY configuration ARFCN=%d, PCI=%d", cfg.carrier.absolute_frequency_point_a, cfg.carrier.pci);
 
+  // Set carrier information
+  info_metrics_t info = {};
+  info.pci            = cfg.carrier.pci;
+  info.dl_earfcn      = cfg.carrier.absolute_frequency_ssb;
+  phy_state.set_info_metrics(info);
+
   // Best effort to convert NR carrier into LTE cell
   srsran_cell_t cell = {};
   int           ret  = srsran_carrier_to_cell(&phy_state.cfg.carrier, &cell);

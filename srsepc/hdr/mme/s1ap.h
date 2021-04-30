@@ -59,7 +59,7 @@ public:
   static void  cleanup();
 
   int  enb_listen();
-  int  init(s1ap_args_t s1ap_args);
+  int  init(const s1ap_args_t& s1ap_args);
   void stop();
 
   int get_s1_mme();

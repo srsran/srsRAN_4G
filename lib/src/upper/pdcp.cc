@@ -203,14 +203,14 @@ void pdcp::change_lcid(uint32_t old_lcid, uint32_t new_lcid)
   }
 }
 
-void pdcp::config_security(uint32_t lcid, as_security_config_t sec_cfg)
+void pdcp::config_security(uint32_t lcid, const as_security_config_t& sec_cfg)
 {
   if (valid_lcid(lcid)) {
     pdcp_array.at(lcid)->config_security(sec_cfg);
   }
 }
 
-void pdcp::config_security_all(as_security_config_t sec_cfg)
+void pdcp::config_security_all(const as_security_config_t& sec_cfg)
 {
   for (auto& it : pdcp_array) {
     it.second->config_security(sec_cfg);

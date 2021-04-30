@@ -70,7 +70,7 @@ public:
   s1ap(srsran::task_sched_handle   task_sched_,
        srslog::basic_logger&       logger,
        srsran::socket_manager_itf* rx_socket_handler);
-  int  init(s1ap_args_t args_, rrc_interface_s1ap* rrc_);
+  int  init(const s1ap_args_t& args_, rrc_interface_s1ap* rrc_);
   void stop();
   void get_metrics(s1ap_metrics_t& m);
 

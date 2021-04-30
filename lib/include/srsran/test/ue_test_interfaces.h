@@ -69,7 +69,7 @@ public:
 
 class phy_dummy_interface : public phy_interface_rrc_lte
 {
-  bool set_config(srsran::phy_cfg_t config, uint32_t cc_idx) override { return true; }
+  bool set_config(const srsran::phy_cfg_t& config, uint32_t cc_idx) override { return true; }
   bool set_scell(srsran_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn) override { return true; }
   void set_config_tdd(srsran_tdd_config_t& tdd_config) override {}
   void set_config_mbsfn_sib2(srsran::mbsfn_sf_cfg_t* cfg_list, uint32_t nof_cfgs) override {}

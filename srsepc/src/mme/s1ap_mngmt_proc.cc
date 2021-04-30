@@ -191,7 +191,7 @@ bool s1ap_mngmt_proc::send_s1_setup_failure(asn1::s1ap::cause_misc_opts::options
   return true;
 }
 
-bool s1ap_mngmt_proc::send_s1_setup_response(s1ap_args_t s1ap_args, struct sctp_sndrcvinfo* enb_sri)
+bool s1ap_mngmt_proc::send_s1_setup_response(const s1ap_args_t& s1ap_args, struct sctp_sndrcvinfo* enb_sri)
 {
   m_logger.debug("Sending S1 Setup Response");
 

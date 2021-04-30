@@ -184,7 +184,7 @@ struct pdcp_lte_state_t {
 // Custom type for interface between PDCP and RLC to convey SDU delivery status
 // Arbitrarily chosen limit, optimal value depends on the RLC (pollPDU) and PDCP config, channel BLER,
 // traffic characterisitcs, etc. The chosen value has been tested with 100 PRB bi-dir TCP
-#define MAX_SDUS_TO_NOTIFY (1024)
+#define MAX_SDUS_TO_NOTIFY (4096)
 typedef srsran::bounded_vector<uint32_t, MAX_SDUS_TO_NOTIFY> pdcp_sn_vector_t;
 
 } // namespace srsran

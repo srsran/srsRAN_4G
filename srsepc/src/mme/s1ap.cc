@@ -58,7 +58,7 @@ void s1ap::cleanup(void)
   pthread_mutex_unlock(&s1ap_instance_mutex);
 }
 
-int s1ap::init(s1ap_args_t s1ap_args)
+int s1ap::init(const s1ap_args_t& s1ap_args)
 {
   m_s1ap_args = s1ap_args;
   srsran::s1ap_mccmnc_to_plmn(s1ap_args.mcc, s1ap_args.mnc, &m_plmn);
