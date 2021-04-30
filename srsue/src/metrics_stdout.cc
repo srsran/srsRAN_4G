@@ -246,11 +246,7 @@ std::string metrics_stdout::float_to_eng_string(float f, int digits)
   }
 
   const double scaled = f * pow(1000.0, -degree);
-  if (degree != 0) {
-    return float_to_string(scaled, digits) + factor;
-  } else {
-    return float_to_string(scaled, digits) + factor;
-  }
+  return float_to_string(scaled, digits) + factor;
 }
 
 } // namespace srsue
