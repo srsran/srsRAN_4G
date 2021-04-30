@@ -767,6 +767,11 @@ rbg_interval sched_ue::get_required_dl_rbgs(uint32_t enb_cc_idx)
   return {min_pending_rbg, max_pending_rbg};
 }
 
+uint32_t sched_ue::get_pending_dl_bytes(uint32_t enb_cc_idx)
+{
+  return get_requested_dl_bytes(enb_cc_idx).stop();
+}
+
 /**
  * Returns the range (min,max) of possible MAC PDU sizes.
  * - the lower boundary value is set based on the following conditions:
