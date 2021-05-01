@@ -1052,6 +1052,7 @@ bool rrc::ue::release_erabs()
 
 int rrc::ue::release_erab(uint32_t erab_id)
 {
+  bearer_list.rem_gtpu_bearer(erab_id);
   return bearer_list.release_erab(erab_id);
 }
 
