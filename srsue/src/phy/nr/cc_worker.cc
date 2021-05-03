@@ -229,9 +229,14 @@ bool cc_worker::work_dl()
     mac_dl_grant.tti                                     = dl_slot_cfg.idx;
     phy->stack->new_grant_dl(0, mac_dl_grant, &dl_action);
 
-    // Early stop if MAC says it doesn't need the TB
+    // Abort if MAC says it doesn't need the TB
     if (not dl_action.tb.enabled) {
-      logger.info("Decoding not required. Skipping PDSCH");
+      // Force positive ACK
+      if (pdsch_cfg.grant.rnti_type == srsran_rnti_type_c) {
+        phy->set_pending_ack(dl_slot_cfg.idx, ack_resource, true);
+      }
+
+      logger.info("Decoding not required. Skipping PDSCH. ack_tti_tx=%d", TTI_ADD(dl_slot_cfg.idx, ack_resource.k1));
       return true;
     }
 
@@ -270,8 +275,13 @@ bool cc_worker::work_dl()
                     str.data(),
                     str_extra.data());
       } else {
-        logger.info(
-            pdsch_res.tb[0].payload, pdsch_cfg.grant.tb[0].tbs / 8, "PDSCH: cc=%d pid=%d %s", cc_idx, pid, str.data());
+        logger.info(pdsch_res.tb[0].payload,
+                    pdsch_cfg.grant.tb[0].tbs / 8,
+                    "PDSCH: cc=%d pid=%d %s ack_tti_tx=%d",
+                    cc_idx,
+                    pid,
+                    str.data(),
+                    TTI_ADD(dl_slot_cfg.idx, ack_resource.k1));
       }
     }
 
