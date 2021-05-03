@@ -14,6 +14,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/mman.h>
 #include <unistd.h>
 
 #include "srsran/common/common_helper.h"
@@ -532,6 +533,10 @@ int main(int argc, char* argv[])
   // Configure the event logger just before starting the eNB class.
   if (args.general.report_json_enable) {
     event_logger::configure(json_channel);
+  }
+
+  if (mlockall((uint32_t)MCL_CURRENT | (uint32_t)MCL_FUTURE) == -1) {
+    srsran::console("Failed to `mlockall`: {}", errno);
   }
 
   // Create eNB

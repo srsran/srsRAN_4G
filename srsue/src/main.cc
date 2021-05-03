@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
+#include <sys/mman.h>
 #include <unistd.h>
 
 extern bool simulate_rlf;
@@ -674,6 +675,10 @@ int main(int argc, char* argv[])
   srsran::log_args(argc, argv, "UE");
 
   srsran::check_scaling_governor(args.rf.device_name);
+
+  if (mlockall((uint32_t)MCL_CURRENT | (uint32_t)MCL_FUTURE) == -1) {
+    fprintf(stderr, "Failed to `mlockall`: %d", errno);
+  }
 
   // Create UE instance.
   srsue::ue ue;

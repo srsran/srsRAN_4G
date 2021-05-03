@@ -15,7 +15,6 @@
 #include <string.h>
 #include <string>
 #include <strings.h>
-#include <sys/mman.h>
 #include <unistd.h>
 
 #include "srsenb/hdr/phy/phy.h"
@@ -104,8 +103,6 @@ int phy::init(const phy_args_t&            args,
         "Number of carriers=%zd provided above its maximum=%zd", cfg.phy_cell_cfg.size(), SRSRAN_MAX_CARRIERS);
     return SRSRAN_ERROR;
   }
-
-  mlockall((uint32_t)MCL_CURRENT | (uint32_t)MCL_FUTURE);
 
   // Add PHY lib log.
   srslog::basic_levels log_lvl = srslog::str_to_basic_level(args.log.phy_lib_level);
