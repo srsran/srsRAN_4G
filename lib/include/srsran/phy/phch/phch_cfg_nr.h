@@ -184,6 +184,7 @@ typedef struct SRSRAN_API {
   bool     scrambling_id_present;
   uint32_t scambling_id; // Identifier used to initialize data scrambling (0-1023)
 
+  srsran_mcs_table_t     mcs_table;
   srsran_dmrs_sch_type_t dmrs_type;
   srsran_dmrs_sch_len_t  dmrs_max_length;
   struct {

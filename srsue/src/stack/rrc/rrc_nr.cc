@@ -606,6 +606,23 @@ bool rrc_nr::apply_sp_cell_init_dl_pdcch(const asn1::rrc_nr::pdcch_cfg_s& pdcch_
 
 bool rrc_nr::apply_sp_cell_init_dl_pdsch(const asn1::rrc_nr::pdsch_cfg_s& pdsch_cfg)
 {
+  if (pdsch_cfg.mcs_table_present) {
+    switch (pdsch_cfg.mcs_table) {
+      case pdsch_cfg_s::mcs_table_opts::qam256:
+        phy_cfg.pdsch.mcs_table = srsran_mcs_table_256qam;
+        break;
+      case pdsch_cfg_s::mcs_table_opts::qam64_low_se:
+        phy_cfg.pdsch.mcs_table = srsran_mcs_table_qam64LowSE;
+        break;
+      case pdsch_cfg_s::mcs_table_opts::nulltype:
+        logger.warning("Warning while selecting pdsch mcs_table");
+        return false;
+    }
+  } else {
+    // If the field is absent the UE applies the value 64QAM.
+    phy_cfg.pdsch.mcs_table = srsran_mcs_table_64qam;
+  }
+
   if (pdsch_cfg.dmrs_dl_for_pdsch_map_type_a_present) {
     if (pdsch_cfg.dmrs_dl_for_pdsch_map_type_a.type() == setup_release_c<dmrs_dl_cfg_s>::types_opts::setup) {
       srsran_dmrs_sch_add_pos_t srsran_dmrs_sch_add_pos;
@@ -1016,6 +1033,23 @@ bool rrc_nr::apply_sp_cell_ded_ul_pucch(const asn1::rrc_nr::pucch_cfg_s& pucch_c
 
 bool rrc_nr::apply_sp_cell_ded_ul_pusch(const asn1::rrc_nr::pusch_cfg_s& pusch_cfg)
 {
+  if (pusch_cfg.mcs_table_present) {
+    switch (pusch_cfg.mcs_table) {
+      case pusch_cfg_s::mcs_table_opts::qam256:
+        phy_cfg.pusch.mcs_table = srsran_mcs_table_256qam;
+        break;
+      case pusch_cfg_s::mcs_table_opts::qam64_low_se:
+        phy_cfg.pusch.mcs_table = srsran_mcs_table_qam64LowSE;
+        break;
+      case pusch_cfg_s::mcs_table_opts::nulltype:
+        logger.warning("Warning while selecting pdsch mcs_table");
+        return false;
+    }
+  } else {
+    // If the field is absent the UE applies the value 64QAM.
+    phy_cfg.pusch.mcs_table = srsran_mcs_table_64qam;
+  }
+
   srsran_resource_alloc_t resource_alloc;
   if (make_phy_pusch_alloc_type(pusch_cfg, &resource_alloc) == true) {
     phy_cfg.pusch.alloc = resource_alloc;

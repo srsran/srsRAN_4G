@@ -670,13 +670,14 @@ int srsran_ra_dl_dci_to_grant_nr(const srsran_carrier_nr_t*    carrier,
   // 5.1.2.3 Physical resource block (PRB) bundling
   // ...
 
-  pdsch_grant->nof_layers = 1;
-  pdsch_grant->dci_format = dci_dl->ctx.format;
-  pdsch_grant->rnti       = dci_dl->ctx.rnti;
-  pdsch_grant->rnti_type  = dci_dl->ctx.rnti_type;
-  pdsch_grant->tb[0].rv   = dci_dl->rv;
-  pdsch_grant->tb[0].mcs  = dci_dl->mcs;
-  pdsch_grant->tb[0].ndi  = dci_dl->ndi;
+  pdsch_grant->nof_layers      = 1;
+  pdsch_grant->dci_format      = dci_dl->ctx.format;
+  pdsch_grant->rnti            = dci_dl->ctx.rnti;
+  pdsch_grant->rnti_type       = dci_dl->ctx.rnti_type;
+  pdsch_grant->tb[0].rv        = dci_dl->rv;
+  pdsch_grant->tb[0].mcs       = dci_dl->mcs;
+  pdsch_grant->tb[0].ndi       = dci_dl->ndi;
+  pdsch_cfg->sch_cfg.mcs_table = pdsch_hl_cfg->mcs_table;
 
   // 5.1.4 PDSCH resource mapping
   if (ra_dl_resource_mapping(carrier, slot, pdsch_hl_cfg, pdsch_cfg) < SRSRAN_SUCCESS) {
@@ -783,13 +784,14 @@ int srsran_ra_ul_dci_to_grant_nr(const srsran_carrier_nr_t*    carrier,
   // 5.1.2.3 Physical resource block (PRB) bundling
   // ...
 
-  pusch_grant->nof_layers = 1;
-  pusch_grant->dci_format = dci_ul->ctx.format;
-  pusch_grant->rnti       = dci_ul->ctx.rnti;
-  pusch_grant->rnti_type  = dci_ul->ctx.rnti_type;
-  pusch_grant->tb[0].rv   = dci_ul->rv;
-  pusch_grant->tb[0].mcs  = dci_ul->mcs;
-  pusch_grant->tb[0].ndi  = dci_ul->ndi;
+  pusch_grant->nof_layers      = 1;
+  pusch_grant->dci_format      = dci_ul->ctx.format;
+  pusch_grant->rnti            = dci_ul->ctx.rnti;
+  pusch_grant->rnti_type       = dci_ul->ctx.rnti_type;
+  pusch_grant->tb[0].rv        = dci_ul->rv;
+  pusch_grant->tb[0].mcs       = dci_ul->mcs;
+  pusch_grant->tb[0].ndi       = dci_ul->ndi;
+  pusch_cfg->sch_cfg.mcs_table = pusch_hl_cfg->mcs_table;
 
   // 5.1.6.2 DM-RS reception procedure
   if (ra_ul_dmrs(pusch_hl_cfg, dci_ul, pusch_cfg) < SRSRAN_SUCCESS) {
