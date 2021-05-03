@@ -304,6 +304,8 @@ int bearer_cfg_handler::release_erab(uint8_t erab_id)
 
   srsran::rem_rrc_obj_id(current_drbs, drb_id);
 
+  rem_gtpu_bearer(erab_id);
+
   erabs.erase(it);
   erab_info_list.erase(erab_id);
 
@@ -312,8 +314,6 @@ int bearer_cfg_handler::release_erab(uint8_t erab_id)
 
 void bearer_cfg_handler::release_erabs()
 {
-  // TODO: notify GTPU layer for each ERAB
-  erabs.clear();
   while (not erabs.empty()) {
     release_erab(erabs.begin()->first);
   }
@@ -380,13 +380,7 @@ srsran::expected<uint32_t> bearer_cfg_handler::add_gtpu_bearer(uint32_t         
 
 void bearer_cfg_handler::rem_gtpu_bearer(uint32_t erab_id)
 {
-  auto it = erabs.find(erab_id);
-  if (it != erabs.end()) {
-    // Map e.g. E-RAB 5 to LCID 3 (==DRB1)
-    gtpu->rem_bearer(rnti, erab_id - 2);
-  } else {
-    logger->error("Removing erab_id=%d to GTPU\n", erab_id);
-  }
+  gtpu->rem_bearer(rnti, erab_id - 2);
 }
 
 void bearer_cfg_handler::fill_pending_nas_info(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg)
