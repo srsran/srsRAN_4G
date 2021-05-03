@@ -323,15 +323,18 @@ static float estimate_noise_pilots(srsran_chest_dl_t* q, srsran_dl_sf_cfg_t* sf,
                                                   : srsran_refsignal_cs_nof_re(&q->csr_refs, sf, port_id);
   uint32_t nsymbols = (ch_mode == SRSRAN_SF_MBSFN) ? srsran_refsignal_mbsfn_nof_symbols()
                                                    : srsran_refsignal_cs_nof_symbols(&q->csr_refs, sf, port_id);
+  if (nsymbols == 0) {
+    ERROR("Invalid number of CRS symbols\n");
+    return SRSRAN_ERROR;
+  }
+
   uint32_t nref = npilots / nsymbols;
   uint32_t fidx =
       (ch_mode == SRSRAN_SF_MBSFN) ? srsran_refsignal_mbsfn_fidx(1) : srsran_refsignal_cs_fidx(q->cell, 0, port_id, 0);
-
-  cf_t* input2d[nsymbols + 2];
   cf_t* tmp_noise = q->tmp_noise;
 
-  // Special case for 1 symbol
-  if (nsymbols == 1) {
+  // Special case for 1 or 2 symbol
+  if (nsymbols < 3) {
     srsran_vec_sc_prod_cfc(q->pilot_estimates + 1, weight, tmp_noise, nref - 2);
     srsran_vec_sum_ccc(q->pilot_estimates + 0, tmp_noise, tmp_noise, nref - 2);
     srsran_vec_sum_ccc(q->pilot_estimates + 2, tmp_noise, tmp_noise, nref - 2);
@@ -341,30 +344,21 @@ static float estimate_noise_pilots(srsran_chest_dl_t* q, srsran_dl_sf_cfg_t* sf,
     return sum_power;
   }
 
+  // Convert pilots to 2D to ease access
+  cf_t* input2d[4]; // The maximum number of symbols is 4
   for (int i = 0; i < nsymbols; i++) {
-    input2d[i + 1] = &q->pilot_estimates[i * nref];
+    input2d[i] = &q->pilot_estimates[i * nref];
   }
 
-  input2d[0] = &q->tmp_noise[nref];
-  if (nsymbols > 3) {
-    srsran_vec_sc_prod_cfc(input2d[2], 2.0f, input2d[0], nref);
-    srsran_vec_sub_ccc(input2d[0], input2d[4], input2d[0], nref);
-  } else {
-    srsran_vec_sc_prod_cfc(input2d[2], 1.0f, input2d[0], nref);
-  }
-
-  input2d[nsymbols + 1] = &q->tmp_noise[nref * 2];
-  if (nsymbols > 3) {
-    srsran_vec_sc_prod_cfc(input2d[nsymbols - 1], 2.0f, input2d[nsymbols + 1], nref);
-    srsran_vec_sub_ccc(input2d[nsymbols + 1], input2d[nsymbols - 3], input2d[nsymbols + 1], nref);
-  } else {
-    srsran_vec_sc_prod_cfc(input2d[nsymbols - 1], 1.0f, input2d[nsymbols + 1], nref);
-  }
-
-  for (int i = 1; i < nsymbols + 1; i++) {
+  // Compares surrounding pilots in time/frequency. It requires at least 3 symbols with pilots.
+  for (int i = 1; i < nsymbols - 1; i++) {
+    // Calculate previous and next symbol indexes offset
     uint32_t offset = ((fidx < 3) ^ (i & 1)) ? 0 : 1;
+
+    // Write estimates from this symbols
     srsran_vec_sc_prod_cfc(input2d[i], weight, tmp_noise, nref);
 
+    // Add the previous symbol estimates and extrapolate first/last element
     srsran_vec_sum_ccc(&input2d[i - 1][0], &tmp_noise[offset], &tmp_noise[offset], nref - offset);
     srsran_vec_sum_ccc(&input2d[i - 1][1 - offset], &tmp_noise[0], &tmp_noise[0], nref + offset - 1);
     if (offset) {
@@ -373,6 +367,7 @@ static float estimate_noise_pilots(srsran_chest_dl_t* q, srsran_dl_sf_cfg_t* sf,
       tmp_noise[nref - 1] += 2.0f * input2d[i - 1][nref - 2] - input2d[i - 1][nref - 1];
     }
 
+    // Add the next symbol estimates and extrapolate first/last element
     srsran_vec_sum_ccc(&input2d[i + 1][0], &tmp_noise[offset], &tmp_noise[offset], nref - offset);
     srsran_vec_sum_ccc(&input2d[i + 1][1 - offset], &tmp_noise[0], &tmp_noise[0], nref + offset - 1);
     if (offset) {
@@ -381,14 +376,18 @@ static float estimate_noise_pilots(srsran_chest_dl_t* q, srsran_dl_sf_cfg_t* sf,
       tmp_noise[nref - 1] += 2.0f * input2d[i + 1][nref - 2] - input2d[i + 1][nref - 1];
     }
 
+    // Scale to normalise to this symbol
     srsran_vec_sc_prod_cfc(tmp_noise, 1.0f / (weight + 4.0f), tmp_noise, nref);
 
+    // Subtract this symbol
     srsran_vec_sub_ccc(input2d[i], tmp_noise, tmp_noise, nref);
-    sum_power = srsran_vec_avg_power_cf(tmp_noise, nref);
+
+    // The left signal after the subtraction can be considered noise
+    sum_power += srsran_vec_avg_power_cf(tmp_noise, nref);
     count++;
   }
 
-  return sum_power / (float)count * sqrtf(weight + 4.0f);
+  return sum_power / (float)count;
 }
 
 static float estimate_noise_pss(srsran_chest_dl_t* q, cf_t* input, cf_t* ce)
