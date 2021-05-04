@@ -37,6 +37,29 @@ const char* srsran_rnti_type_str(srsran_rnti_type_t rnti_type)
   }
   return "unknown";
 }
+const char* srsran_rnti_type_str_short(srsran_rnti_type_t rnti_type)
+{
+  switch (rnti_type) {
+    case srsran_rnti_type_c:
+      return "c";
+    case srsran_rnti_type_p:
+      return "p";
+    case srsran_rnti_type_si:
+      return "si";
+    case srsran_rnti_type_ra:
+      return "ra";
+    case srsran_rnti_type_tc:
+      return "tc";
+    case srsran_rnti_type_cs:
+      return "cs";
+    case srsran_rnti_type_sp_csi:
+      return "sp-csi";
+    case srsran_rnti_type_mcs_c:
+      return "mcs-c";
+    default:; // Do nothing
+  }
+  return "unknown";
+}
 
 const char* srsran_dci_format_nr_string(srsran_dci_format_nr_t format)
 {

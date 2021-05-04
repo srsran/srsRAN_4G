@@ -479,6 +479,13 @@ typedef struct SRSRAN_API {
 SRSRAN_API const char* srsran_rnti_type_str(srsran_rnti_type_t rnti_type);
 
 /**
+ * @brief Get the short RNTI type name for NR
+ * @param rnti_type RNTI type name
+ * @return Constant string with the short RNTI type name
+ */
+SRSRAN_API const char* srsran_rnti_type_str_short(srsran_rnti_type_t rnti_type);
+
+/**
  * @brief Get the RNTI type name for NR
  * @param rnti_type RNTI type name
  * @return Constant string with the RNTI type name
