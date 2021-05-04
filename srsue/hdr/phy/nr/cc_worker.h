@@ -57,6 +57,12 @@ private:
   // Methods for DCI blind search
   void decode_pdcch_ul();
   void decode_pdcch_dl();
+
+  // Method for decode PDSCH
+  bool decode_pdsch_dl();
+
+  // Method for measurements
+  bool measure();
 };
 
 } // namespace nr

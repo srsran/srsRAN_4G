@@ -57,6 +57,7 @@ private:
   mutable std::mutex metrics_mutex;
 
   /// CSI-RS measurements
+  std::mutex                                                          csi_measurements_mutex;
   std::array<srsran_csi_measurements_t, SRSRAN_CSI_MAX_NOF_RESOURCES> csi_measurements = {};
 
   /**
@@ -90,7 +91,7 @@ public:
     csi_measurements[0].K_csi_rs  = 1;
     csi_measurements[0].nof_ports = 1;
     csi_measurements[1].K_csi_rs  = 4;
-    csi_measurements[0].nof_ports = 1;
+    csi_measurements[1].nof_ports = 1;
   }
 
   /**
@@ -421,6 +422,17 @@ public:
 
     // Reset all metrics
     reset_metrics_();
+  }
+
+  void new_nzp_csi_rs_channel_measurement(const srsran_csi_measurements_t& new_measure, uint32_t resource_set_id)
+  {
+    std::lock_guard<std::mutex> lock(csi_measurements_mutex);
+
+    if (srsran_csi_new_nzp_csi_rs_measurement(
+            cfg.csi.csi_resources, csi_measurements.data(), &new_measure, resource_set_id) < SRSRAN_SUCCESS) {
+      ERROR("Error processing new NZP-CSI-RS");
+      return;
+    }
   }
 };
 } // namespace nr
