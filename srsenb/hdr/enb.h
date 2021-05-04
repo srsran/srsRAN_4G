@@ -95,6 +95,7 @@ struct general_args_t {
   std::string eea_pref_list;
   uint32_t    max_mac_dl_kos;
   uint32_t    max_mac_ul_kos;
+  uint32_t    gtpu_indirect_tunnel_timeout;
 };
 
 struct all_args_t {

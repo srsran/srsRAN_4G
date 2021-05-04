@@ -36,9 +36,10 @@ gtpu_tunnel_manager::gtpu_tunnel_manager(srsran::task_sched_handle task_sched_, 
   logger(logger), task_sched(task_sched_), tunnels(1)
 {}
 
-void gtpu_tunnel_manager::init(pdcp_interface_gtpu* pdcp_)
+void gtpu_tunnel_manager::init(const gtpu_args_t& args, pdcp_interface_gtpu* pdcp_)
 {
-  pdcp = pdcp_;
+  gtpu_args = &args;
+  pdcp      = pdcp_;
 }
 
 const gtpu_tunnel_manager::tunnel* gtpu_tunnel_manager::find_tunnel(uint32_t teid)
@@ -239,10 +240,13 @@ void gtpu_tunnel_manager::set_tunnel_priority(uint32_t before_teid, uint32_t aft
     }
   };
 
-  // Schedule auto-removal of this indirect tunnel
+  // Schedule auto-removal of the indirect tunnel in case the End Marker is not received
+  // TS 36.300 - On detection of the "end marker", the target eNB may also initiate the release of the data forwarding
+  //             resource. However, the release of the data forwarding resource is implementation dependent and could
+  //             also be based on other mechanisms (e.g. timer-based mechanism).
   before_tun.rx_timer = task_sched.get_unique_timer();
-  before_tun.rx_timer.set(500, [this, before_teid](uint32_t tid) {
-    // This will self-destruct the callback object
+  before_tun.rx_timer.set(gtpu_args->indirect_tunnel_timeout_msec, [this, before_teid](uint32_t tid) {
+    // Note: This will self-destruct the callback object
     remove_tunnel(before_teid);
   });
   before_tun.rx_timer.run();
@@ -323,18 +327,14 @@ gtpu::~gtpu()
   stop();
 }
 
-int gtpu::init(std::string                  gtp_bind_addr_,
-               std::string                  mme_addr_,
-               std::string                  m1u_multiaddr_,
-               std::string                  m1u_if_addr_,
-               srsenb::pdcp_interface_gtpu* pdcp_,
-               bool                         enable_mbsfn_)
+int gtpu::init(const gtpu_args_t& gtpu_args, pdcp_interface_gtpu* pdcp_)
 {
+  args          = gtpu_args;
   pdcp          = pdcp_;
-  gtp_bind_addr = gtp_bind_addr_;
-  mme_addr      = mme_addr_;
+  gtp_bind_addr = gtpu_args.gtp_bind_addr;
+  mme_addr      = gtpu_args.mme_addr;
 
-  tunnels.init(pdcp);
+  tunnels.init(args, pdcp);
 
   char errbuf[128] = {};
 
@@ -374,9 +374,8 @@ int gtpu::init(std::string                  gtp_bind_addr_,
   rx_socket_handler->add_socket_handler(fd, srsran::make_sdu_handler(logger, gtpu_queue, rx_callback));
 
   // Start MCH socket if enabled
-  enable_mbsfn = enable_mbsfn_;
-  if (enable_mbsfn) {
-    if (not m1u.init(m1u_multiaddr_, m1u_if_addr_)) {
+  if (args.embms_enable) {
+    if (not m1u.init(args.embms_m1u_multiaddr, args.embms_m1u_if_addr)) {
       return SRSRAN_ERROR;
     }
   }

@@ -133,12 +133,15 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
     stack_logger.error("Couldn't initialize S1AP");
     return SRSRAN_ERROR;
   }
-  if (gtpu.init(args.s1ap.gtp_bind_addr,
-                args.s1ap.mme_addr,
-                args.embms.m1u_multiaddr,
-                args.embms.m1u_if_addr,
-                &pdcp,
-                args.embms.enable)) {
+
+  gtpu_args_t gtpu_args;
+  gtpu_args.embms_enable                 = args.embms.enable;
+  gtpu_args.embms_m1u_multiaddr          = args.embms.m1u_multiaddr;
+  gtpu_args.embms_m1u_if_addr            = args.embms.m1u_if_addr;
+  gtpu_args.mme_addr                     = args.s1ap.mme_addr;
+  gtpu_args.gtp_bind_addr                = args.s1ap.gtp_bind_addr;
+  gtpu_args.indirect_tunnel_timeout_msec = args.gtpu_indirect_tunnel_timeout_msec;
+  if (gtpu.init(gtpu_args, &pdcp) != SRSRAN_SUCCESS) {
     stack_logger.error("Couldn't initialize GTPU");
     return SRSRAN_ERROR;
   }

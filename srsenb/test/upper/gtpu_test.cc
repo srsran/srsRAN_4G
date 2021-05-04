@@ -232,8 +232,12 @@ int test_gtpu_direct_tunneling(tunnel_test_event event)
   dummy_socket_manager   senb_rx_sockets, tenb_rx_sockets;
   srsenb::gtpu senb_gtpu(&task_sched, logger1, &senb_rx_sockets), tenb_gtpu(&task_sched, logger2, &tenb_rx_sockets);
   pdcp_tester  senb_pdcp, tenb_pdcp;
-  senb_gtpu.init(senb_addr_str, sgw_addr_str, "", "", &senb_pdcp, false);
-  tenb_gtpu.init(tenb_addr_str, sgw_addr_str, "", "", &tenb_pdcp, false);
+  gtpu_args_t  gtpu_args;
+  gtpu_args.gtp_bind_addr = senb_addr_str;
+  gtpu_args.mme_addr      = sgw_addr_str;
+  senb_gtpu.init(gtpu_args, &senb_pdcp);
+  gtpu_args.gtp_bind_addr = tenb_addr_str;
+  tenb_gtpu.init(gtpu_args, &tenb_pdcp);
 
   // create tunnels MME-SeNB and MME-TeNB
   uint32_t senb_teid_in = senb_gtpu.add_bearer(rnti, drb1, sgw_addr, sgw_teidout1).value();

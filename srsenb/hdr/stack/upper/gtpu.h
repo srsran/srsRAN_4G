@@ -90,7 +90,7 @@ public:
   using ue_lcid_tunnel_list = srsran::bounded_vector<lcid_tunnel, MAX_TUNNELS_PER_UE>;
 
   explicit gtpu_tunnel_manager(srsran::task_sched_handle task_sched_, srslog::basic_logger& logger);
-  void init(pdcp_interface_gtpu* pdcp_);
+  void init(const gtpu_args_t& gtpu_args, pdcp_interface_gtpu* pdcp_);
 
   bool                      has_teid(uint32_t teid) const { return tunnels.contains(teid); }
   const tunnel*             find_tunnel(uint32_t teid);
@@ -116,7 +116,8 @@ private:
   using tunnel_ctxt_it = typename tunnel_list_t::iterator;
 
   srsran::task_sched_handle task_sched;
-  pdcp_interface_gtpu*      pdcp = nullptr;
+  const gtpu_args_t*        gtpu_args = nullptr;
+  pdcp_interface_gtpu*      pdcp      = nullptr;
   srslog::basic_logger&     logger;
 
   srsran::static_circular_map<uint16_t, ue_lcid_tunnel_list, SRSENB_MAX_UES> ue_teidin_db;
@@ -134,12 +135,7 @@ public:
                 srsran::socket_manager_itf* rx_socket_handler_);
   ~gtpu();
 
-  int  init(std::string          gtp_bind_addr_,
-            std::string          mme_addr_,
-            std::string          m1u_multiaddr_,
-            std::string          m1u_if_addr_,
-            pdcp_interface_gtpu* pdcp_,
-            bool                 enable_mbsfn = false);
+  int  init(const gtpu_args_t& gtpu_args, pdcp_interface_gtpu* pdcp_);
   void stop();
 
   // gtpu_interface_rrc
@@ -168,7 +164,7 @@ private:
   srsran::socket_manager_itf* rx_socket_handler = nullptr;
   srsran::task_queue_handle   gtpu_queue;
 
-  bool                         enable_mbsfn = false;
+  gtpu_args_t                  args;
   std::string                  gtp_bind_addr;
   std::string                  mme_addr;
   srsenb::pdcp_interface_gtpu* pdcp = nullptr;
