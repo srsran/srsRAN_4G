@@ -735,7 +735,7 @@ uint32_t rrc::generate_sibs()
         return SRSRAN_ERROR;
       }
       asn1::bit_ref bref(sib_buffer->msg, sib_buffer->get_tailroom());
-      if (msg[msg_index].pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
+      if (msg[msg_index].pack(bref) != asn1::SRSASN_SUCCESS) {
         logger.error("Failed to pack SIB message %d", msg_index);
         return SRSRAN_ERROR;
       }
@@ -889,7 +889,10 @@ int rrc::pack_mcch()
 
   const int     rlc_header_len = 1;
   asn1::bit_ref bref(&mcch_payload_buffer[rlc_header_len], sizeof(mcch_payload_buffer) - rlc_header_len);
-  mcch.pack(bref);
+  if (mcch.pack(bref) != asn1::SRSASN_SUCCESS) {
+    logger.error("Failed to pack MCCH message");
+  }
+
   current_mcch_length = bref.distance_bytes(&mcch_payload_buffer[1]);
   current_mcch_length = current_mcch_length + rlc_header_len;
   return current_mcch_length;

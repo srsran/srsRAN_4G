@@ -911,7 +911,10 @@ bool rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
     dest.resize(bref2.distance_bytes());
     memcpy(dest.data(), pdu->msg, bref2.distance_bytes());
     bref2 = asn1::bit_ref{pdu->msg, pdu->get_tailroom()};
-    ue_rat_caps.pack(bref2);
+    if (ue_rat_caps.pack(bref2) != asn1::SRSASN_SUCCESS) {
+      parent->logger.error("Couldn't pack ue rat caps");
+      return false;
+    }
     pdu->N_bytes = bref2.distance_bytes();
     parent->s1ap->send_ue_cap_info_indication(rnti, std::move(pdu));
   }

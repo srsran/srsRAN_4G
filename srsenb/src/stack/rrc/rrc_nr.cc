@@ -215,7 +215,10 @@ int32_t rrc_nr::generate_sibs()
       return SRSRAN_ERROR;
     }
     asn1::bit_ref bref(mib_buf->msg, mib_buf->get_tailroom());
-    mib_msg.pack(bref);
+    if (mib_msg.pack(bref) != asn1::SRSASN_SUCCESS) {
+      logger.error("Couldn't pack mib msg");
+      return SRSRAN_ERROR;
+    }
     mib_buf->N_bytes = bref.distance_bytes();
     logger.debug(mib_buf->msg, mib_buf->N_bytes, "MIB payload (%d B)", mib_buf->N_bytes);
     mib_buffer = std::move(mib_buf);
@@ -253,7 +256,10 @@ int32_t rrc_nr::generate_sibs()
       return SRSRAN_ERROR;
     }
     asn1::bit_ref bref(sib->msg, sib->get_tailroom());
-    msg[msg_index].pack(bref);
+    if (msg[msg_index].pack(bref) != asn1::SRSASN_SUCCESS) {
+      logger.error("Failed to pack SIB message %d", msg_index);
+      return SRSRAN_ERROR;
+    }
     sib->N_bytes = bref.distance_bytes();
     sib_buffer.push_back(std::move(sib));
 
