@@ -53,6 +53,9 @@ extern "C" {
 // Exponential moving average
 #define SRSRAN_VEC_EMA(data, average, alpha) ((alpha) * (data) + (1 - alpha) * (average))
 
+// Safe exponential moving average
+#define SRSRAN_VEC_SAFE_EMA(data, average, alpha) (isnormal(average) ? SRSRAN_VEC_EMA(data, average, alpha) : (data))
+
 static inline float srsran_convert_amplitude_to_dB(float v)
 {
   return 20.0f * log10f(v);
