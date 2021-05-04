@@ -189,16 +189,12 @@ static ra_nr_table_t ra_nr_select_table_pdsch(srsran_mcs_table_t         mcs_tab
                                               srsran_search_space_type_t search_space_type,
                                               srsran_rnti_type_t         rnti_type)
 {
-  // Non-implemented parameters
-  bool sps_config_mcs_table_present = false;
-  bool is_pdcch_sps                 = false;
-
   // - the higher layer parameter mcs-Table given by PDSCH-Config is set to 'qam256', and
   // - the PDSCH is scheduled by a PDCCH with DCI format 1_1 with
   // - CRC scrambled by C-RNTI
   if (mcs_table == srsran_mcs_table_256qam && dci_format == srsran_dci_format_nr_1_1 &&
       rnti_type == srsran_rnti_type_c) {
-    return ra_nr_table_1;
+    return ra_nr_table_2;
   }
 
   // the UE is not configured with MCS-C-RNTI,
@@ -214,10 +210,10 @@ static ra_nr_table_t ra_nr_select_table_pdsch(srsran_mcs_table_t         mcs_tab
   // - the higher layer parameter mcs-Table given by PDSCH-Config is set to 'qam256',
   //   - if the PDSCH is scheduled by a PDCCH with DCI format 1_1 with CRC scrambled by CS-RNTI or
   //   - if the PDSCH is scheduled without corresponding PDCCH transmission using SPS-Config,
-  if (!sps_config_mcs_table_present && mcs_table == srsran_mcs_table_256qam &&
-      ((dci_format == srsran_dci_format_nr_1_1 && rnti_type == srsran_rnti_type_c) || (!is_pdcch_sps))) {
-    return ra_nr_table_2;
-  }
+  //  if (!sps_config_mcs_table_present && mcs_table == srsran_mcs_table_256qam &&
+  //      ((dci_format == srsran_dci_format_nr_1_1 && rnti_type == srsran_rnti_type_cs) || (!is_pdcch_sps))) {
+  //    return ra_nr_table_2;
+  //  }
 
   // - the UE is configured with the higher layer parameter mcs-Table given by SPS-Config set to 'qam64LowSE'
   //   - if the PDSCH is scheduled by a PDCCH with CRC scrambled by CS-RNTI or
