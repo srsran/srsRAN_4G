@@ -47,21 +47,22 @@ struct rrc_meas_cfg_t {
 
 // Cell/Sector configuration
 struct cell_cfg_t {
-  uint32_t                 rf_port;
-  uint32_t                 cell_id;
-  uint16_t                 tac;
-  uint32_t                 pci;
-  uint16_t                 root_seq_idx;
-  uint32_t                 dl_earfcn;
-  double                   dl_freq_hz;
-  uint32_t                 ul_earfcn;
-  double                   ul_freq_hz;
-  int                      target_pucch_sinr_db;
-  int                      target_pusch_sinr_db;
-  uint32_t                 initial_dl_cqi;
-  bool                     enable_phr_handling;
-  std::vector<scell_cfg_t> scell_list;
-  rrc_meas_cfg_t           meas_cfg;
+  uint32_t                            rf_port;
+  uint32_t                            cell_id;
+  uint16_t                            tac;
+  uint32_t                            pci;
+  uint16_t                            root_seq_idx;
+  uint32_t                            dl_earfcn;
+  double                              dl_freq_hz;
+  uint32_t                            ul_earfcn;
+  double                              ul_freq_hz;
+  int                                 target_pucch_sinr_db;
+  int                                 target_pusch_sinr_db;
+  uint32_t                            initial_dl_cqi;
+  bool                                enable_phr_handling;
+  asn1::rrc::mob_ctrl_info_s::t304_e_ t304;
+  std::vector<scell_cfg_t>            scell_list;
+  rrc_meas_cfg_t                      meas_cfg;
 };
 
 typedef std::vector<cell_cfg_t> cell_list_t;

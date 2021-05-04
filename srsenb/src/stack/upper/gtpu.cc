@@ -247,6 +247,9 @@ void gtpu_tunnel_manager::set_tunnel_priority(uint32_t before_teid, uint32_t aft
   before_tun.rx_timer = task_sched.get_unique_timer();
   before_tun.rx_timer.set(gtpu_args->indirect_tunnel_timeout_msec, [this, before_teid](uint32_t tid) {
     // Note: This will self-destruct the callback object
+    logger.info("Forwarding tunnel " TEID_IN_FMT "being closed after timeout=%d msec",
+                before_teid,
+                gtpu_args->indirect_tunnel_timeout_msec);
     remove_tunnel(before_teid);
   });
   before_tun.rx_timer.run();

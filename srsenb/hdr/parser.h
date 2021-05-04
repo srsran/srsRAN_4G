@@ -466,6 +466,12 @@ int opt_number_to_enum(EnumType& enum_val, bool& presence_flag, Setting& root, c
   return parse_opt_field(enum_val, root, name, number_to_enum<EnumType>, &presence_flag);
 }
 
+template <typename EnumType>
+int default_number_to_enum(EnumType& enum_val, Setting& root, const char* name, typename EnumType::options default_val)
+{
+  return parse_default_field(enum_val, root, name, EnumType(default_val), number_to_enum<EnumType>);
+}
+
 } // namespace asn1_parsers
 
 } // namespace srsenb

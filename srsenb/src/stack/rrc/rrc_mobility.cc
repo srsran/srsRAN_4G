@@ -491,7 +491,7 @@ void rrc::ue::rrc_mobility::fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s
   recfg_r8.mob_ctrl_info_present = true;
   auto& mob_info                 = recfg_r8.mob_ctrl_info;
   mob_info.target_pci            = target_cell.cell_cfg.pci;
-  mob_info.t304.value            = mob_ctrl_info_s::t304_opts::ms2000; // TODO: make it reconfigurable
+  mob_info.t304                  = target_cell.cell_cfg.t304;
   mob_info.new_ue_id.from_number(rrc_ue->rnti);
   mob_info.rr_cfg_common.pusch_cfg_common       = target_cell.sib2.rr_cfg_common.pusch_cfg_common;
   mob_info.rr_cfg_common.prach_cfg.root_seq_idx = target_cell.sib2.rr_cfg_common.prach_cfg.root_seq_idx;

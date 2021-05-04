@@ -65,6 +65,7 @@ cell_list =
     // target_pusch_sinr = -1;
     // target_pucch_sinr = -1;
     // allowed_meas_bw = 6;
+    // t304 = 2000; // in msec. possible values: 50, 100, 150, 200, 500, 1000, 2000
 
     // CA cells
     scell_list = (

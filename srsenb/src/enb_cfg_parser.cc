@@ -44,6 +44,17 @@ using namespace asn1::rrc;
 
 namespace srsenb {
 
+template <typename T>
+bool contains_value(T value, const std::initializer_list<T>& list)
+{
+  for (auto& v : list) {
+    if (v == value) {
+      return true;
+    }
+  }
+  return false;
+}
+
 bool sib_is_present(const sched_info_list_l& l, sib_type_e sib_num)
 {
   for (uint32_t i = 0; i < l.size(); i++) {
@@ -754,6 +765,8 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
     HANDLEPARSERCODE(parse_default_field(cell_cfg.enable_phr_handling, cellroot, "enable_phr_handling", false));
     parse_default_field(cell_cfg.meas_cfg.allowed_meas_bw, cellroot, "allowed_meas_bw", 6u);
     srsran_assert(srsran::is_lte_cell_nof_prb(cell_cfg.meas_cfg.allowed_meas_bw), "Invalid measurement Bandwidth");
+    HANDLEPARSERCODE(asn1_parsers::default_number_to_enum(
+        cell_cfg.t304, cellroot, "t304", asn1::rrc::mob_ctrl_info_s::t304_opts::ms2000));
 
     if (cellroot.exists("ho_active") and cellroot["ho_active"]) {
       HANDLEPARSERCODE(parse_meas_cell_list(&cell_cfg.meas_cfg, cellroot["meas_cell_list"]));

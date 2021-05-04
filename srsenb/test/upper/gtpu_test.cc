@@ -155,8 +155,10 @@ void test_gtpu_tunnel_manager()
   uint32_t               sgw_addr  = ntohl(sgw_sockaddr.sin_addr.s_addr);
   const uint32_t         drb1_lcid = 3;
   srsran::task_scheduler task_sched;
+  gtpu_args_t            gtpu_args = {};
 
   gtpu_tunnel_manager tunnels(&task_sched, srslog::fetch_basic_logger("GTPU"));
+  tunnels.init(gtpu_args, nullptr);
   TESTASSERT(tunnels.find_tunnel(0) == nullptr);
   TESTASSERT(tunnels.find_rnti_lcid_tunnels(0x46, drb1_lcid).empty());
   TESTASSERT(tunnels.find_rnti_tunnels(0x46) == nullptr);
@@ -324,7 +326,7 @@ int test_gtpu_direct_tunneling(tunnel_test_event event)
   TESTASSERT(tenb_pdcp.last_sdu == nullptr);
   if (event == tunnel_test_event::wait_end_marker_timeout) {
     // TEST: EndMarker does not reach TeNB, but there is a timeout that will resume the new GTPU tunnel
-    for (size_t i = 0; i < 1000; ++i) {
+    for (size_t i = 0; i < gtpu_args.indirect_tunnel_timeout_msec + 1; ++i) {
       task_sched.tic();
     }
   } else {
