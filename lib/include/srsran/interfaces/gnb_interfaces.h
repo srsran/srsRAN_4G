@@ -159,18 +159,6 @@ class rrc_interface_pdcp_nr
 public:
   virtual void write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu) = 0;
 };
-class rrc_interface_ngap_nr
-{
-public:
-};
-
-/*****************************
- *      NGAP INTERFACES
- ****************************/
-class ngap_interface_rrc_nr
-{
-public:
-};
 
 class phy_interface_stack_nr
 {

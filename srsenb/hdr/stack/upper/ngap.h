@@ -1,0 +1,134 @@
+/**
+ *
+ * \section COPYRIGHT
+ *
+ * Copyright 2013-2021 Software Radio Systems Limited
+ *
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
+ *
+ */
+#ifndef SRSENB_NGAP_H
+#define SRSENB_NGAP_H
+
+#include "srsenb/hdr/common/common_enb.h"
+#include "srsran/adt/circular_map.h"
+#include "srsran/asn1/asn1_utils.h"
+#include "srsran/asn1/ngap.h"
+#include "srsran/common/bcd_helpers.h"
+#include "srsran/common/buffer_pool.h"
+#include "srsran/common/common.h"
+#include "srsran/common/network_utils.h"
+#include "srsran/common/stack_procedure.h"
+#include "srsran/common/standard_streams.h"
+#include "srsran/common/task_scheduler.h"
+#include "srsran/common/threads.h"
+#include "srsran/interfaces/gnb_ngap_interfaces.h"
+#include "srsran/interfaces/gnb_rrc_nr_interfaces.h"
+#include "srsran/srslog/srslog.h"
+
+namespace srsenb {
+class ngap : public ngap_interface_rrc_nr
+{
+public:
+  ngap(srsran::task_sched_handle   task_sched_,
+       srslog::basic_logger&       logger,
+       srsran::socket_manager_itf* rx_socket_handler);
+  int  init(ngap_args_t args_, rrc_interface_ngap_nr* rrc_);
+  void stop();
+
+  // RRC NR interface
+  void initial_ue(uint16_t                                rnti,
+                  uint32_t                                gnb_cc_idx,
+                  asn1::ngap_nr::rrcestablishment_cause_e cause,
+                  srsran::unique_byte_buffer_t            pdu){};
+  void initial_ue(uint16_t                                rnti,
+                  uint32_t                                gnb_cc_idx,
+                  asn1::ngap_nr::rrcestablishment_cause_e cause,
+                  srsran::unique_byte_buffer_t            pdu,
+                  uint32_t                                m_tmsi,
+                  uint8_t                                 mmec){};
+  void write_pdu(uint16_t rnti, srsran::unique_byte_buffer_t pdu){};
+  bool user_exists(uint16_t rnti) { return true; };
+  void user_mod(uint16_t old_rnti, uint16_t new_rnti){};
+  bool user_release(uint16_t rnti, asn1::ngap_nr::cause_radio_network_e cause_radio) { return true; };
+  bool is_amf_connected();
+
+  /// TS 36.413, 8.3.1 - Initial Context Setup
+  void ue_ctxt_setup_complete(uint16_t rnti){};
+
+  // Stack interface
+  bool
+  handle_amf_rx_msg(srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags);
+
+private:
+  static const int AMF_PORT        = 38412;
+  static const int ADDR_FAMILY     = AF_INET;
+  static const int SOCK_TYPE       = SOCK_STREAM;
+  static const int PROTO           = IPPROTO_SCTP;
+  static const int PPID            = 60;
+  static const int NONUE_STREAM_ID = 0;
+
+  // args
+  rrc_interface_ngap_nr*      rrc = nullptr;
+  ngap_args_t                 args;
+  srslog::basic_logger&       logger;
+  srsran::task_sched_handle   task_sched;
+  srsran::task_queue_handle   amf_task_queue;
+  srsran::socket_manager_itf* rx_socket_handler;
+
+  srsran::unique_socket amf_socket;
+  struct sockaddr_in    amf_addr            = {}; // AMF address
+  bool                  amf_connected       = false;
+  bool                  running             = false;
+  uint32_t              next_enb_ue_ngap_id = 1; // Next ENB-side UE identifier
+  uint16_t              next_ue_stream_id   = 1; // Next UE SCTP stream identifier
+  srsran::unique_timer  amf_connect_timer, ngsetup_timeout;
+
+  // Protocol IEs sent with every UL NGAP message
+  asn1::ngap_nr::tai_s    tai;
+  asn1::ngap_nr::nr_cgi_s nr_cgi;
+
+  asn1::ngap_nr::ng_setup_resp_s ngsetupresponse;
+
+  // procedures
+  class ng_setup_proc_t
+  {
+  public:
+    struct ngsetupresult {
+      bool success = false;
+      enum class cause_t { timeout, failure } cause;
+    };
+
+    explicit ng_setup_proc_t(ngap* ngap_) : ngap_ptr(ngap_) {}
+    srsran::proc_outcome_t init();
+    srsran::proc_outcome_t step() { return srsran::proc_outcome_t::yield; }
+    srsran::proc_outcome_t react(const ngsetupresult& event);
+    void                   then(const srsran::proc_state_t& result) const;
+    const char*            name() const { return "AMF Connection"; }
+
+  private:
+    srsran::proc_outcome_t start_amf_connection();
+
+    ngap* ngap_ptr = nullptr;
+  };
+
+  void build_tai_cgi();
+  bool connect_amf();
+  bool setup_ng();
+  bool sctp_send_ngap_pdu(const asn1::ngap_nr::ngap_pdu_c& tx_pdu, uint32_t rnti, const char* procedure_name);
+
+  bool handle_ngap_rx_pdu(srsran::byte_buffer_t* pdu);
+  bool handle_successfuloutcome(const asn1::ngap_nr::successful_outcome_s& msg);
+
+  bool handle_ngsetupresponse(const asn1::ngap_nr::ng_setup_resp_s& msg);
+
+  srsran::proc_t<ng_setup_proc_t> ngsetup_proc;
+
+  std::string get_cause(const asn1::ngap_nr::cause_c& c);
+  void        log_ngap_msg(const asn1::ngap_nr::ngap_pdu_c& msg, srsran::const_span<uint8_t> sdu, bool is_rx);
+};
+
+} // namespace srsenb
+#endif
