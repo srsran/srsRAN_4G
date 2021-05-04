@@ -15,12 +15,18 @@
 
 #include "uci_cfg_nr.h"
 
+SRSRAN_API int
+srsran_csi_new_nzp_csi_rs_measurement(const srsran_csi_hl_resource_cfg_t csi_resources[SRSRAN_CSI_MAX_NOF_RESOURCES],
+                                      srsran_csi_measurements_t          measurements[SRSRAN_CSI_MAX_NOF_RESOURCES],
+                                      const srsran_csi_measurements_t*   new_measure,
+                                      uint32_t                           nzp_csi_rs_id);
+
 /**
- * @brief Fills Uplink Control Information data with triggered reports for the given slot
- * @param cfg CSI report configuration
+ * @brief Generates CSI report configuration and values from the higher layer configuration and a list of measurements
+ * @param cfg Higher layer report configuration
  * @param slot_idx Slot index within the radio frame
- * @param measurements CSI measurements
- * @param[out] uci_data Uplink Control Information data
+ * @param measurements Filtered CSI measurements
+ * @param[out] report_cfg Report configuration re
  * @return The number CSI reports for transmission if the provided data is valid, SRSRAN_ERROR code otherwise
  */
 SRSRAN_API int srsran_csi_generate_reports(const srsran_csi_hl_cfg_t*      cfg,

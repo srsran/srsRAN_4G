@@ -17,6 +17,8 @@
 
 #define CSI_WIDEBAND_CSI_NOF_BITS 4
 
+#define CSI_DEFAULT_ALPHA 0.5f
+
 /// Implements SNRI to CQI conversion
 uint32_t csi_snri_db_to_cqi(srsran_csi_cqi_table_t table, float snri_db)
 {
@@ -140,6 +142,52 @@ csi_none_unpack(const srsran_csi_report_cfg_t* cfg, const uint8_t* o_csi1, srsra
   srsran_vec_u8_copy((uint8_t*)value->none, o_csi1, cfg->K_csi_rs);
 
   return cfg->K_csi_rs;
+}
+
+int srsran_csi_new_nzp_csi_rs_measurement(
+    const srsran_csi_hl_resource_cfg_t csi_resources[SRSRAN_CSI_MAX_NOF_RESOURCES],
+    srsran_csi_measurements_t          measurements[SRSRAN_CSI_MAX_NOF_RESOURCES],
+    const srsran_csi_measurements_t*   new_measure,
+    uint32_t                           nzp_csi_rs_id)
+{
+  if (csi_resources == NULL || measurements == NULL || new_measure == NULL) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+
+  // Iterate all resources
+  for (uint32_t res_idx = 0; res_idx < SRSRAN_CSI_MAX_NOF_RESOURCES; res_idx++) {
+    // Skip resource is set to none
+    if (csi_resources[res_idx].type != SRSRAN_CSI_HL_RESOURCE_CFG_TYPE_NZP_CSI_RS_SSB) {
+      continue;
+    }
+
+    // Look for the NZP-CSI reource set
+    bool present = false;
+    for (uint32_t i = 0; i < SRSRAN_CSI_MAX_NOF_NZP_CSI_RS_RESOURCE_SETS_X_CONFIG && !present; i++) {
+      if (csi_resources[res_idx].nzp_csi_rs_ssb.nzp_csi_rs_resource_set_id_list[i] == nzp_csi_rs_id) {
+        present = true;
+      }
+    }
+
+    // Skip Resource if it does not contain the NZP-CSI-RS set
+    if (!present) {
+      continue;
+    }
+
+    // Filter measurements
+    measurements[res_idx].wideband_rsrp_dBm =
+        SRSRAN_VEC_SAFE_EMA(new_measure->wideband_rsrp_dBm, measurements[res_idx].wideband_rsrp_dBm, CSI_DEFAULT_ALPHA);
+    measurements[res_idx].wideband_epre_dBm =
+        SRSRAN_VEC_SAFE_EMA(new_measure->wideband_epre_dBm, measurements[res_idx].wideband_epre_dBm, CSI_DEFAULT_ALPHA);
+    measurements[res_idx].wideband_snr_db =
+        SRSRAN_VEC_SAFE_EMA(new_measure->wideband_snr_db, measurements[res_idx].wideband_snr_db, CSI_DEFAULT_ALPHA);
+
+    // Force rest
+    measurements[res_idx].cri      = new_measure->cri;
+    measurements[res_idx].K_csi_rs = new_measure->K_csi_rs;
+  }
+
+  return SRSRAN_SUCCESS;
 }
 
 int srsran_csi_generate_reports(const srsran_csi_hl_cfg_t*      cfg,

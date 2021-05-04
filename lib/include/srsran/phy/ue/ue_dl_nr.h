@@ -13,9 +13,11 @@
 #ifndef SRSRAN_UE_DL_NR_H
 #define SRSRAN_UE_DL_NR_H
 
+#include "srsran/phy/ch_estimation/csi_rs.h"
 #include "srsran/phy/ch_estimation/dmrs_pdcch.h"
 #include "srsran/phy/common/phy_common_nr.h"
 #include "srsran/phy/dft/ofdm.h"
+#include "srsran/phy/phch/csi.h"
 #include "srsran/phy/phch/dci_nr.h"
 #include "srsran/phy/phch/pdcch_cfg_nr.h"
 #include "srsran/phy/phch/pdcch_nr.h"
@@ -170,5 +172,11 @@ SRSRAN_API int srsran_ue_dl_nr_gen_ack(const srsran_ue_dl_nr_harq_ack_cfg_t* cfg
 SRSRAN_API int srsran_ue_dl_nr_ack_insert_m(srsran_pdsch_ack_nr_t* ack_info, srsran_pdsch_ack_m_nr_t* m);
 
 SRSRAN_API uint32_t srsran_ue_dl_nr_ack_info(const srsran_pdsch_ack_nr_t* ack_info, char* str, uint32_t str_len);
+
+SRSRAN_API
+int srsran_ue_dl_nr_csi_measure(const srsran_ue_dl_nr_t*       q,
+                                const srsran_slot_cfg_t*       slot_cfg,
+                                const srsran_csi_rs_nzp_set_t* csi_rs_nzp_set,
+                                srsran_csi_measurements_t*     measurement);
 
 #endif // SRSRAN_UE_DL_NR_H
