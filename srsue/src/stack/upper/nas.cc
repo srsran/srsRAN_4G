@@ -46,7 +46,7 @@ nas::nas(srsran::task_sched_handle task_sched_) :
   logger(srslog::fetch_basic_logger("NAS"))
 {}
 
-void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_nas* gw_, const nas_args_t& cfg_)
+int nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_nas* gw_, const nas_args_t& cfg_)
 {
   usim = usim_;
   rrc  = rrc_;
@@ -105,6 +105,7 @@ void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_
   }
 
   running = true;
+  return SRSRAN_SUCCESS;
 }
 
 nas::~nas() {}
