@@ -140,6 +140,47 @@ extern "C" {
  */
 #define SRSRAN_MAX_HARQ_PROC_UL_NR 16 // 3GPP TS 38.214 version 15.3.0 Sec. 6.1
 
+/**
+ * @brief SSB bandwidth in subcarriers, described in TS 38.211 section 7.4.3.1 Time-frequency structure of an SS/PBCH
+ * block
+ */
+#define SRSRAN_SSB_BW_SUBC 240
+
+/**
+ * @brief SSB duration in symbols, described in TS 38.211 section 7.4.3.1 Time-frequency structure of an SS/PBCH block
+ */
+#define SRSRAN_SSB_DURATION_NSYMB 4
+
+/**
+ * @brief Number of NR N_id_1 Physical Cell Identifier (PCI) as described in TS 38.211 section 7.4.2.1 Physical-layer
+ * cell identities
+ */
+#define SRSRAN_NOF_N_ID_1 336
+
+/**
+ * @brief Number of NR N_id_2 Physical Cell Identifier (PCI) as described in TS 38.211 section 7.4.2.1 Physical-layer
+ * cell identities
+ */
+#define SRSRAN_NOF_N_ID_2 3
+
+/**
+ * @brief Compute N_id_1 from the Physical Cell Identifier (PCI) as described in TS 38.211 section 7.4.2.1
+ * Physical-layer cell identities
+ */
+#define SRSRAN_N_ID_1(N_ID) ((N_ID) / SRSRAN_NOF_N_ID_2)
+
+/**
+ * @brief Compute N_id_2 from the Physical Cell Identifier (PCI) as described in TS 38.211 section 7.4.2.1
+ * Physical-layer cell identities
+ */
+#define SRSRAN_N_ID_2(N_ID) ((N_ID) % SRSRAN_NOF_N_ID_2)
+
+/**
+ * @brief SSB number of resource elements, described in TS 38.211 section 7.4.3.1 Time-frequency structure of an SS/PBCH
+ * block
+ */
+#define SRSRAN_SSB_NOF_RE (SRSRAN_SSB_BW_SUBC * SRSRAN_SSB_DURATION_NSYMB)
+
 typedef enum SRSRAN_API {
   srsran_coreset_mapping_type_non_interleaved = 0,
   srsran_coreset_mapping_type_interleaved,
