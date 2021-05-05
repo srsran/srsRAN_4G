@@ -224,8 +224,26 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
     cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::unknown_erab_id;
     return SRSRAN_ERROR;
   }
-  uint8_t lcid  = erab_id - 2; // Map e.g. E-RAB 5 to LCID 3 (==DRB1)
-  uint8_t drbid = erab_id - 4;
+
+  uint8_t lcid = 3; // first E-RAB with DRB1 gets LCID3
+  for (const auto& drb : current_drbs) {
+    if (drb.lc_ch_id == lcid) {
+      lcid++;
+    }
+  }
+  if (lcid > srsran::MAX_LTE_LCID) {
+    logger->error("Can't allocate LCID for ERAB id=%d", erab_id);
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::radio_res_not_available;
+    return SRSRAN_ERROR;
+  }
+
+  // We currently have this static mapping between LCID->DRB ID
+  uint8_t drbid = lcid - 2;
+  if (drbid > srsran::MAX_LTE_DRB_ID) {
+    logger->error("Can't allocate DRB ID for ERAB id=%d", erab_id);
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::radio_res_not_available;
+    return SRSRAN_ERROR;
+  }
 
   auto qci_it = cfg->qci_cfg.find(qos.qci);
   if (qci_it == cfg->qci_cfg.end() or not qci_it->second.configured) {
@@ -241,6 +259,7 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
   const rrc_cfg_qci_t& qci_cfg = qci_it->second;
 
   erabs[erab_id].id         = erab_id;
+  erabs[erab_id].lcid       = lcid;
   erabs[erab_id].qos_params = qos;
   erabs[erab_id].address    = addr;
   erabs[erab_id].teid_out   = teid_out;
@@ -376,7 +395,7 @@ srsran::expected<uint32_t> bearer_cfg_handler::add_gtpu_bearer(uint32_t         
   erab_t::gtpu_tunnel bearer;
   bearer.teid_out                   = teid_out;
   bearer.addr                       = addr;
-  srsran::expected<uint32_t> teidin = gtpu->add_bearer(rnti, erab.id - 2, addr, teid_out, props);
+  srsran::expected<uint32_t> teidin = gtpu->add_bearer(rnti, erab.lcid, addr, teid_out, props);
   if (teidin.is_error()) {
     logger->error("Adding erab_id=%d to GTPU", erab_id);
     return srsran::default_error_t();
@@ -388,7 +407,12 @@ srsran::expected<uint32_t> bearer_cfg_handler::add_gtpu_bearer(uint32_t         
 
 void bearer_cfg_handler::rem_gtpu_bearer(uint32_t erab_id)
 {
-  gtpu->rem_bearer(rnti, erab_id - 2);
+  auto it = erabs.find(erab_id);
+  if (it == erabs.end()) {
+    logger->error("Removing erab_id=%d from GTPU", erab_id);
+    return;
+  }
+  gtpu->rem_bearer(rnti, it->second.lcid);
 }
 
 void bearer_cfg_handler::fill_pending_nas_info(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg)

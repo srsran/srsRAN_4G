@@ -54,7 +54,7 @@ public:
 
   struct tunnel {
     uint16_t rnti      = SRSRAN_INVALID_RNTI;
-    uint32_t lcid      = srsran::MAX_NOF_BEARERS;
+    uint32_t lcid      = srsran::INVALID_LCID;
     uint32_t teid_in   = 0;
     uint32_t teid_out  = 0;
     uint32_t spgw_addr = 0;

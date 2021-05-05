@@ -573,7 +573,7 @@ rrc::ue::rrc_mobility::s1_source_ho_st::start_enb_status_transfer(const asn1::s1
 
   for (const auto& erab_pair : rrc_ue->bearer_list.get_erabs()) {
     s1ap_interface_rrc::bearer_status_info b    = {};
-    uint8_t                                lcid = erab_pair.second.id - 2u;
+    uint8_t                                lcid = erab_pair.second.lcid;
     b.erab_id                                   = erab_pair.second.id;
     srsran::pdcp_lte_state_t pdcp_state         = {};
     if (not rrc_enb->pdcp->get_bearer_state(rrc_ue->rnti, lcid, &pdcp_state)) {
