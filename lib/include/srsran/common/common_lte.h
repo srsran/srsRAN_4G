@@ -59,11 +59,12 @@ enum class lte_srb { srb0, srb1, srb2, count };
 const uint32_t MAX_LTE_SRB_ID = 2;
 enum class lte_drb { drb1 = 1, drb2, drb3, drb4, drb5, drb6, drb7, drb8, drb9, drb10, drb11, invalid };
 const uint32_t MAX_LTE_DRB_ID  = 11;
-const uint32_t MAX_NOF_BEARERS = 14;
+const uint32_t MAX_LTE_LCID    = 10; // logicalChannelIdentity 3..10 in TS 36.331 v15.3
+const uint32_t INVALID_LCID    = 99; // random invalid LCID
 
 constexpr bool is_lte_rb(uint32_t lcid)
 {
-  return lcid < MAX_NOF_BEARERS;
+  return lcid <= MAX_LTE_LCID;
 }
 
 constexpr bool is_lte_srb(uint32_t lcid)
