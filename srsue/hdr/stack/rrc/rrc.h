@@ -31,6 +31,10 @@
 #include <math.h>
 #include <queue>
 
+using srsran::byte_buffer_t;
+
+namespace srsue {
+
 #define SRSRAN_RRC_N_BANDS 43
 typedef struct {
   std::string                             ue_category_str;
@@ -52,10 +56,6 @@ typedef struct {
 #define SRSRAN_RELEASE_MIN 8
 #define SRSRAN_RELEASE_MAX 15
 #define SRSRAN_RELEASE_DEFAULT (SRSRAN_RELEASE_MAX)
-
-using srsran::byte_buffer_t;
-
-namespace srsue {
 
 class phy_controller;
 class usim_interface_rrc;

@@ -52,7 +52,7 @@ int rrc_ue_cap_info_test(srsran::mac_pcap* pcap)
   rrc_logger.set_level(srslog::basic_levels::debug);
   rrc_logger.set_hex_dump_max_size(128);
 
-  rrc_args_t args          = {};
+  srsue::rrc_args_t args   = {};
   args.feature_group       = 0xe6041c00;
   args.nof_supported_bands = 1;
   args.supported_bands[0]  = 8;
@@ -119,7 +119,7 @@ int rrc_ue_cap_info_test(srsran::mac_pcap* pcap)
 
 int pack_fail_test()
 {
-  rrc_args_t args          = {};
+  srsue::rrc_args_t args   = {};
   args.feature_group       = 0xe6041c00;
   args.nof_supported_bands = 1;
   args.supported_bands[0]  = 8;
