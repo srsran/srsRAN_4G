@@ -217,7 +217,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("expert.nof_prealloc_ues", bpo::value<uint32_t>(&args->stack.mac.nof_prealloc_ues)->default_value(8), "Number of UE resources to preallocate during eNB initialization")
     ("expert.max_mac_dl_kos", bpo::value<uint32_t>(&args->general.max_mac_dl_kos)->default_value(100), "Maximum number of consecutive KOs in DL before triggering the UE's release")
     ("expert.max_mac_ul_kos", bpo::value<uint32_t>(&args->general.max_mac_ul_kos)->default_value(100), "Maximum number of consecutive KOs in UL before triggering the UE's release")
-    ("expert.gtpu_tunnel_timeout", bpo::value<uint32_t>(&args->stack.gtpu_indirect_tunnel_timeout_msec)->default_value(2000), "Maximum time that GTPU takes to release indirect forwarding tunnel since the last received GTPU PDU.")
+    ("expert.gtpu_tunnel_timeout", bpo::value<uint32_t>(&args->stack.gtpu_indirect_tunnel_timeout_msec)->default_value(0), "Maximum time that GTPU takes to release indirect forwarding tunnel since the last received GTPU PDU. (0 for infinity)")
 
 
     // eMBMS section

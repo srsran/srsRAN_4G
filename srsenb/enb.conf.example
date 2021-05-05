@@ -307,7 +307,7 @@ enable = false
 # nof_prealloc_ues:     Number of UE memory resources to preallocate during eNB initialization for faster UE creation (Default 8)
 # eea_pref_list:        Ordered preference list for the selection of encryption algorithm (EEA) (default: EEA0, EEA2, EEA1).
 # eia_pref_list:        Ordered preference list for the selection of integrity algorithm (EIA) (default: EIA2, EIA1, EIA0).
-# gtpu_tunnel_timeout:  Maximum time that GTPU takes to release indirect forwarding tunnel since the last received GTPU PDU.
+# gtpu_tunnel_timeout:  Time that GTPU takes to release indirect forwarding tunnel since the last received GTPU PDU (0 for no timer).
 #
 #####################################################################
 [expert]
@@ -332,4 +332,4 @@ enable = false
 #nof_prealloc_ues     = 8
 #eea_pref_list = EEA0, EEA2, EEA1
 #eia_pref_list = EIA2, EIA1, EIA0
-#gtpu_tunnel_timeout = 2000
+#gtpu_tunnel_timeout = 0
