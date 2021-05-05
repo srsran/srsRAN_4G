@@ -57,8 +57,8 @@ private:
   mutable std::mutex metrics_mutex;
 
   /// CSI-RS measurements
-  std::mutex                                                          csi_measurements_mutex;
-  std::array<srsran_csi_measurements_t, SRSRAN_CSI_MAX_NOF_RESOURCES> csi_measurements = {};
+  std::mutex                                                                  csi_measurements_mutex;
+  std::array<srsran_csi_channel_measurements_t, SRSRAN_CSI_MAX_NOF_RESOURCES> csi_measurements = {};
 
   /**
    * @brief Resets all metrics (unprotected)
@@ -278,6 +278,7 @@ public:
   {
     clear_pending_grants();
     reset_metrics();
+    reset_measurements();
   }
 
   bool has_valid_sr_resource(uint32_t sr_id)
@@ -424,7 +425,22 @@ public:
     reset_metrics_();
   }
 
-  void new_nzp_csi_rs_channel_measurement(const srsran_csi_measurements_t& new_measure, uint32_t resource_set_id)
+  /**
+   * @brief Resets all PHY measurements (protected)
+   */
+  void reset_measurements()
+  {
+    std::lock_guard<std::mutex> lock(csi_measurements_mutex);
+    csi_measurements = {};
+  }
+
+  /**
+   * @brief Processes a new NZP-CSI-RS channel measurement
+   * @param new_measure New measurement
+   * @param resource_set_id NZP-CSI-RS resource set identifier used for the channel measurement
+   */
+  void new_nzp_csi_rs_channel_measurement(const srsran_csi_channel_measurements_t& new_measure,
+                                          uint32_t                                 resource_set_id)
   {
     std::lock_guard<std::mutex> lock(csi_measurements_mutex);
 

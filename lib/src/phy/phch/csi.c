@@ -36,11 +36,11 @@ static bool csi_report_trigger(const srsran_csi_hl_report_cfg_t* cfg, uint32_t s
   return false;
 }
 
-static void csi_wideband_cri_ri_pmi_cqi_quantify(const srsran_csi_hl_report_cfg_t* cfg,
-                                                 const srsran_csi_measurements_t*  channel_meas,
-                                                 const srsran_csi_measurements_t*  interf_meas,
-                                                 srsran_csi_report_cfg_t*          report_cfg,
-                                                 srsran_csi_report_value_t*        report_value)
+static void csi_wideband_cri_ri_pmi_cqi_quantify(const srsran_csi_hl_report_cfg_t*        cfg,
+                                                 const srsran_csi_channel_measurements_t* channel_meas,
+                                                 const srsran_csi_channel_measurements_t* interf_meas,
+                                                 srsran_csi_report_cfg_t*                 report_cfg,
+                                                 srsran_csi_report_value_t*               report_value)
 {
   // Take SNR by default
   float wideband_sinr_db = channel_meas->wideband_snr_db;
@@ -145,10 +145,10 @@ csi_none_unpack(const srsran_csi_report_cfg_t* cfg, const uint8_t* o_csi1, srsra
 }
 
 int srsran_csi_new_nzp_csi_rs_measurement(
-    const srsran_csi_hl_resource_cfg_t csi_resources[SRSRAN_CSI_MAX_NOF_RESOURCES],
-    srsran_csi_measurements_t          measurements[SRSRAN_CSI_MAX_NOF_RESOURCES],
-    const srsran_csi_measurements_t*   new_measure,
-    uint32_t                           nzp_csi_rs_id)
+    const srsran_csi_hl_resource_cfg_t       csi_resources[SRSRAN_CSI_MAX_NOF_RESOURCES],
+    srsran_csi_channel_measurements_t        measurements[SRSRAN_CSI_MAX_NOF_RESOURCES],
+    const srsran_csi_channel_measurements_t* new_measure,
+    uint32_t                                 nzp_csi_rs_id)
 {
   if (csi_resources == NULL || measurements == NULL || new_measure == NULL) {
     return SRSRAN_ERROR_INVALID_INPUTS;
@@ -190,11 +190,11 @@ int srsran_csi_new_nzp_csi_rs_measurement(
   return SRSRAN_SUCCESS;
 }
 
-int srsran_csi_generate_reports(const srsran_csi_hl_cfg_t*      cfg,
-                                uint32_t                        slot_idx,
-                                const srsran_csi_measurements_t measurements[SRSRAN_CSI_MAX_NOF_RESOURCES],
-                                srsran_csi_report_cfg_t         report_cfg[SRSRAN_CSI_MAX_NOF_REPORT],
-                                srsran_csi_report_value_t       report_value[SRSRAN_CSI_MAX_NOF_REPORT])
+int srsran_csi_generate_reports(const srsran_csi_hl_cfg_t*              cfg,
+                                uint32_t                                slot_idx,
+                                const srsran_csi_channel_measurements_t measurements[SRSRAN_CSI_MAX_NOF_RESOURCES],
+                                srsran_csi_report_cfg_t                 report_cfg[SRSRAN_CSI_MAX_NOF_REPORT],
+                                srsran_csi_report_value_t               report_value[SRSRAN_CSI_MAX_NOF_REPORT])
 {
   uint32_t count = 0;
 
@@ -215,10 +215,10 @@ int srsran_csi_generate_reports(const srsran_csi_hl_cfg_t*      cfg,
       ERROR("Channel measurement ID (%d) is out of range", cfg->reports->channel_meas_id);
       return SRSRAN_ERROR;
     }
-    const srsran_csi_measurements_t* channel_meas = &measurements[cfg->reports->channel_meas_id];
+    const srsran_csi_channel_measurements_t* channel_meas = &measurements[cfg->reports->channel_meas_id];
 
     // Select interference measurement
-    const srsran_csi_measurements_t* interf_meas = NULL;
+    const srsran_csi_channel_measurements_t* interf_meas = NULL;
     if (cfg->reports->interf_meas_present) {
       if (cfg->reports->interf_meas_id >= SRSRAN_CSI_MAX_NOF_RESOURCES) {
         ERROR("Interference measurement ID (%d) is out of range", cfg->reports->interf_meas_id);

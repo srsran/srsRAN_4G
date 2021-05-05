@@ -42,7 +42,7 @@
 /**
  * @brief Describes a measurement for NZP-CSI-RS
  * @note Used for fine tracking RSRP, SNR, CFO, SFO, and so on
- * @note srsran_csi_measurements_t is used for CSI report generation
+ * @note srsran_csi_channel_measurements_t is used for CSI report generation
  */
 typedef struct SRSRAN_API {
   float    rsrp;       ///< Linear scale RSRP
@@ -57,7 +57,7 @@ typedef struct SRSRAN_API {
   float    delay_us;   ///< Average measured delay in microseconds
   uint32_t nof_re;     ///< Number of available RE for the measurement, it can be used for weighting among different
                        ///< measurements
-} srsran_csi_rs_nzp_measure_t;
+} srsran_csi_trs_measurements_t;
 
 /**
  * @brief Calculates if the given periodicity implies a CSI-RS transmission in the given slot
@@ -118,7 +118,7 @@ SRSRAN_API int srsran_csi_rs_nzp_measure(const srsran_carrier_nr_t*          car
                                          const srsran_slot_cfg_t*            slot_cfg,
                                          const srsran_csi_rs_nzp_resource_t* resource,
                                          const cf_t*                         grid,
-                                         srsran_csi_rs_nzp_measure_t*        measure);
+                                         srsran_csi_trs_measurements_t*      measure);
 
 /**
  * @brief Performs measurements of NZP-CSI-RS resource set flagged as TRS
@@ -150,9 +150,11 @@ SRSRAN_API int srsran_csi_rs_nzp_measure_trs(const srsran_carrier_nr_t*     carr
                                              const srsran_slot_cfg_t*       slot_cfg,
                                              const srsran_csi_rs_nzp_set_t* set,
                                              const cf_t*                    grid,
-                                             srsran_csi_rs_nzp_measure_t*   measure);
+                                             srsran_csi_trs_measurements_t* measure);
 
-SRSRAN_API uint32_t srsran_csi_rs_measure_info(const srsran_csi_rs_nzp_measure_t* measure, char* str, uint32_t str_len);
+SRSRAN_API uint32_t srsran_csi_rs_measure_info(const srsran_csi_trs_measurements_t* measure,
+                                               char*                                str,
+                                               uint32_t                             str_len);
 
 /**
  * @brief Performs channel measurements of NZP-CSI-RS resource set for CSI reports
@@ -172,11 +174,11 @@ SRSRAN_API uint32_t srsran_csi_rs_measure_info(const srsran_csi_rs_nzp_measure_t
  * @return The number of NZP-CSI-RS resources scheduled for this slot if the configuration is right, SRSLTE_ERROR code
  * if the configuration is invalid
  */
-SRSRAN_API int srsran_csi_rs_nzp_measure_channel(const srsran_carrier_nr_t*     carrier,
-                                                 const srsran_slot_cfg_t*       slot_cfg,
-                                                 const srsran_csi_rs_nzp_set_t* set,
-                                                 const cf_t*                    grid,
-                                                 srsran_csi_measurements_t*     measure);
+SRSRAN_API int srsran_csi_rs_nzp_measure_channel(const srsran_carrier_nr_t*         carrier,
+                                                 const srsran_slot_cfg_t*           slot_cfg,
+                                                 const srsran_csi_rs_nzp_set_t*     set,
+                                                 const cf_t*                        grid,
+                                                 srsran_csi_channel_measurements_t* measure);
 
 /**
  * @brief Performs measurements of ZP-CSI-RS resource set for CSI reports
@@ -194,10 +196,10 @@ SRSRAN_API int srsran_csi_rs_nzp_measure_channel(const srsran_carrier_nr_t*     
  * @return The number of ZP-CSI-RS resources scheduled for this slot if the configuration is right, SRSLTE_ERROR code if
  * the configuration is invalid
  */
-SRSRAN_API int srsran_csi_rs_zp_measure_channel(const srsran_carrier_nr_t*    carrier,
-                                                const srsran_slot_cfg_t*      slot_cfg,
-                                                const srsran_csi_rs_zp_set_t* set,
-                                                const cf_t*                   grid,
-                                                srsran_csi_measurements_t*    measure);
+SRSRAN_API int srsran_csi_rs_zp_measure_channel(const srsran_carrier_nr_t*         carrier,
+                                                const srsran_slot_cfg_t*           slot_cfg,
+                                                const srsran_csi_rs_zp_set_t*      set,
+                                                const cf_t*                        grid,
+                                                srsran_csi_channel_measurements_t* measure);
 
 #endif // SRSRAN_CSI_RS_H_

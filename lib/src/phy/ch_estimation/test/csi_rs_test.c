@@ -39,7 +39,7 @@ static int nzp_test_case(const srsran_slot_cfg_t*            slot_cfg,
                          srsran_channel_awgn_t*              awgn,
                          cf_t*                               grid)
 {
-  srsran_csi_rs_nzp_measure_t measure = {};
+  srsran_csi_trs_measurements_t measure = {};
 
   // Put NZP-CSI-RS
   TESTASSERT(srsran_csi_rs_nzp_put_resource(&carrier, slot_cfg, resource, grid) == SRSRAN_SUCCESS);
@@ -316,8 +316,8 @@ static int nzp_test_trs(srsran_channel_awgn_t* awgn, cf_t* grid)
     srsran_channel_awgn_run_c(awgn, grid, grid, SRSRAN_SLOT_LEN_RE_NR(carrier.nof_prb));
 
     // Measure
-    srsran_csi_rs_nzp_measure_t measure = {};
-    ret                                 = srsran_csi_rs_nzp_measure_trs(&carrier, &slot_cfg, &set, grid, &measure);
+    srsran_csi_trs_measurements_t measure = {};
+    ret                                   = srsran_csi_rs_nzp_measure_trs(&carrier, &slot_cfg, &set, grid, &measure);
 
     // Check return and assert measurement
     if (slot_cfg.idx == 11 || slot_cfg.idx == 12) {

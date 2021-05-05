@@ -58,11 +58,17 @@ private:
   void decode_pdcch_ul();
   void decode_pdcch_dl();
 
-  // Method for decode PDSCH
+  /**
+   * @brief Decodes PDSCH in the current processing slot
+   * @return true if current configuration is valid and no error occur, false otherwise
+   */
   bool decode_pdsch_dl();
 
-  // Method for measurements
-  bool measure();
+  /**
+   * @brief Performs Channel State Information (CSI) measurements
+   * @return true if current configuration is valid and no error occur, false otherwise
+   */
+  bool measure_csi();
 };
 
 } // namespace nr

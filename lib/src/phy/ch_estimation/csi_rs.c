@@ -177,7 +177,7 @@ static uint32_t csi_rs_cinit(const srsran_carrier_nr_t*          carrier,
   uint32_t n    = SRSRAN_SLOT_NR_MOD(carrier->scs, slot_cfg->idx);
   uint32_t n_id = resource->scrambling_id;
 
-  return SRSRAN_SEQUENCE_MOD(((SRSRAN_NSYMB_PER_SLOT_NR * n + l + 1UL) * (2UL * n_id) << 10UL) + n_id);
+  return SRSRAN_SEQUENCE_MOD((((SRSRAN_NSYMB_PER_SLOT_NR * n + l + 1UL) * (2UL * n_id + 1UL)) << 10UL) + n_id);
 }
 
 bool srsran_csi_rs_send(const srsran_csi_rs_period_and_offset_t* periodicity, const srsran_slot_cfg_t* slot_cfg)
@@ -538,16 +538,22 @@ static int csi_rs_nzp_measure_resource(const srsran_carrier_nr_t*          carri
     }
 
     // Compute LSE
-    srsran_sequence_state_apply_f(&sequence_state, (float*)lse, (float*)lse, 2 * count_re);
+    cf_t r[CSI_RS_MAX_SUBC_PRB * SRSRAN_MAX_PRB_NR];
+    srsran_sequence_state_gen_f(&sequence_state, M_SQRT1_2, (float*)r, 2 * count_re);
+    srsran_vec_prod_conj_ccc(lse, r, lse, count_re);
+
+    // Compute average delay
+    float delay = srsran_vec_estimate_frequency(lse, (int)count_re);
+    delay_acc += delay;
+
+    // Pre-compensate delay to avoid RSRP measurements get affected by average delay
+    srsran_vec_apply_cfo(lse, delay, lse, (int)count_re);
 
     // Compute EPRE
     epre_acc += srsran_vec_avg_power_cf(lse, count_re);
 
     // Compute correlation
     corr_acc += srsran_vec_acc_cc(lse, count_re) / (float)count_re;
-
-    // Compute average delay
-    delay_acc += srsran_vec_estimate_frequency(lse, count_re);
   }
 
   // Set measure fields
@@ -591,7 +597,7 @@ int srsran_csi_rs_nzp_measure(const srsran_carrier_nr_t*          carrier,
                               const srsran_slot_cfg_t*            slot_cfg,
                               const srsran_csi_rs_nzp_resource_t* resource,
                               const cf_t*                         grid,
-                              srsran_csi_rs_nzp_measure_t*        measure)
+                              srsran_csi_trs_measurements_t*      measure)
 {
   if (carrier == NULL || slot_cfg == NULL || resource == NULL || grid == NULL || measure == NULL) {
     return SRSRAN_ERROR;
@@ -605,7 +611,7 @@ int srsran_csi_rs_nzp_measure(const srsran_carrier_nr_t*          carrier,
 
   // Copy measurements
   measure->epre     = m.epre;
-  measure->rsrp     = (__real__ m.corr * __real__ m.corr + __imag__ m.corr * __imag__ m.corr);
+  measure->rsrp     = SRSRAN_CSQABS(m.corr);
   measure->delay_us = m.delay_us;
   measure->nof_re   = m.nof_re;
 
@@ -616,7 +622,7 @@ int srsran_csi_rs_nzp_measure(const srsran_carrier_nr_t*          carrier,
     measure->n0 = 0.0f;
   }
 
-  // CFo cannot be estimated with a single resource
+  // CFO cannot be estimated with a single resource
   measure->cfo_hz     = 0.0f;
   measure->cfo_hz_max = 0.0f;
 
@@ -633,7 +639,7 @@ int srsran_csi_rs_nzp_measure_trs(const srsran_carrier_nr_t*     carrier,
                                   const srsran_slot_cfg_t*       slot_cfg,
                                   const srsran_csi_rs_nzp_set_t* set,
                                   const cf_t*                    grid,
-                                  srsran_csi_rs_nzp_measure_t*   measure)
+                                  srsran_csi_trs_measurements_t* measure)
 {
   // Verify inputs
   if (carrier == NULL || slot_cfg == NULL || set == NULL || grid == NULL || measure == NULL) {
@@ -680,9 +686,7 @@ int srsran_csi_rs_nzp_measure_trs(const srsran_carrier_nr_t*     carrier,
   uint32_t nof_re    = 0;
   for (uint32_t i = 0; i < count; i++) {
     epre_sum += measurements[i].epre / (float)count;
-    rsrp_sum += (__real__ measurements[i].corr * __real__ measurements[i].corr +
-                 __imag__ measurements[i].corr * __imag__ measurements[i].corr) /
-                (float)count;
+    rsrp_sum += SRSRAN_CSQABS(measurements[i].corr) / (float)count;
     delay_sum += measurements[i].delay_us / (float)count;
     nof_re += measurements[i].nof_re;
   }
@@ -732,11 +736,11 @@ int srsran_csi_rs_nzp_measure_trs(const srsran_carrier_nr_t*     carrier,
   return count;
 }
 
-int srsran_csi_rs_nzp_measure_channel(const srsran_carrier_nr_t*     carrier,
-                                      const srsran_slot_cfg_t*       slot_cfg,
-                                      const srsran_csi_rs_nzp_set_t* set,
-                                      const cf_t*                    grid,
-                                      srsran_csi_measurements_t*     measure)
+int srsran_csi_rs_nzp_measure_channel(const srsran_carrier_nr_t*         carrier,
+                                      const srsran_slot_cfg_t*           slot_cfg,
+                                      const srsran_csi_rs_nzp_set_t*     set,
+                                      const cf_t*                        grid,
+                                      srsran_csi_channel_measurements_t* measure)
 {
   // Verify inputs
   if (carrier == NULL || slot_cfg == NULL || set == NULL || grid == NULL || measure == NULL) {
@@ -761,9 +765,7 @@ int srsran_csi_rs_nzp_measure_channel(const srsran_carrier_nr_t*     carrier,
   float rsrp_sum = 0.0f;
   for (uint32_t i = 0; i < count; i++) {
     epre_sum += measurements[i].epre / (float)count;
-    rsrp_sum += (__real__ measurements[i].corr * __real__ measurements[i].corr +
-                 __imag__ measurements[i].corr * __imag__ measurements[i].corr) /
-                (float)count;
+    rsrp_sum += SRSRAN_CSQABS(measurements[i].corr) / (float)count;
   }
 
   // Estimate noise from EPRE and RSPR
@@ -909,11 +911,11 @@ static int csi_rs_zp_measure_set(const srsran_carrier_nr_t*    carrier,
   return count;
 }
 
-int srsran_csi_rs_zp_measure_channel(const srsran_carrier_nr_t*    carrier,
-                                     const srsran_slot_cfg_t*      slot_cfg,
-                                     const srsran_csi_rs_zp_set_t* set,
-                                     const cf_t*                   grid,
-                                     srsran_csi_measurements_t*    measure)
+int srsran_csi_rs_zp_measure_channel(const srsran_carrier_nr_t*         carrier,
+                                     const srsran_slot_cfg_t*           slot_cfg,
+                                     const srsran_csi_rs_zp_set_t*      set,
+                                     const cf_t*                        grid,
+                                     srsran_csi_channel_measurements_t* measure)
 {
   // Verify inputs
   if (carrier == NULL || slot_cfg == NULL || set == NULL || grid == NULL || measure == NULL) {
@@ -953,7 +955,7 @@ int srsran_csi_rs_zp_measure_channel(const srsran_carrier_nr_t*    carrier,
   return count;
 }
 
-uint32_t srsran_csi_rs_measure_info(const srsran_csi_rs_nzp_measure_t* measure, char* str, uint32_t str_len)
+uint32_t srsran_csi_rs_measure_info(const srsran_csi_trs_measurements_t* measure, char* str, uint32_t str_len)
 {
   uint32_t len = 0;
 

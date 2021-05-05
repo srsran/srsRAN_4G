@@ -147,7 +147,7 @@ typedef struct SRSRAN_API {
 } srsran_csi_hl_cfg_t;
 
 /**
- * @brief Generic CSI measurement structure
+ * @brief Generic CSI measurement structure, used for generating CSI reports
  */
 typedef struct SRSRAN_API {
   uint32_t cri;               ///< CSI-RS Resource Indicator
@@ -158,7 +158,7 @@ typedef struct SRSRAN_API {
   // Resource set context
   uint32_t nof_ports; ///< Number of antenna ports
   uint32_t K_csi_rs;  ///< Number of CSI-RS in the corresponding resource set
-} srsran_csi_measurements_t;
+} srsran_csi_channel_measurements_t;
 
 /**
  * @brief CSI report configuration
