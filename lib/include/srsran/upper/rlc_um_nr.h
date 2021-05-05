@@ -62,6 +62,9 @@ private:
 
     uint32_t next_so = 0; // The segment offset for the next generated PDU
 
+    uint32_t UM_Window_Size;
+    uint32_t mod; // Rx counter modulus
+
     static constexpr uint32_t head_len_full = 1;       // full SDU header size is always
     uint32_t head_len_first = 0, head_len_segment = 0; // are computed during configure based on SN length
 
@@ -95,6 +98,9 @@ private:
     uint32_t RX_Timer_Trigger   = 0; // the SN following the SN which triggered t-Reassembly
     uint32_t RX_Next_Highest    = 0; // the SN following the SN of the UMD PDU with the highest SN among
                                      // received UMD PDUs. It serves as the higher edge of the reassembly window.
+
+    uint32_t UM_Window_Size;
+    uint32_t mod; // Rx counter modulus
 
     // Rx window
     typedef struct {

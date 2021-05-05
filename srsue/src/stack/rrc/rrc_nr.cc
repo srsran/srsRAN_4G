@@ -461,17 +461,8 @@ bool rrc_nr::apply_rlc_add_mod(const rlc_bearer_cfg_s& rlc_bearer_cfg)
   }
 
   if (rlc_bearer_cfg.rlc_cfg_present == true) {
-    rlc_cfg = srsran::make_rlc_config_t(rlc_bearer_cfg.rlc_cfg);
-    if (rlc_bearer_cfg.rlc_cfg.type() == asn1::rrc_nr::rlc_cfg_c::types::um_bi_dir) {
-      if (rlc_bearer_cfg.rlc_cfg.um_bi_dir().dl_um_rlc.sn_field_len_present &&
-          rlc_bearer_cfg.rlc_cfg.um_bi_dir().ul_um_rlc.sn_field_len_present &&
-          rlc_bearer_cfg.rlc_cfg.um_bi_dir().dl_um_rlc.sn_field_len !=
-              rlc_bearer_cfg.rlc_cfg.um_bi_dir().ul_um_rlc.sn_field_len) {
-        logger.warning("NR RLC sequence number length is not the same in uplink and downlink");
-        return false;
-      }
-    } else {
-      logger.warning("NR RLC type is not unacknowledged mode bidirectional");
+    if (srsran::make_rlc_config_t(rlc_bearer_cfg.rlc_cfg, &rlc_cfg) != SRSRAN_SUCCESS) {
+      logger.warning("Failed to build RLC config");
       return false;
     }
   } else {

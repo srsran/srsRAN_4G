@@ -14,7 +14,7 @@
 #include "srsran/interfaces/ue_pdcp_interfaces.h"
 #include <sstream>
 
-#define RX_MOD_NR_BASE(x) (((x)-RX_Next_Highest - cfg.um_nr.UM_Window_Size) % cfg.um_nr.mod)
+#define RX_MOD_NR_BASE(x) (((x)-RX_Next_Highest - UM_Window_Size) % mod)
 
 namespace srsran {
 
@@ -94,10 +94,8 @@ bool rlc_um_nr::rlc_um_nr_tx::configure(const rlc_config_t& cnfg_, std::string r
 {
   cfg = cnfg_;
 
-  if (cfg.um_nr.mod == 0) {
-    logger.error("Error configuring %s RLC UM: tx_mod==0", rb_name.c_str());
-    return false;
-  }
+  mod            = (cfg.um_nr.sn_field_length == rlc_um_nr_sn_size_t::size6bits) ? 64 : 4096;
+  UM_Window_Size = (cfg.um_nr.sn_field_length == rlc_um_nr_sn_size_t::size6bits) ? 32 : 2048;
 
   // calculate header sizes for configured SN length
   rlc_um_nr_pdu_header_t header = {};
@@ -188,7 +186,7 @@ uint32_t rlc_um_nr::rlc_um_nr_tx::build_data_pdu(unique_byte_buffer_t pdu, uint8
 
   // Update SN if needed
   if (header.si == rlc_nr_si_field_t::last_segment) {
-    TX_Next = (TX_Next + 1) % cfg.um_nr.mod;
+    TX_Next = (TX_Next + 1) % mod;
     next_so = 0;
   }
 
@@ -229,10 +227,8 @@ rlc_um_nr::rlc_um_nr_rx::rlc_um_nr_rx(rlc_um_base* parent_) :
 
 bool rlc_um_nr::rlc_um_nr_rx::configure(const rlc_config_t& cnfg_, std::string rb_name_)
 {
-  if (cfg.um_nr.mod == 0) {
-    logger.error("Error configuring %s RLC UM: rx_mod==0", rb_name.c_str());
-    return false;
-  }
+  mod            = (cfg.um_nr.sn_field_length == rlc_um_nr_sn_size_t::size6bits) ? 64 : 4096;
+  UM_Window_Size = (cfg.um_nr.sn_field_length == rlc_um_nr_sn_size_t::size6bits) ? 32 : 2048;
 
   // check timer
   if (not reassembly_timer.is_valid()) {
@@ -297,7 +293,7 @@ void rlc_um_nr::rlc_um_nr_rx::timer_expired(uint32_t timeout_id)
     // update RX_Next_Reassembly to the next SN that has not been reassembled yet
     RX_Next_Reassembly = RX_Timer_Trigger;
     while (RX_MOD_NR_BASE(RX_Next_Reassembly) < RX_MOD_NR_BASE(RX_Next_Highest)) {
-      RX_Next_Reassembly = (RX_Next_Reassembly + 1) % cfg.um_nr.mod;
+      RX_Next_Reassembly = (RX_Next_Reassembly + 1) % mod;
       debug_state();
     }
 
@@ -325,14 +321,14 @@ void rlc_um_nr::rlc_um_nr_rx::timer_expired(uint32_t timeout_id)
 // Sec 5.2.2.2.1
 bool rlc_um_nr::rlc_um_nr_rx::sn_in_reassembly_window(const uint32_t sn)
 {
-  return (RX_MOD_NR_BASE(RX_Next_Highest - cfg.um_nr.UM_Window_Size) <= RX_MOD_NR_BASE(sn) &&
+  return (RX_MOD_NR_BASE(RX_Next_Highest - UM_Window_Size) <= RX_MOD_NR_BASE(sn) &&
           RX_MOD_NR_BASE(sn) < RX_MOD_NR_BASE(RX_Next_Highest));
 }
 
 // Sec 5.2.2.2.2
 bool rlc_um_nr::rlc_um_nr_rx::sn_invalid_for_rx_buffer(const uint32_t sn)
 {
-  return (RX_MOD_NR_BASE(RX_Next_Highest - cfg.um_nr.UM_Window_Size) <= RX_MOD_NR_BASE(sn) &&
+  return (RX_MOD_NR_BASE(RX_Next_Highest - UM_Window_Size) <= RX_MOD_NR_BASE(sn) &&
           RX_MOD_NR_BASE(sn) < RX_MOD_NR_BASE(RX_Next_Reassembly));
 }
 
@@ -414,9 +410,9 @@ void rlc_um_nr::rlc_um_nr_rx::handle_rx_buffer_update(const uint32_t sn)
 
             // find next SN in rx buffer
             if (sn == RX_Next_Reassembly) {
-              RX_Next_Reassembly = ((RX_Next_Reassembly + 1) % cfg.um_nr.mod);
+              RX_Next_Reassembly = ((RX_Next_Reassembly + 1) % mod);
               while (RX_MOD_NR_BASE(RX_Next_Reassembly) < RX_MOD_NR_BASE(RX_Next_Highest)) {
-                RX_Next_Reassembly = (RX_Next_Reassembly + 1) % cfg.um_nr.mod;
+                RX_Next_Reassembly = (RX_Next_Reassembly + 1) % mod;
               }
               logger.debug("Updating RX_Next_Reassembly=%d", RX_Next_Reassembly);
             }
@@ -444,7 +440,7 @@ void rlc_um_nr::rlc_um_nr_rx::handle_rx_buffer_update(const uint32_t sn)
           logger.info("%s SN: %d outside rx window [%d:%d] - discarding",
                       rb_name.c_str(),
                       it->first,
-                      RX_Next_Highest - cfg.um_nr.UM_Window_Size,
+                      RX_Next_Highest - UM_Window_Size,
                       RX_Next_Highest);
           it = rx_window.erase(it);
           metrics.num_lost_pdus++;
@@ -456,7 +452,7 @@ void rlc_um_nr::rlc_um_nr_rx::handle_rx_buffer_update(const uint32_t sn)
       if (not sn_in_reassembly_window(RX_Next_Reassembly)) {
         // update RX_Next_Reassembly to first SN that has not been reassembled and delivered
         for (const auto& rx_pdu : rx_window) {
-          if (rx_pdu.first >= RX_MOD_NR_BASE(RX_Next_Highest - cfg.um_nr.UM_Window_Size)) {
+          if (rx_pdu.first >= RX_MOD_NR_BASE(RX_Next_Highest - UM_Window_Size)) {
             RX_Next_Reassembly = rx_pdu.first;
             logger.debug("Updating RX_Next_Reassembly=%d", RX_Next_Reassembly);
             break;
