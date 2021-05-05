@@ -233,8 +233,30 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
     cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::unknown_erab_id;
     return SRSRAN_ERROR;
   }
-  uint8_t lcid  = erab_id - 2; // Map e.g. E-RAB 5 to LCID 3 (==DRB1)
-  uint8_t drbid = erab_id - 4;
+
+  uint8_t lcid = 3; // first E-RAB with DRB1 gets LCID3
+  for (const auto& drb : current_drbs) {
+    if (drb.lc_ch_id == lcid) {
+      lcid++;
+    }
+  }
+  if (lcid > srsenb::sched_interface::MAX_LC) {
+    logger->error("Can't allocate LCID for ERAB id=%d", erab_id);
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::radio_res_not_available;
+    return SRSRAN_ERROR;
+  }
+
+  uint8_t drbid = lcid - 2; // first E-RAB will be DRB1 on LCID3
+  for (const auto& drb : current_drbs) {
+    if (drb.drb_id == drbid) {
+      drbid++;
+    }
+  }
+  if (drbid > srsran::MAX_LTE_DRB_ID) {
+    logger->error("Can't allocate DRB ID for ERAB id=%d", erab_id);
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::radio_res_not_available;
+    return SRSRAN_ERROR;
+  }
 
   auto qci_it = cfg->qci_cfg.find(qos.qci);
   if (qci_it == cfg->qci_cfg.end() or not qci_it->second.configured) {
