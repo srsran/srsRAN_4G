@@ -1895,7 +1895,7 @@ void rrc::handle_ue_capability_enquiry(const ue_cap_enquiry_s& enquiry)
             ca_mimo_params_ul.supported_mimo_cap_ul_r10_present = false;
 
             band_params_r10_s band_params;
-            band_params.band_eutra_r10             = args.supported_bands[i];
+            band_params.band_eutra_r10             = args.supported_bands[k];
             band_params.band_params_dl_r10_present = true;
             band_params.band_params_dl_r10.push_back(ca_mimo_params_dl);
             band_params.band_params_ul_r10_present = true;
