@@ -15,6 +15,7 @@
 
 #include "sched.h"
 #include "schedulers/sched_base.h"
+#include "srsran/adt/pool/cached_alloc.h"
 #include "srsran/srslog/srslog.h"
 
 namespace srsenb {
@@ -122,9 +123,9 @@ private:
   const sched_cell_params_t* cc_cfg = nullptr;
   sched_ue_list*             ue_db  = nullptr;
 
-  std::deque<pending_rar_t> pending_rars;
-  uint32_t                  rar_aggr_level   = 2;
-  static const uint32_t     PRACH_RAR_OFFSET = 3; // TS 36.321 Sec. 5.1.4
+  srsran::deque<pending_rar_t> pending_rars;
+  uint32_t                     rar_aggr_level   = 2;
+  static const uint32_t        PRACH_RAR_OFFSET = 3; // TS 36.321 Sec. 5.1.4
 };
 
 } // namespace srsenb

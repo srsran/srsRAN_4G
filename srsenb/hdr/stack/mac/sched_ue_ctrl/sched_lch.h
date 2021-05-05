@@ -13,10 +13,10 @@
 #ifndef SRSRAN_SCHED_LCH_H
 #define SRSRAN_SCHED_LCH_H
 
+#include "srsran/adt/pool/cached_alloc.h"
 #include "srsran/interfaces/sched_interface.h"
 #include "srsran/mac/pdu.h"
 #include "srsran/srslog/srslog.h"
-#include <deque>
 
 namespace srsenb {
 
@@ -59,7 +59,7 @@ public:
 
   // Control Element Command queue
   using ce_cmd = srsran::dl_sch_lcid;
-  std::deque<ce_cmd> pending_ces;
+  srsran::deque<ce_cmd> pending_ces;
 
 private:
   struct ue_bearer_t {
