@@ -35,16 +35,16 @@ rrc_nr::rrc_nr(srsran::task_sched_handle task_sched_) :
 
 rrc_nr::~rrc_nr() = default;
 
-void rrc_nr::init(phy_interface_rrc_nr*       phy_,
-                  mac_interface_rrc_nr*       mac_,
-                  rlc_interface_rrc*          rlc_,
-                  pdcp_interface_rrc*         pdcp_,
-                  gw_interface_rrc*           gw_,
-                  rrc_eutra_interface_rrc_nr* rrc_eutra_,
-                  usim_interface_rrc_nr*      usim_,
-                  srsran::timer_handler*      timers_,
-                  stack_interface_rrc*        stack_,
-                  const rrc_nr_args_t&        args_)
+int rrc_nr::init(phy_interface_rrc_nr*       phy_,
+                 mac_interface_rrc_nr*       mac_,
+                 rlc_interface_rrc*          rlc_,
+                 pdcp_interface_rrc*         pdcp_,
+                 gw_interface_rrc*           gw_,
+                 rrc_eutra_interface_rrc_nr* rrc_eutra_,
+                 usim_interface_rrc_nr*      usim_,
+                 srsran::timer_handler*      timers_,
+                 stack_interface_rrc*        stack_,
+                 const rrc_nr_args_t&        args_)
 {
   phy       = phy_;
   rlc       = rlc_;
@@ -53,12 +53,12 @@ void rrc_nr::init(phy_interface_rrc_nr*       phy_,
   mac       = mac_;
   rrc_eutra = rrc_eutra_;
   usim      = usim_;
-  timers    = timers_;
   stack     = stack_;
   args      = args_;
 
   running               = true;
   sim_measurement_timer = task_sched.get_unique_timer();
+  return SRSRAN_SUCCESS;
 }
 
 void rrc_nr::stop()
@@ -208,7 +208,7 @@ void rrc_nr::write_pdu_pcch(srsran::unique_byte_buffer_t pdu) {}
 void rrc_nr::write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t pdu) {}
 void rrc_nr::notify_pdcp_integrity_error(uint32_t lcid) {}
 
-void rrc_nr::get_eutra_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps_pdu)
+int rrc_nr::get_eutra_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps_pdu)
 {
   struct ue_mrdc_cap_s mrdc_cap;
 
@@ -334,7 +334,7 @@ void rrc_nr::get_eutra_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps_pdu)
   logger.debug(
       eutra_nr_caps_pdu->msg, eutra_nr_caps_pdu->N_bytes, "EUTRA-NR capabilities (%u B)", eutra_nr_caps_pdu->N_bytes);
 
-  return;
+  return SRSRAN_SUCCESS;
 }
 
 bool rrc_nr::rrc_reconfiguration(bool                endc_release_and_add_r15,
@@ -361,7 +361,7 @@ bool rrc_nr::rrc_reconfiguration(bool                endc_release_and_add_r15,
   return true;
 }
 
-void rrc_nr::get_nr_capabilities(srsran::byte_buffer_t* nr_caps_pdu)
+int rrc_nr::get_nr_capabilities(srsran::byte_buffer_t* nr_caps_pdu)
 {
   struct ue_nr_cap_s nr_cap;
 
@@ -404,7 +404,7 @@ void rrc_nr::get_nr_capabilities(srsran::byte_buffer_t* nr_caps_pdu)
 #endif
 
   logger.debug(nr_caps_pdu->msg, nr_caps_pdu->N_bytes, "NR capabilities (%u B)", nr_caps_pdu->N_bytes);
-  return;
+  return SRSRAN_SUCCESS;
 };
 
 void rrc_nr::phy_meas_stop()

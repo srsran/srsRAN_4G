@@ -464,6 +464,8 @@ void rlc::add_bearer(uint32_t lcid, const rlc_config_t& cnfg)
 
     logger.info("Added %s radio bearer with LCID %d in %s", to_string(cnfg.rat), lcid, to_string(cnfg.rlc_mode));
     rlc_entity = NULL;
+  } else {
+    logger.info("LCID %d already exists", lcid);
   }
 
   // configure and add to array

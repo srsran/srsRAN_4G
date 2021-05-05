@@ -62,16 +62,16 @@ public:
   rrc_nr(srsran::task_sched_handle task_sched_);
   ~rrc_nr();
 
-  void init(phy_interface_rrc_nr*       phy_,
-            mac_interface_rrc_nr*       mac_,
-            rlc_interface_rrc*          rlc_,
-            pdcp_interface_rrc*         pdcp_,
-            gw_interface_rrc*           gw_,
-            rrc_eutra_interface_rrc_nr* rrc_eutra_,
-            usim_interface_rrc_nr*      usim_,
-            srsran::timer_handler*      timers_,
-            stack_interface_rrc*        stack_,
-            const rrc_nr_args_t&        args_);
+  int init(phy_interface_rrc_nr*       phy_,
+           mac_interface_rrc_nr*       mac_,
+           rlc_interface_rrc*          rlc_,
+           pdcp_interface_rrc*         pdcp_,
+           gw_interface_rrc*           gw_,
+           rrc_eutra_interface_rrc_nr* rrc_eutra_,
+           usim_interface_rrc_nr*      usim_,
+           srsran::timer_handler*      timers_,
+           stack_interface_rrc*        stack_,
+           const rrc_nr_args_t&        args_);
 
   void stop();
   void init_core_less();
@@ -118,8 +118,8 @@ public:
   void notify_pdcp_integrity_error(uint32_t lcid) final;
 
   // RRC (LTE) interface
-  void get_eutra_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps);
-  void get_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps);
+  int  get_eutra_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps);
+  int  get_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps);
   void phy_meas_stop();
   void phy_set_cells_to_meas(uint32_t carrier_freq_r15);
   bool rrc_reconfiguration(bool                endc_release_and_add_r15,
@@ -174,9 +174,6 @@ private:
   //  rrc_nr_state_t state = RRC_NR_STATE_IDLE;
 
   rrc_nr_args_t args = {};
-
-  // RRC constants and timers
-  srsran::timer_handler* timers = nullptr;
 
   const char* get_rb_name(uint32_t lcid) final;
 

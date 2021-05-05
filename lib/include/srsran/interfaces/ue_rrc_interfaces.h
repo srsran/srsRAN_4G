@@ -100,8 +100,8 @@ public:
 class rrc_nr_interface_rrc
 {
 public:
-  virtual void get_eutra_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps)   = 0;
-  virtual void get_nr_capabilities(srsran::byte_buffer_t* nr_cap)                = 0;
+  virtual int  get_eutra_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps)   = 0;
+  virtual int  get_nr_capabilities(srsran::byte_buffer_t* nr_cap)                = 0;
   virtual void phy_set_cells_to_meas(uint32_t carrier_freq_r15)                  = 0;
   virtual void phy_meas_stop()                                                   = 0;
   virtual bool rrc_reconfiguration(bool                endc_release_and_add_r15,

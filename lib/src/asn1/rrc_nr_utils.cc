@@ -111,7 +111,7 @@ rlc_config_t make_rlc_config_t(const rlc_cfg_c& asn1_type)
     case rlc_cfg_c::types_opts::um_uni_dir_dl:
     case rlc_cfg_c::types_opts::um_uni_dir_ul:
       rlc_cfg.rlc_mode              = rlc_mode_t::um;
-      rlc_cfg.um_nr.t_reassembly_ms = asn1_type.um_bi_dir().dl_um_rlc.t_reassembly.value;
+      rlc_cfg.um_nr.t_reassembly_ms = asn1_type.um_bi_dir().dl_um_rlc.t_reassembly.value.to_number();
       rlc_cfg.um_nr.sn_field_length = (rlc_um_nr_sn_size_t)asn1_type.um_bi_dir().dl_um_rlc.sn_field_len.value;
       rlc_cfg.um_nr.mod             = (rlc_cfg.um_nr.sn_field_length == rlc_um_nr_sn_size_t::size6bits) ? 64 : 4096;
       rlc_cfg.um_nr.UM_Window_Size  = (rlc_cfg.um_nr.sn_field_length == rlc_um_nr_sn_size_t::size6bits) ? 32 : 2048;
