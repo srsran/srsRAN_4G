@@ -44,6 +44,9 @@ extern "C" {
 #define SRSRAN_FLOOR(NUM, DEN) ((NUM) / (DEN))
 #define SRSRAN_ROUND(NUM, DEN) ((uint32_t)round((double)(NUM) / (double)(DEN)))
 
+// Complex squared absolute value
+#define SRSRAN_CSQABS(X) (__real__(X) * __real__(X) + __imag__(X) * __imag__(X))
+
 // Cumulative moving average
 #define SRSRAN_VEC_CMA(data, average, n) ((average) + ((data) - (average)) / ((n) + 1))
 
