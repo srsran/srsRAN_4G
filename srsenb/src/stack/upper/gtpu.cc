@@ -126,15 +126,19 @@ bool gtpu_tunnel_manager::update_rnti(uint16_t old_rnti, uint16_t new_rnti)
   auto* old_rnti_ptr = find_rnti_tunnels(old_rnti);
   logger.info("Modifying bearer rnti. Old rnti: 0x%x, new rnti: 0x%x", old_rnti, new_rnti);
 
-  // Change RNTI bearers map
-  ue_teidin_db.insert(new_rnti, std::move(*old_rnti_ptr));
-  ue_teidin_db.erase(old_rnti);
-
-  // Change TEID in existing tunnels
-  auto* new_rnti_ptr = find_rnti_tunnels(new_rnti);
-  for (lcid_tunnel& bearer : *new_rnti_ptr) {
+  // create new RNTI and update TEIDs of old rnti to reflect new rnti
+  if (not ue_teidin_db.insert(new_rnti, ue_lcid_tunnel_list())) {
+    logger.error("Failure to create new rnti=0x%x", new_rnti);
+    return false;
+  }
+  std::swap(ue_teidin_db[new_rnti], *old_rnti_ptr);
+  auto& new_rnti_obj = ue_teidin_db[new_rnti];
+  for (lcid_tunnel& bearer : new_rnti_obj) {
     tunnels[bearer.teid].rnti = new_rnti;
   }
+
+  // Leave old_rnti as zombie to be removed later
+  old_rnti_ptr->clear();
 
   return true;
 }

@@ -204,6 +204,14 @@ bearer_cfg_handler::bearer_cfg_handler(uint16_t rnti_, const rrc_cfg_t& cfg_, gt
   rnti(rnti_), cfg(&cfg_), gtpu(gtpu_), logger(&srslog::fetch_basic_logger("RRC"))
 {}
 
+void bearer_cfg_handler::reestablish_bearers(bearer_cfg_handler&& old_rnti_bearers)
+{
+  erab_info_list = std::move(old_rnti_bearers.erab_info_list);
+  erabs          = std::move(old_rnti_bearers.erabs);
+  current_drbs   = std::move(old_rnti_bearers.current_drbs);
+  old_rnti_bearers.current_drbs.clear();
+}
+
 int bearer_cfg_handler::add_erab(uint8_t                                            erab_id,
                                  const asn1::s1ap::erab_level_qos_params_s&         qos,
                                  const asn1::bounded_bitstring<1, 160, true, true>& addr,

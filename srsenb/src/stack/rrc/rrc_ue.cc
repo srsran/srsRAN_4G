@@ -665,8 +665,8 @@ void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srsr
   parent->pdcp->enable_integrity(rnti, srb_to_lcid(lte_srb::srb1));
   parent->pdcp->enable_encryption(rnti, srb_to_lcid(lte_srb::srb1));
 
-  // Reestablish current DRBs during ConnectionReconfiguration
-  bearer_list = std::move(parent->users.at(old_reest_rnti)->bearer_list);
+  // Reestablish E-RABs of old rnti during ConnectionReconfiguration
+  bearer_list.reestablish_bearers(std::move(parent->users.at(old_reest_rnti)->bearer_list));
 
   // remove old RNTI
   parent->rem_user_thread(old_reest_rnti);
