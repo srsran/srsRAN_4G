@@ -565,7 +565,7 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
 
       // Get PDCP entity state (required when using RLC AM)
       for (const auto& erab_pair : parent->users.at(old_rnti)->bearer_list.get_erabs()) {
-        uint16_t lcid              = erab_pair.second.id - 2;
+        uint16_t lcid              = erab_pair.second.lcid;
         old_reest_pdcp_state[lcid] = {};
         parent->pdcp->get_bearer_state(old_rnti, lcid, &old_reest_pdcp_state[lcid]);
 
@@ -1055,12 +1055,24 @@ bool rrc::ue::setup_erabs(const asn1::s1ap::erab_to_be_setup_list_ctxt_su_req_l&
 
 bool rrc::ue::release_erabs()
 {
+  for (const auto& erab_it : bearer_list.get_erabs()) {
+    bearer_list.rem_gtpu_bearer(erab_it.second.id);
+    parent->rlc->del_bearer(rnti, erab_it.second.lcid);
+    parent->pdcp->del_bearer(rnti, erab_it.second.lcid);
+  }
   bearer_list.release_erabs();
   return true;
 }
 
 int rrc::ue::release_erab(uint32_t erab_id)
 {
+  auto erab_it = bearer_list.get_erabs().find(erab_id);
+  if (erab_it == bearer_list.get_erabs().end()) {
+    parent->logger.warning("The E-RAB id=%d is not found", erab_id);
+  } else {
+    parent->rlc->del_bearer(rnti, erab_it->second.lcid);
+    parent->pdcp->del_bearer(rnti, erab_it->second.lcid);
+  }
   return bearer_list.release_erab(erab_id);
 }
 
@@ -1338,8 +1350,15 @@ void rrc::ue::apply_pdcp_srb_updates(const rr_cfg_ded_s& pending_rr_cfg)
 
 void rrc::ue::apply_pdcp_drb_updates(const rr_cfg_ded_s& pending_rr_cfg)
 {
-  for (uint8_t drb_id : pending_rr_cfg.drb_to_release_list) {
-    parent->pdcp->del_bearer(rnti, drb_id + 2);
+  if (pending_rr_cfg.drb_to_release_list.size() > 0) {
+    for (uint8_t drb_id : pending_rr_cfg.drb_to_release_list) {
+      auto erab_it = bearer_list.get_erabs().find(drb_id + 4);
+      if (erab_it == bearer_list.get_erabs().end()) {
+        parent->logger.warning("The DRB Id=%d is not recognized", drb_id);
+      } else {
+        parent->pdcp->del_bearer(rnti, erab_it->second.lcid);
+      }
+    }
   }
   for (const drb_to_add_mod_s& drb : pending_rr_cfg.drb_to_add_mod_list) {
     // Configure DRB1 in PDCP
@@ -1361,7 +1380,7 @@ void rrc::ue::apply_pdcp_drb_updates(const rr_cfg_ded_s& pending_rr_cfg)
   // If reconf due to reestablishment, recover PDCP state
   if (state == RRC_STATE_REESTABLISHMENT_COMPLETE) {
     for (const auto& erab_pair : bearer_list.get_erabs()) {
-      uint16_t lcid  = erab_pair.second.id - 2;
+      uint16_t lcid  = erab_pair.second.lcid;
       bool     is_am = parent->cfg.qci_cfg[erab_pair.second.qos_params.qci].rlc_cfg.type().value ==
                    asn1::rrc::rlc_cfg_c::types_opts::am;
       if (is_am) {
@@ -1389,7 +1408,12 @@ void rrc::ue::apply_rlc_rb_updates(const rr_cfg_ded_s& pending_rr_cfg)
   }
   if (pending_rr_cfg.drb_to_release_list.size() > 0) {
     for (uint8_t drb_id : pending_rr_cfg.drb_to_release_list) {
-      parent->rlc->del_bearer(rnti, drb_id + 2);
+      auto erab_it = bearer_list.get_erabs().find(drb_id + 4);
+      if (erab_it == bearer_list.get_erabs().end()) {
+        parent->logger.warning("The DRB Id=%d is not recognized", drb_id);
+      } else {
+        parent->rlc->del_bearer(rnti, erab_it->second.lcid);
+      }
     }
   }
   for (const drb_to_add_mod_s& drb : pending_rr_cfg.drb_to_add_mod_list) {
