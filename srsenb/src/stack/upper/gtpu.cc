@@ -91,7 +91,11 @@ const gtpu_tunnel* gtpu_tunnel_manager::add_tunnel(uint16_t rnti, uint32_t lcid,
   tun->spgw_addr = spgw_addr;
 
   if (not ue_teidin_db.contains(rnti)) {
-    ue_teidin_db.insert(rnti, ue_lcid_tunnel_list());
+    auto ret = ue_teidin_db.insert(rnti, ue_lcid_tunnel_list());
+    if (ret.is_error()) {
+      logger.error("Failed to allocate rnti=0x%x", rnti);
+      return nullptr;
+    }
   }
   auto& ue_tunnels = ue_teidin_db[rnti];
 

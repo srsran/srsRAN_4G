@@ -36,7 +36,6 @@ struct gtpu_header_t;
 namespace srsenb {
 
 class pdcp_interface_gtpu;
-class stack_interface_gtpu_lte;
 
 class gtpu_tunnel_manager
 {
@@ -120,8 +119,8 @@ private:
   pdcp_interface_gtpu*      pdcp      = nullptr;
   srslog::basic_logger&     logger;
 
-  srsran::static_circular_map<uint16_t, ue_lcid_tunnel_list, SRSENB_MAX_UES> ue_teidin_db;
-  tunnel_list_t                                                              tunnels;
+  rnti_map_t<ue_lcid_tunnel_list> ue_teidin_db;
+  tunnel_list_t                   tunnels;
 };
 
 using gtpu_tunnel_state = gtpu_tunnel_manager::tunnel_state;

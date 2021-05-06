@@ -17,6 +17,7 @@
                               INCLUDES
 *******************************************************************************/
 
+#include "srsran/adt/circular_map.h"
 #include "srsran/common/common_lte.h"
 #include <stdint.h>
 
@@ -47,6 +48,10 @@ constexpr uint32_t drb_to_lcid(lte_drb drb_id)
 #define SRSENB_MAX_BUFFER_SIZE_BITS 102048
 #define SRSENB_MAX_BUFFER_SIZE_BYTES 12756
 #define SRSENB_BUFFER_HEADER_OFFSET 1024
+
+/// Typedef of circular map container which key corresponding to rnti value and that can be used across layers
+template <typename UEObject>
+using rnti_map_t = srsran::static_circular_map<uint16_t, UEObject, SRSENB_MAX_UES>;
 
 } // namespace srsenb
 
