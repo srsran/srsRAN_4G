@@ -14,15 +14,14 @@
 #define SRSENB_SCHEDULER_UE_H
 
 #include "sched_common.h"
-#include "srsran/srslog/srslog.h"
-#include <map>
-#include <vector>
-
 #include "sched_ue_ctrl/sched_lch.h"
 #include "sched_ue_ctrl/sched_ue_cell.h"
 #include "sched_ue_ctrl/tpc.h"
+#include "srsenb/hdr/common/common_enb.h"
+#include "srsran/srslog/srslog.h"
 #include <bitset>
-#include <deque>
+#include <map>
+#include <vector>
 
 namespace srsenb {
 
@@ -211,7 +210,7 @@ private:
   std::vector<sched_ue_cell> cells; ///< List of eNB cells that may be configured/activated/deactivated for the UE
 };
 
-using sched_ue_list = std::map<uint16_t, std::unique_ptr<sched_ue> >;
+using sched_ue_list = rnti_map_t<std::unique_ptr<sched_ue> >;
 
 } // namespace srsenb
 

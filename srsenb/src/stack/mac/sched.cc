@@ -107,14 +107,14 @@ int sched::ue_cfg(uint16_t rnti, const sched_interface::ue_cfg_t& ue_cfg)
   // Add new user case
   std::unique_ptr<sched_ue>   ue{new sched_ue(rnti, sched_cell_params, ue_cfg)};
   std::lock_guard<std::mutex> lock(sched_mutex);
-  ue_db.insert(std::make_pair(rnti, std::move(ue)));
+  ue_db.insert(rnti, std::move(ue));
   return SRSRAN_SUCCESS;
 }
 
 int sched::ue_rem(uint16_t rnti)
 {
   std::lock_guard<std::mutex> lock(sched_mutex);
-  if (ue_db.count(rnti) > 0) {
+  if (ue_db.contains(rnti)) {
     ue_db.erase(rnti);
   } else {
     Error("User rnti=0x%x not found", rnti);
