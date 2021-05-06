@@ -277,7 +277,7 @@ void pdcp::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
   if (valid_lcid(lcid)) {
     pdcp_array.at(lcid)->write_pdu(std::move(pdu));
   } else {
-    logger.warning("Writing pdu: lcid=%d. Deallocating pdu", lcid);
+    logger.warning("Dropping PDU, lcid=%d doesnt exists", lcid);
   }
 }
 
