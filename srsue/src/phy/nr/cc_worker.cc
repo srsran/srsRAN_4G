@@ -321,13 +321,11 @@ bool cc_worker::measure_csi()
       continue;
     }
 
-    logger.info("NZP-CSI-RS (TRS): id=%d rsrp=%+.1f epre=%+.1f snr=%+.1f cfo=%+.1f delay=%.1f",
-                resource_set_id,
-                trs_measurements.rsrp_dB,
-                trs_measurements.epre_dB,
-                trs_measurements.snr_dB,
-                trs_measurements.cfo_hz,
-                trs_measurements.delay_us);
+    if (logger.info.enabled()) {
+      std::array<char, 512> str = {};
+      srsran_csi_meas_info(&trs_measurements, str.data(), (uint32_t)str.size());
+      logger.info("NZP-CSI-RS (TRS): id=%d %s", resource_set_id, str.data());
+    }
 
     // Compute channel metrics and push it
     ch_metrics_t ch_metrics = {};

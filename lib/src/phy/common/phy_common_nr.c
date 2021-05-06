@@ -174,8 +174,10 @@ float srsran_symbol_distance_s(uint32_t l0, uint32_t l1, srsran_subcarrier_spaci
   // Compute reference FFT size
   uint32_t N = (2048 + 144) * count + extra_cp;
 
+  float TS = SRSRAN_LTE_TS / (float)(1U << (uint32_t)scs);
+
   // Return symbol distance in microseconds
-  return (N << (uint32_t)scs) * SRSRAN_LTE_TS;
+  return (float)N * TS;
 }
 
 bool srsran_tdd_nr_is_dl(const srsran_tdd_config_nr_t* cfg, uint32_t numerology, uint32_t slot_idx)
@@ -266,4 +268,22 @@ int srsran_carrier_to_cell(const srsran_carrier_nr_t* carrier, srsran_cell_t* ce
   cell->nof_ports = carrier->max_mimo_layers;
 
   return SRSRAN_SUCCESS;
+}
+
+uint32_t srsran_csi_meas_info(const srsran_csi_trs_measurements_t* meas, char* str, uint32_t str_len)
+{
+  if (meas == NULL || str == NULL || str_len == 0) {
+    return 0;
+  }
+
+  return srsran_print_check(str,
+                            str_len,
+                            0,
+                            "rsrp=%+.1f epre=%+.1f n0=%+.1f snr=%+.1f cfo=%+.1f delay=%+.1f",
+                            meas->rsrp_dB,
+                            meas->epre_dB,
+                            meas->n0_dB,
+                            meas->snr_dB,
+                            meas->cfo_hz,
+                            meas->delay_us);
 }
