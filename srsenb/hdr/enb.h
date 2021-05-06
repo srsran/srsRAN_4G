@@ -96,6 +96,7 @@ struct general_args_t {
   uint32_t    max_mac_dl_kos;
   uint32_t    max_mac_ul_kos;
   uint32_t    gtpu_indirect_tunnel_timeout;
+  uint32_t    rlf_release_timer_ms;
 };
 
 struct all_args_t {

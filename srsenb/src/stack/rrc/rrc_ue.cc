@@ -56,10 +56,14 @@ int rrc::ue::init()
   // Configure
   apply_setup_phy_common(parent->cfg.sibs[1].sib2().rr_cfg_common, true);
 
-  rlf_timer      = parent->task_sched.get_unique_timer();
-  activity_timer = parent->task_sched.get_unique_timer();
+  rlf_release_timer = parent->task_sched.get_unique_timer();
+  activity_timer    = parent->task_sched.get_unique_timer();
   set_activity_timeout(MSG3_RX_TIMEOUT); // next UE response is Msg3
-  set_rlf_timeout();
+
+  // Set timeout to release UE context after RLF detection
+  uint32_t deadline_ms = parent->cfg.rlf_release_timer_ms;
+  rlf_release_timer.set(deadline_ms, [this](uint32_t tid) { rlf_timer_expired(); });
+  parent->logger.info("Setting RLF timer for rnti=0x%x to %dms", rnti, deadline_ms);
 
   mobility_handler = make_rnti_obj<rrc_mobility>(rnti, this);
   return SRSRAN_SUCCESS;
@@ -93,6 +97,20 @@ void rrc::ue::set_activity()
   }
 }
 
+void rrc::ue::start_rlf_timer()
+{
+  rlf_release_timer.run();
+  parent->logger.info("RLF timer started for rnti=0x%x (duration=%dms)", rnti, rlf_release_timer.duration());
+}
+
+void rrc::ue::stop_rlf_timer()
+{
+  if (rlf_release_timer.is_running()) {
+    parent->logger.info("RLF timer stopped for rnti=0x%x (time elapsed=%dms)", rnti, rlf_release_timer.time_elapsed());
+  }
+  rlf_release_timer.stop();
+}
+
 void rrc::ue::set_radiolink_dl_state(bool crc_res)
 {
   parent->logger.debug(
@@ -102,13 +120,13 @@ void rrc::ue::set_radiolink_dl_state(bool crc_res)
   if (crc_res) {
     consecutive_kos_dl = 0;
     consecutive_kos_ul = 0;
-    rlf_timer.stop();
+    stop_rlf_timer();
     return;
   }
 
   // Count KOs in MAC and trigger release if it goes above a certain value.
   // This is done to detect out-of-coverage UEs
-  if (rlf_timer.is_running()) {
+  if (rlf_release_timer.is_running()) {
     // RLF timer already running, no need to count KOs
     return;
   }
@@ -129,13 +147,13 @@ void rrc::ue::set_radiolink_ul_state(bool crc_res)
   if (crc_res) {
     consecutive_kos_dl = 0;
     consecutive_kos_ul = 0;
-    rlf_timer.stop();
+    stop_rlf_timer();
     return;
   }
 
   // Count KOs in MAC and trigger release if it goes above a certain value.
   // This is done to detect out-of-coverage UEs
-  if (rlf_timer.is_running()) {
+  if (rlf_release_timer.is_running()) {
     // RLF timer already running, no need to count KOs
     return;
   }
@@ -149,7 +167,7 @@ void rrc::ue::set_radiolink_ul_state(bool crc_res)
 
 void rrc::ue::activity_timer_expired(const activity_timeout_type_t type)
 {
-  rlf_timer.stop();
+  stop_rlf_timer();
   if (parent) {
     parent->logger.info("Activity timer for rnti=0x%x expired after %d ms", rnti, activity_timer.time_elapsed());
 
@@ -182,7 +200,7 @@ void rrc::ue::rlf_timer_expired()
 {
   activity_timer.stop();
   if (parent) {
-    parent->logger.info("RLF timer for rnti=0x%x expired after %d ms", rnti, rlf_timer.time_elapsed());
+    parent->logger.info("RLF timer for rnti=0x%x expired after %d ms", rnti, rlf_release_timer.time_elapsed());
 
     if (parent->s1ap->user_exists(rnti)) {
       parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::radio_conn_with_ue_lost);
@@ -203,26 +221,10 @@ void rrc::ue::max_retx_reached()
     parent->logger.info("Max retx reached for rnti=0x%x", rnti);
 
     // Give UE time to start re-establishment
-    rlf_timer.run();
+    start_rlf_timer();
 
     mac_ctrl.handle_max_retx();
   }
-}
-
-void rrc::ue::set_rlf_timeout()
-{
-  uint32_t deadline_s  = 0;
-  uint32_t deadline_ms = 0;
-
-  deadline_ms = static_cast<uint32_t>((get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.ue_timers_and_consts.t310.to_number()) +
-                                      (get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.ue_timers_and_consts.t311.to_number()) +
-                                      (get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.ue_timers_and_consts.n310.to_number()));
-  deadline_s  = deadline_ms / 1000;
-  deadline_ms = deadline_ms % 1000;
-
-  uint32_t deadline = deadline_s * 1e3 + deadline_ms;
-  rlf_timer.set(deadline, [this](uint32_t tid) { rlf_timer_expired(); });
-  parent->logger.info("Setting RLF timer for rnti=0x%x to %dms", rnti, deadline);
 }
 
 void rrc::ue::set_activity_timeout(const activity_timeout_type_t type)
@@ -514,10 +516,16 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
                                     static_cast<unsigned>(rrc_event_type::con_reest_req),
                                     static_cast<unsigned>(procedure_result_code::none),
                                     rnti);
+  const rrc_conn_reest_request_r8_ies_s& req_r8   = msg->crit_exts.rrc_conn_reest_request_r8();
+  uint16_t                               old_rnti = req_r8.ue_id.c_rnti.to_number();
+
+  srsran::console(
+      "User 0x%x requesting RRC Reestablishment as 0x%x. Cause: %s\n", rnti, old_rnti, req_r8.reest_cause.to_string());
 
   if (not parent->s1ap->is_mme_connected()) {
     parent->logger.error("MME isn't connected. Sending Connection Reject");
-    send_connection_reject(procedure_result_code::error_mme_not_connected);
+    send_connection_reest_rej(procedure_result_code::error_mme_not_connected);
+    srsran::console("User 0x%x RRC Reestablishment Request rejected\n", rnti);
     return;
   }
   parent->logger.debug("rnti=0x%x, phyid=0x%x, smac=0x%x, cause=%s",
@@ -526,7 +534,6 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
                        (uint32_t)msg->crit_exts.rrc_conn_reest_request_r8().ue_id.short_mac_i.to_number(),
                        msg->crit_exts.rrc_conn_reest_request_r8().reest_cause.to_string());
   if (is_idle()) {
-    uint16_t               old_rnti = msg->crit_exts.rrc_conn_reest_request_r8().ue_id.c_rnti.to_number();
     uint16_t               old_pci  = msg->crit_exts.rrc_conn_reest_request_r8().ue_id.pci;
     const enb_cell_common* old_cell = parent->cell_common_list->get_pci(old_pci);
     auto                   ue_it    = parent->users.find(old_rnti);
@@ -581,9 +588,13 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
     } else {
       parent->logger.error("Received ConnectionReestablishment for rnti=0x%x without context", old_rnti);
       send_connection_reest_rej(procedure_result_code::error_unknown_rnti);
+      srsran::console(
+          "User 0x%x RRC Reestablishment Request rejected. Cause: no rnti=0x%x context available\n", rnti, old_rnti);
     }
   } else {
     parent->logger.error("Received ReestablishmentRequest from an rnti=0x%x not in IDLE", rnti);
+    send_connection_reest_rej(procedure_result_code::error_unknown_rnti);
+    srsran::console("ERROR: User 0x%x requesting Reestablishment is not in RRC_IDLE\n", rnti);
   }
 }
 

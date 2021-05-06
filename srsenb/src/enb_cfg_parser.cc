@@ -1160,8 +1160,9 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
   rrc_cfg_->enb_id = args_->stack.s1ap.enb_id;
 
   // Set max number of KOs
-  rrc_cfg_->max_mac_dl_kos = args_->general.max_mac_dl_kos;
-  rrc_cfg_->max_mac_ul_kos = args_->general.max_mac_ul_kos;
+  rrc_cfg_->max_mac_dl_kos       = args_->general.max_mac_dl_kos;
+  rrc_cfg_->max_mac_ul_kos       = args_->general.max_mac_ul_kos;
+  rrc_cfg_->rlf_release_timer_ms = args_->general.rlf_release_timer_ms;
 
   // Set sync queue capacity to 1 for ZMQ
   if (args_->rf.device_name == "zmq") {

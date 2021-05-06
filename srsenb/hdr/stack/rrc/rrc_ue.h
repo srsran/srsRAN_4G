@@ -40,8 +40,9 @@ public:
 
   std::string to_string(const activity_timeout_type_t& type);
   void        set_activity_timeout(const activity_timeout_type_t type);
-  void        set_rlf_timeout();
   void        set_activity();
+  void        start_rlf_timer();
+  void        stop_rlf_timer();
   void        set_radiolink_dl_state(bool crc_res);
   void        set_radiolink_ul_state(bool crc_res);
   void        activity_timer_expired(const activity_timeout_type_t type);
@@ -158,8 +159,8 @@ public:
 
 private:
   // args
-  srsran::timer_handler::unique_timer activity_timer;
-  srsran::timer_handler::unique_timer rlf_timer;
+  srsran::unique_timer activity_timer;
+  srsran::unique_timer rlf_release_timer;
 
   /// cached ASN1 fields for RRC config update checking, and ease of context transfer during HO
   ue_var_cfg_t current_ue_cfg;
