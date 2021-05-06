@@ -65,33 +65,34 @@ void cached_deque_benchmark()
   using std::chrono::high_resolution_clock;
   using std::chrono::microseconds;
 
-  srsran::deque<int>                my_deque;
-  std::deque<int>                   std_deque;
+  srsran::queue<int>                my_deque;
+  std::queue<int>                   std_deque;
   high_resolution_clock::time_point tp;
 
   size_t N = 10000000, n_elems = 10;
 
   for (size_t i = 0; i < n_elems; ++i) {
-    my_deque.push_back(i);
-    std_deque.push_back(i);
+    my_deque.push(i);
+    std_deque.push(i);
   }
 
   // NOTE: this benchmark doesnt account for when memory is fragmented
   tp = high_resolution_clock::now();
   for (size_t i = n_elems; i < N; ++i) {
-    std_deque.push_back(i);
-    std_deque.pop_front();
+    std_deque.push(i);
+    std_deque.pop();
   }
   microseconds t_std = std::chrono::duration_cast<microseconds>(high_resolution_clock::now() - tp);
 
   tp = high_resolution_clock::now();
   for (size_t i = n_elems; i < N; ++i) {
-    my_deque.push_back(i);
-    my_deque.pop_front();
+    my_deque.push(i);
+    my_deque.pop();
   }
   microseconds t_cached = std::chrono::duration_cast<microseconds>(high_resolution_clock::now() - tp);
 
-  fmt::print("Time elapsed: cached alloc={} usec, std alloc={} usec", t_cached.count(), t_std.count());
+  fmt::print("Time elapsed: cached alloc={} usec, std alloc={} usec\n", t_cached.count(), t_std.count());
+  fmt::print("queue sizes: {} {}\n", my_deque.size(), std_deque.size());
 }
 
 int main()

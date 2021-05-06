@@ -20,11 +20,18 @@
 
 namespace srsran {
 
+/**
+ * Custom Allocator that caches deallocated memory blocks in a stack to be reused in future allocations.
+ * This minimizes the number of new/delete calls, when the rate of insertions/removals match (e.g. a queue)
+ * This allocator is not thread-safe. It assumes the container is being used in a single-threaded environment,
+ * or being mutexed when altered, which is a reasonable assumption
+ * @tparam T object type
+ */
 template <typename T>
 class cached_alloc : public std::allocator<T>
 {
   struct memblock_t : public intrusive_double_linked_list_element<> {
-    memblock_t(size_t sz) : block_size(sz) {}
+    explicit memblock_t(size_t sz) : block_size(sz) {}
     size_t block_size;
   };
   const size_t min_n = (sizeof(memblock_t) + sizeof(T) - 1) / sizeof(T);
