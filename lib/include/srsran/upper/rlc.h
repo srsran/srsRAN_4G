@@ -39,12 +39,6 @@ public:
             srsue::rrc_interface_rlc*  rrc_,
             srsran::timer_handler*     timers_,
             uint32_t                   lcid_);
-
-  void init(srsue::pdcp_interface_rlc* pdcp_,
-            srsue::rrc_interface_rlc*  rrc_,
-            srsue::rrc_interface_rlc*  rrc_nr_,
-            srsran::timer_handler*     timers_,
-            uint32_t                   lcid_);
             
   void init(srsue::pdcp_interface_rlc* pdcp_,
             srsue::rrc_interface_rlc*  rrc_,
@@ -82,8 +76,8 @@ public:
   void reestablish(uint32_t lcid);
   void reset();
   void empty_queue();
-  void add_bearer(uint32_t lcid, const rlc_config_t& cnfg);
-  void add_bearer_mrb(uint32_t lcid);
+  int  add_bearer(uint32_t lcid, const rlc_config_t& cnfg);
+  int  add_bearer_mrb(uint32_t lcid);
   void del_bearer(uint32_t lcid);
   void del_bearer_mrb(uint32_t lcid);
   void suspend_bearer(uint32_t lcid);
@@ -98,11 +92,10 @@ private:
   byte_buffer_pool*          pool   = nullptr;
   srsue::pdcp_interface_rlc* pdcp   = nullptr;
   srsue::rrc_interface_rlc*  rrc    = nullptr;
-  srsue::rrc_interface_rlc*  rrc_nr = nullptr;
   srsran::timer_handler*     timers = nullptr;
 
-  typedef std::map<uint16_t, rlc_common*>  rlc_map_t;
-  typedef std::pair<uint16_t, rlc_common*> rlc_map_pair_t;
+  typedef std::map<uint16_t, std::unique_ptr<rlc_common> >  rlc_map_t;
+  typedef std::pair<uint16_t, std::unique_ptr<rlc_common> > rlc_map_pair_t;
 
   rlc_map_t        rlc_array, rlc_array_mrb;
   pthread_rwlock_t rwlock;

@@ -201,7 +201,7 @@ int ue_stack_lte::init(const stack_args_t& args_)
   sync_task_queue = task_sched.make_task_queue(args.sync_queue_size);
 
   mac.init(phy, &rlc, &rrc);
-  rlc.init(&pdcp, &rrc, &rrc_nr, task_sched.get_timer_handler(), 0 /* RB_ID_SRB0 */);
+  rlc.init(&pdcp, &rrc, task_sched.get_timer_handler(), 0 /* RB_ID_SRB0 */);
   pdcp.init(&rlc, &rrc, &rrc_nr, gw);
   nas.init(usim.get(), &rrc, gw, args.nas);
 
