@@ -253,7 +253,9 @@ int srsran_ssb_csi_measure(srsran_ssb_t* q, uint32_t N_id, const cf_t* in, srsra
     return SRSRAN_ERROR;
   }
 
-  cf_t ssb_grid[SRSRAN_SSB_NOF_RE] = {};
+  uint32_t N_id_1                      = SRSRAN_NID_1_NR(N_id);
+  uint32_t N_id_2                      = SRSRAN_NID_2_NR(N_id);
+  cf_t     ssb_grid[SRSRAN_SSB_NOF_RE] = {};
 
   // Demodulate
   const cf_t* in_ptr = in;
@@ -298,8 +300,8 @@ int srsran_ssb_csi_measure(srsran_ssb_t* q, uint32_t N_id, const cf_t* in, srsra
   // Extract PSS LSE
   cf_t pss_lse[SRSRAN_PSS_NR_LEN];
   cf_t sss_lse[SRSRAN_SSS_NR_LEN];
-  if (srsran_pss_nr_extract_lse(ssb_grid, SRSRAN_NID_2_NR(N_id), pss_lse) < SRSRAN_SUCCESS ||
-      srsran_sss_nr_extract_lse(ssb_grid, SRSRAN_NID_1_NR(N_id), SRSRAN_NID_2_NR(N_id), sss_lse) < SRSRAN_SUCCESS) {
+  if (srsran_pss_nr_extract_lse(ssb_grid, N_id_2, pss_lse) < SRSRAN_SUCCESS ||
+      srsran_sss_nr_extract_lse(ssb_grid, N_id_1, N_id_2, sss_lse) < SRSRAN_SUCCESS) {
     ERROR("Error extracting LSE");
     return SRSRAN_ERROR;
   }
@@ -317,8 +319,8 @@ int srsran_ssb_csi_measure(srsran_ssb_t* q, uint32_t N_id, const cf_t* in, srsra
   }
 
   // Extract LSE again
-  if (srsran_pss_nr_extract_lse(ssb_grid, SRSRAN_NID_2_NR(N_id), pss_lse) < SRSRAN_SUCCESS ||
-      srsran_sss_nr_extract_lse(ssb_grid, SRSRAN_NID_1_NR(N_id), SRSRAN_NID_2_NR(N_id), sss_lse) < SRSRAN_SUCCESS) {
+  if (srsran_pss_nr_extract_lse(ssb_grid, N_id_2, pss_lse) < SRSRAN_SUCCESS ||
+      srsran_sss_nr_extract_lse(ssb_grid, N_id_1, N_id_2, sss_lse) < SRSRAN_SUCCESS) {
     ERROR("Error extracting LSE");
     return SRSRAN_ERROR;
   }

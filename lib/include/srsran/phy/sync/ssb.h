@@ -35,7 +35,7 @@
 #define SRSRAN_SSB_DEFAULT_BETA 1.0f
 
 /**
- * @brief Describes SSB object initializatoion arguments
+ * @brief Describes SSB object initialization arguments
  */
 typedef struct SRSRAN_API {
   double max_srate_hz; ///< Maximum sampling rate in Hz (common for gNb and UE), set to zero to use default
@@ -75,19 +75,12 @@ typedef struct SRSRAN_API {
   uint32_t cp_sz;         ///< Other symbol cyclic prefix size
 
   /// Internal Objects
-  // srsran_pbch_nr_t pbch; ///< PBCH object for encoding/decoding
-  // srsran_dmrs_pbch_nr_t dmrs; ///< PBCH DMRS object for channel estimation
   srsran_dft_plan_t ifft; ///< IFFT object for modulating the SSB
   srsran_dft_plan_t fft;  ///< FFT object for demodulate the SSB.
 
   /// Frequency/Time domain temporal data
   cf_t* tmp_freq;
   cf_t* tmp_time;
-
-  /// Time domain sequences
-  //  cf_t* pss[SRSRAN_NOF_NID_2_NR]; ///< PSS signal for each possible N_id_2
-  //  cf_t* sss[SRSRAN_NOF_NID_1_NR]; ///< SSS signal for each possible N_id_1
-
 } srsran_ssb_t;
 
 /**

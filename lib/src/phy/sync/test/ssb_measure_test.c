@@ -11,11 +11,11 @@
  */
 
 #include "srsran/common/test_common.h"
+#include "srsran/phy/channel/ch_awgn.h"
 #include "srsran/phy/sync/ssb.h"
 #include "srsran/phy/utils/debug.h"
 #include "srsran/phy/utils/vector.h"
 #include <getopt.h>
-#include <srsran/phy/channel/ch_awgn.h>
 #include <stdlib.h>
 
 // NR parameters
@@ -103,10 +103,8 @@ static int test_case_1(srsran_ssb_t* ssb)
     run_channel();
 
     // Measure
-    srsran_csi_trs_measurements_t meas = {};
-    TESTASSERT(srsran_ssb_csi_measure(ssb, pci, buffer, &meas) == SRSRAN_SUCCESS);
-
     gettimeofday(&t[1], NULL);
+    srsran_csi_trs_measurements_t meas = {};
     TESTASSERT(srsran_ssb_csi_measure(ssb, pci, buffer, &meas) == SRSRAN_SUCCESS);
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
