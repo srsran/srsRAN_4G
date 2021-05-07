@@ -113,7 +113,6 @@ public:
   bool has_erab(uint32_t erab_id) const { return bearer_list.get_erabs().count(erab_id) > 0; }
   int  get_erab_addr_in(uint16_t erab_id, transp_addr_t& addr_in, uint32_t& teid_in) const;
 
-  bool setup_erabs(const asn1::s1ap::erab_to_be_setup_list_ctxt_su_req_l& e);
   bool release_erabs();
   int  release_erab(uint32_t erab_id);
   int  setup_erab(uint16_t                                           erab_id,

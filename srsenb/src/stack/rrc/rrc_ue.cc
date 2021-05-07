@@ -1020,35 +1020,6 @@ void rrc::ue::set_bitrates(const asn1::s1ap::ue_aggregate_maximum_bitrate_s& rat
   bitrates = rates;
 }
 
-bool rrc::ue::setup_erabs(const asn1::s1ap::erab_to_be_setup_list_ctxt_su_req_l& e)
-{
-  for (const auto& item : e) {
-    const auto& erab = item.value.erab_to_be_setup_item_ctxt_su_req();
-    if (erab.ext) {
-      parent->logger.warning("Not handling E-RABToBeSetupListCtxtSURequest extensions");
-    }
-    if (erab.ie_exts_present) {
-      parent->logger.warning("Not handling E-RABToBeSetupListCtxtSURequest extensions");
-    }
-    if (erab.transport_layer_address.length() > 32) {
-      parent->logger.error("IPv6 addresses not currently supported");
-      return false;
-    }
-
-    uint32_t teid_out = 0;
-    srsran::uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
-    srsran::const_span<uint8_t> nas_pdu;
-    if (erab.nas_pdu_present) {
-      nas_pdu = erab.nas_pdu;
-    }
-    asn1::s1ap::cause_c cause;
-    bearer_list.add_erab(
-        erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, nas_pdu, cause);
-    bearer_list.add_gtpu_bearer(erab.erab_id);
-  }
-  return true;
-}
-
 bool rrc::ue::release_erabs()
 {
   bearer_list.release_erabs();
