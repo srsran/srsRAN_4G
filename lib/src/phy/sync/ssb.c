@@ -241,23 +241,8 @@ int srsran_ssb_add(srsran_ssb_t* q, uint32_t N_id, const srsran_pbch_msg_nr_t* m
   return SRSRAN_SUCCESS;
 }
 
-int srsran_ssb_csi_measure(srsran_ssb_t* q, uint32_t N_id, const cf_t* in, srsran_csi_trs_measurements_t* meas)
+static int ssb_demodulate(srsran_ssb_t* q, const cf_t* in, cf_t ssb_grid[SRSRAN_SSB_NOF_RE])
 {
-  // Verify inputs
-  if (q == NULL || N_id >= SRSRAN_NOF_NID_NR || in == NULL || meas == NULL || !isnormal(q->scs_hz)) {
-    return SRSRAN_ERROR_INVALID_INPUTS;
-  }
-
-  if (!q->args.enable_measure) {
-    ERROR("SSB is not configured for measure");
-    return SRSRAN_ERROR;
-  }
-
-  uint32_t N_id_1                      = SRSRAN_NID_1_NR(N_id);
-  uint32_t N_id_2                      = SRSRAN_NID_2_NR(N_id);
-  cf_t     ssb_grid[SRSRAN_SSB_NOF_RE] = {};
-
-  // Demodulate
   const cf_t* in_ptr = in;
   for (uint32_t l = 0; l < SRSRAN_SSB_DURATION_NSYMB; l++) {
     // Get CP length
@@ -297,6 +282,15 @@ int srsran_ssb_csi_measure(srsran_ssb_t* q, uint32_t N_id, const cf_t* in, srsra
     }
   }
 
+  return SRSRAN_SUCCESS;
+}
+
+static int
+ssb_measure(srsran_ssb_t* q, const cf_t ssb_grid[SRSRAN_SSB_NOF_RE], uint32_t N_id, srsran_csi_trs_measurements_t* meas)
+{
+  uint32_t N_id_1 = SRSRAN_NID_1_NR(N_id);
+  uint32_t N_id_2 = SRSRAN_NID_2_NR(N_id);
+
   // Extract PSS LSE
   cf_t pss_lse[SRSRAN_PSS_NR_LEN];
   cf_t sss_lse[SRSRAN_SSS_NR_LEN];
@@ -313,14 +307,17 @@ int srsran_ssb_csi_measure(srsran_ssb_t* q, uint32_t N_id, const cf_t* in, srsra
   float delay_avg_us   = 1e6f * delay_avg_norm / q->scs_hz;
 
   // Pre-compensate delay
+  cf_t ssb_grid_corrected[SRSRAN_SSB_NOF_RE];
   for (uint32_t l = 0; l < SRSRAN_SSB_DURATION_NSYMB; l++) {
-    srsran_vec_apply_cfo(
-        &ssb_grid[SRSRAN_SSB_BW_SUBC * l], delay_avg_norm, &ssb_grid[SRSRAN_SSB_BW_SUBC * l], SRSRAN_SSB_BW_SUBC);
+    srsran_vec_apply_cfo(&ssb_grid[SRSRAN_SSB_BW_SUBC * l],
+                         delay_avg_norm,
+                         &ssb_grid_corrected[SRSRAN_SSB_BW_SUBC * l],
+                         SRSRAN_SSB_BW_SUBC);
   }
 
   // Extract LSE again
-  if (srsran_pss_nr_extract_lse(ssb_grid, N_id_2, pss_lse) < SRSRAN_SUCCESS ||
-      srsran_sss_nr_extract_lse(ssb_grid, N_id_1, N_id_2, sss_lse) < SRSRAN_SUCCESS) {
+  if (srsran_pss_nr_extract_lse(ssb_grid_corrected, N_id_2, pss_lse) < SRSRAN_SUCCESS ||
+      srsran_sss_nr_extract_lse(ssb_grid_corrected, N_id_1, N_id_2, sss_lse) < SRSRAN_SUCCESS) {
     ERROR("Error extracting LSE");
     return SRSRAN_ERROR;
   }
@@ -360,6 +357,82 @@ int srsran_ssb_csi_measure(srsran_ssb_t* q, uint32_t N_id, const cf_t* in, srsra
   meas->cfo_hz_max = cfo_hz_max;
   meas->delay_us   = delay_avg_us; // Convert the delay to microseconds
   meas->nof_re     = SRSRAN_PSS_NR_LEN + SRSRAN_SSS_NR_LEN;
+
+  return SRSRAN_SUCCESS;
+}
+int srsran_ssb_csi_search(srsran_ssb_t* q, const cf_t* in, uint32_t* N_id, srsran_csi_trs_measurements_t* meas)
+{
+  // Verify inputs
+  if (q == NULL || in == NULL || N_id == NULL || meas == NULL || !isnormal(q->scs_hz)) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+
+  if (!q->args.enable_measure) {
+    ERROR("SSB is not configured for search");
+    return SRSRAN_ERROR;
+  }
+
+  cf_t ssb_grid[SRSRAN_SSB_NOF_RE] = {};
+
+  // Demodulate
+  if (ssb_demodulate(q, in, ssb_grid) < SRSRAN_SUCCESS) {
+    ERROR("Error demodulating");
+    return SRSRAN_ERROR;
+  }
+
+  // Find best N_id_2
+  uint32_t N_id_2   = 0;
+  float    pss_corr = 0.0f;
+  if (srsran_pss_nr_find(ssb_grid, &pss_corr, &N_id_2) < SRSRAN_SUCCESS) {
+    ERROR("Error searching for N_id_2");
+    return SRSRAN_ERROR;
+  }
+
+  // Find best N_id_1
+  uint32_t N_id_1   = 0;
+  float    sss_corr = 0.0f;
+  if (srsran_sss_nr_find(ssb_grid, N_id_2, &sss_corr, &N_id_1) < SRSRAN_SUCCESS) {
+    ERROR("Error searching for N_id_2");
+    return SRSRAN_ERROR;
+  }
+
+  // Select N_id
+  *N_id = SRSRAN_NID_NR(N_id_1, N_id_2);
+
+  // Measure selected N_id
+  if (ssb_measure(q, ssb_grid, *N_id, meas)) {
+    ERROR("Error measuring");
+    return SRSRAN_ERROR;
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
+int srsran_ssb_csi_measure(srsran_ssb_t* q, uint32_t N_id, const cf_t* in, srsran_csi_trs_measurements_t* meas)
+{
+  // Verify inputs
+  if (q == NULL || N_id >= SRSRAN_NOF_NID_NR || in == NULL || meas == NULL || !isnormal(q->scs_hz)) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+
+  if (!q->args.enable_measure) {
+    ERROR("SSB is not configured for measure");
+    return SRSRAN_ERROR;
+  }
+
+  cf_t ssb_grid[SRSRAN_SSB_NOF_RE] = {};
+
+  // Demodulate
+  if (ssb_demodulate(q, in, ssb_grid) < SRSRAN_SUCCESS) {
+    ERROR("Error demodulating");
+    return SRSRAN_ERROR;
+  }
+
+  // Actual measurement
+  if (ssb_measure(q, ssb_grid, N_id, meas)) {
+    ERROR("Error measuring");
+    return SRSRAN_ERROR;
+  }
 
   return SRSRAN_SUCCESS;
 }

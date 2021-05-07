@@ -43,7 +43,7 @@ typedef struct SRSRAN_API {
   bool                        enable_correlate; ///< Enables PSS/SSS correlation and peak search (UE cell search)
   bool                        enable_encode;    ///< Enables PBCH Encoder (intended for gNb)
   bool                        enable_decode;    ///< Enables PBCH Decoder (intented for UE)
-  bool                        enable_measure;   ///< Enables PSS/SSS CSI measurements
+  bool                        enable_measure;   ///< Enables PSS/SSS CSI measurements and frequency domain search
 } srsran_ssb_args_t;
 
 /**
@@ -120,6 +120,18 @@ SRSRAN_API int srsran_ssb_decode_pbch(srsran_ssb_t* q, const cf_t* in, srsran_pb
  */
 SRSRAN_API int
 srsran_ssb_add(srsran_ssb_t* q, uint32_t N_id, const srsran_pbch_msg_nr_t* msg, const cf_t* in, cf_t* out);
+
+/**
+ * @brief Perform cell search and measurement
+ * @note This function assumes the SSB transmission is aligned with the input base-band signal
+ * @param q NR PSS object
+ * @param in Base-band signal buffer
+ * @param N_id Physical Cell Identifier of the most suitable cell identifier
+ * @param meas SSB-based CSI measurement of the most suitable cell identifier
+ * @return SRSLTE_SUCCESS if the parameters are valid, SRSLTE_ERROR code otherwise
+ */
+SRSRAN_API int
+srsran_ssb_csi_search(srsran_ssb_t* q, const cf_t* in, uint32_t* N_id, srsran_csi_trs_measurements_t* meas);
 
 /**
  * @brief Perform Channel State Information (CSI) measurement from the SSB

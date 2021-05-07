@@ -77,13 +77,25 @@ static void run_channel()
   srsran_channel_awgn_run_c(&awgn, buffer, buffer, sf_len);
 }
 
+static int assert_measure(const srsran_csi_trs_measurements_t* meas)
+{
+  TESTASSERT(fabsf(meas->rsrp_dB - 0.0f) < RSRP_MAX_ERROR);
+  TESTASSERT(fabsf(meas->epre_dB - 0.0f) < EPRE_MAX_ERROR);
+  TESTASSERT(fabsf(meas->n0_dB - n0_dB) < N0_MAX_ERROR);
+  TESTASSERT(fabsf(meas->snr_dB + n0_dB) < SNR_MAX_ERROR);
+  TESTASSERT(fabsf(meas->cfo_hz - cfo_hz) < CFO_MAX_ERROR);
+  TESTASSERT(fabsf(meas->delay_us + delay_us) < DELAY_MAX_ERROR);
+  return SRSRAN_SUCCESS;
+}
+
 static int test_case_1(srsran_ssb_t* ssb)
 {
-  uint64_t         t_usec  = 0;
-  srsran_ssb_cfg_t ssb_cfg = {};
-  ssb_cfg.srate_hz         = srate_hz;
-  ssb_cfg.freq_offset_hz   = 0.0;
-  ssb_cfg.scs              = ssb_scs;
+  uint64_t         t_find_usec = 0;
+  uint64_t         t_meas_usec = 0;
+  srsran_ssb_cfg_t ssb_cfg     = {};
+  ssb_cfg.srate_hz             = srate_hz;
+  ssb_cfg.freq_offset_hz       = 0.0;
+  ssb_cfg.scs                  = ssb_scs;
 
   TESTASSERT(srsran_ssb_set_cfg(ssb, &ssb_cfg) == SRSRAN_SUCCESS);
 
@@ -102,13 +114,26 @@ static int test_case_1(srsran_ssb_t* ssb)
     // Run channel
     run_channel();
 
+    // Find
+    gettimeofday(&t[1], NULL);
+    uint32_t                      N_id_found  = 0;
+    srsran_csi_trs_measurements_t meas_search = {};
+    TESTASSERT(srsran_ssb_csi_search(ssb, buffer, &N_id_found, &meas_search) == SRSRAN_SUCCESS);
+    gettimeofday(&t[2], NULL);
+    get_time_interval(t);
+    t_find_usec += t[0].tv_usec + t[0].tv_sec * 1000000UL;
+
+    // Assert find and measurements
+    TESTASSERT(N_id_found == pci);
+    TESTASSERT(assert_measure(&meas_search) == SRSRAN_SUCCESS);
+
     // Measure
     gettimeofday(&t[1], NULL);
     srsran_csi_trs_measurements_t meas = {};
     TESTASSERT(srsran_ssb_csi_measure(ssb, pci, buffer, &meas) == SRSRAN_SUCCESS);
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
-    t_usec += t[0].tv_usec + t[0].tv_sec * 1000000UL;
+    t_meas_usec += t[0].tv_usec + t[0].tv_sec * 1000000UL;
 
     // Print measurement
     char str[512];
@@ -116,15 +141,12 @@ static int test_case_1(srsran_ssb_t* ssb)
     INFO("test_case_1 - pci=%d %s", pci, str);
 
     // Assert measurements
-    TESTASSERT(fabsf(meas.rsrp_dB - 0.0f) < RSRP_MAX_ERROR);
-    TESTASSERT(fabsf(meas.epre_dB - 0.0f) < EPRE_MAX_ERROR);
-    TESTASSERT(fabsf(meas.n0_dB - n0_dB) < N0_MAX_ERROR);
-    TESTASSERT(fabsf(meas.snr_dB + n0_dB) < SNR_MAX_ERROR);
-    TESTASSERT(fabsf(meas.cfo_hz - cfo_hz) < CFO_MAX_ERROR);
-    TESTASSERT(fabsf(meas.delay_us + delay_us) < DELAY_MAX_ERROR);
+    TESTASSERT(assert_measure(&meas) == SRSRAN_SUCCESS);
   }
 
-  INFO("test_case_1 - %.1f usec/measurement", (double)t_usec / (double)SRSRAN_NOF_NID_NR);
+  INFO("test_case_1 - %.1f usec/search; %.1f usec/measurement",
+       (double)t_find_usec / (double)SRSRAN_NOF_NID_NR,
+       (double)t_meas_usec / (double)SRSRAN_NOF_NID_NR);
 
   return SRSRAN_SUCCESS;
 }

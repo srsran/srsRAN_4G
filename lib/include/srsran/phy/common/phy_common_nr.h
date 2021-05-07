@@ -182,6 +182,11 @@ extern "C" {
 #define SRSRAN_NID_2_NR(N_ID) ((N_ID) % SRSRAN_NOF_NID_2_NR)
 
 /**
+ * @brief Compute Physical Cell Identifier (PCI) N_id from N_id_1 and N_id_2
+ */
+#define SRSRAN_NID_NR(NID_1, NID_2) (SRSRAN_NOF_NID_2_NR * (NID_1) + (NID_2))
+
+/**
  * @brief SSB number of resource elements, described in TS 38.211 section 7.4.3.1 Time-frequency structure of an SS/PBCH
  * block
  */

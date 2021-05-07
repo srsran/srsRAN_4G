@@ -142,7 +142,7 @@ int srsran_sss_nr_find(const cf_t ssb_grid[SRSRAN_SSB_NOF_RE],
                        uint32_t*  found_N_id_1)
 {
   // Verify inputs
-  if (ssb_grid == NULL || N_id_2 >= SRSRAN_NOF_NID_2_NR) {
+  if (ssb_grid == NULL || N_id_2 >= SRSRAN_NOF_NID_2_NR || norm_corr == NULL || found_N_id_1 == NULL) {
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
@@ -154,9 +154,8 @@ int srsran_sss_nr_find(const cf_t ssb_grid[SRSRAN_SSB_NOF_RE],
 
   // If the measured power is invalid or zero, consider no SSS signal
   if (!isnormal(avg_power)) {
-    if (norm_corr) {
-      *norm_corr = 0.0f;
-    }
+    *norm_corr    = 0.0f;
+    *found_N_id_1 = 0;
     return SRSRAN_SUCCESS;
   }
 
@@ -176,19 +175,18 @@ int srsran_sss_nr_find(const cf_t ssb_grid[SRSRAN_SSB_NOF_RE],
     srsran_vec_prod_ccc(&sss_ptr[SRSRAN_SSS_NR_LEN - m1], &sss_nr_d1[0], &sss_seq_m1[SRSRAN_SSS_NR_LEN - m1], m1);
 
     // Iterate over all N_id_1 with the given m1 sequence
-    for (uint32_t N_id_1_blind = m1; N_id_1_blind < SRSRAN_NOF_NID_1; N_id_1_blind += SSS_NR_NOF_M1) {
-      uint32_t m0 = SSS_NR_SEQUENCE_M0(N_id_1_blind, N_id_2);
+    for (uint32_t N_id_1_blind = m1; N_id_1_blind < SRSRAN_NOF_NID_1_NR; N_id_1_blind += SSS_NR_NOF_M1) {
+      uint32_t m0  = SSS_NR_SEQUENCE_M0(N_id_1_blind, N_id_2);
+      cf_t     acc = 0.0f;
 
-      cf_t sss_seq_m0[SRSRAN_SSS_NR_LEN];
+      // Correlate d0 sequence fist part
+      acc += srsran_vec_dot_prod_ccc(&sss_seq_m1[0], &sss_nr_d0[m0], SRSRAN_SSS_NR_LEN - m0);
 
-      // Apply d0 sequence fist part
-      srsran_vec_prod_ccc(&sss_seq_m1[0], &sss_nr_d0[m0], &sss_seq_m0[0], SRSRAN_SSS_NR_LEN - m0);
+      // Correlate d0 sequence second part
+      acc += srsran_vec_dot_prod_ccc(&sss_seq_m1[SRSRAN_SSS_NR_LEN - m0], &sss_nr_d0[0], m0);
 
-      // Apply d0 sequence second part
-      srsran_vec_prod_ccc(&sss_seq_m1[SRSRAN_SSS_NR_LEN - m0], &sss_nr_d0[0], &sss_seq_m0[SRSRAN_SSS_NR_LEN - m0], m0);
-
-      // Correlate
-      float corr = SRSRAN_CSQABS(srsran_vec_acc_cc(sss_seq_m0, SRSRAN_SSS_NR_LEN)) / avg_power;
+      // Normalise
+      float corr = SRSRAN_CSQABS(acc);
       if (corr > max_corr) {
         N_id_1   = N_id_1_blind;
         max_corr = corr;
@@ -196,13 +194,9 @@ int srsran_sss_nr_find(const cf_t ssb_grid[SRSRAN_SSB_NOF_RE],
     }
   }
 
-  if (norm_corr) {
-    *norm_corr = max_corr;
-  }
-
-  if (found_N_id_1) {
-    *found_N_id_1 = N_id_1;
-  }
+  // Copy found result
+  *norm_corr    = max_corr / avg_power / SRSRAN_SSS_NR_LEN;
+  *found_N_id_1 = N_id_1;
 
   return SRSRAN_SUCCESS;
 }
