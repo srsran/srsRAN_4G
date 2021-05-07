@@ -2067,18 +2067,26 @@ void rrc::handle_ue_capability_enquiry(const ue_cap_enquiry_s& enquiry)
         irat_params_nr_r15.supported_band_list_en_dc_r15.push_back(supported_band_nr_r15);
         ue_eutra_cap_v1450_ies->non_crit_ext.non_crit_ext.irat_params_nr_r15_present = true;
         ue_eutra_cap_v1450_ies->non_crit_ext.non_crit_ext.irat_params_nr_r15         = irat_params_nr_r15;
+        ue_eutra_cap_v1450_ies->non_crit_ext.non_crit_ext.non_crit_ext_present       = true;
+
+        // 15.10
+        ue_eutra_cap_v1510_ies_s* ue_cap_enquiry_v1510_ies   = &ue_eutra_cap_v1450_ies->non_crit_ext.non_crit_ext;
+        ue_cap_enquiry_v1510_ies->pdcp_params_nr_r15_present = true;
+        ue_cap_enquiry_v1510_ies->pdcp_params_nr_r15.sn_size_lo_r15_present = true;
       }
 
       // Pack caps and copy to cap info
       uint8_t       buf[64] = {};
       asn1::bit_ref bref(buf, sizeof(buf));
-      cap.pack(bref);
+      if (cap.pack(bref) != asn1::SRSASN_SUCCESS) {
+        logger.error("Error packing EUTRA capabilities");
+        return;
+      }
       bref.align_bytes_zero();
       auto cap_len = (uint32_t)bref.distance_bytes(buf);
       info->ue_cap_rat_container_list[rat_idx].ue_cap_rat_container.resize(cap_len);
       memcpy(info->ue_cap_rat_container_list[rat_idx].ue_cap_rat_container.data(), buf, cap_len);
       rat_idx++;
-
     } else if (enquiry.crit_exts.c1().ue_cap_enquiry_r8().ue_cap_request[i] == rat_type_e::eutra_nr && has_nr_dc()) {
       info->ue_cap_rat_container_list[rat_idx] = get_eutra_nr_capabilities();
       logger.info("Including EUTRA-NR capabilities in UE Capability Info (%d B)",
