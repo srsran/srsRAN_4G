@@ -56,13 +56,18 @@ int rrc::ue::init()
   // Configure
   apply_setup_phy_common(parent->cfg.sibs[1].sib2().rr_cfg_common, true);
 
-  rlf_release_timer = parent->task_sched.get_unique_timer();
-  activity_timer    = parent->task_sched.get_unique_timer();
+  phy_dl_rlf_timer = parent->task_sched.get_unique_timer();
+  phy_ul_rlf_timer = parent->task_sched.get_unique_timer();
+  rlc_rlf_timer    = parent->task_sched.get_unique_timer();
+  activity_timer   = parent->task_sched.get_unique_timer();
   set_activity_timeout(MSG3_RX_TIMEOUT); // next UE response is Msg3
 
   // Set timeout to release UE context after RLF detection
   uint32_t deadline_ms = parent->cfg.rlf_release_timer_ms;
-  rlf_release_timer.set(deadline_ms, [this](uint32_t tid) { rlf_timer_expired(); });
+  auto     timer_expire_func = [this](uint32_t tid) { rlf_timer_expired(tid); };
+  phy_dl_rlf_timer.set(deadline_ms, timer_expire_func);
+  phy_ul_rlf_timer.set(deadline_ms, timer_expire_func);
+  rlc_rlf_timer.set(deadline_ms, timer_expire_func);
   parent->logger.info("Setting RLF timer for rnti=0x%x to %dms", rnti, deadline_ms);
 
   mobility_handler = make_rnti_obj<rrc_mobility>(rnti, this);
@@ -97,44 +102,34 @@ void rrc::ue::set_activity()
   }
 }
 
-void rrc::ue::start_rlf_timer()
-{
-  rlf_release_timer.run();
-  parent->logger.info("RLF timer started for rnti=0x%x (duration=%dms)", rnti, rlf_release_timer.duration());
-}
-
-void rrc::ue::stop_rlf_timer()
-{
-  if (rlf_release_timer.is_running()) {
-    parent->logger.info("RLF timer stopped for rnti=0x%x (time elapsed=%dms)", rnti, rlf_release_timer.time_elapsed());
-  }
-  rlf_release_timer.stop();
-}
-
 void rrc::ue::set_radiolink_dl_state(bool crc_res)
 {
   parent->logger.debug(
       "Radio-Link downlink state for rnti=0x%x: crc_res=%d, consecutive_ko=%d", rnti, crc_res, consecutive_kos_dl);
 
-  // If received OK, restart counter and stop RLF timer
+  // If received OK, restart DL counter and stop RLF timer
   if (crc_res) {
     consecutive_kos_dl = 0;
-    consecutive_kos_ul = 0;
-    stop_rlf_timer();
+    if (phy_dl_rlf_timer.is_running()) {
+      parent->logger.info(
+          "DL RLF timer stopped for rnti=0x%x (time elapsed=%dms)", rnti, phy_dl_rlf_timer.time_elapsed());
+      phy_dl_rlf_timer.stop();
+    }
     return;
   }
 
   // Count KOs in MAC and trigger release if it goes above a certain value.
   // This is done to detect out-of-coverage UEs
-  if (rlf_release_timer.is_running()) {
+  if (phy_dl_rlf_timer.is_running()) {
     // RLF timer already running, no need to count KOs
     return;
   }
 
   consecutive_kos_dl++;
   if (consecutive_kos_dl > parent->cfg.max_mac_dl_kos) {
-    parent->logger.info("Max KOs in DL reached, triggering release rnti=0x%x", rnti);
-    max_retx_reached();
+    parent->logger.info("Max KOs in DL reached, starting RLF timer rnti=0x%x", rnti);
+    mac_ctrl.handle_max_retx();
+    phy_dl_rlf_timer.run();
   }
 }
 
@@ -143,31 +138,34 @@ void rrc::ue::set_radiolink_ul_state(bool crc_res)
   parent->logger.debug(
       "Radio-Link uplink state for rnti=0x%x: crc_res=%d, consecutive_ko=%d", rnti, crc_res, consecutive_kos_ul);
 
-  // If received OK, restart counter and stop RLF timer
+  // If received OK, restart UL counter and stop RLF timer
   if (crc_res) {
-    consecutive_kos_dl = 0;
     consecutive_kos_ul = 0;
-    stop_rlf_timer();
+    if (phy_ul_rlf_timer.is_running()) {
+      parent->logger.info(
+          "UL RLF timer stopped for rnti=0x%x (time elapsed=%dms)", rnti, phy_ul_rlf_timer.time_elapsed());
+      phy_ul_rlf_timer.stop();
+    }
     return;
   }
 
   // Count KOs in MAC and trigger release if it goes above a certain value.
   // This is done to detect out-of-coverage UEs
-  if (rlf_release_timer.is_running()) {
+  if (phy_ul_rlf_timer.is_running()) {
     // RLF timer already running, no need to count KOs
     return;
   }
 
   consecutive_kos_ul++;
   if (consecutive_kos_ul > parent->cfg.max_mac_ul_kos) {
-    parent->logger.info("Max KOs in UL reached, triggering release rnti=0x%x", rnti);
-    max_retx_reached();
+    parent->logger.info("Max KOs in UL reached, starting RLF timer rnti=0x%x", rnti);
+    mac_ctrl.handle_max_retx();
+    phy_ul_rlf_timer.run();
   }
 }
 
 void rrc::ue::activity_timer_expired(const activity_timeout_type_t type)
 {
-  stop_rlf_timer();
   if (parent) {
     parent->logger.info("Activity timer for rnti=0x%x expired after %d ms", rnti, activity_timer.time_elapsed());
 
@@ -196,11 +194,17 @@ void rrc::ue::activity_timer_expired(const activity_timeout_type_t type)
   state = RRC_STATE_RELEASE_REQUEST;
 }
 
-void rrc::ue::rlf_timer_expired()
+void rrc::ue::rlf_timer_expired(uint32_t timeout_id)
 {
   activity_timer.stop();
   if (parent) {
-    parent->logger.info("RLF timer for rnti=0x%x expired after %d ms", rnti, rlf_release_timer.time_elapsed());
+    if (timeout_id == phy_dl_rlf_timer.id()) {
+      parent->logger.info("DL RLF timer for rnti=0x%x expired after %d ms", rnti, phy_dl_rlf_timer.time_elapsed());
+    } else if (timeout_id == phy_ul_rlf_timer.id()) {
+      parent->logger.info("UL RLF timer for rnti=0x%x expired after %d ms", rnti, phy_ul_rlf_timer.time_elapsed());
+    } else if (timeout_id == rlc_rlf_timer.id()) {
+      parent->logger.info("RLC RLF timer for rnti=0x%x expired after %d ms", rnti, rlc_rlf_timer.time_elapsed());
+    }
 
     if (parent->s1ap->user_exists(rnti)) {
       parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::radio_conn_with_ue_lost);
@@ -215,14 +219,13 @@ void rrc::ue::rlf_timer_expired()
   state = RRC_STATE_RELEASE_REQUEST;
 }
 
-void rrc::ue::max_retx_reached()
+void rrc::ue::max_rlc_retx_reached()
 {
   if (parent) {
-    parent->logger.info("Max retx reached for rnti=0x%x", rnti);
+    parent->logger.info("Max RLC retx reached for rnti=0x%x", rnti);
 
-    // Give UE time to start re-establishment
-    start_rlf_timer();
-
+    // Turn off DRB scheduling but give UE chance to start re-establishment
+    rlc_rlf_timer.run();
     mac_ctrl.handle_max_retx();
   }
 }
@@ -580,6 +583,11 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
         asn1::json_writer js{};
         eutra_capabilities.to_json(js);
         parent->logger.debug("rnti=0x%x EUTRA capabilities: %s", rnti, js.to_string().c_str());
+      }
+
+      if (parent->users.at(old_rnti)->rlc_rlf_timer.is_running()) {
+        parent->logger.info("Stopping RLC RLF timer for old rnti=0x%x", old_rnti);
+        parent->users.at(old_rnti)->rlc_rlf_timer.stop();
       }
 
       old_reest_rnti = old_rnti;

@@ -46,8 +46,8 @@ public:
   void        set_radiolink_dl_state(bool crc_res);
   void        set_radiolink_ul_state(bool crc_res);
   void        activity_timer_expired(const activity_timeout_type_t type);
-  void        rlf_timer_expired();
-  void        max_retx_reached();
+  void        rlf_timer_expired(uint32_t timeout_id);
+  void        max_rlc_retx_reached();
 
   rrc_state_t get_state();
   void        get_metrics(rrc_ue_metrics_t& ue_metrics) const;
@@ -157,9 +157,12 @@ public:
   bool is_csfb = false;
 
 private:
-  // args
-  srsran::unique_timer activity_timer;
-  srsran::unique_timer rlf_release_timer;
+  srsran::timer_handler::unique_timer activity_timer; // for basic DL/UL activity timeout
+
+  /// Radio link failure handling uses distinct timers for PHY (DL and UL) and RLC signaled RLF
+  srsran::timer_handler::unique_timer phy_dl_rlf_timer; // can be stopped through recovered DL activity
+  srsran::timer_handler::unique_timer phy_ul_rlf_timer; // can be stopped through recovered UL activity
+  srsran::timer_handler::unique_timer rlc_rlf_timer;    // can only be stoped through UE reestablishment
 
   /// cached ASN1 fields for RRC config update checking, and ease of context transfer during HO
   ue_var_cfg_t current_ue_cfg;

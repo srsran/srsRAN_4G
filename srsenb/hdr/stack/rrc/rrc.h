@@ -194,7 +194,7 @@ private:
   const static uint32_t LCID_REM_USER   = 0xffff0001;
   const static uint32_t LCID_REL_USER   = 0xffff0002;
   const static uint32_t LCID_ACT_USER   = 0xffff0004;
-  const static uint32_t LCID_RTX_USER   = 0xffff0005;
+  const static uint32_t LCID_RLC_RTX    = 0xffff0005;
   const static uint32_t LCID_RADLINK_DL = 0xffff0006;
   const static uint32_t LCID_RADLINK_UL = 0xffff0007;
 
