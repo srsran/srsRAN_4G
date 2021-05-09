@@ -671,7 +671,7 @@ void sf_sched::set_dl_data_sched_result(const sf_cch_allocator::alloc_result_t& 
       continue;
     }
     sched_ue*           user        = ue_it->second.get();
-    uint32_t            data_before = user->get_requested_dl_bytes(cc_cfg->enb_cc_idx).stop();
+    uint32_t            data_before = user->get_pending_dl_bytes(cc_cfg->enb_cc_idx);
     const dl_harq_proc& dl_harq     = user->get_dl_harq(data_alloc.pid, cc_cfg->enb_cc_idx);
     bool                is_newtx    = dl_harq.is_empty();
 
@@ -687,7 +687,7 @@ void sf_sched::set_dl_data_sched_result(const sf_cch_allocator::alloc_result_t& 
                      data_alloc.pid,
                      data_alloc.user_mask,
                      tbs,
-                     user->get_requested_dl_bytes(cc_cfg->enb_cc_idx).stop());
+                     user->get_pending_dl_bytes(cc_cfg->enb_cc_idx));
       logger.warning("%s", srsran::to_c_str(str_buffer));
       continue;
     }
@@ -707,7 +707,7 @@ void sf_sched::set_dl_data_sched_result(const sf_cch_allocator::alloc_result_t& 
                    dl_harq.nof_retx(0) + dl_harq.nof_retx(1),
                    tbs,
                    data_before,
-                   user->get_requested_dl_bytes(cc_cfg->enb_cc_idx).stop(),
+                   user->get_pending_dl_bytes(cc_cfg->enb_cc_idx),
                    get_tti_tx_dl());
     logger.info("%s", srsran::to_c_str(str_buffer));
   }

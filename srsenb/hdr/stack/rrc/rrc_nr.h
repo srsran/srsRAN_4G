@@ -33,6 +33,8 @@
 #include "srsran/common/threads.h"
 #include "srsran/common/timeout.h"
 #include "srsran/interfaces/gnb_interfaces.h"
+#include "srsran/interfaces/gnb_ngap_interfaces.h"
+#include "srsran/interfaces/gnb_rrc_nr_interfaces.h"
 #include <map>
 #include <queue>
 

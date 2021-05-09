@@ -21,5 +21,5 @@
 set(SOURCES gtpu.cc pdcp.cc rlc.cc s1ap.cc)
 add_library(srsenb_upper STATIC ${SOURCES})
 
-set(SOURCES pdcp_nr.cc rlc_nr.cc sdap.cc)
+set(SOURCES pdcp_nr.cc rlc_nr.cc sdap.cc ngap.cc)
 add_library(srsgnb_upper STATIC ${SOURCES})

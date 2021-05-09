@@ -109,7 +109,7 @@ int test_undefined_target_snr()
   TESTASSERT(sum_pusch == 0);
   TESTASSERT(sum_pucch == 0);
 
-  // TEST: If the PHR allows full utilization of available PRBs, the TPC slightly increments UL Tx power
+  // TEST: Check that high PHR allows full utilization of available PRBs, TPC remains at zero (no target SINR)
   int phr = 30;
   tpcfsm.set_phr(phr);
   TESTASSERT(tpcfsm.max_ul_prbs() == 50);
@@ -120,8 +120,7 @@ int test_undefined_target_snr()
     sum_pusch += decode_tpc(tpcfsm.encode_pusch_tpc());
     sum_pucch += decode_tpc(tpcfsm.encode_pucch_tpc());
   }
-  TESTASSERT(sum_pusch > 0 and sum_pusch <= 3);
-  TESTASSERT(sum_pucch > 0 and sum_pucch <= 3);
+  TESTASSERT(sum_pusch == 0 and sum_pucch == 0);
 
   // TEST: PHR is too low to allow all PRBs to be allocated. This event should not affect TPC commands
   phr = 5;
@@ -144,8 +143,8 @@ int test_undefined_target_snr()
     sum_pusch += decode_tpc(tpcfsm.encode_pusch_tpc());
     sum_pucch += decode_tpc(tpcfsm.encode_pucch_tpc());
   }
-  TESTASSERT(sum_pusch <= 0 and sum_pusch >= -1);
-  TESTASSERT(sum_pucch <= 0 and sum_pucch >= -1);
+  TESTASSERT(sum_pusch == 0);
+  TESTASSERT(sum_pucch == 0);
 
   return SRSRAN_SUCCESS;
 }

@@ -24,11 +24,11 @@
 
 #include "sched_grid.h"
 #include "sched_ue.h"
+#include "srsenb/hdr/common/common_enb.h"
 #include "srsran/interfaces/sched_interface.h"
 #include <atomic>
 #include <map>
 #include <mutex>
-#include <queue>
 
 namespace srsenb {
 
@@ -93,14 +93,14 @@ protected:
   bool is_generated(srsran::tti_point, uint32_t enb_cc_idx) const;
   // Helper methods
   template <typename Func>
-  int ue_db_access_locked(uint16_t rnti, Func&& f, const char* func_name = nullptr);
+  int ue_db_access_locked(uint16_t rnti, Func&& f, const char* func_name = nullptr, bool log_fail = true);
 
   // args
   rrc_interface_mac*               rrc       = nullptr;
   sched_args_t                     sched_cfg = {};
   std::vector<sched_cell_params_t> sched_cell_params;
 
-  std::map<uint16_t, std::unique_ptr<sched_ue> > ue_db;
+  rnti_map_t<std::unique_ptr<sched_ue> > ue_db;
 
   // independent schedulers for each carrier
   std::vector<std::unique_ptr<carrier_sched> > carrier_schedulers;

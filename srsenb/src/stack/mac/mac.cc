@@ -93,7 +93,7 @@ bool mac::init(const mac_args_t&        args_,
   };
   auto recycle_softbuffers = [](ue_cc_softbuffers& softbuffers) { softbuffers.clear(); };
   softbuffer_pool.reset(new srsran::background_obj_pool<ue_cc_softbuffers>(
-      8, 8, args.max_nof_ues, init_softbuffers, recycle_softbuffers));
+      8, 8, args.nof_prealloc_ues, init_softbuffers, recycle_softbuffers));
 
   // Pre-alloc UE objects for first attaching users
   prealloc_ue(10);
@@ -478,8 +478,8 @@ uint16_t mac::allocate_ue()
         logger.info("RACH ignored as eNB is being shutdown");
         return SRSRAN_INVALID_RNTI;
       }
-      if (ue_db.size() >= args.max_nof_ues) {
-        logger.warning("Maximum number of connected UEs %zd connected to the eNB. Ignoring PRACH", args.max_nof_ues);
+      if (ue_db.size() >= SRSENB_MAX_UES) {
+        logger.warning("Maximum number of connected UEs %zd connected to the eNB. Ignoring PRACH", SRSENB_MAX_UES);
         return SRSRAN_INVALID_RNTI;
       }
       auto ret = ue_db.insert(rnti, std::move(ue_ptr));
@@ -736,7 +736,7 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
       } else {
         dl_sched_res->pdsch[n].softbuffer_tx[0] = &common_buffers[enb_cc_idx].pcch_softbuffer_tx;
         dl_sched_res->pdsch[n].data[0]          = common_buffers[enb_cc_idx].pcch_payload_buffer;
-        rlc_h->read_pdu_pcch(common_buffers[enb_cc_idx].pcch_payload_buffer, pcch_payload_buffer_len);
+        rrc_h->read_pdu_pcch(tti_tx_dl, common_buffers[enb_cc_idx].pcch_payload_buffer, pcch_payload_buffer_len);
 
         if (pcap) {
           pcap->write_dl_pch(dl_sched_res->pdsch[n].data[0], sched_result.bc[i].tbs, true, tti_tx_dl, enb_cc_idx);

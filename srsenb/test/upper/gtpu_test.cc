@@ -164,8 +164,10 @@ void test_gtpu_tunnel_manager()
   uint32_t               sgw_addr  = ntohl(sgw_sockaddr.sin_addr.s_addr);
   const uint32_t         drb1_lcid = 3;
   srsran::task_scheduler task_sched;
+  gtpu_args_t            gtpu_args = {};
 
   gtpu_tunnel_manager tunnels(&task_sched, srslog::fetch_basic_logger("GTPU"));
+  tunnels.init(gtpu_args, nullptr);
   TESTASSERT(tunnels.find_tunnel(0) == nullptr);
   TESTASSERT(tunnels.find_rnti_lcid_tunnels(0x46, drb1_lcid).empty());
   TESTASSERT(tunnels.find_rnti_tunnels(0x46) == nullptr);
@@ -216,6 +218,8 @@ enum class tunnel_test_event { success, wait_end_marker_timeout };
 
 int test_gtpu_direct_tunneling(tunnel_test_event event)
 {
+  std::random_device    rd;
+  std::mt19937          g(rd());
   srslog::basic_logger& logger = srslog::fetch_basic_logger("TEST");
   logger.info("\n\n**** Test GTPU Direct Tunneling ****\n");
   uint16_t           rnti = 0x46, rnti2 = 0x50;
@@ -241,8 +245,13 @@ int test_gtpu_direct_tunneling(tunnel_test_event event)
   dummy_socket_manager   senb_rx_sockets, tenb_rx_sockets;
   srsenb::gtpu senb_gtpu(&task_sched, logger1, &senb_rx_sockets), tenb_gtpu(&task_sched, logger2, &tenb_rx_sockets);
   pdcp_tester  senb_pdcp, tenb_pdcp;
-  senb_gtpu.init(senb_addr_str, sgw_addr_str, "", "", &senb_pdcp, false);
-  tenb_gtpu.init(tenb_addr_str, sgw_addr_str, "", "", &tenb_pdcp, false);
+  gtpu_args_t  gtpu_args;
+  gtpu_args.gtp_bind_addr                = senb_addr_str;
+  gtpu_args.mme_addr                     = sgw_addr_str;
+  gtpu_args.indirect_tunnel_timeout_msec = std::uniform_int_distribution<uint32_t>{500, 2000}(g);
+  senb_gtpu.init(gtpu_args, &senb_pdcp);
+  gtpu_args.gtp_bind_addr = tenb_addr_str;
+  tenb_gtpu.init(gtpu_args, &tenb_pdcp);
 
   // create tunnels MME-SeNB and MME-TeNB
   uint32_t senb_teid_in = senb_gtpu.add_bearer(rnti, drb1, sgw_addr, sgw_teidout1).value();
@@ -265,8 +274,6 @@ int test_gtpu_direct_tunneling(tunnel_test_event event)
   props.forward_from_teidin         = senb_teid_in;
   senb_gtpu.add_bearer(rnti, drb1, tenb_addr, dl_tenb_teid_in, &props);
 
-  std::random_device   rd;
-  std::mt19937         g(rd());
   std::vector<uint8_t> data_vec(10);
   std::iota(data_vec.begin(), data_vec.end(), 0);
   std::vector<uint8_t>  encoded_data;
@@ -329,7 +336,7 @@ int test_gtpu_direct_tunneling(tunnel_test_event event)
   TESTASSERT(tenb_pdcp.last_sdu == nullptr);
   if (event == tunnel_test_event::wait_end_marker_timeout) {
     // TEST: EndMarker does not reach TeNB, but there is a timeout that will resume the new GTPU tunnel
-    for (size_t i = 0; i < 1000; ++i) {
+    for (size_t i = 0; i < gtpu_args.indirect_tunnel_timeout_msec + 1; ++i) {
       task_sched.tic();
     }
   } else {

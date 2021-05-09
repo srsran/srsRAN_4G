@@ -37,7 +37,7 @@ template <typename T, size_t capacity = SRSLOG_QUEUE_CAPACITY>
 class work_queue
 {
   srsran::dyn_circular_buffer<T> queue;
-  mutable condition_variable     cond_var;
+  mutable mutex                  m;
   static constexpr size_t        threshold = capacity * 0.98;
 
 public:
@@ -50,15 +50,14 @@ public:
   /// queue is full, otherwise true.
   bool push(const T& value)
   {
-    cond_var.lock();
+    m.lock();
     // Discard the new element if we reach the maximum capacity.
     if (queue.full()) {
-      cond_var.unlock();
+      m.unlock();
       return false;
     }
     queue.push(value);
-    cond_var.unlock();
-    cond_var.signal();
+    m.unlock();
 
     return true;
   }
@@ -67,56 +66,26 @@ public:
   /// queue is full, otherwise true.
   bool push(T&& value)
   {
-    cond_var.lock();
+    m.lock();
     // Discard the new element if we reach the maximum capacity.
     if (queue.full()) {
-      cond_var.unlock();
+      m.unlock();
       return false;
     }
     queue.push(std::move(value));
-    cond_var.unlock();
-    cond_var.signal();
+    m.unlock();
 
     return true;
   }
 
-  /// Extracts the top most element from the queue.
-  /// NOTE: This method blocks while the queue is empty.
-  T pop()
+  /// Extracts the top most element from the queue if it exists.
+  /// Returns a pair with a bool indicating if the pop has been successful.
+  std::pair<bool, T> try_pop()
   {
-    cond_var.lock();
+    m.lock();
 
-    while (queue.empty()) {
-      cond_var.wait();
-    }
-
-    T elem = std::move(queue.top());
-    queue.pop();
-
-    cond_var.unlock();
-
-    return elem;
-  }
-
-  /// Extracts the top most element from the queue.
-  /// NOTE: This method blocks while the queue is empty or or until the
-  /// programmed timeout expires. Returns a pair with a bool indicating if the
-  /// pop has been successful.
-  std::pair<bool, T> timed_pop(unsigned timeout_ms)
-  {
-    // Build an absolute time reference for the expiration time.
-    timespec ts = condition_variable::build_timeout(timeout_ms);
-
-    cond_var.lock();
-
-    bool timedout = false;
-    while (queue.empty() && !timedout) {
-      timedout = cond_var.wait(ts);
-    }
-
-    // Did we wake up on timeout?
-    if (timedout && queue.empty()) {
-      cond_var.unlock();
+    if (queue.empty()) {
+      m.unlock();
       return {false, T()};
     }
 
@@ -124,7 +93,7 @@ public:
     T Item = std::move(queue.top());
     queue.pop();
 
-    cond_var.unlock();
+    m.unlock();
 
     return {true, std::move(Item)};
   }
@@ -135,7 +104,7 @@ public:
   /// Returns true when the queue is almost full, otherwise returns false.
   bool is_almost_full() const
   {
-    cond_var_scoped_lock lock(cond_var);
+    scoped_lock lock(m);
 
     return queue.size() > threshold;
   }

@@ -33,12 +33,48 @@ void backend_worker::stop()
   }
 }
 
-void backend_worker::create_worker()
+void backend_worker::set_thread_priority(backend_priority priority) const
+{
+  switch (priority) {
+    case backend_priority::normal:
+      break;
+    case backend_priority::high: {
+      int min = ::sched_get_priority_min(SCHED_FIFO);
+      if (min == -1) {
+        err_handler("Unable to set the backend thread priority to high, falling back to normal priority.");
+        return;
+      }
+      ::sched_param sch{min};
+      if (::pthread_setschedparam(::pthread_self(), SCHED_FIFO, &sch)) {
+        err_handler("Unable to set the backend thread priority to high, falling back to normal priority.");
+        return;
+      }
+      break;
+    }
+    case backend_priority::very_high: {
+      int max = ::sched_get_priority_max(SCHED_FIFO);
+      int min = ::sched_get_priority_min(SCHED_FIFO);
+      if (max == -1 || min == -1) {
+        err_handler("Unable to set the backend thread priority to real time, falling back to normal priority.");
+        return;
+      }
+      ::sched_param sch{min + ((max - min) / 2)};
+      if (::pthread_setschedparam(::pthread_self(), SCHED_FIFO, &sch)) {
+        err_handler("Unable to set the backend thread priority to real time, falling back to normal priority.");
+        return;
+      }
+      break;
+    }
+  }
+}
+
+void backend_worker::create_worker(backend_priority priority)
 {
   assert(!running_flag && "Only one worker thread should be created");
 
-  std::thread t([this]() {
+  std::thread t([this, priority]() {
     running_flag = true;
+    set_thread_priority(priority);
     do_work();
   });
 
@@ -50,21 +86,26 @@ void backend_worker::create_worker()
   }
 }
 
-void backend_worker::start()
+void backend_worker::start(backend_priority priority)
 {
   // Ensure we only create the worker thread once.
-  std::call_once(start_once_flag, [this]() { create_worker(); });
+  std::call_once(start_once_flag, [this, priority]() { create_worker(priority); });
 }
 
 void backend_worker::do_work()
 {
   assert(running_flag && "Thread entry function called without running thread");
 
-  while (running_flag) {
-    auto item = queue.timed_pop(sleep_period_ms);
+  /// This period defines the time the worker will sleep while waiting for new entries. This is required to check the
+  /// termination variable periodically.
+  constexpr std::chrono::microseconds sleep_period{100};
 
-    // Spin again when the timeout expires.
+  while (running_flag) {
+    auto item = queue.try_pop();
+
+    // Spin while there are no new entries to process.
     if (!item.first) {
+      std::this_thread::sleep_for(sleep_period);
       continue;
     }
 
@@ -122,7 +163,7 @@ void backend_worker::process_outstanding_entries()
   assert(!running_flag && "Cannot process outstanding entries while thread is running");
 
   while (true) {
-    auto item = queue.timed_pop(1);
+    auto item = queue.try_pop();
 
     // Check if the queue is empty.
     if (!item.first) {

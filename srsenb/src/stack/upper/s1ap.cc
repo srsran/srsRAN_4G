@@ -1815,7 +1815,10 @@ bool s1ap::sctp_send_s1ap_pdu(const asn1::s1ap::s1ap_pdu_c& tx_pdu, uint32_t rnt
     return false;
   }
   asn1::bit_ref bref(buf->msg, buf->get_tailroom());
-  tx_pdu.pack(bref);
+  if (tx_pdu.pack(bref) != asn1::SRSASN_SUCCESS) {
+    logger.error("Failed to pack TX PDU %s", procedure_name);
+    return false;
+  }
   buf->N_bytes = bref.distance_bytes();
 
   // Save message to PCAP

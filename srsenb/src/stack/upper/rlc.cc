@@ -188,11 +188,6 @@ void rlc::update_bsr(uint32_t rnti, uint32_t lcid, uint32_t tx_queue, uint32_t r
   mac->rlc_buffer_state(rnti, lcid, tx_queue, retx_queue);
 }
 
-void rlc::read_pdu_pcch(uint8_t* payload, uint32_t buffer_size)
-{
-  rrc->read_pdu_pcch(payload, buffer_size);
-}
-
 int rlc::read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
 {
   int ret;

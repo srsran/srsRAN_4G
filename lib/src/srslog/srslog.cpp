@@ -190,9 +190,9 @@ bool srslog::install_custom_sink(const std::string& id, std::unique_ptr<sink> s)
 /// Framework configuration and control function implementations.
 ///
 
-void srslog::init()
+void srslog::init(backend_priority priority)
 {
-  srslog_instance::get().get_backend().start();
+  srslog_instance::get().get_backend().start(priority);
 }
 
 void srslog::flush()

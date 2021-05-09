@@ -73,7 +73,7 @@ private:
     uint32_t ul_nof_samples = 0;
   };
 
-  srsran::static_circular_map<uint16_t, ue_ctxt, SRSENB_MAX_UES> ue_history_db;
+  rnti_map_t<ue_ctxt> ue_history_db;
 
   struct ue_dl_prio_compare {
     bool operator()(const ue_ctxt* lhs, const ue_ctxt* rhs) const;

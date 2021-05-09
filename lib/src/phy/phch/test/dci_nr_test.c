@@ -64,11 +64,11 @@ static int test_52prb_base()
   cfg.enable_transform_precoding     = false;
   cfg.dynamic_dual_harq_ack_codebook = false;
   cfg.pusch_tx_config_non_codebook   = false;
-  cfg.pusch_dmrs_type2               = false;
-  cfg.pusch_dmrs_double              = false;
   cfg.pusch_ptrs                     = false;
   cfg.pusch_dynamic_betas            = false;
   cfg.pusch_alloc_type               = srsran_resource_alloc_type1;
+  cfg.pusch_dmrs_type                = srsran_dmrs_sch_type_1;
+  cfg.pusch_dmrs_max_len             = srsran_dmrs_sch_len_1;
 
   // DCI 1_1 parameters
   cfg.nof_dl_bwp             = 0;
@@ -81,12 +81,12 @@ static int test_52prb_base()
   cfg.pdsch_rm_pattern2      = false;
   cfg.pdsch_2cw              = false;
   cfg.multiple_scell         = false;
-  cfg.pdsch_dmrs_type2       = false;
-  cfg.pdsch_dmrs_double      = false;
   cfg.pdsch_tci              = false;
   cfg.pdsch_cbg_flush        = false;
   cfg.pdsch_dynamic_bundling = false;
   cfg.pdsch_alloc_type       = srsran_resource_alloc_type1;
+  cfg.pdsch_dmrs_type        = srsran_dmrs_sch_type_1;
+  cfg.pdsch_dmrs_max_len     = srsran_dmrs_sch_len_1;
 
   // Configure DCI
   srsran_dci_nr_t dci = {};

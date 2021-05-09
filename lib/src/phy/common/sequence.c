@@ -220,10 +220,17 @@ void srsran_sequence_state_init(srsran_sequence_state_t* s, uint32_t seed)
   s->x2 = sequence_get_x2_init(seed);
 }
 
+#define FLOAT_U32_XOR(DST, SRC, U32_MASK)                                                                              \
+  do {                                                                                                                 \
+    uint32_t temp_u32;                                                                                                 \
+    memcpy(&temp_u32, &(SRC), 4);                                                                                      \
+    temp_u32 ^= (U32_MASK);                                                                                            \
+    memcpy(&(DST), &temp_u32, 4);                                                                                      \
+  } while (false)
+
 void srsran_sequence_state_gen_f(srsran_sequence_state_t* s, float value, float* out, uint32_t length)
 {
-  uint32_t i          = 0;
-  const float xor [2] = {+0.0F, -0.0F};
+  uint32_t i = 0;
 
   if (length >= SEQUENCE_PAR_BITS) {
     for (; i < length - (SEQUENCE_PAR_BITS - 1); i += SEQUENCE_PAR_BITS) {
@@ -255,7 +262,7 @@ void srsran_sequence_state_gen_f(srsran_sequence_state_t* s, float value, float*
 #endif
       // Finish the parallel bits with generic code
       for (; j < SEQUENCE_PAR_BITS; j++) {
-        *((uint32_t*)&out[i + j]) = *((uint32_t*)&value) ^ *((uint32_t*)&xor[(c >> j) & 1U]);
+        FLOAT_U32_XOR(out[i + j], value, (c << (31U - j)) & 0x80000000);
       }
 
       // Step sequences
@@ -265,7 +272,59 @@ void srsran_sequence_state_gen_f(srsran_sequence_state_t* s, float value, float*
   }
 
   for (; i < length; i++) {
-    *((uint32_t*)&out[i]) = *((uint32_t*)&value) ^ *((uint32_t*)&xor[(s->x1 ^ s->x2) & 1U]);
+    FLOAT_U32_XOR(out[i], value, (s->x1 ^ s->x2) << 31U);
+
+    // Step sequences
+    s->x1 = sequence_gen_LTE_pr_memless_step_x1(s->x1);
+    s->x2 = sequence_gen_LTE_pr_memless_step_x2(s->x2);
+  }
+}
+
+void srsran_sequence_state_apply_f(srsran_sequence_state_t* s, const float* in, float* out, uint32_t length)
+{
+  uint32_t i = 0;
+
+  if (length >= SEQUENCE_PAR_BITS) {
+    for (; i < length - (SEQUENCE_PAR_BITS - 1); i += SEQUENCE_PAR_BITS) {
+      uint32_t c = (uint32_t)(s->x1 ^ s->x2);
+
+      uint32_t j = 0;
+#ifdef LV_HAVE_SSE
+      for (; j < SEQUENCE_PAR_BITS - 3; j += 4) {
+        // Preloads bits of interest in the 4 LSB
+        __m128i mask = _mm_set1_epi32(c >> j);
+
+        // Masks each bit
+        mask = _mm_and_si128(mask, _mm_setr_epi32(1, 2, 4, 8));
+
+        // Get non zero mask
+        mask = _mm_cmpgt_epi32(mask, _mm_set1_epi32(0));
+
+        // And with MSB
+        mask = _mm_and_si128(mask, (__m128i)_mm_set1_ps(-0.0F));
+
+        // Load input
+        __m128 v = _mm_loadu_ps(in + i + j);
+
+        // Loads input and perform sign XOR
+        v = _mm_xor_ps((__m128)mask, v);
+
+        _mm_storeu_ps(out + i + j, v);
+      }
+#endif // LV_HAVE_SSE
+      // Finish the parallel bits with generic code
+      for (; j < SEQUENCE_PAR_BITS; j++) {
+        FLOAT_U32_XOR(out[i + j], in[i + j], (c << (31U - j)) & 0x80000000);
+      }
+
+      // Step sequences
+      s->x1 = sequence_gen_LTE_pr_memless_step_par_x1(s->x1);
+      s->x2 = sequence_gen_LTE_pr_memless_step_par_x2(s->x2);
+    }
+  }
+
+  for (; i < length; i++) {
+    FLOAT_U32_XOR(out[i], in[i], (s->x1 ^ s->x2) << 31U);
 
     // Step sequences
     s->x1 = sequence_gen_LTE_pr_memless_step_x1(s->x1);
@@ -439,56 +498,10 @@ void srsran_sequence_free(srsran_sequence_t* q)
 
 void srsran_sequence_apply_f(const float* in, float* out, uint32_t length, uint32_t seed)
 {
-  uint32_t x1 = sequence_x1_init;           // X1 initial state is fix
-  uint32_t x2 = sequence_get_x2_init(seed); // loads x2 initial state
+  srsran_sequence_state_t seq = {};
+  srsran_sequence_state_init(&seq, seed);
 
-  uint32_t i = 0;
-
-  if (length >= SEQUENCE_PAR_BITS) {
-    for (; i < length - (SEQUENCE_PAR_BITS - 1); i += SEQUENCE_PAR_BITS) {
-      uint32_t c = (uint32_t)(x1 ^ x2);
-
-      uint32_t j = 0;
-#ifdef LV_HAVE_SSE
-      for (; j < SEQUENCE_PAR_BITS - 3; j += 4) {
-        // Preloads bits of interest in the 4 LSB
-        __m128i mask = _mm_set1_epi32(c >> j);
-
-        // Masks each bit
-        mask = _mm_and_si128(mask, _mm_setr_epi32(1, 2, 4, 8));
-
-        // Get non zero mask
-        mask = _mm_cmpgt_epi32(mask, _mm_set1_epi32(0));
-
-        // And with MSB
-        mask = _mm_and_si128(mask, (__m128i)_mm_set1_ps(-0.0F));
-
-        // Load input
-        __m128 v = _mm_loadu_ps(in + i + j);
-
-        // Loads input and perform sign XOR
-        v = _mm_xor_ps((__m128)mask, v);
-
-        _mm_storeu_ps(out + i + j, v);
-      }
-#endif
-      for (; j < SEQUENCE_PAR_BITS; j++) {
-        ((uint32_t*)out)[i + j] = ((uint32_t*)in)[i] ^ (((c >> j) & 1U) << 31U);
-      }
-
-      // Step sequences
-      x1 = sequence_gen_LTE_pr_memless_step_par_x1(x1);
-      x2 = sequence_gen_LTE_pr_memless_step_par_x2(x2);
-    }
-  }
-
-  for (; i < length; i++) {
-    ((uint32_t*)out)[i] = ((uint32_t*)in)[i] ^ (((x1 ^ x2) & 1U) << 31U);
-
-    // Step sequences
-    x1 = sequence_gen_LTE_pr_memless_step_x1(x1);
-    x2 = sequence_gen_LTE_pr_memless_step_x2(x2);
-  }
+  srsran_sequence_state_apply_f(&seq, in, out, length);
 }
 
 void srsran_sequence_apply_s(const int16_t* in, int16_t* out, uint32_t length, uint32_t seed)
@@ -746,7 +759,7 @@ void srsran_sequence_apply_packed(const uint8_t* in, uint8_t* out, uint32_t leng
 
     out[i] = in[i] ^ reverse_lut[buffer & ((1U << rem8) - 1U) & 255U];
   }
-#else  // SEQUENCE_PAR_BITS % 8 == 0
+#else // SEQUENCE_PAR_BITS % 8 == 0
   while (i < (length / 8 - (SEQUENCE_PAR_BITS - 1) / 8)) {
     uint32_t c = (uint32_t)(x1 ^ x2);
 

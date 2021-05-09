@@ -31,7 +31,7 @@ struct mac_args_t {
   uint32_t                      nof_prb; ///< Needed to dimension MAC softbuffers for all cells
   sched_interface::sched_args_t sched;
   int                           nr_tb_size = -1;
-  uint32_t                      max_nof_ues;
+  uint32_t                      nof_prealloc_ues; ///< Number of UE resources to pre-allocate at eNB startup
   uint32_t                      max_nof_kos;
 };
 

@@ -35,7 +35,7 @@ class nas_args_t
 {
 public:
   nas_args_t() : force_imsi_attach(false) {}
-
+  ~nas_args_t() = default;
   std::string    apn_name;
   std::string    apn_protocol;
   std::string    apn_user;

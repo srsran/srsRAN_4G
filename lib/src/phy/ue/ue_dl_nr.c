@@ -847,3 +847,27 @@ uint32_t srsran_ue_dl_nr_ack_info(const srsran_pdsch_ack_nr_t* ack_info, char* s
 
   return len;
 }
+
+int srsran_ue_dl_nr_csi_measure_trs(const srsran_ue_dl_nr_t*       q,
+                                    const srsran_slot_cfg_t*       slot_cfg,
+                                    const srsran_csi_rs_nzp_set_t* csi_rs_nzp_set,
+                                    srsran_csi_trs_measurements_t* measurement)
+{
+  if (q == NULL || slot_cfg == NULL || csi_rs_nzp_set == NULL || measurement == NULL) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+
+  return srsran_csi_rs_nzp_measure_trs(&q->carrier, slot_cfg, csi_rs_nzp_set, q->sf_symbols[0], measurement);
+}
+
+int srsran_ue_dl_nr_csi_measure_channel(const srsran_ue_dl_nr_t*           q,
+                                        const srsran_slot_cfg_t*           slot_cfg,
+                                        const srsran_csi_rs_nzp_set_t*     csi_rs_nzp_set,
+                                        srsran_csi_channel_measurements_t* measurement)
+{
+  if (q == NULL || slot_cfg == NULL || csi_rs_nzp_set == NULL || measurement == NULL) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+
+  return srsran_csi_rs_nzp_measure_channel(&q->carrier, slot_cfg, csi_rs_nzp_set, q->sf_symbols[0], measurement);
+}

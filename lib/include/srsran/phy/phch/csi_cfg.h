@@ -37,6 +37,22 @@
 #define SRSRAN_CSI_MAX_NOF_RESOURCES 112
 
 /**
+ * @brief Maximum number of NZP-CSI-RS resources sets per config, defined in TS 38.331
+ * maxNrofNZP-CSI-RS-ResourceSetsPerConfig
+ */
+#define SRSRAN_CSI_MAX_NOF_NZP_CSI_RS_RESOURCE_SETS_X_CONFIG 16
+
+/**
+ * @brief Maximum number of CSI-SSB resources sets per config, defined in TS 38.331 maxNrofCSI-SSB-ResourceSetsPerConfig
+ */
+#define SRSRAN_CSI_MAX_NOF_CSI_SSB_RESOURCE_SETS_X_CONFIG 1
+
+/**
+ * @brief Maximum number of CSI-SSB resources sets per config, defined in TS 38.331 maxNrofCSI-IM-ResourceSetsPerConfig
+ */
+#define SRSRAN_CSI_MAX_NOF_CSI_IM_RESOURCE_SETS_X_CONFIG 12
+
+/**
  * @brief CSI report types defined in TS 38.331 CSI-ReportConfig
  */
 typedef enum SRSRAN_API {
@@ -107,15 +123,40 @@ typedef struct SRSRAN_API {
 } srsran_csi_hl_report_cfg_t;
 
 /**
+ * @brief CSI Resource configuration
+ */
+typedef struct SRSRAN_API {
+  enum {
+    SRSRAN_CSI_HL_RESOURCE_CFG_TYPE_NONE = 0,
+    SRSRAN_CSI_HL_RESOURCE_CFG_TYPE_NZP_CSI_RS_SSB,
+    SRSRAN_CSI_HL_RESOURCE_CFG_TYPE_IM
+  } type;
+  union {
+    struct {
+      uint32_t nzp_csi_rs_resource_set_id_list[SRSRAN_CSI_MAX_NOF_NZP_CSI_RS_RESOURCE_SETS_X_CONFIG];
+      uint32_t nzp_csi_rs_resource_set_id_list_count;
+      uint32_t csi_ssb_rs_resource_set_id_list[SRSRAN_CSI_MAX_NOF_CSI_SSB_RESOURCE_SETS_X_CONFIG];
+      uint32_t csi_ssb_rs_resource_set_id_list_count;
+    } nzp_csi_rs_ssb;
+    struct {
+      uint32_t resource_set_id_list[SRSRAN_CSI_MAX_NOF_CSI_IM_RESOURCE_SETS_X_CONFIG];
+      uint32_t resource_set_id_list_count;
+    } csi_im;
+  };
+} srsran_csi_hl_resource_cfg_t;
+
+/**
  * @brief General CSI configuration provided by higher layers
  */
 typedef struct SRSRAN_API {
-  srsran_csi_hl_report_cfg_t reports[SRSRAN_CSI_MAX_NOF_REPORT]; ///< CSI report configuration
-  // ... add here physical CSI measurement sets
+  srsran_csi_hl_report_cfg_t reports[SRSRAN_CSI_MAX_NOF_REPORT];            ///< CSI report configuration indexed by
+                                                                            ///< reportConfigId
+  srsran_csi_hl_resource_cfg_t csi_resources[SRSRAN_CSI_MAX_NOF_RESOURCES]; ///< Configured CSI resource settings,
+                                                                            ///< indexed by csi-ResourceConfigId
 } srsran_csi_hl_cfg_t;
 
 /**
- * @brief Generic measurement structure
+ * @brief Generic CSI measurement structure, used for generating CSI reports
  */
 typedef struct SRSRAN_API {
   uint32_t cri;               ///< CSI-RS Resource Indicator
@@ -126,7 +167,7 @@ typedef struct SRSRAN_API {
   // Resource set context
   uint32_t nof_ports; ///< Number of antenna ports
   uint32_t K_csi_rs;  ///< Number of CSI-RS in the corresponding resource set
-} srsran_csi_measurements_t;
+} srsran_csi_channel_measurements_t;
 
 /**
  * @brief CSI report configuration

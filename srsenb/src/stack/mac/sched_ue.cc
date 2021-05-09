@@ -311,8 +311,10 @@ void sched_ue::set_ul_snr(tti_point tti_rx, uint32_t enb_cc_idx, float snr, uint
 {
   if (cells[enb_cc_idx].cc_state() != cc_st::idle) {
     cells[enb_cc_idx].tpc_fsm.set_snr(snr, ul_ch_code);
-    cells[enb_cc_idx].ul_cqi        = srsran_cqi_from_snr(snr);
-    cells[enb_cc_idx].ul_cqi_tti_rx = tti_rx;
+    if (ul_ch_code == tpc::PUSCH_CODE) {
+      cells[enb_cc_idx].ul_cqi        = srsran_cqi_from_snr(snr);
+      cells[enb_cc_idx].ul_cqi_tti_rx = tti_rx;
+    }
   } else {
     logger.warning("Received SNR info for invalid cell index %d", enb_cc_idx);
   }
@@ -774,6 +776,11 @@ rbg_interval sched_ue::get_required_dl_rbgs(uint32_t enb_cc_idx)
   pending_prbs = (pending_prbs < 0) ? cellparams->nof_prb() : pending_prbs;
   uint32_t max_pending_rbg = cellparams->nof_prbs_to_rbgs(pending_prbs);
   return {min_pending_rbg, max_pending_rbg};
+}
+
+uint32_t sched_ue::get_pending_dl_bytes(uint32_t enb_cc_idx)
+{
+  return get_requested_dl_bytes(enb_cc_idx).stop();
 }
 
 /**

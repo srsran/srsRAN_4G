@@ -71,6 +71,10 @@ add_executable(sched_dci_test sched_dci_test.cc)
 target_link_libraries(sched_dci_test srsran_common srsenb_mac srsran_mac sched_test_common)
 add_test(sched_dci_test sched_dci_test)
 
+add_executable(sched_ue_cell_test sched_ue_cell_test.cc)
+target_link_libraries(sched_ue_cell_test srsran_common srsenb_mac srsran_mac sched_test_common)
+add_test(sched_ue_cell_test sched_ue_cell_test)
+
 add_executable(sched_benchmark_test sched_benchmark.cc)
 target_link_libraries(sched_benchmark_test srsran_common srsenb_mac srsran_mac sched_test_common)
 add_test(sched_benchmark_test sched_benchmark_test)

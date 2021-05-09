@@ -655,6 +655,8 @@ static int sch_nr_decode(srsran_sch_nr_t*        q,
 
     input_ptr += E;
   }
+  // Set average number of iterations
+  res->avg_iter = (float)nof_iter_sum / (float)cfg.C;
 
   // Set average number of iterations
   if (cfg.C > 0) {

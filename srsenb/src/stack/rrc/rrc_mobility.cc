@@ -96,6 +96,8 @@ uint16_t compute_mac_i(uint16_t                            crnti,
 
   // Compute MAC-I
   switch (integ_algo) {
+    case srsran::INTEGRITY_ALGORITHM_ID_EIA0:
+      return 0;
     case srsran::INTEGRITY_ALGORITHM_ID_128_EIA1:
       srsran::security_128_eia1(&k_rrc_int[16],
                                 0xffffffff, // 32-bit all to ones
@@ -115,7 +117,7 @@ uint16_t compute_mac_i(uint16_t                            crnti,
                                 mac_key);
       break;
     default:
-      printf("Unsupported integrity algorithm %d.", integ_algo);
+      srsran::console_stderr("ERROR: Unsupported integrity algorithm %d.\n", integ_algo);
   }
 
   uint16_t short_mac_i = (((uint16_t)mac_key[2] << 8u) | (uint16_t)mac_key[3]);
@@ -498,7 +500,7 @@ void rrc::ue::rrc_mobility::fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s
   recfg_r8.mob_ctrl_info_present = true;
   auto& mob_info                 = recfg_r8.mob_ctrl_info;
   mob_info.target_pci            = target_cell.cell_cfg.pci;
-  mob_info.t304.value            = mob_ctrl_info_s::t304_opts::ms2000; // TODO: make it reconfigurable
+  mob_info.t304                  = target_cell.cell_cfg.t304;
   mob_info.new_ue_id.from_number(rrc_ue->rnti);
   mob_info.rr_cfg_common.pusch_cfg_common       = target_cell.sib2.rr_cfg_common.pusch_cfg_common;
   mob_info.rr_cfg_common.prach_cfg.root_seq_idx = target_cell.sib2.rr_cfg_common.prach_cfg.root_seq_idx;

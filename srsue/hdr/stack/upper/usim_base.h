@@ -51,6 +51,7 @@ class usim_args_t
 {
 public:
   usim_args_t() : using_op(false) {}
+  ~usim_args_t() = default;
   std::string mode;
   std::string algo;
   bool        using_op;

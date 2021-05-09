@@ -53,6 +53,9 @@ extern "C" {
 #define SRSRAN_FLOOR(NUM, DEN) ((NUM) / (DEN))
 #define SRSRAN_ROUND(NUM, DEN) ((uint32_t)round((double)(NUM) / (double)(DEN)))
 
+// Complex squared absolute value
+#define SRSRAN_CSQABS(X) (__real__(X) * __real__(X) + __imag__(X) * __imag__(X))
+
 // Cumulative moving average
 #define SRSRAN_VEC_CMA(data, average, n) ((average) + ((data) - (average)) / ((n) + 1))
 
@@ -61,6 +64,9 @@ extern "C" {
 
 // Exponential moving average
 #define SRSRAN_VEC_EMA(data, average, alpha) ((alpha) * (data) + (1 - alpha) * (average))
+
+// Safe exponential moving average
+#define SRSRAN_VEC_SAFE_EMA(data, average, alpha) (isnormal(average) ? SRSRAN_VEC_EMA(data, average, alpha) : (data))
 
 static inline float srsran_convert_amplitude_to_dB(float v)
 {

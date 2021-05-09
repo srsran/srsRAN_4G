@@ -20,7 +20,6 @@
  */
 
 #include <string>
-#include <sys/mman.h>
 
 #include "srsran/common/band_helper.h"
 #include "srsran/common/standard_streams.h"
@@ -113,7 +112,6 @@ int phy::init(const phy_args_t& args_, stack_interface_phy_lte* stack_, srsran::
 int phy::init(const phy_args_t& args_)
 {
   std::unique_lock<std::mutex> lock(config_mutex);
-  mlockall(MCL_CURRENT | MCL_FUTURE);
 
   args = args_;
 

@@ -161,7 +161,7 @@ uint32_t srsran_min_symbol_sz_rb(uint32_t nof_prb)
   return 0;
 }
 
-float srsran_symbol_distance_s(uint32_t l0, uint32_t l1, uint32_t numerology)
+float srsran_symbol_distance_s(uint32_t l0, uint32_t l1, srsran_subcarrier_spacing_t scs)
 {
   // l0 must be smaller than l1
   if (l0 >= l1) {
@@ -172,7 +172,7 @@ float srsran_symbol_distance_s(uint32_t l0, uint32_t l1, uint32_t numerology)
   uint32_t count = l1 - l0;
 
   // Compute at what symbol there is a longer CP
-  uint32_t cp_boundary = 7U << numerology;
+  uint32_t cp_boundary = 7U << (uint32_t)scs;
 
   // Select whether extra CP shall be added
   uint32_t extra_cp = 0;
@@ -184,7 +184,7 @@ float srsran_symbol_distance_s(uint32_t l0, uint32_t l1, uint32_t numerology)
   uint32_t N = (2048 + 144) * count + extra_cp;
 
   // Return symbol distance in microseconds
-  return (N << numerology) * SRSRAN_LTE_TS;
+  return (N << (uint32_t)scs) * SRSRAN_LTE_TS;
 }
 
 bool srsran_tdd_nr_is_dl(const srsran_tdd_config_nr_t* cfg, uint32_t numerology, uint32_t slot_idx)

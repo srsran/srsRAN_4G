@@ -53,6 +53,17 @@ using namespace asn1::rrc;
 
 namespace srsenb {
 
+template <typename T>
+bool contains_value(T value, const std::initializer_list<T>& list)
+{
+  for (auto& v : list) {
+    if (v == value) {
+      return true;
+    }
+  }
+  return false;
+}
+
 bool sib_is_present(const sched_info_list_l& l, sib_type_e sib_num)
 {
   for (uint32_t i = 0; i < l.size(); i++) {
@@ -763,6 +774,8 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
     HANDLEPARSERCODE(parse_default_field(cell_cfg.enable_phr_handling, cellroot, "enable_phr_handling", false));
     parse_default_field(cell_cfg.meas_cfg.allowed_meas_bw, cellroot, "allowed_meas_bw", 6u);
     srsran_assert(srsran::is_lte_cell_nof_prb(cell_cfg.meas_cfg.allowed_meas_bw), "Invalid measurement Bandwidth");
+    HANDLEPARSERCODE(asn1_parsers::default_number_to_enum(
+        cell_cfg.t304, cellroot, "t304", asn1::rrc::mob_ctrl_info_s::t304_opts::ms2000));
 
     if (cellroot.exists("ho_active") and cellroot["ho_active"]) {
       HANDLEPARSERCODE(parse_meas_cell_list(&cell_cfg.meas_cfg, cellroot["meas_cell_list"]));
@@ -914,9 +927,9 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
 {
   // Sanity checks
   ASSERT_VALID_CFG(not rrc_cfg_->cell_list.empty(), "No cell specified in rr.conf.");
-  ASSERT_VALID_CFG(args_->stack.mac.max_nof_ues <= SRSENB_MAX_UES and args_->stack.mac.max_nof_ues > 0,
-                   "mac.max_nof_ues=%d must be within [0, %d]",
-                   args_->stack.mac.max_nof_ues,
+  ASSERT_VALID_CFG(args_->stack.mac.nof_prealloc_ues <= SRSENB_MAX_UES,
+                   "mac.nof_prealloc_ues=%d must be within [0, %d]",
+                   args_->stack.mac.nof_prealloc_ues,
                    SRSENB_MAX_UES);
 
   // Check for a forced  DL EARFCN or frequency (only valid for a single cell config (Xico's favorite feature))
@@ -1156,8 +1169,9 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
   rrc_cfg_->enb_id = args_->stack.s1ap.enb_id;
 
   // Set max number of KOs
-  rrc_cfg_->max_mac_dl_kos = args_->general.max_mac_dl_kos;
-  rrc_cfg_->max_mac_ul_kos = args_->general.max_mac_ul_kos;
+  rrc_cfg_->max_mac_dl_kos       = args_->general.max_mac_dl_kos;
+  rrc_cfg_->max_mac_ul_kos       = args_->general.max_mac_ul_kos;
+  rrc_cfg_->rlf_release_timer_ms = args_->general.rlf_release_timer_ms;
 
   // Set sync queue capacity to 1 for ZMQ
   if (args_->rf.device_name == "zmq") {

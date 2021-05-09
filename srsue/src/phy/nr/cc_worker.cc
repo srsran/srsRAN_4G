@@ -201,6 +201,205 @@ void cc_worker::decode_pdcch_ul()
   }
 }
 
+bool cc_worker::decode_pdsch_dl()
+{
+  // Get DL grant for this TTI, if available
+  uint32_t                       pid          = 0;
+  srsran_sch_cfg_nr_t            pdsch_cfg    = {};
+  srsran_pdsch_ack_resource_nr_t ack_resource = {};
+  if (not phy->get_dl_pending_grant(dl_slot_cfg.idx, pdsch_cfg, ack_resource, pid)) {
+    // Early return if no grant was available
+    return true;
+  }
+  // Notify MAC about PDSCH grant
+  mac_interface_phy_nr::tb_action_dl_t    dl_action    = {};
+  mac_interface_phy_nr::mac_nr_grant_dl_t mac_dl_grant = {};
+  mac_dl_grant.rnti                                    = pdsch_cfg.grant.rnti;
+  mac_dl_grant.pid                                     = pid;
+  mac_dl_grant.rv                                      = pdsch_cfg.grant.tb[0].rv;
+  mac_dl_grant.ndi                                     = pdsch_cfg.grant.tb[0].ndi;
+  mac_dl_grant.tbs                                     = pdsch_cfg.grant.tb[0].tbs / 8;
+  mac_dl_grant.tti                                     = dl_slot_cfg.idx;
+  phy->stack->new_grant_dl(0, mac_dl_grant, &dl_action);
+
+  // Abort if MAC says it doesn't need the TB
+  if (not dl_action.tb.enabled) {
+    // Force positive ACK
+    if (pdsch_cfg.grant.rnti_type == srsran_rnti_type_c) {
+      phy->set_pending_ack(dl_slot_cfg.idx, ack_resource, true);
+    }
+
+    logger.info("Decoding not required. Skipping PDSCH. ack_tti_tx=%d", TTI_ADD(dl_slot_cfg.idx, ack_resource.k1));
+    return true;
+  }
+
+  // Get data buffer
+  srsran::unique_byte_buffer_t data = srsran::make_byte_buffer();
+  if (data == nullptr) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return false;
+  }
+  data->N_bytes = pdsch_cfg.grant.tb[0].tbs / 8U;
+
+  // Initialise PDSCH Result
+  srsran_pdsch_res_nr_t pdsch_res     = {};
+  pdsch_res.tb[0].payload             = data->msg;
+  pdsch_cfg.grant.tb[0].softbuffer.rx = dl_action.tb.softbuffer;
+
+  // Decode actual PDSCH transmission
+  if (srsran_ue_dl_nr_decode_pdsch(&ue_dl, &dl_slot_cfg, &pdsch_cfg, &pdsch_res) < SRSRAN_SUCCESS) {
+    ERROR("Error decoding PDSCH");
+    return false;
+  }
+
+  // Logging
+  if (logger.info.enabled()) {
+    str_info_t str;
+    srsran_ue_dl_nr_pdsch_info(&ue_dl, &pdsch_cfg, &pdsch_res, str.data(), (uint32_t)str.size());
+
+    if (logger.debug.enabled()) {
+      str_extra_t str_extra;
+      srsran_sch_cfg_nr_info(&pdsch_cfg, str_extra.data(), (uint32_t)str_extra.size());
+      logger.info(pdsch_res.tb[0].payload,
+                  pdsch_cfg.grant.tb[0].tbs / 8,
+                  "PDSCH: cc=%d pid=%d %s\n%s",
+                  cc_idx,
+                  pid,
+                  str.data(),
+                  str_extra.data());
+    } else {
+      logger.info(pdsch_res.tb[0].payload,
+                  pdsch_cfg.grant.tb[0].tbs / 8,
+                  "PDSCH: cc=%d pid=%d %s ack_tti_tx=%d",
+                  cc_idx,
+                  pid,
+                  str.data(),
+                  TTI_ADD(dl_slot_cfg.idx, ack_resource.k1));
+    }
+  }
+
+  // Enqueue PDSCH ACK information only if the RNTI is type C
+  if (pdsch_cfg.grant.rnti_type == srsran_rnti_type_c) {
+    phy->set_pending_ack(dl_slot_cfg.idx, ack_resource, pdsch_res.tb[0].crc);
+  }
+
+  // Notify MAC about PDSCH decoding result
+  mac_interface_phy_nr::tb_action_dl_result_t mac_dl_result = {};
+  mac_dl_result.ack                                         = pdsch_res.tb[0].crc;
+  mac_dl_result.payload = mac_dl_result.ack ? std::move(data) : nullptr; // only pass data when successful
+  phy->stack->tb_decoded(cc_idx, mac_dl_grant, std::move(mac_dl_result));
+
+  if (pdsch_cfg.grant.rnti_type == srsran_rnti_type_ra) {
+    phy->rar_grant_tti = dl_slot_cfg.idx;
+  }
+
+  if (pdsch_res.tb[0].crc) {
+    // Generate DL metrics
+    dl_metrics_t dl_m = {};
+    dl_m.mcs          = pdsch_cfg.grant.tb[0].mcs;
+    dl_m.fec_iters    = pdsch_res.tb[0].avg_iter;
+    dl_m.evm          = pdsch_res.evm[0];
+    phy->set_dl_metrics(dl_m);
+  }
+
+  return true;
+}
+
+bool cc_worker::measure_csi()
+{
+  // Iterate all NZP-CSI-RS marked as TRS and perform channel measurements
+  for (uint32_t resource_set_id = 0; resource_set_id < SRSRAN_PHCH_CFG_MAX_NOF_CSI_RS_SETS; resource_set_id++) {
+    // Select NZP-CSI-RS set
+    const srsran_csi_rs_nzp_set_t& nzp_set = phy->cfg.pdsch.nzp_csi_rs_sets[resource_set_id];
+
+    // Skip set if not set as TRS (it will be processed later)
+    if (not nzp_set.trs_info) {
+      continue;
+    }
+
+    // Perform measurement, n > 0 is any measurement is performed, n = 0 otherwise
+    srsran_csi_trs_measurements_t trs_measurements = {};
+    int n = srsran_ue_dl_nr_csi_measure_trs(&ue_dl, &dl_slot_cfg, &nzp_set, &trs_measurements);
+    if (n < SRSRAN_SUCCESS) {
+      logger.error("Error measuring CSI-RS");
+      return false;
+    }
+
+    // If no measurement performed, skip
+    if (n == 0) {
+      continue;
+    }
+
+    logger.info("NZP-CSI-RS (TRS): id=%d rsrp=%+.1f epre=%+.1f snr=%+.1f cfo=%+.1f delay=%.1f",
+                resource_set_id,
+                trs_measurements.rsrp_dB,
+                trs_measurements.epre_dB,
+                trs_measurements.snr_dB,
+                trs_measurements.cfo_hz,
+                trs_measurements.delay_us);
+
+    // Compute channel metrics and push it
+    ch_metrics_t ch_metrics = {};
+    ch_metrics.sinr         = trs_measurements.snr_dB;
+    ch_metrics.rsrp         = trs_measurements.rsrp_dB;
+    ch_metrics.rsrq         = 0.0f; // Not supported
+    ch_metrics.rssi         = 0.0f; // Not supported
+    ch_metrics.sync_err =
+        trs_measurements.delay_us / (float)(ue_dl.fft->fft_plan.size * SRSRAN_SUBC_SPACING_NR(phy->cfg.carrier.scs));
+    phy->set_channel_metrics(ch_metrics);
+
+    // Compute synch metrics and report it to the PHY state
+    sync_metrics_t sync_metrics = {};
+    sync_metrics.cfo            = trs_measurements.cfo_hz;
+    phy->set_sync_metrics(sync_metrics);
+
+    // Convert to CSI channel measurement and report new NZP-CSI-RS measurement to the PHY state
+    srsran_csi_channel_measurements_t measurements = {};
+    measurements.cri                               = 0;
+    measurements.wideband_rsrp_dBm                 = trs_measurements.rsrp_dB;
+    measurements.wideband_epre_dBm                 = trs_measurements.epre_dB;
+    measurements.wideband_snr_db                   = trs_measurements.snr_dB;
+    measurements.nof_ports                         = 1; // Other values are not supported
+    measurements.K_csi_rs                          = (uint32_t)n;
+    phy->new_nzp_csi_rs_channel_measurement(measurements, resource_set_id);
+  }
+
+  // Iterate all NZP-CSI-RS not marked as TRS and perform channel measurements
+  for (uint32_t resource_set_id = 0; resource_set_id < SRSRAN_PHCH_CFG_MAX_NOF_CSI_RS_SETS; resource_set_id++) {
+    // Select NZP-CSI-RS set
+    const srsran_csi_rs_nzp_set_t& nzp_set = phy->cfg.pdsch.nzp_csi_rs_sets[resource_set_id];
+
+    // Skip set if set as TRS (it was processed previously)
+    if (nzp_set.trs_info) {
+      continue;
+    }
+
+    // Perform channel measurement, n > 0 is any measurement is performed, n = 0 otherwise
+    srsran_csi_channel_measurements_t measurements = {};
+    int n = srsran_ue_dl_nr_csi_measure_channel(&ue_dl, &dl_slot_cfg, &nzp_set, &measurements);
+    if (n < SRSRAN_SUCCESS) {
+      logger.error("Error measuring CSI-RS");
+      return false;
+    }
+
+    // If no measurement performed, skip
+    if (n == 0) {
+      continue;
+    }
+
+    logger.info("NZP-CSI-RS: id=%d, rsrp=%+.1f epre=%+.1f snr=%+.1f",
+                resource_set_id,
+                measurements.wideband_rsrp_dBm,
+                measurements.wideband_epre_dBm,
+                measurements.wideband_snr_db);
+
+    // Report new measurement to the PHY state
+    phy->new_nzp_csi_rs_channel_measurement(measurements, resource_set_id);
+  }
+
+  return true;
+}
+
 bool cc_worker::work_dl()
 {
   // Do NOT process any DL if it is not configured
@@ -222,104 +421,16 @@ bool cc_worker::work_dl()
   // Decode PDCCH UL after
   decode_pdcch_ul();
 
-  // Get DL grant for this TTI, if available
-  uint32_t                       pid          = 0;
-  srsran_sch_cfg_nr_t            pdsch_cfg    = {};
-  srsran_pdsch_ack_resource_nr_t ack_resource = {};
-  if (phy->get_dl_pending_grant(dl_slot_cfg.idx, pdsch_cfg, ack_resource, pid)) {
-    // Notify MAC about PDSCH grant
-    mac_interface_phy_nr::tb_action_dl_t    dl_action    = {};
-    mac_interface_phy_nr::mac_nr_grant_dl_t mac_dl_grant = {};
-    mac_dl_grant.rnti                                    = pdsch_cfg.grant.rnti;
-    mac_dl_grant.pid                                     = pid;
-    mac_dl_grant.rv                                      = pdsch_cfg.grant.tb[0].rv;
-    mac_dl_grant.ndi                                     = pdsch_cfg.grant.tb[0].ndi;
-    mac_dl_grant.tbs                                     = pdsch_cfg.grant.tb[0].tbs / 8;
-    mac_dl_grant.tti                                     = dl_slot_cfg.idx;
-    phy->stack->new_grant_dl(0, mac_dl_grant, &dl_action);
+  // Decode PDSCH
+  if (not decode_pdsch_dl()) {
+    logger.error("Error decoding PDSCH, aborting work DL");
+    return false;
+  }
 
-    // Early stop if MAC says it doesn't need the TB
-    if (not dl_action.tb.enabled) {
-      logger.info("Decoding not required. Skipping PDSCH");
-      return true;
-    }
-
-    // Get data buffer
-    srsran::unique_byte_buffer_t data = srsran::make_byte_buffer();
-    if (data == nullptr) {
-      logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
-      return false;
-    }
-    data->N_bytes = pdsch_cfg.grant.tb[0].tbs / 8U;
-
-    // Initialise PDSCH Result
-    srsran_pdsch_res_nr_t pdsch_res     = {};
-    pdsch_res.tb[0].payload             = data->msg;
-    pdsch_cfg.grant.tb[0].softbuffer.rx = dl_action.tb.softbuffer;
-
-    // Decode actual PDSCH transmission
-    if (srsran_ue_dl_nr_decode_pdsch(&ue_dl, &dl_slot_cfg, &pdsch_cfg, &pdsch_res) < SRSRAN_SUCCESS) {
-      ERROR("Error decoding PDSCH");
-      return false;
-    }
-
-    // Logging
-    if (logger.info.enabled()) {
-      str_info_t str;
-      srsran_ue_dl_nr_pdsch_info(&ue_dl, &pdsch_cfg, &pdsch_res, str.data(), (uint32_t)str.size());
-
-      if (logger.debug.enabled()) {
-        str_extra_t str_extra;
-        srsran_sch_cfg_nr_info(&pdsch_cfg, str_extra.data(), (uint32_t)str_extra.size());
-        logger.info(pdsch_res.tb[0].payload,
-                    pdsch_cfg.grant.tb[0].tbs / 8,
-                    "PDSCH: cc=%d pid=%d %s\n%s",
-                    cc_idx,
-                    pid,
-                    str.data(),
-                    str_extra.data());
-      } else {
-        logger.info(
-            pdsch_res.tb[0].payload, pdsch_cfg.grant.tb[0].tbs / 8, "PDSCH: cc=%d pid=%d %s", cc_idx, pid, str.data());
-      }
-    }
-
-    // Enqueue PDSCH ACK information only if the RNTI is type C
-    if (pdsch_cfg.grant.rnti_type == srsran_rnti_type_c) {
-      phy->set_pending_ack(dl_slot_cfg.idx, ack_resource, pdsch_res.tb[0].crc);
-    }
-
-    // Notify MAC about PDSCH decoding result
-    mac_interface_phy_nr::tb_action_dl_result_t mac_dl_result = {};
-    mac_dl_result.ack                                         = pdsch_res.tb[0].crc;
-    mac_dl_result.payload = mac_dl_result.ack ? std::move(data) : nullptr; // only pass data when successful
-    phy->stack->tb_decoded(cc_idx, mac_dl_grant, std::move(mac_dl_result));
-
-    if (pdsch_cfg.grant.rnti_type == srsran_rnti_type_ra) {
-      phy->rar_grant_tti = dl_slot_cfg.idx;
-    }
-
-    if (pdsch_res.tb[0].crc) {
-      // Generate DL metrics
-      dl_metrics_t dl_m = {};
-      dl_m.mcs          = pdsch_cfg.grant.tb[0].mcs;
-      dl_m.fec_iters    = pdsch_res.tb[0].avg_iter;
-      dl_m.evm          = pdsch_res.evm[0];
-      phy->set_dl_metrics(dl_m);
-
-      // Generate Synch metrics
-      sync_metrics_t sync_m = {};
-      sync_m.cfo            = ue_dl.chest.cfo;
-      phy->set_sync_metrics(sync_m);
-
-      // Generate channel metrics
-      ch_metrics_t ch_m = {};
-      ch_m.n            = ue_dl.chest.noise_estimate;
-      ch_m.sinr         = ue_dl.chest.snr_db;
-      ch_m.rsrp         = ue_dl.chest.rsrp_dbm;
-      ch_m.sync_err     = ue_dl.chest.sync_error;
-      phy->set_channel_metrics(ch_m);
-    }
+  // Measure CSI-RS
+  if (not measure_csi()) {
+    logger.error("Error measuring, aborting work DL");
+    return false;
   }
 
   return true;

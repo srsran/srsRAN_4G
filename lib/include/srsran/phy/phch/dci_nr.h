@@ -66,11 +66,11 @@ typedef struct SRSRAN_API {
   bool     enable_transform_precoding;      ///< Set to true if PUSCH transform precoding is enabled
   bool     dynamic_dual_harq_ack_codebook;  ///< Set to true if HARQ-ACK codebook is set to dynamic with 2 sub-codebooks
   bool     pusch_tx_config_non_codebook;    ///< Set to true if PUSCH txConfig is set to non-codebook
-  bool     pusch_dmrs_type2;                ///< Set to true if PUSCH DMRS are type 2
-  bool     pusch_dmrs_double;               ///< Set to true if PUSCH DMRS are 2 symbol long
   bool     pusch_ptrs;                      ///< Set to true if PT-RS are enabled for PUSCH transmission
   bool     pusch_dynamic_betas;             ///< Set to true if beta offsets operation is not semi-static
   srsran_resource_alloc_t pusch_alloc_type; ///< PUSCH resource allocation type
+  srsran_dmrs_sch_type_t  pusch_dmrs_type;  ///< PUSCH DMRS type
+  srsran_dmrs_sch_len_t   pusch_dmrs_max_len; ///< PUSCH DMRS maximum length
 
   /// Format 1_1 specific configuration (for PDSCH only)
   uint32_t nof_dl_bwp;             ///< Number of DL BWPs excluding the initial UL BWP, mentioned in the TS as N_BWP_RRC
@@ -83,13 +83,12 @@ typedef struct SRSRAN_API {
   bool     pdsch_rm_pattern2;      ///< Set to true if rateMatchPatternGroup2 is configured
   bool     pdsch_2cw;              ///< Set to true if maxNrofCodeWordsScheduledByDCI is set to 2 in any BWP
   bool     multiple_scell;         ///< Set to true if configured with multiple serving cell
-  bool     pdsch_dmrs_type2;       ///< Set to true if PDSCH DMRS are type 2
-  bool     pdsch_dmrs_double;      ///< Set to true if PDSCH DMRS are 2 symbol long
   bool     pdsch_tci;              ///< Set to true if tci-PresentInDCI is enabled
   bool     pdsch_cbg_flush;        ///< Set to true if codeBlockGroupFlushIndicator is true
   bool     pdsch_dynamic_bundling; ///< Set to true if prb-BundlingType is set to dynamicBundling
-  srsran_resource_alloc_t pdsch_alloc_type; ///< PDSCH resource allocation type, set to 0 for default
-
+  srsran_resource_alloc_t pdsch_alloc_type;   ///< PDSCH resource allocation type, set to 0 for default
+  srsran_dmrs_sch_type_t  pdsch_dmrs_type;    ///< PDSCH DMRS type
+  srsran_dmrs_sch_len_t   pdsch_dmrs_max_len; ///< PDSCH DMRS maximum length
 } srsran_dci_cfg_nr_t;
 
 /**

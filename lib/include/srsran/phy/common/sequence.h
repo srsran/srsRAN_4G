@@ -45,6 +45,8 @@ SRSRAN_API void srsran_sequence_state_init(srsran_sequence_state_t* s, uint32_t 
 
 SRSRAN_API void srsran_sequence_state_gen_f(srsran_sequence_state_t* s, float value, float* out, uint32_t length);
 
+SRSRAN_API void srsran_sequence_state_apply_f(srsran_sequence_state_t* s, const float* in, float* out, uint32_t length);
+
 SRSRAN_API void srsran_sequence_state_advance(srsran_sequence_state_t* s, uint32_t length);
 
 typedef struct SRSRAN_API {

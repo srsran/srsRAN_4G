@@ -29,6 +29,17 @@ namespace srslog {
 /// Generic error handler callback.
 using error_handler = std::function<void(const std::string&)>;
 
+/// Backend priority levels.
+enum class backend_priority
+{
+  /// Default priority of the operating system.
+  normal,
+  /// Thread will be given a high priority.
+  high,
+  /// Thread will be given a very high priority.
+  very_high
+};
+
 } // namespace srslog
 
 #endif // SRSLOG_SHARED_TYPES_H

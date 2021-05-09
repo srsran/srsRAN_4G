@@ -48,6 +48,7 @@ extern "C" {
 
 #include "srsran/phy/ch_estimation/chest_dl.h"
 #include "srsran/phy/ch_estimation/chest_ul.h"
+#include "srsran/phy/ch_estimation/csi_rs.h"
 #include "srsran/phy/ch_estimation/dmrs_pdcch.h"
 #include "srsran/phy/ch_estimation/dmrs_sch.h"
 #include "srsran/phy/ch_estimation/refsignal_dl.h"

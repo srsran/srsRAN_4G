@@ -35,11 +35,6 @@ namespace srslog {
 /// log entries from a work queue and dispatches them to the selected sinks.
 class backend_worker
 {
-  /// This period defines the maximum time the worker will sleep while waiting
-  /// for new entries. This is required to check the termination variable
-  /// periodically.
-  static constexpr unsigned sleep_period_ms = 500;
-
 public:
   backend_worker(detail::work_queue<detail::log_entry>& queue, detail::dyn_arg_store_pool& arg_pool) :
     queue(queue), arg_pool(arg_pool), running_flag(false)
@@ -53,7 +48,7 @@ public:
   /// Starts the backend worker thread. After returning from this function the
   /// secondary thread is ensured to be running. Calling this function more than
   /// once has no effect.
-  void start();
+  void start(backend_priority priority);
 
   /// Stops the backend worker thread if it is running, otherwise the call has
   /// no effect. After returning from this function the secondary thread is
@@ -87,7 +82,7 @@ public:
 private:
   /// Creates the worker thread.
   /// NOTE: This function should be only called once.
-  void create_worker();
+  void create_worker(backend_priority priority);
 
   /// Entry function used by the secondary thread.
   void do_work();
@@ -111,6 +106,9 @@ private:
       err_handler = [](const std::string&) {};
     }
   }
+
+  /// Establishes the specified thread priority for the calling thread.
+  void set_thread_priority(backend_priority priority) const;
 
 private:
   detail::work_queue<detail::log_entry>& queue;

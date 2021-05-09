@@ -93,6 +93,65 @@ static uint32_t dci_nr_ptrs_size(const srsran_dci_cfg_nr_t* cfg)
   return 2;
 }
 
+static uint32_t dci_nr_dl_ports_size(const srsran_dci_cfg_nr_t* cfg)
+{
+  uint32_t ret = 4;
+
+  if (cfg->pdsch_dmrs_type == srsran_dmrs_sch_type_2) {
+    ret++;
+  }
+  if (cfg->pdsch_dmrs_max_len == srsran_dmrs_sch_len_2) {
+    ret++;
+  }
+
+  return ret;
+}
+
+static uint32_t dci_nr_ul_ports_size(const srsran_dci_cfg_nr_t* cfg)
+{
+  // 2 bits as defined by Tables 7.3.1.1.2-6, if transform precoder is enabled, dmrs-Type=1, and maxLength=1;
+  if (cfg->enable_transform_precoding == true && cfg->pusch_dmrs_type == srsran_dmrs_sch_type_1 &&
+      cfg->pusch_dmrs_max_len == srsran_dmrs_sch_len_1) {
+    return 2;
+  }
+
+  // 4 bits as defined by Tables 7.3.1.1.2-7, if transform precoder is enabled, dmrs-Type=1, and maxLength=2;
+  if (cfg->enable_transform_precoding == true && cfg->pusch_dmrs_type == srsran_dmrs_sch_type_1 &&
+      cfg->pusch_dmrs_max_len == srsran_dmrs_sch_len_2) {
+    return 4;
+  }
+
+  // 3 bits as defined by Tables 7.3.1.1.2-8/9/10/11, if transform precoder is disabled, dmrs-Type=1, and maxLength=1
+  if (cfg->enable_transform_precoding == false && cfg->pusch_dmrs_type == srsran_dmrs_sch_type_1 &&
+      cfg->pusch_dmrs_max_len == srsran_dmrs_sch_len_1) {
+    return 3;
+  }
+
+  // 4 bits as defined by Tables 7.3.1.1.2-12/13/14/15, if transform precoder is disabled, dmrs-Type=1, and
+  // maxLength=2
+  if (cfg->enable_transform_precoding == false && cfg->pusch_dmrs_type == srsran_dmrs_sch_type_1 &&
+      cfg->pusch_dmrs_max_len == srsran_dmrs_sch_len_2) {
+    return 4;
+  }
+
+  // 4 bits as defined by Tables 7.3.1.1.2-16/17/18/19, if transform precoder is disabled, dmrs-Type=2, and
+  // maxLength=1
+  if (cfg->enable_transform_precoding == false && cfg->pusch_dmrs_type == srsran_dmrs_sch_type_2 &&
+      cfg->pusch_dmrs_max_len == srsran_dmrs_sch_len_1) {
+    return 4;
+  }
+
+  // 5 bits as defined by Tables 7.3.1.1.2-20/21/22/23, if transform precoder is disabled, dmrs-Type=2, and
+  // maxLength=2
+  if (cfg->enable_transform_precoding == false && cfg->pusch_dmrs_type == srsran_dmrs_sch_type_2 &&
+      cfg->pusch_dmrs_max_len == srsran_dmrs_sch_len_2) {
+    return 5;
+  }
+
+  ERROR("Unhandled configuration");
+  return 0;
+}
+
 static uint32_t dci_nr_srs_id_size(const srsran_dci_cfg_nr_t* cfg)
 {
   uint32_t N_srs = SRSRAN_MIN(1, cfg->nof_srs);
@@ -402,12 +461,7 @@ static uint32_t dci_nr_format_0_1_sizeof(const srsran_dci_cfg_nr_t* cfg, srsran_
   }
 
   // Antenna ports
-  if (!cfg->enable_transform_precoding && !cfg->pusch_dmrs_double) {
-    count += 3;
-  } else {
-    ERROR("Not implemented");
-    return 0;
-  }
+  count += dci_nr_ul_ports_size(cfg);
 
   // SRS request - 2 or 3 bits
   count += cfg->enable_sul ? 3 : 2;
@@ -511,12 +565,7 @@ static int dci_nr_format_0_1_pack(const srsran_dci_nr_t* q, const srsran_dci_ul_
   }
 
   // Antenna ports
-  if (!cfg->enable_transform_precoding && !cfg->pusch_dmrs_double) {
-    srsran_bit_unpack(dci->ports, &y, 3);
-  } else {
-    ERROR("Not implemented");
-    return 0;
-  }
+  srsran_bit_unpack(dci->ports, &y, dci_nr_ul_ports_size(cfg));
 
   // SRS request - 2 or 3 bits
   srsran_bit_unpack(dci->srs_request, &y, cfg->enable_sul ? 3 : 2);
@@ -628,7 +677,7 @@ static int dci_nr_format_0_1_unpack(const srsran_dci_nr_t* q, srsran_dci_msg_nr_
   }
 
   // Antenna ports
-  if (!cfg->enable_transform_precoding && !cfg->pusch_dmrs_double) {
+  if (!cfg->enable_transform_precoding && cfg->pusch_dmrs_max_len == srsran_dmrs_sch_len_1) {
     dci->ports = srsran_bit_pack(&y, 3);
   } else {
     ERROR("Not implemented");
@@ -735,11 +784,8 @@ dci_nr_format_0_1_to_str(const srsran_dci_nr_t* q, const srsran_dci_ul_nr_t* dci
   }
 
   // Antenna ports
-  if (!cfg->enable_transform_precoding && !cfg->pusch_dmrs_double) {
+  if (dci_nr_ul_ports_size(cfg)) {
     len = srsran_print_check(str, str_len, len, "ports=%d ", dci->ports);
-  } else {
-    ERROR("Not implemented");
-    return 0;
   }
 
   // SRS request - 2 bits
@@ -875,8 +921,8 @@ static int dci_nr_format_1_0_pack(const srsran_dci_nr_t* q, const srsran_dci_dl_
   srsran_rnti_type_t         rnti_type   = msg->ctx.rnti_type;
   srsran_search_space_type_t ss_type     = dci->ctx.ss_type;
   uint32_t                   N_DL_BWP_RB = SRSRAN_SEARCH_SPACE_IS_COMMON(ss_type)
-                                               ? (q->cfg.coreset0_bw == 0) ? q->cfg.bwp_dl_initial_bw : q->cfg.coreset0_bw
-                                               : q->cfg.bwp_dl_active_bw;
+                             ? (q->cfg.coreset0_bw == 0) ? q->cfg.bwp_dl_initial_bw : q->cfg.coreset0_bw
+                             : q->cfg.bwp_dl_active_bw;
 
   // Identifier for DCI formats – 1 bits
   if (rnti_type == srsran_rnti_type_c || rnti_type == srsran_rnti_type_tc) {
@@ -981,8 +1027,8 @@ static int dci_nr_format_1_0_unpack(const srsran_dci_nr_t* q, srsran_dci_msg_nr_
   srsran_rnti_type_t         rnti_type   = msg->ctx.rnti_type;
   srsran_search_space_type_t ss_type     = msg->ctx.ss_type;
   uint32_t                   N_DL_BWP_RB = SRSRAN_SEARCH_SPACE_IS_COMMON(ss_type)
-                                               ? (q->cfg.coreset0_bw == 0) ? q->cfg.bwp_dl_initial_bw : q->cfg.coreset0_bw
-                                               : q->cfg.bwp_dl_active_bw;
+                             ? (q->cfg.coreset0_bw == 0) ? q->cfg.bwp_dl_initial_bw : q->cfg.coreset0_bw
+                             : q->cfg.bwp_dl_active_bw;
 
   uint32_t nof_bits = srsran_dci_nr_size(q, ss_type, srsran_dci_format_nr_1_0);
   if (msg->nof_bits != nof_bits) {
@@ -1249,13 +1295,7 @@ static uint32_t dci_nr_format_1_1_sizeof(const srsran_dci_cfg_nr_t* cfg, srsran_
   count += (int)CEIL_LOG2(cfg->nof_dl_to_ul_ack);
 
   // Antenna port(s) – 4, 5, or 6 bits
-  count += 4;
-  if (cfg->pdsch_dmrs_type2) {
-    count++;
-  }
-  if (cfg->pdsch_dmrs_double) {
-    count++;
-  }
+  count += dci_nr_dl_ports_size(cfg);
 
   // Transmission configuration indication – 0 or 3 bits
   if (cfg->pdsch_tci) {
@@ -1371,13 +1411,7 @@ static int dci_nr_format_1_1_pack(const srsran_dci_nr_t* q, const srsran_dci_dl_
   srsran_bit_unpack(dci->harq_feedback, &y, (int)CEIL_LOG2(cfg->nof_dl_to_ul_ack));
 
   // Antenna port(s) – 4, 5, or 6 bits
-  srsran_bit_unpack(dci->ports, &y, 4);
-  if (cfg->pdsch_dmrs_type2) {
-    y++;
-  }
-  if (cfg->pdsch_dmrs_double) {
-    y++;
-  }
+  srsran_bit_unpack(dci->ports, &y, dci_nr_dl_ports_size(cfg));
 
   // Transmission configuration indication – 0 or 3 bits
   if (cfg->pdsch_tci) {
@@ -1507,13 +1541,7 @@ static int dci_nr_format_1_1_unpack(const srsran_dci_nr_t* q, srsran_dci_msg_nr_
   dci->harq_feedback = srsran_bit_pack(&y, (int)CEIL_LOG2(cfg->nof_dl_to_ul_ack));
 
   // Antenna port(s) – 4, 5, or 6 bits
-  dci->ports = srsran_bit_pack(&y, 4);
-  if (cfg->pdsch_dmrs_type2) {
-    y++;
-  }
-  if (cfg->pdsch_dmrs_double) {
-    y++;
-  }
+  dci->ports = srsran_bit_pack(&y, dci_nr_dl_ports_size(cfg));
 
   // Transmission configuration indication – 0 or 3 bits
   if (cfg->pdsch_tci) {
@@ -1628,7 +1656,9 @@ dci_nr_format_1_1_to_str(const srsran_dci_nr_t* q, const srsran_dci_dl_nr_t* dci
   }
 
   // Antenna port(s) – 4, 5, or 6 bits
-  len = srsran_print_check(str, str_len, len, "ports=%d ", dci->ports);
+  if (dci_nr_dl_ports_size(cfg) > 0) {
+    len = srsran_print_check(str, str_len, len, "ports=%d ", dci->ports);
+  }
 
   // Transmission configuration indication – 0 or 3 bits
   if (cfg->pdsch_tci) {

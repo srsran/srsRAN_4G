@@ -198,69 +198,98 @@ int srsran_ra_dl_nr_time(const srsran_sch_hl_cfg_nr_t*    cfg,
   return SRSRAN_SUCCESS;
 }
 
-int srsran_ra_dl_nr_nof_dmrs_cdm_groups_without_data_format_1_0(const srsran_dmrs_sch_cfg_t* cfg,
-                                                                srsran_sch_grant_nr_t*       grant)
+int srsran_ra_dl_nr_nof_front_load_symbols(const srsran_sch_hl_cfg_nr_t* cfg,
+                                           const srsran_dci_dl_nr_t*     dci,
+                                           srsran_dmrs_sch_len_t*        dmrs_duration)
 {
-  if (cfg == NULL || grant == NULL) {
-    return SRSRAN_ERROR_INVALID_INPUTS;
+  // Table 7.3.1.2.2-1: Antenna port(s) (1000 + DMRS port), dmrs-Type=1, maxLength=1
+  // Table 7.3.1.2.2-3: Antenna port(s) (1000 + DMRS port), dmrs-Type=2, maxLength=1
+  if (cfg->dmrs_max_length == srsran_dmrs_sch_len_1) {
+    *dmrs_duration = srsran_dmrs_sch_len_1;
+    return SRSRAN_SUCCESS;
   }
 
-  /* According to TS 38.214 V15.10.0 5.1.6.1.3 CSI-RS for mobility:
-   * When receiving PDSCH scheduled by DCI format 1_0, the UE shall assume the number of DM-RS CDM groups without data
-   * is 1 which corresponds to CDM group 0 for the case of PDSCH with allocation duration of 2 symbols, and the UE
-   * shall assume that the number of DM-RS CDM groups without data is 2 which corresponds to CDM group {0,1} for all
-   * other cases.
-   */
-  if (cfg->length == srsran_dmrs_sch_len_2) {
-    grant->nof_dmrs_cdm_groups_without_data = 1;
-  } else {
-    grant->nof_dmrs_cdm_groups_without_data = 2;
-  }
-
-  return SRSRAN_SUCCESS;
-}
-
-/* RBG size for type0 scheduling as in table 5.1.2.2.1-1 of 36.214 */
-uint32_t srsran_ra_dl_nr_type0_P(uint32_t bwp_size, bool config_is_1)
-{
-  if (bwp_size <= 36) {
-    return config_is_1 ? 2 : 4;
-  } else if (bwp_size <= 72) {
-    return config_is_1 ? 4 : 8;
-  } else if (bwp_size <= 144) {
-    return config_is_1 ? 8 : 16;
-  } else {
-    return 16;
-  }
-}
-
-static int ra_freq_type0(const srsran_carrier_nr_t*    carrier,
-                         const srsran_sch_hl_cfg_nr_t* cfg,
-                         const srsran_dci_dl_nr_t*     dci_dl,
-                         srsran_sch_grant_nr_t*        grant)
-{
-  uint32_t P = srsran_ra_dl_nr_type0_P(carrier->nof_prb, cfg->rbg_size_cfg_1);
-
-  uint32_t N_rbg      = (int)ceilf((float)(carrier->nof_prb + (carrier->start % P)) / P);
-  uint32_t rbg_offset = 0;
-  for (uint32_t i = 0; i < N_rbg; i++) {
-    uint32_t rbg_size = P;
-    if (i == 0) {
-      rbg_size -= (carrier->start % P);
-    } else if ((i == N_rbg - 1) && ((carrier->nof_prb + carrier->start) % P) > 0) {
-      rbg_size = (carrier->nof_prb + carrier->start) % P;
+  // Table 7.3.1.2.2-2: Antenna port(s) (1000 + DMRS port), dmrs-Type=1, maxLength=2
+  if (cfg->dmrs_type == srsran_dmrs_sch_type_1 && cfg->dmrs_max_length == srsran_dmrs_sch_len_2) {
+    // Only one codeword supported!
+    if (dci->ports < 12) {
+      *dmrs_duration = srsran_dmrs_sch_len_1;
+      return SRSRAN_SUCCESS;
     }
-    if (dci_dl->freq_domain_assigment & (1 << (N_rbg - i - 1))) {
-      for (uint32_t j = 0; j < rbg_size; j++) {
-        if (rbg_offset + j < carrier->nof_prb) {
-          grant->prb_idx[rbg_offset + j] = true;
-          grant->nof_prb++;
-        }
+
+    if (dci->ports < 31) {
+      *dmrs_duration = srsran_dmrs_sch_len_2;
+      return SRSRAN_SUCCESS;
+    }
+
+    ERROR("reserved value for ports (%d)", dci->ports);
+    return SRSRAN_ERROR;
+  }
+
+  // Table 7.3.1.2.2-4: Antenna port(s) (1000 + DMRS port), dmrs-Type=2, maxLength=2
+  if (cfg->dmrs_type == srsran_dmrs_sch_type_2 && cfg->dmrs_max_length == srsran_dmrs_sch_len_2) {
+    // Only one codeword supported!
+    if (dci->ports < 3) {
+      *dmrs_duration = srsran_dmrs_sch_len_1;
+      return SRSRAN_SUCCESS;
+    }
+
+    if (dci->ports < 24) {
+      *dmrs_duration = srsran_dmrs_sch_len_2;
+      return SRSRAN_SUCCESS;
+    }
+
+    ERROR("reserved value for ports (%d)", dci->ports);
+    return SRSRAN_ERROR;
+  }
+
+  ERROR("Unhandled case");
+  return SRSRAN_ERROR;
+}
+
+int srsran_ra_dl_nr_nof_dmrs_cdm_groups_without_data(const srsran_sch_hl_cfg_nr_t* cfg,
+                                                     const srsran_dci_dl_nr_t*     dci,
+                                                     uint32_t                      L)
+{
+  // According to TS 38.214 5.1.6.2 DM-RS reception procedure
+  switch (dci->ctx.format) {
+    case srsran_dci_format_nr_1_0:
+      // When receiving PDSCH scheduled by DCI format 1_0, the UE shall assume the number of DM-RS CDM groups
+      // without data is 1 which corresponds to CDM group 0 for the case of PDSCH with allocation duration of 2 symbols,
+      // and the UE shall assume that the number of DM-RS CDM groups without data is 2 which corresponds to CDM group
+      // {0,1} for all other cases.
+      if (L == 2) {
+        return 1;
+      } else {
+        return 2;
       }
-    }
-    rbg_offset += rbg_size;
+      return SRSRAN_SUCCESS;
+    case srsran_dci_format_nr_1_1:
+      // When receiving PDSCH scheduled by DCI format 1_1, the UE shall assume that the CDM groups indicated in the
+      // configured index from Tables 7.3.1.2.2-1, 7.3.1.2.2-2, 7.3.1.2.2-3, 7.3.1.2.2-4 of [5, TS. 38.212] contain
+      // potential co- scheduled downlink DM-RS and are not used for data transmission, where "1", "2" and "3" for the
+      // number of DM-RS CDM group(s) in Tables 7.3.1.2.2-1, 7.3.1.2.2-2, 7.3.1.2.2-3, 7.3.1.2.2-4 of [5, TS. 38.212]
+      // correspond to CDM group 0, {0,1}, {0,1,2}, respectively.
+
+      // Table 7.3.1.2.2-1: Antenna port(s) (1000 + DMRS port), dmrs-Type=1, maxLength=1
+      if (cfg->dmrs_type == srsran_dmrs_sch_type_1 && cfg->dmrs_max_length == srsran_dmrs_sch_len_1) {
+        if (dci->ports < 3) {
+          return 1;
+        }
+        if (dci->ports < 12) {
+          return 2;
+        }
+        ERROR("Invalid ports=%d;", dci->ports);
+        return SRSRAN_ERROR;
+      }
+
+      ERROR("Unhandled case (%d, %d)", cfg->dmrs_type, cfg->dmrs_max_length);
+      return SRSRAN_ERROR;
+    default:
+      ERROR("Invalid UL DCI format %s", srsran_dci_format_nr_string(dci->ctx.format));
   }
-  return 0;
+
+  return SRSRAN_ERROR;
 }
 
 int srsran_ra_dl_nr_freq(const srsran_carrier_nr_t*    carrier,
@@ -268,17 +297,34 @@ int srsran_ra_dl_nr_freq(const srsran_carrier_nr_t*    carrier,
                          const srsran_dci_dl_nr_t*     dci_dl,
                          srsran_sch_grant_nr_t*        grant)
 {
-  if (cfg == NULL || grant == NULL || dci_dl == NULL) {
+  if (carrier == NULL || cfg == NULL || grant == NULL || dci_dl == NULL) {
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
-  // RA scheme
+  // The UE shall assume that when the scheduling grant is received with DCI format 1_0 , then downlink resource
+  // allocation type 1 is used.
   if (dci_dl->ctx.format == srsran_dci_format_nr_1_0) {
-    // when the scheduling grant is received with DCI format 1_0 , then downlink resource allocation type 1 is used.
     return ra_helper_freq_type1(carrier->nof_prb, dci_dl->freq_domain_assigment, grant);
   }
 
-  ra_freq_type0(carrier, cfg, dci_dl, grant);
-  ERROR("Only DCI Format 1_0 is supported");
+  // If the scheduling DCI is configured to indicate the downlink resource allocation type as part of the Frequency
+  // domain resource assignment field by setting a higher layer parameter resourceAllocation in pdsch-Config to
+  // 'dynamicswitch', the UE shall use downlink resource allocation type 0 or type 1 as defined by this DCI field.
+  if (cfg->alloc == srsran_resource_alloc_dynamic) {
+    ERROR("Unsupported dynamic resource allocation");
+    return SRSRAN_ERROR;
+  }
+
+  // Otherwise the UE shall use the downlink frequency resource allocation type as defined by the higher layer parameter
+  // resourceAllocation.
+  if (cfg->alloc == srsran_resource_alloc_type1) {
+    return ra_helper_freq_type1(carrier->nof_prb, dci_dl->freq_domain_assigment, grant);
+  }
+
+  if (cfg->alloc == srsran_resource_alloc_type0) {
+    return ra_helper_freq_type0(carrier, cfg, dci_dl->freq_domain_assigment, grant);
+  }
+
+  ERROR("Unhandled case");
   return SRSRAN_ERROR;
 }

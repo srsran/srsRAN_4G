@@ -119,14 +119,14 @@ public:
    * @remark See TS 36.213 Section 5.1.1
    * @return accumulated TPC value {-1, 0, 1, 3}
    */
-  uint8_t encode_pusch_tpc() { return enconde_tpc(PUSCH_CODE); }
+  uint8_t encode_pusch_tpc() { return encode_tpc(PUSCH_CODE); }
 
   /**
    * Called during DCI format1/2A/A encoding to set PUCCH TPC command
    * @remark See TS 36.213 Section 5.1.2
    * @return accumulated TPC value {-1, 0, 1, 3}
    */
-  uint8_t encode_pucch_tpc() { return enconde_tpc(PUCCH_CODE); }
+  uint8_t encode_pucch_tpc() { return encode_tpc(PUCCH_CODE); }
 
   uint32_t max_ul_prbs() const { return max_prbs_cached; }
 
@@ -147,18 +147,14 @@ private:
         return 1;
     }
   }
-  uint8_t enconde_tpc(uint32_t cc)
+  uint8_t encode_tpc(uint32_t cc)
   {
     float target_snr_dB = cc == PUSCH_CODE ? target_pusch_snr_dB : target_pucch_snr_dB;
     auto& ch_snr        = snr_estim_list[cc];
     assert(ch_snr.pending_delta == 0); // ensure called once per {cc,tti}
     if (target_snr_dB < 0) {
-      // undefined target SINR case. Increase Tx power once per PHR, considering the number of allocable PRBs remains
-      // unchanged
-      if (not ch_snr.phr_flag) {
-        ch_snr.pending_delta = (max_prbs_cached == nof_prb) ? 1 : (last_phr < 0 ? -1 : 0);
-        ch_snr.phr_flag      = true;
-      }
+      // undefined target sinr case.
+      ch_snr.pending_delta = 0;
     } else {
       // target SINR is finite and there is power headroom
       float diff = target_snr_dB - ch_snr.snr_avg.value();

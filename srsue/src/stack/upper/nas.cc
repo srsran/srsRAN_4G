@@ -55,7 +55,7 @@ nas::nas(srsran::task_sched_handle task_sched_) :
   logger(srslog::fetch_basic_logger("NAS"))
 {}
 
-void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_nas* gw_, const nas_args_t& cfg_)
+int nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_nas* gw_, const nas_args_t& cfg_)
 {
   usim = usim_;
   rrc  = rrc_;
@@ -114,6 +114,7 @@ void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_
   }
 
   running = true;
+  return SRSRAN_SUCCESS;
 }
 
 nas::~nas() {}
@@ -781,8 +782,8 @@ bool nas::integrity_check(byte_buffer_t* pdu)
                 mac[3]);
 
     // Updated local count (according to TS 24.301 Sec. 4.4.3.3)
-    if (pdu->msg[5] != ctxt.rx_count) {
-      logger.info("Update local count to received value %d", pdu->msg[5]);
+    if (count_est != ctxt.rx_count) {
+      logger.info("Update local count to estimated count %d", count_est);
       ctxt.rx_count = count_est;
     }
     return true;
@@ -795,12 +796,17 @@ bool nas::integrity_check(byte_buffer_t* pdu)
 void nas::cipher_encrypt(byte_buffer_t* pdu)
 {
   byte_buffer_t pdu_tmp;
+
+  if (ctxt.cipher_algo != CIPHERING_ALGORITHM_ID_EEA0) {
+    logger.debug("Encrypting PDU. count=%d", ctxt.tx_count);
+  }
+
   switch (ctxt.cipher_algo) {
     case CIPHERING_ALGORITHM_ID_EEA0:
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA1:
       security_128_eea1(&k_nas_enc[16],
-                        pdu->msg[5],
+                        ctxt.tx_count,
                         0, // Bearer always 0 for NAS
                         SECURITY_DIRECTION_UPLINK,
                         &pdu->msg[6],
@@ -810,7 +816,7 @@ void nas::cipher_encrypt(byte_buffer_t* pdu)
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA2:
       security_128_eea2(&k_nas_enc[16],
-                        pdu->msg[5],
+                        ctxt.tx_count,
                         0, // Bearer always 0 for NAS
                         SECURITY_DIRECTION_UPLINK,
                         &pdu->msg[6],
@@ -820,7 +826,7 @@ void nas::cipher_encrypt(byte_buffer_t* pdu)
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA3:
       security_128_eea3(&k_nas_enc[16],
-                        pdu->msg[5],
+                        ctxt.tx_count,
                         0, // Bearer always 0 for NAS
                         SECURITY_DIRECTION_UPLINK,
                         &pdu->msg[6],
@@ -837,12 +843,18 @@ void nas::cipher_encrypt(byte_buffer_t* pdu)
 void nas::cipher_decrypt(byte_buffer_t* pdu)
 {
   byte_buffer_t tmp_pdu;
+
+  uint32_t count_est = (ctxt.rx_count & 0x00FFFF00u) | pdu->msg[5];
+  if (ctxt.cipher_algo != CIPHERING_ALGORITHM_ID_EEA0) {
+    logger.debug("Decrypting PDU. Local: count=%d, Received: count=%d", ctxt.rx_count, count_est);
+  }
+
   switch (ctxt.cipher_algo) {
     case CIPHERING_ALGORITHM_ID_EEA0:
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA1:
       security_128_eea1(&k_nas_enc[16],
-                        pdu->msg[5],
+                        count_est,
                         0, // Bearer always 0 for NAS
                         SECURITY_DIRECTION_DOWNLINK,
                         &pdu->msg[6],
@@ -852,7 +864,7 @@ void nas::cipher_decrypt(byte_buffer_t* pdu)
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA2:
       security_128_eea2(&k_nas_enc[16],
-                        pdu->msg[5],
+                        count_est,
                         0, // Bearer always 0 for NAS
                         SECURITY_DIRECTION_DOWNLINK,
                         &pdu->msg[6],
@@ -863,7 +875,7 @@ void nas::cipher_decrypt(byte_buffer_t* pdu)
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA3:
       security_128_eea3(&k_nas_enc[16],
-                        pdu->msg[5],
+                        count_est,
                         0, // Bearer always 0 for NAS
                         SECURITY_DIRECTION_DOWNLINK,
                         &pdu->msg[6],

@@ -34,7 +34,7 @@ namespace {
 class backend_spy : public detail::log_backend
 {
 public:
-  void start() override {}
+  void start(srslog::backend_priority priority) override {}
 
   bool push(detail::log_entry&& entry) override
   {

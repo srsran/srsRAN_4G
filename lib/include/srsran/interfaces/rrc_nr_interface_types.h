@@ -102,11 +102,11 @@ struct phy_cfg_nr_t {
     dci_cfg.enable_transform_precoding     = false;
     dci_cfg.dynamic_dual_harq_ack_codebook = false;
     dci_cfg.pusch_tx_config_non_codebook   = false;
-    dci_cfg.pusch_dmrs_type2               = false;
-    dci_cfg.pusch_dmrs_double              = false;
     dci_cfg.pusch_ptrs                     = false;
     dci_cfg.pusch_dynamic_betas            = false;
     dci_cfg.pusch_alloc_type               = pusch.alloc;
+    dci_cfg.pusch_dmrs_type                = pusch.dmrs_type;
+    dci_cfg.pusch_dmrs_max_len             = pusch.dmrs_max_length;
 
     // Format 1_1 specific configuration (for PDSCH only)
     dci_cfg.nof_dl_bwp      = 0;
@@ -121,12 +121,12 @@ struct phy_cfg_nr_t {
     dci_cfg.pdsch_rm_pattern2      = false;
     dci_cfg.pdsch_2cw              = false;
     dci_cfg.multiple_scell         = false;
-    dci_cfg.pdsch_dmrs_type2       = false;
-    dci_cfg.pdsch_dmrs_double      = false;
     dci_cfg.pdsch_tci              = false;
     dci_cfg.pdsch_cbg_flush        = false;
     dci_cfg.pdsch_dynamic_bundling = false;
     dci_cfg.pdsch_alloc_type       = pdsch.alloc;
+    dci_cfg.pdsch_dmrs_type        = pdsch.dmrs_type;
+    dci_cfg.pdsch_dmrs_max_len     = pdsch.dmrs_max_length;
 
     return dci_cfg;
   };

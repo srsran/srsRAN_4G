@@ -537,13 +537,13 @@ int srsran_ra_nr_fill_tb(const srsran_sch_cfg_nr_t*   pdsch_cfg,
   return SRSRAN_SUCCESS;
 }
 
-static int ra_dl_dmrs(const srsran_sch_hl_cfg_nr_t* hl_cfg, srsran_sch_grant_nr_t* grant, srsran_sch_cfg_nr_t* cfg)
+static int ra_dl_dmrs(const srsran_sch_hl_cfg_nr_t* hl_cfg, const srsran_dci_dl_nr_t* dci, srsran_sch_cfg_nr_t* cfg)
 {
   const bool dedicated_dmrs_present =
-      (grant->mapping == srsran_sch_mapping_type_A) ? hl_cfg->dmrs_typeA.present : hl_cfg->dmrs_typeB.present;
+      (cfg->grant.mapping == srsran_sch_mapping_type_A) ? hl_cfg->dmrs_typeA.present : hl_cfg->dmrs_typeB.present;
 
-  if (grant->dci_format == srsran_dci_format_nr_1_0 || !dedicated_dmrs_present) {
-    if (grant->mapping == srsran_sch_mapping_type_A) {
+  if (dci->ctx.format == srsran_dci_format_nr_1_0 || !dedicated_dmrs_present) {
+    if (cfg->grant.mapping == srsran_sch_mapping_type_A) {
       // Absent default values are defined is TS 38.331 - DMRS-DownlinkConfig
       cfg->dmrs.additional_pos         = srsran_dmrs_sch_add_pos_2;
       cfg->dmrs.type                   = srsran_dmrs_sch_type_1;
@@ -555,34 +555,37 @@ static int ra_dl_dmrs(const srsran_sch_hl_cfg_nr_t* hl_cfg, srsran_sch_grant_nr_
       return SRSRAN_ERROR;
     }
   } else {
-    if (grant->mapping == srsran_sch_mapping_type_A) {
+    // Load DMRS duration
+    if (srsran_ra_dl_nr_nof_front_load_symbols(hl_cfg, dci, &cfg->dmrs.length) < SRSRAN_SUCCESS) {
+      ERROR("Loading number of front-load symbols");
+      return SRSRAN_ERROR;
+    }
+
+    // DMRS Type
+    cfg->dmrs.type = hl_cfg->dmrs_type;
+
+    // Other DMRS configuration
+    if (cfg->grant.mapping == srsran_sch_mapping_type_A) {
       cfg->dmrs.additional_pos         = hl_cfg->dmrs_typeA.additional_pos;
-      cfg->dmrs.type                   = hl_cfg->dmrs_typeA.type;
-      cfg->dmrs.length                 = hl_cfg->dmrs_typeA.length;
       cfg->dmrs.scrambling_id0_present = false;
       cfg->dmrs.scrambling_id1_present = false;
     } else {
       cfg->dmrs.additional_pos         = hl_cfg->dmrs_typeB.additional_pos;
-      cfg->dmrs.type                   = hl_cfg->dmrs_typeB.type;
-      cfg->dmrs.length                 = hl_cfg->dmrs_typeB.length;
       cfg->dmrs.scrambling_id0_present = false;
       cfg->dmrs.scrambling_id1_present = false;
     }
   }
 
   // Set number of DMRS CDM groups without data
-  if (grant->dci_format == srsran_dci_format_nr_1_0) {
-    if (srsran_ra_dl_nr_nof_dmrs_cdm_groups_without_data_format_1_0(&cfg->dmrs, grant) < SRSRAN_SUCCESS) {
-      ERROR("Error loading number of DMRS CDM groups");
-      return SRSRAN_ERROR;
-    }
-  } else {
-    ERROR("Invalid case");
+  int n = srsran_ra_dl_nr_nof_dmrs_cdm_groups_without_data(hl_cfg, dci, cfg->grant.L);
+  if (n < SRSRAN_SUCCESS) {
+    ERROR("Error loading number of DMRS CDM groups");
     return SRSRAN_ERROR;
   }
+  cfg->grant.nof_dmrs_cdm_groups_without_data = (uint32_t)n;
 
   // Set DMRS power offset Table 6.2.2-1: The ratio of PUSCH EPRE to DM-RS EPRE
-  if (ra_nr_dmrs_power_offset(grant) < SRSRAN_SUCCESS) {
+  if (ra_nr_dmrs_power_offset(&cfg->grant) < SRSRAN_SUCCESS) {
     ERROR("Error setting DMRS power offset");
     return SRSRAN_ERROR;
   }
@@ -676,13 +679,14 @@ int srsran_ra_dl_dci_to_grant_nr(const srsran_carrier_nr_t*    carrier,
   // 5.1.2.3 Physical resource block (PRB) bundling
   // ...
 
-  pdsch_grant->nof_layers = 1;
-  pdsch_grant->dci_format = dci_dl->ctx.format;
-  pdsch_grant->rnti       = dci_dl->ctx.rnti;
-  pdsch_grant->rnti_type  = dci_dl->ctx.rnti_type;
-  pdsch_grant->tb[0].rv   = dci_dl->rv;
-  pdsch_grant->tb[0].mcs  = dci_dl->mcs;
-  pdsch_grant->tb[0].ndi  = dci_dl->ndi;
+  pdsch_grant->nof_layers      = 1;
+  pdsch_grant->dci_format      = dci_dl->ctx.format;
+  pdsch_grant->rnti            = dci_dl->ctx.rnti;
+  pdsch_grant->rnti_type       = dci_dl->ctx.rnti_type;
+  pdsch_grant->tb[0].rv        = dci_dl->rv;
+  pdsch_grant->tb[0].mcs       = dci_dl->mcs;
+  pdsch_grant->tb[0].ndi       = dci_dl->ndi;
+  pdsch_cfg->sch_cfg.mcs_table = pdsch_hl_cfg->mcs_table;
 
   // 5.1.4 PDSCH resource mapping
   if (ra_dl_resource_mapping(carrier, slot, pdsch_hl_cfg, pdsch_cfg) < SRSRAN_SUCCESS) {
@@ -691,7 +695,7 @@ int srsran_ra_dl_dci_to_grant_nr(const srsran_carrier_nr_t*    carrier,
   }
 
   // 5.1.6.2 DM-RS reception procedure
-  if (ra_dl_dmrs(pdsch_hl_cfg, pdsch_grant, pdsch_cfg) < SRSRAN_SUCCESS) {
+  if (ra_dl_dmrs(pdsch_hl_cfg, dci_dl, pdsch_cfg) < SRSRAN_SUCCESS) {
     ERROR("Error selecting DMRS configuration");
     return SRSRAN_ERROR;
   }
@@ -706,15 +710,15 @@ int srsran_ra_dl_dci_to_grant_nr(const srsran_carrier_nr_t*    carrier,
 }
 
 static int
-ra_ul_dmrs(const srsran_sch_hl_cfg_nr_t* pusch_hl_cfg, srsran_sch_grant_nr_t* pusch_grant, srsran_sch_cfg_nr_t* cfg)
+ra_ul_dmrs(const srsran_sch_hl_cfg_nr_t* pusch_hl_cfg, const srsran_dci_ul_nr_t* dci, srsran_sch_cfg_nr_t* cfg)
 {
-  const bool dedicated_dmrs_present = (pusch_grant->mapping == srsran_sch_mapping_type_A)
+  const bool dedicated_dmrs_present = (cfg->grant.mapping == srsran_sch_mapping_type_A)
                                           ? pusch_hl_cfg->dmrs_typeA.present
                                           : pusch_hl_cfg->dmrs_typeB.present;
 
-  if (pusch_grant->dci_format == srsran_dci_format_nr_0_0 || pusch_grant->dci_format == srsran_dci_format_nr_rar ||
+  if (dci->ctx.format == srsran_dci_format_nr_0_0 || dci->ctx.format == srsran_dci_format_nr_rar ||
       !dedicated_dmrs_present) {
-    if (pusch_grant->mapping == srsran_sch_mapping_type_A) {
+    if (cfg->grant.mapping == srsran_sch_mapping_type_A) {
       // Absent default values are defined is TS 38.331 - DMRS-DownlinkConfig
       cfg->dmrs.additional_pos         = srsran_dmrs_sch_add_pos_2;
       cfg->dmrs.type                   = srsran_dmrs_sch_type_1;
@@ -726,34 +730,36 @@ ra_ul_dmrs(const srsran_sch_hl_cfg_nr_t* pusch_hl_cfg, srsran_sch_grant_nr_t* pu
       return SRSRAN_ERROR;
     }
   } else {
-    if (pusch_grant->mapping == srsran_sch_mapping_type_A) {
+    // DMRS duration
+    if (srsran_ra_ul_nr_nof_front_load_symbols(pusch_hl_cfg, dci, &cfg->dmrs.length) < SRSRAN_SUCCESS) {
+      ERROR("Loading number of front-load symbols");
+      return SRSRAN_ERROR;
+    }
+
+    // DMRS type
+    cfg->dmrs.type = pusch_hl_cfg->dmrs_type;
+
+    if (cfg->grant.mapping == srsran_sch_mapping_type_A) {
       cfg->dmrs.additional_pos         = pusch_hl_cfg->dmrs_typeA.additional_pos;
-      cfg->dmrs.type                   = pusch_hl_cfg->dmrs_typeA.type;
-      cfg->dmrs.length                 = pusch_hl_cfg->dmrs_typeA.length;
       cfg->dmrs.scrambling_id0_present = false;
       cfg->dmrs.scrambling_id1_present = false;
     } else {
       cfg->dmrs.additional_pos         = pusch_hl_cfg->dmrs_typeB.additional_pos;
-      cfg->dmrs.type                   = pusch_hl_cfg->dmrs_typeB.type;
-      cfg->dmrs.length                 = pusch_hl_cfg->dmrs_typeB.length;
       cfg->dmrs.scrambling_id0_present = false;
       cfg->dmrs.scrambling_id1_present = false;
     }
   }
 
   // Set number of DMRS CDM groups without data
-  if (pusch_grant->dci_format == srsran_dci_format_nr_0_0 || pusch_grant->dci_format == srsran_dci_format_nr_rar) {
-    if (srsran_ra_ul_nr_nof_dmrs_cdm_groups_without_data_format_0_0(cfg, pusch_grant) < SRSRAN_SUCCESS) {
-      ERROR("Error loading number of DMRS CDM groups");
-      return SRSRAN_ERROR;
-    }
-  } else {
-    ERROR("DCI format not implemented %s", srsran_dci_format_nr_string(pusch_grant->dci_format));
+  int n = srsran_ra_ul_nr_nof_dmrs_cdm_groups_without_data(pusch_hl_cfg, dci, cfg->grant.L);
+  if (n < SRSRAN_SUCCESS) {
+    ERROR("Error getting number of DMRS CDM groups without data");
     return SRSRAN_ERROR;
   }
+  cfg->grant.nof_dmrs_cdm_groups_without_data = (uint32_t)n;
 
   // Set DMRS power offset Table 6.2.2-1: The ratio of PUSCH EPRE to DM-RS EPRE
-  if (ra_nr_dmrs_power_offset(pusch_grant) < SRSRAN_SUCCESS) {
+  if (ra_nr_dmrs_power_offset(&cfg->grant) < SRSRAN_SUCCESS) {
     ERROR("Error setting DMRS power offset");
     return SRSRAN_ERROR;
   }
@@ -787,16 +793,17 @@ int srsran_ra_ul_dci_to_grant_nr(const srsran_carrier_nr_t*    carrier,
   // 5.1.2.3 Physical resource block (PRB) bundling
   // ...
 
-  pusch_grant->nof_layers = 1;
-  pusch_grant->dci_format = dci_ul->ctx.format;
-  pusch_grant->rnti       = dci_ul->ctx.rnti;
-  pusch_grant->rnti_type  = dci_ul->ctx.rnti_type;
-  pusch_grant->tb[0].rv   = dci_ul->rv;
-  pusch_grant->tb[0].mcs  = dci_ul->mcs;
-  pusch_grant->tb[0].ndi  = dci_ul->ndi;
+  pusch_grant->nof_layers      = 1;
+  pusch_grant->dci_format      = dci_ul->ctx.format;
+  pusch_grant->rnti            = dci_ul->ctx.rnti;
+  pusch_grant->rnti_type       = dci_ul->ctx.rnti_type;
+  pusch_grant->tb[0].rv        = dci_ul->rv;
+  pusch_grant->tb[0].mcs       = dci_ul->mcs;
+  pusch_grant->tb[0].ndi       = dci_ul->ndi;
+  pusch_cfg->sch_cfg.mcs_table = pusch_hl_cfg->mcs_table;
 
   // 5.1.6.2 DM-RS reception procedure
-  if (ra_ul_dmrs(pusch_hl_cfg, pusch_grant, pusch_cfg) < SRSRAN_SUCCESS) {
+  if (ra_ul_dmrs(pusch_hl_cfg, dci_ul, pusch_cfg) < SRSRAN_SUCCESS) {
     ERROR("Error selecting DMRS configuration");
     return SRSRAN_ERROR;
   }

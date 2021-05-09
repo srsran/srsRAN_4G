@@ -45,9 +45,10 @@ gtpu_tunnel_manager::gtpu_tunnel_manager(srsran::task_sched_handle task_sched_, 
   logger(logger), task_sched(task_sched_), tunnels(1)
 {}
 
-void gtpu_tunnel_manager::init(pdcp_interface_gtpu* pdcp_)
+void gtpu_tunnel_manager::init(const gtpu_args_t& args, pdcp_interface_gtpu* pdcp_)
 {
-  pdcp = pdcp_;
+  gtpu_args = &args;
+  pdcp      = pdcp_;
 }
 
 const gtpu_tunnel_manager::tunnel* gtpu_tunnel_manager::find_tunnel(uint32_t teid)
@@ -99,7 +100,11 @@ const gtpu_tunnel* gtpu_tunnel_manager::add_tunnel(uint16_t rnti, uint32_t lcid,
   tun->spgw_addr = spgw_addr;
 
   if (not ue_teidin_db.contains(rnti)) {
-    ue_teidin_db.insert(rnti, ue_lcid_tunnel_list());
+    auto ret = ue_teidin_db.insert(rnti, ue_lcid_tunnel_list());
+    if (ret.is_error()) {
+      logger.error("Failed to allocate rnti=0x%x", rnti);
+      return nullptr;
+    }
   }
   auto& ue_tunnels = ue_teidin_db[rnti];
 
@@ -130,15 +135,19 @@ bool gtpu_tunnel_manager::update_rnti(uint16_t old_rnti, uint16_t new_rnti)
   auto* old_rnti_ptr = find_rnti_tunnels(old_rnti);
   logger.info("Modifying bearer rnti. Old rnti: 0x%x, new rnti: 0x%x", old_rnti, new_rnti);
 
-  // Change RNTI bearers map
-  ue_teidin_db.insert(new_rnti, std::move(*old_rnti_ptr));
-  ue_teidin_db.erase(old_rnti);
-
-  // Change TEID in existing tunnels
-  auto* new_rnti_ptr = find_rnti_tunnels(new_rnti);
-  for (lcid_tunnel& bearer : *new_rnti_ptr) {
+  // create new RNTI and update TEIDs of old rnti to reflect new rnti
+  if (not ue_teidin_db.insert(new_rnti, ue_lcid_tunnel_list())) {
+    logger.error("Failure to create new rnti=0x%x", new_rnti);
+    return false;
+  }
+  std::swap(ue_teidin_db[new_rnti], *old_rnti_ptr);
+  auto& new_rnti_obj = ue_teidin_db[new_rnti];
+  for (lcid_tunnel& bearer : new_rnti_obj) {
     tunnels[bearer.teid].rnti = new_rnti;
   }
+
+  // Leave old_rnti as zombie to be removed later
+  old_rnti_ptr->clear();
 
   return true;
 }
@@ -160,22 +169,20 @@ bool gtpu_tunnel_manager::remove_tunnel(uint32_t teidin)
 
 bool gtpu_tunnel_manager::remove_bearer(uint16_t rnti, uint32_t lcid)
 {
-  srsran::span<lcid_tunnel> to_rem = find_rnti_lcid_tunnels(rnti, lcid);
-  if (to_rem.empty()) {
-    return false;
-  }
   logger.info("Removing rnti=0x%x,lcid=%d", rnti, lcid);
-
-  for (lcid_tunnel& lcid_tun : to_rem) {
-    bool ret = tunnels.erase(lcid_tun.teid);
+  bool removed = false;
+  for (srsran::span<lcid_tunnel> to_rem = find_rnti_lcid_tunnels(rnti, lcid); not to_rem.empty();
+       to_rem                           = find_rnti_lcid_tunnels(rnti, lcid)) {
+    uint32_t teid = to_rem.front().teid;
+    bool     ret  = remove_tunnel(teid);
     srsran_expect(ret,
                   "Inconsistency detected between internal data structures for rnti=0x%x,lcid=%d," TEID_IN_FMT,
                   rnti,
                   lcid,
-                  lcid_tun.teid);
+                  teid);
+    removed |= ret;
   }
-  ue_teidin_db[rnti].erase(to_rem.begin(), to_rem.end());
-  return true;
+  return removed;
 }
 
 bool gtpu_tunnel_manager::remove_rnti(uint16_t rnti)
@@ -248,13 +255,21 @@ void gtpu_tunnel_manager::set_tunnel_priority(uint32_t before_teid, uint32_t aft
     }
   };
 
-  // Schedule auto-removal of this indirect tunnel
-  before_tun.rx_timer = task_sched.get_unique_timer();
-  before_tun.rx_timer.set(500, [this, before_teid](uint32_t tid) {
-    // This will self-destruct the callback object
-    remove_tunnel(before_teid);
-  });
-  before_tun.rx_timer.run();
+  // Schedule auto-removal of the indirect tunnel in case the End Marker is not received
+  // TS 36.300 - On detection of the "end marker", the target eNB may also initiate the release of the data forwarding
+  //             resource. However, the release of the data forwarding resource is implementation dependent and could
+  //             also be based on other mechanisms (e.g. timer-based mechanism).
+  if (gtpu_args->indirect_tunnel_timeout_msec > 0) {
+    before_tun.rx_timer = task_sched.get_unique_timer();
+    before_tun.rx_timer.set(gtpu_args->indirect_tunnel_timeout_msec, [this, before_teid](uint32_t tid) {
+      // Note: This will self-destruct the callback object
+      logger.info("Forwarding tunnel " TEID_IN_FMT "being closed after timeout=%d msec",
+                  before_teid,
+                  gtpu_args->indirect_tunnel_timeout_msec);
+      remove_tunnel(before_teid);
+    });
+    before_tun.rx_timer.run();
+  }
 }
 
 void gtpu_tunnel_manager::handle_rx_pdcp_sdu(uint32_t teid)
@@ -332,18 +347,14 @@ gtpu::~gtpu()
   stop();
 }
 
-int gtpu::init(std::string                  gtp_bind_addr_,
-               std::string                  mme_addr_,
-               std::string                  m1u_multiaddr_,
-               std::string                  m1u_if_addr_,
-               srsenb::pdcp_interface_gtpu* pdcp_,
-               bool                         enable_mbsfn_)
+int gtpu::init(const gtpu_args_t& gtpu_args, pdcp_interface_gtpu* pdcp_)
 {
+  args          = gtpu_args;
   pdcp          = pdcp_;
-  gtp_bind_addr = gtp_bind_addr_;
-  mme_addr      = mme_addr_;
+  gtp_bind_addr = gtpu_args.gtp_bind_addr;
+  mme_addr      = gtpu_args.mme_addr;
 
-  tunnels.init(pdcp);
+  tunnels.init(args, pdcp);
 
   char errbuf[128] = {};
 
@@ -383,9 +394,8 @@ int gtpu::init(std::string                  gtp_bind_addr_,
   rx_socket_handler->add_socket_handler(fd, srsran::make_sdu_handler(logger, gtpu_queue, rx_callback));
 
   // Start MCH socket if enabled
-  enable_mbsfn = enable_mbsfn_;
-  if (enable_mbsfn) {
-    if (not m1u.init(m1u_multiaddr_, m1u_if_addr_)) {
+  if (args.embms_enable) {
+    if (not m1u.init(args.embms_m1u_multiaddr, args.embms_m1u_if_addr)) {
       return SRSRAN_ERROR;
     }
   }

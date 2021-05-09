@@ -27,6 +27,15 @@
 
 namespace srsenb {
 
+struct gtpu_args_t {
+  std::string gtp_bind_addr;
+  std::string mme_addr;
+  std::string embms_m1u_multiaddr;
+  std::string embms_m1u_if_addr;
+  bool        embms_enable                 = false;
+  uint32_t    indirect_tunnel_timeout_msec = 0;
+};
+
 // GTPU interface for PDCP
 class gtpu_interface_pdcp
 {
