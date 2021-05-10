@@ -10,14 +10,15 @@
  *
  */
 
-#include "srsenb/hdr/stack/mac/sched_ue_ctrl/sched_cqi.h"
+#include "srsenb/hdr/stack/mac/sched_ue_ctrl/sched_dl_cqi.h"
 #include "srsran/common/test_common.h"
 
 namespace srsenb {
 
 void test_sched_cqi_one_subband_cqi()
 {
-  sched_cqi ue_cqi(50, 4);
+  // 50 PRBs, K=4
+  sched_dl_cqi ue_cqi(50, 4);
 
   // J == 3, N == 9
   TESTASSERT(ue_cqi.nof_bandwidth_parts() == 3);
@@ -51,6 +52,34 @@ void test_sched_cqi_one_subband_cqi()
   }
 }
 
+void test_sched_cqi_wideband_cqi()
+{
+  uint32_t nof_prb  = 50;
+  uint32_t nof_rbgs = cell_nof_prb_to_rbg(nof_prb);
+
+  sched_dl_cqi ue_cqi(nof_prb, 0);
+
+  ue_cqi.cqi_wb_info(tti_point(0), 5);
+
+  // TEST: all bandwidth has positive cqi.
+  for (uint32_t i = 0; i < nof_rbgs; ++i) {
+    TESTASSERT(ue_cqi.get_rbg_grant_avg_cqi(rbg_interval(i, i + 1)) == 5);
+  }
+  TESTASSERT(ue_cqi.get_rbg_grant_avg_cqi(rbg_interval(0, nof_rbgs)) == 5);
+
+  // TEST: Check average cqi over a mask of RBGs
+  rbgmask_t mask(cell_nof_prb_to_rbg(50));
+  mask.fill(10, mask.size());
+  TESTASSERT(ue_cqi.get_rbg_grant_avg_cqi(mask) == 5);
+
+  // TEST: Get optimal RBG mask in terms of CQI
+  mask = ue_cqi.get_optim_rbg_mask(5);
+  TESTASSERT(mask.count() == 5);
+  for (uint32_t i = 0; i < 5; ++i) {
+    TESTASSERT(mask.test(i) > 0);
+  }
+}
+
 } // namespace srsenb
 
 int main(int argc, char** argv)
@@ -58,6 +87,7 @@ int main(int argc, char** argv)
   srsran::test_init(argc, argv);
 
   srsenb::test_sched_cqi_one_subband_cqi();
+  srsenb::test_sched_cqi_wideband_cqi();
 
   return SRSRAN_SUCCESS;
 }

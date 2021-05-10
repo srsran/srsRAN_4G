@@ -14,7 +14,7 @@
 #define SRSRAN_SCHED_UE_CELL_H
 
 #include "../sched_common.h"
-#include "sched_cqi.h"
+#include "sched_dl_cqi.h"
 #include "sched_harq.h"
 #include "srsenb/hdr/stack/mac/sched_phy_ch/sched_dci.h"
 #include "tpc.h"

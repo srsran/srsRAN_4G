@@ -10,8 +10,8 @@
  *
  */
 
-#ifndef SRSRAN_SCHED_CQI_H
-#define SRSRAN_SCHED_CQI_H
+#ifndef SRSRAN_SCHED_DL_CQI_H
+#define SRSRAN_SCHED_DL_CQI_H
 
 #include "srsenb/hdr/stack/mac/sched_common.h"
 #include "srsenb/hdr/stack/mac/sched_helpers.h"
@@ -21,10 +21,16 @@
 
 namespace srsenb {
 
-class sched_cqi
+/**
+ * Class that handles DL CQI state of a given {rnti,sector}
+ * - The cell bandwidth is divided into J parts. J = f(nof_cell_prbs)
+ * - UE reports wideband CQI every H.Np msec, where Np is the CQI period and H=JK + 1, where K is configured in RRC
+ * - Thus, for K==0, only wideband CQI is active
+ */
+class sched_dl_cqi
 {
 public:
-  sched_cqi(uint32_t cell_nof_prb_, uint32_t K_, float alpha = 0.1) :
+  sched_dl_cqi(uint32_t cell_nof_prb_, uint32_t K_, float alpha = 0.1) :
     cell_nof_prb(cell_nof_prb_),
     cell_nof_rbg(cell_nof_prb_to_rbg(cell_nof_prb_)),
     K(K_),
@@ -35,12 +41,10 @@ public:
     srsran_assert(K <= 4, "K=%d outside of {0, 4}", K);
   }
 
-  void new_tti(tti_point tti) {}
-
   void cqi_wb_info(tti_point tti, uint32_t cqi_value)
   {
     last_wb_tti = tti;
-    wb_cqi_avg.push(static_cast<float>(cqi_value));
+    wb_cqi_avg  = static_cast<float>(cqi_value);
   }
 
   void cqi_sb_info(tti_point tti, uint32_t sb_index, uint32_t cqi_value)
@@ -48,12 +52,12 @@ public:
     uint32_t bp_idx                      = get_bp_index(sb_index);
     bp_list[bp_idx].last_feedback_tti    = tti;
     bp_list[bp_idx].last_cqi_subband_idx = sb_index;
-    bp_list[bp_idx].cqi_val.push(static_cast<float>(cqi_value));
+    bp_list[bp_idx].cqi_val              = static_cast<float>(cqi_value);
 
     // just cap all sub-bands in the same bandwidth part
     srsran::interval<uint32_t> interv = get_bp_sb_indexes(bp_idx);
     for (uint32_t sb_index2 = interv.start(); sb_index2 < interv.stop(); ++sb_index2) {
-      subband_cqi[sb_index2] = bp_list[bp_idx].cqi_val.value();
+      subband_cqi[sb_index2] = bp_list[bp_idx].cqi_val;
     }
   }
 
@@ -61,7 +65,7 @@ public:
   int get_rbg_grant_avg_cqi(rbg_interval interv) const
   {
     if (not subband_cqi_enabled()) {
-      return static_cast<int>(wb_cqi_avg.value());
+      return static_cast<int>(wb_cqi_avg);
     }
     float cqi = 0;
     for (uint32_t rbg = interv.start(); rbg < interv.stop(); ++rbg) {
@@ -74,7 +78,7 @@ public:
   int get_rbg_grant_avg_cqi(const rbgmask_t& mask) const
   {
     if (not subband_cqi_enabled()) {
-      return static_cast<int>(wb_cqi_avg.value());
+      return static_cast<int>(wb_cqi_avg);
     }
     float cqi = 0;
     for (int rbg = mask.find_lowest(0, mask.size()); rbg != -1; rbg = mask.find_lowest(rbg + 1, mask.size())) {
@@ -113,9 +117,10 @@ private:
   static const uint32_t max_nof_subbands    = 13;
   static const uint32_t max_bandwidth_parts = 4;
 
+  /// TS 36.321, Table 7.2.2-2
   static uint32_t nof_bandwidth_parts(uint32_t nof_prb)
   {
-    static const uint32_t nrb[] = {0, 1, 2, 3, 4};
+    static const uint32_t nrb[] = {0, 2, 2, 3, 4, 4};
     return nrb[srsran::lte_cell_nof_prb_to_index(nof_prb)];
   }
 
@@ -139,15 +144,15 @@ private:
 
   /// context of bandwidth part
   struct bandwidth_part_context {
-    tti_point                             last_feedback_tti;
-    uint32_t                              last_cqi_subband_idx;
-    srsran::exp_average_fast_start<float> cqi_val;
+    tti_point last_feedback_tti;
+    uint32_t  last_cqi_subband_idx;
+    float     cqi_val;
 
     explicit bandwidth_part_context(float alpha) : cqi_val(alpha), last_cqi_subband_idx(max_nof_subbands) {}
   };
 
-  tti_point                             last_wb_tti;
-  srsran::exp_average_fast_start<float> wb_cqi_avg;
+  tti_point last_wb_tti;
+  float     wb_cqi_avg;
 
   srsran::bounded_vector<bandwidth_part_context, max_bandwidth_parts> bp_list;
   srsran::bounded_vector<float, max_nof_subbands>                     subband_cqi;
@@ -155,4 +160,4 @@ private:
 
 } // namespace srsenb
 
-#endif // SRSRAN_SCHED_CQI_H
+#endif // SRSRAN_SCHED_DL_CQI_H
