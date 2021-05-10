@@ -95,6 +95,7 @@ struct prb_interval;
 struct rbg_interval : public srsran::interval<uint32_t> {
   using interval::interval;
   static rbg_interval rbgmask_to_rbgs(const rbgmask_t& mask);
+  static rbg_interval prbs_to_rbgs(const prb_interval& prbs, uint32_t cell_nof_prbs);
 };
 
 /// Struct to express a {min,...,max} range of PRBs

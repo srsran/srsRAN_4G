@@ -28,21 +28,21 @@ void test_sched_cqi_one_subband_cqi()
   ue_cqi.cqi_sb_info(tti_point(0), 0, 5);
 
   // TEST: updated part has positive cqi. Non-updated cqi didn't change
-  TESTASSERT(ue_cqi.get_rbg_grant_avg_cqi(rbg_interval(0, 1)) == 5);
+  TESTASSERT(ue_cqi.get_grant_avg_cqi(rbg_interval(0, 1)) == 5);
   for (uint32_t i = 1; i < 5; ++i) {
-    TESTASSERT(ue_cqi.get_rbg_grant_avg_cqi(rbg_interval(i, i + 1)) > 0);
+    TESTASSERT(ue_cqi.get_grant_avg_cqi(rbg_interval(i, i + 1)) > 0);
   }
-  TESTASSERT(ue_cqi.get_rbg_grant_avg_cqi(rbg_interval(6, cell_nof_prb_to_rbg(50))) == 0);
+  TESTASSERT(ue_cqi.get_grant_avg_cqi(rbg_interval(6, cell_nof_prb_to_rbg(50))) == 0);
 
   // TEST: Check average cqi over a mask of RBGs
   rbgmask_t mask(cell_nof_prb_to_rbg(50));
   mask.fill(10, mask.size());
-  TESTASSERT(ue_cqi.get_rbg_grant_avg_cqi(mask) == 0);
+  TESTASSERT(ue_cqi.get_grant_avg_cqi(mask) == 0);
   mask.reset();
   mask.set(1);
-  TESTASSERT(ue_cqi.get_rbg_grant_avg_cqi(mask) == 5);
+  TESTASSERT(ue_cqi.get_grant_avg_cqi(mask) == 5);
   mask.fill(0, mask.size());
-  TESTASSERT(ue_cqi.get_rbg_grant_avg_cqi(mask) > 0 and ue_cqi.get_rbg_grant_avg_cqi(mask) < 5);
+  TESTASSERT(ue_cqi.get_grant_avg_cqi(mask) > 0 and ue_cqi.get_grant_avg_cqi(mask) < 5);
 
   // TEST: Get optimal RBG mask in terms of CQI
   mask = ue_cqi.get_optim_rbg_mask(5);
@@ -63,14 +63,14 @@ void test_sched_cqi_wideband_cqi()
 
   // TEST: all bandwidth has positive cqi.
   for (uint32_t i = 0; i < nof_rbgs; ++i) {
-    TESTASSERT(ue_cqi.get_rbg_grant_avg_cqi(rbg_interval(i, i + 1)) == 5);
+    TESTASSERT(ue_cqi.get_grant_avg_cqi(rbg_interval(i, i + 1)) == 5);
   }
-  TESTASSERT(ue_cqi.get_rbg_grant_avg_cqi(rbg_interval(0, nof_rbgs)) == 5);
+  TESTASSERT(ue_cqi.get_grant_avg_cqi(rbg_interval(0, nof_rbgs)) == 5);
 
   // TEST: Check average cqi over a mask of RBGs
   rbgmask_t mask(cell_nof_prb_to_rbg(50));
   mask.fill(10, mask.size());
-  TESTASSERT(ue_cqi.get_rbg_grant_avg_cqi(mask) == 5);
+  TESTASSERT(ue_cqi.get_grant_avg_cqi(mask) == 5);
 
   // TEST: Get optimal RBG mask in terms of CQI
   mask = ue_cqi.get_optim_rbg_mask(5);

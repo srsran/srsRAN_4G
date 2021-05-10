@@ -152,6 +152,12 @@ void log_phich_cc_results(srslog::basic_logger&                  logger,
   }
 }
 
+rbg_interval rbg_interval::prbs_to_rbgs(const prb_interval& prbs, uint32_t cell_nof_prb)
+{
+  uint32_t P = srsran_ra_type0_P(cell_nof_prb);
+  return rbg_interval{prbs.start() / P, (prbs.stop() + P - 1) / P};
+}
+
 prb_interval prb_interval::rbgs_to_prbs(const rbg_interval& rbgs, uint32_t cell_nof_prb)
 {
   uint32_t P = srsran_ra_type0_P(cell_nof_prb);

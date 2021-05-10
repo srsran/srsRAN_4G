@@ -34,7 +34,8 @@ sched_ue_cell::sched_ue_cell(uint16_t rnti_, const sched_cell_params_t& cell_cfg
   fixed_mcs_dl(cell_cfg_.sched_cfg->pdsch_mcs),
   fixed_mcs_ul(cell_cfg_.sched_cfg->pusch_mcs),
   current_tti(current_tti_),
-  max_aggr_level(cell_cfg_.sched_cfg->max_aggr_level >= 0 ? cell_cfg_.sched_cfg->max_aggr_level : 3)
+  max_aggr_level(cell_cfg_.sched_cfg->max_aggr_level >= 0 ? cell_cfg_.sched_cfg->max_aggr_level : 3),
+  dl_cqi_ctxt(cell_cfg_.nof_prb(), 0, 1)
 {
   clear_feedback();
 }
@@ -83,15 +84,17 @@ void sched_ue_cell::set_ue_cfg(const sched_interface::ue_cfg_t& ue_cfg_)
       case cc_st::active:
         if (ue_cc_idx < 0 or not ue_cfg->supported_cc_list[ue_cc_idx].active) {
           cc_state_ = cc_st::deactivating;
-          logger.info("SCHED: Deactivating rnti=0x%x, SCellIndex=%d...", rnti, ue_cc_idx);
+          logger.info(
+              "SCHED: Deactivating SCell, rnti=0x%x, cc=%d, SCellIndex=%d...", rnti, cell_cfg->enb_cc_idx, ue_cc_idx);
         }
         break;
       case cc_st::deactivating:
       case cc_st::idle:
         if (ue_cc_idx > 0 and ue_cfg->supported_cc_list[ue_cc_idx].active) {
           cc_state_ = cc_st::activating;
-          dl_cqi    = 0;
-          logger.info("SCHED: Activating rnti=0x%x, SCellIndex=%d...", rnti, ue_cc_idx);
+          dl_cqi_ctxt.reset_cqi(0);
+          logger.info(
+              "SCHED: Activating SCell, rnti=0x%x, cc=%d, SCellIndex=%d...", rnti, cell_cfg->enb_cc_idx, ue_cc_idx);
         }
         break;
       default:
@@ -121,9 +124,7 @@ void sched_ue_cell::clear_feedback()
   dl_ri_tti_rx  = tti_point{};
   dl_pmi        = 0;
   dl_pmi_tti_rx = tti_point{};
-  dl_cqi        = ue_cc_idx == 0 ? cell_cfg->cfg.initial_dl_cqi : 1;
-  dl_cqi_tti_rx = tti_point{};
-  dl_cqi_rx     = false;
+  dl_cqi_ctxt.reset_cqi(ue_cc_idx == 0 ? cell_cfg->cfg.initial_dl_cqi : 1);
   ul_cqi        = 1;
   ul_cqi_tti_rx = tti_point{};
 }
@@ -134,12 +135,10 @@ void sched_ue_cell::finish_tti(tti_point tti_rx)
   harq_ent.reset_pending_data(tti_rx);
 }
 
-void sched_ue_cell::set_dl_cqi(tti_point tti_rx, uint32_t dl_cqi_)
+void sched_ue_cell::set_dl_wb_cqi(tti_point tti_rx, uint32_t dl_cqi_)
 {
-  dl_cqi        = dl_cqi_;
-  dl_cqi_tti_rx = tti_rx;
-  dl_cqi_rx     = dl_cqi_rx or dl_cqi > 0;
-  if (ue_cc_idx > 0 and cc_state_ == cc_st::activating and dl_cqi_rx) {
+  dl_cqi_ctxt.cqi_wb_info(tti_rx, dl_cqi_);
+  if (ue_cc_idx > 0 and cc_state_ == cc_st::activating and dl_cqi_ > 0) {
     // Wait for SCell to receive a positive CQI before activating it
     cc_state_ = cc_st::active;
     logger.info("SCHED: SCell index=%d is now active", ue_cc_idx);
@@ -232,10 +231,12 @@ tbs_info cqi_to_tbs_dl(const sched_ue_cell& cell,
   bool use_tbs_index_alt = cell.get_ue_cfg()->use_tbs_index_alt and dci_format != SRSRAN_DCI_FORMAT1A;
 
   tbs_info ret;
-  if (cell.fixed_mcs_dl < 0 or not cell.dl_cqi_rx) {
-    // Dynamic MCS
+  if (cell.fixed_mcs_dl < 0 or not cell.dl_cqi().is_cqi_info_received()) {
+    // Dynamic MCS configured or first Tx
+    uint32_t dl_cqi_avg = cell.dl_cqi().get_grant_avg_cqi(prb_interval(0, nof_prb));
+
     ret = compute_min_mcs_and_tbs_from_required_bytes(
-        nof_prb, nof_re, cell.dl_cqi, cell.max_mcs_dl, req_bytes, false, false, use_tbs_index_alt);
+        nof_prb, nof_re, dl_cqi_avg, cell.max_mcs_dl, req_bytes, false, false, use_tbs_index_alt);
 
     // If coderate > SRSRAN_MIN(max_coderate, 0.932 * Qm) we should set TBS=0. We don't because it's not correctly
     // handled by the scheduler, but we might be scheduling undecodable codewords at very low SNR
@@ -244,7 +245,7 @@ tbs_info cqi_to_tbs_dl(const sched_ue_cell& cell,
       ret.tbs_bytes = get_tbs_bytes((uint32_t)ret.mcs, nof_prb, use_tbs_index_alt, false);
     }
   } else {
-    // Fixed MCS
+    // Fixed MCS configured
     ret.mcs       = cell.fixed_mcs_dl;
     ret.tbs_bytes = get_tbs_bytes((uint32_t)cell.fixed_mcs_dl, nof_prb, use_tbs_index_alt, false);
   }

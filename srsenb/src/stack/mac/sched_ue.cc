@@ -18,8 +18,6 @@
 #include "srsran/common/string_helpers.h"
 #include "srsran/srslog/bundled/fmt/ranges.h"
 
-using srsran::tti_interval;
-
 namespace srsenb {
 
 /******************************************************
@@ -35,9 +33,8 @@ namespace srsenb {
  *******************************************************/
 
 sched_ue::sched_ue(uint16_t rnti_, const std::vector<sched_cell_params_t>& cell_list_params_, const ue_cfg_t& cfg_) :
-  logger(srslog::fetch_basic_logger("MAC"))
+  logger(srslog::fetch_basic_logger("MAC")), rnti(rnti_)
 {
-  rnti = rnti_;
   cells.reserve(cell_list_params_.size());
   for (auto& c : cell_list_params_) {
     cells.emplace_back(rnti_, c, current_tti);
@@ -127,11 +124,6 @@ void sched_ue::rem_bearer(uint32_t lc_id)
 
 void sched_ue::phy_config_enabled(tti_point tti_rx, bool enabled)
 {
-  for (sched_ue_cell& c : cells) {
-    if (c.configured()) {
-      c.dl_cqi_tti_rx = tti_rx;
-    }
-  }
   phy_config_dedicated_enabled = enabled;
 }
 
@@ -292,7 +284,7 @@ void sched_ue::set_dl_pmi(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t pmi)
 void sched_ue::set_dl_cqi(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t cqi)
 {
   if (cells[enb_cc_idx].cc_state() != cc_st::idle) {
-    cells[enb_cc_idx].set_dl_cqi(tti_rx, cqi);
+    cells[enb_cc_idx].set_dl_wb_cqi(tti_rx, cqi);
   } else {
     logger.warning("Received DL CQI for invalid enb cell index %d", enb_cc_idx);
   }
@@ -724,8 +716,8 @@ bool sched_ue::needs_cqi(uint32_t tti, uint32_t enb_cc_idx, bool will_send)
   bool ret = false;
   if (phy_config_dedicated_enabled && cfg.supported_cc_list[0].aperiodic_cqi_period &&
       lch_handler.has_pending_dl_txs()) {
-    uint32_t interval = srsran_tti_interval(tti, cells[enb_cc_idx].dl_cqi_tti_rx.to_uint());
-    bool     needscqi = interval >= cfg.supported_cc_list[0].aperiodic_cqi_period;
+    bool needscqi = tti_point(tti) >=
+                    cells[enb_cc_idx].dl_cqi().last_cqi_info_tti() - cfg.supported_cc_list[0].aperiodic_cqi_period;
     if (needscqi) {
       uint32_t interval_sent = srsran_tti_interval(tti, cqi_request_tti);
       if (interval_sent >= 16) {
@@ -756,9 +748,8 @@ rbg_interval sched_ue::get_required_dl_rbgs(uint32_t enb_cc_idx)
   int pending_prbs = get_required_prb_dl(cells[enb_cc_idx], to_tx_dl(current_tti), get_dci_format(), req_bytes.start());
   if (pending_prbs < 0) {
     // Cannot fit allocation in given PRBs
-    logger.error("SCHED: DL CQI=%d does now allow fitting %d non-segmentable DL tx bytes into the cell bandwidth. "
+    logger.error("SCHED: DL CQI does now allow fitting %d non-segmentable DL tx bytes into the cell bandwidth. "
                  "Consider increasing initial CQI value.",
-                 cells[enb_cc_idx].dl_cqi,
                  req_bytes.start());
     return {cellparams->nof_prb(), cellparams->nof_prb()};
   }
@@ -846,7 +837,7 @@ uint32_t sched_ue::get_expected_dl_bitrate(uint32_t enb_cc_idx, int nof_rbgs) co
   auto&    cc = cells[enb_cc_idx];
   uint32_t nof_re =
       cc.cell_cfg->get_dl_lb_nof_re(to_tx_dl(current_tti), count_prb_per_tb_approx(nof_rbgs, cc.cell_cfg->nof_prb()));
-  float max_coderate = srsran_cqi_to_coderate(std::min(cc.dl_cqi + 1u, 15u), cfg.use_tbs_index_alt);
+  float max_coderate = srsran_cqi_to_coderate(std::min(cc.dl_cqi().get_avg_cqi() + 1u, 15u), cfg.use_tbs_index_alt);
 
   // Inverse of srsran_coderate(tbs, nof_re)
   uint32_t tbs = max_coderate * nof_re - 24;
@@ -915,7 +906,7 @@ uint32_t sched_ue::get_pending_ul_data_total(tti_point tti_tx_ul, int this_enb_c
       uint32_t max_cqi = 0, max_cc_idx = 0;
       for (uint32_t cc = 0; cc < cells.size(); ++cc) {
         if (cells[cc].configured()) {
-          uint32_t sum_cqi = cells[cc].dl_cqi + cells[cc].ul_cqi;
+          uint32_t sum_cqi = cells[cc].dl_cqi().get_avg_cqi() + cells[cc].ul_cqi;
           if (cells[cc].cc_state() == cc_st::active and sum_cqi > max_cqi) {
             max_cqi    = sum_cqi;
             max_cc_idx = cc;
@@ -1008,7 +999,8 @@ std::pair<bool, uint32_t> sched_ue::get_active_cell_index(uint32_t enb_cc_idx) c
 uint32_t sched_ue::get_aggr_level(uint32_t enb_cc_idx, uint32_t nof_bits)
 {
   const auto& cc = cells[enb_cc_idx];
-  return srsenb::get_aggr_level(nof_bits, cc.dl_cqi, cc.max_aggr_level, cc.cell_cfg->nof_prb(), cfg.use_tbs_index_alt);
+  return srsenb::get_aggr_level(
+      nof_bits, cc.dl_cqi().get_avg_cqi(), cc.max_aggr_level, cc.cell_cfg->nof_prb(), cfg.use_tbs_index_alt);
 }
 
 void sched_ue::finish_tti(tti_point tti_rx, uint32_t enb_cc_idx)

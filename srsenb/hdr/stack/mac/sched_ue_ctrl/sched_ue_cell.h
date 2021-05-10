@@ -33,7 +33,7 @@ struct sched_ue_cell {
   void clear_feedback();
   void finish_tti(tti_point tti_rx);
 
-  void set_dl_cqi(tti_point tti_rx, uint32_t dl_cqi_);
+  void set_dl_wb_cqi(tti_point tti_rx, uint32_t dl_cqi_);
 
   bool             configured() const { return ue_cc_idx >= 0; }
   int              get_ue_cc_idx() const { return ue_cc_idx; }
@@ -58,23 +58,21 @@ struct sched_ue_cell {
   tpc tpc_fsm;
 
   /// UCI Feedback
-  uint32_t  dl_ri = 0;
-  tti_point dl_ri_tti_rx{};
-  uint32_t  dl_pmi = 0;
-  tti_point dl_pmi_tti_rx{};
-  uint32_t  dl_cqi = 1;
-  tti_point dl_cqi_tti_rx{0};
-  uint32_t  ul_cqi = 1;
-  tti_point ul_cqi_tti_rx{};
-  bool      dl_cqi_rx = false;
+  const sched_dl_cqi& dl_cqi() const { return dl_cqi_ctxt; }
+  uint32_t            dl_ri = 0;
+  tti_point           dl_ri_tti_rx{};
+  uint32_t            dl_pmi = 0;
+  tti_point           dl_pmi_tti_rx{};
+  uint32_t            ul_cqi = 1;
+  tti_point           ul_cqi_tti_rx{};
 
   uint32_t max_mcs_dl = 28, max_mcs_ul = 28;
   uint32_t max_aggr_level = 3;
   int      fixed_mcs_ul = 0, fixed_mcs_dl = 0;
 
 private:
-  srslog::basic_logger& logger;
-
+  // args
+  srslog::basic_logger&            logger;
   const sched_interface::ue_cfg_t* ue_cfg = nullptr;
   tti_point                        cfg_tti;
   int                              ue_cc_idx = -1;
@@ -82,6 +80,8 @@ private:
   // state
   tti_point current_tti;
   cc_st     cc_state_ = cc_st::idle;
+
+  sched_dl_cqi dl_cqi_ctxt;
 };
 
 /*************************************************************
