@@ -1385,7 +1385,8 @@ bool s1ap::ue::send_initialuemessage(asn1::s1ap::rrc_establishment_cause_e cause
 
 bool s1ap::ue::send_ulnastransport(srsran::unique_byte_buffer_t pdu)
 {
-  if (not s1ap_ptr->mme_connected) {
+  if (not ctxt.mme_ue_s1ap_id.has_value()) {
+    logger.error("Trying to send UL NAS Transport message for rnti=0x%x without MME-S1AP-UE-ID", ctxt.rnti);
     return false;
   }
 
