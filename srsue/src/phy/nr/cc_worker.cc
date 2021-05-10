@@ -11,6 +11,7 @@
  */
 
 #include "srsue/hdr/phy/nr/cc_worker.h"
+#include "srsran/common/band_helper.h"
 #include "srsran/common/buffer_pool.h"
 #include "srsran/srsran.h"
 
@@ -38,12 +39,20 @@ cc_worker::cc_worker(uint32_t cc_idx_, srslog::basic_logger& log, state* phy_sta
     ERROR("Error initiating UE DL NR");
     return;
   }
+
+  srsran_ssb_args_t ssb_args = {};
+  ssb_args.enable_measure    = true;
+  if (srsran_ssb_init(&ssb, &ssb_args) < SRSRAN_SUCCESS) {
+    ERROR("Error initiating SSB");
+    return;
+  }
 }
 
 cc_worker::~cc_worker()
 {
   srsran_ue_dl_nr_free(&ue_dl);
   srsran_ue_ul_nr_free(&ue_ul);
+  srsran_ssb_free(&ssb);
   for (cf_t* p : rx_buffer) {
     if (p != nullptr) {
       free(p);
@@ -71,6 +80,29 @@ bool cc_worker::update_cfg()
   srsran_dci_cfg_nr_t dci_cfg = phy->cfg.get_dci_cfg();
   if (srsran_ue_dl_nr_set_pdcch_config(&ue_dl, &phy->cfg.pdcch, &dci_cfg) < SRSRAN_SUCCESS) {
     logger.error("Error setting NR PDCCH configuration");
+    return false;
+  }
+
+  double abs_freq_point_a_freq =
+      srsran::srsran_band_helper().nr_arfcn_to_freq(phy->cfg.carrier.absolute_frequency_point_a);
+  double abs_freq_ssb_freq = srsran::srsran_band_helper().nr_arfcn_to_freq(phy->cfg.carrier.absolute_frequency_ssb);
+
+  double   carrier_center_freq = abs_freq_point_a_freq + (phy->cfg.carrier.nof_prb / 2 *
+                                                        SRSRAN_SUBC_SPACING_NR(phy->cfg.carrier.scs) * SRSRAN_NRE);
+  uint16_t band                = srsran::srsran_band_helper().get_band_from_dl_freq_Hz(carrier_center_freq);
+
+  srsran_ssb_cfg_t ssb_cfg = {};
+  ssb_cfg.srate_hz = srsran_min_symbol_sz_rb(phy->cfg.carrier.nof_prb) * SRSRAN_SUBC_SPACING_NR(phy->cfg.carrier.scs);
+  ssb_cfg.center_freq_hz = carrier_center_freq;
+  ssb_cfg.ssb_freq_hz    = abs_freq_ssb_freq;
+  ssb_cfg.scs            = phy->cfg.ssb.scs;
+  ssb_cfg.pattern        = srsran::srsran_band_helper().get_ssb_pattern(band, phy->cfg.ssb.scs);
+  memcpy(ssb_cfg.position, phy->cfg.ssb.position_in_burst.data(), sizeof(bool) * SRSRAN_SSB_NOF_POSITION);
+  ssb_cfg.duplex_mode    = srsran::srsran_band_helper().get_duplex_mode(band);
+  ssb_cfg.periodicity_ms = phy->cfg.ssb.periodicity_ms;
+
+  if (srsran_ssb_set_cfg(&ssb, &ssb_cfg) < SRSRAN_SUCCESS) {
+    logger.error("Error setting SSB configuration");
     return false;
   }
 
@@ -298,6 +330,37 @@ bool cc_worker::decode_pdsch_dl()
 
 bool cc_worker::measure_csi()
 {
+  // Measure SSB CSI
+  if (srsran_ssb_send(&ssb, dl_slot_cfg.idx)) {
+    srsran_csi_trs_measurements_t meas = {};
+
+    if (srsran_ssb_csi_measure(&ssb, phy->cfg.carrier.pci, rx_buffer[0], &meas) < SRSRAN_SUCCESS) {
+      logger.error("Error measuring SSB");
+      return false;
+    }
+
+    if (logger.debug.enabled()) {
+      std::array<char, 512> str = {};
+      srsran_csi_meas_info(&meas, str.data(), (uint32_t)str.size());
+      logger.debug("SSB-CSI: %s", str.data());
+    }
+
+    // Compute channel metrics and push it
+    ch_metrics_t ch_metrics = {};
+    ch_metrics.sinr         = meas.snr_dB;
+    ch_metrics.rsrp         = meas.rsrp_dB;
+    ch_metrics.rsrq         = 0.0f; // Not supported
+    ch_metrics.rssi         = 0.0f; // Not supported
+    ch_metrics.sync_err =
+        meas.delay_us / (float)(ue_dl.fft->fft_plan.size * SRSRAN_SUBC_SPACING_NR(phy->cfg.carrier.scs));
+    phy->set_channel_metrics(ch_metrics);
+
+    // Compute synch metrics and report it to the PHY state
+    sync_metrics_t sync_metrics = {};
+    sync_metrics.cfo            = meas.cfo_hz;
+    phy->set_sync_metrics(sync_metrics);
+  }
+
   // Iterate all NZP-CSI-RS marked as TRS and perform channel measurements
   for (uint32_t resource_set_id = 0; resource_set_id < SRSRAN_PHCH_CFG_MAX_NOF_CSI_RS_SETS; resource_set_id++) {
     // Select NZP-CSI-RS set
@@ -321,10 +384,10 @@ bool cc_worker::measure_csi()
       continue;
     }
 
-    if (logger.info.enabled()) {
+    if (logger.debug.enabled()) {
       std::array<char, 512> str = {};
       srsran_csi_meas_info(&trs_measurements, str.data(), (uint32_t)str.size());
-      logger.info("NZP-CSI-RS (TRS): id=%d %s", resource_set_id, str.data());
+      logger.debug("NZP-CSI-RS (TRS): id=%d %s", resource_set_id, str.data());
     }
 
     // Compute channel metrics and push it
@@ -376,11 +439,11 @@ bool cc_worker::measure_csi()
       continue;
     }
 
-    logger.info("NZP-CSI-RS: id=%d, rsrp=%+.1f epre=%+.1f snr=%+.1f",
-                resource_set_id,
-                measurements.wideband_rsrp_dBm,
-                measurements.wideband_epre_dBm,
-                measurements.wideband_snr_db);
+    logger.debug("NZP-CSI-RS: id=%d, rsrp=%+.1f epre=%+.1f snr=%+.1f",
+                 resource_set_id,
+                 measurements.wideband_rsrp_dBm,
+                 measurements.wideband_epre_dBm,
+                 measurements.wideband_snr_db);
 
     // Report new measurement to the PHY state
     phy->new_nzp_csi_rs_channel_measurement(measurements, resource_set_id);
@@ -416,7 +479,7 @@ bool cc_worker::work_dl()
     return false;
   }
 
-  // Measure CSI-RS
+  // Measure CSI
   if (not measure_csi()) {
     logger.error("Error measuring, aborting work DL");
     return false;

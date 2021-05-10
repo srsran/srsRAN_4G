@@ -35,6 +35,11 @@
 #define SRSRAN_SSB_DEFAULT_BETA 1.0f
 
 /**
+ * @brief Maximum number of SSB positions in burst. Defined in TS 38.331 ServingCellConfigCommon, ssb-PositionsInBurst
+ */
+#define SRSRAN_SSB_NOF_POSITION 64
+
+/**
  * @brief Describes SSB object initialization arguments
  */
 typedef struct SRSRAN_API {
@@ -51,12 +56,17 @@ typedef struct SRSRAN_API {
  */
 typedef struct SRSRAN_API {
   double                      srate_hz;       ///< Current sampling rate in Hz
-  double                      freq_offset_hz; ///< SSB base-band frequency offset
+  double                      center_freq_hz; ///< Base-band center frequency in Hz
+  double                      ssb_freq_hz;    ///< SSB center frequency
   srsran_subcarrier_spacing_t scs;            ///< SSB configured Subcarrier spacing
-  float                       beta_pss;       ////< PSS power allocation
-  float                       beta_sss;       ////< SSS power allocation
-  float                       beta_pbch;      ////< PBCH power allocation
-  float                       beta_pbch_dmrs; ////< PBCH DMRS power allocation
+  srsran_ssb_patern_t         pattern;        ///< SSB pattern as defined in TS 38.313 section 4.1 Cell search
+  bool position[SRSRAN_SSB_NOF_POSITION];     ///< Indicates the time domain positions of the transmitted SS-blocks
+  srsran_duplex_mode_t duplex_mode;           ///< Set to true if the spectrum is paired (FDD)
+  uint32_t             periodicity_ms;        ///< SSB periodicity in ms
+  float                beta_pss;              ////< PSS power allocation
+  float                beta_sss;              ////< SSS power allocation
+  float                beta_pbch;             ////< PBCH power allocation
+  float                beta_pbch_dmrs;        ////< PBCH DMRS power allocation
 } srsran_ssb_cfg_t;
 
 /**
@@ -67,12 +77,12 @@ typedef struct SRSRAN_API {
   srsran_ssb_cfg_t  cfg;  ///< Stores last configuration
 
   /// Sampling rate dependent parameters
-  float    scs_hz;        ///< Subcarrier spacing in Hz
-  uint32_t max_symbol_sz; ///< Maximum symbol size given the minimum supported SCS and sampling rate
-  uint32_t symbol_sz;     ///< Current SSB symbol size (for the given base-band sampling rate)
-  int32_t  offset;        ///< Current SSB integer offset (multiple of SCS)
-  uint32_t cp0_sz;        ///< First symbol cyclic prefix size
-  uint32_t cp_sz;         ///< Other symbol cyclic prefix size
+  float    scs_hz;                           ///< Subcarrier spacing in Hz
+  uint32_t max_symbol_sz;                    ///< Maximum symbol size given the minimum supported SCS and sampling rate
+  uint32_t symbol_sz;                        ///< Current SSB symbol size (for the given base-band sampling rate)
+  int32_t  f_offset;                         ///< Current SSB integer frequency offset (multiple of SCS)
+  uint32_t t_offset;                         ///< Current SSB integer time offset (number of samples)
+  uint32_t cp_sz[SRSRAN_SSB_DURATION_NSYMB]; ///< CP length for each SSB symbol
 
   /// Internal Objects
   srsran_dft_plan_t ifft; ///< IFFT object for modulating the SSB
@@ -110,6 +120,14 @@ SRSRAN_API int srsran_ssb_set_cfg(srsran_ssb_t* q, const srsran_ssb_cfg_t* cfg);
  * @return SRSLTE_SUCCESS if the parameters are valid, SRSLTE_ERROR code otherwise
  */
 SRSRAN_API int srsran_ssb_decode_pbch(srsran_ssb_t* q, const cf_t* in, srsran_pbch_msg_nr_t* msg);
+
+/**
+ * @brief Decides if the SSB object is configured and a given subframe is configured for SSB transmission
+ * @param q SSB object
+ * @param sf_idx Subframe index within the radio frame
+ * @return true if the SSB object is configured and SSB is transmitted, false otherwise
+ */
+SRSRAN_API bool srsran_ssb_send(srsran_ssb_t* q, uint32_t sf_idx);
 
 /**
  * @brief Adds SSB to a given signal in time domain

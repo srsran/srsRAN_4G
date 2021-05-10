@@ -1138,6 +1138,14 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
         logger.warning("DL cfg common not present");
         return false;
       }
+      phy_cfg_nr_t::ssb_cfg_t ssb_cfg = {};
+      if (make_phy_ssb_cfg(recfg_with_sync.sp_cell_cfg_common, &ssb_cfg) == true) {
+        phy_cfg.ssb = ssb_cfg;
+      } else {
+        logger.warning("Warning while building ssb structure");
+        return false;
+      }
+
       if (recfg_with_sync.sp_cell_cfg_common.tdd_ul_dl_cfg_common_present) {
         srsran_tdd_config_nr_t tdd;
         if (make_phy_tdd_cfg(recfg_with_sync.sp_cell_cfg_common.tdd_ul_dl_cfg_common, &tdd) == true) {

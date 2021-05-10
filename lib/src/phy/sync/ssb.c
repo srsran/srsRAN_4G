@@ -76,6 +76,155 @@ void srsran_ssb_free(srsran_ssb_t* q)
   SRSRAN_MEM_ZERO(q, srsran_ssb_t, 1);
 }
 
+static uint32_t ssb_first_symbol_caseA(const srsran_ssb_cfg_t* cfg, uint32_t indexes[SRSRAN_SSB_NOF_POSITION])
+{
+  // Case A - 15 kHz SCS: the first symbols of the candidate SS/PBCH blocks have indexes of { 2 , 8 } + 14 ⋅ n . For
+  // carrier frequencies smaller than or equal to 3 GHz, n = 0 , 1 . For carrier frequencies within FR1 larger than 3
+  // GHz, n = 0 , 1 , 2 , 3 .
+  uint32_t count           = 0;
+  uint32_t base_indexes[2] = {2, 8};
+
+  uint32_t N = 2;
+  if (cfg->center_freq_hz > 3e9) {
+    N = 4;
+  }
+
+  for (uint32_t n = 0; n < N; n++) {
+    for (uint32_t i = 0; i < 2; i++) {
+      indexes[count++] = base_indexes[i] + 14 * n;
+    }
+  }
+
+  return count;
+}
+
+static uint32_t ssb_first_symbol_caseB(const srsran_ssb_cfg_t* cfg, uint32_t indexes[SRSRAN_SSB_NOF_POSITION])
+{
+  // Case B - 30 kHz SCS: the first symbols of the candidate SS/PBCH blocks have indexes { 4 , 8 , 16 , 20 } + 28 ⋅ n .
+  // For carrier frequencies smaller than or equal to 3 GHz, n = 0 . For carrier frequencies within FR1 larger than 3
+  // GHz, n = 0 , 1 .
+  uint32_t count           = 0;
+  uint32_t base_indexes[4] = {4, 8, 16, 20};
+
+  uint32_t N = 1;
+  if (cfg->center_freq_hz > 3e9) {
+    N = 2;
+  }
+
+  for (uint32_t n = 0; n < N; n++) {
+    for (uint32_t i = 0; i < 4; i++) {
+      indexes[count++] = base_indexes[i] + 28 * n;
+    }
+  }
+
+  return count;
+}
+
+static uint32_t ssb_first_symbol_caseC(const srsran_ssb_cfg_t* cfg, uint32_t indexes[SRSRAN_SSB_NOF_POSITION])
+{
+  // Case C - 30 kHz SCS: the first symbols of the candidate SS/PBCH blocks have indexes { 2 , 8 } +14 ⋅ n .
+  // - For paired spectrum operation
+  //   - For carrier frequencies smaller than or equal to 3 GHz, n = 0 , 1 . For carrier frequencies within FR1 larger
+  //     than 3 GHz, n = 0 , 1 , 2 , 3 .
+  // - For unpaired spectrum operation
+  //   - For carrier frequencies smaller than or equal to 2.3 GHz, n = 0 , 1 . For carrier frequencies within FR1
+  //     larger than 2.3 GHz, n = 0 , 1 , 2 , 3 .
+  uint32_t count           = 0;
+  uint32_t base_indexes[2] = {2, 8};
+
+  uint32_t N = 4;
+  if ((cfg->duplex_mode == SRSRAN_DUPLEX_MODE_FDD && cfg->center_freq_hz <= 3e9) ||
+      (cfg->duplex_mode == SRSRAN_DUPLEX_MODE_TDD && cfg->center_freq_hz <= 2.3e9)) {
+    N = 2;
+  }
+
+  for (uint32_t n = 0; n < N; n++) {
+    for (uint32_t i = 0; i < 2; i++) {
+      indexes[count++] = base_indexes[i] + 14 * n;
+    }
+  }
+
+  return count;
+}
+
+static uint32_t ssb_first_symbol_caseD(const srsran_ssb_cfg_t* cfg, uint32_t indexes[SRSRAN_SSB_NOF_POSITION])
+{
+  // Case D - 120 kHz SCS: the first symbols of the candidate SS/PBCH blocks have indexes { 4 , 8 , 16 , 20 } + 28 ⋅ n .
+  // For carrier frequencies within FR2, n = 0 , 1 , 2 , 3 , 5 , 6 , 7 , 8 , 10 , 11 , 12 , 13 , 15 , 16 , 17 , 18 .
+  uint32_t count           = 0;
+  uint32_t base_indexes[4] = {4, 8, 16, 20};
+  uint32_t n_indexes[16]   = {0, 1, 2, 3, 5, 6, 7, 8, 10, 11, 12, 13, 15, 16, 17, 18};
+
+  for (uint32_t j = 0; j < 16; j++) {
+    for (uint32_t i = 0; i < 4; i++) {
+      indexes[count++] = base_indexes[i] + 28 * n_indexes[j];
+    }
+  }
+
+  return count;
+}
+
+static uint32_t ssb_first_symbol_caseE(const srsran_ssb_cfg_t* cfg, uint32_t indexes[SRSRAN_SSB_NOF_POSITION])
+{
+  // Case E - 240 kHz SCS: the first symbols of the candidate SS/PBCH blocks have indexes
+  //{ 8 , 12 , 16 , 20 , 32 , 36 , 40 , 44 } + 56 ⋅ n . For carrier frequencies within FR2, n = 0 , 1 , 2 , 3 , 5 , 6 ,
+  // 7 , 8 .
+  uint32_t count           = 0;
+  uint32_t base_indexes[8] = {8, 12, 16, 20, 32, 38, 40, 44};
+  uint32_t n_indexes[8]    = {0, 1, 2, 3, 5, 6, 7, 8};
+
+  for (uint32_t j = 0; j < 8; j++) {
+    for (uint32_t i = 0; i < 8; i++) {
+      indexes[count++] = base_indexes[i] + 56 * n_indexes[j];
+    }
+  }
+
+  return count;
+}
+
+static int ssb_first_symbol(const srsran_ssb_cfg_t* cfg, uint32_t ssb_i)
+{
+  uint32_t indexes[SRSRAN_SSB_NOF_POSITION];
+  uint32_t Lmax = 0;
+
+  switch (cfg->pattern) {
+    case SRSRAN_SSB_PATTERN_A:
+      Lmax = ssb_first_symbol_caseA(cfg, indexes);
+      break;
+    case SRSRAN_SSB_PATTERN_B:
+      Lmax = ssb_first_symbol_caseB(cfg, indexes);
+      break;
+    case SRSRAN_SSB_PATTERN_C:
+      Lmax = ssb_first_symbol_caseC(cfg, indexes);
+      break;
+    case SRSRAN_SSB_PATTERN_D:
+      Lmax = ssb_first_symbol_caseD(cfg, indexes);
+      break;
+    case SRSRAN_SSB_PATTERN_E:
+      Lmax = ssb_first_symbol_caseE(cfg, indexes);
+      break;
+    case SRSRAN_SSB_PATTERN_INVALID:
+      ERROR("Invalid case");
+      return SRSRAN_ERROR;
+  }
+
+  uint32_t ssb_count = 0;
+
+  for (uint32_t i = 0; i < Lmax; i++) {
+    // There is a SSB transmission opportunity
+    if (cfg->position[i]) {
+      // Return the SSB transmission in burst
+      if (ssb_i == ssb_count) {
+        return (int)indexes[i];
+      }
+
+      ssb_count++;
+    }
+  }
+
+  return SRSRAN_ERROR;
+}
+
 int srsran_ssb_set_cfg(srsran_ssb_t* q, const srsran_ssb_cfg_t* cfg)
 {
   // Verify input parameters
@@ -84,13 +233,38 @@ int srsran_ssb_set_cfg(srsran_ssb_t* q, const srsran_ssb_cfg_t* cfg)
   }
 
   // Calculate subcarrier spacing in Hz
-  q->scs_hz = (double)SRSRAN_SUBC_SPACING_NR(cfg->scs);
+  q->scs_hz = (float)SRSRAN_SUBC_SPACING_NR(cfg->scs);
+
+  // Get first symbol
+  int l_begin = ssb_first_symbol(cfg, 0);
+  if (l_begin < SRSRAN_SUCCESS) {
+    ERROR("Calculating first SSB symbol");
+    return SRSRAN_ERROR;
+  }
+  l_begin = 2;
+
+  float t_offset_s = srsran_symbol_offset_s((uint32_t)l_begin, cfg->scs);
+  if (isnan(t_offset_s) || isinf(t_offset_s) || t_offset_s < 0.0f) {
+    ERROR("Invalid first symbol (l_first=%d)", l_begin);
+    return SRSRAN_ERROR;
+  }
 
   // Calculate SSB symbol size and integer offset
-  uint32_t symbol_sz = (uint32_t)round(cfg->srate_hz / q->scs_hz);
-  q->offset          = (uint32_t)(cfg->freq_offset_hz / q->scs_hz);
-  q->cp0_sz          = (160U * symbol_sz) / 2048U;
-  q->cp_sz           = (144U * symbol_sz) / 2048U;
+  double   freq_offset_hz = cfg->ssb_freq_hz - cfg->center_freq_hz;
+  uint32_t symbol_sz      = (uint32_t)round(cfg->srate_hz / q->scs_hz);
+  q->f_offset             = (int32_t)round(freq_offset_hz / q->scs_hz);
+  q->t_offset             = (uint32_t)round(t_offset_s * cfg->srate_hz);
+
+  for (uint32_t l = 0; l < SRSRAN_SSB_DURATION_NSYMB; l++) {
+    uint32_t l_real = l + (uint32_t)l_begin;
+
+    uint32_t ref_cp_sz = 144U;
+    if (l_real == 0 || l_real == SRSRAN_EXT_CP_SYMBOL(cfg->scs)) {
+      ref_cp_sz = 160U;
+    }
+
+    q->cp_sz[l] = (ref_cp_sz * symbol_sz) / 2048U;
+  }
 
   // Calculate SSB sampling error and check
   double ssb_srate_error_Hz = ((double)symbol_sz * q->scs_hz) - cfg->srate_hz;
@@ -100,9 +274,9 @@ int srsran_ssb_set_cfg(srsran_ssb_t* q, const srsran_ssb_cfg_t* cfg)
   }
 
   // Calculate SSB offset error and check
-  double ssb_offset_error_Hz = ((double)q->offset * q->scs_hz) - cfg->freq_offset_hz;
+  double ssb_offset_error_Hz = ((double)q->f_offset * q->scs_hz) - freq_offset_hz;
   if (fabs(ssb_offset_error_Hz) > SSB_FREQ_OFFSET_MAX_ERROR_HZ) {
-    ERROR("SSB Offset error exceeds maximum allowed");
+    ERROR("SSB Offset (%.1f kHz) error exceeds maximum allowed", freq_offset_hz / 1e3);
     return SRSRAN_ERROR;
   }
 
@@ -160,6 +334,22 @@ int srsran_ssb_set_cfg(srsran_ssb_t* q, const srsran_ssb_cfg_t* cfg)
   return SRSRAN_SUCCESS;
 }
 
+bool srsran_ssb_send(srsran_ssb_t* q, uint32_t sf_idx)
+{
+  // Verify input
+  if (q == NULL) {
+    return false;
+  }
+
+  // Verify periodicity
+  if (q->cfg.periodicity_ms == 0) {
+    return false;
+  }
+
+  // Check periodicity
+  return (sf_idx % q->cfg.periodicity_ms == 0);
+}
+
 int srsran_ssb_add(srsran_ssb_t* q, uint32_t N_id, const srsran_pbch_msg_nr_t* msg, const cf_t* in, cf_t* out)
 {
   // Verify input parameters
@@ -198,24 +388,26 @@ int srsran_ssb_add(srsran_ssb_t* q, uint32_t N_id, const srsran_pbch_msg_nr_t* m
   srsran_vec_cf_zero(q->tmp_freq, q->symbol_sz);
 
   // Modulate
-  const cf_t* in_ptr  = in;
-  cf_t*       out_ptr = out;
+  const cf_t* in_ptr  = &in[q->t_offset];
+  cf_t*       out_ptr = &out[q->t_offset];
   for (uint32_t l = 0; l < SRSRAN_SSB_DURATION_NSYMB; l++) {
     // Get CP length
-    uint32_t cp_len = (l == 0) ? q->cp0_sz : q->cp_sz;
+    uint32_t cp_len = q->cp_sz[l];
 
     // Select symbol in grid
     cf_t* ptr = &ssb_grid[l * SRSRAN_SSB_BW_SUBC];
 
     // Map grid into frequency domain symbol
-    if (q->offset >= SRSRAN_SSB_BW_SUBC / 2) {
-      srsran_vec_cf_copy(&q->tmp_freq[q->offset - SRSRAN_SSB_BW_SUBC / 2], ptr, SRSRAN_SSB_BW_SUBC);
-    } else if (q->offset <= -SRSRAN_SSB_BW_SUBC / 2) {
-      srsran_vec_cf_copy(&q->tmp_freq[q->symbol_sz + q->offset - SRSRAN_SSB_BW_SUBC / 2], ptr, SRSRAN_SSB_BW_SUBC);
+    if (q->f_offset >= SRSRAN_SSB_BW_SUBC / 2) {
+      srsran_vec_cf_copy(&q->tmp_freq[q->f_offset - SRSRAN_SSB_BW_SUBC / 2], ptr, SRSRAN_SSB_BW_SUBC);
+    } else if (q->f_offset <= -SRSRAN_SSB_BW_SUBC / 2) {
+      srsran_vec_cf_copy(&q->tmp_freq[q->symbol_sz + q->f_offset - SRSRAN_SSB_BW_SUBC / 2], ptr, SRSRAN_SSB_BW_SUBC);
     } else {
-      srsran_vec_cf_copy(&q->tmp_freq[0], &ptr[SRSRAN_SSB_BW_SUBC / 2 - q->offset], SRSRAN_SSB_BW_SUBC / 2 + q->offset);
       srsran_vec_cf_copy(
-          &q->tmp_freq[q->symbol_sz - SRSRAN_SSB_BW_SUBC / 2 + q->offset], &ptr[0], SRSRAN_SSB_BW_SUBC / 2 - q->offset);
+          &q->tmp_freq[0], &ptr[SRSRAN_SSB_BW_SUBC / 2 - q->f_offset], SRSRAN_SSB_BW_SUBC / 2 + q->f_offset);
+      srsran_vec_cf_copy(&q->tmp_freq[q->symbol_sz - SRSRAN_SSB_BW_SUBC / 2 + q->f_offset],
+                         &ptr[0],
+                         SRSRAN_SSB_BW_SUBC / 2 - q->f_offset);
     }
 
     // Convert to time domain
@@ -243,10 +435,10 @@ int srsran_ssb_add(srsran_ssb_t* q, uint32_t N_id, const srsran_pbch_msg_nr_t* m
 
 static int ssb_demodulate(srsran_ssb_t* q, const cf_t* in, cf_t ssb_grid[SRSRAN_SSB_NOF_RE])
 {
-  const cf_t* in_ptr = in;
+  const cf_t* in_ptr = &in[q->t_offset];
   for (uint32_t l = 0; l < SRSRAN_SSB_DURATION_NSYMB; l++) {
     // Get CP length
-    uint32_t cp_len = (l == 0) ? q->cp0_sz : q->cp_sz;
+    uint32_t cp_len = q->cp_sz[l];
 
     // Advance half CP, to avoid inter symbol interference
     in_ptr += SRSRAN_FLOOR(cp_len, 2);
@@ -265,14 +457,16 @@ static int ssb_demodulate(srsran_ssb_t* q, const cf_t* in, cf_t ssb_grid[SRSRAN_
     cf_t* ptr = &ssb_grid[l * SRSRAN_SSB_BW_SUBC];
 
     // Map frequency domain symbol into the SSB grid
-    if (q->offset >= SRSRAN_SSB_BW_SUBC / 2) {
-      srsran_vec_cf_copy(ptr, &q->tmp_freq[q->offset - SRSRAN_SSB_BW_SUBC / 2], SRSRAN_SSB_BW_SUBC);
-    } else if (q->offset <= -SRSRAN_SSB_BW_SUBC / 2) {
-      srsran_vec_cf_copy(ptr, &q->tmp_freq[q->symbol_sz + q->offset - SRSRAN_SSB_BW_SUBC / 2], SRSRAN_SSB_BW_SUBC);
+    if (q->f_offset >= SRSRAN_SSB_BW_SUBC / 2) {
+      srsran_vec_cf_copy(ptr, &q->tmp_freq[q->f_offset - SRSRAN_SSB_BW_SUBC / 2], SRSRAN_SSB_BW_SUBC);
+    } else if (q->f_offset <= -SRSRAN_SSB_BW_SUBC / 2) {
+      srsran_vec_cf_copy(ptr, &q->tmp_freq[q->symbol_sz + q->f_offset - SRSRAN_SSB_BW_SUBC / 2], SRSRAN_SSB_BW_SUBC);
     } else {
-      srsran_vec_cf_copy(&ptr[SRSRAN_SSB_BW_SUBC / 2 - q->offset], &q->tmp_freq[0], SRSRAN_SSB_BW_SUBC / 2 + q->offset);
       srsran_vec_cf_copy(
-          &ptr[0], &q->tmp_freq[q->symbol_sz - SRSRAN_SSB_BW_SUBC / 2 + q->offset], SRSRAN_SSB_BW_SUBC / 2 - q->offset);
+          &ptr[SRSRAN_SSB_BW_SUBC / 2 - q->f_offset], &q->tmp_freq[0], SRSRAN_SSB_BW_SUBC / 2 + q->f_offset);
+      srsran_vec_cf_copy(&ptr[0],
+                         &q->tmp_freq[q->symbol_sz - SRSRAN_SSB_BW_SUBC / 2 + q->f_offset],
+                         SRSRAN_SSB_BW_SUBC / 2 - q->f_offset);
     }
 
     // Normalize
@@ -337,19 +531,26 @@ ssb_measure(srsran_ssb_t* q, const cf_t ssb_grid[SRSRAN_SSB_NOF_RE], uint32_t N_
   float cfo_hz     = cargf(corr_pss * conjf(corr_sss)) / (2.0f * M_PI) * cfo_hz_max;
 
   // Compute average RSRP
-  float rsrp = (SRSRAN_CSQABS(corr_pss) + SRSRAN_CSQABS(corr_sss)) / 2.0f;
+  float rsrp_pss = SRSRAN_CSQABS(corr_pss);
+  float rsrp_sss = SRSRAN_CSQABS(corr_sss);
+  float rsrp     = (rsrp_pss + rsrp_sss) / 2.0f;
 
   // Compute Noise
-  float n0 = 1e-9; // Almost 0
-  if (epre > rsrp) {
-    n0 = epre - rsrp;
+  float n0_pss = 1e-9; // Almost 0
+  float n0_sss = 1e-9; // Almost 0
+  if (epre_pss > rsrp_pss) {
+    n0_pss = epre - rsrp_pss;
   }
+  if (epre_pss > rsrp_pss) {
+    n0_sss = epre - rsrp_sss;
+  }
+  float n0 = (n0_pss + n0_sss) / 2.0f;
 
   // Put measurements together
   meas->epre       = epre;
   meas->epre_dB    = srsran_convert_power_to_dB(epre);
   meas->rsrp       = rsrp;
-  meas->epre_dB    = srsran_convert_power_to_dB(rsrp);
+  meas->rsrp_dB    = srsran_convert_power_to_dB(rsrp);
   meas->n0         = n0;
   meas->n0_dB      = srsran_convert_power_to_dB(n0);
   meas->snr_dB     = meas->rsrp_dB - meas->n0_dB;

@@ -125,6 +125,7 @@ extern "C" {
 #include "srsran/phy/sync/pss.h"
 #include "srsran/phy/sync/refsignal_dl_sync.h"
 #include "srsran/phy/sync/sfo.h"
+#include "srsran/phy/sync/ssb.h"
 #include "srsran/phy/sync/sss.h"
 #include "srsran/phy/sync/sync.h"
 

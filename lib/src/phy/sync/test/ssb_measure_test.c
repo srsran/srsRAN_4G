@@ -37,8 +37,8 @@ static cf_t*                 buffer   = NULL; // Base-band buffer
 
 #define RSRP_MAX_ERROR 1.0f
 #define EPRE_MAX_ERROR 1.0f
-#define N0_MAX_ERROR 2.0f
-#define SNR_MAX_ERROR 2.0f
+#define N0_MAX_ERROR 2.5f
+#define SNR_MAX_ERROR 2.5f
 #define CFO_MAX_ERROR (cfo_hz * 0.3f)
 #define DELAY_MAX_ERROR (delay_us * 0.1f)
 
@@ -90,12 +90,18 @@ static int assert_measure(const srsran_csi_trs_measurements_t* meas)
 
 static int test_case_1(srsran_ssb_t* ssb)
 {
-  uint64_t         t_find_usec = 0;
-  uint64_t         t_meas_usec = 0;
-  srsran_ssb_cfg_t ssb_cfg     = {};
-  ssb_cfg.srate_hz             = srate_hz;
-  ssb_cfg.freq_offset_hz       = 0.0;
-  ssb_cfg.scs                  = ssb_scs;
+  // For benchmarking purposes
+  uint64_t t_find_usec = 0;
+  uint64_t t_meas_usec = 0;
+
+  // SSB configuration
+  srsran_ssb_cfg_t ssb_cfg = {};
+  ssb_cfg.srate_hz         = srate_hz;
+  ssb_cfg.center_freq_hz   = 3.5e9;
+  ssb_cfg.ssb_freq_hz      = 3.5e9 - 960e3;
+  ssb_cfg.scs              = ssb_scs;
+  ssb_cfg.pattern          = SRSRAN_SSB_PATTERN_C;
+  ssb_cfg.position[0]      = true; // Rest to false
 
   TESTASSERT(srsran_ssb_set_cfg(ssb, &ssb_cfg) == SRSRAN_SUCCESS);
 
@@ -123,6 +129,11 @@ static int test_case_1(srsran_ssb_t* ssb)
     get_time_interval(t);
     t_find_usec += t[0].tv_usec + t[0].tv_sec * 1000000UL;
 
+    // Print measurement
+    char str[512];
+    srsran_csi_meas_info(&meas_search, str, sizeof(str));
+    INFO("test_case_1 - pci=%d %s", pci, str);
+
     // Assert find and measurements
     TESTASSERT(N_id_found == pci);
     TESTASSERT(assert_measure(&meas_search) == SRSRAN_SUCCESS);
@@ -134,11 +145,6 @@ static int test_case_1(srsran_ssb_t* ssb)
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
     t_meas_usec += t[0].tv_usec + t[0].tv_sec * 1000000UL;
-
-    // Print measurement
-    char str[512];
-    srsran_csi_meas_info(&meas, str, sizeof(str));
-    INFO("test_case_1 - pci=%d %s", pci, str);
 
     // Assert measurements
     TESTASSERT(assert_measure(&meas) == SRSRAN_SUCCESS);

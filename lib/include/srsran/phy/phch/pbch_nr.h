@@ -19,7 +19,7 @@
  * @brief Descibes the NR PBCH message
  */
 typedef struct SRSRAN_API {
-  // TBD
+  void* TBD;
 } srsran_pbch_msg_nr_t;
 
 #endif // SRSRAN_PBCH_NR_H

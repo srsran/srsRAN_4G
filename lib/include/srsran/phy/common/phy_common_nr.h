@@ -192,6 +192,11 @@ extern "C" {
  */
 #define SRSRAN_SSB_NOF_RE (SRSRAN_SSB_BW_SUBC * SRSRAN_SSB_DURATION_NSYMB)
 
+/**
+ * @brief Symbol index with extended CP
+ */
+#define SRSRAN_EXT_CP_SYMBOL(SCS) (7U << (uint32_t)(SCS))
+
 typedef enum SRSRAN_API {
   srsran_coreset_mapping_type_non_interleaved = 0,
   srsran_coreset_mapping_type_interleaved,

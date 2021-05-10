@@ -1245,11 +1245,36 @@ bool make_phy_nzp_csi_rs_resource(const asn1::rrc_nr::nzp_csi_rs_res_s& asn1_nzp
   return true;
 }
 
+static inline srsran_subcarrier_spacing_t make_subcarrier_spacing(const subcarrier_spacing_e& asn1_scs)
+{
+  switch (asn1_scs) {
+    case subcarrier_spacing_opts::options::khz15:
+      return srsran_subcarrier_spacing_15kHz;
+    case subcarrier_spacing_opts::options::khz30:
+      return srsran_subcarrier_spacing_30kHz;
+    case subcarrier_spacing_opts::options::khz60:
+      return srsran_subcarrier_spacing_60kHz;
+    case subcarrier_spacing_opts::options::khz120:
+      return srsran_subcarrier_spacing_120kHz;
+    case subcarrier_spacing_opts::options::khz240:
+      return srsran_subcarrier_spacing_240kHz;
+    case subcarrier_spacing_opts::spare3:
+    case subcarrier_spacing_opts::spare2:
+    case subcarrier_spacing_opts::spare1:
+    case subcarrier_spacing_opts::nulltype:
+    default:
+      asn1::log_warning("Not supported subcarrier spacing ");
+      break;
+  }
+
+  return srsran_subcarrier_spacing_invalid;
+}
+
 bool make_phy_carrier_cfg(const freq_info_dl_s& asn1_freq_info_dl, srsran_carrier_nr_t* out_carrier_nr)
 {
   uint32_t absolute_frequency_ssb = 0;
   if (asn1_freq_info_dl.absolute_freq_ssb_present) {
-    absolute_frequency_ssb = asn1_freq_info_dl.absolute_freq_ssb_present;
+    absolute_frequency_ssb = asn1_freq_info_dl.absolute_freq_ssb;
   } else {
     asn1::log_warning("Option absolute_freq_ssb not present");
     return false;
@@ -1259,26 +1284,12 @@ bool make_phy_carrier_cfg(const freq_info_dl_s& asn1_freq_info_dl, srsran_carrie
     return false;
   }
 
-  srsran_subcarrier_spacing_t scs = srsran_subcarrier_spacing_15kHz;
-  switch (asn1_freq_info_dl.scs_specific_carrier_list[0].subcarrier_spacing) {
-    case subcarrier_spacing_opts::options::khz15:
-      scs = srsran_subcarrier_spacing_15kHz;
-      break;
-    case subcarrier_spacing_opts::options::khz30:
-      scs = srsran_subcarrier_spacing_30kHz;
-      break;
-    case subcarrier_spacing_opts::options::khz60:
-      scs = srsran_subcarrier_spacing_60kHz;
-      break;
-    case subcarrier_spacing_opts::options::khz120:
-      scs = srsran_subcarrier_spacing_120kHz;
-      break;
-    case subcarrier_spacing_opts::options::khz240:
-      scs = srsran_subcarrier_spacing_240kHz;
-      break;
-    default:
-      asn1::log_warning("Not supported subcarrier spacing ");
+  srsran_subcarrier_spacing_t scs =
+      make_subcarrier_spacing(asn1_freq_info_dl.scs_specific_carrier_list[0].subcarrier_spacing);
+  if (scs == srsran_subcarrier_spacing_invalid) {
+    return false;
   }
+
   // As the carrier structure requires parameters from different objects, set fields separately
   out_carrier_nr->absolute_frequency_ssb     = absolute_frequency_ssb;
   out_carrier_nr->absolute_frequency_point_a = asn1_freq_info_dl.absolute_freq_point_a;
@@ -1287,6 +1298,63 @@ bool make_phy_carrier_cfg(const freq_info_dl_s& asn1_freq_info_dl, srsran_carrie
   out_carrier_nr->scs                        = scs;
   return true;
 }
+
+template <class bitstring_t>
+static inline void make_ssb_positions_in_burst(const bitstring_t&                         ans1_position_in_burst,
+                                               std::array<bool, SRSRAN_SSB_NOF_POSITION>& position_in_burst)
+{
+  for (uint32_t i = 0; i < SRSRAN_SSB_NOF_POSITION; i++) {
+    if (i < ans1_position_in_burst.length()) {
+      position_in_burst[i] = ans1_position_in_burst.get(ans1_position_in_burst.length() - 1 - i);
+    } else {
+      position_in_burst[i] = false;
+    }
+  }
+}
+
+bool make_phy_ssb_cfg(const asn1::rrc_nr::serving_cell_cfg_common_s& serv_cell_cfg, phy_cfg_nr_t::ssb_cfg_t* out_ssb)
+{
+  phy_cfg_nr_t::ssb_cfg_t ssb = {};
+  if (serv_cell_cfg.ssb_positions_in_burst_present) {
+    switch (serv_cell_cfg.ssb_positions_in_burst.type()) {
+      case serving_cell_cfg_common_s::ssb_positions_in_burst_c_::types_opts::short_bitmap:
+        make_ssb_positions_in_burst(serv_cell_cfg.ssb_positions_in_burst.short_bitmap(), ssb.position_in_burst);
+        break;
+      case serving_cell_cfg_common_s::ssb_positions_in_burst_c_::types_opts::medium_bitmap:
+        make_ssb_positions_in_burst(serv_cell_cfg.ssb_positions_in_burst.medium_bitmap(), ssb.position_in_burst);
+        break;
+      case serving_cell_cfg_common_s::ssb_positions_in_burst_c_::types_opts::long_bitmap:
+        make_ssb_positions_in_burst(serv_cell_cfg.ssb_positions_in_burst.long_bitmap(), ssb.position_in_burst);
+        break;
+      case serving_cell_cfg_common_s::ssb_positions_in_burst_c_::types_opts::nulltype:
+        asn1::log_warning("SSB position in burst nulltype");
+        return false;
+    }
+  } else {
+    asn1::log_warning("SSB position in burst not present");
+    return false;
+  }
+  if (serv_cell_cfg.ssb_periodicity_serving_cell_present) {
+    ssb.periodicity_ms = (uint32_t)serv_cell_cfg.ssb_periodicity_serving_cell.to_number();
+  } else {
+    asn1::log_warning("SSB periodicity not present");
+    return false;
+  }
+  if (serv_cell_cfg.ssb_subcarrier_spacing_present) {
+    ssb.scs = make_subcarrier_spacing(serv_cell_cfg.ssb_subcarrier_spacing);
+    if (ssb.scs == srsran_subcarrier_spacing_invalid) {
+      return false;
+    }
+  } else {
+    asn1::log_warning("SSB subcarrier spacing not present");
+    return false;
+  }
+  if (out_ssb != nullptr) {
+    *out_ssb = ssb;
+  }
+  return true;
+}
+
 } // namespace srsran
 
 namespace srsenb {
