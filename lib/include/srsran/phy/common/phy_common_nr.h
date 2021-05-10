@@ -534,6 +534,15 @@ SRSRAN_API srsran_mcs_table_t srsran_mcs_table_from_str(const char* str);
 SRSRAN_API uint32_t srsran_min_symbol_sz_rb(uint32_t nof_prb);
 
 /**
+ * @brief Computes the time in seconds between the beginning of the slot and the given symbol
+ * @remark All symbol size reference and values are taken from TS 38.211 section 5.3 OFDM baseband signal generation
+ * @param l Given symbol index
+ * @param scs Subcarrier spacing
+ * @return Returns the symbol time offset in seconds
+ */
+SRSRAN_API float srsran_symbol_offset_s(uint32_t l, srsran_subcarrier_spacing_t scs);
+
+/**
  * @brief Computes the time in seconds between two symbols in a slot
  * @note l0 is expected to be smaller than l1
  * @remark All symbol size reference and values are taken from TS 38.211 section 5.3 OFDM baseband signal generation
