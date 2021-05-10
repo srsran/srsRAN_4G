@@ -82,9 +82,9 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   rrc_cfg = rrc_cfg_;
 
   // Init RNTI and bearer memory pools
-  reserve_rnti_memblocks(args.mac.max_nof_ues);
+  reserve_rnti_memblocks(args.mac.nof_prealloc_ues);
   uint32_t min_nof_bearers_per_ue = 4;
-  reserve_rlc_memblocks(args.mac.max_nof_ues * min_nof_bearers_per_ue);
+  reserve_rlc_memblocks(args.mac.nof_prealloc_ues * min_nof_bearers_per_ue);
 
   // setup logging for each layer
   mac_logger.set_level(srslog::str_to_basic_level(args.log.mac_level));

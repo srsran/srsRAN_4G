@@ -304,6 +304,7 @@ enable = false
 # tx_amplitude:         Transmit amplitude factor (set 0-1 to reduce PAPR)
 # rrc_inactivity_timer  Inactivity timeout used to remove UE context from RRC (in milliseconds).
 # max_prach_offset_us:  Maximum allowed RACH offset (in us)
+# nof_prealloc_ues:     Number of UE memory resources to preallocate during eNB initialization for faster UE creation (Default 8)
 # eea_pref_list:        Ordered preference list for the selection of encryption algorithm (EEA) (default: EEA0, EEA2, EEA1).
 # eia_pref_list:        Ordered preference list for the selection of integrity algorithm (EIA) (default: EIA2, EIA1, EIA0).
 #
@@ -327,5 +328,6 @@ enable = false
 #rrc_inactivity_timer = 30000
 #max_nof_kos          = 100
 #max_prach_offset_us  = 30
+#nof_prealloc_ues     = 8
 #eea_pref_list = EEA0, EEA2, EEA1
 #eia_pref_list = EIA2, EIA1, EIA0

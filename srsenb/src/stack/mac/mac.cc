@@ -93,7 +93,7 @@ bool mac::init(const mac_args_t&        args_,
   };
   auto recycle_softbuffers = [](ue_cc_softbuffers& softbuffers) { softbuffers.clear(); };
   softbuffer_pool.reset(new srsran::background_obj_pool<ue_cc_softbuffers>(
-      8, 8, args.max_nof_ues, init_softbuffers, recycle_softbuffers));
+      8, 8, args.nof_prealloc_ues, init_softbuffers, recycle_softbuffers));
 
   // Pre-alloc UE objects for first attaching users
   prealloc_ue(10);
@@ -478,8 +478,8 @@ uint16_t mac::allocate_ue()
         logger.info("RACH ignored as eNB is being shutdown");
         return SRSRAN_INVALID_RNTI;
       }
-      if (ue_db.size() >= args.max_nof_ues) {
-        logger.warning("Maximum number of connected UEs %zd connected to the eNB. Ignoring PRACH", args.max_nof_ues);
+      if (ue_db.size() >= SRSENB_MAX_UES) {
+        logger.warning("Maximum number of connected UEs %zd connected to the eNB. Ignoring PRACH", SRSENB_MAX_UES);
         return SRSRAN_INVALID_RNTI;
       }
       auto ret = ue_db.insert(rnti, std::move(ue_ptr));

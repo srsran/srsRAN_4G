@@ -914,9 +914,9 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
 {
   // Sanity checks
   ASSERT_VALID_CFG(not rrc_cfg_->cell_list.empty(), "No cell specified in rr.conf.");
-  ASSERT_VALID_CFG(args_->stack.mac.max_nof_ues <= SRSENB_MAX_UES and args_->stack.mac.max_nof_ues > 0,
-                   "mac.max_nof_ues=%d must be within [0, %d]",
-                   args_->stack.mac.max_nof_ues,
+  ASSERT_VALID_CFG(args_->stack.mac.nof_prealloc_ues <= SRSENB_MAX_UES,
+                   "mac.nof_prealloc_ues=%d must be within [0, %d]",
+                   args_->stack.mac.nof_prealloc_ues,
                    SRSENB_MAX_UES);
 
   // Check for a forced  DL EARFCN or frequency (only valid for a single cell config (Xico's favorite feature))

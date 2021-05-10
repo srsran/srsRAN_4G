@@ -65,11 +65,11 @@ int parse_default_cfg(rrc_cfg_t* rrc_cfg, srsenb::all_args_t& args)
   args.enb.n_prb     = 50;
   TESTASSERT(srsran::string_to_mcc("001", &args.stack.s1ap.mcc));
   TESTASSERT(srsran::string_to_mnc("01", &args.stack.s1ap.mnc));
-  args.enb.transmission_mode = 1;
-  args.enb.nof_ports         = 1;
-  args.general.eia_pref_list = "EIA2, EIA1, EIA0";
-  args.general.eea_pref_list = "EEA0, EEA2, EEA1";
-  args.stack.mac.max_nof_ues = 2;
+  args.enb.transmission_mode      = 1;
+  args.enb.nof_ports              = 1;
+  args.general.eia_pref_list      = "EIA2, EIA1, EIA0";
+  args.general.eea_pref_list      = "EEA0, EEA2, EEA1";
+  args.stack.mac.nof_prealloc_ues = 2;
 
   args.general.rrc_inactivity_timer = 60000;
 
