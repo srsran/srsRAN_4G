@@ -452,6 +452,15 @@ void s1ap::ue_ctxt_setup_complete(uint16_t rnti)
   u->ue_ctxt_setup_complete();
 }
 
+void s1ap::notify_rrc_reconf_complete(uint16_t rnti)
+{
+  ue* u = users.find_ue_rnti(rnti);
+  if (u == nullptr) {
+    return;
+  }
+  u->notify_rrc_reconf_complete();
+}
+
 bool s1ap::is_mme_connected()
 {
   return mme_connected;
@@ -1461,6 +1470,17 @@ bool s1ap::ue::send_uectxtreleasecomplete()
   return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "UEContextReleaseComplete");
 }
 
+void s1ap::ue::notify_rrc_reconf_complete()
+{
+  if (current_state == s1ap_elem_procs_o::init_msg_c::types_opts::init_context_setup_request) {
+    logger.info("Procedure %s,rnti=0x%x - Received RRC reconf complete. Finishing UE context setup.",
+                s1ap_elem_procs_o::init_msg_c::types_opts{current_state}.to_string(),
+                ctxt.rnti);
+    ue_ctxt_setup_complete();
+    return;
+  }
+}
+
 void s1ap::ue::ue_ctxt_setup_complete()
 {
   if (current_state != s1ap_elem_procs_o::init_msg_c::types_opts::init_context_setup_request) {
@@ -1510,7 +1530,7 @@ void s1ap::ue::ue_ctxt_setup_complete()
   // Log event.
   event_logger::get().log_s1_ctx_create(ctxt.enb_cc_idx, ctxt.mme_ue_s1ap_id.value(), ctxt.enb_ue_s1ap_id, ctxt.rnti);
 
-  s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "E-RABSetupResponse");
+  s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "InitialContextSetupResponse");
 }
 
 bool s1ap::ue::send_erab_setup_response(const erab_id_list& erabs_setup, const erab_item_list& erabs_failed)

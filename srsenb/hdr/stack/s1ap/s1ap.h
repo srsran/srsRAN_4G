@@ -80,7 +80,7 @@ public:
   bool user_exists(uint16_t rnti) override;
   void user_mod(uint16_t old_rnti, uint16_t new_rnti) override;
   bool user_release(uint16_t rnti, asn1::s1ap::cause_radio_network_e cause_radio) override;
-  void ue_ctxt_setup_complete(uint16_t rnti) override;
+  void notify_rrc_reconf_complete(uint16_t rnti) override;
   bool is_mme_connected() override;
   bool send_ho_required(uint16_t                     rnti,
                         uint32_t                     target_eci,
@@ -110,7 +110,7 @@ public:
 
   // Stack interface
   bool
-       handle_mme_rx_msg(srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags);
+  handle_mme_rx_msg(srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags);
   void start_pcap(srsran::s1ap_pcap* pcap_);
 
 private:
@@ -167,6 +167,8 @@ private:
   bool handle_erabmodifyrequest(const asn1::s1ap::erab_modify_request_s& msg);
   bool handle_erabreleasecommand(const asn1::s1ap::erab_release_cmd_s& msg);
   bool handle_uecontextmodifyrequest(const asn1::s1ap::ue_context_mod_request_s& msg);
+
+  void ue_ctxt_setup_complete(uint16_t rnti);
 
   // handover
   /**
@@ -247,6 +249,7 @@ private:
                                uint32_t                              m_tmsi = 0,
                                uint8_t                               mmec   = 0);
     void ue_ctxt_setup_complete();
+    void notify_rrc_reconf_complete();
     bool send_erab_setup_response(const erab_id_list& erabs_setup, const erab_item_list& erabs_failed);
     bool send_erab_release_response(const erab_id_list& erabs_released, const erab_item_list& erabs_failed);
     bool send_erab_modify_response(const erab_id_list& erabs_modified, const erab_item_list& erabs_failed);

@@ -332,9 +332,7 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
       break;
     case ul_dcch_msg_type_c::c1_c_::types::ue_cap_info:
       if (handle_ue_cap_info(&ul_dcch_msg.msg.c1().ue_cap_info())) {
-        parent->s1ap->ue_ctxt_setup_complete(rnti);
         send_connection_reconf(std::move(pdu));
-        state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
       } else {
         send_connection_reject(procedure_result_code::none);
         state = RRC_STATE_IDLE;
@@ -475,7 +473,6 @@ void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srsr
   } else {
     parent->s1ap->initial_ue(rnti, enb_cc_idx, s1ap_cause, std::move(pdu));
   }
-  state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
 
   // 2> if the UE has radio link failure or handover failure information available
   if (msg->crit_exts.type().value == c1_or_crit_ext_opts::c1 and
@@ -828,6 +825,9 @@ void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srsran:
     rlf_info_pending = false;
     send_ue_info_req();
   }
+
+  // Many S1AP procedures end with RRC Reconfiguration. Notify S1AP accordingly.
+  parent->s1ap->notify_rrc_reconf_complete(rnti);
 }
 
 void rrc::ue::send_ue_info_req()

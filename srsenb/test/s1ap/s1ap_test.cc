@@ -185,7 +185,7 @@ void add_rnti(s1ap& s1ap_obj, mme_dummy& mme)
                        0x40, 0x0a, 0x0a, 0x1f, 0x7f, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x01};
   cbref             = asn1::cbit_ref(icsresp, sizeof(icsresp));
   TESTASSERT(s1ap_pdu.unpack(cbref) == SRSRAN_SUCCESS);
-  s1ap_obj.ue_ctxt_setup_complete(0x46);
+  s1ap_obj.notify_rrc_reconf_complete(0x46);
   sdu = mme.read_msg();
   TESTASSERT(sdu->N_bytes > 0);
   cbref = asn1::cbit_ref{sdu->msg, sdu->N_bytes};
