@@ -328,7 +328,25 @@ typedef enum SRSRAN_API {
   srsran_subcarrier_spacing_60kHz,
   srsran_subcarrier_spacing_120kHz,
   srsran_subcarrier_spacing_240kHz,
+  srsran_subcarrier_spacing_invalid
 } srsran_subcarrier_spacing_t;
+
+typedef enum SRSRAN_API {
+  SRSRAN_SSB_PATTERN_A = 0, // FR1, 15 kHz SCS
+  SRSRAN_SSB_PATTERN_B,     // FR1, 30 kHz SCS
+  SRSRAN_SSB_PATTERN_C,     // FR1, 30 kHz SCS
+  SRSRAN_SSB_PATTERN_D,     // FR2, 120 kHz SCS
+  SRSRAN_SSB_PATTERN_E,     // FR2, 240 kHz SCS
+  SRSRAN_SSB_PATTERN_INVALID,
+} srsran_ssb_patern_t;
+
+typedef enum SRSRAN_API {
+  SRSRAN_DUPLEX_MODE_FDD = 0, // Paired
+  SRSRAN_DUPLEX_MODE_TDD,     // Unpaired
+  SRSRAN_DUPLEX_MODE_SDL,     // Supplementary DownLink
+  SRSRAN_DUPLEX_MODE_SUL,     // Supplementary UpLink
+  SRSRAN_DUPLEX_MODE_INVALID
+} srsran_duplex_mode_t;
 
 /**
  * @brief NR carrier parameters. It is a combination of fixed cell and bandwidth-part (BWP)
