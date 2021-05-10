@@ -93,7 +93,7 @@ protected:
   bool is_generated(srsran::tti_point, uint32_t enb_cc_idx) const;
   // Helper methods
   template <typename Func>
-  int ue_db_access_locked(uint16_t rnti, Func&& f, const char* func_name = nullptr);
+  int ue_db_access_locked(uint16_t rnti, Func&& f, const char* func_name = nullptr, bool log_fail = true);
 
   // args
   rrc_interface_mac*               rrc       = nullptr;

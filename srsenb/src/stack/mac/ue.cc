@@ -477,7 +477,11 @@ bool ue::process_ce(srsran::sch_subh* subh)
         rrc->upd_user(rnti, old_rnti);
         rnti = old_rnti;
       } else {
-        logger.error("Updating user C-RNTI: rnti=0x%x already released", old_rnti);
+        logger.warning("Updating user C-RNTI: rnti=0x%x already released.", old_rnti);
+        // Disable scheduling for all bearers. The new rnti will be removed on msg3 timer expiry in the RRC
+        for (uint32_t lcid = 0; lcid < sched_interface::MAX_LC; ++lcid) {
+          sched->bearer_ue_rem(rnti, lcid);
+        }
       }
       break;
     case srsran::ul_sch_lcid::TRUNC_BSR:

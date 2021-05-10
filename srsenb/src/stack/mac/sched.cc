@@ -134,7 +134,8 @@ int sched::ue_rem(uint16_t rnti)
 
 bool sched::ue_exists(uint16_t rnti)
 {
-  return ue_db_access_locked(rnti, [](sched_ue& ue) {}) >= 0;
+  return ue_db_access_locked(
+             rnti, [](sched_ue& ue) {}, nullptr, false) >= 0;
 }
 
 void sched::phy_config_enabled(uint16_t rnti, bool enabled)
@@ -360,17 +361,19 @@ bool sched::is_generated(srsran::tti_point tti_rx, uint32_t enb_cc_idx) const
 
 // Common way to access ue_db elements in a read locking way
 template <typename Func>
-int sched::ue_db_access_locked(uint16_t rnti, Func&& f, const char* func_name)
+int sched::ue_db_access_locked(uint16_t rnti, Func&& f, const char* func_name, bool log_fail)
 {
   std::lock_guard<std::mutex> lock(sched_mutex);
   auto                        it = ue_db.find(rnti);
   if (it != ue_db.end()) {
     f(*it->second);
   } else {
-    if (func_name != nullptr) {
-      Error("User rnti=0x%x not found. Failed to call %s.", rnti, func_name);
-    } else {
-      Error("User rnti=0x%x not found.", rnti);
+    if (log_fail) {
+      if (func_name != nullptr) {
+        Error("SCHED: User rnti=0x%x not found. Failed to call %s.", rnti, func_name);
+      } else {
+        Error("SCHED: User rnti=0x%x not found.", rnti);
+      }
     }
     return SRSRAN_ERROR;
   }
