@@ -37,9 +37,20 @@ class static_circular_map
   using obj_t = std::pair<K, T>;
 
 public:
+  using key_type        = K;
+  using mapped_type     = T;
+  using value_type      = std::pair<K, T>;
+  using difference_type = std::ptrdiff_t;
+
   class iterator
   {
   public:
+    using iterator_category = std::forward_iterator_tag;
+    using value_type        = std::pair<K, T>;
+    using difference_type   = std::ptrdiff_t;
+    using pointer           = value_type*;
+    using reference         = value_type&;
+
     iterator() = default;
     iterator(static_circular_map<K, T, N>* map, size_t idx_) : ptr(map), idx(idx_)
     {

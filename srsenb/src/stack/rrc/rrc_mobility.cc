@@ -96,6 +96,8 @@ uint16_t compute_mac_i(uint16_t                            crnti,
 
   // Compute MAC-I
   switch (integ_algo) {
+    case srsran::INTEGRITY_ALGORITHM_ID_EIA0:
+      return 0;
     case srsran::INTEGRITY_ALGORITHM_ID_128_EIA1:
       srsran::security_128_eia1(&k_rrc_int[16],
                                 0xffffffff, // 32-bit all to ones
@@ -115,7 +117,7 @@ uint16_t compute_mac_i(uint16_t                            crnti,
                                 mac_key);
       break;
     default:
-      printf("Unsupported integrity algorithm %d.", integ_algo);
+      srsran::console_stderr("ERROR: Unsupported integrity algorithm %d.\n", integ_algo);
   }
 
   uint16_t short_mac_i = (((uint16_t)mac_key[2] << 8u) | (uint16_t)mac_key[3]);

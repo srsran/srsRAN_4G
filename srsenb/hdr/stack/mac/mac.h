@@ -145,9 +145,9 @@ private:
   sched_interface::dl_pdu_mch_t mch = {};
 
   /* Map of active UEs */
-  srsran::static_circular_map<uint16_t, std::unique_ptr<ue>, 64> ue_db;
-  std::map<uint16_t, std::unique_ptr<ue> >                       ues_to_rem;
-  uint16_t                                                       last_rnti = 70;
+  rnti_map_t<std::unique_ptr<ue> >         ue_db;
+  std::map<uint16_t, std::unique_ptr<ue> > ues_to_rem;
+  uint16_t                                 last_rnti = 70;
 
   srsran::static_blocking_queue<std::unique_ptr<ue>, 32> ue_pool; ///< Pool of pre-allocated UE objects
   void                                                   prealloc_ue(uint32_t nof_ue);

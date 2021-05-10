@@ -114,6 +114,8 @@ bool security_cfg_handler::set_security_capabilities(const asn1::s1ap::ue_securi
       case srsran::INTEGRITY_ALGORITHM_ID_EIA0:
         // Null integrity is not supported
         logger.info("Skipping EIA0 as RRC integrity algorithm. Null integrity is not supported.");
+        sec_cfg.integ_algo = srsran::INTEGRITY_ALGORITHM_ID_EIA0;
+        integ_algo_found   = true;
         break;
       case srsran::INTEGRITY_ALGORITHM_ID_128_EIA1:
         // “first bit” – 128-EIA1,
@@ -210,6 +212,14 @@ void security_cfg_handler::regenerate_keys_handover(uint32_t new_pci, uint32_t n
 bearer_cfg_handler::bearer_cfg_handler(uint16_t rnti_, const rrc_cfg_t& cfg_, gtpu_interface_rrc* gtpu_) :
   rnti(rnti_), cfg(&cfg_), gtpu(gtpu_), logger(&srslog::fetch_basic_logger("RRC"))
 {}
+
+void bearer_cfg_handler::reestablish_bearers(bearer_cfg_handler&& old_rnti_bearers)
+{
+  erab_info_list = std::move(old_rnti_bearers.erab_info_list);
+  erabs          = std::move(old_rnti_bearers.erabs);
+  current_drbs   = std::move(old_rnti_bearers.current_drbs);
+  old_rnti_bearers.current_drbs.clear();
+}
 
 int bearer_cfg_handler::add_erab(uint8_t                                            erab_id,
                                  const asn1::s1ap::erab_level_qos_params_s&         qos,

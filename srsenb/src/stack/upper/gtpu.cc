@@ -99,7 +99,11 @@ const gtpu_tunnel* gtpu_tunnel_manager::add_tunnel(uint16_t rnti, uint32_t lcid,
   tun->spgw_addr = spgw_addr;
 
   if (not ue_teidin_db.contains(rnti)) {
-    ue_teidin_db.insert(rnti, ue_lcid_tunnel_list());
+    auto ret = ue_teidin_db.insert(rnti, ue_lcid_tunnel_list());
+    if (ret.is_error()) {
+      logger.error("Failed to allocate rnti=0x%x", rnti);
+      return nullptr;
+    }
   }
   auto& ue_tunnels = ue_teidin_db[rnti];
 
@@ -130,15 +134,19 @@ bool gtpu_tunnel_manager::update_rnti(uint16_t old_rnti, uint16_t new_rnti)
   auto* old_rnti_ptr = find_rnti_tunnels(old_rnti);
   logger.info("Modifying bearer rnti. Old rnti: 0x%x, new rnti: 0x%x", old_rnti, new_rnti);
 
-  // Change RNTI bearers map
-  ue_teidin_db.insert(new_rnti, std::move(*old_rnti_ptr));
-  ue_teidin_db.erase(old_rnti);
-
-  // Change TEID in existing tunnels
-  auto* new_rnti_ptr = find_rnti_tunnels(new_rnti);
-  for (lcid_tunnel& bearer : *new_rnti_ptr) {
+  // create new RNTI and update TEIDs of old rnti to reflect new rnti
+  if (not ue_teidin_db.insert(new_rnti, ue_lcid_tunnel_list())) {
+    logger.error("Failure to create new rnti=0x%x", new_rnti);
+    return false;
+  }
+  std::swap(ue_teidin_db[new_rnti], *old_rnti_ptr);
+  auto& new_rnti_obj = ue_teidin_db[new_rnti];
+  for (lcid_tunnel& bearer : new_rnti_obj) {
     tunnels[bearer.teid].rnti = new_rnti;
   }
+
+  // Leave old_rnti as zombie to be removed later
+  old_rnti_ptr->clear();
 
   return true;
 }
@@ -246,10 +254,14 @@ void gtpu_tunnel_manager::set_tunnel_priority(uint32_t before_teid, uint32_t aft
     }
   };
 
-  // Schedule auto-removal of this indirect tunnel
+  // Schedule auto-removal of the indirect tunnel in case the End Marker is not received
+  // TS 36.300 - On detection of the "end marker", the target eNB may also initiate the release of the data forwarding
+  //             resource. However, the release of the data forwarding resource is implementation dependent and could
+  //             also be based on other mechanisms (e.g. timer-based mechanism).
   before_tun.rx_timer = task_sched.get_unique_timer();
-  before_tun.rx_timer.set(500, [this, before_teid](uint32_t tid) {
-    // This will self-destruct the callback object
+  before_tun.rx_timer.set(2000, [this, before_teid](uint32_t tid) {
+    // Note: This will self-destruct the callback object
+    logger.info("Forwarding tunnel " TEID_IN_FMT "being closed after timeout=2000 msec", before_teid);
     remove_tunnel(before_teid);
   });
   before_tun.rx_timer.run();

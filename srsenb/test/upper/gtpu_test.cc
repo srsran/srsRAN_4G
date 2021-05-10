@@ -329,7 +329,7 @@ int test_gtpu_direct_tunneling(tunnel_test_event event)
   TESTASSERT(tenb_pdcp.last_sdu == nullptr);
   if (event == tunnel_test_event::wait_end_marker_timeout) {
     // TEST: EndMarker does not reach TeNB, but there is a timeout that will resume the new GTPU tunnel
-    for (size_t i = 0; i < 1000; ++i) {
+    for (size_t i = 0; i < 2001; ++i) {
       task_sched.tic();
     }
   } else {
