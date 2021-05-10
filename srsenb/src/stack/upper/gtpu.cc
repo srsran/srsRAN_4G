@@ -160,22 +160,20 @@ bool gtpu_tunnel_manager::remove_tunnel(uint32_t teidin)
 
 bool gtpu_tunnel_manager::remove_bearer(uint16_t rnti, uint32_t lcid)
 {
-  srsran::span<lcid_tunnel> to_rem = find_rnti_lcid_tunnels(rnti, lcid);
-  if (to_rem.empty()) {
-    return false;
-  }
   logger.info("Removing rnti=0x%x,lcid=%d", rnti, lcid);
-
-  for (lcid_tunnel& lcid_tun : to_rem) {
-    bool ret = tunnels.erase(lcid_tun.teid);
+  bool removed = false;
+  for (srsran::span<lcid_tunnel> to_rem = find_rnti_lcid_tunnels(rnti, lcid); not to_rem.empty();
+       to_rem                           = find_rnti_lcid_tunnels(rnti, lcid)) {
+    uint32_t teid = to_rem.front().teid;
+    bool     ret  = remove_tunnel(teid);
     srsran_expect(ret,
                   "Inconsistency detected between internal data structures for rnti=0x%x,lcid=%d," TEID_IN_FMT,
                   rnti,
                   lcid,
-                  lcid_tun.teid);
+                  teid);
+    removed |= ret;
   }
-  ue_teidin_db[rnti].erase(to_rem.begin(), to_rem.end());
-  return true;
+  return removed;
 }
 
 bool gtpu_tunnel_manager::remove_rnti(uint16_t rnti)
