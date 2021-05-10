@@ -97,7 +97,7 @@ typedef struct SRSRAN_API {
  * @brief Initialises configures NR SSB with the given arguments
  * @param q SSB object
  * @param args NR PSS initialization arguments
- * @return SRSLTE_SUCCESS if the parameters are valid, SRSLTE_ERROR code otherwise
+ * @return SRSRAN_SUCCESS if the parameters are valid, SRSRAN_ERROR code otherwise
  */
 SRSRAN_API int srsran_ssb_init(srsran_ssb_t* q, const srsran_ssb_args_t* args);
 
@@ -111,13 +111,13 @@ SRSRAN_API void srsran_ssb_free(srsran_ssb_t* q);
  * @brief Sets SSB configuration with the current SSB configuration
  * @param q SSB object
  * @param cfg Current SSB configuration
- * @return SRSLTE_SUCCESS if the parameters are valid, SRSLTE_ERROR code otherwise
+ * @return SRSRAN_SUCCESS if the parameters are valid, SRSRAN_ERROR code otherwise
  */
 SRSRAN_API int srsran_ssb_set_cfg(srsran_ssb_t* q, const srsran_ssb_cfg_t* cfg);
 /**
  * @brief Decodes PBCH in the given time domain signal
  * @param q SSB object
- * @return SRSLTE_SUCCESS if the parameters are valid, SRSLTE_ERROR code otherwise
+ * @return SRSRAN_SUCCESS if the parameters are valid, SRSRAN_ERROR code otherwise
  */
 SRSRAN_API int srsran_ssb_decode_pbch(srsran_ssb_t* q, const cf_t* in, srsran_pbch_msg_nr_t* msg);
 
@@ -134,7 +134,7 @@ SRSRAN_API bool srsran_ssb_send(srsran_ssb_t* q, uint32_t sf_idx);
  * @param q SSB object
  * @param N_id Physical Cell Identifier
  * @param msg NR PBCH message to transmit
- * @return SRSLTE_SUCCESS if the parameters are valid, SRSLTE_ERROR code otherwise
+ * @return SRSRAN_SUCCESS if the parameters are valid, SRSRAN_ERROR code otherwise
  */
 SRSRAN_API int
 srsran_ssb_add(srsran_ssb_t* q, uint32_t N_id, const srsran_pbch_msg_nr_t* msg, const cf_t* in, cf_t* out);
@@ -146,7 +146,7 @@ srsran_ssb_add(srsran_ssb_t* q, uint32_t N_id, const srsran_pbch_msg_nr_t* msg, 
  * @param in Base-band signal buffer
  * @param N_id Physical Cell Identifier of the most suitable cell identifier
  * @param meas SSB-based CSI measurement of the most suitable cell identifier
- * @return SRSLTE_SUCCESS if the parameters are valid, SRSLTE_ERROR code otherwise
+ * @return SRSRAN_SUCCESS if the parameters are valid, SRSRAN_ERROR code otherwise
  */
 SRSRAN_API int
 srsran_ssb_csi_search(srsran_ssb_t* q, const cf_t* in, uint32_t* N_id, srsran_csi_trs_measurements_t* meas);
@@ -157,7 +157,7 @@ srsran_ssb_csi_search(srsran_ssb_t* q, const cf_t* in, uint32_t* N_id, srsran_cs
  * @param N_id Physical Cell Identifier
  * @param in Base-band signal
  * @param meas SSB-based CSI measurement
- * @return SRSLTE_SUCCESS if the parameters are valid, SRSLTE_ERROR code otherwise
+ * @return SRSRAN_SUCCESS if the parameters are valid, SRSRAN_ERROR code otherwise
  */
 SRSRAN_API int
 srsran_ssb_csi_measure(srsran_ssb_t* q, uint32_t N_id, const cf_t* in, srsran_csi_trs_measurements_t* meas);
