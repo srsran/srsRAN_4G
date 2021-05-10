@@ -16,6 +16,7 @@
 #include "srsran/srslog/detail/log_backend.h"
 #include "srsran/srslog/detail/log_entry.h"
 #include "srsran/srslog/sink.h"
+#include <atomic>
 
 namespace srslog {
 
@@ -65,11 +66,11 @@ public:
   log_channel& operator=(const log_channel& other) = delete;
 
   /// Controls when the channel accepts incoming log entries.
-  void set_enabled(bool enabled) { is_enabled = enabled; }
+  void set_enabled(bool enabled) { is_enabled.store(enabled, std::memory_order_relaxed); }
 
   /// Returns true if the channel is accepting incoming log entries, otherwise
   /// false.
-  bool enabled() const { return is_enabled; }
+  bool enabled() const { return is_enabled.load(std::memory_order_relaxed); }
 
   /// Returns the id string of the channel.
   const std::string& id() const { return log_id; }
@@ -108,32 +109,7 @@ public:
                                 fmtstr,
                                 store,
                                 log_name,
-                                log_tag,
-                                small_str_buffer()}};
-    backend.push(std::move(entry));
-  }
-
-  /// Builds the provided log entry and passes it to the backend. When the
-  /// channel is disabled the log entry will be discarded.
-  void operator()(small_str_buffer&& str)
-  {
-    if (!enabled()) {
-      return;
-    }
-
-    // Send the log entry to the backend.
-    log_formatter&    formatter = log_sink.get_formatter();
-    detail::log_entry entry     = {&log_sink,
-                               [&formatter](detail::log_entry_metadata&& metadata, fmt::memory_buffer& buffer) {
-                                 formatter.format(std::move(metadata), buffer);
-                               },
-                               {std::chrono::high_resolution_clock::now(),
-                                {ctx_value, should_print_context},
-                                nullptr,
-                                nullptr,
-                                log_name,
-                                log_tag,
-                                std::move(str)}};
+                                log_tag}};
     backend.push(std::move(entry));
   }
 
@@ -170,7 +146,6 @@ public:
                                 store,
                                 log_name,
                                 log_tag,
-                                small_str_buffer(),
                                 std::vector<uint8_t>(buffer, buffer + len)}};
     backend.push(std::move(entry));
   }
@@ -195,8 +170,7 @@ public:
                                 nullptr,
                                 nullptr,
                                 log_name,
-                                log_tag,
-                                small_str_buffer()}};
+                                log_tag}};
     backend.push(std::move(entry));
   }
 
@@ -227,21 +201,20 @@ public:
                                 fmtstr,
                                 store,
                                 log_name,
-                                log_tag,
-                                small_str_buffer()}};
+                                log_tag}};
     backend.push(std::move(entry));
   }
 
 private:
-  const std::string                 log_id;
-  sink&                             log_sink;
-  detail::log_backend&              backend;
-  const std::string                 log_name;
-  const char                        log_tag;
-  const bool                        should_print_context;
-  detail::shared_variable<uint32_t> ctx_value;
-  detail::shared_variable<int>      hex_max_size;
-  detail::shared_variable<bool>     is_enabled;
+  const std::string     log_id;
+  sink&                 log_sink;
+  detail::log_backend&  backend;
+  const std::string     log_name;
+  const char            log_tag;
+  const bool            should_print_context;
+  std::atomic<uint32_t> ctx_value;
+  std::atomic<int>      hex_max_size;
+  std::atomic<bool>     is_enabled;
 };
 
 } // namespace srslog

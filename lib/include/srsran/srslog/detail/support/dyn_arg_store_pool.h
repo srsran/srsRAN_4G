@@ -60,8 +60,8 @@ public:
       return;
     }
 
-    scoped_lock lock(m);
     p->clear();
+    scoped_lock lock(m);
     free_list.push_back(p);
   }
 

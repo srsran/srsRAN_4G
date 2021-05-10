@@ -125,9 +125,5 @@ srslog::detail::scoped_complete_event::~scoped_complete_event()
     return;
   }
 
-  small_str_buffer str;
-  // Limit the category and name strings to a predefined length so everything fits in a small string.
-  fmt::format_to(str, "{:.32} {:.16}, {}", category, name, diff.count());
-  str.push_back('\0');
-  (*tracer)(std::move(str));
+  (*tracer)("%s %s, %u", category, name, (unsigned)diff.count());
 }

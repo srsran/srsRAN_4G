@@ -132,11 +132,6 @@ void backend_worker::process_log_entry(detail::log_entry&& entry)
   assert(entry.format_func && "Invalid format function");
   fmt_buffer.clear();
 
-  // Already formatted strings in the foreground are passed to the formatter as the fmtstring.
-  if (entry.metadata.small_str.size()) {
-    entry.metadata.fmtstring = entry.metadata.small_str.data();
-  }
-
   // Save the pointer before moving the entry.
   auto* arg_store = entry.metadata.store;
 

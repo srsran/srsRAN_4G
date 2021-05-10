@@ -28,7 +28,14 @@ public:
   mutex(const mutex&) = delete;
   mutex& operator=(const mutex&) = delete;
 
-  mutex() { ::pthread_mutex_init(&m, nullptr); }
+  mutex()
+  {
+    ::pthread_mutexattr_t mutex_attr;
+    ::pthread_mutexattr_init(&mutex_attr);
+    ::pthread_mutexattr_setprotocol(&mutex_attr, PTHREAD_PRIO_INHERIT);
+    ::pthread_mutex_init(&m, &mutex_attr);
+  }
+
   ~mutex() { ::pthread_mutex_destroy(&m); }
 
   /// Mutex lock.
