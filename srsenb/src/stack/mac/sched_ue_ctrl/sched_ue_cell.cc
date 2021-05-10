@@ -307,6 +307,7 @@ int get_required_prb_dl(const sched_ue_cell& cell,
 
 uint32_t get_required_prb_ul(const sched_ue_cell& cell, uint32_t req_bytes)
 {
+  const static int MIN_ALLOC_BYTES = 10;
   if (req_bytes == 0) {
     return 0;
   }
@@ -317,11 +318,20 @@ uint32_t get_required_prb_ul(const sched_ue_cell& cell, uint32_t req_bytes)
   };
 
   // find nof prbs that lead to a tbs just above req_bytes
-  int                                      target_tbs = static_cast<int>(req_bytes) + 4;
+  int                                      target_tbs = std::max(static_cast<int>(req_bytes) + 4, MIN_ALLOC_BYTES);
   uint32_t                                 max_prbs   = std::min(cell.tpc_fsm.max_ul_prbs(), cell.cell_cfg->nof_prb());
   std::tuple<uint32_t, int, uint32_t, int> ret =
       false_position_method(1U, max_prbs, target_tbs, compute_tbs_approx, [](int y) { return y == SRSRAN_ERROR; });
-  uint32_t req_prbs = std::get<2>(ret);
+  uint32_t req_prbs  = std::get<2>(ret);
+  uint32_t final_tbs = std::get<3>(ret);
+  while (final_tbs < MIN_ALLOC_BYTES and req_prbs < cell.cell_cfg->nof_prb()) {
+    // Note: If PHR<0 is limiting the max nof PRBs per UL grant, the UL grant may become too small to fit any
+    //       data other than headers + BSR. Besides, forcing unnecessary segmentation, it may additionally
+    //       forbid the UE from fitting small RRC messages (e.g. RRCReconfComplete) in the UL grants.
+    //       To avoid TBS<10, we force an increase the nof required PRBs.
+    req_prbs++;
+    final_tbs = compute_tbs_approx(req_prbs);
+  }
   while (!srsran_dft_precoding_valid_prb(req_prbs) && req_prbs < cell.cell_cfg->nof_prb()) {
     req_prbs++;
   }

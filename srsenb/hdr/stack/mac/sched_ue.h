@@ -90,10 +90,12 @@ public:
 
   uint32_t get_required_prb_ul(uint32_t enb_cc_idx, uint32_t req_bytes);
 
-  rbg_interval               get_required_dl_rbgs(uint32_t enb_cc_idx);
-  srsran::interval<uint32_t> get_requested_dl_bytes(uint32_t enb_cc_idx);
-  uint32_t                   get_pending_dl_rlc_data() const;
-  uint32_t                   get_expected_dl_bitrate(uint32_t enb_cc_idx, int nof_rbgs = -1) const;
+  /// Get total pending bytes to be transmitted in DL.
+  /// The amount of CEs to transmit depends on whether enb_cc_idx is UE's PCell
+  uint32_t     get_pending_dl_bytes(uint32_t enb_cc_idx);
+  rbg_interval get_required_dl_rbgs(uint32_t enb_cc_idx);
+  uint32_t     get_pending_dl_rlc_data() const;
+  uint32_t     get_expected_dl_bitrate(uint32_t enb_cc_idx, int nof_rbgs = -1) const;
 
   uint32_t get_pending_ul_data_total(tti_point tti_tx_ul, int this_enb_cc_idx);
   uint32_t get_pending_ul_new_data(tti_point tti_tx_ul, int this_enb_cc_idx);
@@ -147,6 +149,8 @@ public:
   bool pusch_enabled(tti_point tti_rx, uint32_t enb_cc_idx, bool needs_pdcch) const;
 
 private:
+  srsran::interval<uint32_t> get_requested_dl_bytes(uint32_t enb_cc_idx);
+
   bool is_sr_triggered();
 
   tbs_info allocate_new_dl_mac_pdu(sched_interface::dl_sched_data_t* data,
