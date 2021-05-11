@@ -158,7 +158,6 @@ void enb_stack_lte::tti_clock()
 
 void enb_stack_lte::tti_clock_impl()
 {
-  trace_complete_event("enb_stack_lte::tti_clock_impl", "total_time");
   task_sched.tic();
   rrc.tti_clock();
 }

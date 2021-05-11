@@ -422,6 +422,8 @@ int mac::snr_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, float snr
     return SRSRAN_ERROR;
   }
 
+  rrc_h->set_radiolink_ul_state(rnti, snr > 0);
+
   return scheduler.ul_snr_info(tti_rx, rnti, enb_cc_idx, snr, (uint32_t)ch);
 }
 
@@ -607,7 +609,7 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
     return 0;
   }
 
-  trace_complete_event("mac::get_dl_sched", "total_time");
+  trace_threshold_complete_event("mac::get_dl_sched", "total_time", std::chrono::microseconds(100));
   logger.set_context(TTI_SUB(tti_tx_dl, FDD_HARQ_DELAY_UL_MS));
   if (do_padding) {
     add_padding();
