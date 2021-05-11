@@ -41,8 +41,6 @@ public:
   std::string to_string(const activity_timeout_type_t& type);
   void        set_activity_timeout(const activity_timeout_type_t type);
   void        set_activity();
-  void        start_rlf_timer();
-  void        stop_rlf_timer();
   void        set_radiolink_dl_state(bool crc_res);
   void        set_radiolink_ul_state(bool crc_res);
   void        activity_timer_expired(const activity_timeout_type_t type);
