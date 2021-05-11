@@ -550,7 +550,7 @@ bool sch_subh::is_var_len_ce()
 
 uint16_t sch_subh::get_c_rnti()
 {
-  return le16toh((uint16_t)payload[0] << 8 | payload[1]);
+  return (uint16_t)payload[0] << 8 | payload[1];
 }
 
 uint64_t sch_subh::get_con_res_id()
