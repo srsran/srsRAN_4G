@@ -98,7 +98,7 @@ ngap::ngap(srsran::task_sched_handle   task_sched_,
   amf_task_queue = task_sched.make_task_queue();
 }
 
-int ngap::init(ngap_args_t args_, rrc_interface_ngap_nr* rrc_)
+int ngap::init(const ngap_args_t& args_, rrc_interface_ngap_nr* rrc_)
 {
   rrc  = rrc_;
   args = args_;
