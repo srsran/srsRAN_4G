@@ -504,16 +504,15 @@ public:
     // Notify test engine
     notify_get_dl_sched();
 
-    /// Make sure it writes the first cell always
-    dl_sched_res[0].cfi = cfi;
+    // Make sure it writes the CFI in all cells
+    for (dl_sched_t& dl_sched : dl_sched_res) {
+      dl_sched.cfi = cfi;
+    }
 
     // Iterate for each carrier
     uint32_t ue_cc_idx = 0;
     for (uint32_t& cc_idx : active_cell_list) {
       auto& dl_sched = dl_sched_res[cc_idx];
-
-      // Required
-      dl_sched.cfi = cfi;
 
       // Default TB scheduling
       bool sched_tb[SRSRAN_MAX_TB] = {};
