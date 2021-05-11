@@ -133,15 +133,23 @@ class multiqueue_handler
     bool push_(T* o, bool blocking) noexcept
     {
       std::unique_lock<std::mutex> lock(q_mutex);
-      while (active_ and blocking and buffer.full()) {
-        nof_waiting++;
-        cv_full.wait(lock);
-        nof_waiting--;
-      }
-      if (not active_) {
-        lock.unlock();
-        cv_exit.notify_one();
-        return false;
+      if (not blocking) {
+        // non-blocking case
+        if (not active_ or buffer.full()) {
+          return false;
+        }
+      } else {
+        // blocking case
+        while (active_ and buffer.full()) {
+          nof_waiting++;
+          cv_full.wait(lock);
+          nof_waiting--;
+        }
+        if (not active_) {
+          lock.unlock();
+          cv_exit.notify_one();
+          return false;
+        }
       }
       buffer.push(std::forward<T>(*o));
       if (consumer_notify_needed) {

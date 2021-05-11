@@ -240,7 +240,7 @@ int test_multiqueue_threading4()
   auto                    qid3 = multiqueue.add_queue();
   auto                    qid4 = multiqueue.add_queue();
   std::mutex              mutex;
-  int                     last_number;
+  int                     last_number       = -1;
   auto                    pop_blocking_func = [&multiqueue, &last_number, &mutex](bool* success) {
     int number = 0;
     while (multiqueue.wait_pop(&number)) {
