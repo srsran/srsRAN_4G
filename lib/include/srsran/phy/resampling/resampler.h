@@ -40,19 +40,20 @@ typedef enum {
 } srsran_resampler_mode_t;
 
 /**
- * Resampler internal buffers and subcomponents
+ * @brief Resampler internal buffers and subcomponents
  */
 typedef struct {
-  srsran_resampler_mode_t mode;
-  uint32_t                ratio;
-  uint32_t                window_sz;
-  srsran_dft_plan_t       fft;
-  srsran_dft_plan_t       ifft;
-  uint32_t                state_len;
-  cf_t*                   in_buffer;
-  cf_t*                   out_buffer;
-  cf_t*                   state;
-  cf_t*                   filter;
+  srsran_resampler_mode_t mode;       ///< Interpolate or decimate mode
+  uint32_t                ratio;      ///< Decimation/Interpolation ratio
+  uint32_t                window_sz;  ///< Maximum number of processed samples
+  uint32_t                delay;      ///< Filter delay in samples
+  srsran_dft_plan_t       fft;        ///< Forward DFT
+  srsran_dft_plan_t       ifft;       ///< Backward DFT
+  uint32_t                state_len;  ///< Number of acccumulated samples in the internal state
+  cf_t*                   in_buffer;  ///< DFT input buffer
+  cf_t*                   out_buffer; ///< DFT output buffer
+  cf_t*                   state;      ///< Filter state
+  cf_t*                   filter;     ///< Frequency domain filter
 } srsran_resampler_fft_t;
 
 /**

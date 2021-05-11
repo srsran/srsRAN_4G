@@ -26,6 +26,11 @@
 #define RESAMPLER_BETA 0.45
 
 /**
+ * Filter delay in multiples of ratio
+ */
+#define RESAMPLER_DELAY 7
+
+/**
  * The FFT size power is determined from the ratio logarithm in base 2 plus the following parameter
  */
 #define RESAMPLER_FILTER_SIZE_POW 2
@@ -61,21 +66,26 @@ int srsran_resampler_fft_init(srsran_resampler_fft_t* q, srsran_resampler_mode_t
   uint32_t output_fft_size = 0;
   uint32_t high_size       = base_size * ratio;
 
+  // Select FFT/IFFT sizes filter delay and window size. For best performance and avoid aliasing, the window size shall
+  // be as big as the input DFT subtracting the filter length at the input rate
   switch (mode) {
     case SRSRAN_RESAMPLER_MODE_INTERPOLATE:
       input_fft_size  = base_size;
       output_fft_size = high_size;
+      q->delay        = RESAMPLER_DELAY * ratio;
+      q->window_sz    = input_fft_size - 2 * RESAMPLER_DELAY;
       break;
     case SRSRAN_RESAMPLER_MODE_DECIMATE:
     default:
       input_fft_size  = high_size;
       output_fft_size = base_size;
+      q->delay        = RESAMPLER_DELAY * ratio;
+      q->window_sz    = input_fft_size - 2 * q->delay;
       break;
   }
 
-  q->mode      = mode;
-  q->ratio     = ratio;
-  q->window_sz = input_fft_size / 4;
+  q->mode  = mode;
+  q->ratio = ratio;
 
   q->in_buffer = srsran_vec_cf_malloc(high_size);
   if (q->in_buffer == NULL) {
@@ -111,11 +121,20 @@ int srsran_resampler_fft_init(srsran_resampler_fft_t* q, srsran_resampler_mode_t
     return SRSRAN_ERROR;
   }
 
+  // Calculate absolute filter delay
+  double delay = (double)q->delay;
+  if (mode == SRSRAN_RESAMPLER_MODE_INTERPOLATE) {
+    delay = (double)(high_size - q->delay);
+  }
+
   // Compute time domain filter coefficients, see raised cosine formula in section "1.2 Impulse Response" of
   // https://dspguru.com/dsp/reference/raised-cosine-and-root-raised-cosine-formulas/
   double T = (double)1.0;
   for (int32_t i = 0; i < high_size; i++) {
-    double t = ((double)i - (double)high_size / 2.0) / (double)ratio;
+    // Convert to time
+    double t = ((double)i - delay) / (double)ratio;
+
+    // Compute coefficient
     double h = 1.0 / T;
     if (isnormal(t)) {
       h = sin(M_PI * t / T);
@@ -124,6 +143,11 @@ int srsran_resampler_fft_init(srsran_resampler_fft_t* q, srsran_resampler_mode_t
       h /= 1.0 - 4.0 * pow(RESAMPLER_BETA, 2.0) * pow(t, 2.0) / pow(T, 2.0);
     }
     q->in_buffer[i] = (float)h;
+  }
+
+  if (srsran_verbose >= SRSRAN_VERBOSE_INFO && !handler_registered) {
+    printf("h_%s=", q->mode == SRSRAN_RESAMPLER_MODE_INTERPOLATE ? "interp" : "decimate");
+    srsran_vec_fprint_c(stdout, q->in_buffer, high_size);
   }
 
   // Compute frequency domain coefficients, since the filter is symmetrical, it does not matter whether FFT or iFFT
@@ -170,13 +194,10 @@ static void resampler_fft_interpolate(srsran_resampler_fft_t* q, const cf_t* inp
       // Execute FFT
       srsran_dft_run_guru_c(&q->fft);
 
-      // Replicate input spectrum
-      for (uint32_t i = 1; i < q->ratio; i++) {
-        srsran_vec_cf_copy(&q->out_buffer[q->fft.size * i], q->out_buffer, q->fft.size);
+      // Replicate input spectrum and filter at same time
+      for (uint32_t i = 0; i < q->ratio; i++) {
+        srsran_vec_prod_ccc(q->out_buffer, &q->filter[q->fft.size * i], &q->in_buffer[q->fft.size * i], q->fft.size);
       }
-
-      // Apply filtering
-      srsran_vec_prod_ccc(q->out_buffer, q->filter, q->in_buffer, q->ifft.size);
 
       // Execute iFFT
       srsran_dft_run_guru_c(&q->ifft);
@@ -223,12 +244,14 @@ static void resampler_fft_decimate(srsran_resampler_fft_t* q, const cf_t* input,
       // Execute FFT
       srsran_dft_run_guru_c(&q->fft);
 
-      // Apply filtering and cut
-      srsran_vec_prod_ccc(q->out_buffer, q->filter, q->in_buffer, q->ifft.size / 2);
-      srsran_vec_prod_ccc(&q->out_buffer[q->fft.size - q->ifft.size / 2],
-                          &q->filter[q->fft.size - q->ifft.size / 2],
-                          &q->in_buffer[q->ifft.size / 2],
-                          q->ifft.size / 2);
+      // Apply filter
+      srsran_vec_prod_ccc(q->out_buffer, q->filter, q->out_buffer, q->fft.size);
+
+      // Decimate
+      srsran_vec_cf_copy(q->in_buffer, q->out_buffer, q->ifft.size);
+      for (uint32_t i = 1; i < q->ratio; i++) {
+        srsran_vec_sum_ccc(&q->out_buffer[q->ifft.size * i], q->in_buffer, q->in_buffer, q->ifft.size);
+      }
 
       // Execute iFFT
       srsran_dft_run_guru_c(&q->ifft);
@@ -307,5 +330,5 @@ uint32_t srsran_resampler_fft_get_delay(srsran_resampler_fft_t* q)
     return UINT32_MAX;
   }
 
-  return q->ifft.size / 2;
+  return q->delay;
 }
