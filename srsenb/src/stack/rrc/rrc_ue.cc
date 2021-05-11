@@ -63,7 +63,7 @@ int rrc::ue::init()
   set_activity_timeout(MSG3_RX_TIMEOUT); // next UE response is Msg3
 
   // Set timeout to release UE context after RLF detection
-  uint32_t deadline_ms = parent->cfg.rlf_release_timer_ms;
+  uint32_t deadline_ms       = parent->cfg.rlf_release_timer_ms;
   auto     timer_expire_func = [this](uint32_t tid) { rlf_timer_expired(tid); };
   phy_dl_rlf_timer.set(deadline_ms, timer_expire_func);
   phy_ul_rlf_timer.set(deadline_ms, timer_expire_func);
@@ -522,9 +522,6 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
   const rrc_conn_reest_request_r8_ies_s& req_r8   = msg->crit_exts.rrc_conn_reest_request_r8();
   uint16_t                               old_rnti = req_r8.ue_id.c_rnti.to_number();
 
-  srsran::console(
-      "User 0x%x requesting RRC Reestablishment as 0x%x. Cause: %s\n", rnti, old_rnti, req_r8.reest_cause.to_string());
-
   if (not parent->s1ap->is_mme_connected()) {
     parent->logger.error("MME isn't connected. Sending Connection Reject");
     send_connection_reest_rej(procedure_result_code::error_mme_not_connected);
@@ -536,74 +533,84 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
                        msg->crit_exts.rrc_conn_reest_request_r8().ue_id.pci,
                        (uint32_t)msg->crit_exts.rrc_conn_reest_request_r8().ue_id.short_mac_i.to_number(),
                        msg->crit_exts.rrc_conn_reest_request_r8().reest_cause.to_string());
-  if (is_idle()) {
-    uint16_t               old_pci  = msg->crit_exts.rrc_conn_reest_request_r8().ue_id.pci;
-    const enb_cell_common* old_cell = parent->cell_common_list->get_pci(old_pci);
-    auto                   ue_it    = parent->users.find(old_rnti);
-    // Reject unrecognized rntis, and PCIs that do not belong to eNB
-    if (ue_it != parent->users.end() and old_cell != nullptr and
-        ue_it->second->ue_cell_list.get_enb_cc_idx(old_cell->enb_cc_idx) != nullptr) {
-      parent->logger.info("ConnectionReestablishmentRequest for rnti=0x%x. Sending Connection Reestablishment",
-                          old_rnti);
 
-      // Cancel Handover in Target eNB if on-going
-      asn1::s1ap::cause_c cause;
-      cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::interaction_with_other_proc;
-      parent->users.at(old_rnti)->mobility_handler->trigger(rrc_mobility::ho_cancel_ev{cause});
-
-      // Recover security setup
-      const enb_cell_common* pcell_cfg = get_ue_cc_cfg(UE_PCELL_CC_IDX);
-      ue_security_cfg                  = parent->users.at(old_rnti)->ue_security_cfg;
-      ue_security_cfg.regenerate_keys_handover(pcell_cfg->cell_cfg.pci, pcell_cfg->cell_cfg.dl_earfcn);
-
-      // send reestablishment and restore bearer configuration
-      send_connection_reest(parent->users.at(old_rnti)->ue_security_cfg.get_ncc());
-
-      // Get PDCP entity state (required when using RLC AM)
-      for (const auto& erab_pair : parent->users.at(old_rnti)->bearer_list.get_erabs()) {
-        uint16_t lcid              = erab_pair.second.id - 2;
-        old_reest_pdcp_state[lcid] = {};
-        parent->pdcp->get_bearer_state(old_rnti, lcid, &old_reest_pdcp_state[lcid]);
-
-        parent->logger.debug("Getting PDCP state for E-RAB with LCID %d", lcid);
-        parent->logger.debug("Got PDCP state: TX HFN %d, NEXT_PDCP_TX_SN %d, RX_HFN %d, NEXT_PDCP_RX_SN %d, "
-                             "LAST_SUBMITTED_PDCP_RX_SN %d",
-                             old_reest_pdcp_state[lcid].tx_hfn,
-                             old_reest_pdcp_state[lcid].next_pdcp_tx_sn,
-                             old_reest_pdcp_state[lcid].rx_hfn,
-                             old_reest_pdcp_state[lcid].next_pdcp_rx_sn,
-                             old_reest_pdcp_state[lcid].last_submitted_pdcp_rx_sn);
-      }
-
-      // Make sure UE capabilities are copied over to new RNTI
-      eutra_capabilities          = parent->users.at(old_rnti)->eutra_capabilities;
-      eutra_capabilities_unpacked = parent->users.at(old_rnti)->eutra_capabilities_unpacked;
-      ue_capabilities             = parent->users.at(old_rnti)->ue_capabilities;
-      if (parent->logger.debug.enabled()) {
-        asn1::json_writer js{};
-        eutra_capabilities.to_json(js);
-        parent->logger.debug("rnti=0x%x EUTRA capabilities: %s", rnti, js.to_string().c_str());
-      }
-
-      if (parent->users.at(old_rnti)->rlc_rlf_timer.is_running()) {
-        parent->logger.info("Stopping RLC RLF timer for old rnti=0x%x", old_rnti);
-        parent->users.at(old_rnti)->rlc_rlf_timer.stop();
-      }
-
-      old_reest_rnti = old_rnti;
-      state          = RRC_STATE_WAIT_FOR_CON_REEST_COMPLETE;
-      set_activity_timeout(UE_INACTIVITY_TIMEOUT);
-    } else {
-      parent->logger.error("Received ConnectionReestablishment for rnti=0x%x without context", old_rnti);
-      send_connection_reest_rej(procedure_result_code::error_unknown_rnti);
-      srsran::console(
-          "User 0x%x RRC Reestablishment Request rejected. Cause: no rnti=0x%x context available\n", rnti, old_rnti);
-    }
-  } else {
+  if (not is_idle()) {
+    // The created RNTI has to receive ReestablishmentRequest as first message
     parent->logger.error("Received ReestablishmentRequest from an rnti=0x%x not in IDLE", rnti);
     send_connection_reest_rej(procedure_result_code::error_unknown_rnti);
     srsran::console("ERROR: User 0x%x requesting Reestablishment is not in RRC_IDLE\n", rnti);
+    return;
   }
+
+  uint16_t               old_pci   = msg->crit_exts.rrc_conn_reest_request_r8().ue_id.pci;
+  const enb_cell_common* old_cell  = parent->cell_common_list->get_pci(old_pci);
+  auto                   old_ue_it = parent->users.find(old_rnti);
+
+  // Reject unrecognized rntis, and PCIs that do not belong to eNB
+  if (old_ue_it == parent->users.end() or old_cell == nullptr or
+      old_ue_it->second->ue_cell_list.get_enb_cc_idx(old_cell->enb_cc_idx) == nullptr) {
+    parent->logger.error("Received ConnectionReestablishment for rnti=0x%x without context", old_rnti);
+    send_connection_reest_rej(procedure_result_code::error_unknown_rnti);
+    srsran::console(
+        "User 0x%x RRC Reestablishment Request rejected. Cause: no rnti=0x%x context available\n", rnti, old_rnti);
+    return;
+  }
+  ue* old_ue = old_ue_it->second.get();
+
+  // Reestablishment procedure going forward
+  parent->logger.info("ConnectionReestablishmentRequest for rnti=0x%x. Sending Connection Reestablishment", old_rnti);
+  srsran::console(
+      "User 0x%x requesting RRC Reestablishment as 0x%x. Cause: %s\n", rnti, old_rnti, req_r8.reest_cause.to_string());
+
+  // Cancel Handover in Target eNB if on-going
+  asn1::s1ap::cause_c cause;
+  cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::interaction_with_other_proc;
+  old_ue->mobility_handler->trigger(rrc_mobility::ho_cancel_ev{cause});
+
+  // Recover security setup
+  const enb_cell_common* pcell_cfg = get_ue_cc_cfg(UE_PCELL_CC_IDX);
+  ue_security_cfg                  = old_ue->ue_security_cfg;
+  ue_security_cfg.regenerate_keys_handover(pcell_cfg->cell_cfg.pci, pcell_cfg->cell_cfg.dl_earfcn);
+
+  // send RRC Reestablishment message and restore bearer configuration
+  send_connection_reest(old_ue->ue_security_cfg.get_ncc());
+
+  // Get PDCP entity state (required when using RLC AM)
+  for (const auto& erab_pair : old_ue->bearer_list.get_erabs()) {
+    uint16_t lcid              = erab_pair.second.id - 2;
+    old_reest_pdcp_state[lcid] = {};
+    parent->pdcp->get_bearer_state(old_rnti, lcid, &old_reest_pdcp_state[lcid]);
+
+    parent->logger.debug("Getting PDCP state for E-RAB with LCID %d", lcid);
+    parent->logger.debug("Got PDCP state: TX HFN %d, NEXT_PDCP_TX_SN %d, RX_HFN %d, NEXT_PDCP_RX_SN %d, "
+                         "LAST_SUBMITTED_PDCP_RX_SN %d",
+                         old_reest_pdcp_state[lcid].tx_hfn,
+                         old_reest_pdcp_state[lcid].next_pdcp_tx_sn,
+                         old_reest_pdcp_state[lcid].rx_hfn,
+                         old_reest_pdcp_state[lcid].next_pdcp_rx_sn,
+                         old_reest_pdcp_state[lcid].last_submitted_pdcp_rx_sn);
+  }
+
+  // Make sure UE capabilities are copied over to new RNTI
+  eutra_capabilities          = old_ue->eutra_capabilities;
+  eutra_capabilities_unpacked = old_ue->eutra_capabilities_unpacked;
+  ue_capabilities             = old_ue->ue_capabilities;
+  if (parent->logger.debug.enabled()) {
+    asn1::json_writer js{};
+    eutra_capabilities.to_json(js);
+    parent->logger.debug("rnti=0x%x EUTRA capabilities: %s", rnti, js.to_string().c_str());
+  }
+
+  // Stop RLF timers to avoid that old RNTI gets removed during RRC Reestablishment
+  parent->logger.info("Stopped RLF timers for old rnti=0x%x", old_rnti);
+  old_ue->rlc_rlf_timer.stop();
+  old_ue->phy_ul_rlf_timer.stop();
+  old_ue->phy_dl_rlf_timer.stop();
+  old_ue->mac_ctrl.set_drb_activation(false);
+
+  old_reest_rnti = old_rnti;
+  state          = RRC_STATE_WAIT_FOR_CON_REEST_COMPLETE;
+  set_activity_timeout(UE_INACTIVITY_TIMEOUT);
 }
 
 void rrc::ue::send_connection_reest(uint8_t ncc)
@@ -658,6 +665,14 @@ void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srsr
 
   parent->logger.info("RRCConnectionReestablishComplete transaction ID: %d", msg->rrc_transaction_id);
 
+  auto old_ue_it = parent->users.find(old_reest_rnti);
+  if (old_ue_it == parent->users.end()) {
+    parent->logger.error("RRC Reestablishment old rnti=0x%x was erased during the procedure", old_reest_rnti);
+    parent->release_ue(rnti);
+    return;
+  }
+  auto* old_ue = old_ue_it->second.get();
+
   // TODO: msg->selected_plmn_id - used to select PLMN from SIB1 list
   // TODO: if(msg->registered_mme_present) - the indicated MME should be used from a pool
 
@@ -674,10 +689,10 @@ void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srsr
   parent->pdcp->enable_encryption(rnti, srb_to_lcid(lte_srb::srb1));
 
   // Reestablish E-RABs of old rnti during ConnectionReconfiguration
-  bearer_list.reestablish_bearers(std::move(parent->users.at(old_reest_rnti)->bearer_list));
+  bearer_list.reestablish_bearers(std::move(old_ue->bearer_list));
 
   // remove old RNTI
-  parent->rem_user_thread(old_reest_rnti);
+  parent->rem_user(old_reest_rnti);
 
   state = RRC_STATE_REESTABLISHMENT_COMPLETE;
 

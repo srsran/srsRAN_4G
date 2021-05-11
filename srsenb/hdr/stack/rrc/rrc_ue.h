@@ -157,12 +157,12 @@ public:
   bool is_csfb = false;
 
 private:
-  srsran::timer_handler::unique_timer activity_timer; // for basic DL/UL activity timeout
+  srsran::unique_timer activity_timer; // for basic DL/UL activity timeout
 
   /// Radio link failure handling uses distinct timers for PHY (DL and UL) and RLC signaled RLF
-  srsran::timer_handler::unique_timer phy_dl_rlf_timer; // can be stopped through recovered DL activity
-  srsran::timer_handler::unique_timer phy_ul_rlf_timer; // can be stopped through recovered UL activity
-  srsran::timer_handler::unique_timer rlc_rlf_timer;    // can only be stoped through UE reestablishment
+  srsran::unique_timer phy_dl_rlf_timer; // can be stopped through recovered DL activity
+  srsran::unique_timer phy_ul_rlf_timer; // can be stopped through recovered UL activity
+  srsran::unique_timer rlc_rlf_timer;    // can only be stoped through UE reestablishment
 
   /// cached ASN1 fields for RRC config update checking, and ease of context transfer during HO
   ue_var_cfg_t current_ue_cfg;
