@@ -236,7 +236,7 @@ static void resampler_fft_decimate(srsran_resampler_fft_t* q, const cf_t* input,
 
     if (input) {
       // Copy input samples
-      srsran_vec_cf_copy(q->in_buffer, &input[count], q->window_sz);
+      srsran_vec_cf_copy(q->in_buffer, &input[count], n);
 
       // Pad zeroes
       srsran_vec_cf_zero(&q->in_buffer[n], q->fft.size - n);
