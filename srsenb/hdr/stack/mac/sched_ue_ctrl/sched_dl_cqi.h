@@ -88,6 +88,16 @@ public:
 
   int get_avg_cqi() const { return get_grant_avg_cqi(rbg_interval(0, cell_nof_rbg)); }
 
+  /// Get CQI of RBG
+  int get_rbg_cqi(uint32_t rbg) const
+  {
+    if (not subband_cqi_enabled()) {
+      return static_cast<int>(wb_cqi_avg);
+    }
+    uint32_t sb_idx = rbg_to_sb_index(rbg);
+    return bp_list[get_bp_index(sb_idx)].last_feedback_tti.is_valid() ? subband_cqi[sb_idx] : wb_cqi_avg;
+  }
+
   /// Get average CQI in given RBG interval
   int get_grant_avg_cqi(rbg_interval interv) const
   {
@@ -126,21 +136,12 @@ public:
   }
 
   /// Get CQI-optimal RBG mask
-  rbgmask_t get_optim_rbg_mask(uint32_t req_rbgs) const
+  rbgmask_t get_optim_rbgmask(uint32_t req_rbgs) const
   {
-    req_rbgs = std::min(req_rbgs, cell_nof_rbg);
-    rbgmask_t mask(cell_nof_rbg);
-    if (not subband_cqi_enabled()) {
-      mask.fill(0, req_rbgs);
-      return mask;
-    }
-    srsran::bounded_vector<float, max_nof_subbands> sorted_cqis = subband_cqi;
-    std::partial_sort(sorted_cqis.begin(), sorted_cqis.begin() + req_rbgs, sorted_cqis.end());
-    for (uint32_t i = 0; i < req_rbgs; ++i) {
-      mask.set(i);
-    }
-    return mask;
+    rbgmask_t rbgmask(cell_nof_rbg);
+    return get_optim_rbgmask(rbgmask, req_rbgs);
   }
+  rbgmask_t get_optim_rbgmask(const rbgmask_t& dl_mask, uint32_t req_rbgs) const;
 
   /// TS 36.321, 7.2.2 - Parameter N
   uint32_t nof_subbands() const { return subband_cqi.size(); }

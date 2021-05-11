@@ -45,7 +45,7 @@ void test_sched_cqi_one_subband_cqi()
   TESTASSERT(ue_cqi.get_grant_avg_cqi(mask) > 0 and ue_cqi.get_grant_avg_cqi(mask) < 5);
 
   // TEST: Get optimal RBG mask in terms of CQI
-  mask = ue_cqi.get_optim_rbg_mask(5);
+  mask = ue_cqi.get_optim_rbgmask(5);
   TESTASSERT(mask.count() == 5);
   for (uint32_t i = 0; i < 5; ++i) {
     TESTASSERT(mask.test(i) > 0);
@@ -73,7 +73,7 @@ void test_sched_cqi_wideband_cqi()
   TESTASSERT(ue_cqi.get_grant_avg_cqi(mask) == 5);
 
   // TEST: Get optimal RBG mask in terms of CQI
-  mask = ue_cqi.get_optim_rbg_mask(5);
+  mask = ue_cqi.get_optim_rbgmask(5);
   TESTASSERT(mask.count() == 5);
   for (uint32_t i = 0; i < 5; ++i) {
     TESTASSERT(mask.test(i) > 0);

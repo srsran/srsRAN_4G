@@ -49,10 +49,15 @@ RBInterval find_contiguous_interval(const RBMask& in_mask, uint32_t max_size)
  *    DL Helper methods
  ***************************/
 
-rbgmask_t find_available_rb_mask(const rbgmask_t& in_mask, uint32_t max_size)
+rbgmask_t find_available_rbgmask(const rbgmask_t& in_mask, uint32_t max_size)
 {
   // 1's for free RBs
   rbgmask_t localmask = ~(in_mask);
+
+  if (max_size >= localmask.size() or max_size >= localmask.count()) {
+    // shortcut in case rbg count < max_size
+    return localmask;
+  }
 
   uint32_t i = 0, nof_alloc = 0;
   for (; i < localmask.size() and nof_alloc < max_size; ++i) {
@@ -69,7 +74,7 @@ rbg_interval find_empty_rbg_interval(uint32_t max_nof_rbgs, const rbgmask_t& cur
   return find_contiguous_interval(current_mask, max_nof_rbgs);
 }
 
-rbgmask_t compute_rbgmask_greedy(uint32_t max_nof_rbgs, bool is_contiguous, const rbgmask_t& current_mask)
+rbgmask_t find_available_rbgmask(uint32_t max_nof_rbgs, bool is_contiguous, const rbgmask_t& current_mask)
 {
   // Allocate enough RBs that accommodate pending data
   rbgmask_t newtx_mask(current_mask.size());
@@ -77,7 +82,7 @@ rbgmask_t compute_rbgmask_greedy(uint32_t max_nof_rbgs, bool is_contiguous, cons
     rbg_interval interv = find_contiguous_interval(current_mask, max_nof_rbgs);
     newtx_mask.fill(interv.start(), interv.stop());
   } else {
-    newtx_mask = find_available_rb_mask(current_mask, max_nof_rbgs);
+    newtx_mask = find_available_rbgmask(current_mask, max_nof_rbgs);
   }
   return newtx_mask;
 }
@@ -128,7 +133,7 @@ alloc_result try_dl_retx_alloc(sf_sched& tti_sched, sched_ue& ue, const dl_harq_
   // If previous mask does not fit, find another with exact same number of rbgs
   size_t nof_rbg             = retx_mask.count();
   bool   is_contiguous_alloc = ue.get_dci_format() == SRSRAN_DCI_FORMAT1A;
-  retx_mask                  = compute_rbgmask_greedy(nof_rbg, is_contiguous_alloc, tti_sched.get_dl_mask());
+  retx_mask                  = find_available_rbgmask(nof_rbg, is_contiguous_alloc, tti_sched.get_dl_mask());
   if (retx_mask.count() == nof_rbg) {
     return tti_sched.alloc_dl_user(&ue, retx_mask, h.get_id());
   }
@@ -155,7 +160,7 @@ alloc_result try_dl_newtx_alloc_greedy(sf_sched& tti_sched, sched_ue& ue, const 
 
   // Find RBG mask that accommodates pending data
   bool      is_contiguous_alloc = ue.get_dci_format() == SRSRAN_DCI_FORMAT1A;
-  rbgmask_t newtxmask           = compute_rbgmask_greedy(req_rbgs.stop(), is_contiguous_alloc, current_mask);
+  rbgmask_t newtxmask           = find_available_rbgmask(req_rbgs.stop(), is_contiguous_alloc, current_mask);
   if (newtxmask.none() or newtxmask.count() < req_rbgs.start()) {
     return alloc_result::no_sch_space;
   }

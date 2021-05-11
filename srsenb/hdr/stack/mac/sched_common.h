@@ -25,6 +25,7 @@ namespace srsenb {
 
 constexpr float    tti_duration_ms = 1;
 constexpr uint32_t NOF_AGGR_LEVEL  = 4;
+constexpr uint32_t MAX_NOF_RBGS    = 25;
 
 /***********************
  *   Helper Types
@@ -85,7 +86,7 @@ public:
 using pdcch_mask_t = srsran::bounded_bitset<sched_interface::max_cce, true>;
 
 //! Bitmask that stores the allocared DL RBGs
-using rbgmask_t = srsran::bounded_bitset<25, true>;
+using rbgmask_t = srsran::bounded_bitset<MAX_NOF_RBGS, true>;
 
 //! Bitmask that stores the allocated UL PRBs
 using prbmask_t = srsran::bounded_bitset<100, true>;

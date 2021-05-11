@@ -43,7 +43,7 @@ rbg_interval find_empty_rbg_interval(uint32_t max_nof_rbgs, const rbgmask_t& cur
  * @param current_mask bitmask of occupied RBGs, where to search for available RBGs
  * @return bitmask of found RBGs. If a valid mask wasn't found, bitmask::size() == 0
  */
-rbgmask_t compute_rbgmask_greedy(uint32_t max_nof_rbgs, bool is_contiguous, const rbgmask_t& current_mask);
+rbgmask_t find_available_rbgmask(uint32_t max_nof_rbgs, bool is_contiguous, const rbgmask_t& current_mask);
 
 /**
  * Finds a range of L contiguous PRBs that are empty
