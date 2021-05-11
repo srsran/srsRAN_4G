@@ -54,6 +54,7 @@ void sched_ue_cell::set_ue_cfg(const sched_interface::ue_cfg_t& ue_cfg_)
     }
   }
   if (ue_cc_idx < 0 and prev_ue_cc_idx < 0) {
+    // CC was inactive and remain inactive
     return;
   }
 
@@ -65,6 +66,13 @@ void sched_ue_cell::set_ue_cfg(const sched_interface::ue_cfg_t& ue_cfg_)
   max_mcs_dl = cell_cfg->sched_cfg->pdsch_max_mcs >= 0 ? std::min(cell_cfg->sched_cfg->pdsch_max_mcs, 28) : 28U;
   if (ue_cfg->use_tbs_index_alt) {
     max_mcs_dl = std::min(max_mcs_dl, 27U);
+  }
+
+  if (ue_cc_idx >= 0) {
+    const auto& cc = ue_cfg_.supported_cc_list[ue_cc_idx];
+    if (cc.dl_cfg.cqi_report.periodic_configured) {
+      dl_cqi_ctxt.set_K(cc.dl_cfg.cqi_report.subband_wideband_ratio);
+    }
   }
 
   // If new cell configuration, clear Cell HARQs

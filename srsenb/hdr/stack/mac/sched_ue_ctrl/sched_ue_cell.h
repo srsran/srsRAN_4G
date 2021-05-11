@@ -88,11 +88,14 @@ private:
  *                    TBS/MCS derivation
  ************************************************************/
 
+/// Compute DL grant optimal TBS and MCS given UE cell context and DL grant parameters
 tbs_info cqi_to_tbs_dl(const sched_ue_cell& cell,
                        uint32_t             nof_prb,
                        uint32_t             nof_re,
                        srsran_dci_format_t  dci_format,
                        int                  req_bytes = -1);
+
+/// Compute UL grant optimal TBS and MCS given UE cell context and UL grant parameters
 tbs_info
 cqi_to_tbs_ul(const sched_ue_cell& cell, uint32_t nof_prb, uint32_t nof_re, int req_bytes = -1, int explicit_mcs = -1);
 

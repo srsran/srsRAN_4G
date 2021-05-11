@@ -30,7 +30,7 @@ namespace srsenb {
 class sched_dl_cqi
 {
 public:
-  sched_dl_cqi(uint32_t cell_nof_prb_, uint32_t K_, uint32_t init_dl_cqi = 1) :
+  sched_dl_cqi(uint32_t cell_nof_prb_, uint32_t K_, uint32_t init_dl_cqi) :
     cell_nof_prb(cell_nof_prb_),
     cell_nof_rbg(cell_nof_prb_to_rbg(cell_nof_prb_)),
     K(K_),
@@ -39,6 +39,12 @@ public:
     subband_cqi(srsran_cqi_hl_get_no_subbands(cell_nof_prb), 0)
   {
     srsran_assert(K <= 4, "K=%d outside of {0, 4}", K);
+  }
+
+  void set_K(uint32_t K_)
+  {
+    srsran_assert(K <= 4, "K=%d outside of {0, 4}", K);
+    K = K_;
   }
 
   void cqi_wb_info(tti_point tti, uint32_t cqi_value)
@@ -75,9 +81,8 @@ public:
     last_pos_cqi_tti = {};
     last_wb_tti      = {};
     wb_cqi_avg       = dl_cqi;
-    for (auto& bp : bp_list) {
-      bp.cqi_val           = dl_cqi;
-      bp.last_feedback_tti = {};
+    for (bandwidth_part_context& bp : bp_list) {
+      bp = bandwidth_part_context(dl_cqi);
     }
   }
 
@@ -92,7 +97,7 @@ public:
     float    cqi     = 0;
     uint32_t sbstart = rbg_to_sb_index(interv.start()), sbend = rbg_to_sb_index(interv.stop() - 1) + 1;
     for (uint32_t sb = sbstart; sb < sbend; ++sb) {
-      cqi += subband_cqi[sb];
+      cqi += bp_list[get_bp_index(sb)].last_feedback_tti.is_valid() ? subband_cqi[sb] : wb_cqi_avg;
     }
     return static_cast<int>(cqi / (sbend - sbstart));
   }
@@ -109,11 +114,15 @@ public:
     if (not subband_cqi_enabled()) {
       return static_cast<int>(wb_cqi_avg);
     }
-    float cqi = 0;
-    for (int rbg = mask.find_lowest(0, mask.size()); rbg != -1; rbg = mask.find_lowest(rbg + 1, mask.size())) {
-      cqi += subband_cqi[rbg_to_sb_index(rbg)];
+    float    cqi   = 0;
+    uint32_t count = 0;
+    for (int rbg = mask.find_lowest(0, mask.size()); rbg != -1; rbg = mask.find_lowest(rbg, mask.size())) {
+      uint32_t sb = rbg_to_sb_index(rbg);
+      cqi += bp_list[get_bp_index(sb)].last_feedback_tti.is_valid() ? subband_cqi[sb] : wb_cqi_avg;
+      count++;
+      rbg = static_cast<int>(((sb + 1U) * cell_nof_rbg + N() - 1U) / N()); // skip to next subband index
     }
-    return static_cast<int>(cqi / mask.count());
+    return static_cast<int>(cqi / count);
   }
 
   /// Get CQI-optimal RBG mask
@@ -177,11 +186,12 @@ private:
 
   /// context of bandwidth part
   struct bandwidth_part_context {
-    tti_point last_feedback_tti;
+    tti_point last_feedback_tti{};
     uint32_t  last_cqi_subband_idx;
     float     cqi_val;
 
-    explicit bandwidth_part_context(float alpha) : cqi_val(alpha), last_cqi_subband_idx(max_nof_subbands) {}
+    explicit bandwidth_part_context(uint32_t init_dl_cqi) : cqi_val(init_dl_cqi), last_cqi_subband_idx(max_nof_subbands)
+    {}
   };
 
   tti_point last_pos_cqi_tti;

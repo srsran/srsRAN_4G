@@ -18,7 +18,7 @@ namespace srsenb {
 void test_sched_cqi_one_subband_cqi()
 {
   // 50 PRBs, K=4
-  sched_dl_cqi ue_cqi(50, 4);
+  sched_dl_cqi ue_cqi(50, 4, 0);
 
   // J == 3, N == 9
   TESTASSERT(ue_cqi.nof_bandwidth_parts() == 3);
@@ -57,7 +57,7 @@ void test_sched_cqi_wideband_cqi()
   uint32_t nof_prb  = 50;
   uint32_t nof_rbgs = cell_nof_prb_to_rbg(nof_prb);
 
-  sched_dl_cqi ue_cqi(nof_prb, 0);
+  sched_dl_cqi ue_cqi(nof_prb, 0, 0);
 
   ue_cqi.cqi_wb_info(tti_point(0), 5);
 
