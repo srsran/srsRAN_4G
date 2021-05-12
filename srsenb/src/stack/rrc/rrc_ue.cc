@@ -1056,7 +1056,6 @@ bool rrc::ue::setup_erabs(const asn1::s1ap::erab_to_be_setup_list_ctxt_su_req_l&
 bool rrc::ue::release_erabs()
 {
   for (const auto& erab_it : bearer_list.get_erabs()) {
-    bearer_list.rem_gtpu_bearer(erab_it.second.id);
     parent->rlc->del_bearer(rnti, erab_it.second.lcid);
     parent->pdcp->del_bearer(rnti, erab_it.second.lcid);
   }
