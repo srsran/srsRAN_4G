@@ -27,6 +27,31 @@
  */
 #define SSB_FREQ_OFFSET_MAX_ERROR_HZ 0.01
 
+/**
+ * Correlation size in number of FFTs. It is desired to be power of 2
+ */
+#define SSB_CORR_SZ 4
+
+static int ssb_init_corr(srsran_ssb_t* q)
+{
+  // Initialise correlation only if it is enabled
+  if (!q->args.enable_correlate) {
+    return SRSRAN_SUCCESS;
+  }
+
+  // For each PSS sequence allocate
+  for (uint32_t N_id_2 = 0; N_id_2 < SRSRAN_NOF_NID_2_NR; N_id_2++) {
+    // Allocate sequences
+    q->pss_seq[N_id_2] = srsran_vec_cf_malloc(2 * q->max_symbol_sz);
+    if (q->pss_seq[N_id_2] == NULL) {
+      ERROR("Malloc");
+      return SRSRAN_ERROR;
+    }
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
 int srsran_ssb_init(srsran_ssb_t* q, const srsran_ssb_args_t* args)
 {
   // Verify input parameters
@@ -46,10 +71,16 @@ int srsran_ssb_init(srsran_ssb_t* q, const srsran_ssb_args_t* args)
   q->max_symbol_sz = (uint32_t)round(q->args.max_srate_hz / q->scs_hz);
 
   // Allocate temporal data
-  q->tmp_time = srsran_vec_cf_malloc(q->max_symbol_sz);
-  q->tmp_freq = srsran_vec_cf_malloc(q->max_symbol_sz);
-  if (q->tmp_time == NULL || q->tmp_time == NULL) {
+  q->tmp_time = srsran_vec_cf_malloc(SSB_CORR_SZ * q->max_symbol_sz);
+  q->tmp_freq = srsran_vec_cf_malloc(SSB_CORR_SZ * q->max_symbol_sz);
+  q->tmp_corr = srsran_vec_cf_malloc(SSB_CORR_SZ * q->max_symbol_sz);
+  if (q->tmp_time == NULL || q->tmp_freq == NULL || q->tmp_corr == NULL) {
     ERROR("Malloc");
+    return SRSRAN_ERROR;
+  }
+
+  // Allocate correlation buffers
+  if (ssb_init_corr(q) < SRSRAN_SUCCESS) {
     return SRSRAN_ERROR;
   }
 
@@ -70,8 +101,21 @@ void srsran_ssb_free(srsran_ssb_t* q)
     free(q->tmp_freq);
   }
 
+  if (q->tmp_corr != NULL) {
+    free(q->tmp_corr);
+  }
+
+  // For each PSS sequence allocate
+  for (uint32_t N_id_2 = 0; N_id_2 < SRSRAN_NOF_NID_2_NR; N_id_2++) {
+    if (q->pss_seq[N_id_2] != NULL) {
+      free(q->pss_seq[N_id_2]);
+    }
+  }
+
   srsran_dft_plan_free(&q->ifft);
   srsran_dft_plan_free(&q->fft);
+  srsran_dft_plan_free(&q->fft_corr);
+  srsran_dft_plan_free(&q->ifft_corr);
 
   SRSRAN_MEM_ZERO(q, srsran_ssb_t, 1);
 }
@@ -225,6 +269,94 @@ static int ssb_first_symbol(const srsran_ssb_cfg_t* cfg, uint32_t ssb_i)
   return SRSRAN_ERROR;
 }
 
+// Modulates a given symbol l and stores the time domain signal in q->tmp_time
+static void ssb_modulate_symbol(srsran_ssb_t* q, cf_t ssb_grid[SRSRAN_SSB_NOF_RE], uint32_t l)
+{
+  // Select symbol in grid
+  cf_t* ptr = &ssb_grid[l * SRSRAN_SSB_BW_SUBC];
+
+  // Map grid into frequency domain symbol
+  if (q->f_offset >= SRSRAN_SSB_BW_SUBC / 2) {
+    srsran_vec_cf_copy(&q->tmp_freq[q->f_offset - SRSRAN_SSB_BW_SUBC / 2], ptr, SRSRAN_SSB_BW_SUBC);
+  } else if (q->f_offset <= -SRSRAN_SSB_BW_SUBC / 2) {
+    srsran_vec_cf_copy(&q->tmp_freq[q->symbol_sz + q->f_offset - SRSRAN_SSB_BW_SUBC / 2], ptr, SRSRAN_SSB_BW_SUBC);
+  } else {
+    srsran_vec_cf_copy(
+        &q->tmp_freq[0], &ptr[SRSRAN_SSB_BW_SUBC / 2 - q->f_offset], SRSRAN_SSB_BW_SUBC / 2 + q->f_offset);
+    srsran_vec_cf_copy(&q->tmp_freq[q->symbol_sz - SRSRAN_SSB_BW_SUBC / 2 + q->f_offset],
+                       &ptr[0],
+                       SRSRAN_SSB_BW_SUBC / 2 - q->f_offset);
+  }
+
+  // Convert to time domain
+  srsran_dft_run_guru_c(&q->ifft);
+
+  // Normalise output
+  float norm = sqrtf((float)q->symbol_sz);
+  if (isnormal(norm)) {
+    srsran_vec_sc_prod_cfc(q->tmp_time, 1.0f / norm, q->tmp_time, q->symbol_sz);
+  }
+}
+
+static int ssb_setup_corr(srsran_ssb_t* q)
+{
+  // Skip if disabled
+  if (!q->args.enable_correlate) {
+    return SRSRAN_SUCCESS;
+  }
+
+  // Skip if the symbol size is unchanged
+  uint32_t corr_sz = q->symbol_sz * SSB_CORR_SZ;
+  if (q->corr_sz == corr_sz) {
+    return SRSRAN_SUCCESS;
+  }
+  q->corr_sz     = corr_sz;
+  q->corr_window = corr_sz - q->symbol_sz;
+
+  // Free correlation
+  srsran_dft_plan_free(&q->fft_corr);
+  srsran_dft_plan_free(&q->ifft_corr);
+
+  // Prepare correlation FFT
+  if (srsran_dft_plan_guru_c(&q->fft_corr, (int)corr_sz, SRSRAN_DFT_FORWARD, q->tmp_time, q->tmp_freq, 1, 1, 1, 1, 1) <
+      SRSRAN_SUCCESS) {
+    ERROR("Error planning correlation DFT");
+    return SRSRAN_ERROR;
+  }
+  if (srsran_dft_plan_guru_c(
+          &q->ifft_corr, (int)corr_sz, SRSRAN_DFT_BACKWARD, q->tmp_corr, q->tmp_time, 1, 1, 1, 1, 1) < SRSRAN_SUCCESS) {
+    ERROR("Error planning correlation DFT");
+    return SRSRAN_ERROR;
+  }
+
+  // Initialise frequency domain
+  srsran_vec_cf_zero(q->tmp_freq, q->symbol_sz);
+
+  // Zero the time domain signal last samples
+  srsran_vec_cf_zero(&q->tmp_time[q->symbol_sz], q->corr_window);
+
+  // Initialise correlation sequence
+  for (uint32_t N_id_2 = 0; N_id_2 < SRSRAN_NOF_NID_2_NR; N_id_2++) {
+    // Put the PSS in SSB grid
+    cf_t ssb_grid[SRSRAN_SSB_NOF_RE] = {};
+    if (srsran_pss_nr_put(ssb_grid, N_id_2, 1.0f) < SRSRAN_SUCCESS) {
+      ERROR("Error putting PDD N_id_2=%d", N_id_2);
+      return SRSRAN_ERROR;
+    }
+
+    // Modulate symbol with PSS
+    ssb_modulate_symbol(q, ssb_grid, SRSRAN_PSS_NR_SYMBOL_IDX);
+
+    // Convert to frequency domain
+    srsran_dft_run_guru_c(&q->fft_corr);
+
+    // Copy frequency domain sequence
+    srsran_vec_cf_copy(q->pss_seq[N_id_2], q->tmp_freq, q->corr_sz);
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
 int srsran_ssb_set_cfg(srsran_ssb_t* q, const srsran_ssb_cfg_t* cfg)
 {
   // Verify input parameters
@@ -238,10 +370,9 @@ int srsran_ssb_set_cfg(srsran_ssb_t* q, const srsran_ssb_cfg_t* cfg)
   // Get first symbol
   int l_begin = ssb_first_symbol(cfg, 0);
   if (l_begin < SRSRAN_SUCCESS) {
-    ERROR("Calculating first SSB symbol");
-    return SRSRAN_ERROR;
+    // set it to 2 in case it is not selected
+    l_begin = 2;
   }
-  l_begin = 2;
 
   float t_offset_s = srsran_symbol_offset_s((uint32_t)l_begin, cfg->scs);
   if (isnan(t_offset_s) || isinf(t_offset_s) || t_offset_s < 0.0f) {
@@ -286,7 +417,7 @@ int srsran_ssb_set_cfg(srsran_ssb_t* q, const srsran_ssb_cfg_t* cfg)
   }
 
   // Replan iFFT
-  if ((q->args.enable_encode) && q->symbol_sz != symbol_sz) {
+  if ((q->args.enable_encode || q->args.enable_correlate) && q->symbol_sz != symbol_sz) {
     // free the current IFFT, it internally checks if the plan was created
     srsran_dft_plan_free(&q->ifft);
 
@@ -314,6 +445,12 @@ int srsran_ssb_set_cfg(srsran_ssb_t* q, const srsran_ssb_cfg_t* cfg)
   // Finally, copy configuration
   q->cfg       = *cfg;
   q->symbol_sz = symbol_sz;
+
+  // Initialise correlation
+  if (ssb_setup_corr(q) < SRSRAN_SUCCESS) {
+    ERROR("Error initialising correlation");
+    return SRSRAN_ERROR;
+  }
 
   if (!isnormal(q->cfg.beta_pss)) {
     q->cfg.beta_pss = SRSRAN_SSB_DEFAULT_BETA;
@@ -394,30 +531,7 @@ int srsran_ssb_add(srsran_ssb_t* q, uint32_t N_id, const srsran_pbch_msg_nr_t* m
     // Get CP length
     uint32_t cp_len = q->cp_sz[l];
 
-    // Select symbol in grid
-    cf_t* ptr = &ssb_grid[l * SRSRAN_SSB_BW_SUBC];
-
-    // Map grid into frequency domain symbol
-    if (q->f_offset >= SRSRAN_SSB_BW_SUBC / 2) {
-      srsran_vec_cf_copy(&q->tmp_freq[q->f_offset - SRSRAN_SSB_BW_SUBC / 2], ptr, SRSRAN_SSB_BW_SUBC);
-    } else if (q->f_offset <= -SRSRAN_SSB_BW_SUBC / 2) {
-      srsran_vec_cf_copy(&q->tmp_freq[q->symbol_sz + q->f_offset - SRSRAN_SSB_BW_SUBC / 2], ptr, SRSRAN_SSB_BW_SUBC);
-    } else {
-      srsran_vec_cf_copy(
-          &q->tmp_freq[0], &ptr[SRSRAN_SSB_BW_SUBC / 2 - q->f_offset], SRSRAN_SSB_BW_SUBC / 2 + q->f_offset);
-      srsran_vec_cf_copy(&q->tmp_freq[q->symbol_sz - SRSRAN_SSB_BW_SUBC / 2 + q->f_offset],
-                         &ptr[0],
-                         SRSRAN_SSB_BW_SUBC / 2 - q->f_offset);
-    }
-
-    // Convert to time domain
-    srsran_dft_run_guru_c(&q->ifft);
-
-    // Normalise output
-    float norm = sqrtf((float)q->symbol_sz);
-    if (isnormal(norm)) {
-      srsran_vec_sc_prod_cfc(q->tmp_time, 1.0f / norm, q->tmp_time, q->symbol_sz);
-    }
+    ssb_modulate_symbol(q, ssb_grid, l);
 
     // Add cyclic prefix to input;
     srsran_vec_sum_ccc(in_ptr, &q->tmp_time[q->symbol_sz - cp_len], out_ptr, cp_len);
@@ -433,9 +547,9 @@ int srsran_ssb_add(srsran_ssb_t* q, uint32_t N_id, const srsran_pbch_msg_nr_t* m
   return SRSRAN_SUCCESS;
 }
 
-static int ssb_demodulate(srsran_ssb_t* q, const cf_t* in, cf_t ssb_grid[SRSRAN_SSB_NOF_RE])
+static int ssb_demodulate(srsran_ssb_t* q, const cf_t* in, uint32_t t_offset, cf_t ssb_grid[SRSRAN_SSB_NOF_RE])
 {
-  const cf_t* in_ptr = &in[q->t_offset];
+  const cf_t* in_ptr = &in[t_offset];
   for (uint32_t l = 0; l < SRSRAN_SSB_DURATION_NSYMB; l++) {
     // Get CP length
     uint32_t cp_len = q->cp_sz[l];
@@ -561,31 +675,95 @@ ssb_measure(srsran_ssb_t* q, const cf_t ssb_grid[SRSRAN_SSB_NOF_RE], uint32_t N_
 
   return SRSRAN_SUCCESS;
 }
-int srsran_ssb_csi_search(srsran_ssb_t* q, const cf_t* in, uint32_t* N_id, srsran_csi_trs_measurements_t* meas)
+
+static int
+ssb_pss_search(srsran_ssb_t* q, const cf_t* in, uint32_t nof_samples, uint32_t* found_N_id_2, uint32_t* found_delay)
+{
+  // verify it is initialised
+  if (q->corr_sz == 0) {
+    return SRSRAN_ERROR;
+  }
+
+  // Correlation best sequence
+  float    best_corr   = 0;
+  uint32_t best_delay  = 0;
+  uint32_t best_N_id_2 = 0;
+
+  // Delay in correlation window
+  uint32_t t_offset = 0;
+  while ((t_offset + q->corr_sz) < nof_samples) {
+    // Prepare time domain signal
+    srsran_vec_cf_copy(q->tmp_time, &in[t_offset], q->corr_sz);
+
+    // Convert to frequency domain
+    srsran_dft_run_guru_c(&q->fft_corr);
+
+    // Try each N_id_2 sequence
+    for (uint32_t N_id_2 = 0; N_id_2 < SRSRAN_NOF_NID_2_NR; N_id_2++) {
+      // Actual correlation in frequency domain
+      srsran_vec_prod_conj_ccc(q->tmp_freq, q->pss_seq[N_id_2], q->tmp_corr, q->corr_sz);
+
+      // Convert to time domain
+      srsran_dft_run_guru_c(&q->ifft_corr);
+
+      // Find maximum
+      uint32_t this_max_idx = srsran_vec_max_abs_ci(q->tmp_time, q->corr_window);
+      float    corr         = SRSRAN_CSQABS(q->tmp_time[this_max_idx]);
+
+      // Update if the correlation is better than the current best
+      if (best_corr < corr) {
+        best_corr   = corr;
+        best_delay  = this_max_idx + t_offset;
+        best_N_id_2 = N_id_2;
+      }
+    }
+
+    // Advance time
+    t_offset += q->corr_window;
+  }
+
+  // Save findings
+  *found_delay  = best_delay;
+  *found_N_id_2 = best_N_id_2;
+
+  return SRSRAN_SUCCESS;
+}
+
+int srsran_ssb_csi_search(srsran_ssb_t*                  q,
+                          const cf_t*                    in,
+                          uint32_t                       nof_samples,
+                          uint32_t*                      N_id,
+                          srsran_csi_trs_measurements_t* meas)
 {
   // Verify inputs
   if (q == NULL || in == NULL || N_id == NULL || meas == NULL || !isnormal(q->scs_hz)) {
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
-  if (!q->args.enable_measure) {
+  if (!q->args.enable_correlate) {
     ERROR("SSB is not configured for search");
     return SRSRAN_ERROR;
   }
 
-  cf_t ssb_grid[SRSRAN_SSB_NOF_RE] = {};
-
-  // Demodulate
-  if (ssb_demodulate(q, in, ssb_grid) < SRSRAN_SUCCESS) {
-    ERROR("Error demodulating");
+  // Search for PSS in time domain
+  uint32_t N_id_2   = 0;
+  uint32_t t_offset = 0;
+  if (ssb_pss_search(q, in, nof_samples, &N_id_2, &t_offset) < SRSRAN_SUCCESS) {
+    ERROR("Error searching for N_id_2");
     return SRSRAN_ERROR;
   }
 
-  // Find best N_id_2
-  uint32_t N_id_2   = 0;
-  float    pss_corr = 0.0f;
-  if (srsran_pss_nr_find(ssb_grid, &pss_corr, &N_id_2) < SRSRAN_SUCCESS) {
-    ERROR("Error searching for N_id_2");
+  // Remove CP offset prior demodulation
+  if (t_offset >= q->cp_sz[0]) {
+    t_offset -= q->cp_sz[0];
+  } else {
+    t_offset = 0;
+  }
+
+  // Demodulate
+  cf_t ssb_grid[SRSRAN_SSB_NOF_RE] = {};
+  if (ssb_demodulate(q, in, t_offset, ssb_grid) < SRSRAN_SUCCESS) {
+    ERROR("Error demodulating");
     return SRSRAN_ERROR;
   }
 
@@ -606,6 +784,9 @@ int srsran_ssb_csi_search(srsran_ssb_t* q, const cf_t* in, uint32_t* N_id, srsra
     return SRSRAN_ERROR;
   }
 
+  // Add delay to measure
+  meas->delay_us += (float)(1e6 * t_offset / q->cfg.srate_hz);
+
   return SRSRAN_SUCCESS;
 }
 
@@ -624,7 +805,7 @@ int srsran_ssb_csi_measure(srsran_ssb_t* q, uint32_t N_id, const cf_t* in, srsra
   cf_t ssb_grid[SRSRAN_SSB_NOF_RE] = {};
 
   // Demodulate
-  if (ssb_demodulate(q, in, ssb_grid) < SRSRAN_SUCCESS) {
+  if (ssb_demodulate(q, in, q->t_offset, ssb_grid) < SRSRAN_SUCCESS) {
     ERROR("Error demodulating");
     return SRSRAN_ERROR;
   }

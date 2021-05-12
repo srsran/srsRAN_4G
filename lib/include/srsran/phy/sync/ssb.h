@@ -80,17 +80,23 @@ typedef struct SRSRAN_API {
   float    scs_hz;                           ///< Subcarrier spacing in Hz
   uint32_t max_symbol_sz;                    ///< Maximum symbol size given the minimum supported SCS and sampling rate
   uint32_t symbol_sz;                        ///< Current SSB symbol size (for the given base-band sampling rate)
+  uint32_t corr_sz;                          ///< Correlation size
+  uint32_t corr_window;                      ///< Correlation window length
   int32_t  f_offset;                         ///< Current SSB integer frequency offset (multiple of SCS)
   uint32_t t_offset;                         ///< Current SSB integer time offset (number of samples)
   uint32_t cp_sz[SRSRAN_SSB_DURATION_NSYMB]; ///< CP length for each SSB symbol
 
   /// Internal Objects
-  srsran_dft_plan_t ifft; ///< IFFT object for modulating the SSB
-  srsran_dft_plan_t fft;  ///< FFT object for demodulate the SSB.
+  srsran_dft_plan_t ifft;      ///< IFFT object for modulating the SSB
+  srsran_dft_plan_t fft;       ///< FFT object for demodulate the SSB.
+  srsran_dft_plan_t fft_corr;  ///< FFT for correlation
+  srsran_dft_plan_t ifft_corr; ///< IFFT for correlation
 
   /// Frequency/Time domain temporal data
-  cf_t* tmp_freq;
-  cf_t* tmp_time;
+  cf_t* tmp_freq;                     ///< Temporal frequency domain buffer
+  cf_t* tmp_time;                     ///< Temporal time domain buffer
+  cf_t* tmp_corr;                     ///< Temporal correlation frequency domain buffer
+  cf_t* pss_seq[SRSRAN_NOF_NID_2_NR]; ///< Possible frequency domain PSS for find
 } srsran_ssb_t;
 
 /**
@@ -148,8 +154,11 @@ srsran_ssb_add(srsran_ssb_t* q, uint32_t N_id, const srsran_pbch_msg_nr_t* msg, 
  * @param meas SSB-based CSI measurement of the most suitable cell identifier
  * @return SRSRAN_SUCCESS if the parameters are valid, SRSRAN_ERROR code otherwise
  */
-SRSRAN_API int
-srsran_ssb_csi_search(srsran_ssb_t* q, const cf_t* in, uint32_t* N_id, srsran_csi_trs_measurements_t* meas);
+SRSRAN_API int srsran_ssb_csi_search(srsran_ssb_t*                  q,
+                                     const cf_t*                    in,
+                                     uint32_t                       nof_samples,
+                                     uint32_t*                      N_id,
+                                     srsran_csi_trs_measurements_t* meas);
 
 /**
  * @brief Perform Channel State Information (CSI) measurement from the SSB

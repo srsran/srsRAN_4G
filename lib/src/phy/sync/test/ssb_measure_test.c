@@ -124,19 +124,18 @@ static int test_case_1(srsran_ssb_t* ssb)
     gettimeofday(&t[1], NULL);
     uint32_t                      N_id_found  = 0;
     srsran_csi_trs_measurements_t meas_search = {};
-    TESTASSERT(srsran_ssb_csi_search(ssb, buffer, &N_id_found, &meas_search) == SRSRAN_SUCCESS);
+    TESTASSERT(srsran_ssb_csi_search(ssb, buffer, sf_len, &N_id_found, &meas_search) == SRSRAN_SUCCESS);
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
     t_find_usec += t[0].tv_usec + t[0].tv_sec * 1000000UL;
 
     // Print measurement
-    char str[512];
+    char str[512] = {};
     srsran_csi_meas_info(&meas_search, str, sizeof(str));
-    INFO("test_case_1 - pci=%d %s", pci, str);
+    INFO("test_case_1 - search pci=%d %s", pci, str);
 
-    // Assert find and measurements
+    // Assert find
     TESTASSERT(N_id_found == pci);
-    TESTASSERT(assert_measure(&meas_search) == SRSRAN_SUCCESS);
 
     // Measure
     gettimeofday(&t[1], NULL);
@@ -146,12 +145,16 @@ static int test_case_1(srsran_ssb_t* ssb)
     get_time_interval(t);
     t_meas_usec += t[0].tv_usec + t[0].tv_sec * 1000000UL;
 
+    srsran_csi_meas_info(&meas, str, sizeof(str));
+    INFO("test_case_1 - measure pci=%d %s", pci, str);
+
     // Assert measurements
     TESTASSERT(assert_measure(&meas) == SRSRAN_SUCCESS);
   }
 
-  INFO("test_case_1 - %.1f usec/search; %.1f usec/measurement",
+  INFO("test_case_1 - %.1f usec/search; Max srate %.1f MSps; %.1f usec/measurement",
        (double)t_find_usec / (double)SRSRAN_NOF_NID_NR,
+       (double)sf_len * (double)SRSRAN_NOF_NID_NR / (double)t_find_usec,
        (double)t_meas_usec / (double)SRSRAN_NOF_NID_NR);
 
   return SRSRAN_SUCCESS;
@@ -171,6 +174,7 @@ int main(int argc, char** argv)
   srsran_ssb_args_t ssb_args = {};
   ssb_args.enable_encode     = true;
   ssb_args.enable_measure    = true;
+  ssb_args.enable_correlate  = true;
 
   if (buffer == NULL) {
     ERROR("Malloc");
