@@ -231,31 +231,32 @@ std::tuple<int, YType, int, YType> false_position_method(int x1, int x2, YType y
 }
 
 tbs_info cqi_to_tbs_dl(const sched_ue_cell& cell,
-                       uint32_t             nof_prb,
+                       const rbgmask_t&     rbgs,
                        uint32_t             nof_re,
                        srsran_dci_format_t  dci_format,
                        int                  req_bytes)
 {
-  bool use_tbs_index_alt = cell.get_ue_cfg()->use_tbs_index_alt and dci_format != SRSRAN_DCI_FORMAT1A;
+  bool     use_tbs_index_alt = cell.get_ue_cfg()->use_tbs_index_alt and dci_format != SRSRAN_DCI_FORMAT1A;
+  uint32_t nof_prbs          = count_prb_per_tb(rbgs);
 
   tbs_info ret;
   if (cell.fixed_mcs_dl < 0 or not cell.dl_cqi().is_cqi_info_received()) {
     // Dynamic MCS configured or first Tx
-    uint32_t dl_cqi_avg = cell.dl_cqi().get_grant_avg_cqi(prb_interval(0, nof_prb));
+    uint32_t dl_cqi_avg = cell.dl_cqi().get_grant_avg_cqi(rbgs);
 
     ret = compute_min_mcs_and_tbs_from_required_bytes(
-        nof_prb, nof_re, dl_cqi_avg, cell.max_mcs_dl, req_bytes, false, false, use_tbs_index_alt);
+        nof_prbs, nof_re, dl_cqi_avg, cell.max_mcs_dl, req_bytes, false, false, use_tbs_index_alt);
 
     // If coderate > SRSRAN_MIN(max_coderate, 0.932 * Qm) we should set TBS=0. We don't because it's not correctly
     // handled by the scheduler, but we might be scheduling undecodable codewords at very low SNR
     if (ret.tbs_bytes < 0) {
       ret.mcs       = 0;
-      ret.tbs_bytes = get_tbs_bytes((uint32_t)ret.mcs, nof_prb, use_tbs_index_alt, false);
+      ret.tbs_bytes = get_tbs_bytes((uint32_t)ret.mcs, nof_prbs, use_tbs_index_alt, false);
     }
   } else {
     // Fixed MCS configured
     ret.mcs       = cell.fixed_mcs_dl;
-    ret.tbs_bytes = get_tbs_bytes((uint32_t)cell.fixed_mcs_dl, nof_prb, use_tbs_index_alt, false);
+    ret.tbs_bytes = get_tbs_bytes((uint32_t)cell.fixed_mcs_dl, nof_prbs, use_tbs_index_alt, false);
   }
   return ret;
 }
@@ -293,8 +294,9 @@ int get_required_prb_dl(const sched_ue_cell& cell,
                         uint32_t             req_bytes)
 {
   auto compute_tbs_approx = [tti_tx_dl, &cell, dci_format](uint32_t nof_prb) {
-    uint32_t nof_re = cell.cell_cfg->get_dl_lb_nof_re(tti_tx_dl, nof_prb);
-    tbs_info tb     = cqi_to_tbs_dl(cell, nof_prb, nof_re, dci_format, -1);
+    uint32_t  nof_re       = cell.cell_cfg->get_dl_lb_nof_re(tti_tx_dl, nof_prb);
+    rbgmask_t min_cqi_rbgs = cell.dl_cqi().get_optim_rbgmask(nof_prb, false);
+    tbs_info  tb           = cqi_to_tbs_dl(cell, min_cqi_rbgs, nof_re, dci_format, -1);
     return tb.tbs_bytes;
   };
 

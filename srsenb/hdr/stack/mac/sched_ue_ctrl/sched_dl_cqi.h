@@ -41,12 +41,14 @@ public:
     srsran_assert(K <= 4, "K=%d outside of {0, 4}", K);
   }
 
+  /// Set K value from upper layers. See TS 36.331, CQI-ReportPeriodic
   void set_K(uint32_t K_)
   {
     srsran_assert(K <= 4, "K=%d outside of {0, 4}", K);
     K = K_;
   }
 
+  /// Update wideband CQI
   void cqi_wb_info(tti_point tti, uint32_t cqi_value)
   {
     if (cqi_value > 0) {
@@ -57,6 +59,7 @@ public:
     wb_cqi_avg  = static_cast<float>(cqi_value);
   }
 
+  /// Update subband CQI for subband "sb_index"
   void cqi_sb_info(tti_point tti, uint32_t sb_index, uint32_t cqi_value)
   {
     if (cqi_value > 0) {
@@ -95,7 +98,7 @@ public:
       return static_cast<int>(wb_cqi_avg);
     }
     uint32_t sb_idx = rbg_to_sb_index(rbg);
-    return bp_list[get_bp_index(sb_idx)].last_feedback_tti.is_valid() ? subband_cqi[sb_idx] : wb_cqi_avg;
+    return get_subband_cqi_(sb_idx);
   }
 
   /// Get average CQI in given RBG interval
@@ -107,7 +110,7 @@ public:
     float    cqi     = 0;
     uint32_t sbstart = rbg_to_sb_index(interv.start()), sbend = rbg_to_sb_index(interv.stop() - 1) + 1;
     for (uint32_t sb = sbstart; sb < sbend; ++sb) {
-      cqi += bp_list[get_bp_index(sb)].last_feedback_tti.is_valid() ? subband_cqi[sb] : wb_cqi_avg;
+      cqi += get_subband_cqi_(sb);
     }
     return static_cast<int>(cqi / (sbend - sbstart));
   }
@@ -128,20 +131,20 @@ public:
     uint32_t count = 0;
     for (int rbg = mask.find_lowest(0, mask.size()); rbg != -1; rbg = mask.find_lowest(rbg, mask.size())) {
       uint32_t sb = rbg_to_sb_index(rbg);
-      cqi += bp_list[get_bp_index(sb)].last_feedback_tti.is_valid() ? subband_cqi[sb] : wb_cqi_avg;
+      cqi += get_subband_cqi_(sb);
       count++;
       rbg = static_cast<int>(((sb + 1U) * cell_nof_rbg + N() - 1U) / N()); // skip to next subband index
     }
     return static_cast<int>(cqi / count);
   }
 
-  /// Get CQI-optimal RBG mask
-  rbgmask_t get_optim_rbgmask(uint32_t req_rbgs) const
+  /// Get CQI-optimal RBG mask with at most "req_rbgs" RBGs
+  rbgmask_t get_optim_rbgmask(uint32_t req_rbgs, bool max_min_flag = true) const
   {
     rbgmask_t rbgmask(cell_nof_rbg);
-    return get_optim_rbgmask(rbgmask, req_rbgs);
+    return get_optim_rbgmask(rbgmask, req_rbgs, max_min_flag);
   }
-  rbgmask_t get_optim_rbgmask(const rbgmask_t& dl_mask, uint32_t req_rbgs) const;
+  rbgmask_t get_optim_rbgmask(const rbgmask_t& dl_mask, uint32_t req_rbgs, bool max_min_flag = true) const;
 
   /// TS 36.321, 7.2.2 - Parameter N
   uint32_t nof_subbands() const { return subband_cqi.size(); }
@@ -172,13 +175,18 @@ private:
 
   uint32_t get_bp_index(uint32_t sb_index) const { return sb_index * J() / N(); }
 
-  uint32_t get_sb_index(uint32_t prb_index) const { return prb_index * N() / cell_nof_prb; }
+  uint32_t prb_to_sb_index(uint32_t prb_index) const { return prb_index * N() / cell_nof_prb; }
 
   uint32_t rbg_to_sb_index(uint32_t rbg_index) const { return rbg_index * N() / cell_nof_rbg; }
 
   srsran::interval<uint32_t> get_bp_sb_indexes(uint32_t bp_idx) const
   {
     return srsran::interval<uint32_t>{bp_idx * N() / J(), (bp_idx + 1) * N() / J()};
+  }
+
+  float get_subband_cqi_(uint32_t sb_idx) const
+  {
+    return bp_list[get_bp_index(sb_idx)].last_feedback_tti.is_valid() ? subband_cqi[sb_idx] : wb_cqi_avg;
   }
 
   uint32_t cell_nof_prb;

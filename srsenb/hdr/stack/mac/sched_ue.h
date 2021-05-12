@@ -153,7 +153,7 @@ private:
 
   tbs_info compute_mcs_and_tbs(uint32_t               enb_cc_idx,
                                tti_point              tti_tx_dl,
-                               uint32_t               nof_alloc_prbs,
+                               const rbgmask_t&       rbgs,
                                uint32_t               cfi,
                                const srsran_dci_dl_t& dci);
 

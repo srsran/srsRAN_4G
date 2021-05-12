@@ -90,7 +90,7 @@ private:
 
 /// Compute DL grant optimal TBS and MCS given UE cell context and DL grant parameters
 tbs_info cqi_to_tbs_dl(const sched_ue_cell& cell,
-                       uint32_t             nof_prb,
+                       const rbgmask_t&     rbgs,
                        uint32_t             nof_re,
                        srsran_dci_format_t  dci_format,
                        int                  req_bytes = -1);

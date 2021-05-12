@@ -322,8 +322,7 @@ tbs_info sched_ue::allocate_new_dl_mac_pdu(sched::dl_sched_data_t* data,
                                            uint32_t                tb)
 {
   srsran_dci_dl_t* dci     = &data->dci;
-  uint32_t         nof_prb = count_prb_per_tb(user_mask);
-  tbs_info         tb_info = compute_mcs_and_tbs(enb_cc_idx, tti_tx_dl, nof_prb, cfi, *dci);
+  tbs_info         tb_info = compute_mcs_and_tbs(enb_cc_idx, tti_tx_dl, user_mask, cfi, *dci);
 
   // Allocate MAC PDU (subheaders, CEs, and SDUS)
   int rem_tbs = tb_info.tbs_bytes;
@@ -470,25 +469,25 @@ int sched_ue::generate_format1(uint32_t                          pid,
  * Based on the amount of tx data, allocated PRBs, DCI params, etc. compute a valid MCS and resulting TBS
  * @param enb_cc_idx user carrier index
  * @param tti_tx_dl tti when the tx will occur
- * @param nof_alloc_prbs number of PRBs that were allocated
+ * @param rbgs RBG mask
  * @param cfi Number of control symbols in Subframe
  * @param dci contains the RBG mask, and alloc type
  * @return pair with MCS and TBS (in bytes)
  */
 tbs_info sched_ue::compute_mcs_and_tbs(uint32_t               enb_cc_idx,
                                        tti_point              tti_tx_dl,
-                                       uint32_t               nof_alloc_prbs,
+                                       const rbgmask_t&       rbg_mask,
                                        uint32_t               cfi,
                                        const srsran_dci_dl_t& dci)
 {
-  assert(cells[enb_cc_idx].configured());
+  srsran_assert(cells[enb_cc_idx].configured(), "computation of MCS/TBS called for non-configured CC");
   srsran::interval<uint32_t> req_bytes = get_requested_dl_bytes(enb_cc_idx);
 
   // Calculate exact number of RE for this PRB allocation
   uint32_t nof_re = cells[enb_cc_idx].cell_cfg->get_dl_nof_res(tti_tx_dl, dci, cfi);
 
   // Compute MCS+TBS
-  tbs_info tb = cqi_to_tbs_dl(cells[enb_cc_idx], nof_alloc_prbs, nof_re, dci.format, req_bytes.stop());
+  tbs_info tb = cqi_to_tbs_dl(cells[enb_cc_idx], rbg_mask, nof_re, dci.format, req_bytes.stop());
 
   if (tb.tbs_bytes > 0 and tb.tbs_bytes < (int)req_bytes.start()) {
     logger.info("SCHED: Could not get PRB allocation that avoids MAC CE or RLC SRB0 PDU segmentation");
