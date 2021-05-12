@@ -322,7 +322,8 @@ void mac_controller::set_scell_activation(const std::bitset<SRSRAN_MAX_CARRIERS>
 void mac_controller::set_drb_activation(bool active)
 {
   for (const drb_to_add_mod_s& drb : bearer_list.get_established_drbs()) {
-    current_sched_ue_cfg.ue_bearers[drb_to_lcid((lte_drb)drb.drb_id)].direction =
+    auto erab_it = bearer_list.get_erabs().find(drb.drb_id + 4);
+    current_sched_ue_cfg.ue_bearers[erab_it->second.lcid].direction =
         active ? sched_interface::ue_bearer_cfg_t::BOTH : sched_interface::ue_bearer_cfg_t::IDLE;
   }
 }
