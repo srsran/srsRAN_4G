@@ -174,7 +174,7 @@ int main(int argc, char** argv)
   srsran_ssb_args_t ssb_args = {};
   ssb_args.enable_encode     = true;
   ssb_args.enable_measure    = true;
-  ssb_args.enable_correlate  = true;
+  ssb_args.enable_search     = true;
 
   if (buffer == NULL) {
     ERROR("Malloc");

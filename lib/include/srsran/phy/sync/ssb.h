@@ -43,12 +43,12 @@
  * @brief Describes SSB object initialization arguments
  */
 typedef struct SRSRAN_API {
-  double max_srate_hz; ///< Maximum sampling rate in Hz (common for gNb and UE), set to zero to use default
-  srsran_subcarrier_spacing_t min_scs;          ///< Minimum subcarrier spacing
-  bool                        enable_correlate; ///< Enables PSS/SSS correlation and peak search (UE cell search)
-  bool                        enable_encode;    ///< Enables PBCH Encoder (intended for gNb)
-  bool                        enable_decode;    ///< Enables PBCH Decoder (intented for UE)
-  bool                        enable_measure;   ///< Enables PSS/SSS CSI measurements and frequency domain search
+  double                      max_srate_hz;   ///< Maximum sampling rate in Hz, set to zero to use default
+  srsran_subcarrier_spacing_t min_scs;        ///< Minimum subcarrier spacing
+  bool                        enable_search;  ///< Enables PSS/SSS blind search
+  bool                        enable_measure; ///< Enables PSS/SSS CSI measurements and frequency domain search
+  bool                        enable_encode;  ///< Enables PBCH Encoder
+  bool                        enable_decode;  ///< Enables PBCH Decoder
 } srsran_ssb_args_t;
 
 /**

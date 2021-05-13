@@ -35,14 +35,14 @@
 static int ssb_init_corr(srsran_ssb_t* q)
 {
   // Initialise correlation only if it is enabled
-  if (!q->args.enable_correlate) {
+  if (!q->args.enable_search) {
     return SRSRAN_SUCCESS;
   }
 
   // For each PSS sequence allocate
   for (uint32_t N_id_2 = 0; N_id_2 < SRSRAN_NOF_NID_2_NR; N_id_2++) {
     // Allocate sequences
-    q->pss_seq[N_id_2] = srsran_vec_cf_malloc(2 * q->max_symbol_sz);
+    q->pss_seq[N_id_2] = srsran_vec_cf_malloc(SSB_CORR_SZ * q->max_symbol_sz);
     if (q->pss_seq[N_id_2] == NULL) {
       ERROR("Malloc");
       return SRSRAN_ERROR;
@@ -301,7 +301,7 @@ static void ssb_modulate_symbol(srsran_ssb_t* q, cf_t ssb_grid[SRSRAN_SSB_NOF_RE
 static int ssb_setup_corr(srsran_ssb_t* q)
 {
   // Skip if disabled
-  if (!q->args.enable_correlate) {
+  if (!q->args.enable_search) {
     return SRSRAN_SUCCESS;
   }
 
@@ -417,7 +417,7 @@ int srsran_ssb_set_cfg(srsran_ssb_t* q, const srsran_ssb_cfg_t* cfg)
   }
 
   // Replan iFFT
-  if ((q->args.enable_encode || q->args.enable_correlate) && q->symbol_sz != symbol_sz) {
+  if ((q->args.enable_encode || q->args.enable_search) && q->symbol_sz != symbol_sz) {
     // free the current IFFT, it internally checks if the plan was created
     srsran_dft_plan_free(&q->ifft);
 
@@ -430,7 +430,7 @@ int srsran_ssb_set_cfg(srsran_ssb_t* q, const srsran_ssb_cfg_t* cfg)
   }
 
   // Replan FFT
-  if ((q->args.enable_measure || q->args.enable_decode) && q->symbol_sz != symbol_sz) {
+  if ((q->args.enable_measure || q->args.enable_decode || q->args.enable_search) && q->symbol_sz != symbol_sz) {
     // free the current FFT, it internally checks if the plan was created
     srsran_dft_plan_free(&q->fft);
 
@@ -740,7 +740,7 @@ int srsran_ssb_csi_search(srsran_ssb_t*                  q,
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
-  if (!q->args.enable_correlate) {
+  if (!q->args.enable_search) {
     ERROR("SSB is not configured for search");
     return SRSRAN_ERROR;
   }
