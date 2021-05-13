@@ -295,20 +295,25 @@ int main(int argc, char** argv)
     return SRSRAN_ERROR;
   }
 
+  // Initiate logging
+  srslog::init();
+  srslog::basic_logger& logger = srslog::fetch_basic_logger("PHY");
+  logger.set_level(srslog::str_to_basic_level(args.log_level));
+
   // Deduce base-band parameters
   uint32_t sf_len         = srsran_min_symbol_sz_rb(args.nof_prb) * SRSRAN_SUBC_SPACING_NR(args.carrier_scs) / 1000U;
   double   srate_hz       = (double)sf_len * 1000.0;
   double   center_freq_hz = srsran::srsran_band_helper().nr_arfcn_to_freq(args.carier_arfcn);
   double   ssb_freq_hz    = srsran::srsran_band_helper().nr_arfcn_to_freq(args.ssb_arfcn);
   uint16_t band           = srsran::srsran_band_helper().get_band_from_dl_freq_Hz(center_freq_hz);
+  logger.debug("Band: %d; srate: %.2f MHz; center_freq: %.1f MHz; ssb_freq: %.1f MHz;",
+               band,
+               srate_hz / 1e6,
+               center_freq_hz / 1e6,
+               ssb_freq_hz / 1e6);
 
   // Allocate buffer
   std::vector<cf_t> baseband_buffer(sf_len);
-
-  // Initiate logging
-  srslog::init();
-  srslog::basic_logger& logger = srslog::fetch_basic_logger("PHY");
-  logger.set_level(srslog::str_to_basic_level(args.log_level));
 
   // Create measurement callback
   meas_itf_listener rrc;
@@ -415,15 +420,15 @@ int main(int argc, char** argv)
 
       // if it measuring, wait for avoiding overflowing
       intra_measure.wait_meas();
-    }
 
-    // Increase Time counter
-    ts.add(0.001);
+      // Increase Time counter
+      ts.add(0.001);
+    }
 
     // Give data to intra measure component
     intra_measure.write(sf_idx % 10240, baseband_buffer.data(), sf_len);
     if (sf_idx % 1000 == 0) {
-      logger.info("Done %.1f%%\n", (double)sf_idx * 100.0 / ((double)args.duration_s * 1000.0));
+      logger.info("Done %.1f%%", (double)sf_idx * 100.0 / ((double)args.duration_s * 1000.0));
     }
   }
 
