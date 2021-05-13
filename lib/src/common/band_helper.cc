@@ -55,7 +55,7 @@ std::vector<uint32_t> srsran_band_helper::get_bands_nr(uint32_t                 
   return bands;
 }
 
-uint16_t srsran_band_helper::get_band_from_dl_freq_Hz(double freq)
+uint16_t srsran_band_helper::get_band_from_dl_freq_Hz(double freq) const
 {
   uint32_t freq_MHz = (uint32_t)round(freq / 1e6);
   for (const nr_operating_band& band : nr_operating_bands_fr1) {
@@ -66,7 +66,7 @@ uint16_t srsran_band_helper::get_band_from_dl_freq_Hz(double freq)
   return UINT16_MAX;
 }
 
-srsran_ssb_patern_t srsran_band_helper::get_ssb_pattern(uint16_t band, srsran_subcarrier_spacing_t scs)
+srsran_ssb_patern_t srsran_band_helper::get_ssb_pattern(uint16_t band, srsran_subcarrier_spacing_t scs) const
 {
   // Look for the given band and SCS
   for (const nr_band_ss_raster& ss_raster : nr_band_ss_raster_table) {
@@ -85,7 +85,7 @@ srsran_ssb_patern_t srsran_band_helper::get_ssb_pattern(uint16_t band, srsran_su
   return SRSRAN_SSB_PATTERN_INVALID;
 }
 
-srsran_duplex_mode_t srsran_band_helper::get_duplex_mode(uint16_t band)
+srsran_duplex_mode_t srsran_band_helper::get_duplex_mode(uint16_t band) const
 {
   // Look for the given band
   for (const nr_operating_band& b : nr_operating_bands_fr1) {

@@ -50,7 +50,7 @@ public:
    * @param dl_freq_Hz Given frequency in Hz
    * @return The band number if the frequency is bounded in a band, UINT16_MAX otherwise
    */
-  uint16_t get_band_from_dl_freq_Hz(double dl_freq_Hz);
+  uint16_t get_band_from_dl_freq_Hz(double dl_freq_Hz) const;
 
   /**
    * @brief Selects the SSB pattern case according to the band number and subcarrier spacing
@@ -59,14 +59,14 @@ public:
    * @param scs SSB Subcarrier spacing
    * @return The SSB pattern case if band and subcarrier spacing match, SRSRAN_SSB_PATTERN_INVALID otherwise
    */
-  srsran_ssb_patern_t get_ssb_pattern(uint16_t band, srsran_subcarrier_spacing_t scs);
+  srsran_ssb_patern_t get_ssb_pattern(uint16_t band, srsran_subcarrier_spacing_t scs) const;
 
   /**
    * @brief gets the NR band duplex mode
    * @param band Given band
    * @return A valid SRSRAN_DUPLEX_MODE if the band is valid, SRSRAN_DUPLEX_MODE_INVALID otherwise
    */
-  srsran_duplex_mode_t get_duplex_mode(uint16_t band);
+  srsran_duplex_mode_t get_duplex_mode(uint16_t band) const;
 
 private:
   // Elements of TS 38.101-1 Table 5.2-1: NR operating bands in FR1
