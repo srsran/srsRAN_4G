@@ -408,7 +408,7 @@ void bearer_cfg_handler::rem_gtpu_bearer(uint32_t erab_id)
 {
   auto it = erabs.find(erab_id);
   if (it == erabs.end()) {
-    logger->error("Removing erab_id=%d from GTPU", erab_id);
+    logger->warning("Removing erab_id=%d from GTPU", erab_id);
     return;
   }
   gtpu->rem_bearer(rnti, it->second.lcid);
