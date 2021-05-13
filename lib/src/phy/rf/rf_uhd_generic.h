@@ -192,7 +192,7 @@ public:
 
     // Set receiver subdev spec if specified
     if (not rx_subdev.empty()) {
-      err = set_rx_subdev(tx_subdev);
+      err = set_rx_subdev(rx_subdev);
       if (err != UHD_ERROR_NONE) {
         return err;
       }
