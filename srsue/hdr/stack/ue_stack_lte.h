@@ -191,9 +191,11 @@ private:
   srslog::basic_logger& usim_logger;
   srslog::basic_logger& nas_logger;
 
-  // UE nr stack logging
+  // UE NR stack logging
   srslog::basic_logger& mac_nr_logger;
   srslog::basic_logger& rrc_nr_logger;
+  srslog::basic_logger& rlc_nr_logger;
+  srslog::basic_logger& pdcp_nr_logger;
 
   // tracing
   srsran::mac_pcap mac_pcap;
@@ -220,6 +222,8 @@ private:
   srsran::pdcp               pdcp;
   srsue::rrc                 rrc;
   srsue::mac_nr              mac_nr;
+  srsran::rlc                rlc_nr;
+  srsran::pdcp               pdcp_nr;
   srsue::rrc_nr              rrc_nr;
   srsue::nas                 nas;
   std::unique_ptr<usim_base> usim;

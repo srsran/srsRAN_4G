@@ -36,6 +36,8 @@ ue_stack_lte::ue_stack_lte() :
   nas_logger(srslog::fetch_basic_logger("NAS", false)),
   mac_nr_logger(srslog::fetch_basic_logger("MAC-NR")),
   rrc_nr_logger(srslog::fetch_basic_logger("RRC-NR", false)),
+  rlc_nr_logger(srslog::fetch_basic_logger("RLC-NR", false)),
+  pdcp_nr_logger(srslog::fetch_basic_logger("PDCP-NR", false)),
   mac_pcap(),
   mac_nr_pcap(),
   usim(nullptr),
@@ -43,9 +45,11 @@ ue_stack_lte::ue_stack_lte() :
   rlc("RLC"),
   mac("MAC", &task_sched),
   rrc(this, &task_sched),
+  rlc_nr("RLC-NR"),
   mac_nr(&task_sched),
   rrc_nr(&task_sched),
   pdcp(&task_sched, "PDCP"),
+  pdcp_nr(&task_sched, "PDCP-NR"),
   nas(&task_sched),
   thread("STACK"),
   task_sched(512, 64),
@@ -119,6 +123,10 @@ int ue_stack_lte::init(const stack_args_t& args_)
   mac_nr_logger.set_hex_dump_max_size(args.log.mac_hex_limit);
   rrc_nr_logger.set_level(srslog::str_to_basic_level(args.log.rrc_level));
   rrc_nr_logger.set_hex_dump_max_size(args.log.rrc_hex_limit);
+  pdcp_nr_logger.set_level(srslog::str_to_basic_level(args.log.pdcp_level));
+  pdcp_nr_logger.set_hex_dump_max_size(args.log.pdcp_hex_limit);
+  rlc_nr_logger.set_level(srslog::str_to_basic_level(args.log.rlc_level));
+  rlc_nr_logger.set_hex_dump_max_size(args.log.rlc_hex_limit);
 
   // Set up pcap
   // parse pcap trace list
@@ -202,11 +210,13 @@ int ue_stack_lte::init(const stack_args_t& args_)
 
   mac.init(phy, &rlc, &rrc);
   rlc.init(&pdcp, &rrc, task_sched.get_timer_handler(), 0 /* RB_ID_SRB0 */);
-  pdcp.init(&rlc, &rrc, &rrc_nr, gw);
+  pdcp.init(&rlc, &rrc, gw);
   nas.init(usim.get(), &rrc, gw, args.nas);
 
   mac_nr_args_t mac_nr_args = {};
   mac_nr.init(mac_nr_args, phy_nr, &rlc, &rrc_nr);
+  rlc_nr.init(&pdcp_nr, &rrc_nr, task_sched.get_timer_handler(), 0 /* RB_ID_SRB0 */);
+  pdcp_nr.init(&rlc_nr, &rrc_nr, gw);
   rrc_nr.init(phy_nr, &mac_nr, &rlc, &pdcp, gw, &rrc, usim.get(), task_sched.get_timer_handler(), nullptr, args.rrc_nr);
   rrc.init(phy, &mac, &rlc, &pdcp, &nas, usim.get(), gw, &rrc_nr, args.rrc);
 
