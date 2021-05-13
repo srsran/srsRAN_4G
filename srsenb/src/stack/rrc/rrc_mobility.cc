@@ -925,6 +925,7 @@ bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&      
       erabs_failed_to_setup.back().erab_id = erab.erab_id;
       erabs_failed_to_setup.back().cause.set_transport().value =
           asn1::s1ap::cause_transport_opts::transport_res_unavailable;
+      rrc_ue->bearer_list.release_erab(erab.erab_id);
       continue;
     }
   }

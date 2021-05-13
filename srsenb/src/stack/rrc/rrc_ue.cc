@@ -1092,6 +1092,7 @@ int rrc::ue::setup_erab(uint16_t                                           erab_
   }
   if (bearer_list.add_gtpu_bearer(erab_id) != SRSRAN_SUCCESS) {
     cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::radio_res_not_available;
+    bearer_list.release_erab(erab_id);
     return SRSRAN_ERROR;
   }
   return SRSRAN_SUCCESS;
