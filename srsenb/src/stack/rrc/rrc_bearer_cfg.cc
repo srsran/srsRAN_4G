@@ -336,9 +336,8 @@ int bearer_cfg_handler::release_erab(uint8_t erab_id)
     return SRSRAN_ERROR;
   }
 
-  uint8_t drb_id = erab_id - 4;
-
-  srsran::rem_rrc_obj_id(current_drbs, drb_id);
+  lte_drb drb_id = lte_lcid_to_drb(it->second.lcid);
+  srsran::rem_rrc_obj_id(current_drbs, (uint8_t)drb_id);
 
   rem_gtpu_bearer(erab_id);
 
@@ -438,16 +437,19 @@ void bearer_cfg_handler::fill_pending_nas_info(asn1::rrc::rrc_conn_recfg_r8_ies_
   // Add E-RAB info message for the E-RABs
   if (msg->rr_cfg_ded.drb_to_add_mod_list_present) {
     for (const drb_to_add_mod_s& drb : msg->rr_cfg_ded.drb_to_add_mod_list) {
-      uint8_t erab_id = drb.drb_id + 4;
-      auto    it      = erab_info_list.find(erab_id);
-      if (it != erab_info_list.end()) {
-        const std::vector<uint8_t>& erab_info = it->second;
+      uint32_t lcid    = drb_to_lcid((lte_drb)drb.drb_id);
+      auto     erab_it = std::find_if(
+          erabs.begin(), erabs.end(), [lcid](const std::pair<uint8_t, erab_t>& e) { return e.second.lcid == lcid; });
+      uint32_t erab_id = erab_it->second.id;
+      auto     info_it = erab_info_list.find(erab_id);
+      if (info_it != erab_info_list.end()) {
+        const std::vector<uint8_t>& erab_info = info_it->second;
         logger->info(&erab_info[0], erab_info.size(), "connection_reconf erab_info -> nas_info rnti 0x%x", rnti);
         msg->ded_info_nas_list[idx].resize(erab_info.size());
         memcpy(msg->ded_info_nas_list[idx].data(), &erab_info[0], erab_info.size());
-        erab_info_list.erase(it);
+        erab_info_list.erase(info_it);
       } else {
-        logger->debug("Not adding NAS message to connection reconfiguration. E-RAB id %d", erab_id);
+        logger->info("Not adding NAS message to connection reconfiguration. E-RAB id %d", erab_id);
       }
       idx++;
     }
