@@ -988,12 +988,12 @@ void rrc::ue::rrc_mobility::handle_status_transfer(s1_target_ho_st& s, const sta
       logger.warning("The E-RAB Id=%d is not recognized", erab_item.erab_id);
       continue;
     }
-    const auto& drbs  = rrc_ue->bearer_list.get_established_drbs();
-    uint8_t     drbid = erab_item.erab_id - 4;
-    auto        drb_it =
-        std::find_if(drbs.begin(), drbs.end(), [drbid](const drb_to_add_mod_s& drb) { return drb.drb_id == drbid; });
+    const auto& drbs   = rrc_ue->bearer_list.get_established_drbs();
+    lte_drb     drbid  = lte_lcid_to_drb(erab_it->second.lcid);
+    auto        drb_it = std::find_if(
+        drbs.begin(), drbs.end(), [drbid](const drb_to_add_mod_s& drb) { return (lte_drb)drb.drb_id == drbid; });
     if (drb_it == drbs.end()) {
-      logger.warning("The DRB id=%d does not exist", erab_item.erab_id - 4);
+      logger.warning("The DRB id=%d does not exist", drbid);
     }
 
     srsran::pdcp_lte_state_t drb_state{};

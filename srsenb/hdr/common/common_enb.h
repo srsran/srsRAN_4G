@@ -42,6 +42,10 @@ constexpr uint32_t drb_to_lcid(lte_drb drb_id)
 {
   return srb_to_lcid(lte_srb::srb2) + static_cast<uint32_t>(drb_id);
 }
+constexpr lte_drb lte_lcid_to_drb(uint32_t lcid)
+{
+  return srsran::is_lte_drb(lcid) ? static_cast<lte_drb>(lcid - srb_to_lcid(lte_srb::srb2)) : lte_drb::invalid;
+}
 
 // Cat 3 UE - Max number of DL-SCH transport block bits received within a TTI
 // 3GPP 36.306 Table 4.1.1
