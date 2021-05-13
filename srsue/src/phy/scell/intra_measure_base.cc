@@ -11,18 +11,10 @@
  */
 #include "srsue/hdr/phy/scell/intra_measure_base.h"
 
-#define Error(fmt, ...)                                                                                                \
-  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
-  logger.error("INTRA-%s: " fmt, to_string(get_rat()).c_str(), ##__VA_ARGS__)
-#define Warning(fmt, ...)                                                                                              \
-  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
-  logger.warning("INTRA-%s: " fmt, to_string(get_rat()).c_str(), ##__VA_ARGS__)
-#define Info(fmt, ...)                                                                                                 \
-  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
-  logger.info("INTRA-%s: " fmt, to_string(get_rat()).c_str(), ##__VA_ARGS__)
-#define Debug(fmt, ...)                                                                                                \
-  if (SRSRAN_DEBUG_ENABLED)                                                                                            \
-  logger.debug("INTRA-%s: " fmt, to_string(get_rat()).c_str(), ##__VA_ARGS__)
+#define Log(level, fmt, ...)                                                                                           \
+  do {                                                                                                                 \
+    logger.level("INTRA-%s: " fmt, to_string(get_rat()).c_str(), ##__VA_ARGS__);                                       \
+  } while (false)
 
 namespace srsue {
 namespace scell {
@@ -64,8 +56,10 @@ void intra_measure_base::init_generic(uint32_t cc_idx_, const args_t& args)
     }
   }
 
-  state.set_state(internal_state::idle);
-  start(INTRA_FREQ_MEAS_PRIO);
+  if (state.get_state() == internal_state::initial) {
+    state.set_state(internal_state::idle);
+    start(INTRA_FREQ_MEAS_PRIO);
+  }
 }
 
 void intra_measure_base::stop()
@@ -90,7 +84,7 @@ void intra_measure_base::meas_stop()
   // Transition state to idle
   // Ring-buffer shall not be reset, it will automatically be reset as soon as the FSM transitions to receive
   state.set_state(internal_state::idle);
-  Info("Disabled neighbour cell search for EARFCN %d", get_earfcn());
+  Log(info, "Disabled neighbour cell search for EARFCN %d", get_earfcn());
 }
 
 void intra_measure_base::set_cells_to_meas(const std::set<uint32_t>& pci)
@@ -99,16 +93,19 @@ void intra_measure_base::set_cells_to_meas(const std::set<uint32_t>& pci)
   context.active_pci = pci;
   active_pci_mutex.unlock();
   state.set_state(internal_state::receive);
-  Info("Received list of %zd neighbour cells to measure in EARFCN %d.", pci.size(), get_earfcn());
+  Log(info, "Received list of %zd neighbour cells to measure in EARFCN %d.", pci.size(), get_earfcn());
 }
 
 void intra_measure_base::write(uint32_t tti, cf_t* data, uint32_t nsamples)
 {
+  logger.set_context(tti);
+
   int      nbytes          = (int)(nsamples * sizeof(cf_t));
   int      required_nbytes = (int)(context.meas_len_ms * context.sf_len * sizeof(cf_t));
   uint32_t elapsed_tti     = TTI_SUB(tti, last_measure_tti);
 
   switch (state.get_state()) {
+    case internal_state::initial:
     case internal_state::idle:
     case internal_state::measure:
     case internal_state::quit:
@@ -119,6 +116,9 @@ void intra_measure_base::write(uint32_t tti, cf_t* data, uint32_t nsamples)
         state.set_state(internal_state::receive);
         last_measure_tti = tti;
         srsran_ringbuffer_reset(&ring_buffer);
+
+        // Force receive state
+        write(tti, data, nsamples);
       }
       break;
     case internal_state::receive:
@@ -127,7 +127,7 @@ void intra_measure_base::write(uint32_t tti, cf_t* data, uint32_t nsamples)
 
       // Try writing in the buffer
       if (srsran_ringbuffer_write(&ring_buffer, data, nbytes) < nbytes) {
-        Warning("Error writing to ringbuffer (EARFCN=%d)", get_earfcn());
+        Log(warning, "Error writing to ringbuffer (EARFCN=%d)", get_earfcn());
 
         // Transition to wait, so it can keep receiving without stopping the component operation
         state.set_state(internal_state::wait);
@@ -146,7 +146,8 @@ void intra_measure_base::measure_proc()
   std::set<uint32_t> cells_to_measure = {};
 
   // Read data from buffer and find cells in it
-  srsran_ringbuffer_read(&ring_buffer, search_buffer.data(), (int)context.meas_len_ms * context.sf_len * sizeof(cf_t));
+  srsran_ringbuffer_read(
+      &ring_buffer, search_buffer.data(), (int)(context.meas_len_ms * context.sf_len * sizeof(cf_t)));
 
   // Go to receive before finishing, so new samples can be enqueued before the thread finishes
   if (state.get_state() == internal_state::measure) {
@@ -166,6 +167,7 @@ void intra_measure_base::run_thread()
     // Get state
     internal_state::state_t s = state.get_state();
     switch (s) {
+      case internal_state::initial:
       case internal_state::idle:
       case internal_state::wait:
       case internal_state::receive:

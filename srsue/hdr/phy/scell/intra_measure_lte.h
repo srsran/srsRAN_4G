@@ -13,6 +13,8 @@
 #define SRSRAN_INTRA_MEASURE_LTE_H
 
 #include "intra_measure_base.h"
+#include "scell_recv.h"
+#include <srsran/srsran.h>
 
 namespace srsue {
 namespace scell {

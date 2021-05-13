@@ -12,12 +12,13 @@
 #ifndef SRSUE_INTRA_MEASURE_BASE_H
 #define SRSUE_INTRA_MEASURE_BASE_H
 
+#include "srsran/interfaces/ue_phy_interfaces.h"
+#include <condition_variable>
+#include <mutex>
 #include <srsran/common/common.h>
 #include <srsran/common/threads.h>
 #include <srsran/common/tti_sync_cv.h>
-#include <srsran/srsran.h>
-
-#include "scell_recv.h"
+#include <vector>
 
 namespace srsue {
 namespace scell {
@@ -161,15 +162,16 @@ private:
   {
   public:
     typedef enum {
-      idle = 0, ///< Initial state, internal thread runs, it does not capture data
-      wait,     ///< Wait for the period time to pass
-      receive,  ///< Accumulate samples in ring buffer
-      measure,  ///< Module is busy measuring
-      quit      ///< Quit thread, no transitions are allowed
+      initial = 0, /// Initial state, it transitions to idle once the internal thread has started
+      idle,        ///< Internal thread runs, it does not capture data
+      wait,        ///< Wait for the period time to pass
+      receive,     ///< Accumulate samples in ring buffer
+      measure,     ///< Module is busy measuring
+      quit         ///< Quit thread, no transitions are allowed
     } state_t;
 
   private:
-    state_t                 state = idle;
+    state_t                 state = initial;
     std::mutex              mutex;
     std::condition_variable cvar;
 

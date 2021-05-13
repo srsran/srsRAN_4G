@@ -1,0 +1,453 @@
+/**
+ *
+ * \section COPYRIGHT
+ *
+ * Copyright 2013-2021 Software Radio Systems Limited
+ *
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
+ *
+ */
+
+#include "srsran/common/band_helper.h"
+#include "srsran/common/string_helpers.h"
+#include "srsran/common/test_common.h"
+#include "srsran/interfaces/phy_interface_types.h"
+#include "srsran/radio/radio.h"
+#include "srsran/srslog/srslog.h"
+#include "srsue/hdr/phy/scell/intra_measure_nr.h"
+#include <boost/program_options.hpp>
+#include <boost/program_options/parsers.hpp>
+#include <iostream>
+#include <map>
+#include <memory>
+#include <vector>
+
+// Test gNb class
+class test_gnb
+{
+private:
+  uint32_t              pci;
+  srsran_ssb_t          ssb           = {};
+  std::vector<cf_t>     signal_buffer = {};
+  srslog::basic_logger& logger;
+
+public:
+  struct args_t {
+    uint32_t                    pci            = 500;
+    double                      srate_hz       = 11.52e6;
+    double                      center_freq_hz = 3.5e9;
+    double                      ssb_freq_hz    = 3.5e9 - 960e3;
+    srsran_subcarrier_spacing_t ssb_scs        = srsran_subcarrier_spacing_30kHz;
+    uint32_t                    ssb_period_ms  = 20;
+    uint16_t                    band;
+
+    srsran_ssb_patern_t  get_ssb_pattern() const { return srsran::srsran_band_helper().get_ssb_pattern(band, ssb_scs); }
+    srsran_duplex_mode_t get_duplex_mode() const { return srsran::srsran_band_helper().get_duplex_mode(band); }
+  };
+
+  test_gnb(const args_t& args) : logger(srslog::fetch_basic_logger("PCI=" + std::to_string(args.pci)))
+  {
+    // Initialise internals
+    pci = args.pci;
+
+    // Initialise SSB
+    srsran_ssb_args_t ssb_args = {};
+    ssb_args.max_srate_hz      = args.srate_hz;
+    ssb_args.min_scs           = args.ssb_scs;
+    ssb_args.enable_encode     = true;
+    if (srsran_ssb_init(&ssb, &ssb_args) < SRSRAN_SUCCESS) {
+      logger.error("Error initialising SSB");
+      return;
+    }
+
+    // Configure SSB
+    srsran_ssb_cfg_t ssb_cfg = {};
+    ssb_cfg.srate_hz         = args.srate_hz;
+    ssb_cfg.center_freq_hz   = args.center_freq_hz;
+    ssb_cfg.ssb_freq_hz      = args.ssb_freq_hz;
+    ssb_cfg.scs              = args.ssb_scs;
+    ssb_cfg.pattern          = args.get_ssb_pattern();
+    ssb_cfg.position[0]      = true;
+    ssb_cfg.duplex_mode      = args.get_duplex_mode();
+    ssb_cfg.periodicity_ms   = args.ssb_period_ms;
+    if (srsran_ssb_set_cfg(&ssb, &ssb_cfg) < SRSRAN_SUCCESS) {
+      logger.error("Error configuring SSB");
+      return;
+    }
+  }
+
+  int work(uint32_t sf_idx, std::vector<cf_t>& baseband_buffer)
+  {
+    logger.set_context(sf_idx);
+
+    // Check if SSB needs to be sent
+    if (srsran_ssb_send(&ssb, sf_idx)) {
+      // Prepare PBCH message
+      srsran_pbch_msg_nr_t msg = {};
+
+      // Add SSB
+      if (srsran_ssb_add(&ssb, pci, &msg, baseband_buffer.data(), baseband_buffer.data()) < SRSRAN_SUCCESS) {
+        logger.error("Error adding SSB");
+        return SRSRAN_ERROR;
+      }
+    }
+
+    return SRSRAN_SUCCESS;
+  }
+
+  ~test_gnb() { srsran_ssb_free(&ssb); }
+};
+
+struct args_t {
+  // Common execution parameters
+  uint32_t                    duration_s           = 1;
+  uint32_t                    nof_prb              = 52;
+  std::string                 log_level            = "info";
+  std::string                 active_cell_list     = "500";
+  std::string                 simulation_cell_list = "500";
+  uint32_t                    meas_len_ms          = 1;
+  uint32_t                    meas_period_ms       = 20;
+  uint32_t                    carier_arfcn         = 634240;
+  uint32_t                    ssb_arfcn            = 634176;
+  srsran_subcarrier_spacing_t carrier_scs          = srsran_subcarrier_spacing_15kHz;
+  srsran_subcarrier_spacing_t ssb_scs              = srsran_subcarrier_spacing_30kHz;
+  float                       thr_snr_db           = 5.0f;
+
+  // On the Fly parameters
+  std::string radio_device_name = "auto";
+  std::string radio_device_args = "auto";
+  std::string radio_log_level   = "info";
+  float       rx_gain           = 60.0f;
+
+  // Parsed PCI lists
+  std::set<uint32_t> pcis_to_meas;
+  std::set<uint32_t> pcis_to_simulate;
+};
+
+class meas_itf_listener : public srsue::scell::intra_measure_base::meas_itf
+{
+public:
+  typedef struct {
+    float    rsrp_avg;
+    float    rsrp_min;
+    float    rsrp_max;
+    float    rsrq_avg;
+    float    rsrq_min;
+    float    rsrq_max;
+    uint32_t count;
+  } cell_meas_t;
+
+  std::map<uint32_t, cell_meas_t> cells;
+
+  void cell_meas_reset(uint32_t cc_idx) override {}
+  void new_cell_meas(uint32_t cc_idx, const std::vector<srsue::phy_meas_t>& meas) override
+  {
+    for (auto& m : meas) {
+      uint32_t pci = m.pci;
+      if (!cells.count(pci)) {
+        cells[pci].rsrp_min = m.rsrp;
+        cells[pci].rsrp_max = m.rsrp;
+        cells[pci].rsrp_avg = m.rsrp;
+        cells[pci].rsrq_min = m.rsrq;
+        cells[pci].rsrq_max = m.rsrq;
+        cells[pci].rsrq_avg = m.rsrq;
+        cells[pci].count    = 1;
+      } else {
+        cells[pci].rsrp_min = SRSRAN_MIN(cells[pci].rsrp_min, m.rsrp);
+        cells[pci].rsrp_max = SRSRAN_MAX(cells[pci].rsrp_max, m.rsrp);
+        cells[pci].rsrp_avg = (m.rsrp + cells[pci].rsrp_avg * cells[pci].count) / (cells[pci].count + 1);
+
+        cells[pci].rsrq_min = SRSRAN_MIN(cells[pci].rsrq_min, m.rsrq);
+        cells[pci].rsrq_max = SRSRAN_MAX(cells[pci].rsrq_max, m.rsrq);
+        cells[pci].rsrq_avg = (m.rsrq + cells[pci].rsrq_avg * cells[pci].count) / (cells[pci].count + 1);
+        cells[pci].count++;
+      }
+    }
+  }
+
+  bool print_stats(args_t args)
+  {
+    printf("\n-- Statistics:\n");
+    uint32_t true_counts        = 0;
+    uint32_t false_counts       = 0;
+    uint32_t tti_count          = (1000 * args.duration_s) / args.meas_period_ms;
+    uint32_t ideal_true_counts  = args.pcis_to_simulate.size() * tti_count;
+    uint32_t ideal_false_counts = tti_count * cells.size() - ideal_true_counts;
+
+    for (auto& e : cells) {
+      bool false_alarm = args.pcis_to_simulate.find(e.first) == args.pcis_to_simulate.end();
+
+      if (false_alarm) {
+        false_counts += e.second.count;
+      } else {
+        true_counts += e.second.count;
+      }
+
+      printf("  pci=%03d; count=%3d; false=%s; rsrp=%+.1f|%+.1f|%+.1fdBfs;  rsrq=%+.1f|%+.1f|%+.1fdB;\n",
+             e.first,
+             e.second.count,
+             false_alarm ? "y" : "n",
+             e.second.rsrp_min,
+             e.second.rsrp_avg,
+             e.second.rsrp_max,
+             e.second.rsrq_min,
+             e.second.rsrq_avg,
+             e.second.rsrq_max);
+    }
+
+    float prob_detection   = (ideal_true_counts) ? (float)true_counts / (float)ideal_true_counts : 0.0f;
+    float prob_false_alarm = (ideal_false_counts) ? (float)false_counts / (float)ideal_false_counts : 0.0f;
+    printf("\n");
+    printf("    Probability of detection: %.6f\n", prob_detection);
+    printf("  Probability of false alarm: %.6f\n", prob_false_alarm);
+
+    return (prob_detection >= 0.9f && prob_false_alarm <= 0.1f);
+  }
+};
+
+// shorten boost program options namespace
+namespace bpo = boost::program_options;
+
+int parse_args(int argc, char** argv, args_t& args)
+{
+  int ret = SRSRAN_SUCCESS;
+
+  bpo::options_description options;
+  bpo::options_description common("Measurement options");
+  bpo::options_description over_the_air("Over the air options");
+  bpo::options_description simulation("Simulation execution options");
+
+  // clang-format off
+  common.add_options()
+      ("duration",         bpo::value<uint32_t>(&args.duration_s),          "Duration of the test in seconds")
+      ("nof_prb",          bpo::value<uint32_t>(&args.nof_prb),             "Cell Number of PRB")
+      ("log_level",        bpo::value<std::string>(&args.log_level),        "Intra measurement log level (none, warning, info, debug)")
+      ("meas_len_ms",      bpo::value<uint32_t>(&args.meas_len_ms),         "Measurement length")
+      ("meas_period_ms",   bpo::value<uint32_t>(&args.meas_period_ms),      "Measurement period")
+      ("active_cell_list", bpo::value<std::string>(&args.active_cell_list), "Comma separated PCI cell list to measure")
+      ("carrier_arfcn",    bpo::value<std::uint32_t>(&args.carier_arfcn),   "Carrier center frequency ARFCN")
+      ("ssb_arfcn",        bpo::value<std::uint32_t>(&args.ssb_arfcn),      "SSB center frequency in ARFCN")
+      ("thr_snr_db",       bpo::value<float>(&args.thr_snr_db),             "Detection threshold for SNR in dB")
+      ;
+
+  over_the_air.add_options()
+      ("rf.device_name", bpo::value<std::string>(&args.radio_device_name), "RF Device Name")
+      ("rf.device_args", bpo::value<std::string>(&args.radio_device_args), "RF Device arguments")
+      ("rf.log_level",   bpo::value<std::string>(&args.radio_log_level),   "RF Log level (none, warning, info, debug)")
+      ("rf.rx_gain",     bpo::value<float>(&args.rx_gain),                 "RF Receiver gain in dB")
+      ;
+
+  simulation.add_options()
+      ("simulation_cell_list", bpo::value<std::string>(&args.simulation_cell_list), "Comma separated PCI cell list to simulate")
+      ;
+
+  options.add(common).add(over_the_air).add(simulation).add_options()
+      ("help",                      "Show this message")
+      ;
+  // clang-format on
+
+  bpo::variables_map vm;
+  try {
+    bpo::store(bpo::command_line_parser(argc, argv).options(options).run(), vm);
+    bpo::notify(vm);
+  } catch (bpo::error& e) {
+    std::cerr << e.what() << std::endl;
+    ret = SRSRAN_ERROR;
+  }
+
+  // help option was given or error - print usage and exit
+  if (vm.count("help") || ret) {
+    std::cout << "Usage: " << argv[0] << " [OPTIONS] config_file" << std::endl << std::endl;
+    std::cout << options << std::endl << std::endl;
+    ret = SRSRAN_ERROR;
+  }
+
+  return ret;
+}
+
+static void pci_list_parse_helper(std::string& list_str, std::set<uint32_t>& list)
+{
+  if (list_str == "all") {
+    // Add all possible cells
+    for (int i = 0; i < SRSRAN_NOF_NID_NR; i++) {
+      list.insert(i);
+    }
+  } else if (list_str == "none") {
+    list.clear();
+  } else if (not list_str.empty()) {
+    // Remove spaces from neightbour cell list
+    list_str = srsran::string_remove_char(list_str, ' ');
+
+    // Add cell to known cells
+    srsran::string_parse_list(list_str, ',', list);
+  }
+}
+
+int main(int argc, char** argv)
+{
+  int ret;
+
+  // Parse args
+  args_t args = {};
+  if (parse_args(argc, argv, args) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
+  }
+
+  // Deduce base-band parameters
+  uint32_t sf_len         = srsran_min_symbol_sz_rb(args.nof_prb) * SRSRAN_SUBC_SPACING_NR(args.carrier_scs) / 1000U;
+  double   srate_hz       = (double)sf_len * 1000.0;
+  double   center_freq_hz = srsran::srsran_band_helper().nr_arfcn_to_freq(args.carier_arfcn);
+  double   ssb_freq_hz    = srsran::srsran_band_helper().nr_arfcn_to_freq(args.ssb_arfcn);
+  uint16_t band           = srsran::srsran_band_helper().get_band_from_dl_freq_Hz(center_freq_hz);
+
+  // Allocate buffer
+  std::vector<cf_t> baseband_buffer(sf_len);
+
+  // Initiate logging
+  srslog::init();
+  srslog::basic_logger& logger = srslog::fetch_basic_logger("PHY");
+  logger.set_level(srslog::str_to_basic_level(args.log_level));
+
+  // Create measurement callback
+  meas_itf_listener rrc;
+
+  // Create measurement instance
+  srsue::scell::intra_measure_nr intra_measure(logger, rrc);
+
+  // Initialise measurement instance
+  srsue::scell::intra_measure_nr::args_t meas_args = {};
+  meas_args.rx_gain_offset_dB                      = 0.0f;
+  meas_args.max_len_ms                             = args.meas_len_ms;
+  meas_args.max_srate_hz                           = srate_hz;
+  meas_args.min_scs                                = args.ssb_scs;
+  meas_args.thr_snr_db                             = args.thr_snr_db;
+  TESTASSERT(intra_measure.init(0, meas_args));
+
+  // Setup measurement
+  srsue::scell::intra_measure_nr::config_t meas_cfg = {};
+  meas_cfg.arfcn                                    = args.carier_arfcn;
+  meas_cfg.srate_hz                                 = srate_hz;
+  meas_cfg.len_ms                                   = args.meas_len_ms;
+  meas_cfg.periodicity_ms                           = args.meas_period_ms;
+  meas_cfg.rx_gain_offset_db                        = 0;
+  meas_cfg.center_freq_hz                           = center_freq_hz;
+  meas_cfg.ssb_freq_hz                              = ssb_freq_hz;
+  meas_cfg.scs                                      = srsran_subcarrier_spacing_30kHz;
+  meas_cfg.serving_cell_pci                         = -1;
+  TESTASSERT(intra_measure.set_config(args.carier_arfcn, meas_cfg));
+
+  // Simulation only
+  std::vector<std::unique_ptr<test_gnb> > test_gnb_v;
+
+  // Over-the-air only
+  std::unique_ptr<srsran::radio> radio = nullptr;
+
+  // Parse PCI lists
+  pci_list_parse_helper(args.active_cell_list, args.pcis_to_meas);
+  pci_list_parse_helper(args.simulation_cell_list, args.pcis_to_simulate);
+
+  // Setup raio if the list of PCIs to simulate is empty
+  if (args.pcis_to_simulate.empty()) {
+    // Create radio log
+    auto& radio_logger = srslog::fetch_basic_logger("RF", false);
+    radio_logger.set_level(srslog::str_to_basic_level(args.radio_log_level));
+
+    // Create radio
+    radio = std::unique_ptr<srsran::radio>(new srsran::radio);
+
+    // Init radio
+    srsran::rf_args_t radio_args = {};
+    radio_args.device_args       = args.radio_device_args;
+    radio_args.device_name       = args.radio_device_name;
+    radio_args.nof_carriers      = 1;
+    radio_args.nof_antennas      = 1;
+    radio->init(radio_args, nullptr);
+
+    // Set sampling rate
+    radio->set_rx_srate(srate_hz);
+
+    // Set frequency
+    radio->set_rx_freq(0, center_freq_hz);
+
+  } else {
+    // Create test eNb's if radio is not available
+    for (const uint32_t& pci : args.pcis_to_simulate) {
+      // Initialise channel and push back
+      test_gnb::args_t gnb_args = {};
+      gnb_args.pci              = pci;
+      gnb_args.srate_hz         = srate_hz;
+      gnb_args.center_freq_hz   = center_freq_hz;
+      gnb_args.ssb_freq_hz      = ssb_freq_hz;
+      gnb_args.ssb_scs          = args.ssb_scs;
+      gnb_args.ssb_period_ms    = args.meas_period_ms;
+      gnb_args.band             = band;
+      test_gnb_v.push_back(std::unique_ptr<test_gnb>(new test_gnb(gnb_args)));
+
+      // Add cell to known cells
+      if (args.active_cell_list.empty()) {
+        args.pcis_to_meas.insert(pci);
+      }
+    }
+  }
+
+  // pass cells to measure to intra_measure object
+  intra_measure.set_cells_to_meas(args.pcis_to_meas);
+
+  // Run loop
+  for (uint32_t sf_idx = 0; sf_idx < args.duration_s * 1000; sf_idx++) {
+    logger.set_context(sf_idx);
+    srsran::rf_timestamp_t ts = {};
+
+    // Clean buffer
+    srsran_vec_cf_zero(baseband_buffer.data(), sf_len);
+
+    if (radio) {
+      // Receive radio
+      srsran::rf_buffer_t radio_buffer(baseband_buffer.data(), sf_len);
+      radio->rx_now(radio_buffer, ts);
+    } else {
+      // Run gNb simulator
+      for (auto& gnb : test_gnb_v) {
+        gnb->work(sf_idx, baseband_buffer);
+      }
+
+      // if it measuring, wait for avoiding overflowing
+      intra_measure.wait_meas();
+    }
+
+    // Increase Time counter
+    ts.add(0.001);
+
+    // Give data to intra measure component
+    intra_measure.write(sf_idx % 10240, baseband_buffer.data(), sf_len);
+    if (sf_idx % 1000 == 0) {
+      logger.info("Done %.1f%%\n", (double)sf_idx * 100.0 / ((double)args.duration_s * 1000.0));
+    }
+  }
+
+  // make sure last measurement has been received before stopping
+  if (not radio) {
+    intra_measure.wait_meas();
+  }
+
+  // Stop, it will block until the asynchronous thread quits
+  intra_measure.stop();
+
+  ret = rrc.print_stats(args) ? SRSRAN_SUCCESS : SRSRAN_ERROR;
+
+  if (radio) {
+    radio->stop();
+  }
+
+  srslog::flush();
+
+  if (ret && radio == nullptr) {
+    printf("Error\n");
+  } else {
+    printf("Ok\n");
+  }
+
+  return ret;
+}
