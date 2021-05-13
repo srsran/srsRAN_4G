@@ -88,9 +88,13 @@ void sync::init(srsran::radio_interface_phy* _radio,
 
   // Start intra-frequency measurement
   for (uint32_t i = 0; i < worker_com->args->nof_lte_carriers; i++) {
-    scell::intra_measure* q = new scell::intra_measure(phy_logger);
-    q->init(i, worker_com, this);
-    intra_freq_meas.push_back(std::unique_ptr<scell::intra_measure>(q));
+    scell::intra_measure_lte*         q    = new scell::intra_measure_lte(phy_logger, *this);
+    scell::intra_measure_base::args_t args = {};
+    args.len_ms                            = worker_com->args->intra_freq_meas_len_ms;
+    args.period_ms                         = worker_com->args->intra_freq_meas_period_ms;
+    args.rx_gain_offset_db                 = worker_com->args->rx_gain_offset;
+    q->init(i, args);
+    intra_freq_meas.push_back(std::unique_ptr<scell::intra_measure_lte>(q));
   }
 
   // Allocate Secondary serving cell synchronization
