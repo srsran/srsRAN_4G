@@ -6,8 +6,8 @@
 # the distribution.
 #
 
-set(SOURCES gtpu.cc pdcp.cc rlc.cc)
-add_library(srsenb_upper STATIC ${SOURCES})
+set(SOURCES s1ap.cc)
+add_library(srsenb_s1ap STATIC ${SOURCES})
 
-set(SOURCES pdcp_nr.cc rlc_nr.cc sdap.cc)
-add_library(srsgnb_upper STATIC ${SOURCES})
+set(SOURCES ngap.cc)
+add_library(srsgnb_ngap STATIC ${SOURCES})

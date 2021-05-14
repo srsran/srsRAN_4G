@@ -20,11 +20,11 @@
 
 #include "mac/mac.h"
 #include "rrc/rrc.h"
+#include "s1ap/s1ap.h"
 #include "srsran/common/task_scheduler.h"
 #include "upper/gtpu.h"
 #include "upper/pdcp.h"
 #include "upper/rlc.h"
-#include "upper/s1ap.h"
 
 #include "enb_stack_base.h"
 #include "srsran/common/mac_pcap_net.h"

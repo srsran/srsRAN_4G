@@ -19,7 +19,7 @@
 #include "srsenb/hdr/phy/phy_metrics.h"
 #include "srsenb/hdr/stack/mac/mac_metrics.h"
 #include "srsenb/hdr/stack/rrc/rrc_metrics.h"
-#include "srsenb/hdr/stack/upper/s1ap_metrics.h"
+#include "srsenb/hdr/stack/s1ap/s1ap_metrics.h"
 #include "srsran/common/metrics_hub.h"
 #include "srsran/radio/radio_metrics.h"
 #include "srsran/system/sys_metrics.h"

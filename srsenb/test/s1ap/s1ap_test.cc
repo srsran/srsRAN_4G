@@ -10,7 +10,7 @@
  *
  */
 
-#include "srsenb/hdr/stack/upper/s1ap.h"
+#include "srsenb/hdr/stack/s1ap/s1ap.h"
 #include "srsenb/test/common/dummy_classes.h"
 #include "srsran/common/network_utils.h"
 #include "srsran/common/test_common.h"
