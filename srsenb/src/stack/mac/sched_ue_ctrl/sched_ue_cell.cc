@@ -392,10 +392,15 @@ bool find_optimal_rbgmask(const sched_ue_cell&       ue_cell,
     };
     std::tuple<uint32_t, int, uint32_t, int> ret = false_position_method(
         1U, tb_table.size(), (int)req_bytes.stop(), compute_tbs_approx, [](int y) { return y == SRSRAN_ERROR; });
-    uint32_t upper_nprb = std::get<2>(ret);
+    uint32_t upper_nrbg = std::get<2>(ret);
     int      upper_tbs  = std::get<3>(ret);
     if (upper_tbs >= (int)req_bytes.stop()) {
-      tb = tb_table[upper_nprb - 1];
+      tb      = tb_table[upper_nrbg - 1];
+      int pos = 0;
+      for (uint32_t n_rbgs = newtxmask.count(); n_rbgs > upper_nrbg; --n_rbgs) {
+        pos = newtxmask.find_lowest(pos + 1, newtxmask.size());
+      }
+      newtxmask.from_uint64(~((1U << (uint64_t)pos) - 1U) & ((1U << newtxmask.size()) - 1U));
     }
     return true;
   }
