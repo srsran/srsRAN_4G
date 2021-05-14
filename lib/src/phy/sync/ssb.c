@@ -30,7 +30,7 @@
 /**
  * Correlation size in number of FFTs. It is desired to be power of 2
  */
-#define SSB_CORR_SZ 4
+#define SSB_CORR_SZ 2
 
 static int ssb_init_corr(srsran_ssb_t* q)
 {
@@ -707,13 +707,23 @@ ssb_pss_search(srsran_ssb_t* q, const cf_t* in, uint32_t nof_samples, uint32_t* 
       srsran_dft_run_guru_c(&q->ifft_corr);
 
       // Find maximum
-      uint32_t this_max_idx = srsran_vec_max_abs_ci(q->tmp_time, q->corr_window);
-      float    corr         = SRSRAN_CSQABS(q->tmp_time[this_max_idx]);
+      uint32_t peak_idx = srsran_vec_max_abs_ci(q->tmp_time, q->corr_window);
+
+      // Average power, skip window if value is invalid (0.0, nan or inf)
+      float avg_pwr_corr = srsran_vec_avg_power_cf(&q->tmp_time[peak_idx], q->symbol_sz);
+      if (!isnormal(avg_pwr_corr)) {
+        continue;
+      }
+
+      float corr = SRSRAN_CSQABS(q->tmp_time[peak_idx]) / avg_pwr_corr;
+      if (corr < sqrtf(SRSRAN_PSS_NR_LEN)) {
+        continue;
+      }
 
       // Update if the correlation is better than the current best
       if (best_corr < corr) {
         best_corr   = corr;
-        best_delay  = this_max_idx + t_offset;
+        best_delay  = peak_idx + t_offset;
         best_N_id_2 = N_id_2;
       }
     }

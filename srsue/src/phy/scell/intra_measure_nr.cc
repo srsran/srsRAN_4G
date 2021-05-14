@@ -13,7 +13,7 @@
 
 #define Log(level, fmt, ...)                                                                                           \
   do {                                                                                                                 \
-    logger.level("INTRA-%s: " fmt, to_string(get_rat()).c_str(), ##__VA_ARGS__);                                       \
+    logger.level("INTRA-%s-%d: " fmt, to_string(get_rat()).c_str(), get_earfcn(), ##__VA_ARGS__);                      \
   } while (false)
 
 namespace srsue {
@@ -96,15 +96,18 @@ void intra_measure_nr::measure_rat(const measure_context_t& context, std::vector
     return;
   }
 
-  // Check threshold
-  if (meas.snr_dB >= thr_snr_db) {
-    // Log finding
-    if (logger.info.enabled()) {
-      std::array<char, 512> str_info = {};
-      srsran_csi_rs_measure_info(&meas, str_info.data(), (uint32_t)str_info.size());
-      Log(info, "Found neighbour cell: ARFCN=%d PCI=%03d %s", get_earfcn(), N_id, str_info.data());
-    }
+  // Take valid decision if SNR threshold is exceeded
+  bool valid = (meas.snr_dB >= thr_snr_db);
 
+  // Log finding
+  if ((logger.info.enabled() and valid) or logger.debug.enabled()) {
+    std::array<char, 512> str_info = {};
+    srsran_csi_rs_measure_info(&meas, str_info.data(), (uint32_t)str_info.size());
+    Log(info, "%s neighbour cell: PCI=%03d %s", valid ? "Found" : "Best", N_id, str_info.data());
+  }
+
+  // Check threshold
+  if (valid) {
     // Prepare found measurements
     std::vector<phy_meas_t> meas_list(1);
     meas_list[0].rat    = get_rat();

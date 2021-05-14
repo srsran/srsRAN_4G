@@ -13,7 +13,7 @@
 
 #define Log(level, fmt, ...)                                                                                           \
   do {                                                                                                                 \
-    logger.level("INTRA-%s: " fmt, to_string(get_rat()).c_str(), ##__VA_ARGS__);                                       \
+    logger.level("INTRA-%s-%d: " fmt, to_string(get_rat()).c_str(), get_earfcn(), ##__VA_ARGS__);                      \
   } while (false)
 
 namespace srsue {
@@ -117,6 +117,8 @@ void intra_measure_base::write(uint32_t tti, cf_t* data, uint32_t nsamples)
         last_measure_tti = tti;
         srsran_ringbuffer_reset(&ring_buffer);
 
+        Log(debug, "Start writing");
+
         // Force receive state
         write(tti, data, nsamples);
       }
@@ -134,6 +136,7 @@ void intra_measure_base::write(uint32_t tti, cf_t* data, uint32_t nsamples)
       } else {
         // As soon as there are enough samples in the buffer, transition to measure
         if (srsran_ringbuffer_status(&ring_buffer) >= required_nbytes) {
+          Log(debug, "Starting search and measurements");
           state.set_state(internal_state::measure);
         }
       }
@@ -146,8 +149,12 @@ void intra_measure_base::measure_proc()
   std::set<uint32_t> cells_to_measure = {};
 
   // Read data from buffer and find cells in it
-  srsran_ringbuffer_read(
-      &ring_buffer, search_buffer.data(), (int)(context.meas_len_ms * context.sf_len * sizeof(cf_t)));
+  int ret = srsran_ringbuffer_read_timed(
+      &ring_buffer, search_buffer.data(), (int)(context.meas_len_ms * context.sf_len * sizeof(cf_t)), 1000);
+  if (ret < SRSRAN_SUCCESS) {
+    Log(error, "Ringbuffer read returned %d", ret);
+    return;
+  }
 
   // Go to receive before finishing, so new samples can be enqueued before the thread finishes
   if (state.get_state() == internal_state::measure) {

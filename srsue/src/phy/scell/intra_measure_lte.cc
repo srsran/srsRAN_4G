@@ -16,7 +16,7 @@ namespace scell {
 
 #define Log(level, fmt, ...)                                                                                           \
   do {                                                                                                                 \
-    logger.level("INTRA-%s: " fmt, to_string(get_rat()).c_str(), ##__VA_ARGS__);                                       \
+    logger.level("INTRA-%s-%d: " fmt, to_string(get_rat()).c_str(), get_earfcn(), ##__VA_ARGS__);                      \
   } while (false)
 
 intra_measure_lte::intra_measure_lte(srslog::basic_logger& logger_, meas_itf& new_cell_itf_) :
@@ -87,9 +87,8 @@ void intra_measure_lte::measure_rat(const measure_context_t& context, std::vecto
       neighbour_cells.push_back(m);
 
       Log(info,
-          "Found neighbour cell: EARFCN=%d, PCI=%03d, RSRP=%5.1f dBm, RSRQ=%5.1f, peak_idx=%5d, "
+          "Found neighbour cell: PCI=%03d, RSRP=%5.1f dBm, RSRQ=%5.1f, peak_idx=%5d, "
           "CFO=%+.1fHz",
-          m.earfcn,
           m.pci,
           m.rsrp,
           m.rsrq,
