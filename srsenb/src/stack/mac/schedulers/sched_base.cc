@@ -153,22 +153,25 @@ alloc_result try_dl_newtx_alloc_greedy(sf_sched& tti_sched, sched_ue& ue, const 
   }
 
   // If there is no data to transmit, no need to allocate
-  rbg_interval req_rbgs = ue.get_required_dl_rbgs(tti_sched.get_enb_cc_idx());
-  if (req_rbgs.stop() == 0) {
+  srsran::interval<uint32_t> req_bytes = ue.get_requested_dl_bytes(tti_sched.get_enb_cc_idx());
+  if (req_bytes.stop() == 0) {
     return alloc_result::no_rnti_opportunity;
   }
 
-  // Find RBG mask that accommodates pending data
-  bool      is_contiguous_alloc = ue.get_dci_format() == SRSRAN_DCI_FORMAT1A;
-  rbgmask_t newtxmask           = find_available_rbgmask(req_rbgs.stop(), is_contiguous_alloc, current_mask);
-  if (newtxmask.none() or newtxmask.count() < req_rbgs.start()) {
+  sched_ue_cell* ue_cell = ue.find_ue_carrier(tti_sched.get_enb_cc_idx());
+  srsran_assert(ue_cell != nullptr, "dl newtx alloc called for invalid cell");
+  srsran_dci_format_t dci_format = ue.get_dci_format();
+  tbs_info            tb;
+  rbgmask_t           opt_mask;
+  if (not find_optimal_rbgmask(
+          *ue_cell, tti_sched.get_tti_tx_dl(), current_mask, dci_format, req_bytes, tb, opt_mask)) {
     return alloc_result::no_sch_space;
   }
 
   // empty RBGs were found. Attempt allocation
-  alloc_result ret = tti_sched.alloc_dl_user(&ue, newtxmask, h.get_id());
+  alloc_result ret = tti_sched.alloc_dl_user(&ue, opt_mask, h.get_id());
   if (ret == alloc_result::success and result_mask != nullptr) {
-    *result_mask = newtxmask;
+    *result_mask = opt_mask;
   }
   return ret;
 }

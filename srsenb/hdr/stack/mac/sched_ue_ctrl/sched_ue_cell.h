@@ -93,7 +93,7 @@ tbs_info cqi_to_tbs_dl(const sched_ue_cell& cell,
                        const rbgmask_t&     rbgs,
                        uint32_t             nof_re,
                        srsran_dci_format_t  dci_format,
-                       int                  req_bytes = -1);
+                       uint32_t             req_bytes = std::numeric_limits<uint32_t>::max());
 
 /// Compute UL grant optimal TBS and MCS given UE cell context and UL grant parameters
 tbs_info
@@ -104,6 +104,19 @@ int      get_required_prb_dl(const sched_ue_cell& cell,
                              srsran_dci_format_t  dci_format,
                              uint32_t             req_bytes);
 uint32_t get_required_prb_ul(const sched_ue_cell& cell, uint32_t req_bytes);
+
+tbs_info compute_mcs_and_tbs_lower_bound(const sched_ue_cell& ue_cell,
+                                         tti_point            tti_tx_dl,
+                                         const rbgmask_t&     rbg_mask,
+                                         srsran_dci_format_t  dci_format);
+
+bool find_optimal_rbgmask(const sched_ue_cell&       ue_cell,
+                          tti_point                  tti_tx_dl,
+                          const rbgmask_t&           dl_mask,
+                          srsran_dci_format_t        dci_format,
+                          srsran::interval<uint32_t> req_bytes,
+                          tbs_info&                  tb,
+                          rbgmask_t&                 newtxmask);
 
 } // namespace srsenb
 

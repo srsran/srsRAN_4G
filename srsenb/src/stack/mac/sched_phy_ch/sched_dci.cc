@@ -141,7 +141,7 @@ tbs_info compute_min_mcs_and_tbs_from_required_bytes(uint32_t nof_prb,
 {
   // get max MCS/TBS that meets max coderate requirements
   tbs_info tb_max = compute_mcs_and_tbs(nof_prb, nof_re, cqi, max_mcs, is_ul, ulqam64_enabled, use_tbs_index_alt);
-  if (tb_max.tbs_bytes + 8 <= (int)req_bytes or tb_max.mcs == 0 or req_bytes <= 0) {
+  if (tb_max.tbs_bytes + 8 <= (int)req_bytes or tb_max.mcs == 0) {
     // if mcs cannot be lowered or a decrease in TBS index won't meet req_bytes requirement
     return tb_max;
   }

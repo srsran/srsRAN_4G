@@ -495,21 +495,23 @@ alloc_result sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_mask,
     return alloc_result::no_rnti_opportunity;
   }
 
-  // Check if allocation would cause segmentation
-  const dl_harq_proc& h = user->get_dl_harq(pid, cc_cfg->enb_cc_idx);
-  if (h.is_empty()) {
-    // It is newTx
-    rbg_interval r = user->get_required_dl_rbgs(cc_cfg->enb_cc_idx);
-    if (r.start() > user_mask.count()) {
-      logger.debug("SCHED: The number of RBGs allocated to rnti=0x%x will force segmentation", user->get_rnti());
-      return alloc_result::invalid_grant_params;
-    }
-  }
-
   srsran_dci_format_t dci_format = user->get_dci_format();
   if (dci_format == SRSRAN_DCI_FORMAT1A and not is_contiguous(user_mask)) {
     logger.warning("SCHED: Can't use distributed RBGs for DCI format 1A");
     return alloc_result::invalid_grant_params;
+  }
+
+  // Check if allocation is too small to fit headers, BSR or would cause SRB0 segmentation
+  const dl_harq_proc& h = user->get_dl_harq(pid, cc_cfg->enb_cc_idx);
+  if (h.is_empty()) {
+    // It is newTx
+    srsran::interval<uint32_t> req_bytes = user->get_requested_dl_bytes(get_enb_cc_idx());
+    tbs_info                   tb        = compute_mcs_and_tbs_lower_bound(*cc, get_tti_tx_dl(), user_mask, dci_format);
+    if ((int)req_bytes.start() > tb.tbs_bytes) {
+      logger.debug("SCHED: The number of RBGs allocated to rnti=0x%x is too small to fit essential control information",
+                   user->get_rnti());
+      return alloc_result::invalid_grant_params;
+    }
   }
 
   bool has_pusch_grant = is_ul_alloc(user->get_rnti()) or cc_results->is_ul_alloc(user->get_rnti());
