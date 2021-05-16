@@ -40,6 +40,7 @@ void usage(char* prog)
 {
   printf("Usage: %s [cfpndvs]\n", prog);
   printf("\t-c cell id [Default %d]\n", cell.id);
+  printf("\t-E  extended Cyclic prefix [Default %d]\n", cell.cp);
   printf("\t-f cfi [Default %d]\n", cfi);
   printf("\t-p cell.nof_prb [Default %d]\n", cell.nof_prb);
   printf("\t-s number of subframes to simulate [Default %d]\n", nof_subframes);
@@ -84,7 +85,7 @@ void parse_args(int argc, char** argv)
     nof_rx_ant     = 2;
   }
 
-  while ((opt = getopt(argc, argv, "cfapndvqstm")) != -1) {
+  while ((opt = getopt(argc, argv, "cfapndvqstmE")) != -1) {
     switch (opt) {
       case 't':
         transmission_mode = (uint32_t)strtol(argv[optind], NULL, 10) - 1;
@@ -110,6 +111,9 @@ void parse_args(int argc, char** argv)
         break;
       case 's':
         nof_subframes = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'E':
+        cell.cp = ((uint32_t)strtol(argv[optind], NULL, 10)) ? SRSRAN_CP_EXT : SRSRAN_CP_NORM;
         break;
       case 'd':
         print_dci_table = true;

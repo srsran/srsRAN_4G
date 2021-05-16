@@ -330,7 +330,8 @@ int srsran_ue_sync_set_cell(srsran_ue_sync_t* q, srsran_cell_t cell)
     q->cell     = cell;
     q->fft_size = srsran_symbol_sz(q->cell.nof_prb);
     q->sf_len   = SRSRAN_SF_LEN(q->fft_size);
-
+    srsran_sync_set_cp(&q->sfind, q->cell.cp);
+    srsran_sync_set_cp(&q->strack, q->cell.cp);
     if (cell.id == 1000) {
       /* If the cell is unkown, we search PSS/SSS in 5 ms */
       q->nof_recv_sf = 5;
@@ -497,6 +498,12 @@ void srsran_ue_sync_set_cfo_i_enable(srsran_ue_sync_t* q, bool enable)
 float srsran_ue_sync_get_cfo(srsran_ue_sync_t* q)
 {
   return 15000 * q->cfo_current_value;
+}
+
+void srsran_ue_sync_cp_en(srsran_ue_sync_t* q, bool enabled)
+{
+  srsran_sync_cp_en(&q->strack, enabled);
+  srsran_sync_cp_en(&q->sfind, enabled);
 }
 
 void srsran_ue_sync_copy_cfo(srsran_ue_sync_t* q, srsran_ue_sync_t* src_obj)

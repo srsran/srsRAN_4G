@@ -67,6 +67,11 @@ void search::init(srsran::rf_buffer_t& buffer_, uint32_t nof_rx_channels, search
   force_N_id_2 = force_N_id_2_;
 }
 
+void search::set_cp_en(bool enable)
+{
+  srsran_set_detect_cp(&cs, enable);
+}
+
 void search::reset()
 {
   srsran_ue_sync_reset(&ue_mib_sync.ue_sync);
@@ -154,11 +159,12 @@ search::ret_code search::run(srsran_cell_t* cell_, std::array<uint8_t, SRSRAN_BC
     std::copy(std::begin(mib_packed), std::end(mib_packed), std::begin(bch_payload));
 
     fprintf(stdout,
-            "Found Cell:  Mode=%s, PCI=%d, PRB=%d, Ports=%d, CFO=%.1f KHz\n",
+            "Found Cell:  Mode=%s, PCI=%d, PRB=%d, Ports=%d, CP=%s, CFO=%.1f KHz\n",
             new_cell.frame_type ? "TDD" : "FDD",
             new_cell.id,
             new_cell.nof_prb,
             new_cell.nof_ports,
+            new_cell.cp ? "Normal" : "Extended",
             cfo / 1000);
 
     Info("SYNC:  MIB Decoded: Mode=%s, PCI=%d, PRB=%d, Ports=%d, CFO=%.1f KHz",

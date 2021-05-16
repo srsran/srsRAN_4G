@@ -367,6 +367,7 @@ enable = false
 #pdsch_csi_enabled  = true
 #pdsch_8bit_decoder = false
 #force_ul_amplitude = 0
+#detect_cp          = false
 
 #in_sync_rsrp_dbm_th    = -130.0
 #in_sync_snr_db_th      = 3.0

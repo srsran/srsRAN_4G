@@ -84,6 +84,7 @@ struct phy_args_t {
   uint32_t    intra_freq_meas_len_ms       = 20;
   uint32_t    intra_freq_meas_period_ms    = 200;
   float       force_ul_amplitude           = 0.0f;
+  bool        detect_cp                    = false;
 
   float    in_sync_rsrp_dbm_th    = -130.0f;
   float    in_sync_snr_db_th      = 1.0f;

@@ -41,6 +41,7 @@ public:
   float    get_last_cfo();
   void     set_agc_enable(bool enable);
   ret_code run(srsran_cell_t* cell, std::array<uint8_t, SRSRAN_BCH_PAYLOAD_LEN>& bch_payload);
+  void     set_cp_en(bool enable);
 
 private:
   search_callback*       p = nullptr;

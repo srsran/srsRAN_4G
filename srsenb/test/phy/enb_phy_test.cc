@@ -1138,6 +1138,7 @@ public:
     uint32_t              tm_u32              = 1;
     uint32_t              period_pcell_rotate = 0;
     srsran_tm_t           tm                  = SRSRAN_TM1;
+    bool                  extended_cp         = false;
     args_t()
     {
       cell.nof_prb   = 6;
@@ -1214,6 +1215,7 @@ public:
       q.cell         = args.cell;
       q.cell.id      = i;
       q.cell_id      = i;
+      q.cell.cp      = args.extended_cp ? SRSRAN_CP_EXT : SRSRAN_CP_NORM;
       q.dl_freq_hz   = 0.0f; ///< Frequencies are irrelevant in this test
       q.ul_freq_hz   = 0.0f;
       q.root_seq_idx = 25 + i; ///< Different PRACH root sequences
@@ -1416,6 +1418,7 @@ int parse_args(int argc, char** argv, phy_test_bench::args_t& args)
       ("ack_mode",       bpo::value<std::string>(&args.ack_mode),                                        "HARQ ACK/NACK mode: normal, pucch3, cs")
       ("cell.nof_prb",   bpo::value<uint32_t>(&args.cell.nof_prb)->default_value(args.cell.nof_prb),     "eNb Cell/Carrier bandwidth")
       ("cell.nof_ports", bpo::value<uint32_t>(&args.cell.nof_ports)->default_value(args.cell.nof_ports), "eNb Cell/Carrier number of ports")
+      ("cell.cp",        bpo::value<bool>(&args.extended_cp)->default_value(false),                      "use extended CP")
       ("tm", bpo::value<uint32_t>(&args.tm_u32)->default_value(args.tm_u32),                             "Transmission mode")
       ("rotation", bpo::value<uint32_t>(&args.period_pcell_rotate),                      "Serving cells rotation period in ms, set to zero to disable")
       ;

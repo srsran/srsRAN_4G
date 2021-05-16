@@ -825,7 +825,7 @@ namespace enb_conf_sections {
 int parse_cell_cfg(all_args_t* args_, srsran_cell_t* cell)
 {
   cell->frame_type = SRSRAN_FDD;
-  cell->cp         = SRSRAN_CP_NORM;
+  cell->cp         = args_->phy.extended_cp ? SRSRAN_CP_EXT : SRSRAN_CP_NORM;
   cell->nof_ports  = args_->enb.nof_ports;
   cell->nof_prb    = args_->enb.n_prb;
   // PCI not configured yet

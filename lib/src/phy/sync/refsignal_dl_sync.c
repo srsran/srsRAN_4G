@@ -139,7 +139,7 @@ static inline void refsignal_dl_pss_sss_strength(srsran_refsignal_dl_sync_t* q,
   }
 }
 
-int srsran_refsignal_dl_sync_init(srsran_refsignal_dl_sync_t* q)
+int srsran_refsignal_dl_sync_init(srsran_refsignal_dl_sync_t* q, srsran_cp_t cp)
 {
   int ret = SRSRAN_ERROR_INVALID_INPUTS;
 
@@ -177,12 +177,12 @@ int srsran_refsignal_dl_sync_init(srsran_refsignal_dl_sync_t* q)
 
     // Initiate OFDM modulator
     if (!ret) {
-      ret = srsran_ofdm_tx_init(&q->ifft, SRSRAN_CP_NORM, q->ifft_buffer_in, q->ifft_buffer_out, SRSRAN_MAX_PRB);
+      ret = srsran_ofdm_tx_init(&q->ifft, cp, q->ifft_buffer_in, q->ifft_buffer_out, SRSRAN_MAX_PRB);
     }
 
     // Set PRB
     if (!ret) {
-      ret = srsran_ofdm_tx_set_prb(&q->ifft, SRSRAN_CP_NORM, SRSRAN_MAX_PRB);
+      ret = srsran_ofdm_tx_set_prb(&q->ifft, cp, SRSRAN_MAX_PRB);
     }
 
     // Initiate FFT Convolution

@@ -56,7 +56,7 @@ typedef struct SRSRAN_API {
   srsran_dl_sf_cfg_t dl_sf;
 
   cf_t* sf_symbols[SRSRAN_MAX_PORTS];
-
+  cf_t*         out_buffer[SRSRAN_MAX_PORTS];
   srsran_ofdm_t ifft[SRSRAN_MAX_PORTS];
   srsran_ofdm_t ifft_mbsfn;
 

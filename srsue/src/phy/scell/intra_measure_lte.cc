@@ -34,7 +34,7 @@ void intra_measure_lte::init(uint32_t cc_idx, const args_t& args)
   init_generic(cc_idx, args);
 
   // Initialise Reference signal measurement
-  srsran_refsignal_dl_sync_init(&refsignal_dl_sync);
+  srsran_refsignal_dl_sync_init(&refsignal_dl_sync, SRSRAN_CP_NORM);
 
   // Start scell
   scell_rx.init(args.len_ms);

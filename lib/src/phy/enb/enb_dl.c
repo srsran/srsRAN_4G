@@ -41,21 +41,14 @@ int srsran_enb_dl_init(srsran_enb_dl_t* q, cf_t* out_buffer[SRSRAN_MAX_PORTS], u
         goto clean_exit;
       }
     }
+    for (int i = 0; i < SRSRAN_MAX_PORTS; i++) {
+      q->out_buffer[i] = out_buffer[i];
+    }
 
     srsran_ofdm_cfg_t ofdm_cfg = {};
     ofdm_cfg.nof_prb           = max_prb;
-    ofdm_cfg.cp                = SRSRAN_CP_NORM;
+    ofdm_cfg.cp                = SRSRAN_CP_EXT;
     ofdm_cfg.normalize         = false;
-    for (int i = 0; i < SRSRAN_MAX_PORTS; i++) {
-      ofdm_cfg.in_buffer  = q->sf_symbols[i];
-      ofdm_cfg.out_buffer = out_buffer[i];
-      ofdm_cfg.sf_type    = SRSRAN_SF_NORM;
-      if (srsran_ofdm_tx_init_cfg(&q->ifft[i], &ofdm_cfg)) {
-        ERROR("Error initiating FFT (%d)", i);
-        goto clean_exit;
-      }
-    }
-
     ofdm_cfg.in_buffer  = q->sf_symbols[0];
     ofdm_cfg.out_buffer = out_buffer[0];
     ofdm_cfg.sf_type    = SRSRAN_SF_MBSFN;
@@ -150,6 +143,19 @@ int srsran_enb_dl_set_cell(srsran_enb_dl_t* q, srsran_cell_t cell)
         srsran_regs_free(&q->regs);
       }
       q->cell = cell;
+      srsran_ofdm_cfg_t ofdm_cfg = {};
+      ofdm_cfg.nof_prb           = q->cell.nof_prb;
+      ofdm_cfg.cp                = cell.cp;
+      ofdm_cfg.normalize         = false;
+      for (int i = 0; i < SRSRAN_MAX_PORTS; i++) {
+        ofdm_cfg.in_buffer  = q->sf_symbols[i];
+        ofdm_cfg.out_buffer = q->out_buffer[i];
+        ofdm_cfg.sf_type    = SRSRAN_SF_NORM;
+        if (srsran_ofdm_tx_init_cfg(&q->ifft[i], &ofdm_cfg)) {
+          ERROR("Error initiating FFT (%d)", i);
+          return SRSRAN_ERROR;
+        }
+      }
       if (srsran_regs_init(&q->regs, q->cell)) {
         ERROR("Error resizing REGs");
         return SRSRAN_ERROR;

@@ -376,6 +376,10 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
        bpo::value<float>(&args->phy.force_ul_amplitude)->default_value(0.0),
        "Forces the peak amplitude in the PUCCH, PUSCH and SRS (set 0.0 to 1.0, set to 0 or negative for disabling)")
 
+    ("phy.detect_cp",
+      bpo::value<bool>(&args->phy.detect_cp)->default_value(false),
+      "enable CP length detection")
+
     ("phy.in_sync_rsrp_dbm_th",
      bpo::value<float>(&args->phy.in_sync_rsrp_dbm_th)->default_value(-130.0f),
      "RSRP threshold (in dBm) above which the UE considers to be in-sync")

@@ -179,6 +179,11 @@ int srsran_ue_cellsearch_set_nof_valid_frames(srsran_ue_cellsearch_t* q, uint32_
   }
 }
 
+void srsran_set_detect_cp(srsran_ue_cellsearch_t* q, bool enable)
+{
+  srsran_ue_sync_cp_en(&q->ue_sync, enable);
+}
+
 /* Decide the most likely cell based on the mode */
 static void get_cell(srsran_ue_cellsearch_t* q, uint32_t nof_detected_frames, srsran_ue_cellsearch_result_t* found_cell)
 {

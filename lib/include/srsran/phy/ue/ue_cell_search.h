@@ -90,5 +90,7 @@ SRSRAN_API int srsran_ue_cellsearch_scan(srsran_ue_cellsearch_t*       q,
 
 SRSRAN_API int srsran_ue_cellsearch_set_nof_valid_frames(srsran_ue_cellsearch_t* q, uint32_t nof_frames);
 
+SRSRAN_API void srsran_set_detect_cp(srsran_ue_cellsearch_t* q, bool enable);
+
 #endif // SRSRAN_UE_CELL_SEARCH_H
 
