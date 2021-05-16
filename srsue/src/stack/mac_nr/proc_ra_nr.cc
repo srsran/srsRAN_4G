@@ -63,7 +63,7 @@ void proc_ra_nr::set_config(const srsran::rach_nr_cfg_t& rach_cfg_)
   }
   rach_cfg   = rach_cfg_;
   configured = true;
-  logger.info("Set RACH common config (Config Index %d, preambleTransMax %d, Repsonse Window %d)",
+  logger.info("Set RACH common config (Config Index %d, preambleTransMax %d, Response Window %d)",
               rach_cfg.prach_ConfigurationIndex,
               rach_cfg.preambleTransMax,
               rach_cfg.ra_responseWindow);
@@ -380,4 +380,5 @@ void proc_ra_nr::reset()
   rar_timeout_timer.stop();
   contention_resolution_timer.stop();
 }
+
 } // namespace srsue

@@ -44,7 +44,7 @@ public:
   ngap(srsran::task_sched_handle   task_sched_,
        srslog::basic_logger&       logger,
        srsran::socket_manager_itf* rx_socket_handler);
-  int  init(ngap_args_t args_, rrc_interface_ngap_nr* rrc_);
+  int  init(const ngap_args_t& args_, rrc_interface_ngap_nr* rrc_);
   void stop();
 
   // RRC NR interface

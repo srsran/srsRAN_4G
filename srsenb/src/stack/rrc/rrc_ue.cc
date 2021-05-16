@@ -65,13 +65,18 @@ int rrc::ue::init()
   // Configure
   apply_setup_phy_common(parent->cfg.sibs[1].sib2().rr_cfg_common, true);
 
-  rlf_release_timer = parent->task_sched.get_unique_timer();
-  activity_timer    = parent->task_sched.get_unique_timer();
+  phy_dl_rlf_timer = parent->task_sched.get_unique_timer();
+  phy_ul_rlf_timer = parent->task_sched.get_unique_timer();
+  rlc_rlf_timer    = parent->task_sched.get_unique_timer();
+  activity_timer   = parent->task_sched.get_unique_timer();
   set_activity_timeout(MSG3_RX_TIMEOUT); // next UE response is Msg3
 
   // Set timeout to release UE context after RLF detection
-  uint32_t deadline_ms = parent->cfg.rlf_release_timer_ms;
-  rlf_release_timer.set(deadline_ms, [this](uint32_t tid) { rlf_timer_expired(); });
+  uint32_t deadline_ms       = parent->cfg.rlf_release_timer_ms;
+  auto     timer_expire_func = [this](uint32_t tid) { rlf_timer_expired(tid); };
+  phy_dl_rlf_timer.set(deadline_ms, timer_expire_func);
+  phy_ul_rlf_timer.set(deadline_ms, timer_expire_func);
+  rlc_rlf_timer.set(deadline_ms, timer_expire_func);
   parent->logger.info("Setting RLF timer for rnti=0x%x to %dms", rnti, deadline_ms);
 
   mobility_handler = make_rnti_obj<rrc_mobility>(rnti, this);
@@ -106,44 +111,34 @@ void rrc::ue::set_activity()
   }
 }
 
-void rrc::ue::start_rlf_timer()
-{
-  rlf_release_timer.run();
-  parent->logger.info("RLF timer started for rnti=0x%x (duration=%dms)", rnti, rlf_release_timer.duration());
-}
-
-void rrc::ue::stop_rlf_timer()
-{
-  if (rlf_release_timer.is_running()) {
-    parent->logger.info("RLF timer stopped for rnti=0x%x (time elapsed=%dms)", rnti, rlf_release_timer.time_elapsed());
-  }
-  rlf_release_timer.stop();
-}
-
 void rrc::ue::set_radiolink_dl_state(bool crc_res)
 {
   parent->logger.debug(
       "Radio-Link downlink state for rnti=0x%x: crc_res=%d, consecutive_ko=%d", rnti, crc_res, consecutive_kos_dl);
 
-  // If received OK, restart counter and stop RLF timer
+  // If received OK, restart DL counter and stop RLF timer
   if (crc_res) {
     consecutive_kos_dl = 0;
-    consecutive_kos_ul = 0;
-    stop_rlf_timer();
+    if (phy_dl_rlf_timer.is_running()) {
+      parent->logger.info(
+          "DL RLF timer stopped for rnti=0x%x (time elapsed=%dms)", rnti, phy_dl_rlf_timer.time_elapsed());
+      phy_dl_rlf_timer.stop();
+    }
     return;
   }
 
   // Count KOs in MAC and trigger release if it goes above a certain value.
   // This is done to detect out-of-coverage UEs
-  if (rlf_release_timer.is_running()) {
+  if (phy_dl_rlf_timer.is_running()) {
     // RLF timer already running, no need to count KOs
     return;
   }
 
   consecutive_kos_dl++;
   if (consecutive_kos_dl > parent->cfg.max_mac_dl_kos) {
-    parent->logger.info("Max KOs in DL reached, triggering release rnti=0x%x", rnti);
-    max_retx_reached();
+    parent->logger.info("Max KOs in DL reached, starting RLF timer rnti=0x%x", rnti);
+    mac_ctrl.handle_max_retx();
+    phy_dl_rlf_timer.run();
   }
 }
 
@@ -152,31 +147,34 @@ void rrc::ue::set_radiolink_ul_state(bool crc_res)
   parent->logger.debug(
       "Radio-Link uplink state for rnti=0x%x: crc_res=%d, consecutive_ko=%d", rnti, crc_res, consecutive_kos_ul);
 
-  // If received OK, restart counter and stop RLF timer
+  // If received OK, restart UL counter and stop RLF timer
   if (crc_res) {
-    consecutive_kos_dl = 0;
     consecutive_kos_ul = 0;
-    stop_rlf_timer();
+    if (phy_ul_rlf_timer.is_running()) {
+      parent->logger.info(
+          "UL RLF timer stopped for rnti=0x%x (time elapsed=%dms)", rnti, phy_ul_rlf_timer.time_elapsed());
+      phy_ul_rlf_timer.stop();
+    }
     return;
   }
 
   // Count KOs in MAC and trigger release if it goes above a certain value.
   // This is done to detect out-of-coverage UEs
-  if (rlf_release_timer.is_running()) {
+  if (phy_ul_rlf_timer.is_running()) {
     // RLF timer already running, no need to count KOs
     return;
   }
 
   consecutive_kos_ul++;
   if (consecutive_kos_ul > parent->cfg.max_mac_ul_kos) {
-    parent->logger.info("Max KOs in UL reached, triggering release rnti=0x%x", rnti);
-    max_retx_reached();
+    parent->logger.info("Max KOs in UL reached, starting RLF timer rnti=0x%x", rnti);
+    mac_ctrl.handle_max_retx();
+    phy_ul_rlf_timer.run();
   }
 }
 
 void rrc::ue::activity_timer_expired(const activity_timeout_type_t type)
 {
-  stop_rlf_timer();
   if (parent) {
     parent->logger.info("Activity timer for rnti=0x%x expired after %d ms", rnti, activity_timer.time_elapsed());
 
@@ -205,11 +203,17 @@ void rrc::ue::activity_timer_expired(const activity_timeout_type_t type)
   state = RRC_STATE_RELEASE_REQUEST;
 }
 
-void rrc::ue::rlf_timer_expired()
+void rrc::ue::rlf_timer_expired(uint32_t timeout_id)
 {
   activity_timer.stop();
   if (parent) {
-    parent->logger.info("RLF timer for rnti=0x%x expired after %d ms", rnti, rlf_release_timer.time_elapsed());
+    if (timeout_id == phy_dl_rlf_timer.id()) {
+      parent->logger.info("DL RLF timer for rnti=0x%x expired after %d ms", rnti, phy_dl_rlf_timer.time_elapsed());
+    } else if (timeout_id == phy_ul_rlf_timer.id()) {
+      parent->logger.info("UL RLF timer for rnti=0x%x expired after %d ms", rnti, phy_ul_rlf_timer.time_elapsed());
+    } else if (timeout_id == rlc_rlf_timer.id()) {
+      parent->logger.info("RLC RLF timer for rnti=0x%x expired after %d ms", rnti, rlc_rlf_timer.time_elapsed());
+    }
 
     if (parent->s1ap->user_exists(rnti)) {
       parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::radio_conn_with_ue_lost);
@@ -224,14 +228,13 @@ void rrc::ue::rlf_timer_expired()
   state = RRC_STATE_RELEASE_REQUEST;
 }
 
-void rrc::ue::max_retx_reached()
+void rrc::ue::max_rlc_retx_reached()
 {
   if (parent) {
-    parent->logger.info("Max retx reached for rnti=0x%x", rnti);
+    parent->logger.info("Max RLC retx reached for rnti=0x%x", rnti);
 
-    // Give UE time to start re-establishment
-    start_rlf_timer();
-
+    // Turn off DRB scheduling but give UE chance to start re-establishment
+    rlc_rlf_timer.run();
     mac_ctrl.handle_max_retx();
   }
 }
@@ -397,10 +400,8 @@ void rrc::ue::handle_rrc_con_req(rrc_conn_request_s* msg)
     for (auto& user : parent->users) {
       if (user.first != rnti && user.second->has_tmsi && user.second->mmec == mmec && user.second->m_tmsi == m_tmsi) {
         parent->logger.info("RRC connection request: UE context already exists. M-TMSI=%d", m_tmsi);
-        if (parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::radio_conn_with_ue_lost)) {
-          // Do not wait for MME response
-          parent->rem_user_thread(user.first);
-        }
+        user.second->state = RRC_STATE_IDLE; // Set old rnti to IDLE so that enb doesn't send RRC Connection Release
+        parent->s1ap->user_release(user.first, asn1::s1ap::cause_radio_network_opts::radio_conn_with_ue_lost);
         break;
       }
     }
@@ -528,9 +529,6 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
   const rrc_conn_reest_request_r8_ies_s& req_r8   = msg->crit_exts.rrc_conn_reest_request_r8();
   uint16_t                               old_rnti = req_r8.ue_id.c_rnti.to_number();
 
-  srsran::console(
-      "User 0x%x requesting RRC Reestablishment as 0x%x. Cause: %s\n", rnti, old_rnti, req_r8.reest_cause.to_string());
-
   if (not parent->s1ap->is_mme_connected()) {
     parent->logger.error("MME isn't connected. Sending Connection Reject");
     send_connection_reest_rej(procedure_result_code::error_mme_not_connected);
@@ -542,69 +540,84 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
                        msg->crit_exts.rrc_conn_reest_request_r8().ue_id.pci,
                        (uint32_t)msg->crit_exts.rrc_conn_reest_request_r8().ue_id.short_mac_i.to_number(),
                        msg->crit_exts.rrc_conn_reest_request_r8().reest_cause.to_string());
-  if (is_idle()) {
-    uint16_t               old_pci  = msg->crit_exts.rrc_conn_reest_request_r8().ue_id.pci;
-    const enb_cell_common* old_cell = parent->cell_common_list->get_pci(old_pci);
-    auto                   ue_it    = parent->users.find(old_rnti);
-    // Reject unrecognized rntis, and PCIs that do not belong to eNB
-    if (ue_it != parent->users.end() and old_cell != nullptr and
-        ue_it->second->ue_cell_list.get_enb_cc_idx(old_cell->enb_cc_idx) != nullptr) {
-      parent->logger.info("ConnectionReestablishmentRequest for rnti=0x%x. Sending Connection Reestablishment",
-                          old_rnti);
 
-      // Cancel Handover in Target eNB if on-going
-      asn1::s1ap::cause_c cause;
-      cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::interaction_with_other_proc;
-      parent->users.at(old_rnti)->mobility_handler->trigger(rrc_mobility::ho_cancel_ev{cause});
-
-      // Recover security setup
-      const enb_cell_common* pcell_cfg = get_ue_cc_cfg(UE_PCELL_CC_IDX);
-      ue_security_cfg                  = parent->users.at(old_rnti)->ue_security_cfg;
-      ue_security_cfg.regenerate_keys_handover(pcell_cfg->cell_cfg.pci, pcell_cfg->cell_cfg.dl_earfcn);
-
-      // send reestablishment and restore bearer configuration
-      send_connection_reest(parent->users.at(old_rnti)->ue_security_cfg.get_ncc());
-
-      // Get PDCP entity state (required when using RLC AM)
-      for (const auto& erab_pair : parent->users.at(old_rnti)->bearer_list.get_erabs()) {
-        uint16_t lcid              = erab_pair.second.id - 2;
-        old_reest_pdcp_state[lcid] = {};
-        parent->pdcp->get_bearer_state(old_rnti, lcid, &old_reest_pdcp_state[lcid]);
-
-        parent->logger.debug("Getting PDCP state for E-RAB with LCID %d", lcid);
-        parent->logger.debug("Got PDCP state: TX HFN %d, NEXT_PDCP_TX_SN %d, RX_HFN %d, NEXT_PDCP_RX_SN %d, "
-                             "LAST_SUBMITTED_PDCP_RX_SN %d",
-                             old_reest_pdcp_state[lcid].tx_hfn,
-                             old_reest_pdcp_state[lcid].next_pdcp_tx_sn,
-                             old_reest_pdcp_state[lcid].rx_hfn,
-                             old_reest_pdcp_state[lcid].next_pdcp_rx_sn,
-                             old_reest_pdcp_state[lcid].last_submitted_pdcp_rx_sn);
-      }
-
-      // Make sure UE capabilities are copied over to new RNTI
-      eutra_capabilities          = parent->users.at(old_rnti)->eutra_capabilities;
-      eutra_capabilities_unpacked = parent->users.at(old_rnti)->eutra_capabilities_unpacked;
-      ue_capabilities             = parent->users.at(old_rnti)->ue_capabilities;
-      if (parent->logger.debug.enabled()) {
-        asn1::json_writer js{};
-        eutra_capabilities.to_json(js);
-        parent->logger.debug("rnti=0x%x EUTRA capabilities: %s", rnti, js.to_string().c_str());
-      }
-
-      old_reest_rnti = old_rnti;
-      state          = RRC_STATE_WAIT_FOR_CON_REEST_COMPLETE;
-      set_activity_timeout(UE_INACTIVITY_TIMEOUT);
-    } else {
-      parent->logger.error("Received ConnectionReestablishment for rnti=0x%x without context", old_rnti);
-      send_connection_reest_rej(procedure_result_code::error_unknown_rnti);
-      srsran::console(
-          "User 0x%x RRC Reestablishment Request rejected. Cause: no rnti=0x%x context available\n", rnti, old_rnti);
-    }
-  } else {
+  if (not is_idle()) {
+    // The created RNTI has to receive ReestablishmentRequest as first message
     parent->logger.error("Received ReestablishmentRequest from an rnti=0x%x not in IDLE", rnti);
     send_connection_reest_rej(procedure_result_code::error_unknown_rnti);
     srsran::console("ERROR: User 0x%x requesting Reestablishment is not in RRC_IDLE\n", rnti);
+    return;
   }
+
+  uint16_t               old_pci   = msg->crit_exts.rrc_conn_reest_request_r8().ue_id.pci;
+  const enb_cell_common* old_cell  = parent->cell_common_list->get_pci(old_pci);
+  auto                   old_ue_it = parent->users.find(old_rnti);
+
+  // Reject unrecognized rntis, and PCIs that do not belong to eNB
+  if (old_ue_it == parent->users.end() or old_cell == nullptr or
+      old_ue_it->second->ue_cell_list.get_enb_cc_idx(old_cell->enb_cc_idx) == nullptr) {
+    parent->logger.error("Received ConnectionReestablishment for rnti=0x%x without context", old_rnti);
+    send_connection_reest_rej(procedure_result_code::error_unknown_rnti);
+    srsran::console(
+        "User 0x%x RRC Reestablishment Request rejected. Cause: no rnti=0x%x context available\n", rnti, old_rnti);
+    return;
+  }
+  ue* old_ue = old_ue_it->second.get();
+
+  // Reestablishment procedure going forward
+  parent->logger.info("ConnectionReestablishmentRequest for rnti=0x%x. Sending Connection Reestablishment", old_rnti);
+  srsran::console(
+      "User 0x%x requesting RRC Reestablishment as 0x%x. Cause: %s\n", rnti, old_rnti, req_r8.reest_cause.to_string());
+
+  // Cancel Handover in Target eNB if on-going
+  asn1::s1ap::cause_c cause;
+  cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::interaction_with_other_proc;
+  old_ue->mobility_handler->trigger(rrc_mobility::ho_cancel_ev{cause});
+
+  // Recover security setup
+  const enb_cell_common* pcell_cfg = get_ue_cc_cfg(UE_PCELL_CC_IDX);
+  ue_security_cfg                  = old_ue->ue_security_cfg;
+  ue_security_cfg.regenerate_keys_handover(pcell_cfg->cell_cfg.pci, pcell_cfg->cell_cfg.dl_earfcn);
+
+  // send RRC Reestablishment message and restore bearer configuration
+  send_connection_reest(old_ue->ue_security_cfg.get_ncc());
+
+  // Get PDCP entity state (required when using RLC AM)
+  for (const auto& erab_pair : old_ue->bearer_list.get_erabs()) {
+    uint16_t lcid              = erab_pair.second.id - 2;
+    old_reest_pdcp_state[lcid] = {};
+    parent->pdcp->get_bearer_state(old_rnti, lcid, &old_reest_pdcp_state[lcid]);
+
+    parent->logger.debug("Getting PDCP state for E-RAB with LCID %d", lcid);
+    parent->logger.debug("Got PDCP state: TX HFN %d, NEXT_PDCP_TX_SN %d, RX_HFN %d, NEXT_PDCP_RX_SN %d, "
+                         "LAST_SUBMITTED_PDCP_RX_SN %d",
+                         old_reest_pdcp_state[lcid].tx_hfn,
+                         old_reest_pdcp_state[lcid].next_pdcp_tx_sn,
+                         old_reest_pdcp_state[lcid].rx_hfn,
+                         old_reest_pdcp_state[lcid].next_pdcp_rx_sn,
+                         old_reest_pdcp_state[lcid].last_submitted_pdcp_rx_sn);
+  }
+
+  // Make sure UE capabilities are copied over to new RNTI
+  eutra_capabilities          = old_ue->eutra_capabilities;
+  eutra_capabilities_unpacked = old_ue->eutra_capabilities_unpacked;
+  ue_capabilities             = old_ue->ue_capabilities;
+  if (parent->logger.debug.enabled()) {
+    asn1::json_writer js{};
+    eutra_capabilities.to_json(js);
+    parent->logger.debug("rnti=0x%x EUTRA capabilities: %s", rnti, js.to_string().c_str());
+  }
+
+  // Stop RLF timers to avoid that old RNTI gets removed during RRC Reestablishment
+  parent->logger.info("Stopped RLF timers for old rnti=0x%x", old_rnti);
+  old_ue->rlc_rlf_timer.stop();
+  old_ue->phy_ul_rlf_timer.stop();
+  old_ue->phy_dl_rlf_timer.stop();
+  old_ue->mac_ctrl.set_drb_activation(false);
+
+  old_reest_rnti = old_rnti;
+  state          = RRC_STATE_WAIT_FOR_CON_REEST_COMPLETE;
+  set_activity_timeout(UE_INACTIVITY_TIMEOUT);
 }
 
 void rrc::ue::send_connection_reest(uint8_t ncc)
@@ -659,6 +672,14 @@ void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srsr
 
   parent->logger.info("RRCConnectionReestablishComplete transaction ID: %d", msg->rrc_transaction_id);
 
+  auto old_ue_it = parent->users.find(old_reest_rnti);
+  if (old_ue_it == parent->users.end()) {
+    parent->logger.error("RRC Reestablishment old rnti=0x%x was erased during the procedure", old_reest_rnti);
+    parent->release_ue(rnti);
+    return;
+  }
+  auto* old_ue = old_ue_it->second.get();
+
   // TODO: msg->selected_plmn_id - used to select PLMN from SIB1 list
   // TODO: if(msg->registered_mme_present) - the indicated MME should be used from a pool
 
@@ -675,10 +696,10 @@ void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srsr
   parent->pdcp->enable_encryption(rnti, srb_to_lcid(lte_srb::srb1));
 
   // Reestablish E-RABs of old rnti during ConnectionReconfiguration
-  bearer_list.reestablish_bearers(std::move(parent->users.at(old_reest_rnti)->bearer_list));
+  bearer_list.reestablish_bearers(std::move(old_ue->bearer_list));
 
   // remove old RNTI
-  parent->rem_user_thread(old_reest_rnti);
+  parent->rem_user(old_reest_rnti);
 
   state = RRC_STATE_REESTABLISHMENT_COMPLETE;
 
@@ -1027,35 +1048,6 @@ bool rrc::ue::handle_ue_ctxt_mod_req(const asn1::s1ap::ue_context_mod_request_s&
 void rrc::ue::set_bitrates(const asn1::s1ap::ue_aggregate_maximum_bitrate_s& rates)
 {
   bitrates = rates;
-}
-
-bool rrc::ue::setup_erabs(const asn1::s1ap::erab_to_be_setup_list_ctxt_su_req_l& e)
-{
-  for (const auto& item : e) {
-    const auto& erab = item.value.erab_to_be_setup_item_ctxt_su_req();
-    if (erab.ext) {
-      parent->logger.warning("Not handling E-RABToBeSetupListCtxtSURequest extensions");
-    }
-    if (erab.ie_exts_present) {
-      parent->logger.warning("Not handling E-RABToBeSetupListCtxtSURequest extensions");
-    }
-    if (erab.transport_layer_address.length() > 32) {
-      parent->logger.error("IPv6 addresses not currently supported");
-      return false;
-    }
-
-    uint32_t teid_out = 0;
-    srsran::uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
-    srsran::const_span<uint8_t> nas_pdu;
-    if (erab.nas_pdu_present) {
-      nas_pdu = erab.nas_pdu;
-    }
-    asn1::s1ap::cause_c cause;
-    bearer_list.add_erab(
-        erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, nas_pdu, cause);
-    bearer_list.add_gtpu_bearer(erab.erab_id);
-  }
-  return true;
 }
 
 bool rrc::ue::release_erabs()

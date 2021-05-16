@@ -183,7 +183,7 @@ uint32_t rrc::get_nof_users()
 
 void rrc::max_retx_attempted(uint16_t rnti)
 {
-  rrc_pdu p = {rnti, LCID_RTX_USER, false, nullptr};
+  rrc_pdu p = {rnti, LCID_RLC_RTX, false, nullptr};
   if (not rx_pdu_queue.try_push(std::move(p))) {
     logger.error("Failed to push max Retx event to RRC queue");
   }
@@ -952,8 +952,8 @@ void rrc::tti_clock()
       case LCID_RADLINK_UL:
         user_it->second->set_radiolink_ul_state(p.arg);
         break;
-      case LCID_RTX_USER:
-        user_it->second->max_retx_reached();
+      case LCID_RLC_RTX:
+        user_it->second->max_rlc_retx_reached();
         break;
       case LCID_EXIT:
         logger.info("Exiting thread");

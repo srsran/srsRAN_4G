@@ -130,9 +130,11 @@ const gtpu_tunnel* gtpu_tunnel_manager::add_tunnel(uint16_t rnti, uint32_t lcid,
 
 bool gtpu_tunnel_manager::update_rnti(uint16_t old_rnti, uint16_t new_rnti)
 {
-  srsran_assert(find_rnti_tunnels(new_rnti) == nullptr, "New rnti=0x%x already exists", new_rnti);
-
   auto* old_rnti_ptr = find_rnti_tunnels(old_rnti);
+  if (old_rnti_ptr == nullptr or find_rnti_tunnels(new_rnti) != nullptr) {
+    logger.error("Modifying bearer rnti. Old rnti=0x%x, new rnti=0x%x", old_rnti, new_rnti);
+    return false;
+  }
   logger.info("Modifying bearer rnti. Old rnti: 0x%x, new rnti: 0x%x", old_rnti, new_rnti);
 
   // create new RNTI and update TEIDs of old rnti to reflect new rnti
@@ -518,11 +520,6 @@ void gtpu::rem_bearer(uint16_t rnti, uint32_t lcid)
 
 void gtpu::mod_bearer_rnti(uint16_t old_rnti, uint16_t new_rnti)
 {
-  auto* old_rnti_ptr = tunnels.find_rnti_tunnels(old_rnti);
-  if (old_rnti_ptr == nullptr or tunnels.find_rnti_tunnels(new_rnti) != nullptr) {
-    logger.error("Modifying bearer rnti. Old rnti=0x%x, new rnti=0x%x", old_rnti, new_rnti);
-    return;
-  }
   tunnels.update_rnti(old_rnti, new_rnti);
 }
 

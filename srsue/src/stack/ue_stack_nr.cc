@@ -163,9 +163,9 @@ void ue_stack_nr::run_thread()
 void ue_stack_nr::write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu)
 {
   if (pdcp != nullptr) {
-    std::pair<bool, move_task_t> ret = gw_task_queue.try_push(std::bind(
+    auto ret = gw_task_queue.try_push(std::bind(
         [this, lcid](srsran::unique_byte_buffer_t& sdu) { pdcp->write_sdu(lcid, std::move(sdu)); }, std::move(sdu)));
-    if (not ret.first) {
+    if (ret.is_error()) {
       pdcp_logger.warning("GW SDU with lcid=%d was discarded.", lcid);
     }
   }

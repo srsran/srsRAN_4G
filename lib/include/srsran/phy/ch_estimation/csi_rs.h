@@ -49,26 +49,6 @@
 #define SRSRAN_CSI_RS_NOF_FREQ_DOMAIN_ALLOC_OTHER 6
 
 /**
- * @brief Describes a measurement for NZP-CSI-RS
- * @note Used for fine tracking RSRP, SNR, CFO, SFO, and so on
- * @note srsran_csi_channel_measurements_t is used for CSI report generation
- */
-typedef struct SRSRAN_API {
-  float    rsrp;       ///< Linear scale RSRP
-  float    rsrp_dB;    ///< Logarithm scale RSRP relative to full-scale
-  float    epre;       ///< Linear scale EPRE
-  float    epre_dB;    ///< Logarithm scale EPRE relative to full-scale
-  float    n0;         ///< Linear noise level
-  float    n0_dB;      ///< Logarithm scale noise level relative to full-scale
-  float    snr_dB;     ///< Signal to noise ratio in decibels
-  float    cfo_hz;     ///< Carrier frequency offset in Hz. Only set if more than 2 symbols are available in a TRS set
-  float    cfo_hz_max; ///< Maximum CFO in Hz that can be measured. It is set to 0 if CFO cannot be estimated
-  float    delay_us;   ///< Average measured delay in microseconds
-  uint32_t nof_re;     ///< Number of available RE for the measurement, it can be used for weighting among different
-                       ///< measurements
-} srsran_csi_trs_measurements_t;
-
-/**
  * @brief Calculates if the given periodicity implies a CSI-RS transmission in the given slot
  * @remark Described in TS 36.211 section 7.4.1.5.3 Mapping to physical resources
  * @param periodicity Periodicity configuration

@@ -50,13 +50,11 @@ public:
   std::string to_string(const activity_timeout_type_t& type);
   void        set_activity_timeout(const activity_timeout_type_t type);
   void        set_activity();
-  void        start_rlf_timer();
-  void        stop_rlf_timer();
   void        set_radiolink_dl_state(bool crc_res);
   void        set_radiolink_ul_state(bool crc_res);
   void        activity_timer_expired(const activity_timeout_type_t type);
-  void        rlf_timer_expired();
-  void        max_retx_reached();
+  void        rlf_timer_expired(uint32_t timeout_id);
+  void        max_rlc_retx_reached();
 
   rrc_state_t get_state();
   void        get_metrics(rrc_ue_metrics_t& ue_metrics) const;
@@ -122,7 +120,6 @@ public:
   bool has_erab(uint32_t erab_id) const { return bearer_list.get_erabs().count(erab_id) > 0; }
   int  get_erab_addr_in(uint16_t erab_id, transp_addr_t& addr_in, uint32_t& teid_in) const;
 
-  bool setup_erabs(const asn1::s1ap::erab_to_be_setup_list_ctxt_su_req_l& e);
   bool release_erabs();
   int  release_erab(uint32_t erab_id);
   int  setup_erab(uint16_t                                           erab_id,
@@ -167,9 +164,12 @@ public:
   bool is_csfb = false;
 
 private:
-  // args
-  srsran::unique_timer activity_timer;
-  srsran::unique_timer rlf_release_timer;
+  srsran::unique_timer activity_timer; // for basic DL/UL activity timeout
+
+  /// Radio link failure handling uses distinct timers for PHY (DL and UL) and RLC signaled RLF
+  srsran::unique_timer phy_dl_rlf_timer; // can be stopped through recovered DL activity
+  srsran::unique_timer phy_ul_rlf_timer; // can be stopped through recovered UL activity
+  srsran::unique_timer rlc_rlf_timer;    // can only be stoped through UE reestablishment
 
   /// cached ASN1 fields for RRC config update checking, and ease of context transfer during HO
   ue_var_cfg_t current_ue_cfg;

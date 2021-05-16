@@ -85,13 +85,21 @@ private:
   const static size_t nof_paging_subframes = 4;
 
   bool       add_paging_record(uint32_t ueid, const asn1::rrc::paging_record_s& paging_record);
-  pcch_info& get_pcch_info(tti_point tti_tx_dl)
+  pcch_info* get_pcch_info(tti_point tti_tx_dl)
   {
-    return pending_paging[tti_tx_dl.sfn() % T][get_sf_idx_key(tti_tx_dl.sf_idx())];
+    int sf_key = get_sf_idx_key(tti_tx_dl.sf_idx());
+    if (sf_key < 0) {
+      return nullptr;
+    }
+    return &pending_paging[tti_tx_dl.sfn() % T][sf_key];
   }
-  const pcch_info& get_pcch_info(tti_point tti_tx_dl) const
+  const pcch_info* get_pcch_info(tti_point tti_tx_dl) const
   {
-    return pending_paging[tti_tx_dl.sfn() % T][get_sf_idx_key(tti_tx_dl.sf_idx())];
+    int sf_key = get_sf_idx_key(tti_tx_dl.sf_idx());
+    if (sf_key < 0) {
+      return nullptr;
+    }
+    return &pending_paging[tti_tx_dl.sfn() % T][sf_key];
   }
   static int get_sf_idx_key(uint32_t sf_idx)
   {
@@ -156,12 +164,13 @@ bool paging_manager::add_paging_record(uint32_t ueid, const asn1::rrc::paging_re
     logger.error("SF pattern is N/A for Ns=%d, i_s=%d, imsi_decimal=%d", Ns, i_s, ueid);
     return false;
   }
+  size_t sf_key = static_cast<size_t>(get_sf_idx_key(sf_idx));
 
   size_t     sfn_cycle_idx = (T / N) * (ueid % N);
-  pcch_info& pending_pcch  = pending_paging[sfn_cycle_idx][get_sf_idx_key(sf_idx)];
+  pcch_info& pending_pcch  = pending_paging[sfn_cycle_idx][sf_key];
   auto&      record_list   = pending_pcch.pcch_msg.msg.c1().paging().paging_record_list;
 
-  std::lock_guard<std::mutex> lock(sf_idx_mutex[get_sf_idx_key(sf_idx)]);
+  std::lock_guard<std::mutex> lock(sf_idx_mutex[sf_key]);
 
   if (record_list.size() >= ASN1_RRC_MAX_PAGE_REC) {
     logger.warning("Failed to add new paging record for ueid=%d. Cause: no paging record space left.", ueid);
@@ -197,19 +206,19 @@ size_t paging_manager::pending_pcch_bytes(tti_point tti_tx_dl)
     return 0;
   }
 
-  std::lock_guard<std::mutex> lock(sf_idx_mutex[sf_key]);
+  std::lock_guard<std::mutex> lock(sf_idx_mutex[static_cast<size_t>(sf_key)]);
 
   // clear old PCCH that has been transmitted at this point
-  pcch_info& old_pcch = get_pcch_info(tti_tx_dl - SRSRAN_NOF_SF_X_FRAME);
-  if (not old_pcch.empty()) {
-    old_pcch.clear();
+  pcch_info* old_pcch = get_pcch_info(tti_tx_dl - SRSRAN_NOF_SF_X_FRAME);
+  if (old_pcch != nullptr and not old_pcch->empty()) {
+    old_pcch->clear();
   }
 
-  const pcch_info& pending_pcch = get_pcch_info(tti_tx_dl);
-  if (pending_pcch.empty()) {
+  const pcch_info* pending_pcch = get_pcch_info(tti_tx_dl);
+  if (pending_pcch->empty()) {
     return 0;
   }
-  return pending_pcch.pdu->size();
+  return pending_pcch->pdu->size();
 }
 
 template <typename Callable>
@@ -221,18 +230,18 @@ bool paging_manager::read_pdu_pcch(tti_point tti_tx_dl, const Callable& func)
     return false;
   }
 
-  pcch_info& pending_pcch = get_pcch_info(tti_tx_dl);
+  std::lock_guard<std::mutex> lock(sf_idx_mutex[static_cast<size_t>(sf_key)]);
 
-  std::lock_guard<std::mutex> lock(sf_idx_mutex[get_sf_idx_key(tti_tx_dl.sf_idx())]);
+  pcch_info* pending_pcch = get_pcch_info(tti_tx_dl);
 
-  if (pending_pcch.empty()) {
+  if (pending_pcch->empty()) {
     logger.warning("read_pdu_pdcch(...) called for tti=%d, but there is no pending pcch message", tti_tx_dl.to_uint());
     return false;
   }
 
   // Call callable for existing PCCH pdu
-  if (func(*pending_pcch.pdu, pending_pcch.pcch_msg, pending_pcch.tti_tx_dl.is_valid())) {
-    pending_pcch.tti_tx_dl = tti_tx_dl;
+  if (func(*pending_pcch->pdu, pending_pcch->pcch_msg, pending_pcch->tti_tx_dl.is_valid())) {
+    pending_pcch->tti_tx_dl = tti_tx_dl;
     return true;
   }
   return false;

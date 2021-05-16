@@ -420,24 +420,21 @@ void s1ap::write_pdu(uint16_t rnti, srsran::unique_byte_buffer_t pdu)
 
 bool s1ap::user_release(uint16_t rnti, asn1::s1ap::cause_radio_network_e cause_radio)
 {
-  logger.info("User inactivity - RNTI:0x%x", rnti);
-
   ue* u = users.find_ue_rnti(rnti);
   if (u == nullptr) {
-    return false;
-  }
-
-  if (u->was_uectxtrelease_requested() or not u->ctxt.mme_ue_s1ap_id.has_value()) {
-    logger.warning("UE context for RNTI:0x%x is in zombie state. Releasing...", rnti);
-    users.erase(u);
-    rrc->release_ue(rnti);
+    logger.warning("Released UE with rnti=0x%x not found", rnti);
     return false;
   }
 
   cause_c cause;
   cause.set_radio_network().value = cause_radio.value;
 
-  return u->send_uectxtreleaserequest(cause);
+  if (not u->send_uectxtreleaserequest(cause)) {
+    users.erase(u);
+    rrc->release_ue(rnti);
+    return false;
+  }
+  return true;
 }
 
 bool s1ap::user_exists(uint16_t rnti)
@@ -1385,7 +1382,8 @@ bool s1ap::ue::send_initialuemessage(asn1::s1ap::rrc_establishment_cause_e cause
 
 bool s1ap::ue::send_ulnastransport(srsran::unique_byte_buffer_t pdu)
 {
-  if (not s1ap_ptr->mme_connected) {
+  if (not ctxt.mme_ue_s1ap_id.has_value()) {
+    logger.error("Trying to send UL NAS Transport message for rnti=0x%x without MME-S1AP-UE-ID", ctxt.rnti);
     return false;
   }
 
@@ -1410,6 +1408,10 @@ bool s1ap::ue::send_ulnastransport(srsran::unique_byte_buffer_t pdu)
 
 bool s1ap::ue::send_uectxtreleaserequest(const cause_c& cause)
 {
+  if (was_uectxtrelease_requested()) {
+    logger.warning("UE context for RNTI:0x%x is in zombie state. Releasing...", ctxt.rnti);
+    return false;
+  }
   if (not ctxt.mme_ue_s1ap_id.has_value()) {
     logger.error("Cannot send UE context release request without a MME-UE-S1AP-Id allocated.");
     return false;

@@ -149,6 +149,53 @@ extern "C" {
  */
 #define SRSRAN_MAX_HARQ_PROC_UL_NR 16 // 3GPP TS 38.214 version 15.3.0 Sec. 6.1
 
+/**
+ * @brief SSB bandwidth in subcarriers, described in TS 38.211 section 7.4.3.1 Time-frequency structure of an SS/PBCH
+ * block
+ */
+#define SRSRAN_SSB_BW_SUBC 240
+
+/**
+ * @brief SSB duration in symbols, described in TS 38.211 section 7.4.3.1 Time-frequency structure of an SS/PBCH block
+ */
+#define SRSRAN_SSB_DURATION_NSYMB 4
+
+/**
+ * @brief Number of NR N_id_1 Physical Cell Identifier (PCI) as described in TS 38.211 section 7.4.2.1 Physical-layer
+ * cell identities
+ */
+#define SRSRAN_NOF_NID_1_NR 336
+
+/**
+ * @brief Number of NR N_id_2 Physical Cell Identifier (PCI) as described in TS 38.211 section 7.4.2.1 Physical-layer
+ * cell identities
+ */
+#define SRSRAN_NOF_NID_2_NR 3
+
+/**
+ * @brief Number of NR N_id Physical Cell Identifier (PCI) as described in TS 38.211 section 7.4.2.1 Physical-layer
+ * cell identities
+ */
+#define SRSRAN_NOF_NID_NR (SRSRAN_NOF_NID_1_NR * SRSRAN_NOF_NID_2_NR)
+
+/**
+ * @brief Compute N_id_1 from the Physical Cell Identifier (PCI) as described in TS 38.211 section 7.4.2.1
+ * Physical-layer cell identities
+ */
+#define SRSRAN_NID_1_NR(N_ID) ((N_ID) / SRSRAN_NOF_NID_2_NR)
+
+/**
+ * @brief Compute N_id_2 from the Physical Cell Identifier (PCI) as described in TS 38.211 section 7.4.2.1
+ * Physical-layer cell identities
+ */
+#define SRSRAN_NID_2_NR(N_ID) ((N_ID) % SRSRAN_NOF_NID_2_NR)
+
+/**
+ * @brief SSB number of resource elements, described in TS 38.211 section 7.4.3.1 Time-frequency structure of an SS/PBCH
+ * block
+ */
+#define SRSRAN_SSB_NOF_RE (SRSRAN_SSB_BW_SUBC * SRSRAN_SSB_DURATION_NSYMB)
+
 typedef enum SRSRAN_API {
   srsran_coreset_mapping_type_non_interleaved = 0,
   srsran_coreset_mapping_type_interleaved,
@@ -386,6 +433,26 @@ typedef struct SRSRAN_API {
 } srsran_tdd_config_nr_t;
 
 /**
+ * @brief Describes a measurement based on NZP-CSI-RS or SSB-CSI
+ * @note Used for tracking RSRP, SNR, CFO, SFO, and so on
+ * @note srsran_csi_channel_measurements_t is used for CSI report generation
+ */
+typedef struct SRSRAN_API {
+  float    rsrp;       ///< Linear scale RSRP
+  float    rsrp_dB;    ///< Logarithm scale RSRP relative to full-scale
+  float    epre;       ///< Linear scale EPRE
+  float    epre_dB;    ///< Logarithm scale EPRE relative to full-scale
+  float    n0;         ///< Linear noise level
+  float    n0_dB;      ///< Logarithm scale noise level relative to full-scale
+  float    snr_dB;     ///< Signal to noise ratio in decibels
+  float    cfo_hz;     ///< Carrier frequency offset in Hz. Only set if more than 2 symbols are available in a TRS set
+  float    cfo_hz_max; ///< Maximum CFO in Hz that can be measured. It is set to 0 if CFO cannot be estimated
+  float    delay_us;   ///< Average measured delay in microseconds
+  uint32_t nof_re;     ///< Number of available RE for the measurement, it can be used for weighting among different
+  ///< measurements
+} srsran_csi_trs_measurements_t;
+
+/**
  * @brief Get the RNTI type name for NR
  * @param rnti_type RNTI type name
  * @return Constant string with the RNTI type name
@@ -458,10 +525,10 @@ SRSRAN_API uint32_t srsran_min_symbol_sz_rb(uint32_t nof_prb);
  * @remark All symbol size reference and values are taken from TS 38.211 section 5.3 OFDM baseband signal generation
  * @param l0 First symbol index within the slot
  * @param l1 Second symbol index within the slot
- * @param numerology NR Carrier numerology
+ * @param scs Subcarrier spacing
  * @return Returns the time in seconds between the two symbols if the condition above is satisfied, 0 seconds otherwise
  */
-SRSRAN_API float srsran_symbol_distance_s(uint32_t l0, uint32_t l1, uint32_t numerology);
+SRSRAN_API float srsran_symbol_distance_s(uint32_t l0, uint32_t l1, srsran_subcarrier_spacing_t scs);
 
 /**
  * @brief Decides whether a given slot is configured as Downlink
@@ -482,6 +549,15 @@ SRSRAN_API bool srsran_tdd_nr_is_dl(const srsran_tdd_config_nr_t* cfg, uint32_t 
 SRSRAN_API bool srsran_tdd_nr_is_ul(const srsran_tdd_config_nr_t* cfg, uint32_t numerology, uint32_t slot_idx);
 
 SRSRAN_API int srsran_carrier_to_cell(const srsran_carrier_nr_t* carrier, srsran_cell_t* cell);
+
+/**
+ * @brief Writes Channel State Information measurement into a string
+ * @param meas Provides the measurement
+ * @param str Provides string
+ * @param str_len Maximum string length
+ * @return The number of writen characters
+ */
+SRSRAN_API uint32_t srsran_csi_meas_info(const srsran_csi_trs_measurements_t* meas, char* str, uint32_t str_len);
 
 #ifdef __cplusplus
 }
