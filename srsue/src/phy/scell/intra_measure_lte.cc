@@ -52,12 +52,7 @@ void intra_measure_lte::measure_rat(const measure_context_t& context, std::vecto
   std::set<uint32_t> cells_to_measure = context.active_pci;
 
   // Detect new cells using PSS/SSS
-  std::set<uint32_t> detected_cells = scell_rx.find_cells(buffer.data(), serving_cell, context.meas_len_ms);
-
-  // Add detected cells to the list of cells to measure
-  for (const uint32_t& c : detected_cells) {
-    cells_to_measure.insert(c);
-  }
+  scell_rx.find_cells(buffer.data(), serving_cell, context.meas_len_ms, cells_to_measure);
 
   // Initialise empty neighbour cell list
   std::vector<phy_meas_t> neighbour_cells = {};
