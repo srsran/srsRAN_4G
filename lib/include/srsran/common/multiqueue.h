@@ -66,6 +66,11 @@ class multiqueue_handler
       return active_;
     }
 
+    void set_notify_mode()
+    {
+      std::unique_lock<std::mutex> lock(q_mutex);
+      notify_mode = true;
+    }
     void set_active(bool val)
     {
       std::unique_lock<std::mutex> lock(q_mutex);
@@ -152,7 +157,7 @@ class multiqueue_handler
         }
       }
       buffer.push(std::forward<T>(*o));
-      if (consumer_notify_needed) {
+      if (consumer_notify_needed and notify_mode) {
         // Note: The consumer thread only needs to be notified and awaken when queues transition from empty to non-empty
         //       To ensure that the consumer noticed that the queue was empty before a push, we store the last
         //       try_pop() return in a member variable.
@@ -170,6 +175,7 @@ class multiqueue_handler
     std::condition_variable            cv_full, cv_exit;
     bool                               active_                = true;
     bool                               consumer_notify_needed = true;
+    bool                               notify_mode            = false;
     int                                nof_waiting            = 0;
   };
 
@@ -192,6 +198,7 @@ public:
         impl = nullptr;
       }
     }
+    void set_notify_mode() { impl->set_notify_mode(); }
 
     size_t size() { return impl->size(); }
     size_t capacity() { return impl->capacity(); }
