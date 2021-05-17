@@ -27,10 +27,11 @@
  */
 #define SSB_FREQ_OFFSET_MAX_ERROR_HZ 0.01
 
-/**
- * Correlation size in number of FFTs. It is desired to be power of 2
+/*
+ * Correlation size in function of the symbol size. It selects a power of two number at least 8 times bigger than the
+ * given symbol size but not bigger than 2^13 points.
  */
-#define SSB_CORR_SZ 2
+#define SSB_CORR_SZ(SYMB_SZ) SRSRAN_MIN(1U << (uint32_t)ceil(log2((double)(SYMB_SZ)) + 3.0), 1U << 13U)
 
 static int ssb_init_corr(srsran_ssb_t* q)
 {
@@ -42,7 +43,7 @@ static int ssb_init_corr(srsran_ssb_t* q)
   // For each PSS sequence allocate
   for (uint32_t N_id_2 = 0; N_id_2 < SRSRAN_NOF_NID_2_NR; N_id_2++) {
     // Allocate sequences
-    q->pss_seq[N_id_2] = srsran_vec_cf_malloc(SSB_CORR_SZ * q->max_symbol_sz);
+    q->pss_seq[N_id_2] = srsran_vec_cf_malloc(q->max_corr_sz);
     if (q->pss_seq[N_id_2] == NULL) {
       ERROR("Malloc");
       return SRSRAN_ERROR;
@@ -69,11 +70,12 @@ int srsran_ssb_init(srsran_ssb_t* q, const srsran_ssb_args_t* args)
 
   q->scs_hz        = (float)SRSRAN_SUBC_SPACING_NR(q->args.min_scs);
   q->max_symbol_sz = (uint32_t)round(q->args.max_srate_hz / q->scs_hz);
+  q->max_corr_sz   = SSB_CORR_SZ(q->symbol_sz);
 
   // Allocate temporal data
-  q->tmp_time = srsran_vec_cf_malloc(SSB_CORR_SZ * q->max_symbol_sz);
-  q->tmp_freq = srsran_vec_cf_malloc(SSB_CORR_SZ * q->max_symbol_sz);
-  q->tmp_corr = srsran_vec_cf_malloc(SSB_CORR_SZ * q->max_symbol_sz);
+  q->tmp_time = srsran_vec_cf_malloc(q->max_corr_sz);
+  q->tmp_freq = srsran_vec_cf_malloc(q->max_corr_sz);
+  q->tmp_corr = srsran_vec_cf_malloc(q->max_corr_sz);
   if (q->tmp_time == NULL || q->tmp_freq == NULL || q->tmp_corr == NULL) {
     ERROR("Malloc");
     return SRSRAN_ERROR;
@@ -275,6 +277,9 @@ static void ssb_modulate_symbol(srsran_ssb_t* q, cf_t ssb_grid[SRSRAN_SSB_NOF_RE
   // Select symbol in grid
   cf_t* ptr = &ssb_grid[l * SRSRAN_SSB_BW_SUBC];
 
+  // Initialise frequency domain
+  srsran_vec_cf_zero(q->tmp_freq, q->symbol_sz);
+
   // Map grid into frequency domain symbol
   if (q->f_offset >= SRSRAN_SSB_BW_SUBC / 2) {
     srsran_vec_cf_copy(&q->tmp_freq[q->f_offset - SRSRAN_SSB_BW_SUBC / 2], ptr, SRSRAN_SSB_BW_SUBC);
@@ -305,12 +310,20 @@ static int ssb_setup_corr(srsran_ssb_t* q)
     return SRSRAN_SUCCESS;
   }
 
+  // Compute new correlation size
+  uint32_t corr_sz = SSB_CORR_SZ(q->symbol_sz);
+
   // Skip if the symbol size is unchanged
-  uint32_t corr_sz = q->symbol_sz * SSB_CORR_SZ;
   if (q->corr_sz == corr_sz) {
     return SRSRAN_SUCCESS;
   }
-  q->corr_sz     = corr_sz;
+  q->corr_sz = corr_sz;
+
+  // Select correlation window, return error if the correlation window is smaller than a symbol
+  if (corr_sz < 2 * q->symbol_sz) {
+    ERROR("Correlation size (%d) is not sufficient (min. %d)", corr_sz, q->symbol_sz * 2);
+    return SRSRAN_ERROR;
+  }
   q->corr_window = corr_sz - q->symbol_sz;
 
   // Free correlation
@@ -329,16 +342,15 @@ static int ssb_setup_corr(srsran_ssb_t* q)
     return SRSRAN_ERROR;
   }
 
-  // Initialise frequency domain
-  srsran_vec_cf_zero(q->tmp_freq, q->symbol_sz);
-
   // Zero the time domain signal last samples
   srsran_vec_cf_zero(&q->tmp_time[q->symbol_sz], q->corr_window);
+
+  // Temporal grid
+  cf_t ssb_grid[SRSRAN_SSB_NOF_RE] = {};
 
   // Initialise correlation sequence
   for (uint32_t N_id_2 = 0; N_id_2 < SRSRAN_NOF_NID_2_NR; N_id_2++) {
     // Put the PSS in SSB grid
-    cf_t ssb_grid[SRSRAN_SSB_NOF_RE] = {};
     if (srsran_pss_nr_put(ssb_grid, N_id_2, 1.0f) < SRSRAN_SUCCESS) {
       ERROR("Error putting PDD N_id_2=%d", N_id_2);
       return SRSRAN_ERROR;
@@ -521,16 +533,16 @@ int srsran_ssb_add(srsran_ssb_t* q, uint32_t N_id, const srsran_pbch_msg_nr_t* m
   // Put PBCH payload
   // ...
 
-  // Initialise frequency domain
-  srsran_vec_cf_zero(q->tmp_freq, q->symbol_sz);
-
-  // Modulate
+  // Select input/ouput pointers considering the time offset in the slot
   const cf_t* in_ptr  = &in[q->t_offset];
   cf_t*       out_ptr = &out[q->t_offset];
+
+  // For each SSB symbol, modulate
   for (uint32_t l = 0; l < SRSRAN_SSB_DURATION_NSYMB; l++) {
     // Get CP length
     uint32_t cp_len = q->cp_sz[l];
 
+    // Map SSB in resource grid and perform IFFT
     ssb_modulate_symbol(q, ssb_grid, l);
 
     // Add cyclic prefix to input;
@@ -691,9 +703,22 @@ ssb_pss_search(srsran_ssb_t* q, const cf_t* in, uint32_t nof_samples, uint32_t* 
 
   // Delay in correlation window
   uint32_t t_offset = 0;
-  while ((t_offset + q->corr_sz) < nof_samples) {
-    // Prepare time domain signal
-    srsran_vec_cf_copy(q->tmp_time, &in[t_offset], q->corr_sz);
+  while ((t_offset + q->symbol_sz) < nof_samples) {
+    // Number of samples taken in this iteration
+    uint32_t n = q->corr_sz;
+
+    // Detect if the correlation input exceeds the input length, take the maximum amount of samples
+    if (t_offset + q->corr_sz > nof_samples) {
+      n = nof_samples - t_offset;
+    }
+
+    // Copy the amount of samples
+    srsran_vec_cf_copy(q->tmp_time, &in[t_offset], n);
+
+    // Append zeros if there is space left
+    if (n < q->corr_sz) {
+      srsran_vec_cf_zero(&q->tmp_time[n], q->corr_sz - n);
+    }
 
     // Convert to frequency domain
     srsran_dft_run_guru_c(&q->fft_corr);

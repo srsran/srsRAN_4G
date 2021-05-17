@@ -79,6 +79,7 @@ typedef struct SRSRAN_API {
   /// Sampling rate dependent parameters
   float    scs_hz;                           ///< Subcarrier spacing in Hz
   uint32_t max_symbol_sz;                    ///< Maximum symbol size given the minimum supported SCS and sampling rate
+  uint32_t max_corr_sz;                      ///< Maximum correlation size
   uint32_t symbol_sz;                        ///< Current SSB symbol size (for the given base-band sampling rate)
   uint32_t corr_sz;                          ///< Correlation size
   uint32_t corr_window;                      ///< Correlation window length
