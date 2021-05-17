@@ -107,8 +107,9 @@ private:
    * @attention It searches and measures the SSB with best SNR
    * @param context Measurement context
    * @param buffer Provides the baseband buffer to perform the measurements
+   * @return True if no error happen, otherwise false
    */
-  void measure_rat(const measure_context_t& context, std::vector<cf_t>& buffer) override;
+  bool measure_rat(measure_context_t context, std::vector<cf_t>& buffer) override;
 
   srslog::basic_logger& logger;
   uint32_t              cc_idx           = 0;

@@ -47,7 +47,7 @@ void intra_measure_lte::set_primary_cell(uint32_t earfcn, srsran_cell_t cell)
   set_current_sf_len((uint32_t)SRSRAN_SF_LEN_PRB(cell.nof_prb));
 }
 
-void intra_measure_lte::measure_rat(const measure_context_t& context, std::vector<cf_t>& buffer)
+bool intra_measure_lte::measure_rat(measure_context_t context, std::vector<cf_t>& buffer)
 {
   std::set<uint32_t> cells_to_measure = context.active_pci;
 
@@ -68,8 +68,16 @@ void intra_measure_lte::measure_rat(const measure_context_t& context, std::vecto
     srsran_cell_t cell = serving_cell;
     cell.id            = id;
 
-    srsran_refsignal_dl_sync_set_cell(&refsignal_dl_sync, cell);
-    srsran_refsignal_dl_sync_run(&refsignal_dl_sync, buffer.data(), context.meas_len_ms * context.sf_len);
+    if (srsran_refsignal_dl_sync_set_cell(&refsignal_dl_sync, cell) < SRSRAN_SUCCESS) {
+      Log(error, "Error setting refsignal DL cell");
+      return false;
+    }
+
+    if (srsran_refsignal_dl_sync_run(&refsignal_dl_sync, buffer.data(), context.meas_len_ms * context.sf_len) <
+        SRSRAN_SUCCESS) {
+      Log(error, "Error running refsignal DL measurements");
+      return false;
+    }
 
     if (refsignal_dl_sync.found) {
       phy_meas_t m = {};
@@ -96,6 +104,8 @@ void intra_measure_lte::measure_rat(const measure_context_t& context, std::vecto
   if (not neighbour_cells.empty()) {
     context.new_cell_itf.new_cell_meas(context.cc_idx, neighbour_cells);
   }
+
+  return true;
 }
 
 } // namespace scell

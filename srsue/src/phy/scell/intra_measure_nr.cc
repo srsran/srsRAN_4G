@@ -81,7 +81,7 @@ bool intra_measure_nr::set_config(uint32_t arfcn, const config_t& cfg)
   return true;
 }
 
-void intra_measure_nr::measure_rat(const measure_context_t& context, std::vector<cf_t>& buffer)
+bool intra_measure_nr::measure_rat(const measure_context_t context, std::vector<cf_t>& buffer)
 {
   std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
@@ -90,6 +90,7 @@ void intra_measure_nr::measure_rat(const measure_context_t& context, std::vector
   uint32_t                      N_id = 0;
   if (srsran_ssb_csi_search(&ssb, buffer.data(), context.sf_len * context.meas_len_ms, &N_id, &meas) < SRSRAN_SUCCESS) {
     Log(error, "Error searching for SSB");
+    return false;
   }
 
   std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
@@ -98,7 +99,7 @@ void intra_measure_nr::measure_rat(const measure_context_t& context, std::vector
 
   // Early return if the found PCI matches with the serving cell ID
   if (serving_cell_pci == (int)N_id) {
-    return;
+    return true;
   }
 
   // Take valid decision if SNR threshold is exceeded
@@ -124,6 +125,8 @@ void intra_measure_nr::measure_rat(const measure_context_t& context, std::vector
     // Push measurements to higher layers
     context.new_cell_itf.new_cell_meas(cc_idx, meas_list);
   }
+
+  return true;
 }
 
 } // namespace scell

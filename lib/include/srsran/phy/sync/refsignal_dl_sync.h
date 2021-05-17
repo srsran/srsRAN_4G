@@ -41,7 +41,7 @@ SRSRAN_API int srsran_refsignal_dl_sync_set_cell(srsran_refsignal_dl_sync_t* q, 
 
 SRSRAN_API void srsran_refsignal_dl_sync_free(srsran_refsignal_dl_sync_t* q);
 
-SRSRAN_API void srsran_refsignal_dl_sync_run(srsran_refsignal_dl_sync_t* q, cf_t* buffer, uint32_t nsamples);
+SRSRAN_API int srsran_refsignal_dl_sync_run(srsran_refsignal_dl_sync_t* q, cf_t* buffer, uint32_t nsamples);
 
 SRSRAN_API void srsran_refsignal_dl_sync_measure_sf(srsran_refsignal_dl_sync_t* q,
                                                     cf_t*                       buffer,

@@ -29,7 +29,7 @@ namespace scell {
 class intra_measure_base : public srsran::thread
 {
   /*
-   * The intra-cell measurment has 5 different states:
+   * The intra-cell measurement has 5 different states:
    *  - idle: it has been initiated and it is waiting to get configured to start capturing samples. From any state
    *          except quit can transition to idle.
    *  - wait: waits for the TTI trigger to transition to receive
@@ -40,7 +40,7 @@ class intra_measure_base : public srsran::thread
    *
    * FSM abstraction:
    *
-   *  +------+   set_cells_to_meas   +------+   intra_freq_meas_period_ms   +---------+
+   *  +------+   set_cells_to_meas   +------+      receive_tti_trigger      +---------+
    *  | Idle | --------------------->| Wait |------------------------------>| Receive |
    *  +------+                       +------+                               +---------+
    *     ^                              ^                                        |          stop  +------+
@@ -48,6 +48,9 @@ class intra_measure_base : public srsran::thread
    *   init                        +---------+    intra_freq_meas_len_ms         |                +------+
    * meas_stop                     | Measure |<----------------------------------+
    *                               +---------+
+   *
+   * This class has been designed to be thread safe. Any method can be called from different threads as long as
+   * init_generic is called when the FSM is in idle.
    */
 public:
   /**
@@ -64,7 +67,7 @@ public:
    * @brief Describes the default generic configuration arguments
    */
   struct args_t {
-    double   srate_hz          = 0.0;  ///< Sampling rate in Hz, set to 0.0 for maximum
+    double   srate_hz          = 0.0;  ///< Sampling rate in Hz, optional for LTE, compulsory for NR
     uint32_t len_ms            = 20;   ///< Amount of time to accumulate
     uint32_t period_ms         = 200;  ///< Minimum time interval between measurements, set to 0 for free-run
     uint32_t tti_period        = 0;    ///< Measurement TTI trigger period, set to 0 to trigger at any TTI
@@ -250,8 +253,13 @@ private:
 
   /**
    * @brief Pure virtual function to perform measurements
+   * @note The context is pass-by-value to protect it from concurrency. However, the buffer is pass-by-reference
+   * as it is protected by the state.
+   * @param context Provides current measurement context
+   * @param buffer Provides current measurement context
+   * @return True if the measurement functions are executed without errors, otherwise false
    */
-  virtual void measure_rat(const measure_context_t& context, std::vector<cf_t>& buffer) = 0;
+  virtual bool measure_rat(measure_context_t context, std::vector<cf_t>& buffer) = 0;
 
   /**
    * @brief Measurement process helper method. Encapsulates the neighbour cell measurement functionality

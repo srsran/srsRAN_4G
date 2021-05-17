@@ -38,9 +38,16 @@ void intra_measure_base::init_generic(uint32_t cc_idx_, const args_t& args)
   context.trigger_tti_offset = args.tti_offset;
   context.rx_gain_offset_db  = args.rx_gain_offset_db;
 
-  context.sf_len = SRSRAN_SF_LEN_PRB(SRSRAN_MAX_PRB);
+  // Compute subframe length from the sampling rate if available
   if (std::isnormal(args.srate_hz)) {
     context.sf_len = (uint32_t)round(args.srate_hz / 1000.0);
+  } else if (get_rat() == srsran::srsran_rat_t::lte) {
+    // Select maximum subframe size for LTE
+    context.sf_len = SRSRAN_SF_LEN_PRB(SRSRAN_MAX_PRB);
+  } else {
+    // No maximum subframe length is defined for other RATs
+    ERROR("A sampling rate was expected for %s. Undefined behaviour.", srsran::to_string(get_rat()).c_str());
+    return;
   }
 
   // Calculate the new required bytes
@@ -54,6 +61,7 @@ void intra_measure_base::init_generic(uint32_t cc_idx_, const args_t& args)
 
     // Initialise buffer for the maximum number of PRB
     if (srsran_ringbuffer_init(&ring_buffer, max_required_bytes) < SRSRAN_SUCCESS) {
+      ERROR("Error initiating ringbuffer");
       return;
     }
   }
@@ -86,7 +94,7 @@ void intra_measure_base::meas_stop()
   // Transition state to idle
   // Ring-buffer shall not be reset, it will automatically be reset as soon as the FSM transitions to receive
   state.set_state(internal_state::idle);
-  Log(info, "Disabled neighbour cell search for EARFCN %d", get_earfcn());
+  Log(info, "Disabled neighbour cell search");
 }
 
 void intra_measure_base::set_cells_to_meas(const std::set<uint32_t>& pci)
@@ -95,7 +103,7 @@ void intra_measure_base::set_cells_to_meas(const std::set<uint32_t>& pci)
   context.active_pci = pci;
   active_pci_mutex.unlock();
   state.set_state(internal_state::wait_first);
-  Log(info, "Received list of %zd neighbour cells to measure in EARFCN %d.", pci.size(), get_earfcn());
+  Log(info, "Received list of %zd neighbour cells to measure", pci.size());
 }
 
 void intra_measure_base::write(cf_t* data, uint32_t nsamples)
@@ -108,7 +116,7 @@ void intra_measure_base::write(cf_t* data, uint32_t nsamples)
 
   // Try writing in the buffer
   if (srsran_ringbuffer_write(&ring_buffer, data, nbytes) < nbytes) {
-    Log(warning, "Error writing to ringbuffer (EARFCN=%d)", get_earfcn());
+    Log(warning, "Error writing to ringbuffer");
 
     // Transition to wait, so it can keep receiving without stopping the component operation
     state.set_state(internal_state::wait);
@@ -154,11 +162,11 @@ void intra_measure_base::run_tti(uint32_t tti, cf_t* data, uint32_t nsamples)
 
 void intra_measure_base::measure_proc()
 {
-  std::set<uint32_t> cells_to_measure = {};
-
   // Read data from buffer and find cells in it
   int ret = srsran_ringbuffer_read_timed(
       &ring_buffer, search_buffer.data(), (int)(context.meas_len_ms * context.sf_len * sizeof(cf_t)), 1000);
+
+  // As this function is called once the ring-buffer has enough data to process, it is not expected to fail
   if (ret < SRSRAN_SUCCESS) {
     Log(error, "Ringbuffer read returned %d", ret);
     return;
@@ -171,7 +179,9 @@ void intra_measure_base::measure_proc()
   }
 
   // Perform measurements for the actual RAT
-  measure_rat(context, search_buffer);
+  if (not measure_rat(context, search_buffer)) {
+    Log(error, "Error measuring RAT");
+  }
 }
 
 void intra_measure_base::run_thread()

@@ -367,151 +367,154 @@ int refsignal_dl_sync_find_peak(srsran_refsignal_dl_sync_t* q, cf_t* buffer, uin
   return ret;
 }
 
-void srsran_refsignal_dl_sync_run(srsran_refsignal_dl_sync_t* q, cf_t* buffer, uint32_t nsamples)
+int srsran_refsignal_dl_sync_run(srsran_refsignal_dl_sync_t* q, cf_t* buffer, uint32_t nsamples)
 {
-  if (q) {
-    uint32_t sf_len                 = q->ifft.sf_sz;
-    uint32_t sf_count               = 0;
-    float    rsrp_lin               = 0.0f;
-    float    rsrp_lin_min           = +INFINITY;
-    float    rsrp_lin_max           = -INFINITY;
-    float    rssi_lin               = 0.0f;
-    float    cfo_acc                = 0.0f;
-    float    cfo_min                = +INFINITY;
-    float    cfo_max                = -INFINITY;
-    float    sss_strength_avg       = 0.0f;
-    float    sss_strength_false_avg = 0.0f;
-    float    rsrp_false_avg         = 0.0f;
-    bool     false_alarm            = false;
+  if (q == NULL || buffer == NULL) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+  uint32_t sf_len                 = q->ifft.sf_sz;
+  uint32_t sf_count               = 0;
+  float    rsrp_lin               = 0.0f;
+  float    rsrp_lin_min           = +INFINITY;
+  float    rsrp_lin_max           = -INFINITY;
+  float    rssi_lin               = 0.0f;
+  float    cfo_acc                = 0.0f;
+  float    cfo_min                = +INFINITY;
+  float    cfo_max                = -INFINITY;
+  float    sss_strength_avg       = 0.0f;
+  float    sss_strength_false_avg = 0.0f;
+  float    rsrp_false_avg         = 0.0f;
+  bool     false_alarm            = false;
 
-    // Stage 1: find peak
-    int peak_idx = refsignal_dl_sync_find_peak(q, buffer, nsamples);
+  // Stage 1: find peak
+  int peak_idx = refsignal_dl_sync_find_peak(q, buffer, nsamples);
 
-    // Stage 2: Proccess subframes
-    if (peak_idx >= 0) {
-      // Calculate initial subframe index and sample
-      uint32_t sf_idx_init = SRSRAN_NOF_SF_X_FRAME - (peak_idx / sf_len) % SRSRAN_NOF_SF_X_FRAME;
-      uint32_t n_init      = peak_idx % sf_len;
+  // Stage 2: Proccess subframes
+  if (peak_idx >= 0) {
+    // Calculate initial subframe index and sample
+    uint32_t sf_idx_init = SRSRAN_NOF_SF_X_FRAME - (peak_idx / sf_len) % SRSRAN_NOF_SF_X_FRAME;
+    uint32_t n_init      = peak_idx % sf_len;
 
-      for (uint32_t sf_idx = sf_idx_init, n = n_init; n < (nsamples - sf_len + 1);
-           sf_idx = (sf_idx + 1) % SRSRAN_NOF_SF_X_FRAME, n += sf_len) {
-        cf_t* buf = &buffer[n];
+    for (uint32_t sf_idx = sf_idx_init, n = n_init; n < (nsamples - sf_len + 1);
+         sf_idx = (sf_idx + 1) % SRSRAN_NOF_SF_X_FRAME, n += sf_len) {
+      cf_t* buf = &buffer[n];
 
-        // Measure subframe rsrp, rssi and accumulate
-        float rsrp = 0.0f, rssi = 0.0f, cfo = 0.0f;
-        srsran_refsignal_dl_sync_measure_sf(q, buf, sf_idx, &rsrp, &rssi, &cfo);
+      // Measure subframe rsrp, rssi and accumulate
+      float rsrp = 0.0f, rssi = 0.0f, cfo = 0.0f;
+      srsran_refsignal_dl_sync_measure_sf(q, buf, sf_idx, &rsrp, &rssi, &cfo);
 
-        // Update measurements
-        rsrp_lin += rsrp;
-        rsrp_lin_min = SRSRAN_MIN(rsrp_lin_min, rsrp);
-        rsrp_lin_max = SRSRAN_MAX(rsrp_lin_max, rsrp);
+      // Update measurements
+      rsrp_lin += rsrp;
+      rsrp_lin_min = SRSRAN_MIN(rsrp_lin_min, rsrp);
+      rsrp_lin_max = SRSRAN_MAX(rsrp_lin_max, rsrp);
 
-        rssi_lin += rssi;
+      rssi_lin += rssi;
 
-        cfo_acc += cfo;
-        cfo_min = SRSRAN_MIN(cfo_min, cfo);
-        cfo_max = SRSRAN_MAX(cfo_max, cfo);
+      cfo_acc += cfo;
+      cfo_min = SRSRAN_MIN(cfo_min, cfo);
+      cfo_max = SRSRAN_MAX(cfo_max, cfo);
 
-        // Compute PSS/SSS strength
-        if (sf_idx % (SRSRAN_NOF_SF_X_FRAME / 2) == 0) {
-          float sss_strength       = 0.0f;
-          float sss_strength_false = 0.0f;
-          refsignal_dl_pss_sss_strength(q, buf, sf_idx, NULL, &sss_strength, &sss_strength_false);
+      // Compute PSS/SSS strength
+      if (sf_idx % (SRSRAN_NOF_SF_X_FRAME / 2) == 0) {
+        float sss_strength       = 0.0f;
+        float sss_strength_false = 0.0f;
+        refsignal_dl_pss_sss_strength(q, buf, sf_idx, NULL, &sss_strength, &sss_strength_false);
 
-          float rsrp_false = 0.0f;
-          srsran_refsignal_dl_sync_measure_sf(q, buf, sf_idx + 1, &rsrp_false, NULL, NULL);
+        float rsrp_false = 0.0f;
+        srsran_refsignal_dl_sync_measure_sf(q, buf, sf_idx + 1, &rsrp_false, NULL, NULL);
 
-          sss_strength_avg += sss_strength;
-          sss_strength_false_avg += sss_strength_false;
-          rsrp_false_avg += rsrp_false;
-        }
-
-        // Increment counter
-        sf_count++;
+        sss_strength_avg += sss_strength;
+        sss_strength_false_avg += sss_strength_false;
+        rsrp_false_avg += rsrp_false;
       }
 
-      // Average measurements
-      if (sf_count) {
-        rsrp_lin /= sf_count;
-        rssi_lin /= sf_count;
-        cfo_acc /= sf_count;
-        sss_strength_avg /= (2.0f * sf_count / SRSRAN_NOF_SF_X_FRAME);
-        sss_strength_false_avg /= (2.0f * sf_count / SRSRAN_NOF_SF_X_FRAME);
-        rsrp_false_avg /= (2.0f * sf_count / SRSRAN_NOF_SF_X_FRAME);
-      }
+      // Increment counter
+      sf_count++;
+    }
 
-      // RSRP conversion to dB
-      float rsrp_dB_min   = srsran_convert_power_to_dBm(rsrp_lin_min);
-      float rsrp_dB_max   = srsran_convert_power_to_dBm(rsrp_lin_max);
-      float rsrp_dB       = srsran_convert_power_to_dBm(rsrp_lin);
-      float rsrp_false_dB = srsran_convert_power_to_dBm(rsrp_false_avg);
+    // Average measurements
+    if (sf_count) {
+      rsrp_lin /= sf_count;
+      rssi_lin /= sf_count;
+      cfo_acc /= sf_count;
+      sss_strength_avg /= (2.0f * sf_count / SRSRAN_NOF_SF_X_FRAME);
+      sss_strength_false_avg /= (2.0f * sf_count / SRSRAN_NOF_SF_X_FRAME);
+      rsrp_false_avg /= (2.0f * sf_count / SRSRAN_NOF_SF_X_FRAME);
+    }
 
-      // Stage 3: Final false alarm decision
-      uint32_t false_count = 0;
-      if (sss_strength_avg < sss_strength_false_avg * REFSIGNAL_DL_SSS_FALSE_RATIO_SEVERE) {
-        false_alarm = true;
-      } else if (sss_strength_avg < sss_strength_false_avg * REFSIGNAL_DL_SSS_FALSE_RATIO_MILD) {
-        false_count++;
-      }
+    // RSRP conversion to dB
+    float rsrp_dB_min   = srsran_convert_power_to_dBm(rsrp_lin_min);
+    float rsrp_dB_max   = srsran_convert_power_to_dBm(rsrp_lin_max);
+    float rsrp_dB       = srsran_convert_power_to_dBm(rsrp_lin);
+    float rsrp_false_dB = srsran_convert_power_to_dBm(rsrp_false_avg);
 
-      if (cfo_max - cfo_min > REFSIGNAL_DL_CFO_MIN_MAX_SEVERE) {
-        false_alarm = true;
-      } else if (cfo_max - cfo_min > REFSIGNAL_DL_CFO_MIN_MAX_MILD) {
-        false_count++;
-      }
+    // Stage 3: Final false alarm decision
+    uint32_t false_count = 0;
+    if (sss_strength_avg < sss_strength_false_avg * REFSIGNAL_DL_SSS_FALSE_RATIO_SEVERE) {
+      false_alarm = true;
+    } else if (sss_strength_avg < sss_strength_false_avg * REFSIGNAL_DL_SSS_FALSE_RATIO_MILD) {
+      false_count++;
+    }
 
-      if (rsrp_dB_max - rsrp_dB_min > REFSIGNAL_DL_RSRP_MIN_MAX_SEVERE) {
-        false_alarm = true;
-      } else if (rsrp_dB_max - rsrp_dB_min > REFSIGNAL_DL_RSRP_MIN_MAX_MILD) {
-        false_count++;
-      }
+    if (cfo_max - cfo_min > REFSIGNAL_DL_CFO_MIN_MAX_SEVERE) {
+      false_alarm = true;
+    } else if (cfo_max - cfo_min > REFSIGNAL_DL_CFO_MIN_MAX_MILD) {
+      false_count++;
+    }
 
-      if (rsrp_dB - rsrp_false_dB < REFSIGNAL_DL_RSRP_FALSE_RATIO_SEVERE) {
-        false_alarm = true;
-      } else if (rsrp_dB - rsrp_false_dB < REFSIGNAL_DL_RSRP_FALSE_RATIO_MILD) {
-        false_count++;
-      }
+    if (rsrp_dB_max - rsrp_dB_min > REFSIGNAL_DL_RSRP_MIN_MAX_SEVERE) {
+      false_alarm = true;
+    } else if (rsrp_dB_max - rsrp_dB_min > REFSIGNAL_DL_RSRP_MIN_MAX_MILD) {
+      false_count++;
+    }
 
-      // Allow only one check fail
-      if (false_count > REFSIGNAL_DL_MAX_FAULT_CHECK) {
-        false_alarm = true;
-      }
+    if (rsrp_dB - rsrp_false_dB < REFSIGNAL_DL_RSRP_FALSE_RATIO_SEVERE) {
+      false_alarm = true;
+    } else if (rsrp_dB - rsrp_false_dB < REFSIGNAL_DL_RSRP_FALSE_RATIO_MILD) {
+      false_count++;
+    }
 
-      INFO("-- pci=%03d; rsrp_dB=(%+.1f|%+.1f|%+.1f); rsrp_max-min=%.1f; rsrp_false_ratio=%.1f; "
-           "cfo=(%.1f|%.1f|%.1f); cfo_max-min=%.1f; sss_ratio=%f; false_count=%d;",
-           q->refsignal.cell.id,
-           rsrp_dB_min,
-           rsrp_dB,
-           rsrp_dB_max,
-           rsrp_dB_max - rsrp_dB_min,
-           rsrp_dB - rsrp_false_dB,
-           cfo_min,
-           cfo_acc,
-           cfo_max,
-           cfo_max - cfo_min,
-           sss_strength_avg / sss_strength_false_avg,
-           false_count);
+    // Allow only one check fail
+    if (false_count > REFSIGNAL_DL_MAX_FAULT_CHECK) {
+      false_alarm = true;
+    }
 
-      if (!false_alarm) {
-        // Calculate in dBm
-        q->rsrp_dBfs = rsrp_dB;
+    INFO("-- pci=%03d; rsrp_dB=(%+.1f|%+.1f|%+.1f); rsrp_max-min=%.1f; rsrp_false_ratio=%.1f; "
+         "cfo=(%.1f|%.1f|%.1f); cfo_max-min=%.1f; sss_ratio=%f; false_count=%d;",
+         q->refsignal.cell.id,
+         rsrp_dB_min,
+         rsrp_dB,
+         rsrp_dB_max,
+         rsrp_dB_max - rsrp_dB_min,
+         rsrp_dB - rsrp_false_dB,
+         cfo_min,
+         cfo_acc,
+         cfo_max,
+         cfo_max - cfo_min,
+         sss_strength_avg / sss_strength_false_avg,
+         false_count);
 
-        // Calculate RSSI in dBm
-        q->rssi_dBfs = srsran_convert_power_to_dBm(rssi_lin);
+    if (!false_alarm) {
+      // Calculate in dBm
+      q->rsrp_dBfs = rsrp_dB;
 
-        // Calculate RSRQ
-        q->rsrq_dB = srsran_convert_power_to_dB(q->refsignal.cell.nof_prb) + q->rsrp_dBfs - q->rssi_dBfs;
+      // Calculate RSSI in dBm
+      q->rssi_dBfs = srsran_convert_power_to_dBm(rssi_lin);
 
-        q->found      = true;
-        q->cfo_Hz     = cfo_acc;
-        q->peak_index = peak_idx;
-      } else {
-        refsignal_set_results_not_found(q);
-      }
+      // Calculate RSRQ
+      q->rsrq_dB = srsran_convert_power_to_dB(q->refsignal.cell.nof_prb) + q->rsrp_dBfs - q->rssi_dBfs;
+
+      q->found      = true;
+      q->cfo_Hz     = cfo_acc;
+      q->peak_index = peak_idx;
     } else {
       refsignal_set_results_not_found(q);
     }
+  } else {
+    refsignal_set_results_not_found(q);
   }
+
+  return SRSRAN_SUCCESS;
 }
 
 void srsran_refsignal_dl_sync_measure_sf(srsran_refsignal_dl_sync_t* q,
