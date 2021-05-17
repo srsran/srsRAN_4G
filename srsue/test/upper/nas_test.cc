@@ -74,6 +74,7 @@ public:
   const char* get_rb_name(uint32_t lcid) { return "lcid"; }
   void        write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu) {}
   bool        is_lcid_enabled(uint32_t lcid) { return false; }
+  void        notify_pdcp_integrity_error(uint32_t lcid) {}
 };
 
 class rrc_dummy : public rrc_interface_nas

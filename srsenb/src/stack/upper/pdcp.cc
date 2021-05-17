@@ -220,6 +220,11 @@ void pdcp::user_interface_rrc::write_pdu(uint32_t lcid, srsran::unique_byte_buff
   rrc->write_pdu(rnti, lcid, std::move(pdu));
 }
 
+void pdcp::user_interface_rrc::notify_pdcp_integrity_error(uint32_t lcid)
+{
+  rrc->notify_pdcp_integrity_error(rnti, lcid);
+}
+
 void pdcp::user_interface_rrc::write_pdu_bcch_bch(srsran::unique_byte_buffer_t pdu)
 {
   ERROR("Error: Received BCCH from ue=%d", rnti);

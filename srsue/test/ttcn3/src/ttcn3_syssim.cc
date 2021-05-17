@@ -1139,6 +1139,11 @@ void ttcn3_syssim::protocol_failure()
   logger.error("%s not implemented.", __FUNCTION__);
 }
 
+void ttcn3_syssim::notify_pdcp_integrity_error(uint32_t lcid)
+{
+  logger.error("%s not implemented.", __FUNCTION__);
+}
+
 const char* ttcn3_syssim::get_rb_name(uint32_t lcid)
 {
   if (lcid < rb_id_vec.size()) {

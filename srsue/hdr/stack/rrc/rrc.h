@@ -147,6 +147,7 @@ public:
   void write_pdu_bcch_dlsch(srsran::unique_byte_buffer_t pdu);
   void write_pdu_pcch(srsran::unique_byte_buffer_t pdu);
   void write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
+  void notify_pdcp_integrity_error(uint32_t lcid);
 
   bool srbs_flushed(); //< Check if data on SRBs still needs to be sent
 

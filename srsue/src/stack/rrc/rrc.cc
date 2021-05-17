@@ -1620,6 +1620,11 @@ void rrc::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
   process_pdu(lcid, std::move(pdu));
 }
 
+void rrc::notify_pdcp_integrity_error(uint32_t lcid)
+{
+  logger.warning("Received Integrity Protection failured indication, rnti=0x%u, lcid=%u", lcid);
+}
+
 void rrc::process_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
   logger.debug("RX PDU, LCID: %d", lcid);

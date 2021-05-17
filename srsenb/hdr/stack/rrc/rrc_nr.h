@@ -90,8 +90,10 @@ public:
   void        max_retx_attempted(uint16_t rnti) {}
   void        protocol_failure(uint16_t rnti) {}
   const char* get_rb_name(uint32_t lcid) { return "invalid"; }
+
   // PDCP interface
   void write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu) final;
+  void notify_pdcp_integrity_error(uint16_t rnti, uint32_t lcid) final;
 
   class ue
   {
