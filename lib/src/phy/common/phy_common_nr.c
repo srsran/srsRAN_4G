@@ -12,6 +12,7 @@
 
 #include "srsran/phy/common/phy_common_nr.h"
 #include "srsran/phy/utils/vector.h"
+#include <stdlib.h>
 #include <string.h>
 
 const char* srsran_rnti_type_str(srsran_rnti_type_t rnti_type)
@@ -320,4 +321,33 @@ uint32_t srsran_csi_meas_info(const srsran_csi_trs_measurements_t* meas, char* s
                             meas->snr_dB,
                             meas->cfo_hz,
                             meas->delay_us);
+}
+
+srsran_subcarrier_spacing_t srsran_subcarrier_spacing_from_str(const char* str)
+{
+  if (str == NULL) {
+    return srsran_subcarrier_spacing_invalid;
+  }
+
+  uint32_t scs = (uint32_t)roundf(strtof(str, NULL));
+  switch (scs) {
+    case 15:
+    case 15000:
+      return srsran_subcarrier_spacing_15kHz;
+    case 30:
+    case 30000:
+      return srsran_subcarrier_spacing_30kHz;
+    case 60:
+    case 60000:
+      return srsran_subcarrier_spacing_60kHz;
+    case 120:
+    case 120000:
+      return srsran_subcarrier_spacing_120kHz;
+    case 240:
+    case 240000:
+      return srsran_subcarrier_spacing_240kHz;
+    default:; // Do nothing
+  }
+
+  return srsran_subcarrier_spacing_invalid;
 }

@@ -594,6 +594,13 @@ SRSRAN_API int srsran_carrier_to_cell(const srsran_carrier_nr_t* carrier, srsran
  */
 SRSRAN_API uint32_t srsran_csi_meas_info(const srsran_csi_trs_measurements_t* meas, char* str, uint32_t str_len);
 
+/**
+ * @brief Converts a given string into a subcarrier spacing
+ * @param str Provides the string
+ * @return A valid subcarrier if the string is valid, srsran_subcarrier_spacing_invalid otherwise
+ */
+SRSRAN_API srsran_subcarrier_spacing_t srsran_subcarrier_spacing_from_str(const char* str);
+
 #ifdef __cplusplus
 }
 #endif
