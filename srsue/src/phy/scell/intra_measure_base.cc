@@ -32,9 +32,11 @@ void intra_measure_base::init_generic(uint32_t cc_idx_, const args_t& args)
 {
   context.cc_idx = cc_idx_;
 
-  context.meas_len_ms       = args.len_ms;
-  context.meas_period_ms    = args.period_ms;
-  context.rx_gain_offset_db = args.rx_gain_offset_db;
+  context.meas_len_ms        = args.len_ms;
+  context.meas_period_ms     = args.period_ms;
+  context.trigger_tti_period = args.tti_period;
+  context.trigger_tti_offset = args.tti_offset;
+  context.rx_gain_offset_db  = args.rx_gain_offset_db;
 
   context.sf_len = SRSRAN_SF_LEN_PRB(SRSRAN_MAX_PRB);
   if (std::isnormal(args.srate_hz)) {
@@ -92,17 +94,36 @@ void intra_measure_base::set_cells_to_meas(const std::set<uint32_t>& pci)
   active_pci_mutex.lock();
   context.active_pci = pci;
   active_pci_mutex.unlock();
-  state.set_state(internal_state::receive);
+  state.set_state(internal_state::wait_first);
   Log(info, "Received list of %zd neighbour cells to measure in EARFCN %d.", pci.size(), get_earfcn());
 }
 
-void intra_measure_base::write(uint32_t tti, cf_t* data, uint32_t nsamples)
+void intra_measure_base::write(cf_t* data, uint32_t nsamples)
+{
+  int nbytes          = (int)(nsamples * sizeof(cf_t));
+  int required_nbytes = (int)(context.meas_len_ms * context.sf_len * sizeof(cf_t));
+
+  // As nbytes might not match the sub-frame size, make sure that buffer does not overflow
+  nbytes = SRSRAN_MIN(srsran_ringbuffer_space(&ring_buffer), nbytes);
+
+  // Try writing in the buffer
+  if (srsran_ringbuffer_write(&ring_buffer, data, nbytes) < nbytes) {
+    Log(warning, "Error writing to ringbuffer (EARFCN=%d)", get_earfcn());
+
+    // Transition to wait, so it can keep receiving without stopping the component operation
+    state.set_state(internal_state::wait);
+  } else {
+    // As soon as there are enough samples in the buffer, transition to measure
+    if (srsran_ringbuffer_status(&ring_buffer) >= required_nbytes) {
+      Log(debug, "Starting search and measurements");
+      state.set_state(internal_state::measure);
+    }
+  }
+}
+
+void intra_measure_base::run_tti(uint32_t tti, cf_t* data, uint32_t nsamples)
 {
   logger.set_context(tti);
-
-  int      nbytes          = (int)(nsamples * sizeof(cf_t));
-  int      required_nbytes = (int)(context.meas_len_ms * context.sf_len * sizeof(cf_t));
-  uint32_t elapsed_tti     = TTI_SUB(tti, last_measure_tti);
 
   switch (state.get_state()) {
     case internal_state::initial:
@@ -112,34 +133,21 @@ void intra_measure_base::write(uint32_t tti, cf_t* data, uint32_t nsamples)
       // Do nothing
       break;
     case internal_state::wait:
-      if (elapsed_tti >= context.meas_period_ms) {
+    case internal_state::wait_first:
+      // Check measurement trigger condition
+      if (receive_tti_trigger(tti)) {
         state.set_state(internal_state::receive);
         last_measure_tti = tti;
         srsran_ringbuffer_reset(&ring_buffer);
 
-        Log(debug, "Start writing");
-
-        // Force receive state
-        write(tti, data, nsamples);
+        // Write baseband to ensure measurement starts in the right TTI
+        Log(info, "Start writing");
+        write(data, nsamples);
       }
       break;
     case internal_state::receive:
-      // As nbytes might not match the sub-frame size, make sure that buffer does not overflow
-      nbytes = SRSRAN_MIN(srsran_ringbuffer_space(&ring_buffer), nbytes);
-
-      // Try writing in the buffer
-      if (srsran_ringbuffer_write(&ring_buffer, data, nbytes) < nbytes) {
-        Log(warning, "Error writing to ringbuffer (EARFCN=%d)", get_earfcn());
-
-        // Transition to wait, so it can keep receiving without stopping the component operation
-        state.set_state(internal_state::wait);
-      } else {
-        // As soon as there are enough samples in the buffer, transition to measure
-        if (srsran_ringbuffer_status(&ring_buffer) >= required_nbytes) {
-          Log(debug, "Starting search and measurements");
-          state.set_state(internal_state::measure);
-        }
-      }
+      // Write baseband
+      write(data, nsamples);
       break;
   }
 }
@@ -177,6 +185,7 @@ void intra_measure_base::run_thread()
       case internal_state::initial:
       case internal_state::idle:
       case internal_state::wait:
+      case internal_state::wait_first:
       case internal_state::receive:
         // Wait for a different state
         state.wait_change(s);

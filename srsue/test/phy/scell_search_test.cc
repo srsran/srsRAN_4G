@@ -637,7 +637,7 @@ int main(int argc, char** argv)
     ts.add(0.001);
 
     // Give data to intra measure component
-    intra_measure.write(sf_idx % 10240, baseband_buffer, SRSRAN_SF_LEN_PRB(cell_base.nof_prb));
+    intra_measure.run_tti(sf_idx % 10240, baseband_buffer, SRSRAN_SF_LEN_PRB(cell_base.nof_prb));
     if (sf_idx % 1000 == 0) {
       printf("Done %.1f%%\n", (double)sf_idx * 100.0 / ((double)duration_execution_s * 1000.0));
     }

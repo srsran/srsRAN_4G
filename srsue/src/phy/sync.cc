@@ -950,7 +950,7 @@ int sync::radio_recv_fnc(srsran::rf_buffer_t& data, srsran_timestamp_t* rx_time)
   if (srsran_cell_isvalid(&cell)) {
     for (uint32_t i = 0; (uint32_t)i < intra_freq_meas.size(); i++) {
       // Feed the exact number of base-band samples for avoiding an invalid buffer read
-      intra_freq_meas[i]->write(tti, data.get(i, 0, worker_com->args->nof_rx_ant), data.get_nof_samples());
+      intra_freq_meas[i]->run_tti(tti, data.get(i, 0, worker_com->args->nof_rx_ant), data.get_nof_samples());
 
       // Update RX gain
       intra_freq_meas[i]->set_rx_gain_offset(worker_com->get_rx_gain_offset());

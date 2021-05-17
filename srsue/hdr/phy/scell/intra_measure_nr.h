@@ -39,18 +39,15 @@ public:
   /**
    * @brief Describes the required configuration arguments to start measurements
    */
-  struct config_t {
-    uint32_t                    arfcn;                                 ///< Carrier frequency in ARFCN
-    double                      srate_hz          = 0.0;               ///< Sampling rate in Hz, set to 0.0 for maximum
-    uint32_t                    len_ms            = 1;                 ///< Amount of time to accumulate
-    uint32_t                    periodicity_ms    = 20;                ///< Accumulation trigger period
-    float                       rx_gain_offset_db = 0.0f;              ///< Gain offset, for calibrated measurements
-    double                      center_freq_hz    = 0.0;               ///< Base-band center frequency in Hz
-    double                      ssb_freq_hz       = 0.0;               ///< SSB center frequency
-    srsran_subcarrier_spacing_t scs = srsran_subcarrier_spacing_30kHz; ///< SSB configured Subcarrier spacing
-    int                         serving_cell_pci = -1;                 ///< Current serving cell PCI, set to -1 if no
-                                                                       ///< serving cell has been configured for this
-                                                                       ///< carrier
+  struct config_t : public intra_measure_base::args_t {
+    /// Additional fields to the base arguments
+    uint32_t                    arfcn;                                            ///< Carrier frequency in ARFCN
+    double                      center_freq_hz = 0.0;                             ///< Base-band center frequency in Hz
+    double                      ssb_freq_hz    = 0.0;                             ///< SSB center frequency
+    srsran_subcarrier_spacing_t scs            = srsran_subcarrier_spacing_30kHz; ///< SSB configured Subcarrier spacing
+    int                         serving_cell_pci = -1; ///< Current serving cell PCI, set to -1 if no
+                                                       ///< serving cell has been configured for this
+                                                       ///< carrier
   };
 
   /**

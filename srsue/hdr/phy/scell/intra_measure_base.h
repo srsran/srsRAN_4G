@@ -32,7 +32,7 @@ class intra_measure_base : public srsran::thread
    * The intra-cell measurment has 5 different states:
    *  - idle: it has been initiated and it is waiting to get configured to start capturing samples. From any state
    *          except quit can transition to idle.
-   *  - wait: waits for at least intra_freq_meas_period_ms since last receive start and goes to receive.
+   *  - wait: waits for the TTI trigger to transition to receive
    *  - receive: captures base-band samples for intra_freq_meas_len_ms and goes to measure.
    *  - measure: enables the inner thread to start the measuring function. The asynchronous buffer will transition to
    *             wait as soon as it has read the data from the buffer.
@@ -66,7 +66,9 @@ public:
   struct args_t {
     double   srate_hz          = 0.0;  ///< Sampling rate in Hz, set to 0.0 for maximum
     uint32_t len_ms            = 20;   ///< Amount of time to accumulate
-    uint32_t period_ms         = 200;  ///< Accumulation trigger period
+    uint32_t period_ms         = 200;  ///< Minimum time interval between measurements, set to 0 for free-run
+    uint32_t tti_period        = 0;    ///< Measurement TTI trigger period, set to 0 to trigger at any TTI
+    uint32_t tti_offset        = 0;    ///< Measurement TTI trigger offset
     float    rx_gain_offset_db = 0.0f; ///< Gain offset, for calibrated measurements
   };
 
@@ -100,7 +102,7 @@ public:
    * @param data buffer with baseband IQ samples
    * @param nsamples number of samples to write
    */
-  void write(uint32_t tti, cf_t* data, uint32_t nsamples);
+  void run_tti(uint32_t tti, cf_t* data, uint32_t nsamples);
 
   /**
    * @brief Get EARFCN of this component
@@ -120,12 +122,14 @@ public:
 
 protected:
   struct measure_context_t {
-    uint32_t           cc_idx            = 0;    ///< Component carrier index
-    float              rx_gain_offset_db = 0.0f; ///< Current gain offset
-    std::set<uint32_t> active_pci        = {};   ///< Set with the active PCIs
-    uint32_t           sf_len            = 0;    ///< Subframe length in samples
-    uint32_t           meas_len_ms       = 20;   ///< Measure length in milliseconds/sub-frames
-    uint32_t           meas_period_ms    = 200;  ///< Measure period in milliseconds/sub-frames
+    uint32_t           cc_idx             = 0;    ///< Component carrier index
+    float              rx_gain_offset_db  = 0.0f; ///< Current gain offset
+    std::set<uint32_t> active_pci         = {};   ///< Set with the active PCIs
+    uint32_t           sf_len             = 0;    ///< Subframe length in samples
+    uint32_t           meas_len_ms        = 20;   ///< Measure length in milliseconds/sub-frames
+    uint32_t           meas_period_ms     = 200;  ///< Minimum time between measurements
+    uint32_t           trigger_tti_period = 0;    ///< Measurement TTI trigger period
+    uint32_t           trigger_tti_offset = 0;    ///< Measurement TTI trigger offset
     meas_itf&          new_cell_itf;
 
     explicit measure_context_t(meas_itf& new_cell_itf_) : new_cell_itf(new_cell_itf_) {}
@@ -164,6 +168,7 @@ private:
     typedef enum {
       initial = 0, /// Initial state, it transitions to idle once the internal thread has started
       idle,        ///< Internal thread runs, it does not capture data
+      wait_first,  ///< Wait for the TTI trigger (if configured)
       wait,        ///< Wait for the period time to pass
       receive,     ///< Accumulate samples in ring buffer
       measure,     ///< Module is busy measuring
@@ -209,6 +214,33 @@ private:
       }
     }
   };
+
+  /**
+   * @brief Computes the measurement trigger based on TTI and the last TTI trigger
+   */
+  bool receive_tti_trigger(uint32_t tti) const
+  {
+    // If the elapsed time does not satisfy with the minimum time, do not trigger
+    uint32_t elapsed_tti = TTI_SUB(tti, last_measure_tti);
+    if (elapsed_tti < context.meas_period_ms and state.get_state() != internal_state::wait_first) {
+      return false;
+    }
+
+    // If the TTI period is not configured, it will be always true
+    if (context.trigger_tti_period == 0) {
+      return true;
+    }
+
+    // Check if trigger condition is satisfied
+    return tti % context.trigger_tti_period == context.trigger_tti_offset;
+  }
+
+  /**
+   * @brief Writes baseband data in the internal soft-buffer
+   * @param data Provides baseband data
+   * @param nsamples Number of samples to write
+   */
+  void write(cf_t* data, uint32_t nsamples);
 
   /**
    * @brief Get the Radio Access Technology (RAT) that is being measured

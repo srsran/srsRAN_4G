@@ -376,7 +376,9 @@ int main(int argc, char** argv)
   meas_cfg.arfcn                                    = args.carier_arfcn;
   meas_cfg.srate_hz                                 = srate_hz;
   meas_cfg.len_ms                                   = args.meas_len_ms;
-  meas_cfg.periodicity_ms                           = args.meas_period_ms;
+  meas_cfg.period_ms                                = args.meas_period_ms;
+  meas_cfg.tti_period                               = args.meas_period_ms;
+  meas_cfg.tti_offset                               = 0;
   meas_cfg.rx_gain_offset_db                        = 0;
   meas_cfg.center_freq_hz                           = center_freq_hz;
   meas_cfg.ssb_freq_hz                              = ssb_freq_hz;
@@ -475,7 +477,7 @@ int main(int argc, char** argv)
     }
 
     // Give data to intra measure component
-    intra_measure.write(sf_idx % 10240, baseband_buffer.data(), sf_len);
+    intra_measure.run_tti(sf_idx % 10240, baseband_buffer.data(), sf_len);
     if (sf_idx % 1000 == 0) {
       logger.info("Done %.1f%%", (double)sf_idx * 100.0 / ((double)args.duration_s * 1000.0));
     }

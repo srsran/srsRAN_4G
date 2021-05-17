@@ -64,13 +64,8 @@ bool intra_measure_nr::set_config(uint32_t arfcn, const config_t& cfg)
   perf_count_samples = 0;
   perf_count_us      = 0;
 
-  // Configure generic side
-  intra_measure_base::args_t base_cfg = {};
-  base_cfg.srate_hz                   = cfg.srate_hz;
-  base_cfg.len_ms                     = cfg.len_ms;
-  base_cfg.period_ms                  = cfg.periodicity_ms;
-  base_cfg.rx_gain_offset_db          = cfg.rx_gain_offset_db;
-  init_generic(cc_idx, base_cfg);
+  // Re-configure generic side
+  init_generic(cc_idx, cfg);
 
   // Configure SSB
   srsran_ssb_cfg_t ssb_cfg = {};
