@@ -43,7 +43,10 @@ int test_task_scheduler_no_pool()
     task_sched.notify_background_task_result([&state]() { state = task_result::external; });
   });
   TESTASSERT(state == task_result::null);
-  task_sched.run_next_task(); // runs notification
+  while (state != task_result::external) {
+    task_sched.run_pending_tasks(); // runs notification
+    std::this_thread::sleep_for(std::chrono::microseconds(100));
+  }
   TESTASSERT(state == task_result::external);
 
   return SRSRAN_SUCCESS;
@@ -58,8 +61,10 @@ int test_task_scheduler_with_pool()
     task_sched.notify_background_task_result([&state]() { state = task_result::external; });
   });
   TESTASSERT(state == task_result::null);
-  task_sched.run_next_task(); // waits and runs notification
-  TESTASSERT(state == task_result::external);
+  while (state != task_result::external) {
+    task_sched.run_pending_tasks(); // runs notification
+    std::this_thread::sleep_for(std::chrono::microseconds(100));
+  }
 
   return SRSRAN_SUCCESS;
 }
