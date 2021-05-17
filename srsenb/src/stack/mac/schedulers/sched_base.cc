@@ -14,79 +14,6 @@
 
 namespace srsenb {
 
-/*********************************
- * Common UL/DL Helper methods
- ********************************/
-
-template <typename RBMask,
-          typename RBInterval =
-              typename std::conditional<std::is_same<RBMask, prbmask_t>::value, prb_interval, rbg_interval>::type>
-RBInterval find_contiguous_interval(const RBMask& in_mask, uint32_t max_size)
-{
-  RBInterval max_interv;
-
-  for (size_t n = 0; n < in_mask.size();) {
-    int pos = in_mask.find_lowest(n, in_mask.size(), false);
-    if (pos < 0) {
-      break;
-    }
-
-    size_t     max_pos = std::min(in_mask.size(), (size_t)pos + max_size);
-    int        pos2    = in_mask.find_lowest(pos, max_pos, true);
-    RBInterval interv(pos, pos2 < 0 ? max_pos : pos2);
-    if (interv.length() >= max_size) {
-      return interv;
-    }
-    if (interv.length() > max_interv.length()) {
-      max_interv = interv;
-    }
-    n = interv.stop();
-  }
-  return max_interv;
-}
-
-/****************************
- *    DL Helper methods
- ***************************/
-
-rbgmask_t find_available_rbgmask(const rbgmask_t& in_mask, uint32_t max_size)
-{
-  // 1's for free RBs
-  rbgmask_t localmask = ~(in_mask);
-
-  if (max_size >= localmask.size() or max_size >= localmask.count()) {
-    // shortcut in case rbg count < max_size
-    return localmask;
-  }
-
-  uint32_t i = 0, nof_alloc = 0;
-  for (; i < localmask.size() and nof_alloc < max_size; ++i) {
-    if (localmask.test(i)) {
-      nof_alloc++;
-    }
-  }
-  localmask.fill(i, localmask.size(), false);
-  return localmask;
-}
-
-rbg_interval find_empty_rbg_interval(uint32_t max_nof_rbgs, const rbgmask_t& current_mask)
-{
-  return find_contiguous_interval(current_mask, max_nof_rbgs);
-}
-
-rbgmask_t find_available_rbgmask(uint32_t max_nof_rbgs, bool is_contiguous, const rbgmask_t& current_mask)
-{
-  // Allocate enough RBs that accommodate pending data
-  rbgmask_t newtx_mask(current_mask.size());
-  if (is_contiguous) {
-    rbg_interval interv = find_contiguous_interval(current_mask, max_nof_rbgs);
-    newtx_mask.fill(interv.start(), interv.stop());
-  } else {
-    newtx_mask = find_available_rbgmask(current_mask, max_nof_rbgs);
-  }
-  return newtx_mask;
-}
-
 int get_ue_cc_idx_if_pdsch_enabled(const sched_ue& user, sf_sched* tti_sched)
 {
   // Do not allocate a user multiple times in the same tti
@@ -179,30 +106,6 @@ alloc_result try_dl_newtx_alloc_greedy(sf_sched& tti_sched, sched_ue& ue, const 
 /*****************
  *  UL Helpers
  ****************/
-
-prb_interval find_contiguous_ul_prbs(uint32_t L, const prbmask_t& current_mask)
-{
-  prb_interval prb_interv = find_contiguous_interval(current_mask, L);
-  if (prb_interv.empty()) {
-    return prb_interv;
-  }
-
-  // Make sure L is allowed by SC-FDMA modulation
-  prb_interval prb_interv2 = prb_interv;
-  while (not srsran_dft_precoding_valid_prb(prb_interv.length()) and prb_interv.stop() < current_mask.size() and
-         not current_mask.test(prb_interv.stop())) {
-    prb_interv.resize_by(1);
-  }
-  if (not srsran_dft_precoding_valid_prb(prb_interv.length())) {
-    // if length increase failed, try to decrease
-    prb_interv = prb_interv2;
-    prb_interv.resize_by(-1);
-    while (not srsran_dft_precoding_valid_prb(prb_interv.length()) and not prb_interv.empty()) {
-      prb_interv.resize_by(-1);
-    }
-  }
-  return prb_interv;
-}
 
 int get_ue_cc_idx_if_pusch_enabled(const sched_ue& user, sf_sched* tti_sched, bool needs_pdcch)
 {

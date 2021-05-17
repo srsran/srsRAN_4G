@@ -408,7 +408,7 @@ int sched_ue::generate_format1a(uint32_t                          pid,
 
   dci->alloc_type       = SRSRAN_RA_ALLOC_TYPE2;
   dci->type2_alloc.mode = srsran_ra_type2_t::SRSRAN_RA_TYPE2_LOC;
-  rbg_interval rbg_int  = rbg_interval::rbgmask_to_rbgs(user_mask);
+  rbg_interval rbg_int  = rbg_interval::find_first_interval(user_mask);
   prb_interval prb_int  = prb_interval::rbgs_to_prbs(rbg_int, cell.nof_prb);
   uint32_t     L_crb    = prb_int.length();
   uint32_t     RB_start = prb_int.start();

@@ -14,6 +14,7 @@
 #define SRSRAN_SCHED_BASE_H
 
 #include "srsenb/hdr/stack/mac/sched_grid.h"
+#include "srsenb/hdr/stack/mac/sched_phy_ch/sched_phy_resource.h"
 
 namespace srsenb {
 
@@ -33,25 +34,6 @@ protected:
 };
 
 /**************** Helper methods ****************/
-
-rbg_interval find_empty_rbg_interval(uint32_t max_nof_rbgs, const rbgmask_t& current_mask);
-
-/**
- * Finds a bitmask of available RBG resources for a given UE in a greedy fashion
- * @param ue UE being allocated
- * @param is_contiguous whether to find a contiguous range of RBGs
- * @param current_mask bitmask of occupied RBGs, where to search for available RBGs
- * @return bitmask of found RBGs. If a valid mask wasn't found, bitmask::size() == 0
- */
-rbgmask_t find_available_rbgmask(uint32_t max_nof_rbgs, bool is_contiguous, const rbgmask_t& current_mask);
-
-/**
- * Finds a range of L contiguous PRBs that are empty
- * @param L Size of the requested UL PRBs
- * @param current_mask input prb mask where to search for available PRBs
- * @return found interval of PRBs
- */
-prb_interval find_contiguous_ul_prbs(uint32_t L, const prbmask_t& current_mask);
 
 const dl_harq_proc* get_dl_retx_harq(sched_ue& user, sf_sched* tti_sched);
 const dl_harq_proc* get_dl_newtx_harq(sched_ue& user, sf_sched* tti_sched);

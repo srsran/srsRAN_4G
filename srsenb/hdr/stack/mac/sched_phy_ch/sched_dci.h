@@ -14,6 +14,7 @@
 #define SRSRAN_SCHED_DCI_H
 
 #include "../sched_common.h"
+#include "srsenb/hdr/stack/mac/sched_phy_ch/sched_phy_resource.h"
 #include "srsran/adt/bounded_vector.h"
 
 namespace srsenb {
