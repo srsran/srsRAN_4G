@@ -68,8 +68,14 @@ static inline void refsignal_sf_prepare_correlation(srsran_refsignal_dl_sync_t* 
 {
   uint32_t sf_len   = q->ifft.sf_sz;
   cf_t*    ptr_filt = q->conv_fft_cc.filter_fft;
-  memcpy(ptr_filt, q->sequences[0], sizeof(cf_t) * sf_len);
-  srsran_vec_cf_zero(&ptr_filt[sf_len], sf_len);
+
+  // Put first subframe in buffer
+  srsran_vec_cf_copy(ptr_filt, q->sequences[0], sf_len);
+
+  // Zero the rest of the buffer
+  srsran_vec_cf_zero(&ptr_filt[sf_len], q->conv_fft_cc.output_len - sf_len);
+
+  // Make correlation sequence in frequency domain
   srsran_dft_run_c(&q->conv_fft_cc.filter_plan, ptr_filt, ptr_filt);
 }
 
@@ -249,7 +255,12 @@ int srsran_refsignal_dl_sync_set_cell(srsran_refsignal_dl_sync_t* q, srsran_cell
         srsran_ofdm_tx_sf(&q->ifft);
 
         // Undo scaling and normalize overall power to 1
-        float scale = 1.0f / nof_re;
+        float scale = 1.0f;
+
+        // Avoid zero division
+        if (nof_re != 0) {
+          scale /= (float)nof_re;
+        }
 
         // Copy time domain signal, normalized by number of RE
         srsran_vec_sc_prod_cfc(q->ifft_buffer_out, scale, q->sequences[i], q->ifft.sf_sz);
@@ -289,22 +300,23 @@ void srsran_refsignal_dl_sync_free(srsran_refsignal_dl_sync_t* q)
   }
 }
 
-int srsran_refsignal_dl_sync_find_peak(srsran_refsignal_dl_sync_t* q, cf_t* buffer, uint32_t nsamples)
+int refsignal_dl_sync_find_peak(srsran_refsignal_dl_sync_t* q, cf_t* buffer, uint32_t nsamples)
 {
-  int      ret        = SRSRAN_ERROR;
-  float    peak_value = 0.0f;
-  int      peak_idx   = 0;
-  float    rms_avg    = 0;
-  uint32_t sf_len     = q->ifft.sf_sz;
+  int   ret        = SRSRAN_ERROR;
+  float peak_value = 0.0f;
+  int   peak_idx   = 0;
+  float rms_avg    = 0;
+
+  uint32_t sf_len = q->ifft.sf_sz;
+  if (sf_len == 0) {
+    return SRSRAN_ERROR;
+  }
 
   // Load correlation sequence and convert to frequency domain
   refsignal_sf_prepare_correlation(q);
 
-  // Limit correlate for a frame or less
-  nsamples = SRSRAN_MIN(nsamples - sf_len, SRSRAN_NOF_SF_X_FRAME * sf_len);
-
   // Correlation
-  for (int n = 0; n < nsamples; n += sf_len) {
+  for (uint32_t n = 0; n + q->conv_fft_cc.filter_len < nsamples; n += q->conv_fft_cc.input_len) {
     // Correlate, find maximum, calculate RMS and peak
     uint32_t imax = 0;
     float    peak = 0.0f;
@@ -327,7 +339,7 @@ int srsran_refsignal_dl_sync_find_peak(srsran_refsignal_dl_sync_t* q, cf_t* buff
   }
 
   // Double check sub-frame selection failure due to high PSS
-  if (ret > 0) {
+  if (ret >= 0) {
     float sss_strength       = 0.0f;
     float sss_strength_false = 0.0f;
     refsignal_dl_pss_sss_strength(q, &buffer[peak_idx], 0, NULL, &sss_strength, &sss_strength_false);
@@ -373,15 +385,15 @@ void srsran_refsignal_dl_sync_run(srsran_refsignal_dl_sync_t* q, cf_t* buffer, u
     bool     false_alarm            = false;
 
     // Stage 1: find peak
-    int peak_idx = srsran_refsignal_dl_sync_find_peak(q, buffer, nsamples);
+    int peak_idx = refsignal_dl_sync_find_peak(q, buffer, nsamples);
 
     // Stage 2: Proccess subframes
     if (peak_idx >= 0) {
       // Calculate initial subframe index and sample
-      uint32_t sf_idx_init = (2 * SRSRAN_NOF_SF_X_FRAME - peak_idx / sf_len) % SRSRAN_NOF_SF_X_FRAME;
+      uint32_t sf_idx_init = SRSRAN_NOF_SF_X_FRAME - (peak_idx / sf_len) % SRSRAN_NOF_SF_X_FRAME;
       uint32_t n_init      = peak_idx % sf_len;
 
-      for (int sf_idx = sf_idx_init, n = n_init; n < (nsamples - sf_len + 1);
+      for (uint32_t sf_idx = sf_idx_init, n = n_init; n < (nsamples - sf_len + 1);
            sf_idx = (sf_idx + 1) % SRSRAN_NOF_SF_X_FRAME, n += sf_len) {
         cf_t* buf = &buffer[n];
 
