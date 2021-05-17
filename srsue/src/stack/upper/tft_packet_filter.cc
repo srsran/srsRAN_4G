@@ -415,6 +415,30 @@ int tft_pdu_matcher::apply_traffic_flow_template(const uint8_t&                 
         }
       }
       break;
+    case LIBLTE_MME_TFT_OPERATION_CODE_REPLACE_PACKET_FILTERS_IN_EXISTING_TFT:
+      for (int i = 0; i < tft->packet_filter_list_size; i++) {
+        // erase old filter if it exists
+        auto old_filter = std::find_if(
+            tft_filter_map.begin(), tft_filter_map.end(), [&](const std::pair<uint16_t, tft_packet_filter_t>& filter) {
+              return filter.second.id == tft->packet_filter_list[i].id;
+            });
+        if (old_filter == tft_filter_map.end()) {
+          logger.error("Error couldn't find TFT with id %d", tft->packet_filter_list[i].id);
+          return SRSRAN_ERROR_CANT_START;
+        }
+
+        // release old filter
+        tft_filter_map.erase(old_filter);
+
+        // Add new filter
+        tft_packet_filter_t new_filter(erab_id, tft->packet_filter_list[i], logger);
+        auto                it = tft_filter_map.insert(std::make_pair(new_filter.eval_precedence, new_filter));
+        if (it.second == false) {
+          logger.error("Error inserting TFT Packet Filter");
+          return SRSRAN_ERROR_CANT_START;
+        }
+      }
+      break;
     default:
       logger.error("Unhandled TFT OP code");
       return SRSRAN_ERROR_CANT_START;

@@ -1625,13 +1625,25 @@ void nas::parse_modify_eps_bearer_context_request(srsran::unique_byte_buffer_t p
   ctxt.rx_count++;
 
   // check if bearer exists
-  if (eps_bearer.find(request.eps_bearer_id) == eps_bearer.end()) {
+  const auto it = eps_bearer.find(request.eps_bearer_id);
+  if (it == eps_bearer.end()) {
     logger.error("EPS bearer doesn't exist (eps_bearer_id=%d)", request.eps_bearer_id);
     // fixme: send proper response
     return;
   }
 
-  // fixme: carry out modification
+  LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft = &request.tft;
+  logger.info("Traffic Flow Template: TFT OP code 0x%x, Filter list size %d, Parameter list size %d",
+              tft->tft_op_code,
+              tft->packet_filter_list_size,
+              tft->parameter_list_size);
+
+  // modify/apply packet filters to GW
+  if (gw->apply_traffic_flow_template(request.eps_bearer_id, tft) != SRSRAN_SUCCESS) {
+    logger.error("Couldn't modify TFT");
+    return;
+  }
+
   logger.info("Modified EPS bearer context (eps_bearer_id=%d)", request.eps_bearer_id);
 
   send_modify_eps_bearer_context_accept(request.proc_transaction_id, request.eps_bearer_id);
