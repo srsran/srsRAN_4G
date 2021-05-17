@@ -37,7 +37,7 @@ void intra_measure_base::init_generic(uint32_t cc_idx_, const args_t& args)
   context.rx_gain_offset_db = args.rx_gain_offset_db;
 
   context.sf_len = SRSRAN_SF_LEN_PRB(SRSRAN_MAX_PRB);
-  if (isnormal(args.srate_hz)) {
+  if (std::isnormal(args.srate_hz)) {
     context.sf_len = (uint32_t)round(args.srate_hz / 1000.0);
   }
 
