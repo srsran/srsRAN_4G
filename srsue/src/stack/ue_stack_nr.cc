@@ -33,11 +33,9 @@ ue_stack_nr::ue_stack_nr() :
   // setup logging for pool, RLC and PDCP
   byte_buffer_pool::get_instance()->enable_logger(true);
 
-  ue_task_queue = task_sched.make_task_queue();
-  ue_task_queue.set_notify_mode();
-  sync_task_queue = task_sched.make_task_queue();
-  sync_task_queue.set_notify_mode();
-  gw_task_queue = task_sched.make_task_queue();
+  ue_task_queue   = task_sched.make_task_queue(true);
+  sync_task_queue = task_sched.make_task_queue(true);
+  gw_task_queue   = task_sched.make_task_queue(false);
 }
 
 ue_stack_nr::~ue_stack_nr()

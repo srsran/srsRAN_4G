@@ -41,9 +41,8 @@ enb_stack_lte::enb_stack_lte(srslog::sink& log_sink) :
   pending_stack_metrics(64)
 {
   get_background_workers().set_nof_workers(2);
-  enb_task_queue = task_sched.make_task_queue();
-  enb_task_queue.set_notify_mode();
-  metrics_task_queue = task_sched.make_task_queue();
+  enb_task_queue     = task_sched.make_task_queue(true);
+  metrics_task_queue = task_sched.make_task_queue(false);
   // sync_queue is added in init()
 }
 
@@ -116,8 +115,7 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   }
 
   // add sync queue
-  sync_task_queue = task_sched.make_task_queue(args.sync_queue_size);
-  sync_task_queue.set_notify_mode();
+  sync_task_queue = task_sched.make_task_queue(args.sync_queue_size, true);
 
   // Init all layers
   if (!mac.init(args.mac, rrc_cfg.cell_list, phy, &rlc, &rrc)) {

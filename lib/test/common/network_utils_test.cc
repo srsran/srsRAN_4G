@@ -23,7 +23,7 @@ struct rx_thread_tester {
   std::thread               t;
 
   rx_thread_tester() :
-    task_queue(task_sched.make_task_queue()),
+    task_queue(task_sched.make_task_queue(true)),
     t([this]() {
       stop_token.store(false);
       while (not stop_token.load(std::memory_order_relaxed)) {

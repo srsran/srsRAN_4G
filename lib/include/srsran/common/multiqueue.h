@@ -47,7 +47,9 @@ class multiqueue_handler
   class input_port_impl
   {
   public:
-    input_port_impl(uint32_t cap, multiqueue_handler<myobj>* parent_) : buffer(cap), parent(parent_) {}
+    input_port_impl(uint32_t cap, bool notify_flag_, multiqueue_handler<myobj>* parent_) :
+      buffer(cap), notify_flag(notify_flag_), consumer_notify_needed(notify_flag_), parent(parent_)
+    {}
     input_port_impl(const input_port_impl&) = delete;
     input_port_impl(input_port_impl&&)      = delete;
     input_port_impl& operator=(const input_port_impl&) = delete;
@@ -55,6 +57,7 @@ class multiqueue_handler
     ~input_port_impl() { deactivate_blocking(); }
 
     size_t capacity() const { return buffer.max_size(); }
+    bool   get_notify_mode() const { return notify_flag; }
     size_t size() const
     {
       std::lock_guard<std::mutex> lock(q_mutex);
@@ -65,12 +68,6 @@ class multiqueue_handler
       std::lock_guard<std::mutex> lock(q_mutex);
       return active_;
     }
-
-    void set_notify_mode()
-    {
-      std::unique_lock<std::mutex> lock(q_mutex);
-      notify_mode = true;
-    }
     void set_active(bool val)
     {
       std::unique_lock<std::mutex> lock(q_mutex);
@@ -79,7 +76,7 @@ class multiqueue_handler
         return;
       }
       active_                = val;
-      consumer_notify_needed = true;
+      consumer_notify_needed = notify_flag;
 
       if (not active_) {
         buffer.clear();
@@ -120,7 +117,7 @@ class multiqueue_handler
     {
       std::unique_lock<std::mutex> lock(q_mutex);
       if (buffer.empty()) {
-        consumer_notify_needed = true;
+        consumer_notify_needed = notify_flag;
         return false;
       }
       obj = std::move(buffer.top());
@@ -157,7 +154,7 @@ class multiqueue_handler
         }
       }
       buffer.push(std::forward<T>(*o));
-      if (consumer_notify_needed and notify_mode) {
+      if (consumer_notify_needed) {
         // Note: The consumer thread only needs to be notified and awaken when queues transition from empty to non-empty
         //       To ensure that the consumer noticed that the queue was empty before a push, we store the last
         //       try_pop() return in a member variable.
@@ -174,8 +171,8 @@ class multiqueue_handler
     srsran::dyn_circular_buffer<myobj> buffer;
     std::condition_variable            cv_full, cv_exit;
     bool                               active_                = true;
-    bool                               consumer_notify_needed = true;
-    bool                               notify_mode            = false;
+    bool                               consumer_notify_needed = false;
+    bool                               notify_flag            = false;
     int                                nof_waiting            = 0;
   };
 
@@ -198,7 +195,6 @@ public:
         impl = nullptr;
       }
     }
-    void set_notify_mode() { impl->set_notify_mode(); }
 
     size_t size() { return impl->size(); }
     size_t capacity() { return impl->capacity(); }
@@ -249,20 +245,22 @@ public:
    * @param capacity_ The capacity of the queue.
    * @return The index of the newly created (or reused) queue within the vector of queues.
    */
-  queue_handle add_queue(uint32_t capacity_)
+  queue_handle add_queue(uint32_t capacity_, bool notify_flag = false)
   {
     uint32_t                    qidx = 0;
     std::lock_guard<std::mutex> lock(mutex);
     if (not running) {
       return queue_handle();
     }
-    for (; qidx < queues.size() and (queues[qidx].active() or (queues[qidx].capacity() != capacity_)); ++qidx)
-      ;
+    while (qidx < queues.size() and (queues[qidx].active() or (queues[qidx].capacity() != capacity_) or
+                                     (queues[qidx].get_notify_mode() == notify_flag))) {
+      ++qidx;
+    }
 
     // check if there is a free queue of the required size
     if (qidx == queues.size()) {
       // create new queue
-      queues.emplace_back(capacity_, this);
+      queues.emplace_back(capacity_, notify_flag, this);
       qidx = queues.size() - 1; // update qidx to the last element
     } else {
       queues[qidx].set_active(true);
@@ -274,7 +272,7 @@ public:
    * Add queue using the default capacity of the underlying multiqueue
    * @return The queue index
    */
-  queue_handle add_queue() { return add_queue(default_capacity); }
+  queue_handle add_queue(bool notify_flag) { return add_queue(default_capacity, notify_flag); }
 
   uint32_t nof_queues() const
   {
