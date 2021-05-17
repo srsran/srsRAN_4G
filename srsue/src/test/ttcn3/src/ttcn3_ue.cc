@@ -197,7 +197,9 @@ bool ttcn3_ue::is_running()
 
 int ttcn3_ue::deactivate_eps_bearer(const uint32_t eps_bearer_id)
 {
-  default_eps_bearer_id = -1;
+  if (default_eps_bearer_id == static_cast<int32_t>(eps_bearer_id)) {
+    default_eps_bearer_id = -1;
+  }
   return SRSRAN_SUCCESS;
 }
 
