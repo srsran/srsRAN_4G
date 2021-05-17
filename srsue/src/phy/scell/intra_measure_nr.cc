@@ -60,6 +60,10 @@ bool intra_measure_nr::set_config(uint32_t arfcn, const config_t& cfg)
   current_arfcn    = arfcn;
   serving_cell_pci = cfg.serving_cell_pci;
 
+  // Reset performance measurement
+  perf_count_samples = 0;
+  perf_count_us      = 0;
+
   // Configure generic side
   intra_measure_base::args_t base_cfg = {};
   base_cfg.srate_hz                   = cfg.srate_hz;
@@ -84,12 +88,18 @@ bool intra_measure_nr::set_config(uint32_t arfcn, const config_t& cfg)
 
 void intra_measure_nr::measure_rat(const measure_context_t& context, std::vector<cf_t>& buffer)
 {
+  std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
   // Search and measure the best cell
   srsran_csi_trs_measurements_t meas = {};
   uint32_t                      N_id = 0;
   if (srsran_ssb_csi_search(&ssb, buffer.data(), context.sf_len * context.meas_len_ms, &N_id, &meas) < SRSRAN_SUCCESS) {
     Log(error, "Error searching for SSB");
   }
+
+  std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+  perf_count_us += std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
+  perf_count_samples += context.sf_len * context.meas_len_ms;
 
   // Early return if the found PCI matches with the serving cell ID
   if (serving_cell_pci == (int)N_id) {

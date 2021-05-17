@@ -86,6 +86,18 @@ public:
    */
   uint32_t get_earfcn() const override { return current_arfcn; };
 
+  /**
+   * @brief Computes the average measurement performance since last configuration
+   * @return The performance in Millions of samples per second
+   */
+  uint32_t get_perf() const
+  {
+    if (perf_count_us == 0) {
+      return 0;
+    }
+    return (uint32_t)(perf_count_samples / perf_count_us);
+  };
+
 private:
   /**
    * @brief Provides with the RAT to the base class
@@ -106,6 +118,10 @@ private:
   uint32_t              current_arfcn    = 0;
   float                 thr_snr_db       = 5.0f;
   int                   serving_cell_pci = -1;
+
+  /// Performance
+  uint64_t perf_count_us      = 0; ///< Counts execution time in microseconds
+  uint64_t perf_count_samples = 0; ///< Counts the number samples
 
   /// NR-based measuring objects
   srsran_ssb_t ssb = {}; ///< SS/PBCH Block

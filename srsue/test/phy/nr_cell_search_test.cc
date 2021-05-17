@@ -489,6 +489,8 @@ int main(int argc, char** argv)
   // Stop, it will block until the asynchronous thread quits
   intra_measure.stop();
 
+  logger.warning("NR intra frequency performance %d Msps\n", intra_measure.get_perf());
+
   ret = rrc.print_stats(args) ? SRSRAN_SUCCESS : SRSRAN_ERROR;
 
   if (radio) {
