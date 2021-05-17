@@ -90,7 +90,7 @@ public:
     }
 
     // Configure channel
-    channel.set_srate(args.srate_hz);
+    channel.set_srate((uint32_t)args.srate_hz);
   }
 
   int work(uint32_t sf_idx, std::vector<cf_t>& baseband_buffer, const srsran::rf_timestamp_t& ts)
@@ -129,24 +129,26 @@ public:
 };
 
 struct args_t {
-  // Common execution parameters
-  uint32_t                    duration_s       = 1;
-  uint32_t                    nof_prb          = 52;
-  std::string                 log_level        = "error";
-  std::string                 active_cell_list = "500";
-  uint32_t                    meas_len_ms      = 1;
-  uint32_t                    meas_period_ms   = 20;
-  uint32_t                    carier_arfcn     = 634240;
-  uint32_t                    ssb_arfcn        = 634176;
-  srsran_subcarrier_spacing_t carrier_scs      = srsran_subcarrier_spacing_15kHz;
-  srsran_subcarrier_spacing_t ssb_scs          = srsran_subcarrier_spacing_30kHz;
-  float                       thr_snr_db       = 5.0f;
+  // General
+  std::string log_level    = "warning";
+  uint32_t    duration_s   = 1;
+  double      srate_hz     = 11.52e6;
+  uint32_t    carier_arfcn = 634240;
+  uint32_t    ssb_arfcn    = 634176;
+  std::string ssb_scs_str  = "30";
+
+  // Measurement parameters
+  std::set<uint32_t>          pcis_to_meas;
+  uint32_t                    meas_len_ms    = 1;
+  uint32_t                    meas_period_ms = 20;
+  float                       thr_snr_db     = 5.0f;
+  srsran_subcarrier_spacing_t ssb_scs        = srsran_subcarrier_spacing_30kHz;
 
   // Simulation parameters
-  std::string simulation_cell_list = "500";
-  uint32_t    ssb_period_ms        = 20;
-  float       channel_delay_min    = 0.0f; // Set to non-zero value to stir the delay from zero to this value in usec
-  float       channel_delay_max    = 0.0f; // Set to non-zero value to stir the delay from zero to this value in usec
+  std::set<uint32_t> pcis_to_simulate;
+  uint32_t           ssb_period_ms = 20;
+  float channel_delay_min          = 0.0f; // Set to non-zero value to stir the delay from zero to this value in usec
+  float channel_delay_max          = 0.0f; // Set to non-zero value to stir the delay from zero to this value in usec
 
   // On the Fly parameters
   std::string radio_device_name = "auto";
@@ -154,9 +156,8 @@ struct args_t {
   std::string radio_log_level   = "info";
   float       rx_gain           = 60.0f;
 
-  // Parsed PCI lists
-  std::set<uint32_t> pcis_to_meas;
-  std::set<uint32_t> pcis_to_simulate;
+  // File parameters
+  std::string filename = "";
 };
 
 class meas_itf_listener : public srsue::scell::intra_measure_base::meas_itf
@@ -177,7 +178,7 @@ public:
   void cell_meas_reset(uint32_t cc_idx) override {}
   void new_cell_meas(uint32_t cc_idx, const std::vector<srsue::phy_meas_t>& meas) override
   {
-    for (auto& m : meas) {
+    for (const srsue::phy_meas_t& m : meas) {
       uint32_t pci = m.pci;
       if (!cells.count(pci)) {
         cells[pci].rsrp_min = m.rsrp;
@@ -245,6 +246,24 @@ public:
   }
 };
 
+static void pci_list_parse_helper(std::string& list_str, std::set<uint32_t>& list)
+{
+  if (list_str == "all") {
+    // Add all possible cells
+    for (int i = 0; i < SRSRAN_NOF_NID_NR; i++) {
+      list.insert(i);
+    }
+  } else if (list_str == "none") {
+    list.clear();
+  } else if (not list_str.empty()) {
+    // Remove spaces from neightbour cell list
+    list_str = srsran::string_remove_char(list_str, ' ');
+
+    // Add cell to known cells
+    srsran::string_parse_list(list_str, ',', list);
+  }
+}
+
 // shorten boost program options namespace
 namespace bpo = boost::program_options;
 
@@ -252,22 +271,22 @@ int parse_args(int argc, char** argv, args_t& args)
 {
   int ret = SRSRAN_SUCCESS;
 
-  bpo::options_description options;
-  bpo::options_description common("Measurement options");
-  bpo::options_description over_the_air("Over the air options");
-  bpo::options_description simulation("Simulation execution options");
+  std::string active_cell_list     = "500";
+  std::string simulation_cell_list = "";
+  std::string ssb_scs              = "30";
+
+  bpo::options_description options("General options");
+  bpo::options_description measure("Measurement options");
+  bpo::options_description over_the_air("Mode 1: Over the air options (Default)");
+  bpo::options_description simulation("Mode 2: Simulation options (enabled if simulation_cell_list is not empty)");
+  bpo::options_description file("Mode 3: File (enabled if filename is provided)");
 
   // clang-format off
-  common.add_options()
-      ("duration",         bpo::value<uint32_t>(&args.duration_s)->default_value(args.duration_s),                "Duration of the test in seconds")
-      ("nof_prb",          bpo::value<uint32_t>(&args.nof_prb)->default_value(args.nof_prb),                      "Cell Number of PRB")
-      ("log_level",        bpo::value<std::string>(&args.log_level)->default_value(args.log_level),               "Intra measurement log level (none, warning, info, debug)")
-      ("meas_len_ms",      bpo::value<uint32_t>(&args.meas_len_ms)->default_value(args.meas_len_ms),              "Measurement length")
-      ("meas_period_ms",   bpo::value<uint32_t>(&args.meas_period_ms)->default_value(args.meas_period_ms),        "Measurement period")
-      ("active_cell_list", bpo::value<std::string>(&args.active_cell_list)->default_value(args.active_cell_list), "Comma separated PCI cell list to measure")
-      ("carrier_arfcn",    bpo::value<std::uint32_t>(&args.carier_arfcn)->default_value(args.carier_arfcn),       "Carrier center frequency ARFCN")
-      ("ssb_arfcn",        bpo::value<std::uint32_t>(&args.ssb_arfcn)->default_value(args.ssb_arfcn),             "SSB center frequency in ARFCN")
-      ("thr_snr_db",       bpo::value<float>(&args.thr_snr_db)->default_value(args.thr_snr_db),                   "Detection threshold for SNR in dB")
+  measure.add_options()
+      ("meas_len_ms",      bpo::value<uint32_t>(&args.meas_len_ms)->default_value(args.meas_len_ms),       "Measurement length")
+      ("meas_period_ms",   bpo::value<uint32_t>(&args.meas_period_ms)->default_value(args.meas_period_ms), "Measurement period")
+      ("active_cell_list", bpo::value<std::string>(&active_cell_list)->default_value(active_cell_list),    "Comma separated PCI cell list to measure")
+      ("thr_snr_db",       bpo::value<float>(&args.thr_snr_db)->default_value(args.thr_snr_db),            "Detection threshold for SNR in dB")
       ;
 
   over_the_air.add_options()
@@ -278,14 +297,24 @@ int parse_args(int argc, char** argv, args_t& args)
       ;
 
   simulation.add_options()
-      ("simulation_cell_list", bpo::value<std::string>(&args.simulation_cell_list)->default_value(args.simulation_cell_list), "Comma separated PCI cell list to simulate")
-      ("ssb_period", bpo::value<uint32_t>(&args.ssb_period_ms)->default_value(args.ssb_period_ms), "SSB period in ms")
-      ("channel.delay_min",    bpo::value<float>(&args.channel_delay_min)->default_value(args.channel_delay_min),                     "Channel delay minimum in usec.")
-      ("channel.delay_max",    bpo::value<float>(&args.channel_delay_max)->default_value(args.channel_delay_max),                     "Channel delay maximum in usec. Set to 0 to disable, otherwise it will stir the delay for the duration of the simulation")
+      ("simulation_cell_list", bpo::value<std::string>(&simulation_cell_list)->default_value(simulation_cell_list), "Comma separated PCI cell list to simulate")
+      ("ssb_period",           bpo::value<uint32_t>(&args.ssb_period_ms)->default_value(args.ssb_period_ms),        "SSB period in ms")
+      ("channel.delay_min",    bpo::value<float>(&args.channel_delay_min)->default_value(args.channel_delay_min),   "Channel delay minimum in usec.")
+      ("channel.delay_max",    bpo::value<float>(&args.channel_delay_max)->default_value(args.channel_delay_max),   "Channel delay maximum in usec. Set to 0 to disable, otherwise it will steer the delay for the duration of the simulation")
       ;
 
-  options.add(common).add(over_the_air).add(simulation).add_options()
-      ("help",                      "Show this message")
+  file.add_options()
+      ("file.name", bpo::value<std::string>(&args.filename)->default_value(args.filename), "File name providing baseband")
+      ;
+
+  options.add(measure).add(over_the_air).add(simulation).add(file).add_options()
+      ("help,h",        "Show this message")
+      ("log_level",     bpo::value<std::string>(&args.log_level)->default_value(args.log_level),    "Intra measurement log level (none, warning, info, debug)")
+      ("duration",      bpo::value<uint32_t>(&args.duration_s)->default_value(args.duration_s),     "Duration of the test in seconds")
+      ("srate",         bpo::value<double>(&args.srate_hz)->default_value(args.srate_hz),           "Sampling Rate in Hz")
+      ("carrier_arfcn", bpo::value<uint32_t>(&args.carier_arfcn)->default_value(args.carier_arfcn), "Carrier center frequency ARFCN")
+      ("ssb_arfcn",     bpo::value<uint32_t>(&args.ssb_arfcn)->default_value(args.ssb_arfcn),       "SSB center frequency in ARFCN")
+      ("ssb_scs",       bpo::value<std::string>(&ssb_scs)->default_value(ssb_scs),                  "SSB subcarrier spacing in kHz")
       ;
   // clang-format on
 
@@ -305,25 +334,17 @@ int parse_args(int argc, char** argv, args_t& args)
     ret = SRSRAN_ERROR;
   }
 
-  return ret;
-}
+  // Parse PCI lists
+  pci_list_parse_helper(active_cell_list, args.pcis_to_meas);
+  pci_list_parse_helper(simulation_cell_list, args.pcis_to_simulate);
 
-static void pci_list_parse_helper(std::string& list_str, std::set<uint32_t>& list)
-{
-  if (list_str == "all") {
-    // Add all possible cells
-    for (int i = 0; i < SRSRAN_NOF_NID_NR; i++) {
-      list.insert(i);
-    }
-  } else if (list_str == "none") {
-    list.clear();
-  } else if (not list_str.empty()) {
-    // Remove spaces from neightbour cell list
-    list_str = srsran::string_remove_char(list_str, ' ');
-
-    // Add cell to known cells
-    srsran::string_parse_list(list_str, ',', list);
+  // Parse SSB SCS
+  args.ssb_scs = srsran_subcarrier_spacing_from_str(ssb_scs.c_str());
+  if (args.ssb_scs == srsran_subcarrier_spacing_invalid) {
+    ret = SRSRAN_ERROR;
   }
+
+  return ret;
 }
 
 int main(int argc, char** argv)
@@ -342,8 +363,8 @@ int main(int argc, char** argv)
   logger.set_level(srslog::str_to_basic_level(args.log_level));
 
   // Deduce base-band parameters
-  uint32_t sf_len         = srsran_min_symbol_sz_rb(args.nof_prb) * SRSRAN_SUBC_SPACING_NR(args.carrier_scs) / 1000U;
-  double   srate_hz       = (double)sf_len * 1000.0;
+  double   srate_hz       = args.srate_hz;
+  uint32_t sf_len         = (uint32_t)round(srate_hz / 1000.0);
   double   center_freq_hz = srsran::srsran_band_helper().nr_arfcn_to_freq(args.carier_arfcn);
   double   ssb_freq_hz    = srsran::srsran_band_helper().nr_arfcn_to_freq(args.ssb_arfcn);
   uint16_t band           = srsran::srsran_band_helper().get_band_from_dl_freq_Hz(center_freq_hz);
@@ -392,12 +413,15 @@ int main(int argc, char** argv)
   // Over-the-air only
   std::unique_ptr<srsran::radio> radio = nullptr;
 
-  // Parse PCI lists
-  pci_list_parse_helper(args.active_cell_list, args.pcis_to_meas);
-  pci_list_parse_helper(args.simulation_cell_list, args.pcis_to_simulate);
+  // File read only
+  srsran_filesource_t filesource = {};
 
   // Setup raio if the list of PCIs to simulate is empty
-  if (args.pcis_to_simulate.empty()) {
+  if (not args.filename.empty()) {
+    if (srsran_filesource_init(&filesource, args.filename.c_str(), SRSRAN_COMPLEX_FLOAT) < SRSRAN_SUCCESS) {
+      return SRSRAN_ERROR;
+    }
+  } else if (args.pcis_to_simulate.empty()) {
     // Create radio log
     auto& radio_logger = srslog::fetch_basic_logger("RF", false);
     radio_logger.set_level(srslog::str_to_basic_level(args.radio_log_level));
@@ -440,11 +464,6 @@ int main(int argc, char** argv)
       gnb_args.channel.enable            = (gnb_args.channel.delay_enable || gnb_args.channel.awgn_enable ||
                                  gnb_args.channel.fading_enable || gnb_args.channel.hst_enable);
       test_gnb_v.push_back(std::unique_ptr<test_gnb>(new test_gnb(gnb_args)));
-
-      // Add cell to known cells
-      if (args.active_cell_list.empty()) {
-        args.pcis_to_meas.insert(pci);
-      }
     }
   }
 
@@ -459,7 +478,13 @@ int main(int argc, char** argv)
     // Clean buffer
     srsran_vec_cf_zero(baseband_buffer.data(), sf_len);
 
-    if (radio) {
+    if (not args.filename.empty()) {
+      if (srsran_filesource_read(&filesource, baseband_buffer.data(), (int)sf_len) < SRSRAN_SUCCESS) {
+        ERROR("Error reading from file");
+        srsran_filesource_free(&filesource);
+        return SRSRAN_ERROR;
+      }
+    } else if (radio) {
       // Receive radio
       srsran::rf_buffer_t radio_buffer(baseband_buffer.data(), sf_len);
       radio->rx_now(radio_buffer, ts);
@@ -499,12 +524,16 @@ int main(int argc, char** argv)
     radio->stop();
   }
 
+  if (not args.filename.empty()) {
+    srsran_filesource_free(&filesource);
+  }
+
   srslog::flush();
 
-  if (ret && radio == nullptr) {
-    printf("Error\n");
-  } else {
+  if (ret == SRSRAN_SUCCESS) {
     printf("Ok\n");
+  } else {
+    printf("Error\n");
   }
 
   return ret;

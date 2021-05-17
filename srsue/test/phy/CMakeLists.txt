@@ -53,9 +53,9 @@ target_link_libraries(nr_cell_search_test
 
 # Test NR cell search without delay
 # This test checks the search starts in the configured TTI and the NR PSS is detected correctly inside the SF
-add_nr_test(nr_cell_search_test nr_cell_search_test --duration=1 --ssb_period=20 --meas_period_ms=20 --meas_len_ms=1)
+add_nr_test(nr_cell_search_test nr_cell_search_test --duration=1 --ssb_period=20 --meas_period_ms=20 --meas_len_ms=1 --simulation_cell_list=500)
 
 # Test NR cell search with up 1000us delay
 # This test checks the search is capable to find a cell with a broad delay
-add_nr_test(nr_cell_search_test_delay nr_cell_search_test --duration=1 --ssb_period=20 --meas_period_ms=100 --meas_len_ms=30 --channel.delay_min=0 --channel.delay_max=1000)
+add_nr_test(nr_cell_search_test_delay nr_cell_search_test --duration=1 --ssb_period=20 --meas_period_ms=100 --meas_len_ms=30 --channel.delay_min=0 --channel.delay_max=1000 --simulation_cell_list=500)
 
