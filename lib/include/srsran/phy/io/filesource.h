@@ -35,7 +35,7 @@ typedef struct SRSRAN_API {
   srsran_datatype_t type;
 } srsran_filesource_t;
 
-SRSRAN_API int srsran_filesource_init(srsran_filesource_t* q, char* filename, srsran_datatype_t type);
+SRSRAN_API int srsran_filesource_init(srsran_filesource_t* q, const char* filename, srsran_datatype_t type);
 
 SRSRAN_API void srsran_filesource_free(srsran_filesource_t* q);
 
