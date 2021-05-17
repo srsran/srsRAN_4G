@@ -6,5 +6,5 @@
 # the distribution.
 #
 
-set(SOURCES s1ap.cc)
-add_library(srsenb_s1ap STATIC ${SOURCES})
+set(SOURCES ngap.cc)
+add_library(srsgnb_ngap STATIC ${SOURCES})

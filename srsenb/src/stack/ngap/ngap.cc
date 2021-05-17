@@ -10,7 +10,7 @@
  *
  */
 
-#include "srsenb/hdr/stack/s1ap/ngap.h"
+#include "srsenb/hdr/stack/ngap/ngap.h"
 
 #define procError(fmt, ...) ngap_ptr->logger.error("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
 #define procWarning(fmt, ...) ngap_ptr->logger.warning("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
