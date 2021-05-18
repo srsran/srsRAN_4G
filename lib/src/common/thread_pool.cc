@@ -42,13 +42,18 @@ void thread_pool::worker::setup(uint32_t id, thread_pool* parent, uint32_t prio,
 void thread_pool::worker::run_thread()
 {
   set_name(std::string("WORKER") + std::to_string(my_id));
-  while (my_parent->status[my_id] != STOP) {
+  while (running.load(std::memory_order_relaxed)) {
     wait_to_start();
-    if (my_parent->status[my_id] != STOP) {
+    if (running.load(std::memory_order_relaxed)) {
       work_imp();
       finished();
     }
   }
+}
+
+void thread_pool::worker::stop()
+{
+  running = false;
 }
 
 uint32_t thread_pool::worker::get_id()
@@ -92,6 +97,7 @@ void thread_pool::stop()
     for (uint32_t i = 0; i < nof_workers; i++) {
       if (workers[i]) {
         debug_thread("stop(): stopping %d\n", i);
+        workers[i]->stop();
         status[i] = STOP;
         cvar_worker[i].notify_all();
         cvar_queue.notify_all();
