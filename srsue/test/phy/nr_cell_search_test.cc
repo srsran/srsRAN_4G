@@ -156,7 +156,8 @@ struct args_t {
   float       rx_gain           = 60.0f;
 
   // File parameters
-  std::string filename = "";
+  std::string filename            = "";
+  double      file_freq_offset_hz = 0.0;
 };
 
 class meas_itf_listener : public srsue::scell::intra_measure_base::meas_itf
@@ -304,6 +305,7 @@ int parse_args(int argc, char** argv, args_t& args)
 
   file.add_options()
       ("file.name", bpo::value<std::string>(&args.filename)->default_value(args.filename), "File name providing baseband")
+      ("file.freq_offset", bpo::value<double>(&args.file_freq_offset_hz)->default_value(args.file_freq_offset_hz), "File name providing baseband")
       ;
 
   options.add(measure).add(over_the_air).add(simulation).add(file).add_options()
@@ -404,7 +406,7 @@ int main(int argc, char** argv)
   meas_cfg.ssb_freq_hz                              = ssb_freq_hz;
   meas_cfg.scs                                      = srsran_subcarrier_spacing_30kHz;
   meas_cfg.serving_cell_pci                         = -1;
-  TESTASSERT(intra_measure.set_config(args.carier_arfcn, meas_cfg));
+  TESTASSERT(intra_measure.set_config(meas_cfg));
 
   // Simulation only
   std::vector<std::unique_ptr<test_gnb> > test_gnb_v;
@@ -483,6 +485,8 @@ int main(int argc, char** argv)
         srsran_filesource_free(&filesource);
         return SRSRAN_ERROR;
       }
+
+      srsran_vec_apply_cfo(baseband_buffer.data(), args.file_freq_offset_hz/args.srate_hz, baseband_buffer.data(), (int)sf_len);
     } else if (radio) {
       // Receive radio
       srsran::rf_buffer_t radio_buffer(baseband_buffer.data(), sf_len);

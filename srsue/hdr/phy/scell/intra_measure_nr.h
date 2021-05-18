@@ -71,11 +71,10 @@ public:
 
   /**
    * @brief Sets the primary cell and selects NR operation mode, configures the cell bandwidth and sampling rate
-   * @param arfcn Frequency the component is receiving base-band from. Used only for reporting the ARFCN to the RRC
    * @param cfg Actual configuration
    * @return True if configuration is successful, false otherwise
    */
-  bool set_config(uint32_t arfcn, const config_t& cfg);
+  bool set_config(const config_t& cfg);
 
   /**
    * @brief Get current frequency number
