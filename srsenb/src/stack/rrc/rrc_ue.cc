@@ -170,7 +170,9 @@ void rrc::ue::activity_timer_expired(const activity_timeout_type_t type)
 
     if (parent->s1ap->user_exists(rnti)) {
       if (type == UE_INACTIVITY_TIMEOUT) {
-        parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::user_inactivity);
+        if (not parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::user_inactivity)) {
+          parent->rem_user_thread(rnti);
+        }
         con_release_result = procedure_result_code::activity_timeout;
       } else if (type == MSG3_RX_TIMEOUT) {
         // MSG3 timeout, no need to notify S1AP, just remove UE
@@ -196,22 +198,22 @@ void rrc::ue::activity_timer_expired(const activity_timeout_type_t type)
 void rrc::ue::rlf_timer_expired(uint32_t timeout_id)
 {
   activity_timer.stop();
-  if (parent) {
-    if (timeout_id == phy_dl_rlf_timer.id()) {
-      parent->logger.info("DL RLF timer for rnti=0x%x expired after %d ms", rnti, phy_dl_rlf_timer.time_elapsed());
-    } else if (timeout_id == phy_ul_rlf_timer.id()) {
-      parent->logger.info("UL RLF timer for rnti=0x%x expired after %d ms", rnti, phy_ul_rlf_timer.time_elapsed());
-    } else if (timeout_id == rlc_rlf_timer.id()) {
-      parent->logger.info("RLC RLF timer for rnti=0x%x expired after %d ms", rnti, rlc_rlf_timer.time_elapsed());
-    }
+  if (timeout_id == phy_dl_rlf_timer.id()) {
+    parent->logger.info("DL RLF timer for rnti=0x%x expired after %d ms", rnti, phy_dl_rlf_timer.time_elapsed());
+  } else if (timeout_id == phy_ul_rlf_timer.id()) {
+    parent->logger.info("UL RLF timer for rnti=0x%x expired after %d ms", rnti, phy_ul_rlf_timer.time_elapsed());
+  } else if (timeout_id == rlc_rlf_timer.id()) {
+    parent->logger.info("RLC RLF timer for rnti=0x%x expired after %d ms", rnti, rlc_rlf_timer.time_elapsed());
+  }
 
-    if (parent->s1ap->user_exists(rnti)) {
-      parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::radio_conn_with_ue_lost);
-      con_release_result = procedure_result_code::radio_conn_with_ue_lost;
-    } else {
-      if (rnti != SRSRAN_MRNTI) {
-        parent->rem_user(rnti);
-      }
+  if (parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::radio_conn_with_ue_lost)) {
+    con_release_result = procedure_result_code::radio_conn_with_ue_lost;
+    phy_ul_rlf_timer.stop();
+    phy_dl_rlf_timer.stop();
+    rlc_rlf_timer.stop();
+  } else {
+    if (rnti != SRSRAN_MRNTI) {
+      parent->rem_user(rnti);
     }
   }
 
@@ -391,7 +393,9 @@ void rrc::ue::handle_rrc_con_req(rrc_conn_request_s* msg)
       if (user.first != rnti && user.second->has_tmsi && user.second->mmec == mmec && user.second->m_tmsi == m_tmsi) {
         parent->logger.info("RRC connection request: UE context already exists. M-TMSI=%d", m_tmsi);
         user.second->state = RRC_STATE_IDLE; // Set old rnti to IDLE so that enb doesn't send RRC Connection Release
-        parent->s1ap->user_release(user.first, asn1::s1ap::cause_radio_network_opts::radio_conn_with_ue_lost);
+        if (not parent->s1ap->user_release(user.first, asn1::s1ap::cause_radio_network_opts::radio_conn_with_ue_lost)) {
+          parent->rem_user_thread(user.first);
+        }
         break;
       }
     }

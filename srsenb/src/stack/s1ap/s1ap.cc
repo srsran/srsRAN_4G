@@ -422,7 +422,6 @@ bool s1ap::user_release(uint16_t rnti, asn1::s1ap::cause_radio_network_e cause_r
 
   if (not u->send_uectxtreleaserequest(cause)) {
     users.erase(u);
-    rrc->release_ue(rnti);
     return false;
   }
   return true;
