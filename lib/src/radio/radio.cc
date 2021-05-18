@@ -995,7 +995,9 @@ void radio::handle_rf_msg(srsran_rf_error_t error)
     logger.info("Overflow");
 
     // inform PHY about overflow
-    phy->radio_overflow();
+    if (phy != nullptr) {
+      phy->radio_overflow();
+    }
   } else if (error.type == srsran_rf_error_t::SRSRAN_RF_ERROR_UNDERFLOW) {
     rf_metrics.rf_u++;
     rf_metrics.rf_error = true;
