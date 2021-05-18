@@ -813,6 +813,15 @@ int srsran_ssb_csi_search(srsran_ssb_t*                  q,
     return SRSRAN_ERROR;
   }
 
+  // Avoid finding a peak in a region that cannot be demodulated
+  if (nof_samples < (q->symbol_sz + q->cp_sz[0]) * SRSRAN_SSB_DURATION_NSYMB) {
+    ERROR("Insufficient number of samples (%d/%d)",
+          nof_samples,
+          (q->symbol_sz + q->cp_sz[0]) * SRSRAN_SSB_DURATION_NSYMB);
+    return SRSRAN_ERROR;
+  }
+  nof_samples -= (q->symbol_sz + q->cp_sz[0]) * SRSRAN_SSB_DURATION_NSYMB;
+
   // Search for PSS in time domain
   uint32_t N_id_2   = 0;
   uint32_t t_offset = 0;
