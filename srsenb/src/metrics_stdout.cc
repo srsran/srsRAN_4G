@@ -65,6 +65,12 @@ void metrics_stdout::toggle_print(bool b)
   do_print = b;
 }
 
+// Define iszero() here since it's not defined in some platforms
+static bool iszero(float x)
+{
+  return fabsf(x) < 2 * DBL_EPSILON;
+}
+
 void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t period_usec)
 {
   if (!do_print || enb == nullptr) {
