@@ -301,8 +301,7 @@ void pdcp_entity_lte::handle_srb_pdu(srsran::unique_byte_buffer_t pdu)
 
   // Perfrom integrity checks
   if (integrity_direction == DIRECTION_RX || integrity_direction == DIRECTION_TXRX) {
-    bool pdu_valid = integrity_verify(pdu->msg, pdu->N_bytes, count, mac);
-    if (not pdu_valid) {
+    if (not integrity_verify(pdu->msg, pdu->N_bytes, count, mac)) {
       logger.error(pdu->msg, pdu->N_bytes, "%s Dropping PDU", rrc->get_rb_name(lcid));
       rrc->notify_pdcp_integrity_error(lcid);
       return; // Discard
