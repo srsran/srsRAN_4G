@@ -19,20 +19,10 @@ namespace srsenb {
 
 rbg_interval rbg_interval::find_first_interval(const rbgmask_t& mask)
 {
-  int rb_start = -1;
-  for (uint32_t i = 0; i < mask.size(); i++) {
-    if (rb_start == -1) {
-      if (mask.test(i)) {
-        rb_start = i;
-      }
-    } else {
-      if (!mask.test(i)) {
-        return rbg_interval(rb_start, i);
-      }
-    }
-  }
+  int rb_start = mask.find_lowest(0, mask.size());
   if (rb_start != -1) {
-    return rbg_interval(rb_start, mask.size());
+    int rb_end = mask.find_lowest(rb_start + 1, mask.size(), false);
+    return rbg_interval(rb_start, rb_end < 0 ? mask.size() : rb_end);
   }
   return rbg_interval();
 }
@@ -61,7 +51,7 @@ RBInterval find_contiguous_interval(const RBMask& in_mask, uint32_t max_size)
     }
 
     size_t     max_pos = std::min(in_mask.size(), (size_t)pos + max_size);
-    int        pos2    = in_mask.find_lowest(pos, max_pos, true);
+    int        pos2    = in_mask.find_lowest(pos + 1, max_pos, true);
     RBInterval interv(pos, pos2 < 0 ? max_pos : pos2);
     if (interv.length() >= max_size) {
       return interv;

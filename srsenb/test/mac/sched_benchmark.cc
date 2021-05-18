@@ -28,7 +28,7 @@ struct run_params {
 
 struct run_params_range {
   std::vector<uint32_t>    nof_prbs{srsran::lte_cell_nof_prbs.begin(), srsran::lte_cell_nof_prbs.end()};
-  std::vector<uint32_t>    nof_ues      = {1, 2, 5};
+  std::vector<uint32_t>    nof_ues      = {1, 2, 5, 32};
   uint32_t                 nof_ttis     = 10000;
   std::vector<uint32_t>    cqi          = {5, 10, 15};
   std::vector<const char*> sched_policy = {"time_rr", "time_pf"};
@@ -80,8 +80,9 @@ public:
   std::vector<sched_interface::ul_sched_res_t> ul_result;
 
   struct throughput_stats {
-    srsran::rolling_average<float> mean_dl_tbs, mean_ul_tbs, avg_dl_mcs, avg_ul_mcs;
-    srsran::rolling_average<float> avg_latency;
+    srsran::rolling_average<float>  mean_dl_tbs, mean_ul_tbs, avg_dl_mcs, avg_ul_mcs;
+    srsran::rolling_average<double> avg_latency;
+    std::vector<uint32_t>           latency_samples;
   };
   throughput_stats total_stats;
 
@@ -98,6 +99,7 @@ public:
       std::chrono::time_point<std::chrono::steady_clock> tp2 = std::chrono::steady_clock::now();
       std::chrono::nanoseconds tdur = std::chrono::duration_cast<std::chrono::nanoseconds>(tp2 - tp);
       total_stats.avg_latency.push(tdur.count());
+      total_stats.latency_samples.push_back(tdur.count());
     }
 
     sf_output_res_t sf_out{get_cell_params(), tti_rx, ul_result, dl_result};
@@ -155,6 +157,7 @@ struct run_data {
   float                     avg_dl_mcs;
   float                     avg_ul_mcs;
   std::chrono::microseconds avg_latency;
+  std::chrono::microseconds q0_9_latency;
 };
 
 int run_benchmark_scenario(run_params params, std::vector<run_data>& run_results)
@@ -193,12 +196,14 @@ int run_benchmark_scenario(run_params params, std::vector<run_data>& run_results
     tester.advance_tti();
     ue_db_ctxt = tester.get_enb_ctxt().ue_db;
   }
-  tester.total_stats = {};
 
   // Run benchmark
+  tester.total_stats = {};
+  tester.total_stats.latency_samples.reserve(params.nof_ttis);
   for (uint32_t count = 0; count < params.nof_ttis; ++count) {
     tester.advance_tti();
   }
+  std::sort(tester.total_stats.latency_samples.begin(), tester.total_stats.latency_samples.end());
 
   run_data run_result          = {};
   run_result.params            = params;
@@ -206,7 +211,9 @@ int run_benchmark_scenario(run_params params, std::vector<run_data>& run_results
   run_result.avg_ul_throughput = tester.total_stats.mean_ul_tbs.value() * 8.0F / 1e-3F;
   run_result.avg_dl_mcs        = tester.total_stats.avg_dl_mcs.value();
   run_result.avg_ul_mcs        = tester.total_stats.avg_ul_mcs.value();
-  run_result.avg_latency = std::chrono::microseconds(static_cast<int>(tester.total_stats.avg_latency.value() / 1000));
+  run_result.avg_latency  = std::chrono::microseconds(static_cast<int>(tester.total_stats.avg_latency.value() / 1000));
+  run_result.q0_9_latency = std::chrono::microseconds(
+      tester.total_stats.latency_samples[static_cast<size_t>(tester.total_stats.latency_samples.size() * 0.9)] / 1000);
   run_results.push_back(run_result);
 
   return SRSRAN_SUCCESS;
@@ -248,9 +255,9 @@ run_data expected_run_result(run_params params)
 void print_benchmark_results(const std::vector<run_data>& run_results)
 {
   srslog::flush();
-  fmt::print("run | Nprb | cqi | sched pol | Nue | DL/UL [Mbps] | DL/UL mcs | DL/UL OH [%] | latency "
+  fmt::print("run | Nprb | cqi | sched pol | Nue | DL/UL [Mbps] | DL/UL mcs | DL/UL OH [%] | latency | latency q0.9 "
              "[usec]\n");
-  fmt::print("---------------------------------------------------------------------------------------"
+  fmt::print("------------------------------------------------------------------------------------------------------"
              "------\n");
   for (uint32_t i = 0; i < run_results.size(); ++i) {
     const run_data& r = run_results[i];
@@ -263,7 +270,7 @@ void print_benchmark_results(const std::vector<run_data>& run_results)
     tbs                     = srsran_ra_tbs_from_idx(tbs_idx, nof_pusch_prbs);
     float ul_rate_overhead  = 1.0F - r.avg_ul_throughput / (static_cast<float>(tbs) * 1e3F);
 
-    fmt::print("{:>3d}{:>6d}{:>6d}{:>12}{:>6d}{:>9.2}/{:>4.2}{:>9.1f}/{:>4.1f}{:9.1f}/{:>4.1f}{:12d}\n",
+    fmt::print("{:>3d}{:>6d}{:>6d}{:>12}{:>6d}{:>9.2}/{:>4.2}{:>9.1f}/{:>4.1f}{:9.1f}/{:>4.1f}{:>9d}{:12d}\n",
                i,
                r.params.nof_prbs,
                r.params.cqi,
@@ -275,7 +282,8 @@ void print_benchmark_results(const std::vector<run_data>& run_results)
                r.avg_ul_mcs,
                dl_rate_overhead * 100,
                ul_rate_overhead * 100,
-               r.avg_latency.count());
+               r.avg_latency.count(),
+               r.q0_9_latency.count());
   }
 }
 
