@@ -215,8 +215,6 @@ private:
   // Mutexes
   std::mutex mutex;
   std::mutex rx_buffers_mutex;
-
-  static const uint8_t UL_CC_IDX = 0; ///< Passed to write CC index in PCAP
 };
 
 } // namespace srsenb
