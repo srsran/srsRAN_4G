@@ -12,6 +12,7 @@
 
 #include "srsran/common/band_helper.h"
 #include <algorithm>
+#include <cmath>
 
 namespace srsran {
 
@@ -102,6 +103,59 @@ srsran_duplex_mode_t srsran_band_helper::get_duplex_mode(uint16_t band) const
 
   // Band is out of range, so consider invalid
   return SRSRAN_DUPLEX_MODE_INVALID;
+}
+
+struct sync_raster_impl : public srsran_band_helper::sync_raster_t {
+public:
+  sync_raster_impl(uint32_t f, uint32_t s, uint32_t l) : sync_raster_t(f, s, l)
+  {
+    // Do nothing
+  }
+};
+
+double srsran_band_helper::sync_raster_t::get_frequency() const
+{
+  // Row 1
+  if (gscn >= 2 and gscn <= 7498) {
+    double N = std::ceil((gscn - 1) / 3.0);
+    double M = (gscn - 3 * N) / 2.0 + 3.0;
+    return N * 1200e3 + M * 50e3;
+  }
+
+  // Row 2
+  if (gscn >= 7499 and gscn <= 22255) {
+    double N = gscn - 7499;
+    return 3000e6 + N * 1.44e6;
+  }
+
+  // Row 3
+  if (gscn >= 22256 and gscn <= 26639) {
+    double N = gscn - 22256;
+    return 2425.08e6 + N * 17.28e6;
+  }
+
+  // Unhandled case
+  return NAN;
+}
+
+srsran_band_helper::sync_raster_t srsran_band_helper::get_sync_raster(uint16_t                    band,
+                                                                      srsran_subcarrier_spacing_t scs) const
+{
+  // Look for the given band and SCS
+  for (const nr_band_ss_raster& ss_raster : nr_band_ss_raster_table) {
+    // Check if band and SCS match!
+    if (ss_raster.band == band && ss_raster.scs == scs) {
+      return sync_raster_impl(ss_raster.gscn_first, ss_raster.gscn_step, ss_raster.gscn_last);
+    }
+
+    // As bands are in ascending order, do not waste more time if the current band is bigger
+    if (ss_raster.band > band) {
+      return sync_raster_impl(0, 0, 0);
+    }
+  }
+
+  // Band is out of range, so consider invalid
+  return sync_raster_impl(0, 0, 0);
 }
 
 srsran_band_helper::nr_raster_params srsran_band_helper::get_raster_params(uint32_t nr_arfcn)

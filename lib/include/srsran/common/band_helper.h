@@ -68,6 +68,35 @@ public:
    */
   srsran_duplex_mode_t get_duplex_mode(uint16_t band) const;
 
+  struct sync_raster_t {
+  protected:
+    sync_raster_t(uint32_t f, uint32_t s, uint32_t l) : first(f), step(s), last(l), gscn(f) {}
+    uint32_t gscn;
+
+  private:
+    uint32_t first;
+    uint32_t step;
+    uint32_t last;
+
+  public:
+    bool valid() const { return step != 0; }
+
+    void next()
+    {
+      if (gscn <= last) {
+        gscn += step;
+      }
+    }
+
+    bool end() const { return (gscn > last or step == 0); }
+
+    void reset() { gscn = first; }
+
+    double get_frequency() const;
+  };
+
+  sync_raster_t get_sync_raster(uint16_t band, srsran_subcarrier_spacing_t scs) const;
+
 private:
   // Elements of TS 38.101-1 Table 5.2-1: NR operating bands in FR1
   struct nr_operating_band {
@@ -225,7 +254,7 @@ private:
     {261, KHZ_120, 2070833, 2, 2084999, 2070833, 2, 2084999}
   }};
 
-// Elements of TS 38.101-1 Table 5.4.3.3-1 : Applicable SS raster entries per operating band
+  // Elements of TS 38.101-1 Table 5.4.3.3-1 : Applicable SS raster entries per operating band
   struct nr_band_ss_raster {
     uint16_t                    band;
     srsran_subcarrier_spacing_t scs;
