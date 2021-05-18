@@ -732,7 +732,7 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
     trigger(ho_failure_ev{cause});
     return;
   }
-  rrc_enb->log_rrc_message("HandoverPreparation", direction_t::fromS1AP, rrc_container, hoprep, "HandoverPreparation");
+  rrc_enb->log_rrc_message(direction_t::fromS1AP, rrc_ue->rnti, -1, rrc_container, hoprep, "HandoverPreparation");
 
   /* Setup UE current state in TeNB based on HandoverPreparation message */
   const ho_prep_info_r8_ies_s& hoprep_r8 = hoprep.crit_exts.c1().ho_prep_info_r8();
@@ -779,7 +779,7 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
     return;
   }
   ho_cmd_pdu->N_bytes = bref2.distance_bytes();
-  rrc_enb->log_rrc_message("RRC container", direction_t::toS1AP, ho_cmd_pdu.get(), dl_dcch_msg, "HandoverCommand");
+  rrc_enb->log_rrc_message(direction_t::toS1AP, rrc_ue->rnti, -1, *ho_cmd_pdu, dl_dcch_msg, "HandoverCommand");
 
   asn1::rrc::ho_cmd_s         ho_cmd;
   asn1::rrc::ho_cmd_r8_ies_s& ho_cmd_r8 = ho_cmd.crit_exts.set_c1().set_ho_cmd_r8();

@@ -273,11 +273,12 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
   asn1::cbit_ref bref(pdu->msg, pdu->N_bytes);
   if (ul_dcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or
       ul_dcch_msg.msg.type().value != ul_dcch_msg_type_c::types_opts::c1) {
-    parent->logger.error("Failed to unpack UL-DCCH message");
+    parent->log_rx_pdu_fail(rnti, lcid, *pdu, "Failed to unpack UL-DCCH message");
     return;
   }
 
-  parent->log_rrc_message(get_rb_name(lcid), Rx, pdu.get(), ul_dcch_msg, ul_dcch_msg.msg.c1().type().to_string());
+  // Log Rx message
+  parent->log_rrc_message(Rx, rnti, lcid, *pdu, ul_dcch_msg, ul_dcch_msg.msg.c1().type().to_string());
 
   srsran::unique_byte_buffer_t original_pdu = std::move(pdu);
   pdu                                       = srsran::make_byte_buffer();
@@ -1148,9 +1149,9 @@ void rrc::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg, std::string* octet_str)
     }
     pdu->N_bytes = (uint32_t)bref.distance_bytes();
 
-    char buf[32] = {};
-    sprintf(buf, "SRB0 - rnti=0x%x", rnti);
-    parent->log_rrc_message(buf, Tx, pdu.get(), *dl_ccch_msg, dl_ccch_msg->msg.c1().type().to_string());
+    // Log Tx message
+    parent->log_rrc_message(
+        Tx, rnti, srb_to_lcid(lte_srb::srb0), *pdu, *dl_ccch_msg, dl_ccch_msg->msg.c1().type().to_string());
 
     // Encode the pdu as an octet string if the user passed a valid pointer.
     if (octet_str) {
@@ -1165,38 +1166,37 @@ void rrc::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg, std::string* octet_str)
 
 bool rrc::ue::send_dl_dcch(const dl_dcch_msg_s* dl_dcch_msg, srsran::unique_byte_buffer_t pdu, std::string* octet_str)
 {
-  if (!pdu) {
+  if (pdu == nullptr) {
     pdu = srsran::make_byte_buffer();
-  }
-  if (pdu) {
-    asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
-    if (dl_dcch_msg->pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
-      parent->logger.error("Failed to encode DL-DCCH-Msg");
+    if (pdu == nullptr) {
+      parent->logger.error("Allocating pdu");
       return false;
     }
-    pdu->N_bytes = (uint32_t)bref.distance_bytes();
+  }
 
-    lte_srb rb = lte_srb::srb1;
-    if (dl_dcch_msg->msg.c1().type() == dl_dcch_msg_type_c::c1_c_::types_opts::dl_info_transfer) {
-      // send messages with NAS on SRB2 if user is fully registered (after RRC reconfig complete)
-      rb = (parent->rlc->has_bearer(rnti, srb_to_lcid(lte_srb::srb2)) && state == RRC_STATE_REGISTERED) ? lte_srb::srb2
-                                                                                                        : lte_srb::srb1;
-    }
-
-    char buf[32] = {};
-    sprintf(buf, "%s - rnti=0x%x", srsran::get_srb_name(rb), rnti);
-    parent->log_rrc_message(buf, Tx, pdu.get(), *dl_dcch_msg, dl_dcch_msg->msg.c1().type().to_string());
-
-    // Encode the pdu as an octet string if the user passed a valid pointer.
-    if (octet_str) {
-      *octet_str = asn1::octstring_to_string(pdu->msg, pdu->N_bytes);
-    }
-
-    parent->pdcp->write_sdu(rnti, srb_to_lcid(rb), std::move(pdu));
-  } else {
-    parent->logger.error("Allocating pdu");
+  asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
+  if (dl_dcch_msg->pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
+    parent->logger.error("Failed to encode DL-DCCH-Msg for rnti=0x%x", rnti);
     return false;
   }
+  pdu->N_bytes = (uint32_t)bref.distance_bytes();
+
+  lte_srb rb = lte_srb::srb1;
+  if (dl_dcch_msg->msg.c1().type() == dl_dcch_msg_type_c::c1_c_::types_opts::dl_info_transfer) {
+    // send messages with NAS on SRB2 if user is fully registered (after RRC reconfig complete)
+    rb = (parent->rlc->has_bearer(rnti, srb_to_lcid(lte_srb::srb2)) && state == RRC_STATE_REGISTERED) ? lte_srb::srb2
+                                                                                                      : lte_srb::srb1;
+  }
+
+  // Log Tx message
+  parent->log_rrc_message(Tx, rnti, srb_to_lcid(rb), *pdu, *dl_dcch_msg, dl_dcch_msg->msg.c1().type().to_string());
+
+  // Encode the pdu as an octet string if the user passed a valid pointer.
+  if (octet_str != nullptr) {
+    *octet_str = asn1::octstring_to_string(pdu->msg, pdu->N_bytes);
+  }
+
+  parent->pdcp->write_sdu(rnti, srb_to_lcid(rb), std::move(pdu));
   return true;
 }
 

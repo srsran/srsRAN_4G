@@ -120,33 +120,26 @@ public:
   uint32_t get_nof_users();
 
   // logging
-  typedef enum { Rx = 0, Tx, toS1AP, fromS1AP } direction_t;
+  enum direction_t { Rx = 0, Tx, toS1AP, fromS1AP };
   template <class T>
-  void log_rrc_message(const std::string&           source,
-                       const direction_t            dir,
-                       const srsran::byte_buffer_t* pdu,
-                       const T&                     msg,
-                       const std::string&           msg_type)
-  {
-    log_rrc_message(source, dir, srsran::make_span(*pdu), msg, msg_type);
-  }
-  template <class T>
-  void log_rrc_message(const std::string&      source,
-                       const direction_t       dir,
+  void log_rrc_message(const direction_t       dir,
+                       uint16_t                rnti,
+                       uint32_t                lcid,
                        srsran::const_byte_span pdu,
                        const T&                msg,
-                       const std::string&      msg_type)
+                       const char*             msg_type)
   {
-    static const char* dir_str[] = {"Rx", "Tx", "S1AP Tx", "S1AP Rx"};
+    log_rxtx_pdu_impl(dir, rnti, lcid, pdu, msg_type);
     if (logger.debug.enabled()) {
       asn1::json_writer json_writer;
       msg.to_json(json_writer);
-      logger.debug(
-          pdu.data(), pdu.size(), "%s - %s %s (%zd B)", source.c_str(), dir_str[dir], msg_type.c_str(), pdu.size());
       logger.debug("Content:\n%s", json_writer.to_string().c_str());
-    } else if (logger.info.enabled()) {
-      logger.info("%s - %s %s (%zd B)", source.c_str(), dir_str[dir], msg_type.c_str(), pdu.size());
     }
+  }
+  template <class T>
+  void log_broadcast_rrc_message(uint16_t rnti, srsran::const_byte_span pdu, const T& msg, const char* msg_type)
+  {
+    log_rrc_message(Tx, rnti, -1, pdu, msg, msg_type);
   }
 
 private:
@@ -176,19 +169,22 @@ private:
   int      pack_mcch();
 
   void config_mac();
-  void parse_ul_dcch(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu);
-  void parse_ul_ccch(uint16_t rnti, srsran::unique_byte_buffer_t pdu);
+  void parse_ul_dcch(ue& ue, uint32_t lcid, srsran::unique_byte_buffer_t pdu);
+  void parse_ul_ccch(ue& ue, srsran::unique_byte_buffer_t pdu);
   void send_rrc_connection_reject(uint16_t rnti);
 
   const static int mcch_payload_len                      = 3000;
   int              current_mcch_length                   = 0;
   uint8_t          mcch_payload_buffer[mcch_payload_len] = {};
-  typedef struct {
+  struct rrc_pdu {
     uint16_t                     rnti;
     uint32_t                     lcid;
     uint32_t                     arg;
     srsran::unique_byte_buffer_t pdu;
-  } rrc_pdu;
+  };
+  void log_rx_pdu_fail(uint16_t rnti, uint32_t lcid, srsran::const_byte_span pdu, const char* cause);
+  void
+  log_rxtx_pdu_impl(direction_t dir, uint16_t rnti, uint32_t lcid, srsran::const_byte_span pdu, const char* msg_type);
 
   const static uint32_t LCID_EXIT       = 0xffff0000;
   const static uint32_t LCID_REM_USER   = 0xffff0001;

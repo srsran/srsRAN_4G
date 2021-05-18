@@ -18,6 +18,7 @@
 #include "srsran/asn1/rrc_utils.h"
 #include "srsran/common/bcd_helpers.h"
 #include "srsran/common/standard_streams.h"
+#include "srsran/common/string_helpers.h"
 #include "srsran/interfaces/enb_mac_interfaces.h"
 #include "srsran/interfaces/enb_pdcp_interfaces.h"
 #include "srsran/interfaces/enb_rlc_interfaces.h"
@@ -261,9 +262,8 @@ void rrc::send_rrc_connection_reject(uint16_t rnti)
   }
   pdu->N_bytes = bref.distance_bytes();
 
-  char buf[32] = {};
-  sprintf(buf, "SRB0 - rnti=0x%x", rnti);
-  log_rrc_message(buf, Tx, pdu.get(), dl_ccch_msg, dl_ccch_msg.msg.c1().type().to_string());
+  log_rrc_message(Tx, rnti, srb_to_lcid(lte_srb::srb0), *pdu, dl_ccch_msg, dl_ccch_msg.msg.c1().type().to_string());
+
   rlc->write_sdu(rnti, srb_to_lcid(lte_srb::srb0), std::move(pdu));
 }
 
@@ -479,7 +479,7 @@ void rrc::read_pdu_pcch(uint32_t tti_tx_dl, uint8_t* payload, uint32_t buffer_si
       logger.info("Assembling PCCH payload with %d UE identities, payload_len=%d bytes",
                   msg.msg.c1().paging().paging_record_list.size(),
                   pdu.size());
-      log_rrc_message("PCCH-Message", Tx, pdu, msg, msg.msg.c1().type().to_string());
+      log_broadcast_rrc_message(SRSRAN_PRNTI, pdu, msg, msg.msg.c1().type().to_string());
     }
     return true;
   };
@@ -515,55 +515,44 @@ void rrc::set_erab_status(uint16_t rnti, const asn1::s1ap::bearers_subject_to_st
   from either a public function or the internal thread
 *******************************************************************************/
 
-void rrc::parse_ul_ccch(uint16_t rnti, srsran::unique_byte_buffer_t pdu)
+void rrc::parse_ul_ccch(ue& ue, srsran::unique_byte_buffer_t pdu)
 {
-  if (pdu) {
-    ul_ccch_msg_s  ul_ccch_msg;
-    asn1::cbit_ref bref(pdu->msg, pdu->N_bytes);
-    if (ul_ccch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or
-        ul_ccch_msg.msg.type().value != ul_ccch_msg_type_c::types_opts::c1) {
-      logger.error("Failed to unpack UL-CCCH message");
-      return;
-    }
+  srsran_assert(pdu != nullptr, "parse_ul_ccch called for empty message");
 
-    log_rrc_message("SRB0", Rx, pdu.get(), ul_ccch_msg, ul_ccch_msg.msg.c1().type().to_string());
+  ul_ccch_msg_s  ul_ccch_msg;
+  asn1::cbit_ref bref(pdu->msg, pdu->N_bytes);
+  if (ul_ccch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or
+      ul_ccch_msg.msg.type().value != ul_ccch_msg_type_c::types_opts::c1) {
+    log_rx_pdu_fail(ue.rnti, srb_to_lcid(lte_srb::srb0), *pdu, "Failed to unpack UL-CCCH message");
+    return;
+  }
 
-    auto user_it = users.find(rnti);
-    switch (ul_ccch_msg.msg.c1().type().value) {
-      case ul_ccch_msg_type_c::c1_c_::types::rrc_conn_request:
-        if (user_it != users.end()) {
-          user_it->second->save_ul_message(std::move(pdu));
-          user_it->second->handle_rrc_con_req(&ul_ccch_msg.msg.c1().rrc_conn_request());
-        } else {
-          logger.error("Received ConnectionSetup for rnti=0x%x without context", rnti);
-        }
-        break;
-      case ul_ccch_msg_type_c::c1_c_::types::rrc_conn_reest_request:
-        if (user_it != users.end()) {
-          user_it->second->save_ul_message(std::move(pdu));
-          user_it->second->handle_rrc_con_reest_req(&ul_ccch_msg.msg.c1().rrc_conn_reest_request());
-        } else {
-          logger.error("Received ConnectionReestablishment for rnti=0x%x without context.", rnti);
-        }
-        break;
-      default:
-        logger.error("UL CCCH message not recognised");
-        break;
-    }
+  // Log Rx message
+  log_rrc_message(
+      Rx, ue.rnti, srsran::srb_to_lcid(lte_srb::srb0), *pdu, ul_ccch_msg, ul_ccch_msg.msg.c1().type().to_string());
+
+  switch (ul_ccch_msg.msg.c1().type().value) {
+    case ul_ccch_msg_type_c::c1_c_::types::rrc_conn_request:
+      ue.save_ul_message(std::move(pdu));
+      ue.handle_rrc_con_req(&ul_ccch_msg.msg.c1().rrc_conn_request());
+      break;
+    case ul_ccch_msg_type_c::c1_c_::types::rrc_conn_reest_request:
+      ue.save_ul_message(std::move(pdu));
+      ue.handle_rrc_con_reest_req(&ul_ccch_msg.msg.c1().rrc_conn_reest_request());
+      break;
+    default:
+      logger.error("Processing UL-CCCH for rnti=0x%x - Unsupported message type %s",
+                   ul_ccch_msg.msg.c1().type().to_string());
+      break;
   }
 }
 
 ///< User mutex must be hold by caller
-void rrc::parse_ul_dcch(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu)
+void rrc::parse_ul_dcch(ue& ue, uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
-  if (pdu) {
-    auto user_it = users.find(rnti);
-    if (user_it != users.end()) {
-      user_it->second->parse_ul_dcch(lcid, std::move(pdu));
-    } else {
-      logger.error("Processing %s: Unknown rnti=0x%x", get_rb_name(lcid), rnti);
-    }
-  }
+  srsran_assert(pdu != nullptr, "parse_ul_dcch called for empty message");
+
+  ue.parse_ul_dcch(lcid, std::move(pdu));
 }
 
 ///< User mutex must be hold by caller
@@ -743,9 +732,13 @@ uint32_t rrc::generate_sibs()
       cell_ctxt->sib_buffer.push_back(std::move(sib_buffer));
 
       // Log SIBs in JSON format
-      std::string log_msg("CC" + std::to_string(cc_idx) + " SIB payload");
-      log_rrc_message(
-          log_msg, Tx, cell_ctxt->sib_buffer.back().get(), msg[msg_index], msg[msg_index].msg.c1().type().to_string());
+      fmt::memory_buffer membuf;
+      const char*        msg_str = msg[msg_index].msg.c1().type().to_string();
+      if (msg[msg_index].msg.c1().type().value != asn1::rrc::bcch_dl_sch_msg_type_c::c1_c_::types_opts::sib_type1) {
+        msg_str = msg[msg_index].msg.c1().sys_info().crit_exts.type().to_string();
+      }
+      fmt::format_to(membuf, "{}, cc={}", msg_str, cc_idx);
+      log_broadcast_rrc_message(SRSRAN_SIRNTI, *cell_ctxt->sib_buffer.back(), msg[msg_index], srsran::to_c_str(membuf));
     }
 
     if (cfg.sibs[6].type() == asn1::rrc::sys_info_r8_ies_s::sib_type_and_info_item_c_::types::sib7) {
@@ -907,26 +900,26 @@ void rrc::tti_clock()
   // pop cmds from queue
   rrc_pdu p;
   while (rx_pdu_queue.try_pop(p)) {
-    // print Rx PDU
-    if (p.pdu != nullptr) {
-      logger.info(p.pdu->msg, p.pdu->N_bytes, "Rx %s PDU", get_rb_name(p.lcid));
-    }
-
     // check if user exists
     auto user_it = users.find(p.rnti);
     if (user_it == users.end()) {
-      logger.warning("Discarding PDU for removed rnti=0x%x", p.rnti);
+      if (p.pdu != nullptr) {
+        log_rx_pdu_fail(p.rnti, p.lcid, *p.pdu, "unknown rnti");
+      } else {
+        logger.warning("Ignoring rnti=0x%x command. Cause: unknown rnti", p.rnti);
+      }
       continue;
     }
+    ue& ue = *user_it->second;
 
     // handle queue cmd
     switch (p.lcid) {
       case srb_to_lcid(lte_srb::srb0):
-        parse_ul_ccch(p.rnti, std::move(p.pdu));
+        parse_ul_ccch(ue, std::move(p.pdu));
         break;
       case srb_to_lcid(lte_srb::srb1):
       case srb_to_lcid(lte_srb::srb2):
-        parse_ul_dcch(p.rnti, p.lcid, std::move(p.pdu));
+        parse_ul_dcch(ue, p.lcid, std::move(p.pdu));
         break;
       case LCID_REM_USER:
         rem_user(p.rnti);
@@ -954,6 +947,34 @@ void rrc::tti_clock()
         break;
     }
   }
+}
+
+void rrc::log_rx_pdu_fail(uint16_t rnti, uint32_t lcid, srsran::const_byte_span pdu, const char* cause_str)
+{
+  logger.error(
+      pdu.data(), pdu.size(), "Rx %s PDU, rnti=0x%x - Discarding. Cause: %s", get_rb_name(lcid), rnti, cause_str);
+}
+
+void rrc::log_rxtx_pdu_impl(direction_t             dir,
+                            uint16_t                rnti,
+                            uint32_t                lcid,
+                            srsran::const_byte_span pdu,
+                            const char*             msg_type)
+{
+  static const char* dir_str[] = {"Rx", "Tx", "Tx S1AP", "Rx S1AP"};
+  fmt::memory_buffer membuf;
+  fmt::format_to(membuf, "{} ", dir_str[dir]);
+  if (rnti != SRSRAN_PRNTI and rnti != SRSRAN_SIRNTI) {
+    if (dir == Tx or dir == Rx) {
+      fmt::format_to(membuf, "{} ", srsran::get_srb_name(srsran::lte_lcid_to_srb(lcid)));
+    }
+    fmt::format_to(membuf, "PDU, rnti=0x{:x} ", rnti);
+  } else {
+    fmt::format_to(membuf, "Broadcast PDU ");
+  }
+  fmt::format_to(membuf, "- {} ({} B)", msg_type, pdu.size());
+
+  logger.info(pdu.data(), pdu.size(), "%s", srsran::to_c_str(membuf));
 }
 
 } // namespace srsenb
