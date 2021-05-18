@@ -74,7 +74,7 @@ private:
   std::vector<srsran_ringbuffer_t*> ringbuffers_rx;
   srsran::rf_timestamp_t            ts_rx    = {};
   double                            rx_srate = 0.0;
-  bool                              running  = true;
+  std::atomic<bool>                 running  = {true};
 
   CALLBACK(tx);
   CALLBACK(tx_end);
@@ -318,6 +318,7 @@ private:
     uint32_t cqi;
   } tti_cqi_info_t;
 
+  std::mutex                 phy_mac_mutex;
   std::queue<tti_dl_info_t>  tti_dl_info_sched_queue;
   std::queue<tti_dl_info_t>  tti_dl_info_ack_queue;
   std::queue<tti_ul_info_t>  tti_ul_info_sched_queue;
@@ -405,10 +406,16 @@ public:
     srsran_random_free(random_gen);
   }
 
-  void set_active_cell_list(std::vector<uint32_t>& active_cell_list_) { active_cell_list = active_cell_list_; }
+  void set_active_cell_list(std::vector<uint32_t>& active_cell_list_)
+  {
+    std::lock_guard<std::mutex> lock(phy_mac_mutex);
+    active_cell_list = active_cell_list_;
+  }
 
   int sr_detected(uint32_t tti, uint16_t rnti) override
   {
+    std::lock_guard<std::mutex> lock(phy_mac_mutex);
+
     tti_sr_info_t tti_sr_info = {};
     tti_sr_info.tti           = tti;
     tti_sr_info_queue.push(tti_sr_info);
@@ -441,6 +448,8 @@ public:
   }
   int cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t cqi_value) override
   {
+    std::lock_guard<std::mutex> lock(phy_mac_mutex);
+
     tti_cqi_info_t tti_cqi_info = {};
     tti_cqi_info.tti            = tti;
     tti_cqi_info.cc_idx         = cc_idx;
@@ -466,6 +475,8 @@ public:
   }
   int ack_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t tb_idx, bool ack) override
   {
+    std::lock_guard<std::mutex> lock(phy_mac_mutex);
+
     // Push grant info in queue
     tti_dl_info_t tti_dl_info = {};
     tti_dl_info.tti           = tti;
@@ -480,6 +491,8 @@ public:
   }
   int crc_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t nof_bytes, bool crc_res) override
   {
+    std::lock_guard<std::mutex> lock(phy_mac_mutex);
+
     // Push grant info in queue
     tti_ul_info_t tti_ul_info = {};
     tti_ul_info.tti           = tti;
@@ -501,6 +514,8 @@ public:
   }
   int get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res) override
   {
+    std::lock_guard<std::mutex> lock(phy_mac_mutex);
+
     // Notify test engine
     notify_get_dl_sched();
 
@@ -613,6 +628,8 @@ public:
     // Notify test engine
     notify_get_ul_sched();
 
+    std::lock_guard<std::mutex> lock(phy_mac_mutex);
+
     // Iterate for each carrier following the eNb/Cell order
     for (uint32_t cc_idx = 0; cc_idx < ul_sched_res.size(); cc_idx++) {
       auto  scell_idx = active_cell_list.size();
@@ -688,6 +705,8 @@ public:
   void tti_clock() override { notify_tti_clock(); }
   int  run_tti(bool enable_assert)
   {
+    std::lock_guard<std::mutex> lock(phy_mac_mutex);
+
     // Check DL ACKs match with grants
     while (not tti_dl_info_ack_queue.empty()) {
       // Get both Info
