@@ -223,7 +223,11 @@ bool rf_zmq_tx_match_freq(rf_zmq_tx_t* q, uint32_t freq_hz)
 
 void rf_zmq_tx_close(rf_zmq_tx_t* q)
 {
+  pthread_mutex_lock(&q->mutex);
   q->running = false;
+  pthread_mutex_unlock(&q->mutex);
+
+  pthread_mutex_destroy(&q->mutex);
 
   if (q->zeros) {
     free(q->zeros);
