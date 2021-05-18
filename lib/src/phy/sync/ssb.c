@@ -70,7 +70,7 @@ int srsran_ssb_init(srsran_ssb_t* q, const srsran_ssb_args_t* args)
 
   q->scs_hz        = (float)SRSRAN_SUBC_SPACING_NR(q->args.min_scs);
   q->max_symbol_sz = (uint32_t)round(q->args.max_srate_hz / q->scs_hz);
-  q->max_corr_sz   = SSB_CORR_SZ(q->symbol_sz);
+  q->max_corr_sz   = SSB_CORR_SZ(q->max_symbol_sz);
 
   // Allocate temporal data
   q->tmp_time = srsran_vec_cf_malloc(q->max_corr_sz);
