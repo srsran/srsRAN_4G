@@ -241,11 +241,11 @@ run_data expected_run_result(run_params params)
       ret.avg_ul_throughput *= 0.75;
       break;
     case 15:
-      ret.avg_dl_throughput *= 0.95;
+      ret.avg_dl_throughput *= 0.94;
       ret.avg_ul_throughput *= 0.7;
       break;
     default:
-      ret.avg_dl_throughput *= 0.97;
+      ret.avg_dl_throughput *= 0.96;
       ret.avg_ul_throughput *= 0.85;
       break;
   }
