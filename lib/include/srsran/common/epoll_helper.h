@@ -17,6 +17,7 @@
 #ifndef SRSRAN_EPOLL_HELPER_H
 #define SRSRAN_EPOLL_HELPER_H
 
+#include <atomic>
 #include <functional>
 #include <signal.h>
 #include <sys/epoll.h>
@@ -58,7 +59,7 @@ private:
 class epoll_signal_handler : public epoll_handler
 {
 public:
-  epoll_signal_handler(bool* running_) : running(running_) {}
+  epoll_signal_handler(std::atomic<bool>& running_) : running(running_) {}
 
   int handle_event(int fd, epoll_event e, int epoll_fd)
   {
@@ -72,7 +73,7 @@ public:
       case SIGINT:
       case SIGHUP:
       case SIGQUIT:
-        *running = false;
+        running = false;
         break;
       default:
         fprintf(stderr, "got signal %d\n", info.ssi_signo);
@@ -82,7 +83,7 @@ public:
   }
 
 private:
-  bool* running = nullptr;
+  std::atomic<bool>& running;
 };
 
 ///< Create periodic epoll timer every 1ms

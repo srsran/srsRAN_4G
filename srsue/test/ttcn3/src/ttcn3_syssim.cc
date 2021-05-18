@@ -49,7 +49,7 @@ ttcn3_syssim::ttcn3_syssim(ttcn3_ue* ue_) :
   mac_msg_dl(20, ss_mac_logger),
   pdus(logger),
   ue(ue_),
-  signal_handler(&running),
+  signal_handler(running),
   timer_handler(create_tti_timer(), [&](uint64_t res) { new_tti_indication(res); })
 {
   if (ue->init(all_args_t{}, this, "INIT_TEST") != SRSRAN_SUCCESS) {

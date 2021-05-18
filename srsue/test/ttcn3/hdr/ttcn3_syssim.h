@@ -25,6 +25,7 @@
 #include "ttcn3_sys_interface.h"
 #include "ttcn3_ue.h"
 #include "ttcn3_ut_interface.h"
+#include <atomic>
 #include <functional>
 
 class ttcn3_syssim : public syssim_interface_phy,
@@ -223,8 +224,8 @@ private:
   all_args_t args = {};
 
   // Simulator vars
-  ttcn3_ue* ue      = nullptr;
-  bool      running = false;
+  ttcn3_ue*         ue      = nullptr;
+  std::atomic<bool> running = {false};
 
   typedef enum { UE_SWITCH_ON = 0, UE_SWITCH_OFF, ENABLE_DATA, DISABLE_DATA } ss_events_t;
   block_queue<ss_events_t> event_queue;
