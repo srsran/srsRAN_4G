@@ -245,7 +245,7 @@ private:
           pcap->write_ul_ccch(pdu->msg, pdu_len);
         }
       } else {
-        logger.warning(pdu->msg, pdu->N_bytes, "Dropping RLC PDU (%d B)", pdu->N_bytes);
+        logger.info(pdu->msg, pdu->N_bytes, "Dropping RLC PDU (%d B)", pdu->N_bytes);
         skip_action = true; // Avoid drop duplicating this PDU
       }
 
@@ -254,7 +254,7 @@ private:
         it++;
         skip_action = false; // Allow action on the next PDU
       } else {
-        logger.warning(pdu->msg, pdu->N_bytes, "Duplicating RLC PDU (%d B)", pdu->N_bytes);
+        logger.info(pdu->msg, pdu->N_bytes, "Duplicating RLC PDU (%d B)", pdu->N_bytes);
         skip_action = true; // Avoid drop of this PDU
       }
     }
@@ -299,7 +299,7 @@ private:
   rlc_interface_mac* rlc1 = nullptr;
   rlc_interface_mac* rlc2 = nullptr;
 
-  bool                   run_enable = false;
+  std::atomic<bool>      run_enable = {false};
   stress_test_args_t     args       = {};
   rlc_pcap*              pcap       = nullptr;
   uint32_t               lcid       = 0;
@@ -427,7 +427,8 @@ private:
     }
   }
 
-  bool run_enable = true;
+  std::atomic<bool> run_enable = {true};
+
   /// Tx uses thread-local PDCP SN to set SDU content, the Rx uses this variable to check received SDUs
   uint8_t               next_expected_sdu = 0;
   uint64_t              rx_pdus           = 0;
