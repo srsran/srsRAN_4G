@@ -556,7 +556,7 @@ int rlc_am_lte::rlc_am_lte_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
 
   // Section 5.2.2.3 in TS 36.311, if tx_window is full and retx_queue empty, retransmit PDU
   if (tx_window.size() >= RLC_AM_WINDOW_SIZE && retx_queue.empty()) {
-    retransmit_pdu();
+    retransmit_pdu(vt_a);
   }
 
   // RETX if required
@@ -576,11 +576,11 @@ void rlc_am_lte::rlc_am_lte_tx::timer_expired(uint32_t timeout_id)
   std::unique_lock<std::mutex> lock(mutex);
   if (poll_retx_timer.is_valid() && poll_retx_timer.id() == timeout_id) {
     logger.debug("%s Poll reTx timer expired after %dms", RB_NAME, poll_retx_timer.duration());
-    // Section 5.2.2.3 in TS 36.311, schedule PDU for retransmission if
-    // (a) both tx and retx buffer are empty, or
+    // Section 5.2.2.3 in TS 36.322, schedule PDU for retransmission if
+    // (a) both tx and retx buffer are empty (excluding tx'ed PDU waiting for ack), or
     // (b) no new data PDU can be transmitted (tx window is full)
     if ((retx_queue.empty() && tx_sdu_queue.size() == 0) || tx_window.size() >= RLC_AM_WINDOW_SIZE) {
-      retransmit_pdu();
+      retransmit_pdu(vt_a); // TODO: TS says to send vt_s - 1 here
     }
   }
 
@@ -591,21 +591,21 @@ void rlc_am_lte::rlc_am_lte_tx::timer_expired(uint32_t timeout_id)
   }
 }
 
-void rlc_am_lte::rlc_am_lte_tx::retransmit_pdu()
+void rlc_am_lte::rlc_am_lte_tx::retransmit_pdu(uint32_t sn)
 {
   if (tx_window.empty()) {
-    logger.warning("%s No PDU to retransmit.", RB_NAME);
+    logger.warning("%s No PDU to retransmit", RB_NAME);
     return;
   }
 
-  if (not tx_window.has_sn(vt_a)) {
-    logger.warning("%s Can't retransmit unexisting SN=%d.", RB_NAME, vt_a);
+  if (not tx_window.has_sn(sn)) {
+    logger.warning("%s Can't retransmit unexisting SN=%d", RB_NAME, sn);
     return;
   }
 
   // select first PDU in tx window for retransmission
-  rlc_amd_tx_pdu& pdu = tx_window[vt_a];
-  logger.info("%s Schedule SN=%d for reTx.", RB_NAME, pdu.rlc_sn);
+  rlc_amd_tx_pdu& pdu = tx_window[sn];
+  logger.info("%s Schedule SN=%d for reTx", RB_NAME, pdu.rlc_sn);
   rlc_amd_retx_t& retx = retx_queue.push();
   retx.is_segment      = false;
   retx.so_start        = 0;

@@ -393,7 +393,7 @@ private:
     void debug_state();
 
     int  required_buffer_size(rlc_amd_retx_t retx);
-    void retransmit_pdu();
+    void retransmit_pdu(uint32_t sn);
 
     // Helpers
     bool poll_required();
