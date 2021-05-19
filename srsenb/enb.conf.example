@@ -338,6 +338,8 @@ enable = false
 # gtpu_tunnel_timeout:  Time that GTPU takes to release indirect forwarding tunnel since the last received GTPU PDU (0 for no timer).
 #ts1_reloc_prep_timeout: S1AP TS 36.413 TS1RelocPrep Expiry Timeout value in milliseconds
 #ts1_reloc_overall_timeout: S1AP TS 36.413 TS1RelocOverall Expiry Timeout value in milliseconds
+# rlf_release_timer_ms: Time taken by eNB to release UE context after it detects an RLF
+# rlf_min_ul_snr_estim: SNR threshold in dB below which the enb is notified with rlf ko
 #
 #####################################################################
 [expert]
@@ -369,3 +371,5 @@ enable = false
 #extended_cp         = false
 #ts1_reloc_prep_timeout = 10000
 #ts1_reloc_overall_timeout = 10000
+#rlf_release_timer_ms = 4000
+#rlf_min_ul_snr_estim = -2

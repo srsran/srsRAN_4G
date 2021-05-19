@@ -25,6 +25,7 @@ struct mac_args_t {
   int                           nr_tb_size = -1;
   uint32_t                      nof_prealloc_ues; ///< Number of UE resources to pre-allocate at eNB startup
   uint32_t                      max_nof_kos;
+  int                           rlf_min_ul_snr_estim;
 };
 
 /* Interface PHY -> MAC */
