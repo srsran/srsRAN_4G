@@ -732,4 +732,9 @@ void ue::tic()
   }
 }
 
+void ue::trigger_padding(int lcid)
+{
+  sched->ul_bsr(rnti, lcid, 20e6);
+}
+
 } // namespace srsenb

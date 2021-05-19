@@ -216,6 +216,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("expert.eea_pref_list", bpo::value<string>(&args->general.eea_pref_list)->default_value("EEA0, EEA2, EEA1"), "Ordered preference list for the selection of encryption algorithm (EEA) (default: EEA0, EEA2, EEA1).")
     ("expert.eia_pref_list", bpo::value<string>(&args->general.eia_pref_list)->default_value("EIA2, EIA1, EIA0"), "Ordered preference list for the selection of integrity algorithm (EIA) (default: EIA2, EIA1, EIA0).")
     ("expert.nof_prealloc_ues", bpo::value<uint32_t>(&args->stack.mac.nof_prealloc_ues)->default_value(8), "Number of UE resources to preallocate during eNB initialization")
+    ("expert.lcid_padding", bpo::value<int>(&args->stack.mac.lcid_padding)->default_value(3), "LCID on which to put MAC padding")
     ("expert.max_mac_dl_kos", bpo::value<uint32_t>(&args->general.max_mac_dl_kos)->default_value(100), "Maximum number of consecutive KOs in DL before triggering the UE's release")
     ("expert.max_mac_ul_kos", bpo::value<uint32_t>(&args->general.max_mac_ul_kos)->default_value(100), "Maximum number of consecutive KOs in UL before triggering the UE's release")
     ("expert.gtpu_tunnel_timeout", bpo::value<uint32_t>(&args->stack.gtpu_indirect_tunnel_timeout_msec)->default_value(0), "Maximum time that GTPU takes to release indirect forwarding tunnel since the last received GTPU PDU. (0 for infinity)")
@@ -428,6 +429,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
 }
 
 static bool do_metrics = false;
+static bool do_padding = false;
 
 static void* input_loop(metrics_stdout* metrics, srsenb::enb_command_interface* control)
 {
@@ -452,6 +454,14 @@ static void* input_loop(metrics_stdout* metrics, srsenb::enb_command_interface* 
             cout << "Enter t to restart trace." << endl;
           }
           metrics->toggle_print(do_metrics);
+        } else if (cmd[0] == "p") {
+          do_padding = !do_padding;
+          if (do_padding) {
+            cout << "Enter p to stop padding." << endl;
+          } else {
+            cout << "Enter p to restart padding." << endl;
+          }
+          control->toggle_padding();
         } else if (cmd[0] == "q") {
           raise(SIGTERM);
         } else if (cmd[0] == "cell_gain") {
@@ -471,6 +481,7 @@ static void* input_loop(metrics_stdout* metrics, srsenb::enb_command_interface* 
           cout << "          t: starts console trace" << endl;
           cout << "          q: quit srsenb" << endl;
           cout << "  cell_gain: set relative cell gain" << endl;
+          cout << "          p: starts MAC padding" << endl;
           cout << endl;
         }
       }

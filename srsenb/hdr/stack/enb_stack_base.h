@@ -92,6 +92,7 @@ public:
 
   virtual void stop() = 0;
 
+  virtual void toggle_padding() = 0;
   // eNB metrics interface
   virtual bool get_metrics(stack_metrics_t* metrics) = 0;
 };

@@ -91,6 +91,7 @@ public:
   {
     mac.set_sched_dl_tti_mask(tti_mask, nof_sfs);
   }
+  void toggle_padding() override { mac.toggle_padding(); }
   void tti_clock() override;
 
 private:

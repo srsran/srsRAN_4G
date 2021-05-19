@@ -94,6 +94,11 @@ public:
   bool process_pdus();
 
   void get_metrics(mac_metrics_t& metrics);
+
+  void toggle_padding();
+
+  void add_padding();
+
   void write_mcch(const srsran::sib2_mbms_t* sib2_,
                   const srsran::sib13_t*     sib13_,
                   const srsran::mcch_msg_t*  mcch_,
@@ -176,8 +181,9 @@ private:
   uint8_t             mtch_payload_buffer[mtch_payload_len] = {};
 
   // pointer to MAC PCAP object
-  srsran::mac_pcap*     pcap     = nullptr;
-  srsran::mac_pcap_net* pcap_net = nullptr;
+  srsran::mac_pcap*     pcap       = nullptr;
+  srsran::mac_pcap_net* pcap_net   = nullptr;
+  bool                  do_padding = false;
 
   // Number of rach preambles detected for a cc.
   std::vector<uint32_t> detected_rachs;

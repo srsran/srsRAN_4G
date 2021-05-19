@@ -285,6 +285,21 @@ void mac::get_metrics(mac_metrics_t& metrics)
   metrics.cc_rach_counter = detected_rachs;
 }
 
+void mac::toggle_padding()
+{
+  do_padding = !do_padding;
+}
+
+void mac::add_padding()
+{
+  for (auto it = ue_db.begin(); it != ue_db.end(); ++it) {
+    uint16_t cur_rnti = it->first;
+    auto     ue       = it;
+    scheduler.dl_rlc_buffer_state(ue->first, args.lcid_padding, 20e6, 0);
+    ue->second->trigger_padding(args.lcid_padding);
+  }
+}
+
 /********************************************************
  *
  * PHY interface
@@ -594,6 +609,9 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
 
   trace_complete_event("mac::get_dl_sched", "total_time");
   logger.set_context(TTI_SUB(tti_tx_dl, FDD_HARQ_DELAY_UL_MS));
+  if (do_padding) {
+    add_padding();
+  }
 
   for (uint32_t enb_cc_idx = 0; enb_cc_idx < cell_config.size(); enb_cc_idx++) {
     // Run scheduler with current info

@@ -71,6 +71,8 @@ public:
   // MAC interface to trigger processing of received PDUs
   void process_pdus() final;
 
+  void toggle_padding() { srsran::console("padding not available for NR\n"); }
+
 private:
   void run_thread() final;
   void run_tti_impl(uint32_t tti);

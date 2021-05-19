@@ -25,6 +25,8 @@ public:
    * @param gain Relative gain
    */
   virtual void cmd_cell_gain(uint32_t cell_id, float gain) = 0;
+
+  virtual void toggle_padding() = 0;
 };
 } // namespace srsenb
 
