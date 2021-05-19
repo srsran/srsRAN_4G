@@ -420,11 +420,7 @@ bool s1ap::user_release(uint16_t rnti, asn1::s1ap::cause_radio_network_e cause_r
   cause_c cause;
   cause.set_radio_network().value = cause_radio.value;
 
-  if (not u->send_uectxtreleaserequest(cause)) {
-    users.erase(u);
-    return false;
-  }
-  return true;
+  return u->send_uectxtreleaserequest(cause);
 }
 
 bool s1ap::user_exists(uint16_t rnti)
@@ -1400,14 +1396,21 @@ bool s1ap::ue::send_uectxtreleaserequest(const cause_c& cause)
 {
   if (was_uectxtrelease_requested()) {
     logger.warning("UE context for RNTI:0x%x is in zombie state. Releasing...", ctxt.rnti);
+    s1ap_ptr->users.erase(this);
     return false;
   }
   if (not ctxt.mme_ue_s1ap_id.has_value()) {
     logger.error("Cannot send UE context release request without a MME-UE-S1AP-Id allocated.");
+    s1ap_ptr->users.erase(this);
     return false;
   }
 
-  release_requested = true;
+  if (ts1_reloc_overall.is_running()) {
+    logger.info("Not sending UEContextReleaseRequest for UE rnti=0x%x performing S1 Handover.", ctxt.rnti);
+    s1ap_ptr->users.erase(this);
+    return false;
+  }
+
   s1ap_pdu_c tx_pdu;
   tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_UE_CONTEXT_RELEASE_REQUEST);
   ue_context_release_request_ies_container& container =
@@ -1418,7 +1421,11 @@ bool s1ap::ue::send_uectxtreleaserequest(const cause_c& cause)
   // Cause
   container.cause.value = cause;
 
-  return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "UEContextReleaseRequest");
+  release_requested = s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "UEContextReleaseRequest");
+  if (not release_requested) {
+    s1ap_ptr->users.erase(this);
+  }
+  return release_requested;
 }
 
 bool s1ap::ue::send_uectxtreleasecomplete()

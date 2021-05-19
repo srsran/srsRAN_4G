@@ -206,29 +206,25 @@ void rrc::ue::rlf_timer_expired(uint32_t timeout_id)
     parent->logger.info("RLC RLF timer for rnti=0x%x expired after %d ms", rnti, rlc_rlf_timer.time_elapsed());
   }
 
+  phy_ul_rlf_timer.stop();
+  phy_dl_rlf_timer.stop();
+  rlc_rlf_timer.stop();
+  state = RRC_STATE_RELEASE_REQUEST;
+
   if (parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::radio_conn_with_ue_lost)) {
     con_release_result = procedure_result_code::radio_conn_with_ue_lost;
-    phy_ul_rlf_timer.stop();
-    phy_dl_rlf_timer.stop();
-    rlc_rlf_timer.stop();
-  } else {
-    if (rnti != SRSRAN_MRNTI) {
-      parent->rem_user(rnti);
-    }
+  } else if (rnti != SRSRAN_MRNTI) {
+    parent->rem_user(rnti);
   }
-
-  state = RRC_STATE_RELEASE_REQUEST;
 }
 
 void rrc::ue::max_rlc_retx_reached()
 {
-  if (parent) {
-    parent->logger.info("Max RLC retx reached for rnti=0x%x", rnti);
+  parent->logger.info("Max RLC retx reached for rnti=0x%x", rnti);
 
-    // Turn off DRB scheduling but give UE chance to start re-establishment
-    rlc_rlf_timer.run();
-    mac_ctrl.handle_max_retx();
-  }
+  // Turn off DRB scheduling but give UE chance to start re-establishment
+  rlc_rlf_timer.run();
+  mac_ctrl.handle_max_retx();
 }
 
 void rrc::ue::set_activity_timeout(const activity_timeout_type_t type)
