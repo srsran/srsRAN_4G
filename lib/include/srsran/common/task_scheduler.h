@@ -26,7 +26,7 @@ public:
   explicit task_scheduler(uint32_t default_extern_tasks_size = 512, uint32_t nof_timers_prealloc = 100) :
     external_tasks{default_extern_tasks_size}, timers{nof_timers_prealloc}
   {
-    background_queue = external_tasks.add_queue(false);
+    background_queue = external_tasks.add_queue();
   }
   task_scheduler(const task_scheduler&) = delete;
   task_scheduler(task_scheduler&&)      = delete;
@@ -38,11 +38,8 @@ public:
   srsran::unique_timer get_unique_timer() { return timers.get_unique_timer(); }
 
   //! Creates new queue for tasks coming from external thread
-  srsran::task_queue_handle make_task_queue(bool notify_mode) { return external_tasks.add_queue(notify_mode); }
-  srsran::task_queue_handle make_task_queue(uint32_t qsize, bool notify_mode)
-  {
-    return external_tasks.add_queue(qsize, notify_mode);
-  }
+  srsran::task_queue_handle make_task_queue() { return external_tasks.add_queue(); }
+  srsran::task_queue_handle make_task_queue(uint32_t qsize) { return external_tasks.add_queue(qsize); }
 
   //! Delays a task processing by duration_ms
   template <typename F>
@@ -127,7 +124,7 @@ public:
     sched->defer_callback(duration_ms, std::forward<F>(func));
   }
   void                      defer_task(srsran::move_task_t func) { sched->defer_task(std::move(func)); }
-  srsran::task_queue_handle make_task_queue() { return sched->make_task_queue(false); }
+  srsran::task_queue_handle make_task_queue() { return sched->make_task_queue(); }
 
 private:
   task_scheduler* sched;
@@ -144,7 +141,7 @@ public:
   {
     sched->notify_background_task_result(std::move(task));
   }
-  srsran::task_queue_handle make_task_queue() { return sched->make_task_queue(false); }
+  srsran::task_queue_handle make_task_queue() { return sched->make_task_queue(); }
   template <typename F>
   void defer_callback(uint32_t duration_ms, F&& func)
   {

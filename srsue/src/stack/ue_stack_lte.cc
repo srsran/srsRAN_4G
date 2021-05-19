@@ -52,9 +52,9 @@ ue_stack_lte::ue_stack_lte() :
   tti_tprof("tti_tprof", "STCK", TTI_STAT_PERIOD)
 {
   get_background_workers().set_nof_workers(2);
-  ue_task_queue  = task_sched.make_task_queue(true);
-  gw_queue_id    = task_sched.make_task_queue(false);
-  cfg_task_queue = task_sched.make_task_queue(false);
+  ue_task_queue  = task_sched.make_task_queue();
+  gw_queue_id    = task_sched.make_task_queue();
+  cfg_task_queue = task_sched.make_task_queue();
   // sync_queue is added in init()
 }
 
@@ -198,7 +198,7 @@ int ue_stack_lte::init(const stack_args_t& args_)
   }
 
   // add sync queue
-  sync_task_queue = task_sched.make_task_queue(args.sync_queue_size, true);
+  sync_task_queue = task_sched.make_task_queue(args.sync_queue_size);
 
   mac.init(phy, &rlc, &rrc);
   rlc.init(&pdcp, &rrc, &rrc_nr, task_sched.get_timer_handler(), 0 /* RB_ID_SRB0 */);

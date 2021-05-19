@@ -26,10 +26,10 @@ gnb_stack_nr::gnb_stack_nr() : task_sched{512, 128}, thread("gNB"), rlc_logger(s
   m_gw.reset(new srsue::gw());
   //  m_gtpu.reset(new srsenb::gtpu());
 
-  ue_task_queue   = task_sched.make_task_queue(true);
-  sync_task_queue = task_sched.make_task_queue(true);
-  gw_task_queue   = task_sched.make_task_queue(false);
-  mac_task_queue  = task_sched.make_task_queue(false);
+  ue_task_queue   = task_sched.make_task_queue();
+  sync_task_queue = task_sched.make_task_queue();
+  gw_task_queue   = task_sched.make_task_queue();
+  mac_task_queue  = task_sched.make_task_queue();
 }
 
 gnb_stack_nr::~gnb_stack_nr()

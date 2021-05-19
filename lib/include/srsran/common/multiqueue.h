@@ -47,9 +47,7 @@ class multiqueue_handler
   class input_port_impl
   {
   public:
-    input_port_impl(uint32_t cap, bool notify_flag_, multiqueue_handler<myobj>* parent_) :
-      buffer(cap), notify_flag(notify_flag_), consumer_notify_needed(notify_flag_), parent(parent_)
-    {}
+    input_port_impl(uint32_t cap, multiqueue_handler<myobj>* parent_) : buffer(cap), parent(parent_) {}
     input_port_impl(const input_port_impl&) = delete;
     input_port_impl(input_port_impl&&)      = delete;
     input_port_impl& operator=(const input_port_impl&) = delete;
@@ -57,7 +55,6 @@ class multiqueue_handler
     ~input_port_impl() { deactivate_blocking(); }
 
     size_t capacity() const { return buffer.max_size(); }
-    bool   get_notify_mode() const { return notify_flag; }
     size_t size() const
     {
       std::lock_guard<std::mutex> lock(q_mutex);
@@ -75,8 +72,7 @@ class multiqueue_handler
         // no-op
         return;
       }
-      active_                = val;
-      consumer_notify_needed = notify_flag;
+      active_ = val;
 
       if (not active_) {
         buffer.clear();
@@ -150,26 +146,16 @@ class multiqueue_handler
         }
       }
       buffer.push(std::forward<T>(*o));
-      if (consumer_notify_needed) {
-        // Note: The consumer thread only needs to be notified and awaken when queues transition from empty to non-empty
-        //       To ensure that the consumer noticed that the queue was empty before a push, we store the last
-        //       try_pop() return in a member variable.
-        //       Doing this reduces the contention of multiple producers for the same condition variable
-        lock.unlock();
-        parent->signal_pushed_data();
-      }
       return true;
     }
 
     bool pop_(std::unique_lock<std::mutex>& lock, myobj& obj)
     {
       if (buffer.empty()) {
-        consumer_notify_needed = notify_flag;
         return false;
       }
       obj = std::move(buffer.top());
       buffer.pop();
-      consumer_notify_needed = false;
       if (nof_waiting > 0) {
         lock.unlock();
         cv_full.notify_one();
@@ -182,10 +168,8 @@ class multiqueue_handler
     mutable std::mutex                 q_mutex;
     srsran::dyn_circular_buffer<myobj> buffer;
     std::condition_variable            cv_full, cv_exit;
-    bool                               active_                = true;
-    bool                               consumer_notify_needed = false;
-    bool                               notify_flag            = false;
-    int                                nof_waiting            = 0;
+    bool                               active_     = true;
+    int                                nof_waiting = 0;
   };
 
 public:
@@ -242,7 +226,6 @@ public:
       q.set_active(false);
     }
     while (consumer_state) {
-      cv_empty.notify_one();
       cv_exit.wait(lock);
     }
     for (auto& q : queues) {
@@ -256,22 +239,21 @@ public:
    * @param capacity_ The capacity of the queue.
    * @return The index of the newly created (or reused) queue within the vector of queues.
    */
-  queue_handle add_queue(uint32_t capacity_, bool notify_flag = false)
+  queue_handle add_queue(uint32_t capacity_)
   {
     uint32_t                    qidx = 0;
     std::lock_guard<std::mutex> lock(mutex);
     if (not running) {
       return queue_handle();
     }
-    while (qidx < queues.size() and (queues[qidx].active() or (queues[qidx].capacity() != capacity_) or
-                                     (queues[qidx].get_notify_mode() == notify_flag))) {
+    while (qidx < queues.size() and (queues[qidx].active() or (queues[qidx].capacity() != capacity_))) {
       ++qidx;
     }
 
     // check if there is a free queue of the required size
     if (qidx == queues.size()) {
       // create new queue
-      queues.emplace_back(capacity_, notify_flag, this);
+      queues.emplace_back(capacity_, this);
       qidx = queues.size() - 1; // update qidx to the last element
     } else {
       queues[qidx].set_active(true);
@@ -283,7 +265,7 @@ public:
    * Add queue using the default capacity of the underlying multiqueue
    * @return The queue index
    */
-  queue_handle add_queue(bool notify_flag) { return add_queue(default_capacity, notify_flag); }
+  queue_handle add_queue() { return add_queue(default_capacity); }
 
   uint32_t nof_queues() const
   {
@@ -304,7 +286,9 @@ public:
         consumer_state = false;
         return true;
       }
-      cv_empty.wait_for(lock, std::chrono::microseconds(100));
+      lock.unlock();
+      std::this_thread::sleep_for(std::chrono::microseconds(100));
+      lock.lock();
     }
     consumer_state = false;
     lock.unlock();
@@ -340,11 +324,9 @@ private:
     }
     return false;
   }
-  /// Called by the producer threads to signal the consumer to unlock in wait_pop
-  void signal_pushed_data() { cv_empty.notify_one(); }
 
   mutable std::mutex          mutex;
-  std::condition_variable     cv_empty, cv_exit;
+  std::condition_variable     cv_exit;
   uint32_t                    spin_idx = 0;
   bool                        running = true, consumer_state = false;
   std::deque<input_port_impl> queues;

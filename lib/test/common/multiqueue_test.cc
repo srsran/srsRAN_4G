@@ -32,7 +32,7 @@ int test_multiqueue()
   TESTASSERT(multiqueue.nof_queues() == 0);
 
   // test push/pop and size for one queue
-  queue_handle<int> qid1 = multiqueue.add_queue(true);
+  queue_handle<int> qid1 = multiqueue.add_queue();
   TESTASSERT(qid1.active());
   TESTASSERT(qid1.size() == 0 and qid1.empty());
   TESTASSERT(multiqueue.nof_queues() == 1);
@@ -45,7 +45,7 @@ int test_multiqueue()
   TESTASSERT(number == 2 and qid1.empty());
 
   // test push/pop and size for two queues
-  queue_handle<int> qid2 = multiqueue.add_queue(true);
+  queue_handle<int> qid2 = multiqueue.add_queue();
   TESTASSERT(qid2.active());
   TESTASSERT(multiqueue.nof_queues() == 2 and qid1.active());
   TESTASSERT(qid2.try_push(3).has_value());
@@ -55,7 +55,7 @@ int test_multiqueue()
   // check if erasing a queue breaks anything
   qid1.reset();
   TESTASSERT(multiqueue.nof_queues() == 1 and not qid1.active());
-  qid1 = multiqueue.add_queue(true);
+  qid1 = multiqueue.add_queue();
   TESTASSERT(qid1.empty() and qid1.active());
   TESTASSERT(qid2.size() == 1 and not qid2.empty());
   multiqueue.wait_pop(&number);
@@ -89,15 +89,15 @@ int test_multiqueue()
 
   // check that adding a queue of different capacity works
   {
-    qid1 = multiqueue.add_queue(true);
-    qid2 = multiqueue.add_queue(true);
+    qid1 = multiqueue.add_queue();
+    qid2 = multiqueue.add_queue();
 
     // remove first queue again
     qid1.reset();
     TESTASSERT(multiqueue.nof_queues() == 1);
 
     // add queue with non-default capacity
-    auto qid3 = multiqueue.add_queue(10, true);
+    auto qid3 = multiqueue.add_queue(10);
     TESTASSERT(qid3.capacity() == 10);
 
     // make sure neither a new queue index is returned
@@ -117,7 +117,7 @@ int test_multiqueue_threading()
 
   int                     capacity = 4, number = 0, start_number = 2, nof_pushes = capacity + 1;
   multiqueue_handler<int> multiqueue(capacity);
-  auto                    qid1 = multiqueue.add_queue(true);
+  auto                    qid1 = multiqueue.add_queue();
   auto push_blocking_func      = [](queue_handle<int>* qid, int start_value, int nof_pushes, bool* is_running) {
     for (int i = 0; i < nof_pushes; ++i) {
       qid->push(start_value + i);
@@ -165,7 +165,7 @@ int test_multiqueue_threading2()
 
   int                     capacity = 4, start_number = 2, nof_pushes = capacity + 1;
   multiqueue_handler<int> multiqueue(capacity);
-  auto                    qid1 = multiqueue.add_queue(true);
+  auto                    qid1 = multiqueue.add_queue();
   auto push_blocking_func      = [](queue_handle<int>* qid, int start_value, int nof_pushes, bool* is_running) {
     for (int i = 0; i < nof_pushes; ++i) {
       qid->push(start_value + i);
@@ -199,7 +199,7 @@ int test_multiqueue_threading3()
 
   int                     capacity = 4;
   multiqueue_handler<int> multiqueue(capacity);
-  auto                    qid1              = multiqueue.add_queue(true);
+  auto                    qid1              = multiqueue.add_queue();
   auto                    pop_blocking_func = [&multiqueue](bool* success) {
     int  number = 0;
     bool ret    = multiqueue.wait_pop(&number);
@@ -235,10 +235,10 @@ int test_multiqueue_threading4()
 
   int                     capacity = 4;
   multiqueue_handler<int> multiqueue(capacity);
-  auto                    qid1 = multiqueue.add_queue(true);
-  auto                    qid2 = multiqueue.add_queue(true);
-  auto                    qid3 = multiqueue.add_queue(true);
-  auto                    qid4 = multiqueue.add_queue(true);
+  auto                    qid1 = multiqueue.add_queue();
+  auto                    qid2 = multiqueue.add_queue();
+  auto                    qid3 = multiqueue.add_queue();
+  auto                    qid4 = multiqueue.add_queue();
   std::mutex              mutex;
   int                     last_number       = -1;
   auto                    pop_blocking_func = [&multiqueue, &last_number, &mutex](bool* success) {
@@ -348,9 +348,10 @@ int test_task_thread_pool2()
   // Description: push a very long task to all workers, and call thread_pool.stop() to check if it waits for the tasks
   //              to be completed, and does not get stuck.
 
-  uint32_t   nof_workers     = 4;
-  uint8_t    workers_started = 0, workers_finished = 0;
-  std::mutex mut;
+  uint32_t             nof_workers = 4;
+  std::atomic<uint8_t> workers_started{0};
+  uint8_t              workers_finished = 0;
+  std::mutex           mut;
 
   task_thread_pool thread_pool(nof_workers);
   thread_pool.start();
@@ -360,7 +361,7 @@ int test_task_thread_pool2()
       std::lock_guard<std::mutex> lock(mut);
       workers_started++;
     }
-    sleep(1);
+    std::this_thread::sleep_for(std::chrono::seconds{1});
     std::lock_guard<std::mutex> lock(mut);
     std::cout << "worker has finished\n";
     workers_finished++;
