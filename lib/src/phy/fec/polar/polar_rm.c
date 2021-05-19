@@ -380,7 +380,6 @@ int srsran_polar_rm_tx_init(srsran_polar_rm_t* p)
 
 int srsran_polar_rm_rx_init_f(srsran_polar_rm_t* p)
 {
-
   if (p == NULL) {
     return -1;
   }
@@ -405,7 +404,6 @@ int srsran_polar_rm_rx_init_f(srsran_polar_rm_t* p)
 
 int srsran_polar_rm_rx_init_s(srsran_polar_rm_t* p)
 {
-
   if (p == NULL) {
     return -1;
   }
@@ -430,7 +428,6 @@ int srsran_polar_rm_rx_init_s(srsran_polar_rm_t* p)
 
 int srsran_polar_rm_rx_init_c(srsran_polar_rm_t* p)
 {
-
   if (p == NULL) {
     return -1;
   }
@@ -455,41 +452,74 @@ int srsran_polar_rm_rx_init_c(srsran_polar_rm_t* p)
 
 void srsran_polar_rm_tx_free(srsran_polar_rm_t* q)
 {
-  if (q != NULL) {
-    struct pRM_tx* qq = q->ptr;
-    free(qq->y_e);
-    free(qq);
+  if (q == NULL) {
+    return;
   }
+
+  struct pRM_tx* qq = q->ptr;
+  if (qq == NULL) {
+    return;
+  }
+
+  if (qq->y_e) {
+    free(qq->y_e);
+  }
+
+  free(qq);
 }
 
 void srsran_polar_rm_rx_free_f(srsran_polar_rm_t* q)
 {
-  if (q != NULL) {
-    struct pRM_rx_f* qq = q->ptr;
-    free(qq->y_e);
-    // free(qq->indices);
-    free(qq);
+  if (q == NULL) {
+    return;
   }
+
+  struct pRM_rx_f* qq = q->ptr;
+  if (qq == NULL) {
+    return;
+  }
+
+  if (qq->y_e) {
+    free(qq->y_e);
+  }
+
+  free(qq);
 }
 
 void srsran_polar_rm_rx_free_s(srsran_polar_rm_t* q)
 {
-  if (q != NULL) {
-    struct pRM_rx_s* qq = q->ptr;
-    free(qq->y_e);
-    // free(qq->indices);
-    free(qq);
+  if (q == NULL) {
+    return;
   }
+
+  struct pRM_rx_s* qq = q->ptr;
+  if (qq == NULL) {
+    return;
+  }
+
+  if (qq->y_e) {
+    free(qq->y_e);
+  }
+
+  free(qq);
 }
 
 void srsran_polar_rm_rx_free_c(srsran_polar_rm_t* q)
 {
-  if (q != NULL) {
-    struct pRM_rx_c* qq = q->ptr;
-    free(qq->y_e);
-    // free(qq->indices);
-    free(qq);
+  if (q == NULL) {
+    return;
   }
+
+  struct pRM_rx_c* qq = q->ptr;
+  if (qq == NULL) {
+    return;
+  }
+
+  if (qq->y_e) {
+    free(qq->y_e);
+  }
+
+  free(qq);
 }
 
 int srsran_polar_rm_tx(srsran_polar_rm_t* q,
@@ -529,7 +559,6 @@ int srsran_polar_rm_rx_f(srsran_polar_rm_t* q,
                          const uint32_t     K,
                          const uint8_t      ibil)
 {
-
   struct pRM_rx_f* pp = q->ptr;
   float*           y  = NULL;
   float*           e  = pp->e; // length E
@@ -557,7 +586,6 @@ int srsran_polar_rm_rx_s(srsran_polar_rm_t* q,
                          const uint32_t     K,
                          const uint8_t      ibil)
 {
-
   struct pRM_rx_s* pp = q->ptr;
   int16_t*         y  = NULL;
   int16_t*         e  = pp->e;
@@ -585,7 +613,6 @@ int srsran_polar_rm_rx_c(srsran_polar_rm_t* q,
                          const uint32_t     K,
                          const uint8_t      ibil)
 {
-
   struct pRM_rx_c* pp = q->ptr;
   int8_t*          y  = NULL;
   int8_t*          e  = pp->e;

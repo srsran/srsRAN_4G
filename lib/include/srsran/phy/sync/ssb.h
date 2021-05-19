@@ -43,12 +43,13 @@
  * @brief Describes SSB object initialization arguments
  */
 typedef struct SRSRAN_API {
-  double                      max_srate_hz;   ///< Maximum sampling rate in Hz, set to zero to use default
-  srsran_subcarrier_spacing_t min_scs;        ///< Minimum subcarrier spacing
-  bool                        enable_search;  ///< Enables PSS/SSS blind search
-  bool                        enable_measure; ///< Enables PSS/SSS CSI measurements and frequency domain search
-  bool                        enable_encode;  ///< Enables PBCH Encoder
-  bool                        enable_decode;  ///< Enables PBCH Decoder
+  double                      max_srate_hz;       ///< Maximum sampling rate in Hz, set to zero to use default
+  srsran_subcarrier_spacing_t min_scs;            ///< Minimum subcarrier spacing
+  bool                        enable_search;      ///< Enables PSS/SSS blind search
+  bool                        enable_measure;     ///< Enables PSS/SSS CSI measurements and frequency domain search
+  bool                        enable_encode;      ///< Enables PBCH Encoder
+  bool                        enable_decode;      ///< Enables PBCH Decoder
+  bool                        disable_polar_simd; ///< Disables polar encoder/decoder SIMD acceleration
 } srsran_ssb_args_t;
 
 /**
@@ -87,11 +88,15 @@ typedef struct SRSRAN_API {
   uint32_t t_offset;                         ///< Current SSB integer time offset (number of samples)
   uint32_t cp_sz[SRSRAN_SSB_DURATION_NSYMB]; ///< CP length for each SSB symbol
 
+  /// Other parameters
+  uint32_t Lmax; ///< Number of SSB candidates
+
   /// Internal Objects
   srsran_dft_plan_t ifft;      ///< IFFT object for modulating the SSB
   srsran_dft_plan_t fft;       ///< FFT object for demodulate the SSB.
   srsran_dft_plan_t fft_corr;  ///< FFT for correlation
   srsran_dft_plan_t ifft_corr; ///< IFFT for correlation
+  srsran_pbch_nr_t  pbch;      ///< PBCH encoder and decoder
 
   /// Frequency/Time domain temporal data
   cf_t* tmp_freq;                     ///< Temporal frequency domain buffer

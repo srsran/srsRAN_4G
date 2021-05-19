@@ -53,6 +53,25 @@ static int ssb_init_corr(srsran_ssb_t* q)
   return SRSRAN_SUCCESS;
 }
 
+static int ssb_init_pbch(srsran_ssb_t* q)
+{
+  srsran_pbch_nr_args_t args = {};
+  args.enable_encode         = q->args.enable_encode;
+  args.enable_decode         = q->args.enable_decode;
+  args.disable_simd          = q->args.disable_polar_simd;
+
+  if (!args.enable_encode && !args.enable_decode) {
+    return SRSRAN_SUCCESS;
+  }
+
+  if (srsran_pbch_nr_init(&q->pbch, &args) < SRSRAN_SUCCESS) {
+    ERROR("Error init NR PBCH");
+    return SRSRAN_SUCCESS;
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
 int srsran_ssb_init(srsran_ssb_t* q, const srsran_ssb_args_t* args)
 {
   // Verify input parameters
@@ -83,6 +102,11 @@ int srsran_ssb_init(srsran_ssb_t* q, const srsran_ssb_args_t* args)
 
   // Allocate correlation buffers
   if (ssb_init_corr(q) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
+  }
+
+  // PBCH
+  if (ssb_init_pbch(q) < SRSRAN_SUCCESS) {
     return SRSRAN_ERROR;
   }
 
@@ -118,6 +142,7 @@ void srsran_ssb_free(srsran_ssb_t* q)
   srsran_dft_plan_free(&q->fft);
   srsran_dft_plan_free(&q->fft_corr);
   srsran_dft_plan_free(&q->ifft_corr);
+  srsran_pbch_nr_free(&q->pbch);
 
   SRSRAN_MEM_ZERO(q, srsran_ssb_t, 1);
 }
@@ -228,9 +253,8 @@ static uint32_t ssb_first_symbol_caseE(const srsran_ssb_cfg_t* cfg, uint32_t ind
   return count;
 }
 
-static int ssb_first_symbol(const srsran_ssb_cfg_t* cfg, uint32_t ssb_i)
+static uint32_t ssb_candidates(const srsran_ssb_cfg_t* cfg, uint32_t indexes[SRSRAN_SSB_NOF_POSITION])
 {
-  uint32_t indexes[SRSRAN_SSB_NOF_POSITION];
   uint32_t Lmax = 0;
 
   switch (cfg->pattern) {
@@ -251,12 +275,17 @@ static int ssb_first_symbol(const srsran_ssb_cfg_t* cfg, uint32_t ssb_i)
       break;
     case SRSRAN_SSB_PATTERN_INVALID:
       ERROR("Invalid case");
-      return SRSRAN_ERROR;
   }
+  return Lmax;
+}
+
+static int ssb_first_symbol(const srsran_ssb_cfg_t* cfg, uint32_t ssb_i, uint32_t* Lmax)
+{
+  uint32_t indexes[SRSRAN_SSB_NOF_POSITION];
+  *Lmax = ssb_candidates(cfg, indexes);
 
   uint32_t ssb_count = 0;
-
-  for (uint32_t i = 0; i < Lmax; i++) {
+  for (uint32_t i = 0; i < *Lmax; i++) {
     // There is a SSB transmission opportunity
     if (cfg->position[i]) {
       // Return the SSB transmission in burst
@@ -380,7 +409,7 @@ int srsran_ssb_set_cfg(srsran_ssb_t* q, const srsran_ssb_cfg_t* cfg)
   q->scs_hz = (float)SRSRAN_SUBC_SPACING_NR(cfg->scs);
 
   // Get first symbol
-  int l_begin = ssb_first_symbol(cfg, 0);
+  int l_begin = ssb_first_symbol(cfg, 0, &q->Lmax);
   if (l_begin < SRSRAN_SUCCESS) {
     // set it to 2 in case it is not selected
     l_begin = 2;
@@ -531,7 +560,14 @@ int srsran_ssb_add(srsran_ssb_t* q, uint32_t N_id, const srsran_pbch_msg_nr_t* m
   // ...
 
   // Put PBCH payload
-  // ...
+  srsran_pbch_nr_cfg_t pbch_cfg = {};
+  pbch_cfg.N_id                 = N_id;
+  pbch_cfg.ssb_scs              = q->cfg.scs;
+  pbch_cfg.Lmax                 = q->Lmax;
+  if (srsran_pbch_nr_encode(&q->pbch, &pbch_cfg, msg, ssb_grid) < SRSRAN_SUCCESS) {
+    ERROR("Error encoding PBCH");
+    return SRSRAN_ERROR;
+  }
 
   // Select input/ouput pointers considering the time offset in the slot
   const cf_t* in_ptr  = &in[q->t_offset];

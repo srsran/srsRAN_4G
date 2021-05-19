@@ -86,6 +86,7 @@ extern "C" {
 #include "srsran/phy/phch/dci.h"
 #include "srsran/phy/phch/dci_nr.h"
 #include "srsran/phy/phch/pbch.h"
+#include "srsran/phy/phch/pbch_nr.h"
 #include "srsran/phy/phch/pcfich.h"
 #include "srsran/phy/phch/pdcch.h"
 #include "srsran/phy/phch/pdcch_nr.h"
