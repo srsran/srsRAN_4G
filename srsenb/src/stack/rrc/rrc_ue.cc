@@ -62,12 +62,20 @@ int rrc::ue::init()
   set_activity_timeout(MSG3_RX_TIMEOUT); // next UE response is Msg3
 
   // Set timeout to release UE context after RLF detection
-  uint32_t deadline_ms       = parent->cfg.rlf_release_timer_ms;
-  auto     timer_expire_func = [this](uint32_t tid) { rlf_timer_expired(tid); };
-  phy_dl_rlf_timer.set(deadline_ms, timer_expire_func);
-  phy_ul_rlf_timer.set(deadline_ms, timer_expire_func);
-  rlc_rlf_timer.set(deadline_ms, timer_expire_func);
-  parent->logger.info("Setting RLF timer for rnti=0x%x to %dms", rnti, deadline_ms);
+  uint32_t deadline_ms = parent->cfg.rlf_release_timer_ms;
+  if (rnti != SRSRAN_MRNTI) {
+    auto timer_expire_func = [this](uint32_t tid) { rlf_timer_expired(tid); };
+    phy_dl_rlf_timer.set(deadline_ms, timer_expire_func);
+    phy_ul_rlf_timer.set(deadline_ms, timer_expire_func);
+    rlc_rlf_timer.set(deadline_ms, timer_expire_func);
+    parent->logger.info("Setting RLF timer for rnti=0x%x to %dms", rnti, deadline_ms);
+  } else {
+    // in case of M-RNTI do not handle rlf timer expiration
+    auto timer_expire_func = [](uint32_t tid) {};
+    phy_dl_rlf_timer.set(deadline_ms, timer_expire_func);
+    phy_ul_rlf_timer.set(deadline_ms, timer_expire_func);
+    rlc_rlf_timer.set(deadline_ms, timer_expire_func);
+  }
 
   mobility_handler = make_rnti_obj<rrc_mobility>(rnti, this);
   return SRSRAN_SUCCESS;
@@ -94,11 +102,12 @@ void rrc::ue::get_metrics(rrc_ue_metrics_t& ue_metrics) const
 
 void rrc::ue::set_activity()
 {
+  if (rnti == SRSRAN_MRNTI) {
+    return;
+  }
   // re-start activity timer with current timeout value
   activity_timer.run();
-  if (parent) {
-    parent->logger.debug("Activity registered for rnti=0x%x (timeout_value=%dms)", rnti, activity_timer.duration());
-  }
+  parent->logger.debug("Activity registered for rnti=0x%x (timeout_value=%dms)", rnti, activity_timer.duration());
 }
 
 void rrc::ue::set_radiolink_dl_state(bool crc_res)
@@ -165,31 +174,25 @@ void rrc::ue::set_radiolink_ul_state(bool crc_res)
 
 void rrc::ue::activity_timer_expired(const activity_timeout_type_t type)
 {
-  if (parent) {
-    parent->logger.info("Activity timer for rnti=0x%x expired after %d ms", rnti, activity_timer.time_elapsed());
+  parent->logger.info("Activity timer for rnti=0x%x expired after %d ms", rnti, activity_timer.time_elapsed());
 
-    if (parent->s1ap->user_exists(rnti)) {
-      if (type == UE_INACTIVITY_TIMEOUT) {
-        if (not parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::user_inactivity)) {
-          parent->rem_user_thread(rnti);
-        }
-        con_release_result = procedure_result_code::activity_timeout;
-      } else if (type == MSG3_RX_TIMEOUT) {
-        // MSG3 timeout, no need to notify S1AP, just remove UE
-        parent->rem_user_thread(rnti);
-        con_release_result = procedure_result_code::msg3_timeout;
-      } else {
-        // Unhandled activity timeout, just remove UE and log an error
-        parent->rem_user_thread(rnti);
-        con_release_result = procedure_result_code::activity_timeout;
-        parent->logger.error(
-            "Unhandled reason for activity timer expiration. rnti=0x%x, cause %d", rnti, static_cast<unsigned>(type));
-      }
+  if (parent->s1ap->user_exists(rnti)) {
+    if (type == UE_INACTIVITY_TIMEOUT) {
+      parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::user_inactivity);
+      con_release_result = procedure_result_code::activity_timeout;
+    } else if (type == MSG3_RX_TIMEOUT) {
+      // MSG3 timeout, no need to notify S1AP, just remove UE
+      parent->rem_user_thread(rnti);
+      con_release_result = procedure_result_code::msg3_timeout;
     } else {
-      if (rnti != SRSRAN_MRNTI) {
-        parent->rem_user_thread(rnti);
-      }
+      // Unhandled activity timeout, just remove UE and log an error
+      parent->rem_user_thread(rnti);
+      con_release_result = procedure_result_code::activity_timeout;
+      parent->logger.error(
+          "Unhandled reason for activity timer expiration. rnti=0x%x, cause %d", rnti, static_cast<unsigned>(type));
     }
+  } else {
+    parent->rem_user_thread(rnti);
   }
 
   state = RRC_STATE_RELEASE_REQUEST;
@@ -211,11 +214,8 @@ void rrc::ue::rlf_timer_expired(uint32_t timeout_id)
   rlc_rlf_timer.stop();
   state = RRC_STATE_RELEASE_REQUEST;
 
-  if (parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::radio_conn_with_ue_lost)) {
-    con_release_result = procedure_result_code::radio_conn_with_ue_lost;
-  } else if (rnti != SRSRAN_MRNTI) {
-    parent->rem_user(rnti);
-  }
+  parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::radio_conn_with_ue_lost);
+  con_release_result = procedure_result_code::radio_conn_with_ue_lost;
 }
 
 void rrc::ue::max_rlc_retx_reached()
@@ -390,9 +390,7 @@ void rrc::ue::handle_rrc_con_req(rrc_conn_request_s* msg)
       if (user.first != rnti && user.second->has_tmsi && user.second->mmec == mmec && user.second->m_tmsi == m_tmsi) {
         parent->logger.info("RRC connection request: UE context already exists. M-TMSI=%d", m_tmsi);
         user.second->state = RRC_STATE_IDLE; // Set old rnti to IDLE so that enb doesn't send RRC Connection Release
-        if (not parent->s1ap->user_release(user.first, asn1::s1ap::cause_radio_network_opts::radio_conn_with_ue_lost)) {
-          parent->rem_user_thread(user.first);
-        }
+        parent->s1ap->user_release(user.first, asn1::s1ap::cause_radio_network_opts::radio_conn_with_ue_lost);
         break;
       }
     }
