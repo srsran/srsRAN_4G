@@ -43,6 +43,9 @@ struct sched_ue_cell {
   const sched_interface::ue_cfg_t* get_ue_cfg() const { return configured() ? ue_cfg : nullptr; }
   cc_st                            cc_state() const { return cc_state_; }
 
+  int set_ul_crc(tti_point tti_rx, bool crc_res);
+  int set_ul_snr(tti_point tti_rx, float ul_snr, uint32_t ul_ch_code);
+
   const uint16_t rnti;
 
   /// Cell const configuration

@@ -55,6 +55,11 @@ public:
 
   void set_snr(float snr, uint32_t ul_ch_code)
   {
+    static const float MIN_UL_SNR = -4.0f;
+    if (snr < MIN_UL_SNR) {
+      // Assume signal was not sent
+      return;
+    }
     if (ul_ch_code < nof_ul_ch_code) {
       snr_estim_list[ul_ch_code].pending_snr = snr;
     }

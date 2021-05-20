@@ -245,14 +245,7 @@ int sched_ue::set_ack_info(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t tb_id
 
 void sched_ue::set_ul_crc(tti_point tti_rx, uint32_t enb_cc_idx, bool crc_res)
 {
-  if (cells[enb_cc_idx].cc_state() != cc_st::idle) {
-    int ret = cells[enb_cc_idx].harq_ent.set_ul_crc(tti_rx, 0, crc_res);
-    if (ret < 0) {
-      logger.warning("Received UL CRC for invalid tti_rx=%d", (int)tti_rx.to_uint());
-    }
-  } else {
-    logger.warning("Received UL CRC for invalid cell index %d", enb_cc_idx);
-  }
+  cells[enb_cc_idx].set_ul_crc(tti_rx, crc_res);
 }
 
 void sched_ue::set_dl_ri(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t ri)
@@ -286,15 +279,7 @@ void sched_ue::set_dl_cqi(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t cqi)
 
 void sched_ue::set_ul_snr(tti_point tti_rx, uint32_t enb_cc_idx, float snr, uint32_t ul_ch_code)
 {
-  if (cells[enb_cc_idx].cc_state() != cc_st::idle) {
-    cells[enb_cc_idx].tpc_fsm.set_snr(snr, ul_ch_code);
-    if (ul_ch_code == tpc::PUSCH_CODE) {
-      cells[enb_cc_idx].ul_cqi        = srsran_cqi_from_snr(snr);
-      cells[enb_cc_idx].ul_cqi_tti_rx = tti_rx;
-    }
-  } else {
-    logger.warning("Received SNR info for invalid cell index %d", enb_cc_idx);
-  }
+  cells[enb_cc_idx].set_ul_snr(tti_rx, snr, ul_ch_code);
 }
 
 /*******************************************************

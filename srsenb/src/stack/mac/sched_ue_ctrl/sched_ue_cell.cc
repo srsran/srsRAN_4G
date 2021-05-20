@@ -16,6 +16,14 @@
 #include "srsenb/hdr/stack/mac/schedulers/sched_base.h"
 #include <numeric>
 
+#define CHECK_INVALID_FEEDBACK(feedback_type)                                                                          \
+  do {                                                                                                                 \
+    if (cc_state() == cc_st::idle) {                                                                                   \
+      logger.warning("SCHED: rnti=0x%x received " feedback_type " for idle cc=%d", cell_cfg->enb_cc_idx);              \
+      return SRSRAN_ERROR;                                                                                             \
+    }                                                                                                                  \
+  } while (0)
+
 namespace srsenb {
 
 /*******************************************************
@@ -158,6 +166,29 @@ void sched_ue_cell::set_dl_wb_cqi(tti_point tti_rx, uint32_t dl_cqi_)
     cc_state_ = cc_st::active;
     logger.info("SCHED: SCell index=%d is now active", ue_cc_idx);
   }
+}
+
+int sched_ue_cell::set_ul_crc(tti_point tti_rx, bool crc_res)
+{
+  CHECK_INVALID_FEEDBACK("UL CRC");
+  // Update HARQ process
+  int pid = harq_ent.set_ul_crc(tti_rx, 0, crc_res);
+  if (pid < 0) {
+    logger.warning("SCHED: rnti=0x%x received UL CRC for invalid tti_rx=%d", (int)tti_rx.to_uint());
+    return SRSRAN_ERROR;
+  }
+  return pid;
+}
+
+int sched_ue_cell::set_ul_snr(tti_point tti_rx, float ul_snr, uint32_t ul_ch_code)
+{
+  CHECK_INVALID_FEEDBACK("UL SNR estimate");
+  tpc_fsm.set_snr(ul_snr, ul_ch_code);
+  if (ul_ch_code == tpc::PUSCH_CODE) {
+    ul_cqi        = srsran_cqi_from_snr(ul_snr);
+    ul_cqi_tti_rx = tti_rx;
+  }
+  return SRSRAN_SUCCESS;
 }
 
 /*************************************************************
