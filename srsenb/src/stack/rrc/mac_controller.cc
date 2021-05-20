@@ -297,10 +297,10 @@ void mac_controller::handle_ho_prep(const asn1::rrc::ho_prep_info_r8_ies_s& ho_p
   }
 }
 
-void mac_controller::handle_max_retx()
+void mac_controller::set_radio_bearer_state(sched_interface::ue_bearer_cfg_t::direction_t dir)
 {
   for (auto& ue_bearer : current_sched_ue_cfg.ue_bearers) {
-    ue_bearer.direction = sched_interface::ue_bearer_cfg_t::IDLE;
+    ue_bearer.direction = dir;
   }
   update_mac(config_tx);
 }

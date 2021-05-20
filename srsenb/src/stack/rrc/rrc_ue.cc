@@ -122,6 +122,7 @@ void rrc::ue::set_radiolink_dl_state(bool crc_res)
       parent->logger.info(
           "DL RLF timer stopped for rnti=0x%x (time elapsed=%dms)", rnti, phy_dl_rlf_timer.time_elapsed());
       phy_dl_rlf_timer.stop();
+      mac_ctrl.set_radio_bearer_state(sched_interface::ue_bearer_cfg_t::BOTH);
     }
     return;
   }
@@ -136,7 +137,7 @@ void rrc::ue::set_radiolink_dl_state(bool crc_res)
   consecutive_kos_dl++;
   if (consecutive_kos_dl > parent->cfg.max_mac_dl_kos) {
     parent->logger.info("Max KOs in DL reached, starting RLF timer rnti=0x%x", rnti);
-    mac_ctrl.handle_max_retx();
+    mac_ctrl.set_radio_bearer_state(sched_interface::ue_bearer_cfg_t::IDLE);
     phy_dl_rlf_timer.run();
   }
 }
@@ -153,6 +154,7 @@ void rrc::ue::set_radiolink_ul_state(bool crc_res)
       parent->logger.info(
           "UL RLF timer stopped for rnti=0x%x (time elapsed=%dms)", rnti, phy_ul_rlf_timer.time_elapsed());
       phy_ul_rlf_timer.stop();
+      mac_ctrl.set_radio_bearer_state(sched_interface::ue_bearer_cfg_t::BOTH);
     }
     return;
   }
@@ -167,7 +169,7 @@ void rrc::ue::set_radiolink_ul_state(bool crc_res)
   consecutive_kos_ul++;
   if (consecutive_kos_ul > parent->cfg.max_mac_ul_kos) {
     parent->logger.info("Max KOs in UL reached, starting RLF timer rnti=0x%x", rnti);
-    mac_ctrl.handle_max_retx();
+    mac_ctrl.set_radio_bearer_state(sched_interface::ue_bearer_cfg_t::IDLE);
     phy_ul_rlf_timer.run();
   }
 }
@@ -222,9 +224,9 @@ void rrc::ue::max_rlc_retx_reached()
 {
   parent->logger.info("Max RLC retx reached for rnti=0x%x", rnti);
 
-  // Turn off DRB scheduling but give UE chance to start re-establishment
+  // Turn off scheduling but give UE chance to start re-establishment
+  mac_ctrl.set_radio_bearer_state(sched_interface::ue_bearer_cfg_t::IDLE);
   rlc_rlf_timer.run();
-  mac_ctrl.handle_max_retx();
 }
 
 void rrc::ue::set_activity_timeout(const activity_timeout_type_t type)
