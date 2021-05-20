@@ -55,7 +55,7 @@ option(ENABLE_SRSENB         "Build srsENB application"                 ON)
 option(ENABLE_SRSEPC         "Build srsEPC application"                 ON)
 option(DISABLE_SIMD          "Disable SIMD instructions"                OFF)
 option(AUTO_DETECT_ISA       "Autodetect supported ISA extensions"      ON)
-                            
+
 option(ENABLE_GUI            "Enable GUI (using srsGUI)"                ON)
 option(ENABLE_UHD            "Enable UHD"                               ON)
 option(ENABLE_BLADERF        "Enable BladeRF"                           ON)

@@ -976,9 +976,12 @@ void mac::write_mcch(const srsran::sib2_mbms_t* sib2_,
   sib13 = *sib13_;
   memcpy(mcch_payload_buffer, mcch_payload, mcch_payload_length * sizeof(uint8_t));
   current_mcch_length = mcch_payload_length;
-  ue_db[SRSRAN_MRNTI] = std::unique_ptr<ue>{
-      new ue(SRSRAN_MRNTI, 0, &scheduler, rrc_h, rlc_h, phy_h, logger, cells.size(), softbuffer_pool.get())};
-
+  std::unique_ptr<ue> ptr = std::unique_ptr<ue>{
+      new ue(SRSRAN_MRNTI, args.nof_prb, &scheduler, rrc_h, rlc_h, phy_h, logger, cells.size(), softbuffer_pool.get())};
+  auto ret = ue_db.insert(SRSRAN_MRNTI, std::move(ptr));
+  if (!ret) {
+    logger.info("Failed to allocate rnti=0x%x.for eMBMS", SRSRAN_MRNTI);
+  }
   rrc_h->add_user(SRSRAN_MRNTI, {});
 }
 
