@@ -113,6 +113,13 @@ bool srsran_random_bool(srsran_random_t q, float prob_true)
   return srsran_random_uniform_real_dist(q, 0, 1) < prob_true;
 }
 
+void srsran_random_bit_vector(srsran_random_t q, uint8_t* c, uint32_t nsamples)
+{
+  for (uint32_t i = 0; i < nsamples; i++) {
+    c[i] = (uint8_t)srsran_random_uniform_int_dist(q, 0, 1);
+  }
+}
+
 void srsran_random_free(srsran_random_t q)
 {
   if (q) {
