@@ -93,14 +93,8 @@ void sched_ue::new_subframe(tti_point tti_rx, uint32_t enb_cc_idx)
     current_tti = tti_rx;
     lch_handler.new_tti();
     for (auto& cc : cells) {
-      if (cc.configured()) {
-        cc.harq_ent.new_tti(tti_rx);
-      }
+      cc.new_tti(tti_rx);
     }
-  }
-
-  if (cells[enb_cc_idx].configured()) {
-    cells[enb_cc_idx].tpc_fsm.new_tti();
   }
 }
 

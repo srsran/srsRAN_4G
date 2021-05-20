@@ -114,7 +114,13 @@ void sched_ue_cell::set_ue_cfg(const sched_interface::ue_cfg_t& ue_cfg_)
 
 void sched_ue_cell::new_tti(tti_point tti_rx)
 {
+  if (not configured()) {
+    return;
+  }
   current_tti = tti_rx;
+
+  harq_ent.new_tti(tti_rx);
+  tpc_fsm.new_tti();
 
   // Check if cell state needs to be updated
   if (ue_cc_idx > 0 and cc_state_ == cc_st::deactivating) {

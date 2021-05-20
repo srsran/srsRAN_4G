@@ -38,8 +38,10 @@ private:
 
 template <typename T>
 struct exp_average_fast_start {
-  exp_average_fast_start(T alpha_, uint32_t start_size = 100) : alpha(alpha_), start_count_size(start_size)
+  exp_average_fast_start(T alpha_val) : exp_average_fast_start(alpha_val, 1.0 / alpha_val) {}
+  exp_average_fast_start(T alpha_val, uint32_t start_size) : alpha_(alpha_val), start_count_size(start_size)
   {
+    assert(alpha_ < 1);
     assert(start_size > 0);
   }
   void push(T sample)
@@ -48,16 +50,18 @@ struct exp_average_fast_start {
       avg_ += (sample - avg_) / (count + 1);
       count++;
     } else {
-      avg_ = (1 - alpha) * avg_ + alpha * sample;
+      avg_ = (1 - alpha_) * avg_ + alpha_ * sample;
     }
   }
-  T value() const { return count == 0 ? 0 : avg_; }
+  T    value() const { return count == 0 ? 0 : avg_; }
+  T    alpha() const { return alpha_; }
+  bool is_exp_average_mode() const { return count >= start_count_size; }
 
 private:
   T        avg_  = 0;
   uint32_t count = 0;
   uint32_t start_count_size;
-  T        alpha;
+  T        alpha_;
 };
 
 namespace detail {
@@ -112,7 +116,6 @@ private:
 
 template <typename T>
 struct null_sliding_average {
-
   null_sliding_average(uint32_t N) : window(N, null_value()) {}
   void push(T sample) { window.push(sample); }
   void push_hole() { window.push(null_value()); }
