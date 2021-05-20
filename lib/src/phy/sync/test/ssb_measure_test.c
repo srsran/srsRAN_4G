@@ -102,7 +102,6 @@ static int test_case_1(srsran_ssb_t* ssb)
   ssb_cfg.ssb_freq_hz      = 3.5e9 - 960e3;
   ssb_cfg.scs              = ssb_scs;
   ssb_cfg.pattern          = SRSRAN_SSB_PATTERN_C;
-  ssb_cfg.position[0]      = true; // Rest to false
 
   TESTASSERT(srsran_ssb_set_cfg(ssb, &ssb_cfg) == SRSRAN_SUCCESS);
 
@@ -117,7 +116,7 @@ static int test_case_1(srsran_ssb_t* ssb)
 
     // Add the SSB base-band
     gettimeofday(&t[1], NULL);
-    TESTASSERT(srsran_ssb_add(ssb, pci, &pbch_msg, buffer, buffer) == SRSRAN_SUCCESS);
+    TESTASSERT(srsran_ssb_add(ssb, pci, 0, &pbch_msg, buffer, buffer) == SRSRAN_SUCCESS);
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
     t_add_usec += t[0].tv_usec + t[0].tv_sec * 1000000UL;
@@ -145,7 +144,7 @@ static int test_case_1(srsran_ssb_t* ssb)
     // Measure
     gettimeofday(&t[1], NULL);
     srsran_csi_trs_measurements_t meas = {};
-    TESTASSERT(srsran_ssb_csi_measure(ssb, pci, buffer, &meas) == SRSRAN_SUCCESS);
+    TESTASSERT(srsran_ssb_csi_measure(ssb, pci, 0, buffer, &meas) == SRSRAN_SUCCESS);
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
     t_meas_usec += t[0].tv_usec + t[0].tv_sec * 1000000UL;

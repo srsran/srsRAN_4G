@@ -1300,10 +1300,10 @@ bool make_phy_carrier_cfg(const freq_info_dl_s& asn1_freq_info_dl, srsran_carrie
 }
 
 template <class bitstring_t>
-static inline void make_ssb_positions_in_burst(const bitstring_t&                         ans1_position_in_burst,
-                                               std::array<bool, SRSRAN_SSB_NOF_POSITION>& position_in_burst)
+static inline void make_ssb_positions_in_burst(const bitstring_t&                           ans1_position_in_burst,
+                                               std::array<bool, SRSRAN_SSB_NOF_CANDIDATES>& position_in_burst)
 {
-  for (uint32_t i = 0; i < SRSRAN_SSB_NOF_POSITION; i++) {
+  for (uint32_t i = 0; i < SRSRAN_SSB_NOF_CANDIDATES; i++) {
     if (i < ans1_position_in_burst.length()) {
       position_in_burst[i] = ans1_position_in_burst.get(ans1_position_in_burst.length() - 1 - i);
     } else {

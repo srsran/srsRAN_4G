@@ -63,12 +63,12 @@ typedef struct SRSRAN_API {
  * @brief Describes the PBCH message
  */
 typedef struct SRSRAN_API {
-  uint8_t  payload[SRSRAN_PBCH_NR_PAYLOAD_SZ]; ///< Actual PBCH payload provided by higher layers
-  uint32_t sfn_4lsb;                           ///< SFN 4 LSB
-  uint32_t ssb_idx;                            ///< SS/PBCH blocks index described in TS 38.213 4.1
-  uint32_t k_ssb_msb;                          ///< Subcarrier offset MSB described in TS 38.211 7.4.3.1
-  uint32_t hrf;                                ///< Half Radio Frame bit
-  bool     crc;                                ///< Decoder only, it is true only if the received CRC matches
+  uint8_t payload[SRSRAN_PBCH_NR_PAYLOAD_SZ]; ///< Actual PBCH payload provided by higher layers
+  uint8_t sfn_4lsb;                           ///< SFN 4 LSB
+  uint8_t ssb_idx;                            ///< SS/PBCH blocks index described in TS 38.213 4.1
+  uint8_t k_ssb_msb;                          ///< Subcarrier offset MSB described in TS 38.211 7.4.3.1
+  bool    hrf;                                ///< Half Radio Frame bit
+  bool    crc;                                ///< Decoder only, it is true only if the received CRC matches
 } srsran_pbch_msg_nr_t;
 
 /**
@@ -102,13 +102,17 @@ SRSRAN_API int srsran_pbch_nr_encode(srsran_pbch_nr_t*           q,
  * @brief Decodes an NR PBCH message in the SSB resource grid
  * @param q NR PBCH object
  * @param cfg NR PBCH configuration
+ * @param ssb_idx SSB candidate index
  * @param[in] ssb_grid SSB resource grid
  * @param msg NR PBCH message received
  * @return SRSRAN_SUCCESS if decoding is successful, SRSLTE_ERROR code otherwise
  */
 SRSRAN_API int srsran_pbch_nr_decode(srsran_pbch_nr_t*           q,
                                      const srsran_pbch_nr_cfg_t* cfg,
+                                     uint32_t                    ssb_idx,
                                      const cf_t                  ssb_grid[SRSRAN_SSB_NOF_RE],
                                      srsran_pbch_msg_nr_t*       msg);
+
+SRSRAN_API uint32_t srsran_pbch_msg_info(const srsran_pbch_msg_nr_t* msg, char* str, uint32_t str_len);
 
 #endif // SRSRAN_PBCH_NR_H

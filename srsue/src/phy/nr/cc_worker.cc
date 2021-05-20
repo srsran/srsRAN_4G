@@ -97,7 +97,6 @@ bool cc_worker::update_cfg()
   ssb_cfg.ssb_freq_hz    = abs_freq_ssb_freq;
   ssb_cfg.scs            = phy->cfg.ssb.scs;
   ssb_cfg.pattern        = srsran::srsran_band_helper().get_ssb_pattern(band, phy->cfg.ssb.scs);
-  memcpy(ssb_cfg.position, phy->cfg.ssb.position_in_burst.data(), sizeof(bool) * SRSRAN_SSB_NOF_POSITION);
   ssb_cfg.duplex_mode    = srsran::srsran_band_helper().get_duplex_mode(band);
   ssb_cfg.periodicity_ms = phy->cfg.ssb.periodicity_ms;
 
@@ -334,31 +333,44 @@ bool cc_worker::measure_csi()
   if (srsran_ssb_send(&ssb, dl_slot_cfg.idx)) {
     srsran_csi_trs_measurements_t meas = {};
 
-    if (srsran_ssb_csi_measure(&ssb, phy->cfg.carrier.pci, rx_buffer[0], &meas) < SRSRAN_SUCCESS) {
-      logger.error("Error measuring SSB");
-      return false;
+    // Iterate all possible candidates
+    const std::array<bool, SRSRAN_SSB_NOF_CANDIDATES> position_in_burst = phy->cfg.ssb.position_in_burst;
+    for (uint32_t ssb_idx = 0; ssb_idx < SRSRAN_SSB_NOF_CANDIDATES; ssb_idx++) {
+      // Skip SSB candidate if not enabled
+      if (not position_in_burst[ssb_idx]) {
+        continue;
+      }
+
+      // Measure SSB candidate
+      if (srsran_ssb_csi_measure(&ssb, phy->cfg.carrier.pci, ssb_idx, rx_buffer[0], &meas) < SRSRAN_SUCCESS) {
+        logger.error("Error measuring SSB");
+        return false;
+      }
+
+      if (logger.debug.enabled()) {
+        std::array<char, 512> str = {};
+        srsran_csi_meas_info(&meas, str.data(), (uint32_t)str.size());
+        logger.debug("SSB-CSI: %s", str.data());
+      }
+
+      // Compute channel metrics and push it
+      ch_metrics_t ch_metrics = {};
+      ch_metrics.sinr         = meas.snr_dB;
+      ch_metrics.rsrp         = meas.rsrp_dB;
+      ch_metrics.rsrq         = 0.0f; // Not supported
+      ch_metrics.rssi         = 0.0f; // Not supported
+      ch_metrics.sync_err =
+          meas.delay_us / (float)(ue_dl.fft->fft_plan.size * SRSRAN_SUBC_SPACING_NR(phy->cfg.carrier.scs));
+      phy->set_channel_metrics(ch_metrics);
+
+      // Compute synch metrics and report it to the PHY state
+      sync_metrics_t sync_metrics = {};
+      sync_metrics.cfo            = meas.cfo_hz;
+      phy->set_sync_metrics(sync_metrics);
+
+      // Report SSB candidate channel measurement to the PHY state
+      // ...
     }
-
-    if (logger.debug.enabled()) {
-      std::array<char, 512> str = {};
-      srsran_csi_meas_info(&meas, str.data(), (uint32_t)str.size());
-      logger.debug("SSB-CSI: %s", str.data());
-    }
-
-    // Compute channel metrics and push it
-    ch_metrics_t ch_metrics = {};
-    ch_metrics.sinr         = meas.snr_dB;
-    ch_metrics.rsrp         = meas.rsrp_dB;
-    ch_metrics.rsrq         = 0.0f; // Not supported
-    ch_metrics.rssi         = 0.0f; // Not supported
-    ch_metrics.sync_err =
-        meas.delay_us / (float)(ue_dl.fft->fft_plan.size * SRSRAN_SUBC_SPACING_NR(phy->cfg.carrier.scs));
-    phy->set_channel_metrics(ch_metrics);
-
-    // Compute synch metrics and report it to the PHY state
-    sync_metrics_t sync_metrics = {};
-    sync_metrics.cfo            = meas.cfo_hz;
-    phy->set_sync_metrics(sync_metrics);
   }
 
   // Iterate all NZP-CSI-RS marked as TRS and perform channel measurements

@@ -147,7 +147,7 @@ void srsran_ssb_free(srsran_ssb_t* q)
   SRSRAN_MEM_ZERO(q, srsran_ssb_t, 1);
 }
 
-static uint32_t ssb_first_symbol_caseA(const srsran_ssb_cfg_t* cfg, uint32_t indexes[SRSRAN_SSB_NOF_POSITION])
+static uint32_t ssb_first_symbol_caseA(const srsran_ssb_cfg_t* cfg, uint32_t indexes[SRSRAN_SSB_NOF_CANDIDATES])
 {
   // Case A - 15 kHz SCS: the first symbols of the candidate SS/PBCH blocks have indexes of { 2 , 8 } + 14 ⋅ n . For
   // carrier frequencies smaller than or equal to 3 GHz, n = 0 , 1 . For carrier frequencies within FR1 larger than 3
@@ -169,7 +169,7 @@ static uint32_t ssb_first_symbol_caseA(const srsran_ssb_cfg_t* cfg, uint32_t ind
   return count;
 }
 
-static uint32_t ssb_first_symbol_caseB(const srsran_ssb_cfg_t* cfg, uint32_t indexes[SRSRAN_SSB_NOF_POSITION])
+static uint32_t ssb_first_symbol_caseB(const srsran_ssb_cfg_t* cfg, uint32_t indexes[SRSRAN_SSB_NOF_CANDIDATES])
 {
   // Case B - 30 kHz SCS: the first symbols of the candidate SS/PBCH blocks have indexes { 4 , 8 , 16 , 20 } + 28 ⋅ n .
   // For carrier frequencies smaller than or equal to 3 GHz, n = 0 . For carrier frequencies within FR1 larger than 3
@@ -191,7 +191,7 @@ static uint32_t ssb_first_symbol_caseB(const srsran_ssb_cfg_t* cfg, uint32_t ind
   return count;
 }
 
-static uint32_t ssb_first_symbol_caseC(const srsran_ssb_cfg_t* cfg, uint32_t indexes[SRSRAN_SSB_NOF_POSITION])
+static uint32_t ssb_first_symbol_caseC(const srsran_ssb_cfg_t* cfg, uint32_t indexes[SRSRAN_SSB_NOF_CANDIDATES])
 {
   // Case C - 30 kHz SCS: the first symbols of the candidate SS/PBCH blocks have indexes { 2 , 8 } +14 ⋅ n .
   // - For paired spectrum operation
@@ -218,7 +218,7 @@ static uint32_t ssb_first_symbol_caseC(const srsran_ssb_cfg_t* cfg, uint32_t ind
   return count;
 }
 
-static uint32_t ssb_first_symbol_caseD(const srsran_ssb_cfg_t* cfg, uint32_t indexes[SRSRAN_SSB_NOF_POSITION])
+static uint32_t ssb_first_symbol_caseD(const srsran_ssb_cfg_t* cfg, uint32_t indexes[SRSRAN_SSB_NOF_CANDIDATES])
 {
   // Case D - 120 kHz SCS: the first symbols of the candidate SS/PBCH blocks have indexes { 4 , 8 , 16 , 20 } + 28 ⋅ n .
   // For carrier frequencies within FR2, n = 0 , 1 , 2 , 3 , 5 , 6 , 7 , 8 , 10 , 11 , 12 , 13 , 15 , 16 , 17 , 18 .
@@ -235,7 +235,7 @@ static uint32_t ssb_first_symbol_caseD(const srsran_ssb_cfg_t* cfg, uint32_t ind
   return count;
 }
 
-static uint32_t ssb_first_symbol_caseE(const srsran_ssb_cfg_t* cfg, uint32_t indexes[SRSRAN_SSB_NOF_POSITION])
+static uint32_t ssb_first_symbol_caseE(const srsran_ssb_cfg_t* cfg, uint32_t indexes[SRSRAN_SSB_NOF_CANDIDATES])
 {
   // Case E - 240 kHz SCS: the first symbols of the candidate SS/PBCH blocks have indexes
   //{ 8 , 12 , 16 , 20 , 32 , 36 , 40 , 44 } + 56 ⋅ n . For carrier frequencies within FR2, n = 0 , 1 , 2 , 3 , 5 , 6 ,
@@ -253,7 +253,7 @@ static uint32_t ssb_first_symbol_caseE(const srsran_ssb_cfg_t* cfg, uint32_t ind
   return count;
 }
 
-static uint32_t ssb_candidates(const srsran_ssb_cfg_t* cfg, uint32_t indexes[SRSRAN_SSB_NOF_POSITION])
+static uint32_t ssb_first_symbol(const srsran_ssb_cfg_t* cfg, uint32_t indexes[SRSRAN_SSB_NOF_CANDIDATES])
 {
   uint32_t Lmax = 0;
 
@@ -277,27 +277,6 @@ static uint32_t ssb_candidates(const srsran_ssb_cfg_t* cfg, uint32_t indexes[SRS
       ERROR("Invalid case");
   }
   return Lmax;
-}
-
-static int ssb_first_symbol(const srsran_ssb_cfg_t* cfg, uint32_t ssb_i, uint32_t* Lmax)
-{
-  uint32_t indexes[SRSRAN_SSB_NOF_POSITION];
-  *Lmax = ssb_candidates(cfg, indexes);
-
-  uint32_t ssb_count = 0;
-  for (uint32_t i = 0; i < *Lmax; i++) {
-    // There is a SSB transmission opportunity
-    if (cfg->position[i]) {
-      // Return the SSB transmission in burst
-      if (ssb_i == ssb_count) {
-        return (int)indexes[i];
-      }
-
-      ssb_count++;
-    }
-  }
-
-  return SRSRAN_ERROR;
 }
 
 // Modulates a given symbol l and stores the time domain signal in q->tmp_time
@@ -398,6 +377,23 @@ static int ssb_setup_corr(srsran_ssb_t* q)
   return SRSRAN_SUCCESS;
 }
 
+static inline int ssb_get_t_offset(srsran_ssb_t* q, uint32_t ssb_idx)
+{
+  // Get baseband time offset from the begining of the half radio frame to the first symbol
+  if (ssb_idx >= SRSRAN_SSB_NOF_CANDIDATES) {
+    ERROR("Invalid SSB candidate index (%d)", ssb_idx);
+    return SRSRAN_ERROR;
+  }
+
+  float t_offset_s = srsran_symbol_offset_s(q->l_first[ssb_idx], q->cfg.scs);
+  if (isnan(t_offset_s) || isinf(t_offset_s) || t_offset_s < 0.0f) {
+    ERROR("Invalid first symbol (l_first=%d)", q->l_first[ssb_idx]);
+    return SRSRAN_ERROR;
+  }
+
+  return (int)round(t_offset_s * q->cfg.srate_hz);
+}
+
 int srsran_ssb_set_cfg(srsran_ssb_t* q, const srsran_ssb_cfg_t* cfg)
 {
   // Verify input parameters
@@ -409,34 +405,15 @@ int srsran_ssb_set_cfg(srsran_ssb_t* q, const srsran_ssb_cfg_t* cfg)
   q->scs_hz = (float)SRSRAN_SUBC_SPACING_NR(cfg->scs);
 
   // Get first symbol
-  int l_begin = ssb_first_symbol(cfg, 0, &q->Lmax);
-  if (l_begin < SRSRAN_SUCCESS) {
-    // set it to 2 in case it is not selected
-    l_begin = 2;
-  }
+  q->Lmax = ssb_first_symbol(cfg, q->l_first);
 
-  float t_offset_s = srsran_symbol_offset_s((uint32_t)l_begin, cfg->scs);
-  if (isnan(t_offset_s) || isinf(t_offset_s) || t_offset_s < 0.0f) {
-    ERROR("Invalid first symbol (l_first=%d)", l_begin);
-    return SRSRAN_ERROR;
-  }
-
-  // Calculate SSB symbol size and integer offset
+  // Calculate SSB symbol size and integer frequency offset
   double   freq_offset_hz = cfg->ssb_freq_hz - cfg->center_freq_hz;
   uint32_t symbol_sz      = (uint32_t)round(cfg->srate_hz / q->scs_hz);
   q->f_offset             = (int32_t)round(freq_offset_hz / q->scs_hz);
-  q->t_offset             = (uint32_t)round(t_offset_s * cfg->srate_hz);
 
-  for (uint32_t l = 0; l < SRSRAN_SSB_DURATION_NSYMB; l++) {
-    uint32_t l_real = l + (uint32_t)l_begin;
-
-    uint32_t ref_cp_sz = 144U;
-    if (l_real == 0 || l_real == SRSRAN_EXT_CP_SYMBOL(cfg->scs)) {
-      ref_cp_sz = 160U;
-    }
-
-    q->cp_sz[l] = (ref_cp_sz * symbol_sz) / 2048U;
-  }
+  // Calculate cyclic prefix
+  q->cp_sz = (144U * symbol_sz) / 2048U;
 
   // Calculate SSB sampling error and check
   double ssb_srate_error_Hz = ((double)symbol_sz * q->scs_hz) - cfg->srate_hz;
@@ -528,7 +505,12 @@ bool srsran_ssb_send(srsran_ssb_t* q, uint32_t sf_idx)
   return (sf_idx % q->cfg.periodicity_ms == 0);
 }
 
-int srsran_ssb_add(srsran_ssb_t* q, uint32_t N_id, const srsran_pbch_msg_nr_t* msg, const cf_t* in, cf_t* out)
+int srsran_ssb_add(srsran_ssb_t*               q,
+                   uint32_t                    N_id,
+                   uint32_t                    ssb_idx,
+                   const srsran_pbch_msg_nr_t* msg,
+                   const cf_t*                 in,
+                   cf_t*                       out)
 {
   // Verify input parameters
   if (q == NULL || N_id >= SRSRAN_NOF_NID_NR || msg == NULL || in == NULL || out == NULL) {
@@ -569,22 +551,26 @@ int srsran_ssb_add(srsran_ssb_t* q, uint32_t N_id, const srsran_pbch_msg_nr_t* m
     return SRSRAN_ERROR;
   }
 
+  // Select start symbol from SSB candidate index
+  int t_offset = ssb_get_t_offset(q, ssb_idx);
+  if (t_offset < SRSRAN_SUCCESS) {
+    ERROR("Invalid SSB candidate index");
+    return SRSRAN_ERROR;
+  }
+
   // Select input/ouput pointers considering the time offset in the slot
-  const cf_t* in_ptr  = &in[q->t_offset];
-  cf_t*       out_ptr = &out[q->t_offset];
+  const cf_t* in_ptr  = &in[t_offset];
+  cf_t*       out_ptr = &out[t_offset];
 
   // For each SSB symbol, modulate
   for (uint32_t l = 0; l < SRSRAN_SSB_DURATION_NSYMB; l++) {
-    // Get CP length
-    uint32_t cp_len = q->cp_sz[l];
-
     // Map SSB in resource grid and perform IFFT
     ssb_modulate_symbol(q, ssb_grid, l);
 
     // Add cyclic prefix to input;
-    srsran_vec_sum_ccc(in_ptr, &q->tmp_time[q->symbol_sz - cp_len], out_ptr, cp_len);
-    in_ptr += cp_len;
-    out_ptr += cp_len;
+    srsran_vec_sum_ccc(in_ptr, &q->tmp_time[q->symbol_sz - q->cp_sz], out_ptr, q->cp_sz);
+    in_ptr += q->cp_sz;
+    out_ptr += q->cp_sz;
 
     // Add symbol to the input baseband
     srsran_vec_sum_ccc(in_ptr, q->tmp_time, out_ptr, q->symbol_sz);
@@ -599,21 +585,18 @@ static int ssb_demodulate(srsran_ssb_t* q, const cf_t* in, uint32_t t_offset, cf
 {
   const cf_t* in_ptr = &in[t_offset];
   for (uint32_t l = 0; l < SRSRAN_SSB_DURATION_NSYMB; l++) {
-    // Get CP length
-    uint32_t cp_len = q->cp_sz[l];
-
     // Advance half CP, to avoid inter symbol interference
-    in_ptr += SRSRAN_FLOOR(cp_len, 2);
+    in_ptr += SRSRAN_FLOOR(q->cp_sz, 2);
 
     // Copy FFT window in temporal time domain buffer
     srsran_vec_cf_copy(q->tmp_time, in_ptr, q->symbol_sz);
-    in_ptr += q->symbol_sz + SRSRAN_CEIL(cp_len, 2);
+    in_ptr += q->symbol_sz + SRSRAN_CEIL(q->cp_sz, 2);
 
     // Convert to frequency domain
     srsran_dft_run_guru_c(&q->fft);
 
     // Compensate half CP delay
-    srsran_vec_apply_cfo(q->tmp_freq, SRSRAN_CEIL(cp_len, 2) / (float)(q->symbol_sz), q->tmp_freq, q->symbol_sz);
+    srsran_vec_apply_cfo(q->tmp_freq, SRSRAN_CEIL(q->cp_sz, 2) / (float)(q->symbol_sz), q->tmp_freq, q->symbol_sz);
 
     // Select symbol in grid
     cf_t* ptr = &ssb_grid[l * SRSRAN_SSB_BW_SUBC];
@@ -825,8 +808,8 @@ int srsran_ssb_csi_search(srsran_ssb_t*                  q,
   }
 
   // Remove CP offset prior demodulation
-  if (t_offset >= q->cp_sz[0]) {
-    t_offset -= q->cp_sz[0];
+  if (t_offset >= q->cp_sz) {
+    t_offset -= q->cp_sz;
   } else {
     t_offset = 0;
   }
@@ -861,7 +844,11 @@ int srsran_ssb_csi_search(srsran_ssb_t*                  q,
   return SRSRAN_SUCCESS;
 }
 
-int srsran_ssb_csi_measure(srsran_ssb_t* q, uint32_t N_id, const cf_t* in, srsran_csi_trs_measurements_t* meas)
+int srsran_ssb_csi_measure(srsran_ssb_t*                  q,
+                           uint32_t                       N_id,
+                           uint32_t                       ssb_idx,
+                           const cf_t*                    in,
+                           srsran_csi_trs_measurements_t* meas)
 {
   // Verify inputs
   if (q == NULL || N_id >= SRSRAN_NOF_NID_NR || in == NULL || meas == NULL || !isnormal(q->scs_hz)) {
@@ -869,14 +856,19 @@ int srsran_ssb_csi_measure(srsran_ssb_t* q, uint32_t N_id, const cf_t* in, srsra
   }
 
   if (!q->args.enable_measure) {
-    ERROR("SSB is not configured for measure");
+    ERROR("SSB is not configured to measure");
     return SRSRAN_ERROR;
   }
 
-  cf_t ssb_grid[SRSRAN_SSB_NOF_RE] = {};
+  // Select start symbol from SSB candidate index
+  int t_offset = ssb_get_t_offset(q, ssb_idx);
+  if (t_offset < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
+  }
 
   // Demodulate
-  if (ssb_demodulate(q, in, q->t_offset, ssb_grid) < SRSRAN_SUCCESS) {
+  cf_t ssb_grid[SRSRAN_SSB_NOF_RE] = {};
+  if (ssb_demodulate(q, in, (uint32_t)t_offset, ssb_grid) < SRSRAN_SUCCESS) {
     ERROR("Error demodulating");
     return SRSRAN_ERROR;
   }
@@ -884,6 +876,46 @@ int srsran_ssb_csi_measure(srsran_ssb_t* q, uint32_t N_id, const cf_t* in, srsra
   // Actual measurement
   if (ssb_measure(q, ssb_grid, N_id, meas)) {
     ERROR("Error measuring");
+    return SRSRAN_ERROR;
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
+int srsran_ssb_decode_pbch(srsran_ssb_t* q, uint32_t N_id, uint32_t ssb_idx, const cf_t* in, srsran_pbch_msg_nr_t* msg)
+{
+  // Verify inputs
+  if (q == NULL || N_id >= SRSRAN_NOF_NID_NR || in == NULL || msg == NULL || !isnormal(q->scs_hz)) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+
+  if (!q->args.enable_decode) {
+    ERROR("SSB is not configured to decode");
+    return SRSRAN_ERROR;
+  }
+
+  // Select start symbol from SSB candidate index
+  int t_offset = ssb_get_t_offset(q, ssb_idx);
+  if (t_offset < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
+  }
+
+  // Demodulate
+  cf_t ssb_grid[SRSRAN_SSB_NOF_RE] = {};
+  if (ssb_demodulate(q, in, (uint32_t)t_offset, ssb_grid) < SRSRAN_SUCCESS) {
+    ERROR("Error demodulating");
+    return SRSRAN_ERROR;
+  }
+
+  // Prepare configuration
+  srsran_pbch_nr_cfg_t pbch_cfg = {};
+  pbch_cfg.N_id                 = N_id;
+  pbch_cfg.ssb_scs              = q->cfg.scs;
+  pbch_cfg.Lmax                 = q->Lmax;
+
+  // Decode
+  if (srsran_pbch_nr_decode(&q->pbch, &pbch_cfg, ssb_idx, ssb_grid, msg) < SRSRAN_SUCCESS) {
+    ERROR("Error decoding PBCH");
     return SRSRAN_ERROR;
   }
 

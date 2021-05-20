@@ -81,7 +81,6 @@ public:
     ssb_cfg.ssb_freq_hz      = args.ssb_freq_hz;
     ssb_cfg.scs              = args.ssb_scs;
     ssb_cfg.pattern          = args.get_ssb_pattern();
-    ssb_cfg.position[0]      = true;
     ssb_cfg.duplex_mode      = args.get_duplex_mode();
     ssb_cfg.periodicity_ms   = args.ssb_period_ms;
     if (srsran_ssb_set_cfg(&ssb, &ssb_cfg) < SRSRAN_SUCCESS) {
@@ -106,7 +105,7 @@ public:
       srsran_pbch_msg_nr_t msg = {};
 
       // Add SSB
-      if (srsran_ssb_add(&ssb, pci, &msg, buffer.data(), buffer.data()) < SRSRAN_SUCCESS) {
+      if (srsran_ssb_add(&ssb, pci, 0, &msg, buffer.data(), buffer.data()) < SRSRAN_SUCCESS) {
         logger.error("Error adding SSB");
         return SRSRAN_ERROR;
       }
