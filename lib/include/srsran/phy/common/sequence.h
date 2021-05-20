@@ -39,7 +39,10 @@ SRSRAN_API void srsran_sequence_state_gen_f(srsran_sequence_state_t* s, float va
 SRSRAN_API void srsran_sequence_state_apply_f(srsran_sequence_state_t* s, const float* in, float* out, uint32_t length);
 
 SRSRAN_API void
-srsran_sequence_state_apply_bit(srsran_sequence_state_t* s, const uint8_t* in, uint8_t* out, uint32_t length);
+srsran_sequence_state_apply_c(srsran_sequence_state_t* s, const int8_t* in, int8_t* out, uint32_t length);
+
+SRSRAN_API
+void srsran_sequence_state_apply_bit(srsran_sequence_state_t* s, const uint8_t* in, uint8_t* out, uint32_t length);
 
 SRSRAN_API void srsran_sequence_state_advance(srsran_sequence_state_t* s, uint32_t length);
 

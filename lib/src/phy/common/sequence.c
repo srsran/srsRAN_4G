@@ -551,16 +551,13 @@ void srsran_sequence_apply_s(const int16_t* in, int16_t* out, uint32_t length, u
   }
 }
 
-void srsran_sequence_apply_c(const int8_t* in, int8_t* out, uint32_t length, uint32_t seed)
+void srsran_sequence_state_apply_c(srsran_sequence_state_t* s, const int8_t* in, int8_t* out, uint32_t length)
 {
-  uint32_t x1 = sequence_x1_init;           // X1 initial state is fix
-  uint32_t x2 = sequence_get_x2_init(seed); // loads x2 initial state
-
   uint32_t i = 0;
 
   if (length >= SEQUENCE_PAR_BITS) {
     for (; i < length - (SEQUENCE_PAR_BITS - 1); i += SEQUENCE_PAR_BITS) {
-      uint32_t c = (uint32_t)(x1 ^ x2);
+      uint32_t c = (uint32_t)(s->x1 ^ s->x2);
 
       uint32_t j = 0;
 #ifdef LV_HAVE_SSE
@@ -597,18 +594,25 @@ void srsran_sequence_apply_c(const int8_t* in, int8_t* out, uint32_t length, uin
       }
 
       // Step sequences
-      x1 = sequence_gen_LTE_pr_memless_step_par_x1(x1);
-      x2 = sequence_gen_LTE_pr_memless_step_par_x2(x2);
+      s->x1 = sequence_gen_LTE_pr_memless_step_par_x1(s->x1);
+      s->x2 = sequence_gen_LTE_pr_memless_step_par_x2(s->x2);
     }
   }
 
   for (; i < length; i++) {
-    out[i] = in[i] * (((x1 ^ x2) & 1U) ? -1 : +1);
+    out[i] = in[i] * (((s->x1 ^ s->x2) & 1U) ? -1 : +1);
 
     // Step sequences
-    x1 = sequence_gen_LTE_pr_memless_step_x1(x1);
-    x2 = sequence_gen_LTE_pr_memless_step_x2(x2);
+    s->x1 = sequence_gen_LTE_pr_memless_step_x1(s->x1);
+    s->x2 = sequence_gen_LTE_pr_memless_step_x2(s->x2);
   }
+}
+
+void srsran_sequence_apply_c(const int8_t* in, int8_t* out, uint32_t length, uint32_t seed)
+{
+  srsran_sequence_state_t sequence_state;
+  srsran_sequence_state_init(&sequence_state, seed);
+  srsran_sequence_state_apply_c(&sequence_state, in, out, length);
 }
 
 void srsran_sequence_state_apply_bit(srsran_sequence_state_t* s, const uint8_t* in, uint8_t* out, uint32_t length)
