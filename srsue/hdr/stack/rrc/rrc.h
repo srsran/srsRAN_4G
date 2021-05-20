@@ -282,6 +282,7 @@ private:
   class si_acquire_proc;
   class serving_cell_config_proc;
   class cell_selection_proc;
+  class connection_setup_proc;
   class connection_request_proc;
   class connection_reconf_no_ho_proc;
   class plmn_search_proc;
@@ -297,6 +298,7 @@ private:
   srsran::proc_t<go_idle_proc>                                               idle_setter;
   srsran::proc_t<process_pcch_proc>                                          pcch_processor;
   srsran::proc_t<connection_request_proc>                                    conn_req_proc;
+  srsran::proc_t<connection_setup_proc>                                      conn_setup_proc;
   srsran::proc_t<plmn_search_proc>                                           plmn_searcher;
   srsran::proc_t<cell_reselection_proc>                                      cell_reselector;
   srsran::proc_t<connection_reest_proc>                                      connection_reest;

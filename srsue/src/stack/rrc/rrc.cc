@@ -66,6 +66,7 @@ rrc::rrc(stack_interface_rrc* stack_, srsran::task_sched_handle task_sched_) :
   plmn_searcher(this),
   cell_reselector(this),
   connection_reest(this),
+  conn_setup_proc(this),
   ho_handler(this),
   conn_recfg_proc(this),
   meas_cells_nr(task_sched_),
@@ -364,6 +365,9 @@ void rrc::set_config_complete(bool status)
 {
   // Signal Reconfiguration Procedure that PHY configuration has completed
   phy_ctrl->set_config_complete();
+  if (conn_setup_proc.is_busy()) {
+    conn_setup_proc.trigger(status);
+  }
   if (conn_recfg_proc.is_busy()) {
     conn_recfg_proc.trigger(status);
   }
@@ -2538,16 +2542,12 @@ void rrc::handle_con_setup(const rrc_conn_setup_s& setup)
   t302.stop();
   srsran::console("RRC Connected\n");
 
-  // Apply the Radio Resource configuration
-  apply_rr_config_dedicated(&setup.crit_exts.c1().rrc_conn_setup_r8().rr_cfg_ded);
-
-  nas->set_barring(srsran::barring_t::none);
-
-  if (dedicated_info_nas.get()) {
-    send_con_setup_complete(std::move(dedicated_info_nas));
-  } else {
-    logger.error("Pending to transmit a ConnectionSetupComplete but no dedicatedInfoNAS was in queue");
+  // defer transmission of Setup Complete until PHY reconfiguration has been completed
+  if (not conn_setup_proc.launch(&setup.crit_exts.c1().rrc_conn_setup_r8().rr_cfg_ded, std::move(dedicated_info_nas))) {
+    logger.error("Failed to initiate connection setup procedure");
+    return;
   }
+  callback_list.add_proc(conn_setup_proc);
 }
 
 /* Reception of RRCConnectionReestablishment by the UE 5.3.7.5 */

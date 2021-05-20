@@ -193,6 +193,24 @@ private:
   srsran::proc_future_t<void> serv_cfg_fut;
 };
 
+class rrc::connection_setup_proc
+{
+public:
+  explicit connection_setup_proc(rrc* parent_);
+  srsran::proc_outcome_t init(const asn1::rrc::rr_cfg_ded_s* cnfg_, srsran::unique_byte_buffer_t dedicated_info_nas_);
+  srsran::proc_outcome_t step() { return srsran::proc_outcome_t::yield; }
+  void                   then(const srsran::proc_state_t& result);
+  srsran::proc_outcome_t react(const bool& config_complete);
+  static const char*     name() { return "Connection Setup"; }
+
+private:
+  // const
+  rrc*                  rrc_ptr;
+  srslog::basic_logger& logger;
+  // args
+  srsran::unique_byte_buffer_t dedicated_info_nas;
+};
+
 class rrc::connection_reconf_no_ho_proc
 {
 public:
