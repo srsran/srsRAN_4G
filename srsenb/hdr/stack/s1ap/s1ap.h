@@ -277,6 +277,7 @@ private:
     bool                 release_requested = false;
     srsran::unique_timer ts1_reloc_prep;    ///< TS1_{RELOCprep} - max time for HO preparation
     srsran::unique_timer ts1_reloc_overall; ///< TS1_{RELOCOverall}
+    srsran::unique_timer overall_procedure_timeout;
 
     // Procedure state
     s1ap_proc_id_t                                                           current_state = s1ap_proc_id_t::nulltype;

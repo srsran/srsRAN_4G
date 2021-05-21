@@ -1395,12 +1395,6 @@ bool s1ap::ue::send_ulnastransport(srsran::unique_byte_buffer_t pdu)
 
 bool s1ap::ue::send_uectxtreleaserequest(const cause_c& cause)
 {
-  if (was_uectxtrelease_requested()) {
-    logger.warning("UE context for RNTI:0x%x is in zombie state. Releasing...", ctxt.rnti);
-    s1ap_ptr->rrc->release_ue(ctxt.rnti);
-    s1ap_ptr->users.erase(this);
-    return false;
-  }
   if (not ctxt.mme_ue_s1ap_id.has_value()) {
     logger.error("Cannot send UE context release request without a MME-UE-S1AP-Id allocated.");
     s1ap_ptr->rrc->release_ue(ctxt.rnti);
@@ -1412,6 +1406,11 @@ bool s1ap::ue::send_uectxtreleaserequest(const cause_c& cause)
     logger.info("Ignoring UE context release request from lower layers for UE rnti=0x%x performing S1 Handover.",
                 ctxt.rnti);
     // leave the UE context alive until ts1_reloc_overall expiry
+    return false;
+  }
+
+  if (was_uectxtrelease_requested()) {
+    // let timeout auto-remove user.
     return false;
   }
 
@@ -1429,12 +1428,21 @@ bool s1ap::ue::send_uectxtreleaserequest(const cause_c& cause)
   if (not release_requested) {
     s1ap_ptr->rrc->release_ue(ctxt.rnti);
     s1ap_ptr->users.erase(this);
+  } else {
+    overall_procedure_timeout.set(10000, [this](uint32_t tid) {
+      logger.warning("UE context for RNTI:0x%x is in zombie state. Releasing...", ctxt.rnti);
+      s1ap_ptr->rrc->release_ue(ctxt.rnti);
+      s1ap_ptr->users.erase(this);
+    });
+    overall_procedure_timeout.run();
   }
   return release_requested;
 }
 
 bool s1ap::ue::send_uectxtreleasecomplete()
 {
+  overall_procedure_timeout.stop();
+
   s1ap_pdu_c tx_pdu;
   tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_UE_CONTEXT_RELEASE);
   auto& container                = tx_pdu.successful_outcome().value.ue_context_release_complete().protocol_ies;
@@ -1964,6 +1972,8 @@ s1ap::ue::ue(s1ap* s1ap_ptr_) : s1ap_ptr(s1ap_ptr_), ho_prep_proc(this), logger(
     //  TS1RELOCOverall, the eNB shall request the MME to release the UE context.
     s1ap_ptr->user_release(ctxt.rnti, asn1::s1ap::cause_radio_network_opts::ts1relocoverall_expiry);
   });
+  overall_procedure_timeout = s1ap_ptr->task_sched.get_unique_timer();
+  overall_procedure_timeout.set(10000);
 }
 
 bool s1ap::ue::send_ho_required(uint32_t                     target_eci,
