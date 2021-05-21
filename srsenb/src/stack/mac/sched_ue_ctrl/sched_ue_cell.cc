@@ -18,7 +18,7 @@
 #define CHECK_VALID_CC(feedback_type)                                                                                  \
   do {                                                                                                                 \
     if (cc_state() == cc_st::idle) {                                                                                   \
-      logger.warning("SCHED: rnti=0x%x received " feedback_type " for idle cc=%d", cell_cfg->enb_cc_idx);              \
+      logger.warning("SCHED: rnti=0x%x received " feedback_type " for idle cc=%d", rnti, cell_cfg->enb_cc_idx);        \
       return SRSRAN_ERROR;                                                                                             \
     }                                                                                                                  \
   } while (0)
@@ -180,7 +180,7 @@ int sched_ue_cell::set_ul_crc(tti_point tti_rx, bool crc_res)
   // Update HARQ process
   int pid = harq_ent.set_ul_crc(tti_rx, 0, crc_res);
   if (pid < 0) {
-    logger.warning("SCHED: rnti=0x%x received UL CRC for invalid tti_rx=%d", (int)tti_rx.to_uint());
+    logger.warning("SCHED: rnti=0x%x received UL CRC for invalid tti_rx=%d", rnti, (int)tti_rx.to_uint());
     return SRSRAN_ERROR;
   }
 
