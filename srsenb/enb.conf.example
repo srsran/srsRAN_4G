@@ -167,10 +167,10 @@ enable = false
 # pusch_max_mcs:     Optional PUSCH MCS limit 
 # min_nof_ctrl_symbols: Minimum number of control symbols 
 # max_nof_ctrl_symbols: Maximum number of control symbols 
-# target_bler:       Target BLER (in decimal) to achieve via adaptive link 
-# max_delta_dl_cqi:  Maximum shift in CQI for adaptive DL link 
-# max_delta_ul_cqi:  Maximum shift in UL SNR for adaptive UL link 
-# target_bler:       Step size or learning rate used in adaptive link 
+# target_bler:       Target BLER (in decimal) to achieve via adaptive link
+# max_delta_dl_cqi:  Maximum shift in CQI for adaptive DL link
+# max_delta_ul_snr:  Maximum shift in UL SNR for adaptive UL link
+# adaptive_link_step_size: Step size or learning rate used in adaptive link
 #
 #####################################################################
 [scheduler]

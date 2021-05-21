@@ -186,7 +186,7 @@ int sched_ue_cell::set_ul_crc(tti_point tti_rx, bool crc_res)
 
   ul_snr_coeff += delta_down - static_cast<float>(not crc_res) * (delta_down + delta_up);
   ul_snr_coeff = std::min(std::max(-max_snr_coeff, ul_snr_coeff), max_snr_coeff);
-  logger.info("SCHED: adjusting UL SNR by %f", ul_snr_coeff);
+  logger.info("SCHED: UL adaptive link: snr_estim=%f, snr_offset=%f", tpc_fsm.get_ul_snr_estim(), ul_snr_coeff);
   return pid;
 }
 
@@ -201,7 +201,7 @@ int sched_ue_cell::set_ack_info(tti_point tti_rx, uint32_t tb_idx, bool ack)
 
     dl_cqi_coeff += delta_down - static_cast<float>(not ack) * (delta_down + delta_up);
     dl_cqi_coeff = std::min(std::max(-max_cqi_coeff, dl_cqi_coeff), max_cqi_coeff);
-    logger.info("SCHED: adjusting DL CQI by %f", dl_cqi_coeff);
+    logger.info("SCHED: DL adaptive link: cqi=%d, cqi_offset=%f", dl_cqi_ctxt.get_avg_cqi(), dl_cqi_coeff);
   } else {
     logger.warning("SCHED: Received ACK info for unknown TTI=%d", tti_rx.to_uint());
   }
