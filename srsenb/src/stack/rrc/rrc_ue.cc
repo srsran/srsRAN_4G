@@ -519,9 +519,9 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
   uint16_t                               old_rnti = req_r8.ue_id.c_rnti.to_number();
 
   if (not parent->s1ap->is_mme_connected()) {
-    parent->logger.error("MME isn't connected. Sending Connection Reject");
+    parent->logger.error("RRCReestablishmentReject for rnti=0x%x. Cause: MME not connected", rnti);
     send_connection_reest_rej(procedure_result_code::error_mme_not_connected);
-    srsran::console("User 0x%x RRC Reestablishment Request rejected\n", rnti);
+    srsran::console("RRCReestablishmentReject for rnti=0x%x. Cause: MME not connected.\n", rnti);
     return;
   }
   parent->logger.debug("rnti=0x%x, phyid=0x%x, smac=0x%x, cause=%s",
@@ -532,9 +532,10 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
 
   if (not is_idle()) {
     // The created RNTI has to receive ReestablishmentRequest as first message
-    parent->logger.error("Received ReestablishmentRequest from an rnti=0x%x not in IDLE", rnti);
+    parent->logger.error(
+        "RRCReestablishmentReject for rnti=0x%x. Cause: old rnti=0x%x is not in RRC_IDLE", rnti, old_rnti);
     send_connection_reest_rej(procedure_result_code::error_unknown_rnti);
-    srsran::console("ERROR: User 0x%x requesting Reestablishment is not in RRC_IDLE\n", rnti);
+    srsran::console("ERROR: RRCReestablishmentReject for rnti=0x%x not in RRC_IDLE\n", rnti);
     return;
   }
 
@@ -545,10 +546,10 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
   // Reject unrecognized rntis, and PCIs that do not belong to eNB
   if (old_ue_it == parent->users.end() or old_cell == nullptr or
       old_ue_it->second->ue_cell_list.get_enb_cc_idx(old_cell->enb_cc_idx) == nullptr) {
-    parent->logger.error("Received ConnectionReestablishment for rnti=0x%x without context", old_rnti);
     send_connection_reest_rej(procedure_result_code::error_unknown_rnti);
-    srsran::console(
-        "User 0x%x RRC Reestablishment Request rejected. Cause: no rnti=0x%x context available\n", rnti, old_rnti);
+    parent->logger.info(
+        "RRCReestablishmentReject for rnti=0x%x. Cause: no rnti=0x%x context available", rnti, old_rnti);
+    srsran::console("RRCReestablishmentReject for rnti=0x%x. Cause: no context available\n", rnti);
     return;
   }
   ue* old_ue = old_ue_it->second.get();
