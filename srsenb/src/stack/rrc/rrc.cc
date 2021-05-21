@@ -222,12 +222,16 @@ int rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
 void rrc::upd_user(uint16_t new_rnti, uint16_t old_rnti)
 {
   // Remove new_rnti
-  rem_user_thread(new_rnti);
+  auto new_ue_it = users.find(new_rnti);
+  if (new_ue_it != users.end()) {
+    new_ue_it->second->deactivate_bearers();
+    rem_user_thread(new_rnti);
+  }
 
   // Send Reconfiguration to old_rnti if is RRC_CONNECT or RRC Release if already released here
   auto old_it = users.find(old_rnti);
   if (old_it == users.end()) {
-    send_rrc_connection_reject(old_rnti);
+    logger.info("rnti=0x%x received MAC CRNTI CE: 0x%x, but old context is unavailable", new_rnti, old_rnti);
     return;
   }
   ue* ue_ptr = old_it->second.get();
