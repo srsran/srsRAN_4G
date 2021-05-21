@@ -149,6 +149,10 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("scheduler.max_nof_ctrl_symbols", bpo::value<uint32_t>(&args->stack.mac.sched.max_nof_ctrl_symbols)->default_value(3), "Number of control symbols")
     ("scheduler.min_nof_ctrl_symbols", bpo::value<uint32_t>(&args->stack.mac.sched.min_nof_ctrl_symbols)->default_value(1), "Minimum number of control symbols")
     ("scheduler.pucch_multiplex_enable", bpo::value<bool>(&args->stack.mac.sched.pucch_mux_enabled)->default_value(false), "Enable PUCCH multiplexing")
+    ("scheduler.target_bler", bpo::value<float>(&args->stack.mac.sched.target_bler)->default_value(0.05), "Target BLER (in decimal) to achieve via adaptive link")
+    ("scheduler.max_delta_dl_cqi", bpo::value<float>(&args->stack.mac.sched.max_delta_dl_cqi)->default_value(5.0), "Maximum shift in CQI for adaptive DL link")
+    ("scheduler.max_delta_ul_snr", bpo::value<float>(&args->stack.mac.sched.max_delta_ul_snr)->default_value(5.0), "Maximum shift in UL SNR for adaptive UL link")
+    ("scheduler.adaptive_link_step_size", bpo::value<float>(&args->stack.mac.sched.max_delta_ul_snr)->default_value(0.001), "Step size or learning rate used in adaptive link")
 
 
     /* Downlink Channel emulator section */

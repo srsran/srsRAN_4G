@@ -33,7 +33,7 @@ struct sched_ue_cell {
   void clear_feedback();
   void finish_tti(tti_point tti_rx);
 
-  void set_dl_wb_cqi(tti_point tti_rx, uint32_t dl_cqi_);
+  int set_dl_wb_cqi(tti_point tti_rx, uint32_t dl_cqi_);
 
   bool             configured() const { return ue_cc_idx >= 0; }
   int              get_ue_cc_idx() const { return ue_cc_idx; }
@@ -43,6 +43,11 @@ struct sched_ue_cell {
   const sched_interface::ue_cfg_t* get_ue_cfg() const { return configured() ? ue_cfg : nullptr; }
   cc_st                            cc_state() const { return cc_state_; }
 
+  int get_dl_cqi() const;
+  int get_dl_cqi(const rbgmask_t& rbgs) const;
+  int get_ul_cqi() const;
+
+  int set_ack_info(tti_point tti_rx, uint32_t tb_idx, bool ack);
   int set_ul_crc(tti_point tti_rx, bool crc_res);
   int set_ul_snr(tti_point tti_rx, float ul_snr, uint32_t ul_ch_code);
 
@@ -66,7 +71,6 @@ struct sched_ue_cell {
   tti_point           dl_ri_tti_rx{};
   uint32_t            dl_pmi = 0;
   tti_point           dl_pmi_tti_rx{};
-  uint32_t            ul_cqi = 1;
   tti_point           ul_cqi_tti_rx{};
 
   uint32_t max_mcs_dl = 28, max_mcs_ul = 28;
@@ -83,6 +87,11 @@ private:
   // state
   tti_point current_tti;
   cc_st     cc_state_ = cc_st::idle;
+
+  // CQI
+  float delta_down = 0, delta_up = 0;
+  float dl_cqi_coeff = 0, ul_snr_coeff = 0;
+  float max_cqi_coeff = -5, max_snr_coeff = 5;
 
   sched_dl_cqi dl_cqi_ctxt;
 };

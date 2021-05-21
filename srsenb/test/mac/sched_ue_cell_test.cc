@@ -38,9 +38,8 @@ void test_neg_phr_scenario()
   ue_cc.set_ue_cfg(ue_cfg);
 
   float snr = 0;
-  ue_cc.tpc_fsm.set_snr(snr, 0);
-  ue_cc.tpc_fsm.set_snr(snr, 1);
-  ue_cc.ul_cqi = srsran_cqi_from_snr(snr);
+  ue_cc.set_ul_snr(tti_point(0), snr, 0);
+  ue_cc.set_ul_snr(tti_point(0), snr, 1);
   ue_cc.tpc_fsm.set_phr(-5);
   ue_cc.new_tti(tti_point(0));
 

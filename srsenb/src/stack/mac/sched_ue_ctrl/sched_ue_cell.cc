@@ -13,10 +13,9 @@
 #include "srsenb/hdr/stack/mac/sched_ue_ctrl/sched_ue_cell.h"
 #include "srsenb/hdr/stack/mac/sched_helpers.h"
 #include "srsenb/hdr/stack/mac/sched_phy_ch/sched_dci.h"
-#include "srsenb/hdr/stack/mac/schedulers/sched_base.h"
 #include <numeric>
 
-#define CHECK_INVALID_FEEDBACK(feedback_type)                                                                          \
+#define CHECK_VALID_CC(feedback_type)                                                                                  \
   do {                                                                                                                 \
     if (cc_state() == cc_st::idle) {                                                                                   \
       logger.warning("SCHED: rnti=0x%x received " feedback_type " for idle cc=%d", cell_cfg->enb_cc_idx);              \
@@ -47,6 +46,12 @@ sched_ue_cell::sched_ue_cell(uint16_t rnti_, const sched_cell_params_t& cell_cfg
   dl_cqi_ctxt(cell_cfg_.nof_prb(), 0, 1)
 {
   clear_feedback();
+
+  float target_bler = cell_cfg->sched_cfg->target_bler;
+  delta_down        = cell_cfg->sched_cfg->adaptive_link_step_size;
+  delta_up          = (1 - target_bler) * delta_down / target_bler;
+  max_cqi_coeff     = cell_cfg->sched_cfg->max_delta_dl_cqi;
+  max_snr_coeff     = cell_cfg->sched_cfg->max_delta_ul_snr;
 }
 
 void sched_ue_cell::set_ue_cfg(const sched_interface::ue_cfg_t& ue_cfg_)
@@ -148,7 +153,6 @@ void sched_ue_cell::clear_feedback()
   dl_pmi        = 0;
   dl_pmi_tti_rx = tti_point{};
   dl_cqi_ctxt.reset_cqi(ue_cc_idx == 0 ? cell_cfg->cfg.initial_dl_cqi : 1);
-  ul_cqi        = 1;
   ul_cqi_tti_rx = tti_point{};
 }
 
@@ -158,37 +162,82 @@ void sched_ue_cell::finish_tti(tti_point tti_rx)
   harq_ent.reset_pending_data(tti_rx);
 }
 
-void sched_ue_cell::set_dl_wb_cqi(tti_point tti_rx, uint32_t dl_cqi_)
+int sched_ue_cell::set_dl_wb_cqi(tti_point tti_rx, uint32_t dl_cqi_)
 {
+  CHECK_VALID_CC("DL CQI");
   dl_cqi_ctxt.cqi_wb_info(tti_rx, dl_cqi_);
   if (ue_cc_idx > 0 and cc_state_ == cc_st::activating and dl_cqi_ > 0) {
     // Wait for SCell to receive a positive CQI before activating it
     cc_state_ = cc_st::active;
     logger.info("SCHED: SCell index=%d is now active", ue_cc_idx);
   }
+  return SRSRAN_SUCCESS;
 }
 
 int sched_ue_cell::set_ul_crc(tti_point tti_rx, bool crc_res)
 {
-  CHECK_INVALID_FEEDBACK("UL CRC");
+  CHECK_VALID_CC("UL CRC");
   // Update HARQ process
   int pid = harq_ent.set_ul_crc(tti_rx, 0, crc_res);
   if (pid < 0) {
     logger.warning("SCHED: rnti=0x%x received UL CRC for invalid tti_rx=%d", (int)tti_rx.to_uint());
     return SRSRAN_ERROR;
   }
+
+  ul_snr_coeff += delta_down - static_cast<float>(not crc_res) * (delta_down + delta_up);
+  ul_snr_coeff = std::min(std::max(-max_snr_coeff, ul_snr_coeff), max_snr_coeff);
+  logger.info("SCHED: adjusting UL SNR by %f", ul_snr_coeff);
   return pid;
+}
+
+int sched_ue_cell::set_ack_info(tti_point tti_rx, uint32_t tb_idx, bool ack)
+{
+  CHECK_VALID_CC("DL ACK Info");
+  std::pair<uint32_t, int> p2        = harq_ent.set_ack_info(tti_rx, tb_idx, ack);
+  int                      tbs_acked = p2.second;
+  if (tbs_acked > 0) {
+    logger.debug(
+        "SCHED: Set DL ACK=%d for rnti=0x%x, pid=%d, tb=%d, tti=%d", ack, rnti, p2.first, tb_idx, tti_rx.to_uint());
+
+    dl_cqi_coeff += delta_down - static_cast<float>(not ack) * (delta_down + delta_up);
+    dl_cqi_coeff = std::min(std::max(-max_cqi_coeff, dl_cqi_coeff), max_cqi_coeff);
+    logger.info("SCHED: adjusting DL CQI by %f", dl_cqi_coeff);
+  } else {
+    logger.warning("SCHED: Received ACK info for unknown TTI=%d", tti_rx.to_uint());
+  }
+  return tbs_acked;
 }
 
 int sched_ue_cell::set_ul_snr(tti_point tti_rx, float ul_snr, uint32_t ul_ch_code)
 {
-  CHECK_INVALID_FEEDBACK("UL SNR estimate");
+  CHECK_VALID_CC("UL SNR estimate");
   tpc_fsm.set_snr(ul_snr, ul_ch_code);
   if (ul_ch_code == tpc::PUSCH_CODE) {
-    ul_cqi        = srsran_cqi_from_snr(ul_snr);
     ul_cqi_tti_rx = tti_rx;
   }
   return SRSRAN_SUCCESS;
+}
+
+int sched_ue_cell::get_ul_cqi() const
+{
+  if (not ul_cqi_tti_rx.is_valid()) {
+    return 1;
+  }
+  float snr = tpc_fsm.get_ul_snr_estim();
+  return srsran_cqi_from_snr(snr + ul_snr_coeff);
+}
+
+int sched_ue_cell::get_dl_cqi(const rbgmask_t& rbgs) const
+{
+  float dl_cqi = std::get<1>(find_min_cqi_rbg(rbgs, dl_cqi_ctxt));
+  return std::max(0, (int)std::min(dl_cqi + dl_cqi_coeff, 15.0f));
+}
+
+int sched_ue_cell::get_dl_cqi() const
+{
+  rbgmask_t rbgmask(cell_cfg->nof_rbgs);
+  rbgmask.fill(0, rbgmask.size());
+  return get_dl_cqi(rbgmask);
 }
 
 /*************************************************************
@@ -280,7 +329,7 @@ tbs_info cqi_to_tbs_dl(const sched_ue_cell& cell,
   tbs_info ret;
   if (cell.fixed_mcs_dl < 0 or not cell.dl_cqi().is_cqi_info_received()) {
     // Dynamic MCS configured or first Tx
-    uint32_t dl_cqi = std::get<1>(find_min_cqi_rbg(rbgs, cell.dl_cqi()));
+    uint32_t dl_cqi = cell.get_dl_cqi(rbgs);
 
     ret = compute_min_mcs_and_tbs_from_required_bytes(
         nof_prbs, nof_re, dl_cqi, cell.max_mcs_dl, req_bytes, false, false, use_tbs_index_alt);
@@ -309,7 +358,7 @@ tbs_info cqi_to_tbs_ul(const sched_ue_cell& cell, uint32_t nof_prb, uint32_t nof
   if (mcs < 0) {
     // Dynamic MCS
     ret = compute_min_mcs_and_tbs_from_required_bytes(
-        nof_prb, nof_re, cell.ul_cqi, cell.max_mcs_ul, req_bytes, true, ulqam64_enabled, false);
+        nof_prb, nof_re, cell.get_ul_cqi(), cell.max_mcs_ul, req_bytes, true, ulqam64_enabled, false);
 
     // If coderate > SRSRAN_MIN(max_coderate, 0.932 * Qm) we should set TBS=0. We don't because it's not correctly
     // handled by the scheduler, but we might be scheduling undecodable codewords at very low SNR

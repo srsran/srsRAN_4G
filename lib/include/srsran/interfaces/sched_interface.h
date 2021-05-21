@@ -45,16 +45,20 @@ public:
   } cell_cfg_sib_t;
 
   struct sched_args_t {
-    std::string sched_policy         = "time_pf";
-    std::string sched_policy_args    = "2";
-    int         pdsch_mcs            = -1;
-    int         pdsch_max_mcs        = 28;
-    int         pusch_mcs            = -1;
-    int         pusch_max_mcs        = 28;
-    uint32_t    min_nof_ctrl_symbols = 1;
-    uint32_t    max_nof_ctrl_symbols = 3;
-    int         max_aggr_level       = 3;
-    bool        pucch_mux_enabled    = false;
+    std::string sched_policy            = "time_pf";
+    std::string sched_policy_args       = "2";
+    int         pdsch_mcs               = -1;
+    int         pdsch_max_mcs           = 28;
+    int         pusch_mcs               = -1;
+    int         pusch_max_mcs           = 28;
+    uint32_t    min_nof_ctrl_symbols    = 1;
+    uint32_t    max_nof_ctrl_symbols    = 3;
+    int         max_aggr_level          = 3;
+    bool        pucch_mux_enabled       = false;
+    float       target_bler             = 0.05;
+    float       max_delta_dl_cqi        = 5;
+    float       max_delta_ul_snr        = 5;
+    float       adaptive_link_step_size = 0.001;
   };
 
   struct cell_cfg_t {

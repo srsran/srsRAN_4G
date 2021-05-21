@@ -227,20 +227,7 @@ bool sched_ue::pusch_enabled(tti_point tti_rx, uint32_t enb_cc_idx, bool needs_p
 
 int sched_ue::set_ack_info(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack)
 {
-  int tbs_acked = -1;
-  if (cells[enb_cc_idx].cc_state() != cc_st::idle) {
-    std::pair<uint32_t, int> p2 = cells[enb_cc_idx].harq_ent.set_ack_info(tti_rx, tb_idx, ack);
-    tbs_acked                   = p2.second;
-    if (tbs_acked > 0) {
-      logger.debug(
-          "SCHED: Set DL ACK=%d for rnti=0x%x, pid=%d, tb=%d, tti=%d", ack, rnti, p2.first, tb_idx, tti_rx.to_uint());
-    } else {
-      logger.warning("SCHED: Received ACK info for unknown TTI=%d", tti_rx.to_uint());
-    }
-  } else {
-    logger.warning("Received DL ACK for invalid cell index %d", enb_cc_idx);
-  }
-  return tbs_acked;
+  return cells[enb_cc_idx].set_ack_info(tti_rx, tb_idx, ack);
 }
 
 void sched_ue::set_ul_crc(tti_point tti_rx, uint32_t enb_cc_idx, bool crc_res)
@@ -815,7 +802,7 @@ uint32_t sched_ue::get_expected_dl_bitrate(uint32_t enb_cc_idx, int nof_rbgs) co
   auto&    cc = cells[enb_cc_idx];
   uint32_t nof_re =
       cc.cell_cfg->get_dl_lb_nof_re(to_tx_dl(current_tti), count_prb_per_tb_approx(nof_rbgs, cc.cell_cfg->nof_prb()));
-  float max_coderate = srsran_cqi_to_coderate(std::min(cc.dl_cqi().get_avg_cqi() + 1u, 15u), cfg.use_tbs_index_alt);
+  float max_coderate = srsran_cqi_to_coderate(std::min(cc.get_dl_cqi() + 1u, 15u), cfg.use_tbs_index_alt);
 
   // Inverse of srsran_coderate(tbs, nof_re)
   uint32_t tbs = max_coderate * nof_re - 24;
@@ -829,7 +816,7 @@ uint32_t sched_ue::get_expected_ul_bitrate(uint32_t enb_cc_idx, int nof_prbs) co
   uint32_t N_srs        = 0;
   uint32_t nof_symb     = 2 * (SRSRAN_CP_NSYMB(cell.cp) - 1) - N_srs;
   uint32_t nof_re       = nof_symb * nof_prbs_alloc * SRSRAN_NRE;
-  float    max_coderate = srsran_cqi_to_coderate(std::min(cells[enb_cc_idx].ul_cqi + 1u, 15u), false);
+  float    max_coderate = srsran_cqi_to_coderate(std::min(cells[enb_cc_idx].get_ul_cqi() + 1u, 15u), false);
 
   // Inverse of srsran_coderate(tbs, nof_re)
   uint32_t tbs = max_coderate * nof_re - 24;
@@ -884,7 +871,7 @@ uint32_t sched_ue::get_pending_ul_data_total(tti_point tti_tx_ul, int this_enb_c
       uint32_t max_cqi = 0, max_cc_idx = 0;
       for (uint32_t cc = 0; cc < cells.size(); ++cc) {
         if (cells[cc].configured()) {
-          uint32_t sum_cqi = cells[cc].dl_cqi().get_avg_cqi() + cells[cc].ul_cqi;
+          uint32_t sum_cqi = cells[cc].get_dl_cqi() + cells[cc].get_ul_cqi();
           if (cells[cc].cc_state() == cc_st::active and sum_cqi > max_cqi) {
             max_cqi    = sum_cqi;
             max_cc_idx = cc;
@@ -978,7 +965,7 @@ uint32_t sched_ue::get_aggr_level(uint32_t enb_cc_idx, uint32_t nof_bits)
 {
   const auto& cc = cells[enb_cc_idx];
   return srsenb::get_aggr_level(
-      nof_bits, cc.dl_cqi().get_avg_cqi(), cc.max_aggr_level, cc.cell_cfg->nof_prb(), cfg.use_tbs_index_alt);
+      nof_bits, cc.get_dl_cqi(), cc.max_aggr_level, cc.cell_cfg->nof_prb(), cfg.use_tbs_index_alt);
 }
 
 void sched_ue::finish_tti(tti_point tti_rx, uint32_t enb_cc_idx)

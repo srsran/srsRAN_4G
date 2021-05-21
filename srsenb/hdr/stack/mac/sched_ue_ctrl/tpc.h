@@ -88,10 +88,6 @@ public:
     for (size_t chidx = 0; chidx < 2; ++chidx) {
       float target_snr_dB = chidx == PUSCH_CODE ? target_pusch_snr_dB : target_pucch_snr_dB;
       auto& ch_snr        = snr_estim_list[chidx];
-      if (target_snr_dB < 0) {
-        ch_snr.pending_delta = 0;
-        continue;
-      }
 
       // Enqueue pending UL Channel SNR measurement
       if (ch_snr.pending_snr == null_snr) {
@@ -105,7 +101,9 @@ public:
       ch_snr.pending_snr = null_snr;
 
       // Enqueue PUSCH/PUCCH TPC sent in last TTI (zero for both Delta_PUSCH/Delta_PUCCH=0 and TPC not sent)
-      ch_snr.win_tpc_values.push(ch_snr.pending_delta);
+      if (target_snr_dB >= 0) {
+        ch_snr.win_tpc_values.push(ch_snr.pending_delta);
+      }
       ch_snr.pending_delta = 0;
     }
   }
@@ -125,6 +123,8 @@ public:
   uint8_t encode_pucch_tpc() { return encode_tpc(PUCCH_CODE); }
 
   uint32_t max_ul_prbs() const { return max_prbs_cached; }
+
+  float get_ul_snr_estim(uint32_t ul_ch_code = PUSCH_CODE) const { return snr_estim_list[ul_ch_code].snr_avg.value(); }
 
 private:
   uint8_t encode_tpc_delta(int8_t delta)
