@@ -21,7 +21,7 @@
 
 #include "srsran/interfaces/phy_interface_types.h"
 #include "srsran/srslog/srslog.h"
-#include "srsue/hdr/phy/scell/intra_measure.h"
+#include "srsue/hdr/phy/scell/intra_measure_lte.h"
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <iostream>
@@ -221,7 +221,7 @@ public:
   }
 };
 
-class meas_itf_listener : public srsue::scell::intra_measure::meas_itf
+class meas_itf_listener : public srsue::scell::intra_measure_base::meas_itf
 {
 public:
   typedef struct {
@@ -405,11 +405,10 @@ int main(int argc, char** argv)
   srslog::basic_logger& logger = srslog::fetch_basic_logger("intra_measure");
   srslog::init();
 
-  cf_t*                       baseband_buffer = srsran_vec_cf_malloc(SRSRAN_SF_LEN_MAX);
-  srsran::rf_timestamp_t      ts              = {};
-  srsue::scell::intra_measure intra_measure(logger);
-  meas_itf_listener           rrc;
-  srsue::phy_common           common(logger);
+  cf_t*                           baseband_buffer = srsran_vec_cf_malloc(SRSRAN_SF_LEN_MAX);
+  srsran::rf_timestamp_t          ts              = {};
+  meas_itf_listener               rrc;
+  srsue::scell::intra_measure_lte intra_measure(logger, rrc);
 
   // Simulation only
   std::vector<std::unique_ptr<test_enb> > test_enb_v;
@@ -420,7 +419,6 @@ int main(int argc, char** argv)
   std::unique_ptr<srsran::radio> radio = nullptr;
 
   // Set Receiver args
-  common.args                           = &phy_args;
   phy_args.estimator_fil_auto           = false;
   phy_args.estimator_fil_order          = 4;
   phy_args.estimator_fil_stddev         = 1.0f;
@@ -478,7 +476,12 @@ int main(int argc, char** argv)
 
   logger.set_level(srslog::str_to_basic_level(intra_meas_log_level));
 
-  intra_measure.init(0, &common, &rrc);
+  srsue::scell::intra_measure_base::args_t args = {};
+  args.len_ms                                   = phy_args.intra_freq_meas_len_ms;
+  args.period_ms                                = phy_args.intra_freq_meas_period_ms;
+  args.rx_gain_offset_db                        = phy_args.rx_gain_offset;
+
+  intra_measure.init(0, args);
   intra_measure.set_primary_cell(SRSRAN_MAX(earfcn_dl, 0), cell_base);
 
   if (earfcn_dl >= 0) {
@@ -643,7 +646,7 @@ int main(int argc, char** argv)
     ts.add(0.001);
 
     // Give data to intra measure component
-    intra_measure.write(sf_idx % 10240, baseband_buffer, SRSRAN_SF_LEN_PRB(cell_base.nof_prb));
+    intra_measure.run_tti(sf_idx % 10240, baseband_buffer, SRSRAN_SF_LEN_PRB(cell_base.nof_prb));
     if (sf_idx % 1000 == 0) {
       printf("Done %.1f%%\n", (double)sf_idx * 100.0 / ((double)duration_execution_s * 1000.0));
     }

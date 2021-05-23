@@ -27,12 +27,12 @@
 #ifndef SRSRAN_GNB_STACK_NR_H
 #define SRSRAN_GNB_STACK_NR_H
 
+#include "s1ap/s1ap.h"
 #include "srsenb/hdr/stack/mac/mac_nr.h"
 #include "srsenb/hdr/stack/rrc/rrc_nr.h"
 #include "srsenb/hdr/stack/upper/pdcp_nr.h"
 #include "srsenb/hdr/stack/upper/rlc_nr.h"
 #include "upper/gtpu.h"
-#include "upper/s1ap.h"
 #include "upper/sdap.h"
 
 #include "enb_stack_base.h"
@@ -79,6 +79,8 @@ public:
 
   // MAC interface to trigger processing of received PDUs
   void process_pdus() final;
+
+  void toggle_padding() { srsran::console("padding not available for NR\n"); }
 
 private:
   void run_thread() final;

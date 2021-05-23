@@ -27,9 +27,6 @@
 
 namespace srslog {
 
-/// This type is used to store small strings without doing any memory allocation.
-using small_str_buffer = fmt::basic_memory_buffer<char, 64>;
-
 namespace detail {
 
 /// This structure gives the user a way to log generic information as a context.
@@ -49,7 +46,6 @@ struct log_entry_metadata {
   fmt::dynamic_format_arg_store<fmt::printf_context>* store;
   std::string                                         log_name;
   char                                                log_tag;
-  small_str_buffer                                    small_str;
   std::vector<uint8_t>                                hex_dump;
 };
 

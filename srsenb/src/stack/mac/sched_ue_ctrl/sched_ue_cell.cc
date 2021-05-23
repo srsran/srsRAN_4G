@@ -22,6 +22,7 @@
 #include "srsenb/hdr/stack/mac/sched_ue_ctrl/sched_ue_cell.h"
 #include "srsenb/hdr/stack/mac/sched_helpers.h"
 #include "srsenb/hdr/stack/mac/sched_phy_ch/sched_dci.h"
+#include "srsenb/hdr/stack/mac/schedulers/sched_base.h"
 #include <numeric>
 
 namespace srsenb {
@@ -43,7 +44,8 @@ sched_ue_cell::sched_ue_cell(uint16_t rnti_, const sched_cell_params_t& cell_cfg
   fixed_mcs_dl(cell_cfg_.sched_cfg->pdsch_mcs),
   fixed_mcs_ul(cell_cfg_.sched_cfg->pusch_mcs),
   current_tti(current_tti_),
-  max_aggr_level(cell_cfg_.sched_cfg->max_aggr_level >= 0 ? cell_cfg_.sched_cfg->max_aggr_level : 3)
+  max_aggr_level(cell_cfg_.sched_cfg->max_aggr_level >= 0 ? cell_cfg_.sched_cfg->max_aggr_level : 3),
+  dl_cqi_ctxt(cell_cfg_.nof_prb(), 0, 1)
 {
   clear_feedback();
 }
@@ -62,6 +64,7 @@ void sched_ue_cell::set_ue_cfg(const sched_interface::ue_cfg_t& ue_cfg_)
     }
   }
   if (ue_cc_idx < 0 and prev_ue_cc_idx < 0) {
+    // CC was inactive and remain inactive
     return;
   }
 
@@ -73,6 +76,13 @@ void sched_ue_cell::set_ue_cfg(const sched_interface::ue_cfg_t& ue_cfg_)
   max_mcs_dl = cell_cfg->sched_cfg->pdsch_max_mcs >= 0 ? std::min(cell_cfg->sched_cfg->pdsch_max_mcs, 28) : 28U;
   if (ue_cfg->use_tbs_index_alt) {
     max_mcs_dl = std::min(max_mcs_dl, 27U);
+  }
+
+  if (ue_cc_idx >= 0) {
+    const auto& cc = ue_cfg_.supported_cc_list[ue_cc_idx];
+    if (cc.dl_cfg.cqi_report.periodic_configured) {
+      dl_cqi_ctxt.set_K(cc.dl_cfg.cqi_report.subband_wideband_ratio);
+    }
   }
 
   // If new cell configuration, clear Cell HARQs
@@ -92,15 +102,17 @@ void sched_ue_cell::set_ue_cfg(const sched_interface::ue_cfg_t& ue_cfg_)
       case cc_st::active:
         if (ue_cc_idx < 0 or not ue_cfg->supported_cc_list[ue_cc_idx].active) {
           cc_state_ = cc_st::deactivating;
-          logger.info("SCHED: Deactivating rnti=0x%x, SCellIndex=%d...", rnti, ue_cc_idx);
+          logger.info(
+              "SCHED: Deactivating SCell, rnti=0x%x, cc=%d, SCellIndex=%d...", rnti, cell_cfg->enb_cc_idx, ue_cc_idx);
         }
         break;
       case cc_st::deactivating:
       case cc_st::idle:
         if (ue_cc_idx > 0 and ue_cfg->supported_cc_list[ue_cc_idx].active) {
           cc_state_ = cc_st::activating;
-          dl_cqi    = 0;
-          logger.info("SCHED: Activating rnti=0x%x, SCellIndex=%d...", rnti, ue_cc_idx);
+          dl_cqi_ctxt.reset_cqi(0);
+          logger.info(
+              "SCHED: Activating SCell, rnti=0x%x, cc=%d, SCellIndex=%d...", rnti, cell_cfg->enb_cc_idx, ue_cc_idx);
         }
         break;
       default:
@@ -130,9 +142,7 @@ void sched_ue_cell::clear_feedback()
   dl_ri_tti_rx  = tti_point{};
   dl_pmi        = 0;
   dl_pmi_tti_rx = tti_point{};
-  dl_cqi        = ue_cc_idx == 0 ? cell_cfg->cfg.initial_dl_cqi : 1;
-  dl_cqi_tti_rx = tti_point{};
-  dl_cqi_rx     = false;
+  dl_cqi_ctxt.reset_cqi(ue_cc_idx == 0 ? cell_cfg->cfg.initial_dl_cqi : 1);
   ul_cqi        = 1;
   ul_cqi_tti_rx = tti_point{};
 }
@@ -143,12 +153,10 @@ void sched_ue_cell::finish_tti(tti_point tti_rx)
   harq_ent.reset_pending_data(tti_rx);
 }
 
-void sched_ue_cell::set_dl_cqi(tti_point tti_rx, uint32_t dl_cqi_)
+void sched_ue_cell::set_dl_wb_cqi(tti_point tti_rx, uint32_t dl_cqi_)
 {
-  dl_cqi        = dl_cqi_;
-  dl_cqi_tti_rx = tti_rx;
-  dl_cqi_rx     = dl_cqi_rx or dl_cqi > 0;
-  if (ue_cc_idx > 0 and cc_state_ == cc_st::activating and dl_cqi_rx) {
+  dl_cqi_ctxt.cqi_wb_info(tti_rx, dl_cqi_);
+  if (ue_cc_idx > 0 and cc_state_ == cc_st::activating and dl_cqi_ > 0) {
     // Wait for SCell to receive a positive CQI before activating it
     cc_state_ = cc_st::active;
     logger.info("SCHED: SCell index=%d is now active", ue_cc_idx);
@@ -233,29 +241,32 @@ std::tuple<int, YType, int, YType> false_position_method(int x1, int x2, YType y
 }
 
 tbs_info cqi_to_tbs_dl(const sched_ue_cell& cell,
-                       uint32_t             nof_prb,
+                       const rbgmask_t&     rbgs,
                        uint32_t             nof_re,
                        srsran_dci_format_t  dci_format,
-                       int                  req_bytes)
+                       uint32_t             req_bytes)
 {
-  bool use_tbs_index_alt = cell.get_ue_cfg()->use_tbs_index_alt and dci_format != SRSRAN_DCI_FORMAT1A;
+  bool     use_tbs_index_alt = cell.get_ue_cfg()->use_tbs_index_alt and dci_format != SRSRAN_DCI_FORMAT1A;
+  uint32_t nof_prbs          = count_prb_per_tb(rbgs);
 
   tbs_info ret;
-  if (cell.fixed_mcs_dl < 0 or not cell.dl_cqi_rx) {
-    // Dynamic MCS
+  if (cell.fixed_mcs_dl < 0 or not cell.dl_cqi().is_cqi_info_received()) {
+    // Dynamic MCS configured or first Tx
+    uint32_t dl_cqi = std::get<1>(find_min_cqi_rbg(rbgs, cell.dl_cqi()));
+
     ret = compute_min_mcs_and_tbs_from_required_bytes(
-        nof_prb, nof_re, cell.dl_cqi, cell.max_mcs_dl, req_bytes, false, false, use_tbs_index_alt);
+        nof_prbs, nof_re, dl_cqi, cell.max_mcs_dl, req_bytes, false, false, use_tbs_index_alt);
 
     // If coderate > SRSRAN_MIN(max_coderate, 0.932 * Qm) we should set TBS=0. We don't because it's not correctly
     // handled by the scheduler, but we might be scheduling undecodable codewords at very low SNR
     if (ret.tbs_bytes < 0) {
       ret.mcs       = 0;
-      ret.tbs_bytes = get_tbs_bytes((uint32_t)ret.mcs, nof_prb, use_tbs_index_alt, false);
+      ret.tbs_bytes = get_tbs_bytes((uint32_t)ret.mcs, nof_prbs, use_tbs_index_alt, false);
     }
   } else {
-    // Fixed MCS
+    // Fixed MCS configured
     ret.mcs       = cell.fixed_mcs_dl;
-    ret.tbs_bytes = get_tbs_bytes((uint32_t)cell.fixed_mcs_dl, nof_prb, use_tbs_index_alt, false);
+    ret.tbs_bytes = get_tbs_bytes((uint32_t)cell.fixed_mcs_dl, nof_prbs, use_tbs_index_alt, false);
   }
   return ret;
 }
@@ -293,8 +304,9 @@ int get_required_prb_dl(const sched_ue_cell& cell,
                         uint32_t             req_bytes)
 {
   auto compute_tbs_approx = [tti_tx_dl, &cell, dci_format](uint32_t nof_prb) {
-    uint32_t nof_re = cell.cell_cfg->get_dl_lb_nof_re(tti_tx_dl, nof_prb);
-    tbs_info tb     = cqi_to_tbs_dl(cell, nof_prb, nof_re, dci_format, -1);
+    uint32_t  nof_re       = cell.cell_cfg->get_dl_lb_nof_re(tti_tx_dl, nof_prb);
+    rbgmask_t min_cqi_rbgs = cell.dl_cqi().get_optim_rbgmask(nof_prb, false);
+    tbs_info  tb           = cqi_to_tbs_dl(cell, min_cqi_rbgs, nof_re, dci_format);
     return tb.tbs_bytes;
   };
 
@@ -336,6 +348,103 @@ uint32_t get_required_prb_ul(const sched_ue_cell& cell, uint32_t req_bytes)
     req_prbs++;
   }
   return req_prbs;
+}
+
+/// Computes the minimum TBS/MCS achievable for provided UE cell configuration, RBG mask, TTI, DCI format
+tbs_info compute_mcs_and_tbs_lower_bound(const sched_ue_cell& ue_cell,
+                                         tti_point            tti_tx_dl,
+                                         const rbgmask_t&     rbg_mask,
+                                         srsran_dci_format_t  dci_format)
+{
+  uint32_t nof_prbs = count_prb_per_tb(rbg_mask);
+  if (nof_prbs == 0) {
+    return tbs_info{};
+  }
+  uint32_t nof_re_lb = ue_cell.cell_cfg->get_dl_lb_nof_re(tti_tx_dl, nof_prbs);
+  return cqi_to_tbs_dl(ue_cell, rbg_mask, nof_re_lb, dci_format);
+}
+
+bool find_optimal_rbgmask(const sched_ue_cell&       ue_cell,
+                          tti_point                  tti_tx_dl,
+                          const rbgmask_t&           dl_mask,
+                          srsran_dci_format_t        dci_format,
+                          srsran::interval<uint32_t> req_bytes,
+                          tbs_info&                  tb,
+                          rbgmask_t&                 newtxmask)
+{
+  // Find the largest set of available RBGs possible
+  newtxmask = find_available_rbgmask(dl_mask.size(), dci_format == SRSRAN_DCI_FORMAT1A, dl_mask);
+
+  // Compute MCS/TBS if all available RBGs were allocated
+  tb = compute_mcs_and_tbs_lower_bound(ue_cell, tti_tx_dl, newtxmask, dci_format);
+
+  if (not ue_cell.dl_cqi().subband_cqi_enabled()) {
+    // Wideband CQI case
+    // NOTE: for wideband CQI, the TBS is directly proportional to the nof_prbs, so we can use an iterative method
+    //       to compute the best mask given "req_bytes"
+
+    if (tb.tbs_bytes < (int)req_bytes.start()) {
+      // the grant is too small. it may lead to srb0 segmentation or not space for headers
+      return false;
+    }
+    if (tb.tbs_bytes <= (int)req_bytes.stop()) {
+      // the grant is not sufficiently large to fit max required bytes. Stop search at this point
+      return true;
+    }
+    // Reduce DL grant size to the minimum that can fit the pending DL bytes
+    srsran::bounded_vector<tbs_info, MAX_NOF_RBGS> tb_table(newtxmask.count());
+    auto compute_tbs_approx = [tti_tx_dl, &ue_cell, dci_format, &tb_table](uint32_t nof_rbgs) {
+      rbgmask_t search_mask(ue_cell.cell_cfg->nof_rbgs);
+      search_mask.fill(0, nof_rbgs);
+      tb_table[nof_rbgs - 1] = compute_mcs_and_tbs_lower_bound(ue_cell, tti_tx_dl, search_mask, dci_format);
+      return tb_table[nof_rbgs - 1].tbs_bytes;
+    };
+    std::tuple<uint32_t, int, uint32_t, int> ret = false_position_method(
+        1U, tb_table.size(), (int)req_bytes.stop(), compute_tbs_approx, [](int y) { return y == SRSRAN_ERROR; });
+    uint32_t upper_nrbg = std::get<2>(ret);
+    int      upper_tbs  = std::get<3>(ret);
+    if (upper_tbs >= (int)req_bytes.stop()) {
+      tb      = tb_table[upper_nrbg - 1];
+      int pos = 0;
+      for (uint32_t n_rbgs = newtxmask.count(); n_rbgs > upper_nrbg; --n_rbgs) {
+        pos = newtxmask.find_lowest(pos + 1, newtxmask.size());
+      }
+      newtxmask.from_uint64(~((1U << (uint64_t)pos) - 1U) & ((1U << newtxmask.size()) - 1U));
+    }
+    return true;
+  }
+
+  // Subband CQI case
+  // NOTE: There is no monotonically increasing guarantee between TBS and nof allocated prbs.
+  //       One single subband CQI could be dropping the CQI of the whole TB.
+  //       We start with largest RBG allocation and continue removing RBGs. However, there is no guarantee this is
+  //       going to be the optimal solution
+
+  // Subtract whole CQI subbands until objective is not met
+  // TODO: can be optimized
+  rbgmask_t smaller_mask;
+  tbs_info  tb2;
+  do {
+    smaller_mask = remove_min_cqi_subband(newtxmask, ue_cell.dl_cqi());
+    tb2          = compute_mcs_and_tbs_lower_bound(ue_cell, tti_tx_dl, smaller_mask, dci_format);
+    if (tb2.tbs_bytes >= (int)req_bytes.stop() or tb.tbs_bytes <= tb2.tbs_bytes) {
+      tb        = tb2;
+      newtxmask = smaller_mask;
+    }
+  } while (tb2.tbs_bytes > (int)req_bytes.stop());
+  if (tb.tbs_bytes <= (int)req_bytes.stop()) {
+    return true;
+  }
+  do {
+    smaller_mask = remove_min_cqi_rbg(newtxmask, ue_cell.dl_cqi());
+    tb2          = compute_mcs_and_tbs_lower_bound(ue_cell, tti_tx_dl, smaller_mask, dci_format);
+    if (tb2.tbs_bytes >= (int)req_bytes.stop() or tb.tbs_bytes <= tb2.tbs_bytes) {
+      tb        = tb2;
+      newtxmask = smaller_mask;
+    }
+  } while (tb2.tbs_bytes > (int)req_bytes.stop());
+
+  return true;
 }
 
 } // namespace srsenb

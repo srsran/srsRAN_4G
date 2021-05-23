@@ -81,7 +81,7 @@ bool sf_cch_allocator::alloc_dci(alloc_type_t alloc_type, uint32_t aggr_idx, sch
   record.alloc_type = alloc_type;
   record.pusch_uci  = has_pusch_grant;
 
-  if (is_dl_ctrl_alloc(alloc_type) and nof_allocs() == 0 and cc_cfg->nof_prb() == 6 and
+  if (is_dl_ctrl_alloc(alloc_type) and nof_allocs() == 0 and cc_cfg->nof_prb() <= 25 and
       current_max_cfix > current_cfix) {
     // Given that CFI is not currently dynamic for ctrl allocs, in case of SIB/RAR alloc and a low number of PRBs,
     // start with an CFI that maximizes nof potential CCE locs

@@ -31,7 +31,7 @@
  * @param measurements Current CSI measurements
  * @param new_measure New NZP-CSI-RS channel measurement
  * @param nzp_csi_rs_id NZP-CSI-RS resource set identifier
- * @return SRSLTE_SUCCESS if the provided information is valid, SRSLTE_ERROR code otherwise
+ * @return SRSRAN_SUCCESS if the provided information is valid, SRSRAN_ERROR code otherwise
  */
 SRSRAN_API int
 srsran_csi_new_nzp_csi_rs_measurement(const srsran_csi_hl_resource_cfg_t csi_resources[SRSRAN_CSI_MAX_NOF_RESOURCES],

@@ -683,18 +683,18 @@ int meas_obj_test()
 
   rrc_meas_logger.info("Test7: PHY finds new neighbours in frequency 1 and 2, check RRC instructs to search them");
   std::vector<phy_meas_t> phy_meas = {};
-  phy_meas.push_back({0, 0, 0.0f, 1, 31});
-  phy_meas.push_back({-1, 0, 0.0f, 1, 32});
-  phy_meas.push_back({-2, 0, 0.0f, 1, 33});
-  phy_meas.push_back({-3, 0, 0.0f, 1, 34});
+  phy_meas.push_back({srsran::srsran_rat_t::lte, 0, 0, 0.0f, 1, 31});
+  phy_meas.push_back({srsran::srsran_rat_t::lte, -1, 0, 0.0f, 1, 32});
+  phy_meas.push_back({srsran::srsran_rat_t::lte, -2, 0, 0.0f, 1, 33});
+  phy_meas.push_back({srsran::srsran_rat_t::lte, -3, 0, 0.0f, 1, 34});
   rrctest.new_cell_meas(phy_meas);
   rrctest.run_tti(1);
   phy_meas = {};
-  phy_meas.push_back({-4, 0, 0.0f, 1, 35});
-  phy_meas.push_back({-5, 0, 0.0f, 1, 36});
-  phy_meas.push_back({-6, 0, 0.0f, 1, 37});
-  phy_meas.push_back({1, 0, 0.0f, 1, 30});
-  phy_meas.push_back({0, 0, 0.0f, 2, 31});
+  phy_meas.push_back({srsran::srsran_rat_t::lte, -4, 0, 0.0f, 1, 35});
+  phy_meas.push_back({srsran::srsran_rat_t::lte, -5, 0, 0.0f, 1, 36});
+  phy_meas.push_back({srsran::srsran_rat_t::lte, -6, 0, 0.0f, 1, 37});
+  phy_meas.push_back({srsran::srsran_rat_t::lte, 1, 0, 0.0f, 1, 30});
+  phy_meas.push_back({srsran::srsran_rat_t::lte, 0, 0, 0.0f, 2, 31});
   rrctest.new_cell_meas(phy_meas);
   rrctest.run_tti(1);
 
@@ -815,7 +815,7 @@ void send_report(rrc_test&                   rrctest,
     if (earfcn.size() == pci.size()) {
       e = earfcn[i];
     }
-    phy_meas.push_back({r, -5, 0.0f, e, pci[i]});
+    phy_meas.push_back({srsran::srsran_rat_t::lte, r, -5, 0.0f, e, pci[i]});
   }
   rrctest.new_cell_meas(phy_meas);
   rrctest.run_tti(1);

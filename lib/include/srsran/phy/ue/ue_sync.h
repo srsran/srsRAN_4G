@@ -247,6 +247,8 @@ SRSRAN_API uint32_t srsran_ue_sync_get_sfidx(srsran_ue_sync_t* q);
 
 SRSRAN_API float srsran_ue_sync_get_cfo(srsran_ue_sync_t* q);
 
+SRSRAN_API void srsran_ue_sync_cp_en(srsran_ue_sync_t* q, bool enabled);
+
 SRSRAN_API float srsran_ue_sync_get_sfo(srsran_ue_sync_t* q);
 
 SRSRAN_API int srsran_ue_sync_get_last_sample_offset(srsran_ue_sync_t* q);

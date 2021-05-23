@@ -43,7 +43,7 @@
  * @param N_id_1 Physical cell ID 1
  * @param N_id_2 Physical cell ID 2
  * @param beta SSS power allocation
- * @return SRSLTE_SUCCESS if the parameters are valid, SRSLTE_ERROR code otherwise
+ * @return SRSRAN_SUCCESS if the parameters are valid, SRSRAN_ERROR code otherwise
  */
 SRSRAN_API int srsran_sss_nr_put(cf_t ssb_grid[SRSRAN_SSB_NOF_RE], uint32_t N_id_1, uint32_t N_id_2, float beta);
 
@@ -53,7 +53,7 @@ SRSRAN_API int srsran_sss_nr_put(cf_t ssb_grid[SRSRAN_SSB_NOF_RE], uint32_t N_id
  * @param N_id_1 Physical cell ID 1
  * @param N_id_2 Physical cell ID 2
  * @param lse Provides LSE pointer
- * @return SRSLTE_SUCCESS if the parameters are valid, SRSLTE_ERROR code otherwise
+ * @return SRSRAN_SUCCESS if the parameters are valid, SRSRAN_ERROR code otherwise
  */
 SRSRAN_API int
 srsran_sss_nr_extract_lse(const cf_t* ssb_grid, uint32_t N_id_1, uint32_t N_id_2, cf_t lse[SRSRAN_SSS_NR_LEN]);
@@ -65,7 +65,7 @@ srsran_sss_nr_extract_lse(const cf_t* ssb_grid, uint32_t N_id_1, uint32_t N_id_2
  * @param N_id_2 Fix N_id_2 to search, it reduces the search space 1/3
  * @param norm_corr Normalised correlation of the best found sequence
  * @param found_N_id_1 The N_id_1 of the best sequence
- * @return SRSLTE_SUCCESS if the parameters are valid, SRSLTE_ERROR code otherwise
+ * @return SRSRAN_SUCCESS if the parameters are valid, SRSRAN_ERROR code otherwise
  */
 SRSRAN_API int
 srsran_sss_nr_find(const cf_t ssb_grid[SRSRAN_SSB_NOF_RE], uint32_t N_id_2, float* norm_corr, uint32_t* found_N_id_1);

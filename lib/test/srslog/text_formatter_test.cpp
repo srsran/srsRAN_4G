@@ -37,7 +37,7 @@ static detail::log_entry_metadata build_log_entry_metadata(fmt::dynamic_format_a
     store->push_back(88);
   }
 
-  return {tp, {10, true}, "Text %d", store, "ABC", 'Z', small_str_buffer()};
+  return {tp, {10, true}, "Text %d", store, "ABC", 'Z'};
 }
 
 static bool when_fully_filled_log_entry_then_everything_is_formatted()

@@ -146,6 +146,8 @@ public:
   // eNodeB command interface
   void cmd_cell_gain(uint32_t cell_id, float gain) override;
 
+  void toggle_padding() override;
+
 private:
   const static int ENB_POOL_SIZE = 1024 * 10;
 

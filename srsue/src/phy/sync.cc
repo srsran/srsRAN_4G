@@ -83,6 +83,7 @@ void sync::init(srsran::radio_interface_phy* _radio,
     Error("SYNC:  Initiating ue_sync");
     return;
   }
+  srsran_ue_sync_cp_en(&ue_sync, worker_com->args->detect_cp);
 
   if (worker_com->args->dl_channel_args.enable) {
     channel_emulator =
@@ -91,15 +92,19 @@ void sync::init(srsran::radio_interface_phy* _radio,
 
   // Initialize cell searcher
   search_p.init(sf_buffer, nof_rf_channels, this, worker_com->args->force_N_id_2);
-
+  search_p.set_cp_en(worker_com->args->detect_cp);
   // Initialize SFN synchronizer, it uses only pcell buffer
   sfn_p.init(&ue_sync, worker_com->args, sf_buffer, sf_buffer.size());
 
   // Start intra-frequency measurement
   for (uint32_t i = 0; i < worker_com->args->nof_lte_carriers; i++) {
-    scell::intra_measure* q = new scell::intra_measure(phy_logger);
-    q->init(i, worker_com, this);
-    intra_freq_meas.push_back(std::unique_ptr<scell::intra_measure>(q));
+    scell::intra_measure_lte*         q    = new scell::intra_measure_lte(phy_logger, *this);
+    scell::intra_measure_base::args_t args = {};
+    args.len_ms                            = worker_com->args->intra_freq_meas_len_ms;
+    args.period_ms                         = worker_com->args->intra_freq_meas_period_ms;
+    args.rx_gain_offset_db                 = worker_com->args->rx_gain_offset;
+    q->init(i, args);
+    intra_freq_meas.push_back(std::unique_ptr<scell::intra_measure_lte>(q));
   }
 
   // Allocate Secondary serving cell synchronization
@@ -955,7 +960,7 @@ int sync::radio_recv_fnc(srsran::rf_buffer_t& data, srsran_timestamp_t* rx_time)
   if (srsran_cell_isvalid(&cell)) {
     for (uint32_t i = 0; (uint32_t)i < intra_freq_meas.size(); i++) {
       // Feed the exact number of base-band samples for avoiding an invalid buffer read
-      intra_freq_meas[i]->write(tti, data.get(i, 0, worker_com->args->nof_rx_ant), data.get_nof_samples());
+      intra_freq_meas[i]->run_tti(tti, data.get(i, 0, worker_com->args->nof_rx_ant), data.get_nof_samples());
 
       // Update RX gain
       intra_freq_meas[i]->set_rx_gain_offset(worker_com->get_rx_gain_offset());

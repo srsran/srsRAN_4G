@@ -166,7 +166,6 @@ class multiqueue_handler
         //       To ensure that the consumer noticed that the queue was empty before a push, we store the last
         //       try_pop() return in a member variable.
         //       Doing this reduces the contention of multiple producers for the same condition variable
-        consumer_notify_needed = false;
         lock.unlock();
         parent->signal_pushed_data();
       }

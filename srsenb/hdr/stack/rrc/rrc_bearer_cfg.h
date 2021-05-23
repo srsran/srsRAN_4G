@@ -78,7 +78,8 @@ public:
       uint32_t teid_in  = 0;
       uint32_t addr     = 0;
     };
-    uint8_t                                     id = 0;
+    uint8_t                                     id   = 0;
+    uint8_t                                     lcid = 0;
     asn1::s1ap::erab_level_qos_params_s         qos_params;
     asn1::bounded_bitstring<1, 160, true, true> address;
     uint32_t                                    teid_out = 0;

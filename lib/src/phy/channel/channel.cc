@@ -221,7 +221,7 @@ void channel::run(cf_t*                     in[SRSRAN_MAX_CHANNELS],
 
   // Logging
   std::stringstream str;
-  str << "t=" << t.full_secs + t.frac_secs << "s; ";
+  str << "Channel: t=" << t.full_secs + t.frac_secs << "s; ";
   if (delay[0]) {
     str << "delay=" << delay[0]->delay_us << "us; ";
   }

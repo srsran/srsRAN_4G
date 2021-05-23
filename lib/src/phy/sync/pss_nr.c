@@ -103,3 +103,52 @@ int srsran_pss_nr_extract_lse(const cf_t* ssb_grid, uint32_t N_id_2, cf_t lse[SR
 
   return SRSRAN_SUCCESS;
 }
+
+int srsran_pss_nr_find(const cf_t ssb_grid[SRSRAN_SSB_NOF_RE], float* norm_corr, uint32_t* found_N_id_2)
+{
+  // Verify inputs
+  if (ssb_grid == NULL || norm_corr == NULL || found_N_id_2 == NULL) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+
+  const cf_t* pss_ptr = &ssb_grid[SRSRAN_PSS_NR_SYMBOL_IDX * SRSRAN_SSB_BW_SUBC + PSS_NR_SUBC_BEGIN];
+
+  // Measure PSS region average power
+  float avg_power = srsran_vec_avg_power_cf(pss_ptr, SRSRAN_PSS_NR_LEN);
+
+  // If no energy detected or invalid, consider zero correlation
+  if (!isnormal(avg_power)) {
+    *norm_corr    = 0.0f;
+    *found_N_id_2 = 0;
+    return SRSRAN_SUCCESS;
+  }
+
+  // Search state
+  float    max_corr = -INFINITY; //< Stores best correlation
+  uint32_t N_id_2   = 0;         //< Best N_id_2
+
+  // Iterate over all possible N_id_2
+  for (uint32_t N_id_2_candidate = 0; N_id_2_candidate < SRSRAN_NOF_NID_2_NR; N_id_2_candidate++) {
+    uint32_t m   = PSS_NR_SEQUENCE_M(N_id_2_candidate);
+    cf_t     acc = 0.0f;
+
+    // Correlate d sequence fist part
+    acc += srsran_vec_dot_prod_ccc(&pss_nr_d[m], &pss_ptr[0], SRSRAN_PSS_NR_LEN - m);
+
+    // Correlate d sequence second part
+    acc += srsran_vec_dot_prod_ccc(&pss_nr_d[0], &pss_ptr[SRSRAN_PSS_NR_LEN - m], m);
+
+    // Correlate
+    float corr = SRSRAN_CSQABS(acc);
+    if (corr > max_corr) {
+      N_id_2   = N_id_2_candidate;
+      max_corr = corr;
+    }
+  }
+
+  // Copy found result
+  *norm_corr    = max_corr / avg_power / SRSRAN_PSS_NR_LEN;
+  *found_N_id_2 = N_id_2;
+
+  return SRSRAN_SUCCESS;
+}

@@ -77,18 +77,18 @@ void scell_recv::reset()
   current_fft_sz = 0;
 }
 
-std::set<uint32_t>
-scell_recv::find_cells(const cf_t* input_buffer, const srsran_cell_t serving_cell, const uint32_t nof_sf)
+void scell_recv::find_cells(const cf_t*          input_buffer,
+                            const srsran_cell_t& serving_cell,
+                            const uint32_t&      nof_sf,
+                            std::set<uint32_t>&  found_cell_ids)
 {
-  std::set<uint32_t> found_cell_ids = {};
-
   uint32_t fft_sz = srsran_symbol_sz(serving_cell.nof_prb);
   uint32_t sf_len = SRSRAN_SF_LEN(fft_sz);
 
   if (fft_sz != current_fft_sz) {
     if (srsran_sync_resize(&sync_find, nof_sf * sf_len, 5 * sf_len, fft_sz)) {
       logger.error("Error resizing sync nof_sf=%d, sf_len=%d, fft_sz=%d", nof_sf, sf_len, fft_sz);
-      return found_cell_ids;
+      return;
     }
     current_fft_sz = fft_sz;
   }
@@ -97,7 +97,6 @@ scell_recv::find_cells(const cf_t* input_buffer, const srsran_cell_t serving_cel
   int      cell_id  = 0;
 
   for (uint32_t n_id_2 = 0; n_id_2 < 3; n_id_2++) {
-
     if (n_id_2 != (serving_cell.id % 3)) {
       srsran_sync_set_N_id_2(&sync_find, n_id_2);
 
@@ -117,7 +116,7 @@ scell_recv::find_cells(const cf_t* input_buffer, const srsran_cell_t serving_cel
         sync_res = srsran_sync_find(&sync_find, input_buffer, sf5_cnt * 5 * sf_len, &peak_idx);
         if (sync_res == SRSRAN_SYNC_ERROR) {
           logger.error("INTRA: Error calling sync_find()");
-          return found_cell_ids;
+          return;
         }
 
         if (sync_find.peak_value > max_peak && sync_res == SRSRAN_SYNC_FOUND && srsran_sync_sss_detected(&sync_find)) {
@@ -153,7 +152,7 @@ scell_recv::find_cells(const cf_t* input_buffer, const srsran_cell_t serving_cel
       }
     }
   }
-  return found_cell_ids;
+  return;
 }
 
 } // namespace scell

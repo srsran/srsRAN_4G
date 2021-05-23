@@ -352,9 +352,14 @@ void ue_cfg_apply_phy_cfg_ded(ue_cfg_t& ue_cfg, const asn1::rrc::phys_cfg_ded_s&
   auto& pcell_cfg = ue_cfg.supported_cc_list[0];
   if (phy_cfg.cqi_report_cfg_present) {
     if (phy_cfg.cqi_report_cfg.cqi_report_periodic_present) {
-      auto& cqi_cfg                                   = phy_cfg.cqi_report_cfg.cqi_report_periodic.setup();
-      ue_cfg.pucch_cfg.n_pucch                        = cqi_cfg.cqi_pucch_res_idx;
-      pcell_cfg.dl_cfg.cqi_report.pmi_idx             = cqi_cfg.cqi_pmi_cfg_idx;
+      const auto& cqi_cfg                                = phy_cfg.cqi_report_cfg.cqi_report_periodic.setup();
+      ue_cfg.pucch_cfg.n_pucch                           = cqi_cfg.cqi_pucch_res_idx;
+      pcell_cfg.dl_cfg.cqi_report.pmi_idx                = cqi_cfg.cqi_pmi_cfg_idx;
+      pcell_cfg.dl_cfg.cqi_report.subband_wideband_ratio = 0;
+      if (cqi_cfg.cqi_format_ind_periodic.type().value ==
+          cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types_opts::subband_cqi) {
+        pcell_cfg.dl_cfg.cqi_report.subband_wideband_ratio = cqi_cfg.cqi_format_ind_periodic.subband_cqi().k;
+      }
       pcell_cfg.dl_cfg.cqi_report.periodic_configured = true;
     } else if (phy_cfg.cqi_report_cfg.cqi_report_mode_aperiodic_present) {
       pcell_cfg.aperiodic_cqi_period                   = rrc_cfg.cqi_cfg.period;
@@ -456,9 +461,10 @@ void ue_cfg_apply_reconf_complete_updates(ue_cfg_t&                      ue_cfg,
           if (ul_cfg.cqi_report_cfg_scell_r10.cqi_report_periodic_scell_r10_present and
               ul_cfg.cqi_report_cfg_scell_r10.cqi_report_periodic_scell_r10.type().value == setup_opts::setup) {
             // periodic CQI
-            auto& periodic = ul_cfg.cqi_report_cfg_scell_r10.cqi_report_periodic_scell_r10.setup();
-            mac_scell.dl_cfg.cqi_report.periodic_configured = true;
-            mac_scell.dl_cfg.cqi_report.pmi_idx             = periodic.cqi_pmi_cfg_idx;
+            const auto& periodic = ul_cfg.cqi_report_cfg_scell_r10.cqi_report_periodic_scell_r10.setup();
+            mac_scell.dl_cfg.cqi_report.periodic_configured    = true;
+            mac_scell.dl_cfg.cqi_report.pmi_idx                = periodic.cqi_pmi_cfg_idx;
+            mac_scell.dl_cfg.cqi_report.subband_wideband_ratio = 0;
           } else if (ul_cfg.cqi_report_cfg_scell_r10.cqi_report_mode_aperiodic_r10_present) {
             // aperiodic CQI
             mac_scell.dl_cfg.cqi_report.aperiodic_configured =

@@ -372,6 +372,13 @@ public:
     return get_word_(0);
   }
 
+  void from_uint64(uint64_t v)
+  {
+    srsran_assert(nof_words_() == 1, "ERROR: cannot convert bitset of size=%zd to uint64_t", size());
+    srsran_assert(v < (1U << size()), "ERROR: Provided uint64=%ld does not fit in bitset of size=%zd", v, size());
+    buffer[0] = v;
+  }
+
   template <typename OutputIt>
   OutputIt to_hex(OutputIt&& mem_buffer) const noexcept
   {

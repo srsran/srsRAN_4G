@@ -47,74 +47,6 @@ inline uint32_t get_nof_retx(uint32_t rv_idx)
   return nof_retxs[rv_idx % 4];
 }
 
-/// convert cell nof PRBs to nof RBGs
-inline uint32_t cell_nof_prb_to_rbg(uint32_t nof_prbs)
-{
-  switch (nof_prbs) {
-    case 6:
-      return 6;
-    case 15:
-      return 8;
-    case 25:
-      return 13;
-    case 50:
-      return 17;
-    case 75:
-      return 19;
-    case 100:
-      return 25;
-    default:
-      srslog::fetch_basic_logger("MAC").error("Provided nof PRBs not valid");
-      return 0;
-  }
-}
-
-/// convert cell nof RBGs to nof PRBs
-inline uint32_t cell_nof_rbg_to_prb(uint32_t nof_rbgs)
-{
-  switch (nof_rbgs) {
-    case 6:
-      return 6;
-    case 8:
-      return 15;
-    case 13:
-      return 25;
-    case 17:
-      return 50;
-    case 19:
-      return 75;
-    case 25:
-      return 100;
-    default:
-      srslog::fetch_basic_logger("MAC").error("Provided nof PRBs not valid");
-      return 0;
-  }
-}
-
-/**
- * Count number of PRBs present in a DL RBG mask
- * @param cell_nof_prb cell nof prbs
- * @param P cell ratio prb/rbg
- * @param bitmask DL RBG mask
- * @return number of prbs
- */
-inline uint32_t count_prb_per_tb(const rbgmask_t& bitmask)
-{
-  uint32_t Nprb    = cell_nof_rbg_to_prb(bitmask.size());
-  uint32_t P       = srsran_ra_type0_P(Nprb);
-  uint32_t nof_prb = P * bitmask.count();
-  if (bitmask.test(bitmask.size() - 1)) {
-    nof_prb -= bitmask.size() * P - Nprb;
-  }
-  return nof_prb;
-}
-
-inline uint32_t count_prb_per_tb_approx(uint32_t nof_rbgs, uint32_t cell_nof_prb)
-{
-  uint32_t P = srsran_ra_type0_P(cell_nof_prb);
-  return std::min(nof_rbgs * P, cell_nof_prb);
-}
-
 cce_frame_position_table generate_cce_location_table(uint16_t rnti, const sched_cell_params_t& cell_cfg);
 
 /**
@@ -149,12 +81,6 @@ uint32_t get_aggr_level(uint32_t nof_bits,
                         uint32_t max_aggr_lvl,
                         uint32_t cell_nof_prb,
                         bool     use_tbs_index_alt);
-
-/*******************************************************
- *              RB mask helper functions
- *******************************************************/
-
-bool is_contiguous(const rbgmask_t& mask);
 
 /*******************************************************
  *          sched_interface helper functions

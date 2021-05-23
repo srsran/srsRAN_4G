@@ -240,7 +240,7 @@ bool paging_manager::read_pdu_pcch(tti_point tti_tx_dl, const Callable& func)
   }
 
   // Call callable for existing PCCH pdu
-  if (func(*pending_pcch->pdu, pending_pcch->pcch_msg, pending_pcch->tti_tx_dl.is_valid())) {
+  if (func(*pending_pcch->pdu, pending_pcch->pcch_msg, not pending_pcch->is_tx())) {
     pending_pcch->tti_tx_dl = tti_tx_dl;
     return true;
   }

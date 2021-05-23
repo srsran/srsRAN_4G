@@ -74,6 +74,43 @@ uint32_t sch_nr_n_prb_lbrm(uint32_t nof_prb)
   return 273;
 }
 
+static int sch_nr_cbsegm(srsran_basegraph_t bg, uint32_t tbs, srsran_cbsegm_t* cbsegm)
+{
+  if (bg == BG1) {
+    if (srsran_cbsegm_ldpc_bg1(cbsegm, tbs) != SRSRAN_SUCCESS) {
+      ERROR("Error: calculating LDPC BG1 code block segmentation for tbs=%d", tbs);
+      return SRSRAN_ERROR;
+    }
+  } else {
+    if (srsran_cbsegm_ldpc_bg2(cbsegm, tbs) != SRSRAN_SUCCESS) {
+      ERROR("Error: calculating LDPC BG1 code block segmentation for tbs=%d", tbs);
+      return SRSRAN_ERROR;
+    }
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
+static int sch_nr_Nref(uint32_t N_rb, srsran_mcs_table_t mcs_table, uint32_t max_mimo_layers)
+{
+  uint32_t           N_re_lbrm = SRSRAN_MAX_NRE_NR * sch_nr_n_prb_lbrm(N_rb);
+  double             TCR_lbrm  = 948.0 / 1024.0;
+  uint32_t           Qm_lbrm   = (mcs_table == srsran_mcs_table_256qam) ? 8 : 6;
+  uint32_t           TBS_LRBM  = srsran_ra_nr_tbs(N_re_lbrm, 1.0, TCR_lbrm, Qm_lbrm, max_mimo_layers);
+  double             R         = 2.0 / 3.0;
+  srsran_basegraph_t bg        = srsran_sch_nr_select_basegraph(TBS_LRBM, R);
+
+  // Compute segmentation
+  srsran_cbsegm_t cbsegm = {};
+  int             r      = sch_nr_cbsegm(bg, TBS_LRBM, &cbsegm);
+  if (r < SRSRAN_SUCCESS) {
+    ERROR("Error computing TB segmentation");
+    return SRSRAN_ERROR;
+  }
+
+  return (int)ceil((double)TBS_LRBM / (double)(cbsegm.C * R));
+}
+
 int srsran_sch_nr_fill_tb_info(const srsran_carrier_nr_t* carrier,
                                const srsran_sch_cfg_t*    sch_cfg,
                                const srsran_sch_tb_t*     tb,
@@ -88,16 +125,9 @@ int srsran_sch_nr_fill_tb_info(const srsran_carrier_nr_t* carrier,
 
   // Compute code block segmentation
   srsran_cbsegm_t cbsegm = {};
-  if (bg == BG1) {
-    if (srsran_cbsegm_ldpc_bg1(&cbsegm, tb->tbs) != SRSRAN_SUCCESS) {
-      ERROR("Error: calculating LDPC BG1 code block segmentation for tbs=%d", tb->tbs);
-      return SRSRAN_ERROR;
-    }
-  } else {
-    if (srsran_cbsegm_ldpc_bg2(&cbsegm, tb->tbs) != SRSRAN_SUCCESS) {
-      ERROR("Error: calculating LDPC BG1 code block segmentation for tbs=%d", tb->tbs);
-      return SRSRAN_ERROR;
-    }
+  if (sch_nr_cbsegm(bg, tb->tbs, &cbsegm) < SRSRAN_SUCCESS) {
+    ERROR("Error calculation TB segmentation");
+    return SRSRAN_ERROR;
   }
 
   if (cbsegm.Z > MAX_LIFTSIZE) {
@@ -120,13 +150,11 @@ int srsran_sch_nr_fill_tb_info(const srsran_carrier_nr_t* carrier,
   cfg->Nl   = tb->N_L;
 
   // Calculate Nref
-  uint32_t N_re_lbrm       = SRSRAN_MAX_NRE_NR * sch_nr_n_prb_lbrm(carrier->nof_prb);
-  double   TCR_lbrm        = 948.0 / 1024.0;
-  uint32_t Qm_lbrm         = (sch_cfg->mcs_table == srsran_mcs_table_256qam) ? 8 : 6;
-  uint32_t max_mimo_layers = SRSRAN_MAX(carrier->max_mimo_layers, 4);
-  uint32_t TBS_LRBM        = srsran_ra_nr_tbs(N_re_lbrm, 1.0, TCR_lbrm, Qm_lbrm, max_mimo_layers);
-  double   R               = 2.0 / 3.0;
-  cfg->Nref                = (uint32_t)ceil((double)TBS_LRBM / (double)(cbsegm.C * R));
+  int Nref = sch_nr_Nref(carrier->nof_prb, sch_cfg->mcs_table, carrier->max_mimo_layers);
+  if (Nref < SRSRAN_SUCCESS) {
+    ERROR("Error computing N_ref");
+  }
+  cfg->Nref = (uint32_t)Nref;
 
   // Calculate number of code blocks after applying CBGTI... not implemented, activate all CB
   for (uint32_t r = 0; r < cbsegm.C; r++) {
@@ -664,7 +692,6 @@ static int sch_nr_decode(srsran_sch_nr_t*        q,
   } else {
     res->avg_iter = NAN;
   }
-
 
   // Not all CB are decoded, skip TB union and CRC check
   if (cb_ok != cfg.C) {

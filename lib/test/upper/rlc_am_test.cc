@@ -92,7 +92,7 @@ public:
 class ul_writer : public thread
 {
 public:
-  ul_writer(rlc_am_lte* rlc_) : rlc(rlc_), running(false), thread("UL_WRITER") {}
+  ul_writer(rlc_am_lte* rlc_) : rlc(rlc_), thread("UL_WRITER") {}
   ~ul_writer() { stop(); }
   void stop()
   {
@@ -128,8 +128,8 @@ private:
     running = false;
   }
 
-  rlc_am_lte* rlc;
-  bool        running;
+  rlc_am_lte*       rlc     = nullptr;
+  std::atomic<bool> running = {false};
 };
 
 int basic_test_tx(rlc_am_lte* rlc, byte_buffer_t pdu_bufs[NBUFS])

@@ -89,7 +89,7 @@ static detail::log_entry build_log_entry(sink* s, fmt::dynamic_format_arg_store<
 
   return {s,
           [](detail::log_entry_metadata&& metadata, fmt::memory_buffer& buffer) {},
-          {tp, {0, false}, "Text %d", store, "", '\0', small_str_buffer()}};
+          {tp, {0, false}, "Text %d", store, "", '\0'}};
 }
 
 static bool when_backend_is_not_started_then_pushed_log_entries_are_ignored()

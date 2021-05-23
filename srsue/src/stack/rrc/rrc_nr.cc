@@ -379,16 +379,19 @@ void rrc_nr::get_nr_capabilities(srsran::byte_buffer_t* nr_caps_pdu)
 
   for (const auto& band : args.supported_bands_nr) {
     band_nr_s band_nr;
-    band_nr.band_nr              = band;
-    band_nr.ue_pwr_class_present = true;
-    band_nr.ue_pwr_class         = band_nr_s::ue_pwr_class_opts::pc3;
+    band_nr.band_nr                    = band;
+    band_nr.ue_pwr_class_present       = true;
+    band_nr.ue_pwr_class               = band_nr_s::ue_pwr_class_opts::pc3;
+    band_nr.pusch_minus256_qam_present = true;
     nr_cap.rf_params.supported_band_list_nr.push_back(band_nr);
   }
 
-  nr_cap.rlc_params_present                  = true;
-  nr_cap.rlc_params.um_with_short_sn_present = true;
-  nr_cap.rlc_params.um_with_long_sn_present  = true;
-  nr_cap.pdcp_params.short_sn_present        = args.pdcp_short_sn_support;
+  nr_cap.rlc_params_present                                       = true;
+  nr_cap.rlc_params.um_with_short_sn_present                      = true;
+  nr_cap.rlc_params.um_with_long_sn_present                       = true;
+  nr_cap.pdcp_params.short_sn_present                             = args.pdcp_short_sn_support;
+  nr_cap.phy_params.phy_params_fr1_present                        = true;
+  nr_cap.phy_params.phy_params_fr1.pdsch_minus256_qam_fr1_present = true;
 
   // Pack nr_caps
   asn1::bit_ref bref(nr_caps_pdu->msg, nr_caps_pdu->get_tailroom());
@@ -1051,7 +1054,7 @@ bool rrc_nr::apply_sp_cell_ded_ul_pusch(const asn1::rrc_nr::pusch_cfg_s& pusch_c
         phy_cfg.pusch.mcs_table = srsran_mcs_table_qam64LowSE;
         break;
       case pusch_cfg_s::mcs_table_opts::nulltype:
-        logger.warning("Warning while selecting pdsch mcs_table");
+        logger.warning("Warning while selecting pusch mcs_table");
         return false;
     }
   } else {
@@ -1147,6 +1150,14 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
         logger.warning("DL cfg common not present");
         return false;
       }
+      phy_cfg_nr_t::ssb_cfg_t ssb_cfg = {};
+      if (make_phy_ssb_cfg(recfg_with_sync.sp_cell_cfg_common, &ssb_cfg) == true) {
+        phy_cfg.ssb = ssb_cfg;
+      } else {
+        logger.warning("Warning while building ssb structure");
+        return false;
+      }
+
       if (recfg_with_sync.sp_cell_cfg_common.tdd_ul_dl_cfg_common_present) {
         srsran_tdd_config_nr_t tdd;
         if (make_phy_tdd_cfg(recfg_with_sync.sp_cell_cfg_common.tdd_ul_dl_cfg_common, &tdd) == true) {

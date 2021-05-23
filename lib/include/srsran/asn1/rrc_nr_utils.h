@@ -25,7 +25,7 @@
 #include "srsran/interfaces/mac_interface_types.h"
 #include "srsran/interfaces/pdcp_interface_types.h"
 #include "srsran/interfaces/rlc_interface_types.h"
-#include "srsran/interfaces/rrc_interface_types.h"
+#include "srsran/interfaces/rrc_nr_interface_types.h"
 #include "srsran/interfaces/sched_interface.h"
 
 /************************
@@ -64,6 +64,7 @@ struct zp_csi_rs_res_s;
 struct nzp_csi_rs_res_s;
 struct pdsch_serving_cell_cfg_s;
 struct freq_info_dl_s;
+struct serving_cell_cfg_common_s;
 
 } // namespace rrc_nr
 } // namespace asn1
@@ -115,6 +116,8 @@ bool make_phy_zp_csi_rs_resource(const asn1::rrc_nr::zp_csi_rs_res_s& zp_csi_rs_
 bool make_phy_nzp_csi_rs_resource(const asn1::rrc_nr::nzp_csi_rs_res_s& nzp_csi_rs_res,
                                   srsran_csi_rs_nzp_resource_t*         csi_rs_nzp_resource);
 bool make_phy_carrier_cfg(const asn1::rrc_nr::freq_info_dl_s& freq_info_dl, srsran_carrier_nr_t* carrier_nr);
+bool make_phy_ssb_cfg(const asn1::rrc_nr::serving_cell_cfg_common_s& serv_cell_cfg, phy_cfg_nr_t::ssb_cfg_t* ssb);
+
 /***************************
  *      MAC Config
  **************************/

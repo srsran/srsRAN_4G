@@ -20,13 +20,12 @@
  */
 
 #include "srsenb/hdr/stack/rrc/rrc_ue.h"
+#include "srsenb/hdr/common/common_enb.h"
 #include "srsenb/hdr/stack/rrc/mac_controller.h"
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
 #include "srsenb/hdr/stack/rrc/ue_rr_cfg.h"
-#include "srsran/adt/pool/mem_pool.h"
 #include "srsran/asn1/rrc_utils.h"
 #include "srsran/common/enb_events.h"
-#include "srsran/common/int_helpers.h"
 #include "srsran/common/standard_streams.h"
 #include "srsran/interfaces/enb_pdcp_interfaces.h"
 #include "srsran/interfaces/enb_rlc_interfaces.h"
@@ -180,7 +179,9 @@ void rrc::ue::activity_timer_expired(const activity_timeout_type_t type)
 
     if (parent->s1ap->user_exists(rnti)) {
       if (type == UE_INACTIVITY_TIMEOUT) {
-        parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::user_inactivity);
+        if (not parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::user_inactivity)) {
+          parent->rem_user_thread(rnti);
+        }
         con_release_result = procedure_result_code::activity_timeout;
       } else if (type == MSG3_RX_TIMEOUT) {
         // MSG3 timeout, no need to notify S1AP, just remove UE
@@ -206,22 +207,22 @@ void rrc::ue::activity_timer_expired(const activity_timeout_type_t type)
 void rrc::ue::rlf_timer_expired(uint32_t timeout_id)
 {
   activity_timer.stop();
-  if (parent) {
-    if (timeout_id == phy_dl_rlf_timer.id()) {
-      parent->logger.info("DL RLF timer for rnti=0x%x expired after %d ms", rnti, phy_dl_rlf_timer.time_elapsed());
-    } else if (timeout_id == phy_ul_rlf_timer.id()) {
-      parent->logger.info("UL RLF timer for rnti=0x%x expired after %d ms", rnti, phy_ul_rlf_timer.time_elapsed());
-    } else if (timeout_id == rlc_rlf_timer.id()) {
-      parent->logger.info("RLC RLF timer for rnti=0x%x expired after %d ms", rnti, rlc_rlf_timer.time_elapsed());
-    }
+  if (timeout_id == phy_dl_rlf_timer.id()) {
+    parent->logger.info("DL RLF timer for rnti=0x%x expired after %d ms", rnti, phy_dl_rlf_timer.time_elapsed());
+  } else if (timeout_id == phy_ul_rlf_timer.id()) {
+    parent->logger.info("UL RLF timer for rnti=0x%x expired after %d ms", rnti, phy_ul_rlf_timer.time_elapsed());
+  } else if (timeout_id == rlc_rlf_timer.id()) {
+    parent->logger.info("RLC RLF timer for rnti=0x%x expired after %d ms", rnti, rlc_rlf_timer.time_elapsed());
+  }
 
-    if (parent->s1ap->user_exists(rnti)) {
-      parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::radio_conn_with_ue_lost);
-      con_release_result = procedure_result_code::radio_conn_with_ue_lost;
-    } else {
-      if (rnti != SRSRAN_MRNTI) {
-        parent->rem_user(rnti);
-      }
+  if (parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::radio_conn_with_ue_lost)) {
+    con_release_result = procedure_result_code::radio_conn_with_ue_lost;
+    phy_ul_rlf_timer.stop();
+    phy_dl_rlf_timer.stop();
+    rlc_rlf_timer.stop();
+  } else {
+    if (rnti != SRSRAN_MRNTI) {
+      parent->rem_user(rnti);
     }
   }
 
@@ -281,11 +282,12 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
   asn1::cbit_ref bref(pdu->msg, pdu->N_bytes);
   if (ul_dcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or
       ul_dcch_msg.msg.type().value != ul_dcch_msg_type_c::types_opts::c1) {
-    parent->logger.error("Failed to unpack UL-DCCH message");
+    parent->log_rx_pdu_fail(rnti, lcid, *pdu, "Failed to unpack UL-DCCH message");
     return;
   }
 
-  parent->log_rrc_message(get_rb_name(lcid), Rx, pdu.get(), ul_dcch_msg, ul_dcch_msg.msg.c1().type().to_string());
+  // Log Rx message
+  parent->log_rrc_message(Rx, rnti, lcid, *pdu, ul_dcch_msg, ul_dcch_msg.msg.c1().type().to_string());
 
   srsran::unique_byte_buffer_t original_pdu = std::move(pdu);
   pdu                                       = srsran::make_byte_buffer();
@@ -401,7 +403,9 @@ void rrc::ue::handle_rrc_con_req(rrc_conn_request_s* msg)
       if (user.first != rnti && user.second->has_tmsi && user.second->mmec == mmec && user.second->m_tmsi == m_tmsi) {
         parent->logger.info("RRC connection request: UE context already exists. M-TMSI=%d", m_tmsi);
         user.second->state = RRC_STATE_IDLE; // Set old rnti to IDLE so that enb doesn't send RRC Connection Release
-        parent->s1ap->user_release(user.first, asn1::s1ap::cause_radio_network_opts::radio_conn_with_ue_lost);
+        if (not parent->s1ap->user_release(user.first, asn1::s1ap::cause_radio_network_opts::radio_conn_with_ue_lost)) {
+          parent->rem_user_thread(user.first);
+        }
         break;
       }
     }
@@ -584,7 +588,7 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
 
   // Get PDCP entity state (required when using RLC AM)
   for (const auto& erab_pair : old_ue->bearer_list.get_erabs()) {
-    uint16_t lcid              = erab_pair.second.id - 2;
+    uint16_t lcid              = erab_pair.second.lcid;
     old_reest_pdcp_state[lcid] = {};
     parent->pdcp->get_bearer_state(old_rnti, lcid, &old_reest_pdcp_state[lcid]);
 
@@ -1089,6 +1093,7 @@ int rrc::ue::setup_erab(uint16_t                                           erab_
   }
   if (bearer_list.add_gtpu_bearer(erab_id) != SRSRAN_SUCCESS) {
     cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::radio_res_not_available;
+    bearer_list.release_erab(erab_id);
     return SRSRAN_ERROR;
   }
   return SRSRAN_SUCCESS;
@@ -1153,9 +1158,9 @@ void rrc::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg, std::string* octet_str)
     }
     pdu->N_bytes = (uint32_t)bref.distance_bytes();
 
-    char buf[32] = {};
-    sprintf(buf, "SRB0 - rnti=0x%x", rnti);
-    parent->log_rrc_message(buf, Tx, pdu.get(), *dl_ccch_msg, dl_ccch_msg->msg.c1().type().to_string());
+    // Log Tx message
+    parent->log_rrc_message(
+        Tx, rnti, srb_to_lcid(lte_srb::srb0), *pdu, *dl_ccch_msg, dl_ccch_msg->msg.c1().type().to_string());
 
     // Encode the pdu as an octet string if the user passed a valid pointer.
     if (octet_str) {
@@ -1170,38 +1175,37 @@ void rrc::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg, std::string* octet_str)
 
 bool rrc::ue::send_dl_dcch(const dl_dcch_msg_s* dl_dcch_msg, srsran::unique_byte_buffer_t pdu, std::string* octet_str)
 {
-  if (!pdu) {
+  if (pdu == nullptr) {
     pdu = srsran::make_byte_buffer();
-  }
-  if (pdu) {
-    asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
-    if (dl_dcch_msg->pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
-      parent->logger.error("Failed to encode DL-DCCH-Msg");
+    if (pdu == nullptr) {
+      parent->logger.error("Allocating pdu");
       return false;
     }
-    pdu->N_bytes = (uint32_t)bref.distance_bytes();
+  }
 
-    lte_srb rb = lte_srb::srb1;
-    if (dl_dcch_msg->msg.c1().type() == dl_dcch_msg_type_c::c1_c_::types_opts::dl_info_transfer) {
-      // send messages with NAS on SRB2 if user is fully registered (after RRC reconfig complete)
-      rb = (parent->rlc->has_bearer(rnti, srb_to_lcid(lte_srb::srb2)) && state == RRC_STATE_REGISTERED) ? lte_srb::srb2
-                                                                                                        : lte_srb::srb1;
-    }
-
-    char buf[32] = {};
-    sprintf(buf, "%s - rnti=0x%x", srsran::get_srb_name(rb), rnti);
-    parent->log_rrc_message(buf, Tx, pdu.get(), *dl_dcch_msg, dl_dcch_msg->msg.c1().type().to_string());
-
-    // Encode the pdu as an octet string if the user passed a valid pointer.
-    if (octet_str) {
-      *octet_str = asn1::octstring_to_string(pdu->msg, pdu->N_bytes);
-    }
-
-    parent->pdcp->write_sdu(rnti, srb_to_lcid(rb), std::move(pdu));
-  } else {
-    parent->logger.error("Allocating pdu");
+  asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
+  if (dl_dcch_msg->pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
+    parent->logger.error("Failed to encode DL-DCCH-Msg for rnti=0x%x", rnti);
     return false;
   }
+  pdu->N_bytes = (uint32_t)bref.distance_bytes();
+
+  lte_srb rb = lte_srb::srb1;
+  if (dl_dcch_msg->msg.c1().type() == dl_dcch_msg_type_c::c1_c_::types_opts::dl_info_transfer) {
+    // send messages with NAS on SRB2 if user is fully registered (after RRC reconfig complete)
+    rb = (parent->rlc->has_bearer(rnti, srb_to_lcid(lte_srb::srb2)) && state == RRC_STATE_REGISTERED) ? lte_srb::srb2
+                                                                                                      : lte_srb::srb1;
+  }
+
+  // Log Tx message
+  parent->log_rrc_message(Tx, rnti, srb_to_lcid(rb), *pdu, *dl_dcch_msg, dl_dcch_msg->msg.c1().type().to_string());
+
+  // Encode the pdu as an octet string if the user passed a valid pointer.
+  if (octet_str != nullptr) {
+    *octet_str = asn1::octstring_to_string(pdu->msg, pdu->N_bytes);
+  }
+
+  parent->pdcp->write_sdu(rnti, srb_to_lcid(rb), std::move(pdu));
   return true;
 }
 
@@ -1336,7 +1340,7 @@ void rrc::ue::apply_pdcp_srb_updates(const rr_cfg_ded_s& pending_rr_cfg)
 void rrc::ue::apply_pdcp_drb_updates(const rr_cfg_ded_s& pending_rr_cfg)
 {
   for (uint8_t drb_id : pending_rr_cfg.drb_to_release_list) {
-    parent->pdcp->del_bearer(rnti, drb_id + 2);
+    parent->pdcp->del_bearer(rnti, drb_to_lcid((lte_drb)drb_id));
   }
   for (const drb_to_add_mod_s& drb : pending_rr_cfg.drb_to_add_mod_list) {
     // Configure DRB1 in PDCP
@@ -1358,7 +1362,7 @@ void rrc::ue::apply_pdcp_drb_updates(const rr_cfg_ded_s& pending_rr_cfg)
   // If reconf due to reestablishment, recover PDCP state
   if (state == RRC_STATE_REESTABLISHMENT_COMPLETE) {
     for (const auto& erab_pair : bearer_list.get_erabs()) {
-      uint16_t lcid  = erab_pair.second.id - 2;
+      uint16_t lcid  = erab_pair.second.lcid;
       bool     is_am = parent->cfg.qci_cfg[erab_pair.second.qos_params.qci].rlc_cfg.type().value ==
                    asn1::rrc::rlc_cfg_c::types_opts::am;
       if (is_am) {
@@ -1386,7 +1390,7 @@ void rrc::ue::apply_rlc_rb_updates(const rr_cfg_ded_s& pending_rr_cfg)
   }
   if (pending_rr_cfg.drb_to_release_list.size() > 0) {
     for (uint8_t drb_id : pending_rr_cfg.drb_to_release_list) {
-      parent->rlc->del_bearer(rnti, drb_id + 2);
+      parent->rlc->del_bearer(rnti, drb_to_lcid((lte_drb)drb_id));
     }
   }
   for (const drb_to_add_mod_s& drb : pending_rr_cfg.drb_to_add_mod_list) {

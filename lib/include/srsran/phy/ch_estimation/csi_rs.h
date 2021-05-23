@@ -81,7 +81,7 @@ SRSRAN_API int srsran_csi_rs_append_resource_to_pattern(const srsran_carrier_nr_
  * @param slot_cfg Provides current slot configuration
  * @param resource Provides a NZP-CSI-RS resource
  * @param[out] grid Resource grid
- * @return SRSLTE_SUCCESS if the arguments and the resource are valid. SRSLTE_ERROR code otherwise.
+ * @return SRSRAN_SUCCESS if the arguments and the resource are valid. SRSRAN_ERROR code otherwise.
  */
 SRSRAN_API int srsran_csi_rs_nzp_put_resource(const srsran_carrier_nr_t*          carrier,
                                               const srsran_slot_cfg_t*            slot_cfg,
@@ -96,7 +96,7 @@ SRSRAN_API int srsran_csi_rs_nzp_put_resource(const srsran_carrier_nr_t*        
  * @param set Provides a NZP-CSI-RS resource set
  * @param[out] grid Resource grid
  * @return The number of NZP-CSI-RS resources that have been scheduled for this slot if the arguments and the resource
- * are valid. SRSLTE_ERROR code otherwise.
+ * are valid. SRSRAN_ERROR code otherwise.
  */
 SRSRAN_API int srsran_csi_rs_nzp_put_set(const srsran_carrier_nr_t*     carrier,
                                          const srsran_slot_cfg_t*       slot_cfg,
@@ -132,7 +132,7 @@ SRSRAN_API int srsran_csi_rs_nzp_measure(const srsran_carrier_nr_t*          car
  * @param set Provides NZP-CSI-RS resource
  * @param grid Resource grid
  * @param measure Provides measurement
- * @return The number of NZP-CSI-RS resources scheduled for this TTI if the configuration is right, SRSLTE_ERROR code if
+ * @return The number of NZP-CSI-RS resources scheduled for this TTI if the configuration is right, SRSRAN_ERROR code if
  * the configuration is invalid
  */
 SRSRAN_API int srsran_csi_rs_nzp_measure_trs(const srsran_carrier_nr_t*     carrier,
@@ -160,7 +160,7 @@ SRSRAN_API uint32_t srsran_csi_rs_measure_info(const srsran_csi_trs_measurements
  * @param set Provides NZP-CSI-RS resource
  * @param grid Resource grid
  * @param measure Provides CSI measurement
- * @return The number of NZP-CSI-RS resources scheduled for this slot if the configuration is right, SRSLTE_ERROR code
+ * @return The number of NZP-CSI-RS resources scheduled for this slot if the configuration is right, SRSRAN_ERROR code
  * if the configuration is invalid
  */
 SRSRAN_API int srsran_csi_rs_nzp_measure_channel(const srsran_carrier_nr_t*         carrier,
@@ -182,7 +182,7 @@ SRSRAN_API int srsran_csi_rs_nzp_measure_channel(const srsran_carrier_nr_t*     
  * @param set Provides ZP-CSI-RS resource
  * @param grid Resource grid
  * @param measure Provides CSI measurement
- * @return The number of ZP-CSI-RS resources scheduled for this slot if the configuration is right, SRSLTE_ERROR code if
+ * @return The number of ZP-CSI-RS resources scheduled for this slot if the configuration is right, SRSRAN_ERROR code if
  * the configuration is invalid
  */
 SRSRAN_API int srsran_csi_rs_zp_measure_channel(const srsran_carrier_nr_t*         carrier,

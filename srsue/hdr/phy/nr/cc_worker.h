@@ -59,6 +59,7 @@ private:
   std::array<cf_t*, SRSRAN_MAX_PORTS> tx_buffer   = {};
   uint32_t                            buffer_sz   = 0;
   state*                              phy         = nullptr;
+  srsran_ssb_t                        ssb         = {};
   srsran_ue_dl_nr_t                   ue_dl       = {};
   srsran_ue_ul_nr_t                   ue_ul       = {};
   srslog::basic_logger&               logger;

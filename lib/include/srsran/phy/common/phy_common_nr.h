@@ -191,10 +191,20 @@ extern "C" {
 #define SRSRAN_NID_2_NR(N_ID) ((N_ID) % SRSRAN_NOF_NID_2_NR)
 
 /**
+ * @brief Compute Physical Cell Identifier (PCI) N_id from N_id_1 and N_id_2
+ */
+#define SRSRAN_NID_NR(NID_1, NID_2) (SRSRAN_NOF_NID_2_NR * (NID_1) + (NID_2))
+
+/**
  * @brief SSB number of resource elements, described in TS 38.211 section 7.4.3.1 Time-frequency structure of an SS/PBCH
  * block
  */
 #define SRSRAN_SSB_NOF_RE (SRSRAN_SSB_BW_SUBC * SRSRAN_SSB_DURATION_NSYMB)
+
+/**
+ * @brief Symbol index with extended CP
+ */
+#define SRSRAN_EXT_CP_SYMBOL(SCS) (7U << (uint32_t)(SCS))
 
 typedef enum SRSRAN_API {
   srsran_coreset_mapping_type_non_interleaved = 0,
@@ -332,7 +342,25 @@ typedef enum SRSRAN_API {
   srsran_subcarrier_spacing_60kHz,
   srsran_subcarrier_spacing_120kHz,
   srsran_subcarrier_spacing_240kHz,
+  srsran_subcarrier_spacing_invalid
 } srsran_subcarrier_spacing_t;
+
+typedef enum SRSRAN_API {
+  SRSRAN_SSB_PATTERN_A = 0, // FR1, 15 kHz SCS
+  SRSRAN_SSB_PATTERN_B,     // FR1, 30 kHz SCS
+  SRSRAN_SSB_PATTERN_C,     // FR1, 30 kHz SCS
+  SRSRAN_SSB_PATTERN_D,     // FR2, 120 kHz SCS
+  SRSRAN_SSB_PATTERN_E,     // FR2, 240 kHz SCS
+  SRSRAN_SSB_PATTERN_INVALID,
+} srsran_ssb_patern_t;
+
+typedef enum SRSRAN_API {
+  SRSRAN_DUPLEX_MODE_FDD = 0, // Paired
+  SRSRAN_DUPLEX_MODE_TDD,     // Unpaired
+  SRSRAN_DUPLEX_MODE_SDL,     // Supplementary DownLink
+  SRSRAN_DUPLEX_MODE_SUL,     // Supplementary UpLink
+  SRSRAN_DUPLEX_MODE_INVALID
+} srsran_duplex_mode_t;
 
 /**
  * @brief NR carrier parameters. It is a combination of fixed cell and bandwidth-part (BWP)
@@ -460,6 +488,13 @@ typedef struct SRSRAN_API {
 SRSRAN_API const char* srsran_rnti_type_str(srsran_rnti_type_t rnti_type);
 
 /**
+ * @brief Get the short RNTI type name for NR
+ * @param rnti_type RNTI type name
+ * @return Constant string with the short RNTI type name
+ */
+SRSRAN_API const char* srsran_rnti_type_str_short(srsran_rnti_type_t rnti_type);
+
+/**
  * @brief Get the RNTI type name for NR
  * @param rnti_type RNTI type name
  * @return Constant string with the RNTI type name
@@ -520,6 +555,15 @@ SRSRAN_API srsran_mcs_table_t srsran_mcs_table_from_str(const char* str);
 SRSRAN_API uint32_t srsran_min_symbol_sz_rb(uint32_t nof_prb);
 
 /**
+ * @brief Computes the time in seconds between the beginning of the slot and the given symbol
+ * @remark All symbol size reference and values are taken from TS 38.211 section 5.3 OFDM baseband signal generation
+ * @param l Given symbol index
+ * @param scs Subcarrier spacing
+ * @return Returns the symbol time offset in seconds
+ */
+SRSRAN_API float srsran_symbol_offset_s(uint32_t l, srsran_subcarrier_spacing_t scs);
+
+/**
  * @brief Computes the time in seconds between two symbols in a slot
  * @note l0 is expected to be smaller than l1
  * @remark All symbol size reference and values are taken from TS 38.211 section 5.3 OFDM baseband signal generation
@@ -558,6 +602,13 @@ SRSRAN_API int srsran_carrier_to_cell(const srsran_carrier_nr_t* carrier, srsran
  * @return The number of writen characters
  */
 SRSRAN_API uint32_t srsran_csi_meas_info(const srsran_csi_trs_measurements_t* meas, char* str, uint32_t str_len);
+
+/**
+ * @brief Converts a given string into a subcarrier spacing
+ * @param str Provides the string
+ * @return A valid subcarrier if the string is valid, srsran_subcarrier_spacing_invalid otherwise
+ */
+SRSRAN_API srsran_subcarrier_spacing_t srsran_subcarrier_spacing_from_str(const char* str);
 
 #ifdef __cplusplus
 }

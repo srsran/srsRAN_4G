@@ -236,4 +236,9 @@ std::string enb::get_build_string()
   return ss.str();
 }
 
+void enb::toggle_padding()
+{
+  stack->toggle_padding();
+}
+
 } // namespace srsenb

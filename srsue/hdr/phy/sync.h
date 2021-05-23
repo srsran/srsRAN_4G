@@ -29,7 +29,7 @@
 
 #include "phy_common.h"
 #include "prach.h"
-#include "scell/intra_measure.h"
+#include "scell/intra_measure_lte.h"
 #include "scell/scell_sync.h"
 #include "search.h"
 #include "sfn_sync.h"
@@ -51,7 +51,7 @@ class sync : public srsran::thread,
              public rsrp_insync_itf,
              public search_callback,
              public scell::sync_callback,
-             public scell::intra_measure::meas_itf
+             public scell::intra_measure_base::meas_itf
 {
 public:
   sync(srslog::basic_logger& phy_logger, srslog::basic_logger& phy_lib_logger) :
@@ -205,9 +205,9 @@ private:
   bool                   forced_rx_time_init = true; // Rx time sync after first receive from radio
 
   // Objects for internal use
-  search                                              search_p;
-  sfn_sync                                            sfn_p;
-  std::vector<std::unique_ptr<scell::intra_measure> > intra_freq_meas;
+  search                                                  search_p;
+  sfn_sync                                                sfn_p;
+  std::vector<std::unique_ptr<scell::intra_measure_lte> > intra_freq_meas;
 
   // Pointers to other classes
   stack_interface_phy_lte*     stack = nullptr;

@@ -28,6 +28,10 @@ namespace srsran {
 constexpr std::array<srsran_band_helper::nr_band, srsran_band_helper::nof_nr_bands_fr1>
           srsran_band_helper::nr_band_table_fr1;
 constexpr std::array<srsran_band_helper::nr_raster_params, 3> srsran_band_helper::nr_fr_params;
+constexpr std::array<srsran_band_helper::nr_operating_band, srsran_band_helper::nof_nr_operating_band_fr1>
+          srsran_band_helper::nr_operating_bands_fr1;
+constexpr std::array<srsran_band_helper::nr_band_ss_raster, srsran_band_helper::nof_nr_band_ss_raster>
+          srsran_band_helper::nr_band_ss_raster_table;
 
 // Formula in 5.4.2.1
 double srsran_band_helper::nr_arfcn_to_freq(uint32_t nr_arfcn)
@@ -58,6 +62,55 @@ std::vector<uint32_t> srsran_band_helper::get_bands_nr(uint32_t                 
     }
   }
   return bands;
+}
+
+uint16_t srsran_band_helper::get_band_from_dl_freq_Hz(double freq) const
+{
+  uint32_t freq_MHz = (uint32_t)round(freq / 1e6);
+  for (const nr_operating_band& band : nr_operating_bands_fr1) {
+    if (freq_MHz >= band.F_DL_low and freq_MHz <= band.F_DL_high) {
+      return band.band;
+    }
+  }
+  return UINT16_MAX;
+}
+
+srsran_ssb_patern_t srsran_band_helper::get_ssb_pattern(uint16_t band, srsran_subcarrier_spacing_t scs) const
+{
+  // Look for the given band and SCS
+  for (const nr_band_ss_raster& ss_raster : nr_band_ss_raster_table) {
+    // Check if band and SCS match!
+    if (ss_raster.band == band && ss_raster.scs == scs) {
+      return ss_raster.pattern;
+    }
+
+    // As bands are in ascending order, do not waste more time if the current band is bigger
+    if (ss_raster.band > band) {
+      return SRSRAN_SSB_PATTERN_INVALID;
+    }
+  }
+
+  // Band is out of range, so consider invalid
+  return SRSRAN_SSB_PATTERN_INVALID;
+}
+
+srsran_duplex_mode_t srsran_band_helper::get_duplex_mode(uint16_t band) const
+{
+  // Look for the given band
+  for (const nr_operating_band& b : nr_operating_bands_fr1) {
+    // Check if band and SCS match!
+    if (b.band == band) {
+      return b.duplex_mode;
+    }
+
+    // As bands are in ascending order, do not waste more time if the current band is bigger
+    if (b.band > band) {
+      return SRSRAN_DUPLEX_MODE_INVALID;
+    }
+  }
+
+  // Band is out of range, so consider invalid
+  return SRSRAN_DUPLEX_MODE_INVALID;
 }
 
 srsran_band_helper::nr_raster_params srsran_band_helper::get_raster_params(uint32_t nr_arfcn)

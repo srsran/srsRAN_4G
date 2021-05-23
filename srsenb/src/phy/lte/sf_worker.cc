@@ -218,10 +218,6 @@ void sf_worker::work_imp()
     }
   }
 
-  // Make sure CFI is in the right range
-  dl_grants[0].cfi = SRSRAN_MAX(dl_grants[0].cfi, 1);
-  dl_grants[0].cfi = SRSRAN_MIN(dl_grants[0].cfi, 3);
-
   // Get UL scheduling for the TX TTI from MAC
   if (stack->get_ul_sched(tti_tx_ul, ul_grants_tx) < 0) {
     Error("Getting UL scheduling from MAC");
@@ -239,7 +235,11 @@ void sf_worker::work_imp()
 
   // Process DL
   for (uint32_t cc = 0; cc < cc_workers.size(); cc++) {
+    // Select CFI and make sure it is in the right range
     dl_sf.cfi = dl_grants[cc].cfi;
+    dl_sf.cfi = SRSRAN_MAX(dl_sf.cfi, 1);
+    dl_sf.cfi = SRSRAN_MIN(dl_sf.cfi, 3);
+
     cc_workers[cc]->work_dl(dl_sf, dl_grants[cc], ul_grants_tx[cc], &mbsfn_cfg);
   }
 

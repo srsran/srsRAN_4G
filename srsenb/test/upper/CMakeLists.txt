@@ -37,9 +37,6 @@ target_link_libraries(rrc_meascfg_test test_helpers)
 add_executable(gtpu_test gtpu_test.cc)
 target_link_libraries(gtpu_test srsran_common s1ap_asn1 srsenb_upper srsran_upper ${SCTP_LIBRARIES})
 
-add_executable(s1ap_test s1ap_test.cc)
-target_link_libraries(s1ap_test srsran_common s1ap_asn1 srsenb_upper srsran_upper s1ap_asn1 ${SCTP_LIBRARIES})
-
 add_test(rrc_mobility_test rrc_mobility_test -i ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 add_test(erab_setup_test erab_setup_test -i ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 add_test(rrc_meascfg_test rrc_meascfg_test -i ${CMAKE_CURRENT_SOURCE_DIR}/../..)

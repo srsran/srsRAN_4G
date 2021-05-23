@@ -161,48 +161,6 @@ void log_phich_cc_results(srslog::basic_logger&                  logger,
   }
 }
 
-prb_interval prb_interval::rbgs_to_prbs(const rbg_interval& rbgs, uint32_t cell_nof_prb)
-{
-  uint32_t P = srsran_ra_type0_P(cell_nof_prb);
-  return prb_interval{rbgs.start() * P, std::min(rbgs.stop() * P, cell_nof_prb)};
-}
-
-rbg_interval rbg_interval::rbgmask_to_rbgs(const rbgmask_t& mask)
-{
-  int rb_start = -1;
-  for (uint32_t i = 0; i < mask.size(); i++) {
-    if (rb_start == -1) {
-      if (mask.test(i)) {
-        rb_start = i;
-      }
-    } else {
-      if (!mask.test(i)) {
-        return rbg_interval(rb_start, i);
-      }
-    }
-  }
-  if (rb_start != -1) {
-    return rbg_interval(rb_start, mask.size());
-  } else {
-    return rbg_interval();
-  }
-}
-
-prb_interval prb_interval::riv_to_prbs(uint32_t riv, uint32_t nof_prbs, int nof_vrbs)
-{
-  if (nof_vrbs < 0) {
-    nof_vrbs = nof_prbs;
-  }
-  uint32_t rb_start, l_crb;
-  srsran_ra_type2_from_riv(riv, &l_crb, &rb_start, nof_prbs, (uint32_t)nof_vrbs);
-  return {rb_start, rb_start + l_crb};
-}
-
-bool is_contiguous(const rbgmask_t& mask)
-{
-  return rbg_interval::rbgmask_to_rbgs(mask).length() == mask.count();
-}
-
 /*******************************************************
  *                 Sched Params
  *******************************************************/

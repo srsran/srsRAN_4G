@@ -21,6 +21,7 @@
 
 #include "srsran/phy/common/phy_common_nr.h"
 #include "srsran/phy/utils/vector.h"
+#include <stdlib.h>
 #include <string.h>
 
 const char* srsran_rnti_type_str(srsran_rnti_type_t rnti_type)
@@ -42,6 +43,29 @@ const char* srsran_rnti_type_str(srsran_rnti_type_t rnti_type)
       return "SP-CSI-RNTI";
     case srsran_rnti_type_mcs_c:
       return "MCS-C-RNTI";
+    default:; // Do nothing
+  }
+  return "unknown";
+}
+const char* srsran_rnti_type_str_short(srsran_rnti_type_t rnti_type)
+{
+  switch (rnti_type) {
+    case srsran_rnti_type_c:
+      return "c";
+    case srsran_rnti_type_p:
+      return "p";
+    case srsran_rnti_type_si:
+      return "si";
+    case srsran_rnti_type_ra:
+      return "ra";
+    case srsran_rnti_type_tc:
+      return "tc";
+    case srsran_rnti_type_cs:
+      return "cs";
+    case srsran_rnti_type_sp_csi:
+      return "sp-csi";
+    case srsran_rnti_type_mcs_c:
+      return "mcs-c";
     default:; // Do nothing
   }
   return "unknown";
@@ -161,6 +185,34 @@ uint32_t srsran_min_symbol_sz_rb(uint32_t nof_prb)
   return 0;
 }
 
+float srsran_symbol_offset_s(uint32_t l, srsran_subcarrier_spacing_t scs)
+{
+  // Compute at what symbol there is a longer CP
+  uint32_t cp_boundary = SRSRAN_EXT_CP_SYMBOL(scs);
+
+  // First symbol CP
+  uint32_t N = 0;
+
+  // Symbols in between the first and l
+  N += (2048 + 144) * l;
+
+  // Add extended CP samples from first OFDM symbol
+  if (l > 0) {
+    N += 16;
+  }
+
+  // Add extra samples at the longer CP boundary
+  if (l >= cp_boundary) {
+    N += 16;
+  }
+
+  // Compute time using reference sampling rate
+  float TS = SRSRAN_LTE_TS / (float)(1U << (uint32_t)scs);
+
+  // Return symbol offset in seconds
+  return (float)N * TS;
+}
+
 float srsran_symbol_distance_s(uint32_t l0, uint32_t l1, srsran_subcarrier_spacing_t scs)
 {
   // l0 must be smaller than l1
@@ -168,25 +220,8 @@ float srsran_symbol_distance_s(uint32_t l0, uint32_t l1, srsran_subcarrier_spaci
     return 0.0f;
   }
 
-  // Count number of symbols in between
-  uint32_t count = l1 - l0;
-
-  // Compute at what symbol there is a longer CP
-  uint32_t cp_boundary = 7U << (uint32_t)scs;
-
-  // Select whether extra CP shall be added
-  uint32_t extra_cp = 0;
-  if (l0 < cp_boundary && l1 >= cp_boundary) {
-    extra_cp = 16;
-  }
-
-  // Compute reference FFT size
-  uint32_t N = (2048 + 144) * count + extra_cp;
-
-  float TS = SRSRAN_LTE_TS / (float)(1U << (uint32_t)scs);
-
-  // Return symbol distance in microseconds
-  return (float)N * TS;
+  // Return symbol distance in seconds
+  return srsran_symbol_offset_s(l1, scs) - srsran_symbol_offset_s(l0, scs);
 }
 
 bool srsran_tdd_nr_is_dl(const srsran_tdd_config_nr_t* cfg, uint32_t numerology, uint32_t slot_idx)
@@ -295,4 +330,33 @@ uint32_t srsran_csi_meas_info(const srsran_csi_trs_measurements_t* meas, char* s
                             meas->snr_dB,
                             meas->cfo_hz,
                             meas->delay_us);
+}
+
+srsran_subcarrier_spacing_t srsran_subcarrier_spacing_from_str(const char* str)
+{
+  if (str == NULL) {
+    return srsran_subcarrier_spacing_invalid;
+  }
+
+  uint32_t scs = (uint32_t)roundf(strtof(str, NULL));
+  switch (scs) {
+    case 15:
+    case 15000:
+      return srsran_subcarrier_spacing_15kHz;
+    case 30:
+    case 30000:
+      return srsran_subcarrier_spacing_30kHz;
+    case 60:
+    case 60000:
+      return srsran_subcarrier_spacing_60kHz;
+    case 120:
+    case 120000:
+      return srsran_subcarrier_spacing_120kHz;
+    case 240:
+    case 240000:
+      return srsran_subcarrier_spacing_240kHz;
+    default:; // Do nothing
+  }
+
+  return srsran_subcarrier_spacing_invalid;
 }

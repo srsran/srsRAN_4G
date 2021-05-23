@@ -22,6 +22,7 @@
 #ifndef SRSRAN_PHY_INTERFACE_TYPES_H
 #define SRSRAN_PHY_INTERFACE_TYPES_H
 
+#include "srsran/common/common.h"
 #include "srsran/srsran.h"
 
 /// Common types defined by the PHY layer.
@@ -61,11 +62,12 @@ struct phy_meas_nr_t {
 };
 
 struct phy_meas_t {
-  float    rsrp;
-  float    rsrq;
-  float    cfo_hz;
-  uint32_t earfcn;
-  uint32_t pci;
+  srsran::srsran_rat_t rat; ///< LTE or NR
+  float                rsrp;
+  float                rsrq;
+  float                cfo_hz;
+  uint32_t             earfcn;
+  uint32_t             pci;
 };
 
 struct phy_cell_t {

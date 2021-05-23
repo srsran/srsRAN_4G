@@ -975,7 +975,8 @@ uint32_t srsran_csi_rs_measure_info(const srsran_csi_trs_measurements_t* measure
                            measure->rsrp_dB,
                            measure->epre_dB,
                            measure->n0_dB,
-                           measure->snr_dB);
+                           measure->snr_dB,
+                           measure->delay_us);
 
   // Append measured CFO and the maximum CFO that can be measured
   if (isnormal(measure->cfo_hz_max)) {

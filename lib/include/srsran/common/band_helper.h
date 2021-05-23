@@ -22,6 +22,7 @@
 #ifndef SRSRAN_BAND_HELPER_H
 #define SRSRAN_BAND_HELPER_H
 
+#include "srsran/phy/common/phy_common_nr.h"
 #include <array>
 #include <stdint.h>
 #include <vector>
@@ -53,8 +54,77 @@ public:
   // For bands with 2 possible raster offsets, delta_f_raster needs to be specified
   std::vector<uint32_t> get_bands_nr(uint32_t nr_arfcn, delta_f_raster_t delta_f_raster = DEFAULT);
 
+  /**
+   * @brief Get the lowest band that includes a given Downlink frequency in Hz
+   * @param dl_freq_Hz Given frequency in Hz
+   * @return The band number if the frequency is bounded in a band, UINT16_MAX otherwise
+   */
+  uint16_t get_band_from_dl_freq_Hz(double dl_freq_Hz) const;
+
+  /**
+   * @brief Selects the SSB pattern case according to the band number and subcarrier spacing
+   * @remark Described by TS 38.101-1 Table 5.4.3.3-1: Applicable SS raster entries per operating band
+   * @param band NR Band number
+   * @param scs SSB Subcarrier spacing
+   * @return The SSB pattern case if band and subcarrier spacing match, SRSRAN_SSB_PATTERN_INVALID otherwise
+   */
+  srsran_ssb_patern_t get_ssb_pattern(uint16_t band, srsran_subcarrier_spacing_t scs) const;
+
+  /**
+   * @brief gets the NR band duplex mode
+   * @param band Given band
+   * @return A valid SRSRAN_DUPLEX_MODE if the band is valid, SRSRAN_DUPLEX_MODE_INVALID otherwise
+   */
+  srsran_duplex_mode_t get_duplex_mode(uint16_t band) const;
+
 private:
-  // Table 5.4.2.1-1
+  // Elements of TS 38.101-1 Table 5.2-1: NR operating bands in FR1
+  struct nr_operating_band {
+    uint16_t             band;
+    uint32_t             F_UL_low;  // in MHz
+    uint32_t             F_UL_high; // in MHz
+    uint32_t             F_DL_low;  // in MHz
+    uint32_t             F_DL_high; // in MHz
+    srsran_duplex_mode_t duplex_mode;
+  };
+  static const uint32_t nof_nr_operating_band_fr1                                                  = 32;
+  static constexpr std::array<nr_operating_band, nof_nr_operating_band_fr1> nr_operating_bands_fr1 = {{
+      // clang-format off
+    {1,  1920, 1080, 2110, 2170, SRSRAN_DUPLEX_MODE_FDD},
+    {2,  1850, 1810, 1930, 1990, SRSRAN_DUPLEX_MODE_FDD},
+    {3,  1710, 1785, 1805, 1880, SRSRAN_DUPLEX_MODE_FDD},
+    {5,  824,  849,  869,  894,  SRSRAN_DUPLEX_MODE_FDD},
+    {7,  2500, 2570, 2620, 2690, SRSRAN_DUPLEX_MODE_FDD},
+    {8,  880,  915,  925,  960,  SRSRAN_DUPLEX_MODE_FDD},
+    {12, 699,  716,  729,  746,  SRSRAN_DUPLEX_MODE_FDD},
+    {20, 832,  862,  791,  821,  SRSRAN_DUPLEX_MODE_FDD},
+    {25, 1850, 1915, 1930, 1995, SRSRAN_DUPLEX_MODE_FDD},
+    {28, 703,  748,  758,  803,  SRSRAN_DUPLEX_MODE_FDD},
+    {34, 2010, 2025, 2010, 2025, SRSRAN_DUPLEX_MODE_TDD},
+    {38, 2570, 2620, 2570, 2620, SRSRAN_DUPLEX_MODE_TDD},
+    {39, 1880, 1920, 1880, 1920, SRSRAN_DUPLEX_MODE_TDD},
+    {40, 2300, 2400, 2300, 2400, SRSRAN_DUPLEX_MODE_TDD},
+    {41, 2496, 2690, 2496, 2690, SRSRAN_DUPLEX_MODE_TDD},
+    {50, 1432, 1517, 1432, 1517, SRSRAN_DUPLEX_MODE_TDD},
+    {51, 1427, 1432, 1427, 1432, SRSRAN_DUPLEX_MODE_TDD},
+    {66, 1710, 1780, 2110, 2200, SRSRAN_DUPLEX_MODE_FDD},
+    {70, 1695, 1710, 1995, 2020, SRSRAN_DUPLEX_MODE_FDD},
+    {71, 663,  698,  617,  652,  SRSRAN_DUPLEX_MODE_FDD},
+    {74, 1427, 1470, 1475, 1518, SRSRAN_DUPLEX_MODE_FDD},
+    {75, 0,    0,    1432, 1517, SRSRAN_DUPLEX_MODE_SDL},
+    {76, 0,    0,    1427, 1432, SRSRAN_DUPLEX_MODE_SDL},
+    {77, 3300, 4200, 3300, 4200, SRSRAN_DUPLEX_MODE_TDD},
+    {78, 3300, 3800, 3300, 3800, SRSRAN_DUPLEX_MODE_TDD},
+    {79, 4400, 5000, 4400, 5000, SRSRAN_DUPLEX_MODE_TDD},
+    {80, 1710, 1785, 0,    0,    SRSRAN_DUPLEX_MODE_SUL},
+    {81, 880,  915,  0,    0,    SRSRAN_DUPLEX_MODE_SUL},
+    {82, 832,  862,  0,    0,    SRSRAN_DUPLEX_MODE_SUL},
+    {83, 703,  748,  0,    0,    SRSRAN_DUPLEX_MODE_SUL},
+    {84, 1920, 1980, 0,    0,    SRSRAN_DUPLEX_MODE_SUL},
+    {86, 1710, 1780, 0,    0,    SRSRAN_DUPLEX_MODE_SUL}
+      // clang-format on
+  }};
+
   struct nr_raster_params {
     double   delta_F_global_kHz;
     double   F_REF_Offs_MHz;
@@ -149,7 +219,7 @@ private:
     // clang-format on  
   }};
 
-  static const uint32_t nof_nr_bands_fr2                                   = 36;
+  static const uint32_t nof_nr_bands_fr2                                   = 8;
   static constexpr std::array<nr_band, nof_nr_bands_fr2> nr_band_table_fr2 = {{
     {257, KHZ_60, 2054166, 1, 2104165, 2054166, 1, 2104165},
     {257, KHZ_120, 2054167, 2, 2104165, 2054167, 20, 2104165},
@@ -162,6 +232,48 @@ private:
 
     {261, KHZ_60, 2070833, 1, 2084999, 2070833, 1, 2084999},
     {261, KHZ_120, 2070833, 2, 2084999, 2070833, 2, 2084999}
+  }};
+
+// Elements of TS 38.101-1 Table 5.4.3.3-1 : Applicable SS raster entries per operating band
+  struct nr_band_ss_raster {
+    uint16_t                    band;
+    srsran_subcarrier_spacing_t scs;
+    srsran_ssb_patern_t         pattern;
+    uint32_t                    gscn_first;
+    uint32_t                    gscn_step;
+    uint32_t                    gscn_last;
+  };
+  static const uint32_t nof_nr_band_ss_raster                                                   = 29;
+  static constexpr std::array<nr_band_ss_raster, nof_nr_band_ss_raster> nr_band_ss_raster_table = {{
+    {1, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 5279, 1, 5419},
+    {2, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 4829, 1, 4969},
+    {3, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 4517, 1, 4693},
+    {5, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 2177, 1, 2230},
+    {5, srsran_subcarrier_spacing_30kHz, SRSRAN_SSB_PATTERN_B, 2183, 1, 2224},
+    {7, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 6554, 1, 6718},
+    {8, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 2318, 1, 2395},
+    {12, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 1828, 1, 1858},
+    {20, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 1982, 1, 2047},
+    {25, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 4829, 1, 4981},
+    {28, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 1901, 1, 2002},
+    {34, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 5030, 1, 5056},
+    {38, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 6431, 1, 6544},
+    {39, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 4706, 1, 4795},
+    {40, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 5756, 1, 5995},
+    {41, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 6246, 3, 6717},
+    {41, srsran_subcarrier_spacing_30kHz, SRSRAN_SSB_PATTERN_C, 6252, 3, 6714},
+    {50, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 3584, 1, 3787},
+    {51, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 3572, 1, 3574},
+    {66, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 5279, 1, 5494},
+    {66, srsran_subcarrier_spacing_30kHz, SRSRAN_SSB_PATTERN_B, 5285, 1, 5488},
+    {70, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 4993, 1, 5044},
+    {71, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 1547, 1, 1624},
+    {74, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 3692, 1, 3790},
+    {75, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 3584, 1, 3787},
+    {76, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 3572, 1, 3574},
+    {77, srsran_subcarrier_spacing_30kHz, SRSRAN_SSB_PATTERN_C, 7711, 1, 8329},
+    {78, srsran_subcarrier_spacing_30kHz, SRSRAN_SSB_PATTERN_C, 7711, 1, 8051},
+    {79, srsran_subcarrier_spacing_30kHz, SRSRAN_SSB_PATTERN_C, 8480, 16, 8880},
   }};
 };
 

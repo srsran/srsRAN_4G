@@ -24,6 +24,7 @@
 
 #include "srsran/config.h"
 #include "srsran/srsran.h"
+#include <array>
 #include <string>
 
 namespace srsran {
@@ -33,6 +34,15 @@ namespace srsran {
  **************************/
 
 struct phy_cfg_nr_t {
+  /**
+   * SSB configuration
+   */
+  struct ssb_cfg_t {
+    uint32_t                                  periodicity_ms;
+    std::array<bool, SRSRAN_SSB_NOF_POSITION> position_in_burst;
+    srsran_subcarrier_spacing_t               scs;
+  };
+
   srsran_tdd_config_nr_t         tdd      = {};
   srsran_sch_hl_cfg_nr_t         pdsch    = {};
   srsran_sch_hl_cfg_nr_t         pusch    = {};
@@ -42,6 +52,7 @@ struct phy_cfg_nr_t {
   srsran_ue_dl_nr_harq_ack_cfg_t harq_ack = {};
   srsran_csi_hl_cfg_t            csi      = {};
   srsran_carrier_nr_t            carrier  = {};
+  ssb_cfg_t                      ssb;
 
   phy_cfg_nr_t() {}
 

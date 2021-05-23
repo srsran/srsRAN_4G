@@ -1997,7 +1997,13 @@ int srsran_dci_ctx_to_str(const srsran_dci_ctx_t* ctx, char* str, uint32_t str_l
   uint32_t len = 0;
 
   // Print base
-  len = srsran_print_check(str, str_len, len, "rnti=%04x dci=%s ", ctx->rnti, srsran_dci_format_nr_string(ctx->format));
+  len = srsran_print_check(str,
+                           str_len,
+                           len,
+                           "%s-rnti=%04x dci=%s ",
+                           srsran_rnti_type_str_short(ctx->rnti_type),
+                           ctx->rnti,
+                           srsran_dci_format_nr_string(ctx->format));
 
   if (ctx->format != srsran_dci_format_nr_rar) {
     len = srsran_print_check(str, str_len, len, "L=%d cce=%d ", ctx->location.L, ctx->location.ncce);

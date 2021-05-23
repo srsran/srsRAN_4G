@@ -25,6 +25,44 @@ int format_float(char* buf, std::size_t size, const char* format, int precision,
                        : snprintf_ptr(buf, size, format, precision, value);
 }
 
+namespace {
+
+/// This special mutex has priority inheritance to improve latency.
+class pi_mutex
+{
+public:
+  pi_mutex(const pi_mutex&) = delete;
+  pi_mutex& operator=(const pi_mutex&) = delete;
+
+  pi_mutex()
+  {
+    ::pthread_mutexattr_t mutex_attr;
+    ::pthread_mutexattr_init(&mutex_attr);
+    ::pthread_mutexattr_setprotocol(&mutex_attr, PTHREAD_PRIO_INHERIT);
+    ::pthread_mutex_init(&m, &mutex_attr);
+  }
+
+  ~pi_mutex() { ::pthread_mutex_destroy(&m); }
+
+  /// Mutex lock.
+  void lock() { ::pthread_mutex_lock(&m); }
+
+  /// Mutex unlock.
+  void unlock() { ::pthread_mutex_unlock(&m); }
+
+  /// Mutex try lock. Returns true if the lock was obtained, false otherwise.
+  bool try_lock() { return (::pthread_mutex_trylock(&m) == 0); }
+
+  /// Accessor to the raw mutex structure.
+  pthread_mutex_t*       raw() { return &m; }
+  const pthread_mutex_t* raw() const { return &m; }
+
+private:
+  pthread_mutex_t m;
+};
+
+}
+
 #define NODE_POOL_SIZE (10000u)
 static constexpr uint8_t memory_heap_tag = 0xAA;
 class dyn_node_pool
@@ -49,7 +87,7 @@ public:
   void* alloc(std::size_t sz) {
     assert(sz <= dynamic_arg_list::max_pool_node_size && "Object is too large to fit in the pool");
 
-    std::lock_guard<std::mutex> lock(m);
+    std::lock_guard<pi_mutex> lock(m);
     if (free_list.empty()) {
       // Tag that this allocation was performed by the heap.
       auto *p = new type;
@@ -70,7 +108,6 @@ public:
       return;
     }
 
-    std::lock_guard<std::mutex> lock(m);
     uint8_t* base_ptr = reinterpret_cast<uint8_t *>(p) - 1;
     if (*base_ptr == memory_heap_tag) {
       // This pointer was allocated using the heap.
@@ -78,13 +115,14 @@ public:
       return;
     }
 
+    std::lock_guard<pi_mutex> lock(m);
     free_list.push_back(base_ptr);
   }
 
 private:
   std::vector<type> pool;
   std::vector<uint8_t *> free_list;
-  mutable std::mutex m;
+  mutable pi_mutex m;
 };
 
 static dyn_node_pool node_pool;

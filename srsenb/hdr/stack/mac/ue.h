@@ -153,6 +153,7 @@ public:
   void     start_ta() { ta_fsm.start(); };
   uint32_t set_ta_us(float ta_us) { return ta_fsm.push_value(ta_us); };
   void     tic();
+  void     trigger_padding(int lcid);
 
   uint8_t* generate_pdu(uint32_t                              ue_cc_idx,
                         uint32_t                              harq_pid,

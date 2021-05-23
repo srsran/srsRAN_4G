@@ -279,30 +279,6 @@ static bool when_logging_with_context_and_message_then_filled_in_log_entry_is_pu
   return true;
 }
 
-static bool when_logging_with_small_string_then_filled_in_log_entry_is_pushed_into_the_backend()
-{
-  backend_spy              backend;
-  test_dummies::sink_dummy s;
-
-  log_channel log("id", s, backend);
-
-  small_str_buffer buf;
-  fmt::format_to(buf, "A {} {} {}", 1, 2, 3);
-  buf.push_back('\0');
-  log(std::move(buf));
-
-  ASSERT_EQ(backend.push_invocation_count(), 1);
-
-  const detail::log_entry& entry = backend.last_entry();
-  ASSERT_EQ(&s, entry.s);
-  ASSERT_NE(entry.format_func, nullptr);
-  ASSERT_NE(entry.metadata.tp.time_since_epoch().count(), 0);
-  ASSERT_EQ(entry.metadata.hex_dump.empty(), true);
-  ASSERT_EQ(std::string(entry.metadata.small_str.data()), "A 1 2 3");
-
-  return true;
-}
-
 int main()
 {
   TEST_FUNCTION(when_log_channel_is_created_then_id_matches_expected_value);
@@ -315,7 +291,6 @@ int main()
   TEST_FUNCTION(when_hex_array_length_is_less_than_hex_log_max_size_then_array_length_is_used);
   TEST_FUNCTION(when_logging_with_context_then_filled_in_log_entry_is_pushed_into_the_backend);
   TEST_FUNCTION(when_logging_with_context_and_message_then_filled_in_log_entry_is_pushed_into_the_backend);
-  TEST_FUNCTION(when_logging_with_small_string_then_filled_in_log_entry_is_pushed_into_the_backend);
 
   return 0;
 }

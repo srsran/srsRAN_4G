@@ -90,29 +90,6 @@ public:
   dl_lb_nof_re_table nof_re_lb_table;
 };
 
-//! Bitmask used for CCE allocations
-using pdcch_mask_t = srsran::bounded_bitset<sched_interface::max_cce, true>;
-
-//! Bitmask that stores the allocared DL RBGs
-using rbgmask_t = srsran::bounded_bitset<25, true>;
-
-//! Bitmask that stores the allocated UL PRBs
-using prbmask_t = srsran::bounded_bitset<100, true>;
-
-//! Struct to express a {min,...,max} range of RBGs
-struct prb_interval;
-struct rbg_interval : public srsran::interval<uint32_t> {
-  using interval::interval;
-  static rbg_interval rbgmask_to_rbgs(const rbgmask_t& mask);
-};
-
-/// Struct to express a {min,...,max} range of PRBs
-struct prb_interval : public srsran::interval<uint32_t> {
-  using interval::interval;
-  static prb_interval rbgs_to_prbs(const rbg_interval& rbgs, uint32_t cell_nof_prb);
-  static prb_interval riv_to_prbs(uint32_t riv, uint32_t nof_prbs, int nof_vrbs = -1);
-};
-
 /// Type of Allocation stored in PDSCH/PUSCH
 enum class alloc_type_t { DL_BC, DL_PCCH, DL_RAR, DL_DATA, UL_DATA };
 inline bool is_dl_ctrl_alloc(alloc_type_t a)
@@ -121,14 +98,5 @@ inline bool is_dl_ctrl_alloc(alloc_type_t a)
 }
 
 } // namespace srsenb
-
-namespace fmt {
-
-template <>
-struct formatter<srsenb::rbg_interval> : public formatter<srsran::interval<uint32_t> > {};
-template <>
-struct formatter<srsenb::prb_interval> : public formatter<srsran::interval<uint32_t> > {};
-
-} // namespace fmt
 
 #endif // SRSRAN_SCHED_COMMON_H
