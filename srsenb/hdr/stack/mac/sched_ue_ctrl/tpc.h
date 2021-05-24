@@ -191,8 +191,8 @@ private:
     int                      pending_delta  = 0;
     int                      acc_tpc_values = 0;
 
-    explicit ul_ch_snr_estim(float target_ul_snr = -1) :
-      snr_avg(0.1, target_ul_snr), win_tpc_values(FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS)
+    explicit ul_ch_snr_estim(float initial_snr) :
+      snr_avg(0.1, initial_snr < 0 ? 5 : initial_snr), win_tpc_values(FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS)
     {}
   };
   std::array<ul_ch_snr_estim, nof_ul_ch_code> snr_estim_list;
