@@ -160,7 +160,9 @@ enable = false
 # Scheduler configuration options
 #
 # sched_policy:      User MAC scheduling policy (E.g. time_rr, time_pf)
+# min_aggr_level:    Optional minimum aggregation level index (l=log2(L) can be 0, 1, 2 or 3)
 # max_aggr_level:    Optional maximum aggregation level index (l=log2(L) can be 0, 1, 2 or 3)
+# adaptive_aggr_level: Boolean flag to enable/disable adaptive aggregation level based on target BLER
 # pdsch_mcs:         Optional fixed PDSCH MCS (ignores reported CQIs if specified)
 # pdsch_max_mcs:     Optional PDSCH MCS limit 
 # pusch_mcs:         Optional fixed PUSCH MCS (ignores reported CQIs if specified)
@@ -176,7 +178,9 @@ enable = false
 [scheduler]
 #policy     = time_pf
 #policy_args = 2
-#max_aggr_level   = -1
+#min_aggr_level   = 0
+#max_aggr_level   = 3
+#adaptive_aggr_level = true
 #pdsch_mcs        = -1
 #pdsch_max_mcs    = -1
 #pusch_mcs        = -1

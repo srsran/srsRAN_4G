@@ -69,6 +69,7 @@ inline uint32_t get_tbs_bytes(uint32_t mcs, uint32_t nof_alloc_prb, bool use_tbs
 /// Find lowest DCI aggregation level supported by the UE spectral efficiency
 uint32_t get_aggr_level(uint32_t nof_bits,
                         uint32_t dl_cqi,
+                        uint32_t min_aggr_lvl,
                         uint32_t max_aggr_lvl,
                         uint32_t cell_nof_prb,
                         bool     use_tbs_index_alt);

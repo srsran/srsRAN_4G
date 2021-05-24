@@ -53,7 +53,9 @@ public:
     int         pusch_max_mcs           = 28;
     uint32_t    min_nof_ctrl_symbols    = 1;
     uint32_t    max_nof_ctrl_symbols    = 3;
+    int         min_aggr_level          = 0;
     int         max_aggr_level          = 3;
+    bool        adaptive_aggr_level     = true;
     bool        pucch_mux_enabled       = false;
     float       target_bler             = 0.05;
     float       max_delta_dl_cqi        = 5;

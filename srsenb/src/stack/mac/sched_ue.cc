@@ -963,9 +963,7 @@ std::pair<bool, uint32_t> sched_ue::get_active_cell_index(uint32_t enb_cc_idx) c
 
 uint32_t sched_ue::get_aggr_level(uint32_t enb_cc_idx, uint32_t nof_bits)
 {
-  const auto& cc = cells[enb_cc_idx];
-  return srsenb::get_aggr_level(
-      nof_bits, cc.get_dl_cqi(), cc.max_aggr_level, cc.cell_cfg->nof_prb(), cfg.use_tbs_index_alt);
+  return cells[enb_cc_idx].get_aggr_level(nof_bits);
 }
 
 void sched_ue::finish_tti(tti_point tti_rx, uint32_t enb_cc_idx)

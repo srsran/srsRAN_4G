@@ -235,9 +235,23 @@ int sched_ue_cell::get_dl_cqi(const rbgmask_t& rbgs) const
 
 int sched_ue_cell::get_dl_cqi() const
 {
-  rbgmask_t rbgmask(cell_cfg->nof_rbgs);
-  rbgmask.fill(0, rbgmask.size());
-  return get_dl_cqi(rbgmask);
+  return std::max(0, (int)std::min(dl_cqi_ctxt.get_avg_cqi() + dl_cqi_coeff, 15.0f));
+}
+
+uint32_t sched_ue_cell::get_aggr_level(uint32_t nof_bits) const
+{
+  uint32_t dl_cqi = 0;
+  if (cell_cfg->sched_cfg->adaptive_aggr_level) {
+    dl_cqi = get_dl_cqi();
+  } else {
+    dl_cqi = dl_cqi_ctxt.get_avg_cqi();
+  }
+  return srsenb::get_aggr_level(nof_bits,
+                                dl_cqi,
+                                cell_cfg->sched_cfg->min_aggr_level,
+                                max_aggr_level,
+                                cell_cfg->nof_prb(),
+                                ue_cfg->use_tbs_index_alt);
 }
 
 /*************************************************************
