@@ -61,6 +61,7 @@ public:
     float       max_delta_dl_cqi        = 5;
     float       max_delta_ul_snr        = 5;
     float       adaptive_link_step_size = 0.001;
+    uint32_t    min_tpc_tti_interval    = 1;
   };
 
   struct cell_cfg_t {

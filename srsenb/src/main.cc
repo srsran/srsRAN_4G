@@ -155,6 +155,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("scheduler.max_delta_dl_cqi", bpo::value<float>(&args->stack.mac.sched.max_delta_dl_cqi)->default_value(5.0), "Maximum shift in CQI for adaptive DL link")
     ("scheduler.max_delta_ul_snr", bpo::value<float>(&args->stack.mac.sched.max_delta_ul_snr)->default_value(5.0), "Maximum shift in UL SNR for adaptive UL link")
     ("scheduler.adaptive_link_step_size", bpo::value<float>(&args->stack.mac.sched.max_delta_ul_snr)->default_value(0.001), "Step size or learning rate used in adaptive link")
+    ("scheduler.min_tpc_tti_interval", bpo::value<uint32_t>(&args->stack.mac.sched.min_tpc_tti_interval)->default_value(1), "Minimum TTI interval between positive or negative TPCs")
 
 
     /* Downlink Channel emulator section */

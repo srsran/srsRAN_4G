@@ -36,17 +36,19 @@ public:
   static constexpr int      PHR_NEG_NOF_PRB = 1;
 
   explicit tpc(uint32_t cell_nof_prb,
-               float    target_pucch_snr_dB_ = -1.0,
-               float    target_pusch_sn_dB_  = -1.0,
-               bool     phr_handling_flag_   = false) :
+               float    target_pucch_snr_dB_  = -1.0,
+               float    target_pusch_sn_dB_   = -1.0,
+               bool     phr_handling_flag_    = false,
+               uint32_t min_tpc_tti_interval_ = 1) :
     nof_prb(cell_nof_prb),
     target_pucch_snr_dB(target_pucch_snr_dB_),
     target_pusch_snr_dB(target_pusch_sn_dB_),
     snr_estim_list({ul_ch_snr_estim{target_pusch_snr_dB}, ul_ch_snr_estim{target_pucch_snr_dB}}),
-    phr_handling_flag(phr_handling_flag_)
-  {
-    max_prbs_cached = nof_prb;
-  }
+    phr_handling_flag(phr_handling_flag_),
+    max_prbs_cached(nof_prb),
+    min_tpc_tti_interval(min_tpc_tti_interval_),
+    logger(srslog::fetch_basic_logger("MAC"))
+  {}
   void set_cfg(float target_pusch_snr_dB_, float target_pucch_snr_dB_)
   {
     target_pucch_snr_dB = target_pucch_snr_dB_;
@@ -85,7 +87,8 @@ public:
 
   void new_tti()
   {
-    for (size_t chidx = 0; chidx < 2; ++chidx) {
+    tti_count++;
+    for (size_t chidx = 0; chidx < nof_ul_ch_code; ++chidx) {
       float target_snr_dB = chidx == PUSCH_CODE ? target_pusch_snr_dB : target_pucch_snr_dB;
       auto& ch_snr        = snr_estim_list[chidx];
 
@@ -139,39 +142,50 @@ private:
       case 3:
         return 3;
       default:
-        srslog::fetch_basic_logger("MAC").warning("Invalid TPC delta value=%d", delta);
+        logger.warning("Invalid TPC delta value=%d", delta);
         return 1;
     }
   }
   uint8_t encode_tpc(uint32_t cc)
   {
-    float target_snr_dB = cc == PUSCH_CODE ? target_pusch_snr_dB : target_pucch_snr_dB;
-    auto& ch_snr        = snr_estim_list[cc];
+    auto& ch_snr = snr_estim_list[cc];
     assert(ch_snr.pending_delta == 0); // ensure called once per {cc,tti}
-    if (target_snr_dB < 0) {
-      // undefined target sinr case.
-      ch_snr.pending_delta = 0;
-    } else {
-      // target SINR is finite and there is power headroom
-      float diff = target_snr_dB - ch_snr.snr_avg.value();
-      diff -= ch_snr.win_tpc_values.value() + ch_snr.acc_tpc_values;
-      int8_t diff_round = roundf(diff);
-      if (diff_round >= 1) {
-        ch_snr.pending_delta = diff_round > 3 ? 3 : 1;
-      } else if (diff_round <= -1) {
-        ch_snr.pending_delta = -1;
-      }
-      if (last_phr <= 0) {
-        // In case there is no headroom, forbid power increases
-        ch_snr.pending_delta = std::min(ch_snr.pending_delta, 0);
-      }
+
+    float target_snr_dB = cc == PUSCH_CODE ? target_pusch_snr_dB : target_pucch_snr_dB;
+    if (target_snr_dB < 0 or last_phr == 0) {
+      // undefined target sinr case, or no more PHR
+      return encode_tpc_delta(0);
+    }
+    if (last_phr < 0) {
+      // negative PHR
+      encode_tpc_delta(-1);
+    }
+    if ((tti_count - ch_snr.last_tpc_tti_count) < min_tpc_tti_interval) {
+      // more time required before sending next TPC
+      return encode_tpc_delta(0);
+    }
+
+    // target SINR is finite and there is power headroom
+    float diff = target_snr_dB - ch_snr.snr_avg.value();
+    diff -= ch_snr.win_tpc_values.value() + ch_snr.acc_tpc_values;
+    if (diff >= 1) {
+      ch_snr.pending_delta      = diff > 3 ? 3 : 1;
+      ch_snr.last_tpc_tti_count = tti_count;
+    } else if (diff <= -1) {
+      ch_snr.pending_delta      = -1;
+      ch_snr.last_tpc_tti_count = tti_count;
     }
     return encode_tpc_delta(ch_snr.pending_delta);
   }
 
-  uint32_t nof_prb;
-  float    target_pucch_snr_dB, target_pusch_snr_dB;
-  bool     phr_handling_flag;
+  uint32_t              nof_prb;
+  uint32_t              min_tpc_tti_interval = 1;
+  float                 target_pucch_snr_dB, target_pusch_snr_dB;
+  bool                  phr_handling_flag;
+  srslog::basic_logger& logger;
+
+  // state
+  uint32_t tti_count = 0;
 
   // PHR-related variables
   int      last_phr        = undefined_phr;
@@ -188,8 +202,9 @@ private:
     srsran::exp_average_irreg_sampling<float> snr_avg;
     // Accumulation of past TPC commands
     srsran::sliding_sum<int> win_tpc_values;
-    int                      pending_delta  = 0;
-    int                      acc_tpc_values = 0;
+    int8_t                   pending_delta      = 0;
+    int                      acc_tpc_values     = 0;
+    uint32_t                 last_tpc_tti_count = 0;
 
     explicit ul_ch_snr_estim(float initial_snr) :
       snr_avg(0.1, initial_snr < 0 ? 5 : initial_snr), win_tpc_values(FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS)
