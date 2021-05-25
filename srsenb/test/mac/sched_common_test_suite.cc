@@ -217,7 +217,7 @@ int test_pdcch_collisions(const sf_output_res_t&                   sf_out,
   // Helper Function: checks if there is any collision. If not, fills the PDCCH mask
   auto try_cce_fill = [&](const srsran_dci_location_t& dci_loc, const char* ch) {
     uint32_t cce_start = dci_loc.ncce, cce_stop = dci_loc.ncce + (1u << dci_loc.L);
-    CONDERROR(dci_loc.L == 0, "The aggregation level %d is not valid", dci_loc.L);
+    CONDERROR(dci_loc.L > 3, "The aggregation level %d is not valid", dci_loc.L);
     CONDERROR(
         cce_start >= ncce or cce_stop > ncce, "The CCE positions (%u, %u) do not fit in PDCCH", cce_start, cce_stop);
     CONDERROR(

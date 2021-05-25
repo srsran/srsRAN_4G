@@ -294,6 +294,7 @@ sched_sim_events rand_sim_params(uint32_t nof_ttis)
       boolean_dist() ? -1 : std::uniform_int_distribution<>{0, 24}(srsenb::get_rand_gen());
   sim_gen.sim_args.sched_args.pusch_mcs =
       boolean_dist() ? -1 : std::uniform_int_distribution<>{0, 24}(srsenb::get_rand_gen());
+  sim_gen.sim_args.sched_args.min_aggr_level = std::uniform_int_distribution<>{0, 3}(srsenb::get_rand_gen());
 
   generator.tti_events.resize(nof_ttis);
 
