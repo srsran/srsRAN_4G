@@ -2107,7 +2107,7 @@ bool s1ap::ue::send_enb_status_transfer_proc(std::vector<bearer_status_info>& be
 
 void s1ap::log_s1ap_msg(const asn1::s1ap::s1ap_pdu_c& msg, srsran::const_span<uint8_t> sdu, bool is_rx)
 {
-  std::string msg_type;
+  const char* msg_type;
 
   switch (msg.type().value) {
     case s1ap_pdu_c::types_opts::init_msg:
@@ -2124,7 +2124,7 @@ void s1ap::log_s1ap_msg(const asn1::s1ap::s1ap_pdu_c& msg, srsran::const_span<ui
       return;
   }
 
-  logger.info(sdu.data(), sdu.size(), "%s S1AP SDU - %s", is_rx ? "Rx" : "Tx", msg_type.c_str());
+  logger.info(sdu.data(), sdu.size(), "%s S1AP SDU - %s", is_rx ? "Rx" : "Tx", msg_type);
 }
 
 } // namespace srsenb
