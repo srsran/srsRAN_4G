@@ -159,6 +159,13 @@ void rrc::ue::set_radiolink_ul_state(bool crc_res)
     return;
   }
 
+  if (mobility_handler->is_ho_running()) {
+    // Do not count UL KOs if handover is on-going.
+    // Source eNB should only rely in relocation timer
+    // Target eNB should either wait for UE to handover or explicit release by the MME
+    return;
+  }
+
   // Count KOs in MAC and trigger release if it goes above a certain value.
   // This is done to detect out-of-coverage UEs
   if (phy_ul_rlf_timer.is_running()) {
