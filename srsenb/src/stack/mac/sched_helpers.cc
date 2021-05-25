@@ -390,16 +390,16 @@ uint32_t get_aggr_level(uint32_t nof_bits,
                         bool     use_tbs_index_alt)
 {
   float    max_coderate = srsran_cqi_to_coderate(dl_cqi, use_tbs_index_alt);
-  float    coderate;
-  float    factor = 1.5;
-  uint32_t l_max  = 3;
+  float    factor       = 1.5;
+  uint32_t l_max        = 3;
   if (cell_nof_prb == 6) {
     factor = 1.0;
     l_max  = 2;
   }
   l_max = SRSRAN_MIN(max_aggr_lvl, l_max);
 
-  uint32_t l = min_aggr_lvl;
+  uint32_t l        = min_aggr_lvl;
+  float    coderate = 0;
   for (; l <= l_max; ++l) {
     coderate = srsran_pdcch_coderate(nof_bits, l);
     if (factor * coderate <= max_coderate) {
