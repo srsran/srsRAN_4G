@@ -25,6 +25,11 @@ class rrc::ue
 {
 public:
   class rrc_mobility;
+  enum activity_timeout_type_t {
+    MSG3_RX_TIMEOUT = 0,   ///< Msg3 has its own timeout to quickly remove fake UEs from random PRACHs
+    UE_INACTIVITY_TIMEOUT, ///< UE inactivity timeout (usually bigger than reestablishment timeout)
+    nulltype
+  };
 
   ue(rrc* outer_rrc, uint16_t rnti, const sched_interface::ue_cfg_t& ue_cfg);
   ~ue();
@@ -32,15 +37,9 @@ public:
   bool is_connected();
   bool is_idle();
 
-  typedef enum {
-    MSG3_RX_TIMEOUT = 0,   ///< Msg3 has its own timeout to quickly remove fake UEs from random PRACHs
-    UE_INACTIVITY_TIMEOUT, ///< UE inactivity timeout (usually bigger than reestablishment timeout)
-    nulltype
-  } activity_timeout_type_t;
-
   std::string to_string(const activity_timeout_type_t& type);
-  void        set_activity_timeout(const activity_timeout_type_t type);
-  void        set_activity();
+  void        set_activity_timeout(activity_timeout_type_t type);
+  void        set_activity(bool enabled = true);
   void        set_radiolink_dl_state(bool crc_res);
   void        set_radiolink_ul_state(bool crc_res);
   void        activity_timer_expired(const activity_timeout_type_t type);

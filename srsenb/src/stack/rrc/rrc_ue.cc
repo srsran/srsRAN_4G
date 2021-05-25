@@ -100,11 +100,19 @@ void rrc::ue::get_metrics(rrc_ue_metrics_t& ue_metrics) const
   }
 }
 
-void rrc::ue::set_activity()
+void rrc::ue::set_activity(bool enabled)
 {
   if (rnti == SRSRAN_MRNTI) {
     return;
   }
+  if (not enabled) {
+    if (activity_timer.is_running()) {
+      parent->logger.debug("Inactivity timer interrupted for rnti=0x%x", rnti);
+    }
+    activity_timer.stop();
+    return;
+  }
+
   // re-start activity timer with current timeout value
   activity_timer.run();
   parent->logger.debug("Activity registered for rnti=0x%x (timeout_value=%dms)", rnti, activity_timer.duration());
@@ -236,28 +244,24 @@ void rrc::ue::max_rlc_retx_reached()
   rlc_rlf_timer.run();
 }
 
-void rrc::ue::set_activity_timeout(const activity_timeout_type_t type)
+void rrc::ue::set_activity_timeout(activity_timeout_type_t type)
 {
-  uint32_t deadline_s  = 0;
   uint32_t deadline_ms = 0;
 
   switch (type) {
     case MSG3_RX_TIMEOUT:
-      deadline_s  = 0;
       deadline_ms = static_cast<uint32_t>(
           (get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.rr_cfg_common.rach_cfg_common.max_harq_msg3_tx + 1) * 16);
       break;
     case UE_INACTIVITY_TIMEOUT:
-      deadline_s  = parent->cfg.inactivity_timeout_ms / 1000;
-      deadline_ms = parent->cfg.inactivity_timeout_ms % 1000;
+      deadline_ms = parent->cfg.inactivity_timeout_ms;
       break;
     default:
       parent->logger.error("Unknown timeout type %d", type);
   }
 
-  uint32_t deadline = deadline_s * 1e3 + deadline_ms;
-  activity_timer.set(deadline, [this, type](uint32_t tid) { activity_timer_expired(type); });
-  parent->logger.debug("Setting timer for %s for rnti=0x%x to %dms", to_string(type).c_str(), rnti, deadline);
+  activity_timer.set(deadline_ms, [this, type](uint32_t tid) { activity_timer_expired(type); });
+  parent->logger.debug("Setting timer for %s for rnti=0x%x to %dms", to_string(type).c_str(), rnti, deadline_ms);
 
   set_activity();
 }
