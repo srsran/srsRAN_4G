@@ -207,9 +207,12 @@ int main(int argc, char** argv)
   SRSRAN_DCI_TB_DISABLE(dci.tb[1]);
   srsran_ra_dl_dci_to_grant(&cell, &dl_sf, SRSRAN_TM1, false, &dci, &pmch_cfg.pdsch_cfg.grant);
 
-  srsran_pdsch_res_t pdsch_res;
-  pdsch_res.payload = data;
-  ret               = srsran_ue_dl_decode_pmch(&ue_dl, &dl_sf, &pmch_cfg, &pdsch_res);
+  srsran_pdsch_res_t pdsch_res = {};
+  pdsch_res.payload            = data;
+
+  srsran_pdsch_res_t pdsch_res_vec[SRSRAN_MAX_CODEWORDS];
+  pdsch_res_vec[0] = pdsch_res;
+  ret              = srsran_ue_dl_decode_pmch(&ue_dl, &dl_sf, &pmch_cfg, pdsch_res_vec);
   if (pdsch_res.crc == 1) {
     printf("PMCH Decoded OK!\n");
   } else if (pdsch_res.crc == 0) {

@@ -39,7 +39,7 @@ int      max_frames = 10;
 srsran_dci_format_t   dci_format = SRSRAN_DCI_FORMAT1A;
 srsran_filesource_t   fsrc;
 srsran_pdcch_t        pdcch;
-cf_t *                input_buffer, *fft_buffer[SRSRAN_MAX_CODEWORDS];
+cf_t *                input_buffer, *fft_buffer[SRSRAN_MAX_PORTS];
 srsran_regs_t         regs;
 srsran_ofdm_t         fft;
 srsran_chest_dl_t     chest;

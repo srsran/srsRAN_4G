@@ -573,11 +573,11 @@ int srsran_ue_dl_nr_decode_pdsch(srsran_ue_dl_nr_t*         q,
   return SRSRAN_SUCCESS;
 }
 
-int srsran_ue_dl_nr_pdsch_info(const srsran_ue_dl_nr_t*     q,
-                               const srsran_sch_cfg_nr_t*   cfg,
-                               const srsran_pdsch_res_nr_t* res,
-                               char*                        str,
-                               uint32_t                     str_len)
+int srsran_ue_dl_nr_pdsch_info(const srsran_ue_dl_nr_t*    q,
+                               const srsran_sch_cfg_nr_t*  cfg,
+                               const srsran_pdsch_res_nr_t res[SRSRAN_MAX_CODEWORDS],
+                               char*                       str,
+                               uint32_t                    str_len)
 {
   int len = 0;
 

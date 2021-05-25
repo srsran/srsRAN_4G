@@ -199,7 +199,7 @@ SRSRAN_API int srsran_ue_dl_decode_pdsch(srsran_ue_dl_t*     q,
 SRSRAN_API int srsran_ue_dl_decode_pmch(srsran_ue_dl_t*     q,
                                         srsran_dl_sf_cfg_t* sf,
                                         srsran_pmch_cfg_t*  pmch_cfg,
-                                        srsran_pdsch_res_t* data);
+                                        srsran_pdsch_res_t  data[SRSRAN_MAX_CODEWORDS]);
 
 SRSRAN_API int srsran_ue_dl_decode_phich(srsran_ue_dl_t*       q,
                                          srsran_dl_sf_cfg_t*   sf,

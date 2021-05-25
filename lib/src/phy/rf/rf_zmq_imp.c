@@ -597,12 +597,7 @@ int rf_zmq_recv_with_time(void* h, void* data, uint32_t nsamples, bool blocking,
   return rf_zmq_recv_with_time_multi(h, &data, nsamples, blocking, secs, frac_secs);
 }
 
-int rf_zmq_recv_with_time_multi(void*    h,
-                                void*    data[4],
-                                uint32_t nsamples,
-                                bool     blocking,
-                                time_t*  secs,
-                                double*  frac_secs)
+int rf_zmq_recv_with_time_multi(void* h, void** data, uint32_t nsamples, bool blocking, time_t* secs, double* frac_secs)
 {
   int ret = SRSRAN_ERROR;
 

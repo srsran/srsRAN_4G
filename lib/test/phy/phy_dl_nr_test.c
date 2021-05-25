@@ -471,8 +471,10 @@ int main(int argc, char** argv)
         }
 
         if (srsran_verbose >= SRSRAN_VERBOSE_INFO) {
-          char str[512];
-          srsran_ue_dl_nr_pdsch_info(&ue_dl, &pdsch_cfg, &pdsch_res, str, (uint32_t)sizeof(str));
+          char                  str[512];
+          srsran_pdsch_res_nr_t pdsch_res_vec[SRSRAN_MAX_CODEWORDS] = {};
+          pdsch_res_vec[0]                                          = pdsch_res;
+          srsran_ue_dl_nr_pdsch_info(&ue_dl, &pdsch_cfg, pdsch_res_vec, str, (uint32_t)sizeof(str));
 
           char str_extra[2048];
           srsran_sch_cfg_nr_info(&pdsch_cfg, str_extra, (uint32_t)sizeof(str_extra));

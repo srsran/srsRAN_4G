@@ -482,7 +482,7 @@ int srsran_pdsch_nr_decode(srsran_pdsch_nr_t*           q,
                            srsran_pdsch_res_nr_t*       data)
 {
   // Check input pointers
-  if (!q || !cfg || !grant || !data || !sf_symbols) {
+  if (!q || !cfg || !grant || !data || !sf_symbols || !channel) {
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
@@ -528,8 +528,7 @@ int srsran_pdsch_nr_decode(srsran_pdsch_nr_t*           q,
 
   // Antenna port demapping
   // ... Not implemented
-  srsran_predecoding_type(
-      q->x, channel->ce, q->d, NULL, 1, 1, 1, 0, nof_re, SRSRAN_TXSCHEME_PORT0, 1.0f, channel->noise_estimate);
+  srsran_predecoding_single(q->x[0], channel->ce[0][0], q->d[0], NULL, nof_re, 1.0f, channel->noise_estimate);
 
   // Layer demapping
   if (grant->nof_layers > 1) {
