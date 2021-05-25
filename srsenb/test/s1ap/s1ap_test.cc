@@ -87,7 +87,7 @@ struct dummy_socket_manager : public srsran::socket_manager_itf {
     return true;
   }
 
-  int             s1u_fd;
+  int             s1u_fd = -1;
   recv_callback_t callback;
 };
 
