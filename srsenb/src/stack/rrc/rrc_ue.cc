@@ -392,7 +392,7 @@ void rrc::ue::handle_rrc_con_req(rrc_conn_request_s* msg)
       if (user.first != rnti && user.second->has_tmsi && user.second->mmec == mmec && user.second->m_tmsi == m_tmsi) {
         parent->logger.info("RRC connection request: UE context already exists. M-TMSI=%d", m_tmsi);
         user.second->state = RRC_STATE_IDLE; // Set old rnti to IDLE so that enb doesn't send RRC Connection Release
-        parent->s1ap->user_release(user.first, asn1::s1ap::cause_radio_network_opts::radio_conn_with_ue_lost);
+        parent->s1ap->user_release(user.first, asn1::s1ap::cause_radio_network_opts::interaction_with_other_proc);
         break;
       }
     }

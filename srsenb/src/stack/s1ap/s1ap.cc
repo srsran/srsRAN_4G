@@ -1402,10 +1402,13 @@ bool s1ap::ue::send_uectxtreleaserequest(const cause_c& cause)
     return false;
   }
 
-  if (ts1_reloc_overall.is_running()) {
+  if (ts1_reloc_overall.is_running() and cause.type().value == asn1::s1ap::cause_c::types_opts::radio_network and
+      (cause.radio_network().value == asn1::s1ap::cause_radio_network_opts::user_inactivity or
+       cause.radio_network().value == asn1::s1ap::cause_radio_network_opts::radio_conn_with_ue_lost)) {
     logger.info("Ignoring UE context release request from lower layers for UE rnti=0x%x performing S1 Handover.",
                 ctxt.rnti);
-    // leave the UE context alive until ts1_reloc_overall expiry
+    // Leave the UE context alive during S1 Handover until ts1_reloc_overall expiry. Ignore releases due to
+    // UE inactivity or RLF
     return false;
   }
 
