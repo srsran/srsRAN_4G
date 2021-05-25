@@ -402,7 +402,7 @@ uint32_t get_aggr_level(uint32_t nof_bits,
   uint32_t l = min_aggr_lvl;
   for (; l <= l_max; ++l) {
     coderate = srsran_pdcch_coderate(nof_bits, l);
-    if (factor * coderate > max_coderate) {
+    if (factor * coderate <= max_coderate) {
       break;
     }
   }
