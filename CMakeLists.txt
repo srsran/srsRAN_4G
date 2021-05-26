@@ -85,6 +85,8 @@ option(ENABLE_SRSLOG_TRACING "Enable event tracing using srslog"        OFF)
 option(ASSERTS_ENABLED       "Enable srsRAN asserts"                    ON)
 option(STOP_ON_WARNING       "Interrupt application on warning"         OFF)
 
+option(ENABLE_ALL_TEST       "Enable all unit/component test"           OFF)
+
 # Users that want to try this feature need to make sure the lto plugin is
 # loaded by bintools (ar, nm, ...). Older versions of bintools will not do
 # it automatically so it is necessary to use the gcc wrappers of the compiler
@@ -585,6 +587,18 @@ function(add_lte_test)
 endfunction()
 
 function(add_nr_test)
+  add_test(${ARGN})
+  set(TNAME ${ARGV0})
+  if(${TNAME} STREQUAL NAME)
+    set(TNAME ${ARGV1})
+  endif()
+  set_tests_properties(${TNAME} PROPERTIES LABELS "nr;${CTEST_LABELS}")
+endfunction()
+
+function(add_nr_advanced_test)
+  if (NOT ${ENABLE_ALL_TEST})
+    return()
+  endif()
   add_test(${ARGN})
   set(TNAME ${ARGV0})
   if(${TNAME} STREQUAL NAME)

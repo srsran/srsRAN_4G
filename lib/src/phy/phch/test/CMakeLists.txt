@@ -453,11 +453,7 @@ add_lte_test(npdsch_npdcch_dci_formatN1_test npdsch_npdcch_file_test -c 0 -s 1 -
 add_executable(pusch_test pusch_test.c)
 target_link_libraries(pusch_test srsran_phy)
 
-if (NOT DEFINED TEST_EXTENSION)
-  set(TEST_EXTENSION Normal)
-endif(NOT DEFINED TEST_EXTENSION)
-
-if (TEST_EXTENSION STREQUAL Paranoid)
+if (${ENABLE_ALL_TEST})
   # All valid number of PRBs for PUSCH
   set(cell_n_prb_valid 1 2 3 4 5 6 8 9 10 12 15 16 18 20 24 25 27 30 32 36 40 45 48 50 54 60 64 72 75 80 81 90 96 100)
 
@@ -469,7 +465,7 @@ if (TEST_EXTENSION STREQUAL Paranoid)
 
   set(pusch_cqi none wideband)
 
-else (TEST_EXTENSION STREQUAL Paranoid)
+else ()
   set(cell_n_prb_valid 50)
 
   set(pusch_min_mcs 0)
@@ -480,7 +476,7 @@ else (TEST_EXTENSION STREQUAL Paranoid)
 
   set(pusch_cqi none wideband)
 
-endif (TEST_EXTENSION STREQUAL Paranoid)
+endif ()
 
 foreach (cell_n_prb 6 15 25 50 75 100)
   set(pusch_cell_n_prb)
