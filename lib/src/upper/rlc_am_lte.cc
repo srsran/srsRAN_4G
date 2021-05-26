@@ -701,8 +701,15 @@ int rlc_am_lte::rlc_am_lte_tx::build_retx_pdu(uint8_t* payload, uint32_t nof_byt
     if (!retx_queue.empty()) {
       retx = retx_queue.front();
     } else {
-      logger.info("In build_retx_pdu(): retx_queue is empty during sanity check, sn=%d", retx.sn);
-      return 0;
+      logger.info("%s SN=%d not in Tx window. Ignoring retx.", RB_NAME, retx.sn);
+      if (tx_window.has_sn(vt_a)) {
+        // schedule next SN for retx
+        retransmit_pdu(vt_a);
+        retx = retx_queue.front();
+      } else {
+        // empty tx window, can't provide retx PDU
+        return 0;
+      }
     }
   }
 
