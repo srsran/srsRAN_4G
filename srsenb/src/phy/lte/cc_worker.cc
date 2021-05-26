@@ -187,8 +187,6 @@ void cc_worker::rem_rnti(uint16_t rnti)
   if (ue_db.count(rnti)) {
     delete ue_db[rnti];
     ue_db.erase(rnti);
-  } else {
-    Error("Removing user: rnti=0x%x does not exist\n", rnti);
   }
 }
 
@@ -273,7 +271,8 @@ void cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_
 
   // Get UE configuration
   if (phy->ue_db.get_ul_config(rnti, cc_idx, ul_cfg) < SRSRAN_SUCCESS) {
-    Error("Error retrieving UL configuration for RNTI %x and CC %d", rnti, cc_idx);
+    // It could happen that the UL configuration is missing due to intra-enb HO which is not an error
+    Info("Failed retrieving UL configuration for cc=%d rnti=0x%x", cc_idx, rnti);
     return;
   }
 
@@ -458,7 +457,7 @@ int cc_worker::encode_pdcch_ul(stack_interface_phy_lte::ul_sched_grant_t* grants
       srsran_dci_cfg_t dci_cfg = {};
 
       if (phy->ue_db.get_dci_ul_config(grants[i].dci.rnti, cc_idx, dci_cfg) < SRSRAN_SUCCESS) {
-        Error("Error retrieving DCI UL configuration for RNTI %x, CC %d", grants[i].dci.rnti, cc_idx);
+        Error("Error retrieving DCI UL configuration for cc=%d rnti=0x%x", grants[i].dci.rnti, cc_idx);
         continue;
       }
 
@@ -479,7 +478,7 @@ int cc_worker::encode_pdcch_ul(stack_interface_phy_lte::ul_sched_grant_t* grants
       if (logger.info.enabled()) {
         char str[512];
         srsran_dci_ul_info(&grants[i].dci, str, 512);
-        logger.info("PDCCH: cc=%d, %s, tti_tx_dl=%d", cc_idx, str, tti_tx_dl);
+        logger.info("PDCCH: cc=%d, rnti=0x%x, %s, tti_tx_dl=%d", cc_idx, grants[i].dci.rnti, str, tti_tx_dl);
       }
     }
   }

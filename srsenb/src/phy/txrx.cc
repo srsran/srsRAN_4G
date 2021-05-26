@@ -53,10 +53,7 @@ bool txrx::init(stack_interface_phy_lte*     stack_,
   nr_workers    = nr_workers_;
   worker_com    = worker_com_;
   prach         = prach_;
-  tx_worker_cnt = 0;
   running       = true;
-
-  nof_workers = lte_workers->get_nof_workers();
 
   // Instantiate UL channel emulator
   if (worker_com->params.ul_channel_args.enable) {
@@ -167,15 +164,13 @@ void txrx::run_thread()
     // Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time
     timestamp.add(FDD_HARQ_DELAY_UL_MS * 1e-3);
 
-    Debug("Setting TTI=%d, tx_mutex=%d, tx_time=%ld:%f to worker %d",
+    Debug("Setting TTI=%d, tx_time=%ld:%f to worker %d",
           tti,
-          tx_worker_cnt,
           timestamp.get(0).full_secs,
           timestamp.get(0).frac_secs,
           lte_worker->get_id());
 
-    lte_worker->set_time(tti, tx_worker_cnt, timestamp);
-    tx_worker_cnt = (tx_worker_cnt + 1) % nof_workers;
+    lte_worker->set_time(tti, timestamp);
 
     // Trigger prach worker execution
     for (uint32_t cc = 0; cc < worker_com->get_nof_carriers_lte(); cc++) {

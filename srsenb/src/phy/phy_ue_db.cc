@@ -740,6 +740,7 @@ int phy_ue_db::get_last_ul_tb(uint16_t rnti, uint32_t enb_cc_idx, uint32_t pid, 
 
 int phy_ue_db::set_ul_grant_available(uint32_t tti, const stack_interface_phy_lte::ul_sched_list_t& ul_sched_list)
 {
+  int                         ret = SRSRAN_SUCCESS;
   std::lock_guard<std::mutex> lock(mutex);
 
   // Reset all available grants flags for the given TTI
@@ -757,12 +758,13 @@ int phy_ue_db::set_ul_grant_available(uint32_t tti, const stack_interface_phy_lt
       uint16_t                                         rnti           = ul_sched_grant.dci.rnti;
       // Check that eNb Cell/Carrier is active for the given RNTI
       if (_assert_active_enb_cc(rnti, enb_cc_idx) != SRSRAN_SUCCESS) {
-        return SRSRAN_ERROR;
+        ret = SRSRAN_ERROR;
+        continue;
       }
       // Rise Grant available flag
       ue_db[rnti].cell_info[_get_ue_cc_idx(rnti, enb_cc_idx)].is_grant_available[tti] = true;
     }
   }
 
-  return SRSRAN_SUCCESS;
+  return ret;
 }

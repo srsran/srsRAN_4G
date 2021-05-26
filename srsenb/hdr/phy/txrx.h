@@ -52,8 +52,6 @@ private:
   // Main system TTI counter
   uint32_t tti = 0;
 
-  uint32_t          tx_worker_cnt = 0;
-  uint32_t          nof_workers   = 0;
   std::atomic<bool> running;
 };
 
