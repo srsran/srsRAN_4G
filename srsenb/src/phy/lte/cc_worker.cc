@@ -457,7 +457,7 @@ int cc_worker::encode_pdcch_ul(stack_interface_phy_lte::ul_sched_grant_t* grants
       srsran_dci_cfg_t dci_cfg = {};
 
       if (phy->ue_db.get_dci_ul_config(grants[i].dci.rnti, cc_idx, dci_cfg) < SRSRAN_SUCCESS) {
-        Error("Error retrieving DCI UL configuration for cc=%d rnti=0x%x", grants[i].dci.rnti, cc_idx);
+        Error("Error retrieving DCI UL configuration for RNTI %x, CC %d", grants[i].dci.rnti, cc_idx);
         continue;
       }
 
