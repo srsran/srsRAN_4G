@@ -500,10 +500,10 @@ bool phy::set_scell(srsran_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn)
   // Set inter-frequency measurement
   sfsync.set_inter_frequency_measurement(cc_idx, earfcn, cell_info);
 
-  // Store secondary serving cell EARFCN and PCI
-  common.cell_state.configure(cc_idx, earfcn, cell_info.id);
+  // Reset secondary serving cell state, prevents this component carrier from executing any PHY processing
+  common.cell_state.reset(cc_idx);
 
-  // Reset cell configuration
+  // Reset secondary serving cell configuration
   for (uint32_t i = 0; i < args.nof_phy_threads; i++) {
     lte_workers[i]->reset_cell_unlocked(cc_idx);
   }
@@ -533,6 +533,9 @@ bool phy::set_scell(srsran_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn)
     sfsync.scell_sync_set(cc_idx, cell_info);
 
     logger_phy.info("Finished setting new SCell configuration cc_idx=%d, earfcn=%d", cc_idx, earfcn);
+
+    // Configure secondary serving cell, allows this component carrier to execute PHY processing
+    common.cell_state.configure(cc_idx, earfcn, cell_info.id);
 
     stack->set_scell_complete(true);
   });

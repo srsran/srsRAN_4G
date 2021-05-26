@@ -301,7 +301,6 @@ bool sync::cell_select_init(phy_cell_t new_cell)
 
   Info("Cell Select: Going to IDLE");
   phy_state.go_idle();
-  worker_com->reset();
 
   // Stop intra-frequency measurements if need to change frequency
   if ((int)new_cell.earfcn != current_earfcn) {
@@ -325,11 +324,11 @@ bool sync::cell_select_start(phy_cell_t new_cell)
 
   rrc_proc_state = PROC_SELECT_RUNNING;
 
+  // Reset SFN and cell search FSMs. They can safely be done while it is CAMPING or IDLE
   sfn_p.reset();
   search_p.reset();
-  srsran_ue_sync_reset(&ue_sync);
 
-  /* Reconfigure cell if necessary */
+  // Reconfigure cell if necessary
   cell.id = new_cell.pci;
   if (not set_cell(new_cell.cfo_hz)) {
     Error("Cell Select: Reconfiguring cell");
@@ -795,6 +794,12 @@ bool sync::set_cell(float cfo)
     Error("Can not change Cell while not in IDLE");
     return false;
   }
+
+  // Reset UE sync. Attention: doing this reset when the FSM is NOT IDLE can cause PSS/SSS out-of-sync
+  srsran_ue_sync_reset(&ue_sync);
+
+  // Reset worker once SYNC is IDLE to flush any worker states such as ACKs and pending grants
+  worker_com->reset();
 
   if (!srsran_cell_isvalid(&cell)) {
     Error("SYNC:  Setting cell: invalid cell (nof_prb=%d, pci=%d, ports=%d)", cell.nof_prb, cell.id, cell.nof_ports);
