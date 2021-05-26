@@ -1241,7 +1241,7 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
             logger.info("%s NACKed SN=%d already considered for retransmission", RB_NAME, i);
           }
         } else {
-          logger.warning("%s NACKed SN=%d already removed from Tx window", RB_NAME, i);
+          logger.error("%s NACKed SN=%d already removed from Tx window", RB_NAME, i);
         }
       }
     }
@@ -1263,8 +1263,9 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
   }
 
   // Make sure vt_a points to valid SN
-  if (not tx_window.empty()) {
-    srsran_expect(tx_window.has_sn(vt_a), "%s vt_a=%d points to invalid position in Tx window", RB_NAME, vt_a);
+  if (not tx_window.empty() && not tx_window.has_sn(vt_a)) {
+    logger.error("%s vt_a=%d points to invalid position in Tx window.", RB_NAME, vt_a);
+    parent->rrc->protocol_failure();
   }
 
   debug_state();
