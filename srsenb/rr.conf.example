@@ -62,6 +62,7 @@ cell_list =
     //ul_earfcn = 21400;
     ho_active = false;
     //meas_gap_period = 0; // 0 (inactive), 40 or 80
+    //meas_gap_offset_subframe = [6, 12, 18, 24, 30];
     // target_pusch_sinr = -1;
     // target_pucch_sinr = -1;
     // allowed_meas_bw = 6;

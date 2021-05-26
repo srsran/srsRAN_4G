@@ -218,6 +218,7 @@ bool ue_cell_ded_list::rem_last_cell()
 
 bool ue_cell_ded_list::alloc_cell_resources(uint32_t ue_cc_idx)
 {
+  const uint32_t meas_gap_duration = 6;
   // Allocate CQI, SR, and PUCCH CS resources. If failure, do not add new cell
   if (ue_cc_idx == UE_PCELL_CC_IDX) {
     if (not alloc_sr_resources(cfg.sr_cfg.period)) {
@@ -226,9 +227,30 @@ bool ue_cell_ded_list::alloc_cell_resources(uint32_t ue_cc_idx)
     }
 
     ue_cell_ded* cell     = get_ue_cc_idx(UE_PCELL_CC_IDX);
+    cell->meas_gap_offset = 0;
     cell->meas_gap_period = cell->cell_common->cell_cfg.meas_cfg.meas_gap_period;
-    cell->meas_gap_offset = pucch_res->next_measgap_offset;
-    pucch_res->next_measgap_offset += 6;
+    if (cell->meas_gap_period > 0) {
+      if (not cell->cell_common->cell_cfg.meas_cfg.meas_gap_offset_subframe.empty()) {
+        // subframes specified
+        uint32_t min_users = std::numeric_limits<uint32_t>::max();
+        for (uint32_t i = 0; i < cell->cell_common->cell_cfg.meas_cfg.meas_gap_offset_subframe.size(); ++i) {
+          uint32_t idx_offset = cell->cell_common->cell_cfg.meas_cfg.meas_gap_offset_subframe[i] / meas_gap_duration;
+          if (pucch_res->meas_gap_alloc_map[idx_offset] < min_users) {
+            min_users             = pucch_res->meas_gap_alloc_map[idx_offset];
+            cell->meas_gap_offset = cell->cell_common->cell_cfg.meas_cfg.meas_gap_offset_subframe[i];
+          }
+        }
+      } else {
+        uint32_t min_users = std::numeric_limits<uint32_t>::max();
+        for (uint32_t meas_offset = 0; meas_offset < cell->cell_common->cell_cfg.meas_cfg.meas_gap_period;
+             meas_offset += meas_gap_duration) {
+          if (pucch_res->meas_gap_alloc_map[meas_offset / meas_gap_duration] < min_users) {
+            min_users             = pucch_res->meas_gap_alloc_map[meas_offset / meas_gap_duration];
+            cell->meas_gap_offset = meas_offset;
+          }
+        }
+      }
+    }
   } else {
     if (ue_cc_idx == 1 and not n_pucch_cs_present) {
       // Allocate resources for Format1b CS (will be optional PUCCH3/CS)

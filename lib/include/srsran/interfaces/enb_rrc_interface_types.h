@@ -42,6 +42,7 @@ struct rrc_meas_cfg_t {
   std::vector<asn1::rrc::report_cfg_eutra_s> meas_reports;
   asn1::rrc::quant_cfg_eutra_s               quant_cfg;
   uint32_t                                   meas_gap_period;
+  std::vector<uint32_t>                      meas_gap_offset_subframe;
   uint32_t                                   allowed_meas_bw;
 };
 
