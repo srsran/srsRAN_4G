@@ -36,7 +36,8 @@
 
 float srsran_pdcch_coderate(uint32_t nof_bits, uint32_t l)
 {
-  return (float)(nof_bits + 16) / (4 * PDCCH_FORMAT_NOF_REGS(l));
+  static const int nof_bits_x_symbol = 2; //QPSK
+  return (float)(nof_bits + 16) / (nof_bits_x_symbol * PDCCH_FORMAT_NOF_REGS(l));
 }
 
 /** Initializes the PDCCH transmitter and receiver */

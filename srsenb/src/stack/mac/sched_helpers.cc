@@ -396,18 +396,14 @@ uint32_t get_aggr_level(uint32_t nof_bits,
     factor = 1.0;
     l_max  = 2;
   }
-  l_max = SRSRAN_MIN(max_aggr_lvl, l_max);
+  l_max = std::min(max_aggr_lvl, l_max);
 
-  uint32_t l        = min_aggr_lvl;
-  float    coderate = 0;
-  for (; l <= l_max; ++l) {
+  uint32_t l        = std::min(min_aggr_lvl, l_max);
+  float    coderate = srsran_pdcch_coderate(nof_bits, l);
+  while (factor * coderate > max_coderate and l < l_max) {
+    l++;
     coderate = srsran_pdcch_coderate(nof_bits, l);
-    if (factor * coderate <= max_coderate) {
-      break;
-    }
   }
-  // make aggregation level more conservative
-  l = std::min(l_max, l + 1);
 
   Debug("SCHED: CQI=%d, l=%d, nof_bits=%d, coderate=%.2f, max_coderate=%.2f",
         dl_cqi,
