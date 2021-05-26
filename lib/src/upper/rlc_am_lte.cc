@@ -1925,8 +1925,9 @@ int rlc_am_lte::rlc_am_lte_rx::get_status_pdu(rlc_status_pdu_t* status, const ui
         status->N_nack--;
         // make sure we don't have the current ACK_SN in the NACK list
         if (rlc_am_is_valid_status_pdu(*status) == false) {
-          // No space to send any NACKs
-          logger.debug("Resetting N_nack to zero");
+          // No space to send any NACKs, play safe and just ack lower edge
+          logger.debug("Resetting ACK_SN and N_nack to initial state");
+          status->ack_sn = vr_r;
           status->N_nack = 0;
         }
       } else {
