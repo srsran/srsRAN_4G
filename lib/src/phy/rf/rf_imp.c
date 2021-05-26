@@ -14,7 +14,7 @@
 
 #include "rf_dev.h"
 #include "srsran/phy/rf/rf.h"
-#include "srsran/srsran.h"
+#include "srsran/phy/utils/debug.h"
 
 int rf_get_available_devices(char** devnames, int max_strlen)
 {

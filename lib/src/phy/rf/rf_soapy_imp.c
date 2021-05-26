@@ -17,7 +17,9 @@
 
 #include "rf_helper.h"
 #include "rf_soapy_imp.h"
-#include "srsran/srsran.h"
+#include "srsran/phy/common/phy_common.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/vector.h"
 
 #include <SoapySDR/Device.h>
 #include <SoapySDR/Formats.h>
