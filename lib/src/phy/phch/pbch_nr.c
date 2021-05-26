@@ -14,9 +14,11 @@
 #include "srsran/phy/common/sequence.h"
 #include "srsran/phy/fec/polar/polar_chanalloc.h"
 #include "srsran/phy/fec/polar/polar_interleaver.h"
+#include "srsran/phy/mimo/precoding.h"
 #include "srsran/phy/modem/demod_soft.h"
 #include "srsran/phy/modem/mod.h"
 #include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/simd.h"
 #include "srsran/phy/utils/vector.h"
 
 #define PBCH_NR_DEBUG_TX(...) DEBUG("PBCH-NR Tx: " __VA_ARGS__)
@@ -594,6 +596,7 @@ int srsran_pbch_nr_decode(srsran_pbch_nr_t*           q,
                           const srsran_pbch_nr_cfg_t* cfg,
                           uint32_t                    ssb_idx,
                           const cf_t                  ssb_grid[SRSRAN_SSB_NOF_RE],
+                          const cf_t                  ce_grid[SRSRAN_SSB_NOF_RE],
                           srsran_pbch_msg_nr_t*       msg)
 {
   if (q == NULL || cfg == NULL || msg == NULL || ssb_grid == NULL) {
@@ -602,8 +605,17 @@ int srsran_pbch_nr_decode(srsran_pbch_nr_t*           q,
 
   // 7.3.3.3 Mapping to physical resources
   // 7.4.3.1.3 Mapping of PBCH and DM-RS within an SS/PBCH block
-  cf_t symbols[PBCH_NR_M];
+  srsran_simd_aligned cf_t symbols[PBCH_NR_M];
   pbch_nr_demapping(cfg, ssb_grid, symbols);
+
+  srsran_simd_aligned cf_t ce[PBCH_NR_M];
+  pbch_nr_demapping(cfg, ce_grid, ce);
+
+  // Channel equalizer
+  if (srsran_predecoding_single(symbols, ce, symbols, NULL, PBCH_NR_M, 1.0f, 0.0f) < SRSRAN_SUCCESS) {
+    ERROR("Error in predecoder");
+    return SRSRAN_ERROR;
+  }
 
   // 7.3.3.2 Modulation
   int8_t llr[PBCH_NR_E];

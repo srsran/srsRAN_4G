@@ -75,7 +75,7 @@ typedef struct SRSRAN_API {
  * @brief Initialises an NR PBCH object with the provided arguments
  * @param q NR PBCH object
  * @param args Arguments providing the desired configuration
- * @return SRSRAN_SUCCESS if initialization is successful, SRSLTE_ERROR code otherwise
+ * @return SRSRAN_SUCCESS if initialization is successful, SRSRAN_ERROR code otherwise
  */
 SRSRAN_API int srsran_pbch_nr_init(srsran_pbch_nr_t* q, const srsran_pbch_nr_args_t* args);
 
@@ -91,7 +91,7 @@ SRSRAN_API void srsran_pbch_nr_free(srsran_pbch_nr_t* q);
  * @param cfg NR PBCH configuration
  * @param msg NR PBCH message to transmit
  * @param[out] ssb_grid SSB resource grid
- * @return SRSRAN_SUCCESS if encoding is successful, SRSLTE_ERROR code otherwise
+ * @return SRSRAN_SUCCESS if encoding is successful, SRSRAN_ERROR code otherwise
  */
 SRSRAN_API int srsran_pbch_nr_encode(srsran_pbch_nr_t*           q,
                                      const srsran_pbch_nr_cfg_t* cfg,
@@ -104,13 +104,15 @@ SRSRAN_API int srsran_pbch_nr_encode(srsran_pbch_nr_t*           q,
  * @param cfg NR PBCH configuration
  * @param ssb_idx SSB candidate index
  * @param[in] ssb_grid SSB resource grid
+ * @param[in] ce Channel estimates for the SSB resource grid
  * @param msg NR PBCH message received
- * @return SRSRAN_SUCCESS if decoding is successful, SRSLTE_ERROR code otherwise
+ * @return SRSRAN_SUCCESS if decoding is successful, SRSRAN_ERROR code otherwise
  */
 SRSRAN_API int srsran_pbch_nr_decode(srsran_pbch_nr_t*           q,
                                      const srsran_pbch_nr_cfg_t* cfg,
                                      uint32_t                    ssb_idx,
                                      const cf_t                  ssb_grid[SRSRAN_SSB_NOF_RE],
+                                     const cf_t                  ce[SRSRAN_SSB_NOF_RE],
                                      srsran_pbch_msg_nr_t*       msg);
 
 SRSRAN_API uint32_t srsran_pbch_msg_info(const srsran_pbch_msg_nr_t* msg, char* str, uint32_t str_len);

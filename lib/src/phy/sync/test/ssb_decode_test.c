@@ -15,6 +15,7 @@
 #include "srsran/phy/sync/ssb.h"
 #include "srsran/phy/utils/debug.h"
 #include "srsran/phy/utils/vector.h"
+#include <complex.h>
 #include <getopt.h>
 #include <srsran/phy/utils/random.h>
 #include <stdlib.h>
@@ -25,9 +26,10 @@ static srsran_subcarrier_spacing_t carrier_scs     = srsran_subcarrier_spacing_1
 static srsran_subcarrier_spacing_t ssb_scs         = srsran_subcarrier_spacing_30kHz;
 
 // Channel parameters
-static int32_t delay_n = 0;
-static float   cfo_hz  = 0.0f;
-static float   n0_dB   = -300.0f;
+static cf_t    wideband_gain = 1.0f + 0.5 * I;
+static int32_t delay_n       = 1;
+static float   cfo_hz        = 1000.0f;
+static float   n0_dB         = -10.0f;
 
 // Test context
 static srsran_random_t       random_gen = NULL;
@@ -69,6 +71,9 @@ static void run_channel()
 
   // AWGN
   srsran_channel_awgn_run_c(&awgn, buffer, buffer, hf_len);
+
+  // Wideband gain
+  srsran_vec_sc_prod_ccc(buffer, wideband_gain, buffer, hf_len);
 }
 
 static void gen_pbch_msg(srsran_pbch_msg_nr_t* pbch_msg, uint32_t ssb_idx)
@@ -129,7 +134,7 @@ static int test_case_1(srsran_ssb_t* ssb)
       // Decode
       gettimeofday(&t[1], NULL);
       srsran_pbch_msg_nr_t pbch_msg_rx = {};
-      TESTASSERT(srsran_ssb_decode_pbch(ssb, pci, ssb_idx, buffer, &pbch_msg_rx) == SRSRAN_SUCCESS);
+      TESTASSERT(srsran_ssb_decode_pbch(ssb, pci, ssb_idx, 0, buffer, &pbch_msg_rx) == SRSRAN_SUCCESS);
       gettimeofday(&t[2], NULL);
       get_time_interval(t);
       t_decode_usec += t[0].tv_usec + t[0].tv_sec * 1000000UL;

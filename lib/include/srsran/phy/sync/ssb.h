@@ -50,6 +50,7 @@ typedef struct SRSRAN_API {
   bool                        enable_encode;      ///< Enables PBCH Encoder
   bool                        enable_decode;      ///< Enables PBCH Decoder
   bool                        disable_polar_simd; ///< Disables polar encoder/decoder SIMD acceleration
+  float                       pbch_dmrs_thr;      ///< NR-PBCH DMRS threshold for blind decoding, set to 0 for default
 } srsran_ssb_args_t;
 
 /**
@@ -127,13 +128,20 @@ SRSRAN_API void srsran_ssb_free(srsran_ssb_t* q);
 SRSRAN_API int srsran_ssb_set_cfg(srsran_ssb_t* q, const srsran_ssb_cfg_t* cfg);
 /**
  * @brief Decodes PBCH in the given time domain signal
+ * @note It currently expects an input buffer of half radio frame
  * @param q SSB object
  * @param N_id Physical Cell Identifier
  * @param ssb_idx SSB candidate index
+ * @param n_hf Number of hald radio frame, 0 or 1
+ * @param in Input baseband buffer
  * @return SRSRAN_SUCCESS if the parameters are valid, SRSRAN_ERROR code otherwise
  */
-SRSRAN_API int
-srsran_ssb_decode_pbch(srsran_ssb_t* q, uint32_t N_id, uint32_t ssb_idx, const cf_t* in, srsran_pbch_msg_nr_t* msg);
+SRSRAN_API int srsran_ssb_decode_pbch(srsran_ssb_t*         q,
+                                      uint32_t              N_id,
+                                      uint32_t              ssb_idx,
+                                      uint32_t              n_hf,
+                                      const cf_t*           in,
+                                      srsran_pbch_msg_nr_t* msg);
 
 /**
  * @brief Decides if the SSB object is configured and a given subframe is configured for SSB transmission

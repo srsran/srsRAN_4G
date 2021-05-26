@@ -11,6 +11,7 @@
  */
 
 #include "srsran/phy/sync/ssb.h"
+#include "srsran/phy/ch_estimation/dmrs_pbch.h"
 #include "srsran/phy/sync/pss_nr.h"
 #include "srsran/phy/sync/sss_nr.h"
 #include "srsran/phy/utils/debug.h"
@@ -32,6 +33,11 @@
  * given symbol size but not bigger than 2^13 points.
  */
 #define SSB_CORR_SZ(SYMB_SZ) SRSRAN_MIN(1U << (uint32_t)ceil(log2((double)(SYMB_SZ)) + 3.0), 1U << 13U)
+
+/*
+ * Default NR-PBCH DMRS normalised correlation (RSRP/EPRE) threshold
+ */
+#define SSB_PBCH_DMRS_DEFAULT_CORR_THR 0.6f
 
 static int ssb_init_corr(srsran_ssb_t* q)
 {
@@ -83,9 +89,8 @@ int srsran_ssb_init(srsran_ssb_t* q, const srsran_ssb_args_t* args)
   q->args = *args;
 
   // Check if the maximum sampling rate is in range, force default otherwise
-  if (!isnormal(q->args.max_srate_hz) || q->args.max_srate_hz < 0.0) {
-    q->args.max_srate_hz = SRSRAN_SSB_DEFAULT_MAX_SRATE_HZ;
-  }
+  q->args.max_srate_hz  = (!isnormal(q->args.max_srate_hz)) ? SRSRAN_SSB_DEFAULT_MAX_SRATE_HZ : q->args.max_srate_hz;
+  q->args.pbch_dmrs_thr = (!isnormal(q->args.pbch_dmrs_thr)) ? SSB_PBCH_DMRS_DEFAULT_CORR_THR : q->args.pbch_dmrs_thr;
 
   q->scs_hz        = (float)SRSRAN_SUBC_SPACING_NR(q->args.min_scs);
   q->max_symbol_sz = (uint32_t)round(q->args.max_srate_hz / q->scs_hz);
@@ -539,7 +544,16 @@ int srsran_ssb_add(srsran_ssb_t*               q,
   }
 
   // Put PBCH DMRS
-  // ...
+  srsran_dmrs_pbch_cfg_t pbch_dmrs_cfg = {};
+  pbch_dmrs_cfg.N_id                   = N_id;
+  pbch_dmrs_cfg.n_hf                   = msg->hrf ? 0 : 1;
+  pbch_dmrs_cfg.ssb_idx                = msg->ssb_idx;
+  pbch_dmrs_cfg.L_max                  = q->Lmax;
+  pbch_dmrs_cfg.beta                   = 0.0f;
+  if (srsran_dmrs_pbch_put(&pbch_dmrs_cfg, ssb_grid) < SRSRAN_SUCCESS) {
+    ERROR("Error putting PBCH DMRS");
+    return SRSRAN_ERROR;
+  }
 
   // Put PBCH payload
   srsran_pbch_nr_cfg_t pbch_cfg = {};
@@ -630,7 +644,7 @@ ssb_measure(srsran_ssb_t* q, const cf_t ssb_grid[SRSRAN_SSB_NOF_RE], uint32_t N_
   uint32_t N_id_1 = SRSRAN_NID_1_NR(N_id);
   uint32_t N_id_2 = SRSRAN_NID_2_NR(N_id);
 
-  // Extract PSS LSE
+  // Extract PSS and SSS LSE
   cf_t pss_lse[SRSRAN_PSS_NR_LEN];
   cf_t sss_lse[SRSRAN_SSS_NR_LEN];
   if (srsran_pss_nr_extract_lse(ssb_grid, N_id_2, pss_lse) < SRSRAN_SUCCESS ||
@@ -882,7 +896,12 @@ int srsran_ssb_csi_measure(srsran_ssb_t*                  q,
   return SRSRAN_SUCCESS;
 }
 
-int srsran_ssb_decode_pbch(srsran_ssb_t* q, uint32_t N_id, uint32_t ssb_idx, const cf_t* in, srsran_pbch_msg_nr_t* msg)
+int srsran_ssb_decode_pbch(srsran_ssb_t*         q,
+                           uint32_t              N_id,
+                           uint32_t              ssb_idx,
+                           uint32_t              n_hf,
+                           const cf_t*           in,
+                           srsran_pbch_msg_nr_t* msg)
 {
   // Verify inputs
   if (q == NULL || N_id >= SRSRAN_NOF_NID_NR || in == NULL || msg == NULL || !isnormal(q->scs_hz)) {
@@ -907,14 +926,37 @@ int srsran_ssb_decode_pbch(srsran_ssb_t* q, uint32_t N_id, uint32_t ssb_idx, con
     return SRSRAN_ERROR;
   }
 
-  // Prepare configuration
+  // Prepare PBCH DMRS configuration
+  srsran_dmrs_pbch_cfg_t pbch_dmrs_cfg = {};
+  pbch_dmrs_cfg.N_id                   = N_id;
+  pbch_dmrs_cfg.n_hf                   = n_hf;
+  pbch_dmrs_cfg.ssb_idx                = ssb_idx;
+  pbch_dmrs_cfg.L_max                  = q->Lmax;
+  pbch_dmrs_cfg.beta                   = 0.0f;
+  pbch_dmrs_cfg.scs                    = q->cfg.scs;
+
+  // Compute PBCH channel estimates
+  srsran_dmrs_pbch_meas_t meas                  = {};
+  cf_t                    ce[SRSRAN_SSB_NOF_RE] = {};
+  if (srsran_dmrs_pbch_estimate(&pbch_dmrs_cfg, ssb_grid, ce, &meas) < SRSRAN_SUCCESS) {
+    ERROR("Error estimating channel");
+    return SRSRAN_ERROR;
+  }
+
+  // Compare measurement with threshold
+  if (meas.corr < q->args.pbch_dmrs_thr) {
+    msg->crc = false;
+    return SRSRAN_SUCCESS;
+  }
+
+  // Prepare PBCH configuration
   srsran_pbch_nr_cfg_t pbch_cfg = {};
   pbch_cfg.N_id                 = N_id;
   pbch_cfg.ssb_scs              = q->cfg.scs;
   pbch_cfg.Lmax                 = q->Lmax;
 
   // Decode
-  if (srsran_pbch_nr_decode(&q->pbch, &pbch_cfg, ssb_idx, ssb_grid, msg) < SRSRAN_SUCCESS) {
+  if (srsran_pbch_nr_decode(&q->pbch, &pbch_cfg, ssb_idx, ssb_grid, ce, msg) < SRSRAN_SUCCESS) {
     ERROR("Error decoding PBCH");
     return SRSRAN_ERROR;
   }
