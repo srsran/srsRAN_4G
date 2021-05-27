@@ -165,7 +165,7 @@ bool paging_manager::add_paging_record(uint32_t ueid, const asn1::rrc::paging_re
     return false;
   }
   if (pending_pcch.is_tx()) {
-    logger.warning("Adding Paging records to ueid=%d PCCH that has been already sent but not cleared.", ueid);
+    logger.error("Adding Paging records to ueid=%d PCCH that has been already sent but not cleared.", ueid);
     pending_pcch.clear();
   }
 
@@ -201,7 +201,7 @@ size_t paging_manager::pending_pcch_bytes(tti_point tti_tx_dl)
   subframe_info&               locked_sf = sf_pending_pcch[static_cast<size_t>(sf_key)];
   std::unique_lock<std::mutex> lock(locked_sf.mutex, std::try_to_lock);
   if (not lock.owns_lock()) {
-    // Wait for the next paging cycle
+    // If the scheduler fails to lock, it will postpone the PCCH transmission to the next paging cycle
     return 0;
   }
 
