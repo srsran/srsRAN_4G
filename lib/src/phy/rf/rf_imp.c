@@ -175,7 +175,9 @@ int srsran_rf_close(srsran_rf_t* rf)
 {
   // Stop gain thread
   if (rf->thread_gain_run) {
+    pthread_mutex_lock(&rf->mutex);
     rf->thread_gain_run = false;
+    pthread_mutex_unlock(&rf->mutex);
     pthread_cond_signal(&rf->cond);
     pthread_join(rf->thread_gain, NULL);
   }
