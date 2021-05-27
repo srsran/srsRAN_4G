@@ -185,12 +185,19 @@ static int dmrs_pbch_meas_estimate(const srsran_dmrs_pbch_cfg_t* cfg,
     cfo_hz = cargf(corr1 * conjf(corr3)) / (2.0f * (float)M_PI * distance_s);
   }
 
-  // Estimate wideband gain at symbol 0
-  cf_t wideband_gain = (srsran_vec_acc_cc(lse, DMRS_PBCH_NOF_RE) / DMRS_PBCH_NOF_RE) *
-                       cexpf(I * 2.0f * M_PI * srsran_symbol_offset_s(2, cfg->scs) * cfo_hz);
+  // Estimate wideband gain at each symbol carrying DMRS
+  cf_t wideband_gain_1 =
+      srsran_vec_acc_cc(&lse[0], 60) * cexpf(I * 2.0f * M_PI * srsran_symbol_offset_s(1, cfg->scs) * cfo_hz);
+  cf_t wideband_gain_2 =
+      srsran_vec_acc_cc(&lse[60], 24) * cexpf(I * 2.0f * M_PI * srsran_symbol_offset_s(2, cfg->scs) * cfo_hz);
+  cf_t wideband_gain_3 =
+      srsran_vec_acc_cc(&lse[84], 60) * cexpf(I * 2.0f * M_PI * srsran_symbol_offset_s(3, cfg->scs) * cfo_hz);
+
+  // Estimate wideband gain equivalent at symbol 0
+  cf_t wideband_gain = (wideband_gain_1 + wideband_gain_2 + wideband_gain_3) / DMRS_PBCH_NOF_RE;
 
   // Compute RSRP from correlation
-  float rsrp = SRSRAN_CSQABS((corr1 + corr3) / 2.0f);
+  float rsrp = (SRSRAN_CSQABS(corr1) + SRSRAN_CSQABS(corr3)) / 2.0f;
 
   // Compute EPRE
   float epre = srsran_vec_avg_power_cf(lse, DMRS_PBCH_NOF_RE);

@@ -61,7 +61,7 @@ add_nr_test(nr_cell_search_test_delay nr_cell_search_test --duration=1 --ssb_per
 
 # File test of 10ms captured NR carrier
 # Captured using: lib/examples/usrp_capture -a type=b200,master_clock_rate=61.44e6 -g 80 -r 61.44e6 -n 614400  -f 3682.5e6 -o ../srsue/test/phy/n78.fo3675360k.fs6144.data
-add_nr_test(nr_cell_search_test_file nr_cell_search_test --duration=1 --srate=61.44e6 --ssb_arfcn=645024 --carrier_arfcn=645500 --meas_period_ms=10 --meas_len_ms=10 --file.name=${CMAKE_SOURCE_DIR}/n78.fo3675360k.fs6144.data)
+#add_nr_test(nr_cell_search_test_file nr_cell_search_test --duration=1 --srate=61.44e6 --ssb_arfcn=645024 --carrier_arfcn=645500 --meas_period_ms=10 --meas_len_ms=10 --file.name=${CMAKE_SOURCE_DIR}/n78.fo3675360k.fs6144.data)
 
 add_executable(nr_cell_search_rf nr_cell_search_rf.cc)
 target_link_libraries(nr_cell_search_rf

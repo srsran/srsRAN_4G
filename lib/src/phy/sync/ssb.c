@@ -767,10 +767,8 @@ ssb_pss_search(srsran_ssb_t* q, const cf_t* in, uint32_t nof_samples, uint32_t* 
         continue;
       }
 
-      float corr = SRSRAN_CSQABS(q->tmp_time[peak_idx]) / avg_pwr_corr;
-      if (corr < sqrtf(SRSRAN_PSS_NR_LEN)) {
-        continue;
-      }
+      // Normalise correlation
+      float corr = SRSRAN_CSQABS(q->tmp_time[peak_idx]) / avg_pwr_corr / sqrtf(SRSRAN_PSS_NR_LEN);
 
       // Update if the correlation is better than the current best
       if (best_corr < corr) {
@@ -808,13 +806,11 @@ int srsran_ssb_csi_search(srsran_ssb_t*                  q,
   }
 
   // Avoid finding a peak in a region that cannot be demodulated
-  if (nof_samples < (q->symbol_sz + q->cp_sz[0]) * SRSRAN_SSB_DURATION_NSYMB) {
-    ERROR("Insufficient number of samples (%d/%d)",
-          nof_samples,
-          (q->symbol_sz + q->cp_sz[0]) * SRSRAN_SSB_DURATION_NSYMB);
+  if (nof_samples < (q->symbol_sz + q->cp_sz) * SRSRAN_SSB_DURATION_NSYMB) {
+    ERROR("Insufficient number of samples (%d/%d)", nof_samples, (q->symbol_sz + q->cp_sz) * SRSRAN_SSB_DURATION_NSYMB);
     return SRSRAN_ERROR;
   }
-  nof_samples -= (q->symbol_sz + q->cp_sz[0]) * SRSRAN_SSB_DURATION_NSYMB;
+  nof_samples -= (q->symbol_sz + q->cp_sz) * SRSRAN_SSB_DURATION_NSYMB;
 
   // Search for PSS in time domain
   uint32_t N_id_2   = 0;

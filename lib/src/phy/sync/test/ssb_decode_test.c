@@ -214,6 +214,7 @@ int main(int argc, char** argv)
 
   if (test_case_1(&ssb) != SRSRAN_SUCCESS) {
     ERROR("test case failed");
+    goto clean_exit;
   }
 
   ret = SRSRAN_SUCCESS;
