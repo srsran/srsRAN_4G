@@ -13,6 +13,7 @@
 #ifndef SRSRAN_RRC_PAGING_H
 #define SRSRAN_RRC_PAGING_H
 
+#include "srsran/adt/pool/cached_alloc.h"
 #include "srsran/adt/span.h"
 #include "srsran/asn1/rrc/paging.h"
 #include "srsran/common/tti_point.h"
@@ -116,7 +117,12 @@ private:
   uint32_t              Ns;
   srslog::basic_logger& logger;
 
-  mutable std::array<std::mutex, nof_paging_subframes>      sf_idx_mutex;
+  struct subframe_info {
+    mutable std::mutex        mutex;
+    srsran::deque<pcch_info*> transmitted_pcch;
+  };
+
+  std::array<subframe_info, nof_paging_subframes>           sf_info;
   std::vector<std::array<pcch_info, nof_paging_subframes> > pending_paging;
 };
 
@@ -157,11 +163,12 @@ bool paging_manager::add_paging_record(uint32_t ueid, const asn1::rrc::paging_re
   }
   size_t sf_key = static_cast<size_t>(get_sf_idx_key(sf_idx));
 
+  subframe_info&              locked_sf = sf_info[static_cast<size_t>(sf_key)];
+  std::lock_guard<std::mutex> lock(locked_sf.mutex);
+
   size_t     sfn_cycle_idx = (T / N) * (ueid % N);
   pcch_info& pending_pcch  = pending_paging[sfn_cycle_idx][sf_key];
   auto&      record_list   = pending_pcch.pcch_msg.msg.c1().paging().paging_record_list;
-
-  std::lock_guard<std::mutex> lock(sf_idx_mutex[sf_key]);
 
   if (record_list.size() >= ASN1_RRC_MAX_PAGE_REC) {
     logger.warning("Failed to add new paging record for ueid=%d. Cause: no paging record space left.", ueid);
@@ -197,12 +204,13 @@ size_t paging_manager::pending_pcch_bytes(tti_point tti_tx_dl)
     return 0;
   }
 
-  std::lock_guard<std::mutex> lock(sf_idx_mutex[static_cast<size_t>(sf_key)]);
+  subframe_info&              locked_sf = sf_info[static_cast<size_t>(sf_key)];
+  std::lock_guard<std::mutex> lock(locked_sf.mutex);
 
   // clear old PCCH that has been transmitted at this point
-  pcch_info* old_pcch = get_pcch_info(tti_tx_dl - SRSRAN_NOF_SF_X_FRAME);
-  if (old_pcch != nullptr and not old_pcch->empty()) {
-    old_pcch->clear();
+  while (not locked_sf.transmitted_pcch.empty() and locked_sf.transmitted_pcch.front()->tti_tx_dl < tti_tx_dl) {
+    locked_sf.transmitted_pcch.front()->clear();
+    locked_sf.transmitted_pcch.pop_front();
   }
 
   const pcch_info* pending_pcch = get_pcch_info(tti_tx_dl);
@@ -221,7 +229,8 @@ bool paging_manager::read_pdu_pcch(tti_point tti_tx_dl, const Callable& func)
     return false;
   }
 
-  std::lock_guard<std::mutex> lock(sf_idx_mutex[static_cast<size_t>(sf_key)]);
+  subframe_info&              locked_sf = sf_info[static_cast<size_t>(sf_key)];
+  std::lock_guard<std::mutex> lock(locked_sf.mutex);
 
   pcch_info* pending_pcch = get_pcch_info(tti_tx_dl);
 
@@ -232,7 +241,12 @@ bool paging_manager::read_pdu_pcch(tti_point tti_tx_dl, const Callable& func)
 
   // Call callable for existing PCCH pdu
   if (func(*pending_pcch->pdu, pending_pcch->pcch_msg, not pending_pcch->is_tx())) {
-    pending_pcch->tti_tx_dl = tti_tx_dl;
+    if (not pending_pcch->is_tx()) {
+      // first tx. Enqueue in list of transmitted pcch. We do not erase the PCCH yet because it may be transmitted
+      // by other carriers
+      pending_pcch->tti_tx_dl = tti_tx_dl;
+      locked_sf.transmitted_pcch.push_back(pending_pcch);
+    }
     return true;
   }
   return false;
