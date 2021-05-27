@@ -371,12 +371,12 @@ std::tuple<uint32_t, int, int> harq_entity::set_ack_info(tti_point tti_rx, uint3
   for (auto& h : dl_harqs) {
     if (h.get_tti() + FDD_HARQ_DELAY_DL_MS == tti_rx) {
       if (h.set_ack(tb_idx, ack) == SRSRAN_SUCCESS) {
-        return {h.get_id(), h.get_tbs(tb_idx), h.get_mcs(tb_idx)};
+        return std::make_tuple(h.get_id(), h.get_tbs(tb_idx), h.get_mcs(tb_idx));
       }
-      return {h.get_id(), -1, -1};
+      return std::make_tuple(h.get_id(), -1, -1);
     }
   }
-  return {dl_harqs.size(), -1, -1};
+  return std::make_tuple(dl_harqs.size(), -1, -1);
 }
 
 ul_harq_proc* harq_entity::get_ul_harq(tti_point tti_tx_ul)
