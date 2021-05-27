@@ -195,7 +195,6 @@ bool sync::cell_search_init()
   // Move state to IDLE
   Info("Cell Search: Start EARFCN index=%u/%zd", cellsearch_earfcn_index, worker_com->args->dl_earfcn_list.size());
   phy_state.go_idle();
-  worker_com->reset();
 
   // Stop all intra-frequency measurement before changing frequency
   meas_stop();
@@ -219,6 +218,21 @@ rrc_interface_phy_lte::cell_search_ret_t sync::cell_search_start(phy_cell_t* fou
   }
 
   rrc_proc_state = PROC_SEARCH_RUNNING;
+
+  // Wait for SYNC thread to transition to IDLE (max. 2000ms)
+  uint32_t cnt = 0;
+  while (!phy_state.is_idle() && cnt <= 4000) {
+    Info("Cell Search: PHY state is_idle=%d, cnt=%d", phy_state.is_idle(), cnt);
+    usleep(500);
+    cnt++;
+  }
+  if (!phy_state.is_idle()) {
+    Error("Can not change Cell while not in IDLE");
+    return ret;
+  }
+
+  // Reset worker once SYNC is IDLE to flush any worker states such as ACKs and pending grants
+  worker_com->reset();
 
   if (srate_mode != SRATE_FIND) {
     srate_mode = SRATE_FIND;
