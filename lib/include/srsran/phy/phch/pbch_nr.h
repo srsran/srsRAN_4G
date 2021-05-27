@@ -39,11 +39,11 @@ typedef struct SRSRAN_API {
  * @brief Describes the NR PBCH configuration
  */
 typedef struct SRSRAN_API {
-  uint32_t                    N_id;      ///< Physical cell identifier
-  srsran_subcarrier_spacing_t ssb_scs;   ///< SSB Subcarrier spacing
-  uint32_t                    Lmax;      ///< Number of SSB opportunities, described in TS 38.213 4.1 ...
-  float                       beta;      ///< Scaling factor for PBCH symbols, set to zero for default
-  float                       beta_dmrs; ///< Scaling factor for PBCH DM-RS, set to zero for default
+  uint32_t N_id;    ///< Physical cell identifier
+  uint32_t n_hf;    ///< Number of half radio frame, 0 or 1
+  uint32_t ssb_idx; ///< SSB candidate index, up to 4 LSB significant
+  uint32_t Lmax;    ///< Number of SSB opportunities, described in TS 38.213 4.1 ...
+  float    beta;    ///< Scaling factor for PBCH symbols, set to zero for default
 } srsran_pbch_nr_cfg_t;
 
 /**
@@ -102,15 +102,12 @@ SRSRAN_API int srsran_pbch_nr_encode(srsran_pbch_nr_t*           q,
  * @brief Decodes an NR PBCH message in the SSB resource grid
  * @param q NR PBCH object
  * @param cfg NR PBCH configuration
- * @param ssb_idx SSB candidate index
- * @param[in] ssb_grid SSB resource grid
  * @param[in] ce Channel estimates for the SSB resource grid
  * @param msg NR PBCH message received
  * @return SRSRAN_SUCCESS if decoding is successful, SRSRAN_ERROR code otherwise
  */
 SRSRAN_API int srsran_pbch_nr_decode(srsran_pbch_nr_t*           q,
                                      const srsran_pbch_nr_cfg_t* cfg,
-                                     uint32_t                    ssb_idx,
                                      const cf_t                  ssb_grid[SRSRAN_SSB_NOF_RE],
                                      const cf_t                  ce[SRSRAN_SSB_NOF_RE],
                                      srsran_pbch_msg_nr_t*       msg);

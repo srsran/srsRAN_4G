@@ -137,16 +137,11 @@ int dmrs_pbch_extract_lse(const srsran_dmrs_pbch_cfg_t* cfg,
   return SRSRAN_SUCCESS;
 }
 
-int srsran_dmrs_pbch_estimate(const srsran_dmrs_pbch_cfg_t* cfg,
-                              const cf_t                    ssb_grid[SRSRAN_SSB_NOF_RE],
-                              cf_t                          ce[SRSRAN_SSB_NOF_RE],
-                              srsran_dmrs_pbch_meas_t*      meas)
+static int dmrs_pbch_meas_estimate(const srsran_dmrs_pbch_cfg_t* cfg,
+                                   const cf_t                    ssb_grid[SRSRAN_SSB_NOF_RE],
+                                   cf_t                          ce[SRSRAN_SSB_NOF_RE],
+                                   srsran_dmrs_pbch_meas_t*      meas)
 {
-  // Validate inputs
-  if (cfg == NULL || ssb_grid == NULL || ce == NULL || meas == NULL) {
-    return SRSRAN_ERROR_INVALID_INPUTS;
-  }
-
   // Extract least square estimates
   cf_t lse[DMRS_PBCH_NOF_RE];
   if (dmrs_pbch_extract_lse(cfg, ssb_grid, lse) < SRSRAN_SUCCESS) {
@@ -201,18 +196,47 @@ int srsran_dmrs_pbch_estimate(const srsran_dmrs_pbch_cfg_t* cfg,
   float epre = srsran_vec_avg_power_cf(lse, DMRS_PBCH_NOF_RE);
 
   // Write measurements
-  meas->corr         = rsrp / epre;
-  meas->epre         = epre;
-  meas->rsrp         = rsrp;
-  meas->cfo_hz       = cfo_hz;
-  meas->avg_delay_us = avg_delay_us;
+  if (meas != NULL) {
+    meas->corr         = rsrp / epre;
+    meas->epre         = epre;
+    meas->rsrp         = rsrp;
+    meas->cfo_hz       = cfo_hz;
+    meas->avg_delay_us = avg_delay_us;
+  }
 
-  // Compute channel estimates
-  for (uint32_t l = 0; l < SRSRAN_SSB_DURATION_NSYMB; l++) {
-    float t_s                  = srsran_symbol_offset_s(l, cfg->scs);
-    cf_t  symbol_wideband_gain = cexpf(-I * 2.0f * M_PI * cfo_hz * t_s) * wideband_gain;
-    srsran_vec_gen_sine(symbol_wideband_gain, -avg_delay_norm, &ce[l * SRSRAN_SSB_BW_SUBC], SRSRAN_SSB_BW_SUBC);
+  // Generate estimated grid
+  if (ce != NULL) {
+    // Compute channel estimates
+    for (uint32_t l = 0; l < SRSRAN_SSB_DURATION_NSYMB; l++) {
+      float t_s                  = srsran_symbol_offset_s(l, cfg->scs);
+      cf_t  symbol_wideband_gain = cexpf(-I * 2.0f * M_PI * cfo_hz * t_s) * wideband_gain;
+      srsran_vec_gen_sine(symbol_wideband_gain, -avg_delay_norm, &ce[l * SRSRAN_SSB_BW_SUBC], SRSRAN_SSB_BW_SUBC);
+    }
   }
 
   return SRSRAN_SUCCESS;
+}
+
+int srsran_dmrs_pbch_measure(const srsran_dmrs_pbch_cfg_t* cfg,
+                             const cf_t                    ssb_grid[SRSRAN_SSB_NOF_RE],
+                             srsran_dmrs_pbch_meas_t*      meas)
+{
+  // Validate inputs
+  if (cfg == NULL || ssb_grid == NULL || meas == NULL) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+
+  return dmrs_pbch_meas_estimate(cfg, ssb_grid, NULL, meas);
+}
+
+int srsran_dmrs_pbch_estimate(const srsran_dmrs_pbch_cfg_t* cfg,
+                              const cf_t                    ssb_grid[SRSRAN_SSB_NOF_RE],
+                              cf_t                          ce[SRSRAN_SSB_NOF_RE])
+{
+  // Validate inputs
+  if (cfg == NULL || ssb_grid == NULL || ce == NULL) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+
+  return dmrs_pbch_meas_estimate(cfg, ssb_grid, ce, NULL);
 }

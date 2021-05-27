@@ -105,7 +105,7 @@ public:
       srsran_pbch_msg_nr_t msg = {};
 
       // Add SSB
-      if (srsran_ssb_add(&ssb, pci, 0, &msg, buffer.data(), buffer.data()) < SRSRAN_SUCCESS) {
+      if (srsran_ssb_add(&ssb, pci, &msg, buffer.data(), buffer.data()) < SRSRAN_SUCCESS) {
         logger.error("Error adding SSB");
         return SRSRAN_ERROR;
       }

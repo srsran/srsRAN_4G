@@ -510,12 +510,7 @@ bool srsran_ssb_send(srsran_ssb_t* q, uint32_t sf_idx)
   return (sf_idx % q->cfg.periodicity_ms == 0);
 }
 
-int srsran_ssb_add(srsran_ssb_t*               q,
-                   uint32_t                    N_id,
-                   uint32_t                    ssb_idx,
-                   const srsran_pbch_msg_nr_t* msg,
-                   const cf_t*                 in,
-                   cf_t*                       out)
+int srsran_ssb_add(srsran_ssb_t* q, uint32_t N_id, const srsran_pbch_msg_nr_t* msg, const cf_t* in, cf_t* out)
 {
   // Verify input parameters
   if (q == NULL || N_id >= SRSRAN_NOF_NID_NR || msg == NULL || in == NULL || out == NULL) {
@@ -558,7 +553,6 @@ int srsran_ssb_add(srsran_ssb_t*               q,
   // Put PBCH payload
   srsran_pbch_nr_cfg_t pbch_cfg = {};
   pbch_cfg.N_id                 = N_id;
-  pbch_cfg.ssb_scs              = q->cfg.scs;
   pbch_cfg.Lmax                 = q->Lmax;
   if (srsran_pbch_nr_encode(&q->pbch, &pbch_cfg, msg, ssb_grid) < SRSRAN_SUCCESS) {
     ERROR("Error encoding PBCH");
@@ -566,7 +560,7 @@ int srsran_ssb_add(srsran_ssb_t*               q,
   }
 
   // Select start symbol from SSB candidate index
-  int t_offset = ssb_get_t_offset(q, ssb_idx);
+  int t_offset = ssb_get_t_offset(q, msg->ssb_idx);
   if (t_offset < SRSRAN_SUCCESS) {
     ERROR("Invalid SSB candidate index");
     return SRSRAN_ERROR;
@@ -905,10 +899,100 @@ int srsran_ssb_csi_measure(srsran_ssb_t*                  q,
   return SRSRAN_SUCCESS;
 }
 
+static int ssb_select_pbch(srsran_ssb_t* q,
+                           uint32_t      N_id,
+                           const cf_t    ssb_grid[SRSRAN_SSB_NOF_RE],
+                           uint32_t*     found_n_hf,
+                           uint32_t*     found_ssb_idx_4lsb)
+{
+  // Prepare PBCH DMRS configuration
+  srsran_dmrs_pbch_cfg_t pbch_dmrs_cfg = {};
+  pbch_dmrs_cfg.N_id                   = N_id;
+  pbch_dmrs_cfg.n_hf                   = 0; // Parameter to guess
+  pbch_dmrs_cfg.ssb_idx                = 0; // Parameter to guess
+  pbch_dmrs_cfg.L_max                  = q->Lmax;
+  pbch_dmrs_cfg.beta                   = 0.0f;
+  pbch_dmrs_cfg.scs                    = q->cfg.scs;
+
+  // Initialise best values
+  srsran_dmrs_pbch_meas_t best_meas    = {};
+  uint32_t                best_n_hf    = 0;
+  uint32_t                best_ssb_idx = 0;
+
+  // Iterate over all the parameters to guess and select the most suitable
+  for (uint32_t n_hf = 0; n_hf < 2; n_hf++) {
+    for (uint32_t ssb_idx = 0; ssb_idx < SRSRAN_MIN(8, q->Lmax); ssb_idx++) {
+      // Set parameters
+      pbch_dmrs_cfg.n_hf    = n_hf;
+      pbch_dmrs_cfg.ssb_idx = ssb_idx;
+
+      // Measure
+      srsran_dmrs_pbch_meas_t meas = {};
+      if (srsran_dmrs_pbch_measure(&pbch_dmrs_cfg, ssb_grid, &meas) < SRSRAN_SUCCESS) {
+        ERROR("Error measure for n_hf=%d ssb_idx=%d", n_hf, ssb_idx);
+        return SRSRAN_ERROR;
+      }
+
+      // Select the result with highest correlation (most suitable)
+      if (meas.corr > best_meas.corr) {
+        best_meas    = meas;
+        best_n_hf    = n_hf;
+        best_ssb_idx = ssb_idx;
+      }
+    }
+  }
+
+  // Save findings
+  *found_n_hf         = best_n_hf;
+  *found_ssb_idx_4lsb = best_ssb_idx;
+
+  return SRSRAN_SUCCESS;
+}
+
+static int ssb_decode_pbch(srsran_ssb_t*         q,
+                           uint32_t              N_id,
+                           uint32_t              n_hf,
+                           uint32_t              ssb_idx,
+                           const cf_t            ssb_grid[SRSRAN_SSB_NOF_RE],
+                           srsran_pbch_msg_nr_t* msg)
+{
+  // Prepare PBCH DMRS configuration
+  srsran_dmrs_pbch_cfg_t pbch_dmrs_cfg = {};
+  pbch_dmrs_cfg.N_id                   = N_id;
+  pbch_dmrs_cfg.n_hf                   = n_hf;
+  pbch_dmrs_cfg.ssb_idx                = ssb_idx;
+  pbch_dmrs_cfg.L_max                  = q->Lmax;
+  pbch_dmrs_cfg.beta                   = 0.0f;
+  pbch_dmrs_cfg.scs                    = q->cfg.scs;
+
+  // Compute PBCH channel estimates
+  cf_t ce[SRSRAN_SSB_NOF_RE] = {};
+  if (srsran_dmrs_pbch_estimate(&pbch_dmrs_cfg, ssb_grid, ce) < SRSRAN_SUCCESS) {
+    ERROR("Error estimating channel");
+    return SRSRAN_ERROR;
+  }
+
+  // Prepare PBCH configuration
+  srsran_pbch_nr_cfg_t pbch_cfg = {};
+  pbch_cfg.N_id                 = N_id;
+  pbch_cfg.n_hf                 = n_hf;
+  pbch_cfg.ssb_idx              = ssb_idx;
+  pbch_cfg.Lmax                 = q->Lmax;
+  pbch_cfg.beta                 = 0.0f;
+
+  // Decode
+  if (srsran_pbch_nr_decode(&q->pbch, &pbch_cfg, ssb_grid, ce, msg) < SRSRAN_SUCCESS) {
+    ERROR("Error decoding PBCH");
+    return SRSRAN_ERROR;
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
 int srsran_ssb_decode_pbch(srsran_ssb_t*         q,
                            uint32_t              N_id,
-                           uint32_t              ssb_idx,
                            uint32_t              n_hf,
+                           uint32_t              ssb_idx,
                            const cf_t*           in,
                            srsran_pbch_msg_nr_t* msg)
 {
@@ -935,40 +1019,81 @@ int srsran_ssb_decode_pbch(srsran_ssb_t*         q,
     return SRSRAN_ERROR;
   }
 
-  // Prepare PBCH DMRS configuration
-  srsran_dmrs_pbch_cfg_t pbch_dmrs_cfg = {};
-  pbch_dmrs_cfg.N_id                   = N_id;
-  pbch_dmrs_cfg.n_hf                   = n_hf;
-  pbch_dmrs_cfg.ssb_idx                = ssb_idx;
-  pbch_dmrs_cfg.L_max                  = q->Lmax;
-  pbch_dmrs_cfg.beta                   = 0.0f;
-  pbch_dmrs_cfg.scs                    = q->cfg.scs;
-
-  // Compute PBCH channel estimates
-  srsran_dmrs_pbch_meas_t meas                  = {};
-  cf_t                    ce[SRSRAN_SSB_NOF_RE] = {};
-  if (srsran_dmrs_pbch_estimate(&pbch_dmrs_cfg, ssb_grid, ce, &meas) < SRSRAN_SUCCESS) {
-    ERROR("Error estimating channel");
+  // Decode PBCH
+  if (ssb_decode_pbch(q, N_id, n_hf, ssb_idx, ssb_grid, msg) < SRSRAN_SUCCESS) {
+    ERROR("Error decoding");
     return SRSRAN_ERROR;
   }
 
-  // Compare measurement with threshold
-  if (meas.corr < q->args.pbch_dmrs_thr) {
-    msg->crc = false;
-    return SRSRAN_SUCCESS;
+  return SRSRAN_SUCCESS;
+}
+
+int srsran_ssb_search(srsran_ssb_t* q, const cf_t* in, uint32_t nof_samples, srsran_ssb_search_res_t* res)
+{
+  // Verify inputs
+  if (q == NULL || in == NULL || res == NULL || !isnormal(q->scs_hz)) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
-  // Prepare PBCH configuration
-  srsran_pbch_nr_cfg_t pbch_cfg = {};
-  pbch_cfg.N_id                 = N_id;
-  pbch_cfg.ssb_scs              = q->cfg.scs;
-  pbch_cfg.Lmax                 = q->Lmax;
+  if (!q->args.enable_search || !q->args.enable_decode) {
+    ERROR("SSB is not configured to search (%c) and decode (%c)",
+          q->args.enable_search ? 'y' : 'n',
+          q->args.enable_decode ? 'y' : 'n');
+    return SRSRAN_ERROR;
+  }
 
-  // Decode
-  if (srsran_pbch_nr_decode(&q->pbch, &pbch_cfg, ssb_idx, ssb_grid, ce, msg) < SRSRAN_SUCCESS) {
+  // Search for PSS in time domain
+  uint32_t N_id_2   = 0;
+  uint32_t t_offset = 0;
+  if (ssb_pss_search(q, in, nof_samples, &N_id_2, &t_offset) < SRSRAN_SUCCESS) {
+    ERROR("Error searching for N_id_2");
+    return SRSRAN_ERROR;
+  }
+
+  // Remove CP offset prior demodulation
+  if (t_offset >= q->cp_sz) {
+    t_offset -= q->cp_sz;
+  } else {
+    t_offset = 0;
+  }
+
+  // Demodulate
+  cf_t ssb_grid[SRSRAN_SSB_NOF_RE] = {};
+  if (ssb_demodulate(q, in, t_offset, ssb_grid) < SRSRAN_SUCCESS) {
+    ERROR("Error demodulating");
+    return SRSRAN_ERROR;
+  }
+
+  // Find best N_id_1
+  uint32_t N_id_1   = 0;
+  float    sss_corr = 0.0f;
+  if (srsran_sss_nr_find(ssb_grid, N_id_2, &sss_corr, &N_id_1) < SRSRAN_SUCCESS) {
+    ERROR("Error searching for N_id_2");
+    return SRSRAN_ERROR;
+  }
+
+  // Select N_id
+  uint32_t N_id = SRSRAN_NID_NR(N_id_1, N_id_2);
+
+  // Select the most suitable SSB candidate
+  uint32_t n_hf    = 0;
+  uint32_t ssb_idx = 0;
+  if (ssb_select_pbch(q, N_id, ssb_grid, &n_hf, &ssb_idx) < SRSRAN_SUCCESS) {
+    ERROR("Error selecting PBCH");
+    return SRSRAN_ERROR;
+  }
+
+  // Compute PBCH channel estimates
+  srsran_pbch_msg_nr_t pbch_msg = {};
+  if (ssb_decode_pbch(q, N_id, n_hf, ssb_idx, ssb_grid, &pbch_msg) < SRSRAN_SUCCESS) {
     ERROR("Error decoding PBCH");
     return SRSRAN_ERROR;
   }
+
+  // Save result
+  res->N_id     = N_id;
+  res->t_offset = t_offset;
+  res->pbch_msg = pbch_msg;
 
   return SRSRAN_SUCCESS;
 }
