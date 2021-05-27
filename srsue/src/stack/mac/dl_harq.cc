@@ -149,7 +149,9 @@ void dl_harq_entity::dl_harq_process::tb_decoded(mac_interface_phy_lte::mac_gran
 {
   /* For each subprocess... */
   for (uint32_t i = 0; i < SRSRAN_MAX_TB; i++) {
-    subproc[i].tb_decoded(grant, &ack[i]);
+    if (grant.tb[i].tbs) {
+      subproc[i].tb_decoded(grant, &ack[i]);
+    }
   }
 }
 
@@ -196,12 +198,14 @@ bool dl_harq_entity::dl_harq_process::dl_tb_process::init(int pid, dl_harq_entit
   return true;
 }
 
-void dl_harq_entity::dl_harq_process::dl_tb_process::reset(bool lock)
+void dl_harq_entity::dl_harq_process::dl_tb_process::reset()
 {
-  if (lock) {
-    mutex.lock();
-  }
+  std::lock_guard<std::mutex> lock(mutex);
+  reset_unsafe();
+}
 
+void dl_harq_entity::dl_harq_process::dl_tb_process::reset_unsafe()
+{
   bzero(&cur_grant, sizeof(mac_interface_phy_lte::mac_grant_dl_t));
   is_first_tb = true;
   ack         = false;
@@ -212,10 +216,6 @@ void dl_harq_entity::dl_harq_process::dl_tb_process::reset(bool lock)
       harq_entity->demux_unit->deallocate(payload_buffer_ptr);
     }
     payload_buffer_ptr = NULL;
-  }
-
-  if (lock) {
-    mutex.unlock();
   }
 }
 
@@ -293,7 +293,8 @@ void dl_harq_entity::dl_harq_process::dl_tb_process::new_grant_dl(mac_interface_
          n_retx,
          n_retx > RESET_DUPLICATE_TIMEOUT ? "yes" : "no");
     if (n_retx > RESET_DUPLICATE_TIMEOUT) {
-      reset(false);
+      // reset without trying to acquire the mutex again
+      reset_unsafe();
     }
   }
 
@@ -351,11 +352,12 @@ void dl_harq_entity::dl_harq_process::dl_tb_process::tb_decoded(mac_interface_ph
          cur_grant.tb[tid].ndi);
   }
 
-  mutex.unlock();
-
   if (ack && is_bcch) {
-    reset();
+    // reset without trying to acquire the mutex again
+    reset_unsafe();
   }
+
+  mutex.unlock();
 }
 
 // Determine if it's a new transmission 5.3.2.2
