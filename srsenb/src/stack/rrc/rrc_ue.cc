@@ -1411,7 +1411,13 @@ void rrc::ue::apply_pdcp_drb_updates(const rr_cfg_ded_s& pending_rr_cfg)
 void rrc::ue::apply_rlc_rb_updates(const rr_cfg_ded_s& pending_rr_cfg)
 {
   for (const srb_to_add_mod_s& srb : pending_rr_cfg.srb_to_add_mod_list) {
-    parent->rlc->add_bearer(rnti, srb.srb_id, srsran::rlc_config_t::srb_config(srb.srb_id));
+    if (srb.srb_id == 1) {
+      parent->rlc->add_bearer(rnti, srb.srb_id, srsran::make_rlc_config_t(parent->cfg.srb1_cfg));
+    } else if (srb.srb_id == 2) {
+      parent->rlc->add_bearer(rnti, srb.srb_id, srsran::make_rlc_config_t(parent->cfg.srb2_cfg));
+    } else {
+      parent->rlc->add_bearer(rnti, srb.srb_id, srsran::rlc_config_t::srb_config(srb.srb_id));
+    }
   }
   if (pending_rr_cfg.drb_to_release_list.size() > 0) {
     for (uint8_t drb_id : pending_rr_cfg.drb_to_release_list) {

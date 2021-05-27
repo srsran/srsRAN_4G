@@ -103,6 +103,16 @@ int32_t rrc::init(const rrc_cfg_t&       cfg_,
 
   running = true;
 
+  if (logger.debug.enabled()) {
+    asn1::json_writer js{};
+    cfg.srb1_cfg.to_json(js);
+    logger.debug("SRB1 configuration: %s", js.to_string().c_str());
+  }
+  if (logger.debug.enabled()) {
+    asn1::json_writer js{};
+    cfg.srb2_cfg.to_json(js);
+    logger.debug("SRB2 configuration: %s", js.to_string().c_str());
+  }
   return SRSRAN_SUCCESS;
 }
 

@@ -397,6 +397,69 @@ int phr_cnfg_parser::parse(libconfig::Setting& root)
   return 0;
 }
 
+int field_srb::parse(libconfig::Setting& root)
+{
+  libconfig::Setting& q = root[0];
+
+  // Parse RLC AM section
+  rlc_cfg_c* rlc_cfg = &cfg;
+  if (q["rlc_config"].exists("ul_am") && q["rlc_config"].exists("dl_am")) {
+    rlc_cfg->set_am();
+  }
+
+  // RLC-UM Should not exist section
+  if (q["rlc_config"].exists("ul_um") || q["rlc_config"].exists("dl_um")) {
+    ERROR("Error SRBs must be AM.");
+    return -1;
+  }
+
+  // Parse RLC-AM section
+  if (q["rlc_config"].exists("ul_am")) {
+    ul_am_rlc_s* am_rlc = &rlc_cfg->am().ul_am_rlc;
+
+    field_asn1_enum_number<t_poll_retx_e> t_poll_retx("t_poll_retx", &am_rlc->t_poll_retx);
+    if (t_poll_retx.parse(q["rlc_config"]["ul_am"])) {
+      ERROR("Error can't find t_poll_retx in section ul_am");
+      return -1;
+    }
+
+    field_asn1_enum_number<poll_pdu_e> poll_pdu("poll_pdu", &am_rlc->poll_pdu);
+    if (poll_pdu.parse(q["rlc_config"]["ul_am"])) {
+      ERROR("Error can't find poll_pdu in section ul_am");
+      return -1;
+    }
+
+    field_asn1_enum_number<poll_byte_e> poll_byte("poll_byte", &am_rlc->poll_byte);
+    if (poll_byte.parse(q["rlc_config"]["ul_am"])) {
+      ERROR("Error can't find poll_byte in section ul_am");
+      return -1;
+    }
+
+    field_asn1_enum_number<ul_am_rlc_s::max_retx_thres_e_> max_retx_thresh("max_retx_thresh", &am_rlc->max_retx_thres);
+    if (max_retx_thresh.parse(q["rlc_config"]["ul_am"])) {
+      ERROR("Error can't find max_retx_thresh in section ul_am");
+      return -1;
+    }
+  }
+
+  if (q["rlc_config"].exists("dl_am")) {
+    dl_am_rlc_s* am_rlc = &rlc_cfg->am().dl_am_rlc;
+
+    field_asn1_enum_number<t_reordering_e> t_reordering("t_reordering", &am_rlc->t_reordering);
+    if (t_reordering.parse(q["rlc_config"]["dl_am"])) {
+      ERROR("Error can't find t_reordering in section dl_am");
+      return -1;
+    }
+
+    field_asn1_enum_number<t_status_prohibit_e> t_status_prohibit("t_status_prohibit", &am_rlc->t_status_prohibit);
+    if (t_status_prohibit.parse(q["rlc_config"]["dl_am"])) {
+      ERROR("Error can't find t_status_prohibit in section dl_am");
+      return -1;
+    }
+  }
+  return 0;
+}
+
 int field_qci::parse(libconfig::Setting& root)
 {
   auto nof_qci = (uint32_t)root.getLength();
@@ -1664,9 +1727,20 @@ namespace drb_sections {
 
 int parse_drb(all_args_t* args_, rrc_cfg_t* rrc_cfg_)
 {
+  parser::section srb1("srb1_config");
+  srb1.add_field(new field_srb(rrc_cfg_->srb1_cfg));
+  parser::section srb2("srb2_config");
+  srb1.add_field(new field_srb(rrc_cfg_->srb2_cfg));
   parser::section qci("qci_config");
   qci.add_field(new field_qci(rrc_cfg_->qci_cfg));
-  return parser::parse_section(args_->enb_files.drb_config, &qci);
+
+  // Run parser with two sections
+  parser p(args_->enb_files.drb_config);
+  p.add_section(&srb1);
+  p.add_section(&srb2);
+  p.add_section(&qci);
+
+  return p.parse();
 }
 
 } // namespace drb_sections

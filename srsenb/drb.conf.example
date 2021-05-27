@@ -1,5 +1,38 @@
 
 // All times are in ms. Use -1 for infinity, where available
+srb1_config = (
+{
+  rlc_config = {
+    ul_am = {
+      t_poll_retx = 45;
+      poll_pdu = -1;
+      poll_byte = -1;
+      max_retx_thresh = 4;
+    };
+    dl_am = {
+      t_reordering = 35;
+      t_status_prohibit = 0;
+    };
+  };
+}
+)
+
+srb2_config = (
+{
+  rlc_config = {
+    ul_am = {
+      t_poll_retx = 45;
+      poll_pdu = -1;
+      poll_byte = -1;
+      max_retx_thresh = 4;
+    };
+    dl_am = {
+      t_reordering = 35;
+      t_status_prohibit = 0;
+    };
+  };
+}
+)
 
 qci_config = (
 
