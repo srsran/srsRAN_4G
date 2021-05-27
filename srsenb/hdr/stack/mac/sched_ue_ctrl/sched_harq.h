@@ -36,6 +36,7 @@ public:
   srsran::tti_point get_tti() const;
   bool              get_ndi(uint32_t tb_idx) const;
   uint32_t          max_nof_retx() const;
+  int               get_mcs(uint32_t tb_idx) const { return last_mcs[tb_idx]; }
 
 protected:
   void new_tx_common(uint32_t tb_idx, srsran::tti_point tti, int mcs, int tbs, uint32_t max_retx_);
@@ -147,9 +148,9 @@ public:
    * @param tti_rx tti the DL ACK was received
    * @param tb_idx TB index for the given ACK
    * @param ack true for ACK and false for NACK
-   * @return pair with pid and size of TB of the DL harq that was ACKed
+   * @return tuple with pid, TBS and MCS of the DL harq that was ACKed
    */
-  std::pair<uint32_t, int> set_ack_info(tti_point tti_rx, uint32_t tb_idx, bool ack);
+  std::tuple<uint32_t, int, int> set_ack_info(tti_point tti_rx, uint32_t tb_idx, bool ack);
 
   //! Get UL Harq for a given tti_tx_ul
   ul_harq_proc* get_ul_harq(tti_point tti_tx_ul);

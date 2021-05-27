@@ -91,7 +91,7 @@ private:
   cc_st     cc_state_ = cc_st::idle;
 
   // CQI
-  float delta_down = 0, delta_up = 0;
+  float delta_inc = 0, delta_dec = 0;
   float dl_cqi_coeff = 0, ul_snr_coeff = 0;
   float max_cqi_coeff = -5, max_snr_coeff = 5;
 

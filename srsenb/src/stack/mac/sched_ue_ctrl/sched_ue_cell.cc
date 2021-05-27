@@ -49,8 +49,8 @@ sched_ue_cell::sched_ue_cell(uint16_t rnti_, const sched_cell_params_t& cell_cfg
   clear_feedback();
 
   float target_bler = cell_cfg->sched_cfg->target_bler;
-  delta_down        = cell_cfg->sched_cfg->adaptive_link_step_size;
-  delta_up          = (1 - target_bler) * delta_down / target_bler;
+  delta_inc         = cell_cfg->sched_cfg->adaptive_link_step_size; // delta_{down} of OLLA
+  delta_dec         = (1 - target_bler) * delta_inc / target_bler;
   max_cqi_coeff     = cell_cfg->sched_cfg->max_delta_dl_cqi;
   max_snr_coeff     = cell_cfg->sched_cfg->max_delta_ul_snr;
 }
@@ -178,6 +178,24 @@ int sched_ue_cell::set_dl_wb_cqi(tti_point tti_rx, uint32_t dl_cqi_)
 int sched_ue_cell::set_ul_crc(tti_point tti_rx, bool crc_res)
 {
   CHECK_VALID_CC("UL CRC");
+
+  // Adapt UL MCS based on BLER
+  if (cell_cfg->sched_cfg->target_bler > 0 and fixed_mcs_ul < 0) {
+    auto* ul_harq = harq_ent.get_ul_harq(tti_rx);
+    if (ul_harq != nullptr) {
+      int mcs = ul_harq->get_mcs(0);
+      // Note: Avoid keeping increasing the snr delta offset, if MCS is already is at its limit
+      float delta_dec_eff = mcs <= 0 ? 0 : delta_dec;
+      float delta_inc_eff = mcs >= (int)max_mcs_ul ? 0 : delta_inc;
+      ul_snr_coeff += crc_res ? delta_inc_eff : -delta_dec_eff;
+      ul_snr_coeff = std::min(std::max(-max_snr_coeff, ul_snr_coeff), max_snr_coeff);
+      logger.info("SCHED: UL adaptive link: snr_estim=%.2f, last_mcs=%d, snr_offset=%f",
+                  tpc_fsm.get_ul_snr_estim(),
+                  mcs,
+                  ul_snr_coeff);
+    }
+  }
+
   // Update HARQ process
   int pid = harq_ent.set_ul_crc(tti_rx, 0, crc_res);
   if (pid < 0) {
@@ -185,30 +203,30 @@ int sched_ue_cell::set_ul_crc(tti_point tti_rx, bool crc_res)
     return SRSRAN_ERROR;
   }
 
-  if (cell_cfg->sched_cfg->target_bler > 0) {
-    ul_snr_coeff += delta_down - static_cast<float>(not crc_res) * (delta_down + delta_up);
-    ul_snr_coeff = std::min(std::max(-max_snr_coeff, ul_snr_coeff), max_snr_coeff);
-    logger.info("SCHED: UL adaptive link: snr_estim=%f, snr_offset=%f", tpc_fsm.get_ul_snr_estim(), ul_snr_coeff);
-  }
   return pid;
 }
 
 int sched_ue_cell::set_ack_info(tti_point tti_rx, uint32_t tb_idx, bool ack)
 {
   CHECK_VALID_CC("DL ACK Info");
-  std::pair<uint32_t, int> p2        = harq_ent.set_ack_info(tti_rx, tb_idx, ack);
-  int                      tbs_acked = p2.second;
-  if (tbs_acked > 0) {
-    logger.debug(
-        "SCHED: Set DL ACK=%d for rnti=0x%x, pid=%d, tb=%d, tti=%d", ack, rnti, p2.first, tb_idx, tti_rx.to_uint());
 
-    if (cell_cfg->sched_cfg->target_bler > 0) {
-      dl_cqi_coeff += delta_down - static_cast<float>(not ack) * (delta_down + delta_up);
-      dl_cqi_coeff = std::min(std::max(-max_cqi_coeff, dl_cqi_coeff), max_cqi_coeff);
-      logger.info("SCHED: DL adaptive link: cqi=%d, cqi_offset=%f", dl_cqi_ctxt.get_avg_cqi(), dl_cqi_coeff);
-    }
-  } else {
+  std::tuple<uint32_t, int, int> p2        = harq_ent.set_ack_info(tti_rx, tb_idx, ack);
+  int                            tbs_acked = std::get<1>(p2);
+  if (tbs_acked <= 0) {
     logger.warning("SCHED: Received ACK info for unknown TTI=%d", tti_rx.to_uint());
+    return tbs_acked;
+  }
+
+  // Adapt DL MCS based on BLER
+  if (cell_cfg->sched_cfg->target_bler > 0 and fixed_mcs_dl < 0) {
+    int mcs = std::get<2>(p2);
+    // Note: Avoid keeping increasing the snr delta offset, if MCS is already is at its limit
+    float delta_dec_eff = mcs <= 0 ? 0 : delta_dec;
+    float delta_inc_eff = mcs >= (int)max_mcs_dl ? 0 : delta_inc;
+    dl_cqi_coeff += ack ? delta_inc_eff : -delta_dec_eff;
+    dl_cqi_coeff = std::min(std::max(-max_cqi_coeff, dl_cqi_coeff), max_cqi_coeff);
+    logger.info(
+        "SCHED: DL adaptive link: cqi=%d, last_mcs=%d, cqi_offset=%f", dl_cqi_ctxt.get_avg_cqi(), mcs, dl_cqi_coeff);
   }
   return tbs_acked;
 }
