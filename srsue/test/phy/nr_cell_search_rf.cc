@@ -224,7 +224,7 @@ int main(int argc, char** argv)
 
       // Iterate over all GSCN
       for (; not sync_raster.end(); sync_raster.next()) {
-        double ssb_freq_hz = 3675.36e6;//sync_raster.get_frequency();
+        double ssb_freq_hz = sync_raster.get_frequency();
 
         // Set frequency if the deviation from the current frequency is too high
         if (std::abs(center_freq_hz - ssb_freq_hz) > (args.srate_hz / 2.0)) {
@@ -234,7 +234,7 @@ int main(int argc, char** argv)
           radio.set_rx_freq(0, center_freq_hz + args.freq_offset_hz);
         }
 
-        logger.info("Measuring SSB frequency %.2f MHz, center %.2f", ssb_freq_hz / 1e6, center_freq_hz / 1e6);
+        logger.info("Measuring SSB frequency %.2f MHz, center %.2f MHz", ssb_freq_hz / 1e6, center_freq_hz / 1e6);
 
         // Setup measurement
         srsue::scell::intra_measure_nr::config_t meas_cfg = {};
