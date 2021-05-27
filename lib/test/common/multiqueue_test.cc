@@ -118,17 +118,17 @@ int test_multiqueue_threading()
   int                     capacity = 4, number = 0, start_number = 2, nof_pushes = capacity + 1;
   multiqueue_handler<int> multiqueue(capacity);
   auto                    qid1 = multiqueue.add_queue();
-  auto push_blocking_func      = [](queue_handle<int>* qid, int start_value, int nof_pushes, bool* is_running) {
+  std::atomic<bool>       t1_running         = {true};
+  auto                    push_blocking_func = [&t1_running](queue_handle<int>* qid, int start_value, int nof_pushes) {
     for (int i = 0; i < nof_pushes; ++i) {
       qid->push(start_value + i);
       std::cout << "t1: pushed item " << i << std::endl;
     }
     std::cout << "t1: pushed all items\n";
-    *is_running = false;
+    t1_running = false;
   };
 
-  bool        t1_running = true;
-  std::thread t1(push_blocking_func, &qid1, start_number, nof_pushes, &t1_running);
+  std::thread t1(push_blocking_func, &qid1, start_number, nof_pushes);
 
   // Wait for queue to fill
   while ((int)qid1.size() != capacity) {
