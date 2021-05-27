@@ -482,8 +482,9 @@ void sync::run_camping_in_sync_state(lte::sf_worker*      lte_worker,
 
   Debug("SYNC:  Worker %d synchronized", lte_worker->get_id());
 
-  metrics.sfo   = srsran_ue_sync_get_sfo(&ue_sync);
-  metrics.cfo   = srsran_ue_sync_get_cfo(&ue_sync);
+  // Collect and provide metrics from last successful sync
+  metrics.sfo   = sfo;
+  metrics.cfo   = cfo;
   metrics.ta_us = worker_com->ta.get_usec();
   for (uint32_t i = 0; i < worker_com->args->nof_lte_carriers; i++) {
     worker_com->set_sync_metrics(i, metrics);
@@ -505,7 +506,7 @@ void sync::run_camping_in_sync_state(lte::sf_worker*      lte_worker,
   // Set CFO for all Carriers
   for (uint32_t cc = 0; cc < worker_com->args->nof_lte_carriers; cc++) {
     lte_worker->set_cfo_unlocked(cc, get_tx_cfo());
-    worker_com->update_cfo_measurement(cc, srsran_ue_sync_get_cfo(&ue_sync));
+    worker_com->update_cfo_measurement(cc, cfo);
   }
 
   lte_worker->set_tti(tti);
@@ -568,8 +569,18 @@ void sync::run_camping_state()
     }
   }
 
+  // Apply CFO adjustment if available
+  if (ref_cfo != 0.0) {
+    srsran_ue_sync_set_cfo_ref(&ue_sync, ref_cfo);
+    ref_cfo = 0.0; // reset until value changes again
+  }
+
   // Primary Cell (PCell) Synchronization
-  switch (srsran_ue_sync_zerocopy(&ue_sync, sync_buffer.to_cf_t(), lte_worker->get_buffer_len())) {
+  int sync_result = srsran_ue_sync_zerocopy(&ue_sync, sync_buffer.to_cf_t(), lte_worker->get_buffer_len());
+  cfo             = srsran_ue_sync_get_cfo(&ue_sync);
+  sfo             = srsran_ue_sync_get_sfo(&ue_sync);
+
+  switch (sync_result) {
     case 1:
       run_camping_in_sync_state(lte_worker, nr_worker, sync_buffer);
       break;
@@ -621,7 +632,7 @@ void sync::run_idle_state()
 
 void sync::run_thread()
 {
-  while (running) {
+  while (running.load(std::memory_order_relaxed)) {
     phy_lib_logger.set_context(tti);
 
     Debug("SYNC:  state=%s, tti=%d", phy_state.to_string(), tti);
@@ -683,7 +694,7 @@ void sync::in_sync()
 void sync::out_of_sync()
 {
   // Send RRC out-of-sync signal after NOF_OUT_OF_SYNC_SF consecutive subframes
-  Info("Out-of-sync %d/%d", out_of_sync_cnt, worker_com->args->nof_out_of_sync_events);
+  Info("Out-of-sync %d/%d", out_of_sync_cnt.load(std::memory_order_relaxed), worker_com->args->nof_out_of_sync_events);
   out_of_sync_cnt++;
   if (out_of_sync_cnt == worker_com->args->nof_out_of_sync_events) {
     Info("Sending to RRC");
@@ -695,7 +706,7 @@ void sync::out_of_sync()
 
 void sync::set_cfo(float cfo)
 {
-  srsran_ue_sync_set_cfo_ref(&ue_sync, cfo);
+  ref_cfo = cfo;
 }
 
 void sync::set_agc_enable(bool enable)
@@ -724,7 +735,7 @@ void sync::set_agc_enable(bool enable)
     return;
   }
 
-  // Enable AGC
+  // Enable AGC (unprotected call to ue_sync must not happen outside of thread calling recv)
   srsran_ue_sync_start_agc(
       &ue_sync, callback_set_rx_gain, rf_info->min_rx_gain, rf_info->max_rx_gain, radio_h->get_rx_gain());
   search_p.set_agc_enable(true);
@@ -732,8 +743,7 @@ void sync::set_agc_enable(bool enable)
 
 float sync::get_tx_cfo()
 {
-  float cfo = srsran_ue_sync_get_cfo(&ue_sync);
-
+  // Use CFO estimate from last successful sync
   float ret = cfo * ul_dl_factor;
 
   if (worker_com->args->cfo_is_doppler) {

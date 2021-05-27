@@ -30,7 +30,7 @@ public:
    */
   state_t run_state()
   {
-    std::lock_guard<std::mutex> lock(inside);
+    std::lock_guard<std::mutex> lock(mutex);
     cur_state = next_state;
     if (state_setting) {
       state_setting = false;
@@ -43,7 +43,7 @@ public:
   // Called by the main thread at the end of each state to indicate it has finished.
   void state_exit(bool exit_ok = true)
   {
-    std::lock_guard<std::mutex> lock(inside);
+    std::lock_guard<std::mutex> lock(mutex);
     if (cur_state == SFN_SYNC && exit_ok == true) {
       next_state = CAMPING;
     } else {
@@ -54,7 +54,7 @@ public:
   }
   void force_sfn_sync()
   {
-    std::lock_guard<std::mutex> lock(inside);
+    std::lock_guard<std::mutex> lock(mutex);
     next_state = SFN_SYNC;
   }
 
@@ -65,20 +65,17 @@ public:
    */
   void go_idle()
   {
-    std::lock_guard<std::mutex> lock(outside);
     // Do not wait when transitioning to IDLE to avoid blocking
-    go_state_nowait(IDLE);
+    next_state = IDLE;
   }
   void run_cell_search()
   {
-    std::lock_guard<std::mutex> lock(outside);
     go_state(CELL_SEARCH);
     wait_state_run();
     wait_state_next();
   }
   void run_sfn_sync()
   {
-    std::lock_guard<std::mutex> lock(outside);
     go_state(SFN_SYNC);
     wait_state_run();
     wait_state_next();
@@ -89,7 +86,7 @@ public:
   bool is_camping() { return cur_state == CAMPING; }
   bool wait_idle(uint32_t timeout_ms)
   {
-    std::unique_lock<std::mutex> lock(outside);
+    std::unique_lock<std::mutex> lock(mutex);
 
     // Avoid wasting time if the next state will not be IDLE
     if (next_state != IDLE) {
@@ -116,6 +113,7 @@ public:
 
   const char* to_string()
   {
+    std::lock_guard<std::mutex> lock(mutex);
     switch (cur_state) {
       case IDLE:
         return "IDLE";
@@ -135,7 +133,7 @@ public:
 private:
   void go_state(state_t s)
   {
-    std::unique_lock<std::mutex> ul(inside);
+    std::unique_lock<std::mutex> ul(mutex);
     next_state    = s;
     state_setting = true;
     while (state_setting) {
@@ -145,7 +143,7 @@ private:
 
   void go_state_nowait(state_t s)
   {
-    std::unique_lock<std::mutex> ul(inside);
+    std::unique_lock<std::mutex> ul(mutex);
     next_state    = s;
     state_setting = true;
   }
@@ -153,14 +151,14 @@ private:
   /* Waits until there is a call to set_state() and then run_state(). Returns when run_state() returns */
   void wait_state_run()
   {
-    std::unique_lock<std::mutex> ul(inside);
+    std::unique_lock<std::mutex> ul(mutex);
     while (state_running) {
       cvar.wait(ul);
     }
   }
   void wait_state_next()
   {
-    std::unique_lock<std::mutex> ul(inside);
+    std::unique_lock<std::mutex> ul(mutex);
     while (cur_state != next_state) {
       cvar.wait(ul);
     }
@@ -168,10 +166,9 @@ private:
 
   bool                    state_running = false;
   bool                    state_setting = false;
-  state_t                 cur_state     = IDLE;
-  state_t                 next_state    = IDLE;
-  std::mutex              inside;
-  std::mutex              outside;
+  std::atomic<state_t>    next_state    = {IDLE}; // can be updated from outside (i.e. other thread)
+  state_t                 cur_state     = IDLE;   // will only be accessed when holding the mutex
+  std::mutex              mutex;
   std::condition_variable cvar;
 };
 
