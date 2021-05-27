@@ -15,6 +15,7 @@
 #include "srsran/common/rlc_pcap.h"
 #include "srsran/common/test_common.h"
 #include "srsran/common/threads.h"
+#include "srsran/common/tsan_options.h"
 #include "srsran/upper/rlc.h"
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
