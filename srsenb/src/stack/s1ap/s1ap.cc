@@ -1499,7 +1499,14 @@ void s1ap::ue::ue_ctxt_setup_complete()
 
     container.enb_ue_s1ap_id.value = ctxt.enb_ue_s1ap_id;
     container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id.value();
-    container.cause.value          = failed_cfg_erabs.front().cause;
+    if (not failed_cfg_erabs.empty()) {
+      container.cause.value = failed_cfg_erabs.front().cause;
+    } else {
+      logger.warning("Procedure %s,rnti=0x%x - no specified cause for failed configuration",
+                     s1ap_elem_procs_o::init_msg_c::types_opts{current_state}.to_string(),
+                     ctxt.rnti);
+      container.cause.value.set_misc().value = cause_misc_opts::unspecified;
+    }
     s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "UEContextModificationFailure");
     return;
   }
@@ -1836,12 +1843,24 @@ void s1ap::user_list::erase(ue* ue_ptr)
 /*******************************************************************************
 /* General helpers
 ********************************************************************************/
-
 bool s1ap::sctp_send_s1ap_pdu(const asn1::s1ap::s1ap_pdu_c& tx_pdu, uint32_t rnti, const char* procedure_name)
 {
   if (not mme_connected and rnti != SRSRAN_INVALID_RNTI) {
     logger.error("Aborting %s for rnti=0x%x. Cause: MME is not connected.", procedure_name, rnti);
     return false;
+  }
+
+  // Reset the state if it is a successful or unsucessfull message
+  if (tx_pdu.type() == s1ap_pdu_c::types_opts::successful_outcome ||
+      tx_pdu.type() == s1ap_pdu_c::types_opts::unsuccessful_outcome) {
+    if (rnti != SRSRAN_INVALID_RNTI) {
+      s1ap::ue* u = users.find_ue_rnti(rnti);
+      if (u == nullptr) {
+        logger.warning("Could not find user for %s. RNTI=%x", procedure_name, rnti);
+      } else {
+        u->set_state(s1ap_proc_id_t::nulltype, {}, {});
+      }
+    }
   }
 
   srsran::unique_byte_buffer_t buf = srsran::make_byte_buffer();
