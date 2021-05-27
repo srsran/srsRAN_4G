@@ -136,6 +136,11 @@ bool threads_new_rt_cpu(pthread_t* thread, void* (*start_routine)(void*), void* 
     }
   }
 
+// TSAN seems to have issues with thread attributes when running as normal user, disable them in that case
+#if HAVE_TSAN
+  attr_enable = false;
+#endif
+
   int err = pthread_create(thread, attr_enable ? &attr : NULL, start_routine, arg);
   if (err) {
     if (EPERM == err) {
