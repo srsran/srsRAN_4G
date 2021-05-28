@@ -28,7 +28,12 @@ int test_finite_target_snr()
 
   tpc tpcfsm(nof_prbs, 15, 15, true);
 
-  // TEST: While no SNR info is provided, no TPC commands are sent
+  // TEST: While UL SNR ~ target, no TPC commands are sent
+  for (uint32_t i = 0; i < 100 and tpcfsm.get_ul_snr_estim(0) < 14; ++i) {
+    tpcfsm.set_snr(15, 0);
+    tpcfsm.set_snr(15, 1);
+    tpcfsm.new_tti();
+  }
   for (uint32_t i = 0; i < 100; ++i) {
     tpcfsm.new_tti();
     TESTASSERT(decode_tpc(tpcfsm.encode_pucch_tpc()) == 0);
