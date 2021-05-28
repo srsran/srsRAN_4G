@@ -31,7 +31,7 @@ using namespace asn1::rrc;
 namespace srsenb {
 
 rrc::rrc(srsran::task_sched_handle task_sched_) :
-  logger(srslog::fetch_basic_logger("RRC")), task_sched(task_sched_), rx_pdu_queue(64)
+  logger(srslog::fetch_basic_logger("RRC")), task_sched(task_sched_), rx_pdu_queue(128)
 {}
 
 rrc::~rrc() {}
