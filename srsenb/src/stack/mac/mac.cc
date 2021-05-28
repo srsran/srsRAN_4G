@@ -545,12 +545,12 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
   logger.set_context(tti);
   auto rach_tprof_meas = rach_tprof.start();
 
-  uint16_t rnti = allocate_ue();
-  if (rnti == SRSRAN_INVALID_RNTI) {
-    return;
-  }
+  stack_task_queue.push([this, tti, enb_cc_idx, preamble_idx, time_adv, rach_tprof_meas]() mutable {
+    uint16_t rnti = allocate_ue();
+    if (rnti == SRSRAN_INVALID_RNTI) {
+      return;
+    }
 
-  stack_task_queue.push([this, rnti, tti, enb_cc_idx, preamble_idx, time_adv, rach_tprof_meas]() mutable {
     rach_tprof_meas.defer_stop();
     // Generate RAR data
     sched_interface::dl_sched_rar_info_t rar_info = {};
