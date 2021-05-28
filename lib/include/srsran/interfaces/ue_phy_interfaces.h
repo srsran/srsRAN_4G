@@ -159,8 +159,6 @@ public:
   virtual bool cell_search()                = 0;
   virtual bool cell_select(phy_cell_t cell) = 0;
   virtual bool cell_is_camping()            = 0;
-
-  virtual void enable_pregen_signals(bool enable) = 0;
 };
 
 // Combined interface for stack (MAC and RRC) to access PHY

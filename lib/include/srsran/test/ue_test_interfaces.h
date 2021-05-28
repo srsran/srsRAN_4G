@@ -76,8 +76,6 @@ class phy_dummy_interface : public phy_interface_rrc_lte
   bool cell_search() override { return true; }
   bool cell_select(phy_cell_t cell) override { return true; }
   bool cell_is_camping() override { return false; }
-
-  void enable_pregen_signals(bool enable) override {}
 };
 
 } // namespace srsue

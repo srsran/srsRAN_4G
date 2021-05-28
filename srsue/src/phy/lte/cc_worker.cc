@@ -187,11 +187,6 @@ void cc_worker::set_tdd_config_unlocked(srsran_tdd_config_t config)
   sf_cfg_ul.tdd_config = config;
 }
 
-void cc_worker::enable_pregen_signals_unlocked(bool enabled)
-{
-  pregen_enabled = enabled;
-}
-
 /************
  *
  * Downlink Functions
@@ -872,13 +867,6 @@ void cc_worker::set_config_unlocked(srsran::phy_cfg_t& phy_cfg)
   ue_ul_cfg.ul_cfg = phy_cfg.ul_cfg;
 
   phy->set_pdsch_cfg(&ue_dl_cfg.cfg.pdsch);
-
-  // Update signals
-  if (pregen_enabled) {
-    Info("Pre-generating UL signals...");
-    srsran_ue_ul_pregen_signals(&ue_ul, &ue_ul_cfg);
-    Info("Done pre-generating signals worker...");
-  }
 }
 
 void cc_worker::upd_config_dci_unlocked(srsran_dci_cfg_t& dci_cfg)

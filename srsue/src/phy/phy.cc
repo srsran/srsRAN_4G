@@ -146,9 +146,6 @@ void phy::run_thread()
   sfsync.init(
       radio, stack, &prach_buffer, &lte_workers, &nr_workers, &common, SF_RECV_THREAD_PRIO, args.sync_cpu_affinity);
 
-  // Disable UL signal pregeneration until the attachment
-  enable_pregen_signals(false);
-
   is_configured = true;
   config_cond.notify_all();
 }
@@ -417,13 +414,6 @@ void phy::start_plot()
   lte_workers[0]->start_plot();
   if (args.nof_nr_carriers > 0) {
     nr_workers[0]->start_plot();
-  }
-}
-
-void phy::enable_pregen_signals(bool enable)
-{
-  for (uint32_t i = 0; i < args.nof_phy_threads; i++) {
-    lte_workers[i]->enable_pregen_signals_unlocked(enable);
   }
 }
 
