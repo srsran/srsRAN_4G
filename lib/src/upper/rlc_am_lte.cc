@@ -1316,7 +1316,7 @@ void rlc_am_lte::rlc_am_lte_tx::debug_state()
   logger.debug("%s vt_a = %d, vt_ms = %d, vt_s = %d, poll_sn = %d", RB_NAME, vt_a, vt_ms, vt_s, poll_sn);
 }
 
-int rlc_am_lte::rlc_am_lte_tx::required_buffer_size(rlc_amd_retx_t retx)
+int rlc_am_lte::rlc_am_lte_tx::required_buffer_size(const rlc_amd_retx_t& retx)
 {
   if (!retx.is_segment) {
     if (tx_window.has_sn(retx.sn)) {
