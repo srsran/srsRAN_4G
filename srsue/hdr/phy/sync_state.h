@@ -87,6 +87,32 @@ public:
   /* Helpers below this */
   bool is_idle() { return cur_state == IDLE; }
   bool is_camping() { return cur_state == CAMPING; }
+  bool wait_idle(uint32_t timeout_ms)
+  {
+    std::unique_lock<std::mutex> lock(outside);
+
+    // Avoid wasting time if the next state will not be IDLE
+    if (next_state != IDLE) {
+      return false;
+    }
+
+    // Calculate timeout
+    std::chrono::system_clock::time_point expire_time = std::chrono::system_clock::now();
+    expire_time += std::chrono::milliseconds(timeout_ms);
+
+    // Wait until the state is IDLE
+    while (cur_state != IDLE) {
+      std::cv_status cv_status = cvar.wait_until(lock, expire_time);
+
+      // Returns false if it timeouts
+      if (cv_status != std::cv_status::timeout) {
+        return false;
+      }
+    }
+
+    // Return true if the state is IDLE
+    return true;
+  }
 
   const char* to_string()
   {

@@ -220,16 +220,13 @@ rrc_interface_phy_lte::cell_search_ret_t sync::cell_search_start(phy_cell_t* fou
   rrc_proc_state = PROC_SEARCH_RUNNING;
 
   // Wait for SYNC thread to transition to IDLE (max. 2000ms)
-  uint32_t cnt = 0;
-  while (!phy_state.is_idle() && cnt <= 4000) {
-    Info("Cell Search: PHY state is_idle=%d, cnt=%d", phy_state.is_idle(), cnt);
-    usleep(500);
-    cnt++;
-  }
-  if (!phy_state.is_idle()) {
-    Error("Can not change Cell while not in IDLE");
+  if (not phy_state.wait_idle(2)) {
+    Error("SYNC: Can not search while not in IDLE");
     return ret;
   }
+
+  // Wait for workers to finish PHY processing
+  worker_com->semaphore.wait_all();
 
   // Reset worker once SYNC is IDLE to flush any worker states such as ACKs and pending grants
   worker_com->reset();
@@ -798,19 +795,16 @@ void sync::set_ue_sync_opts(srsran_ue_sync_t* q, float cfo)
 bool sync::set_cell(float cfo)
 {
   // Wait for SYNC thread to transition to IDLE (max. 2000ms)
-  uint32_t cnt = 0;
-  while (!phy_state.is_idle() && cnt <= 4000) {
-    Info("SYNC: PHY state is_idle=%d, cnt=%d", phy_state.is_idle(), cnt);
-    usleep(500);
-    cnt++;
-  }
-  if (!phy_state.is_idle()) {
-    Error("Can not change Cell while not in IDLE");
+  if (not phy_state.wait_idle(2)) {
+    Error("SYNC: Can not change Cell while not in IDLE");
     return false;
   }
 
   // Reset UE sync. Attention: doing this reset when the FSM is NOT IDLE can cause PSS/SSS out-of-sync
   srsran_ue_sync_reset(&ue_sync);
+
+  // Wait for workers to finish PHY processing
+  worker_com->semaphore.wait_all();
 
   // Reset worker once SYNC is IDLE to flush any worker states such as ACKs and pending grants
   worker_com->reset();
