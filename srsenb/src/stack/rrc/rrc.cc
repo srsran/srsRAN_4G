@@ -137,7 +137,7 @@ void rrc::set_radiolink_dl_state(uint16_t rnti, bool crc_res)
   rrc_pdu p = {rnti, LCID_RADLINK_DL, crc_res, nullptr};
 
   if (not rx_pdu_queue.try_push(std::move(p))) {
-    logger.error("Failed to push UE activity command to RRC queue");
+    logger.error("Failed to push radio link DL state");
   }
 }
 
@@ -147,7 +147,7 @@ void rrc::set_radiolink_ul_state(uint16_t rnti, bool crc_res)
   rrc_pdu p = {rnti, LCID_RADLINK_UL, crc_res, nullptr};
 
   if (not rx_pdu_queue.try_push(std::move(p))) {
-    logger.error("Failed to push UE activity command to RRC queue");
+    logger.error("Failed to push radio link UL state");
   }
 }
 
