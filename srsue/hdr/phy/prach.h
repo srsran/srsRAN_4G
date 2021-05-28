@@ -18,6 +18,7 @@
 #include "srsran/srslog/srslog.h"
 #include "srsran/srsran.h"
 #include <bitset>
+#include <mutex>
 
 namespace srsue {
 
@@ -70,6 +71,7 @@ private:
   bool                                                 mem_initiated    = false;
   bool                                                 cell_initiated   = false;
   std::bitset<max_fs * max_preambles>                  buffer_bitmask;
+  mutable std::mutex                                   mutex;
 };
 
 } // namespace srsue
