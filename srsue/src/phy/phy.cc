@@ -249,42 +249,47 @@ void phy::configure_prach_params()
 
 void phy::set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci)
 {
-  // Check if the EARFCN matches with serving cell
-  uint32_t pcell_earfcn = 0;
-  sfsync.get_current_cell(nullptr, &pcell_earfcn);
-  bool available = (pcell_earfcn == earfcn);
+  // As the SCell configuration is performed asynchronously through the cmd_worker, append the command adding the
+  // measurements to avoid a concurrency issue
+  cmd_worker.add_cmd([this, earfcn, pci]() {
+    // Check if the EARFCN matches with serving cell
+    uint32_t pcell_earfcn = 0;
+    sfsync.get_current_cell(nullptr, &pcell_earfcn);
+    bool available = (pcell_earfcn == earfcn);
 
-  // Find if there is secondary serving cell configured with the specified EARFCN
-  uint32_t cc_empty = 0;
-  for (uint32_t cc = 1; cc < args.nof_lte_carriers and not available; cc++) {
-    // If it is configured...
-    if (common.cell_state.is_configured(cc)) {
-      // ... Check if the EARFCN match
-      if (common.cell_state.get_earfcn(cc) == earfcn) {
-        available = true;
+    // Find if there is secondary serving cell configured with the specified EARFCN
+    uint32_t cc_empty = 0;
+    for (uint32_t cc = 1; cc < args.nof_lte_carriers and not available; cc++) {
+      // If it is configured...
+      if (common.cell_state.is_configured(cc)) {
+        // ... Check if the EARFCN match
+        if (common.cell_state.get_earfcn(cc) == earfcn) {
+          available = true;
+        }
+      } else if (cc_empty == 0) {
+        // ... otherwise, save the CC as non-configured
+        cc_empty = cc;
       }
-    } else if (cc_empty == 0) {
-      // ... otherwise, save the CC as non-configured
-      cc_empty = cc;
-    }
-  }
-
-  // If not available and a non-configured carrier is available, configure it.
-  if (not available and cc_empty != 0) {
-    // Copy all attributes from serving cell
-    srsran_cell_t cell = selected_cell;
-
-    // Select the first PCI in the list
-    if (not pci.empty()) {
-      cell.id = *pci.begin();
     }
 
-    // Configure a the empty carrier as it was CA
-    set_scell(cell, cc_empty, earfcn);
-  }
+    // If not available and a non-configured carrier is available, configure it.
+    if (not available and cc_empty != 0) {
+      // Copy all attributes from serving cell
+      srsran_cell_t cell = selected_cell;
 
-  // Finally, set the serving cell measure
-  sfsync.set_cells_to_meas(earfcn, pci);
+      // Select the first PCI in the list
+      if (not pci.empty()) {
+        cell.id = *pci.begin();
+      }
+
+      // Configure a the empty carrier as it was CA
+      logger_phy.info("Setting new SCell measurement cc_idx=%d, earfcn=%d, pci=%d...", cc_empty, earfcn, cell.id);
+      set_scell(cell, cc_empty, earfcn);
+    }
+
+    // Finally, set the serving cell measure
+    sfsync.set_cells_to_meas(earfcn, pci);
+  });
 }
 
 void phy::meas_stop()
