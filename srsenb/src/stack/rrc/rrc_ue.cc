@@ -43,7 +43,12 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
   mac_ctrl(rnti, ue_cell_list, bearer_list, parent->cfg, parent->mac, *parent->cell_common_list, sched_ue_cfg)
 {}
 
-rrc::ue::~ue() {}
+rrc::ue::~ue()
+{
+  if (old_reest_rnti != SRSRAN_INVALID_RNTI and parent->users.count(old_reest_rnti) > 0) {
+    parent->rem_user(old_reest_rnti);
+  }
+}
 
 int rrc::ue::init()
 {
@@ -194,19 +199,23 @@ void rrc::ue::activity_timer_expired(const activity_timeout_type_t type)
   parent->logger.info("Activity timer for rnti=0x%x expired after %d ms", rnti, activity_timer.time_elapsed());
 
   if (parent->s1ap->user_exists(rnti)) {
-    if (type == UE_INACTIVITY_TIMEOUT) {
-      parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::user_inactivity);
-      con_release_result = procedure_result_code::activity_timeout;
-    } else if (type == MSG3_RX_TIMEOUT) {
-      // MSG3 timeout, no need to notify S1AP, just remove UE
-      parent->rem_user_thread(rnti);
-      con_release_result = procedure_result_code::msg3_timeout;
-    } else {
-      // Unhandled activity timeout, just remove UE and log an error
-      parent->rem_user_thread(rnti);
-      con_release_result = procedure_result_code::activity_timeout;
-      parent->logger.error(
-          "Unhandled reason for activity timer expiration. rnti=0x%x, cause %d", rnti, static_cast<unsigned>(type));
+    switch (type) {
+      case UE_INACTIVITY_TIMEOUT:
+        parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::user_inactivity);
+        con_release_result = procedure_result_code::activity_timeout;
+        break;
+      case MSG3_RX_TIMEOUT:
+      case MSG5_RX_TIMEOUT:
+        // MSG3 timeout, no need to notify S1AP, just remove UE
+        parent->rem_user_thread(rnti);
+        con_release_result = procedure_result_code::msg3_timeout;
+        break;
+      default:
+        // Unhandled activity timeout, just remove UE and log an error
+        parent->rem_user_thread(rnti);
+        con_release_result = procedure_result_code::activity_timeout;
+        parent->logger.error(
+            "Unhandled reason for activity timer expiration. rnti=0x%x, cause %d", rnti, static_cast<unsigned>(type));
     }
   } else {
     parent->rem_user_thread(rnti);
@@ -255,6 +264,9 @@ void rrc::ue::set_activity_timeout(activity_timeout_type_t type)
       break;
     case UE_INACTIVITY_TIMEOUT:
       deadline_ms = parent->cfg.inactivity_timeout_ms;
+      break;
+    case MSG5_RX_TIMEOUT:
+      deadline_ms = get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.ue_timers_and_consts.t301.to_number();
       break;
     default:
       parent->logger.error("Unknown timeout type %d", type);
@@ -617,7 +629,7 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
 
   old_reest_rnti = old_rnti;
   state          = RRC_STATE_WAIT_FOR_CON_REEST_COMPLETE;
-  set_activity_timeout(UE_INACTIVITY_TIMEOUT);
+  set_activity_timeout(MSG5_RX_TIMEOUT);
 }
 
 void rrc::ue::send_connection_reest(uint8_t ncc)
@@ -700,6 +712,7 @@ void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srsr
 
   // remove old RNTI
   parent->rem_user(old_reest_rnti);
+  old_reest_rnti = SRSRAN_INVALID_RNTI;
 
   state = RRC_STATE_REESTABLISHMENT_COMPLETE;
 
