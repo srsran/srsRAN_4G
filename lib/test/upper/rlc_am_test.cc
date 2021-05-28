@@ -651,6 +651,7 @@ int segment_retx_test()
 
   // Step timers again until poll Retx timeout expires
   for (int cnt = 0; cnt < 5; cnt++) {
+    TESTASSERT(rlc1.get_buffer_state() == 0); // No status transmissions until pollRetx expires
     timers.step_all();
   }
 
