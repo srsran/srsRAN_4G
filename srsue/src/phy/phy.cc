@@ -500,23 +500,27 @@ bool phy::set_scell(srsran_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn)
   // Set inter-frequency measurement
   sfsync.set_inter_frequency_measurement(cc_idx, earfcn, cell_info);
 
-  // Reset secondary serving cell state, prevents this component carrier from executing any PHY processing
+  // Reset secondary serving cell state, prevents this component carrier from executing any new PHY processing. It does
+  // not stop any current work
   common.cell_state.reset(cc_idx);
-
-  // Reset secondary serving cell configuration
-  for (uint32_t i = 0; i < args.nof_phy_threads; i++) {
-    lte_workers[i]->reset_cell_unlocked(cc_idx);
-  }
 
   // Component carrier index zero should be reserved for PCell
   // Send configuration to workers
   cmd_worker.add_cmd([this, cell_info, cc_idx, earfcn, earfcn_is_different]() {
     logger_phy.info("Setting new SCell configuration cc_idx=%d, earfcn=%d...", cc_idx, earfcn);
     for (uint32_t i = 0; i < args.nof_phy_threads; i++) {
-      // set_cell is not protected so run when worker is finished
+      // set_cell is not protected so run when worker has finished to ensure no PHY processing is done at the time of
+      // cell setting
       lte::sf_worker* w = lte_workers.wait_worker_id(i);
       if (w) {
+        // Reset secondary serving cell configuration, this needs to be done when the sf_worker is reserved to prevent
+        // resetting the cell while it is working
+        w->reset_cell_unlocked(cc_idx);
+
+        // Set the new cell
         w->set_cell_unlocked(cc_idx, cell_info);
+
+        // Release the new worker, it should not start processing until the SCell state is set to configured
         w->release();
       }
     }
