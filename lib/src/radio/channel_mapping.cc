@@ -26,11 +26,15 @@ bool channel_mapping::allocate_freq(const uint32_t& logical_ch, const float& fre
 {
   std::lock_guard<std::mutex> lock(mutex);
 
-  if (allocated_channels.count(logical_ch)) {
-    ERROR("allocate_freq: Carrier logical_ch=%d already allocated to channel=%d",
-          logical_ch,
-          allocated_channels[logical_ch].carrier_idx);
-    return false;
+  // Check if the logical channel has already been allocated
+  if (allocated_channels.count(logical_ch) > 0) {
+    // If the current channel contains the frequency, do nothing else
+    if (allocated_channels[logical_ch].band.contains(freq)) {
+      return true;
+    }
+
+    // Otherwise, release logical channel before searching for a new available channel
+    release_freq_(logical_ch);
   }
 
   // Find first available channel that supports this frequency and allocated it
@@ -45,12 +49,17 @@ bool channel_mapping::allocate_freq(const uint32_t& logical_ch, const float& fre
   return false;
 }
 
+void channel_mapping::release_freq_(const uint32_t& logical_ch)
+{
+  available_channels.push_back(allocated_channels[logical_ch]);
+  allocated_channels.erase(logical_ch);
+}
+
 bool channel_mapping::release_freq(const uint32_t& logical_ch)
 {
   std::lock_guard<std::mutex> lock(mutex);
   if (allocated_channels.count(logical_ch)) {
-    available_channels.push_back(allocated_channels[logical_ch]);
-    allocated_channels.erase(logical_ch);
+    release_freq_(logical_ch);
     return true;
   }
   return false;

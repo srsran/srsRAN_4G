@@ -93,10 +93,10 @@ public:
   void set_channels(const std::list<channel_cfg_t>& channels_) { available_channels = channels_; }
 
   /**
-   * Finds an unused physical channel that supports the provided frequency and assigns it to logical channel
-   * logical_ch
+   * It deallocates the logical channel if it has been already allocated and it is not suitable, then finds an unused
+   * physical channel that supports the provided frequency and assigns it to logical channel logical_ch
    * @param logical_ch logical channel index
-   * @param freq Frequency (in Hz) that we want to receive/transmitt
+   * @param freq Frequency (in Hz) that we want to receive/transmit
    * @return true if a physical channel supporting this frequency was found or false otherwise
    */
   bool allocate_freq(const uint32_t& logical_ch, const float& freq);
@@ -138,6 +138,8 @@ private:
   mutable std::mutex                mutex              = {};
   uint32_t                          nof_antennas       = 1;
   uint32_t                          nof_channels_x_dev = 1;
+
+  void release_freq_(const uint32_t& logical_ch);
 };
 
 } // namespace srsran

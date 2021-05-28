@@ -622,9 +622,6 @@ void radio::set_rx_freq(const uint32_t& carrier_idx, const double& freq)
     return;
   }
 
-  // First release mapping
-  rx_channel_mapping.release_freq(carrier_idx);
-
   // Map carrier index to physical channel
   if (rx_channel_mapping.allocate_freq(carrier_idx, freq)) {
     channel_mapping::device_mapping_t device_mapping = rx_channel_mapping.get_device_mapping(carrier_idx);
@@ -739,9 +736,6 @@ void radio::set_tx_freq(const uint32_t& carrier_idx, const double& freq)
   if (!is_initialized) {
     return;
   }
-
-  // First release mapping
-  tx_channel_mapping.release_freq(carrier_idx);
 
   // Map carrier index to physical channel
   if (tx_channel_mapping.allocate_freq(carrier_idx, freq)) {
