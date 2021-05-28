@@ -440,18 +440,10 @@ bool phy::set_config(const srsran::phy_cfg_t& config_, uint32_t cc_idx)
     prach_cfg = config_.prach_cfg;
   }
 
-  // Apply configuration after the worker is finished to avoid race conditions
+  // Apply configurations asynchronously to avoid race conditions
   cmd_worker.add_cmd([this, config_, cc_idx]() {
     logger_phy.info("Setting new PHY configuration cc_idx=%d...", cc_idx);
-    for (uint32_t i = 0; i < args.nof_phy_threads; i++) {
-      // set_cell is not protected so run when worker is finished
-      lte::sf_worker* w = lte_workers.wait_worker_id(i);
-      if (w) {
-        w->set_config_unlocked(cc_idx, config_);
-        w->release();
-      }
-    }
-    logger_phy.info("Finished setting new PHY configuration cc_idx=%d", cc_idx);
+    lte_workers.set_config_unlocked(cc_idx, config_);
 
     // It is up to the PRACH component to detect whether the cell or the configuration have changed to reconfigure
     configure_prach_params();
@@ -497,7 +489,7 @@ bool phy::set_scell(srsran_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn)
   // Component carrier index zero should be reserved for PCell
   // Send configuration to workers
   cmd_worker.add_cmd([this, cell_info, cc_idx, earfcn, earfcn_is_different]() {
-    logger_phy.info("Setting new SCell configuration cc_idx=%d, earfcn=%d...", cc_idx, earfcn);
+    logger_phy.info("Setting new SCell configuration cc_idx=%d, earfcn=%d, pci=%d...", cc_idx, earfcn, cell_info.id);
     for (uint32_t i = 0; i < args.nof_phy_threads; i++) {
       // set_cell is not protected so run when worker has finished to ensure no PHY processing is done at the time of
       // cell setting
@@ -526,7 +518,8 @@ bool phy::set_scell(srsran_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn)
     // Set secondary serving cell synchronization
     sfsync.scell_sync_set(cc_idx, cell_info);
 
-    logger_phy.info("Finished setting new SCell configuration cc_idx=%d, earfcn=%d", cc_idx, earfcn);
+    logger_phy.info(
+        "Finished setting new SCell configuration cc_idx=%d, earfcn=%d, pci=%d", cc_idx, earfcn, cell_info.id);
 
     // Configure secondary serving cell, allows this component carrier to execute PHY processing
     common.cell_state.configure(cc_idx, earfcn, cell_info.id);

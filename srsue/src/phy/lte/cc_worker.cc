@@ -860,7 +860,7 @@ void cc_worker::set_uci_ack(srsran_uci_data_t* uci_data,
 
 /* Translates RRC structs into PHY structs
  */
-void cc_worker::set_config_unlocked(srsran::phy_cfg_t& phy_cfg)
+void cc_worker::set_config_unlocked(const srsran::phy_cfg_t& phy_cfg)
 {
   // Save configuration
   ue_dl_cfg.cfg    = phy_cfg.dl_cfg;
@@ -869,7 +869,7 @@ void cc_worker::set_config_unlocked(srsran::phy_cfg_t& phy_cfg)
   phy->set_pdsch_cfg(&ue_dl_cfg.cfg.pdsch);
 }
 
-void cc_worker::upd_config_dci_unlocked(srsran_dci_cfg_t& dci_cfg)
+void cc_worker::upd_config_dci_unlocked(const srsran_dci_cfg_t& dci_cfg)
 {
   ue_dl_cfg.cfg.dci = dci_cfg;
 }

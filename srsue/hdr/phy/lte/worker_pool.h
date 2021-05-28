@@ -21,8 +21,24 @@ namespace lte {
 
 class worker_pool
 {
+private:
   srsran::thread_pool                      pool;
   std::vector<std::unique_ptr<sf_worker> > workers;
+
+  class phy_cfg_stash_t
+  {
+  private:
+    std::vector<bool> pending; ///< Indicates for each SF worker if it has pending configuration
+    srsran::phy_cfg_t cfg;     ///< Actual CC configuration
+
+  public:
+    phy_cfg_stash_t(uint32_t max_workers) : pending(max_workers) {}
+    void                     set_cfg(const srsran::phy_cfg_t& c);
+    bool                     is_pending(uint32_t sf_idx);
+    const srsran::phy_cfg_t& get_cfg(uint32_t sf_idx);
+  };
+  std::mutex                                       phy_cfg_mutex; ///< Protects configuration stash
+  std::array<phy_cfg_stash_t, SRSRAN_MAX_CARRIERS> phy_cfg_stash; ///< Stores the latest worker configuration
 
 public:
   sf_worker* operator[](std::size_t pos) { return workers.at(pos).get(); }
@@ -33,6 +49,14 @@ public:
   sf_worker* wait_worker_id(uint32_t id);
   void       start_worker(sf_worker* w);
   void       stop();
+
+  /**
+   * @brief Sets a new configuration for a given CC, it copies the new configuration into the stash and it will be
+   * applied to the sf_worker at the time it is reserved.
+   * @param cc_idx CC index
+   * @param phy_cfg Actual PHY configuration
+   */
+  void set_config_unlocked(uint32_t cc_idx, srsran::phy_cfg_t phy_cfg);
 };
 
 } // namespace lte
