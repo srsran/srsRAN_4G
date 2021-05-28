@@ -189,7 +189,8 @@ int sched_ue_cell::set_ul_crc(tti_point tti_rx, bool crc_res)
       float delta_inc_eff = mcs >= (int)max_mcs_ul ? 0 : delta_inc;
       ul_snr_coeff += crc_res ? delta_inc_eff : -delta_dec_eff;
       ul_snr_coeff = std::min(std::max(-max_snr_coeff, ul_snr_coeff), max_snr_coeff);
-      logger.info("SCHED: UL adaptive link: snr_estim=%.2f, last_mcs=%d, snr_offset=%f",
+      logger.info("SCHED: UL adaptive link: rnti=0x%x, snr_estim=%.2f, last_mcs=%d, snr_offset=%f",
+                  rnti,
                   tpc_fsm.get_ul_snr_estim(),
                   mcs,
                   ul_snr_coeff);
@@ -225,8 +226,11 @@ int sched_ue_cell::set_ack_info(tti_point tti_rx, uint32_t tb_idx, bool ack)
     float delta_inc_eff = mcs >= (int)max_mcs_dl ? 0 : delta_inc;
     dl_cqi_coeff += ack ? delta_inc_eff : -delta_dec_eff;
     dl_cqi_coeff = std::min(std::max(-max_cqi_coeff, dl_cqi_coeff), max_cqi_coeff);
-    logger.info(
-        "SCHED: DL adaptive link: cqi=%d, last_mcs=%d, cqi_offset=%f", dl_cqi_ctxt.get_avg_cqi(), mcs, dl_cqi_coeff);
+    logger.info("SCHED: DL adaptive link: rnti=0x%x, cqi=%d, last_mcs=%d, cqi_offset=%f",
+                rnti,
+                dl_cqi_ctxt.get_avg_cqi(),
+                mcs,
+                dl_cqi_coeff);
   }
   return tbs_acked;
 }

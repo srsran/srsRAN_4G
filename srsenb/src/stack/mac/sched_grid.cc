@@ -699,8 +699,8 @@ void sf_sched::set_dl_data_sched_result(const sf_cch_allocator::alloc_result_t& 
     // Print Resulting DL Allocation
     fmt::memory_buffer str_buffer;
     fmt::format_to(str_buffer,
-                   "SCHED: DL {} rnti=0x{:x}, cc={}, pid={}, mask=0x{:x}, dci=({}, {}), n_rtx={}, tbs={}, "
-                   "buffer={}/{}, tti_tx_dl={}",
+                   "SCHED: DL {} rnti=0x{:x}, cc={}, pid={}, mask=0x{:x}, dci=({}, {}), n_rtx={}, cfi={}, "
+                   "tbs={}, buffer={}/{}, tti_tx_dl={}",
                    is_newtx ? "tx" : "retx",
                    user->get_rnti(),
                    cc_cfg->enb_cc_idx,
@@ -709,6 +709,7 @@ void sf_sched::set_dl_data_sched_result(const sf_cch_allocator::alloc_result_t& 
                    data->dci.location.L,
                    data->dci.location.ncce,
                    dl_harq.nof_retx(0) + dl_harq.nof_retx(1),
+                   tti_alloc.get_cfi(),
                    tbs,
                    data_before,
                    user->get_pending_dl_bytes(cc_cfg->enb_cc_idx),
@@ -860,21 +861,23 @@ void sf_sched::set_ul_sched_result(const sf_cch_allocator::alloc_result_t& dci_r
     uint32_t old_pending_bytes = user->get_pending_ul_old_data();
     if (logger.info.enabled()) {
       fmt::memory_buffer str_buffer;
-      fmt::format_to(str_buffer,
-                     "SCHED: {} {} rnti=0x{:x}, cc={}, pid={}, dci=({},{}), prb={}, n_rtx={}, tbs={}, bsr={} ({}-{})",
-                     ul_alloc.is_msg3 ? "Msg3" : "UL",
-                     ul_alloc.is_retx() ? "retx" : "tx",
-                     user->get_rnti(),
-                     cc_cfg->enb_cc_idx,
-                     h->get_id(),
-                     pusch.dci.location.L,
-                     pusch.dci.location.ncce,
-                     ul_alloc.alloc,
-                     h->nof_retx(0),
-                     tbs,
-                     new_pending_bytes,
-                     total_data_before,
-                     old_pending_bytes);
+      fmt::format_to(
+          str_buffer,
+          "SCHED: {} {} rnti=0x{:x}, cc={}, pid={}, dci=({},{}), prb={}, n_rtx={}, cfi={}, tbs={}, bsr={} ({}-{})",
+          ul_alloc.is_msg3 ? "Msg3" : "UL",
+          ul_alloc.is_retx() ? "retx" : "tx",
+          user->get_rnti(),
+          cc_cfg->enb_cc_idx,
+          h->get_id(),
+          pusch.dci.location.L,
+          pusch.dci.location.ncce,
+          ul_alloc.alloc,
+          h->nof_retx(0),
+          tti_alloc.get_cfi(),
+          tbs,
+          new_pending_bytes,
+          total_data_before,
+          old_pending_bytes);
       logger.info("%s", srsran::to_c_str(str_buffer));
     }
 
