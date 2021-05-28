@@ -68,7 +68,8 @@ public:
    */
   srsran_duplex_mode_t get_duplex_mode(uint16_t band) const;
 
-  struct sync_raster_t {
+  class sync_raster_t
+  {
   protected:
     sync_raster_t(uint32_t f, uint32_t s, uint32_t l) : first(f), step(s), last(l), gscn(f) {}
     uint32_t gscn;
