@@ -39,11 +39,14 @@ public:
                float    target_pucch_snr_dB_  = -1.0,
                float    target_pusch_sn_dB_   = -1.0,
                bool     phr_handling_flag_    = false,
-               uint32_t min_tpc_tti_interval_ = 1) :
+               uint32_t min_tpc_tti_interval_ = 1,
+               float    ul_snr_avg_alpha      = 0.05,
+               int      init_ul_snr_value     = 5) :
     nof_prb(cell_nof_prb),
     target_pucch_snr_dB(target_pucch_snr_dB_),
     target_pusch_snr_dB(target_pusch_sn_dB_),
-    snr_estim_list({ul_ch_snr_estim{target_pusch_snr_dB}, ul_ch_snr_estim{target_pucch_snr_dB}}),
+    snr_estim_list(
+        {ul_ch_snr_estim{ul_snr_avg_alpha, init_ul_snr_value}, ul_ch_snr_estim{ul_snr_avg_alpha, init_ul_snr_value}}),
     phr_handling_flag(phr_handling_flag_),
     max_prbs_cached(nof_prb),
     min_tpc_tti_interval(min_tpc_tti_interval_),
@@ -206,8 +209,8 @@ private:
     int                      acc_tpc_values     = 0;
     uint32_t                 last_tpc_tti_count = 0;
 
-    explicit ul_ch_snr_estim(float initial_snr) :
-      snr_avg(0.1, initial_snr < 0 ? 5 : initial_snr), win_tpc_values(FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS)
+    explicit ul_ch_snr_estim(float exp_avg_alpha, int initial_snr) :
+      snr_avg(exp_avg_alpha, initial_snr), win_tpc_values(FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS)
     {}
   };
   std::array<ul_ch_snr_estim, nof_ul_ch_code> snr_estim_list;

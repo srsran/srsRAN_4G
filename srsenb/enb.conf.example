@@ -174,6 +174,8 @@ enable = false
 # max_delta_ul_snr:  Maximum shift in UL SNR for adaptive UL link
 # adaptive_link_step_size: Step size or learning rate used in adaptive link
 # min_tpc_tti_interval: Minimum TTI interval between TPCs different than 1
+# ul_snr_avg_alpha:  Exponential Average alpha coefficient used in estimation of UL SNR
+# init_ul_snr_value: Initial UL SNR value used for computing MCS in the first UL grant
 #
 #####################################################################
 [scheduler]
@@ -194,6 +196,8 @@ enable = false
 #max_delta_ul_snr = 5
 #adaptive_link_step_size = 0.001
 #min_tpc_tti_interval = 1
+#ul_snr_avg_alpha=0.05
+#init_ul_snr_value=5
 
 #####################################################################
 # eMBMS configuration options

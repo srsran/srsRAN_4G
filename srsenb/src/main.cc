@@ -156,6 +156,8 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("scheduler.max_delta_ul_snr", bpo::value<float>(&args->stack.mac.sched.max_delta_ul_snr)->default_value(5.0), "Maximum shift in UL SNR for adaptive UL link")
     ("scheduler.adaptive_link_step_size", bpo::value<float>(&args->stack.mac.sched.max_delta_ul_snr)->default_value(0.001), "Step size or learning rate used in adaptive link")
     ("scheduler.min_tpc_tti_interval", bpo::value<uint32_t>(&args->stack.mac.sched.min_tpc_tti_interval)->default_value(1), "Minimum TTI interval between positive or negative TPCs")
+    ("scheduler.ul_snr_avg_alpha", bpo::value<float>(&args->stack.mac.sched.ul_snr_avg_alpha)->default_value(0.05), "Exponential Average alpha coefficient used in estimation of UL SNR")
+    ("scheduler.init_ul_snr_value", bpo::value<int>(&args->stack.mac.sched.init_ul_snr_value)->default_value(5), "Initial UL SNR value used for computing MCS in the first UL grant")
 
 
     /* Downlink Channel emulator section */
