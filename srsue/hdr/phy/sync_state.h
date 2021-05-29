@@ -93,7 +93,7 @@ public:
 
     // Avoid wasting time if the next state will not be IDLE
     if (next_state != IDLE) {
-      return false;
+      return cur_state == IDLE;
     }
 
     // Calculate timeout
@@ -104,9 +104,9 @@ public:
     while (cur_state != IDLE) {
       std::cv_status cv_status = cvar.wait_until(lock, expire_time);
 
-      // Returns false if it timeouts
+      // Return if it timeouts
       if (cv_status != std::cv_status::timeout) {
-        return false;
+        return cur_state == IDLE;
       }
     }
 
