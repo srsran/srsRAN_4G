@@ -28,7 +28,7 @@ int parse_default_cfg_phy(rrc_cfg_t* rrc_cfg, phy_cfg_t* phy_cfg, srsenb::all_ar
   *rrc_cfg                  = {};
   args.enb_files.sib_config = argparse::repository_dir + "/sib.conf.example";
   args.enb_files.rr_config  = argparse::repository_dir + "/rr.conf.example";
-  args.enb_files.drb_config = argparse::repository_dir + "/drb.conf.example";
+  args.enb_files.rb_config  = argparse::repository_dir + "/rb.conf.example";
   srslog::fetch_basic_logger("TEST").debug("sib file path=%s", args.enb_files.sib_config.c_str());
 
   args.enb.enb_id = 0x19B;
@@ -48,7 +48,7 @@ int parse_default_cfg(rrc_cfg_t* rrc_cfg, srsenb::all_args_t& args)
   *rrc_cfg                  = {};
   args.enb_files.sib_config = argparse::repository_dir + "/sib.conf.example";
   args.enb_files.rr_config  = argparse::repository_dir + "/rr.conf.example";
-  args.enb_files.drb_config = argparse::repository_dir + "/drb.conf.example";
+  args.enb_files.rb_config  = argparse::repository_dir + "/rb.conf.example";
   srslog::fetch_basic_logger("TEST").debug("sib file path=%s", args.enb_files.sib_config.c_str());
 
   args.enb.enb_id    = 0x19B;

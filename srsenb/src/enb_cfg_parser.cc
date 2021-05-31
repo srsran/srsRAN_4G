@@ -1735,7 +1735,7 @@ int parse_drb(all_args_t* args_, rrc_cfg_t* rrc_cfg_)
   qci.add_field(new field_qci(rrc_cfg_->qci_cfg));
 
   // Run parser with two sections
-  parser p(args_->enb_files.drb_config);
+  parser p(args_->enb_files.rb_config);
   p.add_section(&srb1);
   p.add_section(&srb2);
   p.add_section(&qci);

@@ -36,12 +36,12 @@ n_prb = 50
 # sib_config:  SIB1, SIB2 and SIB3 configuration file 
 # note: when enabling mbms, use the sib.conf.mbsfn configuration file which includes SIB13
 # rr_config:   Radio Resources configuration file 
-# drb_config:  DRB configuration file 
+# rb_config:   SRB/DRB configuration file 
 #####################################################################
 [enb_files]
 sib_config = sib.conf
 rr_config  = rr.conf
-drb_config = drb.conf
+rb_config = rb.conf
 
 #####################################################################
 # RF configuration

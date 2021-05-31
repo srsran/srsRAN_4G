@@ -83,7 +83,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
 
     ("enb_files.sib_config", bpo::value<string>(&args->enb_files.sib_config)->default_value("sib.conf"), "SIB configuration files")
     ("enb_files.rr_config",  bpo::value<string>(&args->enb_files.rr_config)->default_value("rr.conf"),   "RR configuration files")
-    ("enb_files.drb_config", bpo::value<string>(&args->enb_files.drb_config)->default_value("drb.conf"), "DRB configuration files")
+    ("enb_files.rb_config", bpo::value<string>(&args->enb_files.rb_config)->default_value("rb.conf"), "SRB/DRB configuration files")
 
     ("rf.dl_earfcn",      bpo::value<uint32_t>(&args->enb.dl_earfcn)->default_value(0),   "Force Downlink EARFCN for single cell")
     ("rf.srate",          bpo::value<double>(&args->rf.srate_hz)->default_value(0.0),     "Force Tx and Rx sampling rate in Hz")
@@ -436,8 +436,8 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     exit(1);
   }
 
-  if (!config_exists(args->enb_files.drb_config, "drb.conf")) {
-    cout << "Failed to read DRB configuration file " << args->enb_files.drb_config << " - exiting" << endl;
+  if (!config_exists(args->enb_files.rb_config, "rb.conf")) {
+    cout << "Failed to read DRB configuration file " << args->enb_files.rb_config << " - exiting" << endl;
     exit(1);
   }
 
