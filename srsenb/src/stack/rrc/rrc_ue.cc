@@ -46,7 +46,7 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
 rrc::ue::~ue()
 {
   if (old_reest_rnti != SRSRAN_INVALID_RNTI and parent->users.count(old_reest_rnti) > 0) {
-    parent->rem_user(old_reest_rnti);
+    parent->rem_user_thread(old_reest_rnti);
   }
 }
 
