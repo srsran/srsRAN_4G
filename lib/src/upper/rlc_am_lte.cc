@@ -582,6 +582,8 @@ void rlc_am_lte::rlc_am_lte_tx::timer_expired(uint32_t timeout_id)
     if ((retx_queue.empty() && tx_sdu_queue.size() == 0) || tx_window.size() >= RLC_AM_WINDOW_SIZE) {
       retransmit_pdu(vt_a); // TODO: TS says to send vt_s - 1 here
     }
+  } else if (status_prohibit_timer.is_valid() && status_prohibit_timer.id() == timeout_id) {
+    logger.debug("%s Status prohibit timer expired after %dms", RB_NAME, status_prohibit_timer.duration());
   }
 
   lock.unlock();
