@@ -95,7 +95,7 @@ void worker_pool::stop()
   pool.stop();
 }
 
-void worker_pool::set_config_unlocked(uint32_t cc_idx, srsran::phy_cfg_t phy_cfg)
+void worker_pool::set_config(uint32_t cc_idx, const srsran::phy_cfg_t& phy_cfg)
 {
   // Protect CC index bounds
   if (cc_idx >= SRSRAN_MAX_CARRIERS) {

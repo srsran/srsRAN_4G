@@ -220,8 +220,8 @@ rrc_interface_phy_lte::cell_search_ret_t sync::cell_search_start(phy_cell_t* fou
   rrc_proc_state = PROC_SEARCH_RUNNING;
 
   // Wait for SYNC thread to transition to IDLE (max. 2000ms)
-  if (not phy_state.wait_idle(2)) {
-    Error("SYNC: Can not search while not in IDLE");
+  if (not phy_state.wait_idle(TIMEOUT_TO_IDLE_MS)) {
+    Error("SYNC: Error transitioning to IDLE. Cell search cannot start.");
     return ret;
   }
 
@@ -795,7 +795,7 @@ void sync::set_ue_sync_opts(srsran_ue_sync_t* q, float cfo)
 bool sync::set_cell(float cfo)
 {
   // Wait for SYNC thread to transition to IDLE (max. 2000ms)
-  if (not phy_state.wait_idle(2)) {
+  if (not phy_state.wait_idle(TIMEOUT_TO_IDLE_MS)) {
     Error("SYNC: Can not change Cell while not in IDLE");
     return false;
   }

@@ -448,7 +448,7 @@ bool phy::set_config(const srsran::phy_cfg_t& config_, uint32_t cc_idx)
   // Apply configurations asynchronously to avoid race conditions
   cmd_worker.add_cmd([this, config_, cc_idx]() {
     logger_phy.info("Setting new PHY configuration cc_idx=%d...", cc_idx);
-    lte_workers.set_config_unlocked(cc_idx, config_);
+    lte_workers.set_config(cc_idx, config_);
 
     // It is up to the PRACH component to detect whether the cell or the configuration have changed to reconfigure
     configure_prach_params();

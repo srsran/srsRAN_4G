@@ -56,7 +56,7 @@ public:
    * @param cc_idx CC index
    * @param phy_cfg Actual PHY configuration
    */
-  void set_config_unlocked(uint32_t cc_idx, srsran::phy_cfg_t phy_cfg);
+  void set_config(uint32_t cc_idx, const srsran::phy_cfg_t& phy_cfg);
 };
 
 } // namespace lte
