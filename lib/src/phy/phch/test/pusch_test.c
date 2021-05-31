@@ -184,8 +184,10 @@ int main(int argc, char** argv)
   srsran_pusch_cfg_t     cfg;
   srsran_softbuffer_tx_t softbuffer_tx;
   srsran_softbuffer_rx_t softbuffer_rx;
+  srsran_crc_t           crc_tb;
 
   ZERO_OBJECT(uci_data_tx);
+  ZERO_OBJECT(crc_tb);
 
   bzero(&cfg, sizeof(srsran_pusch_cfg_t));
 
@@ -283,9 +285,12 @@ int main(int argc, char** argv)
     srsran_softbuffer_tx_reset(&softbuffer_tx);
     srsran_softbuffer_rx_reset(&softbuffer_rx);
 
+    // Generate random data
     for (uint32_t i = 0; i < cfg.grant.tb.tbs / 8; i++) {
       data[i] = (uint8_t)srsran_random_uniform_int_dist(random_h, 0, 255);
     }
+    // Attach CRC for making sure TB with 0 CRC are detected
+    srsran_crc_attach_byte(&crc_tb, data, cfg.grant.tb.tbs - 24);
 
     for (uint32_t a = 0; a < uci_data_tx.cfg.ack[0].nof_acks; a++) {
       uci_data_tx.value.ack.ack_value[a] = (uint8_t)srsran_random_uniform_int_dist(random_h, 0, 1);

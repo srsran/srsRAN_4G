@@ -150,7 +150,7 @@ static int check_softbits(srsran_pdsch_t*     pdsch_enb,
 
   if (!pdsch_ue->llr_is_8bit && !tb_cw_swap) {
     // Scramble
-    srsran_sequence_pdsch_apply_c(pdsch_ue->e[tb],
+    srsran_sequence_pdsch_apply_s(pdsch_ue->e[tb],
                                   pdsch_ue->e[tb],
                                   rnti,
                                   pdsch_cfg->grant.tb[tb].cw_idx,
@@ -168,6 +168,10 @@ static int check_softbits(srsran_pdsch_t*     pdsch_enb,
       rx_bytes[i] = w;
     }
     if (memcmp(pdsch_ue->e[tb], pdsch_enb->e[tb], pdsch_cfg->grant.tb[tb].nof_bits / 8) != 0) {
+      printf("tx=");
+      srsran_vec_fprint_byte(stdout, pdsch_enb->e[tb], pdsch_cfg->grant.tb[tb].nof_bits / 8);
+      printf("rx=");
+      srsran_vec_fprint_byte(stdout, pdsch_ue->e[tb], pdsch_cfg->grant.tb[tb].nof_bits / 8);
       ret = SRSRAN_ERROR;
     }
   }
@@ -195,6 +199,7 @@ int main(int argc, char** argv)
   srsran_chest_dl_res_t   chest_res;
   srsran_pdsch_res_t      pdsch_res[SRSRAN_MAX_CODEWORDS];
   srsran_random_t         random_gen = srsran_random_init(0x1234);
+  srsran_crc_t            crc_tb;
 
   /* Initialise to zeros */
   ZERO_OBJECT(softbuffers_tx);
@@ -212,6 +217,7 @@ int main(int argc, char** argv)
   ZERO_OBJECT(chest);
   ZERO_OBJECT(chest_res);
   ZERO_OBJECT(pdsch_res);
+  ZERO_OBJECT(crc_tb);
 
   parse_args(argc, argv);
 
@@ -384,11 +390,19 @@ int main(int argc, char** argv)
       }
     }
 
+    if (srsran_crc_init(&crc_tb, SRSRAN_LTE_CRC24A, 24) < SRSRAN_SUCCESS) {
+      ERROR("Error initiating CRC24A");
+      goto quit;
+    }
+
+    // Generate random data
     for (int tb = 0; tb < SRSRAN_MAX_CODEWORDS; tb++) {
       if (pdsch_cfg.grant.tb[tb].enabled) {
         for (int byte = 0; byte < pdsch_cfg.grant.tb[tb].tbs / 8; byte++) {
           data_tx[tb][byte] = (uint8_t)srsran_random_uniform_int_dist(random_gen, 0, 255);
         }
+        // Attach CRC for making sure TB with 0 CRC are detected
+        srsran_crc_attach_byte(&crc_tb, data_tx[tb], pdsch_cfg.grant.tb[tb].tbs - 24);
       }
     }
 
@@ -499,10 +513,12 @@ int main(int argc, char** argv)
   for (int tb = 0; tb < SRSRAN_MAX_CODEWORDS; tb++) {
     if (pdsch_cfg.grant.tb[tb].enabled) {
       if (check_softbits(&pdsch_tx, &pdsch_rx, &pdsch_cfg, subframe, tb)) {
-        printf("TB%d: The received softbits in subframe %d DO NOT match the encoded bits (crc=%d)\n",
-               tb,
-               subframe,
-               pdsch_res[tb].crc);
+        ERROR("TB%d: The received softbits in subframe %d DO NOT match the encoded bits (crc=%d)\n",
+              tb,
+              subframe,
+              pdsch_res[tb].crc);
+        ret = SRSRAN_ERROR;
+        goto quit;
       } else {
         for (int byte = 0; byte < pdsch_cfg.grant.tb[tb].tbs / 8; byte++) {
           if (data_tx[tb][byte] != data_rx[tb][byte]) {

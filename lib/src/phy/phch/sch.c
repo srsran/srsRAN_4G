@@ -541,7 +541,17 @@ static int decode_tb(srsran_sch_t*           q,
       par_tx = ((uint32_t)data[cb_segm->tbs / 8 + 0]) << 16 | ((uint32_t)data[cb_segm->tbs / 8 + 1]) << 8 |
                ((uint32_t)data[cb_segm->tbs / 8 + 2]);
 
-      if (par_rx == par_tx && par_rx) {
+      // Check if all the bytes are zeros
+      bool all_zeros = true;
+      for (uint32_t i = 0; i < cb_segm->tbs / 8 && all_zeros; i++) {
+        all_zeros = (data[i] == 0);
+      }
+      if (all_zeros) {
+        INFO("Error in TB decode: it is all zeros!");
+        return SRSRAN_ERROR;
+      }
+
+      if (par_rx == par_tx) {
         INFO("TB decoded OK");
         return SRSRAN_SUCCESS;
       } else {
