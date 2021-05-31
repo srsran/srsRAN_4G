@@ -107,9 +107,12 @@ void ue_sim::update_ul_harqs(const sf_output_res_t& sf_out)
   uint32_t pid = to_tx_ul(sf_out.tti_rx).to_uint() % (FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS);
   for (uint32_t cc = 0; cc < sf_out.cc_params.size(); ++cc) {
     const auto *cc_cfg = ctxt.get_cc_cfg(cc), *start = &ctxt.ue_cfg.supported_cc_list[0];
-    uint32_t    ue_cc_idx  = std::distance(start, cc_cfg);
-    auto&       ue_cc_ctxt = ctxt.cc_list[ue_cc_idx];
-    auto&       h          = ue_cc_ctxt.ul_harqs[pid];
+    if (cc_cfg == nullptr) {
+      continue;
+    }
+    uint32_t ue_cc_idx  = std::distance(start, cc_cfg);
+    auto&    ue_cc_ctxt = ctxt.cc_list[ue_cc_idx];
+    auto&    h          = ue_cc_ctxt.ul_harqs[pid];
 
     // Update UL harqs with PHICH info
     bool found_phich = false;
