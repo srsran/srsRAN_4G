@@ -33,7 +33,7 @@ namespace srsenb {
  *        SRBs / DRBs
  *****************************/
 
-srb_to_add_mod_s* add_srb(srb_to_add_mod_list_l& srbs, uint8_t srb_id)
+srb_to_add_mod_s* add_srb(srb_to_add_mod_list_l& srbs, uint8_t srb_id, const asn1::rrc::rlc_cfg_c& srb_cfg)
 {
   if (srb_id > 2 or srb_id == 0) {
     srslog::fetch_basic_logger("RRC").error("Invalid SRB id=%d", srb_id);
@@ -45,20 +45,20 @@ srb_to_add_mod_s* add_srb(srb_to_add_mod_list_l& srbs, uint8_t srb_id)
   srb_it->lc_ch_cfg_present = true;
   srb_it->lc_ch_cfg.set(srb_to_add_mod_s::lc_ch_cfg_c_::types_opts::default_value);
   srb_it->rlc_cfg_present = true;
-  srb_it->rlc_cfg.set(srb_to_add_mod_s::rlc_cfg_c_::types_opts::default_value);
-
+  srb_it->rlc_cfg.set(srb_to_add_mod_s::rlc_cfg_c_::types_opts::explicit_value);
+  srb_it->rlc_cfg.explicit_value() = srb_cfg;
   return srb_it;
 }
 
-void fill_srbs_reconf(srb_to_add_mod_list_l& srbs, const srb_to_add_mod_list_l& current_srbs)
+void fill_srbs_reconf(srb_to_add_mod_list_l& srbs, const srb_to_add_mod_list_l& current_srbs, const rrc_cfg_t& enb_cfg)
 {
   // NOTE: In case of Handover, the Reconf includes SRB1
   if (srsran::find_rrc_obj_id(current_srbs, 1) == current_srbs.end()) {
-    add_srb(srbs, 1);
+    add_srb(srbs, 1, enb_cfg.srb1_cfg);
   }
 
   if (srsran::find_rrc_obj_id(current_srbs, 2) == current_srbs.end()) {
-    add_srb(srbs, 2);
+    add_srb(srbs, 2, enb_cfg.srb2_cfg);
   }
 }
 
@@ -299,7 +299,7 @@ void fill_rr_cfg_ded_setup(asn1::rrc::rr_cfg_ded_s& rr_cfg,
 
   // (Re)establish SRB1
   rr_cfg.srb_to_add_mod_list_present = true;
-  add_srb(rr_cfg.srb_to_add_mod_list, 1);
+  add_srb(rr_cfg.srb_to_add_mod_list, 1, enb_cfg.srb1_cfg);
 
   // Setup SR/CQI configs
   rr_cfg.phys_cfg_ded_present = true;
@@ -315,7 +315,7 @@ void fill_rr_cfg_ded_reconf(asn1::rrc::rr_cfg_ded_s&             rr_cfg,
                             bool                                 phy_cfg_updated)
 {
   // (Re)establish SRBs
-  fill_srbs_reconf(rr_cfg.srb_to_add_mod_list, current_rr_cfg.srb_to_add_mod_list);
+  fill_srbs_reconf(rr_cfg.srb_to_add_mod_list, current_rr_cfg.srb_to_add_mod_list, enb_cfg);
   rr_cfg.srb_to_add_mod_list_present = rr_cfg.srb_to_add_mod_list.size() > 0;
 
   // Update DRBs if required

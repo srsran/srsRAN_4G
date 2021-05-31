@@ -1730,7 +1730,7 @@ int parse_drb(all_args_t* args_, rrc_cfg_t* rrc_cfg_)
   parser::section srb1("srb1_config");
   srb1.add_field(new field_srb(rrc_cfg_->srb1_cfg));
   parser::section srb2("srb2_config");
-  srb1.add_field(new field_srb(rrc_cfg_->srb2_cfg));
+  srb2.add_field(new field_srb(rrc_cfg_->srb2_cfg));
   parser::section qci("qci_config");
   qci.add_field(new field_qci(rrc_cfg_->qci_cfg));
 
