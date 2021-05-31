@@ -106,12 +106,14 @@ public:
   uint32_t get_pending_data() const;
   bool     has_pending_phich() const;
   bool     pop_pending_phich();
+  void     phich_alloc_failed();
 
 private:
   prb_interval allocation;
   int          pending_data;
-  bool         pending_phich = false;
-  bool         is_msg3_      = false;
+  bool         pending_phich  = false;
+  bool         is_msg3_       = false;
+  bool         pdcch_required = false;
 };
 
 class harq_entity
@@ -161,7 +163,7 @@ public:
   int set_ul_crc(srsran::tti_point tti_tx_ul, uint32_t tb_idx, bool ack_);
 
   //! Resets pending harq ACKs and cleans UL Harqs with maxretx == 0
-  void reset_pending_data(srsran::tti_point tti_rx);
+  void finish_tti(srsran::tti_point tti_rx);
 
 private:
   dl_harq_proc* get_oldest_dl_harq(tti_point tti_tx_dl);

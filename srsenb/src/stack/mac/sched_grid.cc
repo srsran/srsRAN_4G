@@ -623,12 +623,6 @@ alloc_result sf_sched::alloc_phich(sched_ue* user)
 {
   using phich_t = sched_interface::ul_sched_phich_t;
 
-  auto* ul_sf_result = &cc_results->get_cc(cc_cfg->enb_cc_idx)->ul_sched_result;
-  if (ul_sf_result->phich.full()) {
-    logger.warning("SCHED: Maximum number of PHICH allocations has been reached");
-    return alloc_result::no_grant_space;
-  }
-
   auto p = user->get_active_cell_index(cc_cfg->enb_cc_idx);
   if (not p.first) {
     // user does not support this carrier
@@ -636,15 +630,32 @@ alloc_result sf_sched::alloc_phich(sched_ue* user)
   }
 
   ul_harq_proc* h = user->get_ul_harq(get_tti_tx_ul(), cc_cfg->enb_cc_idx);
+  if (not h->has_pending_phich()) {
+    // No PHICH pending
+    return alloc_result::no_rnti_opportunity;
+  }
+
+  auto* ul_sf_result = &cc_results->get_cc(cc_cfg->enb_cc_idx)->ul_sched_result;
+  if (ul_sf_result->phich.full()) {
+    logger.warning("SCHED: Maximum number of PHICH allocations has been reached");
+    h->phich_alloc_failed();
+    return alloc_result::no_grant_space;
+  }
+
+  if (not user->phich_enabled(get_tti_rx(), cc_cfg->enb_cc_idx)) {
+    // PHICH falls in measGap. PHICH hi=1 is assumed by UE. In case of NACK, the HARQ is going to be resumed later on.
+    logger.debug("SCHED: HARQ pid=%d for rnti=0x%x is being resumed due to PHICH - MeasGap collision",
+                 h->get_id(),
+                 user->get_rnti());
+    h->phich_alloc_failed();
+    return alloc_result::no_cch_space;
+  }
 
   /* Indicate PHICH acknowledgment if needed */
-  if (h->has_pending_phich()) {
-    ul_sf_result->phich.emplace_back();
-    ul_sf_result->phich.back().rnti  = user->get_rnti();
-    ul_sf_result->phich.back().phich = h->pop_pending_phich() ? phich_t::ACK : phich_t::NACK;
-    return alloc_result::success;
-  }
-  return alloc_result::no_rnti_opportunity;
+  ul_sf_result->phich.emplace_back();
+  ul_sf_result->phich.back().rnti  = user->get_rnti();
+  ul_sf_result->phich.back().phich = h->pop_pending_phich() ? phich_t::ACK : phich_t::NACK;
+  return alloc_result::success;
 }
 
 void sf_sched::set_dl_data_sched_result(const sf_cch_allocator::alloc_result_t& dci_result,

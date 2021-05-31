@@ -106,17 +106,19 @@ void ue_sim::update_ul_harqs(const sf_output_res_t& sf_out)
 {
   uint32_t pid = to_tx_ul(sf_out.tti_rx).to_uint() % (FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS);
   for (uint32_t cc = 0; cc < sf_out.cc_params.size(); ++cc) {
+    const auto *cc_cfg = ctxt.get_cc_cfg(cc), *start = &ctxt.ue_cfg.supported_cc_list[0];
+    uint32_t    ue_cc_idx  = std::distance(start, cc_cfg);
+    auto&       ue_cc_ctxt = ctxt.cc_list[ue_cc_idx];
+    auto&       h          = ue_cc_ctxt.ul_harqs[pid];
+
     // Update UL harqs with PHICH info
+    bool found_phich = false;
     for (uint32_t i = 0; i < sf_out.ul_cc_result[cc].phich.size(); ++i) {
       const auto& phich = sf_out.ul_cc_result[cc].phich[i];
       if (phich.rnti != ctxt.rnti) {
         continue;
       }
-
-      const auto *cc_cfg = ctxt.get_cc_cfg(cc), *start = &ctxt.ue_cfg.supported_cc_list[0];
-      uint32_t    ue_cc_idx  = std::distance(start, cc_cfg);
-      auto&       ue_cc_ctxt = ctxt.cc_list[ue_cc_idx];
-      auto&       h          = ue_cc_ctxt.ul_harqs[pid];
+      found_phich = true;
 
       bool is_ack = phich.phich == phich_t::ACK;
       bool is_msg3 =
@@ -126,6 +128,11 @@ void ue_sim::update_ul_harqs(const sf_output_res_t& sf_out)
         h.active = false;
       }
     }
+    if (h.active and not found_phich) {
+      // HARQ being resumed. Possibly due to measGap, PHICH may not be allocated.
+      logger.info("TESTER: rnti=0x%x, HARQ pid=%d being resumed.", ctxt.rnti, pid);
+      h.active = false;
+    }
 
     // Update UL harqs with PUSCH grants
     for (uint32_t i = 0; i < sf_out.ul_cc_result[cc].pusch.size(); ++i) {
@@ -133,8 +140,6 @@ void ue_sim::update_ul_harqs(const sf_output_res_t& sf_out)
       if (data.dci.rnti != ctxt.rnti) {
         continue;
       }
-      auto& ue_cc_ctxt = ctxt.cc_list[data.dci.ue_cc_idx];
-      auto& h          = ue_cc_ctxt.ul_harqs[to_tx_ul(sf_out.tti_rx).to_uint() % ue_cc_ctxt.ul_harqs.size()];
 
       if (h.nof_txs == 0 or h.ndi != data.dci.tb.ndi) {
         // newtx

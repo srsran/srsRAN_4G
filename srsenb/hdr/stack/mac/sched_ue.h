@@ -138,6 +138,7 @@ public:
 
   bool pdsch_enabled(tti_point tti_rx, uint32_t enb_cc_idx) const;
   bool pusch_enabled(tti_point tti_rx, uint32_t enb_cc_idx, bool needs_pdcch) const;
+  bool phich_enabled(tti_point tti_rx, uint32_t enb_cc_idx) const;
 
 private:
   bool is_sr_triggered();

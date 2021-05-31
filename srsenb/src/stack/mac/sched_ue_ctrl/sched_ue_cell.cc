@@ -160,7 +160,7 @@ void sched_ue_cell::clear_feedback()
 void sched_ue_cell::finish_tti(tti_point tti_rx)
 {
   // clear_feedback PIDs with pending data or blocked
-  harq_ent.reset_pending_data(tti_rx);
+  harq_ent.finish_tti(tti_rx);
 }
 
 int sched_ue_cell::set_dl_wb_cqi(tti_point tti_rx, uint32_t dl_cqi_)
