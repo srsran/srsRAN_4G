@@ -149,13 +149,13 @@ private:
 class field_srb final : public parser::field_itf
 {
 public:
-  explicit field_srb(asn1::rrc::srb_to_add_mod_s::rlc_cfg_c_& cfg_) : cfg(cfg_) {}
+  explicit field_srb(srb_cfg_t& cfg_) : cfg(cfg_) {}
   const char* get_name() override { return "field_srb"; }
 
   int parse(Setting& root) override;
 
 private:
-  asn1::rrc::srb_to_add_mod_s::rlc_cfg_c_& cfg;
+  srb_cfg_t& cfg;
 };
 
 class field_qci final : public parser::field_itf

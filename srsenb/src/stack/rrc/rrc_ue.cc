@@ -1412,19 +1412,27 @@ void rrc::ue::apply_pdcp_drb_updates(const rr_cfg_ded_s& pending_rr_cfg)
 void rrc::ue::apply_rlc_rb_updates(const rr_cfg_ded_s& pending_rr_cfg)
 {
   for (const srb_to_add_mod_s& srb : pending_rr_cfg.srb_to_add_mod_list) {
-    srsran_assert(srb.srb_id == 1 || srb.srb_id == 2, "Trying to configure invalid SRB Id.");
+    srb_cfg_t* srb_cfg;
     if (srb.srb_id == 1) {
-      if (parent->cfg.srb1_cfg.type() == srb_to_add_mod_s::rlc_cfg_c_::types_opts::explicit_value) {
-        parent->rlc->add_bearer(rnti, srb.srb_id, srsran::make_rlc_config_t(parent->cfg.srb1_cfg.explicit_value()));
-      } else {
-        parent->rlc->add_bearer(rnti, srb.srb_id, srsran::rlc_config_t::srb_config(srb.srb_id));
-      }
+      srb_cfg = &parent->cfg.srb1_cfg;
     } else if (srb.srb_id == 2) {
-      if (parent->cfg.srb2_cfg.type() == srb_to_add_mod_s::rlc_cfg_c_::types_opts::explicit_value) {
-        parent->rlc->add_bearer(rnti, srb.srb_id, srsran::make_rlc_config_t(parent->cfg.srb2_cfg.explicit_value()));
-      } else {
-        parent->rlc->add_bearer(rnti, srb.srb_id, srsran::rlc_config_t::srb_config(srb.srb_id));
+      srb_cfg = &parent->cfg.srb2_cfg;
+    } else {
+      srsran_terminate("Invalid LTE SRB id=%d", srb.srb_id);
+    }
+
+    if (srb_cfg->rlc_cfg.type() == srb_to_add_mod_s::rlc_cfg_c_::types_opts::explicit_value) {
+      srsran::rlc_config_t rlc_cfg = srsran::make_rlc_config_t(srb_cfg->rlc_cfg.explicit_value());
+      if (rlc_cfg.rlc_mode == srsran::rlc_mode_t::am and srb_cfg->enb_dl_max_retx_thres > 0) {
+        rlc_cfg.am.max_retx_thresh = srb_cfg->enb_dl_max_retx_thres;
       }
+      parent->rlc->add_bearer(rnti, srb.srb_id, rlc_cfg);
+    } else {
+      srsran::rlc_config_t rlc_cfg = srsran::rlc_config_t::srb_config(srb.srb_id);
+      if (rlc_cfg.rlc_mode == srsran::rlc_mode_t::am and srb_cfg->enb_dl_max_retx_thres > 0) {
+        rlc_cfg.am.max_retx_thresh = srb_cfg->enb_dl_max_retx_thres;
+      }
+      parent->rlc->add_bearer(rnti, srb.srb_id, rlc_cfg);
     }
   }
 
@@ -1437,7 +1445,13 @@ void rrc::ue::apply_rlc_rb_updates(const rr_cfg_ded_s& pending_rr_cfg)
     if (not drb.rlc_cfg_present) {
       parent->logger.warning("Default RLC DRB config not supported");
     }
-    parent->rlc->add_bearer(rnti, drb.lc_ch_id, srsran::make_rlc_config_t(drb.rlc_cfg));
+    srsran::rlc_config_t              rlc_cfg = srsran::make_rlc_config_t(drb.rlc_cfg);
+    const bearer_cfg_handler::erab_t& erab    = bearer_list.get_erabs().at(drb.eps_bearer_id);
+    if (rlc_cfg.rlc_mode == srsran::rlc_mode_t::am and
+        parent->cfg.qci_cfg.at(erab.qos_params.qci).enb_dl_max_retx_thres > 0) {
+      rlc_cfg.am.max_retx_thresh = parent->cfg.qci_cfg.at(erab.qos_params.qci).enb_dl_max_retx_thres;
+    }
+    parent->rlc->add_bearer(rnti, drb.lc_ch_id, rlc_cfg);
   }
 }
 

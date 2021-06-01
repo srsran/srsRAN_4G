@@ -31,10 +31,16 @@ struct rrc_cfg_sr_t {
 };
 
 struct rrc_cfg_qci_t {
-  bool                                          configured = false;
+  bool                                          configured            = false;
+  int                                           enb_dl_max_retx_thres = -1;
   asn1::rrc::lc_ch_cfg_s::ul_specific_params_s_ lc_cfg;
   asn1::rrc::pdcp_cfg_s                         pdcp_cfg;
   asn1::rrc::rlc_cfg_c                          rlc_cfg;
+};
+
+struct srb_cfg_t {
+  int                                     enb_dl_max_retx_thres = -1;
+  asn1::rrc::srb_to_add_mod_s::rlc_cfg_c_ rlc_cfg;
 };
 
 struct rrc_cfg_t {
@@ -62,8 +68,8 @@ struct rrc_cfg_t {
   uint32_t                                                                                max_mac_dl_kos;
   uint32_t                                                                                max_mac_ul_kos;
   uint32_t                                                                                rlf_release_timer_ms;
-  asn1::rrc::srb_to_add_mod_s::rlc_cfg_c_                                                 srb1_cfg;
-  asn1::rrc::srb_to_add_mod_s::rlc_cfg_c_                                                 srb2_cfg;
+  srb_cfg_t                                                                               srb1_cfg;
+  srb_cfg_t                                                                               srb2_cfg;
 };
 
 constexpr uint32_t UE_PCELL_CC_IDX = 0;

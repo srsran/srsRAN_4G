@@ -13,6 +13,9 @@
 //       t_status_prohibit = 0;
 //     };
 //   };
+//   enb_specific = {
+//    dl_max_retx_thresh = 32;
+//   };
 // }
 
 // srb2_config = {
@@ -27,6 +30,9 @@
 //       t_reordering = 35;
 //       t_status_prohibit = 0;
 //     };
+//   };
+//   enb_specific = {
+//    dl_max_retx_thresh = 32;
 //   };
 // }
 
@@ -53,6 +59,9 @@ qci_config = (
     bucket_size_duration  = 100; 
     log_chan_group = 2; 
   };
+  enb_specific = {
+    dl_max_retx_thresh = 32;
+  };
 },
 {
   qci=9;
@@ -77,6 +86,9 @@ qci_config = (
     prioritized_bit_rate   = -1; 
     bucket_size_duration  = 100; 
     log_chan_group = 3; 
+  };
+  enb_specific = {
+    dl_max_retx_thresh = 32;
   };
 }
 

@@ -54,11 +54,11 @@ void fill_srbs_reconf(srb_to_add_mod_list_l& srbs, const srb_to_add_mod_list_l& 
 {
   // NOTE: In case of Handover, the Reconf includes SRB1
   if (srsran::find_rrc_obj_id(current_srbs, 1) == current_srbs.end()) {
-    add_srb(srbs, 1, enb_cfg.srb1_cfg);
+    add_srb(srbs, 1, enb_cfg.srb1_cfg.rlc_cfg);
   }
 
   if (srsran::find_rrc_obj_id(current_srbs, 2) == current_srbs.end()) {
-    add_srb(srbs, 2, enb_cfg.srb2_cfg);
+    add_srb(srbs, 2, enb_cfg.srb2_cfg.rlc_cfg);
   }
 }
 
@@ -299,7 +299,7 @@ void fill_rr_cfg_ded_setup(asn1::rrc::rr_cfg_ded_s& rr_cfg,
 
   // (Re)establish SRB1
   rr_cfg.srb_to_add_mod_list_present = true;
-  add_srb(rr_cfg.srb_to_add_mod_list, 1, enb_cfg.srb1_cfg);
+  add_srb(rr_cfg.srb_to_add_mod_list, 1, enb_cfg.srb1_cfg.rlc_cfg);
 
   // Setup SR/CQI configs
   rr_cfg.phys_cfg_ded_present = true;

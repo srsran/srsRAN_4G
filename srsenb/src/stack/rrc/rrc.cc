@@ -103,24 +103,13 @@ int32_t rrc::init(const rrc_cfg_t&       cfg_,
 
   running = true;
 
-  if (cfg.srb1_cfg.type() == srb_to_add_mod_s::rlc_cfg_c_::types::explicit_value) {
-    if (logger.debug.enabled()) {
-      asn1::json_writer js{};
-      cfg.srb1_cfg.to_json(js);
-      logger.debug("SRB1 explicit configuration: %s", js.to_string().c_str());
-    }
-  } else {
-    logger.debug("SRB1 default configuration");
-  }
-
-  if (cfg.srb2_cfg.type() == srb_to_add_mod_s::rlc_cfg_c_::types::explicit_value) {
-    if (logger.debug.enabled()) {
-      asn1::json_writer js{};
-      cfg.srb2_cfg.to_json(js);
-      logger.debug("SRB2 configuration: %s", js.to_string().c_str());
-    }
-  } else {
-    logger.debug("SRB2 default configuration");
+  if (logger.debug.enabled()) {
+    asn1::json_writer js{};
+    cfg.srb1_cfg.rlc_cfg.to_json(js);
+    logger.debug("SRB1 configuration: %s", js.to_string().c_str());
+    js = {};
+    cfg.srb2_cfg.rlc_cfg.to_json(js);
+    logger.debug("SRB2 configuration: %s", js.to_string().c_str());
   }
   return SRSRAN_SUCCESS;
 }

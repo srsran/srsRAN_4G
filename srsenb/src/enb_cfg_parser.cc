@@ -400,7 +400,7 @@ int phr_cnfg_parser::parse(libconfig::Setting& root)
 int field_srb::parse(libconfig::Setting& root)
 {
   // Parse RLC AM section
-  rlc_cfg_c* rlc_cfg = &cfg.set_explicit_value();
+  rlc_cfg_c* rlc_cfg = &cfg.rlc_cfg.set_explicit_value();
   if (root.exists("ul_am") && root.exists("dl_am")) {
     rlc_cfg->set_am();
   }
@@ -455,6 +455,11 @@ int field_srb::parse(libconfig::Setting& root)
       return SRSRAN_ERROR;
     }
   }
+
+  if (root.exists("enb_specific")) {
+    cfg.enb_dl_max_retx_thres = (int)root["enb_specific"]["dl_max_retx_thresh"];
+  }
+
   return 0;
 }
 
@@ -616,6 +621,11 @@ int field_qci::parse(libconfig::Setting& root)
     parser::field<uint8> log_chan_group("log_chan_group", &lc_cfg->lc_ch_group);
     lc_cfg->lc_ch_group_present = not log_chan_group.parse(q["logical_channel_config"]);
     qcicfg.configured           = true;
+
+    if (q.exists("enb_specific")) {
+      qcicfg.enb_dl_max_retx_thres = (int)q["enb_specific"]["dl_max_retx_thresh"];
+    }
+
     cfg.insert(std::make_pair(qci, qcicfg));
   }
 
@@ -1752,10 +1762,10 @@ int parse_drb(all_args_t* args_, rrc_cfg_t* rrc_cfg_)
 
   int ret = p.parse();
   if (not srb1_present) {
-    rrc_cfg_->srb1_cfg.set_default_value();
+    rrc_cfg_->srb1_cfg.rlc_cfg.set_default_value();
   }
   if (not srb2_present) {
-    rrc_cfg_->srb2_cfg.set_default_value();
+    rrc_cfg_->srb2_cfg.rlc_cfg.set_default_value();
   }
 
   return ret;
