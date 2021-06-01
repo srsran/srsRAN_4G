@@ -11,6 +11,7 @@
  */
 
 #include "srsran/build_info.h"
+#include "srsran/common/tsan_options.h"
 #include "srsran/srslog/srslog.h"
 #include "srsue/hdr/ue.h"
 #include "swappable_sink.h"

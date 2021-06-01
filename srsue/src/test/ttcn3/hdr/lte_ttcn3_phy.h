@@ -122,7 +122,7 @@ private:
   int  sr_tx_tti  = -1;
   bool sr_pending = false;
 
-  std::mutex mutex;
+  std::mutex phy_mutex;
 
   srsran::task_scheduler task_sched;
 
