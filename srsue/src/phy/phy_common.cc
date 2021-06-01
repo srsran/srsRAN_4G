@@ -906,13 +906,6 @@ void phy_common::reset()
       i = {};
     }
   }
-
-  // Release mapping of secondary cells
-  if (args != nullptr && radio_h != nullptr) {
-    for (uint32_t i = 1; i < args->nof_lte_carriers; i++) {
-      radio_h->release_freq(i);
-    }
-  }
 }
 
 /*  Convert 6-bit maps to 10-element subframe tables

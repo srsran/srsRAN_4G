@@ -389,6 +389,13 @@ void phy::reset()
   Info("Resetting PHY...");
   common.ta.set_base_sec(0);
   common.reset();
+
+  // Release mapping of secondary cells
+  if (radio != nullptr) {
+    for (uint32_t i = 1; i < args.nof_lte_carriers; i++) {
+      radio->release_freq(i);
+    }
+  }
 }
 
 uint32_t phy::get_current_tti()
