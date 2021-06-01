@@ -625,6 +625,14 @@ void radio::set_rx_freq(const uint32_t& carrier_idx, const double& freq)
   // Map carrier index to physical channel
   if (rx_channel_mapping.allocate_freq(carrier_idx, freq)) {
     channel_mapping::device_mapping_t device_mapping = rx_channel_mapping.get_device_mapping(carrier_idx);
+    if (device_mapping.carrier_idx >= nof_channels_x_dev) {
+      logger.error("Invalid mapping RF channel %d to logical carrier %d on f_rx=%.1f MHz",
+                   device_mapping.carrier_idx,
+                   carrier_idx,
+                   freq / 1e6);
+      return;
+    }
+
     logger.info("Mapping RF channel %d (device=%d, channel=%d) to logical carrier %d on f_rx=%.1f MHz",
                 device_mapping.carrier_idx,
                 device_mapping.device_idx,
@@ -636,6 +644,12 @@ void radio::set_rx_freq(const uint32_t& carrier_idx, const double& freq)
         cur_rx_freqs[device_mapping.carrier_idx] = freq;
         for (uint32_t i = 0; i < nof_antennas; i++) {
           channel_mapping::device_mapping_t dm = rx_channel_mapping.get_device_mapping(carrier_idx, i);
+          if (dm.device_idx >= rf_devices.size() or dm.carrier_idx >= nof_channels_x_dev) {
+            logger.error(
+                "Invalid port mapping %d:%d to logical carrier %d on f_rx=%.1f MHz", carrier_idx, i, freq / 1e6);
+            return;
+          }
+
           srsran_rf_set_rx_freq(&rf_devices[dm.device_idx], dm.channel_idx, freq + freq_offset);
         }
       } else {
@@ -740,6 +754,14 @@ void radio::set_tx_freq(const uint32_t& carrier_idx, const double& freq)
   // Map carrier index to physical channel
   if (tx_channel_mapping.allocate_freq(carrier_idx, freq)) {
     channel_mapping::device_mapping_t device_mapping = tx_channel_mapping.get_device_mapping(carrier_idx);
+    if (device_mapping.carrier_idx >= nof_channels_x_dev) {
+      logger.error("Invalid mapping RF channel %d to logical carrier %d on f_tx=%.1f MHz",
+                   device_mapping.carrier_idx,
+                   carrier_idx,
+                   freq / 1e6);
+      return;
+    }
+
     logger.info("Mapping RF channel %d (device=%d, channel=%d) to logical carrier %d on f_tx=%.1f MHz",
                 device_mapping.carrier_idx,
                 device_mapping.device_idx,
@@ -751,6 +773,11 @@ void radio::set_tx_freq(const uint32_t& carrier_idx, const double& freq)
         cur_tx_freqs[device_mapping.carrier_idx] = freq;
         for (uint32_t i = 0; i < nof_antennas; i++) {
           device_mapping = tx_channel_mapping.get_device_mapping(carrier_idx, i);
+          if (device_mapping.device_idx >= rf_devices.size() or device_mapping.carrier_idx >= nof_channels_x_dev) {
+            logger.error(
+                "Invalid port mapping %d:%d to logical carrier %d on f_rx=%.1f MHz", carrier_idx, i, freq / 1e6);
+            return;
+          }
 
           srsran_rf_set_tx_freq(&rf_devices[device_mapping.device_idx], device_mapping.channel_idx, freq + freq_offset);
         }
