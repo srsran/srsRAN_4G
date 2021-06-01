@@ -386,7 +386,7 @@ int srsran_pdcch_decode_msg(srsran_pdcch_t* q, srsran_dl_sf_cfg_t* sf, srsran_dc
       }
       double threshold = SRSRAN_MAX(0.3f, (2.0 / 3.0) * fabsf(q->llr[msg->location.ncce * 72 + max_i]));
 
-      // Compute Root mean square of the LLRs
+      // Compute absolute mean of the LLRs
       double mean = 0;
       for (int i = 0; i < e_bits; i++) {
         mean += fabsf(q->llr[msg->location.ncce * 72 + i]);
