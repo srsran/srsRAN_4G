@@ -637,17 +637,20 @@ alloc_result sf_sched::alloc_phich(sched_ue* user)
 
   auto* ul_sf_result = &cc_results->get_cc(cc_cfg->enb_cc_idx)->ul_sched_result;
   if (ul_sf_result->phich.full()) {
-    logger.warning("SCHED: Maximum number of PHICH allocations has been reached");
-    h->phich_alloc_failed();
+    logger.warning(
+        "SCHED: UL skipped retx rnti=0x%x, pid=%d. Cause: No PHICH space left", user->get_rnti(), h->get_id());
+    h->pop_pending_phich();
     return alloc_result::no_grant_space;
   }
 
   if (not user->phich_enabled(get_tti_rx(), cc_cfg->enb_cc_idx)) {
     // PHICH falls in measGap. PHICH hi=1 is assumed by UE. In case of NACK, the HARQ is going to be resumed later on.
-    logger.debug("SCHED: HARQ pid=%d for rnti=0x%x is being resumed due to PHICH - MeasGap collision",
-                 h->get_id(),
-                 user->get_rnti());
-    h->phich_alloc_failed();
+    logger.info(
+        "SCHED: UL skipped retx rnti=0x%x, pid=%d. Cause: PHICH-measGap collision", user->get_rnti(), h->get_id());
+    h->pop_pending_phich(); // empty pending PHICH
+    // Note: Given that the UE assumes PHICH hi=1, it is not expecting PUSCH grants for tti_tx_ul. Requesting PDCCH
+    //       for the UL Harq has the effect of forbidding PUSCH grants, since phich_tti == pdcch_tti.
+    h->request_pdcch();
     return alloc_result::no_cch_space;
   }
 
@@ -906,15 +909,23 @@ void sf_sched::generate_sched_results(sched_ue_list& ue_db)
   /* Resume UL HARQs with pending retxs that did not get allocated */
   using phich_t    = sched_interface::ul_sched_phich_t;
   auto& phich_list = cc_result->ul_sched_result.phich;
-  for (uint32_t i = 0; i < cc_result->ul_sched_result.phich.size(); ++i) {
-    auto& phich = phich_list[i];
-    if (phich.phich == phich_t::NACK) {
-      auto&         ue = *ue_db[phich.rnti];
-      ul_harq_proc* h  = ue.get_ul_harq(get_tti_tx_ul(), cc_cfg->enb_cc_idx);
-      if (not is_ul_alloc(ue.get_rnti()) and h != nullptr and not h->is_empty()) {
-        // There was a missed UL harq retx. Halt+Resume the HARQ
-        phich.phich = phich_t::ACK;
-        logger.debug("SCHED: rnti=0x%x UL harq pid=%d is being resumed", ue.get_rnti(), h->get_id());
+  for (auto& ue_pair : ue_db) {
+    auto&         ue   = *ue_pair.second;
+    uint16_t      rnti = ue.get_rnti();
+    ul_harq_proc* h    = ue.get_ul_harq(get_tti_tx_ul(), cc_cfg->enb_cc_idx);
+    if (h != nullptr and not h->is_empty() and not is_ul_alloc(rnti)) {
+      // There was a missed UL harq retx. Halt+Resume the HARQ
+      h->retx_skipped();
+      auto     same_rnti = [rnti](const phich_t& p) { return p.rnti == rnti; };
+      phich_t* phich     = std::find_if(phich_list.begin(), phich_list.end(), same_rnti);
+      if (phich != phich_list.end()) {
+        srsran_assert(phich->phich == phich_t::NACK, "Expected hi=0 in case of active UL HARQ that was not retx");
+        logger.info("SCHED: UL skipped retx rnti=0x%x, pid=%d. Cause: %s",
+                    ue.get_rnti(),
+                    h->get_id(),
+                    ue.pusch_enabled(get_tti_rx(), cc_cfg->enb_cc_idx, false) ? "lack of PHY resources"
+                                                                              : "PUSCH-measGap collision");
+        phich->phich = phich_t::ACK;
       }
     }
   }

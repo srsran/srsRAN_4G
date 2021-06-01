@@ -247,10 +247,10 @@ void ul_harq_proc::new_tx(tti_point tti_, int mcs, int tbs, prb_interval alloc, 
 {
   allocation = alloc;
   new_tx_common(0, tti_point{tti_}, mcs, tbs, max_retx_);
-  pending_data   = tbs;
-  pending_phich  = true;
-  is_msg3_       = is_msg3;
-  pdcch_required = false;
+  pending_data    = tbs;
+  pending_phich   = true;
+  is_msg3_        = is_msg3;
+  pdcch_requested = false;
 }
 
 void ul_harq_proc::new_retx(tti_point tti_, int* mcs, int* tbs, prb_interval alloc)
@@ -258,15 +258,15 @@ void ul_harq_proc::new_retx(tti_point tti_, int* mcs, int* tbs, prb_interval all
   // If PRBs changed, or there was no tx in last oportunity (e.g. HARQ is being resumed)
   allocation = alloc;
   new_retx_common(0, tti_point{tti_}, mcs, tbs);
-  pending_phich  = true;
-  pdcch_required = false;
+  pending_phich   = true;
+  pdcch_requested = false;
 }
 
 bool ul_harq_proc::retx_requires_pdcch(tti_point tti_, prb_interval alloc) const
 {
   // Adaptive retx if: (1) PRBs changed, (2) HARQ resumed due to last PUSCH retx being skipped (3) HARQ resumed due to
   // last PHICH alloc being skipped (e.g. due to measGaps)
-  return alloc != allocation or tti_ != to_tx_ul(tti) or pdcch_required;
+  return alloc != allocation or pdcch_requested;
 }
 
 bool ul_harq_proc::set_ack(uint32_t tb_idx, bool ack_)
@@ -283,13 +283,17 @@ bool ul_harq_proc::has_pending_phich() const
   return pending_phich;
 }
 
-void ul_harq_proc::phich_alloc_failed()
+void ul_harq_proc::request_pdcch()
 {
-  pop_pending_phich();
-  if (not is_empty(0)) {
-    // HARQ needs to be resumed. This is signalled by pending_phich flag
-    pdcch_required = true;
-  }
+  pdcch_requested = true;
+}
+
+void ul_harq_proc::retx_skipped()
+{
+  // Note: This function should be called in case of PHICH allocation is successful
+  // Flagging "PDCCH required" for next retx, as HARQ is being resumed
+  pdcch_requested = true;
+  n_rtx[0]++;
 }
 
 bool ul_harq_proc::pop_pending_phich()
@@ -307,9 +311,9 @@ bool ul_harq_proc::pop_pending_phich()
 void ul_harq_proc::reset_pending_data()
 {
   reset_pending_data_common();
-  pending_data   = 0;
-  is_msg3_       = false;
-  pdcch_required = false;
+  pending_data    = 0;
+  is_msg3_        = false;
+  pdcch_requested = false;
 }
 
 uint32_t ul_harq_proc::get_pending_data() const

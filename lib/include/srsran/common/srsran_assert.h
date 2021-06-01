@@ -19,8 +19,8 @@
 #define srsran_unlikely(expr) __builtin_expect(!!(expr), 0)
 
 #define srsran_terminate(fmt, ...)                                                                                     \
-  std::fprintf(stderr, "%s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__);                                         \
   srslog::flush();                                                                                                     \
+  std::fprintf(stderr, "%s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__);                                         \
   std::abort()
 
 #ifdef ASSERTS_ENABLED

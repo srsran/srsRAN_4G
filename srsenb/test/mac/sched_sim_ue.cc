@@ -116,6 +116,9 @@ void ue_sim::update_ul_harqs(const sf_output_res_t& sf_out)
 
     // Update UL harqs with PHICH info
     bool found_phich = false;
+    bool is_msg3 = h.nof_txs == h.nof_retxs + 1 and ctxt.msg3_tti_rx.is_valid() and h.first_tti_rx == ctxt.msg3_tti_rx;
+    uint32_t max_retxs = is_msg3 ? sf_out.cc_params[0].cfg.maxharq_msg3tx : ctxt.ue_cfg.maxharq_tx;
+    bool     last_retx = h.nof_retxs + 1 >= max_retxs;
     for (uint32_t i = 0; i < sf_out.ul_cc_result[cc].phich.size(); ++i) {
       const auto& phich = sf_out.ul_cc_result[cc].phich[i];
       if (phich.rnti != ctxt.rnti) {
@@ -124,25 +127,23 @@ void ue_sim::update_ul_harqs(const sf_output_res_t& sf_out)
       found_phich = true;
 
       bool is_ack = phich.phich == phich_t::ACK;
-      bool is_msg3 =
-          h.nof_txs == h.nof_retxs + 1 and ctxt.msg3_tti_rx.is_valid() and h.first_tti_rx == ctxt.msg3_tti_rx;
-      bool last_retx = h.nof_retxs + 1 >= (is_msg3 ? sf_out.cc_params[0].cfg.maxharq_msg3tx : ctxt.ue_cfg.maxharq_tx);
       if (is_ack or last_retx) {
         h.active = false;
       }
     }
-    if (h.active and not found_phich) {
-      // HARQ being resumed. Possibly due to measGap, PHICH may not be allocated.
-      logger.info("TESTER: rnti=0x%x, HARQ pid=%d being resumed.", ctxt.rnti, pid);
+    if (not found_phich and h.active) {
+      // There can be missing PHICH due to measGap collisions. In such case, we deactivate the harq and assume hi=1
       h.active = false;
     }
 
     // Update UL harqs with PUSCH grants
+    bool pusch_found = false;
     for (uint32_t i = 0; i < sf_out.ul_cc_result[cc].pusch.size(); ++i) {
       const auto& data = sf_out.ul_cc_result[cc].pusch[i];
       if (data.dci.rnti != ctxt.rnti) {
         continue;
       }
+      pusch_found = true;
 
       if (h.nof_txs == 0 or h.ndi != data.dci.tb.ndi) {
         // newtx
@@ -156,6 +157,11 @@ void ue_sim::update_ul_harqs(const sf_output_res_t& sf_out)
       h.active      = true;
       h.last_tti_rx = sf_out.tti_rx;
       h.riv         = data.dci.type2_alloc.riv;
+      h.nof_txs++;
+    }
+    if (not pusch_found and h.nof_retxs < max_retxs) {
+      // PUSCH *may* be skipped due to measGap. nof_retxs keeps getting incremented
+      h.nof_retxs++;
       h.nof_txs++;
     }
   }

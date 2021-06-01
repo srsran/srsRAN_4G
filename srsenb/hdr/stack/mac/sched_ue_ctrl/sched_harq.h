@@ -106,14 +106,15 @@ public:
   uint32_t get_pending_data() const;
   bool     has_pending_phich() const;
   bool     pop_pending_phich();
-  void     phich_alloc_failed();
+  void     request_pdcch();
+  void     retx_skipped();
 
 private:
   prb_interval allocation;
   int          pending_data;
-  bool         pending_phich  = false;
-  bool         is_msg3_       = false;
-  bool         pdcch_required = false;
+  bool         pending_phich   = false;
+  bool         is_msg3_        = false;
+  bool         pdcch_requested = false;
 };
 
 class harq_entity
