@@ -513,7 +513,7 @@ int cc_worker::encode_pdcch_dl(stack_interface_phy_lte::dl_sched_grant_t* grants
         // Logging
         char str[512];
         srsran_dci_dl_info(&grants[i].dci, str, 512);
-        logger.info("PDCCH: cc=%d, %s, tti_tx_dl=%d", cc_idx, str, tti_tx_dl);
+        logger.info("PDCCH: cc=%d, rnti=0x%x, %s, tti_tx_dl=%d", cc_idx, grants[i].dci.rnti, str, tti_tx_dl);
       }
     }
   }
