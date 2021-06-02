@@ -229,8 +229,9 @@ SRSRAN_API char* srsran_dci_format_string_short(srsran_dci_format_t format);
 SRSRAN_API bool
 srsran_location_find(const srsran_dci_location_t* locations, uint32_t nof_locations, srsran_dci_location_t x);
 
-SRSRAN_API bool
-srsran_location_find_ncce(const srsran_dci_location_t* locations, uint32_t nof_locations, uint32_t ncce);
+SRSRAN_API bool srsran_location_find_location(const srsran_dci_location_t* locations,
+                                              uint32_t                     nof_locations,
+                                              const srsran_dci_location_t* location);
 
 SRSRAN_API int srsran_dci_location_set(srsran_dci_location_t* c, uint32_t L, uint32_t nCCE);
 

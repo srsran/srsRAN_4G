@@ -1380,10 +1380,12 @@ bool srsran_location_find(const srsran_dci_location_t* locations, uint32_t nof_l
   return false;
 }
 
-bool srsran_location_find_ncce(const srsran_dci_location_t* locations, uint32_t nof_locations, uint32_t ncce)
+bool srsran_location_find_location(const srsran_dci_location_t* locations,
+                                   uint32_t                     nof_locations,
+                                   const srsran_dci_location_t* location)
 {
   for (uint32_t i = 0; i < nof_locations; i++) {
-    if (locations[i].ncce == ncce) {
+    if (locations[i].ncce == location->ncce && locations[i].L == location->L) {
       return true;
     }
   }

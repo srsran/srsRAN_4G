@@ -463,7 +463,7 @@ int cc_worker::encode_pdcch_ul(stack_interface_phy_lte::ul_sched_grant_t* grants
       }
 
       if (SRSRAN_RNTI_ISUSER(grants[i].dci.rnti)) {
-        if (srsran_enb_dl_location_is_common_ncce(&enb_dl, grants[i].dci.location.ncce) &&
+        if (srsran_enb_dl_location_is_common_ncce(&enb_dl, &grants[i].dci.location) &&
             phy->ue_db.is_pcell(grants[i].dci.rnti, cc_idx)) {
           // Disable extended CSI request and SRS request in common SS
           srsran_dci_cfg_set_common_ss(&dci_cfg);
@@ -498,8 +498,10 @@ int cc_worker::encode_pdcch_dl(stack_interface_phy_lte::dl_sched_grant_t* grants
         continue;
       }
 
+      // Detect if the DCI location is in common SS, if that is the case, flag it as common SS
+      // This makes possible UE specific DCI fields to be disabled, so it uses a fallback DCI size
       if (SRSRAN_RNTI_ISUSER(grants[i].dci.rnti) && grants[i].dci.format == SRSRAN_DCI_FORMAT1A) {
-        if (srsran_enb_dl_location_is_common_ncce(&enb_dl, grants[i].dci.location.ncce) &&
+        if (srsran_enb_dl_location_is_common_ncce(&enb_dl, &grants[i].dci.location) &&
             phy->ue_db.is_pcell(grants[i].dci.rnti, cc_idx)) {
           srsran_dci_cfg_set_common_ss(&dci_cfg);
         }

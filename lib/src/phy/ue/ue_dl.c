@@ -452,8 +452,8 @@ static int dci_blind_search(srsran_ue_dl_t*     q,
              * that only the PDCCH in the common search space is transmitted by the primary cell.
              */
             // Find a matching ncce in the common SS
-            if (srsran_location_find_ncce(
-                    q->current_ss_common.loc, q->current_ss_common.nof_locations, dci_msg[nof_dci].location.ncce)) {
+            if (srsran_location_find_location(
+                    q->current_ss_common.loc, q->current_ss_common.nof_locations, &dci_msg[nof_dci].location)) {
               srsran_dci_cfg_t cfg = *dci_cfg;
               srsran_dci_cfg_set_common_ss(&cfg);
               // if the payload size is the same that it would have in the common SS (only Format0/1A is allowed there)
