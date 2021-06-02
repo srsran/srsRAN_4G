@@ -54,7 +54,7 @@ target_link_libraries(queue_test srsran_common ${CMAKE_THREAD_LIBS_INIT})
 add_test(queue_test queue_test)
 
 add_executable(timer_test timer_test.cc)
-target_link_libraries(timer_test srsran_common)
+target_link_libraries(timer_test srsran_common ${ATOMIC_LIBS})
 add_test(timer_test timer_test)
 
 add_executable(network_utils_test network_utils_test.cc)
@@ -70,7 +70,7 @@ target_link_libraries(choice_type_test srsran_common)
 add_test(choice_type_test choice_type_test)
 
 add_executable(task_scheduler_test task_scheduler_test.cc)
-target_link_libraries(task_scheduler_test srsran_common)
+target_link_libraries(task_scheduler_test srsran_common ${ATOMIC_LIBS})
 add_test(task_scheduler_test task_scheduler_test)
 
 add_executable(pnf_dummy pnf_dummy.cc)

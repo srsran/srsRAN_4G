@@ -22,5 +22,5 @@ set(SOURCES gtpu.cc
             bearer_mem_pool.cc)
 
 add_library(srsran_upper STATIC ${SOURCES})
-target_link_libraries(srsran_upper srsran_common srsran_asn1)
+target_link_libraries(srsran_upper srsran_common srsran_asn1 ${ATOMIC_LIBS})
 INSTALL(TARGETS srsran_upper DESTINATION ${LIBRARY_DIR})
