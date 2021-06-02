@@ -40,6 +40,7 @@ sched_ue_cell::sched_ue_cell(uint16_t rnti_, const sched_cell_params_t& cell_cfg
           cell_cfg->cfg.target_pucch_ul_sinr,
           cell_cfg->cfg.target_pusch_ul_sinr,
           cell_cfg->cfg.enable_phr_handling,
+          cell_cfg->cfg.min_phr_thres,
           cell_cfg->sched_cfg->min_tpc_tti_interval,
           cell_cfg->sched_cfg->ul_snr_avg_alpha,
           cell_cfg->sched_cfg->init_ul_snr_value),

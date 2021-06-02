@@ -65,6 +65,8 @@ cell_list =
     //meas_gap_offset_subframe = [6, 12, 18, 24, 30];
     // target_pusch_sinr = -1;
     // target_pucch_sinr = -1;
+    // enable_phr_handling = false;
+    // min_phr_thres = 0;
     // allowed_meas_bw = 6;
     // t304 = 2000; // in msec. possible values: 50, 100, 150, 200, 500, 1000, 2000
 

@@ -771,6 +771,7 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
     HANDLEPARSERCODE(parse_default_field(cell_cfg.target_pusch_sinr_db, cellroot, "target_pusch_sinr", -1));
     HANDLEPARSERCODE(parse_default_field(cell_cfg.target_pucch_sinr_db, cellroot, "target_pucch_sinr", -1));
     HANDLEPARSERCODE(parse_default_field(cell_cfg.enable_phr_handling, cellroot, "enable_phr_handling", false));
+    HANDLEPARSERCODE(parse_default_field(cell_cfg.min_phr_thres, cellroot, "min_phr_thres", 0));
     parse_default_field(cell_cfg.meas_cfg.allowed_meas_bw, cellroot, "allowed_meas_bw", 6u);
     srsran_assert(srsran::is_lte_cell_nof_prb(cell_cfg.meas_cfg.allowed_meas_bw), "Invalid measurement Bandwidth");
     HANDLEPARSERCODE(asn1_parsers::default_number_to_enum(

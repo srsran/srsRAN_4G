@@ -28,6 +28,7 @@ void test_neg_phr_scenario()
   sched_interface::cell_cfg_t cell_cfg    = generate_default_cell_cfg(50);
   cell_cfg.target_pucch_ul_sinr           = 20;
   cell_cfg.target_pusch_ul_sinr           = 20;
+  cell_cfg.min_phr_thres                  = 0;
   cell_cfg.enable_phr_handling            = true;
   sched_interface::sched_args_t sched_cfg = {};
   sched_cell_params_t           cell_params;
@@ -37,11 +38,14 @@ void test_neg_phr_scenario()
   sched_ue_cell ue_cc(0x46, cell_params, tti_point(0));
   ue_cc.set_ue_cfg(ue_cfg);
 
-  float snr = 0;
-  ue_cc.set_ul_snr(tti_point(0), snr, 0);
-  ue_cc.set_ul_snr(tti_point(0), snr, 1);
-  ue_cc.tpc_fsm.set_phr(-5, 1);
-  ue_cc.new_tti(tti_point(0));
+  float     snr = 20;
+  tti_point tti{0};
+  for (; ue_cc.tpc_fsm.get_ul_snr_estim(0) < snr - 2; ++tti) {
+    ue_cc.set_ul_snr(tti, snr, 0);
+    ue_cc.set_ul_snr(tti, snr, 1);
+    ue_cc.tpc_fsm.set_phr(-5, 1);
+    ue_cc.new_tti(tti);
+  }
 
   uint32_t req_bytes    = 10000;
   uint32_t pending_prbs = get_required_prb_ul(ue_cc, req_bytes);

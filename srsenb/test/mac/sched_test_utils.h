@@ -52,6 +52,8 @@ inline srsenb::sched_interface::cell_cfg_t generate_default_cell_cfg(uint32_t no
   cell_cfg.initial_dl_cqi       = 6;
   cell_cfg.target_pusch_ul_sinr = -1;
   cell_cfg.target_pucch_ul_sinr = -1;
+  cell_cfg.enable_phr_handling  = false;
+  cell_cfg.min_phr_thres        = 0;
   cell_cfg.nrb_cqi              = 1;
   cell_cfg.n1pucch_an           = 12;
   cell_cfg.delta_pucch_shift    = 1;

@@ -40,6 +40,7 @@ public:
                float    target_pucch_snr_dB_  = -1.0,
                float    target_pusch_sn_dB_   = -1.0,
                bool     phr_handling_flag_    = false,
+               int      min_phr_thres_        = 0,
                uint32_t min_tpc_tti_interval_ = 1,
                float    ul_snr_avg_alpha      = 0.05,
                int      init_ul_snr_value     = 5) :
@@ -47,6 +48,7 @@ public:
     nof_prb(cell_nof_prb),
     target_pucch_snr_dB(target_pucch_snr_dB_),
     target_pusch_snr_dB(target_pusch_sn_dB_),
+    min_phr_thres(min_phr_thres_),
     snr_estim_list(
         {ul_ch_snr_estim{ul_snr_avg_alpha, init_ul_snr_value}, ul_ch_snr_estim{ul_snr_avg_alpha, init_ul_snr_value}}),
     phr_handling_flag(phr_handling_flag_),
@@ -83,7 +85,7 @@ public:
       max_prbs_cached = PHR_NEG_NOF_PRB;
       int phr_x_prb   = std::roundf(last_phr + 10.0F * log10f(grant_nof_prbs)); // get what the PHR would be if Nprb=1
       for (int n = nof_prb; n > PHR_NEG_NOF_PRB; --n) {
-        if (phr_x_prb >= 10 * log10f(n)) {
+        if (phr_x_prb >= 10 * log10f(n) + min_phr_thres) {
           max_prbs_cached = n;
           break;
         }
@@ -193,6 +195,7 @@ private:
   uint32_t              nof_prb;
   uint32_t              min_tpc_tti_interval = 1;
   float                 target_pucch_snr_dB, target_pusch_snr_dB;
+  int                   min_phr_thres;
   bool                  phr_handling_flag;
   srslog::basic_logger& logger;
 

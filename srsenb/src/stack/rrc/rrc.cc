@@ -635,6 +635,7 @@ void rrc::config_mac()
     item.target_pucch_ul_sinr = cfg.cell_list[ccidx].target_pucch_sinr_db;
     item.target_pusch_ul_sinr = cfg.cell_list[ccidx].target_pusch_sinr_db;
     item.enable_phr_handling  = cfg.cell_list[ccidx].enable_phr_handling;
+    item.min_phr_thres        = cfg.cell_list[ccidx].min_phr_thres;
     item.delta_pucch_shift    = cfg.sibs[1].sib2().rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
     item.ncs_an               = cfg.sibs[1].sib2().rr_cfg_common.pucch_cfg_common.ncs_an;
     item.n1pucch_an           = cfg.sibs[1].sib2().rr_cfg_common.pucch_cfg_common.n1_pucch_an;

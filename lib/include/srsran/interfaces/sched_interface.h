@@ -80,6 +80,7 @@ public:
     /* pusch configuration */
     srsran_pusch_hopping_cfg_t pusch_hopping_cfg;
     float                      target_pusch_ul_sinr;
+    int                        min_phr_thres;
     bool                       enable_phr_handling;
     bool                       enable_64qam;
 
