@@ -871,6 +871,7 @@ void phy_common::reset()
   cur_pusch_power     = 0;
   sr_last_tx_tti      = -1;
   pcell_report_period = 20;
+  last_ri             = 0;
 
   ZERO_OBJECT(pathloss);
   ZERO_OBJECT(avg_sinr_db);

@@ -69,6 +69,9 @@ public:
   // Time Aligment Controller, internal thread safe
   ta_control ta;
 
+  // Last reported RI
+  std::atomic<uint32_t> last_ri = {0};
+
   phy_common(srslog::basic_logger& logger);
 
   ~phy_common();

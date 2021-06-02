@@ -807,10 +807,16 @@ uint32_t cc_worker::get_wideband_cqi()
 
 void cc_worker::set_uci_periodic_cqi(srsran_uci_data_t* uci_data)
 {
+  // Load last reported RI
+  ue_dl_cfg.last_ri = phy->last_ri;
+
   srsran_ue_dl_gen_cqi_periodic(&ue_dl, &ue_dl_cfg, get_wideband_cqi(), CURRENT_TTI_TX, uci_data);
 
   // Store serving cell index for logging purposes
   uci_data->cfg.cqi.scell_index = cc_idx;
+
+  // Store the reported RI
+  phy->last_ri = ue_dl_cfg.last_ri;
 }
 
 void cc_worker::set_uci_aperiodic_cqi(srsran_uci_data_t* uci_data)
