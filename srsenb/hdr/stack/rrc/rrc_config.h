@@ -62,8 +62,8 @@ struct rrc_cfg_t {
   uint32_t                                                                                max_mac_dl_kos;
   uint32_t                                                                                max_mac_ul_kos;
   uint32_t                                                                                rlf_release_timer_ms;
-  asn1::rrc::rlc_cfg_c                                                                    srb1_cfg;
-  asn1::rrc::rlc_cfg_c                                                                    srb2_cfg;
+  asn1::rrc::srb_to_add_mod_s::rlc_cfg_c_                                                 srb1_cfg;
+  asn1::rrc::srb_to_add_mod_s::rlc_cfg_c_                                                 srb2_cfg;
 };
 
 constexpr uint32_t UE_PCELL_CC_IDX = 0;

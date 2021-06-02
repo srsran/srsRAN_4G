@@ -402,7 +402,7 @@ int field_srb::parse(libconfig::Setting& root)
   libconfig::Setting& q = root[0];
 
   // Parse RLC AM section
-  rlc_cfg_c* rlc_cfg = &cfg;
+  rlc_cfg_c* rlc_cfg = &cfg.set_explicit_value();
   if (q["rlc_config"].exists("ul_am") && q["rlc_config"].exists("dl_am")) {
     rlc_cfg->set_am();
   }
@@ -1728,9 +1728,15 @@ namespace drb_sections {
 int parse_drb(all_args_t* args_, rrc_cfg_t* rrc_cfg_)
 {
   parser::section srb1("srb1_config");
+  bool            srb1_present = false;
+  srb1.set_optional(&srb1_present);
   srb1.add_field(new field_srb(rrc_cfg_->srb1_cfg));
+
   parser::section srb2("srb2_config");
+  bool            srb2_present = false;
+  srb2.set_optional(&srb2_present);
   srb2.add_field(new field_srb(rrc_cfg_->srb2_cfg));
+
   parser::section qci("qci_config");
   qci.add_field(new field_qci(rrc_cfg_->qci_cfg));
 
@@ -1740,7 +1746,15 @@ int parse_drb(all_args_t* args_, rrc_cfg_t* rrc_cfg_)
   p.add_section(&srb2);
   p.add_section(&qci);
 
-  return p.parse();
+  int ret = p.parse();
+  if (not srb1_present) {
+    rrc_cfg_->srb1_cfg.set_default_value();
+  }
+  if (not srb2_present) {
+    rrc_cfg_->srb2_cfg.set_default_value();
+  }
+
+  return ret;
 }
 
 } // namespace drb_sections

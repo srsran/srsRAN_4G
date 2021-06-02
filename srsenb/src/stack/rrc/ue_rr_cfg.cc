@@ -33,7 +33,8 @@ namespace srsenb {
  *        SRBs / DRBs
  *****************************/
 
-srb_to_add_mod_s* add_srb(srb_to_add_mod_list_l& srbs, uint8_t srb_id, const asn1::rrc::rlc_cfg_c& srb_cfg)
+srb_to_add_mod_s*
+add_srb(srb_to_add_mod_list_l& srbs, uint8_t srb_id, const asn1::rrc::srb_to_add_mod_s::rlc_cfg_c_& srb_cfg)
 {
   if (srb_id > 2 or srb_id == 0) {
     srslog::fetch_basic_logger("RRC").error("Invalid SRB id=%d", srb_id);
@@ -45,8 +46,7 @@ srb_to_add_mod_s* add_srb(srb_to_add_mod_list_l& srbs, uint8_t srb_id, const asn
   srb_it->lc_ch_cfg_present = true;
   srb_it->lc_ch_cfg.set(srb_to_add_mod_s::lc_ch_cfg_c_::types_opts::default_value);
   srb_it->rlc_cfg_present = true;
-  srb_it->rlc_cfg.set(srb_to_add_mod_s::rlc_cfg_c_::types_opts::explicit_value);
-  srb_it->rlc_cfg.explicit_value() = srb_cfg;
+  srb_it->rlc_cfg         = srb_cfg;
   return srb_it;
 }
 
