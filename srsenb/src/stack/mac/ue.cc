@@ -71,14 +71,14 @@ cc_used_buffers_map::~cc_used_buffers_map()
   clear();
 }
 
-bool cc_used_buffers_map::push_pdu(tti_point tti, uint32_t len)
+bool cc_used_buffers_map::push_pdu(tti_point tti, uint32_t len, uint32_t grant_nof_prbs)
 {
   if (not has_tti(tti)) {
     return false;
   }
   uint8_t* buffer = pdu_map[tti.to_uint()];
   if (len > 0) {
-    shared_pdu_queue->push(buffer, len);
+    shared_pdu_queue->push(buffer, len, srsran::pdu_queue::DCH, grant_nof_prbs);
   } else {
     shared_pdu_queue->deallocate(buffer);
     logger->error("Error pushing PDU: null length");
@@ -329,7 +329,7 @@ uint32_t ue::set_ta(int ta_)
   return nof_cmd;
 }
 
-void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srsran::pdu_queue::channel_t channel)
+void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srsran::pdu_queue::channel_t channel, int grant_nof_prbs)
 {
   // Unpack ULSCH MAC PDU
   mac_msg_ul.init_rx(nof_bytes, true);
@@ -417,7 +417,7 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srsran::pdu_queue::channe
     assert(mac_msg_ul.get());
     if (!mac_msg_ul.get()->is_sdu()) {
       // Process MAC Control Element
-      bsr_received |= process_ce(mac_msg_ul.get());
+      bsr_received |= process_ce(mac_msg_ul.get(), grant_nof_prbs);
     }
   }
 
@@ -440,15 +440,15 @@ void ue::deallocate_pdu(uint32_t tti, uint32_t ue_cc_idx)
   }
 }
 
-void ue::push_pdu(uint32_t tti, uint32_t ue_cc_idx, uint32_t len)
+void ue::push_pdu(uint32_t tti, uint32_t ue_cc_idx, uint32_t len, uint32_t grant_nof_prbs)
 {
   std::unique_lock<std::mutex> lock(rx_buffers_mutex);
-  if (not cc_buffers[ue_cc_idx].get_rx_used_buffers().push_pdu(tti_point(tti), len)) {
+  if (not cc_buffers[ue_cc_idx].get_rx_used_buffers().push_pdu(tti_point(tti), len, grant_nof_prbs)) {
     logger.warning("UE buffers: Failed to push RX PDU for rnti=0x%x tti=%d cc_idx=%d", rnti, tti, ue_cc_idx);
   }
 }
 
-bool ue::process_ce(srsran::sch_subh* subh)
+bool ue::process_ce(srsran::sch_subh* subh, int grant_nof_prbs)
 {
   uint32_t buff_size_idx[4]   = {};
   uint32_t buff_size_bytes[4] = {};
@@ -459,7 +459,8 @@ bool ue::process_ce(srsran::sch_subh* subh)
   switch (subh->ul_sch_ce_type()) {
     case srsran::ul_sch_lcid::PHR_REPORT:
       phr = subh->get_phr();
-      sched->ul_phr(rnti, (int)phr);
+      srsran_assert(grant_nof_prbs > 0, "Invalid nof prbs=%d provided for PHR handling", grant_nof_prbs);
+      sched->ul_phr(rnti, (int)phr, grant_nof_prbs);
       metrics_phr(phr);
       break;
     case srsran::ul_sch_lcid::CRNTI:

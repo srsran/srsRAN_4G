@@ -341,7 +341,12 @@ int mac::crc_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, uint32_t 
   return scheduler.ul_crc_info(tti_rx, rnti, enb_cc_idx, crc);
 }
 
-int mac::push_pdu(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, uint32_t nof_bytes, bool crc)
+int mac::push_pdu(uint32_t tti_rx,
+                  uint16_t rnti,
+                  uint32_t enb_cc_idx,
+                  uint32_t nof_bytes,
+                  bool     crc,
+                  uint32_t ul_nof_prbs)
 {
   srsran::rwlock_read_guard lock(rwlock);
 
@@ -359,7 +364,7 @@ int mac::push_pdu(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, uint32_t 
   // push the pdu through the queue if received correctly
   if (crc) {
     logger.info("Pushing PDU rnti=0x%x, tti_rx=%d, nof_bytes=%d", rnti, tti_rx, nof_bytes);
-    ue_db[rnti]->push_pdu(tti_rx, ue_cc_idx, nof_bytes);
+    ue_db[rnti]->push_pdu(tti_rx, ue_cc_idx, nof_bytes, ul_nof_prbs);
     stack_task_queue.push([this]() { process_pdus(); });
   } else {
     logger.debug("Discarting PDU rnti=0x%x, tti_rx=%d, nof_bytes=%d", rnti, tti_rx, nof_bytes);

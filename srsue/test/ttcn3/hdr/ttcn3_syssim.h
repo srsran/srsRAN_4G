@@ -104,7 +104,7 @@ public:
 
   uint32_t get_tti();
 
-  void process_pdu(uint8_t* buff, uint32_t len, pdu_queue::channel_t channel);
+  void process_pdu(uint8_t* buff, uint32_t len, pdu_queue::channel_t channel, int ul_nof_prbs);
 
   void set_cell_config(const ttcn3_helpers::timing_info_t timing, const cell_config_t cell);
   void set_cell_config_impl(const cell_config_t cell);

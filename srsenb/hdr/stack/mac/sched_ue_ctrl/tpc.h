@@ -35,13 +35,15 @@ public:
   static constexpr uint32_t PUSCH_CODE = 0, PUCCH_CODE = 1;
   static constexpr int      PHR_NEG_NOF_PRB = 1;
 
-  explicit tpc(uint32_t cell_nof_prb,
+  explicit tpc(uint16_t rnti_,
+               uint32_t cell_nof_prb,
                float    target_pucch_snr_dB_  = -1.0,
                float    target_pusch_sn_dB_   = -1.0,
                bool     phr_handling_flag_    = false,
                uint32_t min_tpc_tti_interval_ = 1,
                float    ul_snr_avg_alpha      = 0.05,
                int      init_ul_snr_value     = 5) :
+    rnti(rnti_),
     nof_prb(cell_nof_prb),
     target_pucch_snr_dB(target_pucch_snr_dB_),
     target_pusch_snr_dB(target_pusch_sn_dB_),
@@ -69,7 +71,7 @@ public:
       snr_estim_list[ul_ch_code].pending_snr = snr;
     }
   }
-  void set_phr(int phr_)
+  void set_phr(int phr_, uint32_t grant_nof_prbs)
   {
     last_phr = phr_;
     for (auto& ch_snr : snr_estim_list) {
@@ -79,12 +81,18 @@ public:
     // compute and cache the max nof UL PRBs that avoids overflowing PHR
     if (phr_handling_flag) {
       max_prbs_cached = PHR_NEG_NOF_PRB;
+      int phr_x_prb   = std::roundf(last_phr + 10.0F * log10f(grant_nof_prbs)); // get what the PHR would be if Nprb=1
       for (int n = nof_prb; n > PHR_NEG_NOF_PRB; --n) {
-        if (last_phr >= 10 * log10(n)) {
+        if (phr_x_prb >= 10 * log10f(n)) {
           max_prbs_cached = n;
           break;
         }
       }
+      logger.info("SCHED: rnti=0x%x received PHR=%d for UL Nprb=%d. Max UL Nprb is now=%d",
+                  rnti,
+                  phr_,
+                  grant_nof_prbs,
+                  max_prbs_cached);
     }
   }
 
@@ -181,6 +189,7 @@ private:
     return encode_tpc_delta(ch_snr.pending_delta);
   }
 
+  uint16_t              rnti;
   uint32_t              nof_prb;
   uint32_t              min_tpc_tti_interval = 1;
   float                 target_pucch_snr_dB, target_pusch_snr_dB;

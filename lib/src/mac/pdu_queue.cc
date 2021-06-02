@@ -53,12 +53,13 @@ void pdu_queue::deallocate(const uint8_t* pdu)
  * This function enqueues the packet and returns quicly because ACK
  * deadline is important here.
  */
-void pdu_queue::push(const uint8_t* ptr, uint32_t len, channel_t channel)
+void pdu_queue::push(const uint8_t* ptr, uint32_t len, channel_t channel, int grant_nof_prbs)
 {
   if (ptr) {
-    pdu_t* pdu   = (pdu_t*)ptr;
-    pdu->len     = len;
-    pdu->channel = channel;
+    pdu_t* pdu          = (pdu_t*)ptr;
+    pdu->len            = len;
+    pdu->channel        = channel;
+    pdu->grant_nof_prbs = grant_nof_prbs;
     if (!pdu_q.try_push(pdu)) {
       logger.warning("Error pushing pdu: queue is full");
     }
@@ -74,7 +75,7 @@ bool pdu_queue::process_pdus()
   pdu_t*   pdu;
   while (pdu_q.try_pop(pdu)) {
     if (callback) {
-      callback->process_pdu(pdu->ptr, pdu->len, pdu->channel);
+      callback->process_pdu(pdu->ptr, pdu->len, pdu->channel, pdu->grant_nof_prbs);
     }
     cnt++;
     have_data = true;

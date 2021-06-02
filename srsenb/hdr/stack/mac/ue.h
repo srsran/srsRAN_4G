@@ -67,7 +67,7 @@ public:
 
   uint8_t* request_pdu(tti_point tti, uint32_t len);
 
-  bool push_pdu(tti_point tti, uint32_t len);
+  bool push_pdu(tti_point tti, uint32_t len, uint32_t grant_nof_prbs);
 
   void clear_old_pdus(tti_point current_tti);
 
@@ -161,10 +161,10 @@ public:
 
   bool     process_pdus();
   uint8_t* request_buffer(uint32_t tti, uint32_t ue_cc_idx, const uint32_t len);
-  void     process_pdu(uint8_t* pdu, uint32_t nof_bytes, srsran::pdu_queue::channel_t channel) override;
-  void     push_pdu(uint32_t tti, uint32_t ue_cc_idx, uint32_t len);
-  void     deallocate_pdu(uint32_t tti, uint32_t ue_cc_idx);
-  void     clear_old_buffers(uint32_t tti);
+  void process_pdu(uint8_t* pdu, uint32_t nof_bytes, srsran::pdu_queue::channel_t channel, int grant_nof_prbs) override;
+  void push_pdu(uint32_t tti, uint32_t ue_cc_idx, uint32_t len, uint32_t grant_nof_prbs);
+  void deallocate_pdu(uint32_t tti, uint32_t ue_cc_idx);
+  void clear_old_buffers(uint32_t tti);
 
   void metrics_read(mac_ue_metrics_t* metrics_);
   void metrics_rx(bool crc, uint32_t tbs);
@@ -179,7 +179,7 @@ public:
 
 private:
   void allocate_sdu(srsran::sch_pdu* pdu, uint32_t lcid, uint32_t sdu_len);
-  bool process_ce(srsran::sch_subh* subh);
+  bool process_ce(srsran::sch_subh* subh, int grant_nof_prbs);
   void allocate_ce(srsran::sch_pdu* pdu, uint32_t lcid);
 
   rlc_interface_mac*       rlc = nullptr;

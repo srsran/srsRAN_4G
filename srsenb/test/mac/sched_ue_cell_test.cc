@@ -40,12 +40,12 @@ void test_neg_phr_scenario()
   float snr = 0;
   ue_cc.set_ul_snr(tti_point(0), snr, 0);
   ue_cc.set_ul_snr(tti_point(0), snr, 1);
-  ue_cc.tpc_fsm.set_phr(-5);
+  ue_cc.tpc_fsm.set_phr(-5, 1);
   ue_cc.new_tti(tti_point(0));
 
   uint32_t req_bytes    = 10000;
   uint32_t pending_prbs = get_required_prb_ul(ue_cc, req_bytes);
-  TESTASSERT(pending_prbs < 10); // The PHR<0 is limiting the number of allocated PRBs
+  TESTASSERT(pending_prbs == 1); // The PHR<0 is limiting the number of allocated PRBs
 
   uint32_t N_srs          = 0;
   uint32_t prb_grant_size = pending_prbs;

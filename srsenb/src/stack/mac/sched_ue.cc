@@ -131,9 +131,9 @@ void sched_ue::ul_buffer_add(uint8_t lcid, uint32_t bytes)
   lch_handler.ul_buffer_add(lcid, bytes);
 }
 
-void sched_ue::ul_phr(int phr)
+void sched_ue::ul_phr(int phr, uint32_t grant_nof_prb)
 {
-  cells[cfg.supported_cc_list[0].enb_cc_idx].tpc_fsm.set_phr(phr);
+  cells[cfg.supported_cc_list[0].enb_cc_idx].tpc_fsm.set_phr(phr, grant_nof_prb);
 }
 
 void sched_ue::dl_buffer_state(uint8_t lc_id, uint32_t tx_queue, uint32_t retx_queue)

@@ -26,7 +26,7 @@ int test_finite_target_snr()
   const uint32_t nof_prbs   = 50;
   const int      target_snr = 15;
 
-  tpc tpcfsm(nof_prbs, 15, 15, true);
+  tpc tpcfsm(0x46, nof_prbs, 15, 15, true);
 
   // TEST: While UL SNR ~ target, no TPC commands are sent
   for (uint32_t i = 0; i < 100 and tpcfsm.get_ul_snr_estim(0) < 14; ++i) {
@@ -78,7 +78,7 @@ int test_undefined_target_snr()
 {
   const uint32_t nof_prbs = 50;
 
-  tpc tpcfsm(nof_prbs, -1, -1, true);
+  tpc tpcfsm(0x46, nof_prbs, -1, -1, true);
   TESTASSERT(tpcfsm.max_ul_prbs() == 50);
 
   // TEST: While the PHR is not updated, a limited number of TPC commands should be sent
@@ -107,7 +107,7 @@ int test_undefined_target_snr()
 
   // TEST: Check that high PHR allows full utilization of available PRBs, TPC remains at zero (no target SINR)
   int phr = 30;
-  tpcfsm.set_phr(phr);
+  tpcfsm.set_phr(phr, 1);
   TESTASSERT(tpcfsm.max_ul_prbs() == 50);
   sum_pusch = 0;
   sum_pucch = 0;
@@ -120,7 +120,7 @@ int test_undefined_target_snr()
 
   // TEST: PHR is too low to allow all PRBs to be allocated. This event should not affect TPC commands
   phr = 5;
-  tpcfsm.set_phr(phr);
+  tpcfsm.set_phr(phr, 1);
   TESTASSERT(tpcfsm.max_ul_prbs() < 50);
   for (uint32_t i = 0; i < 100; ++i) {
     tpcfsm.new_tti();
@@ -130,7 +130,7 @@ int test_undefined_target_snr()
 
   // TEST: PHR is negative. The TPC should slightly decrease Tx UL power until next PHR
   phr = -1;
-  tpcfsm.set_phr(phr);
+  tpcfsm.set_phr(phr, 1);
   TESTASSERT(tpcfsm.max_ul_prbs() == tpc::PHR_NEG_NOF_PRB);
   sum_pusch = 0;
   sum_pucch = 0;
