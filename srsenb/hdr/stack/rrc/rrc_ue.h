@@ -46,6 +46,7 @@ public:
   void        activity_timer_expired(const activity_timeout_type_t type);
   void        rlf_timer_expired(uint32_t timeout_id);
   void        max_rlc_retx_reached();
+  void        protocol_failure();
   void        deactivate_bearers() { mac_ctrl.set_radio_bearer_state(sched_interface::ue_bearer_cfg_t::IDLE); }
 
   rrc_state_t get_state();
@@ -62,6 +63,7 @@ public:
     error_unknown_rnti,
     radio_conn_with_ue_lost,
     msg3_timeout,
+    fail_in_radio_interface_proc,
     unspecified
   };
 

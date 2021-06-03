@@ -255,6 +255,11 @@ void rlc::user_interface::max_retx_attempted()
   rrc->max_retx_attempted(rnti);
 }
 
+void rlc::user_interface::protocol_failure()
+{
+  rrc->protocol_failure(rnti);
+}
+
 void rlc::user_interface::write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu)
 {
   if (lcid == srb_to_lcid(lte_srb::srb0)) {

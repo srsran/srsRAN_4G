@@ -88,6 +88,7 @@ public:
   // TODO
   void        read_pdu_pcch(uint8_t* payload, uint32_t payload_size) {}
   void        max_retx_attempted(uint16_t rnti) {}
+  void        protocol_failure(uint16_t rnti) {}
   const char* get_rb_name(uint32_t lcid) { return "invalid"; }
   // PDCP interface
   void write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu) final;

@@ -1134,6 +1134,10 @@ void ttcn3_syssim::max_retx_attempted()
 {
   logger.error("%s not implemented.", __FUNCTION__);
 }
+void ttcn3_syssim::protocol_failure()
+{
+  logger.error("%s not implemented.", __FUNCTION__);
+}
 
 const char* ttcn3_syssim::get_rb_name(uint32_t lcid)
 {

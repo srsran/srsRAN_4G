@@ -253,6 +253,17 @@ void rrc::ue::max_rlc_retx_reached()
   rlc_rlf_timer.run();
 }
 
+void rrc::ue::protocol_failure()
+{
+  parent->logger.info("RLC protocol failure for rnti=0x%x", rnti);
+
+  // Release UE immediately with appropiate cause
+  state = RRC_STATE_RELEASE_REQUEST;
+
+  parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::fail_in_radio_interface_proc);
+  con_release_result = procedure_result_code::fail_in_radio_interface_proc;
+}
+
 void rrc::ue::set_activity_timeout(activity_timeout_type_t type)
 {
   uint32_t deadline_ms = 0;

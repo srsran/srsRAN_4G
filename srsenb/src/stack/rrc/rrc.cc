@@ -181,6 +181,14 @@ void rrc::max_retx_attempted(uint16_t rnti)
   }
 }
 
+void rrc::protocol_failure(uint16_t rnti)
+{
+  rrc_pdu p = {rnti, LCID_PROT_FAIL, false, nullptr};
+  if (not rx_pdu_queue.try_push(std::move(p))) {
+    logger.error("Failed to push protocol failure to RRC queue");
+  }
+}
+
 // This function is called from PRACH worker (can wait)
 int rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
 {
@@ -943,6 +951,9 @@ void rrc::tti_clock()
         break;
       case LCID_RLC_RTX:
         user_it->second->max_rlc_retx_reached();
+        break;
+      case LCID_PROT_FAIL:
+        user_it->second->protocol_failure();
         break;
       case LCID_EXIT:
         logger.info("Exiting thread");

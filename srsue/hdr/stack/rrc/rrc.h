@@ -318,6 +318,7 @@ private:
 
   // RLC interface
   void max_retx_attempted();
+  void protocol_failure();
 
   // RRC NR interface
   void nr_scg_failure_information(const srsran::scg_failure_cause_t cause);

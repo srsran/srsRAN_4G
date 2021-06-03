@@ -101,6 +101,7 @@ public:
 
   // RLC interface
   void max_retx_attempted() final;
+  void protocol_failure() final;
 
   // MAC interface
   void run_tti(uint32_t tti) final;

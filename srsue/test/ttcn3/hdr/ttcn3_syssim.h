@@ -157,6 +157,7 @@ public:
   void write_pdu_pcch(unique_byte_buffer_t pdu);
   void write_pdu_mch(uint32_t lcid, unique_byte_buffer_t pdu);
   void max_retx_attempted();
+  void protocol_failure();
 
   const char* get_rb_name(uint32_t lcid);
 

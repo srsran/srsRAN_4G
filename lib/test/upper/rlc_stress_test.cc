@@ -381,6 +381,12 @@ public:
     std::this_thread::sleep_for(std::chrono::seconds(1));
     exit(1);
   }
+  void protocol_failure()
+  {
+    logger.error("RLC protocol error detected.");
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    exit(1);
+  }
   const char* get_rb_name(uint32_t rx_lcid) { return "DRB1"; }
 
   int get_nof_rx_pdus() { return rx_pdus; }

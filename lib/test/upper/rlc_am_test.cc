@@ -70,12 +70,14 @@ public:
 
   // RRC interface
   void max_retx_attempted() { max_retx_triggered = true; }
+  void protocol_failure() { protocol_failure_triggered = true; }
 
   const char* get_rb_name(uint32_t lcid) { return ""; }
 
   std::vector<unique_byte_buffer_t> sdus;
   rlc_pcap*                         pcap               = nullptr;
   bool                              max_retx_triggered = false;
+  bool                              protocol_failure_triggered = false;
 
   std::map<uint32_t, uint32_t> notified_counts; // Map of PDCP SNs to number of notifications
 };

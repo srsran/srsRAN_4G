@@ -719,6 +719,11 @@ void rrc::max_retx_attempted()
   radio_link_failure_push_cmd();
 }
 
+void rrc::protocol_failure()
+{
+  logger.warning("RLC protocol failure detected");
+}
+
 void rrc::timer_expired(uint32_t timeout_id)
 {
   if (timeout_id == t310.id()) {

@@ -54,6 +54,7 @@ public:
 
   // RRC interface
   void        max_retx_attempted() {}
+  void        protocol_failure() {}
   const char* get_rb_name(uint32_t lcid) { return "TestRB"; }
   void        set_expected_sdu_len(uint32_t len) { expected_sdu_len = len; }
 
