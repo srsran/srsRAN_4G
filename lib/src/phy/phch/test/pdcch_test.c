@@ -23,7 +23,6 @@ static uint32_t         pci       = 1;
 static uint16_t         rnti      = 0x46;
 static uint32_t         cfi       = 1;
 static uint32_t         nof_ports = 1;
-static bool             print_dci_table;
 static srsran_dci_cfg_t dci_cfg     = {};
 static uint32_t         nof_prb     = 100;
 static float            snr_dB      = 20.0f;
@@ -40,12 +39,11 @@ static cf_t*                 slot_symbols[SRSRAN_MAX_PORTS];
 
 void usage(char* prog)
 {
-  printf("Usage: %s [cfpndxv]\n", prog);
+  printf("Usage: %s [pfncxv]\n", prog);
   printf("\t-c cell id [Default %d]\n", pci);
   printf("\t-f cfi [Default %d]\n", cfi);
   printf("\t-p cell.nof_ports [Default %d]\n", nof_ports);
   printf("\t-n cell.nof_prb [Default %d]\n", nof_prb);
-  printf("\t-d Print DCI table [Default %s]\n", print_dci_table ? "yes" : "no");
   printf("\t-x Enable/Disable Cross-scheduling [Default %s]\n", dci_cfg.cif_enabled ? "enabled" : "disabled");
   printf("\t-v [set srsran_verbose to debug, default none]\n");
 }
@@ -53,7 +51,7 @@ void usage(char* prog)
 void parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "cfpndvAx")) != -1) {
+  while ((opt = getopt(argc, argv, "pfncxv")) != -1) {
     switch (opt) {
       case 'p':
         nof_ports = (uint32_t)strtol(argv[optind], NULL, 10);
@@ -66,9 +64,6 @@ void parse_args(int argc, char** argv)
         break;
       case 'c':
         pci = (uint32_t)strtol(argv[optind], NULL, 10);
-        break;
-      case 'd':
-        print_dci_table = true;
         break;
       case 'x':
         dci_cfg.cif_enabled ^= true;
