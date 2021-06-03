@@ -248,9 +248,9 @@ uint32_t rlc_am_lte::get_buffer_state()
   return tx.get_buffer_state();
 }
 
-int rlc_am_lte::read_pdu(uint8_t* payload, uint32_t nof_bytes)
+uint32_t rlc_am_lte::read_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
-  int read_bytes = tx.read_pdu(payload, nof_bytes);
+  uint32_t read_bytes = tx.read_pdu(payload, nof_bytes);
   metrics.num_tx_pdus++;
   metrics.num_tx_pdu_bytes += read_bytes;
   return read_bytes;
@@ -533,7 +533,7 @@ bool rlc_am_lte::rlc_am_lte_tx::sdu_queue_is_full()
   return tx_sdu_queue.is_full();
 }
 
-int rlc_am_lte::rlc_am_lte_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
+uint32_t rlc_am_lte::rlc_am_lte_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   std::lock_guard<std::mutex> lock(mutex);
 

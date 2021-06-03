@@ -130,7 +130,7 @@ uint32_t rlc_um_base::get_buffer_state()
   return 0;
 }
 
-int rlc_um_base::read_pdu(uint8_t* payload, uint32_t nof_bytes)
+uint32_t rlc_um_base::read_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   if (tx && tx_enabled) {
     uint32_t len = tx->build_data_pdu(payload, nof_bytes);
@@ -283,7 +283,7 @@ bool rlc_um_base::rlc_um_base_tx::sdu_queue_is_full()
   return tx_sdu_queue.is_full();
 }
 
-int rlc_um_base::rlc_um_base_tx::build_data_pdu(uint8_t* payload, uint32_t nof_bytes)
+uint32_t rlc_um_base::rlc_um_base_tx::build_data_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   unique_byte_buffer_t pdu;
   {

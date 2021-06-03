@@ -50,7 +50,7 @@ class rlc_dummy_interface : public rlc_interface_mac
 public:
   bool     has_data_locked(const uint32_t lcid) override { return false; }
   uint32_t get_buffer_state(const uint32_t lcid) override { return 0; }
-  int      read_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes) override { return 0; }
+  uint32_t read_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes) override { return 0; }
   void     write_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes) override {}
   void     write_pdu_bcch_bch(srsran::unique_byte_buffer_t payload) override {}
   void     write_pdu_bcch_dlsch(uint8_t* payload, uint32_t nof_bytes) override {}

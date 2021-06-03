@@ -292,7 +292,7 @@ uint32_t rlc::get_total_mch_buffer_state(uint32_t lcid)
   return ret;
 }
 
-int rlc::read_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
+uint32_t rlc::read_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
 {
   uint32_t ret = 0;
 
@@ -309,7 +309,7 @@ int rlc::read_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
   return ret;
 }
 
-int rlc::read_pdu_mch(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
+uint32_t rlc::read_pdu_mch(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
 {
   uint32_t ret = 0;
 

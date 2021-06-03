@@ -345,7 +345,7 @@ public:
   // MAC interface
   bool     has_data();
   uint32_t get_buffer_state();
-  int      read_pdu(uint8_t* payload, uint32_t nof_bytes);
+  uint32_t read_pdu(uint8_t* payload, uint32_t nof_bytes);
   void     write_pdu(uint8_t* payload, uint32_t nof_bytes);
 
   rlc_bearer_metrics_t get_metrics();
@@ -368,7 +368,7 @@ private:
     void stop();
 
     int  write_sdu(unique_byte_buffer_t sdu);
-    int  read_pdu(uint8_t* payload, uint32_t nof_bytes);
+    uint32_t read_pdu(uint8_t* payload, uint32_t nof_bytes);
     void discard_sdu(uint32_t discard_sn);
     bool sdu_queue_is_full();
 

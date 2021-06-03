@@ -115,7 +115,7 @@ bool rlc_um_nr::rlc_um_nr_tx::configure(const rlc_config_t& cnfg_, std::string r
   return true;
 }
 
-int rlc_um_nr::rlc_um_nr_tx::build_data_pdu(unique_byte_buffer_t pdu, uint8_t* payload, uint32_t nof_bytes)
+uint32_t rlc_um_nr::rlc_um_nr_tx::build_data_pdu(unique_byte_buffer_t pdu, uint8_t* payload, uint32_t nof_bytes)
 {
   // Sanity check (we need at least 2B for a SDU)
   if (nof_bytes < 2) {

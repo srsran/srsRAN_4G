@@ -54,7 +54,7 @@ public:
   // MAC interface
   bool     has_data() override;
   uint32_t get_buffer_state() override;
-  int      read_pdu(uint8_t* payload, uint32_t nof_bytes) override;
+  uint32_t read_pdu(uint8_t* payload, uint32_t nof_bytes) override;
   void     write_pdu(uint8_t* payload, uint32_t nof_bytes) override;
 
   void set_bsr_callback(bsr_callback_t callback) override {}

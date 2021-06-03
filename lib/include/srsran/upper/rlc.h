@@ -66,8 +66,8 @@ public:
   bool     has_data_locked(const uint32_t lcid);
   uint32_t get_buffer_state(const uint32_t lcid);
   uint32_t get_total_mch_buffer_state(uint32_t lcid);
-  int      read_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes);
-  int      read_pdu_mch(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes);
+  uint32_t read_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes);
+  uint32_t read_pdu_mch(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes);
   int      get_increment_sequence_num();
   void     write_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes);
   void     write_pdu_bcch_bch(srsran::unique_byte_buffer_t pdu);

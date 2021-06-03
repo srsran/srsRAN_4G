@@ -175,7 +175,7 @@ public:
   void metrics_dl_cqi(uint32_t dl_cqi);
   void metrics_cnt();
 
-  int read_pdu(uint32_t lcid, uint8_t* payload, uint32_t requested_bytes) final;
+  uint32_t read_pdu(uint32_t lcid, uint8_t* payload, uint32_t requested_bytes) final;
 
 private:
   void allocate_sdu(srsran::sch_pdu* pdu, uint32_t lcid, uint32_t sdu_len);

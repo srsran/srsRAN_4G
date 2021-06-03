@@ -503,7 +503,7 @@ bool ue::process_ce(srsran::sch_subh* subh, int grant_nof_prbs)
   return is_bsr;
 }
 
-int ue::read_pdu(uint32_t lcid, uint8_t* payload, uint32_t requested_bytes)
+uint32_t ue::read_pdu(uint32_t lcid, uint8_t* payload, uint32_t requested_bytes)
 {
   return rlc->read_pdu(rnti, lcid, payload, requested_bytes);
 }

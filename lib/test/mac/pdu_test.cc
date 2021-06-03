@@ -169,7 +169,7 @@ int mac_rar_pdu_pack_test2()
 class rlc_dummy : public srsran::read_pdu_interface
 {
 public:
-  int read_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
+  uint32_t read_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
   {
     uint32_t len = std::min(ul_queues[lcid], nof_bytes);
 
