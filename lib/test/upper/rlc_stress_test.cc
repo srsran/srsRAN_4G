@@ -197,8 +197,7 @@ private:
       // Request data to transmit
       uint32_t buf_state = tx_rlc->get_buffer_state(lcid);
       if (buf_state > 0) {
-        int read     = tx_rlc->read_pdu(lcid, pdu->msg, opp_size);
-        pdu->N_bytes = read;
+        pdu->N_bytes = tx_rlc->read_pdu(lcid, pdu->msg, opp_size);
 
         // Push PDU in the list
         pdu_list.push_back(std::move(pdu));
