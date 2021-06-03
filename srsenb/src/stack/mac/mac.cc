@@ -126,6 +126,7 @@ void mac::reset()
 
 void mac::start_pcap(srsran::mac_pcap* pcap_)
 {
+  srsran::rwlock_read_guard lock(rwlock);
   pcap = pcap_;
   // Set pcap in all UEs for UL messages
   for (auto& u : ue_db) {
@@ -135,6 +136,7 @@ void mac::start_pcap(srsran::mac_pcap* pcap_)
 
 void mac::start_pcap_net(srsran::mac_pcap_net* pcap_net_)
 {
+  srsran::rwlock_read_guard lock(rwlock);
   pcap_net = pcap_net_;
   // Set pcap in all UEs for UL messages
   for (auto& u : ue_db) {
@@ -292,6 +294,7 @@ void mac::toggle_padding()
 
 void mac::add_padding()
 {
+  srsran::rwlock_read_guard lock(rwlock);
   for (auto it = ue_db.begin(); it != ue_db.end(); ++it) {
     uint16_t cur_rnti = it->first;
     auto     ue       = it;
@@ -817,6 +820,7 @@ void mac::build_mch_sched(uint32_t tbs)
 
 int mac::get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res_list)
 {
+  srsran::rwlock_read_guard lock(rwlock);
   dl_sched_t* dl_sched_res = &dl_sched_res_list[0];
   logger.set_context(tti);
   srsran_ra_tb_t mcs      = {};
@@ -930,6 +934,8 @@ int mac::get_ul_sched(uint32_t tti_tx_ul, ul_sched_list_t& ul_sched_res_list)
 
   logger.set_context(TTI_SUB(tti_tx_ul, FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS));
 
+  srsran::rwlock_read_guard lock(rwlock);
+
   // Execute UE FSMs (e.g. TA)
   for (auto& ue : ue_db) {
     ue.second->tic();
@@ -945,52 +951,46 @@ int mac::get_ul_sched(uint32_t tti_tx_ul, ul_sched_list_t& ul_sched_res_list)
       return SRSRAN_ERROR;
     }
 
-    {
-      srsran::rwlock_read_guard lock(rwlock);
+    // Copy DCI grants
+    phy_ul_sched_res->nof_grants = 0;
+    int n                        = 0;
+    for (uint32_t i = 0; i < sched_result.pusch.size(); i++) {
+      if (sched_result.pusch[i].tbs > 0) {
+        // Get UE
+        uint16_t rnti = sched_result.pusch[i].dci.rnti;
 
-      // Copy DCI grants
-      phy_ul_sched_res->nof_grants = 0;
-      int n                        = 0;
-      for (uint32_t i = 0; i < sched_result.pusch.size(); i++) {
-        if (sched_result.pusch[i].tbs > 0) {
-          // Get UE
-          uint16_t rnti = sched_result.pusch[i].dci.rnti;
+        if (ue_db.contains(rnti)) {
+          // Copy grant info
+          phy_ul_sched_res->pusch[n].current_tx_nb = sched_result.pusch[i].current_tx_nb;
+          phy_ul_sched_res->pusch[n].pid           = TTI_RX(tti_tx_ul) % SRSRAN_FDD_NOF_HARQ;
+          phy_ul_sched_res->pusch[n].needs_pdcch   = sched_result.pusch[i].needs_pdcch;
+          phy_ul_sched_res->pusch[n].dci           = sched_result.pusch[i].dci;
+          phy_ul_sched_res->pusch[n].softbuffer_rx =
+              ue_db[rnti]->get_rx_softbuffer(sched_result.pusch[i].dci.ue_cc_idx, tti_tx_ul);
 
-          if (ue_db.contains(rnti)) {
-            // Copy grant info
-            phy_ul_sched_res->pusch[n].current_tx_nb = sched_result.pusch[i].current_tx_nb;
-            phy_ul_sched_res->pusch[n].pid           = TTI_RX(tti_tx_ul) % SRSRAN_FDD_NOF_HARQ;
-            phy_ul_sched_res->pusch[n].needs_pdcch   = sched_result.pusch[i].needs_pdcch;
-            phy_ul_sched_res->pusch[n].dci           = sched_result.pusch[i].dci;
-            phy_ul_sched_res->pusch[n].softbuffer_rx =
-                ue_db[rnti]->get_rx_softbuffer(sched_result.pusch[i].dci.ue_cc_idx, tti_tx_ul);
-
-            // If the Rx soft-buffer is not given, abort reception
-            if (phy_ul_sched_res->pusch[n].softbuffer_rx == nullptr) {
-              continue;
-            }
-
-            if (sched_result.pusch[n].current_tx_nb == 0) {
-              srsran_softbuffer_rx_reset_tbs(phy_ul_sched_res->pusch[n].softbuffer_rx, sched_result.pusch[i].tbs * 8);
-            }
-            phy_ul_sched_res->pusch[n].data =
-                ue_db[rnti]->request_buffer(tti_tx_ul, sched_result.pusch[i].dci.ue_cc_idx, sched_result.pusch[i].tbs);
-            if (phy_ul_sched_res->pusch[n].data) {
-              phy_ul_sched_res->nof_grants++;
-            } else {
-              logger.error("Grant for rnti=0x%x could not be allocated due to lack of buffers", rnti);
-            }
-            n++;
-          } else {
-            logger.warning("Invalid UL scheduling result. User 0x%x does not exist", rnti);
+          // If the Rx soft-buffer is not given, abort reception
+          if (phy_ul_sched_res->pusch[n].softbuffer_rx == nullptr) {
+            continue;
           }
 
+          if (sched_result.pusch[n].current_tx_nb == 0) {
+            srsran_softbuffer_rx_reset_tbs(phy_ul_sched_res->pusch[n].softbuffer_rx, sched_result.pusch[i].tbs * 8);
+          }
+          phy_ul_sched_res->pusch[n].data =
+              ue_db[rnti]->request_buffer(tti_tx_ul, sched_result.pusch[i].dci.ue_cc_idx, sched_result.pusch[i].tbs);
+          if (phy_ul_sched_res->pusch[n].data) {
+            phy_ul_sched_res->nof_grants++;
+          } else {
+            logger.error("Grant for rnti=0x%x could not be allocated due to lack of buffers", rnti);
+          }
+          n++;
         } else {
-          logger.warning("Grant %d for rnti=0x%x has zero TBS", i, sched_result.pusch[i].dci.rnti);
+          logger.warning("Invalid UL scheduling result. User 0x%x does not exist", rnti);
         }
-      }
 
-      // No more uses of ue_db beyond here
+      } else {
+        logger.warning("Grant %d for rnti=0x%x has zero TBS", i, sched_result.pusch[i].dci.rnti);
+      }
     }
 
     // Copy PHICH actions
@@ -1023,6 +1023,7 @@ void mac::write_mcch(const srsran::sib2_mbms_t* sib2_,
                      const uint8_t*             mcch_payload,
                      const uint8_t              mcch_payload_length)
 {
+  srsran::rwlock_write_guard lock(rwlock);
   mcch               = *mcch_;
   mch.num_mtch_sched = this->mcch.pmch_info_list[0].nof_mbms_session_info;
   for (uint32_t i = 0; i < mch.num_mtch_sched; ++i) {
@@ -1038,6 +1039,7 @@ void mac::write_mcch(const srsran::sib2_mbms_t* sib2_,
   rrc_h->add_user(SRSRAN_MRNTI, {});
 }
 
+// Internal helper function, caller must hold UE DB rwlock
 bool mac::check_ue_exists(uint16_t rnti)
 {
   if (not ue_db.contains(rnti)) {
