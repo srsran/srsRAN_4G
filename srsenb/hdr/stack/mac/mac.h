@@ -92,8 +92,6 @@ public:
   /* Handover-related */
   uint16_t reserve_new_crnti(const sched_interface::ue_cfg_t& ue_cfg) override;
 
-  bool process_pdus();
-
   void get_metrics(mac_metrics_t& metrics);
 
   void toggle_padding();

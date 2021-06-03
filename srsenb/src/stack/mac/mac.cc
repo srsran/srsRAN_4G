@@ -32,6 +32,7 @@ mac::mac(srsran::ext_task_sched_handle task_sched_, srslog::basic_logger& logger
   logger(logger), rar_payload(), common_buffers(SRSRAN_MAX_CARRIERS), task_sched(task_sched_)
 {
   pthread_rwlock_init(&rwlock, nullptr);
+  stack_task_queue = task_sched.make_task_queue();
 }
 
 mac::~mac()
@@ -57,8 +58,6 @@ bool mac::init(const mac_args_t&        args_,
 
   args  = args_;
   cells = cells_;
-
-  stack_task_queue = task_sched.make_task_queue();
 
   scheduler.init(rrc, args.sched);
 
@@ -364,14 +363,24 @@ int mac::push_pdu(uint32_t tti_rx,
   }
   uint32_t ue_cc_idx = enb_ue_cc_map[enb_cc_idx];
 
+  srsran::unique_byte_buffer_t pdu = ue_db[rnti]->release_pdu(tti_rx, ue_cc_idx, nof_bytes);
+  if (pdu == nullptr) {
+    logger.warning("Could not find MAC UL PDU for rnti=0x%x, cc=%d, tti=%d", rnti, enb_cc_idx, tti_rx);
+    return SRSRAN_ERROR;
+  }
+
   // push the pdu through the queue if received correctly
   if (crc) {
     logger.info("Pushing PDU rnti=0x%x, tti_rx=%d, nof_bytes=%d", rnti, tti_rx, nof_bytes);
-    ue_db[rnti]->push_pdu(tti_rx, ue_cc_idx, nof_bytes, ul_nof_prbs);
-    stack_task_queue.push([this]() { process_pdus(); });
+    auto process_pdu_task = [this, rnti, ul_nof_prbs](srsran::unique_byte_buffer_t& pdu) {
+      srsran::rwlock_read_guard lock(rwlock);
+      if (ue_db.contains(rnti)) {
+        ue_db[rnti]->process_pdu(std::move(pdu), ul_nof_prbs);
+      }
+    };
+    auto ret = stack_task_queue.try_push(std::bind(process_pdu_task, std::move(pdu)));
   } else {
-    logger.debug("Discarting PDU rnti=0x%x, tti_rx=%d, nof_bytes=%d", rnti, tti_rx, nof_bytes);
-    ue_db[rnti]->deallocate_pdu(tti_rx, ue_cc_idx);
+    logger.debug("Discarding PDU rnti=0x%x, tti_rx=%d, nof_bytes=%d", rnti, tti_rx, nof_bytes);
   }
   return SRSRAN_SUCCESS;
 }
@@ -1005,16 +1014,6 @@ int mac::get_ul_sched(uint32_t tti_tx_ul, ul_sched_list_t& ul_sched_res_list)
     u.second->clear_old_buffers(tti_tx_ul);
   }
   return SRSRAN_SUCCESS;
-}
-
-bool mac::process_pdus()
-{
-  srsran::rwlock_read_guard lock(rwlock);
-  bool                      ret = false;
-  for (auto& u : ue_db) {
-    ret |= u.second->process_pdus();
-  }
-  return ret;
 }
 
 void mac::write_mcch(const srsran::sib2_mbms_t* sib2_,
