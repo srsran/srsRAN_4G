@@ -377,15 +377,6 @@ int srsran_pdcch_decode_msg(srsran_pdcch_t* q, srsran_dl_sf_cfg_t* sf, srsran_dc
       uint32_t nof_bits = srsran_dci_format_sizeof(&q->cell, sf, dci_cfg, msg->format);
       uint32_t e_bits   = PDCCH_FORMAT_NOF_BITS(msg->location.L);
 
-      // Set threshold to 2/3 of absolute LLRs maximum for this candidate if bigger than 0.3. Otherwise set the
-      // threshold to 0.3.
-      uint32_t max_i = srsran_vec_max_abs_fi(&q->llr[msg->location.ncce * 72], e_bits);
-      if (max_i >= e_bits) {
-        ERROR("The impossible happened %d>=%d", max_i, e_bits);
-        return SRSRAN_ERROR;
-      }
-      double threshold = SRSRAN_MAX(0.3f, (2.0 / 3.0) * fabsf(q->llr[msg->location.ncce * 72 + max_i]));
-
       // Compute absolute mean of the LLRs
       double mean = 0;
       for (int i = 0; i < e_bits; i++) {
@@ -393,7 +384,7 @@ int srsran_pdcch_decode_msg(srsran_pdcch_t* q, srsran_dl_sf_cfg_t* sf, srsran_dc
       }
       mean /= e_bits;
 
-      if (mean > threshold) {
+      if (mean > 0.3f) {
         ret = srsran_pdcch_dci_decode(q, &q->llr[msg->location.ncce * 72], msg->payload, e_bits, nof_bits, &msg->rnti);
         if (ret == SRSRAN_SUCCESS) {
           msg->nof_bits = nof_bits;
@@ -412,12 +403,7 @@ int srsran_pdcch_decode_msg(srsran_pdcch_t* q, srsran_dl_sf_cfg_t* sf, srsran_dc
              mean,
              msg->rnti);
       } else {
-        INFO("Skipping DCI:  nCCE=%d, L=%d, msg_len=%d, mean=%f, thr=%f",
-             msg->location.ncce,
-             msg->location.L,
-             nof_bits,
-             mean,
-             threshold);
+        INFO("Skipping DCI:  nCCE=%d, L=%d, msg_len=%d, mean=%f", msg->location.ncce, msg->location.L, nof_bits, mean);
       }
     }
   } else if (msg != NULL) {
