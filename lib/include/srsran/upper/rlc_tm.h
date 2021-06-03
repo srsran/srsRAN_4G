@@ -66,7 +66,7 @@ private:
   srsue::pdcp_interface_rlc* pdcp = nullptr;
   srsue::rrc_interface_rlc*  rrc  = nullptr;
 
-  bool tx_enabled = true;
+  std::atomic<bool> tx_enabled = {true};
 
   rlc_bearer_metrics_t metrics = {};
 
