@@ -171,7 +171,9 @@ private:
     }
     if (last_phr < 0) {
       // negative PHR
-      encode_tpc_delta(-1);
+      logger.info(
+          "TPC: rnti=0x%x, %s command=-1 due to PHR=%d < 0", rnti, cc == PUSCH_CODE ? "PUSCH" : "PUCCH", last_phr);
+      return encode_tpc_delta(-1);
     }
     if ((tti_count - ch_snr.last_tpc_tti_count) < min_tpc_tti_interval) {
       // more time required before sending next TPC
