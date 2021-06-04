@@ -47,17 +47,17 @@ protected:
 
   enum ack_t { NACK, ACK };
 
-  srslog::basic_logger*           logger;
-  bool                            ack_state[SRSRAN_MAX_TB];
-  bool                            active[SRSRAN_MAX_TB];
-  std::array<bool, SRSRAN_MAX_TB> ndi = {};
-  uint32_t                        id;
-  uint32_t                        max_retx = 5;
-  uint32_t                        n_rtx[SRSRAN_MAX_TB];
-  uint32_t                        tx_cnt[SRSRAN_MAX_TB];
-  srsran::tti_point               tti;
-  int                             last_mcs[SRSRAN_MAX_TB];
-  int                             last_tbs[SRSRAN_MAX_TB];
+  srslog::basic_logger*               logger    = nullptr;
+  std::array<bool, SRSRAN_MAX_TB>     ack_state = {};
+  std::array<bool, SRSRAN_MAX_TB>     active    = {};
+  std::array<bool, SRSRAN_MAX_TB>     ndi       = {};
+  uint32_t                            id        = 0;
+  uint32_t                            max_retx  = 5;
+  std::array<uint32_t, SRSRAN_MAX_TB> n_rtx     = {};
+  std::array<uint32_t, SRSRAN_MAX_TB> tx_cnt    = {};
+  std::array<int, SRSRAN_MAX_TB>      last_mcs  = {};
+  std::array<int, SRSRAN_MAX_TB>      last_tbs  = {};
+  srsran::tti_point                   tti;
 };
 
 class dl_harq_proc : public harq_proc
