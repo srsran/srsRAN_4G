@@ -138,10 +138,14 @@ bool gtpu_tunnel_manager::update_rnti(uint16_t old_rnti, uint16_t new_rnti)
   srsran::bounded_vector<uint32_t, MAX_TUNNELS_PER_UE> to_remove;
   for (lcid_tunnel& bearer : new_rnti_obj) {
     tunnels[bearer.teid].rnti = new_rnti;
+    // Remove forwarding path
     if (tunnels[bearer.teid].state == tunnel_state::forward_to) {
-      // Remove forwarding path
       tunnels[bearer.teid].state      = tunnel_state::pdcp_active;
       tunnels[bearer.teid].fwd_tunnel = nullptr;
+      logger.info("Taking down forwarding tunnel for rnti=0x%x, lcid=%d. New default " TEID_IN_FMT,
+                  new_rnti,
+                  bearer.lcid,
+                  bearer.teid);
     } else if (tunnels[bearer.teid].state == tunnel_state::forwarded_from) {
       to_remove.push_back(bearer.teid);
     }
@@ -537,9 +541,18 @@ void gtpu::rem_tunnel(uint32_t teidin)
 
 void gtpu::rem_user(uint16_t rnti)
 {
-  if (tunnels.find_rnti_tunnels(rnti) == nullptr) {
+  const auto* tun_lst = tunnels.find_rnti_tunnels(rnti);
+  if (tun_lst == nullptr) {
     logger.info("Removing user - rnti=0x%x not found.", rnti);
     return;
+  }
+  for (gtpu_tunnel_manager::lcid_tunnel tun_elem : *tun_lst) {
+    const gtpu_tunnel* tun = tunnels.find_tunnel(tun_elem.teid);
+    if (tun != nullptr and tun->state == gtpu_tunnel_manager::tunnel_state::forwarded_from) {
+      // In case of forwarding tunnel tx endpoint, send one extra End Marker on removal
+      send_end_marker(tun->teid_in);
+      rem_tunnel(tun->teid_in);
+    }
   }
   tunnels.remove_rnti(rnti);
 }
@@ -553,6 +566,7 @@ void gtpu::handle_end_marker(const gtpu_tunnel& rx_tunnel)
     // TS 36.300, Sec 10.1.2.2.1 - Path Switch upon handover
     // END MARKER should be forwarded to TeNB if forwarding is activated
     send_end_marker(rx_tunnel.fwd_tunnel->teid_in);
+    rem_tunnel(rx_tunnel.fwd_tunnel->teid_in);
   }
 
   // Remove tunnel that received End Marker
