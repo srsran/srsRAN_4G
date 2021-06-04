@@ -142,6 +142,8 @@ public:
   uint32_t set_ta_us(float ta_us) { return ta_fsm.push_value(ta_us); };
   void     tic();
   void     trigger_padding(int lcid);
+  void     set_active(bool active) { active_state.store(active, std::memory_order_relaxed); }
+  bool     is_active() const { return active_state.load(std::memory_order_relaxed); }
 
   uint8_t* generate_pdu(uint32_t                              ue_cc_idx,
                         uint32_t                              harq_pid,
@@ -188,6 +190,8 @@ private:
   uint16_t              rnti         = 0;
   uint32_t              last_tti     = 0;
   uint32_t              nof_failures = 0;
+
+  std::atomic<bool> active_state{true};
 
   uint32_t         phr_counter    = 0;
   uint32_t         dl_cqi_counter = 0;
