@@ -440,8 +440,16 @@ static int dci_blind_search(srsran_ue_dl_t*     q,
           return SRSRAN_ERROR;
         }
 
+        // Check if RNTI is matched
         if ((dci_msg[nof_dci].rnti == rnti) && (dci_msg[nof_dci].nof_bits > 0)) {
-          dci_msg[nof_dci].rnti = rnti;
+          // Compute decoded message correlation to drastically reduce false alarm probability
+          float corr = srsran_pdcch_msg_corr(&q->pdcch, &dci_msg[nof_dci]);
+
+          // Skip candidate if the threshold is not reached
+          // 0.5 is set from pdcch_test
+          if (!isnormal(corr) || corr < 0.5f) {
+            continue;
+          }
 
           // Look for the messages found and apply the new format if the location is common
           if (search_in_common && (dci_cfg->multiple_csi_request_enabled || dci_cfg->srs_request_enabled)) {
