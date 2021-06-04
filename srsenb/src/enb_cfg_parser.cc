@@ -399,60 +399,58 @@ int phr_cnfg_parser::parse(libconfig::Setting& root)
 
 int field_srb::parse(libconfig::Setting& root)
 {
-  libconfig::Setting& q = root[0];
-
   // Parse RLC AM section
   rlc_cfg_c* rlc_cfg = &cfg.set_explicit_value();
-  if (q["rlc_config"].exists("ul_am") && q["rlc_config"].exists("dl_am")) {
+  if (root.exists("ul_am") && root.exists("dl_am")) {
     rlc_cfg->set_am();
   }
 
   // RLC-UM Should not exist section
-  if (q["rlc_config"].exists("ul_um") || q["rlc_config"].exists("dl_um")) {
+  if (root.exists("ul_um") || root.exists("dl_um")) {
     ERROR("Error SRBs must be AM.");
     return SRSRAN_ERROR;
   }
 
   // Parse RLC-AM section
-  if (q["rlc_config"].exists("ul_am")) {
+  if (root.exists("ul_am")) {
     ul_am_rlc_s* am_rlc = &rlc_cfg->am().ul_am_rlc;
 
     field_asn1_enum_number<t_poll_retx_e> t_poll_retx("t_poll_retx", &am_rlc->t_poll_retx);
-    if (t_poll_retx.parse(q["rlc_config"]["ul_am"])) {
+    if (t_poll_retx.parse(root["ul_am"])) {
       ERROR("Error can't find t_poll_retx in section ul_am");
       return SRSRAN_ERROR;
     }
 
     field_asn1_enum_number<poll_pdu_e> poll_pdu("poll_pdu", &am_rlc->poll_pdu);
-    if (poll_pdu.parse(q["rlc_config"]["ul_am"])) {
+    if (poll_pdu.parse(root["ul_am"])) {
       ERROR("Error can't find poll_pdu in section ul_am");
       return SRSRAN_ERROR;
     }
 
     field_asn1_enum_number<poll_byte_e> poll_byte("poll_byte", &am_rlc->poll_byte);
-    if (poll_byte.parse(q["rlc_config"]["ul_am"])) {
+    if (poll_byte.parse(root["ul_am"])) {
       ERROR("Error can't find poll_byte in section ul_am");
       return SRSRAN_ERROR;
     }
 
     field_asn1_enum_number<ul_am_rlc_s::max_retx_thres_e_> max_retx_thresh("max_retx_thresh", &am_rlc->max_retx_thres);
-    if (max_retx_thresh.parse(q["rlc_config"]["ul_am"])) {
+    if (max_retx_thresh.parse(root["ul_am"])) {
       ERROR("Error can't find max_retx_thresh in section ul_am");
       return SRSRAN_ERROR;
     }
   }
 
-  if (q["rlc_config"].exists("dl_am")) {
+  if (root.exists("dl_am")) {
     dl_am_rlc_s* am_rlc = &rlc_cfg->am().dl_am_rlc;
 
     field_asn1_enum_number<t_reordering_e> t_reordering("t_reordering", &am_rlc->t_reordering);
-    if (t_reordering.parse(q["rlc_config"]["dl_am"])) {
+    if (t_reordering.parse(root["dl_am"])) {
       ERROR("Error can't find t_reordering in section dl_am");
       return SRSRAN_ERROR;
     }
 
     field_asn1_enum_number<t_status_prohibit_e> t_status_prohibit("t_status_prohibit", &am_rlc->t_status_prohibit);
-    if (t_status_prohibit.parse(q["rlc_config"]["dl_am"])) {
+    if (t_status_prohibit.parse(root["dl_am"])) {
       ERROR("Error can't find t_status_prohibit in section dl_am");
       return SRSRAN_ERROR;
     }
@@ -1730,12 +1728,18 @@ int parse_drb(all_args_t* args_, rrc_cfg_t* rrc_cfg_)
   parser::section srb1("srb1_config");
   bool            srb1_present = false;
   srb1.set_optional(&srb1_present);
-  srb1.add_field(new field_srb(rrc_cfg_->srb1_cfg));
+
+  parser::section srb1_rlc_cfg("rlc_config");
+  srb1.add_subsection(&srb1_rlc_cfg);
+  srb1_rlc_cfg.add_field(new field_srb(rrc_cfg_->srb1_cfg));
 
   parser::section srb2("srb2_config");
   bool            srb2_present = false;
   srb2.set_optional(&srb2_present);
-  srb2.add_field(new field_srb(rrc_cfg_->srb2_cfg));
+
+  parser::section srb2_rlc_cfg("rlc_config");
+  srb2.add_subsection(&srb2_rlc_cfg);
+  srb2_rlc_cfg.add_field(new field_srb(rrc_cfg_->srb2_cfg));
 
   parser::section qci("qci_config");
   qci.add_field(new field_qci(rrc_cfg_->qci_cfg));
