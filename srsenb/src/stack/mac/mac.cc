@@ -363,7 +363,7 @@ int mac::push_pdu(uint32_t tti_rx,
   }
   uint32_t ue_cc_idx = enb_ue_cc_map[enb_cc_idx];
 
-  srsran::unique_byte_buffer_t pdu = ue_db[rnti]->release_pdu(tti_rx, ue_cc_idx, nof_bytes);
+  srsran::unique_byte_buffer_t pdu = ue_db[rnti]->release_pdu(tti_rx, ue_cc_idx);
   if (pdu == nullptr) {
     logger.warning("Could not find MAC UL PDU for rnti=0x%x, cc=%d, tti=%d", rnti, enb_cc_idx, tti_rx);
     return SRSRAN_ERROR;
@@ -372,6 +372,12 @@ int mac::push_pdu(uint32_t tti_rx,
   // push the pdu through the queue if received correctly
   if (crc) {
     logger.info("Pushing PDU rnti=0x%x, tti_rx=%d, nof_bytes=%d", rnti, tti_rx, nof_bytes);
+    srsran_expect(nof_bytes == pdu->size(),
+                  "Inconsistent PDU length for rnti=0x%x, tti_rx=%d (%d!=%d)",
+                  rnti,
+                  tti_rx,
+                  nof_bytes,
+                  (int)pdu->size());
     auto process_pdu_task = [this, rnti, ul_nof_prbs](srsran::unique_byte_buffer_t& pdu) {
       srsran::rwlock_read_guard lock(rwlock);
       if (ue_db.contains(rnti)) {
@@ -830,7 +836,7 @@ void mac::build_mch_sched(uint32_t tbs)
 int mac::get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res_list)
 {
   srsran::rwlock_read_guard lock(rwlock);
-  dl_sched_t* dl_sched_res = &dl_sched_res_list[0];
+  dl_sched_t*               dl_sched_res = &dl_sched_res_list[0];
   logger.set_context(tti);
   srsran_ra_tb_t mcs      = {};
   srsran_ra_tb_t mcs_data = {};

@@ -69,7 +69,7 @@ cc_used_buffers_map::~cc_used_buffers_map()
   clear();
 }
 
-srsran::unique_byte_buffer_t cc_used_buffers_map::release_pdu(tti_point tti, uint32_t len)
+srsran::unique_byte_buffer_t cc_used_buffers_map::release_pdu(tti_point tti)
 {
   if (not has_tti(tti)) {
     return nullptr;
@@ -77,7 +77,6 @@ srsran::unique_byte_buffer_t cc_used_buffers_map::release_pdu(tti_point tti, uin
 
   // Extract PDU from PDU map
   srsran::unique_byte_buffer_t pdu = std::move(pdu_map[tti.to_uint()]);
-  srsran_expect(pdu->size() == len, "UL buffers: Inconsistent UL PDU length for tti=%d", tti.to_uint());
 
   // clear entry in map
   pdu_map.erase(tti.to_uint());
@@ -378,10 +377,10 @@ void ue::process_pdu(srsran::unique_byte_buffer_t pdu, uint32_t grant_nof_prbs)
   logger.debug("MAC PDU processed");
 }
 
-srsran::unique_byte_buffer_t ue::release_pdu(uint32_t tti, uint32_t ue_cc_idx, uint32_t len)
+srsran::unique_byte_buffer_t ue::release_pdu(uint32_t tti, uint32_t ue_cc_idx)
 {
   std::lock_guard<std::mutex> lock(rx_buffers_mutex);
-  return cc_buffers[ue_cc_idx].get_rx_used_buffers().release_pdu(tti_point(tti), len);
+  return cc_buffers[ue_cc_idx].get_rx_used_buffers().release_pdu(tti_point(tti));
 }
 
 bool ue::process_ce(srsran::sch_subh* subh, uint32_t grant_nof_prbs)

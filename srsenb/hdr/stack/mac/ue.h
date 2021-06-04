@@ -71,7 +71,7 @@ public:
 
   uint8_t* request_pdu(tti_point tti, uint32_t len);
 
-  srsran::unique_byte_buffer_t release_pdu(tti_point tti, uint32_t len);
+  srsran::unique_byte_buffer_t release_pdu(tti_point tti);
 
   void clear_old_pdus(tti_point current_tti);
 
@@ -157,7 +157,7 @@ public:
 
   uint8_t*                     request_buffer(uint32_t tti, uint32_t ue_cc_idx, const uint32_t len);
   void                         process_pdu(srsran::unique_byte_buffer_t pdu, uint32_t grant_nof_prbs);
-  srsran::unique_byte_buffer_t release_pdu(uint32_t tti, uint32_t ue_cc_idx, uint32_t len);
+  srsran::unique_byte_buffer_t release_pdu(uint32_t tti, uint32_t ue_cc_idx);
   void                         clear_old_buffers(uint32_t tti);
 
   void metrics_read(mac_ue_metrics_t* metrics_);
