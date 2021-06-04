@@ -198,19 +198,20 @@ add_lte_test(phich_test_104 phich_test -p 4 -n 10 -e -l -g 1/2)
 add_executable(pdcch_test pdcch_test.c)
 target_link_libraries(pdcch_test srsran_phy)
 
-add_lte_test(pdcch_test_6 pdcch_test -n 6)
-add_lte_test(pdcch_test_15 pdcch_test -n 15)
-add_lte_test(pdcch_test_25 pdcch_test -n 25)
-add_lte_test(pdcch_test_50 pdcch_test -n 50)
-add_lte_test(pdcch_test_75 pdcch_test -n 75)
-add_lte_test(pdcch_test_100 pdcch_test -n 100)
-add_lte_test(pdcch_test_6_mimo pdcch_test -n 6 -p 2)
-add_lte_test(pdcch_test_15_mimo pdcch_test -n 15 -p 2)
-add_lte_test(pdcch_test_25_mimo pdcch_test -n 25 -p 2)
-add_lte_test(pdcch_test_50_mimo pdcch_test -n 50 -p 2)
-add_lte_test(pdcch_test_75_mimo pdcch_test -n 75 -p 2)
-add_lte_test(pdcch_test_100_mimo pdcch_test -n 100 -p 2)
-#add_lte_test(pdcch_test_crosscarrier pdcch_test -x)
+foreach (nof_prb 6 15 25 50 75 100)
+    foreach (nof_ports 1 2)
+        foreach (cfi 1 2 3)
+            foreach (snr auto 15 300)
+                set(pdcch_test_args "")
+                set(pdcch_test_args -n ${nof_prb} -p ${nof_ports} -f ${cfi} -S ${snr} -R 1 -F)
+
+                string(REGEX REPLACE "\ " "" test_name_args ${pdcch_test_args})
+
+                add_lte_test(pdcch_test${test_name_args} pdcch_test ${pdcch_test_args})
+            endforeach ()
+        endforeach ()
+    endforeach ()
+endforeach ()
 
 ########################################################################
 # PDSCH TEST

@@ -19,25 +19,25 @@
 #include "srsran/srsran.h"
 
 // Test parameters
-static uint32_t         pci       = 1;
-static uint16_t         rnti      = 0x46;
-static uint32_t         cfi       = 1;
-static uint32_t         nof_ports = 1;
+static uint32_t         pci         = 1;
+static uint16_t         rnti        = 0x46;
+static uint32_t         cfi         = 2;
+static uint32_t         nof_ports   = 1;
 static srsran_dci_cfg_t dci_cfg     = {};
 static uint32_t         nof_prb     = 100;
-static float            snr_dB      = 20.0f;
+static float            snr_dB      = NAN;
 static uint32_t         repetitions = 1;
 static bool             false_check = false;
 
 // Test objects
-static srsran_random_t       random_gen   = NULL;
-static srsran_pdcch_t        pdcch_tx     = {};
-static srsran_pdcch_t        pdcch_rx     = {};
-static srsran_chest_dl_res_t chest_dl_res = {};
-static srsran_channel_awgn_t awgn         = {};
-static cf_t*                 slot_symbols[SRSRAN_MAX_PORTS];
+static srsran_random_t       random_gen                     = NULL;
+static srsran_pdcch_t        pdcch_tx                       = {};
+static srsran_pdcch_t        pdcch_rx                       = {};
+static srsran_chest_dl_res_t chest_dl_res                   = {};
+static srsran_channel_awgn_t awgn                           = {};
+static cf_t*                 slot_symbols[SRSRAN_MAX_PORTS] = {};
 
-void usage(char* prog)
+static void usage(char* prog)
 {
   printf("Usage: %s [pfncxv]\n", prog);
   printf("\t-c cell id [Default %d]\n", pci);
@@ -45,13 +45,16 @@ void usage(char* prog)
   printf("\t-p cell.nof_ports [Default %d]\n", nof_ports);
   printf("\t-n cell.nof_prb [Default %d]\n", nof_prb);
   printf("\t-x Enable/Disable Cross-scheduling [Default %s]\n", dci_cfg.cif_enabled ? "enabled" : "disabled");
+  printf("\t-F False detection check [Default %s]\n", false_check ? "enabled" : "disabled");
+  printf("\t-R Repetitions [Default %d]\n", repetitions);
+  printf("\t-S SNR in dB [Default %+.1f]\n", snr_dB);
   printf("\t-v [set srsran_verbose to debug, default none]\n");
 }
 
-void parse_args(int argc, char** argv)
+static void parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "pfncxv")) != -1) {
+  while ((opt = getopt(argc, argv, "pfncxvFRS")) != -1) {
     switch (opt) {
       case 'p':
         nof_ports = (uint32_t)strtol(argv[optind], NULL, 10);
@@ -66,7 +69,16 @@ void parse_args(int argc, char** argv)
         pci = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'x':
-        dci_cfg.cif_enabled ^= true;
+        dci_cfg.cif_enabled = !dci_cfg.cif_enabled;
+        break;
+      case 'F':
+        false_check = !false_check;
+        break;
+      case 'R':
+        repetitions = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'S':
+        snr_dB = (float)strtof(argv[optind], NULL);
         break;
       case 'v':
         srsran_verbose++;
@@ -76,6 +88,17 @@ void parse_args(int argc, char** argv)
         exit(-1);
     }
   }
+  printf("params - pci=%d; rnti=0x%04x; cfi=%d; nof_ports=%d; cif_enabled=%d; nof_prb=%d; snr_db=%+.1f; "
+         "repetitions=%d; false_check=%d;\n",
+         pci,
+         rnti,
+         cfi,
+         nof_ports,
+         dci_cfg.cif_enabled,
+         nof_prb,
+         snr_dB,
+         repetitions,
+         false_check);
 }
 
 static void print_dci_msg(const char* desc, const srsran_dci_msg_t* dci_msg)
@@ -142,19 +165,32 @@ static const srsran_dci_format_t formats[] = {SRSRAN_DCI_FORMAT0,
                                               SRSRAN_DCI_FORMAT2,
                                               SRSRAN_DCI_NOF_FORMATS};
 
+static float get_snr_dB(uint32_t L)
+{
+  static const float snr_table_dB[4] = {15.0f, 6.0f, 5.0f, 0.0f};
+
+  if (isnormal(snr_dB) && L < 4) {
+    return snr_dB;
+  }
+
+  return snr_table_dB[L];
+}
+
 static int test_case1()
 {
-  uint32_t       nof_re         = SRSRAN_NOF_RE(pdcch_tx.cell);
-  struct timeval t[3]           = {};
-  uint64_t       t_encode_us    = 0;
-  uint64_t       t_encode_count = 0;
-  uint64_t       t_llr_us       = 0;
-  uint64_t       t_decode_us    = 0;
-  uint64_t       t_decode_count = 0;
+  uint32_t nof_re = SRSRAN_NOF_RE(pdcch_tx.cell);
 
   // Iterate all possible subframes
   for (uint32_t f_idx = 0; formats[f_idx] != SRSRAN_DCI_NOF_FORMATS; f_idx++) {
-    srsran_dci_format_t format = formats[f_idx];
+    srsran_dci_format_t format                 = formats[f_idx];
+    struct timeval      t[3]                   = {};
+    uint64_t            t_encode_us            = 0;
+    uint64_t            t_encode_count         = 0;
+    uint64_t            t_llr_us               = 0;
+    uint64_t            t_decode_us            = 0;
+    uint64_t            t_decode_count         = 0;
+    uint32_t            false_alarm_corr_count = 0;
+    float               min_corr               = INFINITY;
 
     for (uint32_t sf_idx = 0; sf_idx < repetitions * SRSRAN_NOF_SF_X_FRAME; sf_idx++) {
       srsran_dl_sf_cfg_t dl_sf_cfg = {};
@@ -196,6 +232,11 @@ static int test_case1()
         t_encode_us += (size_t)(t[0].tv_sec * 1e6 + t[0].tv_usec);
         t_encode_count++;
 
+        // Set noise level according to aggregation level
+        float n0_dB = -get_snr_dB(locations[loc].L);
+        TESTASSERT(srsran_channel_awgn_set_n0(&awgn, n0_dB) == SRSRAN_SUCCESS);
+        chest_dl_res.noise_estimate = srsran_convert_dB_to_power(n0_dB);
+
         // Apply AWGN
         for (uint32_t p = 0; p < nof_ports; p++) {
           srsran_channel_awgn_run_c(&awgn, slot_symbols[p], slot_symbols[p], nof_re);
@@ -210,7 +251,10 @@ static int test_case1()
 
         // Try decoding the PDCCH in all possible locations
         for (uint32_t loc_rx = 0; loc_rx < locations_count; loc_rx++) {
-          if (!false_check && loc_rx != loc) {
+          // Skip location if:
+          // - False check is disabled and Tx/Rx dont match
+          // - Tx aggregation level is bigger than Rx aggregation level
+          if ((!false_check && loc_rx != loc) || locations[loc_rx].L < locations[loc].L) {
             continue;
           }
 
@@ -227,16 +271,42 @@ static int test_case1()
           t_decode_us += (size_t)(t[0].tv_sec * 1e6 + t[0].tv_usec);
           t_decode_count++;
 
+          // Compute LLR correlation
+          float corr = srsran_pdcch_msg_corr(&pdcch_rx, &dci_rx);
+
           bool rnti_match     = (dci_tx.rnti == dci_rx.rnti);
           bool location_match = (loc == loc_rx);
           bool payload_match  = (memcmp(dci_tx.payload, dci_rx.payload, dci_tx.nof_bits) == 0);
+          bool corr_thr       = corr > 0.5f;
 
           // Skip location if the decoding is not successful in a different location than transmitted
           if (!location_match && !rnti_match) {
             continue;
           }
 
+          // Skip location if the correlation does not surpass the threshold
+          if (!location_match && !corr_thr) {
+            false_alarm_corr_count++;
+            continue;
+          }
+
+          // Assert correlation only if location matches
+          if (location_match) {
+            TESTASSERT(corr_thr);
+            if (location_match && corr < min_corr) {
+              min_corr = corr;
+            }
+          }
+
           if (srsran_verbose >= SRSRAN_VERBOSE_INFO || !payload_match) {
+            // If payload is not match and there is no logging, set logging to info and run the decoder again
+            if (srsran_verbose < SRSRAN_VERBOSE_INFO) {
+              printf("-- Detected payload was not matched, repeating decode with INFO logs (n0: %+.1f dB, corr: %f)\n",
+                     n0_dB,
+                     corr);
+              srsran_verbose = SRSRAN_VERBOSE_INFO;
+              srsran_pdcch_decode_msg(&pdcch_rx, &dl_sf_cfg, &dci_cfg, &dci_rx);
+            }
             print_dci_msg("Tx: ", &dci_tx);
             print_dci_msg("Rx: ", &dci_rx);
           }
@@ -246,12 +316,16 @@ static int test_case1()
         }
       }
     }
-  }
 
-  printf("test_case_1 - %.1f usec/encode; %.1f usec/llr; %.1f usec/decode;\n",
-         (double)t_encode_us / (double)(t_encode_count),
-         (double)t_llr_us / (double)(t_encode_count),
-         (double)t_decode_us / (double)(t_decode_count));
+    printf("test_case_1 - format %s - passed - %.1f usec/encode; %.1f usec/llr; %.1f usec/decode; min_corr=%f; "
+           "false_alarm_prob=%f;\n",
+           srsran_dci_format_string(format),
+           (double)t_encode_us / (double)(t_encode_count),
+           (double)t_llr_us / (double)(t_encode_count),
+           (double)t_decode_us / (double)(t_decode_count),
+           min_corr,
+           (double)false_alarm_corr_count / (double)t_decode_count);
+  }
 
   return SRSRAN_SUCCESS;
 }
@@ -316,11 +390,6 @@ int main(int argc, char** argv)
 
   if (srsran_channel_awgn_init(&awgn, 0x1234) < SRSRAN_SUCCESS) {
     ERROR("Error init AWGN");
-    goto quit;
-  }
-
-  if (srsran_channel_awgn_set_n0(&awgn, -snr_dB) < SRSRAN_SUCCESS) {
-    ERROR("Error setting n0");
     goto quit;
   }
 

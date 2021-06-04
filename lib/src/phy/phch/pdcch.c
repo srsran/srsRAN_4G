@@ -10,6 +10,7 @@
  *
  */
 
+#include <complex.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -410,6 +411,27 @@ int srsran_pdcch_decode_msg(srsran_pdcch_t* q, srsran_dl_sf_cfg_t* sf, srsran_dc
     ERROR("Invalid parameters, location=%d,%d", msg->location.ncce, msg->location.L);
   }
   return ret;
+}
+
+float srsran_pdcch_msg_corr(srsran_pdcch_t* q, srsran_dci_msg_t* msg)
+{
+  if (q == NULL || msg == NULL) {
+    return 0.0f;
+  }
+
+  uint32_t E       = PDCCH_FORMAT_NOF_BITS(msg->location.L);
+  uint32_t nof_llr = E / 2;
+
+  // Encode same decoded message and compute correlation
+  srsran_pdcch_dci_encode(q, msg->payload, q->e, msg->nof_bits, E, msg->rnti);
+
+  // Modulate
+  srsran_mod_modulate(&q->mod, q->e, q->d, E);
+
+  // Correlate
+  cf_t corr = srsran_vec_dot_prod_conj_ccc((cf_t*)&q->llr[msg->location.ncce * 72], q->d, nof_llr);
+
+  return cabsf(corr / nof_llr) * (float)M_SQRT1_2;
 }
 
 /** Performs PDCCH receiver processing to extract LLR for all control region. LLR bits are stored in srsran_pdcch_t
