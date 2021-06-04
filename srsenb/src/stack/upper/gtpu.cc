@@ -134,9 +134,21 @@ bool gtpu_tunnel_manager::update_rnti(uint16_t old_rnti, uint16_t new_rnti)
     return false;
   }
   std::swap(ue_teidin_db[new_rnti], *old_rnti_ptr);
-  auto& new_rnti_obj = ue_teidin_db[new_rnti];
+  ue_lcid_tunnel_list&                                 new_rnti_obj = ue_teidin_db[new_rnti];
+  srsran::bounded_vector<uint32_t, MAX_TUNNELS_PER_UE> to_remove;
   for (lcid_tunnel& bearer : new_rnti_obj) {
     tunnels[bearer.teid].rnti = new_rnti;
+    if (tunnels[bearer.teid].state == tunnel_state::forward_to) {
+      // Remove forwarding path
+      tunnels[bearer.teid].state      = tunnel_state::pdcp_active;
+      tunnels[bearer.teid].fwd_tunnel = nullptr;
+    } else if (tunnels[bearer.teid].state == tunnel_state::forwarded_from) {
+      to_remove.push_back(bearer.teid);
+    }
+  }
+  while (not to_remove.empty()) {
+    remove_tunnel(to_remove.back());
+    to_remove.pop_back();
   }
 
   // Leave old_rnti as zombie to be removed later
