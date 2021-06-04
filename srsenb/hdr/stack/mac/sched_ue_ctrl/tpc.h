@@ -165,15 +165,16 @@ private:
     assert(ch_snr.pending_delta == 0); // ensure called once per {cc,tti}
 
     float target_snr_dB = cc == PUSCH_CODE ? target_pusch_snr_dB : target_pucch_snr_dB;
-    if (target_snr_dB < 0 or last_phr == 0) {
-      // undefined target sinr case, or no more PHR
-      return encode_tpc_delta(0);
-    }
-    if (last_phr < 0) {
+    if (last_phr < 0 and not ch_snr.phr_flag) {
       // negative PHR
       logger.info(
           "TPC: rnti=0x%x, %s command=-1 due to PHR=%d < 0", rnti, cc == PUSCH_CODE ? "PUSCH" : "PUCCH", last_phr);
+      ch_snr.phr_flag = true;
       return encode_tpc_delta(-1);
+    }
+    if (target_snr_dB < 0 or last_phr <= 0) {
+      // undefined target sinr case, or no more PHR
+      return encode_tpc_delta(0);
     }
     if ((tti_count - ch_snr.last_tpc_tti_count) < min_tpc_tti_interval) {
       // more time required before sending next TPC
