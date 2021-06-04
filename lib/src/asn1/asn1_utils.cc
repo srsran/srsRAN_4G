@@ -129,6 +129,11 @@ int bit_ref_impl<Ptr>::distance_bytes() const
 {
   return ((int)(ptr - start_ptr)) + ((offset) ? 1 : 0);
 }
+template <typename Ptr>
+int bit_ref_impl<Ptr>::distance_bytes_end() const
+{
+  return ((int)(max_ptr - ptr)) - ((offset) ? 1 : 0);
+}
 
 SRSASN_CODE bit_ref::pack(uint64_t val, uint32_t n_bits)
 {
