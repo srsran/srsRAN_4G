@@ -18,6 +18,7 @@
 #include "srsenb/hdr/stack/rrc/ue_rr_cfg.h"
 #include "srsran/asn1/rrc_utils.h"
 #include "srsran/common/enb_events.h"
+#include "srsran/common/srsran_assert.h"
 #include "srsran/common/standard_streams.h"
 #include "srsran/interfaces/enb_pdcp_interfaces.h"
 #include "srsran/interfaces/enb_rlc_interfaces.h"
@@ -1411,6 +1412,7 @@ void rrc::ue::apply_pdcp_drb_updates(const rr_cfg_ded_s& pending_rr_cfg)
 void rrc::ue::apply_rlc_rb_updates(const rr_cfg_ded_s& pending_rr_cfg)
 {
   for (const srb_to_add_mod_s& srb : pending_rr_cfg.srb_to_add_mod_list) {
+    srsran_assert(srb.srb_id == 1 || srb.srb_id == 2, "Trying to configure invalid SRB Id.");
     if (srb.srb_id == 1) {
       if (parent->cfg.srb1_cfg.type() == srb_to_add_mod_s::rlc_cfg_c_::types_opts::explicit_value) {
         parent->rlc->add_bearer(rnti, srb.srb_id, srsran::make_rlc_config_t(parent->cfg.srb1_cfg.explicit_value()));
@@ -1423,10 +1425,9 @@ void rrc::ue::apply_rlc_rb_updates(const rr_cfg_ded_s& pending_rr_cfg)
       } else {
         parent->rlc->add_bearer(rnti, srb.srb_id, srsran::rlc_config_t::srb_config(srb.srb_id));
       }
-    } else {
-      parent->rlc->add_bearer(rnti, srb.srb_id, srsran::rlc_config_t::srb_config(srb.srb_id));
     }
   }
+
   if (pending_rr_cfg.drb_to_release_list.size() > 0) {
     for (uint8_t drb_id : pending_rr_cfg.drb_to_release_list) {
       parent->rlc->del_bearer(rnti, drb_to_lcid((lte_drb)drb_id));
