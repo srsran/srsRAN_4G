@@ -12,14 +12,22 @@
 
 #include "srsenb/hdr/common/rnti_pool.h"
 #include "srsenb/hdr/common/common_enb.h"
+#include "srsenb/hdr/stack/mac/ue.h"
+#include "srsenb/hdr/stack/rrc/rrc_mobility.h"
+#include "srsenb/hdr/stack/rrc/rrc_ue.h"
 #include "srsran/adt/pool/circular_stack_pool.h"
+#include "srsran/upper/pdcp.h"
+#include "srsran/upper/rlc.h"
 
 namespace srsenb {
+
+const static size_t UE_MEM_BLOCK_SIZE =
+    sizeof(ue) + sizeof(rrc::ue) + sizeof(rrc::ue::rrc_mobility) + sizeof(srsran::rlc) + sizeof(srsran::pdcp);
 
 srsran::circular_stack_pool<SRSENB_MAX_UES>* get_rnti_pool()
 {
   static std::unique_ptr<srsran::circular_stack_pool<SRSENB_MAX_UES> > pool(
-      new srsran::circular_stack_pool<SRSENB_MAX_UES>(8, 32768, 4));
+      new srsran::circular_stack_pool<SRSENB_MAX_UES>(8, UE_MEM_BLOCK_SIZE, 4));
   return pool.get();
 }
 

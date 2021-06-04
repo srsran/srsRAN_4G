@@ -143,8 +143,9 @@ public:
     log_rrc_message(Tx, rnti, -1, pdu, msg, msg_type);
   }
 
-private:
   class ue;
+
+private:
   // args
   srsran::task_sched_handle task_sched;
   phy_interface_rrc_lte*    phy  = nullptr;
