@@ -165,14 +165,7 @@ private:
     assert(ch_snr.pending_delta == 0); // ensure called once per {cc,tti}
 
     float target_snr_dB = cc == PUSCH_CODE ? target_pusch_snr_dB : target_pucch_snr_dB;
-    if (last_phr < 0 and not ch_snr.phr_flag) {
-      // negative PHR
-      logger.info(
-          "TPC: rnti=0x%x, %s command=-1 due to PHR=%d < 0", rnti, cc == PUSCH_CODE ? "PUSCH" : "PUCCH", last_phr);
-      ch_snr.phr_flag = true;
-      return encode_tpc_delta(-1);
-    }
-    if (target_snr_dB < 0 or last_phr <= 0) {
+    if (target_snr_dB < 0) {
       // undefined target sinr case, or no more PHR
       return encode_tpc_delta(0);
     }
@@ -180,11 +173,19 @@ private:
       // more time required before sending next TPC
       return encode_tpc_delta(0);
     }
+    if (last_phr < 0 and not ch_snr.phr_flag) {
+      // negative PHR
+      logger.info(
+          "TPC: rnti=0x%x, %s command=-1 due to PHR=%d < 0", rnti, cc == PUSCH_CODE ? "PUSCH" : "PUCCH", last_phr);
+      ch_snr.phr_flag = true;
+      return encode_tpc_delta(-1);
+    }
 
     // target SINR is finite and there is power headroom
     float diff = target_snr_dB - ch_snr.snr_avg.value();
     diff -= ch_snr.win_tpc_values.value() + ch_snr.acc_tpc_values;
     if (diff >= 1) {
+      diff                      = std::min(diff, (float)std::max(last_phr, 0)); // low PHR places a cap on TPC
       ch_snr.pending_delta      = diff > 3 ? 3 : 1;
       ch_snr.last_tpc_tti_count = tti_count;
     } else if (diff <= -1) {
