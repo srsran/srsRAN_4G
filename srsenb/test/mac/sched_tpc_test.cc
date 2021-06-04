@@ -71,6 +71,25 @@ int test_finite_target_snr()
     TESTASSERT(sum_pucch > 0 and sum_pucch <= -snr_diff);
   }
 
+  // TEST: PHR is negative. Checks:
+  // - one TPC should be sent to decrease power. No more TPCs != 0 should be sent until the next PHR
+  snr_diff = -10;
+  tpcfsm.set_snr(target_snr + snr_diff, tpc::PUSCH_CODE);
+  tpcfsm.set_snr(target_snr + snr_diff, tpc::PUCCH_CODE);
+  for (uint32_t i = 0; i < 3; ++i) {
+    tpcfsm.set_phr(-2, 1);
+    tpcfsm.new_tti();
+    TESTASSERT(decode_tpc(tpcfsm.encode_pusch_tpc()) == -1);
+    TESTASSERT(decode_tpc(tpcfsm.encode_pucch_tpc()) == 3); // PUCCH doesnt get affected by neg PHR
+    for (uint32_t j = 0; j < 100; ++j) {
+      tpcfsm.new_tti();
+      TESTASSERT(decode_tpc(tpcfsm.encode_pusch_tpc()) == 0);
+    }
+  }
+  tpcfsm.set_phr(20, 1);
+  tpcfsm.new_tti();
+  TESTASSERT(decode_tpc(tpcfsm.encode_pusch_tpc()) == 3);
+
   return SRSRAN_SUCCESS;
 }
 

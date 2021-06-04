@@ -173,10 +173,9 @@ private:
       // more time required before sending next TPC
       return encode_tpc_delta(0);
     }
-    if (last_phr < 0 and not ch_snr.phr_flag) {
-      // negative PHR
-      logger.info(
-          "TPC: rnti=0x%x, %s command=-1 due to PHR=%d < 0", rnti, cc == PUSCH_CODE ? "PUSCH" : "PUCCH", last_phr);
+    if (cc == PUSCH_CODE and last_phr < 0 and not ch_snr.phr_flag) {
+      // if negative PHR and PUSCH
+      logger.info("TPC: rnti=0x%x, PUSCH command=0 due to PHR=%d<0", rnti, last_phr);
       ch_snr.phr_flag = true;
       return encode_tpc_delta(-1);
     }
@@ -185,8 +184,11 @@ private:
     float diff = target_snr_dB - ch_snr.snr_avg.value();
     diff -= ch_snr.win_tpc_values.value() + ch_snr.acc_tpc_values;
     if (diff >= 1) {
-      diff                      = std::min(diff, (float)std::max(last_phr, 0)); // low PHR places a cap on TPC
-      ch_snr.pending_delta      = diff > 3 ? 3 : 1;
+      ch_snr.pending_delta = diff > 3 ? 3 : 1;
+      if (cc == PUSCH_CODE and static_cast<int>(ch_snr.pending_delta) > last_phr) {
+        // cap PUSCH TPC when PHR is low
+        ch_snr.pending_delta = last_phr > 1 ? 1 : 0;
+      }
       ch_snr.last_tpc_tti_count = tti_count;
     } else if (diff <= -1) {
       ch_snr.pending_delta      = -1;
