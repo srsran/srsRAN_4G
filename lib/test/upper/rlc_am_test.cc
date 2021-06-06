@@ -79,12 +79,14 @@ public:
 
   // RRC interface
   void max_retx_attempted() { max_retx_triggered = true; }
+  void protocol_failure() { protocol_failure_triggered = true; }
 
   const char* get_rb_name(uint32_t lcid) { return ""; }
 
   std::vector<unique_byte_buffer_t> sdus;
   rlc_pcap*                         pcap               = nullptr;
   bool                              max_retx_triggered = false;
+  bool                              protocol_failure_triggered = false;
 
   std::map<uint32_t, uint32_t> notified_counts; // Map of PDCP SNs to number of notifications
 };
@@ -660,6 +662,7 @@ int segment_retx_test()
 
   // Step timers again until poll Retx timeout expires
   for (int cnt = 0; cnt < 5; cnt++) {
+    TESTASSERT(rlc1.get_buffer_state() == 0); // No status transmissions until pollRetx expires
     timers.step_all();
   }
 
@@ -3232,9 +3235,9 @@ bool status_pdu_test()
 
   TESTASSERT(0 == rlc1.get_buffer_state());
 
-  // Only pass 2nd and last PDUs to RLC2
+  // Only pass 1st and last PDUs to RLC2
   for (uint32_t i = 0; i < n_pdus; ++i) {
-    if (i == 0 || i == 2 || i == n_pdus - 1) {
+    if (i == 0 || i == n_pdus - 1) {
       rlc2.write_pdu(pdu_bufs[i].msg, pdu_bufs[i].N_bytes);
     }
   }
@@ -3297,6 +3300,73 @@ bool status_pdu_test()
   for (uint32_t i = 0; i < tester.sdus.size(); i++) {
     TESTASSERT(tester.sdus[i]->N_bytes == 1);
   }
+
+  return SRSRAN_SUCCESS;
+}
+
+// This test checks the correct handling of a sending RLC entity when an incorrect status PDU is injected.
+// In this test, the receiver requests the retransmission of a SN that he has acknowledeged before.
+// The incidence is reported to the upper layers.
+bool incorrect_status_pdu_test()
+{
+  rlc_am_tester         tester;
+  srsran::timer_handler timers(8);
+  int                   len = 0;
+
+  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am_lte rlc2(srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+
+  if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
+    return -1;
+  }
+
+  // Push 5 SDUs into RLC1
+  const uint32_t       n_sdus = 10;
+  unique_byte_buffer_t sdu_bufs[n_sdus];
+  for (uint32_t i = 0; i < n_sdus; i++) {
+    sdu_bufs[i]          = srsran::make_byte_buffer();
+    sdu_bufs[i]->N_bytes = 1; // Give each buffer a size of 1 byte
+    sdu_bufs[i]->msg[0]  = i; // Write the index into the buffer
+    rlc1.write_sdu(std::move(sdu_bufs[i]));
+  }
+
+  // Read 5 PDUs from RLC1 (1 byte each)
+  const uint32_t n_pdus = n_sdus;
+  byte_buffer_t  pdu_bufs[n_pdus];
+  for (uint32_t i = 0; i < n_pdus; i++) {
+    len                 = rlc1.read_pdu(pdu_bufs[i].msg, 3); // 2 byte header + 1 byte payload
+    pdu_bufs[i].N_bytes = len;
+  }
+
+  TESTASSERT(0 == rlc1.get_buffer_state());
+
+  // Construct a status PDU that ACKs SN 1
+  rlc_status_pdu_t status_pdu = {};
+  status_pdu.ack_sn           = 4;
+  status_pdu.N_nack           = 3;
+  status_pdu.nacks[0].nack_sn = 0;
+  status_pdu.nacks[1].nack_sn = 2;
+  TESTASSERT(rlc_am_is_valid_status_pdu(status_pdu));
+
+  // pack PDU and write to RLC
+  byte_buffer_t status_buf;
+  rlc_am_write_status_pdu(&status_pdu, &status_buf);
+  rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+
+  // This will remove SN=1 from the Tx window
+
+  TESTASSERT(tester.protocol_failure_triggered == false);
+
+  // construct a valid but conflicting status PDU that request SN=1 for retx
+  status_pdu.N_nack           = 1;
+  status_pdu.nacks[0].nack_sn = 1;
+  TESTASSERT(rlc_am_is_valid_status_pdu(status_pdu));
+
+  // pack and write to RLC again
+  rlc_am_write_status_pdu(&status_pdu, &status_buf);
+  rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+
+  TESTASSERT(tester.protocol_failure_triggered == true);
 
   return SRSRAN_SUCCESS;
 }
@@ -3688,6 +3758,11 @@ int main(int argc, char** argv)
 
   if (status_pdu_test()) {
     printf("status_pdu_test failed\n");
+    exit(-1);
+  };
+
+  if (incorrect_status_pdu_test()) {
+    printf("incorrect_status_pdu_test failed\n");
     exit(-1);
   };
 

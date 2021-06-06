@@ -46,18 +46,20 @@
 /**
  * @brief Maximum number of SSB positions in burst. Defined in TS 38.331 ServingCellConfigCommon, ssb-PositionsInBurst
  */
-#define SRSRAN_SSB_NOF_POSITION 64
+#define SRSRAN_SSB_NOF_CANDIDATES 64
 
 /**
  * @brief Describes SSB object initialization arguments
  */
 typedef struct SRSRAN_API {
-  double                      max_srate_hz;   ///< Maximum sampling rate in Hz, set to zero to use default
-  srsran_subcarrier_spacing_t min_scs;        ///< Minimum subcarrier spacing
-  bool                        enable_search;  ///< Enables PSS/SSS blind search
-  bool                        enable_measure; ///< Enables PSS/SSS CSI measurements and frequency domain search
-  bool                        enable_encode;  ///< Enables PBCH Encoder
-  bool                        enable_decode;  ///< Enables PBCH Decoder
+  double                      max_srate_hz;       ///< Maximum sampling rate in Hz, set to zero to use default
+  srsran_subcarrier_spacing_t min_scs;            ///< Minimum subcarrier spacing
+  bool                        enable_search;      ///< Enables PSS/SSS blind search
+  bool                        enable_measure;     ///< Enables PSS/SSS CSI measurements and frequency domain search
+  bool                        enable_encode;      ///< Enables PBCH Encoder
+  bool                        enable_decode;      ///< Enables PBCH Decoder
+  bool                        disable_polar_simd; ///< Disables polar encoder/decoder SIMD acceleration
+  float                       pbch_dmrs_thr;      ///< NR-PBCH DMRS threshold for blind decoding, set to 0 for default
 } srsran_ssb_args_t;
 
 /**
@@ -69,13 +71,12 @@ typedef struct SRSRAN_API {
   double                      ssb_freq_hz;    ///< SSB center frequency
   srsran_subcarrier_spacing_t scs;            ///< SSB configured Subcarrier spacing
   srsran_ssb_patern_t         pattern;        ///< SSB pattern as defined in TS 38.313 section 4.1 Cell search
-  bool position[SRSRAN_SSB_NOF_POSITION];     ///< Indicates the time domain positions of the transmitted SS-blocks
-  srsran_duplex_mode_t duplex_mode;           ///< Set to true if the spectrum is paired (FDD)
-  uint32_t             periodicity_ms;        ///< SSB periodicity in ms
-  float                beta_pss;              ////< PSS power allocation
-  float                beta_sss;              ////< SSS power allocation
-  float                beta_pbch;             ////< PBCH power allocation
-  float                beta_pbch_dmrs;        ////< PBCH DMRS power allocation
+  srsran_duplex_mode_t        duplex_mode;    ///< Set to true if the spectrum is paired (FDD)
+  uint32_t                    periodicity_ms; ///< SSB periodicity in ms
+  float                       beta_pss;       ////< PSS power allocation
+  float                       beta_sss;       ////< SSS power allocation
+  float                       beta_pbch;      ////< PBCH power allocation
+  float                       beta_pbch_dmrs; ////< PBCH DMRS power allocation
 } srsran_ssb_cfg_t;
 
 /**
@@ -86,21 +87,25 @@ typedef struct SRSRAN_API {
   srsran_ssb_cfg_t  cfg;  ///< Stores last configuration
 
   /// Sampling rate dependent parameters
-  float    scs_hz;                           ///< Subcarrier spacing in Hz
-  uint32_t max_symbol_sz;                    ///< Maximum symbol size given the minimum supported SCS and sampling rate
-  uint32_t max_corr_sz;                      ///< Maximum correlation size
-  uint32_t symbol_sz;                        ///< Current SSB symbol size (for the given base-band sampling rate)
-  uint32_t corr_sz;                          ///< Correlation size
-  uint32_t corr_window;                      ///< Correlation window length
-  int32_t  f_offset;                         ///< Current SSB integer frequency offset (multiple of SCS)
-  uint32_t t_offset;                         ///< Current SSB integer time offset (number of samples)
-  uint32_t cp_sz[SRSRAN_SSB_DURATION_NSYMB]; ///< CP length for each SSB symbol
+  float    scs_hz;        ///< Subcarrier spacing in Hz
+  uint32_t max_symbol_sz; ///< Maximum symbol size given the minimum supported SCS and sampling rate
+  uint32_t max_corr_sz;   ///< Maximum correlation size
+  uint32_t symbol_sz;     ///< Current SSB symbol size (for the given base-band sampling rate)
+  uint32_t corr_sz;       ///< Correlation size
+  uint32_t corr_window;   ///< Correlation window length
+  int32_t  f_offset;      ///< Current SSB integer frequency offset (multiple of SCS)
+  uint32_t cp_sz;         ///< CP length for the given symbol size
+
+  /// Other parameters
+  uint32_t l_first[SRSRAN_SSB_NOF_CANDIDATES]; ///< Start symbol for each SSB candidate in half radio frame
+  uint32_t Lmax;                               ///< Number of SSB candidates
 
   /// Internal Objects
   srsran_dft_plan_t ifft;      ///< IFFT object for modulating the SSB
   srsran_dft_plan_t fft;       ///< FFT object for demodulate the SSB.
   srsran_dft_plan_t fft_corr;  ///< FFT for correlation
   srsran_dft_plan_t ifft_corr; ///< IFFT for correlation
+  srsran_pbch_nr_t  pbch;      ///< PBCH encoder and decoder
 
   /// Frequency/Time domain temporal data
   cf_t* tmp_freq;                     ///< Temporal frequency domain buffer
@@ -132,10 +137,20 @@ SRSRAN_API void srsran_ssb_free(srsran_ssb_t* q);
 SRSRAN_API int srsran_ssb_set_cfg(srsran_ssb_t* q, const srsran_ssb_cfg_t* cfg);
 /**
  * @brief Decodes PBCH in the given time domain signal
+ * @note It currently expects an input buffer of half radio frame
  * @param q SSB object
+ * @param N_id Physical Cell Identifier
+ * @param ssb_idx SSB candidate index
+ * @param n_hf Number of hald radio frame, 0 or 1
+ * @param in Input baseband buffer
  * @return SRSRAN_SUCCESS if the parameters are valid, SRSRAN_ERROR code otherwise
  */
-SRSRAN_API int srsran_ssb_decode_pbch(srsran_ssb_t* q, const cf_t* in, srsran_pbch_msg_nr_t* msg);
+SRSRAN_API int srsran_ssb_decode_pbch(srsran_ssb_t*         q,
+                                      uint32_t              N_id,
+                                      uint32_t              ssb_idx,
+                                      uint32_t              n_hf,
+                                      const cf_t*           in,
+                                      srsran_pbch_msg_nr_t* msg);
 
 /**
  * @brief Decides if the SSB object is configured and a given subframe is configured for SSB transmission
@@ -149,11 +164,16 @@ SRSRAN_API bool srsran_ssb_send(srsran_ssb_t* q, uint32_t sf_idx);
  * @brief Adds SSB to a given signal in time domain
  * @param q SSB object
  * @param N_id Physical Cell Identifier
+ * @param ssb_idx SSB candidate index
  * @param msg NR PBCH message to transmit
  * @return SRSRAN_SUCCESS if the parameters are valid, SRSRAN_ERROR code otherwise
  */
-SRSRAN_API int
-srsran_ssb_add(srsran_ssb_t* q, uint32_t N_id, const srsran_pbch_msg_nr_t* msg, const cf_t* in, cf_t* out);
+SRSRAN_API int srsran_ssb_add(srsran_ssb_t*               q,
+                              uint32_t                    N_id,
+                              uint32_t                    ssb_idx,
+                              const srsran_pbch_msg_nr_t* msg,
+                              const cf_t*                 in,
+                              cf_t*                       out);
 
 /**
  * @brief Perform cell search and measurement
@@ -174,11 +194,15 @@ SRSRAN_API int srsran_ssb_csi_search(srsran_ssb_t*                  q,
  * @brief Perform Channel State Information (CSI) measurement from the SSB
  * @param q NR PSS object
  * @param N_id Physical Cell Identifier
+ * @param ssb_idx SSB candidate index
  * @param in Base-band signal
  * @param meas SSB-based CSI measurement
  * @return SRSRAN_SUCCESS if the parameters are valid, SRSRAN_ERROR code otherwise
  */
-SRSRAN_API int
-srsran_ssb_csi_measure(srsran_ssb_t* q, uint32_t N_id, const cf_t* in, srsran_csi_trs_measurements_t* meas);
+SRSRAN_API int srsran_ssb_csi_measure(srsran_ssb_t*                  q,
+                                      uint32_t                       N_id,
+                                      uint32_t                       ssb_idx,
+                                      const cf_t*                    in,
+                                      srsran_csi_trs_measurements_t* meas);
 
 #endif // SRSRAN_SSB_H

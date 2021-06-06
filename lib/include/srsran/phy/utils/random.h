@@ -48,6 +48,8 @@ SRSRAN_API float srsran_random_gauss_dist(srsran_random_t q, float std_dev);
 
 SRSRAN_API bool srsran_random_bool(srsran_random_t q, float prob_true);
 
+SRSRAN_API void srsran_random_bit_vector(srsran_random_t q, uint8_t* c, uint32_t nsamples);
+
 SRSRAN_API void srsran_random_free(srsran_random_t q);
 
 #ifdef __cplusplus

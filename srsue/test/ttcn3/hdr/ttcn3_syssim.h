@@ -34,6 +34,7 @@
 #include "ttcn3_sys_interface.h"
 #include "ttcn3_ue.h"
 #include "ttcn3_ut_interface.h"
+#include <atomic>
 #include <functional>
 
 class ttcn3_syssim : public syssim_interface_phy,
@@ -112,7 +113,7 @@ public:
 
   uint32_t get_tti();
 
-  void process_pdu(uint8_t* buff, uint32_t len, pdu_queue::channel_t channel);
+  void process_pdu(uint8_t* buff, uint32_t len, pdu_queue::channel_t channel, int ul_nof_prbs);
 
   void set_cell_config(const ttcn3_helpers::timing_info_t timing, const cell_config_t cell);
   void set_cell_config_impl(const cell_config_t cell);
@@ -165,6 +166,7 @@ public:
   void write_pdu_pcch(unique_byte_buffer_t pdu);
   void write_pdu_mch(uint32_t lcid, unique_byte_buffer_t pdu);
   void max_retx_attempted();
+  void protocol_failure();
 
   const char* get_rb_name(uint32_t lcid);
 
@@ -232,8 +234,8 @@ private:
   all_args_t args = {};
 
   // Simulator vars
-  ttcn3_ue* ue      = nullptr;
-  bool      running = false;
+  ttcn3_ue*         ue      = nullptr;
+  std::atomic<bool> running = {false};
 
   typedef enum { UE_SWITCH_ON = 0, UE_SWITCH_OFF, ENABLE_DATA, DISABLE_DATA } ss_events_t;
   block_queue<ss_events_t> event_queue;

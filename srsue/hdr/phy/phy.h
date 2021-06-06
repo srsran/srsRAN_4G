@@ -103,8 +103,6 @@ public:
   void get_metrics(const srsran::srsran_rat_t& rat, phy_metrics_t* m) final;
   void srsran_phy_logger(phy_logger_level_t log_level, char* str);
 
-  void enable_pregen_signals(bool enable) final;
-
   void radio_overflow() final;
   void radio_failure() final;
 

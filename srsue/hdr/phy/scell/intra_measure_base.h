@@ -197,7 +197,11 @@ private:
      * @brief Get the internal state
      * @return protected state
      */
-    state_t get_state() const { return state; }
+    state_t get_state()
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      return state;
+    }
 
     /**
      * @brief Transitions to a different state, all transitions are allowed except from quit
@@ -230,7 +234,7 @@ private:
   /**
    * @brief Computes the measurement trigger based on TTI and the last TTI trigger
    */
-  bool receive_tti_trigger(uint32_t tti) const
+  bool receive_tti_trigger(uint32_t tti)
   {
     // If the elapsed time does not satisfy with the minimum time, do not trigger
     uint32_t elapsed_tti = TTI_SUB(tti, last_measure_tti);

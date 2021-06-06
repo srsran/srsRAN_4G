@@ -58,7 +58,7 @@ ttcn3_syssim::ttcn3_syssim(ttcn3_ue* ue_) :
   mac_msg_dl(20, ss_mac_logger),
   pdus(logger),
   ue(ue_),
-  signal_handler(&running),
+  signal_handler(running),
   timer_handler(create_tti_timer(), [&](uint64_t res) { new_tti_indication(res); })
 {
   if (ue->init(all_args_t{}, this, "INIT_TEST") != SRSRAN_SUCCESS) {
@@ -768,7 +768,7 @@ uint32_t ttcn3_syssim::get_tti()
   return tti;
 }
 
-void ttcn3_syssim::process_pdu(uint8_t* buff, uint32_t len, pdu_queue::channel_t channel) {}
+void ttcn3_syssim::process_pdu(uint8_t* buff, uint32_t len, pdu_queue::channel_t channel, int ul_nof_prbs) {}
 
 void ttcn3_syssim::set_cell_config(const ttcn3_helpers::timing_info_t timing, const cell_config_t cell)
 {
@@ -1140,6 +1140,10 @@ void ttcn3_syssim::write_pdu_mch(uint32_t lcid, unique_byte_buffer_t pdu)
   logger.error("%s not implemented.", __FUNCTION__);
 }
 void ttcn3_syssim::max_retx_attempted()
+{
+  logger.error("%s not implemented.", __FUNCTION__);
+}
+void ttcn3_syssim::protocol_failure()
 {
   logger.error("%s not implemented.", __FUNCTION__);
 }

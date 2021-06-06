@@ -51,6 +51,7 @@ struct rrc_meas_cfg_t {
   std::vector<asn1::rrc::report_cfg_eutra_s> meas_reports;
   asn1::rrc::quant_cfg_eutra_s               quant_cfg;
   uint32_t                                   meas_gap_period;
+  std::vector<uint32_t>                      meas_gap_offset_subframe;
   uint32_t                                   allowed_meas_bw;
 };
 
@@ -69,6 +70,7 @@ struct cell_cfg_t {
   int                                 target_pusch_sinr_db;
   uint32_t                            initial_dl_cqi;
   bool                                enable_phr_handling;
+  int                                 min_phr_thres;
   asn1::rrc::mob_ctrl_info_s::t304_e_ t304;
   std::vector<scell_cfg_t>            scell_list;
   rrc_meas_cfg_t                      meas_cfg;

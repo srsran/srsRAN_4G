@@ -173,7 +173,7 @@ search::ret_code search::run(srsran_cell_t* cell_, std::array<uint8_t, SRSRAN_BC
             new_cell.id,
             new_cell.nof_prb,
             new_cell.nof_ports,
-            new_cell.cp ? "Normal" : "Extended",
+            new_cell.cp ? "Extended" : "Normal",
             cfo / 1000);
 
     Info("SYNC:  MIB Decoded: Mode=%s, PCI=%d, PRB=%d, Ports=%d, CFO=%.1f KHz",

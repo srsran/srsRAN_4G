@@ -127,17 +127,17 @@ int test_multiqueue_threading()
   int                     capacity = 4, number = 0, start_number = 2, nof_pushes = capacity + 1;
   multiqueue_handler<int> multiqueue(capacity);
   auto                    qid1 = multiqueue.add_queue();
-  auto push_blocking_func      = [](queue_handle<int>* qid, int start_value, int nof_pushes, bool* is_running) {
+  std::atomic<bool>       t1_running         = {true};
+  auto                    push_blocking_func = [&t1_running](queue_handle<int>* qid, int start_value, int nof_pushes) {
     for (int i = 0; i < nof_pushes; ++i) {
       qid->push(start_value + i);
       std::cout << "t1: pushed item " << i << std::endl;
     }
     std::cout << "t1: pushed all items\n";
-    *is_running = false;
+    t1_running = false;
   };
 
-  bool        t1_running = true;
-  std::thread t1(push_blocking_func, &qid1, start_number, nof_pushes, &t1_running);
+  std::thread t1(push_blocking_func, &qid1, start_number, nof_pushes);
 
   // Wait for queue to fill
   while ((int)qid1.size() != capacity) {
@@ -357,9 +357,10 @@ int test_task_thread_pool2()
   // Description: push a very long task to all workers, and call thread_pool.stop() to check if it waits for the tasks
   //              to be completed, and does not get stuck.
 
-  uint32_t   nof_workers     = 4;
-  uint8_t    workers_started = 0, workers_finished = 0;
-  std::mutex mut;
+  uint32_t             nof_workers = 4;
+  std::atomic<uint8_t> workers_started{0};
+  uint8_t              workers_finished = 0;
+  std::mutex           mut;
 
   task_thread_pool thread_pool(nof_workers);
   thread_pool.start();
@@ -369,7 +370,7 @@ int test_task_thread_pool2()
       std::lock_guard<std::mutex> lock(mut);
       workers_started++;
     }
-    sleep(1);
+    std::this_thread::sleep_for(std::chrono::seconds{1});
     std::lock_guard<std::mutex> lock(mut);
     std::cout << "worker has finished\n";
     workers_finished++;

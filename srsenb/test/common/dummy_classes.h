@@ -37,7 +37,6 @@ class mac_dummy : public mac_interface_rrc
 {
 public:
   int  cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg) override { return 0; }
-  void reset() override {}
   int  ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg) override { return 0; }
   int  ue_rem(uint16_t rnti) override { return 0; }
   int  ue_set_crnti(uint16_t temp_crnti, uint16_t crnti, sched_interface::ue_cfg_t* cfg) override { return 0; }
@@ -113,7 +112,7 @@ public:
   void write_pdu(uint16_t rnti, srsran::unique_byte_buffer_t pdu) override {}
   bool user_exists(uint16_t rnti) override { return true; }
   bool user_release(uint16_t rnti, asn1::s1ap::cause_radio_network_e cause_radio) override { return true; }
-  void ue_ctxt_setup_complete(uint16_t rnti) override {}
+  void notify_rrc_reconf_complete(uint16_t rnti) override {}
   bool is_mme_connected() override { return true; }
   bool send_ho_required(uint16_t                     rnti,
                         uint32_t                     target_eci,

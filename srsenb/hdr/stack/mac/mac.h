@@ -23,6 +23,7 @@
 #define SRSENB_MAC_H
 
 #include "sched.h"
+#include "srsenb/hdr/common/rnti_pool.h"
 #include "srsenb/hdr/stack/mac/schedulers/sched_time_rr.h"
 #include "srsran/adt/circular_map.h"
 #include "srsran/adt/pool/batch_mem_pool.h"
@@ -68,7 +69,8 @@ public:
   int ta_info(uint32_t tti, uint16_t rnti, float ta_us) override;
   int ack_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack) override;
   int crc_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t nof_bytes, bool crc_res) override;
-  int push_pdu(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t nof_bytes, bool crc_res) override;
+  int push_pdu(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t nof_bytes, bool crc_res, uint32_t ul_nof_prbs)
+      override;
 
   int  get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res) override;
   int  get_ul_sched(uint32_t tti_tx_ul, ul_sched_list_t& ul_sched_res) override;
@@ -81,8 +83,7 @@ public:
 
   /******** Interface from RRC (RRC -> MAC) ****************/
   /* Provides cell configuration including SIB periodicity, etc. */
-  int  cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg) override;
-  void reset() override;
+  int cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg) override;
 
   /* Manages UE scheduling context */
   int ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg) override;
@@ -100,8 +101,6 @@ public:
   /* Handover-related */
   uint16_t reserve_new_crnti(const sched_interface::ue_cfg_t& ue_cfg) override;
 
-  bool process_pdus();
-
   void get_metrics(mac_metrics_t& metrics);
 
   void toggle_padding();
@@ -117,11 +116,9 @@ public:
 private:
   static const uint32_t cfi = 3;
 
-  bool     check_ue_exists(uint16_t rnti);
-  uint16_t allocate_rnti();
+  bool     check_ue_active(uint16_t rnti);
   uint16_t allocate_ue();
-
-  std::mutex rnti_mutex;
+  bool     is_valid_rnti_unprotected(uint16_t rnti);
 
   srslog::basic_logger& logger;
 
@@ -150,12 +147,9 @@ private:
   sched_interface::dl_pdu_mch_t mch = {};
 
   /* Map of active UEs */
-  rnti_map_t<std::unique_ptr<ue> >         ue_db;
-  std::map<uint16_t, std::unique_ptr<ue> > ues_to_rem;
-  uint16_t                                 last_rnti = 70;
-
-  srsran::static_blocking_queue<std::unique_ptr<ue>, 32> ue_pool; ///< Pool of pre-allocated UE objects
-  void                                                   prealloc_ue(uint32_t nof_ue);
+  static const uint16_t            FIRST_RNTI = 0x46;
+  rnti_map_t<unique_rnti_ptr<ue> > ue_db;
+  std::atomic<uint16_t>            ue_counter;
 
   uint8_t* assemble_rar(sched_interface::dl_sched_rar_grant_t* grants,
                         uint32_t                               enb_cc_idx,

@@ -44,6 +44,7 @@ static bool     print_dci_table;
 static uint32_t mcs                     = 20;
 static int      cross_carrier_indicator = -1;
 static bool     enable_256qam           = false;
+static float    snr_db                  = NAN; // SNR in dB
 
 void usage(char* prog)
 {
@@ -56,6 +57,7 @@ void usage(char* prog)
   printf("\t-d Print DCI table [Default %s]\n", print_dci_table ? "yes" : "no");
   printf("\t-t Transmission mode: 1,2,3,4 [Default %d]\n", transmission_mode + 1);
   printf("\t-m mcs [Default %d]\n", mcs);
+  printf("\t-S SNR in dB [Default %+.2f]\n", snr_db);
   printf("\tAdvanced parameters:\n");
   if (cross_carrier_indicator >= 0) {
     printf("\t\t-a carrier-indicator [Default %d]\n", cross_carrier_indicator);
@@ -94,7 +96,7 @@ void parse_args(int argc, char** argv)
     nof_rx_ant     = 2;
   }
 
-  while ((opt = getopt(argc, argv, "cfapndvqstmE")) != -1) {
+  while ((opt = getopt(argc, argv, "cfapndvqstmES")) != -1) {
     switch (opt) {
       case 't':
         transmission_mode = (uint32_t)strtol(argv[optind], NULL, 10) - 1;
@@ -120,6 +122,9 @@ void parse_args(int argc, char** argv)
         break;
       case 's':
         nof_subframes = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'S':
+        snr_db = strtof(argv[optind], NULL);
         break;
       case 'E':
         cell.cp = ((uint32_t)strtol(argv[optind], NULL, 10)) ? SRSRAN_CP_EXT : SRSRAN_CP_NORM;
@@ -325,6 +330,8 @@ int main(int argc, char** argv)
   uint32_t                count_failures = 0, count_tbs = 0;
   size_t                  pdsch_decode_us = 0;
   size_t                  pdsch_encode_us = 0;
+  srsran_channel_awgn_t   awgn            = {};
+  float                   snr_db_avg      = 0.0;
 
   int ret = -1;
 
@@ -341,6 +348,11 @@ int main(int argc, char** argv)
       ERROR("Error allocating buffer");
       goto quit;
     }
+  }
+
+  if (srsran_channel_awgn_init(&awgn, 0x1234) < SRSRAN_SUCCESS) {
+    ERROR("Error AWGN init");
+    goto quit;
   }
 
   for (int i = 0; i < SRSRAN_MAX_TB; i++) {
@@ -390,6 +402,17 @@ int main(int argc, char** argv)
   if (srsran_enb_dl_set_cell(enb_dl, cell)) {
     ERROR("Error setting eNb DL cell");
     goto quit;
+  }
+
+  /*
+   * Set AWGN N0
+   */
+  if (isnormal(snr_db)) {
+    if (srsran_channel_awgn_set_n0(&awgn, srsran_enb_dl_get_maximum_signal_power_dBfs(cell.nof_prb) - snr_db) <
+        SRSRAN_SUCCESS) {
+      ERROR("Error setting N0");
+      goto quit;
+    }
   }
 
   /*
@@ -556,7 +579,10 @@ int main(int argc, char** argv)
         signal_buffer[0][i] = y0;
         signal_buffer[1][i] = y1;
       }
+
+      srsran_channel_awgn_run_c(&awgn, signal_buffer[1], signal_buffer[1], SRSRAN_SF_LEN_PRB(cell.nof_prb));
     }
+    srsran_channel_awgn_run_c(&awgn, signal_buffer[0], signal_buffer[0], SRSRAN_SF_LEN_PRB(cell.nof_prb));
 
     /*
      * Run UE
@@ -601,11 +627,13 @@ int main(int argc, char** argv)
     get_time_interval(t);
     pdsch_decode_us += (size_t)(t[0].tv_sec * 1e6 + t[0].tv_usec);
 
+    snr_db_avg += ue_dl->chest_res.snr_db;
+
     for (int i = 0; i < SRSRAN_MAX_TB; i++) {
       if (ue_dl_cfg.cfg.pdsch.grant.tb[i].enabled) {
-        if (check_evm(enb_dl, ue_dl, &ue_dl_cfg, i)) {
+        if (!isnormal(snr_db) && check_evm(enb_dl, ue_dl, &ue_dl_cfg, i)) {
           count_failures++;
-        } else if (check_softbits(enb_dl, ue_dl, &ue_dl_cfg, sf_idx, i) != SRSRAN_SUCCESS) {
+        } else if (!isnormal(snr_db) && check_softbits(enb_dl, ue_dl, &ue_dl_cfg, sf_idx, i) != SRSRAN_SUCCESS) {
           printf("TB%d: The received softbits in subframe %d DO NOT match the encoded bits (crc=%d)\n",
                  i,
                  sf_idx,
@@ -645,6 +673,10 @@ int main(int argc, char** argv)
 
   printf("BLER: %5.1f%%\n", (float)count_failures / (float)count_tbs * 100.0f);
 
+  if (isnormal(snr_db)) {
+    printf("SNR Real: %+.2f; estimated: %+.2f\n", snr_db, snr_db_avg / nof_subframes);
+  }
+
 quit:
   srsran_enb_dl_free(enb_dl);
   srsran_ue_dl_free(ue_dl);
@@ -681,6 +713,7 @@ quit:
   if (ue_dl) {
     free(ue_dl);
   }
+  srsran_channel_awgn_free(&awgn);
 
   if (ret) {
     printf("Error\n");

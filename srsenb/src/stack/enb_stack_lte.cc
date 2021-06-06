@@ -50,7 +50,8 @@ enb_stack_lte::enb_stack_lte(srslog::sink& log_sink) :
   pending_stack_metrics(64)
 {
   get_background_workers().set_nof_workers(2);
-  enb_task_queue = task_sched.make_task_queue();
+  enb_task_queue     = task_sched.make_task_queue();
+  metrics_task_queue = task_sched.make_task_queue();
   // sync_queue is added in init()
 }
 
@@ -105,7 +106,7 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
 
   // Set up pcap and trace
   if (args.mac_pcap.enable) {
-    mac_pcap.open(args.mac_pcap.filename.c_str());
+    mac_pcap.open(args.mac_pcap.filename);
     mac.start_pcap(&mac_pcap);
   }
 
@@ -166,7 +167,6 @@ void enb_stack_lte::tti_clock()
 
 void enb_stack_lte::tti_clock_impl()
 {
-  trace_complete_event("enb_stack_lte::tti_clock_impl", "total_time");
   task_sched.tic();
   rrc.tti_clock();
 }
@@ -211,7 +211,7 @@ void enb_stack_lte::stop_impl()
 bool enb_stack_lte::get_metrics(stack_metrics_t* metrics)
 {
   // use stack thread to query metrics
-  auto ret = enb_task_queue.try_push([this]() {
+  auto ret = metrics_task_queue.try_push([this]() {
     stack_metrics_t metrics{};
     mac.get_metrics(metrics.mac);
     if (not metrics.mac.ues.empty()) {

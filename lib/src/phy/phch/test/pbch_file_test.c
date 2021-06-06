@@ -48,7 +48,7 @@ uint8_t bch_payload_file[SRSRAN_BCH_PAYLOAD_LEN] = {0, 1, 1, 0, 1, 0, 0, 0, 0, 0
 #define FLEN (10 * SRSRAN_SF_LEN(srsran_symbol_sz(cell.nof_prb)))
 
 srsran_filesource_t   fsrc;
-cf_t *                input_buffer, *fft_buffer[SRSRAN_MAX_CODEWORDS];
+cf_t *                input_buffer, *fft_buffer[SRSRAN_MAX_PORTS];
 srsran_pbch_t         pbch;
 srsran_ofdm_t         fft;
 srsran_chest_dl_t     chest;

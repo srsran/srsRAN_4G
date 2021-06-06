@@ -24,6 +24,7 @@
 #include "srsran/common/rlc_pcap.h"
 #include "srsran/common/test_common.h"
 #include "srsran/common/threads.h"
+#include "srsran/common/tsan_options.h"
 #include "srsran/upper/rlc.h"
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
@@ -205,8 +206,7 @@ private:
       // Request data to transmit
       uint32_t buf_state = tx_rlc->get_buffer_state(lcid);
       if (buf_state > 0) {
-        int read     = tx_rlc->read_pdu(lcid, pdu->msg, opp_size);
-        pdu->N_bytes = read;
+        pdu->N_bytes = tx_rlc->read_pdu(lcid, pdu->msg, opp_size);
 
         // Push PDU in the list
         pdu_list.push_back(std::move(pdu));
@@ -386,6 +386,12 @@ public:
   {
     logger.error(
         "Maximum number of RLC retransmission reached. Consider increasing threshold or lowering channel drop rate.");
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    exit(1);
+  }
+  void protocol_failure()
+  {
+    logger.error("RLC protocol error detected.");
     std::this_thread::sleep_for(std::chrono::seconds(1));
     exit(1);
   }

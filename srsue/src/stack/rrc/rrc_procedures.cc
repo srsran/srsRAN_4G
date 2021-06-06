@@ -944,6 +944,60 @@ srsran::proc_outcome_t rrc::connection_request_proc::react(const cell_selection_
 }
 
 /******************************************
+ *  Connection Setup Procedure
+ *****************************************/
+
+// Simple procedure mainly do defer the transmission of the SetupComplete until all PHY reconfiguration are done
+rrc::connection_setup_proc::connection_setup_proc(srsue::rrc* parent_) :
+  rrc_ptr(parent_), logger(srslog::fetch_basic_logger("RRC"))
+{}
+
+srsran::proc_outcome_t rrc::connection_setup_proc::init(const asn1::rrc::rr_cfg_ded_s* cnfg_,
+                                                        srsran::unique_byte_buffer_t   dedicated_info_nas_)
+{
+  Info("Starting...");
+
+  if (dedicated_info_nas_.get() == nullptr) {
+    rrc_ptr->logger.error("Connection Setup Failed, no dedicatedInfoNAS available");
+    return proc_outcome_t::error;
+  }
+
+  dedicated_info_nas = std::move(dedicated_info_nas_);
+
+  // Apply the Radio Resource configuration
+  if (!rrc_ptr->apply_rr_config_dedicated(cnfg_)) {
+    return proc_outcome_t::error;
+  }
+
+  rrc_ptr->nas->set_barring(srsran::barring_t::none);
+
+  // No phy config was scheduled, run config completion immediately
+  if (rrc_ptr->phy_ctrl->is_config_pending()) {
+    return react(true);
+  }
+  return proc_outcome_t::yield;
+}
+
+srsran::proc_outcome_t rrc::connection_setup_proc::react(const bool& config_complete)
+{
+  if (not config_complete) {
+    rrc_ptr->logger.error("Connection Setup Failed");
+    return proc_outcome_t::error;
+  }
+
+  rrc_ptr->send_con_setup_complete(std::move(dedicated_info_nas));
+  return proc_outcome_t::success;
+}
+
+void rrc::connection_setup_proc::then(const srsran::proc_state_t& result)
+{
+  if (result.is_success()) {
+    rrc_ptr->logger.info("Finished %s successfully", name());
+    return;
+  }
+}
+
+/******************************************
  *  Connection Reconfiguration Procedure
  *****************************************/
 

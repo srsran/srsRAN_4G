@@ -34,6 +34,7 @@ extern "C" {
 //#undef I // Fix complex.h #define I nastiness when using C++
 #endif
 
+#include "srsran/common/tsan_options.h"
 #include "srsran/phy/utils/debug.h"
 #include "srsran/radio/radio.h"
 

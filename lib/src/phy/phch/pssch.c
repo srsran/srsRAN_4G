@@ -210,6 +210,8 @@ int srsran_pssch_init(srsran_pssch_t*                       q,
     ERROR("Error allocating memory");
     return SRSRAN_ERROR;
   }
+  srsran_vec_cf_zero(q->scfdma_symbols, q->nof_data_symbols * SRSRAN_NRE * SRSRAN_MAX_PRB);
+
   if (srsran_dft_precoding_init(&q->dft_precoder, SRSRAN_MAX_PRB, true)) {
     ERROR("Error DFT precoder init");
     return SRSRAN_ERROR;

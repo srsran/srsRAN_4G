@@ -121,11 +121,8 @@ void harq_proc::new_retx_common(uint32_t tb_idx, tti_point tti_, int* mcs, int* 
 
 void harq_proc::reset_pending_data_common()
 {
-  // reuse harqs with no retxs
-  if (max_retx == 0 and not is_empty()) {
-    for (bool& tb : active) {
-      tb = false;
-    }
+  for (bool& tb : active) {
+    tb = false;
   }
 }
 
@@ -259,9 +256,10 @@ void ul_harq_proc::new_tx(tti_point tti_, int mcs, int tbs, prb_interval alloc, 
 {
   allocation = alloc;
   new_tx_common(0, tti_point{tti_}, mcs, tbs, max_retx_);
-  pending_data  = tbs;
-  pending_phich = true;
-  is_msg3_      = is_msg3;
+  pending_data    = tbs;
+  pending_phich   = true;
+  is_msg3_        = is_msg3;
+  pdcch_requested = false;
 }
 
 void ul_harq_proc::new_retx(tti_point tti_, int* mcs, int* tbs, prb_interval alloc)
@@ -269,12 +267,15 @@ void ul_harq_proc::new_retx(tti_point tti_, int* mcs, int* tbs, prb_interval all
   // If PRBs changed, or there was no tx in last oportunity (e.g. HARQ is being resumed)
   allocation = alloc;
   new_retx_common(0, tti_point{tti_}, mcs, tbs);
-  pending_phich = true;
+  pending_phich   = true;
+  pdcch_requested = false;
 }
 
-bool ul_harq_proc::retx_requires_pdcch(srsran::tti_point tti_, prb_interval alloc) const
+bool ul_harq_proc::retx_requires_pdcch(tti_point tti_, prb_interval alloc) const
 {
-  return alloc != allocation or tti_ != to_tx_ul(tti);
+  // Adaptive retx if: (1) PRBs changed, (2) HARQ resumed due to last PUSCH retx being skipped (3) HARQ resumed due to
+  // last PHICH alloc being skipped (e.g. due to measGaps)
+  return alloc != allocation or pdcch_requested;
 }
 
 bool ul_harq_proc::set_ack(uint32_t tb_idx, bool ack_)
@@ -291,15 +292,27 @@ bool ul_harq_proc::has_pending_phich() const
   return pending_phich;
 }
 
+void ul_harq_proc::request_pdcch()
+{
+  pdcch_requested = true;
+}
+
+void ul_harq_proc::retx_skipped()
+{
+  // Note: This function should be called in case of PHICH allocation is successful
+  // Flagging "PDCCH required" for next retx, as HARQ is being resumed
+  pdcch_requested = true;
+  n_rtx[0]++;
+}
+
 bool ul_harq_proc::pop_pending_phich()
 {
-  assert(pending_phich);
+  srsran_assert(pending_phich, "pop_pending_phich called for HARQ with no pending PHICH");
   bool ret      = ack_state[0];
   pending_phich = false;
   if (is_empty(0)) {
-    // fully reset UL HARQ once PHICH is dispatched
-    is_msg3_     = false;
-    pending_data = 0;
+    // fully reset HARQ info once PHICH is dispatched for an acked / maxretx reached HARQ
+    reset_pending_data();
   }
   return ret;
 }
@@ -307,10 +320,9 @@ bool ul_harq_proc::pop_pending_phich()
 void ul_harq_proc::reset_pending_data()
 {
   reset_pending_data_common();
-  if (is_empty(0)) {
-    pending_data = 0;
-    is_msg3_     = false;
-  }
+  pending_data    = 0;
+  is_msg3_        = false;
+  pdcch_requested = false;
 }
 
 uint32_t ul_harq_proc::get_pending_data() const
@@ -375,17 +387,17 @@ dl_harq_proc* harq_entity::get_pending_dl_harq(tti_point tti_tx_dl)
   return get_oldest_dl_harq(tti_tx_dl);
 }
 
-std::pair<uint32_t, int> harq_entity::set_ack_info(tti_point tti_rx, uint32_t tb_idx, bool ack)
+std::tuple<uint32_t, int, int> harq_entity::set_ack_info(tti_point tti_rx, uint32_t tb_idx, bool ack)
 {
   for (auto& h : dl_harqs) {
     if (h.get_tti() + FDD_HARQ_DELAY_DL_MS == tti_rx) {
       if (h.set_ack(tb_idx, ack) == SRSRAN_SUCCESS) {
-        return {h.get_id(), h.get_tbs(tb_idx)};
+        return std::make_tuple(h.get_id(), h.get_tbs(tb_idx), h.get_mcs(tb_idx));
       }
-      return {h.get_id(), -1};
+      return std::make_tuple(h.get_id(), -1, -1);
     }
   }
-  return {dl_harqs.size(), -1};
+  return std::make_tuple(dl_harqs.size(), -1, -1);
 }
 
 ul_harq_proc* harq_entity::get_ul_harq(tti_point tti_tx_ul)
@@ -400,16 +412,20 @@ int harq_entity::set_ul_crc(tti_point tti_rx, uint32_t tb_idx, bool ack_)
   return h->set_ack(tb_idx, ack_) ? pid : -1;
 }
 
-void harq_entity::reset_pending_data(tti_point tti_rx)
+void harq_entity::finish_tti(tti_point tti_rx)
 {
-  tti_point tti_tx_ul = to_tx_ul(tti_rx);
+  // Reset UL HARQ if no retxs
+  auto* hul = get_ul_harq(to_tx_ul(tti_rx));
+  if (not hul->is_empty() and hul->max_nof_retx() == 0) {
+    hul->reset_pending_data();
+  }
 
-  // Reset ACK state of UL Harq
-  get_ul_harq(tti_tx_ul)->reset_pending_data();
-
-  // Reset any DL harq which has 0 retxs
+  // Reset DL harq which has 0 retxs
   for (auto& h : dl_harqs) {
-    h.reset_pending_data();
+    if (not h.is_empty() and h.max_nof_retx() == 0) {
+      // reuse harqs with no retxs
+      h.reset_pending_data();
+    }
   }
 }
 

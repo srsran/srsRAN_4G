@@ -72,7 +72,7 @@ private:
       ~dl_tb_process();
 
       bool init(int pid, dl_harq_entity* parent, uint32_t tb_idx);
-      void reset(bool lock = true);
+      void reset();
       void reset_ndi();
 
       void new_grant_dl(mac_interface_phy_lte::mac_grant_dl_t grant, mac_interface_phy_lte::tb_action_dl_t* action);
@@ -81,6 +81,9 @@ private:
     private:
       // Determine if it's a new transmission 5.3.2.2
       bool calc_is_new_transmission(mac_interface_phy_lte::mac_grant_dl_t grant);
+
+      // Internal function to reset process, caller must hold the mutex
+      void reset_unsafe();
 
       std::mutex mutex;
 

@@ -216,7 +216,7 @@ void test_dyn_circular_buffer()
   TESTASSERT(C::count == 0);
 }
 
-int test_queue_block_api()
+void test_queue_block_api()
 {
   dyn_blocking_queue<int> queue(100);
 
@@ -238,31 +238,26 @@ int test_queue_block_api()
 
   queue.stop();
   t.join();
-  return SRSRAN_SUCCESS;
 }
 
-int test_queue_block_api_2()
+void test_queue_block_api_2()
 {
   std::thread t;
 
-  {
-    dyn_blocking_queue<int> queue(100);
+  dyn_blocking_queue<int> queue(100);
 
-    t = std::thread([&queue]() {
-      int count = 0;
-      while (queue.push_blocking(count++)) {
-      }
-    });
-
-    for (int i = 0; i < 10000; ++i) {
-      TESTASSERT(queue.pop_blocking() == i);
+  t = std::thread([&queue]() {
+    int count = 0;
+    while (queue.push_blocking(count++)) {
     }
+  });
 
-    // queue dtor called
+  for (int i = 0; i < 10000; ++i) {
+    TESTASSERT(queue.pop_blocking() == i);
   }
 
+  queue.stop();
   t.join();
-  return SRSRAN_SUCCESS;
 }
 
 } // namespace srsran
@@ -276,8 +271,8 @@ int main(int argc, char** argv)
 
   TESTASSERT(srsran::test_static_circular_buffer() == SRSRAN_SUCCESS);
   srsran::test_dyn_circular_buffer();
-  TESTASSERT(srsran::test_queue_block_api() == SRSRAN_SUCCESS);
-  TESTASSERT(srsran::test_queue_block_api_2() == SRSRAN_SUCCESS);
+  srsran::test_queue_block_api();
+  srsran::test_queue_block_api_2();
   srsran::console("Success\n");
   return SRSRAN_SUCCESS;
 }

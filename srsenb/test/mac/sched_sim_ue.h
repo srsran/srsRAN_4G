@@ -35,7 +35,7 @@ struct ue_harq_ctxt_t {
   bool                  ndi       = false;
   uint32_t              pid       = 0;
   uint32_t              nof_txs   = 0;
-  uint32_t              nof_retxs = 0;
+  uint32_t              nof_retxs = std::numeric_limits<uint32_t>::max();
   uint32_t              riv       = 0;
   srsran_dci_location_t dci_loc   = {};
   uint32_t              tbs       = 0;

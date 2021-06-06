@@ -115,35 +115,44 @@ void ue_sim::update_ul_harqs(const sf_output_res_t& sf_out)
 {
   uint32_t pid = to_tx_ul(sf_out.tti_rx).to_uint() % (FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS);
   for (uint32_t cc = 0; cc < sf_out.cc_params.size(); ++cc) {
+    const auto *cc_cfg = ctxt.get_cc_cfg(cc), *start = &ctxt.ue_cfg.supported_cc_list[0];
+    if (cc_cfg == nullptr) {
+      continue;
+    }
+    uint32_t ue_cc_idx  = std::distance(start, cc_cfg);
+    auto&    ue_cc_ctxt = ctxt.cc_list[ue_cc_idx];
+    auto&    h          = ue_cc_ctxt.ul_harqs[pid];
+
     // Update UL harqs with PHICH info
+    bool found_phich = false;
+    bool is_msg3 = h.nof_txs == h.nof_retxs + 1 and ctxt.msg3_tti_rx.is_valid() and h.first_tti_rx == ctxt.msg3_tti_rx;
+    uint32_t max_retxs = is_msg3 ? sf_out.cc_params[0].cfg.maxharq_msg3tx : ctxt.ue_cfg.maxharq_tx;
+    bool     last_retx = h.nof_retxs + 1 >= max_retxs;
     for (uint32_t i = 0; i < sf_out.ul_cc_result[cc].phich.size(); ++i) {
       const auto& phich = sf_out.ul_cc_result[cc].phich[i];
       if (phich.rnti != ctxt.rnti) {
         continue;
       }
-
-      const auto *cc_cfg = ctxt.get_cc_cfg(cc), *start = &ctxt.ue_cfg.supported_cc_list[0];
-      uint32_t    ue_cc_idx  = std::distance(start, cc_cfg);
-      auto&       ue_cc_ctxt = ctxt.cc_list[ue_cc_idx];
-      auto&       h          = ue_cc_ctxt.ul_harqs[pid];
+      found_phich = true;
 
       bool is_ack = phich.phich == phich_t::ACK;
-      bool is_msg3 =
-          h.nof_txs == h.nof_retxs + 1 and ctxt.msg3_tti_rx.is_valid() and h.first_tti_rx == ctxt.msg3_tti_rx;
-      bool last_retx = h.nof_retxs + 1 >= (is_msg3 ? sf_out.cc_params[0].cfg.maxharq_msg3tx : ctxt.ue_cfg.maxharq_tx);
       if (is_ack or last_retx) {
         h.active = false;
       }
     }
+    if (not found_phich and h.active) {
+      // There can be missing PHICH due to measGap collisions. In such case, we deactivate the harq and assume hi=1
+      h.active = false;
+    }
 
     // Update UL harqs with PUSCH grants
+    bool pusch_found = false;
     for (uint32_t i = 0; i < sf_out.ul_cc_result[cc].pusch.size(); ++i) {
       const auto& data = sf_out.ul_cc_result[cc].pusch[i];
       if (data.dci.rnti != ctxt.rnti) {
         continue;
       }
-      auto& ue_cc_ctxt = ctxt.cc_list[data.dci.ue_cc_idx];
-      auto& h          = ue_cc_ctxt.ul_harqs[to_tx_ul(sf_out.tti_rx).to_uint() % ue_cc_ctxt.ul_harqs.size()];
+      pusch_found = true;
 
       if (h.nof_txs == 0 or h.ndi != data.dci.tb.ndi) {
         // newtx
@@ -157,6 +166,11 @@ void ue_sim::update_ul_harqs(const sf_output_res_t& sf_out)
       h.active      = true;
       h.last_tti_rx = sf_out.tti_rx;
       h.riv         = data.dci.type2_alloc.riv;
+      h.nof_txs++;
+    }
+    if (not pusch_found and h.nof_retxs < max_retxs) {
+      // PUSCH *may* be skipped due to measGap. nof_retxs keeps getting incremented
+      h.nof_retxs++;
       h.nof_txs++;
     }
   }

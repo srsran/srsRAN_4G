@@ -54,16 +54,25 @@ public:
   } cell_cfg_sib_t;
 
   struct sched_args_t {
-    std::string sched_policy         = "time_pf";
-    std::string sched_policy_args    = "2";
-    int         pdsch_mcs            = -1;
-    int         pdsch_max_mcs        = 28;
-    int         pusch_mcs            = -1;
-    int         pusch_max_mcs        = 28;
-    uint32_t    min_nof_ctrl_symbols = 1;
-    uint32_t    max_nof_ctrl_symbols = 3;
-    int         max_aggr_level       = 3;
-    bool        pucch_mux_enabled    = false;
+    std::string sched_policy            = "time_pf";
+    std::string sched_policy_args       = "2";
+    int         pdsch_mcs               = -1;
+    int         pdsch_max_mcs           = 28;
+    int         pusch_mcs               = -1;
+    int         pusch_max_mcs           = 28;
+    uint32_t    min_nof_ctrl_symbols    = 1;
+    uint32_t    max_nof_ctrl_symbols    = 3;
+    int         min_aggr_level          = 0;
+    int         max_aggr_level          = 3;
+    bool        adaptive_aggr_level     = true;
+    bool        pucch_mux_enabled       = false;
+    float       target_bler             = 0.05;
+    float       max_delta_dl_cqi        = 5;
+    float       max_delta_ul_snr        = 5;
+    float       adaptive_link_step_size = 0.001;
+    uint32_t    min_tpc_tti_interval    = 1;
+    float       ul_snr_avg_alpha        = 0.05;
+    int         init_ul_snr_value       = 5;
   };
 
   struct cell_cfg_t {
@@ -80,6 +89,7 @@ public:
     /* pusch configuration */
     srsran_pusch_hopping_cfg_t pusch_hopping_cfg;
     float                      target_pusch_ul_sinr;
+    int                        min_phr_thres;
     bool                       enable_phr_handling;
     bool                       enable_64qam;
 
@@ -295,7 +305,7 @@ public:
   virtual int ul_crc_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, bool crc)                       = 0;
   virtual int ul_sr_info(uint32_t tti, uint16_t rnti)                                                       = 0;
   virtual int ul_bsr(uint16_t rnti, uint32_t lcg_id, uint32_t bsr)                                          = 0;
-  virtual int ul_phr(uint16_t rnti, int phr)                                                                = 0;
+  virtual int ul_phr(uint16_t rnti, int phr, uint32_t ul_nof_prb)                                           = 0;
   virtual int ul_snr_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, float snr, uint32_t ul_ch_code) = 0;
 
   /* Run Scheduler for this tti */

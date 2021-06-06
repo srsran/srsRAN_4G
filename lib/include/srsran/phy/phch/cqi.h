@@ -144,7 +144,8 @@ typedef struct {
 
 SRSRAN_API int srsran_cqi_size(srsran_cqi_cfg_t* cfg);
 
-SRSRAN_API int srsran_cqi_value_pack(srsran_cqi_cfg_t* cfg, srsran_cqi_value_t* value, uint8_t* buff);
+SRSRAN_API int
+srsran_cqi_value_pack(srsran_cqi_cfg_t* cfg, srsran_cqi_value_t* value, uint8_t buff[SRSRAN_CQI_MAX_BITS]);
 
 SRSRAN_API int
 srsran_cqi_value_unpack(srsran_cqi_cfg_t* cfg, uint8_t buff[SRSRAN_CQI_MAX_BITS], srsran_cqi_value_t* value);

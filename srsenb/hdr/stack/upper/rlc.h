@@ -87,6 +87,7 @@ private:
     void        write_pdu_pcch(srsran::unique_byte_buffer_t sdu);
     void        write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t sdu) {}
     void        max_retx_attempted();
+    void        protocol_failure();
     const char* get_rb_name(uint32_t lcid);
     uint16_t    rnti;
 

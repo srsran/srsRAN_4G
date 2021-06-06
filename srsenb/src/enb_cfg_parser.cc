@@ -769,9 +769,18 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
         cell_cfg.root_seq_idx, cellroot, "root_seq_idx", rrc_cfg->sibs[1].sib2().rr_cfg_common.prach_cfg.root_seq_idx);
     parse_default_field(cell_cfg.initial_dl_cqi, cellroot, "initial_dl_cqi", 5u);
     parse_default_field(cell_cfg.meas_cfg.meas_gap_period, cellroot, "meas_gap_period", 0u);
+    if (cellroot.exists("meas_gap_offset_subframe")) {
+      cell_cfg.meas_cfg.meas_gap_offset_subframe.resize(cellroot["meas_gap_offset_subframe"].getLength());
+      for (uint32_t j = 0; j < (uint32_t)cellroot["meas_gap_offset_subframe"].getLength(); ++j) {
+        cell_cfg.meas_cfg.meas_gap_offset_subframe[j] = (uint32_t)cellroot["meas_gap_offset_subframe"][j];
+        srsran_assert(cell_cfg.meas_cfg.meas_gap_offset_subframe[j] < cell_cfg.meas_cfg.meas_gap_period,
+                      "meas gap offsets must be smaller than meas gap period");
+      }
+    }
     HANDLEPARSERCODE(parse_default_field(cell_cfg.target_pusch_sinr_db, cellroot, "target_pusch_sinr", -1));
     HANDLEPARSERCODE(parse_default_field(cell_cfg.target_pucch_sinr_db, cellroot, "target_pucch_sinr", -1));
     HANDLEPARSERCODE(parse_default_field(cell_cfg.enable_phr_handling, cellroot, "enable_phr_handling", false));
+    HANDLEPARSERCODE(parse_default_field(cell_cfg.min_phr_thres, cellroot, "min_phr_thres", 0));
     parse_default_field(cell_cfg.meas_cfg.allowed_meas_bw, cellroot, "allowed_meas_bw", 6u);
     srsran_assert(srsran::is_lte_cell_nof_prb(cell_cfg.meas_cfg.allowed_meas_bw), "Invalid measurement Bandwidth");
     HANDLEPARSERCODE(asn1_parsers::default_number_to_enum(

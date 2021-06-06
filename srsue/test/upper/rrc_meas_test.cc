@@ -57,7 +57,6 @@ public:
     last_selected_cell = cell;
     return true;
   }
-  void enable_pregen_signals(bool enable) override {}
 
   void set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci) override
   {

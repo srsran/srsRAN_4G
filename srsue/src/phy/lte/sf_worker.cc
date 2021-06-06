@@ -147,14 +147,7 @@ void sf_worker::set_tdd_config_unlocked(srsran_tdd_config_t config)
   tdd_config = config;
 }
 
-void sf_worker::enable_pregen_signals_unlocked(bool enabled)
-{
-  for (auto& cc_worker : cc_workers) {
-    cc_worker->enable_pregen_signals_unlocked(enabled);
-  }
-}
-
-void sf_worker::set_config_unlocked(uint32_t cc_idx, srsran::phy_cfg_t phy_cfg)
+void sf_worker::set_config_unlocked(uint32_t cc_idx, const srsran::phy_cfg_t& phy_cfg)
 {
   if (cc_idx < cc_workers.size()) {
     cc_workers[cc_idx]->set_config_unlocked(phy_cfg);

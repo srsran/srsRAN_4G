@@ -240,10 +240,10 @@ int sched::ul_buffer_add(uint16_t rnti, uint32_t lcid, uint32_t bytes)
   return ue_db_access_locked(rnti, [lcid, bytes](sched_ue& ue) { ue.ul_buffer_add(lcid, bytes); });
 }
 
-int sched::ul_phr(uint16_t rnti, int phr)
+int sched::ul_phr(uint16_t rnti, int phr, uint32_t ul_nof_prb)
 {
   return ue_db_access_locked(
-      rnti, [phr](sched_ue& ue) { ue.ul_phr(phr); }, __PRETTY_FUNCTION__);
+      rnti, [phr, ul_nof_prb](sched_ue& ue) { ue.ul_phr(phr, ul_nof_prb); }, __PRETTY_FUNCTION__);
 }
 
 int sched::ul_sr_info(uint32_t tti, uint16_t rnti)

@@ -87,7 +87,11 @@ int srsran_ringbuffer_resize(srsran_ringbuffer_t* q, int capacity)
 
 int srsran_ringbuffer_status(srsran_ringbuffer_t* q)
 {
-  return q->count;
+  int status = 0;
+  pthread_mutex_lock(&q->mutex);
+  status = q->count;
+  pthread_mutex_unlock(&q->mutex);
+  return status;
 }
 
 int srsran_ringbuffer_space(srsran_ringbuffer_t* q)

@@ -28,7 +28,7 @@
 #include <uhd/usrp/multi_usrp.hpp>
 
 #include "rf_helper.h"
-#include "srsran/srsran.h"
+#include "srsran/phy/utils/debug.h"
 
 #include "rf_uhd_generic.h"
 #include "rf_uhd_imp.h"

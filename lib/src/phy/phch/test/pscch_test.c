@@ -164,7 +164,7 @@ int main(int argc, char** argv)
     }
 
     srsran_sci_info(&sci, sci_msg, sizeof(sci_msg));
-    fprintf(stdout, "%s", sci_msg);
+    fprintf(stdout, "%s\n", sci_msg);
     if (sci.riv == riv_txed) {
       ret = SRSRAN_SUCCESS;
     }

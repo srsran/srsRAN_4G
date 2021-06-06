@@ -391,24 +391,28 @@ void generate_cce_location(srsran_regs_t*          regs_,
  *            DCI-specific helper functions
  *******************************************************/
 
-uint32_t
-get_aggr_level(uint32_t nof_bits, uint32_t dl_cqi, uint32_t max_aggr_lvl, uint32_t cell_nof_prb, bool use_tbs_index_alt)
+uint32_t get_aggr_level(uint32_t nof_bits,
+                        uint32_t dl_cqi,
+                        uint32_t min_aggr_lvl,
+                        uint32_t max_aggr_lvl,
+                        uint32_t cell_nof_prb,
+                        bool     use_tbs_index_alt)
 {
-  uint32_t l            = 0;
   float    max_coderate = srsran_cqi_to_coderate(dl_cqi, use_tbs_index_alt);
-  float    coderate;
-  float    factor = 1.5;
-  uint32_t l_max  = 3;
+  float    factor       = 1.5;
+  uint32_t l_max        = 3;
   if (cell_nof_prb == 6) {
     factor = 1.0;
     l_max  = 2;
   }
-  l_max = SRSRAN_MIN(max_aggr_lvl, l_max);
+  l_max = std::min(max_aggr_lvl, l_max);
 
-  do {
-    coderate = srsran_pdcch_coderate(nof_bits, l);
+  uint32_t l        = std::min(min_aggr_lvl, l_max);
+  float    coderate = srsran_pdcch_coderate(nof_bits, l);
+  while (factor * coderate > max_coderate and l < l_max) {
     l++;
-  } while (l < l_max && factor * coderate > max_coderate);
+    coderate = srsran_pdcch_coderate(nof_bits, l);
+  }
 
   Debug("SCHED: CQI=%d, l=%d, nof_bits=%d, coderate=%.2f, max_coderate=%.2f",
         dl_cqi,

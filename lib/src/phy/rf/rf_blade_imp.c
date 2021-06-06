@@ -24,7 +24,9 @@
 #include <unistd.h>
 
 #include "rf_blade_imp.h"
-#include "srsran/srsran.h"
+#include "srsran/phy/common/timestamp.h"
+#include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/vector.h"
 
 #define UNUSED __attribute__((unused))
 #define CONVERT_BUFFER_SIZE (240 * 1024)

@@ -45,6 +45,7 @@ class rrc_interface_mac;
 class rlc_interface_mac;
 class phy_interface_stack_lte;
 
+/// Class to manage the allocation, deallocation & access to UE carrier DL + UL softbuffers
 struct ue_cc_softbuffers {
   // List of Tx softbuffers for all HARQ processes of one carrier
   using cc_softbuffer_tx_list_t = std::vector<srsran_softbuffer_tx_t>;
@@ -68,39 +69,35 @@ struct ue_cc_softbuffers {
   srsran_softbuffer_rx_t& get_rx(uint32_t tti) { return softbuffer_rx_list.at(tti % nof_rx_harq_proc); }
 };
 
+/// Class to manage the allocation, deallocation & access to pending UL HARQ buffers
 class cc_used_buffers_map
 {
 public:
-  explicit cc_used_buffers_map(srsran::pdu_queue& shared_pdu_queue_);
+  explicit cc_used_buffers_map();
   ~cc_used_buffers_map();
+
+  void clear() { pdu_map.clear(); }
 
   uint8_t* request_pdu(tti_point tti, uint32_t len);
 
-  bool push_pdu(tti_point tti, uint32_t len);
+  srsran::unique_byte_buffer_t release_pdu(tti_point tti);
 
   void clear_old_pdus(tti_point current_tti);
-
-  bool try_deallocate_pdu(tti_point tti);
-
-  void clear();
 
   uint8_t*& operator[](tti_point tti);
 
   bool has_tti(tti_point tti) const;
 
 private:
-  void remove_pdu(tti_point tti);
-
   srslog::basic_logger* logger;
-  srsran::pdu_queue*    shared_pdu_queue;
 
-  srsran::static_circular_map<uint32_t, uint8_t*, SRSRAN_FDD_NOF_HARQ * 8> pdu_map;
+  srsran::static_circular_map<uint32_t, srsran::unique_byte_buffer_t, SRSRAN_FDD_NOF_HARQ * 8> pdu_map;
 };
 
 class cc_buffer_handler
 {
 public:
-  explicit cc_buffer_handler(srsran::pdu_queue& shared_pdu_queue_);
+  explicit cc_buffer_handler();
   ~cc_buffer_handler();
 
   void reset();
@@ -126,11 +123,11 @@ private:
   // buffers
   cc_used_buffers_map rx_used_buffers;
 
-  // One buffer per TB per HARQ process and per carrier is needed for each UE.
+  // One buffer per TB per DL HARQ process and per carrier is needed for each UE.
   std::array<std::array<srsran::unique_byte_buffer_t, SRSRAN_MAX_TB>, SRSRAN_FDD_NOF_HARQ> tx_payload_buffer;
 };
 
-class ue : public srsran::read_pdu_interface, public srsran::pdu_queue::process_callback, public mac_ta_ue_interface
+class ue : public srsran::read_pdu_interface, public mac_ta_ue_interface
 {
 public:
   ue(uint16_t                                 rnti,
@@ -148,12 +145,14 @@ public:
   void     start_pcap(srsran::mac_pcap* pcap_);
   void     start_pcap_net(srsran::mac_pcap_net* pcap_net_);
   void     set_tti(uint32_t tti);
-  uint16_t get_rnti() { return rnti; }
+  uint16_t get_rnti() const { return rnti; }
   uint32_t set_ta(int ta) override;
   void     start_ta() { ta_fsm.start(); };
   uint32_t set_ta_us(float ta_us) { return ta_fsm.push_value(ta_us); };
   void     tic();
   void     trigger_padding(int lcid);
+  void     set_active(bool active) { active_state.store(active, std::memory_order_relaxed); }
+  bool     is_active() const { return active_state.load(std::memory_order_relaxed); }
 
   uint8_t* generate_pdu(uint32_t                              ue_cc_idx,
                         uint32_t                              harq_pid,
@@ -164,16 +163,13 @@ public:
   uint8_t*
   generate_mch_pdu(uint32_t harq_pid, sched_interface::dl_pdu_mch_t sched, uint32_t nof_pdu_elems, uint32_t grant_size);
 
-  srsran_softbuffer_tx_t*
-                          get_tx_softbuffer(const uint32_t ue_cc_idx, const uint32_t harq_process, const uint32_t tb_idx);
-  srsran_softbuffer_rx_t* get_rx_softbuffer(const uint32_t ue_cc_idx, const uint32_t tti);
+  srsran_softbuffer_tx_t* get_tx_softbuffer(uint32_t ue_cc_idx, uint32_t harq_process, uint32_t tb_idx);
+  srsran_softbuffer_rx_t* get_rx_softbuffer(uint32_t ue_cc_idx, uint32_t tti);
 
-  bool     process_pdus();
-  uint8_t* request_buffer(uint32_t tti, uint32_t ue_cc_idx, const uint32_t len);
-  void     process_pdu(uint8_t* pdu, uint32_t nof_bytes, srsran::pdu_queue::channel_t channel) override;
-  void     push_pdu(uint32_t tti, uint32_t ue_cc_idx, uint32_t len);
-  void     deallocate_pdu(uint32_t tti, uint32_t ue_cc_idx);
-  void     clear_old_buffers(uint32_t tti);
+  uint8_t*                     request_buffer(uint32_t tti, uint32_t ue_cc_idx, const uint32_t len);
+  void                         process_pdu(srsran::unique_byte_buffer_t pdu, uint32_t grant_nof_prbs);
+  srsran::unique_byte_buffer_t release_pdu(uint32_t tti, uint32_t ue_cc_idx);
+  void                         clear_old_buffers(uint32_t tti);
 
   void metrics_read(mac_ue_metrics_t* metrics_);
   void metrics_rx(bool crc, uint32_t tbs);
@@ -184,11 +180,11 @@ public:
   void metrics_dl_cqi(uint32_t dl_cqi);
   void metrics_cnt();
 
-  int read_pdu(uint32_t lcid, uint8_t* payload, uint32_t requested_bytes) final;
+  uint32_t read_pdu(uint32_t lcid, uint8_t* payload, uint32_t requested_bytes) final;
 
 private:
   void allocate_sdu(srsran::sch_pdu* pdu, uint32_t lcid, uint32_t sdu_len);
-  bool process_ce(srsran::sch_subh* subh);
+  bool process_ce(srsran::sch_subh* subh, uint32_t grant_nof_prbs);
   void allocate_ce(srsran::sch_pdu* pdu, uint32_t lcid);
 
   rlc_interface_mac*       rlc = nullptr;
@@ -204,6 +200,8 @@ private:
   uint32_t              last_tti     = 0;
   uint32_t              nof_failures = 0;
 
+  std::atomic<bool> active_state{true};
+
   uint32_t         phr_counter    = 0;
   uint32_t         dl_cqi_counter = 0;
   uint32_t         dl_ri_counter  = 0;
@@ -216,9 +214,8 @@ private:
   ta                            ta_fsm;
 
   // For UL there are multiple buffers per PID and are managed by pdu_queue
-  srsran::pdu_queue pdus;
-  srsran::sch_pdu   mac_msg_dl, mac_msg_ul;
-  srsran::mch_pdu   mch_mac_msg_dl;
+  srsran::sch_pdu mac_msg_dl, mac_msg_ul;
+  srsran::mch_pdu mch_mac_msg_dl;
 
   srsran::bounded_vector<cc_buffer_handler, SRSRAN_MAX_CARRIERS> cc_buffers;
 

@@ -365,11 +365,11 @@ void srsran_enb_dl_put_phich(srsran_enb_dl_t* q, srsran_phich_grant_t* grant, bo
   srsran_phich_encode(&q->phich, &q->dl_sf, resource, ack, q->sf_symbols);
 }
 
-bool srsran_enb_dl_location_is_common_ncce(srsran_enb_dl_t* q, uint32_t ncce)
+bool srsran_enb_dl_location_is_common_ncce(srsran_enb_dl_t* q, const srsran_dci_location_t* loc)
 {
   if (SRSRAN_CFI_ISVALID(q->dl_sf.cfi)) {
-    return srsran_location_find_ncce(
-        q->common_locations[SRSRAN_CFI_IDX(q->dl_sf.cfi)], q->nof_common_locations[SRSRAN_CFI_IDX(q->dl_sf.cfi)], ncce);
+    return srsran_location_find_location(
+        q->common_locations[SRSRAN_CFI_IDX(q->dl_sf.cfi)], q->nof_common_locations[SRSRAN_CFI_IDX(q->dl_sf.cfi)], loc);
   } else {
     return false;
   }

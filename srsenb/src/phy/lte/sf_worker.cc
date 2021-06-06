@@ -110,17 +110,12 @@ cf_t* sf_worker::get_buffer_rx(uint32_t cc_idx, uint32_t antenna_idx)
   return cc_workers[cc_idx]->get_buffer_rx(antenna_idx);
 }
 
-void sf_worker::set_time(uint32_t tti_, uint32_t tx_worker_cnt_, const srsran::rf_timestamp_t& tx_time_)
+void sf_worker::set_time(uint32_t tti_, const srsran::rf_timestamp_t& tx_time_)
 {
   tti_rx    = tti_;
   tti_tx_dl = TTI_ADD(tti_rx, FDD_HARQ_DELAY_UL_MS);
   tti_tx_ul = TTI_RX_ACK(tti_rx);
 
-  t_tx_dl = TTIMOD(tti_tx_dl);
-  t_rx    = TTIMOD(tti_rx);
-  t_tx_ul = TTIMOD(tti_tx_ul);
-
-  tx_worker_cnt = tx_worker_cnt_;
   tx_time.copy(tx_time_);
 
   for (auto& w : cc_workers) {
@@ -176,9 +171,9 @@ void sf_worker::work_imp()
   srsran_sf_t        sf_type = phy->is_mbsfn_sf(&mbsfn_cfg, tti_tx_dl) ? SRSRAN_SF_MBSFN : SRSRAN_SF_NORM;
 
   // Uplink grants to receive this TTI
-  stack_interface_phy_lte::ul_sched_list_t ul_grants = phy->get_ul_grants(t_rx);
+  stack_interface_phy_lte::ul_sched_list_t ul_grants = phy->get_ul_grants(tti_rx);
   // Uplink grants to transmit this tti and receive in the future
-  stack_interface_phy_lte::ul_sched_list_t ul_grants_tx = phy->get_ul_grants(t_tx_ul);
+  stack_interface_phy_lte::ul_sched_list_t ul_grants_tx = phy->get_ul_grants(tti_tx_ul);
 
   // Downlink grants to transmit this TTI
   stack_interface_phy_lte::dl_sched_list_t dl_grants(phy->get_nof_carriers_lte());
@@ -193,8 +188,8 @@ void sf_worker::work_imp()
   ul_sf.tti = tti_rx;
 
   // Set UL grant availability prior to any UL processing
-  if (phy->ue_db.set_ul_grant_available(tti_rx, ul_grants)) {
-    Error("Error setting UL grants. Some grant's RNTI does not exist.");
+  if (phy->ue_db.set_ul_grant_available(tti_rx, ul_grants) < SRSRAN_SUCCESS) {
+    Info("Failed setting UL grants. Some grant's RNTI does not exist.");
   }
 
   // Process UL
@@ -244,8 +239,7 @@ void sf_worker::work_imp()
   }
 
   // Save grants
-  phy->set_ul_grants(t_tx_ul, ul_grants_tx);
-  phy->set_ul_grants(t_rx, ul_grants);
+  phy->set_ul_grants(tti_tx_ul, ul_grants_tx);
 
   Debug("Sending to radio");
   tx_buffer.set_nof_samples(SRSRAN_SF_LEN_PRB(phy->get_nof_prb(0)));

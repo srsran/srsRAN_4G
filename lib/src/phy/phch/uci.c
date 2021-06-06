@@ -129,7 +129,7 @@ int16_t srsran_uci_decode_cqi_pucch(srsran_uci_cqi_pucch_t* q,
                                     uint8_t*                cqi_data,
                                     uint32_t                cqi_len)
 {
-  if (cqi_len < SRSRAN_UCI_MAX_CQI_LEN_PUCCH && b_bits != NULL && cqi_data != NULL) {
+  if (q != NULL && cqi_len < SRSRAN_UCI_MAX_CQI_LEN_PUCCH && b_bits != NULL && cqi_data != NULL) {
     uint32_t max_w    = 0;
     int32_t  max_corr = INT32_MIN;
     uint32_t nwords   = 1 << SRSRAN_UCI_MAX_CQI_LEN_PUCCH;
@@ -655,9 +655,10 @@ int srsran_uci_decode_ack_ri(srsran_pusch_cfg_t* cfg,
   uint32_t Qm     = srsran_mod_bits_x_symbol(cfg->grant.tb.mod);
 
   int16_t  llr_acc[32] = {}; ///< LLR accumulator
-  uint32_t nof_acc =
-      (nof_bits == 1) ? Qm : (nof_bits == 2) ? Qm * 3 : SRSRAN_FEC_BLOCK_SIZE; ///< Number of required LLR
-  uint32_t count_acc = 0;                                                      ///< LLR counter
+  uint32_t nof_acc     = (nof_bits == 1)   ? Qm
+                         : (nof_bits == 2) ? Qm * 3
+                                           : SRSRAN_FEC_BLOCK_SIZE; ///< Number of required LLR
+  uint32_t count_acc   = 0;                                         ///< LLR counter
 
   for (uint32_t i = 0; i < Qprime; i++) {
     if (is_ri) {

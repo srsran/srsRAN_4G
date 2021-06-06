@@ -19,6 +19,7 @@
  *
  */
 
+#include <complex.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -45,7 +46,8 @@
 
 float srsran_pdcch_coderate(uint32_t nof_bits, uint32_t l)
 {
-  return (float)(nof_bits + 16) / (4 * PDCCH_FORMAT_NOF_REGS(l));
+  static const int nof_bits_x_symbol = 2; // QPSK
+  return (float)(nof_bits + 16) / (nof_bits_x_symbol * PDCCH_FORMAT_NOF_REGS(l));
 }
 
 /** Initializes the PDCCH transmitter and receiver */
@@ -385,12 +387,14 @@ int srsran_pdcch_decode_msg(srsran_pdcch_t* q, srsran_dl_sf_cfg_t* sf, srsran_dc
       uint32_t nof_bits = srsran_dci_format_sizeof(&q->cell, sf, dci_cfg, msg->format);
       uint32_t e_bits   = PDCCH_FORMAT_NOF_BITS(msg->location.L);
 
+      // Compute absolute mean of the LLRs
       double mean = 0;
       for (int i = 0; i < e_bits; i++) {
         mean += fabsf(q->llr[msg->location.ncce * 72 + i]);
       }
       mean /= e_bits;
-      if (mean > 0.3) {
+
+      if (mean > 0.3f) {
         ret = srsran_pdcch_dci_decode(q, &q->llr[msg->location.ncce * 72], msg->payload, e_bits, nof_bits, &msg->rnti);
         if (ret == SRSRAN_SUCCESS) {
           msg->nof_bits = nof_bits;
@@ -416,6 +420,27 @@ int srsran_pdcch_decode_msg(srsran_pdcch_t* q, srsran_dl_sf_cfg_t* sf, srsran_dc
     ERROR("Invalid parameters, location=%d,%d", msg->location.ncce, msg->location.L);
   }
   return ret;
+}
+
+float srsran_pdcch_msg_corr(srsran_pdcch_t* q, srsran_dci_msg_t* msg)
+{
+  if (q == NULL || msg == NULL) {
+    return 0.0f;
+  }
+
+  uint32_t E       = PDCCH_FORMAT_NOF_BITS(msg->location.L);
+  uint32_t nof_llr = E / 2;
+
+  // Encode same decoded message and compute correlation
+  srsran_pdcch_dci_encode(q, msg->payload, q->e, msg->nof_bits, E, msg->rnti);
+
+  // Modulate
+  srsran_mod_modulate(&q->mod, q->e, q->d, E);
+
+  // Correlate
+  cf_t corr = srsran_vec_dot_prod_conj_ccc((cf_t*)&q->llr[msg->location.ncce * 72], q->d, nof_llr);
+
+  return cabsf(corr / nof_llr) * (float)M_SQRT1_2;
 }
 
 /** Performs PDCCH receiver processing to extract LLR for all control region. LLR bits are stored in srsran_pdcch_t

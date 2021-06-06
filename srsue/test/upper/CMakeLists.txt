@@ -48,7 +48,7 @@ target_link_libraries(tft_test srsue_upper srsran_upper srsran_phy)
 add_test(tft_test tft_test)
 
 add_executable(rrc_phy_ctrl_test rrc_phy_ctrl_test.cc)
-target_link_libraries(rrc_phy_ctrl_test srsran_common srsue_rrc)
+target_link_libraries(rrc_phy_ctrl_test srsran_common srsue_rrc ${ATOMIC_LIBS})
 add_test(rrc_phy_ctrl_test rrc_phy_ctrl_test)
 
 add_executable(rrc_cell_test rrc_cell_test.cc)

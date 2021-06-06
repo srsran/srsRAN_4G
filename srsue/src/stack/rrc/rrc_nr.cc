@@ -1470,6 +1470,7 @@ bool rrc_nr::apply_radio_bearer_cfg(const radio_bearer_cfg_s& radio_bearer_cfg)
 }
 // RLC interface
 void rrc_nr::max_retx_attempted() {}
+void rrc_nr::protocol_failure() {}
 
 // MAC interface
 void rrc_nr::ra_completed() {}

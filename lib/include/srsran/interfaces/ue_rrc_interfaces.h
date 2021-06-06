@@ -100,6 +100,7 @@ class rrc_interface_rlc
 {
 public:
   virtual void        max_retx_attempted()                                       = 0;
+  virtual void        protocol_failure()                                         = 0;
   virtual const char* get_rb_name(uint32_t lcid)                                 = 0;
   virtual void        write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu) = 0;
 };

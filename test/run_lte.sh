@@ -312,8 +312,8 @@ ue_args="$build_path/../srsue/ue.conf.example \
          --gw.netns=$ue_netns \
          --log.all_level=info \
          --log.filename=./${nof_prb}prb_ue.log \
-         --pcap.enable=true \
-         --pcap.filename=./${nof_prb}prb_ue.pcap"
+         --pcap.enable=mac \
+         --pcap.mac_filename=./${nof_prb}prb_ue.pcap"
 
 if ([ "$num_cc" == "2" ])
 then

@@ -88,6 +88,7 @@ public:
   // rrc_interface_rlc
   void read_pdu_pcch(uint32_t tti_tx_dl, uint8_t* payload, uint32_t buffer_size) override;
   void max_retx_attempted(uint16_t rnti) override;
+  void protocol_failure(uint16_t rnti) override;
 
   // rrc_interface_s1ap
   void     write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu) override;
@@ -151,8 +152,9 @@ public:
     log_rrc_message(Tx, rnti, -1, pdu, msg, msg_type);
   }
 
-private:
   class ue;
+
+private:
   // args
   srsran::task_sched_handle task_sched;
   phy_interface_rrc_lte*    phy  = nullptr;
@@ -202,6 +204,7 @@ private:
   const static uint32_t LCID_RLC_RTX    = 0xffff0005;
   const static uint32_t LCID_RADLINK_DL = 0xffff0006;
   const static uint32_t LCID_RADLINK_UL = 0xffff0007;
+  const static uint32_t LCID_PROT_FAIL  = 0xffff0008;
 
   bool                                running = false;
   srsran::dyn_blocking_queue<rrc_pdu> rx_pdu_queue;

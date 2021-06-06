@@ -67,7 +67,7 @@ public:
   // MAC interface
   bool     has_data();
   uint32_t get_buffer_state();
-  int      read_pdu(uint8_t* payload, uint32_t nof_bytes);
+  uint32_t read_pdu(uint8_t* payload, uint32_t nof_bytes);
   void     write_pdu(uint8_t* payload, uint32_t nof_bytes);
   int      get_increment_sequence_num();
 
@@ -84,7 +84,7 @@ protected:
     rlc_um_base_tx(rlc_um_base* parent_);
     virtual ~rlc_um_base_tx();
     virtual bool     configure(const rlc_config_t& cfg, std::string rb_name) = 0;
-    int              build_data_pdu(uint8_t* payload, uint32_t nof_bytes);
+    uint32_t         build_data_pdu(uint8_t* payload, uint32_t nof_bytes);
     void             stop();
     void             reestablish();
     void             empty_queue();
@@ -116,7 +116,7 @@ protected:
     srsran::rolling_average<double> mean_pdu_latency_us;
 #endif
 
-    virtual int build_data_pdu(unique_byte_buffer_t pdu, uint8_t* payload, uint32_t nof_bytes) = 0;
+    virtual uint32_t build_data_pdu(unique_byte_buffer_t pdu, uint8_t* payload, uint32_t nof_bytes) = 0;
 
     // helper functions
     virtual void debug_state() = 0;

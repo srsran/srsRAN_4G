@@ -89,7 +89,7 @@ int test_uci_cqi_pucch(void)
   int                                   ret                                  = SRSRAN_SUCCESS;
   __attribute__((aligned(256))) uint8_t o_bits[SRSRAN_UCI_MAX_CQI_LEN_PUCCH] = {0};
   __attribute__((aligned(256))) uint8_t e_bits[SRSRAN_UCI_CQI_CODED_PUCCH_B] = {0};
-  __attribute__((aligned(256))) int16_t e_symb[SRSRAN_UCI_CQI_CODED_PUCCH_B] = {0};
+  __attribute__((aligned(256))) int16_t e_symb[SRSRAN_CQI_MAX_BITS]          = {0};
   __attribute__((aligned(256))) uint8_t d_bits[SRSRAN_UCI_MAX_CQI_LEN_PUCCH] = {0};
 
   srsran_uci_cqi_pucch_t uci_cqi_pucch = {0};

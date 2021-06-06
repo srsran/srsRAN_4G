@@ -87,15 +87,25 @@ tbs_info compute_mcs_and_tbs(uint32_t nof_prb,
                              bool     ulqam64_enabled,
                              bool     use_tbs_index_alt)
 {
+  float max_coderate = srsran_cqi_to_coderate(std::min(cqi + 1U, 15U), use_tbs_index_alt);
+  return compute_mcs_and_tbs(nof_prb, nof_re, max_coderate, max_mcs, is_ul, ulqam64_enabled, use_tbs_index_alt);
+}
+
+tbs_info compute_mcs_and_tbs(uint32_t nof_prb,
+                             uint32_t nof_re,
+                             float    max_coderate,
+                             uint32_t max_mcs,
+                             bool     is_ul,
+                             bool     ulqam64_enabled,
+                             bool     use_tbs_index_alt)
+{
   assert((not is_ul or not use_tbs_index_alt) && "UL cannot use Alt CQI Table");
   assert((is_ul or not ulqam64_enabled) && "DL cannot use UL-QAM64 enable flag");
 
-  float    max_coderate = srsran_cqi_to_coderate(std::min(cqi + 1U, 15U), use_tbs_index_alt);
-  uint32_t max_Qm       = (is_ul) ? (ulqam64_enabled ? 6 : 4) : (use_tbs_index_alt ? 8 : 6);
-  max_coderate          = std::min(max_coderate, 0.932F * max_Qm);
+  uint32_t max_Qm = (is_ul) ? (ulqam64_enabled ? 6 : 4) : (use_tbs_index_alt ? 8 : 6);
+  max_coderate    = std::min(max_coderate, 0.930F * max_Qm);
 
-  int   mcs               = 0;
-  float prev_max_coderate = 0;
+  int mcs = 0;
   do {
     // update max TBS based on max coderate
     int max_tbs = coderate_to_tbs(max_coderate, nof_re);
@@ -122,7 +132,7 @@ tbs_info compute_mcs_and_tbs(uint32_t nof_prb,
     // update max coderate based on mcs
     srsran_mod_t mod = (is_ul) ? srsran_ra_ul_mod_from_mcs(mcs) : srsran_ra_dl_mod_from_mcs(mcs, use_tbs_index_alt);
     uint32_t     Qm  = srsran_mod_bits_x_symbol(mod);
-    max_coderate     = std::min(0.932F * Qm, max_coderate);
+    max_coderate     = std::min(0.930F * Qm, max_coderate);
 
     if (coderate <= max_coderate) {
       // solution was found
@@ -134,7 +144,7 @@ tbs_info compute_mcs_and_tbs(uint32_t nof_prb,
 
     // start with smaller max mcs in next iteration
     max_mcs = mcs - 1;
-  } while (mcs > 0 and max_coderate != prev_max_coderate);
+  } while (mcs > 0);
 
   return tbs_info{};
 }

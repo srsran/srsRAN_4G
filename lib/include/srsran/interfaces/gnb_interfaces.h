@@ -160,6 +160,7 @@ class rrc_interface_rlc_nr
 public:
   virtual void        read_pdu_pcch(uint8_t* payload, uint32_t payload_size)                    = 0;
   virtual void        max_retx_attempted(uint16_t rnti)                                         = 0;
+  virtual void        protocol_failure(uint16_t rnti)                                           = 0;
   virtual void        write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t sdu) = 0;
   virtual const char* get_rb_name(uint32_t lcid)                                                = 0;
 };

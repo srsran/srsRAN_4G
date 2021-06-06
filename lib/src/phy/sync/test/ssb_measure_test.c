@@ -100,6 +100,7 @@ static int assert_measure(const srsran_csi_trs_measurements_t* meas)
 static int test_case_1(srsran_ssb_t* ssb)
 {
   // For benchmarking purposes
+  uint64_t t_add_usec  = 0;
   uint64_t t_find_usec = 0;
   uint64_t t_meas_usec = 0;
 
@@ -110,7 +111,6 @@ static int test_case_1(srsran_ssb_t* ssb)
   ssb_cfg.ssb_freq_hz      = 3.5e9 - 960e3;
   ssb_cfg.scs              = ssb_scs;
   ssb_cfg.pattern          = SRSRAN_SSB_PATTERN_C;
-  ssb_cfg.position[0]      = true; // Rest to false
 
   TESTASSERT(srsran_ssb_set_cfg(ssb, &ssb_cfg) == SRSRAN_SUCCESS);
 
@@ -124,7 +124,11 @@ static int test_case_1(srsran_ssb_t* ssb)
     srsran_vec_cf_zero(buffer, sf_len);
 
     // Add the SSB base-band
-    TESTASSERT(srsran_ssb_add(ssb, pci, &pbch_msg, buffer, buffer) == SRSRAN_SUCCESS);
+    gettimeofday(&t[1], NULL);
+    TESTASSERT(srsran_ssb_add(ssb, pci, 0, &pbch_msg, buffer, buffer) == SRSRAN_SUCCESS);
+    gettimeofday(&t[2], NULL);
+    get_time_interval(t);
+    t_add_usec += t[0].tv_usec + t[0].tv_sec * 1000000UL;
 
     // Run channel
     run_channel();
@@ -149,7 +153,7 @@ static int test_case_1(srsran_ssb_t* ssb)
     // Measure
     gettimeofday(&t[1], NULL);
     srsran_csi_trs_measurements_t meas = {};
-    TESTASSERT(srsran_ssb_csi_measure(ssb, pci, buffer, &meas) == SRSRAN_SUCCESS);
+    TESTASSERT(srsran_ssb_csi_measure(ssb, pci, 0, buffer, &meas) == SRSRAN_SUCCESS);
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
     t_meas_usec += t[0].tv_usec + t[0].tv_sec * 1000000UL;
@@ -161,7 +165,8 @@ static int test_case_1(srsran_ssb_t* ssb)
     TESTASSERT(assert_measure(&meas) == SRSRAN_SUCCESS);
   }
 
-  INFO("test_case_1 - %.1f usec/search; Max srate %.1f MSps; %.1f usec/measurement",
+  INFO("test_case_1 - %.1f usec/encode; %.1f usec/search; Max srate %.1f MSps; %.1f usec/measurement",
+       (double)t_add_usec / (double)SRSRAN_NOF_NID_NR,
        (double)t_find_usec / (double)SRSRAN_NOF_NID_NR,
        (double)sf_len * (double)SRSRAN_NOF_NID_NR / (double)t_find_usec,
        (double)t_meas_usec / (double)SRSRAN_NOF_NID_NR);

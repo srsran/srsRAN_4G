@@ -257,9 +257,9 @@ uint32_t rlc_am_lte::get_buffer_state()
   return tx.get_buffer_state();
 }
 
-int rlc_am_lte::read_pdu(uint8_t* payload, uint32_t nof_bytes)
+uint32_t rlc_am_lte::read_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
-  int read_bytes = tx.read_pdu(payload, nof_bytes);
+  uint32_t read_bytes = tx.read_pdu(payload, nof_bytes);
   metrics.num_tx_pdus++;
   metrics.num_tx_pdu_bytes += read_bytes;
   return read_bytes;
@@ -542,7 +542,7 @@ bool rlc_am_lte::rlc_am_lte_tx::sdu_queue_is_full()
   return tx_sdu_queue.is_full();
 }
 
-int rlc_am_lte::rlc_am_lte_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
+uint32_t rlc_am_lte::rlc_am_lte_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   std::lock_guard<std::mutex> lock(mutex);
 
@@ -591,6 +591,8 @@ void rlc_am_lte::rlc_am_lte_tx::timer_expired(uint32_t timeout_id)
     if ((retx_queue.empty() && tx_sdu_queue.size() == 0) || tx_window.size() >= RLC_AM_WINDOW_SIZE) {
       retransmit_pdu(vt_a); // TODO: TS says to send vt_s - 1 here
     }
+  } else if (status_prohibit_timer.is_valid() && status_prohibit_timer.id() == timeout_id) {
+    logger.debug("%s Status prohibit timer expired after %dms", RB_NAME, status_prohibit_timer.duration());
   }
 
   lock.unlock();
@@ -708,8 +710,15 @@ int rlc_am_lte::rlc_am_lte_tx::build_retx_pdu(uint8_t* payload, uint32_t nof_byt
     if (!retx_queue.empty()) {
       retx = retx_queue.front();
     } else {
-      logger.info("In build_retx_pdu(): retx_queue is empty during sanity check, sn=%d", retx.sn);
-      return 0;
+      logger.info("%s SN=%d not in Tx window. Ignoring retx.", RB_NAME, retx.sn);
+      if (tx_window.has_sn(vt_a)) {
+        // schedule next SN for retx
+        retransmit_pdu(vt_a);
+        retx = retx_queue.front();
+      } else {
+        // empty tx window, can't provide retx PDU
+        return 0;
+      }
     }
   }
 
@@ -1241,7 +1250,7 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
             logger.info("%s NACKed SN=%d already considered for retransmission", RB_NAME, i);
           }
         } else {
-          logger.warning("%s NACKed SN=%d already removed from Tx window", RB_NAME, i);
+          logger.error("%s NACKed SN=%d already removed from Tx window", RB_NAME, i);
         }
       }
     }
@@ -1263,8 +1272,9 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
   }
 
   // Make sure vt_a points to valid SN
-  if (not tx_window.empty()) {
-    srsran_expect(tx_window.has_sn(vt_a), "%s vt_a=%d points to invalid position in Tx window", RB_NAME, vt_a);
+  if (not tx_window.empty() && not tx_window.has_sn(vt_a)) {
+    logger.error("%s vt_a=%d points to invalid position in Tx window.", RB_NAME, vt_a);
+    parent->rrc->protocol_failure();
   }
 
   debug_state();
@@ -1325,7 +1335,7 @@ void rlc_am_lte::rlc_am_lte_tx::debug_state()
   logger.debug("%s vt_a = %d, vt_ms = %d, vt_s = %d, poll_sn = %d", RB_NAME, vt_a, vt_ms, vt_s, poll_sn);
 }
 
-int rlc_am_lte::rlc_am_lte_tx::required_buffer_size(rlc_amd_retx_t retx)
+int rlc_am_lte::rlc_am_lte_tx::required_buffer_size(const rlc_amd_retx_t& retx)
 {
   if (!retx.is_segment) {
     if (tx_window.has_sn(retx.sn)) {
@@ -1924,8 +1934,9 @@ int rlc_am_lte::rlc_am_lte_rx::get_status_pdu(rlc_status_pdu_t* status, const ui
         status->N_nack--;
         // make sure we don't have the current ACK_SN in the NACK list
         if (rlc_am_is_valid_status_pdu(*status) == false) {
-          // No space to send any NACKs
-          logger.debug("Resetting N_nack to zero");
+          // No space to send any NACKs, play safe and just ack lower edge
+          logger.debug("Resetting ACK_SN and N_nack to initial state");
+          status->ack_sn = vr_r;
           status->N_nack = 0;
         }
       } else {

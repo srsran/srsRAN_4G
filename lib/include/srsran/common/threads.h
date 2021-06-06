@@ -44,6 +44,7 @@ void threads_print_self();
 #ifdef __cplusplus
 }
 
+#include <atomic>
 #include <string>
 
 namespace srsran {
@@ -138,10 +139,10 @@ protected:
   virtual void run_period() = 0;
 
 private:
-  int  wakeups_missed;
-  int  timer_fd;
-  int  period_us;
-  bool run_enable;
+  int               wakeups_missed = 0;
+  int               timer_fd       = 0;
+  int               period_us      = 0;
+  std::atomic<bool> run_enable     = {false};
 
   void run_thread()
   {

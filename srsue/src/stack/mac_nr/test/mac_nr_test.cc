@@ -101,7 +101,7 @@ public:
   rlc_dummy() : received_bytes(0) {}
   bool     has_data_locked(const uint32_t lcid) final { return ul_queues[lcid] > 0; }
   uint32_t get_buffer_state(const uint32_t lcid) final { return ul_queues[lcid]; }
-  int      read_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes) final
+  uint32_t read_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes) final
   {
     if (!read_enable || nof_bytes < read_min) {
       return 0;

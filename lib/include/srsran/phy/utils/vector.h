@@ -132,16 +132,16 @@ SRSRAN_API void srsran_vec_u16_copy(uint16_t* dst, const uint16_t* src, uint32_t
 SRSRAN_API void srsran_vec_i16_copy(int16_t* dst, const int16_t* src, uint32_t len);
 
 /* print vectors */
-SRSRAN_API void srsran_vec_fprint_c(FILE* stream, const cf_t* x, const uint32_t len);
-SRSRAN_API void srsran_vec_fprint_f(FILE* stream, const float* x, const uint32_t len);
-SRSRAN_API void srsran_vec_fprint_b(FILE* stream, const uint8_t* x, const uint32_t len);
-SRSRAN_API void srsran_vec_fprint_bs(FILE* stream, const int8_t* x, const uint32_t len);
-SRSRAN_API void srsran_vec_fprint_byte(FILE* stream, const uint8_t* x, const uint32_t len);
-SRSRAN_API void srsran_vec_fprint_i(FILE* stream, const int* x, const uint32_t len);
-SRSRAN_API void srsran_vec_fprint_s(FILE* stream, const int16_t* x, const uint32_t len);
-SRSRAN_API void srsran_vec_fprint_hex(FILE* stream, uint8_t* x, const uint32_t len);
-SRSRAN_API void srsran_vec_sprint_hex(char* str, const uint32_t max_str_len, uint8_t* x, const uint32_t len);
-SRSRAN_API void srsran_vec_sprint_bin(char* str, const uint32_t max_str_len, const uint8_t* x, const uint32_t len);
+SRSRAN_API void     srsran_vec_fprint_c(FILE* stream, const cf_t* x, const uint32_t len);
+SRSRAN_API void     srsran_vec_fprint_f(FILE* stream, const float* x, const uint32_t len);
+SRSRAN_API void     srsran_vec_fprint_b(FILE* stream, const uint8_t* x, const uint32_t len);
+SRSRAN_API void     srsran_vec_fprint_bs(FILE* stream, const int8_t* x, const uint32_t len);
+SRSRAN_API void     srsran_vec_fprint_byte(FILE* stream, const uint8_t* x, const uint32_t len);
+SRSRAN_API void     srsran_vec_fprint_i(FILE* stream, const int* x, const uint32_t len);
+SRSRAN_API void     srsran_vec_fprint_s(FILE* stream, const int16_t* x, const uint32_t len);
+SRSRAN_API void     srsran_vec_fprint_hex(FILE* stream, uint8_t* x, const uint32_t len);
+SRSRAN_API uint32_t srsran_vec_sprint_hex(char* str, const uint32_t max_str_len, uint8_t* x, const uint32_t len);
+SRSRAN_API void     srsran_vec_sprint_bin(char* str, const uint32_t max_str_len, const uint8_t* x, const uint32_t len);
 
 /* Saves/loads a vector to a file */
 SRSRAN_API void srsran_vec_save_file(char* filename, const void* buffer, const uint32_t len);

@@ -70,11 +70,6 @@ void lte_ttcn3_phy::set_cell_map(const cell_list_t& cells_)
 
 void lte_ttcn3_phy::set_config_tdd(srsran_tdd_config_t& tdd_config) {}
 
-void lte_ttcn3_phy::enable_pregen_signals(bool enable)
-{
-  logger.debug("%s not implemented.", __FUNCTION__);
-}
-
 void lte_ttcn3_phy::deactivate_scells()
 {
   logger.debug("%s not implemented.", __FUNCTION__);

@@ -38,9 +38,9 @@ struct phy_cfg_nr_t {
    * SSB configuration
    */
   struct ssb_cfg_t {
-    uint32_t                                  periodicity_ms;
-    std::array<bool, SRSRAN_SSB_NOF_POSITION> position_in_burst;
-    srsran_subcarrier_spacing_t               scs;
+    uint32_t                                    periodicity_ms;
+    std::array<bool, SRSRAN_SSB_NOF_CANDIDATES> position_in_burst;
+    srsran_subcarrier_spacing_t                 scs;
   };
 
   srsran_tdd_config_nr_t         tdd      = {};

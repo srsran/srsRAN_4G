@@ -23,6 +23,7 @@
 #include "srsran/asn1/rrc_utils.h"
 #include "srsran/common/mac_pcap.h"
 #include "srsran/common/test_common.h"
+#include "srsran/common/tsan_options.h"
 #include "srsran/test/ue_test_interfaces.h"
 #include "srsue/hdr/stack/mac/mac.h"
 #include "srsue/hdr/stack/mac/mux.h"
@@ -45,7 +46,7 @@ public:
   rlc_dummy() : received_bytes(0) {}
   bool     has_data_locked(const uint32_t lcid) final { return ul_queues[lcid] > 0; }
   uint32_t get_buffer_state(const uint32_t lcid) final { return ul_queues[lcid]; }
-  int      read_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes) final
+  uint32_t read_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes) final
   {
     if (!read_enable || nof_bytes < read_min) {
       return 0;

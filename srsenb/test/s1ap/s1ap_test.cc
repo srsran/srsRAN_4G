@@ -96,7 +96,7 @@ struct dummy_socket_manager : public srsran::socket_manager_itf {
     return true;
   }
 
-  int             s1u_fd;
+  int             s1u_fd = -1;
   recv_callback_t callback;
 };
 
@@ -194,7 +194,7 @@ void add_rnti(s1ap& s1ap_obj, mme_dummy& mme)
                        0x40, 0x0a, 0x0a, 0x1f, 0x7f, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x01};
   cbref             = asn1::cbit_ref(icsresp, sizeof(icsresp));
   TESTASSERT(s1ap_pdu.unpack(cbref) == SRSRAN_SUCCESS);
-  s1ap_obj.ue_ctxt_setup_complete(0x46);
+  s1ap_obj.notify_rrc_reconf_complete(0x46);
   sdu = mme.read_msg();
   TESTASSERT(sdu->N_bytes > 0);
   cbref = asn1::cbit_ref{sdu->msg, sdu->N_bytes};
@@ -259,9 +259,10 @@ void test_s1ap_erab_setup(test_event event)
   erab_ptr->erab_level_qos_params.alloc_retention_prio.pre_emption_vulnerability.value =
       asn1::s1ap::pre_emption_vulnerability_opts::not_pre_emptable;
   erab_ptr->nas_pdu.resize(1);
-  erab_list[1]      = erab_list[0];
-  erab_ptr          = &erab_list[1].value.erab_to_be_modified_item_bearer_mod_req();
-  erab_ptr->erab_id = event == test_event::repeated_erabid_mod ? 5 : 6;
+  erab_ptr->nas_pdu[0] = 0;
+  erab_list[1]         = erab_list[0];
+  erab_ptr             = &erab_list[1].value.erab_to_be_modified_item_bearer_mod_req();
+  erab_ptr->erab_id    = event == test_event::repeated_erabid_mod ? 5 : 6;
   if (event == test_event::wrong_erabid_mod) {
     rrc.next_erabs_failed_to_modify.push_back(6);
   }

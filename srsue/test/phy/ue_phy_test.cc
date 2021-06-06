@@ -21,10 +21,10 @@
 
 #include <srsran/common/test_common.h>
 #include <srsran/common/threads.h>
+#include <srsran/common/tsan_options.h>
 #include <srsran/interfaces/ue_interfaces.h>
 #include <srsran/phy/utils/random.h>
 #include <srsran/srslog/srslog.h>
-#include <srsran/srsran.h>
 #include <srsue/hdr/phy/phy.h>
 
 #define CALLBACK(NAME, ...)                                                                                            \
@@ -384,6 +384,9 @@ public:
     phy = std::unique_ptr<srsue::phy>(new srsue::phy);
     phy->init(phy_args, &stack, &radio);
 
+    // Wait PHY init to end
+    phy->wait_initialize();
+
     // Initialise DL baseband buffers
     for (uint32_t i = 0; i < cell.nof_ports; i++) {
       enb_dl_buffer[i] = srsran_vec_cf_malloc(sf_len);
@@ -395,9 +398,6 @@ public:
     // Initialise eNb DL
     srsran_enb_dl_init(&enb_dl, enb_dl_buffer, SRSRAN_MAX_PRB);
     srsran_enb_dl_set_cell(&enb_dl, cell);
-
-    // Wait PHY init to end
-    phy->wait_initialize();
   }
 
   ~phy_test_bench()

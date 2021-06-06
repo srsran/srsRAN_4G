@@ -136,10 +136,13 @@ add_test(cfo_test_2 cfo_test -f 0.99849 -n 1000)
 
 
 ########################################################################
-# NE TEST
+# NR TEST
 ########################################################################
 
 add_executable(ssb_measure_test ssb_measure_test.c)
 target_link_libraries(ssb_measure_test srsran_phy)
+add_nr_test(ssb_measure_test ssb_measure_test)
 
-add_test(ssb_measure_test ssb_measure_test)
+add_executable(ssb_decode_test ssb_decode_test.c)
+target_link_libraries(ssb_decode_test srsran_phy)
+add_nr_test(ssb_decode_test ssb_decode_test)

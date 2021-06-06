@@ -204,7 +204,6 @@ bool sync::cell_search_init()
   // Move state to IDLE
   Info("Cell Search: Start EARFCN index=%u/%zd", cellsearch_earfcn_index, worker_com->args->dl_earfcn_list.size());
   phy_state.go_idle();
-  worker_com->reset();
 
   // Stop all intra-frequency measurement before changing frequency
   meas_stop();
@@ -228,6 +227,18 @@ rrc_interface_phy_lte::cell_search_ret_t sync::cell_search_start(phy_cell_t* fou
   }
 
   rrc_proc_state = PROC_SEARCH_RUNNING;
+
+  // Wait for SYNC thread to transition to IDLE (max. 2000ms)
+  if (not phy_state.wait_idle(TIMEOUT_TO_IDLE_MS)) {
+    Error("SYNC: Error transitioning to IDLE. Cell search cannot start.");
+    return ret;
+  }
+
+  // Wait for workers to finish PHY processing
+  worker_com->semaphore.wait_all();
+
+  // Reset worker once SYNC is IDLE to flush any worker states such as ACKs and pending grants
+  worker_com->reset();
 
   if (srate_mode != SRATE_FIND) {
     srate_mode = SRATE_FIND;
@@ -310,7 +321,6 @@ bool sync::cell_select_init(phy_cell_t new_cell)
 
   Info("Cell Select: Going to IDLE");
   phy_state.go_idle();
-  worker_com->reset();
 
   // Stop intra-frequency measurements if need to change frequency
   if ((int)new_cell.earfcn != current_earfcn) {
@@ -334,11 +344,11 @@ bool sync::cell_select_start(phy_cell_t new_cell)
 
   rrc_proc_state = PROC_SELECT_RUNNING;
 
+  // Reset SFN and cell search FSMs. They can safely be done while it is CAMPING or IDLE
   sfn_p.reset();
   search_p.reset();
-  srsran_ue_sync_reset(&ue_sync);
 
-  /* Reconfigure cell if necessary */
+  // Reconfigure cell if necessary
   cell.id = new_cell.pci;
   if (not set_cell(new_cell.cfo_hz)) {
     Error("Cell Select: Reconfiguring cell");
@@ -481,8 +491,9 @@ void sync::run_camping_in_sync_state(lte::sf_worker*      lte_worker,
 
   Debug("SYNC:  Worker %d synchronized", lte_worker->get_id());
 
-  metrics.sfo   = srsran_ue_sync_get_sfo(&ue_sync);
-  metrics.cfo   = srsran_ue_sync_get_cfo(&ue_sync);
+  // Collect and provide metrics from last successful sync
+  metrics.sfo   = sfo;
+  metrics.cfo   = cfo;
   metrics.ta_us = worker_com->ta.get_usec();
   for (uint32_t i = 0; i < worker_com->args->nof_lte_carriers; i++) {
     worker_com->set_sync_metrics(i, metrics);
@@ -504,7 +515,7 @@ void sync::run_camping_in_sync_state(lte::sf_worker*      lte_worker,
   // Set CFO for all Carriers
   for (uint32_t cc = 0; cc < worker_com->args->nof_lte_carriers; cc++) {
     lte_worker->set_cfo_unlocked(cc, get_tx_cfo());
-    worker_com->update_cfo_measurement(cc, srsran_ue_sync_get_cfo(&ue_sync));
+    worker_com->update_cfo_measurement(cc, cfo);
   }
 
   lte_worker->set_tti(tti);
@@ -567,8 +578,18 @@ void sync::run_camping_state()
     }
   }
 
+  // Apply CFO adjustment if available
+  if (ref_cfo != 0.0) {
+    srsran_ue_sync_set_cfo_ref(&ue_sync, ref_cfo);
+    ref_cfo = 0.0; // reset until value changes again
+  }
+
   // Primary Cell (PCell) Synchronization
-  switch (srsran_ue_sync_zerocopy(&ue_sync, sync_buffer.to_cf_t(), lte_worker->get_buffer_len())) {
+  int sync_result = srsran_ue_sync_zerocopy(&ue_sync, sync_buffer.to_cf_t(), lte_worker->get_buffer_len());
+  cfo             = srsran_ue_sync_get_cfo(&ue_sync);
+  sfo             = srsran_ue_sync_get_sfo(&ue_sync);
+
+  switch (sync_result) {
     case 1:
       run_camping_in_sync_state(lte_worker, nr_worker, sync_buffer);
       break;
@@ -620,7 +641,7 @@ void sync::run_idle_state()
 
 void sync::run_thread()
 {
-  while (running) {
+  while (running.load(std::memory_order_relaxed)) {
     phy_lib_logger.set_context(tti);
 
     Debug("SYNC:  state=%s, tti=%d", phy_state.to_string(), tti);
@@ -682,7 +703,7 @@ void sync::in_sync()
 void sync::out_of_sync()
 {
   // Send RRC out-of-sync signal after NOF_OUT_OF_SYNC_SF consecutive subframes
-  Info("Out-of-sync %d/%d", out_of_sync_cnt, worker_com->args->nof_out_of_sync_events);
+  Info("Out-of-sync %d/%d", out_of_sync_cnt.load(std::memory_order_relaxed), worker_com->args->nof_out_of_sync_events);
   out_of_sync_cnt++;
   if (out_of_sync_cnt == worker_com->args->nof_out_of_sync_events) {
     Info("Sending to RRC");
@@ -694,7 +715,7 @@ void sync::out_of_sync()
 
 void sync::set_cfo(float cfo)
 {
-  srsran_ue_sync_set_cfo_ref(&ue_sync, cfo);
+  ref_cfo = cfo;
 }
 
 void sync::set_agc_enable(bool enable)
@@ -723,7 +744,7 @@ void sync::set_agc_enable(bool enable)
     return;
   }
 
-  // Enable AGC
+  // Enable AGC (unprotected call to ue_sync must not happen outside of thread calling recv)
   srsran_ue_sync_start_agc(
       &ue_sync, callback_set_rx_gain, rf_info->min_rx_gain, rf_info->max_rx_gain, radio_h->get_rx_gain());
   search_p.set_agc_enable(true);
@@ -731,8 +752,7 @@ void sync::set_agc_enable(bool enable)
 
 float sync::get_tx_cfo()
 {
-  float cfo = srsran_ue_sync_get_cfo(&ue_sync);
-
+  // Use CFO estimate from last successful sync
   float ret = cfo * ul_dl_factor;
 
   if (worker_com->args->cfo_is_doppler) {
@@ -794,16 +814,19 @@ void sync::set_ue_sync_opts(srsran_ue_sync_t* q, float cfo)
 bool sync::set_cell(float cfo)
 {
   // Wait for SYNC thread to transition to IDLE (max. 2000ms)
-  uint32_t cnt = 0;
-  while (!phy_state.is_idle() && cnt <= 4000) {
-    Info("SYNC: PHY state is_idle=%d, cnt=%d", phy_state.is_idle(), cnt);
-    usleep(500);
-    cnt++;
-  }
-  if (!phy_state.is_idle()) {
-    Error("Can not change Cell while not in IDLE");
+  if (not phy_state.wait_idle(TIMEOUT_TO_IDLE_MS)) {
+    Error("SYNC: Can not change Cell while not in IDLE");
     return false;
   }
+
+  // Reset UE sync. Attention: doing this reset when the FSM is NOT IDLE can cause PSS/SSS out-of-sync
+  srsran_ue_sync_reset(&ue_sync);
+
+  // Wait for workers to finish PHY processing
+  worker_com->semaphore.wait_all();
+
+  // Reset worker once SYNC is IDLE to flush any worker states such as ACKs and pending grants
+  worker_com->reset();
 
   if (!srsran_cell_isvalid(&cell)) {
     Error("SYNC:  Setting cell: invalid cell (nof_prb=%d, pci=%d, ports=%d)", cell.nof_prb, cell.id, cell.nof_ports);

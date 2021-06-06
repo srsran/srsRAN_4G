@@ -49,9 +49,8 @@ public:
   void reset_cell_unlocked();
   bool set_cell_unlocked(srsran_cell_t cell_);
   void set_tdd_config_unlocked(srsran_tdd_config_t config);
-  void set_config_unlocked(srsran::phy_cfg_t& phy_cfg);
-  void upd_config_dci_unlocked(srsran_dci_cfg_t& dci_cfg);
-  void enable_pregen_signals_unlocked(bool enabled);
+  void set_config_unlocked(const srsran::phy_cfg_t& phy_cfg);
+  void upd_config_dci_unlocked(const srsran_dci_cfg_t& dci_cfg);
 
   void set_uci_periodic_cqi(srsran_uci_data_t* uci_data);
 
@@ -102,7 +101,6 @@ private:
   srsran_ul_sf_cfg_t sf_cfg_ul = {};
 
   uint32_t cc_idx                             = 0;
-  bool     pregen_enabled                     = false;
   bool     cell_initiated                     = false;
   cf_t*    signal_buffer_rx[SRSRAN_MAX_PORTS] = {};
   cf_t*    signal_buffer_tx[SRSRAN_MAX_PORTS] = {};

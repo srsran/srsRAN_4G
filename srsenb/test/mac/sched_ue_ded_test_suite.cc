@@ -50,6 +50,13 @@ int sim_ue_ctxt_t::enb_to_ue_cc_idx(uint32_t enb_cc_idx) const
   return it == ue_cfg.supported_cc_list.end() ? -1 : std::distance(ue_cfg.supported_cc_list.begin(), it);
 }
 
+const phich_t* find_phich_grant(uint16_t rnti, const sched_interface::ul_sched_res_t& ul_cc_res)
+{
+  const phich_t* phich_ptr = std::find_if(
+      ul_cc_res.phich.begin(), ul_cc_res.phich.end(), [rnti](const phich_t& phich) { return phich.rnti == rnti; });
+  return phich_ptr == ul_cc_res.phich.end() ? nullptr : phich_ptr;
+}
+
 const pusch_t* find_pusch_grant(uint16_t rnti, const sched_interface::ul_sched_res_t& ul_cc_res)
 {
   const pusch_t* ptr = std::find_if(
@@ -138,6 +145,22 @@ int test_dl_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
   return SRSRAN_SUCCESS;
 }
 
+bool is_in_measgap(srsran::tti_point tti, uint32_t period, uint32_t offset)
+{
+  if (period == 0) {
+    return false;
+  }
+  uint32_t T = period / 10;
+  for (uint32_t i = 0; i < 6; ++i) {
+    tti_point tti_gap_start = tti - i;
+    bool      is_gap_start  = (tti_gap_start.sfn() % T == offset / 10) and (tti_gap_start.sf_idx() == offset % 10);
+    if (is_gap_start) {
+      return true;
+    }
+  }
+  return false;
+}
+
 int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
 {
   uint32_t pid = to_tx_ul(sf_out.tti_rx).to_uint() % (FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS);
@@ -165,9 +188,7 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
       uint16_t    rnti      = ue.rnti;
       int         ue_cc_idx = ue.enb_to_ue_cc_idx(cc);
 
-      const phich_t* phich_ptr =
-          std::find_if(phich_begin, phich_end, [rnti](const phich_t& phich) { return phich.rnti == rnti; });
-      phich_ptr                = phich_ptr == phich_end ? nullptr : phich_ptr;
+      const phich_t* phich_ptr = find_phich_grant(rnti, sf_out.ul_cc_result[cc]);
       const pusch_t* pusch_ptr = find_pusch_grant(rnti, sf_out.ul_cc_result[cc]);
 
       // TEST: Check that idle CCs do not receive PUSCH grants or PHICH
@@ -177,22 +198,32 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
         continue;
       }
 
-      const auto& h         = ue.cc_list[ue_cc_idx].ul_harqs[pid];
-      bool        phich_ack = phich_ptr != nullptr and phich_ptr->phich == phich_t::ACK;
-      bool        is_msg3   = h.first_tti_rx == ue.msg3_tti_rx and h.nof_txs == h.nof_retxs + 1;
-      bool last_retx  = h.nof_retxs + 1 >= (is_msg3 ? sf_out.cc_params[0].cfg.maxharq_msg3tx : ue.ue_cfg.maxharq_tx);
-      bool h_inactive = (not h.active) or (phich_ack or last_retx);
+      const auto& h                 = ue.cc_list[ue_cc_idx].ul_harqs[pid];
+      bool        phich_ack         = phich_ptr != nullptr and phich_ptr->phich == phich_t::ACK;
+      bool        is_msg3           = h.first_tti_rx == ue.msg3_tti_rx and h.nof_txs == h.nof_retxs + 1;
+      uint32_t    max_nof_retxs     = is_msg3 ? sf_out.cc_params[0].cfg.maxharq_msg3tx : ue.ue_cfg.maxharq_tx;
+      bool        last_retx         = h.nof_retxs + 1 >= max_nof_retxs;
+      tti_point   tti_tx_phich      = to_tx_dl(sf_out.tti_rx);
+      bool        phich_in_meas_gap = is_in_measgap(tti_tx_phich, ue.ue_cfg.measgap_period, ue.ue_cfg.measgap_offset);
+      bool        pusch_in_meas_gap =
+          is_in_measgap(to_tx_ul(sf_out.tti_rx), ue.ue_cfg.measgap_period, ue.ue_cfg.measgap_offset);
+      bool h_cleared = (not h.active) or (phich_ack or last_retx);
 
-      // TEST: Already active UL HARQs have to receive PHICH
-      CONDERROR(h.active and phich_ptr == nullptr, "PHICH not received for rnti=0x%x active UL HARQ pid=%d", rnti, pid);
+      // TEST: Already active UL HARQs have to receive PHICH (unless MeasGap collision)
+      CONDERROR(h.active and phich_ptr == nullptr and not phich_in_meas_gap,
+                "PHICH not received for rnti=0x%x active UL HARQ pid=%d",
+                rnti,
+                pid);
       CONDERROR(not h.active and phich_ptr != nullptr,
                 "PHICH for rnti=0x%x corresponds to inactive UL HARQ pid=%d",
                 rnti,
                 pid);
 
       // TEST: absent PUSCH grants for active UL HARQs must be either ACKs, last retx, or interrupted HARQs
-      if ((phich_ptr != nullptr) and (pusch_ptr == nullptr)) {
-        CONDERROR(not h_inactive, "PHICH NACK received for rnti=0x%x but no PUSCH retx reallocated", rnti);
+      if (phich_ptr != nullptr) {
+        CONDERROR(not h_cleared and pusch_ptr == nullptr and not pusch_in_meas_gap,
+                  "PHICH NACK received for rnti=0x%x but no PUSCH retx reallocated",
+                  rnti);
       }
 
       if (pusch_ptr != nullptr) {
@@ -205,11 +236,13 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
           // newtx
           CONDERROR(nof_retx != 0, "Invalid rv index for new UL tx");
           CONDERROR(pusch_ptr->current_tx_nb != 0, "UL HARQ retxs need to have been previously transmitted");
-          CONDERROR(not h_inactive, "New tx for already active UL HARQ");
+          CONDERROR(not h_cleared, "New tx for already active UL HARQ");
           CONDERROR(not pusch_ptr->needs_pdcch and ue.msg3_tti_rx.is_valid() and sf_out.tti_rx > ue.msg3_tti_rx,
                     "In case of newtx, PDCCH allocation is required, unless it is Msg3");
         } else {
           CONDERROR(pusch_ptr->current_tx_nb == 0, "UL retx has to have nof tx > 0");
+          CONDERROR(h.nof_retxs >= max_nof_retxs, "UL max nof retxs exceeded");
+          CONDERROR(pusch_ptr->current_tx_nb != h.nof_retxs + 1, "UL HARQ nof_retx mismatch");
           if (not h.active) {
             // the HARQ is being resumed. PDCCH must be active with the exception of Msg3
             CONDERROR(ue.msg4_tti_rx.is_valid() and not pusch_ptr->needs_pdcch,
@@ -222,7 +255,7 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
               CONDERROR(pusch_ptr->dci.type2_alloc.riv != h.riv, "Non-adaptive retx must keep the same riv");
             }
           }
-          CONDERROR(get_rvidx(h.nof_retxs + 1) != (uint32_t)pusch_ptr->dci.tb.rv, "Invalid rv index for retx");
+          CONDERROR(get_rvidx(h.nof_retxs + 1) != (uint32_t)pusch_ptr->dci.tb.rv, "Invalid rv index for UL retx");
           CONDERROR(h.tbs != pusch_ptr->tbs, "TBS changed during HARQ retx");
           CONDERROR(to_tx_ul(h.last_tti_rx) > sf_out.tti_rx, "UL harq pid=%d was reused too soon", h.pid);
         }
@@ -364,12 +397,6 @@ int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
   return SRSRAN_SUCCESS;
 }
 
-bool is_in_measgap(srsran::tti_point tti, uint32_t period, uint32_t offset)
-{
-  uint32_t T = period / 10;
-  return (tti.sfn() % T == offset / 10) and (tti.sf_idx() == offset % 10);
-}
-
 int test_meas_gaps(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
 {
   for (uint32_t cc = 0; cc < enb_ctxt.cell_params.size(); ++cc) {
@@ -380,16 +407,19 @@ int test_meas_gaps(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out
       uint16_t          rnti      = ue.rnti;
       uint32_t          ue_cc_idx = ue.enb_to_ue_cc_idx(cc);
       srsran::tti_point tti_tx_ul = to_tx_ul(sf_out.tti_rx), tti_tx_dl = to_tx_dl(sf_out.tti_rx),
-                        tti_tx_dl_ack = to_tx_dl_ack(sf_out.tti_rx), tti_tx_phich = to_tx_ul_ack(sf_out.tti_rx);
+                        tti_tx_dl_ack = to_tx_dl_ack(sf_out.tti_rx);
 
       if (ue_cc_idx != 0 or ue.ue_cfg.measgap_period == 0) {
         continue;
       }
 
-      if (is_in_measgap(tti_tx_ul, ue.ue_cfg.measgap_period, ue.ue_cfg.measgap_offset) or
-          is_in_measgap(tti_tx_phich, ue.ue_cfg.measgap_period, ue.ue_cfg.measgap_offset)) {
+      if (is_in_measgap(tti_tx_dl, ue.ue_cfg.measgap_period, ue.ue_cfg.measgap_offset)) {
+        const phich_t* phich_ptr = find_phich_grant(rnti, ul_cc_res);
+        CONDERROR(phich_ptr != nullptr, "PHICH grants cannot fall in UE measGap");
+      }
+      if (is_in_measgap(tti_tx_ul, ue.ue_cfg.measgap_period, ue.ue_cfg.measgap_offset)) {
         const pusch_t* pusch_ptr = find_pusch_grant(rnti, ul_cc_res);
-        CONDERROR(pusch_ptr != nullptr, "PUSCH grants and PHICH cannot fall in UE measGap");
+        CONDERROR(pusch_ptr != nullptr, "PUSCH grants cannot fall in UE measGap");
       }
       if (is_in_measgap(tti_tx_dl, ue.ue_cfg.measgap_period, ue.ue_cfg.measgap_offset) or
           is_in_measgap(tti_tx_dl_ack, ue.ue_cfg.measgap_period, ue.ue_cfg.measgap_offset)) {

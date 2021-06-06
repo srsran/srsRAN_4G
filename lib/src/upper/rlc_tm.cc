@@ -143,12 +143,12 @@ void rlc_tm::reset_metrics()
   metrics = {};
 }
 
-int rlc_tm::read_pdu(uint8_t* payload, uint32_t nof_bytes)
+uint32_t rlc_tm::read_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   uint32_t pdu_size = ul_queue.size_tail_bytes();
   if (pdu_size > nof_bytes) {
     logger.info("%s Tx PDU size larger than MAC opportunity (%d > %d)", rrc->get_rb_name(lcid), pdu_size, nof_bytes);
-    return -1;
+    return 0;
   }
   unique_byte_buffer_t buf;
   if (ul_queue.try_read(&buf)) {
@@ -180,7 +180,7 @@ int rlc_tm::read_pdu(uint8_t* payload, uint32_t nof_bytes)
 void rlc_tm::write_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   unique_byte_buffer_t buf = make_byte_buffer();
-  if (buf) {
+  if (buf != nullptr) {
     memcpy(buf->msg, payload, nof_bytes);
     buf->N_bytes = nof_bytes;
     buf->set_timestamp();

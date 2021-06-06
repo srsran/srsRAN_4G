@@ -375,7 +375,8 @@ public:
   void from_uint64(uint64_t v)
   {
     srsran_assert(nof_words_() == 1, "ERROR: cannot convert bitset of size=%zd to uint64_t", size());
-    srsran_assert(v < (1U << size()), "ERROR: Provided uint64=%ld does not fit in bitset of size=%zd", v, size());
+    srsran_assert(
+        v < (1U << size()), "ERROR: Provided mask=0x%" PRIx64 " does not fit in bitset of size=%zd", v, size());
     buffer[0] = v;
   }
 

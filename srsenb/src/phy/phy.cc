@@ -114,9 +114,10 @@ int phy::init(const phy_args_t&            args,
   }
 
   // Add PHY lib log.
-  srslog::basic_levels log_lvl = srslog::str_to_basic_level(args.log.phy_lib_level);
+  srslog::basic_levels lib_log_lvl = srslog::str_to_basic_level(args.log.phy_lib_level);
+  srslog::basic_levels log_lvl     = srslog::str_to_basic_level(args.log.phy_level);
 
-  phy_lib_log.set_level(log_lvl);
+  phy_lib_log.set_level(lib_log_lvl);
   phy_lib_log.set_hex_dump_max_size(args.log.phy_hex_limit);
   if (log_lvl != srslog::basic_levels::none) {
     srsran_phy_log_register_handler(this, srsran_phy_handler);

@@ -196,8 +196,6 @@ void cc_worker::rem_rnti(uint16_t rnti)
   if (ue_db.count(rnti)) {
     delete ue_db[rnti];
     ue_db.erase(rnti);
-  } else {
-    Error("Removing user: rnti=0x%x does not exist\n", rnti);
   }
 }
 
@@ -282,7 +280,8 @@ void cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_
 
   // Get UE configuration
   if (phy->ue_db.get_ul_config(rnti, cc_idx, ul_cfg) < SRSRAN_SUCCESS) {
-    Error("Error retrieving UL configuration for RNTI %x and CC %d", rnti, cc_idx);
+    // It could happen that the UL configuration is missing due to intra-enb HO which is not an error
+    Info("Failed retrieving UL configuration for cc=%d rnti=0x%x", cc_idx, rnti);
     return;
   }
 
@@ -375,7 +374,8 @@ void cc_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, 
       // Inform MAC about the CRC result
       phy->stack->crc_info(tti_rx, rnti, cc_idx, ul_cfg.pusch.grant.tb.tbs / 8, pusch_res.crc);
       // Push PDU buffer
-      phy->stack->push_pdu(tti_rx, rnti, cc_idx, ul_cfg.pusch.grant.tb.tbs / 8, pusch_res.crc);
+      phy->stack->push_pdu(
+          tti_rx, rnti, cc_idx, ul_cfg.pusch.grant.tb.tbs / 8, pusch_res.crc, ul_cfg.pusch.grant.L_prb);
       // Logging
       if (logger.info.enabled()) {
         char str[512];
@@ -472,7 +472,7 @@ int cc_worker::encode_pdcch_ul(stack_interface_phy_lte::ul_sched_grant_t* grants
       }
 
       if (SRSRAN_RNTI_ISUSER(grants[i].dci.rnti)) {
-        if (srsran_enb_dl_location_is_common_ncce(&enb_dl, grants[i].dci.location.ncce) &&
+        if (srsran_enb_dl_location_is_common_ncce(&enb_dl, &grants[i].dci.location) &&
             phy->ue_db.is_pcell(grants[i].dci.rnti, cc_idx)) {
           // Disable extended CSI request and SRS request in common SS
           srsran_dci_cfg_set_common_ss(&dci_cfg);
@@ -488,7 +488,7 @@ int cc_worker::encode_pdcch_ul(stack_interface_phy_lte::ul_sched_grant_t* grants
       if (logger.info.enabled()) {
         char str[512];
         srsran_dci_ul_info(&grants[i].dci, str, 512);
-        logger.info("PDCCH: cc=%d, %s, tti_tx_dl=%d", cc_idx, str, tti_tx_dl);
+        logger.info("PDCCH: cc=%d, rnti=0x%x, %s, tti_tx_dl=%d", cc_idx, grants[i].dci.rnti, str, tti_tx_dl);
       }
     }
   }
@@ -507,8 +507,10 @@ int cc_worker::encode_pdcch_dl(stack_interface_phy_lte::dl_sched_grant_t* grants
         continue;
       }
 
+      // Detect if the DCI location is in common SS, if that is the case, flag it as common SS
+      // This makes possible UE specific DCI fields to be disabled, so it uses a fallback DCI size
       if (SRSRAN_RNTI_ISUSER(grants[i].dci.rnti) && grants[i].dci.format == SRSRAN_DCI_FORMAT1A) {
-        if (srsran_enb_dl_location_is_common_ncce(&enb_dl, grants[i].dci.location.ncce) &&
+        if (srsran_enb_dl_location_is_common_ncce(&enb_dl, &grants[i].dci.location) &&
             phy->ue_db.is_pcell(grants[i].dci.rnti, cc_idx)) {
           srsran_dci_cfg_set_common_ss(&dci_cfg);
         }
@@ -523,7 +525,7 @@ int cc_worker::encode_pdcch_dl(stack_interface_phy_lte::dl_sched_grant_t* grants
         // Logging
         char str[512];
         srsran_dci_dl_info(&grants[i].dci, str, 512);
-        logger.info("PDCCH: cc=%d, %s, tti_tx_dl=%d", cc_idx, str, tti_tx_dl);
+        logger.info("PDCCH: cc=%d, rnti=0x%x, %s, tti_tx_dl=%d", cc_idx, grants[i].dci.rnti, str, tti_tx_dl);
       }
     }
   }

@@ -160,19 +160,30 @@ enable = false
 # Scheduler configuration options
 #
 # sched_policy:      User MAC scheduling policy (E.g. time_rr, time_pf)
+# min_aggr_level:    Optional minimum aggregation level index (l=log2(L) can be 0, 1, 2 or 3)
 # max_aggr_level:    Optional maximum aggregation level index (l=log2(L) can be 0, 1, 2 or 3)
+# adaptive_aggr_level: Boolean flag to enable/disable adaptive aggregation level based on target BLER
 # pdsch_mcs:         Optional fixed PDSCH MCS (ignores reported CQIs if specified)
 # pdsch_max_mcs:     Optional PDSCH MCS limit 
 # pusch_mcs:         Optional fixed PUSCH MCS (ignores reported CQIs if specified)
 # pusch_max_mcs:     Optional PUSCH MCS limit 
 # min_nof_ctrl_symbols: Minimum number of control symbols 
 # max_nof_ctrl_symbols: Maximum number of control symbols 
+# target_bler:       Target BLER (in decimal) to achieve via adaptive link
+# max_delta_dl_cqi:  Maximum shift in CQI for adaptive DL link
+# max_delta_ul_snr:  Maximum shift in UL SNR for adaptive UL link
+# adaptive_link_step_size: Step size or learning rate used in adaptive link
+# min_tpc_tti_interval: Minimum TTI interval between TPCs different than 1
+# ul_snr_avg_alpha:  Exponential Average alpha coefficient used in estimation of UL SNR
+# init_ul_snr_value: Initial UL SNR value used for computing MCS in the first UL grant
 #
 #####################################################################
 [scheduler]
 #policy     = time_pf
 #policy_args = 2
-#max_aggr_level   = -1
+#min_aggr_level   = 0
+#max_aggr_level   = 3
+#adaptive_aggr_level = false
 #pdsch_mcs        = -1
 #pdsch_max_mcs    = -1
 #pusch_mcs        = -1
@@ -180,6 +191,13 @@ enable = false
 #min_nof_ctrl_symbols = 1
 #max_nof_ctrl_symbols = 3
 #pucch_multiplex_enable = false
+#target_bler = 0.05
+#max_delta_dl_cqi = 5
+#max_delta_ul_snr = 5
+#adaptive_link_step_size = 0.001
+#min_tpc_tti_interval = 1
+#ul_snr_avg_alpha=0.05
+#init_ul_snr_value=5
 
 #####################################################################
 # eMBMS configuration options

@@ -62,7 +62,7 @@ public:
 
   void dl_buffer_state(uint8_t lc_id, uint32_t tx_queue, uint32_t retx_queue);
   void ul_buffer_state(uint8_t lcg_id, uint32_t bsr);
-  void ul_phr(int phr);
+  void ul_phr(int phr, uint32_t grant_nof_prb);
   void mac_buffer_state(uint32_t ce_code, uint32_t nof_cmds);
 
   void set_ul_snr(tti_point tti_rx, uint32_t enb_cc_idx, float snr, uint32_t ul_ch_code);
@@ -147,6 +147,7 @@ public:
 
   bool pdsch_enabled(tti_point tti_rx, uint32_t enb_cc_idx) const;
   bool pusch_enabled(tti_point tti_rx, uint32_t enb_cc_idx, bool needs_pdcch) const;
+  bool phich_enabled(tti_point tti_rx, uint32_t enb_cc_idx) const;
 
 private:
   bool is_sr_triggered();

@@ -255,7 +255,7 @@ run_data expected_run_result(run_params params)
       break;
     default:
       ret.avg_dl_throughput *= 0.96;
-      ret.avg_ul_throughput *= 0.85;
+      ret.avg_ul_throughput *= 0.84;
       break;
   }
   return ret;

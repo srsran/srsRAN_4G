@@ -64,7 +64,6 @@ public:
   void set_cell_map(const cell_list_t& cells_);
 
   // phy_interface_rrc_lte
-  void enable_pregen_signals(bool enable) override;
   void deactivate_scells() override;
   void set_activation_deactivation_scell(uint32_t cmd, uint32_t tti) override;
   bool set_config(const srsran::phy_cfg_t& config, uint32_t cc_idx = 0) override;

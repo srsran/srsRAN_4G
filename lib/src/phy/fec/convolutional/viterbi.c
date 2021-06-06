@@ -34,11 +34,11 @@
 
 #define DEB 0
 
-#define TB_ITER 3
+#define TB_ITER 5
 
 #define DEFAULT_GAIN 100
 
-#define DEFAULT_GAIN_16 1000
+#define DEFAULT_GAIN_16 500
 #define VITERBI_16
 
 #ifndef LV_HAVE_AVX2
@@ -558,11 +558,10 @@ int srsran_viterbi_decode_f(srsran_viterbi_t* q, float* symbols, uint8_t* data, 
     len = 3 * (frame_length + q->K - 1);
   }
   if (!q->decode_f) {
-    float max = 1e-9;
-    for (int i = 0; i < len; i++) {
-      if (fabs(symbols[i]) > max) {
-        max = fabs(symbols[i]);
-      }
+    float    max   = 1e-9;
+    uint32_t max_i = srsran_vec_max_abs_fi(symbols, len);
+    if (max_i < len && isnormal(symbols[max_i])) {
+      max = fabsf(symbols[max_i]);
     }
 #ifdef VITERBI_16
     srsran_vec_quant_fus(symbols, q->symbols_us, q->gain_quant / max, 32767.5, 65535, len);

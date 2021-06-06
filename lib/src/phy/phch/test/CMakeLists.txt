@@ -210,19 +210,20 @@ add_lte_test(phich_test_104 phich_test -p 4 -n 10 -e -l -g 1/2)
 add_executable(pdcch_test pdcch_test.c)
 target_link_libraries(pdcch_test srsran_phy)
 
-add_lte_test(pdcch_test_6 pdcch_test -n 6)
-add_lte_test(pdcch_test_15 pdcch_test -n 15)
-add_lte_test(pdcch_test_25 pdcch_test -n 25)
-add_lte_test(pdcch_test_50 pdcch_test -n 50)
-add_lte_test(pdcch_test_75 pdcch_test -n 75)
-add_lte_test(pdcch_test_100 pdcch_test -n 100)
-add_lte_test(pdcch_test_6_mimo pdcch_test -n 6 -p 2)
-add_lte_test(pdcch_test_15_mimo pdcch_test -n 15 -p 2)
-add_lte_test(pdcch_test_25_mimo pdcch_test -n 25 -p 2)
-add_lte_test(pdcch_test_50_mimo pdcch_test -n 50 -p 2)
-add_lte_test(pdcch_test_75_mimo pdcch_test -n 75 -p 2)
-add_lte_test(pdcch_test_100_mimo pdcch_test -n 100 -p 2)
-#add_lte_test(pdcch_test_crosscarrier pdcch_test -x)
+foreach (nof_prb 6 15 25 50 75 100)
+    foreach (nof_ports 1 2)
+        foreach (cfi 1 2 3)
+            foreach (snr auto 15 300)
+                set(pdcch_test_args "")
+                set(pdcch_test_args -n ${nof_prb} -p ${nof_ports} -f ${cfi} -S ${snr} -R 1 -F)
+
+                string(REGEX REPLACE "\ " "" test_name_args ${pdcch_test_args})
+
+                add_lte_test(pdcch_test${test_name_args} pdcch_test ${pdcch_test_args})
+            endforeach ()
+        endforeach ()
+    endforeach ()
+endforeach ()
 
 ########################################################################
 # PDSCH TEST
@@ -465,11 +466,7 @@ add_lte_test(npdsch_npdcch_dci_formatN1_test npdsch_npdcch_file_test -c 0 -s 1 -
 add_executable(pusch_test pusch_test.c)
 target_link_libraries(pusch_test srsran_phy)
 
-if (NOT DEFINED TEST_EXTENSION)
-  set(TEST_EXTENSION Normal)
-endif(NOT DEFINED TEST_EXTENSION)
-
-if (TEST_EXTENSION STREQUAL Paranoid)
+if (${ENABLE_ALL_TEST})
   # All valid number of PRBs for PUSCH
   set(cell_n_prb_valid 1 2 3 4 5 6 8 9 10 12 15 16 18 20 24 25 27 30 32 36 40 45 48 50 54 60 64 72 75 80 81 90 96 100)
 
@@ -481,7 +478,7 @@ if (TEST_EXTENSION STREQUAL Paranoid)
 
   set(pusch_cqi none wideband)
 
-else (TEST_EXTENSION STREQUAL Paranoid)
+else ()
   set(cell_n_prb_valid 50)
 
   set(pusch_min_mcs 0)
@@ -492,7 +489,7 @@ else (TEST_EXTENSION STREQUAL Paranoid)
 
   set(pusch_cqi none wideband)
 
-endif (TEST_EXTENSION STREQUAL Paranoid)
+endif ()
 
 foreach (cell_n_prb 6 15 25 50 75 100)
   set(pusch_cell_n_prb)

@@ -192,9 +192,15 @@ public:
    * @param enb_cc_idx the eNb Cell/Carrier identifier
    * @param nof_bytes the number of grants carrierd by the PUSCH message
    * @param crc_res the CRC check, set to true if the message was decoded succesfully
+   * @param ul_nof_prbs Number of PRBs allocated to grant
    * @return SRSRAN_SUCCESS if no error occurs, SRSRAN_ERROR* if an error occurs
    */
-  virtual int push_pdu(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, uint32_t nof_bytes, bool crc_res) = 0;
+  virtual int push_pdu(uint32_t tti_rx,
+                       uint16_t rnti,
+                       uint32_t enb_cc_idx,
+                       uint32_t nof_bytes,
+                       bool     crc_res,
+                       uint32_t ul_nof_prbs) = 0;
 
   virtual int  get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res)                = 0;
   virtual int  get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res) = 0;
@@ -212,8 +218,7 @@ class mac_interface_rrc
 {
 public:
   /* Provides cell configuration including SIB periodicity, etc. */
-  virtual int  cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg) = 0;
-  virtual void reset()                                                            = 0;
+  virtual int cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg) = 0;
 
   /* Manages UE configuration context */
   virtual int ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg) = 0;

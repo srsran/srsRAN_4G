@@ -283,6 +283,7 @@ sched_sim_events rand_sim_params(uint32_t nof_ttis)
   sim_gen.sim_args.cell_cfg[0].target_pucch_ul_sinr     = pick_random_uniform({10, 15, 20, -1});
   sim_gen.sim_args.cell_cfg[0].target_pusch_ul_sinr     = pick_random_uniform({10, 15, 20, -1});
   sim_gen.sim_args.cell_cfg[0].enable_phr_handling      = false;
+  sim_gen.sim_args.cell_cfg[0].min_phr_thres            = 0;
   sim_gen.sim_args.default_ue_sim_cfg.ue_cfg            = generate_default_ue_cfg();
   sim_gen.sim_args.default_ue_sim_cfg.periodic_cqi      = true;
   sim_gen.sim_args.default_ue_sim_cfg.ue_cfg.maxharq_tx = std::uniform_int_distribution<>{1, 5}(srsenb::get_rand_gen());
@@ -294,7 +295,7 @@ sched_sim_events rand_sim_params(uint32_t nof_ttis)
   sim_gen.sim_args.default_ue_sim_cfg.prob_ul_ack_mask.back() = 1;
   sim_gen.sim_args.default_ue_sim_cfg.ue_cfg.measgap_period   = pick_random_uniform({0, 40, 80});
   sim_gen.sim_args.default_ue_sim_cfg.ue_cfg.measgap_offset   = std::uniform_int_distribution<uint32_t>{
-      0, sim_gen.sim_args.default_ue_sim_cfg.ue_cfg.measgap_period}(srsenb::get_rand_gen());
+      0, std::max(sim_gen.sim_args.default_ue_sim_cfg.ue_cfg.measgap_period, 1u) - 1}(srsenb::get_rand_gen());
   sim_gen.sim_args.default_ue_sim_cfg.ue_cfg.pucch_cfg.n_pucch_sr =
       std::uniform_int_distribution<uint32_t>{0, 2047}(srsenb::get_rand_gen());
 
@@ -303,6 +304,7 @@ sched_sim_events rand_sim_params(uint32_t nof_ttis)
       boolean_dist() ? -1 : std::uniform_int_distribution<>{0, 24}(srsenb::get_rand_gen());
   sim_gen.sim_args.sched_args.pusch_mcs =
       boolean_dist() ? -1 : std::uniform_int_distribution<>{0, 24}(srsenb::get_rand_gen());
+  sim_gen.sim_args.sched_args.min_aggr_level = std::uniform_int_distribution<>{0, 3}(srsenb::get_rand_gen());
 
   generator.tti_events.resize(nof_ttis);
 

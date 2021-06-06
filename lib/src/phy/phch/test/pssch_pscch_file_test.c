@@ -296,7 +296,7 @@ int main(int argc, char** argv)
           if (srsran_pscch_decode(&pscch, equalized_sf_buffer, sci_rx, pscch_prb_start_idx) == SRSRAN_SUCCESS) {
             if (srsran_sci_format0_unpack(&sci, sci_rx) == SRSRAN_SUCCESS) {
               srsran_sci_info(&sci, sci_msg, sizeof(sci_msg));
-              fprintf(stdout, "%s", sci_msg);
+              fprintf(stdout, "%s\n", sci_msg);
 
               sci_decoded = true;
               num_decoded_sci++;
@@ -357,7 +357,7 @@ int main(int argc, char** argv)
           if (srsran_pscch_decode(&pscch, equalized_sf_buffer, sci_rx, pscch_prb_start_idx) == SRSRAN_SUCCESS) {
             if (srsran_sci_format1_unpack(&sci, sci_rx) == SRSRAN_SUCCESS) {
               srsran_sci_info(&sci, sci_msg, sizeof(sci_msg));
-              fprintf(stdout, "%s", sci_msg);
+              fprintf(stdout, "%s\n", sci_msg);
 
               num_decoded_sci++;
 

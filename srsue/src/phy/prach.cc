@@ -92,6 +92,8 @@ void prach::stop()
 
 bool prach::set_cell(srsran_cell_t cell_, srsran_prach_cfg_t prach_cfg)
 {
+  std::lock_guard<std::mutex> lock(mutex);
+
   if (!mem_initiated) {
     ERROR("PRACH: Error must call init() first");
     return false;
@@ -156,6 +158,7 @@ bool prach::generate_buffer(uint32_t f_idx)
 
 bool prach::prepare_to_send(uint32_t preamble_idx_, int allowed_subframe_, float target_power_dbm_)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   if (preamble_idx_ >= max_preambles) {
     Error("PRACH: Invalid preamble %d", preamble_idx_);
     return false;
@@ -171,7 +174,11 @@ bool prach::prepare_to_send(uint32_t preamble_idx_, int allowed_subframe_, float
 
 bool prach::is_pending() const
 {
-  return cell_initiated && preamble_idx >= 0 && unsigned(preamble_idx) < max_preambles;
+  std::unique_lock<std::mutex> lock(mutex, std::try_to_lock);
+  if (lock.owns_lock()) {
+    return cell_initiated && preamble_idx >= 0 && unsigned(preamble_idx) < max_preambles;
+  }
+  return false;
 }
 
 bool prach::is_ready_to_send(uint32_t current_tti_, uint32_t current_pci)

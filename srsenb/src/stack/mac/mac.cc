@@ -41,6 +41,7 @@ mac::mac(srsran::ext_task_sched_handle task_sched_, srslog::basic_logger& logger
   logger(logger), rar_payload(), common_buffers(SRSRAN_MAX_CARRIERS), task_sched(task_sched_)
 {
   pthread_rwlock_init(&rwlock, nullptr);
+  stack_task_queue = task_sched.make_task_queue();
 }
 
 mac::~mac()
@@ -56,18 +57,12 @@ bool mac::init(const mac_args_t&        args_,
                rrc_interface_mac*       rrc)
 {
   started = false;
-
-  if (not phy or not rlc) {
-    return false;
-  }
-  phy_h = phy;
-  rlc_h = rlc;
-  rrc_h = rrc;
+  phy_h   = phy;
+  rlc_h   = rlc;
+  rrc_h   = rrc;
 
   args  = args_;
   cells = cells_;
-
-  stack_task_queue = task_sched.make_task_queue();
 
   scheduler.init(rrc, args.sched);
 
@@ -84,8 +79,6 @@ bool mac::init(const mac_args_t&        args_,
     srsran_softbuffer_tx_init(&cc.rar_softbuffer_tx, args.nof_prb);
   }
 
-  reset();
-
   // Initiate common pool of softbuffers
   uint32_t nof_prb          = args.nof_prb;
   auto     init_softbuffers = [nof_prb](void* ptr) {
@@ -94,9 +87,6 @@ bool mac::init(const mac_args_t&        args_,
   auto recycle_softbuffers = [](ue_cc_softbuffers& softbuffers) { softbuffers.clear(); };
   softbuffer_pool.reset(new srsran::background_obj_pool<ue_cc_softbuffers>(
       8, 8, args.nof_prealloc_ues, init_softbuffers, recycle_softbuffers));
-
-  // Pre-alloc UE objects for first attaching users
-  prealloc_ue(10);
 
   detected_rachs.resize(cells.size());
 
@@ -118,23 +108,12 @@ void mac::stop()
       srsran_softbuffer_tx_free(&cc.pcch_softbuffer_tx);
       srsran_softbuffer_tx_free(&cc.rar_softbuffer_tx);
     }
-    ue_pool.stop();
   }
-}
-
-// Implement Section 5.9
-void mac::reset()
-{
-  logger.info("Resetting MAC");
-
-  last_rnti = 70;
-
-  /* Setup scheduler */
-  scheduler.reset();
 }
 
 void mac::start_pcap(srsran::mac_pcap* pcap_)
 {
+  srsran::rwlock_read_guard lock(rwlock);
   pcap = pcap_;
   // Set pcap in all UEs for UL messages
   for (auto& u : ue_db) {
@@ -144,6 +123,7 @@ void mac::start_pcap(srsran::mac_pcap* pcap_)
 
 void mac::start_pcap_net(srsran::mac_pcap_net* pcap_net_)
 {
+  srsran::rwlock_read_guard lock(rwlock);
   pcap_net = pcap_net_;
   // Set pcap in all UEs for UL messages
   for (auto& u : ue_db) {
@@ -156,11 +136,12 @@ void mac::start_pcap_net(srsran::mac_pcap_net* pcap_net_)
  * RLC interface
  *
  *******************************************************/
+
 int mac::rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue)
 {
   srsran::rwlock_read_guard lock(rwlock);
   int                       ret = -1;
-  if (ue_db.contains(rnti)) {
+  if (check_ue_active(rnti)) {
     if (rnti != SRSRAN_MRNTI) {
       ret = scheduler.dl_rlc_buffer_state(rnti, lc_id, tx_queue, retx_queue);
     } else {
@@ -171,34 +152,20 @@ int mac::rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint
       }
       ret = 0;
     }
-  } else {
-    logger.error("User rnti=0x%x not found", rnti);
   }
   return ret;
 }
 
 int mac::bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg)
 {
-  int                       ret = -1;
   srsran::rwlock_read_guard lock(rwlock);
-  if (ue_db.contains(rnti)) {
-    ret = scheduler.bearer_ue_cfg(rnti, lc_id, *cfg);
-  } else {
-    logger.error("User rnti=0x%x not found", rnti);
-  }
-  return ret;
+  return check_ue_active(rnti) ? scheduler.bearer_ue_cfg(rnti, lc_id, *cfg) : -1;
 }
 
 int mac::bearer_ue_rem(uint16_t rnti, uint32_t lc_id)
 {
   srsran::rwlock_read_guard lock(rwlock);
-  int                       ret = -1;
-  if (ue_db.contains(rnti)) {
-    ret = scheduler.bearer_ue_rem(rnti, lc_id);
-  } else {
-    logger.error("User rnti=0x%x not found", rnti);
-  }
-  return ret;
+  return check_ue_active(rnti) ? scheduler.bearer_ue_rem(rnti, lc_id) : -1;
 }
 
 void mac::phy_config_enabled(uint16_t rnti, bool enabled)
@@ -210,14 +177,10 @@ void mac::phy_config_enabled(uint16_t rnti, bool enabled)
 int mac::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg)
 {
   srsran::rwlock_read_guard lock(rwlock);
-
-  auto it     = ue_db.find(rnti);
-  ue*  ue_ptr = nullptr;
-  if (it == ue_db.end()) {
-    logger.error("User rnti=0x%x not found", rnti);
+  if (not check_ue_active(rnti)) {
     return SRSRAN_ERROR;
   }
-  ue_ptr = it->second.get();
+  ue* ue_ptr = ue_db[rnti].get();
 
   // Start TA FSM in UE entity
   ue_ptr->start_ta();
@@ -235,10 +198,9 @@ int mac::ue_rem(uint16_t rnti)
 {
   // Remove UE from the perspective of L2/L3
   {
-    srsran::rwlock_write_guard lock(rwlock);
-    if (ue_db.contains(rnti)) {
-      ues_to_rem[rnti] = std::move(ue_db[rnti]);
-      ue_db.erase(rnti);
+    srsran::rwlock_read_guard lock(rwlock);
+    if (check_ue_active(rnti)) {
+      ue_db[rnti]->set_active(false);
     } else {
       logger.error("User rnti=0x%x not found", rnti);
       return SRSRAN_ERROR;
@@ -250,7 +212,8 @@ int mac::ue_rem(uint16_t rnti)
   // Note: Let any pending retx ACK to arrive, so that PHY recognizes rnti
   task_sched.defer_callback(FDD_HARQ_DELAY_DL_MS + FDD_HARQ_DELAY_UL_MS, [this, rnti]() {
     phy_h->rem_rnti(rnti);
-    ues_to_rem.erase(rnti);
+    srsran::rwlock_write_guard lock(rwlock);
+    ue_db.erase(rnti);
     logger.info("User rnti=0x%x removed from MAC/PHY", rnti);
   });
   return SRSRAN_SUCCESS;
@@ -267,11 +230,7 @@ int mac::ue_set_crnti(uint16_t temp_crnti, uint16_t crnti, sched_interface::ue_c
     // Schedule ConRes Msg4
     scheduler.dl_mac_buffer_state(crnti, (uint32_t)srsran::dl_sch_lcid::CON_RES_ID);
   }
-  int ret = ue_cfg(crnti, cfg);
-  if (ret != SRSRAN_SUCCESS) {
-    return ret;
-  }
-  return ret;
+  return ue_cfg(crnti, cfg);
 }
 
 int mac::cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg_)
@@ -301,6 +260,7 @@ void mac::toggle_padding()
 
 void mac::add_padding()
 {
+  srsran::rwlock_read_guard lock(rwlock);
   for (auto it = ue_db.begin(); it != ue_db.end(); ++it) {
     uint16_t cur_rnti = it->first;
     auto     ue       = it;
@@ -320,7 +280,7 @@ int mac::ack_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, uint32_t 
   logger.set_context(tti_rx);
   srsran::rwlock_read_guard lock(rwlock);
 
-  if (not check_ue_exists(rnti)) {
+  if (not check_ue_active(rnti)) {
     return SRSRAN_ERROR;
   }
 
@@ -337,7 +297,7 @@ int mac::crc_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, uint32_t 
   logger.set_context(tti_rx);
   srsran::rwlock_read_guard lock(rwlock);
 
-  if (not check_ue_exists(rnti)) {
+  if (not check_ue_active(rnti)) {
     return SRSRAN_ERROR;
   }
 
@@ -350,11 +310,16 @@ int mac::crc_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, uint32_t 
   return scheduler.ul_crc_info(tti_rx, rnti, enb_cc_idx, crc);
 }
 
-int mac::push_pdu(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, uint32_t nof_bytes, bool crc)
+int mac::push_pdu(uint32_t tti_rx,
+                  uint16_t rnti,
+                  uint32_t enb_cc_idx,
+                  uint32_t nof_bytes,
+                  bool     crc,
+                  uint32_t ul_nof_prbs)
 {
   srsran::rwlock_read_guard lock(rwlock);
 
-  if (not check_ue_exists(rnti)) {
+  if (not check_ue_active(rnti)) {
     return SRSRAN_ERROR;
   }
 
@@ -365,14 +330,32 @@ int mac::push_pdu(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, uint32_t 
   }
   uint32_t ue_cc_idx = enb_ue_cc_map[enb_cc_idx];
 
+  srsran::unique_byte_buffer_t pdu = ue_db[rnti]->release_pdu(tti_rx, ue_cc_idx);
+  if (pdu == nullptr) {
+    logger.warning("Could not find MAC UL PDU for rnti=0x%x, cc=%d, tti=%d", rnti, enb_cc_idx, tti_rx);
+    return SRSRAN_ERROR;
+  }
+
   // push the pdu through the queue if received correctly
   if (crc) {
     logger.info("Pushing PDU rnti=0x%x, tti_rx=%d, nof_bytes=%d", rnti, tti_rx, nof_bytes);
-    ue_db[rnti]->push_pdu(tti_rx, ue_cc_idx, nof_bytes);
-    stack_task_queue.push([this]() { process_pdus(); });
+    srsran_expect(nof_bytes == pdu->size(),
+                  "Inconsistent PDU length for rnti=0x%x, tti_rx=%d (%d!=%d)",
+                  rnti,
+                  tti_rx,
+                  nof_bytes,
+                  (int)pdu->size());
+    auto process_pdu_task = [this, rnti, ul_nof_prbs](srsran::unique_byte_buffer_t& pdu) {
+      srsran::rwlock_read_guard lock(rwlock);
+      if (check_ue_active(rnti)) {
+        ue_db[rnti]->process_pdu(std::move(pdu), ul_nof_prbs);
+      } else {
+        logger.debug("Discarding PDU rnti=0x%x", rnti);
+      }
+    };
+    auto ret = stack_task_queue.try_push(std::bind(process_pdu_task, std::move(pdu)));
   } else {
-    logger.debug("Discarting PDU rnti=0x%x, tti_rx=%d, nof_bytes=%d", rnti, tti_rx, nof_bytes);
-    ue_db[rnti]->deallocate_pdu(tti_rx, ue_cc_idx);
+    logger.debug("Discarding PDU rnti=0x%x, tti_rx=%d, nof_bytes=%d", rnti, tti_rx, nof_bytes);
   }
   return SRSRAN_SUCCESS;
 }
@@ -382,7 +365,7 @@ int mac::ri_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t ri_v
   logger.set_context(tti);
   srsran::rwlock_read_guard lock(rwlock);
 
-  if (not check_ue_exists(rnti)) {
+  if (not check_ue_active(rnti)) {
     return SRSRAN_ERROR;
   }
 
@@ -397,7 +380,7 @@ int mac::pmi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t pmi
   logger.set_context(tti);
   srsran::rwlock_read_guard lock(rwlock);
 
-  if (not check_ue_exists(rnti)) {
+  if (not check_ue_active(rnti)) {
     return SRSRAN_ERROR;
   }
 
@@ -412,7 +395,7 @@ int mac::cqi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t cqi
   logger.set_context(tti);
   srsran::rwlock_read_guard lock(rwlock);
 
-  if (not check_ue_exists(rnti)) {
+  if (not check_ue_active(rnti)) {
     return SRSRAN_ERROR;
   }
 
@@ -427,9 +410,11 @@ int mac::snr_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, float snr
   logger.set_context(tti_rx);
   srsran::rwlock_read_guard lock(rwlock);
 
-  if (not check_ue_exists(rnti)) {
+  if (not check_ue_active(rnti)) {
     return SRSRAN_ERROR;
   }
+
+  rrc_h->set_radiolink_ul_state(rnti, snr > 0);
 
   return scheduler.ul_snr_info(tti_rx, rnti, enb_cc_idx, snr, (uint32_t)ch);
 }
@@ -438,13 +423,13 @@ int mac::ta_info(uint32_t tti, uint16_t rnti, float ta_us)
 {
   srsran::rwlock_read_guard lock(rwlock);
 
-  if (not check_ue_exists(rnti)) {
+  if (not check_ue_active(rnti)) {
     return SRSRAN_ERROR;
   }
 
   uint32_t nof_ta_count = ue_db[rnti]->set_ta_us(ta_us);
-  if (nof_ta_count) {
-    scheduler.dl_mac_buffer_state(rnti, (uint32_t)srsran::dl_sch_lcid::TA_CMD, nof_ta_count);
+  if (nof_ta_count > 0) {
+    return scheduler.dl_mac_buffer_state(rnti, (uint32_t)srsran::dl_sch_lcid::TA_CMD, nof_ta_count);
   }
   return SRSRAN_SUCCESS;
 }
@@ -454,64 +439,63 @@ int mac::sr_detected(uint32_t tti, uint16_t rnti)
   logger.set_context(tti);
   srsran::rwlock_read_guard lock(rwlock);
 
-  if (not check_ue_exists(rnti)) {
+  if (not check_ue_active(rnti)) {
     return SRSRAN_ERROR;
   }
 
   return scheduler.ul_sr_info(tti, rnti);
 }
 
-uint16_t mac::allocate_rnti()
+bool mac::is_valid_rnti_unprotected(uint16_t rnti)
 {
-  std::lock_guard<std::mutex> lock(rnti_mutex);
-
-  // Assign a c-rnti
-  uint16_t rnti = last_rnti++;
-  if (last_rnti >= 60000) {
-    last_rnti = 70;
+  if (not started) {
+    logger.info("RACH ignored as eNB is being shutdown");
+    return false;
   }
-
-  return rnti;
+  if (ue_db.full()) {
+    logger.warning("Maximum number of connected UEs %zd connected to the eNB. Ignoring PRACH", SRSENB_MAX_UES);
+    return false;
+  }
+  if (not ue_db.has_space(rnti)) {
+    logger.info("Failed to allocate rnti=0x%x. Attempting a different rnti.", rnti);
+    return false;
+  }
+  return true;
 }
 
 uint16_t mac::allocate_ue()
 {
-  ue* inserted_ue = nullptr;
+  ue*      inserted_ue = nullptr;
+  uint16_t rnti        = SRSRAN_INVALID_RNTI;
+
   do {
-    // Get pre-allocated UE object
-    std::unique_ptr<ue> ue_ptr;
-    if (not ue_pool.try_pop(ue_ptr)) {
-      logger.error("UE pool empty. Ignoring RACH attempt.");
-      return SRSRAN_INVALID_RNTI;
-    }
-    uint16_t rnti = ue_ptr->get_rnti();
+    // Assign new RNTI
+    rnti = FIRST_RNTI + (ue_counter.fetch_add(1, std::memory_order_relaxed) % 60000);
 
-    // Add UE to map
+    // Pre-check if rnti is valid
     {
-      srsran::rwlock_write_guard lock(rwlock);
-      if (not started) {
-        logger.info("RACH ignored as eNB is being shutdown");
-        return SRSRAN_INVALID_RNTI;
-      }
-      if (ue_db.size() >= SRSENB_MAX_UES) {
-        logger.warning("Maximum number of connected UEs %zd connected to the eNB. Ignoring PRACH", SRSENB_MAX_UES);
-        return SRSRAN_INVALID_RNTI;
-      }
-      auto ret = ue_db.insert(rnti, std::move(ue_ptr));
-      if (ret) {
-        inserted_ue = ret.value()->second.get();
-      } else {
-        logger.info("Failed to allocate rnti=0x%x. Attempting a different rnti.", rnti);
+      srsran::rwlock_read_guard read_lock(rwlock);
+      if (not is_valid_rnti_unprotected(rnti)) {
+        continue;
       }
     }
 
-    // Allocate one new UE object in advance
-    srsran::get_background_workers().push_task([this]() { prealloc_ue(1); });
+    // Allocate and initialize UE object
+    unique_rnti_ptr<ue> ue_ptr = make_rnti_obj<ue>(
+        rnti, rnti, args.nof_prb, &scheduler, rrc_h, rlc_h, phy_h, logger, cells.size(), softbuffer_pool.get());
 
+    // Add UE to rnti map
+    srsran::rwlock_write_guard rw_lock(rwlock);
+    if (not is_valid_rnti_unprotected(rnti)) {
+      continue;
+    }
+    auto ret = ue_db.insert(rnti, std::move(ue_ptr));
+    if (ret.has_value()) {
+      inserted_ue = ret.value()->second.get();
+    } else {
+      logger.info("Failed to allocate rnti=0x%x. Attempting a different rnti.", rnti);
+    }
   } while (inserted_ue == nullptr);
-
-  // RNTI allocation was successful
-  uint16_t rnti = inserted_ue->get_rnti();
 
   // Set PCAP if available
   if (pcap != nullptr) {
@@ -547,12 +531,12 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
   logger.set_context(tti);
   auto rach_tprof_meas = rach_tprof.start();
 
-  uint16_t rnti = allocate_ue();
-  if (rnti == SRSRAN_INVALID_RNTI) {
-    return;
-  }
+  stack_task_queue.push([this, tti, enb_cc_idx, preamble_idx, time_adv, rach_tprof_meas]() mutable {
+    uint16_t rnti = allocate_ue();
+    if (rnti == SRSRAN_INVALID_RNTI) {
+      return;
+    }
 
-  stack_task_queue.push([this, rnti, tti, enb_cc_idx, preamble_idx, time_adv, rach_tprof_meas]() mutable {
     rach_tprof_meas.defer_stop();
     // Generate RAR data
     sched_interface::dl_sched_rar_info_t rar_info = {};
@@ -598,25 +582,13 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
   });
 }
 
-void mac::prealloc_ue(uint32_t nof_ue)
-{
-  for (uint32_t i = 0; i < nof_ue; i++) {
-    std::unique_ptr<ue> ptr = std::unique_ptr<ue>(new ue(
-        allocate_rnti(), args.nof_prb, &scheduler, rrc_h, rlc_h, phy_h, logger, cells.size(), softbuffer_pool.get()));
-    if (not ue_pool.try_push(std::move(ptr))) {
-      logger.info("Cannot preallocate more UEs as pool is full");
-      return;
-    }
-  }
-}
-
 int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
 {
   if (!started) {
     return 0;
   }
 
-  trace_complete_event("mac::get_dl_sched", "total_time");
+  trace_threshold_complete_event("mac::get_dl_sched", "total_time", std::chrono::microseconds(100));
   logger.set_context(TTI_SUB(tti_tx_dl, FDD_HARQ_DELAY_UL_MS));
   if (do_padding) {
     add_padding();
@@ -819,7 +791,8 @@ void mac::build_mch_sched(uint32_t tbs)
 
 int mac::get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res_list)
 {
-  dl_sched_t* dl_sched_res = &dl_sched_res_list[0];
+  srsran::rwlock_read_guard lock(rwlock);
+  dl_sched_t*               dl_sched_res = &dl_sched_res_list[0];
   logger.set_context(tti);
   srsran_ra_tb_t mcs      = {};
   srsran_ra_tb_t mcs_data = {};
@@ -932,6 +905,8 @@ int mac::get_ul_sched(uint32_t tti_tx_ul, ul_sched_list_t& ul_sched_res_list)
 
   logger.set_context(TTI_SUB(tti_tx_ul, FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS));
 
+  srsran::rwlock_read_guard lock(rwlock);
+
   // Execute UE FSMs (e.g. TA)
   for (auto& ue : ue_db) {
     ue.second->tic();
@@ -947,52 +922,46 @@ int mac::get_ul_sched(uint32_t tti_tx_ul, ul_sched_list_t& ul_sched_res_list)
       return SRSRAN_ERROR;
     }
 
-    {
-      srsran::rwlock_read_guard lock(rwlock);
+    // Copy DCI grants
+    phy_ul_sched_res->nof_grants = 0;
+    int n                        = 0;
+    for (uint32_t i = 0; i < sched_result.pusch.size(); i++) {
+      if (sched_result.pusch[i].tbs > 0) {
+        // Get UE
+        uint16_t rnti = sched_result.pusch[i].dci.rnti;
 
-      // Copy DCI grants
-      phy_ul_sched_res->nof_grants = 0;
-      int n                        = 0;
-      for (uint32_t i = 0; i < sched_result.pusch.size(); i++) {
-        if (sched_result.pusch[i].tbs > 0) {
-          // Get UE
-          uint16_t rnti = sched_result.pusch[i].dci.rnti;
+        if (ue_db.contains(rnti)) {
+          // Copy grant info
+          phy_ul_sched_res->pusch[n].current_tx_nb = sched_result.pusch[i].current_tx_nb;
+          phy_ul_sched_res->pusch[n].pid           = TTI_RX(tti_tx_ul) % SRSRAN_FDD_NOF_HARQ;
+          phy_ul_sched_res->pusch[n].needs_pdcch   = sched_result.pusch[i].needs_pdcch;
+          phy_ul_sched_res->pusch[n].dci           = sched_result.pusch[i].dci;
+          phy_ul_sched_res->pusch[n].softbuffer_rx =
+              ue_db[rnti]->get_rx_softbuffer(sched_result.pusch[i].dci.ue_cc_idx, tti_tx_ul);
 
-          if (ue_db.contains(rnti)) {
-            // Copy grant info
-            phy_ul_sched_res->pusch[n].current_tx_nb = sched_result.pusch[i].current_tx_nb;
-            phy_ul_sched_res->pusch[n].pid           = TTI_RX(tti_tx_ul) % SRSRAN_FDD_NOF_HARQ;
-            phy_ul_sched_res->pusch[n].needs_pdcch   = sched_result.pusch[i].needs_pdcch;
-            phy_ul_sched_res->pusch[n].dci           = sched_result.pusch[i].dci;
-            phy_ul_sched_res->pusch[n].softbuffer_rx =
-                ue_db[rnti]->get_rx_softbuffer(sched_result.pusch[i].dci.ue_cc_idx, tti_tx_ul);
-
-            // If the Rx soft-buffer is not given, abort reception
-            if (phy_ul_sched_res->pusch[n].softbuffer_rx == nullptr) {
-              continue;
-            }
-
-            if (sched_result.pusch[n].current_tx_nb == 0) {
-              srsran_softbuffer_rx_reset_tbs(phy_ul_sched_res->pusch[n].softbuffer_rx, sched_result.pusch[i].tbs * 8);
-            }
-            phy_ul_sched_res->pusch[n].data =
-                ue_db[rnti]->request_buffer(tti_tx_ul, sched_result.pusch[i].dci.ue_cc_idx, sched_result.pusch[i].tbs);
-            if (phy_ul_sched_res->pusch[n].data) {
-              phy_ul_sched_res->nof_grants++;
-            } else {
-              logger.error("Grant for rnti=0x%x could not be allocated due to lack of buffers", rnti);
-            }
-            n++;
-          } else {
-            logger.warning("Invalid UL scheduling result. User 0x%x does not exist", rnti);
+          // If the Rx soft-buffer is not given, abort reception
+          if (phy_ul_sched_res->pusch[n].softbuffer_rx == nullptr) {
+            continue;
           }
 
+          if (sched_result.pusch[n].current_tx_nb == 0) {
+            srsran_softbuffer_rx_reset_tbs(phy_ul_sched_res->pusch[n].softbuffer_rx, sched_result.pusch[i].tbs * 8);
+          }
+          phy_ul_sched_res->pusch[n].data =
+              ue_db[rnti]->request_buffer(tti_tx_ul, sched_result.pusch[i].dci.ue_cc_idx, sched_result.pusch[i].tbs);
+          if (phy_ul_sched_res->pusch[n].data) {
+            phy_ul_sched_res->nof_grants++;
+          } else {
+            logger.error("Grant for rnti=0x%x could not be allocated due to lack of buffers", rnti);
+          }
+          n++;
         } else {
-          logger.warning("Grant %d for rnti=0x%x has zero TBS", i, sched_result.pusch[i].dci.rnti);
+          logger.warning("Invalid UL scheduling result. User 0x%x does not exist", rnti);
         }
-      }
 
-      // No more uses of ue_db beyond here
+      } else {
+        logger.warning("Grant %d for rnti=0x%x has zero TBS", i, sched_result.pusch[i].dci.rnti);
+      }
     }
 
     // Copy PHICH actions
@@ -1009,22 +978,13 @@ int mac::get_ul_sched(uint32_t tti_tx_ul, ul_sched_list_t& ul_sched_res_list)
   return SRSRAN_SUCCESS;
 }
 
-bool mac::process_pdus()
-{
-  srsran::rwlock_read_guard lock(rwlock);
-  bool                      ret = false;
-  for (auto& u : ue_db) {
-    ret |= u.second->process_pdus();
-  }
-  return ret;
-}
-
 void mac::write_mcch(const srsran::sib2_mbms_t* sib2_,
                      const srsran::sib13_t*     sib13_,
                      const srsran::mcch_msg_t*  mcch_,
                      const uint8_t*             mcch_payload,
                      const uint8_t              mcch_payload_length)
 {
+  srsran::rwlock_write_guard lock(rwlock);
   mcch               = *mcch_;
   mch.num_mtch_sched = this->mcch.pmch_info_list[0].nof_mbms_session_info;
   for (uint32_t i = 0; i < mch.num_mtch_sched; ++i) {
@@ -1040,15 +1000,14 @@ void mac::write_mcch(const srsran::sib2_mbms_t* sib2_,
   rrc_h->add_user(SRSRAN_MRNTI, {});
 }
 
-bool mac::check_ue_exists(uint16_t rnti)
+// Internal helper function, caller must hold UE DB rwlock
+bool mac::check_ue_active(uint16_t rnti)
 {
   if (not ue_db.contains(rnti)) {
-    if (not ues_to_rem.count(rnti)) {
-      logger.error("User rnti=0x%x not found", rnti);
-    }
+    logger.error("User rnti=0x%x not found", rnti);
     return false;
   }
-  return true;
+  return ue_db[rnti]->is_active();
 }
 
 } // namespace srsenb

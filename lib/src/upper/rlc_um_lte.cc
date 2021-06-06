@@ -118,7 +118,7 @@ bool rlc_um_lte::rlc_um_lte_tx::configure(const rlc_config_t& cnfg_, std::string
   return true;
 }
 
-int rlc_um_lte::rlc_um_lte_tx::build_data_pdu(unique_byte_buffer_t pdu, uint8_t* payload, uint32_t nof_bytes)
+uint32_t rlc_um_lte::rlc_um_lte_tx::build_data_pdu(unique_byte_buffer_t pdu, uint8_t* payload, uint32_t nof_bytes)
 {
   std::lock_guard<std::mutex> lock(mutex);
   rlc_umd_pdu_header_t        header;

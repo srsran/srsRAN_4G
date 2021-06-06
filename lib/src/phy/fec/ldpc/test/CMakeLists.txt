@@ -60,7 +60,7 @@ endif(HAVE_AVX512)
 ### Test LDPC libs
 function(ldpc_unit_tests)
   foreach(i IN LISTS ARGN)
-    add_nr_test(NAME ${test_name}-LS${i} COMMAND ${test_command} -l${i}
+    add_nr_advanced_test(NAME ${test_name}-LS${i} COMMAND ${test_command} -l${i}
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
             )
   endforeach()
@@ -179,36 +179,36 @@ function(ldpc_rm_unit_tests)
           math(EXPR tmpN "${N} - (${N} % ${Div})")
           math(EXPR E "${Ordval}*(${tmpN})/${Div}") #twice the rate
 
-          add_nr_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${N} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${N}
+          add_nr_advanced_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${N} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${N}
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
                   )
           math(EXPR M "${N} / 2")
           # Half size buffer
-          add_nr_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${M} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${M}
+          add_nr_advanced_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${M} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${M}
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
                   )
           math(EXPR Div "2*${Ordval}")
           math(EXPR tmpN "${N} - (${N} % ${Div})")
           math(EXPR E "${Ordval}*(${tmpN})/${Div}") #twice the rate
-          add_nr_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${N} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${N}
+          add_nr_advanced_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${N} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${N}
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
                   )
           math(EXPR M "${N}/ 2")
           # Half size buffer
-          add_nr_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${M} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${M}
+          add_nr_advanced_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${M} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${M}
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
                   )
 
           math(EXPR Div "${Ordval}")
           math(EXPR tmpN "2*${N} - (2*${N} % ${Div})") #Half the rate
           math(EXPR E "${Ordval}*(${tmpN})/${Div}")
-          add_nr_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${N} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${N}
+          add_nr_advanced_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${N} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${N}
 
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
                   )
           math(EXPR M "${N}/ 2")
           # Half size buffer
-          add_nr_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${M} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${M}
+          add_nr_advanced_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${M} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${M}
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
                   )
         endforeach()

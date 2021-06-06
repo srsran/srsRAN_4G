@@ -918,10 +918,10 @@ int srsran_pusch_nr_decode(srsran_pusch_nr_t*           q,
                            const srsran_sch_grant_nr_t* grant,
                            srsran_chest_dl_res_t*       channel,
                            cf_t*                        sf_symbols[SRSRAN_MAX_PORTS],
-                           srsran_pusch_res_nr_t*       data)
+                           srsran_pusch_res_nr_t*       data[SRSRAN_MAX_TB])
 {
   // Check input pointers
-  if (!q || !cfg || !grant || !data || !sf_symbols) {
+  if (!q || !cfg || !grant || !data || !sf_symbols || !channel) {
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
@@ -978,8 +978,7 @@ int srsran_pusch_nr_decode(srsran_pusch_nr_t*           q,
 
   // Antenna port demapping
   // ... Not implemented
-  srsran_predecoding_type(
-      q->x, channel->ce, q->d, NULL, 1, 1, 1, 0, nof_re, SRSRAN_TXSCHEME_PORT0, 1.0f, channel->noise_estimate);
+  srsran_predecoding_single(q->x[0], channel->ce[0][0], q->d[0], NULL, nof_re, 1.0f, channel->noise_estimate);
 
   // Layer demapping
   if (grant->nof_layers > 1) {
@@ -988,7 +987,7 @@ int srsran_pusch_nr_decode(srsran_pusch_nr_t*           q,
 
   // SCH decode
   for (uint32_t tb = 0; tb < SRSRAN_MAX_TB; tb++) {
-    if (pusch_nr_decode_codeword(q, cfg, &grant->tb[tb], data, grant->rnti) < SRSRAN_SUCCESS) {
+    if (pusch_nr_decode_codeword(q, cfg, &grant->tb[tb], data[0], grant->rnti) < SRSRAN_SUCCESS) {
       ERROR("Error encoding TB %d", tb);
       return SRSRAN_ERROR;
     }

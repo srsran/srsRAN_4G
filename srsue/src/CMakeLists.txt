@@ -41,7 +41,8 @@ set(SRSRAN_SOURCES ${SRSRAN_SOURCES} rrc_nr_asn1 ngap_nr_asn1)
 target_link_libraries(srsue   ${SRSUE_SOURCES}
                               ${SRSRAN_SOURCES}
                               ${CMAKE_THREAD_LIBS_INIT}
-                              ${Boost_LIBRARIES})
+                              ${Boost_LIBRARIES}
+                              ${ATOMIC_LIBS})
 
 if (RPATH)
   set_target_properties(srsue PROPERTIES INSTALL_RPATH ".")

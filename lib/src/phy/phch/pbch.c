@@ -49,14 +49,10 @@ bool srsran_pbch_exists(int nframe, int nslot)
   return (!(nframe % 5) && nslot == 1);
 }
 
-cf_t* offset_original;
-
 int srsran_pbch_cp(cf_t* input, cf_t* output, srsran_cell_t cell, bool put)
 {
   int   i;
   cf_t* ptr;
-
-  offset_original = input;
 
   if (put) {
     ptr = input;

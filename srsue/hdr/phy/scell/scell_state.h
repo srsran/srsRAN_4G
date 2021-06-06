@@ -109,7 +109,6 @@ public:
     std::unique_lock<std::mutex> lock(mutex);
 
     switch (activation_state) {
-
       case idle:
         // waiting for receiving a command, do nothing
         break;
@@ -123,7 +122,6 @@ public:
       case transition:
         // Detect when the TTI has increased enough to make sure there arent workers, set the configuration
         if (TTI_SUB(tti, activation_tti) >= activation_margin_tti) {
-
           // Reload cell states
           for (uint32_t i = 1; i < SRSRAN_MAX_CARRIERS; i++) {
             // Get Activation command value
@@ -158,7 +156,6 @@ public:
 
   bool is_active(uint32_t cc_idx, uint32_t tti) const
   {
-
     if (cc_idx == 0) {
       return true;
     }
@@ -180,7 +177,6 @@ public:
 
   bool is_configured(uint32_t cc_idx) const
   {
-
     if (cc_idx == 0) {
       return true;
     }
@@ -192,6 +188,22 @@ public:
     std::unique_lock<std::mutex> lock(mutex);
 
     return scell_cfg[cc_idx].status != cfg::none;
+  }
+
+  void reset(uint32_t cc_idx)
+  {
+    if (cc_idx == 0 or cc_idx >= SRSRAN_MAX_CARRIERS) {
+      return;
+    }
+
+    std::unique_lock<std::mutex> lock(mutex);
+
+    activation_state = idle;
+
+    cfg& e   = scell_cfg[cc_idx];
+    e.status = cfg::none;
+    e.earfcn = 0;
+    e.pci    = UINT32_MAX;
   }
 
   void reset()

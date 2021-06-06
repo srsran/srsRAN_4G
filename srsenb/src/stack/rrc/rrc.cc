@@ -40,7 +40,7 @@ using namespace asn1::rrc;
 namespace srsenb {
 
 rrc::rrc(srsran::task_sched_handle task_sched_) :
-  logger(srslog::fetch_basic_logger("RRC")), task_sched(task_sched_), rx_pdu_queue(64)
+  logger(srslog::fetch_basic_logger("RRC")), task_sched(task_sched_), rx_pdu_queue(128)
 {}
 
 rrc::~rrc() {}
@@ -146,7 +146,7 @@ void rrc::set_radiolink_dl_state(uint16_t rnti, bool crc_res)
   rrc_pdu p = {rnti, LCID_RADLINK_DL, crc_res, nullptr};
 
   if (not rx_pdu_queue.try_push(std::move(p))) {
-    logger.error("Failed to push UE activity command to RRC queue");
+    logger.error("Failed to push radio link DL state");
   }
 }
 
@@ -156,7 +156,7 @@ void rrc::set_radiolink_ul_state(uint16_t rnti, bool crc_res)
   rrc_pdu p = {rnti, LCID_RADLINK_UL, crc_res, nullptr};
 
   if (not rx_pdu_queue.try_push(std::move(p))) {
-    logger.error("Failed to push UE activity command to RRC queue");
+    logger.error("Failed to push radio link UL state");
   }
 }
 
@@ -187,6 +187,14 @@ void rrc::max_retx_attempted(uint16_t rnti)
   rrc_pdu p = {rnti, LCID_RLC_RTX, false, nullptr};
   if (not rx_pdu_queue.try_push(std::move(p))) {
     logger.error("Failed to push max Retx event to RRC queue");
+  }
+}
+
+void rrc::protocol_failure(uint16_t rnti)
+{
+  rrc_pdu p = {rnti, LCID_PROT_FAIL, false, nullptr};
+  if (not rx_pdu_queue.try_push(std::move(p))) {
+    logger.error("Failed to push protocol failure to RRC queue");
   }
 }
 
@@ -231,12 +239,16 @@ int rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
 void rrc::upd_user(uint16_t new_rnti, uint16_t old_rnti)
 {
   // Remove new_rnti
-  rem_user_thread(new_rnti);
+  auto new_ue_it = users.find(new_rnti);
+  if (new_ue_it != users.end()) {
+    new_ue_it->second->deactivate_bearers();
+    rem_user_thread(new_rnti);
+  }
 
   // Send Reconfiguration to old_rnti if is RRC_CONNECT or RRC Release if already released here
   auto old_it = users.find(old_rnti);
   if (old_it == users.end()) {
-    send_rrc_connection_reject(old_rnti);
+    logger.info("rnti=0x%x received MAC CRNTI CE: 0x%x, but old context is unavailable", new_rnti, old_rnti);
     return;
   }
   ue* ue_ptr = old_it->second.get();
@@ -640,6 +652,7 @@ void rrc::config_mac()
     item.target_pucch_ul_sinr = cfg.cell_list[ccidx].target_pucch_sinr_db;
     item.target_pusch_ul_sinr = cfg.cell_list[ccidx].target_pusch_sinr_db;
     item.enable_phr_handling  = cfg.cell_list[ccidx].enable_phr_handling;
+    item.min_phr_thres        = cfg.cell_list[ccidx].min_phr_thres;
     item.delta_pucch_shift    = cfg.sibs[1].sib2().rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
     item.ncs_an               = cfg.sibs[1].sib2().rr_cfg_common.pucch_cfg_common.ncs_an;
     item.n1pucch_an           = cfg.sibs[1].sib2().rr_cfg_common.pucch_cfg_common.n1_pucch_an;
@@ -947,6 +960,9 @@ void rrc::tti_clock()
         break;
       case LCID_RLC_RTX:
         user_it->second->max_rlc_retx_reached();
+        break;
+      case LCID_PROT_FAIL:
+        user_it->second->protocol_failure();
         break;
       case LCID_EXIT:
         logger.info("Exiting thread");

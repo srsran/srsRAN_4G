@@ -226,7 +226,7 @@ int test_pdcch_collisions(const sf_output_res_t&                   sf_out,
   // Helper Function: checks if there is any collision. If not, fills the PDCCH mask
   auto try_cce_fill = [&](const srsran_dci_location_t& dci_loc, const char* ch) {
     uint32_t cce_start = dci_loc.ncce, cce_stop = dci_loc.ncce + (1u << dci_loc.L);
-    CONDERROR(dci_loc.L == 0, "The aggregation level %d is not valid", dci_loc.L);
+    CONDERROR(dci_loc.L > 3, "The aggregation level %d is not valid", dci_loc.L);
     CONDERROR(
         cce_start >= ncce or cce_stop > ncce, "The CCE positions (%u, %u) do not fit in PDCCH", cce_start, cce_stop);
     CONDERROR(
@@ -275,7 +275,9 @@ int test_dci_content_common(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
     CONDERROR(pusch.tbs == 0, "Allocated PUSCH with invalid TBS=%d", pusch.tbs);
     CONDERROR(alloc_rntis.count(rnti) > 0, "The user rnti=0x%x got allocated multiple times in UL", rnti);
     alloc_rntis.insert(pusch.dci.rnti);
-    CONDERROR(not((pusch.current_tx_nb == 0) xor (pusch.dci.tb.rv != 0)), "Number of txs incorrectly set");
+    CONDERROR(not(((pusch.current_tx_nb % 4) == 0) xor (pusch.dci.tb.rv != 0)),
+              "[rnti=0x%x] Number of txs incorrectly set",
+              rnti);
     if (not pusch.needs_pdcch) {
       // In case of non-adaptive retx or Msg3
       continue;

@@ -306,10 +306,13 @@ void mac_controller::handle_ho_prep(const asn1::rrc::ho_prep_info_r8_ies_s& ho_p
   }
 }
 
-void mac_controller::handle_max_retx()
+void mac_controller::set_radio_bearer_state(sched_interface::ue_bearer_cfg_t::direction_t dir)
 {
-  for (auto& ue_bearer : current_sched_ue_cfg.ue_bearers) {
-    ue_bearer.direction = sched_interface::ue_bearer_cfg_t::IDLE;
+  for (uint32_t i = srb_to_lcid(lte_srb::srb0); i <= srb_to_lcid(lte_srb::srb2); ++i) {
+    current_sched_ue_cfg.ue_bearers[i].direction = dir;
+  }
+  for (auto& drb : bearer_list.get_established_drbs()) {
+    current_sched_ue_cfg.ue_bearers[drb.lc_ch_id].direction = dir;
   }
   update_mac(config_tx);
 }

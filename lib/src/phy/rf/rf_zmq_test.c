@@ -20,7 +20,10 @@
  */
 
 #include "rf_zmq_imp.h"
-#include "srsran/srsran.h"
+#include "srsran/common/tsan_options.h"
+#include "srsran/phy/common/timestamp.h"
+#include "srsran/phy/utils/debug.h"
+#include <complex.h>
 #include <pthread.h>
 #include <srsran/phy/common/phy_common.h>
 #include <stdlib.h>

@@ -50,9 +50,9 @@ private:
   std::string int_to_hex_string(int value, int field_width);
   std::string float_to_eng_string(float f, int digits);
 
-  bool                   do_print;
-  uint8_t                n_reports;
-  enb_metrics_interface* enb;
+  std::atomic<bool>      do_print  = {false};
+  uint8_t                n_reports = 0;
+  enb_metrics_interface* enb       = nullptr;
 };
 
 } // namespace srsenb

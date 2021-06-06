@@ -34,6 +34,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <deque>
+#include <inttypes.h>
 #include <limits>
 #include <mutex>
 
@@ -46,8 +47,9 @@ public:
 };
 
 /**
- * Class that manages stack timers. It allows creation of unique_timers, with different ids. Each unique_timer duration,
+ * Class that manages stack timers. It allows creation of unique_timers with different ids. Each unique_timer duration,
  * and callback can be set via the set(...) method. A timer can be started/stopped via run()/stop() methods.
+ * The timers access/alteration is thread-safe. Just beware non-atomic uses of its getters.
  * Internal Data structures:
  * - timer_list - std::deque that stores timer objects via push_back() to keep pointer/reference validity.
  *   The timer index in the timer_list matches the timer object id field.
@@ -62,20 +64,34 @@ public:
  */
 class timer_handler
 {
-  using tic_diff_t                              = uint32_t;
-  using tic_t                                   = uint32_t;
-  constexpr static uint32_t   INVALID_ID        = std::numeric_limits<uint32_t>::max();
-  constexpr static tic_diff_t INVALID_TIME_DIFF = std::numeric_limits<tic_diff_t>::max();
-  constexpr static size_t     WHEEL_SHIFT       = 16U;
-  constexpr static size_t     WHEEL_SIZE        = 1U << WHEEL_SHIFT;
-  constexpr static size_t     WHEEL_MASK        = WHEEL_SIZE - 1U;
+  using tic_diff_t                      = uint32_t;
+  using tic_t                           = uint32_t;
+  constexpr static uint32_t INVALID_ID  = std::numeric_limits<uint32_t>::max();
+  constexpr static size_t   WHEEL_SHIFT = 16U;
+  constexpr static size_t   WHEEL_SIZE  = 1U << WHEEL_SHIFT;
+  constexpr static size_t   WHEEL_MASK  = WHEEL_SIZE - 1U;
+
+  constexpr static uint64_t   STOPPED_FLAG       = 0U;
+  constexpr static uint64_t   RUNNING_FLAG       = static_cast<uint64_t>(1U) << 63U;
+  constexpr static uint64_t   EXPIRED_FLAG       = static_cast<uint64_t>(1U) << 62U;
+  constexpr static tic_diff_t MAX_TIMER_DURATION = 0x3FFFFFFFU;
+
+  static bool       decode_is_running(uint64_t value) { return (value & RUNNING_FLAG) != 0; }
+  static bool       decode_is_expired(uint64_t value) { return (value & EXPIRED_FLAG) != 0; }
+  static tic_diff_t decode_duration(uint64_t value) { return (value >> 32U) & MAX_TIMER_DURATION; }
+  static tic_t      decode_timeout(uint64_t value) { return static_cast<uint32_t>(value & 0xFFFFFFFFU); }
+  static uint64_t   encode_state(uint64_t mode_flag, uint32_t duration, uint32_t timeout)
+  {
+    return mode_flag + (static_cast<uint64_t>(duration) << 32U) + timeout;
+  }
 
   struct timer_impl : public intrusive_double_linked_list_element<>, public intrusive_forward_list_element<> {
-    timer_handler& parent;
+    // const
     const uint32_t id;
-    tic_diff_t     duration                                          = INVALID_TIME_DIFF;
-    tic_t          timeout                                           = 0;
-    enum state_t : int8_t { empty, stopped, running, expired } state = empty;
+    timer_handler& parent;
+    // writes protected by backend lock
+    bool                                  allocated = false;
+    std::atomic<uint64_t>                 state{0}; ///< read can be without lock, thus writes must be atomic
     srsran::move_callback<void(uint32_t)> callback;
 
     explicit timer_impl(timer_handler& parent_, uint32_t id_) : parent(parent_), id(id_) {}
@@ -84,32 +100,38 @@ class timer_handler
     timer_impl& operator=(const timer_impl&) = delete;
     timer_impl& operator=(timer_impl&&) = delete;
 
-    bool       is_empty() const { return state == empty; }
-    bool       is_running() const { return state == running; }
-    bool       is_expired() const { return state == expired; }
-    tic_diff_t time_left() const { return is_running() ? timeout - parent.cur_time : (is_expired() ? 0 : duration); }
-    uint32_t   time_elapsed() const { return duration - time_left(); }
-
-    bool set(uint32_t duration_)
+    // unprotected
+    bool       is_running_() const { return decode_is_running(state.load(std::memory_order_relaxed)); }
+    bool       is_expired_() const { return decode_is_expired(state.load(std::memory_order_relaxed)); }
+    uint32_t   duration_() const { return decode_duration(state.load(std::memory_order_relaxed)); }
+    bool       is_set_() const { return duration_() > 0; }
+    tic_diff_t time_elapsed_() const
     {
-      duration = std::max(duration_, 1U); // the next step will be one place ahead of current one
-      if (is_running()) {
-        // if already running, just extends timer lifetime
-        run();
-      } else {
-        state   = stopped;
-        timeout = 0;
-      }
-      return true;
+      uint64_t state_snapshot = state.load(std::memory_order_relaxed);
+      bool     running = decode_is_running(state_snapshot), expired = decode_is_expired(state_snapshot);
+      uint32_t duration = decode_duration(state_snapshot), timeout = decode_timeout(state_snapshot);
+      return running ? duration - (timeout - parent.cur_time) : (expired ? duration : 0);
     }
 
-    bool set(uint32_t duration_, srsran::move_callback<void(uint32_t)> callback_)
+    void set(uint32_t duration_)
     {
-      if (set(duration_)) {
-        callback = std::move(callback_);
-        return true;
-      }
-      return false;
+      srsran_assert(duration_ <= MAX_TIMER_DURATION,
+                    "Invalid timer duration=%" PRIu32 ">%" PRIu32,
+                    duration_,
+                    MAX_TIMER_DURATION);
+      std::lock_guard<std::mutex> lock(parent.mutex);
+      set_(duration_);
+    }
+
+    void set(uint32_t duration_, srsran::move_callback<void(uint32_t)> callback_)
+    {
+      srsran_assert(duration_ <= MAX_TIMER_DURATION,
+                    "Invalid timer duration=%" PRIu32 ">%" PRIu32,
+                    duration_,
+                    MAX_TIMER_DURATION);
+      std::lock_guard<std::mutex> lock(parent.mutex);
+      set_(duration_);
+      callback = std::move(callback_);
     }
 
     void run()
@@ -125,7 +147,25 @@ class timer_handler
       parent.stop_timer_(*this, false);
     }
 
-    void deallocate() { parent.dealloc_timer(*this); }
+    void deallocate()
+    {
+      std::lock_guard<std::mutex> lock(parent.mutex);
+      parent.dealloc_timer_(*this);
+    }
+
+  private:
+    void set_(uint32_t duration_)
+    {
+      duration_ = std::max(duration_, 1U); // the next step will be one place ahead of current one
+      // called in locked context
+      uint64_t old_state = state.load(std::memory_order_relaxed);
+      if (decode_is_running(old_state)) {
+        // if already running, just extends timer lifetime
+        parent.start_run_(*this, duration_);
+      } else {
+        state.store(encode_state(STOPPED_FLAG, duration_, 0), std::memory_order_relaxed);
+      }
+    }
   };
 
 public:
@@ -160,17 +200,12 @@ public:
       handle->set(duration_);
     }
 
-    bool is_set() const { return is_valid() and handle->duration != INVALID_TIME_DIFF; }
-
-    bool is_running() const { return is_valid() and handle->is_running(); }
-
-    bool is_expired() const { return is_valid() and handle->is_expired(); }
-
-    tic_diff_t time_elapsed() const { return is_valid() ? handle->time_elapsed() : INVALID_TIME_DIFF; }
-
-    uint32_t id() const { return is_valid() ? handle->id : INVALID_ID; }
-
-    tic_diff_t duration() const { return is_valid() ? handle->duration : INVALID_TIME_DIFF; }
+    uint32_t   id() const { return is_valid() ? handle->id : INVALID_ID; }
+    bool       is_set() const { return is_valid() and handle->is_set_(); }
+    bool       is_running() const { return is_valid() and handle->is_running_(); }
+    bool       is_expired() const { return is_valid() and handle->is_expired_(); }
+    tic_diff_t time_elapsed() const { return is_valid() ? handle->time_elapsed_() : 0; }
+    tic_diff_t duration() const { return is_valid() ? handle->duration_() : 0; }
 
     void run()
     {
@@ -214,13 +249,13 @@ public:
   void step_all()
   {
     std::unique_lock<std::mutex> lock(mutex);
-    cur_time++;
-    auto& wheel_list = time_wheel[cur_time & WHEEL_MASK];
+    uint32_t                     cur_time_local = cur_time.load(std::memory_order_relaxed) + 1;
+    auto&                        wheel_list     = time_wheel[cur_time_local & WHEEL_MASK];
 
     for (auto it = wheel_list.begin(); it != wheel_list.end();) {
       timer_impl& timer = timer_list[it->id];
       ++it;
-      if (timer.timeout == cur_time) {
+      if (decode_timeout(timer.state.load(std::memory_order_relaxed)) == cur_time_local) {
         // stop timer (callback has to see the timer has already expired)
         stop_timer_(timer, true);
 
@@ -236,6 +271,8 @@ public:
         }
       }
     }
+
+    cur_time.fetch_add(1, std::memory_order_relaxed);
   }
 
   void stop_all()
@@ -261,6 +298,8 @@ public:
     return nof_timers_running_;
   }
 
+  constexpr static uint32_t max_timer_duration() { return MAX_TIMER_DURATION; }
+
   template <typename F>
   void defer_callback(uint32_t duration, const F& func)
   {
@@ -284,7 +323,7 @@ private:
     timer_impl*                 t;
     if (not free_list.empty()) {
       t = &free_list.front();
-      srsran_assert(t->is_empty(), "Invalid timer id=%d state", t->id);
+      srsran_assert(not t->allocated, "Invalid timer id=%d state", t->id);
       free_list.pop_front();
       nof_free_timers--;
     } else {
@@ -292,63 +331,71 @@ private:
       timer_list.emplace_back(*this, timer_list.size());
       t = &timer_list.back();
     }
-    t->state = timer_impl::stopped;
+    t->allocated = true;
     return *t;
   }
 
-  void dealloc_timer(timer_impl& timer)
+  void dealloc_timer_(timer_impl& timer)
   {
-    std::lock_guard<std::mutex> lock(mutex);
-    if (timer.is_empty()) {
+    if (not timer.allocated) {
       // already deallocated
       return;
     }
     stop_timer_(timer, false);
-    timer.state    = timer_impl::empty;
-    timer.duration = INVALID_TIME_DIFF;
-    timer.timeout  = 0;
+    timer.allocated = false;
+    timer.state.store(encode_state(STOPPED_FLAG, 0, 0), std::memory_order_relaxed);
     timer.callback = srsran::move_callback<void(uint32_t)>();
     free_list.push_front(&timer);
     nof_free_timers++;
     // leave id unchanged.
   }
 
-  void start_run_(timer_impl& timer)
+  void start_run_(timer_impl& timer, uint32_t duration_ = 0)
   {
-    uint32_t timeout       = cur_time + timer.duration;
-    size_t   new_wheel_pos = timeout & WHEEL_MASK;
-    if (timer.is_running() and (timer.timeout & WHEEL_MASK) == new_wheel_pos) {
+    uint64_t timer_old_state = timer.state.load(std::memory_order_relaxed);
+    duration_                = duration_ == 0 ? decode_duration(timer_old_state) : duration_;
+    uint32_t new_timeout     = cur_time.load(std::memory_order_relaxed) + duration_;
+    size_t   new_wheel_pos   = new_timeout & WHEEL_MASK;
+
+    uint32_t old_timeout = decode_timeout(timer_old_state);
+    bool     was_running = decode_is_running(timer_old_state);
+    if (was_running and (old_timeout & WHEEL_MASK) == new_wheel_pos) {
       // If no change in timer wheel position. Just update absolute timeout
-      timer.timeout = timeout;
+      timer.state.store(encode_state(RUNNING_FLAG, duration_, new_timeout), std::memory_order_relaxed);
       return;
     }
 
     // Stop timer if it was running, removing it from wheel in the process
-    stop_timer_(timer, false);
+    if (was_running) {
+      time_wheel[old_timeout & WHEEL_MASK].pop(&timer);
+      nof_timers_running_--;
+    }
 
     // Insert timer in wheel
     time_wheel[new_wheel_pos].push_front(&timer);
-    timer.timeout = timeout;
-    timer.state   = timer_impl::running;
+    timer.state.store(encode_state(RUNNING_FLAG, duration_, new_timeout), std::memory_order_relaxed);
     nof_timers_running_++;
   }
 
   /// called when user manually stops timer (as an alternative to expiry)
   void stop_timer_(timer_impl& timer, bool expiry)
   {
-    if (not timer.is_running()) {
+    uint64_t timer_old_state = timer.state.load(std::memory_order_relaxed);
+    if (not decode_is_running(timer_old_state)) {
       return;
     }
 
     // If already running, need to disconnect it from previous wheel
-    time_wheel[timer.timeout & WHEEL_MASK].pop(&timer);
-
-    timer.state = expiry ? timer_impl::expired : timer_impl::stopped;
+    uint32_t old_timeout = decode_timeout(timer_old_state);
+    time_wheel[old_timeout & WHEEL_MASK].pop(&timer);
+    uint64_t new_state =
+        encode_state(expiry ? EXPIRED_FLAG : STOPPED_FLAG, decode_duration(timer_old_state), old_timeout);
+    timer.state.store(new_state, std::memory_order_relaxed);
     nof_timers_running_--;
   }
 
-  tic_t  cur_time            = 0;
-  size_t nof_timers_running_ = 0, nof_free_timers = 0;
+  std::atomic<tic_t> cur_time{0};
+  size_t             nof_timers_running_ = 0, nof_free_timers = 0;
   // using a deque to maintain reference validity on emplace_back. Also, this deque will only grow.
   std::deque<timer_impl>                                         timer_list;
   srsran::intrusive_forward_list<timer_impl>                     free_list;

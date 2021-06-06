@@ -21,6 +21,7 @@
 
 #include "srsran/common/bcd_helpers.h"
 #include "srsran/common/test_common.h"
+#include "srsran/common/tsan_options.h"
 #include "srsran/interfaces/ue_pdcp_interfaces.h"
 #include "srsran/srslog/srslog.h"
 #include "srsran/test/ue_test_interfaces.h"
@@ -154,10 +155,7 @@ public:
 
   void run_thread()
   {
-    std::unique_lock<std::mutex> lk(init_mutex);
     running = true;
-    init_cv.notify_all();
-    lk.unlock();
     while (running) {
       task_sched.tic();
       task_sched.run_pending_tasks();
@@ -166,18 +164,15 @@ public:
   }
   void stop()
   {
-    std::unique_lock<std::mutex> lk(init_mutex);
     while (not running) {
-      init_cv.wait(lk);
+      usleep(1000);
     }
     running = false;
     wait_thread_finish();
   }
   pdcp_interface_gw*      pdcp    = nullptr;
   srsue::nas*             nas     = nullptr;
-  bool                    running = false;
-  std::mutex              init_mutex;
-  std::condition_variable init_cv;
+  std::atomic<bool>       running = {false};
 };
 
 class gw_dummy : public gw_interface_nas, public gw_interface_pdcp

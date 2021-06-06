@@ -39,7 +39,7 @@ public:
   class process_callback
   {
   public:
-    virtual void process_pdu(uint8_t* buff, uint32_t len, channel_t channel) = 0;
+    virtual void process_pdu(uint8_t* buff, uint32_t len, channel_t channel, int ul_nof_prbs = -1) = 0;
   };
 
   pdu_queue(srslog::basic_logger& logger) : pool(DEFAULT_POOL_SIZE), callback(NULL), logger(logger) {}
@@ -47,7 +47,7 @@ public:
 
   uint8_t* request(uint32_t len);
   void     deallocate(const uint8_t* pdu);
-  void     push(const uint8_t* ptr, uint32_t len, channel_t channel = DCH);
+  void     push(const uint8_t* ptr, uint32_t len, channel_t channel = DCH, int ul_nof_prbs = -1);
 
   bool process_pdus();
 
@@ -61,6 +61,7 @@ private:
     uint8_t   ptr[MAX_PDU_LEN];
     uint32_t  len;
     channel_t channel;
+    int       grant_nof_prbs;
 #ifdef SRSRAN_BUFFER_POOL_LOG_ENABLED
     char debug_name[128];
 #endif

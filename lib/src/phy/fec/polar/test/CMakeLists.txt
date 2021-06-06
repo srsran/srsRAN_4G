@@ -40,7 +40,7 @@ function(polar_tests_lite)
         list(GET listE ${num} eval)
         list(GET listK ${num} kval)
         list(GET listI ${num} ival)
-        add_nr_test(NAME ${test_name}-s${S}-n${nval}-e${eval}-k${kval}-i${ival}
+        add_nr_advanced_test(NAME ${test_name}-s${S}-n${nval}-e${eval}-k${kval}-i${ival}
                 COMMAND ${test_command} -s${S} -n${nval} -e${eval} -k${kval} -i${ival}
                 )
     endforeach()
@@ -54,7 +54,7 @@ function(polar_tests)
     foreach(Kval RANGE 36 164 32)
         math(EXPR Emin "${Kval} + 1")
         foreach(Eval RANGE ${Emin} 8192 128)
-            add_nr_test(NAME ${test_name}-s${S}-k${Kval}-e${Eval}-n${nval}-i0
+            add_nr_advanced_test(NAME ${test_name}-s${S}-k${Kval}-e${Eval}-n${nval}-i0
                     COMMAND ${test_command} -s${S} -k${Kval} -e${Eval} -n${nval} -i0
                     )
         endforeach()
@@ -66,7 +66,7 @@ function(polar_tests)
     foreach(Kval RANGE 18 25)
         math(EXPR Emin "${Kval} + 3 + 1")
         foreach(Eval RANGE ${Emin} 8192 128)
-            add_nr_test(NAME ${test_name}-s${S}-k${Kval}-e${Eval}-n${nval}-i1
+            add_nr_advanced_test(NAME ${test_name}-s${S}-k${Kval}-e${Eval}-n${nval}-i1
                     COMMAND ${test_command} -s${S} -k${Kval} -e${Eval} -n${nval} -i1
                     )
         endforeach()
@@ -75,7 +75,7 @@ function(polar_tests)
     foreach(Kval RANGE 32 1023 32)
         math(EXPR Emin "${Kval} + 1")
         foreach(Eval RANGE ${Emin} 8192 128)
-            add_nr_test(NAME ${test_name}-s${S}-k${Kval}-e${Eval}-n${nval}-i1
+            add_nr_advanced_test(NAME ${test_name}-s${S}-k${Kval}-e${Eval}-n${nval}-i1
                     COMMAND ${test_command} -s${S} -k${Kval} -e${Eval} -n${nval} -i1
                     )
         endforeach()

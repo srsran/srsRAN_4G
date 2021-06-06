@@ -606,12 +606,7 @@ int rf_zmq_recv_with_time(void* h, void* data, uint32_t nsamples, bool blocking,
   return rf_zmq_recv_with_time_multi(h, &data, nsamples, blocking, secs, frac_secs);
 }
 
-int rf_zmq_recv_with_time_multi(void*    h,
-                                void*    data[4],
-                                uint32_t nsamples,
-                                bool     blocking,
-                                time_t*  secs,
-                                double*  frac_secs)
+int rf_zmq_recv_with_time_multi(void* h, void** data, uint32_t nsamples, bool blocking, time_t* secs, double* frac_secs)
 {
   int ret = SRSRAN_ERROR;
 
@@ -683,7 +678,7 @@ int rf_zmq_recv_with_time_multi(void*    h,
     rf_zmq_info(handler->id, " - next tx time: %d + %.3f\n", ts_tx.full_secs, ts_tx.frac_secs);
 
     // Leave time for the Tx to transmit
-    usleep((1000000 * nsamples_baserate) / handler->base_srate);
+    usleep((1000000UL * nsamples_baserate) / handler->base_srate);
 
     // check for tx gap if we're also transmitting on this radio
     for (int i = 0; i < handler->nof_channels; i++) {

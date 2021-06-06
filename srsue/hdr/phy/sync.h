@@ -198,7 +198,7 @@ private:
   bool set_frequency();
   bool set_cell(float cfo);
 
-  bool running     = false;
+  std::atomic<bool> running     = {false};
   bool is_overflow = false;
 
   srsran::rf_timestamp_t last_rx_time;
@@ -238,11 +238,14 @@ private:
   srsran::rf_buffer_t   dummy_buffer;
 
   // Sync metrics
+  std::atomic<float> sfo     = {}; // SFO estimate updated after each sync-cycle
+  std::atomic<float> cfo     = {}; // CFO estimate updated after each sync-cycle
+  std::atomic<float> ref_cfo = {}; // provided adjustment value applied before sync
   sync_metrics_t metrics = {};
 
   // in-sync / out-of-sync counters
-  uint32_t out_of_sync_cnt = 0;
-  uint32_t in_sync_cnt     = 0;
+  std::atomic<uint32_t> out_of_sync_cnt = {0};
+  std::atomic<uint32_t> in_sync_cnt     = {0};
 
   std::mutex rrc_mutex;
   enum {
@@ -277,10 +280,10 @@ private:
   float dl_freq = -1;
   float ul_freq = -1;
 
-  const static int MIN_TTI_JUMP = 1;    // Time gap reported to stack after receiving subframe
-  const static int MAX_TTI_JUMP = 1000; // Maximum time gap tolerance in RF stream metadata
-
-  const uint8_t SYNC_CC_IDX = 0; ///< From the sync POV, the CC idx is always the first
+  const static int MIN_TTI_JUMP       = 1;    ///< Time gap reported to stack after receiving subframe
+  const static int MAX_TTI_JUMP       = 1000; ///< Maximum time gap tolerance in RF stream metadata
+  const uint8_t    SYNC_CC_IDX        = 0;    ///< From the sync POV, the CC idx is always the first
+  const uint32_t   TIMEOUT_TO_IDLE_MS = 2;    ///< Timeout in milliseconds for transitioning to IDLE
 };
 
 } // namespace srsue

@@ -104,6 +104,14 @@ SRSRAN_API int srsran_pdcch_extract_llr(srsran_pdcch_t*        q,
 SRSRAN_API int
 srsran_pdcch_decode_msg(srsran_pdcch_t* q, srsran_dl_sf_cfg_t* sf, srsran_dci_cfg_t* dci_cfg, srsran_dci_msg_t* msg);
 
+/**
+ * @brief Computes decoded DCI correlation. It encodes the given DCI message and compares it with the received LLRs
+ * @param q PDCCH object
+ * @param msg Previously decoded DCI message
+ * @return The normalized correlation between the restored symbols and the received LLRs
+ */
+SRSRAN_API float srsran_pdcch_msg_corr(srsran_pdcch_t* q, srsran_dci_msg_t* msg);
+
 SRSRAN_API int
 srsran_pdcch_dci_decode(srsran_pdcch_t* q, float* e, uint8_t* data, uint32_t E, uint32_t nof_bits, uint16_t* crc);
 

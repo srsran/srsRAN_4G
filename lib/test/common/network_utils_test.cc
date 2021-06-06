@@ -53,7 +53,7 @@ int test_socket_handler()
 {
   auto& logger = srslog::fetch_basic_logger("S1AP", false);
 
-  int counter = 0;
+  std::atomic<int> counter = {0};
 
   srsran::unique_socket  server_socket, client_socket, client_socket2;
   srsran::socket_manager sockhandler;

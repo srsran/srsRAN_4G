@@ -32,6 +32,7 @@
 #include "srsran/adt/circular_buffer.h"
 #include "srsran/adt/move_callback.h"
 #include "srsran/srslog/srslog.h"
+#include <atomic>
 #include <condition_variable>
 #include <functional>
 #include <memory>
@@ -54,6 +55,7 @@ public:
     worker();
     ~worker() = default;
     void     setup(uint32_t id, thread_pool* parent, uint32_t prio = 0, uint32_t mask = 255);
+    void     stop();
     uint32_t get_id();
     void     release();
 
@@ -63,6 +65,7 @@ public:
   private:
     uint32_t     my_id     = 0;
     thread_pool* my_parent = nullptr;
+    std::atomic<bool> running   = {true};
 
     void run_thread();
     void wait_to_start();

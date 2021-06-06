@@ -86,9 +86,14 @@ public:
   {
     return mac.crc_info(tti, rnti, enb_cc_idx, nof_bytes, crc_res);
   }
-  int push_pdu(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t nof_bytes, bool crc_res) final
+  int push_pdu(uint32_t tti,
+               uint16_t rnti,
+               uint32_t enb_cc_idx,
+               uint32_t nof_bytes,
+               bool     crc_res,
+               uint32_t grant_nof_prbs) final
   {
-    return mac.push_pdu(tti, rnti, enb_cc_idx, nof_bytes, crc_res);
+    return mac.push_pdu(tti, rnti, enb_cc_idx, nof_bytes, crc_res, grant_nof_prbs);
   }
   int get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res) final { return mac.get_dl_sched(tti, dl_sched_res); }
   int get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res) final
@@ -131,7 +136,7 @@ private:
 
   // task handling
   srsran::task_scheduler    task_sched;
-  srsran::task_queue_handle enb_task_queue, sync_task_queue;
+  srsran::task_queue_handle enb_task_queue, sync_task_queue, metrics_task_queue;
 
   srsenb::mac  mac;
   srsenb::rlc  rlc;

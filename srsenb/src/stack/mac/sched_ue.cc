@@ -102,14 +102,8 @@ void sched_ue::new_subframe(tti_point tti_rx, uint32_t enb_cc_idx)
     current_tti = tti_rx;
     lch_handler.new_tti();
     for (auto& cc : cells) {
-      if (cc.configured()) {
-        cc.harq_ent.new_tti(tti_rx);
-      }
+      cc.new_tti(tti_rx);
     }
-  }
-
-  if (cells[enb_cc_idx].configured()) {
-    cells[enb_cc_idx].tpc_fsm.new_tti();
   }
 }
 
@@ -146,9 +140,9 @@ void sched_ue::ul_buffer_add(uint8_t lcid, uint32_t bytes)
   lch_handler.ul_buffer_add(lcid, bytes);
 }
 
-void sched_ue::ul_phr(int phr)
+void sched_ue::ul_phr(int phr, uint32_t grant_nof_prb)
 {
-  cells[cfg.supported_cc_list[0].enb_cc_idx].tpc_fsm.set_phr(phr);
+  cells[cfg.supported_cc_list[0].enb_cc_idx].tpc_fsm.set_phr(phr, grant_nof_prb);
 }
 
 void sched_ue::dl_buffer_state(uint8_t lc_id, uint32_t tx_queue, uint32_t retx_queue)
@@ -229,7 +223,7 @@ bool sched_ue::pusch_enabled(tti_point tti_rx, uint32_t enb_cc_idx, bool needs_p
     tti_interval meas_gap{mgap_tti, mgap_tti + 6};
 
     // disable TTIs that leads to PUSCH tx or PHICH rx falling in measGap
-    if (meas_gap.contains(tti_tx_ul) or meas_gap.contains(to_tx_ul_ack(tti_rx))) {
+    if (meas_gap.contains(tti_tx_ul)) {
       return false;
     }
     // disable TTIs which respective PDCCH falls in measGap (in case PDCCH is needed)
@@ -240,34 +234,32 @@ bool sched_ue::pusch_enabled(tti_point tti_rx, uint32_t enb_cc_idx, bool needs_p
   return true;
 }
 
+bool sched_ue::phich_enabled(tti_point tti_rx, uint32_t enb_cc_idx) const
+{
+  if (cfg.supported_cc_list[0].enb_cc_idx != enb_cc_idx) {
+    return true;
+  }
+
+  // Check measGap collision with PHICH
+  if (cfg.measgap_period > 0) {
+    tti_point    tti_tx_dl = to_tx_dl(tti_rx);
+    tti_point    mgap_tti  = nearest_meas_gap(tti_tx_dl, cfg.measgap_period, cfg.measgap_offset);
+    tti_interval meas_gap{mgap_tti, mgap_tti + 6};
+    if (meas_gap.contains(tti_tx_dl)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 int sched_ue::set_ack_info(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack)
 {
-  int tbs_acked = -1;
-  if (cells[enb_cc_idx].cc_state() != cc_st::idle) {
-    std::pair<uint32_t, int> p2 = cells[enb_cc_idx].harq_ent.set_ack_info(tti_rx, tb_idx, ack);
-    tbs_acked                   = p2.second;
-    if (tbs_acked > 0) {
-      logger.debug(
-          "SCHED: Set DL ACK=%d for rnti=0x%x, pid=%d, tb=%d, tti=%d", ack, rnti, p2.first, tb_idx, tti_rx.to_uint());
-    } else {
-      logger.warning("SCHED: Received ACK info for unknown TTI=%d", tti_rx.to_uint());
-    }
-  } else {
-    logger.warning("Received DL ACK for invalid cell index %d", enb_cc_idx);
-  }
-  return tbs_acked;
+  return cells[enb_cc_idx].set_ack_info(tti_rx, tb_idx, ack);
 }
 
 void sched_ue::set_ul_crc(tti_point tti_rx, uint32_t enb_cc_idx, bool crc_res)
 {
-  if (cells[enb_cc_idx].cc_state() != cc_st::idle) {
-    int ret = cells[enb_cc_idx].harq_ent.set_ul_crc(tti_rx, 0, crc_res);
-    if (ret < 0) {
-      logger.warning("Received UL CRC for invalid tti_rx=%d", (int)tti_rx.to_uint());
-    }
-  } else {
-    logger.warning("Received UL CRC for invalid cell index %d", enb_cc_idx);
-  }
+  cells[enb_cc_idx].set_ul_crc(tti_rx, crc_res);
 }
 
 void sched_ue::set_dl_ri(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t ri)
@@ -301,15 +293,7 @@ void sched_ue::set_dl_cqi(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t cqi)
 
 void sched_ue::set_ul_snr(tti_point tti_rx, uint32_t enb_cc_idx, float snr, uint32_t ul_ch_code)
 {
-  if (cells[enb_cc_idx].cc_state() != cc_st::idle) {
-    cells[enb_cc_idx].tpc_fsm.set_snr(snr, ul_ch_code);
-    if (ul_ch_code == tpc::PUSCH_CODE) {
-      cells[enb_cc_idx].ul_cqi        = srsran_cqi_from_snr(snr);
-      cells[enb_cc_idx].ul_cqi_tti_rx = tti_rx;
-    }
-  } else {
-    logger.warning("Received SNR info for invalid cell index %d", enb_cc_idx);
-  }
+  cells[enb_cc_idx].set_ul_snr(tti_rx, snr, ul_ch_code);
 }
 
 /*******************************************************
@@ -845,7 +829,7 @@ uint32_t sched_ue::get_expected_dl_bitrate(uint32_t enb_cc_idx, int nof_rbgs) co
   auto&    cc = cells[enb_cc_idx];
   uint32_t nof_re =
       cc.cell_cfg->get_dl_lb_nof_re(to_tx_dl(current_tti), count_prb_per_tb_approx(nof_rbgs, cc.cell_cfg->nof_prb()));
-  float max_coderate = srsran_cqi_to_coderate(std::min(cc.dl_cqi().get_avg_cqi() + 1u, 15u), cfg.use_tbs_index_alt);
+  float max_coderate = srsran_cqi_to_coderate(std::min(cc.get_dl_cqi() + 1u, 15u), cfg.use_tbs_index_alt);
 
   // Inverse of srsran_coderate(tbs, nof_re)
   uint32_t tbs = max_coderate * nof_re - 24;
@@ -859,7 +843,7 @@ uint32_t sched_ue::get_expected_ul_bitrate(uint32_t enb_cc_idx, int nof_prbs) co
   uint32_t N_srs        = 0;
   uint32_t nof_symb     = 2 * (SRSRAN_CP_NSYMB(cell.cp) - 1) - N_srs;
   uint32_t nof_re       = nof_symb * nof_prbs_alloc * SRSRAN_NRE;
-  float    max_coderate = srsran_cqi_to_coderate(std::min(cells[enb_cc_idx].ul_cqi + 1u, 15u), false);
+  float    max_coderate = srsran_cqi_to_coderate(std::min(cells[enb_cc_idx].get_ul_cqi() + 1u, 15u), false);
 
   // Inverse of srsran_coderate(tbs, nof_re)
   uint32_t tbs = max_coderate * nof_re - 24;
@@ -914,7 +898,7 @@ uint32_t sched_ue::get_pending_ul_data_total(tti_point tti_tx_ul, int this_enb_c
       uint32_t max_cqi = 0, max_cc_idx = 0;
       for (uint32_t cc = 0; cc < cells.size(); ++cc) {
         if (cells[cc].configured()) {
-          uint32_t sum_cqi = cells[cc].dl_cqi().get_avg_cqi() + cells[cc].ul_cqi;
+          uint32_t sum_cqi = cells[cc].get_dl_cqi() + cells[cc].get_ul_cqi();
           if (cells[cc].cc_state() == cc_st::active and sum_cqi > max_cqi) {
             max_cqi    = sum_cqi;
             max_cc_idx = cc;
@@ -1006,9 +990,7 @@ std::pair<bool, uint32_t> sched_ue::get_active_cell_index(uint32_t enb_cc_idx) c
 
 uint32_t sched_ue::get_aggr_level(uint32_t enb_cc_idx, uint32_t nof_bits)
 {
-  const auto& cc = cells[enb_cc_idx];
-  return srsenb::get_aggr_level(
-      nof_bits, cc.dl_cqi().get_avg_cqi(), cc.max_aggr_level, cc.cell_cfg->nof_prb(), cfg.use_tbs_index_alt);
+  return cells[enb_cc_idx].get_aggr_level(nof_bits);
 }
 
 void sched_ue::finish_tti(tti_point tti_rx, uint32_t enb_cc_idx)

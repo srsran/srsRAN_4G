@@ -880,6 +880,7 @@ void phy_common::reset()
   cur_pusch_power     = 0;
   sr_last_tx_tti      = -1;
   pcell_report_period = 20;
+  last_ri             = 0;
 
   ZERO_OBJECT(pathloss);
   ZERO_OBJECT(avg_sinr_db);
@@ -913,13 +914,6 @@ void phy_common::reset()
     std::lock_guard<std::mutex> lock(pending_ul_grant_mutex);
     for (auto& i : pending_ul_grant) {
       i = {};
-    }
-  }
-
-  // Release mapping of secondary cells
-  if (args != nullptr && radio_h != nullptr) {
-    for (uint32_t i = 1; i < args->nof_lte_carriers; i++) {
-      radio_h->release_freq(i);
     }
   }
 }

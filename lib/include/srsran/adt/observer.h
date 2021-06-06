@@ -29,8 +29,8 @@
 
 namespace srsran {
 
-using observer_id                = std::size_t;
-const size_t invalid_observer_id = std::numeric_limits<observer_id>::max();
+using observer_id                     = std::size_t;
+const std::size_t invalid_observer_id = std::numeric_limits<observer_id>::max();
 
 template <typename... Args>
 class observer;
@@ -93,7 +93,7 @@ public:
   template <typename... Args2>
   observer_id subscribe(Args2&&... args)
   {
-    size_t id = 0;
+    std::size_t id = 0;
     for (auto& slot : observers) {
       if (not static_cast<bool>(slot)) {
         // empty slot found
@@ -117,9 +117,9 @@ public:
     return false;
   }
 
-  size_t nof_observers() const
+  std::size_t nof_observers() const
   {
-    size_t count = 0;
+    std::size_t count = 0;
     for (auto& slot : observers) {
       count += static_cast<bool>(slot) ? 1 : 0;
     }

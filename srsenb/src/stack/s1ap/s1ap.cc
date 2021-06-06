@@ -423,17 +423,14 @@ bool s1ap::user_release(uint16_t rnti, asn1::s1ap::cause_radio_network_e cause_r
   ue* u = users.find_ue_rnti(rnti);
   if (u == nullptr) {
     logger.warning("Released UE with rnti=0x%x not found", rnti);
+    rrc->release_ue(rnti);
     return false;
   }
 
   cause_c cause;
   cause.set_radio_network().value = cause_radio.value;
 
-  if (not u->send_uectxtreleaserequest(cause)) {
-    users.erase(u);
-    return false;
-  }
-  return true;
+  return u->send_uectxtreleaserequest(cause);
 }
 
 bool s1ap::user_exists(uint16_t rnti)
@@ -462,6 +459,15 @@ void s1ap::ue_ctxt_setup_complete(uint16_t rnti)
     return;
   }
   u->ue_ctxt_setup_complete();
+}
+
+void s1ap::notify_rrc_reconf_complete(uint16_t rnti)
+{
+  ue* u = users.find_ue_rnti(rnti);
+  if (u == nullptr) {
+    return;
+  }
+  u->notify_rrc_reconf_complete();
 }
 
 bool s1ap::is_mme_connected()
@@ -1407,16 +1413,28 @@ bool s1ap::ue::send_ulnastransport(srsran::unique_byte_buffer_t pdu)
 
 bool s1ap::ue::send_uectxtreleaserequest(const cause_c& cause)
 {
-  if (was_uectxtrelease_requested()) {
-    logger.warning("UE context for RNTI:0x%x is in zombie state. Releasing...", ctxt.rnti);
-    return false;
-  }
   if (not ctxt.mme_ue_s1ap_id.has_value()) {
     logger.error("Cannot send UE context release request without a MME-UE-S1AP-Id allocated.");
+    s1ap_ptr->rrc->release_ue(ctxt.rnti);
+    s1ap_ptr->users.erase(this);
     return false;
   }
 
-  release_requested = true;
+  if (ts1_reloc_overall.is_running() and cause.type().value == asn1::s1ap::cause_c::types_opts::radio_network and
+      (cause.radio_network().value == asn1::s1ap::cause_radio_network_opts::user_inactivity or
+       cause.radio_network().value == asn1::s1ap::cause_radio_network_opts::radio_conn_with_ue_lost)) {
+    logger.info("Ignoring UE context release request from lower layers for UE rnti=0x%x performing S1 Handover.",
+                ctxt.rnti);
+    // Leave the UE context alive during S1 Handover until ts1_reloc_overall expiry. Ignore releases due to
+    // UE inactivity or RLF
+    return false;
+  }
+
+  if (was_uectxtrelease_requested()) {
+    // let timeout auto-remove user.
+    return false;
+  }
+
   s1ap_pdu_c tx_pdu;
   tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_UE_CONTEXT_RELEASE_REQUEST);
   ue_context_release_request_ies_container& container =
@@ -1427,11 +1445,25 @@ bool s1ap::ue::send_uectxtreleaserequest(const cause_c& cause)
   // Cause
   container.cause.value = cause;
 
-  return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "UEContextReleaseRequest");
+  release_requested = s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "UEContextReleaseRequest");
+  if (not release_requested) {
+    s1ap_ptr->rrc->release_ue(ctxt.rnti);
+    s1ap_ptr->users.erase(this);
+  } else {
+    overall_procedure_timeout.set(10000, [this](uint32_t tid) {
+      logger.warning("UE context for RNTI:0x%x is in zombie state. Releasing...", ctxt.rnti);
+      s1ap_ptr->rrc->release_ue(ctxt.rnti);
+      s1ap_ptr->users.erase(this);
+    });
+    overall_procedure_timeout.run();
+  }
+  return release_requested;
 }
 
 bool s1ap::ue::send_uectxtreleasecomplete()
 {
+  overall_procedure_timeout.stop();
+
   s1ap_pdu_c tx_pdu;
   tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_UE_CONTEXT_RELEASE);
   auto& container                = tx_pdu.successful_outcome().value.ue_context_release_complete().protocol_ies;
@@ -1445,6 +1477,17 @@ bool s1ap::ue::send_uectxtreleasecomplete()
   event_logger::get().log_s1_ctx_delete(ctxt.enb_cc_idx, ctxt.mme_ue_s1ap_id.value(), ctxt.enb_ue_s1ap_id, ctxt.rnti);
 
   return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "UEContextReleaseComplete");
+}
+
+void s1ap::ue::notify_rrc_reconf_complete()
+{
+  if (current_state == s1ap_elem_procs_o::init_msg_c::types_opts::init_context_setup_request) {
+    logger.info("Procedure %s,rnti=0x%x - Received RRC reconf complete. Finishing UE context setup.",
+                s1ap_elem_procs_o::init_msg_c::types_opts{current_state}.to_string(),
+                ctxt.rnti);
+    ue_ctxt_setup_complete();
+    return;
+  }
 }
 
 void s1ap::ue::ue_ctxt_setup_complete()
@@ -1465,7 +1508,14 @@ void s1ap::ue::ue_ctxt_setup_complete()
 
     container.enb_ue_s1ap_id.value = ctxt.enb_ue_s1ap_id;
     container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id.value();
-    container.cause.value          = failed_cfg_erabs.front().cause;
+    if (not failed_cfg_erabs.empty()) {
+      container.cause.value = failed_cfg_erabs.front().cause;
+    } else {
+      logger.warning("Procedure %s,rnti=0x%x - no specified cause for failed configuration",
+                     s1ap_elem_procs_o::init_msg_c::types_opts{current_state}.to_string(),
+                     ctxt.rnti);
+      container.cause.value.set_misc().value = cause_misc_opts::unspecified;
+    }
     s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "UEContextModificationFailure");
     return;
   }
@@ -1496,7 +1546,7 @@ void s1ap::ue::ue_ctxt_setup_complete()
   // Log event.
   event_logger::get().log_s1_ctx_create(ctxt.enb_cc_idx, ctxt.mme_ue_s1ap_id.value(), ctxt.enb_ue_s1ap_id, ctxt.rnti);
 
-  s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "E-RABSetupResponse");
+  s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "InitialContextSetupResponse");
 }
 
 bool s1ap::ue::send_erab_setup_response(const erab_id_list& erabs_setup, const erab_item_list& erabs_failed)
@@ -1802,12 +1852,24 @@ void s1ap::user_list::erase(ue* ue_ptr)
 /*******************************************************************************
 /* General helpers
 ********************************************************************************/
-
 bool s1ap::sctp_send_s1ap_pdu(const asn1::s1ap::s1ap_pdu_c& tx_pdu, uint32_t rnti, const char* procedure_name)
 {
   if (not mme_connected and rnti != SRSRAN_INVALID_RNTI) {
     logger.error("Aborting %s for rnti=0x%x. Cause: MME is not connected.", procedure_name, rnti);
     return false;
+  }
+
+  // Reset the state if it is a successful or unsucessfull message
+  if (tx_pdu.type() == s1ap_pdu_c::types_opts::successful_outcome ||
+      tx_pdu.type() == s1ap_pdu_c::types_opts::unsuccessful_outcome) {
+    if (rnti != SRSRAN_INVALID_RNTI) {
+      s1ap::ue* u = users.find_ue_rnti(rnti);
+      if (u == nullptr) {
+        logger.warning("Could not find user for %s. RNTI=%x", procedure_name, rnti);
+      } else {
+        u->set_state(s1ap_proc_id_t::nulltype, {}, {});
+      }
+    }
   }
 
   srsran::unique_byte_buffer_t buf = srsran::make_byte_buffer();
@@ -1961,6 +2023,8 @@ s1ap::ue::ue(s1ap* s1ap_ptr_) : s1ap_ptr(s1ap_ptr_), ho_prep_proc(this), logger(
     //  TS1RELOCOverall, the eNB shall request the MME to release the UE context.
     s1ap_ptr->user_release(ctxt.rnti, asn1::s1ap::cause_radio_network_opts::ts1relocoverall_expiry);
   });
+  overall_procedure_timeout = s1ap_ptr->task_sched.get_unique_timer();
+  overall_procedure_timeout.set(10000);
 }
 
 bool s1ap::ue::send_ho_required(uint32_t                     target_eci,
@@ -2094,7 +2158,7 @@ bool s1ap::ue::send_enb_status_transfer_proc(std::vector<bearer_status_info>& be
 
 void s1ap::log_s1ap_msg(const asn1::s1ap::s1ap_pdu_c& msg, srsran::const_span<uint8_t> sdu, bool is_rx)
 {
-  std::string msg_type;
+  const char* msg_type;
 
   switch (msg.type().value) {
     case s1ap_pdu_c::types_opts::init_msg:
@@ -2111,7 +2175,7 @@ void s1ap::log_s1ap_msg(const asn1::s1ap::s1ap_pdu_c& msg, srsran::const_span<ui
       return;
   }
 
-  logger.info(sdu.data(), sdu.size(), "%s S1AP SDU - %s", is_rx ? "Rx" : "Tx", msg_type.c_str());
+  logger.info(sdu.data(), sdu.size(), "%s S1AP SDU - %s", is_rx ? "Rx" : "Tx", msg_type);
 }
 
 } // namespace srsenb

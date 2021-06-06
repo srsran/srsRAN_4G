@@ -74,6 +74,12 @@ void metrics_stdout::toggle_print(bool b)
   do_print = b;
 }
 
+// Define iszero() here since it's not defined in some platforms
+static bool iszero(float x)
+{
+  return fabsf(x) < 2 * DBL_EPSILON;
+}
+
 void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t period_usec)
 {
   if (!do_print || enb == nullptr) {
@@ -94,7 +100,7 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
     n_reports = 0;
     cout << endl;
     cout << "------DL-------------------------------UL--------------------------------------------" << endl;
-    cout << "rnti cqi  ri mcs brate   ok  nok  (%)  pusch pucch phr mcs brate   ok  nok  (%)   bsr" << endl;
+    cout << "rnti cqi  ri mcs brate   ok  nok  (%)  pusch  pucch  phr mcs brate   ok  nok  (%)   bsr" << endl;
   }
 
   for (size_t i = 0; i < metrics.stack.rrc.ues.size(); i++) {
@@ -110,52 +116,53 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
     }
 
     cout << int_to_hex_string(metrics.stack.mac.ues[i].rnti, 4) << " ";
-    cout << float_to_string(SRSRAN_MAX(0.1, metrics.stack.mac.ues[i].dl_cqi), 1, 3);
+    if (not iszero(metrics.stack.mac.ues[i].dl_cqi)) {
+      cout << float_to_string(metrics.stack.mac.ues[i].dl_cqi, 1, 3);
+    } else {
+      cout << "n/a";
+    }
     cout << float_to_string(metrics.stack.mac.ues[i].dl_ri, 1, 4);
     if (not isnan(metrics.phy[i].dl.mcs)) {
-      cout << float_to_string(SRSRAN_MAX(0.1, metrics.phy[i].dl.mcs), 1, 4);
+      cout << float_to_string(metrics.phy[i].dl.mcs, 1, 4);
     } else {
       cout << float_to_string(0, 2, 4);
     }
     if (metrics.stack.mac.ues[i].tx_brate > 0) {
-      cout << float_to_eng_string(
-          SRSRAN_MAX(0.1, (float)metrics.stack.mac.ues[i].tx_brate / (metrics.stack.mac.ues[i].nof_tti * 1e-3)), 1);
+      cout << float_to_eng_string((float)metrics.stack.mac.ues[i].tx_brate / (metrics.stack.mac.ues[i].nof_tti * 1e-3), 1);
     } else {
       cout << float_to_string(0, 1, 6) << "";
     }
     cout << std::setw(5) << metrics.stack.mac.ues[i].tx_pkts - metrics.stack.mac.ues[i].tx_errors;
     cout << std::setw(5) << metrics.stack.mac.ues[i].tx_errors;
     if (metrics.stack.mac.ues[i].tx_pkts > 0 && metrics.stack.mac.ues[i].tx_errors) {
-      cout << float_to_string(
-                  SRSRAN_MAX(0.1, (float)100 * metrics.stack.mac.ues[i].tx_errors / metrics.stack.mac.ues[i].tx_pkts), 1, 4)
+      cout << float_to_string((float)100 * metrics.stack.mac.ues[i].tx_errors / metrics.stack.mac.ues[i].tx_pkts, 1, 4)
            << "%";
     } else {
       cout << float_to_string(0, 1, 4) << "%";
     }
     cout << "  ";
 
-    if (not isnan(metrics.phy[i].ul.pusch_sinr)) {
-      cout << float_to_string(SRSRAN_MAX(0.1, metrics.phy[i].ul.pusch_sinr), 2, 5);
+    if (not isnan(metrics.phy[i].ul.pusch_sinr) and not iszero(metrics.phy[i].ul.pusch_sinr)) {
+      cout << float_to_string(metrics.phy[i].ul.pusch_sinr, 2, 5);
     } else {
-      cout << float_to_string(0, 2, 5);
+      cout << "  n/a";
     }
 
-    if (not isnan(metrics.phy[i].ul.pucch_sinr)) {
-      cout << float_to_string(SRSRAN_MAX(0.1, metrics.phy[i].ul.pucch_sinr), 2, 5);
+    if (not isnan(metrics.phy[i].ul.pucch_sinr) and not iszero(metrics.phy[i].ul.pucch_sinr)) {
+      cout << float_to_string(metrics.phy[i].ul.pucch_sinr, 2, 6);
     } else {
-      cout << float_to_string(0, 2, 5);
+      cout << "   n/a";
     }
     cout << " ";
 
     cout << float_to_string(metrics.stack.mac.ues[i].phr, 2, 5);
     if (not isnan(metrics.phy[i].ul.mcs)) {
-      cout << float_to_string(SRSRAN_MAX(0.1, metrics.phy[i].ul.mcs), 1, 4);
+      cout << float_to_string(metrics.phy[i].ul.mcs, 1, 4);
     } else {
       cout << float_to_string(0, 1, 4);
     }
     if (metrics.stack.mac.ues[i].rx_brate > 0) {
-      cout << float_to_eng_string(
-          SRSRAN_MAX(0.1, (float)metrics.stack.mac.ues[i].rx_brate / (metrics.stack.mac.ues[i].nof_tti * 1e-3)), 1);
+      cout << float_to_eng_string((float)metrics.stack.mac.ues[i].rx_brate / (metrics.stack.mac.ues[i].nof_tti * 1e-3), 1);
     } else {
       cout << float_to_string(0, 1) << "";
     }
@@ -163,8 +170,7 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
     cout << std::setw(5) << metrics.stack.mac.ues[i].rx_errors;
 
     if (metrics.stack.mac.ues[i].rx_pkts > 0 && metrics.stack.mac.ues[i].rx_errors > 0) {
-      cout << float_to_string(
-                  SRSRAN_MAX(0.1, (float)100 * metrics.stack.mac.ues[i].rx_errors / metrics.stack.mac.ues[i].rx_pkts), 1, 4)
+      cout << float_to_string((float)100 * metrics.stack.mac.ues[i].rx_errors / metrics.stack.mac.ues[i].rx_pkts, 1, 4)
            << "%";
     } else {
       cout << float_to_string(0, 1, 4) << "%";
@@ -184,7 +190,7 @@ std::string metrics_stdout::float_to_string(float f, int digits, int field_width
     f         = 0.0;
     precision = digits - 1;
   } else {
-    precision = digits - (int)(log10f(fabs(f)) - 2 * DBL_EPSILON);
+    precision = digits - (int)(log10f(fabs(f + 0.0001)) - 2 * DBL_EPSILON);
   }
   if (precision == -1) {
     precision = 0;

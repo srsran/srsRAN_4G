@@ -22,8 +22,15 @@
 #include "srsenb/hdr/stack/mac/sched_ue_ctrl/sched_ue_cell.h"
 #include "srsenb/hdr/stack/mac/sched_helpers.h"
 #include "srsenb/hdr/stack/mac/sched_phy_ch/sched_dci.h"
-#include "srsenb/hdr/stack/mac/schedulers/sched_base.h"
 #include <numeric>
+
+#define CHECK_VALID_CC(feedback_type)                                                                                  \
+  do {                                                                                                                 \
+    if (cc_state() == cc_st::idle) {                                                                                   \
+      logger.warning("SCHED: rnti=0x%x received " feedback_type " for idle cc=%d", rnti, cell_cfg->enb_cc_idx);        \
+      return SRSRAN_ERROR;                                                                                             \
+    }                                                                                                                  \
+  } while (0)
 
 namespace srsenb {
 
@@ -37,10 +44,15 @@ sched_ue_cell::sched_ue_cell(uint16_t rnti_, const sched_cell_params_t& cell_cfg
   cell_cfg(&cell_cfg_),
   dci_locations(generate_cce_location_table(rnti_, cell_cfg_)),
   harq_ent(SCHED_MAX_HARQ_PROC, SCHED_MAX_HARQ_PROC),
-  tpc_fsm(cell_cfg->nof_prb(),
+  tpc_fsm(rnti_,
+          cell_cfg->nof_prb(),
           cell_cfg->cfg.target_pucch_ul_sinr,
           cell_cfg->cfg.target_pusch_ul_sinr,
-          cell_cfg->cfg.enable_phr_handling),
+          cell_cfg->cfg.enable_phr_handling,
+          cell_cfg->cfg.min_phr_thres,
+          cell_cfg->sched_cfg->min_tpc_tti_interval,
+          cell_cfg->sched_cfg->ul_snr_avg_alpha,
+          cell_cfg->sched_cfg->init_ul_snr_value),
   fixed_mcs_dl(cell_cfg_.sched_cfg->pdsch_mcs),
   fixed_mcs_ul(cell_cfg_.sched_cfg->pusch_mcs),
   current_tti(current_tti_),
@@ -48,6 +60,12 @@ sched_ue_cell::sched_ue_cell(uint16_t rnti_, const sched_cell_params_t& cell_cfg
   dl_cqi_ctxt(cell_cfg_.nof_prb(), 0, 1)
 {
   clear_feedback();
+
+  float target_bler = cell_cfg->sched_cfg->target_bler;
+  delta_inc         = cell_cfg->sched_cfg->adaptive_link_step_size; // delta_{down} of OLLA
+  delta_dec         = (1 - target_bler) * delta_inc / target_bler;
+  max_cqi_coeff     = cell_cfg->sched_cfg->max_delta_dl_cqi;
+  max_snr_coeff     = cell_cfg->sched_cfg->max_delta_ul_snr;
 }
 
 void sched_ue_cell::set_ue_cfg(const sched_interface::ue_cfg_t& ue_cfg_)
@@ -123,7 +141,13 @@ void sched_ue_cell::set_ue_cfg(const sched_interface::ue_cfg_t& ue_cfg_)
 
 void sched_ue_cell::new_tti(tti_point tti_rx)
 {
+  if (not configured()) {
+    return;
+  }
   current_tti = tti_rx;
+
+  harq_ent.new_tti(tti_rx);
+  tpc_fsm.new_tti();
 
   // Check if cell state needs to be updated
   if (ue_cc_idx > 0 and cc_state_ == cc_st::deactivating) {
@@ -143,24 +167,135 @@ void sched_ue_cell::clear_feedback()
   dl_pmi        = 0;
   dl_pmi_tti_rx = tti_point{};
   dl_cqi_ctxt.reset_cqi(ue_cc_idx == 0 ? cell_cfg->cfg.initial_dl_cqi : 1);
-  ul_cqi        = 1;
   ul_cqi_tti_rx = tti_point{};
 }
 
 void sched_ue_cell::finish_tti(tti_point tti_rx)
 {
   // clear_feedback PIDs with pending data or blocked
-  harq_ent.reset_pending_data(tti_rx);
+  harq_ent.finish_tti(tti_rx);
 }
 
-void sched_ue_cell::set_dl_wb_cqi(tti_point tti_rx, uint32_t dl_cqi_)
+int sched_ue_cell::set_dl_wb_cqi(tti_point tti_rx, uint32_t dl_cqi_)
 {
+  CHECK_VALID_CC("DL CQI");
   dl_cqi_ctxt.cqi_wb_info(tti_rx, dl_cqi_);
   if (ue_cc_idx > 0 and cc_state_ == cc_st::activating and dl_cqi_ > 0) {
     // Wait for SCell to receive a positive CQI before activating it
     cc_state_ = cc_st::active;
     logger.info("SCHED: SCell index=%d is now active", ue_cc_idx);
   }
+  return SRSRAN_SUCCESS;
+}
+
+int sched_ue_cell::set_ul_crc(tti_point tti_rx, bool crc_res)
+{
+  CHECK_VALID_CC("UL CRC");
+
+  // Adapt UL MCS based on BLER
+  if (cell_cfg->sched_cfg->target_bler > 0 and fixed_mcs_ul < 0) {
+    auto* ul_harq = harq_ent.get_ul_harq(tti_rx);
+    if (ul_harq != nullptr) {
+      int mcs = ul_harq->get_mcs(0);
+      // Note: Avoid keeping increasing the snr delta offset, if MCS is already is at its limit
+      float delta_dec_eff = mcs <= 0 ? 0 : delta_dec;
+      float delta_inc_eff = mcs >= (int)max_mcs_ul ? 0 : delta_inc;
+      ul_snr_coeff += crc_res ? delta_inc_eff : -delta_dec_eff;
+      ul_snr_coeff = std::min(std::max(-max_snr_coeff, ul_snr_coeff), max_snr_coeff);
+      logger.info("SCHED: UL adaptive link: rnti=0x%x, snr_estim=%.2f, last_mcs=%d, snr_offset=%f",
+                  rnti,
+                  tpc_fsm.get_ul_snr_estim(),
+                  mcs,
+                  ul_snr_coeff);
+    }
+  }
+
+  // Update HARQ process
+  int pid = harq_ent.set_ul_crc(tti_rx, 0, crc_res);
+  if (pid < 0) {
+    logger.warning("SCHED: rnti=0x%x received UL CRC for invalid tti_rx=%d", rnti, (int)tti_rx.to_uint());
+    return SRSRAN_ERROR;
+  }
+
+  return pid;
+}
+
+int sched_ue_cell::set_ack_info(tti_point tti_rx, uint32_t tb_idx, bool ack)
+{
+  CHECK_VALID_CC("DL ACK Info");
+
+  std::tuple<uint32_t, int, int> p2        = harq_ent.set_ack_info(tti_rx, tb_idx, ack);
+  int                            tbs_acked = std::get<1>(p2);
+  if (tbs_acked <= 0) {
+    logger.warning("SCHED: Received ACK info for unknown TTI=%d", tti_rx.to_uint());
+    return tbs_acked;
+  }
+
+  // Adapt DL MCS based on BLER
+  if (cell_cfg->sched_cfg->target_bler > 0 and fixed_mcs_dl < 0) {
+    int mcs = std::get<2>(p2);
+    // Note: Avoid keeping increasing the snr delta offset, if MCS is already is at its limit
+    float delta_dec_eff = mcs <= 0 ? 0 : delta_dec;
+    float delta_inc_eff = mcs >= (int)max_mcs_dl ? 0 : delta_inc;
+    dl_cqi_coeff += ack ? delta_inc_eff : -delta_dec_eff;
+    dl_cqi_coeff = std::min(std::max(-max_cqi_coeff, dl_cqi_coeff), max_cqi_coeff);
+    logger.info("SCHED: DL adaptive link: rnti=0x%x, cqi=%d, last_mcs=%d, cqi_offset=%f",
+                rnti,
+                dl_cqi_ctxt.get_avg_cqi(),
+                mcs,
+                dl_cqi_coeff);
+  }
+  return tbs_acked;
+}
+
+int sched_ue_cell::set_ul_snr(tti_point tti_rx, float ul_snr, uint32_t ul_ch_code)
+{
+  CHECK_VALID_CC("UL SNR estimate");
+  if (ue_cfg->ue_bearers[1].direction == sched_interface::ue_bearer_cfg_t::IDLE) {
+    // Ignore Msg3 SNR samples as Msg3 uses a separate power control loop
+    return SRSRAN_SUCCESS;
+  }
+  tpc_fsm.set_snr(ul_snr, ul_ch_code);
+  if (ul_ch_code == tpc::PUSCH_CODE) {
+    ul_cqi_tti_rx = tti_rx;
+  }
+  return SRSRAN_SUCCESS;
+}
+
+int sched_ue_cell::get_ul_cqi() const
+{
+  if (not ul_cqi_tti_rx.is_valid()) {
+    return 1;
+  }
+  float snr = tpc_fsm.get_ul_snr_estim();
+  return srsran_cqi_from_snr(snr + ul_snr_coeff);
+}
+
+int sched_ue_cell::get_dl_cqi(const rbgmask_t& rbgs) const
+{
+  float dl_cqi = std::get<1>(find_min_cqi_rbg(rbgs, dl_cqi_ctxt));
+  return std::max(0, (int)std::min(dl_cqi + dl_cqi_coeff, 15.0f));
+}
+
+int sched_ue_cell::get_dl_cqi() const
+{
+  return std::max(0, (int)std::min(dl_cqi_ctxt.get_avg_cqi() + dl_cqi_coeff, 15.0f));
+}
+
+uint32_t sched_ue_cell::get_aggr_level(uint32_t nof_bits) const
+{
+  uint32_t dl_cqi = 0;
+  if (cell_cfg->sched_cfg->adaptive_aggr_level) {
+    dl_cqi = get_dl_cqi();
+  } else {
+    dl_cqi = dl_cqi_ctxt.get_avg_cqi();
+  }
+  return srsenb::get_aggr_level(nof_bits,
+                                dl_cqi,
+                                cell_cfg->sched_cfg->min_aggr_level,
+                                max_aggr_level,
+                                cell_cfg->nof_prb(),
+                                ue_cfg->use_tbs_index_alt);
 }
 
 /*************************************************************
@@ -252,7 +387,7 @@ tbs_info cqi_to_tbs_dl(const sched_ue_cell& cell,
   tbs_info ret;
   if (cell.fixed_mcs_dl < 0 or not cell.dl_cqi().is_cqi_info_received()) {
     // Dynamic MCS configured or first Tx
-    uint32_t dl_cqi = std::get<1>(find_min_cqi_rbg(rbgs, cell.dl_cqi()));
+    uint32_t dl_cqi = cell.get_dl_cqi(rbgs);
 
     ret = compute_min_mcs_and_tbs_from_required_bytes(
         nof_prbs, nof_re, dl_cqi, cell.max_mcs_dl, req_bytes, false, false, use_tbs_index_alt);
@@ -281,7 +416,7 @@ tbs_info cqi_to_tbs_ul(const sched_ue_cell& cell, uint32_t nof_prb, uint32_t nof
   if (mcs < 0) {
     // Dynamic MCS
     ret = compute_min_mcs_and_tbs_from_required_bytes(
-        nof_prb, nof_re, cell.ul_cqi, cell.max_mcs_ul, req_bytes, true, ulqam64_enabled, false);
+        nof_prb, nof_re, cell.get_ul_cqi(), cell.max_mcs_ul, req_bytes, true, ulqam64_enabled, false);
 
     // If coderate > SRSRAN_MIN(max_coderate, 0.932 * Qm) we should set TBS=0. We don't because it's not correctly
     // handled by the scheduler, but we might be scheduling undecodable codewords at very low SNR
@@ -319,7 +454,7 @@ int get_required_prb_dl(const sched_ue_cell& cell,
 
 uint32_t get_required_prb_ul(const sched_ue_cell& cell, uint32_t req_bytes)
 {
-  const static int MIN_ALLOC_BYTES = 10;
+  const static int MIN_ALLOC_BYTES = 10; /// There should be enough space for RLC header + BSR + some payload
   if (req_bytes == 0) {
     return 0;
   }
@@ -338,9 +473,7 @@ uint32_t get_required_prb_ul(const sched_ue_cell& cell, uint32_t req_bytes)
   uint32_t final_tbs = std::get<3>(ret);
   while (final_tbs < MIN_ALLOC_BYTES and req_prbs < cell.cell_cfg->nof_prb()) {
     // Note: If PHR<0 is limiting the max nof PRBs per UL grant, the UL grant may become too small to fit any
-    //       data other than headers + BSR. Besides, forcing unnecessary segmentation, it may additionally
-    //       forbid the UE from fitting small RRC messages (e.g. RRCReconfComplete) in the UL grants.
-    //       To avoid TBS<10, we force an increase the nof required PRBs.
+    //       data other than headers + BSR. In this edge-case, force an increase the nof required PRBs.
     req_prbs++;
     final_tbs = compute_tbs_approx(req_prbs);
   }

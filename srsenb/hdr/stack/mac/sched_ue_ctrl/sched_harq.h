@@ -45,6 +45,7 @@ public:
   srsran::tti_point get_tti() const;
   bool              get_ndi(uint32_t tb_idx) const;
   uint32_t          max_nof_retx() const;
+  int               get_mcs(uint32_t tb_idx) const { return last_mcs[tb_idx]; }
 
 protected:
   void new_tx_common(uint32_t tb_idx, srsran::tti_point tti, int mcs, int tbs, uint32_t max_retx_);
@@ -55,17 +56,17 @@ protected:
 
   enum ack_t { NACK, ACK };
 
-  srslog::basic_logger*           logger;
-  bool                            ack_state[SRSRAN_MAX_TB];
-  bool                            active[SRSRAN_MAX_TB];
-  std::array<bool, SRSRAN_MAX_TB> ndi = {};
-  uint32_t                        id;
-  uint32_t                        max_retx = 5;
-  uint32_t                        n_rtx[SRSRAN_MAX_TB];
-  uint32_t                        tx_cnt[SRSRAN_MAX_TB];
-  srsran::tti_point               tti;
-  int                             last_mcs[SRSRAN_MAX_TB];
-  int                             last_tbs[SRSRAN_MAX_TB];
+  srslog::basic_logger*               logger    = nullptr;
+  std::array<bool, SRSRAN_MAX_TB>     ack_state = {};
+  std::array<bool, SRSRAN_MAX_TB>     active    = {};
+  std::array<bool, SRSRAN_MAX_TB>     ndi       = {};
+  uint32_t                            id        = 0;
+  uint32_t                            max_retx  = 5;
+  std::array<uint32_t, SRSRAN_MAX_TB> n_rtx     = {};
+  std::array<uint32_t, SRSRAN_MAX_TB> tx_cnt    = {};
+  std::array<int, SRSRAN_MAX_TB>      last_mcs  = {};
+  std::array<int, SRSRAN_MAX_TB>      last_tbs  = {};
+  srsran::tti_point                   tti;
 };
 
 class dl_harq_proc : public harq_proc
@@ -114,12 +115,15 @@ public:
   uint32_t get_pending_data() const;
   bool     has_pending_phich() const;
   bool     pop_pending_phich();
+  void     request_pdcch();
+  void     retx_skipped();
 
 private:
   prb_interval allocation;
   int          pending_data;
-  bool         pending_phich = false;
-  bool         is_msg3_      = false;
+  bool         pending_phich   = false;
+  bool         is_msg3_        = false;
+  bool         pdcch_requested = false;
 };
 
 class harq_entity
@@ -156,9 +160,9 @@ public:
    * @param tti_rx tti the DL ACK was received
    * @param tb_idx TB index for the given ACK
    * @param ack true for ACK and false for NACK
-   * @return pair with pid and size of TB of the DL harq that was ACKed
+   * @return tuple with pid, TBS and MCS of the DL harq that was ACKed
    */
-  std::pair<uint32_t, int> set_ack_info(tti_point tti_rx, uint32_t tb_idx, bool ack);
+  std::tuple<uint32_t, int, int> set_ack_info(tti_point tti_rx, uint32_t tb_idx, bool ack);
 
   //! Get UL Harq for a given tti_tx_ul
   ul_harq_proc* get_ul_harq(tti_point tti_tx_ul);
@@ -169,7 +173,7 @@ public:
   int set_ul_crc(srsran::tti_point tti_tx_ul, uint32_t tb_idx, bool ack_);
 
   //! Resets pending harq ACKs and cleans UL Harqs with maxretx == 0
-  void reset_pending_data(srsran::tti_point tti_rx);
+  void finish_tti(srsran::tti_point tti_rx);
 
 private:
   dl_harq_proc* get_oldest_dl_harq(tti_point tti_tx_dl);

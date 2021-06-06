@@ -21,9 +21,9 @@
 
 #include "srsenb/hdr/enb.h"
 #include "srsenb/src/enb_cfg_parser.h"
+#include "srsenb/test/rrc/test_helpers.h"
 #include "srsran/asn1/rrc_utils.h"
 #include "srsran/common/test_common.h"
-#include "test_helpers.h"
 #include <iostream>
 
 int test_erab_setup(srsran::log_sink_spy& spy, bool qci_exists)

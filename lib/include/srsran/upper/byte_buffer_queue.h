@@ -89,33 +89,37 @@ public:
 
 private:
   struct push_callback {
-    explicit push_callback(uint32_t& unread_bytes_, uint32_t& n_sdus_) : unread_bytes(&unread_bytes_), n_sdus(&n_sdus_)
+    explicit push_callback(std::atomic<uint32_t>& unread_bytes_, std::atomic<uint32_t>& n_sdus_) :
+      unread_bytes(unread_bytes_), n_sdus(n_sdus_)
     {}
     void operator()(const unique_byte_buffer_t& msg)
     {
-      *unread_bytes += msg->N_bytes;
-      (*n_sdus)++;
+      unread_bytes.fetch_add(msg->N_bytes, std::memory_order_relaxed);
+      n_sdus.fetch_add(1, std::memory_order_relaxed);
     }
-    uint32_t* unread_bytes;
-    uint32_t* n_sdus;
+    std::atomic<uint32_t>& unread_bytes;
+    std::atomic<uint32_t>& n_sdus;
   };
   struct pop_callback {
-    explicit pop_callback(uint32_t& unread_bytes_, uint32_t& n_sdus_) : unread_bytes(&unread_bytes_), n_sdus(&n_sdus_)
+    explicit pop_callback(std::atomic<uint32_t>& unread_bytes_, std::atomic<uint32_t>& n_sdus_) :
+      unread_bytes(unread_bytes_), n_sdus(n_sdus_)
     {}
     void operator()(const unique_byte_buffer_t& msg)
     {
       if (msg == nullptr) {
         return;
       }
-      *unread_bytes -= std::min(msg->N_bytes, *unread_bytes);
-      *n_sdus = std::max(0, (int32_t)(*n_sdus) - 1);
+      // non-atomic update of both state variables
+      unread_bytes.fetch_sub(std::min(msg->N_bytes, unread_bytes.load(std::memory_order_relaxed)),
+                             std::memory_order_relaxed);
+      n_sdus.store(std::max(0, (int32_t)(n_sdus.load(std::memory_order_relaxed)) - 1), std::memory_order_relaxed);
     }
-    uint32_t* unread_bytes;
-    uint32_t* n_sdus;
+    std::atomic<uint32_t>& unread_bytes;
+    std::atomic<uint32_t>& n_sdus;
   };
 
-  uint32_t unread_bytes = 0;
-  uint32_t n_sdus       = 0;
+  std::atomic<uint32_t> unread_bytes = {0};
+  std::atomic<uint32_t> n_sdus       = {0};
 
 public:
   dyn_blocking_queue<unique_byte_buffer_t, push_callback, pop_callback> queue;
