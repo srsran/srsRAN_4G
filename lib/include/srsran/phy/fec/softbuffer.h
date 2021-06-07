@@ -65,6 +65,15 @@ SRSRAN_API void srsran_softbuffer_rx_reset_cb(srsran_softbuffer_rx_t* q, uint32_
 
 SRSRAN_API void srsran_softbuffer_rx_free(srsran_softbuffer_rx_t* p);
 
+/**
+ * @brief Resets a number of CB CRCs
+ * @note This function is intended to be used if all CB CRC have matched but the TB CRC failed. In this case, all CB
+ * should be decoded again
+ * @param q Rx soft-buffer object
+ * @param nof_cb Number of CB to reset
+ */
+SRSRAN_API void srsran_softbuffer_rx_reset_cb_crc(srsran_softbuffer_rx_t* q, uint32_t nof_cb);
+
 SRSRAN_API int srsran_softbuffer_tx_init(srsran_softbuffer_tx_t* q, uint32_t nof_prb);
 
 /**

@@ -159,6 +159,15 @@ void srsran_softbuffer_rx_reset_cb(srsran_softbuffer_rx_t* q, uint32_t nof_cb)
   q->tb_crc = false;
 }
 
+void srsran_softbuffer_rx_reset_cb_crc(srsran_softbuffer_rx_t* q, uint32_t nof_cb)
+{
+  if (q == NULL || nof_cb == 0) {
+    return;
+  }
+
+  SRSRAN_MEM_ZERO(q->cb_crc, bool, SRSRAN_MIN(q->max_cb, nof_cb));
+}
+
 int srsran_softbuffer_tx_init(srsran_softbuffer_tx_t* q, uint32_t nof_prb)
 {
   int ret = srsran_ra_tbs_from_idx(SRSRAN_RA_NOF_TBS_IDX - 1, nof_prb);
