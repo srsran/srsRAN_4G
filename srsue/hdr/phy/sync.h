@@ -73,6 +73,13 @@ public:
   bool                                     cell_select_start(phy_cell_t cell);
   bool                                     cell_is_camping();
 
+  /**
+   * @brief Interface for monitoring UE's synchronization transition to IDLE. In addition to IDLE transitioning, this
+   * method waits for workers to finish processing and ends the current RF transmission burst.
+   * @return true if SYNC transitioned to IDLE, false otherwise
+   */
+  bool wait_idle();
+
   // RRC interface for controlling the neighbour cell measurement
   void set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci);
   void set_inter_frequency_measurement(uint32_t cc_idx, uint32_t earfcn_, srsran_cell_t cell_);
@@ -190,7 +197,7 @@ private:
   bool set_cell(float cfo);
 
   std::atomic<bool> running     = {false};
-  bool is_overflow = false;
+  bool              is_overflow = false;
 
   srsran::rf_timestamp_t last_rx_time;
   bool                   forced_rx_time_init = true; // Rx time sync after first receive from radio
@@ -232,7 +239,7 @@ private:
   std::atomic<float> sfo     = {}; // SFO estimate updated after each sync-cycle
   std::atomic<float> cfo     = {}; // CFO estimate updated after each sync-cycle
   std::atomic<float> ref_cfo = {}; // provided adjustment value applied before sync
-  sync_metrics_t metrics = {};
+  sync_metrics_t     metrics = {};
 
   // in-sync / out-of-sync counters
   std::atomic<uint32_t> out_of_sync_cnt = {0};
@@ -274,7 +281,7 @@ private:
   const static int MIN_TTI_JUMP       = 1;    ///< Time gap reported to stack after receiving subframe
   const static int MAX_TTI_JUMP       = 1000; ///< Maximum time gap tolerance in RF stream metadata
   const uint8_t    SYNC_CC_IDX        = 0;    ///< From the sync POV, the CC idx is always the first
-  const uint32_t   TIMEOUT_TO_IDLE_MS = 2;    ///< Timeout in milliseconds for transitioning to IDLE
+  const uint32_t   TIMEOUT_TO_IDLE_MS = 2000; ///< Timeout in milliseconds for transitioning to IDLE
 };
 
 } // namespace srsue

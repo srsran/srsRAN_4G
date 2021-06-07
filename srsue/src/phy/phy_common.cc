@@ -873,12 +873,15 @@ void phy_common::reset()
   pcell_report_period = 20;
   last_ri             = 0;
 
-  ZERO_OBJECT(pathloss);
-  ZERO_OBJECT(avg_sinr_db);
-  ZERO_OBJECT(avg_snr_db);
-  ZERO_OBJECT(avg_rsrp);
-  ZERO_OBJECT(avg_rsrp_dbm);
-  ZERO_OBJECT(avg_rsrq_db);
+  {
+    std::unique_lock<std::mutex> lock(meas_mutex);
+    ZERO_OBJECT(pathloss);
+    ZERO_OBJECT(avg_sinr_db);
+    ZERO_OBJECT(avg_snr_db);
+    ZERO_OBJECT(avg_rsrp);
+    ZERO_OBJECT(avg_rsrp_dbm);
+    ZERO_OBJECT(avg_rsrq_db);
+  }
   cell_state.reset();
 
   reset_neighbour_cells();
