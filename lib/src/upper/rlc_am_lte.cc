@@ -1829,6 +1829,7 @@ void rlc_am_lte::rlc_am_lte_rx::reset_status()
 
 bool rlc_am_lte::rlc_am_lte_rx::get_do_status()
 {
+  std::lock_guard<std::mutex> lock(mutex);
   return do_status;
 }
 
