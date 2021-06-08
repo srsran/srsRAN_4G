@@ -190,6 +190,7 @@ int basic_test()
   rlc_status_pdu_t status_check = {};
   rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
   TESTASSERT(status_check.ack_sn == 5); // 5 is the last SN that was not received.
+  TESTASSERT(rlc_am_is_valid_status_pdu(status_check));
 
   // Write status PDU to RLC1
   rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);

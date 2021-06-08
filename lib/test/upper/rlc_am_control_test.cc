@@ -79,6 +79,45 @@ int malformed_status_pdu_test()
   return SRSRAN_SUCCESS;
 }
 
+// Malformed PDU captured in field-test
+// 22:48:03.509077 [RLC    ] [I] DRB1 Tx status PDU - ACK_SN = 205, N_nack = 98, NACK_SN =
+// [752][986][109][110][111][112][113][114][115][116][117][118][119][120][121][122][123][124][125][126][127][128][129]
+int malformed_status_pdu_test2()
+{
+  uint32_t vr_a = 293;
+
+  // Construct a status PDU that ACKs SN 205, which is outside the rx window
+  srsran::rlc_status_pdu_t status_pdu = {};
+  status_pdu.ack_sn                   = 205;
+  status_pdu.N_nack                   = 2;
+  status_pdu.nacks[0].nack_sn         = 752;
+  status_pdu.nacks[1].nack_sn         = 986;
+  TESTASSERT(rlc_am_is_valid_status_pdu(status_pdu, vr_a) == false);
+
+  // 1 SN after upper edge of Rx window will fail
+  status_pdu.ack_sn = 806;
+  TESTASSERT(rlc_am_is_valid_status_pdu(status_pdu, vr_a) == false);
+
+  // The exact upper edge of Rx window should work
+  status_pdu.ack_sn = 805;
+  status_pdu.N_nack = 0;
+  TESTASSERT(rlc_am_is_valid_status_pdu(status_pdu, vr_a) == true);
+
+  // ACK_SN is again outside of rx_window
+  vr_a              = 0;
+  status_pdu.ack_sn = 742;
+  status_pdu.N_nack = 0;
+  TESTASSERT(rlc_am_is_valid_status_pdu(status_pdu, vr_a) == false);
+
+  // ACK_SN is well within rx window
+  vr_a              = 300;
+  status_pdu.ack_sn = 742;
+  status_pdu.N_nack = 0;
+  TESTASSERT(rlc_am_is_valid_status_pdu(status_pdu, vr_a) == true);
+
+  return SRSRAN_SUCCESS;
+}
+
 int main(int argc, char** argv)
 {
   srslog::init();
@@ -86,6 +125,7 @@ int main(int argc, char** argv)
   TESTASSERT(simple_status_pdu_test1() == SRSRAN_SUCCESS);
   TESTASSERT(status_pdu_with_nacks_test1() == SRSRAN_SUCCESS);
   TESTASSERT(malformed_status_pdu_test() == SRSRAN_SUCCESS);
+  TESTASSERT(malformed_status_pdu_test2() == SRSRAN_SUCCESS);
 
   return SRSRAN_SUCCESS;
 }
