@@ -699,11 +699,6 @@ void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srsr
   // signal mac scheduler that configuration was successful
   mac_ctrl.handle_con_reest_complete();
 
-  // Activate security for SRB1
-  parent->pdcp->config_security(rnti, srb_to_lcid(lte_srb::srb1), ue_security_cfg.get_as_sec_cfg());
-  parent->pdcp->enable_integrity(rnti, srb_to_lcid(lte_srb::srb1));
-  parent->pdcp->enable_encryption(rnti, srb_to_lcid(lte_srb::srb1));
-
   state = RRC_STATE_REESTABLISHMENT_COMPLETE;
 
   // 2> if the UE has radio link failure or handover failure information available
