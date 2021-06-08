@@ -1924,9 +1924,9 @@ int rlc_am_lte::rlc_am_lte_rx::get_status_pdu(rlc_status_pdu_t* status, const ui
         logger.debug("Removing last NACK SN=%d", status->nacks[status->N_nack].nack_sn);
         status->N_nack--;
         // make sure we don't have the current ACK_SN in the NACK list
-        if (rlc_am_is_valid_status_pdu(*status) == false) {
+        if (rlc_am_is_valid_status_pdu(*status, vr_r) == false) {
           // No space to send any NACKs, play safe and just ack lower edge
-          logger.debug("Resetting ACK_SN and N_nack to initial state");
+          logger.warning("Resetting ACK_SN and N_nack to initial state");
           status->ack_sn = vr_r;
           status->N_nack = 0;
         }
@@ -2396,8 +2396,13 @@ int rlc_am_write_status_pdu(rlc_status_pdu_t* status, uint8_t* payload)
   return tmp.N_bits / 8;
 }
 
-bool rlc_am_is_valid_status_pdu(const rlc_status_pdu_t& status)
+bool rlc_am_is_valid_status_pdu(const rlc_status_pdu_t& status, uint32_t rx_win_min)
 {
+  // check if ACK_SN is inside Rx window
+  if ((MOD + status.ack_sn - rx_win_min) % MOD > RLC_AM_WINDOW_SIZE) {
+    return false;
+  }
+
   for (uint32_t i = 0; i < status.N_nack; ++i) {
     // NACK can't be larger than ACK
     if ((MOD + status.ack_sn - status.nacks[i].nack_sn) % MOD > RLC_AM_WINDOW_SIZE) {
