@@ -250,6 +250,7 @@ bool ue_cell_ded_list::alloc_cell_resources(uint32_t ue_cc_idx)
           }
         }
       }
+      logger.info("Setup measurement gap period=%d offset=%d", cell->meas_gap_period, cell->meas_gap_offset);
     }
   } else {
     if (ue_cc_idx == 1 and not n_pucch_cs_present) {
