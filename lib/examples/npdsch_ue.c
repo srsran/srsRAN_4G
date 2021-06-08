@@ -330,7 +330,7 @@ int main(int argc, char** argv)
   parse_args(&prog_args, argc, argv);
 
 #if HAVE_PCAP
-  FILE* pcap_file = LTE_PCAP_Open(MAC_LTE_DLT, "/tmp/npdsch.pcap");
+  FILE* pcap_file = DLT_PCAP_Open(MAC_LTE_DLT, "/tmp/npdsch.pcap");
 #endif
 
   sigset_t sigset;
@@ -856,7 +856,7 @@ int main(int argc, char** argv)
 
 #if HAVE_PCAP
   printf("Saving PCAP file\n");
-  LTE_PCAP_Close(pcap_file);
+  DLT_PCAP_Close(pcap_file);
 #endif
 
 #ifndef DISABLE_RF

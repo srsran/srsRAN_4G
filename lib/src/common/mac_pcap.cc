@@ -32,7 +32,7 @@ uint32_t mac_pcap::open(std::string filename_, uint32_t ue_id_)
 
   // set DLT for selected RAT
   dlt       = UDP_DLT;
-  pcap_file = LTE_PCAP_Open(dlt, filename_.c_str());
+  pcap_file = DLT_PCAP_Open(dlt, filename_.c_str());
   if (pcap_file == nullptr) {
     logger.error("Couldn't open %s to write PCAP", filename_.c_str());
     return SRSRAN_ERROR;
@@ -68,7 +68,7 @@ uint32_t mac_pcap::close()
   {
     std::lock_guard<std::mutex> lock(mutex);
     srsran::console("Saving MAC PCAP (DLT=%d) to %s\n", dlt, filename.c_str());
-    LTE_PCAP_Close(pcap_file);
+    DLT_PCAP_Close(pcap_file);
     pcap_file = nullptr;
   }
 

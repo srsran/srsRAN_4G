@@ -23,6 +23,7 @@
 #define NAS_LTE_DLT 148
 #define UDP_DLT 149 // UDP needs to be selected as protocol
 #define S1AP_LTE_DLT 150
+#define NAS_5G_DLT 151
 
 /* This structure gets written to the start of the file */
 typedef struct pcap_hdr_s {
@@ -184,10 +185,10 @@ extern "C" {
 #endif
 
 /* Open the file and write file header */
-FILE* LTE_PCAP_Open(uint32_t DLT, const char* fileName);
+FILE* DLT_PCAP_Open(uint32_t DLT, const char* fileName);
 
 /* Close the PCAP file */
-void LTE_PCAP_Close(FILE* fd);
+void DLT_PCAP_Close(FILE* fd);
 
 /* Write an individual MAC PDU (PCAP packet header + mac-context + mac-pdu) */
 int LTE_PCAP_MAC_WritePDU(FILE* fd, MAC_Context_Info_t* context, const unsigned char* PDU, unsigned int length);
