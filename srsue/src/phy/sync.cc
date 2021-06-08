@@ -712,9 +712,9 @@ void sync::out_of_sync()
   }
 }
 
-void sync::set_cfo(float cfo)
+void sync::set_cfo(float cfo_)
 {
-  ref_cfo = cfo;
+  ref_cfo = cfo_;
 }
 
 void sync::set_agc_enable(bool enable)
@@ -767,7 +767,7 @@ float sync::get_tx_cfo()
   return ret / 15000;
 }
 
-void sync::set_ue_sync_opts(srsran_ue_sync_t* q, float cfo)
+void sync::set_ue_sync_opts(srsran_ue_sync_t* q, float cfo_)
 {
   if (worker_com->args->cfo_integer_enabled) {
     srsran_ue_sync_set_cfo_i_enable(q, true);
@@ -784,9 +784,9 @@ void sync::set_ue_sync_opts(srsran_ue_sync_t* q, float cfo)
                                  worker_com->args->cfo_loop_pss_conv);
 
   // Disable CP based CFO estimation during find
-  if (std::isnormal(cfo)) {
-    srsran_ue_sync_cfo_reset(q, cfo);
-    q->cfo_current_value       = cfo / 15000;
+  if (std::isnormal(cfo_)) {
+    srsran_ue_sync_cfo_reset(q, cfo_);
+    q->cfo_current_value       = cfo_ / 15000;
     q->cfo_is_copied           = true;
     q->cfo_correct_enable_find = true;
     srsran_sync_set_cfo_cp_enable(&q->sfind, false, 0);
