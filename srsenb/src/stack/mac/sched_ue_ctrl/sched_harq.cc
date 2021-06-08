@@ -230,6 +230,9 @@ void ul_harq_proc::new_tti()
     logger->info(
         "SCHED: discarding UL pid=%d, tti=%d, maximum number of retx exceeded (%d)", get_id(), tti.to_uint(), max_retx);
     active[0] = false;
+    if (not pending_phich) {
+      reset_pending_data();
+    }
   }
 }
 
@@ -275,6 +278,9 @@ bool ul_harq_proc::set_ack(uint32_t tb_idx, bool ack_)
     return false;
   }
   set_ack_common(tb_idx, ack_);
+  if (is_empty(0) and not pending_phich) {
+    reset_pending_data();
+  }
   return true;
 }
 

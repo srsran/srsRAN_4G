@@ -579,7 +579,7 @@ sf_sched::alloc_ul(sched_ue* user, prb_interval alloc, ul_alloc_t::type_t alloc_
   // Check if there is no collision with measGap
   bool needs_pdcch = alloc_type == ul_alloc_t::ADAPT_RETX or (alloc_type == ul_alloc_t::NEWTX and not is_msg3);
   if (not user->pusch_enabled(get_tti_rx(), cc_cfg->enb_cc_idx, needs_pdcch)) {
-    logger.debug("SCHED: PDCCH would collide with rnti=0x%x Measurement Gap", user->get_rnti());
+    logger.debug("SCHED: PDCCH/PUSCH would collide with rnti=0x%x Measurement Gap", user->get_rnti());
     return alloc_result::no_rnti_opportunity;
   }
 
