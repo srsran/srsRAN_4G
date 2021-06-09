@@ -283,7 +283,7 @@ void mac_controller::handle_intraenb_ho_cmd(const asn1::rrc::rrc_conn_recfg_r8_i
 
   // Stop any SRB UL (including SRs)
   for (uint32_t i = srb_to_lcid(lte_srb::srb1); i <= srb_to_lcid(lte_srb::srb2); ++i) {
-    next_sched_ue_cfg.ue_bearers[i].direction = sched_interface::ue_bearer_cfg_t::DL;
+    current_sched_ue_cfg.ue_bearers[i].direction = sched_interface::ue_bearer_cfg_t::DL;
   }
 
   update_mac(mac_controller::config_tx);
