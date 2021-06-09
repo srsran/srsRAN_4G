@@ -271,35 +271,46 @@ bool ue_stack_lte::switch_on()
 
 bool ue_stack_lte::switch_off()
 {
-  // generate detach request with switch-off flag
-  nas.switch_off();
+  if (running) {
+    ue_task_queue.try_push([this]() {
+      // generate detach request with switch-off flag
+      nas.switch_off();
 
-  // wait for max. 5s for it to be sent (according to TS 24.301 Sec 25.5.2.2)
-  int cnt = 0, timeout_ms = 5000;
-  while (not rrc.srbs_flushed() && ++cnt <= timeout_ms) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+      // wait for max. 5s for it to be sent (according to TS 24.301 Sec 25.5.2.2)
+      int cnt = 0, timeout_ms = 5000;
+      while (not rrc.srbs_flushed() && ++cnt <= timeout_ms) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+      }
+      if (not rrc.srbs_flushed()) {
+        srslog::fetch_basic_logger("NAS").warning("Detach couldn't be sent after %dms.", timeout_ms);
+      }
+    });
   }
-  bool detach_sent = true;
-  if (not rrc.srbs_flushed()) {
-    srslog::fetch_basic_logger("NAS").warning("Detach couldn't be sent after %dms.", timeout_ms);
-    detach_sent = false;
-  }
-
-  return detach_sent;
+  return true;
 }
 
 bool ue_stack_lte::enable_data()
 {
-  // perform attach request
-  srsran::console("Turning off airplane mode.\n");
-  return nas.enable_data();
+  if (running) {
+    ue_task_queue.try_push([this]() {
+      // perform attach request
+      srsran::console("Turning off airplane mode.\n");
+      nas.enable_data();
+    });
+  }
+  return true;
 }
 
 bool ue_stack_lte::disable_data()
 {
-  // generate detach request
-  srsran::console("Turning on airplane mode.\n");
-  return nas.disable_data();
+  if (running) {
+    ue_task_queue.try_push([this]() {
+      // generate detach request
+      srsran::console("Turning on airplane mode.\n");
+      nas.disable_data();
+    });
+  }
+  return true;
 }
 
 bool ue_stack_lte::start_service_request()
