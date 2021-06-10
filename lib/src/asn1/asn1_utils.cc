@@ -237,15 +237,20 @@ SRSASN_CODE bit_ref_impl<Ptr>::unpack_bytes(uint8_t* buf, uint32_t n_bytes)
   if (n_bytes == 0) {
     return SRSASN_SUCCESS;
   }
-  if (ptr + n_bytes >= max_ptr) {
-    log_error("Buffer size limit was achieved");
-    return SRSASN_ERROR_DECODE_FAIL;
-  }
   if (offset == 0) {
     // Aligned case
+    if (ptr + n_bytes > max_ptr) {
+      log_error("Buffer size limit was achieved");
+      return SRSASN_ERROR_DECODE_FAIL;
+    }
     memcpy(buf, ptr, n_bytes);
     ptr += n_bytes;
   } else {
+    // Unaligned case
+    if (ptr + n_bytes >= max_ptr) {
+      log_error("Buffer size limit was achieved");
+      return SRSASN_ERROR_DECODE_FAIL;
+    }
     for (uint32_t i = 0; i < n_bytes; ++i) {
       HANDLE_CODE(unpack(buf[i], 8));
     }
@@ -274,7 +279,7 @@ SRSASN_CODE bit_ref_impl<Ptr>::advance_bits(uint32_t n_bits)
   uint32_t bytes_required = ceilf((offset + n_bits) / 8.0f);
   uint32_t bytes_offset   = floorf((offset + n_bits) / 8.0f);
 
-  if (ptr + bytes_required >= max_ptr) {
+  if (ptr + bytes_required > max_ptr) {
     log_error("Buffer size limit was achieved");
     return SRSASN_ERROR_DECODE_FAIL;
   }
