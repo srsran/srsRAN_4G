@@ -529,6 +529,10 @@ bool phy::set_scell(srsran_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn)
       }
     }
 
+    // Reset measurements for the given CC after all workers finished processing and have been configured to ensure the
+    // measurements are not overwritten
+    common.reset_measurements(cc_idx);
+
     // Change frequency only if the earfcn was modified
     if (earfcn_is_different) {
       double dl_freq = srsran_band_fd(earfcn) * 1e6;

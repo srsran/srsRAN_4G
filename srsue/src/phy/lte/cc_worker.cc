@@ -549,6 +549,11 @@ void cc_worker::decode_phich()
 
 void cc_worker::update_measurements(std::vector<phy_meas_t>& serving_cells, cf_t* rssi_power_buffer)
 {
+  // Do not update any measurement if the CC is not configured to prevent false or inaccurate data
+  if (not phy->cell_state.is_configured(cc_idx)) {
+    return;
+  }
+
   phy->update_measurements(
       cc_idx, ue_dl.chest_res, sf_cfg_dl, ue_dl_cfg.cfg.pdsch.rs_power, serving_cells, rssi_power_buffer);
 }
