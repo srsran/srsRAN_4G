@@ -458,14 +458,11 @@ static void execute_cmd(metrics_stdout* metrics, srsenb::enb_command_interface* 
       cout << "Usage: " << cmd[0] << " [number of seconds]" << endl;
       return;
     }
-
     int nseconds = srsran::string_cast<int>(cmd[1]);
     if (nseconds <= 0) {
       return;
     }
-
     std::this_thread::sleep_for(std::chrono::seconds(nseconds));
-
   } else if (cmd[0] == "p") {
     do_padding = !do_padding;
     if (do_padding) {
@@ -493,6 +490,7 @@ static void execute_cmd(metrics_stdout* metrics, srsenb::enb_command_interface* 
     cout << "          t: starts console trace" << endl;
     cout << "          q: quit srsenb" << endl;
     cout << "  cell_gain: set relative cell gain" << endl;
+    cout << "      sleep: pauses the commmand line operation for a given time in seconds" << endl;
     cout << "          p: starts MAC padding" << endl;
     cout << endl;
   }
