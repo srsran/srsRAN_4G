@@ -48,10 +48,8 @@ sched_ue_cell::sched_ue_cell(uint16_t rnti_, const sched_cell_params_t& cell_cfg
   fixed_mcs_ul(cell_cfg_.sched_cfg->pusch_mcs),
   current_tti(current_tti_),
   max_aggr_level(cell_cfg_.sched_cfg->max_aggr_level >= 0 ? cell_cfg_.sched_cfg->max_aggr_level : 3),
-  dl_cqi_ctxt(cell_cfg_.nof_prb(), 0, 1)
+  dl_cqi_ctxt(cell_cfg_.nof_prb(), 0, cell_cfg_.sched_cfg->init_dl_cqi)
 {
-  clear_feedback();
-
   float target_bler = cell_cfg->sched_cfg->target_bler;
   delta_inc         = cell_cfg->sched_cfg->adaptive_link_step_size; // delta_{down} of OLLA
   delta_dec         = (1 - target_bler) * delta_inc / target_bler;
@@ -157,7 +155,7 @@ void sched_ue_cell::clear_feedback()
   dl_ri_tti_rx  = tti_point{};
   dl_pmi        = 0;
   dl_pmi_tti_rx = tti_point{};
-  dl_cqi_ctxt.reset_cqi(ue_cc_idx == 0 ? cell_cfg->cfg.initial_dl_cqi : 1);
+  dl_cqi_ctxt.reset_cqi(ue_cc_idx == 0 ? cell_cfg->sched_cfg->init_dl_cqi : 1);
   ul_cqi_tti_rx = tti_point{};
 }
 

@@ -64,6 +64,7 @@ public:
     uint32_t    min_tpc_tti_interval    = 1;
     float       ul_snr_avg_alpha        = 0.05;
     int         init_ul_snr_value       = 5;
+    int         init_dl_cqi             = 5;
   };
 
   struct cell_cfg_t {
@@ -100,7 +101,6 @@ public:
 
     uint32_t nrb_cqi;
     uint32_t ncs_an;
-    uint32_t initial_dl_cqi;
 
     uint32_t srs_subframe_config;
     uint32_t srs_subframe_offset;

@@ -158,6 +158,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("scheduler.min_tpc_tti_interval", bpo::value<uint32_t>(&args->stack.mac.sched.min_tpc_tti_interval)->default_value(1), "Minimum TTI interval between positive or negative TPCs")
     ("scheduler.ul_snr_avg_alpha", bpo::value<float>(&args->stack.mac.sched.ul_snr_avg_alpha)->default_value(0.05), "Exponential Average alpha coefficient used in estimation of UL SNR")
     ("scheduler.init_ul_snr_value", bpo::value<int>(&args->stack.mac.sched.init_ul_snr_value)->default_value(5), "Initial UL SNR value used for computing MCS in the first UL grant")
+    ("scheduler.init_dl_cqi", bpo::value<int>(&args->stack.mac.sched.init_dl_cqi)->default_value(5), "DL CQI value used before any CQI report is available to the eNB")
 
 
     /* Downlink Channel emulator section */

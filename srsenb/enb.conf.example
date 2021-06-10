@@ -176,6 +176,7 @@ enable = false
 # min_tpc_tti_interval: Minimum TTI interval between TPCs different than 1
 # ul_snr_avg_alpha:  Exponential Average alpha coefficient used in estimation of UL SNR
 # init_ul_snr_value: Initial UL SNR value used for computing MCS in the first UL grant
+# init_dl_cqi:       DL CQI value used before any CQI report is available to the eNB
 #
 #####################################################################
 [scheduler]
@@ -198,6 +199,7 @@ enable = false
 #min_tpc_tti_interval = 1
 #ul_snr_avg_alpha=0.05
 #init_ul_snr_value=5
+#init_dl_cqi=5
 
 #####################################################################
 # eMBMS configuration options
