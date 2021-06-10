@@ -441,6 +441,63 @@ void parse_args(all_args_t* args, int argc, char* argv[])
 static bool do_metrics = false;
 static bool do_padding = false;
 
+static void execute_cmd(metrics_stdout* metrics, srsenb::enb_command_interface* control, const string& cmd_line)
+{
+  vector<string> cmd;
+  srsran::string_parse_list(cmd_line, ' ', cmd);
+  if (cmd[0] == "t") {
+    do_metrics = !do_metrics;
+    if (do_metrics) {
+      cout << "Enter t to stop trace." << endl;
+    } else {
+      cout << "Enter t to restart trace." << endl;
+    }
+    metrics->toggle_print(do_metrics);
+  } else if (cmd[0] == "sleep") {
+    if (cmd.size() != 2) {
+      cout << "Usage: " << cmd[0] << " [number of seconds]" << endl;
+      return;
+    }
+
+    int nseconds = srsran::string_cast<int>(cmd[1]);
+    if (nseconds <= 0) {
+      return;
+    }
+
+    std::this_thread::sleep_for(std::chrono::seconds(nseconds));
+
+  } else if (cmd[0] == "p") {
+    do_padding = !do_padding;
+    if (do_padding) {
+      cout << "Enter p to stop padding." << endl;
+    } else {
+      cout << "Enter p to restart padding." << endl;
+    }
+    control->toggle_padding();
+  } else if (cmd[0] == "q") {
+    raise(SIGTERM);
+  } else if (cmd[0] == "cell_gain") {
+    if (cmd.size() != 3) {
+      cout << "Usage: " << cmd[0] << " [cell identifier] [gain in dB]" << endl;
+      return;
+    }
+
+    // Parse command arguments
+    uint32_t cell_id = srsran::string_cast<uint32_t>(cmd[1]);
+    float    gain_db = srsran::string_cast<float>(cmd[2]);
+
+    // Set cell gain
+    control->cmd_cell_gain(cell_id, gain_db);
+  } else {
+    cout << "Available commands: " << endl;
+    cout << "          t: starts console trace" << endl;
+    cout << "          q: quit srsenb" << endl;
+    cout << "  cell_gain: set relative cell gain" << endl;
+    cout << "          p: starts MAC padding" << endl;
+    cout << endl;
+  }
+}
+
 static void* input_loop(metrics_stdout* metrics, srsenb::enb_command_interface* control)
 {
   struct pollfd pfd = {STDIN_FILENO, POLLIN, 0};
@@ -454,45 +511,11 @@ static void* input_loop(metrics_stdout* metrics, srsenb::enb_command_interface* 
         cout << "Closing stdin thread." << endl;
         break;
       } else if (not input_line.empty()) {
-        vector<string> cmd;
-        srsran::string_parse_list(input_line, ' ', cmd);
-        if (cmd[0] == "t") {
-          do_metrics = !do_metrics;
-          if (do_metrics) {
-            cout << "Enter t to stop trace." << endl;
-          } else {
-            cout << "Enter t to restart trace." << endl;
-          }
-          metrics->toggle_print(do_metrics);
-        } else if (cmd[0] == "p") {
-          do_padding = !do_padding;
-          if (do_padding) {
-            cout << "Enter p to stop padding." << endl;
-          } else {
-            cout << "Enter p to restart padding." << endl;
-          }
-          control->toggle_padding();
-        } else if (cmd[0] == "q") {
-          raise(SIGTERM);
-        } else if (cmd[0] == "cell_gain") {
-          if (cmd.size() != 3) {
-            cout << "Usage: " << cmd[0] << " [cell identifier] [gain in dB]" << endl;
-            continue;
-          }
+        list<string> cmd_list;
+        srsran::string_parse_list(input_line, ';', cmd_list);
 
-          // Parse command arguments
-          uint32_t cell_id = srsran::string_cast<uint32_t>(cmd[1]);
-          float    gain_db = srsran::string_cast<float>(cmd[2]);
-
-          // Set cell gain
-          control->cmd_cell_gain(cell_id, gain_db);
-        } else {
-          cout << "Available commands: " << endl;
-          cout << "          t: starts console trace" << endl;
-          cout << "          q: quit srsenb" << endl;
-          cout << "  cell_gain: set relative cell gain" << endl;
-          cout << "          p: starts MAC padding" << endl;
-          cout << endl;
+        for (const string& cmd : cmd_list) {
+          execute_cmd(metrics, control, cmd);
         }
       }
     }
