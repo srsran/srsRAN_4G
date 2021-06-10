@@ -6,7 +6,7 @@
 # the distribution.
 #
 
-include_directories(${PROJECT_SOURCE_DIR}/srsue/test/ttcn3/hdr)
+include_directories(${PROJECT_SOURCE_DIR}/srsue/src/test/ttcn3/hdr)
 
 add_executable(rapidjson_test rapidjson_test.cc)
 target_link_libraries(rapidjson_test srsran_common)

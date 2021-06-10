@@ -6,6 +6,8 @@
 # the distribution.
 #
 
+add_subdirectory(test)
+
 file(GLOB_RECURSE SOURCES "*.cc")
 add_library(srsue_phy STATIC ${SOURCES})
 
