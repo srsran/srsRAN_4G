@@ -50,6 +50,9 @@ extern "C" {
 // Cumulative moving average
 #define SRSRAN_VEC_CMA(data, average, n) ((average) + ((data) - (average)) / ((n) + 1))
 
+// Cumulative moving average
+#define SRSRAN_VEC_SAFE_CMA(data, average, n) (isnormal(average) ? SRSRAN_VEC_CMA(data, average, n) : (data))
+
 // Proportional moving average
 #define SRSRAN_VEC_PMA(average1, n1, average2, n2) (((average1) * (n1) + (average2) * (n2)) / ((n1) + (n2)))
 
