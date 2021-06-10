@@ -159,6 +159,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("scheduler.ul_snr_avg_alpha", bpo::value<float>(&args->stack.mac.sched.ul_snr_avg_alpha)->default_value(0.05), "Exponential Average alpha coefficient used in estimation of UL SNR")
     ("scheduler.init_ul_snr_value", bpo::value<int>(&args->stack.mac.sched.init_ul_snr_value)->default_value(5), "Initial UL SNR value used for computing MCS in the first UL grant")
     ("scheduler.init_dl_cqi", bpo::value<int>(&args->stack.mac.sched.init_dl_cqi)->default_value(5), "DL CQI value used before any CQI report is available to the eNB")
+    ("scheduler.max_sib_coderate", bpo::value<float>(&args->stack.mac.sched.max_sib_coderate)->default_value(0.8), "Upper bound on SIB and RAR grants coderate")
 
 
     /* Downlink Channel emulator section */

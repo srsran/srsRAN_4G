@@ -177,6 +177,7 @@ enable = false
 # ul_snr_avg_alpha:  Exponential Average alpha coefficient used in estimation of UL SNR
 # init_ul_snr_value: Initial UL SNR value used for computing MCS in the first UL grant
 # init_dl_cqi:       DL CQI value used before any CQI report is available to the eNB
+# max_sib_coderate:  Upper bound on SIB and RAR grants coderate
 #
 #####################################################################
 [scheduler]
@@ -200,6 +201,7 @@ enable = false
 #ul_snr_avg_alpha=0.05
 #init_ul_snr_value=5
 #init_dl_cqi=5
+#max_sib_coderate=0.8
 
 #####################################################################
 # eMBMS configuration options

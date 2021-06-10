@@ -65,6 +65,7 @@ public:
     float       ul_snr_avg_alpha        = 0.05;
     int         init_ul_snr_value       = 5;
     int         init_dl_cqi             = 5;
+    float       max_sib_coderate        = 0.8;
   };
 
   struct cell_cfg_t {
