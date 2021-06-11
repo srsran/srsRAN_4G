@@ -1189,6 +1189,16 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
     retx_queue.clear();
   }
 
+  // make sure ACK_SN is within our Tx window
+  if ((MOD + status.ack_sn - vt_a) % MOD > RLC_AM_WINDOW_SIZE) {
+    logger.error("%s Received invalid status PDU (ack_sn=%d < vt_a=%d). Dropping PDU.", RB_NAME, status.ack_sn, vt_a);
+    return;
+  }
+  if ((MOD + vt_s - status.ack_sn) % MOD > RLC_AM_WINDOW_SIZE) {
+    logger.error("%s Received invalid status PDU (ack_sn=%d > vt_s=%d). Dropping PDU.", RB_NAME, status.ack_sn, vt_s);
+    return;
+  }
+
   // Handle ACKs and NACKs
   bool     update_vt_a = true;
   uint32_t i           = vt_a;
