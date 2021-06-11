@@ -476,7 +476,7 @@ bool s1ap::connect_mme()
   logger.info("Connecting to MME %s:%d", args.mme_addr.c_str(), int(MME_PORT));
 
   // Init SCTP socket and bind it
-  if (not sctp_init_client(&mme_socket, socket_type::seqpacket, args.s1c_bind_addr.c_str())) {
+  if (not sctp_init_client(&mme_socket, socket_type::seqpacket, args.s1c_bind_addr.c_str(), args.s1c_bind_port)) {
     return false;
   }
   logger.info("SCTP socket opened. fd=%d", mme_socket.fd());

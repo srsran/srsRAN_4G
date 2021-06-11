@@ -28,6 +28,7 @@ struct s1ap_args_t {
   std::string gtp_bind_addr;
   std::string gtp_advertise_addr;
   std::string s1c_bind_addr;
+  uint16_t    s1c_bind_port;
   std::string enb_name;
 };
 
