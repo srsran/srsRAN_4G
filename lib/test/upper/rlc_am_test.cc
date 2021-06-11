@@ -3359,6 +3359,86 @@ bool incorrect_status_pdu_test()
   rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
 
   TESTASSERT(tester.protocol_failure_triggered == true);
+  return SRSRAN_SUCCESS;
+}
+
+/// The test checks the correct detection of an out-of-order status PDUs
+/// In contrast to the without explicitly NACK-ing specific SNs
+bool incorrect_status_pdu_test2()
+{
+  rlc_am_tester         tester;
+  srsran::timer_handler timers(8);
+  int                   len = 0;
+
+  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am_lte rlc2(srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+
+  if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
+    return -1;
+  }
+
+  // Push 5 SDUs into RLC1
+  const uint32_t       n_sdus = 10;
+  unique_byte_buffer_t sdu_bufs[n_sdus];
+  for (uint32_t i = 0; i < n_sdus; i++) {
+    sdu_bufs[i]          = srsran::make_byte_buffer();
+    sdu_bufs[i]->N_bytes = 1; // Give each buffer a size of 1 byte
+    sdu_bufs[i]->msg[0]  = i; // Write the index into the buffer
+    rlc1.write_sdu(std::move(sdu_bufs[i]));
+  }
+
+  // Read 5 PDUs from RLC1 (1 byte each)
+  const uint32_t n_pdus = n_sdus;
+  byte_buffer_t  pdu_bufs[n_pdus];
+  for (uint32_t i = 0; i < n_pdus; i++) {
+    len                 = rlc1.read_pdu(pdu_bufs[i].msg, 3); // 2 byte header + 1 byte payload
+    pdu_bufs[i].N_bytes = len;
+  }
+
+  TESTASSERT(0 == rlc1.get_buffer_state());
+
+  // Construct a status PDU that ACKs all SNs
+  rlc_status_pdu_t status_pdu = {};
+  status_pdu.ack_sn           = 5;
+  status_pdu.N_nack           = 0;
+  TESTASSERT(rlc_am_is_valid_status_pdu(status_pdu));
+
+  // pack PDU and write to RLC
+  byte_buffer_t status_buf;
+  rlc_am_write_status_pdu(&status_pdu, &status_buf);
+  rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+
+  TESTASSERT(tester.protocol_failure_triggered == false);
+
+  // construct a valid but conflicting status PDU that acks a lower SN and requests SN=1 for retx
+  status_pdu.ack_sn           = 3;
+  status_pdu.N_nack           = 1;
+  status_pdu.nacks[0].nack_sn = 1;
+  TESTASSERT(rlc_am_is_valid_status_pdu(status_pdu));
+
+  // pack and write to RLC again
+  rlc_am_write_status_pdu(&status_pdu, &status_buf);
+  rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+
+  // the PDU should be dropped
+
+  // resend first Status PDU again
+  status_pdu.ack_sn = 5;
+  status_pdu.N_nack = 0;
+  TESTASSERT(rlc_am_is_valid_status_pdu(status_pdu));
+
+  // pack and write to RLC again
+  rlc_am_write_status_pdu(&status_pdu, &status_buf);
+  rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+
+  // now ack all
+  status_pdu.ack_sn = n_pdus;
+  status_pdu.N_nack = 0;
+  TESTASSERT(rlc_am_is_valid_status_pdu(status_pdu));
+
+  // pack and write to RLC again
+  rlc_am_write_status_pdu(&status_pdu, &status_buf);
+  rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
 
   return SRSRAN_SUCCESS;
 }
@@ -3755,6 +3835,11 @@ int main(int argc, char** argv)
 
   if (incorrect_status_pdu_test()) {
     printf("incorrect_status_pdu_test failed\n");
+    exit(-1);
+  };
+
+  if (incorrect_status_pdu_test2()) {
+    printf("incorrect_status_pdu_test2 failed\n");
     exit(-1);
   };
 
