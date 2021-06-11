@@ -105,10 +105,8 @@ public:
                   const uint8_t              mcch_payload_length) override;
 
 private:
-  static const uint32_t cfi = 3;
-
   bool     check_ue_active(uint16_t rnti);
-  uint16_t allocate_ue();
+  uint16_t allocate_ue(uint32_t enb_cc_idx);
   bool     is_valid_rnti_unprotected(uint16_t rnti);
 
   srslog::basic_logger& logger;
