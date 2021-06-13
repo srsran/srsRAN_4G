@@ -312,6 +312,7 @@ void pdcp_entity_lte::handle_srb_pdu(srsran::unique_byte_buffer_t pdu)
   if (integrity_direction == DIRECTION_RX || integrity_direction == DIRECTION_TXRX) {
     if (not integrity_verify(pdu->msg, pdu->N_bytes, count, mac)) {
       logger.error(pdu->msg, pdu->N_bytes, "%s Dropping PDU", rrc->get_rb_name(lcid));
+      rrc->notify_pdcp_integrity_error(lcid);
       return; // Discard
     }
   }
@@ -772,7 +773,8 @@ void pdcp_entity_lte::notify_failure(const pdcp_sn_vector_t& pdcp_sns)
  ***************************************************************************/
 bool pdcp_entity_lte::check_valid_config()
 {
-  if (cfg.sn_len != PDCP_SN_LEN_5 && cfg.sn_len != PDCP_SN_LEN_7 && cfg.sn_len != PDCP_SN_LEN_12 && cfg.sn_len != PDCP_SN_LEN_18) {
+  if (cfg.sn_len != PDCP_SN_LEN_5 && cfg.sn_len != PDCP_SN_LEN_7 && cfg.sn_len != PDCP_SN_LEN_12 &&
+      cfg.sn_len != PDCP_SN_LEN_18) {
     logger.error("Trying to configure bearer with invalid SN LEN=%d", cfg.sn_len);
     return false;
   }

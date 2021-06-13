@@ -56,7 +56,6 @@ SRSRAN_API uint32_t srsran_crc_attach_byte(srsran_crc_t* h, uint8_t* data, int l
 
 static inline void srsran_crc_checksum_put_byte(srsran_crc_t* h, uint8_t byte)
 {
-
   uint64_t crc = h->crcinit;
 
   uint32_t idx;
@@ -82,6 +81,8 @@ static inline uint64_t srsran_crc_checksum_get(srsran_crc_t* h)
 SRSRAN_API uint32_t srsran_crc_checksum_byte(srsran_crc_t* h, const uint8_t* data, int len);
 
 SRSRAN_API uint32_t srsran_crc_checksum(srsran_crc_t* h, uint8_t* data, int len);
+
+SRSRAN_API bool srsran_crc_match_byte(srsran_crc_t* h, uint8_t* data, int len);
 
 SRSRAN_API bool srsran_crc_match(srsran_crc_t* h, uint8_t* data, int len);
 

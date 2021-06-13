@@ -228,18 +228,6 @@ rrc_interface_phy_lte::cell_search_ret_t sync::cell_search_start(phy_cell_t* fou
 
   rrc_proc_state = PROC_SEARCH_RUNNING;
 
-  // Wait for SYNC thread to transition to IDLE (max. 2000ms)
-  if (not phy_state.wait_idle(TIMEOUT_TO_IDLE_MS)) {
-    Error("SYNC: Error transitioning to IDLE. Cell search cannot start.");
-    return ret;
-  }
-
-  // Wait for workers to finish PHY processing
-  worker_com->semaphore.wait_all();
-
-  // Reset worker once SYNC is IDLE to flush any worker states such as ACKs and pending grants
-  worker_com->reset();
-
   if (srate_mode != SRATE_FIND) {
     srate_mode = SRATE_FIND;
     radio_h->set_rx_srate(1.92e6);
@@ -399,6 +387,26 @@ clean_exit:
 bool sync::cell_is_camping()
 {
   return phy_state.is_camping();
+}
+
+bool sync::wait_idle()
+{
+  // Wait for SYNC thread to transition to IDLE (max. 2000ms)
+  if (not phy_state.wait_idle(TIMEOUT_TO_IDLE_MS)) {
+    Error("SYNC: Failed transitioning to IDLE");
+    return false;
+  }
+
+  // Reset UE sync. Attention: doing this reset when the FSM is NOT IDLE can cause PSS/SSS out-of-sync
+  srsran_ue_sync_reset(&ue_sync);
+
+  // Wait for workers to finish PHY processing
+  worker_com->semaphore.wait_all();
+
+  // As workers have finished, make sure the Tx burst is ended
+  radio_h->tx_end();
+
+  return true;
 }
 
 void sync::run_cell_search_state()
@@ -713,9 +721,9 @@ void sync::out_of_sync()
   }
 }
 
-void sync::set_cfo(float cfo)
+void sync::set_cfo(float cfo_)
 {
-  ref_cfo = cfo;
+  ref_cfo = cfo_;
 }
 
 void sync::set_agc_enable(bool enable)
@@ -768,7 +776,7 @@ float sync::get_tx_cfo()
   return ret / 15000;
 }
 
-void sync::set_ue_sync_opts(srsran_ue_sync_t* q, float cfo)
+void sync::set_ue_sync_opts(srsran_ue_sync_t* q, float cfo_)
 {
   if (worker_com->args->cfo_integer_enabled) {
     srsran_ue_sync_set_cfo_i_enable(q, true);
@@ -785,9 +793,9 @@ void sync::set_ue_sync_opts(srsran_ue_sync_t* q, float cfo)
                                  worker_com->args->cfo_loop_pss_conv);
 
   // Disable CP based CFO estimation during find
-  if (std::isnormal(cfo)) {
-    srsran_ue_sync_cfo_reset(q, cfo);
-    q->cfo_current_value       = cfo / 15000;
+  if (std::isnormal(cfo_)) {
+    srsran_ue_sync_cfo_reset(q, cfo_);
+    q->cfo_current_value       = cfo_ / 15000;
     q->cfo_is_copied           = true;
     q->cfo_correct_enable_find = true;
     srsran_sync_set_cfo_cp_enable(&q->sfind, false, 0);
@@ -811,23 +819,8 @@ void sync::set_ue_sync_opts(srsran_ue_sync_t* q, float cfo)
   srsran_sync_set_sss_algorithm(&q->sfind, (sss_alg_t)sss_alg);
 }
 
-bool sync::set_cell(float cfo)
+bool sync::set_cell(float cfo_in)
 {
-  // Wait for SYNC thread to transition to IDLE (max. 2000ms)
-  if (not phy_state.wait_idle(TIMEOUT_TO_IDLE_MS)) {
-    Error("SYNC: Can not change Cell while not in IDLE");
-    return false;
-  }
-
-  // Reset UE sync. Attention: doing this reset when the FSM is NOT IDLE can cause PSS/SSS out-of-sync
-  srsran_ue_sync_reset(&ue_sync);
-
-  // Wait for workers to finish PHY processing
-  worker_com->semaphore.wait_all();
-
-  // Reset worker once SYNC is IDLE to flush any worker states such as ACKs and pending grants
-  worker_com->reset();
-
   if (!srsran_cell_isvalid(&cell)) {
     Error("SYNC:  Setting cell: invalid cell (nof_prb=%d, pci=%d, ports=%d)", cell.nof_prb, cell.id, cell.nof_ports);
     return false;
@@ -860,7 +853,7 @@ bool sync::set_cell(float cfo)
   }
 
   // Set options defined in expert section
-  set_ue_sync_opts(&ue_sync, cfo);
+  set_ue_sync_opts(&ue_sync, cfo_in);
 
   // Reset ue_sync and set CFO/gain from search procedure
   srsran_ue_sync_reset(&ue_sync);

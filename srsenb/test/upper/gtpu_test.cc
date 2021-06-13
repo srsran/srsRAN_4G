@@ -214,7 +214,7 @@ void test_gtpu_tunnel_manager()
   TESTASSERT(after_tun->state == gtpu_tunnel_manager::tunnel_state::pdcp_active);
 }
 
-enum class tunnel_test_event { success, wait_end_marker_timeout };
+enum class tunnel_test_event { success, wait_end_marker_timeout, ue_removal_no_marker, reest_senb };
 
 int test_gtpu_direct_tunneling(tunnel_test_event event)
 {
@@ -339,6 +339,25 @@ int test_gtpu_direct_tunneling(tunnel_test_event event)
     for (size_t i = 0; i < gtpu_args.indirect_tunnel_timeout_msec + 1; ++i) {
       task_sched.tic();
     }
+  } else if (event == tunnel_test_event::ue_removal_no_marker) {
+    // TEST: EndMarker may even reach SeNB, but the SeNB receives in tandem the UEContextReleaseCommand and closes
+    //       the user tunnels before the chance to send an EndMarker
+    senb_gtpu.rem_user(0x46);
+    tenb_gtpu.handle_gtpu_s1u_rx_packet(read_socket(tenb_rx_sockets.s1u_fd), senb_sockaddr);
+  } else if (event == tunnel_test_event::reest_senb) {
+    // TEST: UE may start a Reestablishment to the SeNB. In such case, the rnti will be updated, the forwarding tunnel
+    //       taken down, and the previous main tunnel reestablished
+    senb_gtpu.mod_bearer_rnti(0x46, 0x47);
+    std::iota(data_vec.begin(), data_vec.end(), 0);
+    std::shuffle(data_vec.begin(), data_vec.end(), g);
+    pdu = encode_gtpu_packet(data_vec, senb_teid_in, sgw_sockaddr, senb_sockaddr);
+    encoded_data.assign(pdu->msg + 8u, pdu->msg + pdu->N_bytes);
+    senb_pdcp.last_sdu = nullptr;
+    senb_gtpu.handle_gtpu_s1u_rx_packet(std::move(pdu), sgw_sockaddr);
+    TESTASSERT(senb_pdcp.last_sdu != nullptr);
+    TESTASSERT(senb_pdcp.last_sdu->N_bytes == encoded_data.size() and
+               memcmp(senb_pdcp.last_sdu->msg, encoded_data.data(), encoded_data.size()) == 0);
+    return SRSRAN_SUCCESS;
   } else {
     // TEST: EndMarker is forwarded via MME->SeNB->TeNB, and TeNB buffered PDUs are flushed
     pdu = encode_end_marker(senb_teid_in);
@@ -366,6 +385,8 @@ int main(int argc, char** argv)
   srsenb::test_gtpu_tunnel_manager();
   TESTASSERT(srsenb::test_gtpu_direct_tunneling(srsenb::tunnel_test_event::success) == SRSRAN_SUCCESS);
   TESTASSERT(srsenb::test_gtpu_direct_tunneling(srsenb::tunnel_test_event::wait_end_marker_timeout) == SRSRAN_SUCCESS);
+  TESTASSERT(srsenb::test_gtpu_direct_tunneling(srsenb::tunnel_test_event::ue_removal_no_marker) == SRSRAN_SUCCESS);
+  TESTASSERT(srsenb::test_gtpu_direct_tunneling(srsenb::tunnel_test_event::reest_senb) == SRSRAN_SUCCESS);
 
   srslog::flush();
 

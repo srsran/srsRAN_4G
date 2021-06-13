@@ -125,7 +125,7 @@ static int test_case_1(srsran_ssb_t* ssb)
 
     // Add the SSB base-band
     gettimeofday(&t[1], NULL);
-    TESTASSERT(srsran_ssb_add(ssb, pci, 0, &pbch_msg, buffer, buffer) == SRSRAN_SUCCESS);
+    TESTASSERT(srsran_ssb_add(ssb, pci, &pbch_msg, buffer, buffer) == SRSRAN_SUCCESS);
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
     t_add_usec += t[0].tv_usec + t[0].tv_sec * 1000000UL;

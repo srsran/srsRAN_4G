@@ -115,6 +115,16 @@ typedef struct SRSRAN_API {
 } srsran_ssb_t;
 
 /**
+ * @brief Describes an SSB search result
+ * @note if pbch.crc is true, SSB transmission is found and decoded. Otherwise, no SSB transmission has been decoded
+ */
+typedef struct {
+  uint32_t             N_id;     ///< Most suitable physical cell identifier
+  uint32_t             t_offset; ///< Time offset in the input samples
+  srsran_pbch_msg_nr_t pbch_msg; ///< Physical broadcast channel message of the most suitable SSB candidate
+} srsran_ssb_search_res_t;
+
+/**
  * @brief Initialises configures NR SSB with the given arguments
  * @param q SSB object
  * @param args NR PSS initialization arguments
@@ -140,17 +150,27 @@ SRSRAN_API int srsran_ssb_set_cfg(srsran_ssb_t* q, const srsran_ssb_cfg_t* cfg);
  * @note It currently expects an input buffer of half radio frame
  * @param q SSB object
  * @param N_id Physical Cell Identifier
- * @param ssb_idx SSB candidate index
  * @param n_hf Number of hald radio frame, 0 or 1
+ * @param ssb_idx SSB candidate index
  * @param in Input baseband buffer
  * @return SRSRAN_SUCCESS if the parameters are valid, SRSRAN_ERROR code otherwise
  */
 SRSRAN_API int srsran_ssb_decode_pbch(srsran_ssb_t*         q,
                                       uint32_t              N_id,
-                                      uint32_t              ssb_idx,
                                       uint32_t              n_hf,
+                                      uint32_t              ssb_idx,
                                       const cf_t*           in,
                                       srsran_pbch_msg_nr_t* msg);
+
+/**
+ * @brief Searches for an SSB transmission and decodes the PBCH message
+ * @param q SSB object
+ * @param in Input baseband buffer
+ * @param nof_samples Number of samples available in the buffer
+ * @param res SSB Search result
+ * @return SRSRAN_SUCCESS if the parameters are valid, SRSRAN_ERROR code otherwise
+ */
+SRSRAN_API int srsran_ssb_search(srsran_ssb_t* q, const cf_t* in, uint32_t nof_samples, srsran_ssb_search_res_t* res);
 
 /**
  * @brief Decides if the SSB object is configured and a given subframe is configured for SSB transmission
@@ -164,16 +184,11 @@ SRSRAN_API bool srsran_ssb_send(srsran_ssb_t* q, uint32_t sf_idx);
  * @brief Adds SSB to a given signal in time domain
  * @param q SSB object
  * @param N_id Physical Cell Identifier
- * @param ssb_idx SSB candidate index
  * @param msg NR PBCH message to transmit
  * @return SRSRAN_SUCCESS if the parameters are valid, SRSRAN_ERROR code otherwise
  */
-SRSRAN_API int srsran_ssb_add(srsran_ssb_t*               q,
-                              uint32_t                    N_id,
-                              uint32_t                    ssb_idx,
-                              const srsran_pbch_msg_nr_t* msg,
-                              const cf_t*                 in,
-                              cf_t*                       out);
+SRSRAN_API int
+srsran_ssb_add(srsran_ssb_t* q, uint32_t N_id, const srsran_pbch_msg_nr_t* msg, const cf_t* in, cf_t* out);
 
 /**
  * @brief Perform cell search and measurement

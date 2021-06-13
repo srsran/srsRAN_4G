@@ -158,7 +158,7 @@ void intra_measure_base::run_tti(uint32_t tti, cf_t* data, uint32_t nsamples)
         srsran_ringbuffer_reset(&ring_buffer);
 
         // Write baseband to ensure measurement starts in the right TTI
-        Log(info, "Start writing");
+        Log(debug, "Start writing");
         write(data, nsamples);
       }
       break;

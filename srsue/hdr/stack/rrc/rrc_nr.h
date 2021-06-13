@@ -25,12 +25,12 @@
 #include "srsran/asn1/rrc_nr.h"
 #include "srsran/asn1/rrc_nr_utils.h"
 #include "srsran/common/block_queue.h"
-#include "srsran/common/common_nr.h"
 #include "srsran/common/buffer_pool.h"
+#include "srsran/common/common_nr.h"
 #include "srsran/common/stack_procedure.h"
 #include "srsran/common/task_scheduler.h"
-#include "srsran/interfaces/ue_rrc_interfaces.h"
 #include "srsran/interfaces/ue_nr_interfaces.h"
+#include "srsran/interfaces/ue_rrc_interfaces.h"
 #include "srsue/hdr/stack/upper/gw.h"
 
 namespace srsue {
@@ -124,6 +124,7 @@ public:
   void write_pdu_bcch_dlsch(srsran::unique_byte_buffer_t pdu) final;
   void write_pdu_pcch(srsran::unique_byte_buffer_t pdu) final;
   void write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t pdu) final;
+  void notify_pdcp_integrity_error(uint32_t lcid) final;
 
   // RRC (LTE) interface
   void get_eutra_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps);

@@ -151,6 +151,7 @@ public:
   int distance() const;
   int distance_bytes(uint8_t* ref_ptr) const;
   int distance_bytes() const;
+  int distance_bytes_end() const;
 
   template <class T>
   SRSASN_CODE unpack(T& val, uint32_t n_bits)

@@ -94,6 +94,7 @@ static void gen_pbch_msg(srsran_pbch_msg_nr_t* pbch_msg, uint32_t ssb_idx)
   srsran_random_bit_vector(random_gen, pbch_msg->payload, SRSRAN_PBCH_NR_PAYLOAD_SZ);
 
   pbch_msg->ssb_idx = ssb_idx;
+  pbch_msg->crc     = true;
 }
 
 static int test_case_1(srsran_ssb_t* ssb)
@@ -101,6 +102,7 @@ static int test_case_1(srsran_ssb_t* ssb)
   // For benchmarking purposes
   uint64_t t_encode_usec = 0;
   uint64_t t_decode_usec = 0;
+  uint64_t t_search_usec = 0;
 
   // SSB configuration
   srsran_ssb_cfg_t ssb_cfg = {};
@@ -132,7 +134,7 @@ static int test_case_1(srsran_ssb_t* ssb)
 
       // Add the SSB base-band
       gettimeofday(&t[1], NULL);
-      TESTASSERT(srsran_ssb_add(ssb, pci, ssb_idx, &pbch_msg_tx, buffer, buffer) == SRSRAN_SUCCESS);
+      TESTASSERT(srsran_ssb_add(ssb, pci, &pbch_msg_tx, buffer, buffer) == SRSRAN_SUCCESS);
       gettimeofday(&t[2], NULL);
       get_time_interval(t);
       t_encode_usec += t[0].tv_usec + t[0].tv_sec * 1000000UL;
@@ -143,7 +145,8 @@ static int test_case_1(srsran_ssb_t* ssb)
       // Decode
       gettimeofday(&t[1], NULL);
       srsran_pbch_msg_nr_t pbch_msg_rx = {};
-      TESTASSERT(srsran_ssb_decode_pbch(ssb, pci, ssb_idx, 0, buffer, &pbch_msg_rx) == SRSRAN_SUCCESS);
+      TESTASSERT(srsran_ssb_decode_pbch(ssb, pci, pbch_msg_tx.hrf, pbch_msg_tx.ssb_idx, buffer, &pbch_msg_rx) ==
+                 SRSRAN_SUCCESS);
       gettimeofday(&t[2], NULL);
       get_time_interval(t);
       t_decode_usec += t[0].tv_usec + t[0].tv_sec * 1000000UL;
@@ -154,12 +157,30 @@ static int test_case_1(srsran_ssb_t* ssb)
 
       // Assert PBCH message CRC
       TESTASSERT(pbch_msg_rx.crc);
+      TESTASSERT(memcmp(&pbch_msg_rx, &pbch_msg_tx, sizeof(srsran_pbch_msg_nr_t)) == 0);
+
+      // Search
+      srsran_ssb_search_res_t res = {};
+      gettimeofday(&t[1], NULL);
+      TESTASSERT(srsran_ssb_search(ssb, buffer, hf_len, &res) == SRSRAN_SUCCESS);
+      gettimeofday(&t[2], NULL);
+      get_time_interval(t);
+      t_search_usec += t[0].tv_usec + t[0].tv_sec * 1000000UL;
+
+      // Print decoded PBCH message
+      srsran_pbch_msg_info(&res.pbch_msg, str, sizeof(str));
+      INFO("test_case_1 - found   pci=%d %s crc=%s", res.N_id, str, res.pbch_msg.crc ? "OK" : "KO");
+
+      // Assert PBCH message CRC
+      TESTASSERT(res.pbch_msg.crc);
+      TESTASSERT(memcmp(&res.pbch_msg, &pbch_msg_tx, sizeof(srsran_pbch_msg_nr_t)) == 0);
     }
   }
 
-  INFO("test_case_1 - %.1f usec/encode; %.1f usec/decode;",
+  INFO("test_case_1 - %.1f usec/encode; %.1f usec/decode; %.1f usec/decode;",
        (double)t_encode_usec / (double)(count),
-       (double)t_decode_usec / (double)(count));
+       (double)t_decode_usec / (double)(count),
+       (double)t_search_usec / (double)(count));
 
   return SRSRAN_SUCCESS;
 }
@@ -178,6 +199,7 @@ int main(int argc, char** argv)
   srsran_ssb_args_t ssb_args = {};
   ssb_args.enable_encode     = true;
   ssb_args.enable_decode     = true;
+  ssb_args.enable_search     = true;
 
   if (buffer == NULL) {
     ERROR("Malloc");
@@ -201,6 +223,7 @@ int main(int argc, char** argv)
 
   if (test_case_1(&ssb) != SRSRAN_SUCCESS) {
     ERROR("test case failed");
+    goto clean_exit;
   }
 
   ret = SRSRAN_SUCCESS;

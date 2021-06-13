@@ -588,7 +588,7 @@ sf_sched::alloc_ul(sched_ue* user, prb_interval alloc, ul_alloc_t::type_t alloc_
   // Check if there is no collision with measGap
   bool needs_pdcch = alloc_type == ul_alloc_t::ADAPT_RETX or (alloc_type == ul_alloc_t::NEWTX and not is_msg3);
   if (not user->pusch_enabled(get_tti_rx(), cc_cfg->enb_cc_idx, needs_pdcch)) {
-    logger.debug("SCHED: PDCCH would collide with rnti=0x%x Measurement Gap", user->get_rnti());
+    logger.debug("SCHED: PDCCH/PUSCH would collide with rnti=0x%x Measurement Gap", user->get_rnti());
     return alloc_result::no_rnti_opportunity;
   }
 
@@ -654,12 +654,22 @@ alloc_result sf_sched::alloc_phich(sched_ue* user)
 
   if (not user->phich_enabled(get_tti_rx(), cc_cfg->enb_cc_idx)) {
     // PHICH falls in measGap. PHICH hi=1 is assumed by UE. In case of NACK, the HARQ is going to be resumed later on.
-    logger.info(
-        "SCHED: UL skipped retx rnti=0x%x, pid=%d. Cause: PHICH-measGap collision", user->get_rnti(), h->get_id());
-    h->pop_pending_phich(); // empty pending PHICH
-    // Note: Given that the UE assumes PHICH hi=1, it is not expecting PUSCH grants for tti_tx_ul. Requesting PDCCH
-    //       for the UL Harq has the effect of forbidding PUSCH grants, since phich_tti == pdcch_tti.
-    h->request_pdcch();
+    bool ack = h->pop_pending_phich(); // empty pending PHICH
+    if (h->is_empty(0)) {
+      logger.debug("SCHED: PHICH hi=%d not sent for rnti=0x%x, cc=%d, pid=%d. Cause: PHICH-measGap collision",
+                   (int)ack,
+                   user->get_rnti(),
+                   get_enb_cc_idx(),
+                   h->get_id());
+    } else {
+      // Note: Given that the UE assumes PHICH hi=1, it is not expecting PUSCH grants for tti_tx_ul. Requesting PDCCH
+      //       for the UL Harq has the effect of forbidding PUSCH grants, since phich_tti == pdcch_tti.
+      h->request_pdcch();
+      logger.info("SCHED: UL skipped retx rnti=0x%x, cc=%d, pid=%d. Cause: PHICH-measGap collision",
+                  user->get_rnti(),
+                  get_enb_cc_idx(),
+                  h->get_id());
+    }
     return alloc_result::no_cch_space;
   }
 

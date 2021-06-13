@@ -63,10 +63,10 @@ bool intra_measure_nr::init(uint32_t cc_idx_, const args_t& args)
   return true;
 }
 
-bool intra_measure_nr::set_config(uint32_t arfcn, const config_t& cfg)
+bool intra_measure_nr::set_config(const config_t& cfg)
 {
   // Update ARFCN
-  current_arfcn    = arfcn;
+  current_arfcn    = cfg.arfcn;
   serving_cell_pci = cfg.serving_cell_pci;
 
   // Reset performance measurement

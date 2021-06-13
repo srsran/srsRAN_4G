@@ -159,6 +159,7 @@ public:
 
   // RRC interface for PDCP, PDCP calls RRC to push RRC SDU
   void write_pdu(uint32_t lcid, unique_byte_buffer_t pdu);
+  void notify_pdcp_integrity_error(uint32_t lcid);
 
   // Not supported right now
   void write_pdu_bcch_bch(unique_byte_buffer_t pdu);

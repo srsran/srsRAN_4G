@@ -126,6 +126,7 @@ public:
 
   // rrc_interface_pdcp
   void write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu) override;
+  void notify_pdcp_integrity_error(uint16_t rnti, uint32_t lcid) override;
 
   uint32_t get_nof_users();
 

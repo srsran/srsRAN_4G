@@ -254,6 +254,7 @@ pbch_nr_pbch_msg_unpack(const srsran_pbch_nr_cfg_t* cfg, const uint8_t a[PBCH_NR
   msg->hrf = (a[G[10]] == 1);
 
   // Put SSB related in a_hat[A_hat + 5] to a_hat[A_hat + 7]
+  msg->ssb_idx = cfg->ssb_idx; // Load 4 LSB
   if (cfg->Lmax == 64) {
     msg->ssb_idx = msg->ssb_idx & 0b111;
     msg->ssb_idx |= (uint8_t)(a[G[11]] << 5U); // 6th bit of SSB index
@@ -436,9 +437,9 @@ static void pbch_nr_scramble_rx(const srsran_pbch_nr_cfg_t* cfg,
   uint32_t M_bit = PBCH_NR_E;
 
   // Select value v
-  uint32_t v = (ssb_idx & 0x7U);
+  uint32_t v = (ssb_idx & 0b111U);
   if (cfg->Lmax == 4) {
-    v = ssb_idx & 0x3U;
+    v = ssb_idx & 0b11U;
   }
 
   // Advance sequence
@@ -603,7 +604,6 @@ int srsran_pbch_nr_encode(srsran_pbch_nr_t*           q,
 
 int srsran_pbch_nr_decode(srsran_pbch_nr_t*           q,
                           const srsran_pbch_nr_cfg_t* cfg,
-                          uint32_t                    ssb_idx,
                           const cf_t                  ssb_grid[SRSRAN_SSB_NOF_RE],
                           const cf_t                  ce_grid[SRSRAN_SSB_NOF_RE],
                           srsran_pbch_msg_nr_t*       msg)
@@ -632,7 +632,7 @@ int srsran_pbch_nr_decode(srsran_pbch_nr_t*           q,
 
   // TS 38.211 7.3.3 Physical broadcast channel
   // 7.3.3.1 Scrambling
-  pbch_nr_scramble_rx(cfg, ssb_idx, llr, llr);
+  pbch_nr_scramble_rx(cfg, cfg->ssb_idx, llr, llr);
 
   // 7.1.5 Rate matching
   int8_t d[PBCH_NR_N];

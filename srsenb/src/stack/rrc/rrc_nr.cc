@@ -353,6 +353,8 @@ void rrc_nr::write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_
   handle_pdu(rnti, lcid, std::move(pdu));
 }
 
+void rrc_nr::notify_pdcp_integrity_error(uint16_t rnti, uint32_t lcid) {}
+
 /*******************************************************************************
   UE class
 

@@ -186,8 +186,10 @@ uint32_t srsran_crc_attach(srsran_crc_t* h, uint8_t* data, int len)
 
 bool srsran_crc_match(srsran_crc_t* h, uint8_t* data, int len)
 {
-  uint8_t* ptr       = &data[len];
-  uint32_t checksum1 = srsran_crc_checksum(h, data, len);
-  uint32_t checksum2 = srsran_bit_pack(&ptr, h->order);
-  return (checksum1 == checksum2);
+  return srsran_crc_checksum(h, data, len + h->order) == 0;
+}
+
+bool srsran_crc_match_byte(srsran_crc_t* h, uint8_t* data, int len)
+{
+  return srsran_crc_checksum_byte(h, data, len + h->order) == 0;
 }

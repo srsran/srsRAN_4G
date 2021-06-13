@@ -52,12 +52,7 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
   mac_ctrl(rnti, ue_cell_list, bearer_list, parent->cfg, parent->mac, *parent->cell_common_list, sched_ue_cfg)
 {}
 
-rrc::ue::~ue()
-{
-  if (old_reest_rnti != SRSRAN_INVALID_RNTI and parent->users.count(old_reest_rnti) > 0) {
-    parent->rem_user_thread(old_reest_rnti);
-  }
-}
+rrc::ue::~ue() {}
 
 int rrc::ue::init()
 {
@@ -640,15 +635,18 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
     parent->logger.debug("rnti=0x%x EUTRA capabilities: %s", rnti, js.to_string().c_str());
   }
 
-  // Stop RLF timers to avoid that old RNTI gets removed during RRC Reestablishment
-  parent->logger.info("Stopped RLF timers for old rnti=0x%x", old_rnti);
-  old_ue->rlc_rlf_timer.stop();
-  old_ue->phy_ul_rlf_timer.stop();
-  old_ue->phy_dl_rlf_timer.stop();
-  old_ue->mac_ctrl.set_drb_activation(false);
+  // Recover GTP-U tunnels and S1AP context
+  parent->gtpu->mod_bearer_rnti(old_rnti, rnti);
+  parent->s1ap->user_mod(old_rnti, rnti);
 
-  old_reest_rnti = old_rnti;
-  state          = RRC_STATE_WAIT_FOR_CON_REEST_COMPLETE;
+  // Reestablish E-RABs of old rnti later, during ConnectionReconfiguration
+  bearer_list.reestablish_bearers(std::move(old_ue->bearer_list));
+
+  // remove old RNTI
+  old_ue->mac_ctrl.set_drb_activation(false);
+  parent->rem_user_thread(old_rnti);
+
+  state = RRC_STATE_WAIT_FOR_CON_REEST_COMPLETE;
   set_activity_timeout(MSG5_RX_TIMEOUT);
 }
 
@@ -704,35 +702,11 @@ void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srsr
 
   parent->logger.info("RRCConnectionReestablishComplete transaction ID: %d", msg->rrc_transaction_id);
 
-  auto old_ue_it = parent->users.find(old_reest_rnti);
-  if (old_ue_it == parent->users.end()) {
-    parent->logger.error("RRC Reestablishment old rnti=0x%x was erased during the procedure", old_reest_rnti);
-    parent->release_ue(rnti);
-    return;
-  }
-  auto* old_ue = old_ue_it->second.get();
-
   // TODO: msg->selected_plmn_id - used to select PLMN from SIB1 list
   // TODO: if(msg->registered_mme_present) - the indicated MME should be used from a pool
 
-  // Modify GTP-U tunnel and S1AP context
-  parent->gtpu->mod_bearer_rnti(old_reest_rnti, rnti);
-  parent->s1ap->user_mod(old_reest_rnti, rnti);
-
-  // Signal MAC scheduler that configuration was successful
+  // signal mac scheduler that configuration was successful
   mac_ctrl.handle_con_reest_complete();
-
-  // Activate security for SRB1
-  parent->pdcp->config_security(rnti, srb_to_lcid(lte_srb::srb1), ue_security_cfg.get_as_sec_cfg());
-  parent->pdcp->enable_integrity(rnti, srb_to_lcid(lte_srb::srb1));
-  parent->pdcp->enable_encryption(rnti, srb_to_lcid(lte_srb::srb1));
-
-  // Reestablish E-RABs of old rnti during ConnectionReconfiguration
-  bearer_list.reestablish_bearers(std::move(old_ue->bearer_list));
-
-  // remove old RNTI
-  parent->rem_user(old_reest_rnti);
-  old_reest_rnti = SRSRAN_INVALID_RNTI;
 
   state = RRC_STATE_REESTABLISHMENT_COMPLETE;
 

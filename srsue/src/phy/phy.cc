@@ -313,10 +313,15 @@ bool phy::cell_select(phy_cell_t cell)
 {
   sfsync.scell_sync_stop();
   if (sfsync.cell_select_init(cell)) {
-    reset();
     // Update PCI before starting the background command to make sure PRACH gets the updated value
     selected_cell.id = cell.pci;
     cmd_worker_cell.add_cmd([this, cell]() {
+      // Wait SYNC transitions to IDLE
+      sfsync.wait_idle();
+
+      // Reset worker once SYNC is IDLE to flush any PHY state including measurements, pending ACKs and pending grants
+      reset();
+
       bool ret = sfsync.cell_select_start(cell);
       if (ret) {
         srsran_cell_t sync_cell;
@@ -339,8 +344,13 @@ bool phy::cell_search()
 {
   sfsync.scell_sync_stop();
   if (sfsync.cell_search_init()) {
-    reset();
     cmd_worker_cell.add_cmd([this]() {
+      // Wait SYNC transitions to IDLE
+      sfsync.wait_idle();
+
+      // Reset worker once SYNC is IDLE to flush any PHY state including measurements, pending ACKs and pending grants
+      reset();
+
       phy_cell_t                               found_cell = {};
       rrc_interface_phy_lte::cell_search_ret_t ret        = sfsync.cell_search_start(&found_cell);
       stack->cell_search_complete(ret, found_cell);

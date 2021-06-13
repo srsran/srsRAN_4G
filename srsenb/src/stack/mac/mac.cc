@@ -353,7 +353,7 @@ int mac::push_pdu(uint32_t tti_rx,
         logger.debug("Discarding PDU rnti=0x%x", rnti);
       }
     };
-    auto ret = stack_task_queue.try_push(std::bind(process_pdu_task, std::move(pdu)));
+    stack_task_queue.try_push(std::bind(process_pdu_task, std::move(pdu)));
   } else {
     logger.debug("Discarding PDU rnti=0x%x, tti_rx=%d, nof_bytes=%d", rnti, tti_rx, nof_bytes);
   }

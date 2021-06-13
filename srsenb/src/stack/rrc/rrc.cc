@@ -23,6 +23,7 @@
 #include "srsenb/hdr/stack/rrc/rrc_cell_cfg.h"
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
 #include "srsenb/hdr/stack/rrc/rrc_paging.h"
+#include "srsenb/hdr/stack/s1ap/s1ap.h"
 #include "srsran/asn1/asn1_utils.h"
 #include "srsran/asn1/rrc_utils.h"
 #include "srsran/common/bcd_helpers.h"
@@ -297,6 +298,12 @@ void rrc::write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t p
   if (not rx_pdu_queue.try_push(std::move(p))) {
     logger.error("Failed to push Release command to RRC queue");
   }
+}
+
+void rrc::notify_pdcp_integrity_error(uint16_t rnti, uint32_t lcid)
+{
+  logger.warning("Received integrity protection failure indication, rnti=0x%u, lcid=%u", rnti, lcid);
+  s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::unspecified);
 }
 
 /*******************************************************************************

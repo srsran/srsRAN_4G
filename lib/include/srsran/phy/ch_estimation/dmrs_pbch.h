@@ -30,7 +30,7 @@
 typedef struct SRSRAN_API {
   uint32_t                    N_id;    ///< Physical cell identifier
   uint32_t                    n_hf;    ///< Number of half radio frame, 0 or 1
-  uint32_t                    ssb_idx; ///< SSB candidate index
+  uint32_t                    ssb_idx; ///< SSB candidate index, up to 3 LSB are significant
   uint32_t                    L_max;   ///< Number of SSB opportunities in half radio frame
   float                       beta;    ///< Power allocation specified in TS 38.213
   srsran_subcarrier_spacing_t scs;     ///< SSB configured subcarrier spacing
@@ -56,16 +56,25 @@ typedef struct SRSRAN_API {
 SRSRAN_API int srsran_dmrs_pbch_put(const srsran_dmrs_pbch_cfg_t* cfg, cf_t ssb_grid[SRSRAN_SSB_NOF_RE]);
 
 /**
+ * @brief Measures NR PBCH DMRS
+ * @param cfg PBCH DMRS configuration
+ * @param ssb_grid SSB resource grid
+ * @param[out] meas Measurement
+ * @return SRSRAN_SUCCESS if the inputs and configuration are valid, SRSRAN_ERROR code otherwise
+ */
+SRSRAN_API int srsran_dmrs_pbch_measure(const srsran_dmrs_pbch_cfg_t* cfg,
+                                        const cf_t                    ssb_grid[SRSRAN_SSB_NOF_RE],
+                                        srsran_dmrs_pbch_meas_t*      meas);
+
+/**
  * @brief Estimates NR PBCH DMRS
  * @param cfg PBCH DMRS configuration
  * @param ssb_grid Demodulated SSB resource grid
  * @param[out] ce Estimated channel
- * @param[out] meas Estimated channel measurements
  * @return SRSRAN_SUCCESS if the inputs and configuration are valid, SRSRAN_ERROR code otherwise
  */
 SRSRAN_API int srsran_dmrs_pbch_estimate(const srsran_dmrs_pbch_cfg_t* cfg,
                                          const cf_t                    ssb_grid[SRSRAN_SSB_NOF_RE],
-                                         cf_t                          ce[SRSRAN_SSB_NOF_RE],
-                                         srsran_dmrs_pbch_meas_t*      meas);
+                                         cf_t                          ce[SRSRAN_SSB_NOF_RE]);
 
 #endif // SRSRAN_DMRS_PBCH_H
