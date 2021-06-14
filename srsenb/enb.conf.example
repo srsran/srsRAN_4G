@@ -201,7 +201,7 @@ enable = false
 #ul_snr_avg_alpha=0.05
 #init_ul_snr_value=5
 #init_dl_cqi=5
-#max_sib_coderate=0.8
+#max_sib_coderate=0.3
 
 #####################################################################
 # eMBMS configuration options
