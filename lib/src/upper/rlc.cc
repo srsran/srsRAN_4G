@@ -448,7 +448,7 @@ int rlc::add_bearer_mrb(uint32_t lcid)
     std::unique_ptr<rlc_common> rlc_entity =
         std::unique_ptr<rlc_common>(new rlc_um_lte(logger, lcid, pdcp, rrc, timers));
     // configure and add to array
-    if (rlc_entity or rlc_entity->configure(rlc_config_t::mch_config()) == false) {
+    if (not rlc_entity or rlc_entity->configure(rlc_config_t::mch_config()) == false) {
       logger.error("Error configuring RLC entity.");
       return SRSRAN_ERROR;
     }

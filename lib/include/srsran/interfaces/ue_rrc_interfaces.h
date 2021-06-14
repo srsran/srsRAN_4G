@@ -72,7 +72,6 @@ public:
   virtual bool        is_connected()                                                    = 0;
   virtual void        paging_completed(bool outcome)                                    = 0;
   virtual const char* get_rb_name(uint32_t lcid)                                        = 0;
-  virtual uint32_t    get_lcid_for_eps_bearer(const uint32_t& eps_bearer_id)            = 0;
   virtual bool        has_nr_dc()                                                       = 0;
 };
 

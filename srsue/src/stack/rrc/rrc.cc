@@ -53,7 +53,6 @@ rrc::rrc(stack_interface_rrc* stack_, srsran::task_sched_handle task_sched_) :
   task_sched(task_sched_),
   state(RRC_STATE_IDLE),
   last_state(RRC_STATE_CONNECTED),
-  drb_up(false),
   logger(srslog::fetch_basic_logger("RRC")),
   measurements(new rrc_meas()),
   cell_searcher(this),
@@ -189,11 +188,6 @@ void rrc::get_metrics(rrc_metrics_t& m)
 bool rrc::is_connected()
 {
   return (RRC_STATE_CONNECTED == state);
-}
-
-bool rrc::have_drb()
-{
-  return drb_up;
 }
 
 /*
@@ -1113,7 +1107,6 @@ void rrc::leave_connected()
   srsran::console("RRC IDLE\n");
   logger.info("Leaving RRC_CONNECTED state");
   state                 = RRC_STATE_IDLE;
-  drb_up                = false;
   security_is_activated = false;
 
   // 1> reset MAC;
@@ -2669,19 +2662,24 @@ void rrc::add_drb(const drb_to_add_mod_s& drb_cnfg)
   }
   mac->setup_lcid(lcid, log_chan_group, priority, prioritized_bit_rate, bucket_size_duration);
 
-  drbs[drb_cnfg.drb_id] = drb_cnfg;
-  drb_up                = true;
-  logger.info("Added DRB Id %d (LCID=%d)", drb_cnfg.drb_id, lcid);
-  // Update LCID if gw is running
-  if (gw->is_running()) {
-    gw->update_lcid(drb_cnfg.eps_bearer_id, lcid);
+  uint8_t eps_bearer_id = 5; // default?
+  if (drb_cnfg.eps_bearer_id_present) {
+    eps_bearer_id = drb_cnfg.eps_bearer_id;
   }
+
+  // register EPS bearer over LTE PDCP
+  stack->add_eps_bearer(eps_bearer_id, srsran::srsran_rat_t::lte, lcid);
+
+  drbs[drb_cnfg.drb_id] = drb_cnfg;
+  logger.info("Added DRB Id %d (LCID=%d)", drb_cnfg.drb_id, lcid);
 }
 
 void rrc::release_drb(uint32_t drb_id)
 {
   if (drbs.find(drb_id) != drbs.end()) {
     logger.info("Releasing DRB Id %d", drb_id);
+    // remove EPS bearer associated with this DRB from Stack (GW will trigger service request if needed)
+    stack->remove_eps_bearer(get_eps_bearer_id_for_drb_id(drb_id));
     drbs.erase(drb_id);
   } else {
     logger.error("Couldn't release DRB Id %d. Doesn't exist.", drb_id);
@@ -2702,6 +2700,17 @@ uint32_t rrc::get_lcid_for_eps_bearer(const uint32_t& eps_bearer_id)
     logger.warning("LCID not present, using %d", lcid);
   }
   return lcid;
+}
+
+uint32_t rrc::get_eps_bearer_id_for_drb_id(const uint32_t& drb_id)
+{
+  // check if this bearer id exists and return it's LCID
+  for (auto& drb : drbs) {
+    if (drb.first == drb_id) {
+      return drb.second.eps_bearer_id;
+    }
+  }
+  return 0;
 }
 
 uint32_t rrc::get_drb_id_for_eps_bearer(const uint32_t& eps_bearer_id)

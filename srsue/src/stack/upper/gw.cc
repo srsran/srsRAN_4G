@@ -166,7 +166,6 @@ void gw::write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
   NAS interface
 *******************************************************************************/
 int gw::setup_if_addr(uint32_t eps_bearer_id,
-                      uint32_t lcid,
                       uint8_t  pdn_type,
                       uint32_t ip_addr,
                       uint8_t* ipv6_if_addr,
@@ -186,46 +185,34 @@ int gw::setup_if_addr(uint32_t eps_bearer_id,
     }
   }
 
-  eps_lcid[eps_bearer_id] = lcid;
-  default_lcid            = lcid;
-  tft_matcher.set_default_lcid(lcid);
+  default_eps_bearer_id = static_cast<int>(eps_bearer_id);
 
   // Setup a thread to receive packets from the TUN device
   start(GW_THREAD_PRIO);
   return SRSRAN_SUCCESS;
 }
 
+int gw::deactivate_eps_bearer(const uint32_t eps_bearer_id)
+{
+  // only deactivation of default bearer
+  if (eps_bearer_id == static_cast<uint32_t>(default_eps_bearer_id)) {
+    logger.debug("Deactivating EPS bearer %d", eps_bearer_id);
+    default_eps_bearer_id = NOT_ASSIGNED;
+    return SRSRAN_SUCCESS;
+  }
+  logger.error("Couldn't deactivate EPS bearer %d", eps_bearer_id);
+  return SRSRAN_ERROR;
+}
 
 bool gw::is_running()
 {
   return running;
 }
 
-int gw::update_lcid(uint32_t eps_bearer_id, uint32_t new_lcid)
-{
-  auto it = eps_lcid.find(eps_bearer_id);
-  if (it != eps_lcid.end()) {
-    uint32_t old_lcid = eps_lcid[eps_bearer_id];
-    logger.debug("Found EPS bearer %d. Update old lcid %d to new lcid %d", eps_bearer_id, old_lcid, new_lcid);
-    eps_lcid[eps_bearer_id] = new_lcid;
-    if (old_lcid == default_lcid) {
-      logger.debug("Defaulting new lcid %d", new_lcid);
-      default_lcid = new_lcid;
-      tft_matcher.set_default_lcid(new_lcid);
-    }
-    // TODO: update need filters if not the default lcid
-  } else {
-    logger.error("Did not found EPS bearer %d for updating LCID.", eps_bearer_id);
-    return SRSRAN_ERROR;
-  }
-  return SRSRAN_SUCCESS;
-}
-
 int gw::apply_traffic_flow_template(const uint8_t&                                 erab_id,
-                                    const uint8_t&                                 lcid,
                                     const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft)
 {
-  return tft_matcher.apply_traffic_flow_template(erab_id, lcid, tft);
+  return tft_matcher.apply_traffic_flow_template(erab_id, tft);
 }
 
 void gw::set_test_loop_mode(const test_loop_mode_state_t mode, const uint32_t ip_pdu_delay_ms)
@@ -299,8 +286,8 @@ void gw::run_thread()
     if (pkt_len == pdu->N_bytes) {
       logger.info(pdu->msg, pdu->N_bytes, "TX PDU");
 
-      // Make sure UE is attached
-      while (run_enable && !stack->is_registered() && register_wait < REGISTER_WAIT_TOUT) {
+      // Make sure UE is attached and has default EPS bearer activated
+      while (run_enable && default_eps_bearer_id == NOT_ASSIGNED && register_wait < REGISTER_WAIT_TOUT) {
         if (!register_wait) {
           logger.info("UE is not attached, waiting for NAS attach (%d/%d)", register_wait, REGISTER_WAIT_TOUT);
         }
@@ -310,12 +297,18 @@ void gw::run_thread()
       register_wait = 0;
 
       // If we are still not attached by this stage, drop packet
-      if (run_enable && !stack->is_registered()) {
+      if (run_enable && default_eps_bearer_id == NOT_ASSIGNED) {
         continue;
       }
 
+      // Beyond this point we should have a activated default EPS bearer
+      srsran_assert(default_eps_bearer_id != NOT_ASSIGNED, "Default EPS bearer not activated");
+
+      uint8_t eps_bearer_id = default_eps_bearer_id;
+      tft_matcher.check_tft_filter_match(pdu, eps_bearer_id);
+
       // Wait for service request if necessary
-      while (run_enable && !stack->is_lcid_enabled(default_lcid) && service_wait < SERVICE_WAIT_TOUT) {
+      while (run_enable && !stack->has_active_radio_bearer(eps_bearer_id) && service_wait < SERVICE_WAIT_TOUT) {
         if (!service_wait) {
           logger.info(
               "UE does not have service, waiting for NAS service request (%d/%d)", service_wait, SERVICE_WAIT_TOUT);
@@ -331,21 +324,18 @@ void gw::run_thread()
         break;
       }
 
-      uint8_t lcid = tft_matcher.check_tft_filter_match(pdu);
       // Send PDU directly to PDCP
-      if (stack->is_lcid_enabled(lcid)) {
-        pdu->set_timestamp();
-        ul_tput_bytes += pdu->N_bytes;
-        stack->write_sdu(lcid, std::move(pdu));
-        do {
-          pdu = srsran::make_byte_buffer();
-          if (!pdu) {
-            logger.error("Fatal Error: Couldn't allocate PDU in run_thread().");
-            usleep(100000);
-          }
-        } while (!pdu);
-        idx = 0;
-      }
+      pdu->set_timestamp();
+      ul_tput_bytes += pdu->N_bytes;
+      stack->write_sdu(eps_bearer_id, std::move(pdu));
+      do {
+        pdu = srsran::make_byte_buffer();
+        if (!pdu) {
+          logger.error("Fatal Error: Couldn't allocate PDU in run_thread().");
+          usleep(100000);
+        }
+      } while (!pdu);
+      idx = 0;
     } else {
       idx += N_bytes;
       logger.debug("Entire packet not read from socket. Total Length %d, N_Bytes %d.", ip_pkt->tot_len, pdu->N_bytes);

@@ -102,11 +102,13 @@ public:
   }
 
   // Interface for GW
-  void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu) final;
-  bool is_lcid_enabled(uint32_t lcid) final { return pdcp->is_lcid_enabled(lcid); }
+  void write_sdu(uint32_t eps_bearer_id, srsran::unique_byte_buffer_t sdu) final;
+  bool has_active_radio_bearer(uint32_t eps_bearer_id) final { return true; /* TODO: add EPS to LCID mapping */ }
 
   // Interface for RRC
   srsran::tti_point get_current_tti() { return srsran::tti_point{0}; };
+  void              add_eps_bearer(uint8_t eps_bearer_id, srsran::srsran_rat_t rat, uint32_t lcid) final{};
+  void              remove_eps_bearer(uint8_t eps_bearer_id) final{};
 
 private:
   void run_thread() final;

@@ -24,11 +24,9 @@ extern "C" {
 namespace srsue {
 
 tft_packet_filter_t::tft_packet_filter_t(uint8_t                                eps_bearer_id_,
-                                         uint8_t                                lcid_,
                                          const LIBLTE_MME_PACKET_FILTER_STRUCT& tft,
                                          srslog::basic_logger&                  logger) :
   eps_bearer_id(eps_bearer_id_),
-  lcid(lcid_),
   id(tft.id),
   eval_precedence(tft.eval_precedence),
   active_filters(0),
@@ -380,23 +378,28 @@ bool tft_packet_filter_t::match_port(const srsran::unique_byte_buffer_t& pdu)
   return true;
 }
 
-uint8_t tft_pdu_matcher::check_tft_filter_match(const srsran::unique_byte_buffer_t& pdu)
+/**
+ * Checks whether the provided PDU matches any configured TFT.
+ * If it finds a match, it updates the eps_bearer_id parameter.
+ * @param pdu           Reference to the PDU to check.
+ * @param eps_bearer_id Reference to variable to store EPS bearer ID.
+ * @return SRSRAN_SUCCESS if a reference could be found, SRSRAN_ERROR otherwise.
+ */
+int tft_pdu_matcher::check_tft_filter_match(const srsran::unique_byte_buffer_t& pdu, uint8_t& eps_bearer_id)
 {
   std::lock_guard<std::mutex> lock(tft_mutex);
-  uint8_t                     lcid = default_lcid;
   for (std::pair<const uint16_t, tft_packet_filter_t>& filter_pair : tft_filter_map) {
     bool match = filter_pair.second.match(pdu);
     if (match) {
-      lcid = filter_pair.second.lcid;
-      logger.debug("Found filter match -- EPS bearer Id %d, LCID %d", filter_pair.second.eps_bearer_id, lcid);
-      break;
+      eps_bearer_id = filter_pair.second.eps_bearer_id;
+      logger.debug("Found filter match -- EPS bearer Id %d", filter_pair.second.eps_bearer_id);
+      return SRSRAN_SUCCESS;
     }
   }
-  return lcid;
+  return SRSRAN_ERROR;
 }
 
 int tft_pdu_matcher::apply_traffic_flow_template(const uint8_t&                                 erab_id,
-                                                 const uint8_t&                                 lcid,
                                                  const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft)
 {
   std::lock_guard<std::mutex> lock(tft_mutex);
@@ -404,7 +407,7 @@ int tft_pdu_matcher::apply_traffic_flow_template(const uint8_t&                 
     case LIBLTE_MME_TFT_OPERATION_CODE_CREATE_NEW_TFT:
       for (int i = 0; i < tft->packet_filter_list_size; i++) {
         logger.info("New packet filter for TFT");
-        tft_packet_filter_t filter(erab_id, lcid, tft->packet_filter_list[i], logger);
+        tft_packet_filter_t filter(erab_id, tft->packet_filter_list[i], logger);
         auto                it = tft_filter_map.insert(std::make_pair(filter.eval_precedence, filter));
         if (it.second == false) {
           logger.error("Error inserting TFT Packet Filter");
@@ -417,11 +420,6 @@ int tft_pdu_matcher::apply_traffic_flow_template(const uint8_t&                 
       return SRSRAN_ERROR_CANT_START;
   }
   return SRSRAN_SUCCESS;
-}
-
-void tft_pdu_matcher::set_default_lcid(const uint8_t lcid)
-{
-  default_lcid = lcid;
 }
 
 } // namespace srsue

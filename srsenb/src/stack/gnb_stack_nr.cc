@@ -86,7 +86,6 @@ int gnb_stack_nr::init(const srsenb::stack_args_t& args_, const rrc_nr_cfg_t& rr
   m_gw->init(args.coreless.gw_args, this);
   char* err_str = nullptr;
   if (m_gw->setup_if_addr(5,
-                          args.coreless.drb_lcid,
                           LIBLTE_MME_PDN_TYPE_IPV4,
                           htonl(inet_addr(args.coreless.ip_addr.c_str())),
                           nullptr,
@@ -179,9 +178,9 @@ void gnb_stack_nr::write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu)
   m_pdcp->write_sdu(args.coreless.rnti, lcid, std::move(sdu));
 }
 
-bool gnb_stack_nr::is_lcid_enabled(uint32_t lcid)
+bool gnb_stack_nr::has_active_radio_bearer(uint32_t eps_bearer_id)
 {
-  return (lcid == args.coreless.drb_lcid);
+  return (eps_bearer_id == args.coreless.drb_lcid);
 }
 
 } // namespace srsenb

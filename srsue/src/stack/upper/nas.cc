@@ -161,32 +161,38 @@ void nas::run_tti()
   }
 }
 
-/*******************************************************************************
- * FSM Helperse
- ******************************************************************************/
-void nas::enter_emm_null()
+// Helper method to inform GW about remove default EPS bearer
+void nas::clear_eps_bearer()
 {
   // Deactivate EPS bearer according to Sec. 5.5.2.2.2
   logger.debug("Clearing EPS bearer context");
+  for (const auto& bearer : eps_bearer) {
+    if (bearer.second.type == DEFAULT_EPS_BEARER) {
+      gw->deactivate_eps_bearer(bearer.second.eps_bearer_id);
+    }
+  }
   eps_bearer.clear();
+}
+
+/*******************************************************************************
+ * FSM Helpers
+ ******************************************************************************/
+void nas::enter_emm_null()
+{
+  clear_eps_bearer();
   state.set_null();
 }
 
 void nas::enter_emm_deregistered_initiated()
 {
-  // Deactivate EPS bearer according to Sec. 5.5.2.2.2
-  logger.debug("Clearing EPS bearer context");
-  eps_bearer.clear();
+  clear_eps_bearer();
   state.set_deregistered_initiated();
 }
 
 void nas::enter_emm_deregistered(emm_state_t::deregistered_substate_t substate)
 {
   // TODO Start cell selection.
-
-  // Deactivate EPS bearer according to Sec. 5.5.2.2.2
-  logger.debug("Clearing EPS bearer context");
-  eps_bearer.clear();
+  clear_eps_bearer();
   state.set_deregistered(substate);
 }
 
@@ -1010,6 +1016,14 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
     liblte_mme_unpack_activate_default_eps_bearer_context_request_msg(&attach_accept.esm_msg,
                                                                       &act_def_eps_bearer_context_req);
 
+    // make sure we don't already have a default EPS bearer activated
+    for (const auto& bearer : eps_bearer) {
+      if (bearer.second.type == DEFAULT_EPS_BEARER) {
+        logger.error("Only one default EPS bearer supported.");
+        return;
+      }
+    }
+
     if ((cfg.apn_protocol == "ipv4" && LIBLTE_MME_PDN_TYPE_IPV6 == act_def_eps_bearer_context_req.pdn_addr.pdn_type) ||
         (cfg.apn_protocol == "ipv6" && LIBLTE_MME_PDN_TYPE_IPV4 == act_def_eps_bearer_context_req.pdn_addr.pdn_type)) {
       logger.error("Failed to attach -- Mismatch between PDN protocol and PDN type in attach accept.");
@@ -1045,7 +1059,6 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
       // Setup GW
       char* err_str = nullptr;
       if (gw->setup_if_addr(act_def_eps_bearer_context_req.eps_bearer_id,
-                            rrc->get_lcid_for_eps_bearer(act_def_eps_bearer_context_req.eps_bearer_id),
                             LIBLTE_MME_PDN_TYPE_IPV4,
                             ip_addr,
                             nullptr,
@@ -1078,7 +1091,6 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
       // Setup GW
       char* err_str = nullptr;
       if (gw->setup_if_addr(act_def_eps_bearer_context_req.eps_bearer_id,
-                            rrc->get_lcid_for_eps_bearer(act_def_eps_bearer_context_req.eps_bearer_id),
                             LIBLTE_MME_PDN_TYPE_IPV6,
                             0,
                             ipv6_if_id,
@@ -1129,7 +1141,6 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
 
       char* err_str = nullptr;
       if (gw->setup_if_addr(act_def_eps_bearer_context_req.eps_bearer_id,
-                            rrc->get_lcid_for_eps_bearer(act_def_eps_bearer_context_req.eps_bearer_id),
                             LIBLTE_MME_PDN_TYPE_IPV4V6,
                             ip_addr,
                             ipv6_if_id,
@@ -1564,7 +1575,7 @@ void nas::parse_activate_dedicated_eps_bearer_context_request(uint32_t lcid, uni
   }
 
   // apply packet filters to GW
-  gw->apply_traffic_flow_template(request.eps_bearer_id, rrc->get_lcid_for_eps_bearer(request.eps_bearer_id), tft);
+  gw->apply_traffic_flow_template(request.eps_bearer_id, tft);
 
   send_activate_dedicated_eps_bearer_context_accept(request.proc_transaction_id, request.eps_bearer_id);
 }
@@ -1592,6 +1603,9 @@ void nas::parse_deactivate_eps_bearer_context_request(unique_byte_buffer_t pdu)
   // remove bearer
   eps_bearer_map_t::iterator it = eps_bearer.find(request.eps_bearer_id);
   eps_bearer.erase(it);
+
+  // inform GW about removed EPS bearer
+  gw->deactivate_eps_bearer(request.eps_bearer_id);
 
   logger.info("Removed EPS bearer context (eps_bearer_id=%d)", request.eps_bearer_id);
 
@@ -1951,7 +1965,7 @@ void nas::send_detach_request(bool switch_off)
   }
 
   if (switch_off) {
-    enter_emm_deregistered_initiated();
+    enter_emm_deregistered(emm_state_t::deregistered_substate_t::null);
   } else {
     // we are expecting a response from the core
     state.set_deregistered_initiated();

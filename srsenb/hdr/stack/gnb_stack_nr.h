@@ -64,7 +64,7 @@ public:
 
   // Temporary GW interface
   void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu);
-  bool is_lcid_enabled(uint32_t lcid);
+  bool has_active_radio_bearer(uint32_t eps_bearer_id);
   bool switch_on();
   void run_tti(uint32_t tti);
 

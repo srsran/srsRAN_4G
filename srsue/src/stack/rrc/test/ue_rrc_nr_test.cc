@@ -66,7 +66,7 @@ class dummy_pdcp : public pdcp_interface_rrc
   void reestablish(uint32_t lcid){};
   void reset(){};
   void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu, int sn = -1){};
-  void add_bearer(uint32_t lcid, srsran::pdcp_config_t cnfg){};
+  int  add_bearer(uint32_t lcid, srsran::pdcp_config_t cnfg) { return SRSRAN_SUCCESS; };
   void del_bearer(uint32_t lcid){};
   void change_lcid(uint32_t old_lcid, uint32_t new_lcid){};
   void config_security(uint32_t lcid, const srsran::as_security_config_t& sec_cfg){};
@@ -81,7 +81,6 @@ class dummy_pdcp : public pdcp_interface_rrc
 class dummy_gw : public gw_interface_rrc
 {
   void add_mch_port(uint32_t lcid, uint32_t port){};
-  int  update_lcid(uint32_t eps_bearer_id, uint32_t new_lcid) { return SRSRAN_SUCCESS; };
   bool is_running() { return true; };
 };
 
@@ -102,6 +101,8 @@ class dummy_sim : public usim_interface_rrc_nr
 class dummy_stack : public stack_interface_rrc
 {
   srsran::tti_point get_current_tti() { return srsran::tti_point(); };
+  void              add_eps_bearer(uint8_t eps_bearer_id, srsran::srsran_rat_t rat, uint32_t lcid){};
+  void              remove_eps_bearer(uint8_t eps_bearer_id){};
 };
 
 int rrc_nr_cap_request_test()

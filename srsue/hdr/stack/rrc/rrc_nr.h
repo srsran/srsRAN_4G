@@ -20,6 +20,7 @@
 #include "srsran/common/common_nr.h"
 #include "srsran/common/stack_procedure.h"
 #include "srsran/common/task_scheduler.h"
+#include "srsran/interfaces/ue_interfaces.h"
 #include "srsran/interfaces/ue_nr_interfaces.h"
 #include "srsran/interfaces/ue_rrc_interfaces.h"
 #include "srsue/hdr/stack/upper/gw.h"
@@ -29,7 +30,6 @@ namespace srsue {
 class usim_interface_rrc_nr;
 class pdcp_interface_rrc;
 class rlc_interface_rrc;
-class stack_interface_rrc;
 
 // Expert arguments to create GW without proper RRC
 struct core_less_args_t {

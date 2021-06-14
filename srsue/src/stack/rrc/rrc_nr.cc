@@ -1362,7 +1362,10 @@ bool rrc_nr::apply_drb_add_mod(const drb_to_add_mod_s& drb_cfg)
 
   srsran::pdcp_config_t pdcp_cfg = make_drb_pdcp_config_t(drb_cfg.drb_id, true, drb_cfg.pdcp_cfg);
   pdcp->add_bearer(lcid, pdcp_cfg);
-  gw->update_lcid(eps_bearer_id, lcid);
+
+  // register EPS bearer over NR PDCP
+  stack->add_eps_bearer(eps_bearer_id, srsran::srsran_rat_t::nr, lcid);
+
   return true;
 }
 

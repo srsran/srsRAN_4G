@@ -30,15 +30,6 @@ pdcp::~pdcp()
   pdcp_array_mrb.clear();
 }
 
-void pdcp::init(srsue::rlc_interface_pdcp* rlc_,
-                srsue::rrc_interface_pdcp* rrc_,
-                srsue::rrc_interface_pdcp* rrc_nr_,
-                srsue::gw_interface_pdcp*  gw_)
-{
-  init(rlc_, rrc_, gw_);
-  rrc_nr = rrc_nr_;
-}
-
 void pdcp::init(srsue::rlc_interface_pdcp* rlc_, srsue::rrc_interface_pdcp* rrc_, srsue::gw_interface_pdcp* gw_)
 {
   rlc = rlc_;
@@ -88,7 +79,7 @@ void pdcp::write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, int sn)
   if (valid_lcid(lcid)) {
     pdcp_array.at(lcid)->write_sdu(std::move(sdu), sn);
   } else {
-    logger.warning("Writing sdu: lcid=%d. Deallocating sdu", lcid);
+    logger.warning("LCID %d doesn't exist. Deallocating SDU", lcid);
   }
 }
 
@@ -99,39 +90,40 @@ void pdcp::write_sdu_mch(uint32_t lcid, unique_byte_buffer_t sdu)
   }
 }
 
-void pdcp::add_bearer(uint32_t lcid, pdcp_config_t cfg)
+int pdcp::add_bearer(uint32_t lcid, pdcp_config_t cfg)
 {
-  if (not valid_lcid(lcid)) {
-    std::unique_ptr<pdcp_entity_base> entity;
-    // For now we create an pdcp entity lte for nr due to it's maturity
-    if (cfg.rat == srsran::srsran_rat_t::lte) {
-      entity.reset(new pdcp_entity_lte{rlc, rrc, gw, task_sched, logger, lcid});
-    } else if (cfg.rat == srsran::srsran_rat_t::nr) {
-      if (rrc_nr == nullptr) {
-        logger.warning("Cannot add PDCP entity - missing rrc_nr parent pointer");
-        return;
-      }
-      entity.reset(new pdcp_entity_lte{rlc, rrc_nr, gw, task_sched, logger, lcid});
-    }
-
-    if (not entity->configure(cfg)) {
-      logger.error("Can not configure PDCP entity");
-      return;
-    }
-
-    if (not pdcp_array.insert(std::make_pair(lcid, std::move(entity))).second) {
-      logger.error("Error inserting PDCP entity in to array.");
-      return;
-    }
-    logger.info(
-        "Add %s (lcid=%d, bearer_id=%d, sn_len=%dbits)", rrc->get_rb_name(lcid), lcid, cfg.bearer_id, cfg.sn_len);
-    {
-      std::lock_guard<std::mutex> lock(cache_mutex);
-      valid_lcids_cached.insert(lcid);
-    }
-  } else {
-    logger.info("Bearer %s already configured.", rrc->get_rb_name(lcid));
+  if (valid_lcid(lcid)) {
+    logger.error("Bearer %s already configured.", rrc->get_rb_name(lcid));
+    return SRSRAN_ERROR;
   }
+
+  std::unique_ptr<pdcp_entity_base> entity;
+
+  // For now we create an pdcp entity lte for nr due to it's maturity
+  if (cfg.rat == srsran::srsran_rat_t::lte) {
+    entity.reset(new pdcp_entity_lte{rlc, rrc, gw, task_sched, logger, lcid});
+  } else if (cfg.rat == srsran::srsran_rat_t::nr) {
+    entity.reset(new pdcp_entity_lte{rlc, rrc, gw, task_sched, logger, lcid});
+  }
+
+  if (not entity->configure(cfg)) {
+    logger.error("Can not configure PDCP entity");
+    return SRSRAN_ERROR;
+  }
+
+  if (not pdcp_array.insert(std::make_pair(lcid, std::move(entity))).second) {
+    logger.error("Error inserting PDCP entity in to array.");
+    return SRSRAN_ERROR;
+  }
+
+  {
+    std::lock_guard<std::mutex> lock(cache_mutex);
+    valid_lcids_cached.insert(lcid);
+  }
+
+  logger.info("Add %s (lcid=%d, bearer_id=%d, sn_len=%dbits)", rrc->get_rb_name(lcid), lcid, cfg.bearer_id, cfg.sn_len);
+
+  return SRSRAN_SUCCESS;
 }
 
 void pdcp::add_bearer_mrb(uint32_t lcid, pdcp_config_t cfg)
