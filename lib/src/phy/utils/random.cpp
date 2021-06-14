@@ -36,6 +36,23 @@ public:
     return dist(*mt19937);
   }
 
+  void byte_vector(uint8_t* buffer, uint32_t n)
+  {
+    if (buffer == NULL || n == 0) {
+      return;
+    }
+
+    uint32_t  i          = 0;
+    uint32_t* buffer_u32 = (uint32_t*)buffer;
+    for (; i < n / sizeof(uint32_t); i++) {
+      buffer_u32[i] = (uint32_t)(*mt19937)();
+    }
+    i *= (uint32_t)sizeof(uint32_t);
+    for (; i < n; i++) {
+      buffer[i] = (uint8_t)((*mt19937)() & 0xffUL);
+    }
+  }
+
   float gauss_dist(float sigma)
   {
     std::normal_distribution<float> dist(sigma);
@@ -115,9 +132,11 @@ bool srsran_random_bool(srsran_random_t q, float prob_true)
 
 void srsran_random_bit_vector(srsran_random_t q, uint8_t* c, uint32_t nsamples)
 {
-  for (uint32_t i = 0; i < nsamples; i++) {
-    c[i] = (uint8_t)srsran_random_uniform_int_dist(q, 0, 1);
+  if (q == nullptr) {
+    return;
   }
+  auto* h = (random_wrap*)q;
+  h->byte_vector(c, nsamples);
 }
 
 void srsran_random_free(srsran_random_t q)
