@@ -70,7 +70,6 @@ int enb::init(const all_args_t& args_)
       return SRSRAN_ERROR;
     }
 
-    // Only init Stack if both radio and PHY could be initialized
     if (ret == SRSRAN_SUCCESS) {
       if (lte_stack->init(args.stack, rrc_cfg, lte_phy.get()) != SRSRAN_SUCCESS) {
         srsran::console("Error initializing stack.\n");

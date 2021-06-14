@@ -848,8 +848,12 @@ void rrc::configure_mbsfn_sibs()
   pmch_item->data_mcs         = mbms_mcs;
   pmch_item->mch_sched_period = srsran::pmch_info_t::mch_sched_period_t::rf64;
   pmch_item->sf_alloc_end     = 64 * 6;
-  phy->configure_mbsfn(&sibs2, &sibs13, mcch_t);
-  mac->write_mcch(&sibs2, &sibs13, &mcch_t, mcch_payload_buffer, current_mcch_length);
+
+  // Configure PHY when PHY is done being initialized
+  task_sched.defer_task([this, sibs2, sibs13, mcch_t]() mutable {
+    phy->configure_mbsfn(&sibs2, &sibs13, mcch_t);
+    mac->write_mcch(&sibs2, &sibs13, &mcch_t, mcch_payload_buffer, current_mcch_length);
+  });
 }
 
 int rrc::pack_mcch()
