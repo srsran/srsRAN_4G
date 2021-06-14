@@ -226,7 +226,7 @@ bool enb_stack_lte::get_metrics(stack_metrics_t* metrics)
 
 void enb_stack_lte::run_thread()
 {
-  while (started) {
+  while (started.load(std::memory_order_relaxed)) {
     task_sched.run_next_task();
   }
 }

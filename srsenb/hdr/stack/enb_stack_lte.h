@@ -140,7 +140,7 @@ private:
   phy_interface_stack_lte* phy = nullptr;
 
   // state
-  bool started = false;
+  std::atomic<bool> started{false};
 
   srsran::dyn_blocking_queue<stack_metrics_t> pending_stack_metrics;
 };
