@@ -1170,12 +1170,23 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
 
   std::unique_lock<std::mutex> lock(mutex);
 
-  logger.info(payload, nof_bytes, "%s Rx control PDU", RB_NAME);
+  logger.debug(payload, nof_bytes, "%s Rx control PDU", RB_NAME);
 
   rlc_status_pdu_t status;
   rlc_am_read_status_pdu(payload, nof_bytes, &status);
 
   log_rlc_am_status_pdu_to_string(logger.info, "%s Rx Status PDU: %s", &status, RB_NAME);
+
+  // make sure ACK_SN is within our Tx window
+  if (((MOD + status.ack_sn - vt_a) % MOD > RLC_AM_WINDOW_SIZE) ||
+      ((MOD + vt_s - status.ack_sn) % MOD > RLC_AM_WINDOW_SIZE)) {
+    logger.warning("%s Received invalid status PDU (ack_sn=%d, vt_a=%d, vt_s=%d). Dropping PDU.",
+                   RB_NAME,
+                   status.ack_sn,
+                   vt_a,
+                   vt_s);
+    return;
+  }
 
   // Sec 5.2.2.2, stop poll reTx timer if status PDU comprises a positive _or_ negative acknowledgement
   // for the RLC data PDU with sequence number poll_sn
@@ -1187,16 +1198,6 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
   // flush retx queue to avoid unordered SNs, we expect the Rx to request lost PDUs again
   if (status.N_nack > 0) {
     retx_queue.clear();
-  }
-
-  // make sure ACK_SN is within our Tx window
-  if ((MOD + status.ack_sn - vt_a) % MOD > RLC_AM_WINDOW_SIZE) {
-    logger.error("%s Received invalid status PDU (ack_sn=%d < vt_a=%d). Dropping PDU.", RB_NAME, status.ack_sn, vt_a);
-    return;
-  }
-  if ((MOD + vt_s - status.ack_sn) % MOD > RLC_AM_WINDOW_SIZE) {
-    logger.error("%s Received invalid status PDU (ack_sn=%d > vt_s=%d). Dropping PDU.", RB_NAME, status.ack_sn, vt_s);
-    return;
   }
 
   // Handle ACKs and NACKs
