@@ -154,7 +154,7 @@ private:
   // state
   std::mutex                     socket_mutex;
   std::map<int, recv_callback_t> active_sockets;
-  bool                           running   = false;
+  std::atomic<bool>              running   = {false};
   int                            pipefd[2] = {-1, -1};
   std::vector<int>               rem_fd_tmp_list;
   std::condition_variable        rem_cvar;
