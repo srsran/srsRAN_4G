@@ -3376,8 +3376,11 @@ bool incorrect_status_pdu_test2()
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
+  if (not rlc2.configure(rlc_config_t::default_rlc_am_config())) {
+    return -1;
+  }
 
-  // Push 5 SDUs into RLC1
+  // Push 10 SDUs into RLC1
   const uint32_t       n_sdus = 10;
   unique_byte_buffer_t sdu_bufs[n_sdus];
   for (uint32_t i = 0; i < n_sdus; i++) {
@@ -3387,12 +3390,15 @@ bool incorrect_status_pdu_test2()
     rlc1.write_sdu(std::move(sdu_bufs[i]));
   }
 
-  // Read 5 PDUs from RLC1 (1 byte each)
+  // Read 10 PDUs from RLC1 (1 byte each) and push half of them to RLC2
   const uint32_t n_pdus = n_sdus;
   byte_buffer_t  pdu_bufs[n_pdus];
   for (uint32_t i = 0; i < n_pdus; i++) {
     len                 = rlc1.read_pdu(pdu_bufs[i].msg, 3); // 2 byte header + 1 byte payload
     pdu_bufs[i].N_bytes = len;
+    if (i < 5) {
+      rlc2.write_pdu(pdu_bufs[i].msg, pdu_bufs[i].N_bytes);
+    }
   }
 
   TESTASSERT(0 == rlc1.get_buffer_state());
@@ -3431,14 +3437,34 @@ bool incorrect_status_pdu_test2()
   rlc_am_write_status_pdu(&status_pdu, &status_buf);
   rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
 
-  // now ack all
-  status_pdu.ack_sn = n_pdus;
-  status_pdu.N_nack = 0;
-  TESTASSERT(rlc_am_is_valid_status_pdu(status_pdu));
+  // Step timers until reordering timeout expires
+  int cnt = 5;
+  while (cnt--) {
+    timers.step_all();
+  }
 
-  // pack and write to RLC again
-  rlc_am_write_status_pdu(&status_pdu, &status_buf);
-  rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+  // retransmit all outstanding PDUs
+  for (int i = 0; i < 5; i++) {
+    byte_buffer_t retx;
+    retx.N_bytes = rlc1.read_pdu(retx.msg, 3);
+    rlc2.write_pdu(retx.msg, retx.N_bytes);
+
+    // Step timers until reordering timeout expires
+    int cnt = 5;
+    while (cnt--) {
+      timers.step_all();
+    }
+
+    // read status
+    byte_buffer_t status_buf;
+    status_buf.N_bytes = rlc2.read_pdu(status_buf.msg, 10);
+    rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+  }
+
+  TESTASSERT(tester.sdus.size() == n_sdus);
+  for (uint32_t i = 0; i < tester.sdus.size(); i++) {
+    TESTASSERT(tester.sdus[i]->N_bytes == 1);
+  }
 
   return SRSRAN_SUCCESS;
 }
