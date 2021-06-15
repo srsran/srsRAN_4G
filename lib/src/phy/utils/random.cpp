@@ -11,6 +11,7 @@
  */
 
 #include "srsran/phy/utils/random.h"
+#include "srsran/phy/utils/bit.h"
 #include <complex>
 #include <random>
 
@@ -51,6 +52,20 @@ public:
     for (; i < n; i++) {
       buffer[i] = (uint8_t)((*mt19937)() & 0xffUL);
     }
+  }
+
+  void bit_vector(uint8_t* buffer, uint32_t n)
+  {
+    if (buffer == NULL || n == 0) {
+      return;
+    }
+
+    uint32_t i   = 0;
+    uint8_t* ptr = buffer;
+    for (; i < n / 32; i++) {
+      srsran_bit_unpack((uint32_t)(*mt19937)(), &ptr, 32);
+    }
+    srsran_bit_unpack((uint32_t)(*mt19937)(), &ptr, n - i * 32);
   }
 
   float gauss_dist(float sigma)
@@ -130,13 +145,22 @@ bool srsran_random_bool(srsran_random_t q, float prob_true)
   return srsran_random_uniform_real_dist(q, 0, 1) < prob_true;
 }
 
-void srsran_random_bit_vector(srsran_random_t q, uint8_t* c, uint32_t nsamples)
+void srsran_random_byte_vector(srsran_random_t q, uint8_t* c, uint32_t nsamples)
 {
   if (q == nullptr) {
     return;
   }
   auto* h = (random_wrap*)q;
   h->byte_vector(c, nsamples);
+}
+
+void srsran_random_bit_vector(srsran_random_t q, uint8_t* c, uint32_t nsamples)
+{
+  if (q == nullptr) {
+    return;
+  }
+  auto* h = (random_wrap*)q;
+  h->bit_vector(c, nsamples);
 }
 
 void srsran_random_free(srsran_random_t q)
