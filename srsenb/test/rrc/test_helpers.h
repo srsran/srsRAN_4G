@@ -175,14 +175,14 @@ public:
 class mac_mobility_dummy : public mac_dummy
 {
 public:
-  int ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg) override
+  int ue_cfg(uint16_t rnti, const sched_interface::ue_cfg_t* cfg) override
   {
     ue_db[rnti] = *cfg;
     return 0;
   }
-  int ue_set_crnti(uint16_t temp_crnti, uint16_t crnti, sched_interface::ue_cfg_t* cfg) override
+  int ue_set_crnti(uint16_t temp_crnti, uint16_t crnti, const sched_interface::ue_cfg_t& cfg) override
   {
-    ue_db[crnti] = *cfg;
+    ue_db[crnti] = cfg;
     return 0;
   }
   std::map<uint16_t, sched_interface::ue_cfg_t> ue_db;

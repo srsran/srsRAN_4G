@@ -77,9 +77,9 @@ public:
   int cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg) override;
 
   /* Manages UE scheduling context */
-  int ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg) override;
+  int ue_cfg(uint16_t rnti, const sched_interface::ue_cfg_t* cfg) override;
   int ue_rem(uint16_t rnti) override;
-  int ue_set_crnti(uint16_t temp_crnti, uint16_t crnti, sched_interface::ue_cfg_t* cfg) override;
+  int ue_set_crnti(uint16_t temp_crnti, uint16_t crnti, const sched_interface::ue_cfg_t& cfg) override;
 
   // Indicates that the PHY config dedicated has been enabled or not
   void phy_config_enabled(uint16_t rnti, bool enabled) override;

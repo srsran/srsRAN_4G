@@ -220,6 +220,16 @@ void ue::start_pcap(srsran::mac_pcap* pcap_)
   pcap = pcap_;
 }
 
+void ue::ue_cfg(const sched_interface::ue_cfg_t& ue_cfg)
+{
+  for (const auto& ue_cc : ue_cfg.supported_cc_list) {
+    // Allocate and initialize Rx/Tx softbuffers for new carriers (exclude PCell)
+    if (ue_cc.active and cc_buffers[ue_cc.enb_cc_idx].empty()) {
+      cc_buffers[ue_cc.enb_cc_idx].allocate_cc(softbuffer_pool->make());
+    }
+  }
+}
+
 srsran_softbuffer_rx_t* ue::get_rx_softbuffer(uint32_t enb_cc_idx, uint32_t tti)
 {
   if ((size_t)enb_cc_idx >= cc_buffers.size() or cc_buffers[enb_cc_idx].empty()) {
@@ -509,12 +519,6 @@ void ue::allocate_ce(srsran::sch_pdu* pdu, uint32_t lcid)
         }
         if (pdu->get()->set_scell_activation_cmd(active_scell_list)) {
           phy->set_activation_deactivation_scell(rnti, active_scell_list);
-          // Allocate and initialize Rx/Tx softbuffers for new carriers (exclude PCell)
-          for (size_t cc = 0; cc < cc_buffers.size(); ++cc) {
-            if (active_ccs[cc] >= 0 and cc_buffers[cc].empty()) {
-              cc_buffers[cc].allocate_cc(softbuffer_pool->make());
-            }
-          }
         } else {
           logger.error("CE:    Setting SCell Activation CE");
         }

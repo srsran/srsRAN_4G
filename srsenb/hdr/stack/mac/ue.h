@@ -132,9 +132,11 @@ public:
      srsran::obj_pool_itf<ue_cc_softbuffers>* softbuffer_pool);
 
   virtual ~ue();
-  void     reset();
-  void     start_pcap(srsran::mac_pcap* pcap_);
-  void     start_pcap_net(srsran::mac_pcap_net* pcap_net_);
+  void reset();
+  void start_pcap(srsran::mac_pcap* pcap_);
+  void start_pcap_net(srsran::mac_pcap_net* pcap_net_);
+  void ue_cfg(const sched_interface::ue_cfg_t& ue_cfg);
+
   void     set_tti(uint32_t tti);
   uint16_t get_rnti() const { return rnti; }
   uint32_t set_ta(int ta) override;
@@ -214,7 +216,7 @@ private:
   std::mutex mutex;
   std::mutex rx_buffers_mutex;
 
-  const uint8_t UL_CC_IDX = 0; ///< Passed to write CC index in PCAP (TODO: use actual CC idx)
+  static const uint8_t UL_CC_IDX = 0; ///< Passed to write CC index in PCAP
 };
 
 } // namespace srsenb
