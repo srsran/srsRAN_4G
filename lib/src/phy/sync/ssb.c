@@ -56,6 +56,13 @@ static int ssb_init_corr(srsran_ssb_t* q)
     }
   }
 
+  q->sf_buffer = srsran_vec_cf_malloc(q->max_ssb_sz + q->max_sf_sz);
+  if (q->sf_buffer == NULL) {
+    ERROR("Malloc");
+    return SRSRAN_ERROR;
+  }
+  srsran_vec_cf_zero(q->sf_buffer, q->max_ssb_sz + q->max_sf_sz);
+
   return SRSRAN_SUCCESS;
 }
 
@@ -93,8 +100,10 @@ int srsran_ssb_init(srsran_ssb_t* q, const srsran_ssb_args_t* args)
   q->args.pbch_dmrs_thr = (!isnormal(q->args.pbch_dmrs_thr)) ? SSB_PBCH_DMRS_DEFAULT_CORR_THR : q->args.pbch_dmrs_thr;
 
   q->scs_hz        = (float)SRSRAN_SUBC_SPACING_NR(q->args.min_scs);
+  q->max_sf_sz     = (uint32_t)round(1e-3 * q->args.max_srate_hz);
   q->max_symbol_sz = (uint32_t)round(q->args.max_srate_hz / q->scs_hz);
   q->max_corr_sz   = SSB_CORR_SZ(q->max_symbol_sz);
+  q->max_ssb_sz    = SRSRAN_SSB_DURATION_NSYMB * (q->max_symbol_sz + (144 * q->max_symbol_sz) / 2048);
 
   // Allocate temporal data
   q->tmp_time = srsran_vec_cf_malloc(q->max_corr_sz);
@@ -141,6 +150,10 @@ void srsran_ssb_free(srsran_ssb_t* q)
     if (q->pss_seq[N_id_2] != NULL) {
       free(q->pss_seq[N_id_2]);
     }
+  }
+
+  if (q->sf_buffer != NULL) {
+    free(q->sf_buffer);
   }
 
   srsran_dft_plan_free(&q->ifft);
@@ -437,6 +450,7 @@ int srsran_ssb_set_cfg(srsran_ssb_t* q, const srsran_ssb_cfg_t* cfg)
   // Verify symbol size
   if (q->max_symbol_sz < symbol_sz) {
     ERROR("New symbol size (%d) exceeds maximum symbol size (%d)", symbol_sz, q->max_symbol_sz);
+    return SRSRAN_ERROR;
   }
 
   // Replan iFFT
@@ -468,6 +482,8 @@ int srsran_ssb_set_cfg(srsran_ssb_t* q, const srsran_ssb_cfg_t* cfg)
   // Finally, copy configuration
   q->cfg       = *cfg;
   q->symbol_sz = symbol_sz;
+  q->sf_sz     = (uint32_t)round(1e-3 * cfg->srate_hz);
+  q->ssb_sz    = SRSRAN_SSB_DURATION_NSYMB * (q->symbol_sz + q->cp_sz);
 
   // Initialise correlation
   if (ssb_setup_corr(q) < SRSRAN_SUCCESS) {
@@ -1092,4 +1108,214 @@ int srsran_ssb_search(srsran_ssb_t* q, const cf_t* in, uint32_t nof_samples, srs
   res->pbch_msg = pbch_msg;
 
   return SRSRAN_SUCCESS;
+}
+
+static int ssb_pss_find(srsran_ssb_t* q, const cf_t* in, uint32_t nof_samples, uint32_t N_id_2, uint32_t* found_delay)
+{
+  // verify it is initialised
+  if (q->corr_sz == 0) {
+    return SRSRAN_ERROR;
+  }
+
+  // Correlation best sequence
+  float    best_corr  = 0;
+  uint32_t best_delay = 0;
+
+  // Delay in correlation window
+  uint32_t t_offset = 0;
+  while ((t_offset + q->symbol_sz) < nof_samples) {
+    // Number of samples taken in this iteration
+    uint32_t n = q->corr_sz;
+
+    // Detect if the correlation input exceeds the input length, take the maximum amount of samples
+    if (t_offset + q->corr_sz > nof_samples) {
+      n = nof_samples - t_offset;
+    }
+
+    // Copy the amount of samples
+    srsran_vec_cf_copy(q->tmp_time, &in[t_offset], n);
+
+    // Append zeros if there is space left
+    if (n < q->corr_sz) {
+      srsran_vec_cf_zero(&q->tmp_time[n], q->corr_sz - n);
+    }
+
+    // Convert to frequency domain
+    srsran_dft_run_guru_c(&q->fft_corr);
+
+    // Actual correlation in frequency domain
+    srsran_vec_prod_conj_ccc(q->tmp_freq, q->pss_seq[N_id_2], q->tmp_corr, q->corr_sz);
+
+    // Convert to time domain
+    srsran_dft_run_guru_c(&q->ifft_corr);
+
+    // Find maximum
+    uint32_t peak_idx = srsran_vec_max_abs_ci(q->tmp_time, q->corr_window);
+
+    // Average power, skip window if value is invalid (0.0, nan or inf)
+    float avg_pwr_corr = srsran_vec_avg_power_cf(&q->tmp_time[peak_idx], q->symbol_sz);
+    if (!isnormal(avg_pwr_corr)) {
+      continue;
+    }
+
+    // Normalise correlation
+    float corr = SRSRAN_CSQABS(q->tmp_time[peak_idx]) / avg_pwr_corr / sqrtf(SRSRAN_PSS_NR_LEN);
+
+    // Update if the correlation is better than the current best
+    if (best_corr < corr) {
+      best_corr  = corr;
+      best_delay = peak_idx + t_offset;
+    }
+
+    // Advance time
+    t_offset += q->corr_window;
+  }
+
+  // Save findings
+  *found_delay = best_delay;
+
+  return SRSRAN_SUCCESS;
+}
+
+int srsran_ssb_find(srsran_ssb_t*                  q,
+                    const cf_t*                    sf_buffer,
+                    uint32_t                       N_id,
+                    srsran_csi_trs_measurements_t* meas,
+                    srsran_pbch_msg_nr_t*          pbch_msg)
+{
+  // Verify inputs
+  if (q == NULL || sf_buffer == NULL || meas == NULL || !isnormal(q->scs_hz)) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+
+  if (!q->args.enable_search) {
+    ERROR("SSB is not configured for search");
+    return SRSRAN_ERROR;
+  }
+
+  // Copy tail from previous execution into the start of this
+  srsran_vec_cf_copy(q->sf_buffer, &q->sf_buffer[q->sf_sz], q->ssb_sz);
+
+  // Append new samples
+  srsran_vec_cf_copy(&q->sf_buffer[q->ssb_sz], sf_buffer, q->sf_sz);
+
+  // Search for PSS in time domain
+  uint32_t t_offset = 0;
+  if (ssb_pss_find(q, q->sf_buffer, q->sf_sz + q->ssb_sz, SRSRAN_NID_2_NR(N_id), &t_offset) < SRSRAN_SUCCESS) {
+    ERROR("Error searching for N_id_2");
+    return SRSRAN_ERROR;
+  }
+
+  // Remove CP offset prior demodulation
+  if (t_offset >= q->cp_sz) {
+    t_offset -= q->cp_sz;
+  } else {
+    t_offset = 0;
+  }
+
+  // Demodulate
+  cf_t ssb_grid[SRSRAN_SSB_NOF_RE] = {};
+  if (ssb_demodulate(q, q->sf_buffer, t_offset, ssb_grid) < SRSRAN_SUCCESS) {
+    ERROR("Error demodulating");
+    return SRSRAN_ERROR;
+  }
+
+  // Measure selected N_id
+  if (ssb_measure(q, ssb_grid, N_id, meas)) {
+    ERROR("Error measuring");
+    return SRSRAN_ERROR;
+  }
+
+  // Select the most suitable SSB candidate
+  uint32_t n_hf    = 0;
+  uint32_t ssb_idx = 0; // SSB candidate index
+  if (ssb_select_pbch(q, N_id, ssb_grid, &n_hf, &ssb_idx) < SRSRAN_SUCCESS) {
+    ERROR("Error selecting PBCH");
+    return SRSRAN_ERROR;
+  }
+
+  // Calculate the SSB offset in the subframe
+  uint32_t ssb_offset = srsran_ssb_candidate_sf_offset(q, ssb_idx);
+
+  // Compute PBCH channel estimates
+  if (ssb_decode_pbch(q, N_id, n_hf, ssb_idx, ssb_grid, pbch_msg) < SRSRAN_SUCCESS) {
+    ERROR("Error decoding PBCH");
+    return SRSRAN_ERROR;
+  }
+
+  // SSB delay in SF
+  float ssb_delay_us = (float)(1e6 * (((double)t_offset - (double)q->ssb_sz - (double)ssb_offset) / q->cfg.srate_hz));
+
+  // Add delay to measure
+  meas->delay_us += ssb_delay_us;
+
+  return SRSRAN_SUCCESS;
+}
+
+int srsran_ssb_track(srsran_ssb_t*                  q,
+                     const cf_t*                    sf_buffer,
+                     uint32_t                       N_id,
+                     uint32_t                       ssb_idx,
+                     uint32_t                       n_hf,
+                     srsran_csi_trs_measurements_t* meas,
+                     srsran_pbch_msg_nr_t*          pbch_msg)
+{
+  // Verify inputs
+  if (q == NULL || sf_buffer == NULL || meas == NULL || !isnormal(q->scs_hz)) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+
+  if (!q->args.enable_search) {
+    ERROR("SSB is not configured for search");
+    return SRSRAN_ERROR;
+  }
+
+  // Calculate SSB offset
+  uint32_t t_offset = srsran_ssb_candidate_sf_offset(q, ssb_idx);
+
+  // Demodulate
+  cf_t ssb_grid[SRSRAN_SSB_NOF_RE] = {};
+  if (ssb_demodulate(q, sf_buffer, t_offset, ssb_grid) < SRSRAN_SUCCESS) {
+    ERROR("Error demodulating");
+    return SRSRAN_ERROR;
+  }
+
+  // Measure selected N_id
+  if (ssb_measure(q, ssb_grid, N_id, meas)) {
+    ERROR("Error measuring");
+    return SRSRAN_ERROR;
+  }
+
+  // Compute PBCH channel estimates
+  if (ssb_decode_pbch(q, N_id, n_hf, ssb_idx, ssb_grid, pbch_msg) < SRSRAN_SUCCESS) {
+    ERROR("Error decoding PBCH");
+    return SRSRAN_ERROR;
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
+uint32_t srsran_ssb_candidate_sf_idx(const srsran_ssb_t* q, uint32_t ssb_idx, bool half_frame)
+{
+  if (q == NULL) {
+    return 0;
+  }
+
+  uint32_t nof_symbols_subframe = SRSRAN_NSYMB_PER_SLOT_NR * SRSRAN_NSLOTS_PER_SF_NR(q->cfg.scs);
+
+  return q->l_first[ssb_idx] / nof_symbols_subframe + (half_frame ? (SRSRAN_NOF_SF_X_FRAME / 2) : 0);
+}
+
+uint32_t srsran_ssb_candidate_sf_offset(const srsran_ssb_t* q, uint32_t ssb_idx)
+{
+  if (q == NULL) {
+    return 0;
+  }
+
+  uint32_t nof_symbols_subframe = SRSRAN_NSYMB_PER_SLOT_NR * SRSRAN_NSLOTS_PER_SF_NR(q->cfg.scs);
+  uint32_t l                    = q->l_first[ssb_idx] % nof_symbols_subframe;
+
+  uint32_t cp_sz_0 = (16U * q->symbol_sz) / 2048U;
+
+  return cp_sz_0 + l * (q->symbol_sz + q->cp_sz);
 }

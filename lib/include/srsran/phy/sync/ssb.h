@@ -64,10 +64,10 @@ typedef struct SRSRAN_API {
   srsran_ssb_patern_t         pattern;        ///< SSB pattern as defined in TS 38.313 section 4.1 Cell search
   srsran_duplex_mode_t        duplex_mode;    ///< Set to true if the spectrum is paired (FDD)
   uint32_t                    periodicity_ms; ///< SSB periodicity in ms
-  float                       beta_pss;       ////< PSS power allocation
-  float                       beta_sss;       ////< SSS power allocation
-  float                       beta_pbch;      ////< PBCH power allocation
-  float                       beta_pbch_dmrs; ////< PBCH DMRS power allocation
+  float                       beta_pss;       ///< PSS power allocation
+  float                       beta_sss;       ///< SSS power allocation
+  float                       beta_pbch;      ///< PBCH power allocation
+  float                       beta_pbch_dmrs; ///< PBCH DMRS power allocation
 } srsran_ssb_cfg_t;
 
 /**
@@ -79,11 +79,15 @@ typedef struct SRSRAN_API {
 
   /// Sampling rate dependent parameters
   float    scs_hz;        ///< Subcarrier spacing in Hz
+  uint32_t max_sf_sz;     ///< Maximum subframe size at the specified sampling rate
   uint32_t max_symbol_sz; ///< Maximum symbol size given the minimum supported SCS and sampling rate
   uint32_t max_corr_sz;   ///< Maximum correlation size
+  uint32_t max_ssb_sz;    ///< Maximum SSB size in samples at the configured sampling rate
+  uint32_t sf_sz;         ///< Current subframe size at the specified sampling rate
   uint32_t symbol_sz;     ///< Current SSB symbol size (for the given base-band sampling rate)
   uint32_t corr_sz;       ///< Correlation size
   uint32_t corr_window;   ///< Correlation window length
+  uint32_t ssb_sz;        ///< SSB size in samples at the configured sampling rate
   int32_t  f_offset;      ///< Current SSB integer frequency offset (multiple of SCS)
   uint32_t cp_sz;         ///< CP length for the given symbol size
 
@@ -102,6 +106,7 @@ typedef struct SRSRAN_API {
   cf_t* tmp_freq;                     ///< Temporal frequency domain buffer
   cf_t* tmp_time;                     ///< Temporal time domain buffer
   cf_t* tmp_corr;                     ///< Temporal correlation frequency domain buffer
+  cf_t* sf_buffer;                    ///< subframe buffer
   cf_t* pss_seq[SRSRAN_NOF_NID_2_NR]; ///< Possible frequency domain PSS for find
 } srsran_ssb_t;
 
@@ -184,7 +189,7 @@ srsran_ssb_add(srsran_ssb_t* q, uint32_t N_id, const srsran_pbch_msg_nr_t* msg, 
 /**
  * @brief Perform cell search and measurement
  * @note This function assumes the SSB transmission is aligned with the input base-band signal
- * @param q NR PSS object
+ * @param q SSB object
  * @param in Base-band signal buffer
  * @param N_id Physical Cell Identifier of the most suitable cell identifier
  * @param meas SSB-based CSI measurement of the most suitable cell identifier
@@ -198,7 +203,7 @@ SRSRAN_API int srsran_ssb_csi_search(srsran_ssb_t*                  q,
 
 /**
  * @brief Perform Channel State Information (CSI) measurement from the SSB
- * @param q NR PSS object
+ * @param q SSB object
  * @param N_id Physical Cell Identifier
  * @param ssb_idx SSB candidate index
  * @param in Base-band signal
@@ -210,5 +215,56 @@ SRSRAN_API int srsran_ssb_csi_measure(srsran_ssb_t*                  q,
                                       uint32_t                       ssb_idx,
                                       const cf_t*                    in,
                                       srsran_csi_trs_measurements_t* meas);
+
+/**
+ * @brief Find SSB signal in a given time domain subframe buffer
+ * @param q SSB object
+ * @param sf_buffer subframe buffer with 1ms worth of samples
+ * @param N_id Physical cell identifier to find
+ * @param meas Measurements performed on the found peak
+ * @param pbch_msg PBCH decoded message
+ * @return SRSRAN_SUCCESS if the parameters are valid, SRSRAN_ERROR code otherwise
+ */
+SRSRAN_API int srsran_ssb_find(srsran_ssb_t*                  q,
+                               const cf_t*                    sf_buffer,
+                               uint32_t                       N_id,
+                               srsran_csi_trs_measurements_t* meas,
+                               srsran_pbch_msg_nr_t*          pbch_msg);
+
+/**
+ * @brief Track SSB by performing measurements and decoding PBCH
+ * @param q SSB object
+ * @param sf_buffer subframe buffer with 1ms worth of samples
+ * @param N_id Physical cell identifier to find
+ * @param ssb_idx SSB candidate index
+ * @param n_hf Number of half frame
+ * @param meas Measurements perform
+ * @param pbch_msg PBCH decoded message
+ * @return SRSRAN_SUCCESS if the parameters are valid, SRSRAN_ERROR code otherwise
+ */
+SRSRAN_API int srsran_ssb_track(srsran_ssb_t*                  q,
+                                const cf_t*                    sf_buffer,
+                                uint32_t                       N_id,
+                                uint32_t                       ssb_idx,
+                                uint32_t                       n_hf,
+                                srsran_csi_trs_measurements_t* meas,
+                                srsran_pbch_msg_nr_t*          pbch_msg);
+
+/**
+ * @brief Calculates the subframe index within the radio frame of a given SSB candidate for the SSB object
+ * @param q SSB object
+ * @param ssb_idx SSB candidate index
+ * @param half_frame Indicates whether it is half frame
+ * @return The subframe index
+ */
+SRSRAN_API uint32_t srsran_ssb_candidate_sf_idx(const srsran_ssb_t* q, uint32_t ssb_idx, bool half_frame);
+
+/**
+ * @brief Calculates the SSB offset within the subframe of a given SSB candidate for the SSB object
+ * @param q SSB object
+ * @param ssb_idx SSB candidate index
+ * @return The sample offset within the subframe
+ */
+SRSRAN_API uint32_t srsran_ssb_candidate_sf_offset(const srsran_ssb_t* q, uint32_t ssb_idx);
 
 #endif // SRSRAN_SSB_H

@@ -601,6 +601,14 @@ SRSRAN_API uint32_t srsran_csi_meas_info(const srsran_csi_trs_measurements_t* me
  */
 SRSRAN_API srsran_subcarrier_spacing_t srsran_subcarrier_spacing_from_str(const char* str);
 
+/**
+ * @brief Combine Channel State Information from Tracking Reference Signals (CSI-TRS)
+ * @param[in] a CSI-RS measurement
+ * @param[in] b CSI-RS measurement
+ * @param[out] dst Destination of the combined
+ */
+SRSRAN_API void srsran_combine_csi_trs_measurements(const srsran_csi_trs_measurements_t *a, const srsran_csi_trs_measurements_t *b, srsran_csi_trs_measurements_t *dst);
+
 #ifdef __cplusplus
 }
 #endif

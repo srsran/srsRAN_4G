@@ -351,3 +351,33 @@ srsran_subcarrier_spacing_t srsran_subcarrier_spacing_from_str(const char* str)
 
   return srsran_subcarrier_spacing_invalid;
 }
+
+void srsran_combine_csi_trs_measurements(const srsran_csi_trs_measurements_t* a,
+                                         const srsran_csi_trs_measurements_t* b,
+                                         srsran_csi_trs_measurements_t*       dst)
+{
+  // Verify inputs
+  if (a == NULL || b == NULL || dst == NULL) {
+    return;
+  }
+
+  // Protect from zero division
+  uint32_t nof_re_sum = a->nof_re + b->nof_re;
+  if (nof_re_sum == 0) {
+    SRSRAN_MEM_ZERO(dst, srsran_csi_trs_measurements_t, 1);
+    return;
+  }
+
+  // Perform proportional average
+  dst->rsrp       = SRSRAN_VEC_PMA(a->rsrp, a->nof_re, b->rsrp, b->nof_re);
+  dst->rsrp_dB    = SRSRAN_VEC_PMA(a->rsrp_dB, a->nof_re, b->rsrp_dB, b->nof_re);
+  dst->epre       = SRSRAN_VEC_PMA(a->epre, a->nof_re, b->epre, b->nof_re);
+  dst->epre_dB    = SRSRAN_VEC_PMA(a->epre_dB, a->nof_re, b->epre_dB, b->nof_re);
+  dst->n0         = SRSRAN_VEC_PMA(a->n0, a->nof_re, b->n0, b->nof_re);
+  dst->n0_dB      = SRSRAN_VEC_PMA(a->n0_dB, a->nof_re, b->n0_dB, b->nof_re);
+  dst->snr_dB     = SRSRAN_VEC_PMA(a->snr_dB, a->nof_re, b->snr_dB, b->nof_re);
+  dst->cfo_hz     = SRSRAN_VEC_PMA(a->cfo_hz, a->nof_re, b->cfo_hz, b->nof_re);
+  dst->cfo_hz_max = SRSRAN_MAX(a->cfo_hz_max, b->cfo_hz_max);
+  dst->delay_us   = SRSRAN_VEC_PMA(a->delay_us, a->nof_re, b->delay_us, b->nof_re);
+  dst->nof_re     = nof_re_sum;
+}
