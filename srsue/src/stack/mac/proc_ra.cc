@@ -220,6 +220,7 @@ void ra_proc::initialization()
   preambleTransmissionCounter = 1;
   mux_unit->msg3_flush();
   backoff_param_ms = 0;
+  transmitted_crnti = 0;
   resource_selection();
 }
 
@@ -405,10 +406,12 @@ void ra_proc::tb_decoded_ok(const uint8_t cc_idx, const uint32_t tti)
             rar_pdu_msg.get()->get_ta_cmd(),
             rar_pdu_msg.get()->get_temp_crnti());
 
+      // Save Temp-CRNTI before generating the reply
+      rntis->temp_rnti = rar_pdu_msg.get()->get_temp_crnti();
+
       // Perform actions when preamble was selected by UE MAC
       if (preambleIndex <= 0) {
         mux_unit->msg3_prepare();
-        rntis->temp_rnti = rar_pdu_msg.get()->get_temp_crnti();
 
         // If this is the first successfully received RAR within this procedure, Msg3 is empty
         if (mux_unit->msg3_is_empty()) {
