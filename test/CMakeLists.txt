@@ -19,3 +19,5 @@ if (ZEROMQ_FOUND AND ENABLE_ZMQ_TEST)
     endforeach (cell_n_prb)
   endforeach (num_cc)
 endif (ZEROMQ_FOUND AND ENABLE_ZMQ_TEST)
+
+add_subdirectory(phy)

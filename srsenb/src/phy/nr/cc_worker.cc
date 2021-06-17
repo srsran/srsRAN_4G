@@ -15,20 +15,20 @@
 
 namespace srsenb {
 namespace nr {
-cc_worker::cc_worker(uint32_t cc_idx_, srslog::basic_logger& log, phy_nr_state* phy_state_) :
+cc_worker::cc_worker(uint32_t cc_idx_, srslog::basic_logger& log, phy_nr_state& phy_state_) :
   cc_idx(cc_idx_), phy_state(phy_state_), logger(log)
 {
   cf_t* buffer_c[SRSRAN_MAX_PORTS] = {};
 
   // Allocate buffers
-  buffer_sz = SRSRAN_SF_LEN_PRB(phy_state->args.dl.nof_max_prb);
-  for (uint32_t i = 0; i < phy_state_->args.dl.nof_tx_antennas; i++) {
+  buffer_sz = SRSRAN_SF_LEN_PRB(phy_state.args.dl.nof_max_prb);
+  for (uint32_t i = 0; i < phy_state.args.dl.nof_tx_antennas; i++) {
     tx_buffer[i] = srsran_vec_cf_malloc(buffer_sz);
     rx_buffer[i] = srsran_vec_cf_malloc(buffer_sz);
     buffer_c[i]  = tx_buffer[i];
   }
 
-  if (srsran_enb_dl_nr_init(&enb_dl, buffer_c, &phy_state_->args.dl)) {
+  if (srsran_enb_dl_nr_init(&enb_dl, buffer_c, &phy_state.args.dl)) {
     ERROR("Error initiating UE DL NR");
     return;
   }
@@ -60,8 +60,8 @@ bool cc_worker::set_carrier(const srsran_carrier_nr_t* carrier)
   coreset.freq_resources[0] = true; // Enable the bottom 6 PRB for PDCCH
   coreset.duration          = 2;
 
-  srsran_dci_cfg_nr_t dci_cfg = phy_state->cfg.get_dci_cfg();
-  if (srsran_enb_dl_nr_set_pdcch_config(&enb_dl, &phy_state->cfg.pdcch, &dci_cfg) < SRSRAN_SUCCESS) {
+  srsran_dci_cfg_nr_t dci_cfg = phy_state.cfg.get_dci_cfg();
+  if (srsran_enb_dl_nr_set_pdcch_config(&enb_dl, &phy_state.cfg.pdcch, &dci_cfg) < SRSRAN_SUCCESS) {
     ERROR("Error setting coreset");
     return false;
   }
@@ -76,7 +76,7 @@ void cc_worker::set_tti(uint32_t tti)
 
 cf_t* cc_worker::get_tx_buffer(uint32_t antenna_idx)
 {
-  if (antenna_idx >= phy_state->args.dl.nof_tx_antennas) {
+  if (antenna_idx >= phy_state.args.dl.nof_tx_antennas) {
     return nullptr;
   }
 
@@ -85,7 +85,7 @@ cf_t* cc_worker::get_tx_buffer(uint32_t antenna_idx)
 
 cf_t* cc_worker::get_rx_buffer(uint32_t antenna_idx)
 {
-  if (antenna_idx >= phy_state->args.dl.nof_tx_antennas) {
+  if (antenna_idx >= phy_state.args.dl.nof_tx_antennas) {
     return nullptr;
   }
 

@@ -10,10 +10,11 @@
  *
  */
 
-#ifndef SRSUE_NR_WORKER_POOL_H
-#define SRSUE_NR_WORKER_POOL_H
+#ifndef SRSENB_NR_WORKER_POOL_H
+#define SRSENB_NR_WORKER_POOL_H
 
 #include "sf_worker.h"
+#include "srsenb/hdr/phy/phy_interfaces.h"
 #include "srsran/common/thread_pool.h"
 
 namespace srsenb {
@@ -29,7 +30,11 @@ public:
   sf_worker* operator[](std::size_t pos) { return workers.at(pos).get(); }
 
   worker_pool(uint32_t max_workers);
-  bool       init(const phy_args_t& args, phy_common* common, srslog::sink& log_sink, int prio);
+  bool       init(const phy_cell_cfg_list_nr_t& cell_list,
+                  const phy_args_t&             args,
+                  srsran::phy_common_interface& common,
+                  srslog::sink&                 log_sink,
+                  int                           prio);
   sf_worker* wait_worker(uint32_t tti);
   sf_worker* wait_worker_id(uint32_t id);
   void       start_worker(sf_worker* w);
@@ -39,4 +44,4 @@ public:
 } // namespace nr
 } // namespace srsenb
 
-#endif // SRSUE_NR_WORKER_POOL_H
+#endif // SRSENB_NR_WORKER_POOL_H

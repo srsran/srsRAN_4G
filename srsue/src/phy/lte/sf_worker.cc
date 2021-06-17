@@ -155,7 +155,7 @@ void sf_worker::work_imp()
 {
   srsran::rf_buffer_t tx_signal_ptr = {};
   if (!cell_initiated) {
-    phy->worker_end(this, false, tx_signal_ptr, tx_time, false);
+    phy->worker_end(this, tx_signal_ptr, tx_time, false);
     return;
   }
 
@@ -216,7 +216,6 @@ void sf_worker::work_imp()
       }
     }
   }
-  tx_signal_ptr.set_nof_samples(nof_samples);
 
   // Set PRACH buffer signal pointer
   if (prach_ptr) {
@@ -225,8 +224,13 @@ void sf_worker::work_imp()
     prach_ptr = nullptr;
   }
 
+  // Indicates worker there  is a transmission by setting the number of samples
+  if (tx_signal_ready) {
+    tx_signal_ptr.set_nof_samples(nof_samples);
+  }
+
   // Call worker_end to transmit the signal
-  phy->worker_end(this, tx_signal_ready, tx_signal_ptr, tx_time, false);
+  phy->worker_end(this, tx_signal_ptr, tx_time, false);
 
   if (rx_signal_ok) {
     update_measurements();

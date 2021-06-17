@@ -22,7 +22,7 @@ namespace nr {
 class cc_worker
 {
 public:
-  cc_worker(uint32_t cc_idx, srslog::basic_logger& log, state* phy_state_);
+  cc_worker(uint32_t cc_idx, srslog::basic_logger& log, state& phy_state_);
   ~cc_worker();
 
   bool update_cfg();
@@ -49,10 +49,10 @@ private:
   std::array<cf_t*, SRSRAN_MAX_PORTS> rx_buffer   = {};
   std::array<cf_t*, SRSRAN_MAX_PORTS> tx_buffer   = {};
   uint32_t                            buffer_sz   = 0;
-  state*                              phy         = nullptr;
-  srsran_ssb_t                        ssb         = {};
-  srsran_ue_dl_nr_t                   ue_dl       = {};
-  srsran_ue_ul_nr_t                   ue_ul       = {};
+  state&                              phy;
+  srsran_ssb_t                        ssb   = {};
+  srsran_ue_dl_nr_t                   ue_dl = {};
+  srsran_ue_ul_nr_t                   ue_ul = {};
   srslog::basic_logger&               logger;
 
   // Methods for DCI blind search

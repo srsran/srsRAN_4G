@@ -13,9 +13,9 @@
 #ifndef SRSUE_NR_PHCH_WORKER_H
 #define SRSUE_NR_PHCH_WORKER_H
 
-#include "../phy_common.h"
 #include "cc_worker.h"
 #include "srsran/common/thread_pool.h"
+#include "srsran/interfaces/phy_common_interface.h"
 
 namespace srsue {
 namespace nr {
@@ -31,7 +31,7 @@ namespace nr {
 class sf_worker final : public srsran::thread_pool::worker
 {
 public:
-  sf_worker(phy_common* phy, state* phy_state_, srslog::basic_logger& logger);
+  sf_worker(srsran::phy_common_interface& common_, state& phy_state_, srslog::basic_logger& logger);
   ~sf_worker() = default;
 
   bool update_cfg(uint32_t cc_idx);
@@ -51,9 +51,9 @@ private:
 
   std::vector<std::unique_ptr<cc_worker> > cc_workers;
 
-  phy_common*           phy       = nullptr;
-  state*                phy_state = nullptr;
-  srslog::basic_logger& logger;
+  srsran::phy_common_interface& common;
+  state&                        phy_state;
+  srslog::basic_logger&         logger;
 
   uint32_t tti_rx      = 0;
   cf_t*    prach_ptr   = nullptr;

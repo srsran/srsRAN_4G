@@ -27,10 +27,10 @@ static int       plot_worker_id = -1;
 
 namespace srsue {
 namespace nr {
-sf_worker::sf_worker(phy_common* phy_, state* phy_state_, srslog::basic_logger& log) :
-  phy_state(phy_state_), phy(phy_), logger(log)
+sf_worker::sf_worker(srsran::phy_common_interface& common_, state& phy_state_, srslog::basic_logger& log) :
+  phy_state(phy_state_), common(common_), logger(log)
 {
-  for (uint32_t i = 0; i < phy_state->args.nof_carriers; i++) {
+  for (uint32_t i = 0; i < phy_state.args.nof_carriers; i++) {
     cc_worker* w = new cc_worker(i, log, phy_state);
     cc_workers.push_back(std::unique_ptr<cc_worker>(w));
   }
@@ -79,8 +79,8 @@ void sf_worker::work_imp()
   }
 
   // Align workers, wait for previous workers to finish DL processing before starting UL processing
-  phy_state->dl_ul_semaphore.wait(this);
-  phy_state->dl_ul_semaphore.release();
+  phy_state.dl_ul_semaphore.wait(this);
+  phy_state.dl_ul_semaphore.release();
 
   // Check if PRACH is available
   if (prach_ptr != nullptr) {
@@ -88,14 +88,14 @@ void sf_worker::work_imp()
     tx_buffer.set(0, prach_ptr);
 
     // Notify MAC about PRACH transmission
-    phy_state->stack->prach_sent(TTI_TX(tti_rx),
-                                 srsran_prach_nr_start_symbol_fr1_unpaired(phy_state->cfg.prach.config_idx),
-                                 SRSRAN_SLOT_NR_MOD(phy_state->cfg.carrier.scs, TTI_TX(tti_rx)),
-                                 0,
-                                 0);
+    phy_state.stack->prach_sent(TTI_TX(tti_rx),
+                                srsran_prach_nr_start_symbol_fr1_unpaired(phy_state.cfg.prach.config_idx),
+                                SRSRAN_SLOT_NR_MOD(phy_state.cfg.carrier.scs, TTI_TX(tti_rx)),
+                                0,
+                                0);
 
     // Transmit NR PRACH
-    phy->worker_end(this, false, tx_buffer, dummy_ts, true);
+    common.worker_end(this, tx_buffer, dummy_ts, true);
 
     // Reset PRACH pointer
     prach_ptr = nullptr;
@@ -114,7 +114,7 @@ void sf_worker::work_imp()
   }
 
   // Always call worker_end before returning
-  phy->worker_end(this, false, tx_buffer, dummy_ts, true);
+  common.worker_end(this, tx_buffer, dummy_ts, true);
 
   // Tell the plotting thread to draw the plots
 #ifdef ENABLE_GUI

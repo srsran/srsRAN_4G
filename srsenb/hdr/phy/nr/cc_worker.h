@@ -13,6 +13,7 @@
 #ifndef SRSENB_NR_CC_WORKER_H
 #define SRSENB_NR_CC_WORKER_H
 
+#include "srsenb/hdr/phy/phy_interfaces.h"
 #include "srsran/interfaces/gnb_interfaces.h"
 #include "srsran/interfaces/rrc_nr_interface_types.h"
 #include "srsran/phy/enb/enb_dl_nr.h"
@@ -24,16 +25,18 @@
 namespace srsenb {
 namespace nr {
 
-typedef struct {
-  uint32_t                nof_carriers;
-  srsran_enb_dl_nr_args_t dl;
-} phy_nr_args_t;
+struct phy_nr_args_t {
+  uint32_t                nof_carriers = 1;
+  uint32_t                nof_ports    = 1;
+  srsran_enb_dl_nr_args_t dl           = {};
+};
 
 class phy_nr_state
 {
 public:
-  phy_nr_args_t        args = {};
-  srsran::phy_cfg_nr_t cfg  = {};
+  phy_cell_cfg_list_nr_t cell_list = {};
+  phy_nr_args_t          args;
+  srsran::phy_cfg_nr_t   cfg;
 
   phy_nr_state()
   {
@@ -49,7 +52,7 @@ public:
 class cc_worker
 {
 public:
-  cc_worker(uint32_t cc_idx, srslog::basic_logger& logger, phy_nr_state* phy_state_);
+  cc_worker(uint32_t cc_idx, srslog::basic_logger& logger, phy_nr_state& phy_state_);
   ~cc_worker();
 
   bool set_carrier(const srsran_carrier_nr_t* carrier);
@@ -70,7 +73,7 @@ private:
   std::array<cf_t*, SRSRAN_MAX_PORTS> tx_buffer   = {};
   std::array<cf_t*, SRSRAN_MAX_PORTS> rx_buffer   = {};
   uint32_t                            buffer_sz   = 0;
-  phy_nr_state*                       phy_state;
+  phy_nr_state&                       phy_state;
   srsran_enb_dl_nr_t                  enb_dl = {};
   srslog::basic_logger&               logger;
 };
