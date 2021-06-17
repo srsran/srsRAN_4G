@@ -30,6 +30,11 @@ struct rolling_average {
   }
   T        value() const { return count_ == 0 ? 0 : avg_; }
   uint32_t count() const { return count_; }
+  void     reset()
+  {
+    avg_   = 0;
+    count_ = 0;
+  }
 
 private:
   T        avg_   = 0;

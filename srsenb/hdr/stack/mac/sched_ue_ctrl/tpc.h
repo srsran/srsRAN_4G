@@ -77,7 +77,7 @@ public:
   {
     last_phr = phr_;
     for (auto& ch_snr : snr_estim_list) {
-      ch_snr.phr_flag = false;
+      ch_snr.acc_tpc_phr_values = 0;
     }
 
     // compute and cache the max nof UL PRBs that avoids overflowing PHR
@@ -109,6 +109,7 @@ public:
       if (ch_snr.pending_snr == null_snr) {
         ch_snr.last_snr_sample_count++;
         ch_snr.acc_tpc_values += ch_snr.win_tpc_values.oldest();
+        ch_snr.acc_tpc_phr_values += ch_snr.win_tpc_values.oldest();
       } else {
         ch_snr.acc_tpc_values = 0;
         ch_snr.snr_avg.push(ch_snr.pending_snr, ch_snr.last_snr_sample_count);
@@ -170,40 +171,43 @@ private:
       // undefined target SINR case
       return encode_tpc_delta(0);
     }
-    if ((tti_count - ch_snr.last_tpc_tti_count) < min_tpc_tti_interval) {
-      // more time required before sending next TPC
-      return encode_tpc_delta(0);
-    }
-    if (cc == PUSCH_CODE and last_phr < 0 and not ch_snr.phr_flag) {
-      // if negative PHR and PUSCH
-      logger.info("TPC: rnti=0x%x, PUSCH command=0 due to PHR=%d<0", rnti, last_phr);
-      ch_snr.phr_flag      = true;
-      ch_snr.pending_delta = -1;
-      return encode_tpc_delta(ch_snr.pending_delta);
+
+    // limitation of TPC based on PHR
+    int max_delta = 3;
+    int eff_phr   = last_phr;
+    if (cc == PUSCH_CODE and last_phr != undefined_phr) {
+      eff_phr -= ch_snr.win_tpc_values.value() + ch_snr.acc_tpc_phr_values;
+      max_delta = std::min(max_delta, eff_phr);
     }
 
-    // target SINR is finite and there is power headroom
-    float diff = target_snr_dB - ch_snr.last_snr_sample;
-    diff -= ch_snr.win_tpc_values.value() + ch_snr.acc_tpc_values;
-    if (diff >= 1) {
-      ch_snr.pending_delta = diff > 3 ? 3 : 1;
-      if (cc == PUSCH_CODE and static_cast<int>(ch_snr.pending_delta) > last_phr) {
-        // cap PUSCH TPC when PHR is low
-        ch_snr.pending_delta = last_phr > 1 ? 1 : 0;
+    float snr = ch_snr.last_snr_sample;
+    // In case of periodicity of TPCs is > 1 tti, use average SNR to compute SNR diff
+    if (min_tpc_tti_interval > 1) {
+      ch_snr.tpc_snr_avg.push(snr);
+      if ((tti_count - ch_snr.last_tpc_tti_count) < min_tpc_tti_interval) {
+        // more time required before sending next TPC
+        return encode_tpc_delta(0);
       }
-      ch_snr.last_tpc_tti_count = tti_count;
-    } else if (diff <= -1) {
-      ch_snr.pending_delta      = -1;
-      ch_snr.last_tpc_tti_count = tti_count;
+      snr = ch_snr.tpc_snr_avg.value();
     }
+
+    float diff = target_snr_dB - snr;
+    diff -= ch_snr.win_tpc_values.value() + ch_snr.acc_tpc_values;
+    ch_snr.pending_delta = std::max(std::min((int)floorf(diff), max_delta), -1);
+    ch_snr.pending_delta = (ch_snr.pending_delta == 2) ? 1 : ch_snr.pending_delta;
     if (ch_snr.pending_delta != 0) {
-      logger.debug("TPC: rnti=0x%x, %s command=%d, last SNR=%d, SNR average=%f, diff_acc=%f",
+      if (min_tpc_tti_interval > 1) {
+        ch_snr.last_tpc_tti_count = tti_count;
+        ch_snr.tpc_snr_avg.reset();
+      }
+      logger.debug("TPC: rnti=0x%x, %s command=%d, last SNR=%d, SNR average=%f, diff_acc=%f, eff_phr=%d",
                    rnti,
                    cc == PUSCH_CODE ? "PUSCH" : "PUCCH",
                    encode_tpc_delta(ch_snr.pending_delta),
                    ch_snr.last_snr_sample,
                    ch_snr.snr_avg.value(),
-                   diff);
+                   diff,
+                   eff_phr);
     }
     return encode_tpc_delta(ch_snr.pending_delta);
   }
@@ -225,8 +229,6 @@ private:
 
   // SNR estimation
   struct ul_ch_snr_estim {
-    // flag used in undefined target SINR case
-    bool phr_flag = false;
     // pending new snr sample
     float pending_snr = srsran::null_sliding_average<float>::null_value();
     // SNR average estimation with irregular sample spacing
@@ -234,10 +236,12 @@ private:
     srsran::exp_average_irreg_sampling<float> snr_avg;
     int                                       last_snr_sample;
     // Accumulation of past TPC commands
-    srsran::sliding_sum<int> win_tpc_values;
-    int8_t                   pending_delta      = 0;
-    int                      acc_tpc_values     = 0;
-    uint32_t                 last_tpc_tti_count = 0;
+    srsran::sliding_sum<int>       win_tpc_values;
+    int                            acc_tpc_values     = 0;
+    int                            acc_tpc_phr_values = 0;
+    int8_t                         pending_delta      = 0;
+    uint32_t                       last_tpc_tti_count = 0;
+    srsran::rolling_average<float> tpc_snr_avg; // average of SNRs since last TPC != 1
 
     explicit ul_ch_snr_estim(float exp_avg_alpha, int initial_snr) :
       snr_avg(exp_avg_alpha, initial_snr),
