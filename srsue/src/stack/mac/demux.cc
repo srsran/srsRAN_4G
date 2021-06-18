@@ -105,7 +105,7 @@ void demux::push_pdu_temp_crnti(uint8_t* buff, uint32_t nof_bytes)
     pending_mac_msg.reset();
     if (is_uecrid_successful) {
       Debug("Saved MAC PDU with Temporal C-RNTI in buffer");
-      pdus.push(buff, nof_bytes, 0, srsran::pdu_queue::DCH);
+      pdus.push(buff, nof_bytes, srsran::pdu_queue::DCH);
     } else {
       pdus.deallocate(buff);
     }
@@ -123,7 +123,7 @@ void demux::push_pdu(uint8_t* buff, uint32_t nof_bytes, uint32_t tti)
   // Process Real-Time PDUs
   process_sch_pdu_rt(buff, nof_bytes, tti);
 
-  return pdus.push(buff, nof_bytes, 0, srsran::pdu_queue::DCH);
+  return pdus.push(buff, nof_bytes, srsran::pdu_queue::DCH);
 }
 
 /* Demultiplexing of MAC PDU associated with SI-RNTI. The PDU passes through
