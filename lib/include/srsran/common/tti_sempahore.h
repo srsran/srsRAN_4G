@@ -37,6 +37,8 @@ private:
   std::deque<T>           fifo;  ///< Queue to keep order
 
 public:
+  tti_semaphore() = default;
+
   /**
    * Waits for the first element of the queue match the element identifier provided.
    *
