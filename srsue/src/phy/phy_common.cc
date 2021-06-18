@@ -531,10 +531,12 @@ bool phy_common::get_dl_pending_ack(srsran_ul_sf_cfg_t* sf, uint32_t cc_idx, srs
  * Each worker uses this function to indicate that all processing is done and data is ready for transmission or
  * there is no transmission at all (tx_enable). In that case, the end of burst message will be sent to the radio
  */
-void phy_common::worker_end(void* tx_sem_id, srsran::rf_buffer_t& buffer, srsran::rf_timestamp_t& tx_time, bool is_nr)
+void phy_common::worker_end(void*                   tx_sem_id,
+                            bool                    tx_enable,
+                            srsran::rf_buffer_t&    buffer,
+                            srsran::rf_timestamp_t& tx_time,
+                            bool                    is_nr)
 {
-  bool tx_enable = buffer.get_nof_samples() > 0;
-
   // Wait for the green light to transmit in the current TTI
   semaphore.wait(tx_sem_id);
 

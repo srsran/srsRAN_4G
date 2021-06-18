@@ -95,7 +95,7 @@ void sf_worker::work_imp()
                                 0);
 
     // Transmit NR PRACH
-    common.worker_end(this, tx_buffer, dummy_ts, true);
+    common.worker_end(this, true, tx_buffer, dummy_ts, true);
 
     // Reset PRACH pointer
     prach_ptr = nullptr;
@@ -114,7 +114,7 @@ void sf_worker::work_imp()
   }
 
   // Always call worker_end before returning
-  common.worker_end(this, tx_buffer, dummy_ts, true);
+  common.worker_end(this, true, tx_buffer, dummy_ts, true);
 
   // Tell the plotting thread to draw the plots
 #ifdef ENABLE_GUI

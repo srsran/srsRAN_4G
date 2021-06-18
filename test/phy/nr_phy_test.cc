@@ -17,7 +17,9 @@
 class phy_common : public srsran::phy_common_interface
 {
 public:
-  void worker_end(void* h, srsran::rf_buffer_t& buffer, srsran::rf_timestamp_t& tx_time, bool is_nr) override {}
+  void
+  worker_end(void* h, bool tx_enable, srsran::rf_buffer_t& buffer, srsran::rf_timestamp_t& tx_time, bool is_nr) override
+  {}
 };
 
 class ue_dummy_stack : public srsue::stack_interface_phy_nr

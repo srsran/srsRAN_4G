@@ -116,7 +116,7 @@ void sf_worker::work_imp()
     w->work_dl(dl_cfg, grants);
   }
 
-  common.worker_end(this, tx_buffer, dummy_ts, true);
+  common.worker_end(this, true, tx_buffer, dummy_ts, true);
 }
 
 } // namespace nr

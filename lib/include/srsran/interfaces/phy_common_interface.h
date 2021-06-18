@@ -21,7 +21,16 @@ namespace srsran {
 class phy_common_interface
 {
 public:
-  virtual void worker_end(void* h, srsran::rf_buffer_t& buffer, srsran::rf_timestamp_t& tx_time, bool is_nr) = 0;
+  /**
+   * @brief Common PHY interface for workers to indicate they ended
+   * @param h Worker pointer used as unique identifier for synchronising Tx
+   * @param tx_enable Indicates whether the buffer has baseband samples to transmit
+   * @param buffer Baseband buffer
+   * @param tx_time Transmit timestamp
+   * @param is_nr Indicates whether the worker is NR or not
+   */
+  virtual void
+  worker_end(void* h, bool tx_enable, srsran::rf_buffer_t& buffer, srsran::rf_timestamp_t& tx_time, bool is_nr) = 0;
 };
 
 } // namespace srsran

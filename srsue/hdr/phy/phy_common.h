@@ -130,7 +130,11 @@ public:
                           srsran_pdsch_ack_resource_t resource);
   bool get_dl_pending_ack(srsran_ul_sf_cfg_t* sf, uint32_t cc_idx, srsran_pdsch_ack_cc_t* ack);
 
-  void worker_end(void* h, srsran::rf_buffer_t& buffer, srsran::rf_timestamp_t& tx_time, bool is_nr) override;
+  void worker_end(void*                   h,
+                  bool                    tx_enable,
+                  srsran::rf_buffer_t&    buffer,
+                  srsran::rf_timestamp_t& tx_time,
+                  bool                    is_nr) override;
 
   void set_cell(const srsran_cell_t& c);
 

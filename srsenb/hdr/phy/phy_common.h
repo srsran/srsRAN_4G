@@ -58,9 +58,10 @@ public:
    * @param is_nr flag is true if it is called from NR
    */
   void worker_end(void*                   tx_sem_id,
+                  bool                    tx_enable,
                   srsran::rf_buffer_t&    buffer,
                   srsran::rf_timestamp_t& tx_time,
-                  bool                    is_nr = false) override;
+                  bool                    is_nr) override;
 
   // Common objects
   phy_args_t params = {};
