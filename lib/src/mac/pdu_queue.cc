@@ -76,7 +76,7 @@ bool pdu_queue::process_pdus()
   pdu_t*   pdu;
   while (pdu_q.try_pop(pdu)) {
     if (callback) {
-      callback->process_pdu(pdu->ptr, pdu->len, pdu->ue_cc_idx, pdu->channel, pdu->grant_nof_prbs);
+      callback->process_pdu(pdu->ptr, pdu->len, pdu->channel, pdu->grant_nof_prbs);
     }
     cnt++;
     have_data = true;

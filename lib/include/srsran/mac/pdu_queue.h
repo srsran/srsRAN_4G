@@ -30,7 +30,7 @@ public:
   class process_callback
   {
   public:
-    virtual void process_pdu(uint8_t* buff, uint32_t len, uint32_t ue_cc_idx, channel_t channel, int ul_nof_prbs = -1) = 0;
+    virtual void process_pdu(uint8_t* buff, uint32_t len, channel_t channel, int ul_nof_prbs = -1) = 0;
   };
 
   pdu_queue(srslog::basic_logger& logger) : pool(DEFAULT_POOL_SIZE), callback(NULL), logger(logger) {}
