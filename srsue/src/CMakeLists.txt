@@ -20,6 +20,7 @@
 
 add_subdirectory(phy)
 add_subdirectory(stack)
+add_subdirectory(test)
 
 # Link libstdc++ and libgcc
 if(BUILD_STATIC)

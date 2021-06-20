@@ -18,6 +18,8 @@
 # and at http://www.gnu.org/licenses/.
 #
 
+add_subdirectory(test)
+
 set(SOURCES nas.cc nas_emm_state.cc nas_idle_procedures.cc gw.cc usim_base.cc usim.cc tft_packet_filter.cc)
 
 if(HAVE_PCSC)

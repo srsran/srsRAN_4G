@@ -620,8 +620,31 @@ void phy_common::update_cfo_measurement(uint32_t cc_idx, float cfo_hz)
 {
   std::unique_lock<std::mutex> lock(meas_mutex);
 
-  // use SNR EMA coefficient for averaging
-  avg_cfo_hz[cc_idx] = SRSRAN_VEC_EMA(cfo_hz, avg_cfo_hz[cc_idx], args->snr_ema_coeff);
+  // Use SNR EMA coefficient for averaging
+  avg_cfo_hz[cc_idx] = SRSRAN_VEC_SAFE_EMA(cfo_hz, avg_cfo_hz[cc_idx], args->snr_ema_coeff);
+}
+
+void phy_common::reset_measurements(uint32_t cc_idx)
+{
+  // If the CC index exceeds the maximum number of carriers, reset them all
+  if (cc_idx >= SRSRAN_MAX_CARRIERS) {
+    for (uint32_t cc = 0; cc < SRSRAN_MAX_CARRIERS; cc++) {
+      reset_measurements(cc);
+    }
+  }
+
+  // Default all metrics to NAN to prevent providing invalid information on traces and other layers
+  std::unique_lock<std::mutex> lock(meas_mutex);
+  pathloss[cc_idx]       = NAN;
+  avg_rsrp[cc_idx]       = NAN;
+  avg_rsrp_dbm[cc_idx]   = NAN;
+  avg_rsrq_db[cc_idx]    = NAN;
+  avg_rssi_dbm[cc_idx]   = NAN;
+  avg_cfo_hz[cc_idx]     = NAN;
+  avg_sinr_db[cc_idx]    = NAN;
+  avg_snr_db[cc_idx]     = NAN;
+  avg_noise[cc_idx]      = NAN;
+  avg_rsrp_neigh[cc_idx] = NAN;
 }
 
 void phy_common::update_measurements(uint32_t                     cc_idx,
@@ -653,7 +676,7 @@ void phy_common::update_measurements(uint32_t                     cc_idx,
                                 30)
                              : 0;
         if (std::isnormal(rssi_dbm)) {
-          avg_rssi_dbm[0] = SRSRAN_VEC_EMA(rssi_dbm, avg_rssi_dbm[0], args->snr_ema_coeff);
+          avg_rssi_dbm[0] = SRSRAN_VEC_SAFE_EMA(rssi_dbm, avg_rssi_dbm[0], args->snr_ema_coeff);
         }
 
         rx_gain_offset = get_radio()->get_rx_gain() + args->rx_gain_offset;
@@ -667,21 +690,17 @@ void phy_common::update_measurements(uint32_t                     cc_idx,
     // Average RSRQ over DEFAULT_MEAS_PERIOD_MS then sent to RRC
     float rsrq_db = chest_res.rsrq_db;
     if (std::isnormal(rsrq_db)) {
-      if (!(sf_cfg_dl.tti % pcell_report_period) || !std::isnormal(avg_rsrq_db[cc_idx])) {
-        avg_rsrq_db[cc_idx] = rsrq_db;
-      } else {
-        avg_rsrq_db[cc_idx] = SRSRAN_VEC_CMA(rsrq_db, avg_rsrq_db[cc_idx], sf_cfg_dl.tti % pcell_report_period);
+      // Reset average RSRQ measurement
+      if (sf_cfg_dl.tti % pcell_report_period == 0) {
+        avg_rsrq_db[cc_idx] = NAN;
       }
+      avg_rsrq_db[cc_idx] = SRSRAN_VEC_SAFE_CMA(rsrq_db, avg_rsrq_db[cc_idx], sf_cfg_dl.tti % pcell_report_period);
     }
 
     // Average RSRP taken from CRS
     float rsrp_lin = chest_res.rsrp;
     if (std::isnormal(rsrp_lin)) {
-      if (!std::isnormal(avg_rsrp[cc_idx])) {
-        avg_rsrp[cc_idx] = rsrp_lin;
-      } else {
-        avg_rsrp[cc_idx] = SRSRAN_VEC_EMA(rsrp_lin, avg_rsrp[cc_idx], snr_ema_coeff);
-      }
+      avg_rsrp[cc_idx] = SRSRAN_VEC_SAFE_EMA(rsrp_lin, avg_rsrp[cc_idx], snr_ema_coeff);
     }
 
     /* Correct absolute power measurements by RX gain offset */
@@ -689,11 +708,11 @@ void phy_common::update_measurements(uint32_t                     cc_idx,
 
     // Serving cell RSRP measurements are averaged over DEFAULT_MEAS_PERIOD_MS then sent to RRC
     if (std::isnormal(rsrp_dbm)) {
-      if (!(sf_cfg_dl.tti % pcell_report_period) || !std::isnormal(avg_rsrp_dbm[cc_idx])) {
-        avg_rsrp_dbm[cc_idx] = rsrp_dbm;
-      } else {
-        avg_rsrp_dbm[cc_idx] = SRSRAN_VEC_CMA(rsrp_dbm, avg_rsrp_dbm[cc_idx], sf_cfg_dl.tti % pcell_report_period);
+      // Reset average RSRP measurement
+      if (sf_cfg_dl.tti % pcell_report_period == 0) {
+        avg_rsrp_dbm[cc_idx] = NAN;
       }
+      avg_rsrp_dbm[cc_idx] = SRSRAN_VEC_SAFE_CMA(rsrp_dbm, avg_rsrp_dbm[cc_idx], sf_cfg_dl.tti % pcell_report_period);
     }
 
     // Compute PL
@@ -702,11 +721,7 @@ void phy_common::update_measurements(uint32_t                     cc_idx,
     // Average noise
     float cur_noise = chest_res.noise_estimate;
     if (std::isnormal(cur_noise)) {
-      if (!std::isnormal(avg_noise[cc_idx])) {
-        avg_noise[cc_idx] = cur_noise;
-      } else {
-        avg_noise[cc_idx] = SRSRAN_VEC_EMA(cur_noise, avg_noise[cc_idx], snr_ema_coeff);
-      }
+      avg_noise[cc_idx] = SRSRAN_VEC_SAFE_EMA(cur_noise, avg_noise[cc_idx], snr_ema_coeff);
     }
 
     // Calculate SINR using CRS from neighbours if are detected
@@ -723,20 +738,12 @@ void phy_common::update_measurements(uint32_t                     cc_idx,
 
     // Average sinr in the log domain
     if (std::isnormal(sinr_db)) {
-      if (!std::isnormal(avg_sinr_db[cc_idx])) {
-        avg_sinr_db[cc_idx] = sinr_db;
-      } else {
-        avg_sinr_db[cc_idx] = SRSRAN_VEC_EMA(sinr_db, avg_sinr_db[cc_idx], snr_ema_coeff);
-      }
+      avg_sinr_db[cc_idx] = SRSRAN_VEC_SAFE_EMA(sinr_db, avg_sinr_db[cc_idx], snr_ema_coeff);
     }
 
     // Average snr in the log domain
     if (std::isnormal(chest_res.snr_db)) {
-      if (!std::isnormal(avg_snr_db[cc_idx])) {
-        avg_snr_db[cc_idx] = chest_res.snr_db;
-      } else {
-        avg_snr_db[cc_idx] = SRSRAN_VEC_EMA(chest_res.snr_db, avg_snr_db[cc_idx], snr_ema_coeff);
-      }
+      avg_snr_db[cc_idx] = SRSRAN_VEC_SAFE_EMA(chest_res.snr_db, avg_snr_db[cc_idx], snr_ema_coeff);
     }
 
     // Store metrics
@@ -751,9 +758,9 @@ void phy_common::update_measurements(uint32_t                     cc_idx,
 
     set_ch_metrics(cc_idx, ch);
 
-    // Prepare measurements for serving cells
-    bool active = cell_state.is_configured(cc_idx);
-    if (active && ((sf_cfg_dl.tti % pcell_report_period) == pcell_report_period - 1)) {
+    // Prepare measurements for serving cells - skip if any measurement is invalid assuming pure zeros are not possible
+    if (std::isnormal(avg_rsrp_dbm[cc_idx]) and
+        std::isnormal(avg_cfo_hz[cc_idx] and ((sf_cfg_dl.tti % pcell_report_period) == pcell_report_period - 1))) {
       phy_meas_t meas = {};
       meas.rsrp       = avg_rsrp_dbm[cc_idx];
       meas.rsrq       = avg_rsrq_db[cc_idx];
@@ -875,25 +882,17 @@ void phy_common::reset()
 {
   reset_radio();
 
-  sr_enabled          = false;
-  cur_pathloss        = 0;
-  cur_pusch_power     = 0;
-  sr_last_tx_tti      = -1;
-  pcell_report_period = 20;
-  last_ri             = 0;
+  sr_enabled      = false;
+  cur_pathloss    = 0;
+  cur_pusch_power = 0;
+  sr_last_tx_tti  = -1;
+  last_ri         = 0;
 
-  {
-    std::unique_lock<std::mutex> lock(meas_mutex);
-    ZERO_OBJECT(pathloss);
-    ZERO_OBJECT(avg_sinr_db);
-    ZERO_OBJECT(avg_snr_db);
-    ZERO_OBJECT(avg_rsrp);
-    ZERO_OBJECT(avg_rsrp_dbm);
-    ZERO_OBJECT(avg_rsrq_db);
-  }
+  // Reset all measurements
+  reset_measurements(SRSRAN_MAX_CARRIERS);
+
+  // Reset all SCell states
   cell_state.reset();
-
-  reset_neighbour_cells();
 
   // Note: Using memset to reset these members is forbidden because they are real objects, not plain arrays.
   {

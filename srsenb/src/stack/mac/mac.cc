@@ -174,7 +174,7 @@ void mac::phy_config_enabled(uint16_t rnti, bool enabled)
 }
 
 // Update UE configuration
-int mac::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg)
+int mac::ue_cfg(uint16_t rnti, const sched_interface::ue_cfg_t* cfg)
 {
   srsran::rwlock_read_guard lock(rwlock);
   if (not check_ue_active(rnti)) {
@@ -186,10 +186,12 @@ int mac::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg)
   ue_ptr->start_ta();
 
   // Update Scheduler configuration
-  if (cfg != nullptr and scheduler.ue_cfg(rnti, *cfg) == SRSRAN_ERROR) {
-    logger.error("Registering new UE rnti=0x%x to SCHED", rnti);
+  if (scheduler.ue_cfg(rnti, *cfg) == SRSRAN_ERROR) {
+    logger.error("Registering UE rnti=0x%x to SCHED", rnti);
     return SRSRAN_ERROR;
   }
+  ue_ptr->ue_cfg(*cfg);
+
   return SRSRAN_SUCCESS;
 }
 
@@ -220,7 +222,7 @@ int mac::ue_rem(uint16_t rnti)
 }
 
 // Called after Msg3
-int mac::ue_set_crnti(uint16_t temp_crnti, uint16_t crnti, sched_interface::ue_cfg_t* cfg)
+int mac::ue_set_crnti(uint16_t temp_crnti, uint16_t crnti, const sched_interface::ue_cfg_t& cfg)
 {
   srsran::rwlock_read_guard lock(rwlock);
   if (temp_crnti != crnti) {
@@ -230,7 +232,7 @@ int mac::ue_set_crnti(uint16_t temp_crnti, uint16_t crnti, sched_interface::ue_c
     // Schedule ConRes Msg4
     scheduler.dl_mac_buffer_state(crnti, (uint32_t)srsran::dl_sch_lcid::CON_RES_ID);
   }
-  return ue_cfg(crnti, cfg);
+  return ue_cfg(crnti, &cfg);
 }
 
 int mac::cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg_)
@@ -323,14 +325,7 @@ int mac::push_pdu(uint32_t tti_rx,
     return SRSRAN_ERROR;
   }
 
-  std::array<int, SRSRAN_MAX_CARRIERS> enb_ue_cc_map = scheduler.get_enb_ue_cc_map(rnti);
-  if (enb_ue_cc_map[enb_cc_idx] < 0) {
-    logger.error("User rnti=0x%x is not activated for carrier %d", rnti, enb_cc_idx);
-    return SRSRAN_ERROR;
-  }
-  uint32_t ue_cc_idx = enb_ue_cc_map[enb_cc_idx];
-
-  srsran::unique_byte_buffer_t pdu = ue_db[rnti]->release_pdu(tti_rx, ue_cc_idx);
+  srsran::unique_byte_buffer_t pdu = ue_db[rnti]->release_pdu(tti_rx, enb_cc_idx);
   if (pdu == nullptr) {
     logger.warning("Could not find MAC UL PDU for rnti=0x%x, cc=%d, tti=%d", rnti, enb_cc_idx, tti_rx);
     return SRSRAN_ERROR;
@@ -463,7 +458,7 @@ bool mac::is_valid_rnti_unprotected(uint16_t rnti)
   return true;
 }
 
-uint16_t mac::allocate_ue()
+uint16_t mac::allocate_ue(uint32_t enb_cc_idx)
 {
   ue*      inserted_ue = nullptr;
   uint16_t rnti        = SRSRAN_INVALID_RNTI;
@@ -482,7 +477,7 @@ uint16_t mac::allocate_ue()
 
     // Allocate and initialize UE object
     unique_rnti_ptr<ue> ue_ptr = make_rnti_obj<ue>(
-        rnti, rnti, args.nof_prb, &scheduler, rrc_h, rlc_h, phy_h, logger, cells.size(), softbuffer_pool.get());
+        rnti, rnti, enb_cc_idx, &scheduler, rrc_h, rlc_h, phy_h, logger, cells.size(), softbuffer_pool.get());
 
     // Add UE to rnti map
     srsran::rwlock_write_guard rw_lock(rwlock);
@@ -509,19 +504,17 @@ uint16_t mac::allocate_ue()
   return rnti;
 }
 
-uint16_t mac::reserve_new_crnti(const sched_interface::ue_cfg_t& ue_cfg)
+uint16_t mac::reserve_new_crnti(const sched_interface::ue_cfg_t& uecfg)
 {
-  uint16_t rnti = allocate_ue();
+  uint16_t rnti = allocate_ue(uecfg.supported_cc_list[0].enb_cc_idx);
   if (rnti == SRSRAN_INVALID_RNTI) {
     return rnti;
   }
 
   // Add new user to the scheduler so that it can RX/TX SRB0
-  if (scheduler.ue_cfg(rnti, ue_cfg) != SRSRAN_SUCCESS) {
-    logger.error("Registering new user rnti=0x%x to SCHED", rnti);
+  if (ue_cfg(rnti, &uecfg) != SRSRAN_SUCCESS) {
     return SRSRAN_INVALID_RNTI;
   }
-
   return rnti;
 }
 
@@ -532,7 +525,7 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
   auto rach_tprof_meas = rach_tprof.start();
 
   stack_task_queue.push([this, tti, enb_cc_idx, preamble_idx, time_adv, rach_tprof_meas]() mutable {
-    uint16_t rnti = allocate_ue();
+    uint16_t rnti = allocate_ue(enb_cc_idx);
     if (rnti == SRSRAN_INVALID_RNTI) {
       return;
     }
@@ -550,20 +543,18 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
     ++detected_rachs[enb_cc_idx];
 
     // Add new user to the scheduler so that it can RX/TX SRB0
-    sched_interface::ue_cfg_t ue_cfg = {};
-    ue_cfg.supported_cc_list.emplace_back();
-    ue_cfg.supported_cc_list.back().active     = true;
-    ue_cfg.supported_cc_list.back().enb_cc_idx = enb_cc_idx;
-    ue_cfg.ue_bearers[0].direction             = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-    ue_cfg.supported_cc_list[0].dl_cfg.tm      = SRSRAN_TM1;
-    if (scheduler.ue_cfg(rnti, ue_cfg) != SRSRAN_SUCCESS) {
-      logger.error("Registering new user rnti=0x%x to SCHED", rnti);
-      ue_rem(rnti);
+    sched_interface::ue_cfg_t uecfg = {};
+    uecfg.supported_cc_list.emplace_back();
+    uecfg.supported_cc_list.back().active     = true;
+    uecfg.supported_cc_list.back().enb_cc_idx = enb_cc_idx;
+    uecfg.ue_bearers[0].direction             = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+    uecfg.supported_cc_list[0].dl_cfg.tm      = SRSRAN_TM1;
+    if (ue_cfg(rnti, &uecfg) != SRSRAN_SUCCESS) {
       return;
     }
 
     // Register new user in RRC
-    if (rrc_h->add_user(rnti, ue_cfg) == SRSRAN_ERROR) {
+    if (rrc_h->add_user(rnti, uecfg) == SRSRAN_ERROR) {
       ue_rem(rnti);
       return;
     }
@@ -621,7 +612,7 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
 
           for (uint32_t tb = 0; tb < SRSRAN_MAX_TB; tb++) {
             dl_sched_res->pdsch[n].softbuffer_tx[tb] =
-                ue_db[rnti]->get_tx_softbuffer(sched_result.data[i].dci.ue_cc_idx, sched_result.data[i].dci.pid, tb);
+                ue_db[rnti]->get_tx_softbuffer(enb_cc_idx, sched_result.data[i].dci.pid, tb);
 
             // If the Rx soft-buffer is not given, abort transmission
             if (dl_sched_res->pdsch[n].softbuffer_tx[tb] == nullptr) {
@@ -630,7 +621,7 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
 
             if (sched_result.data[i].nof_pdu_elems[tb] > 0) {
               /* Get PDU if it's a new transmission */
-              dl_sched_res->pdsch[n].data[tb] = ue_db[rnti]->generate_pdu(sched_result.data[i].dci.ue_cc_idx,
+              dl_sched_res->pdsch[n].data[tb] = ue_db[rnti]->generate_pdu(enb_cc_idx,
                                                                           sched_result.data[i].dci.pid,
                                                                           tb,
                                                                           sched_result.data[i].pdu[tb],
@@ -936,11 +927,11 @@ int mac::get_ul_sched(uint32_t tti_tx_ul, ul_sched_list_t& ul_sched_res_list)
           phy_ul_sched_res->pusch[n].pid           = TTI_RX(tti_tx_ul) % SRSRAN_FDD_NOF_HARQ;
           phy_ul_sched_res->pusch[n].needs_pdcch   = sched_result.pusch[i].needs_pdcch;
           phy_ul_sched_res->pusch[n].dci           = sched_result.pusch[i].dci;
-          phy_ul_sched_res->pusch[n].softbuffer_rx =
-              ue_db[rnti]->get_rx_softbuffer(sched_result.pusch[i].dci.ue_cc_idx, tti_tx_ul);
+          phy_ul_sched_res->pusch[n].softbuffer_rx = ue_db[rnti]->get_rx_softbuffer(enb_cc_idx, tti_tx_ul);
 
           // If the Rx soft-buffer is not given, abort reception
           if (phy_ul_sched_res->pusch[n].softbuffer_rx == nullptr) {
+            logger.warning("Failed to retrieve UL softbuffer for tti=%d, cc=%d", tti_tx_ul, enb_cc_idx);
             continue;
           }
 
@@ -948,7 +939,7 @@ int mac::get_ul_sched(uint32_t tti_tx_ul, ul_sched_list_t& ul_sched_res_list)
             srsran_softbuffer_rx_reset_tbs(phy_ul_sched_res->pusch[n].softbuffer_rx, sched_result.pusch[i].tbs * 8);
           }
           phy_ul_sched_res->pusch[n].data =
-              ue_db[rnti]->request_buffer(tti_tx_ul, sched_result.pusch[i].dci.ue_cc_idx, sched_result.pusch[i].tbs);
+              ue_db[rnti]->request_buffer(tti_tx_ul, enb_cc_idx, sched_result.pusch[i].tbs);
           if (phy_ul_sched_res->pusch[n].data) {
             phy_ul_sched_res->nof_grants++;
           } else {
@@ -995,7 +986,7 @@ void mac::write_mcch(const srsran::sib2_mbms_t* sib2_,
   memcpy(mcch_payload_buffer, mcch_payload, mcch_payload_length * sizeof(uint8_t));
   current_mcch_length = mcch_payload_length;
   ue_db[SRSRAN_MRNTI] = std::unique_ptr<ue>{
-      new ue(SRSRAN_MRNTI, args.nof_prb, &scheduler, rrc_h, rlc_h, phy_h, logger, cells.size(), softbuffer_pool.get())};
+      new ue(SRSRAN_MRNTI, 0, &scheduler, rrc_h, rlc_h, phy_h, logger, cells.size(), softbuffer_pool.get())};
 
   rrc_h->add_user(SRSRAN_MRNTI, {});
 }

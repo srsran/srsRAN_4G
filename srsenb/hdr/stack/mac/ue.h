@@ -131,7 +131,7 @@ class ue : public srsran::read_pdu_interface, public mac_ta_ue_interface
 {
 public:
   ue(uint16_t                                 rnti,
-     uint32_t                                 nof_prb,
+     uint32_t                                 enb_cc_idx,
      sched_interface*                         sched,
      rrc_interface_mac*                       rrc_,
      rlc_interface_mac*                       rlc,
@@ -141,9 +141,11 @@ public:
      srsran::obj_pool_itf<ue_cc_softbuffers>* softbuffer_pool);
 
   virtual ~ue();
-  void     reset();
-  void     start_pcap(srsran::mac_pcap* pcap_);
-  void     start_pcap_net(srsran::mac_pcap_net* pcap_net_);
+  void reset();
+  void start_pcap(srsran::mac_pcap* pcap_);
+  void start_pcap_net(srsran::mac_pcap_net* pcap_net_);
+  void ue_cfg(const sched_interface::ue_cfg_t& ue_cfg);
+
   void     set_tti(uint32_t tti);
   uint16_t get_rnti() const { return rnti; }
   uint32_t set_ta(int ta) override;
@@ -154,7 +156,7 @@ public:
   void     set_active(bool active) { active_state.store(active, std::memory_order_relaxed); }
   bool     is_active() const { return active_state.load(std::memory_order_relaxed); }
 
-  uint8_t* generate_pdu(uint32_t                              ue_cc_idx,
+  uint8_t* generate_pdu(uint32_t                              enb_cc_idx,
                         uint32_t                              harq_pid,
                         uint32_t                              tb_idx,
                         const sched_interface::dl_sched_pdu_t pdu[sched_interface::MAX_RLC_PDU_LIST],
@@ -163,12 +165,12 @@ public:
   uint8_t*
   generate_mch_pdu(uint32_t harq_pid, sched_interface::dl_pdu_mch_t sched, uint32_t nof_pdu_elems, uint32_t grant_size);
 
-  srsran_softbuffer_tx_t* get_tx_softbuffer(uint32_t ue_cc_idx, uint32_t harq_process, uint32_t tb_idx);
-  srsran_softbuffer_rx_t* get_rx_softbuffer(uint32_t ue_cc_idx, uint32_t tti);
+  srsran_softbuffer_tx_t* get_tx_softbuffer(uint32_t enb_cc_idx, uint32_t harq_process, uint32_t tb_idx);
+  srsran_softbuffer_rx_t* get_rx_softbuffer(uint32_t enb_cc_idx, uint32_t tti);
 
-  uint8_t*                     request_buffer(uint32_t tti, uint32_t ue_cc_idx, const uint32_t len);
+  uint8_t*                     request_buffer(uint32_t tti, uint32_t enb_cc_idx, uint32_t len);
   void                         process_pdu(srsran::unique_byte_buffer_t pdu, uint32_t grant_nof_prbs);
-  srsran::unique_byte_buffer_t release_pdu(uint32_t tti, uint32_t ue_cc_idx);
+  srsran::unique_byte_buffer_t release_pdu(uint32_t tti, uint32_t enb_cc_idx);
   void                         clear_old_buffers(uint32_t tti);
 
   void metrics_read(mac_ue_metrics_t* metrics_);
@@ -223,7 +225,7 @@ private:
   std::mutex mutex;
   std::mutex rx_buffers_mutex;
 
-  const uint8_t UL_CC_IDX = 0; ///< Passed to write CC index in PCAP (TODO: use actual CC idx)
+  static const uint8_t UL_CC_IDX = 0; ///< Passed to write CC index in PCAP
 };
 
 } // namespace srsenb

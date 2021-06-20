@@ -1179,12 +1179,23 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
 
   std::unique_lock<std::mutex> lock(mutex);
 
-  logger.info(payload, nof_bytes, "%s Rx control PDU", RB_NAME);
+  logger.debug(payload, nof_bytes, "%s Rx control PDU", RB_NAME);
 
   rlc_status_pdu_t status;
   rlc_am_read_status_pdu(payload, nof_bytes, &status);
 
   log_rlc_am_status_pdu_to_string(logger.info, "%s Rx Status PDU: %s", &status, RB_NAME);
+
+  // make sure ACK_SN is within our Tx window
+  if (((MOD + status.ack_sn - vt_a) % MOD > RLC_AM_WINDOW_SIZE) ||
+      ((MOD + vt_s - status.ack_sn) % MOD > RLC_AM_WINDOW_SIZE)) {
+    logger.warning("%s Received invalid status PDU (ack_sn=%d, vt_a=%d, vt_s=%d). Dropping PDU.",
+                   RB_NAME,
+                   status.ack_sn,
+                   vt_a,
+                   vt_s);
+    return;
+  }
 
   // Sec 5.2.2.2, stop poll reTx timer if status PDU comprises a positive _or_ negative acknowledgement
   // for the RLC data PDU with sequence number poll_sn
@@ -1838,6 +1849,7 @@ void rlc_am_lte::rlc_am_lte_rx::reset_status()
 
 bool rlc_am_lte::rlc_am_lte_rx::get_do_status()
 {
+  std::lock_guard<std::mutex> lock(mutex);
   return do_status;
 }
 
@@ -1933,9 +1945,9 @@ int rlc_am_lte::rlc_am_lte_rx::get_status_pdu(rlc_status_pdu_t* status, const ui
         logger.debug("Removing last NACK SN=%d", status->nacks[status->N_nack].nack_sn);
         status->N_nack--;
         // make sure we don't have the current ACK_SN in the NACK list
-        if (rlc_am_is_valid_status_pdu(*status) == false) {
+        if (rlc_am_is_valid_status_pdu(*status, vr_r) == false) {
           // No space to send any NACKs, play safe and just ack lower edge
-          logger.debug("Resetting ACK_SN and N_nack to initial state");
+          logger.warning("Resetting ACK_SN and N_nack to initial state");
           status->ack_sn = vr_r;
           status->N_nack = 0;
         }
@@ -2405,8 +2417,13 @@ int rlc_am_write_status_pdu(rlc_status_pdu_t* status, uint8_t* payload)
   return tmp.N_bits / 8;
 }
 
-bool rlc_am_is_valid_status_pdu(const rlc_status_pdu_t& status)
+bool rlc_am_is_valid_status_pdu(const rlc_status_pdu_t& status, uint32_t rx_win_min)
 {
+  // check if ACK_SN is inside Rx window
+  if ((MOD + status.ack_sn - rx_win_min) % MOD > RLC_AM_WINDOW_SIZE) {
+    return false;
+  }
+
   for (uint32_t i = 0; i < status.N_nack; ++i) {
     // NACK can't be larger than ACK
     if ((MOD + status.ack_sn - status.nacks[i].nack_sn) % MOD > RLC_AM_WINDOW_SIZE) {

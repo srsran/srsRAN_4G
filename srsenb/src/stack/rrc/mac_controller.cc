@@ -125,7 +125,7 @@ void mac_controller::handle_con_reject()
   if (not crnti_set) {
     crnti_set = true;
     // Need to schedule ConRes CE for UE to see the Reject message
-    mac->ue_set_crnti(rnti, rnti, &current_sched_ue_cfg);
+    mac->ue_set_crnti(rnti, rnti, current_sched_ue_cfg);
   }
 }
 
@@ -146,7 +146,7 @@ int mac_controller::handle_crnti_ce(uint32_t temp_crnti)
     current_sched_ue_cfg.ue_bearers[i] = next_sched_ue_cfg.ue_bearers[i];
   }
 
-  return mac->ue_set_crnti(temp_crnti, rnti, &current_sched_ue_cfg);
+  return mac->ue_set_crnti(temp_crnti, rnti, current_sched_ue_cfg);
 }
 
 int mac_controller::apply_basic_conn_cfg(const asn1::rrc::rr_cfg_ded_s& rr_cfg)
@@ -192,7 +192,7 @@ int mac_controller::apply_basic_conn_cfg(const asn1::rrc::rr_cfg_ded_s& rr_cfg)
   // In case of RRC Connection Setup/Reest message (Msg4), we need to resolve the contention by sending a ConRes CE
   mac->phy_config_enabled(rnti, false);
   crnti_set = true;
-  return mac->ue_set_crnti(rnti, rnti, &current_sched_ue_cfg);
+  return mac->ue_set_crnti(rnti, rnti, current_sched_ue_cfg);
 }
 
 void mac_controller::handle_con_setup_complete()
@@ -292,7 +292,7 @@ void mac_controller::handle_intraenb_ho_cmd(const asn1::rrc::rrc_conn_recfg_r8_i
 
   // Stop any SRB UL (including SRs)
   for (uint32_t i = srb_to_lcid(lte_srb::srb1); i <= srb_to_lcid(lte_srb::srb2); ++i) {
-    next_sched_ue_cfg.ue_bearers[i].direction = sched_interface::ue_bearer_cfg_t::DL;
+    current_sched_ue_cfg.ue_bearers[i].direction = sched_interface::ue_bearer_cfg_t::DL;
   }
 
   update_mac(mac_controller::config_tx);

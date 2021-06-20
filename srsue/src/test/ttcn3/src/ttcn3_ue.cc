@@ -19,7 +19,7 @@
  *
  */
 
-#include "srsue/test/ttcn3/hdr/ttcn3_ue.h"
+#include "ttcn3_ue.h"
 #include "lte_ttcn3_phy.h"
 #include "srsue/hdr/stack/ue_stack_lte.h"
 #include <sstream>

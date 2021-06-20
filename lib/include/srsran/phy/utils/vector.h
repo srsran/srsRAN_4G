@@ -59,6 +59,13 @@ extern "C" {
 // Cumulative moving average
 #define SRSRAN_VEC_CMA(data, average, n) ((average) + ((data) - (average)) / ((n) + 1))
 
+// Cumulative moving average
+#ifdef __cplusplus
+#define SRSRAN_VEC_SAFE_CMA(data, average, n) (std::isnormal(average) ? SRSRAN_VEC_CMA(data, average, n) : (data))
+#else
+#define SRSRAN_VEC_SAFE_CMA(data, average, n) (isnormal(average) ? SRSRAN_VEC_CMA(data, average, n) : (data))
+#endif
+
 // Proportional moving average
 #define SRSRAN_VEC_PMA(average1, n1, average2, n2) (((average1) * (n1) + (average2) * (n2)) / ((n1) + (n2)))
 
@@ -66,7 +73,12 @@ extern "C" {
 #define SRSRAN_VEC_EMA(data, average, alpha) ((alpha) * (data) + (1 - alpha) * (average))
 
 // Safe exponential moving average
+#ifdef __cplusplus
+#define SRSRAN_VEC_SAFE_EMA(data, average, alpha)                                                                      \
+  (std::isnormal(average) ? SRSRAN_VEC_EMA(data, average, alpha) : (data))
+#else
 #define SRSRAN_VEC_SAFE_EMA(data, average, alpha) (isnormal(average) ? SRSRAN_VEC_EMA(data, average, alpha) : (data))
+#endif
 
 static inline float srsran_convert_amplitude_to_dB(float v)
 {

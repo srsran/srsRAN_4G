@@ -51,17 +51,14 @@ public:
                           uint32_t                                gnb_cc_idx,
                           asn1::ngap_nr::rrcestablishment_cause_e cause,
                           srsran::unique_byte_buffer_t            pdu,
-                          uint32_t                                m_tmsi,
-                          uint8_t                                 mmec)                     = 0;
+                          uint32_t                                m_tmsi)                  = 0;
 
   virtual void write_pdu(uint16_t rnti, srsran::unique_byte_buffer_t pdu)                    = 0;
   virtual bool user_exists(uint16_t rnti)                                                    = 0;
   virtual void user_mod(uint16_t old_rnti, uint16_t new_rnti)                                = 0;
   virtual bool user_release(uint16_t rnti, asn1::ngap_nr::cause_radio_network_e cause_radio) = 0;
   virtual bool is_amf_connected()                                                            = 0;
-
-  /// TS 36.413, 8.3.1 - Initial Context Setup
-  virtual void ue_ctxt_setup_complete(uint16_t rnti) = 0;
+  virtual void ue_ctxt_setup_complete(uint16_t rnti)                                         = 0;
 };
 
 } // namespace srsenb

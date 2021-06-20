@@ -1751,16 +1751,20 @@ srsran::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
     return proc_outcome_t::yield; // wait for t304 expiry
   }
 
-  // Have RRCReconfComplete message ready when Msg3 is sent
-  rrc_ptr->send_rrc_con_reconfig_complete();
+  // Note: We delay the enqueuing of RRC Reconf Complete message to avoid that the message goes in an UL grant
+  //       directed at the old RNTI.
+  rrc_ptr->task_sched.defer_callback(4, [this]() {
+    // Have RRCReconfComplete message ready when Msg3 is sent
+    rrc_ptr->send_rrc_con_reconfig_complete();
 
-  // SCell addition/removal can take some time to compute. Enqueue in a background task and do it in the end.
-  rrc_ptr->apply_scell_config(&recfg_r8, false);
+    // SCell addition/removal can take some time to compute. Enqueue in a background task and do it in the end.
+    rrc_ptr->apply_scell_config(&recfg_r8, false);
 
-  // Send PDCP status report if configured
-  rrc_ptr->pdcp->send_status_report();
+    // Send PDCP status report if configured
+    rrc_ptr->pdcp->send_status_report();
 
-  Info("Finished HO configuration. Waiting PHY to synchronize with target cell");
+    Info("Finished HO configuration. Waiting PHY to synchronize with target cell");
+  });
 
   return proc_outcome_t::yield;
 }

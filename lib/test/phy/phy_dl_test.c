@@ -533,9 +533,7 @@ int main(int argc, char** argv)
   for (uint32_t sf_idx = 0; sf_idx < nof_subframes; sf_idx++) {
     /* Generate random data */
     for (int j = 0; j < SRSRAN_MAX_TB; j++) {
-      for (int i = 0; i < MAX_DATABUFFER_SIZE; i++) {
-        data_tx[j][i] = (uint8_t)srsran_random_uniform_int_dist(random, 0, 255);
-      }
+      srsran_random_byte_vector(random, data_tx[j], MAX_DATABUFFER_SIZE);
     }
 
     /*

@@ -198,8 +198,8 @@ int generate_ra_bc_dci_format1a_common(srsran_dci_dl_t&           dci,
                                        const sched_cell_params_t& cell_params,
                                        uint32_t                   current_cfi)
 {
-  static const uint32_t Qm = 2, bc_rar_cqi = 4;
-  static const float    max_ctrl_coderate = std::min(srsran_cqi_to_coderate(bc_rar_cqi + 1, false), 0.932F * Qm);
+  static const uint32_t Qm                = 2;
+  static const float    max_ctrl_coderate = std::min(cell_params.sched_cfg->max_sib_coderate, 0.932F * Qm);
 
   // Calculate I_tbs for this TBS
   int tbs = static_cast<int>(req_bytes) * 8;

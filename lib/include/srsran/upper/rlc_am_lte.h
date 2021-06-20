@@ -583,7 +583,7 @@ int  rlc_am_write_status_pdu(rlc_status_pdu_t* status, uint8_t* payload);
 uint32_t    rlc_am_packed_length(rlc_amd_pdu_header_t* header);
 uint32_t    rlc_am_packed_length(rlc_status_pdu_t* status);
 uint32_t    rlc_am_packed_length(rlc_amd_retx_t retx);
-bool        rlc_am_is_valid_status_pdu(const rlc_status_pdu_t& status);
+bool        rlc_am_is_valid_status_pdu(const rlc_status_pdu_t& status, uint32_t rx_win_min = 0);
 bool        rlc_am_is_pdu_segment(uint8_t* payload);
 std::string rlc_am_undelivered_sdu_info_to_string(const std::map<uint32_t, pdcp_pdu_info>& info_queue);
 void        log_rlc_amd_pdu_header_to_string(srslog::log_channel& log_ch, const rlc_amd_pdu_header_t& header);

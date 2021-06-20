@@ -18,12 +18,6 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-include_directories(${PROJECT_SOURCE_DIR}/srsue/test/ttcn3/hdr)
-
-add_executable(rapidjson_test rapidjson_test.cc)
-target_link_libraries(rapidjson_test srsran_common)
-add_test(rapidjson_test rapidjson_test)
-
-add_executable(ttcn3_if_handler_test ttcn3_if_handler_test.cc)
-target_link_libraries(ttcn3_if_handler_test sctp srsran_phy srsran_common rrc_asn1)
-add_test(ttcn3_if_handler_test ttcn3_if_handler_test)
+add_executable(mac_test mac_test.cc)
+target_link_libraries(mac_test srsue_mac srsue_phy srsran_common srsran_mac srsran_phy srsran_radio srsran_asn1 rrc_asn1 ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
+add_test(mac_test mac_test)

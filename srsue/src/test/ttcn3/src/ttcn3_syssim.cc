@@ -19,7 +19,7 @@
  *
  */
 
-#include "srsue/test/ttcn3/hdr/ttcn3_syssim.h"
+#include "ttcn3_syssim.h"
 #include "dut_utils.h"
 #include "srsran/mac/pdu_queue.h"
 #include "srsran/srslog/srslog.h"

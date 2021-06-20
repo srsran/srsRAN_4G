@@ -22,7 +22,6 @@
 #include "srsran/common/test_common.h"
 #include "ttcn3_helpers.h"
 #include <iostream>
-#include <srsue/test/ttcn3/hdr/ttcn3_helpers.h>
 #include <stdio.h>
 #include <vector>
 

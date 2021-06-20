@@ -41,4 +41,4 @@ set(LINK_LIBRARIES srsue_stack
 
 target_link_libraries(ttcn3_dut ${LINK_LIBRARIES})
 
-include_directories(${PROJECT_SOURCE_DIR}/srsue/test/ttcn3/hdr)
+include_directories(${PROJECT_SOURCE_DIR}/srsue/src/test/ttcn3/hdr)

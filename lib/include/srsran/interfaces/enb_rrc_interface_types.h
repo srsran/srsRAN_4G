@@ -68,7 +68,6 @@ struct cell_cfg_t {
   double                              ul_freq_hz;
   int                                 target_pucch_sinr_db;
   int                                 target_pusch_sinr_db;
-  uint32_t                            initial_dl_cqi;
   bool                                enable_phr_handling;
   int                                 min_phr_thres;
   asn1::rrc::mob_ctrl_info_s::t304_e_ t304;

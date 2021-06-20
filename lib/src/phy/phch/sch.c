@@ -32,6 +32,7 @@
 #include <string.h>
 #include <strings.h>
 
+#define SRSRAN_PDSCH_MIN_TDEC_ITERS 2
 #define SRSRAN_PDSCH_MAX_TDEC_ITERS 10
 
 #ifdef LV_HAVE_SSE
@@ -442,8 +443,9 @@ bool decode_tb_cb(srsran_sch_t*           q,
           crc_ptr = &q->crc_tb;
         }
 
-        // CRC is OK
-        if (!srsran_crc_checksum_byte(crc_ptr, &data[cb_idx * rlen / 8], len_crc)) {
+        // CRC is OK and ran the minimum number of iterations
+        if (!srsran_crc_checksum_byte(crc_ptr, &data[cb_idx * rlen / 8], len_crc) &&
+            (cb_noi >= SRSRAN_PDSCH_MIN_TDEC_ITERS)) {
           softbuffer->cb_crc[cb_idx] = true;
           early_stop                 = true;
 

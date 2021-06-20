@@ -221,8 +221,8 @@ public:
   virtual int cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg) = 0;
 
   /* Manages UE configuration context */
-  virtual int ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg) = 0;
-  virtual int ue_rem(uint16_t rnti)                                 = 0;
+  virtual int ue_cfg(uint16_t rnti, const sched_interface::ue_cfg_t* cfg) = 0;
+  virtual int ue_rem(uint16_t rnti)                                       = 0;
 
   /**
    * Called after Msg3 reception to set the UE C-RNTI, resolve contention, and alter the UE's configuration in the
@@ -232,7 +232,7 @@ public:
    * @param crnti chosen C-RNTI for the UE
    * @param cfg new UE scheduler configuration
    */
-  virtual int ue_set_crnti(uint16_t temp_crnti, uint16_t crnti, sched_interface::ue_cfg_t* cfg) = 0;
+  virtual int ue_set_crnti(uint16_t temp_crnti, uint16_t crnti, const sched_interface::ue_cfg_t& cfg) = 0;
 
   /* Manages UE bearers and associated configuration */
   virtual int  bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg) = 0;

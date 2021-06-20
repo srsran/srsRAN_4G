@@ -482,6 +482,9 @@ int test_intraenb_mobility(srsran::log_sink_spy& spy, test_event test_params)
   TESTASSERT(recfg_r8.meas_cfg.meas_gap_cfg.type().value == setup_opts::setup);
   TESTASSERT((1 + recfg_r8.meas_cfg.meas_gap_cfg.setup().gap_offset.type().value) * 40u ==
              tester.cfg.cell_list[1].meas_cfg.meas_gap_period);
+  auto* ue_cfg = &tester.mac.ue_db[tester.rnti];
+  TESTASSERT(ue_cfg->ue_bearers[srb_to_lcid(lte_srb::srb1)].direction == srsenb::sched_interface::ue_bearer_cfg_t::DL);
+  TESTASSERT(ue_cfg->ue_bearers[srb_to_lcid(lte_srb::srb2)].direction == srsenb::sched_interface::ue_bearer_cfg_t::DL);
 
   /* Test Case: The UE sends a C-RNTI CE. Bearers are reestablished, PHY is configured */
   tester.pdcp.last_sdu.sdu = nullptr;
@@ -489,8 +492,14 @@ int test_intraenb_mobility(srsran::log_sink_spy& spy, test_event test_params)
   TESTASSERT(tester.rlc.ue_db[tester.rnti].reest_sdu_counter == 0);
   TESTASSERT(tester.pdcp.last_sdu.sdu == nullptr);
   TESTASSERT(tester.phy.phy_cfg_set);
-  TESTASSERT(tester.phy.last_cfg.size() == 1 and tester.mac.ue_db[tester.rnti].supported_cc_list.size() == 1);
-  TESTASSERT(tester.phy.last_cfg[0].enb_cc_idx == tester.mac.ue_db[tester.rnti].supported_cc_list[0].enb_cc_idx);
+  TESTASSERT(tester.phy.last_cfg.size() == 1 and ue_cfg->supported_cc_list.size() == 1);
+  TESTASSERT(tester.phy.last_cfg[0].enb_cc_idx == ue_cfg->supported_cc_list[0].enb_cc_idx);
+  TESTASSERT(ue_cfg->ue_bearers[srb_to_lcid(lte_srb::srb0)].direction ==
+             srsenb::sched_interface::ue_bearer_cfg_t::BOTH);
+  TESTASSERT(ue_cfg->ue_bearers[srb_to_lcid(lte_srb::srb1)].direction ==
+             srsenb::sched_interface::ue_bearer_cfg_t::BOTH);
+  TESTASSERT(ue_cfg->ue_bearers[srb_to_lcid(lte_srb::srb2)].direction ==
+             srsenb::sched_interface::ue_bearer_cfg_t::BOTH);
 
   /* Test Case: The UE receives a duplicate C-RNTI CE. Nothing should happen */
   if (test_params == test_event::duplicate_crnti_ce) {
@@ -506,13 +515,13 @@ int test_intraenb_mobility(srsran::log_sink_spy& spy, test_event test_params)
   test_helpers::copy_msg_to_buffer(pdu, recfg_complete);
   tester.rrc.write_pdu(tester.rnti, srb_to_lcid(lte_srb::srb2), std::move(pdu));
   TESTASSERT(tester.pdcp.last_sdu.sdu == nullptr);
-  sched_interface::ue_cfg_t& ue_cfg = tester.mac.ue_db[tester.rnti];
-  TESTASSERT(ue_cfg.pucch_cfg.sr_configured);
-  TESTASSERT(ue_cfg.pucch_cfg.n_pucch_sr == phy_cfg_ded.sched_request_cfg.setup().sr_pucch_res_idx);
-  TESTASSERT(ue_cfg.pucch_cfg.I_sr == phy_cfg_ded.sched_request_cfg.setup().sr_cfg_idx);
-  TESTASSERT(ue_cfg.supported_cc_list[0].dl_cfg.cqi_report.pmi_idx ==
+  ue_cfg = &tester.mac.ue_db[tester.rnti];
+  TESTASSERT(ue_cfg->pucch_cfg.sr_configured);
+  TESTASSERT(ue_cfg->pucch_cfg.n_pucch_sr == phy_cfg_ded.sched_request_cfg.setup().sr_pucch_res_idx);
+  TESTASSERT(ue_cfg->pucch_cfg.I_sr == phy_cfg_ded.sched_request_cfg.setup().sr_cfg_idx);
+  TESTASSERT(ue_cfg->supported_cc_list[0].dl_cfg.cqi_report.pmi_idx ==
              phy_cfg_ded.cqi_report_cfg.cqi_report_periodic.setup().cqi_pmi_cfg_idx);
-  TESTASSERT(ue_cfg.pucch_cfg.n_pucch == phy_cfg_ded.cqi_report_cfg.cqi_report_periodic.setup().cqi_pucch_res_idx);
+  TESTASSERT(ue_cfg->pucch_cfg.n_pucch == phy_cfg_ded.cqi_report_cfg.cqi_report_periodic.setup().cqi_pucch_res_idx);
 
   /* Test Case: The RRC should be able to start a new handover */
   uint8_t meas_report[] = {0x08, 0x10, 0x38, 0x74, 0x00, 0x05, 0xBC, 0x80}; // PCI == 1

@@ -177,6 +177,12 @@ public:
    */
   uint32_t get_ul_earfcn(uint32_t dl_earfcn);
 
+  /**
+   * @brief Resets measurements from a given CC
+   * @param cc_idx CC index
+   */
+  void reset_measurements(uint32_t cc_idx);
+
   void update_measurements(uint32_t                     cc_idx,
                            const srsran_chest_dl_res_t& chest_res,
                            srsran_dl_sf_cfg_t           sf_cfg_dl,
@@ -227,32 +233,26 @@ public:
       }
     }
   }
-  void reset_neighbour_cells()
-  {
-    for (uint32_t i = 0; i < SRSRAN_MAX_CARRIERS; i++) {
-      avg_rsrp_neigh[i] = NAN;
-    }
-  }
 
 private:
   std::mutex meas_mutex;
 
-  float pathloss[SRSRAN_MAX_CARRIERS]       = {};
-  float cur_pathloss                        = 0.0f;
-  float cur_pusch_power                     = 0.0f;
-  float avg_rsrp[SRSRAN_MAX_CARRIERS]       = {};
-  float avg_rsrp_dbm[SRSRAN_MAX_CARRIERS]   = {};
-  float avg_rsrq_db[SRSRAN_MAX_CARRIERS]    = {};
-  float avg_rssi_dbm[SRSRAN_MAX_CARRIERS]   = {};
-  float avg_cfo_hz[SRSRAN_MAX_CARRIERS]     = {};
-  float rx_gain_offset                      = 0.0f;
-  float avg_sinr_db[SRSRAN_MAX_CARRIERS]    = {};
-  float avg_snr_db[SRSRAN_MAX_CARRIERS]     = {};
-  float avg_noise[SRSRAN_MAX_CARRIERS]      = {};
-  float avg_rsrp_neigh[SRSRAN_MAX_CARRIERS] = {};
+  float                                  cur_pathloss    = 0.0f;
+  float                                  cur_pusch_power = 0.0f;
+  float                                  rx_gain_offset  = 0.0f;
+  std::array<float, SRSRAN_MAX_CARRIERS> pathloss        = {};
+  std::array<float, SRSRAN_MAX_CARRIERS> avg_rsrp        = {};
+  std::array<float, SRSRAN_MAX_CARRIERS> avg_rsrp_dbm    = {};
+  std::array<float, SRSRAN_MAX_CARRIERS> avg_rsrq_db     = {};
+  std::array<float, SRSRAN_MAX_CARRIERS> avg_rssi_dbm    = {};
+  std::array<float, SRSRAN_MAX_CARRIERS> avg_cfo_hz      = {};
+  std::array<float, SRSRAN_MAX_CARRIERS> avg_sinr_db     = {};
+  std::array<float, SRSRAN_MAX_CARRIERS> avg_snr_db      = {};
+  std::array<float, SRSRAN_MAX_CARRIERS> avg_noise       = {};
+  std::array<float, SRSRAN_MAX_CARRIERS> avg_rsrp_neigh  = {};
 
-  uint32_t pcell_report_period = 0;
-  uint32_t rssi_read_cnt       = 0;
+  static constexpr uint32_t pcell_report_period = 20;
+  uint32_t                  rssi_read_cnt       = 0;
 
   rsrp_insync_itf* insync_itf = nullptr;
 

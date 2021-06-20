@@ -58,7 +58,6 @@ inline srsenb::sched_interface::cell_cfg_t generate_default_cell_cfg(uint32_t no
   cell_cfg.prach_freq_offset    = (cell_cfg_phy.nof_prb == 6) ? 0 : 4;
   cell_cfg.prach_rar_window     = 3;
   cell_cfg.maxharq_msg3tx       = 3;
-  cell_cfg.initial_dl_cqi       = 6;
   cell_cfg.target_pusch_ul_sinr = -1;
   cell_cfg.target_pucch_ul_sinr = -1;
   cell_cfg.enable_phr_handling  = false;

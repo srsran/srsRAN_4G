@@ -35,6 +35,10 @@
 
 #include "srsran/config.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct {
   uint32_t  nof_bits;
   uint16_t* interleaver;
@@ -86,5 +90,9 @@ SRSRAN_API void srsran_bit_fprint(FILE* stream, uint8_t* bits, int nof_bits);
 SRSRAN_API uint32_t srsran_bit_diff(const uint8_t* x, const uint8_t* y, int nbits);
 
 SRSRAN_API uint32_t srsran_bit_count(uint32_t n);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // SRSRAN_BIT_H
