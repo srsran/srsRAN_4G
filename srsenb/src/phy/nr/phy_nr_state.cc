@@ -35,8 +35,6 @@ int phy_nr_state::_assert_rnti(uint16_t rnti) const
 
 int phy_nr_state::_get_rnti_config(uint16_t rnti, srsran::phy_cfg_nr_t& phy_cfg) const
 {
-  std::lock_guard<std::mutex> lock(mutex);
-
   if (_assert_rnti(rnti) < SRSRAN_SUCCESS) {
     return SRSRAN_ERROR;
   }
@@ -47,7 +45,8 @@ int phy_nr_state::_get_rnti_config(uint16_t rnti, srsran::phy_cfg_nr_t& phy_cfg)
 }
 
 phy_nr_state::phy_nr_state(const phy_cell_cfg_list_nr_t& cell_cfg_list_, stack_interface_phy_nr& stack_) :
-  cell_cfg_list(cell_cfg_list_), stack(stack_)
+  cell_cfg_list(cell_cfg_list_),
+  stack(stack_)
 {}
 
 void phy_nr_state::addmod_rnti(uint16_t rnti, const srsran::phy_cfg_nr_t& phy_cfg)
@@ -73,6 +72,13 @@ int phy_nr_state::rem_rnti(uint16_t rnti)
   ue_db.erase(rnti);
 
   return SRSRAN_SUCCESS;
+}
+
+int phy_nr_state::get_config(uint16_t rnti, srsran::phy_cfg_nr_t& phy_cfg)
+{
+  std::lock_guard<std::mutex> lock(mutex);
+
+  return _get_rnti_config(rnti, phy_cfg);
 }
 
 } // namespace nr

@@ -53,6 +53,7 @@ private:
   srsran_slot_cfg_t             dl_slot_cfg = {};
   srsran_slot_cfg_t             ul_slot_cfg = {};
   srsran::rf_timestamp_t        tx_time     = {};
+  uint32_t                      sf_len      = 0;
 
   // Temporal attributes
   srsran_softbuffer_tx_t softbuffer_tx = {};

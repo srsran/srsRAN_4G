@@ -145,7 +145,9 @@ public:
     uint32_t nof_channels = 1;
 
     args_t(double srate_hz_, uint32_t buffer_sz_ms_, uint32_t nof_channels_) :
-      srate_hz(srate_hz_), buffer_sz_ms(buffer_sz_ms_), nof_channels(nof_channels_)
+      srate_hz(srate_hz_),
+      buffer_sz_ms(buffer_sz_ms_),
+      nof_channels(nof_channels_)
     {}
   };
 
@@ -188,7 +190,9 @@ public:
 
     // Check transmit timestamp is not in the past
     if (tx_ts < write_ts) {
-      logger.error("Tx time is %d samples in the past", (uint32_t)(write_ts - tx_ts));
+      logger.error("Tx time (%f) is %d samples in the past",
+                   srsran_timestamp_real(tx_time.get_ptr(0)),
+                   (uint32_t)(write_ts - tx_ts));
       semaphore.release();
       return;
     }
@@ -225,9 +229,7 @@ public:
     read_ts += nof_samples;
   }
 
-  void stop() {
-    quit = true;
-  }
+  void stop() { quit = true; }
 };
 
 #endif // SRSRAN_DUMMY_PHY_COMMON_H

@@ -29,10 +29,11 @@ class worker_pool
 
 public:
   struct args_t {
-    uint32_t    nof_workers   = 3;
-    uint32_t    prio          = 52;
-    std::string log_level     = "info";
-    uint32_t    log_hex_limit = 64;
+    uint32_t    nof_workers     = 3;
+    uint32_t    prio            = 52;
+    std::string log_level       = "info";
+    uint32_t    log_hex_limit   = 64;
+    std::string log_id_preamble = "";
   };
   sf_worker* operator[](std::size_t pos) { return workers.at(pos).get(); }
 
@@ -45,6 +46,7 @@ public:
   sf_worker* wait_worker_id(uint32_t id);
   void       start_worker(sf_worker* w);
   void       stop();
+  bool       addmod_rnti(uint16_t rnti, const srsran::phy_cfg_nr_t& phy_cfg);
 };
 
 } // namespace nr

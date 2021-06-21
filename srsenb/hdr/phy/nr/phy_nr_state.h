@@ -90,6 +90,8 @@ public:
    */
   int rem_rnti(uint16_t rnti);
 
+  int get_config(uint16_t rnti, srsran::phy_cfg_nr_t& phy_cfg);
+
   const phy_cell_cfg_list_nr_t& get_carrier_list() const { return cell_cfg_list; }
 
   stack_interface_phy_nr& get_stack() { return stack; }

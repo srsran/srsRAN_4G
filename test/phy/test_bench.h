@@ -20,7 +20,9 @@
 class test_bench
 {
 private:
-  uint32_t                tti = 0;
+  const std::string       UE_PHY_COM_LOG_NAME  = "UE /PHY/COM";
+  const std::string       GNB_PHY_COM_LOG_NAME = "GNB/PHY/COM";
+  uint32_t                tti                  = 0;
   srsenb::nr::worker_pool gnb_phy;
   phy_common              gnb_phy_com;
   srsue::nr::worker_pool  ue_phy;
@@ -38,7 +40,9 @@ public:
     srsran::phy_cfg_nr_t            phy_cfg      = {};
     srsenb::phy_cell_cfg_list_nr_t  cell_list    = {};
     srsenb::nr::worker_pool::args_t gnb_args;
-    uint16_t                        rnti = 0x1234;
+    srsue::phy_args_nr_t            ue_args;
+    uint16_t                        rnti              = 0x1234;
+    std::string                     phy_com_log_level = "info";
 
     args_t(int argc, char** argv);
   };
@@ -47,23 +51,28 @@ public:
     ue_phy(args.nof_threads),
     gnb_phy(args.cell_list, args.gnb_args, gnb_phy_com, gnb_stack, srslog::get_default_sink()),
     ue_phy_com(phy_common::args_t(args.srate_hz, args.buffer_sz_ms, args.nof_channels),
-               srslog::fetch_basic_logger("UE /PHY/COM")),
+               srslog::fetch_basic_logger(UE_PHY_COM_LOG_NAME, srslog::get_default_sink(), false)),
     gnb_phy_com(phy_common::args_t(args.srate_hz, args.buffer_sz_ms, args.nof_channels),
-                srslog::fetch_basic_logger("GNB/PHY/COM"))
+                srslog::fetch_basic_logger(GNB_PHY_COM_LOG_NAME, srslog::get_default_sink(), false))
   {
+    srslog::fetch_basic_logger(UE_PHY_COM_LOG_NAME).set_level(srslog::str_to_basic_level(args.phy_com_log_level));
+    srslog::fetch_basic_logger(GNB_PHY_COM_LOG_NAME).set_level(srslog::str_to_basic_level(args.phy_com_log_level));
+
     // Calculate subframe length
     sf_sz = (uint32_t)std::round(args.srate_hz * 1e-3);
 
-    // Prepare PHY
-    srsue::phy_args_nr_t ue_phy_args = {};
-
     // Initialise UE PHY
-    if (not ue_phy.init(ue_phy_args, ue_phy_com, &ue_stack, 31)) {
+    if (not ue_phy.init(args.ue_args, ue_phy_com, &ue_stack, 31)) {
       return;
     }
 
     // Set UE configuration
     if (not ue_phy.set_config(args.phy_cfg)) {
+      return;
+    }
+
+    // Set UE configuration in gNb
+    if (not gnb_phy.addmod_rnti(args.rnti, args.phy_cfg)) {
       return;
     }
 

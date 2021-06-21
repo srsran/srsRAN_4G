@@ -14,18 +14,25 @@
 
 namespace srsenb {
 namespace nr {
-sf_worker::sf_worker(srsran::phy_common_interface& common_, phy_nr_state& phy_state_, srslog::basic_logger& logger) :
-  common(common_), phy_state(phy_state_), logger(logger)
+sf_worker::sf_worker(srsran::phy_common_interface& common_, phy_nr_state& phy_state_, srslog::basic_logger& logger_) :
+  common(common_),
+  phy_state(phy_state_),
+  logger(logger_)
 {
+  // Set subframe length
+  sf_len = SRSRAN_SF_LEN_PRB_NR(phy_state.get_carrier_list()[0].carrier.nof_prb);
+
   const phy_cell_cfg_list_nr_t& carrier_list = phy_state.get_carrier_list();
   for (uint32_t i = 0; i < (uint32_t)carrier_list.size(); i++) {
-    cc_worker::args_t cc_args  = {};
-    cc_args.cc_idx             = i;
-    cc_args.carrier            = carrier_list[i].carrier;
-    cc_args.dl.nof_tx_antennas = 1;
-    cc_args.dl.nof_max_prb     = cc_args.carrier.nof_prb;
+    cc_worker::args_t cc_args   = {};
+    cc_args.cc_idx              = i;
+    cc_args.carrier             = carrier_list[i].carrier;
+    cc_args.dl.nof_tx_antennas  = 1;
+    cc_args.dl.nof_max_prb      = cc_args.carrier.nof_prb;
+    cc_args.dl.pdsch.max_prb    = cc_args.carrier.nof_prb;
+    cc_args.dl.pdsch.max_layers = 1;
 
-    cc_worker* w = new cc_worker(cc_args, logger, phy_state);
+    cc_worker* w = new cc_worker(cc_args, logger_, phy_state);
     cc_workers.push_back(std::unique_ptr<cc_worker>(w));
   }
 
@@ -81,18 +88,20 @@ void sf_worker::set_time(const uint32_t& tti, const srsran::rf_timestamp_t& time
 void sf_worker::work_imp()
 {
   // Get Transmission buffers
-  srsran::rf_buffer_t    tx_buffer = {};
-  srsran::rf_timestamp_t dummy_ts  = {};
+  srsran::rf_buffer_t tx_buffer = {};
   for (uint32_t cc = 0; cc < (uint32_t)phy_state.get_carrier_list().size(); cc++) {
     tx_buffer.set(cc, 0, 1, cc_workers[cc]->get_tx_buffer(0));
   }
+
+  // Set number of samples
+  tx_buffer.set_nof_samples(sf_len);
 
   // Get UL Scheduling
   mac_interface_phy_nr::ul_sched_list_t ul_sched_list = {};
   ul_sched_list.resize(1);
   if (phy_state.get_stack().get_ul_sched(ul_slot_cfg.idx, ul_sched_list) < SRSRAN_SUCCESS) {
     logger.error("DL Scheduling error");
-    common.worker_end(this, true, tx_buffer, dummy_ts, true);
+    common.worker_end(this, true, tx_buffer, tx_time, true);
     return;
   }
 
@@ -101,7 +110,7 @@ void sf_worker::work_imp()
   dl_sched_list.resize(1);
   if (phy_state.get_stack().get_dl_sched(ul_slot_cfg.idx, dl_sched_list) < SRSRAN_SUCCESS) {
     logger.error("DL Scheduling error");
-    common.worker_end(this, true, tx_buffer, dummy_ts, true);
+    common.worker_end(this, true, tx_buffer, tx_time, true);
     return;
   }
 
@@ -109,7 +118,7 @@ void sf_worker::work_imp()
     w->work_dl(dl_sched_list[0], ul_sched_list[0]);
   }
 
-  common.worker_end(this, true, tx_buffer, dummy_ts, true);
+  common.worker_end(this, true, tx_buffer, tx_time, true);
 }
 
 } // namespace nr

@@ -16,7 +16,10 @@
 namespace srsenb {
 namespace nr {
 cc_worker::cc_worker(const args_t& args, srslog::basic_logger& log, phy_nr_state& phy_state_) :
-  cc_idx(args.cc_idx), phy_state(phy_state_), logger(log), nof_tx_antennas(args.dl.nof_tx_antennas)
+  cc_idx(args.cc_idx),
+  phy_state(phy_state_),
+  logger(log),
+  nof_tx_antennas(args.dl.nof_tx_antennas)
 {
   cf_t* buffer_c[SRSRAN_MAX_PORTS] = {};
 
@@ -85,8 +88,20 @@ uint32_t cc_worker::get_buffer_len()
 int cc_worker::encode_pdcch_dl(stack_interface_phy_nr::dl_sched_grant_t* grants, uint32_t nof_grants)
 {
   for (uint32_t i = 0; i < nof_grants; i++) {
+    uint16_t rnti = grants->dci.ctx.rnti;
+
     // Get PHY config for UE
-    // ...
+    srsran::phy_cfg_nr_t cfg = {};
+    if (phy_state.get_config(rnti, cfg) < SRSRAN_SUCCESS) {
+      logger.error("Invalid RNTI 0x%x", rnti);
+      return SRSRAN_ERROR;
+    }
+
+    srsran_dci_cfg_nr_t dci_cfg = cfg.get_dci_cfg();
+    if (srsran_enb_dl_nr_set_pdcch_config(&gnb_dl, &cfg.pdcch, &dci_cfg) < SRSRAN_SUCCESS) {
+      logger.error("Invalid CORESET setting");
+      return SRSRAN_ERROR;
+    }
 
     // Put actual DCI
     if (srsran_enb_dl_nr_pdcch_put(&gnb_dl, &dl_slot_cfg, &grants[i].dci) < SRSRAN_SUCCESS) {
@@ -95,7 +110,11 @@ int cc_worker::encode_pdcch_dl(stack_interface_phy_nr::dl_sched_grant_t* grants,
     }
 
     if (logger.info.enabled()) {
-      logger.info("PDCCH: cc=%d, ...", cc_idx);
+      std::array<char, 512> str = {};
+      srsran_dci_dl_nr_to_str(&gnb_dl.dci, &grants[i].dci, str.data(), (uint32_t)str.size());
+      if (logger.info.enabled()) {
+        logger.info("PDCCH: cc=%d %s tti_tx=%d", cc_idx, str.data(), dl_slot_cfg.idx);
+      }
     }
   }
 
@@ -106,14 +125,15 @@ int cc_worker::encode_pdsch(stack_interface_phy_nr::dl_sched_grant_t* grants, ui
 {
   for (uint32_t i = 0; i < nof_grants; i++) {
     // Get PHY config for UE
-    // ...
-    srsran_sch_hl_cfg_nr_t pdsch_hl_cfg = {};
-    srsran_sch_cfg_nr_t    pdsch_cfg    = {};
+    srsran::phy_cfg_nr_t cfg = {};
+    if (phy_state.get_config(grants[i].dci.ctx.rnti, cfg) < SRSRAN_SUCCESS) {
+      return SRSRAN_ERROR;
+    }
 
     // Compute DL grant
+    srsran_sch_cfg_nr_t pdsch_cfg = {};
     if (srsran_ra_dl_dci_to_grant_nr(
-            &gnb_dl.carrier, &dl_slot_cfg, &pdsch_hl_cfg, &grants[i].dci, &pdsch_cfg, &pdsch_cfg.grant) <
-        SRSRAN_SUCCESS) {
+            &gnb_dl.carrier, &dl_slot_cfg, &cfg.pdsch, &grants[i].dci, &pdsch_cfg, &pdsch_cfg.grant) < SRSRAN_SUCCESS) {
       ERROR("Computing DL grant");
       return SRSRAN_ERROR;
     }
@@ -132,7 +152,7 @@ int cc_worker::encode_pdsch(stack_interface_phy_nr::dl_sched_grant_t* grants, ui
     if (logger.info.enabled()) {
       char str[512];
       srsran_enb_dl_nr_pdsch_info(&gnb_dl, &pdsch_cfg, str, sizeof(str));
-      logger.info("PDSCH: cc=%d, %s", cc_idx, str);
+      logger.info("PDSCH: cc=%d, %s tti_tx=%d", cc_idx, str, dl_slot_cfg.idx);
     }
   }
 

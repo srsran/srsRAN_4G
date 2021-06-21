@@ -19,12 +19,13 @@ worker_pool::worker_pool(const phy_cell_cfg_list_nr_t& cell_list,
                          srsran::phy_common_interface& common,
                          stack_interface_phy_nr&       stack,
                          srslog::sink&                 log_sink) :
-  pool(args.nof_workers), phy_state(cell_list, stack)
+  pool(args.nof_workers),
+  phy_state(cell_list, stack)
 {
   // Add workers to workers pool and start threads
   srslog::basic_levels log_level = srslog::str_to_basic_level(args.log_level);
   for (uint32_t i = 0; i < args.nof_workers; i++) {
-    auto& log = srslog::fetch_basic_logger(fmt::format("PHY{}-NR", i), log_sink);
+    auto& log = srslog::fetch_basic_logger(fmt::format("{}PHY{}-NR", args.log_id_preamble, i), log_sink);
     log.set_level(log_level);
     log.set_hex_dump_max_size(args.log_hex_limit);
 
@@ -52,6 +53,13 @@ sf_worker* worker_pool::wait_worker_id(uint32_t id)
 void worker_pool::stop()
 {
   pool.stop();
+}
+
+bool worker_pool::addmod_rnti(uint16_t rnti, const srsran::phy_cfg_nr_t& phy_cfg)
+{
+  phy_state.addmod_rnti(rnti, phy_cfg);
+
+  return true;
 }
 
 } // namespace nr
