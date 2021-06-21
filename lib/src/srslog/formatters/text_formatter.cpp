@@ -43,7 +43,7 @@ static void format_metadata(const detail::log_entry_metadata& metadata, fmt::mem
   std::tm current_time = fmt::gmtime(std::chrono::high_resolution_clock::to_time_t(metadata.tp));
   auto    us_fraction =
       std::chrono::duration_cast<std::chrono::microseconds>(metadata.tp.time_since_epoch()).count() % 1000000u;
-  fmt::format_to(buffer, "{:%H:%M:%S}.{:06} ", current_time, us_fraction);
+  fmt::format_to(buffer, "{:%F}T{:%H:%M:%S}.{:06} ", current_time, current_time, us_fraction);
 
   // Format optional fields if present.
   if (!metadata.log_name.empty()) {

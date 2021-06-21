@@ -326,6 +326,7 @@ enable = false
 # tracing_enable:       Write source code tracing information to a file.
 # tracing_filename:     File path to use for tracing information.
 # tracing_buffcapacity: Maximum capacity in bytes the tracing framework can store.
+# stdout_ts_enable:     Prints once per second the timestamp into stdout.
 # pregenerate_signals:  Pregenerate uplink signals after attach. Improves CPU performance.
 # tx_amplitude:         Transmit amplitude factor (set 0-1 to reduce PAPR)
 # rrc_inactivity_timer  Inactivity timeout used to remove UE context from RRC (in milliseconds).
@@ -353,6 +354,7 @@ enable = false
 #tracing_enable       = true
 #tracing_filename     = /tmp/enb_tracing.log
 #tracing_buffcapacity = 1000000
+#stdout_ts_enable     = false
 #pregenerate_signals  = false
 #tx_amplitude         = 0.6
 #rrc_inactivity_timer = 30000

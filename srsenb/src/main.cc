@@ -45,7 +45,8 @@ namespace bpo = boost::program_options;
 /**********************************************************************
  *  Program arguments processing
  ***********************************************************************/
-string config_file;
+string      config_file;
+static bool stdout_ts_enable = false;
 
 void parse_args(all_args_t* args, int argc, char* argv[])
 {
@@ -226,6 +227,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("expert.tracing_enable",  bpo::value<bool>(&args->general.tracing_enable)->default_value(false), "Events tracing")
     ("expert.tracing_filename", bpo::value<string>(&args->general.tracing_filename)->default_value("/tmp/enb_tracing.log"), "Tracing events filename")
     ("expert.tracing_buffcapacity", bpo::value<std::size_t>(&args->general.tracing_buffcapacity)->default_value(1000000), "Tracing buffer capcity")
+    ("expert.stdout_ts_enable", bpo::value<bool>(&stdout_ts_enable)->default_value(false), "Prints once per second the timestamp into stdout")
     ("expert.rrc_inactivity_timer", bpo::value<uint32_t>(&args->general.rrc_inactivity_timer)->default_value(30000), "Inactivity timer in ms.")
     ("expert.print_buffer_state", bpo::value<bool>(&args->general.print_buffer_state)->default_value(false), "Prints on the console the buffer state every 10 seconds")
     ("expert.eea_pref_list", bpo::value<string>(&args->general.eea_pref_list)->default_value("EEA0, EEA2, EEA1"), "Ordered preference list for the selection of encryption algorithm (EEA) (default: EEA0, EEA2, EEA1).")
@@ -622,13 +624,24 @@ int main(int argc, char* argv[])
       enb->start_plot();
     }
   }
-  int cnt = 0;
+  int cnt    = 0;
+  int ts_cnt = 0;
   while (running) {
     if (args.general.print_buffer_state) {
       cnt++;
       if (cnt == 1000) {
         cnt = 0;
         enb->print_pool();
+      }
+    }
+    if (stdout_ts_enable) {
+      if (++ts_cnt == 100) {
+        ts_cnt = 0;
+        char        buff[64];
+        std::time_t t = std::time(nullptr);
+        if (std::strftime(buff, sizeof(buff), "%FT%T", std::gmtime(&t))) {
+          std::cout << buff << '\n';
+        }
       }
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
