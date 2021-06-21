@@ -478,8 +478,7 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
     logger.debug("Reassemble loop for vr_ur=%d", vr_ur);
 
     if (not pdu_belongs_to_rx_sdu()) {
-      logger.warning(
-          "PDU SN=%d lost, stop reassambling SDU (vr_ur_in_rx_sdu=%d)", vr_ur_in_rx_sdu + 1, vr_ur_in_rx_sdu);
+      logger.info("PDU SN=%d lost, stop reassambling SDU (vr_ur_in_rx_sdu=%d)", vr_ur_in_rx_sdu + 1, vr_ur_in_rx_sdu);
       pdu_lost = false; // Reset flag to not prevent reassembling of further segments
       rx_sdu->clear();
     }
@@ -495,7 +494,7 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
                    rlc_fi_field_text[rx_window[vr_ur].header.fi]);
       // Check if the first part of the PDU is a middle or end segment
       if (rx_sdu->N_bytes == 0 && i == 0 && !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) {
-        logger.warning(
+        logger.info(
             rx_window[vr_ur].buf->msg, len, "Dropping first %d B of SN=%d due to lost start segment", len, vr_ur);
 
         if (rx_window[vr_ur].buf->N_bytes < len) {
