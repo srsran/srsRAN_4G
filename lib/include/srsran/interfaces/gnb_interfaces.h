@@ -224,15 +224,40 @@ public:
   /**
    * DL Scheduling result per cell/carrier
    */
-  typedef struct {
+  struct dl_sched_t {
     dl_sched_grant_t pdsch[MAX_GRANTS]; //< DL Grants
     uint32_t         nof_grants;        //< Number of DL grants
-  } dl_sched_t;
+  };
 
   /**
    * List of DL scheduling results, one entry per cell/carrier
    */
   typedef std::vector<dl_sched_t> dl_sched_list_t;
+
+  /**
+   * UL grant structure per UE
+   */
+  struct ul_sched_grant_t {
+    srsran_dci_ul_nr_t      dci           = {};
+    uint8_t*                data          = nullptr;
+    srsran_softbuffer_rx_t* softbuffer_rx = nullptr;
+  };
+
+  /**
+   * UL Scheduling result per cell/carrier
+   */
+  struct ul_sched_t {
+    ul_sched_grant_t pusch[MAX_GRANTS]; //< UL Grants
+    uint32_t         nof_grants;        //< Number of UL grants
+  };
+
+  /**
+   * List of UL scheduling results, one entry per cell/carrier
+   */
+  typedef std::vector<ul_sched_t> ul_sched_list_t;
+
+  virtual int get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res) = 0;
+  virtual int get_ul_sched(uint32_t tti, ul_sched_list_t& ul_sched_res) = 0;
 };
 
 class stack_interface_phy_nr : public mac_interface_phy_nr, public srsran::stack_interface_phy_nr

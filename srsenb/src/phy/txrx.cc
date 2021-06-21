@@ -47,13 +47,13 @@ bool txrx::init(stack_interface_phy_lte*     stack_,
                 prach_worker_pool*           prach_,
                 uint32_t                     prio_)
 {
-  stack         = stack_;
-  radio_h       = radio_h_;
-  lte_workers   = lte_workers_;
-  nr_workers    = nr_workers_;
-  worker_com    = worker_com_;
-  prach         = prach_;
-  running       = true;
+  stack       = stack_;
+  radio_h     = radio_h_;
+  lte_workers = lte_workers_;
+  nr_workers  = nr_workers_;
+  worker_com  = worker_com_;
+  prach       = prach_;
+  running     = true;
 
   // Instantiate UL channel emulator
   if (worker_com->params.ul_channel_args.enable) {
@@ -179,7 +179,7 @@ void txrx::run_thread()
 
     // Launch NR worker only if available
     if (nr_worker != nullptr) {
-      nr_worker->set_tti(tti);
+      nr_worker->set_time(tti, timestamp);
       worker_com->semaphore.push(nr_worker);
       nr_workers->start_worker(nr_worker);
     }

@@ -13,6 +13,7 @@ set(SOURCES
         nr/cc_worker.cc
         nr/sf_worker.cc
         nr/worker_pool.cc
+        nr/phy_nr_state.cc
         phy.cc
         phy_common.cc
         phy_ue_db.cc
@@ -22,6 +23,6 @@ add_library(srsenb_phy STATIC ${SOURCES})
 
 add_library(srsgnb_phy STATIC vnf_phy_nr.cc)
 
-if(ENABLE_GUI AND SRSGUI_FOUND)
+if (ENABLE_GUI AND SRSGUI_FOUND)
     target_link_libraries(srsenb_phy ${SRSGUI_LIBRARIES})
-endif()
+endif ()

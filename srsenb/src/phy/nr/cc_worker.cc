@@ -15,28 +15,32 @@
 
 namespace srsenb {
 namespace nr {
-cc_worker::cc_worker(uint32_t cc_idx_, srslog::basic_logger& log, phy_nr_state& phy_state_) :
-  cc_idx(cc_idx_), phy_state(phy_state_), logger(log)
+cc_worker::cc_worker(const args_t& args, srslog::basic_logger& log, phy_nr_state& phy_state_) :
+  cc_idx(args.cc_idx), phy_state(phy_state_), logger(log), nof_tx_antennas(args.dl.nof_tx_antennas)
 {
   cf_t* buffer_c[SRSRAN_MAX_PORTS] = {};
 
   // Allocate buffers
-  buffer_sz = SRSRAN_SF_LEN_PRB(phy_state.args.dl.nof_max_prb);
-  for (uint32_t i = 0; i < phy_state.args.dl.nof_tx_antennas; i++) {
+  buffer_sz = SRSRAN_SF_LEN_PRB(args.dl.nof_max_prb);
+  for (uint32_t i = 0; i < args.dl.nof_tx_antennas; i++) {
     tx_buffer[i] = srsran_vec_cf_malloc(buffer_sz);
     rx_buffer[i] = srsran_vec_cf_malloc(buffer_sz);
     buffer_c[i]  = tx_buffer[i];
   }
 
-  if (srsran_enb_dl_nr_init(&enb_dl, buffer_c, &phy_state.args.dl)) {
-    ERROR("Error initiating UE DL NR");
+  if (srsran_enb_dl_nr_init(&gnb_dl, buffer_c, &args.dl)) {
+    ERROR("Error initiating GNB DL NR");
     return;
+  }
+
+  if (srsran_enb_dl_nr_set_carrier(&gnb_dl, &args.carrier) < SRSRAN_SUCCESS) {
+    ERROR("Error setting carrier");
   }
 }
 
 cc_worker::~cc_worker()
 {
-  srsran_enb_dl_nr_free(&enb_dl);
+  srsran_enb_dl_nr_free(&gnb_dl);
   for (cf_t* p : rx_buffer) {
     if (p != nullptr) {
       free(p);
@@ -49,34 +53,15 @@ cc_worker::~cc_worker()
   }
 }
 
-bool cc_worker::set_carrier(const srsran_carrier_nr_t* carrier)
-{
-  if (srsran_enb_dl_nr_set_carrier(&enb_dl, carrier) < SRSRAN_SUCCESS) {
-    ERROR("Error setting carrier");
-    return false;
-  }
-
-  srsran_coreset_t coreset  = {};
-  coreset.freq_resources[0] = true; // Enable the bottom 6 PRB for PDCCH
-  coreset.duration          = 2;
-
-  srsran_dci_cfg_nr_t dci_cfg = phy_state.cfg.get_dci_cfg();
-  if (srsran_enb_dl_nr_set_pdcch_config(&enb_dl, &phy_state.cfg.pdcch, &dci_cfg) < SRSRAN_SUCCESS) {
-    ERROR("Error setting coreset");
-    return false;
-  }
-
-  return true;
-}
-
 void cc_worker::set_tti(uint32_t tti)
 {
+  ul_slot_cfg.idx = tti;
   dl_slot_cfg.idx = TTI_ADD(tti, FDD_HARQ_DELAY_UL_MS);
 }
 
 cf_t* cc_worker::get_tx_buffer(uint32_t antenna_idx)
 {
-  if (antenna_idx >= phy_state.args.dl.nof_tx_antennas) {
+  if (antenna_idx >= nof_tx_antennas) {
     return nullptr;
   }
 
@@ -85,7 +70,7 @@ cf_t* cc_worker::get_tx_buffer(uint32_t antenna_idx)
 
 cf_t* cc_worker::get_rx_buffer(uint32_t antenna_idx)
 {
-  if (antenna_idx >= phy_state.args.dl.nof_tx_antennas) {
+  if (antenna_idx >= nof_tx_antennas) {
     return nullptr;
   }
 
@@ -104,7 +89,7 @@ int cc_worker::encode_pdcch_dl(stack_interface_phy_nr::dl_sched_grant_t* grants,
     // ...
 
     // Put actual DCI
-    if (srsran_enb_dl_nr_pdcch_put(&enb_dl, &dl_slot_cfg, &grants[i].dci) < SRSRAN_SUCCESS) {
+    if (srsran_enb_dl_nr_pdcch_put(&gnb_dl, &dl_slot_cfg, &grants[i].dci) < SRSRAN_SUCCESS) {
       ERROR("Error putting PDCCH");
       return SRSRAN_ERROR;
     }
@@ -127,10 +112,10 @@ int cc_worker::encode_pdsch(stack_interface_phy_nr::dl_sched_grant_t* grants, ui
 
     // Compute DL grant
     if (srsran_ra_dl_dci_to_grant_nr(
-            &enb_dl.carrier, &dl_slot_cfg, &pdsch_hl_cfg, &grants[i].dci, &pdsch_cfg, &pdsch_cfg.grant) <
+            &gnb_dl.carrier, &dl_slot_cfg, &pdsch_hl_cfg, &grants[i].dci, &pdsch_cfg, &pdsch_cfg.grant) <
         SRSRAN_SUCCESS) {
       ERROR("Computing DL grant");
-      return false;
+      return SRSRAN_ERROR;
     }
 
     // Set soft buffer
@@ -138,15 +123,15 @@ int cc_worker::encode_pdsch(stack_interface_phy_nr::dl_sched_grant_t* grants, ui
       pdsch_cfg.grant.tb[j].softbuffer.tx = grants[i].softbuffer_tx[j];
     }
 
-    if (srsran_enb_dl_nr_pdsch_put(&enb_dl, &dl_slot_cfg, &pdsch_cfg, grants[i].data) < SRSRAN_SUCCESS) {
+    if (srsran_enb_dl_nr_pdsch_put(&gnb_dl, &dl_slot_cfg, &pdsch_cfg, grants[i].data) < SRSRAN_SUCCESS) {
       ERROR("Error putting PDSCH");
-      return false;
+      return SRSRAN_ERROR;
     }
 
     // Logging
     if (logger.info.enabled()) {
       char str[512];
-      srsran_enb_dl_nr_pdsch_info(&enb_dl, &pdsch_cfg, str, sizeof(str));
+      srsran_enb_dl_nr_pdsch_info(&gnb_dl, &pdsch_cfg, str, sizeof(str));
       logger.info("PDSCH: cc=%d, %s", cc_idx, str);
     }
   }
@@ -154,10 +139,15 @@ int cc_worker::encode_pdsch(stack_interface_phy_nr::dl_sched_grant_t* grants, ui
   return SRSRAN_SUCCESS;
 }
 
-bool cc_worker::work_dl(const srsran_slot_cfg_t& dl_sf_cfg, stack_interface_phy_nr::dl_sched_t& dl_grants)
+bool cc_worker::work_ul()
+{
+  return true;
+}
+
+bool cc_worker::work_dl(stack_interface_phy_nr::dl_sched_t& dl_grants, stack_interface_phy_nr::ul_sched_t& ul_grants)
 {
   // Reset resource grid
-  if (srsran_enb_dl_nr_base_zero(&enb_dl) < SRSRAN_SUCCESS) {
+  if (srsran_enb_dl_nr_base_zero(&gnb_dl) < SRSRAN_SUCCESS) {
     ERROR("Error setting base to zero");
     return SRSRAN_ERROR;
   }
@@ -167,7 +157,7 @@ bool cc_worker::work_dl(const srsran_slot_cfg_t& dl_sf_cfg, stack_interface_phy_
   encode_pdsch(dl_grants.pdsch, dl_grants.nof_grants);
 
   // Generate signal
-  srsran_enb_dl_nr_gen_signal(&enb_dl);
+  srsran_enb_dl_nr_gen_signal(&gnb_dl);
 
   return true;
 }

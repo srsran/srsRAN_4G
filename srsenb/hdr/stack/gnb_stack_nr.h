@@ -72,6 +72,8 @@ public:
   void process_pdus() final;
 
   void toggle_padding() { srsran::console("padding not available for NR\n"); }
+  int  get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res) override;
+  int  get_ul_sched(uint32_t tti, ul_sched_list_t& ul_sched_res) override;
 
 private:
   void run_thread() final;

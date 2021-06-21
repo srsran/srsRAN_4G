@@ -53,18 +53,20 @@ public:
   void get_metrics(srsenb::mac_metrics_t& metrics);
 
   // MAC interface for RRC
-  int cell_cfg(srsenb::sched_interface::cell_cfg_t* cell_cfg);
+  int cell_cfg(srsenb::sched_interface::cell_cfg_t* cell_cfg) override;
   int read_pdu_bcch_bch(uint8_t* payload);
 
   // MAC interface for RLC
   // TODO:
-  int rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue) { return 0; }
+  int rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue) override { return 0; }
 
   // Interface for PHY
   int sf_indication(const uint32_t tti);
   int rx_data_indication(stack_interface_phy_nr::rx_data_ind_t& grant);
 
   void process_pdus();
+  int  get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res) override;
+  int  get_ul_sched(uint32_t tti, ul_sched_list_t& ul_sched_res) override;
 
 private:
   void get_dl_config(const uint32_t                               tti,

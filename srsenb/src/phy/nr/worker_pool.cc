@@ -14,33 +14,24 @@
 namespace srsenb {
 namespace nr {
 
-worker_pool::worker_pool(uint32_t max_workers) : pool(max_workers) {}
-
-bool worker_pool::init(const phy_cell_cfg_list_nr_t& cell_list,
-                       const phy_args_t&             args,
-                       srsran::phy_common_interface& common,
-                       srslog::sink&                 log_sink,
-                       int                           prio)
+worker_pool::worker_pool(const phy_cell_cfg_list_nr_t& cell_list,
+                         const args_t&                 args,
+                         srsran::phy_common_interface& common,
+                         stack_interface_phy_nr&       stack,
+                         srslog::sink&                 log_sink) :
+  pool(args.nof_workers), phy_state(cell_list, stack)
 {
-  // Save cell list
-  phy_state.cell_list = cell_list;
-
   // Add workers to workers pool and start threads
-  srslog::basic_levels log_level = srslog::str_to_basic_level(args.log.phy_level);
-  for (uint32_t i = 0; i < args.nof_phy_threads; i++) {
+  srslog::basic_levels log_level = srslog::str_to_basic_level(args.log_level);
+  for (uint32_t i = 0; i < args.nof_workers; i++) {
     auto& log = srslog::fetch_basic_logger(fmt::format("PHY{}-NR", i), log_sink);
     log.set_level(log_level);
-    log.set_hex_dump_max_size(args.log.phy_hex_limit);
+    log.set_hex_dump_max_size(args.log_hex_limit);
 
     auto w = new sf_worker(common, phy_state, log);
-    pool.init_worker(i, w, prio);
+    pool.init_worker(i, w, args.prio);
     workers.push_back(std::unique_ptr<sf_worker>(w));
-
-    srsran_carrier_nr_t c = phy_state.cell_list[0].carrier;
-    w->set_carrier_unlocked(0, &c);
   }
-
-  return true;
 }
 
 void worker_pool::start_worker(sf_worker* w)

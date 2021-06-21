@@ -35,13 +35,11 @@ public:
   sf_worker(srsran::phy_common_interface& common_, phy_nr_state& phy_state_, srslog::basic_logger& logger);
   ~sf_worker();
 
-  bool set_carrier_unlocked(uint32_t cc_idx, const srsran_carrier_nr_t* carrier_);
-
   /* Functions used by main PHY thread */
   cf_t*    get_buffer_rx(uint32_t cc_idx, uint32_t antenna_idx);
   cf_t*    get_buffer_tx(uint32_t cc_idx, uint32_t antenna_idx);
   uint32_t get_buffer_len();
-  void     set_tti(uint32_t tti);
+  void     set_time(const uint32_t& tti, const srsran::rf_timestamp_t& timestamp);
 
 private:
   /* Inherited from thread_pool::worker. Function called every subframe to run the DL/UL processing */
@@ -52,6 +50,9 @@ private:
   srsran::phy_common_interface& common;
   phy_nr_state&                 phy_state;
   srslog::basic_logger&         logger;
+  srsran_slot_cfg_t             dl_slot_cfg = {};
+  srsran_slot_cfg_t             ul_slot_cfg = {};
+  srsran::rf_timestamp_t        tx_time     = {};
 
   // Temporal attributes
   srsran_softbuffer_tx_t softbuffer_tx = {};

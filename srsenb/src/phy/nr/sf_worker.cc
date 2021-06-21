@@ -17,8 +17,15 @@ namespace nr {
 sf_worker::sf_worker(srsran::phy_common_interface& common_, phy_nr_state& phy_state_, srslog::basic_logger& logger) :
   common(common_), phy_state(phy_state_), logger(logger)
 {
-  for (uint32_t i = 0; i < phy_state.args.nof_carriers; i++) {
-    cc_worker* w = new cc_worker(i, logger, phy_state);
+  const phy_cell_cfg_list_nr_t& carrier_list = phy_state.get_carrier_list();
+  for (uint32_t i = 0; i < (uint32_t)carrier_list.size(); i++) {
+    cc_worker::args_t cc_args  = {};
+    cc_args.cc_idx             = i;
+    cc_args.carrier            = carrier_list[i].carrier;
+    cc_args.dl.nof_tx_antennas = 1;
+    cc_args.dl.nof_max_prb     = cc_args.carrier.nof_prb;
+
+    cc_worker* w = new cc_worker(cc_args, logger, phy_state);
     cc_workers.push_back(std::unique_ptr<cc_worker>(w));
   }
 
@@ -35,15 +42,6 @@ sf_worker::sf_worker(srsran::phy_common_interface& common_, phy_nr_state& phy_st
 sf_worker::~sf_worker()
 {
   srsran_softbuffer_tx_free(&softbuffer_tx);
-}
-
-bool sf_worker::set_carrier_unlocked(uint32_t cc_idx, const srsran_carrier_nr_t* carrier_)
-{
-  if (cc_idx >= cc_workers.size()) {
-    return false;
-  }
-
-  return cc_workers.at(cc_idx)->set_carrier(carrier_);
 }
 
 cf_t* sf_worker::get_buffer_rx(uint32_t cc_idx, uint32_t antenna_idx)
@@ -69,12 +67,15 @@ uint32_t sf_worker::get_buffer_len()
   return cc_workers.at(0)->get_buffer_len();
 }
 
-void sf_worker::set_tti(uint32_t tti)
+void sf_worker::set_time(const uint32_t& tti, const srsran::rf_timestamp_t& timestamp)
 {
   logger.set_context(tti);
   for (auto& w : cc_workers) {
     w->set_tti(tti);
   }
+  ul_slot_cfg.idx = tti;
+  dl_slot_cfg.idx = TTI_ADD(tti, FDD_HARQ_DELAY_UL_MS);
+  tx_time.copy(timestamp);
 }
 
 void sf_worker::work_imp()
@@ -82,38 +83,30 @@ void sf_worker::work_imp()
   // Get Transmission buffers
   srsran::rf_buffer_t    tx_buffer = {};
   srsran::rf_timestamp_t dummy_ts  = {};
-  for (uint32_t cc = 0; cc < phy_state.args.nof_carriers; cc++) {
-    for (uint32_t ant = 0; ant < phy_state.args.nof_ports; ant++) {
-      tx_buffer.set(cc, ant, phy_state.args.nof_ports, cc_workers[cc]->get_tx_buffer(ant));
-    }
+  for (uint32_t cc = 0; cc < (uint32_t)phy_state.get_carrier_list().size(); cc++) {
+    tx_buffer.set(cc, 0, 1, cc_workers[cc]->get_tx_buffer(0));
   }
 
-  // Configure user
-  phy_state.cfg.pdsch.rbg_size_cfg_1 = false;
+  // Get UL Scheduling
+  mac_interface_phy_nr::ul_sched_list_t ul_sched_list = {};
+  ul_sched_list.resize(1);
+  if (phy_state.get_stack().get_ul_sched(ul_slot_cfg.idx, ul_sched_list) < SRSRAN_SUCCESS) {
+    logger.error("DL Scheduling error");
+    common.worker_end(this, true, tx_buffer, dummy_ts, true);
+    return;
+  }
 
-  // Fill grant (this comes from the scheduler)
-  srsran_slot_cfg_t                  dl_cfg = {};
-  stack_interface_phy_nr::dl_sched_t grants = {};
-
-  grants.nof_grants                = 1;
-  grants.pdsch[0].data[0]          = data.data();
-  grants.pdsch[0].softbuffer_tx[0] = &softbuffer_tx;
-  srsran_softbuffer_tx_reset(&softbuffer_tx);
-
-  grants.pdsch[0].dci.ctx.rnti   = 0x1234;
-  grants.pdsch[0].dci.ctx.format = srsran_dci_format_nr_1_0;
-
-  grants.pdsch[0].dci.freq_domain_assigment = 0x1FFF;
-  grants.pdsch[0].dci.time_domain_assigment = 0;
-  grants.pdsch[0].dci.mcs                   = 27;
-
-  grants.pdsch[0].dci.ctx.ss_type       = srsran_search_space_type_ue;
-  grants.pdsch[0].dci.ctx.coreset_id    = 1;
-  grants.pdsch[0].dci.ctx.location.L    = 0;
-  grants.pdsch[0].dci.ctx.location.ncce = 0;
+  // Get DL scheduling
+  mac_interface_phy_nr::dl_sched_list_t dl_sched_list = {};
+  dl_sched_list.resize(1);
+  if (phy_state.get_stack().get_dl_sched(ul_slot_cfg.idx, dl_sched_list) < SRSRAN_SUCCESS) {
+    logger.error("DL Scheduling error");
+    common.worker_end(this, true, tx_buffer, dummy_ts, true);
+    return;
+  }
 
   for (auto& w : cc_workers) {
-    w->work_dl(dl_cfg, grants);
+    w->work_dl(dl_sched_list[0], ul_sched_list[0]);
   }
 
   common.worker_end(this, true, tx_buffer, dummy_ts, true);

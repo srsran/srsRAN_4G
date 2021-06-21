@@ -267,5 +267,13 @@ int mac_nr::cell_cfg(srsenb::sched_interface::cell_cfg_t* cell_cfg)
 
   return SRSRAN_SUCCESS;
 }
+int mac_nr::get_dl_sched(uint32_t tti, mac_interface_phy_nr::dl_sched_list_t& dl_sched_res)
+{
+  return 0;
+}
+int mac_nr::get_ul_sched(uint32_t tti, mac_interface_phy_nr::ul_sched_list_t& ul_sched_res)
+{
+  return 0;
+}
 
 } // namespace srsenb
