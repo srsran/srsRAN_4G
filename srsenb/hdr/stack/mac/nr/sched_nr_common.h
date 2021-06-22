@@ -13,12 +13,21 @@
 #ifndef SRSRAN_SCHED_NR_COMMON_H
 #define SRSRAN_SCHED_NR_COMMON_H
 
-#include "srsran/adt/circular_map.h"
+#include "sched_nr_interface.h"
+#include "srsran/adt/bounded_bitset.h"
 
 namespace srsenb {
 
 const static size_t SCHED_NR_MAX_USERS     = 4;
 const static size_t SCHED_NR_NOF_SUBFRAMES = 10;
+const static size_t SCHED_NR_MAX_NOF_RBGS  = 25;
+const static size_t SCHED_NR_NOF_HARQS     = 16;
+
+namespace sched_nr_impl {
+
+using rbgmask_t = srsran::bounded_bitset<SCHED_NR_MAX_NOF_RBGS, true>;
+
+} // namespace sched_nr_impl
 
 } // namespace srsenb
 

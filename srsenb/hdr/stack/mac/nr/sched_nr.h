@@ -38,7 +38,7 @@ public:
   void new_tti(tti_point tti_rx) override;
   int  generate_sched_result(tti_point tti_rx, uint32_t cc, sched_nr_res_t& result);
 
-  void dl_ack_info(tti_point tti_rx, uint16_t rnti, uint32_t cc, uint32_t tb_idx, bool ack) override;
+  void dl_ack_info(uint16_t rnti, uint32_t cc, uint32_t pid, uint32_t tb_idx, bool ack) override;
   void ul_sr_info(tti_point tti_rx, uint16_t rnti) override;
 
 private:
@@ -50,7 +50,7 @@ private:
   using sched_worker_manager = sched_nr_impl::sched_worker_manager;
   sched_worker_manager sched_workers;
 
-  std::array<std::array<sched_nr_res_t, SCHED_NR_MAX_CARRIERS>, SCHED_NR_MAX_CARRIERS> sched_results;
+  std::array<std::array<sched_nr_res_t, SCHED_NR_MAX_CARRIERS>, SCHED_NR_NOF_SUBFRAMES> sched_results;
 
   using ue_map_t = sched_nr_impl::ue_map_t;
   std::mutex ue_db_mutex;

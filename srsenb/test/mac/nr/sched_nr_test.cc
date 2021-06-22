@@ -112,7 +112,7 @@ void sched_nr_cfg_parallel_sf_test()
 
 int main()
 {
-  srsran::get_background_workers().set_nof_workers(4);
+  srsran::get_background_workers().set_nof_workers(8);
 
   srsenb::sched_nr_cfg_serialized_test();
   srsenb::sched_nr_cfg_parallel_cc_test();

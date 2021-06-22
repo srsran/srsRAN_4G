@@ -16,6 +16,7 @@
 #include "sched_nr_common.h"
 #include "sched_nr_harq.h"
 #include "sched_nr_interface.h"
+#include "srsran/adt/circular_map.h"
 #include "srsran/adt/move_callback.h"
 #include "srsran/adt/pool/cached_alloc.h"
 
@@ -25,51 +26,61 @@ namespace sched_nr_impl {
 
 class ue_carrier;
 
-class bwp_ue
+class slot_ue
 {
 public:
-  bwp_ue() = default;
-  explicit bwp_ue(ue_carrier& carrier_, tti_point tti_rx_);
-  ~bwp_ue();
-  bwp_ue(bwp_ue&& other) noexcept : carrier(other.carrier) { other.carrier = nullptr; }
-  bwp_ue& operator=(bwp_ue&& other) noexcept
-  {
-    carrier       = other.carrier;
-    other.carrier = nullptr;
-    return *this;
-  }
-  bool empty() const { return carrier == nullptr; }
+  slot_ue() = default;
+  explicit slot_ue(bool& busy_signal, tti_point tti_rx_, uint32_t cc);
+  ~slot_ue();
+  slot_ue(slot_ue&&) noexcept = default;
+  slot_ue& operator=(slot_ue&&) noexcept = default;
+  bool     empty() const { return busy_signal == nullptr; }
+  void     release();
 
   tti_point tti_rx;
   uint32_t  cc = SCHED_NR_MAX_CARRIERS;
 
+  // UE parameters common to all sectors
   const sched_nr_ue_cfg* cfg = nullptr;
   bool                   pending_sr;
 
+  // UE parameters that are sector specific
+  uint32_t   dl_cqi;
+  uint32_t   ul_cqi;
+  harq_proc* h_dl = nullptr;
+  harq_proc* h_ul = nullptr;
+
 private:
-  ue_carrier* carrier = nullptr;
+  struct noop {
+    void operator()(bool* ptr) {}
+  };
+  std::unique_ptr<bool, noop> busy_signal;
 };
 
 class ue_carrier
 {
 public:
   ue_carrier(uint16_t rnti, uint32_t cc, const sched_nr_ue_cfg& cfg);
-  bwp_ue try_reserve(tti_point tti_rx);
-  void   push_feedback(srsran::move_callback<void(ue_carrier&)> callback);
+  slot_ue try_reserve(tti_point tti_rx, const sched_nr_ue_cfg& cfg);
+  void    push_feedback(srsran::move_callback<void(ue_carrier&)> callback);
+  void    set_cfg(const sched_nr_ue_cfg& uecfg);
 
   const uint16_t rnti;
   const uint32_t cc;
 
+  // Channel state
+  uint32_t dl_cqi = 1;
+  uint32_t ul_cqi = 0;
+
   harq_entity harq_ent;
 
 private:
-  friend class bwp_ue;
-  void release() { busy = false; }
+  const sched_nr_ue_cfg* cfg = nullptr;
 
-  const sched_nr_ue_cfg* cfg;
+  bool      busy{false};
+  tti_point last_tti_rx;
 
   srsran::deque<srsran::move_callback<void(ue_carrier&)> > pending_feedback;
-  bool                                                     busy{false};
 };
 
 class ue
@@ -77,7 +88,7 @@ class ue
 public:
   ue(uint16_t rnti, const sched_nr_ue_cfg& cfg);
 
-  bwp_ue try_reserve(tti_point tti_rx, uint32_t cc);
+  slot_ue try_reserve(tti_point tti_rx, uint32_t cc);
 
   void set_cfg(const sched_nr_ue_cfg& cfg);
 

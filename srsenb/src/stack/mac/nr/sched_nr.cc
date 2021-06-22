@@ -15,7 +15,6 @@
 
 namespace srsenb {
 
-using sched_nr_impl::bwp_worker;
 using sched_nr_impl::sched_worker_manager;
 using sched_nr_impl::ue;
 using sched_nr_impl::ue_carrier;
@@ -100,7 +99,7 @@ void sched_nr::ue_cfg_impl(uint16_t rnti, const sched_nr_ue_cfg& uecfg)
 
 void sched_nr::new_tti(tti_point tti_rx)
 {
-  // Lock subframe workers to provided tti_rx
+  // Lock slot workers for provided tti_rx
   sched_workers.reserve_workers(tti_rx, sched_results[tti_rx.sf_idx()]);
 
   {
@@ -113,33 +112,25 @@ void sched_nr::new_tti(tti_point tti_rx)
   }
 }
 
+/// Generate {tti,cc} scheduling decision
 int sched_nr::generate_sched_result(tti_point tti_rx, uint32_t cc, sched_nr_res_t& result)
 {
-  // Generate {tti,cc} scheduling decision
-  run_tti(tti_rx, cc);
-
-  // copy scheduling decision result
-  result = sched_results[tti_rx.sf_idx()][cc];
-
-  return SRSRAN_SUCCESS;
-}
-
-void sched_nr::run_tti(tti_point tti_rx, uint32_t cc)
-{
   // unlocked, parallel region
-  bool all_workers_finished = sched_workers.run_tti(tti_rx, cc);
+  bool all_workers_finished = sched_workers.run_tti(tti_rx, cc, result);
 
   if (all_workers_finished) {
     // once all workers of the same subframe finished, synchronize sched outcome with ue_db
     std::lock_guard<std::mutex> lock(ue_db_mutex);
     sched_workers.end_tti(tti_rx);
   }
+
+  return SRSRAN_SUCCESS;
 }
 
-void sched_nr::dl_ack_info(tti_point tti_rx, uint16_t rnti, uint32_t cc, uint32_t tb_idx, bool ack)
+void sched_nr::dl_ack_info(uint16_t rnti, uint32_t pid, uint32_t cc, uint32_t tb_idx, bool ack)
 {
   pending_events->push_cc_feedback(
-      rnti, cc, [tti_rx, tb_idx, ack](ue_carrier& ue_cc) { ue_cc.harq_ent.dl_ack_info(tti_rx, tb_idx, ack); });
+      rnti, cc, [pid, tb_idx, ack](ue_carrier& ue_cc) { ue_cc.harq_ent.dl_ack_info(pid, tb_idx, ack); });
 }
 
 void sched_nr::ul_sr_info(tti_point tti_rx, uint16_t rnti)
