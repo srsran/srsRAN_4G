@@ -167,9 +167,7 @@ void nas::clear_eps_bearer()
   // Deactivate EPS bearer according to Sec. 5.5.2.2.2
   logger.debug("Clearing EPS bearer context");
   for (const auto& bearer : eps_bearer) {
-    if (bearer.second.type == DEFAULT_EPS_BEARER) {
-      gw->deactivate_eps_bearer(bearer.second.eps_bearer_id);
-    }
+    gw->deactivate_eps_bearer(bearer.second.eps_bearer_id);
   }
   eps_bearer.clear();
 }
