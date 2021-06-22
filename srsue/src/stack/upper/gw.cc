@@ -189,6 +189,7 @@ int gw::setup_if_addr(uint32_t eps_bearer_id,
 
   // Setup a thread to receive packets from the TUN device
   start(GW_THREAD_PRIO);
+
   return SRSRAN_SUCCESS;
 }
 
@@ -199,9 +200,11 @@ int gw::deactivate_eps_bearer(const uint32_t eps_bearer_id)
     logger.debug("Deactivating EPS bearer %d", eps_bearer_id);
     default_eps_bearer_id = NOT_ASSIGNED;
     return SRSRAN_SUCCESS;
+  } else {
+    // delete TFT template (if any) for this bearer
+    tft_matcher.delete_tft_for_eps_bearer(eps_bearer_id);
+    return SRSRAN_SUCCESS;
   }
-  logger.error("Couldn't deactivate EPS bearer %d", eps_bearer_id);
-  return SRSRAN_ERROR;
 }
 
 bool gw::is_running()
