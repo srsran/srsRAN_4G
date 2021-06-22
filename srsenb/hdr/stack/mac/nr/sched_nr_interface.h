@@ -25,14 +25,15 @@ const static size_t   SCHED_NR_MAX_PUSCH_DATA = 16;
 const static size_t   SCHED_NR_MAX_TB         = 2;
 
 struct sched_nr_cell_cfg {
-  uint32_t nof_prb;
-  uint32_t nof_rbg;
+  uint32_t nof_prb = 100;
+  uint32_t nof_rbg = 25;
+  uint32_t K0      = 0;
+  uint32_t K1      = 4;
+  uint32_t K2      = 4;
 };
 
 struct sched_nr_cfg {
   uint32_t nof_concurrent_subframes = 1;
-
-  srsran::bounded_vector<sched_nr_cell_cfg, SCHED_NR_MAX_CARRIERS> cells;
 };
 
 struct sched_nr_ue_cc_cfg {

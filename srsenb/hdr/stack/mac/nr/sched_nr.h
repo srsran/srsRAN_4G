@@ -16,7 +16,6 @@
 #include "sched_nr_common.h"
 #include "sched_nr_interface.h"
 #include "sched_nr_ue.h"
-#include "sched_nr_worker.h"
 #include "srsran/adt/pool/cached_alloc.h"
 #include "srsran/common/tti_point.h"
 #include <array>
@@ -26,13 +25,18 @@ extern "C" {
 
 namespace srsenb {
 
+namespace sched_nr_impl {
+class sched_worker_manager;
+}
+
 class ue_event_manager;
 
 class sched_nr final : public sched_nr_interface
 {
 public:
-  sched_nr(const sched_nr_cfg& cfg);
+  explicit sched_nr(const sched_nr_cfg& sched_cfg);
   ~sched_nr() override;
+  int  cell_cfg(const std::vector<sched_nr_cell_cfg>& cell_list);
   void ue_cfg(uint16_t rnti, const sched_nr_ue_cfg& cfg) override;
 
   void new_tti(tti_point tti_rx) override;
@@ -45,10 +49,11 @@ private:
   void ue_cfg_impl(uint16_t rnti, const sched_nr_ue_cfg& cfg);
   void run_tti(tti_point tti_rx, uint32_t cc);
 
-  sched_nr_cfg cfg;
+  // args
+  sched_nr_impl::sched_params cfg;
 
   using sched_worker_manager = sched_nr_impl::sched_worker_manager;
-  sched_worker_manager sched_workers;
+  std::unique_ptr<sched_worker_manager> sched_workers;
 
   std::array<std::array<sched_nr_res_t, SCHED_NR_MAX_CARRIERS>, SCHED_NR_NOF_SUBFRAMES> sched_results;
 

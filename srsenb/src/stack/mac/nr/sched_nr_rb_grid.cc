@@ -15,7 +15,9 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
-slot_grid::slot_grid(uint32_t cc_, const sched_nr_cfg& cfg_) : cc(cc_), cfg(cfg_) {}
+slot_grid::slot_grid(const sched_cell_params& cfg_) :
+  cfg(cfg_), pdsch_mask(cfg.cell_cfg.nof_rbg), pusch_mask(cfg.cell_cfg.nof_rbg)
+{}
 
 void slot_grid::new_tti(tti_point tti_rx_, sched_nr_res_t& sched_res_)
 {
@@ -39,7 +41,7 @@ bool slot_grid::alloc_pdsch(slot_ue& ue, const rbgmask_t& dl_mask)
   if (sched_res->dl_res.data.full()) {
     return false;
   }
-  if (not ue.h_dl->new_tx(tti_tx_dl(), dl_mask, mcs, K1)) {
+  if (not ue.h_dl->new_tx(tti_tx_dl(), dl_mask, mcs, cfg.cell_cfg.K1)) {
     return false;
   }
 

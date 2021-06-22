@@ -22,7 +22,7 @@ namespace sched_nr_impl {
 class slot_grid
 {
 public:
-  explicit slot_grid(uint32_t cc, const sched_nr_cfg& cfg_);
+  explicit slot_grid(const sched_cell_params& cfg_);
   void new_tti(tti_point tti_rx_, sched_nr_res_t& sched_res_);
   bool alloc_pdsch(slot_ue& ue, const rbgmask_t& dl_mask);
   bool alloc_pusch(slot_ue& ue, const rbgmask_t& dl_mask);
@@ -30,13 +30,11 @@ public:
   void generate_dcis();
 
   tti_point tti_tx_dl() const { return tti_rx + TX_ENB_DELAY; }
-  tti_point tti_tx_ul() const { return tti_tx_dl() + K2; }
+  tti_point tti_tx_ul() const { return tti_tx_dl() + cfg.cell_cfg.K2; }
+
+  const sched_cell_params& cfg;
 
 private:
-  static const size_t K0 = 0, K1 = 4, K2 = 4;
-  const uint32_t      cc;
-  const sched_nr_cfg& cfg;
-
   tti_point       tti_rx;
   rbgmask_t       pdsch_mask;
   rbgmask_t       pusch_mask;

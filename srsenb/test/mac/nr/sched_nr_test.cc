@@ -16,12 +16,50 @@
 
 namespace srsenb {
 
+struct task_job_manager {
+  std::mutex              mutex;
+  std::condition_variable cond_var;
+  int                     tasks       = 0;
+  int                     pdsch_count = 0;
+  int                     max_tasks   = std::numeric_limits<int>::max() / 2;
+
+  void start_task()
+  {
+    std::unique_lock<std::mutex> lock(mutex);
+    while (tasks >= max_tasks) {
+      cond_var.wait(lock);
+    }
+    tasks++;
+  }
+  void finish_task(const sched_nr_res_t& res)
+  {
+    std::unique_lock<std::mutex> lock(mutex);
+    TESTASSERT(res.dl_res.data.size() <= 1);
+    pdsch_count += res.dl_res.data.size();
+    if (tasks-- >= max_tasks or tasks == 0) {
+      cond_var.notify_one();
+    }
+  }
+  void wait_task_finish()
+  {
+    std::unique_lock<std::mutex> lock(mutex);
+    while (tasks > 0) {
+      cond_var.wait(lock);
+    }
+  }
+};
+
 void sched_nr_cfg_serialized_test()
 {
-  sched_nr_cfg cfg;
-  cfg.cells.resize(1);
+  uint32_t         max_nof_ttis = 1000;
+  task_job_manager tasks;
+
+  sched_nr_cfg                   cfg;
+  std::vector<sched_nr_cell_cfg> cells_cfg;
+  cells_cfg.resize(1);
 
   sched_nr sched(cfg);
+  sched.cell_cfg(cells_cfg);
 
   sched_nr_ue_cfg uecfg;
   uecfg.carriers.resize(1);
@@ -31,90 +69,105 @@ void sched_nr_cfg_serialized_test()
   for (uint32_t nof_ttis = 0; nof_ttis < 1000; ++nof_ttis) {
     tti_point tti(nof_ttis % 10240);
     sched.new_tti(tti);
-    for (uint32_t cc = 0; cc < cfg.cells.size(); ++cc) {
+    for (uint32_t cc = 0; cc < cells_cfg.size(); ++cc) {
+      tasks.start_task();
       sched_nr_res_t res;
       TESTASSERT(sched.generate_sched_result(tti, cc, res) == SRSRAN_SUCCESS);
+      tasks.finish_task(res);
     }
   }
+
+  printf("TESTER: %f PDSCH/slot were allocated\n", tasks.pdsch_count / (double)max_nof_ttis);
 }
 
 void sched_nr_cfg_parallel_cc_test()
 {
-  std::atomic<int> tasks{0};
+  uint32_t         max_nof_ttis = 1000;
+  task_job_manager tasks;
 
-  sched_nr_cfg cfg;
-  cfg.cells.resize(4);
+  sched_nr_cfg                   cfg;
+  std::vector<sched_nr_cell_cfg> cells_cfg;
+  cells_cfg.resize(4);
 
   sched_nr sched(cfg);
+  sched.cell_cfg(cells_cfg);
 
   sched_nr_ue_cfg uecfg;
-  uecfg.carriers.resize(cfg.cells.size());
-  for (uint32_t cc = 0; cc < cfg.cells.size(); ++cc) {
+  uecfg.carriers.resize(cells_cfg.size());
+  for (uint32_t cc = 0; cc < cells_cfg.size(); ++cc) {
     uecfg.carriers[cc].active = true;
   }
   sched.ue_cfg(0x46, uecfg);
 
-  for (uint32_t nof_ttis = 0; nof_ttis < 1000; ++nof_ttis) {
+  for (uint32_t nof_ttis = 0; nof_ttis < max_nof_ttis; ++nof_ttis) {
     tti_point tti(nof_ttis % 10240);
     sched.new_tti(tti);
-    ++tasks;
-    srsran::get_background_workers().push_task([&cfg, &sched, tti, &tasks]() {
-      for (uint32_t cc = 0; cc < cfg.cells.size(); ++cc) {
+    for (uint32_t cc = 0; cc < cells_cfg.size(); ++cc) {
+      tasks.start_task();
+      srsran::get_background_workers().push_task([cc, &sched, tti, &tasks]() {
         sched_nr_res_t res;
         TESTASSERT(sched.generate_sched_result(tti, cc, res) == SRSRAN_SUCCESS);
-      }
-      --tasks;
-    });
+        tasks.finish_task(res);
+      });
+    }
   }
 
-  while (tasks > 0) {
-    usleep(100);
-  }
+  tasks.wait_task_finish();
+
+  printf("TESTER: %f PDSCH/slot were allocated\n", tasks.pdsch_count / (double)max_nof_ttis);
 }
 
 void sched_nr_cfg_parallel_sf_test()
 {
-  uint32_t         nof_sectors = 2;
-  std::atomic<int> tasks{0};
+  uint32_t         max_nof_ttis = 1000;
+  uint32_t         nof_sectors  = 2;
+  task_job_manager tasks;
 
   sched_nr_cfg cfg;
   cfg.nof_concurrent_subframes = 2;
-  cfg.cells.resize(nof_sectors);
+  std::vector<sched_nr_cell_cfg> cells_cfg;
+  cells_cfg.resize(nof_sectors);
 
   sched_nr sched(cfg);
+  sched.cell_cfg(cells_cfg);
 
   sched_nr_ue_cfg uecfg;
-  uecfg.carriers.resize(cfg.cells.size());
-  for (uint32_t cc = 0; cc < cfg.cells.size(); ++cc) {
+  uecfg.carriers.resize(cells_cfg.size());
+  for (uint32_t cc = 0; cc < cells_cfg.size(); ++cc) {
     uecfg.carriers[cc].active = true;
   }
   sched.ue_cfg(0x46, uecfg);
 
-  for (uint32_t nof_ttis = 0; nof_ttis < 1000; ++nof_ttis) {
+  for (uint32_t nof_ttis = 0; nof_ttis < max_nof_ttis; ++nof_ttis) {
     tti_point tti(nof_ttis % 10240);
     sched.new_tti(tti);
-    ++tasks;
-    srsran::get_background_workers().push_task([&cfg, &sched, tti, &tasks]() {
-      for (uint32_t cc = 0; cc < cfg.cells.size(); ++cc) {
+    tasks.start_task();
+    for (uint32_t cc = 0; cc < cells_cfg.size(); ++cc) {
+      srsran::get_background_workers().push_task([cc, &sched, tti, &tasks]() {
         sched_nr_res_t res;
         TESTASSERT(sched.generate_sched_result(tti, cc, res) == SRSRAN_SUCCESS);
-      }
-      --tasks;
-    });
+        tasks.finish_task(res);
+      });
+    }
   }
 
-  while (tasks > 0) {
-    usleep(100);
-  }
+  tasks.wait_task_finish();
+
+  printf("TESTER: %f PDSCH/slot were allocated\n", tasks.pdsch_count / (double)max_nof_ttis);
 }
 
 } // namespace srsenb
 
 int main()
 {
+  auto& mac_logger = srslog::fetch_basic_logger("MAC");
+  mac_logger.set_level(srslog::basic_levels::debug);
+  auto& pool_logger = srslog::fetch_basic_logger("POOL");
+  pool_logger.set_level(srslog::basic_levels::debug);
+
   srsran::get_background_workers().set_nof_workers(8);
 
   srsenb::sched_nr_cfg_serialized_test();
   srsenb::sched_nr_cfg_parallel_cc_test();
-  srsenb::sched_nr_cfg_parallel_sf_test();
+  //  srsenb::sched_nr_cfg_parallel_sf_test();
 }

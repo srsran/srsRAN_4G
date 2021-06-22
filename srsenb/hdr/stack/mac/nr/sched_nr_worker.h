@@ -27,10 +27,10 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
-class carrier_slot_worker
+class slot_cc_worker
 {
 public:
-  explicit carrier_slot_worker(uint32_t cc_, const sched_nr_cfg& cfg_) : cc(cc_), cfg(cfg_), res_grid(cc, cfg) {}
+  explicit slot_cc_worker(const sched_cell_params& cell_params) : cfg(cell_params), res_grid(cfg) {}
 
   void start(tti_point tti_rx_, sched_nr_res_t& bwp_result, ue_map_t& ue_db_);
   void run();
@@ -41,8 +41,7 @@ private:
   void alloc_dl_ues();
   void alloc_ul_ues();
 
-  const uint32_t      cc;
-  const sched_nr_cfg& cfg;
+  const sched_cell_params& cfg;
 
   tti_point tti_rx;
   slot_grid res_grid;
@@ -53,7 +52,7 @@ private:
 class sched_worker_manager
 {
 public:
-  explicit sched_worker_manager(ue_map_t& ue_db_, const sched_nr_cfg& cfg_);
+  explicit sched_worker_manager(ue_map_t& ue_db_, const sched_params& cfg_);
   sched_worker_manager(const sched_worker_manager&) = delete;
   sched_worker_manager(sched_worker_manager&&)      = delete;
   ~sched_worker_manager();
@@ -64,15 +63,15 @@ public:
   void end_tti(tti_point tti_rx);
 
 private:
-  const sched_nr_cfg& cfg;
+  const sched_params& cfg;
   ue_map_t&           ue_db;
 
   struct slot_worker_ctxt {
-    sem_t                            sf_sem;
-    tti_point                        tti_rx;
-    srsran::span<sched_nr_res_t>     sf_result;
-    int                              worker_count = 0;
-    std::vector<carrier_slot_worker> workers;
+    sem_t                        sf_sem; // lock of all workers of the same slot. unlocked by last slot_cc_worker
+    tti_point                    tti_rx;
+    srsran::span<sched_nr_res_t> sf_result;
+    std::atomic<int>             worker_count{0}; // variable shared across slot_cc_workers
+    std::vector<slot_cc_worker>  workers;
   };
   std::vector<std::unique_ptr<slot_worker_ctxt> > slot_ctxts;
 

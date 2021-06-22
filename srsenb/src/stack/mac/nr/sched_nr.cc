@@ -11,6 +11,7 @@
  */
 
 #include "srsenb/hdr/stack/mac/nr/sched_nr.h"
+#include "srsenb/hdr/stack/mac/nr/sched_nr_worker.h"
 #include "srsran/common/thread_pool.h"
 
 namespace srsenb {
@@ -77,11 +78,20 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-sched_nr::sched_nr(const sched_nr_cfg& cfg_) :
-  cfg(cfg_), pending_events(new ue_event_manager(ue_db)), sched_workers(ue_db, cfg)
-{}
+sched_nr::sched_nr(const sched_nr_cfg& sched_cfg) : cfg(sched_cfg), pending_events(new ue_event_manager(ue_db)) {}
 
 sched_nr::~sched_nr() {}
+
+int sched_nr::cell_cfg(const std::vector<sched_nr_cell_cfg>& cell_list)
+{
+  cfg.cells.reserve(cell_list.size());
+  for (uint32_t cc = 0; cc < cell_list.size(); ++cc) {
+    cfg.cells.emplace_back(cc, cell_list[cc], cfg.sched_cfg);
+  }
+
+  sched_workers.reset(new sched_nr_impl::sched_worker_manager(ue_db, cfg));
+  return SRSRAN_SUCCESS;
+}
 
 void sched_nr::ue_cfg(uint16_t rnti, const sched_nr_ue_cfg& uecfg)
 {
@@ -100,7 +110,7 @@ void sched_nr::ue_cfg_impl(uint16_t rnti, const sched_nr_ue_cfg& uecfg)
 void sched_nr::new_tti(tti_point tti_rx)
 {
   // Lock slot workers for provided tti_rx
-  sched_workers.reserve_workers(tti_rx, sched_results[tti_rx.sf_idx()]);
+  sched_workers->reserve_workers(tti_rx, sched_results[tti_rx.sf_idx()]);
 
   {
     // synchronize {tti,cc} state. e.g. reserve UE resources for {tti,cc} decision, process feedback
@@ -108,7 +118,7 @@ void sched_nr::new_tti(tti_point tti_rx)
     // Process pending events
     pending_events->new_tti();
 
-    sched_workers.start_tti(tti_rx);
+    sched_workers->start_tti(tti_rx);
   }
 }
 
@@ -116,12 +126,12 @@ void sched_nr::new_tti(tti_point tti_rx)
 int sched_nr::generate_sched_result(tti_point tti_rx, uint32_t cc, sched_nr_res_t& result)
 {
   // unlocked, parallel region
-  bool all_workers_finished = sched_workers.run_tti(tti_rx, cc, result);
+  bool all_workers_finished = sched_workers->run_tti(tti_rx, cc, result);
 
   if (all_workers_finished) {
     // once all workers of the same subframe finished, synchronize sched outcome with ue_db
     std::lock_guard<std::mutex> lock(ue_db_mutex);
-    sched_workers.end_tti(tti_rx);
+    sched_workers->end_tti(tti_rx);
   }
 
   return SRSRAN_SUCCESS;
