@@ -108,6 +108,7 @@ bool ttcn3_ue::switch_on()
 
 bool ttcn3_ue::switch_off()
 {
+  tft_matcher.reset(); // empty all TFTs
   return stack->switch_off();
 }
 
