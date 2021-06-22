@@ -77,7 +77,7 @@ private:
 
   // args
   rrc_interface_ngap_nr*      rrc = nullptr;
-  ngap_args_t                 args;
+  ngap_args_t                 args = {};
   srslog::basic_logger&       logger;
   srsran::task_sched_handle   task_sched;
   srsran::task_queue_handle   amf_task_queue;
