@@ -159,7 +159,9 @@ void phy::stop()
     tx_rx.stop();
     workers_common.stop();
     lte_workers.stop();
-    nr_workers->stop();
+    if (nr_workers != nullptr) {
+      nr_workers->stop();
+    }
     prach.stop();
 
     initialized = false;
