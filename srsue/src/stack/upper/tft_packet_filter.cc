@@ -378,6 +378,11 @@ bool tft_packet_filter_t::match_port(const srsran::unique_byte_buffer_t& pdu)
   return true;
 }
 
+void tft_pdu_matcher::reset()
+{
+  tft_filter_map.clear();
+}
+
 /**
  * Checks whether the provided PDU matches any configured TFT.
  * If it finds a match, it updates the eps_bearer_id parameter.
@@ -399,15 +404,35 @@ int tft_pdu_matcher::check_tft_filter_match(const srsran::unique_byte_buffer_t& 
   return SRSRAN_ERROR;
 }
 
-int tft_pdu_matcher::apply_traffic_flow_template(const uint8_t&                                 erab_id,
+/**
+ * @brief Deletes all registered TFT for a given EPS bearer ID
+ *
+ * @param eps_bearer_id The EPS bearer ID
+ */
+void tft_pdu_matcher::delete_tft_for_eps_bearer(const uint8_t eps_bearer_id)
+{
+  std::lock_guard<std::mutex> lock(tft_mutex);
+  auto                        old_filter = std::find_if(
+      tft_filter_map.begin(), tft_filter_map.end(), [&](const std::pair<uint16_t, tft_packet_filter_t>& filter) {
+        return filter.second.eps_bearer_id == eps_bearer_id;
+      });
+  if (old_filter != tft_filter_map.end()) {
+    logger.debug("Deleting TFT for EPS bearer %d", eps_bearer_id);
+    tft_filter_map.erase(old_filter);
+  }
+}
+
+int tft_pdu_matcher::apply_traffic_flow_template(const uint8_t&                                 eps_bearer_id,
                                                  const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft)
 {
   std::lock_guard<std::mutex> lock(tft_mutex);
   switch (tft->tft_op_code) {
     case LIBLTE_MME_TFT_OPERATION_CODE_CREATE_NEW_TFT:
       for (int i = 0; i < tft->packet_filter_list_size; i++) {
-        logger.info("New packet filter for TFT");
-        tft_packet_filter_t filter(erab_id, tft->packet_filter_list[i], logger);
+        logger.info("New TFT for eps_bearer_id=%d, eval_precedence=%d",
+                    eps_bearer_id,
+                    tft->packet_filter_list[i].eval_precedence);
+        tft_packet_filter_t filter(eps_bearer_id, tft->packet_filter_list[i], logger);
         auto                it = tft_filter_map.insert(std::make_pair(filter.eval_precedence, filter));
         if (it.second == false) {
           logger.error("Error inserting TFT Packet Filter");
@@ -431,7 +456,7 @@ int tft_pdu_matcher::apply_traffic_flow_template(const uint8_t&                 
         tft_filter_map.erase(old_filter);
 
         // Add new filter
-        tft_packet_filter_t new_filter(erab_id, tft->packet_filter_list[i], logger);
+        tft_packet_filter_t new_filter(eps_bearer_id, tft->packet_filter_list[i], logger);
         auto                it = tft_filter_map.insert(std::make_pair(new_filter.eval_precedence, new_filter));
         if (it.second == false) {
           logger.error("Error inserting TFT Packet Filter");
