@@ -44,6 +44,46 @@ struct sched_params {
 
 using rbgmask_t = srsran::bounded_bitset<SCHED_NR_MAX_NOF_RBGS, true>;
 
+struct resource_guard {
+public:
+  resource_guard()                            = default;
+  resource_guard(const resource_guard& other) = delete;
+  resource_guard(resource_guard&& other)      = delete;
+  resource_guard& operator=(const resource_guard& other) = delete;
+  resource_guard& operator=(resource_guard&& other) = delete;
+  bool            busy() const { return flag; }
+
+  struct token {
+    token() = default;
+    token(resource_guard& parent) : flag(parent.busy() ? nullptr : &parent.flag)
+    {
+      if (flag != nullptr) {
+        *flag = true;
+      }
+    }
+    token(token&&) noexcept = default;
+    token& operator=(token&&) noexcept = default;
+    void   release() { flag.reset(); }
+    bool   owns_token() const { return flag != nullptr; }
+    bool   empty() const { return flag == nullptr; }
+
+  private:
+    struct release_deleter {
+      void operator()(bool* ptr)
+      {
+        if (ptr != nullptr) {
+          srsran_assert(*ptr == true, "resource token: detected inconsistency token state");
+          *ptr = false;
+        }
+      }
+    };
+    std::unique_ptr<bool, release_deleter> flag;
+  };
+
+private:
+  bool flag = false;
+};
+
 } // namespace sched_nr_impl
 
 } // namespace srsenb

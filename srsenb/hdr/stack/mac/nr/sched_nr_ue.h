@@ -30,11 +30,11 @@ class slot_ue
 {
 public:
   slot_ue() = default;
-  explicit slot_ue(bool& busy_signal, tti_point tti_rx_, uint32_t cc);
+  explicit slot_ue(resource_guard::token ue_token, tti_point tti_rx_, uint32_t cc);
   ~slot_ue();
   slot_ue(slot_ue&&) noexcept = default;
   slot_ue& operator=(slot_ue&&) noexcept = default;
-  bool     empty() const { return busy_signal == nullptr; }
+  bool     empty() const { return ue_token.empty(); }
   void     release();
 
   tti_point tti_rx;
@@ -51,10 +51,7 @@ public:
   harq_proc* h_ul = nullptr;
 
 private:
-  struct noop {
-    void operator()(bool* ptr) {}
-  };
-  std::unique_ptr<bool, noop> busy_signal;
+  resource_guard::token ue_token;
 };
 
 class ue_carrier
@@ -77,8 +74,8 @@ public:
 private:
   const sched_nr_ue_cfg* cfg = nullptr;
 
-  bool      busy{false};
-  tti_point last_tti_rx;
+  resource_guard busy;
+  tti_point      last_tti_rx;
 
   srsran::deque<srsran::move_callback<void(ue_carrier&)> > pending_feedback;
 };

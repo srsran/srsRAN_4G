@@ -20,6 +20,7 @@ struct task_job_manager {
   std::mutex              mutex;
   std::condition_variable cond_var;
   int                     tasks       = 0;
+  int                     res_count   = 0;
   int                     pdsch_count = 0;
   int                     max_tasks   = std::numeric_limits<int>::max() / 2;
 
@@ -35,6 +36,7 @@ struct task_job_manager {
   {
     std::unique_lock<std::mutex> lock(mutex);
     TESTASSERT(res.dl_res.data.size() <= 1);
+    res_count++;
     pdsch_count += res.dl_res.data.size();
     if (tasks-- >= max_tasks or tasks == 0) {
       cond_var.notify_one();
@@ -47,6 +49,7 @@ struct task_job_manager {
       cond_var.wait(lock);
     }
   }
+  void print_results() const { printf("TESTER: %f PDSCH/{slot,cc} were allocated\n", pdsch_count / (double)res_count); }
 };
 
 void sched_nr_cfg_serialized_test()
@@ -66,7 +69,7 @@ void sched_nr_cfg_serialized_test()
   uecfg.carriers[0].active = true;
   sched.ue_cfg(0x46, uecfg);
 
-  for (uint32_t nof_ttis = 0; nof_ttis < 1000; ++nof_ttis) {
+  for (uint32_t nof_ttis = 0; nof_ttis < max_nof_ttis; ++nof_ttis) {
     tti_point tti(nof_ttis % 10240);
     sched.new_tti(tti);
     for (uint32_t cc = 0; cc < cells_cfg.size(); ++cc) {
@@ -77,7 +80,7 @@ void sched_nr_cfg_serialized_test()
     }
   }
 
-  printf("TESTER: %f PDSCH/slot were allocated\n", tasks.pdsch_count / (double)max_nof_ttis);
+  tasks.print_results();
 }
 
 void sched_nr_cfg_parallel_cc_test()
@@ -114,7 +117,7 @@ void sched_nr_cfg_parallel_cc_test()
 
   tasks.wait_task_finish();
 
-  printf("TESTER: %f PDSCH/slot were allocated\n", tasks.pdsch_count / (double)max_nof_ttis);
+  tasks.print_results();
 }
 
 void sched_nr_cfg_parallel_sf_test()
@@ -141,8 +144,8 @@ void sched_nr_cfg_parallel_sf_test()
   for (uint32_t nof_ttis = 0; nof_ttis < max_nof_ttis; ++nof_ttis) {
     tti_point tti(nof_ttis % 10240);
     sched.new_tti(tti);
-    tasks.start_task();
     for (uint32_t cc = 0; cc < cells_cfg.size(); ++cc) {
+      tasks.start_task();
       srsran::get_background_workers().push_task([cc, &sched, tti, &tasks]() {
         sched_nr_res_t res;
         TESTASSERT(sched.generate_sched_result(tti, cc, res) == SRSRAN_SUCCESS);
@@ -153,7 +156,7 @@ void sched_nr_cfg_parallel_sf_test()
 
   tasks.wait_task_finish();
 
-  printf("TESTER: %f PDSCH/slot were allocated\n", tasks.pdsch_count / (double)max_nof_ttis);
+  tasks.print_results();
 }
 
 } // namespace srsenb
@@ -169,5 +172,5 @@ int main()
 
   srsenb::sched_nr_cfg_serialized_test();
   srsenb::sched_nr_cfg_parallel_cc_test();
-  //  srsenb::sched_nr_cfg_parallel_sf_test();
+  srsenb::sched_nr_cfg_parallel_sf_test();
 }

@@ -15,8 +15,8 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
-slot_ue::slot_ue(bool& busy_signal_, tti_point tti_rx_, uint32_t cc_) :
-  busy_signal(&busy_signal_), tti_rx(tti_rx_), cc(cc_)
+slot_ue::slot_ue(resource_guard::token ue_token_, tti_point tti_rx_, uint32_t cc_) :
+  ue_token(std::move(ue_token_)), tti_rx(tti_rx_), cc(cc_)
 {}
 
 slot_ue::~slot_ue()
@@ -26,9 +26,7 @@ slot_ue::~slot_ue()
 
 void slot_ue::release()
 {
-  if (busy_signal != nullptr) {
-    *busy_signal = false;
-  }
+  ue_token.release();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -48,12 +46,11 @@ void ue_carrier::push_feedback(srsran::move_callback<void(ue_carrier&)> callback
 
 slot_ue ue_carrier::try_reserve(tti_point tti_rx, const sched_nr_ue_cfg& uecfg_)
 {
-  slot_ue sfu = (busy) ? slot_ue() : slot_ue(busy, tti_rx, cc);
+  slot_ue sfu(busy, tti_rx, cc);
   if (sfu.empty()) {
     return sfu;
   }
   // successfully acquired. Process any CC-specific pending feedback
-  busy = true;
   if (cfg != &uecfg_) {
     set_cfg(uecfg_);
   }

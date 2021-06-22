@@ -111,8 +111,13 @@ sched_worker_manager::sched_worker_manager(ue_map_t& ue_db_, const sched_params&
 
 sched_worker_manager::~sched_worker_manager()
 {
-  for (uint32_t sf = 0; sf < slot_ctxts.size(); ++sf) {
-    sem_destroy(&slot_ctxts[sf]->sf_sem);
+  // acquire all slot worker contexts
+  for (auto& slot_ctxt : slot_ctxts) {
+    sem_wait(&slot_ctxt->sf_sem);
+  }
+  // destroy all slot worker contexts
+  for (auto& slot_ctxt : slot_ctxts) {
+    sem_destroy(&slot_ctxt->sf_sem);
   }
 }
 
