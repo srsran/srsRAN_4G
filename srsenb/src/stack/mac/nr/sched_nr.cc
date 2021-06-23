@@ -78,11 +78,11 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-sched_nr::sched_nr(const sched_nr_cfg& sched_cfg) : cfg(sched_cfg), pending_events(new ue_event_manager(ue_db)) {}
+sched_nr::sched_nr(const sched_cfg_t& sched_cfg) : cfg(sched_cfg), pending_events(new ue_event_manager(ue_db)) {}
 
 sched_nr::~sched_nr() {}
 
-int sched_nr::cell_cfg(const std::vector<sched_nr_cell_cfg>& cell_list)
+int sched_nr::cell_cfg(const std::vector<cell_cfg_t>& cell_list)
 {
   cfg.cells.reserve(cell_list.size());
   for (uint32_t cc = 0; cc < cell_list.size(); ++cc) {
@@ -93,12 +93,12 @@ int sched_nr::cell_cfg(const std::vector<sched_nr_cell_cfg>& cell_list)
   return SRSRAN_SUCCESS;
 }
 
-void sched_nr::ue_cfg(uint16_t rnti, const sched_nr_ue_cfg& uecfg)
+void sched_nr::ue_cfg(uint16_t rnti, const ue_cfg_t& uecfg)
 {
   pending_events->push_event([this, rnti, uecfg]() { ue_cfg_impl(rnti, uecfg); });
 }
 
-void sched_nr::ue_cfg_impl(uint16_t rnti, const sched_nr_ue_cfg& uecfg)
+void sched_nr::ue_cfg_impl(uint16_t rnti, const ue_cfg_t& uecfg)
 {
   if (not ue_db.contains(rnti)) {
     ue_db.insert(rnti, std::unique_ptr<ue>(new ue{rnti, uecfg}));
@@ -107,10 +107,10 @@ void sched_nr::ue_cfg_impl(uint16_t rnti, const sched_nr_ue_cfg& uecfg)
   }
 }
 
-void sched_nr::new_tti(tti_point tti_rx)
+void sched_nr::slot_indication(tti_point tti_rx)
 {
   // Lock slot workers for provided tti_rx
-  sched_workers->reserve_workers(tti_rx, sched_results[tti_rx.sf_idx()]);
+  sched_workers->reserve_workers(tti_rx);
 
   {
     // synchronize {tti,cc} state. e.g. reserve UE resources for {tti,cc} decision, process feedback
@@ -123,10 +123,10 @@ void sched_nr::new_tti(tti_point tti_rx)
 }
 
 /// Generate {tti,cc} scheduling decision
-int sched_nr::generate_sched_result(tti_point tti_rx, uint32_t cc, sched_nr_res_t& result)
+int sched_nr::generate_sched_result(tti_point tti_rx, uint32_t cc, tti_request_t& req)
 {
   // unlocked, parallel region
-  bool all_workers_finished = sched_workers->run_tti(tti_rx, cc, result);
+  bool all_workers_finished = sched_workers->run_tti(tti_rx, cc, req);
 
   if (all_workers_finished) {
     // once all workers of the same subframe finished, synchronize sched outcome with ue_db

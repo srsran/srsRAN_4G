@@ -15,26 +15,15 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
-slot_ue::slot_ue(resource_guard::token ue_token_, tti_point tti_rx_, uint32_t cc_) :
-  ue_token(std::move(ue_token_)), tti_rx(tti_rx_), cc(cc_)
+slot_ue::slot_ue(resource_guard::token ue_token_, uint16_t rnti_, tti_point tti_rx_, uint32_t cc_) :
+  ue_token(std::move(ue_token_)), rnti(rnti_), tti_rx(tti_rx_), cc(cc_)
 {}
-
-slot_ue::~slot_ue()
-{
-  release();
-}
-
-void slot_ue::release()
-{
-  ue_token.release();
-}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-ue_carrier::ue_carrier(uint16_t rnti_, uint32_t cc_, const sched_nr_ue_cfg& uecfg_) : rnti(rnti_), cc(cc_), cfg(&uecfg_)
-{}
+ue_carrier::ue_carrier(uint16_t rnti_, uint32_t cc_, const ue_cfg_t& uecfg_) : rnti(rnti_), cc(cc_), cfg(&uecfg_) {}
 
-void ue_carrier::set_cfg(const sched_nr_ue_cfg& uecfg)
+void ue_carrier::set_cfg(const ue_cfg_t& uecfg)
 {
   cfg = &uecfg;
 }
@@ -44,9 +33,9 @@ void ue_carrier::push_feedback(srsran::move_callback<void(ue_carrier&)> callback
   pending_feedback.push_back(std::move(callback));
 }
 
-slot_ue ue_carrier::try_reserve(tti_point tti_rx, const sched_nr_ue_cfg& uecfg_)
+slot_ue ue_carrier::try_reserve(tti_point tti_rx, const ue_cfg_t& uecfg_)
 {
-  slot_ue sfu(busy, tti_rx, cc);
+  slot_ue sfu(busy, rnti, tti_rx, cc);
   if (sfu.empty()) {
     return sfu;
   }
@@ -71,9 +60,13 @@ slot_ue ue_carrier::try_reserve(tti_point tti_rx, const sched_nr_ue_cfg& uecfg_)
   sfu.cfg = &uecfg_;
 
   // copy cc-specific parameters and find available HARQs
-  sfu.dl_cqi = dl_cqi;
-  sfu.ul_cqi = ul_cqi;
-  sfu.h_dl   = harq_ent.find_pending_dl_retx();
+  sfu.cc_cfg    = &uecfg_.carriers[cc];
+  sfu.pdsch_tti = tti_rx + TX_ENB_DELAY + sfu.cc_cfg->pdsch_res_list[0].k0;
+  sfu.pusch_tti = tti_rx + TX_ENB_DELAY + sfu.cc_cfg->pusch_res_list[0].k2;
+  sfu.uci_tti   = sfu.pdsch_tti + sfu.cc_cfg->pdsch_res_list[0].k1;
+  sfu.dl_cqi    = dl_cqi;
+  sfu.ul_cqi    = ul_cqi;
+  sfu.h_dl      = harq_ent.find_pending_dl_retx();
   if (sfu.h_dl == nullptr) {
     sfu.h_dl = harq_ent.find_empty_dl_harq();
   }
@@ -92,8 +85,9 @@ slot_ue ue_carrier::try_reserve(tti_point tti_rx, const sched_nr_ue_cfg& uecfg_)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-ue::ue(uint16_t rnti, const sched_nr_ue_cfg& cfg)
+ue::ue(uint16_t rnti, const ue_cfg_t& cfg)
 {
+  ue_cfgs[0] = cfg;
   for (uint32_t cc = 0; cc < cfg.carriers.size(); ++cc) {
     if (cfg.carriers[cc].active) {
       carriers[cc].reset(new ue_carrier(rnti, cc, cfg));
@@ -101,7 +95,7 @@ ue::ue(uint16_t rnti, const sched_nr_ue_cfg& cfg)
   }
 }
 
-void ue::set_cfg(const sched_nr_ue_cfg& cfg)
+void ue::set_cfg(const ue_cfg_t& cfg)
 {
   current_idx          = (current_idx + 1) % ue_cfgs.size();
   ue_cfgs[current_idx] = cfg;

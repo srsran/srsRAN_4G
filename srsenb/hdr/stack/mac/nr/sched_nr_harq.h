@@ -25,14 +25,23 @@ class harq_proc
 public:
   explicit harq_proc(uint32_t id_, uint32_t max_nof_tb_ = 1) : pid(id_), max_nof_tb(max_nof_tb_) {}
 
-  bool empty() const { return not tb[0].active and not tb[1].active; }
+  bool empty() const
+  {
+    return std::none_of(tb.begin(), tb.end(), [](const tb_t& t) { return t.active; });
+  }
   bool empty(uint32_t tb_idx) const { return tb[tb_idx].active; }
+  bool has_pending_retx(tti_point tti_rx) const { return not empty() and not tb[0].ack_state and tti_ack <= tti_rx; }
+  uint32_t nof_retx() const { return tb[0].n_rtx; }
+  uint32_t max_nof_retx() const { return max_retx; }
+  uint32_t tbs() const { return tb[0].tbs; }
 
-  void ack_info(uint32_t tb_idx, bool ack) { tb[tb_idx].ack_state = ack; }
+  bool ack_info(uint32_t tb_idx, bool ack);
 
-  bool has_pending_retx(tti_point tti_rx) const { return not empty() and tti_tx + ack_delay <= tti_rx; }
-
-  bool new_tx(tti_point tti_tx, const rbgmask_t& rbgmask, uint32_t mcs, uint32_t ack_delay);
+  void new_tti(tti_point tti_rx);
+  void reset();
+  bool
+       new_tx(tti_point tti_tx, tti_point tti_ack, const rbgmask_t& rbgmask, uint32_t mcs, uint32_t tbs, uint32_t max_retx);
+  bool new_retx(tti_point tti_tx, tti_point tti_ack, const rbgmask_t& rbgmask, int* mcs, int* tbs);
 
   const uint32_t pid;
 
@@ -43,12 +52,14 @@ private:
     bool     ndi       = false;
     uint32_t n_rtx     = 0;
     uint32_t mcs       = 0;
+    uint32_t tbs       = 0;
   };
 
   const uint32_t max_nof_tb;
 
+  uint32_t                          max_retx = 1;
   tti_point                         tti_tx;
-  uint32_t                          ack_delay = 0;
+  tti_point                         tti_ack;
   rbgmask_t                         rbgmask;
   std::array<tb_t, SCHED_NR_MAX_TB> tb;
 };
@@ -56,12 +67,10 @@ private:
 class harq_entity
 {
 public:
-  harq_entity();
+  explicit harq_entity(uint32_t nof_harq_procs = 16);
   void new_tti(tti_point tti_rx_);
 
   void dl_ack_info(uint32_t pid, uint32_t tb_idx, bool ack) { dl_harqs[pid].ack_info(tb_idx, ack); }
-
-  harq_proc& get_dl_harq(uint32_t pid) { return dl_harqs[pid]; }
 
   harq_proc* find_pending_dl_retx()
   {

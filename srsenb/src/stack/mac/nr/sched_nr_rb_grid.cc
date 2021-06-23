@@ -15,68 +15,94 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
-slot_grid::slot_grid(const sched_cell_params& cfg_) :
-  cfg(cfg_), pdsch_mask(cfg.cell_cfg.nof_rbg), pusch_mask(cfg.cell_cfg.nof_rbg)
+using pdsch_grant = sched_nr_interface::pdsch_grant;
+using pusch_grant = sched_nr_interface::pusch_grant;
+
+slot_sched::slot_sched(const sched_cell_params& cfg_, phy_cell_rb_grid& phy_grid_) :
+  logger(srslog::fetch_basic_logger("MAC")), cfg(cfg_), phy_grid(phy_grid_)
 {}
 
-void slot_grid::new_tti(tti_point tti_rx_, sched_nr_res_t& sched_res_)
+void slot_sched::new_tti(tti_point tti_rx_)
 {
-  tti_rx    = tti_rx_;
-  sched_res = &sched_res_;
-
-  pdsch_mask.reset();
-  pusch_mask.reset();
-  *sched_res = {};
+  tti_rx = tti_rx_;
 }
 
-bool slot_grid::alloc_pdsch(slot_ue& ue, const rbgmask_t& dl_mask)
+alloc_result slot_sched::alloc_pdsch(slot_ue& ue, const rbgmask_t& dl_mask)
 {
-  const uint32_t tbs = 100, mcs = 20;
   if (ue.h_dl == nullptr) {
-    return false;
+    logger.warning("SCHED: Trying to allocate PDSCH for rnti=0x%x with no available HARQs", ue.rnti);
+    return alloc_result::no_rnti_opportunity;
   }
+  pdsch_list& pdsch_grants = phy_grid[ue.pdsch_tti.to_uint()].pdsch_grants;
+  if (pdsch_grants.full()) {
+    logger.warning("SCHED: Maximum number of DL allocations reached");
+    return alloc_result::no_grant_space;
+  }
+  rbgmask_t& pdsch_mask = phy_grid[ue.pdsch_tti.to_uint()].pdsch_tot_mask;
   if ((pdsch_mask & dl_mask).any()) {
-    return false;
-  }
-  if (sched_res->dl_res.data.full()) {
-    return false;
-  }
-  if (not ue.h_dl->new_tx(tti_tx_dl(), dl_mask, mcs, cfg.cell_cfg.K1)) {
-    return false;
+    return alloc_result::sch_collision;
   }
 
+  int mcs = -1, tbs = -1;
+  if (ue.h_dl->empty()) {
+    mcs = 20;
+    tbs = 100;
+    srsran_assert(ue.h_dl->new_tx(ue.pdsch_tti, ue.uci_tti, dl_mask, mcs, tbs, 4), "Failed to allocate DL HARQ");
+  } else {
+    srsran_assert(ue.h_dl->new_retx(ue.pdsch_tti, ue.uci_tti, dl_mask, &mcs, &tbs), "Failed to allocate DL HARQ retx");
+  }
+
+  // Allocation Successful
+  pdsch_grants.emplace_back();
+  pdsch_grant& grant = pdsch_grants.back();
+  grant.dci.ctx.rnti = ue.rnti;
+  grant.dci.pid      = ue.h_dl->pid;
+  grant.bitmap       = dl_mask;
   pdsch_mask |= dl_mask;
-  sched_res->dl_res.data.emplace_back();
-  sched_nr_data_t& data = sched_res->dl_res.data.back();
-  data.tbs.resize(1);
-  data.tbs[0] = tbs;
 
-  return true;
+  return alloc_result::success;
 }
 
-bool slot_grid::alloc_pusch(slot_ue& ue, const rbgmask_t& ul_mask)
+alloc_result slot_sched::alloc_pusch(slot_ue& ue, const rbgmask_t& ul_mask)
 {
-  const uint32_t tbs = 100, mcs = 20;
+  if (ue.h_ul == nullptr) {
+    logger.warning("SCHED: Trying to allocate PUSCH for rnti=0x%x with no available HARQs", ue.rnti);
+    return alloc_result::no_rnti_opportunity;
+  }
+  pusch_list& pusch_grants = phy_grid[ue.pusch_tti.to_uint()].pusch_grants;
+  if (pusch_grants.full()) {
+    logger.warning("SCHED: Maximum number of UL allocations reached");
+    return alloc_result::no_grant_space;
+  }
+  rbgmask_t& pusch_mask = phy_grid[ue.pusch_tti.to_uint()].ul_tot_mask;
   if ((pusch_mask & ul_mask).any()) {
-    return false;
-  }
-  if (sched_res->ul_res.pusch.full()) {
-    return false;
-  }
-  if (not ue.h_ul->new_tx(tti_tx_ul(), ul_mask, mcs, 0)) {
-    return false;
+    return alloc_result::sch_collision;
   }
 
+  int mcs = -1, tbs = -1;
+  if (ue.h_ul->empty()) {
+    mcs      = 20;
+    tbs      = 100;
+    bool ret = ue.h_ul->new_tx(ue.pusch_tti, ue.pusch_tti, ul_mask, mcs, tbs, ue.cfg->maxharq_tx);
+    srsran_assert(ret, "Failed to allocate UL HARQ");
+  } else {
+    srsran_assert(ue.h_ul->new_retx(ue.pusch_tti, ue.pusch_tti, ul_mask, &mcs, &tbs),
+                  "Failed to allocate UL HARQ retx");
+  }
+
+  // Allocation Successful
+  pusch_grants.emplace_back();
+  pusch_grant& grant = pusch_grants.back();
+  grant.dci.ctx.rnti = ue.rnti;
+  grant.dci.pid      = ue.h_dl->pid;
+  grant.dci.mcs      = mcs;
+  grant.bitmap       = ul_mask;
   pusch_mask |= ul_mask;
-  sched_res->ul_res.pusch.emplace_back();
-  sched_nr_data_t& data = sched_res->ul_res.pusch.back();
-  data.tbs.resize(1);
-  data.tbs[0] = tbs;
 
-  return true;
+  return alloc_result::success;
 }
 
-void slot_grid::generate_dcis() {}
+void slot_sched::generate_dcis() {}
 
 } // namespace sched_nr_impl
 } // namespace srsenb

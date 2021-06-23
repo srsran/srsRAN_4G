@@ -32,12 +32,12 @@ struct task_job_manager {
     }
     tasks++;
   }
-  void finish_task(const sched_nr_res_t& res)
+  void finish_task(const sched_nr_interface::tti_request_t& res)
   {
     std::unique_lock<std::mutex> lock(mutex);
-    TESTASSERT(res.dl_res.data.size() <= 1);
+    TESTASSERT(res.dl_res.pdsch.size() <= 1);
     res_count++;
-    pdsch_count += res.dl_res.data.size();
+    pdsch_count += res.dl_res.pdsch.size();
     if (tasks-- >= max_tasks or tasks == 0) {
       cond_var.notify_one();
     }
@@ -57,24 +57,24 @@ void sched_nr_cfg_serialized_test()
   uint32_t         max_nof_ttis = 1000;
   task_job_manager tasks;
 
-  sched_nr_cfg                   cfg;
-  std::vector<sched_nr_cell_cfg> cells_cfg;
-  cells_cfg.resize(1);
+  sched_nr_interface::sched_cfg_t             cfg;
+  std::vector<sched_nr_interface::cell_cfg_t> cells_cfg(2);
 
   sched_nr sched(cfg);
   sched.cell_cfg(cells_cfg);
 
-  sched_nr_ue_cfg uecfg;
-  uecfg.carriers.resize(1);
+  sched_nr_interface::ue_cfg_t uecfg;
+  uecfg.carriers.resize(2);
   uecfg.carriers[0].active = true;
+  uecfg.carriers[1].active = true;
   sched.ue_cfg(0x46, uecfg);
 
   for (uint32_t nof_ttis = 0; nof_ttis < max_nof_ttis; ++nof_ttis) {
     tti_point tti(nof_ttis % 10240);
-    sched.new_tti(tti);
+    sched.slot_indication(tti);
     for (uint32_t cc = 0; cc < cells_cfg.size(); ++cc) {
       tasks.start_task();
-      sched_nr_res_t res;
+      sched_nr_interface::tti_request_t res;
       TESTASSERT(sched.generate_sched_result(tti, cc, res) == SRSRAN_SUCCESS);
       tasks.finish_task(res);
     }
@@ -88,14 +88,13 @@ void sched_nr_cfg_parallel_cc_test()
   uint32_t         max_nof_ttis = 1000;
   task_job_manager tasks;
 
-  sched_nr_cfg                   cfg;
-  std::vector<sched_nr_cell_cfg> cells_cfg;
-  cells_cfg.resize(4);
+  sched_nr_interface::sched_cfg_t             cfg;
+  std::vector<sched_nr_interface::cell_cfg_t> cells_cfg(4);
 
   sched_nr sched(cfg);
   sched.cell_cfg(cells_cfg);
 
-  sched_nr_ue_cfg uecfg;
+  sched_nr_interface::ue_cfg_t uecfg;
   uecfg.carriers.resize(cells_cfg.size());
   for (uint32_t cc = 0; cc < cells_cfg.size(); ++cc) {
     uecfg.carriers[cc].active = true;
@@ -104,11 +103,11 @@ void sched_nr_cfg_parallel_cc_test()
 
   for (uint32_t nof_ttis = 0; nof_ttis < max_nof_ttis; ++nof_ttis) {
     tti_point tti(nof_ttis % 10240);
-    sched.new_tti(tti);
+    sched.slot_indication(tti);
     for (uint32_t cc = 0; cc < cells_cfg.size(); ++cc) {
       tasks.start_task();
       srsran::get_background_workers().push_task([cc, &sched, tti, &tasks]() {
-        sched_nr_res_t res;
+        sched_nr_interface::tti_request_t res;
         TESTASSERT(sched.generate_sched_result(tti, cc, res) == SRSRAN_SUCCESS);
         tasks.finish_task(res);
       });
@@ -126,15 +125,15 @@ void sched_nr_cfg_parallel_sf_test()
   uint32_t         nof_sectors  = 2;
   task_job_manager tasks;
 
-  sched_nr_cfg cfg;
+  sched_nr_interface::sched_cfg_t cfg;
   cfg.nof_concurrent_subframes = 2;
-  std::vector<sched_nr_cell_cfg> cells_cfg;
+  std::vector<sched_nr_interface::cell_cfg_t> cells_cfg;
   cells_cfg.resize(nof_sectors);
 
   sched_nr sched(cfg);
   sched.cell_cfg(cells_cfg);
 
-  sched_nr_ue_cfg uecfg;
+  sched_nr_interface::ue_cfg_t uecfg;
   uecfg.carriers.resize(cells_cfg.size());
   for (uint32_t cc = 0; cc < cells_cfg.size(); ++cc) {
     uecfg.carriers[cc].active = true;
@@ -143,11 +142,11 @@ void sched_nr_cfg_parallel_sf_test()
 
   for (uint32_t nof_ttis = 0; nof_ttis < max_nof_ttis; ++nof_ttis) {
     tti_point tti(nof_ttis % 10240);
-    sched.new_tti(tti);
+    sched.slot_indication(tti);
     for (uint32_t cc = 0; cc < cells_cfg.size(); ++cc) {
       tasks.start_task();
       srsran::get_background_workers().push_task([cc, &sched, tti, &tasks]() {
-        sched_nr_res_t res;
+        sched_nr_interface::tti_request_t res;
         TESTASSERT(sched.generate_sched_result(tti, cc, res) == SRSRAN_SUCCESS);
         tasks.finish_task(res);
       });

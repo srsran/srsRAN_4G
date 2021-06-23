@@ -15,23 +15,80 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
-bool harq_proc::new_tx(tti_point tti_tx_, const rbgmask_t& rbgmask_, uint32_t mcs, uint32_t ack_delay_)
+bool harq_proc::ack_info(uint32_t tb_idx, bool ack)
+{
+  if (empty(tb_idx)) {
+    return false;
+  }
+  tb[tb_idx].ack_state = ack;
+  if (ack) {
+    tb[tb_idx].active = false;
+  }
+  return true;
+}
+
+void harq_proc::new_tti(tti_point tti_rx)
+{
+  if (has_pending_retx(tti_rx) and nof_retx() + 1 >= max_nof_retx()) {
+    tb[0].active = false;
+  }
+}
+
+void harq_proc::reset()
+{
+  tb[0].ack_state = false;
+  tb[0].active    = false;
+  tb[0].n_rtx     = 0;
+  tb[0].mcs       = std::numeric_limits<uint32_t>::max();
+  tb[0].tbs       = std::numeric_limits<uint32_t>::max();
+}
+
+bool harq_proc::new_tx(tti_point        tti_tx_,
+                       tti_point        tti_ack_,
+                       const rbgmask_t& rbgmask_,
+                       uint32_t         mcs,
+                       uint32_t         tbs,
+                       uint32_t         max_retx_)
 {
   if (not empty()) {
     return false;
   }
-  tti_tx    = tti_tx_;
-  ack_delay = ack_delay_;
-  rbgmask   = rbgmask_;
-  tb[0].mcs = mcs;
+  reset();
+  max_retx     = max_retx_;
+  tti_tx       = tti_tx_;
+  tti_ack      = tti_ack_;
+  rbgmask      = rbgmask_;
+  tb[0].ndi    = !tb[0].ndi;
+  tb[0].mcs    = mcs;
+  tb[0].tbs    = tbs;
+  tb[0].active = true;
   return true;
 }
 
-harq_entity::harq_entity()
+bool harq_proc::new_retx(tti_point tti_tx_, tti_point tti_ack_, const rbgmask_t& rbgmask_, int* mcs, int* tbs)
 {
-  dl_harqs.reserve(SCHED_NR_NOF_HARQS);
-  ul_harqs.reserve(SCHED_NR_NOF_HARQS);
-  for (uint32_t pid = 0; pid < SCHED_NR_NOF_HARQS; ++pid) {
+  if (empty() or rbgmask.count() != rbgmask.count()) {
+    return false;
+  }
+  tti_tx          = tti_tx_;
+  tti_ack         = tti_ack_;
+  rbgmask         = rbgmask_;
+  tb[0].ack_state = false;
+  tb[0].n_rtx++;
+  if (mcs != nullptr) {
+    *mcs = tb[0].mcs;
+  }
+  if (tbs != nullptr) {
+    *tbs = tb[0].tbs;
+  }
+  return true;
+}
+
+harq_entity::harq_entity(uint32_t nof_harq_procs)
+{
+  dl_harqs.reserve(nof_harq_procs);
+  ul_harqs.reserve(nof_harq_procs);
+  for (uint32_t pid = 0; pid < nof_harq_procs; ++pid) {
     dl_harqs.emplace_back(pid);
     ul_harqs.emplace_back(pid);
   }
@@ -40,6 +97,12 @@ harq_entity::harq_entity()
 void harq_entity::new_tti(tti_point tti_rx_)
 {
   tti_rx = tti_rx_;
+  for (harq_proc& dl_h : dl_harqs) {
+    dl_h.new_tti(tti_rx);
+  }
+  for (harq_proc& ul_h : ul_harqs) {
+    ul_h.new_tti(tti_rx);
+  }
 }
 
 } // namespace sched_nr_impl

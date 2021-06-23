@@ -24,31 +24,38 @@ namespace srsenb {
 
 namespace sched_nr_impl {
 
+using ue_cfg_t    = sched_nr_interface::ue_cfg_t;
+using ue_cc_cfg_t = sched_nr_interface::ue_cc_cfg_t;
+
 class ue_carrier;
 
 class slot_ue
 {
 public:
   slot_ue() = default;
-  explicit slot_ue(resource_guard::token ue_token, tti_point tti_rx_, uint32_t cc);
-  ~slot_ue();
+  explicit slot_ue(resource_guard::token ue_token, uint16_t rnti_, tti_point tti_rx_, uint32_t cc);
   slot_ue(slot_ue&&) noexcept = default;
   slot_ue& operator=(slot_ue&&) noexcept = default;
   bool     empty() const { return ue_token.empty(); }
-  void     release();
+  void     release() { ue_token.release(); }
 
+  uint16_t  rnti = SCHED_NR_INVALID_RNTI;
   tti_point tti_rx;
   uint32_t  cc = SCHED_NR_MAX_CARRIERS;
 
   // UE parameters common to all sectors
-  const sched_nr_ue_cfg* cfg = nullptr;
-  bool                   pending_sr;
+  const ue_cfg_t* cfg = nullptr;
+  bool            pending_sr;
 
   // UE parameters that are sector specific
-  uint32_t   dl_cqi;
-  uint32_t   ul_cqi;
-  harq_proc* h_dl = nullptr;
-  harq_proc* h_ul = nullptr;
+  const ue_cc_cfg_t* cc_cfg = nullptr;
+  tti_point          pdsch_tti;
+  tti_point          pusch_tti;
+  tti_point          uci_tti;
+  uint32_t           dl_cqi;
+  uint32_t           ul_cqi;
+  harq_proc*         h_dl = nullptr;
+  harq_proc*         h_ul = nullptr;
 
 private:
   resource_guard::token ue_token;
@@ -57,10 +64,10 @@ private:
 class ue_carrier
 {
 public:
-  ue_carrier(uint16_t rnti, uint32_t cc, const sched_nr_ue_cfg& cfg);
-  slot_ue try_reserve(tti_point tti_rx, const sched_nr_ue_cfg& cfg);
+  ue_carrier(uint16_t rnti, uint32_t cc, const ue_cfg_t& cfg);
+  slot_ue try_reserve(tti_point pdcch_tti, const ue_cfg_t& cfg);
   void    push_feedback(srsran::move_callback<void(ue_carrier&)> callback);
-  void    set_cfg(const sched_nr_ue_cfg& uecfg);
+  void    set_cfg(const ue_cfg_t& uecfg);
 
   const uint16_t rnti;
   const uint32_t cc;
@@ -72,7 +79,7 @@ public:
   harq_entity harq_ent;
 
 private:
-  const sched_nr_ue_cfg* cfg = nullptr;
+  const ue_cfg_t* cfg = nullptr;
 
   resource_guard busy;
   tti_point      last_tti_rx;
@@ -83,11 +90,11 @@ private:
 class ue
 {
 public:
-  ue(uint16_t rnti, const sched_nr_ue_cfg& cfg);
+  ue(uint16_t rnti, const ue_cfg_t& cfg);
 
   slot_ue try_reserve(tti_point tti_rx, uint32_t cc);
 
-  void set_cfg(const sched_nr_ue_cfg& cfg);
+  void set_cfg(const ue_cfg_t& cfg);
 
   void ul_sr_info(tti_point tti_rx) { pending_sr = true; }
 
@@ -96,8 +103,8 @@ public:
 private:
   bool pending_sr = false;
 
-  int                            current_idx = 0;
-  std::array<sched_nr_ue_cfg, 4> ue_cfgs;
+  int                     current_idx = 0;
+  std::array<ue_cfg_t, 4> ue_cfgs;
 };
 
 using ue_map_t = srsran::static_circular_map<uint16_t, std::unique_ptr<ue>, SCHED_NR_MAX_USERS>;

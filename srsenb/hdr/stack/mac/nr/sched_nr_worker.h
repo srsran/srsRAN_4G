@@ -27,12 +27,16 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
+using slot_res_t = sched_nr_interface::tti_request_t;
+
 class slot_cc_worker
 {
 public:
-  explicit slot_cc_worker(const sched_cell_params& cell_params) : cfg(cell_params), res_grid(cfg) {}
+  explicit slot_cc_worker(const sched_cell_params& cell_params, phy_cell_rb_grid& phy_grid) :
+    cfg(cell_params), res_grid(cfg, phy_grid)
+  {}
 
-  void start(tti_point tti_rx_, sched_nr_res_t& bwp_result, ue_map_t& ue_db_);
+  void start(tti_point tti_rx_, ue_map_t& ue_db_);
   void run();
   void end_tti();
   bool running() const { return tti_rx.is_valid(); }
@@ -43,8 +47,8 @@ private:
 
   const sched_cell_params& cfg;
 
-  tti_point tti_rx;
-  slot_grid res_grid;
+  tti_point  tti_rx;
+  slot_sched res_grid;
 
   srsran::static_circular_map<uint16_t, slot_ue, SCHED_NR_MAX_USERS> slot_ues;
 };
@@ -57,9 +61,9 @@ public:
   sched_worker_manager(sched_worker_manager&&)      = delete;
   ~sched_worker_manager();
 
-  void reserve_workers(tti_point tti_rx, srsran::span<sched_nr_res_t> sf_result_);
+  void reserve_workers(tti_point tti_rx);
   void start_tti(tti_point tti_rx);
-  bool run_tti(tti_point tti_rx, uint32_t cc, sched_nr_res_t& result);
+  bool run_tti(tti_point tti_rx, uint32_t cc, sched_nr_interface::tti_request_t& req);
   void end_tti(tti_point tti_rx);
 
 private:
@@ -67,13 +71,14 @@ private:
   ue_map_t&           ue_db;
 
   struct slot_worker_ctxt {
-    sem_t                        sf_sem; // lock of all workers of the same slot. unlocked by last slot_cc_worker
-    tti_point                    tti_rx;
-    srsran::span<sched_nr_res_t> sf_result;
-    std::atomic<int>             worker_count{0}; // variable shared across slot_cc_workers
-    std::vector<slot_cc_worker>  workers;
+    sem_t                       sf_sem; // lock of all workers of the same slot. unlocked by last slot_cc_worker
+    tti_point                   tti_rx;
+    std::atomic<int>            worker_count{0}; // variable shared across slot_cc_workers
+    std::vector<slot_cc_worker> workers;
   };
   std::vector<std::unique_ptr<slot_worker_ctxt> > slot_ctxts;
+
+  std::array<phy_cell_rb_grid, SCHED_NR_MAX_CARRIERS> phy_grid;
 
   slot_worker_ctxt& get_sf(tti_point tti_rx);
 };

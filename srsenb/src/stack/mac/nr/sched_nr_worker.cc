@@ -16,7 +16,7 @@ namespace srsenb {
 namespace sched_nr_impl {
 
 /// Called at the beginning of TTI in a locked context, to reserve available UE resources
-void slot_cc_worker::start(tti_point tti_rx_, sched_nr_res_t& bwp_result_, ue_map_t& ue_db)
+void slot_cc_worker::start(tti_point tti_rx_, ue_map_t& ue_db)
 {
   srsran_assert(not running(), "scheduler worker::start() called for active worker");
   // Try reserve UE cells for this worker
@@ -33,7 +33,7 @@ void slot_cc_worker::start(tti_point tti_rx_, sched_nr_res_t& bwp_result_, ue_ma
     // UE acquired successfully for scheduling in this {tti, cc}
   }
 
-  res_grid.new_tti(tti_rx_, bwp_result_);
+  res_grid.new_tti(tti_rx_);
   tti_rx = tti_rx_;
 }
 
@@ -104,7 +104,7 @@ sched_worker_manager::sched_worker_manager(ue_map_t& ue_db_, const sched_params&
     sem_init(&slot_ctxts[i]->sf_sem, 0, 1);
     slot_ctxts[i]->workers.reserve(cfg.cells.size());
     for (uint32_t cc = 0; cc < cfg.cells.size(); ++cc) {
-      slot_ctxts[i]->workers.emplace_back(cfg.cells[cc]);
+      slot_ctxts[i]->workers.emplace_back(cfg.cells[cc], phy_grid[cc]);
     }
   }
 }
@@ -126,14 +126,13 @@ sched_worker_manager::slot_worker_ctxt& sched_worker_manager::get_sf(tti_point t
   return *slot_ctxts[tti_rx.to_uint() % slot_ctxts.size()];
 }
 
-void sched_worker_manager::reserve_workers(tti_point tti_rx_, srsran::span<sched_nr_res_t> sf_result_)
+void sched_worker_manager::reserve_workers(tti_point tti_rx_)
 {
   // lock if slot worker is already being used
   auto& sf_worker_ctxt = get_sf(tti_rx_);
   sem_wait(&sf_worker_ctxt.sf_sem);
 
-  sf_worker_ctxt.sf_result = sf_result_;
-  sf_worker_ctxt.tti_rx    = tti_rx_;
+  sf_worker_ctxt.tti_rx = tti_rx_;
   sf_worker_ctxt.worker_count.store(static_cast<int>(sf_worker_ctxt.workers.size()), std::memory_order_relaxed);
 }
 
@@ -143,11 +142,11 @@ void sched_worker_manager::start_tti(tti_point tti_rx_)
   srsran_assert(sf_worker_ctxt.tti_rx == tti_rx_, "invalid run_tti(tti, cc) arguments");
 
   for (uint32_t cc = 0; cc < sf_worker_ctxt.workers.size(); ++cc) {
-    sf_worker_ctxt.workers[cc].start(sf_worker_ctxt.tti_rx, sf_worker_ctxt.sf_result[cc], ue_db);
+    sf_worker_ctxt.workers[cc].start(sf_worker_ctxt.tti_rx, ue_db);
   }
 }
 
-bool sched_worker_manager::run_tti(tti_point tti_rx_, uint32_t cc, sched_nr_res_t& result)
+bool sched_worker_manager::run_tti(tti_point tti_rx_, uint32_t cc, slot_res_t& tti_req)
 {
   auto& sf_worker_ctxt = get_sf(tti_rx_);
   srsran_assert(sf_worker_ctxt.tti_rx == tti_rx_, "invalid run_tti(tti, cc) arguments");
@@ -155,12 +154,20 @@ bool sched_worker_manager::run_tti(tti_point tti_rx_, uint32_t cc, sched_nr_res_
   // Get {tti, cc} scheduling decision
   sf_worker_ctxt.workers[cc].run();
 
-  // copy sched result
-  result = sf_worker_ctxt.sf_result[cc];
+  // Copy requested TTI DL and UL sched result
+  tti_req.dl_res.pdsch_tti = tti_rx_ + TX_ENB_DELAY;
+  tti_req.dl_res.pdsch     = phy_grid[cc][tti_req.dl_res.pdsch_tti.to_uint()].pdsch_grants;
+  tti_req.ul_res.pusch_tti = tti_rx_ + TX_ENB_DELAY;
+  tti_req.ul_res.pusch     = phy_grid[cc][tti_req.ul_res.pusch_tti.to_uint()].pusch_grants;
 
   // decrement the number of active workers
   int rem_workers = sf_worker_ctxt.worker_count.fetch_sub(1, std::memory_order_release) - 1;
   srsran_assert(rem_workers >= 0, "invalid number of calls to run_tti(tti, cc)");
+
+  if (rem_workers == 0) {
+    // Clear one slot of PHY grid, so it can be reused in the next TTIs
+    phy_grid[cc][sf_worker_ctxt.tti_rx.to_uint()] = {};
+  }
   return rem_workers == 0;
 }
 
@@ -171,11 +178,10 @@ void sched_worker_manager::end_tti(tti_point tti_rx_)
   srsran_assert(sf_worker_ctxt.worker_count == 0, "invalid number of calls to run_tti(tti, cc)");
 
   // All the workers of the same TTI have finished. Synchronize scheduling decisions with UEs state
-  for (auto& worker : sf_worker_ctxt.workers) {
+  for (slot_cc_worker& worker : sf_worker_ctxt.workers) {
     worker.end_tti();
   }
 
-  sf_worker_ctxt.sf_result = {};
   sem_post(&sf_worker_ctxt.sf_sem);
 }
 
