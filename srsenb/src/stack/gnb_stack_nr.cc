@@ -162,11 +162,6 @@ bool gnb_stack_nr::get_metrics(srsenb::stack_metrics_t* metrics)
   return true;
 }
 
-int gnb_stack_nr::sf_indication(const uint32_t tti)
-{
-  return m_mac->sf_indication(tti);
-}
-
 int gnb_stack_nr::rx_data_indication(rx_data_ind_t& grant)
 {
   return m_mac->rx_data_indication(grant);

@@ -132,14 +132,12 @@ bool slot_worker::work_ul()
   }
 
   // Decode PUCCH
-  for (uint32_t i = 0; i < ul_sched.uci_count; i++) {
-    const stack_interface_phy_nr::uci_t& uci = ul_sched.uci[i];
+  for (stack_interface_phy_nr::pucch_t& pucch : ul_sched.pucch) {
     // ...
   }
 
   // Decode PUSCH
-  for (uint32_t i = 0; i < ul_sched.pusch_count; i++) {
-    const stack_interface_phy_nr::pusch_t& pusch = ul_sched.pusch[i];
+  for (stack_interface_phy_nr::pusch_t& pusch : ul_sched.pusch) {
     // ...
   }
 
@@ -148,17 +146,20 @@ bool slot_worker::work_ul()
 
 bool slot_worker::work_dl()
 {
+  // Retrieve Scheduling for the current processing DL slot
   stack_interface_phy_nr::dl_sched_t dl_sched = {};
   if (stack.get_dl_sched(ul_slot_cfg, dl_sched) < SRSRAN_SUCCESS) {
     logger.error("Error retrieving DL scheduling");
     return false;
   }
 
-  // Encode PDCCH for DL transmissions
-  for (uint32_t i = 0; i < dl_sched.pdcch_dl_count; i++) {
-    // Select PDCCH from scheduler result
-    const stack_interface_phy_nr::pdcch_dl_t& pdcch = dl_sched.pdcch_dl[i];
+  if (srsran_enb_dl_nr_base_zero(&gnb_dl) < SRSRAN_SUCCESS) {
+    logger.error("Error zeroeing RE grid");
+    return false;
+  }
 
+  // Encode PDCCH for DL transmissions
+  for (const stack_interface_phy_nr::pdcch_dl_t& pdcch : dl_sched.pdcch_dl) {
     // Set PDCCH configuration, including DCI dedicated
     if (srsran_enb_dl_nr_set_pdcch_config(&gnb_dl, &pdcch_cfg, &pdcch.dci_cfg) < SRSRAN_SUCCESS) {
       logger.error("PDCCH: Error setting DL configuration");
@@ -180,10 +181,7 @@ bool slot_worker::work_dl()
   }
 
   // Encode PDCCH for UL transmissions
-  for (uint32_t i = 0; i < dl_sched.pdcch_ul_count; i++) {
-    // Select PDCCH from scheduler result
-    const stack_interface_phy_nr::pdcch_ul_t& pdcch = dl_sched.pdcch_ul[i];
-
+  for (const stack_interface_phy_nr::pdcch_ul_t& pdcch : dl_sched.pdcch_ul) {
     // Set PDCCH configuration, including DCI dedicated
     if (srsran_enb_dl_nr_set_pdcch_config(&gnb_dl, &pdcch_cfg, &pdcch.dci_cfg) < SRSRAN_SUCCESS) {
       logger.error("PDCCH: Error setting DL configuration");
@@ -205,10 +203,7 @@ bool slot_worker::work_dl()
   }
 
   // Encode PDSCH
-  for (uint32_t i = 0; i < dl_sched.pdsch_count; i++) {
-    // Select PDSCH from scheduler result
-    stack_interface_phy_nr::pdsch_t& pdsch = dl_sched.pdsch[i];
-
+  for (stack_interface_phy_nr::pdsch_t& pdsch : dl_sched.pdsch) {
     // Put PDSCH message
     if (srsran_enb_dl_nr_pdsch_put(&gnb_dl, &dl_slot_cfg, &pdsch.sch, pdsch.data.data()) < SRSRAN_SUCCESS) {
       logger.error("PDSCH: Error putting DL message");
@@ -223,8 +218,18 @@ bool slot_worker::work_dl()
     }
   }
 
+  // Put NZP-CSI-RS
+  for (srsran_csi_rs_nzp_resource_t& pdsch : dl_sched.nzp_csi_rs) {
+    // ...
+  }
+
   // Generate baseband signal
   srsran_enb_dl_nr_gen_signal(&gnb_dl);
+
+  // Add SSB to the baseband signal
+  for (const stack_interface_phy_nr::ssb_t& ssb : dl_sched.ssb) {
+    // ...
+  }
 
   return true;
 }
@@ -232,7 +237,7 @@ bool slot_worker::work_dl()
 void slot_worker::work_imp()
 {
   // Inform Scheduler about new slot
-  stack.sf_indication(dl_slot_cfg.idx);
+  stack.slot_indication(dl_slot_cfg);
 
   // Get Transmission buffers
   srsran::rf_buffer_t tx_rf_buffer = {};

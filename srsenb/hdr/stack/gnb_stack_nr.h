@@ -59,12 +59,11 @@ public:
   bool start_service_request() override { return true; };
 
   // PHY->MAC interface
-  int sf_indication(const uint32_t tti) override;
   int rx_data_indication(rx_data_ind_t& grant) override;
 
   // Temporary GW interface
-  void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu);
-  bool has_active_radio_bearer(uint32_t eps_bearer_id);
+  void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu) override;
+  bool has_active_radio_bearer(uint32_t eps_bearer_id) override;
   bool switch_on();
   void run_tti(uint32_t tti);
 

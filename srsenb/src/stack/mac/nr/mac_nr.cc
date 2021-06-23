@@ -176,15 +176,15 @@ void mac_nr::get_dl_config(const uint32_t                               tti,
   tx_request.tti     = tti;
 }
 
-int mac_nr::sf_indication(const uint32_t tti)
+int mac_nr::slot_indication(const srsran_slot_cfg_t& slot_cfg)
 {
   phy_interface_stack_nr::dl_config_request_t config_request = {};
   phy_interface_stack_nr::tx_request_t        tx_request     = {};
 
   // step MAC TTI
-  logger.set_context(tti);
+  logger.set_context(slot_cfg.idx);
 
-  get_dl_config(tti, config_request, tx_request);
+  get_dl_config(slot_cfg.idx, config_request, tx_request);
 
   // send DL_CONFIG.request
   phy_h->dl_config_request(config_request);
@@ -266,10 +266,6 @@ int mac_nr::cell_cfg(srsenb::sched_interface::cell_cfg_t* cell_cfg)
   }
 
   return SRSRAN_SUCCESS;
-}
-int mac_nr::slot_indication(const srsran_slot_cfg_t& slot_cfg)
-{
-  return 0;
 }
 
 int mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched)

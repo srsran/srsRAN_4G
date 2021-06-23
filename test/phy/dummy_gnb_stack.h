@@ -166,7 +166,6 @@ public:
   ~gnb_dummy_stack() { srsran_random_free(random_gen); }
   bool is_valid() const { return valid; }
 
-  int sf_indication(const uint32_t tti) override { return 0; }
   int rx_data_indication(rx_data_ind_t& grant) override { return 0; }
 
   int slot_indication(const srsran_slot_cfg_t& slot_cfg) override { return 0; }
@@ -178,18 +177,15 @@ public:
       return SRSRAN_SUCCESS;
     }
 
-    // Select PDCCH and PDSCH from scheduling results
-    pdcch_dl_t& pdcch = dl_sched.pdcch_dl[0];
-    pdsch_t&    pdsch = dl_sched.pdsch[0];
+    // Instantiate PDCCH and PDSCH
+    pdcch_dl_t pdcch = {};
+    pdsch_t    pdsch = {};
 
     // Select grant and set data
     pdsch.data[0] = tx_harq_proc[slot_cfg.idx].data.data();
 
     // Second TB is not used
     pdsch.data[1] = nullptr;
-
-    // Generate random data
-    srsran_random_byte_vector(random_gen, pdsch.data[0], SRSRAN_LDPC_MAX_LEN_CB * SRSRAN_SCH_NR_MAX_NOF_CB_LDPC / 8);
 
     // Fill DCI configuration
     pdcch.dci_cfg = phy_cfg.get_dci_cfg();
@@ -213,10 +209,6 @@ public:
     dci.pucch_resource        = 0;
     dci.harq_feedback         = dl_data_to_ul_ack[TTI_TX(slot_cfg.idx)];
 
-    // It currently support only one grant
-    dl_sched.pdcch_dl_count = 1;
-    dl_sched.pdsch_count    = 1;
-
     // Create PDSCH configuration
     if (srsran_ra_dl_dci_to_grant_nr(&phy_cfg.carrier, &slot_cfg, &phy_cfg.pdsch, &dci, &pdsch.sch, &pdsch.sch.grant) <
         SRSRAN_SUCCESS) {
@@ -224,11 +216,18 @@ public:
       return SRSRAN_ERROR;
     }
 
+    // Generate random data
+    srsran_random_byte_vector(random_gen, pdsch.data[0], pdsch.sch.grant.tb[0].tbs / 8);
+
     // Set softbuffer
     pdsch.sch.grant.tb[0].softbuffer.tx = &tx_harq_proc[slot_cfg.idx].softbuffer;
 
     // Reset Tx softbuffer always
     srsran_softbuffer_tx_reset(pdsch.sch.grant.tb[0].softbuffer.tx);
+
+    // Push scheduling results
+    dl_sched.pdcch_dl.push_back(pdcch);
+    dl_sched.pdsch.push_back(pdsch);
 
     return SRSRAN_SUCCESS;
   }

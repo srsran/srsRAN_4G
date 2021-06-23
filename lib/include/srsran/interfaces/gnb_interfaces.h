@@ -210,7 +210,9 @@ public:
 class mac_interface_phy_nr
 {
 public:
-  const static int MAX_GRANTS = 64;
+  const static int MAX_SSB        = 4;
+  const static int MAX_GRANTS     = 64;
+  const static int MAX_NZP_CSI_RS = 4;
 
   struct pdcch_dl_t {
     srsran_dci_cfg_nr_t dci_cfg = {};
@@ -227,13 +229,16 @@ public:
     std::array<uint8_t*, SRSRAN_MAX_TB> data = {}; ///< Data pointer
   };
 
+  struct ssb_t {
+    srsran_pbch_msg_nr_t pbch_msg = {};
+  };
+
   struct dl_sched_t {
-    std::array<pdcch_dl_t, MAX_GRANTS> pdcch_dl;
-    uint32_t                           pdcch_dl_count = 0;
-    std::array<pdcch_ul_t, MAX_GRANTS> pdcch_ul;
-    uint32_t                           pdcch_ul_count = 0;
-    std::array<pdsch_t, MAX_GRANTS>    pdsch;
-    uint32_t                           pdsch_count = 0;
+    srsran::bounded_vector<ssb_t, MAX_SSB>                               ssb;
+    srsran::bounded_vector<pdcch_dl_t, MAX_GRANTS>                       pdcch_dl;
+    srsran::bounded_vector<pdcch_ul_t, MAX_GRANTS>                       pdcch_ul;
+    srsran::bounded_vector<pdsch_t, MAX_GRANTS>                          pdsch;
+    srsran::bounded_vector<srsran_csi_rs_nzp_resource_t, MAX_NZP_CSI_RS> nzp_csi_rs;
   };
 
   struct pusch_t {
@@ -242,15 +247,14 @@ public:
     std::array<srsran_softbuffer_tx_t*, SRSRAN_MAX_TB> softbuffer_tx = {}; ///< Tx Softbuffer
   };
 
-  struct uci_t {
-    srsran_uci_cfg_nr_t cfg;
+  struct pucch_t {
+    srsran_uci_cfg_nr_t        uci_cfg;
+    srsran_pucch_nr_resource_t resource;
   };
 
   struct ul_sched_t {
-    std::array<pusch_t, MAX_GRANTS> pusch;
-    uint32_t                        pusch_count = 0;
-    std::array<uci_t, MAX_GRANTS>   uci;
-    uint32_t                        uci_count;
+    srsran::bounded_vector<pusch_t, MAX_GRANTS> pusch;
+    srsran::bounded_vector<pucch_t, MAX_GRANTS> pucch;
   };
 
   virtual int slot_indication(const srsran_slot_cfg_t& slot_cfg)                    = 0;
@@ -267,7 +271,6 @@ public:
     srsran::unique_byte_buffer_t tb;
   };
 
-  virtual int sf_indication(const uint32_t tti)        = 0;
   virtual int rx_data_indication(rx_data_ind_t& grant) = 0;
 };
 
