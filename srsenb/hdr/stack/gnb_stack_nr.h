@@ -55,12 +55,12 @@ public:
   bool        get_metrics(srsenb::stack_metrics_t* metrics) final;
 
   // GW srsue stack_interface_gw dummy interface
-  bool is_registered() { return true; };
-  bool start_service_request() { return true; };
+  bool is_registered() override { return true; };
+  bool start_service_request() override { return true; };
 
   // PHY->MAC interface
-  int sf_indication(const uint32_t tti);
-  int rx_data_indication(rx_data_ind_t& grant);
+  int sf_indication(const uint32_t tti) override;
+  int rx_data_indication(rx_data_ind_t& grant) override;
 
   // Temporary GW interface
   void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu);
@@ -71,9 +71,11 @@ public:
   // MAC interface to trigger processing of received PDUs
   void process_pdus() final;
 
-  void toggle_padding() { srsran::console("padding not available for NR\n"); }
-  int  get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res) override;
-  int  get_ul_sched(uint32_t tti, ul_sched_list_t& ul_sched_res) override;
+  void toggle_padding() override { srsran::console("padding not available for NR\n"); }
+
+  int slot_indication(const srsran_slot_cfg_t& slot_cfg) override;
+  int get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched) override;
+  int get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched) override;
 
 private:
   void run_thread() final;

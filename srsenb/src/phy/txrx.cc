@@ -124,7 +124,7 @@ void txrx::run_thread()
       }
     }
 
-    nr::sf_worker* nr_worker = nullptr;
+    nr::slot_worker* nr_worker = nullptr;
     if (worker_com->get_nof_carriers_nr() > 0) {
       nr_worker = nr_workers->wait_worker(tti);
       if (nr_worker == nullptr) {
@@ -144,12 +144,14 @@ void txrx::run_thread()
           buffer.set(rf_port, p, worker_com->get_nof_ports(0), lte_worker->get_buffer_rx(cc_lte, p));
         }
       }
-      for (uint32_t cc_nr = 0; cc_nr < worker_com->get_nof_carriers_lte(); cc_nr++, cc++) {
+      for (uint32_t cc_nr = 0; cc_nr < worker_com->get_nof_carriers_nr(); cc_nr++, cc++) {
         uint32_t rf_port = worker_com->get_rf_port(cc);
 
         for (uint32_t p = 0; p < worker_com->get_nof_ports(cc); p++) {
-          // WARNING: The number of ports for all cells must be the same
-          buffer.set(rf_port, p, worker_com->get_nof_ports(0), nr_worker->get_buffer_rx(cc_nr, p));
+          // WARNING:
+          // - The number of ports for all cells must be the same
+          // - Only one NR cell is currently supported
+          buffer.set(rf_port, p, worker_com->get_nof_ports(0), nr_worker->get_buffer_rx(p));
         }
       }
     }

@@ -65,8 +65,9 @@ public:
   int rx_data_indication(stack_interface_phy_nr::rx_data_ind_t& grant);
 
   void process_pdus();
-  int  get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res) override;
-  int  get_ul_sched(uint32_t tti, ul_sched_list_t& ul_sched_res) override;
+  int  slot_indication(const srsran_slot_cfg_t& slot_cfg) override;
+  int  get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched) override;
+  int  get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched) override;
 
 private:
   void get_dl_config(const uint32_t                               tti,

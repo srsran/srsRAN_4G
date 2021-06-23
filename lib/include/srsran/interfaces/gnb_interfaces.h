@@ -212,52 +212,50 @@ class mac_interface_phy_nr
 public:
   const static int MAX_GRANTS = 64;
 
-  /**
-   * DL grant structure per UE
-   */
-  struct dl_sched_grant_t {
-    srsran_dci_dl_nr_t      dci                          = {};
-    uint8_t*                data[SRSRAN_MAX_TB]          = {};
-    srsran_softbuffer_tx_t* softbuffer_tx[SRSRAN_MAX_TB] = {};
+  struct pdcch_dl_t {
+    srsran_dci_cfg_nr_t dci_cfg = {};
+    srsran_dci_dl_nr_t  dci     = {};
   };
 
-  /**
-   * DL Scheduling result per cell/carrier
-   */
+  struct pdcch_ul_t {
+    srsran_dci_cfg_nr_t dci_cfg = {};
+    srsran_dci_ul_nr_t  dci     = {};
+  };
+
+  struct pdsch_t {
+    srsran_sch_cfg_nr_t                 sch  = {}; ///< PDSCH configuration
+    std::array<uint8_t*, SRSRAN_MAX_TB> data = {}; ///< Data pointer
+  };
+
   struct dl_sched_t {
-    dl_sched_grant_t pdsch[MAX_GRANTS]; //< DL Grants
-    uint32_t         nof_grants;        //< Number of DL grants
+    std::array<pdcch_dl_t, MAX_GRANTS> pdcch_dl;
+    uint32_t                           pdcch_dl_count = 0;
+    std::array<pdcch_ul_t, MAX_GRANTS> pdcch_ul;
+    uint32_t                           pdcch_ul_count = 0;
+    std::array<pdsch_t, MAX_GRANTS>    pdsch;
+    uint32_t                           pdsch_count = 0;
   };
 
-  /**
-   * List of DL scheduling results, one entry per cell/carrier
-   */
-  typedef std::vector<dl_sched_t> dl_sched_list_t;
-
-  /**
-   * UL grant structure per UE
-   */
-  struct ul_sched_grant_t {
-    srsran_dci_ul_nr_t      dci           = {};
-    uint8_t*                data          = nullptr;
-    srsran_softbuffer_rx_t* softbuffer_rx = nullptr;
+  struct pusch_t {
+    srsran_sch_cfg_nr_t                                sch           = {}; ///< PUSCH configuration
+    std::array<uint8_t*, SRSRAN_MAX_TB>                data          = {}; ///< Data pointer
+    std::array<srsran_softbuffer_tx_t*, SRSRAN_MAX_TB> softbuffer_tx = {}; ///< Tx Softbuffer
   };
 
-  /**
-   * UL Scheduling result per cell/carrier
-   */
+  struct uci_t {
+    srsran_uci_cfg_nr_t cfg;
+  };
+
   struct ul_sched_t {
-    ul_sched_grant_t pusch[MAX_GRANTS]; //< UL Grants
-    uint32_t         nof_grants;        //< Number of UL grants
+    std::array<pusch_t, MAX_GRANTS> pusch;
+    uint32_t                        pusch_count = 0;
+    std::array<uci_t, MAX_GRANTS>   uci;
+    uint32_t                        uci_count;
   };
 
-  /**
-   * List of UL scheduling results, one entry per cell/carrier
-   */
-  typedef std::vector<ul_sched_t> ul_sched_list_t;
-
-  virtual int get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res) = 0;
-  virtual int get_ul_sched(uint32_t tti, ul_sched_list_t& ul_sched_res) = 0;
+  virtual int slot_indication(const srsran_slot_cfg_t& slot_cfg)                    = 0;
+  virtual int get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched) = 0;
+  virtual int get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched) = 0;
 };
 
 class stack_interface_phy_nr : public mac_interface_phy_nr, public srsran::stack_interface_phy_nr

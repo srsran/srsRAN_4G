@@ -10,10 +10,8 @@ set(SOURCES
         lte/cc_worker.cc
         lte/sf_worker.cc
         lte/worker_pool.cc
-        nr/cc_worker.cc
-        nr/sf_worker.cc
+        nr/slot_worker.cc
         nr/worker_pool.cc
-        nr/phy_nr_state.cc
         phy.cc
         phy_common.cc
         phy_ue_db.cc

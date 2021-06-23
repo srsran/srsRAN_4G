@@ -14,52 +14,63 @@
 namespace srsenb {
 namespace nr {
 
-worker_pool::worker_pool(const phy_cell_cfg_list_nr_t& cell_list,
-                         const args_t&                 args,
-                         srsran::phy_common_interface& common,
-                         stack_interface_phy_nr&       stack,
-                         srslog::sink&                 log_sink) :
-  pool(args.nof_workers),
-  phy_state(cell_list, stack)
+worker_pool::worker_pool(srsran::phy_common_interface& common_,
+                         stack_interface_phy_nr&       stack_,
+                         srslog::sink&                 log_sink_,
+                         uint32_t                      max_workers) :
+  pool(max_workers), common(common_), stack(stack_), log_sink(log_sink_)
+{
+  // Do nothing
+}
+
+bool worker_pool::init(const args_t& args, const phy_cell_cfg_list_nr_t& cell_list)
 {
   // Add workers to workers pool and start threads
   srslog::basic_levels log_level = srslog::str_to_basic_level(args.log_level);
-  for (uint32_t i = 0; i < args.nof_workers; i++) {
+  for (uint32_t i = 0; i < args.nof_phy_threads; i++) {
     auto& log = srslog::fetch_basic_logger(fmt::format("{}PHY{}-NR", args.log_id_preamble, i), log_sink);
     log.set_level(log_level);
     log.set_hex_dump_max_size(args.log_hex_limit);
 
-    auto w = new sf_worker(common, phy_state, log);
+    auto w = new slot_worker(common, stack, log);
     pool.init_worker(i, w, args.prio);
-    workers.push_back(std::unique_ptr<sf_worker>(w));
+    workers.push_back(std::unique_ptr<slot_worker>(w));
+
+    slot_worker::args_t w_args     = {};
+    uint32_t            cell_index = 0;
+    w_args.cell_index              = cell_index;
+    w_args.carrier                 = cell_list[cell_index].carrier;
+    w_args.nof_tx_ports            = cell_list[cell_index].carrier.max_mimo_layers;
+    w_args.nof_rx_ports            = cell_list[cell_index].carrier.max_mimo_layers;
+    w_args.pusch_max_nof_iter      = args.pusch_max_nof_iter;
+    w_args.pdcch_cfg               = cell_list[cell_index].pdcch;
+
+    if (not w->init(w_args)) {
+      return false;
+    }
   }
+
+  return true;
 }
 
-void worker_pool::start_worker(sf_worker* w)
+void worker_pool::start_worker(slot_worker* w)
 {
   pool.start_worker(w);
 }
 
-sf_worker* worker_pool::wait_worker(uint32_t tti)
+slot_worker* worker_pool::wait_worker(uint32_t tti)
 {
-  return (sf_worker*)pool.wait_worker(tti);
+  return (slot_worker*)pool.wait_worker(tti);
 }
 
-sf_worker* worker_pool::wait_worker_id(uint32_t id)
+slot_worker* worker_pool::wait_worker_id(uint32_t id)
 {
-  return (sf_worker*)pool.wait_worker_id(id);
+  return (slot_worker*)pool.wait_worker_id(id);
 }
 
 void worker_pool::stop()
 {
   pool.stop();
-}
-
-bool worker_pool::addmod_rnti(uint16_t rnti, const srsran::phy_cfg_nr_t& phy_cfg)
-{
-  phy_state.addmod_rnti(rnti, phy_cfg);
-
-  return true;
 }
 
 } // namespace nr

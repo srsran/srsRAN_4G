@@ -182,13 +182,17 @@ bool gnb_stack_nr::has_active_radio_bearer(uint32_t eps_bearer_id)
 {
   return (eps_bearer_id == args.coreless.drb_lcid);
 }
-int gnb_stack_nr::get_dl_sched(uint32_t tti, mac_interface_phy_nr::dl_sched_list_t& dl_sched_res)
+int gnb_stack_nr::slot_indication(const srsran_slot_cfg_t& slot_cfg)
 {
-  return m_mac->get_dl_sched(tti, dl_sched_res);
+  return m_mac->slot_indication(slot_cfg);
 }
-int gnb_stack_nr::get_ul_sched(uint32_t tti, mac_interface_phy_nr::ul_sched_list_t& ul_sched_res)
+int gnb_stack_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched)
 {
-  return m_mac->get_ul_sched(tti, ul_sched_res);
+  return m_mac->get_dl_sched(slot_cfg, dl_sched);
+}
+int gnb_stack_nr::get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched)
+{
+  return m_mac->get_ul_sched(slot_cfg, ul_sched);
 }
 
 } // namespace srsenb

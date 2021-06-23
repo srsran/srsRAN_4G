@@ -23,13 +23,14 @@ class phy_common : public srsran::phy_common_interface
 {
 private:
   const uint32_t                   RINGBUFFER_TIMEOUT_MS = 10;
-  bool                             quit                  = false;
+  std::atomic<bool>                quit                  = {false};
   srslog::basic_logger&            logger;
   double                           srate_hz;
   uint64_t                         write_ts = 0;
   uint64_t                         read_ts  = 0;
   std::vector<cf_t>                zero_buffer; ///< Zero buffer for Tx
   std::vector<cf_t>                sink_buffer; ///< Dummy buffer for Rx
+  std::mutex                       ringbuffers_mutex;
   std::vector<srsran_ringbuffer_t> ringbuffers;
   srsran::tti_semaphore<void*>     semaphore;
 
@@ -145,9 +146,7 @@ public:
     uint32_t nof_channels = 1;
 
     args_t(double srate_hz_, uint32_t buffer_sz_ms_, uint32_t nof_channels_) :
-      srate_hz(srate_hz_),
-      buffer_sz_ms(buffer_sz_ms_),
-      nof_channels(nof_channels_)
+      srate_hz(srate_hz_), buffer_sz_ms(buffer_sz_ms_), nof_channels(nof_channels_)
     {}
   };
 
@@ -186,6 +185,9 @@ public:
     // Synchronize worker
     semaphore.wait(h);
 
+    // Protect internal buffers and states
+    std::unique_lock<std::mutex> lock(ringbuffers_mutex);
+
     uint64_t tx_ts = srsran_timestamp_uint64(&tx_time.get(0), srate_hz);
 
     // Check transmit timestamp is not in the past
@@ -213,6 +215,9 @@ public:
 
   void read(std::vector<cf_t*>& buffers, uint32_t nof_samples, srsran::rf_timestamp_t& timestamp)
   {
+    // Protect internal buffers and states
+    std::unique_lock<std::mutex> lock(ringbuffers_mutex);
+
     // Detect if zero padding is necessary
     if (read_ts + nof_samples > write_ts) {
       uint32_t nof_zero_pading = (uint32_t)((read_ts + nof_samples) - write_ts);

@@ -33,7 +33,6 @@ private:
 public:
   struct args_t {
     double                          srate_hz     = 11.52e6;
-    uint32_t                        nof_threads  = 6;
     uint32_t                        nof_channels = 1;
     uint32_t                        buffer_sz_ms = 10;
     bool                            valid        = false;
@@ -48,18 +47,20 @@ public:
   };
 
   test_bench(const args_t& args, srsenb::stack_interface_phy_nr& gnb_stack, srsue::stack_interface_phy_nr& ue_stack) :
-    ue_phy(args.nof_threads),
-    gnb_phy(args.cell_list, args.gnb_args, gnb_phy_com, gnb_stack, srslog::get_default_sink()),
+    ue_phy(args.ue_args.nof_phy_threads),
+    gnb_phy(gnb_phy_com, gnb_stack, srslog::get_default_sink(), args.gnb_args.nof_phy_threads),
     ue_phy_com(phy_common::args_t(args.srate_hz, args.buffer_sz_ms, args.nof_channels),
                srslog::fetch_basic_logger(UE_PHY_COM_LOG_NAME, srslog::get_default_sink(), false)),
     gnb_phy_com(phy_common::args_t(args.srate_hz, args.buffer_sz_ms, args.nof_channels),
-                srslog::fetch_basic_logger(GNB_PHY_COM_LOG_NAME, srslog::get_default_sink(), false))
+                srslog::fetch_basic_logger(GNB_PHY_COM_LOG_NAME, srslog::get_default_sink(), false)),
+    sf_sz((uint32_t)std::round(args.srate_hz * 1e-3))
   {
     srslog::fetch_basic_logger(UE_PHY_COM_LOG_NAME).set_level(srslog::str_to_basic_level(args.phy_com_log_level));
     srslog::fetch_basic_logger(GNB_PHY_COM_LOG_NAME).set_level(srslog::str_to_basic_level(args.phy_com_log_level));
 
-    // Calculate subframe length
-    sf_sz = (uint32_t)std::round(args.srate_hz * 1e-3);
+    if (not gnb_phy.init(args.gnb_args, args.cell_list)) {
+      return;
+    }
 
     // Initialise UE PHY
     if (not ue_phy.init(args.ue_args, ue_phy_com, &ue_stack, 31)) {
@@ -68,11 +69,6 @@ public:
 
     // Set UE configuration
     if (not ue_phy.set_config(args.phy_cfg)) {
-      return;
-    }
-
-    // Set UE configuration in gNb
-    if (not gnb_phy.addmod_rnti(args.rnti, args.phy_cfg)) {
       return;
     }
 
@@ -92,7 +88,7 @@ public:
   bool run_tti()
   {
     // Get gNb worker
-    srsenb::nr::sf_worker* gnb_worker = gnb_phy.wait_worker(tti);
+    srsenb::nr::slot_worker* gnb_worker = gnb_phy.wait_worker(tti);
     if (gnb_worker == nullptr) {
       return false;
     }
@@ -100,7 +96,7 @@ public:
     // Feed gNb the UE transmitted signal
     srsran::rf_timestamp_t gnb_time = {};
     std::vector<cf_t*>     gnb_rx_buffers(1);
-    gnb_rx_buffers[0] = gnb_worker->get_buffer_rx(0, 0);
+    gnb_rx_buffers[0] = gnb_worker->get_buffer_rx(0);
     ue_phy_com.read(gnb_rx_buffers, sf_sz, gnb_time);
 
     // Set gNb time
