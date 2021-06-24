@@ -19,6 +19,8 @@ namespace sched_nr_impl {
 void slot_cc_worker::start(tti_point tti_rx_, ue_map_t& ue_db)
 {
   srsran_assert(not running(), "scheduler worker::start() called for active worker");
+  tti_rx = tti_rx_;
+
   // Try reserve UE cells for this worker
   for (auto& ue_pair : ue_db) {
     uint16_t rnti = ue_pair.first;
@@ -97,6 +99,12 @@ void slot_cc_worker::alloc_ul_ues()
 
 sched_worker_manager::sched_worker_manager(ue_map_t& ue_db_, const sched_params& cfg_) : cfg(cfg_), ue_db(ue_db_)
 {
+  for (uint32_t cc = 0; cc < cfg.cells.size(); ++cc) {
+    for (auto& slot_grid : phy_grid[cc]) {
+      slot_grid = phy_slot_grid(cfg.cells[cc]);
+    }
+  }
+
   // Note: For now, we only allow parallelism at the sector level
   slot_ctxts.resize(cfg.sched_cfg.nof_concurrent_subframes);
   for (size_t i = 0; i < cfg.sched_cfg.nof_concurrent_subframes; ++i) {
@@ -166,7 +174,7 @@ bool sched_worker_manager::run_tti(tti_point tti_rx_, uint32_t cc, slot_res_t& t
 
   if (rem_workers == 0) {
     // Clear one slot of PHY grid, so it can be reused in the next TTIs
-    phy_grid[cc][sf_worker_ctxt.tti_rx.to_uint()] = {};
+    phy_grid[cc][sf_worker_ctxt.tti_rx.to_uint()].reset();
   }
   return rem_workers == 0;
 }

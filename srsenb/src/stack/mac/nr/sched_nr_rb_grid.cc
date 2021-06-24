@@ -45,11 +45,13 @@ alloc_result slot_sched::alloc_pdsch(slot_ue& ue, const rbgmask_t& dl_mask)
 
   int mcs = -1, tbs = -1;
   if (ue.h_dl->empty()) {
-    mcs = 20;
-    tbs = 100;
-    srsran_assert(ue.h_dl->new_tx(ue.pdsch_tti, ue.uci_tti, dl_mask, mcs, tbs, 4), "Failed to allocate DL HARQ");
+    mcs      = 20;
+    tbs      = 100;
+    bool ret = ue.h_dl->new_tx(ue.pdsch_tti, ue.uci_tti, dl_mask, mcs, tbs, 4);
+    srsran_assert(ret, "Failed to allocate DL HARQ");
   } else {
-    srsran_assert(ue.h_dl->new_retx(ue.pdsch_tti, ue.uci_tti, dl_mask, &mcs, &tbs), "Failed to allocate DL HARQ retx");
+    bool ret = ue.h_dl->new_retx(ue.pdsch_tti, ue.uci_tti, dl_mask, &mcs, &tbs);
+    srsran_assert(ret, "Failed to allocate DL HARQ retx");
   }
 
   // Allocation Successful

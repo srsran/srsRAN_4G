@@ -29,12 +29,30 @@ struct pusch_t {};
 struct pucch_t {};
 
 struct phy_slot_grid {
+  const sched_cell_params*                                 cell_cfg = nullptr;
   pdcchmask_t                                              pdcch_tot_mask;
   rbgmask_t                                                pdsch_tot_mask;
   rbgmask_t                                                ul_tot_mask;
   pdsch_list                                               pdsch_grants;
   pusch_list                                               pusch_grants;
   srsran::bounded_vector<pucch_t, SCHED_NR_MAX_PDSCH_DATA> pucch_grants;
+
+  phy_slot_grid() = default;
+  explicit phy_slot_grid(const sched_cell_params& cell_cfg_) :
+    cell_cfg(&cell_cfg_),
+    pdcch_tot_mask(cell_cfg->cell_cfg.nof_rbg),
+    pdsch_tot_mask(cell_cfg->cell_cfg.nof_rbg),
+    ul_tot_mask(cell_cfg->cell_cfg.nof_rbg)
+  {}
+  void reset()
+  {
+    pdcch_tot_mask.reset();
+    pdsch_tot_mask.reset();
+    ul_tot_mask.reset();
+    pdsch_grants.clear();
+    pusch_grants.clear();
+    pucch_grants.clear();
+  }
 };
 using phy_cell_rb_grid = srsran::circular_array<phy_slot_grid, TTIMOD_SZ>;
 
@@ -80,7 +98,9 @@ class slot_sched
 {
 public:
   explicit slot_sched(const sched_cell_params& cfg_, phy_cell_rb_grid& phy_grid_);
-  void         new_tti(tti_point tti_rx_);
+  void new_tti(tti_point tti_rx_);
+  void reset();
+
   alloc_result alloc_pdsch(slot_ue& ue, const rbgmask_t& dl_mask);
   alloc_result alloc_pusch(slot_ue& ue, const rbgmask_t& dl_mask);
 
@@ -90,7 +110,7 @@ public:
 
 private:
   srslog::basic_logger& logger;
-  phy_cell_rb_grid      phy_grid;
+  phy_cell_rb_grid&     phy_grid;
 
   tti_point tti_rx;
 };

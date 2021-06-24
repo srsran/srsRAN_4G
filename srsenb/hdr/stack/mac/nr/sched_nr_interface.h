@@ -15,6 +15,7 @@
 
 #include "srsran/adt/bounded_bitset.h"
 #include "srsran/adt/bounded_vector.h"
+#include "srsran/adt/span.h"
 #include "srsran/common/tti_point.h"
 #include "srsran/phy/phch/dci_nr.h"
 
@@ -26,6 +27,7 @@ const static size_t   SCHED_NR_MAX_PDSCH_DATA = 16;
 const static size_t   SCHED_NR_MAX_NOF_RBGS   = 25;
 const static size_t   SCHED_NR_MAX_UL_ALLOCS  = 16;
 const static size_t   SCHED_NR_MAX_TB         = 1;
+const static size_t   SCHED_NR_MAX_HARQ       = 16;
 
 class sched_nr_interface
 {
@@ -94,9 +96,11 @@ public:
     ul_tti_request_t ul_res;
   };
 
-  virtual ~sched_nr_interface()                              = default;
-  virtual void ue_cfg(uint16_t rnti, const ue_cfg_t& ue_cfg) = 0;
-  virtual void slot_indication(tti_point tti_rx)             = 0;
+  virtual ~sched_nr_interface()                                                            = default;
+  virtual int  cell_cfg(srsran::const_span<sched_nr_interface::cell_cfg_t> ue_cfg)         = 0;
+  virtual void ue_cfg(uint16_t rnti, const ue_cfg_t& ue_cfg)                               = 0;
+  virtual void slot_indication(tti_point tti_rx)                                           = 0;
+  virtual int  generate_sched_result(tti_point tti_rx, uint32_t cc, tti_request_t& result) = 0;
 
   virtual void dl_ack_info(uint16_t rnti, uint32_t cc, uint32_t pid, uint32_t tb_idx, bool ack) = 0;
   virtual void ul_sr_info(tti_point, uint16_t rnti)                                             = 0;

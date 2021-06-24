@@ -27,9 +27,9 @@ public:
 
   bool empty() const
   {
-    return std::none_of(tb.begin(), tb.end(), [](const tb_t& t) { return t.active; });
+    return std::all_of(tb.begin(), tb.end(), [](const tb_t& t) { return not t.active; });
   }
-  bool empty(uint32_t tb_idx) const { return tb[tb_idx].active; }
+  bool empty(uint32_t tb_idx) const { return not tb[tb_idx].active; }
   bool has_pending_retx(tti_point tti_rx) const { return not empty() and not tb[0].ack_state and tti_ack <= tti_rx; }
   uint32_t nof_retx() const { return tb[0].n_rtx; }
   uint32_t max_nof_retx() const { return max_retx; }
@@ -67,7 +67,7 @@ private:
 class harq_entity
 {
 public:
-  explicit harq_entity(uint32_t nof_harq_procs = 16);
+  explicit harq_entity(uint32_t nof_harq_procs = SCHED_NR_MAX_HARQ);
   void new_tti(tti_point tti_rx_);
 
   void dl_ack_info(uint32_t pid, uint32_t tb_idx, bool ack) { dl_harqs[pid].ack_info(tb_idx, ack); }

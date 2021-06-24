@@ -58,6 +58,7 @@ public:
       if (ue_db.contains(e.rnti) and ue_db[e.rnti]->carriers[e.cc] != nullptr) {
         ue_db[e.rnti]->carriers[e.cc]->push_feedback(std::move(e.callback));
       }
+      feedback_list_tmp.pop_front();
     }
   }
 
@@ -82,7 +83,7 @@ sched_nr::sched_nr(const sched_cfg_t& sched_cfg) : cfg(sched_cfg), pending_event
 
 sched_nr::~sched_nr() {}
 
-int sched_nr::cell_cfg(const std::vector<cell_cfg_t>& cell_list)
+int sched_nr::cell_cfg(srsran::const_span<cell_cfg_t> cell_list)
 {
   cfg.cells.reserve(cell_list.size());
   for (uint32_t cc = 0; cc < cell_list.size(); ++cc) {
@@ -137,7 +138,7 @@ int sched_nr::generate_sched_result(tti_point tti_rx, uint32_t cc, tti_request_t
   return SRSRAN_SUCCESS;
 }
 
-void sched_nr::dl_ack_info(uint16_t rnti, uint32_t pid, uint32_t cc, uint32_t tb_idx, bool ack)
+void sched_nr::dl_ack_info(uint16_t rnti, uint32_t cc, uint32_t pid, uint32_t tb_idx, bool ack)
 {
   pending_events->push_cc_feedback(
       rnti, cc, [pid, tb_idx, ack](ue_carrier& ue_cc) { ue_cc.harq_ent.dl_ack_info(pid, tb_idx, ack); });

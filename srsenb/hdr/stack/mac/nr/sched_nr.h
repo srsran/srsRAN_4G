@@ -36,11 +36,11 @@ class sched_nr final : public sched_nr_interface
 public:
   explicit sched_nr(const sched_cfg_t& sched_cfg);
   ~sched_nr() override;
-  int  cell_cfg(const std::vector<cell_cfg_t>& cell_list);
+  int  cell_cfg(srsran::const_span<cell_cfg_t> cell_list) override;
   void ue_cfg(uint16_t rnti, const ue_cfg_t& cfg) override;
 
   void slot_indication(tti_point tti_rx) override;
-  int  generate_sched_result(tti_point tti_rx, uint32_t cc, tti_request_t& tti_req);
+  int  generate_sched_result(tti_point tti_rx, uint32_t cc, tti_request_t& tti_req) override;
 
   void dl_ack_info(uint16_t rnti, uint32_t cc, uint32_t pid, uint32_t tb_idx, bool ack) override;
   void ul_sr_info(tti_point tti_rx, uint16_t rnti) override;
