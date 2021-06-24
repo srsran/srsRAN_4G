@@ -26,12 +26,17 @@ struct sched_nr_cc_output_res_t {
   sched_nr_interface::ul_tti_request_t* ul_cc_result;
 };
 
+struct ue_nr_cc_ctxt_t {
+  std::array<ue_harq_ctxt_t, SCHED_NR_MAX_HARQ> dl_harqs;
+  std::array<ue_harq_ctxt_t, SCHED_NR_MAX_HARQ> ul_harqs;
+};
+
 struct sim_nr_ue_ctxt_t {
   uint16_t                     rnti;
   uint32_t                     preamble_idx;
   srsran::tti_point            prach_tti_rx;
   sched_nr_interface::ue_cfg_t ue_cfg;
-  std::vector<ue_cc_ctxt_t>    cc_list;
+  std::vector<ue_nr_cc_ctxt_t> cc_list;
 
   bool is_last_dl_retx(uint32_t ue_cc_idx, uint32_t pid) const
   {
@@ -117,7 +122,6 @@ private:
 
   srsran::tti_point                   current_tti_rx;
   std::map<uint16_t, sched_nr_ue_sim> ue_db;
-  int                                 error_counter = 0;
 
   mutable std::mutex      mutex;
   std::condition_variable cond_var;

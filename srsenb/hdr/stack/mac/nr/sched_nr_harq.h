@@ -23,7 +23,7 @@ namespace sched_nr_impl {
 class harq_proc
 {
 public:
-  explicit harq_proc(uint32_t id_, uint32_t max_nof_tb_ = 1) : pid(id_), max_nof_tb(max_nof_tb_) {}
+  explicit harq_proc(uint32_t id_) : pid(id_) {}
 
   bool empty() const
   {
@@ -54,8 +54,6 @@ private:
     uint32_t mcs       = 0;
     uint32_t tbs       = 0;
   };
-
-  const uint32_t max_nof_tb;
 
   uint32_t                          max_retx = 1;
   tti_point                         tti_tx;
