@@ -180,6 +180,7 @@ enable = false
 # init_ul_snr_value: Initial UL SNR value used for computing MCS in the first UL grant
 # init_dl_cqi:       DL CQI value used before any CQI report is available to the eNB
 # max_sib_coderate:  Upper bound on SIB and RAR grants coderate
+# pdcch_cqi_offset:  CQI offset in derivation of PDCCH aggregation level
 #
 #####################################################################
 [scheduler]
@@ -204,6 +205,7 @@ enable = false
 #init_ul_snr_value=5
 #init_dl_cqi=5
 #max_sib_coderate=0.3
+#pdcch_cqi_offset=0
 
 #####################################################################
 # eMBMS configuration options

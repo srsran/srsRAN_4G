@@ -66,6 +66,7 @@ public:
     int         init_ul_snr_value       = 5;
     int         init_dl_cqi             = 5;
     float       max_sib_coderate        = 0.8;
+    int         pdcch_cqi_offset        = 0;
   };
 
   struct cell_cfg_t {
