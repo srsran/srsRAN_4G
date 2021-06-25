@@ -1098,7 +1098,9 @@ void rrc::rrc_connection_release(const std::string& cause)
 {
   // Save idleModeMobilityControlInfo, etc.
   srsran::console("Received RRC Connection Release (releaseCause: %s)\n", cause.c_str());
-  start_go_idle();
+
+  // delay actions by 60ms as per 5.3.8.3
+  task_sched.defer_callback(60, [this]() { start_go_idle(); });
 }
 
 /// TS 36.331, 5.3.12 - UE actions upon leaving RRC_CONNECTED

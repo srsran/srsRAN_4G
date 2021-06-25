@@ -100,9 +100,10 @@ class dummy_sim : public usim_interface_rrc_nr
 
 class dummy_stack : public stack_interface_rrc
 {
-  srsran::tti_point get_current_tti() { return srsran::tti_point(); };
-  void              add_eps_bearer(uint8_t eps_bearer_id, srsran::srsran_rat_t rat, uint32_t lcid){};
-  void              remove_eps_bearer(uint8_t eps_bearer_id){};
+  srsran::tti_point get_current_tti() final { return srsran::tti_point(); };
+  void              add_eps_bearer(uint8_t eps_bearer_id, srsran::srsran_rat_t rat, uint32_t lcid) final{};
+  void              remove_eps_bearer(uint8_t eps_bearer_id) final{};
+  void              reset_eps_bearers() final{};
 };
 
 int rrc_nr_cap_request_test()
