@@ -1120,6 +1120,7 @@ void rrc::leave_connected()
   rlc->reset();
   pdcp->reset();
   set_mac_default();
+  stack->reset_eps_bearers();
 
   // 1> indicate the release of the RRC connection to upper layers together with the release cause;
   nas->left_rrc_connected();

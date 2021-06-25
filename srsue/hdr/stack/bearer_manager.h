@@ -45,8 +45,11 @@ public:
   /// Registers EPS bearer with PDCP RAT type and LCID
   void add_eps_bearer(uint8_t eps_bearer_id, srsran::srsran_rat_t rat, uint32_t lcid);
 
-  /// EPS bearer is removed from map when the associated DRB is deleted (e.g. after connection release)
+  /// Single EPS bearer is removed from map when the associated DRB is deleted
   void remove_eps_bearer(uint8_t eps_bearer_id);
+
+  /// All registered bearer are removed (e.g. after connection release)
+  void reset();
 
   // GW interface
   bool has_active_radio_bearer(uint32_t eps_bearer_id);

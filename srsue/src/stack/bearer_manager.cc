@@ -36,7 +36,6 @@ void bearer_manager::add_eps_bearer(uint8_t eps_bearer_id, srsran::srsran_rat_t 
   logger.info("Registered EPS bearer ID %d for lcid=%d over %s-PDCP", eps_bearer_id, lcid, to_string(rat).c_str());
 }
 
-/// EPS bearer is removed from map when the associated DRB is deleted (e.g. after connection release)
 void bearer_manager::remove_eps_bearer(uint8_t eps_bearer_id)
 {
   srsran::rwlock_write_guard rw_lock(rwlock);
@@ -47,6 +46,13 @@ void bearer_manager::remove_eps_bearer(uint8_t eps_bearer_id)
   }
   eps_rb_map.erase(it);
   logger.info("Removed mapping for EPS bearer ID %d", eps_bearer_id);
+}
+
+void bearer_manager::reset()
+{
+  srsran::rwlock_write_guard rw_lock(rwlock);
+  eps_rb_map.clear();
+  logger.info("Reset EPS bearer manager");
 }
 
 // GW interface

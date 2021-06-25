@@ -167,6 +167,7 @@ public:
   tti_point get_current_tti() final { return current_tti; }
   void      add_eps_bearer(uint8_t eps_bearer_id, srsran::srsran_rat_t rat, uint32_t lcid) final;
   void      remove_eps_bearer(uint8_t eps_bearer_id) final;
+  void      reset_eps_bearers() final;
 
   srsran::ext_task_sched_handle get_task_sched() { return {&task_sched}; }
 

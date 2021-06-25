@@ -106,9 +106,10 @@ public:
   bool has_active_radio_bearer(uint32_t eps_bearer_id) final { return true; /* TODO: add EPS to LCID mapping */ }
 
   // Interface for RRC
-  srsran::tti_point get_current_tti() { return srsran::tti_point{0}; };
-  void              add_eps_bearer(uint8_t eps_bearer_id, srsran::srsran_rat_t rat, uint32_t lcid) final{};
-  void              remove_eps_bearer(uint8_t eps_bearer_id) final{};
+  srsran::tti_point get_current_tti() { return srsran::tti_point{0}; }
+  void              add_eps_bearer(uint8_t eps_bearer_id, srsran::srsran_rat_t rat, uint32_t lcid) final {}
+  void              remove_eps_bearer(uint8_t eps_bearer_id) final {}
+  void              reset_eps_bearers() final {}
 
 private:
   void run_thread() final;

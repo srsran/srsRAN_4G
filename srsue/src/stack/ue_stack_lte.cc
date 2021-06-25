@@ -391,6 +391,11 @@ bool ue_stack_lte::has_active_radio_bearer(uint32_t eps_bearer_id)
   return bearers.has_active_radio_bearer(eps_bearer_id);
 }
 
+void ue_stack_lte::reset_eps_bearers()
+{
+  bearers.reset();
+}
+
 /**
  * Check whether nas is attached
  * @return bool wether NAS is in EMM_REGISTERED
