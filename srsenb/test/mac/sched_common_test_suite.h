@@ -13,7 +13,7 @@
 #ifndef SRSRAN_SCHED_COMMON_TEST_SUITE_H
 #define SRSRAN_SCHED_COMMON_TEST_SUITE_H
 
-#include "srsenb/hdr/stack/mac/sched_common.h"
+#include "srsenb/hdr/stack/mac/sched_lte_common.h"
 #include "srsenb/hdr/stack/mac/sched_phy_ch/sched_phy_resource.h"
 #include "srsran/adt/span.h"
 #include "srsran/common/tti_point.h"

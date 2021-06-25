@@ -13,7 +13,7 @@
 #ifndef SRSRAN_SCHED_UE_CELL_H
 #define SRSRAN_SCHED_UE_CELL_H
 
-#include "../sched_common.h"
+#include "../sched_lte_common.h"
 #include "sched_dl_cqi.h"
 #include "sched_harq.h"
 #include "srsenb/hdr/stack/mac/sched_phy_ch/sched_dci.h"

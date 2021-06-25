@@ -10,7 +10,7 @@
  *
  */
 
-#include "../sched_common.h"
+#include "../sched_lte_common.h"
 #include "sched_result.h"
 
 #ifndef SRSRAN_PDCCH_SCHED_H

@@ -21,6 +21,8 @@ using sched_nr_impl::ue;
 using sched_nr_impl::ue_carrier;
 using sched_nr_impl::ue_map_t;
 
+static int assert_ue_cfg_valid(uint16_t rnti, const sched_nr_interface::ue_cfg_t& uecfg);
+
 class ue_event_manager
 {
   using callback_t    = srsran::move_callback<void()>;
@@ -96,6 +98,7 @@ int sched_nr::cell_cfg(srsran::const_span<cell_cfg_t> cell_list)
 
 void sched_nr::ue_cfg(uint16_t rnti, const ue_cfg_t& uecfg)
 {
+  srsran_assert(assert_ue_cfg_valid(rnti, uecfg) == SRSRAN_SUCCESS, "Invalid UE configuration");
   pending_events->push_event([this, rnti, uecfg]() { ue_cfg_impl(rnti, uecfg); });
 }
 
@@ -151,6 +154,18 @@ void sched_nr::ul_sr_info(tti_point tti_rx, uint16_t rnti)
       ue_db[rnti]->ul_sr_info(tti_rx);
     }
   });
+}
+
+int assert_ue_cfg_valid(uint16_t rnti, const sched_nr_interface::ue_cfg_t& uecfg)
+{
+  const srslog::basic_logger& logger = srslog::fetch_basic_logger("MAC");
+  if (std::count(&uecfg.phy_cfg.pdcch.coreset_present[0],
+                 &uecfg.phy_cfg.pdcch.coreset_present[SRSRAN_UE_DL_NR_MAX_NOF_CORESET],
+                 true) == 0) {
+    logger.warning("Provided rnti=0x%x configuration does not contain any coreset", rnti);
+    return SRSRAN_ERROR;
+  }
+  return SRSRAN_SUCCESS;
 }
 
 } // namespace srsenb

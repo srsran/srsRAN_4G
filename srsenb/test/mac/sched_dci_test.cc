@@ -11,7 +11,7 @@
  */
 
 #include "sched_test_utils.h"
-#include "srsenb/hdr/stack/mac/sched_common.h"
+#include "srsenb/hdr/stack/mac/sched_lte_common.h"
 #include "srsenb/hdr/stack/mac/sched_phy_ch/sched_dci.h"
 #include "srsran/common/common_lte.h"
 #include "srsran/common/test_common.h"

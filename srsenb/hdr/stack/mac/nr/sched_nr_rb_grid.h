@@ -13,104 +13,72 @@
 #ifndef SRSRAN_SCHED_NR_RB_GRID_H
 #define SRSRAN_SCHED_NR_RB_GRID_H
 
+#include "../sched_common.h"
 #include "lib/include/srsran/adt/circular_array.h"
 #include "sched_nr_interface.h"
+#include "sched_nr_pdcch.h"
 #include "sched_nr_ue.h"
 
 namespace srsenb {
 namespace sched_nr_impl {
 
+using pdsch_bitmap = srsran::bounded_bitset<25, true>;
+using pusch_bitmap = srsran::bounded_bitset<25, true>;
+
 using pdsch_list = sched_nr_interface::pdsch_list;
 using pusch_list = sched_nr_interface::pusch_list;
 
-struct pdcch_t {};
-struct pdsch_t {};
-struct pusch_t {};
 struct pucch_t {};
 
-struct phy_slot_grid {
-  const sched_cell_params*                                 cell_cfg = nullptr;
-  pdcchmask_t                                              pdcch_tot_mask;
-  rbgmask_t                                                pdsch_tot_mask;
-  rbgmask_t                                                ul_tot_mask;
+const static size_t MAX_CORESET_PER_BWP = 3;
+using slot_coreset_list                 = srsran::bounded_vector<coreset_region, MAX_CORESET_PER_BWP>;
+
+struct bwp_slot_grid {
+  pdcch_dl_list_t                                          pdcch_dl_list;
+  slot_coreset_list                                        coresets;
+  pdsch_bitmap                                             dl_rbgs;
   pdsch_list                                               pdsch_grants;
+  pusch_bitmap                                             ul_rbgs;
   pusch_list                                               pusch_grants;
   srsran::bounded_vector<pucch_t, SCHED_NR_MAX_PDSCH_DATA> pucch_grants;
 
-  phy_slot_grid() = default;
-  explicit phy_slot_grid(const sched_cell_params& cell_cfg_) :
-    cell_cfg(&cell_cfg_),
-    pdcch_tot_mask(cell_cfg->cell_cfg.nof_rbg),
-    pdsch_tot_mask(cell_cfg->cell_cfg.nof_rbg),
-    ul_tot_mask(cell_cfg->cell_cfg.nof_rbg)
-  {}
-  void reset()
-  {
-    pdcch_tot_mask.reset();
-    pdsch_tot_mask.reset();
-    ul_tot_mask.reset();
-    pdsch_grants.clear();
-    pusch_grants.clear();
-    pucch_grants.clear();
-  }
-};
-using phy_cell_rb_grid = srsran::circular_array<phy_slot_grid, TTIMOD_SZ>;
-
-struct slot_ue_grid {
-  phy_slot_grid* pdcch_slot;
-  phy_slot_grid* pdsch_slot;
-  phy_slot_grid* pusch_slot;
-  phy_slot_grid* pucch_slot;
-  pdcch_t*       pdcch_alloc = nullptr;
-  pdsch_t*       pdsch_alloc = nullptr;
-  pusch_t*       pusch_alloc = nullptr;
-  pucch_t*       pucch_alloc = nullptr;
-
-  slot_ue_grid(phy_slot_grid& pdcch_sl, phy_slot_grid& pdsch_sl, phy_slot_grid& pusch_sl, phy_slot_grid& pucch_sl) :
-    pdcch_slot(&pdcch_sl), pdsch_slot(&pdsch_sl), pusch_slot(&pusch_sl), pucch_slot(&pucch_sl)
-  {}
+  bwp_slot_grid() = default;
+  explicit bwp_slot_grid(const sched_cell_params& cell_params, uint32_t bwp_id_, uint32_t slot_idx_);
+  void reset();
 };
 
-class rb_alloc_grid
-{
-public:
-  slot_ue_grid get_slot_ue_grid(tti_point pdcch_tti, uint8_t K0, uint8_t K1, uint8_t K2)
-  {
-    phy_slot_grid& pdcch_slot = phy_grid[pdcch_tti.to_uint()];
-    phy_slot_grid& pdsch_slot = phy_grid[(pdcch_tti + K0).to_uint()];
-    phy_slot_grid& pucch_slot = phy_grid[(pdcch_tti + K0 + K1).to_uint()];
-    phy_slot_grid& pusch_slot = phy_grid[(pdcch_tti + K2).to_uint()];
-    return slot_ue_grid{pdcch_slot, pdsch_slot, pusch_slot, pucch_slot};
-  }
+struct bwp_res_grid {
+  bwp_res_grid(const sched_cell_params& cell_cfg_, uint32_t bwp_id_);
+
+  bwp_slot_grid&       operator[](tti_point tti) { return slots[tti.sf_idx()]; };
+  const bwp_slot_grid& operator[](tti_point tti) const { return slots[tti.sf_idx()]; };
+  uint32_t             id() const { return bwp_id; }
 
 private:
-  phy_cell_rb_grid phy_grid;
+  uint32_t                                         bwp_id;
+  srsran::bounded_vector<bwp_slot_grid, TTIMOD_SZ> slots;
 };
 
-/// Error code of alloc attempt
-enum class alloc_result { success, sch_collision, no_grant_space, no_rnti_opportunity };
-inline const char* to_string(alloc_result res)
-{
-  return "";
-}
+struct cell_res_grid {
+  const sched_cell_params*                                        cell_cfg = nullptr;
+  srsran::bounded_vector<bwp_res_grid, SCHED_NR_MAX_BWP_PER_CELL> bwps;
 
-class slot_sched
+  explicit cell_res_grid(const sched_cell_params& cell_cfg);
+};
+
+class slot_bwp_sched
 {
 public:
-  explicit slot_sched(const sched_cell_params& cfg_, phy_cell_rb_grid& phy_grid_);
-  void new_tti(tti_point tti_rx_);
-  void reset();
+  explicit slot_bwp_sched(uint32_t bwp_id, cell_res_grid& phy_grid_);
 
   alloc_result alloc_pdsch(slot_ue& ue, const rbgmask_t& dl_mask);
   alloc_result alloc_pusch(slot_ue& ue, const rbgmask_t& dl_mask);
-
-  void generate_dcis();
 
   const sched_cell_params& cfg;
 
 private:
   srslog::basic_logger& logger;
-  phy_cell_rb_grid&     phy_grid;
+  bwp_res_grid&         bwp_grid;
 
   tti_point tti_rx;
 };

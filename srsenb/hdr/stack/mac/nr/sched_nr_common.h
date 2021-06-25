@@ -21,6 +21,7 @@ namespace srsenb {
 const static size_t SCHED_NR_MAX_USERS     = 4;
 const static size_t SCHED_NR_NOF_SUBFRAMES = 10;
 const static size_t SCHED_NR_NOF_HARQS     = 16;
+static const size_t MAX_NOF_AGGR_LEVELS    = 5;
 
 namespace sched_nr_impl {
 
@@ -32,16 +33,14 @@ struct sched_cell_params {
   const cell_cfg_t   cell_cfg;
   const sched_cfg_t& sched_cfg;
 
-  sched_cell_params(uint32_t cc_, const cell_cfg_t& cell, const sched_cfg_t& sched_cfg_) :
-    cc(cc_), cell_cfg(cell), sched_cfg(sched_cfg_)
-  {}
+  sched_cell_params(uint32_t cc_, const cell_cfg_t& cell, const sched_cfg_t& sched_cfg_);
 };
 
 struct sched_params {
   const sched_cfg_t              sched_cfg;
   std::vector<sched_cell_params> cells;
 
-  explicit sched_params(const sched_cfg_t& sched_cfg_) : sched_cfg(sched_cfg_) {}
+  explicit sched_params(const sched_cfg_t& sched_cfg_);
 };
 
 using pdcchmask_t = srsran::bounded_bitset<SCHED_NR_MAX_NOF_RBGS, true>;
@@ -86,6 +85,13 @@ public:
 private:
   bool flag = false;
 };
+
+using pdcch_cce_pos_list = srsran::bounded_vector<uint32_t, SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR>;
+using bwp_cce_pos_list   = std::array<std::array<pdcch_cce_pos_list, MAX_NOF_AGGR_LEVELS>, SRSRAN_NOF_SF_X_FRAME>;
+void get_dci_locs(const srsran_coreset_t&      coreset,
+                  const srsran_search_space_t& search_space,
+                  uint16_t                     rnti,
+                  bwp_cce_pos_list&            cce_locs);
 
 } // namespace sched_nr_impl
 

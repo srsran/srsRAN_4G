@@ -35,7 +35,6 @@ void slot_cc_worker::start(tti_point tti_rx_, ue_map_t& ue_db)
     // UE acquired successfully for scheduling in this {tti, cc}
   }
 
-  res_grid.new_tti(tti_rx_);
   tti_rx = tti_rx_;
 }
 
@@ -51,9 +50,6 @@ void slot_cc_worker::run()
     alloc_ul_ues();
     alloc_dl_ues();
   }
-
-  // Select the winner PDCCH allocation combination, store all the scheduling results
-  res_grid.generate_dcis();
 }
 
 void slot_cc_worker::end_tti()
@@ -100,9 +96,7 @@ void slot_cc_worker::alloc_ul_ues()
 sched_worker_manager::sched_worker_manager(ue_map_t& ue_db_, const sched_params& cfg_) : cfg(cfg_), ue_db(ue_db_)
 {
   for (uint32_t cc = 0; cc < cfg.cells.size(); ++cc) {
-    for (auto& slot_grid : phy_grid[cc]) {
-      slot_grid = phy_slot_grid(cfg.cells[cc]);
-    }
+    cell_grid_list.emplace_back(cfg.cells[cc]);
   }
 
   // Note: For now, we only allow parallelism at the sector level
@@ -112,7 +106,7 @@ sched_worker_manager::sched_worker_manager(ue_map_t& ue_db_, const sched_params&
     sem_init(&slot_ctxts[i]->sf_sem, 0, 1);
     slot_ctxts[i]->workers.reserve(cfg.cells.size());
     for (uint32_t cc = 0; cc < cfg.cells.size(); ++cc) {
-      slot_ctxts[i]->workers.emplace_back(cfg.cells[cc], phy_grid[cc]);
+      slot_ctxts[i]->workers.emplace_back(cfg.cells[cc], cell_grid_list[cc]);
     }
   }
 }
@@ -164,18 +158,16 @@ bool sched_worker_manager::run_tti(tti_point tti_rx_, uint32_t cc, slot_res_t& t
 
   // Copy requested TTI DL and UL sched result
   tti_req.dl_res.pdsch_tti = tti_rx_ + TX_ENB_DELAY;
-  tti_req.dl_res.pdsch     = phy_grid[cc][tti_req.dl_res.pdsch_tti.to_uint()].pdsch_grants;
+  tti_req.dl_res.pdsch     = cell_grid_list[cc].bwps[0][tti_req.dl_res.pdsch_tti].pdsch_grants;
+  cell_grid_list[cc].bwps[0][tti_req.dl_res.pdsch_tti].reset();
   tti_req.ul_res.pusch_tti = tti_rx_ + TX_ENB_DELAY;
-  tti_req.ul_res.pusch     = phy_grid[cc][tti_req.ul_res.pusch_tti.to_uint()].pusch_grants;
+  tti_req.ul_res.pusch     = cell_grid_list[cc].bwps[0][tti_req.ul_res.pusch_tti].pusch_grants;
+  cell_grid_list[cc].bwps[0][tti_req.ul_res.pusch_tti].reset();
 
   // decrement the number of active workers
   int rem_workers = sf_worker_ctxt.worker_count.fetch_sub(1, std::memory_order_release) - 1;
   srsran_assert(rem_workers >= 0, "invalid number of calls to run_tti(tti, cc)");
 
-  if (rem_workers == 0) {
-    // Clear one slot of PHY grid, so it can be reused in the next TTIs
-    phy_grid[cc][sf_worker_ctxt.tti_rx.to_uint()].reset();
-  }
   return rem_workers == 0;
 }
 

@@ -11,8 +11,8 @@
  */
 
 #include "srsenb/hdr/stack/mac/sched_phy_ch/sched_dci.h"
-#include "srsenb/hdr/stack/mac/sched_common.h"
 #include "srsenb/hdr/stack/mac/sched_helpers.h"
+#include "srsenb/hdr/stack/mac/sched_lte_common.h"
 #include "srsran/common/string_helpers.h"
 
 #include <cmath>

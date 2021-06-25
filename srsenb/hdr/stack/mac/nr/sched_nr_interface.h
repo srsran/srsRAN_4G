@@ -17,17 +17,19 @@
 #include "srsran/adt/bounded_vector.h"
 #include "srsran/adt/span.h"
 #include "srsran/common/tti_point.h"
+#include "srsran/interfaces/rrc_nr_interface_types.h"
 #include "srsran/phy/phch/dci_nr.h"
 
 namespace srsenb {
 
-const static size_t   SCHED_NR_MAX_CARRIERS   = 4;
-const static uint16_t SCHED_NR_INVALID_RNTI   = 0;
-const static size_t   SCHED_NR_MAX_PDSCH_DATA = 16;
-const static size_t   SCHED_NR_MAX_NOF_RBGS   = 25;
-const static size_t   SCHED_NR_MAX_UL_ALLOCS  = 16;
-const static size_t   SCHED_NR_MAX_TB         = 1;
-const static size_t   SCHED_NR_MAX_HARQ       = 16;
+const static size_t   SCHED_NR_MAX_CARRIERS     = 4;
+const static uint16_t SCHED_NR_INVALID_RNTI     = 0;
+const static size_t   SCHED_NR_MAX_PDSCH_DATA   = 16;
+const static size_t   SCHED_NR_MAX_NOF_RBGS     = 25;
+const static size_t   SCHED_NR_MAX_UL_ALLOCS    = 16;
+const static size_t   SCHED_NR_MAX_TB           = 1;
+const static size_t   SCHED_NR_MAX_HARQ         = 16;
+const static size_t   SCHED_NR_MAX_BWP_PER_CELL = 1;
 
 class sched_nr_interface
 {
@@ -47,9 +49,15 @@ public:
   };
   using pusch_td_res_alloc_list = srsran::bounded_vector<pusch_td_res_alloc, SCHED_NR_MAX_UL_ALLOCS>;
 
+  struct bwp_cfg_t {
+    uint32_t start_rb = 0;
+    uint32_t rb_width = 100;
+  };
+
   struct cell_cfg_t {
-    uint32_t nof_prb = 100;
-    uint32_t nof_rbg = 25;
+    uint32_t                                                     nof_prb = 100;
+    uint32_t                                                     nof_rbg = 25;
+    srsran::bounded_vector<bwp_cfg_t, SCHED_NR_MAX_BWP_PER_CELL> bwps{1};
   };
 
   struct sched_cfg_t {
@@ -65,6 +73,7 @@ public:
   struct ue_cfg_t {
     uint32_t                                                   maxharq_tx = 4;
     srsran::bounded_vector<ue_cc_cfg_t, SCHED_NR_MAX_CARRIERS> carriers;
+    srsran::phy_cfg_nr_t                                       phy_cfg = {};
   };
 
   ///// Sched Result /////

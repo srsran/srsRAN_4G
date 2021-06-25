@@ -32,8 +32,8 @@ using slot_res_t = sched_nr_interface::tti_request_t;
 class slot_cc_worker
 {
 public:
-  explicit slot_cc_worker(const sched_cell_params& cell_params, phy_cell_rb_grid& phy_grid) :
-    cfg(cell_params), res_grid(cfg, phy_grid)
+  explicit slot_cc_worker(const sched_cell_params& cell_params, cell_res_grid& phy_grid) :
+    cfg(cell_params), res_grid(0, phy_grid)
   {}
 
   void start(tti_point tti_rx_, ue_map_t& ue_db_);
@@ -47,8 +47,8 @@ private:
 
   const sched_cell_params& cfg;
 
-  tti_point  tti_rx;
-  slot_sched res_grid;
+  tti_point      tti_rx;
+  slot_bwp_sched res_grid;
 
   srsran::static_circular_map<uint16_t, slot_ue, SCHED_NR_MAX_USERS> slot_ues;
 };
@@ -78,7 +78,7 @@ private:
   };
   std::vector<std::unique_ptr<slot_worker_ctxt> > slot_ctxts;
 
-  std::array<phy_cell_rb_grid, SCHED_NR_MAX_CARRIERS> phy_grid;
+  srsran::bounded_vector<cell_res_grid, SCHED_NR_MAX_CARRIERS> cell_grid_list;
 
   slot_worker_ctxt& get_sf(tti_point tti_rx);
 };

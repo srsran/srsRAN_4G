@@ -93,8 +93,8 @@ int sched_nr_sim_base::add_user(uint16_t rnti, const sched_nr_interface::ue_cfg_
 {
   TESTASSERT(ue_db.count(rnti) == 0);
 
-  ue_db.insert(std::make_pair(rnti, sched_nr_ue_sim(rnti, ue_cfg_, current_tti_rx, preamble_idx)));
   sched_ptr->ue_cfg(rnti, ue_cfg_);
+  ue_db.insert(std::make_pair(rnti, sched_nr_ue_sim(rnti, ue_cfg_, current_tti_rx, preamble_idx)));
   return SRSRAN_SUCCESS;
 }
 

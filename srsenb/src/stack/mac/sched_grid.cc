@@ -16,33 +16,6 @@
 
 namespace srsenb {
 
-const char* to_string(alloc_result result)
-{
-  switch (result) {
-    case alloc_result::success:
-      return "success";
-    case alloc_result::sch_collision:
-      return "Collision with existing SCH allocations";
-    case alloc_result::other_cause:
-      return "error";
-    case alloc_result::no_cch_space:
-      return "No space available in PUCCH or PDCCH";
-    case alloc_result::no_sch_space:
-      return "Requested number of PRBs not available";
-    case alloc_result::no_rnti_opportunity:
-      return "rnti cannot be allocated (e.g. already allocated, no data, meas gap collision, carrier inactive, etc.)";
-    case alloc_result::invalid_grant_params:
-      return "invalid grant arguments (e.g. invalid prb mask)";
-    case alloc_result::invalid_coderate:
-      return "Effective coderate exceeds threshold";
-    case alloc_result::no_grant_space:
-      return "Max number of allocations reached";
-    default:
-      break;
-  }
-  return "unknown error";
-}
-
 void sf_sched_result::new_tti(tti_point tti_rx_)
 {
   assert(tti_rx != tti_rx_);

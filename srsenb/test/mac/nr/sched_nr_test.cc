@@ -17,6 +17,33 @@
 
 namespace srsenb {
 
+sched_nr_interface::ue_cfg_t get_default_ue_cfg(uint32_t nof_cc)
+{
+  sched_nr_interface::ue_cfg_t uecfg{};
+  uecfg.carriers.resize(nof_cc);
+  for (uint32_t cc = 0; cc < nof_cc; ++cc) {
+    uecfg.carriers[cc].active = true;
+  }
+  uecfg.phy_cfg.pdcch.coreset_present[0] = true;
+  uecfg.phy_cfg.pdcch.coreset[0].id      = 0;
+  for (uint32_t i = 0; i < 100 / 6; ++i) {
+    uecfg.phy_cfg.pdcch.coreset[0].freq_resources[i] = true;
+  }
+  uecfg.phy_cfg.pdcch.coreset[0].duration               = 1;
+  uecfg.phy_cfg.pdcch.search_space_present[0]           = true;
+  uecfg.phy_cfg.pdcch.search_space[0].id                = 0;
+  uecfg.phy_cfg.pdcch.search_space[0].coreset_id        = 0;
+  uecfg.phy_cfg.pdcch.search_space[0].duration          = 1;
+  uecfg.phy_cfg.pdcch.search_space[0].type              = srsran_search_space_type_common_0;
+  uecfg.phy_cfg.pdcch.search_space[0].nof_candidates[0] = 1;
+  uecfg.phy_cfg.pdcch.search_space[0].nof_candidates[1] = 1;
+  uecfg.phy_cfg.pdcch.search_space[0].nof_candidates[2] = 1;
+  uecfg.phy_cfg.pdcch.search_space[0].nof_candidates[3] = 1;
+  uecfg.phy_cfg.pdcch.search_space[0].nof_formats       = 1;
+  uecfg.phy_cfg.pdcch.search_space[0].formats[0]        = srsran_dci_format_nr_0_0;
+  return uecfg;
+}
+
 struct task_job_manager {
   std::mutex              mutex;
   std::condition_variable cond_var;
@@ -70,10 +97,7 @@ void sched_nr_cfg_serialized_test()
 
   sched_nr_sim_base sched_tester(cfg, cells_cfg, "Serialized Test");
 
-  sched_nr_interface::ue_cfg_t uecfg;
-  uecfg.carriers.resize(nof_sectors);
-  uecfg.carriers[0].active = true;
-  uecfg.carriers[1].active = true;
+  sched_nr_interface::ue_cfg_t uecfg = get_default_ue_cfg(2);
 
   sched_tester.add_user(0x46, uecfg, 0);
 
@@ -107,11 +131,7 @@ void sched_nr_cfg_parallel_cc_test()
 
   sched_nr_sim_base sched_tester(cfg, cells_cfg, "Parallel CC Test");
 
-  sched_nr_interface::ue_cfg_t uecfg;
-  uecfg.carriers.resize(cells_cfg.size());
-  for (uint32_t cc = 0; cc < cells_cfg.size(); ++cc) {
-    uecfg.carriers[cc].active = true;
-  }
+  sched_nr_interface::ue_cfg_t uecfg = get_default_ue_cfg(cells_cfg.size());
   sched_tester.add_user(0x46, uecfg, 0);
 
   for (uint32_t nof_ttis = 0; nof_ttis < max_nof_ttis; ++nof_ttis) {
@@ -148,11 +168,7 @@ void sched_nr_cfg_parallel_sf_test()
   sched_nr sched(cfg);
   sched.cell_cfg(cells_cfg);
 
-  sched_nr_interface::ue_cfg_t uecfg;
-  uecfg.carriers.resize(cells_cfg.size());
-  for (uint32_t cc = 0; cc < cells_cfg.size(); ++cc) {
-    uecfg.carriers[cc].active = true;
-  }
+  sched_nr_interface::ue_cfg_t uecfg = get_default_ue_cfg(cells_cfg.size());
   sched.ue_cfg(0x46, uecfg);
 
   for (uint32_t nof_ttis = 0; nof_ttis < max_nof_ttis; ++nof_ttis) {
