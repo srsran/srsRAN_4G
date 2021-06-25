@@ -10,7 +10,7 @@
  *
  */
 
-#include "srsran/upper/rlc_am_lte.h"
+#include "srsran/rlc/rlc_am_lte.h"
 #include "srsran/common/string_helpers.h"
 #include "srsran/interfaces/ue_pdcp_interfaces.h"
 #include "srsran/interfaces/ue_rrc_interfaces.h"

@@ -15,8 +15,8 @@
 
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/common.h"
+#include "srsran/rlc/rlc_common.h"
 #include "srsran/upper/byte_buffer_queue.h"
-#include "srsran/upper/rlc_common.h"
 
 namespace srsue {
 

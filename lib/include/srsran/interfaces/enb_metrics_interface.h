@@ -22,9 +22,9 @@
 #include "srsenb/hdr/stack/s1ap/s1ap_metrics.h"
 #include "srsran/common/metrics_hub.h"
 #include "srsran/radio/radio_metrics.h"
+#include "srsran/rlc/rlc_metrics.h"
 #include "srsran/system/sys_metrics.h"
 #include "srsran/upper/pdcp_metrics.h"
-#include "srsran/upper/rlc_metrics.h"
 #include "srsue/hdr/stack/upper/gw_metrics.h"
 
 namespace srsenb {

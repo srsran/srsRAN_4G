@@ -10,7 +10,7 @@
  *
  */
 
-#include "srsran/upper/rlc_um_nr.h"
+#include "srsran/rlc/rlc_um_nr.h"
 #include "srsran/interfaces/ue_pdcp_interfaces.h"
 #include <sstream>
 

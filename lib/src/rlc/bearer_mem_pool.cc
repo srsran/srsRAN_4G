@@ -10,11 +10,11 @@
  *
  */
 
-#include "srsran/upper/bearer_mem_pool.h"
+#include "srsran/rlc/bearer_mem_pool.h"
 #include "srsran/adt/pool/batch_mem_pool.h"
-#include "srsran/upper/rlc_am_lte.h"
-#include "srsran/upper/rlc_um_lte.h"
-#include "srsran/upper/rlc_um_nr.h"
+#include "srsran/rlc/rlc_am_lte.h"
+#include "srsran/rlc/rlc_um_lte.h"
+#include "srsran/rlc/rlc_um_nr.h"
 
 namespace srsran {
 

@@ -10,16 +10,7 @@ set(SOURCES gtpu.cc
             pdcp.cc
             pdcp_entity_base.cc
             pdcp_entity_lte.cc
-            rlc.cc
-            rlc_tm.cc
-            rlc_um_base.cc
-            rlc_um_lte.cc
-            rlc_am_base.cc
-            rlc_am_lte.cc
-            pdcp_entity_nr.cc
-            rlc_um_nr.cc
-            rlc_am_nr.cc
-            bearer_mem_pool.cc)
+            pdcp_entity_nr.cc)
 
 add_library(srsran_upper STATIC ${SOURCES})
 target_link_libraries(srsran_upper srsran_common srsran_asn1 ${ATOMIC_LIBS})

@@ -16,8 +16,8 @@
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
 #include "srsenb/hdr/stack/rrc/rrc_ue.h"
 #include "srsran/adt/pool/circular_stack_pool.h"
+#include "srsran/rlc/rlc.h"
 #include "srsran/upper/pdcp.h"
-#include "srsran/upper/rlc.h"
 
 namespace srsenb {
 

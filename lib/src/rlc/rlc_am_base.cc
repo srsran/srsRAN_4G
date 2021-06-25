@@ -10,7 +10,7 @@
  *
  */
 
-#include "srsran/upper/rlc_am_base.h"
+#include "srsran/rlc/rlc_am_base.h"
 #include <sstream>
 
 namespace srsran {

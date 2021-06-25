@@ -15,8 +15,8 @@
 
 #include "srsran/adt/circular_buffer.h"
 #include "srsran/interfaces/rlc_interface_types.h"
-#include "srsran/upper/bearer_mem_pool.h"
-#include "srsran/upper/rlc_metrics.h"
+#include "srsran/rlc/bearer_mem_pool.h"
+#include "srsran/rlc/rlc_metrics.h"
 #include <stdlib.h>
 
 namespace srsran {

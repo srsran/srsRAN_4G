@@ -14,9 +14,9 @@
 #define SRSUE_TTCN3_SYSSIM_H
 
 #include "srsran/mac/pdu_queue.h"
+#include "srsran/rlc/rlc.h"
 #include "srsran/test/ue_test_interfaces.h"
 #include "srsran/upper/pdcp.h"
-#include "srsran/upper/rlc.h"
 #include "ttcn3_common.h"
 #include "ttcn3_drb_interface.h"
 #include "ttcn3_ip_ctrl_interface.h"

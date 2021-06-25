@@ -10,12 +10,12 @@
  *
  */
 
-#include "srsran/upper/rlc.h"
+#include "srsran/rlc/rlc.h"
 #include "srsran/common/rwlock_guard.h"
-#include "srsran/upper/rlc_am_lte.h"
-#include "srsran/upper/rlc_tm.h"
-#include "srsran/upper/rlc_um_lte.h"
-#include "srsran/upper/rlc_um_nr.h"
+#include "srsran/rlc/rlc_am_lte.h"
+#include "srsran/rlc/rlc_tm.h"
+#include "srsran/rlc/rlc_um_lte.h"
+#include "srsran/rlc/rlc_um_nr.h"
 
 namespace srsran {
 
@@ -503,7 +503,7 @@ void rlc::change_lcid(uint32_t old_lcid, uint32_t new_lcid)
   // make sure old LCID exists and new LCID is still free
   if (valid_lcid(old_lcid) && not valid_lcid(new_lcid)) {
     // insert old rlc entity into new LCID
-    rlc_map_t::iterator it         = rlc_array.find(old_lcid);
+    rlc_map_t::iterator         it         = rlc_array.find(old_lcid);
     std::unique_ptr<rlc_common> rlc_entity = std::move(it->second);
     if (not rlc_array.insert(rlc_map_pair_t(new_lcid, std::move(rlc_entity))).second) {
       logger.error("Error inserting RLC entity into array.");

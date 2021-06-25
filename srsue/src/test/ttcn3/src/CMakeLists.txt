@@ -14,6 +14,7 @@ set(LINK_LIBRARIES srsue_stack
                     srsue_rrc
                     srsue_rrc_nr
                     srsran_upper
+                    srsran_rlc
                     srsran_common
                     srsran_mac
                     srsran_phy

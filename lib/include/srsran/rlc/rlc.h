@@ -19,8 +19,8 @@
 #include "srsran/interfaces/ue_pdcp_interfaces.h"
 #include "srsran/interfaces/ue_rlc_interfaces.h"
 #include "srsran/interfaces/ue_rrc_interfaces.h"
-#include "srsran/upper/rlc_common.h"
-#include "srsran/upper/rlc_metrics.h"
+#include "srsran/rlc/rlc_common.h"
+#include "srsran/rlc/rlc_metrics.h"
 
 namespace srsran {
 
@@ -39,7 +39,7 @@ public:
             srsue::rrc_interface_rlc*  rrc_,
             srsran::timer_handler*     timers_,
             uint32_t                   lcid_);
-            
+
   void init(srsue::pdcp_interface_rlc* pdcp_,
             srsue::rrc_interface_rlc*  rrc_,
             srsran::timer_handler*     timers_,

@@ -23,9 +23,9 @@
 #include "srsran/common/task_scheduler.h"
 #include "srsran/common/timeout.h"
 #include "srsran/interfaces/pdcp_interface_types.h"
+#include "srsran/rlc/rlc_am_base.h"
+#include "srsran/rlc/rlc_common.h"
 #include "srsran/upper/byte_buffer_queue.h"
-#include "srsran/upper/rlc_am_base.h"
-#include "srsran/upper/rlc_common.h"
 #include <deque>
 #include <list>
 #include <map>
@@ -367,10 +367,10 @@ private:
     void reestablish();
     void stop();
 
-    int  write_sdu(unique_byte_buffer_t sdu);
+    int      write_sdu(unique_byte_buffer_t sdu);
     uint32_t read_pdu(uint8_t* payload, uint32_t nof_bytes);
-    void discard_sdu(uint32_t discard_sn);
-    bool sdu_queue_is_full();
+    void     discard_sdu(uint32_t discard_sn);
+    bool     sdu_queue_is_full();
 
     bool     has_data();
     uint32_t get_buffer_state();

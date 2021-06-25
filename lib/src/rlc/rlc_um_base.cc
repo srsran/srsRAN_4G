@@ -10,7 +10,7 @@
  *
  */
 
-#include "srsran/upper/rlc_um_base.h"
+#include "srsran/rlc/rlc_um_base.h"
 #include "srsran/interfaces/ue_rrc_interfaces.h"
 #include <sstream>
 

@@ -21,8 +21,8 @@
 #include "mac_nr/mac_nr.h"
 #include "rrc/rrc_nr.h"
 #include "srsran/radio/radio.h"
+#include "srsran/rlc/rlc.h"
 #include "srsran/upper/pdcp.h"
-#include "srsran/upper/rlc.h"
 #include "upper/nas.h"
 #include "upper/usim.h"
 
