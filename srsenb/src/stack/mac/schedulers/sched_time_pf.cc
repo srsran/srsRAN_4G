@@ -44,6 +44,12 @@ sched_time_pf::sched_time_pf(const sched_cell_params_t& cell_params_, const sche
 
 void sched_time_pf::new_tti(sched_ue_list& ue_db, sf_sched* tti_sched)
 {
+  while (not dl_queue.empty()) {
+    dl_queue.pop();
+  }
+  while (not ul_queue.empty()) {
+    ul_queue.pop();
+  }
   current_tti_rx = tti_point{tti_sched->get_tti_rx()};
   // remove deleted users from history
   for (auto it = ue_history_db.begin(); it != ue_history_db.end();) {

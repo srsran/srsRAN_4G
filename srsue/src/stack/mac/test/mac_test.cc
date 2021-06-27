@@ -2339,6 +2339,7 @@ int mac_random_access_test()
   my_test.rar_nof_invalid_rapid = 0;
   my_test.check_ra_successful   = true;
   my_test.temp_rnti++; // Temporal C-RNTI has to change to avoid duplicate
+  my_test.crnti = 0;
   TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti, &stack));
   stack.run_tti(tti++);
   TESTASSERT(rrc.ho_finish_successful);

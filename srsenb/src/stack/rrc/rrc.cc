@@ -302,7 +302,7 @@ void rrc::write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t p
 
 void rrc::notify_pdcp_integrity_error(uint16_t rnti, uint32_t lcid)
 {
-  logger.warning("Received integrity protection failure indication, rnti=0x%u, lcid=%u", rnti, lcid);
+  logger.warning("Received integrity protection failure indication, rnti=0x%x, lcid=%u", rnti, lcid);
   s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::unspecified);
 }
 

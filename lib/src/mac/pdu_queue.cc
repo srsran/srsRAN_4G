@@ -59,7 +59,7 @@ void pdu_queue::deallocate(const uint8_t* pdu)
 }
 
 /* Demultiplexing of logical channels and dissassemble of MAC CE
- * This function enqueues the packet and returns quicly because ACK
+ * This function enqueues the packet and returns quickly because ACK
  * deadline is important here.
  */
 void pdu_queue::push(const uint8_t* ptr, uint32_t len, channel_t channel, int grant_nof_prbs)

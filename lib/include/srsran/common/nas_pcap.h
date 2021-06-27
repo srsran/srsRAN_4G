@@ -22,6 +22,7 @@
 #ifndef SRSRAN_NAS_PCAP_H
 #define SRSRAN_NAS_PCAP_H
 
+#include "srsran/common/common.h"
 #include "srsran/common/pcap.h"
 #include <string>
 
@@ -37,7 +38,7 @@ public:
     pcap_file    = NULL;
   }
   void enable();
-  uint32_t open(std::string filename_, uint32_t ue_id = 0);
+  uint32_t open(std::string filename_, uint32_t ue_id = 0, srsran_rat_t rat_type = srsran_rat_t::lte);
   void close();
   void write_nas(uint8_t* pdu, uint32_t pdu_len_bytes);
 

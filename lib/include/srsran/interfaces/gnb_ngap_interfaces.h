@@ -27,16 +27,16 @@
 namespace srsenb {
 
 struct ngap_args_t {
-  uint32_t    gnb_id;  // 20-bit id (lsb bits)
-  uint8_t     cell_id; // 8-bit cell id
-  uint16_t    tac;     // 16-bit tac
-  uint16_t    mcc;     // BCD-coded with 0xF filler
-  uint16_t    mnc;     // BCD-coded with 0xF filler
-  std::string amf_addr;
-  std::string gtp_bind_addr;
-  std::string gtp_advertise_addr;
-  std::string ngc_bind_addr;
-  std::string gnb_name;
+  uint32_t    gnb_id             = 0; // 20-bit id (lsb bits)
+  uint8_t     cell_id            = 0; // 8-bit cell id
+  uint16_t    tac                = 0; // 16-bit tac
+  uint16_t    mcc                = 0; // BCD-coded with 0xF filler
+  uint16_t    mnc                = 0; // BCD-coded with 0xF filler
+  std::string amf_addr           = "";
+  std::string gtp_bind_addr      = "";
+  std::string gtp_advertise_addr = "";
+  std::string ngc_bind_addr      = "";
+  std::string gnb_name           = "";
 };
 
 // NGAP interface for RRC

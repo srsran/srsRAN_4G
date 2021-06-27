@@ -38,6 +38,10 @@ add_executable(ue_dl_nbiot_test ue_dl_nbiot_test.c)
 target_link_libraries(ue_dl_nbiot_test srsran_phy pthread)
 add_test(ue_dl_nbiot_test ue_dl_nbiot_test)
 
+add_executable(ue_sync_nr_test ue_sync_nr_test.c)
+target_link_libraries(ue_sync_nr_test srsran_phy pthread)
+add_test(ue_sync_nr_test ue_sync_nr_test)
+
 if(RF_FOUND)
     add_executable(ue_mib_sync_test_nbiot_usrp ue_mib_sync_test_nbiot_usrp.c)
     target_link_libraries(ue_mib_sync_test_nbiot_usrp srsran_phy srsran_rf pthread)

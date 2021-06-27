@@ -34,7 +34,7 @@ void rlc_pcap::enable(bool en)
 void rlc_pcap::open(const char* filename, rlc_config_t config)
 {
   fprintf(stdout, "Opening RLC PCAP with DLT=%d\n", UDP_DLT);
-  pcap_file    = LTE_PCAP_Open(UDP_DLT, filename);
+  pcap_file    = DLT_PCAP_Open(UDP_DLT, filename);
   enable_write = true;
 
   if (config.rlc_mode == rlc_mode_t::am) {
@@ -54,7 +54,7 @@ void rlc_pcap::open(const char* filename, rlc_config_t config)
 void rlc_pcap::close()
 {
   fprintf(stdout, "Saving RLC PCAP file\n");
-  LTE_PCAP_Close(pcap_file);
+  DLT_PCAP_Close(pcap_file);
 }
 
 void rlc_pcap::set_ue_id(uint16_t ue_id_)

@@ -237,6 +237,7 @@ int mac::ue_set_crnti(uint16_t temp_crnti, uint16_t crnti, const sched_interface
 
 int mac::cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg_)
 {
+  srsran::rwlock_write_guard lock(rwlock);
   cell_config = cell_cfg_;
   return scheduler.cell_cfg(cell_config);
 }
@@ -340,10 +341,10 @@ int mac::push_pdu(uint32_t tti_rx,
                   tti_rx,
                   nof_bytes,
                   (int)pdu->size());
-    auto process_pdu_task = [this, rnti, ul_nof_prbs](srsran::unique_byte_buffer_t& pdu) {
+    auto process_pdu_task = [this, rnti, enb_cc_idx, ul_nof_prbs](srsran::unique_byte_buffer_t& pdu) {
       srsran::rwlock_read_guard lock(rwlock);
       if (check_ue_active(rnti)) {
-        ue_db[rnti]->process_pdu(std::move(pdu), ul_nof_prbs);
+        ue_db[rnti]->process_pdu(std::move(pdu), enb_cc_idx, ul_nof_prbs);
       } else {
         logger.debug("Discarding PDU rnti=0x%x", rnti);
       }
@@ -585,6 +586,8 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
     add_padding();
   }
 
+  srsran::rwlock_read_guard lock(rwlock);
+
   for (uint32_t enb_cc_idx = 0; enb_cc_idx < cell_config.size(); enb_cc_idx++) {
     // Run scheduler with current info
     sched_interface::dl_sched_res_t sched_result = {};
@@ -596,68 +599,62 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
     int         n            = 0;
     dl_sched_t* dl_sched_res = &dl_sched_res_list[enb_cc_idx];
 
-    {
-      srsran::rwlock_read_guard lock(rwlock);
+    // Copy data grants
+    for (uint32_t i = 0; i < sched_result.data.size(); i++) {
+      uint32_t tb_count = 0;
 
-      // Copy data grants
-      for (uint32_t i = 0; i < sched_result.data.size(); i++) {
-        uint32_t tb_count = 0;
+      // Get UE
+      uint16_t rnti = sched_result.data[i].dci.rnti;
 
-        // Get UE
-        uint16_t rnti = sched_result.data[i].dci.rnti;
+      if (ue_db.contains(rnti)) {
+        // Copy dci info
+        dl_sched_res->pdsch[n].dci = sched_result.data[i].dci;
 
-        if (ue_db.contains(rnti)) {
-          // Copy dci info
-          dl_sched_res->pdsch[n].dci = sched_result.data[i].dci;
+        for (uint32_t tb = 0; tb < SRSRAN_MAX_TB; tb++) {
+          dl_sched_res->pdsch[n].softbuffer_tx[tb] =
+              ue_db[rnti]->get_tx_softbuffer(enb_cc_idx, sched_result.data[i].dci.pid, tb);
 
-          for (uint32_t tb = 0; tb < SRSRAN_MAX_TB; tb++) {
-            dl_sched_res->pdsch[n].softbuffer_tx[tb] =
-                ue_db[rnti]->get_tx_softbuffer(enb_cc_idx, sched_result.data[i].dci.pid, tb);
-
-            // If the Rx soft-buffer is not given, abort transmission
-            if (dl_sched_res->pdsch[n].softbuffer_tx[tb] == nullptr) {
-              continue;
-            }
-
-            if (sched_result.data[i].nof_pdu_elems[tb] > 0) {
-              /* Get PDU if it's a new transmission */
-              dl_sched_res->pdsch[n].data[tb] = ue_db[rnti]->generate_pdu(enb_cc_idx,
-                                                                          sched_result.data[i].dci.pid,
-                                                                          tb,
-                                                                          sched_result.data[i].pdu[tb],
-                                                                          sched_result.data[i].nof_pdu_elems[tb],
-                                                                          sched_result.data[i].tbs[tb]);
-
-              if (!dl_sched_res->pdsch[n].data[tb]) {
-                logger.error("Error! PDU was not generated (rnti=0x%04x, tb=%d)", rnti, tb);
-              }
-
-              if (pcap) {
-                pcap->write_dl_crnti(
-                    dl_sched_res->pdsch[n].data[tb], sched_result.data[i].tbs[tb], rnti, true, tti_tx_dl, enb_cc_idx);
-              }
-              if (pcap_net) {
-                pcap_net->write_dl_crnti(
-                    dl_sched_res->pdsch[n].data[tb], sched_result.data[i].tbs[tb], rnti, true, tti_tx_dl, enb_cc_idx);
-              }
-            } else {
-              /* TB not enabled OR no data to send: set pointers to NULL  */
-              dl_sched_res->pdsch[n].data[tb] = nullptr;
-            }
-
-            tb_count++;
+          // If the Rx soft-buffer is not given, abort transmission
+          if (dl_sched_res->pdsch[n].softbuffer_tx[tb] == nullptr) {
+            continue;
           }
 
-          // Count transmission if at least one TB has succesfully added
-          if (tb_count > 0) {
-            n++;
+          if (sched_result.data[i].nof_pdu_elems[tb] > 0) {
+            /* Get PDU if it's a new transmission */
+            dl_sched_res->pdsch[n].data[tb] = ue_db[rnti]->generate_pdu(enb_cc_idx,
+                                                                        sched_result.data[i].dci.pid,
+                                                                        tb,
+                                                                        sched_result.data[i].pdu[tb],
+                                                                        sched_result.data[i].nof_pdu_elems[tb],
+                                                                        sched_result.data[i].tbs[tb]);
+
+            if (!dl_sched_res->pdsch[n].data[tb]) {
+              logger.error("Error! PDU was not generated (rnti=0x%04x, tb=%d)", rnti, tb);
+            }
+
+            if (pcap) {
+              pcap->write_dl_crnti(
+                  dl_sched_res->pdsch[n].data[tb], sched_result.data[i].tbs[tb], rnti, true, tti_tx_dl, enb_cc_idx);
+            }
+            if (pcap_net) {
+              pcap_net->write_dl_crnti(
+                  dl_sched_res->pdsch[n].data[tb], sched_result.data[i].tbs[tb], rnti, true, tti_tx_dl, enb_cc_idx);
+            }
+          } else {
+            /* TB not enabled OR no data to send: set pointers to NULL  */
+            dl_sched_res->pdsch[n].data[tb] = nullptr;
           }
-        } else {
-          logger.warning("Invalid DL scheduling result. User 0x%x does not exist", rnti);
+
+          tb_count++;
         }
-      }
 
-      // No more uses of shared ue_db beyond here
+        // Count transmission if at least one TB has succesfully added
+        if (tb_count > 0) {
+          n++;
+        }
+      } else {
+        logger.warning("Invalid DL scheduling result. User 0x%x does not exist", rnti);
+      }
     }
 
     // Copy RAR grants
@@ -737,11 +734,8 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
   }
 
   // Count number of TTIs for all active users
-  {
-    srsran::rwlock_read_guard lock(rwlock);
-    for (auto& u : ue_db) {
-      u.second->metrics_cnt();
-    }
+  for (auto& u : ue_db) {
+    u.second->metrics_cnt();
   }
 
   return SRSRAN_SUCCESS;
@@ -830,9 +824,9 @@ int mac::get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res
       int requested_bytes = (mcs_data.tbs / 8 > (int)mch.mtch_sched[mtch_index].lcid_buffer_size)
                                 ? (mch.mtch_sched[mtch_index].lcid_buffer_size)
                                 : ((mcs_data.tbs / 8) - 2);
-      int bytes_received = ue_db[SRSRAN_MRNTI]->read_pdu(current_lcid, mtch_payload_buffer, requested_bytes);
-      mch.pdu[0].lcid    = current_lcid;
-      mch.pdu[0].nbytes  = bytes_received;
+      int bytes_received  = ue_db[SRSRAN_MRNTI]->read_pdu(current_lcid, mtch_payload_buffer, requested_bytes);
+      mch.pdu[0].lcid     = current_lcid;
+      mch.pdu[0].nbytes   = bytes_received;
       mch.mtch_sched[0].mtch_payload  = mtch_payload_buffer;
       dl_sched_res->pdsch[0].dci.rnti = SRSRAN_MRNTI;
       if (bytes_received) {
@@ -985,9 +979,12 @@ void mac::write_mcch(const srsran::sib2_mbms_t* sib2_,
   sib13 = *sib13_;
   memcpy(mcch_payload_buffer, mcch_payload, mcch_payload_length * sizeof(uint8_t));
   current_mcch_length = mcch_payload_length;
-  ue_db[SRSRAN_MRNTI] = std::unique_ptr<ue>{
-      new ue(SRSRAN_MRNTI, 0, &scheduler, rrc_h, rlc_h, phy_h, logger, cells.size(), softbuffer_pool.get())};
-
+  std::unique_ptr<ue> ptr = std::unique_ptr<ue>{
+      new ue(SRSRAN_MRNTI, args.nof_prb, &scheduler, rrc_h, rlc_h, phy_h, logger, cells.size(), softbuffer_pool.get())};
+  auto ret = ue_db.insert(SRSRAN_MRNTI, std::move(ptr));
+  if (!ret) {
+    logger.info("Failed to allocate rnti=0x%x.for eMBMS", SRSRAN_MRNTI);
+  }
   rrc_h->add_user(SRSRAN_MRNTI, {});
 }
 

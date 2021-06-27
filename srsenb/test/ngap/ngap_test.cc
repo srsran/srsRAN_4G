@@ -95,7 +95,7 @@ struct dummy_socket_manager : public srsran::socket_manager_itf {
     return true;
   }
 
-  int             s1u_fd;
+  int             s1u_fd = 0;
   recv_callback_t callback;
 };
 
@@ -150,7 +150,7 @@ int main(int argc, char** argv)
   args.ngc_bind_addr = "127.0.0.100";
   args.tac           = 7;
   args.gtp_bind_addr = "127.0.0.100";
-  args.amf_addr      = amf_addr_str;
+  args.amf_addr      = "127.0.0.1";
   args.gnb_name      = "srsgnb01";
   rrc_interface_ngap_nr rrc;
   ngap_obj.init(args, &rrc);

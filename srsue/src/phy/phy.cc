@@ -624,7 +624,7 @@ void phy::set_mch_period_stop(uint32_t stop)
 
 int phy::init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_)
 {
-  if (!nr_workers.init(args_, &common, stack_, WORKERS_THREAD_PRIO)) {
+  if (!nr_workers.init(args_, common, stack_, WORKERS_THREAD_PRIO)) {
     return SRSRAN_ERROR;
   }
 

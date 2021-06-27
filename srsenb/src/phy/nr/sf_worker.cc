@@ -23,10 +23,10 @@
 
 namespace srsenb {
 namespace nr {
-sf_worker::sf_worker(phy_common* phy_, phy_nr_state* phy_state_, srslog::basic_logger& logger) :
-  phy(phy_), phy_state(phy_state_), logger(logger)
+sf_worker::sf_worker(srsran::phy_common_interface& common_, phy_nr_state& phy_state_, srslog::basic_logger& logger) :
+  common(common_), phy_state(phy_state_), logger(logger)
 {
-  for (uint32_t i = 0; i < phy_state->args.nof_carriers; i++) {
+  for (uint32_t i = 0; i < phy_state.args.nof_carriers; i++) {
     cc_worker* w = new cc_worker(i, logger, phy_state);
     cc_workers.push_back(std::unique_ptr<cc_worker>(w));
   }
@@ -91,14 +91,14 @@ void sf_worker::work_imp()
   // Get Transmission buffers
   srsran::rf_buffer_t    tx_buffer = {};
   srsran::rf_timestamp_t dummy_ts  = {};
-  for (uint32_t cc = 0; cc < phy->get_nof_carriers_nr(); cc++) {
-    for (uint32_t ant = 0; ant < phy->get_nof_ports(0); ant++) {
-      tx_buffer.set(cc, ant, phy->get_nof_ports(0), cc_workers[cc]->get_tx_buffer(ant));
+  for (uint32_t cc = 0; cc < phy_state.args.nof_carriers; cc++) {
+    for (uint32_t ant = 0; ant < phy_state.args.nof_ports; ant++) {
+      tx_buffer.set(cc, ant, phy_state.args.nof_ports, cc_workers[cc]->get_tx_buffer(ant));
     }
   }
 
   // Configure user
-  phy_state->cfg.pdsch.rbg_size_cfg_1 = false;
+  phy_state.cfg.pdsch.rbg_size_cfg_1 = false;
 
   // Fill grant (this comes from the scheduler)
   srsran_slot_cfg_t                  dl_cfg = {};
@@ -125,7 +125,7 @@ void sf_worker::work_imp()
     w->work_dl(dl_cfg, grants);
   }
 
-  phy->worker_end(this, tx_buffer, dummy_ts, true);
+  common.worker_end(this, true, tx_buffer, dummy_ts, true);
 }
 
 } // namespace nr

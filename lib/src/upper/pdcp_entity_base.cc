@@ -114,13 +114,6 @@ bool pdcp_entity_base::integrity_verify(uint8_t* msg, uint32_t msg_len, uint32_t
       break;
   }
 
-  logger.debug("Integrity check input: COUNT %" PRIu32 ", Bearer ID %d, Direction %s",
-               count,
-               cfg.bearer_id,
-               cfg.rx_direction == SECURITY_DIRECTION_DOWNLINK ? "Downlink" : "Uplink");
-  logger.debug(k_int, 32, "Integrity check key:");
-  logger.debug(msg, msg_len, "Integrity check input msg:");
-
   if (sec_cfg.integ_algo != INTEGRITY_ALGORITHM_ID_EIA0) {
     for (uint8_t i = 0; i < 4; i++) {
       if (mac[i] != mac_exp[i]) {
@@ -130,9 +123,13 @@ bool pdcp_entity_base::integrity_verify(uint8_t* msg, uint32_t msg_len, uint32_t
         break;
       }
     }
-    if (is_valid) {
-      logger.info(mac_exp, 4, "MAC match");
-    }
+    srslog::log_channel& channel = is_valid ? logger.debug : logger.warning;
+    channel("Integrity check input: COUNT %" PRIu32 ", Bearer ID %d, Direction %s",
+            count,
+            cfg.bearer_id,
+            cfg.rx_direction == SECURITY_DIRECTION_DOWNLINK ? "Downlink" : "Uplink");
+    channel(k_int, 32, "Integrity check key:");
+    channel(msg, msg_len, "Integrity check input msg (Bytes=%" PRIu32 "):", msg_len);
   }
 
   return is_valid;

@@ -42,7 +42,7 @@ public:
   sf_worker* operator[](std::size_t pos) { return workers.at(pos).get(); }
 
   worker_pool(uint32_t max_workers);
-  bool       init(const phy_args_nr_t& args_, phy_common* common, stack_interface_phy_nr* stack_, int prio);
+  bool init(const phy_args_nr_t& args_, srsran::phy_common_interface& common, stack_interface_phy_nr* stack_, int prio);
   sf_worker* wait_worker(uint32_t tti);
   void       start_worker(sf_worker* w);
   void       stop();

@@ -27,7 +27,7 @@
 #include <sys/time.h>
 
 /* Open the file and write file header */
-FILE* LTE_PCAP_Open(uint32_t DLT, const char* fileName)
+FILE* DLT_PCAP_Open(uint32_t DLT, const char* fileName)
 {
   pcap_hdr_t file_header = {
       0xa1b2c3d4, /* magic number */
@@ -52,7 +52,7 @@ FILE* LTE_PCAP_Open(uint32_t DLT, const char* fileName)
 }
 
 /* Close the PCAP file */
-void LTE_PCAP_Close(FILE* fd)
+void DLT_PCAP_Close(FILE* fd)
 {
   if (fd) {
     fclose(fd);

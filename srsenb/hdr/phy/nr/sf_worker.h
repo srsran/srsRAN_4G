@@ -19,12 +19,12 @@
  *
  */
 
-#ifndef SRSUE_NR_PHCH_WORKER_H
-#define SRSUE_NR_PHCH_WORKER_H
+#ifndef SRSENB_NR_PHCH_WORKER_H
+#define SRSENB_NR_PHCH_WORKER_H
 
 #include "cc_worker.h"
-#include "srsenb/hdr/phy/phy_common.h"
 #include "srsran/common/thread_pool.h"
+#include "srsran/interfaces/phy_common_interface.h"
 #include "srsran/srslog/srslog.h"
 
 namespace srsenb {
@@ -41,7 +41,7 @@ namespace nr {
 class sf_worker final : public srsran::thread_pool::worker
 {
 public:
-  sf_worker(phy_common* phy_, phy_nr_state* phy_state_, srslog::basic_logger& logger);
+  sf_worker(srsran::phy_common_interface& common_, phy_nr_state& phy_state_, srslog::basic_logger& logger);
   ~sf_worker();
 
   bool set_carrier_unlocked(uint32_t cc_idx, const srsran_carrier_nr_t* carrier_);
@@ -58,9 +58,9 @@ private:
 
   std::vector<std::unique_ptr<cc_worker> > cc_workers;
 
-  phy_common*           phy       = nullptr;
-  phy_nr_state*         phy_state = nullptr;
-  srslog::basic_logger& logger;
+  srsran::phy_common_interface& common;
+  phy_nr_state&                 phy_state;
+  srslog::basic_logger&         logger;
 
   // Temporal attributes
   srsran_softbuffer_tx_t softbuffer_tx = {};
@@ -70,4 +70,4 @@ private:
 } // namespace nr
 } // namespace srsenb
 
-#endif // SRSUE_NR_PHCH_WORKER_H
+#endif // SRSENB_NR_PHCH_WORKER_H

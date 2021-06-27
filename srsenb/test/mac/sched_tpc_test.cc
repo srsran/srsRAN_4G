@@ -81,23 +81,40 @@ int test_finite_target_snr()
   }
 
   // TEST: PHR is negative. Checks:
-  // - one TPC should be sent to decrease power. No more TPCs != 0 should be sent until the next PHR
-  snr_diff = -10;
+  // - TPCs sent should be negative or zero
+  // - The accumulation of TPCs should lead to next PHR being zero.
+  snr_diff     = -10;
+  int next_phr = -2;
   tpcfsm.set_snr(target_snr + snr_diff, tpc::PUSCH_CODE);
   tpcfsm.set_snr(target_snr + snr_diff, tpc::PUCCH_CODE);
+  sum_pucch = 0;
   for (uint32_t i = 0; i < 3; ++i) {
-    tpcfsm.set_phr(-2, 1);
-    tpcfsm.new_tti();
-    TESTASSERT(decode_tpc(tpcfsm.encode_pusch_tpc()) == -1);
-    TESTASSERT(decode_tpc(tpcfsm.encode_pucch_tpc()) == 3); // PUCCH doesnt get affected by neg PHR
+    tpcfsm.set_phr(next_phr, 1);
     for (uint32_t j = 0; j < 100; ++j) {
       tpcfsm.new_tti();
-      TESTASSERT(decode_tpc(tpcfsm.encode_pusch_tpc()) == 0);
+      int tpc_pusch = decode_tpc(tpcfsm.encode_pusch_tpc());
+      TESTASSERT(tpc_pusch <= 0);
+      next_phr -= tpc_pusch;
+      sum_pucch += decode_tpc(tpcfsm.encode_pucch_tpc());
     }
+    TESTASSERT(next_phr == 0);
   }
-  tpcfsm.set_phr(20, 1);
-  tpcfsm.new_tti();
-  TESTASSERT(decode_tpc(tpcfsm.encode_pusch_tpc()) == 3);
+  TESTASSERT(sum_pucch == -snr_diff); // PUCCH doesnt get affected by neg PHR
+
+  // TEST: PHR is positive and SINR < target SINR. Checks:
+  // - accumulation of TPCs should not make next PHR negative
+  // - TPCs should be positive or zero
+  next_phr = 5;
+  snr_diff = -10;
+  tpcfsm.set_phr(next_phr, 1);
+  tpcfsm.set_snr(target_snr + snr_diff, tpc::PUSCH_CODE);
+  for (uint32_t j = 0; j < 100; ++j) {
+    tpcfsm.new_tti();
+    int tpc_pusch = decode_tpc(tpcfsm.encode_pusch_tpc());
+    next_phr -= tpc_pusch;
+    TESTASSERT(tpc_pusch >= 0);
+  }
+  TESTASSERT(next_phr == 0);
 
   return SRSRAN_SUCCESS;
 }
@@ -173,11 +190,49 @@ int test_undefined_target_snr()
   return SRSRAN_SUCCESS;
 }
 
+void test_finite_target_snr_tpc_period_above_1()
+{
+  const uint32_t nof_prbs   = 50;
+  const int      target_snr = 15;
+
+  tpc tpcfsm(0x46, nof_prbs, 15, 15, true, 0, 5);
+
+  // TEST: While UL SNR ~ target, no TPC commands are sent
+  for (uint32_t i = 0; i < 100 and tpcfsm.get_ul_snr_estim(0) < 14; ++i) {
+    tpcfsm.set_snr(15, 0);
+    tpcfsm.set_snr(15, 1);
+    tpcfsm.new_tti();
+  }
+  for (uint32_t i = 0; i < 100; ++i) {
+    tpcfsm.new_tti();
+    TESTASSERT(decode_tpc(tpcfsm.encode_pucch_tpc()) == 0);
+    TESTASSERT(decode_tpc(tpcfsm.encode_pusch_tpc()) == 0);
+  }
+
+  // TEST: current SNR above target SNR. Checks:
+  // - TPC commands should be sent to decrease power
+  // - The sum power of TPC commands should not exceed the difference between current and target SNRs
+  int snr_diff = 10;
+  tpcfsm.set_snr(target_snr + snr_diff, tpc::PUSCH_CODE);
+  tpcfsm.set_snr(target_snr + snr_diff, tpc::PUCCH_CODE);
+  int sum_pusch = 0, sum_pucch = 0;
+  for (uint32_t i = 0; i < 100; ++i) {
+    tpcfsm.new_tti();
+    int tpc = decode_tpc(tpcfsm.encode_pusch_tpc());
+    TESTASSERT(tpc <= 0);
+    sum_pusch += tpc;
+    sum_pucch += decode_tpc(tpcfsm.encode_pucch_tpc());
+    TESTASSERT(sum_pucch < 0 and sum_pucch >= -snr_diff);
+  }
+  TESTASSERT(sum_pusch == -snr_diff);
+}
+
 } // namespace srsenb
 
 int main()
 {
   TESTASSERT(srsenb::test_finite_target_snr() == 0);
   TESTASSERT(srsenb::test_undefined_target_snr() == 0);
+  srsenb::test_finite_target_snr_tpc_period_above_1();
   printf("Success\n");
 }

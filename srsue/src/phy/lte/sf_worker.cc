@@ -191,6 +191,7 @@ void sf_worker::work_imp()
       }
     }
   }
+  tx_signal_ptr.set_nof_samples(nof_samples);
 
   /***** Uplink Generation + Transmission *******/
 
@@ -225,7 +226,6 @@ void sf_worker::work_imp()
       }
     }
   }
-  tx_signal_ptr.set_nof_samples(nof_samples);
 
   // Set PRACH buffer signal pointer
   if (prach_ptr) {

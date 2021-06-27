@@ -32,13 +32,13 @@ void s1ap_pcap::enable()
 }
 void s1ap_pcap::open(const char* filename)
 {
-  pcap_file    = LTE_PCAP_Open(S1AP_LTE_DLT, filename);
+  pcap_file    = DLT_PCAP_Open(S1AP_LTE_DLT, filename);
   enable_write = true;
 }
 void s1ap_pcap::close()
 {
   fprintf(stdout, "Saving S1AP PCAP file\n");
-  LTE_PCAP_Close(pcap_file);
+  DLT_PCAP_Close(pcap_file);
 }
 
 void s1ap_pcap::write_s1ap(uint8_t* pdu, uint32_t pdu_len_bytes)

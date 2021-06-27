@@ -12,6 +12,7 @@
 # gtp_bind_addr:        Local IP address to bind for GTP connection
 # gtp_advertise_addr:   IP address of eNB to advertise for DL GTP-U Traffic
 # s1c_bind_addr:        Local IP address to bind for S1AP connection
+# s1c_bind_port:        Source port for S1AP connection (0 means any)
 # n_prb:                Number of Physical Resource Blocks (6,15,25,50,75,100)
 # tm:                   Transmission mode 1-4 (TM1 default)
 # nof_ports:            Number of Tx ports (1 port default, set to 2 for TM2/3/4)
@@ -24,6 +25,7 @@ mnc = 01
 mme_addr = 127.0.1.100
 gtp_bind_addr = 127.0.1.1
 s1c_bind_addr = 127.0.1.1
+s1c_bind_port = 0
 n_prb = 50
 #tm = 4
 #nof_ports = 2

@@ -774,6 +774,31 @@ bool nas::handle_detach_request(uint32_t                m_tmsi,
   ecm_ctx_t* ecm_ctx = &nas_ctx->m_ecm_ctx;
   sec_ctx_t* sec_ctx = &nas_ctx->m_sec_ctx;
 
+  // TS 24.301, Sec 5.5.2.2.1, UE initiated detach request
+  if (detach_req.detach_type.switch_off == 0) {
+    // UE expects detach accept
+    srsran::unique_byte_buffer_t nas_tx = srsran::make_byte_buffer();
+    if (nas_tx == nullptr) {
+      nas_logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+      return false;
+    }
+
+    LIBLTE_MME_DETACH_ACCEPT_MSG_STRUCT detach_accept = {};
+    err                                               = liblte_mme_pack_detach_accept_msg(&detach_accept,
+                                            LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS,
+                                            sec_ctx->dl_nas_count,
+                                            (LIBLTE_BYTE_MSG_STRUCT*)nas_tx.get());
+    if (err != LIBLTE_SUCCESS) {
+      nas_logger.error("Error packing Detach Accept\n");
+    }
+
+    nas_logger.info("Sending detach accept.\n");
+    sec_ctx->dl_nas_count++;
+    s1ap->send_downlink_nas_transport(enb_ue_s1ap_id, s1ap->get_next_mme_ue_s1ap_id(), nas_tx.get(), *enb_sri);
+  } else {
+    nas_logger.info("UE is switched off\n");
+  }
+
   gtpc->send_delete_session_request(emm_ctx->imsi);
   emm_ctx->state = EMM_STATE_DEREGISTERED;
   sec_ctx->ul_nas_count++;

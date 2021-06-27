@@ -141,7 +141,7 @@ int phy::init(const phy_args_t&            args,
     lte_workers.init(args, &workers_common, log_sink, WORKERS_THREAD_PRIO);
   }
   if (not cfg.phy_cell_cfg_nr.empty()) {
-    nr_workers.init(args, &workers_common, log_sink, WORKERS_THREAD_PRIO);
+    nr_workers.init(cfg.phy_cell_cfg_nr, args, workers_common, log_sink, WORKERS_THREAD_PRIO);
   }
 
   // For each carrier, initialise PRACH worker

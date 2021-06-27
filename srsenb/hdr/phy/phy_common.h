@@ -30,6 +30,7 @@
 #include "srsran/common/thread_pool.h"
 #include "srsran/common/threads.h"
 #include "srsran/interfaces/enb_metrics_interface.h"
+#include "srsran/interfaces/phy_common_interface.h"
 #include "srsran/interfaces/radio_interfaces.h"
 #include "srsran/phy/channel/channel.h"
 #include "srsran/radio/radio.h"
@@ -40,7 +41,7 @@
 
 namespace srsenb {
 
-class phy_common
+class phy_common : public srsran::phy_common_interface
 {
 public:
   phy_common() = default;
@@ -65,7 +66,11 @@ public:
    * @param tx_time timestamp to transmit samples
    * @param is_nr flag is true if it is called from NR
    */
-  void worker_end(void* tx_sem_id, srsran::rf_buffer_t& buffer, srsran::rf_timestamp_t& tx_time, bool is_nr = false);
+  void worker_end(void*                   tx_sem_id,
+                  bool                    tx_enable,
+                  srsran::rf_buffer_t&    buffer,
+                  srsran::rf_timestamp_t& tx_time,
+                  bool                    is_nr) override;
 
   // Common objects
   phy_args_t params = {};
@@ -158,15 +163,6 @@ public:
     if (cc_idx < cell_list_lte.size()) {
       c = cell_list_lte[cc_idx].cell;
     }
-    return c;
-  };
-  srsran_carrier_nr_t get_cell_nr(uint32_t cc_idx)
-  {
-    srsran_carrier_nr_t c = {};
-    if (cc_idx < cell_list_nr.size()) {
-      c = cell_list_nr[cc_idx].carrier;
-    }
-
     return c;
   };
 

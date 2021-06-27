@@ -1177,48 +1177,55 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
     return;
   }
 
-  std::unique_lock<std::mutex> lock(mutex);
+  // Local variables for handling Status PDU will be updated with lock
+  rlc_status_pdu_t status     = {};
+  uint32_t         i          = 0;
+  uint32_t         vt_s_local = 0;
 
-  logger.debug(payload, nof_bytes, "%s Rx control PDU", RB_NAME);
+  {
+    std::lock_guard<std::mutex> lock(mutex);
 
-  rlc_status_pdu_t status;
-  rlc_am_read_status_pdu(payload, nof_bytes, &status);
+    logger.debug(payload, nof_bytes, "%s Rx control PDU", RB_NAME);
 
-  log_rlc_am_status_pdu_to_string(logger.info, "%s Rx Status PDU: %s", &status, RB_NAME);
+    rlc_am_read_status_pdu(payload, nof_bytes, &status);
 
-  // make sure ACK_SN is within our Tx window
-  if (((MOD + status.ack_sn - vt_a) % MOD > RLC_AM_WINDOW_SIZE) ||
-      ((MOD + vt_s - status.ack_sn) % MOD > RLC_AM_WINDOW_SIZE)) {
-    logger.warning("%s Received invalid status PDU (ack_sn=%d, vt_a=%d, vt_s=%d). Dropping PDU.",
-                   RB_NAME,
-                   status.ack_sn,
-                   vt_a,
-                   vt_s);
-    return;
+    log_rlc_am_status_pdu_to_string(logger.info, "%s Rx Status PDU: %s", &status, RB_NAME);
+
+    // make sure ACK_SN is within our Tx window
+    if (((MOD + status.ack_sn - vt_a) % MOD > RLC_AM_WINDOW_SIZE) ||
+        ((MOD + vt_s - status.ack_sn) % MOD > RLC_AM_WINDOW_SIZE)) {
+      logger.warning("%s Received invalid status PDU (ack_sn=%d, vt_a=%d, vt_s=%d). Dropping PDU.",
+                     RB_NAME,
+                     status.ack_sn,
+                     vt_a,
+                     vt_s);
+      return;
+    }
+
+    // Sec 5.2.2.2, stop poll reTx timer if status PDU comprises a positive _or_ negative acknowledgement
+    // for the RLC data PDU with sequence number poll_sn
+    if (poll_retx_timer.is_valid() && (TX_MOD_BASE(poll_sn) < TX_MOD_BASE(status.ack_sn))) {
+      logger.debug("%s Stopping pollRetx timer", RB_NAME);
+      poll_retx_timer.stop();
+    }
+
+    // flush retx queue to avoid unordered SNs, we expect the Rx to request lost PDUs again
+    if (status.N_nack > 0) {
+      retx_queue.clear();
+    }
+
+    i          = vt_a;
+    vt_s_local = vt_s;
   }
 
-  // Sec 5.2.2.2, stop poll reTx timer if status PDU comprises a positive _or_ negative acknowledgement
-  // for the RLC data PDU with sequence number poll_sn
-  if (poll_retx_timer.is_valid() && (TX_MOD_BASE(poll_sn) < TX_MOD_BASE(status.ack_sn))) {
-    logger.debug("%s Stopping pollRetx timer", RB_NAME);
-    poll_retx_timer.stop();
-  }
-
-  // flush retx queue to avoid unordered SNs, we expect the Rx to request lost PDUs again
-  if (status.N_nack > 0) {
-    retx_queue.clear();
-  }
-
-  // Handle ACKs and NACKs
-  bool     update_vt_a = true;
-  uint32_t i           = vt_a;
-
-  while (TX_MOD_BASE(i) < TX_MOD_BASE(status.ack_sn) && TX_MOD_BASE(i) < TX_MOD_BASE(vt_s)) {
+  bool update_vt_a = true;
+  while (TX_MOD_BASE(i) < TX_MOD_BASE(status.ack_sn) && TX_MOD_BASE(i) < TX_MOD_BASE(vt_s_local)) {
     bool nack = false;
     for (uint32_t j = 0; j < status.N_nack; j++) {
       if (status.nacks[j].nack_sn == i) {
         nack        = true;
         update_vt_a = false;
+        std::lock_guard<std::mutex> lock(mutex);
         if (tx_window.has_sn(i)) {
           auto& pdu = tx_window[i];
           if (not retx_queue.has_sn(i)) {
@@ -1268,6 +1275,7 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
 
     if (!nack) {
       // ACKed SNs get marked and removed from tx_window so PDCP get's only notified once
+      std::lock_guard<std::mutex> lock(mutex);
       if (tx_window.has_sn(i)) {
         update_notification_ack_info(i);
         logger.debug("Tx PDU SN=%zd being removed from tx window", i);
@@ -1282,15 +1290,16 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
     i = (i + 1) % MOD;
   }
 
-  // Make sure vt_a points to valid SN
-  if (not tx_window.empty() && not tx_window.has_sn(vt_a)) {
-    logger.error("%s vt_a=%d points to invalid position in Tx window.", RB_NAME, vt_a);
-    parent->rrc->protocol_failure();
+  {
+    // Make sure vt_a points to valid SN
+    std::lock_guard<std::mutex> lock(mutex);
+    if (not tx_window.empty() && not tx_window.has_sn(vt_a)) {
+      logger.error("%s vt_a=%d points to invalid position in Tx window.", RB_NAME, vt_a);
+      parent->rrc->protocol_failure();
+    }
   }
 
   debug_state();
-
-  lock.unlock();
 
   // Notify PDCP without holding Tx mutex
   if (not notify_info_vec.empty()) {

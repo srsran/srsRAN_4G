@@ -232,7 +232,7 @@ int main(int argc, char** argv)
 
   parse_args(&prog_args, argc, argv);
 
-  FILE* pcap_file = LTE_PCAP_Open(MAC_LTE_DLT, PCAP_FILENAME);
+  FILE* pcap_file = DLT_PCAP_Open(MAC_LTE_DLT, PCAP_FILENAME);
 
   srsran_use_standard_symbol_size(prog_args.use_standard_lte_rates);
 
@@ -546,7 +546,7 @@ clean_exit:
 
   if (pcap_file != NULL) {
     printf("Saving PCAP file to %s\n", PCAP_FILENAME);
-    LTE_PCAP_Close(pcap_file);
+    DLT_PCAP_Close(pcap_file);
   }
 
 #ifdef ENABLE_GUI

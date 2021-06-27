@@ -25,7 +25,10 @@ namespace nr {
 
 worker_pool::worker_pool(uint32_t max_workers) : pool(max_workers), logger(srslog::fetch_basic_logger("PHY-NR")) {}
 
-bool worker_pool::init(const phy_args_nr_t& args, phy_common* common, stack_interface_phy_nr* stack_, int prio)
+bool worker_pool::init(const phy_args_nr_t&          args,
+                       srsran::phy_common_interface& common,
+                       stack_interface_phy_nr*       stack_,
+                       int                           prio)
 {
   phy_state.stack = stack_;
   phy_state.args  = args;
@@ -52,7 +55,7 @@ bool worker_pool::init(const phy_args_nr_t& args, phy_common* common, stack_inte
     log.set_level(srslog::str_to_basic_level(args.log.phy_level));
     log.set_hex_dump_max_size(args.log.phy_hex_limit);
 
-    auto w = new sf_worker(common, &phy_state, log);
+    auto w = new sf_worker(common, phy_state, log);
     pool.init_worker(i, w, prio, args.worker_cpu_mask);
     workers.push_back(std::unique_ptr<sf_worker>(w));
   }
