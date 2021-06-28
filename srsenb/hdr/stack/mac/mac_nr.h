@@ -18,6 +18,7 @@
 #include "srsran/mac/mac_sch_pdu_nr.h"
 
 #include "srsenb/hdr/stack/enb_stack_base.h"
+#include "srsran/common/task_scheduler.h"
 #include "srsran/interfaces/enb_metrics_interface.h"
 #include "srsran/interfaces/gnb_interfaces.h"
 
@@ -40,7 +41,7 @@ struct mac_nr_args_t {
 class mac_nr final : public mac_interface_phy_nr, public mac_interface_rrc_nr, public mac_interface_rlc_nr
 {
 public:
-  mac_nr();
+  mac_nr(srsran::task_sched_handle task_sched_);
   ~mac_nr();
 
   int  init(const mac_nr_args_t&    args_,
@@ -84,6 +85,9 @@ private:
   stack_interface_mac*    stack_h = nullptr;
   rlc_interface_mac_nr*   rlc_h   = nullptr;
   rrc_interface_mac_nr*   rrc_h   = nullptr;
+
+  // args
+  srsran::task_sched_handle task_sched;
 
   std::unique_ptr<srsran::mac_pcap> pcap = nullptr;
   mac_nr_args_t                     args = {};

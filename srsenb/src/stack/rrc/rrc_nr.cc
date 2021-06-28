@@ -19,7 +19,9 @@ using namespace asn1::rrc_nr;
 
 namespace srsenb {
 
-rrc_nr::rrc_nr(srsran::timer_handler* timers_) : logger(srslog::fetch_basic_logger("RRC-NR")), timers(timers_) {}
+rrc_nr::rrc_nr(srsran::task_sched_handle task_sched_) :
+  logger(srslog::fetch_basic_logger("RRC-NR")), task_sched(task_sched_)
+{}
 
 int rrc_nr::init(const rrc_nr_cfg_t&     cfg_,
                  phy_interface_stack_nr* phy_,
@@ -357,7 +359,7 @@ void rrc_nr::notify_pdcp_integrity_error(uint16_t rnti, uint32_t lcid) {}
 rrc_nr::ue::ue(rrc_nr* parent_, uint16_t rnti_) : parent(parent_), rnti(rnti_)
 {
   // setup periodic RRCSetup send
-  rrc_setup_periodic_timer = parent->timers->get_unique_timer();
+  rrc_setup_periodic_timer = parent->task_sched.get_unique_timer();
   rrc_setup_periodic_timer.set(5000, [this](uint32_t tid) {
     send_connection_setup();
     rrc_setup_periodic_timer.run();

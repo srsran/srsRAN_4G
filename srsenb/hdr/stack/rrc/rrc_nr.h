@@ -63,7 +63,7 @@ class rrc_nr final : public rrc_interface_pdcp_nr,
                      public rrc_interface_ngap_nr
 {
 public:
-  explicit rrc_nr(srsran::timer_handler* timers_);
+  explicit rrc_nr(srsran::task_sched_handle task_sched_);
 
   int32_t init(const rrc_nr_cfg_t&     cfg,
                phy_interface_stack_nr* phy,
@@ -132,7 +132,7 @@ private:
   ngap_interface_rrc_nr*  ngap = nullptr;
 
   // args
-  srsran::timer_handler* timers = nullptr;
+  srsran::task_sched_handle task_sched;
 
   // derived
   uint32_t              slot_dur_ms = 0;

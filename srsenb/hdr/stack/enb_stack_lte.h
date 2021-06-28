@@ -19,7 +19,9 @@
 #define SRSRAN_ENB_STACK_LTE_H
 
 #include "mac/mac.h"
+#include "mac/mac_nr.h"
 #include "rrc/rrc.h"
+#include "rrc/rrc_nr.h"
 #include "s1ap/s1ap.h"
 #include "srsran/common/task_scheduler.h"
 #include "upper/gtpu.h"
@@ -119,6 +121,10 @@ private:
   srslog::basic_logger& s1ap_logger;
   srslog::basic_logger& gtpu_logger;
   srslog::basic_logger& stack_logger;
+  srslog::basic_logger& rrc_nr_logger;
+  srslog::basic_logger& mac_nr_logger;
+  srslog::basic_logger& rlc_nr_logger;
+  srslog::basic_logger& pdcp_nr_logger;
 
   // PCAP and trace option
   srsran::mac_pcap     mac_pcap;
@@ -135,6 +141,12 @@ private:
   srsenb::rrc  rrc;
   srsenb::gtpu gtpu;
   srsenb::s1ap s1ap;
+
+  // NR components for NSA mode
+  srsenb::mac_nr mac_nr;
+  srsenb::rlc    rlc_nr;
+  srsenb::pdcp   pdcp_nr;
+  srsenb::rrc_nr rrc_nr;
 
   // RAT-specific interfaces
   phy_interface_stack_lte* phy = nullptr;

@@ -20,7 +20,9 @@
 
 namespace srsenb {
 
-mac_nr::mac_nr() : logger(srslog::fetch_basic_logger("MAC-NR")) {}
+mac_nr::mac_nr(srsran::task_sched_handle task_sched_) :
+  logger(srslog::fetch_basic_logger("MAC-NR")), task_sched(task_sched_)
+{}
 
 mac_nr::~mac_nr()
 {

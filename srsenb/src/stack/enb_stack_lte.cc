@@ -24,19 +24,27 @@ namespace srsenb {
 enb_stack_lte::enb_stack_lte(srslog::sink& log_sink) :
   thread("STACK"),
   mac_logger(srslog::fetch_basic_logger("MAC", log_sink)),
+  mac_nr_logger(srslog::fetch_basic_logger("MAC-NR", log_sink)),
   rlc_logger(srslog::fetch_basic_logger("RLC", log_sink, false)),
+  rlc_nr_logger(srslog::fetch_basic_logger("RLC-NR", log_sink, false)),
   pdcp_logger(srslog::fetch_basic_logger("PDCP", log_sink, false)),
+  pdcp_nr_logger(srslog::fetch_basic_logger("PDCP-NR", log_sink, false)),
   rrc_logger(srslog::fetch_basic_logger("RRC", log_sink, false)),
+  rrc_nr_logger(srslog::fetch_basic_logger("RRC-NR", log_sink, false)),
   s1ap_logger(srslog::fetch_basic_logger("S1AP", log_sink, false)),
   gtpu_logger(srslog::fetch_basic_logger("GTPU", log_sink, false)),
   stack_logger(srslog::fetch_basic_logger("STCK", log_sink, false)),
   task_sched(512, 128),
   pdcp(&task_sched, pdcp_logger),
+  pdcp_nr(&task_sched, pdcp_nr_logger),
   mac(&task_sched, mac_logger),
+  mac_nr(&task_sched),
   rlc(rlc_logger),
+  rlc_nr(rlc_nr_logger),
   gtpu(&task_sched, gtpu_logger, &rx_sockets),
   s1ap(&task_sched, s1ap_logger, &rx_sockets),
   rrc(&task_sched),
+  rrc_nr(&task_sched),
   mac_pcap(),
   pending_stack_metrics(64)
 {
@@ -78,19 +86,25 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
 
   // setup logging for each layer
   mac_logger.set_level(srslog::str_to_basic_level(args.log.mac_level));
-  mac_logger.set_hex_dump_max_size(args.log.mac_hex_limit);
-
-  // Init logs
+  mac_nr_logger.set_level(srslog::str_to_basic_level(args.log.mac_level));
   rlc_logger.set_level(srslog::str_to_basic_level(args.log.rlc_level));
+  rlc_nr_logger.set_level(srslog::str_to_basic_level(args.log.rlc_level));
   pdcp_logger.set_level(srslog::str_to_basic_level(args.log.pdcp_level));
+  pdcp_nr_logger.set_level(srslog::str_to_basic_level(args.log.pdcp_level));
   rrc_logger.set_level(srslog::str_to_basic_level(args.log.rrc_level));
+  rrc_nr_logger.set_level(srslog::str_to_basic_level(args.log.rrc_level));
   gtpu_logger.set_level(srslog::str_to_basic_level(args.log.gtpu_level));
   s1ap_logger.set_level(srslog::str_to_basic_level(args.log.s1ap_level));
   stack_logger.set_level(srslog::str_to_basic_level(args.log.stack_level));
 
+  mac_logger.set_hex_dump_max_size(args.log.mac_hex_limit);
+  mac_nr_logger.set_hex_dump_max_size(args.log.mac_hex_limit);
   rlc_logger.set_hex_dump_max_size(args.log.rlc_hex_limit);
+  rlc_nr_logger.set_hex_dump_max_size(args.log.rlc_hex_limit);
   pdcp_logger.set_hex_dump_max_size(args.log.pdcp_hex_limit);
+  pdcp_nr_logger.set_hex_dump_max_size(args.log.pdcp_hex_limit);
   rrc_logger.set_hex_dump_max_size(args.log.rrc_hex_limit);
+  rrc_nr_logger.set_hex_dump_max_size(args.log.rrc_hex_limit);
   gtpu_logger.set_hex_dump_max_size(args.log.gtpu_hex_limit);
   s1ap_logger.set_hex_dump_max_size(args.log.s1ap_hex_limit);
   stack_logger.set_hex_dump_max_size(args.log.stack_hex_limit);
