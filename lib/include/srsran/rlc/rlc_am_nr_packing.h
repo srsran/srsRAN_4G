@@ -72,4 +72,4 @@ int32_t rlc_am_nr_write_status_pdu(const rlc_am_nr_status_pdu_t& status_pdu,
 
 } // namespace srsran
 
-#endif // SRSRAN_RLC_AM_NR_H
+#endif // SRSRAN_RLC_AM_NR_PACKING_H

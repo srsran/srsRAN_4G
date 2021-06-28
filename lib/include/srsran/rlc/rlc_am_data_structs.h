@@ -214,4 +214,4 @@ private:
 
 } // namespace srsran
 
-#endif // SRSRAN_BEARER_MEM_POOL_H
+#endif // SRSRAN_RLC_AM_DATA_STRUCTS_H

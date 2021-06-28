@@ -132,4 +132,4 @@ void log_rlc_am_status_pdu_to_string(srslog::log_channel& log_ch,
 
 } // namespace srsran
 
-#endif // SRSRAN_RLC_AM_NR_H
+#endif // SRSRAN_RLC_AM_LTE_PACKING_H
