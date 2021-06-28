@@ -22,6 +22,7 @@
 #include "srsran/srslog/srslog.h"
 #include "tft_packet_filter.h"
 #include <atomic>
+#include <mutex>
 #include <net/if.h>
 #include <netinet/in.h>
 
@@ -84,6 +85,7 @@ private:
 
   static const int NOT_ASSIGNED          = -1;
   int32_t          default_eps_bearer_id = NOT_ASSIGNED;
+  std::mutex       gw_mutex;
 
   srslog::basic_logger& logger;
 
