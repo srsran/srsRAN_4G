@@ -7,6 +7,6 @@
 #
 
 add_executable(s1ap_test s1ap_test.cc)
-target_link_libraries(s1ap_test srsran_common s1ap_asn1 srsenb_s1ap srsenb_upper srsran_upper s1ap_asn1 ${SCTP_LIBRARIES})
+target_link_libraries(s1ap_test srsran_common s1ap_asn1 srsenb_s1ap srsenb_upper s1ap_asn1 ${SCTP_LIBRARIES})
 add_test(s1ap_test s1ap_test)
 
