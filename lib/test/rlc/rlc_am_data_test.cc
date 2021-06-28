@@ -11,7 +11,7 @@
  */
 
 #include "srsran/common/test_common.h"
-#include "srsran/upper/rlc_am_lte.h"
+#include "srsran/rlc/rlc_am_lte.h"
 #include <iostream>
 
 // Fixed header only

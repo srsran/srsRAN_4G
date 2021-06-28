@@ -11,7 +11,7 @@ target_link_libraries(rrc_reconfig_test srsue_upper srsran_upper srsran_phy rrc_
 add_test(rrc_reconfig_test rrc_reconfig_test)
 
 add_executable(rrc_meas_test rrc_meas_test.cc)
-target_link_libraries(rrc_meas_test srsue_rrc srsue_upper srsran_upper srsran_phy rrc_asn1 rrc_nr_asn1)
+target_link_libraries(rrc_meas_test srsue_rrc srsue_upper srsran_upper srsran_pdcp srsran_phy rrc_asn1 rrc_nr_asn1)
 add_test(rrc_meas_test rrc_meas_test)
 
 add_executable(rrc_phy_ctrl_test rrc_phy_ctrl_test.cc)

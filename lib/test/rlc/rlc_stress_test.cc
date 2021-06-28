@@ -16,7 +16,7 @@
 #include "srsran/common/test_common.h"
 #include "srsran/common/threads.h"
 #include "srsran/common/tsan_options.h"
-#include "srsran/upper/rlc.h"
+#include "srsran/rlc/rlc.h"
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <cassert>

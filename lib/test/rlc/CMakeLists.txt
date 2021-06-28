@@ -9,23 +9,23 @@
 set(CTEST_LABELS "lib;rlc")
 
 add_executable(rlc_am_data_test rlc_am_data_test.cc)
-target_link_libraries(rlc_am_data_test srsran_upper srsran_phy srsran_common)
+target_link_libraries(rlc_am_data_test srsran_rlc srsran_phy srsran_common)
 add_lte_test(rlc_am_data_test rlc_am_data_test)
 
 add_executable(rlc_am_control_test rlc_am_control_test.cc)
-target_link_libraries(rlc_am_control_test srsran_upper srsran_phy)
+target_link_libraries(rlc_am_control_test srsran_rlc srsran_phy)
 add_lte_test(rlc_am_control_test rlc_am_control_test)
 
 add_executable(rlc_am_test rlc_am_test.cc)
-target_link_libraries(rlc_am_test srsran_upper srsran_phy srsran_common)
+target_link_libraries(rlc_am_test srsran_rlc srsran_phy srsran_common)
 add_lte_test(rlc_am_test rlc_am_test)
 
 add_executable(rlc_am_nr_pdu_test rlc_am_nr_pdu_test.cc)
-target_link_libraries(rlc_am_nr_pdu_test srsran_upper srsran_phy)
+target_link_libraries(rlc_am_nr_pdu_test srsran_rlc srsran_phy)
 add_nr_test(rlc_am_nr_pdu_test rlc_am_nr_pdu_test)
 
 add_executable(rlc_stress_test rlc_stress_test.cc)
-target_link_libraries(rlc_stress_test srsran_upper srsran_mac srsran_phy srsran_common ${Boost_LIBRARIES} ${ATOMIC_LIBS})
+target_link_libraries(rlc_stress_test srsran_rlc srsran_mac srsran_phy srsran_common ${Boost_LIBRARIES} ${ATOMIC_LIBS})
 add_lte_test(rlc_am_stress_test rlc_stress_test --mode=AM --loglevel 1 --sdu_gen_delay 250)
 add_lte_test(rlc_um_stress_test rlc_stress_test --mode=UM --loglevel 1)
 add_lte_test(rlc_tm_stress_test rlc_stress_test --mode=TM --loglevel 1 --random_opp=false)
@@ -34,23 +34,23 @@ add_nr_test(rlc_um6_nr_stress_test rlc_stress_test --rat NR --mode=UM6 --logleve
 add_nr_test(rlc_um12_nr_stress_test rlc_stress_test --rat NR --mode=UM12 --loglevel 1) 
 
 add_executable(rlc_um_data_test rlc_um_data_test.cc)
-target_link_libraries(rlc_um_data_test srsran_upper srsran_phy srsran_common)
+target_link_libraries(rlc_um_data_test srsran_rlc srsran_phy srsran_common)
 add_test(rlc_um_data_test rlc_um_data_test)
 
 add_executable(rlc_um_test rlc_um_test.cc)
-target_link_libraries(rlc_um_test srsran_upper srsran_phy)
+target_link_libraries(rlc_um_test srsran_rlc srsran_phy)
 add_test(rlc_um_test rlc_um_test)
 
 add_executable(rlc_common_test rlc_common_test.cc)
-target_link_libraries(rlc_common_test srsran_upper srsran_phy)
+target_link_libraries(rlc_common_test srsran_rlc srsran_phy)
 add_test(rlc_common_test rlc_common_test)
 
 add_executable(rlc_um_nr_pdu_test rlc_um_nr_pdu_test.cc)
-target_link_libraries(rlc_um_nr_pdu_test srsran_upper srsran_mac srsran_phy)
+target_link_libraries(rlc_um_nr_pdu_test srsran_rlc srsran_mac srsran_phy)
 add_nr_test(rlc_um_nr_pdu_test rlc_um_nr_pdu_test)
 
 add_executable(rlc_um_nr_test rlc_um_nr_test.cc)
-target_link_libraries(rlc_um_nr_test srsran_upper srsran_phy)
+target_link_libraries(rlc_um_nr_test srsran_rlc srsran_phy)
 add_nr_test(rlc_um_nr_test rlc_um_nr_test)
 
 ########################################################################

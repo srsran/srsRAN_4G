@@ -16,7 +16,7 @@
 #include "srsran/common/threads.h"
 #include "srsran/interfaces/ue_pdcp_interfaces.h"
 #include "srsran/interfaces/ue_rrc_interfaces.h"
-#include "srsran/upper/rlc_am_lte.h"
+#include "srsran/rlc/rlc_am_lte.h"
 
 #define NBUFS 5
 #define HAVE_PCAP 0
@@ -75,8 +75,8 @@ public:
   const char* get_rb_name(uint32_t lcid) { return ""; }
 
   std::vector<unique_byte_buffer_t> sdus;
-  rlc_pcap*                         pcap               = nullptr;
-  bool                              max_retx_triggered = false;
+  rlc_pcap*                         pcap                       = nullptr;
+  bool                              max_retx_triggered         = false;
   bool                              protocol_failure_triggered = false;
 
   std::map<uint32_t, uint32_t> notified_counts; // Map of PDCP SNs to number of notifications

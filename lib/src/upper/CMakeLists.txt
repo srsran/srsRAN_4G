@@ -6,11 +6,7 @@
 # the distribution.
 #
 
-set(SOURCES gtpu.cc
-            pdcp.cc
-            pdcp_entity_base.cc
-            pdcp_entity_lte.cc
-            pdcp_entity_nr.cc)
+set(SOURCES gtpu.cc)
 
 add_library(srsran_upper STATIC ${SOURCES})
 target_link_libraries(srsran_upper srsran_common srsran_asn1 ${ATOMIC_LIBS})

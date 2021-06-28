@@ -11,7 +11,7 @@
  */
 
 #include "rlc_test_common.h"
-#include "srsran/upper/rlc_um_lte.h"
+#include "srsran/rlc/rlc_um_lte.h"
 #include <iostream>
 
 #define TESTASSERT(cond)                                                                                               \

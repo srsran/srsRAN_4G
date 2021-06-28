@@ -10,7 +10,7 @@
  *
  */
 
-#include "srsran/upper/rlc.h"
+#include "srsran/rlc/rlc.h"
 #include <iostream>
 
 #define TESTASSERT(cond)                                                                                               \

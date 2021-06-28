@@ -11,8 +11,8 @@
  */
 
 #include "srsran/config.h"
-#include "srsran/upper/rlc.h"
-#include "srsran/upper/rlc_um_nr.h"
+#include "srsran/rlc/rlc.h"
+#include "srsran/rlc/rlc_um_nr.h"
 
 #include <array>
 #include <iostream>

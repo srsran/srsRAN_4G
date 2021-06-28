@@ -20,6 +20,7 @@ set(LINK_LIBRARIES srsue_stack
                     srsran_phy
                     srsran_radio
                     srsran_upper
+                    srsran_pdcp
                     srsue_phy
                     srsue_mac
                     srsue_mac_nr
