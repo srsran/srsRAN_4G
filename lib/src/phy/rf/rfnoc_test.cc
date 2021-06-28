@@ -88,7 +88,6 @@ private:
 
     if (valid) {
       switch (async_metadata.event_code) {
-
         case uhd::async_metadata_t::EVENT_CODE_BURST_ACK:
           Warning("BURST ACK") break;
         case uhd::async_metadata_t::EVENT_CODE_UNDERFLOW:
@@ -223,16 +222,13 @@ public:
     uhd::log::set_console_level(uhd::log::severity_level::trace);
 
     if (rfnoc->usrp_make(hint, config.nof_channels * config.nof_radios) != UHD_ERROR_NONE) {
-      Warning(rfnoc->last_error);
       return SRSRAN_ERROR;
     }
 
     if (rfnoc->set_tx_rate(config.srate_hz) != UHD_ERROR_NONE) {
-      Warning(rfnoc->last_error);
       return SRSRAN_ERROR;
     }
     if (rfnoc->set_rx_rate(config.srate_hz) != UHD_ERROR_NONE) {
-      Warning(rfnoc->last_error);
       return SRSRAN_ERROR;
     }
 
@@ -248,7 +244,6 @@ public:
     }
 
     if (rfnoc->start_rx_stream(config.init_tx_time) != UHD_ERROR_NONE) {
-      Warning(rfnoc->last_error);
       return SRSRAN_ERROR;
     }
 

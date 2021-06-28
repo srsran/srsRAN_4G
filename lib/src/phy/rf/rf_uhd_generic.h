@@ -33,18 +33,18 @@ private:
 
     Debug("Making USRP object with args '" << dev_addr.to_string() << "'");
 
-    UHD_SAFE_C_SAVE_ERROR(this, usrp = uhd::usrp::multi_usrp::make(dev_addr);)
+    SRSRAN_UHD_SAFE_C_LOG_ERROR(usrp = uhd::usrp::multi_usrp::make(dev_addr);)
   }
 
   uhd_error set_tx_subdev(const std::string& string)
   {
     Info("Setting tx_subdev_spec to '" << string << "'");
-    UHD_SAFE_C_SAVE_ERROR(this, usrp->set_tx_subdev_spec(string);)
+    SRSRAN_UHD_SAFE_C_LOG_ERROR(usrp->set_tx_subdev_spec(string);)
   }
   uhd_error set_rx_subdev(const std::string& string)
   {
     Info("Setting rx_subdev_spec to '" << string << "'");
-    UHD_SAFE_C_SAVE_ERROR(this, usrp->set_rx_subdev_spec(string);)
+    SRSRAN_UHD_SAFE_C_LOG_ERROR(usrp->set_rx_subdev_spec(string);)
   }
 
   uhd_error test_ad936x_device(uint32_t nof_channels)
@@ -92,7 +92,7 @@ private:
     }
 
     if (md.error_code == uhd::rx_metadata_t::ERROR_CODE_TIMEOUT) {
-      last_error = md.strerror();
+      Error(md.strerror());
       return UHD_ERROR_IO;
     }
 
@@ -236,9 +236,8 @@ public:
         // Otherwise, close USRP and open again
         usrp = nullptr;
 
-        Warning("Failed to open Rx stream '" << last_error << "', trying to open device again. " << ntrials
-                                             << " trials left. Waiting for " << FE_RX_RESET_SLEEP_TIME_MS.count()
-                                             << " ms");
+        Warning("Failed to open Rx stream, trying to open device again. "
+                << ntrials << " trials left. Waiting for " << FE_RX_RESET_SLEEP_TIME_MS.count() << " ms");
 
         // Sleep
         std::this_thread::sleep_for(FE_RX_RESET_SLEEP_TIME_MS);
@@ -254,103 +253,101 @@ public:
 
   uhd_error get_mboard_name(std::string& mboard_name) override
   {
-    UHD_SAFE_C_SAVE_ERROR(this, mboard_name = usrp->get_mboard_name();)
+    SRSRAN_UHD_SAFE_C_LOG_ERROR(mboard_name = usrp->get_mboard_name();)
   }
   uhd_error get_mboard_sensor_names(std::vector<std::string>& sensors) override
   {
-    UHD_SAFE_C_SAVE_ERROR(this, sensors = usrp->get_mboard_sensor_names();)
+    SRSRAN_UHD_SAFE_C_LOG_ERROR(sensors = usrp->get_mboard_sensor_names();)
   }
   uhd_error get_rx_sensor_names(std::vector<std::string>& sensors) override
   {
-    UHD_SAFE_C_SAVE_ERROR(this, sensors = usrp->get_rx_sensor_names();)
+    SRSRAN_UHD_SAFE_C_LOG_ERROR(sensors = usrp->get_rx_sensor_names();)
   }
   uhd_error get_sensor(const std::string& sensor_name, double& sensor_value) override
   {
-    UHD_SAFE_C_SAVE_ERROR(this, sensor_value = usrp->get_mboard_sensor(sensor_name).to_real();)
+    SRSRAN_UHD_SAFE_C_LOG_ERROR(sensor_value = usrp->get_mboard_sensor(sensor_name).to_real();)
   }
   uhd_error get_sensor(const std::string& sensor_name, bool& sensor_value) override
   {
-    UHD_SAFE_C_SAVE_ERROR(this, sensor_value = usrp->get_mboard_sensor(sensor_name).to_bool();)
+    SRSRAN_UHD_SAFE_C_LOG_ERROR(sensor_value = usrp->get_mboard_sensor(sensor_name).to_bool();)
   }
   uhd_error get_rx_sensor(const std::string& sensor_name, bool& sensor_value) override
   {
-    UHD_SAFE_C_SAVE_ERROR(this, sensor_value = usrp->get_rx_sensor(sensor_name).to_bool();)
+    SRSRAN_UHD_SAFE_C_LOG_ERROR(sensor_value = usrp->get_rx_sensor(sensor_name).to_bool();)
   }
   uhd_error set_time_unknown_pps(const uhd::time_spec_t& timespec) override
   {
     Debug("Setting Time at next PPS...");
-    UHD_SAFE_C_SAVE_ERROR(this, usrp->set_time_unknown_pps(timespec);)
+    SRSRAN_UHD_SAFE_C_LOG_ERROR(usrp->set_time_unknown_pps(timespec);)
   }
   uhd_error get_time_now(uhd::time_spec_t& timespec) override
   {
-    UHD_SAFE_C_SAVE_ERROR(this, timespec = usrp->get_time_now();)
+    SRSRAN_UHD_SAFE_C_LOG_ERROR(timespec = usrp->get_time_now();)
   }
   uhd_error set_sync_source(const std::string& sync_source, const std::string& clock_source) override
   {
     Debug("Setting PPS source to '" << sync_source << "' and clock source to '" << clock_source << "'");
 #if UHD_VERSION < 3140099
-    UHD_SAFE_C_SAVE_ERROR(this, usrp->set_clock_source(clock_source); usrp->set_time_source(sync_source);)
+    SRSRAN_UHD_SAFE_C_LOG_ERROR(usrp->set_clock_source(clock_source); usrp->set_time_source(sync_source);)
 #else
-    UHD_SAFE_C_SAVE_ERROR(this, usrp->set_sync_source(clock_source, sync_source);)
+    SRSRAN_UHD_SAFE_C_LOG_ERROR(usrp->set_sync_source(clock_source, sync_source);)
 #endif
   }
   uhd_error get_gain_range(uhd::gain_range_t& tx_gain_range, uhd::gain_range_t& rx_gain_range) override
   {
-    UHD_SAFE_C_SAVE_ERROR(this, tx_gain_range = usrp->get_tx_gain_range(); rx_gain_range = usrp->get_rx_gain_range();)
+    SRSRAN_UHD_SAFE_C_LOG_ERROR(tx_gain_range = usrp->get_tx_gain_range(); rx_gain_range = usrp->get_rx_gain_range();)
   }
   uhd_error set_master_clock_rate(double rate) override
   {
     Debug("Setting master clock rate to " << rate / 1e6 << " MHz");
-    UHD_SAFE_C_SAVE_ERROR(this, usrp->set_master_clock_rate(rate);)
+    SRSRAN_UHD_SAFE_C_LOG_ERROR(usrp->set_master_clock_rate(rate);)
   }
   uhd_error set_rx_rate(double rate) override
   {
     Debug("Setting Rx Rate to " << rate / 1e6 << "MHz");
-    UHD_SAFE_C_SAVE_ERROR(this, usrp->set_rx_rate(rate);)
+    SRSRAN_UHD_SAFE_C_LOG_ERROR(usrp->set_rx_rate(rate);)
   }
   uhd_error set_tx_rate(double rate) override
   {
     Debug("Setting Tx Rate to " << rate / 1e6 << "MHz");
-    UHD_SAFE_C_SAVE_ERROR(this, usrp->set_tx_rate(rate);)
+    SRSRAN_UHD_SAFE_C_LOG_ERROR(usrp->set_tx_rate(rate);)
   }
   uhd_error set_command_time(const uhd::time_spec_t& timespec) override
   {
-    UHD_SAFE_C_SAVE_ERROR(this, usrp->set_command_time(timespec);)
+    SRSRAN_UHD_SAFE_C_LOG_ERROR(usrp->set_command_time(timespec);)
   }
   uhd_error get_rx_stream(size_t& max_num_samps) override
   {
     Debug("Creating Rx stream");
-    UHD_SAFE_C_SAVE_ERROR(
-        this, rx_stream = nullptr; rx_stream = usrp->get_rx_stream(stream_args);
-        max_num_samps = rx_stream->get_max_num_samps();
-        if (max_num_samps == 0UL) {
-          last_error = "The maximum number of receive samples is zero.";
-          return UHD_ERROR_VALUE;
-        })
+    SRSRAN_UHD_SAFE_C_LOG_ERROR(rx_stream = nullptr; rx_stream = usrp->get_rx_stream(stream_args);
+                                max_num_samps                  = rx_stream->get_max_num_samps();
+                                if (max_num_samps == 0UL) {
+                                  Error("The maximum number of receive samples is zero.");
+                                  return UHD_ERROR_VALUE;
+                                })
   }
   uhd_error get_tx_stream(size_t& max_num_samps) override
   {
     Debug("Creating Tx stream");
-    UHD_SAFE_C_SAVE_ERROR(
-        this, tx_stream = nullptr; tx_stream = usrp->get_tx_stream(stream_args);
-        max_num_samps = tx_stream->get_max_num_samps();
-        if (max_num_samps == 0UL) {
-          last_error = "The maximum number of transmit samples is zero.";
-          return UHD_ERROR_VALUE;
-        })
+    SRSRAN_UHD_SAFE_C_LOG_ERROR(tx_stream = nullptr; tx_stream = usrp->get_tx_stream(stream_args);
+                                max_num_samps                  = tx_stream->get_max_num_samps();
+                                if (max_num_samps == 0UL) {
+                                  Error("The maximum number of transmit samples is zero.");
+                                  return UHD_ERROR_VALUE;
+                                })
   }
   uhd_error set_tx_gain(size_t ch, double gain) override
   {
     Debug("Setting channel " << ch << " Tx gain to " << gain << " dB");
-    UHD_SAFE_C_SAVE_ERROR(this, usrp->set_tx_gain(gain, ch);)
+    SRSRAN_UHD_SAFE_C_LOG_ERROR(usrp->set_tx_gain(gain, ch);)
   }
   uhd_error set_rx_gain(size_t ch, double gain) override
   {
     Debug("Setting channel " << ch << " Rx gain to " << gain << " dB");
-    UHD_SAFE_C_SAVE_ERROR(this, usrp->set_rx_gain(gain, ch);)
+    SRSRAN_UHD_SAFE_C_LOG_ERROR(usrp->set_rx_gain(gain, ch);)
   }
-  uhd_error get_rx_gain(double& gain) override { UHD_SAFE_C_SAVE_ERROR(this, gain = usrp->get_rx_gain();) }
-  uhd_error get_tx_gain(double& gain) override { UHD_SAFE_C_SAVE_ERROR(this, gain = usrp->get_tx_gain();) }
+  uhd_error get_rx_gain(double& gain) override { SRSRAN_UHD_SAFE_C_LOG_ERROR(gain = usrp->get_rx_gain();) }
+  uhd_error get_tx_gain(double& gain) override { SRSRAN_UHD_SAFE_C_LOG_ERROR(gain = usrp->get_tx_gain();) }
   uhd_error set_tx_freq(uint32_t ch, double target_freq, double& actual_freq) override
   {
     Debug("Setting channel " << ch << " Tx frequency to " << target_freq / 1e6 << " MHz");
@@ -369,8 +366,8 @@ public:
       tune_request.dsp_freq_policy = uhd::tune_request_t::POLICY_AUTO;
     }
 
-    UHD_SAFE_C_SAVE_ERROR(this, uhd::tune_result_t tune_result = usrp->set_tx_freq(tune_request, ch);
-                          actual_freq = tune_result.target_rf_freq;)
+    SRSRAN_UHD_SAFE_C_LOG_ERROR(uhd::tune_result_t tune_result = usrp->set_tx_freq(tune_request, ch);
+                                actual_freq                    = tune_result.target_rf_freq;)
   }
   uhd_error set_rx_freq(uint32_t ch, double target_freq, double& actual_freq) override
   {
@@ -390,8 +387,8 @@ public:
       tune_request.dsp_freq_policy = uhd::tune_request_t::POLICY_AUTO;
     }
 
-    UHD_SAFE_C_SAVE_ERROR(this, uhd::tune_result_t tune_result = usrp->set_rx_freq(tune_request, ch);
-                          actual_freq = tune_result.target_rf_freq;)
+    SRSRAN_UHD_SAFE_C_LOG_ERROR(uhd::tune_result_t tune_result = usrp->set_rx_freq(tune_request, ch);
+                                actual_freq                    = tune_result.target_rf_freq;)
   }
 };
 

@@ -16,16 +16,36 @@
 #include <uhd/utils/log.hpp>
 
 #ifdef UHD_LOG_INFO
+#define Error(message) UHD_LOG_ERROR("UHD RF", message)
 #define Warning(message) UHD_LOG_WARNING("UHD RF", message)
 #define Info(message) UHD_LOG_INFO("UHD RF", message)
 #define Debug(message) UHD_LOG_DEBUG("UHD RF", message)
 #define Trace(message) UHD_LOG_TRACE("UHD RF", message)
 #else
+#define Error(message) UHD_LOG << message << std::endl
 #define Warning(message) UHD_LOG << message << std::endl
 #define Info(message) UHD_LOG << message << std::endl
 #define Debug(message) UHD_LOG << message << std::endl
 #define Trace(message) UHD_LOG << message << std::endl
 #endif
+
+#define SRSRAN_UHD_SAFE_C_LOG_ERROR(...)                                                                               \
+  try {                                                                                                                \
+    __VA_ARGS__                                                                                                        \
+  } catch (const uhd::exception& e) {                                                                                  \
+    Error(e.what());                                                                                                   \
+    return error_from_uhd_exception(&e);                                                                               \
+  } catch (const boost::exception& e) {                                                                                \
+    Error(boost::diagnostic_information(e));                                                                           \
+    return UHD_ERROR_BOOSTEXCEPT;                                                                                      \
+  } catch (const std::exception& e) {                                                                                  \
+    Error(e.what());                                                                                                   \
+    return UHD_ERROR_STDEXCEPT;                                                                                        \
+  } catch (...) {                                                                                                      \
+    Error("Unrecognized exception caught.");                                                                           \
+    return UHD_ERROR_UNKNOWN;                                                                                          \
+  }                                                                                                                    \
+  return UHD_ERROR_NONE;
 
 #ifdef ENABLE_UHD_X300_FW_RESET
 #include <uhd/transport/udp_simple.hpp>
@@ -45,8 +65,7 @@ private:
 #ifdef ENABLE_UHD_X300_FW_RESET
   uhd_error try_usrp_x300_reset(const uhd::device_addr_t& dev_addr)
   {
-    UHD_SAFE_C_SAVE_ERROR(
-        this,
+    SRSRAN_UHD_SAFE_C_LOG_ERROR(
         // It is not possible to reset device if IP address is not provided
         if (not dev_addr.has_key("addr")) { return UHD_ERROR_NONE; }
 
@@ -109,8 +128,6 @@ protected:
   }
 
 public:
-  std::string last_error;
-
   virtual uhd_error usrp_make(const uhd::device_addr_t& dev_addr, uint32_t nof_channels) = 0;
   virtual uhd_error get_mboard_name(std::string& mboard_name)                            = 0;
   virtual uhd_error get_mboard_sensor_names(std::vector<std::string>& sensors)           = 0;
@@ -129,19 +146,19 @@ public:
       return err;
     }
 
-    UHD_SAFE_C_SAVE_ERROR(this, uhd::stream_cmd_t stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
-                          stream_cmd.time_spec = time_spec;
-                          stream_cmd.time_spec += delay;
-                          stream_cmd.stream_now = not std::isnormal(delay);
+    SRSRAN_UHD_SAFE_C_LOG_ERROR(uhd::stream_cmd_t stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
+                                stream_cmd.time_spec = time_spec;
+                                stream_cmd.time_spec += delay;
+                                stream_cmd.stream_now = not std::isnormal(delay);
 
-                          rx_stream->issue_stream_cmd(stream_cmd);)
+                                rx_stream->issue_stream_cmd(stream_cmd);)
   }
   uhd_error stop_rx_stream()
   {
     Debug("Stopping Rx stream");
-    UHD_SAFE_C_SAVE_ERROR(this, uhd::stream_cmd_t stream_cmd(uhd::stream_cmd_t::STREAM_MODE_STOP_CONTINUOUS);
-                          stream_cmd.stream_now = true;
-                          rx_stream->issue_stream_cmd(stream_cmd);)
+    SRSRAN_UHD_SAFE_C_LOG_ERROR(uhd::stream_cmd_t stream_cmd(uhd::stream_cmd_t::STREAM_MODE_STOP_CONTINUOUS);
+                                stream_cmd.stream_now = true;
+                                rx_stream->issue_stream_cmd(stream_cmd);)
   }
   virtual uhd_error set_sync_source(const std::string& sync_source, const std::string& clock_source)   = 0;
   virtual uhd_error get_gain_range(uhd::gain_range_t& tx_gain_range, uhd::gain_range_t& rx_gain_range) = 0;
@@ -164,12 +181,13 @@ public:
                             const bool          one_packet,
                             size_t&             nof_rxd_samples)
   {
-    UHD_SAFE_C_SAVE_ERROR(this, uhd::rx_streamer::buffs_type buffs_cpp(buffs, rx_stream->get_num_channels());
-                          nof_rxd_samples = rx_stream->recv(buffs_cpp, nsamps_per_buff, metadata, timeout, one_packet);)
+    SRSRAN_UHD_SAFE_C_LOG_ERROR(uhd::rx_streamer::buffs_type buffs_cpp(buffs, rx_stream->get_num_channels());
+                                nof_rxd_samples =
+                                    rx_stream->recv(buffs_cpp, nsamps_per_buff, metadata, timeout, one_packet);)
   }
   virtual uhd_error recv_async_msg(uhd::async_metadata_t& async_metadata, double timeout, bool& valid)
   {
-    UHD_SAFE_C_SAVE_ERROR(this, valid = tx_stream->recv_async_msg(async_metadata, timeout);)
+    SRSRAN_UHD_SAFE_C_LOG_ERROR(valid = tx_stream->recv_async_msg(async_metadata, timeout);)
   }
   uhd_error send(void**                    buffs,
                  const size_t              nsamps_per_buff,
@@ -177,8 +195,8 @@ public:
                  const double              timeout,
                  size_t&                   nof_txd_samples)
   {
-    UHD_SAFE_C_SAVE_ERROR(this, uhd::tx_streamer::buffs_type buffs_cpp(buffs, tx_stream->get_num_channels());
-                          nof_txd_samples = tx_stream->send(buffs_cpp, nsamps_per_buff, metadata, timeout);)
+    SRSRAN_UHD_SAFE_C_LOG_ERROR(uhd::tx_streamer::buffs_type buffs_cpp(buffs, tx_stream->get_num_channels());
+                                nof_txd_samples = tx_stream->send(buffs_cpp, nsamps_per_buff, metadata, timeout);)
   }
   virtual bool is_rx_ready() { return rx_stream != nullptr; }
   virtual bool is_tx_ready() { return tx_stream != nullptr; }
