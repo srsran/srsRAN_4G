@@ -10,10 +10,10 @@
  *
  */
 
-#include "srsran/phy/enb/enb_dl_nr.h"
+#include "srsran/phy/gnb/gnb_dl.h"
 #include <complex.h>
 
-static int enb_dl_alloc_prb(srsran_enb_dl_nr_t* q, uint32_t new_nof_prb)
+static int gnb_dl_alloc_prb(srsran_gnb_dl_t* q, uint32_t new_nof_prb)
 {
   if (q->max_prb < new_nof_prb) {
     q->max_prb = new_nof_prb;
@@ -34,7 +34,7 @@ static int enb_dl_alloc_prb(srsran_enb_dl_nr_t* q, uint32_t new_nof_prb)
   return SRSRAN_SUCCESS;
 }
 
-int srsran_enb_dl_nr_init(srsran_enb_dl_nr_t* q, cf_t* output[SRSRAN_MAX_PORTS], const srsran_enb_dl_nr_args_t* args)
+int srsran_gnb_dl_init(srsran_gnb_dl_t* q, cf_t* output[SRSRAN_MAX_PORTS], const srsran_gnb_dl_args_t* args)
 {
   if (!q || !output || !args) {
     return SRSRAN_ERROR_INVALID_INPUTS;
@@ -51,7 +51,7 @@ int srsran_enb_dl_nr_init(srsran_enb_dl_nr_t* q, cf_t* output[SRSRAN_MAX_PORTS],
     return SRSRAN_ERROR;
   }
 
-  if (enb_dl_alloc_prb(q, args->nof_max_prb) < SRSRAN_SUCCESS) {
+  if (gnb_dl_alloc_prb(q, args->nof_max_prb) < SRSRAN_SUCCESS) {
     ERROR("Error allocating");
     return SRSRAN_ERROR;
   }
@@ -80,7 +80,7 @@ int srsran_enb_dl_nr_init(srsran_enb_dl_nr_t* q, cf_t* output[SRSRAN_MAX_PORTS],
   return SRSRAN_SUCCESS;
 }
 
-void srsran_enb_dl_nr_free(srsran_enb_dl_nr_t* q)
+void srsran_gnb_dl_free(srsran_gnb_dl_t* q)
 {
   if (q == NULL) {
     return;
@@ -99,10 +99,10 @@ void srsran_enb_dl_nr_free(srsran_enb_dl_nr_t* q)
 
   srsran_pdcch_nr_free(&q->pdcch);
 
-  SRSRAN_MEM_ZERO(q, srsran_enb_dl_nr_t, 1);
+  SRSRAN_MEM_ZERO(q, srsran_gnb_dl_t, 1);
 }
 
-int srsran_enb_dl_nr_set_carrier(srsran_enb_dl_nr_t* q, const srsran_carrier_nr_t* carrier)
+int srsran_gnb_dl_set_carrier(srsran_gnb_dl_t* q, const srsran_carrier_nr_t* carrier)
 {
   if (srsran_pdsch_nr_set_carrier(&q->pdsch, carrier) < SRSRAN_SUCCESS) {
     return SRSRAN_ERROR;
@@ -113,7 +113,7 @@ int srsran_enb_dl_nr_set_carrier(srsran_enb_dl_nr_t* q, const srsran_carrier_nr_
     return SRSRAN_ERROR;
   }
 
-  if (enb_dl_alloc_prb(q, carrier->nof_prb) < SRSRAN_SUCCESS) {
+  if (gnb_dl_alloc_prb(q, carrier->nof_prb) < SRSRAN_SUCCESS) {
     ERROR("Error allocating");
     return SRSRAN_ERROR;
   }
@@ -135,9 +135,9 @@ int srsran_enb_dl_nr_set_carrier(srsran_enb_dl_nr_t* q, const srsran_carrier_nr_
   return SRSRAN_SUCCESS;
 }
 
-int srsran_enb_dl_nr_set_pdcch_config(srsran_enb_dl_nr_t*          q,
-                                      const srsran_pdcch_cfg_nr_t* cfg,
-                                      const srsran_dci_cfg_nr_t*   dci_cfg)
+int srsran_gnb_dl_set_pdcch_config(srsran_gnb_dl_t*             q,
+                                   const srsran_pdcch_cfg_nr_t* cfg,
+                                   const srsran_dci_cfg_nr_t*   dci_cfg)
 {
   if (q == NULL || cfg == NULL) {
     return SRSRAN_ERROR_INVALID_INPUTS;
@@ -156,7 +156,7 @@ int srsran_enb_dl_nr_set_pdcch_config(srsran_enb_dl_nr_t*          q,
   return SRSRAN_SUCCESS;
 }
 
-void srsran_enb_dl_nr_gen_signal(srsran_enb_dl_nr_t* q)
+void srsran_gnb_dl_gen_signal(srsran_gnb_dl_t* q)
 {
   if (q == NULL) {
     return;
@@ -167,7 +167,7 @@ void srsran_enb_dl_nr_gen_signal(srsran_enb_dl_nr_t* q)
   }
 }
 
-int srsran_enb_dl_nr_base_zero(srsran_enb_dl_nr_t* q)
+int srsran_gnb_dl_base_zero(srsran_gnb_dl_t* q)
 {
   if (q == NULL) {
     return SRSRAN_ERROR_INVALID_INPUTS;
@@ -181,7 +181,7 @@ int srsran_enb_dl_nr_base_zero(srsran_enb_dl_nr_t* q)
 }
 
 static int
-enb_dl_nr_pdcch_put_msg(srsran_enb_dl_nr_t* q, const srsran_slot_cfg_t* slot_cfg, const srsran_dci_msg_nr_t* dci_msg)
+gnb_dl_pdcch_put_msg(srsran_gnb_dl_t* q, const srsran_slot_cfg_t* slot_cfg, const srsran_dci_msg_nr_t* dci_msg)
 {
   if (dci_msg->ctx.coreset_id >= SRSRAN_UE_DL_NR_MAX_NOF_CORESET ||
       !q->pdcch_cfg.coreset_present[dci_msg->ctx.coreset_id]) {
@@ -213,9 +213,7 @@ enb_dl_nr_pdcch_put_msg(srsran_enb_dl_nr_t* q, const srsran_slot_cfg_t* slot_cfg
   return SRSRAN_SUCCESS;
 }
 
-int srsran_enb_dl_nr_pdcch_put_dl(srsran_enb_dl_nr_t*       q,
-                                  const srsran_slot_cfg_t*  slot_cfg,
-                                  const srsran_dci_dl_nr_t* dci_dl)
+int srsran_gnb_dl_pdcch_put_dl(srsran_gnb_dl_t* q, const srsran_slot_cfg_t* slot_cfg, const srsran_dci_dl_nr_t* dci_dl)
 {
   if (q == NULL || slot_cfg == NULL || dci_dl == NULL) {
     return SRSRAN_ERROR_INVALID_INPUTS;
@@ -230,12 +228,10 @@ int srsran_enb_dl_nr_pdcch_put_dl(srsran_enb_dl_nr_t*       q,
 
   INFO("DCI DL NR: L=%d; ncce=%d;", dci_dl->ctx.location.L, dci_dl->ctx.location.ncce);
 
-  return enb_dl_nr_pdcch_put_msg(q, slot_cfg, &dci_msg);
+  return gnb_dl_pdcch_put_msg(q, slot_cfg, &dci_msg);
 }
 
-int srsran_enb_dl_nr_pdcch_put_ul(srsran_enb_dl_nr_t*       q,
-                                  const srsran_slot_cfg_t*  slot_cfg,
-                                  const srsran_dci_ul_nr_t* dci_ul)
+int srsran_gnb_dl_pdcch_put_ul(srsran_gnb_dl_t* q, const srsran_slot_cfg_t* slot_cfg, const srsran_dci_ul_nr_t* dci_ul)
 {
   if (q == NULL || slot_cfg == NULL || dci_ul == NULL) {
     return SRSRAN_ERROR_INVALID_INPUTS;
@@ -250,13 +246,13 @@ int srsran_enb_dl_nr_pdcch_put_ul(srsran_enb_dl_nr_t*       q,
 
   INFO("DCI DL NR: L=%d; ncce=%d;", dci_ul->ctx.location.L, dci_ul->ctx.location.ncce);
 
-  return enb_dl_nr_pdcch_put_msg(q, slot_cfg, &dci_msg);
+  return gnb_dl_pdcch_put_msg(q, slot_cfg, &dci_msg);
 }
 
-int srsran_enb_dl_nr_pdsch_put(srsran_enb_dl_nr_t*        q,
-                               const srsran_slot_cfg_t*   slot,
-                               const srsran_sch_cfg_nr_t* cfg,
-                               uint8_t*                   data[SRSRAN_MAX_TB])
+int srsran_gnb_dl_pdsch_put(srsran_gnb_dl_t*           q,
+                            const srsran_slot_cfg_t*   slot,
+                            const srsran_sch_cfg_nr_t* cfg,
+                            uint8_t*                   data[SRSRAN_MAX_TB])
 {
   if (srsran_dmrs_sch_put_sf(&q->dmrs, slot, cfg, &cfg->grant, q->sf_symbols[0]) < SRSRAN_SUCCESS) {
     return SRSRAN_ERROR;
@@ -269,10 +265,7 @@ int srsran_enb_dl_nr_pdsch_put(srsran_enb_dl_nr_t*        q,
   return SRSRAN_SUCCESS;
 }
 
-int srsran_enb_dl_nr_pdsch_info(const srsran_enb_dl_nr_t*  q,
-                                const srsran_sch_cfg_nr_t* cfg,
-                                char*                      str,
-                                uint32_t                   str_len)
+int srsran_gnb_dl_pdsch_info(const srsran_gnb_dl_t* q, const srsran_sch_cfg_nr_t* cfg, char* str, uint32_t str_len)
 {
   int len = 0;
 
@@ -282,10 +275,7 @@ int srsran_enb_dl_nr_pdsch_info(const srsran_enb_dl_nr_t*  q,
   return len;
 }
 
-int srsran_enb_dl_nr_pdcch_dl_info(const srsran_enb_dl_nr_t* q,
-                                   const srsran_dci_dl_nr_t* dci,
-                                   char*                     str,
-                                   uint32_t                  str_len)
+int srsran_gnb_dl_pdcch_dl_info(const srsran_gnb_dl_t* q, const srsran_dci_dl_nr_t* dci, char* str, uint32_t str_len)
 {
   int len = 0;
 
@@ -295,10 +285,7 @@ int srsran_enb_dl_nr_pdcch_dl_info(const srsran_enb_dl_nr_t* q,
   return len;
 }
 
-int srsran_enb_dl_nr_pdcch_ul_info(const srsran_enb_dl_nr_t* q,
-                                   const srsran_dci_ul_nr_t* dci,
-                                   char*                     str,
-                                   uint32_t                  str_len)
+int srsran_gnb_dl_pdcch_ul_info(const srsran_gnb_dl_t* q, const srsran_dci_ul_nr_t* dci, char* str, uint32_t str_len)
 {
   int len = 0;
 

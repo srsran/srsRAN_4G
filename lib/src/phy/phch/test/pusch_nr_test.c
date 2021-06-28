@@ -266,9 +266,7 @@ int main(int argc, char** argv)
       }
       chest.nof_re = pusch_cfg.grant.tb->nof_re;
 
-      srsran_pusch_res_nr_t* data_rx_vec[SRSRAN_MAX_TB] = {};
-      data_rx_vec[0]                                    = &data_rx;
-      if (srsran_pusch_nr_decode(&pusch_rx, &pusch_cfg, &pusch_cfg.grant, &chest, sf_symbols, data_rx_vec) <
+      if (srsran_pusch_nr_decode(&pusch_rx, &pusch_cfg, &pusch_cfg.grant, &chest, sf_symbols, &data_rx) <
           SRSRAN_SUCCESS) {
         ERROR("Error encoding");
         goto clean_exit;

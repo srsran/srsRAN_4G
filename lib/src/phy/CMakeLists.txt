@@ -23,6 +23,7 @@ add_subdirectory(resampling)
 add_subdirectory(scrambling)
 add_subdirectory(ue)
 add_subdirectory(enb)
+add_subdirectory(gnb)
 set(srsran_srcs     $<TARGET_OBJECTS:srsran_agc>
         $<TARGET_OBJECTS:srsran_ch_estimation>
         $<TARGET_OBJECTS:srsran_phy_common>
@@ -39,6 +40,7 @@ set(srsran_srcs     $<TARGET_OBJECTS:srsran_agc>
         $<TARGET_OBJECTS:srsran_scrambling>
         $<TARGET_OBJECTS:srsran_ue>
         $<TARGET_OBJECTS:srsran_enb>
+        $<TARGET_OBJECTS:srsran_gnb>
         )
 
 add_library(srsran_phy STATIC ${srsran_srcs} )
