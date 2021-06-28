@@ -275,15 +275,6 @@ bool ue_stack_lte::switch_off()
     ue_task_queue.try_push([this]() {
       // generate detach request with switch-off flag
       nas.switch_off();
-
-      // wait for max. 5s for it to be sent (according to TS 24.301 Sec 25.5.2.2)
-      int cnt = 0, timeout_ms = 5000;
-      while (not rrc.srbs_flushed() && ++cnt <= timeout_ms) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-      }
-      if (not rrc.srbs_flushed()) {
-        srslog::fetch_basic_logger("NAS").warning("Detach couldn't be sent after %dms.", timeout_ms);
-      }
     });
   }
   return true;
