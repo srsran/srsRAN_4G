@@ -229,6 +229,9 @@ void nas::timer_expired(uint32_t timeout_id)
     logger.warning("Reattach timer expired: trying to attach again");
     start_attach_request(srsran::establishment_cause_t::mo_sig);
   } else if (timeout_id == airplane_mode_sim_timer.id()) {
+    logger.debug("Airplane mode simulation timer expired after %dms, airplane mode is currently %s.",
+                 airplane_mode_sim_timer.time_elapsed(),
+                 airplane_mode_state == DISABLED ? "disabled" : "enabled");
     if (airplane_mode_state == DISABLED) {
       // Enabling air-plane mode
       send_detach_request(true);
