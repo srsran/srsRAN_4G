@@ -25,7 +25,9 @@ namespace sched_nr_impl {
 using pdsch_bitmap = srsran::bounded_bitset<25, true>;
 using pusch_bitmap = srsran::bounded_bitset<25, true>;
 
-using pdsch_list = sched_nr_interface::pdsch_list;
+using pdsch_t      = sched_nr_interface::pdsch_t;
+using pdsch_list_t = sched_nr_interface::pdsch_list_t;
+
 using pusch_list = sched_nr_interface::pusch_list;
 
 struct pucch_t {};
@@ -35,9 +37,10 @@ using slot_coreset_list                 = srsran::bounded_vector<coreset_region,
 
 struct bwp_slot_grid {
   pdcch_dl_list_t                                          pdcch_dl_list;
+  pdcch_ul_list_t                                          pdcch_ul_list;
   slot_coreset_list                                        coresets;
   pdsch_bitmap                                             dl_rbgs;
-  pdsch_list                                               pdsch_grants;
+  pdsch_list_t                                             pdsch_grants;
   pusch_bitmap                                             ul_rbgs;
   pusch_list                                               pusch_grants;
   srsran::bounded_vector<pucch_t, SCHED_NR_MAX_PDSCH_DATA> pucch_grants;
@@ -53,9 +56,12 @@ struct bwp_res_grid {
   bwp_slot_grid&       operator[](tti_point tti) { return slots[tti.sf_idx()]; };
   const bwp_slot_grid& operator[](tti_point tti) const { return slots[tti.sf_idx()]; };
   uint32_t             id() const { return bwp_id; }
+  uint32_t             nof_prbs() const { return cell_cfg->cell_cfg.nof_prb; }
 
 private:
-  uint32_t                                         bwp_id;
+  uint32_t                 bwp_id;
+  const sched_cell_params* cell_cfg = nullptr;
+
   srsran::bounded_vector<bwp_slot_grid, TTIMOD_SZ> slots;
 };
 

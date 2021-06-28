@@ -158,7 +158,8 @@ bool sched_worker_manager::run_tti(tti_point tti_rx_, uint32_t cc, slot_res_t& t
 
   // Copy requested TTI DL and UL sched result
   tti_req.dl_res.pdsch_tti = tti_rx_ + TX_ENB_DELAY;
-  tti_req.dl_res.pdsch     = cell_grid_list[cc].bwps[0][tti_req.dl_res.pdsch_tti].pdsch_grants;
+  tti_req.dl_res.pdcchs    = cell_grid_list[cc].bwps[0][tti_req.dl_res.pdsch_tti].pdcch_dl_list;
+  tti_req.dl_res.pdschs    = cell_grid_list[cc].bwps[0][tti_req.dl_res.pdsch_tti].pdsch_grants;
   cell_grid_list[cc].bwps[0][tti_req.dl_res.pdsch_tti].reset();
   tti_req.ul_res.pusch_tti = tti_rx_ + TX_ENB_DELAY;
   tti_req.ul_res.pusch     = cell_grid_list[cc].bwps[0][tti_req.ul_res.pusch_tti].pusch_grants;

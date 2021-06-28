@@ -25,6 +25,8 @@ static const size_t MAX_NOF_AGGR_LEVELS    = 5;
 
 namespace sched_nr_impl {
 
+const static size_t MAX_GRANTS = sched_nr_interface::MAX_GRANTS;
+
 using sched_cfg_t = sched_nr_interface::sched_cfg_t;
 using cell_cfg_t  = sched_nr_interface::cell_cfg_t;
 

@@ -44,8 +44,8 @@ int sched_nr_ue_sim::update(const sched_nr_cc_output_res_t& cc_out)
 void sched_nr_ue_sim::update_dl_harqs(const sched_nr_cc_output_res_t& cc_out)
 {
   uint32_t cc = cc_out.cc;
-  for (uint32_t i = 0; i < cc_out.dl_cc_result->pdsch.size(); ++i) {
-    const auto& data = cc_out.dl_cc_result->pdsch[i];
+  for (uint32_t i = 0; i < cc_out.dl_cc_result->pdschs.size(); ++i) {
+    const auto& data = cc_out.dl_cc_result->pdcchs[i];
     if (data.dci.ctx.rnti != ctxt.rnti) {
       continue;
     }

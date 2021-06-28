@@ -17,6 +17,7 @@
 #include "srsran/adt/bounded_vector.h"
 #include "srsran/adt/span.h"
 #include "srsran/common/tti_point.h"
+#include "srsran/interfaces/gnb_interfaces.h"
 #include "srsran/interfaces/rrc_nr_interface_types.h"
 #include "srsran/phy/phch/dci_nr.h"
 
@@ -78,15 +79,22 @@ public:
 
   ///// Sched Result /////
 
-  struct pdsch_grant {
-    srsran_dci_dl_nr_t dci;
-    rbg_bitmap         bitmap;
+  const static int MAX_GRANTS = 64;
+
+  using pdcch_dl_t      = mac_interface_phy_nr::pdcch_dl_t;
+  using pdcch_ul_t      = mac_interface_phy_nr::pdcch_ul_t;
+  using pdcch_dl_list_t = srsran::bounded_vector<pdcch_dl_t, MAX_GRANTS>;
+  using pdcch_ul_list_t = srsran::bounded_vector<pdcch_ul_t, MAX_GRANTS>;
+
+  struct pdsch_t {
+    srsran_sch_cfg_nr_t sch = {}; ///< PDSCH configuration
   };
-  using pdsch_list = srsran::bounded_vector<pdsch_grant, SCHED_NR_MAX_PDSCH_DATA>;
+  using pdsch_list_t = srsran::bounded_vector<pdsch_t, SCHED_NR_MAX_PDSCH_DATA>;
 
   struct dl_tti_request_t {
-    tti_point  pdsch_tti;
-    pdsch_list pdsch;
+    tti_point       pdsch_tti;
+    pdcch_dl_list_t pdcchs;
+    pdsch_list_t    pdschs;
   };
 
   struct pusch_grant {

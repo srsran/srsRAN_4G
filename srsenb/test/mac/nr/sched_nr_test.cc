@@ -64,9 +64,9 @@ struct task_job_manager {
   void finish_task(const sched_nr_interface::tti_request_t& res)
   {
     std::unique_lock<std::mutex> lock(mutex);
-    TESTASSERT(res.dl_res.pdsch.size() <= 1);
+    TESTASSERT(res.dl_res.pdschs.size() <= 1);
     res_count++;
-    pdsch_count += res.dl_res.pdsch.size();
+    pdsch_count += res.dl_res.pdschs.size();
     if (tasks-- >= max_tasks or tasks == 0) {
       cond_var.notify_one();
     }
@@ -111,7 +111,7 @@ void sched_nr_cfg_serialized_test()
       sched_nr_cc_output_res_t out{tti, cc, &res.dl_res, &res.ul_res};
       sched_tester.update(out);
       tasks.finish_task(res);
-      TESTASSERT(res.dl_res.pdsch.size() == 1);
+      TESTASSERT(res.dl_res.pdschs.size() == 1);
     }
   }
 

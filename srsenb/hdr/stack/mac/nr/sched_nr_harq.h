@@ -34,6 +34,8 @@ public:
   uint32_t nof_retx() const { return tb[0].n_rtx; }
   uint32_t max_nof_retx() const { return max_retx; }
   uint32_t tbs() const { return tb[0].tbs; }
+  uint32_t ndi() const { return tb[0].ndi; }
+  uint32_t mcs() const { return tb[0].mcs; }
 
   bool ack_info(uint32_t tb_idx, bool ack);
 
