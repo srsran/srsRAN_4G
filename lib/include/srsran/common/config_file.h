@@ -35,6 +35,7 @@ bool config_exists(std::string& filename, std::string default_name)
       homedir = ".";
     }
     snprintf(full_path, sizeof(full_path), "%s/.config/srsran/%s", homedir, default_name.c_str());
+    printf("Couldn't open %s, trying %s\n", filename.c_str(), full_path);
     filename = std::string(full_path);
 
     // try to open again
@@ -43,6 +44,7 @@ bool config_exists(std::string& filename, std::string default_name)
       // Last chance, try to find file in /etc/srsran
       ZERO_OBJECT(full_path);
       snprintf(full_path, sizeof(full_path), "/etc/srsran/%s", default_name.c_str());
+      printf("Couldn't open %s either, trying %s\n", filename.c_str(), full_path);
       filename = std::string(full_path);
 
       // try to open again
