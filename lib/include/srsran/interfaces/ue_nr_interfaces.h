@@ -14,8 +14,8 @@
 #define SRSRAN_UE_NR_INTERFACES_H
 
 #include "srsran/common/interfaces_common.h"
+#include "srsran/common/phy_cfg_nr.h"
 #include "srsran/interfaces/mac_interface_types.h"
-#include "srsran/interfaces/rrc_nr_interface_types.h"
 #include <array>
 #include <set>
 #include <string>

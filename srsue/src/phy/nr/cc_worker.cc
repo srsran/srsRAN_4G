@@ -18,9 +18,7 @@
 namespace srsue {
 namespace nr {
 cc_worker::cc_worker(uint32_t cc_idx_, srslog::basic_logger& log, state& phy_state_) :
-  cc_idx(cc_idx_),
-  phy(phy_state_),
-  logger(log)
+  cc_idx(cc_idx_), phy(phy_state_), logger(log)
 {
   cf_t* rx_buffer_c[SRSRAN_MAX_PORTS] = {};
 
@@ -221,7 +219,7 @@ void cc_worker::decode_pdcch_ul()
     }
 
     // Enqueue UL grants
-    phy.set_ul_pending_grant(dl_slot_cfg.idx, dci_rx[i]);
+    phy.set_ul_pending_grant(dl_slot_cfg, dci_rx[i]);
   }
 }
 
@@ -314,7 +312,7 @@ bool cc_worker::decode_pdsch_dl()
   phy.stack->tb_decoded(cc_idx, mac_dl_grant, std::move(mac_dl_result));
 
   if (pdsch_cfg.grant.rnti_type == srsran_rnti_type_ra) {
-    phy.rar_grant_tti = dl_slot_cfg.idx;
+    phy.rar_grant_slot = dl_slot_cfg;
   }
 
   if (pdsch_res.tb[0].crc) {

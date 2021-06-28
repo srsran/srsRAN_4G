@@ -521,6 +521,12 @@ int srsran_ra_nr_fill_tb(const srsran_sch_cfg_nr_t*   pdsch_cfg,
   tb->nof_bits = tb->nof_re * Qm;
   tb->enabled  = true;
 
+  // Calculate actual rate
+  tb->R_prime = 0.0;
+  if (tb->nof_re != 0) {
+    tb->R_prime = (double)tb->tbs / (double)tb->nof_bits;
+  }
+
   return SRSRAN_SUCCESS;
 }
 
@@ -755,6 +761,7 @@ ra_ul_dmrs(const srsran_sch_hl_cfg_nr_t* pusch_hl_cfg, const srsran_dci_ul_nr_t*
 }
 
 int srsran_ra_ul_dci_to_grant_nr(const srsran_carrier_nr_t*    carrier,
+                                 const srsran_slot_cfg_t*      slot_cfg,
                                  const srsran_sch_hl_cfg_nr_t* pusch_hl_cfg,
                                  const srsran_dci_ul_nr_t*     dci_ul,
                                  srsran_sch_cfg_nr_t*          pusch_cfg,

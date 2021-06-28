@@ -111,6 +111,7 @@ SRSRAN_API int srsran_ra_dl_dci_to_grant_nr(const srsran_carrier_nr_t*    carrie
  * Note: Only TypeA PUSCH mapping type is supported
  *
  * @param carrier Carrier information struct
+ * @param slot Slot configuration
  * @param pusch_hl_cfg PUSCH configuration provided by higher layers
  * @param dci_ul DCI uplink (format 0_0 or 0_1)
  * @param pusch_cfg PUSCH configuration after applying the procedure
@@ -118,6 +119,7 @@ SRSRAN_API int srsran_ra_dl_dci_to_grant_nr(const srsran_carrier_nr_t*    carrie
  * @return 0 on success, -1 on error
  */
 SRSRAN_API int srsran_ra_ul_dci_to_grant_nr(const srsran_carrier_nr_t*    carrier,
+                                            const srsran_slot_cfg_t*      slot,
                                             const srsran_sch_hl_cfg_nr_t* pusch_hl_cfg,
                                             const srsran_dci_ul_nr_t*     dci_ul,
                                             srsran_sch_cfg_nr_t*          pusch_cfg,

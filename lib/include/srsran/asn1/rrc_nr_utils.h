@@ -13,10 +13,10 @@
 #ifndef SRSRAN_RRC_NR_UTILS_H
 #define SRSRAN_RRC_NR_UTILS_H
 
+#include "srsran/common/phy_cfg_nr.h"
 #include "srsran/interfaces/mac_interface_types.h"
 #include "srsran/interfaces/pdcp_interface_types.h"
 #include "srsran/interfaces/rlc_interface_types.h"
-#include "srsran/interfaces/rrc_nr_interface_types.h"
 #include "srsran/interfaces/sched_interface.h"
 
 /************************

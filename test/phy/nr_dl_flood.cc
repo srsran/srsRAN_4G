@@ -67,8 +67,8 @@ test_bench::args_t::args_t(int argc, char** argv)
   phy_cfg.pdcch.search_space[1].nof_candidates[2] = 1;
   phy_cfg.pdcch.search_space[1].nof_candidates[3] = 0;
   phy_cfg.pdcch.search_space[1].nof_candidates[4] = 0;
-  phy_cfg.pdcch.search_space[1].formats[0]        = srsran_dci_format_nr_0_0;
-  phy_cfg.pdcch.search_space[1].formats[1]        = srsran_dci_format_nr_1_0;
+  phy_cfg.pdcch.search_space[1].formats[0]        = srsran_dci_format_nr_0_0; // DCI format for PUSCH
+  phy_cfg.pdcch.search_space[1].formats[1]        = srsran_dci_format_nr_1_0; // DCI format for PDSCH
   phy_cfg.pdcch.search_space[1].nof_formats       = 2;
   phy_cfg.pdcch.search_space[1].type              = srsran_search_space_type_common_3;
 
@@ -81,8 +81,8 @@ test_bench::args_t::args_t(int argc, char** argv)
   phy_cfg.pdcch.search_space[2].nof_candidates[2] = 1;
   phy_cfg.pdcch.search_space[2].nof_candidates[3] = 0;
   phy_cfg.pdcch.search_space[2].nof_candidates[4] = 0;
-  phy_cfg.pdcch.search_space[2].formats[0]        = srsran_dci_format_nr_0_0;
-  phy_cfg.pdcch.search_space[2].formats[1]        = srsran_dci_format_nr_1_0;
+  phy_cfg.pdcch.search_space[2].formats[0]        = srsran_dci_format_nr_0_1;
+  phy_cfg.pdcch.search_space[2].formats[1]        = srsran_dci_format_nr_1_1;
   phy_cfg.pdcch.search_space[2].nof_formats       = 2;
   phy_cfg.pdcch.search_space[2].type              = srsran_search_space_type_ue;
 

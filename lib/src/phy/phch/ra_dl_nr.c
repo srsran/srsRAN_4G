@@ -277,7 +277,7 @@ int srsran_ra_dl_nr_nof_dmrs_cdm_groups_without_data(const srsran_sch_hl_cfg_nr_
       ERROR("Unhandled case (%d, %d)", cfg->dmrs_type, cfg->dmrs_max_length);
       return SRSRAN_ERROR;
     default:
-      ERROR("Invalid UL DCI format %s", srsran_dci_format_nr_string(dci->ctx.format));
+      ERROR("Invalid DL DCI format %s", srsran_dci_format_nr_string(dci->ctx.format));
   }
 
   return SRSRAN_ERROR;
