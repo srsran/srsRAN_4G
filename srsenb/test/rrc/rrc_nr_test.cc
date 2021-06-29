@@ -47,7 +47,8 @@ int test_sib_generation()
   rrc_nr_cfg_t rrc_cfg     = rrc_obj.update_default_cfg(default_cfg);
   auto&        sched_elem  = rrc_cfg.sib1.si_sched_info.sched_info_list[0];
 
-  TESTASSERT(rrc_obj.init(rrc_cfg, nullptr, &mac_obj, &rlc_obj, &pdcp_obj, nullptr, nullptr) == SRSRAN_SUCCESS);
+  TESTASSERT(rrc_obj.init(rrc_cfg, nullptr, &mac_obj, &rlc_obj, &pdcp_obj, nullptr, nullptr, nullptr) ==
+             SRSRAN_SUCCESS);
 
   TESTASSERT(test_cell_cfg(mac_obj.cellcfgobj) == SRSRAN_SUCCESS);
   // TEMP tests
@@ -73,7 +74,8 @@ int test_rrc_setup()
   // set cfg
   rrc_nr_cfg_t default_cfg = {};
   rrc_nr_cfg_t rrc_cfg     = rrc_obj.update_default_cfg(default_cfg);
-  TESTASSERT(rrc_obj.init(rrc_cfg, nullptr, &mac_obj, &rlc_obj, &pdcp_obj, nullptr, nullptr) == SRSRAN_SUCCESS);
+  TESTASSERT(rrc_obj.init(rrc_cfg, nullptr, &mac_obj, &rlc_obj, &pdcp_obj, nullptr, nullptr, nullptr) ==
+             SRSRAN_SUCCESS);
 
   for (uint32_t n = 0; n < 2; ++n) {
     uint32_t timeout = 5500;

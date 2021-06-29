@@ -23,13 +23,14 @@ rrc_nr::rrc_nr(srsran::task_sched_handle task_sched_) :
   logger(srslog::fetch_basic_logger("RRC-NR")), task_sched(task_sched_)
 {}
 
-int rrc_nr::init(const rrc_nr_cfg_t&     cfg_,
-                 phy_interface_stack_nr* phy_,
-                 mac_interface_rrc_nr*   mac_,
-                 rlc_interface_rrc_nr*   rlc_,
-                 pdcp_interface_rrc_nr*  pdcp_,
-                 ngap_interface_rrc_nr*  ngap_,
-                 gtpu_interface_rrc_nr*  gtpu_)
+int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
+                 phy_interface_stack_nr*     phy_,
+                 mac_interface_rrc_nr*       mac_,
+                 rlc_interface_rrc_nr*       rlc_,
+                 pdcp_interface_rrc_nr*      pdcp_,
+                 ngap_interface_rrc_nr*      ngap_,
+                 gtpu_interface_rrc_nr*      gtpu_,
+                 rrc_eutra_interface_rrc_nr* rrc_eutra_)
 {
   phy  = phy_;
   mac  = mac_;
@@ -351,6 +352,23 @@ void rrc_nr::write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_
 void rrc_nr::notify_pdcp_integrity_error(uint16_t rnti, uint32_t lcid) {}
 
 /*******************************************************************************
+  Interface for EUTRA RRC
+*******************************************************************************/
+
+int rrc_nr::sgnb_addition_request(uint16_t rnti)
+{
+  // try to allocate new user
+  task_sched.defer_task([]() {});
+
+  // return straight away
+  return SRSRAN_SUCCESS;
+}
+int rrc_nr::sgnb_reconfiguration_complete(uint16_t rnti, asn1::dyn_octstring reconfig_response)
+{
+  return SRSRAN_SUCCESS;
+}
+
+/*******************************************************************************
   UE class
 
   Every function in UE class is called from a mutex environment thus does not
@@ -407,6 +425,29 @@ void rrc_nr::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
   sprintf(buf, "SRB0 - rnti=0x%x", rnti);
   parent->log_rrc_message(buf, Tx, pdu.get(), *dl_ccch_msg);
   parent->rlc->write_sdu(rnti, (uint32_t)srsran::nr_srb::srb0, std::move(pdu));
+}
+
+int rrc_nr::ue::handle_sgnb_addition_request()
+{
+  // provide hard-coded NR configs
+  asn1::dyn_octstring nr_config;
+
+  rrc_recfg_s reconfig;
+  reconfig.rrc_transaction_id = ((transaction_id++) % 4u);
+  rrc_recfg_ies_s& recfg_ies  = reconfig.crit_exts.set_rrc_recfg();
+
+  recfg_ies.radio_bearer_cfg_present                     = true;
+  recfg_ies.radio_bearer_cfg.drb_to_add_mod_list_present = true;
+  recfg_ies.radio_bearer_cfg.drb_to_release_list.resize(1);
+  // recfg_ies.radio_bearer_cfg.drb_to_release_list[0].set_eps_bearer_id(5);
+
+  // TODO: fill configs
+  asn1::dyn_octstring nr_secondary_cell_group_cfg;
+  asn1::dyn_octstring nr_radio_bearer_config;
+
+  parent->rrc_eutra->sgnb_addition_ack(rnti, nr_secondary_cell_group_cfg, nr_radio_bearer_config);
+
+  return SRSRAN_SUCCESS;
 }
 
 } // namespace srsenb

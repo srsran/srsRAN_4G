@@ -49,7 +49,8 @@ static const char rrc_state_text[RRC_STATE_N_ITEMS][100] = {"IDLE",
 class rrc final : public rrc_interface_pdcp,
                   public rrc_interface_mac,
                   public rrc_interface_rlc,
-                  public rrc_interface_s1ap
+                  public rrc_interface_s1ap,
+                  public rrc_eutra_interface_rrc_nr
 {
 public:
   explicit rrc(srsran::task_sched_handle task_sched_);
@@ -62,6 +63,15 @@ public:
                pdcp_interface_rrc*    pdcp,
                s1ap_interface_rrc*    s1ap,
                gtpu_interface_rrc*    gtpu);
+
+  int32_t init(const rrc_cfg_t&       cfg_,
+               phy_interface_rrc_lte* phy,
+               mac_interface_rrc*     mac,
+               rlc_interface_rrc*     rlc,
+               pdcp_interface_rrc*    pdcp,
+               s1ap_interface_rrc*    s1ap,
+               gtpu_interface_rrc*    gtpu,
+               rrc_nr_interface_rrc*  rrc_nr);
 
   void stop();
   void get_metrics(rrc_metrics_t& m);
@@ -115,6 +125,12 @@ public:
 
   int notify_ue_erab_updates(uint16_t rnti, srsran::const_byte_span nas_pdu) override;
 
+  // rrc_eutra_interface_rrc_nr
+  void sgnb_addition_ack(uint16_t                   rnti,
+                         const asn1::dyn_octstring& nr_secondary_cell_group_cfg_r15,
+                         const asn1::dyn_octstring& nr_radio_bearer_cfg1_r15) override;
+  void sgnb_addition_reject(uint16_t rnti) override;
+
   // rrc_interface_pdcp
   void write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu) override;
   void notify_pdcp_integrity_error(uint16_t rnti, uint32_t lcid) override;
@@ -155,6 +171,7 @@ private:
   pdcp_interface_rrc*       pdcp = nullptr;
   gtpu_interface_rrc*       gtpu = nullptr;
   s1ap_interface_rrc*       s1ap = nullptr;
+  rrc_nr_interface_rrc*     rrc_nr = nullptr;
   srslog::basic_logger&     logger;
 
   // derived params

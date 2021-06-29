@@ -6,7 +6,7 @@
 # the distribution.
 #
 
-set(SOURCES rrc.cc rrc_ue.cc rrc_mobility.cc rrc_cell_cfg.cc rrc_bearer_cfg.cc mac_controller.cc ue_rr_cfg.cc ue_meas_cfg.cc)
+set(SOURCES rrc.cc rrc_ue.cc rrc_mobility.cc rrc_cell_cfg.cc rrc_bearer_cfg.cc mac_controller.cc ue_rr_cfg.cc ue_meas_cfg.cc rrc_endc.cc)
 add_library(srsenb_rrc STATIC ${SOURCES})
 
 set(SOURCES rrc_nr.cc)

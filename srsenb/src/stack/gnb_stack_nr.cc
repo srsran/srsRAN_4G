@@ -79,7 +79,7 @@ int gnb_stack_nr::init(const srsenb::stack_args_t& args_, const rrc_nr_cfg_t& rr
   pdcp_args.log_hex_limit  = args.log.pdcp_hex_limit;
   m_pdcp->init(pdcp_args, m_rlc.get(), m_rrc.get(), m_sdap.get());
 
-  m_rrc->init(rrc_cfg_, phy, m_mac.get(), m_rlc.get(), m_pdcp.get(), nullptr, nullptr);
+  m_rrc->init(rrc_cfg_, phy, m_mac.get(), m_rlc.get(), m_pdcp.get(), nullptr, nullptr, nullptr);
 
   m_sdap->init(m_pdcp.get(), nullptr, m_gw.get());
 

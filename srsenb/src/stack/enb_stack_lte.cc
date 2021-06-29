@@ -138,7 +138,7 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   }
   rlc.init(&pdcp, &rrc, &mac, task_sched.get_timer_handler());
   pdcp.init(&rlc, &rrc, &gtpu);
-  if (rrc.init(rrc_cfg, phy, &mac, &rlc, &pdcp, &s1ap, &gtpu) != SRSRAN_SUCCESS) {
+  if (rrc.init(rrc_cfg, phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &rrc_nr) != SRSRAN_SUCCESS) {
     stack_logger.error("Couldn't initialize RRC");
     return SRSRAN_ERROR;
   }

@@ -13,6 +13,7 @@
 #include "srsenb/hdr/stack/rrc/rrc_ue.h"
 #include "srsenb/hdr/common/common_enb.h"
 #include "srsenb/hdr/stack/rrc/mac_controller.h"
+#include "srsenb/hdr/stack/rrc/rrc_endc.h"
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
 #include "srsenb/hdr/stack/rrc/ue_rr_cfg.h"
 #include "srsran/asn1/rrc_utils.h"
@@ -78,6 +79,8 @@ int rrc::ue::init()
   }
 
   mobility_handler = make_rnti_obj<rrc_mobility>(rnti, this);
+  endc_handler     = make_rnti_obj<rrc_endc>(rnti, this);
+
   return SRSRAN_SUCCESS;
 }
 
@@ -785,6 +788,10 @@ void rrc::ue::send_connection_reconf(srsran::unique_byte_buffer_t pdu,
     }
   }
 
+  if (endc_handler != nullptr) {
+    endc_handler->fill_conn_recfg(&recfg_r8);
+  }
+
   // Reuse same PDU
   if (pdu != nullptr) {
     pdu->clear();
@@ -1139,6 +1146,18 @@ void rrc::ue::update_scells()
   }
 
   parent->logger.info("SCells activated for rnti=0x%x", rnti);
+}
+
+/// EN-DC helper
+void rrc::ue::handle_sgnb_addition_ack(const asn1::dyn_octstring& nr_secondary_cell_group_cfg_r15,
+                                       const asn1::dyn_octstring& nr_radio_bearer_cfg1_r15)
+{
+  endc_handler->handle_sgnb_addition_ack(nr_secondary_cell_group_cfg_r15, nr_radio_bearer_cfg1_r15);
+}
+
+void rrc::ue::handle_sgnb_addition_reject()
+{
+  endc_handler->handle_sgnb_addition_reject();
 }
 
 /********************** HELPERS ***************************/

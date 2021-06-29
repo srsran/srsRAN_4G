@@ -12,6 +12,7 @@
 
 #include "srsenb/hdr/stack/rrc/rrc.h"
 #include "srsenb/hdr/stack/rrc/rrc_cell_cfg.h"
+#include "srsenb/hdr/stack/rrc/rrc_endc.h"
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
 #include "srsenb/hdr/stack/rrc/rrc_paging.h"
 #include "srsenb/hdr/stack/s1ap/s1ap.h"
@@ -45,12 +46,25 @@ int32_t rrc::init(const rrc_cfg_t&       cfg_,
                   s1ap_interface_rrc*    s1ap_,
                   gtpu_interface_rrc*    gtpu_)
 {
-  phy  = phy_;
-  mac  = mac_;
-  rlc  = rlc_;
-  pdcp = pdcp_;
-  gtpu = gtpu_;
-  s1ap = s1ap_;
+  return init(cfg_, phy_, mac_, rlc_, pdcp_, s1ap_, gtpu_, nullptr);
+}
+
+int32_t rrc::init(const rrc_cfg_t&       cfg_,
+                  phy_interface_rrc_lte* phy_,
+                  mac_interface_rrc*     mac_,
+                  rlc_interface_rrc*     rlc_,
+                  pdcp_interface_rrc*    pdcp_,
+                  s1ap_interface_rrc*    s1ap_,
+                  gtpu_interface_rrc*    gtpu_,
+                  rrc_nr_interface_rrc*  rrc_nr_)
+{
+  phy    = phy_;
+  mac    = mac_;
+  rlc    = rlc_;
+  pdcp   = pdcp_;
+  gtpu   = gtpu_;
+  s1ap   = s1ap_;
+  rrc_nr = rrc_nr_;
 
   cfg = cfg_;
 
@@ -526,6 +540,22 @@ void rrc::set_erab_status(uint16_t rnti, const asn1::s1ap::bearers_subject_to_st
     return;
   }
   ue_it->second->mobility_handler->trigger(erabs);
+}
+
+/*******************************************************************************
+  EN-DC/NSA helper functions
+*******************************************************************************/
+
+void rrc::sgnb_addition_ack(uint16_t                   rnti,
+                            const asn1::dyn_octstring& nr_secondary_cell_group_cfg_r15,
+                            const asn1::dyn_octstring& nr_radio_bearer_cfg1_r15)
+{
+  users.at(rnti)->endc_handler->handle_sgnb_addition_ack(nr_secondary_cell_group_cfg_r15, nr_radio_bearer_cfg1_r15);
+}
+
+void rrc::sgnb_addition_reject(uint16_t rnti)
+{
+  users.at(rnti)->endc_handler->handle_sgnb_addition_reject();
 }
 
 /*******************************************************************************
