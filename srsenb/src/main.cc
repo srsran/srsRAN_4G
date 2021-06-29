@@ -235,7 +235,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("expert.rlf_release_timer_ms", bpo::value<uint32_t>(&args->general.rlf_release_timer_ms)->default_value(4000), "Time taken by eNB to release UE context after it detects an RLF")
     ("expert.extended_cp", bpo::value<bool>(&args->phy.extended_cp)->default_value(false), "Use extended cyclic prefix")
     ("expert.ts1_reloc_prep_timeout", bpo::value<uint32_t>(&args->stack.s1ap.ts1_reloc_prep_timeout)->default_value(10000), "S1AP TS 36.413 TS1RelocPrep Expiry Timeout value in milliseconds")
-    ("expert.ts1_reloc_overall_timeout", bpo::value<uint32_t>(&args->stack.s1ap.ts1_reloc_overall_timeout)->default_value(10000), "S1AP TS 36.413 TS1RelocPrep Expiry Timeout value in milliseconds")
+    ("expert.ts1_reloc_overall_timeout", bpo::value<uint32_t>(&args->stack.s1ap.ts1_reloc_overall_timeout)->default_value(10000), "S1AP TS 36.413 TS1RelocOverall Expiry Timeout value in milliseconds")
 
 
     // eMBMS section
