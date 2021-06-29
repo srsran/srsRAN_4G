@@ -824,9 +824,9 @@ static float ra_ul_beta_offset_ack_semistatic(const srsran_beta_offsets_t* beta_
 
   // Select Beta Offset index from the number of HARQ-ACK bits
   uint32_t beta_offset_index = beta_offsets->ack_index1;
-  if (uci_cfg->o_ack > 11) {
+  if (uci_cfg->ack.count > 11) {
     beta_offset_index = beta_offsets->ack_index3;
-  } else if (uci_cfg->o_ack > 2) {
+  } else if (uci_cfg->ack.count > 2) {
     beta_offset_index = beta_offsets->ack_index2;
   }
 
@@ -834,7 +834,7 @@ static float ra_ul_beta_offset_ack_semistatic(const srsran_beta_offsets_t* beta_
   if (beta_offset_index >= RA_NR_BETA_OFFSET_HARQACK_SIZE) {
     ERROR("Beta offset index for HARQ-ACK (%d) for O_ack=%d exceeds table size (%d)",
           beta_offset_index,
-          uci_cfg->o_ack,
+          uci_cfg->ack.count,
           RA_NR_BETA_OFFSET_HARQACK_SIZE);
     return NAN;
   }
@@ -1022,8 +1022,8 @@ int srsran_ra_ul_set_grant_uci_nr(const srsran_carrier_nr_t*    carrier,
 
   // Calculate number of UCI encoded bits
   int Gack = 0;
-  if (pusch_cfg->uci.o_ack > 2) {
-    Gack = srsran_uci_nr_pusch_ack_nof_bits(&pusch_cfg->uci.pusch, pusch_cfg->uci.o_ack);
+  if (pusch_cfg->uci.ack.count > 2) {
+    Gack = srsran_uci_nr_pusch_ack_nof_bits(&pusch_cfg->uci.pusch, pusch_cfg->uci.ack.count);
     if (Gack < SRSRAN_SUCCESS) {
       ERROR("Error calculating Qdack");
       return SRSRAN_ERROR;

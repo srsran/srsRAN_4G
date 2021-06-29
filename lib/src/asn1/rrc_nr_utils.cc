@@ -342,10 +342,10 @@ bool make_phy_tdd_cfg(const tdd_ul_dl_cfg_common_s& tdd_ul_dl_cfg_common,
   return true;
 }
 
-bool make_phy_harq_ack_cfg(const phys_cell_group_cfg_s&    phys_cell_group_cfg,
-                           srsran_ue_dl_nr_harq_ack_cfg_t* in_srsran_ue_dl_nr_harq_ack_cfg)
+bool make_phy_harq_ack_cfg(const phys_cell_group_cfg_s& phys_cell_group_cfg,
+                           srsran_harq_ack_cfg_hl_t*    in_srsran_ue_dl_nr_harq_ack_cfg)
 {
-  srsran_ue_dl_nr_harq_ack_cfg_t srsran_ue_dl_nr_harq_ack_cfg = {};
+  srsran_harq_ack_cfg_hl_t srsran_ue_dl_nr_harq_ack_cfg = {};
   switch (phys_cell_group_cfg.pdsch_harq_ack_codebook) {
     case phys_cell_group_cfg_s::pdsch_harq_ack_codebook_opts::dynamic_value:
       srsran_ue_dl_nr_harq_ack_cfg.harq_ack_codebook = srsran_pdsch_harq_ack_codebook_dynamic;

@@ -225,7 +225,7 @@ int main(int argc, char** argv)
 
       // Generate HARQ ACK bits
       if (nof_ack_bits > 0) {
-        pusch_cfg.uci.o_ack = nof_ack_bits;
+        pusch_cfg.uci.ack.count = nof_ack_bits;
         for (uint32_t i = 0; i < nof_ack_bits; i++) {
           data_tx.uci.ack[i] = (uint8_t)srsran_random_uniform_int_dist(rand_gen, 0, 1);
         }

@@ -38,49 +38,6 @@ typedef struct SRSRAN_API {
   float                  pdcch_dmrs_epre_thr;
 } srsran_ue_dl_nr_args_t;
 
-typedef struct {
-  uint32_t scell_idx;  ///< Serving cell index
-  uint32_t v_dai_dl;   ///< Downlink Assigment Index
-  bool dci_format_1_1; ///< Set to true if the PDSCH transmission is triggered by a PDCCH DCI format 1_1 transmission
-  uint32_t k1;         ///< HARQ feedback timing
-  uint16_t rnti;
-  uint32_t pucch_resource_id;
-} srsran_pdsch_ack_resource_nr_t;
-
-typedef struct {
-  srsran_pdsch_ack_resource_nr_t resource;
-  uint8_t                        value[SRSRAN_MAX_CODEWORDS]; // 0/1 or 2 for DTX
-  bool present; // set to true if there is a PDSCH on serving cell c associated with PDCCH in PDCCH monitoring occasion
-                // m, or there is a PDCCH indicating SPS PDSCH release on serving cell c
-  bool dl_bwp_changed; // set to true if PDCCH monitoring occasion m is before an active DL BWP change on serving cell c
-  bool ul_bwp_changed; // set to true if an active UL BWP change on the PCell and an active DL BWP change is not
-                       // triggered by a DCI format 1_1 in PDCCH monitoring occasion m
-  bool second_tb_present; // set to true if two TB were detected in the PDCCH monitoring occasion m
-} srsran_pdsch_ack_m_nr_t;
-
-#define SRSRAN_UCI_NR_MAX_M 10
-
-typedef struct {
-  uint32_t                M;
-  srsran_pdsch_ack_m_nr_t m[SRSRAN_UCI_NR_MAX_M];
-} srsran_pdsch_ack_cc_nr_t;
-
-typedef struct {
-  srsran_pdsch_ack_cc_nr_t cc[SRSRAN_MAX_CARRIERS];
-  uint32_t                 nof_cc;
-  bool                     use_pusch; // Set to true, if UCI bits are carried by PUSCH
-} srsran_pdsch_ack_nr_t;
-
-typedef struct SRSRAN_API {
-  bool harq_ack_spatial_bundling_pucch;         ///< Param harq-ACK-SpatialBundlingPUCCH, set to true if provided
-  bool harq_ack_spatial_bundling_pusch;         ///< Param harq-ACK-SpatialBundlingPUSCH, set to true if provided
-  srsran_harq_ack_codebook_t harq_ack_codebook; ///< pdsch-HARQ-ACK-Codebook configuration
-  bool max_cw_sched_dci_is_2; ///< Param maxNrofCodeWordsScheduledByDCI, set to true if present and equal to 2
-
-  uint32_t dl_data_to_ul_ack[SRSRAN_MAX_NOF_DL_DATA_TO_UL];
-  uint32_t nof_dl_data_to_ul_ack;
-} srsran_ue_dl_nr_harq_ack_cfg_t;
-
 typedef struct SRSRAN_API {
   srsran_dci_ctx_t            dci_ctx;
   srsran_dmrs_pdcch_measure_t measure;
@@ -160,18 +117,6 @@ SRSRAN_API int srsran_ue_dl_nr_pdsch_info(const srsran_ue_dl_nr_t*    q,
                                           const srsran_pdsch_res_nr_t res[SRSRAN_MAX_CODEWORDS],
                                           char*                       str,
                                           uint32_t                    str_len);
-
-SRSRAN_API int srsran_ue_dl_nr_pdsch_ack_resource(const srsran_ue_dl_nr_harq_ack_cfg_t* cfg,
-                                                  const srsran_dci_dl_nr_t*             dci_dl,
-                                                  srsran_pdsch_ack_resource_nr_t*       pdsch_ack_resource);
-
-SRSRAN_API int srsran_ue_dl_nr_gen_ack(const srsran_ue_dl_nr_harq_ack_cfg_t* cfg,
-                                       const srsran_pdsch_ack_nr_t*          ack_info,
-                                       srsran_uci_data_nr_t*                 uci_data);
-
-SRSRAN_API int srsran_ue_dl_nr_ack_insert_m(srsran_pdsch_ack_nr_t* ack_info, const srsran_pdsch_ack_m_nr_t* m);
-
-SRSRAN_API uint32_t srsran_ue_dl_nr_ack_info(const srsran_pdsch_ack_nr_t* ack_info, char* str, uint32_t str_len);
 
 SRSRAN_API
 int srsran_ue_dl_nr_csi_measure_trs(const srsran_ue_dl_nr_t*       q,

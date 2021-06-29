@@ -177,13 +177,14 @@ static int test_pucch_format2(srsran_pucch_nr_t*                  pucch,
            resource.start_symbol_idx += starting_symbol_stride) {
         srsran_uci_cfg_nr_t uci_cfg = {};
 
-        for (uci_cfg.o_ack = SRSRAN_PUCCH_NR_FORMAT2_MIN_NOF_BITS; uci_cfg.o_ack <= SRSRAN_UCI_NR_MAX_ACK_BITS;
-             uci_cfg.o_ack++) {
+        for (uci_cfg.ack.count = SRSRAN_PUCCH_NR_FORMAT2_MIN_NOF_BITS;
+             uci_cfg.ack.count <= SRSRAN_HARQ_ACK_MAX_NOF_BITS;
+             uci_cfg.ack.count++) {
           srsran_uci_value_nr_t uci_value = {};
 
           // Maximum code rate is reserved
           uint32_t max_code_rate_end = SRSRAN_PUCCH_NR_MAX_CODE_RATE;
-          if (uci_cfg.o_ack == 11) {
+          if (uci_cfg.ack.count == 11) {
             max_code_rate_end = SRSRAN_PUCCH_NR_MAX_CODE_RATE - 1;
           }
 
@@ -198,7 +199,7 @@ static int test_pucch_format2(srsran_pucch_nr_t*                  pucch,
               for (resource.starting_prb = 0; resource.starting_prb < (carrier.nof_prb - resource.nof_prb);
                    resource.starting_prb += starting_prb_stride) {
                 // Generate ACKs
-                for (uint32_t i = 0; i < uci_cfg.o_ack; i++) {
+                for (uint32_t i = 0; i < uci_cfg.ack.count; i++) {
                   uci_value.ack[i] = (uint8_t)srsran_random_uniform_int_dist(random_gen, 0, 1);
                 }
 
@@ -234,7 +235,7 @@ static int test_pucch_format2(srsran_pucch_nr_t*                  pucch,
                 TESTASSERT(uci_value_rx.valid == true);
 
                 // Check received ACKs
-                for (uint32_t i = 0; i < uci_cfg.o_ack; i++) {
+                for (uint32_t i = 0; i < uci_cfg.ack.count; i++) {
                   TESTASSERT(uci_value.ack[i] == uci_value_rx.ack[i]);
                 }
               }

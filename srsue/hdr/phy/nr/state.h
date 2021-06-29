@@ -37,10 +37,10 @@ private:
   mutable std::mutex                                    pending_ul_grant_mutex;
 
   struct pending_dl_grant_t {
-    bool                           enable;
-    uint32_t                       pid;
-    srsran_sch_cfg_nr_t            sch_cfg;
-    srsran_pdsch_ack_resource_nr_t ack_resource;
+    bool                       enable;
+    uint32_t                   pid;
+    srsran_sch_cfg_nr_t        sch_cfg;
+    srsran_harq_ack_resource_t ack_resource;
   };
   srsran::circular_array<pending_dl_grant_t, TTIMOD_SZ> pending_dl_grant = {};
   mutable std::mutex                                    pending_dl_grant_mutex;
@@ -171,7 +171,7 @@ public:
     }
 
     // Calculate DL DCI to PDSCH ACK resource
-    srsran_pdsch_ack_resource_nr_t ack_resource = {};
+    srsran_harq_ack_resource_t ack_resource = {};
     if (not cfg.get_pdsch_ack_resource(dci_dl, ack_resource)) {
       ERROR("Computing UL ACK resource");
       return;
@@ -199,10 +199,10 @@ public:
    * @param pid Provides the HARQ process identifier
    * @return true if there is a pending grant for the given TX tti, false otherwise
    */
-  bool get_dl_pending_grant(uint32_t                        tti_rx,
-                            srsran_sch_cfg_nr_t&            pdsch_cfg,
-                            srsran_pdsch_ack_resource_nr_t& ack_resource,
-                            uint32_t&                       pid)
+  bool get_dl_pending_grant(uint32_t                    tti_rx,
+                            srsran_sch_cfg_nr_t&        pdsch_cfg,
+                            srsran_harq_ack_resource_t& ack_resource,
+                            uint32_t&                   pid)
   {
     // Scope mutex to protect read/write the list
     std::lock_guard<std::mutex> lock(pending_dl_grant_mutex);
@@ -231,16 +231,16 @@ public:
    * @param tti_rx The TTI in which the PDSCH transmission was received
    * @param dci_dl The DL DCI message to store
    */
-  void set_pending_ack(const uint32_t& tti_rx, const srsran_pdsch_ack_resource_nr_t& ack_resource, const bool& crc_ok)
+  void set_pending_ack(const uint32_t& tti_rx, const srsran_harq_ack_resource_t& ack_resource, const bool& crc_ok)
   {
     // Calculate Receive TTI
     uint32_t tti_tx = TTI_ADD(tti_rx, ack_resource.k1);
 
     // Prepare ACK information
-    srsran_pdsch_ack_m_nr_t ack_m = {};
-    ack_m.resource                = ack_resource;
-    ack_m.value[0]                = crc_ok ? 1 : 0;
-    ack_m.present                 = true;
+    srsran_harq_ack_m_t ack_m = {};
+    ack_m.resource            = ack_resource;
+    ack_m.value[0]            = crc_ok ? 1 : 0;
+    ack_m.present             = true;
 
     // Scope mutex to protect read/write the list
     std::lock_guard<std::mutex> lock(pending_ack_mutex);
@@ -250,7 +250,7 @@ public:
     ack.nof_cc                 = 1;
 
     // Insert PDSCH transmission information
-    if (srsran_ue_dl_nr_ack_insert_m(&ack, &ack_m) < SRSRAN_SUCCESS) {
+    if (srsran_harq_ack_insert_m(&ack, &ack_m) < SRSRAN_SUCCESS) {
       ERROR("Error inserting ACK m value");
     }
   }

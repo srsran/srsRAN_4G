@@ -35,16 +35,16 @@ struct phy_cfg_nr_t {
     srsran_subcarrier_spacing_t                 scs               = srsran_subcarrier_spacing_30kHz;
   };
 
-  srsran_tdd_config_nr_t         tdd      = {};
-  srsran_sch_hl_cfg_nr_t         pdsch    = {};
-  srsran_sch_hl_cfg_nr_t         pusch    = {};
-  srsran_pucch_nr_hl_cfg_t       pucch    = {};
-  srsran_prach_cfg_t             prach    = {};
-  srsran_pdcch_cfg_nr_t          pdcch    = {};
-  srsran_ue_dl_nr_harq_ack_cfg_t harq_ack = {};
-  srsran_csi_hl_cfg_t            csi      = {};
-  srsran_carrier_nr_t            carrier  = {};
-  ssb_cfg_t                      ssb;
+  srsran_tdd_config_nr_t   tdd      = {};
+  srsran_sch_hl_cfg_nr_t   pdsch    = {};
+  srsran_sch_hl_cfg_nr_t   pusch    = {};
+  srsran_pucch_nr_hl_cfg_t pucch    = {};
+  srsran_prach_cfg_t       prach    = {};
+  srsran_pdcch_cfg_nr_t    pdcch    = {};
+  srsran_harq_ack_cfg_hl_t harq_ack = {};
+  srsran_csi_hl_cfg_t      csi      = {};
+  srsran_carrier_nr_t      carrier  = {};
+  ssb_cfg_t                ssb;
 
   phy_cfg_nr_t() {}
 
@@ -121,7 +121,7 @@ struct phy_cfg_nr_t {
   /**
    * @brief Get PDSCH ACK resource for a given PDSCH transmission
    */
-  bool get_pdsch_ack_resource(const srsran_dci_dl_nr_t& dci_dl, srsran_pdsch_ack_resource_nr_t& ack_resource) const;
+  bool get_pdsch_ack_resource(const srsran_dci_dl_nr_t& dci_dl, srsran_harq_ack_resource_t& ack_resource) const;
 
   /**
    * @brief Compute UCI configuration for the given slot from the pending PDSCH ACK resources, periodic CSI,

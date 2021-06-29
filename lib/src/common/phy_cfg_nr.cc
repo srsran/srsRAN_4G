@@ -274,10 +274,10 @@ bool phy_cfg_nr_t::get_pusch_cfg(const srsran_slot_cfg_t&  slot_cfg,
          SRSRAN_SUCCESS;
 }
 
-bool phy_cfg_nr_t::get_pdsch_ack_resource(const srsran_dci_dl_nr_t&       dci_dl,
-                                          srsran_pdsch_ack_resource_nr_t& ack_resource) const
+bool phy_cfg_nr_t::get_pdsch_ack_resource(const srsran_dci_dl_nr_t&   dci_dl,
+                                          srsran_harq_ack_resource_t& ack_resource) const
 {
-  return srsran_ue_dl_nr_pdsch_ack_resource(&harq_ack, &dci_dl, &ack_resource) == SRSRAN_SUCCESS;
+  return srsran_harq_ack_resource(&harq_ack, &dci_dl, &ack_resource) == SRSRAN_SUCCESS;
 }
 
 bool phy_cfg_nr_t::get_uci_cfg(const srsran_slot_cfg_t&     slot_cfg,

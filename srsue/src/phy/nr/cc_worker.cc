@@ -226,9 +226,9 @@ void cc_worker::decode_pdcch_ul()
 bool cc_worker::decode_pdsch_dl()
 {
   // Get DL grant for this TTI, if available
-  uint32_t                       pid          = 0;
-  srsran_sch_cfg_nr_t            pdsch_cfg    = {};
-  srsran_pdsch_ack_resource_nr_t ack_resource = {};
+  uint32_t                   pid          = 0;
+  srsran_sch_cfg_nr_t        pdsch_cfg    = {};
+  srsran_harq_ack_resource_t ack_resource = {};
   if (not phy.get_dl_pending_grant(dl_slot_cfg.idx, pdsch_cfg, ack_resource, pid)) {
     // Early return if no grant was available
     return true;
@@ -526,12 +526,12 @@ bool cc_worker::work_ul()
 
     if (logger.debug.enabled()) {
       std::array<char, 512> str = {};
-      if (srsran_ue_dl_nr_ack_info(&pdsch_ack, str.data(), (uint32_t)str.size()) > 0) {
+      if (srsran_harq_ack_info(&pdsch_ack, str.data(), (uint32_t)str.size()) > 0) {
         logger.debug("%s", str.data());
       }
     }
 
-    if (srsran_ue_dl_nr_gen_ack(&phy.cfg.harq_ack, &pdsch_ack, &uci_data) < SRSRAN_SUCCESS) {
+    if (srsran_harq_ack_pack(&phy.cfg.harq_ack, &pdsch_ack, &uci_data) < SRSRAN_SUCCESS) {
       ERROR("Filling UCI ACK bits");
       return false;
     }

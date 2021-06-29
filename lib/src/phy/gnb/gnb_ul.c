@@ -185,7 +185,7 @@ static int gnb_ul_decode_pucch_format1(srsran_gnb_ul_t*                    q,
   uint8_t b[SRSRAN_PUCCH_NR_FORMAT1_MAX_NOF_BITS] = {};
 
   // Set ACK bits
-  uint32_t nof_bits = SRSRAN_MIN(SRSRAN_PUCCH_NR_FORMAT1_MAX_NOF_BITS, uci_cfg->o_ack);
+  uint32_t nof_bits = SRSRAN_MIN(SRSRAN_PUCCH_NR_FORMAT1_MAX_NOF_BITS, uci_cfg->ack.count);
 
   // Set SR bits
   // For a positive SR transmission using PUCCH format 1, the UE transmits the PUCCH as described in [4, TS

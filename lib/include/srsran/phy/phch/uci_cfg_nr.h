@@ -14,6 +14,7 @@
 #define SRSRAN_UCI_CFG_NR_H
 
 #include "csi_cfg.h"
+#include "harq_ack_cfg.h"
 #include "srsran/phy/common/phy_common_nr.h"
 #include <stdbool.h>
 #include <stdint.h>
@@ -23,11 +24,6 @@
  * @remark TS 38.212 section 5.2.1 Polar coding: The value of A is no larger than 1706.
  */
 #define SRSRAN_UCI_NR_MAX_NOF_BITS 1706U
-
-/**
- * @brief Maximum number of HARQ ACK feedback bits that can be carried in Uplink Control Information (UCI) message
- */
-#define SRSRAN_UCI_NR_MAX_ACK_BITS 360
 
 /**
  * @brief Maximum number of Channel State Information part 1 (CSI1) bits that can be carried in Uplink Control
@@ -72,7 +68,7 @@ typedef struct {
  */
 typedef struct SRSRAN_API {
   /// Common Parameters
-  uint32_t                o_ack;                          ///< Number of HARQ-ACK bits
+  srsran_harq_ack_cfg_t   ack;                            ///< HARQ-ACK configuration
   uint32_t                o_sr;                           ///< Number of SR bits
   srsran_csi_report_cfg_t csi[SRSRAN_CSI_MAX_NOF_REPORT]; ///< CSI report configuration
   uint32_t                nof_csi;                        ///< Number of CSI reports
@@ -86,9 +82,9 @@ typedef struct SRSRAN_API {
  * @brief Uplink Control Information (UCI) message packed information
  */
 typedef struct SRSRAN_API {
-  uint8_t                   ack[SRSRAN_UCI_NR_MAX_ACK_BITS]; ///< HARQ ACK feedback bits
-  uint32_t                  sr;                              ///< Number of positive SR
-  srsran_csi_report_value_t csi[SRSRAN_CSI_MAX_NOF_REPORT];  ///< Packed CSI report values
+  uint8_t                   ack[SRSRAN_HARQ_ACK_MAX_NOF_BITS]; ///< HARQ ACK feedback bits
+  uint32_t                  sr;                                ///< Number of positive SR
+  srsran_csi_report_value_t csi[SRSRAN_CSI_MAX_NOF_REPORT];    ///< Packed CSI report values
   bool valid; ///< Indicates whether the message has been decoded successfully, ignored in the transmitter
 } srsran_uci_value_nr_t;
 

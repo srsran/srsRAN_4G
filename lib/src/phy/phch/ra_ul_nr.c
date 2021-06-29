@@ -420,7 +420,7 @@ int srsran_ra_ul_nr_pucch_format_2_3_min_prb(const srsran_pucch_nr_resource_t* r
   }
 
   // Compute total number of UCI bits
-  uint32_t O_total = uci_cfg->o_ack + uci_cfg->o_sr + srsran_csi_part1_nof_bits(uci_cfg->csi, uci_cfg->nof_csi);
+  uint32_t O_total = uci_cfg->ack.count + uci_cfg->o_sr + srsran_csi_part1_nof_bits(uci_cfg->csi, uci_cfg->nof_csi);
 
   // Add CRC bits if any
   O_total += srsran_uci_nr_crc_len(O_total);
@@ -530,7 +530,7 @@ int srsran_ra_ul_nr_pucch_resource(const srsran_pucch_nr_hl_cfg_t* pucch_cfg,
   // - At least one positive SR
   // - up to 2 HARQ-ACK
   // - No CSI report
-  if (uci_cfg->pucch.sr_positive_present > 0 && uci_cfg->o_ack <= SRSRAN_PUCCH_NR_FORMAT1_MAX_NOF_BITS &&
+  if (uci_cfg->pucch.sr_positive_present > 0 && uci_cfg->ack.count <= SRSRAN_PUCCH_NR_FORMAT1_MAX_NOF_BITS &&
       uci_cfg->nof_csi == 0) {
     uint32_t sr_resource_id = uci_cfg->pucch.sr_resource_id;
     if (sr_resource_id >= SRSRAN_PUCCH_MAX_NOF_SR_RESOURCES) {
@@ -554,7 +554,7 @@ int srsran_ra_ul_nr_pucch_resource(const srsran_pucch_nr_hl_cfg_t* pucch_cfg,
   // - Irrelevant SR opportunities
   // - More than 2 HARQ-ACK
   // - No CSI report
-  if (uci_cfg->o_sr > 0 && uci_cfg->o_ack > SRSRAN_PUCCH_NR_FORMAT1_MAX_NOF_BITS && uci_cfg->nof_csi == 0) {
+  if (uci_cfg->o_sr > 0 && uci_cfg->ack.count > SRSRAN_PUCCH_NR_FORMAT1_MAX_NOF_BITS && uci_cfg->nof_csi == 0) {
     return ra_ul_nr_pucch_resource_hl(pucch_cfg, O_uci, uci_cfg->pucch.resource_id, resource);
   }
 
@@ -562,7 +562,7 @@ int srsran_ra_ul_nr_pucch_resource(const srsran_pucch_nr_hl_cfg_t* pucch_cfg,
   // - Irrelevant SR opportunities
   // - No HARQ-ACK
   // - Single periodic CSI report
-  if (uci_cfg->o_ack == 0 && uci_cfg->nof_csi == 1 && uci_cfg->csi[0].type == SRSRAN_CSI_REPORT_TYPE_PERIODIC) {
+  if (uci_cfg->ack.count == 0 && uci_cfg->nof_csi == 1 && uci_cfg->csi[0].type == SRSRAN_CSI_REPORT_TYPE_PERIODIC) {
     *resource = uci_cfg->csi[0].pucch_resource;
     return SRSRAN_SUCCESS;
   }

@@ -150,7 +150,7 @@ static int ue_ul_nr_encode_pucch_format1(srsran_ue_ul_nr_t*                  q,
   uint8_t b[SRSRAN_PUCCH_NR_FORMAT1_MAX_NOF_BITS] = {};
 
   // Set ACK bits
-  uint32_t nof_bits = SRSRAN_MIN(SRSRAN_PUCCH_NR_FORMAT1_MAX_NOF_BITS, uci_data->cfg.o_ack);
+  uint32_t nof_bits = SRSRAN_MIN(SRSRAN_PUCCH_NR_FORMAT1_MAX_NOF_BITS, uci_data->cfg.ack.count);
   for (uint32_t i = 0; i < nof_bits; i++) {
     b[i] = uci_data->value.ack[i];
   }
