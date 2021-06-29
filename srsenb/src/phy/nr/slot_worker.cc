@@ -150,9 +150,26 @@ bool slot_worker::work_ul()
     return false;
   }
 
+  // Demodulate
+  if (srsran_gnb_ul_fft(&gnb_ul) < SRSRAN_SUCCESS) {
+    logger.error("Error in demodulation");
+    return false;
+  }
+
   // Decode PUCCH
   for (stack_interface_phy_nr::pucch_t& pucch : ul_sched.pucch) {
-    // ...
+    srsran_uci_value_nr_t uci_value;
+    if (srsran_gnb_ul_get_pucch(&gnb_ul, &ul_slot_cfg, &pucch.pucch_cfg, &pucch.resource, &pucch.uci_cfg, &uci_value) <
+        SRSRAN_SUCCESS) {
+      logger.error("Error getting PUCCH");
+      return false;
+    }
+
+    if (logger.info.enabled()) {
+      std::array<char, 512> str;
+      srsran_uci_data_nr_t  uci_data = {.cfg = pucch.uci_cfg, .value = uci_value};
+      srsran_gnb_ul_pucch_info(&gnb_ul, &pucch.resource, &uci_data, str.data(), (uint32_t)str.size());
+    }
   }
 
   // Decode PUSCH

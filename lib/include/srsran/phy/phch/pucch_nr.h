@@ -239,9 +239,9 @@ SRSRAN_API int srsran_pucch_nr_format_2_3_4_decode(srsran_pucch_nr_t*           
                                                    cf_t*                               slot_symbols,
                                                    srsran_uci_value_nr_t*              uci_value);
 
-SRSRAN_API uint32_t srsran_pucch_nr_tx_info(const srsran_pucch_nr_resource_t* resource,
-                                            const srsran_uci_data_nr_t*       uci_data,
-                                            char*                             str,
-                                            uint32_t                          str_len);
+SRSRAN_API uint32_t srsran_pucch_nr_info(const srsran_pucch_nr_resource_t* resource,
+                                         const srsran_uci_data_nr_t*       uci_data,
+                                         char*                             str,
+                                         uint32_t                          str_len);
 
 #endif // SRSRAN_PUCCH_NR_H

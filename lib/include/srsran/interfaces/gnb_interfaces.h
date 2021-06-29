@@ -248,8 +248,9 @@ public:
   };
 
   struct pucch_t {
-    srsran_uci_cfg_nr_t        uci_cfg;
-    srsran_pucch_nr_resource_t resource;
+    srsran_uci_cfg_nr_t          uci_cfg;   ///< UCI configuration
+    srsran_pucch_nr_common_cfg_t pucch_cfg; ///< UE dedicated PUCCH configuration
+    srsran_pucch_nr_resource_t   resource;  ///< PUCCH resource
   };
 
   struct ul_sched_t {

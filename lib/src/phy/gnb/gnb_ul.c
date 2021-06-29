@@ -262,3 +262,23 @@ int srsran_gnb_ul_get_pucch(srsran_gnb_ul_t*                    q,
 
   return SRSRAN_ERROR;
 }
+
+uint32_t srsran_gnb_ul_pucch_info(srsran_gnb_ul_t*                  q,
+                                  const srsran_pucch_nr_resource_t* resource,
+                                  const srsran_uci_data_nr_t*       uci_data,
+                                  char*                             str,
+                                  uint32_t                          str_len)
+{
+  if (q == NULL || uci_data == NULL) {
+    return 0;
+  }
+
+  uint32_t len = 0;
+
+  len += srsran_pucch_nr_info(resource, uci_data, str, str_len - len);
+
+  len = srsran_print_check(
+      str, str_len, len, "snr=%+.1f valid=%c", q->chest_pucch.snr_db, uci_data->value.valid ? 'y' : 'n');
+
+  return len;
+}

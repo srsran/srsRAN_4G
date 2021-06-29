@@ -260,7 +260,7 @@ int srsran_ue_ul_nr_pucch_info(const srsran_pucch_nr_resource_t* resource,
   int len = 0;
 
   // Append PDSCH info
-  len += srsran_pucch_nr_tx_info(resource, uci_data, &str[len], str_len - len);
+  len += srsran_pucch_nr_info(resource, uci_data, &str[len], str_len - len);
 
   return len;
 }

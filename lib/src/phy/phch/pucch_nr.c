@@ -762,10 +762,10 @@ static uint32_t pucch_nr_resource_info(const srsran_pucch_nr_resource_t* r, char
   return len;
 }
 
-uint32_t srsran_pucch_nr_tx_info(const srsran_pucch_nr_resource_t* resource,
-                                 const srsran_uci_data_nr_t*       uci_data,
-                                 char*                             str,
-                                 uint32_t                          str_len)
+uint32_t srsran_pucch_nr_info(const srsran_pucch_nr_resource_t* resource,
+                              const srsran_uci_data_nr_t*       uci_data,
+                              char*                             str,
+                              uint32_t                          str_len)
 {
   uint32_t len = 0;
 
