@@ -27,9 +27,11 @@ rlc::rlc(const char* logname) : logger(srslog::fetch_basic_logger(logname)), poo
 rlc::~rlc()
 {
   // destroy all remaining entities
-  srsran::rwlock_write_guard lock(rwlock);
-  rlc_array.clear();
-  rlc_array_mrb.clear();
+  {
+    srsran::rwlock_write_guard lock(rwlock);
+    rlc_array.clear();
+    rlc_array_mrb.clear();
+  }
   pthread_rwlock_destroy(&rwlock);
 }
 
