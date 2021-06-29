@@ -120,6 +120,30 @@ public:
   virtual void notify_pdcp_integrity_error(uint16_t rnti, uint32_t lcid)                 = 0;
 };
 
+// RRC interfaces for NSA operation
+
+/// X2AP inspired interface to allow EUTRA RRC to call NR RRC
+class rrc_nr_interface_rrc
+{
+public:
+  /// Request addition of NR carrier for UE (TODO: add configuration check, QCI, security, etc.)
+  virtual int sgnb_addition_request(uint16_t rnti) = 0;
+
+  /// Provide information whether the requested configuration was applied successfully by the UE
+  virtual int sgnb_reconfiguration_complete(uint16_t rnti, asn1::dyn_octstring reconfig_response) = 0;
+};
+
+/// X2AP inspired interface for response from NR RRC to EUTRA RRC
+class rrc_eutra_interface_rrc_nr
+{
+public:
+  /// Signal successful addition of UE
+  virtual void sgnb_addition_ack(uint16_t                   rnti,
+                                 const asn1::dyn_octstring& nr_secondary_cell_group_cfg_r15,
+                                 const asn1::dyn_octstring& nr_radio_bearer_cfg1_r15) = 0;
+  virtual void sgnb_addition_reject(uint16_t rnti)                                    = 0;
+};
+
 } // namespace srsenb
 
 #endif // SRSRAN_ENB_RRC_INTERFACES_H
