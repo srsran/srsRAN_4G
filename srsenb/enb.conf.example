@@ -333,6 +333,8 @@ enable = false
 # eea_pref_list:        Ordered preference list for the selection of encryption algorithm (EEA) (default: EEA0, EEA2, EEA1).
 # eia_pref_list:        Ordered preference list for the selection of integrity algorithm (EIA) (default: EIA2, EIA1, EIA0).
 # gtpu_tunnel_timeout:  Time that GTPU takes to release indirect forwarding tunnel since the last received GTPU PDU (0 for no timer).
+#ts1_reloc_prep_timeout: S1AP TS 36.413 TS1RelocPrep Expiry Timeout value in milliseconds
+#ts1_reloc_overall_timeout: S1AP TS 36.413 TS1RelocPrep Expiry Timeout value in milliseconds
 #
 #####################################################################
 [expert]
@@ -361,3 +363,5 @@ enable = false
 #eia_pref_list = EIA2, EIA1, EIA0
 #gtpu_tunnel_timeout = 0
 #extended_cp         = false
+#ts1_reloc_prep_timeout = 10000
+#ts1_reloc_overall_timeout = 10000

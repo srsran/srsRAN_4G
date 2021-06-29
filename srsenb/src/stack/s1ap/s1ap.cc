@@ -2006,10 +2006,10 @@ s1ap::ue::ue(s1ap* s1ap_ptr_) : s1ap_ptr(s1ap_ptr_), ho_prep_proc(this), logger(
 
   // initialize timers
   ts1_reloc_prep = s1ap_ptr->task_sched.get_unique_timer();
-  ts1_reloc_prep.set(ts1_reloc_prep_timeout_ms,
+  ts1_reloc_prep.set(s1ap_ptr->args.ts1_reloc_prep_timeout,
                      [this](uint32_t tid) { ho_prep_proc.trigger(ho_prep_proc_t::ts1_reloc_prep_expired{}); });
   ts1_reloc_overall = s1ap_ptr->task_sched.get_unique_timer();
-  ts1_reloc_overall.set(ts1_reloc_overall_timeout_ms, [this](uint32_t tid) {
+  ts1_reloc_overall.set(s1ap_ptr->args.ts1_reloc_overall_timeout, [this](uint32_t tid) {
     //> If the UE Context Release procedure is not initiated towards the eNB before the expiry of the timer
     //  TS1RELOCOverall, the eNB shall request the MME to release the UE context.
     s1ap_ptr->user_release(ctxt.rnti, asn1::s1ap::cause_radio_network_opts::ts1relocoverall_expiry);

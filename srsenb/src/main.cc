@@ -234,6 +234,8 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("expert.gtpu_tunnel_timeout", bpo::value<uint32_t>(&args->stack.gtpu_indirect_tunnel_timeout_msec)->default_value(0), "Maximum time that GTPU takes to release indirect forwarding tunnel since the last received GTPU PDU. (0 for infinity)")
     ("expert.rlf_release_timer_ms", bpo::value<uint32_t>(&args->general.rlf_release_timer_ms)->default_value(4000), "Time taken by eNB to release UE context after it detects an RLF")
     ("expert.extended_cp", bpo::value<bool>(&args->phy.extended_cp)->default_value(false), "Use extended cyclic prefix")
+    ("expert.ts1_reloc_prep_timeout", bpo::value<uint32_t>(&args->stack.s1ap.ts1_reloc_prep_timeout)->default_value(10000), "S1AP TS 36.413 TS1RelocPrep Expiry Timeout value in milliseconds")
+    ("expert.ts1_reloc_overall_timeout", bpo::value<uint32_t>(&args->stack.s1ap.ts1_reloc_overall_timeout)->default_value(10000), "S1AP TS 36.413 TS1RelocPrep Expiry Timeout value in milliseconds")
 
 
     // eMBMS section
