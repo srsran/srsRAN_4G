@@ -68,7 +68,7 @@ SRSRAN_API extern int handler_registered;
 #define ERROR(_fmt, ...)                                                                                               \
   do {                                                                                                                 \
     if (!handler_registered) {                                                                                         \
-      fprintf(stderr, "\e[31m%s.%d: " _fmt "\e[0m\n", __FILE__, __LINE__, ##__VA_ARGS__);                              \
+      fprintf(stderr, "\e[31m%s:%d: " _fmt "\e[0m\n", __FILE__, __LINE__, ##__VA_ARGS__);                              \
     } else {                                                                                                           \
       srsran_phy_log_print(LOG_LEVEL_ERROR_S, _fmt, ##__VA_ARGS__);                                                    \
     }                                                                                                                  \
