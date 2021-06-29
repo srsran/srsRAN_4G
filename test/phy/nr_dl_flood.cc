@@ -108,10 +108,10 @@ test_bench::args_t::args_t(int argc, char** argv)
   phy_cfg.pusch.typeA_pos = srsran_dmrs_sch_typeA_pos_2;
 
   phy_cfg.tdd.pattern1.period_ms      = 10;
-  phy_cfg.tdd.pattern1.nof_dl_slots   = 7;
-  phy_cfg.tdd.pattern1.nof_dl_symbols = 6;
-  phy_cfg.tdd.pattern1.nof_ul_slots   = 4;
-  phy_cfg.tdd.pattern1.nof_ul_symbols = 4;
+  phy_cfg.tdd.pattern1.nof_dl_slots   = 5;
+  phy_cfg.tdd.pattern1.nof_dl_symbols = 0;
+  phy_cfg.tdd.pattern1.nof_ul_slots   = 5;
+  phy_cfg.tdd.pattern1.nof_ul_symbols = 0;
 
   phy_cfg.pdsch.dmrs_typeA.additional_pos = srsran_dmrs_sch_add_pos_1;
   phy_cfg.pdsch.dmrs_typeA.present        = true;
@@ -206,8 +206,9 @@ test_bench::args_t::args_t(int argc, char** argv)
   phy_cfg.harq_ack.dl_data_to_ul_ack[2] = 6;
   phy_cfg.harq_ack.dl_data_to_ul_ack[3] = 5;
   phy_cfg.harq_ack.dl_data_to_ul_ack[4] = 4;
-  phy_cfg.harq_ack.dl_data_to_ul_ack[5] = 12;
-  phy_cfg.harq_ack.dl_data_to_ul_ack[6] = 11;
+  phy_cfg.harq_ack.dl_data_to_ul_ack[5] = 4;
+  phy_cfg.harq_ack.dl_data_to_ul_ack[6] = 4;
+  phy_cfg.harq_ack.dl_data_to_ul_ack[7] = 4;
   phy_cfg.harq_ack.harq_ack_codebook    = srsran_pdsch_harq_ack_codebook_dynamic;
 
   phy_cfg.prach.freq_offset = 2;
@@ -272,10 +273,10 @@ int main(int argc, char** argv)
   // Parse test bench arguments
   test_bench::args_t args(argc, argv);
   args.gnb_args.log_id_preamble  = "GNB/";
-  args.gnb_args.log_level        = "warning";
+  args.gnb_args.log_level        = "info";
   args.gnb_args.nof_phy_threads  = 1;
   args.ue_args.log.id_preamble   = " UE/";
-  args.ue_args.log.phy_level     = "warning";
+  args.ue_args.log.phy_level     = "info";
   args.ue_args.log.phy_hex_limit = 0;
   args.ue_args.nof_phy_threads   = 1;
 

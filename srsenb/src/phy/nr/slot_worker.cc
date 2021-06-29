@@ -109,6 +109,7 @@ slot_worker::~slot_worker()
     }
   }
   srsran_gnb_dl_free(&gnb_dl);
+  srsran_gnb_ul_free(&gnb_ul);
 }
 
 cf_t* slot_worker::get_buffer_rx(uint32_t antenna_idx)
@@ -169,6 +170,8 @@ bool slot_worker::work_ul()
       std::array<char, 512> str;
       srsran_uci_data_nr_t  uci_data = {.cfg = pucch.uci_cfg, .value = uci_value};
       srsran_gnb_ul_pucch_info(&gnb_ul, &pucch.resource, &uci_data, str.data(), (uint32_t)str.size());
+
+      logger.info("PUCCH: %s", str.data());
     }
   }
 
@@ -184,7 +187,7 @@ bool slot_worker::work_dl()
 {
   // Retrieve Scheduling for the current processing DL slot
   stack_interface_phy_nr::dl_sched_t dl_sched = {};
-  if (stack.get_dl_sched(ul_slot_cfg, dl_sched) < SRSRAN_SUCCESS) {
+  if (stack.get_dl_sched(dl_slot_cfg, dl_sched) < SRSRAN_SUCCESS) {
     logger.error("Error retrieving DL scheduling");
     return false;
   }

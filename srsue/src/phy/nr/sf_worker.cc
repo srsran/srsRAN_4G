@@ -116,6 +116,7 @@ void sf_worker::work_imp()
   for (uint32_t i = 0; i < (uint32_t)cc_workers.size(); i++) {
     tx_buffer.set(i, cc_workers[i]->get_tx_buffer(0));
   }
+  tx_buffer.set_nof_samples(SRSRAN_SF_LEN_PRB_NR(phy_state.cfg.carrier.nof_prb));
 
   // Always call worker_end before returning
   common.worker_end(this, true, tx_buffer, tx_time, true);

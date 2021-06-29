@@ -13,6 +13,7 @@
 #ifndef SRSRAN_DUMMY_GNB_STACK_H
 #define SRSRAN_DUMMY_GNB_STACK_H
 
+#include <mutex>
 #include <srsran/adt/circular_array.h>
 #include <srsran/common/phy_cfg_nr.h>
 #include <srsran/interfaces/gnb_interfaces.h>
@@ -34,6 +35,49 @@ private:
   srsran_random_t                                                      random_gen    = nullptr;
   srsran::phy_cfg_nr_t                                                 phy_cfg       = {};
   bool                                                                 valid         = false;
+
+  // HARQ feedback
+  class pending_ack_t
+  {
+  private:
+    std::mutex            mutex;
+    srsran_pdsch_ack_nr_t ack = {};
+
+  public:
+    void push_ack(srsran_harq_ack_resource_t& ack_resource)
+    {
+      // Prepare ACK information
+      srsran_harq_ack_m_t ack_m = {};
+      ack_m.resource            = ack_resource;
+      ack_m.present             = true;
+
+      std::unique_lock<std::mutex> lock(mutex);
+
+      ack.nof_cc = 1;
+
+      srsran_harq_ack_insert_m(&ack, &ack_m);
+    }
+
+    srsran_pdsch_ack_nr_t get_ack()
+    {
+      std::unique_lock<std::mutex> lock(mutex);
+
+      return ack;
+    }
+    uint32_t get_dai()
+    {
+      std::unique_lock<std::mutex> lock(mutex);
+      return ack.cc[0].M % 4;
+    }
+
+    void reset()
+    {
+      std::unique_lock<std::mutex> lock(mutex);
+
+      ack = {};
+    }
+  };
+  srsran::circular_array<pending_ack_t, TTIMOD_SZ> pending_ack;
 
   struct dummy_harq_proc {
     static const uint32_t  MAX_TB_SZ = SRSRAN_LDPC_MAX_LEN_CB * SRSRAN_SCH_NR_MAX_NOF_CB_LDPC;
@@ -68,12 +112,14 @@ public:
     uint32_t             dl_start_rb              = 0;      ///< Start resource block
     uint32_t             dl_length_rb             = 0l;     ///< Number of resource blocks
     uint32_t             dl_time_res              = 0;      ///< PDSCH time resource
+    std::string          log_level                = "debug";
   };
 
   gnb_dummy_stack(args_t args) :
     mcs(args.mcs), rnti(args.rnti), dl_time_res(args.dl_time_res), phy_cfg(args.phy_cfg), ss_id(args.ss_id)
   {
     random_gen = srsran_random_init(0x1234);
+    logger.set_level(srslog::str_to_basic_level(args.log_level));
 
     // Select DCI locations
     for (uint32_t slot = 0; slot < SRSRAN_NOF_SF_X_FRAME; slot++) {
@@ -135,6 +181,8 @@ public:
 
   int get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched) override
   {
+    logger.set_context(slot_cfg.idx);
+
     // Check if it is TDD DL slot and PDSCH mask, if no PDSCH shall be scheduled, do not set any grant and skip
     if (not srsran_tdd_nr_is_dl(&phy_cfg.tdd, phy_cfg.carrier.scs, slot_cfg.idx)) {
       return SRSRAN_SUCCESS;
@@ -159,6 +207,9 @@ public:
       return SRSRAN_ERROR;
     }
 
+    uint32_t harq_feedback     = dl_data_to_ul_ack[slot_cfg.idx];
+    uint32_t harq_ack_slot_idx = TTI_ADD(slot_cfg.idx, harq_feedback);
+
     // Fill DCI fields
     srsran_dci_dl_nr_t& dci   = pdcch.dci;
     dci.freq_domain_assigment = dl_freq_res;
@@ -167,10 +218,14 @@ public:
     dci.rv                    = 0;
     dci.ndi                   = (slot_cfg.idx / SRSRAN_NOF_SF_X_FRAME) % 2;
     dci.pid                   = slot_cfg.idx % SRSRAN_NOF_SF_X_FRAME;
-    dci.dai                   = slot_cfg.idx % SRSRAN_NOF_SF_X_FRAME;
+    dci.dai                   = pending_ack[harq_ack_slot_idx].get_dai();
     dci.tpc                   = 1;
     dci.pucch_resource        = 0;
-    dci.harq_feedback         = dl_data_to_ul_ack[TTI_TX(slot_cfg.idx)];
+    if (dci.ctx.format == srsran_dci_format_nr_1_0) {
+      dci.harq_feedback = dl_data_to_ul_ack[slot_cfg.idx] - 1;
+    } else {
+      dci.harq_feedback = slot_cfg.idx;
+    }
 
     // Create PDSCH configuration
     if (not phy_cfg.get_pdsch_cfg(slot_cfg, dci, pdsch.sch)) {
@@ -191,10 +246,46 @@ public:
     dl_sched.pdcch_dl.push_back(pdcch);
     dl_sched.pdsch.push_back(pdsch);
 
+    // Generate PDSCH HARQ Feedback
+    srsran_harq_ack_resource_t ack_resource = {};
+    if (not phy_cfg.get_pdsch_ack_resource(dci, ack_resource)) {
+      logger.error("Error getting ack resource");
+      return SRSRAN_ERROR;
+    }
+
+    // Calculate PUCCH slot and push resource
+    pending_ack[harq_ack_slot_idx].push_ack(ack_resource);
+
     return SRSRAN_SUCCESS;
   }
 
-  int get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched) override { return 0; }
+  int get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched) override
+  {
+    logger.set_context(slot_cfg.idx);
+
+    srsran_pdsch_ack_nr_t ack = pending_ack[slot_cfg.idx].get_ack();
+    pending_ack[slot_cfg.idx].reset();
+
+    if (ack.nof_cc > 0) {
+      mac_interface_phy_nr::pucch_t pucch = {};
+
+      if (logger.debug.enabled()) {
+        std::array<char, 512> str = {};
+        if (srsran_harq_ack_info(&ack, str.data(), (uint32_t)str.size()) > 0) {
+          logger.debug("HARQ feedback:\n%s", str.data());
+        }
+      }
+
+      if (not phy_cfg.get_pucch(slot_cfg, ack, pucch.pucch_cfg, pucch.uci_cfg, pucch.resource)) {
+        logger.error("Error getting UCI CFG");
+        return SRSRAN_ERROR;
+      }
+
+      ul_sched.pucch.push_back(pucch);
+    }
+
+    return 0;
+  }
 };
 
 #endif // SRSRAN_DUMMY_GNB_STACK_H

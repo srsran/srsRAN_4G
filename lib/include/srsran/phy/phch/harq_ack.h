@@ -21,6 +21,10 @@ SRSRAN_API int srsran_harq_ack_resource(const srsran_harq_ack_cfg_hl_t* cfg,
                                         const srsran_dci_dl_nr_t*       dci_dl,
                                         srsran_harq_ack_resource_t*     pdsch_ack_resource);
 
+SRSRAN_API int srsran_harq_ack_gen_uci_cfg(const srsran_harq_ack_cfg_hl_t* cfg,
+                                           const srsran_pdsch_ack_nr_t*    ack_info,
+                                           srsran_uci_cfg_nr_t*            uci_cfg);
+
 SRSRAN_API int srsran_harq_ack_pack(const srsran_harq_ack_cfg_hl_t* cfg,
                                     const srsran_pdsch_ack_nr_t*    ack_info,
                                     srsran_uci_data_nr_t*           uci_data);
