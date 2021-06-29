@@ -49,7 +49,6 @@ SRSRAN_API int srsran_dmrs_pucch_format1_put(const srsran_pucch_nr_t*           
 /**
  * @brief Estimates NR-PUCCH format 1 resource elements from their DMRS in the provided resource grid
  * @param[in] q NR-PUCCH encoder/decoder object
- * @param[in] carrier Carrier configuration
  * @param[in] cfg PUCCH common configuration
  * @param[in] slot slot configuration
  * @param[in] resource PUCCH format 1 resource
@@ -58,7 +57,6 @@ SRSRAN_API int srsran_dmrs_pucch_format1_put(const srsran_pucch_nr_t*           
  * @return SRSRAN_SUCCESS if successful, SRSRAN_ERROR code otherwise
  */
 SRSRAN_API int srsran_dmrs_pucch_format1_estimate(const srsran_pucch_nr_t*            q,
-                                                  const srsran_carrier_nr_t*          carrier,
                                                   const srsran_pucch_nr_common_cfg_t* cfg,
                                                   const srsran_slot_cfg_t*            slot,
                                                   const srsran_pucch_nr_resource_t*   resource,
@@ -85,7 +83,6 @@ int srsran_dmrs_pucch_format2_put(const srsran_pucch_nr_t*            q,
 /**
  * @brief Estimates NR-PUCCH format 2 resource elements from their DMRS in the provided resource grid
  * @param[in] q NR-PUCCH encoder/decoder object
- * @param[in] carrier Carrier configuration
  * @param[in] cfg PUCCH common configuration
  * @param[in] slot slot configuration
  * @param[in] resource PUCCH format 2 resource
@@ -94,7 +91,6 @@ int srsran_dmrs_pucch_format2_put(const srsran_pucch_nr_t*            q,
  * @return SRSRAN_SUCCESS if successful, SRSRAN_ERROR code otherwise
  */
 int srsran_dmrs_pucch_format2_estimate(const srsran_pucch_nr_t*            q,
-                                       const srsran_carrier_nr_t*          carrier,
                                        const srsran_pucch_nr_common_cfg_t* cfg,
                                        const srsran_slot_cfg_t*            slot,
                                        const srsran_pucch_nr_resource_t*   resource,

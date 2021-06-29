@@ -80,6 +80,7 @@ private:
   srsran_pdcch_cfg_nr_t  pdcch_cfg   = {};
   srsran::rf_timestamp_t tx_time     = {};
   srsran_gnb_dl_t        gnb_dl      = {};
+  srsran_gnb_ul_t        gnb_ul      = {};
   std::vector<cf_t*>     tx_buffer; ///< Baseband transmit buffers
   std::vector<cf_t*>     rx_buffer; ///< Baseband receive buffers
 };

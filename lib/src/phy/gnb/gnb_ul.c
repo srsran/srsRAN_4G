@@ -11,6 +11,7 @@
  */
 
 #include "srsran/phy/gnb/gnb_ul.h"
+#include "srsran/phy/ch_estimation/dmrs_pucch.h"
 
 /**
  * @brief Shifts FFT window a fraction of the cyclic prefix. Set to 0.0f for disabling.
@@ -24,8 +25,13 @@ static int gnb_ul_alloc_prb(srsran_gnb_ul_t* q, uint32_t new_nof_prb)
   if (q->max_prb < new_nof_prb) {
     q->max_prb = new_nof_prb;
 
-    srsran_chest_dl_res_free(&q->chest);
-    if (srsran_chest_dl_res_init(&q->chest, q->max_prb) < SRSRAN_SUCCESS) {
+    srsran_chest_dl_res_free(&q->chest_pusch);
+    if (srsran_chest_dl_res_init(&q->chest_pusch, q->max_prb) < SRSRAN_SUCCESS) {
+      return SRSRAN_ERROR;
+    }
+
+    srsran_chest_ul_res_free(&q->chest_pucch);
+    if (srsran_chest_ul_res_init(&q->chest_pucch, q->max_prb) < SRSRAN_SUCCESS) {
       return SRSRAN_ERROR;
     }
 
@@ -90,7 +96,8 @@ void srsran_gnb_ul_free(srsran_gnb_ul_t* q)
   srsran_pusch_nr_free(&q->pusch);
   srsran_pucch_nr_free(&q->pucch);
   srsran_dmrs_sch_free(&q->dmrs);
-  srsran_chest_dl_res_free(&q->chest);
+  srsran_chest_dl_res_free(&q->chest_pusch);
+  srsran_chest_ul_res_free(&q->chest_pucch);
 
   if (q->sf_symbols[0] != NULL) {
     free(q->sf_symbols[0]);
@@ -157,13 +164,101 @@ int srsran_gnb_ul_get_pusch(srsran_gnb_ul_t*             q,
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
-  if (srsran_dmrs_sch_estimate(&q->dmrs, slot_cfg, cfg, grant, q->sf_symbols[0], &q->chest) < SRSRAN_SUCCESS) {
+  if (srsran_dmrs_sch_estimate(&q->dmrs, slot_cfg, cfg, grant, q->sf_symbols[0], &q->chest_pusch) < SRSRAN_SUCCESS) {
     return SRSRAN_ERROR;
   }
 
-  if (srsran_pusch_nr_decode(&q->pusch, cfg, grant, &q->chest, q->sf_symbols, data) < SRSRAN_SUCCESS) {
+  if (srsran_pusch_nr_decode(&q->pusch, cfg, grant, &q->chest_pusch, q->sf_symbols, data) < SRSRAN_SUCCESS) {
     return SRSRAN_ERROR;
   }
 
   return SRSRAN_SUCCESS;
+}
+
+static int gnb_ul_decode_pucch_format1(srsran_gnb_ul_t*                    q,
+                                       const srsran_slot_cfg_t*            slot_cfg,
+                                       const srsran_pucch_nr_common_cfg_t* cfg,
+                                       const srsran_pucch_nr_resource_t*   resource,
+                                       const srsran_uci_cfg_nr_t*          uci_cfg,
+                                       srsran_uci_value_nr_t*              uci_value)
+{
+  uint8_t b[SRSRAN_PUCCH_NR_FORMAT1_MAX_NOF_BITS] = {};
+
+  // Set ACK bits
+  uint32_t nof_bits = SRSRAN_MIN(SRSRAN_PUCCH_NR_FORMAT1_MAX_NOF_BITS, uci_cfg->o_ack);
+
+  // Set SR bits
+  // For a positive SR transmission using PUCCH format 1, the UE transmits the PUCCH as described in [4, TS
+  // 38.211] by setting b ( 0 ) = 0 .
+  if (nof_bits == 0 && uci_cfg->o_sr > 0) {
+    nof_bits = 1;
+  }
+
+  if (srsran_dmrs_pucch_format1_estimate(&q->pucch, cfg, slot_cfg, resource, q->sf_symbols[0], &q->chest_pucch) <
+      SRSRAN_SUCCESS) {
+    ERROR("Error in PUCCH format 1 estimation");
+    return SRSRAN_ERROR;
+  }
+
+  if (srsran_pucch_nr_format1_decode(
+          &q->pucch, cfg, slot_cfg, resource, &q->chest_pucch, q->sf_symbols[0], b, nof_bits) < SRSRAN_SUCCESS) {
+    ERROR("Error in PUCCH format 1 decoding");
+    return SRSRAN_ERROR;
+  }
+
+  // De-multiplex ACK bits
+  for (uint32_t i = 0; i < nof_bits; i++) {
+    uci_value->ack[i] = b[i];
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
+static int gnb_ul_decode_pucch_format2(srsran_gnb_ul_t*                    q,
+                                       const srsran_slot_cfg_t*            slot_cfg,
+                                       const srsran_pucch_nr_common_cfg_t* cfg,
+                                       const srsran_pucch_nr_resource_t*   resource,
+                                       const srsran_uci_cfg_nr_t*          uci_cfg,
+                                       srsran_uci_value_nr_t*              uci_value)
+{
+  if (srsran_dmrs_pucch_format2_estimate(&q->pucch, cfg, slot_cfg, resource, q->sf_symbols[0], &q->chest_pucch) <
+      SRSRAN_SUCCESS) {
+    ERROR("Error in PUCCH format 2 estimation");
+    return SRSRAN_ERROR;
+  }
+
+  if (srsran_pucch_nr_format_2_3_4_decode(
+          &q->pucch, cfg, slot_cfg, resource, uci_cfg, &q->chest_pucch, q->sf_symbols[0], uci_value) < SRSRAN_SUCCESS) {
+    ERROR("Error in PUCCH format 2 decoding");
+    return SRSRAN_ERROR;
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
+int srsran_gnb_ul_get_pucch(srsran_gnb_ul_t*                    q,
+                            const srsran_slot_cfg_t*            slot_cfg,
+                            const srsran_pucch_nr_common_cfg_t* cfg,
+                            const srsran_pucch_nr_resource_t*   resource,
+                            const srsran_uci_cfg_nr_t*          uci_cfg,
+                            srsran_uci_value_nr_t*              uci_value)
+{
+  if (q == NULL || slot_cfg == NULL || cfg == NULL || resource == NULL || uci_cfg == NULL || uci_value == NULL) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+
+  // Estimate channel
+  switch (resource->format) {
+    case SRSRAN_PUCCH_NR_FORMAT_1:
+      return gnb_ul_decode_pucch_format1(q, slot_cfg, cfg, resource, uci_cfg, uci_value);
+    case SRSRAN_PUCCH_NR_FORMAT_2:
+      return gnb_ul_decode_pucch_format2(q, slot_cfg, cfg, resource, uci_cfg, uci_value);
+    case SRSRAN_PUCCH_NR_FORMAT_0:
+    case SRSRAN_PUCCH_NR_FORMAT_3:
+    case SRSRAN_PUCCH_NR_FORMAT_4:
+    case SRSRAN_PUCCH_NR_FORMAT_ERROR:
+      ERROR("Invalid or not implemented PUCCH-NR format %d", (int)resource->format);
+  }
+
+  return SRSRAN_ERROR;
 }

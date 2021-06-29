@@ -18,9 +18,7 @@ namespace nr {
 slot_worker::slot_worker(srsran::phy_common_interface& common_,
                          stack_interface_phy_nr&       stack_,
                          srslog::basic_logger&         logger_) :
-  common(common_),
-  stack(stack_),
-  logger(logger_)
+  common(common_), stack(stack_), logger(logger_)
 {
   // Do nothing
 }
@@ -62,15 +60,34 @@ bool slot_worker::init(const args_t& args)
   dl_args.nof_tx_antennas      = args.nof_tx_ports;
   dl_args.nof_max_prb          = args.carrier.nof_prb;
 
-  // Initialise  DL
+  // Initialise DL
   if (srsran_gnb_dl_init(&gnb_dl, tx_buffer.data(), &dl_args) < SRSRAN_SUCCESS) {
-    logger.error("Error gNb PHY init");
+    logger.error("Error gNb DL init");
     return false;
   }
 
-  // Set gNb carrier
+  // Set gNb DL carrier
   if (srsran_gnb_dl_set_carrier(&gnb_dl, &args.carrier) < SRSRAN_SUCCESS) {
-    logger.error("Error setting carrier");
+    logger.error("Error setting DL carrier");
+    return false;
+  }
+
+  // Prepare UL arguments
+  srsran_gnb_ul_args_t ul_args = {};
+  ul_args.pusch.measure_time   = true;
+  ul_args.pusch.max_layers     = args.carrier.max_mimo_layers;
+  ul_args.pusch.max_prb        = args.carrier.nof_prb;
+  ul_args.nof_max_prb          = args.carrier.nof_prb;
+
+  // Initialise UL
+  if (srsran_gnb_ul_init(&gnb_ul, rx_buffer[0], &ul_args) < SRSRAN_SUCCESS) {
+    logger.error("Error gNb DL init");
+    return false;
+  }
+
+  // Set gNb UL carrier
+  if (srsran_gnb_ul_set_carrier(&gnb_ul, &args.carrier) < SRSRAN_SUCCESS) {
+    logger.error("Error setting UL carrier");
     return false;
   }
 

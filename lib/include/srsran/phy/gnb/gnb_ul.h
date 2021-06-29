@@ -34,7 +34,8 @@ typedef struct SRSRAN_API {
   srsran_pusch_nr_t     pusch;
   srsran_pucch_nr_t     pucch;
   srsran_dmrs_sch_t     dmrs;
-  srsran_chest_dl_res_t chest;
+  srsran_chest_dl_res_t chest_pusch;
+  srsran_chest_ul_res_t chest_pucch;
 } srsran_gnb_ul_t;
 
 SRSRAN_API int srsran_gnb_ul_init(srsran_gnb_ul_t* q, cf_t* input, const srsran_gnb_ul_args_t* args);

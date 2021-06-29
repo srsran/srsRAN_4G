@@ -121,7 +121,7 @@ int srsran_dmrs_pucch_format1_put(const srsran_pucch_nr_t*            q,
     uint32_t l = m * 2;
 
     // Get start of the sequence in resource grid
-    cf_t* slot_symbols_ptr = &slot_symbols[(carrier->nof_prb * (l + l_prime) + resource->starting_prb) * SRSRAN_NRE];
+    cf_t* slot_symbols_ptr = &slot_symbols[(q->carrier.nof_prb * (l + l_prime) + resource->starting_prb) * SRSRAN_NRE];
 
     // Get Alpha index
     uint32_t alpha_idx = 0;
@@ -152,15 +152,13 @@ int srsran_dmrs_pucch_format1_put(const srsran_pucch_nr_t*            q,
 }
 
 int srsran_dmrs_pucch_format1_estimate(const srsran_pucch_nr_t*            q,
-                                       const srsran_carrier_nr_t*          carrier,
                                        const srsran_pucch_nr_common_cfg_t* cfg,
                                        const srsran_slot_cfg_t*            slot,
                                        const srsran_pucch_nr_resource_t*   resource,
                                        const cf_t*                         slot_symbols,
                                        srsran_chest_ul_res_t*              res)
 {
-  if (q == NULL || carrier == NULL || cfg == NULL || slot == NULL || resource == NULL || slot_symbols == NULL ||
-      res == NULL) {
+  if (q == NULL || cfg == NULL || slot == NULL || resource == NULL || slot_symbols == NULL || res == NULL) {
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
@@ -172,7 +170,7 @@ int srsran_dmrs_pucch_format1_estimate(const srsran_pucch_nr_t*            q,
   // Get group sequence
   uint32_t u = 0;
   uint32_t v = 0;
-  if (srsran_pucch_nr_group_sequence(carrier, cfg, &u, &v) < SRSRAN_SUCCESS) {
+  if (srsran_pucch_nr_group_sequence(&q->carrier, cfg, &u, &v) < SRSRAN_SUCCESS) {
     ERROR("Error getting group sequence");
     return SRSRAN_ERROR;
   }
@@ -191,11 +189,11 @@ int srsran_dmrs_pucch_format1_estimate(const srsran_pucch_nr_t*            q,
 
     // Get start of the sequence in resource grid
     const cf_t* slot_symbols_ptr =
-        &slot_symbols[(carrier->nof_prb * (l + l_prime) + resource->starting_prb) * SRSRAN_NRE];
+        &slot_symbols[(q->carrier.nof_prb * (l + l_prime) + resource->starting_prb) * SRSRAN_NRE];
 
     // Get Alpha index
     uint32_t alpha_idx = 0;
-    if (srsran_pucch_nr_alpha_idx(carrier, cfg, slot, l, l_prime, resource->initial_cyclic_shift, 0, &alpha_idx) <
+    if (srsran_pucch_nr_alpha_idx(&q->carrier, cfg, slot, l, l_prime, resource->initial_cyclic_shift, 0, &alpha_idx) <
         SRSRAN_SUCCESS) {
       ERROR("Calculating alpha");
     }
@@ -247,9 +245,9 @@ int srsran_dmrs_pucch_format1_estimate(const srsran_pucch_nr_t*            q,
 
   // Compute Time Aligment error in microseconds
   if (isnormal(ta_err)) {
-    ta_err /= 15e3f * (float)(1U << carrier->scs); // Convert from normalized frequency to seconds
-    ta_err *= 1e6f;                                       // Convert to micro-seconds
-    ta_err     = roundf(ta_err * 10.0f) / 10.0f;          // Round to one tenth of micro-second
+    ta_err /= 15e3f * (float)(1U << q->carrier.scs); // Convert from normalized frequency to seconds
+    ta_err *= 1e6f;                                  // Convert to micro-seconds
+    ta_err     = roundf(ta_err * 10.0f) / 10.0f;     // Round to one tenth of micro-second
     res->ta_us = ta_err;
   } else {
     res->ta_us = 0.0f;
@@ -264,7 +262,7 @@ int srsran_dmrs_pucch_format1_estimate(const srsran_pucch_nr_t*            q,
   // Interpolates between DMRS symbols
   for (uint32_t m = 0; m < n_pucch; m++) {
     uint32_t l      = m * 2 + 1;
-    cf_t*    ce_ptr = &res->ce[(carrier->nof_prb * (l + l_prime) + resource->starting_prb) * SRSRAN_NRE];
+    cf_t*    ce_ptr = &res->ce[(q->carrier.nof_prb * (l + l_prime) + resource->starting_prb) * SRSRAN_NRE];
 
     if (m != n_pucch - 1) {
       // If it is not the last symbol with DMRS, average between
@@ -313,8 +311,8 @@ int srsran_dmrs_pucch_format2_put(const srsran_pucch_nr_t*            q,
 
   uint32_t l_start = resource->start_symbol_idx;
   uint32_t l_end   = resource->start_symbol_idx + resource->nof_symbols;
-  uint32_t k_start = SRSRAN_MIN(carrier->nof_prb - 1, resource->starting_prb) * SRSRAN_NRE + 1;
-  uint32_t k_end   = SRSRAN_MIN(carrier->nof_prb, resource->starting_prb + resource->nof_prb) * SRSRAN_NRE;
+  uint32_t k_start = SRSRAN_MIN(q->carrier.nof_prb - 1, resource->starting_prb) * SRSRAN_NRE + 1;
+  uint32_t k_end   = SRSRAN_MIN(q->carrier.nof_prb, resource->starting_prb + resource->nof_prb) * SRSRAN_NRE;
   for (uint32_t l = l_start; l < l_end; l++) {
     // Compute sequence initial state
     uint32_t                cinit    = dmrs_pucch_format2_cinit(carrier, cfg, slot, l);
@@ -330,22 +328,20 @@ int srsran_dmrs_pucch_format2_put(const srsran_pucch_nr_t*            q,
 
     // Put sequence in k = 3 * m + 1
     for (uint32_t k = k_start, i = 0; k < k_end; k += 3, i++) {
-      slot_symbols[l * carrier->nof_prb * SRSRAN_NRE + k] = r_l[i];
+      slot_symbols[l * q->carrier.nof_prb * SRSRAN_NRE + k] = r_l[i];
     }
   }
   return SRSRAN_SUCCESS;
 }
 
 int srsran_dmrs_pucch_format2_estimate(const srsran_pucch_nr_t*            q,
-                                       const srsran_carrier_nr_t*          carrier,
                                        const srsran_pucch_nr_common_cfg_t* cfg,
                                        const srsran_slot_cfg_t*            slot,
                                        const srsran_pucch_nr_resource_t*   resource,
                                        const cf_t*                         slot_symbols,
                                        srsran_chest_ul_res_t*              res)
 {
-  if (q == NULL || carrier == NULL || cfg == NULL || slot == NULL || resource == NULL || slot_symbols == NULL ||
-      res == NULL) {
+  if (q == NULL || cfg == NULL || slot == NULL || resource == NULL || slot_symbols == NULL || res == NULL) {
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
@@ -358,12 +354,12 @@ int srsran_dmrs_pucch_format2_estimate(const srsran_pucch_nr_t*            q,
 
   uint32_t l_start = resource->start_symbol_idx;
   uint32_t l_end   = resource->start_symbol_idx + resource->nof_symbols;
-  uint32_t k_start = SRSRAN_MIN(carrier->nof_prb - 1, resource->starting_prb) * SRSRAN_NRE + 1;
-  uint32_t k_end   = SRSRAN_MIN(carrier->nof_prb, resource->starting_prb + resource->nof_prb) * SRSRAN_NRE;
+  uint32_t k_start = SRSRAN_MIN(q->carrier.nof_prb - 1, resource->starting_prb) * SRSRAN_NRE + 1;
+  uint32_t k_end   = SRSRAN_MIN(q->carrier.nof_prb, resource->starting_prb + resource->nof_prb) * SRSRAN_NRE;
   uint32_t nof_ref = 4 * resource->nof_prb;
   for (uint32_t l = l_start, j = 0; l < l_end; l++, j++) {
     // Compute sequence initial state
-    uint32_t                cinit    = dmrs_pucch_format2_cinit(carrier, cfg, slot, l);
+    uint32_t                cinit    = dmrs_pucch_format2_cinit(&q->carrier, cfg, slot, l);
     srsran_sequence_state_t sequence = {};
     srsran_sequence_state_init(&sequence, cinit);
 
@@ -376,7 +372,7 @@ int srsran_dmrs_pucch_format2_estimate(const srsran_pucch_nr_t*            q,
 
     // Put sequence in k = 3 * m + 1
     for (uint32_t k = k_start, i = 0; k < k_end; k += 3, i++) {
-      ce[j][i] = slot_symbols[l * carrier->nof_prb * SRSRAN_NRE + k];
+      ce[j][i] = slot_symbols[l * q->carrier.nof_prb * SRSRAN_NRE + k];
     }
 
     srsran_vec_prod_conj_ccc(ce[j], r_l, ce[j], nof_ref);
@@ -409,9 +405,9 @@ int srsran_dmrs_pucch_format2_estimate(const srsran_pucch_nr_t*            q,
 
   // Compute Time Aligment error in microseconds
   if (isnormal(ta_err)) {
-    ta_err /= 15e3f * (float)(1U << carrier->scs) * 3; // Convert from normalized frequency to seconds
-    ta_err *= 1e6f;                                           // Convert to micro-seconds
-    ta_err     = roundf(ta_err * 10.0f) / 10.0f;              // Round to one tenth of micro-second
+    ta_err /= 15e3f * (float)(1U << q->carrier.scs) * 3; // Convert from normalized frequency to seconds
+    ta_err *= 1e6f;                                      // Convert to micro-seconds
+    ta_err     = roundf(ta_err * 10.0f) / 10.0f;         // Round to one tenth of micro-second
     res->ta_us = ta_err;
   } else {
     res->ta_us = 0.0f;
@@ -423,7 +419,7 @@ int srsran_dmrs_pucch_format2_estimate(const srsran_pucch_nr_t*            q,
   // Zero order hold
   for (uint32_t l = l_start, j = 0; l < l_end; l++, j++) {
     for (uint32_t k = k_start - 1, i = 0; k < k_end; k++, i++) {
-      res->ce[l * carrier->nof_prb * SRSRAN_NRE + k] = ce[j][i / 3];
+      res->ce[l * q->carrier.nof_prb * SRSRAN_NRE + k] = ce[j][i / 3];
     }
   }
 

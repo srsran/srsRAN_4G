@@ -130,7 +130,7 @@ static int test_pucch_format1(srsran_pucch_nr_t*                  pucch,
 
                   // Estimate channel
                   TESTASSERT(srsran_dmrs_pucch_format1_estimate(
-                                 pucch, &carrier, cfg, &slot, &resource, slot_symbols, chest_res) == SRSRAN_SUCCESS);
+                                 pucch, cfg, &slot, &resource, slot_symbols, chest_res) == SRSRAN_SUCCESS);
 
                   TESTASSERT(fabsf(chest_res->rsrp_dBfs - 0.0f) < 3.0f);
                   TESTASSERT(fabsf(chest_res->epre_dBfs - 0.0f) < 3.0f);
@@ -215,8 +215,8 @@ static int test_pucch_format2(srsran_pucch_nr_t*                  pucch,
                     &awgn, slot_symbols, slot_symbols, carrier.nof_prb * SRSRAN_NRE * SRSRAN_NSYMB_PER_SLOT_NR);
 
                 // Estimate channel
-                TESTASSERT(srsran_dmrs_pucch_format2_estimate(
-                               pucch, &carrier, cfg, &slot, &resource, slot_symbols, chest_res) == SRSRAN_SUCCESS);
+                TESTASSERT(srsran_dmrs_pucch_format2_estimate(pucch, cfg, &slot, &resource, slot_symbols, chest_res) ==
+                           SRSRAN_SUCCESS);
                 INFO("RSRP=%+.2f; EPRE=%+.2f; SNR=%+.2f;",
                      chest_res->rsrp_dBfs,
                      chest_res->epre_dBfs,

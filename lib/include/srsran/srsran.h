@@ -118,6 +118,7 @@ extern "C" {
 #include "srsran/phy/enb/enb_dl.h"
 #include "srsran/phy/enb/enb_ul.h"
 #include "srsran/phy/gnb/gnb_dl.h"
+#include "srsran/phy/gnb/gnb_ul.h"
 
 #include "srsran/phy/scrambling/scrambling.h"
 
