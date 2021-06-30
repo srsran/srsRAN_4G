@@ -28,7 +28,7 @@ using pusch_bitmap = srsran::bounded_bitset<25, true>;
 using pdsch_t      = sched_nr_interface::pdsch_t;
 using pdsch_list_t = sched_nr_interface::pdsch_list_t;
 
-using pusch_list = sched_nr_interface::pusch_list;
+using pusch_list = sched_nr_interface::pusch_list_t;
 
 struct pucch_t {};
 
@@ -36,6 +36,7 @@ const static size_t MAX_CORESET_PER_BWP = 3;
 using slot_coreset_list                 = srsran::bounded_vector<coreset_region, MAX_CORESET_PER_BWP>;
 
 struct bwp_slot_grid {
+  uint32_t                                                 bwp_id;
   pdcch_dl_list_t                                          pdcch_dl_list;
   pdcch_ul_list_t                                          pdcch_ul_list;
   slot_coreset_list                                        coresets;
@@ -53,10 +54,12 @@ struct bwp_slot_grid {
 struct bwp_res_grid {
   bwp_res_grid(const sched_cell_params& cell_cfg_, uint32_t bwp_id_);
 
-  bwp_slot_grid&       operator[](tti_point tti) { return slots[tti.sf_idx()]; };
-  const bwp_slot_grid& operator[](tti_point tti) const { return slots[tti.sf_idx()]; };
-  uint32_t             id() const { return bwp_id; }
-  uint32_t             nof_prbs() const { return cell_cfg->cell_cfg.nof_prb; }
+  bwp_slot_grid&           operator[](tti_point tti) { return slots[tti.sf_idx()]; };
+  const bwp_slot_grid&     operator[](tti_point tti) const { return slots[tti.sf_idx()]; };
+  uint32_t                 id() const { return bwp_id; }
+  uint32_t                 nof_prbs() const { return cell_cfg->cell_cfg.nof_prb; }
+  const sched_cell_params& cell_params() const { return *cell_cfg; }
+  const bwp_cfg_t&         bwp_cfg() const { return cell_cfg->cell_cfg.bwps[id() - 1]; }
 
 private:
   uint32_t                 bwp_id;

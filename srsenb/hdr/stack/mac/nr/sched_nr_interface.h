@@ -15,6 +15,7 @@
 
 #include "srsran/adt/bounded_bitset.h"
 #include "srsran/adt/bounded_vector.h"
+#include "srsran/adt/optional.h"
 #include "srsran/adt/span.h"
 #include "srsran/common/phy_cfg_nr.h"
 #include "srsran/common/tti_point.h"
@@ -51,8 +52,11 @@ public:
   using pusch_td_res_alloc_list = srsran::bounded_vector<pusch_td_res_alloc, SCHED_NR_MAX_UL_ALLOCS>;
 
   struct bwp_cfg_t {
+    uint32_t bwp_id   = 1;
     uint32_t start_rb = 0;
     uint32_t rb_width = 100;
+
+    std::array<srsran::optional<srsran_coreset_t>, SRSRAN_UE_DL_NR_MAX_NOF_CORESET> coresets;
   };
 
   struct cell_cfg_t {
@@ -97,15 +101,14 @@ public:
     pdsch_list_t    pdschs;
   };
 
-  struct pusch_grant {
-    srsran_dci_ul_nr_t dci;
-    rbg_bitmap         bitmap;
+  struct pusch_t {
+    srsran_sch_cfg_nr_t sch = {}; ///< PUSCH configuration
   };
-  using pusch_list = srsran::bounded_vector<pusch_grant, SCHED_NR_MAX_PDSCH_DATA>;
+  using pusch_list_t = srsran::bounded_vector<pusch_t, SCHED_NR_MAX_PDSCH_DATA>;
 
   struct ul_tti_request_t {
-    tti_point                                                   pusch_tti;
-    srsran::bounded_vector<pusch_grant, SCHED_NR_MAX_UL_ALLOCS> pusch;
+    tti_point                                               pusch_tti;
+    srsran::bounded_vector<pusch_t, SCHED_NR_MAX_UL_ALLOCS> pusch;
   };
 
   struct tti_request_t {

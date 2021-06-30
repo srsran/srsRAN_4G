@@ -26,6 +26,10 @@ void bitmap_to_prb_array(const rbgmask_t& bitmap, uint32_t bwp_nof_prb, srsran_s
 class slot_ue;
 void fill_dci_ue_cfg(const slot_ue& ue, srsran_dci_dl_nr_t& dci);
 void fill_dci_ue_cfg(const slot_ue& ue, srsran_dci_ul_nr_t& dci);
+void fill_sch_ue(const slot_ue&           ue,
+                 const rbgmask_t&         rbgmask,
+                 const sched_cell_params& cc_cfg,
+                 srsran_sch_cfg_nr_t&     sch);
 
 } // namespace sched_nr_impl
 } // namespace srsenb

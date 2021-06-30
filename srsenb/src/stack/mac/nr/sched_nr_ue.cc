@@ -34,7 +34,7 @@ ue_cfg_extended::ue_cfg_extended(uint16_t rnti_, const ue_cfg_t& uecfg) : ue_cfg
         auto& coreset = bwp.coresets.back();
         coreset.cfg   = &phy_cfg.pdcch.coreset[csid];
         for (auto& ss : bwp.search_spaces) {
-          if (ss.cfg->coreset_id == csid) {
+          if (ss.cfg->coreset_id == csid + 1) {
             coreset.ss_list.push_back(&ss);
             get_dci_locs(*coreset.cfg, *coreset.ss_list.back()->cfg, rnti, coreset.cce_positions);
           }

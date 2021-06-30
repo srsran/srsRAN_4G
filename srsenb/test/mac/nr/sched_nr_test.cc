@@ -17,6 +17,36 @@
 
 namespace srsenb {
 
+srsran_coreset_t get_default_coreset()
+{
+  srsran_coreset_t coreset{};
+  coreset.id                   = 1;
+  coreset.duration             = 1;
+  coreset.precoder_granularity = srsran_coreset_precoder_granularity_reg_bundle;
+  for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; ++i) {
+    coreset.freq_resources[i] = i < 8;
+  }
+  return coreset;
+}
+
+sched_nr_interface::cell_cfg_t get_default_cell_cfg()
+{
+  sched_nr_interface::cell_cfg_t cell_cfg{};
+
+  cell_cfg.bwps.resize(1);
+  cell_cfg.bwps[0].coresets[0].emplace(get_default_coreset());
+  return cell_cfg;
+}
+std::vector<sched_nr_interface::cell_cfg_t> get_default_cells_cfg(uint32_t nof_sectors)
+{
+  std::vector<sched_nr_interface::cell_cfg_t> cells;
+  cells.reserve(nof_sectors);
+  for (uint32_t i = 0; i < nof_sectors; ++i) {
+    cells.push_back(get_default_cell_cfg());
+  }
+  return cells;
+}
+
 sched_nr_interface::ue_cfg_t get_default_ue_cfg(uint32_t nof_cc)
 {
   sched_nr_interface::ue_cfg_t uecfg{};
@@ -25,22 +55,22 @@ sched_nr_interface::ue_cfg_t get_default_ue_cfg(uint32_t nof_cc)
     uecfg.carriers[cc].active = true;
   }
   uecfg.phy_cfg.pdcch.coreset_present[0] = true;
-  uecfg.phy_cfg.pdcch.coreset[0].id      = 0;
-  for (uint32_t i = 0; i < 100 / 6; ++i) {
-    uecfg.phy_cfg.pdcch.coreset[0].freq_resources[i] = true;
-  }
-  uecfg.phy_cfg.pdcch.coreset[0].duration               = 1;
-  uecfg.phy_cfg.pdcch.search_space_present[0]           = true;
-  uecfg.phy_cfg.pdcch.search_space[0].id                = 0;
-  uecfg.phy_cfg.pdcch.search_space[0].coreset_id        = 0;
-  uecfg.phy_cfg.pdcch.search_space[0].duration          = 1;
-  uecfg.phy_cfg.pdcch.search_space[0].type              = srsran_search_space_type_common_0;
-  uecfg.phy_cfg.pdcch.search_space[0].nof_candidates[0] = 1;
-  uecfg.phy_cfg.pdcch.search_space[0].nof_candidates[1] = 1;
-  uecfg.phy_cfg.pdcch.search_space[0].nof_candidates[2] = 1;
-  uecfg.phy_cfg.pdcch.search_space[0].nof_candidates[3] = 1;
-  uecfg.phy_cfg.pdcch.search_space[0].nof_formats       = 1;
-  uecfg.phy_cfg.pdcch.search_space[0].formats[0]        = srsran_dci_format_nr_0_0;
+  uecfg.phy_cfg.pdcch.coreset[0]         = get_default_coreset();
+
+  uecfg.phy_cfg.pdcch.search_space_present[0] = true;
+  auto& ss                                    = uecfg.phy_cfg.pdcch.search_space[0];
+  ss.id                                       = 1;
+  ss.coreset_id                               = 1;
+  ss.duration                                 = 1;
+  ss.type                                     = srsran_search_space_type_common_0;
+  ss.nof_candidates[0]                        = 1;
+  ss.nof_candidates[1]                        = 1;
+  ss.nof_candidates[2]                        = 1;
+  ss.nof_candidates[3]                        = 0;
+  ss.nof_candidates[4]                        = 0;
+  ss.nof_formats                              = 1;
+  ss.formats[0]                               = srsran_dci_format_nr_1_0;
+
   return uecfg;
 }
 
@@ -87,13 +117,11 @@ struct task_job_manager {
 
 void sched_nr_cfg_serialized_test()
 {
-  auto& mac_logger = srslog::fetch_basic_logger("MAC");
-
   uint32_t         max_nof_ttis = 1000, nof_sectors = 2;
   task_job_manager tasks;
 
   sched_nr_interface::sched_cfg_t             cfg;
-  std::vector<sched_nr_interface::cell_cfg_t> cells_cfg(nof_sectors);
+  std::vector<sched_nr_interface::cell_cfg_t> cells_cfg = get_default_cells_cfg(nof_sectors);
 
   sched_nr_sim_base sched_tester(cfg, cells_cfg, "Serialized Test");
 
@@ -121,13 +149,11 @@ void sched_nr_cfg_serialized_test()
 
 void sched_nr_cfg_parallel_cc_test()
 {
-  auto& mac_logger = srslog::fetch_basic_logger("MAC");
-
   uint32_t         max_nof_ttis = 1000;
   task_job_manager tasks;
 
   sched_nr_interface::sched_cfg_t             cfg;
-  std::vector<sched_nr_interface::cell_cfg_t> cells_cfg(4);
+  std::vector<sched_nr_interface::cell_cfg_t> cells_cfg = get_default_cells_cfg(4);
 
   sched_nr_sim_base sched_tester(cfg, cells_cfg, "Parallel CC Test");
 
@@ -161,9 +187,8 @@ void sched_nr_cfg_parallel_sf_test()
   task_job_manager tasks;
 
   sched_nr_interface::sched_cfg_t cfg;
-  cfg.nof_concurrent_subframes = 2;
-  std::vector<sched_nr_interface::cell_cfg_t> cells_cfg;
-  cells_cfg.resize(nof_sectors);
+  cfg.nof_concurrent_subframes                          = 2;
+  std::vector<sched_nr_interface::cell_cfg_t> cells_cfg = get_default_cells_cfg(nof_sectors);
 
   sched_nr sched(cfg);
   sched.cell_cfg(cells_cfg);

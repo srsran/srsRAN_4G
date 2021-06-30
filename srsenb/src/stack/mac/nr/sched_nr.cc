@@ -81,7 +81,9 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-sched_nr::sched_nr(const sched_cfg_t& sched_cfg) : cfg(sched_cfg), pending_events(new ue_event_manager(ue_db)) {}
+sched_nr::sched_nr(const sched_cfg_t& sched_cfg) :
+  cfg(sched_cfg), pending_events(new ue_event_manager(ue_db)), logger(srslog::fetch_basic_logger("MAC"))
+{}
 
 sched_nr::~sched_nr() {}
 
@@ -156,15 +158,21 @@ void sched_nr::ul_sr_info(tti_point tti_rx, uint16_t rnti)
   });
 }
 
+#define VERIFY_INPUT(cond, msg, ...)                                                                                   \
+  do {                                                                                                                 \
+    if (not(cond)) {                                                                                                   \
+      srslog::fetch_basic_logger("MAC").warning(msg, ##__VA_ARGS__);                                                   \
+      return SRSRAN_ERROR;                                                                                             \
+    }                                                                                                                  \
+  } while (0)
+
 int assert_ue_cfg_valid(uint16_t rnti, const sched_nr_interface::ue_cfg_t& uecfg)
 {
-  const srslog::basic_logger& logger = srslog::fetch_basic_logger("MAC");
-  if (std::count(&uecfg.phy_cfg.pdcch.coreset_present[0],
-                 &uecfg.phy_cfg.pdcch.coreset_present[SRSRAN_UE_DL_NR_MAX_NOF_CORESET],
-                 true) == 0) {
-    logger.warning("Provided rnti=0x%x configuration does not contain any coreset", rnti);
-    return SRSRAN_ERROR;
-  }
+  VERIFY_INPUT(std::count(&uecfg.phy_cfg.pdcch.coreset_present[0],
+                          &uecfg.phy_cfg.pdcch.coreset_present[SRSRAN_UE_DL_NR_MAX_NOF_CORESET],
+                          true) > 0,
+               "Provided rnti=0x%x configuration does not contain any coreset",
+               rnti);
   return SRSRAN_SUCCESS;
 }
 

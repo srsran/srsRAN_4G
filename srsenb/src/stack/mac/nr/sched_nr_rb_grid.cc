@@ -16,12 +16,13 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
-using pusch_grant = sched_nr_interface::pusch_grant;
+using pusch_t = sched_nr_interface::pusch_t;
 
 bwp_slot_grid::bwp_slot_grid(const sched_cell_params& cell_params, uint32_t bwp_id_, uint32_t slot_idx_) :
-  dl_rbgs(cell_params.cell_cfg.nof_rbg), ul_rbgs(cell_params.cell_cfg.nof_rbg)
+  dl_rbgs(cell_params.cell_cfg.nof_rbg), ul_rbgs(cell_params.cell_cfg.nof_rbg), bwp_id(bwp_id_)
 {
-  coresets.emplace_back(bwp_id_, slot_idx_, 1, cell_params.cell_cfg.bwps[bwp_id_].rb_width / 6, pdcch_dl_list);
+  const uint32_t coreset_id = 1; // Note: for now only one coreset per BWP supported
+  coresets.emplace_back(cell_params.cell_cfg.bwps[0], coreset_id, slot_idx_, pdcch_dl_list, pdcch_ul_list);
 }
 
 void bwp_slot_grid::reset()
@@ -72,9 +73,8 @@ alloc_result slot_bwp_sched::alloc_pdsch(slot_ue& ue, const rbgmask_t& dl_mask)
   if ((pdsch_mask & dl_mask).any()) {
     return alloc_result::sch_collision;
   }
-  const uint32_t aggr_idx = 3, coreset_id = 0;
-  if (not bwp_grid[ue.pdcch_tti].coresets[coreset_id].alloc_dci(
-          pdcch_grant_type_t::dl_data, aggr_idx, coreset_id, &ue)) {
+  const uint32_t aggr_idx = 2, coreset_id = 1;
+  if (not bwp_grid[ue.pdcch_tti].coresets[coreset_id - 1].alloc_dci(pdcch_grant_type_t::dl_data, aggr_idx, &ue)) {
     // Could not find space in PDCCH
     return alloc_result::no_cch_space;
   }
@@ -94,9 +94,7 @@ alloc_result slot_bwp_sched::alloc_pdsch(slot_ue& ue, const rbgmask_t& dl_mask)
   pdcch_dl_t& pdcch = bwp_grid[ue.pdcch_tti].pdcch_dl_list.back();
   fill_dci_ue_cfg(ue, pdcch.dci);
   pdsch_grants.emplace_back();
-  pdsch_t& grant       = pdsch_grants.back();
-  grant.sch.grant.rnti = ue.rnti;
-  bitmap_to_prb_array(dl_mask, bwp_grid.nof_prbs(), grant.sch.grant);
+  fill_sch_ue(ue, dl_mask, bwp_grid.cell_params(), pdsch_grants.back().sch);
   pdsch_mask |= dl_mask;
 
   return alloc_result::success;
@@ -117,9 +115,8 @@ alloc_result slot_bwp_sched::alloc_pusch(slot_ue& ue, const rbgmask_t& ul_mask)
   if ((pusch_mask & ul_mask).any()) {
     return alloc_result::sch_collision;
   }
-  const uint32_t aggr_idx = 3, coreset_id = 0;
-  if (not bwp_grid[ue.pdcch_tti].coresets[coreset_id].alloc_dci(
-          pdcch_grant_type_t::ul_data, aggr_idx, coreset_id, &ue)) {
+  const uint32_t aggr_idx = 2, coreset_id = 1;
+  if (not bwp_grid[ue.pdcch_tti].coresets[coreset_id - 1].alloc_dci(pdcch_grant_type_t::ul_data, aggr_idx, &ue)) {
     // Could not find space in PDCCH
     return alloc_result::no_cch_space;
   }
@@ -139,9 +136,7 @@ alloc_result slot_bwp_sched::alloc_pusch(slot_ue& ue, const rbgmask_t& ul_mask)
   pdcch_ul_t& pdcch = bwp_grid[ue.pdcch_tti].pdcch_ul_list.back();
   fill_dci_ue_cfg(ue, pdcch.dci);
   pusch_grants.emplace_back();
-  pusch_grant& grant = pusch_grants.back();
-  grant.dci.ctx.rnti = ue.rnti;
-  grant.bitmap       = ul_mask;
+  fill_sch_ue(ue, ul_mask, bwp_grid.cell_params(), pusch_grants.back().sch);
   pusch_mask |= ul_mask;
 
   return alloc_result::success;

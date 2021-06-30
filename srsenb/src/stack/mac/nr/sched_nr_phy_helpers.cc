@@ -66,36 +66,37 @@ void bitmap_to_prb_array(const rbgmask_t& bitmap, uint32_t bwp_nof_prb, srsran_s
   }
 }
 
-void fill_dci_harq(const harq_proc& h, srsran_dci_dl_nr_t& dci)
+template <typename DciDlOrUl>
+void fill_dci_common(const slot_ue& ue, DciDlOrUl& dci)
 {
-  dci.pid = h.pid;
-  dci.ndi = h.ndi();
-  dci.mcs = h.mcs();
+  dci.bwp_id        = ue.bwp_id;
+  dci.cc_id         = ue.cc;
+  dci.ctx.rnti      = ue.rnti;
+  dci.ctx.rnti_type = srsran_rnti_type_c;
+  dci.tpc           = 1;
+  // harq
+  harq_proc* h = std::is_same<DciDlOrUl, srsran_dci_dl_nr_t>::value ? ue.h_dl : ue.h_ul;
+  dci.pid      = h->pid;
+  dci.ndi      = h->ndi();
+  dci.mcs      = h->mcs();
 }
 
 void fill_dci_ue_cfg(const slot_ue& ue, srsran_dci_dl_nr_t& dci)
 {
-  dci.bwp_id   = ue.bwp_id;
-  dci.cc_id    = ue.cc;
-  dci.ctx.rnti = ue.rnti;
-  dci.tpc      = 1;
-  fill_dci_harq(*ue.h_dl, dci);
-}
-
-void fill_dci_harq(const harq_proc& h, srsran_dci_ul_nr_t& dci)
-{
-  dci.pid = h.pid;
-  dci.ndi = h.ndi();
-  dci.mcs = h.mcs();
+  fill_dci_common(ue, dci);
 }
 
 void fill_dci_ue_cfg(const slot_ue& ue, srsran_dci_ul_nr_t& dci)
 {
-  dci.bwp_id   = ue.bwp_id;
-  dci.cc_id    = ue.cc;
-  dci.ctx.rnti = ue.rnti;
-  dci.tpc      = 1;
-  fill_dci_harq(*ue.h_ul, dci);
+  fill_dci_common(ue, dci);
+}
+
+void fill_sch_ue(const slot_ue& ue, const rbgmask_t& rbgmask, const sched_cell_params& cc_cfg, srsran_sch_cfg_nr_t& sch)
+{
+  sch.grant.rnti_type  = srsran_rnti_type_c;
+  sch.grant.rnti       = ue.rnti;
+  sch.grant.nof_layers = 1;
+  bitmap_to_prb_array(rbgmask, cc_cfg.cell_cfg.nof_prb, sch.grant);
 }
 
 } // namespace sched_nr_impl

@@ -50,6 +50,7 @@ private:
 
   // args
   sched_nr_impl::sched_params cfg;
+  srslog::basic_logger&       logger;
 
   using sched_worker_manager = sched_nr_impl::sched_worker_manager;
   std::unique_ptr<sched_worker_manager> sched_workers;
