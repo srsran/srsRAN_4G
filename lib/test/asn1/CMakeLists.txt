@@ -59,3 +59,6 @@ target_link_libraries(rrc_asn1_decoder rrc_asn1)
 
 add_executable(nas_decoder nas_decoder.cc)
 target_link_libraries(nas_decoder srsran_asn1)
+
+add_executable(nas_5g_msg_test nas_5g_msg_test.cc)
+target_link_libraries(nas_5g_msg_test nas_5g_msg)

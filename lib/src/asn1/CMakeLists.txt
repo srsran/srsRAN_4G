@@ -61,5 +61,10 @@ add_library(ngap_nr_asn1 STATIC ngap.cc)
 target_compile_options(ngap_nr_asn1 PRIVATE "-Os")
 target_link_libraries(ngap_nr_asn1 asn1_utils srsran_common)
 INSTALL(TARGETS ngap_nr_asn1 DESTINATION ${LIBRARY_DIR})
+# NAS 5G
+add_library(nas_5g_msg STATIC nas_5g_msg.cc nas_5g_ies.cc nas_5g_utils.cc)
+target_compile_options(nas_5g_msg PRIVATE "-Os")
+target_link_libraries(nas_5g_msg asn1_utils srsran_common)
+INSTALL(TARGETS nas_5g_msg DESTINATION ${LIBRARY_DIR})
 
 
