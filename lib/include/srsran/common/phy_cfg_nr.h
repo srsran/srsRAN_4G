@@ -134,25 +134,6 @@ struct phy_cfg_nr_t {
                  srsran_pucch_nr_resource_t&   resource) const;
 };
 
-struct phy_cfg_nr_default_t : public phy_cfg_nr_t {
-  /**
-   * @brief DL reference configurations defined in TS 38.101-4 User Equipment (UE) radio transmission and reception;
-   * Part 4: Performance requirements
-   */
-  typedef enum {
-    R_PDSCH_2_1_1 = 0, // R.PDSCH.2-1.1 TDD
-  } dl_reference_t;
-
-  /**
-   * @brief UL reference configurations defined in TS 38.104 Base Station (BS) radio transmission and reception
-   */
-  typedef enum {
-    G_FR1_A3_8 = 0, // G-FR1-A3-8
-  } ul_reference_t;
-
-  phy_cfg_nr_default_t(const dl_reference_t& dl_reference, const ul_reference_t& ul_reference);
-};
-
 } // namespace srsran
 
 #endif // SRSRAN_PHY_CFG_NR_H

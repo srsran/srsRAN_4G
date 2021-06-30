@@ -23,6 +23,7 @@ set(SOURCES arch_select.cc
             mac_pcap_net.cc
             pcap.c
             phy_cfg_nr.cc
+            phy_cfg_nr_default.cc
             rlc_pcap.cc
             s1ap_pcap.cc
             security.cc
