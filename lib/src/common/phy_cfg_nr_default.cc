@@ -40,28 +40,33 @@ void phy_cfg_nr_default_t::make_tdd_custom_6_4(srsran_tdd_config_nr_t& tdd)
 
 void phy_cfg_nr_default_t::make_pdcch_custom_common_ss(srsran_pdcch_cfg_nr_t& pdcch, const srsran_carrier_nr_t& carrier)
 {
-  pdcch.coreset_present[1] = true;
-  pdcch.coreset[1].id      = 1;
-  for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
-    pdcch.coreset[1].freq_resources[0] = i < SRSRAN_FLOOR(carrier.nof_prb, 6);
-  }
+  // Configure CORESET ID 1
+  pdcch.coreset_present[1]              = true;
+  pdcch.coreset[1].id                   = 1;
   pdcch.coreset[1].duration             = 1;
   pdcch.coreset[1].mapping_type         = srsran_coreset_mapping_type_non_interleaved;
   pdcch.coreset[1].precoder_granularity = srsran_coreset_precoder_granularity_reg_bundle;
 
-  pdcch.search_space_present[1]           = true;
-  pdcch.search_space[1].id                = 1;
-  pdcch.search_space[1].coreset_id        = 1;
-  pdcch.search_space[1].duration          = 1;
-  pdcch.search_space[1].nof_candidates[0] = 0;
-  pdcch.search_space[1].nof_candidates[1] = 0;
-  pdcch.search_space[1].nof_candidates[2] = 0;
-  pdcch.search_space[1].nof_candidates[3] = 1;
-  pdcch.search_space[1].nof_candidates[4] = 0;
-  pdcch.search_space[1].formats[0]        = srsran_dci_format_nr_0_0; // DCI format for PUSCH
-  pdcch.search_space[1].formats[1]        = srsran_dci_format_nr_1_0; // DCI format for PDSCH
-  pdcch.search_space[1].nof_formats       = 2;
-  pdcch.search_space[1].type              = srsran_search_space_type_common_3;
+  // Generate frequency resources for the full BW
+  for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
+    pdcch.coreset[1].freq_resources[i] = i < SRSRAN_FLOOR(carrier.nof_prb, 6);
+  }
+
+  // Configure Search Space 1 as common
+  pdcch.search_space_present[1]     = true;
+  pdcch.search_space[1].id          = 1;
+  pdcch.search_space[1].coreset_id  = 1;
+  pdcch.search_space[1].duration    = 1;
+  pdcch.search_space[1].formats[0]  = srsran_dci_format_nr_0_0; // DCI format for PUSCH
+  pdcch.search_space[1].formats[1]  = srsran_dci_format_nr_1_0; // DCI format for PDSCH
+  pdcch.search_space[1].nof_formats = 2;
+  pdcch.search_space[1].type        = srsran_search_space_type_common_3;
+
+  // Generate 1 candidate for each aggregation level if possible
+  for (uint32_t L = 0; L < SRSRAN_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR; L++) {
+    pdcch.search_space[1].nof_candidates[L] =
+        SRSRAN_MIN(1, srsran_pdcch_nr_max_candidates_coreset(&pdcch.coreset[1], L));
+  }
 }
 
 void phy_cfg_nr_default_t::make_pdsch_default(srsran_sch_hl_cfg_nr_t& pdsch)
@@ -148,16 +153,38 @@ void phy_cfg_nr_default_t::make_pucch_custom_one(srsran_pucch_nr_hl_cfg_t& pucch
   pucch.sr_resources[1].resource   = resource_sr;
 }
 
-void phy_cfg_nr_default_t::make_harq_auto(srsran_harq_ack_cfg_hl_t& harq, const srsran_tdd_config_nr_t& tdd_cfg)
+void phy_cfg_nr_default_t::make_harq_auto(srsran_harq_ack_cfg_hl_t&     harq,
+                                          const srsran_carrier_nr_t&    carrier,
+                                          const srsran_tdd_config_nr_t& tdd_cfg)
 {
+  // Generate as many entries as DL slots
   harq.nof_dl_data_to_ul_ack = SRSRAN_MAX(tdd_cfg.pattern1.nof_dl_slots, SRSRAN_MAX_NOF_DL_DATA_TO_UL);
-  for (uint32_t i = 0; i < harq.nof_dl_data_to_ul_ack; i++) {
-    harq.dl_data_to_ul_ack[i] = ((harq.nof_dl_data_to_ul_ack - 4) > i) ? (harq.nof_dl_data_to_ul_ack - i) : 4;
+
+  // Set PDSCH to ACK timing delay to 4 or more
+  for (uint32_t n = 0; n < harq.nof_dl_data_to_ul_ack; n++) {
+    // Set the first slots into the first UL slot
+    if (n < (harq.nof_dl_data_to_ul_ack - 4)) {
+      harq.dl_data_to_ul_ack[n] = harq.nof_dl_data_to_ul_ack - n;
+      continue;
+    }
+
+    // After that try if n+4 is UL slot
+    if (srsran_tdd_nr_is_ul(&tdd_cfg, carrier.scs, n + 4)) {
+      harq.dl_data_to_ul_ack[n] = 4;
+      continue;
+    }
+
+    // Otherwise set delay to the first UL slot of the next TDD period
+    harq.dl_data_to_ul_ack[n] = 2 * harq.nof_dl_data_to_ul_ack - n;
   }
 
+  // Zero the rest
   for (uint32_t i = harq.nof_dl_data_to_ul_ack; i < SRSRAN_MAX_NOF_DL_DATA_TO_UL; i++) {
     harq.dl_data_to_ul_ack[i] = 0;
   }
+
+  // Select dynamic HARQ-ACK codebook
+  harq.harq_ack_codebook = srsran_pdsch_harq_ack_codebook_dynamic;
 }
 
 void phy_cfg_nr_default_t::make_prach_default_lte(srsran_prach_cfg_t& prach)
@@ -207,7 +234,7 @@ phy_cfg_nr_default_t::phy_cfg_nr_default_t(const reference_cfg_t& reference_cfg)
 
   switch (reference_cfg.harq) {
     case reference_cfg_t::R_HARQ_AUTO:
-      make_harq_auto(harq_ack, tdd);
+      make_harq_auto(harq_ack, carrier, tdd);
       break;
   }
 

@@ -44,6 +44,7 @@ public:
        * @brief Carrier reference configuration for 10MHz serving cell bandwidth
        * - CORESET: all channel, 1 symbol
        * - Single common Search Space
+       * - 1 possible candidate per aggregation level
        */
       R_PDCCH_CUSTOM_COMMON_SS = 0,
     } pdcch = R_PDCCH_CUSTOM_COMMON_SS;
@@ -82,6 +83,8 @@ public:
        * @brief Sets the delay between PDSCH and HARQ feedback timing automatically
        * - Dynamic HARQ ACK codebook
        * - Guarantees a minimum delay of 4ms
+       * - Assume 15kHz SCS
+       * - Assume TDD pattern2 is not enabled
        */
       R_HARQ_AUTO = 0,
     } harq = R_HARQ_AUTO;
@@ -133,7 +136,9 @@ private:
   /**
    * HARQ make helper methods
    */
-  static void make_harq_auto(srsran_harq_ack_cfg_hl_t& harq, const srsran_tdd_config_nr_t& tdd_cfg);
+  static void make_harq_auto(srsran_harq_ack_cfg_hl_t&     harq,
+                             const srsran_carrier_nr_t&    carrier,
+                             const srsran_tdd_config_nr_t& tdd_cfg);
 
   /**
    * PRACH make helper methods
