@@ -189,5 +189,13 @@ int gnb_stack_nr::get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul
 {
   return m_mac->get_ul_sched(slot_cfg, ul_sched);
 }
+int gnb_stack_nr::pucch_info(const srsran_slot_cfg_t& slot_cfg, const mac_interface_phy_nr::pucch_info_t& pucch_info)
+{
+  return m_mac->pucch_info(slot_cfg, pucch_info);
+}
+int gnb_stack_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, const mac_interface_phy_nr::pusch_info_t& pusch_info)
+{
+  return m_mac->pusch_info(slot_cfg, pusch_info);
+}
 
 } // namespace srsenb

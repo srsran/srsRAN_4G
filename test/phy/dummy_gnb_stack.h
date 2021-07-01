@@ -14,8 +14,10 @@
 #define SRSRAN_DUMMY_GNB_STACK_H
 
 #include <mutex>
+#include <srsenb/hdr/stack/mac/mac_metrics.h>
 #include <srsran/adt/circular_array.h>
 #include <srsran/common/phy_cfg_nr.h>
+#include <srsran/common/standard_streams.h>
 #include <srsran/interfaces/gnb_interfaces.h>
 
 class gnb_dummy_stack : public srsenb::stack_interface_phy_nr
@@ -35,6 +37,9 @@ private:
   srsran_random_t                                                      random_gen    = nullptr;
   srsran::phy_cfg_nr_t                                                 phy_cfg       = {};
   bool                                                                 valid         = false;
+
+  std::mutex               mac_metrics_mutex;
+  srsenb::mac_ue_metrics_t mac_metrics = {};
 
   // HARQ feedback
   class pending_ack_t
@@ -61,20 +66,14 @@ private:
     srsran_pdsch_ack_nr_t get_ack()
     {
       std::unique_lock<std::mutex> lock(mutex);
-
-      return ack;
+      srsran_pdsch_ack_nr_t        ret = ack;
+      ack                              = {};
+      return ret;
     }
     uint32_t get_dai()
     {
       std::unique_lock<std::mutex> lock(mutex);
       return ack.cc[0].M % 4;
-    }
-
-    void reset()
-    {
-      std::unique_lock<std::mutex> lock(mutex);
-
-      ack = {};
     }
   };
   srsran::circular_array<pending_ack_t, TTIMOD_SZ> pending_ack;
@@ -264,7 +263,6 @@ public:
     logger.set_context(slot_cfg.idx);
 
     srsran_pdsch_ack_nr_t ack = pending_ack[slot_cfg.idx].get_ack();
-    pending_ack[slot_cfg.idx].reset();
 
     if (ack.nof_cc > 0) {
       mac_interface_phy_nr::pucch_t pucch = {};
@@ -285,6 +283,36 @@ public:
     }
 
     return 0;
+  }
+
+  int pucch_info(const srsran_slot_cfg_t& slot_cfg, const pucch_info_t& pucch_info) override
+  {
+    std::unique_lock<std::mutex> lock(mac_metrics_mutex);
+
+    for (uint32_t i = 0; i < pucch_info.uci_data.cfg.ack.count; i++) {
+      const srsran_harq_ack_bit_t* ack_bit = &pucch_info.uci_data.cfg.ack.bits[i];
+      bool                         is_ok = (pucch_info.uci_data.value.ack[i] == 1) and pucch_info.uci_data.value.valid;
+      uint32_t                     tb_count = (ack_bit->tb0 ? 1 : 0) + (ack_bit->tb1 ? 1 : 0);
+      mac_metrics.tx_pkts += tb_count;
+      if (not is_ok) {
+        mac_metrics.tx_errors += tb_count;
+        logger.debug("NACK received!");
+      }
+    }
+    return SRSRAN_SUCCESS;
+  }
+
+  int pusch_info(const srsran_slot_cfg_t& slot_cfg, const pusch_info_t& pusch_info) override
+  {
+    // ... Not implemented
+    return SRSRAN_ERROR;
+  }
+
+  srsenb::mac_ue_metrics_t get_metrics()
+  {
+    std::unique_lock<std::mutex> lock(mac_metrics_mutex);
+
+    return mac_metrics;
   }
 };
 

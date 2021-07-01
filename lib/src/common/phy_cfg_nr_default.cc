@@ -228,7 +228,7 @@ phy_cfg_nr_default_t::phy_cfg_nr_default_t(const reference_cfg_t& reference_cfg)
 
   switch (reference_cfg.pucch) {
     case reference_cfg_t::R_PUCCH_CUSTOM_ONE:
-      make_pusch_default(pusch);
+      make_pucch_custom_one(pucch);
       break;
   }
 

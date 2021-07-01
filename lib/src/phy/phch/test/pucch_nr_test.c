@@ -139,7 +139,7 @@ static int test_pucch_format1(srsran_pucch_nr_t*                  pucch,
                   // Decode PUCCH
                   uint8_t b_rx[SRSRAN_PUCCH_NR_FORMAT1_MAX_NOF_BITS];
                   TESTASSERT(srsran_pucch_nr_format1_decode(
-                                 pucch, cfg, &slot, &resource, chest_res, slot_symbols, b_rx, nof_bits) ==
+                                 pucch, cfg, &slot, &resource, chest_res, slot_symbols, b_rx, nof_bits, NULL) ==
                              SRSRAN_SUCCESS);
 
                   // Check received bits

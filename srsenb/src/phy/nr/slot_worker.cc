@@ -159,17 +159,30 @@ bool slot_worker::work_ul()
 
   // Decode PUCCH
   for (stack_interface_phy_nr::pucch_t& pucch : ul_sched.pucch) {
-    srsran_uci_value_nr_t uci_value;
-    if (srsran_gnb_ul_get_pucch(&gnb_ul, &ul_slot_cfg, &pucch.pucch_cfg, &pucch.resource, &pucch.uci_cfg, &uci_value) <
-        SRSRAN_SUCCESS) {
+    stack_interface_phy_nr::pucch_info_t pucch_info = {};
+    pucch_info.uci_data.cfg                         = pucch.uci_cfg;
+
+    // Decode PUCCH
+    if (srsran_gnb_ul_get_pucch(&gnb_ul,
+                                &ul_slot_cfg,
+                                &pucch.pucch_cfg,
+                                &pucch.resource,
+                                &pucch_info.uci_data.cfg,
+                                &pucch_info.uci_data.value) < SRSRAN_SUCCESS) {
       logger.error("Error getting PUCCH");
       return false;
     }
 
+    // Inform stack
+    if (stack.pucch_info(ul_slot_cfg, pucch_info) < SRSRAN_SUCCESS) {
+      logger.error("Error pushing PUCCH information to stack");
+      return false;
+    }
+
+    // Log PUCCH decoding
     if (logger.info.enabled()) {
       std::array<char, 512> str;
-      srsran_uci_data_nr_t  uci_data = {.cfg = pucch.uci_cfg, .value = uci_value};
-      srsran_gnb_ul_pucch_info(&gnb_ul, &pucch.resource, &uci_data, str.data(), (uint32_t)str.size());
+      srsran_gnb_ul_pucch_info(&gnb_ul, &pucch.resource, &pucch_info.uci_data, str.data(), (uint32_t)str.size());
 
       logger.info("PUCCH: %s", str.data());
     }

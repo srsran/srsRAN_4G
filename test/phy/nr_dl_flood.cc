@@ -120,9 +120,37 @@ int main(int argc, char** argv)
   // Assert bench is initialised correctly
   TESTASSERT(tb.is_initialised());
 
-  for (uint32_t i = 0; i < 20; i++) {
+  // Run per TTI basis
+  for (uint32_t i = 0; i < 1000; i++) {
     TESTASSERT(tb.run_tti());
   }
+
+  // Stop test bench
+  tb.stop();
+
+  // Flush log
+  srslog::flush();
+
+  // Retrieve MAC metrics
+  srsenb::mac_ue_metrics_t mac_metrics = gnb_stack.get_metrics();
+
+  // Print metrics
+  float pdsch_bler = 0.0f;
+  if (mac_metrics.tx_pkts != 0) {
+    pdsch_bler = (float)mac_metrics.tx_errors / (float)mac_metrics.tx_pkts;
+  }
+  float pdsch_rate = 0.0f;
+  if (mac_metrics.tx_pkts != 0) {
+    pdsch_rate = (float)mac_metrics.tx_brate / (float)mac_metrics.tx_pkts / 1000.0f;
+  }
+
+  srsran::console("PDSCH:\n");
+  srsran::console("  Count: %d\n", mac_metrics.tx_pkts);
+  srsran::console("   BLER: %f\n", pdsch_bler);
+  srsran::console("   Rate: %f Mbps\n", pdsch_rate);
+
+  // Assert metrics
+  TESTASSERT(mac_metrics.tx_errors == 0);
 
   // If reached here, the test is successful
   return SRSRAN_SUCCESS;

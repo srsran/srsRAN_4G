@@ -276,5 +276,13 @@ int mac_nr::get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched
 {
   return 0;
 }
+int mac_nr::pucch_info(const srsran_slot_cfg_t& slot_cfg, const mac_interface_phy_nr::pucch_info_t& pucch_info)
+{
+  return 0;
+}
+int mac_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, const mac_interface_phy_nr::pusch_info_t& pusch_info)
+{
+  return 0;
+}
 
 } // namespace srsenb

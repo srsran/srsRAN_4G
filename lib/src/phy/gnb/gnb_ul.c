@@ -194,17 +194,24 @@ static int gnb_ul_decode_pucch_format1(srsran_gnb_ul_t*                    q,
     nof_bits = 1;
   }
 
+  // Channel estimation
   if (srsran_dmrs_pucch_format1_estimate(&q->pucch, cfg, slot_cfg, resource, q->sf_symbols[0], &q->chest_pucch) <
       SRSRAN_SUCCESS) {
     ERROR("Error in PUCCH format 1 estimation");
     return SRSRAN_ERROR;
   }
 
+  // Actual decode
+  float norm_corr = 0.0f;
   if (srsran_pucch_nr_format1_decode(
-          &q->pucch, cfg, slot_cfg, resource, &q->chest_pucch, q->sf_symbols[0], b, nof_bits) < SRSRAN_SUCCESS) {
+          &q->pucch, cfg, slot_cfg, resource, &q->chest_pucch, q->sf_symbols[0], b, nof_bits, &norm_corr) <
+      SRSRAN_SUCCESS) {
     ERROR("Error in PUCCH format 1 decoding");
     return SRSRAN_ERROR;
   }
+
+  // Take valid decision
+  uci_value->valid = (norm_corr > 0.5f);
 
   // De-multiplex ACK bits
   for (uint32_t i = 0; i < nof_bits; i++) {

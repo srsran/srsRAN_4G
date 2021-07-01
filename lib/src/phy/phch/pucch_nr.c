@@ -452,7 +452,8 @@ int srsran_pucch_nr_format1_decode(srsran_pucch_nr_t*                  q,
                                    srsran_chest_ul_res_t*              chest_res,
                                    cf_t*                               slot_symbols,
                                    uint8_t                             b[SRSRAN_PUCCH_NR_FORMAT1_MAX_NOF_BITS],
-                                   uint32_t                            nof_bits)
+                                   uint32_t                            nof_bits,
+                                   float*                              norm_corr)
 {
   uint32_t m_cs = 0;
 
@@ -524,8 +525,14 @@ int srsran_pucch_nr_format1_decode(srsran_pucch_nr_t*                  q,
   srsran_demod_soft_demodulate((nof_bits == 1) ? SRSRAN_MOD_BPSK : SRSRAN_MOD_QPSK, &d, llr, 1);
 
   // Hard decision
+  float corr = 0.0f;
   for (uint32_t i = 0; i < nof_bits; i++) {
     b[i] = llr[i] > 0.0f ? 1 : 0;
+    corr += fabsf(llr[i]);
+  }
+
+  if (norm_corr != NULL && nof_bits > 0) {
+    *norm_corr = corr / nof_bits;
   }
 
   return SRSRAN_SUCCESS;
