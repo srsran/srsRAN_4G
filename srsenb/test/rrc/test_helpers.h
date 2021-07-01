@@ -218,13 +218,6 @@ bool unpack_asn1(ASN1Type& asn1obj, srsran::const_byte_span pdu)
   return true;
 }
 
-inline void copy_msg_to_buffer(srsran::unique_byte_buffer_t& pdu, srsran::const_byte_span msg)
-{
-  pdu = srsran::make_byte_buffer();
-  memcpy(pdu->msg, msg.data(), msg.size());
-  pdu->N_bytes = msg.size();
-}
-
 int bring_rrc_to_reconf_state(srsenb::rrc& rrc, srsran::timer_handler& timers, uint16_t rnti);
 
 } // namespace test_helpers
