@@ -53,27 +53,45 @@ uint32_t get_rbg_size(uint32_t bwp_nof_prb, uint32_t bwp_start, bool config1_or_
   return P;
 }
 
-void bitmap_to_prb_array(const rbgmask_t& bitmap, uint32_t bwp_nof_prb, srsran_sch_grant_nr_t& grant)
+void bitmap_to_prb_array(const rbgmask_t& bitmap, uint32_t bwp_nof_prb, srsran::span<bool> prbs)
 {
   uint32_t count = 0;
-  grant.nof_prb  = bwp_nof_prb;
   for (uint32_t rbg = 0; rbg < bitmap.size(); ++rbg) {
     bool     val      = bitmap.test(rbg);
     uint32_t rbg_size = get_rbg_size(bwp_nof_prb, 0, true, rbg);
-    for (uint32_t prb = count; prb < count + rbg_size; ++prb) {
-      grant.prb_idx[prb] = val;
+    for (uint32_t prb_idx = count; prb_idx < count + rbg_size; ++prb_idx) {
+      prbs[prb_idx] = val;
     }
   }
 }
 
-template <typename DciDlOrUl>
-void fill_dci_common(const slot_ue& ue, DciDlOrUl& dci)
+srsran::interval<uint32_t> find_first_interval(const rbgmask_t& mask)
 {
-  dci.bwp_id        = ue.bwp_id;
-  dci.cc_id         = ue.cc;
-  dci.ctx.rnti      = ue.rnti;
-  dci.ctx.rnti_type = srsran_rnti_type_c;
-  dci.tpc           = 1;
+  int rb_start = mask.find_lowest(0, mask.size());
+  if (rb_start != -1) {
+    int rb_end = mask.find_lowest(rb_start + 1, mask.size(), false);
+    return {(uint32_t)rb_start, (uint32_t)(rb_end < 0 ? mask.size() : rb_end)};
+  }
+  return {};
+}
+
+int bitmap_to_riv(const rbgmask_t& bitmap, uint32_t cell_nof_prb)
+{
+  srsran::interval<uint32_t> interv = find_first_interval(bitmap);
+  srsran_assert(interv.length() == bitmap.count(), "Trying to acquire riv for non-contiguous bitmap");
+  return srsran_ra_nr_type1_riv(cell_nof_prb, interv.start(), interv.length());
+}
+
+template <typename DciDlOrUl>
+void fill_dci_common(const slot_ue& ue, const rbgmask_t& bitmap, const sched_cell_params& cc_cfg, DciDlOrUl& dci)
+{
+  // Note: PDCCH DCI position already filled at this point
+  dci.bwp_id                = ue.bwp_id;
+  dci.cc_id                 = ue.cc;
+  dci.freq_domain_assigment = bitmap_to_riv(bitmap, cc_cfg.cell_cfg.nof_prb);
+  dci.ctx.rnti              = ue.rnti;
+  dci.ctx.rnti_type         = srsran_rnti_type_c;
+  dci.tpc                   = 1;
   // harq
   harq_proc* h = std::is_same<DciDlOrUl, srsran_dci_dl_nr_t>::value ? ue.h_dl : ue.h_ul;
   dci.pid      = h->pid;
@@ -81,22 +99,51 @@ void fill_dci_common(const slot_ue& ue, DciDlOrUl& dci)
   dci.mcs      = h->mcs();
 }
 
-void fill_dci_ue_cfg(const slot_ue& ue, srsran_dci_dl_nr_t& dci)
+void fill_dci_ue_cfg(const slot_ue&           ue,
+                     const rbgmask_t&         rbgmask,
+                     const sched_cell_params& cc_cfg,
+                     srsran_dci_dl_nr_t&      dci)
 {
-  fill_dci_common(ue, dci);
+  fill_dci_common(ue, rbgmask, cc_cfg, dci);
 }
 
-void fill_dci_ue_cfg(const slot_ue& ue, srsran_dci_ul_nr_t& dci)
+void fill_dci_ue_cfg(const slot_ue&           ue,
+                     const rbgmask_t&         rbgmask,
+                     const sched_cell_params& cc_cfg,
+                     srsran_dci_ul_nr_t&      dci)
 {
-  fill_dci_common(ue, dci);
+  fill_dci_common(ue, rbgmask, cc_cfg, dci);
 }
 
-void fill_sch_ue(const slot_ue& ue, const rbgmask_t& rbgmask, const sched_cell_params& cc_cfg, srsran_sch_cfg_nr_t& sch)
+void fill_sch_ue_common(const slot_ue&           ue,
+                        const rbgmask_t&         rbgmask,
+                        const sched_cell_params& cc_cfg,
+                        srsran_sch_cfg_nr_t&     sch)
 {
   sch.grant.rnti_type  = srsran_rnti_type_c;
   sch.grant.rnti       = ue.rnti;
   sch.grant.nof_layers = 1;
-  bitmap_to_prb_array(rbgmask, cc_cfg.cell_cfg.nof_prb, sch.grant);
+  sch.grant.nof_prb    = cc_cfg.cell_cfg.nof_prb;
+}
+
+void fill_pdsch_ue(const slot_ue&           ue,
+                   const rbgmask_t&         rbgmask,
+                   const sched_cell_params& cc_cfg,
+                   srsran_sch_cfg_nr_t&     sch)
+{
+  fill_sch_ue_common(ue, rbgmask, cc_cfg, sch);
+  sch.grant.k          = ue.cc_cfg->pdsch_res_list[0].k0;
+  sch.grant.dci_format = srsran_dci_format_nr_1_0;
+}
+
+void fill_pusch_ue(const slot_ue&           ue,
+                   const rbgmask_t&         rbgmask,
+                   const sched_cell_params& cc_cfg,
+                   srsran_sch_cfg_nr_t&     sch)
+{
+  fill_sch_ue_common(ue, rbgmask, cc_cfg, sch);
+  sch.grant.k          = ue.cc_cfg->pusch_res_list[0].k2;
+  sch.grant.dci_format = srsran_dci_format_nr_0_1;
 }
 
 } // namespace sched_nr_impl

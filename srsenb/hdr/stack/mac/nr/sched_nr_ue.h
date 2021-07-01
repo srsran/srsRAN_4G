@@ -92,7 +92,7 @@ private:
 class ue_carrier
 {
 public:
-  ue_carrier(uint16_t rnti, uint32_t cc, const ue_cfg_t& cfg);
+  ue_carrier(uint16_t rnti, const ue_cfg_t& cfg, const sched_cell_params& cell_params_);
   slot_ue try_reserve(tti_point pdcch_tti, const ue_cfg_extended& cfg);
   void    push_feedback(srsran::move_callback<void(ue_carrier&)> callback);
 
@@ -106,7 +106,8 @@ public:
   harq_entity harq_ent;
 
 private:
-  const ue_cfg_t* cfg = nullptr;
+  const ue_cfg_t*          cfg = nullptr;
+  const sched_cell_params& cell_params;
 
   resource_guard busy;
   tti_point      last_tti_rx;
@@ -117,7 +118,7 @@ private:
 class ue
 {
 public:
-  ue(uint16_t rnti, const ue_cfg_t& cfg);
+  ue(uint16_t rnti, const ue_cfg_t& cfg, const sched_params& sched_cfg_);
 
   slot_ue try_reserve(tti_point tti_rx, uint32_t cc);
 
@@ -128,7 +129,8 @@ public:
   std::array<std::unique_ptr<ue_carrier>, SCHED_NR_MAX_CARRIERS> carriers;
 
 private:
-  const uint16_t rnti;
+  const uint16_t      rnti;
+  const sched_params& sched_cfg;
 
   bool pending_sr = false;
 

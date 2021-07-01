@@ -107,7 +107,7 @@ void sched_nr::ue_cfg(uint16_t rnti, const ue_cfg_t& uecfg)
 void sched_nr::ue_cfg_impl(uint16_t rnti, const ue_cfg_t& uecfg)
 {
   if (not ue_db.contains(rnti)) {
-    ue_db.insert(rnti, std::unique_ptr<ue>(new ue{rnti, uecfg}));
+    ue_db.insert(rnti, std::unique_ptr<ue>(new ue{rnti, uecfg, cfg}));
   } else {
     ue_db[rnti]->set_cfg(uecfg);
   }

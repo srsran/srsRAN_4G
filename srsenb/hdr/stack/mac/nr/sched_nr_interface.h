@@ -26,12 +26,10 @@ namespace srsenb {
 
 const static size_t   SCHED_NR_MAX_CARRIERS     = 4;
 const static uint16_t SCHED_NR_INVALID_RNTI     = 0;
-const static size_t   SCHED_NR_MAX_PDSCH_DATA   = 16;
 const static size_t   SCHED_NR_MAX_NOF_RBGS     = 25;
-const static size_t   SCHED_NR_MAX_UL_ALLOCS    = 16;
 const static size_t   SCHED_NR_MAX_TB           = 1;
 const static size_t   SCHED_NR_MAX_HARQ         = 16;
-const static size_t   SCHED_NR_MAX_BWP_PER_CELL = 1;
+const static size_t   SCHED_NR_MAX_BWP_PER_CELL = 2;
 
 class sched_nr_interface
 {
@@ -39,17 +37,19 @@ public:
   using pdcch_bitmap = srsran::bounded_bitset<SCHED_NR_MAX_NOF_RBGS, true>;
   using rbg_bitmap   = srsran::bounded_bitset<SCHED_NR_MAX_NOF_RBGS, true>;
 
+  static const size_t MAX_GRANTS = mac_interface_phy_nr::MAX_GRANTS;
+
   ///// Configuration /////
 
   struct pdsch_td_res_alloc {
     uint8_t k0 = 0; // 0..32
     uint8_t k1 = 4; // 0..32
   };
-  using pdsch_td_res_alloc_list = srsran::bounded_vector<pdsch_td_res_alloc, SCHED_NR_MAX_UL_ALLOCS>;
+  using pdsch_td_res_alloc_list = srsran::bounded_vector<pdsch_td_res_alloc, MAX_GRANTS>;
   struct pusch_td_res_alloc {
     uint8_t k2 = 4; // 0..32
   };
-  using pusch_td_res_alloc_list = srsran::bounded_vector<pusch_td_res_alloc, SCHED_NR_MAX_UL_ALLOCS>;
+  using pusch_td_res_alloc_list = srsran::bounded_vector<pusch_td_res_alloc, MAX_GRANTS>;
 
   struct bwp_cfg_t {
     uint32_t bwp_id   = 1;
@@ -62,6 +62,7 @@ public:
   struct cell_cfg_t {
     uint32_t                                                     nof_prb = 100;
     uint32_t                                                     nof_rbg = 25;
+    srsran_tdd_config_nr_t                                       tdd     = {};
     srsran::bounded_vector<bwp_cfg_t, SCHED_NR_MAX_BWP_PER_CELL> bwps{1};
   };
 
@@ -83,8 +84,6 @@ public:
 
   ///// Sched Result /////
 
-  const static int MAX_GRANTS = 64;
-
   using pdcch_dl_t      = mac_interface_phy_nr::pdcch_dl_t;
   using pdcch_ul_t      = mac_interface_phy_nr::pdcch_ul_t;
   using pdcch_dl_list_t = srsran::bounded_vector<pdcch_dl_t, MAX_GRANTS>;
@@ -93,7 +92,7 @@ public:
   struct pdsch_t {
     srsran_sch_cfg_nr_t sch = {}; ///< PDSCH configuration
   };
-  using pdsch_list_t = srsran::bounded_vector<pdsch_t, SCHED_NR_MAX_PDSCH_DATA>;
+  using pdsch_list_t = srsran::bounded_vector<pdsch_t, MAX_GRANTS>;
 
   struct dl_tti_request_t {
     tti_point       pdsch_tti;
@@ -104,11 +103,11 @@ public:
   struct pusch_t {
     srsran_sch_cfg_nr_t sch = {}; ///< PUSCH configuration
   };
-  using pusch_list_t = srsran::bounded_vector<pusch_t, SCHED_NR_MAX_PDSCH_DATA>;
+  using pusch_list_t = srsran::bounded_vector<pusch_t, MAX_GRANTS>;
 
   struct ul_tti_request_t {
-    tti_point                                               pusch_tti;
-    srsran::bounded_vector<pusch_t, SCHED_NR_MAX_UL_ALLOCS> pusch;
+    tti_point                                   pusch_tti;
+    srsran::bounded_vector<pusch_t, MAX_GRANTS> pusch;
   };
 
   struct tti_request_t {

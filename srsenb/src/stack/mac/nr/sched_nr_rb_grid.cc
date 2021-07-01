@@ -18,8 +18,15 @@ namespace sched_nr_impl {
 
 using pusch_t = sched_nr_interface::pusch_t;
 
+#define NUMEROLOGY_IDX 0
+
 bwp_slot_grid::bwp_slot_grid(const sched_cell_params& cell_params, uint32_t bwp_id_, uint32_t slot_idx_) :
-  dl_rbgs(cell_params.cell_cfg.nof_rbg), ul_rbgs(cell_params.cell_cfg.nof_rbg), bwp_id(bwp_id_)
+  dl_rbgs(cell_params.cell_cfg.nof_rbg),
+  ul_rbgs(cell_params.cell_cfg.nof_rbg),
+  bwp_id(bwp_id_),
+  slot_idx(slot_idx_),
+  is_dl(srsran_tdd_nr_is_dl(&cell_params.cell_cfg.tdd, NUMEROLOGY_IDX, slot_idx_)),
+  is_ul(srsran_tdd_nr_is_ul(&cell_params.cell_cfg.tdd, NUMEROLOGY_IDX, slot_idx_))
 {
   const uint32_t coreset_id = 1; // Note: for now only one coreset per BWP supported
   coresets.emplace_back(cell_params.cell_cfg.bwps[0], coreset_id, slot_idx_, pdcch_dl_list, pdcch_ul_list);
@@ -64,12 +71,17 @@ alloc_result slot_bwp_sched::alloc_pdsch(slot_ue& ue, const rbgmask_t& dl_mask)
     logger.warning("SCHED: Trying to allocate PDSCH for rnti=0x%x with no available HARQs", ue.rnti);
     return alloc_result::no_rnti_opportunity;
   }
-  pdsch_list_t& pdsch_grants = bwp_grid[ue.pdsch_tti].pdsch_grants;
+  bwp_slot_grid& bwp_pdsch_slot = bwp_grid[ue.pdsch_tti];
+  if (not bwp_pdsch_slot.is_dl) {
+    logger.warning("SCHED: Trying to allocate PDSCH in TDD non-DL slot index=%d", bwp_pdsch_slot.slot_idx);
+    return alloc_result::no_sch_space;
+  }
+  pdsch_list_t& pdsch_grants = bwp_pdsch_slot.pdsch_grants;
   if (pdsch_grants.full()) {
     logger.warning("SCHED: Maximum number of DL allocations reached");
     return alloc_result::no_grant_space;
   }
-  rbgmask_t& pdsch_mask = bwp_grid[ue.pdsch_tti].dl_rbgs;
+  rbgmask_t& pdsch_mask = bwp_pdsch_slot.dl_rbgs;
   if ((pdsch_mask & dl_mask).any()) {
     return alloc_result::sch_collision;
   }
@@ -92,9 +104,9 @@ alloc_result slot_bwp_sched::alloc_pdsch(slot_ue& ue, const rbgmask_t& dl_mask)
 
   // Allocation Successful
   pdcch_dl_t& pdcch = bwp_grid[ue.pdcch_tti].pdcch_dl_list.back();
-  fill_dci_ue_cfg(ue, pdcch.dci);
+  fill_dci_ue_cfg(ue, dl_mask, bwp_grid.cell_params(), pdcch.dci);
   pdsch_grants.emplace_back();
-  fill_sch_ue(ue, dl_mask, bwp_grid.cell_params(), pdsch_grants.back().sch);
+  fill_pdsch_ue(ue, dl_mask, bwp_grid.cell_params(), pdsch_grants.back().sch);
   pdsch_mask |= dl_mask;
 
   return alloc_result::success;
@@ -106,12 +118,17 @@ alloc_result slot_bwp_sched::alloc_pusch(slot_ue& ue, const rbgmask_t& ul_mask)
     logger.warning("SCHED: Trying to allocate PUSCH for rnti=0x%x with no available HARQs", ue.rnti);
     return alloc_result::no_rnti_opportunity;
   }
-  pusch_list& pusch_grants = bwp_grid[ue.pusch_tti].pusch_grants;
+  auto& bwp_pusch_slot = bwp_grid[ue.pusch_tti];
+  if (not bwp_pusch_slot.is_ul) {
+    logger.warning("SCHED: Trying to allocate PUSCH in TDD non-UL slot index=%d", bwp_pusch_slot.slot_idx);
+    return alloc_result::no_sch_space;
+  }
+  pusch_list& pusch_grants = bwp_pusch_slot.pusch_grants;
   if (pusch_grants.full()) {
     logger.warning("SCHED: Maximum number of UL allocations reached");
     return alloc_result::no_grant_space;
   }
-  rbgmask_t& pusch_mask = bwp_grid[ue.pusch_tti].ul_rbgs;
+  rbgmask_t& pusch_mask = bwp_pusch_slot.ul_rbgs;
   if ((pusch_mask & ul_mask).any()) {
     return alloc_result::sch_collision;
   }
@@ -134,9 +151,9 @@ alloc_result slot_bwp_sched::alloc_pusch(slot_ue& ue, const rbgmask_t& ul_mask)
 
   // Allocation Successful
   pdcch_ul_t& pdcch = bwp_grid[ue.pdcch_tti].pdcch_ul_list.back();
-  fill_dci_ue_cfg(ue, pdcch.dci);
+  fill_dci_ue_cfg(ue, ul_mask, bwp_grid.cell_params(), pdcch.dci);
   pusch_grants.emplace_back();
-  fill_sch_ue(ue, ul_mask, bwp_grid.cell_params(), pusch_grants.back().sch);
+  fill_pusch_ue(ue, ul_mask, bwp_grid.cell_params(), pusch_grants.back().sch);
   pusch_mask |= ul_mask;
 
   return alloc_result::success;

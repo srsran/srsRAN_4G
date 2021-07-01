@@ -36,15 +36,17 @@ const static size_t MAX_CORESET_PER_BWP = 3;
 using slot_coreset_list                 = srsran::bounded_vector<coreset_region, MAX_CORESET_PER_BWP>;
 
 struct bwp_slot_grid {
-  uint32_t                                                 bwp_id;
-  pdcch_dl_list_t                                          pdcch_dl_list;
-  pdcch_ul_list_t                                          pdcch_ul_list;
-  slot_coreset_list                                        coresets;
-  pdsch_bitmap                                             dl_rbgs;
-  pdsch_list_t                                             pdsch_grants;
-  pusch_bitmap                                             ul_rbgs;
-  pusch_list                                               pusch_grants;
-  srsran::bounded_vector<pucch_t, SCHED_NR_MAX_PDSCH_DATA> pucch_grants;
+  uint32_t                                    bwp_id;
+  uint32_t                                    slot_idx;
+  bool                                        is_dl, is_ul;
+  pdcch_dl_list_t                             pdcch_dl_list;
+  pdcch_ul_list_t                             pdcch_ul_list;
+  slot_coreset_list                           coresets;
+  pdsch_bitmap                                dl_rbgs;
+  pdsch_list_t                                pdsch_grants;
+  pusch_bitmap                                ul_rbgs;
+  pusch_list                                  pusch_grants;
+  srsran::bounded_vector<pucch_t, MAX_GRANTS> pucch_grants;
 
   bwp_slot_grid() = default;
   explicit bwp_slot_grid(const sched_cell_params& cell_params, uint32_t bwp_id_, uint32_t slot_idx_);

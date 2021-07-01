@@ -52,7 +52,9 @@ slot_ue::slot_ue(resource_guard::token ue_token_, uint16_t rnti_, tti_point tti_
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-ue_carrier::ue_carrier(uint16_t rnti_, uint32_t cc_, const ue_cfg_t& uecfg_) : rnti(rnti_), cc(cc_), cfg(&uecfg_) {}
+ue_carrier::ue_carrier(uint16_t rnti_, const ue_cfg_t& uecfg_, const sched_cell_params& cell_params_) :
+  rnti(rnti_), cc(cell_params_.cc), cfg(&uecfg_), cell_params(cell_params_)
+{}
 
 void ue_carrier::push_feedback(srsran::move_callback<void(ue_carrier&)> callback)
 {
@@ -91,13 +93,21 @@ slot_ue ue_carrier::try_reserve(tti_point tti_rx, const ue_cfg_extended& uecfg_)
   sfu.uci_tti   = sfu.pdsch_tti + sfu.cc_cfg->pdsch_res_list[0].k1;
   sfu.dl_cqi    = dl_cqi;
   sfu.ul_cqi    = ul_cqi;
-  sfu.h_dl      = harq_ent.find_pending_dl_retx();
-  if (sfu.h_dl == nullptr) {
-    sfu.h_dl = harq_ent.find_empty_dl_harq();
+
+  const srsran_tdd_config_nr_t& tdd_cfg = cell_params.cell_cfg.tdd;
+  if (srsran_tdd_nr_is_dl(&tdd_cfg, 0, sfu.pdsch_tti.sf_idx())) {
+    // If DL enabled
+    sfu.h_dl = harq_ent.find_pending_dl_retx();
+    if (sfu.h_dl == nullptr) {
+      sfu.h_dl = harq_ent.find_empty_dl_harq();
+    }
   }
-  sfu.h_ul = harq_ent.find_pending_ul_retx();
-  if (sfu.h_ul == nullptr) {
-    sfu.h_ul = harq_ent.find_empty_ul_harq();
+  if (srsran_tdd_nr_is_ul(&tdd_cfg, 0, sfu.pusch_tti.sf_idx())) {
+    // If UL enabled
+    sfu.h_ul = harq_ent.find_pending_ul_retx();
+    if (sfu.h_ul == nullptr) {
+      sfu.h_ul = harq_ent.find_empty_ul_harq();
+    }
   }
 
   if (sfu.h_dl == nullptr and sfu.h_ul == nullptr) {
@@ -110,12 +120,12 @@ slot_ue ue_carrier::try_reserve(tti_point tti_rx, const ue_cfg_extended& uecfg_)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-ue::ue(uint16_t rnti_, const ue_cfg_t& cfg) : rnti(rnti_)
+ue::ue(uint16_t rnti_, const ue_cfg_t& cfg, const sched_params& sched_cfg_) : rnti(rnti_), sched_cfg(sched_cfg_)
 {
   ue_cfgs[0] = ue_cfg_extended(rnti, cfg);
   for (uint32_t cc = 0; cc < cfg.carriers.size(); ++cc) {
     if (cfg.carriers[cc].active) {
-      carriers[cc].reset(new ue_carrier(rnti, cc, cfg));
+      carriers[cc].reset(new ue_carrier(rnti, cfg, sched_cfg.cells[cc]));
     }
   }
 }

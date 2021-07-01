@@ -20,7 +20,7 @@ namespace srsenb {
 srsran_coreset_t get_default_coreset()
 {
   srsran_coreset_t coreset{};
-  coreset.id                   = 1;
+  coreset.id                   = 0;
   coreset.duration             = 1;
   coreset.precoder_granularity = srsran_coreset_precoder_granularity_reg_bundle;
   for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; ++i) {
@@ -33,8 +33,19 @@ sched_nr_interface::cell_cfg_t get_default_cell_cfg()
 {
   sched_nr_interface::cell_cfg_t cell_cfg{};
 
-  cell_cfg.bwps.resize(1);
+  cell_cfg.tdd.pattern1.period_ms      = 10;
+  cell_cfg.tdd.pattern1.nof_dl_slots   = 6;
+  cell_cfg.tdd.pattern1.nof_dl_symbols = 0;
+  cell_cfg.tdd.pattern1.nof_ul_slots   = 4;
+  cell_cfg.tdd.pattern1.nof_ul_symbols = 0;
+
+  // Disable pattern 2
+  cell_cfg.tdd.pattern2.period_ms = 0;
+
+  cell_cfg.bwps.resize(2);
   cell_cfg.bwps[0].coresets[0].emplace(get_default_coreset());
+  cell_cfg.bwps[0].coresets[1].emplace(get_default_coreset());
+  cell_cfg.bwps[0].coresets[1].value().id = 1;
   return cell_cfg;
 }
 std::vector<sched_nr_interface::cell_cfg_t> get_default_cells_cfg(uint32_t nof_sectors)
@@ -56,6 +67,7 @@ sched_nr_interface::ue_cfg_t get_default_ue_cfg(uint32_t nof_cc)
   }
   uecfg.phy_cfg.pdcch.coreset_present[0] = true;
   uecfg.phy_cfg.pdcch.coreset[0]         = get_default_coreset();
+  uecfg.phy_cfg.pdcch.coreset[0].id      = 1;
 
   uecfg.phy_cfg.pdcch.search_space_present[0] = true;
   auto& ss                                    = uecfg.phy_cfg.pdcch.search_space[0];
@@ -139,12 +151,13 @@ void sched_nr_cfg_serialized_test()
       sched_nr_cc_output_res_t out{tti, cc, &res.dl_res, &res.ul_res};
       sched_tester.update(out);
       tasks.finish_task(res);
-      TESTASSERT(res.dl_res.pdschs.size() == 1);
+      TESTASSERT(not srsran_tdd_nr_is_dl(&cells_cfg[cc].tdd, 0, (tti + TX_ENB_DELAY).sf_idx()) or
+                 res.dl_res.pdschs.size() == 1);
     }
   }
 
   tasks.print_results();
-  TESTASSERT(tasks.pdsch_count == (int)(max_nof_ttis * nof_sectors));
+  TESTASSERT(tasks.pdsch_count == (int)(max_nof_ttis * nof_sectors * 0.6));
 }
 
 void sched_nr_cfg_parallel_cc_test()
