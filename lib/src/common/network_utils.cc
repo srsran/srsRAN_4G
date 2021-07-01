@@ -234,11 +234,13 @@ bool connect_to(int fd, const char* dest_addr_str, int dest_port, sockaddr_in* d
   if (dest_sockaddr != nullptr) {
     *dest_sockaddr = sockaddr_tmp;
   }
+
   if (connect(fd, (const struct sockaddr*)&sockaddr_tmp, sizeof(sockaddr_tmp)) == -1) {
     srslog::fetch_basic_logger(LOGSERVICE).info("Failed to establish socket connection to %s", dest_addr_str);
     perror("connect()");
     return false;
   }
+
   return true;
 }
 
