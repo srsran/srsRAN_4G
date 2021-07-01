@@ -25,7 +25,7 @@ dl_harq_entity::dl_harq_entity(uint8_t cc_idx_) :
   proc(SRSRAN_MAX_HARQ_PROC), logger(srslog::fetch_basic_logger("MAC")), cc_idx(cc_idx_)
 {}
 
-bool dl_harq_entity::init(mac_interface_rrc::ue_rnti_t* rntis_, demux* demux_unit_)
+bool dl_harq_entity::init(ue_rnti* rntis_, demux* demux_unit_)
 {
   demux_unit = demux_unit_;
   rntis      = rntis_;
@@ -45,7 +45,7 @@ void dl_harq_entity::new_grant_dl(mac_interface_phy_lte::mac_grant_dl_t  grant,
 {
   bzero(action, sizeof(mac_interface_phy_lte::tb_action_dl_t));
 
-  if (grant.rnti != rntis->sps_rnti) {
+  if (grant.rnti != rntis->get_sps_rnti()) {
     // Set BCCH PID for SI RNTI
     dl_harq_process* proc_ptr = NULL;
     if (grant.rnti == SRSRAN_SIRNTI) {
@@ -58,8 +58,8 @@ void dl_harq_entity::new_grant_dl(mac_interface_phy_lte::mac_grant_dl_t  grant,
       proc_ptr = &proc[grant.pid];
     }
     // Consider the NDI to have been toggled
-    if (grant.rnti == rntis->temp_rnti && last_temporal_crnti != rntis->temp_rnti) {
-      last_temporal_crnti = rntis->temp_rnti;
+    if (grant.rnti == rntis->get_temp_rnti() && last_temporal_crnti != rntis->get_temp_rnti()) {
+      last_temporal_crnti = rntis->get_temp_rnti();
       proc_ptr->reset_ndi();
       Info("Considering NDI in pid=%d to be toggled for first Temporal C-RNTI", grant.pid);
     }
@@ -103,7 +103,13 @@ void dl_harq_entity::set_si_window_start(int si_window_start_)
 
 float dl_harq_entity::get_average_retx()
 {
+  std::unique_lock<std::mutex> lock(retx_cnt_mutex);
   return average_retx;
+}
+void dl_harq_entity::set_average_retx(uint32_t n_retx)
+{
+  std::unique_lock<std::mutex> lock(retx_cnt_mutex);
+  average_retx = SRSRAN_VEC_CMA((float)n_retx, average_retx, nof_pkts++);
 }
 
 dl_harq_entity::dl_harq_process::dl_harq_process() : subproc(SRSRAN_MAX_TB) {}
@@ -320,7 +326,7 @@ void dl_harq_entity::dl_harq_process::dl_tb_process::tb_decoded(mac_interface_ph
           harq_entity->pcap->write_dl_crnti(
               payload_buffer_ptr, cur_grant.tb[tid].tbs, cur_grant.rnti, ack, cur_grant.tti, harq_entity->cc_idx);
         }
-        if (cur_grant.rnti == harq_entity->rntis->temp_rnti) {
+        if (cur_grant.rnti == harq_entity->rntis->get_temp_rnti()) {
           Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (Temporal C-RNTI)", cur_grant.tb[tid].tbs);
           harq_entity->demux_unit->push_pdu_temp_crnti(payload_buffer_ptr, cur_grant.tb[tid].tbs);
 
@@ -332,7 +338,7 @@ void dl_harq_entity::dl_harq_process::dl_tb_process::tb_decoded(mac_interface_ph
           harq_entity->demux_unit->push_pdu(payload_buffer_ptr, cur_grant.tb[tid].tbs, grant.tti);
 
           // Compute average number of retransmissions per packet
-          harq_entity->average_retx = SRSRAN_VEC_CMA((float)n_retx, harq_entity->average_retx, harq_entity->nof_pkts++);
+          harq_entity->set_average_retx(n_retx);
         }
       }
 

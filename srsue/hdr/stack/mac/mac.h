@@ -84,8 +84,8 @@ public:
 
   void set_rach_ded_cfg(uint32_t preamble_index, uint32_t prach_mask);
 
-  void get_rntis(ue_rnti_t* rntis);
-  void set_ho_rnti(uint16_t crnti, uint16_t target_pci);
+  uint16_t get_crnti();
+  void     set_ho_rnti(uint16_t crnti, uint16_t target_pci);
 
   /*********** interface for stack ******************/
   void process_pdus();
@@ -100,8 +100,6 @@ public:
 private:
   void clear_rntis();
 
-  bool is_in_window(uint32_t tti, int* start, int* len);
-
   // Interaction with PHY
   phy_interface_mac_lte*                     phy_h = nullptr;
   rlc_interface_mac*                         rlc_h = nullptr;
@@ -110,13 +108,11 @@ private:
   srslog::basic_logger&                      logger;
   mac_interface_phy_lte::mac_phy_cfg_mbsfn_t phy_mbsfn_cfg = {};
 
-  // RNTI search window scheduling
-  int si_window_length = -1, si_window_start = -1;
-  int ra_window_length = -1, ra_window_start = -1;
-  int p_window_start = -1;
+  // Control scheduling for SI/RA/P RNTIs
+  rnti_window_safe si_window, ra_window, p_window;
 
   // UE-specific RNTIs
-  ue_rnti_t uernti;
+  ue_rnti uernti;
 
   /* Multiplexing/Demultiplexing Units */
   mux   mux_unit;
@@ -156,6 +152,7 @@ private:
   srsran::mac_pcap* pcap              = nullptr;
   bool              is_first_ul_grant = false;
 
+  std::mutex    metrics_mutex                = {};
   mac_metrics_t metrics[SRSRAN_MAX_CARRIERS] = {};
 
   std::atomic<bool> initialized = {false};

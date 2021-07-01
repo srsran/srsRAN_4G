@@ -67,9 +67,10 @@ private:
    * @brief LTE specific measurement process
    * @param context Measurement context
    * @param buffer Provides the baseband buffer to perform the measurements
+   * @param rx_gain_offset Provides last received rx_gain_offset
    * @return True if no error happens, otherwise false
    */
-  bool measure_rat(measure_context_t context, std::vector<cf_t>& buffer) override;
+  bool measure_rat(measure_context_t context, std::vector<cf_t>& buffer, float rx_gain_offset) override;
 
   srslog::basic_logger& logger;
   srsran_cell_t         serving_cell   = {}; ///< Current serving cell in the EARFCN, to avoid reporting it

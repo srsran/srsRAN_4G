@@ -35,6 +35,8 @@ public:
 private:
   srslog::log_channel&  log_c;
   ue_metrics_interface* ue = nullptr;
+
+  std::mutex mutex = {};
 };
 
 } // namespace srsue

@@ -47,7 +47,7 @@ void intra_measure_lte::set_primary_cell(uint32_t earfcn, srsran_cell_t cell)
   set_current_sf_len((uint32_t)SRSRAN_SF_LEN_PRB(cell.nof_prb));
 }
 
-bool intra_measure_lte::measure_rat(measure_context_t context, std::vector<cf_t>& buffer)
+bool intra_measure_lte::measure_rat(measure_context_t context, std::vector<cf_t>& buffer, float rx_gain_offset)
 {
   std::set<uint32_t> cells_to_measure = context.active_pci;
 
@@ -84,7 +84,7 @@ bool intra_measure_lte::measure_rat(measure_context_t context, std::vector<cf_t>
       m.rat        = srsran::srsran_rat_t::lte;
       m.pci        = cell.id;
       m.earfcn     = current_earfcn;
-      m.rsrp       = refsignal_dl_sync.rsrp_dBfs - context.rx_gain_offset_db;
+      m.rsrp       = refsignal_dl_sync.rsrp_dBfs - rx_gain_offset_db;
       m.rsrq       = refsignal_dl_sync.rsrq_dB;
       m.cfo_hz     = refsignal_dl_sync.cfo_Hz;
       neighbour_cells.push_back(m);

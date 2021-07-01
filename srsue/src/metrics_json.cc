@@ -17,6 +17,7 @@ using namespace srsue;
 
 void metrics_json::set_ue_handle(ue_metrics_interface* ue_)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   ue = ue_;
 }
 
@@ -138,6 +139,7 @@ static double get_time_stamp()
 
 void metrics_json::set_metrics(const ue_metrics_t& metrics, const uint32_t period_usec)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   if (!ue) {
     return;
   }

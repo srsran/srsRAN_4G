@@ -106,9 +106,10 @@ private:
    * @attention It searches and measures the SSB with best SNR
    * @param context Measurement context
    * @param buffer Provides the baseband buffer to perform the measurements
+   * @param rx_gain_offset Provides last received rx_gain_offset
    * @return True if no error happen, otherwise false
    */
-  bool measure_rat(measure_context_t context, std::vector<cf_t>& buffer) override;
+  bool measure_rat(measure_context_t context, std::vector<cf_t>& buffer, float rx_gain_offset) override;
 
   srslog::basic_logger& logger;
   uint32_t              cc_idx           = 0;

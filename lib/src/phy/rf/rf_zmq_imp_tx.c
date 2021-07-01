@@ -200,6 +200,14 @@ int rf_zmq_tx_baseband(rf_zmq_tx_t* q, cf_t* buffer, uint32_t nsamples)
   return n;
 }
 
+int rf_zmq_tx_get_nsamples(rf_zmq_tx_t* q)
+{
+  pthread_mutex_lock(&q->mutex);
+  int ret = q->nsamples;
+  pthread_mutex_unlock(&q->mutex);
+  return ret;
+}
+
 int rf_zmq_tx_zeros(rf_zmq_tx_t* q, uint32_t nsamples)
 {
   pthread_mutex_lock(&q->mutex);

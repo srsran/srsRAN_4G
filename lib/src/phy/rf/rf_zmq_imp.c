@@ -53,6 +53,7 @@ typedef struct {
   pthread_mutex_t tx_config_mutex;
   pthread_mutex_t rx_config_mutex;
   pthread_mutex_t decim_mutex;
+  pthread_mutex_t rx_gain_mutex;
 } rf_zmq_handler_t;
 
 void update_rates(rf_zmq_handler_t* handler, double srate);
@@ -196,7 +197,9 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
     bzero(handler, sizeof(rf_zmq_handler_t));
     *h                        = handler;
     handler->base_srate       = ZMQ_BASERATE_DEFAULT_HZ; // Sample rate for 100 PRB cell
+    pthread_mutex_lock(&handler->rx_gain_mutex);
     handler->rx_gain          = 0.0;
+    pthread_mutex_unlock(&handler->rx_gain_mutex);
     handler->info.max_rx_gain = ZMQ_MAX_GAIN_DB;
     handler->info.min_rx_gain = ZMQ_MIN_GAIN_DB;
     handler->info.max_tx_gain = ZMQ_MAX_GAIN_DB;
@@ -218,6 +221,9 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
       perror("Mutex init");
     }
     if (pthread_mutex_init(&handler->decim_mutex, NULL)) {
+      perror("Mutex init");
+    }
+    if (pthread_mutex_init(&handler->rx_gain_mutex, NULL)) {
       perror("Mutex init");
     }
 
@@ -408,6 +414,7 @@ int rf_zmq_close(void* h)
   pthread_mutex_destroy(&handler->tx_config_mutex);
   pthread_mutex_destroy(&handler->rx_config_mutex);
   pthread_mutex_destroy(&handler->decim_mutex);
+  pthread_mutex_destroy(&handler->rx_gain_mutex);
 
   // Free all
   free(handler);
@@ -463,7 +470,9 @@ int rf_zmq_set_rx_gain(void* h, double gain)
 {
   if (h) {
     rf_zmq_handler_t* handler = (rf_zmq_handler_t*)h;
+    pthread_mutex_lock(&handler->rx_gain_mutex);
     handler->rx_gain          = gain;
+    pthread_mutex_unlock(&handler->rx_gain_mutex);
   }
   return SRSRAN_SUCCESS;
 }
@@ -488,7 +497,9 @@ double rf_zmq_get_rx_gain(void* h)
   double ret = 0.0;
   if (h) {
     rf_zmq_handler_t* handler = (rf_zmq_handler_t*)h;
+    pthread_mutex_lock(&handler->rx_gain_mutex);
     ret                       = handler->rx_gain;
+    pthread_mutex_unlock(&handler->rx_gain_mutex);
   }
   return ret;
 }
@@ -663,7 +674,7 @@ int rf_zmq_recv_with_time_multi(void* h, void** data, uint32_t nsamples, bool bl
 
     // receive samples
     srsran_timestamp_t ts_tx = {}, ts_rx = {};
-    srsran_timestamp_init_uint64(&ts_tx, handler->transmitter[0].nsamples, handler->base_srate);
+    srsran_timestamp_init_uint64(&ts_tx, rf_zmq_tx_get_nsamples(&handler->transmitter[0]), handler->base_srate);
     srsran_timestamp_init_uint64(&ts_rx, handler->next_rx_ts, handler->base_srate);
     rf_zmq_info(handler->id, " - next rx time: %d + %.3f\n", ts_rx.full_secs, ts_rx.frac_secs);
     rf_zmq_info(handler->id, " - next tx time: %d + %.3f\n", ts_tx.full_secs, ts_tx.frac_secs);
@@ -766,7 +777,9 @@ int rf_zmq_recv_with_time_multi(void* h, void** data, uint32_t nsamples, bool bl
     }
 
     // Set gain
+    pthread_mutex_lock(&handler->rx_gain_mutex);
     float scale = srsran_convert_dB_to_amplitude(handler->rx_gain);
+    pthread_mutex_unlock(&handler->rx_gain_mutex);
     for (uint32_t c = 0; c < handler->nof_channels; c++) {
       if (buffers[c]) {
         srsran_vec_sc_prod_cfc(buffers[c], scale, buffers[c], nsamples);

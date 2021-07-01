@@ -47,11 +47,13 @@ metrics_csv::~metrics_csv()
 
 void metrics_csv::set_ue_handle(ue_metrics_interface* ue_)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   ue = ue_;
 }
 
 void metrics_csv::set_flush_period(const uint32_t flush_period_sec_)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   flush_period_sec = flush_period_sec_;
 }
 

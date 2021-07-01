@@ -14,8 +14,10 @@
 #define SRSUE_MAC_COMMON_H
 
 #include "srsran/common/string_helpers.h"
+#include "srsran/phy/common/phy_common.h"
 #include "srsran/srslog/srslog.h"
 #include <map>
+#include <mutex>
 
 /**
  * @brief Common definitions/interfaces between LTE/NR MAC components
@@ -24,6 +26,161 @@
  * specialications.
  */
 namespace srsue {
+
+// Helper class to protect access to RNTIs
+class ue_rnti
+{
+public:
+  void reset()
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    crnti         = 0;
+    rar_rnti      = 0;
+    temp_rnti     = 0;
+    tpc_rnti      = 0;
+    sps_rnti      = 0;
+    contention_id = 0;
+  }
+  uint16_t get_crnti()
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    return crnti;
+  }
+  uint16_t get_rar_rnti()
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    return rar_rnti;
+  }
+  uint16_t get_temp_rnti()
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    return temp_rnti;
+  }
+  uint16_t get_sps_rnti()
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    return sps_rnti;
+  }
+  uint64_t get_contention_id()
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    return contention_id;
+  }
+  void set_crnti(uint16_t rnti)
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    crnti = rnti;
+  }
+  void set_rar_rnti(uint16_t rnti)
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    rar_rnti = rnti;
+  }
+  void set_temp_rnti(uint16_t rnti)
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    temp_rnti = rnti;
+  }
+  void set_contention_id(uint64_t id)
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    contention_id = id;
+  }
+  void set_crnti_to_temp()
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    crnti = temp_rnti;
+  }
+  void clear_temp_rnti()
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    temp_rnti = SRSRAN_INVALID_RNTI;
+  }
+  void clear_rar_rnti()
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    rar_rnti = SRSRAN_INVALID_RNTI;
+  }
+  void clear_crnti()
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    crnti = SRSRAN_INVALID_RNTI;
+  }
+
+private:
+  std::mutex mutex;
+  uint16_t   crnti         = 0;
+  uint16_t   rar_rnti      = 0;
+  uint16_t   temp_rnti     = 0;
+  uint16_t   tpc_rnti      = 0;
+  uint16_t   sps_rnti      = 0;
+  uint64_t   contention_id = 0;
+};
+
+// Helper class to control RNTI search windows in a protected manner
+class rnti_window_safe
+{
+public:
+  void reset()
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    length = -1;
+    start  = -1;
+  }
+  void set(int length_, int start_)
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    length = length_;
+    start  = start_;
+  }
+  int get_length()
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    return length;
+  }
+  int get_start()
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    return start;
+  }
+  bool is_set()
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    return start > 0;
+  }
+  bool is_in_window(int tti)
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    if (start == 0 || length == 0) {
+      return false;
+    }
+    if ((int)srsran_tti_interval(tti, start) < length + 5) {
+      if (tti > start) {
+        if (tti <= start + length) {
+          return true;
+        } else {
+          start  = 0;
+          length = 0;
+          return false;
+        }
+      } else {
+        if (tti <= (start + length) % 10240) {
+          return true;
+        } else {
+          start  = 0;
+          length = 0;
+          return false;
+        }
+      }
+    }
+    return false;
+  }
+
+private:
+  int        length = -1;
+  int        start  = -1;
+  std::mutex mutex;
+};
 
 // BSR trigger are common between LTE and NR
 typedef enum { NONE, REGULAR, PADDING, PERIODIC } bsr_trigger_type_t;

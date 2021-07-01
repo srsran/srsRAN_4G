@@ -15,6 +15,7 @@
 
 #include "srsran/interfaces/ue_mac_interfaces.h"
 #include "srsran/srslog/srslog.h"
+#include <mutex>
 #include <stdint.h>
 
 /* Scheduling Request procedure as defined in 5.4.4 of 36.321 */
@@ -47,6 +48,9 @@ private:
   rrc_interface_mac*     rrc;
   phy_interface_mac_lte* phy_h;
   srslog::basic_logger&  logger;
+
+  // Protects access to is_pending_sr, which can be accessed by PHY worker
+  std::mutex mutex = {};
 
   bool initiated;
 };

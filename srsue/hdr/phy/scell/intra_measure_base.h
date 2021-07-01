@@ -126,7 +126,6 @@ public:
 protected:
   struct measure_context_t {
     uint32_t           cc_idx             = 0;    ///< Component carrier index
-    float              rx_gain_offset_db  = 0.0f; ///< Current gain offset
     std::set<uint32_t> active_pci         = {};   ///< Set with the active PCIs
     uint32_t           sf_len             = 0;    ///< Subframe length in samples
     uint32_t           meas_len_ms        = 20;   ///< Measure length in milliseconds/sub-frames
@@ -137,6 +136,8 @@ protected:
 
     explicit measure_context_t(meas_itf& new_cell_itf_) : new_cell_itf(new_cell_itf_) {}
   };
+
+  std::atomic<float> rx_gain_offset_db = {0.0f}; ///< Current gain offset
 
   /**
    * @brief Generic initialization method, necessary to configure main parameters
@@ -261,9 +262,10 @@ private:
    * as it is protected by the state.
    * @param context Provides current measurement context
    * @param buffer Provides current measurement context
+   * @param rx_gain_offset Provides last received rx_gain_offset
    * @return True if the measurement functions are executed without errors, otherwise false
    */
-  virtual bool measure_rat(measure_context_t context, std::vector<cf_t>& buffer) = 0;
+  virtual bool measure_rat(measure_context_t context, std::vector<cf_t>& buffer, float rx_gain_offset) = 0;
 
   /**
    * @brief Measurement process helper method. Encapsulates the neighbour cell measurement functionality
