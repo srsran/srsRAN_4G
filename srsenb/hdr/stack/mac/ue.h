@@ -164,6 +164,7 @@ public:
   srsran::unique_byte_buffer_t release_pdu(uint32_t tti, uint32_t enb_cc_idx);
   void                         clear_old_buffers(uint32_t tti);
 
+  std::mutex metrics_mutex = {};
   void metrics_read(mac_ue_metrics_t* metrics_);
   void metrics_rx(bool crc, uint32_t tbs);
   void metrics_tx(bool crc, uint32_t tbs);
