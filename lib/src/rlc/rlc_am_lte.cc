@@ -666,8 +666,10 @@ bool rlc_am_lte::rlc_am_lte_tx::poll_required()
 int rlc_am_lte::rlc_am_lte_tx::build_status_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   int pdu_len = parent->rx.get_status_pdu(&tx_status, nof_bytes);
-  log_rlc_am_status_pdu_to_string(logger.debug, "%s", &tx_status);
-  if (pdu_len > 0 && nof_bytes >= static_cast<uint32_t>(pdu_len)) {
+  if (pdu_len == SRSRAN_ERROR) {
+    logger.debug("%s Deferred Status PDU. Cause: Failed to acquire Rx lock", RB_NAME);
+    pdu_len = 0;
+  } else if (pdu_len > 0 && nof_bytes >= static_cast<uint32_t>(pdu_len)) {
     log_rlc_am_status_pdu_to_string(logger.info, "%s Tx status PDU - %s", &tx_status, RB_NAME);
 
     parent->rx.reset_status();
@@ -1922,9 +1924,14 @@ void rlc_am_lte::rlc_am_lte_rx::timer_expired(uint32_t timeout_id)
 }
 
 // Called from Tx object to pack status PDU that doesn't exceed a given size
+// If lock-acquisition fails, return -1. Otherwise it returns the length of the generated PDU.
 int rlc_am_lte::rlc_am_lte_rx::get_status_pdu(rlc_status_pdu_t* status, const uint32_t max_pdu_size)
 {
-  std::lock_guard<std::mutex> lock(mutex);
+  std::unique_lock<std::mutex> lock(mutex, std::try_to_lock);
+  if (not lock.owns_lock()) {
+    return SRSRAN_ERROR;
+  }
+
   status->N_nack = 0;
   status->ack_sn = vr_r; // start with lower edge of the rx window
 
@@ -1970,7 +1977,10 @@ int rlc_am_lte::rlc_am_lte_rx::get_status_pdu(rlc_status_pdu_t* status, const ui
 // Called from Tx object to obtain length of the full status PDU
 int rlc_am_lte::rlc_am_lte_rx::get_status_pdu_length()
 {
-  std::lock_guard<std::mutex> lock(mutex);
+  std::unique_lock<std::mutex> lock(mutex, std::try_to_lock);
+  if (not lock.owns_lock()) {
+    return 0;
+  }
   rlc_status_pdu_t            status = {};
   status.ack_sn                      = vr_ms;
   uint32_t i                         = vr_r;
