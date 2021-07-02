@@ -10,14 +10,10 @@
  *
  */
 
-#include "srsran/phy/enb/enb_dl_nr.h"
-#include "srsran/phy/phch/ra_dl_nr.h"
+#include "srsran/phy/io/filesource.h"
 #include "srsran/phy/ue/ue_dl_nr.h"
 #include "srsran/phy/utils/debug.h"
-#include "srsran/phy/utils/random.h"
-#include "srsran/phy/utils/vector.h"
 #include <getopt.h>
-#include <srsran/phy/io/filesource.h>
 
 static srsran_carrier_nr_t carrier = {
     501,                             // pci
