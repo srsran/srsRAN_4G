@@ -13,7 +13,7 @@
 #ifndef SRSRAN_SCHED_NR_PHY_HELPERS_H
 #define SRSRAN_SCHED_NR_PHY_HELPERS_H
 
-#include "sched_nr_common.h"
+#include "sched_nr_cfg.h"
 
 namespace srsenb {
 namespace sched_nr_impl {
@@ -38,6 +38,8 @@ void fill_pusch_ue(const slot_ue&           ue,
                    const rbgmask_t&         rbgmask,
                    const sched_cell_params& cc_cfg,
                    srsran_sch_cfg_nr_t&     sch);
+
+pucch_resource_grant find_pucch_resource(const slot_ue& ue, const rbgmask_t& rbgs, uint32_t tbs);
 
 } // namespace sched_nr_impl
 } // namespace srsenb

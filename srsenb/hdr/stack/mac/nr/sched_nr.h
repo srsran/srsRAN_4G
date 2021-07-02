@@ -13,7 +13,7 @@
 #ifndef SRSRAN_SCHED_NR_H
 #define SRSRAN_SCHED_NR_H
 
-#include "sched_nr_common.h"
+#include "sched_nr_cfg.h"
 #include "sched_nr_interface.h"
 #include "sched_nr_ue.h"
 #include "srsran/adt/pool/cached_alloc.h"

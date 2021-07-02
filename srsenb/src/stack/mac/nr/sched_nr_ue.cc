@@ -16,36 +16,6 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
-ue_cfg_extended::ue_cfg_extended(uint16_t rnti_, const ue_cfg_t& uecfg) : ue_cfg_t(uecfg), rnti(rnti_)
-{
-  cc_params.resize(carriers.size());
-  for (uint32_t cc = 0; cc < cc_params.size(); ++cc) {
-    cc_params[cc].bwps.resize(1);
-    auto& bwp = cc_params[cc].bwps[0];
-    for (uint32_t ssid = 0; ssid < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE; ++ssid) {
-      if (phy_cfg.pdcch.search_space_present[ssid]) {
-        bwp.search_spaces.emplace_back();
-        bwp.search_spaces.back().cfg = &phy_cfg.pdcch.search_space[ssid];
-      }
-    }
-    for (uint32_t csid = 0; csid < SRSRAN_UE_DL_NR_MAX_NOF_CORESET; ++csid) {
-      if (phy_cfg.pdcch.coreset_present[csid]) {
-        bwp.coresets.emplace_back();
-        auto& coreset = bwp.coresets.back();
-        coreset.cfg   = &phy_cfg.pdcch.coreset[csid];
-        for (auto& ss : bwp.search_spaces) {
-          if (ss.cfg->coreset_id == csid + 1) {
-            coreset.ss_list.push_back(&ss);
-            get_dci_locs(*coreset.cfg, *coreset.ss_list.back()->cfg, rnti, coreset.cce_positions);
-          }
-        }
-      }
-    }
-  }
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 slot_ue::slot_ue(resource_guard::token ue_token_, uint16_t rnti_, tti_point tti_rx_, uint32_t cc_) :
   ue_token(std::move(ue_token_)), rnti(rnti_), tti_rx(tti_rx_), cc(cc_)
 {}

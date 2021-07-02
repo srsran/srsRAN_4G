@@ -85,6 +85,7 @@ int bitmap_to_riv(const rbgmask_t& bitmap, uint32_t cell_nof_prb)
 template <typename DciDlOrUl>
 void fill_dci_common(const slot_ue& ue, const rbgmask_t& bitmap, const sched_cell_params& cc_cfg, DciDlOrUl& dci)
 {
+  const static uint32_t rv_idx[4] = {0, 2, 3, 1};
   // Note: PDCCH DCI position already filled at this point
   dci.bwp_id                = ue.bwp_id;
   dci.cc_id                 = ue.cc;
@@ -97,6 +98,7 @@ void fill_dci_common(const slot_ue& ue, const rbgmask_t& bitmap, const sched_cel
   dci.pid      = h->pid;
   dci.ndi      = h->ndi();
   dci.mcs      = h->mcs();
+  dci.rv       = rv_idx[h->nof_retx() % 4];
 }
 
 void fill_dci_ue_cfg(const slot_ue&           ue,
@@ -144,6 +146,21 @@ void fill_pusch_ue(const slot_ue&           ue,
   fill_sch_ue_common(ue, rbgmask, cc_cfg, sch);
   sch.grant.k          = ue.cc_cfg->pusch_res_list[0].k2;
   sch.grant.dci_format = srsran_dci_format_nr_0_1;
+}
+
+pucch_resource_grant find_pucch_resource(const slot_ue& ue, const rbgmask_t& rbgs, uint32_t tbs)
+{
+  if (ue.cfg->phy_cfg.pucch.enabled) {
+    for (uint32_t i = 0; i < SRSRAN_PUCCH_NR_MAX_NOF_SETS; ++i) {
+      const auto& rset = ue.cfg->phy_cfg.pucch.sets[i];
+      if (rset.max_payload_size >= tbs) {
+        for (uint32_t sid = 0; sid < rset.nof_resources; ++sid) {
+          return pucch_resource_grant{ue.rnti, i, sid};
+        }
+      }
+    }
+  }
+  return pucch_resource_grant{SRSRAN_INVALID_RNTI, 0, 0};
 }
 
 } // namespace sched_nr_impl

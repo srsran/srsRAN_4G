@@ -13,7 +13,7 @@
 #ifndef SRSRAN_SCHED_NR_HARQ_H
 #define SRSRAN_SCHED_NR_HARQ_H
 
-#include "sched_nr_common.h"
+#include "sched_nr_cfg.h"
 #include "srsran/common/tti_point.h"
 #include <array>
 

@@ -19,14 +19,14 @@ namespace sched_nr_impl {
 coreset_region::coreset_region(const bwp_cfg_t& bwp_cfg_,
                                uint32_t         coreset_id_,
                                uint32_t         slot_idx_,
-                               pdcch_dl_list_t& pdcch_dl_list_,
-                               pdcch_ul_list_t& pdcch_ul_list_) :
+                               pdsch_list_t&    dl_list_,
+                               pusch_list_t&    ul_list_) :
   bwp_cfg(&bwp_cfg_),
   coreset_cfg(&bwp_cfg_.coresets[coreset_id_ - 1].value()),
   coreset_id(coreset_id_),
   slot_idx(slot_idx_),
-  pdcch_dl_list(pdcch_dl_list_),
-  pdcch_ul_list(pdcch_ul_list_)
+  pdcch_dl_list(dl_list_),
+  pdcch_ul_list(ul_list_)
 {
   const bool* res_active = &coreset_cfg->freq_resources[0];
   nof_freq_res           = std::count(res_active, res_active + SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE, true);
@@ -156,10 +156,10 @@ bool coreset_region::alloc_dfs_node(const alloc_record& record, uint32_t start_d
     alloc_dfs.push_back(node);
     // set new DCI position
     if (record.alloc_type == pdcch_grant_type_t::ul_data) {
-      pdcch_ul_t& pdcch_ul      = pdcch_ul_list[record.idx];
+      pusch_grant& pdcch_ul     = pdcch_ul_list[record.idx];
       pdcch_ul.dci.ctx.location = node.dci_pos;
     } else {
-      pdcch_dl_t& pdcch_dl      = pdcch_dl_list[record.idx];
+      pdsch_grant& pdcch_dl     = pdcch_dl_list[record.idx];
       pdcch_dl.dci.ctx.location = node.dci_pos;
     }
     return true;

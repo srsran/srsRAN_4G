@@ -13,7 +13,7 @@
 #ifndef SRSRAN_SCHED_NR_UE_H
 #define SRSRAN_SCHED_NR_UE_H
 
-#include "sched_nr_common.h"
+#include "sched_nr_cfg.h"
 #include "sched_nr_harq.h"
 #include "sched_nr_interface.h"
 #include "srsran/adt/circular_map.h"
@@ -23,35 +23,6 @@
 namespace srsenb {
 
 namespace sched_nr_impl {
-
-using ue_cfg_t    = sched_nr_interface::ue_cfg_t;
-using ue_cc_cfg_t = sched_nr_interface::ue_cc_cfg_t;
-
-class ue_cfg_extended : public ue_cfg_t
-{
-public:
-  struct search_space_params {
-    srsran_search_space_t* cfg = nullptr;
-  };
-  struct coreset_params {
-    srsran_coreset_t*                 cfg = nullptr;
-    std::vector<search_space_params*> ss_list;
-    bwp_cce_pos_list                  cce_positions;
-  };
-  struct bwp_params {
-    std::vector<search_space_params> search_spaces;
-    std::vector<coreset_params>      coresets;
-  };
-  struct cc_params {
-    srsran::bounded_vector<bwp_params, SCHED_NR_MAX_BWP_PER_CELL> bwps;
-  };
-
-  uint16_t               rnti;
-  std::vector<cc_params> cc_params;
-
-  ue_cfg_extended() = default;
-  explicit ue_cfg_extended(uint16_t rnti, const ue_cfg_t& uecfg);
-};
 
 class ue_carrier;
 

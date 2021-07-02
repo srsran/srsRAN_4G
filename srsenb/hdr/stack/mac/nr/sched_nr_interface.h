@@ -84,30 +84,38 @@ public:
 
   ///// Sched Result /////
 
-  using pdcch_dl_t      = mac_interface_phy_nr::pdcch_dl_t;
-  using pdcch_ul_t      = mac_interface_phy_nr::pdcch_ul_t;
-  using pdcch_dl_list_t = srsran::bounded_vector<pdcch_dl_t, MAX_GRANTS>;
-  using pdcch_ul_list_t = srsran::bounded_vector<pdcch_ul_t, MAX_GRANTS>;
+  using pdcch_dl_t = mac_interface_phy_nr::pdcch_dl_t;
+  using pdcch_ul_t = mac_interface_phy_nr::pdcch_ul_t;
 
-  struct pdsch_t {
-    srsran_sch_cfg_nr_t sch = {}; ///< PDSCH configuration
+  struct pdsch_grant {
+    srsran_dci_dl_nr_t dci = {};
   };
-  using pdsch_list_t = srsran::bounded_vector<pdsch_t, MAX_GRANTS>;
+  using pdsch_list_t = srsran::bounded_vector<pdsch_grant, MAX_GRANTS>;
 
   struct dl_tti_request_t {
-    tti_point       pdsch_tti;
-    pdcch_dl_list_t pdcchs;
-    pdsch_list_t    pdschs;
+    tti_point    pdsch_tti;
+    pdsch_list_t pdschs;
   };
 
-  struct pusch_t {
-    srsran_sch_cfg_nr_t sch = {}; ///< PUSCH configuration
+  struct pusch_grant {
+    srsran_dci_ul_nr_t dci = {};
   };
-  using pusch_list_t = srsran::bounded_vector<pusch_t, MAX_GRANTS>;
+  using pusch_list_t = srsran::bounded_vector<pusch_grant, MAX_GRANTS>;
+
+  struct pucch_resource_grant {
+    uint16_t rnti;
+    uint32_t resource_set_id;
+    uint32_t resource_id;
+  };
+  struct pucch_grant {
+    pucch_resource_grant resource;
+  };
+  using pucch_list_t = srsran::bounded_vector<pucch_grant, MAX_GRANTS>;
 
   struct ul_tti_request_t {
-    tti_point                                   pusch_tti;
-    srsran::bounded_vector<pusch_t, MAX_GRANTS> pusch;
+    tti_point    pusch_tti;
+    pusch_list_t puschs;
+    pucch_list_t pucchs;
   };
 
   struct tti_request_t {

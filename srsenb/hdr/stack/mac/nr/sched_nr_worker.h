@@ -13,7 +13,7 @@
 #ifndef SRSRAN_SCHED_NR_WORKER_H
 #define SRSRAN_SCHED_NR_WORKER_H
 
-#include "sched_nr_common.h"
+#include "sched_nr_cfg.h"
 #include "sched_nr_rb_grid.h"
 #include "sched_nr_ue.h"
 #include "srsran/adt/circular_array.h"
