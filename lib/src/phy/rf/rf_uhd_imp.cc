@@ -194,6 +194,7 @@ static std::array<cf_t, 64 * 1024> dummy_mem = {}; // For receiving
 
 static void log_overflow(rf_uhd_handler_t* h)
 {
+  std::unique_lock<std::mutex> lock(h->tx_mutex);
   if (h->tx_state == RF_UHD_IMP_TX_STATE_BURST) {
     h->tx_state = RF_UHD_IMP_TX_STATE_END_OF_BURST;
   }
@@ -208,6 +209,7 @@ static void log_overflow(rf_uhd_handler_t* h)
 
 static void log_late(rf_uhd_handler_t* h, bool is_rx)
 {
+  std::unique_lock<std::mutex> lock(h->tx_mutex);
   if (h->tx_state == RF_UHD_IMP_TX_STATE_BURST) {
     h->tx_state = RF_UHD_IMP_TX_STATE_END_OF_BURST;
   }

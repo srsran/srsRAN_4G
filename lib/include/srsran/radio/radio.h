@@ -90,6 +90,7 @@ private:
   std::vector<srsran_rf_info_t>                           rf_info     = {};
   std::vector<int32_t>                                    rx_offset_n = {};
   rf_metrics_t                                            rf_metrics  = {};
+  std::mutex                                              metrics_mutex;
   srslog::basic_logger&                                   logger      = srslog::fetch_basic_logger("RF", false);
   phy_interface_radio*                                    phy         = nullptr;
   cf_t*                                                   zeros       = nullptr;

@@ -979,6 +979,7 @@ srsran_rf_info_t* radio::get_info()
 
 bool radio::get_metrics(rf_metrics_t* metrics)
 {
+  std::lock_guard<std::mutex> lock(metrics_mutex);
   *metrics   = rf_metrics;
   rf_metrics = {};
   return true;
@@ -990,8 +991,11 @@ void radio::handle_rf_msg(srsran_rf_error_t error)
     return;
   }
   if (error.type == srsran_rf_error_t::SRSRAN_RF_ERROR_OVERFLOW) {
-    rf_metrics.rf_o++;
-    rf_metrics.rf_error = true;
+    {
+      std::lock_guard<std::mutex> lock(metrics_mutex);
+      rf_metrics.rf_o++;
+      rf_metrics.rf_error = true;
+    }
     logger.info("Overflow");
 
     // inform PHY about overflow
@@ -999,13 +1003,15 @@ void radio::handle_rf_msg(srsran_rf_error_t error)
       phy->radio_overflow();
     }
   } else if (error.type == srsran_rf_error_t::SRSRAN_RF_ERROR_UNDERFLOW) {
+    logger.info("Underflow");
+    std::lock_guard<std::mutex> lock(metrics_mutex);
     rf_metrics.rf_u++;
     rf_metrics.rf_error = true;
-    logger.info("Underflow");
   } else if (error.type == srsran_rf_error_t::SRSRAN_RF_ERROR_LATE) {
+    logger.info("Late (detected in %s)", error.opt ? "rx call" : "asynchronous thread");
+    std::lock_guard<std::mutex> lock(metrics_mutex);
     rf_metrics.rf_l++;
     rf_metrics.rf_error = true;
-    logger.info("Late (detected in %s)", error.opt ? "rx call" : "asynchronous thread");
   } else if (error.type == srsran_rf_error_t::SRSRAN_RF_ERROR_RX) {
     logger.error("Fatal radio error occured.");
     phy->radio_failure();
