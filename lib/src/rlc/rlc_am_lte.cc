@@ -22,6 +22,7 @@
 #define TX_MOD_BASE(x) (((x)-vt_a) % 1024)
 #define LCID (parent->lcid)
 #define RB_NAME (parent->rb_name.c_str())
+#define MAX_SDUS_PER_PDU (128)
 
 namespace srsran {
 
@@ -1047,7 +1048,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
   }
 
   // Pull SDUs from queue
-  while (pdu_space > head_len && tx_sdu_queue.get_n_sdus() > 0 && header.N_li < RLC_AM_WINDOW_SIZE) {
+  while (pdu_space > head_len && tx_sdu_queue.get_n_sdus() > 0 && header.N_li < MAX_SDUS_PER_PDU) {
     if (not segment_pool.has_segments()) {
       logger.info("Can't build a PDU segment - No segment resources available");
       if (pdu_ptr != pdu->msg) {
