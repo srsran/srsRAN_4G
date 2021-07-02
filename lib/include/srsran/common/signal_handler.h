@@ -31,7 +31,7 @@ extern "C" {
 
 // static vars required by signal handling
 static srslog::sink* log_sink = nullptr;
-static bool          running  = true;
+static std::atomic<bool> running  = {true};
 
 static void srsran_signal_handler(int signal)
 {
