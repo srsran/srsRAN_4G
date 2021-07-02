@@ -49,6 +49,7 @@ private:
     srsran_pdsch_ack_nr_t ack = {};
 
   public:
+    pending_ack_t() = default;
     void push_ack(srsran_harq_ack_resource_t& ack_resource)
     {
       // Prepare ACK information
@@ -76,7 +77,7 @@ private:
       return ack.cc[0].M % 4;
     }
   };
-  srsran::circular_array<pending_ack_t, TTIMOD_SZ> pending_ack;
+  srsran::circular_array<pending_ack_t, TTIMOD_SZ> pending_ack = {};
 
   struct dummy_harq_proc {
     static const uint32_t  MAX_TB_SZ = SRSRAN_LDPC_MAX_LEN_CB * SRSRAN_SCH_NR_MAX_NOF_CB_LDPC;
