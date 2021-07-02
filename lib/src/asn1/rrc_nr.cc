@@ -4484,61 +4484,6 @@ uint8_t sib_type_info_s::type_opts::to_number() const
   return map_enum_number(options, 8, value, "sib_type_info_s::type_e_");
 }
 
-// SetupRelease{ElementTypeParam} ::= CHOICE
-template <class elem_type_paramT_>
-void setup_release_c<elem_type_paramT_>::set(typename types::options e)
-{
-  type_ = e;
-}
-template <class elem_type_paramT_>
-void setup_release_c<elem_type_paramT_>::to_json(json_writer& j) const
-{
-  j.start_obj();
-  switch (type_) {
-    case types::release:
-      break;
-    case types::setup:
-      break;
-    default:
-      log_invalid_choice_id(type_, "setup_release_c");
-  }
-  j.end_obj();
-}
-template <class elem_type_paramT_>
-SRSASN_CODE setup_release_c<elem_type_paramT_>::pack(bit_ref& bref) const
-{
-  type_.pack(bref);
-  switch (type_) {
-    case types::release:
-      break;
-    case types::setup:
-      HANDLE_CODE(c.pack(bref));
-      break;
-    default:
-      log_invalid_choice_id(type_, "setup_release_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-template <class elem_type_paramT_>
-SRSASN_CODE setup_release_c<elem_type_paramT_>::unpack(cbit_ref& bref)
-{
-  types e;
-  e.unpack(bref);
-  set(e);
-  switch (type_) {
-    case types::release:
-      break;
-    case types::setup:
-      HANDLE_CODE(c.unpack(bref));
-      break;
-    default:
-      log_invalid_choice_id(type_, "setup_release_c");
-      return SRSASN_ERROR_DECODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-
 // UAC-BarringPerCat ::= SEQUENCE
 SRSASN_CODE uac_barr_per_cat_s::pack(bit_ref& bref) const
 {
