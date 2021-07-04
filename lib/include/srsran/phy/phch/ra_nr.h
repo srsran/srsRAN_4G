@@ -148,4 +148,13 @@ SRSRAN_API int srsran_ra_ul_set_grant_uci_nr(const srsran_carrier_nr_t*    carri
                                              const srsran_uci_cfg_nr_t*    uci_cfg,
                                              srsran_sch_cfg_nr_t*          pusch_cfg);
 
+/**
+ * @brief Calculates frequency allocation type 1 RIV field
+ * @param N_rb Number of resource blocks
+ * @param start_rb Start resource block index
+ * @param length_rb Number of resource blocks
+ * @return The RIV field with the encoded value
+ */
+SRSRAN_API uint32_t srsran_ra_nr_type1_riv(uint32_t N_rb, uint32_t start_rb, uint32_t length_rb);
+
 #endif // SRSRAN_RA_NR_H

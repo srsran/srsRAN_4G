@@ -179,7 +179,7 @@ static int work_gnb_dl(srsran_enb_dl_nr_t*    enb_dl,
   dci_dl.rv                    = 0;
 
   // Put actual DCI
-  if (srsran_enb_dl_nr_pdcch_put(enb_dl, slot, &dci_dl) < SRSRAN_SUCCESS) {
+  if (srsran_enb_dl_nr_pdcch_put_dl(enb_dl, slot, &dci_dl) < SRSRAN_SUCCESS) {
     ERROR("Error putting PDCCH");
     return SRSRAN_ERROR;
   }

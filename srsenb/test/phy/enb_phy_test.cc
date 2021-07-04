@@ -20,9 +20,9 @@
  */
 
 #include "srsran/common/threads.h"
-#include "srsran/phy/common/phy_common.h"
 #include "srsran/phy/utils/random.h"
 #include "srsran/srslog/srslog.h"
+#include "srsran/srsran.h"
 #include <boost/program_options.hpp>
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/parsers.hpp>
@@ -31,7 +31,6 @@
 #include <srsenb/hdr/phy/phy.h>
 #include <srsran/common/string_helpers.h>
 #include <srsran/common/test_common.h>
-#include <srsran/phy/phch/pusch_cfg.h>
 
 static inline bool dl_ack_value(uint32_t ue_cc_idx, uint32_t tti)
 {

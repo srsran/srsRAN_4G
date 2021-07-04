@@ -178,7 +178,7 @@ SRSRAN_API int srsran_ue_dl_nr_gen_ack(const srsran_ue_dl_nr_harq_ack_cfg_t* cfg
                                        const srsran_pdsch_ack_nr_t*          ack_info,
                                        srsran_uci_data_nr_t*                 uci_data);
 
-SRSRAN_API int srsran_ue_dl_nr_ack_insert_m(srsran_pdsch_ack_nr_t* ack_info, srsran_pdsch_ack_m_nr_t* m);
+SRSRAN_API int srsran_ue_dl_nr_ack_insert_m(srsran_pdsch_ack_nr_t* ack_info, const srsran_pdsch_ack_m_nr_t* m);
 
 SRSRAN_API uint32_t srsran_ue_dl_nr_ack_info(const srsran_pdsch_ack_nr_t* ack_info, char* str, uint32_t str_len);
 

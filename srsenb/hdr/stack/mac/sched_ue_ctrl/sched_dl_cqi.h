@@ -22,8 +22,8 @@
 #ifndef SRSRAN_SCHED_DL_CQI_H
 #define SRSRAN_SCHED_DL_CQI_H
 
-#include "srsenb/hdr/stack/mac/sched_common.h"
 #include "srsenb/hdr/stack/mac/sched_helpers.h"
+#include "srsenb/hdr/stack/mac/sched_lte_common.h"
 #include "srsenb/hdr/stack/mac/sched_phy_ch/sched_phy_resource.h"
 #include "srsran/adt/accumulators.h"
 #include "srsran/common/common_lte.h"

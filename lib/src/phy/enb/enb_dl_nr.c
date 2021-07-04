@@ -189,20 +189,15 @@ int srsran_enb_dl_nr_base_zero(srsran_enb_dl_nr_t* q)
   return SRSRAN_SUCCESS;
 }
 
-int srsran_enb_dl_nr_pdcch_put(srsran_enb_dl_nr_t*       q,
-                               const srsran_slot_cfg_t*  slot_cfg,
-                               const srsran_dci_dl_nr_t* dci_dl)
+static int
+enb_dl_nr_pdcch_put_msg(srsran_enb_dl_nr_t* q, const srsran_slot_cfg_t* slot_cfg, const srsran_dci_msg_nr_t* dci_msg)
 {
-  if (q == NULL || slot_cfg == NULL || dci_dl == NULL) {
-    return SRSRAN_ERROR_INVALID_INPUTS;
-  }
-
-  if (dci_dl->ctx.coreset_id >= SRSRAN_UE_DL_NR_MAX_NOF_CORESET ||
-      !q->pdcch_cfg.coreset_present[dci_dl->ctx.coreset_id]) {
-    ERROR("Invalid CORESET ID %d", dci_dl->ctx.coreset_id);
+  if (dci_msg->ctx.coreset_id >= SRSRAN_UE_DL_NR_MAX_NOF_CORESET ||
+      !q->pdcch_cfg.coreset_present[dci_msg->ctx.coreset_id]) {
+    ERROR("Invalid CORESET ID %d", dci_msg->ctx.coreset_id);
     return SRSRAN_ERROR;
   }
-  srsran_coreset_t* coreset = &q->pdcch_cfg.coreset[dci_dl->ctx.coreset_id];
+  srsran_coreset_t* coreset = &q->pdcch_cfg.coreset[dci_msg->ctx.coreset_id];
 
   if (srsran_pdcch_nr_set_carrier(&q->pdcch, &q->carrier, coreset) < SRSRAN_SUCCESS) {
     ERROR("Error setting PDCCH carrier/CORESET");
@@ -210,9 +205,29 @@ int srsran_enb_dl_nr_pdcch_put(srsran_enb_dl_nr_t*       q,
   }
 
   // Put DMRS
-  if (srsran_dmrs_pdcch_put(&q->carrier, coreset, slot_cfg, &dci_dl->ctx.location, q->sf_symbols[0]) < SRSRAN_SUCCESS) {
+  if (srsran_dmrs_pdcch_put(&q->carrier, coreset, slot_cfg, &dci_msg->ctx.location, q->sf_symbols[0]) <
+      SRSRAN_SUCCESS) {
     ERROR("Error putting PDCCH DMRS");
     return SRSRAN_ERROR;
+  }
+
+  // PDCCH Encode
+  if (srsran_pdcch_nr_encode(&q->pdcch, dci_msg, q->sf_symbols[0]) < SRSRAN_SUCCESS) {
+    ERROR("Error encoding PDCCH");
+    return SRSRAN_ERROR;
+  }
+
+  INFO("DCI DL NR: L=%d; ncce=%d;", dci_msg->ctx.location.L, dci_msg->ctx.location.ncce);
+
+  return SRSRAN_SUCCESS;
+}
+
+int srsran_enb_dl_nr_pdcch_put_dl(srsran_enb_dl_nr_t*       q,
+                                  const srsran_slot_cfg_t*  slot_cfg,
+                                  const srsran_dci_dl_nr_t* dci_dl)
+{
+  if (q == NULL || slot_cfg == NULL || dci_dl == NULL) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
   // Pack DCI
@@ -222,15 +237,29 @@ int srsran_enb_dl_nr_pdcch_put(srsran_enb_dl_nr_t*       q,
     return SRSRAN_ERROR;
   }
 
-  // PDCCH Encode
-  if (srsran_pdcch_nr_encode(&q->pdcch, &dci_msg, q->sf_symbols[0]) < SRSRAN_SUCCESS) {
-    ERROR("Error encoding PDCCH");
+  INFO("DCI DL NR: L=%d; ncce=%d;", dci_dl->ctx.location.L, dci_dl->ctx.location.ncce);
+
+  return enb_dl_nr_pdcch_put_msg(q, slot_cfg, &dci_msg);
+}
+
+int srsran_enb_dl_nr_pdcch_put_ul(srsran_enb_dl_nr_t*       q,
+                                  const srsran_slot_cfg_t*  slot_cfg,
+                                  const srsran_dci_ul_nr_t* dci_ul)
+{
+  if (q == NULL || slot_cfg == NULL || dci_ul == NULL) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+
+  // Pack DCI
+  srsran_dci_msg_nr_t dci_msg = {};
+  if (srsran_dci_nr_ul_pack(&q->dci, dci_ul, &dci_msg) < SRSRAN_SUCCESS) {
+    ERROR("Error packing UL DCI");
     return SRSRAN_ERROR;
   }
 
-  INFO("DCI DL NR: L=%d; ncce=%d;", dci_dl->ctx.location.L, dci_dl->ctx.location.ncce);
+  INFO("DCI DL NR: L=%d; ncce=%d;", dci_ul->ctx.location.L, dci_ul->ctx.location.ncce);
 
-  return SRSRAN_SUCCESS;
+  return enb_dl_nr_pdcch_put_msg(q, slot_cfg, &dci_msg);
 }
 
 int srsran_enb_dl_nr_pdsch_put(srsran_enb_dl_nr_t*        q,
@@ -258,6 +287,32 @@ int srsran_enb_dl_nr_pdsch_info(const srsran_enb_dl_nr_t*  q,
 
   // Append PDSCH info
   len += srsran_pdsch_nr_tx_info(&q->pdsch, cfg, &cfg->grant, &str[len], str_len - len);
+
+  return len;
+}
+
+int srsran_enb_dl_nr_pdcch_dl_info(const srsran_enb_dl_nr_t* q,
+                                   const srsran_dci_dl_nr_t* dci,
+                                   char*                     str,
+                                   uint32_t                  str_len)
+{
+  int len = 0;
+
+  // Append PDCCH info
+  len += srsran_dci_dl_nr_to_str(&q->dci, dci, &str[len], str_len - len);
+
+  return len;
+}
+
+int srsran_enb_dl_nr_pdcch_ul_info(const srsran_enb_dl_nr_t* q,
+                                   const srsran_dci_ul_nr_t* dci,
+                                   char*                     str,
+                                   uint32_t                  str_len)
+{
+  int len = 0;
+
+  // Append PDCCH info
+  len += srsran_dci_ul_nr_to_str(&q->dci, dci, &str[len], str_len - len);
 
   return len;
 }

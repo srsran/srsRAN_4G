@@ -43,10 +43,10 @@ int test_rlc_config()
   rlc_cfg_asn1.to_json(jw);
   srslog::fetch_basic_logger("RRC").info("RLC NR Config: \n %s", jw.to_string().c_str());
 
-  rlc_config_t rlc_cfg = make_rlc_config_t(rlc_cfg_asn1);
+  rlc_config_t rlc_cfg;
+  TESTASSERT(make_rlc_config_t(rlc_cfg_asn1, &rlc_cfg) == SRSRAN_SUCCESS);
   TESTASSERT(rlc_cfg.rat == srsran_rat_t::nr);
   TESTASSERT(rlc_cfg.um_nr.sn_field_length == rlc_um_nr_sn_size_t::size12bits);
-  TESTASSERT(rlc_cfg.um_nr.UM_Window_Size == 2048);
   return SRSRAN_SUCCESS;
 }
 

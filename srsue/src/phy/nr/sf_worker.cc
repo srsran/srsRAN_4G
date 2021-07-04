@@ -77,10 +77,14 @@ void sf_worker::set_tti(uint32_t tti)
   }
 }
 
+void sf_worker::set_tx_time(const srsran::rf_timestamp_t& tx_time_)
+{
+  tx_time.copy(tx_time_);
+}
+
 void sf_worker::work_imp()
 {
-  srsran::rf_buffer_t    tx_buffer = {};
-  srsran::rf_timestamp_t dummy_ts  = {};
+  srsran::rf_buffer_t tx_buffer = {};
 
   // Perform DL processing
   for (auto& w : cc_workers) {
@@ -104,7 +108,7 @@ void sf_worker::work_imp()
                                 0);
 
     // Transmit NR PRACH
-    common.worker_end(this, true, tx_buffer, dummy_ts, true);
+    common.worker_end(this, true, tx_buffer, tx_time, true);
 
     // Reset PRACH pointer
     prach_ptr = nullptr;
@@ -123,7 +127,7 @@ void sf_worker::work_imp()
   }
 
   // Always call worker_end before returning
-  common.worker_end(this, true, tx_buffer, dummy_ts, true);
+  common.worker_end(this, true, tx_buffer, tx_time, true);
 
   // Tell the plotting thread to draw the plots
 #ifdef ENABLE_GUI

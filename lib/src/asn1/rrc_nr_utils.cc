@@ -109,26 +109,48 @@ rach_nr_cfg_t make_mac_rach_cfg(const rach_cfg_common_s& asn1_type)
   return rach_nr_cfg;
 };
 
-rlc_config_t make_rlc_config_t(const rlc_cfg_c& asn1_type)
+int make_rlc_config_t(const rlc_cfg_c& asn1_type, rlc_config_t* cfg_out)
 {
   rlc_config_t rlc_cfg = rlc_config_t::default_rlc_um_nr_config();
   rlc_cfg.rat          = srsran_rat_t::nr;
   switch (asn1_type.type().value) {
     case rlc_cfg_c::types_opts::am:
-      break;
+      asn1::log_warning("NR RLC type %s is not supported", asn1_type.type().to_string());
+      return SRSRAN_ERROR;
     case rlc_cfg_c::types_opts::um_bi_dir:
-    case rlc_cfg_c::types_opts::um_uni_dir_dl:
-    case rlc_cfg_c::types_opts::um_uni_dir_ul:
       rlc_cfg.rlc_mode              = rlc_mode_t::um;
-      rlc_cfg.um_nr.t_reassembly_ms = asn1_type.um_bi_dir().dl_um_rlc.t_reassembly.value;
-      rlc_cfg.um_nr.sn_field_length = (rlc_um_nr_sn_size_t)asn1_type.um_bi_dir().dl_um_rlc.sn_field_len.value;
-      rlc_cfg.um_nr.mod             = (rlc_cfg.um_nr.sn_field_length == rlc_um_nr_sn_size_t::size6bits) ? 64 : 4096;
-      rlc_cfg.um_nr.UM_Window_Size  = (rlc_cfg.um_nr.sn_field_length == rlc_um_nr_sn_size_t::size6bits) ? 32 : 2048;
+      rlc_cfg.um_nr.t_reassembly_ms = asn1_type.um_bi_dir().dl_um_rlc.t_reassembly.to_number();
+
+      if (asn1_type.um_bi_dir().dl_um_rlc.sn_field_len_present &&
+          asn1_type.um_bi_dir().ul_um_rlc.sn_field_len_present &&
+          asn1_type.um_bi_dir().dl_um_rlc.sn_field_len != asn1_type.um_bi_dir().ul_um_rlc.sn_field_len) {
+        asn1::log_warning("NR RLC sequence number length is not the same in uplink and downlink");
+        return SRSRAN_ERROR;
+      }
+
+      switch (asn1_type.um_bi_dir().dl_um_rlc.sn_field_len.value) {
+        case asn1::rrc_nr::sn_field_len_um_opts::options::size6:
+          rlc_cfg.um_nr.sn_field_length = rlc_um_nr_sn_size_t::size6bits;
+          break;
+        case asn1::rrc_nr::sn_field_len_um_opts::options::size12:
+          rlc_cfg.um_nr.sn_field_length = rlc_um_nr_sn_size_t::size12bits;
+          break;
+        default:
+          break;
+      }
       break;
+    case rlc_cfg_c::types_opts::um_uni_dir_dl:
+      asn1::log_warning("NR RLC type %s is not supported", asn1_type.type().to_string());
+      return SRSRAN_ERROR;
+    case rlc_cfg_c::types_opts::um_uni_dir_ul:
+      asn1::log_warning("NR RLC type %s is not supported", asn1_type.type().to_string());
+      return SRSRAN_ERROR;
     default:
       break;
   }
-  return rlc_cfg;
+
+  *cfg_out = rlc_cfg;
+  return SRSRAN_SUCCESS;
 }
 
 srsran::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue, const pdcp_cfg_s& pdcp_cfg)

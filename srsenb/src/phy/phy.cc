@@ -75,7 +75,6 @@ phy::phy(srslog::sink& log_sink) :
   phy_log(srslog::fetch_basic_logger("PHY", log_sink)),
   phy_lib_log(srslog::fetch_basic_logger("PHY_LIB", log_sink)),
   lte_workers(MAX_WORKERS),
-  nr_workers(MAX_WORKERS),
   workers_common(),
   nof_workers(0),
   tx_rx(phy_log)
@@ -141,7 +140,10 @@ int phy::init(const phy_args_t&            args,
     lte_workers.init(args, &workers_common, log_sink, WORKERS_THREAD_PRIO);
   }
   if (not cfg.phy_cell_cfg_nr.empty()) {
-    nr_workers.init(cfg.phy_cell_cfg_nr, args, workers_common, log_sink, WORKERS_THREAD_PRIO);
+    // Not implemented
+    //    nr_workers = std::unique_ptr<nr::worker_pool>(
+    //        new nr::worker_pool(cfg.phy_cell_cfg_nr, workers_common, stack_, log_sink, MAX_WORKERS,
+    //        WORKERS_THREAD_PRIO));
   }
 
   // For each carrier, initialise PRACH worker
@@ -153,7 +155,7 @@ int phy::init(const phy_args_t&            args,
   prach.set_max_prach_offset_us(args.max_prach_offset_us);
 
   // Warning this must be initialized after all workers have been added to the pool
-  tx_rx.init(stack_, radio, &lte_workers, &nr_workers, &workers_common, &prach, SF_RECV_THREAD_PRIO);
+  tx_rx.init(stack_, radio, &lte_workers, nr_workers.get(), &workers_common, &prach, SF_RECV_THREAD_PRIO);
 
   initialized = true;
 
@@ -166,7 +168,9 @@ void phy::stop()
     tx_rx.stop();
     workers_common.stop();
     lte_workers.stop();
-    nr_workers.stop();
+    if (nr_workers != nullptr) {
+      nr_workers->stop();
+    }
     prach.stop();
 
     initialized = false;

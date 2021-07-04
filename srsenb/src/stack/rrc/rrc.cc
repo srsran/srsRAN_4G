@@ -765,7 +765,7 @@ uint32_t rrc::generate_sibs()
       if (msg[msg_index].msg.c1().type().value != asn1::rrc::bcch_dl_sch_msg_type_c::c1_c_::types_opts::sib_type1) {
         msg_str = msg[msg_index].msg.c1().sys_info().crit_exts.type().to_string();
       }
-      fmt::format_to(membuf, "{}, cc={}", msg_str, cc_idx);
+      fmt::format_to(membuf, "{}, cc={}, idx={}", msg_str, cc_idx, msg_index);
       log_broadcast_rrc_message(SRSRAN_SIRNTI, *cell_ctxt->sib_buffer.back(), msg[msg_index], srsran::to_c_str(membuf));
     }
 

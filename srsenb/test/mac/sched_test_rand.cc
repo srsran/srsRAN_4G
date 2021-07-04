@@ -356,7 +356,7 @@ int main()
   }
 
   auto& mac_log = srslog::fetch_basic_logger("MAC");
-  mac_log.set_level(srslog::basic_levels::info);
+  mac_log.set_level(srslog::basic_levels::debug);
   auto& test_log = srslog::fetch_basic_logger("TEST", *spy, false);
   test_log.set_level(srslog::basic_levels::info);
 

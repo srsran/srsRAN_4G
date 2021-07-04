@@ -23,8 +23,8 @@
 #include "srsran/interfaces/enb_metrics_interface.h"
 #include "srsran/interfaces/enb_rlc_interfaces.h"
 #include "srsran/interfaces/ue_interfaces.h"
+#include "srsran/rlc/rlc.h"
 #include "srsran/srslog/srslog.h"
-#include "srsran/upper/rlc.h"
 #include <map>
 
 #ifndef SRSENB_RLC_H

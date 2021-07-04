@@ -82,6 +82,14 @@ static inline void ra_helper_compute_s_and_l(uint32_t N, uint32_t v, uint32_t* S
   }
 }
 
+static inline uint32_t ra_helper_from_s_and_l(uint32_t N, uint32_t S, uint32_t L)
+{
+  if ((L - 1) <= N / 2) {
+    return N * (L - 1) + S;
+  }
+  return N * (N - L + 1) + (N - 1 - S);
+}
+
 static int ra_helper_freq_type1(uint32_t N_bwp_size, uint32_t riv, srsran_sch_grant_nr_t* grant)
 {
   uint32_t start = 0;

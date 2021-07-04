@@ -66,8 +66,13 @@ SRSRAN_API int srsran_enb_dl_nr_base_zero(srsran_enb_dl_nr_t* q);
 
 SRSRAN_API void srsran_enb_dl_nr_gen_signal(srsran_enb_dl_nr_t* q);
 
-SRSRAN_API int
-srsran_enb_dl_nr_pdcch_put(srsran_enb_dl_nr_t* q, const srsran_slot_cfg_t* slot_cfg, const srsran_dci_dl_nr_t* dci_dl);
+SRSRAN_API int srsran_enb_dl_nr_pdcch_put_dl(srsran_enb_dl_nr_t*       q,
+                                             const srsran_slot_cfg_t*  slot_cfg,
+                                             const srsran_dci_dl_nr_t* dci_dl);
+
+SRSRAN_API int srsran_enb_dl_nr_pdcch_put_ul(srsran_enb_dl_nr_t*       q,
+                                             const srsran_slot_cfg_t*  slot_cfg,
+                                             const srsran_dci_ul_nr_t* dci_ul);
 
 SRSRAN_API int srsran_enb_dl_nr_pdsch_put(srsran_enb_dl_nr_t*        q,
                                           const srsran_slot_cfg_t*   slot,
@@ -76,5 +81,11 @@ SRSRAN_API int srsran_enb_dl_nr_pdsch_put(srsran_enb_dl_nr_t*        q,
 
 SRSRAN_API int
 srsran_enb_dl_nr_pdsch_info(const srsran_enb_dl_nr_t* q, const srsran_sch_cfg_nr_t* cfg, char* str, uint32_t str_len);
+
+SRSRAN_API int
+srsran_enb_dl_nr_pdcch_dl_info(const srsran_enb_dl_nr_t* q, const srsran_dci_dl_nr_t* dci, char* str, uint32_t str_len);
+
+SRSRAN_API int
+srsran_enb_dl_nr_pdcch_ul_info(const srsran_enb_dl_nr_t* q, const srsran_dci_ul_nr_t* dci, char* str, uint32_t str_len);
 
 #endif // SRSRAN_ENB_DL_NR_H

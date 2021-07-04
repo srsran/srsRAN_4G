@@ -39,7 +39,8 @@ target_link_libraries( srsepc  srsepc_mme
                                srsepc_hss
                                srsepc_sgw
                                s1ap_asn1
-                               srsran_upper
+                               srsran_gtpu
+                               srsran_asn1
                                srsran_common
                                srslog
                                ${CMAKE_THREAD_LIBS_INIT}
@@ -50,7 +51,8 @@ target_link_libraries( srsepc  srsepc_mme
 
 add_executable(srsmbms mbms-gw/main.cc )
 target_link_libraries(srsmbms   srsepc_mbms_gw
-                                srsran_upper
+                                srsran_asn1
+                                srsran_gtpu
                                 srsran_common
                                 srslog
                                 ${CMAKE_THREAD_LIBS_INIT}

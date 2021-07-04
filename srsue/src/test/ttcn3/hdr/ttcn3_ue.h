@@ -62,16 +62,15 @@ public:
   void write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
   void write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
   int  setup_if_addr(uint32_t eps_bearer_id,
-                     uint32_t lcid,
                      uint8_t  pdn_type,
                      uint32_t ip_addr,
                      uint8_t* ipv6_if_id,
                      char*    err_str);
-  int  update_lcid(uint32_t eps_bearer_id, uint32_t new_lcid);
   bool is_running();
 
+  int deactivate_eps_bearer(const uint32_t eps_bearer_id);
+
   int apply_traffic_flow_template(const uint8_t&                                 eps_bearer_id,
-                                  const uint8_t&                                 lcid,
                                   const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft);
 
   void set_test_loop_mode(const test_loop_mode_state_t mode, const uint32_t ip_pdu_delay_ms_ = 0);
@@ -80,7 +79,7 @@ public:
 
   void send_queued_data();
 
-  void loop_back_pdu_with_tft(uint32_t input_lcid, srsran::unique_byte_buffer_t pdu);
+  void loop_back_pdu_with_tft(srsran::unique_byte_buffer_t pdu);
 
 private:
   std::unique_ptr<lte_ttcn3_phy> phy;
@@ -91,8 +90,10 @@ private:
 
   test_loop_mode_state_t                                         test_loop_mode = TEST_LOOP_INACTIVE;
   srsran::timer_handler::unique_timer                            pdu_delay_timer;
-  std::map<uint32_t, block_queue<srsran::unique_byte_buffer_t> > pdu_queue; // A PDU queue for each DRB
+  block_queue<srsran::unique_byte_buffer_t>                      pdu_queue; // PDU for UL data
   tft_pdu_matcher                                                tft_matcher;
+
+  int default_eps_bearer_id = -1;
 
   all_args_t args = {};
 };

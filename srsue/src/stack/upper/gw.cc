@@ -174,12 +174,7 @@ void gw::write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 /*******************************************************************************
   NAS interface
 *******************************************************************************/
-int gw::setup_if_addr(uint32_t eps_bearer_id,
-                      uint32_t lcid,
-                      uint8_t  pdn_type,
-                      uint32_t ip_addr,
-                      uint8_t* ipv6_if_addr,
-                      char*    err_str)
+int gw::setup_if_addr(uint32_t eps_bearer_id, uint8_t pdn_type, uint32_t ip_addr, uint8_t* ipv6_if_addr, char* err_str)
 {
   int err;
   if (pdn_type == LIBLTE_MME_PDN_TYPE_IPV4 || pdn_type == LIBLTE_MME_PDN_TYPE_IPV4V6) {
@@ -195,46 +190,36 @@ int gw::setup_if_addr(uint32_t eps_bearer_id,
     }
   }
 
-  eps_lcid[eps_bearer_id] = lcid;
-  default_lcid            = lcid;
-  tft_matcher.set_default_lcid(lcid);
+  default_eps_bearer_id = static_cast<int>(eps_bearer_id);
 
   // Setup a thread to receive packets from the TUN device
   start(GW_THREAD_PRIO);
+
   return SRSRAN_SUCCESS;
 }
 
+int gw::deactivate_eps_bearer(const uint32_t eps_bearer_id)
+{
+  // only deactivation of default bearer
+  if (eps_bearer_id == static_cast<uint32_t>(default_eps_bearer_id)) {
+    logger.debug("Deactivating EPS bearer %d", eps_bearer_id);
+    default_eps_bearer_id = NOT_ASSIGNED;
+    return SRSRAN_SUCCESS;
+  } else {
+    // delete TFT template (if any) for this bearer
+    tft_matcher.delete_tft_for_eps_bearer(eps_bearer_id);
+    return SRSRAN_SUCCESS;
+  }
+}
 
 bool gw::is_running()
 {
   return running;
 }
 
-int gw::update_lcid(uint32_t eps_bearer_id, uint32_t new_lcid)
+int gw::apply_traffic_flow_template(const uint8_t& erab_id, const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft)
 {
-  auto it = eps_lcid.find(eps_bearer_id);
-  if (it != eps_lcid.end()) {
-    uint32_t old_lcid = eps_lcid[eps_bearer_id];
-    logger.debug("Found EPS bearer %d. Update old lcid %d to new lcid %d", eps_bearer_id, old_lcid, new_lcid);
-    eps_lcid[eps_bearer_id] = new_lcid;
-    if (old_lcid == default_lcid) {
-      logger.debug("Defaulting new lcid %d", new_lcid);
-      default_lcid = new_lcid;
-      tft_matcher.set_default_lcid(new_lcid);
-    }
-    // TODO: update need filters if not the default lcid
-  } else {
-    logger.error("Did not found EPS bearer %d for updating LCID.", eps_bearer_id);
-    return SRSRAN_ERROR;
-  }
-  return SRSRAN_SUCCESS;
-}
-
-int gw::apply_traffic_flow_template(const uint8_t&                                 erab_id,
-                                    const uint8_t&                                 lcid,
-                                    const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft)
-{
-  return tft_matcher.apply_traffic_flow_template(erab_id, lcid, tft);
+  return tft_matcher.apply_traffic_flow_template(erab_id, tft);
 }
 
 void gw::set_test_loop_mode(const test_loop_mode_state_t mode, const uint32_t ip_pdu_delay_ms)
@@ -289,63 +274,71 @@ void gw::run_thread()
       break;
     }
 
-    // Check if IP version makes sense and get packtet length
-    struct iphdr*   ip_pkt  = (struct iphdr*)pdu->msg;
-    struct ipv6hdr* ip6_pkt = (struct ipv6hdr*)pdu->msg;
-    uint16_t        pkt_len = 0;
-    pdu->N_bytes            = idx + N_bytes;
-    if (ip_pkt->version == 4) {
-      pkt_len = ntohs(ip_pkt->tot_len);
-    } else if (ip_pkt->version == 6) {
-      pkt_len = ntohs(ip6_pkt->payload_len) + 40;
-    } else {
-      logger.error(pdu->msg, pdu->N_bytes, "Unsupported IP version. Dropping packet.");
-      continue;
-    }
-    logger.debug("IPv%d packet total length: %d Bytes", int(ip_pkt->version), pkt_len);
-
-    // Check if entire packet was received
-    if (pkt_len == pdu->N_bytes) {
-      logger.info(pdu->msg, pdu->N_bytes, "TX PDU");
-
-      // Make sure UE is attached
-      while (run_enable && !stack->is_registered() && register_wait < REGISTER_WAIT_TOUT) {
-        if (!register_wait) {
-          logger.info("UE is not attached, waiting for NAS attach (%d/%d)", register_wait, REGISTER_WAIT_TOUT);
-        }
-        usleep(100000);
-        register_wait++;
-      }
-      register_wait = 0;
-
-      // If we are still not attached by this stage, drop packet
-      if (run_enable && !stack->is_registered()) {
+    {
+      std::unique_lock<std::mutex> lock(gw_mutex);
+      // Check if IP version makes sense and get packtet length
+      struct iphdr*   ip_pkt  = (struct iphdr*)pdu->msg;
+      struct ipv6hdr* ip6_pkt = (struct ipv6hdr*)pdu->msg;
+      uint16_t        pkt_len = 0;
+      pdu->N_bytes            = idx + N_bytes;
+      if (ip_pkt->version == 4) {
+        pkt_len = ntohs(ip_pkt->tot_len);
+      } else if (ip_pkt->version == 6) {
+        pkt_len = ntohs(ip6_pkt->payload_len) + 40;
+      } else {
+        logger.error(pdu->msg, pdu->N_bytes, "Unsupported IP version. Dropping packet.");
         continue;
       }
+      logger.debug("IPv%d packet total length: %d Bytes", int(ip_pkt->version), pkt_len);
 
-      // Wait for service request if necessary
-      while (run_enable && !stack->is_lcid_enabled(default_lcid) && service_wait < SERVICE_WAIT_TOUT) {
-        if (!service_wait) {
-          logger.info(
-              "UE does not have service, waiting for NAS service request (%d/%d)", service_wait, SERVICE_WAIT_TOUT);
-          stack->start_service_request();
+      // Check if entire packet was received
+      if (pkt_len == pdu->N_bytes) {
+        logger.info(pdu->msg, pdu->N_bytes, "TX PDU");
+
+        // Make sure UE is attached and has default EPS bearer activated
+        while (run_enable && default_eps_bearer_id == NOT_ASSIGNED && register_wait < REGISTER_WAIT_TOUT) {
+          if (!register_wait) {
+            logger.info("UE is not attached, waiting for NAS attach (%d/%d)", register_wait, REGISTER_WAIT_TOUT);
+          }
+          lock.unlock();
+          std::this_thread::sleep_for(std::chrono::microseconds(100));
+          lock.lock();
+          register_wait++;
         }
-        usleep(100000);
-        service_wait++;
-      }
-      service_wait = 0;
+        register_wait = 0;
 
-      // Quit before writing packet if necessary
-      if (!run_enable) {
-        break;
-      }
+        // If we are still not attached by this stage, drop packet
+        if (run_enable && default_eps_bearer_id == NOT_ASSIGNED) {
+          continue;
+        }
 
-      uint8_t lcid = tft_matcher.check_tft_filter_match(pdu);
-      // Send PDU directly to PDCP
-      if (stack->is_lcid_enabled(lcid)) {
+        // Beyond this point we should have a activated default EPS bearer
+        srsran_assert(default_eps_bearer_id != NOT_ASSIGNED, "Default EPS bearer not activated");
+
+        uint8_t eps_bearer_id = default_eps_bearer_id;
+        tft_matcher.check_tft_filter_match(pdu, eps_bearer_id);
+
+        // Wait for service request if necessary
+        while (run_enable && !stack->has_active_radio_bearer(eps_bearer_id) && service_wait < SERVICE_WAIT_TOUT) {
+          if (!service_wait) {
+            logger.info(
+                "UE does not have service, waiting for NAS service request (%d/%d)", service_wait, SERVICE_WAIT_TOUT);
+            stack->start_service_request();
+          }
+          usleep(100000);
+          service_wait++;
+        }
+        service_wait = 0;
+
+        // Quit before writing packet if necessary
+        if (!run_enable) {
+          break;
+        }
+
+        // Send PDU directly to PDCP
         pdu->set_timestamp();
         ul_tput_bytes += pdu->N_bytes;
-        stack->write_sdu(lcid, std::move(pdu));
+        stack->write_sdu(eps_bearer_id, std::move(pdu));
         do {
           pdu = srsran::make_byte_buffer();
           if (!pdu) {
@@ -354,17 +347,15 @@ void gw::run_thread()
           }
         } while (!pdu);
         idx = 0;
+      } else {
+        idx += N_bytes;
+        logger.debug("Entire packet not read from socket. Total Length %d, N_Bytes %d.", ip_pkt->tot_len, pdu->N_bytes);
       }
-    } else {
-      idx += N_bytes;
-      logger.debug("Entire packet not read from socket. Total Length %d, N_Bytes %d.", ip_pkt->tot_len, pdu->N_bytes);
-    }
+    } // end of holdering gw_mutex
   }
   running = false;
   logger.info("GW IP receiver thread exiting.");
 }
-
-
 
 /**************************/
 /* TUN Interface Helpers  */

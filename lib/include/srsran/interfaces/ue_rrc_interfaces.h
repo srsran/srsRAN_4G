@@ -81,7 +81,6 @@ public:
   virtual bool        is_connected()                                                    = 0;
   virtual void        paging_completed(bool outcome)                                    = 0;
   virtual const char* get_rb_name(uint32_t lcid)                                        = 0;
-  virtual uint32_t    get_lcid_for_eps_bearer(const uint32_t& eps_bearer_id)            = 0;
   virtual bool        has_nr_dc()                                                       = 0;
 };
 
@@ -109,8 +108,8 @@ public:
 class rrc_nr_interface_rrc
 {
 public:
-  virtual void get_eutra_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps)   = 0;
-  virtual void get_nr_capabilities(srsran::byte_buffer_t* nr_cap)                = 0;
+  virtual int  get_eutra_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps)   = 0;
+  virtual int  get_nr_capabilities(srsran::byte_buffer_t* nr_cap)                = 0;
   virtual void phy_set_cells_to_meas(uint32_t carrier_freq_r15)                  = 0;
   virtual void phy_meas_stop()                                                   = 0;
   virtual bool rrc_reconfiguration(bool                endc_release_and_add_r15,

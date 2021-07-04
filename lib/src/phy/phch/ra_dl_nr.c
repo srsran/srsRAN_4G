@@ -328,3 +328,8 @@ int srsran_ra_dl_nr_freq(const srsran_carrier_nr_t*    carrier,
   ERROR("Unhandled case");
   return SRSRAN_ERROR;
 }
+
+uint32_t srsran_ra_nr_type1_riv(uint32_t N_prb, uint32_t start_rb, uint32_t length_rb)
+{
+  return ra_helper_from_s_and_l(N_prb, start_rb, length_rb);
+}

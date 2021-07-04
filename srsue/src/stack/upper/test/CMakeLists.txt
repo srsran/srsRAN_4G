@@ -19,24 +19,24 @@
 #
 
 add_executable(usim_test usim_test.cc)
-target_link_libraries(usim_test srsue_upper srsran_upper srsran_phy rrc_asn1)
+target_link_libraries(usim_test srsue_upper srsran_phy rrc_asn1 srslog)
 add_test(usim_test usim_test)
 
 if(HAVE_PCSC)
   add_executable(pcsc_usim_test pcsc_usim_test.cc)
-  target_link_libraries(pcsc_usim_test srsue_upper srsran_upper srsran_phy)
+  target_link_libraries(pcsc_usim_test srsue_upper srsran_phy srsran_common srslog)
 endif(HAVE_PCSC)
 
 add_executable(nas_test nas_test.cc)
-target_link_libraries(nas_test srsue_upper srsran_upper srsran_phy rrc_asn1)
+target_link_libraries(nas_test srsue_upper srsran_common srsran_phy rrc_asn1 srsran_asn1)
 add_test(nas_test nas_test)
 
 add_executable(gw_test gw_test.cc)
-target_link_libraries(gw_test srsue_upper srsran_upper srsran_phy)
+target_link_libraries(gw_test srsue_upper srsran_common srsran_phy)
 add_test(gw_test gw_test)
 
 add_executable(tft_test tft_test.cc)
-target_link_libraries(tft_test srsue_upper srsran_upper srsran_phy)
+target_link_libraries(tft_test srsue_upper srsran_common srsran_phy)
 add_test(tft_test tft_test)
 
 ########################################################################

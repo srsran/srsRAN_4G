@@ -56,13 +56,13 @@ bool txrx::init(stack_interface_phy_lte*     stack_,
                 prach_worker_pool*           prach_,
                 uint32_t                     prio_)
 {
-  stack         = stack_;
-  radio_h       = radio_h_;
-  lte_workers   = lte_workers_;
-  nr_workers    = nr_workers_;
-  worker_com    = worker_com_;
-  prach         = prach_;
-  running       = true;
+  stack       = stack_;
+  radio_h     = radio_h_;
+  lte_workers = lte_workers_;
+  nr_workers  = nr_workers_;
+  worker_com  = worker_com_;
+  prach       = prach_;
+  running     = true;
 
   // Instantiate UL channel emulator
   if (worker_com->params.ul_channel_args.enable) {
@@ -133,7 +133,7 @@ void txrx::run_thread()
       }
     }
 
-    nr::sf_worker* nr_worker = nullptr;
+    nr::slot_worker* nr_worker = nullptr;
     if (worker_com->get_nof_carriers_nr() > 0) {
       nr_worker = nr_workers->wait_worker(tti);
       if (nr_worker == nullptr) {
@@ -153,12 +153,14 @@ void txrx::run_thread()
           buffer.set(rf_port, p, worker_com->get_nof_ports(0), lte_worker->get_buffer_rx(cc_lte, p));
         }
       }
-      for (uint32_t cc_nr = 0; cc_nr < worker_com->get_nof_carriers_lte(); cc_nr++, cc++) {
+      for (uint32_t cc_nr = 0; cc_nr < worker_com->get_nof_carriers_nr(); cc_nr++, cc++) {
         uint32_t rf_port = worker_com->get_rf_port(cc);
 
         for (uint32_t p = 0; p < worker_com->get_nof_ports(cc); p++) {
-          // WARNING: The number of ports for all cells must be the same
-          buffer.set(rf_port, p, worker_com->get_nof_ports(0), nr_worker->get_buffer_rx(cc_nr, p));
+          // WARNING:
+          // - The number of ports for all cells must be the same
+          // - Only one NR cell is currently supported
+          buffer.set(rf_port, p, worker_com->get_nof_ports(0), nr_worker->get_buffer_rx(p));
         }
       }
     }
@@ -188,7 +190,7 @@ void txrx::run_thread()
 
     // Launch NR worker only if available
     if (nr_worker != nullptr) {
-      nr_worker->set_tti(tti);
+      nr_worker->set_time(tti, timestamp);
       worker_com->semaphore.push(nr_worker);
       nr_workers->start_worker(nr_worker);
     }

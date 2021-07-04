@@ -68,14 +68,12 @@ class tft_packet_filter_t
 {
 public:
   tft_packet_filter_t(uint8_t                                eps_bearer_id_,
-                      uint8_t                                lcid_,
                       const LIBLTE_MME_PACKET_FILTER_STRUCT& tft_,
                       srslog::basic_logger&                  logger);
   bool match(const srsran::unique_byte_buffer_t& pdu);
   bool filter_contains(uint16_t filtertype);
 
-  uint8_t  eps_bearer_id{};
-  uint8_t  lcid                      = {};
+  uint8_t  eps_bearer_id             = {};
   uint8_t  id                        = {};
   uint8_t  eval_precedence           = {};
   uint32_t active_filters            = {};
@@ -117,15 +115,15 @@ public:
   explicit tft_pdu_matcher(srslog::basic_logger& logger) : logger(logger) {}
   ~tft_pdu_matcher(){};
 
-  void    set_default_lcid(const uint8_t lcid);
-  uint8_t check_tft_filter_match(const srsran::unique_byte_buffer_t& pdu);
+  void reset();
+
+  int     check_tft_filter_match(const srsran::unique_byte_buffer_t& pdu, uint8_t& eps_bearer_id);
   int     apply_traffic_flow_template(const uint8_t&                                 erab_id,
-                                      const uint8_t&                                 lcid,
                                       const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft);
+  void    delete_tft_for_eps_bearer(const uint8_t eps_bearer_id);
 
 private:
   srslog::basic_logger&                           logger;
-  uint8_t                                         default_lcid = 0;
   std::mutex                                      tft_mutex;
   typedef std::map<uint16_t, tft_packet_filter_t> tft_filter_map_t;
   tft_filter_map_t                                tft_filter_map;

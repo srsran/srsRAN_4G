@@ -117,6 +117,7 @@ bool ttcn3_ue::switch_on()
 
 bool ttcn3_ue::switch_off()
 {
+  tft_matcher.reset(); // empty all TFTs
   return stack->switch_off();
 }
 
@@ -162,6 +163,7 @@ void ttcn3_ue::add_mch_port(uint32_t lcid, uint32_t port) {}
 void ttcn3_ue::write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
   logger.debug(pdu->msg, pdu->N_bytes, "Rx PDU (%d B) on lcid=%d", pdu->N_bytes, lcid);
+
   switch (test_loop_mode) {
     case TEST_LOOP_INACTIVE:
       logger.warning("Test loop inactive. Dropping PDU.");
@@ -172,13 +174,13 @@ void ttcn3_ue::write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
     case TEST_LOOP_MODE_B_ACTIVE:
       // Section 5.4.4 in TS 36.509
       if (pdu_delay_timer.is_running()) {
-        pdu_queue[lcid].push(std::move(pdu));
+        pdu_queue.push(std::move(pdu));
       } else {
         if (pdu_delay_timer.is_set()) {
-          pdu_queue[lcid].push(std::move(pdu));
+          pdu_queue.push(std::move(pdu));
           pdu_delay_timer.run(); // timer is already set
         } else {
-          loop_back_pdu_with_tft(lcid, std::move(pdu));
+          loop_back_pdu_with_tft(std::move(pdu));
         }
       }
       break;
@@ -189,12 +191,12 @@ void ttcn3_ue::write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 }
 void ttcn3_ue::write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t pdu) {}
 int  ttcn3_ue::setup_if_addr(uint32_t eps_bearer_id,
-                            uint32_t lcid,
                             uint8_t  pdn_type,
                             uint32_t ip_addr,
                             uint8_t* ipv6_if_id,
                             char*    err_str)
 {
+  default_eps_bearer_id = static_cast<int32_t>(eps_bearer_id);
   return 0;
 }
 
@@ -203,16 +205,18 @@ bool ttcn3_ue::is_running()
   return true;
 }
 
-int ttcn3_ue::update_lcid(uint32_t eps_bearer_id, uint32_t new_lcid)
+int ttcn3_ue::deactivate_eps_bearer(const uint32_t eps_bearer_id)
 {
+  if (default_eps_bearer_id == static_cast<int32_t>(eps_bearer_id)) {
+    default_eps_bearer_id = -1;
+  }
   return SRSRAN_SUCCESS;
 }
 
 int ttcn3_ue::apply_traffic_flow_template(const uint8_t&                                 eps_bearer_id,
-                                          const uint8_t&                                 lcid,
                                           const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft)
 {
-  return tft_matcher.apply_traffic_flow_template(eps_bearer_id, lcid, tft);
+  return tft_matcher.apply_traffic_flow_template(eps_bearer_id, tft);
 }
 
 void ttcn3_ue::set_test_loop_mode(const test_loop_mode_state_t mode, const uint32_t ip_pdu_delay_ms_)
@@ -258,18 +262,27 @@ void ttcn3_ue::send_queued_data()
     return;
   }
 
-  for (auto& bearer_pdu_queue : pdu_queue) {
-    logger.info("Delivering %zd buffered PDUs for LCID=%d", bearer_pdu_queue.second.size(), bearer_pdu_queue.first);
-    while (not bearer_pdu_queue.second.empty()) {
-      srsran::unique_byte_buffer_t pdu;
-      bearer_pdu_queue.second.try_pop(&pdu);
-      loop_back_pdu_with_tft(bearer_pdu_queue.first, std::move(pdu));
-    }
+  logger.info("Delivering %zd buffered UL PDUs", pdu_queue.size());
+  while (not pdu_queue.empty()) {
+    srsran::unique_byte_buffer_t pdu;
+    pdu_queue.try_pop(&pdu);
+    loop_back_pdu_with_tft(std::move(pdu));
   }
 }
 
-void ttcn3_ue::loop_back_pdu_with_tft(uint32_t input_lcid, srsran::unique_byte_buffer_t pdu)
+void ttcn3_ue::loop_back_pdu_with_tft(srsran::unique_byte_buffer_t pdu)
 {
-  logger.info(pdu->msg, pdu->N_bytes, "Rx PDU (%d B) on lcid=%d, looping back", pdu->N_bytes, input_lcid);
-  stack->write_sdu(input_lcid, std::move(pdu));
+  if (default_eps_bearer_id == -1) {
+    logger.error("No default EPS bearer activated. Dropping PDU.");
+  }
+
+  uint8_t target_eps_bearer_id = default_eps_bearer_id;
+  if (tft_matcher.check_tft_filter_match(pdu, target_eps_bearer_id) == SRSRAN_SUCCESS) {
+    logger.debug("Updated EPS bearer");
+  }
+
+  logger.info(
+      pdu->msg, pdu->N_bytes, "Rx PDU (%d B) looping back on eps_bearer_id=%d", pdu->N_bytes, target_eps_bearer_id);
+
+  stack->write_sdu(target_eps_bearer_id, std::move(pdu));
 }

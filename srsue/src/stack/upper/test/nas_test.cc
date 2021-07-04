@@ -72,18 +72,19 @@ using namespace srsran;
 namespace srsran {
 
 // fake classes
-class pdcp_dummy : public rrc_interface_pdcp, public pdcp_interface_gw
+class pdcp_dummy : public rrc_interface_pdcp, public pdcp_interface_stack
 {
 public:
-  void        write_pdu(uint32_t lcid, unique_byte_buffer_t pdu) {}
-  void        write_pdu_bcch_bch(unique_byte_buffer_t pdu) {}
-  void        write_pdu_bcch_dlsch(unique_byte_buffer_t pdu) {}
-  void        write_pdu_pcch(unique_byte_buffer_t pdu) {}
-  void        write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t sdu) {}
-  const char* get_rb_name(uint32_t lcid) { return "lcid"; }
-  void        write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu) {}
-  bool        is_lcid_enabled(uint32_t lcid) { return false; }
-  void        notify_pdcp_integrity_error(uint32_t lcid) {}
+  void        write_pdu(uint32_t lcid, unique_byte_buffer_t pdu) override {}
+  void        write_pdu_bcch_bch(unique_byte_buffer_t pdu) override {}
+  void        write_pdu_bcch_dlsch(unique_byte_buffer_t pdu) override {}
+  void        write_pdu_pcch(unique_byte_buffer_t pdu) override {}
+  void        write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t sdu) override {}
+  const char* get_rb_name(uint32_t lcid) override { return "lcid"; }
+  void        write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, int sn = -1) override {}
+  bool        is_eps_bearer_id_enabled(uint32_t eps_bearer_id) { return false; }
+  void        notify_pdcp_integrity_error(uint32_t lcid) override {}
+  bool        is_lcid_enabled(uint32_t lcid) override { return false; }
 };
 
 class rrc_dummy : public rrc_interface_nas
@@ -140,7 +141,7 @@ private:
 class test_stack_dummy : public srsue::stack_test_dummy, public stack_interface_gw, public thread
 {
 public:
-  test_stack_dummy(pdcp_interface_gw* pdcp_) : pdcp(pdcp_), thread("DUMMY STACK") {}
+  test_stack_dummy(pdcp_interface_stack* pdcp_) : pdcp(pdcp_), thread("DUMMY STACK") {}
   void init(srsue::nas* nas_)
   {
     nas = nas_;
@@ -148,7 +149,7 @@ public:
   }
   bool switch_on() { return true; }
   void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu) { pdcp->write_sdu(lcid, std::move(sdu)); }
-  bool is_lcid_enabled(uint32_t lcid) { return pdcp->is_lcid_enabled(lcid); }
+  bool has_active_radio_bearer(uint32_t eps_bearer_id) { return true; }
 
   bool is_registered() { return true; }
 
@@ -171,7 +172,7 @@ public:
     running = false;
     wait_thread_finish();
   }
-  pdcp_interface_gw*      pdcp    = nullptr;
+  pdcp_interface_stack*   pdcp    = nullptr;
   srsue::nas*             nas     = nullptr;
   std::atomic<bool>       running = {false};
 };
@@ -179,7 +180,6 @@ public:
 class gw_dummy : public gw_interface_nas, public gw_interface_pdcp
 {
   int setup_if_addr(uint32_t eps_bearer_id,
-                    uint32_t lcid,
                     uint8_t  pdn_type,
                     uint32_t ip_addr,
                     uint8_t* ipv6_if_id,
@@ -187,8 +187,8 @@ class gw_dummy : public gw_interface_nas, public gw_interface_pdcp
   {
     return SRSRAN_SUCCESS;
   }
+  int deactivate_eps_bearer(const uint32_t eps_bearer_id) { return SRSRAN_SUCCESS; }
   int apply_traffic_flow_template(const uint8_t&                                 eps_bearer_id,
-                                  const uint8_t&                                 lcid,
                                   const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft)
   {
     return SRSRAN_SUCCESS;

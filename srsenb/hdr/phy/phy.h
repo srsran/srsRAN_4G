@@ -86,11 +86,11 @@ private:
   srslog::basic_logger& phy_log;
   srslog::basic_logger& phy_lib_log;
 
-  lte::worker_pool  lte_workers;
-  nr::worker_pool   nr_workers;
-  phy_common        workers_common;
-  prach_worker_pool prach;
-  txrx              tx_rx;
+  lte::worker_pool                 lte_workers;
+  std::unique_ptr<nr::worker_pool> nr_workers;
+  phy_common                       workers_common;
+  prach_worker_pool                prach;
+  txrx                             tx_rx;
 
   bool initialized = false;
 

@@ -167,7 +167,7 @@ private:
 
   mac_metrics_t metrics[SRSRAN_MAX_CARRIERS] = {};
 
-  bool initialized = false;
+  std::atomic<bool> initialized = {false};
 
   const uint8_t PCELL_CC_IDX = 0;
 };

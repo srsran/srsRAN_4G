@@ -37,7 +37,10 @@ namespace srsue {
 class stack_interface_rrc
 {
 public:
-  virtual srsran::tti_point get_current_tti() = 0;
+  virtual srsran::tti_point get_current_tti()                                                              = 0;
+  virtual void              add_eps_bearer(uint8_t eps_bearer_id, srsran::srsran_rat_t rat, uint32_t lcid) = 0;
+  virtual void              remove_eps_bearer(uint8_t eps_bearer_id)                                       = 0;
+  virtual void              reset_eps_bearers()                                                            = 0;
 };
 
 // Combined interface for PHY to access stack (MAC and RRC)

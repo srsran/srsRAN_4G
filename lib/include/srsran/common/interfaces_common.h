@@ -32,6 +32,7 @@ namespace srsran {
 typedef struct {
   std::string phy_level     = "none";
   std::string phy_lib_level = "none";
+  std::string id_preamble   = "";
   int         phy_hex_limit = -1;
 } phy_log_args_t;
 

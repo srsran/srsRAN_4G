@@ -164,7 +164,9 @@ int srsran_basic_vnf::handle_sf_ind(basic_vnf_api::sf_ind_msg_t* msg)
   last_sf_indication_time = msg->t1;
 
   if (m_gnb_stack != nullptr) {
-    m_gnb_stack->sf_indication(msg->tti);
+    srsran_slot_cfg_t slot_cfg = {};
+    slot_cfg.idx               = msg->tti;
+    m_gnb_stack->slot_indication(slot_cfg);
   } else if (m_ue_stack != nullptr) {
     m_ue_stack->sf_indication(msg->tti);
   } else {

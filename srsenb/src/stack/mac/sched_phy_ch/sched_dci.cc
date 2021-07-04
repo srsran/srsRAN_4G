@@ -20,8 +20,8 @@
  */
 
 #include "srsenb/hdr/stack/mac/sched_phy_ch/sched_dci.h"
-#include "srsenb/hdr/stack/mac/sched_common.h"
 #include "srsenb/hdr/stack/mac/sched_helpers.h"
+#include "srsenb/hdr/stack/mac/sched_lte_common.h"
 #include "srsran/common/string_helpers.h"
 
 #include <cmath>
@@ -343,17 +343,18 @@ void log_broadcast_allocation(const sched_interface::dl_sched_bc_t& bc,
   fmt::format_to(str_buffer, "{}", rbg_range);
 
   if (bc.type == sched_interface::dl_sched_bc_t::bc_type::BCCH) {
-    get_mac_logger().debug("SCHED: SIB%d, cc=%d, rbgs=(%d,%d), dci=(%d,%d), rv=%d, len=%d, period=%d, mcs=%d",
-                           bc.index + 1,
-                           cell_params.enb_cc_idx,
-                           rbg_range.start(),
-                           rbg_range.stop(),
-                           bc.dci.location.L,
-                           bc.dci.location.ncce,
-                           bc.dci.tb[0].rv,
-                           cell_params.cfg.sibs[bc.index].len,
-                           cell_params.cfg.sibs[bc.index].period_rf,
-                           bc.dci.tb[0].mcs_idx);
+    get_mac_logger().debug(
+        "SCHED: SI message, cc=%d, idx=%d, rbgs=(%d,%d), dci=(%d,%d), rv=%d, len=%d, period=%d, mcs=%d",
+        bc.index,
+        cell_params.enb_cc_idx,
+        rbg_range.start(),
+        rbg_range.stop(),
+        bc.dci.location.L,
+        bc.dci.location.ncce,
+        bc.dci.tb[0].rv,
+        cell_params.cfg.sibs[bc.index].len,
+        cell_params.cfg.sibs[bc.index].period_rf,
+        bc.dci.tb[0].mcs_idx);
   } else {
     get_mac_logger().info("SCHED: PCH, cc=%d, rbgs=%s, dci=(%d,%d), tbs=%d, mcs=%d",
                           cell_params.enb_cc_idx,

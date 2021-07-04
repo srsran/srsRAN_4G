@@ -22,7 +22,7 @@
 #ifndef SRSRAN_SCHED_DCI_H
 #define SRSRAN_SCHED_DCI_H
 
-#include "../sched_common.h"
+#include "../sched_lte_common.h"
 #include "srsenb/hdr/stack/mac/sched_phy_ch/sched_phy_resource.h"
 #include "srsran/adt/bounded_vector.h"
 

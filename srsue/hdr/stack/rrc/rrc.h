@@ -202,8 +202,6 @@ private:
   srsran::s_tmsi_t ue_identity;
   bool             ue_identity_configured = false;
 
-  bool drb_up = false;
-
   // PHY controller state machine
   std::unique_ptr<phy_controller> phy_ctrl;
 
@@ -391,6 +389,7 @@ private:
   void     release_drb(uint32_t drb_id);
   uint32_t get_lcid_for_eps_bearer(const uint32_t& eps_bearer_id);
   uint32_t get_drb_id_for_eps_bearer(const uint32_t& eps_bearer_id);
+  uint32_t get_eps_bearer_id_for_drb_id(const uint32_t& drb_id);
   void     add_mrb(uint32_t lcid, uint32_t port);
 
   // Helpers for setting default values

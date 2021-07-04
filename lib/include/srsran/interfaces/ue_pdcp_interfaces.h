@@ -34,7 +34,7 @@ public:
   virtual void reestablish(uint32_t lcid)                                                                           = 0;
   virtual void reset()                                                                                              = 0;
   virtual void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu, int sn = -1)                              = 0;
-  virtual void add_bearer(uint32_t lcid, srsran::pdcp_config_t cnfg)                                                = 0;
+  virtual int  add_bearer(uint32_t lcid, srsran::pdcp_config_t cnfg)                                                = 0;
   virtual void del_bearer(uint32_t lcid)                                                                            = 0;
   virtual void change_lcid(uint32_t old_lcid, uint32_t new_lcid)                                                    = 0;
   virtual void config_security(uint32_t lcid, const srsran::as_security_config_t& sec_cfg)                          = 0;
@@ -59,19 +59,23 @@ public:
   virtual void notify_failure(uint32_t lcid, const srsran::pdcp_sn_vector_t& pdcp_sn)  = 0;
 };
 
-class pdcp_interface_gw
+// Data-plane interface for Stack after EPS bearer to LCID conversion
+class pdcp_interface_stack
 {
 public:
-  virtual void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu) = 0;
-  virtual bool is_lcid_enabled(uint32_t lcid)                             = 0;
+  virtual void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu, int sn = -1) = 0;
+  virtual bool is_lcid_enabled(uint32_t lcid)                                          = 0;
 };
 
-// STACK interface for GW
-class stack_interface_gw : public pdcp_interface_gw
+// STACK interface for GW (based on EPS-bearer IDs)
+class stack_interface_gw
 {
 public:
   virtual bool is_registered()         = 0;
   virtual bool start_service_request() = 0;
+  virtual void write_sdu(uint32_t eps_bearer_id, srsran::unique_byte_buffer_t sdu) = 0;
+  ///< Allow GW to query if a radio bearer for a given EPS bearer ID is currently active
+  virtual bool has_active_radio_bearer(uint32_t eps_bearer_id) = 0;
 };
 
 } // namespace srsue

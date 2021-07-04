@@ -49,6 +49,7 @@ public:
   cf_t*    get_buffer(uint32_t cc_idx, uint32_t antenna_idx);
   uint32_t get_buffer_len();
   void     set_tti(uint32_t tti);
+  void     set_tx_time(const srsran::rf_timestamp_t& tx_time_);
   int      read_pdsch_d(cf_t* pdsch_d);
   void     start_plot();
 
@@ -63,10 +64,10 @@ private:
   srsran::phy_common_interface& common;
   state&                        phy_state;
   srslog::basic_logger&         logger;
-
-  uint32_t tti_rx      = 0;
-  cf_t*    prach_ptr   = nullptr;
-  float    prach_power = 0;
+  srsran::rf_timestamp_t        tx_time     = {};
+  uint32_t                      tti_rx      = 0;
+  cf_t*                         prach_ptr   = nullptr;
+  float                         prach_power = 0;
 };
 
 } // namespace nr

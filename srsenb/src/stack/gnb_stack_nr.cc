@@ -95,7 +95,6 @@ int gnb_stack_nr::init(const srsenb::stack_args_t& args_, const rrc_nr_cfg_t& rr
   m_gw->init(args.coreless.gw_args, this);
   char* err_str = nullptr;
   if (m_gw->setup_if_addr(5,
-                          args.coreless.drb_lcid,
                           LIBLTE_MME_PDN_TYPE_IPV4,
                           htonl(inet_addr(args.coreless.ip_addr.c_str())),
                           nullptr,
@@ -172,11 +171,6 @@ bool gnb_stack_nr::get_metrics(srsenb::stack_metrics_t* metrics)
   return true;
 }
 
-int gnb_stack_nr::sf_indication(const uint32_t tti)
-{
-  return m_mac->sf_indication(tti);
-}
-
 int gnb_stack_nr::rx_data_indication(rx_data_ind_t& grant)
 {
   return m_mac->rx_data_indication(grant);
@@ -188,9 +182,21 @@ void gnb_stack_nr::write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu)
   m_pdcp->write_sdu(args.coreless.rnti, lcid, std::move(sdu));
 }
 
-bool gnb_stack_nr::is_lcid_enabled(uint32_t lcid)
+bool gnb_stack_nr::has_active_radio_bearer(uint32_t eps_bearer_id)
 {
-  return (lcid == args.coreless.drb_lcid);
+  return (eps_bearer_id == args.coreless.drb_lcid);
+}
+int gnb_stack_nr::slot_indication(const srsran_slot_cfg_t& slot_cfg)
+{
+  return m_mac->slot_indication(slot_cfg);
+}
+int gnb_stack_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched)
+{
+  return m_mac->get_dl_sched(slot_cfg, dl_sched);
+}
+int gnb_stack_nr::get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched)
+{
+  return m_mac->get_ul_sched(slot_cfg, ul_sched);
 }
 
 } // namespace srsenb

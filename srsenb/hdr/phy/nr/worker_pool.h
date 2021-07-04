@@ -22,32 +22,42 @@
 #ifndef SRSENB_NR_WORKER_POOL_H
 #define SRSENB_NR_WORKER_POOL_H
 
-#include "sf_worker.h"
+#include "slot_worker.h"
 #include "srsenb/hdr/phy/phy_interfaces.h"
 #include "srsran/common/thread_pool.h"
+#include "srsran/interfaces/gnb_interfaces.h"
 
 namespace srsenb {
 namespace nr {
 
 class worker_pool
 {
-  srsran::thread_pool                      pool;
-  std::vector<std::unique_ptr<sf_worker> > workers;
-  phy_nr_state                             phy_state;
+  srsran::phy_common_interface&              common;
+  stack_interface_phy_nr&                    stack;
+  srslog::sink&                              log_sink;
+  srsran::thread_pool                        pool;
+  std::vector<std::unique_ptr<slot_worker> > workers;
 
 public:
-  sf_worker* operator[](std::size_t pos) { return workers.at(pos).get(); }
+  struct args_t {
+    uint32_t    nof_phy_threads    = 3;
+    uint32_t    prio               = 52;
+    std::string log_level          = "info";
+    uint32_t    log_hex_limit      = 64;
+    std::string log_id_preamble    = "";
+    uint32_t    pusch_max_nof_iter = 10;
+  };
+  slot_worker* operator[](std::size_t pos) { return workers.at(pos).get(); }
 
-  worker_pool(uint32_t max_workers);
-  bool       init(const phy_cell_cfg_list_nr_t& cell_list,
-                  const phy_args_t&             args,
-                  srsran::phy_common_interface& common,
-                  srslog::sink&                 log_sink,
-                  int                           prio);
-  sf_worker* wait_worker(uint32_t tti);
-  sf_worker* wait_worker_id(uint32_t id);
-  void       start_worker(sf_worker* w);
-  void       stop();
+  worker_pool(srsran::phy_common_interface& common,
+              stack_interface_phy_nr&       stack,
+              srslog::sink&                 log_sink,
+              uint32_t                      max_workers);
+  bool         init(const args_t& args, const phy_cell_cfg_list_nr_t& cell_list);
+  slot_worker* wait_worker(uint32_t tti);
+  slot_worker* wait_worker_id(uint32_t id);
+  void         start_worker(slot_worker* w);
+  void         stop();
 };
 
 } // namespace nr

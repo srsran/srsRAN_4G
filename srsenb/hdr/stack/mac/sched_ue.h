@@ -22,7 +22,7 @@
 #ifndef SRSENB_SCHEDULER_UE_H
 #define SRSENB_SCHEDULER_UE_H
 
-#include "sched_common.h"
+#include "sched_lte_common.h"
 #include "sched_ue_ctrl/sched_lch.h"
 #include "sched_ue_ctrl/sched_ue_cell.h"
 #include "sched_ue_ctrl/tpc.h"

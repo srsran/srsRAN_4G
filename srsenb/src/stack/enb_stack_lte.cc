@@ -23,8 +23,8 @@
 #include "srsenb/hdr/common/rnti_pool.h"
 #include "srsenb/hdr/enb.h"
 #include "srsran/interfaces/enb_metrics_interface.h"
+#include "srsran/rlc/bearer_mem_pool.h"
 #include "srsran/srslog/event_trace.h"
-#include "srsran/upper/bearer_mem_pool.h"
 
 using namespace srsran;
 

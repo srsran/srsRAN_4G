@@ -19,7 +19,7 @@
 #
 
 if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
-    add_executable(nr_phy_test nr_phy_test.cc)
+    add_executable(nr_phy_test nr_dl_flood.cc)
     target_link_libraries(nr_phy_test
             srsue_phy_nr
             srsue_phy

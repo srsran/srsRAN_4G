@@ -482,11 +482,11 @@ void mac::process_pdus()
   // dispatch work to stack thread
   auto ret = stack_task_dispatch_queue.try_push([this]() {
     bool have_data = true;
-    while (initialized and have_data) {
+    while (initialized.load(std::memory_order_relaxed) and have_data) {
       have_data = demux_unit.process_pdus();
     }
   });
-  if (ret.is_error()) {
+  if (ret.is_error() && initialized.load(std::memory_order_relaxed)) {
     Warning("Failed to dispatch mac::%s task to stack thread", __func__);
   }
 }

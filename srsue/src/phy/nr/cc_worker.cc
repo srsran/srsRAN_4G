@@ -27,7 +27,9 @@
 namespace srsue {
 namespace nr {
 cc_worker::cc_worker(uint32_t cc_idx_, srslog::basic_logger& log, state& phy_state_) :
-  cc_idx(cc_idx_), phy(phy_state_), logger(log)
+  cc_idx(cc_idx_),
+  phy(phy_state_),
+  logger(log)
 {
   cf_t* rx_buffer_c[SRSRAN_MAX_PORTS] = {};
 

@@ -119,8 +119,6 @@ struct rlc_um_nr_config_t {
    ***************************************************************************/
 
   rlc_um_nr_sn_size_t sn_field_length; // Number of bits used for sequence number
-  uint32_t            UM_Window_Size;
-  uint32_t            mod;             // Rx/Tx counter modulus
   int32_t             t_reassembly_ms; // Timer used by rx to detect PDU loss (ms)
 };
 
@@ -215,12 +213,8 @@ public:
     cnfg.rlc_mode     = rlc_mode_t::um;
     if (sn_size == 6) {
       cnfg.um_nr.sn_field_length = rlc_um_nr_sn_size_t::size6bits;
-      cnfg.um_nr.UM_Window_Size  = 32;
-      cnfg.um_nr.mod             = 64;
     } else if (sn_size == 12) {
       cnfg.um_nr.sn_field_length = rlc_um_nr_sn_size_t::size12bits;
-      cnfg.um_nr.UM_Window_Size  = 2048;
-      cnfg.um_nr.mod             = 4096;
     } else {
       return {};
     }

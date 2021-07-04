@@ -25,12 +25,15 @@ set(LINK_LIBRARIES srsue_stack
                     srsue_upper
                     srsue_rrc
                     srsue_rrc_nr
-                    srsran_upper
+                    srsran_gtpu
+                    srsran_pdcp
+                    srsran_rlc
                     srsran_common
                     srsran_mac
                     srsran_phy
                     srsran_radio
-                    srsran_upper
+                    srsran_gtpu
+                    srsran_pdcp
                     srsue_phy
                     srsue_mac
                     srsue_mac_nr

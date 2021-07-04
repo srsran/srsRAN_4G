@@ -779,7 +779,7 @@ int srsran_ue_dl_nr_gen_ack(const srsran_ue_dl_nr_harq_ack_cfg_t* cfg,
   return SRSRAN_ERROR;
 }
 
-int srsran_ue_dl_nr_ack_insert_m(srsran_pdsch_ack_nr_t* ack_info, srsran_pdsch_ack_m_nr_t* m)
+int srsran_ue_dl_nr_ack_insert_m(srsran_pdsch_ack_nr_t* ack_info, const srsran_pdsch_ack_m_nr_t* m)
 {
   // Check inputs
   if (ack_info == NULL || m == NULL) {

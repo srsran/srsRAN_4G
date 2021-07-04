@@ -94,8 +94,6 @@ void backend_worker::start(backend_priority priority)
 
 void backend_worker::do_work()
 {
-  assert(running_flag && "Thread entry function called without running thread");
-
   /// This period defines the time the worker will sleep while waiting for new entries. This is required to check the
   /// termination variable periodically.
   constexpr std::chrono::microseconds sleep_period{100};

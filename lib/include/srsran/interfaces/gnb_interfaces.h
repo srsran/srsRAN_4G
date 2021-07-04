@@ -219,29 +219,56 @@ public:
 class mac_interface_phy_nr
 {
 public:
-  const static int MAX_GRANTS = 64;
+  const static int MAX_SSB        = 4;
+  const static int MAX_GRANTS     = 64;
+  const static int MAX_NZP_CSI_RS = 4;
 
-  /**
-   * DL grant structure per UE
-   */
-  struct dl_sched_grant_t {
-    srsran_dci_dl_nr_t      dci                          = {};
-    uint8_t*                data[SRSRAN_MAX_TB]          = {};
-    srsran_softbuffer_tx_t* softbuffer_tx[SRSRAN_MAX_TB] = {};
+  struct pdcch_dl_t {
+    srsran_dci_cfg_nr_t dci_cfg = {};
+    srsran_dci_dl_nr_t  dci     = {};
   };
 
-  /**
-   * DL Scheduling result per cell/carrier
-   */
-  typedef struct {
-    dl_sched_grant_t pdsch[MAX_GRANTS]; //< DL Grants
-    uint32_t         nof_grants;        //< Number of DL grants
-  } dl_sched_t;
+  struct pdcch_ul_t {
+    srsran_dci_cfg_nr_t dci_cfg = {};
+    srsran_dci_ul_nr_t  dci     = {};
+  };
 
-  /**
-   * List of DL scheduling results, one entry per cell/carrier
-   */
-  typedef std::vector<dl_sched_t> dl_sched_list_t;
+  struct pdsch_t {
+    srsran_sch_cfg_nr_t                 sch  = {}; ///< PDSCH configuration
+    std::array<uint8_t*, SRSRAN_MAX_TB> data = {}; ///< Data pointer
+  };
+
+  struct ssb_t {
+    srsran_pbch_msg_nr_t pbch_msg = {};
+  };
+
+  struct dl_sched_t {
+    srsran::bounded_vector<ssb_t, MAX_SSB>                               ssb;
+    srsran::bounded_vector<pdcch_dl_t, MAX_GRANTS>                       pdcch_dl;
+    srsran::bounded_vector<pdcch_ul_t, MAX_GRANTS>                       pdcch_ul;
+    srsran::bounded_vector<pdsch_t, MAX_GRANTS>                          pdsch;
+    srsran::bounded_vector<srsran_csi_rs_nzp_resource_t, MAX_NZP_CSI_RS> nzp_csi_rs;
+  };
+
+  struct pusch_t {
+    srsran_sch_cfg_nr_t                                sch           = {}; ///< PUSCH configuration
+    std::array<uint8_t*, SRSRAN_MAX_TB>                data          = {}; ///< Data pointer
+    std::array<srsran_softbuffer_tx_t*, SRSRAN_MAX_TB> softbuffer_tx = {}; ///< Tx Softbuffer
+  };
+
+  struct pucch_t {
+    srsran_uci_cfg_nr_t        uci_cfg;
+    srsran_pucch_nr_resource_t resource;
+  };
+
+  struct ul_sched_t {
+    srsran::bounded_vector<pusch_t, MAX_GRANTS> pusch;
+    srsran::bounded_vector<pucch_t, MAX_GRANTS> pucch;
+  };
+
+  virtual int slot_indication(const srsran_slot_cfg_t& slot_cfg)                    = 0;
+  virtual int get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched) = 0;
+  virtual int get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched) = 0;
 };
 
 class stack_interface_phy_nr : public mac_interface_phy_nr, public srsran::stack_interface_phy_nr
@@ -253,7 +280,6 @@ public:
     srsran::unique_byte_buffer_t tb;
   };
 
-  virtual int sf_indication(const uint32_t tti)        = 0;
   virtual int rx_data_indication(rx_data_ind_t& grant) = 0;
 };
 

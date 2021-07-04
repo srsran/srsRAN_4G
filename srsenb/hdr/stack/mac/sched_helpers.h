@@ -22,7 +22,7 @@
 #ifndef SRSRAN_SCHED_HELPERS_H
 #define SRSRAN_SCHED_HELPERS_H
 
-#include "srsenb/hdr/stack/mac/sched_common.h"
+#include "srsenb/hdr/stack/mac/sched_lte_common.h"
 #include "srsran/interfaces/sched_interface.h"
 #include "srsran/srslog/srslog.h"
 

@@ -32,10 +32,10 @@ public:
   bool is_registered() { return true; }
   bool start_service_request() { return true; };
   void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu) { return; }
-  bool is_lcid_enabled(uint32_t lcid) { return true; }
+  bool has_active_radio_bearer(uint32_t eps_bearer_id) { return true; }
 };
 
-int gw_change_lcid_test()
+int gw_test()
 {
   srsue::gw_args_t gw_args;
   gw_args.tun_dev_name     = "tun1";
@@ -52,8 +52,7 @@ int gw_change_lcid_test()
   char*    err_str                    = nullptr;
   int      rtn                        = 0;
 
-  rtn = gw.setup_if_addr(
-      eps_bearer_id, old_lcid, LIBLTE_MME_PDN_TYPE_IPV4, htonl(inet_addr("192.168.56.32")), nullptr, err_str);
+  rtn = gw.setup_if_addr(eps_bearer_id, LIBLTE_MME_PDN_TYPE_IPV4, htonl(inet_addr("192.168.56.32")), nullptr, err_str);
 
   if (rtn != SRSRAN_SUCCESS) {
     srslog::fetch_basic_logger("TEST", false)
@@ -62,8 +61,8 @@ int gw_change_lcid_test()
     return SRSRAN_SUCCESS;
   }
 
-  TESTASSERT(gw.update_lcid(eps_bearer_id, new_lcid) == SRSRAN_SUCCESS);
-  TESTASSERT(gw.update_lcid(non_existing_eps_bearer_id, new_lcid) == SRSRAN_ERROR);
+  TESTASSERT(gw.deactivate_eps_bearer(eps_bearer_id) == SRSRAN_SUCCESS);
+  TESTASSERT(gw.deactivate_eps_bearer(non_existing_eps_bearer_id) == SRSRAN_ERROR);
   gw.stop();
   return SRSRAN_SUCCESS;
 }
@@ -72,7 +71,7 @@ int main(int argc, char** argv)
 {
   srslog::init();
 
-  TESTASSERT(gw_change_lcid_test() == SRSRAN_SUCCESS);
+  TESTASSERT(gw_test() == SRSRAN_SUCCESS);
 
   return SRSRAN_SUCCESS;
 }

@@ -240,6 +240,9 @@ private:
   void airplane_mode_sim_switch_off();
   void airplane_mode_sim_switch_on();
 
+  // Misc helpers
+  void clear_eps_bearer();
+
   // FSM Helpers
   void enter_state(emm_state_t state_);
   void enter_emm_null();

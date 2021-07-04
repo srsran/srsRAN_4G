@@ -23,6 +23,7 @@
 #define SRSRAN_SCHED_GRID_H
 
 #include "lib/include/srsran/interfaces/sched_interface.h"
+#include "sched_common.h"
 #include "sched_phy_ch/sched_result.h"
 #include "sched_phy_ch/sf_cch_allocator.h"
 #include "sched_ue.h"
@@ -32,20 +33,6 @@
 #include <vector>
 
 namespace srsenb {
-
-/// Error code of alloc attempt
-enum class alloc_result {
-  success,
-  sch_collision,
-  no_cch_space,
-  no_sch_space,
-  no_rnti_opportunity,
-  invalid_grant_params,
-  invalid_coderate,
-  no_grant_space,
-  other_cause
-};
-const char* to_string(alloc_result res);
 
 struct sf_sched_result {
   tti_point                    tti_rx;

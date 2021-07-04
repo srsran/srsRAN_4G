@@ -45,6 +45,8 @@ ue_stack_lte::ue_stack_lte() :
   nas_logger(srslog::fetch_basic_logger("NAS", false)),
   mac_nr_logger(srslog::fetch_basic_logger("MAC-NR")),
   rrc_nr_logger(srslog::fetch_basic_logger("RRC-NR", false)),
+  rlc_nr_logger(srslog::fetch_basic_logger("RLC-NR", false)),
+  pdcp_nr_logger(srslog::fetch_basic_logger("PDCP-NR", false)),
   mac_pcap(),
   mac_nr_pcap(),
   usim(nullptr),
@@ -52,9 +54,11 @@ ue_stack_lte::ue_stack_lte() :
   rlc("RLC"),
   mac("MAC", &task_sched),
   rrc(this, &task_sched),
+  rlc_nr("RLC-NR"),
   mac_nr(&task_sched),
   rrc_nr(&task_sched),
   pdcp(&task_sched, "PDCP"),
+  pdcp_nr(&task_sched, "PDCP-NR"),
   nas(&task_sched),
   thread("STACK"),
   task_sched(512, 64),
@@ -128,6 +132,10 @@ int ue_stack_lte::init(const stack_args_t& args_)
   mac_nr_logger.set_hex_dump_max_size(args.log.mac_hex_limit);
   rrc_nr_logger.set_level(srslog::str_to_basic_level(args.log.rrc_level));
   rrc_nr_logger.set_hex_dump_max_size(args.log.rrc_hex_limit);
+  pdcp_nr_logger.set_level(srslog::str_to_basic_level(args.log.pdcp_level));
+  pdcp_nr_logger.set_hex_dump_max_size(args.log.pdcp_hex_limit);
+  rlc_nr_logger.set_level(srslog::str_to_basic_level(args.log.rlc_level));
+  rlc_nr_logger.set_hex_dump_max_size(args.log.rlc_hex_limit);
 
   // Set up pcap
   // parse pcap trace list
@@ -210,13 +218,16 @@ int ue_stack_lte::init(const stack_args_t& args_)
   sync_task_queue = task_sched.make_task_queue(args.sync_queue_size);
 
   mac.init(phy, &rlc, &rrc);
-  rlc.init(&pdcp, &rrc, &rrc_nr, task_sched.get_timer_handler(), 0 /* RB_ID_SRB0 */);
-  pdcp.init(&rlc, &rrc, &rrc_nr, gw);
+  rlc.init(&pdcp, &rrc, task_sched.get_timer_handler(), 0 /* RB_ID_SRB0 */);
+  pdcp.init(&rlc, &rrc, gw);
   nas.init(usim.get(), &rrc, gw, args.nas);
 
   mac_nr_args_t mac_nr_args = {};
-  mac_nr.init(mac_nr_args, phy_nr, &rlc, &rrc_nr);
-  rrc_nr.init(phy_nr, &mac_nr, &rlc, &pdcp, gw, &rrc, usim.get(), task_sched.get_timer_handler(), nullptr, args.rrc_nr);
+  mac_nr.init(mac_nr_args, phy_nr, &rlc_nr, &rrc_nr);
+  rlc_nr.init(&pdcp_nr, &rrc_nr, task_sched.get_timer_handler(), 0 /* RB_ID_SRB0 */);
+  pdcp_nr.init(&rlc_nr, &rrc_nr, gw);
+  rrc_nr.init(
+      phy_nr, &mac_nr, &rlc_nr, &pdcp_nr, gw, &rrc, usim.get(), task_sched.get_timer_handler(), this, args.rrc_nr);
   rrc.init(phy, &mac, &rlc, &pdcp, &nas, usim.get(), gw, &rrc_nr, args.rrc);
 
   running = true;
@@ -338,23 +349,60 @@ void ue_stack_lte::run_thread()
  **********************************************************************************************************************/
 
 /********************
+ *   RRC Interface
+ *******************/
+
+void ue_stack_lte::add_eps_bearer(uint8_t eps_bearer_id, srsran::srsran_rat_t rat, uint32_t lcid)
+{
+  bearers.add_eps_bearer(eps_bearer_id, rat, lcid);
+}
+
+void ue_stack_lte::remove_eps_bearer(uint8_t eps_bearer_id)
+{
+  bearers.remove_eps_bearer(eps_bearer_id);
+}
+
+/********************
  *   GW Interface
  *******************/
 
 /**
- * Push GW SDU to stack
- * @param lcid
+ * GW calls write_sdu() to push SDU for EPS bearer to stack.
+ * If the EPS bearer ID is valid it will deliver the PDU to the
+ * registered PDCP entity.
+ *
+ * @param eps_bearer_id
  * @param sdu
- * @param blocking
  */
-void ue_stack_lte::write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu)
+void ue_stack_lte::write_sdu(uint32_t eps_bearer_id, srsran::unique_byte_buffer_t sdu)
 {
-  auto task = [this, lcid](srsran::unique_byte_buffer_t& sdu) { pdcp.write_sdu(lcid, std::move(sdu)); };
-  bool ret  = gw_queue_id.try_push(std::bind(task, std::move(sdu))).has_value();
+  auto bearer = bearers.get_radio_bearer(eps_bearer_id);
+  auto task   = [this, eps_bearer_id, bearer](srsran::unique_byte_buffer_t& sdu) {
+    // route SDU to PDCP entity
+    if (bearer.rat == srsran_rat_t::lte) {
+      pdcp.write_sdu(bearer.lcid, std::move(sdu));
+    } else if (bearer.rat == srsran_rat_t::nr) {
+      pdcp_nr.write_sdu(bearer.lcid, std::move(sdu));
+    } else {
+      stack_logger.warning("Can't deliver SDU for EPS bearer %d. Dropping it.", eps_bearer_id);
+    }
+  };
+
+  bool ret = gw_queue_id.try_push(std::bind(task, std::move(sdu))).has_value();
   if (not ret) {
-    pdcp_logger.info("GW SDU with lcid=%d was discarded.", lcid);
+    pdcp_logger.info("GW SDU with lcid=%d was discarded.", bearer.lcid);
     ul_dropped_sdus++;
   }
+}
+
+bool ue_stack_lte::has_active_radio_bearer(uint32_t eps_bearer_id)
+{
+  return bearers.has_active_radio_bearer(eps_bearer_id);
+}
+
+void ue_stack_lte::reset_eps_bearers()
+{
+  bearers.reset();
 }
 
 /**

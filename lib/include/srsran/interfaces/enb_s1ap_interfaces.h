@@ -39,6 +39,8 @@ struct s1ap_args_t {
   std::string s1c_bind_addr;
   uint16_t    s1c_bind_port;
   std::string enb_name;
+  uint32_t    ts1_reloc_prep_timeout;
+  uint32_t    ts1_reloc_overall_timeout;
 };
 
 // S1AP interface for RRC

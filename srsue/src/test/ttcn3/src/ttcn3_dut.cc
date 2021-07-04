@@ -81,6 +81,8 @@ all_args_t parse_args(ttcn3_dut_args_t* args, int argc, char* argv[])
 
   all_args_t all_args = {};
 
+  all_args.stack.pkt_trace.enable = "mac,nas";
+
   all_args.stack.pkt_trace.mac_pcap.enable   = args->mac_pcap.enable;
   all_args.stack.pkt_trace.mac_pcap.filename = args->mac_pcap.filename;
 
@@ -92,6 +94,8 @@ all_args_t parse_args(ttcn3_dut_args_t* args, int argc, char* argv[])
   all_args.log.all_hex_limit = args->log_hex_level;
 
   all_args.phy.log.phy_level        = args->log_level;
+
+  all_args.stack.log.stack_level     = args->log_level;
   all_args.stack.log.mac_level      = args->log_level;
   all_args.stack.log.rlc_level      = args->log_level;
   all_args.stack.log.pdcp_level     = args->log_level;
@@ -100,6 +104,7 @@ all_args_t parse_args(ttcn3_dut_args_t* args, int argc, char* argv[])
   all_args.stack.log.gw_level       = args->log_level;
   all_args.stack.log.usim_level     = args->log_level;
   all_args.phy.log.phy_hex_limit    = args->log_hex_level;
+  all_args.stack.log.stack_hex_limit = args->log_hex_level;
   all_args.stack.log.mac_hex_limit  = args->log_hex_level;
   all_args.stack.log.rlc_hex_limit  = args->log_hex_level;
   all_args.stack.log.pdcp_hex_limit = args->log_hex_level;

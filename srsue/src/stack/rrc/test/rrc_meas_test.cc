@@ -176,8 +176,8 @@ class rrc_nr_test final : public srsue::rrc_nr_interface_rrc
 {
 public:
   ~rrc_nr_test() = default;
-  void get_eutra_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps) override{};
-  void get_nr_capabilities(srsran::byte_buffer_t* nr_cap) override{};
+  int  get_eutra_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps) override { return SRSRAN_SUCCESS; };
+  int  get_nr_capabilities(srsran::byte_buffer_t* nr_cap) override { return SRSRAN_SUCCESS; };
   void phy_set_cells_to_meas(uint32_t carrier_freq_r15) override{};
   void phy_meas_stop() override{};
   bool rrc_reconfiguration(bool                endc_release_and_add_r15,

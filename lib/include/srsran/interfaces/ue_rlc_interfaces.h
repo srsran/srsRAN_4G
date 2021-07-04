@@ -33,8 +33,8 @@ public:
   virtual void reset()                                                     = 0;
   virtual void reestablish()                                               = 0;
   virtual void reestablish(uint32_t lcid)                                  = 0;
-  virtual void add_bearer(uint32_t lcid, const srsran::rlc_config_t& cnfg) = 0;
-  virtual void add_bearer_mrb(uint32_t lcid)                               = 0;
+  virtual int  add_bearer(uint32_t lcid, const srsran::rlc_config_t& cnfg) = 0;
+  virtual int  add_bearer_mrb(uint32_t lcid)                               = 0;
   virtual void del_bearer(uint32_t lcid)                                   = 0;
   virtual void suspend_bearer(uint32_t lcid)                               = 0;
   virtual void resume_bearer(uint32_t lcid)                                = 0;

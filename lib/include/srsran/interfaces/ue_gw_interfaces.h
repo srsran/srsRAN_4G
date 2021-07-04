@@ -30,14 +30,24 @@ namespace srsue {
 class gw_interface_nas
 {
 public:
-  virtual int setup_if_addr(uint32_t eps_bearer_id,
-                            uint32_t lcid,
-                            uint8_t  pdn_type,
-                            uint32_t ip_addr,
-                            uint8_t* ipv6_if_id,
-                            char*    err_str)                                                    = 0;
+  /**
+   * Informs GW about new EPS default bearer being created after attach accept
+   * along with the assigned IP address.
+   */
+  virtual int
+  setup_if_addr(uint32_t eps_bearer_id, uint8_t pdn_type, uint32_t ip_addr, uint8_t* ipv6_if_id, char* err_str) = 0;
+
+  /**
+   * Inform GW about the deactivation of a EPS bearer, e.g. during
+   * detach
+   */
+  virtual int deactivate_eps_bearer(const uint32_t eps_bearer_id) = 0;
+
+  /**
+   * Informs GW about new traffic flow templates and their associated EPS bearer ID
+   * All TFT are applied to a dedicated EPS bearer that has a linked default bearer
+   */
   virtual int apply_traffic_flow_template(const uint8_t&                                 eps_bearer_id,
-                                          const uint8_t&                                 lcid,
                                           const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft) = 0;
 
   typedef enum {
@@ -59,7 +69,6 @@ class gw_interface_rrc
 {
 public:
   virtual void add_mch_port(uint32_t lcid, uint32_t port)             = 0;
-  virtual int  update_lcid(uint32_t eps_bearer_id, uint32_t new_lcid) = 0;
   virtual bool is_running() = 0;
 };
 

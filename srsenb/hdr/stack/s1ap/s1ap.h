@@ -64,9 +64,6 @@ public:
   using erab_id_list   = srsran::bounded_vector<uint16_t, ASN1_S1AP_MAXNOOF_ERABS>;
   using erab_item_list = srsran::bounded_vector<asn1::s1ap::erab_item_s, ASN1_S1AP_MAXNOOF_ERABS>;
 
-  static const uint32_t ts1_reloc_prep_timeout_ms    = 10000;
-  static const uint32_t ts1_reloc_overall_timeout_ms = 10000;
-
   s1ap(srsran::task_sched_handle   task_sched_,
        srslog::basic_logger&       logger,
        srsran::socket_manager_itf* rx_socket_handler);

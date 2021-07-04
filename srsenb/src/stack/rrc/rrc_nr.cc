@@ -273,7 +273,9 @@ int32_t rrc_nr::generate_sibs()
     sib_buffer.push_back(std::move(sib));
 
     // Log SIBs in JSON format
-    log_rrc_message("SIB payload", Tx, sib_buffer.back().get(), msg[msg_index]);
+    fmt::memory_buffer strbuf;
+    fmt::format_to(strbuf, "SI message={} payload", msg_index);
+    log_rrc_message(fmt::to_string(strbuf), Tx, sib_buffer.back().get(), msg[msg_index]);
   }
 
   nof_si_messages = sib_buffer.size() - 1;

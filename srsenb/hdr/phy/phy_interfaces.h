@@ -25,7 +25,7 @@
 #include "srsran/asn1/rrc/rr_common.h"
 #include "srsran/common/interfaces_common.h"
 #include "srsran/phy/channel/channel.h"
-#include "srsran/phy/common/phy_common_nr.h"
+#include "srsran/srsran.h"
 #include <inttypes.h>
 #include <vector>
 
@@ -43,14 +43,15 @@ struct phy_cell_cfg_t {
 };
 
 struct phy_cell_cfg_nr_t {
-  srsran_carrier_nr_t carrier;
-  uint32_t            rf_port;
-  uint32_t            cell_id;
-  double              dl_freq_hz;
-  double              ul_freq_hz;
-  uint32_t            root_seq_idx;
-  uint32_t            num_ra_preambles;
-  float               gain_db;
+  srsran_carrier_nr_t   carrier;
+  uint32_t              rf_port;
+  uint32_t              cell_id;
+  double                dl_freq_hz;
+  double                ul_freq_hz;
+  uint32_t              root_seq_idx;
+  uint32_t              num_ra_preambles;
+  float                 gain_db;
+  srsran_pdcch_cfg_nr_t pdcch = {}; ///< Common CORESET and Search Space configuration
 };
 
 typedef std::vector<phy_cell_cfg_t>    phy_cell_cfg_list_t;
@@ -60,18 +61,18 @@ struct phy_args_t {
   std::string            type;
   srsran::phy_log_args_t log;
 
-  float       max_prach_offset_us = 10;
-  int         pusch_max_its       = 10;
-  bool        pusch_8bit_decoder  = false;
-  float       tx_amplitude        = 1.0f;
-  uint32_t    nof_phy_threads     = 1;
-  std::string equalizer_mode      = "mmse";
-  float       estimator_fil_w     = 1.0f;
-  bool        pusch_meas_epre     = true;
-  bool        pusch_meas_evm      = false;
-  bool        pusch_meas_ta       = true;
-  bool        pucch_meas_ta       = true;
-  uint32_t    nof_prach_threads   = 1;
+  float                   max_prach_offset_us = 10;
+  int                     pusch_max_its       = 10;
+  bool                    pusch_8bit_decoder  = false;
+  float                   tx_amplitude        = 1.0f;
+  uint32_t                nof_phy_threads     = 1;
+  std::string             equalizer_mode      = "mmse";
+  float                   estimator_fil_w     = 1.0f;
+  bool                    pusch_meas_epre     = true;
+  bool                    pusch_meas_evm      = false;
+  bool                    pusch_meas_ta       = true;
+  bool                    pucch_meas_ta       = true;
+  uint32_t                nof_prach_threads   = 1;
   bool                    extended_cp         = false;
   srsran::channel::args_t dl_channel_args;
   srsran::channel::args_t ul_channel_args;

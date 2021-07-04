@@ -36,6 +36,9 @@ public:
   stack_test_dummy() {}
 
   srsran::tti_point get_current_tti() override { return srsran::tti_point{tti % 10240}; }
+  void              add_eps_bearer(uint8_t eps_bearer_id, srsran::srsran_rat_t rat, uint32_t lcid) final{};
+  void              remove_eps_bearer(uint8_t eps_bearer_id) final{};
+  void              reset_eps_bearers() final{};
 
   // Testing utility functions
   void run_tti()
