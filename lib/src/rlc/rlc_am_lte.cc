@@ -671,9 +671,6 @@ int rlc_am_lte::rlc_am_lte_tx::build_status_pdu(uint8_t* payload, uint32_t nof_b
     pdu_len = 0;
   } else if (pdu_len > 0 && nof_bytes >= static_cast<uint32_t>(pdu_len)) {
     log_rlc_am_status_pdu_to_string(logger.info, "%s Tx status PDU - %s", &tx_status, RB_NAME);
-
-    parent->rx.reset_status();
-
     if (cfg.t_status_prohibit > 0 && status_prohibit_timer.is_valid()) {
       // re-arm timer
       status_prohibit_timer.run();
@@ -1845,7 +1842,6 @@ void rlc_am_lte::rlc_am_lte_rx::reassemble_rx_sdus()
 
 void rlc_am_lte::rlc_am_lte_rx::reset_status()
 {
-  std::lock_guard<std::mutex> lock(mutex);
   do_status     = false;
   poll_received = false;
 }
@@ -1969,6 +1965,9 @@ int rlc_am_lte::rlc_am_lte_rx::get_status_pdu(rlc_status_pdu_t* status, const ui
     }
     i = (i + 1) % MOD;
   }
+
+  // valid PDU could be generated
+  reset_status();
 
   return rlc_am_packed_length(status);
 }
