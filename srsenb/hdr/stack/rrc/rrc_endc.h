@@ -43,8 +43,8 @@ public:
   rrc_endc(srsenb::rrc::ue* outer_ue);
 
   bool fill_conn_recfg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_recfg);
-  void handle_ue_meas_report(const asn1::rrc::meas_report_s& msg, srsran::unique_byte_buffer_t pdu);
-
+  void handle_ue_capabilities(const asn1::rrc::ue_eutra_cap_s& eutra_caps);
+  void handle_ue_meas_report(const asn1::rrc::meas_report_s& msg);
   void handle_sgnb_addition_ack(const asn1::dyn_octstring& nr_secondary_cell_group_cfg_r15,
                                 const asn1::dyn_octstring& nr_radio_bearer_cfg1_r15);
   void handle_sgnb_addition_reject();
@@ -60,6 +60,7 @@ private:
   srslog::basic_logger& logger;
 
   // vars
+  bool                                 endc_supported = false;
   asn1::rrc::rrc_conn_recfg_complete_s pending_recfg_complete;
 
   // events
@@ -102,7 +103,7 @@ protected:
   row< wait_sgnb_add_req_resp, wait_recfg_comp,        sgnb_add_req_ack_ev                                                            >,
   row< wait_sgnb_add_req_resp, idle_st,                sgnb_add_req_reject_ev                                                         >,
   row< wait_recfg_comp,        idle_st,                recfg_complete_ev,      &fsm::handle_recfg_complete                            >
-  // +----------------+-------------------+---------------------+----------------------------+-------------------------+
+  // +-----------------------+-----------------------+------------------------+----------------------------+-------------------------+
   >;
   // clang-format on
 };
