@@ -42,9 +42,9 @@ add_executable(rrc_asn1_test rrc_test.cc)
 target_link_libraries(rrc_asn1_test rrc_asn1 asn1_utils srsran_common)
 add_test(rrc_asn1_test rrc_asn1_test)
 
-add_executable(rrc_nr_asn1_test rrc_nr_test.cc)
-target_link_libraries(rrc_nr_asn1_test rrc_nr_asn1 asn1_utils srsran_common)
-add_test(rrc_nr_asn1_test rrc_nr_asn1_test)
+add_executable(srsran_asn1_rrc_nr_test srsran_asn1_rrc_nr_test.cc)
+target_link_libraries(srsran_asn1_rrc_nr_test rrc_nr_asn1 asn1_utils srsran_common)
+add_test(srsran_asn1_rrc_nr_test srsran_asn1_rrc_nr_test)
 
 add_executable(ngap_asn1_test ngap_test.cc)
 target_link_libraries(ngap_asn1_test ngap_nr_asn1 srsran_common)
