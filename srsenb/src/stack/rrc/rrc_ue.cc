@@ -79,7 +79,9 @@ int rrc::ue::init()
   }
 
   mobility_handler = make_rnti_obj<rrc_mobility>(rnti, this);
-  endc_handler     = make_rnti_obj<rrc_endc>(rnti, this);
+  if (parent->rrc_nr != nullptr) {
+    endc_handler = make_rnti_obj<rrc_endc>(rnti, this);
+  }
 
   return SRSRAN_SUCCESS;
 }
@@ -376,7 +378,9 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
       } else {
         parent->logger.warning("Received MeasReport but no mobility configuration is available");
       }
-      endc_handler->handle_ue_meas_report(ul_dcch_msg.msg.c1().meas_report());
+      if (endc_handler) {
+        endc_handler->handle_ue_meas_report(ul_dcch_msg.msg.c1().meas_report());
+      }
       break;
     case ul_dcch_msg_type_c::c1_c_::types::ue_info_resp_r9:
       handle_ue_info_resp(ul_dcch_msg.msg.c1().ue_info_resp_r9(), std::move(original_pdu));
@@ -947,7 +951,9 @@ bool rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
 
     parent->logger.info("UE rnti: 0x%x category: %d", rnti, eutra_capabilities.ue_category);
 
-    endc_handler->handle_ue_capabilities(eutra_capabilities);
+    if (endc_handler) {
+      endc_handler->handle_ue_capabilities(eutra_capabilities);
+    }
   }
 
   if (eutra_capabilities_unpacked) {
