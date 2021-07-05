@@ -7,7 +7,7 @@
 #
 
 add_executable(s1ap_asn1_test s1ap_test.cc)
-target_link_libraries(s1ap_asn1_test srsran_common srsran_asn1 s1ap_asn1)
+target_link_libraries(s1ap_asn1_test srsran_common srsran_asn1 s1ap_asn1 ${ATOMIC_LIBS})
 add_test(s1ap_asn1_test s1ap_asn1_test)
 
 add_executable(srsran_asn1_rrc_mcch_test srsran_asn1_rrc_mcch_test.cc)
