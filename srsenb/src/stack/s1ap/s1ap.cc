@@ -279,6 +279,7 @@ void s1ap::s1_setup_proc_t::then(const srsran::proc_state_t& result)
     s1ap_ptr->mme_connect_timer.run();
     if (connect_count > s1ap_ptr->args.max_s1_setup_retries) {
       s1ap_ptr->alarms_channel("s1apError");
+      srsran_terminate("Error connecting to MME");
     }
     // Try again with in 10 seconds
   } else {
