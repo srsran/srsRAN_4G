@@ -127,11 +127,26 @@ struct phy_cfg_nr_t {
    * @brief Compute UCI configuration for the given slot from the pending PDSCH ACK resources, periodic CSI,
    * periodic SR resources and so on.
    */
-  bool get_pucch(const srsran_slot_cfg_t&      slot_cfg,
-                 const srsran_pdsch_ack_nr_t&  pdsch_ack,
-                 srsran_pucch_nr_common_cfg_t& cfg,
-                 srsran_uci_cfg_nr_t&          uci_cfg,
-                 srsran_pucch_nr_resource_t&   resource) const;
+  bool get_uci_cfg(const srsran_slot_cfg_t&     slot_cfg,
+                   const srsran_pdsch_ack_nr_t& pdsch_ack,
+                   srsran_uci_cfg_nr_t&         uci_cfg) const;
+
+  /**
+   * @brief Compute UCI configuration for PUCCH for the given slot from the pending PDSCH ACK resources, periodic CSI,
+   * periodic SR resources and so on.
+   */
+  bool get_pucch_uci_cfg(const srsran_slot_cfg_t&      slot_cfg,
+                         const srsran_uci_cfg_nr_t&    uci_cfg,
+                         srsran_pucch_nr_common_cfg_t& cfg,
+                         srsran_pucch_nr_resource_t&   resource) const;
+
+  /**
+   * @brief Compute UCI configuration for PUSCH for the given slot from the pending PDSCH ACK resources, periodic CSI,
+   * periodic SR resources and so on.
+   */
+  bool get_pusch_uci_cfg(const srsran_slot_cfg_t&   slot_cfg,
+                         const srsran_uci_cfg_nr_t& uci_cfg,
+                         srsran_sch_cfg_nr_t&       pusch_cfg) const;
 };
 
 } // namespace srsran

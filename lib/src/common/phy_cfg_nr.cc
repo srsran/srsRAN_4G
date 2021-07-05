@@ -280,20 +280,44 @@ bool phy_cfg_nr_t::get_pdsch_ack_resource(const srsran_dci_dl_nr_t&   dci_dl,
   return srsran_harq_ack_resource(&harq_ack, &dci_dl, &ack_resource) == SRSRAN_SUCCESS;
 }
 
-bool phy_cfg_nr_t::get_pucch(const srsran_slot_cfg_t&      slot_cfg,
-                             const srsran_pdsch_ack_nr_t&  ack_info,
-                             srsran_pucch_nr_common_cfg_t& cfg,
-                             srsran_uci_cfg_nr_t&          uci_cfg,
-                             srsran_pucch_nr_resource_t&   resource) const
+bool phy_cfg_nr_t::get_uci_cfg(const srsran_slot_cfg_t&     slot_cfg,
+                               const srsran_pdsch_ack_nr_t& pdsch_ack,
+                               srsran_uci_cfg_nr_t&         uci_cfg) const
 {
   // Generate configuration for HARQ feedback
-  if (srsran_harq_ack_gen_uci_cfg(&harq_ack, &ack_info, &uci_cfg) < SRSRAN_SUCCESS) {
+  if (srsran_harq_ack_gen_uci_cfg(&harq_ack, &pdsch_ack, &uci_cfg) < SRSRAN_SUCCESS) {
     return false;
   }
 
+  // Generate configuration for SR
+  // ...
+
+  // Generate configuration for CSI reports
+  // ...
+
+  return true;
+}
+
+bool phy_cfg_nr_t::get_pucch_uci_cfg(const srsran_slot_cfg_t&      slot_cfg,
+                                     const srsran_uci_cfg_nr_t&    uci_cfg,
+                                     srsran_pucch_nr_common_cfg_t& cfg,
+                                     srsran_pucch_nr_resource_t&   resource) const
+{
   // Select PUCCH resource
   if (srsran_ra_ul_nr_pucch_resource(&pucch, &uci_cfg, &resource) < SRSRAN_SUCCESS) {
     ERROR("Selecting PUCCH resource");
+    return false;
+  }
+
+  return true;
+}
+
+bool phy_cfg_nr_t::get_pusch_uci_cfg(const srsran_slot_cfg_t&   slot_cfg,
+                                     const srsran_uci_cfg_nr_t& uci_cfg,
+                                     srsran_sch_cfg_nr_t&       pusch_cfg) const
+{
+  // Generate configuration for PUSCH
+  if (srsran_ra_ul_set_grant_uci_nr(&carrier, &pusch, &uci_cfg, &pusch_cfg) < SRSRAN_SUCCESS) {
     return false;
   }
 

@@ -13,6 +13,8 @@
 #ifndef SRSRAN_DUMMY_GNB_STACK_H
 #define SRSRAN_DUMMY_GNB_STACK_H
 
+#include "dummy_rx_harq_proc.h"
+#include "dummy_tx_harq_proc.h"
 #include <mutex>
 #include <srsenb/hdr/stack/mac/mac_metrics.h>
 #include <srsran/adt/circular_array.h>
@@ -29,14 +31,14 @@ private:
   srsran::circular_array<srsran_dci_location_t, SRSRAN_NOF_SF_X_FRAME> dci_dl_location;
   srsran::circular_array<srsran_dci_location_t, SRSRAN_NOF_SF_X_FRAME> dci_ul_location;
   srsran::circular_array<uint32_t, SRSRAN_NOF_SF_X_FRAME>              dl_data_to_ul_ack;
-  uint32_t                                                             ss_id         = 0;
-  srsran_dci_format_nr_t                                               dci_format_ul = SRSRAN_DCI_FORMAT_NR_COUNT;
-  srsran_dci_format_nr_t                                               dci_format_dl = SRSRAN_DCI_FORMAT_NR_COUNT;
-  uint32_t                                                             dl_freq_res   = 0;
-  uint32_t                                                             dl_time_res   = 0;
-  srsran_random_t                                                      random_gen    = nullptr;
-  srsran::phy_cfg_nr_t                                                 phy_cfg       = {};
-  bool                                                                 valid         = false;
+  uint32_t                                                             ss_id       = 0;
+  uint32_t                                                             dl_freq_res = 0;
+  uint32_t                                                             dl_time_res = 0;
+  uint32_t                                                             ul_freq_res = 0;
+  uint32_t                                                             ul_time_res = 0;
+  srsran_random_t                                                      random_gen  = nullptr;
+  srsran::phy_cfg_nr_t                                                 phy_cfg     = {};
+  bool                                                                 valid       = false;
 
   std::mutex               mac_metrics_mutex;
   srsenb::mac_ue_metrics_t mac_metrics = {};
@@ -79,26 +81,164 @@ private:
   };
   std::array<pending_ack_t, TTIMOD_SZ> pending_ack = {};
 
-  struct dummy_harq_proc {
-    static const uint32_t  MAX_TB_SZ = SRSRAN_LDPC_MAX_LEN_CB * SRSRAN_SCH_NR_MAX_NOF_CB_LDPC;
-    std::vector<uint8_t>   data;
-    srsran_softbuffer_tx_t softbuffer = {};
+  // PUSCH state
+  class pending_pusch_t
+  {
+  private:
+    std::mutex          mutex;
+    srsran_sch_cfg_nr_t pusch = {};
+    bool                valid = false;
 
-    dummy_harq_proc()
+  public:
+    pending_pusch_t() = default;
+    void push(const srsran_sch_cfg_nr_t& pusch_)
     {
-      // Allocate data
-      data.resize(MAX_TB_SZ);
-
-      // Initialise softbuffer
-      if (srsran_softbuffer_tx_init_guru(&softbuffer, SRSRAN_SCH_NR_MAX_NOF_CB_LDPC, SRSRAN_LDPC_MAX_LEN_ENCODED_CB) <
-          SRSRAN_SUCCESS) {
-        ERROR("Error Tx buffer");
-      }
+      std::unique_lock<std::mutex> lock(mutex);
+      pusch = pusch_;
+      valid = true;
     }
 
-    ~dummy_harq_proc() { srsran_softbuffer_tx_free(&softbuffer); }
+    bool pop(srsran_sch_cfg_nr_t& pusch_)
+    {
+      std::unique_lock<std::mutex> lock(mutex);
+      bool                         ret = valid;
+      pusch_                           = pusch;
+      valid                            = false;
+      return ret;
+    }
   };
-  srsran::circular_array<dummy_harq_proc, SRSRAN_MAX_HARQ_PROC_DL_NR> tx_harq_proc;
+  std::array<pending_pusch_t, TTIMOD_SZ> pending_pusch = {};
+
+  srsran::circular_array<dummy_tx_harq_proc, SRSRAN_MAX_HARQ_PROC_DL_NR> tx_harq_proc;
+
+  srsran::circular_array<dummy_rx_harq_proc, SRSRAN_MAX_HARQ_PROC_DL_NR> rx_harq_proc;
+
+private:
+  bool schedule_pdsch(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched)
+  {
+    // Instantiate PDCCH and PDSCH
+    pdcch_dl_t pdcch = {};
+    pdsch_t    pdsch = {};
+
+    // Select grant and set data
+    pdsch.data[0] = tx_harq_proc[slot_cfg.idx].data.data();
+
+    // Second TB is not used
+    pdsch.data[1] = nullptr;
+
+    // Fill DCI configuration
+    pdcch.dci_cfg = phy_cfg.get_dci_cfg();
+
+    // Fill DCI context
+    if (not phy_cfg.get_dci_ctx_pdsch_rnti_c(ss_id, dci_dl_location[slot_cfg.idx], rnti, pdcch.dci.ctx)) {
+      logger.error("Error filling PDSCH DCI context");
+      return false;
+    }
+
+    uint32_t harq_feedback     = dl_data_to_ul_ack[slot_cfg.idx];
+    uint32_t harq_ack_slot_idx = TTI_ADD(slot_cfg.idx, harq_feedback);
+
+    // Fill DCI fields
+    srsran_dci_dl_nr_t& dci   = pdcch.dci;
+    dci.freq_domain_assigment = dl_freq_res;
+    dci.time_domain_assigment = dl_time_res;
+    dci.mcs                   = mcs;
+    dci.rv                    = 0;
+    dci.ndi                   = (slot_cfg.idx / SRSRAN_NOF_SF_X_FRAME) % 2;
+    dci.pid                   = slot_cfg.idx % SRSRAN_NOF_SF_X_FRAME;
+    dci.dai                   = pending_ack[harq_ack_slot_idx % pending_ack.size()].get_dai();
+    dci.tpc                   = 1;
+    dci.pucch_resource        = 0;
+    if (dci.ctx.format == srsran_dci_format_nr_1_0) {
+      dci.harq_feedback = dl_data_to_ul_ack[slot_cfg.idx] - 1;
+    } else {
+      dci.harq_feedback = slot_cfg.idx;
+    }
+
+    // Create PDSCH configuration
+    if (not phy_cfg.get_pdsch_cfg(slot_cfg, dci, pdsch.sch)) {
+      logger.error("Error converting DCI to grant");
+      return false;
+    }
+
+    // Generate random data
+    srsran_random_byte_vector(random_gen, pdsch.data[0], pdsch.sch.grant.tb[0].tbs / 8);
+
+    // Set TBS
+    tx_harq_proc[slot_cfg.idx].tbs = pdsch.sch.grant.tb[0].tbs;
+
+    // Set softbuffer
+    pdsch.sch.grant.tb[0].softbuffer.tx = &tx_harq_proc[slot_cfg.idx].softbuffer;
+
+    // Reset Tx softbuffer always
+    srsran_softbuffer_tx_reset(pdsch.sch.grant.tb[0].softbuffer.tx);
+
+    // Push scheduling results
+    dl_sched.pdcch_dl.push_back(pdcch);
+    dl_sched.pdsch.push_back(pdsch);
+
+    // Generate PDSCH HARQ Feedback
+    srsran_harq_ack_resource_t ack_resource = {};
+    if (not phy_cfg.get_pdsch_ack_resource(dci, ack_resource)) {
+      logger.error("Error getting ack resource");
+      return false;
+    }
+
+    // Calculate PUCCH slot and push resource
+    pending_ack[harq_ack_slot_idx % pending_ack.size()].push_ack(ack_resource);
+
+    return true;
+  }
+
+  bool schedule_pusch(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched)
+  {
+    // Instantiate PDCCH
+    pdcch_ul_t pdcch = {};
+
+    // Fill DCI configuration
+    pdcch.dci_cfg = phy_cfg.get_dci_cfg();
+
+    // Fill DCI context
+    if (not phy_cfg.get_dci_ctx_pusch_rnti_c(ss_id, dci_ul_location[slot_cfg.idx], rnti, pdcch.dci.ctx)) {
+      logger.error("Error filling PDSCH DCI context");
+      return false;
+    }
+
+    // Fill DCI fields
+    srsran_dci_ul_nr_t& dci   = pdcch.dci;
+    dci.freq_domain_assigment = ul_freq_res;
+    dci.time_domain_assigment = ul_time_res;
+    dci.freq_hopping_flag     = 0;
+    dci.mcs                   = mcs;
+    dci.rv                    = 0;
+    dci.ndi                   = (slot_cfg.idx / SRSRAN_NOF_SF_X_FRAME) % 2;
+    dci.pid                   = slot_cfg.idx % SRSRAN_NOF_SF_X_FRAME;
+    dci.tpc                   = 1;
+
+    // Create PDSCH configuration
+    srsran_sch_cfg_nr_t pusch_cfg = {};
+    if (not phy_cfg.get_pusch_cfg(slot_cfg, dci, pusch_cfg)) {
+      logger.error("Error converting DCI to grant");
+      return false;
+    }
+
+    // Set TBS
+    rx_harq_proc[slot_cfg.idx].tbs = pusch_cfg.grant.tb[0].tbs;
+
+    // Set softbuffer
+    pusch_cfg.grant.tb[0].softbuffer.rx = &rx_harq_proc[slot_cfg.idx].softbuffer;
+
+    // Reset Tx softbuffer always
+    srsran_softbuffer_rx_reset(pusch_cfg.grant.tb[0].softbuffer.rx);
+
+    // Push scheduling results
+    dl_sched.pdcch_ul.push_back(pdcch);
+
+    // Set pending PUSCH
+    pending_pusch[TTI_TX(slot_cfg.idx) % pending_pusch.size()].push(pusch_cfg);
+
+    return true;
+  }
 
 public:
   struct args_t {
@@ -110,13 +250,19 @@ public:
     uint32_t             pdcch_dl_candidate_index = 0;      ///< PDCCH DL DCI candidate index
     uint32_t             pdcch_ul_candidate_index = 0;      ///< PDCCH UL DCI candidate index
     uint32_t             dl_start_rb              = 0;      ///< Start resource block
-    uint32_t             dl_length_rb             = 0l;     ///< Number of resource blocks
+    uint32_t             dl_length_rb             = 0;      ///< Number of resource blocks
+    uint32_t             ul_start_rb              = 0;      ///< Start resource block
+    uint32_t             ul_length_rb             = 0;      ///< Number of resource blocks
     uint32_t             dl_time_res              = 0;      ///< PDSCH time resource
     std::string          log_level                = "debug";
   };
 
   gnb_dummy_stack(args_t args) :
-    mcs(args.mcs), rnti(args.rnti), dl_time_res(args.dl_time_res), phy_cfg(args.phy_cfg), ss_id(args.ss_id)
+    mcs(args.mcs),
+    rnti(args.rnti),
+    dl_time_res(args.dl_time_res),
+    phy_cfg(args.phy_cfg),
+    ss_id(args.ss_id)
   {
     random_gen = srsran_random_init(0x1234);
     logger.set_level(srslog::str_to_basic_level(args.log_level));
@@ -152,16 +298,11 @@ public:
       dci_ul_location[slot] = locations[args.pdcch_ul_candidate_index];
     }
 
-    // Select DCI formats
-    dci_format_dl = phy_cfg.get_dci_format_pdsch(args.ss_id);
-    dci_format_ul = phy_cfg.get_dci_format_pusch(args.ss_id);
-    if (dci_format_dl == SRSRAN_DCI_FORMAT_NR_COUNT or dci_format_ul == SRSRAN_DCI_FORMAT_NR_COUNT) {
-      logger.error("Missing valid DL or UL DCI format in search space");
-      return;
-    }
-
     // Select DL frequency domain resources
     dl_freq_res = srsran_ra_nr_type1_riv(args.phy_cfg.carrier.nof_prb, args.dl_start_rb, args.dl_length_rb);
+
+    // Select DL frequency domain resources
+    ul_freq_res = srsran_ra_nr_type1_riv(args.phy_cfg.carrier.nof_prb, args.ul_start_rb, args.ul_length_rb);
 
     // Setup DL Data to ACK timing
     for (uint32_t i = 0; i < SRSRAN_NOF_SF_X_FRAME; i++) {
@@ -188,73 +329,20 @@ public:
       return SRSRAN_SUCCESS;
     }
 
-    // Instantiate PDCCH and PDSCH
-    pdcch_dl_t pdcch = {};
-    pdsch_t    pdsch = {};
-
-    // Select grant and set data
-    pdsch.data[0] = tx_harq_proc[slot_cfg.idx].data.data();
-
-    // Second TB is not used
-    pdsch.data[1] = nullptr;
-
-    // Fill DCI configuration
-    pdcch.dci_cfg = phy_cfg.get_dci_cfg();
-
-    // Fill DCI context
-    if (not phy_cfg.get_dci_ctx_pdsch_rnti_c(ss_id, dci_dl_location[slot_cfg.idx], rnti, pdcch.dci.ctx)) {
-      logger.error("Error filling PDSCH DCI context");
+    if (not schedule_pdsch(slot_cfg, dl_sched)) {
+      logger.error("Error scheduling PDSCH");
       return SRSRAN_ERROR;
     }
 
-    uint32_t harq_feedback     = dl_data_to_ul_ack[slot_cfg.idx];
-    uint32_t harq_ack_slot_idx = TTI_ADD(slot_cfg.idx, harq_feedback);
-
-    // Fill DCI fields
-    srsran_dci_dl_nr_t& dci   = pdcch.dci;
-    dci.freq_domain_assigment = dl_freq_res;
-    dci.time_domain_assigment = dl_time_res;
-    dci.mcs                   = mcs;
-    dci.rv                    = 0;
-    dci.ndi                   = (slot_cfg.idx / SRSRAN_NOF_SF_X_FRAME) % 2;
-    dci.pid                   = slot_cfg.idx % SRSRAN_NOF_SF_X_FRAME;
-    dci.dai                   = pending_ack[harq_ack_slot_idx % pending_ack.size()].get_dai();
-    dci.tpc                   = 1;
-    dci.pucch_resource        = 0;
-    if (dci.ctx.format == srsran_dci_format_nr_1_0) {
-      dci.harq_feedback = dl_data_to_ul_ack[slot_cfg.idx] - 1;
-    } else {
-      dci.harq_feedback = slot_cfg.idx;
+    // Check if the UL slot is valid, if not skip UL scheduling
+    if (not srsran_tdd_nr_is_ul(&phy_cfg.tdd, phy_cfg.carrier.scs, TTI_TX(slot_cfg.idx))) {
+      return SRSRAN_SUCCESS;
     }
 
-    // Create PDSCH configuration
-    if (not phy_cfg.get_pdsch_cfg(slot_cfg, dci, pdsch.sch)) {
-      logger.error("Error converting DCI to grant");
+    if (not schedule_pusch(slot_cfg, dl_sched)) {
+      logger.error("Error scheduling PUSCH");
       return SRSRAN_ERROR;
     }
-
-    // Generate random data
-    srsran_random_byte_vector(random_gen, pdsch.data[0], pdsch.sch.grant.tb[0].tbs / 8);
-
-    // Set softbuffer
-    pdsch.sch.grant.tb[0].softbuffer.tx = &tx_harq_proc[slot_cfg.idx].softbuffer;
-
-    // Reset Tx softbuffer always
-    srsran_softbuffer_tx_reset(pdsch.sch.grant.tb[0].softbuffer.tx);
-
-    // Push scheduling results
-    dl_sched.pdcch_dl.push_back(pdcch);
-    dl_sched.pdsch.push_back(pdsch);
-
-    // Generate PDSCH HARQ Feedback
-    srsran_harq_ack_resource_t ack_resource = {};
-    if (not phy_cfg.get_pdsch_ack_resource(dci, ack_resource)) {
-      logger.error("Error getting ack resource");
-      return SRSRAN_ERROR;
-    }
-
-    // Calculate PUCCH slot and push resource
-    pending_ack[harq_ack_slot_idx % pending_ack.size()].push_ack(ack_resource);
 
     return SRSRAN_SUCCESS;
   }
@@ -263,19 +351,39 @@ public:
   {
     logger.set_context(slot_cfg.idx);
 
-    srsran_pdsch_ack_nr_t ack = pending_ack[slot_cfg.idx % pending_ack.size()].get_ack();
+    // Get ACK information
+    srsran_pdsch_ack_nr_t ack     = pending_ack[slot_cfg.idx % pending_ack.size()].get_ack();
+    bool                  has_ack = ack.nof_cc > 0;
 
-    if (ack.nof_cc > 0) {
-      mac_interface_phy_nr::pucch_t pucch = {};
-
+    if (has_ack) {
       if (logger.debug.enabled()) {
         std::array<char, 512> str = {};
         if (srsran_harq_ack_info(&ack, str.data(), (uint32_t)str.size()) > 0) {
           logger.debug("HARQ feedback:\n%s", str.data());
         }
       }
+    }
+    mac_interface_phy_nr::pusch_t pusch     = {};
+    bool                          has_pusch = pending_pusch[slot_cfg.idx % pending_pusch.size()].pop(pusch.sch);
 
-      if (not phy_cfg.get_pucch(slot_cfg, ack, pucch.pucch_cfg, pucch.uci_cfg, pucch.resource)) {
+    srsran_uci_cfg_nr_t uci_cfg = {};
+    if (not phy_cfg.get_uci_cfg(slot_cfg, ack, uci_cfg)) {
+      logger.error("Error getting UCI configuration");
+      return SRSRAN_ERROR;
+    }
+
+    if (has_pusch) {
+      if (not phy_cfg.get_pusch_uci_cfg(slot_cfg, uci_cfg, pusch.sch)) {
+        logger.error("Error setting UCI configuration in PUSCH");
+        return SRSRAN_ERROR;
+      }
+
+      ul_sched.pusch.push_back(pusch);
+      return SRSRAN_SUCCESS;
+    } else if (has_ack) {
+      mac_interface_phy_nr::pucch_t pucch = {};
+      pucch.uci_cfg                       = uci_cfg;
+      if (not phy_cfg.get_pucch_uci_cfg(slot_cfg, uci_cfg, pucch.pucch_cfg, pucch.resource)) {
         logger.error("Error getting UCI CFG");
         return SRSRAN_ERROR;
       }
@@ -294,6 +402,7 @@ public:
       const srsran_harq_ack_bit_t* ack_bit = &pucch_info.uci_data.cfg.ack.bits[i];
       bool                         is_ok = (pucch_info.uci_data.value.ack[i] == 1) and pucch_info.uci_data.value.valid;
       uint32_t                     tb_count = (ack_bit->tb0 ? 1 : 0) + (ack_bit->tb1 ? 1 : 0);
+      mac_metrics.tx_brate += tx_harq_proc[ack_bit->pid].tbs;
       mac_metrics.tx_pkts += tb_count;
       if (not is_ok) {
         mac_metrics.tx_errors += tb_count;
