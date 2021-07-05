@@ -1852,8 +1852,7 @@ void rlc_am_lte::rlc_am_lte_rx::reset_status()
 
 bool rlc_am_lte::rlc_am_lte_rx::get_do_status()
 {
-  std::lock_guard<std::mutex> lock(mutex);
-  return do_status;
+  return do_status.load(std::memory_order_relaxed);
 }
 
 void rlc_am_lte::rlc_am_lte_rx::write_pdu(uint8_t* payload, const uint32_t nof_bytes)
