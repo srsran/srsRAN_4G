@@ -77,7 +77,7 @@ private:
       return ack.cc[0].M % 4;
     }
   };
-  srsran::circular_array<pending_ack_t, TTIMOD_SZ> pending_ack = {};
+  std::array<pending_ack_t, TTIMOD_SZ> pending_ack = {};
 
   struct dummy_harq_proc {
     static const uint32_t  MAX_TB_SZ = SRSRAN_LDPC_MAX_LEN_CB * SRSRAN_SCH_NR_MAX_NOF_CB_LDPC;
@@ -218,7 +218,7 @@ public:
     dci.rv                    = 0;
     dci.ndi                   = (slot_cfg.idx / SRSRAN_NOF_SF_X_FRAME) % 2;
     dci.pid                   = slot_cfg.idx % SRSRAN_NOF_SF_X_FRAME;
-    dci.dai                   = pending_ack[harq_ack_slot_idx].get_dai();
+    dci.dai                   = pending_ack[harq_ack_slot_idx % pending_ack.size()].get_dai();
     dci.tpc                   = 1;
     dci.pucch_resource        = 0;
     if (dci.ctx.format == srsran_dci_format_nr_1_0) {
@@ -254,7 +254,7 @@ public:
     }
 
     // Calculate PUCCH slot and push resource
-    pending_ack[harq_ack_slot_idx].push_ack(ack_resource);
+    pending_ack[harq_ack_slot_idx % pending_ack.size()].push_ack(ack_resource);
 
     return SRSRAN_SUCCESS;
   }
@@ -263,7 +263,7 @@ public:
   {
     logger.set_context(slot_cfg.idx);
 
-    srsran_pdsch_ack_nr_t ack = pending_ack[slot_cfg.idx].get_ack();
+    srsran_pdsch_ack_nr_t ack = pending_ack[slot_cfg.idx % pending_ack.size()].get_ack();
 
     if (ack.nof_cc > 0) {
       mac_interface_phy_nr::pucch_t pucch = {};
