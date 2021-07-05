@@ -84,23 +84,8 @@ public:
 
   ///// Sched Result /////
 
-  using pdcch_dl_t = mac_interface_phy_nr::pdcch_dl_t;
-  using pdcch_ul_t = mac_interface_phy_nr::pdcch_ul_t;
-
-  struct pdsch_grant {
-    srsran_dci_dl_nr_t dci = {};
-  };
-  using pdsch_list_t = srsran::bounded_vector<pdsch_grant, MAX_GRANTS>;
-
-  struct dl_tti_request_t {
-    tti_point    pdsch_tti;
-    pdsch_list_t pdschs;
-  };
-
-  struct pusch_grant {
-    srsran_dci_ul_nr_t dci = {};
-  };
-  using pusch_list_t = srsran::bounded_vector<pusch_grant, MAX_GRANTS>;
+  using dl_sched_t = mac_interface_phy_nr::dl_sched_t;
+  using ul_sched_t = mac_interface_phy_nr::ul_sched_t;
 
   struct pucch_resource_grant {
     uint16_t rnti;
@@ -112,22 +97,11 @@ public:
   };
   using pucch_list_t = srsran::bounded_vector<pucch_grant, MAX_GRANTS>;
 
-  struct ul_tti_request_t {
-    tti_point    pusch_tti;
-    pusch_list_t puschs;
-    pucch_list_t pucchs;
-  };
-
-  struct tti_request_t {
-    dl_tti_request_t dl_res;
-    ul_tti_request_t ul_res;
-  };
-
-  virtual ~sched_nr_interface()                                                            = default;
-  virtual int  cell_cfg(srsran::const_span<sched_nr_interface::cell_cfg_t> ue_cfg)         = 0;
-  virtual void ue_cfg(uint16_t rnti, const ue_cfg_t& ue_cfg)                               = 0;
-  virtual void slot_indication(tti_point tti_rx)                                           = 0;
-  virtual int  generate_sched_result(tti_point tti_rx, uint32_t cc, tti_request_t& result) = 0;
+  virtual ~sched_nr_interface()                                                    = default;
+  virtual int  cell_cfg(srsran::const_span<sched_nr_interface::cell_cfg_t> ue_cfg) = 0;
+  virtual void ue_cfg(uint16_t rnti, const ue_cfg_t& ue_cfg)                       = 0;
+  virtual int  get_dl_sched(tti_point tti_rx, uint32_t cc, dl_sched_t& result)     = 0;
+  virtual int  get_ul_sched(tti_point tti_rx, uint32_t cc, ul_sched_t& result)     = 0;
 
   virtual void dl_ack_info(uint16_t rnti, uint32_t cc, uint32_t pid, uint32_t tb_idx, bool ack) = 0;
   virtual void ul_sr_info(tti_point, uint16_t rnti)                                             = 0;

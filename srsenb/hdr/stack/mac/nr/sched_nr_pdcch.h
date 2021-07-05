@@ -29,11 +29,11 @@ enum class pdcch_grant_type_t { sib, dl_data, ul_data };
 
 class slot_ue;
 
-using bwp_cfg_t    = sched_nr_interface::bwp_cfg_t;
-using pdsch_list_t = sched_nr_interface::pdsch_list_t;
-using pdsch_grant  = sched_nr_interface::pdsch_grant;
-using pusch_list_t = sched_nr_interface::pusch_list_t;
-using pusch_grant  = sched_nr_interface::pusch_grant;
+using bwp_cfg_t       = sched_nr_interface::bwp_cfg_t;
+using pdcch_dl_t      = mac_interface_phy_nr::pdcch_dl_t;
+using pdcch_ul_t      = mac_interface_phy_nr::pdcch_ul_t;
+using pdcch_dl_list_t = srsran::bounded_vector<pdcch_dl_t, MAX_GRANTS>;
+using pdcch_ul_list_t = srsran::bounded_vector<pdcch_ul_t, MAX_GRANTS>;
 
 class coreset_region
 {
@@ -41,8 +41,8 @@ public:
   coreset_region(const bwp_cfg_t& bwp_cfg_,
                  uint32_t         coreset_id_,
                  uint32_t         slot_idx,
-                 pdsch_list_t&    pdcch_dl_list,
-                 pusch_list_t&    pdcch_ul_list);
+                 pdcch_dl_list_t& pdcch_dl_list,
+                 pdcch_ul_list_t& pdcch_ul_list);
   void reset();
 
   /**
@@ -76,8 +76,8 @@ private:
     slot_ue*           ue;
   };
   srsran::bounded_vector<alloc_record, MAX_GRANTS> dci_list;
-  pdsch_list_t&                                    pdcch_dl_list;
-  pusch_list_t&                                    pdcch_ul_list;
+  pdcch_dl_list_t&                                 pdcch_dl_list;
+  pdcch_ul_list_t&                                 pdcch_ul_list;
 
   // DFS decision tree of PDCCH grants
   struct tree_node {

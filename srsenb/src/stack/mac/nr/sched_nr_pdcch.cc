@@ -19,8 +19,8 @@ namespace sched_nr_impl {
 coreset_region::coreset_region(const bwp_cfg_t& bwp_cfg_,
                                uint32_t         coreset_id_,
                                uint32_t         slot_idx_,
-                               pdsch_list_t&    dl_list_,
-                               pusch_list_t&    ul_list_) :
+                               pdcch_dl_list_t& dl_list_,
+                               pdcch_ul_list_t& ul_list_) :
   bwp_cfg(&bwp_cfg_),
   coreset_cfg(&bwp_cfg_.coresets[coreset_id_ - 1].value()),
   coreset_id(coreset_id_),
@@ -156,10 +156,10 @@ bool coreset_region::alloc_dfs_node(const alloc_record& record, uint32_t start_d
     alloc_dfs.push_back(node);
     // set new DCI position
     if (record.alloc_type == pdcch_grant_type_t::ul_data) {
-      pusch_grant& pdcch_ul     = pdcch_ul_list[record.idx];
+      pdcch_ul_t& pdcch_ul      = pdcch_ul_list[record.idx];
       pdcch_ul.dci.ctx.location = node.dci_pos;
     } else {
-      pdsch_grant& pdcch_dl     = pdcch_dl_list[record.idx];
+      pdcch_dl_t& pdcch_dl      = pdcch_dl_list[record.idx];
       pdcch_dl.dci.ctx.location = node.dci_pos;
     }
     return true;

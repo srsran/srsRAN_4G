@@ -44,8 +44,8 @@ int sched_nr_ue_sim::update(const sched_nr_cc_output_res_t& cc_out)
 void sched_nr_ue_sim::update_dl_harqs(const sched_nr_cc_output_res_t& cc_out)
 {
   uint32_t cc = cc_out.cc;
-  for (uint32_t i = 0; i < cc_out.dl_cc_result->pdschs.size(); ++i) {
-    const auto& data = cc_out.dl_cc_result->pdschs[i];
+  for (uint32_t i = 0; i < cc_out.dl_cc_result->pdcch_dl.size(); ++i) {
+    const auto& data = cc_out.dl_cc_result->pdcch_dl[i];
     if (data.dci.ctx.rnti != ctxt.rnti) {
       continue;
     }
@@ -98,7 +98,7 @@ int sched_nr_sim_base::add_user(uint16_t rnti, const sched_nr_interface::ue_cfg_
   return SRSRAN_SUCCESS;
 }
 
-void sched_nr_sim_base::slot_indication(srsran::tti_point tti_rx)
+void sched_nr_sim_base::new_slot(srsran::tti_point tti_rx)
 {
   {
     std::unique_lock<std::mutex> lock(mutex);
@@ -113,7 +113,6 @@ void sched_nr_sim_base::slot_indication(srsran::tti_point tti_rx)
       apply_tti_events(ue.second.get_ctxt(), events);
     }
   }
-  sched_ptr->slot_indication(tti_rx);
 }
 
 void sched_nr_sim_base::update(sched_nr_cc_output_res_t& cc_out)

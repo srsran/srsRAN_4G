@@ -20,10 +20,10 @@
 namespace srsenb {
 
 struct sched_nr_cc_output_res_t {
-  tti_point                             tti_rx;
-  uint32_t                              cc;
-  sched_nr_interface::dl_tti_request_t* dl_cc_result;
-  sched_nr_interface::ul_tti_request_t* ul_cc_result;
+  tti_point                       tti_rx;
+  uint32_t                        cc;
+  sched_nr_interface::dl_sched_t* dl_cc_result;
+  sched_nr_interface::ul_sched_t* ul_cc_result;
 };
 
 struct ue_nr_cc_ctxt_t {
@@ -75,7 +75,7 @@ public:
 
   int add_user(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg_, uint32_t preamble_idx);
 
-  void slot_indication(srsran::tti_point tti_rx);
+  void new_slot(srsran::tti_point tti_rx);
   void update(sched_nr_cc_output_res_t& cc_out);
 
   sched_nr_ue_sim&       at(uint16_t rnti) { return ue_db.at(rnti); }
