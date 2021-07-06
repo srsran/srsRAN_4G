@@ -22,9 +22,13 @@ class test_bench
 private:
   const std::string       UE_PHY_COM_LOG_NAME  = "UE /PHY/COM";
   const std::string       GNB_PHY_COM_LOG_NAME = "GNB/PHY/COM";
-  uint32_t                tti                  = 0;
+  uint32_t                slot_idx             = 0;
+  uint64_t                slot_count           = 0;
+  uint64_t                duration_slots;
+  gnb_dummy_stack         gnb_stack;
   srsenb::nr::worker_pool gnb_phy;
   phy_common              gnb_phy_com;
+  ue_dummy_stack          ue_stack;
   srsue::nr::worker_pool  ue_phy;
   phy_common              ue_phy_com;
   bool                    initialised = false;
@@ -38,32 +42,38 @@ public:
     bool                            valid        = false;
     srsran::phy_cfg_nr_t            phy_cfg      = {};
     srsenb::phy_cell_cfg_list_nr_t  cell_list    = {};
-    srsenb::nr::worker_pool::args_t gnb_args;
-    srsue::phy_args_nr_t            ue_args;
-    uint16_t                        rnti              = 0x1234;
+    srsenb::nr::worker_pool::args_t gnb_phy;
+    gnb_dummy_stack::args_t         gnb_stack;
+    srsue::phy_args_nr_t            ue_phy;
+    ue_dummy_stack::args_t          ue_stack;
     std::string                     phy_com_log_level = "info";
+    uint64_t                        durations_slots   = 100;
 
     args_t(int argc, char** argv);
   };
 
-  test_bench(const args_t& args, srsenb::stack_interface_phy_nr& gnb_stack, srsue::stack_interface_phy_nr& ue_stack) :
-    ue_phy(args.ue_args.nof_phy_threads),
-    gnb_phy(gnb_phy_com, gnb_stack, srslog::get_default_sink(), args.gnb_args.nof_phy_threads),
+  test_bench(const args_t& args) :
+    gnb_stack(args.gnb_stack),
+    gnb_phy(gnb_phy_com, gnb_stack, srslog::get_default_sink(), args.gnb_phy.nof_phy_threads),
+    ue_stack(args.ue_stack),
+    ue_phy(args.ue_phy.nof_phy_threads),
+
     ue_phy_com(phy_common::args_t(args.srate_hz, args.buffer_sz_ms, args.nof_channels),
                srslog::fetch_basic_logger(UE_PHY_COM_LOG_NAME, srslog::get_default_sink(), false)),
     gnb_phy_com(phy_common::args_t(args.srate_hz, args.buffer_sz_ms, args.nof_channels),
                 srslog::fetch_basic_logger(GNB_PHY_COM_LOG_NAME, srslog::get_default_sink(), false)),
-    sf_sz((uint32_t)std::round(args.srate_hz * 1e-3))
+    sf_sz((uint32_t)std::round(args.srate_hz * 1e-3)),
+    duration_slots(args.durations_slots)
   {
     srslog::fetch_basic_logger(UE_PHY_COM_LOG_NAME).set_level(srslog::str_to_basic_level(args.phy_com_log_level));
     srslog::fetch_basic_logger(GNB_PHY_COM_LOG_NAME).set_level(srslog::str_to_basic_level(args.phy_com_log_level));
 
-    if (not gnb_phy.init(args.gnb_args, args.cell_list)) {
+    if (not gnb_phy.init(args.gnb_phy, args.cell_list)) {
       return;
     }
 
     // Initialise UE PHY
-    if (not ue_phy.init(args.ue_args, ue_phy_com, &ue_stack, 31)) {
+    if (not ue_phy.init(args.ue_phy, ue_phy_com, &ue_stack, 31)) {
       return;
     }
 
@@ -85,12 +95,12 @@ public:
 
   ~test_bench() = default;
 
-  bool is_initialised() const { return initialised; }
+  bool is_initialised() const { return ue_stack.is_valid() and gnb_stack.is_valid() and initialised; }
 
   bool run_tti()
   {
     // Get gNb worker
-    srsenb::nr::slot_worker* gnb_worker = gnb_phy.wait_worker(tti);
+    srsenb::nr::slot_worker* gnb_worker = gnb_phy.wait_worker(slot_idx);
     if (gnb_worker == nullptr) {
       return false;
     }
@@ -103,14 +113,14 @@ public:
 
     // Set gNb time
     gnb_time.add(TX_ENB_DELAY * 1e-3);
-    gnb_worker->set_time(tti, gnb_time);
+    gnb_worker->set_time(slot_idx, gnb_time);
 
     // Start gNb work
     gnb_phy_com.push_semaphore(gnb_worker);
     gnb_phy.start_worker(gnb_worker);
 
     // Get UE worker
-    srsue::nr::sf_worker* ue_worker = ue_phy.wait_worker(tti);
+    srsue::nr::sf_worker* ue_worker = ue_phy.wait_worker(slot_idx);
     if (ue_worker == nullptr) {
       return false;
     }
@@ -123,16 +133,19 @@ public:
 
     // Set UE time
     ue_time.add(TX_ENB_DELAY * 1e-3);
-    ue_worker->set_tti(tti);
+    ue_worker->set_tti(slot_idx);
     ue_worker->set_tx_time(ue_time);
 
     // Start gNb work
     ue_phy_com.push_semaphore(ue_worker);
     ue_phy.start_worker(ue_worker);
 
-    tti++;
-    return true;
+    slot_count++;
+    slot_idx = slot_count % (1024 * SRSRAN_NSLOTS_PER_FRAME_NR(srsran_subcarrier_spacing_15kHz));
+    return slot_count <= duration_slots;
   }
+
+  srsenb::mac_ue_metrics_t get_gnb_metrics() { return gnb_stack.get_metrics(); }
 };
 
 #endif // SRSRAN_TEST_BENCH_H

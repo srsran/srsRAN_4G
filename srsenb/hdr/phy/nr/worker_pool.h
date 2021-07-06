@@ -31,12 +31,10 @@ class worker_pool
 
 public:
   struct args_t {
-    uint32_t    nof_phy_threads    = 3;
-    uint32_t    prio               = 52;
-    std::string log_level          = "info";
-    uint32_t    log_hex_limit      = 64;
-    std::string log_id_preamble    = "";
-    uint32_t    pusch_max_nof_iter = 10;
+    uint32_t               nof_phy_threads    = 3;
+    uint32_t               prio               = 52;
+    uint32_t               pusch_max_nof_iter = 10;
+    srsran::phy_log_args_t log                = {};
   };
   slot_worker* operator[](std::size_t pos) { return workers.at(pos).get(); }
 

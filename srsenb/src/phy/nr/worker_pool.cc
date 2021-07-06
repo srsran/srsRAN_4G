@@ -26,11 +26,11 @@ worker_pool::worker_pool(srsran::phy_common_interface& common_,
 bool worker_pool::init(const args_t& args, const phy_cell_cfg_list_nr_t& cell_list)
 {
   // Add workers to workers pool and start threads
-  srslog::basic_levels log_level = srslog::str_to_basic_level(args.log_level);
+  srslog::basic_levels log_level = srslog::str_to_basic_level(args.log.phy_level);
   for (uint32_t i = 0; i < args.nof_phy_threads; i++) {
-    auto& log = srslog::fetch_basic_logger(fmt::format("{}PHY{}-NR", args.log_id_preamble, i), log_sink);
+    auto& log = srslog::fetch_basic_logger(fmt::format("{}PHY{}-NR", args.log.id_preamble, i), log_sink);
     log.set_level(log_level);
-    log.set_hex_dump_max_size(args.log_hex_limit);
+    log.set_hex_dump_max_size(args.log.phy_hex_limit);
 
     auto w = new slot_worker(common, stack, log);
     pool.init_worker(i, w, args.prio);

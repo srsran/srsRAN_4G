@@ -15,11 +15,77 @@
 #include "srsran/common/phy_cfg_nr_default.h"
 #include "srsran/common/test_common.h"
 #include "test_bench.h"
+#include <boost/program_options.hpp>
+#include <iostream>
+
+// shorten boost program options namespace
+namespace bpo = boost::program_options;
 
 test_bench::args_t::args_t(int argc, char** argv)
 {
-  // Flag configuration as valid
-  valid = true;
+  bpo::options_description options("Test bench options");
+  bpo::options_description options_gnb_stack("gNb stack and scheduling related options");
+  bpo::options_description options_gnb_phy("gNb PHY related options");
+  bpo::options_description options_ue_stack("UE stack options");
+  bpo::options_description options_ue_phy("UE stack options");
+
+  uint16_t rnti = 0x1234;
+
+  // clang-format off
+  options.add_options()
+        ("rnti",      bpo::value<uint16_t>(&rnti)->default_value(rnti),                  "UE RNTI")
+        ("duration",      bpo::value<uint64_t>(&durations_slots)->default_value(durations_slots),                  "Test duration in slots")
+        ;
+
+  options_gnb_stack.add_options()
+        ("gnb.stack.pdcch.aggregation_level", bpo::value<uint32_t>(&gnb_stack.pdcch_aggregation_level)->default_value(gnb_stack.pdcch_aggregation_level), "PDCCH aggregation level")
+        ("gnb.stack.pdsch.candidate",         bpo::value<uint32_t>(&gnb_stack.pdcch_dl_candidate)->default_value(gnb_stack.pdcch_dl_candidate),           "PDCCH candidate index for PDSCH")
+        ("gnb.stack.pdsch.start",             bpo::value<uint32_t>(&gnb_stack.dl_start_rb)->default_value(0),                                             "PDSCH scheduling frequency allocation start")
+        ("gnb.stack.pdsch.length",            bpo::value<uint32_t>(&gnb_stack.dl_length_rb)->default_value(gnb_stack.dl_length_rb),                       "PDSCH scheduling frequency allocation length")
+        ("gnb.stack.pdsch.slots",             bpo::value<std::string>(&gnb_stack.dl_sched_slots)->default_value(gnb_stack.dl_sched_slots),                "Slots enabled for PDSCH")
+        ("gnb.stack.pusch.candidate",         bpo::value<uint32_t>(&gnb_stack.pdcch_ul_candidate)->default_value(gnb_stack.pdcch_ul_candidate),           "PDCCH candidate index for PUSCH")
+        ("gnb.stack.pusch.start",             bpo::value<uint32_t>(&gnb_stack.ul_start_rb)->default_value(0),                                             "PUSCH scheduling frequency allocation start")
+        ("gnb.stack.pusch.length",            bpo::value<uint32_t>(&gnb_stack.ul_length_rb)->default_value(gnb_stack.ul_length_rb),                       "PUSCH scheduling frequency allocation length")
+        ("gnb.stack.pusch.slots",             bpo::value<std::string>(&gnb_stack.ul_sched_slots)->default_value(gnb_stack.ul_sched_slots),                "Slots enabled for PUSCH")
+        ("gnb.stack.mcs",                     bpo::value<uint32_t>(&gnb_stack.mcs)->default_value(gnb_stack.mcs),                                         "PDSCH/PUSCH scheduling modulation code scheme")
+        ("gnb.stack.log_level",               bpo::value<std::string>(&gnb_stack.log_level)->default_value(gnb_stack.log_level),                          "Stack log level")
+        ;
+
+  options_gnb_phy.add_options()
+      ("gnb.phy.nof_threads",     bpo::value<uint32_t>(&gnb_phy.nof_phy_threads)->default_value(1),          "Number of threads")
+      ("gnb.phy.log.level",       bpo::value<std::string>(&gnb_phy.log.phy_level)->default_value("warning"), "gNb PHY log level")
+      ("gnb.phy.log.hex_limit",   bpo::value<int>(&gnb_phy.log.phy_hex_limit)->default_value(0),             "gNb PHY log hex limit")
+      ("gnb.phy.log.id_preamble", bpo::value<std::string>(&gnb_phy.log.id_preamble)->default_value("GNB/"),  "gNb PHY log ID preamble")
+      ("gnb.phy.pusch.max_iter",  bpo::value<uint32_t>(&gnb_phy.pusch_max_nof_iter)->default_value(10),      "PUSCH LDPC max number of iterations")
+      ;
+
+  options_ue_phy.add_options()
+      ("ue.phy.nof_threads", bpo::value<uint32_t>(&ue_phy.nof_phy_threads)->default_value(1),             "Number of threads")
+      ("ue.phy.log.level", bpo::value<std::string>(&ue_phy.log.phy_level)->default_value("warning"),      "UE PHY log level")
+      ("ue.phy.log.hex_limit", bpo::value<int>(&ue_phy.log.phy_hex_limit)->default_value(0),              "UE PHY log hex limit")
+      ("ue.phy.log.id_preamble", bpo::value<std::string>(&ue_phy.log.id_preamble)->default_value(" UE/"), "UE PHY log ID preamble")
+      ;
+
+  options.add(options_gnb_stack).add(options_gnb_phy).add(options_ue_stack).add(options_ue_phy).add_options()
+        ("help",                      "Show this message")
+        ;
+  // clang-format on
+
+  bpo::variables_map vm;
+  try {
+    bpo::store(bpo::command_line_parser(argc, argv).options(options).run(), vm);
+    bpo::notify(vm);
+  } catch (bpo::error& e) {
+    std::cerr << e.what() << std::endl;
+    return;
+  }
+
+  // help option was given or error - print usage and exit
+  if (vm.count("help")) {
+    std::cout << "Usage: " << argv[0] << " [OPTIONS] config_file" << std::endl << std::endl;
+    std::cout << options << std::endl << std::endl;
+    return;
+  }
 
   // Load default reference configuration
   srsran::phy_cfg_nr_default_t::reference_cfg_t reference_cfg;
@@ -30,6 +96,22 @@ test_bench::args_t::args_t(int argc, char** argv)
   cell_list[0].rf_port = 0;
   cell_list[0].cell_id = 0;
   cell_list[0].pdcch   = phy_cfg.pdcch;
+
+  ue_stack.rnti = rnti;
+
+  gnb_stack.rnti    = rnti;
+  gnb_stack.phy_cfg = phy_cfg;
+
+  if (gnb_stack.dl_length_rb == 0) {
+    gnb_stack.dl_length_rb = phy_cfg.carrier.nof_prb;
+  }
+
+  if (gnb_stack.ul_length_rb == 0) {
+    gnb_stack.ul_length_rb = phy_cfg.carrier.nof_prb;
+  }
+
+  // Flag configuration as valid
+  valid = true;
 }
 
 int main(int argc, char** argv)
@@ -38,48 +120,19 @@ int main(int argc, char** argv)
 
   // Parse test bench arguments
   test_bench::args_t args(argc, argv);
-  args.gnb_args.log_id_preamble  = "GNB/";
-  args.gnb_args.log_level        = "info";
-  args.gnb_args.nof_phy_threads  = 1;
-  args.ue_args.log.id_preamble   = " UE/";
-  args.ue_args.log.phy_level     = "info";
-  args.ue_args.log.phy_hex_limit = 1;
-  args.ue_args.nof_phy_threads   = 1;
 
   // Parse arguments
   TESTASSERT(args.valid);
 
-  // Create UE stack arguments
-  ue_dummy_stack::args_t ue_stack_args = {};
-  ue_stack_args.rnti                   = 0x1234;
-
-  // Create UE stack
-  ue_dummy_stack ue_stack(ue_stack_args);
-  TESTASSERT(ue_stack.is_valid());
-
-  // Create GNB stack arguments
-  gnb_dummy_stack::args_t gnb_stack_args = {};
-  gnb_stack_args.rnti                    = 0x1234;
-  gnb_stack_args.mcs                     = 10;
-  gnb_stack_args.phy_cfg                 = args.phy_cfg;
-  gnb_stack_args.dl_start_rb             = 0;
-  gnb_stack_args.dl_length_rb            = args.phy_cfg.carrier.nof_prb;
-  gnb_stack_args.ul_start_rb             = 0;
-  gnb_stack_args.ul_length_rb            = args.phy_cfg.carrier.nof_prb;
-
-  // Create GNB stack
-  gnb_dummy_stack gnb_stack(gnb_stack_args);
-  TESTASSERT(gnb_stack.is_valid());
-
   // Create test bench
-  test_bench tb(args, gnb_stack, ue_stack);
+  test_bench tb(args);
 
   // Assert bench is initialised correctly
   TESTASSERT(tb.is_initialised());
 
   // Run per TTI basis
-  for (uint32_t i = 0; i < 1000; i++) {
-    TESTASSERT(tb.run_tti());
+  while (tb.run_tti()) {
+    ; // Do nothing
   }
 
   // Stop test bench
@@ -89,7 +142,7 @@ int main(int argc, char** argv)
   srslog::flush();
 
   // Retrieve MAC metrics
-  srsenb::mac_ue_metrics_t mac_metrics = gnb_stack.get_metrics();
+  srsenb::mac_ue_metrics_t mac_metrics = tb.get_gnb_metrics();
 
   // Print metrics
   float pdsch_bler = 0.0f;

@@ -21,5 +21,7 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
             ${Boost_LIBRARIES}
             ${ATOMIC_LIBS})
 
-    add_nr_test(nr_phy_test nr_phy_test)
+    add_nr_test(nr_phy_test_10MHz_dl_only nr_phy_test --duration=100 --gnb.stack.pusch.slots="")
+    add_nr_test(nr_phy_test_10MHz_ul_only nr_phy_test --duration=100 --gnb.stack.pdsch.slots="")
+    add_nr_test(nr_phy_test_10MHz_bidir nr_phy_test --duration=100)
 endif ()
