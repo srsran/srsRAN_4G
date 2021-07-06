@@ -25,7 +25,7 @@ namespace sched_nr_impl {
 
 using coreset_bitmap = srsran::bounded_bitset<SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE * SRSRAN_CORESET_DURATION_MAX, true>;
 
-enum class pdcch_grant_type_t { sib, dl_data, ul_data };
+enum class pdcch_grant_type_t { sib, rar, dl_data, ul_data };
 
 class slot_ue;
 

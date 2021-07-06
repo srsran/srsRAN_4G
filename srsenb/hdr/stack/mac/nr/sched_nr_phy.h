@@ -10,8 +10,8 @@
  *
  */
 
-#ifndef SRSRAN_SCHED_NR_PHY_HELPERS_H
-#define SRSRAN_SCHED_NR_PHY_HELPERS_H
+#ifndef SRSRAN_SCHED_NR_PHY_H
+#define SRSRAN_SCHED_NR_PHY_H
 
 #include "sched_nr_cfg.h"
 
@@ -20,6 +20,16 @@ namespace sched_nr_impl {
 
 uint32_t get_P(uint32_t bwp_nof_prb, bool config_1_or_2);
 uint32_t get_nof_rbgs(uint32_t bwp_nof_prb, uint32_t bwp_start, bool config1_or_2);
+
+using pdsch_bitmap = srsran::bounded_bitset<SCHED_NR_MAX_NOF_RBGS, true>;
+using pusch_bitmap = srsran::bounded_bitset<SCHED_NR_MAX_NOF_RBGS, true>;
+using rbg_interval = srsran::interval<uint32_t>;
+
+rbg_interval find_empty_rbg_interval(const pdsch_bitmap& bitmap, uint32_t max_nof_rbgs);
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+bool fill_dci_rar(rbg_interval rbginterv, const sched_cell_params& cell, srsran_dci_dl_nr_t& dci);
 
 class slot_ue;
 void fill_dci_ue_cfg(const slot_ue&           ue,
@@ -44,4 +54,4 @@ pucch_resource_grant find_pucch_resource(const slot_ue& ue, const rbgmask_t& rbg
 } // namespace sched_nr_impl
 } // namespace srsenb
 
-#endif // SRSRAN_SCHED_NR_PHY_HELPERS_H
+#endif // SRSRAN_SCHED_NR_PHY_H

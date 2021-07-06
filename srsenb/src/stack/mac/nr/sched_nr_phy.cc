@@ -10,7 +10,7 @@
  *
  */
 
-#include "srsenb/hdr/stack/mac/nr/sched_nr_phy_helpers.h"
+#include "srsenb/hdr/stack/mac/nr/sched_nr_phy.h"
 #include "srsenb/hdr/stack/mac/nr/sched_nr_harq.h"
 #include "srsenb/hdr/stack/mac/nr/sched_nr_ue.h"
 
@@ -80,6 +80,38 @@ int bitmap_to_riv(const rbgmask_t& bitmap, uint32_t cell_nof_prb)
   srsran::interval<uint32_t> interv = find_first_interval(bitmap);
   srsran_assert(interv.length() == bitmap.count(), "Trying to acquire riv for non-contiguous bitmap");
   return srsran_ra_nr_type1_riv(cell_nof_prb, interv.start(), interv.length());
+}
+
+rbg_interval find_empty_rbg_interval(const pdsch_bitmap& in_mask, uint32_t max_size)
+{
+  rbg_interval max_interv;
+
+  for (size_t n = 0; n < in_mask.size();) {
+    int pos = in_mask.find_lowest(n, in_mask.size(), false);
+    if (pos < 0) {
+      break;
+    }
+
+    size_t       max_pos = std::min(in_mask.size(), (size_t)pos + max_size);
+    int          pos2    = in_mask.find_lowest(pos + 1, max_pos, true);
+    rbg_interval interv(pos, pos2 < 0 ? max_pos : pos2);
+    if (interv.length() >= max_size) {
+      return interv;
+    }
+    if (interv.length() > max_interv.length()) {
+      max_interv = interv;
+    }
+    n = interv.stop();
+  }
+  return max_interv;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+bool fill_dci_rar(rbg_interval rbginterv, const sched_cell_params& cell, srsran_dci_dl_nr_t& dci)
+{
+  dci.mcs = 5;
+  return true;
 }
 
 template <typename DciDlOrUl>

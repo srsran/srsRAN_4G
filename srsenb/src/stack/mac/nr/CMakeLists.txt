@@ -6,6 +6,7 @@
 # the distribution.
 #
 
-set(SOURCES mac_nr.cc sched_nr.cc sched_nr_ue.cc sched_nr_worker.cc sched_nr_rb_grid.cc sched_nr_harq.cc sched_nr_pdcch.cc sched_nr_cfg.cc sched_nr_phy_helpers.cc)
+set(SOURCES mac_nr.cc sched_nr.cc sched_nr_ue.cc sched_nr_worker.cc sched_nr_rb_grid.cc sched_nr_harq.cc
+            sched_nr_pdcch.cc sched_nr_cfg.cc sched_nr_phy.cc sched_nr_bwp.cc)
 
 add_library(srsgnb_mac STATIC ${SOURCES})

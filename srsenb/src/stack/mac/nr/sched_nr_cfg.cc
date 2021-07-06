@@ -11,6 +11,7 @@
  */
 
 #include "srsenb/hdr/stack/mac/nr/sched_nr_cfg.h"
+#include "srsenb/hdr/stack/mac/nr/sched_nr_phy.h"
 
 namespace srsenb {
 namespace sched_nr_impl {

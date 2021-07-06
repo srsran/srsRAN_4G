@@ -33,6 +33,7 @@ using pucch_list_t         = sched_nr_interface::pucch_list_t;
 
 using sched_cfg_t = sched_nr_interface::sched_cfg_t;
 using cell_cfg_t  = sched_nr_interface::cell_cfg_t;
+using bwp_cfg_t   = sched_nr_interface::bwp_cfg_t;
 
 struct sched_cell_params {
   const uint32_t     cc;
@@ -49,8 +50,51 @@ struct sched_params {
   explicit sched_params(const sched_cfg_t& sched_cfg_);
 };
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+using rbgmask_t = srsran::bounded_bitset<SCHED_NR_MAX_NOF_RBGS, true>;
+
 using pdcchmask_t = srsran::bounded_bitset<SCHED_NR_MAX_NOF_RBGS, true>;
-using rbgmask_t   = srsran::bounded_bitset<SCHED_NR_MAX_NOF_RBGS, true>;
+
+using pdcch_cce_pos_list = srsran::bounded_vector<uint32_t, SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR>;
+using bwp_cce_pos_list   = std::array<std::array<pdcch_cce_pos_list, MAX_NOF_AGGR_LEVELS>, SRSRAN_NOF_SF_X_FRAME>;
+void get_dci_locs(const srsran_coreset_t&      coreset,
+                  const srsran_search_space_t& search_space,
+                  uint16_t                     rnti,
+                  bwp_cce_pos_list&            cce_locs);
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+using ue_cfg_t    = sched_nr_interface::ue_cfg_t;
+using ue_cc_cfg_t = sched_nr_interface::ue_cc_cfg_t;
+
+class ue_cfg_extended : public ue_cfg_t
+{
+public:
+  struct search_space_params {
+    srsran_search_space_t* cfg = nullptr;
+  };
+  struct coreset_params {
+    srsran_coreset_t*                 cfg = nullptr;
+    std::vector<search_space_params*> ss_list;
+    bwp_cce_pos_list                  cce_positions;
+  };
+  struct bwp_params {
+    std::vector<search_space_params> search_spaces;
+    std::vector<coreset_params>      coresets;
+  };
+  struct cc_params {
+    srsran::bounded_vector<bwp_params, SCHED_NR_MAX_BWP_PER_CELL> bwps;
+  };
+
+  uint16_t               rnti;
+  std::vector<cc_params> cc_params;
+
+  ue_cfg_extended() = default;
+  explicit ue_cfg_extended(uint16_t rnti, const ue_cfg_t& uecfg);
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 struct resource_guard {
 public:
@@ -90,44 +134,6 @@ public:
 
 private:
   bool flag = false;
-};
-
-using pdcch_cce_pos_list = srsran::bounded_vector<uint32_t, SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR>;
-using bwp_cce_pos_list   = std::array<std::array<pdcch_cce_pos_list, MAX_NOF_AGGR_LEVELS>, SRSRAN_NOF_SF_X_FRAME>;
-void get_dci_locs(const srsran_coreset_t&      coreset,
-                  const srsran_search_space_t& search_space,
-                  uint16_t                     rnti,
-                  bwp_cce_pos_list&            cce_locs);
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-using ue_cfg_t    = sched_nr_interface::ue_cfg_t;
-using ue_cc_cfg_t = sched_nr_interface::ue_cc_cfg_t;
-
-class ue_cfg_extended : public ue_cfg_t
-{
-public:
-  struct search_space_params {
-    srsran_search_space_t* cfg = nullptr;
-  };
-  struct coreset_params {
-    srsran_coreset_t*                 cfg = nullptr;
-    std::vector<search_space_params*> ss_list;
-    bwp_cce_pos_list                  cce_positions;
-  };
-  struct bwp_params {
-    std::vector<search_space_params> search_spaces;
-    std::vector<coreset_params>      coresets;
-  };
-  struct cc_params {
-    srsran::bounded_vector<bwp_params, SCHED_NR_MAX_BWP_PER_CELL> bwps;
-  };
-
-  uint16_t               rnti;
-  std::vector<cc_params> cc_params;
-
-  ue_cfg_extended() = default;
-  explicit ue_cfg_extended(uint16_t rnti, const ue_cfg_t& uecfg);
 };
 
 } // namespace sched_nr_impl

@@ -15,6 +15,10 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
+slot_cc_worker::slot_cc_worker(cell_sched& cc_sched) :
+  cell(cc_sched), cfg(*cc_sched.cfg), bwp_alloc(cc_sched.bwps[0].grid)
+{}
+
 /// Called at the beginning of TTI in a locked context, to reserve available UE resources
 void slot_cc_worker::start(tti_point tti_rx_, ue_map_t& ue_db)
 {
@@ -34,15 +38,18 @@ void slot_cc_worker::start(tti_point tti_rx_, ue_map_t& ue_db)
     }
     // UE acquired successfully for scheduling in this {tti, cc}
   }
-
-  tti_rx = tti_rx_;
 }
 
 void slot_cc_worker::run()
 {
   srsran_assert(running(), "scheduler worker::run() called for non-active worker");
 
-  // Prioritize PDCCH scheduling for DL and UL data in a RoundRobin fashion
+  bwp_alloc.new_slot(tti_rx + TX_ENB_DELAY);
+
+  // Allocate pending RARs
+  cell.bwps[0].ra.run_slot(bwp_alloc);
+
+  // Prioritize PDCCH scheduling for DL and UL data in a Round-Robin fashion
   if ((tti_rx.to_uint() & 0x1u) == 0) {
     alloc_dl_ues();
     alloc_ul_ues();
@@ -74,8 +81,9 @@ void slot_cc_worker::alloc_dl_ues()
 
   rbgmask_t dlmask(cfg.cell_cfg.nof_rbg);
   dlmask.fill(0, dlmask.size(), true);
-  res_grid.alloc_pdsch(ue, dlmask);
+  bwp_alloc.alloc_pdsch(ue, dlmask);
 }
+
 void slot_cc_worker::alloc_ul_ues()
 {
   if (slot_ues.empty()) {
@@ -88,7 +96,7 @@ void slot_cc_worker::alloc_ul_ues()
 
   rbgmask_t ulmask(cfg.cell_cfg.nof_rbg);
   ulmask.fill(0, ulmask.size(), true);
-  res_grid.alloc_pusch(ue, ulmask);
+  bwp_alloc.alloc_pusch(ue, ulmask);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -100,12 +108,12 @@ sched_worker_manager::sched_worker_manager(ue_map_t& ue_db_, const sched_params&
   }
 
   // Note: For now, we only allow parallelism at the sector level
-  slot_ctxts.resize(cfg.sched_cfg.nof_concurrent_subframes);
+  slot_worker_ctxts.resize(cfg.sched_cfg.nof_concurrent_subframes);
   for (size_t i = 0; i < cfg.sched_cfg.nof_concurrent_subframes; ++i) {
-    slot_ctxts[i].reset(new slot_worker_ctxt());
-    slot_ctxts[i]->workers.reserve(cfg.cells.size());
+    slot_worker_ctxts[i].reset(new slot_worker_ctxt());
+    slot_worker_ctxts[i]->workers.reserve(cfg.cells.size());
     for (uint32_t cc = 0; cc < cfg.cells.size(); ++cc) {
-      slot_ctxts[i]->workers.emplace_back(cfg.cells[cc], cell_grid_list[cc]);
+      slot_worker_ctxts[i]->workers.emplace_back(cell_grid_list[cc]);
     }
   }
 }
@@ -114,7 +122,7 @@ sched_worker_manager::~sched_worker_manager() = default;
 
 sched_worker_manager::slot_worker_ctxt& sched_worker_manager::get_sf(tti_point tti_rx)
 {
-  return *slot_ctxts[tti_rx.to_uint() % slot_ctxts.size()];
+  return *slot_worker_ctxts[tti_rx.to_uint() % slot_worker_ctxts.size()];
 }
 
 void sched_worker_manager::start_slot(tti_point tti_rx, srsran::move_callback<void()> process_feedback)
@@ -189,7 +197,7 @@ void sched_worker_manager::release_slot(tti_point tti_rx_)
 
 bool sched_worker_manager::get_sched_result(tti_point pdcch_tti, uint32_t cc, dl_sched_t& dl_res, ul_sched_t& ul_res)
 {
-  auto& pdcch_bwp_slot = cell_grid_list[cc].bwps[0][pdcch_tti];
+  auto& pdcch_bwp_slot = cell_grid_list[cc].bwps[0].grid[pdcch_tti];
 
   dl_res.pdcch_dl = pdcch_bwp_slot.dl_pdcchs;
   dl_res.pdcch_ul = pdcch_bwp_slot.ul_pdcchs;

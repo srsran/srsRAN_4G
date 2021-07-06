@@ -26,7 +26,7 @@ namespace srsenb {
 
 const static size_t   SCHED_NR_MAX_CARRIERS     = 4;
 const static uint16_t SCHED_NR_INVALID_RNTI     = 0;
-const static size_t   SCHED_NR_MAX_NOF_RBGS     = 25;
+const static size_t   SCHED_NR_MAX_NOF_RBGS     = 17;
 const static size_t   SCHED_NR_MAX_TB           = 1;
 const static size_t   SCHED_NR_MAX_HARQ         = 16;
 const static size_t   SCHED_NR_MAX_BWP_PER_CELL = 2;
@@ -52,14 +52,17 @@ public:
   using pusch_td_res_alloc_list = srsran::bounded_vector<pusch_td_res_alloc, MAX_GRANTS>;
 
   struct bwp_cfg_t {
-    uint32_t bwp_id   = 1;
-    uint32_t start_rb = 0;
-    uint32_t rb_width = 100;
+    uint32_t               bwp_id   = 1;
+    uint32_t               start_rb = 0;
+    uint32_t               rb_width = 100;
+    srsran_sch_hl_cfg_nr_t pdsch    = {};
+    srsran_sch_hl_cfg_nr_t pusch    = {};
 
     std::array<srsran::optional<srsran_coreset_t>, SRSRAN_UE_DL_NR_MAX_NOF_CORESET> coresets;
   };
 
   struct cell_cfg_t {
+    uint32_t                                                     rar_window_size;
     uint32_t                                                     nof_prb = 100;
     uint32_t                                                     nof_rbg = 25;
     srsran_tdd_config_nr_t                                       tdd     = {};
@@ -80,6 +83,16 @@ public:
     uint32_t                                                   maxharq_tx = 4;
     srsran::bounded_vector<ue_cc_cfg_t, SCHED_NR_MAX_CARRIERS> carriers;
     srsran::phy_cfg_nr_t                                       phy_cfg = {};
+  };
+
+  ////// RACH //////
+
+  struct dl_sched_rar_info_t {
+    uint32_t preamble_idx;
+    uint32_t ta_cmd;
+    uint16_t temp_crnti;
+    uint32_t msg3_size;
+    uint32_t prach_tti;
   };
 
   ///// Sched Result /////

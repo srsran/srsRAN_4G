@@ -17,13 +17,15 @@
 #include "lib/include/srsran/adt/circular_array.h"
 #include "sched_nr_interface.h"
 #include "sched_nr_pdcch.h"
+#include "sched_nr_phy.h"
 #include "sched_nr_ue.h"
 
 namespace srsenb {
 namespace sched_nr_impl {
 
-using pdsch_bitmap = srsran::bounded_bitset<25, true>;
-using pusch_bitmap = srsran::bounded_bitset<25, true>;
+struct pending_rar_t;
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 const static size_t MAX_CORESET_PER_BWP = 3;
 using slot_coreset_list                 = srsran::bounded_vector<coreset_region, MAX_CORESET_PER_BWP>;
@@ -54,27 +56,27 @@ struct bwp_res_grid {
   const sched_cell_params& cell_params() const { return *cell_cfg; }
   const bwp_cfg_t&         bwp_cfg() const { return cell_cfg->cell_cfg.bwps[id() - 1]; }
 
-private:
-  uint32_t                 bwp_id;
   const sched_cell_params* cell_cfg = nullptr;
+
+private:
+  uint32_t bwp_id;
 
   srsran::bounded_vector<bwp_slot_grid, TTIMOD_SZ> slots;
 };
 
-struct cell_res_grid {
-  const sched_cell_params*                                        cell_cfg = nullptr;
-  srsran::bounded_vector<bwp_res_grid, SCHED_NR_MAX_BWP_PER_CELL> bwps;
-
-  explicit cell_res_grid(const sched_cell_params& cell_cfg);
-};
-
-class slot_bwp_sched
+class bwp_slot_allocator
 {
 public:
-  explicit slot_bwp_sched(uint32_t bwp_id, cell_res_grid& phy_grid_);
+  explicit bwp_slot_allocator(bwp_res_grid& bwp_grid_);
 
+  void new_slot(tti_point pdcch_tti_) { pdcch_tti = pdcch_tti_; }
+
+  alloc_result alloc_rar(uint32_t aggr_idx, const pending_rar_t& rar, rbg_interval interv, uint32_t max_nof_grants);
   alloc_result alloc_pdsch(slot_ue& ue, const rbgmask_t& dl_mask);
   alloc_result alloc_pusch(slot_ue& ue, const rbgmask_t& dl_mask);
+
+  tti_point           get_pdcch_tti() const { return pdcch_tti; }
+  const bwp_res_grid& res_grid() const { return bwp_grid; }
 
   const sched_cell_params& cfg;
 
@@ -82,7 +84,7 @@ private:
   srslog::basic_logger& logger;
   bwp_res_grid&         bwp_grid;
 
-  tti_point tti_rx;
+  tti_point pdcch_tti;
 };
 
 } // namespace sched_nr_impl

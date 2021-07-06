@@ -13,6 +13,7 @@
 #ifndef SRSRAN_SCHED_NR_WORKER_H
 #define SRSRAN_SCHED_NR_WORKER_H
 
+#include "sched_nr_bwp.h"
 #include "sched_nr_cfg.h"
 #include "sched_nr_rb_grid.h"
 #include "sched_nr_ue.h"
@@ -32,9 +33,7 @@ using ul_sched_t = sched_nr_interface::ul_sched_t;
 class slot_cc_worker
 {
 public:
-  explicit slot_cc_worker(const sched_cell_params& cell_params, cell_res_grid& phy_grid) :
-    cfg(cell_params), res_grid(0, phy_grid)
-  {}
+  explicit slot_cc_worker(cell_sched& sched);
 
   void start(tti_point tti_rx_, ue_map_t& ue_db_);
   void run();
@@ -46,9 +45,10 @@ private:
   void alloc_ul_ues();
 
   const sched_cell_params& cfg;
+  cell_sched&              cell;
 
-  tti_point      tti_rx;
-  slot_bwp_sched res_grid;
+  tti_point          tti_rx;
+  bwp_slot_allocator bwp_alloc;
 
   srsran::static_circular_map<uint16_t, slot_ue, SCHED_NR_MAX_USERS> slot_ues;
 };
@@ -80,9 +80,9 @@ private:
   ue_map_t&           ue_db;
   std::mutex          ue_db_mutex;
 
-  std::vector<std::unique_ptr<slot_worker_ctxt> > slot_ctxts;
+  std::vector<std::unique_ptr<slot_worker_ctxt> > slot_worker_ctxts;
 
-  srsran::bounded_vector<cell_res_grid, SCHED_NR_MAX_CARRIERS> cell_grid_list;
+  srsran::bounded_vector<cell_sched, SCHED_NR_MAX_CARRIERS> cell_grid_list;
 
   slot_worker_ctxt& get_sf(tti_point tti_rx);
 };

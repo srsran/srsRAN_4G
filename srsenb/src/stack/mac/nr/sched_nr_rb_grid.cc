@@ -11,7 +11,7 @@
  */
 
 #include "srsenb/hdr/stack/mac/nr/sched_nr_rb_grid.h"
-#include "srsenb/hdr/stack/mac/nr/sched_nr_phy_helpers.h"
+#include "srsenb/hdr/stack/mac/nr/sched_nr_phy.h"
 
 namespace srsenb {
 namespace sched_nr_impl {
@@ -49,20 +49,68 @@ bwp_res_grid::bwp_res_grid(const sched_cell_params& cell_cfg_, uint32_t bwp_id_)
   }
 }
 
-cell_res_grid::cell_res_grid(const sched_cell_params& cell_cfg_) : cell_cfg(&cell_cfg_)
-{
-  for (uint32_t bwp_id = 0; bwp_id < cell_cfg->cell_cfg.bwps.size(); ++bwp_id) {
-    bwps.emplace_back(cell_cfg_, bwp_id);
-  }
-}
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-slot_bwp_sched::slot_bwp_sched(uint32_t bwp_id, cell_res_grid& phy_grid_) :
-  logger(srslog::fetch_basic_logger("MAC")), cfg(*phy_grid_.cell_cfg), bwp_grid(phy_grid_.bwps[bwp_id])
+bwp_slot_allocator::bwp_slot_allocator(bwp_res_grid& bwp_grid_) :
+  logger(srslog::fetch_basic_logger("MAC")), cfg(*bwp_grid_.cell_cfg), bwp_grid(bwp_grid_)
 {}
 
-alloc_result slot_bwp_sched::alloc_pdsch(slot_ue& ue, const rbgmask_t& dl_mask)
+alloc_result bwp_slot_allocator::alloc_rar(uint32_t                                    aggr_idx,
+                                           const srsenb::sched_nr_impl::pending_rar_t& rar,
+                                           srsenb::sched_nr_impl::rbg_interval         interv,
+                                           uint32_t                                    nof_grants)
+{
+  static const uint32_t msg3_nof_prbs = 3;
+
+  bwp_slot_grid& bwp_pdcch_slot = bwp_grid[pdcch_tti];
+  bwp_slot_grid& bwp_msg3_slot  = bwp_grid[pdcch_tti + 4];
+
+  if (bwp_pdcch_slot.dl_pdcchs.full()) {
+    logger.warning("SCHED: Maximum number of DL allocations reached");
+    return alloc_result::no_grant_space;
+  }
+
+  // Check DL RB collision
+  rbgmask_t& pdsch_mask = bwp_pdcch_slot.dl_rbgs;
+  rbgmask_t  dl_mask(pdsch_mask.size());
+  dl_mask.fill(interv.start(), interv.stop());
+  if ((pdsch_mask & dl_mask).any()) {
+    logger.debug("SCHED: Provided RBG mask collides with allocation previously made.");
+    return alloc_result::sch_collision;
+  }
+
+  // Check Msg3 RB collision
+  uint32_t     total_ul_nof_prbs = msg3_nof_prbs * nof_grants;
+  uint32_t     total_ul_nof_rbgs = srsran::ceil_div(total_ul_nof_prbs, get_P(bwp_grid.bwp_cfg().rb_width, false));
+  rbg_interval msg3_rbgs         = find_empty_rbg_interval(bwp_msg3_slot.ul_rbgs, total_ul_nof_rbgs);
+  if (msg3_rbgs.length() < total_ul_nof_rbgs) {
+    logger.debug("SCHED: No space in PUSCH for Msg3.");
+    return alloc_result::sch_collision;
+  }
+
+  // Find PDCCH position
+  const uint32_t coreset_id = 0;
+  if (not bwp_pdcch_slot.coresets[coreset_id].alloc_dci(pdcch_grant_type_t::rar, aggr_idx, nullptr)) {
+    // Could not find space in PDCCH
+    logger.debug("SCHED: No space in PDCCH for DL tx.");
+    return alloc_result::no_cch_space;
+  }
+
+  // Generate DCI for RAR
+  pdcch_dl_t& pdcch = bwp_pdcch_slot.dl_pdcchs.back();
+  if (not fill_dci_rar(interv, bwp_grid.cell_params(), pdcch.dci)) {
+    // Cancel on-going PDCCH allocation
+    bwp_pdcch_slot.coresets[coreset_id].rem_last_dci();
+    return alloc_result::invalid_coderate;
+  }
+
+  // RAR allocation successful.
+  bwp_pdcch_slot.dl_rbgs.fill(interv.start(), interv.stop());
+
+  return alloc_result::success;
+}
+
+alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const rbgmask_t& dl_mask)
 {
   if (ue.h_dl == nullptr) {
     logger.warning("SCHED: Trying to allocate PDSCH for rnti=0x%x with no available HARQs", ue.rnti);
@@ -121,7 +169,7 @@ alloc_result slot_bwp_sched::alloc_pdsch(slot_ue& ue, const rbgmask_t& dl_mask)
   return alloc_result::success;
 }
 
-alloc_result slot_bwp_sched::alloc_pusch(slot_ue& ue, const rbgmask_t& ul_mask)
+alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const rbgmask_t& ul_mask)
 {
   if (ue.h_ul == nullptr) {
     logger.warning("SCHED: Trying to allocate PUSCH for rnti=0x%x with no available HARQs", ue.rnti);

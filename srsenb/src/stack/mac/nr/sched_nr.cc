@@ -11,6 +11,7 @@
  */
 
 #include "srsenb/hdr/stack/mac/nr/sched_nr.h"
+#include "srsenb/hdr/stack/mac/nr/sched_nr_bwp.h"
 #include "srsenb/hdr/stack/mac/nr/sched_nr_worker.h"
 #include "srsran/common/thread_pool.h"
 
