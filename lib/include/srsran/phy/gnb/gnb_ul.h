@@ -65,4 +65,10 @@ SRSRAN_API uint32_t srsran_gnb_ul_pucch_info(srsran_gnb_ul_t*                  q
                                              char*                             str,
                                              uint32_t                          str_len);
 
+SRSRAN_API uint32_t srsran_gnb_ul_pusch_info(srsran_gnb_ul_t*             q,
+                                             const srsran_sch_cfg_nr_t*   cfg,
+                                             const srsran_pusch_res_nr_t* res,
+                                             char*                        str,
+                                             uint32_t                     str_len);
+
 #endif // SRSRAN_GNB_UL_H

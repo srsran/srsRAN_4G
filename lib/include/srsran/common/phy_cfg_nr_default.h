@@ -44,7 +44,7 @@ public:
        * @brief Carrier reference configuration for 10MHz serving cell bandwidth
        * - CORESET: all channel, 1 symbol
        * - Single common Search Space
-       * - 1 possible candidate per aggregation level
+       * - 2 possible candidate per aggregation level to allow DL and UL grants simultaneously
        */
       R_PDCCH_CUSTOM_COMMON_SS = 0,
     } pdcch = R_PDCCH_CUSTOM_COMMON_SS;

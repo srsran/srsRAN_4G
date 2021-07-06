@@ -190,7 +190,33 @@ bool slot_worker::work_ul()
 
   // Decode PUSCH
   for (stack_interface_phy_nr::pusch_t& pusch : ul_sched.pusch) {
-    // ...
+    // Get payload PDU
+    stack_interface_phy_nr::pusch_info_t pusch_info = {};
+    pusch_info.uci_cfg                              = pusch.sch.uci;
+    pusch_info.pid                                  = pusch.pid;
+    pusch_info.pusch_data.tb[0].payload             = pusch.data[0];
+    pusch_info.pusch_data.tb[1].payload             = pusch.data[1];
+
+    // Decode PUCCH
+    if (srsran_gnb_ul_get_pusch(&gnb_ul, &ul_slot_cfg, &pusch.sch, &pusch.sch.grant, &pusch_info.pusch_data) <
+        SRSRAN_SUCCESS) {
+      logger.error("Error getting PUSCH");
+      return false;
+    }
+
+    // Inform stack
+    if (stack.pusch_info(ul_slot_cfg, pusch_info) < SRSRAN_SUCCESS) {
+      logger.error("Error pushing PUSCH information to stack");
+      return false;
+    }
+
+    // Log PUSCH decoding
+    if (logger.info.enabled()) {
+      std::array<char, 512> str;
+      srsran_gnb_ul_pusch_info(&gnb_ul, &pusch.sch, &pusch_info.pusch_data, str.data(), (uint32_t)str.size());
+
+      logger.info("PUSCH: %s", str.data());
+    }
   }
 
   return true;

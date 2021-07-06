@@ -65,7 +65,7 @@ void phy_cfg_nr_default_t::make_pdcch_custom_common_ss(srsran_pdcch_cfg_nr_t& pd
   // Generate 1 candidate for each aggregation level if possible
   for (uint32_t L = 0; L < SRSRAN_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR; L++) {
     pdcch.search_space[1].nof_candidates[L] =
-        SRSRAN_MIN(1, srsran_pdcch_nr_max_candidates_coreset(&pdcch.coreset[1], L));
+        SRSRAN_MIN(2, srsran_pdcch_nr_max_candidates_coreset(&pdcch.coreset[1], L));
   }
 }
 

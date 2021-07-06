@@ -20,12 +20,16 @@
 #include <srsran/common/phy_cfg_nr.h>
 #include <srsran/common/standard_streams.h>
 
-struct dummy_tx_harq_proc {
-  static const uint32_t  MAX_TB_SZ = SRSRAN_LDPC_MAX_LEN_CB * SRSRAN_SCH_NR_MAX_NOF_CB_LDPC;
+class dummy_tx_harq_proc
+{
+private:
   srsran::byte_buffer_t  data;
   srsran_softbuffer_tx_t softbuffer = {};
   std::atomic<uint32_t>  tbs        = {0};
+  bool                   first      = true;
+  uint32_t               ndi        = 0;
 
+public:
   dummy_tx_harq_proc()
   {
     // Initialise softbuffer
@@ -36,6 +40,25 @@ struct dummy_tx_harq_proc {
   }
 
   ~dummy_tx_harq_proc() { srsran_softbuffer_tx_free(&softbuffer); }
+
+  srsran::byte_buffer_t& get_tb(uint32_t tbs_)
+  {
+    tbs = tbs_;
+    return data;
+  }
+
+  srsran_softbuffer_tx_t& get_softbuffer(uint32_t ndi_)
+  {
+    if (ndi_ != ndi || first) {
+      srsran_softbuffer_tx_reset(&softbuffer);
+      ndi   = ndi_;
+      first = false;
+    }
+
+    return softbuffer;
+  }
+
+  uint32_t get_tbs() const { return tbs; }
 };
 
 #endif // SRSRAN_TX_DUMMY_HARQ_PROC_H

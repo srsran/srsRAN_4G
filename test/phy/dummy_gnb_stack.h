@@ -88,21 +88,24 @@ private:
     std::mutex          mutex;
     srsran_sch_cfg_nr_t pusch = {};
     bool                valid = false;
+    uint32_t            pid   = 0;
 
   public:
     pending_pusch_t() = default;
-    void push(const srsran_sch_cfg_nr_t& pusch_)
+    void push(const uint32_t& pid_, const srsran_sch_cfg_nr_t& pusch_)
     {
       std::unique_lock<std::mutex> lock(mutex);
       pusch = pusch_;
+      pid   = pid_;
       valid = true;
     }
 
-    bool pop(srsran_sch_cfg_nr_t& pusch_)
+    bool pop(uint32_t& pid_, srsran_sch_cfg_nr_t& pusch_)
     {
       std::unique_lock<std::mutex> lock(mutex);
       bool                         ret = valid;
       pusch_                           = pusch;
+      pid_                             = pid;
       valid                            = false;
       return ret;
     }
@@ -113,15 +116,11 @@ private:
 
   srsran::circular_array<dummy_rx_harq_proc, SRSRAN_MAX_HARQ_PROC_DL_NR> rx_harq_proc;
 
-private:
   bool schedule_pdsch(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched)
   {
     // Instantiate PDCCH and PDSCH
     pdcch_dl_t pdcch = {};
     pdsch_t    pdsch = {};
-
-    // Select grant and set data
-    pdsch.data[0] = tx_harq_proc[slot_cfg.idx].data.data();
 
     // Second TB is not used
     pdsch.data[1] = nullptr;
@@ -161,14 +160,15 @@ private:
       return false;
     }
 
+    // Set TBS
+    // Select grant and set data
+    pdsch.data[0] = tx_harq_proc[slot_cfg.idx].get_tb(pdsch.sch.grant.tb[0].tbs).data();
+
     // Generate random data
     srsran_random_byte_vector(random_gen, pdsch.data[0], pdsch.sch.grant.tb[0].tbs / 8);
 
-    // Set TBS
-    tx_harq_proc[slot_cfg.idx].tbs = pdsch.sch.grant.tb[0].tbs;
-
     // Set softbuffer
-    pdsch.sch.grant.tb[0].softbuffer.tx = &tx_harq_proc[slot_cfg.idx].softbuffer;
+    pdsch.sch.grant.tb[0].softbuffer.tx = &tx_harq_proc[slot_cfg.idx].get_softbuffer(dci.ndi);
 
     // Reset Tx softbuffer always
     srsran_softbuffer_tx_reset(pdsch.sch.grant.tb[0].softbuffer.tx);
@@ -222,20 +222,33 @@ private:
       return false;
     }
 
-    // Set TBS
-    rx_harq_proc[slot_cfg.idx].tbs = pusch_cfg.grant.tb[0].tbs;
-
     // Set softbuffer
-    pusch_cfg.grant.tb[0].softbuffer.rx = &rx_harq_proc[slot_cfg.idx].softbuffer;
-
-    // Reset Tx softbuffer always
-    srsran_softbuffer_rx_reset(pusch_cfg.grant.tb[0].softbuffer.rx);
+    pusch_cfg.grant.tb[0].softbuffer.rx = &rx_harq_proc[slot_cfg.idx].get_softbuffer(dci.ndi);
 
     // Push scheduling results
     dl_sched.pdcch_ul.push_back(pdcch);
 
     // Set pending PUSCH
-    pending_pusch[TTI_TX(slot_cfg.idx) % pending_pusch.size()].push(pusch_cfg);
+    pending_pusch[TTI_TX(slot_cfg.idx) % pending_pusch.size()].push(dci.pid, pusch_cfg);
+
+    return true;
+  }
+
+  bool handle_uci_data(const srsran_uci_cfg_nr_t& cfg, const srsran_uci_value_nr_t& value)
+  {
+    std::unique_lock<std::mutex> lock(mac_metrics_mutex);
+
+    for (uint32_t i = 0; i < cfg.ack.count; i++) {
+      const srsran_harq_ack_bit_t* ack_bit  = &cfg.ack.bits[i];
+      bool                         is_ok    = (value.ack[i] == 1) and value.valid;
+      uint32_t                     tb_count = (ack_bit->tb0 ? 1 : 0) + (ack_bit->tb1 ? 1 : 0);
+      mac_metrics.tx_brate += tx_harq_proc[ack_bit->pid].get_tbs();
+      mac_metrics.tx_pkts += tb_count;
+      if (not is_ok) {
+        mac_metrics.tx_errors += tb_count;
+        logger.debug("NACK received!");
+      }
+    }
 
     return true;
   }
@@ -248,7 +261,7 @@ public:
     uint32_t             ss_id                    = 1;      ///< Search Space identifier
     uint32_t             pdcch_aggregation_level  = 0;      ///< PDCCH aggregation level
     uint32_t             pdcch_dl_candidate_index = 0;      ///< PDCCH DL DCI candidate index
-    uint32_t             pdcch_ul_candidate_index = 0;      ///< PDCCH UL DCI candidate index
+    uint32_t             pdcch_ul_candidate_index = 1;      ///< PDCCH UL DCI candidate index
     uint32_t             dl_start_rb              = 0;      ///< Start resource block
     uint32_t             dl_length_rb             = 0;      ///< Number of resource blocks
     uint32_t             ul_start_rb              = 0;      ///< Start resource block
@@ -258,11 +271,7 @@ public:
   };
 
   gnb_dummy_stack(args_t args) :
-    mcs(args.mcs),
-    rnti(args.rnti),
-    dl_time_res(args.dl_time_res),
-    phy_cfg(args.phy_cfg),
-    ss_id(args.ss_id)
+    mcs(args.mcs), rnti(args.rnti), dl_time_res(args.dl_time_res), phy_cfg(args.phy_cfg), ss_id(args.ss_id)
   {
     random_gen = srsran_random_init(0x1234);
     logger.set_level(srslog::str_to_basic_level(args.log_level));
@@ -363,8 +372,8 @@ public:
         }
       }
     }
-    mac_interface_phy_nr::pusch_t pusch     = {};
-    bool                          has_pusch = pending_pusch[slot_cfg.idx % pending_pusch.size()].pop(pusch.sch);
+    mac_interface_phy_nr::pusch_t pusch = {};
+    bool has_pusch                      = pending_pusch[slot_cfg.idx % pending_pusch.size()].pop(pusch.pid, pusch.sch);
 
     srsran_uci_cfg_nr_t uci_cfg = {};
     if (not phy_cfg.get_uci_cfg(slot_cfg, ack, uci_cfg)) {
@@ -372,7 +381,14 @@ public:
       return SRSRAN_ERROR;
     }
 
+    // Schedule PUSCH
     if (has_pusch) {
+      // Generate data
+      pusch.data[0] = rx_harq_proc[pusch.pid].get_tb(pusch.sch.grant.tb[0].tbs).data();
+      pusch.data[1] = nullptr;
+      srsran_random_byte_vector(random_gen, pusch.data[0], pusch.sch.grant.tb[0].tbs / 8);
+
+      // Put UCI configuration in PUSCH config
       if (not phy_cfg.get_pusch_uci_cfg(slot_cfg, uci_cfg, pusch.sch)) {
         logger.error("Error setting UCI configuration in PUSCH");
         return SRSRAN_ERROR;
@@ -380,7 +396,10 @@ public:
 
       ul_sched.pusch.push_back(pusch);
       return SRSRAN_SUCCESS;
-    } else if (has_ack) {
+    }
+
+    // If any UCI information is triggered, schedule PUCCH
+    if (uci_cfg.ack.count > 0 || uci_cfg.nof_csi > 0 || uci_cfg.o_sr > 0) {
       mac_interface_phy_nr::pucch_t pucch = {};
       pucch.uci_cfg                       = uci_cfg;
       if (not phy_cfg.get_pucch_uci_cfg(slot_cfg, uci_cfg, pucch.pucch_cfg, pucch.resource)) {
@@ -389,33 +408,42 @@ public:
       }
 
       ul_sched.pucch.push_back(pucch);
+      return SRSRAN_SUCCESS;
     }
 
-    return 0;
+    // Otherwise no UL scheduling
+    return SRSRAN_SUCCESS;
   }
 
   int pucch_info(const srsran_slot_cfg_t& slot_cfg, const pucch_info_t& pucch_info) override
   {
-    std::unique_lock<std::mutex> lock(mac_metrics_mutex);
-
-    for (uint32_t i = 0; i < pucch_info.uci_data.cfg.ack.count; i++) {
-      const srsran_harq_ack_bit_t* ack_bit = &pucch_info.uci_data.cfg.ack.bits[i];
-      bool                         is_ok = (pucch_info.uci_data.value.ack[i] == 1) and pucch_info.uci_data.value.valid;
-      uint32_t                     tb_count = (ack_bit->tb0 ? 1 : 0) + (ack_bit->tb1 ? 1 : 0);
-      mac_metrics.tx_brate += tx_harq_proc[ack_bit->pid].tbs;
-      mac_metrics.tx_pkts += tb_count;
-      if (not is_ok) {
-        mac_metrics.tx_errors += tb_count;
-        logger.debug("NACK received!");
-      }
+    // Handle UCI data
+    if (not handle_uci_data(pucch_info.uci_data.cfg, pucch_info.uci_data.value)) {
+      logger.error("Error handling UCI data from PUCCH reception");
+      return SRSRAN_ERROR;
     }
+
+    // Handle PHY metrics
+    // ...
+
     return SRSRAN_SUCCESS;
   }
 
   int pusch_info(const srsran_slot_cfg_t& slot_cfg, const pusch_info_t& pusch_info) override
   {
-    // ... Not implemented
-    return SRSRAN_ERROR;
+    // Handle UCI data
+    if (not handle_uci_data(pusch_info.uci_cfg, pusch_info.pusch_data.uci)) {
+      logger.error("Error handling UCI data from PUCCH reception");
+      return SRSRAN_ERROR;
+    }
+
+    if (not pusch_info.pusch_data.tb[0].crc) {
+      mac_metrics.rx_errors++;
+    }
+    mac_metrics.rx_brate += rx_harq_proc[pusch_info.pid].get_tbs();
+    mac_metrics.rx_pkts++;
+
+    return SRSRAN_SUCCESS;
   }
 
   srsenb::mac_ue_metrics_t get_metrics()

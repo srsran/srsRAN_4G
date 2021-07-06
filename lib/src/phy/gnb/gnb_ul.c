@@ -289,3 +289,22 @@ uint32_t srsran_gnb_ul_pucch_info(srsran_gnb_ul_t*                  q,
 
   return len;
 }
+
+uint32_t srsran_gnb_ul_pusch_info(srsran_gnb_ul_t*             q,
+                                  const srsran_sch_cfg_nr_t*   cfg,
+                                  const srsran_pusch_res_nr_t* res,
+                                  char*                        str,
+                                  uint32_t                     str_len)
+{
+  if (q == NULL || cfg == NULL || res == NULL) {
+    return 0;
+  }
+
+  uint32_t len = 0;
+
+  len += srsran_pusch_nr_rx_info(&q->pusch, cfg, &cfg->grant, res, str, str_len - len);
+
+  len = srsran_print_check(str, str_len, len, "snr=%+.1f", q->chest_pusch.snr_db);
+
+  return len;
+}
