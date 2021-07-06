@@ -21,7 +21,7 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
             ${Boost_LIBRARIES}
             ${ATOMIC_LIBS})
 
-    add_nr_test(nr_phy_test_10MHz_dl_only nr_phy_test --duration=100 --gnb.stack.pusch.slots="")
-    add_nr_test(nr_phy_test_10MHz_ul_only nr_phy_test --duration=100 --gnb.stack.pdsch.slots="")
-    add_nr_test(nr_phy_test_10MHz_bidir nr_phy_test --duration=100)
+    add_nr_test(nr_phy_test_10MHz_dl_only nr_phy_test --duration=100 --gnb.stack.pdsch.slots=\"0,1,2,3,4,5\" --gnb.stack.pusch.slots=\"\")
+    add_nr_test(nr_phy_test_10MHz_ul_only nr_phy_test --duration=100 --gnb.stack.pdsch.slots=\"\" --gnb.stack.pusch.slots=\"6,7,8,9\")
+    add_nr_test(nr_phy_test_10MHz_bidir nr_phy_test --duration=100 --gnb.stack.pdsch.slots=\"0,1,2,3,4,5\" --gnb.stack.pusch.slots=\"6,7,8,9\")
 endif ()
