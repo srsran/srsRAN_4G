@@ -16,9 +16,9 @@
 #include "srsran/adt/bounded_bitset.h"
 #include "srsran/adt/bounded_vector.h"
 #include "srsran/adt/span.h"
+#include "srsran/common/phy_cfg_nr.h"
 #include "srsran/common/tti_point.h"
 #include "srsran/interfaces/gnb_interfaces.h"
-#include "srsran/interfaces/rrc_nr_interface_types.h"
 #include "srsran/phy/phch/dci_nr.h"
 
 namespace srsenb {
