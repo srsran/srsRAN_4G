@@ -303,7 +303,11 @@ int main(int argc, char** argv)
       if (pusch_rx.G_ulsch > 0) {
         for (uint32_t i = 0; i < pusch_rx.G_ulsch; i++) {
           uint8_t rx_bit      = (((int8_t*)pusch_rx.g_ulsch)[i]) < 0 ? 1 : 0;
-          pusch_rx.g_ulsch[i] = rx_bit;
+          if (rx_bit == 0) {
+            pusch_rx.g_ulsch[i] = pusch_tx.g_ulsch[i];
+          } else {
+            pusch_rx.g_ulsch[i] = rx_bit;
+          }
         }
         if (memcmp(pusch_tx.g_ulsch, pusch_rx.g_ulsch, pusch_tx.G_ulsch) != 0) {
           printf("g_ulsch_tx=");
