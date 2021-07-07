@@ -277,25 +277,43 @@ int main(int argc, char** argv)
         goto clean_exit;
       }
 
-      float    mse    = 0.0f;
+      // Check symbols Mean Square Error (MSE)
       uint32_t nof_re = srsran_ra_dl_nr_slot_nof_re(&pusch_cfg, &pusch_cfg.grant);
-      for (uint32_t i = 0; i < pusch_cfg.grant.nof_layers; i++) {
-        for (uint32_t j = 0; j < nof_re; j++) {
-          mse += cabsf(pusch_tx.d[i][j] - pusch_rx.d[i][j]);
-        }
-      }
       if (nof_re * pusch_cfg.grant.nof_layers > 0) {
-        mse = mse / (nof_re * pusch_cfg.grant.nof_layers);
-      }
-      if (mse > 0.001) {
-        ERROR("MSE error (%f) is too high", mse);
+        float mse = 0.0f;
         for (uint32_t i = 0; i < pusch_cfg.grant.nof_layers; i++) {
-          printf("d_tx[%d]=", i);
-          srsran_vec_fprint_c(stdout, pusch_tx.d[i], nof_re);
-          printf("d_rx[%d]=", i);
-          srsran_vec_fprint_c(stdout, pusch_rx.d[i], nof_re);
+          for (uint32_t j = 0; j < nof_re; j++) {
+            mse += cabsf(pusch_tx.d[i][j] - pusch_rx.d[i][j]);
+          }
         }
-        goto clean_exit;
+        mse = mse / (nof_re * pusch_cfg.grant.nof_layers);
+        if (mse > 0.001) {
+          ERROR("MSE error (%f) is too high", mse);
+          for (uint32_t i = 0; i < pusch_cfg.grant.nof_layers; i++) {
+            printf("d_tx[%d]=", i);
+            srsran_vec_fprint_c(stdout, pusch_tx.d[i], nof_re);
+            printf("d_rx[%d]=", i);
+            srsran_vec_fprint_c(stdout, pusch_rx.d[i], nof_re);
+          }
+          goto clean_exit;
+        }
+      }
+
+      // Check Received SCH LLR match
+      if (pusch_rx.G_ulsch > 0) {
+        for (uint32_t i = 0; i < pusch_rx.G_ulsch; i++) {
+          uint8_t rx_bit      = (((int8_t*)pusch_rx.g_ulsch)[i]) < 0 ? 1 : 0;
+          pusch_rx.g_ulsch[i] = rx_bit;
+        }
+        if (memcmp(pusch_tx.g_ulsch, pusch_rx.g_ulsch, pusch_tx.G_ulsch) != 0) {
+          printf("g_ulsch_tx=");
+          srsran_vec_fprint_byte(stdout, pusch_tx.g_ulsch, pusch_tx.G_ulsch);
+          printf("g_ulsch_rx=");
+          srsran_vec_fprint_byte(stdout, pusch_rx.g_ulsch, pusch_tx.G_ulsch);
+          //            srsran_vec_fprint_bs(stdout, (int8_t*)pusch_rx.g_ulsch, pusch_rx.G_ulsch);
+
+          goto clean_exit;
+        }
       }
 
       // Validate UL-SCH CRC check
