@@ -47,6 +47,7 @@ public:
     srsue::phy_args_nr_t            ue_phy;
     ue_dummy_stack::args_t          ue_stack;
     std::string                     phy_com_log_level = "info";
+    std::string                     phy_lib_log_level = "none";
     uint64_t                        durations_slots   = 100;
 
     args_t(int argc, char** argv);
@@ -80,6 +81,16 @@ public:
     // Set UE configuration
     if (not ue_phy.set_config(args.phy_cfg)) {
       return;
+    }
+
+    // Make sure PHY log is not set by UE or gNb PHY
+    handler_registered = 0;
+    if (args.phy_lib_log_level == "info") {
+      srsran_verbose = SRSRAN_VERBOSE_INFO;
+    } else if (args.phy_lib_log_level == "debug") {
+      srsran_verbose = SRSRAN_VERBOSE_DEBUG;
+    } else {
+      srsran_verbose = SRSRAN_VERBOSE_NONE;
     }
 
     initialised = true;
