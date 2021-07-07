@@ -1040,6 +1040,12 @@ int srsran_ra_ul_set_grant_uci_nr(const srsran_carrier_nr_t*    carrier,
   for (uint32_t i = 0; i < SRSRAN_MAX_TB; i++) {
     pusch_cfg->grant.tb[i].nof_bits =
         pusch_cfg->grant.tb[i].nof_re * srsran_mod_bits_x_symbol(pusch_cfg->grant.tb[i].mod) - Gack - Gcsi1 - Gcsi2;
+
+    if (pusch_cfg->grant.tb[i].nof_bits > 0) {
+      pusch_cfg->grant.tb[i].R_prime = (double)pusch_cfg->grant.tb[i].tbs / (double)pusch_cfg->grant.tb[i].nof_bits;
+    } else {
+      pusch_cfg->grant.tb[i].R_prime = NAN;
+    }
   }
 
   return SRSRAN_SUCCESS;
