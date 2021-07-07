@@ -71,6 +71,10 @@ test_bench::args_t::args_t(int argc, char** argv)
       ("ue.phy.log.id_preamble", bpo::value<std::string>(&ue_phy.log.id_preamble)->default_value(" UE/"), "UE PHY log ID preamble")
       ;
 
+  options_ue_stack.add_options()
+      ("ue.stack.sr.period", bpo::value<uint32_t>(&ue_stack.sr_period)->default_value(ue_stack.sr_period), "SR period in number of opportunities. Set 0 to disable and 1 for all.")
+      ;
+
   options.add(options_gnb_stack).add(options_gnb_phy).add(options_ue_stack).add(options_ue_phy).add_options()
         ("help",                      "Show this message")
         ;
