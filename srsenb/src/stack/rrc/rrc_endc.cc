@@ -47,18 +47,18 @@ bool rrc::ue::rrc_endc::fill_conn_recfg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
     meas_cfg_s& meas_cfg         = conn_recfg->meas_cfg;
 
     meas_cfg.meas_obj_to_add_mod_list_present = true;
-    meas_cfg.meas_obj_to_add_mod_list.resize(2);
 
-    auto& meas_obj       = meas_cfg.meas_obj_to_add_mod_list[0];
-    meas_obj.meas_obj_id = 1;
+    meas_obj_to_add_mod_s meas_obj = {};
+    meas_obj.meas_obj_id           = meas_cfg.meas_obj_to_add_mod_list.size() + 1;
     meas_obj.meas_obj.set_meas_obj_eutra();
     meas_obj.meas_obj.meas_obj_eutra().carrier_freq       = 300;
     meas_obj.meas_obj.meas_obj_eutra().allowed_meas_bw    = allowed_meas_bw_opts::mbw50;
     meas_obj.meas_obj.meas_obj_eutra().presence_ant_port1 = false;
     meas_obj.meas_obj.meas_obj_eutra().neigh_cell_cfg.from_number(0b01);
+    meas_cfg.meas_obj_to_add_mod_list.push_back(meas_obj);
 
-    auto& meas_obj2       = meas_cfg.meas_obj_to_add_mod_list[1];
-    meas_obj2.meas_obj_id = 2;
+    meas_obj_to_add_mod_s meas_obj2 = {};
+    meas_obj2.meas_obj_id           = meas_cfg.meas_obj_to_add_mod_list.size() + 1;
     meas_obj2.meas_obj.set_meas_obj_nr_r15();
     meas_obj2.meas_obj.meas_obj_nr_r15().carrier_freq_r15 = 634176;
     meas_obj2.meas_obj.meas_obj_nr_r15().rs_cfg_ssb_r15.meas_timing_cfg_r15.periodicity_and_offset_r15.set_sf20_r15();
@@ -69,13 +69,13 @@ bool rrc::ue::rrc_endc::fill_conn_recfg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
     meas_obj2.meas_obj.meas_obj_nr_r15().ext = true;
     meas_obj2.meas_obj.meas_obj_nr_r15().band_nr_r15.set_present(true);
     meas_obj2.meas_obj.meas_obj_nr_r15().band_nr_r15.get()->set_setup() = 78;
+    meas_cfg.meas_obj_to_add_mod_list.push_back(meas_obj2);
 
     // report config
     meas_cfg.report_cfg_to_add_mod_list_present = true;
-    meas_cfg.report_cfg_to_add_mod_list.resize(1);
-    auto& report_cfg = meas_cfg.report_cfg_to_add_mod_list[0];
+    report_cfg_to_add_mod_s report_cfg          = {};
 
-    report_cfg.report_cfg_id = 1;
+    report_cfg.report_cfg_id = meas_cfg.report_cfg_to_add_mod_list.size() + 1;
     report_cfg.report_cfg.set_report_cfg_inter_rat();
     report_cfg.report_cfg.report_cfg_inter_rat().trigger_type.set_event();
     report_cfg.report_cfg.report_cfg_inter_rat().trigger_type.event().event_id.set_event_b1_nr_r15();
@@ -100,14 +100,15 @@ bool rrc::ue::rrc_endc::fill_conn_recfg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
     report_cfg.report_cfg.report_cfg_inter_rat().report_quant_cell_nr_r15.get()->ss_rsrp = true;
     report_cfg.report_cfg.report_cfg_inter_rat().report_quant_cell_nr_r15.get()->ss_rsrq = true;
     report_cfg.report_cfg.report_cfg_inter_rat().report_quant_cell_nr_r15.get()->ss_sinr = true;
+    meas_cfg.report_cfg_to_add_mod_list.push_back(report_cfg);
 
     // measIdToAddModList
     meas_cfg.meas_id_to_add_mod_list_present = true;
-    meas_cfg.meas_id_to_add_mod_list.resize(1);
-    auto& meas_id         = meas_cfg.meas_id_to_add_mod_list[0];
-    meas_id.meas_id       = 1;
-    meas_id.meas_obj_id   = 2;
-    meas_id.report_cfg_id = 1;
+    meas_id_to_add_mod_s meas_id             = {};
+    meas_id.meas_id                          = meas_obj.meas_obj_id;
+    meas_id.meas_obj_id                      = meas_obj2.meas_obj_id;
+    meas_id.report_cfg_id                    = report_cfg.report_cfg_id;
+    meas_cfg.meas_id_to_add_mod_list.push_back(meas_id);
 
     // quantityConfig
     meas_cfg.quant_cfg_present                 = true;
