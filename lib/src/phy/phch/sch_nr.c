@@ -646,19 +646,10 @@ static int sch_nr_decode(srsran_sch_nr_t*        q,
     nof_iter_sum += n_iter_cb;
 
     // Check if CB is all zeros
-    uint32_t cb_len    = cfg.Kp - cfg.L_cb;
-    bool     all_zeros = true;
-    for (uint32_t i = 0; i < cb_len && all_zeros; i++) {
-      all_zeros = (q->temp_cb[i] == 0);
-    }
+    uint32_t cb_len = cfg.Kp - cfg.L_cb;
 
-    tb->softbuffer.rx->cb_crc[r] = (ret != 0) && (!all_zeros);
-    SCH_INFO_RX("CB %d/%d iter=%d CRC=%s all_zeros=%s",
-                r,
-                cfg.C,
-                n_iter_cb,
-                tb->softbuffer.rx->cb_crc[r] ? "OK" : "KO",
-                all_zeros ? "yes" : "no");
+    tb->softbuffer.rx->cb_crc[r] = (ret != 0);
+    SCH_INFO_RX("CB %d/%d iter=%d CRC=%s", r, cfg.C, n_iter_cb, tb->softbuffer.rx->cb_crc[r] ? "OK" : "KO");
 
     // CB Debug trace
     if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
