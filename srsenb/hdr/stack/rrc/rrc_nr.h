@@ -82,6 +82,13 @@ public:
   int sgnb_addition_request(uint16_t rnti);
   int sgnb_reconfiguration_complete(uint16_t rnti, asn1::dyn_octstring reconfig_response);
 
+  // Interfaces for NGAP
+  int  ue_set_security_cfg_key(uint16_t rnti, const asn1::fixed_bitstring<256, false, true>& key);
+  int  ue_set_bitrates(uint16_t rnti, const asn1::ngap_nr::ue_aggregate_maximum_bit_rate_s& rates);
+  int  ue_set_security_cfg_capabilities(uint16_t rnti, const asn1::ngap_nr::ue_security_cap_s& caps);
+  int  start_security_mode_procedure(uint16_t rnti);
+  void write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu);
+
   class ue
   {
   public:

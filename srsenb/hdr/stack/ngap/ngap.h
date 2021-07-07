@@ -37,9 +37,11 @@ namespace srsenb {
 class ngap : public ngap_interface_rrc_nr
 {
 public:
+  class ue;
   ngap(srsran::task_sched_handle   task_sched_,
        srslog::basic_logger&       logger,
        srsran::socket_manager_itf* rx_socket_handler);
+  ~ngap();
   int  init(const ngap_args_t& args_, rrc_interface_ngap_nr* rrc_);
   void stop();
 
@@ -54,7 +56,7 @@ public:
                   srsran::unique_byte_buffer_t            pdu,
                   uint32_t                                s_tmsi);
 
-  void write_pdu(uint16_t rnti, srsran::unique_byte_buffer_t pdu){};
+  void write_pdu(uint16_t rnti, srsran::unique_byte_buffer_t pdu);
   bool user_exists(uint16_t rnti) { return true; };
   void user_mod(uint16_t old_rnti, uint16_t new_rnti){};
   bool user_release(uint16_t rnti, asn1::ngap_nr::cause_radio_network_e cause_radio) { return true; };
@@ -63,6 +65,8 @@ public:
                              srsran::optional<uint32_t>    ran_ue_ngap_id = {},
                              srsran::optional<uint32_t>    amf_ue_ngap_id = {});
   void ue_ctxt_setup_complete(uint16_t rnti);
+  void ue_notify_rrc_reconf_complete(uint16_t rnti, bool outcome);
+  bool send_pdu_session_resource_setup_response();
 
   // Stack interface
   bool
@@ -79,7 +83,7 @@ private:
   static const int NONUE_STREAM_ID = 0;
 
   // args
-  rrc_interface_ngap_nr*      rrc = nullptr;
+  rrc_interface_ngap_nr*      rrc  = nullptr;
   ngap_args_t                 args = {};
   srslog::basic_logger&       logger;
   srsran::task_sched_handle   task_sched;
@@ -98,22 +102,6 @@ private:
   asn1::ngap_nr::tai_s    tai;
   asn1::ngap_nr::nr_cgi_s nr_cgi;
 
-  // Moved into NGAP class to avoid redifinition (Introduce new namespace?)
-  struct ue_ctxt_t {
-    static const uint32_t invalid_gnb_id = std::numeric_limits<uint32_t>::max();
-
-    uint16_t                   rnti           = SRSRAN_INVALID_RNTI;
-    uint32_t                   ran_ue_ngap_id = invalid_gnb_id;
-    srsran::optional<uint32_t> amf_ue_ngap_id;
-    uint32_t                   gnb_cc_idx     = 0;
-    struct timeval             init_timestamp = {};
-
-    // AMF identifier
-    uint16_t amf_set_id;
-    uint8_t  amf_pointer;
-    uint8_t  amf_region_id;
-  };
-
   asn1::ngap_nr::ng_setup_resp_s ngsetupresponse;
 
   int  build_tai_cgi();
@@ -122,34 +110,23 @@ private:
   bool sctp_send_ngap_pdu(const asn1::ngap_nr::ngap_pdu_c& tx_pdu, uint32_t rnti, const char* procedure_name);
 
   bool handle_ngap_rx_pdu(srsran::byte_buffer_t* pdu);
-  bool handle_successfuloutcome(const asn1::ngap_nr::successful_outcome_s& msg);
-  bool handle_unsuccessfuloutcome(const asn1::ngap_nr::unsuccessful_outcome_s& msg);
-  bool handle_initiatingmessage(const asn1::ngap_nr::init_msg_s& msg);
+  bool handle_successful_outcome(const asn1::ngap_nr::successful_outcome_s& msg);
+  bool handle_unsuccessful_outcome(const asn1::ngap_nr::unsuccessful_outcome_s& msg);
+  bool handle_initiating_message(const asn1::ngap_nr::init_msg_s& msg);
 
-  bool handle_dlnastransport(const asn1::ngap_nr::dl_nas_transport_s& msg);
-  bool handle_ngsetupresponse(const asn1::ngap_nr::ng_setup_resp_s& msg);
-  bool handle_ngsetupfailure(const asn1::ngap_nr::ng_setup_fail_s& msg);
-  bool handle_initialctxtsetuprequest(const asn1::ngap_nr::init_context_setup_request_s& msg);
-  struct ue {
-    explicit ue(ngap* ngap_ptr_);
-    bool send_initialuemessage(asn1::ngap_nr::rrcestablishment_cause_e cause,
-                               srsran::unique_byte_buffer_t            pdu,
-                               bool                                    has_tmsi,
-                               uint32_t                                s_tmsi = 0);
-    bool send_ulnastransport(srsran::unique_byte_buffer_t pdu);
-    bool was_uectxtrelease_requested() const { return release_requested; }
-    void ue_ctxt_setup_complete();
+  // TS 38.413 - Section 8.6.2 - Downlink NAS Transport
+  bool handle_dl_nas_transport(const asn1::ngap_nr::dl_nas_transport_s& msg);
+  // TS 38.413 - Section 9.2.6.2 - NG Setup Response
+  bool handle_ng_setup_response(const asn1::ngap_nr::ng_setup_resp_s& msg);
+  // TS 38.413 - Section 9.2.6.3 - NG Setup Failure
+  bool handle_ng_setup_failure(const asn1::ngap_nr::ng_setup_fail_s& msg);
+  // TS 38.413 - Section 9.2.2.5 - UE Context Release Command
+  bool handle_ue_ctxt_release_cmd(const asn1::ngap_nr::ue_context_release_cmd_s& msg);
+  // TS 38.413 - Section 9.2.2.1 - Initial Context Setup Request
+  bool handle_initial_ctxt_setup_request(const asn1::ngap_nr::init_context_setup_request_s& msg);
+  // TS 38.413 - Section 9.2.1.1 - PDU Session Resource Setup Request
+  bool handle_pdu_session_resource_setup_request(const asn1::ngap_nr::pdu_session_res_setup_request_s& msg);
 
-    ue_ctxt_t ctxt      = {};
-    uint16_t  stream_id = 1;
-
-  private:
-    // args
-    ngap* ngap_ptr;
-
-    // state
-    bool release_requested = false;
-  };
   class user_list
   {
   public:

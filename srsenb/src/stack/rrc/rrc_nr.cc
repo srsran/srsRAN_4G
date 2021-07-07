@@ -367,6 +367,28 @@ void rrc_nr::write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_
 void rrc_nr::notify_pdcp_integrity_error(uint16_t rnti, uint32_t lcid) {}
 
 /*******************************************************************************
+  NGAP interface
+*******************************************************************************/
+
+int rrc_nr::ue_set_security_cfg_key(uint16_t rnti, const asn1::fixed_bitstring<256, false, true>& key)
+{
+  return SRSRAN_SUCCESS;
+}
+int rrc_nr::ue_set_bitrates(uint16_t rnti, const asn1::ngap_nr::ue_aggregate_maximum_bit_rate_s& rates)
+{
+  return SRSRAN_SUCCESS;
+}
+int rrc_nr::ue_set_security_cfg_capabilities(uint16_t rnti, const asn1::ngap_nr::ue_security_cap_s& caps)
+{
+  return SRSRAN_SUCCESS;
+}
+int rrc_nr::start_security_mode_procedure(uint16_t rnti)
+{
+  return SRSRAN_SUCCESS;
+}
+void rrc_nr::write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu) {}
+
+/*******************************************************************************
   Interface for EUTRA RRC
 *******************************************************************************/
 
