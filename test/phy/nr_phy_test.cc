@@ -155,38 +155,43 @@ int main(int argc, char** argv)
   // Retrieve MAC metrics
   srsenb::mac_ue_metrics_t mac_metrics = tb.get_gnb_metrics();
 
-  // Print metrics
-  float pdsch_bler = 0.0f;
-  if (mac_metrics.tx_pkts != 0) {
-    pdsch_bler = (float)mac_metrics.tx_errors / (float)mac_metrics.tx_pkts;
-  }
-  float pusch_bler = 0.0f;
-  if (mac_metrics.rx_pkts != 0) {
-    pusch_bler = (float)mac_metrics.rx_errors / (float)mac_metrics.rx_pkts;
-  }
-  float pdsch_shed_rate = 0.0f;
-  if (mac_metrics.tx_pkts != 0) {
-    pdsch_shed_rate = (float)mac_metrics.tx_brate / (float)mac_metrics.tx_pkts / 1000.0f;
-  }
-  float pusch_shed_rate = 0.0f;
-  if (mac_metrics.rx_pkts != 0) {
-    pusch_shed_rate = (float)mac_metrics.rx_brate / (float)mac_metrics.rx_pkts / 1000.0f;
+  // Print PDSCH metrics if scheduled
+  if (mac_metrics.tx_pkts > 0) {
+    float pdsch_bler = 0.0f;
+    pdsch_bler       = (float)mac_metrics.tx_errors / (float)mac_metrics.tx_pkts;
+
+    float pdsch_shed_rate = 0.0f;
+    pdsch_shed_rate       = (float)mac_metrics.tx_brate / (float)mac_metrics.tx_pkts / 1000.0f;
+
+    srsran::console("PDSCH:\n");
+    srsran::console("       Count: %d\n", mac_metrics.tx_pkts);
+    srsran::console("        BLER: %f\n", pdsch_bler);
+    srsran::console("  Sched Rate: %f Mbps\n", pdsch_shed_rate);
+    srsran::console("    Net Rate: %f Mbps\n", (1.0f - pdsch_bler) * pdsch_shed_rate);
+    srsran::console("   Retx Rate: %f Mbps\n", pdsch_bler * pdsch_shed_rate);
+    srsran::console("\n");
   }
 
-  srsran::console("PDSCH:\n");
-  srsran::console("       Count: %d\n", mac_metrics.tx_pkts);
-  srsran::console("        BLER: %f\n", pdsch_bler);
-  srsran::console("  Sched Rate: %f Mbps\n", pdsch_shed_rate);
-  srsran::console("    Net Rate: %f Mbps\n", (1.0f - pdsch_bler) * pdsch_shed_rate);
-  srsran::console("   Retx Rate: %f Mbps\n", pdsch_bler * pdsch_shed_rate);
+  // Print PUSCH metrics if scheduled
+  if (mac_metrics.rx_pkts > 0) {
+    float pusch_bler = 0.0f;
+    if (mac_metrics.rx_pkts != 0) {
+      pusch_bler = (float)mac_metrics.rx_errors / (float)mac_metrics.rx_pkts;
+    }
 
-  srsran::console("\n");
-  srsran::console("PUSCH:\n");
-  srsran::console("       Count: %d\n", mac_metrics.rx_pkts);
-  srsran::console("        BLER: %f\n", pusch_bler);
-  srsran::console("  Sched Rate: %f Mbps\n", pusch_shed_rate);
-  srsran::console("    Net Rate: %f Mbps\n", (1.0f - pusch_bler) * pusch_shed_rate);
-  srsran::console("   Retx Rate: %f Mbps\n", pusch_bler * pusch_shed_rate);
+    float pusch_shed_rate = 0.0f;
+    if (mac_metrics.rx_pkts != 0) {
+      pusch_shed_rate = (float)mac_metrics.rx_brate / (float)mac_metrics.rx_pkts / 1000.0f;
+    }
+
+    srsran::console("PUSCH:\n");
+    srsran::console("       Count: %d\n", mac_metrics.rx_pkts);
+    srsran::console("        BLER: %f\n", pusch_bler);
+    srsran::console("  Sched Rate: %f Mbps\n", pusch_shed_rate);
+    srsran::console("    Net Rate: %f Mbps\n", (1.0f - pusch_bler) * pusch_shed_rate);
+    srsran::console("   Retx Rate: %f Mbps\n", pusch_bler * pusch_shed_rate);
+    srsran::console("\n");
+  }
 
   // Assert metrics
   TESTASSERT(mac_metrics.tx_errors == 0);
