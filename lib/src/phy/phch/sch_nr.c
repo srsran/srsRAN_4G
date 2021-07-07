@@ -771,7 +771,7 @@ int srsran_sch_nr_tb_info(const srsran_sch_tb_t* tb, const srsran_sch_tb_res_nr_
                              tb->cw_idx,
                              srsran_mod_string(tb->mod),
                              tb->tbs / 8,
-                             tb->R,
+                             tb->R_prime,
                              tb->rv);
 
     if (res != NULL) {
