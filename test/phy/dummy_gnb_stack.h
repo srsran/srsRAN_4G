@@ -27,20 +27,19 @@
 class gnb_dummy_stack : public srsenb::stack_interface_phy_nr
 {
 private:
-  srslog::basic_logger&                                                logger = srslog::fetch_basic_logger("GNB STK");
-  const uint16_t                                                       rnti   = 0x1234;
-  const uint32_t                                                       mcs    = 1;
-  srsran::circular_array<srsran_dci_location_t, SRSRAN_NOF_SF_X_FRAME> dci_dl_location;
-  srsran::circular_array<srsran_dci_location_t, SRSRAN_NOF_SF_X_FRAME> dci_ul_location;
-  srsran::circular_array<uint32_t, SRSRAN_NOF_SF_X_FRAME>              dl_data_to_ul_ack;
-  uint32_t                                                             ss_id       = 0;
-  uint32_t                                                             dl_freq_res = 0;
-  uint32_t                                                             ul_freq_res = 0;
-  srsran_random_t                                                      random_gen  = nullptr;
-  srsran::phy_cfg_nr_t                                                 phy_cfg     = {};
-  bool                                                                 valid       = false;
-  std::set<uint32_t>                                                   dl_slots;
-  std::set<uint32_t>                                                   ul_slots;
+  srslog::basic_logger& logger = srslog::fetch_basic_logger("GNB STK");
+  const uint16_t        rnti   = 0x1234;
+  struct {
+    srsran::circular_array<srsran_dci_location_t, SRSRAN_NOF_SF_X_FRAME> dci_location;
+    uint32_t                                                             mcs;
+    uint32_t                                                             freq_res = 0;
+    std::set<uint32_t>                                                   slots;
+  } dl, ul;
+  srsran::circular_array<uint32_t, SRSRAN_NOF_SF_X_FRAME> dl_data_to_ul_ack;
+  uint32_t                                                ss_id      = 0;
+  srsran_random_t                                         random_gen = nullptr;
+  srsran::phy_cfg_nr_t                                    phy_cfg    = {};
+  bool                                                    valid      = false;
 
   std::mutex               mac_metrics_mutex;
   srsenb::mac_ue_metrics_t mac_metrics = {};
@@ -120,7 +119,7 @@ private:
 
   bool schedule_pdsch(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched)
   {
-    if (dl_slots.count(SRSRAN_SLOT_NR_MOD(srsran_subcarrier_spacing_15kHz, slot_cfg.idx)) == 0) {
+    if (dl.slots.count(SRSRAN_SLOT_NR_MOD(srsran_subcarrier_spacing_15kHz, slot_cfg.idx)) == 0) {
       return true;
     }
 
@@ -135,7 +134,7 @@ private:
     pdcch.dci_cfg = phy_cfg.get_dci_cfg();
 
     // Fill DCI context
-    if (not phy_cfg.get_dci_ctx_pdsch_rnti_c(ss_id, dci_dl_location[slot_cfg.idx], rnti, pdcch.dci.ctx)) {
+    if (not phy_cfg.get_dci_ctx_pdsch_rnti_c(ss_id, dl.dci_location[slot_cfg.idx], rnti, pdcch.dci.ctx)) {
       logger.error("Error filling PDSCH DCI context");
       return false;
     }
@@ -145,9 +144,9 @@ private:
 
     // Fill DCI fields
     srsran_dci_dl_nr_t& dci   = pdcch.dci;
-    dci.freq_domain_assigment = dl_freq_res;
+    dci.freq_domain_assigment = dl.freq_res;
     dci.time_domain_assigment = 0;
-    dci.mcs                   = mcs;
+    dci.mcs                   = dl.mcs;
     dci.rv                    = 0;
     dci.ndi                   = (slot_cfg.idx / SRSRAN_NOF_SF_X_FRAME) % 2;
     dci.pid                   = slot_cfg.idx % SRSRAN_NOF_SF_X_FRAME;
@@ -198,7 +197,7 @@ private:
 
   bool schedule_pusch(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched)
   {
-    if (ul_slots.count(SRSRAN_SLOT_NR_MOD(srsran_subcarrier_spacing_15kHz, slot_cfg.idx + 4)) == 0) {
+    if (ul.slots.count(SRSRAN_SLOT_NR_MOD(srsran_subcarrier_spacing_15kHz, slot_cfg.idx + 4)) == 0) {
       return true;
     }
 
@@ -209,17 +208,17 @@ private:
     pdcch.dci_cfg = phy_cfg.get_dci_cfg();
 
     // Fill DCI context
-    if (not phy_cfg.get_dci_ctx_pusch_rnti_c(ss_id, dci_ul_location[slot_cfg.idx], rnti, pdcch.dci.ctx)) {
+    if (not phy_cfg.get_dci_ctx_pusch_rnti_c(ss_id, ul.dci_location[slot_cfg.idx], rnti, pdcch.dci.ctx)) {
       logger.error("Error filling PDSCH DCI context");
       return false;
     }
 
     // Fill DCI fields
     srsran_dci_ul_nr_t& dci   = pdcch.dci;
-    dci.freq_domain_assigment = ul_freq_res;
+    dci.freq_domain_assigment = ul.freq_res;
     dci.time_domain_assigment = 0;
     dci.freq_hopping_flag     = 0;
-    dci.mcs                   = mcs;
+    dci.mcs                   = ul.mcs;
     dci.rv                    = 0;
     dci.ndi                   = (slot_cfg.idx / SRSRAN_NOF_SF_X_FRAME) % 2;
     dci.pid                   = slot_cfg.idx % SRSRAN_NOF_SF_X_FRAME;
@@ -265,29 +264,31 @@ private:
 
 public:
   struct args_t {
-    srsran::phy_cfg_nr_t phy_cfg;                                 ///< Physical layer configuration
-    uint16_t             rnti                    = 0x1234;        ///< C-RNTI
-    uint32_t             mcs                     = 10;            ///< Modulation code scheme
-    uint32_t             ss_id                   = 1;             ///< Search Space identifier
-    uint32_t             pdcch_aggregation_level = 0;             ///< PDCCH aggregation level
-    uint32_t             pdcch_dl_candidate      = 0;             ///< PDCCH DL DCI candidate index
-    uint32_t             pdcch_ul_candidate      = 1;             ///< PDCCH UL DCI candidate index
-    uint32_t             dl_start_rb             = 0;             ///< Start resource block
-    uint32_t             dl_length_rb            = 0;             ///< Number of resource blocks
-    std::string          dl_sched_slots          = "0,1,2,3,4,5"; ///< PDCH Slot list
-    uint32_t             ul_start_rb             = 0;             ///< Start resource block
-    uint32_t             ul_length_rb            = 0;             ///< Number of resource blocks
-    std::string          ul_sched_slots          = "6,7,8,9";     ///< Slot list
-    std::string          log_level               = "warning";
+    srsran::phy_cfg_nr_t phy_cfg;                          ///< Physical layer configuration
+    uint16_t             rnti                    = 0x1234; ///< C-RNTI
+    uint32_t             ss_id                   = 1;      ///< Search Space identifier
+    uint32_t             pdcch_aggregation_level = 0;      ///< PDCCH aggregation level
+    uint32_t             pdcch_dl_candidate      = 0;      ///< PDCCH DL DCI candidate index
+    uint32_t             pdcch_ul_candidate      = 1;      ///< PDCCH UL DCI candidate index
+    struct {
+      uint32_t    rb_start  = 0;  ///< Start frequency domain resource block
+      uint32_t    rb_length = 10; ///< Number of frequency domain resource blocks
+      uint32_t    mcs       = 10; ///< Modulation code scheme
+      std::string slots     = ""; ///< Slot list, empty string means no scheduling
+    } pdsch, pusch;
+    std::string log_level = "warning";
   };
 
-  gnb_dummy_stack(const args_t& args) : mcs(args.mcs), rnti(args.rnti), phy_cfg(args.phy_cfg), ss_id(args.ss_id)
+  gnb_dummy_stack(const args_t& args) : rnti(args.rnti), phy_cfg(args.phy_cfg), ss_id(args.ss_id)
   {
     random_gen = srsran_random_init(0x1234);
     logger.set_level(srslog::str_to_basic_level(args.log_level));
 
-    srsran::string_parse_list(args.dl_sched_slots, ',', dl_slots);
-    srsran::string_parse_list(args.ul_sched_slots, ',', ul_slots);
+    dl.mcs = args.pdsch.mcs;
+    ul.mcs = args.pusch.mcs;
+
+    srsran::string_parse_list(args.pdsch.slots, ',', dl.slots);
+    srsran::string_parse_list(args.pusch.slots, ',', ul.slots);
 
     // Select DCI locations
     for (uint32_t slot = 0; slot < SRSRAN_NOF_SF_X_FRAME; slot++) {
@@ -307,7 +308,7 @@ public:
                      args.pdcch_aggregation_level);
         return;
       }
-      dci_dl_location[slot] = locations[args.pdcch_dl_candidate];
+      dl.dci_location[slot] = locations[args.pdcch_dl_candidate];
 
       // DCI UL
       if (args.pdcch_ul_candidate >= locations.size()) {
@@ -317,14 +318,14 @@ public:
                      args.pdcch_aggregation_level);
         return;
       }
-      dci_ul_location[slot] = locations[args.pdcch_ul_candidate];
+      ul.dci_location[slot] = locations[args.pdcch_ul_candidate];
     }
 
     // Select DL frequency domain resources
-    dl_freq_res = srsran_ra_nr_type1_riv(args.phy_cfg.carrier.nof_prb, args.dl_start_rb, args.dl_length_rb);
+    dl.freq_res = srsran_ra_nr_type1_riv(args.phy_cfg.carrier.nof_prb, args.pdsch.rb_start, args.pdsch.rb_length);
 
     // Select DL frequency domain resources
-    ul_freq_res = srsran_ra_nr_type1_riv(args.phy_cfg.carrier.nof_prb, args.ul_start_rb, args.ul_length_rb);
+    ul.freq_res = srsran_ra_nr_type1_riv(args.phy_cfg.carrier.nof_prb, args.pusch.rb_start, args.pusch.rb_length);
 
     // Setup DL Data to ACK timing
     for (uint32_t i = 0; i < SRSRAN_NOF_SF_X_FRAME; i++) {

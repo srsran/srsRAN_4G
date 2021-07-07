@@ -31,6 +31,9 @@ test_bench::args_t::args_t(int argc, char** argv)
 
   uint16_t rnti = 0x1234;
 
+  gnb_stack.pdsch.slots = "0,1,2,3,4,5";
+  gnb_stack.pusch.slots = "6,7,8,9";
+
   // clang-format off
   options.add_options()
         ("rnti",      bpo::value<uint16_t>(&rnti)->default_value(rnti),                  "UE RNTI")
@@ -40,14 +43,14 @@ test_bench::args_t::args_t(int argc, char** argv)
   options_gnb_stack.add_options()
         ("gnb.stack.pdcch.aggregation_level", bpo::value<uint32_t>(&gnb_stack.pdcch_aggregation_level)->default_value(gnb_stack.pdcch_aggregation_level), "PDCCH aggregation level")
         ("gnb.stack.pdsch.candidate",         bpo::value<uint32_t>(&gnb_stack.pdcch_dl_candidate)->default_value(gnb_stack.pdcch_dl_candidate),           "PDCCH candidate index for PDSCH")
-        ("gnb.stack.pdsch.start",             bpo::value<uint32_t>(&gnb_stack.dl_start_rb)->default_value(0),                                             "PDSCH scheduling frequency allocation start")
-        ("gnb.stack.pdsch.length",            bpo::value<uint32_t>(&gnb_stack.dl_length_rb)->default_value(gnb_stack.dl_length_rb),                       "PDSCH scheduling frequency allocation length")
-        ("gnb.stack.pdsch.slots",             bpo::value<std::string>(&gnb_stack.dl_sched_slots)->default_value(gnb_stack.dl_sched_slots),                "Slots enabled for PDSCH")
+        ("gnb.stack.pdsch.start",             bpo::value<uint32_t>(&gnb_stack.pdsch.rb_start)->default_value(0),                                             "PDSCH scheduling frequency allocation start")
+        ("gnb.stack.pdsch.length",            bpo::value<uint32_t>(&gnb_stack.pdsch.rb_length)->default_value(gnb_stack.pdsch.rb_length),                       "PDSCH scheduling frequency allocation length")
+        ("gnb.stack.pdsch.slots",             bpo::value<std::string>(&gnb_stack.pdsch.slots)->default_value(gnb_stack.pdsch.slots),                "Slots enabled for PDSCH")
+        ("gnb.stack.pdsch.mcs",               bpo::value<uint32_t>(&gnb_stack.pdsch.mcs)->default_value(gnb_stack.pdsch.mcs),                                         "PDSCH/PUSCH scheduling modulation code scheme")
         ("gnb.stack.pusch.candidate",         bpo::value<uint32_t>(&gnb_stack.pdcch_ul_candidate)->default_value(gnb_stack.pdcch_ul_candidate),           "PDCCH candidate index for PUSCH")
-        ("gnb.stack.pusch.start",             bpo::value<uint32_t>(&gnb_stack.ul_start_rb)->default_value(0),                                             "PUSCH scheduling frequency allocation start")
-        ("gnb.stack.pusch.length",            bpo::value<uint32_t>(&gnb_stack.ul_length_rb)->default_value(gnb_stack.ul_length_rb),                       "PUSCH scheduling frequency allocation length")
-        ("gnb.stack.pusch.slots",             bpo::value<std::string>(&gnb_stack.ul_sched_slots)->default_value(gnb_stack.ul_sched_slots),                "Slots enabled for PUSCH")
-        ("gnb.stack.mcs",                     bpo::value<uint32_t>(&gnb_stack.mcs)->default_value(gnb_stack.mcs),                                         "PDSCH/PUSCH scheduling modulation code scheme")
+        ("gnb.stack.pusch.start",             bpo::value<uint32_t>(&gnb_stack.pusch.rb_start)->default_value(0),                                             "PUSCH scheduling frequency allocation start")
+        ("gnb.stack.pusch.length",            bpo::value<uint32_t>(&gnb_stack.pusch.rb_length)->default_value(gnb_stack.pusch.rb_length),                       "PUSCH scheduling frequency allocation length")
+        ("gnb.stack.pusch.slots",             bpo::value<std::string>(&gnb_stack.pusch.slots)->default_value(gnb_stack.pusch.slots),                "Slots enabled for PUSCH")
         ("gnb.stack.log_level",               bpo::value<std::string>(&gnb_stack.log_level)->default_value(gnb_stack.log_level),                          "Stack log level")
         ;
 
@@ -102,12 +105,14 @@ test_bench::args_t::args_t(int argc, char** argv)
   gnb_stack.rnti    = rnti;
   gnb_stack.phy_cfg = phy_cfg;
 
-  if (gnb_stack.dl_length_rb == 0) {
-    gnb_stack.dl_length_rb = phy_cfg.carrier.nof_prb;
+  if (gnb_stack.pdsch.rb_length == 0) {
+    gnb_stack.pdsch.rb_length = phy_cfg.carrier.nof_prb;
+    gnb_stack.pdsch.rb_start  = 0;
   }
 
-  if (gnb_stack.ul_length_rb == 0) {
-    gnb_stack.ul_length_rb = phy_cfg.carrier.nof_prb;
+  if (gnb_stack.pusch.rb_length == 0) {
+    gnb_stack.pusch.rb_length = phy_cfg.carrier.nof_prb;
+    gnb_stack.pdsch.rb_start  = 0;
   }
 
   // Flag configuration as valid
