@@ -32,7 +32,7 @@ struct pending_rar_t {
 class ra_sched
 {
 public:
-  explicit ra_sched(const sched_cell_params& cell_cfg_);
+  explicit ra_sched(const bwp_params& bwp_cfg_);
 
   int    dl_rach_info(const dl_sched_rar_info_t& rar_info);
   void   run_slot(bwp_slot_allocator& slot_grid);
@@ -42,33 +42,32 @@ private:
   alloc_result
   allocate_pending_rar(bwp_slot_allocator& slot_grid, const pending_rar_t& rar, uint32_t& nof_grants_alloc);
 
-  const sched_cell_params* cell_cfg = nullptr;
-  srslog::basic_logger&    logger;
+  const bwp_params*     bwp_cfg = nullptr;
+  srslog::basic_logger& logger;
 
   srsran::deque<pending_rar_t> pending_rars;
 };
 
-class bwp_sched
+class bwp_ctxt
 {
 public:
-  explicit bwp_sched(const sched_cell_params& cell_cfg_, uint32_t bwp_id_);
+  explicit bwp_ctxt(const bwp_params& bwp_cfg);
 
-  const sched_cell_params* cell_cfg;
-  const uint32_t           bwp_id;
+  const bwp_params* cfg;
 
   // channel-specific schedulers
   ra_sched ra;
 
-  // Pending allocations
+  // Stores pending allocations and PRB bitmaps
   bwp_res_grid grid;
 };
 
-class cell_sched
+class serv_cell_ctxt
 {
 public:
-  srsran::bounded_vector<bwp_sched, SCHED_NR_MAX_BWP_PER_CELL> bwps;
+  srsran::bounded_vector<bwp_ctxt, SCHED_NR_MAX_BWP_PER_CELL> bwps;
 
-  explicit cell_sched(const sched_cell_params& cell_cfg_);
+  explicit serv_cell_ctxt(const sched_cell_params& cell_cfg_);
 
   const sched_cell_params* cfg;
 };

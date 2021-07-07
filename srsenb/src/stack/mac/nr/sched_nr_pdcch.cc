@@ -16,13 +16,13 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
-coreset_region::coreset_region(const bwp_cfg_t& bwp_cfg_,
-                               uint32_t         coreset_id_,
-                               uint32_t         slot_idx_,
-                               pdcch_dl_list_t& dl_list_,
-                               pdcch_ul_list_t& ul_list_) :
+coreset_region::coreset_region(const bwp_params& bwp_cfg_,
+                               uint32_t          coreset_id_,
+                               uint32_t          slot_idx_,
+                               pdcch_dl_list_t&  dl_list_,
+                               pdcch_ul_list_t&  ul_list_) :
   bwp_cfg(&bwp_cfg_),
-  coreset_cfg(&bwp_cfg_.coresets[coreset_id_ - 1].value()),
+  coreset_cfg(&bwp_cfg_.cfg.coresets[coreset_id_].value()),
   coreset_id(coreset_id_),
   slot_idx(slot_idx_),
   pdcch_dl_list(dl_list_),
@@ -173,8 +173,8 @@ srsran::span<const uint32_t> coreset_region::get_cce_loc_table(const alloc_recor
   switch (record.alloc_type) {
     case pdcch_grant_type_t::dl_data:
       return record.ue->cfg->cc_params[record.ue->cc]
-          .bwps[bwp_cfg->bwp_id - 1]
-          .coresets[coreset_id - 1]
+          .bwps[bwp_cfg->bwp_id]
+          .coresets[coreset_id]
           .cce_positions[slot_idx][record.aggr_idx];
     default:
       break;

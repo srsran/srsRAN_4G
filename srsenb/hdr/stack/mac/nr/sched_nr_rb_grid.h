@@ -31,8 +31,9 @@ const static size_t MAX_CORESET_PER_BWP = 3;
 using slot_coreset_list                 = srsran::bounded_vector<coreset_region, MAX_CORESET_PER_BWP>;
 
 struct bwp_slot_grid {
-  uint32_t          bwp_id;
   uint32_t          slot_idx;
+  const bwp_params* cfg;
+
   bool              is_dl, is_ul;
   pdsch_bitmap      dl_rbgs;
   pusch_bitmap      ul_rbgs;
@@ -42,25 +43,21 @@ struct bwp_slot_grid {
   pucch_list_t      pucchs;
 
   bwp_slot_grid() = default;
-  explicit bwp_slot_grid(const sched_cell_params& cell_params, uint32_t bwp_id_, uint32_t slot_idx_);
+  explicit bwp_slot_grid(const bwp_params& bwp_params, uint32_t slot_idx_);
   void reset();
 };
 
 struct bwp_res_grid {
-  bwp_res_grid(const sched_cell_params& cell_cfg_, uint32_t bwp_id_);
+  bwp_res_grid(const bwp_params& bwp_cfg_);
 
-  bwp_slot_grid&           operator[](tti_point tti) { return slots[tti.to_uint() % slots.capacity()]; };
-  const bwp_slot_grid&     operator[](tti_point tti) const { return slots[tti.to_uint() % slots.capacity()]; };
-  uint32_t                 id() const { return bwp_id; }
-  uint32_t                 nof_prbs() const { return cell_cfg->cell_cfg.nof_prb; }
-  const sched_cell_params& cell_params() const { return *cell_cfg; }
-  const bwp_cfg_t&         bwp_cfg() const { return cell_cfg->cell_cfg.bwps[id() - 1]; }
+  bwp_slot_grid&       operator[](tti_point tti) { return slots[tti.to_uint() % slots.capacity()]; };
+  const bwp_slot_grid& operator[](tti_point tti) const { return slots[tti.to_uint() % slots.capacity()]; };
+  uint32_t             id() const { return cfg->bwp_id; }
+  uint32_t             nof_prbs() const { return cfg->cfg.rb_width; }
 
-  const sched_cell_params* cell_cfg = nullptr;
+  const bwp_params* cfg = nullptr;
 
 private:
-  uint32_t bwp_id;
-
   srsran::bounded_vector<bwp_slot_grid, TTIMOD_SZ> slots;
 };
 
@@ -78,7 +75,7 @@ public:
   tti_point           get_pdcch_tti() const { return pdcch_tti; }
   const bwp_res_grid& res_grid() const { return bwp_grid; }
 
-  const sched_cell_params& cfg;
+  const bwp_params& cfg;
 
 private:
   srslog::basic_logger& logger;

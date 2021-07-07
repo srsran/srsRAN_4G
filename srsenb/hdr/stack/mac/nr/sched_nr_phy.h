@@ -29,25 +29,13 @@ rbg_interval find_empty_rbg_interval(const pdsch_bitmap& bitmap, uint32_t max_no
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool fill_dci_rar(rbg_interval rbginterv, const sched_cell_params& cell, srsran_dci_dl_nr_t& dci);
+bool fill_dci_rar(rbg_interval rbginterv, const bwp_params& bwp_cfg, srsran_dci_dl_nr_t& dci);
 
 class slot_ue;
-void fill_dci_ue_cfg(const slot_ue&           ue,
-                     const rbgmask_t&         rbgmask,
-                     const sched_cell_params& cc_cfg,
-                     srsran_dci_dl_nr_t&      dci);
-void fill_dci_ue_cfg(const slot_ue&           ue,
-                     const rbgmask_t&         rbgmask,
-                     const sched_cell_params& cc_cfg,
-                     srsran_dci_ul_nr_t&      dci);
-void fill_pdsch_ue(const slot_ue&           ue,
-                   const rbgmask_t&         rbgmask,
-                   const sched_cell_params& cc_cfg,
-                   srsran_sch_cfg_nr_t&     sch);
-void fill_pusch_ue(const slot_ue&           ue,
-                   const rbgmask_t&         rbgmask,
-                   const sched_cell_params& cc_cfg,
-                   srsran_sch_cfg_nr_t&     sch);
+void fill_dci_ue_cfg(const slot_ue& ue, const rbgmask_t& rbgmask, const bwp_params& bwp_cfg, srsran_dci_dl_nr_t& dci);
+void fill_dci_ue_cfg(const slot_ue& ue, const rbgmask_t& rbgmask, const bwp_params& bwp_cfg, srsran_dci_ul_nr_t& dci);
+void fill_pdsch_ue(const slot_ue& ue, const rbgmask_t& rbgmask, const bwp_params& bwp_cfg, srsran_sch_cfg_nr_t& sch);
+void fill_pusch_ue(const slot_ue& ue, const rbgmask_t& rbgmask, const bwp_params& bwp_cfg, srsran_sch_cfg_nr_t& sch);
 
 pucch_resource_grant find_pucch_resource(const slot_ue& ue, const rbgmask_t& rbgs, uint32_t tbs);
 

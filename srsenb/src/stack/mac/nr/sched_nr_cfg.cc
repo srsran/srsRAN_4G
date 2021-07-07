@@ -16,9 +16,23 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
+bwp_params::bwp_params(const cell_cfg_t& cell, const sched_cfg_t& sched_cfg_, uint32_t cc_, uint32_t bwp_id_) :
+  cell_cfg(cell), sched_cfg(sched_cfg_), cc(cc_), bwp_id(bwp_id_), cfg(cell.bwps[bwp_id_])
+{
+  P     = get_P(cfg.rb_width, cfg.pdsch.rbg_size_cfg_1);
+  N_rbg = get_nof_rbgs(cfg.rb_width, cfg.start_rb, cfg.pdsch.rbg_size_cfg_1);
+  srsran_assert(cfg.coresets[0].has_value(), "At least one coreset has to be active per BWP");
+}
+
 sched_cell_params::sched_cell_params(uint32_t cc_, const cell_cfg_t& cell, const sched_cfg_t& sched_cfg_) :
   cc(cc_), cell_cfg(cell), sched_cfg(sched_cfg_)
-{}
+{
+  bwps.reserve(cell.bwps.size());
+  for (uint32_t i = 0; i < cell.bwps.size(); ++i) {
+    bwps.emplace_back(cell, sched_cfg_, cc, i);
+  }
+  srsran_assert(not bwps.empty(), "No BWPs were configured");
+}
 
 sched_params::sched_params(const sched_cfg_t& sched_cfg_) : sched_cfg(sched_cfg_) {}
 

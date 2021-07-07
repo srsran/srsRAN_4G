@@ -18,16 +18,16 @@ namespace sched_nr_impl {
 
 #define NUMEROLOGY_IDX 0
 
-bwp_slot_grid::bwp_slot_grid(const sched_cell_params& cell_params, uint32_t bwp_id_, uint32_t slot_idx_) :
-  dl_rbgs(cell_params.cell_cfg.nof_rbg),
-  ul_rbgs(cell_params.cell_cfg.nof_rbg),
-  bwp_id(bwp_id_),
+bwp_slot_grid::bwp_slot_grid(const bwp_params& bwp_cfg_, uint32_t slot_idx_) :
+  dl_rbgs(bwp_cfg_.N_rbg),
+  ul_rbgs(bwp_cfg_.N_rbg),
   slot_idx(slot_idx_),
-  is_dl(srsran_tdd_nr_is_dl(&cell_params.cell_cfg.tdd, NUMEROLOGY_IDX, slot_idx_)),
-  is_ul(srsran_tdd_nr_is_ul(&cell_params.cell_cfg.tdd, NUMEROLOGY_IDX, slot_idx_))
+  cfg(&bwp_cfg_),
+  is_dl(srsran_tdd_nr_is_dl(&bwp_cfg_.cell_cfg.tdd, NUMEROLOGY_IDX, slot_idx_)),
+  is_ul(srsran_tdd_nr_is_ul(&bwp_cfg_.cell_cfg.tdd, NUMEROLOGY_IDX, slot_idx_))
 {
-  const uint32_t coreset_id = 1; // Note: for now only one coreset per BWP supported
-  coresets.emplace_back(cell_params.cell_cfg.bwps[0], coreset_id, slot_idx_, dl_pdcchs, ul_pdcchs);
+  const uint32_t coreset_id = 0; // Note: for now only one coreset per BWP supported
+  coresets.emplace_back(*cfg, coreset_id, slot_idx_, dl_pdcchs, ul_pdcchs);
 }
 
 void bwp_slot_grid::reset()
@@ -42,17 +42,17 @@ void bwp_slot_grid::reset()
   pucchs.clear();
 }
 
-bwp_res_grid::bwp_res_grid(const sched_cell_params& cell_cfg_, uint32_t bwp_id_) : bwp_id(bwp_id_), cell_cfg(&cell_cfg_)
+bwp_res_grid::bwp_res_grid(const bwp_params& bwp_cfg_) : cfg(&bwp_cfg_)
 {
   for (uint32_t sl = 0; sl < slots.capacity(); ++sl) {
-    slots.emplace_back(cell_cfg_, bwp_id, sl % static_cast<uint32_t>(SRSRAN_NSLOTS_PER_FRAME_NR(0u)));
+    slots.emplace_back(*cfg, sl % static_cast<uint32_t>(SRSRAN_NSLOTS_PER_FRAME_NR(0u)));
   }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 bwp_slot_allocator::bwp_slot_allocator(bwp_res_grid& bwp_grid_) :
-  logger(srslog::fetch_basic_logger("MAC")), cfg(*bwp_grid_.cell_cfg), bwp_grid(bwp_grid_)
+  logger(srslog::fetch_basic_logger("MAC")), cfg(*bwp_grid_.cfg), bwp_grid(bwp_grid_)
 {}
 
 alloc_result bwp_slot_allocator::alloc_rar(uint32_t                                    aggr_idx,
@@ -81,7 +81,7 @@ alloc_result bwp_slot_allocator::alloc_rar(uint32_t                             
 
   // Check Msg3 RB collision
   uint32_t     total_ul_nof_prbs = msg3_nof_prbs * nof_grants;
-  uint32_t     total_ul_nof_rbgs = srsran::ceil_div(total_ul_nof_prbs, get_P(bwp_grid.bwp_cfg().rb_width, false));
+  uint32_t     total_ul_nof_rbgs = srsran::ceil_div(total_ul_nof_prbs, get_P(bwp_grid.nof_prbs(), false));
   rbg_interval msg3_rbgs         = find_empty_rbg_interval(bwp_msg3_slot.ul_rbgs, total_ul_nof_rbgs);
   if (msg3_rbgs.length() < total_ul_nof_rbgs) {
     logger.debug("SCHED: No space in PUSCH for Msg3.");
@@ -98,7 +98,7 @@ alloc_result bwp_slot_allocator::alloc_rar(uint32_t                             
 
   // Generate DCI for RAR
   pdcch_dl_t& pdcch = bwp_pdcch_slot.dl_pdcchs.back();
-  if (not fill_dci_rar(interv, bwp_grid.cell_params(), pdcch.dci)) {
+  if (not fill_dci_rar(interv, *bwp_grid.cfg, pdcch.dci)) {
     // Cancel on-going PDCCH allocation
     bwp_pdcch_slot.coresets[coreset_id].rem_last_dci();
     return alloc_result::invalid_coderate;
@@ -158,7 +158,7 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const rbgmask_t& dl_ma
 
   // Allocation Successful
   pdcch_dl_t& pdcch = bwp_pdcch_slot.dl_pdcchs.back();
-  fill_dci_ue_cfg(ue, dl_mask, bwp_grid.cell_params(), pdcch.dci);
+  fill_dci_ue_cfg(ue, dl_mask, *bwp_grid.cfg, pdcch.dci);
   pdsch_mask |= dl_mask;
   bwp_uci_slot.pucchs.emplace_back();
   pucch_grant& pucch = bwp_uci_slot.pucchs.back();
@@ -209,7 +209,7 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const rbgmask_t& ul_ma
 
   // Allocation Successful
   pdcch_ul_t& pdcch = pdcchs.back();
-  fill_dci_ue_cfg(ue, ul_mask, bwp_grid.cell_params(), pdcch.dci);
+  fill_dci_ue_cfg(ue, ul_mask, *bwp_grid.cfg, pdcch.dci);
   pusch_mask |= ul_mask;
 
   return alloc_result::success;

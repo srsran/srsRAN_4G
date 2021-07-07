@@ -27,7 +27,7 @@ namespace srsenb {
 
 namespace sched_nr_impl {
 class sched_worker_manager;
-class cell_sched;
+class serv_cell_ctxt;
 } // namespace sched_nr_impl
 
 class ue_event_manager;
@@ -69,7 +69,7 @@ private:
   std::unique_ptr<sched_result_manager> pending_results;
 
   // management of cell resources
-  std::vector<std::unique_ptr<sched_nr_impl::cell_sched> > cells;
+  std::vector<std::unique_ptr<sched_nr_impl::serv_cell_ctxt> > cells;
 };
 
 } // namespace srsenb

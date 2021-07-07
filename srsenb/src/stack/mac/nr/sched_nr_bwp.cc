@@ -17,8 +17,7 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
-ra_sched::ra_sched(const sched_cell_params& cell_cfg_) : cell_cfg(&cell_cfg_), logger(srslog::fetch_basic_logger("MAC"))
-{}
+ra_sched::ra_sched(const bwp_params& bwp_cfg_) : bwp_cfg(&bwp_cfg_), logger(srslog::fetch_basic_logger("MAC")) {}
 
 alloc_result
 ra_sched::allocate_pending_rar(bwp_slot_allocator& slot_grid, const pending_rar_t& rar, uint32_t& nof_grants_alloc)
@@ -29,7 +28,7 @@ ra_sched::allocate_pending_rar(bwp_slot_allocator& slot_grid, const pending_rar_
   alloc_result ret = alloc_result::other_cause;
   for (nof_grants_alloc = rar.msg3_grant.size(); nof_grants_alloc > 0; nof_grants_alloc--) {
     ret = alloc_result::invalid_coderate;
-    for (uint32_t nrbg = 1; nrbg < cell_cfg->cell_cfg.nof_rbg and ret == alloc_result::invalid_coderate; ++nrbg) {
+    for (uint32_t nrbg = 1; nrbg < bwp_cfg->N_rbg and ret == alloc_result::invalid_coderate; ++nrbg) {
       rbg_interval rbg_interv = find_empty_rbg_interval(pdsch_bitmap, nrbg);
       if (rbg_interv.length() == nrbg) {
         ret = slot_grid.alloc_rar(rar_aggr_level, rar, rbg_interv, nof_grants_alloc);
@@ -61,7 +60,7 @@ void ra_sched::run_slot(bwp_slot_allocator& slot_grid)
     // - if window has passed, discard RAR
     // - if window hasn't started, stop loop, as RARs are ordered by TTI
     tti_interval rar_window{rar.prach_tti + PRACH_RAR_OFFSET,
-                            rar.prach_tti + PRACH_RAR_OFFSET + cell_cfg->cell_cfg.rar_window_size};
+                            rar.prach_tti + PRACH_RAR_OFFSET + bwp_cfg->cfg.rar_window_size};
     if (not rar_window.contains(pdcch_tti)) {
       if (pdcch_tti >= rar_window.stop()) {
         fmt::memory_buffer str_buffer;
@@ -142,14 +141,12 @@ int ra_sched::dl_rach_info(const dl_sched_rar_info_t& rar_info)
   return SRSRAN_SUCCESS;
 }
 
-bwp_sched::bwp_sched(const sched_cell_params& cell_cfg_, uint32_t bwp_id_) :
-  cell_cfg(&cell_cfg_), bwp_id(bwp_id_), ra(cell_cfg_), grid(cell_cfg_, bwp_id_)
-{}
+bwp_ctxt::bwp_ctxt(const bwp_params& bwp_cfg) : cfg(&bwp_cfg), ra(bwp_cfg), grid(bwp_cfg) {}
 
-cell_sched::cell_sched(const sched_cell_params& cell_cfg_) : cfg(&cell_cfg_)
+serv_cell_ctxt::serv_cell_ctxt(const sched_cell_params& cell_cfg_) : cfg(&cell_cfg_)
 {
   for (uint32_t bwp_id = 0; bwp_id < cfg->cell_cfg.bwps.size(); ++bwp_id) {
-    bwps.emplace_back(cell_cfg_, bwp_id);
+    bwps.emplace_back(cell_cfg_.bwps[bwp_id]);
   }
 }
 

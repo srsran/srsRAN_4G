@@ -34,9 +34,6 @@ const static size_t   SCHED_NR_MAX_BWP_PER_CELL = 2;
 class sched_nr_interface
 {
 public:
-  using pdcch_bitmap = srsran::bounded_bitset<SCHED_NR_MAX_NOF_RBGS, true>;
-  using rbg_bitmap   = srsran::bounded_bitset<SCHED_NR_MAX_NOF_RBGS, true>;
-
   static const size_t MAX_GRANTS = mac_interface_phy_nr::MAX_GRANTS;
 
   ///// Configuration /////
@@ -52,21 +49,18 @@ public:
   using pusch_td_res_alloc_list = srsran::bounded_vector<pusch_td_res_alloc, MAX_GRANTS>;
 
   struct bwp_cfg_t {
-    uint32_t               bwp_id   = 1;
-    uint32_t               start_rb = 0;
-    uint32_t               rb_width = 100;
-    srsran_sch_hl_cfg_nr_t pdsch    = {};
-    srsran_sch_hl_cfg_nr_t pusch    = {};
+    uint32_t               start_rb        = 0;
+    uint32_t               rb_width        = 100;
+    srsran_sch_hl_cfg_nr_t pdsch           = {};
+    srsran_sch_hl_cfg_nr_t pusch           = {};
+    uint32_t               rar_window_size = 3;
 
     std::array<srsran::optional<srsran_coreset_t>, SRSRAN_UE_DL_NR_MAX_NOF_CORESET> coresets;
   };
 
   struct cell_cfg_t {
-    uint32_t                                                     rar_window_size;
-    uint32_t                                                     nof_prb = 100;
-    uint32_t                                                     nof_rbg = 25;
-    srsran_tdd_config_nr_t                                       tdd     = {};
-    srsran::bounded_vector<bwp_cfg_t, SCHED_NR_MAX_BWP_PER_CELL> bwps{1};
+    srsran_tdd_config_nr_t                                       tdd = {};
+    srsran::bounded_vector<bwp_cfg_t, SCHED_NR_MAX_BWP_PER_CELL> bwps{1}; // idx0 for BWP-common
   };
 
   struct sched_cfg_t {

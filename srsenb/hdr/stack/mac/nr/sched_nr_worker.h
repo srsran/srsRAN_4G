@@ -33,7 +33,7 @@ using ul_sched_t = sched_nr_interface::ul_sched_t;
 class slot_cc_worker
 {
 public:
-  explicit slot_cc_worker(cell_sched& sched);
+  explicit slot_cc_worker(serv_cell_ctxt& sched);
 
   void start(tti_point tti_rx_, ue_map_t& ue_db_);
   void run();
@@ -45,7 +45,7 @@ private:
   void alloc_ul_ues();
 
   const sched_cell_params& cfg;
-  cell_sched&              cell;
+  serv_cell_ctxt&          cell;
 
   tti_point          tti_rx;
   bwp_slot_allocator bwp_alloc;
@@ -82,7 +82,7 @@ private:
 
   std::vector<std::unique_ptr<slot_worker_ctxt> > slot_worker_ctxts;
 
-  srsran::bounded_vector<cell_sched, SCHED_NR_MAX_CARRIERS> cell_grid_list;
+  srsran::bounded_vector<serv_cell_ctxt, SCHED_NR_MAX_CARRIERS> cell_grid_list;
 
   slot_worker_ctxt& get_sf(tti_point tti_rx);
 };

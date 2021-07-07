@@ -17,7 +17,7 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
-/// Table 6.1.2.2.1-1 - Nominal RBG size P
+/// TS 38.214, Table 6.1.2.2.1-1 - Nominal RBG size P
 uint32_t get_P(uint32_t bwp_nof_prb, bool config_1_or_2)
 {
   srsran_assert(bwp_nof_prb > 0 and bwp_nof_prb <= 275, "Invalid BWP size");
@@ -33,6 +33,7 @@ uint32_t get_P(uint32_t bwp_nof_prb, bool config_1_or_2)
   return 16;
 }
 
+/// TS 38.214 - total number of RBGs for a uplink bandwidth part of size "bwp_nof_prb" PRBs
 uint32_t get_nof_rbgs(uint32_t bwp_nof_prb, uint32_t bwp_start, bool config1_or_2)
 {
   uint32_t P = get_P(bwp_nof_prb, config1_or_2);
@@ -108,20 +109,20 @@ rbg_interval find_empty_rbg_interval(const pdsch_bitmap& in_mask, uint32_t max_s
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool fill_dci_rar(rbg_interval rbginterv, const sched_cell_params& cell, srsran_dci_dl_nr_t& dci)
+bool fill_dci_rar(rbg_interval rbginterv, const bwp_params& cell, srsran_dci_dl_nr_t& dci)
 {
   dci.mcs = 5;
   return true;
 }
 
 template <typename DciDlOrUl>
-void fill_dci_common(const slot_ue& ue, const rbgmask_t& bitmap, const sched_cell_params& cc_cfg, DciDlOrUl& dci)
+void fill_dci_common(const slot_ue& ue, const rbgmask_t& bitmap, const bwp_params& bwp_cfg, DciDlOrUl& dci)
 {
   const static uint32_t rv_idx[4] = {0, 2, 3, 1};
   // Note: PDCCH DCI position already filled at this point
   dci.bwp_id                = ue.bwp_id;
   dci.cc_id                 = ue.cc;
-  dci.freq_domain_assigment = bitmap_to_riv(bitmap, cc_cfg.cell_cfg.nof_prb);
+  dci.freq_domain_assigment = bitmap_to_riv(bitmap, bwp_cfg.cfg.rb_width);
   dci.ctx.rnti              = ue.rnti;
   dci.ctx.rnti_type         = srsran_rnti_type_c;
   dci.tpc                   = 1;
@@ -133,47 +134,35 @@ void fill_dci_common(const slot_ue& ue, const rbgmask_t& bitmap, const sched_cel
   dci.rv       = rv_idx[h->nof_retx() % 4];
 }
 
-void fill_dci_ue_cfg(const slot_ue&           ue,
-                     const rbgmask_t&         rbgmask,
-                     const sched_cell_params& cc_cfg,
-                     srsran_dci_dl_nr_t&      dci)
+void fill_dci_ue_cfg(const slot_ue& ue, const rbgmask_t& rbgmask, const bwp_params& bwp_cfg, srsran_dci_dl_nr_t& dci)
 {
-  fill_dci_common(ue, rbgmask, cc_cfg, dci);
+  fill_dci_common(ue, rbgmask, bwp_cfg, dci);
 }
 
-void fill_dci_ue_cfg(const slot_ue&           ue,
-                     const rbgmask_t&         rbgmask,
-                     const sched_cell_params& cc_cfg,
-                     srsran_dci_ul_nr_t&      dci)
+void fill_dci_ue_cfg(const slot_ue& ue, const rbgmask_t& rbgmask, const bwp_params& bwp_cfg, srsran_dci_ul_nr_t& dci)
 {
-  fill_dci_common(ue, rbgmask, cc_cfg, dci);
+  fill_dci_common(ue, rbgmask, bwp_cfg, dci);
 }
 
-void fill_sch_ue_common(const slot_ue&           ue,
-                        const rbgmask_t&         rbgmask,
-                        const sched_cell_params& cc_cfg,
-                        srsran_sch_cfg_nr_t&     sch)
+void fill_sch_ue_common(const slot_ue&       ue,
+                        const rbgmask_t&     rbgmask,
+                        const bwp_params&    bwp_cfg,
+                        srsran_sch_cfg_nr_t& sch)
 {
   sch.grant.rnti_type  = srsran_rnti_type_c;
   sch.grant.rnti       = ue.rnti;
   sch.grant.nof_layers = 1;
-  sch.grant.nof_prb    = cc_cfg.cell_cfg.nof_prb;
+  sch.grant.nof_prb    = bwp_cfg.cfg.rb_width;
 }
 
-void fill_pdsch_ue(const slot_ue&           ue,
-                   const rbgmask_t&         rbgmask,
-                   const sched_cell_params& cc_cfg,
-                   srsran_sch_cfg_nr_t&     sch)
+void fill_pdsch_ue(const slot_ue& ue, const rbgmask_t& rbgmask, const bwp_params& cc_cfg, srsran_sch_cfg_nr_t& sch)
 {
   fill_sch_ue_common(ue, rbgmask, cc_cfg, sch);
   sch.grant.k          = ue.cc_cfg->pdsch_res_list[0].k0;
   sch.grant.dci_format = srsran_dci_format_nr_1_0;
 }
 
-void fill_pusch_ue(const slot_ue&           ue,
-                   const rbgmask_t&         rbgmask,
-                   const sched_cell_params& cc_cfg,
-                   srsran_sch_cfg_nr_t&     sch)
+void fill_pusch_ue(const slot_ue& ue, const rbgmask_t& rbgmask, const bwp_params& cc_cfg, srsran_sch_cfg_nr_t& sch)
 {
   fill_sch_ue_common(ue, rbgmask, cc_cfg, sch);
   sch.grant.k          = ue.cc_cfg->pusch_res_list[0].k2;

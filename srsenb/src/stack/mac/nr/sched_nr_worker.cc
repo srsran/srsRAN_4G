@@ -15,7 +15,7 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
-slot_cc_worker::slot_cc_worker(cell_sched& cc_sched) :
+slot_cc_worker::slot_cc_worker(serv_cell_ctxt& cc_sched) :
   cell(cc_sched), cfg(*cc_sched.cfg), bwp_alloc(cc_sched.bwps[0].grid)
 {}
 
@@ -79,7 +79,7 @@ void slot_cc_worker::alloc_dl_ues()
     return;
   }
 
-  rbgmask_t dlmask(cfg.cell_cfg.nof_rbg);
+  rbgmask_t dlmask(cfg.bwps[0].N_rbg);
   dlmask.fill(0, dlmask.size(), true);
   bwp_alloc.alloc_pdsch(ue, dlmask);
 }
@@ -94,7 +94,7 @@ void slot_cc_worker::alloc_ul_ues()
     return;
   }
 
-  rbgmask_t ulmask(cfg.cell_cfg.nof_rbg);
+  rbgmask_t ulmask(cfg.bwps[0].N_rbg);
   ulmask.fill(0, ulmask.size(), true);
   bwp_alloc.alloc_pusch(ue, ulmask);
 }

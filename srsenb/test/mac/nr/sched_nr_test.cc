@@ -44,10 +44,8 @@ sched_nr_interface::cell_cfg_t get_default_cell_cfg()
   // Disable pattern 2
   cell_cfg.tdd.pattern2.period_ms = 0;
 
-  cell_cfg.bwps.resize(2);
+  cell_cfg.bwps.resize(1);
   cell_cfg.bwps[0].coresets[0].emplace(get_default_coreset());
-  cell_cfg.bwps[0].coresets[1].emplace(get_default_coreset());
-  cell_cfg.bwps[0].coresets[1].value().id = 1;
   return cell_cfg;
 }
 std::vector<sched_nr_interface::cell_cfg_t> get_default_cells_cfg(uint32_t nof_sectors)

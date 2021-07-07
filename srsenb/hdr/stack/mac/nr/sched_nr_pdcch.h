@@ -38,11 +38,11 @@ using pdcch_ul_list_t = srsran::bounded_vector<pdcch_ul_t, MAX_GRANTS>;
 class coreset_region
 {
 public:
-  coreset_region(const bwp_cfg_t& bwp_cfg_,
-                 uint32_t         coreset_id_,
-                 uint32_t         slot_idx,
-                 pdcch_dl_list_t& pdcch_dl_list,
-                 pdcch_ul_list_t& pdcch_ul_list);
+  coreset_region(const bwp_params& bwp_cfg_,
+                 uint32_t          coreset_id_,
+                 uint32_t          slot_idx,
+                 pdcch_dl_list_t&  pdcch_dl_list,
+                 pdcch_ul_list_t&  pdcch_ul_list);
   void reset();
 
   /**
@@ -62,7 +62,7 @@ public:
   size_t   nof_allocs() const { return dfs_tree.size(); }
 
 private:
-  const bwp_cfg_t*        bwp_cfg;
+  const bwp_params*       bwp_cfg;
   const srsran_coreset_t* coreset_cfg;
   uint32_t                coreset_id;
   uint32_t                slot_idx;

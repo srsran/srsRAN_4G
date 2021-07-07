@@ -35,10 +35,25 @@ using sched_cfg_t = sched_nr_interface::sched_cfg_t;
 using cell_cfg_t  = sched_nr_interface::cell_cfg_t;
 using bwp_cfg_t   = sched_nr_interface::bwp_cfg_t;
 
-struct sched_cell_params {
+struct bwp_params {
+  const uint32_t     bwp_id;
   const uint32_t     cc;
-  const cell_cfg_t   cell_cfg;
+  const bwp_cfg_t&   cfg;
+  const cell_cfg_t&  cell_cfg;
   const sched_cfg_t& sched_cfg;
+
+  // derived params
+  uint32_t P;
+  uint32_t N_rbg;
+
+  bwp_params(const cell_cfg_t& cell, const sched_cfg_t& sched_cfg_, uint32_t cc, uint32_t bwp_id);
+};
+
+struct sched_cell_params {
+  const uint32_t          cc;
+  const cell_cfg_t        cell_cfg;
+  const sched_cfg_t&      sched_cfg;
+  std::vector<bwp_params> bwps;
 
   sched_cell_params(uint32_t cc_, const cell_cfg_t& cell, const sched_cfg_t& sched_cfg_);
 };
