@@ -538,7 +538,7 @@ bool cc_worker::work_ul()
   }
 
   // Add SR to UCI data only if there is no UL grant!
-  if (!has_ul_ack) {
+  if (not has_pusch_grant) {
     phy.get_pending_sr(ul_slot_cfg.idx, uci_data);
   }
 

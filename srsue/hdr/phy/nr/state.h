@@ -316,7 +316,7 @@ public:
     }
 
     // Initialise counters
-    uint32_t sr_count_all      = (uint32_t)n;
+    uint32_t sr_count_all      = (uint32_t)n; // Number of opportunities in this TTI
     uint32_t sr_count_positive = 0;
 
     // Iterate all opportunities and check if there is a pending SR
@@ -333,10 +333,10 @@ public:
     }
 
     // Configure SR fields in UCI data
-    uci_data.cfg.pucch.sr_resource_id      = sr_resource_id[0];
-    uci_data.cfg.o_sr                      = srsran_ra_ul_nr_nof_sr_bits(sr_count_all);
-    uci_data.cfg.pucch.sr_positive_present = sr_count_positive > 0;
-    uci_data.value.sr                      = sr_count_positive;
+    uci_data.cfg.pucch.sr_resource_id = sr_resource_id[0];
+    uci_data.cfg.o_sr                 = srsran_ra_ul_nr_nof_sr_bits(sr_count_all);
+    uci_data.cfg.sr_positive_present  = sr_count_positive > 0;
+    uci_data.value.sr                 = sr_count_positive;
   }
 
   void get_periodic_csi(const uint32_t& tti, srsran_uci_data_nr_t& uci_data)

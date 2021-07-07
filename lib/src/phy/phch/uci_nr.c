@@ -980,7 +980,16 @@ uint32_t srsran_uci_nr_total_bits(const srsran_uci_cfg_nr_t* uci_cfg)
     return 0;
   }
 
-  return uci_cfg->ack.count + uci_cfg->o_sr + srsran_csi_part1_nof_bits(uci_cfg->csi, uci_cfg->nof_csi);
+  uint32_t o_csi = srsran_csi_part1_nof_bits(uci_cfg->csi, uci_cfg->nof_csi);
+
+  // According to 38.213 9.2.4 UE procedure for reporting SR
+  // The UE transmits a PUCCH in the PUCCH resource for the corresponding SR configuration only when the UE transmits a
+  // positive SR
+  if (uci_cfg->ack.count == 0 && o_csi == 0 && !uci_cfg->sr_positive_present) {
+    return 0;
+  }
+
+  return uci_cfg->ack.count + uci_cfg->o_sr + o_csi;
 }
 
 uint32_t srsran_uci_nr_info(const srsran_uci_data_nr_t* uci_data, char* str, uint32_t str_len)
