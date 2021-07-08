@@ -34,8 +34,7 @@ set(SOURCES arch_select.cc
             time_prof.cc
             version.c
             zuc.cc
-            s3g.cc
-            basic_vnf.cc)
+            s3g.cc)
 
 # Avoid warnings caused by libmbedtls about deprecated functions
 set_source_files_properties(security.cc PROPERTIES COMPILE_FLAGS -Wno-deprecated-declarations)

@@ -12,12 +12,12 @@
 
 #include "srsue/hdr/ue.h"
 #include "srsran/build_info.h"
+#include "srsran/common/standard_streams.h"
 #include "srsran/common/string_helpers.h"
 #include "srsran/radio/radio.h"
 #include "srsran/radio/radio_null.h"
 #include "srsran/srsran.h"
 #include "srsue/hdr/phy/phy.h"
-#include "srsue/hdr/phy/vnf_phy_nr.h"
 #include "srsue/hdr/stack/ue_stack_lte.h"
 #include "srsue/hdr/stack/ue_stack_nr.h"
 #include <algorithm>
@@ -121,7 +121,7 @@ int ue::init(const all_args_t& args_)
     logger.info("Initializing NR stack");
     std::unique_ptr<srsue::ue_stack_nr> nr_stack(new srsue::ue_stack_nr());
     std::unique_ptr<srsran::radio_null> nr_radio(new srsran::radio_null);
-    std::unique_ptr<srsue::vnf_phy_nr>  nr_phy(new srsue::vnf_phy_nr);
+    std::unique_ptr<srsue::ue_phy_base> nr_phy;
     std::unique_ptr<gw>                 gw_ptr(new gw());
 
     // Init layers
@@ -130,12 +130,12 @@ int ue::init(const all_args_t& args_)
       return SRSRAN_ERROR;
     }
 
-    if (nr_phy->init(args.phy, nr_stack.get())) {
+    if (nr_phy->init(args.phy)) {
       srsran::console("Error initializing PHY.\n");
       return SRSRAN_ERROR;
     }
 
-    if (nr_stack->init(args.stack, nr_phy.get(), gw_ptr.get())) {
+    if (nr_stack->init(args.stack)) {
       srsran::console("Error initializing stack.\n");
       return SRSRAN_ERROR;
     }
