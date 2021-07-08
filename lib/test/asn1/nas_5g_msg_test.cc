@@ -47,13 +47,6 @@ inline void hex_dump(uint8_t* buf, uint32_t buf_length)
   printf("\n");
 }
 
-void copy_msg_to_buffer(srsran::unique_byte_buffer_t& pdu, srsran::const_byte_span msg)
-{
-  pdu = srsran::make_byte_buffer();
-  memcpy(pdu->msg, msg.data(), msg.size());
-  pdu->N_bytes = msg.size();
-}
-
 int registration_request_unpacking_packing_test(srsran::nas_pcap* pcap)
 {
   uint8_t reg_request[] = {0x7e, 0x00, 0x41, 0x79, 0x00, 0x0b, 0xf2, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
