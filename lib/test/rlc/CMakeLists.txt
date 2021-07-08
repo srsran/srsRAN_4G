@@ -16,9 +16,13 @@ add_executable(rlc_am_control_test rlc_am_control_test.cc)
 target_link_libraries(rlc_am_control_test srsran_rlc srsran_phy)
 add_lte_test(rlc_am_control_test rlc_am_control_test)
 
-add_executable(rlc_am_test rlc_am_test.cc)
-target_link_libraries(rlc_am_test srsran_rlc srsran_phy srsran_common)
-add_lte_test(rlc_am_test rlc_am_test)
+add_executable(rlc_am_lte_test rlc_am_lte_test.cc)
+target_link_libraries(rlc_am_lte_test srsran_rlc srsran_phy srsran_common)
+add_lte_test(rlc_am_lte_test rlc_am_lte_test)
+
+add_executable(rlc_am_nr_test rlc_am_nr_test.cc)
+target_link_libraries(rlc_am_nr_test srsran_rlc srsran_phy srsran_common)
+add_nr_test(rlc_am_nr_test rlc_am_nr_test)
 
 add_executable(rlc_am_nr_pdu_test rlc_am_nr_pdu_test.cc)
 target_link_libraries(rlc_am_nr_pdu_test srsran_rlc srsran_phy)
