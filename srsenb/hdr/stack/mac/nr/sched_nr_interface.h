@@ -51,11 +51,10 @@ public:
   struct bwp_cfg_t {
     uint32_t               start_rb        = 0;
     uint32_t               rb_width        = 100;
+    srsran_pdcch_cfg_nr_t  pdcch           = {};
     srsran_sch_hl_cfg_nr_t pdsch           = {};
     srsran_sch_hl_cfg_nr_t pusch           = {};
     uint32_t               rar_window_size = 3;
-
-    std::array<srsran::optional<srsran_coreset_t>, SRSRAN_UE_DL_NR_MAX_NOF_CORESET> coresets;
   };
 
   struct cell_cfg_t {

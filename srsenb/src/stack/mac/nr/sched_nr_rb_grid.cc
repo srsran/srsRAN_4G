@@ -26,14 +26,20 @@ bwp_slot_grid::bwp_slot_grid(const bwp_params& bwp_cfg_, uint32_t slot_idx_) :
   is_dl(srsran_tdd_nr_is_dl(&bwp_cfg_.cell_cfg.tdd, NUMEROLOGY_IDX, slot_idx_)),
   is_ul(srsran_tdd_nr_is_ul(&bwp_cfg_.cell_cfg.tdd, NUMEROLOGY_IDX, slot_idx_))
 {
-  const uint32_t coreset_id = 0; // Note: for now only one coreset per BWP supported
-  coresets.emplace_back(*cfg, coreset_id, slot_idx_, dl_pdcchs, ul_pdcchs);
+  for (uint32_t cs_idx = 0; cs_idx < SRSRAN_UE_DL_NR_MAX_NOF_CORESET; ++cs_idx) {
+    if (cfg->cfg.pdcch.coreset_present[cs_idx]) {
+      uint32_t cs_id = cfg->cfg.pdcch.coreset[cs_idx].id;
+      coresets[cs_id].emplace(*cfg, cs_id, slot_idx_, dl_pdcchs, ul_pdcchs);
+    }
+  }
 }
 
 void bwp_slot_grid::reset()
 {
   for (auto& coreset : coresets) {
-    coreset.reset();
+    if (coreset.has_value()) {
+      coreset->reset();
+    }
   }
   dl_rbgs.reset();
   ul_rbgs.reset();
@@ -89,8 +95,9 @@ alloc_result bwp_slot_allocator::alloc_rar(uint32_t                             
   }
 
   // Find PDCCH position
-  const uint32_t coreset_id = 0;
-  if (not bwp_pdcch_slot.coresets[coreset_id].alloc_dci(pdcch_grant_type_t::rar, aggr_idx, nullptr)) {
+  const uint32_t coreset_id      = cfg.cfg.pdcch.ra_search_space.coreset_id;
+  const uint32_t search_space_id = cfg.cfg.pdcch.ra_search_space.id;
+  if (not bwp_pdcch_slot.coresets[coreset_id]->alloc_dci(pdcch_grant_type_t::rar, aggr_idx, search_space_id, nullptr)) {
     // Could not find space in PDCCH
     logger.debug("SCHED: No space in PDCCH for DL tx.");
     return alloc_result::no_cch_space;
@@ -100,7 +107,7 @@ alloc_result bwp_slot_allocator::alloc_rar(uint32_t                             
   pdcch_dl_t& pdcch = bwp_pdcch_slot.dl_pdcchs.back();
   if (not fill_dci_rar(interv, *bwp_grid.cfg, pdcch.dci)) {
     // Cancel on-going PDCCH allocation
-    bwp_pdcch_slot.coresets[coreset_id].rem_last_dci();
+    bwp_pdcch_slot.coresets[coreset_id]->rem_last_dci();
     return alloc_result::invalid_coderate;
   }
 
@@ -132,8 +139,9 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const rbgmask_t& dl_ma
   if ((pdsch_mask & dl_mask).any()) {
     return alloc_result::sch_collision;
   }
-  const uint32_t aggr_idx = 2, coreset_id = 0;
-  if (not bwp_pdcch_slot.coresets[coreset_id].alloc_dci(pdcch_grant_type_t::dl_data, aggr_idx, &ue)) {
+  const uint32_t aggr_idx = 2, search_space_id = 1;
+  uint32_t       coreset_id = ue.cfg->cfg().pdcch.search_space[search_space_id].coreset_id;
+  if (not bwp_pdcch_slot.coresets[coreset_id]->alloc_dci(pdcch_grant_type_t::dl_data, aggr_idx, search_space_id, &ue)) {
     // Could not find space in PDCCH
     return alloc_result::no_cch_space;
   }
@@ -152,7 +160,7 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const rbgmask_t& dl_ma
   pucch_resource_grant pucch_res = find_pucch_resource(ue, bwp_uci_slot.ul_rbgs, tbs);
   if (pucch_res.rnti != SRSRAN_INVALID_RNTI) {
     // Could not find space in PUCCH for HARQ-ACK
-    bwp_pdcch_slot.coresets[coreset_id].rem_last_dci();
+    bwp_pdcch_slot.coresets[coreset_id]->rem_last_dci();
     return alloc_result::no_cch_space;
   }
 
@@ -164,7 +172,7 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const rbgmask_t& dl_ma
   pucch_grant& pucch = bwp_uci_slot.pucchs.back();
   pucch.resource     = pucch_res;
   bwp_uci_slot.ul_rbgs.set(
-      ue.cfg->phy_cfg.pucch.sets[pucch_res.resource_set_id].resources[pucch_res.resource_id].starting_prb);
+      ue.cfg->cfg().pucch.sets[pucch_res.resource_set_id].resources[pucch_res.resource_id].starting_prb);
 
   return alloc_result::success;
 }
@@ -190,8 +198,10 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const rbgmask_t& ul_ma
   if ((pusch_mask & ul_mask).any()) {
     return alloc_result::sch_collision;
   }
-  const uint32_t aggr_idx = 2, coreset_id = 0;
-  if (not bwp_pdcch_slot.coresets[coreset_id].alloc_dci(pdcch_grant_type_t::ul_data, aggr_idx, &ue)) {
+  const uint32_t aggr_idx = 2, search_space_id = 1;
+  uint32_t       coreset_id = ue.cfg->cfg().pdcch.search_space[search_space_id].coreset_id;
+  if (not bwp_pdcch_slot.coresets[coreset_id].value().alloc_dci(
+          pdcch_grant_type_t::ul_data, aggr_idx, search_space_id, &ue)) {
     // Could not find space in PDCCH
     return alloc_result::no_cch_space;
   }
@@ -200,7 +210,7 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const rbgmask_t& ul_ma
   if (ue.h_ul->empty()) {
     mcs      = 20;
     tbs      = 100;
-    bool ret = ue.h_ul->new_tx(ue.pusch_tti, ue.pusch_tti, ul_mask, mcs, tbs, ue.cfg->maxharq_tx);
+    bool ret = ue.h_ul->new_tx(ue.pusch_tti, ue.pusch_tti, ul_mask, mcs, tbs, ue.cfg->ue_cfg()->maxharq_tx);
     srsran_assert(ret, "Failed to allocate UL HARQ");
   } else {
     srsran_assert(ue.h_ul->new_retx(ue.pusch_tti, ue.pusch_tti, ul_mask, &mcs, &tbs),

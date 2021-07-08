@@ -23,7 +23,7 @@ slot_ue::slot_ue(resource_guard::token ue_token_, uint16_t rnti_, tti_point tti_
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ue_carrier::ue_carrier(uint16_t rnti_, const ue_cfg_t& uecfg_, const sched_cell_params& cell_params_) :
-  rnti(rnti_), cc(cell_params_.cc), cfg(&uecfg_), cell_params(cell_params_)
+  rnti(rnti_), cc(cell_params_.cc), bwp_cfg(rnti_, cell_params_.bwps[0], uecfg_), cell_params(cell_params_)
 {}
 
 void ue_carrier::push_feedback(srsran::move_callback<void(ue_carrier&)> callback)
@@ -31,14 +31,16 @@ void ue_carrier::push_feedback(srsran::move_callback<void(ue_carrier&)> callback
   pending_feedback.push_back(std::move(callback));
 }
 
-slot_ue ue_carrier::try_reserve(tti_point tti_rx, const ue_cfg_extended& uecfg_)
+slot_ue ue_carrier::try_reserve(tti_point tti_rx, const ue_cfg_t& uecfg_)
 {
   slot_ue sfu(busy, rnti, tti_rx, cc);
   if (sfu.empty()) {
     return sfu;
   }
   // successfully acquired. Process any CC-specific pending feedback
-  cfg = &uecfg_;
+  if (bwp_cfg.ue_cfg() != &uecfg_) {
+    bwp_cfg = bwp_ue_cfg(rnti, cell_params.bwps[0], uecfg_);
+  }
   while (not pending_feedback.empty()) {
     pending_feedback.front()(*this);
     pending_feedback.pop_front();
@@ -53,7 +55,7 @@ slot_ue ue_carrier::try_reserve(tti_point tti_rx, const ue_cfg_extended& uecfg_)
   }
 
   // set UE parameters common to all carriers
-  sfu.cfg = &uecfg_;
+  sfu.cfg = &bwp_cfg;
 
   // copy cc-specific parameters and find available HARQs
   sfu.cc_cfg    = &uecfg_.carriers[cc];
@@ -92,7 +94,7 @@ slot_ue ue_carrier::try_reserve(tti_point tti_rx, const ue_cfg_extended& uecfg_)
 
 ue::ue(uint16_t rnti_, const ue_cfg_t& cfg, const sched_params& sched_cfg_) : rnti(rnti_), sched_cfg(sched_cfg_)
 {
-  ue_cfgs[0] = ue_cfg_extended(rnti, cfg);
+  ue_cfgs[0] = cfg;
   for (uint32_t cc = 0; cc < cfg.carriers.size(); ++cc) {
     if (cfg.carriers[cc].active) {
       carriers[cc].reset(new ue_carrier(rnti, cfg, sched_cfg.cells[cc]));

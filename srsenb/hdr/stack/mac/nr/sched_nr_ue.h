@@ -41,8 +41,8 @@ public:
   uint32_t  cc = SCHED_NR_MAX_CARRIERS;
 
   // UE parameters common to all sectors
-  const ue_cfg_extended* cfg = nullptr;
-  bool                   pending_sr;
+  const bwp_ue_cfg* cfg = nullptr;
+  bool              pending_sr;
 
   // UE parameters that are sector specific
   const ue_cc_cfg_t* cc_cfg = nullptr;
@@ -64,7 +64,7 @@ class ue_carrier
 {
 public:
   ue_carrier(uint16_t rnti, const ue_cfg_t& cfg, const sched_cell_params& cell_params_);
-  slot_ue try_reserve(tti_point pdcch_tti, const ue_cfg_extended& cfg);
+  slot_ue try_reserve(tti_point pdcch_tti, const ue_cfg_t& cfg);
   void    push_feedback(srsran::move_callback<void(ue_carrier&)> callback);
 
   const uint16_t rnti;
@@ -77,7 +77,7 @@ public:
   harq_entity harq_ent;
 
 private:
-  const ue_cfg_t*          cfg = nullptr;
+  bwp_ue_cfg               bwp_cfg;
   const sched_cell_params& cell_params;
 
   resource_guard busy;
@@ -105,8 +105,8 @@ private:
 
   bool pending_sr = false;
 
-  int                            current_idx = 0;
-  std::array<ue_cfg_extended, 4> ue_cfgs;
+  int                     current_idx = 0;
+  std::array<ue_cfg_t, 4> ue_cfgs;
 };
 
 using ue_map_t = srsran::static_circular_map<uint16_t, std::unique_ptr<ue>, SCHED_NR_MAX_USERS>;

@@ -12,6 +12,7 @@
 
 #include "sched_nr_sim_ue.h"
 #include "srsenb/hdr/stack/mac/nr/sched_nr.h"
+#include "srsran/common/phy_cfg_nr_default.h"
 #include "srsran/common/test_common.h"
 #include "srsran/common/thread_pool.h"
 
@@ -19,7 +20,10 @@ namespace srsenb {
 
 using dl_sched_t = sched_nr_interface::dl_sched_t;
 
-srsran_coreset_t get_default_coreset()
+static const srsran::phy_cfg_nr_t default_phy_cfg =
+    srsran::phy_cfg_nr_default_t{srsran::phy_cfg_nr_default_t::reference_cfg_t{}};
+
+srsran_coreset_t get_default_coreset0()
 {
   srsran_coreset_t coreset{};
   coreset.id                   = 0;
@@ -45,7 +49,29 @@ sched_nr_interface::cell_cfg_t get_default_cell_cfg()
   cell_cfg.tdd.pattern2.period_ms = 0;
 
   cell_cfg.bwps.resize(1);
-  cell_cfg.bwps[0].coresets[0].emplace(get_default_coreset());
+  cell_cfg.bwps[0].pdcch.coreset_present[0] = true;
+  cell_cfg.bwps[0].pdcch.coreset[0]         = get_default_coreset0();
+  cell_cfg.bwps[0].pdcch.coreset_present[1] = true;
+  cell_cfg.bwps[0].pdcch.coreset[1]         = default_phy_cfg.pdcch.coreset[1];
+
+  cell_cfg.bwps[0].pdcch.search_space_present[0] = true;
+  auto& ss                                       = cell_cfg.bwps[0].pdcch.search_space[0];
+  ss.id                                          = 0;
+  ss.coreset_id                                  = 0;
+  ss.duration                                    = 1;
+  ss.type                                        = srsran_search_space_type_common_0;
+  ss.nof_candidates[0]                           = 1;
+  ss.nof_candidates[1]                           = 1;
+  ss.nof_candidates[2]                           = 1;
+  ss.nof_candidates[3]                           = 0;
+  ss.nof_candidates[4]                           = 0;
+  ss.nof_formats                                 = 1;
+  ss.formats[0]                                  = srsran_dci_format_nr_1_0;
+  cell_cfg.bwps[0].pdcch.search_space_present[1] = true;
+  cell_cfg.bwps[0].pdcch.search_space[1]         = default_phy_cfg.pdcch.search_space[1];
+  cell_cfg.bwps[0].pdcch.ra_search_space_present = true;
+  cell_cfg.bwps[0].pdcch.ra_search_space         = cell_cfg.bwps[0].pdcch.search_space[1];
+
   return cell_cfg;
 }
 std::vector<sched_nr_interface::cell_cfg_t> get_default_cells_cfg(uint32_t nof_sectors)
@@ -65,23 +91,7 @@ sched_nr_interface::ue_cfg_t get_default_ue_cfg(uint32_t nof_cc)
   for (uint32_t cc = 0; cc < nof_cc; ++cc) {
     uecfg.carriers[cc].active = true;
   }
-  uecfg.phy_cfg.pdcch.coreset_present[0] = true;
-  uecfg.phy_cfg.pdcch.coreset[0]         = get_default_coreset();
-  uecfg.phy_cfg.pdcch.coreset[0].id      = 1;
-
-  uecfg.phy_cfg.pdcch.search_space_present[0] = true;
-  auto& ss                                    = uecfg.phy_cfg.pdcch.search_space[0];
-  ss.id                                       = 1;
-  ss.coreset_id                               = 1;
-  ss.duration                                 = 1;
-  ss.type                                     = srsran_search_space_type_common_0;
-  ss.nof_candidates[0]                        = 1;
-  ss.nof_candidates[1]                        = 1;
-  ss.nof_candidates[2]                        = 1;
-  ss.nof_candidates[3]                        = 0;
-  ss.nof_candidates[4]                        = 0;
-  ss.nof_formats                              = 1;
-  ss.formats[0]                               = srsran_dci_format_nr_1_0;
+  uecfg.phy_cfg = default_phy_cfg;
 
   return uecfg;
 }

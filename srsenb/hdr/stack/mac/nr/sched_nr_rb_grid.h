@@ -28,7 +28,7 @@ struct pending_rar_t;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 const static size_t MAX_CORESET_PER_BWP = 3;
-using slot_coreset_list                 = srsran::bounded_vector<coreset_region, MAX_CORESET_PER_BWP>;
+using slot_coreset_list                 = std::array<srsran::optional<coreset_region>, MAX_CORESET_PER_BWP>;
 
 struct bwp_slot_grid {
   uint32_t          slot_idx;

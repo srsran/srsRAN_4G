@@ -49,14 +49,9 @@ void slot_cc_worker::run()
   // Allocate pending RARs
   cell.bwps[0].ra.run_slot(bwp_alloc);
 
-  // Prioritize PDCCH scheduling for DL and UL data in a Round-Robin fashion
-  if ((tti_rx.to_uint() & 0x1u) == 0) {
-    alloc_dl_ues();
-    alloc_ul_ues();
-  } else {
-    alloc_ul_ues();
-    alloc_dl_ues();
-  }
+  // TODO: Prioritize PDCCH scheduling for DL and UL data in a Round-Robin fashion
+  alloc_dl_ues();
+  alloc_ul_ues();
 }
 
 void slot_cc_worker::end_tti()

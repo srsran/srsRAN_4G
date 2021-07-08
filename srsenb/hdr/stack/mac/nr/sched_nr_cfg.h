@@ -83,30 +83,57 @@ void get_dci_locs(const srsran_coreset_t&      coreset,
 using ue_cfg_t    = sched_nr_interface::ue_cfg_t;
 using ue_cc_cfg_t = sched_nr_interface::ue_cc_cfg_t;
 
+class bwp_ue_cfg
+{
+public:
+  bwp_ue_cfg() = default;
+  explicit bwp_ue_cfg(uint16_t rnti, const bwp_params& bwp_cfg, const ue_cfg_t& uecfg_);
+
+  const ue_cfg_t*             ue_cfg() const { return cfg_; }
+  const srsran::phy_cfg_nr_t& cfg() const { return cfg_->phy_cfg; }
+  const bwp_cce_pos_list&     cce_pos_list(uint32_t search_id) const
+  {
+    return cce_positions_list[ss_id_to_cce_idx[search_id]];
+  }
+
+private:
+  uint16_t          rnti    = SRSRAN_INVALID_RNTI;
+  const bwp_params* bwp_cfg = nullptr;
+  const ue_cfg_t*   cfg_    = nullptr;
+
+  std::vector<bwp_cce_pos_list>                              cce_positions_list;
+  std::array<uint32_t, SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE> ss_id_to_cce_idx;
+};
+
 class ue_cfg_extended : public ue_cfg_t
 {
 public:
   struct search_space_params {
-    srsran_search_space_t* cfg = nullptr;
+    const srsran_search_space_t* cfg;
+    bwp_cce_pos_list             cce_positions;
   };
   struct coreset_params {
-    srsran_coreset_t*                 cfg = nullptr;
-    std::vector<search_space_params*> ss_list;
-    bwp_cce_pos_list                  cce_positions;
+    srsran_coreset_t*     cfg = nullptr;
+    std::vector<uint32_t> ss_list;
   };
   struct bwp_params {
-    std::vector<search_space_params> search_spaces;
-    std::vector<coreset_params>      coresets;
+    std::array<srsran::optional<search_space_params>, SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE> ss_list;
+    std::vector<coreset_params>                                                             coresets;
   };
   struct cc_params {
     srsran::bounded_vector<bwp_params, SCHED_NR_MAX_BWP_PER_CELL> bwps;
   };
 
-  uint16_t               rnti;
-  std::vector<cc_params> cc_params;
-
   ue_cfg_extended() = default;
   explicit ue_cfg_extended(uint16_t rnti, const ue_cfg_t& uecfg);
+
+  const bwp_cce_pos_list& get_dci_pos_list(uint32_t cc, uint32_t bwp_id, uint32_t search_space_id) const
+  {
+    return cc_params[cc].bwps[bwp_id].ss_list[search_space_id]->cce_positions;
+  }
+
+  uint16_t               rnti;
+  std::vector<cc_params> cc_params;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

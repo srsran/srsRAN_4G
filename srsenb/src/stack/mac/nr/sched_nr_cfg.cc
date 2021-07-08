@@ -21,7 +21,8 @@ bwp_params::bwp_params(const cell_cfg_t& cell, const sched_cfg_t& sched_cfg_, ui
 {
   P     = get_P(cfg.rb_width, cfg.pdsch.rbg_size_cfg_1);
   N_rbg = get_nof_rbgs(cfg.rb_width, cfg.start_rb, cfg.pdsch.rbg_size_cfg_1);
-  srsran_assert(cfg.coresets[0].has_value(), "At least one coreset has to be active per BWP");
+
+  srsran_assert(bwp_id != 0 or cfg.pdcch.coreset_present[0], "CORESET#0 has to be active for initial BWP");
 }
 
 sched_cell_params::sched_cell_params(uint32_t cc_, const cell_cfg_t& cell, const sched_cfg_t& sched_cfg_) :
@@ -56,6 +57,26 @@ void get_dci_locs(const srsran_coreset_t&      coreset,
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+bwp_ue_cfg::bwp_ue_cfg(uint16_t rnti_, const bwp_params& bwp_cfg_, const ue_cfg_t& uecfg_) :
+  rnti(rnti_), cfg_(&uecfg_), bwp_cfg(&bwp_cfg_)
+{
+  std::fill(ss_id_to_cce_idx.begin(), ss_id_to_cce_idx.end(), SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE);
+  const auto& pdcch = cfg().pdcch;
+  for (uint32_t i = 0; i < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE; ++i) {
+    if (pdcch.search_space_present[i]) {
+      const auto& ss = pdcch.search_space[i];
+      srsran_assert(pdcch.coreset_present[ss.coreset_id],
+                    "Invalid mapping search space id=%d to coreset id=%d",
+                    ss.id,
+                    ss.coreset_id);
+      const auto& coreset = pdcch.coreset[ss.coreset_id];
+      cce_positions_list.emplace_back();
+      get_dci_locs(coreset, ss, rnti, cce_positions_list.back());
+      ss_id_to_cce_idx[ss.id] = cce_positions_list.size() - 1;
+    }
+  }
+}
+
 ue_cfg_extended::ue_cfg_extended(uint16_t rnti_, const ue_cfg_t& uecfg) : ue_cfg_t(uecfg), rnti(rnti_)
 {
   cc_params.resize(carriers.size());
@@ -64,19 +85,20 @@ ue_cfg_extended::ue_cfg_extended(uint16_t rnti_, const ue_cfg_t& uecfg) : ue_cfg
     auto& bwp = cc_params[cc].bwps[0];
     for (uint32_t ssid = 0; ssid < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE; ++ssid) {
       if (phy_cfg.pdcch.search_space_present[ssid]) {
-        bwp.search_spaces.emplace_back();
-        bwp.search_spaces.back().cfg = &phy_cfg.pdcch.search_space[ssid];
+        auto& ss = phy_cfg.pdcch.search_space[ssid];
+        bwp.ss_list[ss.id].emplace();
+        bwp.ss_list[ss.id]->cfg = &ss;
+        get_dci_locs(phy_cfg.pdcch.coreset[ss.coreset_id], ss, rnti, bwp.ss_list[ss.id]->cce_positions);
       }
     }
-    for (uint32_t csid = 0; csid < SRSRAN_UE_DL_NR_MAX_NOF_CORESET; ++csid) {
-      if (phy_cfg.pdcch.coreset_present[csid]) {
+    for (uint32_t idx = 0; idx < SRSRAN_UE_DL_NR_MAX_NOF_CORESET; ++idx) {
+      if (phy_cfg.pdcch.coreset_present[idx]) {
         bwp.coresets.emplace_back();
         auto& coreset = bwp.coresets.back();
-        coreset.cfg   = &phy_cfg.pdcch.coreset[csid];
-        for (auto& ss : bwp.search_spaces) {
-          if (ss.cfg->coreset_id == csid + 1) {
-            coreset.ss_list.push_back(&ss);
-            get_dci_locs(*coreset.cfg, *coreset.ss_list.back()->cfg, rnti, coreset.cce_positions);
+        coreset.cfg   = &phy_cfg.pdcch.coreset[idx];
+        for (auto& ss : bwp.ss_list) {
+          if (ss.has_value() and ss->cfg->coreset_id == coreset.cfg->id) {
+            coreset.ss_list.push_back(ss->cfg->id);
           }
         }
       }

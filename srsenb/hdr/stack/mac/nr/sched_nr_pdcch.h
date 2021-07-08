@@ -52,7 +52,7 @@ public:
    * @param user UE object or null in case of broadcast/RAR/paging allocation
    * @return if the allocation was successful
    */
-  bool alloc_dci(pdcch_grant_type_t alloc_type, uint32_t aggr_idx, slot_ue* user = nullptr);
+  bool alloc_dci(pdcch_grant_type_t alloc_type, uint32_t aggr_idx, uint32_t search_space_id, slot_ue* user = nullptr);
 
   void rem_last_dci();
 
@@ -71,6 +71,7 @@ private:
   // List of PDCCH grants
   struct alloc_record {
     uint32_t           aggr_idx;
+    uint32_t           search_space_id;
     uint32_t           idx;
     pdcch_grant_type_t alloc_type;
     slot_ue*           ue;

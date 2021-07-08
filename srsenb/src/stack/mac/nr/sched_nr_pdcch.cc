@@ -22,7 +22,7 @@ coreset_region::coreset_region(const bwp_params& bwp_cfg_,
                                pdcch_dl_list_t&  dl_list_,
                                pdcch_ul_list_t&  ul_list_) :
   bwp_cfg(&bwp_cfg_),
-  coreset_cfg(&bwp_cfg_.cfg.coresets[coreset_id_].value()),
+  coreset_cfg(&bwp_cfg_.cfg.pdcch.coreset[coreset_id_]),
   coreset_id(coreset_id_),
   slot_idx(slot_idx_),
   pdcch_dl_list(dl_list_),
@@ -43,7 +43,10 @@ void coreset_region::reset()
   pdcch_ul_list.clear();
 }
 
-bool coreset_region::alloc_dci(pdcch_grant_type_t alloc_type, uint32_t aggr_idx, slot_ue* user)
+bool coreset_region::alloc_dci(pdcch_grant_type_t alloc_type,
+                               uint32_t           aggr_idx,
+                               uint32_t           search_space_id,
+                               slot_ue*           user)
 {
   srsran_assert(aggr_idx <= 4, "Invalid DCI aggregation level=%d", 1U << aggr_idx);
   srsran_assert((user == nullptr) xor
@@ -52,9 +55,10 @@ bool coreset_region::alloc_dci(pdcch_grant_type_t alloc_type, uint32_t aggr_idx,
   saved_dfs_tree.clear();
 
   alloc_record record;
-  record.ue         = user;
-  record.aggr_idx   = aggr_idx;
-  record.alloc_type = alloc_type;
+  record.ue              = user;
+  record.aggr_idx        = aggr_idx;
+  record.search_space_id = search_space_id;
+  record.alloc_type      = alloc_type;
   if (record.alloc_type == pdcch_grant_type_t::ul_data) {
     record.idx = pdcch_ul_list.size();
     pdcch_ul_list.emplace_back();
@@ -172,10 +176,9 @@ srsran::span<const uint32_t> coreset_region::get_cce_loc_table(const alloc_recor
 {
   switch (record.alloc_type) {
     case pdcch_grant_type_t::dl_data:
-      return record.ue->cfg->cc_params[record.ue->cc]
-          .bwps[bwp_cfg->bwp_id]
-          .coresets[coreset_id]
-          .cce_positions[slot_idx][record.aggr_idx];
+      return record.ue->cfg->cce_pos_list(record.search_space_id)[slot_idx][record.aggr_idx];
+    case pdcch_grant_type_t::ul_data:
+      return record.ue->cfg->cce_pos_list(record.search_space_id)[slot_idx][record.aggr_idx];
     default:
       break;
   }

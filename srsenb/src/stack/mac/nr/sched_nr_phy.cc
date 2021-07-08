@@ -171,9 +171,9 @@ void fill_pusch_ue(const slot_ue& ue, const rbgmask_t& rbgmask, const bwp_params
 
 pucch_resource_grant find_pucch_resource(const slot_ue& ue, const rbgmask_t& rbgs, uint32_t tbs)
 {
-  if (ue.cfg->phy_cfg.pucch.enabled) {
+  if (ue.cfg->cfg().pucch.enabled) {
     for (uint32_t i = 0; i < SRSRAN_PUCCH_NR_MAX_NOF_SETS; ++i) {
-      const auto& rset = ue.cfg->phy_cfg.pucch.sets[i];
+      const auto& rset = ue.cfg->cfg().pucch.sets[i];
       if (rset.max_payload_size >= tbs) {
         for (uint32_t sid = 0; sid < rset.nof_resources; ++sid) {
           return pucch_resource_grant{ue.rnti, i, sid};
