@@ -54,7 +54,7 @@ public:
     action->tb.enabled    = true;
     action->tb.payload    = &tx_harq_proc[grant.pid].get_tb(grant.tbs);
     action->tb.softbuffer = &tx_harq_proc[grant.pid].get_softbuffer(grant.ndi);
-    srsran_random_byte_vector(random_gen, action->tb.payload->msg, grant.tbs / 8);
+    srsran_random_byte_vector(random_gen, action->tb.payload->msg, grant.tbs);
   }
   void prach_sent(uint32_t tti, uint32_t s_id, uint32_t t_id, uint32_t f_id, uint32_t ul_carrier_id) override {}
   bool sr_opportunity(uint32_t tti, uint32_t sr_id, bool meas_gap, bool ul_sch_tx) override
