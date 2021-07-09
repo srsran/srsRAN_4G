@@ -14,7 +14,7 @@
 #define SRSRAN_SCHED_NR_CFG_H
 
 #include "sched_nr_interface.h"
-#include "srsran/adt/bounded_bitset.h"
+#include "sched_nr_rb.h"
 
 namespace srsenb {
 
@@ -27,9 +27,10 @@ namespace sched_nr_impl {
 
 const static size_t MAX_GRANTS = sched_nr_interface::MAX_GRANTS;
 
-using pucch_resource_grant = sched_nr_interface::pucch_resource_grant;
-using pucch_grant          = sched_nr_interface::pucch_grant;
-using pucch_list_t         = sched_nr_interface::pucch_list_t;
+using pucch_t      = mac_interface_phy_nr::pucch_t;
+using pucch_list_t = srsran::bounded_vector<pucch_t, MAX_GRANTS>;
+using pusch_t      = mac_interface_phy_nr::pusch_t;
+using pusch_list_t = srsran::bounded_vector<pusch_t, MAX_GRANTS>;
 
 using sched_cfg_t = sched_nr_interface::sched_cfg_t;
 using cell_cfg_t  = sched_nr_interface::cell_cfg_t;
@@ -67,7 +68,8 @@ struct sched_params {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-using rbgmask_t = srsran::bounded_bitset<SCHED_NR_MAX_NOF_RBGS, true>;
+using prb_bitmap = srsran::bounded_bitset<SRSRAN_MAX_PRB_NR, true>;
+using rbgmask_t  = srsran::bounded_bitset<SCHED_NR_MAX_NOF_RBGS, true>;
 
 using pdcchmask_t = srsran::bounded_bitset<SCHED_NR_MAX_NOF_RBGS, true>;
 
@@ -90,7 +92,7 @@ public:
   explicit bwp_ue_cfg(uint16_t rnti, const bwp_params& bwp_cfg, const ue_cfg_t& uecfg_);
 
   const ue_cfg_t*             ue_cfg() const { return cfg_; }
-  const srsran::phy_cfg_nr_t& cfg() const { return cfg_->phy_cfg; }
+  const srsran::phy_cfg_nr_t& phy() const { return cfg_->phy_cfg; }
   const bwp_cce_pos_list&     cce_pos_list(uint32_t search_id) const
   {
     return cce_positions_list[ss_id_to_cce_idx[search_id]];

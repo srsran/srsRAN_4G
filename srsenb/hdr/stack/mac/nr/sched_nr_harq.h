@@ -31,19 +31,25 @@ public:
   }
   bool empty(uint32_t tb_idx) const { return not tb[tb_idx].active; }
   bool has_pending_retx(tti_point tti_rx) const { return not empty() and not tb[0].ack_state and tti_ack <= tti_rx; }
-  uint32_t nof_retx() const { return tb[0].n_rtx; }
-  uint32_t max_nof_retx() const { return max_retx; }
-  uint32_t tbs() const { return tb[0].tbs; }
-  uint32_t ndi() const { return tb[0].ndi; }
-  uint32_t mcs() const { return tb[0].mcs; }
+  uint32_t         nof_retx() const { return tb[0].n_rtx; }
+  uint32_t         max_nof_retx() const { return max_retx; }
+  uint32_t         tbs() const { return tb[0].tbs; }
+  uint32_t         ndi() const { return tb[0].ndi; }
+  uint32_t         mcs() const { return tb[0].mcs; }
+  const prb_grant& prbs() const { return prbs_; }
+  tti_point        harq_tti_ack() const { return tti_ack; }
 
   bool ack_info(uint32_t tb_idx, bool ack);
 
   void new_tti(tti_point tti_rx);
   void reset();
   bool
-       new_tx(tti_point tti_tx, tti_point tti_ack, const rbgmask_t& rbgmask, uint32_t mcs, uint32_t tbs, uint32_t max_retx);
-  bool new_retx(tti_point tti_tx, tti_point tti_ack, const rbgmask_t& rbgmask, int* mcs, int* tbs);
+       new_tx(tti_point tti_tx, tti_point tti_ack, const prb_grant& grant, uint32_t mcs, uint32_t tbs, uint32_t max_retx);
+  bool new_retx(tti_point tti_tx, tti_point tti_ack, const prb_grant& grant);
+  bool new_retx(tti_point tti_tx, tti_point tti_ack);
+
+  // NOTE: Has to be used before first tx is dispatched
+  bool set_tbs(uint32_t tbs);
 
   const uint32_t pid;
 
@@ -60,7 +66,7 @@ private:
   uint32_t                          max_retx = 1;
   tti_point                         tti_tx;
   tti_point                         tti_ack;
-  rbgmask_t                         rbgmask;
+  prb_grant                         prbs_;
   std::array<tb_t, SCHED_NR_MAX_TB> tb;
 };
 

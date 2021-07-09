@@ -49,11 +49,11 @@ sched_nr_interface::cell_cfg_t get_default_cell_cfg()
   cell_cfg.tdd.pattern2.period_ms = 0;
 
   cell_cfg.bwps.resize(1);
-  cell_cfg.bwps[0].pdcch.coreset_present[0] = true;
-  cell_cfg.bwps[0].pdcch.coreset[0]         = get_default_coreset0();
-  cell_cfg.bwps[0].pdcch.coreset_present[1] = true;
-  cell_cfg.bwps[0].pdcch.coreset[1]         = default_phy_cfg.pdcch.coreset[1];
+  cell_cfg.bwps[0].pdcch = default_phy_cfg.pdcch;
+  cell_cfg.bwps[0].pdsch = default_phy_cfg.pdsch;
 
+  cell_cfg.bwps[0].pdcch.coreset_present[0]      = true;
+  cell_cfg.bwps[0].pdcch.coreset[0]              = get_default_coreset0();
   cell_cfg.bwps[0].pdcch.search_space_present[0] = true;
   auto& ss                                       = cell_cfg.bwps[0].pdcch.search_space[0];
   ss.id                                          = 0;
@@ -67,8 +67,6 @@ sched_nr_interface::cell_cfg_t get_default_cell_cfg()
   ss.nof_candidates[4]                           = 0;
   ss.nof_formats                                 = 1;
   ss.formats[0]                                  = srsran_dci_format_nr_1_0;
-  cell_cfg.bwps[0].pdcch.search_space_present[1] = true;
-  cell_cfg.bwps[0].pdcch.search_space[1]         = default_phy_cfg.pdcch.search_space[1];
   cell_cfg.bwps[0].pdcch.ra_search_space_present = true;
   cell_cfg.bwps[0].pdcch.ra_search_space         = cell_cfg.bwps[0].pdcch.search_space[1];
 

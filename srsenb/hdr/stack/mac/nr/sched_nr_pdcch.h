@@ -71,7 +71,7 @@ private:
   // List of PDCCH grants
   struct alloc_record {
     uint32_t           aggr_idx;
-    uint32_t           search_space_id;
+    uint32_t           ss_id;
     uint32_t           idx;
     pdcch_grant_type_t alloc_type;
     slot_ue*           ue;

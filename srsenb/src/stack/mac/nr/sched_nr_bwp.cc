@@ -22,16 +22,18 @@ ra_sched::ra_sched(const bwp_params& bwp_cfg_) : bwp_cfg(&bwp_cfg_), logger(srsl
 alloc_result
 ra_sched::allocate_pending_rar(bwp_slot_allocator& slot_grid, const pending_rar_t& rar, uint32_t& nof_grants_alloc)
 {
-  const uint32_t rar_aggr_level = 2;
-  auto&          pdsch_bitmap   = slot_grid.res_grid()[slot_grid.get_pdcch_tti()].dl_rbgs;
+  const uint32_t    rar_aggr_level = 2;
+  const prb_bitmap& prbs           = slot_grid.res_grid()[slot_grid.get_pdcch_tti()].dl_prbs.prbs();
 
   alloc_result ret = alloc_result::other_cause;
   for (nof_grants_alloc = rar.msg3_grant.size(); nof_grants_alloc > 0; nof_grants_alloc--) {
-    ret = alloc_result::invalid_coderate;
-    for (uint32_t nrbg = 1; nrbg < bwp_cfg->N_rbg and ret == alloc_result::invalid_coderate; ++nrbg) {
-      rbg_interval rbg_interv = find_empty_rbg_interval(pdsch_bitmap, nrbg);
-      if (rbg_interv.length() == nrbg) {
-        ret = slot_grid.alloc_rar(rar_aggr_level, rar, rbg_interv, nof_grants_alloc);
+    ret                    = alloc_result::invalid_coderate;
+    uint32_t start_prb_idx = 0;
+    for (uint32_t nprb = 1; nprb < bwp_cfg->N_rbg and ret == alloc_result::invalid_coderate; ++nprb) {
+      prb_interval interv = find_empty_interval_of_length(prbs, nprb, start_prb_idx);
+      start_prb_idx       = interv.stop();
+      if (interv.length() == nprb) {
+        ret = slot_grid.alloc_rar(rar_aggr_level, rar, interv, nof_grants_alloc);
       } else {
         ret = alloc_result::no_sch_space;
       }

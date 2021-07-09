@@ -196,12 +196,9 @@ bool sched_worker_manager::get_sched_result(tti_point pdcch_tti, uint32_t cc, dl
 
   dl_res.pdcch_dl = pdcch_bwp_slot.dl_pdcchs;
   dl_res.pdcch_ul = pdcch_bwp_slot.ul_pdcchs;
-
-  ul_res.pucch.resize(pdcch_bwp_slot.pucchs.size());
-  for (uint32_t i = 0; i < pdcch_bwp_slot.pucchs.size(); ++i) {
-    ul_res.pucch[i].uci_cfg.pucch.rnti        = pdcch_bwp_slot.pucchs[i].resource.rnti;
-    ul_res.pucch[i].uci_cfg.pucch.resource_id = pdcch_bwp_slot.pucchs[i].resource.resource_id;
-  }
+  dl_res.pdsch    = pdcch_bwp_slot.pdschs;
+  ul_res.pucch    = pdcch_bwp_slot.pucchs;
+  ul_res.pusch    = pdcch_bwp_slot.puschs;
 
   // clear up BWP slot
   pdcch_bwp_slot.reset();

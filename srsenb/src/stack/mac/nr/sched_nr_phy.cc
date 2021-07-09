@@ -17,171 +17,68 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
-/// TS 38.214, Table 6.1.2.2.1-1 - Nominal RBG size P
-uint32_t get_P(uint32_t bwp_nof_prb, bool config_1_or_2)
-{
-  srsran_assert(bwp_nof_prb > 0 and bwp_nof_prb <= 275, "Invalid BWP size");
-  if (bwp_nof_prb <= 36) {
-    return config_1_or_2 ? 2 : 4;
-  }
-  if (bwp_nof_prb <= 72) {
-    return config_1_or_2 ? 4 : 8;
-  }
-  if (bwp_nof_prb <= 144) {
-    return config_1_or_2 ? 8 : 16;
-  }
-  return 16;
-}
-
-/// TS 38.214 - total number of RBGs for a uplink bandwidth part of size "bwp_nof_prb" PRBs
-uint32_t get_nof_rbgs(uint32_t bwp_nof_prb, uint32_t bwp_start, bool config1_or_2)
-{
-  uint32_t P = get_P(bwp_nof_prb, config1_or_2);
-  return srsran::ceil_div(bwp_nof_prb + (bwp_start % P), P);
-}
-
-uint32_t get_rbg_size(uint32_t bwp_nof_prb, uint32_t bwp_start, bool config1_or_2, uint32_t rbg_idx)
-{
-  uint32_t P        = get_P(bwp_nof_prb, config1_or_2);
-  uint32_t nof_rbgs = get_nof_rbgs(bwp_nof_prb, bwp_start, config1_or_2);
-  if (rbg_idx == 0) {
-    return P - (bwp_start % P);
-  }
-  if (rbg_idx == nof_rbgs - 1) {
-    uint32_t ret = (bwp_start + bwp_nof_prb) % P;
-    return ret > 0 ? ret : P;
-  }
-  return P;
-}
-
-void bitmap_to_prb_array(const rbgmask_t& bitmap, uint32_t bwp_nof_prb, srsran::span<bool> prbs)
-{
-  uint32_t count = 0;
-  for (uint32_t rbg = 0; rbg < bitmap.size(); ++rbg) {
-    bool     val      = bitmap.test(rbg);
-    uint32_t rbg_size = get_rbg_size(bwp_nof_prb, 0, true, rbg);
-    for (uint32_t prb_idx = count; prb_idx < count + rbg_size; ++prb_idx) {
-      prbs[prb_idx] = val;
-    }
-  }
-}
-
-srsran::interval<uint32_t> find_first_interval(const rbgmask_t& mask)
-{
-  int rb_start = mask.find_lowest(0, mask.size());
-  if (rb_start != -1) {
-    int rb_end = mask.find_lowest(rb_start + 1, mask.size(), false);
-    return {(uint32_t)rb_start, (uint32_t)(rb_end < 0 ? mask.size() : rb_end)};
-  }
-  return {};
-}
-
-int bitmap_to_riv(const rbgmask_t& bitmap, uint32_t cell_nof_prb)
-{
-  srsran::interval<uint32_t> interv = find_first_interval(bitmap);
-  srsran_assert(interv.length() == bitmap.count(), "Trying to acquire riv for non-contiguous bitmap");
-  return srsran_ra_nr_type1_riv(cell_nof_prb, interv.start(), interv.length());
-}
-
-rbg_interval find_empty_rbg_interval(const pdsch_bitmap& in_mask, uint32_t max_size)
-{
-  rbg_interval max_interv;
-
-  for (size_t n = 0; n < in_mask.size();) {
-    int pos = in_mask.find_lowest(n, in_mask.size(), false);
-    if (pos < 0) {
-      break;
-    }
-
-    size_t       max_pos = std::min(in_mask.size(), (size_t)pos + max_size);
-    int          pos2    = in_mask.find_lowest(pos + 1, max_pos, true);
-    rbg_interval interv(pos, pos2 < 0 ? max_pos : pos2);
-    if (interv.length() >= max_size) {
-      return interv;
-    }
-    if (interv.length() > max_interv.length()) {
-      max_interv = interv;
-    }
-    n = interv.stop();
-  }
-  return max_interv;
-}
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool fill_dci_rar(rbg_interval rbginterv, const bwp_params& cell, srsran_dci_dl_nr_t& dci)
+bool fill_dci_rar(prb_interval interv, const bwp_params& cell, srsran_dci_dl_nr_t& dci)
 {
   dci.mcs = 5;
   return true;
 }
 
 template <typename DciDlOrUl>
-void fill_dci_common(const slot_ue& ue, const rbgmask_t& bitmap, const bwp_params& bwp_cfg, DciDlOrUl& dci)
+void fill_dci_common(const slot_ue& ue, const bwp_params& bwp_cfg, DciDlOrUl& dci)
 {
   const static uint32_t rv_idx[4] = {0, 2, 3, 1};
-  // Note: PDCCH DCI position already filled at this point
-  dci.bwp_id                = ue.bwp_id;
-  dci.cc_id                 = ue.cc;
-  dci.freq_domain_assigment = bitmap_to_riv(bitmap, bwp_cfg.cfg.rb_width);
-  dci.ctx.rnti              = ue.rnti;
-  dci.ctx.rnti_type         = srsran_rnti_type_c;
-  dci.tpc                   = 1;
+
+  dci.bwp_id = ue.bwp_id;
+  dci.cc_id  = ue.cc;
+  dci.tpc    = 1;
   // harq
   harq_proc* h = std::is_same<DciDlOrUl, srsran_dci_dl_nr_t>::value ? ue.h_dl : ue.h_ul;
   dci.pid      = h->pid;
   dci.ndi      = h->ndi();
   dci.mcs      = h->mcs();
   dci.rv       = rv_idx[h->nof_retx() % 4];
-}
-
-void fill_dci_ue_cfg(const slot_ue& ue, const rbgmask_t& rbgmask, const bwp_params& bwp_cfg, srsran_dci_dl_nr_t& dci)
-{
-  fill_dci_common(ue, rbgmask, bwp_cfg, dci);
-}
-
-void fill_dci_ue_cfg(const slot_ue& ue, const rbgmask_t& rbgmask, const bwp_params& bwp_cfg, srsran_dci_ul_nr_t& dci)
-{
-  fill_dci_common(ue, rbgmask, bwp_cfg, dci);
-}
-
-void fill_sch_ue_common(const slot_ue&       ue,
-                        const rbgmask_t&     rbgmask,
-                        const bwp_params&    bwp_cfg,
-                        srsran_sch_cfg_nr_t& sch)
-{
-  sch.grant.rnti_type  = srsran_rnti_type_c;
-  sch.grant.rnti       = ue.rnti;
-  sch.grant.nof_layers = 1;
-  sch.grant.nof_prb    = bwp_cfg.cfg.rb_width;
-}
-
-void fill_pdsch_ue(const slot_ue& ue, const rbgmask_t& rbgmask, const bwp_params& cc_cfg, srsran_sch_cfg_nr_t& sch)
-{
-  fill_sch_ue_common(ue, rbgmask, cc_cfg, sch);
-  sch.grant.k          = ue.cc_cfg->pdsch_res_list[0].k0;
-  sch.grant.dci_format = srsran_dci_format_nr_1_0;
-}
-
-void fill_pusch_ue(const slot_ue& ue, const rbgmask_t& rbgmask, const bwp_params& cc_cfg, srsran_sch_cfg_nr_t& sch)
-{
-  fill_sch_ue_common(ue, rbgmask, cc_cfg, sch);
-  sch.grant.k          = ue.cc_cfg->pusch_res_list[0].k2;
-  sch.grant.dci_format = srsran_dci_format_nr_0_1;
-}
-
-pucch_resource_grant find_pucch_resource(const slot_ue& ue, const rbgmask_t& rbgs, uint32_t tbs)
-{
-  if (ue.cfg->cfg().pucch.enabled) {
-    for (uint32_t i = 0; i < SRSRAN_PUCCH_NR_MAX_NOF_SETS; ++i) {
-      const auto& rset = ue.cfg->cfg().pucch.sets[i];
-      if (rset.max_payload_size >= tbs) {
-        for (uint32_t sid = 0; sid < rset.nof_resources; ++sid) {
-          return pucch_resource_grant{ue.rnti, i, sid};
-        }
-      }
-    }
+  // PRB assignment
+  const prb_grant& grant = h->prbs();
+  if (grant.is_alloc_type0()) {
+    dci.freq_domain_assigment = grant.rbgs().to_uint64();
+  } else {
+    dci.freq_domain_assigment =
+        srsran_ra_nr_type1_riv(bwp_cfg.cfg.rb_width, grant.prbs().start(), grant.prbs().length());
   }
-  return pucch_resource_grant{SRSRAN_INVALID_RNTI, 0, 0};
+  dci.time_domain_assigment = 0;
+}
+
+void fill_dl_dci_ue_fields(const slot_ue&        ue,
+                           const bwp_params&     bwp_cfg,
+                           uint32_t              ss_id,
+                           srsran_dci_location_t dci_pos,
+                           srsran_dci_dl_nr_t&   dci)
+{
+  // Note: DCI location may not be the final one, as scheduler may rellocate the UE PDCCH. However, the remaining DCI
+  //       params are independent of the exact DCI location
+  bool ret = ue.cfg->phy().get_dci_ctx_pdsch_rnti_c(ss_id, dci_pos, ue.rnti, dci.ctx);
+  srsran_assert(ret, "Invalid DL DCI format");
+
+  fill_dci_common(ue, bwp_cfg, dci);
+  if (dci.ctx.format == srsran_dci_format_nr_1_0) {
+    dci.harq_feedback = ue.cfg->phy().harq_ack.dl_data_to_ul_ack[ue.pdsch_tti.sf_idx()] - 1;
+  } else {
+    dci.harq_feedback = ue.pdsch_tti.sf_idx();
+  }
+}
+
+void fill_ul_dci_ue_fields(const slot_ue&        ue,
+                           const bwp_params&     bwp_cfg,
+                           uint32_t              ss_id,
+                           srsran_dci_location_t dci_pos,
+                           srsran_dci_ul_nr_t&   dci)
+{
+  bool ret = ue.cfg->phy().get_dci_ctx_pdsch_rnti_c(ss_id, dci_pos, ue.rnti, dci.ctx);
+  srsran_assert(ret, "Invalid DL DCI format");
+
+  fill_dci_common(ue, bwp_cfg, dci);
 }
 
 } // namespace sched_nr_impl

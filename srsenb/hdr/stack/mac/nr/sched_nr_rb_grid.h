@@ -30,17 +30,22 @@ struct pending_rar_t;
 const static size_t MAX_CORESET_PER_BWP = 3;
 using slot_coreset_list                 = std::array<srsran::optional<coreset_region>, MAX_CORESET_PER_BWP>;
 
+using pdsch_t      = mac_interface_phy_nr::pdsch_t;
+using pdsch_list_t = srsran::bounded_vector<pdsch_t, MAX_GRANTS>;
+
 struct bwp_slot_grid {
   uint32_t          slot_idx;
   const bwp_params* cfg;
 
   bool              is_dl, is_ul;
-  pdsch_bitmap      dl_rbgs;
-  pusch_bitmap      ul_rbgs;
+  bwp_rb_bitmap     dl_prbs;
+  bwp_rb_bitmap     ul_prbs;
   pdcch_dl_list_t   dl_pdcchs;
   pdcch_ul_list_t   ul_pdcchs;
+  pdsch_list_t      pdschs;
   slot_coreset_list coresets;
   pucch_list_t      pucchs;
+  pusch_list_t      puschs;
 
   bwp_slot_grid() = default;
   explicit bwp_slot_grid(const bwp_params& bwp_params, uint32_t slot_idx_);
@@ -68,8 +73,8 @@ public:
 
   void new_slot(tti_point pdcch_tti_) { pdcch_tti = pdcch_tti_; }
 
-  alloc_result alloc_rar(uint32_t aggr_idx, const pending_rar_t& rar, rbg_interval interv, uint32_t max_nof_grants);
-  alloc_result alloc_pdsch(slot_ue& ue, const rbgmask_t& dl_mask);
+  alloc_result alloc_rar(uint32_t aggr_idx, const pending_rar_t& rar, prb_interval interv, uint32_t max_nof_grants);
+  alloc_result alloc_pdsch(slot_ue& ue, const prb_grant& dl_grant);
   alloc_result alloc_pusch(slot_ue& ue, const rbgmask_t& dl_mask);
 
   tti_point           get_pdcch_tti() const { return pdcch_tti; }

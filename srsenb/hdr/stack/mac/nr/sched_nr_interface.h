@@ -26,7 +26,7 @@ namespace srsenb {
 
 const static size_t   SCHED_NR_MAX_CARRIERS     = 4;
 const static uint16_t SCHED_NR_INVALID_RNTI     = 0;
-const static size_t   SCHED_NR_MAX_NOF_RBGS     = 17;
+const static size_t   SCHED_NR_MAX_NOF_RBGS     = 18;
 const static size_t   SCHED_NR_MAX_TB           = 1;
 const static size_t   SCHED_NR_MAX_HARQ         = 16;
 const static size_t   SCHED_NR_MAX_BWP_PER_CELL = 2;
@@ -92,16 +92,6 @@ public:
 
   using dl_sched_t = mac_interface_phy_nr::dl_sched_t;
   using ul_sched_t = mac_interface_phy_nr::ul_sched_t;
-
-  struct pucch_resource_grant {
-    uint16_t rnti;
-    uint32_t resource_set_id;
-    uint32_t resource_id;
-  };
-  struct pucch_grant {
-    pucch_resource_grant resource;
-  };
-  using pucch_list_t = srsran::bounded_vector<pucch_grant, MAX_GRANTS>;
 
   virtual ~sched_nr_interface()                                                    = default;
   virtual int  cell_cfg(srsran::const_span<sched_nr_interface::cell_cfg_t> ue_cfg) = 0;

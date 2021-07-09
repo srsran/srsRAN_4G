@@ -45,7 +45,7 @@ void harq_proc::reset()
 
 bool harq_proc::new_tx(tti_point        tti_tx_,
                        tti_point        tti_ack_,
-                       const rbgmask_t& rbgmask_,
+                       const prb_grant& grant,
                        uint32_t         mcs,
                        uint32_t         tbs,
                        uint32_t         max_retx_)
@@ -57,7 +57,7 @@ bool harq_proc::new_tx(tti_point        tti_tx_,
   max_retx     = max_retx_;
   tti_tx       = tti_tx_;
   tti_ack      = tti_ack_;
-  rbgmask      = rbgmask_;
+  prbs_        = grant;
   tb[0].ndi    = !tb[0].ndi;
   tb[0].mcs    = mcs;
   tb[0].tbs    = tbs;
@@ -65,22 +65,38 @@ bool harq_proc::new_tx(tti_point        tti_tx_,
   return true;
 }
 
-bool harq_proc::new_retx(tti_point tti_tx_, tti_point tti_ack_, const rbgmask_t& rbgmask_, int* mcs, int* tbs)
+bool harq_proc::set_tbs(uint32_t tbs)
 {
-  if (empty() or rbgmask.count() != rbgmask.count()) {
+  if (empty() or nof_retx() > 0) {
+    return false;
+  }
+  tb[0].tbs = tbs;
+  return true;
+}
+
+bool harq_proc::new_retx(tti_point tti_tx_, tti_point tti_ack_, const prb_grant& grant)
+{
+  if (grant.is_alloc_type0() != prbs_.is_alloc_type0() or
+      (grant.is_alloc_type0() and grant.rbgs().count() != prbs_.rbgs().count()) or
+      (grant.is_alloc_type1() and grant.prbs().length() == prbs_.prbs().length())) {
+    return false;
+  }
+  if (new_retx(tti_tx_, tti_ack_)) {
+    prbs_ = grant;
+    return true;
+  }
+  return false;
+}
+
+bool harq_proc::new_retx(tti_point tti_tx_, tti_point tti_ack_)
+{
+  if (empty()) {
     return false;
   }
   tti_tx          = tti_tx_;
   tti_ack         = tti_ack_;
-  rbgmask         = rbgmask_;
   tb[0].ack_state = false;
   tb[0].n_rtx++;
-  if (mcs != nullptr) {
-    *mcs = tb[0].mcs;
-  }
-  if (tbs != nullptr) {
-    *tbs = tb[0].tbs;
-  }
   return true;
 }
 

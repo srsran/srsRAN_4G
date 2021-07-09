@@ -61,7 +61,7 @@ bwp_ue_cfg::bwp_ue_cfg(uint16_t rnti_, const bwp_params& bwp_cfg_, const ue_cfg_
   rnti(rnti_), cfg_(&uecfg_), bwp_cfg(&bwp_cfg_)
 {
   std::fill(ss_id_to_cce_idx.begin(), ss_id_to_cce_idx.end(), SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE);
-  const auto& pdcch = cfg().pdcch;
+  const auto& pdcch = phy().pdcch;
   for (uint32_t i = 0; i < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE; ++i) {
     if (pdcch.search_space_present[i]) {
       const auto& ss = pdcch.search_space[i];

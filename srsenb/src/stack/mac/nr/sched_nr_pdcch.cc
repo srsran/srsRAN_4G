@@ -55,10 +55,10 @@ bool coreset_region::alloc_dci(pdcch_grant_type_t alloc_type,
   saved_dfs_tree.clear();
 
   alloc_record record;
-  record.ue              = user;
-  record.aggr_idx        = aggr_idx;
-  record.search_space_id = search_space_id;
-  record.alloc_type      = alloc_type;
+  record.ue         = user;
+  record.aggr_idx   = aggr_idx;
+  record.ss_id      = search_space_id;
+  record.alloc_type = alloc_type;
   if (record.alloc_type == pdcch_grant_type_t::ul_data) {
     record.idx = pdcch_ul_list.size();
     pdcch_ul_list.emplace_back();
@@ -158,7 +158,6 @@ bool coreset_region::alloc_dfs_node(const alloc_record& record, uint32_t start_d
     // Allocation successful
     node.total_mask |= node.current_mask;
     alloc_dfs.push_back(node);
-    // set new DCI position
     if (record.alloc_type == pdcch_grant_type_t::ul_data) {
       pdcch_ul_t& pdcch_ul      = pdcch_ul_list[record.idx];
       pdcch_ul.dci.ctx.location = node.dci_pos;
@@ -176,9 +175,9 @@ srsran::span<const uint32_t> coreset_region::get_cce_loc_table(const alloc_recor
 {
   switch (record.alloc_type) {
     case pdcch_grant_type_t::dl_data:
-      return record.ue->cfg->cce_pos_list(record.search_space_id)[slot_idx][record.aggr_idx];
+      return record.ue->cfg->cce_pos_list(record.ss_id)[slot_idx][record.aggr_idx];
     case pdcch_grant_type_t::ul_data:
-      return record.ue->cfg->cce_pos_list(record.search_space_id)[slot_idx][record.aggr_idx];
+      return record.ue->cfg->cce_pos_list(record.ss_id)[slot_idx][record.aggr_idx];
     default:
       break;
   }

@@ -18,26 +18,25 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
-uint32_t get_P(uint32_t bwp_nof_prb, bool config_1_or_2);
-uint32_t get_nof_rbgs(uint32_t bwp_nof_prb, uint32_t bwp_start, bool config1_or_2);
-
-using pdsch_bitmap = srsran::bounded_bitset<SCHED_NR_MAX_NOF_RBGS, true>;
-using pusch_bitmap = srsran::bounded_bitset<SCHED_NR_MAX_NOF_RBGS, true>;
-using rbg_interval = srsran::interval<uint32_t>;
-
-rbg_interval find_empty_rbg_interval(const pdsch_bitmap& bitmap, uint32_t max_nof_rbgs);
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool fill_dci_rar(rbg_interval rbginterv, const bwp_params& bwp_cfg, srsran_dci_dl_nr_t& dci);
+bool fill_dci_rar(prb_interval interv, const bwp_params& bwp_cfg, srsran_dci_dl_nr_t& dci);
 
 class slot_ue;
-void fill_dci_ue_cfg(const slot_ue& ue, const rbgmask_t& rbgmask, const bwp_params& bwp_cfg, srsran_dci_dl_nr_t& dci);
-void fill_dci_ue_cfg(const slot_ue& ue, const rbgmask_t& rbgmask, const bwp_params& bwp_cfg, srsran_dci_ul_nr_t& dci);
-void fill_pdsch_ue(const slot_ue& ue, const rbgmask_t& rbgmask, const bwp_params& bwp_cfg, srsran_sch_cfg_nr_t& sch);
-void fill_pusch_ue(const slot_ue& ue, const rbgmask_t& rbgmask, const bwp_params& bwp_cfg, srsran_sch_cfg_nr_t& sch);
 
-pucch_resource_grant find_pucch_resource(const slot_ue& ue, const rbgmask_t& rbgs, uint32_t tbs);
+/// Generate PDCCH DL DCI fields
+void fill_dl_dci_ue_fields(const slot_ue&        ue,
+                           const bwp_params&     bwp_cfg,
+                           uint32_t              ss_id,
+                           srsran_dci_location_t dci_pos,
+                           srsran_dci_dl_nr_t&   dci);
+
+/// Generate PDCCH UL DCI fields
+void fill_ul_dci_ue_fields(const slot_ue&        ue,
+                           const bwp_params&     bwp_cfg,
+                           uint32_t              ss_id,
+                           srsran_dci_location_t dci_pos,
+                           srsran_dci_ul_nr_t&   dci);
 
 } // namespace sched_nr_impl
 } // namespace srsenb
