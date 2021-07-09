@@ -184,6 +184,14 @@ sink& fetch_file_sink(const std::string&             path,
                       size_t                         max_size = 0,
                       std::unique_ptr<log_formatter> f        = get_default_log_formatter());
 
+/// Returns an instance of a sink that writes into syslog
+/// preamble: The string  prepended to every message, If ident is "", the program name is used.
+/// log_local: custom unused facilities that syslog provides which can be used by the user
+/// NOTE: Any '#' characters in the path will get removed.
+sink& fetch_syslog_sink(const std::string&             preamble_  = "",
+                        syslog_local_type              log_local_ = syslog_local_type::local0,
+                        std::unique_ptr<log_formatter> f          = get_default_log_formatter());
+
 /// Installs a custom user defined sink in the framework getting associated to
 /// the specified id. Returns true on success, otherwise false.
 /// WARNING: This function is an advanced feature and users should really know

@@ -31,6 +31,18 @@ enum class backend_priority
   very_high
 };
 
+/// syslog log local types
+enum class syslog_local_type {
+  local0,
+  local1,
+  local2,
+  local3,
+  local4,
+  local5,
+  local6,
+  local7,
+};
+
 } // namespace srslog
 
 #endif // SRSLOG_SHARED_TYPES_H
